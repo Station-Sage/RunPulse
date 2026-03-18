@@ -1,0 +1,43 @@
+# 비밀 정보
+config.json
+*.token
+
+# DB
+running.db
+*.db-journal
+
+# 실제 데이터
+data/activities/*.json
+data/wellness/*.json
+data/sources/**/*.json
+data/sources/**/*.fit
+data/sources/**/*.gpx
+data/plans/*.json
+data/history/*.fit
+data/history/*.gpx
+data/history/*.zip
+data/reports/*.md
+chat_context/*.md
+!**/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Termux
+*.log
