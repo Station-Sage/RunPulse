@@ -1,17 +1,17 @@
 # RunPulse - 작업 목록
 최종 업데이트: 2026-03-18
 
-## Phase 1: 기반 구축 (현재)
-- [ ] P1-1: 디렉터리 구조 및 문서 생성
-- [ ] P1-2: db_setup.py - SQLite 스키마 생성 (activities, source_metrics, daily_wellness, planned_workouts, goals)
-- [ ] P1-3: src/utils/pace.py - 페이스 변환 함수 (초를 분:초로, km/h를 min/km로)
-- [ ] P1-4: src/utils/zones.py - HR존 및 Pace존 계산 (사용자 max_hr, threshold_pace 기반)
-- [ ] P1-5: src/utils/dedup.py - 중복 활동 매칭 (timestamp 플러스마이너스 5분, distance 플러스마이너스 3퍼센트)
-- [ ] P1-6: src/utils/clipboard.py - termux-clipboard-set 래퍼
-- [ ] P1-7: config.json.example 생성
-- [ ] P1-8: tests/ 기본 테스트 작성 (pace, zones, dedup)
+## Phase 1: 기반 구축 (완료)
+- [x] P1-1: 디렉터리 구조 및 문서 생성
+- [x] P1-2: db_setup.py - SQLite 스키마 생성 (activities, source_metrics, daily_wellness, planned_workouts, goals)
+- [x] P1-3: src/utils/pace.py - 페이스 변환 함수 (초를 분:초로, km/h를 min/km로)
+- [x] P1-4: src/utils/zones.py - HR존 및 Pace존 계산 (사용자 max_hr, threshold_pace 기반)
+- [x] P1-5: src/utils/dedup.py - 중복 활동 매칭 (timestamp 플러스마이너스 5분, distance 플러스마이너스 3퍼센트)
+- [x] P1-6: src/utils/clipboard.py - termux-clipboard-set 래퍼
+- [x] P1-7: config.json.example 생성
+- [x] P1-8: tests/ 기본 테스트 작성 (pace, zones, dedup)
 
-## Phase 2: 데이터 수집
+## Phase 2: 데이터 수집 (현재)
 - [ ] P2-1: src/sync/garmin.py - garminconnect 라이브러리로 활동 및 웰니스 데이터 가져오기
 - [ ] P2-2: src/sync/strava.py - Strava OAuth2 토큰 갱신 및 활동/스트림 가져오기
 - [ ] P2-3: src/sync/intervals.py - Intervals.icu Basic Auth로 활동 및 CTL/ATL/TSB 가져오기
@@ -43,4 +43,4 @@
 - [ ] P6-3: termux-notification 알림 연동
 
 ## 완료 기록
-(완료된 작업은 여기로 이동하고 날짜 기록)
+- 2026-03-18: Phase 1 전체 완료 (P1-1 ~ P1-8)
