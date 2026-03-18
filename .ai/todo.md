@@ -11,16 +11,16 @@
 - [x] P1-7: config.json.example 생성
 - [x] P1-8: tests/ 기본 테스트 작성 (pace, zones, dedup)
 
-## Phase 2: 데이터 수집 (현재)
-- [ ] P2-1: src/sync/garmin.py - garminconnect 라이브러리로 활동 및 웰니스 데이터 가져오기
-- [ ] P2-2: src/sync/strava.py - Strava OAuth2 토큰 갱신 및 활동/스트림 가져오기
-- [ ] P2-3: src/sync/intervals.py - Intervals.icu Basic Auth로 활동 및 CTL/ATL/TSB 가져오기
-- [ ] P2-4: src/sync/runalyze.py - Runalyze API 토큰으로 활동 및 VO2Max/Race Prediction 가져오기
-- [ ] P2-5: src/sync.py - CLI 진입점. --source (garmin|strava|intervals|runalyze|all) --days N
-- [ ] P2-6: src/import_history.py - GPX/FIT 파일 일괄 파싱 및 DB 삽입
-- [ ] P2-7: 중복 매칭 통합 테스트
+## Phase 2: 데이터 수집 (완료)
+- [x] P2-1: src/sync/garmin.py - garminconnect 라이브러리로 활동 및 웰니스 데이터 가져오기
+- [x] P2-2: src/sync/strava.py - Strava OAuth2 토큰 갱신 및 활동/스트림 가져오기
+- [x] P2-3: src/sync/intervals.py - Intervals.icu Basic Auth로 활동 및 CTL/ATL/TSB 가져오기
+- [x] P2-4: src/sync/runalyze.py - Runalyze API 토큰으로 활동 및 VO2Max/Race Prediction 가져오기
+- [x] P2-5: src/sync.py - CLI 진입점. --source (garmin|strava|intervals|runalyze|all) --days N
+- [x] P2-6: src/import_history.py - GPX/FIT 파일 일괄 파싱 및 DB 삽입
+- [x] P2-7: 중복 매칭 통합 테스트
 
-## Phase 3: 분석 리포트
+## Phase 3: 분석 리포트 (현재)
 - [ ] P3-1: src/analysis/compare.py - 오늘vs어제, 이번주vs지난주, 이번달vs지난달/작년 비교
 - [ ] P3-2: src/analysis/trends.py - 주간 추세, ACWR 부상 위험도, 최적 주행거리 분석
 - [ ] P3-3: src/analysis/report.py - 마크다운 포매팅, 4개 소스 고유 지표 섹션 분리
@@ -44,3 +44,4 @@
 
 ## 완료 기록
 - 2026-03-18: Phase 1 전체 완료 (P1-1 ~ P1-8)
+- 2026-03-18: Phase 2 전체 완료 (P2-1 ~ P2-7)

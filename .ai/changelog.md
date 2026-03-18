@@ -14,3 +14,12 @@
   - src/utils/dedup.py: 중복 활동 매칭 (±5분, ±3%)
   - src/utils/clipboard.py: termux-clipboard-set 래퍼
   - tests/ 45개 테스트 (db_setup, pace, zones, dedup)
+- Phase 2 데이터 수집 완료
+  - src/utils/api.py: httpx 기반 GET/POST 래퍼 (1회 재시도)
+  - src/sync/garmin.py: Garmin Connect 활동/웰니스 동기화
+  - src/sync/strava.py: Strava OAuth2 토큰 갱신, 활동/스트림 동기화
+  - src/sync/intervals.py: Intervals.icu Basic Auth 활동/웰니스(CTL/ATL) 동기화
+  - src/sync/runalyze.py: Runalyze API Token 활동/VO2Max 동기화
+  - src/sync.py: CLI 진입점 (--source all --days 7)
+  - src/import_history.py: GPX/FIT 파일 일괄 임포트
+  - tests/ 68개 테스트 전체 통과 (api, sync 4개, import, 통합 dedup)
