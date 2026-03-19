@@ -1,9 +1,10 @@
 """Garmin sync 테스트."""
 
+import pytest
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
-from src.sync.garmin import sync_activities, sync_wellness
+from src.sync.garmin import sync_activities, sync_wellness, sync_garmin
 
 
 class TestSyncActivities:
@@ -29,6 +30,7 @@ class TestSyncActivities:
         ]
         mock_client.get_activity.return_value = {
             "aerobicTrainingEffect": 3.2,
+            "anaerobicTrainingEffect": 1.5,
             "activityTrainingLoad": 156,
             "vO2MaxValue": 48.5,
         }
@@ -45,9 +47,22 @@ class TestSyncActivities:
         metrics = db_conn.execute(
             "SELECT metric_name, metric_value FROM source_metrics ORDER BY metric_name"
         ).fetchall()
-        names = [m[0] for m in metrics]
-        assert "training_effect" in names
-        assert "vo2max" in names
+        metric_dict = {m[0]: m[1] for m in metrics}
+
+        # 하위호환 alias + 신규 분리 키 모두 존재
+        assert "training_effect" in metric_dict          # backward compat
+        assert "training_effect_aerobic" in metric_dict  # aerobic TE
+        assert "training_effect_anaerobic" in metric_dict  # anaerobic TE
+        assert metric_dict["training_effect"] == pytest.approx(3.2)
+        assert metric_dict["training_effect_aerobic"] == pytest.approx(3.2)
+        assert "vo2max" in metric_dict
+
+        # garmin vo2max가 daily_fitness에도 저장됨
+        row = db_conn.execute(
+            "SELECT garmin_vo2max FROM daily_fitness WHERE source='garmin'"
+        ).fetchone()
+        assert row is not None
+        assert row[0] == pytest.approx(48.5)
 
     @patch("src.sync.garmin.Garmin")
     @patch("src.sync.garmin.time.sleep")

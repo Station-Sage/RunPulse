@@ -1,5 +1,6 @@
 """Intervals.icu 데이터 동기화 (Basic Auth)."""
 
+import json
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -75,7 +76,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         activity_id = cursor.lastrowid
         count += 1
 
-        # 소스 고유 지표
+        # 활동 단위 고유 지표 (per-activity → source_metrics 유지)
         metrics = {
             "icu_training_load": act.get("icu_training_load"),
             "icu_intensity": act.get("icu_intensity"),
@@ -93,6 +94,13 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                 except sqlite3.Error:
                     pass
 
+        # TODO: HR Zone Distribution 수집
+        # Intervals.icu activity detail에 hr_zones 필드가 있을 수 있음
+        # 현재 API 응답 구조 확인 필요. 확인 후 구현 예정.
+        # hr_zones = act.get("hr_zones")  # 예상 필드명
+        # if hr_zones:
+        #     conn.execute(INSERT INTO source_metrics ... 'hr_zone_distribution', metric_json=json.dumps(hr_zones))
+
         assign_group_id(conn, activity_id)
 
     conn.commit()
@@ -101,6 +109,9 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
 def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
     """Intervals.icu 웰니스/피트니스 데이터를 가져와 DB에 저장.
+
+    CTL/ATL/TSB는 daily_fitness 테이블에 저장 (일별 피트니스 추적).
+    수면/HRV 등은 daily_wellness 테이블에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
@@ -127,6 +138,7 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         if not date_str:
             continue
 
+        # 수면/HRV → daily_wellness
         try:
             conn.execute(
                 """INSERT OR REPLACE INTO daily_wellness
@@ -146,28 +158,31 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         except sqlite3.Error as e:
             print(f"[intervals] 웰니스 삽입 실패 {date_str}: {e}")
 
-        # CTL/ATL/TSB를 source_metrics에 저장 (날짜 기반이지만 피트니스 추적용)
+        # CTL/ATL/TSB → daily_fitness (일별 피트니스 지표)
         ctl = entry.get("ctl")
         atl = entry.get("atl")
-        if ctl is not None or atl is not None:
-            # 가장 최근 활동에 연결하거나 별도 저장
-            # 여기서는 wellness 날짜에 해당하는 활동이 있으면 연결
-            row = conn.execute(
-                "SELECT id FROM activities WHERE source='intervals' AND date(start_time)=?",
-                (date_str,),
-            ).fetchone()
-            if row:
-                for name, value in [("ctl", ctl), ("atl", atl), ("tsb", (ctl or 0) - (atl or 0))]:
-                    if value is not None:
-                        try:
-                            conn.execute(
-                                """INSERT OR REPLACE INTO source_metrics
-                                   (activity_id, source, metric_name, metric_value)
-                                   VALUES (?, 'intervals', ?, ?)""",
-                                (row[0], name, float(value)),
-                            )
-                        except sqlite3.Error:
-                            pass
+        # Intervals.icu는 form = CTL - ATL (TSB)
+        tsb = entry.get("form")
+        if tsb is None and ctl is not None and atl is not None:
+            tsb = round(ctl - atl, 2)
+        ramp_rate = entry.get("rampRate")
+
+        if any(v is not None for v in [ctl, atl, tsb]):
+            try:
+                conn.execute("""
+                    INSERT INTO daily_fitness (date, source, ctl, atl, tsb, ramp_rate)
+                    VALUES (?, 'intervals', ?, ?, ?, ?)
+                    ON CONFLICT(date, source) DO UPDATE SET
+                        ctl = COALESCE(excluded.ctl, ctl),
+                        atl = COALESCE(excluded.atl, atl),
+                        tsb = COALESCE(excluded.tsb, tsb),
+                        ramp_rate = COALESCE(excluded.ramp_rate, ramp_rate),
+                        updated_at = datetime('now')
+                """, (date_str, ctl, atl, tsb, ramp_rate))
+            except sqlite3.OperationalError:
+                pass  # daily_fitness 테이블 미생성 환경 (graceful)
+            except sqlite3.Error as e:
+                print(f"[intervals] daily_fitness 삽입 실패 {date_str}: {e}")
 
     conn.commit()
     return count

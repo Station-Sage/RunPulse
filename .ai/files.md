@@ -8,6 +8,14 @@
 - serve.py: Flask 웹서버 실행
 - import_history.py: GPX/FIT 파일 일괄 파싱 및 DB 삽입
 
+## DB 스키마 주요 테이블
+- activities: 4소스 활동 통합 (matched_group_id로 중복 연결)
+- source_metrics: activity 단위 소스별 고유 지표 (training_load, icu_hrss, trimp 등)
+- daily_wellness: 날짜별 수면/HRV/Body Battery/스트레스
+- daily_fitness: 날짜별 피트니스 추적 지표 (CTL/ATL/TSB, VO2Max, VDOT, marathon_shape)
+- planned_workouts: 계획된 운동 (source, ai_model, garmin_workout_id 포함)
+- goals: 레이스 목표
+
 ## sync 모듈 (src/sync/)
 - garmin.py: GarminConnect 세션 관리, 활동/웰니스 가져오기, DB 저장
 - strava.py: OAuth 토큰 갱신, 활동/스트림 가져오기, 스트림은 JSON 파일로 저장

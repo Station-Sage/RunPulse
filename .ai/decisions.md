@@ -85,6 +85,12 @@
 - 규칙 기반: RunnerState(오늘 활동 유무, ACWR, TSB, 레이스 D-day 등)에 따라 우선순위 정렬
 - AI 동적: 브리핑 프롬프트에 "추천 질문 3개를 JSON으로 포함" 지시, 응답 끝에서 파싱
 
+## D20: daily_fitness 테이블 분리 (2026-03-20)
+- 결정: CTL/ATL/TSB, VO2Max 등 일별 피트니스 추적 지표를 source_metrics에서 daily_fitness 전용 테이블로 분리
+- 이유: source_metrics는 activity 단위 데이터이지만 CTL/ATL/TSB는 날짜 단위 지표. 분리하면 날짜 기준 조회가 간단해지고 4소스 피트니스 지표를 한 행에 병합 가능
+- 영향: intervals.py sync_wellness() 변경, compare.py/trends.py의 조회 소스 변경 (source_metrics 폴백 유지)
+- 하위호환: daily_fitness 미존재 환경에서 graceful 처리, source_metrics 폴백으로 기존 데이터 활용 가능
+
 ## D19: 서비스 연동 이중 방식 - CLI 직접 입력 + 웹 UI 소셜 로그인 (2026-03-19)
 - 결정: CLI 모드에서는 config.json에 키/토큰 직접 입력, Phase 5 웹 UI에서는 WebView/OAuth 팝업으로 구글 등 소셜 로그인 지원
 - 이유: HealthSync 앱과 동일한 방식. 각 서비스가 자체 소셜 로그인을 지원하므로, 해당 로그인 페이지를 팝업으로 열어 세션/토큰을 획득

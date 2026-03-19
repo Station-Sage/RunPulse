@@ -20,6 +20,16 @@
 - [x] P2-6: src/import_history.py - GPX/FIT 일괄 임포트
 - [x] P2-7: 중복 매칭 통합 테스트
 
+## Phase 1-2 수정 (완료)
+- [x] FIX-1: db_setup.py - daily_fitness 테이블 신설, planned_workouts 컬럼 추가, migrate_db()
+- [x] FIX-2: garmin.py - aerobic/anaerobic TE 분리, VO2Max→daily_fitness, sync_garmin() 래퍼
+- [x] FIX-3: strava.py - best_efforts 수집, cadence*2 확인
+- [x] FIX-4: intervals.py - CTL/ATL/TSB→daily_fitness 이관, HR Zone TODO 주석
+- [x] FIX-5: runalyze.py - marathon_shape, race_prediction 수집, daily_fitness 연동
+- [x] FIX-6: compare.py - daily_fitness 기반 CTL/ATL/TSB/VO2Max 비교 (source_metrics 폴백)
+- [x] FIX-7: trends.py - fitness_trend() daily_fitness 우선 참조 (source_metrics 폴백)
+- [x] FIX-8: 테스트 144개 전체 통과 (신규 21개 포함)
+
 ## Phase 3: 분석 리포트 (현재)
 
 ### Sprint 3-1: 핵심 분석 기반
@@ -78,3 +88,4 @@
 - 2026-03-18: Phase 2 전체 완료 (P2-1 ~ P2-7), 68개 테스트
 - 2026-03-19: Phase 3 확장 설계, Phase 4-1/4-2 분리, AI 코치 브리핑/추천칩 설계
 - 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
+- 2026-03-20: Phase 1-2 스키마 확장 및 sync 개선 완료 (FIX-1~FIX-8), 테스트 144개 통과

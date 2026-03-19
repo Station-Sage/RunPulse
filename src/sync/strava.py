@@ -14,6 +14,14 @@ _BASE_URL = "https://www.strava.com/api/v3"
 _TOKEN_URL = "https://www.strava.com/oauth/token"
 _STREAMS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "sources" / "strava"
 
+# best_efforts에서 추출할 이름-거리 매핑 (미터)
+_BEST_EFFORT_DISTANCES = {
+    "400m": 400, "1/2 mile": 804, "1k": 1000,
+    "1 mile": 1609, "2 mile": 3218, "5k": 5000,
+    "10k": 10000, "15k": 15000, "10 mile": 16090,
+    "20k": 20000, "Half-Marathon": 21097, "Marathon": 42195,
+}
+
 
 def _refresh_token(config: dict) -> str:
     """access_token 만료 시 갱신. config dict 업데이트.
@@ -54,6 +62,31 @@ def _refresh_token(config: dict) -> str:
     return strava["access_token"]
 
 
+def _extract_best_efforts(best_efforts: list) -> dict:
+    """Strava best_efforts 배열에서 거리별 최고 기록 추출 (초 단위).
+
+    Args:
+        best_efforts: Strava activity detail의 best_efforts 배열.
+
+    Returns:
+        {"1k": 245, "5k": 1320, ...} 형태의 딕셔너리.
+    """
+    result = {}
+    if not best_efforts:
+        return result
+
+    # 거리→키 역매핑
+    dist_to_key = {v: k for k, v in _BEST_EFFORT_DISTANCES.items()}
+
+    for effort in best_efforts:
+        dist = effort.get("distance")
+        elapsed = effort.get("elapsed_time")
+        if dist and elapsed and dist in dist_to_key:
+            result[dist_to_key[dist]] = int(elapsed)
+
+    return result
+
+
 def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     """Strava 활동 데이터를 가져와 DB에 저장.
 
@@ -85,7 +118,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             distance_km = (act.get("distance") or 0) / 1000
             duration_sec = int(act.get("moving_time") or 0)
             avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
-            # Strava는 러닝 케이던스를 절반 값으로 보고
+
+            # Strava는 stride/min 반환 → steps/min으로 환산 (* 2)
             cadence = act.get("average_cadence")
             if cadence:
                 cadence = int(cadence * 2)
@@ -118,20 +152,33 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             activity_id = cursor.lastrowid
             count += 1
 
-            # 상세 + 스트림
+            # 상세 조회 (suffer_score + best_efforts)
             try:
                 detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+
                 suffer_score = detail.get("suffer_score")
                 if suffer_score is not None:
                     conn.execute(
                         """INSERT INTO source_metrics
                            (activity_id, source, metric_name, metric_value)
-                           VALUES (?, 'strava', 'suffer_score', ?)""",
+                           VALUES (?, 'strava', 'relative_effort', ?)""",
                         (activity_id, float(suffer_score)),
                     )
+
+                # best_efforts 추출 및 저장
+                best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
+                if best_efforts:
+                    conn.execute(
+                        """INSERT INTO source_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'best_efforts', ?)""",
+                        (activity_id, json.dumps(best_efforts)),
+                    )
+
             except Exception as e:
                 print(f"[strava] 상세 조회 실패 {source_id}: {e}")
 
+            # 스트림 저장
             try:
                 streams = api.get(
                     f"{_BASE_URL}/activities/{source_id}/streams",
