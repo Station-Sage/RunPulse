@@ -44,3 +44,43 @@
 ## D10: 리포트 내 소스별 섹션 분리 (2026-03-18)
 - 결정: 분석 리포트에서 공통 지표와 각 소스 고유 지표를 분리하여 표시
 - 이유: 4개 소스를 활용하는 핵심 목적이 서로 다른 2차 데이터 비교에 있음
+
+## D11: AI 코치는 외부 AI가 담당, RunPulse는 데이터/파싱/실행 (2026-03-19)
+- 결정: RunPulse 자체가 훈련 계획을 생성하지 않음. Genspark 등 외부 AI가 생성하고 RunPulse는 데이터 제공, 응답 파싱, 가민 실행을 담당
+- 이유: 무료 AI 서비스(Genspark)에 최신 LLM 모델 활용 가능. 프롬프트 엔지니어링으로 품질 확보
+
+## D12: AI 서비스 비종속 설계 (2026-03-19)
+- 결정: Genspark 기본이지만 ChatGPT, Claude, DeepSeek 등 교체 가능하게 설계
+- 이유: 특정 서비스 종속 위험 회피. 프롬프트 템플릿 + 붙여넣기 방식은 모든 채팅 AI에 범용 적용
+
+## D13: AI 응답 수신은 붙여넣기 입력창 우선 (2026-03-19)
+- 결정: 방법 3(붙여넣기 입력창)을 기본으로 하고, 방법 1(iframe DOM 감지)은 Phase 6에서 확장
+- 이유: 붙여넣기는 구현이 단순하고 모든 AI 서비스에 범용. DOM 감지는 서비스별 구조가 달라 복잡
+
+## D14: 가민 워크아웃 생성-스케줄-삭제 3단계 전략 (2026-03-19)
+- 결정: upload_running_workout → schedule_workout → delete_workout으로 25개 슬롯 제한 우회
+- 이유: 캘린더 이벤트는 워크아웃 삭제 후에도 유지됨. 슬롯 점유 없이 무제한 스케줄 가능
+
+## D15: garminconnect[workout] Typed Models 사용 (2026-03-19)
+- 결정: pip install garminconnect[workout]으로 RunningWorkout, create_warmup_step 등 Typed 모델 활용
+- 이유: 딕셔너리 수동 조립 대신 타입 안전한 워크아웃 구성. 유지보수 용이
+
+## D16: 프롬프트 템플릿은 별도 텍스트 파일로 관리 (2026-03-19)
+- 결정: src/ai/prompt_templates/ 디렉터리에 .txt 파일로 프롬프트 관리
+- 이유: 코드와 프롬프트 분리. 프롬프트만 수정 시 코드 변경 불필요. 사용자 커스터마이즈 용이
+
+## D17: Phase 3 분석 모듈 6개 확장 (2026-03-19)
+- 결정: 기존 compare/trends/report 외에 efficiency, zones_analysis, activity_deep, race_readiness, recovery, weekly_score 추가
+- 이유: 4개 소스의 고유 데이터를 최대한 활용하려면 전문 분석 모듈 필요
+  - efficiency: Strava Stream 1초 데이터로 EF/Decoupling 계산 (다른 소스에서 불가)
+  - zones_analysis: Intervals.icu Zone 분포 활용
+  - recovery: Garmin 웰니스 데이터(Body Battery/HRV/Sleep) 전용
+  - race_readiness: Runalyze VO2Max/VDOT/Marathon Shape 전용
+  - weekly_score: 4개 소스 교차 검증 종합 점수
+  - activity_deep: 단일 활동에 4개 소스 평가를 병합
+
+## D18: 추천 칩 하이브리드 방식 (규칙 기반 + AI 동적) (2026-03-19)
+- 결정: AI 코치 탭 진입 시 규칙 기반 칩 즉시 표시(지연 0), AI 응답 수신 후 동적 칩으로 교체
+- 이유: 즉시 표시로 사용자 대기 없음. AI 칩은 맥락 적응성 높음. 파싱 실패 시 규칙 기반 폴백
+- 규칙 기반: RunnerState(오늘 활동 유무, ACWR, TSB, 레이스 D-day 등)에 따라 우선순위 정렬
+- AI 동적: 브리핑 프롬프트에 "추천 질문 3개를 JSON으로 포함" 지시, 응답 끝에서 파싱

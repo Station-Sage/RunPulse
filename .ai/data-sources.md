@@ -56,3 +56,38 @@ API 제한: 공식 제한 없음. Fair use 기대
   -> "Request your archive" -> 전체 GPX/FIT ZIP 다운로드
   (계정 삭제가 아님. 데이터 다운로드 페이지)
 - 다운로드한 ZIP을 data/history/ 에 풀고 import_history.py 실행
+
+## 5. Garmin Connect 워크아웃 API (쓰기)
+라이브러리: python-garminconnect[workout] (pip install garminconnect[workout])
+Typed Models: RunningWorkout, create_warmup_step, create_interval_step, create_recovery_step 등
+
+### 워크아웃 생성 예시 (Typed Model)
+from garminconnect import RunningWorkout
+workout = RunningWorkout("Tuesday Intervals")
+workout.add_step(create_warmup_step(duration_minutes=10, target_hr_zone=2))
+workout.add_step(create_interval_step(repeat=6, work_pace="4:30", rest_pace="6:00", work_minutes=3, rest_minutes=2))
+workout.add_step(create_cooldown_step(duration_minutes=10, target_hr_zone=1))
+
+### 주요 API 메서드
+- upload_running_workout(workout) -> workout_id
+- schedule_workout(workout_id, date_str) -> 캘린더 등록
+- delete_workout(workout_id) -> 워크아웃 삭제 (캘린더 이벤트는 유지됨)
+- get_workouts() -> 현재 저장된 워크아웃 목록
+
+### 슬롯 제한 우회 흐름
+1. upload_running_workout(workout) -> id 획득
+2. schedule_workout(id, "2026-03-24") -> 캘린더에 등록
+3. delete_workout(id) -> 워크아웃 삭제 (슬롯 해제, 캘린더 유지)
+4. 워치 싱크 시 해당 날짜에 워크아웃 자동 로드
+
+## 6. Strava Stream 상세 (분석용)
+엔드포인트: GET /api/v3/activities/{id}/streams?keys=time,distance,heartrate,velocity_smooth,cadence,altitude,grade_smooth
+응답: 각 key별 1초 단위 데이터 배열
+저장: data/sources/strava/{activity_id}.json
+
+### 분석 활용
+- heartrate + velocity_smooth: Aerobic EF 계산 (pace / hr ratio)
+- heartrate 전반/후반 비교: Cardiac Decoupling (디커플링 %)
+- altitude + grade_smooth: GAP (Grade Adjusted Pace) 보정
+- cadence: 케이던스 패턴 분석
+- distance + time: km별 스플릿 계산

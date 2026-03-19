@@ -1,26 +1,40 @@
 {
   "garmin": {
-    "email": "your_garmin_email@example.com",
-    "password": "your_garmin_password"
+    "email": "your@email.com",
+    "password": "your_password"
   },
   "strava": {
-    "client_id": "YOUR_STRAVA_CLIENT_ID",
-    "client_secret": "YOUR_STRAVA_CLIENT_SECRET",
-    "refresh_token": "YOUR_STRAVA_REFRESH_TOKEN",
+    "client_id": "your_client_id",
+    "client_secret": "your_client_secret",
+    "refresh_token": "your_refresh_token",
     "access_token": "",
     "expires_at": 0
   },
   "intervals": {
-    "athlete_id": "iXXXXXX",
-    "api_key": "YOUR_INTERVALS_API_KEY"
+    "athlete_id": "i12345",
+    "api_key": "your_api_key"
   },
   "runalyze": {
-    "token": "YOUR_RUNALYZE_API_TOKEN"
+    "token": "your_api_token"
   },
   "user": {
     "max_hr": 190,
-    "threshold_pace_sec_km": 300,
-    "rest_hr": 50,
-    "weight_kg": 70
+    "threshold_pace": 300,
+    "weekly_distance_target": 50,
+    "race_targets": [
+      {
+        "name": "서울마라톤 2026",
+        "date": "2026-11-01",
+        "distance_km": 42.195,
+        "target_time": "3:30:00"
+      }
+    ]
+  },
+  "ai": {
+    "default_provider": "genspark",
+    "prompt_language": "ko",
+    "briefing_auto": true,
+    "suggestion_chips_count": 5,
+    "plan_json_format": true
   }
 }
