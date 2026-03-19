@@ -27,9 +27,9 @@
 - trends.py: N주 롤링 추세, ACWR 부상 위험도 (Garmin TL, Strava RE, Intervals HRSS, Runalyze TRIMP 교차)
 - recovery.py: Garmin Body Battery/HRV/Sleep/Stress 기반 회복 점수 및 추세
 - weekly_score.py: 볼륨/강도분포/ACWR/회복/EF/일관성 종합 Training Quality Score 0-100
-- efficiency.py: Strava Stream 1초 데이터로 Aerobic EF(Pace/HR) 및 Cardiac Decoupling 계산
-- zones_analysis.py: Intervals.icu HR/Pace Zone 분포 분석, 80/20 법칙 준수 판정
-- activity_deep.py: 단일 활동 심층 (km별 스플릿, 디커플링, 존분포, 4소스 평가 병합)
+- efficiency.py: Strava stream 1초 데이터로 Aerobic EF/Cardiac Decoupling 계산, 주별 추세
+- zones_analysis.py: HR zone 분포 분석, 80/20 법칙 준수 판정 (stream > intervals > avg_hr 폴백)
+- activity_deep.py: 4소스 통합 단일 활동 심층 — 1km pace splits, fitness/recovery context
 - race_readiness.py: 레이스 준비도 종합 (Garmin VO2Max + Runalyze EffVO2Max/VDOT/Marathon Shape + Intervals TSB)
 - report.py: 마크다운 리포트 포맷팅 (인간 읽기용 + AI 컨텍스트용 이중 출력)
 

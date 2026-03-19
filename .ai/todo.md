@@ -39,9 +39,9 @@
 - [x] P3-4: src/analysis/weekly_score.py - 주간 Training Quality Score (0-100 종합 점수)
 
 ### Sprint 3-2: 심층 분석
-- [ ] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
-- [ ] P3-6: src/analysis/zones_analysis.py - HR/Pace Zone 분포, 80/20 법칙 준수 여부 판정
-- [ ] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
+- [x] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
+- [x] P3-6: src/analysis/zones_analysis.py - HR/Pace Zone 분포, 80/20 법칙 준수 여부 판정
+- [x] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
 
 ### Sprint 3-3: 레이스 & 리포트
 - [ ] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
@@ -89,3 +89,4 @@
 - 2026-03-19: Phase 3 확장 설계, Phase 4-1/4-2 분리, AI 코치 브리핑/추천칩 설계
 - 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
 - 2026-03-20: Phase 1-2 스키마 확장 및 sync 개선 완료 (FIX-1~FIX-8), 테스트 144개 통과
+- 2026-03-20: Sprint 3-2 완료 (P3-5 ~ P3-7), 신규 테스트 39개 추가 (누적 183개)

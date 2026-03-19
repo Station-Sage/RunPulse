@@ -47,6 +47,20 @@
   - 트러블슈팅 섹션 추가
 - 설계 결정 D19 추가 (서비스 연동 이중 방식)
 - Phase 5에 설정 탭 태스크 추가 (P5-5, P5-6)
+## 2026-03-20 (Sprint 3-2)
+- Sprint 3-2 심층 분석 모듈 구현 (branch: claude/sprint-3-2-deep-analysis)
+  - src/analysis/efficiency.py: Strava stream 기반 Aerobic EF/Cardiac Decoupling
+    - calculate_efficiency(): 전반/후반 EF 비교, 디커플링 %, status(good/fair/poor)
+    - efficiency_trend(): N주간 주별 평균 EF/디커플링 추세
+  - src/analysis/zones_analysis.py: HR Zone 분포, 80/20 법칙 판정
+    - analyze_zones(): 3단계 폴백 (strava_stream > intervals_zones > avg_hr_estimate)
+    - weekly_zone_trend(): N주 주별 강도 분포 추세, polarization_status 판정
+  - src/analysis/activity_deep.py: 4소스 통합 단일 활동 심층 분석
+    - deep_analyze(): 4소스 metrics + pace splits + fitness/recovery context
+    - pace splits: Strava stream 1초 데이터 기반 1km 단위 구간 시간/심박
+  - src/analysis/__init__.py: 신규 6개 함수 export
+  - tests/ 39개 신규 (누적 183개)
+
 ## 2026-03-20
 - Phase 1-2 스키마 확장 및 sync 개선 (branch: claude/fix-phase1-2-schema-sync)
   - db_setup.py: daily_fitness 테이블 신설 (CTL/ATL/TSB/VO2Max 날짜별 저장), planned_workouts에 source/ai_model/garmin_workout_id 컬럼 추가, migrate_db() 기존 DB 안전 업그레이드
