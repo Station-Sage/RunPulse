@@ -23,10 +23,10 @@
 ## Phase 3: 분석 리포트 (현재)
 
 ### Sprint 3-1: 핵심 분석 기반
-- [ ] P3-1: src/analysis/compare.py - 기간 비교 (오늘vs어제, 이번주vs지난주, 월간, 연간)
-- [ ] P3-2: src/analysis/trends.py - 주간 추세, ACWR 부상 위험도 (4개 소스 부하 교차 검증)
-- [ ] P3-3: src/analysis/recovery.py - Garmin Body Battery/HRV/Sleep/Stress 기반 회복 상태 평가
-- [ ] P3-4: src/analysis/weekly_score.py - 주간 Training Quality Score (0-100 종합 점수)
+- [x] P3-1: src/analysis/compare.py - 기간 비교 (오늘vs어제, 이번주vs지난주, 월간, 연간)
+- [x] P3-2: src/analysis/trends.py - 주간 추세, ACWR 부상 위험도 (4개 소스 부하 교차 검증)
+- [x] P3-3: src/analysis/recovery.py - Garmin Body Battery/HRV/Sleep/Stress 기반 회복 상태 평가
+- [x] P3-4: src/analysis/weekly_score.py - 주간 Training Quality Score (0-100 종합 점수)
 
 ### Sprint 3-2: 심층 분석
 - [ ] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
@@ -77,3 +77,4 @@
 - 2026-03-18: Phase 1 전체 완료 (P1-1 ~ P1-8), 45개 테스트
 - 2026-03-18: Phase 2 전체 완료 (P2-1 ~ P2-7), 68개 테스트
 - 2026-03-19: Phase 3 확장 설계, Phase 4-1/4-2 분리, AI 코치 브리핑/추천칩 설계
+- 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)

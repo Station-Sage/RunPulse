@@ -47,3 +47,18 @@
   - 트러블슈팅 섹션 추가
 - 설계 결정 D19 추가 (서비스 연동 이중 방식)
 - Phase 5에 설정 탭 태스크 추가 (P5-5, P5-6)
+- Sprint 3-1 핵심 분석 모듈 구현 (branch: claude/sprint-3-1-core-analysis)
+  - src/analysis/compare.py: 기간 비교 (matched_group_id 중복 제거, delta/pct 계산)
+    - compare_periods(), compare_today_vs_yesterday(), compare_this_week_vs_last(), compare_this_month_vs_last()
+    - 4개 소스 고유 지표: garmin training_effect/load, strava suffer_score, intervals CTL/ATL/TSB, runalyze VO2Max/VDOT
+  - src/analysis/trends.py: 주간 추세 및 ACWR 부상 위험도
+    - weekly_trends(): N주 롤링 집계, 주간 거리 변화율
+    - calculate_acwr(): 4개 소스 교차 검증 (garmin_tl, strava_re, intervals_hrss, runalyze_trimp)
+    - fitness_trend(): CTL/ATL/TSB/VO2Max 주간 추세
+  - src/analysis/recovery.py: Garmin 웰니스 기반 회복 상태 평가
+    - get_recovery_status(): 5개 지표 가중 평균 (body_battery 30%, sleep 25%, hrv 25%, stress 15%, rhr 5%)
+    - recovery_trend(): N일 추세, 상승/하락/안정 판정
+  - src/analysis/weekly_score.py: Training Quality Score (0-100)
+    - 6개 컴포넌트: volume(25), intensity(20), acwr(20), recovery(15), consistency(10), efficiency(10)
+    - 등급 판정: A(85+), B(70+), C(55+), D(40+), F
+  - tests/ 58개 신규 테스트 추가 (누적 103개)
