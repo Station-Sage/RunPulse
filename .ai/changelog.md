@@ -47,6 +47,18 @@
   - 트러블슈팅 섹션 추가
 - 설계 결정 D19 추가 (서비스 연동 이중 방식)
 - Phase 5에 설정 탭 태스크 추가 (P5-5, P5-6)
+## 2026-03-20
+- Phase 1-2 스키마 확장 및 sync 개선 (branch: claude/fix-phase1-2-schema-sync)
+  - db_setup.py: daily_fitness 테이블 신설 (CTL/ATL/TSB/VO2Max 날짜별 저장), planned_workouts에 source/ai_model/garmin_workout_id 컬럼 추가, migrate_db() 기존 DB 안전 업그레이드
+  - garmin.py: aerobic/anaerobic Training Effect 분리 저장 + 하위호환 alias, vo2max→daily_fitness, sync_garmin() 클라이언트 1회 로그인 래퍼
+  - strava.py: best_efforts 추출 및 JSON 저장, cadence*2 보정 확인
+  - intervals.py: CTL/ATL/TSB를 source_metrics에서 daily_fitness로 이관, icu_hrss는 source_metrics 유지, HR Zone TODO 주석
+  - runalyze.py: marathon_shape, race_prediction JSON 수집, daily_fitness 연동 (evo2max/vdot/marathon_shape)
+  - compare.py: CTL/ATL/TSB, VO2Max를 daily_fitness에서 조회 (source_metrics 폴백)
+  - trends.py: fitness_trend() daily_fitness 우선 참조, source_metrics 폴백, 결과 키 명확화
+  - tests/ 41개 신규 테스트 (test_daily_fitness.py 20개 포함), 전체 144개 통과 (이전 103개 기준 +41개)
+  - 설계 결정 D20 추가 (daily_fitness 테이블 분리)
+  - .ai 문서 업데이트 (todo, decisions, files)
 - Sprint 3-1 핵심 분석 모듈 구현 (branch: claude/sprint-3-1-core-analysis)
   - src/analysis/compare.py: 기간 비교 (matched_group_id 중복 제거, delta/pct 계산)
     - compare_periods(), compare_today_vs_yesterday(), compare_this_week_vs_last(), compare_this_month_vs_last()

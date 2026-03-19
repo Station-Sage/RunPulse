@@ -1,5 +1,6 @@
 """Runalyze 데이터 동기화 (API Token)."""
 
+import json
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -9,10 +10,59 @@ from src.utils.dedup import assign_group_id
 
 _BASE_URL = "https://runalyze.com/api/v1"
 
+# race prediction 필드 이름 → 거리 키 매핑 (초 단위)
+_RACE_PRED_FIELDS = {
+    "race_prediction_5000": "5k",
+    "race_5k": "5k",
+    "race_prediction_10000": "10k",
+    "race_10k": "10k",
+    "race_prediction_21097": "half",
+    "race_half": "half",
+    "race_prediction_42195": "full",
+    "race_full": "full",
+}
+
 
 def _headers(config: dict) -> dict[str, str]:
     """Runalyze API 인증 헤더."""
     return {"token": config["runalyze"]["token"]}
+
+
+def _extract_race_pred(detail: dict) -> dict:
+    """상세 응답에서 race prediction 데이터 추출."""
+    result = {}
+    for field, key in _RACE_PRED_FIELDS.items():
+        val = detail.get(field)
+        if val is not None and key not in result:
+            result[key] = int(val)
+    return result
+
+
+def _upsert_daily_fitness(
+    conn: sqlite3.Connection,
+    date_str: str,
+    evo2max: float | None,
+    vdot: float | None,
+    marathon_shape: float | None,
+) -> None:
+    """runalyze 피트니스 지표를 daily_fitness에 저장/업데이트."""
+    if not any(v is not None for v in [evo2max, vdot, marathon_shape]):
+        return
+    try:
+        conn.execute("""
+            INSERT INTO daily_fitness
+                (date, source, runalyze_evo2max, runalyze_vdot, runalyze_marathon_shape)
+            VALUES (?, 'runalyze', ?, ?, ?)
+            ON CONFLICT(date, source) DO UPDATE SET
+                runalyze_evo2max = COALESCE(excluded.runalyze_evo2max, runalyze_evo2max),
+                runalyze_vdot = COALESCE(excluded.runalyze_vdot, runalyze_vdot),
+                runalyze_marathon_shape = COALESCE(
+                    excluded.runalyze_marathon_shape, runalyze_marathon_shape
+                ),
+                updated_at = datetime('now')
+        """, (date_str, evo2max, vdot, marathon_shape))
+    except sqlite3.OperationalError:
+        pass  # daily_fitness 테이블 미생성 환경 (graceful)
 
 
 def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
@@ -75,13 +125,21 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         activity_id = cursor.lastrowid
         count += 1
 
-        # 상세 지표
+        # 상세 지표 조회
         try:
             detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+
+            evo2max = detail.get("vo2max")
+            vdot = detail.get("vdot")
+            trimp = detail.get("trimp")
+            marathon_shape = detail.get("marathon_shape") or detail.get("marathonShape")
+
+            # source_metrics에 저장 (activity 단위)
             metrics = {
-                "effective_vo2max": detail.get("vo2max"),
-                "vdot": detail.get("vdot"),
-                "trimp": detail.get("trimp"),
+                "effective_vo2max": evo2max,
+                "vdot": vdot,
+                "trimp": trimp,
+                "marathon_shape": marathon_shape,
             }
             for name, value in metrics.items():
                 if value is not None:
@@ -91,6 +149,26 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                            VALUES (?, 'runalyze', ?, ?)""",
                         (activity_id, name, float(value)),
                     )
+
+            # race prediction → source_metrics (JSON)
+            race_pred = _extract_race_pred(detail)
+            if race_pred:
+                conn.execute(
+                    """INSERT INTO source_metrics
+                       (activity_id, source, metric_name, metric_json)
+                       VALUES (?, 'runalyze', 'race_prediction', ?)""",
+                    (activity_id, json.dumps(race_pred)),
+                )
+
+            # daily_fitness에도 저장/업데이트
+            date_str = start_time[:10]
+            _upsert_daily_fitness(
+                conn, date_str,
+                float(evo2max) if evo2max is not None else None,
+                float(vdot) if vdot is not None else None,
+                float(marathon_shape) if marathon_shape is not None else None,
+            )
+
         except Exception as e:
             print(f"[runalyze] 상세 조회 실패 {source_id}: {e}")
 

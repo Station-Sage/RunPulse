@@ -17,18 +17,40 @@ def _login(config: dict) -> Garmin:
     return client
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
+    """garmin_vo2max를 daily_fitness에 저장/업데이트."""
+    try:
+        conn.execute("""
+            INSERT INTO daily_fitness (date, source, garmin_vo2max)
+            VALUES (?, 'garmin', ?)
+            ON CONFLICT(date, source) DO UPDATE SET
+                garmin_vo2max = excluded.garmin_vo2max,
+                updated_at = datetime('now')
+        """, (date_str, vo2max))
+    except sqlite3.OperationalError:
+        pass  # daily_fitness 테이블 미생성 환경 (graceful)
+
+
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    client: Garmin | None = None,
+) -> int:
     """Garmin 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
         days: 가져올 일수.
+        client: 기존 Garmin 클라이언트. None이면 새로 로그인.
 
     Returns:
         새로 저장된 활동 수.
     """
-    client = _login(config)
+    if client is None:
+        client = _login(config)
+
     activities = client.get_activities(0, days * 3)
     cutoff = datetime.now() - timedelta(days=days)
     count = 0
@@ -76,14 +98,22 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         activity_id = cursor.lastrowid
         count += 1
 
-        # 상세 지표 가져오기
+        # 상세 지표 조회
         try:
             time.sleep(2)
             detail = client.get_activity(int(source_id))
+            aerobic_te = detail.get("aerobicTrainingEffect")
+            anaerobic_te = detail.get("anaerobicTrainingEffect")
+            training_load = detail.get("activityTrainingLoad")
+            vo2max = detail.get("vO2MaxValue")
+
+            # aerobic/anaerobic TE 분리 저장 + 하위호환 alias
             metrics = {
-                "training_effect": detail.get("aerobicTrainingEffect"),
-                "training_load": detail.get("activityTrainingLoad"),
-                "vo2max": detail.get("vO2MaxValue"),
+                "training_effect_aerobic": aerobic_te,
+                "training_effect_anaerobic": anaerobic_te,
+                "training_effect": aerobic_te,  # 하위호환
+                "training_load": training_load,
+                "vo2max": vo2max,
             }
             for name, value in metrics.items():
                 if value is not None:
@@ -93,6 +123,12 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                            VALUES (?, 'garmin', ?, ?)""",
                         (activity_id, name, float(value)),
                     )
+
+            # vo2max를 daily_fitness에도 저장
+            if vo2max is not None:
+                date_str = start_time[:10]  # YYYY-MM-DD
+                _upsert_vo2max(conn, date_str, float(vo2max))
+
         except Exception as e:
             print(f"[garmin] 상세 조회 실패 {source_id}: {e}")
 
@@ -102,35 +138,39 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     return count
 
 
-def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_wellness(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    client: Garmin | None = None,
+) -> int:
     """Garmin 웰니스 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
         days: 가져올 일수.
+        client: 기존 Garmin 클라이언트. None이면 새로 로그인.
 
     Returns:
         저장된 레코드 수.
     """
-    client = _login(config)
+    if client is None:
+        client = _login(config)
+
     count = 0
     today = datetime.now().date()
 
     for i in range(days):
-        date = today - timedelta(days=i)
-        date_str = date.isoformat()
-        sleep_score = None
-        sleep_hours = None
-        hrv_value = None
-        body_battery = None
-        stress_avg = None
-        resting_hr = None
+        day = today - timedelta(days=i)
+        date_str = day.isoformat()
+        sleep_score = sleep_hours = hrv_value = body_battery = stress_avg = resting_hr = None
 
         try:
             sleep = client.get_sleep_data(date_str)
             if sleep:
-                sleep_score = sleep.get("dailySleepDTO", {}).get("sleepScores", {}).get("overall", {}).get("value")
+                sleep_score = (sleep.get("dailySleepDTO", {})
+                               .get("sleepScores", {}).get("overall", {}).get("value"))
                 sleep_secs = sleep.get("dailySleepDTO", {}).get("sleepTimeSeconds")
                 if sleep_secs:
                     sleep_hours = round(sleep_secs / 3600, 1)
@@ -148,8 +188,9 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         try:
             time.sleep(2)
             bb = client.get_body_battery(date_str)
-            if bb and isinstance(bb, list) and len(bb) > 0:
-                vals = [item.get("bodyBatteryLevel", 0) for item in bb if item.get("bodyBatteryLevel")]
+            if bb and isinstance(bb, list) and bb:
+                vals = [item.get("bodyBatteryLevel", 0) for item in bb
+                        if item.get("bodyBatteryLevel")]
                 body_battery = max(vals) if vals else None
         except Exception as e:
             print(f"[garmin] Body Battery 실패 {date_str}: {e}")
@@ -163,13 +204,14 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
             print(f"[garmin] 스트레스 데이터 실패 {date_str}: {e}")
 
         try:
-            resting_hr_data = client.get_rhr_day(date_str)
-            if resting_hr_data:
-                resting_hr = resting_hr_data.get("restingHeartRate")
+            rhr_data = client.get_rhr_day(date_str)
+            if rhr_data:
+                resting_hr = rhr_data.get("restingHeartRate")
         except Exception:
             pass
 
-        has_data = any(v is not None for v in [sleep_score, sleep_hours, hrv_value, body_battery, stress_avg])
+        has_data = any(v is not None for v in
+                       [sleep_score, sleep_hours, hrv_value, body_battery, stress_avg])
         if not has_data:
             continue
 
@@ -179,7 +221,8 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
                    (date, source, sleep_score, sleep_hours, hrv_value,
                     resting_hr, body_battery, stress_avg)
                    VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?)""",
-                (date_str, sleep_score, sleep_hours, hrv_value, resting_hr, body_battery, stress_avg),
+                (date_str, sleep_score, sleep_hours, hrv_value,
+                 resting_hr, body_battery, stress_avg),
             )
             count += 1
         except sqlite3.Error as e:
@@ -187,3 +230,20 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     conn.commit()
     return count
+
+
+def sync_garmin(config: dict, conn: sqlite3.Connection, days: int) -> dict:
+    """Garmin 전체 동기화 (활동 + 웰니스). 클라이언트를 한 번만 로그인.
+
+    Args:
+        config: 전체 설정 딕셔너리.
+        conn: SQLite 연결.
+        days: 가져올 일수.
+
+    Returns:
+        {"activities": 저장 수, "wellness": 저장 수}
+    """
+    client = _login(config)
+    act_count = sync_activities(config, conn, days, client=client)
+    well_count = sync_wellness(config, conn, days, client=client)
+    return {"activities": act_count, "wellness": well_count}

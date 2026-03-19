@@ -10,7 +10,7 @@ def get_db_path() -> Path:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """5개 테이블 생성 (IF NOT EXISTS)."""
+    """6개 테이블 생성 (IF NOT EXISTS)."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS activities (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,6 +66,25 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wellness_date_source
             ON daily_wellness(date, source);
 
+        CREATE TABLE IF NOT EXISTS daily_fitness (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            source TEXT NOT NULL,
+            ctl REAL,
+            atl REAL,
+            tsb REAL,
+            ramp_rate REAL,
+            garmin_vo2max REAL,
+            runalyze_evo2max REAL,
+            runalyze_vdot REAL,
+            runalyze_marathon_shape REAL,
+            updated_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(date, source)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_daily_fitness_date
+            ON daily_fitness(date);
+
         CREATE TABLE IF NOT EXISTS planned_workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
@@ -77,7 +96,10 @@ def create_tables(conn: sqlite3.Connection) -> None:
             description TEXT,
             rationale TEXT,
             completed INTEGER NOT NULL DEFAULT 0,
-            matched_activity_id INTEGER REFERENCES activities(id)
+            matched_activity_id INTEGER REFERENCES activities(id),
+            source TEXT DEFAULT 'manual',
+            ai_model TEXT,
+            garmin_workout_id TEXT
         );
 
         CREATE TABLE IF NOT EXISTS goals (
@@ -93,12 +115,54 @@ def create_tables(conn: sqlite3.Connection) -> None:
     """)
 
 
+def migrate_db(conn: sqlite3.Connection) -> None:
+    """기존 DB에 새 테이블/컬럼을 안전하게 추가.
+
+    이미 존재하는 컬럼이나 테이블은 건너뛴다.
+    """
+    # daily_fitness 테이블 (IF NOT EXISTS이므로 안전)
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS daily_fitness (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            source TEXT NOT NULL,
+            ctl REAL,
+            atl REAL,
+            tsb REAL,
+            ramp_rate REAL,
+            garmin_vo2max REAL,
+            runalyze_evo2max REAL,
+            runalyze_vdot REAL,
+            runalyze_marathon_shape REAL,
+            updated_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(date, source)
+        );
+        CREATE INDEX IF NOT EXISTS idx_daily_fitness_date
+            ON daily_fitness(date);
+    """)
+
+    # planned_workouts 새 컬럼 (SQLite ALTER TABLE은 IF NOT EXISTS 미지원 → try/except)
+    new_columns = [
+        "ALTER TABLE planned_workouts ADD COLUMN source TEXT DEFAULT 'manual'",
+        "ALTER TABLE planned_workouts ADD COLUMN ai_model TEXT",
+        "ALTER TABLE planned_workouts ADD COLUMN garmin_workout_id TEXT",
+    ]
+    for stmt in new_columns:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # 이미 존재하는 컬럼
+
+    conn.commit()
+
+
 def init_db() -> Path:
-    """DB 초기화: 테이블 생성 및 WAL 모드 설정. DB 경로 반환."""
+    """DB 초기화: 테이블 생성, 마이그레이션, WAL 모드 설정. DB 경로 반환."""
     db_path = get_db_path()
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         create_tables(conn)
+        migrate_db(conn)
     return db_path
 
 

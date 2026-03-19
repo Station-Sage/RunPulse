@@ -73,7 +73,7 @@ def _metric_avg(conn: sqlite3.Connection, start: str, end: str,
 
 def _last_day_metric(conn: sqlite3.Connection, start: str, end: str,
                      source: str, metric_name: str) -> float | None:
-    """기간 마지막 날의 특정 소스/지표 값."""
+    """기간 마지막 날의 특정 소스/지표 값 (source_metrics)."""
     row = conn.execute("""
         SELECT sm.metric_value
         FROM source_metrics sm
@@ -87,29 +87,68 @@ def _last_day_metric(conn: sqlite3.Connection, start: str, end: str,
     return row[0] if row else None
 
 
+_VALID_FITNESS_COLS = frozenset({
+    "ctl", "atl", "tsb", "ramp_rate", "garmin_vo2max",
+    "runalyze_evo2max", "runalyze_vdot", "runalyze_marathon_shape",
+})
+
+
+def _last_day_fitness(conn: sqlite3.Connection, start: str, end: str,
+                      source: str, col: str) -> float | None:
+    """daily_fitness에서 기간 마지막 날의 값 조회."""
+    if col not in _VALID_FITNESS_COLS:
+        return None
+    try:
+        row = conn.execute(
+            f"SELECT {col} FROM daily_fitness "
+            f"WHERE date >= ? AND date < ? AND source = ? AND {col} IS NOT NULL "
+            "ORDER BY date DESC LIMIT 1",
+            (start, end, source),
+        ).fetchone()
+        return row[0] if row else None
+    except sqlite3.OperationalError:
+        return None
+
+
+def _fitness_or_metric(conn, start, end, df_src, df_col, fb_src, fb_metric):
+    """daily_fitness 우선, 없으면 source_metrics 폴백."""
+    v = _last_day_fitness(conn, start, end, df_src, df_col)
+    if v is None:
+        v = _last_day_metric(conn, start, end, fb_src, fb_metric)
+    return v
+
+
 def _get_source_metrics(conn: sqlite3.Connection, start: str, end: str) -> dict:
-    """4개 소스 고유 지표 수집."""
+    """4개 소스 고유 지표 수집 (daily_fitness 우선, 폴백 source_metrics)."""
     return {
-        # garmin
+        # garmin (source_metrics)
         "garmin_training_effect_avg": _metric_avg(
             conn, start, end, "garmin", "training_effect_aerobic"
         ),
         "garmin_training_load_total": _metric_sum(
             conn, start, end, "garmin", "training_load"
         ),
-        # strava
+        # strava (source_metrics)
         "strava_suffer_score_total": _metric_sum(
             conn, start, end, "strava", "relative_effort"
         ),
-        # intervals (기간 마지막 날 스냅샷)
-        "intervals_ctl_last": _last_day_metric(conn, start, end, "intervals", "ctl"),
-        "intervals_atl_last": _last_day_metric(conn, start, end, "intervals", "atl"),
-        "intervals_tsb_last": _last_day_metric(conn, start, end, "intervals", "tsb"),
-        # runalyze (기간 마지막 날 스냅샷)
-        "runalyze_vo2max_last": _last_day_metric(
-            conn, start, end, "runalyze", "effective_vo2max"
+        # intervals CTL/ATL/TSB (daily_fitness 우선)
+        "intervals_ctl_last": _fitness_or_metric(
+            conn, start, end, "intervals", "ctl", "intervals", "ctl"
         ),
-        "runalyze_vdot_last": _last_day_metric(conn, start, end, "runalyze", "vdot"),
+        "intervals_atl_last": _fitness_or_metric(
+            conn, start, end, "intervals", "atl", "intervals", "atl"
+        ),
+        "intervals_tsb_last": _fitness_or_metric(
+            conn, start, end, "intervals", "tsb", "intervals", "tsb"
+        ),
+        # runalyze VO2Max/VDOT (daily_fitness 우선)
+        "runalyze_vo2max_last": _fitness_or_metric(
+            conn, start, end, "runalyze", "runalyze_evo2max", "runalyze", "effective_vo2max"
+        ),
+        "runalyze_vdot_last": _fitness_or_metric(
+            conn, start, end, "runalyze", "runalyze_vdot", "runalyze", "vdot"
+        ),
     }
 
 

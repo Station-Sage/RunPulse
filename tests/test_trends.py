@@ -158,7 +158,7 @@ def test_fitness_trend_empty(conn):
     assert len(result) == 4
     for w in result:
         assert w["intervals_ctl"] is None
-        assert w["runalyze_effective_vo2max"] is None
+        assert w["runalyze_evo2max"] is None
 
 
 def test_fitness_trend_with_data(conn):
