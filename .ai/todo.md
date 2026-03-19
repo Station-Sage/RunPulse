@@ -1,46 +1,80 @@
 # RunPulse - 작업 목록
-최종 업데이트: 2026-03-18
+최종 업데이트: 2026-03-19
 
-## Phase 1: 기반 구축 (현재)
-- [ ] P1-1: 디렉터리 구조 및 문서 생성
-- [ ] P1-2: db_setup.py - SQLite 스키마 생성 (activities, source_metrics, daily_wellness, planned_workouts, goals)
-- [ ] P1-3: src/utils/pace.py - 페이스 변환 함수 (초를 분:초로, km/h를 min/km로)
-- [ ] P1-4: src/utils/zones.py - HR존 및 Pace존 계산 (사용자 max_hr, threshold_pace 기반)
-- [ ] P1-5: src/utils/dedup.py - 중복 활동 매칭 (timestamp 플러스마이너스 5분, distance 플러스마이너스 3퍼센트)
-- [ ] P1-6: src/utils/clipboard.py - termux-clipboard-set 래퍼
-- [ ] P1-7: config.json.example 생성
-- [ ] P1-8: tests/ 기본 테스트 작성 (pace, zones, dedup)
+## Phase 1: 기반 구축 (완료)
+- [x] P1-1: 디렉터리 구조 및 문서 생성
+- [x] P1-2: db_setup.py - SQLite 스키마 생성
+- [x] P1-3: src/utils/pace.py - 페이스 변환 함수
+- [x] P1-4: src/utils/zones.py - HR존 및 Pace존 계산
+- [x] P1-5: src/utils/dedup.py - 중복 활동 매칭
+- [x] P1-6: src/utils/clipboard.py - termux-clipboard-set 래퍼
+- [x] P1-7: config.json.example 생성
+- [x] P1-8: tests/ 기본 테스트 작성
 
-## Phase 2: 데이터 수집
-- [ ] P2-1: src/sync/garmin.py - garminconnect 라이브러리로 활동 및 웰니스 데이터 가져오기
-- [ ] P2-2: src/sync/strava.py - Strava OAuth2 토큰 갱신 및 활동/스트림 가져오기
-- [ ] P2-3: src/sync/intervals.py - Intervals.icu Basic Auth로 활동 및 CTL/ATL/TSB 가져오기
-- [ ] P2-4: src/sync/runalyze.py - Runalyze API 토큰으로 활동 및 VO2Max/Race Prediction 가져오기
-- [ ] P2-5: src/sync.py - CLI 진입점. --source (garmin|strava|intervals|runalyze|all) --days N
-- [ ] P2-6: src/import_history.py - GPX/FIT 파일 일괄 파싱 및 DB 삽입
-- [ ] P2-7: 중복 매칭 통합 테스트
+## Phase 2: 데이터 수집 (완료)
+- [x] P2-1: src/sync/garmin.py - Garmin Connect 활동/웰니스
+- [x] P2-2: src/sync/strava.py - Strava OAuth2 활동/스트림
+- [x] P2-3: src/sync/intervals.py - Intervals.icu 활동/CTL/ATL/TSB
+- [x] P2-4: src/sync/runalyze.py - Runalyze 활동/VO2Max/Race Prediction
+- [x] P2-5: src/sync.py - CLI 진입점
+- [x] P2-6: src/import_history.py - GPX/FIT 일괄 임포트
+- [x] P2-7: 중복 매칭 통합 테스트
 
-## Phase 3: 분석 리포트
-- [ ] P3-1: src/analysis/compare.py - 오늘vs어제, 이번주vs지난주, 이번달vs지난달/작년 비교
-- [ ] P3-2: src/analysis/trends.py - 주간 추세, ACWR 부상 위험도, 최적 주행거리 분석
-- [ ] P3-3: src/analysis/report.py - 마크다운 포매팅, 4개 소스 고유 지표 섹션 분리
-- [ ] P3-4: src/analyze.py - CLI 진입점. today|week|month|compare|trends|full --clipboard --save
+## Phase 3: 분석 리포트 (현재)
+
+### Sprint 3-1: 핵심 분석 기반
+- [x] P3-1: src/analysis/compare.py - 기간 비교 (오늘vs어제, 이번주vs지난주, 월간, 연간)
+- [x] P3-2: src/analysis/trends.py - 주간 추세, ACWR 부상 위험도 (4개 소스 부하 교차 검증)
+- [x] P3-3: src/analysis/recovery.py - Garmin Body Battery/HRV/Sleep/Stress 기반 회복 상태 평가
+- [x] P3-4: src/analysis/weekly_score.py - 주간 Training Quality Score (0-100 종합 점수)
+
+### Sprint 3-2: 심층 분석
+- [ ] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
+- [ ] P3-6: src/analysis/zones_analysis.py - HR/Pace Zone 분포, 80/20 법칙 준수 여부 판정
+- [ ] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
+
+### Sprint 3-3: 레이스 & 리포트
+- [ ] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
+- [ ] P3-9: src/analysis/report.py - 마크다운 리포트 포맷팅 (인간용 + AI 컨텍스트용 이중 출력)
+- [ ] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
 
 ## Phase 4: 훈련 계획 및 목표
-- [ ] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간, 자동 페이스 계산)
-- [ ] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성 (현재 CTL, VO2Max 기반)
-- [ ] P4-3: src/training/adjuster.py - 컨디션(HRV, Sleep, Body Battery) 기반 당일 계획 조정
-- [ ] P4-4: src/plan.py - CLI 진입점. goal add|list, plan week|month, context --clipboard
+- [ ] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
+- [ ] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성
+- [ ] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
+- [ ] P4-4: src/plan.py - CLI 진입점
+
+## Phase 4-1: AI 코치 연동
+- [ ] P4-1-1: src/ai/ai_context.py - 분석 데이터를 AI 프롬프트 컨텍스트로 변환
+- [ ] P4-1-2: src/ai/ai_schema.py - AI 훈련 계획 JSON 스키마 정의 및 검증
+- [ ] P4-1-3: src/ai/ai_parser.py - AI 응답에서 훈련 계획 JSON 추출 및 파싱
+- [ ] P4-1-4: src/ai/briefing.py - AI 코치 탭 진입 시 자동 브리핑 (오늘/이번주 데이터 수집 + 프롬프트 조립)
+- [ ] P4-1-5: src/ai/suggestions.py - 추천 칩 생성 (규칙 기반 + AI 응답 파싱 하이브리드)
+- [ ] P4-1-6: src/ai/prompt_templates/ - 프롬프트 템플릿 파일들 (briefing, deep_analysis, race_predict 등 10종)
+
+## Phase 4-2: 가민 워크아웃 캘린더
+- [ ] P4-2-1: src/workout/workout_builder.py - AI JSON을 Garmin Typed Workout 모델로 변환
+- [ ] P4-2-2: src/workout/garmin_calendar.py - 워크아웃 업로드 → 캘린더 스케줄 → 삭제 (25개 슬롯 우회)
+- [ ] P4-2-3: src/workout/workout_export.py - 워크아웃 JSON/YAML 내보내기
 
 ## Phase 5: 웹 대시보드
 - [ ] P5-1: src/serve.py + src/web/app.py - Flask 경량 서버
-- [ ] P5-2: 대시보드 (오늘 요약, 주간 통계, 피트니스 차트, 최근 활동 목록)
-- [ ] P5-3: 모바일 반응형 HTML
+- [ ] P5-2: 대시보드 탭 (오늘 요약, 주간 통계, 피트니스 차트, 최근 활동)
+- [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
+- [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
+- [ ] P5-5: 설정 탭 - 서비스 연동 (Garmin SSO 팝업, Strava OAuth2 자동화, Intervals API Key, Runalyze Token)
+- [ ] P5-6: 설정 탭 - 사용자 프로필 (max_hr, threshold_pace, 주간 목표, 레이스 목표)
+- [ ] P5-7: 모바일 반응형 HTML + 다크 모드
 
 ## Phase 6: 고도화
-- [ ] P6-1: Genspark 프롬프트 템플릿 최적화
-- [ ] P6-2: cron 자동 동기화 (termux-job-scheduler)
-- [ ] P6-3: termux-notification 알림 연동
+- [ ] P6-1: AI 코치 다중 프로바이더 (Genspark, ChatGPT, Claude, DeepSeek 교체 가능)
+- [ ] P6-2: iframe DOM 자동 감지로 AI 응답 자동 수집 (방법 1 확장)
+- [ ] P6-3: AI 코치 대화 이력 저장 및 검색
+- [ ] P6-4: cron 자동 동기화 (termux-job-scheduler)
+- [ ] P6-5: termux-notification 알림 연동
 
 ## 완료 기록
-(완료된 작업은 여기로 이동하고 날짜 기록)
+- 2026-03-18: Phase 1 전체 완료 (P1-1 ~ P1-8), 45개 테스트
+- 2026-03-18: Phase 2 전체 완료 (P2-1 ~ P2-7), 68개 테스트
+- 2026-03-19: Phase 3 확장 설계, Phase 4-1/4-2 분리, AI 코치 브리핑/추천칩 설계
+- 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
