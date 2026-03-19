@@ -40,3 +40,10 @@
 - Phase 4-1/4-2 분리 확정, Phase 5 AI 코치 탭 상세화
 - 설계 결정 D11~D18 추가
 - .ai 문서 전체 업데이트 (todo, architecture, files, roadmap, decisions, data-sources, changelog)
+- 서비스 연동 가이드 전면 개편 (docs/setup-apis.md)
+  - 4개 서비스별 구글 SSO 지원 현황 정리
+  - CLI 모드(키 직접 입력) + 웹 UI 모드(소셜 로그인 팝업) 이중 방식 설계
+  - Phase 5 웹 UI 연동 플로우 (Garmin SSO, Strava OAuth2, Intervals/Runalyze 안내)
+  - 트러블슈팅 섹션 추가
+- 설계 결정 D19 추가 (서비스 연동 이중 방식)
+- Phase 5에 설정 탭 태스크 추가 (P5-5, P5-6)

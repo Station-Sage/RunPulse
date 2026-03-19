@@ -212,3 +212,80 @@ config.json (gitignore 대상):
 - runalyze: token
 - user: max_hr, threshold_pace, weekly_distance_target, race_targets
 - ai: default_provider, prompt_language
+
+## 웹 UI 서비스 연동 플로우 (Phase 5)
+
+### Garmin 연동 (WebView SSO)
+
+    [사용자: "Garmin 연동" 클릭]
+              |
+              v
+    [팝업 윈도우: sso.garmin.com/sso/login]
+    - "Sign in with Google" 버튼 표시됨
+    - 구글 계정 선택 → 가민 SSO 처리
+              |
+              v
+    [로그인 성공 → 세션 쿠키/토큰 발급]
+              |
+              v
+    [RunPulse: 세션 토큰 캡처 → garth에 주입]
+              |
+              v
+    [config.json 업데이트 → 연동 완료]
+
+### Strava 연동 (OAuth2 자동화)
+
+    [사용자: "Strava 연동" 클릭]
+              |
+              v
+    [브라우저 리다이렉트: strava.com/oauth/authorize]
+    - Strava 로그인 페이지 (구글 로그인 가능)
+    - 권한 승인 화면
+              |
+              v
+    [승인 → localhost로 리다이렉트 + authorization code]
+              |
+              v
+    [RunPulse 로컬 서버: code 수신 → 토큰 교환 자동 수행]
+              |
+              v
+    [config.json에 토큰 자동 저장 → 연동 완료]
+
+### Intervals.icu 연동 (OAuth2 또는 API Key 안내)
+
+    [사용자: "Intervals.icu 연동" 클릭]
+              |
+         +----+----+
+         |         |
+         v         v
+    [방법 A]    [방법 B]
+    OAuth2      API Key 직접 입력
+    플로우       설정 페이지 링크 제공
+         |         |
+         v         v
+    [토큰 자동  [사용자가 키 복사
+     획득]      → 입력창에 붙여넣기]
+         |         |
+         +----+----+
+              |
+              v
+    [config.json 저장 → 연동 완료]
+
+### Runalyze 연동 (로그인 팝업 + API Token 안내)
+
+    [사용자: "Runalyze 연동" 클릭]
+              |
+              v
+    [팝업 윈도우: runalyze.com/login]
+    - "Sign in with Google" 버튼 표시됨
+    - 구글 계정 선택 → Runalyze 로그인
+              |
+              v
+    [로그인 후 → API 설정 페이지로 자동 이동]
+    - runalyze.com/settings/personal-api
+              |
+              v
+    [사용자: 토큰 생성 → 복사]
+              |
+              v
+    [RunPulse 입력창에 붙여넣기 → config.json 저장]

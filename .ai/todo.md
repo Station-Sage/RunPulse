@@ -62,7 +62,9 @@
 - [ ] P5-2: 대시보드 탭 (오늘 요약, 주간 통계, 피트니스 차트, 최근 활동)
 - [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
 - [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
-- [ ] P5-5: 모바일 반응형 HTML + 다크 모드
+- [ ] P5-5: 설정 탭 - 서비스 연동 (Garmin SSO 팝업, Strava OAuth2 자동화, Intervals API Key, Runalyze Token)
+- [ ] P5-6: 설정 탭 - 사용자 프로필 (max_hr, threshold_pace, 주간 목표, 레이스 목표)
+- [ ] P5-7: 모바일 반응형 HTML + 다크 모드
 
 ## Phase 6: 고도화
 - [ ] P6-1: AI 코치 다중 프로바이더 (Genspark, ChatGPT, Claude, DeepSeek 교체 가능)

@@ -64,6 +64,8 @@
 - clipboard.py: termux-clipboard-set 호출 래퍼
 
 ## web 모듈 (src/web/)
-- app.py: Flask 라우트 정의 (대시보드, AI 코치, 훈련 계획 탭)
-- templates/: HTML 파일들 (대시보드, AI 코치 채팅, 훈련 계획, 활동 상세)
-- static/: CSS, JS (추천 칩 플로팅, 채팅 UI, 차트)
+- app.py: Flask 라우트 정의 (대시보드, AI 코치, 훈련 계획, 설정 탭)
+- auth_routes.py: 서비스 연동 라우트 (Strava OAuth 콜백, 토큰 저장)
+- garmin_auth.py: Garmin SSO WebView 세션 토큰 캡처 지원
+- templates/: HTML 파일들 (대시보드, AI 코치 채팅, 훈련 계획, 설정, 활동 상세)
+- static/: CSS, JS (추천 칩 플로팅, 채팅 UI, 차트, 연동 팝업)
