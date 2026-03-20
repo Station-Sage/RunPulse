@@ -155,6 +155,13 @@ def _bool_text(value: bool) -> str:
     return "yes" if value else "no"
 
 
+def _to_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
 def _json_pretty_block(value) -> str:
     import json
 
@@ -353,6 +360,26 @@ python src/sync.py --source all --days 7</pre>
             body = "<div class='card'><h2>DB 없음</h2><p>running.db가 없습니다.</p></div>"
             return _html_page("Payloads", body)
 
+        source = request.args.get("source", "").strip()
+        entity_type = request.args.get("entity_type", "").strip()
+        activity_id = request.args.get("activity_id", "").strip()
+        limit = max(1, min(_to_int(request.args.get("limit", "20"), 20), 200))
+
+        where = []
+        params = []
+
+        if source:
+            where.append("source = ?")
+            params.append(source)
+        if entity_type:
+            where.append("entity_type = ?")
+            params.append(entity_type)
+        if activity_id:
+            where.append("activity_id = ?")
+            params.append(activity_id)
+
+        where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+
         try:
             with sqlite3.connect(db_path) as conn:
                 payload_counts = conn.execute(
@@ -375,19 +402,36 @@ python src/sync.py --source all --days 7</pre>
                 ).fetchall()
 
                 recent_payloads = conn.execute(
-                    """
+                    f"""
                     SELECT id, source, entity_type, entity_id, activity_id,
                            length(payload_json) AS payload_len, updated_at
                     FROM source_payloads
+                    {where_sql}
                     ORDER BY updated_at DESC
-                    LIMIT 20
-                    """
+                    LIMIT ?
+                    """,
+                    (*params, limit),
                 ).fetchall()
         except Exception as e:
             return _html_page("Payloads", f"<div class='card'><h2>조회 실패</h2><pre>{html.escape(str(e))}</pre></div>")
 
+        filter_form = f"""
+        <div class="card">
+          <h2>filters</h2>
+          <form method="get" action="/payloads">
+            <label>source <input type="text" name="source" value="{html.escape(source)}"></label>
+            <label> entity_type <input type="text" name="entity_type" value="{html.escape(entity_type)}"></label>
+            <label> activity_id <input type="text" name="activity_id" value="{html.escape(activity_id)}"></label>
+            <label> limit <input type="number" name="limit" min="1" max="200" value="{limit}"></label>
+            <button type="submit">apply</button>
+          </form>
+          <p class="muted">예: /payloads?source=intervals&entity_type=wellness&limit=50</p>
+        </div>
+        """
+
         body = (
-            "<div class='card'><h2>source_payloads counts</h2>"
+            filter_form
+            + "<div class='card'><h2>source_payloads counts</h2>"
             + _table(["source", "entity_type", "count"], payload_counts)
             + "</div>"
             + "<div class='card'><h2>source_metrics counts</h2>"

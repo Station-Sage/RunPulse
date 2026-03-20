@@ -109,5 +109,6 @@
 
 - [x] IV-2: Intervals.icu 실제 API 응답 기반 sync parser 1차 검증 완료
 - [x] IV-4: Intervals 실제 데이터 기반 analyze.py / report.py sanity check 1차 완료
-- [ ] IV-followup: Intervals payload 기반 pace split 대체 표현(interval_summary 등) 설계
-- [ ] IV-followup: Intervals wellness 확장 필드(hrvSDNN, fatigue, mood, motivation, steps 등) 정규화 검토
+- [x] IV-followup: Intervals payload 기반 interval_summary 리포트 노출 및 /payloads drill-down 개선
+- [x] IV-followup: Intervals wellness 확장 필드 저장 및 report visibility 보강
+- [x] IV-followup: `/payloads` 필터(`source`, `entity_type`, `activity_id`, `limit`) 추가
