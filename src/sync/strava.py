@@ -105,15 +105,15 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     page = 1
 
     while True:
-        activities = api.get(
-            f"{_BASE_URL}/athlete/activities",
+        activity_summaries = api.get(
+            f"{_BASE_URL}/athlete/activity_summaries",
             headers=headers,
             params={"after": after, "per_page": 30, "page": page},
         )
-        if not activities:
+        if not activity_summaries:
             break
 
-        for act in activities:
+        for act in activity_summaries:
             source_id = str(act.get("id", ""))
             distance_km = (act.get("distance") or 0) / 1000
             duration_sec = int(act.get("moving_time") or 0)
@@ -128,7 +128,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
             try:
                 cursor = conn.execute(
-                    """INSERT OR IGNORE INTO activities
+                    """INSERT OR IGNORE INTO activity_summaries
                        (source, source_id, activity_type, start_time, distance_km,
                         duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                         elevation_gain, calories, description)
@@ -154,12 +154,12 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
             # 상세 조회 (suffer_score + best_efforts)
             try:
-                detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+                detail = api.get(f"{_BASE_URL}/activity_summaries/{source_id}", headers=headers)
 
                 suffer_score = detail.get("suffer_score")
                 if suffer_score is not None:
                     conn.execute(
-                        """INSERT INTO source_metrics
+                        """INSERT INTO activity_detail_metrics
                            (activity_id, source, metric_name, metric_value)
                            VALUES (?, 'strava', 'relative_effort', ?)""",
                         (activity_id, float(suffer_score)),
@@ -169,7 +169,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                 best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
                 if best_efforts:
                     conn.execute(
-                        """INSERT INTO source_metrics
+                        """INSERT INTO activity_detail_metrics
                            (activity_id, source, metric_name, metric_json)
                            VALUES (?, 'strava', 'best_efforts', ?)""",
                         (activity_id, json.dumps(best_efforts)),
@@ -181,7 +181,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             # 스트림 저장
             try:
                 streams = api.get(
-                    f"{_BASE_URL}/activities/{source_id}/streams",
+                    f"{_BASE_URL}/activity_summaries/{source_id}/streams",
                     headers=headers,
                     params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
                 )
@@ -190,7 +190,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                 with open(stream_path, "w", encoding="utf-8") as f:
                     json.dump(streams, f)
                 conn.execute(
-                    """INSERT INTO source_metrics
+                    """INSERT INTO activity_detail_metrics
                        (activity_id, source, metric_name, metric_json)
                        VALUES (?, 'strava', 'stream_file', ?)""",
                     (activity_id, str(stream_path)),
@@ -200,7 +200,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
             assign_group_id(conn, activity_id)
 
-        if len(activities) < 30:
+        if len(activity_summaries) < 30:
             break
         page += 1
 

@@ -30,7 +30,7 @@ def _insert_daily_fitness(conn, date_str, source, **kwargs):
 
 def _insert_activity(conn, source, source_id, start_time, distance_km=10.0):
     conn.execute("""
-        INSERT INTO activities
+        INSERT INTO activity_summaries
             (source, source_id, start_time, distance_km, activity_type)
         VALUES (?, ?, ?, ?, 'running')
     """, (source, source_id, start_time, distance_km))
@@ -119,7 +119,7 @@ def test_fitness_trend_falls_back_to_source_metrics(conn):
     act_id = _insert_activity(conn, "intervals", "i1",
                               f"{monday.isoformat()}T08:00:00")
     conn.execute("""
-        INSERT INTO source_metrics (activity_id, source, metric_name, metric_value)
+        INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value)
         VALUES (?, 'intervals', 'ctl', 55.0)
     """, (act_id,))
 
@@ -157,7 +157,7 @@ def test_compare_no_daily_fitness_falls_back(conn):
     """daily_fitness 없으면 source_metrics 폴백."""
     act_id = _insert_activity(conn, "intervals", "i1", "2026-01-02T08:00:00")
     conn.execute("""
-        INSERT INTO source_metrics (activity_id, source, metric_name, metric_value)
+        INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value)
         VALUES (?, 'intervals', 'ctl', 42.0)
     """, (act_id,))
 

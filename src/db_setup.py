@@ -12,7 +12,7 @@ def get_db_path() -> Path:
 def create_tables(conn: sqlite3.Connection) -> None:
     """6개 테이블 생성 (IF NOT EXISTS)."""
     conn.executescript("""
-        CREATE TABLE IF NOT EXISTS activities (
+        CREATE TABLE IF NOT EXISTS activity_summaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT NOT NULL CHECK(source IN ('garmin', 'strava', 'intervals', 'runalyze')),
             source_id TEXT NOT NULL,
@@ -31,16 +31,16 @@ def create_tables(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_source
-            ON activities(source, source_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_summaries_source
+            ON activity_summaries(source, source_id);
 
-        CREATE INDEX IF NOT EXISTS idx_activities_start_time
-            ON activities(start_time);
-        CREATE INDEX IF NOT EXISTS idx_activities_group
-            ON activities(matched_group_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_summaries_start_time
+            ON activity_summaries(start_time);
+        CREATE INDEX IF NOT EXISTS idx_activity_summaries_group
+            ON activity_summaries(matched_group_id);
 
 
-        CREATE TABLE IF NOT EXISTS source_payloads (
+        CREATE TABLE IF NOT EXISTS raw_source_payloads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT NOT NULL,
             entity_type TEXT NOT NULL,
@@ -52,20 +52,20 @@ def create_tables(conn: sqlite3.Connection) -> None:
             UNIQUE(source, entity_type, entity_id)
         );
 
-        CREATE INDEX IF NOT EXISTS idx_source_payloads_lookup
-            ON source_payloads(source, entity_type, entity_id);
+        CREATE INDEX IF NOT EXISTS idx_raw_source_payloads_lookup
+            ON raw_source_payloads(source, entity_type, entity_id);
 
-        CREATE TABLE IF NOT EXISTS source_metrics (
+        CREATE TABLE IF NOT EXISTS activity_detail_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            activity_id INTEGER NOT NULL REFERENCES activities(id),
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id),
             source TEXT NOT NULL,
             metric_name TEXT NOT NULL,
             metric_value REAL,
             metric_json TEXT
         );
 
-        CREATE INDEX IF NOT EXISTS idx_source_metrics_activity
-            ON source_metrics(activity_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_detail_metrics_activity
+            ON activity_detail_metrics(activity_id);
 
         CREATE TABLE IF NOT EXISTS daily_wellness (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,6 +109,21 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_daily_fitness_date
             ON daily_fitness(date);
 
+        CREATE TABLE IF NOT EXISTS daily_detail_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            source TEXT NOT NULL,
+            metric_name TEXT NOT NULL,
+            metric_value REAL,
+            metric_json TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, source, metric_name)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_daily_detail_metrics_lookup
+            ON daily_detail_metrics(date, source);
+
         CREATE TABLE IF NOT EXISTS planned_workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
@@ -120,7 +135,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             description TEXT,
             rationale TEXT,
             completed INTEGER NOT NULL DEFAULT 0,
-            matched_activity_id INTEGER REFERENCES activities(id),
+            matched_activity_id INTEGER REFERENCES activity_summaries(id),
             source TEXT DEFAULT 'manual',
             ai_model TEXT,
             garmin_workout_id TEXT
@@ -144,6 +159,26 @@ def migrate_db(conn: sqlite3.Connection) -> None:
 
     이미 존재하는 컬럼이나 테이블은 건너뛴다.
     """
+    existing_tables = {
+        row[0]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+
+    rename_statements = [
+        ("activities", "activity_summaries"),
+        ("source_payloads", "raw_source_payloads"),
+        ("source_metrics", "activity_detail_metrics"),
+    ]
+    for old_name, new_name in rename_statements:
+        if old_name in existing_tables and new_name not in existing_tables:
+            conn.execute(f"ALTER TABLE {old_name} RENAME TO {new_name}")
+
+    # rename 이후 테이블 목록 다시 읽기
+    existing_tables = {
+        row[0]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    }
+
     # daily_fitness 테이블 (IF NOT EXISTS이므로 안전)
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS daily_fitness (
@@ -163,6 +198,20 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_daily_fitness_date
             ON daily_fitness(date);
+
+        CREATE TABLE IF NOT EXISTS daily_detail_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            source TEXT NOT NULL,
+            metric_name TEXT NOT NULL,
+            metric_value REAL,
+            metric_json TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, source, metric_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_daily_detail_metrics_lookup
+            ON daily_detail_metrics(date, source);
     """)
 
     # daily_wellness 새 컬럼 (SQLite ALTER TABLE은 IF NOT EXISTS 미지원 → try/except)

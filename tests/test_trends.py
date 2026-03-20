@@ -22,7 +22,7 @@ def conn():
 def _insert_activity(conn, source, source_id, start_time, distance_km=10.0,
                      duration_sec=3600, avg_pace=360, matched_group_id=None):
     conn.execute("""
-        INSERT INTO activities
+        INSERT INTO activity_summaries
             (source, source_id, start_time, distance_km, duration_sec,
              avg_pace_sec_km, activity_type, matched_group_id)
         VALUES (?, ?, ?, ?, ?, ?, 'running', ?)
@@ -33,7 +33,7 @@ def _insert_activity(conn, source, source_id, start_time, distance_km=10.0,
 
 def _insert_metric(conn, activity_id, source, metric_name, metric_value):
     conn.execute("""
-        INSERT INTO source_metrics (activity_id, source, metric_name, metric_value)
+        INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value)
         VALUES (?, ?, ?, ?)
     """, (activity_id, source, metric_name, metric_value))
 

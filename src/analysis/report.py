@@ -99,7 +99,7 @@ def _latest_activity_id(conn: sqlite3.Connection):
     row = conn.execute(
         """
         SELECT id
-        FROM activities
+        FROM activity_summaries
         WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
@@ -112,7 +112,7 @@ def _latest_activity_date(conn: sqlite3.Connection):
     row = conn.execute(
         """
         SELECT substr(start_time, 1, 10)
-        FROM activities
+        FROM activity_summaries
         WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
@@ -125,7 +125,7 @@ def _has_any_activity(conn: sqlite3.Connection) -> bool:
     row = conn.execute(
         """
         SELECT COUNT(*)
-        FROM activities
+        FROM activity_summaries
         WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         """
     ).fetchone()
@@ -428,7 +428,7 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
         payload_row = conn.execute(
             """
             SELECT payload_json
-            FROM source_payloads
+            FROM raw_source_payloads
             WHERE source = 'intervals' AND entity_type = 'wellness' AND entity_id = ?
             LIMIT 1
             """,

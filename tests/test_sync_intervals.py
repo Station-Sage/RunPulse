@@ -30,11 +30,11 @@ class TestSyncActivities:
         count = sync_activities(sample_config, db_conn, days=7)
         assert count == 1
 
-        row = db_conn.execute("SELECT source, source_id FROM activities").fetchone()
+        row = db_conn.execute("SELECT source, source_id FROM activity_summaries").fetchone()
         assert row[0] == "intervals"
         assert row[1] == "i789"
 
-        metrics = db_conn.execute("SELECT metric_name FROM source_metrics ORDER BY metric_name").fetchall()
+        metrics = db_conn.execute("SELECT metric_name FROM activity_detail_metrics ORDER BY metric_name").fetchall()
         names = [m[0] for m in metrics]
         assert "icu_training_load" in names
 

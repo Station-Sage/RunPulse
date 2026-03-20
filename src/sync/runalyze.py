@@ -79,10 +79,10 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     headers = _headers(config)
     cutoff = datetime.now() - timedelta(days=days)
 
-    activities = api.get(f"{_BASE_URL}/activities", headers=headers)
+    activity_summaries = api.get(f"{_BASE_URL}/activity_summaries", headers=headers)
     count = 0
 
-    for act in activities:
+    for act in activity_summaries:
         source_id = str(act.get("id", ""))
         start_time = act.get("datetime", "")
 
@@ -101,7 +101,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         try:
             cursor = conn.execute(
-                """INSERT OR IGNORE INTO activities
+                """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr,
                     elevation_gain, calories, description)
@@ -127,14 +127,14 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         # 상세 지표 조회
         try:
-            detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+            detail = api.get(f"{_BASE_URL}/activity_summaries/{source_id}", headers=headers)
 
             evo2max = detail.get("vo2max")
             vdot = detail.get("vdot")
             trimp = detail.get("trimp")
             marathon_shape = detail.get("marathon_shape") or detail.get("marathonShape")
 
-            # source_metrics에 저장 (activity 단위)
+            # activity_detail_metrics에 저장 (activity 단위)
             metrics = {
                 "effective_vo2max": evo2max,
                 "vdot": vdot,
@@ -144,17 +144,17 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             for name, value in metrics.items():
                 if value is not None:
                     conn.execute(
-                        """INSERT INTO source_metrics
+                        """INSERT INTO activity_detail_metrics
                            (activity_id, source, metric_name, metric_value)
                            VALUES (?, 'runalyze', ?, ?)""",
                         (activity_id, name, float(value)),
                     )
 
-            # race prediction → source_metrics (JSON)
+            # race prediction → activity_detail_metrics (JSON)
             race_pred = _extract_race_pred(detail)
             if race_pred:
                 conn.execute(
-                    """INSERT INTO source_metrics
+                    """INSERT INTO activity_detail_metrics
                        (activity_id, source, metric_name, metric_json)
                        VALUES (?, 'runalyze', 'race_prediction', ?)""",
                     (activity_id, json.dumps(race_pred)),

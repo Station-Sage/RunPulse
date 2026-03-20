@@ -70,26 +70,26 @@ class TestFindDuplicates:
 class TestAssignGroupId:
     def test_no_match(self, db_conn):
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
+            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
         )
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T18:00:00', 5.0)"
+            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T18:00:00', 5.0)"
         )
         result = assign_group_id(db_conn, 2)
         assert result is None
 
     def test_match_assigns_group(self, db_conn):
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
+            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
         )
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T07:02:00', 10.1)"
+            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T07:02:00', 10.1)"
         )
         group_id = assign_group_id(db_conn, 2)
         assert group_id is not None
 
         # 두 활동 모두 같은 group_id를 가짐
         rows = db_conn.execute(
-            "SELECT matched_group_id FROM activities ORDER BY id"
+            "SELECT matched_group_id FROM activity_summaries ORDER BY id"
         ).fetchall()
         assert rows[0][0] == rows[1][0] == group_id

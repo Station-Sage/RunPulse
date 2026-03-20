@@ -144,7 +144,7 @@ def import_file(
 
     try:
         cursor = conn.execute(
-            """INSERT OR IGNORE INTO activities
+            """INSERT OR IGNORE INTO activity_summaries
                (source, source_id, activity_type, start_time, distance_km,
                 duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                 elevation_gain, calories, description)

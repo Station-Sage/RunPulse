@@ -20,11 +20,11 @@ def _store_raw_payload(
     try:
         conn.execute(
             """
-            INSERT INTO source_payloads
+            INSERT INTO raw_source_payloads
                 (source, entity_type, entity_id, activity_id, payload_json)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
-                activity_id = COALESCE(excluded.activity_id, source_payloads.activity_id),
+                activity_id = COALESCE(excluded.activity_id, raw_source_payloads.activity_id),
                 payload_json = excluded.payload_json,
                 updated_at = datetime('now')
             """,
@@ -45,7 +45,7 @@ def _refresh_activity_metrics(
     """Intervals activity metrics 재저장 (기존/신규 activity 공통)."""
     try:
         conn.execute(
-            "DELETE FROM source_metrics WHERE source = 'intervals' AND activity_id = ?",
+            "DELETE FROM activity_detail_metrics WHERE source = 'intervals' AND activity_id = ?",
             (activity_id,),
         )
     except sqlite3.Error:
@@ -70,7 +70,7 @@ def _refresh_activity_metrics(
         if value is not None:
             try:
                 conn.execute(
-                    """INSERT INTO source_metrics
+                    """INSERT INTO activity_detail_metrics
                        (activity_id, source, metric_name, metric_value)
                        VALUES (?, 'intervals', ?, ?)""",
                     (activity_id, name, float(value)),
@@ -89,7 +89,7 @@ def _refresh_activity_metrics(
         if payload not in (None, [], {}):
             try:
                 conn.execute(
-                    """INSERT INTO source_metrics
+                    """INSERT INTO activity_detail_metrics
                        (activity_id, source, metric_name, metric_json)
                        VALUES (?, 'intervals', ?, ?)""",
                     (activity_id, metric_name, json.dumps(payload, ensure_ascii=False)),
@@ -124,14 +124,14 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     newest = datetime.now().strftime("%Y-%m-%d")
 
-    activities = api.get(
-        f"{base}/activities",
+    activity_summaries = api.get(
+        f"{base}/activity_summaries",
         params={"oldest": oldest, "newest": newest},
         auth=auth,
     )
     count = 0
 
-    for act in activities:
+    for act in activity_summaries:
         source_id = str(act.get("id", ""))
         distance_km = (act.get("distance") or 0) / 1000
         duration_sec = int(act.get("moving_time") or 0)
@@ -140,7 +140,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         try:
             cursor = conn.execute(
-                """INSERT OR IGNORE INTO activities
+                """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                     elevation_gain, calories, description)
@@ -161,7 +161,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         if cursor.rowcount == 0:
             existing = conn.execute(
-                "SELECT id FROM activities WHERE source = 'intervals' AND source_id = ?",
+                "SELECT id FROM activity_summaries WHERE source = 'intervals' AND source_id = ?",
                 (source_id,),
             ).fetchone()
             existing_id = existing[0] if existing else None
@@ -189,7 +189,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             activity_id=activity_id,
         )
 
-        # 활동 단위 고유 지표 (per-activity → source_metrics 유지)
+        # 활동 단위 고유 지표 (per-activity → activity_detail_metrics 유지)
         _refresh_activity_metrics(conn, activity_id, act)
 
         # TODO: HR Zone Distribution 수집
@@ -197,7 +197,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         # 현재 API 응답 구조 확인 필요. 확인 후 구현 예정.
         # hr_zones = act.get("hr_zones")  # 예상 필드명
         # if hr_zones:
-        #     conn.execute(INSERT INTO source_metrics ... 'hr_zone_distribution', metric_json=json.dumps(hr_zones))
+        #     conn.execute(INSERT INTO activity_detail_metrics ... 'hr_zone_distribution', metric_json=json.dumps(hr_zones))
 
         assign_group_id(conn, activity_id)
 

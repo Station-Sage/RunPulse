@@ -18,7 +18,7 @@ def temp_db(tmp_path, monkeypatch):
     today = __import__("datetime").date.today().isoformat()
     conn.execute(
         """
-        INSERT INTO activities
+        INSERT INTO activity_summaries
         (source, source_id, activity_type, start_time, distance_km, duration_sec,
          avg_pace_sec_km, avg_hr)
         VALUES ('garmin','g1','running',?,?,?,?,?)

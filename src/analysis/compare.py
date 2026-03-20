@@ -17,7 +17,7 @@ def _get_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
                AVG(duration_sec)    AS dur,
                AVG(avg_pace_sec_km) AS pace,
                AVG(avg_hr)          AS hr
-        FROM activities
+        FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
           AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         GROUP BY gk
@@ -48,8 +48,8 @@ def _metric_sum(conn: sqlite3.Connection, start: str, end: str,
     """기간 내 특정 소스/지표 합계."""
     row = conn.execute("""
         SELECT SUM(sm.metric_value)
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?
@@ -62,8 +62,8 @@ def _metric_avg(conn: sqlite3.Connection, start: str, end: str,
     """기간 내 특정 소스/지표 평균."""
     row = conn.execute("""
         SELECT AVG(sm.metric_value)
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?
@@ -76,8 +76,8 @@ def _last_day_metric(conn: sqlite3.Connection, start: str, end: str,
     """기간 마지막 날의 특정 소스/지표 값 (source_metrics)."""
     row = conn.execute("""
         SELECT sm.metric_value
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?

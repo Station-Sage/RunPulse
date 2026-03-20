@@ -19,7 +19,7 @@ def _insert_activity(conn, source="garmin", start_time=None, distance_km=10.0,
     if start_time is None:
         start_time = _TODAY + "T08:00:00"
     cur = conn.execute(
-        "INSERT INTO activities "
+        "INSERT INTO activity_summaries "
         "(source, source_id, activity_type, start_time, distance_km, duration_sec, "
         "avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, calories, "
         "matched_group_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -41,7 +41,7 @@ def _add_garmin_metrics(conn, act_id, te_aerobic=3.2, te_anaerobic=1.5,
     ]:
         if val is not None:
             conn.execute(
-                "INSERT INTO source_metrics (activity_id, source, metric_name, metric_value) "
+                "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value) "
                 "VALUES (?, 'garmin', ?, ?)", (act_id, name, val)
             )
 
@@ -54,7 +54,7 @@ def _add_intervals_metrics(conn, act_id, tl=95.0, hrss=80.0, intensity=0.75):
         ("icu_intensity", intensity),
     ]:
         conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_value) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value) "
             "VALUES (?, 'intervals', ?, ?)", (act_id, name, val)
         )
 
@@ -70,12 +70,12 @@ def _add_runalyze_metrics(conn, act_id, evo2max=49.0, vdot=45.0, trimp=80.0,
     ]:
         if val is not None:
             conn.execute(
-                "INSERT INTO source_metrics (activity_id, source, metric_name, metric_value) "
+                "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value) "
                 "VALUES (?, 'runalyze', ?, ?)", (act_id, name, val)
             )
     if race_pred:
         conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
             "VALUES (?, 'runalyze', 'race_prediction', ?)",
             (act_id, json.dumps(race_pred)),
         )
@@ -86,17 +86,17 @@ def _add_strava_metrics(conn, act_id, suffer_score=120.0, stream_path=None,
     """Strava source_metrics 삽입."""
     if suffer_score is not None:
         conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_value) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value) "
             "VALUES (?, 'strava', 'relative_effort', ?)", (act_id, suffer_score)
         )
     if stream_path:
         conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
             "VALUES (?, 'strava', 'stream_file', ?)", (act_id, stream_path)
         )
     if best_efforts:
         conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
             "VALUES (?, 'strava', 'best_efforts', ?)",
             (act_id, json.dumps(best_efforts)),
         )

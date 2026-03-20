@@ -33,7 +33,7 @@ def _insert_activity(conn, source, source_id, start_time, distance_km=10.0,
                      duration_sec=3600, avg_pace=360, avg_hr=150,
                      matched_group_id=None):
     conn.execute("""
-        INSERT INTO activities
+        INSERT INTO activity_summaries
             (source, source_id, start_time, distance_km, duration_sec,
              avg_pace_sec_km, avg_hr, activity_type, matched_group_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?)

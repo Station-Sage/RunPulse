@@ -16,7 +16,7 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
         stream 파일 경로, 없으면 None.
     """
     row = conn.execute(
-        "SELECT matched_group_id, source FROM activities WHERE id = ?",
+        "SELECT matched_group_id, source FROM activity_summaries WHERE id = ?",
         (activity_id,),
     ).fetchone()
     if not row:
@@ -27,7 +27,7 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
     # 같은 그룹의 strava 활동 탐색
     if group_id:
         strava_ids = conn.execute(
-            "SELECT id FROM activities WHERE matched_group_id = ? AND source = 'strava'",
+            "SELECT id FROM activity_summaries WHERE matched_group_id = ? AND source = 'strava'",
             (group_id,),
         ).fetchall()
     elif source == "strava":
@@ -37,7 +37,7 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
 
     for (sid,) in strava_ids:
         r = conn.execute(
-            "SELECT metric_json FROM source_metrics "
+            "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",
             (sid,),
         ).fetchone()
@@ -70,7 +70,7 @@ def _load_stream(path: str) -> dict | None:
 def _get_intervals_metrics(conn: sqlite3.Connection, activity_id: int) -> dict | None:
     """Intervals source_metrics 기반 효율 지표 fallback."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value FROM source_metrics WHERE activity_id = ? AND source = 'intervals'",
+        "SELECT metric_name, metric_value FROM activity_detail_metrics WHERE activity_id = ? AND source = 'intervals'",
         (activity_id,),
     ).fetchall()
     if not rows:
@@ -193,7 +193,7 @@ def efficiency_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
         we = ws + timedelta(weeks=1)
 
         rows = conn.execute(
-            "SELECT id FROM activities "
+            "SELECT id FROM activity_summaries "
             "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')",
             (ws.isoformat(), we.isoformat()),
         ).fetchall()

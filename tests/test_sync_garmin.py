@@ -53,19 +53,19 @@ class TestSyncActivities:
         count = sync_activities(sample_config, db_conn, days=7)
         assert count == 1
 
-        row = db_conn.execute("SELECT source, source_id, distance_km FROM activities").fetchone()
+        row = db_conn.execute("SELECT source, source_id, distance_km FROM activity_summaries").fetchone()
         assert row[0] == "garmin"
         assert row[1] == "123"
         assert abs(row[2] - 10.0) < 0.01
 
         payload_rows = db_conn.execute(
-            "SELECT entity_type, entity_id FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+            "SELECT entity_type, entity_id FROM raw_source_payloads WHERE source='garmin' ORDER BY entity_type"
         ).fetchall()
         assert ("activity_detail", "123") in payload_rows
         assert ("activity_summary", "123") in payload_rows
 
         metrics = db_conn.execute(
-            "SELECT metric_name, metric_value FROM source_metrics ORDER BY metric_name"
+            "SELECT metric_name, metric_value FROM activity_detail_metrics ORDER BY metric_name"
         ).fetchall()
         metric_dict = {m[0]: m[1] for m in metrics}
 
@@ -113,7 +113,7 @@ class TestSyncActivities:
         """이미 존재하는 활동은 건너뜀."""
         now = datetime.now().isoformat()
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time) VALUES ('garmin', '123', ?)",
+            "INSERT INTO activity_summaries (source, source_id, start_time) VALUES ('garmin', '123', ?)",
             (now,),
         )
 
@@ -175,7 +175,7 @@ class TestSyncWellness:
         payload_types = {
             row[0]
             for row in db_conn.execute(
-                "SELECT entity_type FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+                "SELECT entity_type FROM raw_source_payloads WHERE source='garmin' ORDER BY entity_type"
             ).fetchall()
         }
         assert "sleep_day" in payload_types
