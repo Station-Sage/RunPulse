@@ -76,7 +76,7 @@ def get_goal(conn: sqlite3.Connection, goal_id: int) -> dict | None:
 def get_active_goal(conn: sqlite3.Connection) -> dict | None:
     """가장 최근 active 목표 1개 반환."""
     row = conn.execute(
-        f"SELECT {_COLS} FROM goals WHERE status = 'active' ORDER BY created_at DESC LIMIT 1"
+        f"SELECT {_COLS} FROM goals WHERE status = 'active' ORDER BY created_at DESC, id DESC LIMIT 1"
     ).fetchone()
     return _row_to_dict(row) if row else None
 
