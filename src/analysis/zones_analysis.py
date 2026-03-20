@@ -60,7 +60,7 @@ def _classify_hr(hr: int, zone_uppers: list[int]) -> int:
 def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
     """rep_id로부터 같은 그룹의 Strava stream 파일 경로 탐색."""
     row = conn.execute(
-        "SELECT matched_group_id, source FROM activities WHERE id = ?",
+        "SELECT matched_group_id, source FROM activity_summaries WHERE id = ?",
         (rep_id,),
     ).fetchone()
     if not row:
@@ -70,7 +70,7 @@ def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
 
     if group_id:
         acts = conn.execute(
-            "SELECT id FROM activities WHERE matched_group_id = ? AND source = 'strava'",
+            "SELECT id FROM activity_summaries WHERE matched_group_id = ? AND source = 'strava'",
             (group_id,),
         ).fetchall()
     elif source == "strava":
@@ -80,7 +80,7 @@ def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
 
     for (sid,) in acts:
         r = conn.execute(
-            "SELECT metric_json FROM source_metrics "
+            "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",
             (sid,),
         ).fetchone()
@@ -112,7 +112,7 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
         {1: 초, 2: 초, ...} 또는 None.
     """
     row = conn.execute(
-        "SELECT matched_group_id FROM activities WHERE id = ?", (rep_id,)
+        "SELECT matched_group_id FROM activity_summaries WHERE id = ?", (rep_id,)
     ).fetchone()
     if not row:
         return None
@@ -120,19 +120,19 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
     group_id = row[0]
     if group_id:
         acts = conn.execute(
-            "SELECT id FROM activities WHERE matched_group_id = ? AND source = 'intervals'",
+            "SELECT id FROM activity_summaries WHERE matched_group_id = ? AND source = 'intervals'",
             (group_id,),
         ).fetchall()
     else:
         src_row = conn.execute(
-            "SELECT source FROM activities WHERE id = ?", (rep_id,)
+            "SELECT source FROM activity_summaries WHERE id = ?", (rep_id,)
         ).fetchone()
         acts = [(rep_id,)] if src_row and src_row[0] == "intervals" else []
 
     for (sid,) in acts:
         # 1) 신규 저장 포맷: icu_hr_zone_times = [z1, z2, z3, ...]
         r = conn.execute(
-            "SELECT metric_json FROM source_metrics "
+            "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'icu_hr_zone_times'",
             (sid,),
         ).fetchone()
@@ -146,7 +146,7 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
 
         # 2) 구 포맷: hr_zone_distribution = {1: secs, ...}
         r = conn.execute(
-            "SELECT metric_json FROM source_metrics "
+            "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'hr_zone_distribution'",
             (sid,),
         ).fetchone()
@@ -198,7 +198,7 @@ def analyze_zones(
                MIN(id) AS rep_id,
                SUM(duration_sec) AS total_dur,
                AVG(avg_hr) AS avg_hr_val
-        FROM activities
+        FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
           AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         GROUP BY gk

@@ -21,8 +21,8 @@ def test_create_tables(db_conn):
         ).fetchall()
     }
     expected = {
-        "activities", "source_metrics", "daily_wellness",
-        "planned_workouts", "goals", "daily_fitness",
+        "activity_summaries", "activity_detail_metrics", "daily_wellness",
+        "planned_workouts", "goals", "daily_fitness", "daily_detail_metrics",
     }
     assert expected.issubset(tables)
 
@@ -69,21 +69,21 @@ def test_migrate_db_adds_daily_fitness(db_conn):
 def test_activities_unique_index(db_conn):
     """activities 테이블의 source+source_id UNIQUE 인덱스 확인."""
     db_conn.execute(
-        "INSERT INTO activities (source, source_id, start_time) VALUES ('garmin', '123', '2026-01-01T08:00:00')"
+        "INSERT INTO activity_summaries (source, source_id, start_time) VALUES ('garmin', '123', '2026-01-01T08:00:00')"
     )
     import sqlite3
     import pytest
     with pytest.raises(sqlite3.IntegrityError):
         db_conn.execute(
-            "INSERT INTO activities (source, source_id, start_time) VALUES ('garmin', '123', '2026-01-01T09:00:00')"
+            "INSERT INTO activity_summaries (source, source_id, start_time) VALUES ('garmin', '123', '2026-01-01T09:00:00')"
         )
 
 
 def test_activities_insert(db_conn):
     """activities 테이블에 데이터 삽입 확인."""
     db_conn.execute(
-        """INSERT INTO activities (source, source_id, start_time, distance_km, duration_sec)
+        """INSERT INTO activity_summaries (source, source_id, start_time, distance_km, duration_sec)
            VALUES ('strava', '456', '2026-03-18T07:00:00', 10.5, 3200)"""
     )
-    row = db_conn.execute("SELECT distance_km, duration_sec FROM activities WHERE source_id='456'").fetchone()
+    row = db_conn.execute("SELECT distance_km, duration_sec FROM activity_summaries WHERE source_id='456'").fetchone()
     assert row == (10.5, 3200)

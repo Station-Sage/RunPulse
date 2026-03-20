@@ -146,7 +146,7 @@ repo에 포함 가능한 최소 샘플.
 
 체크리스트:
 - 날짜 파싱 일관성
-- source_metrics key naming 일관성
+- activity_detail_metrics key naming 일관성
 - daily_wellness / daily_fitness upsert 정상 동작
 - 선택 필드 누락 시 crash 없이 진행
 - 에러 메시지가 디버깅 가능한 수준인지 확인
@@ -212,7 +212,7 @@ repo에 포함 가능한 최소 샘플.
 
 실데이터 기준으로 다음 사항을 추가 확인했다.
 
-- `source_payloads`에 Intervals activity / wellness raw payload가 저장됨
+- `raw_raw_raw_source_payloads`에 Intervals activity / wellness raw payload가 저장됨
 - Intervals activity metric 정규화 항목이 확장됨
   - `trimp`, `strain_score`, `icu_efficiency_factor`, `decoupling`
   - `hr_load`, `pace_load`, `power_load`, `session_rpe`
@@ -223,7 +223,7 @@ repo에 포함 가능한 최소 샘플.
   `highintensityintervaltraining`도 분석 대상에 포함
 - `analyze.py today` / `report.py`에서 Intervals efficiency 및 zone 데이터 노출 확인
 - `interval_summary`가 pace split 부재 시에도 읽을 수 있는 형태로 리포트에 표시됨
-- `/payloads` 및 `/payloads/view` workbench 경로로 raw payload와 연관 `source_metrics`
+- `/payloads` 및 `/payloads/view` workbench 경로로 raw payload와 연관 `activity_detail_metrics`
   drill-down 확인 가능
 - `/payloads`에서 `source`, `entity_type`, `activity_id`, `limit` 필터 지원
 - Intervals wellness 확장 필드 저장 컬럼 추가

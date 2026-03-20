@@ -385,7 +385,7 @@ python src/sync.py --source all --days 7</pre>
                 payload_counts = conn.execute(
                     """
                     SELECT source, entity_type, count(*) AS cnt
-                    FROM source_payloads
+                    FROM raw_source_payloads
                     GROUP BY source, entity_type
                     ORDER BY source, entity_type
                     """
@@ -394,7 +394,7 @@ python src/sync.py --source all --days 7</pre>
                 metric_counts = conn.execute(
                     """
                     SELECT source, metric_name, count(*) AS cnt
-                    FROM source_metrics
+                    FROM activity_detail_metrics
                     GROUP BY source, metric_name
                     ORDER BY source, metric_name
                     LIMIT 100
@@ -405,7 +405,7 @@ python src/sync.py --source all --days 7</pre>
                     f"""
                     SELECT id, source, entity_type, entity_id, activity_id,
                            length(payload_json) AS payload_len, updated_at
-                    FROM source_payloads
+                    FROM raw_source_payloads
                     {where_sql}
                     ORDER BY updated_at DESC
                     LIMIT ?
@@ -461,7 +461,7 @@ python src/sync.py --source all --days 7</pre>
                 row = conn.execute(
                     """
                     SELECT id, source, entity_type, entity_id, activity_id, payload_json, created_at, updated_at
-                    FROM source_payloads
+                    FROM raw_source_payloads
                     WHERE id = ?
                     """,
                     (payload_id,),
@@ -477,7 +477,7 @@ python src/sync.py --source all --days 7</pre>
                         """
                         SELECT source, metric_name,
                                COALESCE(CAST(metric_value AS TEXT), metric_json) AS metric_data
-                        FROM source_metrics
+                        FROM activity_detail_metrics
                         WHERE activity_id = ?
                         ORDER BY source, metric_name
                         LIMIT 100

@@ -17,7 +17,7 @@ def _insert_activity(conn, start_time=None, avg_hr=155, duration_sec=3600,
     if start_time is None:
         start_time = _TODAY + "T08:00:00"
     cur = conn.execute(
-        "INSERT INTO activities (source, source_id, activity_type, start_time, "
+        "INSERT INTO activity_summaries (source, source_id, activity_type, start_time, "
         "distance_km, duration_sec, avg_hr, matched_group_id) VALUES (?,?,?,?,?,?,?,?)",
         (source, f"{source}_{start_time}", "running", start_time,
          10.0, duration_sec, avg_hr, matched_group_id),
@@ -39,7 +39,7 @@ def _insert_strava_with_stream(conn, heartrates: list, tmp_path,
     stream_file = tmp_path / f"stream_{sid}.json"
     stream_file.write_text(json.dumps(stream_data), encoding="utf-8")
     conn.execute(
-        "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+        "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
         "VALUES (?, 'strava', 'stream_file', ?)",
         (sid, str(stream_file)),
     )
@@ -148,7 +148,7 @@ class TestAnalyzeZones:
         # hr_zone_distribution JSON 저장
         zones_data = {"1": 600, "2": 1200, "3": 400, "4": 200, "5": 100}
         db_conn.execute(
-            "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+            "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
             "VALUES (?, 'intervals', 'hr_zone_distribution', ?)",
             (sid, json.dumps(zones_data)),
         )

@@ -47,7 +47,7 @@ def _insert_activity(conn, source, start_time, activity_type="running", distance
     source_id = f"{source}-{start_time}"
     cur = conn.execute(
         """
-        INSERT INTO activities
+        INSERT INTO activity_summaries
         (source, source_id, activity_type, start_time, distance_km, duration_sec, avg_pace_sec_km)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
@@ -59,7 +59,7 @@ def _insert_activity(conn, source, start_time, activity_type="running", distance
 def _insert_metric(conn, activity_id, source, metric_name, metric_value=None, metric_json=None):
     conn.execute(
         """
-        INSERT INTO source_metrics (activity_id, source, metric_name, metric_value, metric_json)
+        INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_value, metric_json)
         VALUES (?, ?, ?, ?, ?)
         """,
         (activity_id, source, metric_name, metric_value, metric_json),

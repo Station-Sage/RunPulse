@@ -33,7 +33,7 @@ def weekly_trends(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
                    AVG(distance_km)     AS dist,
                    AVG(duration_sec)    AS dur,
                    AVG(avg_pace_sec_km) AS pace
-            FROM activities
+            FROM activity_summaries
             WHERE start_time >= ? AND start_time < ?
               AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
             GROUP BY gk
@@ -70,8 +70,8 @@ def _load_sum(conn: sqlite3.Connection, start: str, end: str,
     """기간 내 특정 부하 지표 합계 (없으면 0)."""
     row = conn.execute("""
         SELECT COALESCE(SUM(sm.metric_value), 0)
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?
@@ -183,8 +183,8 @@ def _fitness_last_from_metrics(
     """source_metrics에서 주간 마지막 값 조회 (fallback)."""
     row = conn.execute("""
         SELECT sm.metric_value
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?

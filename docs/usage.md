@@ -79,7 +79,7 @@ analyze.py full 출력 + 목표 정보를 Genspark에 붙여넣고:
 - `/sync-status` : 권장 sync 명령 및 서비스 설정 상태 확인
 - `/analyze/today` : 오늘 리포트 미리보기
 - `/analyze/full` : 전체 리포트 미리보기
-- `/payloads` : raw payload / source_metrics 현황 확인
+- `/payloads` : raw payload / activity_detail_metrics 현황 확인
 - `/payloads/view?id=...` : 특정 payload JSON과 연관 metrics drill-down
 
 `/payloads` 필터 예시:

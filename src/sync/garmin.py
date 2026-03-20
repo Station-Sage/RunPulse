@@ -40,7 +40,7 @@ def _store_raw_payload(
     payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     conn.execute(
         """
-        INSERT INTO source_payloads
+        INSERT INTO raw_source_payloads
             (source, entity_type, entity_id, activity_id, payload_json)
         VALUES
             ('garmin', ?, ?, ?, ?)
@@ -87,11 +87,11 @@ def sync_activities(
     if client is None:
         client = _login(config)
 
-    activities = client.get_activities(0, days * 3)
+    activity_summaries = client.get_activities(0, days * 3)
     cutoff = datetime.now() - timedelta(days=days)
     count = 0
 
-    for act in activities:
+    for act in activity_summaries:
         start_time = act.get("startTimeLocal", "")
         if not start_time:
             continue
@@ -109,7 +109,7 @@ def sync_activities(
 
         try:
             cursor = conn.execute(
-                """INSERT OR IGNORE INTO activities
+                """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                     elevation_gain, calories, description)
@@ -237,7 +237,7 @@ def sync_activities(
             for name, value in metrics.items():
                 if value is not None:
                     conn.execute(
-                        """INSERT INTO source_metrics
+                        """INSERT INTO activity_detail_metrics
                            (activity_id, source, metric_name, metric_value)
                            VALUES (?, 'garmin', ?, ?)""",
                         (activity_id, name, float(value)),
@@ -415,9 +415,9 @@ def sync_garmin(config: dict, conn: sqlite3.Connection, days: int) -> dict:
         days: 가져올 일수.
 
     Returns:
-        {"activities": 저장 수, "wellness": 저장 수}
+        {"activity_summaries": 저장 수, "wellness": 저장 수}
     """
     client = _login(config)
     act_count = sync_activities(config, conn, days, client=client)
     well_count = sync_wellness(config, conn, days, client=client)
-    return {"activities": act_count, "wellness": well_count}
+    return {"activity_summaries": act_count, "wellness": well_count}

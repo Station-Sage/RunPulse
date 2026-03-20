@@ -66,6 +66,6 @@ class TestSyncActivities:
 
         assert count == 1
 
-        row = db_conn.execute("SELECT source, avg_cadence FROM activities").fetchone()
+        row = db_conn.execute("SELECT source, avg_cadence FROM activity_summaries").fetchone()
         assert row[0] == "strava"
         assert row[1] == 180  # Strava cadence * 2

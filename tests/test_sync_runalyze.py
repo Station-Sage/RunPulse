@@ -38,12 +38,12 @@ class TestSyncActivities:
         count = sync_activities(sample_config, db_conn, days=7)
         assert count == 1
 
-        row = db_conn.execute("SELECT source, source_id FROM activities").fetchone()
+        row = db_conn.execute("SELECT source, source_id FROM activity_summaries").fetchone()
         assert row[0] == "runalyze"
         assert row[1] == "999"
 
         metrics = db_conn.execute(
-            "SELECT metric_name, metric_value FROM source_metrics ORDER BY metric_name"
+            "SELECT metric_name, metric_value FROM activity_detail_metrics ORDER BY metric_name"
         ).fetchall()
         metric_dict = {m[0]: m[1] for m in metrics}
         assert metric_dict["effective_vo2max"] == 48.5
@@ -52,7 +52,7 @@ class TestSyncActivities:
 
     @patch("src.sync.runalyze.api.get")
     def test_race_prediction_stored(self, mock_get, db_conn, sample_config):
-        """race_prediction이 source_metrics에 JSON으로 저장되는지 확인."""
+        """race_prediction이 activity_detail_metrics에 JSON으로 저장되는지 확인."""
         import json
         now = datetime.now().isoformat()
         mock_get.side_effect = [
@@ -61,7 +61,7 @@ class TestSyncActivities:
         ]
         sync_activities(sample_config, db_conn, days=7)
         row = db_conn.execute(
-            "SELECT metric_json FROM source_metrics WHERE metric_name='race_prediction'"
+            "SELECT metric_json FROM activity_detail_metrics WHERE metric_name='race_prediction'"
         ).fetchone()
         assert row is not None
         pred = json.loads(row[0])

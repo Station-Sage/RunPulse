@@ -12,7 +12,7 @@ def _insert_activity(conn, source="garmin", start_time=None, matched_group_id=No
     if start_time is None:
         start_time = date.today().isoformat() + "T08:00:00"
     cur = conn.execute(
-        "INSERT INTO activities (source, source_id, activity_type, start_time, "
+        "INSERT INTO activity_summaries (source, source_id, activity_type, start_time, "
         "distance_km, duration_sec, matched_group_id) VALUES (?,?,?,?,?,?,?)",
         (source, f"{source}_{start_time}", "running", start_time, 10.0, 3600,
          matched_group_id),
@@ -27,7 +27,7 @@ def _insert_strava_with_stream(conn, stream_data: dict, tmp_path,
     stream_file = tmp_path / f"stream_{sid}.json"
     stream_file.write_text(json.dumps(stream_data), encoding="utf-8")
     conn.execute(
-        "INSERT INTO source_metrics (activity_id, source, metric_name, metric_json) "
+        "INSERT INTO activity_detail_metrics (activity_id, source, metric_name, metric_json) "
         "VALUES (?, 'strava', 'stream_file', ?)",
         (sid, str(stream_file)),
     )
@@ -135,13 +135,13 @@ class TestCalculateEfficiency:
         """garmin 활동 → 같은 그룹의 strava stream 탐색."""
         gid = _insert_activity(db_conn, "garmin", matched_group_id="grp_1")
         db_conn.execute(
-            "UPDATE activities SET matched_group_id = 'grp_1' WHERE id = ?", (gid,)
+            "UPDATE activity_summaries SET matched_group_id = 'grp_1' WHERE id = ?", (gid,)
         )
         stream = _make_stream(100, v1=3.0, v2=2.9)
         sid = _insert_strava_with_stream(db_conn, stream, tmp_path,
                                           matched_group_id="grp_1")
         db_conn.execute(
-            "UPDATE activities SET matched_group_id = 'grp_1' WHERE id = ?", (sid,)
+            "UPDATE activity_summaries SET matched_group_id = 'grp_1' WHERE id = ?", (sid,)
         )
         db_conn.commit()
         # garmin 활동 id로 efficiency 계산 시 strava stream 탐색

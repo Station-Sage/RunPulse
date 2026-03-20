@@ -20,7 +20,7 @@ def _insert_activity(conn, source="garmin", start_time=None, distance_km=10.0, d
     source_id = f"{source}-{start_time}"
     cur = conn.execute(
         """
-        INSERT INTO activities
+        INSERT INTO activity_summaries
         (source, source_id, activity_type, start_time, distance_km, duration_sec, avg_pace_sec_km, avg_hr)
         VALUES (?, ?, 'running', ?, ?, ?, ?, ?)
         """,

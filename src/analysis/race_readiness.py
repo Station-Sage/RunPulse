@@ -71,7 +71,7 @@ def _latest_metric(conn: sqlite3.Connection, source: str, metric_name: str):
         row = conn.execute(
             """
             SELECT metric_value, metric_json
-            FROM source_metrics
+            FROM activity_detail_metrics
             WHERE source = ? AND metric_name = ?
             ORDER BY id DESC
             LIMIT 1

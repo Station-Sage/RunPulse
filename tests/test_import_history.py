@@ -57,7 +57,7 @@ class TestImportFile:
         result = import_file(db_conn, gpx_file, "garmin")
         assert result is True
 
-        row = db_conn.execute("SELECT source, source_id FROM activities").fetchone()
+        row = db_conn.execute("SELECT source, source_id FROM activity_summaries").fetchone()
         assert row[0] == "garmin"
         assert row[1] == "import_morning_run"
 

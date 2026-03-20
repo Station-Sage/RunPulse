@@ -91,7 +91,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
         할당된 group_id 또는 매칭 없으면 None.
     """
     row = conn.execute(
-        "SELECT start_time, distance_km FROM activities WHERE id = ?",
+        "SELECT start_time, distance_km FROM activity_summaries WHERE id = ?",
         (activity_id,),
     ).fetchone()
     if not row:
@@ -104,7 +104,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
 
     candidates = conn.execute(
         """SELECT id, start_time, distance_km, matched_group_id
-           FROM activities
+           FROM activity_summaries
            WHERE id != ? AND start_time BETWEEN ? AND ?""",
         (activity_id, time_min, time_max),
     ).fetchall()
@@ -114,7 +114,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
             # 기존 그룹이 있으면 재사용, 없으면 새 그룹 생성
             group_id = cand_group or str(uuid.uuid4())[:8]
             conn.execute(
-                "UPDATE activities SET matched_group_id = ? WHERE id IN (?, ?)",
+                "UPDATE activity_summaries SET matched_group_id = ? WHERE id IN (?, ?)",
                 (group_id, activity_id, cand_id),
             )
             return group_id

@@ -96,7 +96,7 @@ def _get_week_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
                AVG(distance_km)     AS dist,
                AVG(avg_pace_sec_km) AS pace,
                AVG(avg_hr)          AS hr
-        FROM activities
+        FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
           AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         GROUP BY gk
@@ -118,8 +118,8 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
     # intervals hr_zone_distribution JSON 활용
     rows = conn.execute("""
         SELECT sm.metric_json
-        FROM source_metrics sm
-        JOIN activities a ON sm.activity_id = a.id
+        FROM activity_detail_metrics sm
+        JOIN activity_summaries a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = 'intervals'
@@ -145,7 +145,7 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
     # intervals 데이터 없으면 평균 HR로 Easy 비율 추정
     row = conn.execute("""
         SELECT AVG(avg_hr), MAX(max_hr)
-        FROM activities
+        FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
           AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND avg_hr IS NOT NULL

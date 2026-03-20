@@ -26,12 +26,12 @@ def _find_activity(
 
     if activity_id is not None:
         return conn.execute(
-            f"SELECT {cols} FROM activities WHERE id = ?", (activity_id,)
+            f"SELECT {cols} FROM activity_summaries WHERE id = ?", (activity_id,)
         ).fetchone()
 
     target_date = date_str or date.today().isoformat()
     return conn.execute(
-        f"SELECT {cols} FROM activities "
+        f"SELECT {cols} FROM activity_summaries "
         "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining') "
         "ORDER BY start_time DESC LIMIT 1",
         (target_date, target_date + "T99"),
@@ -48,7 +48,7 @@ def _get_group_activities(conn: sqlite3.Connection, activity_id: int) -> list[tu
         [(id, source), ...] 리스트. 최소 기준 활동 자체가 포함된다.
     """
     row = conn.execute(
-        "SELECT matched_group_id FROM activities WHERE id = ?", (activity_id,)
+        "SELECT matched_group_id FROM activity_summaries WHERE id = ?", (activity_id,)
     ).fetchone()
     if not row:
         return [(activity_id, None)]
@@ -56,18 +56,18 @@ def _get_group_activities(conn: sqlite3.Connection, activity_id: int) -> list[tu
     group_id = row[0]
     if group_id:
         return conn.execute(
-            "SELECT id, source FROM activities WHERE matched_group_id = ?",
+            "SELECT id, source FROM activity_summaries WHERE matched_group_id = ?",
             (group_id,),
         ).fetchall()
     return conn.execute(
-        "SELECT id, source FROM activities WHERE id = ?", (activity_id,)
+        "SELECT id, source FROM activity_summaries WHERE id = ?", (activity_id,)
     ).fetchall()
 
 
 def _get_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     """activity_id의 source_metrics를 {metric_name: value_or_json} dict로 반환."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value, metric_json FROM source_metrics WHERE activity_id = ?",
+        "SELECT metric_name, metric_value, metric_json FROM activity_detail_metrics WHERE activity_id = ?",
         (activity_id,),
     ).fetchall()
     result = {}
@@ -79,7 +79,7 @@ def _get_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
 def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
     """같은 그룹 Strava 활동의 stream dict 반환."""
     row = conn.execute(
-        "SELECT matched_group_id, source FROM activities WHERE id = ?", (activity_id,)
+        "SELECT matched_group_id, source FROM activity_summaries WHERE id = ?", (activity_id,)
     ).fetchone()
     if not row:
         return None
@@ -88,7 +88,7 @@ def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
 
     if group_id:
         strava_ids = conn.execute(
-            "SELECT id FROM activities WHERE matched_group_id = ? AND source = 'strava'",
+            "SELECT id FROM activity_summaries WHERE matched_group_id = ? AND source = 'strava'",
             (group_id,),
         ).fetchall()
     elif source == "strava":
@@ -98,7 +98,7 @@ def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
 
     for (sid,) in strava_ids:
         r = conn.execute(
-            "SELECT metric_json FROM source_metrics "
+            "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",
             (sid,),
         ).fetchone()
