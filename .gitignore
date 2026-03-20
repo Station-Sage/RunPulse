@@ -43,3 +43,5 @@ Thumbs.db
 *.log
 .env
 .env.*
+.garmin_tokens/
+tmp_*.py

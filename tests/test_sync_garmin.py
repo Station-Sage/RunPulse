@@ -29,10 +29,24 @@ class TestSyncActivities:
             }
         ]
         mock_client.get_activity.return_value = {
-            "aerobicTrainingEffect": 3.2,
-            "anaerobicTrainingEffect": 1.5,
-            "activityTrainingLoad": 156,
-            "vO2MaxValue": 48.5,
+            "summaryDTO": {
+                "aerobicTrainingEffect": 3.2,
+                "anaerobicTrainingEffect": 1.5,
+                "activityTrainingLoad": 156,
+                "vO2MaxValue": 48.5,
+                "averagePower": 250,
+                "normalizedPower": 265,
+                "steps": 1345,
+                "averageSpeed": 3.33,
+                "maxSpeed": 5.10,
+                "averageRunCadence": 180,
+                "maxRunCadence": 192,
+                "averageStrideLength": 1.12,
+                "avgVerticalRatio": 8.4,
+                "avgGroundContactTime": 248,
+                "hrTimeInZone": [300, 600, 900, 700, 500],
+                "powerTimeInZone": [100, 200, 300, 400, 500],
+            }
         }
         mock_garmin_cls.return_value = mock_client
 
@@ -43,6 +57,12 @@ class TestSyncActivities:
         assert row[0] == "garmin"
         assert row[1] == "123"
         assert abs(row[2] - 10.0) < 0.01
+
+        payload_rows = db_conn.execute(
+            "SELECT entity_type, entity_id FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+        ).fetchall()
+        assert ("activity_detail", "123") in payload_rows
+        assert ("activity_summary", "123") in payload_rows
 
         metrics = db_conn.execute(
             "SELECT metric_name, metric_value FROM source_metrics ORDER BY metric_name"
@@ -56,6 +76,29 @@ class TestSyncActivities:
         assert metric_dict["training_effect"] == pytest.approx(3.2)
         assert metric_dict["training_effect_aerobic"] == pytest.approx(3.2)
         assert "vo2max" in metric_dict
+        assert metric_dict["avg_power"] == pytest.approx(250)
+        assert metric_dict["normalized_power"] == pytest.approx(265)
+        assert metric_dict["steps"] == pytest.approx(1345)
+        assert metric_dict["avg_speed"] == pytest.approx(3.33)
+        assert metric_dict["max_speed"] == pytest.approx(5.10)
+        assert metric_dict["avg_run_cadence"] == pytest.approx(180)
+        assert metric_dict["max_run_cadence"] == pytest.approx(192)
+        assert metric_dict["avg_stride_length"] == pytest.approx(1.12)
+        assert metric_dict["avg_vertical_ratio"] == pytest.approx(8.4)
+        assert metric_dict["avg_ground_contact_time"] == pytest.approx(248)
+        assert metric_dict["hr_zone_time_1"] == pytest.approx(300)
+        assert metric_dict["hr_zone_time_2"] == pytest.approx(600)
+        assert metric_dict["hr_zone_time_3"] == pytest.approx(900)
+        assert metric_dict["hr_zone_time_4"] == pytest.approx(700)
+        assert metric_dict["hr_zone_time_5"] == pytest.approx(500)
+        assert metric_dict["power_zone_time_1"] == pytest.approx(100)
+        assert metric_dict["power_zone_time_2"] == pytest.approx(200)
+        assert metric_dict["power_zone_time_3"] == pytest.approx(300)
+        assert metric_dict["power_zone_time_4"] == pytest.approx(400)
+        assert metric_dict["power_zone_time_5"] == pytest.approx(500)
+        assert metric_dict["avg_power"] == pytest.approx(250)
+        assert metric_dict["normalized_power"] == pytest.approx(265)
+        assert metric_dict["steps"] == pytest.approx(1345)
 
         # garmin vo2max가 daily_fitness에도 저장됨
         row = db_conn.execute(
@@ -91,21 +134,52 @@ class TestSyncWellness:
     def test_inserts_wellness(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
         mock_client = MagicMock()
         mock_client.get_sleep_data.return_value = {
+            "readinessScore": 72,
+            "weightKg": 69.4,
+            "steps": 9876,
             "dailySleepDTO": {
                 "sleepScores": {"overall": {"value": 85}},
                 "sleepTimeSeconds": 28800,
+                "averageHeartRate": 47,
+                "restingHeartRate": 51,
             }
         }
-        mock_client.get_hrv_data.return_value = {"hrvSummary": {"lastNightAvg": 45}}
+        mock_client.get_hrv_data.return_value = {
+            "hrvSummary": {
+                "lastNightAvg": 45,
+                "sdnn": 62,
+            }
+        }
         mock_client.get_body_battery.return_value = [{"bodyBatteryLevel": 80}]
-        mock_client.get_stress_data.return_value = {"averageStressLevel": 35}
+        mock_client.get_stress_data.return_value = {"avgStressLevel": 35}
         mock_client.get_rhr_day.return_value = {"restingHeartRate": 52}
         mock_garmin_cls.return_value = mock_client
 
         count = sync_wellness(sample_config, db_conn, days=1)
         assert count == 1
 
-        row = db_conn.execute("SELECT sleep_score, hrv_value, body_battery FROM daily_wellness").fetchone()
+        row = db_conn.execute(
+            "SELECT sleep_score, hrv_value, hrv_sdnn, body_battery, resting_hr, avg_sleeping_hr, stress_avg, readiness_score, steps, weight_kg FROM daily_wellness"
+        ).fetchone()
         assert row[0] == 85
         assert row[1] == 45
-        assert row[2] == 80
+        assert row[2] == pytest.approx(62)
+        assert row[3] == 80
+        assert row[4] == 51
+        assert row[5] == 47
+        assert row[6] == 35
+        assert row[7] == 72
+        assert row[8] == 9876
+        assert row[9] == pytest.approx(69.4)
+
+        payload_types = {
+            row[0]
+            for row in db_conn.execute(
+                "SELECT entity_type FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+            ).fetchall()
+        }
+        assert "sleep_day" in payload_types
+        assert "hrv_day" in payload_types
+        assert "body_battery_day" in payload_types
+        assert "stress_day" in payload_types
+        assert "rhr_day" in payload_types

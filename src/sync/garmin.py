@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Garmin Connect 데이터 동기화."""
 
+import json
 import sqlite3
 import time
 from datetime import datetime, timedelta
@@ -22,6 +23,34 @@ def _login(config: dict) -> Garmin:
     client = Garmin(garmin_cfg["email"], garmin_cfg["password"])
     client.login()
     return client
+
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload,
+    activity_id: int | None = None,
+) -> None:
+    """Store or update raw Garmin payload."""
+    if payload is None:
+        return
+
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    conn.execute(
+        """
+        INSERT INTO source_payloads
+            (source, entity_type, entity_id, activity_id, payload_json)
+        VALUES
+            ('garmin', ?, ?, ?, ?)
+        ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
+            activity_id = excluded.activity_id,
+            payload_json = excluded.payload_json,
+            updated_at = datetime('now')
+        """,
+        (entity_type, entity_id, activity_id, payload_json),
+    )
 
 
 def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
@@ -105,23 +134,106 @@ def sync_activities(
         activity_id = cursor.lastrowid
         count += 1
 
+        _store_raw_payload(
+            conn,
+            entity_type="activity_summary",
+            entity_id=source_id,
+            payload=act,
+            activity_id=activity_id,
+        )
+
         # 상세 지표 조회
         try:
             time.sleep(2)
             detail = client.get_activity(int(source_id))
-            aerobic_te = detail.get("aerobicTrainingEffect")
-            anaerobic_te = detail.get("anaerobicTrainingEffect")
-            training_load = detail.get("activityTrainingLoad")
-            vo2max = detail.get("vO2MaxValue")
+            _store_raw_payload(
+                conn,
+                entity_type="activity_detail",
+                entity_id=source_id,
+                payload=detail,
+                activity_id=activity_id,
+            )
+            summary = detail.get("summaryDTO", {})
+            aerobic_te = detail.get("aerobicTrainingEffect", summary.get("aerobicTrainingEffect"))
+            anaerobic_te = detail.get("anaerobicTrainingEffect", summary.get("anaerobicTrainingEffect"))
+            training_load = detail.get("activityTrainingLoad", summary.get("activityTrainingLoad"))
+            vo2max = detail.get("vO2MaxValue", summary.get("vO2MaxValue"))
 
             # aerobic/anaerobic TE 분리 저장 + 하위호환 alias
+            avg_power = detail.get("averagePower", summary.get("averagePower"))
+            normalized_power = (
+                detail.get("normalizedPower")
+                or detail.get("normPower")
+                or summary.get("normalizedPower")
+                or summary.get("normPower")
+            )
+            steps = (
+                detail.get("steps")
+                or summary.get("steps")
+                or act.get("steps")
+            )
+
+            avg_speed = (
+                detail.get("averageSpeed")
+                or summary.get("averageSpeed")
+                or act.get("averageSpeed")
+            )
+            max_speed = (
+                detail.get("maxSpeed")
+                or summary.get("maxSpeed")
+                or act.get("maxSpeed")
+            )
+            avg_run_cadence = (
+                detail.get("averageRunCadence")
+                or summary.get("averageRunCadence")
+                or act.get("averageRunningCadenceInStepsPerMinute")
+            )
+            max_run_cadence = (
+                detail.get("maxRunCadence")
+                or summary.get("maxRunCadence")
+                or act.get("maxRunningCadenceInStepsPerMinute")
+            )
+            avg_stride_length = (
+                detail.get("averageStrideLength")
+                or summary.get("averageStrideLength")
+            )
+            avg_vertical_ratio = (
+                detail.get("avgVerticalRatio")
+                or summary.get("avgVerticalRatio")
+            )
+            avg_ground_contact_time = (
+                detail.get("avgGroundContactTime")
+                or summary.get("avgGroundContactTime")
+            )
+
+            hr_zone_times = summary.get("hrTimeInZone", []) or detail.get("hrTimeInZone", [])
+            power_zone_times = summary.get("powerTimeInZone", []) or detail.get("powerTimeInZone", [])
+
             metrics = {
                 "training_effect_aerobic": aerobic_te,
                 "training_effect_anaerobic": anaerobic_te,
                 "training_effect": aerobic_te,  # 하위호환
                 "training_load": training_load,
                 "vo2max": vo2max,
+                "avg_power": avg_power,
+                "normalized_power": normalized_power,
+                "steps": steps,
+                "avg_speed": avg_speed,
+                "max_speed": max_speed,
+                "avg_run_cadence": avg_run_cadence,
+                "max_run_cadence": max_run_cadence,
+                "avg_stride_length": avg_stride_length,
+                "avg_vertical_ratio": avg_vertical_ratio,
+                "avg_ground_contact_time": avg_ground_contact_time,
             }
+            for idx, value in enumerate(hr_zone_times[:5], start=1):
+                if value is not None:
+                    metrics[f"hr_zone_time_{idx}"] = value
+
+            for idx, value in enumerate(power_zone_times[:5], start=1):
+                if value is not None:
+                    metrics[f"power_zone_time_{idx}"] = value
+
             for name, value in metrics.items():
                 if value is not None:
                     conn.execute(
@@ -171,30 +283,79 @@ def sync_wellness(
     for i in range(days):
         day = today - timedelta(days=i)
         date_str = day.isoformat()
-        sleep_score = sleep_hours = hrv_value = body_battery = stress_avg = resting_hr = None
+        sleep_score = sleep_hours = hrv_value = hrv_sdnn = body_battery = stress_avg = resting_hr = None
+        avg_sleeping_hr = readiness_score = weight_kg = steps = None
 
         try:
             sleep = client.get_sleep_data(date_str)
+            _store_raw_payload(conn, "sleep_day", date_str, sleep)
             if sleep:
-                sleep_score = (sleep.get("dailySleepDTO", {})
-                               .get("sleepScores", {}).get("overall", {}).get("value"))
-                sleep_secs = sleep.get("dailySleepDTO", {}).get("sleepTimeSeconds")
+                daily_sleep = sleep.get("dailySleepDTO", {})
+                sleep_score = (daily_sleep.get("sleepScores", {})
+                               .get("overall", {}).get("value"))
+                sleep_secs = daily_sleep.get("sleepTimeSeconds")
                 if sleep_secs:
                     sleep_hours = round(sleep_secs / 3600, 1)
+
+                avg_sleeping_hr = (
+                    daily_sleep.get("averageHeartRate")
+                    or sleep.get("averageHeartRate")
+                )
+
+                readiness_score = (
+                    sleep.get("readinessScore")
+                    or daily_sleep.get("readinessScore")
+                    or sleep.get("readiness")
+                    or daily_sleep.get("readiness")
+                )
+
+                weight_kg = (
+                    sleep.get("weight")
+                    or sleep.get("weightKg")
+                    or daily_sleep.get("weight")
+                    or daily_sleep.get("weightKg")
+                    or daily_sleep.get("bodyWeight")
+                )
+
+                steps = (
+                    sleep.get("steps")
+                    or daily_sleep.get("steps")
+                    or sleep.get("totalSteps")
+                    or daily_sleep.get("totalSteps")
+                    or steps
+                )
+
+                resting_hr = (
+                    daily_sleep.get("restingHeartRate")
+                    or sleep.get("restingHeartRate")
+                    or resting_hr
+                )
         except Exception as e:
             print(f"[garmin] 수면 데이터 실패 {date_str}: {e}")
 
         try:
             time.sleep(2)
             hrv = client.get_hrv_data(date_str)
+            _store_raw_payload(conn, "hrv_day", date_str, hrv)
             if hrv:
-                hrv_value = hrv.get("hrvSummary", {}).get("lastNightAvg")
+                hrv_summary = hrv.get("hrvSummary", {})
+                hrv_value = (
+                    hrv_summary.get("lastNightAvg")
+                    or hrv.get("lastNightAvg")
+                )
+                hrv_sdnn = (
+                    hrv_summary.get("sdnn")
+                    or hrv_summary.get("lastNightSDNN")
+                    or hrv.get("sdnn")
+                    or hrv.get("lastNightSDNN")
+                )
         except Exception as e:
             print(f"[garmin] HRV 데이터 실패 {date_str}: {e}")
 
         try:
             time.sleep(2)
             bb = client.get_body_battery(date_str)
+            _store_raw_payload(conn, "body_battery_day", date_str, bb)
             if bb and isinstance(bb, list) and bb:
                 vals = [item.get("bodyBatteryLevel", 0) for item in bb
                         if item.get("bodyBatteryLevel")]
@@ -205,14 +366,18 @@ def sync_wellness(
         try:
             time.sleep(2)
             stress = client.get_stress_data(date_str)
+            _store_raw_payload(conn, "stress_day", date_str, stress)
             if stress:
                 stress_avg = stress.get("averageStressLevel")
+                if stress_avg is None:
+                    stress_avg = stress.get("avgStressLevel")
         except Exception as e:
             print(f"[garmin] 스트레스 데이터 실패 {date_str}: {e}")
 
         try:
             rhr_data = client.get_rhr_day(date_str)
-            if rhr_data:
+            _store_raw_payload(conn, "rhr_day", date_str, rhr_data)
+            if rhr_data and resting_hr is None:
                 resting_hr = rhr_data.get("restingHeartRate")
         except Exception:
             pass
@@ -225,11 +390,13 @@ def sync_wellness(
         try:
             conn.execute(
                 """INSERT OR REPLACE INTO daily_wellness
-                   (date, source, sleep_score, sleep_hours, hrv_value,
-                    resting_hr, body_battery, stress_avg)
-                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?)""",
-                (date_str, sleep_score, sleep_hours, hrv_value,
-                 resting_hr, body_battery, stress_avg),
+                   (date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
+                    resting_hr, avg_sleeping_hr, body_battery, stress_avg,
+                    readiness_score, steps, weight_kg)
+                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (date_str, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
+                 resting_hr, avg_sleeping_hr, body_battery, stress_avg,
+                 readiness_score, steps, weight_kg),
             )
             count += 1
         except sqlite3.Error as e:
