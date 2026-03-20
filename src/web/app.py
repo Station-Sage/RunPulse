@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import sqlite3
+from collections import Counter
 from pathlib import Path
 
 from flask import Flask, request
@@ -85,6 +86,7 @@ def _html_page(title: str, body: str) -> str:
     <a href="/">홈</a>
     <a href="/db">DB 요약</a>
     <a href="/config">Config</a>
+    <a href="/import-preview">Import Preview</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
@@ -117,6 +119,30 @@ def _bool_text(value: bool) -> str:
     return "yes" if value else "no"
 
 
+def _scan_history_dir(base_dir: Path) -> dict:
+    exts = {".fit", ".gpx", ".tcx"}
+    if not base_dir.exists():
+        return {
+            "exists": False,
+            "base_dir": str(base_dir),
+            "total_files": 0,
+            "by_ext": [],
+            "sample_files": [],
+        }
+
+    files = [p for p in base_dir.rglob("*") if p.is_file() and p.suffix.lower() in exts]
+    counts = Counter(p.suffix.lower() for p in files)
+    samples = [str(p.relative_to(_project_root())) for p in sorted(files)[:20]]
+
+    return {
+        "exists": True,
+        "base_dir": str(base_dir),
+        "total_files": len(files),
+        "by_ext": sorted(counts.items()),
+        "sample_files": samples,
+    }
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
 
@@ -131,6 +157,7 @@ def create_app() -> Flask:
           <ul>
             <li><a href="/db">DB 상태 확인</a></li>
             <li><a href="/config">설정 상태 확인</a></li>
+            <li><a href="/import-preview">import 대상 파일 미리보기</a></li>
             <li><a href="/analyze/today">today 리포트 미리보기</a></li>
             <li><a href="/analyze/full">full 리포트 미리보기</a></li>
             <li><a href="/analyze/race?date=2026-06-01&distance=42.195">race 리포트 미리보기</a></li>
@@ -140,7 +167,7 @@ def create_app() -> Flask:
         <div class="card">
           <h2>다음 구현 후보</h2>
           <ul>
-            <li>Import preview 페이지</li>
+            <li>Import 실행 트리거</li>
             <li>Sync status / recent fetch 페이지</li>
             <li>최근 activity / dedup 그룹 drill-down</li>
           </ul>
@@ -181,6 +208,49 @@ def create_app() -> Flask:
             """
         )
         return _html_page("Config Summary", body)
+
+    @app.get("/import-preview")
+    def import_preview():
+        project_root = _project_root()
+        garmin_dir = project_root / "data/history/garmin"
+        strava_dir = project_root / "data/history/strava"
+
+        garmin_info = _scan_history_dir(garmin_dir)
+        strava_info = _scan_history_dir(strava_dir)
+
+        def section(title: str, source: str, info: dict) -> str:
+            by_ext_rows = [(ext, count) for ext, count in info["by_ext"]]
+            sample_rows = [(path,) for path in info["sample_files"]]
+
+            return (
+                f"<div class='card'>"
+                f"<h2>{html.escape(title)}</h2>"
+                f"<p><strong>Path:</strong> <code>{html.escape(info['base_dir'])}</code></p>"
+                f"<p><strong>Exists:</strong> {html.escape(_bool_text(info['exists']))}</p>"
+                f"<p><strong>Total files:</strong> {info['total_files']}</p>"
+                f"<h3>By extension</h3>"
+                + _table(["ext", "count"], by_ext_rows)
+                + "<h3>Sample files</h3>"
+                + _table(["path"], sample_rows)
+                + "<h3>Import example</h3>"
+                + f"<pre>python src/import_history.py data/history/{html.escape(source)} --source {html.escape(source)} -r</pre>"
+                + "</div>"
+            )
+
+        body = (
+            """
+            <div class="card">
+              <h2>설명</h2>
+              <p>이 페이지는 실제 import 실행 전에 대상 파일 배치를 미리 점검하기 위한 read-only preview 입니다.</p>
+              <p>권장 경로:</p>
+              <pre>data/history/garmin/
+data/history/strava/</pre>
+            </div>
+            """
+            + section("Garmin history preview", "garmin", garmin_info)
+            + section("Strava history preview", "strava", strava_info)
+        )
+        return _html_page("Import Preview", body)
 
     @app.get("/db")
     def db_summary():
