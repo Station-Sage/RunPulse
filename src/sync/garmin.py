@@ -283,7 +283,7 @@ def sync_wellness(
     for i in range(days):
         day = today - timedelta(days=i)
         date_str = day.isoformat()
-        sleep_score = sleep_hours = hrv_value = body_battery = stress_avg = resting_hr = None
+        sleep_score = sleep_hours = hrv_value = hrv_sdnn = body_battery = stress_avg = resting_hr = None
         avg_sleeping_hr = readiness_score = weight_kg = steps = None
 
         try:
@@ -305,6 +305,8 @@ def sync_wellness(
                 readiness_score = (
                     sleep.get("readinessScore")
                     or daily_sleep.get("readinessScore")
+                    or sleep.get("readiness")
+                    or daily_sleep.get("readiness")
                 )
 
                 weight_kg = (
@@ -312,11 +314,14 @@ def sync_wellness(
                     or sleep.get("weightKg")
                     or daily_sleep.get("weight")
                     or daily_sleep.get("weightKg")
+                    or daily_sleep.get("bodyWeight")
                 )
 
                 steps = (
                     sleep.get("steps")
                     or daily_sleep.get("steps")
+                    or sleep.get("totalSteps")
+                    or daily_sleep.get("totalSteps")
                     or steps
                 )
 
@@ -333,7 +338,17 @@ def sync_wellness(
             hrv = client.get_hrv_data(date_str)
             _store_raw_payload(conn, "hrv_day", date_str, hrv)
             if hrv:
-                hrv_value = hrv.get("hrvSummary", {}).get("lastNightAvg")
+                hrv_summary = hrv.get("hrvSummary", {})
+                hrv_value = (
+                    hrv_summary.get("lastNightAvg")
+                    or hrv.get("lastNightAvg")
+                )
+                hrv_sdnn = (
+                    hrv_summary.get("sdnn")
+                    or hrv_summary.get("lastNightSDNN")
+                    or hrv.get("sdnn")
+                    or hrv.get("lastNightSDNN")
+                )
         except Exception as e:
             print(f"[garmin] HRV 데이터 실패 {date_str}: {e}")
 
@@ -375,11 +390,11 @@ def sync_wellness(
         try:
             conn.execute(
                 """INSERT OR REPLACE INTO daily_wellness
-                   (date, source, sleep_score, sleep_hours, hrv_value,
+                   (date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
                     resting_hr, avg_sleeping_hr, body_battery, stress_avg,
                     readiness_score, steps, weight_kg)
-                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (date_str, sleep_score, sleep_hours, hrv_value,
+                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (date_str, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
                  resting_hr, avg_sleeping_hr, body_battery, stress_avg,
                  readiness_score, steps, weight_kg),
             )

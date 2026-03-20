@@ -144,9 +144,14 @@ class TestSyncWellness:
                 "restingHeartRate": 51,
             }
         }
-        mock_client.get_hrv_data.return_value = {"hrvSummary": {"lastNightAvg": 45}}
+        mock_client.get_hrv_data.return_value = {
+            "hrvSummary": {
+                "lastNightAvg": 45,
+                "sdnn": 62,
+            }
+        }
         mock_client.get_body_battery.return_value = [{"bodyBatteryLevel": 80}]
-        mock_client.get_stress_data.return_value = {"averageStressLevel": 35}
+        mock_client.get_stress_data.return_value = {"avgStressLevel": 35}
         mock_client.get_rhr_day.return_value = {"restingHeartRate": 52}
         mock_garmin_cls.return_value = mock_client
 
@@ -154,16 +159,18 @@ class TestSyncWellness:
         assert count == 1
 
         row = db_conn.execute(
-            "SELECT sleep_score, hrv_value, body_battery, resting_hr, avg_sleeping_hr, readiness_score, steps, weight_kg FROM daily_wellness"
+            "SELECT sleep_score, hrv_value, hrv_sdnn, body_battery, resting_hr, avg_sleeping_hr, stress_avg, readiness_score, steps, weight_kg FROM daily_wellness"
         ).fetchone()
         assert row[0] == 85
         assert row[1] == 45
-        assert row[2] == 80
-        assert row[3] == 51
-        assert row[4] == 47
-        assert row[5] == 72
-        assert row[6] == 9876
-        assert row[7] == pytest.approx(69.4)
+        assert row[2] == pytest.approx(62)
+        assert row[3] == 80
+        assert row[4] == 51
+        assert row[5] == 47
+        assert row[6] == 35
+        assert row[7] == 72
+        assert row[8] == 9876
+        assert row[9] == pytest.approx(69.4)
 
         payload_types = {
             row[0]
