@@ -36,6 +36,67 @@ def _store_raw_payload(
         print(f"[intervals] raw payload 저장 실패 {entity_type}:{entity_id}: {e}")
 
 
+
+def _refresh_activity_metrics(
+    conn: sqlite3.Connection,
+    activity_id: int,
+    act: dict,
+) -> None:
+    """Intervals activity metrics 재저장 (기존/신규 activity 공통)."""
+    try:
+        conn.execute(
+            "DELETE FROM source_metrics WHERE source = 'intervals' AND activity_id = ?",
+            (activity_id,),
+        )
+    except sqlite3.Error:
+        pass
+
+    metrics = {
+        "icu_training_load": act.get("icu_training_load"),
+        "icu_intensity": act.get("icu_intensity"),
+        "icu_hrss": act.get("icu_hrss"),
+        "trimp": act.get("trimp"),
+        "strain_score": act.get("strain_score"),
+        "icu_efficiency_factor": act.get("icu_efficiency_factor"),
+        "decoupling": act.get("decoupling"),
+        "hr_load": act.get("hr_load"),
+        "pace_load": act.get("pace_load"),
+        "power_load": act.get("power_load"),
+        "session_rpe": act.get("session_rpe"),
+        "average_stride": act.get("average_stride"),
+        "icu_lap_count": act.get("icu_lap_count"),
+    }
+    for name, value in metrics.items():
+        if value is not None:
+            try:
+                conn.execute(
+                    """INSERT INTO source_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'intervals', ?, ?)""",
+                    (activity_id, name, float(value)),
+                )
+            except sqlite3.Error:
+                pass
+
+    for metric_name, payload in [
+        ("icu_zone_times", act.get("icu_zone_times")),
+        ("icu_hr_zone_times", act.get("icu_hr_zone_times")),
+        ("pace_zone_times", act.get("pace_zone_times")),
+        ("gap_zone_times", act.get("gap_zone_times")),
+        ("interval_summary", act.get("interval_summary")),
+        ("stream_types", act.get("stream_types")),
+    ]:
+        if payload not in (None, [], {}):
+            try:
+                conn.execute(
+                    """INSERT INTO source_metrics
+                       (activity_id, source, metric_name, metric_json)
+                       VALUES (?, 'intervals', ?, ?)""",
+                    (activity_id, metric_name, json.dumps(payload, ensure_ascii=False)),
+                )
+            except sqlite3.Error:
+                pass
+
 def _base_url(config: dict) -> str:
     """Intervals.icu API base URL."""
     athlete_id = config["intervals"]["athlete_id"]
@@ -112,6 +173,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                 act,
                 activity_id=existing_id,
             )
+            if existing_id:
+                _refresh_activity_metrics(conn, existing_id, act)
             continue
 
         activity_id = cursor.lastrowid
@@ -127,22 +190,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         )
 
         # 활동 단위 고유 지표 (per-activity → source_metrics 유지)
-        metrics = {
-            "icu_training_load": act.get("icu_training_load"),
-            "icu_intensity": act.get("icu_intensity"),
-            "icu_hrss": act.get("icu_hrss"),
-        }
-        for name, value in metrics.items():
-            if value is not None:
-                try:
-                    conn.execute(
-                        """INSERT INTO source_metrics
-                           (activity_id, source, metric_name, metric_value)
-                           VALUES (?, 'intervals', ?, ?)""",
-                        (activity_id, name, float(value)),
-                    )
-                except sqlite3.Error:
-                    pass
+        _refresh_activity_metrics(conn, activity_id, act)
 
         # TODO: HR Zone Distribution 수집
         # Intervals.icu activity detail에 hr_zones 필드가 있을 수 있음

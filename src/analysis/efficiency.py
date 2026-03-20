@@ -66,6 +66,44 @@ def _load_stream(path: str) -> dict | None:
         return None
 
 
+
+def _get_intervals_metrics(conn: sqlite3.Connection, activity_id: int) -> dict | None:
+    """Intervals source_metrics 기반 효율 지표 fallback."""
+    rows = conn.execute(
+        "SELECT metric_name, metric_value FROM source_metrics WHERE activity_id = ? AND source = 'intervals'",
+        (activity_id,),
+    ).fetchall()
+    if not rows:
+        return None
+
+    data = {name: value for name, value in rows if value is not None}
+    if not data:
+        return None
+
+    ef = data.get("icu_efficiency_factor")
+    dec = data.get("decoupling")
+
+    if ef is None and dec is None:
+        return None
+
+    if dec is None:
+        status = "unknown"
+    elif dec < 5:
+        status = "good"
+    elif dec < 10:
+        status = "fair"
+    else:
+        status = "poor"
+
+    return {
+        "ef": round(ef, 4) if ef is not None else None,
+        "decoupling_pct": round(dec, 2) if dec is not None else None,
+        "status": status,
+        "data_source": "intervals_metrics",
+        "average_stride": data.get("average_stride"),
+        "trimp": data.get("trimp"),
+    }
+
 def calculate_efficiency(conn: sqlite3.Connection, activity_id: int) -> dict | None:
     """Strava stream 기반 EF(효율성 지수) 및 심장 디커플링 계산.
 
@@ -80,11 +118,11 @@ def calculate_efficiency(conn: sqlite3.Connection, activity_id: int) -> dict | N
     """
     stream_path = _get_stream_path(conn, activity_id)
     if not stream_path:
-        return None
+        return _get_intervals_metrics(conn, activity_id)
 
     stream = _load_stream(stream_path)
     if stream is None:
-        return None
+        return _get_intervals_metrics(conn, activity_id)
 
     hr = stream.get("heartrate")
     vel = stream.get("velocity_smooth")

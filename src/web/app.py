@@ -88,6 +88,7 @@ def _html_page(title: str, body: str) -> str:
     <a href="/config">Config</a>
     <a href="/import-preview">Import Preview</a>
     <a href="/sync-status">Sync Status</a>
+    <a href="/payloads">Payloads</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
@@ -300,6 +301,60 @@ python src/sync.py --source all --days 7</pre>
             """
         )
         return _html_page("Sync Status", body)
+
+
+    @app.get("/payloads")
+    def payloads():
+        db_path = _db_path()
+        if not db_path.exists():
+            body = "<div class='card'><h2>DB 없음</h2><p>running.db가 없습니다.</p></div>"
+            return _html_page("Payloads", body)
+
+        try:
+            with sqlite3.connect(db_path) as conn:
+                payload_counts = conn.execute(
+                    """
+                    SELECT source, entity_type, count(*) AS cnt
+                    FROM source_payloads
+                    GROUP BY source, entity_type
+                    ORDER BY source, entity_type
+                    """
+                ).fetchall()
+
+                metric_counts = conn.execute(
+                    """
+                    SELECT source, metric_name, count(*) AS cnt
+                    FROM source_metrics
+                    GROUP BY source, metric_name
+                    ORDER BY source, metric_name
+                    LIMIT 100
+                    """
+                ).fetchall()
+
+                recent_payloads = conn.execute(
+                    """
+                    SELECT source, entity_type, entity_id, activity_id,
+                           length(payload_json) AS payload_len, updated_at
+                    FROM source_payloads
+                    ORDER BY updated_at DESC
+                    LIMIT 20
+                    """
+                ).fetchall()
+        except Exception as e:
+            return _html_page("Payloads", f"<div class='card'><h2>조회 실패</h2><pre>{html.escape(str(e))}</pre></div>")
+
+        body = (
+            "<div class='card'><h2>source_payloads counts</h2>"
+            + _table(["source", "entity_type", "count"], payload_counts)
+            + "</div>"
+            + "<div class='card'><h2>source_metrics counts</h2>"
+            + _table(["source", "metric_name", "count"], metric_counts)
+            + "</div>"
+            + "<div class='card'><h2>recent payloads</h2>"
+            + _table(["source", "entity_type", "entity_id", "activity_id", "payload_len", "updated_at"], recent_payloads)
+            + "</div>"
+        )
+        return _html_page("Payloads", body)
 
     @app.get("/db")
     def db_summary():

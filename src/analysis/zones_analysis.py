@@ -102,10 +102,11 @@ def _load_stream(path: str) -> dict | None:
 
 
 def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
-    """Intervals.icu hr_zone_distribution 데이터 조회 (source_metrics JSON).
+    """Intervals.icu zone time 데이터 조회 (source_metrics JSON).
 
-    Args:
-        rep_id: 대표 activity id (그룹 내 임의 활동).
+    우선순위:
+    1) icu_hr_zone_times: [z1, z2, ...] 리스트
+    2) hr_zone_distribution: {1: secs, ...} 형태의 구버전 JSON
 
     Returns:
         {1: 초, 2: 초, ...} 또는 None.
@@ -129,6 +130,21 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
         acts = [(rep_id,)] if src_row and src_row[0] == "intervals" else []
 
     for (sid,) in acts:
+        # 1) 신규 저장 포맷: icu_hr_zone_times = [z1, z2, z3, ...]
+        r = conn.execute(
+            "SELECT metric_json FROM source_metrics "
+            "WHERE activity_id = ? AND metric_name = 'icu_hr_zone_times'",
+            (sid,),
+        ).fetchone()
+        if r and r[0]:
+            try:
+                data = json.loads(r[0])
+                if isinstance(data, list):
+                    return {idx + 1: int(v or 0) for idx, v in enumerate(data[:5])}
+            except Exception:
+                pass
+
+        # 2) 구 포맷: hr_zone_distribution = {1: secs, ...}
         r = conn.execute(
             "SELECT metric_json FROM source_metrics "
             "WHERE activity_id = ? AND metric_name = 'hr_zone_distribution'",
