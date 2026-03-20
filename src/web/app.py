@@ -49,6 +49,11 @@ def _html_page(title: str, body: str) -> str:
       border-radius: 8px;
       overflow-x: auto;
     }}
+    code {{
+      background: #f5f5f5;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+    }}
     table {{
       border-collapse: collapse;
       width: 100%;
@@ -58,6 +63,7 @@ def _html_page(title: str, body: str) -> str:
       border: 1px solid #ddd;
       padding: 0.5rem;
       text-align: left;
+      vertical-align: top;
     }}
     th {{
       background: #f0f0f0;
@@ -65,12 +71,20 @@ def _html_page(title: str, body: str) -> str:
     .muted {{
       color: #666;
     }}
+    .card {{
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      background: #fafafa;
+    }}
   </style>
 </head>
 <body>
   <nav>
     <a href="/">홈</a>
     <a href="/db">DB 요약</a>
+    <a href="/config">Config</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
@@ -99,6 +113,10 @@ def _table(headers: list[str], rows: list[tuple]) -> str:
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
 
+def _bool_text(value: bool) -> str:
+    return "yes" if value else "no"
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
 
@@ -107,21 +125,96 @@ def create_app() -> Flask:
         db_path = _db_path()
         body = f"""
         <p>RunPulse 데이터 연동 검증용 최소 workbench.</p>
-        <ul>
-          <li><a href="/db">DB 상태 확인</a></li>
-          <li><a href="/analyze/today">today 리포트 미리보기</a></li>
-          <li><a href="/analyze/full">full 리포트 미리보기</a></li>
-          <li><a href="/analyze/race?date=2026-06-01&distance=42.195">race 리포트 미리보기</a></li>
-        </ul>
+
+        <div class="card">
+          <h2>읽기 전용 점검</h2>
+          <ul>
+            <li><a href="/db">DB 상태 확인</a></li>
+            <li><a href="/config">설정 상태 확인</a></li>
+            <li><a href="/analyze/today">today 리포트 미리보기</a></li>
+            <li><a href="/analyze/full">full 리포트 미리보기</a></li>
+            <li><a href="/analyze/race?date=2026-06-01&distance=42.195">race 리포트 미리보기</a></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>다음 구현 후보</h2>
+          <ul>
+            <li>Import preview 페이지</li>
+            <li>Sync status / recent fetch 페이지</li>
+            <li>최근 activity / dedup 그룹 drill-down</li>
+          </ul>
+        </div>
+
         <p class="muted">DB path: {html.escape(str(db_path))}</p>
         """
         return _html_page("Integration Workbench", body)
+
+    @app.get("/config")
+    def config_summary():
+        config = load_config()
+        db_path = _db_path()
+
+        rows = [
+            ("database.path", str(db_path), _bool_text(db_path.exists())),
+            ("garmin configured", "email/password", _bool_text(bool(config.get("garmin")))),
+            ("strava configured", "oauth fields", _bool_text(bool(config.get("strava")))),
+            ("intervals configured", "athlete_id/api_key", _bool_text(bool(config.get("intervals")))),
+            ("runalyze configured", "token", _bool_text(bool(config.get("runalyze")))),
+            ("user config", "max_hr / threshold_pace / weekly target", _bool_text(bool(config.get("user")))),
+            ("ai config", "provider / prompt language", _bool_text(bool(config.get("ai")))),
+        ]
+
+        body = (
+            f"<p class='muted'>Project root: {html.escape(str(_project_root()))}</p>"
+            + f"<p class='muted'>Resolved DB path: {html.escape(str(db_path))}</p>"
+            + "<h2>Configuration Summary</h2>"
+            + _table(["item", "detail", "present"], rows)
+            + """
+            <div class="card">
+              <h2>메모</h2>
+              <ul>
+                <li>여기서는 민감정보 값을 노출하지 않고, 설정 존재 여부만 표시합니다.</li>
+                <li><code>config.json</code>이 없으면 기본값 기반으로 동작합니다.</li>
+              </ul>
+            </div>
+            """
+        )
+        return _html_page("Config Summary", body)
 
     @app.get("/db")
     def db_summary():
         db_path = _db_path()
         if not db_path.exists():
-            body = f"<p>데이터베이스가 없습니다: {html.escape(str(db_path))}</p>"
+            body = f"""
+            <p>데이터베이스가 없습니다: <code>{html.escape(str(db_path))}</code></p>
+
+            <div class="card">
+              <h2>다음 액션</h2>
+              <ol>
+                <li><code>python src/db_setup.py</code> 로 DB 스키마 생성</li>
+                <li>최근 데이터는 sync CLI로 가져오기</li>
+                <li>과거 파일은 import_history CLI로 가져오기</li>
+              </ol>
+            </div>
+
+            <div class="card">
+              <h2>예시 명령</h2>
+              <pre>python src/db_setup.py
+
+python src/import_history.py data/history/garmin --source garmin -r
+python src/import_history.py data/history/strava --source strava -r
+
+python src/analyze.py today
+python src/analyze.py full</pre>
+            </div>
+
+            <div class="card">
+              <h2>권장 디렉터리</h2>
+              <pre>data/history/garmin/
+data/history/strava/</pre>
+            </div>
+            """
             return _html_page("DB Summary", body)
 
         conn = sqlite3.connect(str(db_path))
