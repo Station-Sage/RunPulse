@@ -41,3 +41,5 @@ Thumbs.db
 
 # Termux
 *.log
+.env
+.env.*
