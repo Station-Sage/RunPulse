@@ -44,6 +44,12 @@ class TestSyncActivities:
         assert row[1] == "123"
         assert abs(row[2] - 10.0) < 0.01
 
+        payload_rows = db_conn.execute(
+            "SELECT entity_type, entity_id FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+        ).fetchall()
+        assert ("activity_detail", "123") in payload_rows
+        assert ("activity_summary", "123") in payload_rows
+
         metrics = db_conn.execute(
             "SELECT metric_name, metric_value FROM source_metrics ORDER BY metric_name"
         ).fetchall()
@@ -109,3 +115,15 @@ class TestSyncWellness:
         assert row[0] == 85
         assert row[1] == 45
         assert row[2] == 80
+
+        payload_types = {
+            row[0]
+            for row in db_conn.execute(
+                "SELECT entity_type FROM source_payloads WHERE source='garmin' ORDER BY entity_type"
+            ).fetchall()
+        }
+        assert "sleep_day" in payload_types
+        assert "hrv_day" in payload_types
+        assert "body_battery_day" in payload_types
+        assert "stress_day" in payload_types
+        assert "rhr_day" in payload_types

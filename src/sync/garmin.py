@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Garmin Connect 데이터 동기화."""
 
+import json
 import sqlite3
 import time
 from datetime import datetime, timedelta
@@ -22,6 +23,34 @@ def _login(config: dict) -> Garmin:
     client = Garmin(garmin_cfg["email"], garmin_cfg["password"])
     client.login()
     return client
+
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload,
+    activity_id: int | None = None,
+) -> None:
+    """Store or update raw Garmin payload."""
+    if payload is None:
+        return
+
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    conn.execute(
+        """
+        INSERT INTO source_payloads
+            (source, entity_type, entity_id, activity_id, payload_json)
+        VALUES
+            ('garmin', ?, ?, ?, ?)
+        ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
+            activity_id = excluded.activity_id,
+            payload_json = excluded.payload_json,
+            updated_at = datetime('now')
+        """,
+        (entity_type, entity_id, activity_id, payload_json),
+    )
 
 
 def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
@@ -105,10 +134,25 @@ def sync_activities(
         activity_id = cursor.lastrowid
         count += 1
 
+        _store_raw_payload(
+            conn,
+            entity_type="activity_summary",
+            entity_id=source_id,
+            payload=act,
+            activity_id=activity_id,
+        )
+
         # 상세 지표 조회
         try:
             time.sleep(2)
             detail = client.get_activity(int(source_id))
+            _store_raw_payload(
+                conn,
+                entity_type="activity_detail",
+                entity_id=source_id,
+                payload=detail,
+                activity_id=activity_id,
+            )
             aerobic_te = detail.get("aerobicTrainingEffect")
             anaerobic_te = detail.get("anaerobicTrainingEffect")
             training_load = detail.get("activityTrainingLoad")
@@ -175,6 +219,7 @@ def sync_wellness(
 
         try:
             sleep = client.get_sleep_data(date_str)
+            _store_raw_payload(conn, "sleep_day", date_str, sleep)
             if sleep:
                 sleep_score = (sleep.get("dailySleepDTO", {})
                                .get("sleepScores", {}).get("overall", {}).get("value"))
@@ -187,6 +232,7 @@ def sync_wellness(
         try:
             time.sleep(2)
             hrv = client.get_hrv_data(date_str)
+            _store_raw_payload(conn, "hrv_day", date_str, hrv)
             if hrv:
                 hrv_value = hrv.get("hrvSummary", {}).get("lastNightAvg")
         except Exception as e:
@@ -195,6 +241,7 @@ def sync_wellness(
         try:
             time.sleep(2)
             bb = client.get_body_battery(date_str)
+            _store_raw_payload(conn, "body_battery_day", date_str, bb)
             if bb and isinstance(bb, list) and bb:
                 vals = [item.get("bodyBatteryLevel", 0) for item in bb
                         if item.get("bodyBatteryLevel")]
@@ -205,13 +252,17 @@ def sync_wellness(
         try:
             time.sleep(2)
             stress = client.get_stress_data(date_str)
+            _store_raw_payload(conn, "stress_day", date_str, stress)
             if stress:
                 stress_avg = stress.get("averageStressLevel")
+                if stress_avg is None:
+                    stress_avg = stress.get("avgStressLevel")
         except Exception as e:
             print(f"[garmin] 스트레스 데이터 실패 {date_str}: {e}")
 
         try:
             rhr_data = client.get_rhr_day(date_str)
+            _store_raw_payload(conn, "rhr_day", date_str, rhr_data)
             if rhr_data:
                 resting_hr = rhr_data.get("restingHeartRate")
         except Exception:
