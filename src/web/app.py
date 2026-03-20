@@ -12,6 +12,10 @@ from flask import Flask, request
 from src.analysis import generate_report
 from src.utils.config import load_config
 
+# Phase 5 Blueprint imports
+from .views_wellness import wellness_bp
+from .views_activity import activity_bp
+
 
 def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -79,19 +83,49 @@ def _html_page(title: str, body: str) -> str:
       margin: 1rem 0;
       background: #fafafa;
     }}
+    .cards-row {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 1rem 0;
+    }}
+    .cards-row > .card {{
+      flex: 1;
+      min-width: 200px;
+      margin: 0;
+    }}
+    .score-badge {{
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 1.05rem;
+    }}
+    .grade-excellent {{ background: #c8f7c5; color: #1a7a17; }}
+    .grade-good      {{ background: #d4edff; color: #0056b3; }}
+    .grade-moderate  {{ background: #fff3cd; color: #856404; }}
+    .grade-poor      {{ background: #ffd6d6; color: #c0392b; }}
+    .grade-unknown   {{ background: #eee;    color: #555; }}
+    .mrow {{ display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #eee; }}
+    .mrow:last-child {{ border-bottom: none; }}
+    .mlabel {{ color: #555; font-size: 0.9rem; }}
+    .mval   {{ font-weight: 500; }}
+    h2 {{ margin-top: 0; }}
   </style>
 </head>
 <body>
   <nav>
     <a href="/">홈</a>
-    <a href="/db">DB 요약</a>
-    <a href="/config">Config</a>
-    <a href="/import-preview">Import Preview</a>
-    <a href="/sync-status">Sync Status</a>
-    <a href="/payloads">Payloads</a>
+    <a href="/db">DB</a>
+    <a href="/wellness">회복/웰니스</a>
+    <a href="/activity/deep">활동 심층</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
+    <a href="/payloads">Payloads</a>
+    <a href="/config">Config</a>
+    <a href="/sync-status">Sync</a>
+    <a href="/import-preview">Import</a>
   </nav>
   <hr>
   <h1>{html.escape(title)}</h1>
@@ -206,34 +240,186 @@ def create_app() -> Flask:
     @app.get("/")
     def index():
         db_path = _db_path()
+
+        if not db_path.exists():
+            body = f"""
+            <p>RunPulse 대시보드 — DB 미초기화 상태입니다.</p>
+            <div class="card">
+              <h2>시작 방법</h2>
+              <ol>
+                <li><code>python src/db_setup.py</code> 로 DB 생성</li>
+                <li><code>python src/sync.py --source all --days 7</code> 로 데이터 동기화</li>
+                <li>이 페이지를 새로고침하면 대시보드가 표시됩니다.</li>
+              </ol>
+            </div>
+            <p class="muted">DB path: {html.escape(str(db_path))}</p>
+            """
+            return _html_page("RunPulse 대시보드", body)
+
+        # ── 대시보드 데이터 수집 ────────────────────────────────────────
+        recovery_card_html = ""
+        weekly_card_html = ""
+        recent_acts_html = ""
+
+        try:
+            from src.analysis.recovery import get_recovery_status
+            from src.analysis.weekly_score import calculate_weekly_score
+
+            with sqlite3.connect(str(db_path)) as conn:
+                # 회복 상태 (오늘)
+                from datetime import date as _date
+                today = _date.today().isoformat()
+                recovery = get_recovery_status(conn, today)
+
+                # 주간 점수
+                try:
+                    weekly = calculate_weekly_score(conn)
+                except Exception:
+                    weekly = None
+
+                # 최근 활동 5개
+                recent_rows = conn.execute(
+                    """
+                    SELECT id, source, activity_type, start_time,
+                           distance_km, duration_sec, avg_hr
+                    FROM activity_summaries
+                    ORDER BY start_time DESC
+                    LIMIT 5
+                    """
+                ).fetchall()
+
+        except Exception as exc:
+            body = (
+                f"<div class='card'><p>대시보드 로드 오류: {html.escape(str(exc))}</p></div>"
+                f"<p class='muted'>DB path: {html.escape(str(db_path))}</p>"
+            )
+            return _html_page("RunPulse 대시보드", body)
+
+        # ── 회복 카드 ────────────────────────────────────────────────
+        if recovery.get("available"):
+            detail = recovery.get("detail") or {}
+            readiness = detail.get("training_readiness_score")
+            score = recovery.get("recovery_score")
+            grade = recovery.get("grade")
+            grade_kor = {"excellent": "최상", "good": "좋음", "moderate": "보통", "poor": "부족"}.get(grade or "", "—")
+
+            def _rbadge(val, lo, mid, hi):
+                if val is None:
+                    return "<span class='score-badge grade-unknown'>—</span>"
+                v = float(val)
+                if v >= hi:
+                    cls = "grade-excellent"
+                elif v >= mid:
+                    cls = "grade-good"
+                elif v >= lo:
+                    cls = "grade-moderate"
+                else:
+                    cls = "grade-poor"
+                return f"<span class='score-badge {cls}'>{html.escape(str(val))}</span>"
+
+            readiness_badge = _rbadge(readiness, 30, 50, 70)
+            recovery_badge = (
+                f"<span class='score-badge grade-{html.escape(grade or 'unknown')}'>"
+                f"{html.escape(str(score) if score is not None else '—')} ({html.escape(grade_kor)})</span>"
+            )
+            raw = recovery.get("raw") or {}
+
+            recovery_card_html = f"""
+            <div class="card">
+              <h2>오늘 회복 상태 <a href="/wellness" style="font-size:0.8rem; font-weight:normal;">상세 &rarr;</a></h2>
+              <p><strong>훈련 준비도:</strong> {readiness_badge}
+                 &nbsp; <strong>회복 점수:</strong> {recovery_badge}</p>
+              <div style="display:flex; gap:2rem; flex-wrap:wrap; margin-top:0.5rem;">
+                <span>바디 배터리: <strong>{html.escape(str(raw.get("body_battery") or "—"))}</strong></span>
+                <span>수면 점수: <strong>{html.escape(str(raw.get("sleep_score") or "—"))}</strong></span>
+                <span>HRV: <strong>{html.escape(str(raw.get("hrv_value") or "—"))} ms</strong></span>
+                <span>SpO2: <strong>{html.escape(str(detail.get("spo2_avg") or "—"))}%</strong></span>
+              </div>
+            </div>
+            """
+        else:
+            recovery_card_html = f"""
+            <div class="card">
+              <h2>오늘 회복 상태 <a href="/wellness" style="font-size:0.8rem; font-weight:normal;">상세 &rarr;</a></h2>
+              <p class="muted">오늘 Garmin 웰니스 데이터가 없습니다.
+                <code>python src/sync.py --source garmin --days 1</code></p>
+            </div>
+            """
+
+        # ── 주간 점수 카드 ────────────────────────────────────────────
+        if weekly:
+            w_score = weekly.get("total_score")
+            w_grade = weekly.get("grade") or "—"
+            w_data = weekly.get("data") or {}
+            weekly_card_html = f"""
+            <div class="card">
+              <h2>이번 주 훈련 점수 <a href="/analyze/today" style="font-size:0.8rem; font-weight:normal;">리포트 &rarr;</a></h2>
+              <p style="font-size:1.4rem; margin:0.3rem 0;">
+                <strong>{html.escape(str(w_score) if w_score is not None else "—")}</strong>
+                <span style="font-size:1rem; color:#666;">/ 100 ({html.escape(str(w_grade))})</span>
+              </p>
+              <div style="display:flex; gap:2rem; flex-wrap:wrap; margin-top:0.5rem;">
+                <span>거리: <strong>{html.escape(str(w_data.get("total_distance_km") or "—"))} km</strong></span>
+                <span>런 횟수: <strong>{html.escape(str(w_data.get("run_count") or "—"))}</strong></span>
+              </div>
+            </div>
+            """
+        else:
+            weekly_card_html = """
+            <div class="card">
+              <h2>이번 주 훈련 점수</h2>
+              <p class="muted">데이터 부족</p>
+            </div>
+            """
+
+        # ── 최근 활동 카드 ────────────────────────────────────────────
+        if recent_rows:
+            act_rows_html = ""
+            for rid, rsrc, rtype, rstart, rdist, rdur, rhr in recent_rows:
+                dist_str = f"{float(rdist):.2f}" if rdist else "—"
+                dur_min = f"{int(rdur)//60}m" if rdur else "—"
+                hr_str = str(rhr) if rhr else "—"
+                deep_link = f"<a href='/activity/deep?id={rid}'>심층</a>"
+                act_rows_html += (
+                    f"<tr>"
+                    f"<td>{html.escape(str(rstart)[:10])}</td>"
+                    f"<td>{html.escape(str(rsrc))}</td>"
+                    f"<td>{html.escape(str(rtype))}</td>"
+                    f"<td>{html.escape(dist_str)} km</td>"
+                    f"<td>{html.escape(dur_min)}</td>"
+                    f"<td>{html.escape(hr_str)} bpm</td>"
+                    f"<td>{deep_link}</td>"
+                    f"</tr>"
+                )
+            recent_acts_html = f"""
+            <div class="card">
+              <h2>최근 활동 <a href="/db" style="font-size:0.8rem; font-weight:normal;">전체 &rarr;</a></h2>
+              <table>
+                <thead><tr>
+                  <th>날짜</th><th>소스</th><th>유형</th>
+                  <th>거리</th><th>시간</th><th>심박</th><th>상세</th>
+                </tr></thead>
+                <tbody>{act_rows_html}</tbody>
+              </table>
+            </div>
+            """
+        else:
+            recent_acts_html = """
+            <div class="card">
+              <h2>최근 활동</h2>
+              <p class="muted">활동 데이터가 없습니다.</p>
+            </div>
+            """
+
         body = f"""
-        <p>RunPulse 데이터 연동 검증용 최소 workbench.</p>
-
-        <div class="card">
-          <h2>읽기 전용 점검</h2>
-          <ul>
-            <li><a href="/db">DB 상태 확인</a></li>
-            <li><a href="/config">설정 상태 확인</a></li>
-            <li><a href="/import-preview">import 대상 파일 미리보기</a></li>
-            <li><a href="/sync-status">sync 설정/명령 미리보기</a></li>
-            <li><a href="/analyze/today">today 리포트 미리보기</a></li>
-            <li><a href="/analyze/full">full 리포트 미리보기</a></li>
-            <li><a href="/analyze/race?date=2026-06-01&distance=42.195">race 리포트 미리보기</a></li>
-          </ul>
+        <div class="cards-row">
+          {recovery_card_html}
+          {weekly_card_html}
         </div>
-
-        <div class="card">
-          <h2>다음 구현 후보</h2>
-          <ul>
-            <li>Import 실행 트리거</li>
-            <li>실제 recent sync trigger</li>
-            <li>최근 activity / dedup 그룹 drill-down</li>
-          </ul>
-        </div>
-
-        <p class="muted">DB path: {html.escape(str(db_path))}</p>
+        {recent_acts_html}
+        <p class="muted">DB: {html.escape(str(db_path))}</p>
         """
-        return _html_page("Integration Workbench", body)
+        return _html_page("RunPulse 대시보드", body)
 
     @app.get("/config")
     def config_summary():
@@ -556,20 +742,20 @@ data/history/strava/</pre>
         conn = sqlite3.connect(str(db_path))
         try:
             table_counts = [
-                ("activities", _query_value(conn, "select count(*) from activities")),
-                ("source_metrics", _query_value(conn, "select count(*) from source_metrics")),
+                ("activity_summaries", _query_value(conn, "select count(*) from activity_summaries")),
+                ("activity_detail_metrics", _query_value(conn, "select count(*) from activity_detail_metrics")),
                 ("daily_wellness", _query_value(conn, "select count(*) from daily_wellness")),
                 ("daily_fitness", _query_value(conn, "select count(*) from daily_fitness")),
                 ("goals", _query_value(conn, "select count(*) from goals")),
             ]
 
-            activities_total = dict(table_counts).get("activities", 0)
+            activities_total = dict(table_counts).get("activity_summaries", 0)
 
             activities_by_source = _query_rows(
                 conn,
                 """
                 select source, count(*)
-                from activities
+                from activity_summaries
                 group by source
                 order by source
                 """,
@@ -596,7 +782,7 @@ data/history/strava/</pre>
                 conn,
                 """
                 select id, source, activity_type, start_time, distance_km, duration_sec
-                from activities
+                from activity_summaries
                 order by start_time desc
                 limit 20
                 """,
@@ -605,7 +791,7 @@ data/history/strava/</pre>
                 conn,
                 """
                 select matched_group_id, count(*)
-                from activities
+                from activity_summaries
                 where matched_group_id is not null
                 group by matched_group_id
                 having count(*) > 1
@@ -643,6 +829,25 @@ python src/import_history.py data/history/strava --source strava -r</pre>
             """
             return _html_page("DB Summary", body)
 
+        # 최근 활동 테이블에 심층 분석 링크 추가
+        act_rows_with_link = []
+        for row in recent_activities:
+            act_id = row[0]
+            act_rows_with_link.append(row + (f"/activity/deep?id={act_id}",))
+
+        def _recent_acts_table(rows):
+            if not rows:
+                return "<p class='muted'>(no rows)</p>"
+            headers = ["id", "source", "activity_type", "start_time", "distance_km", "duration_sec", "심층 분석"]
+            head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+            body_rows = []
+            for row in rows:
+                *data_cols, link = row
+                cols = "".join(f"<td>{html.escape(str(v))}</td>" for v in data_cols)
+                cols += f"<td><a href='{html.escape(str(link))}'>보기</a></td>"
+                body_rows.append(f"<tr>{cols}</tr>")
+            return f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
+
         body += (
             "<h2>Activities by source</h2>"
             + _table(["source", "count"], activities_by_source)
@@ -651,14 +856,13 @@ python src/import_history.py data/history/strava --source strava -r</pre>
             + "<h2>Daily wellness by source</h2>"
             + _table(["source", "count"], wellness_by_source)
             + "<h2>Recent activities</h2>"
-            + _table(
-                ["id", "source", "activity_type", "start_time", "distance_km", "duration_sec"],
-                recent_activities,
-            )
+            + _recent_acts_table(act_rows_with_link)
             + "<h2>Matched groups</h2>"
             + _table(["matched_group_id", "count"], matched_groups)
         )
         return _html_page("DB Summary", body)
+
+    # ── /db 테이블에 활동 심층 링크 추가는 recent_activities 쿼리에서 처리 ──
 
     @app.get("/analyze/<report_type>")
     def analyze_preview(report_type: str):
@@ -696,5 +900,9 @@ python src/import_history.py data/history/strava --source strava -r</pre>
 
         body = f"<pre>{html.escape(output)}</pre>"
         return _html_page(f"Analyze Preview: {report_type}", body)
+
+    # ── Phase 5 Blueprint 등록 ─────────────────────────────────────────
+    app.register_blueprint(wellness_bp)
+    app.register_blueprint(activity_bp)
 
     return app

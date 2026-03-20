@@ -1,6 +1,33 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-21 (claude/phase5-ui)
+
+### Phase 5 UI 1차 구현 — Garmin daily detail 웹 노출
+
+**신규 파일**
+- `src/web/helpers.py` — 공통 헬퍼 (html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration)
+- `src/web/views_wellness.py` — `/wellness` Blueprint: Garmin daily detail 회복/웰니스 카드 뷰
+  - training readiness, 야간 HRV avg/SDNN, 딥 슬립/REM, body battery delta, 고스트레스 시간, SpO2, 호흡수
+  - 14일 회복 추세 테이블 (데이터 유무와 무관하게 항상 표시)
+- `src/web/views_activity.py` — `/activity/deep` Blueprint: 단일 활동 심층 분석 카드 뷰
+  - Garmin daily detail 섹션 (활동 날짜 기준), 4소스 메트릭 카드, 피트니스 컨텍스트, 페이스 스플릿
+- `tests/test_web_wellness.py` — 38개 테스트 (helpers 유닛 + wellness 라우트 통합)
+- `tests/test_web_activity.py` — 활동 심층/홈 대시보드 라우트 통합 테스트
+
+**변경 파일**
+- `src/web/app.py`
+  - Blueprint 등록 (wellness_bp, activity_bp)
+  - nav 업데이트 (회복/웰니스, 활동 심층 링크 추가)
+  - 홈(`/`) 대시보드 개선: 회복 요약 카드 + 주간 점수 카드 + 최근 활동 테이블 (심층 링크 포함)
+  - `/db` 라우트 테이블명 버그 수정 (`activities` → `activity_summaries`, `source_metrics` → `activity_detail_metrics`)
+  - 최근 활동 테이블에 심층 분석 링크 컬럼 추가
+
+**테스트 결과**
+- `python -m pytest tests/test_web_wellness.py tests/test_web_activity.py -v` → 38 passed
+- `python -m pytest tests/ -q` → 304 passed
+
+
 ## 2026-03-20 (feature/integration-validation)
 - integration-validation 통합 및 검증 완료
   - `feature/intervals-analysis-polish` merge
