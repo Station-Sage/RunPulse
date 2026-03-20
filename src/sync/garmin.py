@@ -173,6 +173,42 @@ def sync_activities(
                 or act.get("steps")
             )
 
+            avg_speed = (
+                detail.get("averageSpeed")
+                or summary.get("averageSpeed")
+                or act.get("averageSpeed")
+            )
+            max_speed = (
+                detail.get("maxSpeed")
+                or summary.get("maxSpeed")
+                or act.get("maxSpeed")
+            )
+            avg_run_cadence = (
+                detail.get("averageRunCadence")
+                or summary.get("averageRunCadence")
+                or act.get("averageRunningCadenceInStepsPerMinute")
+            )
+            max_run_cadence = (
+                detail.get("maxRunCadence")
+                or summary.get("maxRunCadence")
+                or act.get("maxRunningCadenceInStepsPerMinute")
+            )
+            avg_stride_length = (
+                detail.get("averageStrideLength")
+                or summary.get("averageStrideLength")
+            )
+            avg_vertical_ratio = (
+                detail.get("avgVerticalRatio")
+                or summary.get("avgVerticalRatio")
+            )
+            avg_ground_contact_time = (
+                detail.get("avgGroundContactTime")
+                or summary.get("avgGroundContactTime")
+            )
+
+            hr_zone_times = summary.get("hrTimeInZone", []) or detail.get("hrTimeInZone", [])
+            power_zone_times = summary.get("powerTimeInZone", []) or detail.get("powerTimeInZone", [])
+
             metrics = {
                 "training_effect_aerobic": aerobic_te,
                 "training_effect_anaerobic": anaerobic_te,
@@ -182,7 +218,22 @@ def sync_activities(
                 "avg_power": avg_power,
                 "normalized_power": normalized_power,
                 "steps": steps,
+                "avg_speed": avg_speed,
+                "max_speed": max_speed,
+                "avg_run_cadence": avg_run_cadence,
+                "max_run_cadence": max_run_cadence,
+                "avg_stride_length": avg_stride_length,
+                "avg_vertical_ratio": avg_vertical_ratio,
+                "avg_ground_contact_time": avg_ground_contact_time,
             }
+            for idx, value in enumerate(hr_zone_times[:5], start=1):
+                if value is not None:
+                    metrics[f"hr_zone_time_{idx}"] = value
+
+            for idx, value in enumerate(power_zone_times[:5], start=1):
+                if value is not None:
+                    metrics[f"power_zone_time_{idx}"] = value
+
             for name, value in metrics.items():
                 if value is not None:
                     conn.execute(

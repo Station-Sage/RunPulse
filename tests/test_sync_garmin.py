@@ -37,6 +37,15 @@ class TestSyncActivities:
                 "averagePower": 250,
                 "normalizedPower": 265,
                 "steps": 1345,
+                "averageSpeed": 3.33,
+                "maxSpeed": 5.10,
+                "averageRunCadence": 180,
+                "maxRunCadence": 192,
+                "averageStrideLength": 1.12,
+                "avgVerticalRatio": 8.4,
+                "avgGroundContactTime": 248,
+                "hrTimeInZone": [300, 600, 900, 700, 500],
+                "powerTimeInZone": [100, 200, 300, 400, 500],
             }
         }
         mock_garmin_cls.return_value = mock_client
@@ -70,6 +79,23 @@ class TestSyncActivities:
         assert metric_dict["avg_power"] == pytest.approx(250)
         assert metric_dict["normalized_power"] == pytest.approx(265)
         assert metric_dict["steps"] == pytest.approx(1345)
+        assert metric_dict["avg_speed"] == pytest.approx(3.33)
+        assert metric_dict["max_speed"] == pytest.approx(5.10)
+        assert metric_dict["avg_run_cadence"] == pytest.approx(180)
+        assert metric_dict["max_run_cadence"] == pytest.approx(192)
+        assert metric_dict["avg_stride_length"] == pytest.approx(1.12)
+        assert metric_dict["avg_vertical_ratio"] == pytest.approx(8.4)
+        assert metric_dict["avg_ground_contact_time"] == pytest.approx(248)
+        assert metric_dict["hr_zone_time_1"] == pytest.approx(300)
+        assert metric_dict["hr_zone_time_2"] == pytest.approx(600)
+        assert metric_dict["hr_zone_time_3"] == pytest.approx(900)
+        assert metric_dict["hr_zone_time_4"] == pytest.approx(700)
+        assert metric_dict["hr_zone_time_5"] == pytest.approx(500)
+        assert metric_dict["power_zone_time_1"] == pytest.approx(100)
+        assert metric_dict["power_zone_time_2"] == pytest.approx(200)
+        assert metric_dict["power_zone_time_3"] == pytest.approx(300)
+        assert metric_dict["power_zone_time_4"] == pytest.approx(400)
+        assert metric_dict["power_zone_time_5"] == pytest.approx(500)
         assert metric_dict["avg_power"] == pytest.approx(250)
         assert metric_dict["normalized_power"] == pytest.approx(265)
         assert metric_dict["steps"] == pytest.approx(1345)
