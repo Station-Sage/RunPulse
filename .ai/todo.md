@@ -49,10 +49,10 @@
 - [x] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
 
 ## Phase 4: 훈련 계획 및 목표
-- [ ] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
-- [ ] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성
-- [ ] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
-- [ ] P4-4: src/plan.py - CLI 진입점
+- [x] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
+- [x] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성
+- [x] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
+- [x] P4-4: src/plan.py - CLI 진입점
 
 ## Phase 4-1: AI 코치 연동
 - [ ] P4-1-1: src/ai/ai_context.py - 분석 데이터를 AI 프롬프트 컨텍스트로 변환
@@ -90,6 +90,7 @@
 - 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
 - 2026-03-20: Phase 1-2 스키마 확장 및 sync 개선 완료 (FIX-1~FIX-8), 테스트 144개 통과
 - 2026-03-20: Sprint 3-2 완료 (P3-5 ~ P3-7), 신규 테스트 39개 추가 (누적 183개)
+- 2026-03-20: Phase 4 완료 (P4-1 ~ P4-4) — 목표 CRUD, 규칙 기반 주간 계획, 컨디션 조정, plan.py CLI
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 
