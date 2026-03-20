@@ -99,3 +99,10 @@
 - [x] P3-9: 마크다운 리포트 및 AI 컨텍스트 생성 추가 (report.py)
 - [x] P3-10: analyze.py CLI 엔트리포인트 추가
 - [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
+
+## Integration validation
+- [ ] IV-1: 실제 Garmin/Strava export 샘플 기반 import_history 통합 검증
+- [ ] IV-2: 실제 API 응답 fixture 기반 sync parser 검증
+- [ ] IV-3: dedup false positive / false negative 사례 수집
+- [ ] IV-4: analyze.py / report.py / race_readiness.py 실제 데이터 sanity check
+- [ ] IV-5: 익명화 fixture dataset 설계 및 tests/fixtures 구조 정리

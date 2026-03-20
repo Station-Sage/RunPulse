@@ -1,0 +1,5 @@
+.ai/todo.md
+.ai/architecture.md
+.ai/files.md
+.ai/data-sources.md
+.ai/changelog.md
