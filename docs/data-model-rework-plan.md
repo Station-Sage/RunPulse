@@ -6,8 +6,8 @@
 
 현재 Garmin alignment 작업을 진행하면서 다음 문제가 더 분명해졌다.
 
-- raw payload 저장은 `source_payloads`로 방향이 잡혔다.
-- activity 단위 source-specific metric은 `source_metrics`에 저장되고 있다.
+- raw payload 저장은 `raw_raw_raw_source_payloads`로 방향이 잡혔다.
+- activity 단위 source-specific metric은 `activity_detail_metrics`에 저장되고 있다.
 - 하지만 day 단위 wellness/source-specific metric을 저장할 적절한 구조가 부족하다.
 - 일부 테이블 이름은 현재 역할을 정확히 드러내지 못한다.
 - core summary와 source-specific detail의 경계가 점점 중요해지고 있다.
@@ -18,7 +18,7 @@
 
 ## 현재 테이블 역할
 
-### `source_payloads`
+### `raw_raw_raw_source_payloads`
 외부 소스에서 받은 raw payload를 저장하는 테이블이다.
 
 역할:
@@ -33,7 +33,7 @@
 
 ---
 
-### `activities`
+### `activity_summaries`
 활동(activity)의 공통 핵심 요약 정보를 저장하는 테이블이다.
 
 역할:
@@ -47,7 +47,7 @@
 
 ---
 
-### `source_metrics`
+### `activity_detail_metrics`
 현재는 activity 단위 source-specific metric을 저장하는 역할을 하고 있다.
 
 실제 역할:
@@ -63,7 +63,7 @@
 
 현재 판단:
 - 당장 rename하기보다 역할을 명확히 문서화하는 것이 우선이다.
-- 이후 `activity_source_metrics`로의 rename 가능성은 별도 검토 대상이다.
+- 이후 `activity_activity_detail_metrics`로의 rename 가능성은 별도 검토 대상이다.
 
 ---
 
@@ -100,14 +100,14 @@
 ## 현재 문제 요약
 
 ### 1. activity-level / day-level metric 저장 구조가 비대칭이다
-- activity-level은 `source_metrics`가 있다.
+- activity-level은 `activity_detail_metrics`가 있다.
 - day-level은 source-specific metric 저장소가 없다.
 
 ### 2. core summary와 source-specific detail의 경계가 모호해질 위험이 있다
 - `daily_wellness`에 너무 많은 소스 특화 필드를 넣기 시작하면 core table 역할이 흐려진다.
 
 ### 3. 이름이 역할을 완전히 설명하지 못한다
-- 특히 `source_metrics`는 현재 실제 역할보다 이름이 더 넓다.
+- 특히 `activity_detail_metrics`는 현재 실제 역할보다 이름이 더 넓다.
 
 ### 4. 향후 소스 확장 시 중복 설계가 반복될 수 있다
 - Garmin에서 드러난 문제는 Intervals / Runalyze / Strava에서도 다시 나타날 가능성이 높다.
@@ -132,7 +132,7 @@
 raw payload 보존 전략은 유지한다.
 
 ### 2. core table은 보수적으로 유지한다
-`activities`, `daily_wellness`, `daily_fitness`는 공통적으로 자주 쓰는 요약만 담는다.
+`activity_summaries`, `daily_wellness`, `daily_fitness`는 공통적으로 자주 쓰는 요약만 담는다.
 
 ### 3. source-specific detail은 별도 계층으로 분리한다
 activity/day 수준 모두 source-specific metric은 별도 계층으로 저장하는 방향을 우선 검토한다.
@@ -149,7 +149,7 @@ Garmin / Intervals 같은 우선 소스부터 순차 적용한다.
 
 ## 우선 검토 대상
 
-### 후보 1. `daily_source_metrics` 테이블 추가
+### 후보 1. `daily_activity_detail_metrics` 테이블 추가
 의도:
 - day-level source-specific metric 저장
 - Garmin wellness detail
@@ -165,7 +165,7 @@ Garmin / Intervals 같은 우선 소스부터 순차 적용한다.
 
 ---
 
-### 후보 2. `source_metrics` 역할 문서화
+### 후보 2. `activity_detail_metrics` 역할 문서화
 의도:
 - 현재는 사실상 activity-level metric 저장소임을 명시
 - immediate rename 없이 혼동을 줄임
@@ -177,7 +177,7 @@ Garmin / Intervals 같은 우선 소스부터 순차 적용한다.
 
 ### 후보 3. 향후 rename 검토
 대상 예시:
-- `source_metrics` → `activity_source_metrics`
+- `activity_detail_metrics` → `activity_activity_detail_metrics`
 
 현재 판단:
 - 의미는 더 명확해지지만 영향 범위가 넓다.
@@ -187,7 +187,7 @@ Garmin / Intervals 같은 우선 소스부터 순차 적용한다.
 
 ## 1차 구현 방향(초안)
 
-1. `daily_source_metrics` 추가 여부를 확정한다.
+1. `daily_activity_detail_metrics` 추가 여부를 확정한다.
 2. `src/db_setup.py`에 additive schema change 형태로 반영한다.
 3. Garmin wellness detail 일부를 새 구조에 저장할지 검토한다.
 4. Intervals daily metric에도 같은 구조를 적용할 수 있는지 확인한다.
