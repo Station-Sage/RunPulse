@@ -129,6 +129,36 @@ def test_recovery_boundary_60_80(conn):
     assert _recovery_grade(79.9) == "good"
 
 
+
+def test_recovery_status_includes_daily_detail(conn):
+    for i in range(1, 8):
+        _insert_wellness(conn, f"2026-01-{i:02d}", body_battery=80,
+                         sleep_score=75, hrv_value=60.0, stress_avg=30,
+                         resting_hr=55)
+
+    _insert_wellness(conn, "2026-01-08", body_battery=78, sleep_score=82,
+                     hrv_value=62.0, stress_avg=28, resting_hr=54)
+
+    rows = [
+        ("2026-01-08", "garmin", "sleep_stage_deep_sec", 5100.0, None),
+        ("2026-01-08", "garmin", "overnight_hrv_avg", 47.0, None),
+        ("2026-01-08", "garmin", "body_battery_delta", -18.0, None),
+        ("2026-01-08", "garmin", "training_readiness_score", 77.0, None),
+    ]
+    conn.executemany(
+        "INSERT INTO daily_detail_metrics "
+        "(date, source, metric_name, metric_value, metric_json) VALUES (?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+    result = get_recovery_status(conn, "2026-01-08")
+    assert result["available"] is True
+    assert result["detail"]["sleep_stage_deep_sec"] == pytest.approx(5100.0)
+    assert result["detail"]["overnight_hrv_avg"] == pytest.approx(47.0)
+    assert result["detail"]["body_battery_delta"] == pytest.approx(-18.0)
+    assert result["detail"]["training_readiness_score"] == pytest.approx(77.0)
+
 def test_partial_data(conn):
     """일부 지표만 있을 때 graceful 처리."""
     conn.execute("""

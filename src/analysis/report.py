@@ -121,6 +121,18 @@ def _latest_activity_date(conn: sqlite3.Connection):
     return row[0] if row else None
 
 
+
+def _get_daily_detail_metrics(conn: sqlite3.Connection, date_str: str, source: str = "garmin") -> dict:
+    rows = conn.execute(
+        "SELECT metric_name, metric_value, metric_json "
+        "FROM daily_detail_metrics WHERE date = ? AND source = ?",
+        (date_str, source),
+    ).fetchall()
+    result = {}
+    for name, val, js in rows:
+        result[name] = js if val is None else val
+    return result
+
 def _has_any_activity(conn: sqlite3.Connection) -> bool:
     row = conn.execute(
         """
@@ -421,6 +433,7 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
     ).fetchone()
 
     steps = weight_kg = sleep_score = sleep_hours = hrv_value = resting_hr = None
+    detail = _get_daily_detail_metrics(conn, activity_date, source="garmin")
     if row:
         steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr = row
 
@@ -454,7 +467,7 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
             if resting_hr is None:
                 resting_hr = payload.get("restingHR")
 
-    if all(v is None for v in [steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr]):
+    if all(v is None for v in [steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr]) and not detail:
         return "## 웰니스 참고\n\n- 데이터 없음"
 
     lines = [
@@ -467,6 +480,22 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
         f"- HRV: {_safe(hrv_value)}",
         f"- 안정시 심박: {_safe(resting_hr)}",
     ]
+
+    detail_lines = [
+        ("Garmin deep sleep(s)", detail.get("sleep_stage_deep_sec")),
+        ("Garmin REM sleep(s)", detail.get("sleep_stage_rem_sec")),
+        ("Garmin overnight HRV", detail.get("overnight_hrv_avg")),
+        ("Garmin overnight HRV SDNN", detail.get("overnight_hrv_sdnn")),
+        ("Garmin body battery delta", detail.get("body_battery_delta")),
+        ("Garmin stress high duration(s)", detail.get("stress_high_duration")),
+        ("Garmin respiration avg", detail.get("respiration_avg")),
+        ("Garmin SpO2 avg", detail.get("spo2_avg")),
+        ("Garmin training readiness", detail.get("training_readiness_score")),
+    ]
+    for label, value in detail_lines:
+        if value is not None:
+            lines.append(f"- {label}: {value}")
+
     return "\n".join(lines)
 
 
