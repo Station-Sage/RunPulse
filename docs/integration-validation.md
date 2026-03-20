@@ -206,3 +206,47 @@ repo에 포함 가능한 최소 샘플.
 2. 반복적으로 등장하는 케이스를 익명화 fixture로 축소
 3. fixture 기반 테스트로 일부 자동화
 4. 이후 필요하면 검증 스크립트 자동화 추가
+
+
+## 2026-03-20 Intervals.icu follow-up 검증 메모
+
+실데이터 기준으로 다음 사항을 추가 확인했다.
+
+- `source_payloads`에 Intervals activity / wellness raw payload가 저장됨
+- Intervals activity metric 정규화 항목이 확장됨
+  - `trimp`, `strain_score`, `icu_efficiency_factor`, `decoupling`
+  - `hr_load`, `pace_load`, `power_load`, `session_rpe`
+  - `average_stride`, `icu_lap_count`
+  - `icu_zone_times`, `icu_hr_zone_times`, `pace_zone_times`, `gap_zone_times`
+  - `interval_summary`, `stream_types`
+- `activity_type` 필터를 넓혀 `run`, `virtualrun`, `treadmill`,
+  `highintensityintervaltraining`도 분석 대상에 포함
+- `analyze.py today` / `report.py`에서 Intervals efficiency 및 zone 데이터 노출 확인
+- `interval_summary`가 pace split 부재 시에도 읽을 수 있는 형태로 리포트에 표시됨
+- `/payloads` 및 `/payloads/view` workbench 경로로 raw payload와 연관 `source_metrics`
+  drill-down 확인 가능
+- `/payloads`에서 `source`, `entity_type`, `activity_id`, `limit` 필터 지원
+- Intervals wellness 확장 필드 저장 컬럼 추가
+  - `hrv_sdnn`, `avg_sleeping_hr`, `fatigue`, `mood`, `motivation`, `steps`, `weight_kg`
+- 현재 실데이터에서는 `steps`가 raw payload에 안정적으로 존재하며, `weight`는 일부 날짜에만 존재
+- 일부 확장 wellness 값은 `daily_wellness`에 비어 있을 수 있어, 리포트에서는 raw payload fallback으로 표시 가능하게 보완함
+
+최신 sanity 예시(2026-03-19 activity):
+- 거리: 4.768 km
+- 시간: 26m 27s
+- 평균 페이스: 5:33
+- 평균 심박: 154
+- Intervals Training Load: 35.0
+- EF: 1.6753
+- Decoupling: 0.35
+- zone 분포:
+  - Z1 회복 8.8% (138s)
+  - Z2 유산소 27.4% (432s)
+  - Z3 템포 45.8% (722s)
+  - Z4 역치 14.5% (228s)
+  - Z5 VO2Max 3.6% (56s)
+- interval summary:
+  - 1회 2m17s 261W
+  - 2회 7m07s 254W
+- wellness 참고:
+  - 걸음 수 13195

@@ -99,6 +99,20 @@
 - 테스트 추가: race_readiness/report/analyze_cli
 - Phase 3 전체 완료
 
+## 2026-03-20 (feature/intervals-analysis-polish)
+- Intervals 후속 polish 작업 반영
+  - report.py: `interval_summary` 리포트 노출 및 포맷 개선
+  - report.py: 거리/시간/zone 분포 표시 가독성 개선
+  - report.py: Intervals wellness 참고 섹션 추가 (`steps`, `sleep`, `hrv`, `resting_hr`)
+  - report.py: `daily_wellness` 값이 비어 있을 때 raw payload fallback 사용
+  - db_setup.py: `daily_wellness` 확장 컬럼 추가
+    - `hrv_sdnn`, `avg_sleeping_hr`, `fatigue`, `mood`, `motivation`, `steps`, `weight_kg`
+  - sync/intervals.py: Intervals wellness 확장 필드 저장 로직 추가
+  - web/app.py: `/payloads/view` drill-down 추가
+  - web/app.py: `/payloads` recent payload `open` 링크 및 필터(`source`, `entity_type`, `activity_id`, `limit`) 추가
+- 실데이터 sanity 확인
+  - latest Intervals run 리포트에서 interval summary, efficiency, zone 분포, wellness 참고 출력 확인
+
 ## 2026-03-20
 
 - Sprint 3-3 / Phase 3 완료

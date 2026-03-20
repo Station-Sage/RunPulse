@@ -249,16 +249,24 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         try:
             conn.execute(
                 """INSERT OR REPLACE INTO daily_wellness
-                   (date, source, sleep_score, sleep_hours, hrv_value,
-                    resting_hr, readiness_score)
-                   VALUES (?, 'intervals', ?, ?, ?, ?, ?)""",
+                   (date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
+                    resting_hr, avg_sleeping_hr, readiness_score,
+                    fatigue, mood, motivation, steps, weight_kg)
+                   VALUES (?, 'intervals', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     date_str,
                     entry.get("sleepQuality"),
                     entry.get("sleepSecs", 0) / 3600 if entry.get("sleepSecs") else None,
                     entry.get("hrv"),
+                    entry.get("hrvSDNN"),
                     entry.get("restingHR"),
+                    entry.get("avgSleepingHR"),
                     entry.get("readiness"),
+                    entry.get("fatigue"),
+                    entry.get("mood"),
+                    entry.get("motivation"),
+                    entry.get("steps"),
+                    entry.get("weight"),
                 ),
             )
             count += 1

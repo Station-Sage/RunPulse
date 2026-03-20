@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import date, timedelta
+from typing import Any
 
 from .activity_deep import deep_analyze
 from .compare import compare_this_month_vs_last, compare_this_week_vs_last, compare_today_vs_yesterday
@@ -20,6 +21,78 @@ def _today_iso() -> str:
 
 def _safe(value, default="-"):
     return default if value is None else value
+
+
+def _fmt_distance_km(value):
+    if value is None:
+        return "-"
+    try:
+        return f"{float(value):.3f}".rstrip("0").rstrip(".")
+    except Exception:
+        return str(value)
+
+
+def _fmt_duration(value):
+    if value is None:
+        return "-"
+    try:
+        total = int(value)
+    except Exception:
+        return str(value)
+
+    hours, rem = divmod(total, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
+
+
+def _fmt_zone_entry(value):
+    if value in (None, "", [], {}):
+        return "-"
+    if isinstance(value, dict):
+        label = value.get("label")
+        pct = value.get("pct")
+        seconds = value.get("seconds")
+        parts = []
+        if label:
+            parts.append(str(label))
+        if pct is not None:
+            parts.append(f"{pct}%")
+        if seconds is not None:
+            parts.append(f"({seconds}s)")
+        if parts:
+            return " ".join(parts)
+    return str(value)
+
+
+def _pad_mmss_like(text: str) -> str:
+    import re
+
+    def repl(match):
+        return f"{match.group(1)}m{int(match.group(2)):02d}s"
+
+    return re.sub(r"(\d+)m(\d+)s", repl, text)
+
+
+def _fmt_interval_token(value) -> str:
+    if value in (None, "", [], {}):
+        return ""
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    lower = text.lower()
+    if lower.endswith("w"):
+        core = text[:-1].strip()
+        if core:
+            return f"{core}W"
+    if lower.endswith("x") and text[:-1].strip().isdigit():
+        return f"{text[:-1].strip()}회"
+    return _pad_mmss_like(text)
 
 
 def _latest_activity_id(conn: sqlite3.Connection):
@@ -73,8 +146,8 @@ def _basic_today_section(conn: sqlite3.Connection) -> str:
         "## 기본 정보",
         "",
         f"- 날짜: {_safe(activity.get('date'))}",
-        f"- 거리: {_safe(activity.get('distance_km'))} km",
-        f"- 시간: {_safe(activity.get('duration_sec'))} 초",
+        f"- 거리: {_fmt_distance_km(activity.get('distance_km'))} km",
+        f"- 시간: {_fmt_duration(activity.get('duration_sec'))}",
         f"- 평균 페이스: {_safe(activity.get('avg_pace'))}",
         f"- 평균 심박: {_safe(activity.get('avg_hr'))}",
     ]
@@ -101,6 +174,153 @@ def _source_metrics_section(conn: sqlite3.Connection) -> str:
         f"- Runalyze VO2Max: {_safe(runalyze.get('effective_vo2max'))}",
         f"- Runalyze VDOT: {_safe(runalyze.get('vdot'))}",
     ]
+    return "\n".join(lines)
+
+
+def _decode_interval_summary(raw: Any):
+    if raw in (None, "", [], {}):
+        return None
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            return raw
+    return raw
+
+
+def _format_interval_piece(item: dict) -> str:
+    if not isinstance(item, dict):
+        return _fmt_interval_token(item)
+
+    labels = []
+    kind = item.get("type") or item.get("kind") or item.get("label") or item.get("name")
+    if kind:
+        labels.append(str(kind))
+
+    reps = item.get("reps") or item.get("repeat") or item.get("count")
+    if reps not in (None, ""):
+        labels.append(f"{reps}회")
+
+    duration = (
+        item.get("duration")
+        or item.get("seconds")
+        or item.get("secs")
+        or item.get("time")
+        or item.get("workDuration")
+        or item.get("recoverDuration")
+    )
+    if duration not in (None, ""):
+        try:
+            duration = int(duration)
+            minutes, seconds = divmod(duration, 60)
+            if minutes:
+                labels.append(f"{minutes}m{seconds:02d}s")
+            else:
+                labels.append(f"{seconds}s")
+        except Exception:
+            labels.append(_fmt_interval_token(duration))
+
+    distance = (
+        item.get("distance")
+        or item.get("meters")
+        or item.get("metres")
+        or item.get("length")
+    )
+    if distance not in (None, ""):
+        try:
+            dist_value = float(distance)
+            if dist_value >= 1000:
+                labels.append(f"{dist_value/1000:.2f}km")
+            else:
+                labels.append(f"{int(dist_value)}m")
+        except Exception:
+            labels.append(f"{distance}m")
+
+    pace = item.get("pace") or item.get("target_pace") or item.get("avg_pace")
+    if pace not in (None, ""):
+        labels.append(f"pace {pace}")
+
+    hr = item.get("hr") or item.get("avg_hr") or item.get("target_hr")
+    if hr not in (None, ""):
+        labels.append(f"HR {hr}")
+
+    power = item.get("power") or item.get("avg_power") or item.get("target_power")
+    if power not in (None, ""):
+        labels.append(f"{power}W")
+
+    return " / ".join(labels) if labels else json.dumps(item, ensure_ascii=False)
+
+
+def _intervals_section(conn: sqlite3.Connection) -> str:
+    activity_id = _latest_activity_id(conn)
+    if not activity_id:
+        return "## 인터벌 요약\n\n- 데이터 없음"
+
+    data = deep_analyze(conn, activity_id=activity_id) or {}
+    intervals = (data.get("intervals") or {}).get("interval_summary")
+    parsed = _decode_interval_summary(intervals)
+
+    if not parsed:
+        return "## 인터벌 요약\n\n- 데이터 없음"
+
+    lines = [
+        "## 인터벌 요약",
+        "",
+    ]
+
+    if isinstance(parsed, str):
+        pretty = " ".join(_fmt_interval_token(part) for part in str(parsed).split())
+        lines.append(f"- {pretty}".rstrip())
+        return "\n".join(lines)
+
+    if isinstance(parsed, dict):
+        summary_keys = [
+            ("type", "유형"),
+            ("name", "이름"),
+            ("reps", "반복"),
+            ("count", "개수"),
+            ("work", "메인"),
+            ("recovery", "회복"),
+            ("duration", "시간"),
+            ("distance", "거리"),
+        ]
+        added = 0
+        for key, label in summary_keys:
+            value = parsed.get(key)
+            if value not in (None, "", [], {}):
+                lines.append(f"- {label}: {value}")
+                added += 1
+
+        blocks = (
+            parsed.get("intervals")
+            or parsed.get("steps")
+            or parsed.get("sets")
+            or parsed.get("repeats")
+            or parsed.get("summary")
+        )
+        if isinstance(blocks, list) and blocks:
+            for idx, item in enumerate(blocks[:12], 1):
+                lines.append(f"- #{idx}: {_format_interval_piece(item)}")
+            if len(blocks) > 12:
+                lines.append(f"- ... 총 {len(blocks)}개 구간")
+            return "\n".join(lines)
+
+        if added == 0:
+            lines.append(f"- {json.dumps(parsed, ensure_ascii=False)}")
+        return "\n".join(lines)
+
+    if isinstance(parsed, list):
+        for idx, item in enumerate(parsed[:12], 1):
+            if isinstance(item, dict):
+                lines.append(f"- #{idx}: {_format_interval_piece(item)}")
+            else:
+                pretty = " ".join(_fmt_interval_token(part) for part in str(item).split())
+                lines.append(f"- #{idx}: {pretty}".rstrip())
+        if len(parsed) > 12:
+            lines.append(f"- ... 총 {len(parsed)}개 구간")
+        return "\n".join(lines)
+
+    lines.append(f"- {parsed}")
     return "\n".join(lines)
 
 
@@ -159,11 +379,11 @@ def _zones_section(conn: sqlite3.Connection) -> str:
     lines = [
         "## 존 분포",
         "",
-        f"- Z1: {_safe(dist.get('z1'))}",
-        f"- Z2: {_safe(dist.get('z2'))}",
-        f"- Z3: {_safe(dist.get('z3'))}",
-        f"- Z4: {_safe(dist.get('z4'))}",
-        f"- Z5: {_safe(dist.get('z5'))}",
+        f"- Z1: {_fmt_zone_entry(dist.get('z1'))}",
+        f"- Z2: {_fmt_zone_entry(dist.get('z2'))}",
+        f"- Z3: {_fmt_zone_entry(dist.get('z3'))}",
+        f"- Z4: {_fmt_zone_entry(dist.get('z4'))}",
+        f"- Z5: {_fmt_zone_entry(dist.get('z5'))}",
         f"- 상태: {_safe(zones.get('polarization_status'))}",
     ]
     return "\n".join(lines)
@@ -181,6 +401,72 @@ def _condition_section(conn: sqlite3.Connection) -> str:
     warning = readiness.get("warning")
     if warning:
         lines.append(f"- 안내: {warning}")
+    return "\n".join(lines)
+
+
+def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
+    activity_date = _latest_activity_date(conn)
+    if not activity_date:
+        return "## 웰니스 참고\n\n- 데이터 없음"
+
+    row = conn.execute(
+        """
+        SELECT steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr
+        FROM daily_wellness
+        WHERE date = ? AND source = 'intervals'
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (activity_date,),
+    ).fetchone()
+
+    steps = weight_kg = sleep_score = sleep_hours = hrv_value = resting_hr = None
+    if row:
+        steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr = row
+
+    if steps is None or weight_kg is None:
+        payload_row = conn.execute(
+            """
+            SELECT payload_json
+            FROM source_payloads
+            WHERE source = 'intervals' AND entity_type = 'wellness' AND entity_id = ?
+            LIMIT 1
+            """,
+            (activity_date,),
+        ).fetchone()
+
+        if payload_row and payload_row[0]:
+            try:
+                payload = json.loads(payload_row[0])
+            except Exception:
+                payload = {}
+            if steps is None:
+                steps = payload.get("steps")
+            if weight_kg is None:
+                weight_kg = payload.get("weight")
+            if sleep_score is None:
+                sleep_score = payload.get("sleepQuality")
+            if sleep_hours is None:
+                sleep_secs = payload.get("sleepSecs")
+                sleep_hours = sleep_secs / 3600 if sleep_secs else None
+            if hrv_value is None:
+                hrv_value = payload.get("hrv")
+            if resting_hr is None:
+                resting_hr = payload.get("restingHR")
+
+    if all(v is None for v in [steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr]):
+        return "## 웰니스 참고\n\n- 데이터 없음"
+
+    lines = [
+        "## 웰니스 참고",
+        "",
+        f"- 걸음 수: {_safe(steps)}",
+        f"- 체중: {_safe(weight_kg)}",
+        f"- 수면 점수: {_safe(sleep_score)}",
+        f"- 수면 시간: {_safe(sleep_hours)}",
+        f"- HRV: {_safe(hrv_value)}",
+        f"- 안정시 심박: {_safe(resting_hr)}",
+    ]
     return "\n".join(lines)
 
 
@@ -292,11 +578,15 @@ def _today_report(conn: sqlite3.Connection, config=None) -> str:
         "",
         _splits_section(conn),
         "",
+        _intervals_section(conn),
+        "",
         _efficiency_section(conn),
         "",
         _zones_section(conn),
         "",
         _condition_section(conn),
+        "",
+        _wellness_visibility_section(conn),
         "",
         _fitness_section(conn),
     ]
