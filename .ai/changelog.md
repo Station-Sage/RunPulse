@@ -127,3 +127,27 @@
 - 2026-03-20: Intervals activity metrics(trimp, strain_score, icu_efficiency_factor, decoupling, zone times 등) 정규화 저장 추가.
 - 2026-03-20: analyze/report가 Intervals efficiency 및 zone 데이터를 반영하도록 개선.
 - 2026-03-20: integration workbench에 /payloads 페이지 추가하여 raw payload/source_metrics 상태 확인 가능.
+
+## 2026-03-20 (Phase 4)
+- Phase 4 훈련 계획 및 목표 구현 (branch: feature/phase4-ai-coach)
+  - src/training/__init__.py: 모듈 export
+  - src/training/goals.py: 목표 CRUD 7개 함수
+    - add_goal(), list_goals(), get_goal(), get_active_goal()
+    - update_goal(), complete_goal(), cancel_goal()
+    - 기존 goals 테이블 활용 (DB 스키마 변경 없음)
+  - src/training/planner.py: 규칙 기반 주간 훈련 계획 생성
+    - generate_weekly_plan(): CTL/TSB/목표거리/레이스까지 주수 기반 Daniels 원칙 적용
+    - 훈련 단계 4단계: base/build/peak/taper
+    - 80/20 강도 분배, TSB 기반 볼륨 보정
+    - save_weekly_plan(), get_planned_workouts()
+  - src/training/adjuster.py: 컨디션 기반 당일 계획 조정
+    - _fatigue_level(): body_battery/sleep_score/stress/TSB 복합 피로도 판정
+    - 피로 높음: interval/tempo→rest, long→easy
+    - 피로 중간: interval/tempo/long→easy
+    - 컨디션 양호(TSB>10 + battery>70): volume_boost 플래그
+  - src/plan.py: CLI 진입점
+    - plan.py week / today / generate [--goal-id N]
+    - plan.py goal list/add/done/cancel
+  - tests/test_goals.py: 14개 테스트
+  - tests/test_planner.py: 17개 테스트
+  - tests/test_adjuster.py: 11개 테스트
