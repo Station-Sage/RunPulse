@@ -67,6 +67,54 @@ def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> No
         pass  # daily_fitness 테이블 미생성 환경 (graceful)
 
 
+def _upsert_daily_detail_metric(
+    conn: sqlite3.Connection,
+    date_str: str,
+    metric_name: str,
+    metric_value=None,
+    metric_json=None,
+) -> None:
+    """Upsert a Garmin daily detail metric."""
+    try:
+        conn.execute(
+            """
+            INSERT INTO daily_detail_metrics
+                (date, source, metric_name, metric_value, metric_json)
+            VALUES
+                (?, 'garmin', ?, ?, ?)
+            ON CONFLICT(date, source, metric_name) DO UPDATE SET
+                metric_value = excluded.metric_value,
+                metric_json = excluded.metric_json,
+                updated_at = datetime('now')
+            """,
+            (date_str, metric_name, metric_value, metric_json),
+        )
+    except sqlite3.OperationalError:
+        pass
+
+
+def _store_daily_detail_metrics(
+    conn: sqlite3.Connection,
+    date_str: str,
+    numeric_metrics: dict[str, float | int | None],
+    json_metrics: dict[str, object] | None = None,
+) -> None:
+    """Store multiple Garmin daily detail metrics."""
+    for metric_name, metric_value in numeric_metrics.items():
+        if metric_value is not None:
+            _upsert_daily_detail_metric(conn, date_str, metric_name, metric_value=metric_value)
+
+    if json_metrics:
+        for metric_name, payload in json_metrics.items():
+            if payload is not None:
+                _upsert_daily_detail_metric(
+                    conn,
+                    date_str,
+                    metric_name,
+                    metric_json=json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                )
+
+
 def sync_activities(
     config: dict,
     conn: sqlite3.Connection,
@@ -285,6 +333,8 @@ def sync_wellness(
         date_str = day.isoformat()
         sleep_score = sleep_hours = hrv_value = hrv_sdnn = body_battery = stress_avg = resting_hr = None
         avg_sleeping_hr = readiness_score = weight_kg = steps = None
+        detail_metrics: dict[str, float | int | None] = {}
+        detail_json_metrics: dict[str, object] = {}
 
         try:
             sleep = client.get_sleep_data(date_str)
@@ -330,6 +380,65 @@ def sync_wellness(
                     or sleep.get("restingHeartRate")
                     or resting_hr
                 )
+
+                detail_metrics.update({
+                    "sleep_stage_awake_sec": (
+                        daily_sleep.get("awakeSleepSeconds")
+                        or daily_sleep.get("awakeSeconds")
+                    ),
+                    "sleep_stage_light_sec": (
+                        daily_sleep.get("lightSleepSeconds")
+                        or daily_sleep.get("lightSeconds")
+                    ),
+                    "sleep_stage_deep_sec": (
+                        daily_sleep.get("deepSleepSeconds")
+                        or daily_sleep.get("deepSeconds")
+                    ),
+                    "sleep_stage_rem_sec": (
+                        daily_sleep.get("remSleepSeconds")
+                        or daily_sleep.get("remSeconds")
+                    ),
+                    "sleep_total_sec": (
+                        daily_sleep.get("sleepTimeSeconds")
+                        or daily_sleep.get("totalSleepSeconds")
+                    ),
+                    "sleep_restless_moments": (
+                        daily_sleep.get("restlessMomentsCount")
+                        or daily_sleep.get("restlessMoments")
+                    ),
+                    "sleep_avg_respiration": (
+                        daily_sleep.get("averageRespiration")
+                        or daily_sleep.get("avgRespiration")
+                    ),
+                    "sleep_avg_spo2": (
+                        daily_sleep.get("averageSpO2")
+                        or daily_sleep.get("avgSpO2")
+                    ),
+                })
+
+                sleep_start = (
+                    daily_sleep.get("sleepStartTimestampLocal")
+                    or daily_sleep.get("sleepStartTimestampGMT")
+                    or daily_sleep.get("sleepStartTimestamp")
+                )
+                sleep_end = (
+                    daily_sleep.get("sleepEndTimestampLocal")
+                    or daily_sleep.get("sleepEndTimestampGMT")
+                    or daily_sleep.get("sleepEndTimestamp")
+                )
+                if sleep_start is not None:
+                    detail_json_metrics["sleep_start_timestamp"] = {"value": sleep_start}
+                if sleep_end is not None:
+                    detail_json_metrics["sleep_end_timestamp"] = {"value": sleep_end}
+
+                detail_json_metrics["sleep_summary_json"] = {
+                    "dailySleepDTO": daily_sleep,
+                    "top_level": {
+                        k: v
+                        for k, v in sleep.items()
+                        if k != "dailySleepDTO"
+                    },
+                }
         except Exception as e:
             print(f"[garmin] 수면 데이터 실패 {date_str}: {e}")
 
@@ -349,6 +458,39 @@ def sync_wellness(
                     or hrv.get("sdnn")
                     or hrv.get("lastNightSDNN")
                 )
+
+                detail_metrics.update({
+                    "overnight_hrv_avg": hrv_value,
+                    "overnight_hrv_sdnn": hrv_sdnn,
+                    "hrv_weekly_avg": (
+                        hrv_summary.get("weeklyAvg")
+                        or hrv.get("weeklyAvg")
+                    ),
+                    "hrv_baseline_low": (
+                        hrv_summary.get("baselineLow")
+                        or hrv.get("baselineLow")
+                    ),
+                    "hrv_baseline_high": (
+                        hrv_summary.get("baselineHigh")
+                        or hrv.get("baselineHigh")
+                    ),
+                })
+
+                hrv_status = (
+                    hrv_summary.get("status")
+                    or hrv.get("status")
+                )
+                if hrv_status is not None:
+                    detail_json_metrics["hrv_status"] = {"value": hrv_status}
+
+                detail_json_metrics["hrv_summary_json"] = {
+                    "hrvSummary": hrv_summary,
+                    "top_level": {
+                        k: v
+                        for k, v in hrv.items()
+                        if k != "hrvSummary"
+                    },
+                }
         except Exception as e:
             print(f"[garmin] HRV 데이터 실패 {date_str}: {e}")
 
@@ -358,8 +500,26 @@ def sync_wellness(
             _store_raw_payload(conn, "body_battery_day", date_str, bb)
             if bb and isinstance(bb, list) and bb:
                 vals = [item.get("bodyBatteryLevel", 0) for item in bb
-                        if item.get("bodyBatteryLevel")]
+                        if item.get("bodyBatteryLevel") is not None]
                 body_battery = max(vals) if vals else None
+
+                if vals:
+                    detail_metrics.update({
+                        "body_battery_start": vals[0],
+                        "body_battery_end": vals[-1],
+                        "body_battery_min": min(vals),
+                        "body_battery_max": max(vals),
+                        "body_battery_samples": len(vals),
+                        "body_battery_delta": vals[-1] - vals[0],
+                    })
+                    detail_json_metrics["body_battery_timeline"] = bb
+                    detail_json_metrics["body_battery_summary_json"] = {
+                        "sample_count": len(vals),
+                        "min": min(vals),
+                        "max": max(vals),
+                        "start": vals[0],
+                        "end": vals[-1],
+                    }
         except Exception as e:
             print(f"[garmin] Body Battery 실패 {date_str}: {e}")
 
@@ -371,8 +531,182 @@ def sync_wellness(
                 stress_avg = stress.get("averageStressLevel")
                 if stress_avg is None:
                     stress_avg = stress.get("avgStressLevel")
+
+                detail_metrics.update({
+                    "stress_avg": stress_avg,
+                    "stress_max": (
+                        stress.get("maxStressLevel")
+                        or stress.get("dailyStressMax")
+                    ),
+                    "stress_rest_duration": (
+                        stress.get("restStressDuration")
+                        or stress.get("restDuration")
+                    ),
+                    "stress_low_duration": (
+                        stress.get("lowStressDuration")
+                        or stress.get("lowDuration")
+                    ),
+                    "stress_medium_duration": (
+                        stress.get("mediumStressDuration")
+                        or stress.get("mediumDuration")
+                    ),
+                    "stress_high_duration": (
+                        stress.get("highStressDuration")
+                        or stress.get("highDuration")
+                    ),
+                })
+
+                stress_values = stress.get("stressValuesArray") or stress.get("stressTimeline")
+                if stress_values is not None:
+                    detail_json_metrics["stress_timeline"] = stress_values
+
+                detail_json_metrics["stress_summary_json"] = {
+                    "summary": {
+                        k: v for k, v in stress.items()
+                        if k not in {"stressValuesArray", "stressTimeline"}
+                    }
+                }
         except Exception as e:
             print(f"[garmin] 스트레스 데이터 실패 {date_str}: {e}")
+
+        try:
+            time.sleep(2)
+            respiration = client.get_respiration_data(date_str)
+            _store_raw_payload(conn, "respiration_day", date_str, respiration)
+            if respiration:
+                detail_metrics.update({
+                    "respiration_avg": (
+                        respiration.get("averageRespiration")
+                        or respiration.get("avgRespiration")
+                        or respiration.get("avgBreathsPerMinute")
+                    ),
+                    "respiration_min": (
+                        respiration.get("minRespiration")
+                        or respiration.get("minimumRespiration")
+                        or respiration.get("minBreathsPerMinute")
+                    ),
+                    "respiration_max": (
+                        respiration.get("maxRespiration")
+                        or respiration.get("maximumRespiration")
+                        or respiration.get("maxBreathsPerMinute")
+                    ),
+                })
+                detail_json_metrics["respiration_summary_json"] = respiration
+        except Exception:
+            pass
+
+        try:
+            time.sleep(2)
+            spo2 = client.get_spo2_data(date_str)
+            _store_raw_payload(conn, "spo2_day", date_str, spo2)
+            if spo2:
+                detail_metrics.update({
+                    "spo2_avg": (
+                        spo2.get("averageSpO2")
+                        or spo2.get("avgSpO2")
+                        or spo2.get("averageValue")
+                    ),
+                    "spo2_min": (
+                        spo2.get("minSpO2")
+                        or spo2.get("minimumSpO2")
+                        or spo2.get("minValue")
+                    ),
+                    "spo2_max": (
+                        spo2.get("maxSpO2")
+                        or spo2.get("maximumSpO2")
+                        or spo2.get("maxValue")
+                    ),
+                })
+                detail_json_metrics["spo2_summary_json"] = spo2
+        except Exception:
+            pass
+
+        try:
+            time.sleep(2)
+            readiness = client.get_training_readiness(date_str)
+            _store_raw_payload(conn, "training_readiness_day", date_str, readiness)
+            if readiness:
+                detail_metrics.update({
+                    "training_readiness_score": (
+                        readiness.get("score")
+                        or readiness.get("readinessScore")
+                        or readiness.get("trainingReadinessScore")
+                    ),
+                    "training_readiness_sleep_score": (
+                        readiness.get("sleepScore")
+                        or readiness.get("sleepContribution")
+                    ),
+                    "training_readiness_recovery_score": (
+                        readiness.get("recoveryScore")
+                        or readiness.get("recoveryContribution")
+                    ),
+                    "training_readiness_hrv_score": (
+                        readiness.get("hrvScore")
+                        or readiness.get("hrvContribution")
+                    ),
+                })
+                detail_json_metrics["training_readiness_summary_json"] = readiness
+        except Exception:
+            try:
+                time.sleep(2)
+                readiness = client.get_morning_training_readiness(date_str)
+                _store_raw_payload(conn, "morning_training_readiness_day", date_str, readiness)
+                if readiness:
+                    detail_metrics.update({
+                        "training_readiness_score": (
+                            readiness.get("score")
+                            or readiness.get("readinessScore")
+                            or readiness.get("trainingReadinessScore")
+                        ),
+                        "training_readiness_sleep_score": (
+                            readiness.get("sleepScore")
+                            or readiness.get("sleepContribution")
+                        ),
+                        "training_readiness_recovery_score": (
+                            readiness.get("recoveryScore")
+                            or readiness.get("recoveryContribution")
+                        ),
+                        "training_readiness_hrv_score": (
+                            readiness.get("hrvScore")
+                            or readiness.get("hrvContribution")
+                        ),
+                    })
+                    detail_json_metrics["training_readiness_summary_json"] = readiness
+            except Exception:
+                pass
+
+        try:
+            time.sleep(2)
+            body_comp = client.get_body_composition(date_str)
+            _store_raw_payload(conn, "body_composition_day", date_str, body_comp)
+            if body_comp:
+                detail_metrics.update({
+                    "body_weight_kg": (
+                        body_comp.get("weight")
+                        or body_comp.get("weightKg")
+                    ),
+                    "body_fat_pct": (
+                        body_comp.get("bodyFat")
+                        or body_comp.get("bodyFatPercentage")
+                    ),
+                    "body_water_pct": (
+                        body_comp.get("bodyWater")
+                        or body_comp.get("bodyWaterPercentage")
+                    ),
+                    "skeletal_muscle_mass_kg": (
+                        body_comp.get("skeletalMuscleMass")
+                        or body_comp.get("muscleMass")
+                    ),
+                    "bone_mass_kg": (
+                        body_comp.get("boneMass")
+                    ),
+                    "bmi": (
+                        body_comp.get("bmi")
+                    ),
+                })
+                detail_json_metrics["body_composition_summary_json"] = body_comp
+        except Exception:
+            pass
 
         try:
             rhr_data = client.get_rhr_day(date_str)
@@ -398,6 +732,7 @@ def sync_wellness(
                  resting_hr, avg_sleeping_hr, body_battery, stress_avg,
                  readiness_score, steps, weight_kg),
             )
+            _store_daily_detail_metrics(conn, date_str, detail_metrics, detail_json_metrics)
             count += 1
         except sqlite3.Error as e:
             print(f"[garmin] 웰니스 삽입 실패 {date_str}: {e}")

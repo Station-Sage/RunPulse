@@ -55,6 +55,18 @@ def _get_7d_avg(conn: sqlite3.Connection, date_str: str, field: str) -> float | 
     return row[0]
 
 
+
+def _get_daily_detail_metrics(conn: sqlite3.Connection, date_str: str, source: str = "garmin") -> dict:
+    rows = conn.execute(
+        "SELECT metric_name, metric_value, metric_json "
+        "FROM daily_detail_metrics WHERE date = ? AND source = ?",
+        (date_str, source),
+    ).fetchall()
+    result = {}
+    for name, val, js in rows:
+        result[name] = js if val is None else val
+    return result
+
 def _recovery_grade(score: float) -> str:
     """점수로 회복 등급 판정."""
     if score >= 80:
@@ -95,6 +107,7 @@ def get_recovery_status(
                     components={}, raw={}, available=False)
 
     body_battery, sleep_score, hrv_value, stress_avg, resting_hr = row
+    detail = _get_daily_detail_metrics(conn, target, source="garmin")
 
     # 개인 7일 평균 (HRV, RHR 정규화에 사용)
     avg_hrv_7d = _get_7d_avg(conn, target, "hrv_value")
@@ -143,6 +156,20 @@ def get_recovery_status(
             hrv_value=hrv_value,
             stress_avg=stress_avg,
             resting_hr=resting_hr,
+        ),
+        detail=dict(
+            sleep_stage_deep_sec=detail.get("sleep_stage_deep_sec"),
+            sleep_stage_rem_sec=detail.get("sleep_stage_rem_sec"),
+            sleep_restless_moments=detail.get("sleep_restless_moments"),
+            overnight_hrv_avg=detail.get("overnight_hrv_avg"),
+            overnight_hrv_sdnn=detail.get("overnight_hrv_sdnn"),
+            hrv_baseline_low=detail.get("hrv_baseline_low"),
+            hrv_baseline_high=detail.get("hrv_baseline_high"),
+            body_battery_delta=detail.get("body_battery_delta"),
+            stress_high_duration=detail.get("stress_high_duration"),
+            respiration_avg=detail.get("respiration_avg"),
+            spo2_avg=detail.get("spo2_avg"),
+            training_readiness_score=detail.get("training_readiness_score"),
         ),
         available=True,
     )

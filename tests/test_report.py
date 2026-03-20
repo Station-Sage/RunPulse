@@ -50,6 +50,24 @@ def test_today_report_has_header(conn):
     assert "## 기본 정보" in result
 
 
+
+def test_today_report_includes_garmin_daily_detail(conn):
+    today = date.today().isoformat()
+    _insert_activity(conn)
+    conn.execute(
+        "INSERT INTO daily_detail_metrics (date, source, metric_name, metric_value) VALUES (?, 'garmin', ?, ?)",
+        (today, "sleep_stage_deep_sec", 5400.0),
+    )
+    conn.execute(
+        "INSERT INTO daily_detail_metrics (date, source, metric_name, metric_value) VALUES (?, 'garmin', ?, ?)",
+        (today, "training_readiness_score", 81.0),
+    )
+    conn.commit()
+
+    result = generate_report(conn, "today")
+    assert "Garmin deep sleep(s): 5400.0" in result
+    assert "Garmin training readiness: 81.0" in result
+
 def test_week_report(conn):
     _insert_activity(conn)
     conn.commit()

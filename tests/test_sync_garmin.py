@@ -142,16 +142,65 @@ class TestSyncWellness:
                 "sleepTimeSeconds": 28800,
                 "averageHeartRate": 47,
                 "restingHeartRate": 51,
+                "awakeSleepSeconds": 1200,
+                "lightSleepSeconds": 14400,
+                "deepSleepSeconds": 5400,
+                "remSleepSeconds": 7800,
+                "sleepStartTimestampLocal": "2026-03-20T23:00:00",
+                "sleepEndTimestampLocal": "2026-03-21T07:00:00",
+                "restlessMomentsCount": 14,
+                "averageRespiration": 13.2,
+                "averageSpO2": 96.0,
             }
         }
         mock_client.get_hrv_data.return_value = {
             "hrvSummary": {
                 "lastNightAvg": 45,
                 "sdnn": 62,
+                "weeklyAvg": 49,
+                "status": "balanced",
+                "baselineLow": 42,
+                "baselineHigh": 58,
             }
         }
-        mock_client.get_body_battery.return_value = [{"bodyBatteryLevel": 80}]
-        mock_client.get_stress_data.return_value = {"avgStressLevel": 35}
+        mock_client.get_body_battery.return_value = [
+            {"bodyBatteryLevel": 62},
+            {"bodyBatteryLevel": 80},
+            {"bodyBatteryLevel": 55},
+        ]
+        mock_client.get_stress_data.return_value = {
+            "avgStressLevel": 35,
+            "maxStressLevel": 78,
+            "restStressDuration": 180,
+            "lowStressDuration": 240,
+            "mediumStressDuration": 120,
+            "highStressDuration": 60,
+            "stressValuesArray": [15, 28, 42, 78],
+        }
+        mock_client.get_respiration_data.return_value = {
+            "averageRespiration": 13.4,
+            "minRespiration": 11.2,
+            "maxRespiration": 16.8,
+        }
+        mock_client.get_spo2_data.return_value = {
+            "averageSpO2": 96.5,
+            "minSpO2": 93.0,
+            "maxSpO2": 99.0,
+        }
+        mock_client.get_training_readiness.return_value = {
+            "score": 78,
+            "sleepScore": 82,
+            "recoveryScore": 74,
+            "hrvScore": 69,
+        }
+        mock_client.get_body_composition.return_value = {
+            "weightKg": 69.4,
+            "bodyFatPercentage": 14.8,
+            "bodyWaterPercentage": 61.2,
+            "skeletalMuscleMass": 31.5,
+            "boneMass": 3.4,
+            "bmi": 22.1,
+        }
         mock_client.get_rhr_day.return_value = {"restingHeartRate": 52}
         mock_garmin_cls.return_value = mock_client
 
@@ -172,12 +221,95 @@ class TestSyncWellness:
         assert row[8] == 9876
         assert row[9] == pytest.approx(69.4)
 
+
+
+        detail_rows = db_conn.execute(
+            "SELECT metric_name, metric_value, metric_json "
+            "FROM daily_detail_metrics WHERE source='garmin' ORDER BY metric_name"
+        ).fetchall()
+        detail_map = {name: (value, metric_json) for name, value, metric_json in detail_rows}
+
+        assert detail_map["sleep_stage_awake_sec"][0] == 1200
+        assert detail_map["sleep_stage_light_sec"][0] == 14400
+        assert detail_map["sleep_stage_deep_sec"][0] == 5400
+        assert detail_map["sleep_stage_rem_sec"][0] == 7800
+
+        assert detail_map["overnight_hrv_avg"][0] == 45
+        assert detail_map["overnight_hrv_sdnn"][0] == 62
+        assert detail_map["hrv_weekly_avg"][0] == 49
+        assert "balanced" in detail_map["hrv_status"][1]
+
+        assert detail_map["body_battery_start"][0] == 62
+        assert detail_map["body_battery_end"][0] == 55
+        assert detail_map["body_battery_min"][0] == 55
+        assert detail_map["body_battery_max"][0] == 80
+        assert '"bodyBatteryLevel": 80' in detail_map["body_battery_timeline"][1]
+
+        assert detail_map["stress_max"][0] == 78
+        assert detail_map["stress_rest_duration"][0] == 180
+        assert detail_map["stress_low_duration"][0] == 240
+        assert detail_map["stress_medium_duration"][0] == 120
+        assert detail_map["stress_high_duration"][0] == 60
+        assert "78" in detail_map["stress_timeline"][1]
+
+        assert "2026-03-20T23:00:00" in detail_map["sleep_start_timestamp"][1]
+        assert "2026-03-21T07:00:00" in detail_map["sleep_end_timestamp"][1]
+
+        assert detail_map["sleep_total_sec"][0] == 28800
+        assert detail_map["sleep_restless_moments"][0] == 14
+        assert detail_map["sleep_avg_respiration"][0] == 13.2
+        assert detail_map["sleep_avg_spo2"][0] == 96.0
+        assert '"dailySleepDTO"' in detail_map["sleep_summary_json"][1]
+
+        assert detail_map["hrv_baseline_low"][0] == 42
+        assert detail_map["hrv_baseline_high"][0] == 58
+        assert '"hrvSummary"' in detail_map["hrv_summary_json"][1]
+
+        assert detail_map["body_battery_samples"][0] == 3
+        assert detail_map["body_battery_delta"][0] == -7
+        assert '"sample_count": 3' in detail_map["body_battery_summary_json"][1]
+
+        assert detail_map["stress_avg"][0] == 35
+        assert '"maxStressLevel": 78' in detail_map["stress_summary_json"][1]
+
+        assert detail_map["respiration_avg"][0] == 13.4
+        assert detail_map["respiration_min"][0] == 11.2
+        assert detail_map["respiration_max"][0] == 16.8
+        assert '"averageRespiration": 13.4' in detail_map["respiration_summary_json"][1]
+
+        assert detail_map["spo2_avg"][0] == 96.5
+        assert detail_map["spo2_min"][0] == 93.0
+        assert detail_map["spo2_max"][0] == 99.0
+        assert '"averageSpO2": 96.5' in detail_map["spo2_summary_json"][1]
+
+        assert detail_map["training_readiness_score"][0] == 78
+        assert detail_map["training_readiness_sleep_score"][0] == 82
+        assert detail_map["training_readiness_recovery_score"][0] == 74
+        assert detail_map["training_readiness_hrv_score"][0] == 69
+        assert '"score": 78' in detail_map["training_readiness_summary_json"][1]
+
+        assert detail_map["body_weight_kg"][0] == 69.4
+        assert detail_map["body_fat_pct"][0] == 14.8
+        assert detail_map["body_water_pct"][0] == 61.2
+        assert detail_map["skeletal_muscle_mass_kg"][0] == 31.5
+        assert detail_map["bone_mass_kg"][0] == 3.4
+        assert detail_map["bmi"][0] == 22.1
+        assert '"weightKg": 69.4' in detail_map["body_composition_summary_json"][1]
+
         payload_types = {
             row[0]
             for row in db_conn.execute(
                 "SELECT entity_type FROM raw_source_payloads WHERE source='garmin' ORDER BY entity_type"
             ).fetchall()
         }
+
+        assert "respiration_day" in payload_types
+        assert "spo2_day" in payload_types
+        assert (
+            "training_readiness_day" in payload_types
+            or "morning_training_readiness_day" in payload_types
+        )
+        assert "body_composition_day" in payload_types
         assert "sleep_day" in payload_types
         assert "hrv_day" in payload_types
         assert "body_battery_day" in payload_types
