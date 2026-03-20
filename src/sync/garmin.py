@@ -153,18 +153,35 @@ def sync_activities(
                 payload=detail,
                 activity_id=activity_id,
             )
-            aerobic_te = detail.get("aerobicTrainingEffect")
-            anaerobic_te = detail.get("anaerobicTrainingEffect")
-            training_load = detail.get("activityTrainingLoad")
-            vo2max = detail.get("vO2MaxValue")
+            summary = detail.get("summaryDTO", {})
+            aerobic_te = detail.get("aerobicTrainingEffect", summary.get("aerobicTrainingEffect"))
+            anaerobic_te = detail.get("anaerobicTrainingEffect", summary.get("anaerobicTrainingEffect"))
+            training_load = detail.get("activityTrainingLoad", summary.get("activityTrainingLoad"))
+            vo2max = detail.get("vO2MaxValue", summary.get("vO2MaxValue"))
 
             # aerobic/anaerobic TE 분리 저장 + 하위호환 alias
+            avg_power = detail.get("averagePower", summary.get("averagePower"))
+            normalized_power = (
+                detail.get("normalizedPower")
+                or detail.get("normPower")
+                or summary.get("normalizedPower")
+                or summary.get("normPower")
+            )
+            steps = (
+                detail.get("steps")
+                or summary.get("steps")
+                or act.get("steps")
+            )
+
             metrics = {
                 "training_effect_aerobic": aerobic_te,
                 "training_effect_anaerobic": anaerobic_te,
                 "training_effect": aerobic_te,  # 하위호환
                 "training_load": training_load,
                 "vo2max": vo2max,
+                "avg_power": avg_power,
+                "normalized_power": normalized_power,
+                "steps": steps,
             }
             for name, value in metrics.items():
                 if value is not None:
@@ -216,16 +233,47 @@ def sync_wellness(
         day = today - timedelta(days=i)
         date_str = day.isoformat()
         sleep_score = sleep_hours = hrv_value = body_battery = stress_avg = resting_hr = None
+        avg_sleeping_hr = readiness_score = weight_kg = steps = None
 
         try:
             sleep = client.get_sleep_data(date_str)
             _store_raw_payload(conn, "sleep_day", date_str, sleep)
             if sleep:
-                sleep_score = (sleep.get("dailySleepDTO", {})
-                               .get("sleepScores", {}).get("overall", {}).get("value"))
-                sleep_secs = sleep.get("dailySleepDTO", {}).get("sleepTimeSeconds")
+                daily_sleep = sleep.get("dailySleepDTO", {})
+                sleep_score = (daily_sleep.get("sleepScores", {})
+                               .get("overall", {}).get("value"))
+                sleep_secs = daily_sleep.get("sleepTimeSeconds")
                 if sleep_secs:
                     sleep_hours = round(sleep_secs / 3600, 1)
+
+                avg_sleeping_hr = (
+                    daily_sleep.get("averageHeartRate")
+                    or sleep.get("averageHeartRate")
+                )
+
+                readiness_score = (
+                    sleep.get("readinessScore")
+                    or daily_sleep.get("readinessScore")
+                )
+
+                weight_kg = (
+                    sleep.get("weight")
+                    or sleep.get("weightKg")
+                    or daily_sleep.get("weight")
+                    or daily_sleep.get("weightKg")
+                )
+
+                steps = (
+                    sleep.get("steps")
+                    or daily_sleep.get("steps")
+                    or steps
+                )
+
+                resting_hr = (
+                    daily_sleep.get("restingHeartRate")
+                    or sleep.get("restingHeartRate")
+                    or resting_hr
+                )
         except Exception as e:
             print(f"[garmin] 수면 데이터 실패 {date_str}: {e}")
 
@@ -263,7 +311,7 @@ def sync_wellness(
         try:
             rhr_data = client.get_rhr_day(date_str)
             _store_raw_payload(conn, "rhr_day", date_str, rhr_data)
-            if rhr_data:
+            if rhr_data and resting_hr is None:
                 resting_hr = rhr_data.get("restingHeartRate")
         except Exception:
             pass
@@ -277,10 +325,12 @@ def sync_wellness(
             conn.execute(
                 """INSERT OR REPLACE INTO daily_wellness
                    (date, source, sleep_score, sleep_hours, hrv_value,
-                    resting_hr, body_battery, stress_avg)
-                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?)""",
+                    resting_hr, avg_sleeping_hr, body_battery, stress_avg,
+                    readiness_score, steps, weight_kg)
+                   VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (date_str, sleep_score, sleep_hours, hrv_value,
-                 resting_hr, body_battery, stress_avg),
+                 resting_hr, avg_sleeping_hr, body_battery, stress_avg,
+                 readiness_score, steps, weight_kg),
             )
             count += 1
         except sqlite3.Error as e:

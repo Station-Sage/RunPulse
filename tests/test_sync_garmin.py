@@ -29,10 +29,15 @@ class TestSyncActivities:
             }
         ]
         mock_client.get_activity.return_value = {
-            "aerobicTrainingEffect": 3.2,
-            "anaerobicTrainingEffect": 1.5,
-            "activityTrainingLoad": 156,
-            "vO2MaxValue": 48.5,
+            "summaryDTO": {
+                "aerobicTrainingEffect": 3.2,
+                "anaerobicTrainingEffect": 1.5,
+                "activityTrainingLoad": 156,
+                "vO2MaxValue": 48.5,
+                "averagePower": 250,
+                "normalizedPower": 265,
+                "steps": 1345,
+            }
         }
         mock_garmin_cls.return_value = mock_client
 
@@ -62,6 +67,12 @@ class TestSyncActivities:
         assert metric_dict["training_effect"] == pytest.approx(3.2)
         assert metric_dict["training_effect_aerobic"] == pytest.approx(3.2)
         assert "vo2max" in metric_dict
+        assert metric_dict["avg_power"] == pytest.approx(250)
+        assert metric_dict["normalized_power"] == pytest.approx(265)
+        assert metric_dict["steps"] == pytest.approx(1345)
+        assert metric_dict["avg_power"] == pytest.approx(250)
+        assert metric_dict["normalized_power"] == pytest.approx(265)
+        assert metric_dict["steps"] == pytest.approx(1345)
 
         # garmin vo2max가 daily_fitness에도 저장됨
         row = db_conn.execute(
@@ -97,9 +108,14 @@ class TestSyncWellness:
     def test_inserts_wellness(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
         mock_client = MagicMock()
         mock_client.get_sleep_data.return_value = {
+            "readinessScore": 72,
+            "weightKg": 69.4,
+            "steps": 9876,
             "dailySleepDTO": {
                 "sleepScores": {"overall": {"value": 85}},
                 "sleepTimeSeconds": 28800,
+                "averageHeartRate": 47,
+                "restingHeartRate": 51,
             }
         }
         mock_client.get_hrv_data.return_value = {"hrvSummary": {"lastNightAvg": 45}}
@@ -111,10 +127,17 @@ class TestSyncWellness:
         count = sync_wellness(sample_config, db_conn, days=1)
         assert count == 1
 
-        row = db_conn.execute("SELECT sleep_score, hrv_value, body_battery FROM daily_wellness").fetchone()
+        row = db_conn.execute(
+            "SELECT sleep_score, hrv_value, body_battery, resting_hr, avg_sleeping_hr, readiness_score, steps, weight_kg FROM daily_wellness"
+        ).fetchone()
         assert row[0] == 85
         assert row[1] == 45
         assert row[2] == 80
+        assert row[3] == 51
+        assert row[4] == 47
+        assert row[5] == 72
+        assert row[6] == 9876
+        assert row[7] == pytest.approx(69.4)
 
         payload_types = {
             row[0]
