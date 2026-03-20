@@ -8,6 +8,34 @@ from src.utils import api
 from src.utils.dedup import assign_group_id
 
 
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    source: str,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """원본 API payload 저장/갱신."""
+    try:
+        conn.execute(
+            """
+            INSERT INTO source_payloads
+                (source, entity_type, entity_id, activity_id, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
+                activity_id = COALESCE(excluded.activity_id, source_payloads.activity_id),
+                payload_json = excluded.payload_json,
+                updated_at = datetime('now')
+            """,
+            (source, entity_type, entity_id, activity_id, json.dumps(payload, ensure_ascii=False)),
+        )
+    except sqlite3.OperationalError:
+        pass
+    except sqlite3.Error as e:
+        print(f"[intervals] raw payload 저장 실패 {entity_type}:{entity_id}: {e}")
+
+
 def _base_url(config: dict) -> str:
     """Intervals.icu API base URL."""
     athlete_id = config["intervals"]["athlete_id"]
@@ -71,10 +99,32 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             continue
 
         if cursor.rowcount == 0:
+            existing = conn.execute(
+                "SELECT id FROM activities WHERE source = 'intervals' AND source_id = ?",
+                (source_id,),
+            ).fetchone()
+            existing_id = existing[0] if existing else None
+            _store_raw_payload(
+                conn,
+                "intervals",
+                "activity",
+                source_id,
+                act,
+                activity_id=existing_id,
+            )
             continue
 
         activity_id = cursor.lastrowid
         count += 1
+
+        _store_raw_payload(
+            conn,
+            "intervals",
+            "activity",
+            source_id,
+            act,
+            activity_id=activity_id,
+        )
 
         # 활동 단위 고유 지표 (per-activity → source_metrics 유지)
         metrics = {
@@ -137,6 +187,15 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         date_str = entry.get("id", "")  # Intervals.icu wellness ID는 날짜
         if not date_str:
             continue
+
+        _store_raw_payload(
+            conn,
+            "intervals",
+            "wellness",
+            date_str,
+            entry,
+            activity_id=None,
+        )
 
         # 수면/HRV → daily_wellness
         try:
