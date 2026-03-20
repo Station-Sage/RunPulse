@@ -9,12 +9,13 @@ from src.utils.config import load_config
 # ── 내비게이션 링크 ────────────────────────────────────────────────────
 _NAV = [
     ("/", "홈"),
-    ("/db", "DB"),
+    ("/activities", "활동 목록"),
     ("/wellness", "회복/웰니스"),
     ("/activity/deep", "활동 심층"),
     ("/analyze/today", "Today"),
     ("/analyze/full", "Full"),
     ("/analyze/race?date=2026-06-01&distance=42.195", "Race"),
+    ("/db", "DB"),
     ("/payloads", "Payloads"),
     ("/config", "Config"),
     ("/sync-status", "Sync"),
@@ -22,16 +23,45 @@ _NAV = [
 ]
 
 _CSS = """
-    body { font-family: sans-serif; max-width: 980px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
-    nav a { margin-right: 1rem; }
-    pre { white-space: pre-wrap; word-break: break-word; background: #f5f5f5;
+    /* ── 기본 스타일 ── */
+    :root {
+        --bg: #fff; --fg: #111; --muted: #666;
+        --card-bg: #fafafa; --card-border: #ddd;
+        --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
+        --row-border: #eee; --label-color: #555;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #1a1a1a; --fg: #e8e8e8; --muted: #999;
+            --card-bg: #242424; --card-border: #444;
+            --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
+            --row-border: #333; --label-color: #aaa;
+        }
+        a { color: #7ab8ff; }
+        a:visited { color: #b39ddb; }
+        .grade-excellent { background: #1a4d1a !important; color: #6fcf6f !important; }
+        .grade-good      { background: #0d3055 !important; color: #79c0ff !important; }
+        .grade-moderate  { background: #4a3800 !important; color: #f0c040 !important; }
+        .grade-poor      { background: #4d0f0f !important; color: #f08080 !important; }
+        .grade-unknown   { background: #333    !important; color: #aaa    !important; }
+    }
+    body {
+        font-family: sans-serif; max-width: 980px; margin: 2rem auto;
+        padding: 0 1rem; line-height: 1.5;
+        background: var(--bg); color: var(--fg);
+    }
+    nav { flex-wrap: wrap; display: flex; gap: 0.3rem 0.8rem; margin-bottom: 0.5rem; }
+    nav a { white-space: nowrap; }
+    pre { white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
           padding: 1rem; border-radius: 8px; overflow-x: auto; }
-    code { background: #f5f5f5; padding: 0.15rem 0.35rem; border-radius: 4px; }
+    code { background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; vertical-align: top; }
-    th { background: #f0f0f0; }
-    .muted { color: #666; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; background: #fafafa; }
+    th, td { border: 1px solid var(--card-border); padding: 0.5rem;
+             text-align: left; vertical-align: top; }
+    th { background: var(--th-bg); }
+    .muted { color: var(--muted); }
+    .card { border: 1px solid var(--card-border); border-radius: 8px;
+            padding: 1rem; margin: 1rem 0; background: var(--card-bg); }
     .cards-row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
     .cards-row > .card { flex: 1; min-width: 210px; margin: 0; }
     .score-badge { display: inline-block; padding: 0.2rem 0.8rem;
@@ -41,11 +71,22 @@ _CSS = """
     .grade-moderate  { background: #fff3cd; color: #856404; }
     .grade-poor      { background: #ffd6d6; color: #c0392b; }
     .grade-unknown   { background: #eee;    color: #555; }
-    .mrow { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #eee; }
+    .mrow { display: flex; justify-content: space-between; padding: 0.25rem 0;
+            border-bottom: 1px solid var(--row-border); }
     .mrow:last-child { border-bottom: none; }
-    .mlabel { color: #555; font-size: 0.9rem; }
+    .mlabel { color: var(--label-color); font-size: 0.9rem; }
     .mval   { font-weight: 500; }
     h2 { margin-top: 0; }
+    /* ── 모바일 반응형 ── */
+    @media (max-width: 600px) {
+        body { padding: 0 0.5rem; margin: 1rem auto; }
+        .cards-row { flex-direction: column; }
+        .cards-row > .card { min-width: unset; }
+        table { font-size: 0.85rem; }
+        th, td { padding: 0.3rem; }
+        pre { font-size: 0.85rem; }
+        h1 { font-size: 1.4rem; }
+    }
 """
 
 

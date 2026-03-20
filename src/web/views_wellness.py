@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import html
+import json
 import sqlite3
 from datetime import date
 
@@ -145,7 +146,20 @@ def _render_trend_card(trend_data: dict) -> str:
     )
 
 
-def _render_no_data(date_str: str) -> str:
+def _render_activity_card(steps, weight_kg) -> str:
+    """걸음 수 / 체중 카드 (intervals 또는 Garmin 소스)."""
+    if steps is None and weight_kg is None:
+        return ""
+    return (
+        "<div class='card'>"
+        "<h2>일별 활동 지표</h2>"
+        + metric_row("걸음 수", steps, " 걸음")
+        + metric_row("체중", weight_kg, " kg")
+        + "</div>"
+    )
+
+
+def _no_data(date_str: str) -> str:
     return (
         "<div class='card'>"
         f"<p class='muted'>{html.escape(date_str)} 날짜의 Garmin 웰니스 데이터가 없습니다.</p>"
@@ -155,18 +169,36 @@ def _render_no_data(date_str: str) -> str:
     )
 
 
-def _render_wellness_body(status: dict, trend_data: dict, date_str: str) -> str:
+def _fetch_steps_weight(conn, date_str: str) -> tuple:
+    """intervals daily_wellness에서 걸음 수/체중 조회."""
+    try:
+        row = conn.execute(
+            "SELECT steps, weight_kg FROM daily_wellness WHERE date = ? AND source = 'intervals'",
+            (date_str,),
+        ).fetchone()
+        if row:
+            return row[0], row[1]
+    except Exception:
+        pass
+    return None, None
+
+
+def _render_wellness_body(
+    status: dict, trend_data: dict, date_str: str, steps=None, weight_kg=None
+) -> str:
     """회복/웰니스 본문 HTML 조립."""
     # 추세 카드는 데이터 유무와 무관하게 항상 표시
     trend_section = _render_trend_card(trend_data)
 
     if not status.get("available"):
-        return _render_no_data(date_str) + trend_section
+        return _no_data(date_str) + trend_section
 
     raw = status.get("raw") or {}
     detail = status.get("detail") or {}
     grade = status.get("grade")
     score = status.get("recovery_score")
+
+    activity_section = _render_activity_card(steps, weight_kg)
 
     return (
         _render_readiness_card(detail)
@@ -178,6 +210,7 @@ def _render_wellness_body(status: dict, trend_data: dict, date_str: str) -> str:
         + _render_hrv_card(raw, detail)
         + _render_other_card(detail)
         + "</div>"
+        + activity_section
         + trend_section
     )
 
@@ -198,6 +231,7 @@ def wellness_view():
         with sqlite3.connect(str(dpath)) as conn:
             status = get_recovery_status(conn, date_str)
             trend_data = recovery_trend(conn, days=14)
+            steps, weight_kg = _fetch_steps_weight(conn, date_str)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("회복/웰니스", body)
@@ -212,5 +246,5 @@ def wellness_view():
         "</div>"
     )
 
-    body = date_form + _render_wellness_body(status, trend_data, date_str)
+    body = date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg)
     return html_page(f"회복/웰니스 — {date_str}", body)

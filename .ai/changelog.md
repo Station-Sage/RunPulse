@@ -1,6 +1,28 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-21 (claude/phase5-ui) — 2차
+
+### Phase 5 UI 2차 구현 — /activities 탭 신설 + /wellness 체중/걸음수 카드
+
+**신규 파일**
+- `src/web/views_activities.py` — `/activities` Blueprint: 활동 목록 탭
+  - 소스/유형/날짜 필터 폼, 기본 범위 최근 90일
+  - 총 활동 수 + 총 거리 요약
+  - 활동 테이블 (날짜/소스/유형/거리/시간/페이스/심박/심층 링크), 20개/페이지 페이지네이션
+- `tests/test_web_activities.py` — 12개 통합 테스트
+
+**변경 파일**
+- `src/web/views_wellness.py`
+  - `_fetch_steps_weight()` 추가: intervals daily_wellness에서 steps/weight_kg 조회
+  - `_render_wellness_body()` 시그니처 확장: steps/weight_kg 파라미터 추가
+  - `_render_activity_card()` 추가: 걸음 수/체중 카드 렌더링
+  - `wellness_view()` 라우트: 체중/걸음수 조회 후 wellness body에 전달
+  - `_render_no_data` 참조 버그 수정 (`_no_data`로 통일)
+
+**테스트 결과**
+- `python -m pytest tests/ -q` → 316 passed
+
 ## 2026-03-21 (claude/phase5-ui)
 
 ### Phase 5 UI 1차 구현 — Garmin daily detail 웹 노출

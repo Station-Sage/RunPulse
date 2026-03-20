@@ -15,6 +15,7 @@ from src.utils.config import load_config
 # Phase 5 Blueprint imports
 from .views_wellness import wellness_bp
 from .views_activity import activity_bp
+from .views_activities import activities_bp
 
 
 def _project_root() -> Path:
@@ -36,92 +37,83 @@ def _html_page(title: str, body: str) -> str:
   <meta charset="utf-8">
   <title>{html.escape(title)}</title>
   <style>
+    :root {{
+        --bg: #fff; --fg: #111; --muted: #666;
+        --card-bg: #fafafa; --card-border: #ddd;
+        --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
+        --row-border: #eee; --label-color: #555;
+    }}
+    @media (prefers-color-scheme: dark) {{
+        :root {{
+            --bg: #1a1a1a; --fg: #e8e8e8; --muted: #999;
+            --card-bg: #242424; --card-border: #444;
+            --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
+            --row-border: #333; --label-color: #aaa;
+        }}
+        a {{ color: #7ab8ff; }}
+        a:visited {{ color: #b39ddb; }}
+        .grade-excellent {{ background: #1a4d1a !important; color: #6fcf6f !important; }}
+        .grade-good      {{ background: #0d3055 !important; color: #79c0ff !important; }}
+        .grade-moderate  {{ background: #4a3800 !important; color: #f0c040 !important; }}
+        .grade-poor      {{ background: #4d0f0f !important; color: #f08080 !important; }}
+        .grade-unknown   {{ background: #333    !important; color: #aaa    !important; }}
+    }}
     body {{
-      font-family: sans-serif;
-      max-width: 980px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-      line-height: 1.5;
+      font-family: sans-serif; max-width: 980px; margin: 2rem auto;
+      padding: 0 1rem; line-height: 1.5;
+      background: var(--bg); color: var(--fg);
     }}
-    nav a {{
-      margin-right: 1rem;
-    }}
+    nav {{ display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; margin-bottom: 0.5rem; }}
+    nav a {{ white-space: nowrap; }}
     pre {{
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #f5f5f5;
-      padding: 1rem;
-      border-radius: 8px;
-      overflow-x: auto;
+      white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
+      padding: 1rem; border-radius: 8px; overflow-x: auto;
     }}
-    code {{
-      background: #f5f5f5;
-      padding: 0.15rem 0.35rem;
-      border-radius: 4px;
-    }}
-    table {{
-      border-collapse: collapse;
-      width: 100%;
-      margin: 1rem 0;
-    }}
-    th, td {{
-      border: 1px solid #ddd;
-      padding: 0.5rem;
-      text-align: left;
-      vertical-align: top;
-    }}
-    th {{
-      background: #f0f0f0;
-    }}
-    .muted {{
-      color: #666;
-    }}
-    .card {{
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 1rem 0;
-      background: #fafafa;
-    }}
-    .cards-row {{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin: 1rem 0;
-    }}
-    .cards-row > .card {{
-      flex: 1;
-      min-width: 200px;
-      margin: 0;
-    }}
+    code {{ background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
+    th, td {{ border: 1px solid var(--card-border); padding: 0.5rem;
+              text-align: left; vertical-align: top; }}
+    th {{ background: var(--th-bg); }}
+    .muted {{ color: var(--muted); }}
+    .card {{ border: 1px solid var(--card-border); border-radius: 8px;
+             padding: 1rem; margin: 1rem 0; background: var(--card-bg); }}
+    .cards-row {{ display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }}
+    .cards-row > .card {{ flex: 1; min-width: 200px; margin: 0; }}
     .score-badge {{
-      display: inline-block;
-      padding: 0.2rem 0.8rem;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 1.05rem;
+      display: inline-block; padding: 0.2rem 0.8rem;
+      border-radius: 20px; font-weight: bold; font-size: 1.05rem;
     }}
     .grade-excellent {{ background: #c8f7c5; color: #1a7a17; }}
     .grade-good      {{ background: #d4edff; color: #0056b3; }}
     .grade-moderate  {{ background: #fff3cd; color: #856404; }}
     .grade-poor      {{ background: #ffd6d6; color: #c0392b; }}
     .grade-unknown   {{ background: #eee;    color: #555; }}
-    .mrow {{ display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #eee; }}
+    .mrow {{ display: flex; justify-content: space-between; padding: 0.25rem 0;
+             border-bottom: 1px solid var(--row-border); }}
     .mrow:last-child {{ border-bottom: none; }}
-    .mlabel {{ color: #555; font-size: 0.9rem; }}
+    .mlabel {{ color: var(--label-color); font-size: 0.9rem; }}
     .mval   {{ font-weight: 500; }}
     h2 {{ margin-top: 0; }}
+    @media (max-width: 600px) {{
+        body {{ padding: 0 0.5rem; margin: 1rem auto; }}
+        .cards-row {{ flex-direction: column; }}
+        .cards-row > .card {{ min-width: unset; }}
+        table {{ font-size: 0.85rem; }}
+        th, td {{ padding: 0.3rem; }}
+        h1 {{ font-size: 1.4rem; }}
+    }}
   </style>
 </head>
 <body>
   <nav>
     <a href="/">홈</a>
-    <a href="/db">DB</a>
+    <a href="/activities">활동 목록</a>
     <a href="/wellness">회복/웰니스</a>
     <a href="/activity/deep">활동 심층</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
+    <a href="/db">DB</a>
     <a href="/payloads">Payloads</a>
     <a href="/config">Config</a>
     <a href="/sync-status">Sync</a>
@@ -904,5 +896,6 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     # ── Phase 5 Blueprint 등록 ─────────────────────────────────────────
     app.register_blueprint(wellness_bp)
     app.register_blueprint(activity_bp)
+    app.register_blueprint(activities_bp)
 
     return app

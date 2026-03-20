@@ -72,6 +72,8 @@
 - [x] P5-2: 대시보드 홈 (오늘 회복 요약 카드, 주간 점수 카드, 최근 활동 + 심층 링크) — `app.py` 홈 라우트 개선
 - [x] P5-garmin-wellness: /wellness 라우트 — Garmin daily detail 카드 뷰 (training readiness, HRV, 수면, SpO2, body battery 등) + 14일 추세 테이블
 - [x] P5-activity-deep: /activity/deep 라우트 — 단일 활동 심층 카드 뷰 (garmin_daily_detail + 4소스 메트릭 + 페이스 스플릿)
+- [x] P5-activities: /activities 라우트 — 활동 목록 탭 (소스/유형/날짜 필터, 페이지네이션, 심층 링크)
+- [x] P5-wellness-steps: /wellness 체중/걸음수 카드 추가 (intervals daily_wellness 소스)
 - [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
 - [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
 - [ ] P5-5: 설정 탭 - 서비스 연동 (Garmin SSO 팝업, Strava OAuth2 자동화, Intervals API Key, Runalyze Token)
@@ -94,6 +96,7 @@
 - 2026-03-20: Sprint 3-2 완료 (P3-5 ~ P3-7), 신규 테스트 39개 추가 (누적 183개)
 - 2026-03-20: Phase 4 완료 (P4-1 ~ P4-4) — 목표 CRUD, 규칙 기반 주간 계획, 컨디션 조정, plan.py CLI
 - 2026-03-21: Phase 5 UI 1차 완료 — /wellness, /activity/deep 라우트 신설, 홈 대시보드 개선, 신규 테스트 38개 (누적 304개)
+- 2026-03-21: Phase 5 UI 2차 완료 — /activities 탭 신설, /wellness 체중/걸음수 카드, 전체 테스트 316개 통과
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 
