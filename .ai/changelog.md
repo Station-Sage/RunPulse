@@ -1,5 +1,19 @@
 # RunPulse - 변경 이력
 
+
+## 2026-03-20 (feature/integration-validation)
+- integration-validation 통합 및 검증 완료
+  - `feature/intervals-analysis-polish` merge
+  - `feature/phase4-ai-coach` merge
+  - `src/training/goals.py`: `get_active_goal()` latest selection deterministic fix
+    - `ORDER BY created_at DESC, id DESC`
+- 통합 검증 결과
+  - `python -m pytest -q` → 263 passed
+  - `python src/analyze.py today` / `full` smoke 통과
+  - `python src/plan.py --help` smoke 통과
+  - web routes `/`, `/db`, `/sync-status`, `/payloads` smoke 통과
+
+
 ## 2026-03-18
 - 프로젝트 초기 설정
 - CLAUDE.md, AGENTS.md 생성

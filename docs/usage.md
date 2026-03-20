@@ -12,7 +12,7 @@
 
     python src/sync.py --source all --days 1
     python src/analyze.py today
-    python src/plan.py done
+    python src/plan.py today
 
 ### 주말 (주간 리포트 -> Genspark 분석)
 
@@ -23,8 +23,8 @@
 
 ### 월간 (추세 + 목표 점검)
 
-    python src/analyze.py trends
-    python src/plan.py context --clipboard
+    python src/analyze.py full
+    python src/plan.py --help
     # Genspark에 붙여넣기
     # "장기 추세를 분석하고 목표 달성을 위한 조언을 해줘"
 
@@ -36,7 +36,8 @@
 ## 훈련 계획
 
     python src/plan.py week           # 이번 주 계획 보기
-    python src/plan.py context --clipboard  # Genspark용 컨텍스트 생성
+    python src/plan.py week
+    # 주간 계획을 확인한 뒤 필요하면 Genspark에 붙여넣기
 
 ## 웹 대시보드 (선택)
 
@@ -50,13 +51,13 @@
 analyze.py today 출력을 Genspark에 붙여넣고:
 "이 오늘의 러닝 데이터를 어제와 비교 분석해줘. 개선점과 주의사항을 알려줘."
 
-### 패턴 2: 주간 계획 요청
-plan.py context 출력을 Genspark에 붙여넣고:
-"현재 피트니스 상태를 기반으로 다음 주 훈련 계획을 만들어줘. 요일별로 구체적인 거리와 페이스를 제안해줘."
+### 패턴 2: 주간 계획 점검
+plan.py week 또는 today 출력을 Genspark에 붙여넣고:
+"현재 피트니스 상태를 기반으로 이번 주 훈련 배치와 회복 균형을 점검해줘."
 
 ### 패턴 3: 레이스 준비
-plan.py context 출력 + 목표 정보를 Genspark에 붙여넣고:
-"서울마라톤(11월 1일, 목표 3시간 30분)까지 남은 기간 동안의 훈련 계획을 4주 단위로 만들어줘."
+analyze.py full 출력 + 목표 정보를 Genspark에 붙여넣고:
+"서울마라톤(11월 1일, 목표 3시간 30분)까지 남은 기간 동안의 훈련 방향을 4주 단위로 제안해줘."
 
 ### 패턴 4: 컨디션 조정
 오늘 웰니스 데이터를 붙여넣고:

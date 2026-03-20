@@ -250,3 +250,28 @@ repo에 포함 가능한 최소 샘플.
   - 2회 7m07s 254W
 - wellness 참고:
   - 걸음 수 13195
+
+## 2026-03-20 integration-validation 통합 결과
+
+`feature/integration-validation` 브랜치에 다음 작업을 통합했다.
+
+- `feature/intervals-analysis-polish`
+  - Intervals `interval_summary` 리포트 노출/포맷 개선
+  - wellness 확장 필드 저장 및 report visibility 보강
+  - `/payloads` 필터 및 `/payloads/view` drill-down 추가
+- `feature/phase4-ai-coach`
+  - 목표 CRUD, 주간 계획 생성, 당일 조정, `plan.py` CLI 추가
+- 통합 후 hotfix
+  - `get_active_goal()`이 최신 active goal을 안정적으로 선택하도록 정렬 기준 보강
+  - `ORDER BY created_at DESC, id DESC`
+
+검증 결과:
+- `python -m py_compile ...` 통과
+- `python -m pytest -q` → 263 passed
+- `python src/analyze.py today` / `full` 정상
+- `python src/plan.py --help` 정상
+- `/`, `/db`, `/sync-status`, `/payloads`, `/payloads/view` smoke 확인
+
+다음 단계:
+- `feature/integration-validation` → `dev` PR 생성
+- 남은 roadmap / phase 미구현 기능은 새 브랜치에서 진행

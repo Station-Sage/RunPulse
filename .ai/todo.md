@@ -1,5 +1,5 @@
 # RunPulse - 작업 목록
-최종 업데이트: 2026-03-19
+최종 업데이트: 2026-03-20
 
 ## Phase 1: 기반 구축 (완료)
 - [x] P1-1: 디렉터리 구조 및 문서 생성
@@ -68,7 +68,7 @@
 - [ ] P4-2-3: src/workout/workout_export.py - 워크아웃 JSON/YAML 내보내기
 
 ## Phase 5: 웹 대시보드
-- [ ] P5-1: src/serve.py + src/web/app.py - Flask 경량 서버
+- [~] P5-1: src/serve.py + src/web/app.py - Flask 경량 서버/workbench 기본 구현, 대시보드 고도화는 미완료
 - [ ] P5-2: 대시보드 탭 (오늘 요약, 주간 통계, 피트니스 차트, 최근 활동)
 - [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
 - [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
@@ -94,8 +94,6 @@
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 
-- [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
-
 - [x] P3-8: 레이스 준비도 분석 추가 (race_readiness.py)
 - [x] P3-9: 마크다운 리포트 및 AI 컨텍스트 생성 추가 (report.py)
 - [x] P3-10: analyze.py CLI 엔트리포인트 추가
@@ -103,9 +101,9 @@
 
 ## Integration validation
 - [ ] IV-1: 실제 Garmin/Strava export 샘플 기반 import_history 통합 검증
-- [ ] IV-2: 실제 API 응답 fixture 기반 sync parser 검증
+- [ ] IV-2: 실제 API 응답 fixture 기반 sync parser 검증 (Intervals 1차 완료, cross-source 전체 검증은 미완료)
 - [ ] IV-3: dedup false positive / false negative 사례 수집
-- [ ] IV-4: analyze.py / report.py / race_readiness.py 실제 데이터 sanity check
+- [ ] IV-4: analyze.py / report.py / race_readiness.py 실제 데이터 sanity check (Intervals 1차 완료, 전체 검증은 미완료)
 - [ ] IV-5: 익명화 fixture dataset 설계 및 tests/fixtures 구조 정리
 
 - [x] IV-2: Intervals.icu 실제 API 응답 기반 sync parser 1차 검증 완료
