@@ -1,5 +1,19 @@
 # RunPulse - 변경 이력
 
+
+## 2026-03-20 (feature/integration-validation)
+- integration-validation 통합 및 검증 완료
+  - `feature/intervals-analysis-polish` merge
+  - `feature/phase4-ai-coach` merge
+  - `src/training/goals.py`: `get_active_goal()` latest selection deterministic fix
+    - `ORDER BY created_at DESC, id DESC`
+- 통합 검증 결과
+  - `python -m pytest -q` → 263 passed
+  - `python src/analyze.py today` / `full` smoke 통과
+  - `python src/plan.py --help` smoke 통과
+  - web routes `/`, `/db`, `/sync-status`, `/payloads` smoke 통과
+
+
 ## 2026-03-18
 - 프로젝트 초기 설정
 - CLAUDE.md, AGENTS.md 생성
@@ -47,6 +61,20 @@
   - 트러블슈팅 섹션 추가
 - 설계 결정 D19 추가 (서비스 연동 이중 방식)
 - Phase 5에 설정 탭 태스크 추가 (P5-5, P5-6)
+## 2026-03-20 (Sprint 3-2)
+- Sprint 3-2 심층 분석 모듈 구현 (branch: claude/sprint-3-2-deep-analysis)
+  - src/analysis/efficiency.py: Strava stream 기반 Aerobic EF/Cardiac Decoupling
+    - calculate_efficiency(): 전반/후반 EF 비교, 디커플링 %, status(good/fair/poor)
+    - efficiency_trend(): N주간 주별 평균 EF/디커플링 추세
+  - src/analysis/zones_analysis.py: HR Zone 분포, 80/20 법칙 판정
+    - analyze_zones(): 3단계 폴백 (strava_stream > intervals_zones > avg_hr_estimate)
+    - weekly_zone_trend(): N주 주별 강도 분포 추세, polarization_status 판정
+  - src/analysis/activity_deep.py: 4소스 통합 단일 활동 심층 분석
+    - deep_analyze(): 4소스 metrics + pace splits + fitness/recovery context
+    - pace splits: Strava stream 1초 데이터 기반 1km 단위 구간 시간/심박
+  - src/analysis/__init__.py: 신규 6개 함수 export
+  - tests/ 39개 신규 (누적 183개)
+
 ## 2026-03-20
 - Phase 1-2 스키마 확장 및 sync 개선 (branch: claude/fix-phase1-2-schema-sync)
   - db_setup.py: daily_fitness 테이블 신설 (CTL/ATL/TSB/VO2Max 날짜별 저장), planned_workouts에 source/ai_model/garmin_workout_id 컬럼 추가, migrate_db() 기존 DB 안전 업그레이드
@@ -74,3 +102,66 @@
     - 6개 컴포넌트: volume(25), intensity(20), acwr(20), recovery(15), consistency(10), efficiency(10)
     - 등급 판정: A(85+), B(70+), C(55+), D(40+), F
   - tests/ 58개 신규 테스트 추가 (누적 103개)
+
+## 2026-03-19
+- Sprint 3-3 완료
+- race_readiness.py 추가: 레이스 준비도 6개 지표 가중 평가, VDOT 기반 레이스 예측
+- report.py 추가: today/week/month/race/full 마크다운 리포트 및 AI 컨텍스트 생성
+- analyze.py 추가: argparse 기반 CLI 진입점
+- analysis/__init__.py export 업데이트
+- utils/config.py 수정: config.json 없어도 기본값으로 동작
+- 테스트 추가: race_readiness/report/analyze_cli
+- Phase 3 전체 완료
+
+## 2026-03-20 (feature/intervals-analysis-polish)
+- Intervals 후속 polish 작업 반영
+  - report.py: `interval_summary` 리포트 노출 및 포맷 개선
+  - report.py: 거리/시간/zone 분포 표시 가독성 개선
+  - report.py: Intervals wellness 참고 섹션 추가 (`steps`, `sleep`, `hrv`, `resting_hr`)
+  - report.py: `daily_wellness` 값이 비어 있을 때 raw payload fallback 사용
+  - db_setup.py: `daily_wellness` 확장 컬럼 추가
+    - `hrv_sdnn`, `avg_sleeping_hr`, `fatigue`, `mood`, `motivation`, `steps`, `weight_kg`
+  - sync/intervals.py: Intervals wellness 확장 필드 저장 로직 추가
+  - web/app.py: `/payloads/view` drill-down 추가
+  - web/app.py: `/payloads` recent payload `open` 링크 및 필터(`source`, `entity_type`, `activity_id`, `limit`) 추가
+- 실데이터 sanity 확인
+  - latest Intervals run 리포트에서 interval summary, efficiency, zone 분포, wellness 참고 출력 확인
+
+## 2026-03-20
+
+- Sprint 3-3 / Phase 3 완료
+- race_readiness.py 추가: 레이스 준비도 평가, VDOT 기반 레이스 예측, insufficient_data 처리
+- report.py 추가: today/week/month/race/full 마크다운 리포트 및 AI context 생성
+- analyze.py 추가: argparse 기반 CLI 엔트리포인트와 공통 옵션 지원
+- tests 추가/수정: race_readiness, report, analyze_cli 테스트 보강
+- sync.garmin 개선: garminconnect optional dependency 처리로 Termux 환경 테스트 호환성 확보
+- 전체 테스트 통과: 212 passed
+
+- 2026-03-20: Intervals.icu 실데이터 검증 진행. activities/wellness raw payload 보존용 source_payloads 테이블 추가.
+- 2026-03-20: Intervals activity metrics(trimp, strain_score, icu_efficiency_factor, decoupling, zone times 등) 정규화 저장 추가.
+- 2026-03-20: analyze/report가 Intervals efficiency 및 zone 데이터를 반영하도록 개선.
+- 2026-03-20: integration workbench에 /payloads 페이지 추가하여 raw payload/source_metrics 상태 확인 가능.
+
+## 2026-03-20 (Phase 4)
+- Phase 4 훈련 계획 및 목표 구현 (branch: feature/phase4-ai-coach)
+  - src/training/__init__.py: 모듈 export
+  - src/training/goals.py: 목표 CRUD 7개 함수
+    - add_goal(), list_goals(), get_goal(), get_active_goal()
+    - update_goal(), complete_goal(), cancel_goal()
+    - 기존 goals 테이블 활용 (DB 스키마 변경 없음)
+  - src/training/planner.py: 규칙 기반 주간 훈련 계획 생성
+    - generate_weekly_plan(): CTL/TSB/목표거리/레이스까지 주수 기반 Daniels 원칙 적용
+    - 훈련 단계 4단계: base/build/peak/taper
+    - 80/20 강도 분배, TSB 기반 볼륨 보정
+    - save_weekly_plan(), get_planned_workouts()
+  - src/training/adjuster.py: 컨디션 기반 당일 계획 조정
+    - _fatigue_level(): body_battery/sleep_score/stress/TSB 복합 피로도 판정
+    - 피로 높음: interval/tempo→rest, long→easy
+    - 피로 중간: interval/tempo/long→easy
+    - 컨디션 양호(TSB>10 + battery>70): volume_boost 플래그
+  - src/plan.py: CLI 진입점
+    - plan.py week / today / generate [--goal-id N]
+    - plan.py goal list/add/done/cancel
+  - tests/test_goals.py: 14개 테스트
+  - tests/test_planner.py: 17개 테스트
+  - tests/test_adjuster.py: 11개 테스트

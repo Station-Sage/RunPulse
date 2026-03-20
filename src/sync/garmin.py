@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 """Garmin Connect 데이터 동기화."""
 
 import sqlite3
 import time
 from datetime import datetime, timedelta
 
-from garminconnect import Garmin
+try:
+    from garminconnect import Garmin
+except ImportError:  # optional dependency for tests/Termux
+    Garmin = None
 
 from src.utils.dedup import assign_group_id
 
@@ -12,6 +17,8 @@ from src.utils.dedup import assign_group_id
 def _login(config: dict) -> Garmin:
     """Garmin Connect 로그인."""
     garmin_cfg = config["garmin"]
+    if Garmin is None:
+        raise ImportError("garminconnect 패키지가 필요합니다. pip install garminconnect")
     client = Garmin(garmin_cfg["email"], garmin_cfg["password"])
     client.login()
     return client

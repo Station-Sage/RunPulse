@@ -1,5 +1,5 @@
 # RunPulse - 작업 목록
-최종 업데이트: 2026-03-19
+최종 업데이트: 2026-03-20
 
 ## Phase 1: 기반 구축 (완료)
 - [x] P1-1: 디렉터리 구조 및 문서 생성
@@ -30,7 +30,7 @@
 - [x] FIX-7: trends.py - fitness_trend() daily_fitness 우선 참조 (source_metrics 폴백)
 - [x] FIX-8: 테스트 144개 전체 통과 (신규 21개 포함)
 
-## Phase 3: 분석 리포트 (현재)
+## Phase 3: 분석 리포트 (완료)
 
 ### Sprint 3-1: 핵심 분석 기반
 - [x] P3-1: src/analysis/compare.py - 기간 비교 (오늘vs어제, 이번주vs지난주, 월간, 연간)
@@ -39,20 +39,20 @@
 - [x] P3-4: src/analysis/weekly_score.py - 주간 Training Quality Score (0-100 종합 점수)
 
 ### Sprint 3-2: 심층 분석
-- [ ] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
-- [ ] P3-6: src/analysis/zones_analysis.py - HR/Pace Zone 분포, 80/20 법칙 준수 여부 판정
-- [ ] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
+- [x] P3-5: src/analysis/efficiency.py - Aerobic EF (Pace/HR) + Cardiac Decoupling (Strava Stream 활용)
+- [x] P3-6: src/analysis/zones_analysis.py - HR/Pace Zone 분포, 80/20 법칙 준수 여부 판정
+- [x] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
 
 ### Sprint 3-3: 레이스 & 리포트
-- [ ] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
-- [ ] P3-9: src/analysis/report.py - 마크다운 리포트 포맷팅 (인간용 + AI 컨텍스트용 이중 출력)
-- [ ] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
+- [x] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
+- [x] P3-9: src/analysis/report.py - 마크다운 리포트 포맷팅 (인간용 + AI 컨텍스트용 이중 출력)
+- [x] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
 
 ## Phase 4: 훈련 계획 및 목표
-- [ ] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
-- [ ] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성
-- [ ] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
-- [ ] P4-4: src/plan.py - CLI 진입점
+- [x] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
+- [x] P4-2: src/training/planner.py - 주간/월간 훈련 계획 생성
+- [x] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
+- [x] P4-4: src/plan.py - CLI 진입점
 
 ## Phase 4-1: AI 코치 연동
 - [ ] P4-1-1: src/ai/ai_context.py - 분석 데이터를 AI 프롬프트 컨텍스트로 변환
@@ -68,7 +68,7 @@
 - [ ] P4-2-3: src/workout/workout_export.py - 워크아웃 JSON/YAML 내보내기
 
 ## Phase 5: 웹 대시보드
-- [ ] P5-1: src/serve.py + src/web/app.py - Flask 경량 서버
+- [~] P5-1: src/serve.py + src/web/app.py - Flask 경량 서버/workbench 기본 구현, 대시보드 고도화는 미완료
 - [ ] P5-2: 대시보드 탭 (오늘 요약, 주간 통계, 피트니스 차트, 최근 활동)
 - [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
 - [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
@@ -89,3 +89,25 @@
 - 2026-03-19: Phase 3 확장 설계, Phase 4-1/4-2 분리, AI 코치 브리핑/추천칩 설계
 - 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
 - 2026-03-20: Phase 1-2 스키마 확장 및 sync 개선 완료 (FIX-1~FIX-8), 테스트 144개 통과
+- 2026-03-20: Sprint 3-2 완료 (P3-5 ~ P3-7), 신규 테스트 39개 추가 (누적 183개)
+- 2026-03-20: Phase 4 완료 (P4-1 ~ P4-4) — 목표 CRUD, 규칙 기반 주간 계획, 컨디션 조정, plan.py CLI
+
+- [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
+
+- [x] P3-8: 레이스 준비도 분석 추가 (race_readiness.py)
+- [x] P3-9: 마크다운 리포트 및 AI 컨텍스트 생성 추가 (report.py)
+- [x] P3-10: analyze.py CLI 엔트리포인트 추가
+- [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
+
+## Integration validation
+- [ ] IV-1: 실제 Garmin/Strava export 샘플 기반 import_history 통합 검증
+- [ ] IV-2: 실제 API 응답 fixture 기반 sync parser 검증 (Intervals 1차 완료, cross-source 전체 검증은 미완료)
+- [ ] IV-3: dedup false positive / false negative 사례 수집
+- [ ] IV-4: analyze.py / report.py / race_readiness.py 실제 데이터 sanity check (Intervals 1차 완료, 전체 검증은 미완료)
+- [ ] IV-5: 익명화 fixture dataset 설계 및 tests/fixtures 구조 정리
+
+- [x] IV-2: Intervals.icu 실제 API 응답 기반 sync parser 1차 검증 완료
+- [x] IV-4: Intervals 실제 데이터 기반 analyze.py / report.py sanity check 1차 완료
+- [x] IV-followup: Intervals payload 기반 interval_summary 리포트 노출 및 /payloads drill-down 개선
+- [x] IV-followup: Intervals wellness 확장 필드 저장 및 report visibility 보강
+- [x] IV-followup: `/payloads` 필터(`source`, `entity_type`, `activity_id`, `limit`) 추가

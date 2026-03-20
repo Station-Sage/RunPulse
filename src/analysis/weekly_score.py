@@ -98,7 +98,7 @@ def _get_week_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
                AVG(avg_hr)          AS hr
         FROM activities
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type = 'running'
+          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         GROUP BY gk
     """, (start, end)).fetchall()
 
@@ -121,7 +121,7 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
         FROM source_metrics sm
         JOIN activities a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type = 'running'
+          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = 'intervals'
           AND sm.metric_name = 'hr_zone_distribution'
           AND sm.metric_json IS NOT NULL
@@ -147,7 +147,7 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
         SELECT AVG(avg_hr), MAX(max_hr)
         FROM activities
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type = 'running'
+          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND avg_hr IS NOT NULL
     """, (start, end)).fetchone()
 

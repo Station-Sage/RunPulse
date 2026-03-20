@@ -1,30 +1,47 @@
 """설정 파일(config.json) 로드 유틸리티."""
 
 import json
-import sys
 from pathlib import Path
 
 
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.json"
 
 
+def _default_config() -> dict:
+    """기본 설정값."""
+    return {
+        "user": {
+            "max_hr": 190,
+            "threshold_pace": 300,
+            "weekly_distance_target": 40.0,
+            "hr_zones": {},
+        },
+        "ai": {
+            "default_provider": "manual",
+            "prompt_language": "ko",
+        },
+        "garmin": {},
+        "strava": {},
+        "intervals": {},
+        "runalyze": {},
+    }
+
+
 def load_config(path: Path | None = None) -> dict:
-    """config.json을 읽어서 dict로 반환.
-
-    Args:
-        path: 설정 파일 경로. None이면 프로젝트 루트의 config.json 사용.
-
-    Returns:
-        설정 딕셔너리.
-    """
+    """config.json을 읽어서 dict로 반환. 없으면 기본값 반환."""
     config_path = path or _CONFIG_PATH
+    base = _default_config()
+
     if not config_path.exists():
-        print(
-            f"설정 파일이 없습니다: {config_path}\n"
-            "config.json.example을 복사하여 config.json을 생성하세요.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        return base
 
     with open(config_path, encoding="utf-8") as f:
-        return json.load(f)
+        loaded = json.load(f)
+
+    for key, value in loaded.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            base[key].update(value)
+        else:
+            base[key] = value
+
+    return base

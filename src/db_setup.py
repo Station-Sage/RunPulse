@@ -33,10 +33,27 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_source
             ON activities(source, source_id);
+
         CREATE INDEX IF NOT EXISTS idx_activities_start_time
             ON activities(start_time);
         CREATE INDEX IF NOT EXISTS idx_activities_group
             ON activities(matched_group_id);
+
+
+        CREATE TABLE IF NOT EXISTS source_payloads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            activity_id INTEGER,
+            payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, entity_type, entity_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_source_payloads_lookup
+            ON source_payloads(source, entity_type, entity_id);
 
         CREATE TABLE IF NOT EXISTS source_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,10 +74,17 @@ def create_tables(conn: sqlite3.Connection) -> None:
             sleep_score REAL,
             sleep_hours REAL,
             hrv_value REAL,
+            hrv_sdnn REAL,
             resting_hr INTEGER,
+            avg_sleeping_hr REAL,
             body_battery INTEGER,
             stress_avg INTEGER,
-            readiness_score REAL
+            readiness_score REAL,
+            fatigue REAL,
+            mood REAL,
+            motivation REAL,
+            steps INTEGER,
+            weight_kg REAL
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_wellness_date_source
@@ -140,6 +164,22 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_daily_fitness_date
             ON daily_fitness(date);
     """)
+
+    # daily_wellness 새 컬럼 (SQLite ALTER TABLE은 IF NOT EXISTS 미지원 → try/except)
+    daily_wellness_columns = [
+        "ALTER TABLE daily_wellness ADD COLUMN hrv_sdnn REAL",
+        "ALTER TABLE daily_wellness ADD COLUMN avg_sleeping_hr REAL",
+        "ALTER TABLE daily_wellness ADD COLUMN fatigue REAL",
+        "ALTER TABLE daily_wellness ADD COLUMN mood REAL",
+        "ALTER TABLE daily_wellness ADD COLUMN motivation REAL",
+        "ALTER TABLE daily_wellness ADD COLUMN steps INTEGER",
+        "ALTER TABLE daily_wellness ADD COLUMN weight_kg REAL",
+    ]
+    for stmt in daily_wellness_columns:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # 이미 존재하는 컬럼
 
     # planned_workouts 새 컬럼 (SQLite ALTER TABLE은 IF NOT EXISTS 미지원 → try/except)
     new_columns = [

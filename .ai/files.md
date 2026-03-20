@@ -27,9 +27,9 @@
 - trends.py: N주 롤링 추세, ACWR 부상 위험도 (Garmin TL, Strava RE, Intervals HRSS, Runalyze TRIMP 교차)
 - recovery.py: Garmin Body Battery/HRV/Sleep/Stress 기반 회복 점수 및 추세
 - weekly_score.py: 볼륨/강도분포/ACWR/회복/EF/일관성 종합 Training Quality Score 0-100
-- efficiency.py: Strava Stream 1초 데이터로 Aerobic EF(Pace/HR) 및 Cardiac Decoupling 계산
-- zones_analysis.py: Intervals.icu HR/Pace Zone 분포 분석, 80/20 법칙 준수 판정
-- activity_deep.py: 단일 활동 심층 (km별 스플릿, 디커플링, 존분포, 4소스 평가 병합)
+- efficiency.py: Strava stream 1초 데이터로 Aerobic EF/Cardiac Decoupling 계산, 주별 추세
+- zones_analysis.py: HR zone 분포 분석, 80/20 법칙 준수 판정 (stream > intervals > avg_hr 폴백)
+- activity_deep.py: 4소스 통합 단일 활동 심층 — 1km pace splits, fitness/recovery context
 - race_readiness.py: 레이스 준비도 종합 (Garmin VO2Max + Runalyze EffVO2Max/VDOT/Marathon Shape + Intervals TSB)
 - report.py: 마크다운 리포트 포맷팅 (인간 읽기용 + AI 컨텍스트용 이중 출력)
 
@@ -77,3 +77,7 @@
 - garmin_auth.py: Garmin SSO WebView 세션 토큰 캡처 지원
 - templates/: HTML 파일들 (대시보드, AI 코치 채팅, 훈련 계획, 설정, 활동 상세)
 - static/: CSS, JS (추천 칩 플로팅, 채팅 UI, 차트, 연동 팝업)
+
+- src/analysis/race_readiness.py: 레이스 준비도 평가, VDOT 레이스 예측, 데이터 부족 시 insufficient_data 처리
+- src/analysis/report.py: today/week/month/race/full 마크다운 리포트 및 AI context 생성
+- src/analyze.py: RunPulse 분석 CLI 엔트리포인트
