@@ -30,7 +30,7 @@
 - [x] FIX-7: trends.py - fitness_trend() daily_fitness 우선 참조 (source_metrics 폴백)
 - [x] FIX-8: 테스트 144개 전체 통과 (신규 21개 포함)
 
-## Phase 3: 분석 리포트 (현재)
+## Phase 3: 분석 리포트 (완료)
 
 ### Sprint 3-1: 핵심 분석 기반
 - [x] P3-1: src/analysis/compare.py - 기간 비교 (오늘vs어제, 이번주vs지난주, 월간, 연간)
@@ -44,9 +44,9 @@
 - [x] P3-7: src/analysis/activity_deep.py - 단일 활동 심층 분석 (스플릿, 디커플링, 존분포, 4소스 평가 병합)
 
 ### Sprint 3-3: 레이스 & 리포트
-- [ ] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
-- [ ] P3-9: src/analysis/report.py - 마크다운 리포트 포맷팅 (인간용 + AI 컨텍스트용 이중 출력)
-- [ ] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
+- [x] P3-8: src/analysis/race_readiness.py - 레이스 준비도 (VO2Max추세, VDOT, Marathon Shape, TSB 종합)
+- [x] P3-9: src/analysis/report.py - 마크다운 리포트 포맷팅 (인간용 + AI 컨텍스트용 이중 출력)
+- [x] P3-10: src/analyze.py - CLI 진입점 (today|week|month|compare|trends|deep|race|full --clipboard --save)
 
 ## Phase 4: 훈련 계획 및 목표
 - [ ] P4-1: src/training/goals.py - 목표 CRUD (레이스명, 날짜, 거리, 목표 시간)
@@ -90,3 +90,12 @@
 - 2026-03-19: Sprint 3-1 완료 (P3-1 ~ P3-4), 58개 테스트 신규 추가 (누적 103개)
 - 2026-03-20: Phase 1-2 스키마 확장 및 sync 개선 완료 (FIX-1~FIX-8), 테스트 144개 통과
 - 2026-03-20: Sprint 3-2 완료 (P3-5 ~ P3-7), 신규 테스트 39개 추가 (누적 183개)
+
+- [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
+
+- [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
+
+- [x] P3-8: 레이스 준비도 분석 추가 (race_readiness.py)
+- [x] P3-9: 마크다운 리포트 및 AI 컨텍스트 생성 추가 (report.py)
+- [x] P3-10: analyze.py CLI 엔트리포인트 추가
+- [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
