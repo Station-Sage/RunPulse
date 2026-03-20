@@ -1,6 +1,20 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-21 (claude/phase5-ui) — 3차
+
+### /activity/deep 이전/다음 활동 네비게이션
+
+**변경 파일**
+- `src/web/views_activity.py`
+  - `_fetch_adjacent(conn, activity_id, start_time)`: 이전/다음 활동 (id, start_time) 쌍 반환
+  - `_render_activity_nav(prev_row, next_row)`: 이전/목록/다음 버튼 바
+  - `activity_deep_view()` 라우트: cur id/start_time DB 재조회 후 adjacent 전달
+- `tests/test_web_activity.py`: 네비게이션 테스트 3개 추가 (15→319 passed)
+
+**테스트 결과**
+- `python -m pytest tests/ -q` → 319 passed
+
 ## 2026-03-21 (claude/phase5-ui) — 2차
 
 ### Phase 5 UI 2차 구현 — /activities 탭 신설 + /wellness 체중/걸음수 카드

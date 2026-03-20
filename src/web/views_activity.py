@@ -240,6 +240,54 @@ def _render_efficiency(eff: dict) -> str:
     )
 
 
+# ── 이전/다음 네비게이션 ─────────────────────────────────────────────────
+
+def _fetch_adjacent(conn, activity_id: int, start_time: str) -> tuple:
+    """현재 활동 기준 이전/다음 활동 (id, date) 반환."""
+    prev_row = conn.execute(
+        """SELECT id, start_time FROM activity_summaries
+           WHERE start_time < ? ORDER BY start_time DESC LIMIT 1""",
+        (start_time,),
+    ).fetchone()
+    next_row = conn.execute(
+        """SELECT id, start_time FROM activity_summaries
+           WHERE start_time > ? ORDER BY start_time ASC LIMIT 1""",
+        (start_time,),
+    ).fetchone()
+    return prev_row, next_row
+
+
+def _render_activity_nav(
+    prev_row: tuple | None, next_row: tuple | None
+) -> str:
+    """이전/다음 활동 네비 바."""
+    parts = []
+    if prev_row:
+        prev_date = str(prev_row[1])[:10]
+        parts.append(
+            f"<a href='/activity/deep?id={prev_row[0]}'>← {html.escape(prev_date)}</a>"
+        )
+    else:
+        parts.append("<span class='muted'>← (없음)</span>")
+
+    parts.append("<a href='/activities'>목록으로</a>")
+
+    if next_row:
+        next_date = str(next_row[1])[:10]
+        parts.append(
+            f"<a href='/activity/deep?id={next_row[0]}'>{html.escape(next_date)} →</a>"
+        )
+    else:
+        parts.append("<span class='muted'>(없음) →</span>")
+
+    return (
+        "<div style='display:flex; justify-content:space-between; "
+        "align-items:center; margin:0.5rem 0; flex-wrap:wrap; gap:0.5rem;'>"
+        + " ".join(parts)
+        + "</div>"
+    )
+
+
 # ── 라우트 ───────────────────────────────────────────────────────────────
 
 @activity_bp.get("/activity/deep")
@@ -264,6 +312,24 @@ def activity_deep_view():
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
+            prev_row, next_row = None, None
+            if data:
+                # 실제 id/start_time은 deep_analyze 반환값에 없으므로 DB 재조회
+                if activity_id is not None:
+                    cur = conn.execute(
+                        "SELECT id, start_time FROM activity_summaries WHERE id = ?",
+                        (activity_id,),
+                    ).fetchone()
+                else:
+                    act_date = (data.get("activity") or {}).get("date") or ""
+                    cur = conn.execute(
+                        """SELECT id, start_time FROM activity_summaries
+                           WHERE start_time >= ? AND start_time < ?
+                           ORDER BY start_time DESC LIMIT 1""",
+                        (act_date, act_date + "T99"),
+                    ).fetchone() if act_date else None
+                if cur:
+                    prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("활동 심층 분석", body)
@@ -306,6 +372,7 @@ def activity_deep_view():
 
     body = (
         query_form
+        + _render_activity_nav(prev_row, next_row)
         + _render_activity_summary(act)
         + _render_garmin_daily_detail(garmin_detail, act_date)
         + "<div class='cards-row'>"

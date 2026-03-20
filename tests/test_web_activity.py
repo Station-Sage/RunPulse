@@ -169,6 +169,42 @@ class TestActivityDeepRoute:
         assert resp.status_code == 200
         assert "input" in resp.data.decode()
 
+    def test_nav_shows_list_link(self, app_client):
+        """네비 바에 목록 링크 포함."""
+        client, db_file = app_client
+        conn = sqlite3.connect(str(db_file))
+        act_id = _insert_activity(conn)
+        conn.close()
+        resp = client.get(f"/activity/deep?id={act_id}")
+        assert resp.status_code == 200
+        assert "목록으로" in resp.data.decode()
+
+    def test_nav_shows_prev_next(self, app_client):
+        """이전/다음 활동 링크 표시."""
+        client, db_file = app_client
+        with sqlite3.connect(str(db_file)) as conn:
+            id1 = _insert_activity(conn, start_time="2026-03-19T06:00:00")
+            id2 = _insert_activity(conn, start_time="2026-03-20T06:00:00")
+            id3 = _insert_activity(conn, start_time="2026-03-21T06:00:00")
+
+        # 가운데 활동 조회 → 이전/다음 모두 있어야 함
+        resp = client.get(f"/activity/deep?id={id2}")
+        assert resp.status_code == 200
+        text = resp.data.decode()
+        assert "2026-03-19" in text   # 이전 날짜
+        assert "2026-03-21" in text   # 다음 날짜
+
+    def test_nav_no_prev_for_oldest(self, app_client):
+        """가장 오래된 활동은 이전 없음."""
+        client, db_file = app_client
+        with sqlite3.connect(str(db_file)) as conn:
+            id1 = _insert_activity(conn, start_time="2026-03-19T06:00:00")
+            id2 = _insert_activity(conn, start_time="2026-03-21T06:00:00")
+
+        resp = client.get(f"/activity/deep?id={id1}")
+        text = resp.data.decode()
+        assert "(없음)" in text   # 이전 없음 표시
+
 
 # ── 홈 대시보드 테스트 ───────────────────────────────────────────────────
 
