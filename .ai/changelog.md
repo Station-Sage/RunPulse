@@ -88,3 +88,23 @@
     - 6개 컴포넌트: volume(25), intensity(20), acwr(20), recovery(15), consistency(10), efficiency(10)
     - 등급 판정: A(85+), B(70+), C(55+), D(40+), F
   - tests/ 58개 신규 테스트 추가 (누적 103개)
+
+## 2026-03-19
+- Sprint 3-3 완료
+- race_readiness.py 추가: 레이스 준비도 6개 지표 가중 평가, VDOT 기반 레이스 예측
+- report.py 추가: today/week/month/race/full 마크다운 리포트 및 AI 컨텍스트 생성
+- analyze.py 추가: argparse 기반 CLI 진입점
+- analysis/__init__.py export 업데이트
+- utils/config.py 수정: config.json 없어도 기본값으로 동작
+- 테스트 추가: race_readiness/report/analyze_cli
+- Phase 3 전체 완료
+
+## 2026-03-20
+
+- Sprint 3-3 / Phase 3 완료
+- race_readiness.py 추가: 레이스 준비도 평가, VDOT 기반 레이스 예측, insufficient_data 처리
+- report.py 추가: today/week/month/race/full 마크다운 리포트 및 AI context 생성
+- analyze.py 추가: argparse 기반 CLI 엔트리포인트와 공통 옵션 지원
+- tests 추가/수정: race_readiness, report, analyze_cli 테스트 보강
+- sync.garmin 개선: garminconnect optional dependency 처리로 Termux 환경 테스트 호환성 확보
+- 전체 테스트 통과: 212 passed

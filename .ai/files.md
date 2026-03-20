@@ -77,3 +77,7 @@
 - garmin_auth.py: Garmin SSO WebView 세션 토큰 캡처 지원
 - templates/: HTML 파일들 (대시보드, AI 코치 채팅, 훈련 계획, 설정, 활동 상세)
 - static/: CSS, JS (추천 칩 플로팅, 채팅 UI, 차트, 연동 팝업)
+
+- src/analysis/race_readiness.py: 레이스 준비도 평가, VDOT 레이스 예측, 데이터 부족 시 insufficient_data 처리
+- src/analysis/report.py: today/week/month/race/full 마크다운 리포트 및 AI context 생성
+- src/analyze.py: RunPulse 분석 CLI 엔트리포인트

@@ -5,3 +5,5 @@ from .weekly_score import calculate_weekly_score
 from .efficiency import calculate_efficiency, efficiency_trend
 from .zones_analysis import analyze_zones, weekly_zone_trend
 from .activity_deep import deep_analyze
+from .race_readiness import assess_race_readiness, vdot_race_predictions
+from .report import generate_report, generate_ai_context
