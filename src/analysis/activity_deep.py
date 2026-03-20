@@ -32,7 +32,7 @@ def _find_activity(
     target_date = date_str or date.today().isoformat()
     return conn.execute(
         f"SELECT {cols} FROM activities "
-        "WHERE start_time >= ? AND start_time < ? AND activity_type = 'running' "
+        "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining') "
         "ORDER BY start_time DESC LIMIT 1",
         (target_date, target_date + "T99"),
     ).fetchone()

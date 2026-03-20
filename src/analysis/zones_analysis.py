@@ -184,7 +184,7 @@ def analyze_zones(
                AVG(avg_hr) AS avg_hr_val
         FROM activities
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type = 'running'
+          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         GROUP BY gk
     """, (period_start, period_end)).fetchall()
 

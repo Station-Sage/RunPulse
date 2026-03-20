@@ -27,7 +27,7 @@ def _latest_activity_id(conn: sqlite3.Connection):
         """
         SELECT id
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
         """
@@ -40,7 +40,7 @@ def _latest_activity_date(conn: sqlite3.Connection):
         """
         SELECT substr(start_time, 1, 10)
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
         """
@@ -53,7 +53,7 @@ def _has_any_activity(conn: sqlite3.Connection) -> bool:
         """
         SELECT COUNT(*)
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         """
     ).fetchone()
     return bool(row and row[0])

@@ -156,7 +156,7 @@ def efficiency_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
 
         rows = conn.execute(
             "SELECT id FROM activities "
-            "WHERE start_time >= ? AND start_time < ? AND activity_type = 'running'",
+            "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')",
             (ws.isoformat(), we.isoformat()),
         ).fetchall()
 
