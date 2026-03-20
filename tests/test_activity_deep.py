@@ -266,6 +266,50 @@ class TestDeepAnalyze:
         assert rc["stress_level"] == 35
         assert rc["resting_hr"] == 52
 
+
+    def test_garmin_daily_detail_context(self, db_conn):
+        """daily_detail_metrics의 Garmin 일별 상세값이 분석 결과에 포함된다."""
+        gid = _insert_activity(db_conn, "garmin")
+
+        rows = [
+            (_TODAY, "garmin", "sleep_stage_deep_sec", 5400.0, None),
+            (_TODAY, "garmin", "sleep_stage_rem_sec", 7200.0, None),
+            (_TODAY, "garmin", "sleep_restless_moments", 3.0, None),
+            (_TODAY, "garmin", "overnight_hrv_avg", 44.0, None),
+            (_TODAY, "garmin", "overnight_hrv_sdnn", 18.0, None),
+            (_TODAY, "garmin", "hrv_baseline_low", 38.0, None),
+            (_TODAY, "garmin", "hrv_baseline_high", 52.0, None),
+            (_TODAY, "garmin", "body_battery_delta", -22.0, None),
+            (_TODAY, "garmin", "stress_high_duration", 1800.0, None),
+            (_TODAY, "garmin", "respiration_avg", 13.4, None),
+            (_TODAY, "garmin", "spo2_avg", 96.0, None),
+            (_TODAY, "garmin", "training_readiness_score", 79.0, None),
+        ]
+        db_conn.executemany(
+            "INSERT INTO daily_detail_metrics "
+            "(date, source, metric_name, metric_value, metric_json) "
+            "VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        db_conn.commit()
+
+        result = deep_analyze(db_conn, activity_id=gid)
+        assert result is not None
+
+        detail = result["garmin_daily_detail"]
+        assert detail["sleep_stage_deep_sec"] == pytest.approx(5400.0)
+        assert detail["sleep_stage_rem_sec"] == pytest.approx(7200.0)
+        assert detail["sleep_restless_moments"] == pytest.approx(3.0)
+        assert detail["overnight_hrv_avg"] == pytest.approx(44.0)
+        assert detail["overnight_hrv_sdnn"] == pytest.approx(18.0)
+        assert detail["hrv_baseline_low"] == pytest.approx(38.0)
+        assert detail["hrv_baseline_high"] == pytest.approx(52.0)
+        assert detail["body_battery_delta"] == pytest.approx(-22.0)
+        assert detail["stress_high_duration"] == pytest.approx(1800.0)
+        assert detail["respiration_avg"] == pytest.approx(13.4)
+        assert detail["spo2_avg"] == pytest.approx(96.0)
+        assert detail["training_readiness_score"] == pytest.approx(79.0)
+
     def test_calculated_efficiency_included(self, db_conn, tmp_path):
         """calculate_efficiency 결과가 calculated.efficiency에 포함."""
         sid = _insert_activity(db_conn, "strava")

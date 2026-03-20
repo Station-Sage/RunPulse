@@ -76,6 +76,23 @@ def _get_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     return result
 
 
+
+def _get_daily_detail_metrics(
+    conn: sqlite3.Connection,
+    date: str,
+    source: str = "garmin",
+) -> dict:
+    """일자별 daily_detail_metrics를 {metric_name: value_or_json} dict로 반환."""
+    rows = conn.execute(
+        "SELECT metric_name, metric_value, metric_json "
+        "FROM daily_detail_metrics WHERE date = ? AND source = ?",
+        (date, source),
+    ).fetchall()
+    result = {}
+    for name, val, js in rows:
+        result[name] = js if val is None else val
+    return result
+
 def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
     """같은 그룹 Strava 활동의 stream dict 반환."""
     row = conn.execute(
@@ -313,6 +330,22 @@ def deep_analyze(
          recovery_ctx["sleep_hours"], recovery_ctx["hrv_value"],
          recovery_ctx["stress_level"], recovery_ctx["resting_hr"]) = wellness_row
 
+    daily_detail = _get_daily_detail_metrics(conn, act_date, source="garmin")
+    garmin_daily_detail = {
+        "sleep_stage_deep_sec": daily_detail.get("sleep_stage_deep_sec"),
+        "sleep_stage_rem_sec": daily_detail.get("sleep_stage_rem_sec"),
+        "sleep_restless_moments": daily_detail.get("sleep_restless_moments"),
+        "overnight_hrv_avg": daily_detail.get("overnight_hrv_avg"),
+        "overnight_hrv_sdnn": daily_detail.get("overnight_hrv_sdnn"),
+        "hrv_baseline_low": daily_detail.get("hrv_baseline_low"),
+        "hrv_baseline_high": daily_detail.get("hrv_baseline_high"),
+        "body_battery_delta": daily_detail.get("body_battery_delta"),
+        "stress_high_duration": daily_detail.get("stress_high_duration"),
+        "respiration_avg": daily_detail.get("respiration_avg"),
+        "spo2_avg": daily_detail.get("spo2_avg"),
+        "training_readiness_score": daily_detail.get("training_readiness_score"),
+    }
+
     # 평균 페이스 포맷
     avg_pace_str = seconds_to_pace(avg_pace) if avg_pace else None
 
@@ -330,6 +363,7 @@ def deep_analyze(
             "calories": calories,
         },
         "garmin": garmin_data,
+        "garmin_daily_detail": garmin_daily_detail,
         "strava": strava_data,
         "intervals": intervals_data,
         "runalyze": runalyze_data,
