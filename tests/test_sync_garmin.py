@@ -142,16 +142,36 @@ class TestSyncWellness:
                 "sleepTimeSeconds": 28800,
                 "averageHeartRate": 47,
                 "restingHeartRate": 51,
+                "awakeSleepSeconds": 1200,
+                "lightSleepSeconds": 14400,
+                "deepSleepSeconds": 5400,
+                "remSleepSeconds": 7800,
+                "sleepStartTimestampLocal": "2026-03-20T23:00:00",
+                "sleepEndTimestampLocal": "2026-03-21T07:00:00",
             }
         }
         mock_client.get_hrv_data.return_value = {
             "hrvSummary": {
                 "lastNightAvg": 45,
                 "sdnn": 62,
+                "weeklyAvg": 49,
+                "status": "balanced",
             }
         }
-        mock_client.get_body_battery.return_value = [{"bodyBatteryLevel": 80}]
-        mock_client.get_stress_data.return_value = {"avgStressLevel": 35}
+        mock_client.get_body_battery.return_value = [
+            {"bodyBatteryLevel": 62},
+            {"bodyBatteryLevel": 80},
+            {"bodyBatteryLevel": 55},
+        ]
+        mock_client.get_stress_data.return_value = {
+            "avgStressLevel": 35,
+            "maxStressLevel": 78,
+            "restStressDuration": 180,
+            "lowStressDuration": 240,
+            "mediumStressDuration": 120,
+            "highStressDuration": 60,
+            "stressValuesArray": [15, 28, 42, 78],
+        }
         mock_client.get_rhr_day.return_value = {"restingHeartRate": 52}
         mock_garmin_cls.return_value = mock_client
 
@@ -171,6 +191,40 @@ class TestSyncWellness:
         assert row[7] == 72
         assert row[8] == 9876
         assert row[9] == pytest.approx(69.4)
+
+
+
+        detail_rows = db_conn.execute(
+            "SELECT metric_name, metric_value, metric_json "
+            "FROM daily_detail_metrics WHERE source='garmin' ORDER BY metric_name"
+        ).fetchall()
+        detail_map = {name: (value, metric_json) for name, value, metric_json in detail_rows}
+
+        assert detail_map["sleep_stage_awake_sec"][0] == 1200
+        assert detail_map["sleep_stage_light_sec"][0] == 14400
+        assert detail_map["sleep_stage_deep_sec"][0] == 5400
+        assert detail_map["sleep_stage_rem_sec"][0] == 7800
+
+        assert detail_map["overnight_hrv_avg"][0] == 45
+        assert detail_map["overnight_hrv_sdnn"][0] == 62
+        assert detail_map["hrv_weekly_avg"][0] == 49
+        assert "balanced" in detail_map["hrv_status"][1]
+
+        assert detail_map["body_battery_start"][0] == 62
+        assert detail_map["body_battery_end"][0] == 55
+        assert detail_map["body_battery_min"][0] == 55
+        assert detail_map["body_battery_max"][0] == 80
+        assert '"bodyBatteryLevel": 80' in detail_map["body_battery_timeline"][1]
+
+        assert detail_map["stress_max"][0] == 78
+        assert detail_map["stress_rest_duration"][0] == 180
+        assert detail_map["stress_low_duration"][0] == 240
+        assert detail_map["stress_medium_duration"][0] == 120
+        assert detail_map["stress_high_duration"][0] == 60
+        assert "78" in detail_map["stress_timeline"][1]
+
+        assert "2026-03-20T23:00:00" in detail_map["sleep_start_timestamp"][1]
+        assert "2026-03-21T07:00:00" in detail_map["sleep_end_timestamp"][1]
 
         payload_types = {
             row[0]
