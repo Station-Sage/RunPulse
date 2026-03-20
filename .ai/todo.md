@@ -106,3 +106,8 @@
 - [ ] IV-3: dedup false positive / false negative 사례 수집
 - [ ] IV-4: analyze.py / report.py / race_readiness.py 실제 데이터 sanity check
 - [ ] IV-5: 익명화 fixture dataset 설계 및 tests/fixtures 구조 정리
+
+- [x] IV-2: Intervals.icu 실제 API 응답 기반 sync parser 1차 검증 완료
+- [x] IV-4: Intervals 실제 데이터 기반 analyze.py / report.py sanity check 1차 완료
+- [ ] IV-followup: Intervals payload 기반 pace split 대체 표현(interval_summary 등) 설계
+- [ ] IV-followup: Intervals wellness 확장 필드(hrvSDNN, fatigue, mood, motivation, steps 등) 정규화 검토

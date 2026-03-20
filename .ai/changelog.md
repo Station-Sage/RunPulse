@@ -108,3 +108,8 @@
 - tests 추가/수정: race_readiness, report, analyze_cli 테스트 보강
 - sync.garmin 개선: garminconnect optional dependency 처리로 Termux 환경 테스트 호환성 확보
 - 전체 테스트 통과: 212 passed
+
+- 2026-03-20: Intervals.icu 실데이터 검증 진행. activities/wellness raw payload 보존용 source_payloads 테이블 추가.
+- 2026-03-20: Intervals activity metrics(trimp, strain_score, icu_efficiency_factor, decoupling, zone times 등) 정규화 저장 추가.
+- 2026-03-20: analyze/report가 Intervals efficiency 및 zone 데이터를 반영하도록 개선.
+- 2026-03-20: integration workbench에 /payloads 페이지 추가하여 raw payload/source_metrics 상태 확인 가능.

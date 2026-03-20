@@ -35,7 +35,7 @@ def weekly_trends(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
                    AVG(avg_pace_sec_km) AS pace
             FROM activities
             WHERE start_time >= ? AND start_time < ?
-              AND activity_type = 'running'
+              AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
             GROUP BY gk
         """, (wk_start.isoformat(), wk_end.isoformat())).fetchall()
 
@@ -73,7 +73,7 @@ def _load_sum(conn: sqlite3.Connection, start: str, end: str,
         FROM source_metrics sm
         JOIN activities a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type = 'running'
+          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?
     """, (start, end, source, metric_name)).fetchone()
     return row[0] or 0.0
@@ -186,7 +186,7 @@ def _fitness_last_from_metrics(
         FROM source_metrics sm
         JOIN activities a ON sm.activity_id = a.id
         WHERE a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type = 'running'
+          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.source = ? AND sm.metric_name = ?
         ORDER BY a.start_time DESC
         LIMIT 1

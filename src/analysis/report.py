@@ -27,7 +27,7 @@ def _latest_activity_id(conn: sqlite3.Connection):
         """
         SELECT id
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
         """
@@ -40,7 +40,7 @@ def _latest_activity_date(conn: sqlite3.Connection):
         """
         SELECT substr(start_time, 1, 10)
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         ORDER BY start_time DESC
         LIMIT 1
         """
@@ -53,7 +53,7 @@ def _has_any_activity(conn: sqlite3.Connection) -> bool:
         """
         SELECT COUNT(*)
         FROM activities
-        WHERE activity_type = 'running'
+        WHERE activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
         """
     ).fetchone()
     return bool(row and row[0])
@@ -72,10 +72,10 @@ def _basic_today_section(conn: sqlite3.Connection) -> str:
     lines = [
         "## 기본 정보",
         "",
-        f"- 날짜: {_safe(activity.get('start_time'))}",
+        f"- 날짜: {_safe(activity.get('date'))}",
         f"- 거리: {_safe(activity.get('distance_km'))} km",
         f"- 시간: {_safe(activity.get('duration_sec'))} 초",
-        f"- 평균 페이스: {_safe(activity.get('avg_pace_sec_km'))} sec/km",
+        f"- 평균 페이스: {_safe(activity.get('avg_pace'))}",
         f"- 평균 심박: {_safe(activity.get('avg_hr'))}",
     ]
     return "\n".join(lines)
@@ -131,7 +131,7 @@ def _efficiency_section(conn: sqlite3.Connection) -> str:
         return "## 효율\n\n- 데이터 없음"
 
     data = deep_analyze(conn, activity_id=activity_id) or {}
-    eff = data.get("efficiency") or {}
+    eff = (data.get("calculated") or {}).get("efficiency") or {}
     if not eff:
         return "## 효율\n\n- 데이터 없음"
 
@@ -146,11 +146,12 @@ def _efficiency_section(conn: sqlite3.Connection) -> str:
 
 
 def _zones_section(conn: sqlite3.Connection) -> str:
-    latest_date = _latest_activity_date(conn)
-    if not latest_date:
+    activity_id = _latest_activity_id(conn)
+    if not activity_id:
         return "## 존 분포\n\n- 데이터 없음"
 
-    zones = analyze_zones(conn, latest_date, latest_date) or {}
+    data = deep_analyze(conn, activity_id=activity_id) or {}
+    zones = (data.get("calculated") or {}).get("zones") or {}
     dist = zones.get("zone_distribution") or {}
     if not dist:
         return "## 존 분포\n\n- 데이터 없음"

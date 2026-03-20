@@ -32,7 +32,7 @@ def _find_activity(
     target_date = date_str or date.today().isoformat()
     return conn.execute(
         f"SELECT {cols} FROM activities "
-        "WHERE start_time >= ? AND start_time < ? AND activity_type = 'running' "
+        "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining') "
         "ORDER BY start_time DESC LIMIT 1",
         (target_date, target_date + "T99"),
     ).fetchone()
@@ -250,6 +250,13 @@ def deep_analyze(
         "icu_training_load": iv.get("icu_training_load"),
         "icu_hrss": iv.get("icu_hrss"),
         "icu_intensity": iv.get("icu_intensity"),
+        "icu_efficiency_factor": iv.get("icu_efficiency_factor"),
+        "decoupling": iv.get("decoupling"),
+        "trimp": iv.get("trimp"),
+        "average_stride": iv.get("average_stride"),
+        "pace_zone_times": iv.get("pace_zone_times"),
+        "icu_hr_zone_times": iv.get("icu_hr_zone_times"),
+        "interval_summary": iv.get("interval_summary"),
         "hr_zones": hr_zones_raw,
     }
 

@@ -33,10 +33,27 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_source
             ON activities(source, source_id);
+
         CREATE INDEX IF NOT EXISTS idx_activities_start_time
             ON activities(start_time);
         CREATE INDEX IF NOT EXISTS idx_activities_group
             ON activities(matched_group_id);
+
+
+        CREATE TABLE IF NOT EXISTS source_payloads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            activity_id INTEGER,
+            payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, entity_type, entity_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_source_payloads_lookup
+            ON source_payloads(source, entity_type, entity_id);
 
         CREATE TABLE IF NOT EXISTS source_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
