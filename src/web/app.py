@@ -122,8 +122,51 @@ def _table(headers: list[str], rows: list[tuple]) -> str:
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
 
+def _payload_recent_table(rows: list[tuple]) -> str:
+    if not rows:
+        return "<p class='muted'>(no rows)</p>"
+
+    headers = ["id", "source", "entity_type", "entity_id", "activity_id", "payload_len", "updated_at", "view"]
+    head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+
+    body_rows = []
+    for row in rows:
+        payload_id, source, entity_type, entity_id, activity_id, payload_len, updated_at = row
+        view_html = f"<a href='/payloads/view?id={payload_id}'>open</a>"
+        cols = "".join(
+            [
+                f"<td>{html.escape(str(payload_id))}</td>",
+                f"<td>{html.escape(str(source))}</td>",
+                f"<td>{html.escape(str(entity_type))}</td>",
+                f"<td>{html.escape(str(entity_id))}</td>",
+                f"<td>{html.escape(str(activity_id))}</td>",
+                f"<td>{html.escape(str(payload_len))}</td>",
+                f"<td>{html.escape(str(updated_at))}</td>",
+                f"<td>{view_html}</td>",
+            ]
+        )
+        body_rows.append(f"<tr>{cols}</tr>")
+
+    body = "".join(body_rows)
+    return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+
+
 def _bool_text(value: bool) -> str:
     return "yes" if value else "no"
+
+
+def _json_pretty_block(value) -> str:
+    import json
+
+    try:
+        if isinstance(value, str):
+            parsed = json.loads(value)
+        else:
+            parsed = value
+        pretty = json.dumps(parsed, ensure_ascii=False, indent=2, sort_keys=True)
+    except Exception:
+        pretty = str(value)
+    return f"<pre>{html.escape(pretty)}</pre>"
 
 
 def _scan_history_dir(base_dir: Path) -> dict:
@@ -333,7 +376,7 @@ python src/sync.py --source all --days 7</pre>
 
                 recent_payloads = conn.execute(
                     """
-                    SELECT source, entity_type, entity_id, activity_id,
+                    SELECT id, source, entity_type, entity_id, activity_id,
                            length(payload_json) AS payload_len, updated_at
                     FROM source_payloads
                     ORDER BY updated_at DESC
@@ -351,10 +394,85 @@ python src/sync.py --source all --days 7</pre>
             + _table(["source", "metric_name", "count"], metric_counts)
             + "</div>"
             + "<div class='card'><h2>recent payloads</h2>"
-            + _table(["source", "entity_type", "entity_id", "activity_id", "payload_len", "updated_at"], recent_payloads)
+            + _payload_recent_table(recent_payloads)
             + "</div>"
         )
         return _html_page("Payloads", body)
+
+
+    @app.get("/payloads/view")
+    def payload_view():
+        db_path = _db_path()
+        if not db_path.exists():
+            body = "<div class='card'><h2>DB 없음</h2><p>running.db가 없습니다.</p></div>"
+            return _html_page("Payload View", body)
+
+        payload_id = request.args.get("id", "").strip()
+        if not payload_id:
+            body = "<div class='card'><h2>잘못된 요청</h2><p>id 파라미터가 필요합니다.</p></div>"
+            return _html_page("Payload View", body)
+
+        try:
+            with sqlite3.connect(db_path) as conn:
+                row = conn.execute(
+                    """
+                    SELECT id, source, entity_type, entity_id, activity_id, payload_json, created_at, updated_at
+                    FROM source_payloads
+                    WHERE id = ?
+                    """,
+                    (payload_id,),
+                ).fetchone()
+
+                if not row:
+                    body = f"<div class='card'><h2>없음</h2><p>payload id={html.escape(payload_id)} 를 찾을 수 없습니다.</p></div>"
+                    return _html_page("Payload View", body)
+
+                metrics = []
+                if row[4]:
+                    metrics = conn.execute(
+                        """
+                        SELECT source, metric_name,
+                               COALESCE(CAST(metric_value AS TEXT), metric_json) AS metric_data
+                        FROM source_metrics
+                        WHERE activity_id = ?
+                        ORDER BY source, metric_name
+                        LIMIT 100
+                        """,
+                        (row[4],),
+                    ).fetchall()
+        except sqlite3.Error as exc:
+            body = f"<div class='card'><h2>DB 오류</h2><pre>{html.escape(str(exc))}</pre></div>"
+            return _html_page("Payload View", body)
+
+        detail_rows = [
+            ("id", row[0]),
+            ("source", row[1]),
+            ("entity_type", row[2]),
+            ("entity_id", row[3]),
+            ("activity_id", row[4]),
+            ("created_at", row[6]),
+            ("updated_at", row[7]),
+        ]
+
+        extra = ""
+        if row[4]:
+            extra += (
+                "<div class='card'><h2>연관 source_metrics</h2>"
+                + _table(["source", "metric_name", "metric_data"], metrics)
+                + "</div>"
+            )
+
+        body = (
+            "<div class='card'><h2>payload metadata</h2>"
+            + _table(["field", "value"], detail_rows)
+            + "</div>"
+            + "<div class='card'><h2>payload json</h2>"
+            + _json_pretty_block(row[5])
+            + "</div>"
+            + extra
+            + "<p><a href='/payloads'>← payloads 목록으로</a></p>"
+        )
+        return _html_page(f"Payload View #{row[0]}", body)
 
     @app.get("/db")
     def db_summary():
