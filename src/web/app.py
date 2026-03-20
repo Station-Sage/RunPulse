@@ -87,6 +87,7 @@ def _html_page(title: str, body: str) -> str:
     <a href="/db">DB 요약</a>
     <a href="/config">Config</a>
     <a href="/import-preview">Import Preview</a>
+    <a href="/sync-status">Sync Status</a>
     <a href="/analyze/today">Today</a>
     <a href="/analyze/full">Full</a>
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
@@ -101,6 +102,11 @@ def _html_page(title: str, body: str) -> str:
 
 def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:
     return conn.execute(sql).fetchall()
+
+
+def _query_value(conn: sqlite3.Connection, sql: str) -> int:
+    row = conn.execute(sql).fetchone()
+    return int(row[0]) if row and row[0] is not None else 0
 
 
 def _table(headers: list[str], rows: list[tuple]) -> str:
@@ -158,6 +164,7 @@ def create_app() -> Flask:
             <li><a href="/db">DB 상태 확인</a></li>
             <li><a href="/config">설정 상태 확인</a></li>
             <li><a href="/import-preview">import 대상 파일 미리보기</a></li>
+            <li><a href="/sync-status">sync 설정/명령 미리보기</a></li>
             <li><a href="/analyze/today">today 리포트 미리보기</a></li>
             <li><a href="/analyze/full">full 리포트 미리보기</a></li>
             <li><a href="/analyze/race?date=2026-06-01&distance=42.195">race 리포트 미리보기</a></li>
@@ -168,7 +175,7 @@ def create_app() -> Flask:
           <h2>다음 구현 후보</h2>
           <ul>
             <li>Import 실행 트리거</li>
-            <li>Sync status / recent fetch 페이지</li>
+            <li>실제 recent sync trigger</li>
             <li>최근 activity / dedup 그룹 drill-down</li>
           </ul>
         </div>
@@ -252,6 +259,48 @@ data/history/strava/</pre>
         )
         return _html_page("Import Preview", body)
 
+    @app.get("/sync-status")
+    def sync_status():
+        config = load_config()
+
+        def present_dict(key: str) -> bool:
+            value = config.get(key)
+            return isinstance(value, dict) and bool(value)
+
+        rows = [
+            ("garmin", "email / password", _bool_text(present_dict("garmin"))),
+            ("strava", "client_id / client_secret / refresh_token", _bool_text(present_dict("strava"))),
+            ("intervals", "athlete_id / api_key", _bool_text(present_dict("intervals"))),
+            ("runalyze", "token", _bool_text(present_dict("runalyze"))),
+        ]
+
+        body = (
+            "<div class='card'>"
+            "<h2>설정 상태</h2>"
+            "<p>민감정보 값 자체는 노출하지 않고, 각 서비스 설정 존재 여부만 표시합니다.</p>"
+            + _table(["source", "required fields", "configured"], rows)
+            + "</div>"
+            + """
+            <div class="card">
+              <h2>추천 sync 명령</h2>
+              <pre>python src/sync.py --source garmin --days 7
+python src/sync.py --source strava --days 7
+python src/sync.py --source intervals --days 28
+python src/sync.py --source runalyze --days 28
+python src/sync.py --source all --days 7</pre>
+            </div>
+            <div class="card">
+              <h2>메모</h2>
+              <ul>
+                <li>제품 사용 플로우 관점에서는 최근 데이터는 API sync가 우선입니다.</li>
+                <li>과거 데이터 백필은 export import로 보완하는 전략이 적합합니다.</li>
+                <li>설정이 없는 서비스는 먼저 <code>config.json</code>을 채운 뒤 sync를 시도합니다.</li>
+              </ul>
+            </div>
+            """
+        )
+        return _html_page("Sync Status", body)
+
     @app.get("/db")
     def db_summary():
         db_path = _db_path()
@@ -289,6 +338,16 @@ data/history/strava/</pre>
 
         conn = sqlite3.connect(str(db_path))
         try:
+            table_counts = [
+                ("activities", _query_value(conn, "select count(*) from activities")),
+                ("source_metrics", _query_value(conn, "select count(*) from source_metrics")),
+                ("daily_wellness", _query_value(conn, "select count(*) from daily_wellness")),
+                ("daily_fitness", _query_value(conn, "select count(*) from daily_fitness")),
+                ("goals", _query_value(conn, "select count(*) from goals")),
+            ]
+
+            activities_total = dict(table_counts).get("activities", 0)
+
             activities_by_source = _query_rows(
                 conn,
                 """
@@ -342,6 +401,32 @@ data/history/strava/</pre>
 
         body = (
             f"<p class='muted'>DB path: {html.escape(str(db_path))}</p>"
+            + "<h2>Table row counts</h2>"
+            + _table(["table", "count"], table_counts)
+        )
+
+        if activities_total == 0:
+            body += """
+            <div class="card">
+              <h2>빈 DB 상태</h2>
+              <p>DB 파일과 스키마는 존재하지만 아직 activity 데이터가 없습니다.</p>
+              <ol>
+                <li>최근 데이터는 <code>sync.py</code>로 가져오기</li>
+                <li>과거 파일은 <code>import_history.py</code>로 가져오기</li>
+                <li>데이터가 들어오면 이 페이지에 source별 집계와 최근 활동이 표시됩니다.</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h2>추천 명령</h2>
+              <pre>python src/sync.py --source all --days 7
+
+python src/import_history.py data/history/garmin --source garmin -r
+python src/import_history.py data/history/strava --source strava -r</pre>
+            </div>
+            """
+            return _html_page("DB Summary", body)
+
+        body += (
             "<h2>Activities by source</h2>"
             + _table(["source", "count"], activities_by_source)
             + "<h2>Daily fitness by source</h2>"
