@@ -22,6 +22,7 @@ from .views_wellness import wellness_bp
 from .views_activity import activity_bp
 from .views_activities import activities_bp
 from .views_settings import settings_bp
+from .views_activity_merge import merge_bp
 
 
 def _project_root() -> Path:
@@ -1178,5 +1179,6 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(activity_bp)
     app.register_blueprint(activities_bp)
     app.register_blueprint(settings_bp)  # 서비스 연동 설정
+    app.register_blueprint(merge_bp)     # 활동 그룹 병합/분리 API
 
     return app
