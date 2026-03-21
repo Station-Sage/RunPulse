@@ -19,6 +19,11 @@ from flask import Blueprint, request
 
 from src.analysis.activity_deep import deep_analyze
 from src.utils.pace import seconds_to_pace
+from src.services.unified_activities import (
+    SOURCE_COLORS,
+    build_source_comparison,
+    _COLS as _SUMMARY_COLS,
+)
 from .helpers import (
     db_path,
     fmt_duration,
@@ -240,6 +245,72 @@ def _render_efficiency(eff: dict) -> str:
     )
 
 
+# ── 소스 비교 테이블 ─────────────────────────────────────────────────────
+
+def _fetch_source_rows(conn: sqlite3.Connection, activity_id: int) -> dict[str, dict]:
+    """activity_id와 같은 그룹에 속한 모든 소스의 row 반환."""
+    row = conn.execute(
+        f"SELECT {', '.join(_SUMMARY_COLS)} FROM activity_summaries WHERE id = ?",
+        (activity_id,),
+    ).fetchone()
+    if not row:
+        return {}
+
+    rd = dict(zip(_SUMMARY_COLS, row))
+    group_id = rd.get("matched_group_id")
+
+    if group_id:
+        rows = conn.execute(
+            f"SELECT {', '.join(_SUMMARY_COLS)} FROM activity_summaries "
+            "WHERE matched_group_id = ?",
+            (group_id,),
+        ).fetchall()
+    else:
+        rows = [row]
+
+    source_rows: dict[str, dict] = {}
+    for r in rows:
+        d = dict(zip(_SUMMARY_COLS, r))
+        src = d["source"]
+        if src not in source_rows:
+            source_rows[src] = d
+    return source_rows
+
+
+def _render_source_comparison(source_rows: dict[str, dict]) -> str:
+    """소스별 기본 지표 비교 테이블 카드."""
+    if len(source_rows) < 2:
+        return ""
+
+    comparison = build_source_comparison(source_rows)
+    sources = list(source_rows.keys())
+
+    # 헤더
+    th_cells = "<th>지표</th>" + "".join(
+        f"<th><span style='background:{SOURCE_COLORS.get(s, '#888')}; "
+        f"color:#fff; border-radius:3px; padding:1px 6px; font-size:0.8rem;'>"
+        f"{html.escape(s)}</span></th>"
+        for s in sources
+    )
+
+    # 바디
+    body_rows = []
+    for item in comparison:
+        cells = f"<td><strong>{html.escape(item['field'])}</strong></td>"
+        for src in sources:
+            v = item.get(src)
+            cells += f"<td>{html.escape(str(round(v, 2)) if isinstance(v, float) else str(v) if v is not None else '—')}</td>"
+        body_rows.append(f"<tr>{cells}</tr>")
+
+    return (
+        "<div class='card'>"
+        "<h2>소스 비교</h2>"
+        f"<table><thead><tr>{th_cells}</tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody></table>"
+        "</div>"
+    )
+
+
 # ── 이전/다음 네비게이션 ─────────────────────────────────────────────────
 
 def _fetch_adjacent(conn, activity_id: int, start_time: str) -> tuple:
@@ -309,6 +380,7 @@ def activity_deep_view():
             body = f"<div class='card'><p>잘못된 activity id: {html.escape(activity_id_str)}</p></div>"
             return html_page("활동 심층 분석", body)
 
+    source_rows: dict = {}
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -330,6 +402,7 @@ def activity_deep_view():
                     ).fetchone() if act_date else None
                 if cur:
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
+                    source_rows = _fetch_source_rows(conn, cur[0])
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("활동 심층 분석", body)
@@ -374,6 +447,7 @@ def activity_deep_view():
         query_form
         + _render_activity_nav(prev_row, next_row)
         + _render_activity_summary(act)
+        + _render_source_comparison(source_rows)
         + _render_garmin_daily_detail(garmin_detail, act_date)
         + "<div class='cards-row'>"
         + _render_garmin_metrics(garmin)
