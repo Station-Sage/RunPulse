@@ -1,6 +1,19 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-21 (claude/phase4-1-ai-coach)
+- Phase 4-1 AI 코치 연동 완료
+  - `src/ai/__init__.py` 생성
+  - `src/ai/ai_context.py`: 분석 데이터 수집 및 프롬프트 컨텍스트 텍스트 변환 (`build_context`, `format_context_text`, `format_activity_context`)
+  - `src/ai/ai_schema.py`: 주간 훈련 계획 JSON 스키마 검증 (`validate_weekly_plan`, `normalize_workout`)
+  - `src/ai/ai_parser.py`: AI 응답에서 JSON/계획/칩 파싱 (`extract_json_block`, `parse_weekly_plan`, `parse_suggestions`, `parse_ai_chips`)
+  - `src/ai/briefing.py`: 브리핑/칩 프롬프트 조립 (`build_briefing_prompt`, `build_chip_prompt`, `get_clipboard_prompt`)
+  - `src/ai/suggestions.py`: RunnerState 상태 수집 + 규칙 기반 추천 칩 5개 생성 (`get_runner_state`, `rule_based_chips`)
+  - `src/ai/prompt_templates/` 10개 템플릿: briefing, deep_analysis, weekly_plan, race_predict, recovery_advice, injury_risk, pace_zones, weekly_review, goal_setting, season_review
+  - 신규 테스트 64개: test_ai_parser, test_ai_schema, test_ai_context, test_suggestions, test_briefing
+  - 전체 테스트 330개 통과
+
+
 ## 2026-03-20 (feature/integration-validation)
 - integration-validation 통합 및 검증 완료
   - `feature/intervals-analysis-polish` merge
