@@ -79,8 +79,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     headers = _headers(config)
     cutoff = datetime.now() - timedelta(days=days)
 
-    # 올바른 Runalyze API 엔드포인트: /activities (activity_summaries 아님)
-    activity_summaries = api.get(f"{_BASE_URL}/activities", headers=headers)
+    # Runalyze API 목록 엔드포인트: /activity (복수형 /activities는 404)
+    activity_summaries = api.get(f"{_BASE_URL}/activity", headers=headers)
     count = 0
 
     for act in activity_summaries:
@@ -196,32 +196,37 @@ def check_runalyze_connection(config: dict) -> dict:
             "detail": "API 토큰 미설정. /settings에서 입력하세요.",
         }
 
-    # 최근 활동 1건 조회로 토큰 유효성 확인
+    # 최근 활동 1건 조회로 토큰 유효성 확인 (/activity 단수형이 올바른 경로)
     try:
         result = api.get(
-            f"{_BASE_URL}/activities",
+            f"{_BASE_URL}/activity",
             headers={"token": token},
             params={"limit": 1},
             timeout=10,
         )
-        count = len(result) if isinstance(result, list) else 0
         return {
             "ok": True,
             "status": "연결됨",
-            "detail": f"토큰 유효. 활동 데이터 접근 가능.",
+            "detail": "토큰 유효. 활동 데이터 접근 가능.",
         }
     except api.ApiError as e:
-        if e.status_code in (401, 403):
+        if e.status_code == 401:
             return {
                 "ok": False,
                 "status": "토큰 오류",
-                "detail": f"인증 실패 ({e.status_code}). 토큰을 확인하거나 재발급하세요.",
+                "detail": "인증 실패 (401). Runalyze 설정 > API 토큰을 확인하세요.",
+            }
+        if e.status_code == 403:
+            return {
+                "ok": False,
+                "status": "권한 없음",
+                "detail": "접근 거부 (403). 토큰이 만료되었거나 Runalyze 프리미엄 플랜이 필요할 수 있습니다.",
             }
         if e.status_code == 404:
             return {
                 "ok": False,
                 "status": "엔드포인트 불일치",
-                "detail": f"API 엔드포인트를 찾을 수 없습니다 (404).",
+                "detail": "API 엔드포인트를 찾을 수 없습니다 (404).",
             }
         return {"ok": False, "status": "연결 실패", "detail": str(e)}
     except Exception as e:

@@ -10,10 +10,18 @@ from pathlib import Path
 
 try:
     from garminconnect import Garmin
+    # Error 1015 = Too Many Requests (Cloudflare 차단)
+    try:
+        from garminconnect import GarminConnectTooManyRequestsError
+    except ImportError:
+        GarminConnectTooManyRequestsError = Exception
 except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
     Garmin = None
+    GarminConnectTooManyRequestsError = Exception
 
 from src.utils.dedup import assign_group_id
+from src.utils.sync_policy import POLICIES
+from src.utils.sync_state import mark_finished, set_retry_after
 
 
 def _tokenstore_path(config: dict) -> Path:
@@ -299,7 +307,7 @@ def sync_activities(
 
         # 상세 지표 조회
         try:
-            time.sleep(2)
+            time.sleep(POLICIES["garmin"].per_request_sleep_sec)
             detail = client.get_activity(int(source_id))
             _store_raw_payload(
                 conn,
@@ -403,13 +411,40 @@ def sync_activities(
                 date_str = start_time[:10]  # YYYY-MM-DD
                 _upsert_vo2max(conn, date_str, float(vo2max))
 
+        except GarminConnectTooManyRequestsError:
+            _handle_rate_limit("garmin", source_id)
+            conn.commit()
+            mark_finished("garmin", count=count, partial=True,
+                          error="Garmin 요청 제한 발생. 잠시 후 다시 시도하세요.")
+            return count
         except Exception as e:
+            msg = str(e)
+            if "1015" in msg or "Too Many Requests" in msg or "429" in msg:
+                _handle_rate_limit("garmin", source_id)
+                conn.commit()
+                mark_finished("garmin", count=count, partial=True,
+                              error="Garmin 요청 제한(Error 1015). 약 15분 후 재시도하세요.")
+                return count
             print(f"[garmin] 상세 조회 실패 {source_id}: {e}")
 
         assign_group_id(conn, activity_id)
 
     conn.commit()
+    mark_finished("garmin", count=count)
     return count
+
+
+def _handle_rate_limit(service: str, source_id: str = "") -> None:
+    """rate limit 발생 시 공통 처리 — 메시지 출력 + 재시도 시각 설정."""
+    msg = (
+        f"[{service}] ⚠️ Garmin 로그인/조회 요청이 짧은 시간에 너무 많이 발생하여 "
+        f"일시적으로 제한되었습니다 (Error 1015 / Too Many Requests). "
+        f"약 15분 후 다시 시도하세요."
+    )
+    if source_id:
+        msg += f" (마지막 처리 활동: {source_id})"
+    print(msg)
+    set_retry_after(service, 900)  # 15분
 
 
 def sync_wellness(

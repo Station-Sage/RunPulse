@@ -175,6 +175,93 @@ def _build_nav() -> str:
     return "".join(items)
 
 
+_SYNC_JS = """
+function switchSyncTab(t) {
+  ['basic','hist'].forEach(function(id) {
+    var tab = document.getElementById('stab-'+id);
+    var panel = document.getElementById('spanel-'+id);
+    if (!tab || !panel) return;
+    var active = id === t;
+    tab.style.borderBottom = active ? '2px solid #0066cc' : 'none';
+    tab.style.color = active ? '#0066cc' : 'var(--muted)';
+    tab.style.fontWeight = active ? '600' : 'normal';
+    panel.style.display = active ? 'flex' : 'none';
+  });
+}
+
+async function doSync(mode) {
+  var btnId = mode === 'basic' ? 'sbtn-basic' : 'sbtn-hist';
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  var srcId = mode === 'basic' ? 'basic-source' : 'hist-source';
+  var source = (document.getElementById(srcId) || {}).value || 'all';
+  var fd = new FormData();
+  fd.append('mode', mode);
+  fd.append('source', source);
+  if (mode === 'hist') {
+    var from = (document.getElementById('hist-from') || {}).value || '';
+    if (!from) { alert('시작일을 입력하세요.'); return; }
+    fd.append('from_date', from);
+    var to = (document.getElementById('hist-to') || {}).value || '';
+    if (to) fd.append('to_date', to);
+  }
+  var orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '동기화 중\u2026';
+  try {
+    var resp = await fetch('/trigger-sync', {method: 'POST', body: fd});
+    var data = await resp.json();
+    var failed = data.results.filter(function(r) { return !r.ok && !r.skipped; });
+    var succeeded = data.results.filter(function(r) { return r.ok; });
+    if (failed.length === 0) {
+      syncToast('\u2705 동기화 완료 \u2014 활동 ' + data.total_count + '개 업데이트', 'success');
+      setTimeout(function() { location.reload(); }, 2200);
+    } else if (succeeded.length > 0) {
+      syncToast('\u26a0\ufe0f 일부 동기화 완료 \u2014 활동 ' + data.total_count + '개', 'warn');
+      syncModal(data);
+    } else {
+      syncModal(data);
+    }
+  } catch(e) {
+    syncToast('\u274c 요청 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function syncToast(msg, type) {
+  var colors = {
+    success: {bg:'#d4edda', fg:'#155724', border:'#28a745'},
+    warn:    {bg:'#fff3cd', fg:'#856404', border:'#ffc107'},
+    error:   {bg:'#f8d7da', fg:'#721c24', border:'#dc3545'}
+  };
+  var c = colors[type] || colors.error;
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:2000;'
+    + 'padding:0.75rem 1.25rem;border-radius:8px;font-size:0.9rem;'
+    + 'box-shadow:0 4px 16px rgba(0,0,0,0.18);max-width:340px;'
+    + 'border-left:4px solid '+c.border+';background:'+c.bg+';color:'+c.fg+';';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 4500);
+}
+
+function syncModal(data) {
+  var body = document.getElementById('sync-modal-body');
+  if (!body) return;
+  var h = '<h3 style="margin-top:0;">동기화 결과</h3>';
+  (data.results || []).forEach(function(r) {
+    var icon = r.ok ? '\u2705' : (r.skipped ? '\u23ed\ufe0f' : '\u274c');
+    var detail = r.ok ? ('활동 ' + r.count + '개') : (r.error || '오류');
+    h += '<div style="margin:0.4rem 0;"><strong>' + icon + ' ' + r.source
+      + '</strong>: <span style="color:var(--muted);font-size:0.88rem;">'
+      + detail + '</span></div>';
+  });
+  body.innerHTML = h;
+  document.getElementById('sync-modal').style.display = 'flex';
+}
+"""
+
+
 def html_page(title: str, body: str) -> str:
     """전체 HTML 페이지 생성 (스티키 헤더 + 그룹 드롭다운 nav 포함)."""
     nav_html = _build_nav()
@@ -195,6 +282,7 @@ def html_page(title: str, body: str) -> str:
     <h1>{_html.escape(title)}</h1>
     {body}
   </main>
+  <script>{_SYNC_JS}</script>
 </body>
 </html>"""
 
@@ -295,3 +383,28 @@ def fmt_duration(seconds) -> str:
 
 def safe_str(value, default: str = "—") -> str:
     return default if value is None else str(value)
+
+
+def last_sync_info(sources: list[str]) -> dict[str, str | None]:
+    """소스별 마지막 동기화 시점(start_time 기준) 반환.
+
+    Returns:
+        {"garmin": "2026-03-20 14:30", "strava": None, ...}
+    """
+    import sqlite3
+    dpath = db_path()
+    if not dpath.exists():
+        return {s: None for s in sources}
+    result: dict[str, str | None] = {}
+    try:
+        with sqlite3.connect(str(dpath)) as conn:
+            for src in sources:
+                row = conn.execute(
+                    "SELECT MAX(start_time) FROM activity_summaries WHERE source = ?",
+                    (src,),
+                ).fetchone()
+                val = row[0] if row and row[0] else None
+                result[src] = str(val)[:16].replace("T", " ") if val else None
+    except Exception:
+        result = {s: None for s in sources}
+    return result

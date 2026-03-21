@@ -48,3 +48,6 @@ Thumbs.db
 
 # Fixture
 SQLite_testdata_insert.py
+
+# 동기화 상태 파일 (로컬 전용)
+sync_state.json

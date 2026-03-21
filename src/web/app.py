@@ -42,6 +42,33 @@ def _html_page(title: str, body: str) -> str:
     return _hp(title, body)
 
 
+def _already_finished(stdout: str) -> bool:
+    """sync.py 내부에서 mark_finished를 이미 호출했는지 stdout으로 추정."""
+    # strava/garmin sync 함수가 rate limit 발생 시 직접 mark_finished 호출
+    return "⚠️" in stdout and ("제한" in stdout or "타임아웃" in stdout)
+
+
+def _days_since_last_sync(sources: list[str]) -> int:
+    """DB에서 마지막 활동 이후 일수 계산. 데이터 없으면 7 반환."""
+    from datetime import date
+    db = _db_path()
+    if not db.exists():
+        return 7
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            placeholders = ",".join("?" * len(sources))
+            row = conn.execute(
+                f"SELECT MAX(start_time) FROM activity_summaries WHERE source IN ({placeholders})",
+                sources,
+            ).fetchone()
+        if not row or not row[0]:
+            return 7
+        last_date = date.fromisoformat(str(row[0])[:10])
+        return max(1, min((date.today() - last_date).days + 2, 365))
+    except Exception:
+        return 7
+
+
 def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:
     return conn.execute(sql).fetchall()
 
@@ -318,29 +345,13 @@ def create_app() -> Flask:
             </div>
             """
 
-        sync_card = """
-        <div class="card" style="border-color:#b3d9ff;">
-          <h2 style="margin-bottom:0.5rem;">동기화</h2>
-          <form method="post" action="/trigger-sync" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
-            <select name="source" style="padding:0.35rem 0.6rem; border-radius:4px; border:1px solid #ccc;">
-              <option value="all">전체 소스</option>
-              <option value="garmin">Garmin</option>
-              <option value="strava">Strava</option>
-              <option value="intervals">Intervals.icu</option>
-              <option value="runalyze">Runalyze</option>
-            </select>
-            <select name="days" style="padding:0.35rem 0.6rem; border-radius:4px; border:1px solid #ccc;">
-              <option value="7">최근 7일</option>
-              <option value="14">최근 14일</option>
-              <option value="30">최근 30일</option>
-              <option value="90">최근 90일</option>
-            </select>
-            <button type="submit" style="padding:0.35rem 1rem; background:#0066cc; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-              ▶ 동기화 실행
-            </button>
-          </form>
-        </div>
-        """
+        from .sync_ui import sync_card_html
+        from .helpers import last_sync_info
+        from src.utils.sync_state import get_all_states
+        sync_card = sync_card_html(
+            last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
+            sync_states=get_all_states(),
+        )
 
         body = f"""
         {sync_card}
@@ -424,49 +435,151 @@ def create_app() -> Flask:
 
     @app.post("/trigger-sync")
     def trigger_sync():
-        """동기화 실행 — subprocess로 sync.py 호출 후 결과 표시."""
+        """동기화 실행 — 연결 확인 + 정책 검사 + 중복 방지 + JSON 응답."""
+        import re
         import subprocess
-        import shlex
+        from datetime import date
+        from flask import jsonify
+        from src.utils.sync_policy import check_incremental_guard, check_range_guard
+        from src.utils.sync_state import (
+            is_running, mark_running, mark_finished,
+            get_last_sync_at, get_retry_after_sec,
+        )
+
+        mode = request.form.get("mode", "basic").strip()
         source = request.form.get("source", "all").strip()
-        days = request.form.get("days", "7").strip()
-        # 입력 검증 (허용값만)
+        from_date = request.form.get("from_date", "").strip()
+        to_date = request.form.get("to_date", "").strip()
+
         if source not in ("all", "garmin", "strava", "intervals", "runalyze"):
             source = "all"
-        try:
-            days_int = max(1, min(int(days), 365))
-        except ValueError:
-            days_int = 7
 
-        try:
-            proc = subprocess.run(
-                [sys.executable, "src/sync.py", "--source", source, "--days", str(days_int)],
-                capture_output=True, text=True, timeout=300,
-                cwd=str(_project_root()),
-            )
-            stdout = proc.stdout[-4000:] if proc.stdout else "(출력 없음)"
-            stderr = proc.stderr[-2000:] if proc.stderr else ""
-            rc = proc.returncode
-        except subprocess.TimeoutExpired:
-            stdout = "(타임아웃 — 300초 초과)"
-            stderr = ""
-            rc = -1
-        except Exception as e:
-            stdout = ""
-            stderr = str(e)
-            rc = -1
+        checkers = {
+            "garmin": check_garmin_connection,
+            "strava": check_strava_connection,
+            "intervals": check_intervals_connection,
+            "runalyze": check_runalyze_connection,
+        }
+        sources_to_sync = list(checkers.keys()) if source == "all" else [source]
+        config = load_config()
 
-        status_label = "✅ 성공" if rc == 0 else f"❌ 오류 (exit {rc})"
-        body = f"""
-        <div class="card">
-          <h2>동기화 결과 — {html.escape(source)} / 최근 {days_int}일</h2>
-          <p>{status_label}</p>
-          <h3>출력</h3>
-          <pre>{html.escape(stdout)}</pre>
-          {"<h3>에러</h3><pre style='color:#c0392b;'>" + html.escape(stderr) + "</pre>" if stderr else ""}
-          <p><a href="/">&larr; 홈으로</a></p>
-        </div>
-        """
-        return _html_page("동기화 결과", body)
+        # 기간 동기화: days 공통 계산
+        hist_days: int | None = None
+        if mode in ("historical", "hist") and from_date:
+            try:
+                d = date.fromisoformat(from_date)
+                end = date.fromisoformat(to_date) if to_date else date.today()
+                hist_days = max(1, min((end - d).days + 1, 3650))
+            except (ValueError, TypeError):
+                hist_days = 30
+
+        results = []
+        for src in sources_to_sync:
+            # 1) 연결 상태 확인
+            conn_status = checkers[src](config)
+            if not conn_status["ok"]:
+                results.append({
+                    "source": src, "ok": False, "skipped": True,
+                    "count": 0, "error": f"미연결 ({conn_status['status']})",
+                })
+                continue
+
+            # 2) 중복 실행 방지
+            if is_running(src):
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": f"{src} 동기화가 이미 진행 중입니다. 잠시 후 다시 시도하세요.",
+                    "reason": "running",
+                })
+                continue
+
+            # 3) retry_after 확인 (429 등으로 설정된 경우)
+            retry_sec = get_retry_after_sec(src)
+            if retry_sec and retry_sec > 0:
+                from src.utils.sync_policy import _fmt_duration
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
+                    "reason": "retry_after",
+                    "retry_after_sec": retry_sec,
+                })
+                continue
+
+            # 4) 정책 검사
+            if hist_days is not None:
+                # 기간 동기화: 범위 검사
+                guard = check_range_guard(src, hist_days)
+                days_for_src = hist_days
+            else:
+                # 증분 동기화: cooldown 검사
+                last_at = get_last_sync_at(src)
+                guard = check_incremental_guard(src, last_at)
+                days_for_src = _days_since_last_sync([src])
+
+            if not guard.allowed:
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": guard.message_ko or "정책 제한",
+                    "reason": guard.reason,
+                    "retry_after_sec": guard.retry_after_sec,
+                })
+                continue
+
+            if guard.message_ko and guard.reason == "range_auto_reduced":
+                # 경고는 있지만 허용 — 결과에 경고 포함하고 계속
+                print(f"[trigger_sync] {guard.message_ko}")
+
+            # 5) 동기화 실행
+            mark_running(src, mode)
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src)],
+                    capture_output=True, text=True, timeout=300,
+                    cwd=str(_project_root()),
+                )
+                count = 0
+                for line in proc.stdout.splitlines():
+                    m = re.search(r"활동 (\d+)개 동기화", line)
+                    if m:
+                        count += int(m.group(1))
+
+                stderr_tail = (proc.stderr or "")[-400:]
+                # subprocess 내 sync 함수가 mark_finished 를 직접 호출하지만
+                # subprocess 바깥에서도 실패 시 상태 복구
+                if proc.returncode != 0:
+                    mark_finished(src, count=0, partial=True, error=stderr_tail)
+                    results.append({
+                        "source": src, "ok": False, "skipped": False,
+                        "count": 0, "error": stderr_tail,
+                        "warn": guard.message_ko,
+                    })
+                else:
+                    # 부분 성공 여부는 stdout에서 힌트 확인
+                    partial = "일부" in proc.stdout or "⚠️" in proc.stdout
+                    if not _already_finished(proc.stdout):
+                        mark_finished(src, count=count, partial=partial)
+                    results.append({
+                        "source": src, "ok": True, "skipped": False,
+                        "count": count, "error": None,
+                        "partial": partial,
+                        "warn": guard.message_ko,
+                    })
+            except subprocess.TimeoutExpired:
+                mark_finished(src, count=0, partial=True, error="타임아웃 (300초)")
+                results.append({
+                    "source": src, "ok": False, "skipped": False,
+                    "count": 0, "error": "동기화 타임아웃 (300초 초과)",
+                })
+            except Exception as e:
+                mark_finished(src, count=0, partial=True, error=str(e))
+                results.append({
+                    "source": src, "ok": False, "skipped": False,
+                    "count": 0, "error": str(e),
+                })
+
+        total_count = sum(r.get("count", 0) for r in results)
+        overall_ok = any(r.get("ok") for r in results)
+        return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
 
     @app.get("/import")
     @app.get("/import-preview")
