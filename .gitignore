@@ -1,6 +1,8 @@
 # 비밀 정보
 config.json
 *.token
+.garmin_tokens/
+tmp_*.py
 
 # DB
 running.db
@@ -43,5 +45,6 @@ Thumbs.db
 *.log
 .env
 .env.*
-.garmin_tokens/
-tmp_*.py
+
+# Fixture
+SQLite_testdata_insert.py
