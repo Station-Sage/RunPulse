@@ -114,28 +114,66 @@ def sync_card_html(
     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
       <select id="basic-source" style="{_SELECT_STYLE}">{_SOURCE_OPTS}</select>
       <span class="muted" style="font-size:0.85rem;">마지막 동기화 이후 신규 기록</span>
-      <button id="sbtn-basic" onclick="doSync('basic')" style="{_BTN_STYLE}">▶ 동기화</button>
+      <button id="sbtn-basic" onclick="doSync('basic')" style="{_BTN_STYLE}">&#9654; 동기화</button>
     </div>
     {last_sync_html}
     {state_banner}
   </div>
 
   <!-- 기간 동기화 패널 -->
-  <div id="spanel-hist" style="display:none; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
-    <select id="hist-source" style="{_SELECT_STYLE}">{_SOURCE_OPTS}</select>
-    <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
-      시작일
-      <input type="date" id="hist-from"
-        style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;
-               background:var(--card-bg); color:var(--fg);">
+  <div id="spanel-hist" style="display:none;">
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end; margin-bottom:0.6rem;">
+      <select id="hist-source" style="{_SELECT_STYLE}">{_SOURCE_OPTS}</select>
+      <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
+        시작일
+        <input type="date" id="hist-from"
+          style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;
+                 background:var(--card-bg); color:var(--fg);">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
+        종료일 <span style="font-size:0.75rem;">(생략 시 오늘)</span>
+        <input type="date" id="hist-to"
+          style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;
+                 background:var(--card-bg); color:var(--fg);">
+      </label>
+      <button id="sbtn-hist" onclick="doSync('hist')" style="{_BTN_STYLE}">&#9654; 기간 동기화</button>
+    </div>
+    <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--muted); margin-bottom:0.4rem; cursor:pointer;">
+      <input type="checkbox" id="hist-bg-mode" style="cursor:pointer;">
+      백그라운드 자동 동기화 (API 부하 제어 — 배치 단위 순차 처리)
     </label>
-    <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
-      종료일 <span style="font-size:0.75rem;">(생략 시 오늘)</span>
-      <input type="date" id="hist-to"
-        style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;
-               background:var(--card-bg); color:var(--fg);">
-    </label>
-    <button id="sbtn-hist" onclick="doSync('hist')" style="{_BTN_STYLE}">▶ 기간 동기화</button>
+  </div>
+
+  <!-- 백그라운드 동기화 진행 섹션 -->
+  <div id="bg-progress-section" style="display:none; margin-top:0.8rem; border-top:1px solid var(--card-border); padding-top:0.8rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+      <span id="bg-progress-title" style="font-weight:600; font-size:0.9rem;"></span>
+      <span id="bg-progress-pct" style="font-size:0.85rem; color:var(--muted);"></span>
+    </div>
+    <!-- 진행 바 -->
+    <div style="background:var(--row-border); border-radius:4px; height:10px; overflow:hidden; margin-bottom:0.5rem;">
+      <div id="bg-progress-bar" style="height:100%; background:#0066cc; border-radius:4px; width:0%; transition:width 0.4s;"></div>
+    </div>
+    <p id="bg-progress-detail" style="margin:0.25rem 0; font-size:0.82rem; color:var(--muted);"></p>
+    <p id="bg-rate-info" style="margin:0.25rem 0; font-size:0.8rem; color:var(--muted);"></p>
+    <p id="bg-error-info" style="margin:0.25rem 0; font-size:0.8rem; color:#c0392b; display:none;"></p>
+    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+      <button id="bg-btn-pause" onclick="bgSyncPause()"
+        style="padding:0.3rem 0.8rem; border-radius:4px; border:1px solid #ccc;
+               background:none; cursor:pointer; font-size:0.82rem; display:none;">
+        &#9646;&#9646; 일시중지
+      </button>
+      <button id="bg-btn-stop" onclick="bgSyncStop()"
+        style="padding:0.3rem 0.8rem; border-radius:4px; border:1px solid #c0392b;
+               color:#c0392b; background:none; cursor:pointer; font-size:0.82rem; display:none;">
+        &#9632; 중지
+      </button>
+      <button id="bg-btn-resume" onclick="bgSyncResume()"
+        style="padding:0.3rem 0.8rem; border-radius:4px; background:#0066cc;
+               color:#fff; border:none; cursor:pointer; font-size:0.82rem; display:none;">
+        &#9654; Resume
+      </button>
+    </div>
   </div>
 </div>
 

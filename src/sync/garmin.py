@@ -235,14 +235,20 @@ def sync_activities(
     conn: sqlite3.Connection,
     days: int,
     client: Garmin | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    bg_mode: bool = False,
 ) -> int:
     """Garmin 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
         client: 기존 Garmin 클라이언트. None이면 새로 로그인.
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
+        bg_mode: True이면 mark_running/mark_finished 호출 생략 (bg_sync 관리).
 
     Returns:
         새로 저장된 활동 수.
@@ -250,8 +256,20 @@ def sync_activities(
     if client is None:
         client = _login(config)
 
-    activity_summaries = client.get_activities(0, days * 3)
-    cutoff = datetime.now() - timedelta(days=days)
+    # 날짜 범위 계산
+    if from_date:
+        cutoff = datetime.fromisoformat(from_date)
+        cutoff_end: datetime | None = (
+            datetime.fromisoformat(to_date) + timedelta(days=1)
+            if to_date else None
+        )
+        fetch_days = (datetime.now() - cutoff).days + 2
+    else:
+        cutoff = datetime.now() - timedelta(days=days)
+        cutoff_end = None
+        fetch_days = days
+
+    activity_summaries = client.get_activities(0, fetch_days * 3)
     count = 0
 
     for act in activity_summaries:
@@ -260,7 +278,10 @@ def sync_activities(
             continue
 
         try:
-            if datetime.fromisoformat(start_time) < cutoff:
+            act_dt = datetime.fromisoformat(start_time)
+            if act_dt < cutoff:
+                continue
+            if cutoff_end and act_dt >= cutoff_end:
                 continue
         except ValueError:
             continue
@@ -414,23 +435,26 @@ def sync_activities(
         except GarminConnectTooManyRequestsError:
             _handle_rate_limit("garmin", source_id)
             conn.commit()
-            mark_finished("garmin", count=count, partial=True,
-                          error="Garmin 요청 제한 발생. 잠시 후 다시 시도하세요.")
+            if not bg_mode:
+                mark_finished("garmin", count=count, partial=True,
+                              error="Garmin 요청 제한 발생. 잠시 후 다시 시도하세요.")
             return count
         except Exception as e:
             msg = str(e)
             if "1015" in msg or "Too Many Requests" in msg or "429" in msg:
                 _handle_rate_limit("garmin", source_id)
                 conn.commit()
-                mark_finished("garmin", count=count, partial=True,
-                              error="Garmin 요청 제한(Error 1015). 약 15분 후 재시도하세요.")
+                if not bg_mode:
+                    mark_finished("garmin", count=count, partial=True,
+                                  error="Garmin 요청 제한(Error 1015). 약 15분 후 재시도하세요.")
                 return count
             print(f"[garmin] 상세 조회 실패 {source_id}: {e}")
 
         assign_group_id(conn, activity_id)
 
     conn.commit()
-    mark_finished("garmin", count=count)
+    if not bg_mode:
+        mark_finished("garmin", count=count)
     return count
 
 

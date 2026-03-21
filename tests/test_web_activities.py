@@ -109,9 +109,9 @@ class TestActivitiesRoute:
         """3개 활동은 페이지 넘김 없음."""
         resp = app_client.get("/activities")
         body = resp.data.decode()
-        # 20개 미만이므로 이전/다음 네비 없어야 함
-        assert "이전" not in body
-        assert "다음" not in body
+        # 20개 미만이므로 이전/다음 네비 링크 없어야 함 (페이지네이션 HTML)
+        assert "&laquo; 이전" not in body
+        assert "다음 &raquo;" not in body
 
     def test_filter_form_rendered(self, app_client):
         """필터 폼 렌더링 확인."""

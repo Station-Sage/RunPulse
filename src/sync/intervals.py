@@ -108,21 +108,33 @@ def _auth(config: dict) -> tuple[str, str]:
     return ("API_KEY", config["intervals"]["api_key"])
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> int:
     """Intervals.icu 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
 
     Returns:
         새로 저장된 활동 수.
     """
     base = _base_url(config)
     auth = _auth(config)
-    oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    newest = datetime.now().strftime("%Y-%m-%d")
+    if from_date:
+        oldest = from_date
+        newest = to_date if to_date else datetime.now().strftime("%Y-%m-%d")
+    else:
+        oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        newest = datetime.now().strftime("%Y-%m-%d")
 
     # 올바른 Intervals.icu API 엔드포인트: /activities (activity_summaries 아님)
     activity_summaries = api.get(

@@ -581,6 +581,67 @@ def create_app() -> Flask:
         overall_ok = any(r.get("ok") for r in results)
         return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
 
+    # ── 백그라운드 기간 동기화 ────────────────────────────────────────────
+
+    @app.post("/bg-sync/start")
+    def bg_sync_start():
+        """백그라운드 기간 동기화 시작."""
+        from datetime import date as _date
+        from flask import jsonify
+        from .bg_sync import start_job
+        source = request.form.get("source", "").strip()
+        from_date = request.form.get("from_date", "").strip()
+        to_date = request.form.get("to_date", "").strip() or _date.today().isoformat()
+
+        if source not in ("garmin", "strava", "intervals", "runalyze"):
+            return jsonify({"ok": False, "error": "지원하지 않는 서비스입니다."}), 400
+        if not from_date:
+            return jsonify({"ok": False, "error": "시작일을 입력하세요."}), 400
+
+        try:
+            _date.fromisoformat(from_date)
+            _date.fromisoformat(to_date)
+        except ValueError:
+            return jsonify({"ok": False, "error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)."}), 400
+
+        config = load_config()
+        job_id = start_job(source, from_date, to_date, config)
+        return jsonify({"ok": True, "job_id": job_id, "source": source})
+
+    @app.post("/bg-sync/pause")
+    def bg_sync_pause():
+        from flask import jsonify
+        from .bg_sync import pause_job
+        source = request.form.get("source", "").strip()
+        ok = pause_job(source)
+        return jsonify({"ok": ok})
+
+    @app.post("/bg-sync/stop")
+    def bg_sync_stop():
+        from flask import jsonify
+        from .bg_sync import stop_job
+        source = request.form.get("source", "").strip()
+        ok = stop_job(source)
+        return jsonify({"ok": ok})
+
+    @app.post("/bg-sync/resume")
+    def bg_sync_resume():
+        from flask import jsonify
+        from .bg_sync import resume_job
+        source = request.form.get("source", "").strip()
+        config = load_config()
+        ok = resume_job(source, config)
+        return jsonify({"ok": ok})
+
+    @app.get("/bg-sync/status")
+    def bg_sync_status():
+        from flask import jsonify
+        from .bg_sync import get_status
+        source = request.args.get("source", "").strip()
+        if source not in ("garmin", "strava", "intervals", "runalyze"):
+            return jsonify({"active": False})
+        return jsonify(get_status(source))
+
     @app.get("/import")
     @app.get("/import-preview")
     def import_page():

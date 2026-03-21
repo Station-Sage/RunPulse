@@ -114,13 +114,23 @@ def _parse_rate_limit(resp_headers: dict) -> dict:
     return state
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    bg_mode: bool = False,
+) -> int:
     """Strava 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
+        bg_mode: True이면 mark_finished 호출 생략.
 
     Returns:
         새로 저장된 활동 수.
@@ -128,7 +138,16 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     policy = POLICIES["strava"]
     token = _refresh_token(config)
     headers = {"Authorization": f"Bearer {token}"}
-    after = int((datetime.now() - timedelta(days=days)).timestamp())
+
+    if from_date:
+        after = int(datetime.fromisoformat(from_date).timestamp())
+        before = int(
+            (datetime.fromisoformat(to_date) + timedelta(days=1)).timestamp()
+        ) if to_date else None
+    else:
+        after = int((datetime.now() - timedelta(days=days)).timestamp())
+        before = None
+
     count = 0
     page = 1
     rate_state = get_rate_state("strava")  # 이전 저장된 rate 상태 로드
@@ -136,10 +155,13 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     while True:
         try:
+            params: dict = {"after": after, "per_page": 30, "page": page}
+            if before is not None:
+                params["before"] = before
             activity_summaries, resp_headers = api.get_with_headers(
                 f"{_BASE_URL}/athlete/activities",
                 headers=headers,
-                params={"after": after, "per_page": 30, "page": page},
+                params=params,
             )
             # rate limit 상태 갱신
             new_rate = _parse_rate_limit(resp_headers)
@@ -238,9 +260,10 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                     set_retry_after("strava", 900)
                     partial = True
                     conn.commit()
-                    mark_finished("strava", count=count, partial=True,
-                                  error="Strava 요청 제한(429). 약 15분 후 재시도하세요.",
-                                  rate_state=rate_state)
+                    if not bg_mode:
+                        mark_finished("strava", count=count, partial=True,
+                                      error="Strava 요청 제한(429). 약 15분 후 재시도하세요.",
+                                      rate_state=rate_state)
                     return count
                 print(f"[strava] 상세 조회 실패 {source_id}: {e}")
             except Exception as e:
@@ -275,8 +298,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
         page += 1
 
     conn.commit()
-    # 상태 저장
-    mark_finished("strava", count=count, partial=partial, rate_state=rate_state)
+    if not bg_mode:
+        mark_finished("strava", count=count, partial=partial, rate_state=rate_state)
     if partial:
         print(
             "[strava] ⚠️ 호출 제한에 근접하여 일부 상세 데이터는 다음 동기화로 미뤘습니다."

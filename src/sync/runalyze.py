@@ -65,19 +65,34 @@ def _upsert_daily_fitness(
         pass  # daily_fitness 테이블 미생성 환경 (graceful)
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> int:
     """Runalyze 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
 
     Returns:
         새로 저장된 활동 수.
     """
     headers = _headers(config)
-    cutoff = datetime.now() - timedelta(days=days)
+    if from_date:
+        cutoff = datetime.fromisoformat(from_date)
+        cutoff_end: datetime | None = (
+            datetime.fromisoformat(to_date) + timedelta(days=1) if to_date else None
+        )
+    else:
+        cutoff = datetime.now() - timedelta(days=days)
+        cutoff_end = None
 
     # Runalyze API 목록 엔드포인트: /activity (복수형 /activities는 404)
     activity_summaries = api.get(f"{_BASE_URL}/activity", headers=headers)
@@ -91,7 +106,10 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             continue
 
         try:
-            if datetime.fromisoformat(start_time) < cutoff:
+            act_dt = datetime.fromisoformat(start_time)
+            if act_dt < cutoff:
+                continue
+            if cutoff_end and act_dt >= cutoff_end:
                 continue
         except ValueError:
             continue
