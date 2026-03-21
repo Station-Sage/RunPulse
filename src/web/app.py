@@ -23,6 +23,8 @@ from .views_activity import activity_bp
 from .views_activities import activities_bp
 from .views_settings import settings_bp
 from .views_activity_merge import merge_bp
+from .views_export_import import export_import_bp
+from .views_shoes import shoes_bp
 
 
 def _project_root() -> Path:
@@ -1179,6 +1181,8 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(activity_bp)
     app.register_blueprint(activities_bp)
     app.register_blueprint(settings_bp)  # 서비스 연동 설정
-    app.register_blueprint(merge_bp)     # 활동 그룹 병합/분리 API
+    app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
+    app.register_blueprint(export_import_bp)  # Export CSV 임포트
+    app.register_blueprint(shoes_bp)          # 신발 목록
 
     return app

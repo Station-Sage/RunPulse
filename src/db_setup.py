@@ -262,6 +262,30 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         except sqlite3.OperationalError:
             pass  # 이미 존재하는 컬럼
 
+    # activity_summaries 새 컬럼
+    for stmt in [
+        "ALTER TABLE activity_summaries ADD COLUMN avg_power REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN export_filename TEXT",
+    ]:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # 이미 존재
+
+    # shoes 테이블 (Strava export)
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS shoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL DEFAULT 'strava',
+            brand TEXT,
+            model TEXT,
+            name TEXT,
+            default_sport_types TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, brand, model)
+        );
+    """)
+
     # sync_jobs 테이블 (IF NOT EXISTS이므로 안전)
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS sync_jobs (

@@ -27,8 +27,8 @@ def is_duplicate(
     Returns:
         중복이면 True.
     """
-    t1 = datetime.fromisoformat(start_time1)
-    t2 = datetime.fromisoformat(start_time2)
+    t1 = datetime.fromisoformat(start_time1).replace(tzinfo=None)
+    t2 = datetime.fromisoformat(start_time2).replace(tzinfo=None)
 
     if abs(t1 - t2) > _TIME_TOLERANCE:
         return False
@@ -98,7 +98,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
         return None
 
     start_time, distance_km = row
-    t = datetime.fromisoformat(start_time)
+    t = datetime.fromisoformat(start_time).replace(tzinfo=None)
     time_min = (t - _TIME_TOLERANCE).isoformat()
     time_max = (t + _TIME_TOLERANCE).isoformat()
 

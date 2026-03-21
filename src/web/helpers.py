@@ -28,7 +28,9 @@ _NAV_GROUPS = [
     ("🔧 개발자", None, [
         ("DB", "/db"),
         ("Payloads", "/payloads"),
-        ("Import", "/import"),
+        ("Import (GPX/FIT)", "/import"),
+        ("Export 임포트", "/import-export"),
+        ("신발 목록", "/shoes"),
     ]),
 ]
 
