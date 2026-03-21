@@ -245,8 +245,11 @@ def fetch_unified_activities(
 def build_source_comparison(source_rows: dict[str, dict]) -> list[dict]:
     """소스별 필드 비교 테이블 데이터 생성.
 
+    각 row에 통합값(unified_value)과 출처(unified_source)를 포함한다.
+
     Returns:
-        [{"field": "거리(km)", "garmin": 10.12, "strava": 10.08, ...}, ...]
+        [{"field": "거리(km)", "unified_value": 10.12, "unified_source": "garmin",
+          "garmin": 10.12, "strava": 10.08, ...}, ...]
     """
     fields = [
         ("거리(km)", "distance_km"),
@@ -256,11 +259,17 @@ def build_source_comparison(source_rows: dict[str, dict]) -> list[dict]:
         ("최대 심박(bpm)", "max_hr"),
         ("케이던스(spm)", "avg_cadence"),
         ("고도 상승(m)", "elevation_gain"),
+        ("파워(W)", "avg_power"),
         ("칼로리(kcal)", "calories"),
     ]
     rows = []
     for label, col in fields:
-        row: dict[str, Any] = {"field": label}
+        unified = _pick_value(source_rows, col)
+        row: dict[str, Any] = {
+            "field": label,
+            "unified_value": unified.value,
+            "unified_source": unified.source,
+        }
         for src in SERVICE_PRIORITY:
             if src in source_rows:
                 row[src] = source_rows[src].get(col)

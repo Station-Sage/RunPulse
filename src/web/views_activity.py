@@ -277,37 +277,107 @@ def _fetch_source_rows(conn: sqlite3.Connection, activity_id: int) -> dict[str, 
     return source_rows
 
 
-def _render_source_comparison(source_rows: dict[str, dict]) -> str:
-    """소스별 기본 지표 비교 테이블 카드."""
-    if len(source_rows) < 2:
+def _render_source_comparison(
+    source_rows: dict[str, dict], activity_id: int | None = None
+) -> str:
+    """소스별 기본 지표 비교 테이블 카드.
+
+    - 통합값 열: Garmin 우선 선택값 + 출처 배지
+    - 소스별 원본값 열: 차이가 있는 셀은 노란 배경으로 강조
+    - 하단: 원본 payload 링크
+    """
+    if not source_rows:
         return ""
 
-    comparison = build_source_comparison(source_rows)
-    sources = list(source_rows.keys())
+    payload_link = ""
+    if activity_id is not None:
+        payload_link = (
+            "<p style='margin-top:0.6rem; font-size:0.85rem;'>"
+            f"<a href='/payloads?activity_id={activity_id}'>원본 payload 보기 →</a></p>"
+        )
 
-    # 헤더
-    th_cells = "<th>지표</th>" + "".join(
-        f"<th><span style='background:{SOURCE_COLORS.get(s, '#888')}; "
-        f"color:#fff; border-radius:3px; padding:1px 6px; font-size:0.8rem;'>"
-        f"{html.escape(s)}</span></th>"
-        for s in sources
+    if len(source_rows) < 2:
+        return (
+            "<div class='card'><h2>소스 비교</h2>"
+            "<p class='muted'>단일 소스 활동 — 비교할 다른 소스가 없습니다.</p>"
+            + payload_link
+            + "</div>"
+        )
+
+    from src.services.unified_activities import SERVICE_PRIORITY as _SP
+    comparison = build_source_comparison(source_rows)
+    sources = [s for s in _SP if s in source_rows]
+
+    def _fmt_v(v: Any) -> str:
+        if v is None:
+            return "—"
+        if isinstance(v, float):
+            return str(round(v, 2))
+        return str(v)
+
+    def _is_diff(v: Any, unified_v: Any) -> bool:
+        """소스값이 통합값과 다른지 판별 (0.5% 이상 차이)."""
+        if (v is None) != (unified_v is None):
+            return True
+        if v is None:
+            return False
+        try:
+            fv, fu = float(v), float(unified_v)
+            if fu == 0:
+                return fv != 0
+            return abs(fv - fu) / abs(fu) > 0.005
+        except (TypeError, ValueError):
+            return str(v) != str(unified_v)
+
+    # 헤더: 지표 | 통합값 | source …
+    th_cells = (
+        "<th>지표</th><th>통합값</th>"
+        + "".join(
+            f"<th><span style='background:{SOURCE_COLORS.get(s, '#888')}; "
+            f"color:#fff; border-radius:3px; padding:1px 6px; font-size:0.8rem;'>"
+            f"{html.escape(s)}</span></th>"
+            for s in sources
+        )
     )
 
-    # 바디
     body_rows = []
     for item in comparison:
-        cells = f"<td><strong>{html.escape(item['field'])}</strong></td>"
+        uv = item.get("unified_value")
+        us = item.get("unified_source")
+        uv_str = _fmt_v(uv)
+
+        # 통합값 셀: 값 + 출처 이니셜 배지
+        src_badge = ""
+        if us:
+            color = SOURCE_COLORS.get(us, "#888")
+            src_badge = (
+                f" <span style='background:{color}; color:#fff; border-radius:2px; "
+                f"padding:0 4px; font-size:0.7rem; vertical-align:middle;'>"
+                f"{html.escape(us[0].upper())}</span>"
+            )
+        unified_cell = f"<td><strong>{html.escape(uv_str)}</strong>{src_badge}</td>"
+
+        # 소스별 셀: 차이 있으면 노란 배경
+        src_cells = ""
         for src in sources:
             v = item.get(src)
-            cells += f"<td>{html.escape(str(round(v, 2)) if isinstance(v, float) else str(v) if v is not None else '—')}</td>"
-        body_rows.append(f"<tr>{cells}</tr>")
+            v_str = _fmt_v(v)
+            diff = _is_diff(v, uv)
+            bg = " style='background:rgba(255,200,0,0.25);'" if diff else ""
+            src_cells += f"<td{bg}>{html.escape(v_str)}</td>"
+
+        body_rows.append(
+            f"<tr><td><strong>{html.escape(item['field'])}</strong></td>"
+            f"{unified_cell}{src_cells}</tr>"
+        )
 
     return (
         "<div class='card'>"
         "<h2>소스 비교</h2>"
         f"<table><thead><tr>{th_cells}</tr></thead>"
         f"<tbody>{''.join(body_rows)}</tbody></table>"
-        "</div>"
+        + payload_link
+        + "</div>"
     )
 
 
@@ -381,6 +451,7 @@ def activity_deep_view():
             return html_page("활동 심층 분석", body)
 
     source_rows: dict = {}
+    resolved_id: int | None = None
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -401,6 +472,7 @@ def activity_deep_view():
                         (act_date, act_date + "T99"),
                     ).fetchone() if act_date else None
                 if cur:
+                    resolved_id = cur[0]
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
                     source_rows = _fetch_source_rows(conn, cur[0])
     except Exception as exc:
@@ -447,7 +519,7 @@ def activity_deep_view():
         query_form
         + _render_activity_nav(prev_row, next_row)
         + _render_activity_summary(act)
-        + _render_source_comparison(source_rows)
+        + _render_source_comparison(source_rows, resolved_id)
         + _render_garmin_daily_detail(garmin_detail, act_date)
         + "<div class='cards-row'>"
         + _render_garmin_metrics(garmin)

@@ -183,14 +183,14 @@ class TestBuildSourceComparison:
         source_rows = {
             "garmin": {"distance_km": 10.0, "avg_hr": 150.0, "duration_sec": 3600,
                        "avg_pace_sec_km": 360, "max_hr": 175.0, "avg_cadence": 170.0,
-                       "elevation_gain": 50.0, "calories": 600.0},
+                       "elevation_gain": 50.0, "avg_power": None, "calories": 600.0},
             "strava": {"distance_km": 9.9, "avg_hr": 148.0, "duration_sec": 3580,
                        "avg_pace_sec_km": 362, "max_hr": 172.0, "avg_cadence": None,
-                       "elevation_gain": 48.0, "calories": None},
+                       "elevation_gain": 48.0, "avg_power": None, "calories": None},
         }
         rows = build_source_comparison(source_rows)
         assert isinstance(rows, list)
-        assert len(rows) == 8  # 8 fields
+        assert len(rows) == 9  # 파워 포함 9 fields
 
     def test_field_names_present(self):
         source_rows = {"garmin": {}, "strava": {}}
@@ -198,6 +198,7 @@ class TestBuildSourceComparison:
         fields = [r["field"] for r in rows]
         assert "거리(km)" in fields
         assert "평균 심박(bpm)" in fields
+        assert "파워(W)" in fields  # 신규
 
     def test_values_per_source(self):
         source_rows = {
@@ -214,6 +215,33 @@ class TestBuildSourceComparison:
         rows = build_source_comparison(source_rows)
         dist_row = next(r for r in rows if r["field"] == "거리(km)")
         assert "strava" not in dist_row
+
+    def test_unified_value_and_source_present(self):
+        source_rows = {
+            "garmin": {"distance_km": 10.5},
+            "strava": {"distance_km": 10.1},
+        }
+        rows = build_source_comparison(source_rows)
+        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        assert dist_row["unified_value"] == 10.5       # garmin 우선
+        assert dist_row["unified_source"] == "garmin"
+
+    def test_unified_source_fallback(self):
+        """garmin 없으면 strava → intervals → runalyze 순서."""
+        source_rows = {
+            "strava": {"distance_km": 10.1},
+            "intervals": {"distance_km": 10.2},
+        }
+        rows = build_source_comparison(source_rows)
+        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        assert dist_row["unified_source"] == "strava"
+
+    def test_unified_value_none_when_all_missing(self):
+        source_rows = {"garmin": {}, "strava": {}}
+        rows = build_source_comparison(source_rows)
+        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        assert dist_row["unified_value"] is None
+        assert dist_row["unified_source"] is None
 
 
 # ── fetch_unified_activities ──────────────────────────────────────────────

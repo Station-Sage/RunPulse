@@ -58,6 +58,18 @@ def _source_badge(source: str) -> str:
     )
 
 
+def _provenance_tip(source: str | None) -> str:
+    """값 출처를 나타내는 컬러 이니셜 뱃지 (목록 셀 내 인라인)."""
+    if not source:
+        return ""
+    color = SOURCE_COLORS.get(source, "#888")
+    return (
+        f"<sup style='color:{color}; font-size:0.65rem; font-weight:bold; "
+        f"margin-left:2px;' title='{html.escape(source)} 기준'>"
+        f"{html.escape(source[0].upper())}</sup>"
+    )
+
+
 # ── 필터 폼 ─────────────────────────────────────────────────────────────
 
 def _render_filter_form(
@@ -252,15 +264,22 @@ def _render_activity_table(activities: list[UnifiedActivity]) -> str:
         avg_hr = ua.avg_hr.value
         hr_str = html.escape(str(avg_hr) if avg_hr else "—")
 
+        # 통합값 출처 이니셜 (다중 소스일 때만 표시)
+        show_prov = len(ua.available_sources) > 1
+        dist_tip = _provenance_tip(ua.distance_km.source) if show_prov else ""
+        dur_tip = _provenance_tip(ua.duration_sec.source) if show_prov else ""
+        pace_tip = _provenance_tip(ua.avg_pace_sec_km.source) if show_prov else ""
+        hr_tip = _provenance_tip(ua.avg_hr.source) if show_prov else ""
+
         body_rows.append(
             f"<tr>"
             f"<td>{chk}</td>"
             f"<td>{expand_btn} {date_str} {badges}</td>"
             f"<td>{act_type}</td>"
-            f"<td>{dist}</td>"
-            f"<td>{dur}</td>"
-            f"<td>{pace}</td>"
-            f"<td>{hr_str}</td>"
+            f"<td>{dist}{dist_tip}</td>"
+            f"<td>{dur}{dur_tip}</td>"
+            f"<td>{pace}{pace_tip}</td>"
+            f"<td>{hr_str}{hr_tip}</td>"
             f"<td><a href='{html.escape(deep_url)}'>심층</a></td>"
             f"<td></td>"
             "</tr>"
