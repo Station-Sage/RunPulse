@@ -68,7 +68,7 @@ def _login(config: dict) -> "Garmin":
 
 
 def check_garmin_connection(config: dict) -> dict:
-    """Garmin 연결 상태 확인 (실제 API 호출 없이 로컬 상태만 검사).
+    """Garmin 연결 상태 확인 — garth 토큰 만료 여부까지 검사.
 
     Returns:
         {"ok": bool, "status": str, "detail": str}
@@ -77,26 +77,58 @@ def check_garmin_connection(config: dict) -> dict:
     garmin_cfg = config.get("garmin", {})
     has_email = bool(garmin_cfg.get("email"))
     has_password = bool(garmin_cfg.get("password"))
-    has_tokenstore = tokenstore.exists()
 
-    if has_tokenstore:
-        # 토큰 파일 존재 여부로 판단 (실제 유효성은 sync 시 확인)
+    oauth2_file = tokenstore / "oauth2_token.json"
+
+    if oauth2_file.exists():
+        try:
+            import garth as _garth
+            g = _garth.Client()
+            g.load(str(tokenstore))
+            token = g.oauth2_token
+            if token is None:
+                raise ValueError("oauth2_token 없음")
+            if token.refresh_expired:
+                return {
+                    "ok": False,
+                    "status": "토큰 만료 (재로그인 필요)",
+                    "detail": "refresh_token 만료. /connect/garmin 에서 재로그인하세요.",
+                }
+            if token.expired:
+                return {
+                    "ok": True,
+                    "status": "토큰 갱신 필요",
+                    "detail": "access_token 만료, refresh_token 유효. 다음 sync 시 자동 갱신됩니다.",
+                }
+            return {
+                "ok": True,
+                "status": "연결됨",
+                "detail": f"토큰 유효. tokenstore: {tokenstore}",
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "status": "토큰 손상",
+                "detail": f"토큰 파일 읽기 실패: {e}. 재로그인 필요.",
+            }
+
+    if tokenstore.exists() and not oauth2_file.exists():
         return {
-            "ok": True,
-            "status": "토큰 저장소 존재",
-            "tokenstore": str(tokenstore),
-            "detail": "garth 토큰 복구 가능. 만료 시 재로그인 필요.",
+            "ok": False,
+            "status": "토큰 없음",
+            "detail": f"{tokenstore} 디렉터리만 존재. /connect/garmin 에서 로그인하세요.",
         }
+
     if has_email and has_password:
         return {
-            "ok": True,
-            "status": "이메일/패스워드 설정됨",
-            "detail": "로그인 시 MFA가 요청될 수 있음. 로그인 후 토큰이 저장됩니다.",
+            "ok": False,
+            "status": "미로그인",
+            "detail": "이메일/패스워드 설정됨. /connect/garmin 에서 '저장 + 연결 테스트'로 로그인하세요.",
         }
     return {
         "ok": False,
         "status": "미설정",
-        "detail": "이메일/패스워드 미설정 및 토큰 없음. /settings에서 연동하세요.",
+        "detail": "이메일/패스워드 미설정 및 토큰 없음. /connect/garmin 에서 연동하세요.",
     }
 
 

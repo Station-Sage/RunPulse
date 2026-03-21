@@ -6,21 +6,30 @@ from pathlib import Path
 
 from src.utils.config import load_config
 
-# ── 내비게이션 링크 ────────────────────────────────────────────────────
-_NAV = [
-    ("/", "홈"),
-    ("/activities", "활동 목록"),
-    ("/wellness", "회복/웰니스"),
-    ("/activity/deep", "활동 심층"),
-    ("/analyze/today", "Today"),
-    ("/analyze/full", "Full"),
-    ("/analyze/race?date=2026-06-01&distance=42.195", "Race"),
-    ("/db", "DB"),
-    ("/payloads", "Payloads"),
-    ("/settings", "연동 설정"),
-    ("/config", "Config"),
-    ("/sync-status", "Sync"),
-    ("/import-preview", "Import"),
+# ── 내비게이션 그룹 구조 ──────────────────────────────────────────────
+# (label, href_or_None, [(sub_label, sub_href), ...])
+_NAV_GROUPS = [
+    ("홈", "/", []),
+    ("훈련 데이터", None, [
+        ("활동 목록", "/activities"),
+        ("활동 심층 분석", "/activity/deep"),
+        ("회복·웰니스", "/wellness"),
+    ]),
+    ("분석", None, [
+        ("Today", "/analyze/today"),
+        ("Full Report", "/analyze/full"),
+        ("Race 준비도", "/analyze/race?date=2026-06-01&distance=42.195"),
+    ]),
+    ("⚙️ 설정", None, [
+        ("연동 설정", "/settings"),
+        ("동기화", "/sync-status"),
+        ("Config", "/config"),
+    ]),
+    ("🔧 개발자", None, [
+        ("DB", "/db"),
+        ("Payloads", "/payloads"),
+        ("Import", "/import"),
+    ]),
 ]
 
 _CSS = """
@@ -30,6 +39,8 @@ _CSS = """
         --card-bg: #fafafa; --card-border: #ddd;
         --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
         --row-border: #eee; --label-color: #555;
+        --nav-bg: #fff; --nav-border: #e0e0e0;
+        --nav-hover: #f0f0f0; --dropdown-bg: #fff;
     }
     @media (prefers-color-scheme: dark) {
         :root {
@@ -37,6 +48,8 @@ _CSS = """
             --card-bg: #242424; --card-border: #444;
             --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
             --row-border: #333; --label-color: #aaa;
+            --nav-bg: #1a1a1a; --nav-border: #333;
+            --nav-hover: #2e2e2e; --dropdown-bg: #242424;
         }
         a { color: #7ab8ff; }
         a:visited { color: #b39ddb; }
@@ -46,13 +59,46 @@ _CSS = """
         .grade-poor      { background: #4d0f0f !important; color: #f08080 !important; }
         .grade-unknown   { background: #333    !important; color: #aaa    !important; }
     }
+    /* ── 스티키 헤더 & 네비게이션 ── */
     body {
-        font-family: sans-serif; max-width: 980px; margin: 2rem auto;
-        padding: 0 1rem; line-height: 1.5;
+        font-family: sans-serif; max-width: none; margin: 0;
+        padding: 0; line-height: 1.5;
         background: var(--bg); color: var(--fg);
     }
-    nav { flex-wrap: wrap; display: flex; gap: 0.3rem 0.8rem; margin-bottom: 0.5rem; }
-    nav a { white-space: nowrap; }
+    header {
+        position: sticky; top: 0; z-index: 200;
+        background: var(--nav-bg);
+        border-bottom: 1px solid var(--nav-border);
+        padding: 0 1rem;
+    }
+    header .brand {
+        font-weight: bold; font-size: 1rem; padding: 0.5rem 0.4rem;
+        display: inline-block; text-decoration: none; color: var(--fg);
+    }
+    nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
+    .nav-item { position: relative; }
+    .nav-item > a, .nav-item > span {
+        display: inline-block; padding: 0.55rem 0.75rem;
+        white-space: nowrap; text-decoration: none; color: var(--fg);
+        font-size: 0.9rem; cursor: pointer; border-radius: 4px;
+    }
+    .nav-item > a:hover, .nav-item > span:hover,
+    .nav-item:hover > span { background: var(--nav-hover); }
+    .nav-item > span::after { content: " ▾"; font-size: 0.7rem; opacity: 0.7; }
+    /* 드롭다운 */
+    .dropdown-menu {
+        display: none; position: absolute; top: 100%; left: 0;
+        background: var(--dropdown-bg); border: 1px solid var(--nav-border);
+        border-radius: 6px; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        z-index: 300; padding: 0.25rem 0;
+    }
+    .nav-item:hover .dropdown-menu { display: block; }
+    .dropdown-menu a {
+        display: block; padding: 0.45rem 1rem;
+        text-decoration: none; color: var(--fg); font-size: 0.88rem;
+    }
+    .dropdown-menu a:hover { background: var(--nav-hover); }
+    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem; }
     pre { white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
           padding: 1rem; border-radius: 8px; overflow-x: auto; }
     code { background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }
@@ -77,16 +123,18 @@ _CSS = """
     .mrow:last-child { border-bottom: none; }
     .mlabel { color: var(--label-color); font-size: 0.9rem; }
     .mval   { font-weight: 500; }
+    h1 { margin-top: 0; }
     h2 { margin-top: 0; }
     /* ── 모바일 반응형 ── */
-    @media (max-width: 600px) {
-        body { padding: 0 0.5rem; margin: 1rem auto; }
+    @media (max-width: 640px) {
+        main { padding: 1rem 0.5rem; }
         .cards-row { flex-direction: column; }
         .cards-row > .card { min-width: unset; }
         table { font-size: 0.85rem; }
         th, td { padding: 0.3rem; }
         pre { font-size: 0.85rem; }
-        h1 { font-size: 1.4rem; }
+        h1 { font-size: 1.3rem; }
+        .nav-item > a, .nav-item > span { padding: 0.45rem 0.5rem; font-size: 0.82rem; }
     }
 """
 
@@ -105,24 +153,48 @@ def db_path() -> Path:
 
 
 # ── HTML 조립 ───────────────────────────────────────────────────────────
+def _build_nav() -> str:
+    """그룹 드롭다운 네비게이션 HTML 빌드."""
+    items = []
+    for label, href, children in _NAV_GROUPS:
+        if not children:
+            items.append(
+                f'<div class="nav-item"><a href="{href}">{_html.escape(label)}</a></div>'
+            )
+        else:
+            links = "".join(
+                f'<a href="{child_href}">{_html.escape(child_label)}</a>'
+                for child_label, child_href in children
+            )
+            items.append(
+                f'<div class="nav-item">'
+                f'<span>{_html.escape(label)}</span>'
+                f'<div class="dropdown-menu">{links}</div>'
+                f'</div>'
+            )
+    return "".join(items)
+
+
 def html_page(title: str, body: str) -> str:
-    """전체 HTML 페이지 생성 (공통 nav 포함)."""
-    nav_html = " ".join(
-        f'<a href="{href}">{_html.escape(label)}</a>'
-        for href, label in _NAV
-    )
+    """전체 HTML 페이지 생성 (스티키 헤더 + 그룹 드롭다운 nav 포함)."""
+    nav_html = _build_nav()
     return f"""<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>{_html.escape(title)}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_html.escape(title)} — RunPulse</title>
   <style>{_CSS}</style>
 </head>
 <body>
-  <nav>{nav_html}</nav>
-  <hr>
-  <h1>{_html.escape(title)}</h1>
-  {body}
+  <header>
+    <a class="brand" href="/">RunPulse</a>
+    <nav>{nav_html}</nav>
+  </header>
+  <main>
+    <h1>{_html.escape(title)}</h1>
+    {body}
+  </main>
 </body>
 </html>"""
 

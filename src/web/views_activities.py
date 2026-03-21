@@ -235,8 +235,30 @@ def activities_list():
         qs_parts.append(f"to={html.escape(date_to)}")
     base_qs = "&".join(qs_parts)
 
+    sync_btn = """
+    <div class="card" style="padding:0.6rem 1rem; border-color:#b3d9ff;">
+      <form method="post" action="/trigger-sync" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+        <strong style="margin-right:0.3rem;">동기화:</strong>
+        <select name="source" style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;">
+          <option value="all">전체</option>
+          <option value="garmin">Garmin</option>
+          <option value="strava">Strava</option>
+          <option value="intervals">Intervals</option>
+          <option value="runalyze">Runalyze</option>
+        </select>
+        <select name="days" style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;">
+          <option value="7">7일</option>
+          <option value="14">14일</option>
+          <option value="30">30일</option>
+        </select>
+        <button type="submit" style="padding:0.3rem 0.9rem; background:#0066cc; color:#fff; border:none; border-radius:4px; cursor:pointer;">▶ 실행</button>
+      </form>
+    </div>
+    """
+
     body = (
-        _render_filter_form(source, act_type, date_from, date_to, page)
+        sync_btn
+        + _render_filter_form(source, act_type, date_from, date_to, page)
         + _render_summary(total, total_dist)
         + _render_activity_table(rows)
         + _render_pagination(page, total, base_qs)

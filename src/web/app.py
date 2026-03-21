@@ -7,7 +7,7 @@ import sqlite3
 from collections import Counter
 from pathlib import Path
 
-from flask import Flask, request
+from flask import Flask, redirect, request
 
 from src.analysis import generate_report
 from src.utils.config import load_config, redact_config_for_display
@@ -36,101 +36,9 @@ def _db_path() -> Path:
 
 
 def _html_page(title: str, body: str) -> str:
-    return f"""<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <title>{html.escape(title)}</title>
-  <style>
-    :root {{
-        --bg: #fff; --fg: #111; --muted: #666;
-        --card-bg: #fafafa; --card-border: #ddd;
-        --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
-        --row-border: #eee; --label-color: #555;
-    }}
-    @media (prefers-color-scheme: dark) {{
-        :root {{
-            --bg: #1a1a1a; --fg: #e8e8e8; --muted: #999;
-            --card-bg: #242424; --card-border: #444;
-            --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
-            --row-border: #333; --label-color: #aaa;
-        }}
-        a {{ color: #7ab8ff; }}
-        a:visited {{ color: #b39ddb; }}
-        .grade-excellent {{ background: #1a4d1a !important; color: #6fcf6f !important; }}
-        .grade-good      {{ background: #0d3055 !important; color: #79c0ff !important; }}
-        .grade-moderate  {{ background: #4a3800 !important; color: #f0c040 !important; }}
-        .grade-poor      {{ background: #4d0f0f !important; color: #f08080 !important; }}
-        .grade-unknown   {{ background: #333    !important; color: #aaa    !important; }}
-    }}
-    body {{
-      font-family: sans-serif; max-width: 980px; margin: 2rem auto;
-      padding: 0 1rem; line-height: 1.5;
-      background: var(--bg); color: var(--fg);
-    }}
-    nav {{ display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; margin-bottom: 0.5rem; }}
-    nav a {{ white-space: nowrap; }}
-    pre {{
-      white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
-      padding: 1rem; border-radius: 8px; overflow-x: auto;
-    }}
-    code {{ background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }}
-    table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
-    th, td {{ border: 1px solid var(--card-border); padding: 0.5rem;
-              text-align: left; vertical-align: top; }}
-    th {{ background: var(--th-bg); }}
-    .muted {{ color: var(--muted); }}
-    .card {{ border: 1px solid var(--card-border); border-radius: 8px;
-             padding: 1rem; margin: 1rem 0; background: var(--card-bg); }}
-    .cards-row {{ display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }}
-    .cards-row > .card {{ flex: 1; min-width: 200px; margin: 0; }}
-    .score-badge {{
-      display: inline-block; padding: 0.2rem 0.8rem;
-      border-radius: 20px; font-weight: bold; font-size: 1.05rem;
-    }}
-    .grade-excellent {{ background: #c8f7c5; color: #1a7a17; }}
-    .grade-good      {{ background: #d4edff; color: #0056b3; }}
-    .grade-moderate  {{ background: #fff3cd; color: #856404; }}
-    .grade-poor      {{ background: #ffd6d6; color: #c0392b; }}
-    .grade-unknown   {{ background: #eee;    color: #555; }}
-    .mrow {{ display: flex; justify-content: space-between; padding: 0.25rem 0;
-             border-bottom: 1px solid var(--row-border); }}
-    .mrow:last-child {{ border-bottom: none; }}
-    .mlabel {{ color: var(--label-color); font-size: 0.9rem; }}
-    .mval   {{ font-weight: 500; }}
-    h2 {{ margin-top: 0; }}
-    @media (max-width: 600px) {{
-        body {{ padding: 0 0.5rem; margin: 1rem auto; }}
-        .cards-row {{ flex-direction: column; }}
-        .cards-row > .card {{ min-width: unset; }}
-        table {{ font-size: 0.85rem; }}
-        th, td {{ padding: 0.3rem; }}
-        h1 {{ font-size: 1.4rem; }}
-    }}
-  </style>
-</head>
-<body>
-  <nav>
-    <a href="/">홈</a>
-    <a href="/activities">활동 목록</a>
-    <a href="/wellness">회복/웰니스</a>
-    <a href="/activity/deep">활동 심층</a>
-    <a href="/analyze/today">Today</a>
-    <a href="/analyze/full">Full</a>
-    <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
-    <a href="/db">DB</a>
-    <a href="/payloads">Payloads</a>
-    <a href="/settings">연동 설정</a>
-    <a href="/config">Config</a>
-    <a href="/sync-status">Sync</a>
-    <a href="/import-preview">Import</a>
-  </nav>
-  <hr>
-  <h1>{html.escape(title)}</h1>
-  {body}
-</body>
-</html>
-"""
+    """helpers.html_page 위임 — CSS/nav 중복 제거."""
+    from .helpers import html_page as _hp
+    return _hp(title, body)
 
 
 def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:
@@ -409,7 +317,32 @@ def create_app() -> Flask:
             </div>
             """
 
+        sync_card = """
+        <div class="card" style="border-color:#b3d9ff;">
+          <h2 style="margin-bottom:0.5rem;">동기화</h2>
+          <form method="post" action="/trigger-sync" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+            <select name="source" style="padding:0.35rem 0.6rem; border-radius:4px; border:1px solid #ccc;">
+              <option value="all">전체 소스</option>
+              <option value="garmin">Garmin</option>
+              <option value="strava">Strava</option>
+              <option value="intervals">Intervals.icu</option>
+              <option value="runalyze">Runalyze</option>
+            </select>
+            <select name="days" style="padding:0.35rem 0.6rem; border-radius:4px; border:1px solid #ccc;">
+              <option value="7">최근 7일</option>
+              <option value="14">최근 14일</option>
+              <option value="30">최근 30일</option>
+              <option value="90">최근 90일</option>
+            </select>
+            <button type="submit" style="padding:0.35rem 1rem; background:#0066cc; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+              ▶ 동기화 실행
+            </button>
+          </form>
+        </div>
+        """
+
         body = f"""
+        {sync_card}
         <div class="cards-row">
           {recovery_card_html}
           {weekly_card_html}
@@ -466,8 +399,57 @@ def create_app() -> Flask:
         )
         return _html_page("Config Summary", body)
 
+    @app.post("/trigger-sync")
+    def trigger_sync():
+        """동기화 실행 — subprocess로 sync.py 호출 후 결과 표시."""
+        import subprocess
+        import shlex
+        source = request.form.get("source", "all").strip()
+        days = request.form.get("days", "7").strip()
+        # 입력 검증 (허용값만)
+        if source not in ("all", "garmin", "strava", "intervals", "runalyze"):
+            source = "all"
+        try:
+            days_int = max(1, min(int(days), 365))
+        except ValueError:
+            days_int = 7
+
+        try:
+            proc = subprocess.run(
+                ["python", "src/sync.py", "--source", source, "--days", str(days_int)],
+                capture_output=True, text=True, timeout=300,
+                cwd=str(_project_root()),
+            )
+            stdout = proc.stdout[-4000:] if proc.stdout else "(출력 없음)"
+            stderr = proc.stderr[-2000:] if proc.stderr else ""
+            rc = proc.returncode
+        except subprocess.TimeoutExpired:
+            stdout = "(타임아웃 — 300초 초과)"
+            stderr = ""
+            rc = -1
+        except Exception as e:
+            stdout = ""
+            stderr = str(e)
+            rc = -1
+
+        status_label = "✅ 성공" if rc == 0 else f"❌ 오류 (exit {rc})"
+        body = f"""
+        <div class="card">
+          <h2>동기화 결과 — {html.escape(source)} / 최근 {days_int}일</h2>
+          <p>{status_label}</p>
+          <h3>출력</h3>
+          <pre>{html.escape(stdout)}</pre>
+          {"<h3>에러</h3><pre style='color:#c0392b;'>" + html.escape(stderr) + "</pre>" if stderr else ""}
+          <p><a href="/">&larr; 홈으로</a></p>
+        </div>
+        """
+        return _html_page("동기화 결과", body)
+
+    @app.get("/import")
     @app.get("/import-preview")
-    def import_preview():
+    def import_page():
+        """GPX/FIT 파일 업로드 + 폴더 미리보기."""
+        import tempfile, shutil
         project_root = _project_root()
         garmin_dir = project_root / "data/history/garmin"
         strava_dir = project_root / "data/history/strava"
@@ -475,39 +457,116 @@ def create_app() -> Flask:
         garmin_info = _scan_history_dir(garmin_dir)
         strava_info = _scan_history_dir(strava_dir)
 
+        msg = html.escape(request.args.get("msg", ""))
+        err = html.escape(request.args.get("error", ""))
+        msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
+        err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
+
         def section(title: str, source: str, info: dict) -> str:
             by_ext_rows = [(ext, count) for ext, count in info["by_ext"]]
-            sample_rows = [(path,) for path in info["sample_files"]]
-
             return (
                 f"<div class='card'>"
                 f"<h2>{html.escape(title)}</h2>"
-                f"<p><strong>Path:</strong> <code>{html.escape(info['base_dir'])}</code></p>"
-                f"<p><strong>Exists:</strong> {html.escape(_bool_text(info['exists']))}</p>"
-                f"<p><strong>Total files:</strong> {info['total_files']}</p>"
-                f"<h3>By extension</h3>"
-                + _table(["ext", "count"], by_ext_rows)
-                + "<h3>Sample files</h3>"
-                + _table(["path"], sample_rows)
-                + "<h3>Import example</h3>"
-                + f"<pre>python src/import_history.py data/history/{html.escape(source)} --source {html.escape(source)} -r</pre>"
+                f"<p>경로: <code>{html.escape(info['base_dir'])}</code> — "
+                f"{'존재' if info['exists'] else '없음'}, 파일 {info['total_files']}개</p>"
+                + _table(["확장자", "개수"], by_ext_rows)
                 + "</div>"
             )
 
-        body = (
-            """
-            <div class="card">
-              <h2>설명</h2>
-              <p>이 페이지는 실제 import 실행 전에 대상 파일 배치를 미리 점검하기 위한 read-only preview 입니다.</p>
-              <p>권장 경로:</p>
-              <pre>data/history/garmin/
-data/history/strava/</pre>
+        upload_form = f"""
+        <div class="card">
+          <h2>파일 업로드</h2>
+          <p>GPX 또는 FIT 파일을 선택하면 <code>data/history/&lt;source&gt;/</code> 폴더에 저장 후 import 합니다.</p>
+          <form method="post" action="/import/upload" enctype="multipart/form-data">
+            <table style="width:auto; border:none;">
+              <tr>
+                <td style="border:none; padding:0.3rem 0.5rem;">소스:</td>
+                <td style="border:none; padding:0.3rem 0.5rem;">
+                  <select name="source" style="padding:0.3rem 0.5rem; border-radius:4px;">
+                    <option value="garmin">Garmin</option>
+                    <option value="strava">Strava</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td style="border:none; padding:0.3rem 0.5rem;">파일:</td>
+                <td style="border:none; padding:0.3rem 0.5rem;">
+                  <input type="file" name="files" multiple accept=".gpx,.fit,.GPX,.FIT">
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top:0.8rem;">
+              <button type="submit" style="padding:0.4rem 1.2rem; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                업로드 및 Import
+              </button>
             </div>
-            """
-            + section("Garmin history preview", "garmin", garmin_info)
-            + section("Strava history preview", "strava", strava_info)
+          </form>
+        </div>
+        """
+
+        body = (
+            err_html + msg_html
+            + upload_form
+            + section("Garmin 폴더 현황", "garmin", garmin_info)
+            + section("Strava 폴더 현황", "strava", strava_info)
         )
-        return _html_page("Import Preview", body)
+        return _html_page("Import", body)
+
+    @app.post("/import/upload")
+    def import_upload():
+        """GPX/FIT 파일 수신 → 폴더 저장 → import_history 실행."""
+        import subprocess
+        from werkzeug.utils import secure_filename
+
+        source = request.form.get("source", "garmin").strip()
+        if source not in ("garmin", "strava"):
+            source = "garmin"
+
+        files = request.files.getlist("files")
+        if not files or all(f.filename == "" for f in files):
+            return redirect("/import?error=" + "파일을 선택하세요.")
+
+        dest_dir = _project_root() / "data" / "history" / source
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        saved = []
+        for f in files:
+            if f.filename:
+                fname = secure_filename(f.filename)
+                ext = Path(fname).suffix.lower()
+                if ext not in (".gpx", ".fit"):
+                    continue
+                save_path = dest_dir / fname
+                f.save(str(save_path))
+                saved.append(fname)
+
+        if not saved:
+            return redirect("/import?error=" + "GPX/FIT 파일만 업로드 가능합니다.")
+
+        try:
+            proc = subprocess.run(
+                ["python", "src/import_history.py", str(dest_dir), "--source", source, "-r"],
+                capture_output=True, text=True, timeout=120,
+                cwd=str(_project_root()),
+            )
+            stdout = proc.stdout[-3000:] if proc.stdout else "(출력 없음)"
+            stderr = proc.stderr[-1000:] if proc.stderr else ""
+            rc = proc.returncode
+        except Exception as e:
+            stdout, stderr, rc = "", str(e), -1
+
+        status = "✅ 성공" if rc == 0 else f"❌ 오류 (exit {rc})"
+        body = f"""
+        <div class="card">
+          <h2>Import 결과</h2>
+          <p>저장된 파일: {html.escape(', '.join(saved))}</p>
+          <p>{status}</p>
+          <pre>{html.escape(stdout)}</pre>
+          {"<pre style='color:#c0392b;'>" + html.escape(stderr) + "</pre>" if stderr else ""}
+          <p><a href="/import">&larr; Import 페이지로</a> &nbsp; <a href="/">홈으로</a></p>
+        </div>
+        """
+        return _html_page("Import 결과", body)
 
     @app.get("/sync-status")
     def sync_status():

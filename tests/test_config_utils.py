@@ -77,11 +77,12 @@ def test_redact_masks_password():
 
 
 def test_redact_masks_token():
-    """token 필드를 마스킹한다."""
+    """token 필드를 전체 마스킹한다 (****로 완전 숨김)."""
     cfg = {"runalyze": {"token": "abcdef1234567890"}}
     redacted = redact_config_for_display(cfg)
-    assert "***" in redacted["runalyze"]["token"]
-    assert redacted["runalyze"]["token"].startswith("abcd")
+    assert redacted["runalyze"]["token"] == "****"
+    # 원본 값이 노출되지 않아야 함
+    assert "abcd" not in redacted["runalyze"]["token"]
 
 
 def test_redact_does_not_mutate_original():

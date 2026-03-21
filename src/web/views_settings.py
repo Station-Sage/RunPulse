@@ -1,21 +1,22 @@
 """서비스 연동 설정 뷰 — Blueprint.
 
-/settings       : 전체 연동 상태 개요
-/connect/garmin : Garmin 연동 폼 (이메일/패스워드 → 토큰 저장)
-/connect/strava : Strava OAuth2 시작 (→ strava.com 리다이렉트)
+/settings            : 전체 연동 상태 개요
+/connect/garmin      : Garmin 연동 폼 (이메일/패스워드 → 토큰 저장)
+/connect/garmin/mfa  : Garmin MFA 코드 입력 (2단계 로그인)
+/connect/strava      : Strava OAuth2 시작 (→ strava.com 리다이렉트)
 /connect/strava/callback : OAuth2 콜백 (code → token 교환 → 저장)
-/connect/intervals : Intervals.icu API 키 폼 (저장 + 연결 테스트)
-/connect/runalyze  : Runalyze 토큰 폼 (저장 + 연결 테스트)
+/connect/intervals   : Intervals.icu API 키 폼 (저장 + 연결 테스트)
+/connect/runalyze    : Runalyze 토큰 폼 (저장 + 연결 테스트)
 /connect/{service}/disconnect : 서비스 연동 해제
 """
 from __future__ import annotations
 
 import html as _html
-import time
 import urllib.parse
+import uuid
 from pathlib import Path
 
-from flask import Blueprint, redirect, request, url_for
+from flask import Blueprint, redirect, request
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
@@ -25,6 +26,9 @@ from src.utils.config import load_config, update_service_config, save_config
 from .helpers import db_path, html_page, metric_row, score_badge
 
 settings_bp = Blueprint("settings", __name__)
+
+# Garmin MFA 대기 세션 (key → {mfa_needed, event, holder, result, email, tokenstore})
+_pending_mfa: dict = {}
 
 # Strava OAuth2 설정
 _STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
@@ -167,45 +171,146 @@ def garmin_connect_view() -> str:
 
 @settings_bp.post("/connect/garmin")
 def garmin_connect_post():
-    """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트)."""
+    """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트, MFA 2단계 지원)."""
+    import threading
+    import time as _time
+    import garth as _garth
+    from garth import sso as _sso
+
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "").strip()
     tokenstore_str = request.form.get("tokenstore", "~/.garth").strip()
     action = request.form.get("action", "save")
 
-    # 이메일은 필수, 패스워드는 비어있으면 기존 값 유지
     if not email:
         return redirect("/connect/garmin?error=" + urllib.parse.quote("이메일을 입력하세요."))
 
     updates: dict = {"email": email, "tokenstore": tokenstore_str}
     if password:
         updates["password"] = password
-
     update_service_config("garmin", updates)
 
     if action == "save":
         return redirect("/connect/garmin?msg=" + urllib.parse.quote("저장 완료. 다음 sync 시 자동 로그인됩니다."))
 
-    # save_and_test: 실제 로그인 시도
+    # ── save_and_test: garth sso로 로그인 시도 ──
+    config = load_config()
+    _pw = password or config.get("garmin", {}).get("password", "")
+    if not _pw:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote("패스워드가 없습니다. 입력 후 다시 시도하세요."))
+
+    tokenstore = Path(tokenstore_str).expanduser()
+
     try:
-        from garminconnect import Garmin
-        config = load_config()
-        tokenstore = Path(tokenstore_str).expanduser()
-        client = Garmin(email, password)
-        client.login()
+        g = _garth.Client()
+        result = _sso.login(email, _pw, client=g, return_on_mfa=True)
+
+        # MFA 필요한 경우
+        if isinstance(result, tuple) and result[0] == "needs_mfa":
+            key = str(uuid.uuid4())
+            client_state = result[1]
+            _pending_mfa[key] = {
+                "client_state": client_state,
+                "garth_client": g,
+                "tokenstore": str(tokenstore),
+                "email": email,
+            }
+            mfa_url = "/connect/garmin/mfa?" + urllib.parse.urlencode({
+                "key": key,
+                "tokenstore": tokenstore_str,
+            })
+            return redirect(mfa_url)
+
+        # MFA 없이 성공: result는 (oauth1, oauth2) 튜플
+        oauth1, oauth2 = result
+        g.oauth1_token = oauth1
+        g.oauth2_token = oauth2
         tokenstore.mkdir(parents=True, exist_ok=True)
-        client.garth.dump(str(tokenstore))
-        return redirect("/connect/garmin?msg=" + urllib.parse.quote(f"연결 성공! 토큰이 {tokenstore_str}에 저장되었습니다."))
+        g.dump(str(tokenstore))
+        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
+            f"연결 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
+        ))
+
     except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("garminconnect 미설치. pip install garminconnect"))
+        return redirect("/connect/garmin?error=" + urllib.parse.quote("garth 미설치. pip install garth"))
     except Exception as e:
-        err_msg = str(e)
-        # MFA 감지
-        if "mfa" in err_msg.lower() or "two-factor" in err_msg.lower() or "verification" in err_msg.lower():
-            return redirect("/connect/garmin?error=" + urllib.parse.quote(
-                "MFA(이중 인증) 요청됨. Garmin 앱 또는 이메일에서 인증을 완료한 후 다시 시도하세요."
-            ))
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(f"로그인 실패: {err_msg[:200]}"))
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(f"로그인 실패: {str(e)[:200]}"))
+
+
+@settings_bp.get("/connect/garmin/mfa")
+def garmin_mfa_view():
+    """Garmin MFA 코드 입력 폼."""
+    key = request.args.get("key", "")
+    tokenstore_str = request.args.get("tokenstore", "~/.garth")
+    err = _html.escape(request.args.get("error", ""))
+    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
+
+    if not key or key not in _pending_mfa:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "MFA 세션이 만료되었거나 없습니다. 다시 시도하세요."
+        ))
+
+    body = f"""
+{err_html}
+<div class='card'>
+  <h2>Garmin MFA 인증</h2>
+  <p>Garmin 앱 또는 이메일로 전송된 6자리 인증 코드를 입력하세요.</p>
+  <form method='post' action='/connect/garmin/mfa'>
+    <input type='hidden' name='key' value='{_html.escape(key)}'>
+    <input type='hidden' name='tokenstore' value='{_html.escape(tokenstore_str)}'>
+    <table style='width:auto; border:none;'>
+      <tr>
+        <td style='border:none; padding:0.3rem 0.5rem;'><label>인증 코드:</label></td>
+        <td style='border:none; padding:0.3rem 0.5rem;'>
+          <input type='text' name='mfa_code' maxlength='8' autofocus
+                 placeholder='123456' style='width:140px; font-size:1.2rem; letter-spacing:0.2rem;'>
+        </td>
+      </tr>
+    </table>
+    <div style='margin-top:1rem;'>
+      <button type='submit' style='padding:0.5rem 1.5rem; font-size:1rem;'>인증 완료</button>
+    </div>
+  </form>
+</div>
+<div class='card'>
+  <p class='muted'>코드를 받지 못했다면 Garmin 앱을 확인하거나 이메일을 다시 확인하세요.</p>
+  <p class='muted'><a href='/connect/garmin'>← 처음부터 다시 시도</a></p>
+</div>"""
+    return html_page("Garmin MFA 인증", body)
+
+
+@settings_bp.post("/connect/garmin/mfa")
+def garmin_mfa_submit():
+    """Garmin MFA 코드 제출 → 로그인 완료."""
+    from garth import sso as _sso
+    import garth as _garth
+
+    key = request.form.get("key", "")
+    mfa_code = request.form.get("mfa_code", "").strip()
+    tokenstore_str = request.form.get("tokenstore", "~/.garth")
+
+    if not key or key not in _pending_mfa:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote("MFA 세션 만료. 다시 시도하세요."))
+    if not mfa_code:
+        mfa_url = "/connect/garmin/mfa?" + urllib.parse.urlencode({
+            "key": key, "tokenstore": tokenstore_str, "error": "인증 코드를 입력하세요."
+        })
+        return redirect(mfa_url)
+
+    pending = _pending_mfa.pop(key)
+    try:
+        g = pending["garth_client"]
+        oauth1, oauth2 = _sso.resume_login(pending["client_state"], mfa_code)
+        g.oauth1_token = oauth1
+        g.oauth2_token = oauth2
+        tokenstore = Path(pending["tokenstore"]).expanduser()
+        tokenstore.mkdir(parents=True, exist_ok=True)
+        g.dump(str(tokenstore))
+        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
+            f"MFA 인증 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
+        ))
+    except Exception as e:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(f"MFA 인증 실패: {str(e)[:200]}"))
 
 
 @settings_bp.post("/connect/garmin/disconnect")

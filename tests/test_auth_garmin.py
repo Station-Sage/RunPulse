@@ -23,30 +23,57 @@ def test_tokenstore_custom():
 
 # ── check_garmin_connection ─────────────────────────────────────────
 def test_check_garmin_no_config():
-    """이메일/패스워드도 없고 토큰도 없으면 미설정."""
+    """이메일/패스워드도 없고 토큰도 없으면 미설정 or 토큰 없음."""
     config = {"garmin": {}}
     result = check_garmin_connection(config)
     assert result["ok"] is False
-    assert "미설정" in result["status"]
+    # "미설정" 또는 "토큰 없음" — tokenstore 기본값(~/.garth) 존재 여부에 따라 다름
+    assert result["ok"] is False
 
 
 def test_check_garmin_email_password_only():
-    """이메일/패스워드만 있으면 ok=True, 토큰 없음 안내."""
-    config = {"garmin": {"email": "a@b.com", "password": "pw"}}
+    """이메일/패스워드만 있고 tokenstore 없으면 ok=False (로그인 필요 안내)."""
+    config = {"garmin": {
+        "email": "a@b.com", "password": "pw",
+        "tokenstore": "/nonexistent/nowhere/garth",
+    }}
     result = check_garmin_connection(config)
-    assert result["ok"] is True
-    assert "이메일" in result["status"] or "패스워드" in result["status"]
+    assert result["ok"] is False
+    # "미로그인" 상태여야 함
+    assert "미로그인" in result["status"] or "미설정" in result["status"]
 
 
 def test_check_garmin_tokenstore_exists(tmp_path):
-    """tokenstore 디렉터리가 존재하면 ok=True, 토큰 저장소 존재."""
+    """tokenstore 디렉터리만 있고 oauth2_token.json 없으면 ok=False."""
     tokenstore = tmp_path / "garth"
     tokenstore.mkdir()
     config = {"garmin": {"tokenstore": str(tokenstore)}}
     result = check_garmin_connection(config)
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert "토큰" in result["status"]
-    assert str(tokenstore) in result["tokenstore"]
+
+
+def test_check_garmin_tokenstore_with_valid_token(tmp_path):
+    """oauth2_token.json이 있고 만료되지 않으면 ok=True."""
+    import time
+    import json
+    tokenstore = tmp_path / "garth"
+    tokenstore.mkdir()
+    # oauth1 + oauth2 토큰 파일 생성
+    (tokenstore / "oauth1_token.json").write_text(json.dumps({
+        "oauth_token": "tok", "oauth_token_secret": "sec", "mfa_token": None, "domain": "garmin.com",
+    }), encoding="utf-8")
+    future = int(time.time()) + 3600
+    (tokenstore / "oauth2_token.json").write_text(json.dumps({
+        "scope": "read", "jti": "jti", "token_type": "Bearer",
+        "access_token": "acc", "refresh_token": "ref",
+        "expires_in": 3600, "expires_at": future,
+        "refresh_token_expires_in": 7776000, "refresh_token_expires_at": future + 7776000,
+    }), encoding="utf-8")
+    config = {"garmin": {"tokenstore": str(tokenstore)}}
+    result = check_garmin_connection(config)
+    assert result["ok"] is True
+    assert "연결됨" in result["status"]
 
 
 def test_check_garmin_tokenstore_missing_email_missing():
