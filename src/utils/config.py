@@ -117,7 +117,6 @@ def redact_config_for_display(config: dict) -> dict:
         if isinstance(section, dict):
             for key in list(section.keys()):
                 if key in _REDACT_KEYS and section[key]:
-                    val = str(section[key])
-                    # 앞 4자리만 표시, 나머지는 ***
-                    section[key] = val[:4] + "***" if len(val) > 4 else "***"
+                    # 전체 마스킹 (길이 노출도 방지)
+                    section[key] = "****"
     return redacted

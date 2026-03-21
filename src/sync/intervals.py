@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 
 from src.utils import api
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
 
 
 def _store_raw_payload(
@@ -16,24 +18,8 @@ def _store_raw_payload(
     payload: dict,
     activity_id: int | None = None,
 ) -> None:
-    """원본 API payload 저장/갱신."""
-    try:
-        conn.execute(
-            """
-            INSERT INTO raw_source_payloads
-                (source, entity_type, entity_id, activity_id, payload_json)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
-                activity_id = COALESCE(excluded.activity_id, raw_source_payloads.activity_id),
-                payload_json = excluded.payload_json,
-                updated_at = datetime('now')
-            """,
-            (source, entity_type, entity_id, activity_id, json.dumps(payload, ensure_ascii=False)),
-        )
-    except sqlite3.OperationalError:
-        pass
-    except sqlite3.Error as e:
-        print(f"[intervals] raw payload 저장 실패 {entity_type}:{entity_id}: {e}")
+    """원본 API payload 저장/병합."""
+    _store_rp(conn, source, entity_type, entity_id, payload, activity_id=activity_id)
 
 
 
@@ -108,21 +94,33 @@ def _auth(config: dict) -> tuple[str, str]:
     return ("API_KEY", config["intervals"]["api_key"])
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> int:
     """Intervals.icu 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
 
     Returns:
         새로 저장된 활동 수.
     """
     base = _base_url(config)
     auth = _auth(config)
-    oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    newest = datetime.now().strftime("%Y-%m-%d")
+    if from_date:
+        oldest = from_date
+        newest = to_date if to_date else datetime.now().strftime("%Y-%m-%d")
+    else:
+        oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        newest = datetime.now().strftime("%Y-%m-%d")
 
     # 올바른 Intervals.icu API 엔드포인트: /activities (activity_summaries 아님)
     activity_summaries = api.get(
@@ -161,19 +159,16 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             continue
 
         if cursor.rowcount == 0:
-            existing = conn.execute(
-                "SELECT id FROM activity_summaries WHERE source = 'intervals' AND source_id = ?",
-                (source_id,),
-            ).fetchone()
-            existing_id = existing[0] if existing else None
-            _store_raw_payload(
-                conn,
-                "intervals",
-                "activity",
-                source_id,
-                act,
-                activity_id=existing_id,
-            )
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "intervals", source_id, {
+                "avg_hr": act.get("average_heartrate"),
+                "max_hr": act.get("max_heartrate"),
+                "avg_cadence": act.get("average_cadence"),
+                "elevation_gain": act.get("total_elevation_gain"),
+                "calories": act.get("calories"),
+                "description": act.get("name"),
+            })
+            _store_raw_payload(conn, "intervals", "activity", source_id, act, activity_id=existing_id)
             if existing_id:
                 _refresh_activity_metrics(conn, existing_id, act)
             continue

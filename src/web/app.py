@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import html
 import sqlite3
+import sys
 from collections import Counter
 from pathlib import Path
 
-from flask import Flask, request
+from flask import Flask, redirect, request
 
 from src.analysis import generate_report
 from src.utils.config import load_config, redact_config_for_display
@@ -36,101 +37,36 @@ def _db_path() -> Path:
 
 
 def _html_page(title: str, body: str) -> str:
-    return f"""<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <title>{html.escape(title)}</title>
-  <style>
-    :root {{
-        --bg: #fff; --fg: #111; --muted: #666;
-        --card-bg: #fafafa; --card-border: #ddd;
-        --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
-        --row-border: #eee; --label-color: #555;
-    }}
-    @media (prefers-color-scheme: dark) {{
-        :root {{
-            --bg: #1a1a1a; --fg: #e8e8e8; --muted: #999;
-            --card-bg: #242424; --card-border: #444;
-            --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
-            --row-border: #333; --label-color: #aaa;
-        }}
-        a {{ color: #7ab8ff; }}
-        a:visited {{ color: #b39ddb; }}
-        .grade-excellent {{ background: #1a4d1a !important; color: #6fcf6f !important; }}
-        .grade-good      {{ background: #0d3055 !important; color: #79c0ff !important; }}
-        .grade-moderate  {{ background: #4a3800 !important; color: #f0c040 !important; }}
-        .grade-poor      {{ background: #4d0f0f !important; color: #f08080 !important; }}
-        .grade-unknown   {{ background: #333    !important; color: #aaa    !important; }}
-    }}
-    body {{
-      font-family: sans-serif; max-width: 980px; margin: 2rem auto;
-      padding: 0 1rem; line-height: 1.5;
-      background: var(--bg); color: var(--fg);
-    }}
-    nav {{ display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; margin-bottom: 0.5rem; }}
-    nav a {{ white-space: nowrap; }}
-    pre {{
-      white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
-      padding: 1rem; border-radius: 8px; overflow-x: auto;
-    }}
-    code {{ background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }}
-    table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
-    th, td {{ border: 1px solid var(--card-border); padding: 0.5rem;
-              text-align: left; vertical-align: top; }}
-    th {{ background: var(--th-bg); }}
-    .muted {{ color: var(--muted); }}
-    .card {{ border: 1px solid var(--card-border); border-radius: 8px;
-             padding: 1rem; margin: 1rem 0; background: var(--card-bg); }}
-    .cards-row {{ display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }}
-    .cards-row > .card {{ flex: 1; min-width: 200px; margin: 0; }}
-    .score-badge {{
-      display: inline-block; padding: 0.2rem 0.8rem;
-      border-radius: 20px; font-weight: bold; font-size: 1.05rem;
-    }}
-    .grade-excellent {{ background: #c8f7c5; color: #1a7a17; }}
-    .grade-good      {{ background: #d4edff; color: #0056b3; }}
-    .grade-moderate  {{ background: #fff3cd; color: #856404; }}
-    .grade-poor      {{ background: #ffd6d6; color: #c0392b; }}
-    .grade-unknown   {{ background: #eee;    color: #555; }}
-    .mrow {{ display: flex; justify-content: space-between; padding: 0.25rem 0;
-             border-bottom: 1px solid var(--row-border); }}
-    .mrow:last-child {{ border-bottom: none; }}
-    .mlabel {{ color: var(--label-color); font-size: 0.9rem; }}
-    .mval   {{ font-weight: 500; }}
-    h2 {{ margin-top: 0; }}
-    @media (max-width: 600px) {{
-        body {{ padding: 0 0.5rem; margin: 1rem auto; }}
-        .cards-row {{ flex-direction: column; }}
-        .cards-row > .card {{ min-width: unset; }}
-        table {{ font-size: 0.85rem; }}
-        th, td {{ padding: 0.3rem; }}
-        h1 {{ font-size: 1.4rem; }}
-    }}
-  </style>
-</head>
-<body>
-  <nav>
-    <a href="/">홈</a>
-    <a href="/activities">활동 목록</a>
-    <a href="/wellness">회복/웰니스</a>
-    <a href="/activity/deep">활동 심층</a>
-    <a href="/analyze/today">Today</a>
-    <a href="/analyze/full">Full</a>
-    <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
-    <a href="/db">DB</a>
-    <a href="/payloads">Payloads</a>
-    <a href="/settings">연동 설정</a>
-    <a href="/config">Config</a>
-    <a href="/sync-status">Sync</a>
-    <a href="/import-preview">Import</a>
-  </nav>
-  <hr>
-  <h1>{html.escape(title)}</h1>
-  {body}
-</body>
-</html>
-"""
+    """helpers.html_page 위임 — CSS/nav 중복 제거."""
+    from .helpers import html_page as _hp
+    return _hp(title, body)
+
+
+def _already_finished(stdout: str) -> bool:
+    """sync.py 내부에서 mark_finished를 이미 호출했는지 stdout으로 추정."""
+    # strava/garmin sync 함수가 rate limit 발생 시 직접 mark_finished 호출
+    return "⚠️" in stdout and ("제한" in stdout or "타임아웃" in stdout)
+
+
+def _days_since_last_sync(sources: list[str]) -> int:
+    """DB에서 마지막 활동 이후 일수 계산. 데이터 없으면 7 반환."""
+    from datetime import date
+    db = _db_path()
+    if not db.exists():
+        return 7
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            placeholders = ",".join("?" * len(sources))
+            row = conn.execute(
+                f"SELECT MAX(start_time) FROM activity_summaries WHERE source IN ({placeholders})",
+                sources,
+            ).fetchone()
+        if not row or not row[0]:
+            return 7
+        last_date = date.fromisoformat(str(row[0])[:10])
+        return max(1, min((date.today() - last_date).days + 2, 365))
+    except Exception:
+        return 7
 
 
 def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:
@@ -409,7 +345,16 @@ def create_app() -> Flask:
             </div>
             """
 
+        from .sync_ui import sync_card_html
+        from .helpers import last_sync_info
+        from src.utils.sync_state import get_all_states
+        sync_card = sync_card_html(
+            last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
+            sync_states=get_all_states(),
+        )
+
         body = f"""
+        {sync_card}
         <div class="cards-row">
           {recovery_card_html}
           {weekly_card_html}
@@ -421,6 +366,8 @@ def create_app() -> Flask:
 
     @app.get("/config")
     def config_summary():
+        """설정 현황 + 각 서비스별 직접 수정 링크 제공."""
+        import json as _json
         config = load_config()
         db_path = _db_path()
         redacted = redact_config_for_display(config)
@@ -430,44 +377,276 @@ def create_app() -> Flask:
         intervals_status = check_intervals_connection(config)
         runalyze_status = check_runalyze_connection(config)
 
-        def _status_cell(s: dict) -> str:
-            icon = "✅" if s["ok"] else "❌"
-            return f"{icon} {html.escape(s['status'])}"
+        def _svc_card(name: str, href: str, status: dict) -> str:
+            ok = status["ok"]
+            badge_cls = "grade-good" if ok else "grade-poor"
+            badge_txt = html.escape(status["status"])
+            detail = html.escape(status.get("detail", ""))
+            icon = "✅" if ok else "❌"
+            return (
+                f"<div class='card' style='flex:1; min-width:200px; margin:0;'>"
+                f"<h2 style='margin-bottom:0.3rem;'>{icon} {html.escape(name)}</h2>"
+                f"<p><span class='score-badge {badge_cls}' style='font-size:0.85rem;'>{badge_txt}</span></p>"
+                f"<p class='muted' style='font-size:0.82rem;'>{detail}</p>"
+                f"<a href='{href}'><button style='padding:0.3rem 0.8rem; cursor:pointer;'>설정 변경</button></a>"
+                f"</div>"
+            )
 
-        rows = [
-            ("database.path", str(db_path), _bool_text(db_path.exists())),
-            ("garmin", "tokenstore / email", _status_cell(garmin_status)),
-            ("strava", "client_id / refresh_token", _status_cell(strava_status)),
-            ("intervals", "athlete_id / api_key", _status_cell(intervals_status)),
-            ("runalyze", "token", _status_cell(runalyze_status)),
-            ("user config", "max_hr / threshold_pace / weekly target", _bool_text(bool(config.get("user")))),
-            ("ai config", "provider / prompt language", _bool_text(bool(config.get("ai")))),
-        ]
-
-        import json as _json
-        body = (
-            f"<p class='muted'>Project root: {html.escape(str(_project_root()))}</p>"
-            + f"<p class='muted'>Resolved DB path: {html.escape(str(db_path))}</p>"
-            + "<h2>연동 상태</h2>"
-            + _table(["항목", "필드", "상태"], rows)
-            + f"<p><a href='/settings'>→ 연동 설정 페이지</a></p>"
-            + "<h2>설정 내용 (민감정보 마스킹)</h2>"
-            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
-            + """
-            <div class="card">
-              <h2>메모</h2>
-              <ul>
-                <li>패스워드/토큰은 앞 4자리만 표시됩니다.</li>
-                <li><code>config.json</code>이 없으면 기본값 기반으로 동작합니다.</li>
-                <li>서비스 연동은 <a href='/settings'>/settings</a>에서 UI로 설정하거나 <code>config.json</code>을 직접 편집하세요.</li>
-              </ul>
-            </div>
-            """
+        svc_cards = (
+            "<div class='cards-row'>"
+            + _svc_card("Garmin Connect", "/connect/garmin", garmin_status)
+            + _svc_card("Strava", "/connect/strava", strava_status)
+            + _svc_card("Intervals.icu", "/connect/intervals", intervals_status)
+            + _svc_card("Runalyze", "/connect/runalyze", runalyze_status)
+            + "</div>"
         )
-        return _html_page("Config Summary", body)
 
+        # DB 경로 수정 폼
+        db_form = f"""
+        <div class="card">
+          <h2>DB 경로</h2>
+          <form method="post" action="/config/db-path">
+            <input type="text" name="db_path" value="{html.escape(str(db_path))}"
+                   style="width:340px; padding:0.3rem 0.5rem;">
+            <button type="submit" style="padding:0.3rem 0.8rem; cursor:pointer; margin-left:0.5rem;">저장</button>
+          </form>
+          <p class='muted' style='font-size:0.82rem;'>DB 존재: {_bool_text(db_path.exists())}</p>
+        </div>
+        """
+
+        body = (
+            "<h2>서비스 연동 상태 / 설정 변경</h2>"
+            + svc_cards
+            + db_form
+            + "<h2>전체 설정 내용 (민감정보 전체 마스킹)</h2>"
+            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
+            + "<p class='muted'>민감 정보(비밀번호/토큰/API키)는 ****로 완전 숨김 처리됩니다.</p>"
+        )
+        return _html_page("Config", body)
+
+    @app.post("/config/db-path")
+    def config_db_path():
+        """DB 경로 설정 저장."""
+        from src.utils.config import update_service_config
+        new_path = request.form.get("db_path", "").strip()
+        if new_path:
+            update_service_config("database", {"path": new_path})
+        return redirect("/config")
+
+    @app.post("/trigger-sync")
+    def trigger_sync():
+        """동기화 실행 — 연결 확인 + 정책 검사 + 중복 방지 + JSON 응답."""
+        import re
+        import subprocess
+        from datetime import date
+        from flask import jsonify
+        from src.utils.sync_policy import check_incremental_guard, check_range_guard
+        from src.utils.sync_state import (
+            is_running, mark_running, mark_finished,
+            get_last_sync_at, get_retry_after_sec,
+        )
+
+        mode = request.form.get("mode", "basic").strip()
+        source = request.form.get("source", "all").strip()
+        from_date = request.form.get("from_date", "").strip()
+        to_date = request.form.get("to_date", "").strip()
+
+        if source not in ("all", "garmin", "strava", "intervals", "runalyze"):
+            source = "all"
+
+        checkers = {
+            "garmin": check_garmin_connection,
+            "strava": check_strava_connection,
+            "intervals": check_intervals_connection,
+            "runalyze": check_runalyze_connection,
+        }
+        sources_to_sync = list(checkers.keys()) if source == "all" else [source]
+        config = load_config()
+
+        # 기간 동기화: days 공통 계산
+        hist_days: int | None = None
+        if mode in ("historical", "hist") and from_date:
+            try:
+                d = date.fromisoformat(from_date)
+                end = date.fromisoformat(to_date) if to_date else date.today()
+                hist_days = max(1, min((end - d).days + 1, 3650))
+            except (ValueError, TypeError):
+                hist_days = 30
+
+        results = []
+        for src in sources_to_sync:
+            # 1) 연결 상태 확인
+            conn_status = checkers[src](config)
+            if not conn_status["ok"]:
+                results.append({
+                    "source": src, "ok": False, "skipped": True,
+                    "count": 0, "error": f"미연결 ({conn_status['status']})",
+                })
+                continue
+
+            # 2) 중복 실행 방지
+            if is_running(src):
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": f"{src} 동기화가 이미 진행 중입니다. 잠시 후 다시 시도하세요.",
+                    "reason": "running",
+                })
+                continue
+
+            # 3) retry_after 확인 (429 등으로 설정된 경우)
+            retry_sec = get_retry_after_sec(src)
+            if retry_sec and retry_sec > 0:
+                from src.utils.sync_policy import _fmt_duration
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
+                    "reason": "retry_after",
+                    "retry_after_sec": retry_sec,
+                })
+                continue
+
+            # 4) 정책 검사
+            if hist_days is not None:
+                # 기간 동기화: 범위 검사
+                guard = check_range_guard(src, hist_days)
+                days_for_src = hist_days
+            else:
+                # 증분 동기화: cooldown 검사
+                last_at = get_last_sync_at(src)
+                guard = check_incremental_guard(src, last_at)
+                days_for_src = _days_since_last_sync([src])
+
+            if not guard.allowed:
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": guard.message_ko or "정책 제한",
+                    "reason": guard.reason,
+                    "retry_after_sec": guard.retry_after_sec,
+                })
+                continue
+
+            if guard.message_ko and guard.reason == "range_auto_reduced":
+                # 경고는 있지만 허용 — 결과에 경고 포함하고 계속
+                print(f"[trigger_sync] {guard.message_ko}")
+
+            # 5) 동기화 실행
+            mark_running(src, mode)
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src)],
+                    capture_output=True, text=True, timeout=300,
+                    cwd=str(_project_root()),
+                )
+                count = 0
+                for line in proc.stdout.splitlines():
+                    m = re.search(r"활동 (\d+)개 동기화", line)
+                    if m:
+                        count += int(m.group(1))
+
+                stderr_tail = (proc.stderr or "")[-400:]
+                # subprocess 내 sync 함수가 mark_finished 를 직접 호출하지만
+                # subprocess 바깥에서도 실패 시 상태 복구
+                if proc.returncode != 0:
+                    mark_finished(src, count=0, partial=True, error=stderr_tail)
+                    results.append({
+                        "source": src, "ok": False, "skipped": False,
+                        "count": 0, "error": stderr_tail,
+                        "warn": guard.message_ko,
+                    })
+                else:
+                    # 부분 성공 여부는 stdout에서 힌트 확인
+                    partial = "일부" in proc.stdout or "⚠️" in proc.stdout
+                    if not _already_finished(proc.stdout):
+                        mark_finished(src, count=count, partial=partial)
+                    results.append({
+                        "source": src, "ok": True, "skipped": False,
+                        "count": count, "error": None,
+                        "partial": partial,
+                        "warn": guard.message_ko,
+                    })
+            except subprocess.TimeoutExpired:
+                mark_finished(src, count=0, partial=True, error="타임아웃 (300초)")
+                results.append({
+                    "source": src, "ok": False, "skipped": False,
+                    "count": 0, "error": "동기화 타임아웃 (300초 초과)",
+                })
+            except Exception as e:
+                mark_finished(src, count=0, partial=True, error=str(e))
+                results.append({
+                    "source": src, "ok": False, "skipped": False,
+                    "count": 0, "error": str(e),
+                })
+
+        total_count = sum(r.get("count", 0) for r in results)
+        overall_ok = any(r.get("ok") for r in results)
+        return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
+
+    # ── 백그라운드 기간 동기화 ────────────────────────────────────────────
+
+    @app.post("/bg-sync/start")
+    def bg_sync_start():
+        """백그라운드 기간 동기화 시작."""
+        from datetime import date as _date
+        from flask import jsonify
+        from .bg_sync import start_job
+        source = request.form.get("source", "").strip()
+        from_date = request.form.get("from_date", "").strip()
+        to_date = request.form.get("to_date", "").strip() or _date.today().isoformat()
+
+        if source not in ("garmin", "strava", "intervals", "runalyze"):
+            return jsonify({"ok": False, "error": "지원하지 않는 서비스입니다."}), 400
+        if not from_date:
+            return jsonify({"ok": False, "error": "시작일을 입력하세요."}), 400
+
+        try:
+            _date.fromisoformat(from_date)
+            _date.fromisoformat(to_date)
+        except ValueError:
+            return jsonify({"ok": False, "error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)."}), 400
+
+        config = load_config()
+        job_id = start_job(source, from_date, to_date, config)
+        return jsonify({"ok": True, "job_id": job_id, "source": source})
+
+    @app.post("/bg-sync/pause")
+    def bg_sync_pause():
+        from flask import jsonify
+        from .bg_sync import pause_job
+        source = request.form.get("source", "").strip()
+        ok = pause_job(source)
+        return jsonify({"ok": ok})
+
+    @app.post("/bg-sync/stop")
+    def bg_sync_stop():
+        from flask import jsonify
+        from .bg_sync import stop_job
+        source = request.form.get("source", "").strip()
+        ok = stop_job(source)
+        return jsonify({"ok": ok})
+
+    @app.post("/bg-sync/resume")
+    def bg_sync_resume():
+        from flask import jsonify
+        from .bg_sync import resume_job
+        source = request.form.get("source", "").strip()
+        config = load_config()
+        ok = resume_job(source, config)
+        return jsonify({"ok": ok})
+
+    @app.get("/bg-sync/status")
+    def bg_sync_status():
+        from flask import jsonify
+        from .bg_sync import get_status
+        source = request.args.get("source", "").strip()
+        if source not in ("garmin", "strava", "intervals", "runalyze"):
+            return jsonify({"active": False})
+        return jsonify(get_status(source))
+
+    @app.get("/import")
     @app.get("/import-preview")
-    def import_preview():
+    def import_page():
+        """GPX/FIT 파일 업로드 + 폴더 미리보기."""
+        import tempfile, shutil
         project_root = _project_root()
         garmin_dir = project_root / "data/history/garmin"
         strava_dir = project_root / "data/history/strava"
@@ -475,39 +654,116 @@ def create_app() -> Flask:
         garmin_info = _scan_history_dir(garmin_dir)
         strava_info = _scan_history_dir(strava_dir)
 
+        msg = html.escape(request.args.get("msg", ""))
+        err = html.escape(request.args.get("error", ""))
+        msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
+        err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
+
         def section(title: str, source: str, info: dict) -> str:
             by_ext_rows = [(ext, count) for ext, count in info["by_ext"]]
-            sample_rows = [(path,) for path in info["sample_files"]]
-
             return (
                 f"<div class='card'>"
                 f"<h2>{html.escape(title)}</h2>"
-                f"<p><strong>Path:</strong> <code>{html.escape(info['base_dir'])}</code></p>"
-                f"<p><strong>Exists:</strong> {html.escape(_bool_text(info['exists']))}</p>"
-                f"<p><strong>Total files:</strong> {info['total_files']}</p>"
-                f"<h3>By extension</h3>"
-                + _table(["ext", "count"], by_ext_rows)
-                + "<h3>Sample files</h3>"
-                + _table(["path"], sample_rows)
-                + "<h3>Import example</h3>"
-                + f"<pre>python src/import_history.py data/history/{html.escape(source)} --source {html.escape(source)} -r</pre>"
+                f"<p>경로: <code>{html.escape(info['base_dir'])}</code> — "
+                f"{'존재' if info['exists'] else '없음'}, 파일 {info['total_files']}개</p>"
+                + _table(["확장자", "개수"], by_ext_rows)
                 + "</div>"
             )
 
-        body = (
-            """
-            <div class="card">
-              <h2>설명</h2>
-              <p>이 페이지는 실제 import 실행 전에 대상 파일 배치를 미리 점검하기 위한 read-only preview 입니다.</p>
-              <p>권장 경로:</p>
-              <pre>data/history/garmin/
-data/history/strava/</pre>
+        upload_form = f"""
+        <div class="card">
+          <h2>파일 업로드</h2>
+          <p>GPX 또는 FIT 파일을 선택하면 <code>data/history/&lt;source&gt;/</code> 폴더에 저장 후 import 합니다.</p>
+          <form method="post" action="/import/upload" enctype="multipart/form-data">
+            <table style="width:auto; border:none;">
+              <tr>
+                <td style="border:none; padding:0.3rem 0.5rem;">소스:</td>
+                <td style="border:none; padding:0.3rem 0.5rem;">
+                  <select name="source" style="padding:0.3rem 0.5rem; border-radius:4px;">
+                    <option value="garmin">Garmin</option>
+                    <option value="strava">Strava</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td style="border:none; padding:0.3rem 0.5rem;">파일:</td>
+                <td style="border:none; padding:0.3rem 0.5rem;">
+                  <input type="file" name="files" multiple accept=".gpx,.fit,.GPX,.FIT">
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top:0.8rem;">
+              <button type="submit" style="padding:0.4rem 1.2rem; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                업로드 및 Import
+              </button>
             </div>
-            """
-            + section("Garmin history preview", "garmin", garmin_info)
-            + section("Strava history preview", "strava", strava_info)
+          </form>
+        </div>
+        """
+
+        body = (
+            err_html + msg_html
+            + upload_form
+            + section("Garmin 폴더 현황", "garmin", garmin_info)
+            + section("Strava 폴더 현황", "strava", strava_info)
         )
-        return _html_page("Import Preview", body)
+        return _html_page("Import", body)
+
+    @app.post("/import/upload")
+    def import_upload():
+        """GPX/FIT 파일 수신 → 폴더 저장 → import_history 실행."""
+        import subprocess
+        from werkzeug.utils import secure_filename
+
+        source = request.form.get("source", "garmin").strip()
+        if source not in ("garmin", "strava"):
+            source = "garmin"
+
+        files = request.files.getlist("files")
+        if not files or all(f.filename == "" for f in files):
+            return redirect("/import?error=" + "파일을 선택하세요.")
+
+        dest_dir = _project_root() / "data" / "history" / source
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        saved = []
+        for f in files:
+            if f.filename:
+                fname = secure_filename(f.filename)
+                ext = Path(fname).suffix.lower()
+                if ext not in (".gpx", ".fit"):
+                    continue
+                save_path = dest_dir / fname
+                f.save(str(save_path))
+                saved.append(fname)
+
+        if not saved:
+            return redirect("/import?error=" + "GPX/FIT 파일만 업로드 가능합니다.")
+
+        try:
+            proc = subprocess.run(
+                [sys.executable, "src/import_history.py", str(dest_dir), "--source", source, "-r"],
+                capture_output=True, text=True, timeout=120,
+                cwd=str(_project_root()),
+            )
+            stdout = proc.stdout[-3000:] if proc.stdout else "(출력 없음)"
+            stderr = proc.stderr[-1000:] if proc.stderr else ""
+            rc = proc.returncode
+        except Exception as e:
+            stdout, stderr, rc = "", str(e), -1
+
+        status = "✅ 성공" if rc == 0 else f"❌ 오류 (exit {rc})"
+        body = f"""
+        <div class="card">
+          <h2>Import 결과</h2>
+          <p>저장된 파일: {html.escape(', '.join(saved))}</p>
+          <p>{status}</p>
+          <pre>{html.escape(stdout)}</pre>
+          {"<pre style='color:#c0392b;'>" + html.escape(stderr) + "</pre>" if stderr else ""}
+          <p><a href="/import">&larr; Import 페이지로</a> &nbsp; <a href="/">홈으로</a></p>
+        </div>
+        """
+        return _html_page("Import 결과", body)
 
     @app.get("/sync-status")
     def sync_status():

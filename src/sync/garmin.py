@@ -10,10 +10,20 @@ from pathlib import Path
 
 try:
     from garminconnect import Garmin
+    # Error 1015 = Too Many Requests (Cloudflare 차단)
+    try:
+        from garminconnect import GarminConnectTooManyRequestsError
+    except ImportError:
+        GarminConnectTooManyRequestsError = Exception
 except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
     Garmin = None
+    GarminConnectTooManyRequestsError = Exception
 
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
+from src.utils.sync_policy import POLICIES
+from src.utils.sync_state import mark_finished, set_retry_after
 
 
 def _tokenstore_path(config: dict) -> Path:
@@ -68,7 +78,7 @@ def _login(config: dict) -> "Garmin":
 
 
 def check_garmin_connection(config: dict) -> dict:
-    """Garmin 연결 상태 확인 (실제 API 호출 없이 로컬 상태만 검사).
+    """Garmin 연결 상태 확인 — garth 토큰 만료 여부까지 검사.
 
     Returns:
         {"ok": bool, "status": str, "detail": str}
@@ -77,26 +87,58 @@ def check_garmin_connection(config: dict) -> dict:
     garmin_cfg = config.get("garmin", {})
     has_email = bool(garmin_cfg.get("email"))
     has_password = bool(garmin_cfg.get("password"))
-    has_tokenstore = tokenstore.exists()
 
-    if has_tokenstore:
-        # 토큰 파일 존재 여부로 판단 (실제 유효성은 sync 시 확인)
+    oauth2_file = tokenstore / "oauth2_token.json"
+
+    if oauth2_file.exists():
+        try:
+            import garth as _garth
+            g = _garth.Client()
+            g.load(str(tokenstore))
+            token = g.oauth2_token
+            if token is None:
+                raise ValueError("oauth2_token 없음")
+            if token.refresh_expired:
+                return {
+                    "ok": False,
+                    "status": "토큰 만료 (재로그인 필요)",
+                    "detail": "refresh_token 만료. /connect/garmin 에서 재로그인하세요.",
+                }
+            if token.expired:
+                return {
+                    "ok": True,
+                    "status": "토큰 갱신 필요",
+                    "detail": "access_token 만료, refresh_token 유효. 다음 sync 시 자동 갱신됩니다.",
+                }
+            return {
+                "ok": True,
+                "status": "연결됨",
+                "detail": f"토큰 유효. tokenstore: {tokenstore}",
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "status": "토큰 손상",
+                "detail": f"토큰 파일 읽기 실패: {e}. 재로그인 필요.",
+            }
+
+    if tokenstore.exists() and not oauth2_file.exists():
         return {
-            "ok": True,
-            "status": "토큰 저장소 존재",
-            "tokenstore": str(tokenstore),
-            "detail": "garth 토큰 복구 가능. 만료 시 재로그인 필요.",
+            "ok": False,
+            "status": "토큰 없음",
+            "detail": f"{tokenstore} 디렉터리만 존재. /connect/garmin 에서 로그인하세요.",
         }
+
     if has_email and has_password:
         return {
-            "ok": True,
-            "status": "이메일/패스워드 설정됨",
-            "detail": "로그인 시 MFA가 요청될 수 있음. 로그인 후 토큰이 저장됩니다.",
+            "ok": False,
+            "status": "미로그인",
+            "detail": "이메일/패스워드 설정됨. /connect/garmin 에서 '저장 + 연결 테스트'로 로그인하세요.",
         }
     return {
         "ok": False,
         "status": "미설정",
-        "detail": "이메일/패스워드 미설정 및 토큰 없음. /settings에서 연동하세요.",
+        "detail": "이메일/패스워드 미설정 및 토큰 없음. /connect/garmin 에서 연동하세요.",
     }
 
 
@@ -108,24 +150,8 @@ def _store_raw_payload(
     payload,
     activity_id: int | None = None,
 ) -> None:
-    """Store or update raw Garmin payload."""
-    if payload is None:
-        return
-
-    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    conn.execute(
-        """
-        INSERT INTO raw_source_payloads
-            (source, entity_type, entity_id, activity_id, payload_json)
-        VALUES
-            ('garmin', ?, ?, ?, ?)
-        ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
-            activity_id = excluded.activity_id,
-            payload_json = excluded.payload_json,
-            updated_at = datetime('now')
-        """,
-        (entity_type, entity_id, activity_id, payload_json),
-    )
+    """Garmin raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "garmin", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
@@ -195,14 +221,20 @@ def sync_activities(
     conn: sqlite3.Connection,
     days: int,
     client: Garmin | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    bg_mode: bool = False,
 ) -> int:
     """Garmin 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
         client: 기존 Garmin 클라이언트. None이면 새로 로그인.
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
+        bg_mode: True이면 mark_running/mark_finished 호출 생략 (bg_sync 관리).
 
     Returns:
         새로 저장된 활동 수.
@@ -210,8 +242,20 @@ def sync_activities(
     if client is None:
         client = _login(config)
 
-    activity_summaries = client.get_activities(0, days * 3)
-    cutoff = datetime.now() - timedelta(days=days)
+    # 날짜 범위 계산
+    if from_date:
+        cutoff = datetime.fromisoformat(from_date)
+        cutoff_end: datetime | None = (
+            datetime.fromisoformat(to_date) + timedelta(days=1)
+            if to_date else None
+        )
+        fetch_days = (datetime.now() - cutoff).days + 2
+    else:
+        cutoff = datetime.now() - timedelta(days=days)
+        cutoff_end = None
+        fetch_days = days
+
+    activity_summaries = client.get_activities(0, fetch_days * 3)
     count = 0
 
     for act in activity_summaries:
@@ -220,7 +264,10 @@ def sync_activities(
             continue
 
         try:
-            if datetime.fromisoformat(start_time) < cutoff:
+            act_dt = datetime.fromisoformat(start_time)
+            if act_dt < cutoff:
+                continue
+            if cutoff_end and act_dt >= cutoff_end:
                 continue
         except ValueError:
             continue
@@ -252,7 +299,18 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
-            continue  # 이미 존재
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "garmin", source_id, {
+                "avg_hr": act.get("averageHR"),
+                "max_hr": act.get("maxHR"),
+                "avg_cadence": act.get("averageRunningCadenceInStepsPerMinute"),
+                "elevation_gain": act.get("elevationGain"),
+                "calories": act.get("calories"),
+                "description": act.get("activityName"),
+            })
+            if existing_id:
+                _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
+            continue
 
         activity_id = cursor.lastrowid
         count += 1
@@ -267,7 +325,7 @@ def sync_activities(
 
         # 상세 지표 조회
         try:
-            time.sleep(2)
+            time.sleep(POLICIES["garmin"].per_request_sleep_sec)
             detail = client.get_activity(int(source_id))
             _store_raw_payload(
                 conn,
@@ -371,13 +429,43 @@ def sync_activities(
                 date_str = start_time[:10]  # YYYY-MM-DD
                 _upsert_vo2max(conn, date_str, float(vo2max))
 
+        except GarminConnectTooManyRequestsError:
+            _handle_rate_limit("garmin", source_id)
+            conn.commit()
+            if not bg_mode:
+                mark_finished("garmin", count=count, partial=True,
+                              error="Garmin 요청 제한 발생. 잠시 후 다시 시도하세요.")
+            return count
         except Exception as e:
+            msg = str(e)
+            if "1015" in msg or "Too Many Requests" in msg or "429" in msg:
+                _handle_rate_limit("garmin", source_id)
+                conn.commit()
+                if not bg_mode:
+                    mark_finished("garmin", count=count, partial=True,
+                                  error="Garmin 요청 제한(Error 1015). 약 15분 후 재시도하세요.")
+                return count
             print(f"[garmin] 상세 조회 실패 {source_id}: {e}")
 
         assign_group_id(conn, activity_id)
 
     conn.commit()
+    if not bg_mode:
+        mark_finished("garmin", count=count)
     return count
+
+
+def _handle_rate_limit(service: str, source_id: str = "") -> None:
+    """rate limit 발생 시 공통 처리 — 메시지 출력 + 재시도 시각 설정."""
+    msg = (
+        f"[{service}] ⚠️ Garmin 로그인/조회 요청이 짧은 시간에 너무 많이 발생하여 "
+        f"일시적으로 제한되었습니다 (Error 1015 / Too Many Requests). "
+        f"약 15분 후 다시 시도하세요."
+    )
+    if source_id:
+        msg += f" (마지막 처리 활동: {source_id})"
+    print(msg)
+    set_retry_after(service, 900)  # 15분
 
 
 def sync_wellness(

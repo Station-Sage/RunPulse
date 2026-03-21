@@ -235,8 +235,17 @@ def activities_list():
         qs_parts.append(f"to={html.escape(date_to)}")
     base_qs = "&".join(qs_parts)
 
+    from .sync_ui import sync_card_html
+    from .helpers import last_sync_info
+    from src.utils.sync_state import get_all_states
+    sync_btn = sync_card_html(
+        last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
+        sync_states=get_all_states(),
+    )
+
     body = (
-        _render_filter_form(source, act_type, date_from, date_to, page)
+        sync_btn
+        + _render_filter_form(source, act_type, date_from, date_to, page)
         + _render_summary(total, total_dist)
         + _render_activity_table(rows)
         + _render_pagination(page, total, base_qs)

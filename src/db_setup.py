@@ -10,7 +10,7 @@ def get_db_path() -> Path:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """6개 테이블 생성 (IF NOT EXISTS)."""
+    """7개 테이블 생성 (IF NOT EXISTS)."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS activity_summaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,6 +151,26 @@ def create_tables(conn: sqlite3.Connection) -> None:
             status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'cancelled')),
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS sync_jobs (
+            id TEXT PRIMARY KEY,
+            service TEXT NOT NULL,
+            from_date TEXT NOT NULL,
+            to_date TEXT NOT NULL,
+            window_days INTEGER NOT NULL,
+            current_from TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            completed_days INTEGER NOT NULL DEFAULT 0,
+            total_days INTEGER NOT NULL,
+            synced_count INTEGER NOT NULL DEFAULT 0,
+            req_count INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            retry_after TEXT,
+            last_error TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sync_jobs_service
+            ON sync_jobs(service, created_at);
     """)
 
 
@@ -241,6 +261,29 @@ def migrate_db(conn: sqlite3.Connection) -> None:
             conn.execute(stmt)
         except sqlite3.OperationalError:
             pass  # 이미 존재하는 컬럼
+
+    # sync_jobs 테이블 (IF NOT EXISTS이므로 안전)
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS sync_jobs (
+            id TEXT PRIMARY KEY,
+            service TEXT NOT NULL,
+            from_date TEXT NOT NULL,
+            to_date TEXT NOT NULL,
+            window_days INTEGER NOT NULL,
+            current_from TEXT,
+            status TEXT NOT NULL DEFAULT 'pending',
+            completed_days INTEGER NOT NULL DEFAULT 0,
+            total_days INTEGER NOT NULL,
+            synced_count INTEGER NOT NULL DEFAULT 0,
+            req_count INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            retry_after TEXT,
+            last_error TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sync_jobs_service
+            ON sync_jobs(service, created_at);
+    """)
 
     conn.commit()
 

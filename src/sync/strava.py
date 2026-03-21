@@ -9,6 +9,21 @@ from pathlib import Path
 from src.utils import api
 from src.utils.config import update_service_config
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
+from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
+from src.utils.sync_state import get_rate_state, mark_finished
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """Strava raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "strava", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 _BASE_URL = "https://www.strava.com/api/v3"
@@ -89,31 +104,100 @@ def _extract_best_efforts(best_efforts: list) -> dict:
     return result
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def _parse_rate_limit(resp_headers: dict) -> dict:
+    """Strava 응답 헤더에서 rate limit 상태 추출.
+
+    Strava 헤더 형식:
+      X-RateLimit-Limit: 200,2000
+      X-RateLimit-Usage: 150,1500
+    """
+    state: dict = {}
+    try:
+        limit_hdr = resp_headers.get("x-ratelimit-limit", "")
+        usage_hdr = resp_headers.get("x-ratelimit-usage", "")
+        if limit_hdr and usage_hdr:
+            limits = [int(x) for x in limit_hdr.split(",")]
+            usages = [int(x) for x in usage_hdr.split(",")]
+            state["limit"] = limits[0] if limits else 0
+            state["usage"] = usages[0] if usages else 0
+            state["daily_limit"] = limits[1] if len(limits) > 1 else 0
+            state["daily_usage"] = usages[1] if len(usages) > 1 else 0
+    except Exception:
+        pass
+    return state
+
+
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    bg_mode: bool = False,
+) -> int:
     """Strava 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
+        bg_mode: True이면 mark_finished 호출 생략.
 
     Returns:
         새로 저장된 활동 수.
     """
+    policy = POLICIES["strava"]
     token = _refresh_token(config)
     headers = {"Authorization": f"Bearer {token}"}
-    after = int((datetime.now() - timedelta(days=days)).timestamp())
+
+    if from_date:
+        after = int(datetime.fromisoformat(from_date).timestamp())
+        before = int(
+            (datetime.fromisoformat(to_date) + timedelta(days=1)).timestamp()
+        ) if to_date else None
+    else:
+        after = int((datetime.now() - timedelta(days=days)).timestamp())
+        before = None
+
     count = 0
     page = 1
+    rate_state = get_rate_state("strava")  # 이전 저장된 rate 상태 로드
+    partial = False
 
     while True:
-        activity_summaries = api.get(
-            f"{_BASE_URL}/athlete/activities",
-            headers=headers,
-            params={"after": after, "per_page": 30, "page": page},
-        )
+        try:
+            params: dict = {"after": after, "per_page": 30, "page": page}
+            if before is not None:
+                params["before"] = before
+            activity_summaries, resp_headers = api.get_with_headers(
+                f"{_BASE_URL}/athlete/activities",
+                headers=headers,
+                params=params,
+            )
+            # rate limit 상태 갱신
+            new_rate = _parse_rate_limit(resp_headers)
+            if new_rate:
+                rate_state = new_rate
+        except api.ApiError as e:
+            if e.status_code == 429:
+                print("[strava] ⚠️ Strava 요청 제한(429) 발생. 15분 후 재시도를 권장합니다.")
+                from src.utils.sync_state import set_retry_after
+                set_retry_after("strava", 900)  # 15분 후 재시도
+                partial = True
+            raise
+
         if not activity_summaries:
             break
+
+        # 80% 이상 소진 시 고비용 호출 생략
+        skip_expensive = should_reduce_expensive_calls("strava", rate_state)
+        if skip_expensive:
+            print(
+                f"[strava] ⚠️ API 사용량이 한도({rate_state.get('usage')}/{rate_state.get('limit')})에 "
+                f"근접했습니다. 상세/스트림 조회를 건너뜁니다."
+            )
 
         for act in activity_summaries:
             source_id = str(act.get("id", ""))
@@ -149,14 +233,34 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                 continue
 
             if cursor.rowcount == 0:
+                # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+                existing_id = fill_null_columns(conn, "strava", source_id, {
+                    "avg_hr": act.get("average_heartrate"),
+                    "max_hr": act.get("max_heartrate"),
+                    "avg_cadence": cadence,
+                    "elevation_gain": act.get("total_elevation_gain"),
+                    "calories": act.get("calories"),
+                    "description": act.get("name"),
+                })
+                if existing_id:
+                    _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
                 continue
 
             activity_id = cursor.lastrowid
             count += 1
+            _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=activity_id)
+
+            if skip_expensive:
+                # 한도 근접 시 상세/스트림 생략 — 다음 동기화로 이월
+                partial = True
+                assign_group_id(conn, activity_id)
+                time.sleep(policy.per_request_sleep_sec)
+                continue
 
             # 상세 조회 (suffer_score + best_efforts)
             try:
                 detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+                _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
 
                 suffer_score = detail.get("suffer_score")
                 if suffer_score is not None:
@@ -167,7 +271,6 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                         (activity_id, float(suffer_score)),
                     )
 
-                # best_efforts 추출 및 저장
                 best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
                 if best_efforts:
                     conn.execute(
@@ -176,37 +279,57 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
                            VALUES (?, 'strava', 'best_efforts', ?)""",
                         (activity_id, json.dumps(best_efforts)),
                     )
-
+            except api.ApiError as e:
+                if e.status_code == 429:
+                    print(f"[strava] ⚠️ rate limit — 상세 조회 중단 (source_id={source_id})")
+                    from src.utils.sync_state import set_retry_after
+                    set_retry_after("strava", 900)
+                    partial = True
+                    conn.commit()
+                    if not bg_mode:
+                        mark_finished("strava", count=count, partial=True,
+                                      error="Strava 요청 제한(429). 약 15분 후 재시도하세요.",
+                                      rate_state=rate_state)
+                    return count
+                print(f"[strava] 상세 조회 실패 {source_id}: {e}")
             except Exception as e:
                 print(f"[strava] 상세 조회 실패 {source_id}: {e}")
 
-            # 스트림 저장
-            try:
-                streams = api.get(
-                    f"{_BASE_URL}/activities/{source_id}/streams",
-                    headers=headers,
-                    params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
-                )
-                _STREAMS_DIR.mkdir(parents=True, exist_ok=True)
-                stream_path = _STREAMS_DIR / f"{source_id}.json"
-                with open(stream_path, "w", encoding="utf-8") as f:
-                    json.dump(streams, f)
-                conn.execute(
-                    """INSERT INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_json)
-                       VALUES (?, 'strava', 'stream_file', ?)""",
-                    (activity_id, str(stream_path)),
-                )
-            except Exception as e:
-                print(f"[strava] 스트림 저장 실패 {source_id}: {e}")
+            # 스트림 저장 (한도 재확인)
+            if not should_reduce_expensive_calls("strava", rate_state):
+                try:
+                    streams = api.get(
+                        f"{_BASE_URL}/activities/{source_id}/streams",
+                        headers=headers,
+                        params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
+                    )
+                    _STREAMS_DIR.mkdir(parents=True, exist_ok=True)
+                    stream_path = _STREAMS_DIR / f"{source_id}.json"
+                    with open(stream_path, "w", encoding="utf-8") as f:
+                        json.dump(streams, f)
+                    conn.execute(
+                        """INSERT INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'stream_file', ?)""",
+                        (activity_id, str(stream_path)),
+                    )
+                except Exception as e:
+                    print(f"[strava] 스트림 저장 실패 {source_id}: {e}")
 
             assign_group_id(conn, activity_id)
+            time.sleep(policy.per_request_sleep_sec)
 
         if len(activity_summaries) < 30:
             break
         page += 1
 
     conn.commit()
+    if not bg_mode:
+        mark_finished("strava", count=count, partial=partial, rate_state=rate_state)
+    if partial:
+        print(
+            "[strava] ⚠️ 호출 제한에 근접하여 일부 상세 데이터는 다음 동기화로 미뤘습니다."
+        )
     return count
 
 

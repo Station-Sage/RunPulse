@@ -100,6 +100,8 @@
 - 2026-03-21: Phase 5 UI 2차 완료 — /activities 탭 신설, /wellness 체중/걸음수 카드, 전체 테스트 316개 통과
 - 2026-03-21: Phase 5 UI 3차 완료 — /activity/deep 이전/다음 활동 네비게이션, 전체 테스트 319개 통과
 - 2026-03-21: 4개 서비스 인증/엔드포인트 수정 완료 — Garmin 토큰 우선 인증, Strava/Intervals/Runalyze 엔드포인트 버그 수정, /settings 연동 UI, 신규 테스트 68개 (누적 451개)
+- 2026-03-21: sync-policy 구현 — rate limit/cooldown/중복방지, SyncPolicy/SyncGuardResult, sync_state.json, 신규 30개 테스트 (누적 481개)
+- 2026-03-21: 백그라운드 기간 동기화 구현 — sync_jobs DB 테이블, BgSyncThread(pause/stop/resume), 서비스별 배치+rate limit, 진행 UI(프로그레스바/polling), 신규 30개 테스트 (누적 511개)
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 

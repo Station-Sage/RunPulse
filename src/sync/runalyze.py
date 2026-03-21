@@ -6,6 +6,19 @@ from datetime import datetime, timedelta
 
 from src.utils import api
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """Runalyze raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "runalyze", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 _BASE_URL = "https://runalyze.com/api/v1"
@@ -65,22 +78,37 @@ def _upsert_daily_fitness(
         pass  # daily_fitness 테이블 미생성 환경 (graceful)
 
 
-def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> int:
     """Runalyze 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
 
     Returns:
         새로 저장된 활동 수.
     """
     headers = _headers(config)
-    cutoff = datetime.now() - timedelta(days=days)
+    if from_date:
+        cutoff = datetime.fromisoformat(from_date)
+        cutoff_end: datetime | None = (
+            datetime.fromisoformat(to_date) + timedelta(days=1) if to_date else None
+        )
+    else:
+        cutoff = datetime.now() - timedelta(days=days)
+        cutoff_end = None
 
-    # 올바른 Runalyze API 엔드포인트: /activities (activity_summaries 아님)
-    activity_summaries = api.get(f"{_BASE_URL}/activities", headers=headers)
+    # Runalyze API 목록 엔드포인트: /activity (복수형 /activities는 404)
+    activity_summaries = api.get(f"{_BASE_URL}/activity", headers=headers)
     count = 0
 
     for act in activity_summaries:
@@ -91,7 +119,10 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             continue
 
         try:
-            if datetime.fromisoformat(start_time) < cutoff:
+            act_dt = datetime.fromisoformat(start_time)
+            if act_dt < cutoff:
+                continue
+            if cutoff_end and act_dt >= cutoff_end:
                 continue
         except ValueError:
             continue
@@ -121,15 +152,27 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             continue
 
         if cursor.rowcount == 0:
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "runalyze", source_id, {
+                "avg_hr": act.get("heart_rate_avg") or act.get("pulse_avg"),
+                "max_hr": act.get("heart_rate_max") or act.get("pulse_max"),
+                "elevation_gain": act.get("elevation"),
+                "calories": act.get("calories"),
+                "description": act.get("title"),
+            })
+            if existing_id:
+                _store_raw_payload(conn, "activity", source_id, act, activity_id=existing_id)
             continue
 
         activity_id = cursor.lastrowid
         count += 1
+        _store_raw_payload(conn, "activity", source_id, act, activity_id=activity_id)
 
         # 상세 지표 조회
         try:
             # 올바른 Runalyze 단일 활동 엔드포인트: /activity/{id}
             detail = api.get(f"{_BASE_URL}/activity/{source_id}", headers=headers)
+            _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
 
             evo2max = detail.get("vo2max")
             vdot = detail.get("vdot")
@@ -196,32 +239,37 @@ def check_runalyze_connection(config: dict) -> dict:
             "detail": "API 토큰 미설정. /settings에서 입력하세요.",
         }
 
-    # 최근 활동 1건 조회로 토큰 유효성 확인
+    # 최근 활동 1건 조회로 토큰 유효성 확인 (/activity 단수형이 올바른 경로)
     try:
         result = api.get(
-            f"{_BASE_URL}/activities",
+            f"{_BASE_URL}/activity",
             headers={"token": token},
             params={"limit": 1},
             timeout=10,
         )
-        count = len(result) if isinstance(result, list) else 0
         return {
             "ok": True,
             "status": "연결됨",
-            "detail": f"토큰 유효. 활동 데이터 접근 가능.",
+            "detail": "토큰 유효. 활동 데이터 접근 가능.",
         }
     except api.ApiError as e:
-        if e.status_code in (401, 403):
+        if e.status_code == 401:
             return {
                 "ok": False,
                 "status": "토큰 오류",
-                "detail": f"인증 실패 ({e.status_code}). 토큰을 확인하거나 재발급하세요.",
+                "detail": "인증 실패 (401). Runalyze 설정 > API 토큰을 확인하세요.",
+            }
+        if e.status_code == 403:
+            return {
+                "ok": False,
+                "status": "권한 없음",
+                "detail": "접근 거부 (403). 토큰이 만료되었거나 Runalyze 프리미엄 플랜이 필요할 수 있습니다.",
             }
         if e.status_code == 404:
             return {
                 "ok": False,
                 "status": "엔드포인트 불일치",
-                "detail": f"API 엔드포인트를 찾을 수 없습니다 (404).",
+                "detail": "API 엔드포인트를 찾을 수 없습니다 (404).",
             }
         return {"ok": False, "status": "연결 실패", "detail": str(e)}
     except Exception as e:
