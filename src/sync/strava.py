@@ -9,8 +9,21 @@ from pathlib import Path
 from src.utils import api
 from src.utils.config import update_service_config
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
 from src.utils.sync_state import get_rate_state, mark_finished
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """Strava raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "strava", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 _BASE_URL = "https://www.strava.com/api/v3"
@@ -220,10 +233,22 @@ def sync_activities(
                 continue
 
             if cursor.rowcount == 0:
+                # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+                existing_id = fill_null_columns(conn, "strava", source_id, {
+                    "avg_hr": act.get("average_heartrate"),
+                    "max_hr": act.get("max_heartrate"),
+                    "avg_cadence": cadence,
+                    "elevation_gain": act.get("total_elevation_gain"),
+                    "calories": act.get("calories"),
+                    "description": act.get("name"),
+                })
+                if existing_id:
+                    _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
                 continue
 
             activity_id = cursor.lastrowid
             count += 1
+            _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=activity_id)
 
             if skip_expensive:
                 # 한도 근접 시 상세/스트림 생략 — 다음 동기화로 이월
@@ -235,6 +260,7 @@ def sync_activities(
             # 상세 조회 (suffer_score + best_efforts)
             try:
                 detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+                _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
 
                 suffer_score = detail.get("suffer_score")
                 if suffer_score is not None:

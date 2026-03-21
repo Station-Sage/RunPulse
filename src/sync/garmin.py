@@ -20,6 +20,8 @@ except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
     GarminConnectTooManyRequestsError = Exception
 
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES
 from src.utils.sync_state import mark_finished, set_retry_after
 
@@ -148,24 +150,8 @@ def _store_raw_payload(
     payload,
     activity_id: int | None = None,
 ) -> None:
-    """Store or update raw Garmin payload."""
-    if payload is None:
-        return
-
-    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    conn.execute(
-        """
-        INSERT INTO raw_source_payloads
-            (source, entity_type, entity_id, activity_id, payload_json)
-        VALUES
-            ('garmin', ?, ?, ?, ?)
-        ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
-            activity_id = excluded.activity_id,
-            payload_json = excluded.payload_json,
-            updated_at = datetime('now')
-        """,
-        (entity_type, entity_id, activity_id, payload_json),
-    )
+    """Garmin raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "garmin", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
@@ -313,7 +299,18 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
-            continue  # 이미 존재
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "garmin", source_id, {
+                "avg_hr": act.get("averageHR"),
+                "max_hr": act.get("maxHR"),
+                "avg_cadence": act.get("averageRunningCadenceInStepsPerMinute"),
+                "elevation_gain": act.get("elevationGain"),
+                "calories": act.get("calories"),
+                "description": act.get("activityName"),
+            })
+            if existing_id:
+                _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
+            continue
 
         activity_id = cursor.lastrowid
         count += 1

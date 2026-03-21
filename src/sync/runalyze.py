@@ -6,6 +6,19 @@ from datetime import datetime, timedelta
 
 from src.utils import api
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
+
+
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """Runalyze raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "runalyze", entity_type, entity_id, payload, activity_id=activity_id)
 
 
 _BASE_URL = "https://runalyze.com/api/v1"
@@ -139,15 +152,27 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "runalyze", source_id, {
+                "avg_hr": act.get("heart_rate_avg") or act.get("pulse_avg"),
+                "max_hr": act.get("heart_rate_max") or act.get("pulse_max"),
+                "elevation_gain": act.get("elevation"),
+                "calories": act.get("calories"),
+                "description": act.get("title"),
+            })
+            if existing_id:
+                _store_raw_payload(conn, "activity", source_id, act, activity_id=existing_id)
             continue
 
         activity_id = cursor.lastrowid
         count += 1
+        _store_raw_payload(conn, "activity", source_id, act, activity_id=activity_id)
 
         # 상세 지표 조회
         try:
             # 올바른 Runalyze 단일 활동 엔드포인트: /activity/{id}
             detail = api.get(f"{_BASE_URL}/activity/{source_id}", headers=headers)
+            _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
 
             evo2max = detail.get("vo2max")
             vdot = detail.get("vdot")

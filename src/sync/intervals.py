@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 
 from src.utils import api
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import store_raw_payload as _store_rp
 
 
 def _store_raw_payload(
@@ -16,24 +18,8 @@ def _store_raw_payload(
     payload: dict,
     activity_id: int | None = None,
 ) -> None:
-    """원본 API payload 저장/갱신."""
-    try:
-        conn.execute(
-            """
-            INSERT INTO raw_source_payloads
-                (source, entity_type, entity_id, activity_id, payload_json)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(source, entity_type, entity_id) DO UPDATE SET
-                activity_id = COALESCE(excluded.activity_id, raw_source_payloads.activity_id),
-                payload_json = excluded.payload_json,
-                updated_at = datetime('now')
-            """,
-            (source, entity_type, entity_id, activity_id, json.dumps(payload, ensure_ascii=False)),
-        )
-    except sqlite3.OperationalError:
-        pass
-    except sqlite3.Error as e:
-        print(f"[intervals] raw payload 저장 실패 {entity_type}:{entity_id}: {e}")
+    """원본 API payload 저장/병합."""
+    _store_rp(conn, source, entity_type, entity_id, payload, activity_id=activity_id)
 
 
 
@@ -173,19 +159,16 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
-            existing = conn.execute(
-                "SELECT id FROM activity_summaries WHERE source = 'intervals' AND source_id = ?",
-                (source_id,),
-            ).fetchone()
-            existing_id = existing[0] if existing else None
-            _store_raw_payload(
-                conn,
-                "intervals",
-                "activity",
-                source_id,
-                act,
-                activity_id=existing_id,
-            )
+            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
+            existing_id = fill_null_columns(conn, "intervals", source_id, {
+                "avg_hr": act.get("average_heartrate"),
+                "max_hr": act.get("max_heartrate"),
+                "avg_cadence": act.get("average_cadence"),
+                "elevation_gain": act.get("total_elevation_gain"),
+                "calories": act.get("calories"),
+                "description": act.get("name"),
+            })
+            _store_raw_payload(conn, "intervals", "activity", source_id, act, activity_id=existing_id)
             if existing_id:
                 _refresh_activity_metrics(conn, existing_id, act)
             continue
