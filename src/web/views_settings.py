@@ -16,7 +16,7 @@ import urllib.parse
 import uuid
 from pathlib import Path
 
-from flask import Blueprint, redirect, request
+from flask import Blueprint, redirect, request, url_for
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
@@ -29,6 +29,29 @@ settings_bp = Blueprint("settings", __name__)
 
 # Garmin MFA 대기 세션 (key → {mfa_needed, event, holder, result, email, tokenstore})
 _pending_mfa: dict = {}
+
+
+def _garmin_token_status_html(tokenstore) -> str:
+    """garth 토큰 파일 존재·만료 여부를 HTML 배지로 반환."""
+    oauth2_file = tokenstore / "oauth2_token.json"
+    if not tokenstore.exists():
+        return "<span class='score-badge grade-poor'>토큰 없음 — 로그인 필요</span>"
+    if not oauth2_file.exists():
+        return "<span class='score-badge grade-moderate'>디렉터리 존재, 토큰 파일 없음 — 로그인 필요</span>"
+    try:
+        import garth as _garth
+        g = _garth.Client()
+        g.load(str(tokenstore))
+        tok = g.oauth2_token
+        if tok is None:
+            return "<span class='score-badge grade-poor'>토큰 파일 손상</span>"
+        if tok.refresh_expired:
+            return "<span class='score-badge grade-poor'>토큰 만료 — 재로그인 필요</span>"
+        if tok.expired:
+            return "<span class='score-badge grade-moderate'>access_token 만료 (refresh 유효, sync 시 자동 갱신)</span>"
+        return "<span class='score-badge grade-good'>토큰 유효 ✓</span>"
+    except Exception as e:
+        return f"<span class='score-badge grade-poor'>토큰 읽기 실패: {_html.escape(str(e)[:60])}</span>"
 
 # Strava OAuth2 설정
 _STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
@@ -163,8 +186,11 @@ def garmin_connect_view() -> str:
 <div class='card'>
   <h3>토큰 저장소 상태</h3>
   <p>경로: <code>{current_tokenstore}</code></p>
-  <p>{'<span class="score-badge grade-good">토큰 존재</span>' if Path(current_tokenstore).expanduser().exists() else '<span class="score-badge grade-poor">토큰 없음</span>'}</p>
-  <p class='muted'>MFA가 요청될 경우: Garmin 앱 또는 이메일에서 인증 코드를 입력하세요. 현재 CLI 기반 MFA 입력은 지원하지 않습니다. 브라우저에서 직접 로그인 후 garth 토큰을 복사하는 방법을 권장합니다.</p>
+  {_garmin_token_status_html(tokenstore)}
+  <p class='muted' style='margin-top:0.5rem;'>
+    <strong>MFA 흐름:</strong> "저장 + 연결 테스트" 클릭 시 토큰이 없으면 Garmin이 이메일/앱으로 인증 코드를 발송합니다.
+    MFA 코드 입력 화면이 자동으로 나타납니다. 코드 입력 후 로그인이 완료되면 토큰이 저장되어 이후 sync 시 재인증 없이 사용됩니다.
+  </p>
 </div>"""
     return html_page("Garmin 연동", body)
 
@@ -366,7 +392,7 @@ def strava_connect_view() -> str:
     </button>
   </a>
   <p class='muted' style='font-size:0.85rem;'>
-    콜백 URL: <code>http://localhost:8080{_STRAVA_REDIRECT_PATH}</code><br>
+    콜백 URL: <code>http://localhost:18080{_STRAVA_REDIRECT_PATH}</code><br>
     Strava API 앱 설정에서 위 URL을 Authorized Callback Domain에 추가해야 합니다.
   </p>
 </div>"""
@@ -399,7 +425,7 @@ def strava_oauth_start():
 
     params = {
         "client_id": client_id,
-        "redirect_uri": f"http://localhost:8080{_STRAVA_REDIRECT_PATH}",
+        "redirect_uri": f"http://localhost:18080{_STRAVA_REDIRECT_PATH}",
         "response_type": "code",
         "approval_prompt": "auto",
         "scope": _STRAVA_SCOPE,
@@ -474,9 +500,13 @@ def intervals_connect_view() -> str:
 <div class='card'>
   <h2>Intervals.icu 연동</h2>
   <p>
-    <a href='https://intervals.icu/settings' target='_blank'>intervals.icu/settings</a> → API 탭 →
-    API Key 복사 후 아래에 입력하세요.
+    <a href='https://intervals.icu/settings' target='_blank' rel='noopener'>
+      <button style='padding:0.4rem 1rem; background:#e35300; color:#fff; border:none; border-radius:4px; cursor:pointer; margin-bottom:0.5rem;'>
+        ↗ Intervals.icu 설정 페이지 열기
+      </button>
+    </a>
   </p>
+  <p class='muted' style='font-size:0.85rem;'>설정 → Profile → API 탭 → API Key 복사 후 아래에 붙여넣으세요.</p>
   <form method='post' action='/connect/intervals'>
     <table style='width:auto; border:none;'>
       <tr>
@@ -548,9 +578,13 @@ def runalyze_connect_view() -> str:
 <div class='card'>
   <h2>Runalyze 연동</h2>
   <p>
-    <a href='https://runalyze.com/settings/personal-api' target='_blank'>runalyze.com/settings/personal-api</a>에서
-    Personal API 토큰을 생성 또는 복사한 후 아래에 입력하세요.
+    <a href='https://runalyze.com/settings/personal-api' target='_blank' rel='noopener'>
+      <button style='padding:0.4rem 1rem; background:#2980b9; color:#fff; border:none; border-radius:4px; cursor:pointer; margin-bottom:0.5rem;'>
+        ↗ Runalyze API 토큰 페이지 열기
+      </button>
+    </a>
   </p>
+  <p class='muted' style='font-size:0.85rem;'>설정 → Account → Personal API → 토큰 복사 후 아래에 붙여넣으세요.</p>
   <form method='post' action='/connect/runalyze'>
     <table style='width:auto; border:none;'>
       <tr>

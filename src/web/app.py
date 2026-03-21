@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import sqlite3
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -354,6 +355,8 @@ def create_app() -> Flask:
 
     @app.get("/config")
     def config_summary():
+        """설정 현황 + 각 서비스별 직접 수정 링크 제공."""
+        import json as _json
         config = load_config()
         db_path = _db_path()
         redacted = redact_config_for_display(config)
@@ -363,41 +366,61 @@ def create_app() -> Flask:
         intervals_status = check_intervals_connection(config)
         runalyze_status = check_runalyze_connection(config)
 
-        def _status_cell(s: dict) -> str:
-            icon = "✅" if s["ok"] else "❌"
-            return f"{icon} {html.escape(s['status'])}"
+        def _svc_card(name: str, href: str, status: dict) -> str:
+            ok = status["ok"]
+            badge_cls = "grade-good" if ok else "grade-poor"
+            badge_txt = html.escape(status["status"])
+            detail = html.escape(status.get("detail", ""))
+            icon = "✅" if ok else "❌"
+            return (
+                f"<div class='card' style='flex:1; min-width:200px; margin:0;'>"
+                f"<h2 style='margin-bottom:0.3rem;'>{icon} {html.escape(name)}</h2>"
+                f"<p><span class='score-badge {badge_cls}' style='font-size:0.85rem;'>{badge_txt}</span></p>"
+                f"<p class='muted' style='font-size:0.82rem;'>{detail}</p>"
+                f"<a href='{href}'><button style='padding:0.3rem 0.8rem; cursor:pointer;'>설정 변경</button></a>"
+                f"</div>"
+            )
 
-        rows = [
-            ("database.path", str(db_path), _bool_text(db_path.exists())),
-            ("garmin", "tokenstore / email", _status_cell(garmin_status)),
-            ("strava", "client_id / refresh_token", _status_cell(strava_status)),
-            ("intervals", "athlete_id / api_key", _status_cell(intervals_status)),
-            ("runalyze", "token", _status_cell(runalyze_status)),
-            ("user config", "max_hr / threshold_pace / weekly target", _bool_text(bool(config.get("user")))),
-            ("ai config", "provider / prompt language", _bool_text(bool(config.get("ai")))),
-        ]
-
-        import json as _json
-        body = (
-            f"<p class='muted'>Project root: {html.escape(str(_project_root()))}</p>"
-            + f"<p class='muted'>Resolved DB path: {html.escape(str(db_path))}</p>"
-            + "<h2>연동 상태</h2>"
-            + _table(["항목", "필드", "상태"], rows)
-            + f"<p><a href='/settings'>→ 연동 설정 페이지</a></p>"
-            + "<h2>설정 내용 (민감정보 마스킹)</h2>"
-            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
-            + """
-            <div class="card">
-              <h2>메모</h2>
-              <ul>
-                <li>패스워드/토큰은 앞 4자리만 표시됩니다.</li>
-                <li><code>config.json</code>이 없으면 기본값 기반으로 동작합니다.</li>
-                <li>서비스 연동은 <a href='/settings'>/settings</a>에서 UI로 설정하거나 <code>config.json</code>을 직접 편집하세요.</li>
-              </ul>
-            </div>
-            """
+        svc_cards = (
+            "<div class='cards-row'>"
+            + _svc_card("Garmin Connect", "/connect/garmin", garmin_status)
+            + _svc_card("Strava", "/connect/strava", strava_status)
+            + _svc_card("Intervals.icu", "/connect/intervals", intervals_status)
+            + _svc_card("Runalyze", "/connect/runalyze", runalyze_status)
+            + "</div>"
         )
-        return _html_page("Config Summary", body)
+
+        # DB 경로 수정 폼
+        db_form = f"""
+        <div class="card">
+          <h2>DB 경로</h2>
+          <form method="post" action="/config/db-path">
+            <input type="text" name="db_path" value="{html.escape(str(db_path))}"
+                   style="width:340px; padding:0.3rem 0.5rem;">
+            <button type="submit" style="padding:0.3rem 0.8rem; cursor:pointer; margin-left:0.5rem;">저장</button>
+          </form>
+          <p class='muted' style='font-size:0.82rem;'>DB 존재: {_bool_text(db_path.exists())}</p>
+        </div>
+        """
+
+        body = (
+            "<h2>서비스 연동 상태 / 설정 변경</h2>"
+            + svc_cards
+            + db_form
+            + "<h2>전체 설정 내용 (민감정보 전체 마스킹)</h2>"
+            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
+            + "<p class='muted'>민감 정보(비밀번호/토큰/API키)는 ****로 완전 숨김 처리됩니다.</p>"
+        )
+        return _html_page("Config", body)
+
+    @app.post("/config/db-path")
+    def config_db_path():
+        """DB 경로 설정 저장."""
+        from src.utils.config import update_service_config
+        new_path = request.form.get("db_path", "").strip()
+        if new_path:
+            update_service_config("database", {"path": new_path})
+        return redirect("/config")
 
     @app.post("/trigger-sync")
     def trigger_sync():
@@ -416,7 +439,7 @@ def create_app() -> Flask:
 
         try:
             proc = subprocess.run(
-                ["python", "src/sync.py", "--source", source, "--days", str(days_int)],
+                [sys.executable, "src/sync.py", "--source", source, "--days", str(days_int)],
                 capture_output=True, text=True, timeout=300,
                 cwd=str(_project_root()),
             )
@@ -545,7 +568,7 @@ def create_app() -> Flask:
 
         try:
             proc = subprocess.run(
-                ["python", "src/import_history.py", str(dest_dir), "--source", source, "-r"],
+                [sys.executable, "src/import_history.py", str(dest_dir), "--source", source, "-r"],
                 capture_output=True, text=True, timeout=120,
                 cwd=str(_project_root()),
             )
