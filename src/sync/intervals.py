@@ -124,8 +124,9 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     newest = datetime.now().strftime("%Y-%m-%d")
 
+    # 올바른 Intervals.icu API 엔드포인트: /activities (activity_summaries 아님)
     activity_summaries = api.get(
-        f"{base}/activity_summaries",
+        f"{base}/activities",
         params={"oldest": oldest, "newest": newest},
         auth=auth,
     )
@@ -301,3 +302,48 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     conn.commit()
     return count
+
+
+def check_intervals_connection(config: dict) -> dict:
+    """Intervals.icu 연결 상태를 실제 API 호출로 확인.
+
+    Returns:
+        {"ok": bool, "status": str, "detail": str}
+    """
+    intervals_cfg = config.get("intervals", {})
+    athlete_id = intervals_cfg.get("athlete_id", "")
+    api_key = intervals_cfg.get("api_key", "")
+
+    if not athlete_id or not api_key:
+        missing = []
+        if not athlete_id:
+            missing.append("athlete_id")
+        if not api_key:
+            missing.append("api_key")
+        return {
+            "ok": False,
+            "status": "설정 누락",
+            "detail": f"{', '.join(missing)} 미설정. /settings에서 입력하세요.",
+        }
+
+    # 프로필 조회로 인증 확인
+    try:
+        result = api.get(
+            f"https://intervals.icu/api/v1/athlete/{athlete_id}",
+            auth=("API_KEY", api_key),
+            timeout=10,
+        )
+        name = result.get("name") or result.get("username") or athlete_id
+        return {
+            "ok": True,
+            "status": "연결됨",
+            "detail": f"athlete: {name} ({athlete_id})",
+        }
+    except api.ApiError as e:
+        if e.status_code == 401:
+            return {"ok": False, "status": "잘못된 API 키", "detail": "인증 실패 (401). API 키를 확인하세요."}
+        if e.status_code == 404:
+            return {"ok": False, "status": "잘못된 athlete_id", "detail": f"athlete_id '{athlete_id}'를 찾을 수 없습니다 (404)."}
+        return {"ok": False, "status": "연결 실패", "detail": str(e)}
+    except Exception as e:
+        return {"ok": False, "status": "연결 오류", "detail": str(e)}

@@ -6,23 +6,98 @@ import json
 import sqlite3
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 try:
     from garminconnect import Garmin
-except ImportError:  # optional dependency for tests/Termux
+except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
     Garmin = None
 
 from src.utils.dedup import assign_group_id
 
 
-def _login(config: dict) -> Garmin:
-    """Garmin Connect 로그인."""
-    garmin_cfg = config["garmin"]
+def _tokenstore_path(config: dict) -> Path:
+    """garth 토큰 저장소 경로 반환. 기본: ~/.garth"""
+    path_str = config.get("garmin", {}).get("tokenstore", "~/.garth")
+    return Path(path_str).expanduser()
+
+
+def _login(config: dict) -> "Garmin":
+    """Garmin Connect 인증.
+
+    순서:
+    1. garth 토큰 저장소에서 세션 복구 시도
+    2. 실패 시 이메일/패스워드 로그인 + 토큰 저장
+    """
     if Garmin is None:
-        raise ImportError("garminconnect 패키지가 필요합니다. pip install garminconnect")
-    client = Garmin(garmin_cfg["email"], garmin_cfg["password"])
+        raise ImportError("garminconnect 패키지가 필요합니다: pip install garminconnect")
+
+    garmin_cfg = config.get("garmin", {})
+    tokenstore = _tokenstore_path(config)
+
+    # 1단계: 기존 토큰으로 세션 복구 시도
+    if tokenstore.exists():
+        try:
+            client = Garmin()
+            client.login(tokenstore=str(tokenstore))
+            return client
+        except Exception as e:
+            print(f"[garmin] 토큰 복구 실패, 이메일/패스워드 로그인 시도: {e}")
+
+    # 2단계: 이메일/패스워드 로그인
+    email = garmin_cfg.get("email", "")
+    password = garmin_cfg.get("password", "")
+    if not email or not password:
+        raise ValueError(
+            "Garmin 이메일/패스워드 미설정. config.json에 garmin.email/password를 입력하거나 "
+            "웹 UI(/settings)에서 연동하세요."
+        )
+
+    client = Garmin(email, password)
     client.login()
+
+    # 토큰 저장 (다음 로그인 시 재사용)
+    try:
+        tokenstore.mkdir(parents=True, exist_ok=True)
+        client.garth.dump(str(tokenstore))
+        print(f"[garmin] 토큰 저장 완료: {tokenstore}")
+    except Exception as e:
+        print(f"[garmin] 토큰 저장 실패 (동기화는 계속됨): {e}")
+
     return client
+
+
+def check_garmin_connection(config: dict) -> dict:
+    """Garmin 연결 상태 확인 (실제 API 호출 없이 로컬 상태만 검사).
+
+    Returns:
+        {"ok": bool, "status": str, "detail": str}
+    """
+    tokenstore = _tokenstore_path(config)
+    garmin_cfg = config.get("garmin", {})
+    has_email = bool(garmin_cfg.get("email"))
+    has_password = bool(garmin_cfg.get("password"))
+    has_tokenstore = tokenstore.exists()
+
+    if has_tokenstore:
+        # 토큰 파일 존재 여부로 판단 (실제 유효성은 sync 시 확인)
+        return {
+            "ok": True,
+            "status": "토큰 저장소 존재",
+            "tokenstore": str(tokenstore),
+            "detail": "garth 토큰 복구 가능. 만료 시 재로그인 필요.",
+        }
+    if has_email and has_password:
+        return {
+            "ok": True,
+            "status": "이메일/패스워드 설정됨",
+            "detail": "로그인 시 MFA가 요청될 수 있음. 로그인 후 토큰이 저장됩니다.",
+        }
+    return {
+        "ok": False,
+        "status": "미설정",
+        "detail": "이메일/패스워드 미설정 및 토큰 없음. /settings에서 연동하세요.",
+    }
 
 
 

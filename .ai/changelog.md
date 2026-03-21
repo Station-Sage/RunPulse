@@ -1,6 +1,61 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-21 (claude/fix-auth-integrations)
+
+### 4개 서비스 인증/동기화 수정 및 /settings 연동 UI
+
+**수정 원인 요약**
+- Garmin: 항상 이메일/패스워드 로그인 → MFA 매번 발생, garth tokenstore 미사용
+- Strava: API 엔드포인트 3개 오류 (`/athlete/activity_summaries`, `/activity_summaries/{id}`, 스트림), ad hoc config 파일 직접 쓰기
+- Intervals.icu: 엔드포인트 오류 (`/activity_summaries` → `/activities`)
+- Runalyze: 엔드포인트 2개 오류 (`/activity_summaries` → `/activities`, `/activity_summaries/{id}` → `/activity/{id}`)
+- config.py: save_config / update_service_config 헬퍼 없음
+
+**변경 파일**
+- `src/utils/config.py`
+  - `save_config(config, path)`: 전체 config 저장
+  - `update_service_config(service, updates, path)`: 서비스별 부분 업데이트
+  - `redact_config_for_display(config)`: 민감 필드 마스킹 (앞 4자리 + ***)
+- `src/sync/garmin.py`
+  - `_tokenstore_path(config)`: garth 토큰 저장 경로 결정
+  - `_login(config)`: 1단계 tokenstore 복구 → 2단계 이메일/패스워드 fallback → 토큰 저장
+  - `check_garmin_connection(config)`: 로컬 상태 기반 연결 확인
+- `src/sync/strava.py`
+  - 엔드포인트 3개 수정: `/athlete/activities`, `/activities/{id}`, `/activities/{id}/streams`
+  - `_refresh_token()`: ad hoc 파일 직접 쓰기 → `update_service_config()` 사용
+  - `check_strava_connection(config)`: 토큰 상태 기반 연결 확인
+- `src/sync/intervals.py`
+  - 엔드포인트 수정: `activity_summaries` → `activities`
+  - `check_intervals_connection(config)`: 실제 API 호출로 연결 확인 (401/404 상태 구분)
+- `src/sync/runalyze.py`
+  - 엔드포인트 2개 수정: `/activities`, `/activity/{id}`
+  - `check_runalyze_connection(config)`: 실제 API 호출로 연결 확인 (401/403/404 상태 구분)
+- `src/web/views_settings.py` (신규)
+  - `/settings`: 4개 서비스 연동 상태 개요
+  - `/connect/garmin` GET/POST: 이메일/패스워드 저장 + 연결 테스트
+  - `/connect/strava` GET + `/connect/strava/save-app` POST + `/connect/strava/oauth-start` + `/connect/strava/callback`: OAuth2 전체 플로우
+  - `/connect/intervals` GET/POST: API 키 저장 + 연결 테스트
+  - `/connect/runalyze` GET/POST: 토큰 저장 + 연결 테스트
+  - 각 서비스 `/connect/{service}/disconnect` POST: 연동 해제
+- `src/web/app.py`
+  - `settings_bp` Blueprint 등록
+  - nav에 "연동 설정" 링크 추가
+  - `/config`: `redact_config_for_display()` 사용, 4개 서비스 연결 상태 표시
+  - `/sync-status`: 실제 `check_*_connection()` 호출 기반 상태 표시, MFA 안내 추가
+- `src/web/helpers.py`: nav에 `/settings` 링크 추가
+
+**신규 테스트**
+- `tests/test_config_utils.py` — 11개 (save_config, update, redact)
+- `tests/test_auth_garmin.py` — 8개 (tokenstore, check, login mock)
+- `tests/test_auth_strava.py` — 7개 (엔드포인트, check_strava, refresh helper)
+- `tests/test_auth_intervals.py` — 8개 (엔드포인트, check_intervals, 에러 매핑)
+- `tests/test_auth_runalyze.py` — 9개 (엔드포인트, check_runalyze, 에러 매핑)
+- `tests/test_web_settings.py` — 25개 (모든 settings 라우트 통합 테스트)
+
+**테스트 결과**
+- `python -m pytest tests/ -q` → 451 passed
+
 ## 2026-03-21 (claude/phase4-1-ai-coach)
 - Phase 4-1 AI 코치 연동 완료
   - `src/ai/__init__.py` 생성

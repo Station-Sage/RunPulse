@@ -17,6 +17,7 @@ _NAV = [
     ("/analyze/race?date=2026-06-01&distance=42.195", "Race"),
     ("/db", "DB"),
     ("/payloads", "Payloads"),
+    ("/settings", "연동 설정"),
     ("/config", "Config"),
     ("/sync-status", "Sync"),
     ("/import-preview", "Import"),
