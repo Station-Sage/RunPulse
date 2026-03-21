@@ -1,0 +1,14 @@
+[
+  {
+    "id": "2026-03-18",
+    "sleepQuality": 4,
+    "sleepSecs": 28800,
+    "hrv": 42,
+    "restingHR": 50,
+    "readiness": null,
+    "ctl": 42.3,
+    "atl": 55.1,
+    "form": -12.8,
+    "rampRate": 1.5
+  }
+]

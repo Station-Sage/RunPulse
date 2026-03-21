@@ -1,0 +1,11 @@
+[
+  {
+    "id": "i790",
+    "start_date_local": "2026-03-21T07:10:00",
+    "distance": 8000,
+    "moving_time": 2500,
+    "name": "Easy Run",
+    "type": "Run",
+    "icu_training_load": 72
+  }
+]
