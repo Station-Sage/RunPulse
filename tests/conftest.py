@@ -3,14 +3,15 @@
 import sqlite3
 import pytest
 
-from src.db_setup import create_tables
+from src.db_setup import create_tables, migrate_db
 
 
 @pytest.fixture
 def db_conn():
-    """인메모리 SQLite DB에 테이블 생성 후 연결 반환."""
+    """인메모리 SQLite DB에 테이블 생성 + 마이그레이션 후 연결 반환."""
     conn = sqlite3.connect(":memory:")
     create_tables(conn)
+    migrate_db(conn)
     yield conn
     conn.close()
 

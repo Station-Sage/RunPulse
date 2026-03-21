@@ -5,6 +5,7 @@ import sqlite3
 
 import pytest
 
+from src.db_setup import create_tables, migrate_db
 from src.web.app import create_app
 
 
@@ -12,27 +13,17 @@ from src.web.app import create_app
 def app_client(tmp_path, monkeypatch):
     db_file = tmp_path / "test_activities.db"
 
-    # DB 초기화
+    # DB 초기화 (전체 스키마)
     conn = sqlite3.connect(str(db_file))
-    conn.execute("""
-        CREATE TABLE activity_summaries (
-            id INTEGER PRIMARY KEY,
-            source TEXT,
-            activity_type TEXT,
-            start_time TEXT,
-            distance_km REAL,
-            duration_sec INTEGER,
-            avg_pace_sec_km INTEGER,
-            avg_hr INTEGER
-        )
-    """)
+    create_tables(conn)
+    migrate_db(conn)
     conn.execute("""
         INSERT INTO activity_summaries
-        (id, source, activity_type, start_time, distance_km, duration_sec, avg_pace_sec_km, avg_hr)
+        (source, source_id, activity_type, start_time, distance_km, duration_sec, avg_pace_sec_km, avg_hr)
         VALUES
-        (1, 'garmin', 'running', '2026-03-21T07:00:00', 10.5, 3600, 343, 148),
-        (2, 'strava', 'running', '2026-03-20T06:30:00', 5.0, 1500, 300, 155),
-        (3, 'garmin', 'running', '2026-03-15T08:00:00', 21.1, 7200, 341, 152)
+        ('garmin', 'g1', 'running', '2026-03-21T07:00:00', 10.5, 3600, 343, 148),
+        ('strava', 's1', 'running', '2026-03-20T06:30:00', 5.0, 1500, 300, 155),
+        ('garmin', 'g2', 'running', '2026-03-15T08:00:00', 21.1, 7200, 341, 152)
     """)
     conn.commit()
     conn.close()
@@ -117,7 +108,7 @@ class TestActivitiesRoute:
         """필터 폼 렌더링 확인."""
         resp = app_client.get("/activities")
         body = resp.data.decode()
-        assert "<select name='source'>" in body
+        assert "<select name='source'" in body
         assert "type='date'" in body
 
     def test_nav_contains_activities_link(self, app_client):

@@ -18,6 +18,8 @@ def app_client(tmp_path, monkeypatch):
     db_file = tmp_path / "running_test.db"
     conn = sqlite3.connect(str(db_file))
     create_tables(conn)
+    from src.db_setup import migrate_db
+    migrate_db(conn)
     conn.close()
 
     # Blueprint는 helpers에서 직접 import하므로 각 모듈에서 패치해야 함
