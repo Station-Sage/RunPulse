@@ -54,13 +54,13 @@
 - [x] P4-3: src/training/adjuster.py - 컨디션 기반 당일 계획 조정
 - [x] P4-4: src/plan.py - CLI 진입점
 
-## Phase 4-1: AI 코치 연동
-- [ ] P4-1-1: src/ai/ai_context.py - 분석 데이터를 AI 프롬프트 컨텍스트로 변환
-- [ ] P4-1-2: src/ai/ai_schema.py - AI 훈련 계획 JSON 스키마 정의 및 검증
-- [ ] P4-1-3: src/ai/ai_parser.py - AI 응답에서 훈련 계획 JSON 추출 및 파싱
-- [ ] P4-1-4: src/ai/briefing.py - AI 코치 탭 진입 시 자동 브리핑 (오늘/이번주 데이터 수집 + 프롬프트 조립)
-- [ ] P4-1-5: src/ai/suggestions.py - 추천 칩 생성 (규칙 기반 + AI 응답 파싱 하이브리드)
-- [ ] P4-1-6: src/ai/prompt_templates/ - 프롬프트 템플릿 파일들 (briefing, deep_analysis, race_predict 등 10종)
+## Phase 4-1: AI 코치 연동 (완료)
+- [x] P4-1-1: src/ai/ai_context.py - 분석 데이터를 AI 프롬프트 컨텍스트로 변환
+- [x] P4-1-2: src/ai/ai_schema.py - AI 훈련 계획 JSON 스키마 정의 및 검증
+- [x] P4-1-3: src/ai/ai_parser.py - AI 응답에서 훈련 계획 JSON 추출 및 파싱
+- [x] P4-1-4: src/ai/briefing.py - AI 코치 탭 진입 시 자동 브리핑 (오늘/이번주 데이터 수집 + 프롬프트 조립)
+- [x] P4-1-5: src/ai/suggestions.py - 추천 칩 생성 (규칙 기반 + AI 응답 파싱 하이브리드)
+- [x] P4-1-6: src/ai/prompt_templates/ - 프롬프트 템플릿 파일들 10종 (briefing, deep_analysis, weekly_plan, race_predict, recovery_advice, injury_risk, pace_zones, weekly_review, goal_setting, season_review)
 
 ## Phase 4-2: 가민 워크아웃 캘린더
 - [ ] P4-2-1: src/workout/workout_builder.py - AI JSON을 Garmin Typed Workout 모델로 변환
