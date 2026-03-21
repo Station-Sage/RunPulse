@@ -77,7 +77,7 @@
 - [x] P5-activity-nav: /activity/deep 이전/다음 활동 네비게이션 추가
 - [ ] P5-3: AI 코치 탭 (브리핑 자동 표시, 채팅 인터페이스, 추천 칩 플로팅, 붙여넣기 입력창)
 - [ ] P5-4: 훈련 계획 탭 (AI 생성 계획 승인/수정 UI, 캘린더 뷰, 가민 푸시 버튼)
-- [ ] P5-5: 설정 탭 - 서비스 연동 (Garmin SSO 팝업, Strava OAuth2 자동화, Intervals API Key, Runalyze Token)
+- [x] P5-5: 설정 탭 - 서비스 연동 — /settings + /connect/{garmin,strava,intervals,runalyze} Blueprint 구현 (토큰 저장, OAuth 콜백, API 키 폼, 연결 테스트)
 - [ ] P5-6: 설정 탭 - 사용자 프로필 (max_hr, threshold_pace, 주간 목표, 레이스 목표)
 - [ ] P5-7: 모바일 반응형 HTML + 다크 모드
 
@@ -99,6 +99,7 @@
 - 2026-03-21: Phase 5 UI 1차 완료 — /wellness, /activity/deep 라우트 신설, 홈 대시보드 개선, 신규 테스트 38개 (누적 304개)
 - 2026-03-21: Phase 5 UI 2차 완료 — /activities 탭 신설, /wellness 체중/걸음수 카드, 전체 테스트 316개 통과
 - 2026-03-21: Phase 5 UI 3차 완료 — /activity/deep 이전/다음 활동 네비게이션, 전체 테스트 319개 통과
+- 2026-03-21: 4개 서비스 인증/엔드포인트 수정 완료 — Garmin 토큰 우선 인증, Strava/Intervals/Runalyze 엔드포인트 버그 수정, /settings 연동 UI, 신규 테스트 68개 (누적 451개)
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 

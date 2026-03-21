@@ -10,12 +10,17 @@ from pathlib import Path
 from flask import Flask, request
 
 from src.analysis import generate_report
-from src.utils.config import load_config
+from src.utils.config import load_config, redact_config_for_display
+from src.sync.garmin import check_garmin_connection
+from src.sync.strava import check_strava_connection
+from src.sync.intervals import check_intervals_connection
+from src.sync.runalyze import check_runalyze_connection
 
 # Phase 5 Blueprint imports
 from .views_wellness import wellness_bp
 from .views_activity import activity_bp
 from .views_activities import activities_bp
+from .views_settings import settings_bp
 
 
 def _project_root() -> Path:
@@ -115,6 +120,7 @@ def _html_page(title: str, body: str) -> str:
     <a href="/analyze/race?date=2026-06-01&distance=42.195">Race</a>
     <a href="/db">DB</a>
     <a href="/payloads">Payloads</a>
+    <a href="/settings">연동 설정</a>
     <a href="/config">Config</a>
     <a href="/sync-status">Sync</a>
     <a href="/import-preview">Import</a>
@@ -417,28 +423,43 @@ def create_app() -> Flask:
     def config_summary():
         config = load_config()
         db_path = _db_path()
+        redacted = redact_config_for_display(config)
+
+        garmin_status = check_garmin_connection(config)
+        strava_status = check_strava_connection(config)
+        intervals_status = check_intervals_connection(config)
+        runalyze_status = check_runalyze_connection(config)
+
+        def _status_cell(s: dict) -> str:
+            icon = "✅" if s["ok"] else "❌"
+            return f"{icon} {html.escape(s['status'])}"
 
         rows = [
             ("database.path", str(db_path), _bool_text(db_path.exists())),
-            ("garmin configured", "email/password", _bool_text(bool(config.get("garmin")))),
-            ("strava configured", "oauth fields", _bool_text(bool(config.get("strava")))),
-            ("intervals configured", "athlete_id/api_key", _bool_text(bool(config.get("intervals")))),
-            ("runalyze configured", "token", _bool_text(bool(config.get("runalyze")))),
+            ("garmin", "tokenstore / email", _status_cell(garmin_status)),
+            ("strava", "client_id / refresh_token", _status_cell(strava_status)),
+            ("intervals", "athlete_id / api_key", _status_cell(intervals_status)),
+            ("runalyze", "token", _status_cell(runalyze_status)),
             ("user config", "max_hr / threshold_pace / weekly target", _bool_text(bool(config.get("user")))),
             ("ai config", "provider / prompt language", _bool_text(bool(config.get("ai")))),
         ]
 
+        import json as _json
         body = (
             f"<p class='muted'>Project root: {html.escape(str(_project_root()))}</p>"
             + f"<p class='muted'>Resolved DB path: {html.escape(str(db_path))}</p>"
-            + "<h2>Configuration Summary</h2>"
-            + _table(["item", "detail", "present"], rows)
+            + "<h2>연동 상태</h2>"
+            + _table(["항목", "필드", "상태"], rows)
+            + f"<p><a href='/settings'>→ 연동 설정 페이지</a></p>"
+            + "<h2>설정 내용 (민감정보 마스킹)</h2>"
+            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
             + """
             <div class="card">
               <h2>메모</h2>
               <ul>
-                <li>여기서는 민감정보 값을 노출하지 않고, 설정 존재 여부만 표시합니다.</li>
+                <li>패스워드/토큰은 앞 4자리만 표시됩니다.</li>
                 <li><code>config.json</code>이 없으면 기본값 기반으로 동작합니다.</li>
+                <li>서비스 연동은 <a href='/settings'>/settings</a>에서 UI로 설정하거나 <code>config.json</code>을 직접 편집하세요.</li>
               </ul>
             </div>
             """
@@ -492,22 +513,27 @@ data/history/strava/</pre>
     def sync_status():
         config = load_config()
 
-        def present_dict(key: str) -> bool:
-            value = config.get(key)
-            return isinstance(value, dict) and bool(value)
+        garmin_st = check_garmin_connection(config)
+        strava_st = check_strava_connection(config)
+        intervals_st = check_intervals_connection(config)
+        runalyze_st = check_runalyze_connection(config)
+
+        def _row(service: str, status: dict) -> tuple:
+            icon = "✅" if status["ok"] else "❌"
+            return (service, f"{icon} {status['status']}", status.get("detail", ""))
 
         rows = [
-            ("garmin", "email / password", _bool_text(present_dict("garmin"))),
-            ("strava", "client_id / client_secret / refresh_token", _bool_text(present_dict("strava"))),
-            ("intervals", "athlete_id / api_key", _bool_text(present_dict("intervals"))),
-            ("runalyze", "token", _bool_text(present_dict("runalyze"))),
+            _row("Garmin Connect", garmin_st),
+            _row("Strava", strava_st),
+            _row("Intervals.icu", intervals_st),
+            _row("Runalyze", runalyze_st),
         ]
 
         body = (
             "<div class='card'>"
-            "<h2>설정 상태</h2>"
-            "<p>민감정보 값 자체는 노출하지 않고, 각 서비스 설정 존재 여부만 표시합니다.</p>"
-            + _table(["source", "required fields", "configured"], rows)
+            "<h2>서비스 연동 상태</h2>"
+            "<p>실제 인증 상태 기반 표시입니다. 연동이 필요하면 <a href='/settings'>설정 페이지</a>로 이동하세요.</p>"
+            + _table(["서비스", "상태", "상세"], rows)
             + "</div>"
             + """
             <div class="card">
@@ -519,12 +545,10 @@ python src/sync.py --source runalyze --days 28
 python src/sync.py --source all --days 7</pre>
             </div>
             <div class="card">
-              <h2>메모</h2>
-              <ul>
-                <li>제품 사용 플로우 관점에서는 최근 데이터는 API sync가 우선입니다.</li>
-                <li>과거 데이터 백필은 export import로 보완하는 전략이 적합합니다.</li>
-                <li>설정이 없는 서비스는 먼저 <code>config.json</code>을 채운 뒤 sync를 시도합니다.</li>
-              </ul>
+              <h2>Garmin MFA 안내</h2>
+              <p>Garmin 로그인 시 MFA(이중 인증)가 요청되면 Garmin 앱 또는 이메일에서 승인하세요.</p>
+              <p>로그인 성공 후 토큰이 저장되면 이후 sync 시 MFA 없이 복구됩니다.</p>
+              <p><a href='/connect/garmin'>Garmin 연동 설정 →</a></p>
             </div>
             """
         )
@@ -893,9 +917,10 @@ python src/import_history.py data/history/strava --source strava -r</pre>
         body = f"<pre>{html.escape(output)}</pre>"
         return _html_page(f"Analyze Preview: {report_type}", body)
 
-    # ── Phase 5 Blueprint 등록 ─────────────────────────────────────────
+    # ── Blueprint 등록 ─────────────────────────────────────────────────
     app.register_blueprint(wellness_bp)
     app.register_blueprint(activity_bp)
     app.register_blueprint(activities_bp)
+    app.register_blueprint(settings_bp)  # 서비스 연동 설정
 
     return app

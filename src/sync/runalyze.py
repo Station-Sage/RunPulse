@@ -79,7 +79,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
     headers = _headers(config)
     cutoff = datetime.now() - timedelta(days=days)
 
-    activity_summaries = api.get(f"{_BASE_URL}/activity_summaries", headers=headers)
+    # 올바른 Runalyze API 엔드포인트: /activities (activity_summaries 아님)
+    activity_summaries = api.get(f"{_BASE_URL}/activities", headers=headers)
     count = 0
 
     for act in activity_summaries:
@@ -127,7 +128,8 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         # 상세 지표 조회
         try:
-            detail = api.get(f"{_BASE_URL}/activity_summaries/{source_id}", headers=headers)
+            # 올바른 Runalyze 단일 활동 엔드포인트: /activity/{id}
+            detail = api.get(f"{_BASE_URL}/activity/{source_id}", headers=headers)
 
             evo2max = detail.get("vo2max")
             vdot = detail.get("vdot")
@@ -176,3 +178,51 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     conn.commit()
     return count
+
+
+def check_runalyze_connection(config: dict) -> dict:
+    """Runalyze 연결 상태를 실제 API 호출로 확인.
+
+    Returns:
+        {"ok": bool, "status": str, "detail": str}
+    """
+    runalyze_cfg = config.get("runalyze", {})
+    token = runalyze_cfg.get("token", "")
+
+    if not token:
+        return {
+            "ok": False,
+            "status": "토큰 없음",
+            "detail": "API 토큰 미설정. /settings에서 입력하세요.",
+        }
+
+    # 최근 활동 1건 조회로 토큰 유효성 확인
+    try:
+        result = api.get(
+            f"{_BASE_URL}/activities",
+            headers={"token": token},
+            params={"limit": 1},
+            timeout=10,
+        )
+        count = len(result) if isinstance(result, list) else 0
+        return {
+            "ok": True,
+            "status": "연결됨",
+            "detail": f"토큰 유효. 활동 데이터 접근 가능.",
+        }
+    except api.ApiError as e:
+        if e.status_code in (401, 403):
+            return {
+                "ok": False,
+                "status": "토큰 오류",
+                "detail": f"인증 실패 ({e.status_code}). 토큰을 확인하거나 재발급하세요.",
+            }
+        if e.status_code == 404:
+            return {
+                "ok": False,
+                "status": "엔드포인트 불일치",
+                "detail": f"API 엔드포인트를 찾을 수 없습니다 (404).",
+            }
+        return {"ok": False, "status": "연결 실패", "detail": str(e)}
+    except Exception as e:
+        return {"ok": False, "status": "연결 오류", "detail": str(e)}

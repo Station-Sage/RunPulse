@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from src.utils import api
+from src.utils.config import update_service_config
 from src.utils.dedup import assign_group_id
 
 
@@ -50,14 +51,15 @@ def _refresh_token(config: dict) -> str:
     strava["refresh_token"] = result["refresh_token"]
     strava["expires_at"] = result["expires_at"]
 
-    # config.json에 업데이트 저장
-    config_path = Path(__file__).resolve().parent.parent.parent / "config.json"
-    if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            full = json.load(f)
-        full["strava"] = strava
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(full, f, indent=2, ensure_ascii=False)
+    # 공유 헬퍼로 config.json 업데이트 (ad hoc 파일 직접 쓰기 제거)
+    try:
+        update_service_config("strava", {
+            "access_token": strava["access_token"],
+            "refresh_token": strava["refresh_token"],
+            "expires_at": strava["expires_at"],
+        })
+    except Exception as e:
+        print(f"[strava] 토큰 저장 실패 (동기화는 계속됨): {e}")
 
     return strava["access_token"]
 
@@ -106,7 +108,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     while True:
         activity_summaries = api.get(
-            f"{_BASE_URL}/athlete/activity_summaries",
+            f"{_BASE_URL}/athlete/activities",
             headers=headers,
             params={"after": after, "per_page": 30, "page": page},
         )
@@ -154,7 +156,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
             # 상세 조회 (suffer_score + best_efforts)
             try:
-                detail = api.get(f"{_BASE_URL}/activity_summaries/{source_id}", headers=headers)
+                detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
 
                 suffer_score = detail.get("suffer_score")
                 if suffer_score is not None:
@@ -181,7 +183,7 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
             # 스트림 저장
             try:
                 streams = api.get(
-                    f"{_BASE_URL}/activity_summaries/{source_id}/streams",
+                    f"{_BASE_URL}/activities/{source_id}/streams",
                     headers=headers,
                     params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
                 )
@@ -206,3 +208,47 @@ def sync_activities(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
     conn.commit()
     return count
+
+
+def check_strava_connection(config: dict) -> dict:
+    """Strava 연결 상태 확인.
+
+    Returns:
+        {"ok": bool, "status": str, "detail": str}
+    """
+    import time as _time
+    strava = config.get("strava", {})
+    has_client = bool(strava.get("client_id") and strava.get("client_secret"))
+    has_refresh = bool(strava.get("refresh_token"))
+    access_token = strava.get("access_token")
+    expires_at = strava.get("expires_at", 0)
+
+    if not has_client:
+        return {
+            "ok": False,
+            "status": "설정 누락",
+            "detail": "client_id / client_secret 미설정. /settings에서 연동하세요.",
+        }
+    if not has_refresh:
+        return {
+            "ok": False,
+            "status": "재연동 필요",
+            "detail": "refresh_token 없음. /connect/strava에서 OAuth 연동을 완료하세요.",
+        }
+    if not access_token:
+        return {
+            "ok": True,
+            "status": "갱신 필요",
+            "detail": "access_token 없음. 다음 sync 시 자동 갱신됩니다.",
+        }
+    if expires_at and expires_at < _time.time():
+        return {
+            "ok": True,
+            "status": "토큰 만료",
+            "detail": "access_token 만료. 다음 sync 시 자동 갱신됩니다.",
+        }
+    return {
+        "ok": True,
+        "status": "연결됨",
+        "detail": f"토큰 유효. 만료: {expires_at}",
+    }
