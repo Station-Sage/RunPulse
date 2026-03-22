@@ -28,6 +28,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
             calories INTEGER,
             description TEXT,
             matched_group_id TEXT,
+            -- v0.2: 위치·날씨·FEARP 계산에 필요
+            start_lat REAL,
+            start_lon REAL,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -131,7 +134,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS planned_workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
-            workout_type TEXT NOT NULL CHECK(workout_type IN ('easy', 'tempo', 'interval', 'long', 'rest')),
+            workout_type TEXT NOT NULL CHECK(workout_type IN ('easy', 'tempo', 'interval', 'long', 'rest', 'recovery', 'race')),
             distance_km REAL,
             target_pace_min INTEGER,
             target_pace_max INTEGER,
@@ -155,6 +158,26 @@ def create_tables(conn: sqlite3.Connection) -> None:
             status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'cancelled')),
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- v0.2: 활동별 랩 스플릿 데이터 (DARP 페이스 전략, 분할 분석)
+        CREATE TABLE IF NOT EXISTS activity_laps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            lap_index INTEGER NOT NULL,
+            start_time TEXT,
+            distance_km REAL,
+            duration_sec INTEGER,
+            avg_pace_sec_km INTEGER,
+            avg_hr INTEGER,
+            max_hr INTEGER,
+            avg_cadence INTEGER,
+            elevation_gain REAL,
+            avg_power REAL,
+            UNIQUE(activity_id, source, lap_index)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_laps_activity
+            ON activity_laps(activity_id);
 
         -- 분석용 정규화 뷰: 동일 활동 그룹에서 소스 우선순위(garmin>strava>intervals>runalyze)로
         -- 대표 1행만 반환. 중복 집계 방지. 분석 쿼리에서 activity_summaries 대신 이 뷰 사용.
@@ -200,6 +223,42 @@ def create_tables(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_sync_jobs_service
             ON sync_jobs(service, created_at);
+
+        -- v0.2: RunPulse 계산 메트릭 저장 (UTRS, CIRS, LSI, FEARP 등)
+        -- activity_id NULL = 일별 범위, NOT NULL = 활동 범위
+        CREATE TABLE IF NOT EXISTS computed_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            activity_id INTEGER REFERENCES activity_summaries(id),
+            metric_name TEXT NOT NULL,
+            metric_value REAL,
+            metric_json TEXT,
+            computed_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, activity_id, metric_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_computed_metrics_date
+            ON computed_metrics(date);
+        CREATE INDEX IF NOT EXISTS idx_computed_metrics_activity
+            ON computed_metrics(activity_id, metric_name);
+
+        -- v0.2: 날씨 데이터 캐시 (Open-Meteo, 무료)
+        CREATE TABLE IF NOT EXISTS weather_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            hour INTEGER NOT NULL DEFAULT 12,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            temp_c REAL,
+            feels_like_c REAL,
+            humidity_pct INTEGER,
+            wind_speed_ms REAL,
+            precipitation_mm REAL,
+            cloudcover_pct INTEGER,
+            fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, hour, latitude, longitude)
+        );
+        CREATE INDEX IF NOT EXISTS idx_weather_data_date
+            ON weather_data(date, latitude, longitude);
     """)
 
 
@@ -296,6 +355,9 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE activity_summaries ADD COLUMN avg_power REAL",
         "ALTER TABLE activity_summaries ADD COLUMN export_filename TEXT",
         "ALTER TABLE activity_summaries ADD COLUMN workout_label TEXT",
+        # v0.2: FEARP 날씨 조회용 위치
+        "ALTER TABLE activity_summaries ADD COLUMN start_lat REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN start_lon REAL",
     ]:
         try:
             conn.execute(stmt)
@@ -373,6 +435,61 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_sync_jobs_service
             ON sync_jobs(service, created_at);
+    """)
+
+    # v0.2 신규 테이블 (IF NOT EXISTS이므로 안전)
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS activity_laps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            lap_index INTEGER NOT NULL,
+            start_time TEXT,
+            distance_km REAL,
+            duration_sec INTEGER,
+            avg_pace_sec_km INTEGER,
+            avg_hr INTEGER,
+            max_hr INTEGER,
+            avg_cadence INTEGER,
+            elevation_gain REAL,
+            avg_power REAL,
+            UNIQUE(activity_id, source, lap_index)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_laps_activity
+            ON activity_laps(activity_id);
+
+        CREATE TABLE IF NOT EXISTS computed_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            activity_id INTEGER REFERENCES activity_summaries(id),
+            metric_name TEXT NOT NULL,
+            metric_value REAL,
+            metric_json TEXT,
+            computed_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, activity_id, metric_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_computed_metrics_date
+            ON computed_metrics(date);
+        CREATE INDEX IF NOT EXISTS idx_computed_metrics_activity
+            ON computed_metrics(activity_id, metric_name);
+
+        CREATE TABLE IF NOT EXISTS weather_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            hour INTEGER NOT NULL DEFAULT 12,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            temp_c REAL,
+            feels_like_c REAL,
+            humidity_pct INTEGER,
+            wind_speed_ms REAL,
+            precipitation_mm REAL,
+            cloudcover_pct INTEGER,
+            fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(date, hour, latitude, longitude)
+        );
+        CREATE INDEX IF NOT EXISTS idx_weather_data_date
+            ON weather_data(date, latitude, longitude);
     """)
 
     conn.commit()
