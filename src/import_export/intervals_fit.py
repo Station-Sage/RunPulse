@@ -19,6 +19,18 @@ except ImportError as e:
     raise ImportError("fitparse 라이브러리 필요: pip install fitparse") from e
 
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import update_changed_fields
+
+# ── FIT → activity_detail_metrics 매핑 ───────────────────────────────────
+_INTERVALS_FIT_DETAIL_METRICS: list[tuple[str, str]] = [
+    ("normalized_power",      "normalized_power"),
+    ("training_stress_score", "tss"),
+    ("max_power",             "max_power"),
+    ("lap_count",             "num_laps"),
+    ("max_speed",             "max_speed"),
+    ("elevation_loss",        "elevation_loss"),
+    ("avg_run_cadence",       "avg_cadence"),
+]
 
 # ── sport 필드 → 내부 activity_type 매핑 ─────────────────────────────────
 _SPORT_MAP: dict[str, str] = {
@@ -156,6 +168,26 @@ def _parse_fit(fit_path: Path) -> dict[str, Any] | None:
 
 # ── DB 적재 ──────────────────────────────────────────────────────────────
 
+def _upsert_intervals_fit_detail_metrics(
+    conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
+) -> None:
+    """FIT 파싱 데이터 → activity_detail_metrics INSERT/UPDATE."""
+    for metric_name, parsed_key in _INTERVALS_FIT_DETAIL_METRICS:
+        val = parsed.get(parsed_key)
+        if val is None:
+            continue
+        conn.execute(
+            "DELETE FROM activity_detail_metrics "
+            "WHERE activity_id=? AND source='intervals' AND metric_name=?",
+            (activity_id, metric_name),
+        )
+        conn.execute(
+            "INSERT INTO activity_detail_metrics "
+            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
+            (activity_id, "intervals", metric_name, float(val)),
+        )
+
+
 def import_intervals_fit(
     conn: sqlite3.Connection,
     fit_path: Path,
@@ -208,6 +240,21 @@ def import_intervals_fit(
         return {"inserted": 0, "skipped": 0, "errors": 1}
 
     if cursor.rowcount == 0:
+        # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
+        existing_id = update_changed_fields(conn, "intervals", source_id, {
+            "distance_km": parsed.get("distance_km"),
+            "duration_sec": parsed.get("duration_sec"),
+            "avg_pace_sec_km": parsed.get("avg_pace_sec_km"),
+            "avg_hr": parsed.get("avg_hr"),
+            "max_hr": parsed.get("max_hr"),
+            "avg_cadence": parsed.get("avg_cadence"),
+            "elevation_gain": parsed.get("elevation_gain"),
+            "calories": parsed.get("calories"),
+            "avg_power": parsed.get("avg_power"),
+        })
+        if existing_id:
+            _upsert_intervals_fit_detail_metrics(conn, existing_id, parsed)
+        conn.commit()
         return {"inserted": 0, "skipped": 1, "errors": 0}
 
     activity_id = cursor.lastrowid
@@ -226,6 +273,7 @@ def import_intervals_fit(
     except sqlite3.Error:
         pass
 
+    _upsert_intervals_fit_detail_metrics(conn, activity_id, parsed)
     assign_group_id(conn, activity_id)
     conn.commit()
 

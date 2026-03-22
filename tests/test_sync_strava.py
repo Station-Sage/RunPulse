@@ -34,27 +34,31 @@ class TestRefreshToken:
 
 class TestSyncActivities:
     @patch("src.sync.strava.api.get")
-    def test_inserts_activity(self, mock_get, db_conn, sample_config):
+    @patch("src.sync.strava.api.get_with_headers")
+    def test_inserts_activity(self, mock_get_headers, mock_get, db_conn, sample_config):
         now = datetime.now().isoformat()
+        activity = {
+            "id": 456,
+            "start_date_local": now,
+            "distance": 10000,
+            "moving_time": 3000,
+            "average_heartrate": 152,
+            "max_heartrate": 178,
+            "average_cadence": 90,
+            "total_elevation_gain": 45,
+            "calories": 480,
+            "name": "Evening Run",
+            "type": "Run",
+        }
+        # get_with_headers returns (data, headers) tuple
+        mock_get_headers.return_value = ([activity], {})
         mock_get.side_effect = [
-            # 활동 목록
-            [{
-                "id": 456,
-                "start_date_local": now,
-                "distance": 10000,
-                "moving_time": 3000,
-                "average_heartrate": 152,
-                "max_heartrate": 178,
-                "average_cadence": 90,
-                "total_elevation_gain": 45,
-                "calories": 480,
-                "name": "Evening Run",
-                "type": "Run",
-            }],
-            # 상세
+            # 상세 (페이지 2 — 빈 목록으로 종료 트리거)
             {"suffer_score": 87},
             # 스트림
             [{"type": "heartrate", "data": [140, 150, 160]}],
+            # 빈 페이지 (루프 종료용)
+            [],
         ]
 
         with patch("src.sync.strava._refresh_token", return_value="at_test"):

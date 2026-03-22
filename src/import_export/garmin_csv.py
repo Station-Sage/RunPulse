@@ -16,6 +16,26 @@ from pathlib import Path
 from typing import Any
 
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import update_changed_fields
+
+# ── Garmin CSV → activity_detail_metrics 매핑 ────────────────────────────
+# (metric_name: DB 컬럼명, parsed_key: _parse_row() 반환 키)
+_GARMIN_DETAIL_METRICS: list[tuple[str, str]] = [
+    ("training_effect_aerobic",  "aerobic_te"),
+    ("avg_stride_length",        "avg_stride"),
+    ("avg_vertical_ratio",       "avg_vertical_ratio"),
+    ("avg_vertical_oscillation", "avg_vertical_oscillation"),
+    ("avg_ground_contact_time",  "avg_ground_contact"),
+    ("normalized_power",         "np_watts"),
+    ("training_stress_score",    "tss"),
+    ("max_power",                "max_power"),
+    ("steps",                    "steps"),
+    ("body_battery_drain",       "body_battery_drain"),
+    ("elevation_loss",           "elevation_loss"),
+    ("lap_count",                "lap_count"),
+    ("avg_run_cadence",          "avg_cadence"),
+    ("max_run_cadence",          "max_cadence"),
+]
 
 # ── 한국어 컬럼명 → 내부 필드명 매핑 ────────────────────────────────────
 _COL = {
@@ -72,6 +92,104 @@ _TYPE_MAP: dict[str, str] = {
     "요가": "yoga",
     "일립티컬": "elliptical",
 }
+
+
+# ── Detail Metrics 저장 헬퍼 ─────────────────────────────────────────────
+
+def _upsert_garmin_detail_metrics(
+    conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
+) -> None:
+    """CSV 파싱 데이터 → activity_detail_metrics INSERT/UPDATE.
+
+    이미 존재하는 metric은 값을 교체(DELETE+INSERT)하여 최신 CSV값으로 갱신한다.
+    """
+    for metric_name, parsed_key in _GARMIN_DETAIL_METRICS:
+        val = parsed.get(parsed_key)
+        if val is None:
+            continue
+        conn.execute(
+            "DELETE FROM activity_detail_metrics "
+            "WHERE activity_id=? AND source='garmin' AND metric_name=?",
+            (activity_id, metric_name),
+        )
+        conn.execute(
+            "INSERT INTO activity_detail_metrics "
+            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
+            (activity_id, "garmin", metric_name, float(val)),
+        )
+
+
+def backfill_garmin_detail_metrics(
+    conn: sqlite3.Connection,
+    csv_folder: Path | None = None,
+) -> dict[str, int]:
+    """raw_source_payloads에서 Garmin CSV activity_detail_metrics 역채움.
+
+    csv_folder가 주어지면 CSV를 직접 파싱(최신 필드 보장)한다.
+
+    Returns:
+        {"processed": n, "inserted_activities": n, "skipped": n}
+    """
+    stats: dict[str, int] = {"processed": 0, "inserted_activities": 0, "skipped": 0}
+
+    if csv_folder is not None and csv_folder.is_dir():
+        source_data: list[tuple[int, dict]] = []
+        for csv_path in sorted(csv_folder.glob("*.csv")):
+            try:
+                with open(csv_path, encoding="utf-8-sig") as f:
+                    raw_rows = list(csv.DictReader(f))
+            except Exception:
+                try:
+                    with open(csv_path, encoding="utf-8") as f:
+                        raw_rows = list(csv.DictReader(f))
+                except Exception:
+                    stats["skipped"] += 1
+                    continue
+            for raw in raw_rows:
+                try:
+                    parsed = _parse_row(raw)
+                except Exception:
+                    stats["skipped"] += 1
+                    continue
+                if not parsed.get("start_time"):
+                    continue
+                source_id = f"exp_{parsed['start_time']}"
+                row = conn.execute(
+                    "SELECT id FROM activity_summaries WHERE source='garmin' AND source_id=?",
+                    (source_id,),
+                ).fetchone()
+                if row:
+                    source_data.append((row[0], parsed))
+    else:
+        payload_rows = conn.execute(
+            "SELECT a.id, p.payload_json "
+            "FROM activity_summaries a "
+            "JOIN raw_source_payloads p ON p.activity_id = a.id "
+            "WHERE a.source = 'garmin' AND p.entity_type = 'csv_export'",
+        ).fetchall()
+        source_data = []
+        for activity_id, pj in payload_rows:
+            try:
+                source_data.append((activity_id, json.loads(pj)))
+            except Exception:
+                stats["skipped"] += 1
+
+    for activity_id, parsed in source_data:
+        before = conn.execute(
+            "SELECT COUNT(*) FROM activity_detail_metrics WHERE activity_id=? AND source='garmin'",
+            (activity_id,),
+        ).fetchone()[0]
+        _upsert_garmin_detail_metrics(conn, activity_id, parsed)
+        after = conn.execute(
+            "SELECT COUNT(*) FROM activity_detail_metrics WHERE activity_id=? AND source='garmin'",
+            (activity_id,),
+        ).fetchone()[0]
+        if after > before:
+            stats["inserted_activities"] += 1
+        stats["processed"] += 1
+
+    conn.commit()
+    return stats
 
 
 # ── 파싱 헬퍼 ────────────────────────────────────────────────────────────
@@ -247,6 +365,20 @@ def import_garmin_csv(
             continue
 
         if cursor.rowcount == 0:
+            # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
+            existing_id = update_changed_fields(conn, "garmin", source_id, {
+                "distance_km": parsed.get("distance_km"),
+                "duration_sec": parsed.get("duration_sec"),
+                "avg_pace_sec_km": parsed.get("avg_pace_sec_km"),
+                "avg_hr": parsed.get("avg_hr"),
+                "max_hr": parsed.get("max_hr"),
+                "avg_cadence": parsed.get("avg_cadence"),
+                "elevation_gain": parsed.get("elevation_gain"),
+                "calories": parsed.get("calories"),
+                "avg_power": parsed.get("avg_power"),
+            })
+            if existing_id:
+                _upsert_garmin_detail_metrics(conn, existing_id, parsed)
             skipped += 1
             continue
 
@@ -267,6 +399,7 @@ def import_garmin_csv(
         except sqlite3.Error:
             pass  # raw payload 실패는 무시
 
+        _upsert_garmin_detail_metrics(conn, activity_id, parsed)
         assign_group_id(conn, activity_id)
 
     conn.commit()

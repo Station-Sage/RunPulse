@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from src.utils import api
 from src.utils.dedup import assign_group_id
-from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 
 
@@ -152,8 +152,8 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
-            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
-            existing_id = fill_null_columns(conn, "runalyze", source_id, {
+            # 이미 존재 — 변경/누락 필드 업데이트 + raw payload merge
+            existing_id = update_changed_fields(conn, "runalyze", source_id, {
                 "avg_hr": act.get("heart_rate_avg") or act.get("pulse_avg"),
                 "max_hr": act.get("heart_rate_max") or act.get("pulse_max"),
                 "elevation_gain": act.get("elevation"),
