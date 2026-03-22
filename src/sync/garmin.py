@@ -670,8 +670,13 @@ def sync_wellness(
             bb = client.get_body_battery(date_str)
             _store_raw_payload(conn, "body_battery_day", date_str, bb)
             if bb and isinstance(bb, list) and bb:
-                vals = [item.get("bodyBatteryLevel", 0) for item in bb
-                        if item.get("bodyBatteryLevel") is not None]
+                item = bb[0]
+                bb_vals_array = item.get("bodyBatteryValuesArray") or []
+                # 각 원소: [timestamp_ms, level]
+                vals = [pair[1] for pair in bb_vals_array
+                        if len(pair) > 1 and pair[1] is not None]
+                charged = item.get("charged")
+                drained = item.get("drained")
                 body_battery = max(vals) if vals else None
 
                 if vals:
@@ -683,14 +688,20 @@ def sync_wellness(
                         "body_battery_samples": len(vals),
                         "body_battery_delta": vals[-1] - vals[0],
                     })
-                    detail_json_metrics["body_battery_timeline"] = bb
-                    detail_json_metrics["body_battery_summary_json"] = {
-                        "sample_count": len(vals),
-                        "min": min(vals),
-                        "max": max(vals),
-                        "start": vals[0],
-                        "end": vals[-1],
-                    }
+                if charged is not None:
+                    detail_metrics["body_battery_charged"] = charged
+                if drained is not None:
+                    detail_metrics["body_battery_drained"] = drained
+                detail_json_metrics["body_battery_timeline"] = bb_vals_array
+                detail_json_metrics["body_battery_summary_json"] = {
+                    "sample_count": len(vals),
+                    "min": min(vals) if vals else None,
+                    "max": max(vals) if vals else None,
+                    "start": vals[0] if vals else None,
+                    "end": vals[-1] if vals else None,
+                    "charged": charged,
+                    "drained": drained,
+                }
         except Exception as e:
             print(f"[garmin] Body Battery 실패 {date_str}: {e}")
 
@@ -703,6 +714,36 @@ def sync_wellness(
                 if stress_avg is None:
                     stress_avg = stress.get("avgStressLevel")
 
+                stress_values = stress.get("stressValuesArray") or stress.get("stressTimeline")
+
+                # API가 직접 제공하지 않을 경우 stressValuesArray에서 계산
+                # 각 샘플: [timestamp_ms, stress_level], 간격 약 3분 (180초)
+                # stress level: -1=unknown, 0-25=rest, 26-50=low, 51-75=medium, 76-100=high
+                def _compute_stress_durations(vals: list) -> dict:
+                    if not vals or len(vals) < 2:
+                        return {}
+                    interval_sec = (vals[1][0] - vals[0][0]) / 1000
+                    rest = low = medium = high = 0
+                    for _, lvl in vals:
+                        if lvl is None or lvl < 0:
+                            continue
+                        if lvl <= 25:
+                            rest += interval_sec
+                        elif lvl <= 50:
+                            low += interval_sec
+                        elif lvl <= 75:
+                            medium += interval_sec
+                        else:
+                            high += interval_sec
+                    return {
+                        "stress_rest_duration": int(rest) if rest else None,
+                        "stress_low_duration": int(low) if low else None,
+                        "stress_medium_duration": int(medium) if medium else None,
+                        "stress_high_duration": int(high) if high else None,
+                    }
+
+                # API 직접 제공값 우선, 없으면 계산값
+                computed = _compute_stress_durations(stress_values or [])
                 detail_metrics.update({
                     "stress_avg": stress_avg,
                     "stress_max": (
@@ -712,22 +753,25 @@ def sync_wellness(
                     "stress_rest_duration": (
                         stress.get("restStressDuration")
                         or stress.get("restDuration")
+                        or computed.get("stress_rest_duration")
                     ),
                     "stress_low_duration": (
                         stress.get("lowStressDuration")
                         or stress.get("lowDuration")
+                        or computed.get("stress_low_duration")
                     ),
                     "stress_medium_duration": (
                         stress.get("mediumStressDuration")
                         or stress.get("mediumDuration")
+                        or computed.get("stress_medium_duration")
                     ),
                     "stress_high_duration": (
                         stress.get("highStressDuration")
                         or stress.get("highDuration")
+                        or computed.get("stress_high_duration")
                     ),
                 })
 
-                stress_values = stress.get("stressValuesArray") or stress.get("stressTimeline")
                 if stress_values is not None:
                     detail_json_metrics["stress_timeline"] = stress_values
 

@@ -20,6 +20,45 @@ from src.utils.dedup import auto_group_all
 merge_bp = Blueprint("activity_merge", __name__)
 
 
+def _fetch_strava_details_for_group(conn: sqlite3.Connection, ids: list[int]) -> None:
+    """그룹 내 Strava 활동 중 상세 지표 미수집 건을 즉시 취득.
+
+    merge 직후 호출하여 활동 심층 분석에 Strava 데이터가 바로 표시되도록 한다.
+    Strava 토큰이 없거나 API 오류 시 조용히 건너뜀.
+    """
+    try:
+        from src.utils.config import load_config
+        from src.sync.strava import _refresh_token, _fetch_and_store_strava_detail
+        config = load_config()
+        if not config.get("strava", {}).get("refresh_token"):
+            return
+        token = _refresh_token(config)
+        if not token:
+            return
+        headers = {"Authorization": f"Bearer {token}"}
+    except Exception:
+        return
+
+    for act_id in ids:
+        row = conn.execute(
+            "SELECT source, source_id FROM activity_summaries WHERE id = ?",
+            (act_id,),
+        ).fetchone()
+        if not row or row[0] != "strava":
+            continue
+        has_detail = conn.execute(
+            "SELECT 1 FROM activity_detail_metrics "
+            "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
+            (act_id,),
+        ).fetchone()
+        if not has_detail:
+            try:
+                _fetch_and_store_strava_detail(conn, row[1], act_id, headers)
+            except Exception:
+                pass
+    conn.commit()
+
+
 def _json_response(data: dict, status: int = 200) -> Response:
     return Response(json.dumps(data, ensure_ascii=False), status=status, mimetype="application/json")
 
@@ -44,6 +83,7 @@ def activities_merge():
     try:
         with sqlite3.connect(str(dpath)) as conn:
             group_id = assign_group_to_activities(conn, ids)
+            _fetch_strava_details_for_group(conn, ids)
     except Exception as exc:
         return _json_response({"ok": False, "error": str(exc)}, 500)
 

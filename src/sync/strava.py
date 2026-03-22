@@ -127,6 +127,89 @@ def _parse_rate_limit(resp_headers: dict) -> dict:
     return state
 
 
+def _fetch_and_store_strava_detail(
+    conn: sqlite3.Connection,
+    source_id: str,
+    activity_id: int,
+    headers: dict,
+) -> None:
+    """Strava 활동 상세 지표(suffer_score, best_efforts, extra metrics, stream) 취득 및 저장.
+
+    신규 활동 + 기존 활동 중 detail 누락 시 모두 호출.
+    """
+    try:
+        detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+        _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
+
+        suffer_score = detail.get("suffer_score")
+        if suffer_score is not None:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_value)
+                   VALUES (?, 'strava', 'relative_effort', ?)""",
+                (activity_id, float(suffer_score)),
+            )
+
+        best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
+        if best_efforts:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'strava', 'best_efforts', ?)""",
+                (activity_id, json.dumps(best_efforts)),
+            )
+
+        extra_metrics = {
+            "moving_time_sec": detail.get("moving_time"),
+            "elapsed_time_sec": detail.get("elapsed_time"),
+            "max_speed_mps": detail.get("max_speed"),
+            "average_speed_mps": detail.get("average_speed"),
+            "elev_high_m": detail.get("elev_high"),
+            "elev_low_m": detail.get("elev_low"),
+            "avg_grade_pct": detail.get("average_grade"),
+            "max_grade_pct": detail.get("max_grade"),
+            "total_steps": detail.get("total_steps"),
+            "device_watts": detail.get("device_watts"),
+        }
+        for mname, mval in extra_metrics.items():
+            if mval is not None:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'strava', ?, ?)""",
+                    (activity_id, mname, float(mval)),
+                )
+    except api.ApiError as e:
+        if e.status_code == 429:
+            print(f"[strava] ⚠️ rate limit — 상세 조회 중단 (source_id={source_id})")
+            from src.utils.sync_state import set_retry_after
+            set_retry_after("strava", 900)
+        else:
+            print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+    except Exception as e:
+        print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+
+    # 스트림 저장
+    try:
+        streams = api.get(
+            f"{_BASE_URL}/activities/{source_id}/streams",
+            headers=headers,
+            params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
+        )
+        _STREAMS_DIR.mkdir(parents=True, exist_ok=True)
+        stream_path = _STREAMS_DIR / f"{source_id}.json"
+        with open(stream_path, "w", encoding="utf-8") as f:
+            json.dump(streams, f)
+        conn.execute(
+            """INSERT OR IGNORE INTO activity_detail_metrics
+               (activity_id, source, metric_name, metric_json)
+               VALUES (?, 'strava', 'stream_file', ?)""",
+            (activity_id, str(stream_path)),
+        )
+    except Exception as e:
+        print(f"[strava] 스트림 저장 실패 {source_id}: {e}")
+
+
 def sync_activities(
     config: dict,
     conn: sqlite3.Connection,
@@ -245,6 +328,17 @@ def sync_activities(
                 })
                 if existing_id:
                     _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
+                    # 상세 지표가 누락된 경우 재취득 (이전 sync에서 rate limit으로 건너뜀 등)
+                    if not skip_expensive:
+                        has_detail = conn.execute(
+                            "SELECT 1 FROM activity_detail_metrics "
+                            "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
+                            (existing_id,),
+                        ).fetchone()
+                        if not has_detail:
+                            _fetch_and_store_strava_detail(
+                                conn, source_id, existing_id, headers
+                            )
                 continue
 
             activity_id = cursor.lastrowid
@@ -280,6 +374,28 @@ def sync_activities(
                            VALUES (?, 'strava', 'best_efforts', ?)""",
                         (activity_id, json.dumps(best_efforts)),
                     )
+
+                # 추가 수치 지표
+                extra_metrics = {
+                    "moving_time_sec": detail.get("moving_time"),
+                    "elapsed_time_sec": detail.get("elapsed_time"),
+                    "max_speed_mps": detail.get("max_speed"),
+                    "average_speed_mps": detail.get("average_speed"),
+                    "elev_high_m": detail.get("elev_high"),
+                    "elev_low_m": detail.get("elev_low"),
+                    "avg_grade_pct": detail.get("average_grade"),
+                    "max_grade_pct": detail.get("max_grade"),
+                    "total_steps": detail.get("total_steps"),
+                    "device_watts": detail.get("device_watts"),
+                }
+                for mname, mval in extra_metrics.items():
+                    if mval is not None:
+                        conn.execute(
+                            """INSERT OR IGNORE INTO activity_detail_metrics
+                               (activity_id, source, metric_name, metric_value)
+                               VALUES (?, 'strava', ?, ?)""",
+                            (activity_id, mname, float(mval)),
+                        )
             except api.ApiError as e:
                 if e.status_code == 429:
                     print(f"[strava] ⚠️ rate limit — 상세 조회 중단 (source_id={source_id})")

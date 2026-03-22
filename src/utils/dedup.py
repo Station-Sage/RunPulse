@@ -13,6 +13,14 @@ _TIME_TOLERANCE = timedelta(minutes=7)
 _DISTANCE_TOLERANCE = 0.15  # 15%
 
 
+def _parse_dt(s: str) -> datetime:
+    """시간 문자열을 timezone-naive datetime으로 파싱.
+
+    Garmin(공백 구분자), Strava(T + Z suffix), 소수점 초 등 형식 무관하게 처리.
+    """
+    return datetime.fromisoformat(s.replace(" ", "T").rstrip("Z")[:19]).replace(tzinfo=None)
+
+
 def is_duplicate(
     start_time1: str,
     distance1: float,
@@ -30,8 +38,8 @@ def is_duplicate(
     Returns:
         중복이면 True.
     """
-    t1 = datetime.fromisoformat(start_time1).replace(tzinfo=None)
-    t2 = datetime.fromisoformat(start_time2).replace(tzinfo=None)
+    t1 = _parse_dt(start_time1)
+    t2 = _parse_dt(start_time2)
 
     if abs(t1 - t2) > _TIME_TOLERANCE:
         return False
@@ -101,14 +109,16 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
         return None
 
     start_time, distance_km = row
-    t = datetime.fromisoformat(start_time).replace(tzinfo=None)
-    time_min = (t - _TIME_TOLERANCE).isoformat()
-    time_max = (t + _TIME_TOLERANCE).isoformat()
+    t = _parse_dt(start_time)
+    time_min = (t - _TIME_TOLERANCE).isoformat()[:19]
+    time_max = (t + _TIME_TOLERANCE).isoformat()[:19]
 
+    # substr(replace(...)) 로 Garmin(공백)/Strava(T) 형식 차이 정규화 후 BETWEEN 비교
     candidates = conn.execute(
         """SELECT id, start_time, distance_km, matched_group_id
            FROM activity_summaries
-           WHERE id != ? AND start_time BETWEEN ? AND ?""",
+           WHERE id != ? AND
+           substr(replace(start_time, ' ', 'T'), 1, 19) BETWEEN ? AND ?""",
         (activity_id, time_min, time_max),
     ).fetchall()
 
@@ -153,15 +163,15 @@ def auto_group_all(conn: sqlite3.Connection) -> dict[str, int]:
         a = acts[i]
         if not a["start_time"]:
             continue
-        ta = datetime.fromisoformat(a["start_time"]).replace(tzinfo=None)
-        time_max = (ta + _TIME_TOLERANCE).isoformat()
+        ta = _parse_dt(a["start_time"])
+        time_max_dt = ta + _TIME_TOLERANCE
 
         for j in range(i + 1, len(acts)):
             b = acts[j]
             if not b["start_time"]:
                 continue
-            # 시간 범위를 벗어나면 이후 활동도 모두 벗어남
-            if b["start_time"] > time_max:
+            # 시간 범위를 벗어나면 이후 활동도 모두 벗어남 (datetime 비교로 형식 무관)
+            if _parse_dt(b["start_time"]) > time_max_dt:
                 break
             # 같은 소스는 묶지 않음
             if a["source"] == b["source"]:
