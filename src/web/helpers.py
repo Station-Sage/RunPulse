@@ -28,7 +28,9 @@ _NAV_GROUPS = [
     ("🔧 개발자", None, [
         ("DB", "/db"),
         ("Payloads", "/payloads"),
-        ("Import", "/import"),
+        ("Import (GPX/FIT)", "/import"),
+        ("Export 임포트", "/import-export"),
+        ("신발 목록", "/shoes"),
     ]),
 ]
 
@@ -189,24 +191,96 @@ function switchSyncTab(t) {
   });
 }
 
+function _getCheckedSources(panel) {
+  var chks = document.querySelectorAll('input[data-panel="' + panel + '"]:checked');
+  var srcs = Array.from(chks).map(function(c) { return c.getAttribute('data-src'); });
+  return srcs.length === 0 ? null : (srcs.length === 4 ? 'all' : srcs.join(','));
+}
+
+function toggleSyncSrc(panel, src, color) {
+  var cid = panel + '-chk-' + src;
+  var chk = document.getElementById(cid);
+  if (!chk) return;
+  var label = document.getElementById(cid + '-label');
+  var icon = document.getElementById(cid + '-icon');
+  chk.checked = !chk.checked;
+  if (chk.checked) {
+    label.style.background = color;
+    label.style.color = '#fff';
+    if (icon) icon.textContent = '✓';
+  } else {
+    label.style.background = 'transparent';
+    label.style.color = color;
+    if (icon) icon.textContent = '';
+  }
+  var allIcon = document.getElementById(panel + '-all-icon');
+  if (allIcon) {
+    var allChks = document.querySelectorAll('input[data-panel="' + panel + '"]');
+    var allChecked = Array.from(allChks).every(function(c) { return c.checked; });
+    allIcon.textContent = allChecked ? '전체 해제' : '전체 선택';
+  }
+}
+
+function toggleAllSyncSrc(panel) {
+  var allChks = document.querySelectorAll('input[data-panel="' + panel + '"]');
+  var allChecked = Array.from(allChks).every(function(c) { return c.checked; });
+  var services = [{src:'garmin',color:'#0055b3'},{src:'strava',color:'#FC4C02'},
+                  {src:'intervals',color:'#00884e'},{src:'runalyze',color:'#7b2d8b'}];
+  services.forEach(function(s) {
+    var cid = panel + '-chk-' + s.src;
+    var chk = document.getElementById(cid);
+    if (!chk) return;
+    var label = document.getElementById(cid + '-label');
+    var icon = document.getElementById(cid + '-icon');
+    chk.checked = !allChecked;
+    if (!allChecked) {
+      label.style.background = s.color; label.style.color = '#fff';
+      if (icon) icon.textContent = '✓';
+    } else {
+      label.style.background = 'transparent'; label.style.color = s.color;
+      if (icon) icon.textContent = '';
+    }
+  });
+  var allIcon = document.getElementById(panel + '-all-icon');
+  if (allIcon) allIcon.textContent = allChecked ? '전체 선택' : '전체 해제';
+}
+
+// 초기화: 기본 checked 상태에 맞게 스타일 적용
+document.addEventListener('DOMContentLoaded', function() {
+  ['basic','hist'].forEach(function(panel) {
+    var services = [{src:'garmin',color:'#0055b3'},{src:'strava',color:'#FC4C02'},
+                    {src:'intervals',color:'#00884e'},{src:'runalyze',color:'#7b2d8b'}];
+    services.forEach(function(s) {
+      var cid = panel + '-chk-' + s.src;
+      var chk = document.getElementById(cid);
+      if (!chk || !chk.checked) return;
+      var label = document.getElementById(cid + '-label');
+      if (label) { label.style.background = s.color; label.style.color = '#fff'; }
+    });
+  });
+});
+
 async function doSync(mode) {
   var btnId = mode === 'basic' ? 'sbtn-basic' : 'sbtn-hist';
   var btn = document.getElementById(btnId);
   if (!btn) return;
-  var srcId = mode === 'basic' ? 'basic-source' : 'hist-source';
-  var source = (document.getElementById(srcId) || {}).value || 'all';
+  var source = _getCheckedSources(mode === 'basic' ? 'basic' : 'hist');
+  if (!source) { alert('서비스를 하나 이상 선택하세요.'); return; }
 
   // 기간 동기화 + BG 모드 체크
   if (mode === 'hist') {
     var from = (document.getElementById('hist-from') || {}).value || '';
     if (!from) { alert('시작일을 입력하세요.'); return; }
     var bgMode = (document.getElementById('hist-bg-mode') || {}).checked;
-    if (bgMode && source !== 'all') {
-      await startBgSync(source, from, (document.getElementById('hist-to') || {}).value || '');
-      return;
-    }
-    if (bgMode && source === 'all') {
-      alert('백그라운드 자동 동기화는 서비스를 하나씩 선택하여 사용하세요.');
+    if (bgMode) {
+      var srcs = source === 'all'
+        ? ['garmin','strava','intervals','runalyze']
+        : source.split(',');
+      if (srcs.length > 1) {
+        alert('백그라운드 자동 동기화는 서비스를 하나씩 선택하여 사용하세요.');
+        return;
+      }
+      await startBgSync(srcs[0], from, (document.getElementById('hist-to') || {}).value || '');
       return;
     }
   }
@@ -546,6 +620,29 @@ def fmt_duration(seconds) -> str:
 
 def safe_str(value, default: str = "—") -> str:
     return default if value is None else str(value)
+
+
+def connected_services() -> set[str]:
+    """현재 연결된 서비스 이름 집합 반환 (연결 확인 후).
+
+    Returns:
+        {"garmin", "strava", ...} — ok인 서비스만 포함.
+    """
+    try:
+        from src.sync.garmin import check_garmin_connection
+        from src.sync.strava import check_strava_connection
+        from src.sync.intervals import check_intervals_connection
+        from src.sync.runalyze import check_runalyze_connection
+        cfg = load_config()
+        checkers = {
+            "garmin":    check_garmin_connection,
+            "strava":    check_strava_connection,
+            "intervals": check_intervals_connection,
+            "runalyze":  check_runalyze_connection,
+        }
+        return {src for src, chk in checkers.items() if chk(cfg).get("ok")}
+    except Exception:
+        return set()
 
 
 def last_sync_info(sources: list[str]) -> dict[str, str | None]:

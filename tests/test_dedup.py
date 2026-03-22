@@ -18,17 +18,17 @@ class TestIsDuplicate:
         )
 
     def test_time_outside_tolerance(self):
-        """시간 6분 차이 → 중복 아님."""
+        """시간 8분 차이 → 중복 아님 (허용 7분)."""
         assert not is_duplicate(
             "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:06:00", 10.0,
+            "2026-03-18T07:08:00", 10.0,
         )
 
     def test_distance_outside_tolerance(self):
-        """거리 5% 차이 → 중복 아님."""
+        """거리 20% 차이 → 중복 아님 (허용 15%)."""
         assert not is_duplicate(
             "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:01:00", 10.5,
+            "2026-03-18T07:01:00", 12.1,
         )
 
     def test_both_zero_distance(self):

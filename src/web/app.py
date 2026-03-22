@@ -23,6 +23,8 @@ from .views_activity import activity_bp
 from .views_activities import activities_bp
 from .views_settings import settings_bp
 from .views_activity_merge import merge_bp
+from .views_export_import import export_import_bp
+from .views_shoes import shoes_bp
 
 
 def _project_root() -> Path:
@@ -212,16 +214,10 @@ def create_app() -> Flask:
                 except Exception:
                     weekly = None
 
-                # 최근 활동 5개
-                recent_rows = conn.execute(
-                    """
-                    SELECT id, source, activity_type, start_time,
-                           distance_km, duration_sec, avg_hr
-                    FROM activity_summaries
-                    ORDER BY start_time DESC
-                    LIMIT 5
-                    """
-                ).fetchall()
+                # 최근 활동 5개 (통합 그룹 기준)
+                from src.services.unified_activities import fetch_unified_activities
+                recent_unified, _, _ = fetch_unified_activities(conn, page=1, page_size=5)
+                recent_rows = recent_unified  # UnifiedActivity 리스트
 
         except Exception as exc:
             body = (
@@ -309,33 +305,26 @@ def create_app() -> Flask:
 
         # ── 최근 활동 카드 ────────────────────────────────────────────
         if recent_rows:
-            act_rows_html = ""
-            for rid, rsrc, rtype, rstart, rdist, rdur, rhr in recent_rows:
-                dist_str = f"{float(rdist):.2f}" if rdist else "—"
-                dur_min = f"{int(rdur)//60}m" if rdur else "—"
-                hr_str = str(rhr) if rhr else "—"
-                deep_link = f"<a href='/activity/deep?id={rid}'>심층</a>"
-                act_rows_html += (
-                    f"<tr>"
-                    f"<td>{html.escape(str(rstart)[:10])}</td>"
-                    f"<td>{html.escape(str(rsrc))}</td>"
-                    f"<td>{html.escape(str(rtype))}</td>"
-                    f"<td>{html.escape(dist_str)} km</td>"
-                    f"<td>{html.escape(dur_min)}</td>"
-                    f"<td>{html.escape(hr_str)} bpm</td>"
-                    f"<td>{deep_link}</td>"
-                    f"</tr>"
-                )
+            from src.web.views_activities import _render_activity_table
+            act_table_html = _render_activity_table(recent_rows)
+            _toggle_js = (
+                "<script>"
+                "function uaToggle(gid){"
+                "var sub=document.getElementById('sub-'+gid);"
+                "var btn=document.getElementById('btn-'+gid);"
+                "if(!sub)return;"
+                "var opening=sub.style.display==='none';"
+                "sub.style.display=opening?'':'none';"
+                "if(btn){var ico=btn.querySelector('.expand-icon');"
+                "if(ico)ico.textContent=opening?'▼':'▶';"
+                "btn.style.background=opening?'rgba(0,85,179,0.08)':'';}}"
+                "</script>"
+            )
             recent_acts_html = f"""
             <div class="card">
-              <h2>최근 활동 <a href="/db" style="font-size:0.8rem; font-weight:normal;">전체 &rarr;</a></h2>
-              <table>
-                <thead><tr>
-                  <th>날짜</th><th>소스</th><th>유형</th>
-                  <th>거리</th><th>시간</th><th>심박</th><th>상세</th>
-                </tr></thead>
-                <tbody>{act_rows_html}</tbody>
-              </table>
+              <h2>최근 활동 <a href="/activities" style="font-size:0.8rem; font-weight:normal;">전체 &rarr;</a></h2>
+              {act_table_html}
+              {_toggle_js}
             </div>
             """
         else:
@@ -347,11 +336,12 @@ def create_app() -> Flask:
             """
 
         from .sync_ui import sync_card_html
-        from .helpers import last_sync_info
+        from .helpers import last_sync_info, connected_services
         from src.utils.sync_state import get_all_states
         sync_card = sync_card_html(
             last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
             sync_states=get_all_states(),
+            connected=connected_services(),
         )
 
         body = f"""
@@ -452,16 +442,19 @@ def create_app() -> Flask:
         from_date = request.form.get("from_date", "").strip()
         to_date = request.form.get("to_date", "").strip()
 
-        if source not in ("all", "garmin", "strava", "intervals", "runalyze"):
-            source = "all"
-
+        _VALID_SOURCES = {"garmin", "strava", "intervals", "runalyze"}
         checkers = {
             "garmin": check_garmin_connection,
             "strava": check_strava_connection,
             "intervals": check_intervals_connection,
             "runalyze": check_runalyze_connection,
         }
-        sources_to_sync = list(checkers.keys()) if source == "all" else [source]
+        if source == "all":
+            sources_to_sync = list(checkers.keys())
+        else:
+            # 콤마 구분 다중 소스 지원
+            parts = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
+            sources_to_sync = parts if parts else list(checkers.keys())
         config = load_config()
 
         # 기간 동기화: days 공통 계산
@@ -1179,6 +1172,8 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(activity_bp)
     app.register_blueprint(activities_bp)
     app.register_blueprint(settings_bp)  # 서비스 연동 설정
-    app.register_blueprint(merge_bp)     # 활동 그룹 병합/분리 API
+    app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
+    app.register_blueprint(export_import_bp)  # Export CSV 임포트
+    app.register_blueprint(shoes_bp)          # 신발 목록
 
     return app

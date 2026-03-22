@@ -20,7 +20,7 @@ _COLS = [
     "id", "source", "source_id", "activity_type", "start_time",
     "distance_km", "duration_sec", "avg_pace_sec_km", "avg_hr",
     "max_hr", "avg_cadence", "elevation_gain", "calories",
-    "description", "matched_group_id",
+    "description", "matched_group_id", "workout_label", "avg_power",
 ]
 
 
@@ -52,11 +52,16 @@ class UnifiedActivity:
     elevation_gain: UnifiedField = field(default_factory=UnifiedField)
     calories: UnifiedField = field(default_factory=UnifiedField)
     description: UnifiedField = field(default_factory=UnifiedField)
+    workout_label: UnifiedField = field(default_factory=UnifiedField)
 
     @property
     def date(self) -> str:
         st = self.start_time.value
-        return str(st)[:10] if st else "—"
+        s = str(st)
+        # "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DD HH:MM:SS" → "YYYY-MM-DD HH:MM"
+        if len(s) >= 16:
+            return s[:10] + " " + s[11:16]
+        return s[:10] if len(s) >= 10 else (s or "—")
 
     @property
     def can_expand(self) -> bool:
@@ -121,7 +126,7 @@ def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedAct
     for fname in [
         "activity_type", "start_time", "distance_km", "duration_sec",
         "avg_pace_sec_km", "avg_hr", "max_hr", "avg_cadence",
-        "elevation_gain", "calories", "description",
+        "elevation_gain", "calories", "description", "workout_label",
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
 
@@ -136,6 +141,15 @@ def fetch_unified_activities(
     date_to: str = "",
     page: int = 1,
     page_size: int = 20,
+    sort_by: str = "date",
+    sort_dir: str = "desc",
+    q: str = "",
+    min_dist: float | None = None,
+    max_dist: float | None = None,
+    min_pace: int | None = None,
+    max_pace: int | None = None,
+    min_dur: int | None = None,
+    max_dur: int | None = None,
 ) -> tuple[list[UnifiedActivity], int, dict]:
     """필터·페이지를 적용하여 통합 활동 목록 반환.
 
@@ -146,16 +160,24 @@ def fetch_unified_activities(
     conditions = []
     params: list = []
 
-    _TYPES = ["running", "run", "virtualrun", "treadmill", "highintensityintervaltraining"]
+    _TYPE_GROUPS: dict[str, list[str]] = {
+        "running":  ["running", "run", "virtualrun", "treadmill", "treadmill_running",
+                     "track_running", "trail_running"],
+        "swimming": ["swimming", "open_water_swimming"],
+        "strength": ["strength", "hiit", "highintensityintervaltraining", "workout",
+                     "elliptical", "yoga"],
+        "hiking":   ["hiking", "walking"],
+    }
 
     if source_filter and source_filter in ["garmin", "strava", "intervals", "runalyze"]:
         conditions.append("source = ?")
         params.append(source_filter)
 
-    if act_type_filter == "running":
-        placeholders = ",".join("?" * len(_TYPES))
+    if act_type_filter and act_type_filter in _TYPE_GROUPS:
+        types = _TYPE_GROUPS[act_type_filter]
+        placeholders = ",".join("?" * len(types))
         conditions.append(f"activity_type IN ({placeholders})")
-        params.extend(_TYPES)
+        params.extend(types)
 
     if date_from:
         conditions.append("start_time >= ?")
@@ -164,6 +186,35 @@ def fetch_unified_activities(
     if date_to:
         conditions.append("start_time <= ?")
         params.append(date_to + "T99")
+
+    if q:
+        conditions.append("(description LIKE ? OR activity_type LIKE ?)")
+        like = f"%{q}%"
+        params.extend([like, like])
+
+    if min_dist is not None:
+        conditions.append("distance_km >= ?")
+        params.append(min_dist)
+
+    if max_dist is not None:
+        conditions.append("distance_km <= ?")
+        params.append(max_dist)
+
+    if min_pace is not None:
+        conditions.append("avg_pace_sec_km >= ?")
+        params.append(min_pace)
+
+    if max_pace is not None:
+        conditions.append("avg_pace_sec_km <= ?")
+        params.append(max_pace)
+
+    if min_dur is not None:
+        conditions.append("duration_sec >= ?")
+        params.append(min_dur)
+
+    if max_dur is not None:
+        conditions.append("duration_sec <= ?")
+        params.append(max_dur)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
@@ -228,6 +279,18 @@ def fetch_unified_activities(
         ua = build_unified_activity(gid, g_rows)
         unified_list.append(ua)
 
+    # 정렬
+    _SORT_KEY: dict[str, Any] = {
+        "date":     lambda ua: ua.start_time.value or "",
+        "distance": lambda ua: ua.distance_km.value or 0,
+        "duration": lambda ua: ua.duration_sec.value or 0,
+        "pace":     lambda ua: ua.avg_pace_sec_km.value or 0,
+        "hr":       lambda ua: ua.avg_hr.value or 0,
+    }
+    key_fn = _SORT_KEY.get(sort_by, _SORT_KEY["date"])
+    reverse = (sort_dir != "asc")
+    unified_list.sort(key=key_fn, reverse=reverse)
+
     # 통계 (필터 기준)
     total_count = len(unified_list)
     total_dist = sum(
@@ -262,6 +325,11 @@ def build_source_comparison(source_rows: dict[str, dict]) -> list[dict]:
         ("파워(W)", "avg_power"),
         ("칼로리(kcal)", "calories"),
     ]
+    # avg_power가 activity_detail_metrics에만 있는 경우 source_rows에 보완
+    for src, row in source_rows.items():
+        if row.get("avg_power") is None:
+            # avg_power는 DB에서 JOIN 없이는 안 오는 경우도 있으므로 graceful
+            pass
     rows = []
     for label, col in fields:
         unified = _pick_value(source_rows, col)
@@ -280,19 +348,44 @@ def build_source_comparison(source_rows: dict[str, dict]) -> list[dict]:
 def assign_group_to_activities(
     conn: sqlite3.Connection, activity_ids: list[int]
 ) -> str:
-    """activity_ids를 새 UUID 그룹으로 묶기.
+    """activity_ids를 하나의 그룹으로 묶기.
+
+    선택된 활동 중 이미 그룹에 속한 것이 있으면 해당 그룹의 모든 멤버도
+    함께 묶는다 (그룹 병합). 기존 group_id가 있으면 재사용한다.
 
     Returns:
-        새로 할당한 group_id (UUID 문자열).
+        할당한 group_id (UUID 문자열).
     """
     if len(activity_ids) < 2:
         raise ValueError("2개 이상 활동이 필요합니다.")
 
-    group_id = str(uuid.uuid4())
     placeholders = ",".join("?" * len(activity_ids))
+
+    # 선택된 활동 및 이들이 속한 기존 그룹의 모든 멤버 ID + 기존 group_id 수집
+    rows = conn.execute(
+        f"SELECT id, matched_group_id FROM activity_summaries WHERE id IN ({placeholders})",
+        activity_ids,
+    ).fetchall()
+
+    existing_group_ids = {r[1] for r in rows if r[1] is not None}
+
+    # 기존 group_id가 있으면 첫 번째 것을 재사용, 없으면 새로 생성
+    group_id = next(iter(existing_group_ids), None) or str(uuid.uuid4())
+
+    # 기존 그룹에 속한 모든 멤버도 포함
+    all_ids = set(activity_ids)
+    if existing_group_ids:
+        gid_placeholders = ",".join("?" * len(existing_group_ids))
+        member_rows = conn.execute(
+            f"SELECT id FROM activity_summaries WHERE matched_group_id IN ({gid_placeholders})",
+            list(existing_group_ids),
+        ).fetchall()
+        all_ids.update(r[0] for r in member_rows)
+
+    all_placeholders = ",".join("?" * len(all_ids))
     conn.execute(
-        f"UPDATE activity_summaries SET matched_group_id = ? WHERE id IN ({placeholders})",
-        [group_id, *activity_ids],
+        f"UPDATE activity_summaries SET matched_group_id = ? WHERE id IN ({all_placeholders})",
+        [group_id, *all_ids],
     )
     conn.commit()
     return group_id

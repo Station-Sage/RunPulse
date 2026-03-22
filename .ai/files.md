@@ -9,12 +9,16 @@
 - import_history.py: GPX/FIT 파일 일괄 파싱 및 DB 삽입
 
 ## DB 스키마 주요 테이블
-- activities: 4소스 활동 통합 (matched_group_id로 중복 연결)
+- activity_summaries: 4소스 활동 통합 (matched_group_id, avg_power, export_filename, workout_label 포함)
 - source_metrics: activity 단위 소스별 고유 지표 (training_load, icu_hrss, trimp 등)
 - daily_wellness: 날짜별 수면/HRV/Body Battery/스트레스
 - daily_fitness: 날짜별 피트니스 추적 지표 (CTL/ATL/TSB, VO2Max, VDOT, marathon_shape)
+- daily_detail_metrics: Garmin 일별 상세 지표 (training_readiness, overnight_hrv_avg, spo2 등)
 - planned_workouts: 계획된 운동 (source, ai_model, garmin_workout_id 포함)
 - goals: 레이스 목표
+- shoes: 신발 목록 (name, brand, model, distance_km, retired, added_at)
+- sync_jobs: 백그라운드 동기화 작업 이력 (job_id, source, status, started_at, finished_at, rows_added, error)
+- source_payloads: 4소스 raw API 응답 보존 (source, entity_type, payload JSON)
 
 ## sync 모듈 (src/sync/)
 - garmin.py: GarminConnect 세션 관리, 활동/웰니스 가져오기, DB 저장
@@ -65,19 +69,33 @@
 
 ## utils 모듈 (src/utils/)
 - api.py: httpx 기반 GET/POST 래퍼, 재시도, 에러 처리
-- config.py: config.json 로드 유틸리티
+- config.py: config.json 로드/저장/부분업데이트/마스킹 유틸리티
 - pace.py: 초를 "분:초/km"로, km/h를 sec/km로 변환
 - zones.py: 5존 HR 계산 (max_hr 기반), 페이스 존 계산 (threshold_pace 기반)
-- dedup.py: 중복 활동 매칭 함수
+- dedup.py: 중복 활동 매칭 (허용오차 7분·15%), auto_group_all() 전이적 그룹 병합
 - clipboard.py: termux-clipboard-set 호출 래퍼
+- sync_policy.py: SyncPolicy/SyncGuardResult — rate limit·cooldown·중복 방지, sync_state.json 관리
+
+## services 모듈 (src/services/)
+- unified_activities.py: 멀티소스 활동 병합·비교·그룹관리 서비스
+  - `fetch_unified_activities()`: sort_by/sort_dir/q/min_max_dist/pace/dur 필터 지원
+  - `build_unified_activity()`: 그룹 또는 단독 활동 → UnifiedActivity 변환
+  - `build_source_comparison()`: 소스별 수치 비교 테이블 생성
+  - `assign_group_to_activities()` / `remove_from_group()`: 수동 그룹 관리
+
+## import_export 모듈 (src/import_export/)
+- garmin_csv.py: Garmin 내보내기 CSV 파싱 → activity_summaries 삽입 (수영 거리 m→km 변환)
+- strava_csv.py: Strava 내보내기 CSV 파싱 → activity_summaries 삽입
 
 ## web 모듈 (src/web/)
-- app.py: Flask 라우트 정의 (대시보드, AI 코치, 훈련 계획, 설정 탭)
-- auth_routes.py: 서비스 연동 라우트 (Strava OAuth 콜백, 토큰 저장)
-- garmin_auth.py: Garmin SSO WebView 세션 토큰 캡처 지원
-- templates/: HTML 파일들 (대시보드, AI 코치 채팅, 훈련 계획, 설정, 활동 상세)
-- static/: CSS, JS (추천 칩 플로팅, 채팅 UI, 차트, 연동 팝업)
-
-- src/analysis/race_readiness.py: 레이스 준비도 평가, VDOT 레이스 예측, 데이터 부족 시 insufficient_data 처리
-- src/analysis/report.py: today/week/month/race/full 마크다운 리포트 및 AI context 생성
-- src/analyze.py: RunPulse 분석 CLI 엔트리포인트
+- app.py: Flask Blueprint 등록, 홈 대시보드, DB/sync-status/payloads 라우트
+- helpers.py: html_page, make_table, fmt_min, fmt_duration, readiness_badge, connected_services()
+- sync_ui.py: _source_checkboxes() pill-style 멀티셀렉트 (미연결 서비스 disabled)
+- views_wellness.py: /wellness Blueprint — Garmin 회복·웰니스 카드 + 14일 추세
+- views_activity.py: /activity/deep Blueprint — 단일 활동 심층 분석 (생체역학·HR존·소스별 메트릭)
+- views_activities.py: /activities Blueprint — 활동 목록 (정렬·검색·범위필터·페이지네이션)
+- views_activity_merge.py: /activities/merge-group·/activities/remove-from-group — 수동 그룹 관리
+- views_export_import.py: /export-import Blueprint — CSV 임포트/내보내기 탭
+- views_shoes.py: /shoes Blueprint — 신발 목록·누적거리·은퇴 처리
+- views_settings.py: /settings·/connect/* Blueprint — 4개 서비스 연동 설정 UI
+- views_sync.py: 백그라운드 기간 동기화 UI (진행 프로그레스바, SSE polling)

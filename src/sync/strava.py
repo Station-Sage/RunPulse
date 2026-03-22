@@ -210,7 +210,8 @@ def sync_activities(
             if cadence:
                 cadence = int(cadence * 2)
 
-            start_time = act.get("start_date_local", "")
+            # start_date_local: Strava가 Z suffix를 붙이지만 실제 로컬 시간 → Z 제거
+            start_time = act.get("start_date_local", "").rstrip("Z")
 
             try:
                 cursor = conn.execute(

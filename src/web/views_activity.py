@@ -40,6 +40,18 @@ activity_bp = Blueprint("activity", __name__)
 
 # ── 카드 렌더링 헬퍼 ────────────────────────────────────────────────────
 
+def _fmt_int(v, unit: str = "") -> str:
+    if v is None:
+        return "—"
+    return f"{int(round(float(v)))}{unit}"
+
+
+def _fmt_float1(v, unit: str = "") -> str:
+    if v is None:
+        return "—"
+    return f"{float(v):.1f}{unit}"
+
+
 def _render_activity_summary(act: dict) -> str:
     """활동 기본 정보 카드."""
     pace = safe_str(act.get("avg_pace"))
@@ -53,11 +65,11 @@ def _render_activity_summary(act: dict) -> str:
         + metric_row("거리", dist_str)
         + metric_row("시간", fmt_duration(act.get("duration_sec")))
         + metric_row("평균 페이스", pace)
-        + metric_row("평균 심박", act.get("avg_hr"), " bpm")
-        + metric_row("최대 심박", act.get("max_hr"), " bpm")
-        + metric_row("평균 케이던스", act.get("avg_cadence"), " spm")
-        + metric_row("고도 상승", act.get("elevation_gain"), " m")
-        + metric_row("칼로리", act.get("calories"), " kcal")
+        + metric_row("평균 심박", _fmt_int(act.get("avg_hr"), " bpm"))
+        + metric_row("최대 심박", _fmt_int(act.get("max_hr"), " bpm"))
+        + metric_row("평균 케이던스", _fmt_int(act.get("avg_cadence"), " spm"))
+        + metric_row("고도 상승", _fmt_int(act.get("elevation_gain"), " m"))
+        + metric_row("칼로리", _fmt_int(act.get("calories"), " kcal"))
         + "</div>"
     )
 
@@ -121,17 +133,63 @@ def _render_garmin_daily_detail(detail: dict, act_date: str) -> str:
     )
 
 
+def _fmt_min_sec(sec) -> str:
+    """초 → 'Mm Ss' 형식."""
+    if sec is None:
+        return "—"
+    try:
+        s = int(round(float(sec)))
+        m, r = divmod(s, 60)
+        return f"{m}분 {r:02d}초" if m else f"{r}초"
+    except Exception:
+        return str(sec)
+
+
 def _render_garmin_metrics(garmin: dict) -> str:
     """Garmin 소스 메트릭 카드."""
-    return (
-        "<div class='card'>"
-        "<h2>Garmin</h2>"
-        + metric_row("Training Effect (유산소)", garmin.get("training_effect_aerobic"))
-        + metric_row("Training Effect (무산소)", garmin.get("training_effect_anaerobic"))
-        + metric_row("Training Load", garmin.get("training_load"))
-        + metric_row("VO2Max", garmin.get("vo2max"))
-        + "</div>"
+    training_rows = [
+        ("Training Effect (유산소)", _fmt_float1(garmin.get("training_effect_aerobic"))),
+        ("Training Effect (무산소)", _fmt_float1(garmin.get("training_effect_anaerobic"))),
+        ("Training Load", _fmt_float1(garmin.get("training_load"))),
+        ("평균 파워", _fmt_int(garmin.get("avg_power"), " W")),
+        ("Normalized Power", _fmt_int(garmin.get("normalized_power"), " W")),
+        ("VO2Max", garmin.get("vo2max")),
+    ]
+    bio_rows = [
+        ("걸음 수", _fmt_int(garmin.get("steps"), " 걸음")),
+        ("평균 보폭", _fmt_float1(garmin.get("avg_stride_length"), " m")),
+        ("평균 케이던스", _fmt_float1(garmin.get("avg_run_cadence"), " spm")),
+        ("최대 케이던스", _fmt_int(garmin.get("max_run_cadence"), " spm")),
+        ("평균 수직 비율", _fmt_float1(garmin.get("avg_vertical_ratio"), "%")),
+        ("지면 접촉 시간", _fmt_int(garmin.get("avg_ground_contact_time"), " ms")),
+    ]
+    # HR 존 시간
+    hr_zone_rows = []
+    for i in range(1, 6):
+        v = garmin.get(f"hr_zone_time_{i}")
+        if v is not None:
+            hr_zone_rows.append((f"HR 존 {i}", _fmt_min_sec(v)))
+
+    content = "".join(
+        metric_row(label, val)
+        for label, val in training_rows
+        if val not in (None, "—")
     )
+    bio_content = "".join(
+        metric_row(label, val)
+        for label, val in bio_rows
+        if val not in (None, "—")
+    )
+    zone_content = "".join(metric_row(label, val) for label, val in hr_zone_rows)
+
+    if bio_content:
+        content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>바이오메카닉스</p>" + bio_content
+    if zone_content:
+        content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>HR 존별 시간</p>" + zone_content
+
+    if not content:
+        content = "<p class='muted' style='margin:0;'>데이터 없음 (동기화 필요)</p>"
+    return "<div class='card'><h2>Garmin</h2>" + content + "</div>"
 
 
 def _render_strava_metrics(strava: dict) -> str:
@@ -161,18 +219,29 @@ def _render_strava_metrics(strava: dict) -> str:
 
 def _render_intervals_metrics(intervals: dict) -> str:
     """Intervals.icu 소스 메트릭 카드."""
-    return (
-        "<div class='card'>"
-        "<h2>Intervals.icu</h2>"
-        + metric_row("Training Load", intervals.get("icu_training_load"))
-        + metric_row("HRSS", intervals.get("icu_hrss"))
-        + metric_row("Intensity", intervals.get("icu_intensity"))
-        + metric_row("Efficiency Factor", intervals.get("icu_efficiency_factor"))
-        + metric_row("Decoupling", intervals.get("decoupling"), "%")
-        + metric_row("TRIMP", intervals.get("trimp"))
-        + metric_row("Average Stride", intervals.get("average_stride"), " m")
-        + "</div>"
+    rows = [
+        ("Training Load", _fmt_float1(intervals.get("icu_training_load"))),
+        ("HRSS", _fmt_float1(intervals.get("icu_hrss"))),
+        ("Intensity", _fmt_float1(intervals.get("icu_intensity"))),
+        ("Efficiency Factor", _fmt_float1(intervals.get("icu_efficiency_factor"))),
+        ("Decoupling", _fmt_float1(intervals.get("decoupling"), "%")),
+        ("TRIMP", _fmt_float1(intervals.get("trimp"))),
+        ("Average Stride", _fmt_float1(intervals.get("average_stride"), " m")),
+        ("Strain Score", _fmt_float1(intervals.get("strain_score"))),
+        ("HR Load", _fmt_float1(intervals.get("hr_load"))),
+        ("Pace Load", _fmt_float1(intervals.get("pace_load"))),
+        ("Power Load", _fmt_float1(intervals.get("power_load"))),
+        ("Session RPE", _fmt_float1(intervals.get("session_rpe"))),
+        ("랩 수", _fmt_int(intervals.get("icu_lap_count"))),
+    ]
+    content = "".join(
+        metric_row(label, val)
+        for label, val in rows
+        if val not in (None, "—")
     )
+    if not content:
+        content = "<p class='muted' style='margin:0;'>데이터 없음 (intervals 동기화 필요)</p>"
+    return "<div class='card'><h2>Intervals.icu</h2>" + content + "</div>"
 
 
 def _render_runalyze_metrics(runalyze: dict) -> str:
@@ -274,6 +343,18 @@ def _fetch_source_rows(conn: sqlite3.Connection, activity_id: int) -> dict[str, 
         src = d["source"]
         if src not in source_rows:
             source_rows[src] = d
+
+    # avg_power가 activity_summaries에 없으면 activity_detail_metrics에서 보완
+    for d in source_rows.values():
+        if d.get("avg_power") is None:
+            pw = conn.execute(
+                "SELECT metric_value FROM activity_detail_metrics "
+                "WHERE activity_id = ? AND metric_name = 'avg_power' LIMIT 1",
+                (d["id"],),
+            ).fetchone()
+            if pw and pw[0] is not None:
+                d["avg_power"] = pw[0]
+
     return source_rows
 
 
@@ -308,10 +389,15 @@ def _render_source_comparison(
     comparison = build_source_comparison(source_rows)
     sources = [s for s in _SP if s in source_rows]
 
-    def _fmt_v(v: Any) -> str:
+    # 소숫점 없이 표시할 필드
+    _INT_FIELDS = {"케이던스(spm)", "고도 상승(m)", "평균 심박(bpm)", "최대 심박(bpm)", "칼로리(kcal)", "파워(W)"}
+
+    def _fmt_v(v: Any, field_label: str = "") -> str:
         if v is None:
             return "—"
         if isinstance(v, float):
+            if field_label in _INT_FIELDS:
+                return str(int(round(v)))
             return str(round(v, 2))
         return str(v)
 
@@ -340,11 +426,24 @@ def _render_source_comparison(
         )
     )
 
+    # intervals 고도는 DEM 보정값으로 부정확 — 비교에서 제외
+    _INTERVALS_ELEV_NOTE = (
+        "<span style='font-size:0.72rem; color:var(--muted);' "
+        "title='intervals.icu는 DEM 보정값 사용 — 부정확할 수 있음'>*DEM</span>"
+    )
+
     body_rows = []
     for item in comparison:
         uv = item.get("unified_value")
         us = item.get("unified_source")
-        uv_str = _fmt_v(uv)
+        field = item["field"]
+
+        # 모든 소스가 None이면 행 숨김
+        all_none = all(item.get(src) is None for src in sources)
+        if all_none:
+            continue
+
+        uv_str = _fmt_v(uv, field)
 
         # 통합값 셀: 값 + 출처 이니셜 배지
         src_badge = ""
@@ -357,17 +456,20 @@ def _render_source_comparison(
             )
         unified_cell = f"<td><strong>{html.escape(uv_str)}</strong>{src_badge}</td>"
 
-        # 소스별 셀: 차이 있으면 노란 배경
+        # 소스별 셀: 차이 있으면 노란 배경, intervals 고도에 경고 표시
         src_cells = ""
         for src in sources:
             v = item.get(src)
-            v_str = _fmt_v(v)
+            v_str = _fmt_v(v, field)
             diff = _is_diff(v, uv)
             bg = " style='background:rgba(255,200,0,0.25);'" if diff else ""
-            src_cells += f"<td{bg}>{html.escape(v_str)}</td>"
+            extra = ""
+            if src == "intervals" and field == "고도 상승(m)" and v is not None:
+                extra = " " + _INTERVALS_ELEV_NOTE
+            src_cells += f"<td{bg}>{html.escape(v_str)}{extra}</td>"
 
         body_rows.append(
-            f"<tr><td><strong>{html.escape(item['field'])}</strong></td>"
+            f"<tr><td><strong>{html.escape(field)}</strong></td>"
             f"{unified_cell}{src_cells}</tr>"
         )
 

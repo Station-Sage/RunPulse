@@ -40,6 +40,8 @@ def mem_db():
             calories REAL,
             description TEXT,
             matched_group_id TEXT,
+            workout_label TEXT,
+            avg_power REAL,
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)
@@ -160,7 +162,7 @@ class TestBuildUnifiedActivity:
     def test_date_property(self):
         row = self._make_row("garmin", rid=1)
         ua = build_unified_activity(None, [row])
-        assert ua.date == "2026-01-15"
+        assert ua.date == "2026-01-15 08:00"
 
     def test_effective_group_id_solo(self):
         row = self._make_row("garmin", rid=7)
