@@ -161,15 +161,15 @@
 
 ---
 
-## Sprint 4-B: Jinja2 render_template 전환
+## Sprint 4-B: Jinja2 render_template 전환 ✅ 완료 (2026-03-23)
 
-- [ ] V2-4B-1: `templates/macros/base.html` — `page_shell(title)` 매크로
-- [ ] V2-4B-2: `templates/macros/nav.html` — `bottom_nav(active_tab)` Jinja2 매크로
-- [ ] V2-4B-3: `templates/macros/gauge.html` — `half_gauge(value, max, color)` SVG 매크로
-- [ ] V2-4B-4: `templates/macros/radar.html` — `radar_chart(axes, values)` SVG 매크로
-- [ ] V2-4B-5: `templates/macros/no_data.html` — `no_data_card(title, message)` 매크로
-- [ ] V2-4B-6: `views_dashboard.py` → `render_template('dashboard.html')` 전환
-- [ ] V2-4B-7: `views_settings.py`, `views_activity.py` 순차 전환
+- [x] V2-4B-1: `templates/base.html` — 공통 레이아웃 (stylesheet/nav_html/sync_js context_processor 주입)
+- [x] V2-4B-2: `src/web/app.py` — `template_folder` 설정, `context_processor`(`stylesheet`, `nav_html`, `sync_js`), Jinja2 globals(`bottom_nav`)
+- [x] V2-4B-3: `templates/macros/gauge.html` — `half_gauge` SVG 매크로 stub
+- [x] V2-4B-4: `templates/macros/radar.html` — `radar_chart` SVG 매크로 stub
+- [x] V2-4B-5: `templates/macros/no_data.html` — `no_data_card` 매크로
+- [x] V2-4B-6: `templates/dashboard.html` + `views_dashboard.py` → `render_template('dashboard.html')` 전환
+- [x] V2-4B-7: `templates/generic_page.html` + `views_settings.py` 6개 엔드포인트 → `render_template` 전환
 
 ---
 

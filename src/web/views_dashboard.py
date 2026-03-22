@@ -14,14 +14,12 @@ import json
 import sqlite3
 from datetime import date, timedelta
 
-from flask import Blueprint, redirect, url_for
+from flask import Blueprint, redirect, render_template, url_for
 
 from .helpers import (
-    bottom_nav,
     db_path,
     fmt_duration,
     fmt_pace,
-    html_page,
     metric_row,
     no_data_card,
     safe_str,
@@ -367,13 +365,17 @@ def _render_activity_list(activities: list[dict]) -> str:
 def dashboard():
     db = db_path()
     if not db.exists():
-        body = (
+        no_db = (
             "<div class='card'>"
             "<p>DB가 초기화되지 않았습니다.</p>"
             "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p>"
             "</div>"
         )
-        return html_page("대시보드", body, active_tab="dashboard")
+        return render_template(
+            "dashboard.html",
+            banner=no_db, utrs_card="", cirs_card="", rmr_card="",
+            pmc_chart="", activity_list="", active_tab="dashboard",
+        )
 
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
@@ -440,16 +442,15 @@ def dashboard():
     # ── 활동 목록
     activity_list = _render_activity_list(recent_acts)
 
-    body = f"""
-{banner}
-<div class='cards-row' style='align-items:stretch;'>
-  {utrs_card}
-  {cirs_card}
-  {rmr_card}
-</div>
-{pmc_chart}
-{activity_list}
-"""
-    return html_page("대시보드", body, active_tab="dashboard")
+    return render_template(
+        "dashboard.html",
+        banner=banner,
+        utrs_card=utrs_card,
+        cirs_card=cirs_card,
+        rmr_card=rmr_card,
+        pmc_chart=pmc_chart,
+        activity_list=activity_list,
+        active_tab="dashboard",
+    )
 
 

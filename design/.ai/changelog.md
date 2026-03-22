@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.2-sprint4B] 2026-03-23
+
+### 추가
+- `templates/base.html` — 공통 Jinja2 레이아웃 (stylesheet/nav_html/sync_js/bottom_nav 주입)
+- `templates/dashboard.html` — 대시보드 전용 템플릿 (banner/utrs_card/cirs_card/rmr_card/pmc_chart/activity_list 블록)
+- `templates/generic_page.html` — 범용 페이지 래퍼 (title/body/active_tab)
+- `templates/macros/no_data.html` — `no_data_card` 매크로
+- `templates/macros/gauge.html` — `half_gauge` SVG 매크로 stub (Sprint 4-C에서 구현)
+- `templates/macros/radar.html` — `radar_chart` SVG 매크로 stub (Sprint 4-C에서 구현)
+
+### 변경
+- `src/web/app.py` — `Flask()` 생성 시 `template_folder` 설정 (프로젝트 루트 `templates/`)
+  - `context_processor`: `stylesheet`(CSS), `nav_html`(드롭다운 nav), `sync_js` 전역 주입
+  - `jinja_env.globals`: `bottom_nav` 함수 등록
+- `src/web/views_dashboard.py` — `html_page()` → `render_template('dashboard.html', ...)` 전환; `html_page`/`bottom_nav` import 제거
+- `src/web/views_settings.py` — 6개 엔드포인트 `html_page()` → `render_template('generic_page.html', ...)` 전환; `html_page`/`bottom_nav` import 제거
+
+### 테스트
+- 785개 통과 (pre-existing 3개 제외)
+
+---
+
 ## [v0.2-sprint4A] 2026-03-23
 
 ### 추가

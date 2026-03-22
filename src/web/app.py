@@ -238,8 +238,22 @@ def _auto_migrate() -> None:
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder=str(_project_root() / "templates"))
     _auto_migrate()
+
+    # ── Jinja2 설정 ──────────────────────────────────────────────────────────
+    from .helpers import _CSS, _SYNC_JS, _build_nav, bottom_nav
+
+    @app.context_processor
+    def _inject_ui_context():
+        return {
+            "stylesheet": _CSS,
+            "nav_html": _build_nav(),
+            "sync_js": _SYNC_JS,
+        }
+
+    app.jinja_env.globals["bottom_nav"] = bottom_nav
+
 
     @app.get("/")
     def index():

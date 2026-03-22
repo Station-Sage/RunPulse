@@ -18,14 +18,14 @@ from pathlib import Path
 
 import sqlite3
 
-from flask import Blueprint, redirect, request, url_for
+from flask import Blueprint, redirect, render_template, request, url_for
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config, save_config
-from .helpers import bottom_nav, db_path, html_page, metric_row, score_badge
+from .helpers import db_path, metric_row, score_badge
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -149,7 +149,7 @@ def settings_view() -> str:
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
 </p>"""
-    return html_page("서비스 연동 설정", body, active_tab="settings")
+    return render_template("generic_page.html", title="서비스 연동 설정", body=body, active_tab="settings")
 
 
 # ── Garmin 연동 ─────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ def garmin_connect_view() -> str:
     MFA 코드 입력 화면이 자동으로 나타납니다. 코드 입력 후 로그인이 완료되면 토큰이 저장되어 이후 sync 시 재인증 없이 사용됩니다.
   </p>
 </div>"""
-    return html_page("Garmin 연동", body)
+    return render_template("generic_page.html", title="Garmin 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/garmin")
@@ -320,7 +320,7 @@ def garmin_mfa_view():
   <p class='muted'>코드를 받지 못했다면 Garmin 앱을 확인하거나 이메일을 다시 확인하세요.</p>
   <p class='muted'><a href='/connect/garmin'>← 처음부터 다시 시도</a></p>
 </div>"""
-    return html_page("Garmin MFA 인증", body)
+    return render_template("generic_page.html", title="Garmin MFA 인증", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/garmin/mfa")
@@ -414,7 +414,7 @@ def strava_connect_view() -> str:
     Strava API 앱 설정에서 위 URL을 Authorized Callback Domain에 추가해야 합니다.
   </p>
 </div>"""
-    return html_page("Strava 연동", body)
+    return render_template("generic_page.html", title="Strava 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/strava/save-app")
@@ -549,7 +549,7 @@ def intervals_connect_view() -> str:
     </div>
   </form>
 </div>"""
-    return html_page("Intervals.icu 연동", body)
+    return render_template("generic_page.html", title="Intervals.icu 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/intervals")
@@ -629,7 +629,7 @@ def runalyze_connect_view() -> str:
   </ol>
   <p class='muted'>토큰이 만료되거나 오류가 발생하면 Runalyze에서 재발급하세요.</p>
 </div>"""
-    return html_page("Runalyze 연동", body)
+    return render_template("generic_page.html", title="Runalyze 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/runalyze")
