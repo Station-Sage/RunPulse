@@ -68,7 +68,7 @@
 - `tests/test_web_activity.py`: `app_client` 픽스처에 `migrate_db()` 추가
 
 **테스트 결과**
-- `python -m pytest tests/ -q` → 607 passed
+- `python -m pytest tests/ -q` → 605 passed, 2 failed (pre-existing: test_auth_runalyze·test_sync_strava)
 
 
 ## 2026-03-21 (claude/sync-policy)
