@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.2-phase2] 2026-03-23
+
+### 추가
+- `src/web/views_settings.py` — `POST /metrics/recompute` 엔드포인트 + 설정 페이지 "메트릭 재계산" 카드
+  - 최근 N일(기본 90) 범위 지정 가능, 백그라운드 스레드 실행
+
+### 변경
+- `src/sync.py` — sync 완료 후 `metrics_engine.run_for_date_range()` 자동 호출
+- `src/web/bg_sync.py` — 백그라운드 배치 완료 후 `metrics_engine.run_for_date_range()` 자동 호출
+
+### 테스트
+- 전체 797개 통과 (pre-existing 3개 실패 포함, Phase 2 코드 자체 신규 실패 없음)
+
+---
+
 ## [v0.2-sprint3] 2026-03-23
 
 ### 추가

@@ -125,11 +125,11 @@
 
 ---
 
-## Phase 2: 동기화 후 메트릭 자동 계산
+## Phase 2: 동기화 후 메트릭 자동 계산 ✅ 완료 (2026-03-23)
 
-- [ ] V2-2-1: `src/sync.py` — sync 완료 후 engine.recompute_recent() 호출
-- [ ] V2-2-2: `src/web/bg_sync.py` — 백그라운드 sync 후 동일 훅 추가
-- [ ] V2-2-3: `src/web/` — `/metrics/recompute` API 엔드포인트 (수동 재계산)
+- [x] V2-2-1: `src/sync.py` — sync 완료 후 `engine.run_for_date_range()` 호출
+- [x] V2-2-2: `src/web/bg_sync.py` — 백그라운드 sync 완료 후 동일 훅 추가
+- [x] V2-2-3: `src/web/views_settings.py` — `POST /metrics/recompute` 엔드포인트 + 설정 페이지 재계산 버튼
 
 ---
 

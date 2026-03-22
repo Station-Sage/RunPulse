@@ -8,7 +8,9 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import argparse
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
@@ -71,6 +73,18 @@ def main() -> None:
                 print(f"[{source}] 예외 발생: {e}", file=sys.stderr)
 
     print(f"\n동기화 완료: 활동 {total_activities}개, 웰니스 {total_wellness}개")
+
+    # 메트릭 자동 재계산
+    print("메트릭 계산 시작...")
+    try:
+        from src.metrics import engine as metrics_engine
+        start_date = (date.today() - timedelta(days=args.days)).isoformat()
+        end_date = date.today().isoformat()
+        with sqlite3.connect(str(db_path)) as conn:
+            metrics_engine.run_for_date_range(conn, start_date, end_date)
+        print(f"메트릭 계산 완료 ({start_date} ~ {end_date})")
+    except Exception as exc:
+        print(f"메트릭 계산 실패 (sync는 정상 완료): {exc}", file=sys.stderr)
 
 
 if __name__ == "__main__":

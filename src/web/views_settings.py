@@ -16,6 +16,8 @@ import urllib.parse
 import uuid
 from pathlib import Path
 
+import sqlite3
+
 from flask import Blueprint, redirect, request, url_for
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
@@ -113,7 +115,11 @@ def settings_view() -> str:
 
     garmin_extra = f"<p class='muted' style='font-size:0.85rem;'>토큰 저장소: <code>{_html.escape(str(tokenstore))}</code></p>"
 
+    msg = _html.escape(request.args.get("msg", ""))
+    msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
+
     body = f"""
+{msg_html}
 <p>각 서비스의 연동 상태를 확인하고 설정하세요.</p>
 <div class='cards-row'>
   {_service_card("Garmin Connect", "⌚", garmin_status,
@@ -128,6 +134,18 @@ def settings_view() -> str:
                  "/connect/runalyze", "/connect/runalyze/disconnect")}
 </div>
 <hr>
+<div class='card'>
+  <h2>메트릭 재계산</h2>
+  <p>기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, DI 등)을 재계산합니다.<br>
+  <small class='muted'>동기화 후 자동으로 실행되지만, 수동으로 강제 재계산할 때 사용합니다.</small></p>
+  <form method='post' action='/metrics/recompute' style='display:flex; align-items:center; gap:1rem; flex-wrap:wrap;'>
+    <label>최근 <input type='number' name='days' value='90' min='1' max='365'
+           style='width:60px; text-align:center;'> 일간 재계산</label>
+    <button type='submit' style='padding:0.4rem 1.2rem; background:#00d4ff; color:#000; border:none; border-radius:4px; cursor:pointer; font-weight:bold;'>
+      재계산 시작
+    </button>
+  </form>
+</div>
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
 </p>"""
@@ -644,3 +662,28 @@ def runalyze_disconnect():
     """Runalyze 연동 해제."""
     update_service_config("runalyze", {"token": ""})
     return redirect("/settings")
+
+
+# ── 메트릭 재계산 ────────────────────────────────────────────────────
+@settings_bp.post("/metrics/recompute")
+def metrics_recompute():
+    """기존 DB 데이터 기반 2차 메트릭 일괄 재계산."""
+    import threading
+    from src.metrics import engine as metrics_engine
+
+    try:
+        days = int(request.form.get("days", 90))
+        days = max(1, min(days, 365))
+    except (ValueError, TypeError):
+        days = 90
+
+    def _run() -> None:
+        try:
+            with sqlite3.connect(str(db_path())) as conn:
+                metrics_engine.recompute_all(conn, days=days)
+        except Exception:
+            pass  # 백그라운드 실패는 무시 (로그만)
+
+    threading.Thread(target=_run, daemon=True, name="metrics-recompute").start()
+    msg = f"메트릭 재계산을 백그라운드에서 시작했습니다 (최근 {days}일). 완료까지 수 분 소요될 수 있습니다."
+    return redirect(f"/settings?msg={_html.escape(msg)}")
