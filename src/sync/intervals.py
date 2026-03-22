@@ -135,23 +135,32 @@ def sync_activities(
         distance_km = (act.get("distance") or 0) / 1000
         duration_sec = int(act.get("moving_time") or 0)
         avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
-        start_time = act.get("start_date_local", "")
+        # start_date_local: Z suffix가 있으면 로컬 시간으로 취급하여 제거
+        start_time = act.get("start_date_local", "").rstrip("Z")
+
+        # intervals.icu API는 cadence를 한쪽 발(stride/min)로 반환 → 양발 spm으로 변환
+        raw_cadence = act.get("average_cadence")
+        avg_cadence = int(raw_cadence * 2) if raw_cadence is not None else None
+
+        # tags 배열 → 쉼표 구분 workout_label
+        tags = act.get("tags")
+        workout_label = ", ".join(tags) if tags else None
 
         try:
             cursor = conn.execute(
                 """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                    elevation_gain, calories, description)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    elevation_gain, calories, description, workout_label)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "intervals", source_id,
                     act.get("type", "Run").lower(),
                     start_time, distance_km, duration_sec, avg_pace,
                     act.get("average_heartrate"), act.get("max_heartrate"),
-                    act.get("average_cadence"),
+                    avg_cadence,
                     act.get("total_elevation_gain"), act.get("calories"),
-                    act.get("name"),
+                    act.get("name"), workout_label,
                 ),
             )
         except sqlite3.Error as e:
@@ -163,10 +172,11 @@ def sync_activities(
             existing_id = fill_null_columns(conn, "intervals", source_id, {
                 "avg_hr": act.get("average_heartrate"),
                 "max_hr": act.get("max_heartrate"),
-                "avg_cadence": act.get("average_cadence"),
+                "avg_cadence": avg_cadence,
                 "elevation_gain": act.get("total_elevation_gain"),
                 "calories": act.get("calories"),
                 "description": act.get("name"),
+                "workout_label": workout_label,
             })
             _store_raw_payload(conn, "intervals", "activity", source_id, act, activity_id=existing_id)
             if existing_id:

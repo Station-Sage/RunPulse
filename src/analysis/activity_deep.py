@@ -220,11 +220,17 @@ def deep_analyze(
     act_date = start_time[:10]
 
     # 4소스 활동 및 metrics 수집
+    # 같은 소스가 여럿(garmin API + garmin exp_)이면 metrics가 있는 행 우선
     group_acts = _get_group_activities(conn, act_id)
     source_metrics: dict[str, dict] = {}
     for (gid, gsrc) in group_acts:
-        if gsrc:
-            source_metrics[gsrc] = _get_metrics(conn, gid)
+        if not gsrc:
+            continue
+        m = _get_metrics(conn, gid)
+        if gsrc not in source_metrics:
+            source_metrics[gsrc] = m
+        elif m and not source_metrics[gsrc]:
+            source_metrics[gsrc] = m  # 기존이 비어있으면 교체
 
     # Garmin 지표
     g = source_metrics.get("garmin", {})
@@ -232,7 +238,22 @@ def deep_analyze(
         "training_effect_aerobic": g.get("training_effect_aerobic"),
         "training_effect_anaerobic": g.get("training_effect_anaerobic"),
         "training_load": g.get("training_load"),
+        "normalized_power": g.get("normalized_power"),
+        "avg_power": g.get("avg_power"),
         "vo2max": g.get("vo2max"),
+        # 바이오메카닉스
+        "steps": g.get("steps"),
+        "avg_stride_length": g.get("avg_stride_length"),
+        "avg_run_cadence": g.get("avg_run_cadence"),
+        "max_run_cadence": g.get("max_run_cadence"),
+        "avg_vertical_ratio": g.get("avg_vertical_ratio"),
+        "avg_ground_contact_time": g.get("avg_ground_contact_time"),
+        # HR 존 시간 (초)
+        "hr_zone_time_1": g.get("hr_zone_time_1"),
+        "hr_zone_time_2": g.get("hr_zone_time_2"),
+        "hr_zone_time_3": g.get("hr_zone_time_3"),
+        "hr_zone_time_4": g.get("hr_zone_time_4"),
+        "hr_zone_time_5": g.get("hr_zone_time_5"),
     }
 
     # Strava 지표
@@ -275,6 +296,13 @@ def deep_analyze(
         "icu_hr_zone_times": iv.get("icu_hr_zone_times"),
         "interval_summary": iv.get("interval_summary"),
         "hr_zones": hr_zones_raw,
+        # 추가 필드
+        "strain_score": iv.get("strain_score"),
+        "hr_load": iv.get("hr_load"),
+        "pace_load": iv.get("pace_load"),
+        "power_load": iv.get("power_load"),
+        "session_rpe": iv.get("session_rpe"),
+        "icu_lap_count": iv.get("icu_lap_count"),
     }
 
     # Runalyze 지표

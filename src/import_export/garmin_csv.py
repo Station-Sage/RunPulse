@@ -145,11 +145,17 @@ def _parse_row(raw: dict[str, str]) -> dict[str, Any]:
     except ValueError:
         start_time = start_raw
 
+    # 거리 단위 변환: 수영·트랙러닝은 Garmin CSV에서 미터로 기록됨 → km 변환
+    raw_dist = _float(mapped.get("distance_km"))
+    _METER_TYPES = {"swimming", "open_water_swimming", "track_running"}
+    if raw_dist is not None and activity_type in _METER_TYPES and raw_dist > 10:
+        raw_dist = round(raw_dist / 1000, 4)
+
     return {
         "activity_type": activity_type,
         "start_time": start_time,
         "description": mapped.get("description"),
-        "distance_km": _float(mapped.get("distance_km")),
+        "distance_km": raw_dist,
         "calories": _int(mapped.get("calories")),
         "duration_sec": _hms_to_sec(mapped.get("duration_hms")),
         "avg_hr": _int(mapped.get("avg_hr")),

@@ -3,22 +3,68 @@ from __future__ import annotations
 
 import html as _html
 
-_SOURCE_OPTS = """
-      <option value="all">전체 (연동된 서비스)</option>
-      <option value="garmin">Garmin</option>
-      <option value="strava">Strava</option>
-      <option value="intervals">Intervals.icu</option>
-      <option value="runalyze">Runalyze</option>
-"""
-
-_SELECT_STYLE = (
-    "padding:0.35rem 0.6rem; border-radius:4px; border:1px solid #ccc;"
-    " background:var(--card-bg); color:var(--fg);"
-)
 _BTN_STYLE = (
     "padding:0.35rem 1rem; background:#0066cc; color:#fff;"
     " border:none; border-radius:4px; cursor:pointer;"
 )
+
+_SERVICE_LABELS = [
+    ("garmin",    "Garmin",       "#0055b3"),
+    ("strava",    "Strava",       "#FC4C02"),
+    ("intervals", "Intervals",    "#00884e"),
+    ("runalyze",  "Runalyze",     "#7b2d8b"),
+]
+
+
+def _source_checkboxes(panel: str, connected: set[str] | None = None) -> str:
+    """서비스 멀티 선택 체크박스 pill 그룹 HTML.
+
+    Args:
+        panel: 'basic' 또는 'hist' — id prefix 구분용.
+        connected: 연결된 서비스 이름 집합. None이면 모두 활성.
+    """
+    pills = []
+    for src, label, color in _SERVICE_LABELS:
+        cid = f"{panel}-chk-{src}"
+        is_connected = connected is None or src in connected
+        if is_connected:
+            pills.append(
+                f"<label id='{cid}-label' for='{cid}' style='"
+                f"display:inline-flex; align-items:center; gap:4px; cursor:pointer;"
+                f"padding:0.3rem 0.7rem; border-radius:20px; font-size:0.82rem; font-weight:600;"
+                f"border:2px solid {color}; background:transparent; color:{color};"
+                f"transition:background 0.15s, color 0.15s;' "
+                f"onclick=\"toggleSyncSrc('{panel}','{src}','{color}')\">"
+                f"<input type='checkbox' id='{cid}' data-panel='{panel}' data-src='{src}'"
+                f" checked style='display:none;'>"
+                f"<span id='{cid}-icon'>✓</span> {label}</label>"
+            )
+        else:
+            # 미연결 서비스: 체크박스 비활성화, 회색, 연결 링크
+            pills.append(
+                f"<label style='"
+                f"display:inline-flex; align-items:center; gap:4px;"
+                f"padding:0.3rem 0.7rem; border-radius:20px; font-size:0.82rem; font-weight:600;"
+                f"border:2px solid #ccc; background:transparent; color:#bbb;"
+                f"cursor:not-allowed;' title='{label} 미연결 — 설정에서 연동하세요'>"
+                f"<input type='checkbox' id='{cid}' data-panel='{panel}' data-src='{src}'"
+                f" disabled style='display:none;'>"
+                f"<span>✕</span> {label}"
+                f"<a href='/connect/{src}' style='font-size:0.7rem; margin-left:4px; color:#0066cc; font-weight:400;'>연결</a></label>"
+            )
+    all_pill = (
+        f"<label style='display:inline-flex; align-items:center; gap:4px; cursor:pointer;"
+        f"padding:0.3rem 0.7rem; border-radius:20px; font-size:0.82rem; font-weight:600;"
+        f"border:2px solid #555; color:#555; background:transparent;' "
+        f"onclick=\"toggleAllSyncSrc('{panel}')\">"
+        f"<span id='{panel}-all-icon'>전체 해제</span></label>"
+    )
+    return (
+        "<div style='display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center;'>"
+        + "".join(pills)
+        + all_pill
+        + "</div>"
+    )
 
 
 _SOURCES_KOR = {
@@ -83,15 +129,19 @@ def _sync_state_banner(sync_states: dict | None) -> str:
 def sync_card_html(
     last_sync: dict[str, str | None] | None = None,
     sync_states: dict | None = None,
+    connected: set[str] | None = None,
 ) -> str:
     """기본 동기화 + 기간 동기화 2탭 카드 HTML (AJAX 제출).
 
     Args:
         last_sync: last_sync_info() 반환값.
         sync_states: get_all_states() 반환값.
+        connected: 연결된 서비스 이름 집합. None이면 모두 활성.
     """
     last_sync_html = _last_sync_line(last_sync)
     state_banner = _sync_state_banner(sync_states)
+    basic_src = _source_checkboxes("basic", connected)
+    hist_src = _source_checkboxes("hist", connected)
     return f"""
 <div class="card" id="sync-card" style="border-color:#b3d9ff;">
   <h2 style="margin-bottom:0.75rem;">동기화</h2>
@@ -111,8 +161,8 @@ def sync_card_html(
 
   <!-- 기본 동기화 패널 -->
   <div id="spanel-basic">
-    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
-      <select id="basic-source" style="{_SELECT_STYLE}">{_SOURCE_OPTS}</select>
+    {basic_src}
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-top:0.5rem;">
       <span class="muted" style="font-size:0.85rem;">마지막 동기화 이후 신규 기록</span>
       <button id="sbtn-basic" onclick="doSync('basic')" style="{_BTN_STYLE}">&#9654; 동기화</button>
     </div>
@@ -122,8 +172,8 @@ def sync_card_html(
 
   <!-- 기간 동기화 패널 -->
   <div id="spanel-hist" style="display:none;">
-    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end; margin-bottom:0.6rem;">
-      <select id="hist-source" style="{_SELECT_STYLE}">{_SOURCE_OPTS}</select>
+    {hist_src}
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end; margin-top:0.5rem; margin-bottom:0.6rem;">
       <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
         시작일
         <input type="date" id="hist-from"

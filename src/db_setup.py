@@ -152,6 +152,27 @@ def create_tables(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
+        -- 분석용 정규화 뷰: 동일 활동 그룹에서 소스 우선순위(garmin>strava>intervals>runalyze)로
+        -- 대표 1행만 반환. 중복 집계 방지. 분석 쿼리에서 activity_summaries 대신 이 뷰 사용.
+        CREATE VIEW IF NOT EXISTS v_canonical_activities AS
+        SELECT a.*
+        FROM activity_summaries a
+        WHERE a.matched_group_id IS NULL
+           OR a.id = (
+               SELECT id FROM activity_summaries b
+               WHERE b.matched_group_id = a.matched_group_id
+               ORDER BY
+                   CASE b.source
+                       WHEN 'garmin'    THEN 1
+                       WHEN 'strava'    THEN 2
+                       WHEN 'intervals' THEN 3
+                       WHEN 'runalyze'  THEN 4
+                       ELSE 5
+                   END,
+                   b.id
+               LIMIT 1
+           );
+
         CREATE TABLE IF NOT EXISTS sync_jobs (
             id TEXT PRIMARY KEY,
             service TEXT NOT NULL,
@@ -266,11 +287,34 @@ def migrate_db(conn: sqlite3.Connection) -> None:
     for stmt in [
         "ALTER TABLE activity_summaries ADD COLUMN avg_power REAL",
         "ALTER TABLE activity_summaries ADD COLUMN export_filename TEXT",
+        "ALTER TABLE activity_summaries ADD COLUMN workout_label TEXT",
     ]:
         try:
             conn.execute(stmt)
         except sqlite3.OperationalError:
             pass  # 이미 존재
+
+    # v_canonical_activities 뷰 (IF NOT EXISTS이므로 안전)
+    conn.executescript("""
+        CREATE VIEW IF NOT EXISTS v_canonical_activities AS
+        SELECT a.*
+        FROM activity_summaries a
+        WHERE a.matched_group_id IS NULL
+           OR a.id = (
+               SELECT id FROM activity_summaries b
+               WHERE b.matched_group_id = a.matched_group_id
+               ORDER BY
+                   CASE b.source
+                       WHEN 'garmin'    THEN 1
+                       WHEN 'strava'    THEN 2
+                       WHEN 'intervals' THEN 3
+                       WHEN 'runalyze'  THEN 4
+                       ELSE 5
+                   END,
+                   b.id
+               LIMIT 1
+           );
+    """)
 
     # shoes 테이블 (Strava export)
     conn.executescript("""

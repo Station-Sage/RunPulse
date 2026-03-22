@@ -340,6 +340,14 @@ def sync_activities(
             training_load = detail.get("activityTrainingLoad", summary.get("activityTrainingLoad"))
             vo2max = detail.get("vO2MaxValue", summary.get("vO2MaxValue"))
 
+            # 운동효과 레이블 (trainingEffectLabel) → workout_label 저장
+            te_label = summary.get("trainingEffectLabel") or detail.get("trainingEffectLabel")
+            if te_label:
+                conn.execute(
+                    "UPDATE activity_summaries SET workout_label = ? WHERE id = ?",
+                    (te_label, activity_id),
+                )
+
             # aerobic/anaerobic TE 분리 저장 + 하위호환 alias
             avg_power = detail.get("averagePower", summary.get("averagePower"))
             normalized_power = (

@@ -12,9 +12,13 @@ import csv
 import gzip
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+# Strava export CSV는 UTC 기준. Garmin CSV는 로컬(KST) 기준.
+# dedup이 동작하려면 동일 기준으로 맞춰야 하므로 UTC → KST(+9h) 변환.
+_LOCAL_UTC_OFFSET = timedelta(hours=9)
 
 from src.utils.dedup import assign_group_id
 
@@ -61,7 +65,11 @@ def _int(v: str | None) -> int | None:
 
 
 def _parse_strava_date(v: str) -> str | None:
-    """'Nov 17, 2023, 10:56:10 PM' → ISO 8601."""
+    """'Nov 17, 2023, 10:56:10 PM' (UTC) → ISO 8601 로컬 시간 (KST +9h).
+
+    Strava export CSV의 날짜는 UTC 기준이므로 로컬 오프셋을 더해
+    Garmin CSV(로컬 시간) 기준의 dedup과 맞춘다.
+    """
     v = (v or "").strip()
     if not v:
         return None
@@ -71,7 +79,8 @@ def _parse_strava_date(v: str) -> str | None:
         "%Y-%m-%dT%H:%M:%SZ",
     ):
         try:
-            return datetime.strptime(v, fmt).isoformat()
+            dt_utc = datetime.strptime(v, fmt)
+            return (dt_utc + _LOCAL_UTC_OFFSET).isoformat()
         except ValueError:
             continue
     return v
@@ -223,8 +232,21 @@ def import_strava_activities(
 def _fill_null_fields(
     conn: sqlite3.Connection, source_id: str, parsed: dict[str, Any]
 ) -> None:
-    """기존 row의 NULL 필드를 새로 파싱한 값으로 보완."""
-    updatable = {
+    """기존 row의 NULL 필드를 보완하고, start_time을 CSV 파싱값으로 교정.
+
+    start_time은 COALESCE 없이 강제 업데이트한다.
+    기존 row가 UTC로 저장되어 있을 경우(이전 임포트 버그)를 교정하기 위해.
+    """
+    sets = []
+    vals = []
+
+    # start_time: 강제 업데이트 (UTC→KST 교정)
+    if parsed.get("start_time"):
+        sets.append("start_time = ?")
+        vals.append(parsed["start_time"])
+
+    # 나머지 필드: NULL인 경우만 채움
+    null_fill = {
         "avg_hr": parsed.get("avg_hr"),
         "max_hr": parsed.get("max_hr"),
         "avg_cadence": parsed.get("avg_cadence"),
@@ -233,12 +255,11 @@ def _fill_null_fields(
         "avg_power": parsed.get("avg_power"),
         "export_filename": parsed.get("filename"),
     }
-    sets = []
-    vals = []
-    for col, val in updatable.items():
+    for col, val in null_fill.items():
         if val is not None:
             sets.append(f"{col} = COALESCE({col}, ?)")
             vals.append(val)
+
     if sets:
         vals.extend(["strava", source_id])
         conn.execute(

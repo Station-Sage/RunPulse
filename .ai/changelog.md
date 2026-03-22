@@ -1,6 +1,90 @@
 # RunPulse - 변경 이력
 
 
+## 2026-03-22 (claude/export-import)
+
+### 통합 활동 목록 UI 고도화 + CSV 임포트 + 신발 탭
+
+**변경 파일**
+- `src/services/unified_activities.py`
+  - `fetch_unified_activities()` 신규 파라미터: `sort_by` (date/distance/duration/pace/hr), `sort_dir` (asc/desc), `q` (텍스트 검색), `min_dist`/`max_dist`, `min_pace`/`max_pace`, `min_dur`/`max_dur`
+- `src/web/views_activities.py`
+  - 정렬 가능 컬럼 헤더 ▲▼ UI, 현재 정렬 상태 강조
+  - 텍스트 검색 입력란 (`q=` 파라미터)
+  - 범위 필터 `<details>` 패널 (거리/페이스/시간 min-max + 프리셋 pills)
+  - sort URL에 `from=`/`to=` 날짜 파라미터 보존 (`_has_date_param` 플래그)
+- `src/web/helpers.py`
+  - `connected_services() -> set[str]`: 4개 서비스 연결 상태 실시간 확인 (sync 모듈 local import 방식)
+- `src/web/sync_ui.py`
+  - `_source_checkboxes(panel, connected)`: pill-style 멀티셀렉트, 미연결 서비스 disabled + 연결 링크 표시
+- `src/web/app.py`
+  - 홈 대시보드 최근 활동 → `fetch_unified_activities()` 기반 통합 뷰
+  - `/trigger-sync`: 콤마 구분 다중 소스 동기화 지원
+- `src/web/views_activity.py`
+  - `_render_garmin_metrics()`: 생체역학 지표 카드 (steps, stride_length, run_cadence, vertical_ratio, ground_contact_time, HR zone times 1-5)
+  - `_render_intervals_metrics()`: 추가 필드 (strain_score, hr_load, pace_load, power_load, session_rpe, icu_lap_count)
+  - `_fetch_source_rows()`: `_COLS` 기반 SELECT (workout_label, avg_power 포함)
+- `src/web/views_activity_merge.py`
+  - `/activities/merge-group` POST: 선택 활동 수동 그룹핑
+  - `/activities/remove-from-group` POST: 그룹에서 개별 활동 분리
+- `src/web/views_export_import.py` (신규)
+  - `/export-import` GET: 임포트/내보내기 탭 UI
+  - `/import/garmin-csv` POST: Garmin CSV 파일 파싱 → activity_summaries 삽입
+  - `/import/strava-csv` POST: Strava CSV 파일 파싱 → activity_summaries 삽입
+  - `/export/activities` GET: 활동 목록 CSV 내보내기
+- `src/web/views_shoes.py` (신규)
+  - `/shoes` GET: 신발 목록 + 누적 거리 표시
+  - `/shoes/add` POST: 신발 추가
+  - `/shoes/retire` POST: 신발 은퇴 처리
+- `src/import_export/garmin_csv.py` (신규)
+  - Garmin 내보내기 CSV 파싱: 컬럼 매핑, 수영 거리 m→km 변환
+- `src/import_export/strava_csv.py` (신규)
+  - Strava 내보내기 CSV 파싱: 컬럼 매핑 및 정규화
+- `src/utils/dedup.py`
+  - `_TIME_TOLERANCE`: 5분 → 7분 확대
+  - `_DISTANCE_TOLERANCE`: 3% → 15% 확대
+  - `auto_group_all()`: 전이적(transitive) 그룹 병합 로직 추가
+- `src/db_setup.py`
+  - `migrate_db()`: `activity_summaries`에 `avg_power`, `export_filename`, `workout_label` 컬럼 추가
+  - `migrate_db()`: `shoes` 테이블 신설 (name, brand, model, distance_km, retired)
+  - `migrate_db()`: `sync_jobs` 테이블 신설 (job_id, source, status, started_at, finished_at, rows_added, error)
+- `src/analysis/activity_deep.py`
+  - Garmin 생체역학 추가 (steps, stride_length_cm, run_cadence, vertical_oscillation_cm, vertical_ratio, ground_contact_time_ms)
+  - Intervals 추가 지표 (strain_score, hr_load, pace_load, power_load, session_rpe, icu_lap_count)
+
+**신규/수정 테스트**
+- `tests/conftest.py`: `db_conn` 픽스처에 `migrate_db()` 추가 (workout_label·avg_power·export_filename 컬럼 포함)
+- `tests/test_branch_changes.py` (신규, 53개):
+  - `TestFetchSort`: sort_by 5종, sort_dir, 잘못된 sort_by 폴백
+  - `TestFetchSearch`: q 매칭(description·activity_type), 빈 q, 불일치
+  - `TestFetchDistanceFilter` / `TestFetchPaceFilter` / `TestFetchDurationFilter`: 범위 필터 각 케이스
+  - `TestAutoGroupAll`: 2·3소스, transitive 병합, 다른날 미병합, 반환값 검증
+  - `TestSourceCheckboxes`: connected/disabled, connect 링크, None=전체 활성, panel prefix
+  - `TestConnectedServices`: 정상 서비스, 전체 실패, 예외 graceful
+  - `TestActivitiesRouteBranchChanges`: sort 200, sort+날짜 파라미터 보존, q 검색, min_dist, sort 5종 200
+- `tests/test_dedup.py`: 허용오차 변경 반영 (8분/12.1km → 20% diff)
+- `tests/test_unified_activities.py`: `mem_db` 픽스처 schema에 `workout_label`/`avg_power` 추가, `test_date_property` 포맷 수정 ("YYYY-MM-DD HH:MM")
+- `tests/test_web_activities.py`: 픽스처를 `create_tables()+migrate_db()` 기반으로 교체, filter form 어서션 수정
+- `tests/test_web_activity.py`: `app_client` 픽스처에 `migrate_db()` 추가
+
+**테스트 결과**
+- `python -m pytest tests/ -q` → 607 passed
+
+
+## 2026-03-21 (claude/sync-policy)
+
+### 동기화 정책 + 백그라운드 동기화 + raw payload merge
+
+**변경 내용 요약**
+- `src/utils/sync_policy.py` (신규): SyncPolicy, SyncGuardResult — rate limit/cooldown/중복 방지, sync_state.json 기반 상태 관리
+- `src/web/views_sync.py` (신규): 백그라운드 기간 동기화 UI — BgSyncThread(pause/stop/resume), 서비스별 배치처리+rate limit, 진행 프로그레스바, SSE polling
+- `src/db_setup.py`: `sync_jobs` 테이블 추가 (job_id, source, status, started_at, finished_at, rows_added, error)
+- raw payload 보존 merge: Garmin/Strava/Intervals/Runalyze sync → source_payloads 테이블 저장 통합
+
+**테스트 결과**
+- 신규 테스트 30개 (누적 481개), 백그라운드 sync 30개 (누적 511개)
+
+
 ## 2026-03-21 (claude/fix-auth-integrations)
 
 ### 4개 서비스 인증/동기화 수정 및 /settings 연동 UI

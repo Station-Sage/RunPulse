@@ -1,5 +1,5 @@
 # RunPulse - 작업 목록
-최종 업데이트: 2026-03-21
+최종 업데이트: 2026-03-22
 
 ## Phase 1: 기반 구축 (완료)
 - [x] P1-1: 디렉터리 구조 및 문서 생성
@@ -102,6 +102,7 @@
 - 2026-03-21: 4개 서비스 인증/엔드포인트 수정 완료 — Garmin 토큰 우선 인증, Strava/Intervals/Runalyze 엔드포인트 버그 수정, /settings 연동 UI, 신규 테스트 68개 (누적 451개)
 - 2026-03-21: sync-policy 구현 — rate limit/cooldown/중복방지, SyncPolicy/SyncGuardResult, sync_state.json, 신규 30개 테스트 (누적 481개)
 - 2026-03-21: 백그라운드 기간 동기화 구현 — sync_jobs DB 테이블, BgSyncThread(pause/stop/resume), 서비스별 배치+rate limit, 진행 UI(프로그레스바/polling), 신규 30개 테스트 (누적 511개)
+- 2026-03-22: claude/export-import 브랜치 — 통합 활동 목록(정렬·검색·범위필터), Garmin/Strava CSV 임포트, 신발 탭, 활동 병합 UI, Garmin 생체역학 지표, connected_services 헬퍼, dedup 허용오차 확대(7분·15%), 53개 신규 테스트 + 기존 테스트 5개 수정 (누적 607개)
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 
@@ -109,6 +110,21 @@
 - [x] P3-9: 마크다운 리포트 및 AI 컨텍스트 생성 추가 (report.py)
 - [x] P3-10: analyze.py CLI 엔트리포인트 추가
 - [ ] P3-followup: race readiness insufficient_data UX 문구/리포트 섹션/AI context 표현 정교화
+
+## Phase 5 추가 구현 (claude/export-import)
+- [x] P5-activities-sort: /activities 정렬 가능 컬럼 (날짜/거리/시간/페이스/심박), ▲▼ UI
+- [x] P5-activities-search: /activities 텍스트 검색 (q 파라미터, description·activity_type 매칭)
+- [x] P5-activities-range: /activities 범위 필터 (거리·페이스·시간 min/max, 프리셋 pills, `<details>` 숨김)
+- [x] P5-activities-sort-url: sort URL이 from=/to= 날짜 파라미터를 보존
+- [x] P5-sync-ui: 동기화 소스 pill-style 멀티셀렉트 (미연결 서비스 disabled 표시)
+- [x] P5-connected-services: helpers.connected_services() — 4개 서비스 연결 상태 실시간 확인
+- [x] P5-home-unified: 홈 대시보드 최근 활동 → fetch_unified_activities() 기반 통합 뷰
+- [x] P5-activity-biomechanics: /activity/deep Garmin 생체역학 지표 (보폭·케이던스·수직비율·지면접촉시간·HR존 시간)
+- [x] P5-activity-intervals: /activity/deep Intervals 추가 지표 (strain_score·hr_load·pace_load·power_load·session_rpe·lap_count)
+- [x] P5-export-import: /export-import Blueprint — Garmin CSV·Strava CSV 임포트, 활동 내보내기
+- [x] P5-shoes: /shoes Blueprint — 신발 목록·누적 거리·은퇴 처리
+- [x] P5-activity-merge: /activities/merge-group·/activities/remove-from-group — 수동 그룹 관리 UI
+- [x] DB-migrations: migrate_db() avg_power·export_filename·workout_label 컬럼, shoes 테이블, sync_jobs 테이블 추가
 
 ## Integration validation
 - [ ] IV-1: 실제 Garmin/Strava export 샘플 기반 import_history 통합 검증
