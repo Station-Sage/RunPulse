@@ -27,6 +27,9 @@ from .views_activity_merge import merge_bp
 from .views_export_import import export_import_bp
 from .views_shoes import shoes_bp
 
+# Phase 3 (v0.2) Blueprint imports
+from .views_dashboard import dashboard_bp
+
 
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
 _HOME_CACHE_TTL = 60
@@ -226,6 +229,10 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
+        return redirect("/dashboard")
+
+    @app.get("/home-legacy")
+    def index_legacy():
         db_path = _db_path()
 
         if not db_path.exists():
@@ -1305,5 +1312,6 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
     app.register_blueprint(export_import_bp)  # Export CSV 임포트
     app.register_blueprint(shoes_bp)          # 신발 목록
+    app.register_blueprint(dashboard_bp)      # v0.2 통합 대시보드
 
     return app

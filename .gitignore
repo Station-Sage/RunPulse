@@ -54,3 +54,9 @@ sync_state.json
 
 # 로컬 export 데이터 (개인정보 포함, 커밋 금지)
 activities data/
+
+# version 0.2 설계 문서 (앱 UI 목업, HTML 제외) — design/.ai/*.md 는 추적
+design/*
+!design/.ai
+design/.ai/*
+!design/.ai/*.md
