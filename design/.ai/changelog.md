@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.2-sprint4A] 2026-03-23
+
+### 추가
+- `src/web/helpers.py` — `bottom_nav(active_tab, dev_mode)` 7탭 하단 네비게이션 함수
+- `src/web/helpers.py` — Google Fonts CDN 로드 (Noto Sans KR + Inter)
+- `src/web/helpers.py` — ECharts CDN 상수 (`_ECHARTS_CDN`)
+
+### 변경
+- `src/web/helpers.py` — 전체 CSS를 ui-spec.md 다크 테마로 교체 (Chart.js → ECharts, 고정 다크)
+  - 배경: `linear-gradient(135deg, #1a1a2e→#16213e→#0f3460)`
+  - 강조색 CSS 변수: `--cyan #00d4ff`, `--green #00ff88`, `--orange #ffaa00`, `--red #ff4444`
+  - `.card`: border-radius 20px, backdrop-filter blur
+  - `.bottom-nav`: 7탭 하단 고정 네비게이션 CSS
+- `src/web/helpers.py` — `html_page()` signature 확장 (`active_tab`, `dev_mode` 파라미터 추가)
+- `src/web/views_dashboard.py` — PMC 차트 Chart.js → ECharts 재작성 (TSB 위험구간 markArea)
+- `src/web/views_dashboard.py` — `html_page()` 에 `active_tab='dashboard'` 적용
+- `src/web/views_settings.py` — `html_page()` 에 `active_tab='settings'` 적용
+- `src/web/views_activities.py` — `html_page()` 에 `active_tab='activities'` 적용
+
+### 테스트
+- 785개 통과 (pre-existing 3개 제외)
+
+---
+
 ## [v0.2-phase2] 2026-03-23
 
 ### 추가

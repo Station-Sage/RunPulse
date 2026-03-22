@@ -22,7 +22,7 @@ from src.services.unified_activities import (
     UnifiedActivity,
     fetch_unified_activities,
 )
-from .helpers import db_path, fmt_duration, html_page
+from .helpers import bottom_nav, db_path, fmt_duration, html_page
 
 activities_bp = Blueprint("activities", __name__)
 
@@ -824,7 +824,7 @@ def activities_list():
     dpath = db_path()
     if not dpath.exists():
         body = "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
-        return html_page("활동 목록", body)
+        return html_page("활동 목록", body, active_tab="activities")
 
     source = request.args.get("source", "").strip()
     act_type = request.args.get("type", "").strip()
@@ -907,7 +907,7 @@ def activities_list():
     except Exception as exc:
         import html as _html
         body = f"<div class='card'><p>조회 오류: {_html.escape(str(exc))}</p></div>"
-        return html_page("활동 목록", body)
+        return html_page("활동 목록", body, active_tab="activities")
 
     # base_qs: 필터 파라미터 (페이지네이션, 정렬 링크에 공통 사용)
     qs_parts = []
@@ -958,4 +958,4 @@ def activities_list():
         + _render_activity_table(activities, sort_url_base=sort_base, cur_sort=sort_by, cur_dir=sort_dir)
         + _render_pagination(page, total, base_qs)
     )
-    return html_page("활동 목록", body)
+    return html_page("활동 목록", body, active_tab="activities")

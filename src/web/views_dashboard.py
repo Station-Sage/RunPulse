@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from flask import Blueprint, redirect, url_for
 
 from .helpers import (
+    bottom_nav,
     db_path,
     fmt_duration,
     fmt_pace,
@@ -210,107 +211,101 @@ def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
 
 
 def _render_pmc_chart(pmc_data: list[dict]) -> str:
-    """Chart.js PMC 차트 (ATL/CTL/TSB)."""
+    """ECharts PMC 차트 (ATL/CTL/TSB, TSB 위험구간 배경 포함)."""
     if not pmc_data:
         return no_data_card("PMC 차트 (CTL/ATL/TSB)", "훈련 데이터 동기화 후 표시됩니다")
 
     labels = [r["date"] for r in pmc_data]
-    ctl = [r["ctl"] or 0 for r in pmc_data]
-    atl = [r["atl"] or 0 for r in pmc_data]
-    tsb = [r["tsb"] or 0 for r in pmc_data]
+    ctl = [round(r["ctl"] or 0, 1) for r in pmc_data]
+    atl = [round(r["atl"] or 0, 1) for r in pmc_data]
+    tsb = [round(r["tsb"] or 0, 1) for r in pmc_data]
 
     labels_json = json.dumps(labels)
     ctl_json = json.dumps(ctl)
     atl_json = json.dumps(atl)
     tsb_json = json.dumps(tsb)
 
+    # TSB 위험구간 markArea 계산 (< -20 주황, < -30 빨강)
     return f"""
 <div class='card'>
   <h2 style='font-size:1rem;margin-bottom:0.8rem;'>PMC 훈련 부하 차트</h2>
-  <div style='position:relative;height:220px;'>
-    <canvas id='pmcChart'></canvas>
-  </div>
+  <div id='pmcChart' style='height:240px;'></div>
   <p class='muted' style='font-size:0.78rem;margin:0.4rem 0 0;'>
     CTL(만성부하) · ATL(급성부하) · TSB(훈련 스트레스 균형) — 최근 60일
+    &nbsp;|&nbsp; <span style='color:#ffaa00'>■</span> TSB&lt;-20 주의
+    &nbsp;<span style='color:#ff4444'>■</span> TSB&lt;-30 위험
   </p>
 </div>
 <script>
 (function() {{
   var el = document.getElementById('pmcChart');
-  if (!el) return;
+  if (!el || typeof echarts === 'undefined') return;
+  var chart = echarts.init(el, 'dark', {{backgroundColor: 'transparent'}});
   var labels = {labels_json};
   var shortLabels = labels.map(function(d) {{ return d.slice(5); }});
-  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  var gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  var fontColor = isDark ? '#ccc' : '#555';
-  new Chart(el, {{
-    type: 'line',
-    data: {{
-      labels: shortLabels,
-      datasets: [
-        {{
-          label: 'CTL',
-          data: {ctl_json},
-          borderColor: '#2196f3',
-          backgroundColor: 'rgba(33,150,243,0.08)',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.3,
-          fill: true,
-          yAxisID: 'y'
-        }},
-        {{
-          label: 'ATL',
-          data: {atl_json},
-          borderColor: '#ff7043',
-          backgroundColor: 'rgba(255,112,67,0.08)',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.3,
-          fill: true,
-          yAxisID: 'y'
-        }},
-        {{
-          label: 'TSB',
-          data: {tsb_json},
-          borderColor: '#66bb6a',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.3,
-          borderDash: [4, 3],
-          yAxisID: 'y2'
-        }}
-      ]
-    }},
-    options: {{
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {{ mode: 'index', intersect: false }},
-      plugins: {{
-        legend: {{ labels: {{ color: fontColor, boxWidth: 12, font: {{ size: 11 }} }} }},
-        tooltip: {{ callbacks: {{
-          label: function(ctx) {{
-            return ctx.dataset.label + ': ' + (ctx.raw == null ? '—' : ctx.raw.toFixed(1));
-          }}
-        }} }}
-      }},
-      scales: {{
-        x: {{ grid: {{ color: gridColor }}, ticks: {{ color: fontColor, maxTicksLimit: 8, font: {{ size: 10 }} }} }},
-        y: {{
-          position: 'left',
-          grid: {{ color: gridColor }},
-          ticks: {{ color: fontColor, font: {{ size: 10 }} }},
-          title: {{ display: true, text: 'CTL / ATL', color: fontColor, font: {{ size: 10 }} }}
-        }},
-        y2: {{
-          position: 'right',
-          grid: {{ drawOnChartArea: false }},
-          ticks: {{ color: '#66bb6a', font: {{ size: 10 }} }},
-          title: {{ display: true, text: 'TSB', color: '#66bb6a', font: {{ size: 10 }} }}
-        }}
-      }}
+  var ctlData = {ctl_json};
+  var atlData = {atl_json};
+  var tsbData = {tsb_json};
+
+  // TSB markArea: 위험구간 배경 (연속 구간 병합)
+  var warningAreas = [], dangerAreas = [];
+  var wStart = null, dStart = null;
+  for (var i = 0; i < tsbData.length; i++) {{
+    var v = tsbData[i];
+    if (v < -30) {{
+      if (dStart === null) dStart = i;
+      if (wStart === null) wStart = i;
+    }} else if (v < -20) {{
+      if (wStart === null) wStart = i;
+      if (dStart !== null) {{ dangerAreas.push([{{xAxis: shortLabels[dStart]}}, {{xAxis: shortLabels[i-1]}}]]); dStart = null; }}
+    }} else {{
+      if (wStart !== null) {{ warningAreas.push([{{xAxis: shortLabels[wStart]}}, {{xAxis: shortLabels[i-1]}}]]); wStart = null; }}
+      if (dStart !== null) {{ dangerAreas.push([{{xAxis: shortLabels[dStart]}}, {{xAxis: shortLabels[i-1]}}]]); dStart = null; }}
     }}
-  }});
+  }}
+  if (wStart !== null) warningAreas.push([{{xAxis: shortLabels[wStart]}}, {{xAxis: shortLabels[shortLabels.length-1]}}]);
+  if (dStart !== null) dangerAreas.push([{{xAxis: shortLabels[dStart]}}, {{xAxis: shortLabels[shortLabels.length-1]}}]);
+
+  var option = {{
+    backgroundColor: 'transparent',
+    tooltip: {{ trigger: 'axis', axisPointer: {{ type: 'cross' }},
+      formatter: function(params) {{
+        var s = params[0].axisValue + '<br>';
+        params.forEach(function(p) {{ s += p.marker + p.seriesName + ': ' + (p.value==null?'—':p.value.toFixed(1)) + '<br>'; }});
+        return s;
+      }}
+    }},
+    legend: {{ top: 4, textStyle: {{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }} }},
+    grid: {{ left: 48, right: 48, bottom: 30, top: 36 }},
+    xAxis: {{ type: 'category', data: shortLabels, axisLine: {{ lineStyle: {{ color: 'rgba(255,255,255,0.2)' }} }},
+      axisLabel: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10, interval: Math.floor(shortLabels.length/8) }} }},
+    yAxis: [
+      {{ type: 'value', name: 'CTL/ATL', nameTextStyle: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }},
+        splitLine: {{ lineStyle: {{ color: 'rgba(255,255,255,0.08)' }} }},
+        axisLabel: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }} }},
+      {{ type: 'value', name: 'TSB', nameTextStyle: {{ color: '#ffaa00', fontSize: 10 }},
+        position: 'right', splitLine: {{ show: false }},
+        axisLabel: {{ color: '#ffaa00', fontSize: 10 }} }}
+    ],
+    series: [
+      {{ name: 'CTL', type: 'line', data: ctlData, smooth: true, symbol: 'none',
+        lineStyle: {{ color: '#00d4ff', width: 2 }},
+        areaStyle: {{ color: 'rgba(0,212,255,0.08)' }}, yAxisIndex: 0 }},
+      {{ name: 'ATL', type: 'line', data: atlData, smooth: true, symbol: 'none',
+        lineStyle: {{ color: '#00ff88', width: 2 }},
+        areaStyle: {{ color: 'rgba(0,255,136,0.08)' }}, yAxisIndex: 0 }},
+      {{ name: 'TSB', type: 'line', data: tsbData, smooth: true, symbol: 'none',
+        lineStyle: {{ color: '#ffaa00', width: 1.5, type: 'dashed' }},
+        yAxisIndex: 1,
+        markArea: {{ silent: true, data: [
+          ...warningAreas.map(function(a) {{ return [{{xAxis: a[0].xAxis, itemStyle: {{color:'rgba(255,170,0,0.12)'}}}}, {{xAxis: a[1].xAxis}}]; }}),
+          ...dangerAreas.map(function(a) {{ return [{{xAxis: a[0].xAxis, itemStyle: {{color:'rgba(255,68,68,0.18)'}}}}, {{xAxis: a[1].xAxis}}]; }})
+        ] }}
+      }}
+    ]
+  }};
+  chart.setOption(option);
+  window.addEventListener('resize', function() {{ chart.resize(); }});
 }})();
 </script>"""
 
@@ -378,7 +373,7 @@ def dashboard():
             "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p>"
             "</div>"
         )
-        return html_page("대시보드", body)
+        return html_page("대시보드", body, active_tab="dashboard")
 
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
@@ -455,6 +450,6 @@ def dashboard():
 {pmc_chart}
 {activity_list}
 """
-    return html_page("대시보드", body)
+    return html_page("대시보드", body, active_tab="dashboard")
 
 

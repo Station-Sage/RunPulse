@@ -35,108 +35,160 @@ _NAV_GROUPS = [
 ]
 
 _CSS = """
-    /* ── 기본 스타일 ── */
+    /* ── RunPulse v0.2 다크 테마 (ui-spec.md 기준) ── */
     :root {
-        --bg: #fff; --fg: #111; --muted: #666;
-        --card-bg: #fafafa; --card-border: #ddd;
-        --pre-bg: #f5f5f5; --th-bg: #f0f0f0;
-        --row-border: #eee; --label-color: #555;
-        --nav-bg: #fff; --nav-border: #e0e0e0;
-        --nav-hover: #f0f0f0; --dropdown-bg: #fff;
+        --bg: #1a1a2e; --bg2: #16213e; --bg3: #0f3460;
+        --fg: #fff;
+        --secondary: rgba(255,255,255,0.7);
+        --muted: rgba(255,255,255,0.5);
+        --card-bg: rgba(255,255,255,0.05);
+        --card-border: rgba(255,255,255,0.1);
+        --pre-bg: rgba(255,255,255,0.05);
+        --th-bg: rgba(255,255,255,0.08);
+        --row-border: rgba(255,255,255,0.08);
+        --label-color: rgba(255,255,255,0.6);
+        --nav-bg: rgba(26,26,46,0.95);
+        --nav-border: rgba(255,255,255,0.1);
+        --nav-hover: rgba(255,255,255,0.08);
+        --cyan: #00d4ff;
+        --green: #00ff88;
+        --orange: #ffaa00;
+        --red: #ff4444;
     }
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bg: #1a1a1a; --fg: #e8e8e8; --muted: #999;
-            --card-bg: #242424; --card-border: #444;
-            --pre-bg: #2a2a2a; --th-bg: #2e2e2e;
-            --row-border: #333; --label-color: #aaa;
-            --nav-bg: #1a1a1a; --nav-border: #333;
-            --nav-hover: #2e2e2e; --dropdown-bg: #242424;
-        }
-        a { color: #7ab8ff; }
-        a:visited { color: #b39ddb; }
-        .grade-excellent { background: #1a4d1a !important; color: #6fcf6f !important; }
-        .grade-good      { background: #0d3055 !important; color: #79c0ff !important; }
-        .grade-moderate  { background: #4a3800 !important; color: #f0c040 !important; }
-        .grade-poor      { background: #4d0f0f !important; color: #f08080 !important; }
-        .grade-unknown   { background: #333    !important; color: #aaa    !important; }
-    }
-    /* ── 스티키 헤더 & 네비게이션 ── */
+    * { box-sizing: border-box; }
     body {
-        font-family: sans-serif; max-width: none; margin: 0;
-        padding: 0; line-height: 1.5;
-        background: var(--bg); color: var(--fg);
+        font-family: 'Noto Sans KR', 'Inter', -apple-system, sans-serif;
+        margin: 0; padding: 0; line-height: 1.5;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        background-attachment: fixed;
+        color: var(--fg); min-height: 100vh;
     }
+    a { color: var(--cyan); text-decoration: none; }
+    a:visited { color: var(--cyan); opacity: 0.85; }
+    a:hover { text-decoration: underline; opacity: 1; }
+    /* ── 스티키 헤더 & 드롭다운 네비게이션 ── */
     header {
         position: sticky; top: 0; z-index: 200;
-        background: var(--nav-bg);
+        background: var(--nav-bg); backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--nav-border);
         padding: 0 1rem;
     }
     header .brand {
         font-weight: bold; font-size: 1rem; padding: 0.5rem 0.4rem;
-        display: inline-block; text-decoration: none; color: var(--fg);
+        display: inline-block; text-decoration: none; color: var(--cyan);
     }
     nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
     .nav-item { position: relative; }
     .nav-item > a, .nav-item > span {
         display: inline-block; padding: 0.55rem 0.75rem;
-        white-space: nowrap; text-decoration: none; color: var(--fg);
+        white-space: nowrap; text-decoration: none; color: var(--secondary);
         font-size: 0.9rem; cursor: pointer; border-radius: 4px;
     }
     .nav-item > a:hover, .nav-item > span:hover,
-    .nav-item:hover > span { background: var(--nav-hover); }
+    .nav-item:hover > span { background: var(--nav-hover); color: var(--fg); }
     .nav-item > span::after { content: " ▾"; font-size: 0.7rem; opacity: 0.7; }
-    /* 드롭다운 */
     .dropdown-menu {
         display: none; position: absolute; top: 100%; left: 0;
-        background: var(--dropdown-bg); border: 1px solid var(--nav-border);
-        border-radius: 6px; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        z-index: 300; padding: 0.25rem 0;
+        background: #16213e; border: 1px solid var(--nav-border);
+        border-radius: 6px; min-width: 160px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4); z-index: 300; padding: 0.25rem 0;
     }
     .nav-item:hover .dropdown-menu { display: block; }
     .dropdown-menu a {
         display: block; padding: 0.45rem 1rem;
-        text-decoration: none; color: var(--fg); font-size: 0.88rem;
+        text-decoration: none; color: var(--secondary); font-size: 0.88rem;
     }
-    .dropdown-menu a:hover { background: var(--nav-hover); }
-    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem; }
-    pre { white-space: pre-wrap; word-break: break-word; background: var(--pre-bg);
-          padding: 1rem; border-radius: 8px; overflow-x: auto; }
-    code { background: var(--pre-bg); padding: 0.15rem 0.35rem; border-radius: 4px; }
+    .dropdown-menu a:hover { background: var(--nav-hover); color: var(--fg); }
+    /* ── 콘텐츠 ── */
+    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 6rem; }
+    pre { white-space: pre-wrap; word-break: break-word;
+          background: var(--pre-bg); padding: 1rem; border-radius: 8px;
+          overflow-x: auto; border: 1px solid var(--card-border);
+          color: var(--secondary); }
+    code { background: var(--pre-bg); padding: 0.15rem 0.35rem;
+           border-radius: 4px; color: var(--cyan); font-size: 0.9em; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
     th, td { border: 1px solid var(--card-border); padding: 0.5rem;
              text-align: left; vertical-align: top; }
-    th { background: var(--th-bg); }
+    th { background: var(--th-bg); color: var(--secondary); }
     .muted { color: var(--muted); }
-    .card { border: 1px solid var(--card-border); border-radius: 8px;
-            padding: 1rem; margin: 1rem 0; background: var(--card-bg); }
+    .card { border: 1px solid var(--card-border); border-radius: 20px;
+            padding: 1.2rem; margin: 1rem 0;
+            background: var(--card-bg); backdrop-filter: blur(10px); }
+    .card:hover { transform: translateY(-2px); transition: transform 0.2s; }
     .cards-row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
     .cards-row > .card { flex: 1; min-width: 210px; margin: 0; }
     .score-badge { display: inline-block; padding: 0.2rem 0.8rem;
                    border-radius: 20px; font-weight: bold; font-size: 1.05rem; }
-    .grade-excellent { background: #c8f7c5; color: #1a7a17; }
-    .grade-good      { background: #d4edff; color: #0056b3; }
-    .grade-moderate  { background: #fff3cd; color: #856404; }
-    .grade-poor      { background: #ffd6d6; color: #c0392b; }
-    .grade-unknown   { background: #eee;    color: #555; }
+    .grade-excellent { background: rgba(0,255,136,0.15); color: var(--green);
+                       border: 1px solid rgba(0,255,136,0.3); }
+    .grade-good      { background: rgba(0,212,255,0.15); color: var(--cyan);
+                       border: 1px solid rgba(0,212,255,0.3); }
+    .grade-moderate  { background: rgba(255,170,0,0.15);  color: var(--orange);
+                       border: 1px solid rgba(255,170,0,0.3); }
+    .grade-poor      { background: rgba(255,68,68,0.15);   color: var(--red);
+                       border: 1px solid rgba(255,68,68,0.3); }
+    .grade-unknown   { background: rgba(255,255,255,0.05); color: var(--muted);
+                       border: 1px solid var(--card-border); }
     .mrow { display: flex; justify-content: space-between; padding: 0.25rem 0;
             border-bottom: 1px solid var(--row-border); }
     .mrow:last-child { border-bottom: none; }
     .mlabel { color: var(--label-color); font-size: 0.9rem; }
-    .mval   { font-weight: 500; }
-    h1 { margin-top: 0; }
-    h2 { margin-top: 0; }
+    .mval   { font-weight: 500; color: var(--secondary); }
+    h1 { margin-top: 0; font-size: 1.4rem; color: var(--fg); }
+    h2 { margin-top: 0; font-size: 1.1rem; color: var(--secondary); }
+    h3 { color: var(--secondary); }
+    input, select, textarea {
+        font-family: inherit;
+        background: rgba(255,255,255,0.08); color: var(--fg);
+        border: 1px solid var(--card-border); border-radius: 6px;
+        padding: 0.4rem 0.7rem;
+    }
+    button {
+        font-family: inherit; cursor: pointer;
+        background: rgba(255,255,255,0.1); color: var(--fg);
+        border: 1px solid var(--card-border); border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+    }
+    button:hover { background: rgba(255,255,255,0.18); }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--cyan); }
+    label { color: var(--secondary); }
+    .section-title {
+        font-size: 1rem; font-weight: 600; color: var(--secondary);
+        margin: 1.5rem 0 0.5rem; padding-left: 0.8rem;
+        border-left: 4px solid var(--cyan);
+    }
+    /* ── 하단 7탭 네비게이션 ── */
+    .bottom-nav {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+        background: rgba(26,26,46,0.96); backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255,255,255,0.1); padding: 4px 0;
+    }
+    .nav-items {
+        max-width: 720px; margin: 0 auto; display: flex;
+        justify-content: space-around;
+    }
+    .nav-item-tab {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 6px 8px; text-decoration: none;
+        color: var(--muted); min-width: 44px;
+        border-radius: 8px; transition: color 0.2s;
+    }
+    .nav-item-tab:hover { color: var(--secondary); text-decoration: none; }
+    .nav-item-tab.active { color: var(--cyan); }
+    .nav-item-icon { font-size: 18px; line-height: 1; margin-bottom: 2px; }
+    .nav-item-label { font-size: 10px; white-space: nowrap; }
     /* ── 모바일 반응형 ── */
     @media (max-width: 640px) {
-        main { padding: 1rem 0.5rem; }
+        main { padding: 1rem 0.5rem 6rem; }
         .cards-row { flex-direction: column; }
         .cards-row > .card { min-width: unset; }
         table { font-size: 0.85rem; }
         th, td { padding: 0.3rem; }
         pre { font-size: 0.85rem; }
-        h1 { font-size: 1.3rem; }
+        h1 { font-size: 1.2rem; }
         .nav-item > a, .nav-item > span { padding: 0.45rem 0.5rem; font-size: 0.82rem; }
+        .nav-item-tab { padding: 5px 4px; min-width: 36px; }
     }
 """
 
@@ -499,26 +551,79 @@ async function bgSyncResume() {
 """
 
 
-_CHARTJS_CDN = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+_ECHARTS_CDN = "https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"
+_FONTS_CDN = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR'
+    ':wght@300;400;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">'
+)
+
+# ── 7탭 하단 네비게이션 ──────────────────────────────────────────────────────
+_BOTTOM_NAV_TABS = [
+    ("dashboard",   "🏠", "홈",     "/dashboard"),
+    ("activities",  "🏃", "활동",   "/activities"),
+    ("report",      "📊", "레포트", "/report"),
+    ("training",    "🗓️", "훈련",   "/training"),
+    ("ai-coach",    "🤖", "AI코치", "/ai-coach"),
+    ("settings",    "⚙️", "설정",   "/settings"),
+]
+_BOTTOM_NAV_DEV = ("dev", "🛠️", "개발자", "/dev")
 
 
-def html_page(title: str, body: str, extra_head: str = "") -> str:
-    """전체 HTML 페이지 생성 (스티키 헤더 + 그룹 드롭다운 nav 포함).
+def bottom_nav(active_tab: str, dev_mode: bool = False) -> str:
+    """7탭 하단 고정 네비게이션 HTML.
+
+    Args:
+        active_tab: 현재 활성 탭 키 (예: 'dashboard').
+        dev_mode: True 이면 개발자 탭 노출.
+    """
+    tabs = list(_BOTTOM_NAV_TABS)
+    if dev_mode:
+        tabs.append(_BOTTOM_NAV_DEV)
+    items = []
+    for tab_key, icon, label, href in tabs:
+        cls = "nav-item-tab active" if tab_key == active_tab else "nav-item-tab"
+        items.append(
+            f'<a class="{cls}" href="{href}">'
+            f'<span class="nav-item-icon">{icon}</span>'
+            f'<span class="nav-item-label">{label}</span>'
+            f'</a>'
+        )
+    return (
+        "<nav class='bottom-nav'>"
+        "<div class='nav-items'>" + "".join(items) + "</div>"
+        "</nav>"
+    )
+
+
+def html_page(
+    title: str,
+    body: str,
+    extra_head: str = "",
+    active_tab: str = "",
+    dev_mode: bool = False,
+) -> str:
+    """전체 HTML 페이지 생성 (스티키 헤더 + 드롭다운 nav + 하단 7탭 nav 포함).
 
     Args:
         title: 페이지 제목.
         body: main 영역 HTML.
         extra_head: <head> 내 추가 태그 (스크립트/스타일).
+        active_tab: 하단 7탭 nav 활성 탭 키. 빈 문자열이면 nav 미표시.
+        dev_mode: True 이면 개발자 탭 노출.
     """
     nav_html = _build_nav()
+    bottom = bottom_nav(active_tab, dev_mode) if active_tab else ""
     return f"""<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{_html.escape(title)} — RunPulse</title>
+  {_FONTS_CDN}
   <style>{_CSS}</style>
-  <script src="{_CHARTJS_CDN}"></script>
+  <script src="{_ECHARTS_CDN}"></script>
   {extra_head}
 </head>
 <body>
@@ -530,6 +635,7 @@ def html_page(title: str, body: str, extra_head: str = "") -> str:
     <h1>{_html.escape(title)}</h1>
     {body}
   </main>
+  {bottom}
   <script>{_SYNC_JS}</script>
 </body>
 </html>"""

@@ -25,7 +25,7 @@ from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config, save_config
-from .helpers import db_path, html_page, metric_row, score_badge
+from .helpers import bottom_nav, db_path, html_page, metric_row, score_badge
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -149,7 +149,7 @@ def settings_view() -> str:
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
 </p>"""
-    return html_page("서비스 연동 설정", body)
+    return html_page("서비스 연동 설정", body, active_tab="settings")
 
 
 # ── Garmin 연동 ─────────────────────────────────────────────────────

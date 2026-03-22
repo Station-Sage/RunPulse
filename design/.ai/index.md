@@ -14,7 +14,7 @@
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
 | 현재 테스트 | **797개 통과** (pre-existing 3개 실패 별개) |
 | 완료 | Phase 0 (DB+날씨) · Phase 1 (메트릭 엔진) · Phase 2 (sync 연동) · Phase 3 (대시보드) |
-| 다음 작업 | Sprint 4 — Phase 4 활동 상세 + Phase 5 분석 레포트 UI |
+| 다음 작업 | Sprint 4-A — ECharts 교체 + bottom_nav + 다크 테마 CSS |
 
 ---
 

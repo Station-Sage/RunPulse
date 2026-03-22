@@ -72,11 +72,37 @@ TQI, TEROI, PLTD, SAPI 고도화
 
 ---
 
-## Sprint 4: 활동 상세 + 분석 레포트 UI (Phase 4-5)
+## Sprint 4-A: 공통 UI 기반 (현재)
+**목표**: 전체 화면에 공통 적용할 차트·네비·테마 기반 구축
+
+- ECharts CDN으로 교체 (`helpers.py` Chart.js → ECharts, 대시보드 PMC 재작성)
+- `bottom_nav(active_tab)` 함수 추가 (helpers.py, 7탭, 개발자 탭 조건부)
+- 다크 테마 CSS 공통화 (`html_page()`에 ui-spec.md 색상 토큰 반영)
+- 기존 구현된 `/dashboard` 에 bottom_nav 적용
+
+**검증 기준**: `/dashboard` 접속 시 ECharts PMC 차트 + 7탭 하단 네비 렌더링
+
+---
+
+## Sprint 4-B: Jinja2 render_template 전환
+**목표**: Python 인라인 HTML → Jinja2 템플릿 파일 분리
+
+- `templates/macros/base.html` — page_shell 매크로
+- `templates/macros/nav.html` — bottom_nav 매크로
+- `templates/macros/gauge.html` — half_gauge SVG 매크로
+- `templates/macros/radar.html` — radar_chart SVG 매크로
+- `templates/macros/no_data.html` — no_data_card 매크로
+- 기존 views_*.py 파일을 render_template() 방식으로 순차 전환
+
+**검증 기준**: 모든 뷰가 render_template() 사용, 기존 테스트 통과
+
+---
+
+## Sprint 4-C: 화면 구현 (Phase 4-5)
 **목표**: 활동 심층 분석에 2차 메트릭 통합, 기간별 분석 레포트
 
 - activity_deep에 FEARP 섹션 + 2차 메트릭 카드
-- 분석 레포트 `/report` 구현 (기간 선택, 차트, AI 인사이트)
+- 분석 레포트 `/report` 구현 (기간 선택, ECharts 차트, AI 인사이트)
 
 **검증 기준**: 활동 상세에서 FEARP 보정값 표시, 주간 레포트에서 TIDS/TRIMP 차트 렌더링
 
@@ -85,23 +111,24 @@ TQI, TEROI, PLTD, SAPI 고도화
 ## Sprint 5: 레이스 예측 + AI 코칭 고도화 (Phase 6-7)
 **목표**: 레이스 예측 화면 + AI 브리핑에 2차 메트릭 통합
 
-- `/race` 레이스 예측 화면 (DARP, DI, 페이스 전략, 히팅 더 월)
-- AI 코칭 브리핑에 UTRS/CIRS/DARP 수치 포함
-- 추천 칩 고도화
+- `/race` 레이스 예측 화면 (DARP, DI, 페이스 전략, 히팅 더 월, bottom_nav='report')
+- `/ai-coach` 라우트 정비, 채팅 버블 UI, UTRS/CIRS/DARP 브리핑 컨텍스트 포함
+- POST `/ai-coach/briefing` 재생성, POST `/ai-coach/chat` 대화
 
-**검증 기준**: `/race?distance=half` 에서 DARP 예측 시간 표시
+**검증 기준**: `/race?distance=half` 에서 DARP 예측 시간 표시, `/ai-coach` 접속 정상
 
 ---
 
-## Sprint 6: 훈련 계획 캘린더 + 마무리 (Phase 8-9)
-**목표**: 훈련 계획을 캘린더로 시각화, 전체 UI 통일
+## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9)
+**목표**: 훈련 계획 캘린더 + 설정 4섹션 통합 + dev 탭 + 전체 정리
 
-- 훈련 계획 캘린더 (`/training`)
-- 전체 페이지 하단 네비게이션 통일
-- 데이터 부재 시 graceful fallback UI
+- 훈련 계획 캘린더 (`/training`) — 주/월/일 뷰, 색상 코딩, AI 요약, POST /training/apply-darp
+- 설정 페이지 4섹션 통합 (소스연동/동기화/데이터관리/앱설정)
+- `/dev` 개발자 탭 (dev_mode 조건부, DB뷰어/Payload/Config)
+- `/analyze/*` → 신규 화면 리다이렉트
 - 통합 테스트 + 버그픽스
 
-**검증 기준**: 5개 탭(대시보드/활동/훈련/AI코치/설정) 모두 정상 동작
+**검증 기준**: 7탭(대시보드/활동/레포트/훈련/AI코치/설정/[개발자]) 모두 정상 동작
 
 ---
 
@@ -111,12 +138,15 @@ Phase 0 (DB+날씨) → Phase 1 (메트릭 엔진)
                             ↓
 Phase 2 (sync 연동) → Phase 3 (대시보드)
                             ↓
-                    Phase 4 (활동 상세)
-                    Phase 5 (레포트)
-                    Phase 6 (레이스 예측)
+                    Sprint 4-A (ECharts + bottom_nav + 다크 테마)
                             ↓
-                    Phase 7 (AI 코칭)
-                    Phase 8 (훈련 계획)
+                    Sprint 4-B (Jinja2 전환)
+                            ↓
+                    Sprint 4-C (활동 상세 + 레포트)
+                            ↓
+                    Sprint 5 (레이스 예측 + AI 코칭)
+                            ↓
+                    Sprint 6 (훈련 계획 + 설정 통합 + 마무리)
 ```
 
 ---

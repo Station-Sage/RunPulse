@@ -146,9 +146,38 @@
 
 ---
 
-## Phase 4: 활동 상세 UI 고도화
+## Sprint 4-A: 공통 UI 기반
+
+- [x] V2-4A-1: `src/web/helpers.py` — ECharts CDN으로 교체 (`_CHARTJS_CDN` → `_ECHARTS_CDN`, `html_page()` 수정)
+- [x] V2-4A-2: `src/web/views_dashboard.py` — PMC 차트를 ECharts Line 차트로 재작성
+  - TSB 위험구간 배경: TSB < -20 이면 주황 음영, < -30 이면 빨강 음영 (ECharts markArea)
+- [x] V2-4A-3: `src/web/helpers.py` — `bottom_nav(active_tab)` 함수 추가 (7탭, dev_mode 조건부)
+- [x] V2-4A-4: 기존 `/dashboard`, `/settings`, `/activities` 에 `bottom_nav` 삽입
+- [x] V2-4A-5: `html_page()` 에 ui-spec.md 다크 테마 CSS 색상 토큰 반영
+  - 배경: `linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)`
+  - 강조: `--cyan: #00d4ff`, `--green: #00ff88`, `--orange: #ffaa00`, `--red: #ff4444`
+  - 폰트: Noto Sans KR + Inter (Google Fonts CDN)
+- [x] V2-4A-6: `tests/` — ECharts 전환 후 기존 테스트 통과 확인
+
+---
+
+## Sprint 4-B: Jinja2 render_template 전환
+
+- [ ] V2-4B-1: `templates/macros/base.html` — `page_shell(title)` 매크로
+- [ ] V2-4B-2: `templates/macros/nav.html` — `bottom_nav(active_tab)` Jinja2 매크로
+- [ ] V2-4B-3: `templates/macros/gauge.html` — `half_gauge(value, max, color)` SVG 매크로
+- [ ] V2-4B-4: `templates/macros/radar.html` — `radar_chart(axes, values)` SVG 매크로
+- [ ] V2-4B-5: `templates/macros/no_data.html` — `no_data_card(title, message)` 매크로
+- [ ] V2-4B-6: `views_dashboard.py` → `render_template('dashboard.html')` 전환
+- [ ] V2-4B-7: `views_settings.py`, `views_activity.py` 순차 전환
+
+---
+
+## Phase 4: 활동 상세 UI 고도화 (Sprint 4-C)
 
 - [ ] V2-4-1: `src/web/views_activity.py` — activity_deep에 FEARP 섹션 추가
+  - 실제 페이스 vs 보정 페이스 비교 표시
+  - 환경 영향 분해 배지: 기온/습도/경사 각 delta(초)
 - [ ] V2-4-2: activity_deep에 2차 메트릭 카드
   - Aerobic Decoupling, EF (효율 계수)
   - Aerobic Training Effect (Garmin 수집값)
@@ -160,70 +189,92 @@
   - Relative Effort (구역 기반 노력도)
   - Anaerobic Training Effect (Garmin 수집값)
   - Training Status 라벨 (Garmin 원본: Peaking/Productive/Maintaining 등)
-  - 지도 전체 화면 60% (Mapbox 궤적, Leaflet 폴백)
-  - 핵심 메트릭 수평 스크롤 카드 (모바일)
+- [ ] V2-4-5: activity_deep — 지도 전체 화면 상단 60%
+  - Mapbox GL JS 궤적 + FEARP 히트맵 오버레이 (토큰 없으면 Leaflet.js 폴백)
+  - Mapbox 토큰: `config.json`에 저장 (`config.mapbox.token`)
+- [ ] V2-4-6: activity_deep — 핵심 메트릭 수평 스크롤 카드 (모바일)
+  - 거리 / 페이스 / 시간 / 심박수 / 고도 / 케이던스 가로 스와이프
 
 ---
 
-## Phase 5: 분석 레포트 UI
+## Phase 5: 분석 레포트 UI (Sprint 4-C)
 
 - [ ] V2-5-1: `src/web/views_report.py` — 분석 레포트 뷰 블루프린트
-  - 기간 선택 탭 (오늘/주/월/분기/연/사용자정의)
-  - 요약 카드 (총 거리, 시간, UTRS, CIRS)
-  - 활동 추세 차트 (ECharts)
-  - TIDS 분포 바차트
-  - TRIMP 주간 부하 막대차트 + Monotony/Strain 수치
-  - Marathon Shape 진행 바 (주간 거리 목표 대비)
-  - 세부 메트릭 테이블 (GAP, NGP, EF, Relative Effort 포함)
-  - AI 인사이트 카드
+  - 기간 선택 탭 (오늘/주/월/분기/연/사용자정의) — GET ?period=week
+  - 레포트 헤더 카드 (기간 라벨, 활동 수, 총 거리, 총 시간)
+  - 요약 카드 2×2 grid (총 거리/시간/UTRS/CIRS + 전기간 대비 변화율)
+  - 활동 추세 차트 (ECharts Line, 주별 거리)
+  - TIDS 분포 가로 분할 바 (Easy/Tempo/Threshold %)
+  - TRIMP 주간 부하 바차트 (ECharts Bar)
+  - 세부 메트릭 테이블 (GAP, NGP, EF, Relative Effort, Decoupling)
+  - AI 인사이트 카드 3개
+  - 액션 버튼: 훈련 플랜 조정 → /training
 - [ ] V2-5-2: `src/web/app.py` — `/report` 블루프린트 등록
 
 ---
 
-## Phase 6: 레이스 예측 UI
+## Phase 6: 레이스 예측 UI (Sprint 5)
 
 - [ ] V2-6-1: `src/web/views_race.py` — 레이스 예측 뷰 블루프린트
-  - 레이스 거리 선택 (5K/10K/하프/마라톤/커스텀)
-  - DARP 예측 결과 (완주 시간, 평균 페이스)
-  - DI 게이지 + 스플릿 타임
-  - Marathon Shape 진행 카드
-  - 페이스 전략 타임라인
-  - 히팅 더 월 확률
-  - 훈련 플랜 조정 권장 카드
+  - 레이스 거리 선택 탭 (5K/10K/하프마라톤/마라톤/커스텀) — GET ?distance=half
+  - 예측 결과 카드 (완주 시간, 평균 페이스, 스플릿: 5K/10K/중간/순위%)
+  - DI 가로 게이지 + 설명
+  - 페이스 전략 타임라인 (구간별 color: green/yellow/red)
+  - 히팅 더 월 확률 % (red gradient 배경)
+  - 훈련 플랜 조정 카드 → POST /training/apply-darp
+  - bottom_nav('report')  ← 레이스 예측은 레포트 탭 하위
 - [ ] V2-6-2: `src/web/app.py` — `/race` 블루프린트 등록
 
 ---
 
-## Phase 7: AI 코칭 UI
+## Phase 7: AI 코칭 UI (Sprint 5)
 
-- [ ] V2-7-1: `src/web/views_ai_coach.py` (기존 확장)
+- [ ] V2-7-1: `src/web/views_ai_coach.py` — `/ai-coach` URL 라우트 신규 또는 리다이렉트 추가
+  - 기존 AI 뷰 URL 확인 후 `/ai-coach` 로 통일
   - UTRS/CIRS/DARP 수치를 브리핑 컨텍스트에 포함
   - 추천 칩에 FEARP, CIRS, Marathon Shape 기반 항목 추가
-  - 채팅 인터페이스 (기존 AI 브리핑 연장)
+  - 채팅 버블 UI (role=ai: cyan 배경 / role=user: 오른쪽 정렬)
+  - 고정 채팅 입력창 (position: fixed, bottom: 80px)
+  - POST /ai-coach/briefing (재생성), POST /ai-coach/chat (대화)
+  - bottom_nav('ai-coach')
 
 ---
 
-## Phase 8: 훈련 계획 캘린더 UI
+## Phase 8: 훈련 계획 캘린더 UI (Sprint 6)
 
-- [ ] V2-8-1: `src/web/views_training_plan.py` — 훈련 계획 캘린더 뷰
-  - 주간/월간/일간 뷰 전환
-  - 운동 항목 색상 코딩 (Easy/Tempo/Interval/Long)
-  - AI 훈련 요약 (1~2줄 발췌 + AI코치 탭 링크)
-  - TIDS 목표 모델 진행 표시
+- [ ] V2-8-1: `src/web/views_training_plan.py` — `/training` 라우트
+  - 이번 주 요약 4-stat grid (완료/목표/시간/UTRS)
+  - 캘린더 뷰 전환 (GET ?view=week|month|day)
+  - 주간 뷰 7열 grid — .workout-item.{easy|tempo|interval|long|rest}
+  - AI 훈련 요약 카드 (최근 브리핑 발췌 1~2줄 + "/ai-coach로 더 묻기 →" 링크)
+  - 캘린더 연동 상태 (Google/Naver/Garmin/TrainingPeaks)
+  - bottom_nav('training')
+  - GET/POST `/training/new` — 새 훈련 항목 추가
+  - POST `/training/apply-darp` — DARP 레이스 예측 결과 플랜 반영
 - [ ] V2-8-2: 기존 `src/training/` 모듈과 연동
 
 ---
 
-## Phase 9: 설정·개발자 탭·마무리
+## Phase 9: 설정 통합·개발자 탭·마무리 (Sprint 6 후반)
 
-- [ ] V2-9-1: 전체 뷰 하단 nav 통일 (7탭, 개발자 조건부)
-- [ ] V2-9-2: ECharts CDN 로드 실패 시 fallback (SVG 정적 차트)
+- [→] V2-9-1: 전체 뷰 하단 nav 통일 → **Sprint 4-A로 이동 (V2-4A-3/4)**
+- [→] V2-9-2: ECharts CDN 로드 실패 시 fallback → **Sprint 4-A 이후 처리**
 - [ ] V2-9-3: 메트릭 데이터 부재 시 graceful UI ("데이터 수집 중" 카드)
-- [ ] V2-9-4: `templates/settings.html` + `views_settings.py` (동기화·임포트 통합)
-- [ ] V2-9-5: `templates/dev.html` + `src/web/views_dev.py` (개발자 탭)
-- [ ] V2-9-6: `tests/test_web_dashboard.py`, `test_web_report.py`, `test_web_race.py`
+- [ ] V2-9-4: `views_settings.py` 설정 4섹션 통합 (ui-spec 3-7 기준)
+  - A. 소스 연동 (기존, 마지막 동기화 시간 `last_sync_at` 추가)
+  - B. 동기화 — `/sync-status` 인라인 흡수 (배치 제어 + 진행률 폴링)
+  - C. 데이터 관리 — `/import`(GPX/FIT/TCX/ZIP) + `/import-export`(CSV) 흡수
+  - D. 앱 설정 — AI 모델 select, 기본 레이스 거리 select
+- [ ] V2-9-5: `src/web/views_dev.py` + `/dev` 라우트 (개발자 탭, dev_mode 조건부)
+  - DB 테이블 뷰어, Payload 뷰어, DB 경로 설정, 레거시 분석 링크
+  - `bottom_nav` 에서 `config.get('dev_mode', False)` 플래그로 조건부 노출
+- [ ] V2-9-6: 통합 테스트 (`test_web_dashboard.py`, `test_web_report.py`, `test_web_race.py`)
 - [ ] V2-9-7: `/analyze/*` → 신규 화면 리다이렉트
+  - `/analyze/today` → `/dashboard`
+  - `/analyze/full` → `/report`
+  - `/analyze/race` → `/race`
 - [ ] V2-9-8: `.ai/changelog.md` 업데이트
+- [ ] V2-9-9: Mapbox 토큰 설정 추가 (`config.json` `mapbox.token` 키, 활동 상세 지도용)
 
 ---
 
