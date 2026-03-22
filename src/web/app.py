@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import sqlite3
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -25,6 +26,42 @@ from .views_settings import settings_bp
 from .views_activity_merge import merge_bp
 from .views_export_import import export_import_bp
 from .views_shoes import shoes_bp
+
+
+# ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
+_HOME_CACHE_TTL = 60
+# db_path 문자열 → {"ts": float, "data": dict} 맵
+_home_cache: dict[str, dict] = {}
+
+
+def _get_home_data(db_path: Path) -> dict:
+    """TTL 캐시로 홈 화면 분석 데이터 반환. 캐시 유효 시 재계산 생략.
+
+    db_path별로 독립 캐시 항목을 유지하므로 다른 DB 간 오염 없음.
+    """
+    cache_key = str(db_path)
+    now = time.monotonic()
+    entry = _home_cache.get(cache_key)
+    if entry and now - entry["ts"] < _HOME_CACHE_TTL:
+        return entry["data"]
+
+    from src.analysis.recovery import get_recovery_status
+    from src.analysis.weekly_score import calculate_weekly_score
+    from src.services.unified_activities import fetch_unified_activities
+    from datetime import date as _date
+
+    today = _date.today().isoformat()
+    with sqlite3.connect(str(db_path)) as conn:
+        recovery = get_recovery_status(conn, today)
+        try:
+            weekly = calculate_weekly_score(conn)
+        except Exception:
+            weekly = None
+        recent_unified, _, _ = fetch_unified_activities(conn, page=1, page_size=5)
+
+    data = {"recovery": recovery, "weekly": weekly, "recent_rows": recent_unified}
+    _home_cache[cache_key] = {"ts": now, "data": data}
+    return data
 
 
 def _project_root() -> Path:
@@ -206,31 +243,16 @@ def create_app() -> Flask:
             """
             return _html_page("RunPulse 대시보드", body)
 
-        # ── 대시보드 데이터 수집 ────────────────────────────────────────
+        # ── 대시보드 데이터 수집 (TTL 캐시 60초) ───────────────────────
         recovery_card_html = ""
         weekly_card_html = ""
         recent_acts_html = ""
 
         try:
-            from src.analysis.recovery import get_recovery_status
-            from src.analysis.weekly_score import calculate_weekly_score
-
-            with sqlite3.connect(str(db_path)) as conn:
-                # 회복 상태 (오늘)
-                from datetime import date as _date
-                today = _date.today().isoformat()
-                recovery = get_recovery_status(conn, today)
-
-                # 주간 점수
-                try:
-                    weekly = calculate_weekly_score(conn)
-                except Exception:
-                    weekly = None
-
-                # 최근 활동 5개 (통합 그룹 기준)
-                from src.services.unified_activities import fetch_unified_activities
-                recent_unified, _, _ = fetch_unified_activities(conn, page=1, page_size=5)
-                recent_rows = recent_unified  # UnifiedActivity 리스트
+            home_data = _get_home_data(db_path)
+            recovery = home_data["recovery"]
+            weekly = home_data["weekly"]
+            recent_rows = home_data["recent_rows"]
 
         except Exception as exc:
             body = (

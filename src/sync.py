@@ -8,24 +8,11 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import argparse
-import sqlite3
-import sys
+from concurrent.futures import ThreadPoolExecutor
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
-from src.sync.garmin import sync_activities as garmin_act, sync_wellness as garmin_well
-from src.sync.strava import sync_activities as strava_act
-from src.sync.intervals import sync_activities as intervals_act, sync_wellness as intervals_well
-from src.sync.runalyze import sync_activities as runalyze_act
-
-
-# (sync_activities, sync_wellness or None)
-SOURCES: dict[str, tuple] = {
-    "garmin": (garmin_act, garmin_well),
-    "strava": (strava_act, None),
-    "intervals": (intervals_act, intervals_well),
-    "runalyze": (runalyze_act, None),
-}
+from src.sync import SOURCES, _sync_source
 
 
 def main() -> None:
@@ -53,25 +40,35 @@ def main() -> None:
     total_activities = 0
     total_wellness = 0
 
-    with sqlite3.connect(db_path) as conn:
-        for source in sources:
-            sync_act_fn, sync_well_fn = SOURCES[source]
-            print(f"\n--- {source.upper()} 동기화 시작 ---")
+    if len(sources) == 1:
+        # 단일 소스: 직접 실행
+        source = sources[0]
+        print(f"\n--- {source.upper()} 동기화 시작 ---")
+        res = _sync_source(source, config, db_path, args.days)
+        total_activities += res["activities"]
+        total_wellness += res["wellness"]
+        print(f"[{source}] 활동 {res['activities']}개, 웰니스 {res['wellness']}개 동기화 완료")
+        for err in res["errors"]:
+            print(f"[{source}] {err}", file=sys.stderr)
+    else:
+        # 복수 소스: ThreadPoolExecutor 병렬 실행
+        print(f"4소스 병렬 동기화 시작 ({', '.join(sources)})")
+        futures = {}
+        with ThreadPoolExecutor(max_workers=len(sources)) as executor:
+            for source in sources:
+                future = executor.submit(_sync_source, source, config, db_path, args.days)
+                futures[future] = source
 
+        for future, source in futures.items():
             try:
-                count = sync_act_fn(config, conn, args.days)
-                total_activities += count
-                print(f"[{source}] 활동 {count}개 동기화 완료")
+                res = future.result()
+                total_activities += res["activities"]
+                total_wellness += res["wellness"]
+                print(f"[{source}] 활동 {res['activities']}개, 웰니스 {res['wellness']}개 동기화 완료")
+                for err in res["errors"]:
+                    print(f"[{source}] {err}", file=sys.stderr)
             except Exception as e:
-                print(f"[{source}] 활동 동기화 실패: {e}", file=sys.stderr)
-
-            if sync_well_fn:
-                try:
-                    count = sync_well_fn(config, conn, args.days)
-                    total_wellness += count
-                    print(f"[{source}] 웰니스 {count}개 동기화 완료")
-                except Exception as e:
-                    print(f"[{source}] 웰니스 동기화 실패: {e}", file=sys.stderr)
+                print(f"[{source}] 예외 발생: {e}", file=sys.stderr)
 
     print(f"\n동기화 완료: 활동 {total_activities}개, 웰니스 {total_wellness}개")
 

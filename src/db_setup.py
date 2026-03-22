@@ -38,6 +38,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
             ON activity_summaries(start_time);
         CREATE INDEX IF NOT EXISTS idx_activity_summaries_group
             ON activity_summaries(matched_group_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_summaries_group_time
+            ON activity_summaries(matched_group_id, start_time DESC);
 
 
         CREATE TABLE IF NOT EXISTS raw_source_payloads (
@@ -66,6 +68,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_activity_detail_metrics_activity
             ON activity_detail_metrics(activity_id);
+        CREATE INDEX IF NOT EXISTS idx_activity_detail_metrics_activity_source
+            ON activity_detail_metrics(activity_id, source);
 
         CREATE TABLE IF NOT EXISTS daily_wellness (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,24 +158,28 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         -- 분석용 정규화 뷰: 동일 활동 그룹에서 소스 우선순위(garmin>strava>intervals>runalyze)로
         -- 대표 1행만 반환. 중복 집계 방지. 분석 쿼리에서 activity_summaries 대신 이 뷰 사용.
+        -- LEFT JOIN 패턴: 같은 그룹에서 우선순위가 더 높은(또는 같은 우선순위면 id 더 작은) 행이
+        -- 존재하지 않는 행만 선택 → 상관 서브쿼리 없이 동일 결과.
         CREATE VIEW IF NOT EXISTS v_canonical_activities AS
         SELECT a.*
         FROM activity_summaries a
-        WHERE a.matched_group_id IS NULL
-           OR a.id = (
-               SELECT id FROM activity_summaries b
-               WHERE b.matched_group_id = a.matched_group_id
-               ORDER BY
-                   CASE b.source
-                       WHEN 'garmin'    THEN 1
-                       WHEN 'strava'    THEN 2
-                       WHEN 'intervals' THEN 3
-                       WHEN 'runalyze'  THEN 4
-                       ELSE 5
-                   END,
-                   b.id
-               LIMIT 1
-           );
+        LEFT JOIN activity_summaries b
+            ON  b.matched_group_id = a.matched_group_id
+            AND b.matched_group_id IS NOT NULL
+            AND (
+                CASE b.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                              WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                < CASE a.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                OR (
+                    CASE b.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                  WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                    = CASE a.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                    WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                    AND b.id < a.id
+                )
+            )
+        WHERE b.id IS NULL;
 
         CREATE TABLE IF NOT EXISTS sync_jobs (
             id TEXT PRIMARY KEY,
@@ -294,27 +302,41 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         except sqlite3.OperationalError:
             pass  # 이미 존재
 
-    # v_canonical_activities 뷰 (IF NOT EXISTS이므로 안전)
+    # v_canonical_activities 뷰: 구 버전(상관 서브쿼리) 교체 → LEFT JOIN 패턴
+    # DROP 후 재생성해야 구 버전이 남지 않는다.
     conn.executescript("""
+        DROP VIEW IF EXISTS v_canonical_activities;
         CREATE VIEW IF NOT EXISTS v_canonical_activities AS
         SELECT a.*
         FROM activity_summaries a
-        WHERE a.matched_group_id IS NULL
-           OR a.id = (
-               SELECT id FROM activity_summaries b
-               WHERE b.matched_group_id = a.matched_group_id
-               ORDER BY
-                   CASE b.source
-                       WHEN 'garmin'    THEN 1
-                       WHEN 'strava'    THEN 2
-                       WHEN 'intervals' THEN 3
-                       WHEN 'runalyze'  THEN 4
-                       ELSE 5
-                   END,
-                   b.id
-               LIMIT 1
-           );
+        LEFT JOIN activity_summaries b
+            ON  b.matched_group_id = a.matched_group_id
+            AND b.matched_group_id IS NOT NULL
+            AND (
+                CASE b.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                              WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                < CASE a.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                OR (
+                    CASE b.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                  WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                    = CASE a.source WHEN 'garmin' THEN 1 WHEN 'strava' THEN 2
+                                    WHEN 'intervals' THEN 3 WHEN 'runalyze' THEN 4 ELSE 5 END
+                    AND b.id < a.id
+                )
+            )
+        WHERE b.id IS NULL;
     """)
+
+    # 누락 인덱스 추가 (기존 DB 대응)
+    for stmt in [
+        "CREATE INDEX IF NOT EXISTS idx_activity_detail_metrics_activity_source ON activity_detail_metrics(activity_id, source)",
+        "CREATE INDEX IF NOT EXISTS idx_activity_summaries_group_time ON activity_summaries(matched_group_id, start_time DESC)",
+    ]:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass
 
     # shoes 테이블 (Strava export)
     conn.executescript("""
