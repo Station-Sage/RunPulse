@@ -29,6 +29,7 @@ from .views_shoes import shoes_bp
 
 # Phase 3 (v0.2) Blueprint imports
 from .views_dashboard import dashboard_bp
+from .views_report import report_bp
 
 
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
@@ -1341,5 +1342,6 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(export_import_bp)  # Export CSV 임포트
     app.register_blueprint(shoes_bp)          # 신발 목록
     app.register_blueprint(dashboard_bp)      # v0.2 통합 대시보드
+    app.register_blueprint(report_bp)         # v0.2 분석 레포트
 
     return app

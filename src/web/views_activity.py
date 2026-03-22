@@ -15,7 +15,7 @@ import html
 import json
 import sqlite3
 
-from flask import Blueprint, request
+from flask import Blueprint, render_template, request
 
 from src.analysis.activity_deep import deep_analyze
 from src.utils.pace import seconds_to_pace
@@ -28,7 +28,7 @@ from .helpers import (
     db_path,
     fmt_duration,
     fmt_min,
-    html_page,
+    fmt_pace,
     make_table,
     metric_row,
     readiness_badge,
@@ -603,6 +603,126 @@ def _render_activity_nav(
     )
 
 
+# ── 2차 메트릭 / computed_metrics 조회 ─────────────────────────────────────
+
+def _load_activity_computed_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
+    """활동별 computed_metrics 조회 → {metric_name: value} 딕셔너리."""
+    rows = conn.execute(
+        "SELECT metric_name, metric_value FROM computed_metrics WHERE activity_id = ?",
+        (activity_id,),
+    ).fetchall()
+    return {row[0]: row[1] for row in rows}
+
+
+def _load_day_computed_metrics(conn: sqlite3.Connection, act_date: str) -> dict:
+    """날짜별 computed_metrics 조회 (activity_id IS NULL) → {metric_name: value}."""
+    rows = conn.execute(
+        """SELECT metric_name, metric_value FROM computed_metrics
+           WHERE date = ? AND activity_id IS NULL""",
+        (act_date,),
+    ).fetchall()
+    return {row[0]: row[1] for row in rows}
+
+
+def _render_horizontal_scroll(act: dict, metrics: dict) -> str:
+    """핵심 메트릭 수평 스크롤 바 (V2-4-6, 모바일 최적화)."""
+    dist = act.get("distance_km")
+    dist_str = f"{float(dist):.2f} km" if dist is not None else "—"
+    pace_str = act.get("avg_pace") or "—"
+    fearp_val = metrics.get("FEARP")
+    gap_val = metrics.get("GAP")
+
+    items = [
+        ("🏃", "거리", dist_str),
+        ("⏱", "시간", fmt_duration(act.get("duration_sec"))),
+        ("⚡", "페이스", f"{pace_str}/km" if pace_str != "—" else "—"),
+        ("❤️", "심박수", _fmt_int(act.get("avg_hr"), " bpm")),
+        ("📈", "고도↑", _fmt_int(act.get("elevation_gain"), " m")),
+        ("🔥", "칼로리", _fmt_int(act.get("calories"), " kcal")),
+    ]
+    if fearp_val is not None:
+        items.append(("🌡", "FEARP", f"{fmt_pace(fearp_val)}/km"))
+    if gap_val is not None:
+        items.append(("⛰", "GAP", f"{fmt_pace(gap_val)}/km"))
+
+    chips = "".join(
+        f"<div style='display:inline-flex;flex-direction:column;align-items:center;"
+        f"min-width:76px;padding:0.55rem 0.7rem;"
+        f"background:rgba(255,255,255,0.06);border-radius:12px;margin:0 4px;'>"
+        f"<span style='font-size:1.3rem;line-height:1;'>{icon}</span>"
+        f"<span style='font-size:0.68rem;color:var(--muted);margin-top:3px;'>{label}</span>"
+        f"<span style='font-size:0.88rem;font-weight:600;margin-top:2px;'>{val}</span>"
+        f"</div>"
+        for icon, label, val in items
+    )
+    return (
+        "<div style='overflow-x:auto;white-space:nowrap;padding:0.5rem 0 0.8rem;"
+        "-webkit-overflow-scrolling:touch;'>"
+        + chips
+        + "</div>"
+    )
+
+
+def _render_secondary_metrics_card(metrics: dict) -> str:
+    """2차 메트릭 카드 (FEARP/GAP/NGP/RE/Decoupling/EF/TRIMP, V2-4-1~4)."""
+    pairs = [
+        ("FEARP (환경 보정 페이스)", metrics.get("FEARP"), "pace"),
+        ("GAP (경사 보정 페이스)", metrics.get("GAP"), "pace"),
+        ("NGP (정규화 경사 페이스)", metrics.get("NGP"), "pace"),
+        ("Relative Effort", metrics.get("RelativeEffort"), "f0"),
+        ("Aerobic Decoupling", metrics.get("Decoupling"), "f1%"),
+        ("Efficiency Factor (EF)", metrics.get("EF"), "f4"),
+        ("TRIMP", metrics.get("TRIMP"), "f1"),
+    ]
+    rows = []
+    for label, val, fmt in pairs:
+        if val is None:
+            continue
+        if fmt == "pace":
+            val_str = f"{fmt_pace(val)}/km"
+        elif fmt == "f0":
+            val_str = f"{float(val):.0f}"
+        elif fmt == "f1%":
+            val_str = f"{float(val):.1f}%"
+        elif fmt == "f4":
+            val_str = f"{float(val):.4f}"
+        else:
+            val_str = f"{float(val):.1f}"
+        rows.append(metric_row(label, val_str))
+
+    if not rows:
+        return (
+            "<div class='card'>"
+            "<h2>2차 메트릭</h2>"
+            "<p class='muted' style='margin:0;'>메트릭 미계산 — 설정 → 재계산 실행 후 확인하세요.</p>"
+            "</div>"
+        )
+    return "<div class='card'><h2>2차 메트릭</h2>" + "".join(rows) + "</div>"
+
+
+def _render_daily_scores_card(day_metrics: dict) -> str:
+    """당일 UTRS/CIRS/ACWR 점수 카드 (V2-4-3)."""
+    utrs = day_metrics.get("UTRS")
+    cirs = day_metrics.get("CIRS")
+    acwr = day_metrics.get("ACWR")
+
+    if all(v is None for v in (utrs, cirs, acwr)):
+        return (
+            "<div class='card'>"
+            "<h2>당일 훈련 지수</h2>"
+            "<p class='muted' style='margin:0;'>해당 날짜의 UTRS/CIRS 데이터가 없습니다.</p>"
+            "</div>"
+        )
+    return (
+        "<div class='card'>"
+        "<h2>당일 훈련 지수</h2>"
+        + metric_row("UTRS (훈련 준비도)", f"{float(utrs):.0f}" if utrs is not None else "—")
+        + metric_row("CIRS (부상 위험도)", f"{float(cirs):.0f}" if cirs is not None else "—")
+        + metric_row("ACWR (급성/만성 부하비)", f"{float(acwr):.2f}" if acwr is not None else "—")
+        + "</div>"
+    )
+
+
 # ── 라우트 ───────────────────────────────────────────────────────────────
 
 @activity_bp.get("/activity/deep")
@@ -611,7 +731,7 @@ def activity_deep_view():
     dpath = db_path()
     if not dpath.exists():
         body = "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
-        return html_page("활동 심층 분석", body)
+        return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
     activity_id_str = request.args.get("id", "").strip()
     date_str = request.args.get("date", "").strip()
@@ -622,10 +742,12 @@ def activity_deep_view():
             activity_id = int(activity_id_str)
         except ValueError:
             body = f"<div class='card'><p>잘못된 activity id: {html.escape(activity_id_str)}</p></div>"
-            return html_page("활동 심층 분석", body)
+            return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
     source_rows: dict = {}
     resolved_id: int | None = None
+    act_metrics: dict = {}
+    day_metrics_data: dict = {}
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -649,9 +771,12 @@ def activity_deep_view():
                     resolved_id = cur[0]
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
                     source_rows = _fetch_source_rows(conn, cur[0])
+                    act_metrics = _load_activity_computed_metrics(conn, cur[0])
+                    act_date_tmp = str(cur[1])[:10]
+                    day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
-        return html_page("활동 심층 분석", body)
+        return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
     # 쿼리 폼은 항상 표시 (no-data 경로 포함)
     query_form = (
@@ -675,7 +800,7 @@ def activity_deep_view():
             f"<p class='muted'>분석 가능한 활동이 없습니다 ({html.escape(msg)}).</p>"
             "</div>"
         )
-        return html_page("활동 심층 분석", body)
+        return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
     act = data.get("activity") or {}
     act_date = act.get("date") or ""
@@ -692,6 +817,7 @@ def activity_deep_view():
     body = (
         query_form
         + _render_activity_nav(prev_row, next_row)
+        + _render_horizontal_scroll(act, act_metrics)
         + _render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
         + _render_garmin_daily_detail(garmin_detail, act_date)
@@ -707,8 +833,12 @@ def activity_deep_view():
         + _render_fitness_context(fitness_ctx)
         + _render_efficiency(efficiency)
         + "</div>"
+        + "<div class='cards-row'>"
+        + _render_secondary_metrics_card(act_metrics)
+        + _render_daily_scores_card(day_metrics_data)
+        + "</div>"
         + _render_splits(splits)
     )
 
     title = f"활동 심층 분석 — {act_date}"
-    return html_page(title, body)
+    return render_template("generic_page.html", title=title, body=body, active_tab="activities")

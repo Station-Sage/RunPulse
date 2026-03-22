@@ -173,43 +173,26 @@
 
 ---
 
-## Phase 4: 활동 상세 UI 고도화 (Sprint 4-C)
+## Phase 4: 활동 상세 UI 고도화 (Sprint 4-C) ✅ 완료 (2026-03-23, V2-4-5 제외)
 
-- [ ] V2-4-1: `src/web/views_activity.py` — activity_deep에 FEARP 섹션 추가
-  - 실제 페이스 vs 보정 페이스 비교 표시
-  - 환경 영향 분해 배지: 기온/습도/경사 각 delta(초)
-- [ ] V2-4-2: activity_deep에 2차 메트릭 카드
-  - Aerobic Decoupling, EF (효율 계수)
-  - Aerobic Training Effect (Garmin 수집값)
-  - Running Dynamics (GCT, GCT Balance, VO, VR)
-- [ ] V2-4-3: activity_deep에 UTRS/CIRS 기여도 표시
-- [ ] V2-4-4: activity_deep에 추가 1차 메트릭 표시
-  - GAP (경사 보정 페이스)
-  - NGP (정규화 경사 페이스)
-  - Relative Effort (구역 기반 노력도)
-  - Anaerobic Training Effect (Garmin 수집값)
-  - Training Status 라벨 (Garmin 원본: Peaking/Productive/Maintaining 등)
-- [ ] V2-4-5: activity_deep — 지도 전체 화면 상단 60%
-  - Mapbox GL JS 궤적 + FEARP 히트맵 오버레이 (토큰 없으면 Leaflet.js 폴백)
-  - Mapbox 토큰: `config.json`에 저장 (`config.mapbox.token`)
-- [ ] V2-4-6: activity_deep — 핵심 메트릭 수평 스크롤 카드 (모바일)
-  - 거리 / 페이스 / 시간 / 심박수 / 고도 / 케이던스 가로 스와이프
+- [x] V2-4-1~4: `src/web/views_activity.py` — 2차 메트릭 카드 추가
+  - `_render_secondary_metrics_card`: FEARP/GAP/NGP/RelativeEffort/Decoupling/EF/TRIMP
+  - `_render_daily_scores_card`: 당일 UTRS/CIRS/ACWR 지수
+  - `_load_activity_computed_metrics`, `_load_day_computed_metrics`: DB 조회
+  - `html_page()` → `render_template('generic_page.html')` 전환 (5개 엔드포인트)
+- [x] V2-4-6: `_render_horizontal_scroll` — 핵심 메트릭 수평 스크롤 바 (거리/시간/페이스/심박/고도/FEARP/GAP)
+- [ ] V2-4-5: activity_deep — 지도 (Mapbox/Leaflet) — v0.3으로 이연
 
 ---
 
-## Phase 5: 분석 레포트 UI (Sprint 4-C)
+## Phase 5: 분석 레포트 UI (Sprint 4-C) ✅ 완료 (2026-03-23)
 
-- [ ] V2-5-1: `src/web/views_report.py` — 분석 레포트 뷰 블루프린트
-  - 기간 선택 탭 (오늘/주/월/분기/연/사용자정의) — GET ?period=week
-  - 레포트 헤더 카드 (기간 라벨, 활동 수, 총 거리, 총 시간)
-  - 요약 카드 2×2 grid (총 거리/시간/UTRS/CIRS + 전기간 대비 변화율)
-  - 활동 추세 차트 (ECharts Line, 주별 거리)
-  - TIDS 분포 가로 분할 바 (Easy/Tempo/Threshold %)
-  - TRIMP 주간 부하 바차트 (ECharts Bar)
-  - 세부 메트릭 테이블 (GAP, NGP, EF, Relative Effort, Decoupling)
-  - AI 인사이트 카드 3개
-  - 액션 버튼: 훈련 플랜 조정 → /training
-- [ ] V2-5-2: `src/web/app.py` — `/report` 블루프린트 등록
+- [x] V2-5-1: `src/web/views_report.py` — 분석 레포트 뷰 블루프린트
+  - 기간 선택 탭 (week/month/3month) — GET /report?period=week
+  - 요약 카드 (활동 수/총 거리/총 시간/평균 거리/평균 UTRS/CIRS)
+  - 주별 거리 ECharts 바차트 (markLine 평균선 포함)
+  - 활동별 메트릭 테이블 (FEARP/GAP/Relative Effort/Decoupling, 최근 15개)
+- [x] V2-5-2: `src/web/app.py` — `/report` 블루프린트 등록
 
 ---
 

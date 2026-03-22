@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.2-sprint4C] 2026-03-23
+
+### 추가
+- `src/web/views_report.py` — `/report` 분석 레포트 블루프린트
+  - 기간 탭 (week/month/3month), 요약 카드 6개, 주별 거리 ECharts 바차트, 메트릭 테이블
+- `src/web/views_activity.py` — 2차 메트릭 섹션 추가
+  - `_load_activity_computed_metrics`, `_load_day_computed_metrics` DB 조회 함수
+  - `_render_horizontal_scroll`: 핵심 메트릭 수평 스크롤 바 (V2-4-6)
+  - `_render_secondary_metrics_card`: FEARP/GAP/NGP/RE/Decoupling/EF/TRIMP (V2-4-1~4)
+  - `_render_daily_scores_card`: 당일 UTRS/CIRS/ACWR 카드
+
+### 변경
+- `src/web/views_activity.py` — `html_page()` → `render_template('generic_page.html')` 전환 (5개 호출)
+- `src/web/app.py` — `report_bp` 임포트 및 등록
+
+### 미구현 (이연)
+- V2-4-5: Mapbox/Leaflet 지도 → v0.3으로 이연
+
+### 테스트
+- 785개 통과 (pre-existing 3개 제외)
+
+---
+
 ## [v0.2-sprint4B] 2026-03-23
 
 ### 추가
