@@ -9,7 +9,7 @@ from pathlib import Path
 from src.utils import api
 from src.utils.config import update_service_config
 from src.utils.dedup import assign_group_id
-from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
 from src.utils.sync_state import get_rate_state, mark_finished
@@ -234,8 +234,8 @@ def sync_activities(
                 continue
 
             if cursor.rowcount == 0:
-                # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
-                existing_id = fill_null_columns(conn, "strava", source_id, {
+                # 이미 존재 — 변경/누락 필드 업데이트 + raw payload merge
+                existing_id = update_changed_fields(conn, "strava", source_id, {
                     "avg_hr": act.get("average_heartrate"),
                     "max_hr": act.get("max_heartrate"),
                     "avg_cadence": cadence,

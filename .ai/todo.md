@@ -103,6 +103,7 @@
 - 2026-03-21: sync-policy 구현 — rate limit/cooldown/중복방지, SyncPolicy/SyncGuardResult, sync_state.json, 신규 30개 테스트 (누적 481개)
 - 2026-03-21: 백그라운드 기간 동기화 구현 — sync_jobs DB 테이블, BgSyncThread(pause/stop/resume), 서비스별 배치+rate limit, 진행 UI(프로그레스바/polling), 신규 30개 테스트 (누적 511개)
 - 2026-03-22: claude/export-import 브랜치 — 통합 활동 목록(정렬·검색·범위필터), Garmin/Strava CSV 임포트, 신발 탭, 활동 병합 UI, Garmin 생체역학 지표, connected_services 헬퍼, dedup 허용오차 확대(7분·15%), 53개 신규 테스트 + 기존 테스트 5개 수정 (607개 수집, 605 통과)
+- 2026-03-22: **v0.1 완성** — claude/strava-archive-import 브랜치 — Strava archive 임포트(ZIP/TCX.gz), update_changed_fields() 전면 도입, 4소스 detail_metrics 누락 없는 임포트·backfill 완료, 활동 심층 분석 FIT/날씨/grade 데이터 표시, 테스트 수정 포함 652개 통과
 
 - [ ] P3-followup: 레이스 준비도 데이터 부족 시 grade/readiness_score를 None으로 전환하고 "충분한 데이터가 쌓이지 않았습니다" 안내 중심 UX로 개선
 

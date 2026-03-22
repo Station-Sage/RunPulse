@@ -20,7 +20,7 @@ except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
     GarminConnectTooManyRequestsError = Exception
 
 from src.utils.dedup import assign_group_id
-from src.utils.raw_payload import fill_null_columns
+from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES
 from src.utils.sync_state import mark_finished, set_retry_after
@@ -299,8 +299,8 @@ def sync_activities(
             continue
 
         if cursor.rowcount == 0:
-            # 이미 존재 — NULL 컬럼만 보완 + raw payload merge
-            existing_id = fill_null_columns(conn, "garmin", source_id, {
+            # 이미 존재 — 변경/누락 필드 업데이트 + raw payload merge
+            existing_id = update_changed_fields(conn, "garmin", source_id, {
                 "avg_hr": act.get("averageHR"),
                 "max_hr": act.get("maxHR"),
                 "avg_cadence": act.get("averageRunningCadenceInStepsPerMinute"),

@@ -1,5 +1,42 @@
 # RunPulse - 변경 이력
 
+## 2026-03-22 (claude/strava-archive-import — v0.1 완성)
+
+### 데이터 누락 없는 임포트/동기화 + Strava archive + 활동 심층 분석 개선
+
+**핵심 변경**
+- `src/utils/raw_payload.py`
+  - `update_changed_fields()` 신규: incoming 값과 DB를 비교해 NULL이거나 다른 필드만 UPDATE (COALESCE 방식 대체)
+- `src/import_export/strava_csv.py`
+  - `_DETAIL_METRIC_KEYS` 22개 추가: relative_effort, training_load, intensity, weather(기온·습도·풍속·UV·운량), grade-adjusted 거리/페이스, elevation_low/high, total_steps 등
+  - 재 import 시 `update_changed_fields` + `_upsert_strava_detail_metrics` 호출로 변경/누락 데이터 자동 갱신
+- `src/import_export/garmin_csv.py`
+  - `_GARMIN_DETAIL_METRICS` 14개 + `_upsert_garmin_detail_metrics()` 신규
+  - `backfill_garmin_detail_metrics()` 신규: 기존 csv_export row에 detail_metrics 일괄 채우기
+  - 재 import 시 `update_changed_fields` + `_upsert_garmin_detail_metrics` 호출
+- `src/import_export/intervals_fit.py`
+  - `_INTERVALS_FIT_DETAIL_METRICS` 7개 + `_upsert_intervals_fit_detail_metrics()` 신규
+  - 재 import 시 `update_changed_fields` + `_upsert_intervals_fit_detail_metrics` 호출
+- `src/import_export/strava_archive.py`
+  - Strava ZIP archive 전체 임포트 (activities.csv + GPX/FIT/TCX.gz)
+  - TCX XML 앞 공백 파싱 버그 수정 (`data.strip()`)
+  - 재 import 시 `update_changed_fields` + `_upsert_strava_detail_metrics` 호출
+- `src/sync/garmin.py`, `strava.py`, `intervals.py`, `runalyze.py`
+  - `fill_null_columns` → `update_changed_fields` 교체: 재동기화 시 변경/누락 필드 자동 갱신
+- `src/analysis/activity_deep.py`
+  - `strava_data`에 날씨·grade-adjusted·총스텝 신규 필드 추가
+  - `intervals_data`에 FIT 파일 기반 필드 추가 (tss, normalized_power, max_power, num_laps, max_speed, elevation_loss, avg_cadence)
+- `src/web/views_activity.py`
+  - Strava 카드: Grade Adj. 거리, 평균 경사도, 총 스텝, 날씨 섹션 (기온·습도·풍속·UV·운량)
+  - Intervals 카드: FIT 파일 섹션 (TSS, NP, 최대 파워, 랩수, 최고 속도, 고도 하강, 케이던스)
+- `tests/test_sync_strava.py`
+  - `api.get_with_headers` mock 불일치 수정
+
+**backfill 실행 결과 (2026-03-22)**
+- Garmin CSV: 495개 활동 → detail_metrics 채움 (TSS, NP, 보폭, 지면접촉시간 등 3574 metrics)
+- Intervals FIT: 539개 활동 → detail_metrics 채움 (TSS, NP, 랩수 등 2718 metrics)
+- Strava CSV: 489개 활동 → detail_metrics 채움 (날씨, grade-adjusted 포함 6928 metrics)
+
 
 ## 2026-03-22 (claude/export-import)
 

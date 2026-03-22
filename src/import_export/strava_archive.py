@@ -1,4 +1,4 @@
-"""Strava full-archive import.
+"""Strava full-archive import + backfill.
 
 Strava > 내 계정 > 데이터 내보내기 ZIP 내부 구조:
     activities.csv
@@ -9,12 +9,10 @@ Strava > 내 계정 > 데이터 내보내기 ZIP 내부 구조:
         12345678901234.fit
         ...
 
-임포트 순서:
-1. activities.csv 파싱 → Activity ID, 메타데이터, Filename 컬럼 수집
-2. Filename으로 activities/ 폴더에서 원본 파일 탐색
-3. 파일 파싱 성공 → 파일 데이터(정밀) + CSV 메타 병합
-4. 파일 없음 / 파싱 실패 → CSV-only fallback row 생성
-5. source_id = CSV의 Activity ID (항상, 파일명 숫자 사용 금지)
+import_strava_archive(): CSV + 파일 통합 임포트 (신규 row 삽입)
+backfill_strava_archive(): 기존 CSV-only row에 파일 파싱 정밀값 강제 덮어쓰기
+
+source_id = CSV의 Activity ID (항상, 파일명 숫자 사용 금지)
 """
 from __future__ import annotations
 
@@ -24,9 +22,10 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.import_export.strava_csv import _parse_activity_row
+from src.import_export.strava_csv import _parse_activity_row, _upsert_strava_detail_metrics
 from src.import_history import parse_file_data
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import update_changed_fields
 
 
 def _find_activity_file(activities_dir: Path, filename: str | None) -> Path | None:
@@ -178,6 +177,21 @@ def import_strava_archive(
             continue
 
         if cursor.rowcount == 0:
+            # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
+            existing_id = update_changed_fields(conn, "strava", source_id, {
+                "distance_km": merged.get("distance_km"),
+                "duration_sec": merged.get("duration_sec"),
+                "avg_pace_sec_km": merged.get("avg_pace_sec_km"),
+                "avg_hr": merged.get("avg_hr"),
+                "max_hr": merged.get("max_hr"),
+                "avg_cadence": merged.get("avg_cadence"),
+                "elevation_gain": merged.get("elevation_gain"),
+                "calories": merged.get("calories"),
+                "avg_power": merged.get("avg_power"),
+                "export_filename": csv_meta.get("filename"),
+            })
+            if existing_id:
+                _upsert_strava_detail_metrics(conn, existing_id, csv_meta)
             stats["skipped"] += 1
             continue
 
@@ -188,7 +202,10 @@ def import_strava_archive(
         else:
             stats["csv_only"] += 1
 
-        # ── 5. raw payload 저장 ────────────────────────────────────────
+        # ── 5. detail metrics 저장 ─────────────────────────────────────
+        _upsert_strava_detail_metrics(conn, activity_id, csv_meta)
+
+        # ── 6. raw payload 저장 ────────────────────────────────────────
         payload = {k: v for k, v in merged.items() if v is not None}
         try:
             conn.execute(
@@ -203,6 +220,132 @@ def import_strava_archive(
             pass  # raw payload 실패는 무시
 
         assign_group_id(conn, activity_id)
+
+    conn.commit()
+    return stats
+
+
+# ── Backfill ──────────────────────────────────────────────────────────────
+
+def _backfill_file_data(
+    conn: sqlite3.Connection,
+    source_id: str,
+    file_data: dict[str, Any],
+) -> bool:
+    """기존 strava row에 파일 파싱 정밀값을 강제 덮어쓴다.
+
+    fill_null_columns()과 달리 COALESCE 없이 파일값으로 직접 UPDATE한다.
+    대상 필드: distance_km, duration_sec, avg_hr, max_hr, avg_cadence,
+              elevation_gain, avg_pace_sec_km (재계산).
+
+    CSV 우선 필드(activity_type, description, start_time, calories, avg_power)는
+    건드리지 않는다.
+
+    Returns:
+        True if row found and updated, False if not found in DB.
+    """
+    fields = {
+        "distance_km":   file_data.get("distance_km"),
+        "duration_sec":  file_data.get("duration_sec"),
+        "avg_hr":        file_data.get("avg_hr"),
+        "max_hr":        file_data.get("max_hr"),
+        "avg_cadence":   file_data.get("avg_cadence"),
+        "elevation_gain": file_data.get("elevation_gain"),
+    }
+    non_null = {k: v for k, v in fields.items() if v is not None}
+    if not non_null:
+        return False
+
+    # 거리·시간으로 페이스 재계산
+    dist = non_null.get("distance_km")
+    dur = non_null.get("duration_sec")
+    if dist and dur and dist > 0:
+        non_null["avg_pace_sec_km"] = int(dur / dist)
+
+    set_clause = ", ".join(f"{col} = ?" for col in non_null)
+    result = conn.execute(
+        f"UPDATE activity_summaries SET {set_clause} "
+        f"WHERE source = 'strava' AND source_id = ?",
+        (*non_null.values(), source_id),
+    )
+    return result.rowcount > 0
+
+
+def backfill_strava_archive(
+    conn: sqlite3.Connection,
+    folder: Path,
+) -> dict[str, int]:
+    """이미 임포트된 strava row에 파일 파싱 정밀값을 백필한다.
+
+    INSERT 없이 UPDATE만 수행한다. 파일 없는 row는 건너뛴다.
+
+    Args:
+        conn:   SQLite 연결
+        folder: Strava archive 루트 폴더 (activities.csv가 있는 위치)
+
+    Returns:
+        {
+          "csv_total":          CSV 전체 행 수,
+          "updated":            파일 파싱 성공 + UPDATE된 수,
+          "skipped_no_file":    activities/ 파일 없음,
+          "skipped_parse_fail": 파일 파싱 실패,
+          "skipped_not_in_db":  source_id가 DB에 없음,
+          "gz_ok":              gz 압축 해제 성공 수,
+          "errors":             CSV 파싱 오류 수,
+        }
+    """
+    activities_csv = folder / "activities.csv"
+    if not activities_csv.exists():
+        print(f"[strava_archive] activities.csv 없음: {activities_csv}")
+        return {
+            "csv_total": 0, "updated": 0, "skipped_no_file": 0,
+            "skipped_parse_fail": 0, "skipped_not_in_db": 0,
+            "gz_ok": 0, "errors": 1,
+        }
+
+    activities_dir = folder / "activities"
+    stats: dict[str, int] = {
+        "csv_total": 0, "updated": 0, "skipped_no_file": 0,
+        "skipped_parse_fail": 0, "skipped_not_in_db": 0,
+        "gz_ok": 0, "errors": 0,
+    }
+
+    with open(activities_csv, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    stats["csv_total"] = len(rows)
+
+    for raw in rows:
+        try:
+            csv_meta = _parse_activity_row(raw)
+        except Exception as e:
+            print(f"[strava_archive] CSV 파싱 오류: {e}")
+            stats["errors"] += 1
+            continue
+
+        source_id = csv_meta.get("source_id", "").strip()
+        if not source_id:
+            stats["errors"] += 1
+            continue
+
+        # 파일 탐색
+        file_path = _find_activity_file(activities_dir, csv_meta.get("filename"))
+        if file_path is None:
+            stats["skipped_no_file"] += 1
+            continue
+
+        is_gz = file_path.suffix.lower() == ".gz"
+        file_data = parse_file_data(file_path)
+        if file_data is None:
+            stats["skipped_parse_fail"] += 1
+            continue
+        if is_gz:
+            stats["gz_ok"] += 1
+
+        # 기존 row 강제 업데이트
+        if _backfill_file_data(conn, source_id, file_data):
+            stats["updated"] += 1
+        else:
+            stats["skipped_not_in_db"] += 1
 
     conn.commit()
     return stats

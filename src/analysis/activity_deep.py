@@ -273,6 +273,26 @@ def deep_analyze(
         "suffer_score": s.get("relative_effort"),
         "best_efforts": best_efforts_raw,
         "pace_splits": pace_splits,
+        "training_load": s.get("training_load_csv"),
+        "intensity": s.get("intensity_csv"),
+        "moving_time_sec": s.get("moving_time_sec"),
+        "elapsed_time_sec": s.get("elapsed_time_sec"),
+        "max_speed_mps": s.get("max_speed_mps"),
+        "elevation_loss": s.get("elevation_loss"),
+        # grade / terrain
+        "avg_grade": s.get("avg_grade"),
+        "grade_adjusted_distance_m": s.get("grade_adjusted_distance_m"),
+        "elevation_low": s.get("elevation_low"),
+        "elevation_high": s.get("elevation_high"),
+        "total_steps": s.get("total_steps"),
+        # 날씨
+        "avg_temp_c": s.get("avg_temp_c"),
+        "weather_temp_c": s.get("weather_temp_c"),
+        "weather_humidity": s.get("weather_humidity"),
+        "wind_speed_ms": s.get("wind_speed_ms"),
+        "wind_gust_ms": s.get("wind_gust_ms"),
+        "uv_index": s.get("uv_index"),
+        "cloud_cover": s.get("cloud_cover"),
     }
 
     # Intervals 지표
@@ -285,6 +305,7 @@ def deep_analyze(
             hr_zones_raw = None
 
     intervals_data = {
+        # API sync 필드
         "icu_training_load": iv.get("icu_training_load"),
         "icu_hrss": iv.get("icu_hrss"),
         "icu_intensity": iv.get("icu_intensity"),
@@ -296,13 +317,20 @@ def deep_analyze(
         "icu_hr_zone_times": iv.get("icu_hr_zone_times"),
         "interval_summary": iv.get("interval_summary"),
         "hr_zones": hr_zones_raw,
-        # 추가 필드
         "strain_score": iv.get("strain_score"),
         "hr_load": iv.get("hr_load"),
         "pace_load": iv.get("pace_load"),
         "power_load": iv.get("power_load"),
         "session_rpe": iv.get("session_rpe"),
         "icu_lap_count": iv.get("icu_lap_count"),
+        # FIT 파일 임포트 필드 (API sync 값이 없으면 FIT 값 사용)
+        "tss": iv.get("training_stress_score"),
+        "normalized_power": iv.get("normalized_power"),
+        "max_power": iv.get("max_power"),
+        "num_laps": iv.get("lap_count"),
+        "max_speed": iv.get("max_speed"),
+        "elevation_loss": iv.get("elevation_loss"),
+        "avg_cadence": iv.get("avg_run_cadence"),
     }
 
     # Runalyze 지표

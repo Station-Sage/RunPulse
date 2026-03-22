@@ -1,4 +1,4 @@
-"""Strava archive import 테스트 — parse_tcx, parse_file_data(.gz), import_strava_archive."""
+"""Strava archive import + backfill 테스트."""
 from __future__ import annotations
 
 import csv
@@ -17,7 +17,9 @@ from src.import_history import parse_tcx, parse_file_data
 from src.import_export.strava_archive import (
     _find_activity_file,
     _merge,
+    _backfill_file_data,
     import_strava_archive,
+    backfill_strava_archive,
 )
 
 
@@ -389,3 +391,142 @@ class TestImportStravaArchive:
             "SELECT export_filename FROM activity_summaries WHERE source_id='888888'"
         ).fetchone()
         assert row[0] == "activities/888888.fit.gz"
+
+
+# ── _backfill_file_data 단위 테스트 ──────────────────────────────────────
+
+class TestBackfillFileData:
+    def _insert_csv_only(self, conn, source_id: str, distance_km=9.8,
+                         avg_hr=145, duration_sec=3500):
+        conn.execute(
+            """INSERT INTO activity_summaries
+               (source, source_id, activity_type, start_time,
+                distance_km, duration_sec, avg_hr)
+               VALUES ('strava', ?, 'running', '2026-03-22T16:00:00', ?, ?, ?)""",
+            (source_id, distance_km, duration_sec, avg_hr),
+        )
+        conn.commit()
+
+    def test_updates_distance_and_hr(self, mem_db):
+        self._insert_csv_only(mem_db, "aaa")
+        file_d = {"distance_km": 10.05, "duration_sec": 3610,
+                  "avg_hr": 152, "max_hr": 174}
+        result = _backfill_file_data(mem_db, "aaa", file_d)
+        assert result is True
+        row = mem_db.execute(
+            "SELECT distance_km, avg_hr, max_hr FROM activity_summaries WHERE source_id='aaa'"
+        ).fetchone()
+        assert row[0] == pytest.approx(10.05)
+        assert row[1] == 152
+        assert row[2] == 174
+
+    def test_pace_recalculated(self, mem_db):
+        self._insert_csv_only(mem_db, "bbb")
+        _backfill_file_data(mem_db, "bbb",
+                            {"distance_km": 10.0, "duration_sec": 3600})
+        row = mem_db.execute(
+            "SELECT avg_pace_sec_km FROM activity_summaries WHERE source_id='bbb'"
+        ).fetchone()
+        assert row[0] == 360
+
+    def test_not_found_returns_false(self, mem_db):
+        result = _backfill_file_data(mem_db, "nonexistent",
+                                     {"distance_km": 10.0, "duration_sec": 3600})
+        assert result is False
+
+    def test_csv_description_not_overwritten(self, mem_db):
+        """description, activity_type, start_time은 건드리지 않는다."""
+        self._insert_csv_only(mem_db, "ccc")
+        mem_db.execute(
+            "UPDATE activity_summaries SET description='My Run' WHERE source_id='ccc'"
+        )
+        mem_db.commit()
+        _backfill_file_data(mem_db, "ccc",
+                            {"distance_km": 10.0, "duration_sec": 3600,
+                             "description": "file_stem_name"})
+        row = mem_db.execute(
+            "SELECT description FROM activity_summaries WHERE source_id='ccc'"
+        ).fetchone()
+        assert row[0] == "My Run"  # CSV 값 보존
+
+    def test_all_none_file_data_returns_false(self, mem_db):
+        self._insert_csv_only(mem_db, "ddd")
+        result = _backfill_file_data(mem_db, "ddd",
+                                     {"distance_km": None, "duration_sec": None})
+        assert result is False
+
+
+# ── backfill_strava_archive 통합 테스트 ───────────────────────────────────
+
+class TestBackfillStravaArchive:
+    def _seed_csv_only(self, conn, source_id: str, distance_km=9.8):
+        """CSV-only row를 미리 삽입."""
+        conn.execute(
+            """INSERT INTO activity_summaries
+               (source, source_id, activity_type, start_time, distance_km)
+               VALUES ('strava', ?, 'running', '2026-03-22T16:00:00', ?)""",
+            (source_id, distance_km),
+        )
+        conn.commit()
+
+    def test_no_csv_returns_error(self, mem_db, tmp_path):
+        stats = backfill_strava_archive(mem_db, tmp_path)
+        assert stats["errors"] == 1
+
+    def test_updates_existing_row(self, mem_db, tmp_path):
+        self._seed_csv_only(mem_db, "111111", distance_km=9.5)
+        gz_content = gzip.compress(_TCX_SAMPLE)  # 10km
+        rows = [_csv_row("111111", filename="activities/111111.tcx.gz")]
+        _make_archive(tmp_path, rows, {"111111.tcx.gz": gz_content})
+
+        stats = backfill_strava_archive(mem_db, tmp_path)
+        assert stats["updated"] == 1
+        assert stats["gz_ok"] == 1
+
+        row = mem_db.execute(
+            "SELECT distance_km FROM activity_summaries WHERE source_id='111111'"
+        ).fetchone()
+        assert row[0] == pytest.approx(10.0)  # TCX값으로 덮어써짐
+
+    def test_skips_row_with_no_file(self, mem_db, tmp_path):
+        self._seed_csv_only(mem_db, "222222")
+        rows = [_csv_row("222222", filename="")]
+        _make_archive(tmp_path, rows, {})
+
+        stats = backfill_strava_archive(mem_db, tmp_path)
+        assert stats["skipped_no_file"] == 1
+        assert stats["updated"] == 0
+
+    def test_skips_parse_failure(self, mem_db, tmp_path):
+        self._seed_csv_only(mem_db, "333333")
+        rows = [_csv_row("333333", filename="activities/333333.tcx.gz")]
+        _make_archive(tmp_path, rows, {"333333.tcx.gz": b"bad gz"})
+
+        stats = backfill_strava_archive(mem_db, tmp_path)
+        assert stats["skipped_parse_fail"] == 1
+        assert stats["updated"] == 0
+
+    def test_skipped_not_in_db(self, mem_db, tmp_path):
+        """DB에 없는 source_id는 skipped_not_in_db."""
+        gz_content = gzip.compress(_TCX_SAMPLE)
+        rows = [_csv_row("999999", filename="activities/999999.tcx.gz")]
+        _make_archive(tmp_path, rows, {"999999.tcx.gz": gz_content})
+
+        stats = backfill_strava_archive(mem_db, tmp_path)
+        assert stats["skipped_not_in_db"] == 1
+        assert stats["updated"] == 0
+
+    def test_does_not_insert_new_rows(self, mem_db, tmp_path):
+        """backfill은 INSERT 하지 않는다."""
+        gz_content = gzip.compress(_TCX_SAMPLE)
+        rows = [_csv_row("777777", filename="activities/777777.tcx.gz")]
+        _make_archive(tmp_path, rows, {"777777.tcx.gz": gz_content})
+
+        before = mem_db.execute(
+            "SELECT COUNT(*) FROM activity_summaries"
+        ).fetchone()[0]
+        backfill_strava_archive(mem_db, tmp_path)
+        after = mem_db.execute(
+            "SELECT COUNT(*) FROM activity_summaries"
+        ).fetchone()[0]
+        assert before == after  # row 수 변화 없음

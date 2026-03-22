@@ -157,7 +157,7 @@ def parse_tcx(file_path: Path, *, data: bytes | None = None) -> dict | None:
         return el
 
     try:
-        root = ET.fromstring(data) if data is not None else ET.parse(str(file_path)).getroot()
+        root = ET.fromstring(data.strip()) if data is not None else ET.parse(str(file_path)).getroot()
     except ET.ParseError:
         return None
 
@@ -311,11 +311,31 @@ def main() -> None:
         "--strava-archive", action="store_true",
         help="Strava archive 모드: activities.csv + activities/ 폴더 통합 임포트",
     )
+    parser.add_argument(
+        "--update", action="store_true",
+        help="Strava archive backfill: 기존 CSV-only row에 파일 파싱 정밀값 강제 덮어쓰기",
+    )
     args = parser.parse_args()
 
     init_db()
     db_path = get_db_path()
     target = Path(args.path)
+
+    if args.update:
+        from src.import_export.strava_archive import backfill_strava_archive
+        with sqlite3.connect(db_path) as conn:
+            stats = backfill_strava_archive(conn, target)
+        print(
+            f"Strava backfill 완료: "
+            f"업데이트 {stats['updated']}개, "
+            f"파일없음 {stats['skipped_no_file']}개, "
+            f"파싱실패 {stats['skipped_parse_fail']}개, "
+            f"DB없음 {stats['skipped_not_in_db']}개, "
+            f"gz해제 {stats['gz_ok']}개, "
+            f"오류 {stats['errors']}개 "
+            f"(전체 CSV {stats['csv_total']}행)"
+        )
+        return
 
     if args.strava_archive:
         from src.import_export.strava_archive import import_strava_archive

@@ -21,6 +21,7 @@ from typing import Any
 _LOCAL_UTC_OFFSET = timedelta(hours=9)
 
 from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import update_changed_fields
 
 # ── Strava 활동 유형 → 내부 유형 ─────────────────────────────────────────
 _TYPE_MAP: dict[str, str] = {
@@ -118,6 +119,7 @@ def _parse_activity_row(row: dict[str, str]) -> dict[str, Any]:
         "activity_type": activity_type,
         "start_time": start_time,
         "description": _clean(row.get("Activity Name")),
+        "activity_description": _clean(row.get("Activity Description")),
         "distance_km": distance_km,
         "duration_sec": duration_sec,
         "avg_pace_sec_km": avg_pace_sec_km,
@@ -127,18 +129,157 @@ def _parse_activity_row(row: dict[str, str]) -> dict[str, Any]:
         "elevation_gain": _float(row.get("Elevation Gain")),
         "calories": _int(row.get("Calories")),
         "avg_power": _int(row.get("Average Watts")),
-        # 확장 필드 (raw payload로만 저장)
+        # 확장 필드 (raw payload + activity_detail_metrics 저장)
         "max_speed": _float(row.get("Max Speed")),
         "max_power": _int(row.get("Max Watts")),
         "elevation_loss": _float(row.get("Elevation Loss")),
+        "elevation_low": _float(row.get("Elevation Low")),
+        "elevation_high": _float(row.get("Elevation High")),
         "max_cadence": _int(row.get("Max Cadence")),
-        "relative_effort": _int(row.get("Relative Effort")),
+        "relative_effort": _float(row.get("Relative Effort")),
+        "training_load": _float(row.get("Training Load")),
+        "intensity": _float(row.get("Intensity")),
+        "avg_grade": _float(row.get("Average Grade")),
+        "grade_adjusted_distance_m": _float(row.get("Grade Adjusted Distance")),
+        "avg_grade_adjusted_pace_sec_km": _int(row.get("Average Grade Adjusted Pace")),
+        "total_work_joules": _float(row.get("Total Work")),
+        "total_steps": _int(row.get("Total Steps")),
+        "avg_temp_c": _float(row.get("Average Temperature")),
+        # 날씨 데이터
+        "weather_condition": _clean(row.get("Weather Condition")),
+        "weather_temp_c": _float(row.get("Weather Temperature")),
+        "weather_humidity": _float(row.get("Humidity")),
+        "wind_speed_ms": _float(row.get("Wind Speed")),
+        "wind_gust_ms": _float(row.get("Wind Gust")),
+        "uv_index": _float(row.get("UV Index")),
+        "cloud_cover": _float(row.get("Cloud Cover")),
         "gear": _clean(row.get("Activity Gear")),
         "filename": _clean(row.get("Filename")),
         "activity_type_raw": activity_type_raw,
         "moving_time_sec": moving_time_sec,
         "elapsed_time_sec": elapsed_time_sec,
     }
+
+
+# ── Detail Metrics 저장 ──────────────────────────────────────────────────
+
+_DETAIL_METRIC_KEYS: list[tuple[str, str]] = [
+    # (metric_name, parsed_key)
+    ("relative_effort",              "relative_effort"),
+    ("training_load_csv",            "training_load"),
+    ("intensity_csv",                "intensity"),
+    ("moving_time_sec",              "moving_time_sec"),
+    ("elapsed_time_sec",             "elapsed_time_sec"),
+    ("max_speed_mps",                "max_speed"),
+    ("elevation_loss",               "elevation_loss"),
+    ("elevation_low",                "elevation_low"),
+    ("elevation_high",               "elevation_high"),
+    ("avg_grade",                    "avg_grade"),
+    ("grade_adjusted_distance_m",    "grade_adjusted_distance_m"),
+    ("avg_grade_adjusted_pace",      "avg_grade_adjusted_pace_sec_km"),
+    ("total_work_joules",            "total_work_joules"),
+    ("total_steps",                  "total_steps"),
+    ("avg_temp_c",                   "avg_temp_c"),
+    ("weather_temp_c",               "weather_temp_c"),
+    ("weather_humidity",             "weather_humidity"),
+    ("wind_speed_ms",                "wind_speed_ms"),
+    ("wind_gust_ms",                 "wind_gust_ms"),
+    ("uv_index",                     "uv_index"),
+    ("cloud_cover",                  "cloud_cover"),
+]
+
+
+def _upsert_strava_detail_metrics(
+    conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
+) -> None:
+    """CSV 파싱 데이터 → activity_detail_metrics INSERT/UPDATE.
+
+    이미 존재하는 metric은 값을 교체(DELETE+INSERT)하여 최신 CSV값으로 갱신한다.
+    best_efforts, stream_file 등 API 전용 metrics는 건드리지 않는다.
+    """
+    for metric_name, parsed_key in _DETAIL_METRIC_KEYS:
+        val = parsed.get(parsed_key)
+        if val is None:
+            continue
+        conn.execute(
+            "DELETE FROM activity_detail_metrics "
+            "WHERE activity_id=? AND source='strava' AND metric_name=?",
+            (activity_id, metric_name),
+        )
+        conn.execute(
+            "INSERT INTO activity_detail_metrics "
+            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
+            (activity_id, "strava", metric_name, float(val)),
+        )
+
+
+def backfill_strava_detail_metrics(
+    conn: sqlite3.Connection,
+    activities_csv: Path | None = None,
+) -> dict[str, int]:
+    """activity_detail_metrics를 역채움.
+
+    activities_csv가 주어지면 CSV를 직접 파싱한다 (training_load 등 신규 필드 포함).
+    없으면 raw_source_payloads(csv_export)에서 읽는다.
+
+    Returns:
+        {"processed": n, "skipped": n, "inserted_activities": n}
+    """
+    stats: dict[str, int] = {"processed": 0, "skipped": 0, "inserted_activities": 0}
+
+    if activities_csv is not None and activities_csv.exists():
+        with open(activities_csv, encoding="utf-8") as f:
+            raw_rows = list(csv.DictReader(f))
+        source_data: list[tuple[int, dict]] = []
+        for raw in raw_rows:
+            try:
+                parsed = _parse_activity_row(raw)
+            except Exception:
+                stats["skipped"] += 1
+                continue
+            source_id = parsed.get("source_id", "").strip()
+            if not source_id:
+                continue
+            row = conn.execute(
+                "SELECT id FROM activity_summaries WHERE source = 'strava' AND source_id = ?",
+                (source_id,),
+            ).fetchone()
+            if row:
+                source_data.append((row[0], parsed))
+            else:
+                stats["skipped"] += 1
+    else:
+        payload_rows = conn.execute(
+            "SELECT a.id, p.payload_json "
+            "FROM activity_summaries a "
+            "JOIN raw_source_payloads p ON p.activity_id = a.id "
+            "WHERE a.source = 'strava' AND p.entity_type = 'csv_export'",
+        ).fetchall()
+        source_data = []
+        for activity_id, payload_json in payload_rows:
+            try:
+                source_data.append((activity_id, json.loads(payload_json)))
+            except Exception:
+                stats["skipped"] += 1
+
+    for activity_id, parsed in source_data:
+        before = conn.execute(
+            "SELECT COUNT(*) FROM activity_detail_metrics "
+            "WHERE activity_id = ? AND source = 'strava'",
+            (activity_id,),
+        ).fetchone()[0]
+        _upsert_strava_detail_metrics(conn, activity_id, parsed)
+        after = conn.execute(
+            "SELECT COUNT(*) FROM activity_detail_metrics "
+            "WHERE activity_id = ? AND source = 'strava'",
+            (activity_id,),
+        ).fetchone()[0]
+        if after > before:
+            stats["inserted_activities"] += 1
+        stats["processed"] += 1
+
+    conn.commit()
+    return stats
 
 
 # ── 활동 임포트 ──────────────────────────────────────────────────────────
@@ -202,8 +343,22 @@ def import_strava_activities(
             continue
 
         if cursor.rowcount == 0:
-            # 이미 존재 — NULL 필드 보완
-            _fill_null_fields(conn, source_id, parsed)
+            # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
+            existing_id = update_changed_fields(conn, "strava", source_id, {
+                "start_time": parsed.get("start_time"),
+                "distance_km": parsed.get("distance_km"),
+                "duration_sec": parsed.get("duration_sec"),
+                "avg_pace_sec_km": parsed.get("avg_pace_sec_km"),
+                "avg_hr": parsed.get("avg_hr"),
+                "max_hr": parsed.get("max_hr"),
+                "avg_cadence": parsed.get("avg_cadence"),
+                "elevation_gain": parsed.get("elevation_gain"),
+                "calories": parsed.get("calories"),
+                "avg_power": parsed.get("avg_power"),
+                "export_filename": parsed.get("filename"),
+            })
+            if existing_id:
+                _upsert_strava_detail_metrics(conn, existing_id, parsed)
             skipped += 1
             continue
 
@@ -223,6 +378,7 @@ def import_strava_activities(
         except sqlite3.Error:
             pass
 
+        _upsert_strava_detail_metrics(conn, activity_id, parsed)
         assign_group_id(conn, activity_id)
 
     conn.commit()

@@ -208,10 +208,56 @@ def _render_strava_metrics(strava: dict) -> str:
             be_html = "<h3 style='margin:0.5rem 0 0.2rem;'>Best Efforts</h3>" + make_table(
                 ["구간", "시간"], be_rows
             )
+
+    max_spd = strava.get("max_speed_mps")
+    max_spd_str = f"{max_spd * 3.6:.1f} km/h" if max_spd else None
+
+    moving = strava.get("moving_time_sec")
+    elapsed = strava.get("elapsed_time_sec")
+
+    main_rows = [
+        ("Suffer Score", strava.get("suffer_score")),
+        ("Training Load", _fmt_float1(strava.get("training_load"))),
+        ("Intensity", _fmt_float1(strava.get("intensity"))),
+        ("최고 속도", max_spd_str),
+        ("활동 시간", fmt_duration(moving) if moving else None),
+        ("경과 시간", fmt_duration(elapsed) if elapsed else None),
+        ("고도 하강", _fmt_float1(strava.get("elevation_loss"), " m")),
+        ("Grade Adj. 거리", _fmt_float1(strava.get("grade_adjusted_distance_m") and strava["grade_adjusted_distance_m"] / 1000 if strava.get("grade_adjusted_distance_m") else None, " km")),
+        ("평균 경사도", _fmt_float1(strava.get("avg_grade"), "%")),
+        ("총 스텝", _fmt_int(strava.get("total_steps"))),
+    ]
+    content = "".join(
+        metric_row(label, val)
+        for label, val in main_rows
+        if val not in (None, "—")
+    )
+
+    # 날씨 섹션
+    weather_rows = [
+        ("기온 (활동)", _fmt_float1(strava.get("avg_temp_c"), "°C")),
+        ("기온 (날씨)", _fmt_float1(strava.get("weather_temp_c"), "°C")),
+        ("습도", _fmt_int(strava.get("weather_humidity"), "%")),
+        ("풍속", _fmt_float1(strava.get("wind_speed_ms"), " m/s")),
+        ("돌풍", _fmt_float1(strava.get("wind_gust_ms"), " m/s")),
+        ("UV 지수", _fmt_float1(strava.get("uv_index"))),
+        ("운량", _fmt_int(strava.get("cloud_cover"), "%")),
+    ]
+    weather_content = "".join(
+        metric_row(label, val)
+        for label, val in weather_rows
+        if val not in (None, "—")
+    )
+    if weather_content:
+        content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>날씨</p>" + weather_content
+
+    if not content:
+        content = "<p class='muted' style='margin:0;'>데이터 없음 (Strava API 동기화 필요)</p>"
+
     return (
         "<div class='card'>"
         "<h2>Strava</h2>"
-        + metric_row("Suffer Score", strava.get("suffer_score"))
+        + content
         + be_html
         + "</div>"
     )
@@ -219,7 +265,8 @@ def _render_strava_metrics(strava: dict) -> str:
 
 def _render_intervals_metrics(intervals: dict) -> str:
     """Intervals.icu 소스 메트릭 카드."""
-    rows = [
+    # API sync 필드
+    api_rows = [
         ("Training Load", _fmt_float1(intervals.get("icu_training_load"))),
         ("HRSS", _fmt_float1(intervals.get("icu_hrss"))),
         ("Intensity", _fmt_float1(intervals.get("icu_intensity"))),
@@ -236,9 +283,28 @@ def _render_intervals_metrics(intervals: dict) -> str:
     ]
     content = "".join(
         metric_row(label, val)
-        for label, val in rows
+        for label, val in api_rows
         if val not in (None, "—")
     )
+
+    # FIT 파일 임포트 필드 (API 없을 때 표시)
+    fit_rows = [
+        ("TSS", _fmt_float1(intervals.get("tss"))),
+        ("NP", _fmt_float1(intervals.get("normalized_power"), " W")),
+        ("최대 파워", _fmt_float1(intervals.get("max_power"), " W")),
+        ("랩 수 (FIT)", _fmt_int(intervals.get("num_laps"))),
+        ("최고 속도", _fmt_float1(intervals.get("max_speed") and intervals["max_speed"] * 3.6 if intervals.get("max_speed") else None, " km/h")),
+        ("고도 하강", _fmt_float1(intervals.get("elevation_loss"), " m")),
+        ("평균 케이던스", _fmt_int(intervals.get("avg_cadence"), " spm")),
+    ]
+    fit_content = "".join(
+        metric_row(label, val)
+        for label, val in fit_rows
+        if val not in (None, "—")
+    )
+    if fit_content:
+        content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>FIT 파일</p>" + fit_content
+
     if not content:
         content = "<p class='muted' style='margin:0;'>데이터 없음 (intervals 동기화 필요)</p>"
     return "<div class='card'><h2>Intervals.icu</h2>" + content + "</div>"
