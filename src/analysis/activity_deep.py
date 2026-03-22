@@ -186,6 +186,29 @@ def _calc_pace_splits(stream: dict) -> list[dict] | None:
             target_m = km * 1000.0
             km_start_idx = i
 
+    # 마지막 부분 km 처리 (예: 20.5km 활동의 0.5km 구간)
+    last_dist = distances[n - 1]
+    partial_dist = last_dist - (km - 1) * 1000.0
+    if partial_dist >= 50 and km_start_idx < n - 1:
+        t_start = float(times[km_start_idx])
+        t_end = float(times[n - 1])
+        elapsed = t_end - t_start
+        if elapsed > 0 and partial_dist > 0:
+            pace_sec = max(1, round(elapsed / (partial_dist / 1000.0)))
+
+            avg_hr = None
+            if heartrates and len(heartrates) >= n:
+                hr_slice = heartrates[km_start_idx:n]
+                avg_hr = round(sum(hr_slice) / len(hr_slice)) if hr_slice else None
+
+            splits.append({
+                "km": round(partial_dist / 1000.0, 2),  # 구간 거리 (예: 0.5)
+                "pace_sec": pace_sec,
+                "pace": seconds_to_pace(pace_sec),
+                "avg_hr": avg_hr,
+                "partial": True,
+            })
+
     return splits if splits else None
 
 
@@ -257,6 +280,7 @@ def deep_analyze(
     }
 
     # Strava 지표
+    strava_in_group = "strava" in source_metrics  # 그룹 내 Strava 활동 존재 여부
     s = source_metrics.get("strava", {})
     best_efforts_raw = s.get("best_efforts")
     if isinstance(best_efforts_raw, str):
@@ -270,6 +294,7 @@ def deep_analyze(
     pace_splits = _calc_pace_splits(stream) if stream else None
 
     strava_data = {
+        "in_group": strava_in_group,  # Strava 활동이 그룹에 존재하는지 (상세 지표 없어도 True)
         "suffer_score": s.get("relative_effort"),
         "best_efforts": best_efforts_raw,
         "pace_splits": pace_splits,

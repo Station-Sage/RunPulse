@@ -252,7 +252,13 @@ def _render_strava_metrics(strava: dict) -> str:
         content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>날씨</p>" + weather_content
 
     if not content:
-        content = "<p class='muted' style='margin:0;'>데이터 없음 (Strava API 동기화 필요)</p>"
+        if strava.get("in_group"):
+            content = (
+                "<p class='muted' style='margin:0;'>Strava 활동이 연결됨 — 상세 지표 미수집"
+                "<br><small>Strava 동기화 재실행 시 자동으로 수집됩니다.</small></p>"
+            )
+        else:
+            content = "<p class='muted' style='margin:0;'>데이터 없음 (Strava API 동기화 필요)</p>"
 
     return (
         "<div class='card'>"
@@ -352,7 +358,7 @@ def _render_splits(splits: list) -> str:
         return ""
     rows = [
         (
-            item.get("km"),
+            f"{item.get('km')} (부분)" if item.get("partial") else item.get("km"),
             item.get("pace") or "—",
             item.get("avg_hr") or "—",
         )

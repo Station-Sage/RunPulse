@@ -8,6 +8,7 @@ from src.utils import api
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
+from src.utils.sync_state import get_retry_after_sec, mark_finished, set_retry_after
 
 
 def _store_raw_payload(
@@ -97,6 +98,19 @@ def sync_activities(
     Returns:
         새로 저장된 활동 수.
     """
+    token = config.get("runalyze", {}).get("token", "")
+    if not token:
+        print("[runalyze] 토큰 없음 — 동기화 건너뜀")
+        return 0
+
+    # 이전 403 인증 오류로 인한 대기 중인지 확인
+    retry_sec = get_retry_after_sec("runalyze")
+    if retry_sec:
+        hours = retry_sec // 3600
+        print(f"[runalyze] 이전 인증 오류(403)로 인해 동기화 대기 중 (약 {hours}시간 남음). "
+              f"토큰 재설정 후 다시 시도하세요.")
+        return 0
+
     headers = _headers(config)
     if from_date:
         cutoff = datetime.fromisoformat(from_date)
@@ -108,7 +122,16 @@ def sync_activities(
         cutoff_end = None
 
     # Runalyze API 목록 엔드포인트: /activity (복수형 /activities는 404)
-    activity_summaries = api.get(f"{_BASE_URL}/activity", headers=headers)
+    try:
+        activity_summaries = api.get(f"{_BASE_URL}/activity", headers=headers)
+    except api.ApiError as e:
+        if e.status_code == 403:
+            print("[runalyze] 403 Forbidden — 토큰 오류. 24시간 동안 동기화 중단.")
+            set_retry_after("runalyze", 86400)
+            mark_finished("runalyze", count=0, error="403 Forbidden — 토큰 오류/만료. 토큰을 재발급하세요.")
+        else:
+            print(f"[runalyze] API 오류 {e.status_code}: {e}")
+        return 0
     count = 0
 
     for act in activity_summaries:

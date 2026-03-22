@@ -80,7 +80,7 @@ def _service_card(
     detail = _html.escape(status.get("detail", ""))
     connect_label = "재연동" if status["ok"] else "연동하기"
     disconnect_btn = ""
-    if disconnect_url:
+    if disconnect_url and status["ok"]:  # 연결됨 상태일 때만 해제 버튼 표시
         disconnect_btn = (
             f"<form method='post' action='{disconnect_url}' style='display:inline'>"
             f"<button type='submit' style='margin-left:0.5rem; background:#fdd; border:1px solid #c00; border-radius:4px; padding:0.2rem 0.6rem; cursor:pointer;'>연동 해제</button>"
@@ -624,6 +624,9 @@ def runalyze_connect_post():
         return redirect("/connect/runalyze?error=" + urllib.parse.quote("토큰을 입력하세요."))
 
     update_service_config("runalyze", {"token": token})
+    # 이전 403 오류로 인한 동기화 차단 해제 (새 토큰 저장 시 자동 클리어)
+    from src.utils.sync_state import clear_retry_after
+    clear_retry_after("runalyze")
 
     if action == "save":
         return redirect("/connect/runalyze?msg=" + urllib.parse.quote("저장 완료."))
