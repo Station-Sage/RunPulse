@@ -224,8 +224,22 @@ def _scan_history_dir(base_dir: Path) -> dict:
     }
 
 
+def _auto_migrate() -> None:
+    """앱 시작 시 기존 DB에 v0.2 신규 테이블 자동 마이그레이션."""
+    db = _db_path()
+    if not db.exists():
+        return
+    try:
+        from src.db_setup import migrate_db
+        with sqlite3.connect(str(db)) as conn:
+            migrate_db(conn)
+    except Exception:
+        pass  # 마이그레이션 실패해도 앱 기동은 계속
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
+    _auto_migrate()
 
     @app.get("/")
     def index():
