@@ -148,7 +148,7 @@ def _json_pretty_block(value) -> str:
 
 
 def _scan_history_dir(base_dir: Path) -> dict:
-    exts = {".fit", ".gpx", ".tcx"}
+    _SUPPORTED = {".fit", ".gpx", ".tcx", ".fit.gz", ".gpx.gz", ".tcx.gz"}
     if not base_dir.exists():
         return {
             "exists": False,
@@ -158,8 +158,21 @@ def _scan_history_dir(base_dir: Path) -> dict:
             "sample_files": [],
         }
 
-    files = [p for p in base_dir.rglob("*") if p.is_file() and p.suffix.lower() in exts]
-    counts = Counter(p.suffix.lower() for p in files)
+    files = [
+        p for p in base_dir.rglob("*")
+        if p.is_file() and any(
+            "".join(p.suffixes).lower().endswith(ext) for ext in _SUPPORTED
+        )
+    ]
+    # 복합 확장자(.fit.gz) 포함 집계
+    def _ext(p: Path) -> str:
+        s = "".join(p.suffixes).lower()
+        for ext in (".fit.gz", ".gpx.gz", ".tcx.gz"):
+            if s.endswith(ext):
+                return ext
+        return p.suffix.lower()
+
+    counts = Counter(_ext(p) for p in files)
     samples = [str(p.relative_to(_project_root())) for p in sorted(files)[:20]]
 
     return {
@@ -666,8 +679,8 @@ def create_app() -> Flask:
 
         upload_form = f"""
         <div class="card">
-          <h2>파일 업로드</h2>
-          <p>GPX 또는 FIT 파일을 선택하면 <code>data/history/&lt;source&gt;/</code> 폴더에 저장 후 import 합니다.</p>
+          <h2>파일 업로드 (단일/다수)</h2>
+          <p>GPX · FIT · TCX (+ .gz) 파일을 선택하면 <code>data/history/&lt;source&gt;/</code> 폴더에 저장 후 import 합니다.</p>
           <form method="post" action="/import/upload" enctype="multipart/form-data">
             <table style="width:auto; border:none;">
               <tr>
@@ -682,13 +695,34 @@ def create_app() -> Flask:
               <tr>
                 <td style="border:none; padding:0.3rem 0.5rem;">파일:</td>
                 <td style="border:none; padding:0.3rem 0.5rem;">
-                  <input type="file" name="files" multiple accept=".gpx,.fit,.GPX,.FIT">
+                  <input type="file" name="files" multiple
+                    accept=".gpx,.fit,.tcx,.gpx.gz,.fit.gz,.tcx.gz,.GPX,.FIT,.TCX">
                 </td>
               </tr>
             </table>
             <div style="margin-top:0.8rem;">
               <button type="submit" style="padding:0.4rem 1.2rem; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer;">
                 업로드 및 Import
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Strava archive ZIP 업로드</h2>
+          <p>Strava &gt; 내 계정 &gt; 데이터 내보내기에서 받은 <strong>.zip</strong> 파일을 업로드합니다.<br>
+             <code>activities.csv</code> + <code>activities/</code> 폴더를 자동으로 인식합니다.</p>
+          <form method="post" action="/import/upload-archive" enctype="multipart/form-data">
+            <table style="width:auto; border:none;">
+              <tr>
+                <td style="border:none; padding:0.3rem 0.5rem;">ZIP 파일:</td>
+                <td style="border:none; padding:0.3rem 0.5rem;">
+                  <input type="file" name="archive" accept=".zip,.ZIP">
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top:0.8rem;">
+              <button type="submit" style="padding:0.4rem 1.2rem; background:#3498db; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+                Archive 임포트
               </button>
             </div>
           </form>
@@ -705,9 +739,11 @@ def create_app() -> Flask:
 
     @app.post("/import/upload")
     def import_upload():
-        """GPX/FIT 파일 수신 → 폴더 저장 → import_history 실행."""
+        """GPX/FIT/TCX (+ .gz) 파일 수신 → 폴더 저장 → import_history 실행."""
         import subprocess
         from werkzeug.utils import secure_filename
+
+        _ALLOWED = {".gpx", ".fit", ".tcx", ".gz"}
 
         source = request.form.get("source", "garmin").strip()
         if source not in ("garmin", "strava"):
@@ -715,7 +751,7 @@ def create_app() -> Flask:
 
         files = request.files.getlist("files")
         if not files or all(f.filename == "" for f in files):
-            return redirect("/import?error=" + "파일을 선택하세요.")
+            return redirect("/import?error=파일을 선택하세요.")
 
         dest_dir = _project_root() / "data" / "history" / source
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -725,18 +761,19 @@ def create_app() -> Flask:
             if f.filename:
                 fname = secure_filename(f.filename)
                 ext = Path(fname).suffix.lower()
-                if ext not in (".gpx", ".fit"):
+                if ext not in _ALLOWED:
                     continue
                 save_path = dest_dir / fname
                 f.save(str(save_path))
                 saved.append(fname)
 
         if not saved:
-            return redirect("/import?error=" + "GPX/FIT 파일만 업로드 가능합니다.")
+            return redirect("/import?error=GPX/FIT/TCX (.gz 포함) 파일만 업로드 가능합니다.")
 
         try:
             proc = subprocess.run(
-                [sys.executable, "src/import_history.py", str(dest_dir), "--source", source, "-r"],
+                [sys.executable, "src/import_history.py", str(dest_dir),
+                 "--source", source, "-r"],
                 capture_output=True, text=True, timeout=120,
                 cwd=str(_project_root()),
             )
@@ -758,6 +795,77 @@ def create_app() -> Flask:
         </div>
         """
         return _html_page("Import 결과", body)
+
+    @app.post("/import/upload-archive")
+    def import_upload_archive():
+        """Strava archive ZIP 업로드 → 임시 디렉터리 압축 해제 → import_strava_archive 실행."""
+        import shutil
+        import tempfile
+        import zipfile
+        from werkzeug.utils import secure_filename
+        from src.import_export.strava_archive import import_strava_archive
+
+        f = request.files.get("archive")
+        if not f or f.filename == "":
+            return redirect("/import?error=ZIP 파일을 선택하세요.")
+
+        fname = secure_filename(f.filename)
+        if not fname.lower().endswith(".zip"):
+            return redirect("/import?error=ZIP 파일만 업로드 가능합니다.")
+
+        tmp_dir = Path(tempfile.mkdtemp(prefix="runpulse_archive_"))
+        try:
+            zip_path = tmp_dir / fname
+            f.save(str(zip_path))
+
+            # ZIP 압축 해제
+            try:
+                with zipfile.ZipFile(zip_path, "r") as zf:
+                    zf.extractall(tmp_dir)
+            except zipfile.BadZipFile:
+                return redirect("/import?error=유효한 ZIP 파일이 아닙니다.")
+
+            # activities.csv 위치 탐색 (루트 또는 1단계 하위)
+            archive_root: Path | None = None
+            if (tmp_dir / "activities.csv").exists():
+                archive_root = tmp_dir
+            else:
+                for sub in sorted(tmp_dir.iterdir()):
+                    if sub.is_dir() and (sub / "activities.csv").exists():
+                        archive_root = sub
+                        break
+
+            if archive_root is None:
+                return redirect("/import?error=activities.csv를 찾을 수 없습니다. Strava archive ZIP이 맞는지 확인하세요.")
+
+            db_path = _db_path()
+            if not db_path.exists():
+                return redirect("/import?error=DB가 초기화되지 않았습니다. python src/db_setup.py를 먼저 실행하세요.")
+
+            with sqlite3.connect(str(db_path)) as conn:
+                stats = import_strava_archive(conn, archive_root)
+
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        rows = [
+            ("CSV 전체 행", stats["csv_total"]),
+            ("신규 삽입", stats["inserted"]),
+            ("중복 건너뜀", stats["skipped"]),
+            ("파일 연결 성공", stats["file_linked"]),
+            ("CSV-only fallback", stats["csv_only"]),
+            ("gz 압축 해제 성공", stats["gz_ok"]),
+            ("오류", stats["errors"]),
+        ]
+        table_html = _table(["항목", "수"], rows)
+        body = f"""
+        <div class="card">
+          <h2>Strava Archive Import 결과</h2>
+          {table_html}
+          <p><a href="/import">&larr; Import 페이지로</a> &nbsp; <a href="/activities">활동 목록</a></p>
+        </div>
+        """
+        return _html_page("Archive Import 결과", body)
 
     @app.get("/sync-status")
     def sync_status():
