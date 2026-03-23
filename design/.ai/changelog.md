@@ -1,5 +1,70 @@
 # Changelog
 
+## [v0.2-ui-gap-7] 2026-03-24
+
+### 추가
+
+**7.3 Strava Archive Import UI** (`views_import.py` 신설)
+- `GET/POST /import/strava-archive` — 아카이브 경로 입력 폼 + 임포트 결과 리포트 카드
+  - csv_total / inserted / file_linked / csv_only / gz_ok / skipped / errors 항목 표시
+  - zip 파일 자동 압축 해제 (zipfile + tempfile), 폴더 경로도 허용
+- `POST /import/strava-archive/backfill` — 기존 Strava 활동 FIT/GPX 파일 재연결
+  - updated / skipped_no_file / skipped_parse_fail / skipped_not_in_db / gz_ok / errors 항목 표시
+- `_render_merge_rules_card()` — 병합 규칙 안내 (7.4): source 우선순위/gzip/timestamp 매칭 규칙
+- `src/web/app.py` — `import_bp` 등록
+- `src/web/views_settings.py` — Strava 아카이브 임포트 링크 카드 추가
+
+### 점검 (Section 8 — CLAUDE.md 준수)
+- 8.1 파일 크기: 신규 views_import.py 311줄 (경계). 기존 app.py/views_activity.py/helpers.py/views_activities.py 300줄 초과 → B-1 리팩토링 항목으로 todo.md 등록
+- 8.2 API wrapper: views_settings.py Strava OAuth 토큰 교환에 httpx 직접 사용 (OAuth 예외 케이스, 비기능적 영향 없음)
+- 8.3 config 비밀: 하드코딩 없음, update_service_config() 경유 확인
+- 8.4 graceful fallback: no_data_card() 29개소 사용 확인
+- 8.5 문서-구현 정합성: 6.1~6.3, 7.3 완료 표시, 미구현 항목 todo.md B-1~B-3 등록
+
+### todo.md 업데이트
+- Phase UI-Gap 섹션 신설: 6.1~6.3/7.3 완료 표시, 6.4~6.8 이연 표시
+- Priority B — 다음 스프린트 항목 3개 추가 (파일크기 리팩토링/graceful fallback/Settings hub)
+
+---
+
+## [v0.2-ui-gap-6.1~6.3] 2026-03-23
+
+### 추가
+
+**6.1 Dashboard 보완** (`views_dashboard_cards.py` 신설 — `views_dashboard.py` 분리)
+- `_render_training_recommendation()` — UTRS grade/CIRS/TSB 기반 오늘의 훈련 권장 카드
+- `_render_utrs_factors()` 강화 — 5요인 progress bar 형태로 시각화
+- `_render_cirs_breakdown()` 신규 — ACWR/Monotony/Spike/Asym 상태 뱃지 + bar
+- `_render_risk_pills()` — ACWR/LSI/Monotony/TSB 색상 pill 행
+- `_render_darp_mini()` — 5K/10K/하프/마라톤 예측 기록 mini 카드
+- `_render_fitness_mini()` — VDOT + Marathon Shape 피트니스 카드
+- `templates/dashboard.html` — `recommendation_card`, `risk_pills`, `darp_card`, `fitness_card` 블록 추가
+- `views_dashboard.py` — `_load_darp_data()`, `_load_risk_pills()`, `_load_fitness_data()` 신규 데이터 로더
+
+**6.2 Activity Detail 보완** (`views_activity.py`)
+- `_load_activity_metric_jsons()` / `_load_day_metric_jsons()` — metric_json 별도 조회
+- `_render_activity_classification_badge()` — easy/tempo/interval/long/recovery 자동 분류 뱃지
+- `_render_di_card()` — DI 내구성 지수 카드 (점수 + 상태 뱃지 + 해석 문구)
+- `_render_fearp_breakdown_card()` — 기온/습도/고도/경사 요인 분해 bar
+- `_render_decoupling_detail_card()` — EF + Decoupling % + aerobic stability 판단
+- `_render_map_placeholder()` — Mapbox 미설정 시 graceful fallback
+- `_render_secondary_metrics_card()` 확장 — DI/LSI/Monotony/ACWR/ADTI/MarathonShape 당일 지표 추가
+
+**6.3 Report 보완** (`views_report_sections.py` 신설 — `views_report.py` 분리)
+- `render_tids_section()` — 훈련 강도 분포 (z12/z3/z45 bar + 모델 비교 pill)
+- `render_trimp_weekly_chart()` — 주별 TRIMP 부하 ECharts 바차트
+- `render_risk_overview()` — ACWR/LSI/Monotony/CIRS 기간 평균/최고값 카드
+- `render_endurance_trend()` — ADTI 유산소 분리 추세 방향 카드
+- `render_darp_card()` — 레이스 거리별 DARP 예측 기록 카드
+- `render_fitness_trend()` — VDOT + Marathon Shape 피트니스 현황 카드
+- `render_ai_insight_placeholder()` — AI 코치 인사이트 placeholder 카드
+- `render_export_buttons()` — 요약 텍스트 클립보드 복사 버튼
+
+### 테스트
+- 797개 통과 (pre-existing 3개 제외)
+
+---
+
 ## [v0.2-sprint4C] 2026-03-23
 
 ### 추가

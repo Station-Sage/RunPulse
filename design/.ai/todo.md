@@ -196,6 +196,50 @@
 
 ---
 
+## Phase UI-Gap: v0.2 UI 보완 (v0.2_ui_gap_analysis.md 기준) ✅ 완료 (2026-03-24)
+
+### Priority A — 즉시 구현 완료
+
+- [x] **6.1** `src/web/views_dashboard_cards.py` 신설 — Dashboard 보완
+  - `_render_training_recommendation()`: UTRS grade/CIRS/TSB 기반 오늘의 훈련 권장 카드
+  - `_render_utrs_factors()` 강화: 5요인 progress bar 시각화
+  - `_render_cirs_breakdown()`: ACWR/Monotony/Spike/Asym 상태 배지 + bar
+  - `_render_risk_pills()`: ACWR/LSI/Monotony/TSB 색상 pill 행
+  - `_render_darp_mini()`: 5K/10K/하프/마라톤 예측 기록 mini 카드
+  - `_render_fitness_mini()`: VDOT + Marathon Shape 피트니스 카드
+  - `templates/dashboard.html` 블록 추가 (recommendation_card/risk_pills/darp_card/fitness_card)
+- [x] **6.2** `src/web/views_activity.py` — Activity Detail 보완
+  - `_load_activity_metric_jsons()` / `_load_day_metric_jsons()` — metric_json 별도 조회
+  - `_render_activity_classification_badge()` — easy/tempo/interval/long/recovery 자동 분류
+  - `_render_di_card()` — DI 내구성 지수 카드
+  - `_render_fearp_breakdown_card()` — 기온/습도/고도/경사 요인 분해 bar
+  - `_render_decoupling_detail_card()` — EF + Decoupling % + aerobic stability
+  - `_render_map_placeholder()` — Mapbox 미설정 시 graceful fallback
+  - `_render_secondary_metrics_card()` 확장 — 당일 종합 지표 DI/LSI/Monotony/ACWR/ADTI/MarathonShape 추가
+- [x] **6.3** `src/web/views_report_sections.py` 신설 — Report 보완
+  - `render_tids_section()`, `render_trimp_weekly_chart()`, `render_risk_overview()`
+  - `render_endurance_trend()`, `render_darp_card()`, `render_fitness_trend()`
+  - `render_ai_insight_placeholder()`, `render_export_buttons()`
+- [x] **7.3** `src/web/views_import.py` 신설 — Strava Archive Import UI
+  - GET/POST `/import/strava-archive` — 임포트 폼 + 결과 리포트 카드
+  - POST `/import/strava-archive/backfill` — 기존 활동 파일 재연결
+  - `_render_merge_rules_card()` — 병합 규칙 설명 (7.4 포함)
+  - zip 자동 압축 해제 + sqlite3 conn 핸들링
+
+### 이연됨
+
+- [ ] **6.4~6.8**: 추후 구현 (다음 스프린트에서 확인 후 반영)
+- [ ] **V2-4-5**: activity_deep 지도 (Mapbox/Leaflet) — v0.3으로 이연
+
+### Priority B — 다음 스프린트
+
+- [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)
+  - `src/web/app.py` 1349줄, `views_activity.py` 1062줄, `helpers.py` 1002줄, `views_activities.py` 961줄, `views_settings.py` 699줄
+- [ ] **B-2**: `V2-9-3` graceful fallback 전면 보강 — no-data card 통일, metric 계산 불가 이유 표시
+- [ ] **B-3**: `V2-9-4` Settings hub 고도화 — sync status, 동기화 진행률, token 상태 시각화
+
+---
+
 ## Phase 6: 레이스 예측 UI (Sprint 5)
 
 - [ ] V2-6-1: `src/web/views_race.py` — 레이스 예측 뷰 블루프린트

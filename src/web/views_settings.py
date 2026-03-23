@@ -135,6 +135,16 @@ def settings_view() -> str:
 </div>
 <hr>
 <div class='card'>
+  <h2>Strava 아카이브 임포트</h2>
+  <p>Strava에서 내보낸 zip 파일을 임포트하거나, 기존 활동에 FIT/GPX 파일을 재연결합니다.<br>
+  <small class='muted'>Settings → 데이터 내보내기(Export your data)에서 다운로드한 zip 파일을 사용합니다.</small></p>
+  <a href='/import/strava-archive'>
+    <button style='padding:0.4rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+      아카이브 임포트
+    </button>
+  </a>
+</div>
+<div class='card'>
   <h2>메트릭 재계산</h2>
   <p>기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, DI 등)을 재계산합니다.<br>
   <small class='muted'>동기화 후 자동으로 실행되지만, 수동으로 강제 재계산할 때 사용합니다.</small></p>

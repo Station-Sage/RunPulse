@@ -624,6 +624,37 @@ def _load_day_computed_metrics(conn: sqlite3.Connection, act_date: str) -> dict:
     return {row[0]: row[1] for row in rows}
 
 
+def _load_activity_metric_jsons(conn: sqlite3.Connection, activity_id: int) -> dict:
+    """활동별 computed_metrics metric_json 조회 → {metric_name: dict}."""
+    rows = conn.execute(
+        "SELECT metric_name, metric_json FROM computed_metrics WHERE activity_id = ? AND metric_json IS NOT NULL",
+        (activity_id,),
+    ).fetchall()
+    result = {}
+    for name, mj in rows:
+        try:
+            result[name] = json.loads(mj)
+        except Exception:
+            pass
+    return result
+
+
+def _load_day_metric_jsons(conn: sqlite3.Connection, act_date: str) -> dict:
+    """날짜별 computed_metrics metric_json 조회 (activity_id IS NULL) → {metric_name: dict}."""
+    rows = conn.execute(
+        """SELECT metric_name, metric_json FROM computed_metrics
+           WHERE date = ? AND activity_id IS NULL AND metric_json IS NOT NULL""",
+        (act_date,),
+    ).fetchall()
+    result = {}
+    for name, mj in rows:
+        try:
+            result[name] = json.loads(mj)
+        except Exception:
+            pass
+    return result
+
+
 def _render_horizontal_scroll(act: dict, metrics: dict) -> str:
     """핵심 메트릭 수평 스크롤 바 (V2-4-6, 모바일 최적화)."""
     dist = act.get("distance_km")
@@ -663,41 +694,62 @@ def _render_horizontal_scroll(act: dict, metrics: dict) -> str:
     )
 
 
-def _render_secondary_metrics_card(metrics: dict) -> str:
-    """2차 메트릭 카드 (FEARP/GAP/NGP/RE/Decoupling/EF/TRIMP, V2-4-1~4)."""
+def _render_secondary_metrics_card(metrics: dict, day_metrics: dict | None = None) -> str:
+    """2차 메트릭 카드 (활동별 + 당일 종합 메트릭, V2-4-1~4 확장)."""
+    dm = day_metrics or {}
     pairs = [
         ("FEARP (환경 보정 페이스)", metrics.get("FEARP"), "pace"),
         ("GAP (경사 보정 페이스)", metrics.get("GAP"), "pace"),
         ("NGP (정규화 경사 페이스)", metrics.get("NGP"), "pace"),
         ("Relative Effort", metrics.get("RelativeEffort"), "f0"),
-        ("Aerobic Decoupling", metrics.get("Decoupling"), "f1%"),
+        ("Aerobic Decoupling", metrics.get("AerobicDecoupling"), "f1%"),
         ("Efficiency Factor (EF)", metrics.get("EF"), "f4"),
         ("TRIMP", metrics.get("TRIMP"), "f1"),
     ]
+    day_pairs = [
+        ("DI (내구성 지수)", dm.get("DI"), "f2"),
+        ("LSI (부하 스파이크)", dm.get("LSI"), "f2"),
+        ("Monotony (훈련 단조로움)", dm.get("Monotony"), "f2"),
+        ("ACWR (급성/만성 비율)", dm.get("ACWR"), "f2"),
+        ("ADTI (유산소 분리 추세)", dm.get("ADTI"), "f4"),
+        ("Marathon Shape", dm.get("MarathonShape"), "f1%"),
+    ]
+
+    def _fmt_val(val, fmt: str) -> str:
+        v = float(val)
+        if fmt == "pace":
+            return f"{fmt_pace(val)}/km"
+        if fmt == "f0":
+            return f"{v:.0f}"
+        if fmt == "f1%":
+            return f"{v:.1f}%"
+        if fmt == "f4":
+            return f"{v:.4f}"
+        return f"{v:.2f}"
+
     rows = []
     for label, val, fmt in pairs:
         if val is None:
             continue
-        if fmt == "pace":
-            val_str = f"{fmt_pace(val)}/km"
-        elif fmt == "f0":
-            val_str = f"{float(val):.0f}"
-        elif fmt == "f1%":
-            val_str = f"{float(val):.1f}%"
-        elif fmt == "f4":
-            val_str = f"{float(val):.4f}"
-        else:
-            val_str = f"{float(val):.1f}"
-        rows.append(metric_row(label, val_str))
+        rows.append(metric_row(label, _fmt_val(val, fmt)))
 
-    if not rows:
+    day_rows = []
+    for label, val, fmt in day_pairs:
+        if val is None:
+            continue
+        day_rows.append(metric_row(label, _fmt_val(val, fmt)))
+
+    if not rows and not day_rows:
         return (
             "<div class='card'>"
             "<h2>2차 메트릭</h2>"
             "<p class='muted' style='margin:0;'>메트릭 미계산 — 설정 → 재계산 실행 후 확인하세요.</p>"
             "</div>"
         )
-    return "<div class='card'><h2>2차 메트릭</h2>" + "".join(rows) + "</div>"
+    section_header = ""
+    if day_rows:
+        section_header = "<p style='font-size:0.78rem;color:var(--muted);margin:0.5rem 0 0.2rem;font-weight:600;'>당일 종합 지표</p>"
+    return "<div class='card'><h2>2차 메트릭</h2>" + "".join(rows) + section_header + "".join(day_rows) + "</div>"
 
 
 def _render_daily_scores_card(day_metrics: dict) -> str:
@@ -720,6 +772,159 @@ def _render_daily_scores_card(day_metrics: dict) -> str:
         + metric_row("CIRS (부상 위험도)", f"{float(cirs):.0f}" if cirs is not None else "—")
         + metric_row("ACWR (급성/만성 부하비)", f"{float(acwr):.2f}" if acwr is not None else "—")
         + "</div>"
+    )
+
+
+# ── 신규 분석 카드 ─────────────────────────────────────────────────────────
+
+def _render_activity_classification_badge(act: dict) -> str:
+    """활동 유형 자동 분류 뱃지 (easy/tempo/interval/long/recovery/race)."""
+    duration = act.get("duration_sec") or 0
+    avg_hr = act.get("avg_hr") or 0
+    if duration >= 90 * 60:
+        cls, icon, desc = "장거리런", "&#127959;", "90분+ 장거리 훈련"
+    elif avg_hr >= 175:
+        cls, icon, desc = "인터벌/경기", "&#9889;", "고강도 — 인터벌 또는 레이스 수준"
+    elif avg_hr >= 160:
+        cls, icon, desc = "템포런", "&#128293;", "유산소 역치 훈련"
+    elif avg_hr and avg_hr < 135:
+        cls, icon, desc = "회복런", "&#128564;", "가벼운 회복 조깅"
+    elif avg_hr:
+        cls, icon, desc = "유산소런", "&#127939;", "기본 유산소 훈련"
+    else:
+        return ""
+    return (
+        f"<div style='padding:0.3rem 0;'>"
+        f"<span style='background:rgba(0,212,255,0.12);color:var(--cyan);"
+        f"border-radius:16px;padding:0.28rem 0.8rem;font-size:0.8rem;'>"
+        f"{icon} {cls} — {desc}</span></div>"
+    )
+
+
+def _render_di_card(day_metrics: dict) -> str:
+    """DI (내구성 지수) 카드 — 장거리 지구력 평가."""
+    di = day_metrics.get("DI")
+    if di is None:
+        return (
+            "<div class='card'><h2>DI 내구성 지수</h2>"
+            "<p class='muted' style='margin:0;'>90분 이상 세션 3회+ 필요. 장거리 훈련 후 표시됩니다.</p></div>"
+        )
+    di_f = float(di)
+    if di_f >= 1.0:
+        badge, badge_color, interp = "&#10003; 우수", "var(--green)", "후반에도 페이스·심박 효율 유지. 내구성 양호."
+    elif di_f >= 0.9:
+        badge, badge_color, interp = "&#9888; 보통", "var(--orange)", "후반 효율 소폭 저하. 장거리 훈련으로 개선 가능."
+    else:
+        badge, badge_color, interp = "&#10007; 부족", "var(--red)", "후반 페이스 저하 뚜렷. 지구력 강화 훈련 필요."
+    return (
+        "<div class='card'><h2>DI 내구성 지수</h2>"
+        "<div style='display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;'>"
+        f"<span style='font-size:2rem;font-weight:700;color:var(--cyan);'>{di_f:.3f}</span>"
+        f"<span style='background:rgba(255,255,255,0.08);color:{badge_color};"
+        f"border-radius:12px;padding:0.2rem 0.6rem;font-size:0.82rem;'>{badge}</span></div>"
+        f"<p style='font-size:0.82rem;color:var(--secondary);margin:0;'>{interp}</p>"
+        "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>&#8805;1.0 우수 / 0.9-1.0 보통 / &lt;0.9 부족 | 최근 8주 90분+ 세션 평균</p>"
+        "</div>"
+    )
+
+
+def _render_fearp_breakdown_card(metric_jsons: dict) -> str:
+    """FEARP 환경 요인 분해 카드."""
+    mj = metric_jsons.get("FEARP")
+    if not mj:
+        return ""
+    actual = mj.get("actual_pace") or 0
+    fearp = mj.get("fearp") or actual
+    diff = fearp - actual if actual > 0 else 0
+    diff_str = (f"+{fmt_pace(abs(diff))}/km 느린 조건" if diff > 0
+                else f"{fmt_pace(abs(diff))}/km 빠른 조건") if diff else "표준 조건"
+
+    def _factor_bar(label: str, factor: float, baseline: float = 1.0) -> str:
+        deviation = (factor - baseline) / baseline * 100 if baseline else 0
+        if abs(deviation) < 0.5:
+            clr, effect = "#00ff88", "영향 없음"
+        elif deviation > 0:
+            clr, effect = "#ffaa00", f"+{deviation:.1f}% 불리"
+        else:
+            clr, effect = "#00d4ff", f"{deviation:.1f}% 유리"
+        pct = min(100, abs(deviation) * 5)
+        return (
+            f"<div style='margin-bottom:0.3rem;'>"
+            f"<div style='display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.1rem;'>"
+            f"<span style='color:var(--secondary);'>{label}</span>"
+            f"<span style='color:{clr};'>{effect} ({factor:.4f})</span></div>"
+            f"<div style='background:rgba(255,255,255,0.08);border-radius:3px;height:5px;'>"
+            f"<div style='width:{pct}%;background:{clr};border-radius:3px;height:5px;'></div></div></div>"
+        )
+
+    bars = (
+        _factor_bar("기온 영향 (temp_factor)", mj.get("temp_factor", 1.0))
+        + _factor_bar("습도 영향 (humidity_factor)", mj.get("humidity_factor", 1.0))
+        + _factor_bar("고도 영향 (altitude_factor)", mj.get("altitude_factor", 1.0))
+        + _factor_bar("경사 영향 (grade_factor)", mj.get("grade_factor", 1.0))
+    )
+    return (
+        "<div class='card'><h2>FEARP 환경 요인 분해</h2>"
+        "<div style='display:flex;gap:1.5rem;margin-bottom:0.6rem;'>"
+        f"<div style='text-align:center;'><div style='font-size:1.4rem;font-weight:700;color:var(--cyan);'>"
+        f"{fmt_pace(fearp)}/km</div><div class='muted' style='font-size:0.74rem;'>FEARP (보정)</div></div>"
+        f"<div style='text-align:center;'><div style='font-size:1.4rem;font-weight:700;'>"
+        f"{fmt_pace(actual)}/km</div><div class='muted' style='font-size:0.74rem;'>실제 페이스</div></div>"
+        f"<div style='text-align:center;font-size:0.82rem;color:var(--orange);align-self:center;'>{diff_str}</div>"
+        f"</div>{bars}</div>"
+    )
+
+
+def _render_decoupling_detail_card(metrics: dict, metric_jsons: dict) -> str:
+    """Aerobic Decoupling 해석 카드 (EF + aerobic stability 판단)."""
+    dec = metrics.get("AerobicDecoupling")
+    mj = metric_jsons.get("AerobicDecoupling") or {}
+    ef = mj.get("ef") or metrics.get("EF")
+    grade = mj.get("grade", "")
+    if dec is None and ef is None:
+        return ""
+    dec_f = float(dec) if dec is not None else None
+    ef_f = float(ef) if ef is not None else None
+    if dec_f is None:
+        badge, badge_color = "—", "var(--muted)"
+        comment = "랩 데이터 부족 — 분할 기록이 있을 경우 표시됩니다."
+    elif grade == "good" or dec_f < 5.0:
+        badge, badge_color = "&#128994; 양호 (Decoupling &lt;5%)", "var(--green)"
+        comment = "전/후반 심박 효율이 잘 유지됨. 장거리 적합 유산소 베이스."
+    elif grade == "moderate" or dec_f < 10.0:
+        badge, badge_color = "&#128993; 보통 (5-10%)", "var(--orange)"
+        comment = "후반 효율 소폭 저하. 기본 유산소 훈련 지속 권장."
+    else:
+        badge, badge_color = "&#128308; 낮음 (&gt;10%)", "var(--red)"
+        comment = "후반 급격한 효율 저하. 유산소 베이스 강화 필요."
+    dec_str = f"{dec_f:.1f}%" if dec_f is not None else "—"
+    ef_str = f"{ef_f:.4f}" if ef_f is not None else "—"
+    return (
+        "<div class='card'><h2>유산소 디커플링 분석</h2>"
+        "<div style='display:flex;gap:1.5rem;margin-bottom:0.5rem;'>"
+        f"<div style='text-align:center;'><div style='font-size:1.5rem;font-weight:700;color:var(--cyan);'>{dec_str}</div>"
+        f"<div class='muted' style='font-size:0.74rem;'>Decoupling</div></div>"
+        f"<div style='text-align:center;'><div style='font-size:1.5rem;font-weight:700;'>{ef_str}</div>"
+        f"<div class='muted' style='font-size:0.74rem;'>EF (m/min/bpm)</div></div>"
+        "</div>"
+        f"<div style='background:rgba(255,255,255,0.06);border-radius:10px;padding:0.5rem 0.7rem;margin-bottom:0.4rem;'>"
+        f"<span style='color:{badge_color};font-size:0.84rem;'>{badge}</span></div>"
+        f"<p style='font-size:0.8rem;color:var(--secondary);margin:0;'>{comment}</p>"
+        "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>EF = NGP / avg_HR | Decoupling = (EF전반-EF후반)/EF전반 × 100</p>"
+        "</div>"
+    )
+
+
+def _render_map_placeholder() -> str:
+    """지도 플레이스홀더 (Mapbox 토큰 미설정 시 graceful fallback)."""
+    return (
+        "<div class='card' style='text-align:center;min-height:120px;"
+        "display:flex;flex-direction:column;align-items:center;justify-content:center;'>"
+        "<div style='font-size:2.5rem;margin-bottom:0.4rem;'>&#128506;</div>"
+        "<h2 style='font-size:0.95rem;margin-bottom:0.3rem;'>활동 경로 지도</h2>"
+        "<p class='muted' style='font-size:0.8rem;margin:0;'>Mapbox 토큰 설정 후 표시됩니다.</p>"
+        "<p class='muted' style='font-size:0.74rem;margin-top:0.2rem;'>설정 → Mapbox 토큰 입력</p>"
+        "</div>"
     )
 
 
@@ -748,6 +953,8 @@ def activity_deep_view():
     resolved_id: int | None = None
     act_metrics: dict = {}
     day_metrics_data: dict = {}
+    act_metric_jsons: dict = {}
+    day_metric_jsons: dict = {}
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -774,6 +981,8 @@ def activity_deep_view():
                     act_metrics = _load_activity_computed_metrics(conn, cur[0])
                     act_date_tmp = str(cur[1])[:10]
                     day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)
+                    act_metric_jsons = _load_activity_metric_jsons(conn, cur[0])
+                    day_metric_jsons = _load_day_metric_jsons(conn, act_date_tmp)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
@@ -818,6 +1027,7 @@ def activity_deep_view():
         query_form
         + _render_activity_nav(prev_row, next_row)
         + _render_horizontal_scroll(act, act_metrics)
+        + _render_activity_classification_badge(act)
         + _render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
         + _render_garmin_daily_detail(garmin_detail, act_date)
@@ -834,8 +1044,16 @@ def activity_deep_view():
         + _render_efficiency(efficiency)
         + "</div>"
         + "<div class='cards-row'>"
-        + _render_secondary_metrics_card(act_metrics)
+        + _render_secondary_metrics_card(act_metrics, day_metrics_data)
         + _render_daily_scores_card(day_metrics_data)
+        + "</div>"
+        + "<div class='cards-row'>"
+        + _render_fearp_breakdown_card(act_metric_jsons)
+        + _render_decoupling_detail_card(act_metrics, act_metric_jsons)
+        + "</div>"
+        + "<div class='cards-row'>"
+        + _render_di_card(day_metrics_data)
+        + _render_map_placeholder()
         + "</div>"
         + _render_splits(splits)
     )

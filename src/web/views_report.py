@@ -16,6 +16,22 @@ from datetime import date, timedelta
 from flask import Blueprint, render_template, request
 
 from .helpers import db_path, fmt_duration, fmt_pace, no_data_card
+from .views_report_sections import (
+    _load_adti,
+    _load_darp_latest,
+    _load_fitness_data,
+    _load_risk_overview,
+    _load_tids_data,
+    _load_trimp_weekly,
+    render_ai_insight_placeholder,
+    render_darp_card,
+    render_endurance_trend,
+    render_export_buttons,
+    render_fitness_trend,
+    render_risk_overview,
+    render_tids_section,
+    render_trimp_weekly_chart,
+)
 
 report_bp = Blueprint("report", __name__)
 
@@ -263,6 +279,12 @@ def report_view():
             weekly_data = _load_weekly_distance(conn, end_date, days)
             metrics_avg = _load_metrics_avg(conn, start_date, end_date)
             activity_metrics = _load_activity_metrics(conn, start_date, end_date)
+            tids_data = _load_tids_data(conn, start_date, end_date)
+            trimp_weekly = _load_trimp_weekly(conn, start_date, end_date)
+            risk_data = _load_risk_overview(conn, start_date, end_date)
+            adti_val = _load_adti(conn, end_date)
+            darp_data = _load_darp_latest(conn, end_date)
+            vdot, shape = _load_fitness_data(conn, end_date)
     except Exception as exc:
         return render_template(
             "generic_page.html", title="레포트", active_tab="report",
@@ -273,7 +295,19 @@ def report_view():
         _render_period_tabs(period)
         + _render_summary_cards(stats, metrics_avg)
         + _render_weekly_chart(weekly_data)
+        + render_tids_section(tids_data)
+        + render_trimp_weekly_chart(trimp_weekly)
+        + "<div class='cards-row' style='align-items:start;'>"
+        + render_risk_overview(risk_data)
+        + render_endurance_trend(adti_val)
+        + "</div>"
+        + "<div class='cards-row' style='align-items:start;'>"
+        + render_darp_card(darp_data)
+        + render_fitness_trend(vdot, shape)
+        + "</div>"
         + _render_metrics_table(activity_metrics)
+        + render_ai_insight_placeholder()
+        + render_export_buttons(period)
     )
 
     return render_template(
