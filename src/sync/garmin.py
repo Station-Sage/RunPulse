@@ -282,8 +282,8 @@ def sync_activities(
                 """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                    elevation_gain, calories, description)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    elevation_gain, calories, description, start_lat, start_lon)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "garmin", source_id,
                     act.get("activityType", {}).get("typeKey", "running"),
@@ -292,8 +292,8 @@ def sync_activities(
                     act.get("averageRunningCadenceInStepsPerMinute"),
                     act.get("elevationGain"), act.get("calories"),
                     act.get("activityName"),
-                ),
-            )
+                    act.get("startLatitude"), act.get("startLongitude"),
+            ))
         except sqlite3.Error as e:
             print(f"[garmin] 활동 삽입 실패 {source_id}: {e}")
             continue
@@ -307,6 +307,8 @@ def sync_activities(
                 "elevation_gain": act.get("elevationGain"),
                 "calories": act.get("calories"),
                 "description": act.get("activityName"),
+                "start_lat": act.get("startLatitude"),
+                "start_lon": act.get("startLongitude"),
             })
             if existing_id:
                 _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
@@ -930,6 +932,70 @@ def sync_wellness(
                 resting_hr = rhr_data.get("restingHeartRate")
         except Exception:
             pass
+
+        # VO2max (get_max_metrics)
+        try:
+            time.sleep(2)
+            max_metrics = client.get_max_metrics(date_str)
+            if max_metrics:
+                _store_raw_payload(conn, "max_metrics_day", date_str, max_metrics)
+                # VO2max 추출 (다양한 키 이름 대응)
+                vo2_val = None
+                if isinstance(max_metrics, list):
+                    for item in max_metrics:
+                        vo2_val = (
+                            item.get("generic", {}).get("vo2MaxPreciseValue")
+                            or item.get("generic", {}).get("vo2MaxValue")
+                            or item.get("vo2MaxPreciseValue")
+                            or item.get("vo2MaxValue")
+                            or item.get("vo2Max")
+                            or vo2_val
+                        )
+                elif isinstance(max_metrics, dict):
+                    vo2_val = (
+                        max_metrics.get("generic", {}).get("vo2MaxPreciseValue")
+                        or max_metrics.get("generic", {}).get("vo2MaxValue")
+                        or max_metrics.get("vo2MaxPreciseValue")
+                        or max_metrics.get("vo2MaxValue")
+                        or max_metrics.get("vo2Max")
+                    )
+                if vo2_val is not None:
+                    _upsert_vo2max(conn, date_str, float(vo2_val))
+                    detail_metrics["garmin_vo2max"] = float(vo2_val)
+        except Exception as e:
+            print(f"[garmin] VO2max 조회 실패 {date_str}: {e}")
+
+        # VO2max (get_max_metrics)
+        try:
+            time.sleep(2)
+            max_metrics = client.get_max_metrics(date_str)
+            if max_metrics:
+                _store_raw_payload(conn, "max_metrics_day", date_str, max_metrics)
+                # VO2max 추출 (다양한 키 이름 대응)
+                vo2_val = None
+                if isinstance(max_metrics, list):
+                    for item in max_metrics:
+                        vo2_val = (
+                            item.get("generic", {}).get("vo2MaxPreciseValue")
+                            or item.get("generic", {}).get("vo2MaxValue")
+                            or item.get("vo2MaxPreciseValue")
+                            or item.get("vo2MaxValue")
+                            or item.get("vo2Max")
+                            or vo2_val
+                        )
+                elif isinstance(max_metrics, dict):
+                    vo2_val = (
+                        max_metrics.get("generic", {}).get("vo2MaxPreciseValue")
+                        or max_metrics.get("generic", {}).get("vo2MaxValue")
+                        or max_metrics.get("vo2MaxPreciseValue")
+                        or max_metrics.get("vo2MaxValue")
+                        or max_metrics.get("vo2Max")
+                    )
+                if vo2_val is not None:
+                    _upsert_vo2max(conn, date_str, float(vo2_val))
+                    detail_metrics["garmin_vo2max"] = float(vo2_val)
+        except Exception as e:
+            print(f"[garmin] VO2max 조회 실패 {date_str}: {e}")
 
         has_data = any(v is not None for v in
                        [sleep_score, sleep_hours, hrv_value, body_battery, stress_avg])

@@ -1,0 +1,1856 @@
+
+======================================================================
+  Garmin > activity_details
+======================================================================
+  activity_details.activityDetailMetrics                       list[1551]     
+  activity_details.activityDetailMetrics[0]                    dict             ex: {1 keys}
+  activity_details.activityDetailMetrics[0].metrics            list[26]       
+  activity_details.activityDetailMetrics[0].metrics[0]         float            ex: 1.781999945640564
+  activity_details.activityId                                  int              ex: 22254941084
+  activity_details.detailsAvailable                            bool             ex: True
+  activity_details.geoPolylineDTO                              dict             ex: {7 keys}
+  activity_details.geoPolylineDTO.endPoint                     dict             ex: {13 keys}
+  activity_details.geoPolylineDTO.endPoint.altitude            null             ex: null
+  activity_details.geoPolylineDTO.endPoint.cumulativeAscent    null             ex: null
+  activity_details.geoPolylineDTO.endPoint.cumulativeDescent   null             ex: null
+  activity_details.geoPolylineDTO.endPoint.distanceFromPreviousPoint null             ex: null
+  activity_details.geoPolylineDTO.endPoint.distanceInMeters    null             ex: null
+  activity_details.geoPolylineDTO.endPoint.extendedCoordinate  bool             ex: False
+  activity_details.geoPolylineDTO.endPoint.lat                 float            ex: 37.53203415311873
+  activity_details.geoPolylineDTO.endPoint.lon                 float            ex: 126.92707682959735
+  activity_details.geoPolylineDTO.endPoint.speed               float            ex: 0.0
+  activity_details.geoPolylineDTO.endPoint.time                int              ex: 1774143779000
+  activity_details.geoPolylineDTO.endPoint.timerStart          bool             ex: False
+  activity_details.geoPolylineDTO.endPoint.timerStop           bool             ex: False
+  activity_details.geoPolylineDTO.endPoint.valid               bool             ex: True
+  activity_details.geoPolylineDTO.maxLat                       float            ex: 37.58046319708228
+  activity_details.geoPolylineDTO.maxLon                       float            ex: 126.92707682959735
+  activity_details.geoPolylineDTO.minLat                       float            ex: 37.53203415311873
+  activity_details.geoPolylineDTO.minLon                       float            ex: 126.83040498755872
+  activity_details.geoPolylineDTO.polyline                     list[488]      
+  activity_details.geoPolylineDTO.polyline[0]                  dict             ex: {13 keys}
+  activity_details.geoPolylineDTO.polyline[0].altitude         null             ex: null
+  activity_details.geoPolylineDTO.polyline[0].cumulativeAscent null             ex: null
+  activity_details.geoPolylineDTO.polyline[0].cumulativeDescent null             ex: null
+  activity_details.geoPolylineDTO.polyline[0].distanceFromPreviousPoint null             ex: null
+  activity_details.geoPolylineDTO.polyline[0].distanceInMeters null             ex: null
+  activity_details.geoPolylineDTO.polyline[0].extendedCoordinate bool             ex: False
+  activity_details.geoPolylineDTO.polyline[0].lat              float            ex: 37.53204831853509
+  activity_details.geoPolylineDTO.polyline[0].lon              float            ex: 126.92697557620704
+  activity_details.geoPolylineDTO.polyline[0].speed            float            ex: 0.0
+  activity_details.geoPolylineDTO.polyline[0].time             int              ex: 1774137631000
+  activity_details.geoPolylineDTO.polyline[0].timerStart       bool             ex: False
+  activity_details.geoPolylineDTO.polyline[0].timerStop        bool             ex: False
+  activity_details.geoPolylineDTO.polyline[0].valid            bool             ex: True
+  activity_details.geoPolylineDTO.startPoint                   dict             ex: {13 keys}
+  activity_details.geoPolylineDTO.startPoint.altitude          null             ex: null
+  activity_details.geoPolylineDTO.startPoint.cumulativeAscent  null             ex: null
+  activity_details.geoPolylineDTO.startPoint.cumulativeDescent null             ex: null
+  activity_details.geoPolylineDTO.startPoint.distanceFromPreviousPoint null             ex: null
+  activity_details.geoPolylineDTO.startPoint.distanceInMeters  null             ex: null
+  activity_details.geoPolylineDTO.startPoint.extendedCoordinate bool             ex: False
+  activity_details.geoPolylineDTO.startPoint.lat               float            ex: 37.53204831853509
+  activity_details.geoPolylineDTO.startPoint.lon               float            ex: 126.92697557620704
+  activity_details.geoPolylineDTO.startPoint.speed             float            ex: 0.0
+  activity_details.geoPolylineDTO.startPoint.time              int              ex: 1774137631000
+  activity_details.geoPolylineDTO.startPoint.timerStart        bool             ex: False
+  activity_details.geoPolylineDTO.startPoint.timerStop         bool             ex: False
+  activity_details.geoPolylineDTO.startPoint.valid             bool             ex: True
+  activity_details.heartRateDTOs                               null             ex: null
+  activity_details.measurementCount                            int              ex: 26
+  activity_details.metricDescriptors                           list[26]       
+  activity_details.metricDescriptors[0]                        dict             ex: {3 keys}
+  activity_details.metricDescriptors[0].key                    str              ex: directSpeed
+  activity_details.metricDescriptors[0].metricsIndex           int              ex: 0
+  activity_details.metricDescriptors[0].unit                   dict             ex: {3 keys}
+  activity_details.metricDescriptors[0].unit.factor            float            ex: 0.1
+  activity_details.metricDescriptors[0].unit.id                int              ex: 20
+  activity_details.metricDescriptors[0].unit.key               str              ex: mps
+  activity_details.metricsCount                                int              ex: 1551
+  activity_details.pendingData                                 null             ex: null
+  activity_details.totalMetricsCount                           int              ex: 6149
+
+======================================================================
+  Garmin > activity_exercise_sets
+======================================================================
+  activity_exercise_sets.activityId                            int              ex: 22254941084
+  activity_exercise_sets.exerciseSets                          null             ex: null
+
+======================================================================
+  Garmin > activity_gear
+======================================================================
+  activity_gear                                                list[1]        
+  activity_gear[0].createDate                                  str              ex: 2025-05-21T03:56:55.0
+  activity_gear[0].customMakeModel                             str              ex: 뉴발란스 sc엘리트 v4
+  activity_gear[0].dateBegin                                   str              ex: 2025-01-01T00:00:00.0
+  activity_gear[0].dateEnd                                     null             ex: null
+  activity_gear[0].displayName                                 null             ex: null
+  activity_gear[0].gearMakeName                                str              ex: Other
+  activity_gear[0].gearModelName                               str              ex: Unknown Shoes
+  activity_gear[0].gearPk                                      int              ex: 43646939
+  activity_gear[0].gearStatusName                              str              ex: active
+  activity_gear[0].gearTypeName                                str              ex: Shoes
+  activity_gear[0].imageNameLarge                              null             ex: null
+  activity_gear[0].imageNameMedium                             null             ex: null
+  activity_gear[0].imageNameSmall                              null             ex: null
+  activity_gear[0].maximumMeters                               float            ex: 644000.0
+  activity_gear[0].notified                                    bool             ex: False
+  activity_gear[0].updateDate                                  str              ex: 2025-05-21T03:58:19.0
+  activity_gear[0].userProfilePk                               int              ex: 133326671
+  activity_gear[0].uuid                                        str              ex: 0e1018ae46214b3aa69af2abfa4fd2e3
+
+======================================================================
+  Garmin > activity_power_zones
+======================================================================
+  activity_power_zones                                         list[5]        
+  activity_power_zones[0].secsInZone                           float            ex: 5.0
+  activity_power_zones[0].zoneLowBoundary                      int              ex: 192
+  activity_power_zones[0].zoneNumber                           int              ex: 1
+
+======================================================================
+  Garmin > activity_split_summaries
+======================================================================
+  activity_split_summaries.activityId                          int              ex: 22254941084
+  activity_split_summaries.activityUUID                        dict             ex: {1 keys}
+  activity_split_summaries.activityUUID.uuid                   str              ex: 3a0df8c7-304f-41c9-b665-ad71a34cb5b6
+  activity_split_summaries.splitSummaries                      list[2]        
+  activity_split_summaries.splitSummaries[0]                   dict             ex: {35 keys}
+  activity_split_summaries.splitSummaries[0].averageElevationGain float            ex: 17.66
+  activity_split_summaries.splitSummaries[0].averageHR         float            ex: 176.0
+  activity_split_summaries.splitSummaries[0].averageMovingSpeed float            ex: 3.424019719985359
+  activity_split_summaries.splitSummaries[0].averagePower      float            ex: 282.0
+  activity_split_summaries.splitSummaries[0].averageRunCadence float            ex: 183.53125
+  activity_split_summaries.splitSummaries[0].averageSpeed      float            ex: 3.4240000247955327
+  activity_split_summaries.splitSummaries[0].averageTemperature float            ex: 16.0
+  activity_split_summaries.splitSummaries[0].avgGradeAdjustedSpeed float            ex: 3.4189999103546143
+  activity_split_summaries.splitSummaries[0].avgStepFrequency  float            ex: 183.53125
+  activity_split_summaries.splitSummaries[0].avgStepLength     float            ex: 1.112199951171875
+  activity_split_summaries.splitSummaries[0].avgVerticalSpeed  float            ex: 0.0010000000474974513
+  activity_split_summaries.splitSummaries[0].bmrCalories       float            ex: 124.0
+  activity_split_summaries.splitSummaries[0].calories          float            ex: 1303.0
+  activity_split_summaries.splitSummaries[0].distance          float            ex: 21047.47
+  activity_split_summaries.splitSummaries[0].duration          float            ex: 6147.493
+  activity_split_summaries.splitSummaries[0].elevationGain     float            ex: 17.66
+  activity_split_summaries.splitSummaries[0].elevationLoss     float            ex: 11.27
+  activity_split_summaries.splitSummaries[0].groundContactTime float            ex: 231.5
+  activity_split_summaries.splitSummaries[0].maxDistance       int              ex: 21047
+  activity_split_summaries.splitSummaries[0].maxDistanceWithPrecision float            ex: 21047.45
+  activity_split_summaries.splitSummaries[0].maxElevationGain  float            ex: 17.66
+  activity_split_summaries.splitSummaries[0].maxHR             float            ex: 191.0
+  activity_split_summaries.splitSummaries[0].maxPower          float            ex: 394.0
+  activity_split_summaries.splitSummaries[0].maxRunCadence     float            ex: 192.0
+  activity_split_summaries.splitSummaries[0].maxSpeed          float            ex: 4.105999946594238
+  activity_split_summaries.splitSummaries[0].maxTemperature    float            ex: 24.0
+  activity_split_summaries.splitSummaries[0].minTemperature    float            ex: 13.0
+  activity_split_summaries.splitSummaries[0].movingDuration    float            ex: 6147.0
+  activity_split_summaries.splitSummaries[0].noOfSplits        int              ex: 3
+  activity_split_summaries.splitSummaries[0].normalizedPower   float            ex: 283.0
+  activity_split_summaries.splitSummaries[0].splitType         str              ex: RWD_RUN
+  activity_split_summaries.splitSummaries[0].strideLength      float            ex: 111.21999511718751
+  activity_split_summaries.splitSummaries[0].totalExerciseReps int              ex: 0
+  activity_split_summaries.splitSummaries[0].verticalOscillation float            ex: 8.469999694824219
+  activity_split_summaries.splitSummaries[0].verticalRatio     float            ex: 7.619999885559082
+
+======================================================================
+  Garmin > activity_typed_splits
+======================================================================
+  activity_typed_splits.activityId                             int              ex: 22254941084
+  activity_typed_splits.activityUUID                           dict             ex: {1 keys}
+  activity_typed_splits.activityUUID.uuid                      str              ex: 3a0df8c7-304f-41c9-b665-ad71a34cb5b6
+  activity_typed_splits.splits                                 list[2]        
+  activity_typed_splits.splits[0]                              dict             ex: {40 keys}
+  activity_typed_splits.splits[0].averageHR                    float            ex: 176.0
+  activity_typed_splits.splits[0].averageMovingSpeed           float            ex: 3.424019719985359
+  activity_typed_splits.splits[0].averagePower                 float            ex: 282.0
+  activity_typed_splits.splits[0].averageRunCadence            float            ex: 183.53125
+  activity_typed_splits.splits[0].averageSpeed                 float            ex: 3.4240000247955327
+  activity_typed_splits.splits[0].averageTemperature           float            ex: 16.0
+  activity_typed_splits.splits[0].avgElapsedDurationVerticalSpeed float            ex: 0.0009110135645794252
+  activity_typed_splits.splits[0].avgGradeAdjustedSpeed        float            ex: 3.4189999103546143
+  activity_typed_splits.splits[0].avgStepLength                float            ex: 1.112199951171875
+  activity_typed_splits.splits[0].avgVerticalSpeed             float            ex: 0.0010000000474974513
+  activity_typed_splits.splits[0].bmrCalories                  float            ex: 124.0
+  activity_typed_splits.splits[0].calories                     float            ex: 1303.0
+  activity_typed_splits.splits[0].distance                     float            ex: 21047.45
+  activity_typed_splits.splits[0].duration                     float            ex: 6147.493
+  activity_typed_splits.splits[0].elapsedDuration              float            ex: 6165.0
+  activity_typed_splits.splits[0].elevationGain                float            ex: 17.66
+  activity_typed_splits.splits[0].elevationLoss                float            ex: 11.27
+  activity_typed_splits.splits[0].endLatitude                  float            ex: 37.531942538917065
+  activity_typed_splits.splits[0].endLongitude                 float            ex: 126.92726843990386
+  activity_typed_splits.splits[0].endTimeGMT                   str              ex: 2026-03-22T01:42:59.0
+  activity_typed_splits.splits[0].groundContactTime            float            ex: 231.5
+  activity_typed_splits.splits[0].maxHR                        float            ex: 191.0
+  activity_typed_splits.splits[0].maxPower                     float            ex: 394.0
+  activity_typed_splits.splits[0].maxRunCadence                float            ex: 192.0
+  activity_typed_splits.splits[0].maxSpeed                     float            ex: 4.105999946594238
+  activity_typed_splits.splits[0].maxTemperature               float            ex: 24.0
+  activity_typed_splits.splits[0].messageIndex                 int              ex: 0
+  activity_typed_splits.splits[0].minTemperature               float            ex: 13.0
+  activity_typed_splits.splits[0].movingDuration               float            ex: 6147.0
+  activity_typed_splits.splits[0].normalizedPower              float            ex: 283.0
+  activity_typed_splits.splits[0].startElevation               float            ex: 8.8
+  activity_typed_splits.splits[0].startLatitude                float            ex: 37.53204831853509
+  activity_typed_splits.splits[0].startLongitude               float            ex: 126.92697557620704
+  activity_typed_splits.splits[0].startTimeGMT                 str              ex: 2026-03-22T00:00:31.0
+  activity_typed_splits.splits[0].startTimeLocal               str              ex: 2026-03-22T09:00:31.0
+  activity_typed_splits.splits[0].strideLength                 float            ex: 111.21999511718751
+  activity_typed_splits.splits[0].totalExerciseReps            int              ex: 0
+  activity_typed_splits.splits[0].type                         str              ex: RWD_RUN
+  activity_typed_splits.splits[0].verticalOscillation          float            ex: 8.469999694824219
+  activity_typed_splits.splits[0].verticalRatio                float            ex: 7.619999885559082
+
+======================================================================
+  Garmin > activity_types
+======================================================================
+  activity_types                                               list[152]      
+  activity_types[0].isHidden                                   bool             ex: False
+  activity_types[0].parentTypeId                               int              ex: 17
+  activity_types[0].restricted                                 bool             ex: False
+  activity_types[0].trimmable                                  bool             ex: True
+  activity_types[0].typeId                                     int              ex: 1
+  activity_types[0].typeKey                                    str              ex: running
+
+======================================================================
+  Garmin > race_predictions
+======================================================================
+  race_predictions.calendarDate                                str              ex: 2026-03-24
+  race_predictions.fromCalendarDate                            null             ex: null
+  race_predictions.time10K                                     int              ex: 2665
+  race_predictions.time5K                                      int              ex: 1258
+  race_predictions.timeHalfMarathon                            int              ex: 5946
+  race_predictions.timeMarathon                                int              ex: 13200
+  race_predictions.toCalendarDate                              null             ex: null
+  race_predictions.userId                                      int              ex: 133326671
+
+======================================================================
+  Garmin > training_status
+======================================================================
+  training_status.heatAltitudeAcclimationDTO                   null             ex: null
+  training_status.mostRecentTrainingLoadBalance                dict             ex: {3 keys}
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap dict             ex: {1 keys}
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050 dict             ex: {13 keys}
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.calendarDate str              ex: 2026-03-23
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.deviceId int              ex: 3604321050
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicHigh float            ex: 2802.2485
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicHighTargetMax int              ex: 1739
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicHighTargetMin int              ex: 1041
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicLow float            ex: 673.44
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicLowTargetMax int              ex: 1331
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAerobicLowTargetMin int              ex: 633
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAnaerobic float            ex: 429.71008
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAnaerobicTargetMax int              ex: 977
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.monthlyLoadAnaerobicTargetMin int              ex: 558
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.primaryTrainingDevice bool             ex: True
+  training_status.mostRecentTrainingLoadBalance.metricsTrainingLoadBalanceDTOMap.3604321050.trainingBalanceFeedbackPhrase str              ex: ANAEROBIC_SHORTAGE
+  training_status.mostRecentTrainingLoadBalance.recordedDevices list[1]        
+  training_status.mostRecentTrainingLoadBalance.recordedDevices[0] dict             ex: {4 keys}
+  training_status.mostRecentTrainingLoadBalance.recordedDevices[0].category int              ex: 0
+  training_status.mostRecentTrainingLoadBalance.recordedDevices[0].deviceId int              ex: 3604321050
+  training_status.mostRecentTrainingLoadBalance.recordedDevices[0].deviceName str              ex: EPIX PRO - 51mm
+  training_status.mostRecentTrainingLoadBalance.recordedDevices[0].imageURL str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  training_status.mostRecentTrainingLoadBalance.userId         int              ex: 133326671
+  training_status.mostRecentTrainingStatus                     dict             ex: {5 keys}
+  training_status.mostRecentTrainingStatus.lastPrimarySyncDate str              ex: 2026-03-23
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData dict             ex: {1 keys}
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050 dict             ex: {17 keys}
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO dict             ex: {8 keys}
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.acwrPercent int              ex: 57
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.acwrStatus str              ex: OPTIMAL
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.acwrStatusFeedback str              ex: FEEDBACK_3
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.dailyAcuteChronicWorkloadRatio float            ex: 1.3
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.dailyTrainingLoadAcute int              ex: 1282
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.dailyTrainingLoadChronic int              ex: 973
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.maxTrainingLoadChronic float            ex: 1459.5
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.acuteTrainingLoadDTO.minTrainingLoadChronic float            ex: 778.4000000000001
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.calendarDate str              ex: 2026-03-23
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.deviceId int              ex: 3604321050
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.fitnessTrend int              ex: 3
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.fitnessTrendSport str              ex: RUNNING
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.loadLevelTrend null             ex: null
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.loadTunnelMax null             ex: null
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.loadTunnelMin null             ex: null
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.primaryTrainingDevice bool             ex: True
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.sinceDate str              ex: 2026-03-22
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.sport str              ex: RUNNING
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.subSport str              ex: GENERIC
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.timestamp int              ex: 1774217134000
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.trainingPaused bool             ex: False
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.trainingStatus int              ex: 7
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.trainingStatusFeedbackPhrase str              ex: PRODUCTIVE_5
+  training_status.mostRecentTrainingStatus.latestTrainingStatusData.3604321050.weeklyTrainingLoad null             ex: null
+  training_status.mostRecentTrainingStatus.recordedDevices     list[1]        
+  training_status.mostRecentTrainingStatus.recordedDevices[0]  dict             ex: {4 keys}
+  training_status.mostRecentTrainingStatus.recordedDevices[0].category int              ex: 0
+  training_status.mostRecentTrainingStatus.recordedDevices[0].deviceId int              ex: 3604321050
+  training_status.mostRecentTrainingStatus.recordedDevices[0].deviceName str              ex: EPIX PRO - 51mm
+  training_status.mostRecentTrainingStatus.recordedDevices[0].imageURL str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  training_status.mostRecentTrainingStatus.showSelector        bool             ex: False
+  training_status.mostRecentTrainingStatus.userId              int              ex: 133326671
+  training_status.mostRecentVO2Max                             dict             ex: {4 keys}
+  training_status.mostRecentVO2Max.cycling                     null             ex: null
+  training_status.mostRecentVO2Max.generic                     dict             ex: {6 keys}
+  training_status.mostRecentVO2Max.generic.calendarDate        str              ex: 2026-03-22
+  training_status.mostRecentVO2Max.generic.fitnessAge          null             ex: null
+  training_status.mostRecentVO2Max.generic.fitnessAgeDescription null             ex: null
+  training_status.mostRecentVO2Max.generic.maxMetCategory      int              ex: 0
+  training_status.mostRecentVO2Max.generic.vo2MaxPreciseValue  float            ex: 52.0
+  training_status.mostRecentVO2Max.generic.vo2MaxValue         float            ex: 52.0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation     dict             ex: {16 keys}
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.acclimationPercentage int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.altitudeAcclimation int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.altitudeAcclimationDate str              ex: 2026-03-23
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.altitudeAcclimationLocalTimestamp str              ex: 2026-03-23T23:56:26.0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.altitudeTrend null             ex: null
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.calendarDate str              ex: 2026-03-23
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.currentAltitude int              ex: 26
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.heatAcclimationDate str              ex: 2026-03-23
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.heatAcclimationPercentage int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.heatTrend null             ex: null
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousAcclimationPercentage int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousAltitude int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousAltitudeAcclimation int              ex: 0
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousAltitudeAcclimationDate str              ex: 2026-03-23
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousHeatAcclimationDate str              ex: 2026-03-23
+  training_status.mostRecentVO2Max.heatAltitudeAcclimation.previousHeatAcclimationPercentage int              ex: 0
+  training_status.mostRecentVO2Max.userId                      int              ex: 133326671
+  training_status.userId                                       int              ex: 133326671
+
+======================================================================
+  Garmin > endurance_score
+======================================================================
+  endurance_score.calendarDate                                 str              ex: 2026-03-23
+  endurance_score.classification                               int              ex: 4
+  endurance_score.classificationLowerLimitElite                int              ex: 8600
+  endurance_score.classificationLowerLimitExpert               int              ex: 7200
+  endurance_score.classificationLowerLimitIntermediate         int              ex: 5100
+  endurance_score.classificationLowerLimitSuperior             int              ex: 7900
+  endurance_score.classificationLowerLimitTrained              int              ex: 5800
+  endurance_score.classificationLowerLimitWellTrained          int              ex: 6500
+  endurance_score.contributors                                 list[2]        
+  endurance_score.contributors[0]                              dict             ex: {3 keys}
+  endurance_score.contributors[0].activityTypeId               null             ex: null
+  endurance_score.contributors[0].contribution                 float            ex: 98.57
+  endurance_score.contributors[0].group                        int              ex: 0
+  endurance_score.deviceId                                     int              ex: 3604321050
+  endurance_score.feedbackPhrase                               int              ex: 63
+  endurance_score.gaugeLowerLimit                              int              ex: 3570
+  endurance_score.gaugeUpperLimit                              int              ex: 10320
+  endurance_score.overallScore                                 int              ex: 6680
+  endurance_score.primaryTrainingDevice                        bool             ex: True
+  endurance_score.userProfilePK                                int              ex: 133326671
+
+======================================================================
+  Garmin > hill_score
+======================================================================
+  hill_score.calendarDate                                      str              ex: 2026-03-23
+  hill_score.deviceId                                          int              ex: 3604321050
+  hill_score.enduranceScore                                    int              ex: 8
+  hill_score.hillScoreClassificationId                         int              ex: 2
+  hill_score.hillScoreFeedbackPhraseId                         int              ex: 44
+  hill_score.overallScore                                      int              ex: 35
+  hill_score.primaryTrainingDevice                             bool             ex: True
+  hill_score.strengthScore                                     int              ex: 18
+  hill_score.userProfilePK                                     int              ex: 133326671
+  hill_score.vo2Max                                            float            ex: 52.0
+  hill_score.vo2MaxPreciseValue                                float            ex: 52.0
+
+======================================================================
+  Garmin > running_tolerance
+======================================================================
+  running_tolerance                                            list[0]        
+
+======================================================================
+  Garmin > lactate_threshold
+======================================================================
+  lactate_threshold.power                                      dict             ex: {10 keys}
+  lactate_threshold.power.calendarDate                         str              ex: 2026-03-08T16:01:22.304
+  lactate_threshold.power.ftpCreateTime                        str              ex: 2026-03-08T16:01:22.304
+  lactate_threshold.power.functionalThresholdPower             int              ex: 293
+  lactate_threshold.power.isStale                              bool             ex: False
+  lactate_threshold.power.origin                               str              ex: power
+  lactate_threshold.power.powerToWeight                        float            ex: 4.9326599326599325
+  lactate_threshold.power.sport                                str              ex: RUNNING
+  lactate_threshold.power.userProfilePk                        int              ex: 133326671
+  lactate_threshold.power.weight                               float            ex: 59.4
+  lactate_threshold.power.weightCreateTime                     str              ex: 2026-03-08T00:00:00.0
+  lactate_threshold.speed_and_heart_rate                       dict             ex: {7 keys}
+  lactate_threshold.speed_and_heart_rate.calendarDate          str              ex: 2026-03-08T16:01:22.177
+  lactate_threshold.speed_and_heart_rate.heartRate             int              ex: 175
+  lactate_threshold.speed_and_heart_rate.heartRateCycling      null             ex: null
+  lactate_threshold.speed_and_heart_rate.sequence              int              ex: 1772953282231
+  lactate_threshold.speed_and_heart_rate.speed                 float            ex: 0.36111010000000004
+  lactate_threshold.speed_and_heart_rate.userProfilePK         int              ex: 133326671
+  lactate_threshold.speed_and_heart_rate.version               int              ex: 1772953282231
+
+======================================================================
+  Garmin > fitnessage
+======================================================================
+  fitnessage.achievableFitnessAge                              float            ex: 38.03088047274366
+  fitnessage.chronologicalAge                                  int              ex: 44
+  fitnessage.components                                        dict             ex: {4 keys}
+  fitnessage.components.bmi                                    dict             ex: {3 keys}
+  fitnessage.components.bmi.lastMeasurementDate                str              ex: 2026-03-08
+  fitnessage.components.bmi.stale                              bool             ex: False
+  fitnessage.components.bmi.value                              float            ex: 21.0
+  fitnessage.components.rhr                                    dict             ex: {2 keys}
+  fitnessage.components.rhr.stale                              bool             ex: False
+  fitnessage.components.rhr.value                              int              ex: 47
+  fitnessage.components.vigorousDaysAvg                        dict             ex: {3 keys}
+  fitnessage.components.vigorousDaysAvg.numOfWeeksForIm        int              ex: 6
+  fitnessage.components.vigorousDaysAvg.stale                  bool             ex: False
+  fitnessage.components.vigorousDaysAvg.value                  float            ex: 1.3
+  fitnessage.components.vigorousMinutesAvg                     dict             ex: {3 keys}
+  fitnessage.components.vigorousMinutesAvg.numOfWeeksForIm     int              ex: 6
+  fitnessage.components.vigorousMinutesAvg.stale               bool             ex: False
+  fitnessage.components.vigorousMinutesAvg.value               float            ex: 49.1
+  fitnessage.fitnessAge                                        float            ex: 36.45989295284237
+  fitnessage.lastUpdated                                       str              ex: 2026-03-23T00:00:00.0
+  fitnessage.previousFitnessAge                                float            ex: 36.32265255567958
+
+======================================================================
+  Garmin > personal_records
+======================================================================
+  personal_records                                             list[12]       
+  personal_records[0].actStartDateTimeInGMTFormatted           str              ex: 2025-11-26T11:40:35.0
+  personal_records[0].activityId                               int              ex: 21095530757
+  personal_records[0].activityName                             str              ex: 러닝
+  personal_records[0].activityStartDateTimeInGMT               int              ex: 1764157235000
+  personal_records[0].activityStartDateTimeLocal               int              ex: 1764189635000
+  personal_records[0].activityStartDateTimeLocalFormatted      str              ex: 2025-11-26T20:40:35.0
+  personal_records[0].activityType                             str              ex: running
+  personal_records[0].id                                       int              ex: 2797204509
+  personal_records[0].poolLengthUnit                           null             ex: null
+  personal_records[0].prStartTimeGmt                           int              ex: 1764157465000
+  personal_records[0].prStartTimeGmtFormatted                  str              ex: 2025-11-26T11:44:25.0
+  personal_records[0].prStartTimeLocal                         null             ex: null
+  personal_records[0].prStartTimeLocalFormatted                null             ex: null
+  personal_records[0].prTypeLabelKey                           null             ex: null
+  personal_records[0].status                                   str              ex: ACCEPTED
+  personal_records[0].typeId                                   int              ex: 1
+  personal_records[0].value                                    float            ex: 242.97900390625
+
+======================================================================
+  Garmin > heart_rates
+======================================================================
+  heart_rates.calendarDate                                     str              ex: 2026-03-23
+  heart_rates.endTimestampGMT                                  str              ex: 2026-03-23T15:00:00.0
+  heart_rates.endTimestampLocal                                str              ex: 2026-03-24T00:00:00.0
+  heart_rates.heartRateValueDescriptors                        list[2]        
+  heart_rates.heartRateValueDescriptors[0]                     dict             ex: {2 keys}
+  heart_rates.heartRateValueDescriptors[0].index               int              ex: 0
+  heart_rates.heartRateValueDescriptors[0].key                 str              ex: timestamp
+  heart_rates.heartRateValues                                  list[652]      
+  heart_rates.heartRateValues[0]                               list             ex: [1774191600000, 73]
+  heart_rates.lastSevenDaysAvgRestingHeartRate                 int              ex: 49
+  heart_rates.maxHeartRate                                     int              ex: 113
+  heart_rates.minHeartRate                                     int              ex: 45
+  heart_rates.restingHeartRate                                 int              ex: 50
+  heart_rates.startTimestampGMT                                str              ex: 2026-03-22T15:00:00.0
+  heart_rates.startTimestampLocal                              str              ex: 2026-03-23T00:00:00.0
+  heart_rates.userProfilePK                                    int              ex: 133326671
+
+======================================================================
+  Garmin > steps_data
+======================================================================
+  steps_data                                                   list[96]       
+  steps_data[0].activityLevelConstant                          bool             ex: False
+  steps_data[0].endGMT                                         str              ex: 2026-03-22T15:15:00.0
+  steps_data[0].primaryActivityLevel                           str              ex: highlyActive
+  steps_data[0].pushes                                         int              ex: 0
+  steps_data[0].startGMT                                       str              ex: 2026-03-22T15:00:00.0
+  steps_data[0].steps                                          int              ex: 527
+
+======================================================================
+  Garmin > all_day_stress
+======================================================================
+  all_day_stress.avgStressLevel                                int              ex: 24
+  all_day_stress.bodyBatteryValueDescriptorsDTOList            list[4]        
+  all_day_stress.bodyBatteryValueDescriptorsDTOList[0]         dict             ex: {2 keys}
+  all_day_stress.bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorIndex int              ex: 0
+  all_day_stress.bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorKey str              ex: timestamp
+  all_day_stress.bodyBatteryValuesArray                        list[480]      
+  all_day_stress.bodyBatteryValuesArray[0]                     list             ex: [1774191600000, 'MEASURED', 5, 3.0]
+  all_day_stress.calendarDate                                  str              ex: 2026-03-23
+  all_day_stress.endTimestampGMT                               str              ex: 2026-03-23T15:00:00.0
+  all_day_stress.endTimestampLocal                             str              ex: 2026-03-24T00:00:00.0
+  all_day_stress.maxStressLevel                                int              ex: 99
+  all_day_stress.startTimestampGMT                             str              ex: 2026-03-22T15:00:00.0
+  all_day_stress.startTimestampLocal                           str              ex: 2026-03-23T00:00:00.0
+  all_day_stress.stressChartValueOffset                        int              ex: 1
+  all_day_stress.stressChartYAxisOrigin                        int              ex: -1
+  all_day_stress.stressValueDescriptorsDTOList                 list[2]        
+  all_day_stress.stressValueDescriptorsDTOList[0]              dict             ex: {2 keys}
+  all_day_stress.stressValueDescriptorsDTOList[0].index        int              ex: 0
+  all_day_stress.stressValueDescriptorsDTOList[0].key          str              ex: timestamp
+  all_day_stress.stressValuesArray                             list[480]      
+  all_day_stress.stressValuesArray[0]                          list             ex: [1774191600000, -1]
+  all_day_stress.userProfilePK                                 int              ex: 133326671
+
+======================================================================
+  Garmin > intensity_minutes
+======================================================================
+  intensity_minutes.calendarDate                               str              ex: 2026-03-23
+  intensity_minutes.dayOfGoalMet                               null             ex: null
+  intensity_minutes.endDayMinutes                              int              ex: 0
+  intensity_minutes.endTimestampGMT                            str              ex: 2026-03-23T15:00:00.0
+  intensity_minutes.endTimestampLocal                          str              ex: 2026-03-24T00:00:00.0
+  intensity_minutes.imValueDescriptorsDTOList                  null             ex: null
+  intensity_minutes.imValuesArray                              null             ex: null
+  intensity_minutes.moderateMinutes                            int              ex: 0
+  intensity_minutes.startDayMinutes                            int              ex: 0
+  intensity_minutes.startTimestampGMT                          str              ex: 2026-03-22T15:00:00.0
+  intensity_minutes.startTimestampLocal                        str              ex: 2026-03-23T00:00:00.0
+  intensity_minutes.userProfilePK                              int              ex: 133326671
+  intensity_minutes.vigorousMinutes                            int              ex: 0
+  intensity_minutes.weekGoal                                   int              ex: 150
+  intensity_minutes.weeklyModerate                             int              ex: 0
+  intensity_minutes.weeklyTotal                                int              ex: 0
+  intensity_minutes.weeklyVigorous                             int              ex: 0
+
+======================================================================
+  Garmin > body_battery_events
+======================================================================
+  body_battery_events                                          list[3]        
+  body_battery_events[0].activityId                            null             ex: null
+  body_battery_events[0].activityName                          null             ex: null
+  body_battery_events[0].activityType                          null             ex: null
+  body_battery_events[0].averageStress                         float            ex: 15.826667
+  body_battery_events[0].bodyBatteryValueDescriptorsDTOList    list[4]        
+  body_battery_events[0].bodyBatteryValueDescriptorsDTOList[0] dict             ex: {2 keys}
+  body_battery_events[0].bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorIndex int              ex: 0
+  body_battery_events[0].bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorKey str              ex: timestamp
+  body_battery_events[0].bodyBatteryValuesArray                list[75]       
+  body_battery_events[0].bodyBatteryValuesArray[0]             list             ex: [1774203840000, 'MEASURED', 5, 3.0]
+  body_battery_events[0].event                                 dict             ex: {7 keys}
+  body_battery_events[0].event.bodyBatteryImpact               int              ex: 34
+  body_battery_events[0].event.durationInMilliseconds          int              ex: 13260000
+  body_battery_events[0].event.eventStartTimeGmt               str              ex: 2026-03-22T18:24:12.0
+  body_battery_events[0].event.eventType                       str              ex: SLEEP
+  body_battery_events[0].event.feedbackType                    str              ex: NONE
+  body_battery_events[0].event.shortFeedback                   str              ex: NONE
+  body_battery_events[0].event.timezoneOffset                  int              ex: 32400000
+  body_battery_events[0].stressValueDescriptorsDTOList         list[2]        
+  body_battery_events[0].stressValueDescriptorsDTOList[0]      dict             ex: {2 keys}
+  body_battery_events[0].stressValueDescriptorsDTOList[0].index int              ex: 0
+  body_battery_events[0].stressValueDescriptorsDTOList[0].key  str              ex: timestamp
+  body_battery_events[0].stressValuesArray                     list[75]       
+  body_battery_events[0].stressValuesArray[0]                  list             ex: [1774203840000, 28]
+
+======================================================================
+  Garmin > daily_weigh_ins
+======================================================================
+  daily_weigh_ins.dateWeightList                               list[0]        
+  daily_weigh_ins.endDate                                      str              ex: 2026-03-23
+  daily_weigh_ins.startDate                                    str              ex: 2026-03-23
+  daily_weigh_ins.totalAverage                                 dict             ex: {11 keys}
+  daily_weigh_ins.totalAverage.bmi                             null             ex: null
+  daily_weigh_ins.totalAverage.bodyFat                         null             ex: null
+  daily_weigh_ins.totalAverage.bodyWater                       null             ex: null
+  daily_weigh_ins.totalAverage.boneMass                        null             ex: null
+  daily_weigh_ins.totalAverage.from                            int              ex: 1774224000000
+  daily_weigh_ins.totalAverage.metabolicAge                    null             ex: null
+  daily_weigh_ins.totalAverage.muscleMass                      null             ex: null
+  daily_weigh_ins.totalAverage.physiqueRating                  null             ex: null
+  daily_weigh_ins.totalAverage.until                           int              ex: 1774310399999
+  daily_weigh_ins.totalAverage.visceralFat                     null             ex: null
+  daily_weigh_ins.totalAverage.weight                          null             ex: null
+
+======================================================================
+  Garmin > user_summary
+======================================================================
+  user_summary.abnormalHeartRateAlertsCount                    null             ex: null
+  user_summary.activeKilocalories                              float            ex: 148.0
+  user_summary.activeSeconds                                   int              ex: 4363
+  user_summary.activityStressDuration                          int              ex: 2820
+  user_summary.activityStressPercentage                        float            ex: 3.31
+  user_summary.averageMonitoringEnvironmentAltitude            float            ex: 52.0
+  user_summary.averageSpo2                                     float            ex: 95.0
+  user_summary.averageStressLevel                              int              ex: 24
+  user_summary.avgWakingRespirationValue                       float            ex: 13.0
+  user_summary.bmrKilocalories                                 float            ex: 1737.0
+  user_summary.bodyBatteryActivityEventList                    list[5]        
+  user_summary.bodyBatteryActivityEventList[0]                 dict             ex: {12 keys}
+  user_summary.bodyBatteryActivityEventList[0].activityId      null             ex: null
+  user_summary.bodyBatteryActivityEventList[0].activityName    null             ex: null
+  user_summary.bodyBatteryActivityEventList[0].activityType    null             ex: null
+  user_summary.bodyBatteryActivityEventList[0].bodyBatteryImpact int              ex: 34
+  user_summary.bodyBatteryActivityEventList[0].deviceId        int              ex: 3604321050
+  user_summary.bodyBatteryActivityEventList[0].durationInMilliseconds int              ex: 13260000
+  user_summary.bodyBatteryActivityEventList[0].eventStartTimeGmt str              ex: 2026-03-22T18:24:12
+  user_summary.bodyBatteryActivityEventList[0].eventType       str              ex: SLEEP
+  user_summary.bodyBatteryActivityEventList[0].eventUpdateTimeGmt str              ex: 2026-03-22T22:05:34
+  user_summary.bodyBatteryActivityEventList[0].feedbackType    str              ex: NONE
+  user_summary.bodyBatteryActivityEventList[0].shortFeedback   str              ex: NONE
+  user_summary.bodyBatteryActivityEventList[0].timezoneOffset  int              ex: 32400000
+  user_summary.bodyBatteryAtWakeTime                           int              ex: 40
+  user_summary.bodyBatteryChargedValue                         int              ex: 42
+  user_summary.bodyBatteryDrainedValue                         int              ex: 34
+  user_summary.bodyBatteryDuringSleep                          int              ex: 35
+  user_summary.bodyBatteryDynamicFeedbackEvent                 dict             ex: {4 keys}
+  user_summary.bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  user_summary.bodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-23T13:52:56
+  user_summary.bodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE_AND_BB_LOW_MORNING_AND_NOW
+  user_summary.bodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE
+  user_summary.bodyBatteryHighestValue                         int              ex: 43
+  user_summary.bodyBatteryLowestValue                          int              ex: 5
+  user_summary.bodyBatteryMostRecentValue                      int              ex: 13
+  user_summary.bodyBatteryVersion                              float            ex: 3.0
+  user_summary.burnedKilocalories                              null             ex: null
+  user_summary.calendarDate                                    str              ex: 2026-03-23
+  user_summary.consumedKilocalories                            null             ex: null
+  user_summary.dailyStepGoal                                   int              ex: 13820
+  user_summary.durationInMilliseconds                          int              ex: 86400000
+  user_summary.endOfDayBodyBatteryDynamicFeedbackEvent         dict             ex: {4 keys}
+  user_summary.endOfDayBodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  user_summary.endOfDayBodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-22T19:07:36
+  user_summary.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE_AND_BB_LOW
+  user_summary.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE
+  user_summary.floorsAscended                                  float            ex: 11.75066
+  user_summary.floorsAscendedInMeters                          float            ex: 35.816
+  user_summary.floorsDescended                                 float            ex: 9.09974
+  user_summary.floorsDescendedInMeters                         float            ex: 27.736
+  user_summary.highStressDuration                              int              ex: 2400
+  user_summary.highStressPercentage                            float            ex: 2.82
+  user_summary.highestRespirationValue                         float            ex: 20.0
+  user_summary.highlyActiveSeconds                             int              ex: 1571
+  user_summary.includesActivityData                            bool             ex: False
+  user_summary.includesCalorieConsumedData                     bool             ex: False
+  user_summary.includesWellnessData                            bool             ex: True
+  user_summary.intensityMinutesGoal                            int              ex: 150
+  user_summary.lastSevenDaysAvgRestingHeartRate                int              ex: 49
+  user_summary.lastSyncTimestampGMT                            null             ex: null
+  user_summary.latestRespirationTimeGMT                        str              ex: 2026-03-23T15:00:00.0
+  user_summary.latestRespirationValue                          float            ex: 14.0
+  user_summary.latestSpo2                                      int              ex: 95
+  user_summary.latestSpo2ReadingTimeGmt                        str              ex: 2026-03-23T15:00:00.0
+  user_summary.latestSpo2ReadingTimeLocal                      str              ex: 2026-03-24T00:00:00.0
+  user_summary.lowStressDuration                               int              ex: 11880
+  user_summary.lowStressPercentage                             float            ex: 13.94
+  user_summary.lowestRespirationValue                          float            ex: 6.0
+  user_summary.lowestSpo2                                      int              ex: 88
+  user_summary.maxAvgHeartRate                                 int              ex: 113
+  user_summary.maxHeartRate                                    int              ex: 116
+  user_summary.maxStressLevel                                  int              ex: 99
+  user_summary.measurableAsleepDuration                        int              ex: 13200
+  user_summary.measurableAwakeDuration                         int              ex: 58740
+  user_summary.mediumStressDuration                            int              ex: 4020
+  user_summary.mediumStressPercentage                          float            ex: 4.72
+  user_summary.minAvgHeartRate                                 int              ex: 45
+  user_summary.minHeartRate                                    int              ex: 43
+  user_summary.moderateIntensityMinutes                        int              ex: 0
+  user_summary.netCalorieGoal                                  int              ex: 1800
+  user_summary.netRemainingKilocalories                        float            ex: 1948.0
+  user_summary.privacyProtected                                bool             ex: False
+  user_summary.remainingKilocalories                           float            ex: 1948.0
+  user_summary.respirationAlgorithmVersion                     int              ex: 200
+  user_summary.restStressDuration                              int              ex: 50820
+  user_summary.restStressPercentage                            float            ex: 59.65
+  user_summary.restingCaloriesFromActivity                     null             ex: null
+  user_summary.restingHeartRate                                int              ex: 50
+  user_summary.rule                                            dict             ex: {2 keys}
+  user_summary.rule.typeId                                     int              ex: 1
+  user_summary.rule.typeKey                                    str              ex: public
+  user_summary.sedentarySeconds                                int              ex: 66078
+  user_summary.sleepingSeconds                                 int              ex: 14388
+  user_summary.source                                          str              ex: GARMIN
+  user_summary.stressDuration                                  int              ex: 18300
+  user_summary.stressPercentage                                float            ex: 21.48
+  user_summary.stressQualifier                                 str              ex: BALANCED
+  user_summary.totalDistanceMeters                             int              ex: 4988
+  user_summary.totalKilocalories                               float            ex: 1885.0
+  user_summary.totalSteps                                      int              ex: 6526
+  user_summary.totalStressDuration                             int              ex: 85200
+  user_summary.uncategorizedStressDuration                     int              ex: 13260
+  user_summary.uncategorizedStressPercentage                   float            ex: 15.56
+  user_summary.userDailySummaryId                              int              ex: 133326671
+  user_summary.userFloorsAscendedGoal                          int              ex: 10
+  user_summary.userProfileId                                   int              ex: 133326671
+  user_summary.uuid                                            str              ex: f5fb7b5f850846e48ec7d38eb51113c6
+  user_summary.vigorousIntensityMinutes                        int              ex: 0
+  user_summary.wellnessActiveKilocalories                      float            ex: 148.0
+  user_summary.wellnessDescription                             null             ex: null
+  user_summary.wellnessDistanceMeters                          int              ex: 4988
+  user_summary.wellnessEndTimeGmt                              str              ex: 2026-03-23T15:00:00.0
+  user_summary.wellnessEndTimeLocal                            str              ex: 2026-03-24T00:00:00.0
+  user_summary.wellnessKilocalories                            float            ex: 1885.0
+  user_summary.wellnessStartTimeGmt                            str              ex: 2026-03-22T15:00:00.0
+  user_summary.wellnessStartTimeLocal                          str              ex: 2026-03-23T00:00:00.0
+
+======================================================================
+  Garmin > stats
+======================================================================
+  stats.abnormalHeartRateAlertsCount                           null             ex: null
+  stats.activeKilocalories                                     float            ex: 148.0
+  stats.activeSeconds                                          int              ex: 4363
+  stats.activityStressDuration                                 int              ex: 2820
+  stats.activityStressPercentage                               float            ex: 3.31
+  stats.averageMonitoringEnvironmentAltitude                   float            ex: 52.0
+  stats.averageSpo2                                            float            ex: 95.0
+  stats.averageStressLevel                                     int              ex: 24
+  stats.avgWakingRespirationValue                              float            ex: 13.0
+  stats.bmrKilocalories                                        float            ex: 1737.0
+  stats.bodyBatteryActivityEventList                           list[5]        
+  stats.bodyBatteryActivityEventList[0]                        dict             ex: {12 keys}
+  stats.bodyBatteryActivityEventList[0].activityId             null             ex: null
+  stats.bodyBatteryActivityEventList[0].activityName           null             ex: null
+  stats.bodyBatteryActivityEventList[0].activityType           null             ex: null
+  stats.bodyBatteryActivityEventList[0].bodyBatteryImpact      int              ex: 34
+  stats.bodyBatteryActivityEventList[0].deviceId               int              ex: 3604321050
+  stats.bodyBatteryActivityEventList[0].durationInMilliseconds int              ex: 13260000
+  stats.bodyBatteryActivityEventList[0].eventStartTimeGmt      str              ex: 2026-03-22T18:24:12
+  stats.bodyBatteryActivityEventList[0].eventType              str              ex: SLEEP
+  stats.bodyBatteryActivityEventList[0].eventUpdateTimeGmt     str              ex: 2026-03-22T22:05:34
+  stats.bodyBatteryActivityEventList[0].feedbackType           str              ex: NONE
+  stats.bodyBatteryActivityEventList[0].shortFeedback          str              ex: NONE
+  stats.bodyBatteryActivityEventList[0].timezoneOffset         int              ex: 32400000
+  stats.bodyBatteryAtWakeTime                                  int              ex: 40
+  stats.bodyBatteryChargedValue                                int              ex: 42
+  stats.bodyBatteryDrainedValue                                int              ex: 34
+  stats.bodyBatteryDuringSleep                                 int              ex: 35
+  stats.bodyBatteryDynamicFeedbackEvent                        dict             ex: {4 keys}
+  stats.bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel       str              ex: LOW
+  stats.bodyBatteryDynamicFeedbackEvent.eventTimestampGmt      str              ex: 2026-03-23T13:52:56
+  stats.bodyBatteryDynamicFeedbackEvent.feedbackLongType       str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE_AND_BB_LOW_MORNING_AND_NOW
+  stats.bodyBatteryDynamicFeedbackEvent.feedbackShortType      str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE
+  stats.bodyBatteryHighestValue                                int              ex: 43
+  stats.bodyBatteryLowestValue                                 int              ex: 5
+  stats.bodyBatteryMostRecentValue                             int              ex: 13
+  stats.bodyBatteryVersion                                     float            ex: 3.0
+  stats.burnedKilocalories                                     null             ex: null
+  stats.calendarDate                                           str              ex: 2026-03-23
+  stats.consumedKilocalories                                   null             ex: null
+  stats.dailyStepGoal                                          int              ex: 13820
+  stats.durationInMilliseconds                                 int              ex: 86400000
+  stats.endOfDayBodyBatteryDynamicFeedbackEvent                dict             ex: {4 keys}
+  stats.endOfDayBodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  stats.endOfDayBodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-22T19:07:36
+  stats.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE_AND_BB_LOW
+  stats.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE
+  stats.floorsAscended                                         float            ex: 11.75066
+  stats.floorsAscendedInMeters                                 float            ex: 35.816
+  stats.floorsDescended                                        float            ex: 9.09974
+  stats.floorsDescendedInMeters                                float            ex: 27.736
+  stats.highStressDuration                                     int              ex: 2400
+  stats.highStressPercentage                                   float            ex: 2.82
+  stats.highestRespirationValue                                float            ex: 20.0
+  stats.highlyActiveSeconds                                    int              ex: 1571
+  stats.includesActivityData                                   bool             ex: False
+  stats.includesCalorieConsumedData                            bool             ex: False
+  stats.includesWellnessData                                   bool             ex: True
+  stats.intensityMinutesGoal                                   int              ex: 150
+  stats.lastSevenDaysAvgRestingHeartRate                       int              ex: 49
+  stats.lastSyncTimestampGMT                                   null             ex: null
+  stats.latestRespirationTimeGMT                               str              ex: 2026-03-23T15:00:00.0
+  stats.latestRespirationValue                                 float            ex: 14.0
+  stats.latestSpo2                                             int              ex: 95
+  stats.latestSpo2ReadingTimeGmt                               str              ex: 2026-03-23T15:00:00.0
+  stats.latestSpo2ReadingTimeLocal                             str              ex: 2026-03-24T00:00:00.0
+  stats.lowStressDuration                                      int              ex: 11880
+  stats.lowStressPercentage                                    float            ex: 13.94
+  stats.lowestRespirationValue                                 float            ex: 6.0
+  stats.lowestSpo2                                             int              ex: 88
+  stats.maxAvgHeartRate                                        int              ex: 113
+  stats.maxHeartRate                                           int              ex: 116
+  stats.maxStressLevel                                         int              ex: 99
+  stats.measurableAsleepDuration                               int              ex: 13200
+  stats.measurableAwakeDuration                                int              ex: 58740
+  stats.mediumStressDuration                                   int              ex: 4020
+  stats.mediumStressPercentage                                 float            ex: 4.72
+  stats.minAvgHeartRate                                        int              ex: 45
+  stats.minHeartRate                                           int              ex: 43
+  stats.moderateIntensityMinutes                               int              ex: 0
+  stats.netCalorieGoal                                         int              ex: 1800
+  stats.netRemainingKilocalories                               float            ex: 1948.0
+  stats.privacyProtected                                       bool             ex: False
+  stats.remainingKilocalories                                  float            ex: 1948.0
+  stats.respirationAlgorithmVersion                            int              ex: 200
+  stats.restStressDuration                                     int              ex: 50820
+  stats.restStressPercentage                                   float            ex: 59.65
+  stats.restingCaloriesFromActivity                            null             ex: null
+  stats.restingHeartRate                                       int              ex: 50
+  stats.rule                                                   dict             ex: {2 keys}
+  stats.rule.typeId                                            int              ex: 1
+  stats.rule.typeKey                                           str              ex: public
+  stats.sedentarySeconds                                       int              ex: 66078
+  stats.sleepingSeconds                                        int              ex: 14388
+  stats.source                                                 str              ex: GARMIN
+  stats.stressDuration                                         int              ex: 18300
+  stats.stressPercentage                                       float            ex: 21.48
+  stats.stressQualifier                                        str              ex: BALANCED
+  stats.totalDistanceMeters                                    int              ex: 4988
+  stats.totalKilocalories                                      float            ex: 1885.0
+  stats.totalSteps                                             int              ex: 6526
+  stats.totalStressDuration                                    int              ex: 85200
+  stats.uncategorizedStressDuration                            int              ex: 13260
+  stats.uncategorizedStressPercentage                          float            ex: 15.56
+  stats.userDailySummaryId                                     int              ex: 133326671
+  stats.userFloorsAscendedGoal                                 int              ex: 10
+  stats.userProfileId                                          int              ex: 133326671
+  stats.uuid                                                   str              ex: f5fb7b5f850846e48ec7d38eb51113c6
+  stats.vigorousIntensityMinutes                               int              ex: 0
+  stats.wellnessActiveKilocalories                             float            ex: 148.0
+  stats.wellnessDescription                                    null             ex: null
+  stats.wellnessDistanceMeters                                 int              ex: 4988
+  stats.wellnessEndTimeGmt                                     str              ex: 2026-03-23T15:00:00.0
+  stats.wellnessEndTimeLocal                                   str              ex: 2026-03-24T00:00:00.0
+  stats.wellnessKilocalories                                   float            ex: 1885.0
+  stats.wellnessStartTimeGmt                                   str              ex: 2026-03-22T15:00:00.0
+  stats.wellnessStartTimeLocal                                 str              ex: 2026-03-23T00:00:00.0
+
+======================================================================
+  Garmin > stats_and_body
+======================================================================
+  stats_and_body.abnormalHeartRateAlertsCount                  null             ex: null
+  stats_and_body.activeKilocalories                            float            ex: 148.0
+  stats_and_body.activeSeconds                                 int              ex: 4363
+  stats_and_body.activityStressDuration                        int              ex: 2820
+  stats_and_body.activityStressPercentage                      float            ex: 3.31
+  stats_and_body.averageMonitoringEnvironmentAltitude          float            ex: 52.0
+  stats_and_body.averageSpo2                                   float            ex: 95.0
+  stats_and_body.averageStressLevel                            int              ex: 24
+  stats_and_body.avgWakingRespirationValue                     float            ex: 13.0
+  stats_and_body.bmi                                           null             ex: null
+  stats_and_body.bmrKilocalories                               float            ex: 1737.0
+  stats_and_body.bodyBatteryActivityEventList                  list[5]        
+  stats_and_body.bodyBatteryActivityEventList[0]               dict             ex: {12 keys}
+  stats_and_body.bodyBatteryActivityEventList[0].activityId    null             ex: null
+  stats_and_body.bodyBatteryActivityEventList[0].activityName  null             ex: null
+  stats_and_body.bodyBatteryActivityEventList[0].activityType  null             ex: null
+  stats_and_body.bodyBatteryActivityEventList[0].bodyBatteryImpact int              ex: 34
+  stats_and_body.bodyBatteryActivityEventList[0].deviceId      int              ex: 3604321050
+  stats_and_body.bodyBatteryActivityEventList[0].durationInMilliseconds int              ex: 13260000
+  stats_and_body.bodyBatteryActivityEventList[0].eventStartTimeGmt str              ex: 2026-03-22T18:24:12
+  stats_and_body.bodyBatteryActivityEventList[0].eventType     str              ex: SLEEP
+  stats_and_body.bodyBatteryActivityEventList[0].eventUpdateTimeGmt str              ex: 2026-03-22T22:05:34
+  stats_and_body.bodyBatteryActivityEventList[0].feedbackType  str              ex: NONE
+  stats_and_body.bodyBatteryActivityEventList[0].shortFeedback str              ex: NONE
+  stats_and_body.bodyBatteryActivityEventList[0].timezoneOffset int              ex: 32400000
+  stats_and_body.bodyBatteryAtWakeTime                         int              ex: 40
+  stats_and_body.bodyBatteryChargedValue                       int              ex: 42
+  stats_and_body.bodyBatteryDrainedValue                       int              ex: 34
+  stats_and_body.bodyBatteryDuringSleep                        int              ex: 35
+  stats_and_body.bodyBatteryDynamicFeedbackEvent               dict             ex: {4 keys}
+  stats_and_body.bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  stats_and_body.bodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-23T13:52:56
+  stats_and_body.bodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE_AND_BB_LOW_MORNING_AND_NOW
+  stats_and_body.bodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE
+  stats_and_body.bodyBatteryHighestValue                       int              ex: 43
+  stats_and_body.bodyBatteryLowestValue                        int              ex: 5
+  stats_and_body.bodyBatteryMostRecentValue                    int              ex: 13
+  stats_and_body.bodyBatteryVersion                            float            ex: 3.0
+  stats_and_body.bodyFat                                       null             ex: null
+  stats_and_body.bodyWater                                     null             ex: null
+  stats_and_body.boneMass                                      null             ex: null
+  stats_and_body.burnedKilocalories                            null             ex: null
+  stats_and_body.calendarDate                                  str              ex: 2026-03-23
+  stats_and_body.consumedKilocalories                          null             ex: null
+  stats_and_body.dailyStepGoal                                 int              ex: 13820
+  stats_and_body.durationInMilliseconds                        int              ex: 86400000
+  stats_and_body.endOfDayBodyBatteryDynamicFeedbackEvent       dict             ex: {4 keys}
+  stats_and_body.endOfDayBodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  stats_and_body.endOfDayBodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-22T19:07:36
+  stats_and_body.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE_AND_BB_LOW
+  stats_and_body.endOfDayBodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE
+  stats_and_body.floorsAscended                                float            ex: 11.75066
+  stats_and_body.floorsAscendedInMeters                        float            ex: 35.816
+  stats_and_body.floorsDescended                               float            ex: 9.09974
+  stats_and_body.floorsDescendedInMeters                       float            ex: 27.736
+  stats_and_body.from                                          int              ex: 1774224000000
+  stats_and_body.highStressDuration                            int              ex: 2400
+  stats_and_body.highStressPercentage                          float            ex: 2.82
+  stats_and_body.highestRespirationValue                       float            ex: 20.0
+  stats_and_body.highlyActiveSeconds                           int              ex: 1571
+  stats_and_body.includesActivityData                          bool             ex: False
+  stats_and_body.includesCalorieConsumedData                   bool             ex: False
+  stats_and_body.includesWellnessData                          bool             ex: True
+  stats_and_body.intensityMinutesGoal                          int              ex: 150
+  stats_and_body.lastSevenDaysAvgRestingHeartRate              int              ex: 49
+  stats_and_body.lastSyncTimestampGMT                          null             ex: null
+  stats_and_body.latestRespirationTimeGMT                      str              ex: 2026-03-23T15:00:00.0
+  stats_and_body.latestRespirationValue                        float            ex: 14.0
+  stats_and_body.latestSpo2                                    int              ex: 95
+  stats_and_body.latestSpo2ReadingTimeGmt                      str              ex: 2026-03-23T15:00:00.0
+  stats_and_body.latestSpo2ReadingTimeLocal                    str              ex: 2026-03-24T00:00:00.0
+  stats_and_body.lowStressDuration                             int              ex: 11880
+  stats_and_body.lowStressPercentage                           float            ex: 13.94
+  stats_and_body.lowestRespirationValue                        float            ex: 6.0
+  stats_and_body.lowestSpo2                                    int              ex: 88
+  stats_and_body.maxAvgHeartRate                               int              ex: 113
+  stats_and_body.maxHeartRate                                  int              ex: 116
+  stats_and_body.maxStressLevel                                int              ex: 99
+  stats_and_body.measurableAsleepDuration                      int              ex: 13200
+  stats_and_body.measurableAwakeDuration                       int              ex: 58740
+  stats_and_body.mediumStressDuration                          int              ex: 4020
+  stats_and_body.mediumStressPercentage                        float            ex: 4.72
+  stats_and_body.metabolicAge                                  null             ex: null
+  stats_and_body.minAvgHeartRate                               int              ex: 45
+  stats_and_body.minHeartRate                                  int              ex: 43
+  stats_and_body.moderateIntensityMinutes                      int              ex: 0
+  stats_and_body.muscleMass                                    null             ex: null
+  stats_and_body.netCalorieGoal                                int              ex: 1800
+  stats_and_body.netRemainingKilocalories                      float            ex: 1948.0
+  stats_and_body.physiqueRating                                null             ex: null
+  stats_and_body.privacyProtected                              bool             ex: False
+  stats_and_body.remainingKilocalories                         float            ex: 1948.0
+  stats_and_body.respirationAlgorithmVersion                   int              ex: 200
+  stats_and_body.restStressDuration                            int              ex: 50820
+  stats_and_body.restStressPercentage                          float            ex: 59.65
+  stats_and_body.restingCaloriesFromActivity                   null             ex: null
+  stats_and_body.restingHeartRate                              int              ex: 50
+  stats_and_body.rule                                          dict             ex: {2 keys}
+  stats_and_body.rule.typeId                                   int              ex: 1
+  stats_and_body.rule.typeKey                                  str              ex: public
+  stats_and_body.sedentarySeconds                              int              ex: 66078
+  stats_and_body.sleepingSeconds                               int              ex: 14388
+  stats_and_body.source                                        str              ex: GARMIN
+  stats_and_body.stressDuration                                int              ex: 18300
+  stats_and_body.stressPercentage                              float            ex: 21.48
+  stats_and_body.stressQualifier                               str              ex: BALANCED
+  stats_and_body.totalDistanceMeters                           int              ex: 4988
+  stats_and_body.totalKilocalories                             float            ex: 1885.0
+  stats_and_body.totalSteps                                    int              ex: 6526
+  stats_and_body.totalStressDuration                           int              ex: 85200
+  stats_and_body.uncategorizedStressDuration                   int              ex: 13260
+  stats_and_body.uncategorizedStressPercentage                 float            ex: 15.56
+  stats_and_body.until                                         int              ex: 1774310399999
+  stats_and_body.userDailySummaryId                            int              ex: 133326671
+  stats_and_body.userFloorsAscendedGoal                        int              ex: 10
+  stats_and_body.userProfileId                                 int              ex: 133326671
+  stats_and_body.uuid                                          str              ex: f5fb7b5f850846e48ec7d38eb51113c6
+  stats_and_body.vigorousIntensityMinutes                      int              ex: 0
+  stats_and_body.visceralFat                                   null             ex: null
+  stats_and_body.weight                                        null             ex: null
+  stats_and_body.wellnessActiveKilocalories                    float            ex: 148.0
+  stats_and_body.wellnessDescription                           null             ex: null
+  stats_and_body.wellnessDistanceMeters                        int              ex: 4988
+  stats_and_body.wellnessEndTimeGmt                            str              ex: 2026-03-23T15:00:00.0
+  stats_and_body.wellnessEndTimeLocal                          str              ex: 2026-03-24T00:00:00.0
+  stats_and_body.wellnessKilocalories                          float            ex: 1885.0
+  stats_and_body.wellnessStartTimeGmt                          str              ex: 2026-03-22T15:00:00.0
+  stats_and_body.wellnessStartTimeLocal                        str              ex: 2026-03-23T00:00:00.0
+
+======================================================================
+  Garmin > devices
+======================================================================
+  devices                                                      list[1]        
+  devices[0].abnormalHeartRateAlertCapable                     bool             ex: True
+  devices[0].accessorySensorCanGenerateActivityCapable         bool             ex: False
+  devices[0].activeInd                                         int              ex: 1
+  devices[0].activityAutoDetectionCapable                      bool             ex: False
+  devices[0].activitySummFitFileCapable                        bool             ex: True
+  devices[0].actualProductSku                                  str              ex: 010-02804-52
+  devices[0].actualStepRecordingCapable                        bool             ex: True
+  devices[0].acuteChronicWorkloadRatioCapable                  bool             ex: True
+  devices[0].acuteTrainingLoadCapable                          bool             ex: True
+  devices[0].adaptiveCoachingFitnessCapable                    bool             ex: False
+  devices[0].adaptiveCoachingNoviceCapable                     bool             ex: False
+  devices[0].adaptiveCoachingScheduleCapable                   bool             ex: True
+  devices[0].adaptiveCoachingStrengthCapable                   bool             ex: False
+  devices[0].adaptiveCoachingStrengthReceiveCapable            bool             ex: False
+  devices[0].adaptiveCoachingWalkCapable                       bool             ex: False
+  devices[0].adaptiveCoachingWorkoutSettingsCapable            bool             ex: False
+  devices[0].aerobicTrainingEffectCapable                      bool             ex: True
+  devices[0].airIntegrationCapable                             bool             ex: False
+  devices[0].alarmDaysCapable                                  bool             ex: True
+  devices[0].allDayStressCapable                               bool             ex: True
+  devices[0].altitudeAcclimationPercentageCapable              bool             ex: True
+  devices[0].anaerobicTrainingEffectCapable                    bool             ex: True
+  devices[0].appSupport                                        bool             ex: True
+  devices[0].applicationKey                                    str              ex: epixGen2Pro51mm
+  devices[0].archeryXCapable                                   bool             ex: False
+  devices[0].assistancePlusCapable                             bool             ex: False
+  devices[0].atpWorkoutCapable                                 bool             ex: True
+  devices[0].batteryStatusCapable                              bool             ex: False
+  devices[0].bbiRecordingCapable                               bool             ex: True
+  devices[0].beaconTrackingCapable                             bool             ex: False
+  devices[0].benchmarkExerciseCapable                          bool             ex: True
+  devices[0].bestInClassVideoLink                              null             ex: null
+  devices[0].bloodPressureCapable                              bool             ex: False
+  devices[0].bluetoothClassicDevice                            bool             ex: False
+  devices[0].bluetoothLowEnergyDevice                          bool             ex: True
+  devices[0].bodyBatteryCapable                                bool             ex: True
+  devices[0].bodyBatteryTrueUpCapable                          bool             ex: True
+  devices[0].breathingDisruptionsCapable                       bool             ex: True
+  devices[0].brickWorkoutCapable                               bool             ex: True
+  devices[0].cardioCapable                                     bool             ex: True
+  devices[0].cardioOptionCapable                               bool             ex: False
+  devices[0].cardioSportsCapable                               bool             ex: False
+  devices[0].cardioWorkoutCapable                              bool             ex: True
+  devices[0].cellularCapable                                   bool             ex: False
+  devices[0].changeLogCapable                                  bool             ex: True
+  devices[0].collapsibleControlMenuCapable                     bool             ex: False
+  devices[0].connectedGPSCapable                               bool             ex: False
+  devices[0].contactManagementCapable                          bool             ex: True
+  devices[0].corporateDevice                                   bool             ex: False
+  devices[0].courseCapable                                     bool             ex: True
+  devices[0].courseFileType                                    str              ex: FIT
+  devices[0].coursePlannerCapable                              bool             ex: False
+  devices[0].coursePromptCapable                               bool             ex: False
+  devices[0].criticalSwimSpeedCapable                          bool             ex: True
+  devices[0].currentFirmwareVersion                            str              ex: 25.11
+  devices[0].currentFirmwareVersionMajor                       int              ex: 25
+  devices[0].currentFirmwareVersionMinor                       int              ex: 11
+  devices[0].customIntensityMinutesCapable                     bool             ex: True
+  devices[0].customWorkoutCapable                              bool             ex: True
+  devices[0].cyclingAbilityCapable                             bool             ex: False
+  devices[0].cyclingComputerBackupRestoreCapable               bool             ex: False
+  devices[0].cyclingHeartRateZoneCapable                       bool             ex: True
+  devices[0].cyclingPowerZonesCapable                          bool             ex: True
+  devices[0].cyclingSegmentCapable                             bool             ex: True
+  devices[0].cyclingSportsCapable                              bool             ex: False
+  devices[0].cyclingWorkoutCapable                             bool             ex: True
+  devices[0].datasource                                        str              ex: C
+  devices[0].dayOfWeekSleepWindowCapable                       bool             ex: True
+  devices[0].defaultHeartRateZoneCapable                       bool             ex: True
+  devices[0].defaultSettingCapable                             bool             ex: True
+  devices[0].defaultSettingsHbaseMigrated                      bool             ex: True
+  devices[0].descriptiveTrainingEffectCapable                  bool             ex: False
+  devices[0].deviceCategories                                  list[4]        
+  devices[0].deviceCategories[0]                               str              ex: FITNESS
+  devices[0].deviceEmbedVideoLink                              null             ex: null
+  devices[0].deviceId                                          int              ex: 3604321050
+  devices[0].deviceSettingCapable                              bool             ex: True
+  devices[0].deviceSettingFileType                             null             ex: null
+  devices[0].deviceSettingsFile                                str              ex: RealTimeDeviceSettings_942cc9b6-c5ed-491f-8468-d151a2881156.json
+  devices[0].deviceStatus                                      str              ex: active
+  devices[0].deviceTags                                        null             ex: null
+  devices[0].deviceTypePk                                      int              ex: 37081
+  devices[0].deviceTypeSimpleName                              str              ex: Garmin epix Pro (Gen 2)
+  devices[0].deviceVideoPageLink                               null             ex: null
+  devices[0].displayFieldsExtCapable                           bool             ex: False
+  devices[0].displayName                                       str              ex: EPIX PRO - 51mm
+  devices[0].displayOrder                                      int              ex: 0
+  devices[0].diveAlertCapable                                  bool             ex: False
+  devices[0].diveAppSyncCapable                                bool             ex: False
+  devices[0].divingCapable                                     bool             ex: False
+  devices[0].ecgCapable                                        bool             ex: True
+  devices[0].ellipticalOptionCapable                           bool             ex: False
+  devices[0].emergencyCallingCapable                           bool             ex: False
+  devices[0].enhancedWorkoutStepCapable                        bool             ex: True
+  devices[0].fallDetectionCapable                              bool             ex: False
+  devices[0].fitnessAgeV2Capable                               bool             ex: True
+  devices[0].fixedLocationCapable                              bool             ex: False
+  devices[0].floorsClimbedGoalCapable                          bool             ex: True
+  devices[0].ftpCapable                                        bool             ex: True
+  devices[0].fullNameSettingsCapable                           bool             ex: True
+  devices[0].garminEpicsCapable                                bool             ex: False
+  devices[0].garminWellnessCoachCapable                        bool             ex: False
+  devices[0].gcj02CourseCapable                                bool             ex: True
+  devices[0].gcmSettingsFile                                   null             ex: null
+  devices[0].gearTrackingCapable                               bool             ex: False
+  devices[0].glonassCapable                                    bool             ex: True
+  devices[0].goalCapable                                       bool             ex: True
+  devices[0].goalFileType                                      str              ex: FIT
+  devices[0].golfAppPairingCapable                             bool             ex: False
+  devices[0].golfAppSyncCapable                                bool             ex: False
+  devices[0].golfCourseDownloadCapable                         bool             ex: False
+  devices[0].golfDisplayOrder                                  int              ex: 0
+  devices[0].golfLiveScoringCapable                            bool             ex: True
+  devices[0].gpsRouteCapable                                   bool             ex: True
+  devices[0].groupTrack2Capable                                bool             ex: False
+  devices[0].handednessCapable                                 bool             ex: True
+  devices[0].hasOpticalHeartRate                               bool             ex: True
+  devices[0].hasPowerButton                                    bool             ex: True
+  devices[0].healthSnapshotCapable                             bool             ex: True
+  devices[0].healthStatusCapable                               bool             ex: True
+  devices[0].healthStatusTrueUpCapable                         bool             ex: False
+  devices[0].heatAndAltitudeAcclimationCapable                 bool             ex: True
+  devices[0].hideSoftwareUpdateVersionCapable                  bool             ex: False
+  devices[0].highlighted                                       bool             ex: False
+  devices[0].hiitWorkoutCapable                                bool             ex: True
+  devices[0].hillScoreAndEnduranceScoreCapable                 bool             ex: True
+  devices[0].hrZoneCapable                                     bool             ex: True
+  devices[0].hrvStatusCapable                                  bool             ex: True
+  devices[0].hrvStressCapable                                  bool             ex: True
+  devices[0].hybrid                                            bool             ex: True
+  devices[0].imageUrl                                          str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  devices[0].inReachServicesCapable                            bool             ex: False
+  devices[0].incidentDetectionCapable                          bool             ex: True
+  devices[0].incompatibleApplications                          list[2]        
+  devices[0].incompatibleApplications[0]                       str              ex: DIVE
+  devices[0].indoorBikeOptionsCapable                          bool             ex: False
+  devices[0].indoorTrackOptionsCapable                         bool             ex: False
+  devices[0].indoorWalkOptionsCapable                          bool             ex: False
+  devices[0].intensityMinutesGoalCapable                       bool             ex: True
+  devices[0].intensityMinutesV2Capable                         bool             ex: True
+  devices[0].isPrimaryUser                                     bool             ex: False
+  devices[0].jetlagCapable                                     bool             ex: True
+  devices[0].lactateThresholdCapable                           bool             ex: True
+  devices[0].languageSettingCapable                            bool             ex: True
+  devices[0].languageSettingFileType                           null             ex: null
+  devices[0].lapByCoursePointsCapable                          bool             ex: False
+  devices[0].launchMonitorEventSharingCapable                  bool             ex: False
+  devices[0].lhaBackupCapable                                  bool             ex: True
+  devices[0].lifestyleLoggingCapable                           bool             ex: False
+  devices[0].liveTrackCapable                                  bool             ex: True
+  devices[0].localWindConditionsCapable                        bool             ex: False
+  devices[0].lowHrAlertCapable                                 bool             ex: True
+  devices[0].lteLiveEventSharingCapable                        bool             ex: False
+  devices[0].maxHRCapable                                      bool             ex: True
+  devices[0].maxWorkoutCount                                   int              ex: 200
+  devices[0].measurementUnitSettingCapable                     bool             ex: False
+  devices[0].metricsFitFileReceiveCapable                      bool             ex: True
+  devices[0].metricsUploadCapable                              bool             ex: True
+  devices[0].militaryTimeCapable                               bool             ex: True
+  devices[0].minGCMAndroidVersion                              int              ex: 7791
+  devices[0].minGCMHarmonyVersion                              int              ex: 0
+  devices[0].minGCMWindowsVersion                              int              ex: 99999
+  devices[0].minGCMiOSVersion                                  int              ex: 105591
+  devices[0].minGolfAppAndroidVersion                          int              ex: 0
+  devices[0].minGolfAppiOSVersion                              int              ex: 0
+  devices[0].mobilityWorkoutCapable                            bool             ex: False
+  devices[0].moderateIntensityMinutesGoalCapable               bool             ex: True
+  devices[0].multipleGolfCourseCapable                         bool             ex: False
+  devices[0].multisportWorkoutCapable                          bool             ex: False
+  devices[0].nfcCapable                                        bool             ex: True
+  devices[0].onDeviceSleepCalculationCapable                   bool             ex: True
+  devices[0].openWaterSwimOptionCapable                        bool             ex: False
+  devices[0].openWaterSwimWorkoutCapable                       bool             ex: False
+  devices[0].otherAssociation                                  bool             ex: False
+  devices[0].otherOptionCapable                                bool             ex: False
+  devices[0].otherSportsCapable                                bool             ex: False
+  devices[0].pacebandCapable                                   bool             ex: True
+  devices[0].partNumber                                        str              ex: 006-B4314-00
+  devices[0].passcodeLockCapable                               bool             ex: False
+  devices[0].pendingActivityCapable                            bool             ex: False
+  devices[0].personalRecordCapable                             bool             ex: True
+  devices[0].personalRecordFileType                            str              ex: FIT
+  devices[0].personalRepRecordCapable                          bool             ex: False
+  devices[0].phoneVerificationCheckRequired                    bool             ex: True
+  devices[0].pilatesWorkoutCapable                             bool             ex: True
+  devices[0].poolSwimOptionCapable                             bool             ex: False
+  devices[0].powerCurveCapable                                 bool             ex: True
+  devices[0].powerGuidanceCapable                              bool             ex: True
+  devices[0].powerZonesCapable                                 bool             ex: True
+  devices[0].prePairedWithHRM                                  bool             ex: False
+  devices[0].primary                                           bool             ex: True
+  devices[0].primaryActivityTrackerIndicator                   bool             ex: True
+  devices[0].primaryActivityTrackerSettingCapable              bool             ex: True
+  devices[0].primaryApplication                                str              ex: GCM
+  devices[0].primaryTrainingBackupCapable                      bool             ex: True
+  devices[0].primaryTrainingCapable                            bool             ex: True
+  devices[0].productDisplayName                                str              ex: EPIX PRO - 51 mm
+  devices[0].productSku                                        str              ex: 010-02804-52
+  devices[0].projectedRaceTimePredictionCapable                bool             ex: False
+  devices[0].publicBetaSoftwareCapable                         bool             ex: True
+  devices[0].pulseOxAllDayCapable                              bool             ex: True
+  devices[0].pulseOxOnDemandCapable                            bool             ex: True
+  devices[0].pulseOxSleepCapable                               bool             ex: True
+  devices[0].racePredictionsRunCapable                         bool             ex: True
+  devices[0].realTimeSettingsCapable                           bool             ex: True
+  devices[0].rechargeableSensorCapable                         bool             ex: False
+  devices[0].registeredDate                                    int              ex: 1766644664000
+  devices[0].registrationMetricsBackfillUnsupported            bool             ex: False
+  devices[0].remCapable                                        bool             ex: True
+  devices[0].reminderAlarmCapable                              bool             ex: False
+  devices[0].reorderablePagesCapable                           bool             ex: False
+  devices[0].requiresInitialDeviceNickname                     bool             ex: False
+  devices[0].respirationCapable                                bool             ex: True
+  devices[0].restingHRCapable                                  bool             ex: True
+  devices[0].rideOptionsCapable                                bool             ex: False
+  devices[0].rowingCapable                                     bool             ex: False
+  devices[0].rts20Capable                                      bool             ex: False
+  devices[0].runOptionIndoorCapable                            bool             ex: False
+  devices[0].runOptionsCapable                                 bool             ex: False
+  devices[0].runningEconomyCapable                             bool             ex: False
+  devices[0].runningHeartRateZoneCapable                       bool             ex: True
+  devices[0].runningLactateThresholdCapable                    bool             ex: True
+  devices[0].runningPowerZonesCapable                          bool             ex: True
+  devices[0].runningSegmentCapable                             bool             ex: True
+  devices[0].runningSportsCapable                              bool             ex: False
+  devices[0].runningToleranceCapable                           bool             ex: False
+  devices[0].runningWorkoutCapable                             bool             ex: True
+  devices[0].scheduleCapable                                   bool             ex: True
+  devices[0].scheduleFileType                                  str              ex: FIT
+  devices[0].secondaryWorkoutStepTargetCapable                 bool             ex: False
+  devices[0].segmentCapable                                    bool             ex: True
+  devices[0].segmentPointCapable                               bool             ex: True
+  devices[0].serialNumber                                      str              ex: 85G072281
+  devices[0].setBodyCompositionCapable                         bool             ex: False
+  devices[0].settingCapable                                    bool             ex: True
+  devices[0].settingFileType                                   str              ex: FIT
+  devices[0].shortName                                         null             ex: null
+  devices[0].skipLastWorkoutStepInRepeatBlockCapable           bool             ex: True
+  devices[0].sleepAlignmentCapable                             bool             ex: False
+  devices[0].sleepFitFileReceiveCapable                        bool             ex: True
+  devices[0].sleepNeedCapable                                  bool             ex: True
+  devices[0].sleepScoreCapable                                 bool             ex: True
+  devices[0].sleepSkinTemperatureCapable                       bool             ex: True
+  devices[0].sleepTimeCapable                                  bool             ex: True
+  devices[0].smallFitFileOnlyCapable                           bool             ex: False
+  devices[0].solarChargeCapable                                bool             ex: False
+  devices[0].solarPanelUtilizationCapable                      bool             ex: False
+  devices[0].spectatorMessagingCapable                         bool             ex: False
+  devices[0].sportCapable                                      bool             ex: True
+  devices[0].sportFileType                                     str              ex: FIT
+  devices[0].sportingEventCapable                              bool             ex: True
+  devices[0].stairStepperOptionCapable                         bool             ex: False
+  devices[0].standaloneFirstbeatActivityProcessingCapable      bool             ex: False
+  devices[0].startActivityCapable                              bool             ex: False
+  devices[0].startStopWorkoutCapable                           bool             ex: False
+  devices[0].stepsTrueUpChartCapable                           bool             ex: True
+  devices[0].strengthOptionsCapable                            bool             ex: False
+  devices[0].strengthTrainingPlanCapable                       bool             ex: False
+  devices[0].strengthWorkoutCapable                            bool             ex: True
+  devices[0].supportedHrZones                                  list[4]        
+  devices[0].supportedHrZones[0]                               str              ex: RUNNING
+  devices[0].supportsSecondaryUsers                            bool             ex: False
+  devices[0].sweatLossCapable                                  bool             ex: True
+  devices[0].swimAlgorithmCapable                              bool             ex: True
+  devices[0].swimWorkout2Capable                               bool             ex: False
+  devices[0].swimWorkoutCapable                                bool             ex: True
+  devices[0].swimmingHeartRateZoneCapable                      bool             ex: True
+  devices[0].syncActivityEditsCapable                          bool             ex: False
+  devices[0].topoactiveMapsRealTimeSettingCapable              bool             ex: False
+  devices[0].trainableTriathlonEventCapable                    bool             ex: False
+  devices[0].trainingEffectLabelCapable                        bool             ex: True
+  devices[0].trainingLoadBalanceCapable                        bool             ex: True
+  devices[0].trainingPlanCapable                               bool             ex: True
+  devices[0].trainingReadinessCapable                          bool             ex: True
+  devices[0].trainingStatusCapable                             bool             ex: True
+  devices[0].trainingStatusPauseCapable                        bool             ex: True
+  devices[0].unRetirable                                       bool             ex: False
+  devices[0].unitId                                            int              ex: 3604321050
+  devices[0].userProfileCapable                                bool             ex: False
+  devices[0].userProfileFileType                               null             ex: null
+  devices[0].userTcxExportCapable                              bool             ex: False
+  devices[0].vbtCapable                                        bool             ex: False
+  devices[0].vivohubCompatible                                 bool             ex: False
+  devices[0].vivohubConfigurable                               null             ex: null
+  devices[0].vo2MaxBikeCapable                                 bool             ex: True
+  devices[0].vo2MaxRunCapable                                  bool             ex: True
+  devices[0].walkOptionCapable                                 bool             ex: False
+  devices[0].walkWorkoutCapable                                bool             ex: False
+  devices[0].walkingSportsCapable                              bool             ex: False
+  devices[0].wasp                                              bool             ex: False
+  devices[0].wearableBackupRestoreCapable                      bool             ex: True
+  devices[0].weatherAlertsCapable                              bool             ex: False
+  devices[0].weatherSettingsCapable                            bool             ex: False
+  devices[0].weightGoalCapable                                 bool             ex: False
+  devices[0].weightScale                                       bool             ex: False
+  devices[0].wellness                                          bool             ex: False
+  devices[0].wheelchairCapable                                 bool             ex: False
+  devices[0].wifi                                              bool             ex: True
+  devices[0].wifiSetup                                         bool             ex: False
+  devices[0].workoutAudioPromptsCapable                        bool             ex: True
+  devices[0].workoutCapable                                    bool             ex: True
+  devices[0].workoutFileType                                   str              ex: FIT
+  devices[0].xcSkiPowerZonesCapable                            bool             ex: True
+  devices[0].yogaCapable                                       bool             ex: True
+  devices[0].yogaOptionCapable                                 bool             ex: False
+  devices[0].yogaWorkoutCapable                                bool             ex: True
+
+======================================================================
+  Garmin > device_last_used
+======================================================================
+  device_last_used.applicationNumber                           int              ex: 37081
+  device_last_used.imageUrl                                    str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  device_last_used.lastUsedDeviceApplicationKey                str              ex: epixGen2Pro51mm
+  device_last_used.lastUsedDeviceName                          str              ex: EPIX PRO - 51 mm
+  device_last_used.lastUsedDeviceUploadTime                    int              ex: 1774323901000
+  device_last_used.released                                    bool             ex: True
+  device_last_used.userDeviceId                                int              ex: 3604321050
+  device_last_used.userProfileNumber                           int              ex: 133326671
+
+======================================================================
+  Garmin > user_profile
+======================================================================
+  user_profile.connectDate                                     null             ex: null
+  user_profile.id                                              int              ex: 133326671
+  user_profile.sourceType                                      null             ex: null
+  user_profile.userData                                        dict             ex: {41 keys}
+  user_profile.userData.activityLevel                          null             ex: null
+  user_profile.userData.availableTrainingDays                  list[6]        
+  user_profile.userData.availableTrainingDays[0]               str              ex: SATURDAY
+  user_profile.userData.birthDate                              str              ex: 1981-08-01
+  user_profile.userData.diveNumber                             null             ex: null
+  user_profile.userData.externalBottomTime                     null             ex: null
+  user_profile.userData.firstDayOfWeek                         dict             ex: {4 keys}
+  user_profile.userData.firstDayOfWeek.dayId                   int              ex: 3
+  user_profile.userData.firstDayOfWeek.dayName                 str              ex: monday
+  user_profile.userData.firstDayOfWeek.isPossibleFirstDay      bool             ex: True
+  user_profile.userData.firstDayOfWeek.sortOrder               int              ex: 3
+  user_profile.userData.firstbeatCyclingLtTimestamp            null             ex: null
+  user_profile.userData.firstbeatMaxStressScore                null             ex: null
+  user_profile.userData.firstbeatRowingLtTimestamp             null             ex: null
+  user_profile.userData.firstbeatRunningLtTimestamp            int              ex: 1141887673
+  user_profile.userData.ftpAutoDetected                        bool             ex: True
+  user_profile.userData.gender                                 str              ex: MALE
+  user_profile.userData.golfDistanceUnit                       str              ex: statute_us
+  user_profile.userData.golfElevationUnit                      null             ex: null
+  user_profile.userData.golfSpeedUnit                          null             ex: null
+  user_profile.userData.handedness                             str              ex: RIGHT
+  user_profile.userData.heartRateFormat                        dict             ex: {6 keys}
+  user_profile.userData.heartRateFormat.displayFormat          null             ex: null
+  user_profile.userData.heartRateFormat.formatId               int              ex: 21
+  user_profile.userData.heartRateFormat.formatKey              str              ex: bpm
+  user_profile.userData.heartRateFormat.groupingUsed           bool             ex: False
+  user_profile.userData.heartRateFormat.maxFraction            int              ex: 0
+  user_profile.userData.heartRateFormat.minFraction            int              ex: 0
+  user_profile.userData.height                                 float            ex: 168.0
+  user_profile.userData.hydrationAutoGoalEnabled               bool             ex: True
+  user_profile.userData.hydrationContainers                    list[3]        
+  user_profile.userData.hydrationContainers[0]                 dict             ex: {3 keys}
+  user_profile.userData.hydrationContainers[0].name            null             ex: null
+  user_profile.userData.hydrationContainers[0].unit            str              ex: milliliter
+  user_profile.userData.hydrationContainers[0].volume          int              ex: 250
+  user_profile.userData.hydrationMeasurementUnit               str              ex: milliliter
+  user_profile.userData.intensityMinutesCalcMethod             str              ex: HR_ZONES
+  user_profile.userData.lactateThresholdHeartRate              int              ex: 175
+  user_profile.userData.lactateThresholdHeartRateCycling       null             ex: null
+  user_profile.userData.lactateThresholdHeartRateRowing        null             ex: null
+  user_profile.userData.lactateThresholdRowingPace             null             ex: null
+  user_profile.userData.lactateThresholdSpeed                  float            ex: 0.36111010000000004
+  user_profile.userData.measurementSystem                      str              ex: metric
+  user_profile.userData.moderateIntensityMinutesHrZone         int              ex: 3
+  user_profile.userData.numberDivesAutomatically               null             ex: null
+  user_profile.userData.powerFormat                            dict             ex: {6 keys}
+  user_profile.userData.powerFormat.displayFormat              null             ex: null
+  user_profile.userData.powerFormat.formatId                   int              ex: 30
+  user_profile.userData.powerFormat.formatKey                  str              ex: watt
+  user_profile.userData.powerFormat.groupingUsed               bool             ex: True
+  user_profile.userData.powerFormat.maxFraction                int              ex: 0
+  user_profile.userData.powerFormat.minFraction                int              ex: 0
+  user_profile.userData.preferredLongTrainingDays              list[2]        
+  user_profile.userData.preferredLongTrainingDays[0]           str              ex: SATURDAY
+  user_profile.userData.thresholdHeartRateAutoDetected         bool             ex: True
+  user_profile.userData.timeFormat                             str              ex: time_twelve_hr
+  user_profile.userData.trainingStatusPausedDate               null             ex: null
+  user_profile.userData.vigorousIntensityMinutesHrZone         int              ex: 4
+  user_profile.userData.virtualCaddieDataSource                null             ex: null
+  user_profile.userData.vo2MaxCycling                          null             ex: null
+  user_profile.userData.vo2MaxRunning                          float            ex: 52.0
+  user_profile.userData.weatherLocation                        dict             ex: {6 keys}
+  user_profile.userData.weatherLocation.isoCountryCode         null             ex: null
+  user_profile.userData.weatherLocation.latitude               null             ex: null
+  user_profile.userData.weatherLocation.locationName           null             ex: null
+  user_profile.userData.weatherLocation.longitude              null             ex: null
+  user_profile.userData.weatherLocation.postalCode             null             ex: null
+  user_profile.userData.weatherLocation.useFixedLocation       null             ex: null
+  user_profile.userData.weight                                 float            ex: 59400.0
+  user_profile.userSleep                                       dict             ex: {4 keys}
+  user_profile.userSleep.defaultSleepTime                      bool             ex: False
+  user_profile.userSleep.defaultWakeTime                       bool             ex: False
+  user_profile.userSleep.sleepTime                             int              ex: 84600
+  user_profile.userSleep.wakeTime                              int              ex: 20400
+  user_profile.userSleepWindows                                list[8]        
+  user_profile.userSleepWindows[0]                             dict             ex: {3 keys}
+  user_profile.userSleepWindows[0].endSleepTimeSecondsFromMidnight int              ex: 34800
+  user_profile.userSleepWindows[0].sleepWindowFrequency        str              ex: SUNDAY
+  user_profile.userSleepWindows[0].startSleepTimeSecondsFromMidnight int              ex: 84600
+
+======================================================================
+  Garmin > primary_training_device
+======================================================================
+  primary_training_device.PrimaryTrainingDevice                dict             ex: {1 keys}
+  primary_training_device.PrimaryTrainingDevice.deviceId       int              ex: 3604321050
+  primary_training_device.PrimaryTrainingDevices               dict             ex: {2 keys}
+  primary_training_device.PrimaryTrainingDevices.deviceWeights list[1]        
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0] dict             ex: {7 keys}
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].deviceId int              ex: 3604321050
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].displayName str              ex: EPIX PRO - 51mm
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].imageUrl str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].lhaBackupCapable bool             ex: True
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].primaryTrainingCapable bool             ex: True
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].primaryWearableDevice bool             ex: True
+  primary_training_device.PrimaryTrainingDevices.deviceWeights[0].weight int              ex: 3
+  primary_training_device.PrimaryTrainingDevices.primaryTrainingDeviceCount int              ex: 1
+  primary_training_device.RegisteredDevices                    list[1]        
+  primary_training_device.RegisteredDevices[0]                 dict             ex: {303 keys}
+  primary_training_device.RegisteredDevices[0].abnormalHeartRateAlertCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].accessorySensorCanGenerateActivityCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].activeInd       int              ex: 1
+  primary_training_device.RegisteredDevices[0].activityAutoDetectionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].activitySummFitFileCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].actualProductSku str              ex: 010-02804-52
+  primary_training_device.RegisteredDevices[0].actualStepRecordingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].acuteChronicWorkloadRatioCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].acuteTrainingLoadCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingFitnessCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingNoviceCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingScheduleCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingStrengthCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingStrengthReceiveCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingWalkCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].adaptiveCoachingWorkoutSettingsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].aerobicTrainingEffectCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].airIntegrationCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].alarmDaysCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].allDayStressCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].altitudeAcclimationPercentageCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].anaerobicTrainingEffectCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].appSupport      bool             ex: True
+  primary_training_device.RegisteredDevices[0].applicationKey  str              ex: epixGen2Pro51mm
+  primary_training_device.RegisteredDevices[0].archeryXCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].assistancePlusCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].atpWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].batteryStatusCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].bbiRecordingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].beaconTrackingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].benchmarkExerciseCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].bestInClassVideoLink null             ex: null
+  primary_training_device.RegisteredDevices[0].bloodPressureCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].bluetoothClassicDevice bool             ex: False
+  primary_training_device.RegisteredDevices[0].bluetoothLowEnergyDevice bool             ex: True
+  primary_training_device.RegisteredDevices[0].bodyBatteryCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].bodyBatteryTrueUpCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].breathingDisruptionsCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].brickWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cardioCapable   bool             ex: True
+  primary_training_device.RegisteredDevices[0].cardioOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].cardioSportsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].cardioWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cellularCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].changeLogCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].collapsibleControlMenuCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].connectedGPSCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].contactManagementCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].corporateDevice bool             ex: False
+  primary_training_device.RegisteredDevices[0].courseCapable   bool             ex: True
+  primary_training_device.RegisteredDevices[0].courseFileType  str              ex: FIT
+  primary_training_device.RegisteredDevices[0].coursePlannerCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].coursePromptCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].criticalSwimSpeedCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].currentFirmwareVersion str              ex: 25.11
+  primary_training_device.RegisteredDevices[0].currentFirmwareVersionMajor int              ex: 25
+  primary_training_device.RegisteredDevices[0].currentFirmwareVersionMinor int              ex: 11
+  primary_training_device.RegisteredDevices[0].customIntensityMinutesCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].customWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cyclingAbilityCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].cyclingComputerBackupRestoreCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].cyclingHeartRateZoneCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cyclingPowerZonesCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cyclingSegmentCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].cyclingSportsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].cyclingWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].datasource      str              ex: C
+  primary_training_device.RegisteredDevices[0].dayOfWeekSleepWindowCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].defaultHeartRateZoneCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].defaultSettingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].defaultSettingsHbaseMigrated bool             ex: True
+  primary_training_device.RegisteredDevices[0].descriptiveTrainingEffectCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].deviceCategories list[4]        
+  primary_training_device.RegisteredDevices[0].deviceCategories[0] str              ex: FITNESS
+  primary_training_device.RegisteredDevices[0].deviceEmbedVideoLink null             ex: null
+  primary_training_device.RegisteredDevices[0].deviceId        int              ex: 3604321050
+  primary_training_device.RegisteredDevices[0].deviceSettingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].deviceSettingFileType null             ex: null
+  primary_training_device.RegisteredDevices[0].deviceSettingsFile str              ex: RealTimeDeviceSettings_942cc9b6-c5ed-491f-8468-d151a2881156.json
+  primary_training_device.RegisteredDevices[0].deviceStatus    str              ex: active
+  primary_training_device.RegisteredDevices[0].deviceTags      null             ex: null
+  primary_training_device.RegisteredDevices[0].deviceTypePk    int              ex: 37081
+  primary_training_device.RegisteredDevices[0].deviceTypeSimpleName str              ex: Garmin epix Pro (Gen 2)
+  primary_training_device.RegisteredDevices[0].deviceVideoPageLink null             ex: null
+  primary_training_device.RegisteredDevices[0].displayFieldsExtCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].displayName     str              ex: EPIX PRO - 51mm
+  primary_training_device.RegisteredDevices[0].displayOrder    int              ex: 0
+  primary_training_device.RegisteredDevices[0].diveAlertCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].diveAppSyncCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].divingCapable   bool             ex: False
+  primary_training_device.RegisteredDevices[0].ecgCapable      bool             ex: True
+  primary_training_device.RegisteredDevices[0].ellipticalOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].emergencyCallingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].enhancedWorkoutStepCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].fallDetectionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].fitnessAgeV2Capable bool             ex: True
+  primary_training_device.RegisteredDevices[0].fixedLocationCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].floorsClimbedGoalCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].ftpCapable      bool             ex: True
+  primary_training_device.RegisteredDevices[0].fullNameSettingsCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].garminEpicsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].garminWellnessCoachCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].gcj02CourseCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].gcmSettingsFile null             ex: null
+  primary_training_device.RegisteredDevices[0].gearTrackingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].glonassCapable  bool             ex: True
+  primary_training_device.RegisteredDevices[0].goalCapable     bool             ex: True
+  primary_training_device.RegisteredDevices[0].goalFileType    str              ex: FIT
+  primary_training_device.RegisteredDevices[0].golfAppPairingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].golfAppSyncCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].golfCourseDownloadCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].golfDisplayOrder int              ex: 0
+  primary_training_device.RegisteredDevices[0].golfLiveScoringCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].gpsRouteCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].groupTrack2Capable bool             ex: False
+  primary_training_device.RegisteredDevices[0].handednessCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hasOpticalHeartRate bool             ex: True
+  primary_training_device.RegisteredDevices[0].hasPowerButton  bool             ex: True
+  primary_training_device.RegisteredDevices[0].healthSnapshotCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].healthStatusCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].healthStatusTrueUpCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].heatAndAltitudeAcclimationCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hideSoftwareUpdateVersionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].highlighted     bool             ex: False
+  primary_training_device.RegisteredDevices[0].hiitWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hillScoreAndEnduranceScoreCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hrZoneCapable   bool             ex: True
+  primary_training_device.RegisteredDevices[0].hrvStatusCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hrvStressCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].hybrid          bool             ex: True
+  primary_training_device.RegisteredDevices[0].imageUrl        str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  primary_training_device.RegisteredDevices[0].inReachServicesCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].incidentDetectionCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].incompatibleApplications list[2]        
+  primary_training_device.RegisteredDevices[0].incompatibleApplications[0] str              ex: DIVE
+  primary_training_device.RegisteredDevices[0].indoorBikeOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].indoorTrackOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].indoorWalkOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].intensityMinutesGoalCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].intensityMinutesV2Capable bool             ex: True
+  primary_training_device.RegisteredDevices[0].isPrimaryUser   bool             ex: False
+  primary_training_device.RegisteredDevices[0].jetlagCapable   bool             ex: True
+  primary_training_device.RegisteredDevices[0].lactateThresholdCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].languageSettingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].languageSettingFileType null             ex: null
+  primary_training_device.RegisteredDevices[0].lapByCoursePointsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].launchMonitorEventSharingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].lhaBackupCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].lifestyleLoggingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].liveTrackCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].localWindConditionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].lowHrAlertCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].lteLiveEventSharingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].maxHRCapable    bool             ex: True
+  primary_training_device.RegisteredDevices[0].maxWorkoutCount int              ex: 200
+  primary_training_device.RegisteredDevices[0].measurementUnitSettingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].metricsFitFileReceiveCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].metricsUploadCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].militaryTimeCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].minGCMAndroidVersion int              ex: 7791
+  primary_training_device.RegisteredDevices[0].minGCMHarmonyVersion int              ex: 0
+  primary_training_device.RegisteredDevices[0].minGCMWindowsVersion int              ex: 99999
+  primary_training_device.RegisteredDevices[0].minGCMiOSVersion int              ex: 105591
+  primary_training_device.RegisteredDevices[0].minGolfAppAndroidVersion int              ex: 0
+  primary_training_device.RegisteredDevices[0].minGolfAppiOSVersion int              ex: 0
+  primary_training_device.RegisteredDevices[0].mobilityWorkoutCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].moderateIntensityMinutesGoalCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].multipleGolfCourseCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].multisportWorkoutCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].nfcCapable      bool             ex: True
+  primary_training_device.RegisteredDevices[0].onDeviceSleepCalculationCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].openWaterSwimOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].openWaterSwimWorkoutCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].otherAssociation bool             ex: False
+  primary_training_device.RegisteredDevices[0].otherOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].otherSportsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].pacebandCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].partNumber      str              ex: 006-B4314-00
+  primary_training_device.RegisteredDevices[0].passcodeLockCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].pendingActivityCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].personalRecordCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].personalRecordFileType str              ex: FIT
+  primary_training_device.RegisteredDevices[0].personalRepRecordCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].phoneVerificationCheckRequired bool             ex: True
+  primary_training_device.RegisteredDevices[0].pilatesWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].poolSwimOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].powerCurveCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].powerGuidanceCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].powerZonesCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].prePairedWithHRM bool             ex: False
+  primary_training_device.RegisteredDevices[0].primary         bool             ex: True
+  primary_training_device.RegisteredDevices[0].primaryActivityTrackerIndicator bool             ex: True
+  primary_training_device.RegisteredDevices[0].primaryActivityTrackerSettingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].primaryApplication str              ex: GCM
+  primary_training_device.RegisteredDevices[0].primaryTrainingBackupCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].primaryTrainingCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].productDisplayName str              ex: EPIX PRO - 51 mm
+  primary_training_device.RegisteredDevices[0].productSku      str              ex: 010-02804-52
+  primary_training_device.RegisteredDevices[0].projectedRaceTimePredictionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].publicBetaSoftwareCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].pulseOxAllDayCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].pulseOxOnDemandCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].pulseOxSleepCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].racePredictionsRunCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].realTimeSettingsCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].rechargeableSensorCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].registeredDate  int              ex: 1766644664000
+  primary_training_device.RegisteredDevices[0].registrationMetricsBackfillUnsupported bool             ex: False
+  primary_training_device.RegisteredDevices[0].remCapable      bool             ex: True
+  primary_training_device.RegisteredDevices[0].reminderAlarmCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].reorderablePagesCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].requiresInitialDeviceNickname bool             ex: False
+  primary_training_device.RegisteredDevices[0].respirationCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].restingHRCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].rideOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].rowingCapable   bool             ex: False
+  primary_training_device.RegisteredDevices[0].rts20Capable    bool             ex: False
+  primary_training_device.RegisteredDevices[0].runOptionIndoorCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].runOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].runningEconomyCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].runningHeartRateZoneCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].runningLactateThresholdCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].runningPowerZonesCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].runningSegmentCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].runningSportsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].runningToleranceCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].runningWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].scheduleCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].scheduleFileType str              ex: FIT
+  primary_training_device.RegisteredDevices[0].secondaryWorkoutStepTargetCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].segmentCapable  bool             ex: True
+  primary_training_device.RegisteredDevices[0].segmentPointCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].serialNumber    str              ex: 85G072281
+  primary_training_device.RegisteredDevices[0].setBodyCompositionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].settingCapable  bool             ex: True
+  primary_training_device.RegisteredDevices[0].settingFileType str              ex: FIT
+  primary_training_device.RegisteredDevices[0].shortName       null             ex: null
+  primary_training_device.RegisteredDevices[0].skipLastWorkoutStepInRepeatBlockCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].sleepAlignmentCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].sleepFitFileReceiveCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].sleepNeedCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].sleepScoreCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].sleepSkinTemperatureCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].sleepTimeCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].smallFitFileOnlyCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].solarChargeCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].solarPanelUtilizationCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].spectatorMessagingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].sportCapable    bool             ex: True
+  primary_training_device.RegisteredDevices[0].sportFileType   str              ex: FIT
+  primary_training_device.RegisteredDevices[0].sportingEventCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].stairStepperOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].standaloneFirstbeatActivityProcessingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].startActivityCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].startStopWorkoutCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].stepsTrueUpChartCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].strengthOptionsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].strengthTrainingPlanCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].strengthWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].supportedHrZones list[4]        
+  primary_training_device.RegisteredDevices[0].supportedHrZones[0] str              ex: RUNNING
+  primary_training_device.RegisteredDevices[0].supportsSecondaryUsers bool             ex: False
+  primary_training_device.RegisteredDevices[0].sweatLossCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].swimAlgorithmCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].swimWorkout2Capable bool             ex: False
+  primary_training_device.RegisteredDevices[0].swimWorkoutCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].swimmingHeartRateZoneCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].syncActivityEditsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].topoactiveMapsRealTimeSettingCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].trainableTriathlonEventCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].trainingEffectLabelCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].trainingLoadBalanceCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].trainingPlanCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].trainingReadinessCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].trainingStatusCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].trainingStatusPauseCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].unRetirable     bool             ex: False
+  primary_training_device.RegisteredDevices[0].unitId          int              ex: 3604321050
+  primary_training_device.RegisteredDevices[0].userProfileCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].userProfileFileType null             ex: null
+  primary_training_device.RegisteredDevices[0].userTcxExportCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].vbtCapable      bool             ex: False
+  primary_training_device.RegisteredDevices[0].vivohubCompatible bool             ex: False
+  primary_training_device.RegisteredDevices[0].vivohubConfigurable null             ex: null
+  primary_training_device.RegisteredDevices[0].vo2MaxBikeCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].vo2MaxRunCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].walkOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].walkWorkoutCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].walkingSportsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].wasp            bool             ex: False
+  primary_training_device.RegisteredDevices[0].wearableBackupRestoreCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].weatherAlertsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].weatherSettingsCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].weightGoalCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].weightScale     bool             ex: False
+  primary_training_device.RegisteredDevices[0].wellness        bool             ex: False
+  primary_training_device.RegisteredDevices[0].wheelchairCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].wifi            bool             ex: True
+  primary_training_device.RegisteredDevices[0].wifiSetup       bool             ex: False
+  primary_training_device.RegisteredDevices[0].workoutAudioPromptsCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].workoutCapable  bool             ex: True
+  primary_training_device.RegisteredDevices[0].workoutFileType str              ex: FIT
+  primary_training_device.RegisteredDevices[0].xcSkiPowerZonesCapable bool             ex: True
+  primary_training_device.RegisteredDevices[0].yogaCapable     bool             ex: True
+  primary_training_device.RegisteredDevices[0].yogaOptionCapable bool             ex: False
+  primary_training_device.RegisteredDevices[0].yogaWorkoutCapable bool             ex: True
+  primary_training_device.TrainingStatusOnlyDevices            dict             ex: {1 keys}
+  primary_training_device.TrainingStatusOnlyDevices.deviceWeights list[0]        
+  primary_training_device.WearableDevices                      dict             ex: {2 keys}
+  primary_training_device.WearableDevices.deviceWeights        list[1]        
+  primary_training_device.WearableDevices.deviceWeights[0]     dict             ex: {7 keys}
+  primary_training_device.WearableDevices.deviceWeights[0].deviceId int              ex: 3604321050
+  primary_training_device.WearableDevices.deviceWeights[0].displayName str              ex: EPIX PRO - 51mm
+  primary_training_device.WearableDevices.deviceWeights[0].imageUrl str              ex: https://res.garmin.com/en/products/010-02804-52/v/c1_01_md.png
+  primary_training_device.WearableDevices.deviceWeights[0].lhaBackupCapable bool             ex: True
+  primary_training_device.WearableDevices.deviceWeights[0].primaryTrainingCapable bool             ex: True
+  primary_training_device.WearableDevices.deviceWeights[0].primaryWearableDevice bool             ex: True
+  primary_training_device.WearableDevices.deviceWeights[0].weight int              ex: 3
+  primary_training_device.WearableDevices.wearableDeviceCount  int              ex: 1
+
+======================================================================
+  Garmin > weekly_stress
+======================================================================
+  weekly_stress                                                list[44]       
+  weekly_stress[0].calendarDate                                str              ex: 2025-05-20
+  weekly_stress[0].value                                       int              ex: 23
+
+======================================================================
+  Garmin > weekly_steps
+======================================================================
+  weekly_steps                                                 list[44]       
+  weekly_steps[0].calendarDate                                 str              ex: 2025-05-20
+  weekly_steps[0].values                                       dict             ex: {5 keys}
+  weekly_steps[0].values.averageDistance                       float            ex: 11500.42857142857
+  weekly_steps[0].values.averageSteps                          float            ex: 13811.57142857143
+  weekly_steps[0].values.totalDistance                         float            ex: 80503.0
+  weekly_steps[0].values.totalSteps                            float            ex: 96681.0
+  weekly_steps[0].values.wellnessDataDaysCount                 int              ex: 7
+
+======================================================================
+  Garmin > weekly_intensity_mins
+======================================================================
+  weekly_intensity_mins                                        list[2]        
+  weekly_intensity_mins[0].calendarDate                        str              ex: 2026-03-16
+  weekly_intensity_mins[0].moderateValue                       int              ex: 39
+  weekly_intensity_mins[0].vigorousValue                       int              ex: 86
+  weekly_intensity_mins[0].weeklyGoal                          int              ex: 150
+
+======================================================================
+  Garmin > progress_summary
+======================================================================
+  progress_summary                                             list[1]        
+  progress_summary[0].countOfActivities                        int              ex: 4
+  progress_summary[0].date                                     str              ex: 2026-03-24
+  progress_summary[0].stats                                    dict             ex: {1 keys}
+  progress_summary[0].stats.running                            dict             ex: {1 keys}
+  progress_summary[0].stats.running.distance                   dict             ex: {5 keys}
+  progress_summary[0].stats.running.distance.avg               float            ex: 910833.2397460938
+  progress_summary[0].stats.running.distance.count             int              ex: 4
+  progress_summary[0].stats.running.distance.max               float            ex: 2104750.9765625
+  progress_summary[0].stats.running.distance.min               float            ex: 424554.98046875
+  progress_summary[0].stats.running.distance.sum               float            ex: 3643332.958984375
+
+======================================================================
+  Garmin > activities_by_date
+======================================================================
+  activities_by_date                                           list[4]        
+  activities_by_date[0].activityId                             int              ex: 22254941084
+  activities_by_date[0].activityName                           str              ex: 불패 마라톤 (bulpaerun)
+  activities_by_date[0].activityTrainingLoad                   float            ex: 739.977783203125
+  activities_by_date[0].activityType                           dict             ex: {6 keys}
+  activities_by_date[0].activityType.isHidden                  bool             ex: False
+  activities_by_date[0].activityType.parentTypeId              int              ex: 17
+  activities_by_date[0].activityType.restricted                bool             ex: False
+  activities_by_date[0].activityType.trimmable                 bool             ex: True
+  activities_by_date[0].activityType.typeId                    int              ex: 1
+  activities_by_date[0].activityType.typeKey                   str              ex: running
+  activities_by_date[0].activityUUID                           str              ex: 3a0df8c7-304f-41c9-b665-ad71a34cb5b6
+  activities_by_date[0].aerobicTrainingEffect                  float            ex: 5.0
+  activities_by_date[0].aerobicTrainingEffectMessage           str              ex: OVERREACHING_17
+  activities_by_date[0].anaerobicTrainingEffect                float            ex: 2.5
+  activities_by_date[0].anaerobicTrainingEffectMessage         str              ex: MAINTAINING_ANAEROBIC_BASE_1
+  activities_by_date[0].atpActivity                            bool             ex: False
+  activities_by_date[0].autoCalcCalories                       bool             ex: False
+  activities_by_date[0].averageHR                              float            ex: 176.0
+  activities_by_date[0].averageRunningCadenceInStepsPerMinute  float            ex: 183.546875
+  activities_by_date[0].averageSpeed                           float            ex: 3.4240000247955327
+  activities_by_date[0].avgElevation                           float            ex: 7.989167206614686
+  activities_by_date[0].avgGradeAdjustedSpeed                  float            ex: 3.4189999103546143
+  activities_by_date[0].avgGroundContactTime                   float            ex: 231.5
+  activities_by_date[0].avgPower                               float            ex: 282.0
+  activities_by_date[0].avgStrideLength                        float            ex: 111.21999511718751
+  activities_by_date[0].avgVerticalOscillation                 float            ex: 8.469999694824219
+  activities_by_date[0].avgVerticalRatio                       float            ex: 7.619999885559082
+  activities_by_date[0].beginTimestamp                         int              ex: 1774137631000
+  activities_by_date[0].bmrCalories                            float            ex: 124.0
+  activities_by_date[0].calendarEventUuid                      str              ex: b5b5f63d-3bc2-4a9c-8eec-38c5b9223c2a
+  activities_by_date[0].calories                               float            ex: 1303.0
+  activities_by_date[0].decoDive                               bool             ex: False
+  activities_by_date[0].description                            str              ex: 1:42:22
+  activities_by_date[0].deviceId                               int              ex: 3604321050
+  activities_by_date[0].differenceBodyBattery                  int              ex: -33
+  activities_by_date[0].distance                               float            ex: 21047.509765625
+  activities_by_date[0].duration                               float            ex: 6147.72021484375
+  activities_by_date[0].elapsedDuration                        float            ex: 6147.72021484375
+  activities_by_date[0].elevationCorrected                     bool             ex: False
+  activities_by_date[0].elevationGain                          float            ex: 17.019999999552965
+  activities_by_date[0].elevationLoss                          float            ex: 11.509999990463257
+  activities_by_date[0].endLatitude                            float            ex: 37.53203130327165
+  activities_by_date[0].endLongitude                           float            ex: 126.92707490175962
+  activities_by_date[0].endTimeGMT                             str              ex: 2026-03-22 01:42:58
+  activities_by_date[0].eventType                              dict             ex: {3 keys}
+  activities_by_date[0].eventType.sortOrder                    int              ex: 5
+  activities_by_date[0].eventType.typeId                       int              ex: 1
+  activities_by_date[0].eventType.typeKey                      str              ex: race
+  activities_by_date[0].fastestSplit_1000                      float            ex: 279.9100036621094
+  activities_by_date[0].fastestSplit_10000                     float            ex: 2850.555908203125
+  activities_by_date[0].fastestSplit_1609                      float            ex: 452.7409973144531
+  activities_by_date[0].fastestSplit_5000                      float            ex: 1413.7679443359375
+  activities_by_date[0].favorite                               bool             ex: False
+  activities_by_date[0].hasHeatMap                             bool             ex: False
+  activities_by_date[0].hasImages                              bool             ex: False
+  activities_by_date[0].hasPolyline                            bool             ex: True
+  activities_by_date[0].hasSplits                              bool             ex: True
+  activities_by_date[0].hasVideo                               bool             ex: False
+  activities_by_date[0].hrTimeInZone_1                         float            ex: 118.999
+  activities_by_date[0].hrTimeInZone_2                         float            ex: 422.981
+  activities_by_date[0].hrTimeInZone_3                         float            ex: 956.933
+  activities_by_date[0].hrTimeInZone_4                         float            ex: 475.04
+  activities_by_date[0].hrTimeInZone_5                         float            ex: 4142.656
+  activities_by_date[0].lapCount                               int              ex: 22
+  activities_by_date[0].manualActivity                         bool             ex: False
+  activities_by_date[0].manufacturer                           str              ex: GARMIN
+  activities_by_date[0].maxDoubleCadence                       float            ex: 192.0
+  activities_by_date[0].maxElevation                           float            ex: 11.600000381469727
+  activities_by_date[0].maxHR                                  float            ex: 191.0
+  activities_by_date[0].maxPower                               float            ex: 394.0
+  activities_by_date[0].maxRunningCadenceInStepsPerMinute      float            ex: 192.0
+  activities_by_date[0].maxSpeed                               float            ex: 4.105999946594238
+  activities_by_date[0].maxTemperature                         float            ex: 24.0
+  activities_by_date[0].maxVerticalSpeed                       float            ex: 0.40000009536743164
+  activities_by_date[0].minActivityLapDuration                 float            ex: 11.958999633789062
+  activities_by_date[0].minElevation                           float            ex: 5.0
+  activities_by_date[0].minTemperature                         float            ex: 13.0
+  activities_by_date[0].moderateIntensityMinutes               int              ex: 16
+  activities_by_date[0].movingDuration                         float            ex: 6143.587982177734
+  activities_by_date[0].normPower                              float            ex: 283.0
+  activities_by_date[0].ownerDisplayName                       str              ex: 993e17bf-1882-46be-91a9-a47efd88632c
+  activities_by_date[0].ownerFullName                          str              ex: Chansu Park
+  activities_by_date[0].ownerId                                int              ex: 133326671
+  activities_by_date[0].ownerProfileImageUrlLarge              str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  activities_by_date[0].ownerProfileImageUrlMedium             str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  activities_by_date[0].ownerProfileImageUrlSmall              str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  activities_by_date[0].parent                                 bool             ex: False
+  activities_by_date[0].powerTimeInZone_1                      float            ex: 5.0
+  activities_by_date[0].powerTimeInZone_2                      float            ex: 454.977
+  activities_by_date[0].powerTimeInZone_3                      float            ex: 4611.584
+  activities_by_date[0].powerTimeInZone_4                      float            ex: 1054.047
+  activities_by_date[0].powerTimeInZone_5                      float            ex: 10.999
+  activities_by_date[0].pr                                     bool             ex: False
+  activities_by_date[0].privacy                                dict             ex: {2 keys}
+  activities_by_date[0].privacy.typeId                         int              ex: 1
+  activities_by_date[0].privacy.typeKey                        str              ex: public
+  activities_by_date[0].purposeful                             bool             ex: False
+  activities_by_date[0].qualifyingDive                         bool             ex: False
+  activities_by_date[0].splitSummaries                         list[2]        
+  activities_by_date[0].splitSummaries[0]                      dict             ex: {13 keys}
+  activities_by_date[0].splitSummaries[0].averageElevationGain float            ex: 17.660000026226044
+  activities_by_date[0].splitSummaries[0].averageSpeed         float            ex: 3.4240000247955322
+  activities_by_date[0].splitSummaries[0].distance             float            ex: 21047.470703125
+  activities_by_date[0].splitSummaries[0].duration             float            ex: 6147.4931640625
+  activities_by_date[0].splitSummaries[0].elevationLoss        float            ex: 11.270000010728836
+  activities_by_date[0].splitSummaries[0].maxDistance          int              ex: 21047
+  activities_by_date[0].splitSummaries[0].maxElevationGain     float            ex: 17.660000026226044
+  activities_by_date[0].splitSummaries[0].maxSpeed             float            ex: 4.105999946594238
+  activities_by_date[0].splitSummaries[0].noOfSplits           int              ex: 3
+  activities_by_date[0].splitSummaries[0].numClimbSends        int              ex: 0
+  activities_by_date[0].splitSummaries[0].numFalls             int              ex: 0
+  activities_by_date[0].splitSummaries[0].splitType            str              ex: RWD_RUN
+  activities_by_date[0].splitSummaries[0].totalAscent          float            ex: 17.660000026226044
+  activities_by_date[0].sportTypeId                            int              ex: 1
+  activities_by_date[0].startLatitude                          float            ex: 37.53204831853509
+  activities_by_date[0].startLongitude                         float            ex: 126.92697557620704
+  activities_by_date[0].startTimeGMT                           str              ex: 2026-03-22 00:00:31
+  activities_by_date[0].startTimeLocal                         str              ex: 2026-03-22 09:00:31
+  activities_by_date[0].steps                                  int              ex: 18712
+  activities_by_date[0].summarizedDiveInfo                     dict             ex: {1 keys}
+  activities_by_date[0].summarizedDiveInfo.summarizedDiveGases list[0]        
+  activities_by_date[0].timeZoneId                             int              ex: 164
+  activities_by_date[0].trainingEffectLabel                    str              ex: VO2MAX
+  activities_by_date[0].userPro                                bool             ex: False
+  activities_by_date[0].userRoles                              list[30]       
+  activities_by_date[0].userRoles[0]                           str              ex: SCOPE_GOLF_API_READ
+  activities_by_date[0].vO2MaxValue                            float            ex: 52.0
+  activities_by_date[0].vigorousIntensityMinutes               int              ex: 73
+  activities_by_date[0].waterEstimated                         float            ex: 1424.0

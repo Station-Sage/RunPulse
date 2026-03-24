@@ -1,0 +1,121 @@
+======================================================================
+  RunPulse Step 3 — Schema v2 최종 보고서
+  생성일: 2026-03-24 19:19:13
+======================================================================
+
+총 테이블: 35개, 뷰: 1개
+
+테이블                                     컬럼        행 비고
+----------------------------------------------------------------------
+
+  [Activities]
+  activity_detail_metrics                6   13,267  
+  activity_laps                         70       22  ★ (13→70+37=70)
+  activity_streams                      25        0  신규
+  activity_summaries                   149    1,526  ★ 주요 (21→149→120+29=149)
+  activity_zones                         7        0  신규 (빈 테이블)
+
+  [Daily]
+  daily_fitness                         22       24  
+  daily_wellness                        27       33  
+
+  [Health]
+  bio_metrics_history                   12        0  신규 (빈 테이블)
+  fitness_age                           10        0  신규 (빈 테이블)
+  health_status                          9        0  신규 (빈 테이블)
+  heat_altitude_acclimation              8        0  신규 (빈 테이블)
+  sleep_data                            37        0  신규 (빈 테이블)
+  training_readiness                    18        0  신규 (빈 테이블)
+
+  [Training]
+  endurance_hill_score                  12        0  신규 (빈 테이블)
+  personal_records                       9        0  신규 (빈 테이블)
+  race_predictions                       8        0  신규 (빈 테이블)
+  training_history                       6        0  신규 (빈 테이블)
+  training_load_daily                    8        0  신규 (빈 테이블)
+
+  [Equipment]
+  gear                                  17        0  신규 (빈 테이블)
+  gear_activities                        3        0  신규 (빈 테이블)
+  shoes                                  7       11  
+
+  [Environment]
+  hydration_logs                         5        0  신규 (빈 테이블)
+  nutrition_logs                         4        0  신규 (빈 테이블)
+  weather_data                          26        0  신규 (빈 테이블)
+
+  [Device/System]
+  activities                            16        0  
+  computed_metrics                       7    3,634  
+  devices                                7        0  신규 (빈 테이블)
+  goals                                  8        0  신규 (빈 테이블)
+  planned_workouts                      14        0  신규 (빈 테이블)
+  raw_source_payloads                    8    1,682  
+  source_metrics                         6        0  신규 (빈 테이블)
+  source_payloads                        8        0  신규 (빈 테이블)
+  sync_jobs                             15        1  
+
+  [기타]
+  daily_detail_metrics                   8      328
+  sqlite_sequence                        2        9
+
+총계                                     604   20,537
+
+======================================================================
+  데이터 소스 매핑 현황
+======================================================================
+  ✅ Strava CSV                101/101    매핑 46 + 날씨→weather 17 + 스킵 34 + 추가 5
+  ✅ Strava FIT record         22/22      → activity_streams (21 매핑 + calories 스킵)
+  ✅ Strava FIT session        81/81      → activity_summaries (39+29 매핑, 13 스킵)
+  ✅ Strava FIT lap            72/72      → activity_laps (28+37 매핑, 7 스킵)
+  ✅ Strava TCX (129개)         매핑완료       FIT 부분집합 → activity_streams, 스키마 추가 없음
+  ✅ Strava GPX (7개)           매핑완료       FIT 부분집합 → activity_streams, 스키마 추가 없음
+  ✅ Intervals.icu CSV         86/86      매핑 64 + 스킵 12 + 추가 10
+  ✅ Garmin JSON export        95필드       → activity_summaries 주요 필드 모두 매핑
+  ✅ Garmin Wellness (14 JSON) 매핑완료       → sleep_data, health_status, daily_wellness 등
+  ✅ Garmin Metrics (33 JSON)  매핑완료       → training_readiness, race_predictions 등 8개 테이블
+  ✅ Garmin Fitness (7 JSON)   매핑완료       → gear, personal_records, planned_workouts
+
+======================================================================
+  원본 파일 현황
+======================================================================
+  Strava activities 폴더:
+    FIT.GZ: 355개 → activity_streams/summaries/laps
+    TCX.GZ: 129개 → activity_streams/laps (FIT 부분집합)
+    GPX.GZ:   2개 → activity_streams (FIT 부분집합)
+    GPX:      1개 → activity_streams
+    합계: 487개 활동 파일
+  Garmin full ZIP:
+    DI_CONNECT: 85 JSON + 10 ZIP (7,331 FIT 원본)
+  Intervals.icu CSV: 534행
+
+======================================================================
+  스키마 변경 이력
+======================================================================
+  v1 (원본):  17 테이블
+  v2.0:       +18 테이블, activity_summaries 21→105컬럼
+  v2.1:       +10 Intervals 컬럼 (activity_summaries → 115)
+  v2.2:       +5 Strava 컬럼 + 15 weather 컬럼
+              (activity_summaries → 120, weather_data → 26)
+  v2.3:       +29 FIT session 컬럼 + 37 FIT lap 컬럼
+              (activity_summaries → 149, activity_laps → 70)
+  최종:       35 테이블, 1 뷰
+
+======================================================================
+  Step 4 — ETL 파이프라인 구현 계획
+======================================================================
+  1. Garmin full ZIP ETL
+     - summarizedActivities (485행) → activity_summaries
+     - Wellness JSON (14개) → sleep_data, health_status, daily_wellness
+     - Metrics JSON (33개) → training_readiness, race_predictions 등
+     - Fitness JSON (7개) → gear, personal_records
+  2. Strava 활동 파일 파싱
+     - FIT (355개) → activity_streams + summaries + laps
+     - TCX (129개) → activity_streams + laps
+     - GPX (7개)   → activity_streams
+  3. 기존 데이터 보강
+     - activity_summaries 1,526행의 신규 컬럼 채우기
+     - raw_source_payloads에서 추출
+  4. Cross-validation
+     - Strava ↔ Garmin ↔ Intervals 동일 활동 매칭
+     - 필드별 값 비교 및 우선순위 결정

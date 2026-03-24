@@ -375,8 +375,8 @@ def sync_activities(
                     """INSERT OR IGNORE INTO activity_summaries
                        (source, source_id, activity_type, start_time, distance_km,
                         duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                        elevation_gain, calories, description)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        elevation_gain, calories, description, start_lat, start_lon)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         "strava", source_id,
                         act.get("type", "Run").lower(),
@@ -384,6 +384,8 @@ def sync_activities(
                         act.get("average_heartrate"), act.get("max_heartrate"),
                         cadence, act.get("total_elevation_gain"),
                         act.get("calories"), act.get("name"),
+                        (act.get("start_latlng") or [None, None])[0],
+                        (act.get("start_latlng") or [None, None])[1],
                     ),
                 )
             except sqlite3.Error as e:
@@ -399,6 +401,8 @@ def sync_activities(
                     "elevation_gain": act.get("total_elevation_gain"),
                     "calories": act.get("calories"),
                     "description": act.get("name"),
+                    "start_lat": (act.get("start_latlng") or [None, None])[0],
+                    "start_lon": (act.get("start_latlng") or [None, None])[1],
                 })
                 if existing_id:
                     _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
@@ -414,6 +418,8 @@ def sync_activities(
                                 conn, source_id, existing_id, headers
                             )
                 continue
+
+
 
             activity_id = cursor.lastrowid
             count += 1

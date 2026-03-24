@@ -51,6 +51,29 @@ def _refresh_activity_metrics(
         "session_rpe": act.get("session_rpe"),
         "average_stride": act.get("average_stride"),
         "icu_lap_count": act.get("icu_lap_count"),
+        # Sprint 5 추가
+        "icu_ftp": act.get("icu_ftp"),
+        "icu_rolling_ftp": act.get("icu_rolling_ftp"),
+        "icu_pm_ftp": act.get("icu_pm_ftp"),
+        "icu_pm_ftp_watts": act.get("icu_pm_ftp_watts"),
+        "icu_pm_cp": act.get("icu_pm_cp"),
+        "icu_variability_index": act.get("icu_variability_index"),
+        "icu_weighted_avg_watts": act.get("icu_weighted_avg_watts"),
+        "icu_average_watts": act.get("icu_average_watts"),
+        "gap": act.get("gap"),
+        "training_stress_score": act.get("icu_training_load"),
+        "normalized_power": act.get("icu_weighted_avg_watts"),
+        "max_speed": act.get("max_speed"),
+        "max_power": act.get("p_max"),
+        "elevation_loss": act.get("total_elevation_loss"),
+        "avg_run_cadence": act.get("average_cadence"),
+        "avg_temp_c": act.get("average_weather_temp"),
+        "weather_wind_speed": act.get("average_wind_speed"),
+        "weather_wind_gust": act.get("average_wind_gust"),
+        "weather_feels_like": act.get("average_feels_like"),
+        "weather_clouds": act.get("average_clouds"),
+        "polarization_index": act.get("polarization_index"),
+        "icu_power_hr": act.get("icu_power_hr"),
     }
     for name, value in metrics.items():
         if value is not None:
@@ -151,8 +174,8 @@ def sync_activities(
                 """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                    elevation_gain, calories, description, workout_label)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    elevation_gain, calories, description, workout_label, avg_power)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "intervals", source_id,
                     act.get("type", "Run").lower(),
@@ -161,6 +184,8 @@ def sync_activities(
                     avg_cadence,
                     act.get("total_elevation_gain"), act.get("calories"),
                     act.get("name"), workout_label,
+                    act.get("icu_weighted_avg_watts"),
+                    act.get("icu_weighted_avg_watts"),
                 ),
             )
         except sqlite3.Error as e:
@@ -177,6 +202,7 @@ def sync_activities(
                 "calories": act.get("calories"),
                 "description": act.get("name"),
                 "workout_label": workout_label,
+                "avg_power": act.get("icu_weighted_avg_watts"),
             })
             _store_raw_payload(conn, "intervals", "activity", source_id, act, activity_id=existing_id)
             if existing_id:

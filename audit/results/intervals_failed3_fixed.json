@@ -1,0 +1,114 @@
+{
+  "best_efforts_heartrate_duration_30": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "best_efforts_heartrate_duration_300": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "best_efforts_heartrate_distance_1000": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "best_efforts_watts_duration_30": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "best_efforts_watts_duration_300": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "best_efforts_watts_distance_1000": {
+    "status": "OK",
+    "efforts_count": 8,
+    "sample_keys": [
+      "start_index",
+      "end_index",
+      "average",
+      "duration",
+      "distance"
+    ]
+  },
+  "power_curves": {
+    "status": "OK",
+    "curves_count": 1,
+    "sample_keys": [
+      "id",
+      "after_kj",
+      "label",
+      "start_date_local",
+      "end_date_local",
+      "days",
+      "moving_time",
+      "training_load",
+      "weight",
+      "secs",
+      "values",
+      "activity_id",
+      "watts_per_kg",
+      "wkg_activity_id",
+      "powerModels",
+      "ranks",
+      "mapPlot",
+      "watts",
+      "vo2max_5m",
+      "compound_score_5m"
+    ]
+  },
+  "power_hr_curve": {
+    "status": "OK",
+    "keys": [
+      "athleteId",
+      "start",
+      "end",
+      "minWatts",
+      "maxWatts",
+      "bucketSize",
+      "bpm",
+      "cadence",
+      "minutes",
+      "lthr",
+      "max_hr",
+      "ftp"
+    ],
+    "bpm_count": 72,
+    "min_watts": 20,
+    "max_watts": 380
+  }
+}
