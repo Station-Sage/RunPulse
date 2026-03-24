@@ -5,7 +5,6 @@ config.json
 tmp_*.py
 
 # DB
-running.db
 *.db-journal
 
 # 실제 데이터
@@ -85,4 +84,3 @@ running.db.backup_*
 
 # Export data and DB
 audit/export_data/
-running.db
