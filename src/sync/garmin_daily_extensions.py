@@ -150,7 +150,7 @@ def sync_daily_fitness_metrics(
 
     # Fitness Age
     try:
-        fa = client.get_fitnessage(date_str, date_str)
+        fa = client.get_fitnessage_data(date_str)
         if fa:
             _store_raw_payload(conn, "fitnessage_day", date_str, fa)
             if isinstance(fa, dict):
@@ -359,3 +359,114 @@ def sync_daily_heart_rates(
         conn, date_str, "heart_rates_timeline",
         metric_json=json.dumps(hr_values),
     )
+
+
+def sync_daily_hydration(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    date_str: str,
+) -> None:
+    """Garmin 수분 섭취 데이터 → daily_detail_metrics 저장."""
+    try:
+        data = client.get_hydration_data(date_str)
+    except Exception:
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "hydration_day", date_str, data)
+
+    h = data if isinstance(data, dict) else {}
+    metrics = {
+        "hydration_goal_ml": h.get("valueInML") or h.get("goalInML"),
+        "hydration_intake_ml": h.get("totalIntakeInML") or h.get("sweatLossInML"),
+        "hydration_sweat_loss_ml": h.get("activityIntakeInML"),
+    }
+    for name, value in metrics.items():
+        if value is not None:
+            try:
+                _upsert_daily_detail_metric(conn, date_str, name, metric_value=float(value))
+            except (TypeError, ValueError):
+                pass
+
+
+def sync_daily_weigh_ins(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    date_str: str,
+) -> None:
+    """Garmin 체중 측정 → daily_wellness.weight_kg 저장."""
+    try:
+        data = client.get_daily_weigh_ins(date_str)
+    except Exception:
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "weigh_ins_day", date_str, data)
+
+    entries = (
+        data if isinstance(data, list)
+        else data.get("dateWeightList") or data.get("weightSamples") or []
+    )
+    if not entries:
+        return
+
+    # 당일 가장 최근 측정값 사용
+    latest = entries[-1] if entries else None
+    if not latest:
+        return
+
+    weight_g = latest.get("weight")
+    weight_kg = weight_g / 1000 if weight_g and weight_g > 500 else latest.get("weightInKg")
+    if weight_kg:
+        try:
+            conn.execute(
+                """UPDATE daily_wellness SET weight_kg = ?
+                   WHERE date = ? AND source = 'garmin'""",
+                (float(weight_kg), date_str),
+            )
+        except sqlite3.OperationalError:
+            pass
+        try:
+            _upsert_daily_detail_metric(
+                conn, date_str, "weigh_in_kg", metric_value=float(weight_kg)
+            )
+        except (TypeError, ValueError):
+            pass
+
+
+def sync_daily_running_tolerance(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    date_str: str,
+) -> None:
+    """Garmin running_tolerance (주간 집계) → daily_detail_metrics 저장."""
+    try:
+        # 당일 포함 7일 범위로 집계
+        data = client.get_running_tolerance(date_str, date_str, aggregation="weekly")
+    except Exception:
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "running_tolerance_day", date_str, data)
+
+    items = data if isinstance(data, list) else [data]
+    for item in items:
+        metrics = {
+            "running_tolerance_load": item.get("trainingLoad"),
+            "running_tolerance_optimal_min": item.get("optimalMinLoad"),
+            "running_tolerance_optimal_max": item.get("optimalMaxLoad"),
+            "running_tolerance_score": item.get("runningToleranceScore"),
+        }
+        for name, value in metrics.items():
+            if value is not None:
+                try:
+                    _upsert_daily_detail_metric(conn, date_str, name, metric_value=float(value))
+                except (TypeError, ValueError):
+                    pass
+        break  # 첫 번째 항목만

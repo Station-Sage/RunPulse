@@ -60,6 +60,8 @@ class TestSyncActivities:
         mock_get.side_effect = [
             # 상세 조회
             {"suffer_score": 87, "laps": [], "best_efforts": []},
+            # zones
+            [],
             # 스트림
             [{"type": "heartrate", "data": [140, 150, 160]}],
         ]
@@ -88,7 +90,7 @@ class TestSyncActivities:
             "type": "Run", "suffer_score": 55,
         }
         mock_get_headers.return_value = ([activity], {})
-        mock_get.side_effect = [{"suffer_score": 55, "laps": [], "best_efforts": []}, []]
+        mock_get.side_effect = [{"suffer_score": 55, "laps": [], "best_efforts": []}, [], []]
 
         with patch("src.sync.strava_activity_sync.refresh_token", return_value="at_test"):
             sync_activities(sample_config, db_conn, days=7)
@@ -111,6 +113,7 @@ class TestSyncActivities:
         mock_get_headers.return_value = ([activity], {})
         mock_get.side_effect = [
             {"suffer_score": 60, "laps": [], "best_efforts": []},
+            [],
             [{"type": "heartrate", "data": [140, 150]}, {"type": "distance", "data": [0, 100]}],
         ]
 
@@ -146,6 +149,7 @@ class TestSyncActivities:
                      "moving_time": 2800, "start_index": 0, "end_index": 400},
                 ],
             },
+            [],
             [],
         ]
 
@@ -186,6 +190,7 @@ class TestSyncActivities:
                 ],
             },
             [],
+            [],
         ]
 
         with patch("src.sync.strava_activity_sync.refresh_token", return_value="at_test"):
@@ -196,6 +201,52 @@ class TestSyncActivities:
         ).fetchall()
         assert len(laps) == 2
         assert laps[0][1] == 180  # cadence * 2
+
+
+class TestSyncActivityZones:
+    @patch("src.sync.strava_activity_sync.api.get")
+    @patch("src.sync.strava_activity_sync.api.get_with_headers")
+    def test_stores_zones_in_metrics(self, mock_get_headers, mock_get, db_conn, sample_config):
+        """zones API 결과가 activity_detail_metrics에 저장됨."""
+        now = datetime.now().isoformat()
+        activity = {"id": 461, "start_date_local": now, "distance": 5000, "moving_time": 1500, "type": "Run"}
+        mock_get_headers.return_value = ([activity], {})
+        mock_get.side_effect = [
+            {"suffer_score": 60, "laps": [], "best_efforts": []},
+            [{"type": "heartrate", "score": 42, "distribution_buckets": [{"time": 120}, {"time": 300}]}],
+            [],
+        ]
+
+        with patch("src.sync.strava_activity_sync.refresh_token", return_value="at_test"):
+            sync_activities(sample_config, db_conn, days=7)
+
+        row = db_conn.execute(
+            "SELECT metric_value FROM activity_detail_metrics WHERE source='strava' AND metric_name='heartrate_zone_score'"
+        ).fetchone()
+        assert row is not None
+        assert row[0] == 42.0
+
+    @patch("src.sync.strava_activity_sync.api.get")
+    @patch("src.sync.strava_activity_sync.api.get_with_headers")
+    def test_stores_workout_type_trainer_commute(self, mock_get_headers, mock_get, db_conn, sample_config):
+        """workout_type, trainer, commute 필드가 activity_summaries에 저장됨."""
+        now = datetime.now().isoformat()
+        activity = {
+            "id": 462, "start_date_local": now, "distance": 5000, "moving_time": 1500,
+            "type": "Run", "workout_type": 11, "trainer": True, "commute": False,
+        }
+        mock_get_headers.return_value = ([activity], {})
+        mock_get.side_effect = [{"laps": [], "best_efforts": []}, [], []]
+
+        with patch("src.sync.strava_activity_sync.refresh_token", return_value="at_test"):
+            sync_activities(sample_config, db_conn, days=7)
+
+        row = db_conn.execute(
+            "SELECT workout_type, trainer, commute FROM activity_summaries WHERE source='strava'"
+        ).fetchone()
+        assert row[0] == 11
+        assert row[1] == 1
+        assert row[2] is None
 
 
 class TestSyncAthleteProfile:

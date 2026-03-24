@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-"""Garmin 활동 확장 API — streams, gear, exercise_sets (전 종목 공통)."""
+"""Garmin 활동 확장 API — streams, gear, exercise_sets, weather, hr/power zones."""
 
+import json
 import sqlite3
 from typing import TYPE_CHECKING
 
@@ -24,7 +25,7 @@ def sync_activity_streams(
         force: True이면 기존 스트림 삭제 후 재저장 (기간 동기화용).
 
     Returns:
-        저장된 포인트 수.
+        저장된 스트림 타입 수.
     """
     if not force:
         existing = conn.execute(
@@ -33,7 +34,7 @@ def sync_activity_streams(
             (activity_id,),
         ).fetchone()[0]
         if existing > 0:
-            return 0  # 이미 존재, 스킵
+            return 0
 
     try:
         data = client.get_activity_details(int(source_id), maxpoly=9999999)
@@ -46,8 +47,8 @@ def sync_activity_streams(
 
     _store_raw_payload(conn, "activity_details", source_id, data, activity_id=activity_id)
 
-    points = _parse_garmin_streams(data)
-    if not points:
+    streams = _parse_garmin_streams_by_type(data)
+    if not streams:
         return 0
 
     if force:
@@ -57,65 +58,67 @@ def sync_activity_streams(
         )
 
     rows = [
-        (
-            activity_id, "garmin",
-            p.get("stream_index"), p.get("timestamp"),
-            p.get("lat"), p.get("lon"), p.get("altitude_m"), p.get("distance_m"),
-            p.get("speed_ms"), p.get("hr"), p.get("cadence"), p.get("power"),
-            p.get("temperature"), p.get("accumulated_power"),
-        )
-        for p in points
+        (activity_id, "garmin", stype, json.dumps(arr), len(arr))
+        for stype, arr in streams.items()
     ]
     conn.executemany(
         """INSERT OR IGNORE INTO activity_streams
-           (activity_id, source, stream_index, timestamp, lat, lon, altitude_m,
-            distance_m, speed_ms, hr, cadence, power, temperature, accumulated_power)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           (activity_id, source, stream_type, data_json, original_size)
+           VALUES (?, ?, ?, ?, ?)""",
         rows,
     )
     return len(rows)
 
 
-def _parse_garmin_streams(data: dict) -> list[dict]:
-    """Garmin metricDescriptors + activityDetailMetrics 파싱 → stream point 리스트."""
+def _parse_garmin_streams_by_type(data: dict) -> dict[str, list]:
+    """Garmin metricDescriptors + activityDetailMetrics → {stream_type: [values...]}."""
     descriptors = data.get("metricDescriptors", [])
     if not descriptors:
-        return []
+        return {}
 
-    key_index: dict[str, int] = {}
+    # Garmin metric key → standard stream_type name
+    key_map = {
+        "directLatitude": "latlng_lat",
+        "directLongitude": "latlng_lon",
+        "directElevation": "altitude",
+        "directDistance": "distance",
+        "directSpeed": "velocity_smooth",
+        "directHeartRate": "heartrate",
+        "directDoubleCadence": "cadence",
+        "directPower": "watts",
+        "directAirTemperature": "temp",
+        "directTemperature": "temp",
+        "sumAccumulatedPower": "accumulated_power",
+    }
+
+    idx_map: dict[str, int] = {}
     for d in descriptors:
         k = d.get("key") or d.get("metricsKey")
         idx = d.get("metricsIndex")
         if k is not None and idx is not None:
-            key_index[k] = int(idx)
+            idx_map[k] = int(idx)
 
-    def _get(metrics: list, key: str):
-        idx = key_index.get(key)
-        if idx is not None and idx < len(metrics):
-            return metrics[idx]
-        return None
+    # Initialize per-type arrays for found keys
+    streams: dict[str, list] = {}
+    for garmin_key, stream_name in key_map.items():
+        if garmin_key in idx_map and stream_name not in streams:
+            streams[stream_name] = []
 
-    points = []
-    for i, row in enumerate(data.get("activityDetailMetrics", [])):
+    for row in data.get("activityDetailMetrics", []):
         metrics = row.get("metrics", [])
-        points.append({
-            "stream_index": i,
-            "timestamp": row.get("startTimeGMT"),
-            "lat": _get(metrics, "directLatitude"),
-            "lon": _get(metrics, "directLongitude"),
-            "altitude_m": _get(metrics, "directElevation"),
-            "distance_m": _get(metrics, "directDistance"),
-            "speed_ms": _get(metrics, "directSpeed"),
-            "hr": _get(metrics, "directHeartRate"),
-            "cadence": _get(metrics, "directDoubleCadence"),
-            "power": _get(metrics, "directPower"),
-            "temperature": (
-                _get(metrics, "directAirTemperature")
-                or _get(metrics, "directTemperature")
-            ),
-            "accumulated_power": _get(metrics, "sumAccumulatedPower"),
-        })
-    return points
+        for garmin_key, stream_name in key_map.items():
+            if garmin_key not in idx_map:
+                continue
+            idx = idx_map[garmin_key]
+            val = metrics[idx] if idx < len(metrics) else None
+            if stream_name not in streams:
+                streams[stream_name] = []
+            # temp: don't overwrite if already set by directAirTemperature
+            if garmin_key == "directTemperature" and streams.get(stream_name):
+                continue
+            streams[stream_name].append(val)
+
+    return {k: v for k, v in streams.items() if v and any(x is not None for x in v)}
 
 
 def sync_activity_gear(
@@ -157,9 +160,9 @@ def sync_activity_gear(
 
         try:
             conn.execute(
-                """INSERT INTO gear (source, gear_id, name, distance_m, retired)
+                """INSERT INTO gear (source, source_gear_id, name, distance_m, retired)
                    VALUES ('garmin', ?, ?, ?, ?)
-                   ON CONFLICT(source, gear_id) DO UPDATE SET
+                   ON CONFLICT(source, source_gear_id) DO UPDATE SET
                        name = COALESCE(excluded.name, name),
                        distance_m = excluded.distance_m,
                        retired = excluded.retired,
@@ -251,3 +254,147 @@ def sync_activity_exercise_sets(
             print(f"[garmin] exercise_set 저장 실패 {source_id} idx {i}: {e}")
 
     return count
+
+
+def sync_activity_weather(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    activity_id: int,
+    source_id: str,
+) -> None:
+    """Garmin 활동 날씨 데이터 → activity_detail_metrics 저장."""
+    try:
+        data = client.get_activity_weather(source_id)
+    except Exception as e:
+        print(f"[garmin] activity_weather 조회 실패 {source_id}: {e}")
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "activity_weather", source_id, data, activity_id=activity_id)
+
+    weather = data if isinstance(data, dict) else {}
+    metrics = {
+        "weather_temp_c": weather.get("temperature"),
+        "weather_dew_point_c": weather.get("dewPoint"),
+        "weather_humidity_pct": weather.get("relativeHumidity"),
+        "weather_wind_speed_ms": weather.get("windSpeed"),
+        "weather_wind_direction_deg": weather.get("windDirection"),
+        "weather_precipitation_pct": weather.get("precipProbability"),
+        "weather_apparent_temp_c": weather.get("apparentTemperature"),
+    }
+    for name, value in metrics.items():
+        if value is not None:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'garmin', ?, ?)""",
+                    (activity_id, name, float(value)),
+                )
+            except (sqlite3.Error, TypeError, ValueError):
+                pass
+
+    # 날씨 조건 문자열 저장
+    condition = weather.get("weatherType") or weather.get("weatherTypeName")
+    if condition:
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'garmin', 'weather_condition', ?)""",
+                (activity_id, json.dumps({"value": condition})),
+            )
+        except sqlite3.Error:
+            pass
+
+
+def sync_activity_hr_zones(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    activity_id: int,
+    source_id: str,
+) -> None:
+    """Garmin 활동별 HR 구간 분포 → activity_detail_metrics 저장."""
+    try:
+        data = client.get_activity_hr_in_timezones(source_id)
+    except Exception as e:
+        print(f"[garmin] hr_in_timezones 조회 실패 {source_id}: {e}")
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "activity_hr_zones", source_id, data, activity_id=activity_id)
+
+    zones = data if isinstance(data, list) else data.get("zones") or []
+    for zone in zones:
+        zone_num = zone.get("zoneNumber") or zone.get("zone")
+        seconds = zone.get("secsInZone") or zone.get("secondsInZone")
+        if zone_num is not None and seconds is not None:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'garmin', ?, ?)""",
+                    (activity_id, f"hr_zone_{zone_num}_sec", float(seconds)),
+                )
+            except (sqlite3.Error, TypeError, ValueError):
+                pass
+
+    if zones:
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'garmin', 'hr_zones_detail', ?)""",
+                (activity_id, json.dumps(zones)),
+            )
+        except sqlite3.Error:
+            pass
+
+
+def sync_activity_power_zones(
+    conn: sqlite3.Connection,
+    client: "Garmin",
+    activity_id: int,
+    source_id: str,
+) -> None:
+    """Garmin 활동별 power 구간 분포 → activity_detail_metrics 저장."""
+    try:
+        data = client.get_activity_power_in_timezones(source_id)
+    except Exception as e:
+        print(f"[garmin] power_in_timezones 조회 실패 {source_id}: {e}")
+        return
+
+    if not data:
+        return
+
+    _store_raw_payload(conn, "activity_power_zones", source_id, data, activity_id=activity_id)
+
+    zones = data if isinstance(data, list) else data.get("zones") or []
+    for zone in zones:
+        zone_num = zone.get("zoneNumber") or zone.get("zone")
+        seconds = zone.get("secsInZone") or zone.get("secondsInZone")
+        if zone_num is not None and seconds is not None:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'garmin', ?, ?)""",
+                    (activity_id, f"power_zone_{zone_num}_sec", float(seconds)),
+                )
+            except (sqlite3.Error, TypeError, ValueError):
+                pass
+
+    if zones:
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'garmin', 'power_zones_detail', ?)""",
+                (activity_id, json.dumps(zones)),
+            )
+        except sqlite3.Error:
+            pass

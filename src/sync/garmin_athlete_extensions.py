@@ -122,7 +122,7 @@ def sync_athlete_personal_records(
         저장된 기록 수.
     """
     try:
-        data = client.get_personal_records()
+        data = client.get_personal_record()
     except Exception as e:
         print(f"[garmin] personal_records 실패: {e}")
         return 0

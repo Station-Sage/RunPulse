@@ -217,6 +217,37 @@ def _sync_activity_streams(
     return len(rows)
 
 
+def _sync_power_curve(
+    conn: sqlite3.Connection,
+    source_id: str,
+    activity_id: int,
+    auth_tuple: tuple,
+    base: str,
+) -> None:
+    """Intervals.icu /activities/{id}/power_curve → activity_detail_metrics 저장."""
+    try:
+        data = api.get(
+            f"{base}/activities/{source_id}/power_curve",
+            auth=auth_tuple,
+        )
+    except Exception as e:
+        print(f"[intervals] power_curve 조회 실패 {source_id}: {e}")
+        return
+
+    if not data:
+        return
+
+    try:
+        conn.execute(
+            """INSERT OR IGNORE INTO activity_detail_metrics
+               (activity_id, source, metric_name, metric_json)
+               VALUES (?, 'intervals', 'power_curve', ?)""",
+            (activity_id, json.dumps(data, ensure_ascii=False)),
+        )
+    except sqlite3.Error:
+        pass
+
+
 def sync_activities(
     config: dict,
     conn: sqlite3.Connection,
@@ -270,6 +301,10 @@ def sync_activities(
         # icu_* 필드 직접 activity_summaries에 저장
         icu_tsb = act.get("form")  # Intervals.icu는 form = CTL - ATL
 
+        start_latlng = act.get("start_latlng") or [None, None]
+        start_lat = start_latlng[0] if len(start_latlng) > 0 else None
+        start_lon = start_latlng[1] if len(start_latlng) > 1 else None
+
         try:
             cursor = conn.execute(
                 """INSERT OR IGNORE INTO activity_summaries
@@ -278,10 +313,11 @@ def sync_activities(
                     avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                     avg_speed_ms, max_speed_ms, elevation_gain, elevation_loss,
                     calories, workout_label, avg_power, normalized_power,
+                    start_lat, start_lon,
                     icu_training_load, icu_trimp, icu_hrss,
                     icu_atl, icu_ctl, icu_tsb,
                     icu_gap, icu_decoupling, icu_efficiency_factor)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "intervals", source_id,
                     act.get("name"),
@@ -301,6 +337,7 @@ def sync_activities(
                     workout_label,
                     act.get("icu_weighted_avg_watts"),
                     act.get("icu_weighted_avg_watts"),
+                    start_lat, start_lon,
                     act.get("icu_training_load"),
                     act.get("trimp"),
                     act.get("icu_hrss"),
@@ -357,6 +394,11 @@ def sync_activities(
             _sync_activity_streams(conn, source_id, activity_id, auth_tuple, base, force=force_streams)
         except Exception as e:
             print(f"[intervals] 스트림 저장 실패 {source_id}: {e}")
+
+        try:
+            _sync_power_curve(conn, source_id, activity_id, auth_tuple, base)
+        except Exception as e:
+            print(f"[intervals] power_curve 저장 실패 {source_id}: {e}")
 
         assign_group_id(conn, activity_id)
 

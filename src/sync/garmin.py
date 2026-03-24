@@ -40,6 +40,9 @@ from src.sync.garmin_daily_extensions import (
     sync_daily_heart_rates,
     sync_daily_all_day_stress,
     sync_daily_body_battery_events,
+    sync_daily_hydration,
+    sync_daily_weigh_ins,
+    sync_daily_running_tolerance,
 )
 from src.sync.garmin_athlete_extensions import (
     sync_athlete_profile,
@@ -101,6 +104,24 @@ def sync_daily_extensions(
             sync_daily_body_battery_events(conn, client, date_str)
         except Exception as e:
             print(f"[garmin] body_battery_events 확장 실패 {date_str}: {e}")
+
+        try:
+            time.sleep(2)
+            sync_daily_hydration(conn, client, date_str)
+        except Exception as e:
+            print(f"[garmin] hydration 확장 실패 {date_str}: {e}")
+
+        try:
+            time.sleep(2)
+            sync_daily_weigh_ins(conn, client, date_str)
+        except Exception as e:
+            print(f"[garmin] weigh_ins 확장 실패 {date_str}: {e}")
+
+        try:
+            time.sleep(2)
+            sync_daily_running_tolerance(conn, client, date_str)
+        except Exception as e:
+            print(f"[garmin] running_tolerance 확장 실패 {date_str}: {e}")
 
         count += 1
 

@@ -211,6 +211,30 @@ class TestSyncAthleteProfile:
         assert row[0] >= 1
 
 
+class TestStartLatLon:
+    @patch("src.sync.intervals_activity_sync.api.get")
+    def test_stores_start_latlng(self, mock_get, db_conn, sample_config):
+        """start_latlng가 start_lat/start_lon으로 저장됨."""
+        now = datetime.now().isoformat()
+        mock_get.return_value = [{
+            "id": "i850",
+            "start_date_local": now,
+            "distance": 10000,
+            "moving_time": 3000,
+            "type": "Run",
+            "start_latlng": [37.5665, 126.9780],
+        }]
+
+        sync_activities(sample_config, db_conn, days=7)
+
+        row = db_conn.execute(
+            "SELECT start_lat, start_lon FROM activity_summaries WHERE source_id='i850'"
+        ).fetchone()
+        assert row is not None
+        assert abs(row[0] - 37.5665) < 0.0001
+        assert abs(row[1] - 126.9780) < 0.0001
+
+
 class TestSyncActivityIntervals:
     @patch("src.sync.intervals_activity_sync.api.get")
     def test_sync_intervals_to_laps(self, mock_get, db_conn, sample_config):

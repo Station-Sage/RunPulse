@@ -17,6 +17,9 @@ from src.sync.garmin_api_extensions import (
     sync_activity_streams,
     sync_activity_gear,
     sync_activity_exercise_sets,
+    sync_activity_weather,
+    sync_activity_hr_zones,
+    sync_activity_power_zones,
 )
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
@@ -267,6 +270,24 @@ def sync_activities(
             sync_activity_exercise_sets(conn, client, activity_id, source_id)
         except Exception as e:
             print(f"[garmin] exercise_sets 동기화 실패 {source_id}: {e}")
+
+        try:
+            time.sleep(POLICIES["garmin"].per_request_sleep_sec)
+            sync_activity_weather(conn, client, activity_id, source_id)
+        except Exception as e:
+            print(f"[garmin] activity_weather 동기화 실패 {source_id}: {e}")
+
+        try:
+            time.sleep(POLICIES["garmin"].per_request_sleep_sec)
+            sync_activity_hr_zones(conn, client, activity_id, source_id)
+        except Exception as e:
+            print(f"[garmin] hr_zones 동기화 실패 {source_id}: {e}")
+
+        try:
+            time.sleep(POLICIES["garmin"].per_request_sleep_sec)
+            sync_activity_power_zones(conn, client, activity_id, source_id)
+        except Exception as e:
+            print(f"[garmin] power_zones 동기화 실패 {source_id}: {e}")
 
         assign_group_id(conn, activity_id)
 

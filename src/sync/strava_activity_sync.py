@@ -170,6 +170,69 @@ def _sync_activity_streams(
     return len(rows)
 
 
+def _sync_activity_zones(
+    conn: sqlite3.Connection,
+    source_id: str,
+    activity_id: int,
+    headers: dict,
+) -> None:
+    """Strava 활동 구간 분포 → activity_detail_metrics 저장."""
+    try:
+        zones = api.get(
+            f"{_BASE_URL}/activities/{source_id}/zones",
+            headers=headers,
+        )
+    except Exception as e:
+        print(f"[strava] zones 조회 실패 {source_id}: {e}")
+        return
+
+    if not zones:
+        return
+
+    for zone_block in zones if isinstance(zones, list) else [zones]:
+        zone_type = zone_block.get("type")  # "heartrate" or "power"
+        distribution = zone_block.get("distribution_buckets") or []
+        score = zone_block.get("score")
+
+        if score is not None:
+            metric_name = f"{zone_type}_zone_score" if zone_type else "zone_score"
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'strava', ?, ?)""",
+                    (activity_id, metric_name, float(score)),
+                )
+            except (sqlite3.Error, TypeError, ValueError):
+                pass
+
+        for i, bucket in enumerate(distribution):
+            sec = bucket.get("time") or bucket.get("seconds")
+            prefix = zone_type or "zone"
+            if sec is not None:
+                try:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_value)
+                           VALUES (?, 'strava', ?, ?)""",
+                        (activity_id, f"{prefix}_zone_{i + 1}_sec", float(sec)),
+                    )
+                except (sqlite3.Error, TypeError, ValueError):
+                    pass
+
+        if distribution:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_json)
+                       VALUES (?, 'strava', ?, ?)""",
+                    (activity_id, f"{zone_type or 'zones'}_distribution",
+                     json.dumps(distribution)),
+                )
+            except sqlite3.Error:
+                pass
+
+
 def sync_activity_detail(
     conn: sqlite3.Connection,
     source_id: str,
@@ -210,6 +273,9 @@ def sync_activity_detail(
 
     # best_efforts → activity_best_efforts
     _sync_activity_best_efforts(conn, detail, activity_id)
+
+    # zones → activity_detail_metrics
+    _sync_activity_zones(conn, source_id, activity_id, headers)
 
     # splits_metric → detail_metrics JSON
     splits_metric = detail.get("splits_metric")
@@ -331,8 +397,9 @@ def sync_activities(
                         avg_speed_ms, max_speed_ms, elevation_gain, calories,
                         start_lat, start_lon, end_lat, end_lon,
                         kudos_count, achievement_count, pr_count,
-                        suffer_score, strava_gear_id, avg_power, normalized_power)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        suffer_score, strava_gear_id, avg_power, normalized_power,
+                        workout_type, trainer, commute)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         "strava", source_id,
                         act.get("name"),
@@ -357,6 +424,9 @@ def sync_activities(
                         act.get("gear_id"),
                         act.get("average_watts"),
                         act.get("weighted_average_watts"),
+                        act.get("workout_type"),
+                        1 if act.get("trainer") else None,
+                        1 if act.get("commute") else None,
                     ),
                 )
             except sqlite3.Error as e:
@@ -379,6 +449,9 @@ def sync_activities(
                     "suffer_score": act.get("suffer_score"),
                     "strava_gear_id": act.get("gear_id"),
                     "avg_power": act.get("average_watts"),
+                    "workout_type": act.get("workout_type"),
+                    "trainer": 1 if act.get("trainer") else None,
+                    "commute": 1 if act.get("commute") else None,
                 })
                 if existing_id:
                     _store_raw(conn, "activity_summary", source_id, act, activity_id=existing_id)
