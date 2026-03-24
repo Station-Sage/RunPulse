@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.utils import api
+from src.utils.api import ApiError
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
@@ -118,6 +119,10 @@ def _sync_activity_intervals(
             f"{base}/activities/{source_id}/intervals",
             auth=auth_tuple,
         )
+    except ApiError as e:
+        if e.status_code != 404:
+            print(f"[intervals] 인터벌 조회 실패 {source_id}: {e}")
+        return
     except Exception as e:
         print(f"[intervals] 인터벌 조회 실패 {source_id}: {e}")
         return
@@ -180,6 +185,10 @@ def _sync_activity_streams(
             f"{base}/activities/{source_id}/streams",
             auth=auth_tuple,
         )
+    except ApiError as e:
+        if e.status_code != 404:
+            print(f"[intervals] 스트림 조회 실패 {source_id}: {e}")
+        return 0
     except Exception as e:
         print(f"[intervals] 스트림 조회 실패 {source_id}: {e}")
         return 0
@@ -230,6 +239,10 @@ def _sync_power_curve(
             f"{base}/activities/{source_id}/power_curve",
             auth=auth_tuple,
         )
+    except ApiError as e:
+        if e.status_code != 404:
+            print(f"[intervals] power_curve 조회 실패 {source_id}: {e}")
+        return
     except Exception as e:
         print(f"[intervals] power_curve 조회 실패 {source_id}: {e}")
         return

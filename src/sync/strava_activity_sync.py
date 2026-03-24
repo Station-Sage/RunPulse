@@ -136,6 +136,10 @@ def _sync_activity_streams(
             headers=headers,
             params={"keys": _STREAM_KEYS, "key_by_type": "true"},
         )
+    except api.ApiError as e:
+        if e.status_code != 404:
+            print(f"[strava] 스트림 조회 실패 {source_id}: {e}")
+        return 0
     except Exception as e:
         print(f"[strava] 스트림 조회 실패 {source_id}: {e}")
         return 0
@@ -182,6 +186,10 @@ def _sync_activity_zones(
             f"{_BASE_URL}/activities/{source_id}/zones",
             headers=headers,
         )
+    except api.ApiError as e:
+        if e.status_code not in (402, 404):
+            print(f"[strava] zones 조회 실패 {source_id}: {e}")
+        return
     except Exception as e:
         print(f"[strava] zones 조회 실패 {source_id}: {e}")
         return
