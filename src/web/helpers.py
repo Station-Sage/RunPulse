@@ -435,7 +435,16 @@ async function bgPollAll(sources) {
         .catch(function() { return {active: false}; });
     }));
     var active = statuses.filter(function(d) { return d.active; });
-    if (active.length === 0) { bgStopPolling(); bgHideProgress(); return; }
+    if (active.length === 0) {
+      bgStopPolling();
+      bgHideProgress();
+      // 서비스들이 completed → active:false 전환 (bgPollAll이 실행 중이었다면 완료 의미)
+      if (_bgActiveSources.length > 0) {
+        syncToast('\u2705 기간 동기화 완료', 'success');
+        setTimeout(function() { location.reload(); }, 2500);
+      }
+      return;
+    }
     bgUpdateAllUI(active);
     var allDone = active.every(function(d) {
       return d.status === 'completed' || d.status === 'stopped';

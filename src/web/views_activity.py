@@ -856,14 +856,45 @@ def _metric_interp_badge(key: str, value: float) -> str:
         return ""
 
 
+def _tids_zone_bar(tids_json: dict) -> str:
+    """TIDS 존 분포 CSS 스택 바 HTML."""
+    z12 = tids_json.get("z12", 0.0)
+    z3 = tids_json.get("z3", 0.0)
+    z45 = tids_json.get("z45", 0.0)
+    dominant = tids_json.get("dominant_model") or ""
+    model_label = {"polarized": "폴라리제드", "pyramid": "피라미드", "health": "건강유지"}.get(dominant, dominant)
+    model_color = {"polarized": "var(--cyan)", "pyramid": "var(--green)", "health": "var(--orange)"}.get(dominant, "var(--muted)")
+
+    return (
+        "<div style='margin-top:0.6rem;'>"
+        "<div style='display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;'>"
+        "<span style='color:var(--muted);font-weight:600;'>TIDS 훈련 강도 분포</span>"
+        + (f"<span style='font-size:0.73rem;color:{model_color};'>{model_label}</span>" if model_label else "")
+        + "</div>"
+        "<div style='display:flex;height:10px;border-radius:5px;overflow:hidden;'>"
+        f"<div style='width:{z12:.1f}%;background:#4dabf7;' title='Zone 1-2: {z12:.1f}%'></div>"
+        f"<div style='width:{z3:.1f}%;background:#69db7c;' title='Zone 3: {z3:.1f}%'></div>"
+        f"<div style='width:{z45:.1f}%;background:#ff6b6b;' title='Zone 4-5: {z45:.1f}%'></div>"
+        "</div>"
+        "<div style='display:flex;gap:0.8rem;font-size:0.72rem;color:var(--muted);margin-top:3px;'>"
+        f"<span><span style='color:#4dabf7;'>■</span> Z1-2: {z12:.0f}%</span>"
+        f"<span><span style='color:#69db7c;'>■</span> Z3: {z3:.0f}%</span>"
+        f"<span><span style='color:#ff6b6b;'>■</span> Z4-5: {z45:.0f}%</span>"
+        "</div>"
+        "</div>"
+    )
+
+
 def _render_secondary_metrics_card(
     metrics: dict,
     day_metrics: dict | None = None,
     service_metrics: dict | None = None,
+    day_metric_jsons: dict | None = None,
 ) -> str:
     """RunPulse 분석 (primary) + 서비스 원본 (secondary subtab) 탭 카드."""
     dm = day_metrics or {}
     svc = service_metrics or {}
+    dmj = day_metric_jsons or {}
 
     # ── RunPulse 1차/2차 메트릭 ──────────────────────────────────────
     act_pairs = [
@@ -923,10 +954,14 @@ def _render_secondary_metrics_card(
         )
     rp_rows += [_rp_row(k, v, f) for k, v, f in day_pairs if v is not None]
 
-    if not rp_rows:
+    # TIDS 존 분포 바
+    tids_json = dmj.get("TIDS")
+    tids_bar = _tids_zone_bar(tids_json) if isinstance(tids_json, dict) else ""
+
+    if not rp_rows and not tids_bar:
         rp_content = "<p class='muted' style='margin:0.5rem 0;'>메트릭 미계산 — 설정 → 재계산 후 확인하세요.</p>"
     else:
-        rp_content = "".join(rp_rows)
+        rp_content = "".join(rp_rows) + tids_bar
 
     # ── 서비스 1차 메트릭 ────────────────────────────────────────────
     svc_html_parts = []
@@ -998,11 +1033,37 @@ function switchMetricTab(tab) {{
 </script>"""
 
 
+def _gauge_bar(value: float | None, max_val: float, color: str, label: str, unit: str = "") -> str:
+    """수평 게이지 바 HTML (0 ~ max_val 스케일)."""
+    if value is None:
+        return (
+            "<div style='margin-bottom:0.75rem;'>"
+            f"<div style='display:flex;justify-content:space-between;font-size:0.82rem;"
+            f"margin-bottom:3px;'><span style='color:var(--muted);'>{label}</span>"
+            "<span style='color:var(--muted);'>—</span></div>"
+            "<div style='background:var(--row-border);border-radius:4px;height:8px;'></div>"
+            "</div>"
+        )
+    pct = min(100.0, max(0.0, float(value) / max_val * 100))
+    val_str = f"{float(value):.0f}{unit}"
+    return (
+        "<div style='margin-bottom:0.75rem;'>"
+        f"<div style='display:flex;justify-content:space-between;font-size:0.82rem;"
+        f"margin-bottom:3px;'><span style='color:var(--muted);'>{label}</span>"
+        f"<span style='font-weight:600;color:{color};'>{val_str}</span></div>"
+        f"<div style='background:var(--row-border);border-radius:4px;height:8px;overflow:hidden;'>"
+        f"<div style='height:100%;width:{pct:.1f}%;background:{color};border-radius:4px;"
+        f"transition:width 0.5s;'></div></div>"
+        "</div>"
+    )
+
+
 def _render_daily_scores_card(day_metrics: dict) -> str:
-    """당일 UTRS/CIRS/ACWR 점수 카드 (V2-4-3)."""
+    """당일 UTRS/CIRS/ACWR 점수 카드 — 시각적 게이지 바 포함."""
     utrs = day_metrics.get("UTRS")
     cirs = day_metrics.get("CIRS")
     acwr = day_metrics.get("ACWR")
+    cirs_val = day_metrics.get("CIRS")
 
     if all(v is None for v in (utrs, cirs, acwr)):
         return (
@@ -1011,12 +1072,49 @@ def _render_daily_scores_card(day_metrics: dict) -> str:
             "<p class='muted' style='margin:0;'>해당 날짜의 UTRS/CIRS 데이터가 없습니다.</p>"
             "</div>"
         )
+
+    # UTRS: 0~100, 높을수록 좋음
+    utrs_color = "var(--green)" if utrs and float(utrs) >= 70 else "var(--orange)" if utrs and float(utrs) >= 40 else "var(--red)"
+    # CIRS: 0~100, 낮을수록 좋음 → 바는 위험 수준 표시
+    cirs_color = "var(--green)" if cirs_val and float(cirs_val) < 30 else "var(--orange)" if cirs_val and float(cirs_val) < 60 else "var(--red)"
+    # ACWR: 0.8~1.3 정상. 100기준으로 0~150 범위 표시
+    acwr_pct_val = float(acwr) * 100 if acwr is not None else None
+    acwr_color = "var(--green)" if acwr and 0.8 <= float(acwr) <= 1.3 else "var(--orange)" if acwr and float(acwr) < 1.5 else "var(--red)"
+
+    acwr_interp = ""
+    if acwr is not None:
+        av = float(acwr)
+        if av < 0.8:
+            acwr_interp = " <span style='font-size:0.72rem;color:var(--cyan);'>훈련량 부족</span>"
+        elif av <= 1.3:
+            acwr_interp = " <span style='font-size:0.72rem;color:var(--green);'>적절한 훈련량</span>"
+        elif av <= 1.5:
+            acwr_interp = " <span style='font-size:0.72rem;color:var(--orange);'>과부하 주의</span>"
+        else:
+            acwr_interp = " <span style='font-size:0.72rem;color:var(--red);'>과부하 위험</span>"
+
     return (
         "<div class='card'>"
         "<h2>당일 훈련 지수</h2>"
-        + metric_row("UTRS (훈련 준비도)", f"{float(utrs):.0f}" if utrs is not None else "—")
-        + metric_row("CIRS (부상 위험도)", f"{float(cirs):.0f}" if cirs is not None else "—")
-        + metric_row("ACWR (급성/만성 부하비)", f"{float(acwr):.2f}" if acwr is not None else "—")
+        + _gauge_bar(utrs, 100, utrs_color, "UTRS — 훈련 준비도")
+        + _gauge_bar(cirs_val, 100, cirs_color, "CIRS — 부상 위험도")
+        + "<div style='margin-bottom:0.75rem;'>"
+        + f"<div style='display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:3px;'>"
+        + f"<span style='color:var(--muted);'>ACWR — 급성/만성 부하비</span>"
+        + f"<span style='font-weight:600;color:{acwr_color};'>"
+        + (f"{float(acwr):.2f}" if acwr is not None else "—")
+        + acwr_interp
+        + "</span></div>"
+        + "<div style='background:var(--row-border);border-radius:4px;height:8px;overflow:hidden;position:relative;'>"
+        # 정상 구간 표시 (80~130% → 53~87% 위치)
+        + "<div style='position:absolute;left:53%;width:34%;height:100%;background:rgba(0,255,136,0.15);'></div>"
+        + (f"<div style='height:100%;width:{min(100,float(acwr)/1.5*100):.1f}%;background:{acwr_color};"
+           f"border-radius:4px;transition:width 0.5s;'></div>" if acwr is not None else "")
+        + "</div>"
+        + "<div style='display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-top:2px;'>"
+        + "<span>0.0</span><span style='margin-left:53%;'>0.8</span><span>1.5+</span>"
+        + "</div>"
+        + "</div>"
         + "</div>"
     )
 
@@ -1045,6 +1143,96 @@ def _render_activity_classification_badge(act: dict) -> str:
         f"border-radius:16px;padding:0.28rem 0.8rem;font-size:0.8rem;'>"
         f"{icon} {cls} — {desc}</span></div>"
     )
+
+
+def _load_pmc_series(conn: sqlite3.Connection, target_date: str, days: int = 60) -> dict:
+    """최근 N일 TRIMP_daily + ACWR 시계열 조회."""
+    from datetime import date, timedelta
+    end = date.fromisoformat(target_date)
+    start = end - timedelta(days=days - 1)
+    rows = conn.execute(
+        """SELECT date, metric_name, metric_value FROM computed_metrics
+           WHERE date BETWEEN ? AND ? AND activity_id IS NULL
+             AND metric_name IN ('TRIMP_daily','ACWR')
+           ORDER BY date""",
+        (start.isoformat(), end.isoformat()),
+    ).fetchall()
+    dates_set: set[str] = set()
+    trimp_map: dict[str, float] = {}
+    acwr_map: dict[str, float] = {}
+    for dt, mname, mval in rows:
+        if mval is None:
+            continue
+        dates_set.add(dt)
+        if mname == "TRIMP_daily":
+            trimp_map[dt] = round(float(mval), 1)
+        elif mname == "ACWR":
+            acwr_map[dt] = round(float(mval), 3)
+    dates = sorted(dates_set)
+    return {
+        "dates": dates,
+        "trimp": [trimp_map.get(d) for d in dates],
+        "acwr": [acwr_map.get(d) for d in dates],
+        "target_date": target_date,
+    }
+
+
+def _render_pmc_sparkline_card(pmc: dict) -> str:
+    """TRIMP_daily + ACWR 60일 ECharts 스파크라인 카드."""
+    if not pmc or not pmc.get("dates"):
+        return (
+            "<div class='card'><h2>훈련 부하 추이 (PMC)</h2>"
+            "<p class='muted' style='margin:0;'>데이터 수집 중 — 메트릭 재계산 후 표시됩니다.</p>"
+            "</div>"
+        )
+    import json as _json
+    dates = pmc["dates"]
+    trimp = pmc["trimp"]
+    acwr = pmc["acwr"]
+    target = pmc.get("target_date", "")
+
+    # 오늘 날짜 markLine
+    mark_line = ""
+    if target in dates:
+        mark_line = f', markLine: {{data:[{{xAxis:"{target}",lineStyle:{{color:"#fff",type:"dashed",opacity:0.4}}}}]}}'
+
+    dates_json = _json.dumps(dates)
+    trimp_json = _json.dumps(trimp)
+    acwr_json = _json.dumps(acwr)
+
+    return f"""<div class='card'>
+  <h2>훈련 부하 추이 (60일)</h2>
+  <div id="pmc-chart" style="height:180px;"></div>
+  <script>
+  (function() {{
+    var ec = echarts.init(document.getElementById('pmc-chart'), 'dark', {{backgroundColor:'transparent'}});
+    ec.setOption({{
+      grid: {{top:20, bottom:30, left:36, right:50}},
+      legend: {{top:0, right:0, textStyle:{{fontSize:10, color:'#aaa'}}, itemWidth:10, itemHeight:6}},
+      tooltip: {{trigger:'axis', axisPointer:{{type:'cross'}}}},
+      xAxis: {{type:'category', data:{dates_json}, axisLabel:{{fontSize:9, color:'#888',
+        formatter:function(v){{return v.slice(5);}} }}, axisLine:{{lineStyle:{{color:'#444'}}}}}},
+      yAxis: [
+        {{type:'value', name:'TRIMP', nameTextStyle:{{fontSize:9,color:'#74c0fc'}},
+          axisLabel:{{fontSize:9, color:'#74c0fc'}}, splitLine:{{lineStyle:{{color:'#2a2a3a'}}}}}},
+        {{type:'value', name:'ACWR', nameTextStyle:{{fontSize:9,color:'#ffd43b'}},
+          axisLabel:{{fontSize:9, color:'#ffd43b'}}, min:0, max:2.0, splitLine:{{show:false}},
+          markArea:{{silent:true, data:[[{{yAxis:0.8,itemStyle:{{color:'rgba(0,255,136,0.06)'}}}},{{yAxis:1.3}}]]}} }}
+      ],
+      series: [
+        {{name:'TRIMP', type:'bar', data:{trimp_json}, itemStyle:{{color:'rgba(116,192,252,0.6)'}}{mark_line}}},
+        {{name:'ACWR', type:'line', yAxisIndex:1, data:{acwr_json},
+          lineStyle:{{color:'#ffd43b', width:2}}, symbol:'none',
+          markLine:{{silent:true, data:[
+            {{yAxis:0.8, lineStyle:{{color:'rgba(0,255,136,0.4)',type:'dashed'}}}},
+            {{yAxis:1.3, lineStyle:{{color:'rgba(255,68,68,0.4)',type:'dashed'}}}}
+          ]}}}}
+      ]
+    }});
+    window.addEventListener('resize', function(){{ec.resize();}});
+  }})();
+  </script>
+</div>"""
 
 
 def _render_di_card(day_metrics: dict) -> str:
@@ -1202,6 +1390,7 @@ def activity_deep_view():
     act_metric_jsons: dict = {}
     day_metric_jsons: dict = {}
     service_metrics: dict = {}
+    pmc_series: dict = {}
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -1231,6 +1420,7 @@ def activity_deep_view():
                     day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)
                     act_metric_jsons = _load_activity_metric_jsons(conn, cur[0])
                     day_metric_jsons = _load_day_metric_jsons(conn, act_date_tmp)
+                    pmc_series = _load_pmc_series(conn, act_date_tmp)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
@@ -1292,13 +1482,14 @@ def activity_deep_view():
         + _render_efficiency(efficiency)
         + "</div>"
         + "<div class='cards-row'>"
-        + _render_secondary_metrics_card(act_metrics, day_metrics_data, service_metrics=service_metrics)
+        + _render_secondary_metrics_card(act_metrics, day_metrics_data, service_metrics=service_metrics, day_metric_jsons=day_metric_jsons)
         + _render_daily_scores_card(day_metrics_data)
         + "</div>"
         + "<div class='cards-row'>"
         + _render_fearp_breakdown_card(act_metric_jsons)
         + _render_decoupling_detail_card(act_metrics, act_metric_jsons)
         + "</div>"
+        + _render_pmc_sparkline_card(pmc_series)
         + "<div class='cards-row'>"
         + _render_di_card(day_metrics_data)
         + _render_map_placeholder()
