@@ -1,5 +1,48 @@
 # Changelog
 
+## [v0.2-api-strava-intervals] 2026-03-24
+
+### 추가
+
+**Strava + Intervals.icu 전체 API 수집 완성 — Garmin 방식 모듈 분리 + 누락 API 구현**
+
+**Strava 모듈 분리**
+- `strava_auth.py` — 토큰 관리, 연결 확인 (`refresh_token`, `check_strava_connection`)
+- `strava_activity_sync.py` — 활동 list/detail/streams/laps/best_efforts (295줄)
+- `strava_athlete_sync.py` — 선수 프로필/통계/기어 (`sync_athlete_profile`, `sync_athlete_stats`, `sync_gear`, `sync_athlete_and_gear`)
+- `strava.py` — 하위 호환 re-export wrapper + `sync_strava()` 통합 함수
+
+**Strava 데이터 수집 개선**
+- 활동 INSERT 컬럼 15개 → 29개 (name, sport_type, moving/elapsed_time_sec, avg/max_speed_ms, kudos_count, achievement_count, pr_count, suffer_score, strava_gear_id, end_lat/lon, avg_power, normalized_power)
+- 스트림: 파일 저장 → `activity_streams` DB 테이블 (stream_type별 행)
+- best_efforts: JSON 블롭 → `activity_best_efforts` 테이블 (개별 행, pr_rank 포함)
+- laps: 중복 코드 제거 + avg/max_speed_ms 컬럼 추가
+- 신규 API: `GET /athlete`, `GET /athletes/{id}/stats`, `GET /gear/{id}`
+- 미수집 기어 자동 동기화 (`sync_athlete_and_gear`)
+
+**Intervals.icu 모듈 분리**
+- `intervals_auth.py` — 인증, 연결 확인 (`base_url`, `auth`, `check_intervals_connection`)
+- `intervals_activity_sync.py` — 활동 list/intervals/streams (290줄)
+- `intervals_wellness_sync.py` — 웰니스/피트니스 동기화
+- `intervals_athlete_sync.py` — 선수 프로필/통계 스냅샷
+- `intervals.py` — 하위 호환 re-export wrapper + `sync_intervals()` 통합 함수
+
+**Intervals.icu 데이터 수집 개선**
+- INSERT 바인딩 버그 수정 (15 `?` / 16값 불일치 → 사전 3개 테스트 실패 원인 해결)
+- 활동 INSERT 컬럼 15개 → 31개 (name, sport_type, moving/elapsed_time_sec, elevation_loss, normalized_power, icu_training_load, icu_trimp, icu_hrss, icu_atl, icu_ctl, icu_tsb, icu_gap, icu_decoupling, icu_efficiency_factor)
+- icu_* 필드를 `activity_detail_metrics`와 `activity_summaries` 컬럼에 동시 저장
+- 신규 API: `GET /activities/{id}/intervals` → activity_laps, `GET /activities/{id}/streams` → activity_streams, `GET /athlete/{id}` → athlete_profile
+- DB 집계 기반 `athlete_stats` 스냅샷
+
+### 테스트
+- `test_sync_strava.py` 전면 개편: 2개 → 19개 (스트림 DB저장, best_efforts, laps, suffer_score, athlete_profile, stats, gear)
+- `test_auth_strava.py` 업데이트: inspect 테스트를 서브모듈 기준으로 변경 + athlete/stats/gear 엔드포인트 검증 추가
+- `test_sync_intervals.py` 전면 개편: 3개 → 19개 (icu_* 컬럼 저장, name 컬럼, 다종목, athlete_profile, stats_snapshot, intervals→laps)
+- `test_auth_intervals.py` 업데이트: intervals/streams 엔드포인트 검증 추가, patch 경로 수정
+- 전체 테스트: 803개 → 822개 통과 (pre-existing 2개 실패 유지)
+
+---
+
 ## [v0.2-api-garmin] 2026-03-24
 
 ### 추가

@@ -275,6 +275,61 @@
 
 ---
 
+## Phase API-Strava: Strava 전체 API 수집 완성 ✅ 완료 (2026-03-24)
+
+### 모듈 분리 (Garmin 방식)
+- [x] `strava_auth.py` — 토큰 관리, 연결 확인
+- [x] `strava_activity_sync.py` — 활동 동기화 (list/detail/streams/laps/best_efforts)
+- [x] `strava_athlete_sync.py` — 선수 프로필, 통계, 기어
+- [x] `strava.py` — 하위 호환 re-export wrapper + `sync_strava()`
+
+### 활동 데이터 개선
+- [x] INSERT 컬럼 확장: name, sport_type, moving_time_sec, elapsed_time_sec, avg_speed_ms, max_speed_ms, kudos_count, achievement_count, pr_count, suffer_score, strava_gear_id, end_lat/end_lon, avg_power, normalized_power
+- [x] 중복 laps/splits 코드 제거
+- [x] 스트림 → 파일 저장 제거, activity_streams DB 테이블로 이전
+- [x] best_efforts → activity_best_efforts 테이블 (개별 행)
+- [x] laps → activity_laps 테이블 (avg_speed_ms, max_speed_ms 포함)
+
+### 신규 API 구현
+- [x] `GET /athlete` → athlete_profile
+- [x] `GET /athletes/{id}/stats` → athlete_stats 스냅샷
+- [x] `GET /gear/{id}` → gear 테이블
+- [x] `sync_athlete_and_gear()` — 활동의 미수집 기어 자동 동기화
+
+### 테스트
+- [x] `test_sync_strava.py` 전면 개편 (19개 테스트: 기존 2개 → 신규 17개 추가)
+- [x] `test_auth_strava.py` 업데이트 (inspect 테스트를 서브모듈 기준으로)
+
+---
+
+## Phase API-Intervals: Intervals.icu 전체 API 수집 완성 ✅ 완료 (2026-03-24)
+
+### 모듈 분리 (Garmin 방식)
+- [x] `intervals_auth.py` — 인증, 연결 확인
+- [x] `intervals_activity_sync.py` — 활동 동기화 (list/intervals/streams)
+- [x] `intervals_wellness_sync.py` — 웰니스/피트니스 동기화
+- [x] `intervals_athlete_sync.py` — 선수 프로필, 통계 스냅샷
+- [x] `intervals.py` — 하위 호환 re-export wrapper + `sync_intervals()`
+
+### 버그 수정
+- [x] INSERT 바인딩 수 불일치 버그 수정 (15 `?` but 16 values → 사전 테스트 3개 실패 원인)
+
+### 활동 데이터 개선
+- [x] INSERT 컬럼 확장: name, sport_type, moving_time_sec, elapsed_time_sec, avg_speed_ms, max_speed_ms, elevation_loss, normalized_power
+- [x] icu_* 필드 activity_summaries에 직접 저장 (icu_training_load, icu_trimp, icu_hrss, icu_atl, icu_ctl, icu_tsb, icu_gap, icu_decoupling, icu_efficiency_factor)
+
+### 신규 API 구현
+- [x] `GET /activities/{id}/intervals` → activity_laps (인터벌 랩)
+- [x] `GET /activities/{id}/streams` → activity_streams
+- [x] `GET /athlete/{id}` → athlete_profile (ftp, lthr, vo2max 포함)
+- [x] DB 집계 기반 athlete_stats 스냅샷
+
+### 테스트
+- [x] `test_sync_intervals.py` 전면 개편 (19개 테스트: 기존 3개 → 신규 16개 추가)
+- [x] `test_auth_intervals.py` 업데이트 (intervals/streams 엔드포인트 검증 추가)
+
+---
+
 ### Priority B — 다음 스프린트
 
 - [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)
