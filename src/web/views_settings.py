@@ -168,6 +168,7 @@ def settings_view() -> str:
     <p id='recompute-detail' style='margin:0.4rem 0 0; font-size:0.78rem; color:var(--muted);'></p>
   </div>
 </div>
+""" + """
 <script>
 function startRecompute() {
   var days = document.getElementById('recompute-days').value || 90;
