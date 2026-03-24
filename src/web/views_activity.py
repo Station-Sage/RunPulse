@@ -614,6 +614,105 @@ def _load_activity_computed_metrics(conn: sqlite3.Connection, activity_id: int) 
     return {row[0]: row[1] for row in rows}
 
 
+def _load_service_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
+    """서비스 1차 메트릭 조회 (Garmin/Strava/Intervals 제공값).
+
+    Returns:
+        {service: {label: (value, unit)}} 딕셔너리.
+    """
+    row = conn.execute(
+        """SELECT source,
+                  aerobic_training_effect, anaerobic_training_effect,
+                  training_load_acute, training_load_chronic,
+                  suffer_score, avg_power, normalized_power,
+                  icu_training_load, icu_trimp, icu_hrss,
+                  icu_intensity, icu_efficiency_factor, icu_atl, icu_ctl, icu_tsb
+           FROM activity_summaries WHERE id=?""",
+        (activity_id,),
+    ).fetchone()
+    if row is None:
+        return {}
+
+    source = row[0] or ""
+    result: dict = {}
+
+    # Garmin 1차 메트릭
+    garmin = {}
+    if row[1] is not None:
+        garmin["에어로빅 훈련 효과 (ATE)"] = (float(row[1]), "/ 5.0")
+    if row[2] is not None:
+        garmin["무산소 훈련 효과 (AnTE)"] = (float(row[2]), "/ 5.0")
+    if row[3] is not None:
+        garmin["급성 훈련 부하 (ATL)"] = (float(row[3]), "")
+    if row[4] is not None:
+        garmin["만성 훈련 부하 (CTL)"] = (float(row[4]), "")
+    if garmin:
+        result["Garmin"] = garmin
+
+    # Strava 1차 메트릭
+    strava = {}
+    if row[5] is not None:
+        strava["Suffer Score"] = (float(row[5]), "")
+    if row[6] is not None:
+        strava["평균 파워"] = (float(row[6]), " W")
+    if row[7] is not None:
+        strava["정규화 파워 (NP)"] = (float(row[7]), " W")
+    if strava:
+        result["Strava"] = strava
+
+    # Intervals.icu 1차 메트릭
+    icu = {}
+    if row[8] is not None:
+        icu["훈련 부하 (Training Load)"] = (float(row[8]), "")
+    if row[9] is not None:
+        icu["TRIMP"] = (float(row[9]), "")
+    if row[10] is not None:
+        icu["HRSS"] = (float(row[10]), "")
+    if row[11] is not None:
+        icu["강도 (Intensity)"] = (float(row[11]), "")
+    if row[12] is not None:
+        icu["효율 계수 (EF)"] = (float(row[12]), "")
+    if row[13] is not None:
+        icu["ATL"] = (float(row[13]), "")
+    if row[14] is not None:
+        icu["CTL"] = (float(row[14]), "")
+    if row[15] is not None:
+        icu["TSB"] = (float(row[15]), "")
+    if icu:
+        result["Intervals.icu"] = icu
+
+    # activity_detail_metrics에서 날씨 + zone 스코어
+    detail_rows = conn.execute(
+        """SELECT metric_name, metric_value FROM activity_detail_metrics
+           WHERE activity_id=? AND metric_name IN (
+             'weather_temp_c','weather_humidity_pct','weather_wind_speed_ms',
+             'heartrate_zone_score','power_zone_score'
+           )""",
+        (activity_id,),
+    ).fetchall()
+    detail = {r[0]: r[1] for r in detail_rows if r[1] is not None}
+
+    weather = {}
+    if "weather_temp_c" in detail:
+        weather["기온"] = (float(detail["weather_temp_c"]), " °C")
+    if "weather_humidity_pct" in detail:
+        weather["습도"] = (float(detail["weather_humidity_pct"]), " %")
+    if "weather_wind_speed_ms" in detail:
+        weather["풍속"] = (float(detail["weather_wind_speed_ms"]), " m/s")
+    if weather:
+        result["날씨 (서비스)"] = weather
+
+    zones_svc = {}
+    if "heartrate_zone_score" in detail:
+        zones_svc["HR Zone Score (Strava)"] = (float(detail["heartrate_zone_score"]), "")
+    if "power_zone_score" in detail:
+        zones_svc["Power Zone Score (Strava)"] = (float(detail["power_zone_score"]), "")
+    if zones_svc:
+        result["존 점수 (서비스)"] = zones_svc
+
+    return result
+
+
 def _load_day_computed_metrics(conn: sqlite3.Connection, act_date: str) -> dict:
     """날짜별 computed_metrics 조회 (activity_id IS NULL) → {metric_name: value}."""
     rows = conn.execute(
@@ -694,25 +793,98 @@ def _render_horizontal_scroll(act: dict, metrics: dict) -> str:
     )
 
 
-def _render_secondary_metrics_card(metrics: dict, day_metrics: dict | None = None) -> str:
-    """2차 메트릭 카드 (활동별 + 당일 종합 메트릭, V2-4-1~4 확장)."""
+# 메트릭 메타 정보: {key: (title_tooltip, interpret_fn)}
+# interpret_fn(value) → (text, color_css) | None
+_METRIC_META: dict[str, tuple[str, object]] = {
+    "FEARP":          ("환경 보정 페이스 — 기온·습도·경사·고도를 표준 조건(15°C, 50%, 평지, 0m)으로 환산한 등가 페이스. 낮을수록 실제로 빠름.",
+                       lambda v: ("표준 조건 기준 빠름" if v < 270 else "표준 조건 기준 보통" if v < 360 else "표준 조건 기준 느림", "var(--green)" if v < 270 else "var(--orange)" if v < 360 else "var(--red)")),
+    "GAP":            ("경사 보정 페이스 (Grade-Adjusted Pace) — 오르막·내리막 효과를 제거한 평지 등가 페이스.",
+                       None),
+    "NGP":            ("정규화 경사 페이스 (Normalized Graded Pace) — 강도 변화를 4차 멱승으로 가중 평균한 실효 페이스.",
+                       None),
+    "RelativeEffort": ("상대 노력도 — 심박존별 시간에 Strava 가중치(0.5/1.0/2.0/3.5/5.5)를 적용한 운동 강도 점수.",
+                       lambda v: ("가벼운 운동" if v < 50 else "적당한 강도" if v < 100 else "높은 강도" if v < 200 else "매우 높은 강도", "var(--green)" if v < 50 else "var(--cyan)" if v < 100 else "var(--orange)" if v < 200 else "var(--red)")),
+    "AerobicDecoupling": ("유산소 분리 (Aerobic Decoupling) — 후반 PA:HR 대비 전반 PA:HR 저하율. 낮을수록 심폐 효율 유지.",
+                           lambda v: ("심폐 안정적" if v < 5 else "약간 분리" if v < 10 else "유산소 드리프트 큼", "var(--green)" if v < 5 else "var(--orange)" if v < 10 else "var(--red)")),
+    "EF":             ("효율 계수 (Efficiency Factor) — 페이스÷심박수 비율. 높을수록 같은 심박에서 더 빠름.",
+                       None),
+    "TRIMP":          ("훈련 충격 점수 (TRIMP) — 심박존별 운동 시간에 지수 가중치를 적용한 훈련 부하 지수.",
+                       lambda v: ("가벼운 부하" if v < 50 else "중간 부하" if v < 100 else "고부하" if v < 150 else "매우 고부하", "var(--green)" if v < 50 else "var(--cyan)" if v < 100 else "var(--orange)" if v < 150 else "var(--red)")),
+    "WLEI":           ("날씨 가중 노력 지수 (WLEI) — TRIMP에 기온·습도 스트레스를 곱한 실제 신체 부담 지수. 더운 날은 동일 페이스도 WLEI가 더 높음.",
+                       lambda v: ("낮은 날씨 부담" if v < 60 else "중간 날씨 부담" if v < 120 else "높은 날씨 부담", "var(--green)" if v < 60 else "var(--orange)" if v < 120 else "var(--red)")),
+    "DI":             ("내구성 지수 (DI) — 90분+ 세션에서 후반 PA:HR 효율 / 전반 PA:HR 효율. 1.0 이상이면 끝까지 효율 유지.",
+                       lambda v: ("내구성 우수" if v >= 1.0 else "내구성 보통" if v >= 0.9 else "내구성 저하", "var(--green)" if v >= 1.0 else "var(--orange)" if v >= 0.9 else "var(--red)")),
+    "LSI":            ("부하 스파이크 지수 (LSI) — 오늘 TRIMP / 21일 평균 TRIMP. 1.5 초과 시 급격한 과부하.",
+                       lambda v: ("정상 범위" if v < 1.3 else "주의 — 과부하 경향" if v < 1.5 else "위험 — 급격한 과부하", "var(--green)" if v < 1.3 else "var(--orange)" if v < 1.5 else "var(--red)")),
+    "Monotony":       ("훈련 단조로움 (Monotony) — 최근 7일 TRIMP 평균÷표준편차. 낮을수록 변화 있는 훈련.",
+                       lambda v: ("다양한 훈련" if v < 1.5 else "약간 단조로움" if v < 2.0 else "매우 단조로운 훈련", "var(--green)" if v < 1.5 else "var(--orange)" if v < 2.0 else "var(--red)")),
+    "ACWR":           ("급성/만성 부하 비율 (ACWR) — 7일 부하÷28일 부하. 0.8~1.3이 안전 구간.",
+                       lambda v: ("부하 부족" if v < 0.8 else "적절한 훈련량" if v <= 1.3 else "과부하 위험", "var(--cyan)" if v < 0.8 else "var(--green)" if v <= 1.3 else "var(--red)")),
+    "ADTI":           ("유산소 분리 추세 (ADTI) — 8주 Decoupling 선형 회귀 기울기. 음수면 개선 추세.",
+                       lambda v: ("유산소 개선 추세" if v < 0 else "유산소 정체" if v < 0.5 else "유산소 저하 추세", "var(--green)" if v < 0 else "var(--cyan)" if v < 0.5 else "var(--orange)")),
+    "MarathonShape":  ("마라톤 상태 (Marathon Shape) — 주간 거리·장거리런 기준 훈련 준비도 (0~100%).",
+                       lambda v: ("레이스 준비 미흡" if v < 40 else "기본 준비됨" if v < 70 else "레이스 준비 완료", "var(--red)" if v < 40 else "var(--orange)" if v < 70 else "var(--green)")),
+    "RTTI":           ("러닝 내성 훈련 지수 (RTTI) — Garmin 권장 최대 부하 대비 실제 훈련 부하 비율. 100% = 권장 한계.",
+                       lambda v: ("훈련 여유 있음" if v < 80 else "권장 범위 내" if v <= 100 else "권장 한계 초과", "var(--cyan)" if v < 80 else "var(--green)" if v <= 100 else "var(--red)")),
+    "TPDI":           ("실내/야외 퍼포먼스 격차 (TPDI) — 실외 vs 실내 평균 FEARP 차이. 양수면 실외 더 빠름.",
+                       lambda v: ("격차 없음" if abs(v) < 5 else "약간 격차" if abs(v) < 15 else "큰 격차", "var(--green)" if abs(v) < 5 else "var(--orange)" if abs(v) < 15 else "var(--red)")),
+}
+
+
+def _metric_tooltip_icon(key: str) -> str:
+    """메트릭 설명 툴팁 아이콘 HTML."""
+    meta = _METRIC_META.get(key)
+    if not meta:
+        return ""
+    desc = html.escape(meta[0])
+    return (
+        f" <span style='cursor:help; color:var(--muted); font-size:0.75rem;' title='{desc}'>ⓘ</span>"
+    )
+
+
+def _metric_interp_badge(key: str, value: float) -> str:
+    """현재 수치 해설 뱃지 HTML."""
+    meta = _METRIC_META.get(key)
+    if not meta or meta[1] is None:
+        return ""
+    try:
+        text, color = meta[1](value)
+        return (
+            f" <span style='font-size:0.72rem; color:{color}; margin-left:6px;'>{text}</span>"
+        )
+    except Exception:
+        return ""
+
+
+def _render_secondary_metrics_card(
+    metrics: dict,
+    day_metrics: dict | None = None,
+    service_metrics: dict | None = None,
+) -> str:
+    """RunPulse 분석 (primary) + 서비스 원본 (secondary subtab) 탭 카드."""
     dm = day_metrics or {}
-    pairs = [
-        ("FEARP (환경 보정 페이스)", metrics.get("FEARP"), "pace"),
-        ("GAP (경사 보정 페이스)", metrics.get("GAP"), "pace"),
-        ("NGP (정규화 경사 페이스)", metrics.get("NGP"), "pace"),
-        ("Relative Effort", metrics.get("RelativeEffort"), "f0"),
-        ("Aerobic Decoupling", metrics.get("AerobicDecoupling"), "f1%"),
-        ("Efficiency Factor (EF)", metrics.get("EF"), "f4"),
-        ("TRIMP", metrics.get("TRIMP"), "f1"),
+    svc = service_metrics or {}
+
+    # ── RunPulse 1차/2차 메트릭 ──────────────────────────────────────
+    act_pairs = [
+        ("FEARP",          metrics.get("FEARP"),          "pace"),
+        ("GAP",            metrics.get("GAP"),            "pace"),
+        ("NGP",            metrics.get("NGP"),            "pace"),
+        ("RelativeEffort", metrics.get("RelativeEffort"), "f0"),
+        ("AerobicDecoupling", metrics.get("AerobicDecoupling"), "f1%"),
+        ("EF",             metrics.get("EF"),             "f4"),
+        ("TRIMP",          metrics.get("TRIMP"),          "f1"),
+        ("WLEI",           metrics.get("WLEI"),           "f1"),
     ]
     day_pairs = [
-        ("DI (내구성 지수)", dm.get("DI"), "f2"),
-        ("LSI (부하 스파이크)", dm.get("LSI"), "f2"),
-        ("Monotony (훈련 단조로움)", dm.get("Monotony"), "f2"),
-        ("ACWR (급성/만성 비율)", dm.get("ACWR"), "f2"),
-        ("ADTI (유산소 분리 추세)", dm.get("ADTI"), "f4"),
-        ("Marathon Shape", dm.get("MarathonShape"), "f1%"),
+        ("DI",          dm.get("DI"),          "f2"),
+        ("LSI",         dm.get("LSI"),         "f2"),
+        ("Monotony",    dm.get("Monotony"),    "f2"),
+        ("ACWR",        dm.get("ACWR"),        "f2"),
+        ("ADTI",        dm.get("ADTI"),        "f4"),
+        ("MarathonShape", dm.get("MarathonShape"), "f1%"),
+        ("RTTI",        dm.get("RTTI"),        "f1%"),
+        ("TPDI",        dm.get("TPDI"),        "f1%"),
     ]
 
     def _fmt_val(val, fmt: str) -> str:
@@ -725,31 +897,105 @@ def _render_secondary_metrics_card(metrics: dict, day_metrics: dict | None = Non
             return f"{v:.1f}%"
         if fmt == "f4":
             return f"{v:.4f}"
-        return f"{v:.2f}"
+        return f"{v:.1f}"
 
-    rows = []
-    for label, val, fmt in pairs:
+    def _rp_row(key: str, val, fmt: str) -> str:
         if val is None:
-            continue
-        rows.append(metric_row(label, _fmt_val(val, fmt)))
-
-    day_rows = []
-    for label, val, fmt in day_pairs:
-        if val is None:
-            continue
-        day_rows.append(metric_row(label, _fmt_val(val, fmt)))
-
-    if not rows and not day_rows:
+            return ""
+        v = float(val)
+        val_str = _fmt_val(val, fmt)
+        badge = _metric_interp_badge(key, v)
+        icon = _metric_tooltip_icon(key)
+        label_html = f"{key}{icon}"
         return (
-            "<div class='card'>"
-            "<h2>2차 메트릭</h2>"
-            "<p class='muted' style='margin:0;'>메트릭 미계산 — 설정 → 재계산 실행 후 확인하세요.</p>"
+            "<div style='display:flex; justify-content:space-between; align-items:center;"
+            "padding:0.4rem 0; border-bottom:1px solid var(--row-border);'>"
+            f"<span style='font-size:0.85rem; color:var(--muted);'>{label_html}</span>"
+            f"<span style='font-size:0.9rem; font-weight:600;'>{val_str}{badge}</span>"
             "</div>"
         )
-    section_header = ""
-    if day_rows:
-        section_header = "<p style='font-size:0.78rem;color:var(--muted);margin:0.5rem 0 0.2rem;font-weight:600;'>당일 종합 지표</p>"
-    return "<div class='card'><h2>2차 메트릭</h2>" + "".join(rows) + section_header + "".join(day_rows) + "</div>"
+
+    rp_rows = [_rp_row(k, v, f) for k, v, f in act_pairs if v is not None]
+    if any(dm.get(k) is not None for k, _, _ in day_pairs):
+        rp_rows.append(
+            "<p style='font-size:0.75rem;color:var(--muted);margin:0.5rem 0 0.2rem;"
+            "font-weight:600;'>당일 종합 지표</p>"
+        )
+    rp_rows += [_rp_row(k, v, f) for k, v, f in day_pairs if v is not None]
+
+    if not rp_rows:
+        rp_content = "<p class='muted' style='margin:0.5rem 0;'>메트릭 미계산 — 설정 → 재계산 후 확인하세요.</p>"
+    else:
+        rp_content = "".join(rp_rows)
+
+    # ── 서비스 1차 메트릭 ────────────────────────────────────────────
+    svc_html_parts = []
+    _SVC_COLORS = {
+        "Garmin": "#0055b3",
+        "Strava": "#FC4C02",
+        "Intervals.icu": "#00884e",
+        "날씨 (서비스)": "#7b2d8b",
+        "존 점수 (서비스)": "#666",
+    }
+    for svc_name, svc_data in svc.items():
+        color = _SVC_COLORS.get(svc_name, "#555")
+        inner = ""
+        for label, (val, unit) in svc_data.items():
+            val_str = f"{val:.1f}{unit}" if isinstance(val, float) else f"{val}{unit}"
+            inner += (
+                "<div style='display:flex; justify-content:space-between;"
+                "padding:0.3rem 0; border-bottom:1px solid var(--row-border);'>"
+                f"<span style='font-size:0.82rem; color:var(--muted);'>{label}</span>"
+                f"<span style='font-size:0.85rem; font-weight:600;'>{val_str}</span>"
+                "</div>"
+            )
+        svc_html_parts.append(
+            f"<div style='margin-bottom:0.8rem;'>"
+            f"<p style='font-size:0.75rem; font-weight:700; color:{color};"
+            f"margin:0 0 0.3rem;'>{svc_name}</p>"
+            f"{inner}</div>"
+        )
+
+    svc_content = "".join(svc_html_parts) if svc_html_parts else (
+        "<p class='muted' style='margin:0.5rem 0;'>서비스 메트릭 없음 — 해당 서비스 동기화 후 확인하세요.</p>"
+    )
+
+    # ── 탭 HTML ──────────────────────────────────────────────────────
+    card_id = "metrics-tab-card"
+    return f"""<div class='card' id='{card_id}'>
+  <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;'>
+    <h2 style='margin:0;'>메트릭 분석</h2>
+    <div style='display:flex; gap:4px;'>
+      <button id='mtab-rp' onclick='switchMetricTab("rp")'
+        style='padding:0.3rem 0.8rem; font-size:0.8rem; border:1px solid var(--cyan);
+               background:var(--cyan); color:#000; border-radius:4px; cursor:pointer; font-weight:600;'>
+        RunPulse
+      </button>
+      <button id='mtab-svc' onclick='switchMetricTab("svc")'
+        style='padding:0.3rem 0.8rem; font-size:0.8rem; border:1px solid var(--card-border);
+               background:none; color:var(--muted); border-radius:4px; cursor:pointer;'>
+        서비스 원본
+      </button>
+    </div>
+  </div>
+  <div id='mtab-content-rp'>{rp_content}</div>
+  <div id='mtab-content-svc' style='display:none;'>{svc_content}</div>
+</div>
+<script>
+function switchMetricTab(tab) {{
+  document.getElementById('mtab-content-rp').style.display = tab==='rp' ? 'block' : 'none';
+  document.getElementById('mtab-content-svc').style.display = tab==='svc' ? 'block' : 'none';
+  var btnRp = document.getElementById('mtab-rp');
+  var btnSvc = document.getElementById('mtab-svc');
+  if (tab==='rp') {{
+    btnRp.style.background='var(--cyan)'; btnRp.style.color='#000'; btnRp.style.borderColor='var(--cyan)';
+    btnSvc.style.background='none'; btnSvc.style.color='var(--muted)'; btnSvc.style.borderColor='var(--card-border)';
+  }} else {{
+    btnSvc.style.background='var(--cyan)'; btnSvc.style.color='#000'; btnSvc.style.borderColor='var(--cyan)';
+    btnRp.style.background='none'; btnRp.style.color='var(--muted)'; btnRp.style.borderColor='var(--card-border)';
+  }}
+}}
+</script>"""
 
 
 def _render_daily_scores_card(day_metrics: dict) -> str:
@@ -955,6 +1201,7 @@ def activity_deep_view():
     day_metrics_data: dict = {}
     act_metric_jsons: dict = {}
     day_metric_jsons: dict = {}
+    service_metrics: dict = {}
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -979,6 +1226,7 @@ def activity_deep_view():
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
                     source_rows = _fetch_source_rows(conn, cur[0])
                     act_metrics = _load_activity_computed_metrics(conn, cur[0])
+                    service_metrics = _load_service_metrics(conn, cur[0])
                     act_date_tmp = str(cur[1])[:10]
                     day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)
                     act_metric_jsons = _load_activity_metric_jsons(conn, cur[0])
@@ -1044,7 +1292,7 @@ def activity_deep_view():
         + _render_efficiency(efficiency)
         + "</div>"
         + "<div class='cards-row'>"
-        + _render_secondary_metrics_card(act_metrics, day_metrics_data)
+        + _render_secondary_metrics_card(act_metrics, day_metrics_data, service_metrics=service_metrics)
         + _render_daily_scores_card(day_metrics_data)
         + "</div>"
         + "<div class='cards-row'>"

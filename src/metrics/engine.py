@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from collections.abc import Callable
 from datetime import date, timedelta
 
 from src.metrics.acwr import calc_and_save_acwr
@@ -278,6 +279,7 @@ def run_for_date_range(
     start_date: str,
     end_date: str,
     weekly_on_sunday: bool = True,
+    on_progress: "Callable[[str, int, int], None] | None" = None,
 ) -> dict[str, dict]:
     """날짜 범위 일괄 메트릭 계산.
 
@@ -286,6 +288,7 @@ def run_for_date_range(
         start_date: 시작일 YYYY-MM-DD.
         end_date: 종료일 YYYY-MM-DD.
         weekly_on_sunday: True면 일요일마다 주별 메트릭 추가 계산.
+        on_progress: 날짜 완료 시 콜백 (date_str, completed, total).
 
     Returns:
         {date_str: run_for_date 결과} 딕셔너리.
@@ -293,6 +296,8 @@ def run_for_date_range(
     results: dict = {}
     td = date.fromisoformat(start_date)
     end = date.fromisoformat(end_date)
+    total = (end - td).days + 1
+    completed = 0
 
     while td <= end:
         date_str = td.isoformat()
@@ -300,6 +305,12 @@ def run_for_date_range(
         include_weekly = weekly_on_sunday and is_sunday
 
         results[date_str] = run_for_date(conn, date_str, include_weekly=include_weekly)
+        completed += 1
+        if on_progress is not None:
+            try:
+                on_progress(date_str, completed, total)
+            except Exception:
+                pass
         td += timedelta(days=1)
 
     return results
@@ -309,6 +320,7 @@ def recompute_all(
     conn: sqlite3.Connection,
     days: int = 90,
     target_date: str | None = None,
+    on_progress: "Callable[[str, int, int], None] | None" = None,
 ) -> dict:
     """최근 N일 모든 메트릭 재계산.
 
@@ -318,6 +330,7 @@ def recompute_all(
         conn: SQLite 커넥션.
         days: 계산할 일 수 (기본 90일).
         target_date: 기준일 (없으면 오늘).
+        on_progress: 날짜 완료 시 콜백 (date_str, completed, total).
 
     Returns:
         run_for_date_range 결과.
@@ -325,4 +338,7 @@ def recompute_all(
     end = date.fromisoformat(target_date) if target_date else date.today()
     start = end - timedelta(days=days - 1)
     logger.info("메트릭 전체 재계산 시작: %s ~ %s", start.isoformat(), end.isoformat())
-    return run_for_date_range(conn, start.isoformat(), end.isoformat(), weekly_on_sunday=True)
+    return run_for_date_range(
+        conn, start.isoformat(), end.isoformat(),
+        weekly_on_sunday=True, on_progress=on_progress,
+    )
