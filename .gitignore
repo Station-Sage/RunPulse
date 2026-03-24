@@ -91,3 +91,4 @@ running.db.backup_*
 
 # Export data and DB
 audit/export_data/
+.claude/worktrees/
