@@ -100,6 +100,7 @@ def extract_summary_fields_from_api(act: dict) -> dict:
         "vigorous_intensity_min": act.get("vigorousIntensityMinutes"),
         "device_id": str(act.get("deviceId", "")) if act.get("deviceId") else None,
         "favorite": act.get("favorite"),
+        "event_type": (act.get("eventType") or {}).get("typeKey"),
     }
 
 
@@ -141,11 +142,8 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
     max_speed_raw = act.get("maxSpeed")
     max_speed_ms = max_speed_raw * 10 if max_speed_raw is not None else None
 
-    for i in range(7):
-        key = f"hrTimeInZone_{i}"
-
-    for i in range(6):
-        key = f"powerTimeInZone_{i}"
+    hr_zone_times = [act.get(f"hrTimeInZone_{i}") for i in range(7)]
+    power_zone_times = [act.get(f"powerTimeInZone_{i}") for i in range(6)]
 
     result = {
         "name": act.get("name") or act.get("activityName"),
@@ -172,7 +170,8 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "max_power": act.get("maxPower"),
         "normalized_power": act.get("normPower"),
         "avg_stride_length_cm": act.get("avgStrideLength"),  # cm
-        "avg_vertical_oscillation_cm": act.get("avgVerticalOscillation"),  # mm? 확인 필요
+        "avg_vertical_oscillation_cm": act.get("avgVerticalOscillation") / 10
+            if act.get("avgVerticalOscillation") is not None else None,  # ZIP: mm → cm
         "avg_vertical_ratio_percent": act.get("avgVerticalRatio"),
         "avg_ground_contact_time_ms": act.get("avgGroundContactTime"),  # ms
         "avg_double_cadence": act.get("avgDoubleCadence"),
@@ -205,9 +204,19 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "vigorous_intensity_min": act.get("vigorousIntensityMinutes"),
         "device_id": str(act.get("deviceId", "")) if act.get("deviceId") else None,
         "favorite": act.get("favorite"),
+        "event_type": (act.get("eventType") or {}).get("typeKey"),
     }
 
-    # HR/Power zone times 추가
+    # HR/Power zone times (ms → sec): 언더스코어 prefix로 반환,
+    # backfill에서 activity_detail_metrics에 별도 저장 처리
+    if any(v is not None for v in hr_zone_times):
+        result["_hr_zone_times"] = [
+            int(v / 1000) if v is not None else None for v in hr_zone_times
+        ]
+    if any(v is not None for v in power_zone_times):
+        result["_power_zone_times"] = [
+            int(v / 1000) if v is not None else None for v in power_zone_times
+        ]
 
     return result
 

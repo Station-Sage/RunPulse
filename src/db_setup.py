@@ -98,6 +98,12 @@ def create_tables(conn: sqlite3.Connection) -> None:
             icu_gap REAL,
             icu_decoupling REAL,
             icu_efficiency_factor REAL,
+            -- cross-service training quality metrics
+            session_rpe REAL,
+            strain_score REAL,
+            polarization_index REAL,
+            perceived_exertion REAL,
+            event_type TEXT,
             matched_group_id TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -620,6 +626,11 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE activity_summaries ADD COLUMN icu_decoupling REAL",
         "ALTER TABLE activity_summaries ADD COLUMN icu_efficiency_factor REAL",
         "ALTER TABLE activity_summaries ADD COLUMN icu_intensity REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN session_rpe REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN strain_score REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN polarization_index REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN perceived_exertion REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN event_type TEXT",
     ]:
         try:
             conn.execute(stmt)

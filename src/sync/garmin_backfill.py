@@ -11,6 +11,35 @@ except ImportError:
 
 KST = timedelta(hours=9)
 
+
+def _insert_zone_times(conn, activity_id: int, hr_zone_times, power_zone_times) -> None:
+    """HR/Power zone times → activity_detail_metrics 저장 (ZIP backfill용)."""
+    if not activity_id:
+        return
+    for i, val in enumerate(hr_zone_times or []):
+        if val is not None:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'garmin', ?, ?)""",
+                    (activity_id, f"hr_zone_time_{i + 1}", float(val)),
+                )
+            except Exception:
+                pass
+    for i, val in enumerate(power_zone_times or []):
+        if val is not None:
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'garmin', ?, ?)""",
+                    (activity_id, f"power_zone_time_{i + 1}", float(val)),
+                )
+            except Exception:
+                pass
+
+
 def _load_activities_from_zip_dir(export_dir: str) -> list:
     """summarizedActivities JSON 로드 (nested 구조 지원)"""
     patterns = ["*summarizedActivities*", "*SummarizedActivities*"]
@@ -95,16 +124,20 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
         if rowid is None:
             if insert_new:
                 fields = extract_summary_fields_from_zip(act)
+                hr_zone_times = fields.pop("_hr_zone_times", None)
+                power_zone_times = fields.pop("_power_zone_times", None)
                 fields["source"] = "garmin"
                 fields["source_id"] = aid
                 if not dry_run:
                     cols = ", ".join(fields.keys())
                     placeholders = ", ".join(["?"] * len(fields))
                     try:
-                        conn.execute(
+                        cursor2 = conn.execute(
                             f"INSERT INTO activity_summaries ({cols}) VALUES ({placeholders})",
                             list(fields.values())
                         )
+                        new_id = cursor2.lastrowid
+                        _insert_zone_times(conn, new_id, hr_zone_times, power_zone_times)
                         inserted += 1
                     except sqlite3.Error as e:
                         print(f"  [INSERT 실패] {aid}: {e}")
@@ -117,28 +150,37 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
         
         matched += 1
         fields = extract_summary_fields_from_zip(act)
-        
+        hr_zone_times = fields.pop("_hr_zone_times", None)
+        power_zone_times = fields.pop("_power_zone_times", None)
+
         # exp_ → 실제 garmin ID로 업그레이드
         if old_source_id and old_source_id.startswith("exp_"):
             fields["source_id"] = aid
             id_upgraded += 1
-        
+
         if not fields:
             skipped += 1
             continue
-        
+
         if dry_run:
-            print(f"  [DRY] {aid}: {len(fields)} 컬럼 업데이트 예정" + 
+            print(f"  [DRY] {aid}: {len(fields)} 컬럼 업데이트 예정" +
                   (f" (ID 업그레이드: {old_source_id} → {aid})" if old_source_id else ""))
             updated += 1
             continue
-        
+
         set_clause = ", ".join(f"{k}=?" for k in fields.keys())
         try:
             conn.execute(
                 f"UPDATE activity_summaries SET {set_clause} WHERE source='garmin' AND source_id=?",
                 list(fields.values()) + [old_source_id if old_source_id else aid]
             )
+            # zone times를 activity_detail_metrics에 저장
+            row_id = conn.execute(
+                "SELECT id FROM activity_summaries WHERE source='garmin' AND source_id=?",
+                (aid,),
+            ).fetchone()
+            if row_id:
+                _insert_zone_times(conn, row_id[0], hr_zone_times, power_zone_times)
             updated += 1
         except sqlite3.Error as e:
             print(f"  [UPDATE 실패] {aid}: {e}")

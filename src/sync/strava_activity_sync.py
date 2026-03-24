@@ -10,7 +10,7 @@ from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
-from src.utils.sync_state import get_rate_state, mark_finished
+from src.utils.sync_state import get_rate_state, get_retry_after_sec, mark_finished
 
 from .strava_auth import _BASE_URL, refresh_token
 
@@ -274,6 +274,7 @@ def sync_activity_detail(
         "min_elevation": detail.get("elev_low"),
         "steps": detail.get("total_steps"),
         "normalized_power": detail.get("weighted_average_watts"),
+        "perceived_exertion": detail.get("perceived_exertion"),
     })
 
     # laps → activity_laps
@@ -402,12 +403,12 @@ def sync_activities(
                        (source, source_id, name, activity_type, sport_type, start_time,
                         distance_km, duration_sec, moving_time_sec, elapsed_time_sec,
                         avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                        avg_speed_ms, max_speed_ms, elevation_gain, calories,
+                        avg_speed_ms, max_speed_ms, elevation_gain, elevation_loss, calories,
                         start_lat, start_lon, end_lat, end_lon,
                         kudos_count, achievement_count, pr_count,
                         suffer_score, strava_gear_id, avg_power, normalized_power,
                         workout_type, trainer, commute)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         "strava", source_id,
                         act.get("name"),
@@ -422,6 +423,7 @@ def sync_activities(
                         cadence,
                         act.get("average_speed"), act.get("max_speed"),
                         act.get("total_elevation_gain"),
+                        act.get("total_elevation_loss"),
                         act.get("calories"),
                         start_latlng[0], start_latlng[1],
                         end_latlng[0], end_latlng[1],
@@ -450,6 +452,7 @@ def sync_activities(
                     "avg_speed_ms": act.get("average_speed"),
                     "max_speed_ms": act.get("max_speed"),
                     "elevation_gain": act.get("total_elevation_gain"),
+                    "elevation_loss": act.get("total_elevation_loss"),
                     "calories": act.get("calories"),
                     "kudos_count": act.get("kudos_count"),
                     "achievement_count": act.get("achievement_count"),
@@ -463,7 +466,7 @@ def sync_activities(
                 })
                 if existing_id:
                     _store_raw(conn, "activity_summary", source_id, act, activity_id=existing_id)
-                    if not skip_expensive:
+                    if not skip_expensive and not get_retry_after_sec("strava"):
                         has_detail = conn.execute(
                             "SELECT 1 FROM activity_detail_metrics "
                             "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
@@ -472,13 +475,15 @@ def sync_activities(
                         if not has_detail:
                             sync_activity_detail(conn, source_id, existing_id, headers)
                             _sync_activity_streams(conn, source_id, existing_id, headers, force=force_streams)
+                    elif get_retry_after_sec("strava"):
+                        partial = True
                 continue
 
             activity_id = cursor.lastrowid
             count += 1
             _store_raw(conn, "activity_summary", source_id, act, activity_id=activity_id)
 
-            if skip_expensive:
+            if skip_expensive or get_retry_after_sec("strava"):
                 partial = True
                 assign_group_id(conn, activity_id)
                 time.sleep(policy.per_request_sleep_sec)

@@ -33,15 +33,14 @@ def sync_athlete_profile(
     try:
         conn.execute(
             """INSERT INTO athlete_profile
-               (source, username, first_name, last_name, city, country, profile_medium)
-               VALUES ('garmin', ?, ?, ?, ?, ?, ?)
+               (source, source_athlete_id, firstname, lastname, city, country)
+               VALUES ('garmin', ?, ?, ?, ?, ?)
                ON CONFLICT(source) DO UPDATE SET
-                   username = COALESCE(excluded.username, username),
-                   first_name = COALESCE(excluded.first_name, first_name),
-                   last_name = COALESCE(excluded.last_name, last_name),
+                   source_athlete_id = COALESCE(excluded.source_athlete_id, source_athlete_id),
+                   firstname = COALESCE(excluded.firstname, firstname),
+                   lastname = COALESCE(excluded.lastname, lastname),
                    city = COALESCE(excluded.city, city),
                    country = COALESCE(excluded.country, country),
-                   profile_medium = COALESCE(excluded.profile_medium, profile_medium),
                    updated_at = datetime('now')""",
             (
                 data.get("userName") or data.get("displayName"),
@@ -49,7 +48,6 @@ def sync_athlete_profile(
                 data.get("lastName"),
                 data.get("city"),
                 data.get("countryCode") or data.get("country"),
-                data.get("profileImageUrlMedium") or data.get("profileImageUrl"),
             ),
         )
     except sqlite3.Error as e:
@@ -166,9 +164,9 @@ def sync_athlete_personal_records(
                 if row:
                     conn.execute(
                         """INSERT INTO activity_best_efforts
-                           (activity_id, source, effort_name, elapsed_sec, pr_rank)
+                           (activity_id, source, name, elapsed_sec, pr_rank)
                            VALUES (?, 'garmin', ?, ?, 1)
-                           ON CONFLICT(activity_id, source, effort_name) DO UPDATE SET
+                           ON CONFLICT(activity_id, source, name) DO UPDATE SET
                                elapsed_sec = excluded.elapsed_sec,
                                pr_rank = 1""",
                         (row[0], type_key, float(value)),

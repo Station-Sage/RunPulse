@@ -206,7 +206,7 @@ def sync_activities(
                 if value is not None:
                     metrics[f"power_zone_time_{idx}"] = value
 
-            detail_fields = extract_detail_fields(act, detail)
+            detail_fields = extract_detail_fields(detail, act)
             if detail_fields:
                 set_clause = ", ".join(f"{k}=?" for k in detail_fields.keys())
                 conn.execute(

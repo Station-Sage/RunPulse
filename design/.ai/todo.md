@@ -1,4 +1,25 @@
 # v0.2 작업 목록
+최종 업데이트: 2026-03-25 (API 데이터 감사 수정 완료)
+
+## Sprint 5-F: API 데이터 감사 수정 ✅ 완료 (2026-03-25)
+
+- [x] Bug #1: `garmin_athlete_extensions.py` — `athlete_profile` 컬럼명 수정 (`firstname`/`lastname`/`source_athlete_id`), `activity_best_efforts` `effort_name`→`name`
+- [x] Bug #2: `garmin_v2_mappings.py` + `garmin_backfill.py` — ZIP zone time 데드코드 수정, `activity_detail_metrics` 저장
+- [x] Bug #3: `strava_activity_sync.py` — `elevation_loss` INSERT/UPDATE 추가
+- [x] Bug #4: `intervals_activity_sync.py` — `avg_power` = `icu_average_watts`(평균), `normalized_power` = `icu_weighted_avg_watts`(NP) 분리
+- [x] Bug #5: `intervals_wellness_sync.py` — `stress_avg`/`body_battery` INSERT 추가
+- [x] Check #6: `garmin_activity_sync.py` — `extract_detail_fields(act, detail)` → `extract_detail_fields(detail, act)` 인자 순서 수정 (Running Dynamics 저장 불량 근본 원인)
+- [x] Check #7: `garmin_v2_mappings.py` — ZIP `avgVerticalOscillation` mm→cm (`/10`) 변환
+- [x] Intervals cadence ×2: 확인 완료 (half-step 방식으로 ×2 맞음, 변경 없음)
+- [x] 신규: `db_setup.py` — `session_rpe`/`strain_score`/`polarization_index`/`perceived_exertion` 컬럼 추가
+- [x] 신규: `intervals_activity_sync.py` — `lap_count`/`session_rpe`/`strain_score`/`polarization_index` 저장
+- [x] 신규: `strava_activity_sync.py` — `perceived_exertion` detail UPDATE
+- [x] Garmin best_efforts: `effort_name`→`name` 수정으로 `sync_athlete_personal_records` 정상 저장
+- [x] Strava best_efforts: `_sync_activity_best_efforts` 이미 구현됨 (확인 완료)
+- [x] Running Dynamics: Check #6 수정으로 `extract_detail_fields` 올바르게 호출됨 (GCT/VO/VR 정상 저장)
+
+---
+
 최종 업데이트: 2026-03-23 (메트릭 전체 리뷰 반영 — 공식 있는 것 우선순위 반영)
 
 ## Phase PERF: 성능 개선 (v0.2 선행 작업) ✅ 완료

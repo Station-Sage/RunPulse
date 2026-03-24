@@ -1,5 +1,40 @@
 # Changelog
 
+## [v0.2-sprint5-audit] 2026-03-25
+
+### API 데이터 감사 후 수정
+
+**Bug #1: Garmin athlete_profile 컬럼명 오류**
+- `garmin_athlete_extensions.py`: `first_name`→`firstname`, `last_name`→`lastname`, `username`/`profile_medium` 제거, `source_athlete_id` 추가
+- `activity_best_efforts` INSERT: `effort_name` → `name` (실제 컬럼명 일치)
+
+**Bug #2: Garmin ZIP zone time 루프 데드코드**
+- `garmin_v2_mappings.py`: `extract_summary_fields_from_zip`에서 `hrTimeInZone_N`/`powerTimeInZone_N` 루프가 key 변수만 만들고 버림 → 실제 리스트 빌드 후 `_hr_zone_times`/`_power_zone_times`로 반환
+- `garmin_backfill.py`: 특수 키 pop 후 `activity_detail_metrics`에 zone time 저장
+
+**Bug #3: Strava elevation_loss 미저장**
+- `strava_activity_sync.py`: `total_elevation_loss` → `elevation_loss` 컬럼에 INSERT/UPDATE 추가
+
+**Bug #4: Intervals avg_power = normalized_power 동일값**
+- `intervals_activity_sync.py`: `avg_power` = `icu_average_watts`(평균), `normalized_power` = `icu_weighted_avg_watts`(가중평균 NP)로 분리
+
+**Bug #5: Intervals wellness stress_avg/body_battery 미저장**
+- `intervals_wellness_sync.py`: `avgStress`→`stress_avg`, `bodyBattery`→`body_battery` INSERT 추가
+
+**Check #6: Garmin extract_detail_fields 인자 순서 역전**
+- `garmin_activity_sync.py`: `extract_detail_fields(act, detail)` → `extract_detail_fields(detail, act)` 수정
+- Running Dynamics 필드들이 실제로 저장되지 않던 근본 원인 수정
+
+**Check #7: Garmin ZIP avgVerticalOscillation 단위 mm→cm**
+- `garmin_v2_mappings.py`: ZIP export는 mm 단위 → `/10`으로 cm 변환
+
+**신규 필드 추가**
+- `db_setup.py`: `activity_summaries`에 `session_rpe`, `strain_score`, `polarization_index`, `perceived_exertion` 컬럼 추가 + 마이그레이션
+- `intervals_activity_sync.py`: `lap_count(icu_lap_count)`, `session_rpe`, `strain_score`, `polarization_index` → `activity_summaries` INSERT/UPDATE
+- `strava_activity_sync.py`: `perceived_exertion` → detail UPDATE
+
+---
+
 ## [v0.2-sprint5-bugfix] 2026-03-25
 
 ### 버그 수정

@@ -329,8 +329,10 @@ def sync_activities(
                     start_lat, start_lon,
                     icu_training_load, icu_trimp, icu_hrss,
                     icu_intensity, icu_atl, icu_ctl, icu_tsb,
-                    icu_gap, icu_decoupling, icu_efficiency_factor)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    icu_gap, icu_decoupling, icu_efficiency_factor,
+                    lap_count, session_rpe, strain_score, polarization_index,
+                    event_type)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "intervals", source_id,
                     act.get("name"),
@@ -348,7 +350,7 @@ def sync_activities(
                     act.get("total_elevation_loss"),
                     act.get("calories"),
                     workout_label,
-                    act.get("icu_weighted_avg_watts"),
+                    act.get("icu_average_watts"),
                     act.get("icu_weighted_avg_watts"),
                     start_lat, start_lon,
                     act.get("icu_training_load"),
@@ -361,6 +363,11 @@ def sync_activities(
                     act.get("gap"),
                     act.get("decoupling"),
                     act.get("icu_efficiency_factor"),
+                    act.get("icu_lap_count"),
+                    act.get("session_rpe"),
+                    act.get("strain_score"),
+                    act.get("polarization_index"),
+                    (act.get("category") or "").lower() or None,
                 ),
             )
         except sqlite3.Error as e:
@@ -377,7 +384,7 @@ def sync_activities(
                 "calories": act.get("calories"),
                 "name": act.get("name"),
                 "workout_label": workout_label,
-                "avg_power": act.get("icu_weighted_avg_watts"),
+                "avg_power": act.get("icu_average_watts"),
                 "icu_training_load": act.get("icu_training_load"),
                 "icu_trimp": act.get("trimp"),
                 "icu_hrss": act.get("icu_hrss"),
@@ -388,6 +395,11 @@ def sync_activities(
                 "icu_gap": act.get("gap"),
                 "icu_decoupling": act.get("decoupling"),
                 "icu_efficiency_factor": act.get("icu_efficiency_factor"),
+                "lap_count": act.get("icu_lap_count"),
+                "session_rpe": act.get("session_rpe"),
+                "strain_score": act.get("strain_score"),
+                "polarization_index": act.get("polarization_index"),
+                "event_type": (act.get("category") or "").lower() or None,
             })
             _store_raw(conn, "activity", source_id, act, activity_id=existing_id)
             if existing_id:

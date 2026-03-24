@@ -37,7 +37,9 @@ def mem_conn():
             description TEXT,
             matched_group_id TEXT,
             workout_label TEXT,
-            avg_power REAL
+            avg_power REAL,
+            event_type TEXT,
+            workout_type TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_activity_detail_metrics_activity_source
             ON activity_summaries(id, source);

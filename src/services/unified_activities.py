@@ -21,6 +21,7 @@ _COLS = [
     "distance_km", "duration_sec", "avg_pace_sec_km", "avg_hr",
     "max_hr", "avg_cadence", "elevation_gain", "calories",
     "description", "matched_group_id", "workout_label", "avg_power",
+    "event_type", "workout_type",
 ]
 
 
@@ -53,6 +54,7 @@ class UnifiedActivity:
     calories: UnifiedField = field(default_factory=UnifiedField)
     description: UnifiedField = field(default_factory=UnifiedField)
     workout_label: UnifiedField = field(default_factory=UnifiedField)
+    event_type: UnifiedField = field(default_factory=UnifiedField)
 
     @property
     def date(self) -> str:
@@ -127,6 +129,7 @@ def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedAct
         "activity_type", "start_time", "distance_km", "duration_sec",
         "avg_pace_sec_km", "avg_hr", "max_hr", "avg_cadence",
         "elevation_gain", "calories", "description", "workout_label",
+        "event_type",
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
 
