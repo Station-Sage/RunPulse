@@ -91,6 +91,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             icu_training_load REAL,
             icu_trimp REAL,
             icu_hrss REAL,
+            icu_intensity REAL,
             icu_atl REAL,
             icu_ctl REAL,
             icu_tsb REAL,
@@ -618,6 +619,7 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE activity_summaries ADD COLUMN icu_gap REAL",
         "ALTER TABLE activity_summaries ADD COLUMN icu_decoupling REAL",
         "ALTER TABLE activity_summaries ADD COLUMN icu_efficiency_factor REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_intensity REAL",
     ]:
         try:
             conn.execute(stmt)

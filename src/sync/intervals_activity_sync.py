@@ -328,9 +328,9 @@ def sync_activities(
                     calories, workout_label, avg_power, normalized_power,
                     start_lat, start_lon,
                     icu_training_load, icu_trimp, icu_hrss,
-                    icu_atl, icu_ctl, icu_tsb,
+                    icu_intensity, icu_atl, icu_ctl, icu_tsb,
                     icu_gap, icu_decoupling, icu_efficiency_factor)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "intervals", source_id,
                     act.get("name"),
@@ -354,6 +354,7 @@ def sync_activities(
                     act.get("icu_training_load"),
                     act.get("trimp"),
                     act.get("icu_hrss"),
+                    act.get("icu_intensity"),
                     act.get("atl"),
                     act.get("ctl"),
                     icu_tsb,
@@ -380,6 +381,7 @@ def sync_activities(
                 "icu_training_load": act.get("icu_training_load"),
                 "icu_trimp": act.get("trimp"),
                 "icu_hrss": act.get("icu_hrss"),
+                "icu_intensity": act.get("icu_intensity"),
                 "icu_atl": act.get("atl"),
                 "icu_ctl": act.get("ctl"),
                 "icu_tsb": icu_tsb,

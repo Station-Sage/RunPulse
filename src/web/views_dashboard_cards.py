@@ -200,7 +200,7 @@ def _render_activity_list(activities: list[dict]) -> str:
                 f"border-radius:12px;padding:0.1rem 0.5rem;font-size:0.76rem;'>RE {act['relative_effort']:.0f}</span>"
             )
         items.append(
-            f"<a href='/activity?id={act['id']}' style='text-decoration:none;color:inherit;'>"
+            f"<a href='/activity/deep?id={act['id']}' style='text-decoration:none;color:inherit;'>"
             f"<div class='card' style='display:flex;align-items:center;gap:0.8rem;"
             f"padding:0.7rem 0.9rem;margin:0.4rem 0;'>"
             f"<div style='font-size:1.5rem;'>&#127939;</div>"

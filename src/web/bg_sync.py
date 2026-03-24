@@ -197,21 +197,21 @@ class BgSyncThread(threading.Thread):
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
-                    req_added = count * 3 + 1   # list + detail + stream
+                    req_added = count * 4 + 1   # list + detail + stream + zones
                 elif service == "intervals":
                     from src.sync.intervals import sync_activities
                     count = sync_activities(
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
-                    req_added = count + 1
+                    req_added = count * 3 + 1   # list + intervals + streams + power_curve
                 elif service == "runalyze":
                     from src.sync.runalyze import sync_activities
                     count = sync_activities(
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
-                    req_added = count + 1
+                    req_added = count * 2 + 1   # list + detail
             finally:
                 conn.close()
         except Exception as exc:

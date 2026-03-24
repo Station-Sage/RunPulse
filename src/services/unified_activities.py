@@ -249,7 +249,8 @@ def fetch_unified_activities(
     # ── Step 2: 현재 페이지의 eff_gid 목록만 LIMIT/OFFSET으로 가져옴 ───
     offset = (page - 1) * page_size
     page_sql = f"""
-        SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS eff_gid
+        SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS eff_gid,
+               MAX(matched_group_id IS NOT NULL) AS is_group
         FROM activity_summaries
         {where}
         GROUP BY eff_gid
@@ -263,14 +264,14 @@ def fetch_unified_activities(
         return [], total_count, {"total_count": total_count, "total_dist_km": total_dist}
 
     # ── Step 3: 해당 페이지 그룹의 rows만 로드 ──────────────────────────
-    # eff_gid가 UUID 형태면 matched_group_id, 숫자 문자열이면 단일 소스 id
+    # is_group 플래그로 구분 (matched_group_id는 숫자처럼 보이는 hex도 있음)
     group_ids: list[str] = []
     solo_ids: list[int] = []
-    for eid in page_eids:
-        try:
-            solo_ids.append(int(eid))
-        except ValueError:
+    for eid, is_group in page_rows:
+        if is_group:
             group_ids.append(eid)
+        else:
+            solo_ids.append(int(eid))
 
     all_rows: list[dict] = []
     cols_str = ", ".join(_COLS)

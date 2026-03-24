@@ -124,13 +124,13 @@ def _request(
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             body = e.response.text[:500]
-            print(f"[API] {method} {url} -> {status} (시도 {attempt + 1})")
             last_error = ApiError(
                 f"{method} {url} failed: {status}", status_code=status, body=body,
             )
-            # 4xx (클라이언트 오류)는 재시도해도 결과 동일 — 즉시 중단
+            # 4xx (클라이언트 오류)는 재시도해도 결과 동일 — 즉시 중단 (로그 없음)
             if 400 <= status < 500:
                 break
+            print(f"[API] {method} {url} -> {status} (시도 {attempt + 1})")
 
         except httpx.RequestError as e:
             print(f"[API] {method} {url} -> 연결 오류 (시도 {attempt + 1}): {e}")
@@ -170,7 +170,6 @@ def _request_raw(
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             body = e.response.text[:500]
-            print(f"[API] {method} {url} -> {status} (시도 {attempt + 1})")
             last_error = ApiError(
                 f"{method} {url} failed: {status}",
                 status_code=status,
@@ -178,6 +177,7 @@ def _request_raw(
             )
             if 400 <= status < 500:
                 break
+            print(f"[API] {method} {url} -> {status} (시도 {attempt + 1})")
 
         except httpx.RequestError as e:
             print(f"[API] {method} {url} -> 연결 오류 (시도 {attempt + 1}): {e}")
