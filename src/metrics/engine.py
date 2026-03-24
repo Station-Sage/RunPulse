@@ -161,13 +161,21 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     except Exception:
         logger.exception("VDOT 계산 실패: %s", target_date)
 
-    # 8. DARP (VDOT + DI 필요)
+    # 8. TIDS (훈련 강도 분포)
     try:
         tids = calc_and_save_tids(conn, target_date)
         if tids is not None:
             results["TIDS"] = tids
     except Exception:
         logger.exception("TIDS 계산 실패: %s", target_date)
+
+    # 9. DARP (VDOT + DI 필요)
+    try:
+        darp_result = calc_and_save_darp(conn, target_date)
+        if darp_result is not None:
+            results["DARP"] = darp_result
+    except Exception:
+        logger.exception("DARP 계산 실패: %s", target_date)
 
     # 10. RMR (복합 웰니스/피트니스 데이터 필요)
     try:

@@ -42,10 +42,17 @@ def _load_metric(conn, name):
     return row[0], _safe_json(row[1])
 
 
+_KM_TO_DARP_KEY = {
+    5.0: "DARP_5k", 10.0: "DARP_10k",
+    21.0975: "DARP_half", 42.195: "DARP_full",
+}
+
+
 def _load_darp(conn, km):
-    val, mj = _load_metric(conn, f"darp_{km}")
+    key = _KM_TO_DARP_KEY.get(km, f"DARP_{km}")
+    val, mj = _load_metric(conn, key)
     if val is None:
-        val, mj = _load_metric(conn, "darp_half")
+        val, mj = _load_metric(conn, "DARP_half")
     return val, mj
 
 
@@ -222,4 +229,4 @@ def race_page():
 
 
 def _load_di(conn):
-    return _load_metric(conn, "di")
+    return _load_metric(conn, "DI")

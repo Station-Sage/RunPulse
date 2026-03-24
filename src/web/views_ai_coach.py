@@ -35,10 +35,10 @@ def _load_metric(conn, name):
 
 def _generate_briefing(conn):
     """src/ai/briefing.py 연동 시도, 실패 시 메트릭 기반 간이 브리핑."""
-    utrs_val, utrs_json = _load_metric(conn, "utrs")
-    cirs_val, cirs_json = _load_metric(conn, "cirs")
-    darp_val, darp_json = _load_metric(conn, "darp_half")
-    di_val, _ = _load_metric(conn, "di")
+    utrs_val, utrs_json = _load_metric(conn, "UTRS")
+    cirs_val, cirs_json = _load_metric(conn, "CIRS")
+    darp_val, darp_json = _load_metric(conn, "DARP_half")
+    di_val, _ = _load_metric(conn, "DI")
 
     try:
         from src.ai.briefing import generate_daily_briefing
@@ -107,10 +107,10 @@ def _render_briefing_card(briefing_text):
 
 
 def _render_recommendation_chips(conn):
-    utrs_val, _ = _load_metric(conn, "utrs")
-    cirs_val, _ = _load_metric(conn, "cirs")
-    di_val, _ = _load_metric(conn, "di")
-    fearp_val, fearp_json = _load_metric(conn, "fearp")
+    utrs_val, _ = _load_metric(conn, "UTRS")
+    cirs_val, _ = _load_metric(conn, "CIRS")
+    di_val, _ = _load_metric(conn, "DI")
+    fearp_val, fearp_json = _load_metric(conn, "FEARP")
 
     chips = []
     if utrs_val is not None:
