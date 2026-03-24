@@ -159,6 +159,80 @@ def _fetch_and_store_strava_detail(
                 (activity_id, json.dumps(best_efforts)),
             )
 
+
+        # ── laps → activity_laps 저장 ──
+        raw_laps = detail.get("laps") or []
+        for lap in raw_laps:
+            lap_dist = (lap.get("distance") or 0) / 1000.0
+            lap_dur = lap.get("elapsed_time") or lap.get("moving_time")
+            lap_pace = round(lap_dur / lap_dist) if lap_dist > 0 and lap_dur else None
+            lap_hr = lap.get("average_heartrate")
+            lap_max_hr = lap.get("max_heartrate")
+            lap_cadence = lap.get("average_cadence")
+            if lap_cadence:
+                lap_cadence = int(lap_cadence * 2)
+            lap_elev = lap.get("total_elevation_gain")
+            lap_power = lap.get("average_watts")
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_laps
+                       (activity_id, source, lap_index, distance_km, duration_sec,
+                        avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, avg_power)
+                       VALUES (?, 'strava', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (activity_id, lap.get("lap_index") or lap.get("split"),
+                     lap_dist, lap_dur, lap_pace, lap_hr, lap_max_hr,
+                     lap_cadence, lap_elev, lap_power),
+                )
+            except Exception:
+                pass
+
+        # ── splits_metric 저장 ──
+        splits_metric = detail.get("splits_metric") or []
+        if splits_metric:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'strava', 'splits_metric', ?)""",
+                (activity_id, json.dumps(splits_metric)),
+            )
+
+
+        # ── laps → activity_laps 저장 ──
+        raw_laps = detail.get("laps") or []
+        for lap in raw_laps:
+            lap_dist = (lap.get("distance") or 0) / 1000.0
+            lap_dur = lap.get("elapsed_time") or lap.get("moving_time")
+            lap_pace = round(lap_dur / lap_dist) if lap_dist > 0 and lap_dur else None
+            lap_hr = lap.get("average_heartrate")
+            lap_max_hr = lap.get("max_heartrate")
+            lap_cadence = lap.get("average_cadence")
+            if lap_cadence:
+                lap_cadence = int(lap_cadence * 2)
+            lap_elev = lap.get("total_elevation_gain")
+            lap_power = lap.get("average_watts")
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_laps
+                       (activity_id, source, lap_index, distance_km, duration_sec,
+                        avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, avg_power)
+                       VALUES (?, 'strava', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (activity_id, lap.get("lap_index") or lap.get("split"),
+                     lap_dist, lap_dur, lap_pace, lap_hr, lap_max_hr,
+                     lap_cadence, lap_elev, lap_power),
+                )
+            except Exception:
+                pass
+
+        # ── splits_metric 저장 ──
+        splits_metric = detail.get("splits_metric") or []
+        if splits_metric:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'strava', 'splits_metric', ?)""",
+                (activity_id, json.dumps(splits_metric)),
+            )
+
         extra_metrics = {
             "moving_time_sec": detail.get("moving_time"),
             "elapsed_time_sec": detail.get("elapsed_time"),
@@ -373,6 +447,80 @@ def sync_activities(
                            (activity_id, source, metric_name, metric_json)
                            VALUES (?, 'strava', 'best_efforts', ?)""",
                         (activity_id, json.dumps(best_efforts)),
+                    )
+
+
+                # ── laps → activity_laps 저장 ──
+                raw_laps = detail.get("laps") or []
+                for lap in raw_laps:
+                    lap_dist = (lap.get("distance") or 0) / 1000.0
+                    lap_dur = lap.get("elapsed_time") or lap.get("moving_time")
+                    lap_pace = round(lap_dur / lap_dist) if lap_dist > 0 and lap_dur else None
+                    lap_hr = lap.get("average_heartrate")
+                    lap_max_hr = lap.get("max_heartrate")
+                    lap_cadence = lap.get("average_cadence")
+                    if lap_cadence:
+                        lap_cadence = int(lap_cadence * 2)
+                    lap_elev = lap.get("total_elevation_gain")
+                    lap_power = lap.get("average_watts")
+                    try:
+                        conn.execute(
+                            """INSERT OR IGNORE INTO activity_laps
+                               (activity_id, source, lap_index, distance_km, duration_sec,
+                                avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, avg_power)
+                               VALUES (?, 'strava', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (activity_id, lap.get("lap_index") or lap.get("split"),
+                             lap_dist, lap_dur, lap_pace, lap_hr, lap_max_hr,
+                             lap_cadence, lap_elev, lap_power),
+                        )
+                    except Exception:
+                        pass
+
+                # ── splits_metric 저장 ──
+                splits_metric = detail.get("splits_metric") or []
+                if splits_metric:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'splits_metric', ?)""",
+                        (activity_id, json.dumps(splits_metric)),
+                    )
+
+
+                # ── laps → activity_laps 저장 ──
+                raw_laps = detail.get("laps") or []
+                for lap in raw_laps:
+                    lap_dist = (lap.get("distance") or 0) / 1000.0
+                    lap_dur = lap.get("elapsed_time") or lap.get("moving_time")
+                    lap_pace = round(lap_dur / lap_dist) if lap_dist > 0 and lap_dur else None
+                    lap_hr = lap.get("average_heartrate")
+                    lap_max_hr = lap.get("max_heartrate")
+                    lap_cadence = lap.get("average_cadence")
+                    if lap_cadence:
+                        lap_cadence = int(lap_cadence * 2)
+                    lap_elev = lap.get("total_elevation_gain")
+                    lap_power = lap.get("average_watts")
+                    try:
+                        conn.execute(
+                            """INSERT OR IGNORE INTO activity_laps
+                               (activity_id, source, lap_index, distance_km, duration_sec,
+                                avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, avg_power)
+                               VALUES (?, 'strava', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (activity_id, lap.get("lap_index") or lap.get("split"),
+                             lap_dist, lap_dur, lap_pace, lap_hr, lap_max_hr,
+                             lap_cadence, lap_elev, lap_power),
+                        )
+                    except Exception:
+                        pass
+
+                # ── splits_metric 저장 ──
+                splits_metric = detail.get("splits_metric") or []
+                if splits_metric:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'splits_metric', ?)""",
+                        (activity_id, json.dumps(splits_metric)),
                     )
 
                 # 추가 수치 지표

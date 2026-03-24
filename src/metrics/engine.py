@@ -26,7 +26,7 @@ from src.metrics.rmr import calc_and_save_rmr
 from src.metrics.tids import calc_and_save_tids
 from src.metrics.trimp import calc_and_save_daily_trimp, calc_and_save_trimp_for_activity
 from src.metrics.utrs import calc_and_save_utrs
-
+from src.metrics.vdot import calc_and_save_vdot
 logger = logging.getLogger(__name__)
 
 
@@ -141,15 +141,15 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     except Exception:
         logger.exception("DI 계산 실패: %s", target_date)
 
-    # 8. DARP (VDOT + DI 필요)
+    # 7.5. VDOT (best_efforts / 고강도 활동 기반)
     try:
-        darp_results = calc_and_save_darp(conn, target_date)
-        if darp_results:
-            results["DARP"] = darp_results
+        vdot = calc_and_save_vdot(conn, target_date)
+        if vdot is not None:
+            results["VDOT"] = vdot
     except Exception:
-        logger.exception("DARP 계산 실패: %s", target_date)
+        logger.exception("VDOT 계산 실패: %s", target_date)
 
-    # 9. TIDS (최근 4주 HR존 분포)
+    # 8. DARP (VDOT + DI 필요)
     try:
         tids = calc_and_save_tids(conn, target_date)
         if tids is not None:
