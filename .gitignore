@@ -78,6 +78,10 @@ audit/export_data/strava/routes/*.gpx
 audit/export_data/garmin_full/DI_CONNECT/DI-Connect-User/*.png
 audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Health-Uploaded-Files/*.zip
 
+# DB files
+running.db
+running.db.*
+
 # DB backups
 *.backup_*
 running.db.backup_*
