@@ -128,6 +128,9 @@ def _request(
             last_error = ApiError(
                 f"{method} {url} failed: {status}", status_code=status, body=body,
             )
+            # 4xx (클라이언트 오류)는 재시도해도 결과 동일 — 즉시 중단
+            if 400 <= status < 500:
+                break
 
         except httpx.RequestError as e:
             print(f"[API] {method} {url} -> 연결 오류 (시도 {attempt + 1}): {e}")
@@ -173,6 +176,8 @@ def _request_raw(
                 status_code=status,
                 body=body,
             )
+            if 400 <= status < 500:
+                break
 
         except httpx.RequestError as e:
             print(f"[API] {method} {url} -> 연결 오류 (시도 {attempt + 1}): {e}")
