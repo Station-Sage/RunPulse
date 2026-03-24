@@ -18,6 +18,7 @@ from src.db_setup import get_db_path
 from src.utils.sync_jobs import (
     SyncJob,
     INTER_BATCH_SLEEP,
+    cleanup_stale_running_jobs,
     create_job,
     get_active_job,
     get_job,
@@ -29,6 +30,14 @@ from src.utils.sync_state import get_retry_after_sec
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
 _threads: dict[str, "BgSyncThread"] = {}
 _lock = threading.Lock()
+
+# 프로세스 시작 시 이전 실행에서 남은 stale "running" 작업 정리
+try:
+    _cleaned = cleanup_stale_running_jobs()
+    if _cleaned:
+        print(f"[bg_sync] stale 작업 {_cleaned}개 정리됨")
+except Exception:
+    pass
 
 
 # ── 스레드 ───────────────────────────────────────────────────────────────

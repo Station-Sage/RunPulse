@@ -147,6 +147,22 @@ def _row(row: tuple) -> SyncJob:
     return SyncJob(*row)
 
 
+def cleanup_stale_running_jobs() -> int:
+    """프로세스 재시작 시 남아있는 'running'/'pending' 작업을 'stopped'로 정리.
+
+    Returns:
+        정리된 작업 수.
+    """
+    now = datetime.now().isoformat(timespec="seconds")
+    with _conn() as conn:
+        cur = conn.execute(
+            "UPDATE sync_jobs SET status='stopped', updated_at=?, last_error='프로세스 재시작으로 중단됨' "
+            "WHERE status IN ('running', 'pending')",
+            (now,),
+        )
+        return cur.rowcount
+
+
 # ── CRUD ─────────────────────────────────────────────────────────────────
 
 def create_job(service: str, from_date: str, to_date: str) -> SyncJob:
