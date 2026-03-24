@@ -1,5 +1,5 @@
 # v0.2 작업 목록
-최종 업데이트: 2026-03-25 (API 데이터 감사 수정 완료)
+최종 업데이트: 2026-03-25 (문서 정합성 업데이트)
 
 ## Sprint 5-F: API 데이터 감사 수정 ✅ 완료 (2026-03-25)
 
@@ -79,6 +79,9 @@
 | TIDS | 훈련 강도 분배 | ✅ v0.2 (V2-1-4) | 있음 |
 | DARP | 내구성 보정 레이스 예측 | ✅ v0.2 (V2-1-11) | 있음 |
 | RMR | 러너 성숙도 레이더 | ✅ v0.2 (V2-1-12) | 있음 |
+| RTTI | 러닝 내성 훈련 지수 | ✅ v0.2 (Sprint 5-C) | 있음 |
+| WLEI | 날씨 가중 노력 지수 | ✅ v0.2 (Sprint 5-C) | 있음 |
+| TPDI | 실내/야외 퍼포먼스 격차 | ✅ v0.2 (Sprint 5-C) | 있음 |
 | REC | 통합 러닝 효율성 | ⏳ v0.3 (V3-2-1) | 있음 |
 | RRI | 레이스 준비도 지수 | ⏳ v0.3 (V3-2-2) | 있음 |
 | SAPI | 계절·날씨 성과 비교 | ⏳ v0.3 (V3-2-3) | 있음 |
@@ -354,7 +357,8 @@
 ### Priority B — 다음 스프린트
 
 - [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)
-  - `src/web/app.py` 1349줄, `views_activity.py` 1062줄, `helpers.py` 1002줄, `views_activities.py` 961줄, `views_settings.py` 699줄
+  - `src/web/views_activity.py` 1529줄, `src/web/app.py` 1351줄, `src/web/helpers.py` 1033줄
+  - `src/web/views_activities.py` 1024줄, `src/db_setup.py` 1026줄, `src/web/views_settings.py` 857줄
 - [ ] **B-2**: `V2-9-3` graceful fallback 전면 보강 — no-data card 통일, metric 계산 불가 이유 표시
 - [ ] **B-3**: `V2-9-4` Settings hub 고도화 — sync status, 동기화 진행률, token 상태 시각화
 
@@ -403,6 +407,13 @@
 - [x] `intervals/strava_activity_sync.py`: 404/402 예상 응답 실패 로그 억제
 - [x] `bg_sync.py`: req_added 추정치 수정 (strava×4+1, intervals×3+1, runalyze×2+1)
 
+### Sprint 5-Wellness: Wellness UI ✅ 완료
+
+- [x] `src/web/views_wellness.py` (250줄) — `/wellness` 라우트
+  - 수면/HRV/Body Battery/스트레스/안정시심박 트렌드
+  - 7일/30일 기간 선택
+  - app.py에 wellness_bp 등록
+
 ### Sprint 5-D: 미완료 — 다음 스프린트 (Phase B+C)
 
 - [ ] **S5-B1**: 메트릭 재계산 Progress bar (SSE 스트리밍)
@@ -420,45 +431,38 @@
 
 ---
 
-## Phase 6: 레이스 예측 UI (Sprint 5)
+## Phase 6: 레이스 예측 UI (Sprint 5) ✅ 완료 (2026-03-25)
 
-- [ ] V2-6-1: `src/web/views_race.py` — 레이스 예측 뷰 블루프린트
+- [x] V2-6-1: `src/web/views_race.py` (225줄) — 레이스 예측 뷰 블루프린트
   - 레이스 거리 선택 탭 (5K/10K/하프마라톤/마라톤/커스텀) — GET ?distance=half
-  - 예측 결과 카드 (완주 시간, 평균 페이스, 스플릿: 5K/10K/중간/순위%)
+  - 예측 결과 카드 (완주 시간, 평균 페이스, 스플릿)
   - DI 가로 게이지 + 설명
-  - 페이스 전략 타임라인 (구간별 color: green/yellow/red)
-  - 히팅 더 월 확률 % (red gradient 배경)
-  - 훈련 플랜 조정 카드 → POST /training/apply-darp
-  - bottom_nav('report')  ← 레이스 예측은 레포트 탭 하위
-- [ ] V2-6-2: `src/web/app.py` — `/race` 블루프린트 등록
+  - 페이스 전략 + Hitting the Wall 확률
+  - `templates/race.html` Jinja2 템플릿
+- [x] V2-6-2: `src/web/app.py` — `/race` 블루프린트 등록 (race_bp)
 
 ---
 
-## Phase 7: AI 코칭 UI (Sprint 5)
+## Phase 7: AI 코칭 UI (Sprint 5) ✅ 기본 구현 완료 (2026-03-25)
 
-- [ ] V2-7-1: `src/web/views_ai_coach.py` — `/ai-coach` URL 라우트 신규 또는 리다이렉트 추가
-  - 기존 AI 뷰 URL 확인 후 `/ai-coach` 로 통일
+- [x] V2-7-1: `src/web/views_ai_coach.py` (204줄) — `/ai-coaching` 라우트
+  - 코치 프로필 카드 + 오늘의 브리핑 카드
   - UTRS/CIRS/DARP 수치를 브리핑 컨텍스트에 포함
-  - 추천 칩에 FEARP, CIRS, Marathon Shape 기반 항목 추가
-  - 채팅 버블 UI (role=ai: cyan 배경 / role=user: 오른쪽 정렬)
-  - 고정 채팅 입력창 (position: fixed, bottom: 80px)
-  - POST /ai-coach/briefing (재생성), POST /ai-coach/chat (대화)
+  - 추천 칩 (FEARP, CIRS, Marathon Shape 기반)
+  - `templates/ai_coaching.html` Jinja2 템플릿
   - bottom_nav('ai-coach')
+  - 채팅 인터페이스는 v0.3으로 이연
 
 ---
 
 ## Phase 8: 훈련 계획 캘린더 UI (Sprint 6)
 
-- [ ] V2-8-1: `src/web/views_training_plan.py` — `/training` 라우트
-  - 이번 주 요약 4-stat grid (완료/목표/시간/UTRS)
-  - 캘린더 뷰 전환 (GET ?view=week|month|day)
-  - 주간 뷰 7열 grid — .workout-item.{easy|tempo|interval|long|rest}
-  - AI 훈련 요약 카드 (최근 브리핑 발췌 1~2줄 + "/ai-coach로 더 묻기 →" 링크)
-  - 캘린더 연동 상태 (Google/Naver/Garmin/TrainingPeaks)
-  - bottom_nav('training')
-  - GET/POST `/training/new` — 새 훈련 항목 추가
-  - POST `/training/apply-darp` — DARP 레이스 예측 결과 플랜 반영
-- [ ] V2-8-2: 기존 `src/training/` 모듈과 연동
+- [ ] V2-8-1a: `src/web/views_training_plan.py` 스캐폴딩
+  - Blueprint training_bp, /training GET
+  - placeholder 페이지: "훈련 계획 기능이 곧 추가됩니다"
+  - bottom_nav('training') 연결
+- [→] V2-8-1 풀 구현 → v0.3으로 이연 (캘린더 UI, 운동 CRUD, 캘린더 연동)
+- [→] V2-8-2: 기존 `src/training/` 모듈과 연동 → v0.3
 
 ---
 

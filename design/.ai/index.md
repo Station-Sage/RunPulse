@@ -5,16 +5,16 @@
 
 ---
 
-## 현재 상태 (2026-03-23)
+## 현재 상태 (2026-03-25)
 
 | 항목 | 내용 |
 |------|------|
-| 현재 버전 | v0.2 개발 중 — Phase 2 완료 |
-| 작업 브랜치 | `claude/v0.2-bugfix` |
+| 현재 버전 | v0.2 개발 중 — Sprint 5 완료 |
+| 작업 브랜치 | `claude/v0.2-sprint5` (세션 브랜치: `claude/start-session-aiXbW`) |
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
-| 현재 테스트 | **797개 통과** (pre-existing 3개 실패 별개) |
-| 완료 | Phase 0 (DB+날씨) · Phase 1 (메트릭 엔진) · Phase 2 (sync 연동) · Phase 3 (대시보드) |
-| 다음 작업 | Sprint 4-A — ECharts 교체 + bottom_nav + 다크 테마 CSS |
+| 현재 테스트 | **717개 수집** (fitparse 미설치 환경 6개 collect error 별개) |
+| 완료 | Phase 0~5 · Sprint 4A~4C · Sprint 5A~5F · Phase UI-Gap · Phase API(Garmin/Strava/Intervals) · Race/AI Coach/Wellness UI |
+| 다음 작업 | B-1 파일 리팩토링 (300줄 초과 5개) 또는 V2-8-1a Training Plan 스캐폴딩 |
 
 ---
 
@@ -69,36 +69,53 @@ v0.2 (진행): + [2차 메트릭 엔진] + [고도화 대시보드 UI]
                weather_data 테이블         Chart.js + SVG 컴포넌트
 ```
 
-### 새로 생성할 파일 (핵심)
+### 생성된 파일 (v0.2 구현 완료)
 ```
-src/metrics/        ← 2차 메트릭 계산 함수들
-  lsi.py, fearp.py, adti.py, tids.py     # 0-3개월 우선
-  acwr.py, trimp.py, utrs.py, cirs.py    # 3-6개월
-  decoupling.py, di.py, darp.py, rmr.py  # 3-6개월
-  engine.py                               # 배치 오케스트레이터
+src/metrics/ (23개)     ← 2차 메트릭 계산 함수들
+  lsi.py, fearp.py, adti.py, tids.py, gap.py
+  acwr.py, trimp.py, utrs.py, cirs.py, monotony.py
+  decoupling.py, di.py, darp.py, rmr.py, vdot.py
+  relative_effort.py, marathon_shape.py
+  rtti.py, wlei.py, tpdi.py              # Sprint 5 추가
+  engine.py, store.py
 
 src/weather/
   provider.py     ← Open-Meteo API (FEARP용)
 
-src/web/
-  views_dashboard.py   ← GET /dashboard
-  views_report.py      ← GET /report
-  views_race.py        ← GET /race
-  views_training_plan.py ← GET /training
+src/web/ (신규 뷰 10개)
+  views_dashboard.py, views_dashboard_cards.py
+  views_report.py, views_report_sections.py
+  views_race.py, views_ai_coach.py, views_wellness.py
+  views_import.py, views_shoes.py, sync_ui.py
 
-templates/macros/
-  nav.html    ← 하단 네비게이션 Jinja2 매크로
-  gauge.html  ← 반원 게이지 SVG 매크로
-  radar.html  ← 레이더 차트 SVG 매크로
+src/sync/ (모듈 분리 — Garmin/Strava/Intervals 각각)
+  garmin_activity_sync.py, garmin_api_extensions.py
+  garmin_daily_extensions.py, garmin_athlete_extensions.py
+  garmin_v2_mappings.py, garmin_backfill.py, garmin_helpers.py
+  strava_auth.py, strava_activity_sync.py, strava_athlete_sync.py
+  intervals_auth.py, intervals_activity_sync.py
+  intervals_athlete_sync.py, intervals_wellness_sync.py
+
+src/services/
+  unified_activities.py  ← DB 레벨 2단계 페이지네이션
+
+src/import_export/
+  strava_archive.py, strava_csv.py, garmin_csv.py, intervals_fit.py
+
+templates/
+  base.html, dashboard.html, ai_coaching.html, race.html, generic_page.html
+  macros/ gauge.html, radar.html, no_data.html
 ```
 
-### 수정할 기존 파일
+### 수정된 기존 파일
 ```
-src/db_setup.py         ← computed_metrics, weather_data 테이블 추가
+src/db_setup.py         ← 15+ 테이블, 마이그레이션 대폭 확장
 src/sync.py             ← sync 완료 후 engine.recompute_recent() 호출
-src/web/app.py          ← 새 블루프린트 등록, / → /dashboard 리다이렉트
-src/web/bg_sync.py      ← 백그라운드 sync 후 메트릭 재계산
-src/web/views_activity.py ← activity_deep에 FEARP + 2차 메트릭 섹션
+src/web/app.py          ← 12개 블루프린트 등록, context_processor
+src/web/bg_sync.py      ← 백그라운드 sync + 메트릭 재계산
+src/web/views_activity.py ← 2차 메트릭 + FEARP + DI + classification
+src/web/views_activities.py ← 필터/정렬/그룹핑 대폭 확장
+src/web/helpers.py      ← SVG 게이지/레이더/ECharts/bottom_nav/다크테마
 ```
 
 ---
