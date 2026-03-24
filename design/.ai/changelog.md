@@ -1,5 +1,37 @@
 # Changelog
 
+## [v0.2-sprint5-bugfix] 2026-03-25
+
+### 버그 수정
+
+**활동 목록 — matched_group_id hex 오분류**
+- `unified_activities.py` Step2 쿼리에 `is_group` 플래그 추가
+- `'66588299'` 같이 숫자처럼 보이는 8자리 hex group ID가 `solo_id`로 오분류되어 활동 미표시되는 버그 수정
+
+**활동 상세 — 서비스별 1차 메트릭 누락**
+- `_load_service_metrics`: 대표(Garmin) row 1개만 조회 → 그룹 전체 소스별 row 각각 조회
+- Strava `suffer_score`, Intervals `icu_atl/ctl/tsb/intensity` 전부 "—"으로 표시되던 버그 수정
+- `activity_summaries`에 `icu_intensity` 컬럼 추가 + intervals sync에서 저장
+
+**활동 상세 — no such column 오류**
+- `training_load_acute/chronic` (Garmin API에서 제공 안 함) → `training_load` 단일 컬럼으로 교체
+- `icu_intensity` 컬럼 DB 추가 및 마이그레이션
+
+**대시보드 활동 링크 → Not Found**
+- `views_dashboard_cards.py`: `/activity?id=` → `/activity/deep?id=` 수정
+
+**API 로그 정리**
+- `api.py`: 4xx 응답은 `[API]` 로그 출력 안 함 (caller가 처리)
+- `intervals_activity_sync.py`: intervals/streams/power_curve 404 로그 억제
+- `strava_activity_sync.py`: zones 402/404, streams 404 로그 억제
+
+**병렬 동기화 req_count 추정치 수정**
+- strava: `count * 3 + 1` → `count * 4 + 1` (zones 추가 반영)
+- intervals: `count + 1` → `count * 3 + 1` (intervals + streams + power_curve 반영)
+- runalyze: `count + 1` → `count * 2 + 1` (detail 반영)
+
+---
+
 ## [v0.2-sprint5-pipeline] 2026-03-25
 
 ### 추가

@@ -371,6 +371,17 @@
 - [x] engine.py: WLEI (활동별), RTTI/TPDI (일별) 등록
 - [x] `tests/test_metrics_sprint5.py`: RTTI/WLEI/TPDI 14개 테스트 통과
 
+### Sprint 5-E: 버그 수정 ✅ 완료 (2026-03-25)
+
+- [x] `unified_activities.py`: matched_group_id hex 오분류 수정 (`is_group` 플래그)
+- [x] `views_activity.py/_load_service_metrics`: 소스별 row 각각 조회 (Strava/Intervals 지표 누락 수정)
+- [x] `db_setup.py`: `icu_intensity` 컬럼 추가, `training_load_acute/chronic` 제거
+- [x] `intervals_activity_sync.py`: `icu_intensity` activity_summaries 저장 추가
+- [x] `views_dashboard_cards.py`: 활동 링크 `/activity?id=` → `/activity/deep?id=` 수정
+- [x] `api.py`: 4xx 응답 [API] 로그 억제
+- [x] `intervals/strava_activity_sync.py`: 404/402 예상 응답 실패 로그 억제
+- [x] `bg_sync.py`: req_added 추정치 수정 (strava×4+1, intervals×3+1, runalyze×2+1)
+
 ### Sprint 5-D: 미완료 — 다음 스프린트 (Phase B+C)
 
 - [ ] **S5-B1**: 메트릭 재계산 Progress bar (SSE 스트리밍)
