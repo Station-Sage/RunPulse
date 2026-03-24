@@ -466,6 +466,32 @@ def create_tables(conn: sqlite3.Connection) -> None:
     """)
 
 
+def _merge_and_drop_old_table(
+    conn: sqlite3.Connection, old_name: str, new_name: str
+) -> None:
+    """old 테이블 데이터를 new 테이블로 머지 후 old 삭제.
+
+    old/new 컬럼 교집합만 복사. 이미 new에 있는 행(UNIQUE 충돌)은 무시.
+    """
+    old_cols = {
+        row[1]
+        for row in conn.execute(f"PRAGMA table_info({old_name})")  # noqa: S608
+    }
+    new_cols = {
+        row[1]
+        for row in conn.execute(f"PRAGMA table_info({new_name})")  # noqa: S608
+    }
+    shared = sorted(old_cols & new_cols - {"id"})
+    if shared:
+        cols_csv = ", ".join(shared)
+        conn.execute(
+            f"INSERT OR IGNORE INTO {new_name} ({cols_csv}) "  # noqa: S608
+            f"SELECT {cols_csv} FROM {old_name}"
+        )
+    conn.execute(f"DROP TABLE {old_name}")  # noqa: S608
+    # old 테이블의 고아 인덱스도 자동 삭제됨
+
+
 def migrate_db(conn: sqlite3.Connection) -> None:
     """기존 DB에 새 테이블/컬럼을 안전하게 추가.
 
@@ -484,6 +510,10 @@ def migrate_db(conn: sqlite3.Connection) -> None:
     for old_name, new_name in rename_statements:
         if old_name in existing_tables and new_name not in existing_tables:
             conn.execute(f"ALTER TABLE {old_name} RENAME TO {new_name}")
+        elif old_name in existing_tables and new_name in existing_tables:
+            # 둘 다 존재: old 테이블의 데이터를 new로 머지 후 old 삭제
+            # old 테이블은 v0.1 잔재이므로 데이터가 있을 수 있다
+            _merge_and_drop_old_table(conn, old_name, new_name)
 
     # rename 이후 테이블 목록 다시 읽기
     existing_tables = {
@@ -703,6 +733,46 @@ def migrate_db(conn: sqlite3.Connection) -> None:
             conn.execute(stmt)
         except sqlite3.OperationalError:
             pass
+
+    # planned_workouts: CHECK 제약에 'recovery','race' 누락 + FK가 activities 참조 → 재생성
+    if "planned_workouts" in existing_tables:
+        check_sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='planned_workouts'"
+        ).fetchone()[0]
+        if "'recovery'" not in check_sql or "activity_summaries" not in check_sql:
+            conn.executescript("""
+                ALTER TABLE planned_workouts RENAME TO _planned_workouts_old;
+                CREATE TABLE planned_workouts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    workout_type TEXT NOT NULL CHECK(workout_type IN
+                        ('easy', 'tempo', 'interval', 'long', 'rest', 'recovery', 'race')),
+                    distance_km REAL,
+                    target_pace_min INTEGER,
+                    target_pace_max INTEGER,
+                    target_hr_zone INTEGER,
+                    description TEXT,
+                    rationale TEXT,
+                    completed INTEGER NOT NULL DEFAULT 0,
+                    matched_activity_id INTEGER REFERENCES activity_summaries(id),
+                    source TEXT DEFAULT 'manual',
+                    ai_model TEXT,
+                    garmin_workout_id TEXT
+                );
+                INSERT INTO planned_workouts (
+                    id, date, workout_type, distance_km,
+                    target_pace_min, target_pace_max, target_hr_zone,
+                    description, rationale, completed, matched_activity_id,
+                    source, ai_model, garmin_workout_id
+                )
+                SELECT
+                    id, date, workout_type, distance_km,
+                    target_pace_min, target_pace_max, target_hr_zone,
+                    description, rationale, completed, matched_activity_id,
+                    source, ai_model, garmin_workout_id
+                FROM _planned_workouts_old;
+                DROP TABLE _planned_workouts_old;
+            """)
 
     # shoes 테이블 (Strava export)
     conn.executescript("""
@@ -924,12 +994,16 @@ def migrate_db(conn: sqlite3.Connection) -> None:
 
 
 def init_db() -> Path:
-    """DB 초기화: 테이블 생성, 마이그레이션, WAL 모드 설정. DB 경로 반환."""
+    """DB 초기화: 마이그레이션 → 테이블 생성, WAL 모드 설정. DB 경로 반환.
+
+    migrate_db를 먼저 실행해야 rename(activities→activity_summaries 등)이
+    create_tables의 IF NOT EXISTS에 의해 무시되지 않는다.
+    """
     db_path = get_db_path()
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
-        create_tables(conn)
         migrate_db(conn)
+        create_tables(conn)
     return db_path
 
 
