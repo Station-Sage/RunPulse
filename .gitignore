@@ -82,3 +82,7 @@ running.db.backup_*
 
 # Temp files
 0
+
+# Export data and DB
+audit/export_data/
+running.db
