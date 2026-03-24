@@ -168,8 +168,10 @@ class BgSyncThread(threading.Thread):
         count = 0
         req_added = 0
         try:
-            with sqlite3.connect(str(get_db_path()), timeout=30) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
+            # isolation_level=None → autocommit: INSERT마다 즉시 commit → 병렬 서비스 간 write lock 경합 해소
+            conn = sqlite3.connect(str(get_db_path()), timeout=30, isolation_level=None)
+            conn.execute("PRAGMA journal_mode=WAL")
+            try:
                 if service == "garmin":
                     from src.sync.garmin import sync_activities
                     count = sync_activities(
@@ -201,6 +203,8 @@ class BgSyncThread(threading.Thread):
                         from_date=win_from, to_date=win_to,
                     )
                     req_added = count + 1
+            finally:
+                conn.close()
         except Exception as exc:
             update_job(self.job_id, last_error=str(exc)[:200])
         return count, req_added

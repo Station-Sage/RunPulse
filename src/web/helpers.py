@@ -534,11 +534,16 @@ async function bgSyncPause() {
 }
 
 async function bgSyncStop() {
+  var btn = document.getElementById('bg-btn-stop');
+  if (btn) { btn.disabled = true; btn.textContent = '중지 중...'; }
   for (var i = 0; i < _bgActiveSources.length; i++) {
     var fd = new FormData(); fd.append('source', _bgActiveSources[i]);
     await fetch('/bg-sync/stop', {method: 'POST', body: fd});
   }
   bgStopPolling();
+  bgHideProgress();
+  _bgActiveSources = [];
+  syncToast('\u23f9 동기화 중지됨', 'info');
 }
 
 async function bgSyncResume() {
