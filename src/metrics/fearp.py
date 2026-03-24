@@ -112,13 +112,28 @@ def calc_and_save_fearp(conn: sqlite3.Connection, activity_id: int) -> float | N
     if elev_gain and dist_km and dist_km > 0:
         avg_grade = (elev_gain / (dist_km * 1000)) * 100  # m/m → %
 
-    # 날씨 조회 (좌표 있는 경우)
-    weather = None
-    if lat is not None and lon is not None:
-        weather = get_weather_for_activity(conn, start_time, lat, lon)
+    # 날씨 조회 우선순위:
+    # 1) activity_detail_metrics.weather_* (Garmin/Strava에서 동기화된 값 — 가장 정확)
+    # 2) Open-Meteo API (GPS 좌표 기반, RunPulse 독립 외부 소스)
+    # RunPulse 2차 메트릭은 서비스 데이터 포함 모든 소스를 입력으로 사용 가능 (D-V2-16)
+    temp_c: float = 15.0
+    humidity_pct: float = 50.0
 
-    temp_c = weather.get("temp_c") or 15.0 if weather else 15.0
-    humidity_pct = weather.get("humidity_pct") or 50.0 if weather else 50.0
+    cached = conn.execute(
+        """SELECT metric_name, metric_value FROM activity_detail_metrics
+           WHERE activity_id=? AND metric_name IN ('weather_temp_c','weather_humidity_pct')""",
+        (activity_id,),
+    ).fetchall()
+    cached_map = {r[0]: r[1] for r in cached if r[1] is not None}
+
+    if "weather_temp_c" in cached_map:
+        temp_c = float(cached_map["weather_temp_c"])
+        humidity_pct = float(cached_map.get("weather_humidity_pct", 50.0))
+    elif lat is not None and lon is not None:
+        weather = get_weather_for_activity(conn, start_time, lat, lon)
+        if weather:
+            temp_c = float(weather.get("temp_c") or 15.0)
+            humidity_pct = float(weather.get("humidity_pct") or 50.0)
 
     # 고도: Open-Meteo가 해당 위치 기준으로 온도 반환하므로 추가 고도 보정 생략
     # 향후 고도 데이터 보강 시 여기서 적용
@@ -126,8 +141,8 @@ def calc_and_save_fearp(conn: sqlite3.Connection, activity_id: int) -> float | N
     breakdown = fearp_breakdown(
         actual_pace_sec_km=float(pace),
         grade_pct=avg_grade,
-        temp_c=float(temp_c),
-        humidity_pct=float(humidity_pct),
+        temp_c=temp_c,
+        humidity_pct=humidity_pct,
     )
 
     activity_date = start_time[:10]

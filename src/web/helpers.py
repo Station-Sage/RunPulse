@@ -328,11 +328,7 @@ async function doSync(mode) {
       var srcs = source === 'all'
         ? ['garmin','strava','intervals','runalyze']
         : source.split(',');
-      if (srcs.length > 1) {
-        alert('백그라운드 자동 동기화는 서비스를 하나씩 선택하여 사용하세요.');
-        return;
-      }
-      await startBgSync(srcs[0], from, (document.getElementById('hist-to') || {}).value || '');
+      await startBgSyncMulti(srcs, from, (document.getElementById('hist-to') || {}).value || '');
       return;
     }
   }
@@ -403,41 +399,51 @@ function syncModal(data) {
 
 // ── 백그라운드 동기화 ────────────────────────────────────────────────────
 var _bgPollTimer = null;
-var _bgCurrentSource = null;
+var _bgActiveSources = [];  // 현재 활성 서비스 목록
 
-async function startBgSync(source, fromDate, toDate) {
-  var fd = new FormData();
-  fd.append('source', source);
-  fd.append('from_date', fromDate);
-  if (toDate) fd.append('to_date', toDate);
-  try {
-    var resp = await fetch('/bg-sync/start', {method: 'POST', body: fd});
-    var data = await resp.json();
-    if (!data.ok) { syncToast('\u274c 시작 실패: ' + (data.error || '오류'), 'error'); return; }
-    _bgCurrentSource = source;
-    syncToast('\u25b6 백그라운드 동기화 시작 (' + source + ')', 'success');
-    bgShowProgress();
-    bgStartPolling(source);
-  } catch(e) {
-    syncToast('\u274c 요청 실패: ' + e.message, 'error');
+async function startBgSyncMulti(srcs, fromDate, toDate) {
+  var started = [];
+  for (var i = 0; i < srcs.length; i++) {
+    var fd = new FormData();
+    fd.append('source', srcs[i]);
+    fd.append('from_date', fromDate);
+    if (toDate) fd.append('to_date', toDate);
+    try {
+      var resp = await fetch('/bg-sync/start', {method: 'POST', body: fd});
+      var data = await resp.json();
+      if (data.ok) started.push(srcs[i]);
+    } catch(e) { /* ignore per-service error */ }
   }
+  if (started.length === 0) { syncToast('\u274c 시작 실패', 'error'); return; }
+  _bgActiveSources = started;
+  syncToast('\u25b6 백그라운드 동기화 시작 (' + started.join(', ') + ')', 'success');
+  bgShowProgress();
+  bgStartPollingAll(started);
 }
 
-function bgStartPolling(source) {
+function bgStartPollingAll(sources) {
   if (_bgPollTimer) clearInterval(_bgPollTimer);
-  _bgPollTimer = setInterval(function() { bgPollStatus(source); }, 3000);
-  bgPollStatus(source);
+  _bgPollTimer = setInterval(function() { bgPollAll(sources); }, 3000);
+  bgPollAll(sources);
 }
 
-async function bgPollStatus(source) {
+async function bgPollAll(sources) {
   try {
-    var resp = await fetch('/bg-sync/status?source=' + encodeURIComponent(source));
-    var data = await resp.json();
-    if (!data.active) { bgStopPolling(); bgHideProgress(); return; }
-    bgUpdateUI(data);
-    if (data.status === 'completed') {
+    var statuses = await Promise.all(sources.map(function(src) {
+      return fetch('/bg-sync/status?source=' + encodeURIComponent(src))
+        .then(function(r) { return r.json(); })
+        .catch(function() { return {active: false}; });
+    }));
+    var active = statuses.filter(function(d) { return d.active; });
+    if (active.length === 0) { bgStopPolling(); bgHideProgress(); return; }
+    bgUpdateAllUI(active);
+    var allDone = active.every(function(d) {
+      return d.status === 'completed' || d.status === 'stopped';
+    });
+    if (allDone) {
       bgStopPolling();
-      syncToast('\u2705 기간 동기화 완료 \u2014 활동 ' + data.synced_count + '개', 'success');
+      var total = active.reduce(function(s, d) { return s + (d.synced_count || 0); }, 0);
+      syncToast('\u2705 기간 동기화 완료 \u2014 활동 ' + total + '개', 'success');
       setTimeout(function() { location.reload(); }, 2500);
     }
   } catch(e) { /* 네트워크 오류 — 다음 polling에서 재시도 */ }
@@ -457,95 +463,106 @@ function bgHideProgress() {
   if (sec) sec.style.display = 'none';
 }
 
-function bgUpdateUI(d) {
+function bgUpdateAllUI(statuses) {
   bgShowProgress();
   var svcKor = {garmin:'Garmin', strava:'Strava', intervals:'Intervals.icu', runalyze:'Runalyze'};
-  var title = document.getElementById('bg-progress-title');
-  var pct = document.getElementById('bg-progress-pct');
-  var bar = document.getElementById('bg-progress-bar');
-  var detail = document.getElementById('bg-progress-detail');
-  var rateInfo = document.getElementById('bg-rate-info');
-  var errInfo = document.getElementById('bg-error-info');
+  var statusKor = {running:'동기화 중', paused:'일시중지', stopped:'중지됨',
+                   rate_limited:'API 한도 대기', completed:'완료', pending:'대기 중'};
+  var svcColors = {running:'#0066cc', paused:'#856404', stopped:'#888',
+                   rate_limited:'#856404', completed:'#28a745', pending:'#888'};
+
+  var container = document.getElementById('bg-jobs-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  var anyRunning = false, anyPaused = false, anyResumable = false;
+  statuses.forEach(function(d) {
+    var isRunning = d.status === 'running' || d.status === 'pending';
+    var isPaused = d.status === 'paused' || d.status === 'stopped';
+    var isRL = d.status === 'rate_limited';
+    if (isRunning) anyRunning = true;
+    if (isPaused) anyPaused = true;
+    if (isPaused || isRL) anyResumable = true;
+
+    var svcName = svcKor[d.service] || d.service;
+    var statusText = statusKor[d.status] || d.status;
+    var barColor = svcColors[d.status] || '#0066cc';
+    var pct = d.progress_pct || 0;
+    var detailTxt = d.current_from ? (d.current_from + ' ~ ' + (d.current_to || '')) : '';
+    var errHtml = (d.last_error && d.status !== 'rate_limited')
+      ? '<span style="color:#c0392b; font-size:0.78rem;"> \u26a0\ufe0f ' + d.last_error.substring(0,60) + '</span>'
+      : '';
+    var rlHtml = isRL && d.retry_after_sec > 0
+      ? '<span style="color:#856404; font-size:0.78rem;"> \u231b ' + Math.ceil(d.retry_after_sec/60) + '\ubd84 \ub300\uae30</span>'
+      : '';
+
+    container.innerHTML +=
+      '<div style="margin-bottom:0.6rem;">' +
+        '<div style="display:flex; justify-content:space-between; font-size:0.84rem; margin-bottom:2px;">' +
+          '<span><strong>' + svcName + '</strong> \u2014 <span style="color:' + barColor + ';">' + statusText + '</span>' + errHtml + rlHtml + '</span>' +
+          '<span style="color:var(--muted);">' + pct + '% (' + d.synced_count + '\uac1c)</span>' +
+        '</div>' +
+        '<div style="background:var(--row-border); border-radius:3px; height:7px; overflow:hidden;">' +
+          '<div style="height:100%; background:' + barColor + '; border-radius:3px; width:' + pct + '%; transition:width 0.4s;"></div>' +
+        '</div>' +
+        (detailTxt ? '<div style="font-size:0.76rem; color:var(--muted); margin-top:2px;">' + detailTxt + '</div>' : '') +
+      '</div>';
+  });
+
   var btnPause = document.getElementById('bg-btn-pause');
   var btnStop = document.getElementById('bg-btn-stop');
   var btnResume = document.getElementById('bg-btn-resume');
-
-  var svcName = svcKor[d.service] || d.service;
-  var statusKor = {running:'동기화 중', paused:'일시중지', stopped:'중지됨',
-                   rate_limited:'API 한도 대기', completed:'완료', pending:'대기 중'};
-  if (title) title.textContent = svcName + ' \u2014 ' + (statusKor[d.status] || d.status);
-  if (pct) pct.textContent = d.progress_pct + '% (' + d.completed_days + '/' + d.total_days + '일)';
-  if (bar) bar.style.width = d.progress_pct + '%';
-
-  var detailTxt = '';
-  if (d.current_from && d.current_to) {
-    detailTxt = '\ud604\uc7ac: ' + d.current_from + ' ~ ' + d.current_to;
-  }
-  detailTxt += ' \u00a0|\u00a0 \uc644\ub8cc: ' + d.synced_count + '\uac1c \ud65c\ub3d9';
-  if (detail) detail.textContent = detailTxt;
-
-  // API 요청 현황
-  var rateTxt = 'API \uc694\uccad: \uc774\ubc88 \uc791\uc5c5 ' + d.req_count + '\ud68c'
-    + ' | 15\ubd84 \ud55c\ub3c4 ' + d.rate_limit_15min + '\ud68c / \uc77c\uc77c ' + d.rate_limit_daily + '\ud68c';
-  if (d.retry_after_sec && d.retry_after_sec > 0) {
-    var mins = Math.ceil(d.retry_after_sec / 60);
-    rateTxt += ' \u2014 \u231b ' + mins + '\ubd84 \ud6c4 \uc7ac\uac1c';
-  }
-  if (rateInfo) rateInfo.textContent = rateTxt;
-
-  // 오류 표시
-  if (d.last_error && d.status !== 'rate_limited') {
-    if (errInfo) { errInfo.textContent = '\u26a0\ufe0f ' + d.last_error; errInfo.style.display = 'block'; }
-  } else {
-    if (errInfo) errInfo.style.display = 'none';
-  }
-
-  // 버튼 상태
-  var isRunning = d.status === 'running' || d.status === 'pending';
-  var isPaused = d.status === 'paused' || d.status === 'stopped';
-  var isRateLimited = d.status === 'rate_limited';
-  if (btnPause) btnPause.style.display = isRunning ? 'inline-block' : 'none';
-  if (btnStop) btnStop.style.display = (isRunning || isPaused) ? 'inline-block' : 'none';
-  if (btnResume) {
-    btnResume.style.display = (isPaused || isRateLimited) ? 'inline-block' : 'none';
-    btnResume.disabled = isRateLimited && d.retry_after_sec > 0;
-    btnResume.title = isRateLimited ? 'API \ud55c\ub3c4 \ud574\uc81c \ud6c4 \uc0ac\uc6a9 \uac00\ub2a5' : '';
-  }
+  if (btnPause) btnPause.style.display = anyRunning ? 'inline-block' : 'none';
+  if (btnStop) btnStop.style.display = (anyRunning || anyPaused) ? 'inline-block' : 'none';
+  if (btnResume) btnResume.style.display = anyResumable ? 'inline-block' : 'none';
 }
 
 async function bgSyncPause() {
-  if (!_bgCurrentSource) return;
-  var fd = new FormData(); fd.append('source', _bgCurrentSource);
-  await fetch('/bg-sync/pause', {method: 'POST', body: fd});
+  for (var i = 0; i < _bgActiveSources.length; i++) {
+    var fd = new FormData(); fd.append('source', _bgActiveSources[i]);
+    await fetch('/bg-sync/pause', {method: 'POST', body: fd});
+  }
 }
 
 async function bgSyncStop() {
-  if (!_bgCurrentSource) return;
-  var fd = new FormData(); fd.append('source', _bgCurrentSource);
-  await fetch('/bg-sync/stop', {method: 'POST', body: fd});
+  for (var i = 0; i < _bgActiveSources.length; i++) {
+    var fd = new FormData(); fd.append('source', _bgActiveSources[i]);
+    await fetch('/bg-sync/stop', {method: 'POST', body: fd});
+  }
   bgStopPolling();
 }
 
 async function bgSyncResume() {
-  if (!_bgCurrentSource) return;
-  var fd = new FormData(); fd.append('source', _bgCurrentSource);
-  var resp = await fetch('/bg-sync/resume', {method: 'POST', body: fd});
-  var data = await resp.json();
-  if (data.ok) { syncToast('\u25b6 동기화 재개', 'success'); bgStartPolling(_bgCurrentSource); }
-  else { syncToast('\u274c 재개 실패', 'error'); }
+  var resumed = [];
+  for (var i = 0; i < _bgActiveSources.length; i++) {
+    var fd = new FormData(); fd.append('source', _bgActiveSources[i]);
+    var resp = await fetch('/bg-sync/resume', {method: 'POST', body: fd});
+    var data = await resp.json();
+    if (data.ok) resumed.push(_bgActiveSources[i]);
+  }
+  if (resumed.length > 0) {
+    syncToast('\u25b6 동기화 재개 (' + resumed.join(', ') + ')', 'success');
+    bgStartPollingAll(_bgActiveSources);
+  } else {
+    syncToast('\u274c 재개 실패', 'error');
+  }
 }
 
 // 페이지 로드 시 활성 BG 작업 복구 (새로고침 후에도 진행 표시)
 (function() {
   var sources = ['garmin', 'strava', 'intervals', 'runalyze'];
-  sources.forEach(function(src) {
-    fetch('/bg-sync/status?source=' + src).then(function(r) { return r.json(); }).then(function(d) {
-      if (d.active && d.status !== 'completed' && d.status !== 'stopped') {
-        _bgCurrentSource = src;
-        bgUpdateUI(d);
-        if (d.status === 'running' || d.status === 'rate_limited') bgStartPolling(src);
-      }
-    }).catch(function(){});
+  var active = [];
+  Promise.all(sources.map(function(src) {
+    return fetch('/bg-sync/status?source=' + src)
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.active && d.status !== 'completed' && d.status !== 'stopped') active.push(src); })
+      .catch(function(){});
+  })).then(function() {
+    if (active.length > 0) {
+      _bgActiveSources = active;
+      bgShowProgress();
+      bgStartPollingAll(active);
+    }
   });
 })();
 """

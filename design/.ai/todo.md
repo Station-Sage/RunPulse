@@ -339,6 +339,55 @@
 
 ---
 
+## Sprint 5: 데이터 파이프라인 확장 + 병렬 동기화 (2026-03-25)
+
+### Sprint 5-A: 데이터 레이어 아키텍처 확립 ✅ 완료
+
+- [x] D-V2-16: 데이터 계층 아키텍처 결정 문서화 (저장 분리 + 입력 유연성)
+  - 서비스 데이터 / 서비스 1차 / RunPulse 1차 / RunPulse 2차
+  - RunPulse 2차 메트릭은 모든 소스(서비스 데이터, 서비스 1차, RunPulse 1차, 외부 API) 입력 허용
+  - 결과 저장은 반드시 `computed_metrics` (서비스 테이블과 분리)
+- [x] FEARP: 서비스 날씨 데이터(activity_detail_metrics.weather_*) 우선 사용, 없으면 Open-Meteo fallback
+
+### Sprint 5-B: 동기화 인프라 개선 ✅ 완료
+
+- [x] 기간 동기화 4개 서비스 동시 병렬 실행 (`helpers.py` `startBgSyncMulti`)
+  - 서비스별 단독 실행 제한 해제 (서비스별 rate limit 독립 적용)
+  - 진행 상황 서비스별 개별 행 표시 (`bg-jobs-container`)
+  - 일시중지/중지/재개는 모든 활성 서비스 동시 적용
+- [x] Garmin 신규 데이터: `sync_activity_weather`, `sync_activity_hr_zones`, `sync_activity_power_zones`
+- [x] Garmin 신규 일별: `sync_daily_hydration`, `sync_daily_weigh_ins`, `sync_daily_running_tolerance`
+- [x] Strava 신규: `_sync_activity_zones` (HR/Power 존별 시간)
+- [x] Intervals.icu: `start_lat/start_lon`, `_sync_power_curve`
+- [x] DB 스키마: `activity_summaries.workout_type / trainer / commute` 컬럼 추가
+
+### Sprint 5-C: 메트릭 계산 개선 ✅ 완료
+
+- [x] TIDS: zone 데이터 소스 우선순위 확장 (`hr_zone_N_sec` → `heartrate_zone_N_sec` → `hr_zone_time_N`)
+- [x] RelativeEffort: 동일 우선순위 zone 소스 fallback 적용
+- [x] RTTI (러닝 내성 훈련 지수): Garmin running_tolerance 기반, `src/metrics/rtti.py`
+- [x] WLEI (날씨 가중 노력 지수): TRIMP × 기온/습도 스트레스, `src/metrics/wlei.py`
+- [x] TPDI (실내/야외 퍼포먼스 격차): trainer 컬럼 × FEARP, `src/metrics/tpdi.py`
+- [x] engine.py: WLEI (활동별), RTTI/TPDI (일별) 등록
+- [x] `tests/test_metrics_sprint5.py`: RTTI/WLEI/TPDI 14개 테스트 통과
+
+### Sprint 5-D: 미완료 — 다음 스프린트 (Phase B+C)
+
+- [ ] **S5-B1**: 메트릭 재계산 Progress bar (SSE 스트리밍)
+  - `src/metrics/engine.py` `recompute_all()` 에 `progress_callback` 파라미터 추가
+  - `src/web/views_settings.py` SSE 엔드포인트 `/metrics/recompute-stream` 추가
+  - 설정 화면 진행률 바 (날짜별 %, 예상 남은 시간)
+- [ ] **S5-C1**: 활동 상세 UI — RunPulse/서비스 데이터 분리 표시 (D-V2-16 반영)
+  - Primary 탭: RunPulse 1차/2차 메트릭 (`computed_metrics`)
+  - Secondary 서브탭: 서비스 1차 메트릭 (Garmin training_effect, Strava suffer_score, Intervals icu_training_load 등)
+  - 지표 hover 툴팁 (의미 + 공식 설명)
+  - 현재 수치 해설 텍스트 (예: "CIRS 78 — 부상 위험 높음, 강도 낮추기 권장")
+- [ ] **S5-C2**: 대폭 확장된 데이터 반영 UI 전면 재설계 (로드맵으로 이연 — 별도 스프린트)
+  - Sprint 5-A~C로 추가된 데이터(날씨/존/running dynamics/running tolerance 등)를 UI에 노출하는 구조 재설계 필요
+  - 현재 activity 상세 UI는 v0.1 기준 설계 → 새로운 데이터 계층 구조에 맞게 전면 재검토
+
+---
+
 ## Phase 6: 레이스 예측 UI (Sprint 5)
 
 - [ ] V2-6-1: `src/web/views_race.py` — 레이스 예측 뷰 블루프린트

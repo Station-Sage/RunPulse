@@ -73,7 +73,10 @@ def _get_zone_minutes_from_db(
 ) -> list[float]:
     """DB에서 기간 내 HR존 시간 집계.
 
-    activity_detail_metrics의 hr_zone_time_1..5 합산.
+    우선순위:
+    1. hr_zone_{N}_sec  (Garmin sync_activity_hr_zones — 초 단위)
+    2. heartrate_zone_{N}_sec  (Strava _sync_activity_zones — 초 단위)
+    3. hr_zone_time_{N}  (구형 저장 형식 — 초 단위)
 
     Args:
         conn: SQLite 커넥션.
@@ -83,18 +86,29 @@ def _get_zone_minutes_from_db(
     Returns:
         [z1_min, z2_min, z3_min, z4_min, z5_min] 단위: 분
     """
+    # 소스별 메트릭 이름 후보 (우선순위 순)
+    _NAME_PATTERNS = [
+        "hr_zone_{}_sec",
+        "heartrate_zone_{}_sec",
+        "hr_zone_time_{}",
+    ]
+
     zone_totals = [0.0] * 5
     for zone_idx in range(1, 6):
-        row = conn.execute(
-            """SELECT COALESCE(SUM(m.metric_value), 0)
-               FROM activity_detail_metrics m
-               JOIN activity_summaries a ON a.id = m.activity_id
-               WHERE m.metric_name = ?
-                 AND DATE(a.start_time) BETWEEN ? AND ?""",
-            (f"hr_zone_time_{zone_idx}", start_date, end_date),
-        ).fetchone()
-        if row and row[0]:
-            zone_totals[zone_idx - 1] = float(row[0]) / 60.0  # 초 → 분
+        for pattern in _NAME_PATTERNS:
+            metric_name = pattern.format(zone_idx)
+            row = conn.execute(
+                """SELECT COALESCE(SUM(m.metric_value), 0)
+                   FROM activity_detail_metrics m
+                   JOIN activity_summaries a ON a.id = m.activity_id
+                   WHERE m.metric_name = ?
+                     AND DATE(a.start_time) BETWEEN ? AND ?""",
+                (metric_name, start_date, end_date),
+            ).fetchone()
+            total_sec = float(row[0]) if row and row[0] else 0.0
+            if total_sec > 0:
+                zone_totals[zone_idx - 1] = total_sec / 60.0  # 초 → 분
+                break  # 이 존은 찾았으니 다음 존으로
     return zone_totals
 
 

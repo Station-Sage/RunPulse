@@ -75,6 +75,19 @@
 - **이유**: 단일 키 캐시는 테스트 환경에서 서로 다른 tmp_path 간 오염 발생. 운영 환경에서도 DB 경로 변경 시 오래된 데이터 반환 위험
 - **결과**: 각 DB 경로별 독립 TTL 60초 캐시, 전체 테스트 통과
 
+## D-V2-16: 데이터 계층 아키텍처 — 저장 분리 + 입력 유연성
+- **결정**: 4계층으로 구분하고 **저장 위치**는 분리하되, **RunPulse 계산 입력**은 모든 소스에서 받을 수 있음
+  - **서비스 데이터**: 원본 서비스 API 응답 → `activity_summaries`, `activity_detail_metrics`, `daily_wellness`, `daily_fitness` 등
+  - **서비스 1차 메트릭**: 서비스가 자체 제공하는 메트릭 (Garmin training_effect, Strava suffer_score, Intervals icu_training_load 등) → 동일 테이블 내 서비스 컬럼
+  - **RunPulse 1차 메트릭**: 서비스 데이터 기반 RunPulse 로직 계산 (TRIMP, FEARP, RelativeEffort, VDOT 등) → `computed_metrics`
+  - **RunPulse 2차 메트릭**: 서비스 데이터 + 서비스 1차 + RunPulse 1차 + 외부 소스 조합 복합 지수 (UTRS, CIRS, RTTI, WLEI, TPDI 등) → `computed_metrics`
+- **이유**: 저장 분리로 RunPulse 계산 결과를 서비스 값과 명확히 구분. 입력은 가용한 최선의 데이터를 사용하되(예: Garmin 날씨가 있으면 Open-Meteo보다 정확), 결과는 항상 `computed_metrics`에 저장
+- **결과**:
+  - FEARP 날씨: Garmin 동기화 날씨(activity_detail_metrics.weather_*) 우선, 없으면 Open-Meteo fallback
+  - WLEI: Garmin 날씨 + TRIMP(RunPulse 1차) 조합 사용
+  - TPDI: Strava/Garmin trainer 컬럼(서비스 데이터) + FEARP(RunPulse 1차) 조합
+  - UI에서 RunPulse 메트릭(`computed_metrics`)을 primary, 서비스 1차 메트릭을 secondary subtab으로 표시
+
 ## D-V2-15: sync 병렬화는 src/sync/__init__.py에 _sync_source 배치
 - **결정**: SOURCES 딕트와 _sync_source 함수를 `src/sync/__init__.py`에 두고, `src/sync.py` CLI는 이를 임포트
 - **이유**: Python 패키지 우선 규칙 — `src/sync/`(패키지)가 있으면 `src.sync`는 패키지를 가리킴. CLI 파일(`src/sync.py`)에 둔 함수는 `from src.sync import`로 접근 불가

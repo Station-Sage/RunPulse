@@ -41,15 +41,21 @@ def calc_and_save_relative_effort(
     Returns:
         RE 값 또는 None.
     """
-    # HR존 시간 데이터 조회
+    # HR존 시간 데이터 조회 (우선순위: hr_zone_{N}_sec → heartrate_zone_{N}_sec → hr_zone_time_{N})
+    _ZONE_PATTERNS = ["hr_zone_{}_sec", "heartrate_zone_{}_sec", "hr_zone_time_{}"]
     zone_secs = []
     for zone_idx in range(1, 6):
-        row = conn.execute(
-            """SELECT metric_value FROM activity_detail_metrics
-               WHERE activity_id=? AND metric_name=?""",
-            (activity_id, f"hr_zone_time_{zone_idx}"),
-        ).fetchone()
-        zone_secs.append(float(row[0]) if row and row[0] is not None else 0.0)
+        val = 0.0
+        for pattern in _ZONE_PATTERNS:
+            row = conn.execute(
+                """SELECT metric_value FROM activity_detail_metrics
+                   WHERE activity_id=? AND metric_name=?""",
+                (activity_id, pattern.format(zone_idx)),
+            ).fetchone()
+            if row and row[0] is not None:
+                val = float(row[0])
+                break
+        zone_secs.append(val)
 
     # HR존 데이터 없으면 avg_hr 기반 근사
     if sum(zone_secs) <= 0:

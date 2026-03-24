@@ -1,8 +1,8 @@
 """Metrics Engine — 날짜 범위 일괄 메트릭 계산 오케스트레이터.
 
 계산 의존 순서:
-  1. 활동별 (per-activity): TRIMP → EF/Decoupling → FEARP → RelativeEffort → TIDS
-  2. 일별 (daily): DailyTRIMP → ACWR → Monotony → UTRS → CIRS → LSI → DI → DARP → RMR
+  1. 활동별 (per-activity): TRIMP → EF/Decoupling → FEARP → RelativeEffort → WLEI
+  2. 일별 (daily): DailyTRIMP → ACWR → Monotony → UTRS → CIRS → LSI → DI → DARP → RMR → RTTI → TPDI
   3. 주별 (weekly, 해당 날짜가 일요일이거나 강제 실행 시): MarathonShape → ADTI
 """
 from __future__ import annotations
@@ -24,9 +24,12 @@ from src.metrics.monotony import calc_and_save_monotony
 from src.metrics.relative_effort import calc_and_save_relative_effort
 from src.metrics.rmr import calc_and_save_rmr
 from src.metrics.tids import calc_and_save_tids
+from src.metrics.rtti import calc_and_save_rtti
+from src.metrics.tpdi import calc_and_save_tpdi
 from src.metrics.trimp import calc_and_save_daily_trimp, calc_and_save_trimp_for_activity
 from src.metrics.utrs import calc_and_save_utrs
 from src.metrics.vdot import calc_and_save_vdot
+from src.metrics.wlei import calc_and_save_wlei
 logger = logging.getLogger(__name__)
 
 
@@ -69,6 +72,14 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
             results["RelativeEffort"] = re
     except Exception:
         logger.exception("RelativeEffort 계산 실패: activity_id=%d", activity_id)
+
+    # WLEI는 TRIMP 계산 후에 실행 (날씨 × TRIMP)
+    try:
+        wlei = calc_and_save_wlei(conn, activity_id)
+        if wlei is not None:
+            results["WLEI"] = wlei
+    except Exception:
+        logger.exception("WLEI 계산 실패: activity_id=%d", activity_id)
 
     return results
 
@@ -164,6 +175,22 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
             results["RMR"] = rmr_result.get("overall")
     except Exception:
         logger.exception("RMR 계산 실패: %s", target_date)
+
+    # 11. RTTI (Garmin running_tolerance 기반)
+    try:
+        rtti = calc_and_save_rtti(conn, target_date)
+        if rtti is not None:
+            results["RTTI"] = rtti
+    except Exception:
+        logger.exception("RTTI 계산 실패: %s", target_date)
+
+    # 12. TPDI (실내/실외 FEARP 격차, FEARP 계산 후)
+    try:
+        tpdi = calc_and_save_tpdi(conn, target_date)
+        if tpdi is not None:
+            results["TPDI"] = tpdi
+    except Exception:
+        logger.exception("TPDI 계산 실패: %s", target_date)
 
     return results
 
