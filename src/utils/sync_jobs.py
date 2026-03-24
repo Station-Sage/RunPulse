@@ -111,9 +111,35 @@ _COLS = (
 )
 
 
+def _jobs_db_path() -> str:
+    """sync_jobs 전용 DB 경로 — running.db와 별도 파일로 write 경합 방지."""
+    return str(get_db_path().parent / "sync_jobs.db")
+
+
 def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(get_db_path()), timeout=30)
+    """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
+    conn = sqlite3.connect(_jobs_db_path(), timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("""CREATE TABLE IF NOT EXISTS sync_jobs (
+        id TEXT PRIMARY KEY,
+        service TEXT NOT NULL,
+        from_date TEXT NOT NULL,
+        to_date TEXT NOT NULL,
+        window_days INTEGER NOT NULL DEFAULT 14,
+        current_from TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        completed_days INTEGER NOT NULL DEFAULT 0,
+        total_days INTEGER NOT NULL DEFAULT 0,
+        synced_count INTEGER NOT NULL DEFAULT 0,
+        req_count INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        retry_after TEXT,
+        last_error TEXT
+    )""")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sync_jobs_service ON sync_jobs(service, created_at)"
+    )
     return conn
 
 
