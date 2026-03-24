@@ -112,7 +112,9 @@ _COLS = (
 
 
 def _conn() -> sqlite3.Connection:
-    return sqlite3.connect(str(get_db_path()))
+    conn = sqlite3.connect(str(get_db_path()), timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
 
 
 def _row(row: tuple) -> SyncJob:

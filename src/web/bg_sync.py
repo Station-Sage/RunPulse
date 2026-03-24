@@ -149,7 +149,8 @@ class BgSyncThread(threading.Thread):
         try:
             import sqlite3 as _sqlite3
             from src.metrics import engine as metrics_engine
-            with _sqlite3.connect(str(get_db_path())) as conn:
+            with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
                 metrics_engine.run_for_date_range(conn, job.from_date, job.to_date)
         except Exception as exc:
             update_job(self.job_id, last_error=f"메트릭 계산 실패: {str(exc)[:150]}")
@@ -167,7 +168,8 @@ class BgSyncThread(threading.Thread):
         count = 0
         req_added = 0
         try:
-            with sqlite3.connect(str(get_db_path())) as conn:
+            with sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
                 if service == "garmin":
                     from src.sync.garmin import sync_activities
                     count = sync_activities(
