@@ -76,6 +76,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             moderate_intensity_min INTEGER,
             vigorous_intensity_min INTEGER,
             avg_hr_gap REAL,
+            max_double_cadence REAL,
             export_filename TEXT,
             -- Strava specific
             suffer_score INTEGER,
@@ -599,6 +600,7 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE activity_summaries ADD COLUMN moderate_intensity_min INTEGER",
         "ALTER TABLE activity_summaries ADD COLUMN vigorous_intensity_min INTEGER",
         "ALTER TABLE activity_summaries ADD COLUMN avg_hr_gap REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_double_cadence REAL",
         "ALTER TABLE activity_summaries ADD COLUMN suffer_score INTEGER",
         "ALTER TABLE activity_summaries ADD COLUMN kudos_count INTEGER",
         "ALTER TABLE activity_summaries ADD COLUMN achievement_count INTEGER",
