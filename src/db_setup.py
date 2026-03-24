@@ -16,21 +16,84 @@ def create_tables(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT NOT NULL CHECK(source IN ('garmin', 'strava', 'intervals', 'runalyze')),
             source_id TEXT NOT NULL,
+            name TEXT,
             activity_type TEXT NOT NULL DEFAULT 'running',
+            sport_type TEXT,
             start_time TEXT NOT NULL,
             distance_km REAL,
             duration_sec INTEGER,
+            moving_time_sec INTEGER,
+            elapsed_time_sec INTEGER,
             avg_pace_sec_km INTEGER,
             avg_hr INTEGER,
             max_hr INTEGER,
             avg_cadence INTEGER,
+            max_cadence INTEGER,
             elevation_gain REAL,
+            elevation_loss REAL,
+            min_elevation REAL,
+            max_elevation REAL,
+            max_vertical_speed REAL,
             calories INTEGER,
+            bmr_calories INTEGER,
             description TEXT,
-            matched_group_id TEXT,
-            -- v0.2: 위치·날씨·FEARP 계산에 필요
+            avg_speed_ms REAL,
+            max_speed_ms REAL,
+            avg_grade_adjusted_speed REAL,
+            avg_power REAL,
+            max_power REAL,
+            normalized_power REAL,
+            avg_stride_length_cm REAL,
+            avg_vertical_oscillation_cm REAL,
+            avg_vertical_ratio_percent REAL,
+            avg_ground_contact_time_ms INTEGER,
+            avg_ground_contact_balance REAL,
+            avg_double_cadence REAL,
+            avg_fractional_cadence REAL,
+            max_fractional_cadence REAL,
+            aerobic_training_effect REAL,
+            anaerobic_training_effect REAL,
+            training_load REAL,
+            vo2max_activity REAL,
+            workout_label TEXT,
+            steps INTEGER,
+            lap_count INTEGER,
             start_lat REAL,
             start_lon REAL,
+            end_lat REAL,
+            end_lon REAL,
+            min_lat REAL,
+            max_lat REAL,
+            min_lon REAL,
+            max_lon REAL,
+            avg_temperature REAL,
+            min_temperature REAL,
+            max_temperature REAL,
+            body_battery_diff INTEGER,
+            device_id TEXT,
+            favorite INTEGER,
+            water_estimated_ml INTEGER,
+            moderate_intensity_min INTEGER,
+            vigorous_intensity_min INTEGER,
+            avg_hr_gap REAL,
+            export_filename TEXT,
+            -- Strava specific
+            suffer_score INTEGER,
+            kudos_count INTEGER,
+            achievement_count INTEGER,
+            pr_count INTEGER,
+            strava_gear_id TEXT,
+            -- intervals.icu specific
+            icu_training_load REAL,
+            icu_trimp REAL,
+            icu_hrss REAL,
+            icu_atl REAL,
+            icu_ctl REAL,
+            icu_tsb REAL,
+            icu_gap REAL,
+            icu_decoupling REAL,
+            icu_efficiency_factor REAL,
+            matched_group_id TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
@@ -165,19 +228,149 @@ def create_tables(conn: sqlite3.Connection) -> None:
             activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
             source TEXT NOT NULL,
             lap_index INTEGER NOT NULL,
+            split_type TEXT,
             start_time TEXT,
             distance_km REAL,
             duration_sec INTEGER,
+            moving_time_sec INTEGER,
+            elapsed_time_sec INTEGER,
             avg_pace_sec_km INTEGER,
             avg_hr INTEGER,
             max_hr INTEGER,
             avg_cadence INTEGER,
+            max_cadence INTEGER,
             elevation_gain REAL,
+            total_ascent REAL,
+            total_descent REAL,
+            avg_speed_ms REAL,
+            avg_moving_speed_ms REAL,
+            max_speed_ms REAL,
             avg_power REAL,
+            max_power REAL,
+            normalized_power REAL,
+            total_calories INTEGER,
+            avg_temperature REAL,
+            avg_stride_length_cm REAL,
+            avg_vertical_oscillation_cm REAL,
+            avg_vertical_ratio_pct REAL,
+            avg_ground_contact_time_ms INTEGER,
+            avg_grade_adjusted_speed_ms REAL,
+            start_lat REAL,
+            start_lon REAL,
+            end_lat REAL,
+            end_lon REAL,
+            start_elevation REAL,
             UNIQUE(activity_id, source, lap_index)
         );
         CREATE INDEX IF NOT EXISTS idx_activity_laps_activity
             ON activity_laps(activity_id);
+
+        -- v0.2: GPS/time-series 스트림 데이터
+        CREATE TABLE IF NOT EXISTS activity_streams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            stream_type TEXT NOT NULL,
+            data_json TEXT NOT NULL,
+            original_size INTEGER,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(activity_id, source, stream_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_streams_activity
+            ON activity_streams(activity_id, source);
+
+        -- v0.2: 베스트 에포트 (1K, 5K, 10K, 하프, 마라톤 등)
+        CREATE TABLE IF NOT EXISTS activity_best_efforts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            name TEXT NOT NULL,
+            distance_m REAL,
+            elapsed_sec INTEGER,
+            moving_sec INTEGER,
+            start_index INTEGER,
+            end_index INTEGER,
+            pr_rank INTEGER,
+            UNIQUE(activity_id, source, name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_best_efforts_activity
+            ON activity_best_efforts(activity_id);
+
+        -- v0.2: 선수 프로필 (소스별)
+        CREATE TABLE IF NOT EXISTS athlete_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL UNIQUE,
+            source_athlete_id TEXT,
+            firstname TEXT,
+            lastname TEXT,
+            city TEXT,
+            country TEXT,
+            sex TEXT,
+            weight_kg REAL,
+            birthday TEXT,
+            ftp INTEGER,
+            lthr INTEGER,
+            vo2max REAL,
+            profile_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- v0.2: 누적 운동 통계 스냅샷 (날짜별)
+        CREATE TABLE IF NOT EXISTS athlete_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            snapshot_date TEXT NOT NULL,
+            all_run_count INTEGER,
+            all_run_distance_km REAL,
+            all_run_elapsed_sec INTEGER,
+            all_run_elevation_m REAL,
+            ytd_run_count INTEGER,
+            ytd_run_distance_km REAL,
+            ytd_run_elapsed_sec INTEGER,
+            recent_run_count INTEGER,
+            recent_run_distance_km REAL,
+            stats_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, snapshot_date)
+        );
+        CREATE INDEX IF NOT EXISTS idx_athlete_stats_date
+            ON athlete_stats(source, snapshot_date DESC);
+
+        -- v0.2: 기어 (신발, 자전거 등)
+        CREATE TABLE IF NOT EXISTS gear (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            source_gear_id TEXT NOT NULL,
+            name TEXT,
+            brand TEXT,
+            model TEXT,
+            distance_m REAL,
+            retired INTEGER DEFAULT 0,
+            gear_type TEXT DEFAULT 'shoes',
+            gear_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, source_gear_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_gear_source
+            ON gear(source, source_gear_id);
+
+        -- v0.2: 운동 세트 (근력/수영/인터벌 등)
+        CREATE TABLE IF NOT EXISTS activity_exercise_sets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            set_index INTEGER NOT NULL,
+            exercise_name TEXT,
+            exercise_category TEXT,
+            set_type TEXT,
+            reps INTEGER,
+            weight_kg REAL,
+            duration_sec INTEGER,
+            distance_m REAL,
+            UNIQUE(activity_id, source, set_index)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_exercise_sets_activity
+            ON activity_exercise_sets(activity_id);
 
         -- 분석용 정규화 뷰: 동일 활동 그룹에서 소스 우선순위(garmin>strava>intervals>runalyze)로
         -- 대표 1행만 반환. 중복 집계 방지. 분석 쿼리에서 activity_summaries 대신 이 뷰 사용.
@@ -355,9 +548,99 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE activity_summaries ADD COLUMN avg_power REAL",
         "ALTER TABLE activity_summaries ADD COLUMN export_filename TEXT",
         "ALTER TABLE activity_summaries ADD COLUMN workout_label TEXT",
-        # v0.2: FEARP 날씨 조회용 위치
         "ALTER TABLE activity_summaries ADD COLUMN start_lat REAL",
         "ALTER TABLE activity_summaries ADD COLUMN start_lon REAL",
+        # v0.2: 전체 API 필드
+        "ALTER TABLE activity_summaries ADD COLUMN name TEXT",
+        "ALTER TABLE activity_summaries ADD COLUMN sport_type TEXT",
+        "ALTER TABLE activity_summaries ADD COLUMN moving_time_sec INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN elapsed_time_sec INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_speed_ms REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_speed_ms REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_cadence INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN elevation_loss REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN min_elevation REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_elevation REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_vertical_speed REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN bmr_calories INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_grade_adjusted_speed REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_power REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN normalized_power REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_stride_length_cm REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_vertical_oscillation_cm REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_vertical_ratio_percent REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_ground_contact_time_ms INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_ground_contact_balance REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_double_cadence REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_fractional_cadence REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_fractional_cadence REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN aerobic_training_effect REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN anaerobic_training_effect REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN training_load REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN vo2max_activity REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN steps INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN lap_count INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN end_lat REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN end_lon REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN min_lat REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_lat REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN min_lon REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_lon REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_temperature REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN min_temperature REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN max_temperature REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN body_battery_diff INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN device_id TEXT",
+        "ALTER TABLE activity_summaries ADD COLUMN favorite INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN water_estimated_ml INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN moderate_intensity_min INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN vigorous_intensity_min INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN avg_hr_gap REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN suffer_score INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN kudos_count INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN achievement_count INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN pr_count INTEGER",
+        "ALTER TABLE activity_summaries ADD COLUMN strava_gear_id TEXT",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_training_load REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_trimp REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_hrss REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_atl REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_ctl REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_tsb REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_gap REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_decoupling REAL",
+        "ALTER TABLE activity_summaries ADD COLUMN icu_efficiency_factor REAL",
+    ]:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # 이미 존재
+
+    # activity_laps 새 컬럼
+    for stmt in [
+        "ALTER TABLE activity_laps ADD COLUMN split_type TEXT",
+        "ALTER TABLE activity_laps ADD COLUMN moving_time_sec INTEGER",
+        "ALTER TABLE activity_laps ADD COLUMN elapsed_time_sec INTEGER",
+        "ALTER TABLE activity_laps ADD COLUMN max_cadence INTEGER",
+        "ALTER TABLE activity_laps ADD COLUMN total_ascent REAL",
+        "ALTER TABLE activity_laps ADD COLUMN total_descent REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_speed_ms REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_moving_speed_ms REAL",
+        "ALTER TABLE activity_laps ADD COLUMN max_speed_ms REAL",
+        "ALTER TABLE activity_laps ADD COLUMN max_power REAL",
+        "ALTER TABLE activity_laps ADD COLUMN normalized_power REAL",
+        "ALTER TABLE activity_laps ADD COLUMN total_calories INTEGER",
+        "ALTER TABLE activity_laps ADD COLUMN avg_temperature REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_stride_length_cm REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_vertical_oscillation_cm REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_vertical_ratio_pct REAL",
+        "ALTER TABLE activity_laps ADD COLUMN avg_ground_contact_time_ms INTEGER",
+        "ALTER TABLE activity_laps ADD COLUMN avg_grade_adjusted_speed_ms REAL",
+        "ALTER TABLE activity_laps ADD COLUMN start_lat REAL",
+        "ALTER TABLE activity_laps ADD COLUMN start_lon REAL",
+        "ALTER TABLE activity_laps ADD COLUMN end_lat REAL",
+        "ALTER TABLE activity_laps ADD COLUMN end_lon REAL",
+        "ALTER TABLE activity_laps ADD COLUMN start_elevation REAL",
     ]:
         try:
             conn.execute(stmt)
@@ -444,19 +727,143 @@ def migrate_db(conn: sqlite3.Connection) -> None:
             activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
             source TEXT NOT NULL,
             lap_index INTEGER NOT NULL,
+            split_type TEXT,
             start_time TEXT,
             distance_km REAL,
             duration_sec INTEGER,
+            moving_time_sec INTEGER,
+            elapsed_time_sec INTEGER,
             avg_pace_sec_km INTEGER,
             avg_hr INTEGER,
             max_hr INTEGER,
             avg_cadence INTEGER,
+            max_cadence INTEGER,
             elevation_gain REAL,
+            total_ascent REAL,
+            total_descent REAL,
+            avg_speed_ms REAL,
+            avg_moving_speed_ms REAL,
+            max_speed_ms REAL,
             avg_power REAL,
+            max_power REAL,
+            normalized_power REAL,
+            total_calories INTEGER,
+            avg_temperature REAL,
+            avg_stride_length_cm REAL,
+            avg_vertical_oscillation_cm REAL,
+            avg_vertical_ratio_pct REAL,
+            avg_ground_contact_time_ms INTEGER,
+            avg_grade_adjusted_speed_ms REAL,
+            start_lat REAL,
+            start_lon REAL,
+            end_lat REAL,
+            end_lon REAL,
+            start_elevation REAL,
             UNIQUE(activity_id, source, lap_index)
         );
         CREATE INDEX IF NOT EXISTS idx_activity_laps_activity
             ON activity_laps(activity_id);
+
+        CREATE TABLE IF NOT EXISTS activity_streams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            stream_type TEXT NOT NULL,
+            data_json TEXT NOT NULL,
+            original_size INTEGER,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(activity_id, source, stream_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_streams_activity
+            ON activity_streams(activity_id, source);
+
+        CREATE TABLE IF NOT EXISTS activity_best_efforts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            name TEXT NOT NULL,
+            distance_m REAL,
+            elapsed_sec INTEGER,
+            moving_sec INTEGER,
+            start_index INTEGER,
+            end_index INTEGER,
+            pr_rank INTEGER,
+            UNIQUE(activity_id, source, name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_best_efforts_activity
+            ON activity_best_efforts(activity_id);
+
+        CREATE TABLE IF NOT EXISTS athlete_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL UNIQUE,
+            source_athlete_id TEXT,
+            firstname TEXT,
+            lastname TEXT,
+            city TEXT,
+            country TEXT,
+            sex TEXT,
+            weight_kg REAL,
+            birthday TEXT,
+            ftp INTEGER,
+            lthr INTEGER,
+            vo2max REAL,
+            profile_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS athlete_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            snapshot_date TEXT NOT NULL,
+            all_run_count INTEGER,
+            all_run_distance_km REAL,
+            all_run_elapsed_sec INTEGER,
+            all_run_elevation_m REAL,
+            ytd_run_count INTEGER,
+            ytd_run_distance_km REAL,
+            ytd_run_elapsed_sec INTEGER,
+            recent_run_count INTEGER,
+            recent_run_distance_km REAL,
+            stats_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, snapshot_date)
+        );
+        CREATE INDEX IF NOT EXISTS idx_athlete_stats_date
+            ON athlete_stats(source, snapshot_date DESC);
+
+        CREATE TABLE IF NOT EXISTS gear (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            source_gear_id TEXT NOT NULL,
+            name TEXT,
+            brand TEXT,
+            model TEXT,
+            distance_m REAL,
+            retired INTEGER DEFAULT 0,
+            gear_type TEXT DEFAULT 'shoes',
+            gear_json TEXT,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(source, source_gear_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_gear_source
+            ON gear(source, source_gear_id);
+
+        CREATE TABLE IF NOT EXISTS activity_exercise_sets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id INTEGER NOT NULL REFERENCES activity_summaries(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            set_index INTEGER NOT NULL,
+            exercise_name TEXT,
+            exercise_category TEXT,
+            set_type TEXT,
+            reps INTEGER,
+            weight_kg REAL,
+            duration_sec INTEGER,
+            distance_m REAL,
+            UNIQUE(activity_id, source, set_index)
+        );
+        CREATE INDEX IF NOT EXISTS idx_activity_exercise_sets_activity
+            ON activity_exercise_sets(activity_id);
 
         CREATE TABLE IF NOT EXISTS computed_metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

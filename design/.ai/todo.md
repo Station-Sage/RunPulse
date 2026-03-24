@@ -231,6 +231,50 @@
 - [ ] **6.4~6.8**: 추후 구현 (다음 스프린트에서 확인 후 반영)
 - [ ] **V2-4-5**: activity_deep 지도 (Mapbox/Leaflet) — v0.3으로 이연
 
+---
+
+## Phase API-Garmin: Garmin 전체 API 수집 완성 ✅ 완료 (2026-03-24)
+
+### DB 스키마 확장
+- [x] `activity_summaries` 80컬럼으로 확장 (name, sport_type, moving_time_sec, aerobic_training_effect 등 50+개 추가)
+- [x] `activity_laps` 36컬럼 (split_type, GPS 좌표, running_dynamics 전체 포함)
+- [x] `activity_streams` 신규 (GPS/시계열 데이터, SQL 기반 메트릭 계산용)
+- [x] `activity_best_efforts` 신규 (PR 세그먼트)
+- [x] `activity_exercise_sets` 신규 (근력/인터벌 운동 세트, 전 종목)
+- [x] `athlete_profile` 신규 (선수 프로필)
+- [x] `athlete_stats` 신규 (누적 통계 스냅샷)
+- [x] `gear` 신규 (신발/장비)
+- [x] `daily_wellness` spo2_avg/respiration_avg/intensity_min 컬럼 추가
+- [x] `migrate_db()` 기존 DB 자동 마이그레이션
+
+### 활동 확장 API (garmin_api_extensions.py)
+- [x] `sync_activity_streams()` — activity_details GPS + 시계열 (1500+ 포인트/활동)
+- [x] `sync_activity_gear()` — 활동별 장비 → gear 테이블
+- [x] `sync_activity_exercise_sets()` — 운동 세트 (근력/기타 전 종목)
+
+### 일별 확장 API (garmin_daily_extensions.py)
+- [x] `sync_daily_race_predictions()` — 5K/10K/하프/마라톤 예측 기록
+- [x] `sync_daily_training_status()` — ATL/CTL/ACWR/training_status → daily_fitness
+- [x] `sync_daily_fitness_metrics()` — endurance_score, hill_score, fitnessage, lactate_threshold
+- [x] `sync_daily_user_summary()` — 94키 종합 요약 (BB, 강도분, SPO2 등 daily_wellness 보완)
+- [x] `sync_daily_heart_rates()` — 일중 HR 타임라인
+- [x] `sync_daily_all_day_stress()` — 24시간 스트레스 타임라인
+- [x] `sync_daily_body_battery_events()` — 충전/방전 이벤트
+
+### 선수 데이터 (garmin_athlete_extensions.py)
+- [x] `sync_athlete_profile()` — user_profile → athlete_profile
+- [x] `sync_athlete_stats()` — 누적 통계 스냅샷 → athlete_stats
+- [x] `sync_athlete_personal_records()` — PR → activity_best_efforts + daily_detail_metrics
+
+### 웰니스 버그 수정 (garmin_wellness_sync.py)
+- [x] `body_battery_summary_json`, `stress_summary_json`, `respiration_summary_json`, `spo2_summary_json`, `body_composition_summary_json` 누락 → 복구
+
+### garmin.py 동기화 흐름 업데이트
+- [x] `sync_garmin()` — 활동 + 웰니스 + 일별확장 + 선수데이터 전체 통합
+- [x] 기간동기화 시 streams force 재수집, 일반동기화 시 기존 스킵
+
+---
+
 ### Priority B — 다음 스프린트
 
 - [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)

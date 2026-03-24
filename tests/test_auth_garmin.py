@@ -93,7 +93,7 @@ def test_login_uses_tokenstore_if_exists(tmp_path):
     mock_client = MagicMock()
     mock_client.login.return_value = (None, None)
 
-    with patch("src.sync.garmin.Garmin", return_value=mock_client) as MockGarmin:
+    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client) as MockGarmin:
         from src.sync.garmin import _login
         result = _login(config)
         # 이메일/패스워드 없이 Garmin() 생성됨
@@ -129,7 +129,7 @@ def test_login_falls_back_to_email_pw_if_tokenstore_fails(tmp_path):
             return mock_client_token
         return mock_client_pw
 
-    with patch("src.sync.garmin.Garmin", side_effect=mock_garmin):
+    with patch("src.sync.garmin_auth.Garmin", side_effect=mock_garmin):
         from src.sync.garmin import _login
         result = _login(config)
         assert result is mock_client_pw

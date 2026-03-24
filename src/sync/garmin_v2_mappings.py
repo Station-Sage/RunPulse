@@ -45,8 +45,7 @@ def extract_summary_fields_from_api(act: dict) -> dict:
     avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
 
     return {
-        "garmin_activity_id": str(act.get("activityId", "")),
-        "name": act.get("activityName") or act.get("activityName"),
+        "name": act.get("activityName"),
         "activity_type": act.get("activityType", {}).get("typeKey", "running"),
         "sport_type": act.get("activityType", {}).get("typeKey", "running"),
         "start_time": act.get("startTimeLocal", ""),
@@ -69,16 +68,12 @@ def extract_summary_fields_from_api(act: dict) -> dict:
         "avg_power": act.get("averagePower"),
         "max_power": act.get("maxPower"),
         "normalized_power": act.get("normPower"),
-        "avg_stride_length_cm": act.get("averageStrideLength"),
-        "avg_vertical_oscillation_cm": act.get("avgVerticalOscillation"),
-        "avg_vertical_ratio_percent": act.get("avgVerticalRatio"),
-        "avg_ground_contact_time_ms": act.get("avgGroundContactTime"),
+        "avg_stride_length_cm": act.get("avgStrideLengthCM") or act.get("averageStrideLength"),
+        "avg_vertical_oscillation_cm": act.get("avgVerticalOscillationCM") or act.get("avgVerticalOscillation"),
+        "avg_vertical_ratio_percent": act.get("avgVerticalRatioPct") or act.get("avgVerticalRatio"),
+        "avg_ground_contact_time_ms": act.get("avgGroundContactTimeMilli") or act.get("avgGroundContactTime"),
         "avg_ground_contact_balance": act.get("avgGroundContactBalance"),
         "avg_double_cadence": act.get("avgDoubleCadence"),
-        "avg_stride_length_cm": act.get("avgStrideLengthCM"),
-        "avg_vertical_oscillation_cm": act.get("avgVerticalOscillationCM"),
-        "avg_vertical_ratio_pct": act.get("avgVerticalRatioPct"),
-        "avg_ground_contact_time_ms": act.get("avgGroundContactTimeMilli"),
         "aerobic_training_effect": act.get("aerobicTrainingEffect"),
         "anaerobic_training_effect": act.get("anaerobicTrainingEffect"),
         "training_load": act.get("activityTrainingLoad"),
@@ -153,7 +148,6 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         key = f"powerTimeInZone_{i}"
 
     result = {
-        "garmin_activity_id": str(act.get("activityId", "")),
         "name": act.get("name") or act.get("activityName"),
         "activity_type": act.get("activityType", "running"),
         "sport_type": act.get("sportType", "").lower() if act.get("sportType") else None,

@@ -1,5 +1,57 @@
 # Changelog
 
+## [v0.2-api-garmin] 2026-03-24
+
+### 추가
+
+**Garmin 전체 API 수집 완성 — DB 스키마 + 3개 신규 모듈**
+
+**DB 스키마 (`src/db_setup.py`)**
+- `activity_summaries` 18컬럼 → 80컬럼 (name, sport_type, running_dynamics, aerobic_training_effect, Strava/Intervals 전용 컬럼 포함)
+- `activity_laps` 13컬럼 → 36컬럼 (split_type, GPS 좌표, running_dynamics 전체)
+- 신규 테이블: `activity_streams`, `activity_best_efforts`, `activity_exercise_sets`, `athlete_profile`, `athlete_stats`, `gear`
+- `daily_wellness` spo2_avg / respiration_avg / intensity_min 컬럼 추가
+- `migrate_db()` 기존 DB 자동 마이그레이션 (ALTER TABLE try/except 패턴)
+
+**`src/sync/garmin_api_extensions.py` 신설** (활동 확장 API)
+- `sync_activity_streams()` — activity_details GPS/시계열 → activity_streams (metricDescriptors 파싱, executemany 배치 삽입)
+- `sync_activity_gear()` — 활동 장비 → gear 테이블 upsert + activity_summaries 링크
+- `sync_activity_exercise_sets()` — 운동 세트 (근력/기타 전 종목) → activity_exercise_sets
+
+**`src/sync/garmin_daily_extensions.py` 신설** (일별 확장 API)
+- `sync_daily_race_predictions()` — 레이스 예측 기록 5K/10K/하프/마라톤
+- `sync_daily_training_status()` — ATL/CTL/ACWR → daily_fitness upsert
+- `sync_daily_fitness_metrics()` — endurance_score, hill_score, fitnessage, lactate_threshold(FTP/LTHR)
+- `sync_daily_user_summary()` — 94키 종합 요약 → daily_wellness COALESCE 보완
+- `sync_daily_heart_rates()` — 일중 HR 타임라인 + max/min/avg
+- `sync_daily_all_day_stress()` — 24시간 스트레스 타임라인 (get_all_day_stress)
+- `sync_daily_body_battery_events()` — 충전/방전 이벤트 (get_body_battery_events)
+
+**`src/sync/garmin_athlete_extensions.py` 신설** (선수 데이터)
+- `sync_athlete_profile()` — user_profile → athlete_profile upsert
+- `sync_athlete_stats()` — 누적 통계 스냅샷 → athlete_stats upsert
+- `sync_athlete_personal_records()` — PR → activity_best_efforts + daily_detail_metrics
+
+### 수정
+
+**`src/sync/garmin_activity_sync.py`**
+- 활동 저장 후 `sync_activity_streams()`, `sync_activity_gear()`, `sync_activity_exercise_sets()` 자동 호출
+- 기간동기화 시 `force=True`로 streams 재수집
+
+**`src/sync/garmin_wellness_sync.py`**
+- `body_battery_summary_json`, `stress_summary_json`, `respiration_summary_json`, `spo2_summary_json`, `body_composition_summary_json` 누락 복구
+
+**`src/sync/garmin.py`**
+- `sync_garmin()` 반환값 `daily_ext` 추가
+- `sync_daily_extensions()`, `sync_athlete_extensions()` 함수 추가 — 전체 동기화 시 자동 호출
+
+### 테스트
+- 기존 pre-existing 실패 3건 (test_activity_merge, test_sync_intervals, test_auth_runalyze) 외 전체 통과
+- garmin 테스트 12개 전부 통과 (body_battery_timeline 테스트 데이터 포맷 수정 포함)
+- 전체 797개 통과
+
+---
+
 ## [v0.2-ui-gap-7] 2026-03-24
 
 ### 추가

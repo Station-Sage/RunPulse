@@ -8,8 +8,8 @@ from src.sync.garmin import sync_activities, sync_wellness, sync_garmin
 
 
 class TestSyncActivities:
-    @patch("src.sync.garmin.Garmin")
-    @patch("src.sync.garmin.time.sleep")
+    @patch("src.sync.garmin_auth.Garmin")
+    @patch("src.sync.garmin_activity_sync.time.sleep")
     def test_inserts_activity(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
         now = datetime.now().isoformat()
         mock_client = MagicMock()
@@ -107,8 +107,8 @@ class TestSyncActivities:
         assert row is not None
         assert row[0] == pytest.approx(48.5)
 
-    @patch("src.sync.garmin.Garmin")
-    @patch("src.sync.garmin.time.sleep")
+    @patch("src.sync.garmin_auth.Garmin")
+    @patch("src.sync.garmin_activity_sync.time.sleep")
     def test_skip_duplicate(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
         """이미 존재하는 활동은 건너뜀."""
         now = datetime.now().isoformat()
@@ -129,8 +129,8 @@ class TestSyncActivities:
 
 
 class TestSyncWellness:
-    @patch("src.sync.garmin.Garmin")
-    @patch("src.sync.garmin.time.sleep")
+    @patch("src.sync.garmin_auth.Garmin")
+    @patch("src.sync.garmin_wellness_sync.time.sleep")
     def test_inserts_wellness(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
         mock_client = MagicMock()
         mock_client.get_sleep_data.return_value = {
@@ -163,11 +163,11 @@ class TestSyncWellness:
                 "baselineHigh": 58,
             }
         }
-        mock_client.get_body_battery.return_value = [
-            {"bodyBatteryLevel": 62},
-            {"bodyBatteryLevel": 80},
-            {"bodyBatteryLevel": 55},
-        ]
+        mock_client.get_body_battery.return_value = [{
+            "bodyBatteryValuesArray": [[0, 62], [180000, 80], [360000, 55]],
+            "charged": 20,
+            "drained": 40,
+        }]
         mock_client.get_stress_data.return_value = {
             "avgStressLevel": 35,
             "maxStressLevel": 78,
@@ -175,7 +175,7 @@ class TestSyncWellness:
             "lowStressDuration": 240,
             "mediumStressDuration": 120,
             "highStressDuration": 60,
-            "stressValuesArray": [15, 28, 42, 78],
+            "stressValuesArray": [[0, 15], [180000, 28], [360000, 42], [540000, 78]],
         }
         mock_client.get_respiration_data.return_value = {
             "averageRespiration": 13.4,
@@ -243,7 +243,10 @@ class TestSyncWellness:
         assert detail_map["body_battery_end"][0] == 55
         assert detail_map["body_battery_min"][0] == 55
         assert detail_map["body_battery_max"][0] == 80
-        assert '"bodyBatteryLevel": 80' in detail_map["body_battery_timeline"][1]
+        # body_battery_timeline은 [[timestamp_ms, level], ...] 형태로 저장됨
+        import json as _json
+        bb_timeline = _json.loads(detail_map["body_battery_timeline"][1])
+        assert any(pair[1] == 80 for pair in bb_timeline if len(pair) > 1)
 
         assert detail_map["stress_max"][0] == 78
         assert detail_map["stress_rest_duration"][0] == 180
