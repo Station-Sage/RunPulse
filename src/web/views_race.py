@@ -7,7 +7,7 @@ import json
 import sqlite3
 from flask import Blueprint, request
 from src.web.helpers import (
-    html_page, bottom_nav, no_data_card, fmt_pace, fmt_duration,
+    html_page, bottom_nav, no_data_card, fmt_pace, fmt_duration, db_path,
     metric_row, svg_semicircle_gauge,
 )
 
@@ -21,10 +21,6 @@ DISTANCES = [
     ("커스텀", 0, "⚙️"),
 ]
 
-
-def _db_path():
-    from src.web.app import db_path
-    return db_path()
 
 
 def _safe_json(raw):
@@ -196,7 +192,7 @@ def race_page():
     except (ValueError, TypeError):
         active_km = 21.0975
 
-    dbp = _db_path()
+    dbp = db_path()
     if not dbp:
         body = no_data_card("레이스 예측", "데이터베이스를 찾을 수 없습니다")
         return html_page("레이스 예측", body + bottom_nav("report"))
