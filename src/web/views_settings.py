@@ -256,20 +256,31 @@ def settings_view() -> str:
     <div style='background:var(--row-border); border-radius:4px; height:10px; overflow:hidden;'>
       <div id='recompute-bar' style='height:100%; background:#00d4ff; border-radius:4px; width:0%; transition:width 0.5s;'></div>
     </div>
-    <p id='recompute-detail' style='margin:0.4rem 0 0; font-size:0.78rem; color:var(--muted);'></p>
+    <div style='display:flex; justify-content:space-between; margin:0.4rem 0 0;'>
+      <span id='recompute-detail' style='font-size:0.78rem; color:var(--muted);'></span>
+      <span id='recompute-eta' style='font-size:0.78rem; color:var(--muted);'></span>
+    </div>
   </div>
 </div>
 """ + """
 <script>
+function fmtEta(sec) {
+  if (!sec || sec <= 0) return '';
+  if (sec < 60) return Math.ceil(sec) + '초 남음';
+  var m = Math.floor(sec / 60), s = Math.ceil(sec % 60);
+  return m + '분 ' + (s > 0 ? s + '초' : '') + ' 남음';
+}
 function startRecompute() {
   var days = document.getElementById('recompute-days').value || 90;
   var btn = document.getElementById('recompute-btn');
+  var startTime = Date.now() / 1000;
   btn.disabled = true; btn.textContent = '재계산 중...';
   document.getElementById('recompute-progress').style.display = 'block';
   document.getElementById('recompute-bar').style.width = '0%';
   document.getElementById('recompute-pct-text').textContent = '0%';
   document.getElementById('recompute-status-text').textContent = '시작 중...';
   document.getElementById('recompute-detail').textContent = '';
+  document.getElementById('recompute-eta').textContent = '';
 
   // POST 시작
   var fd = new FormData(); fd.append('days', days);
@@ -283,12 +294,21 @@ function startRecompute() {
       if (bar) bar.style.width = pct + '%';
       var pctEl = document.getElementById('recompute-pct-text');
       if (pctEl) pctEl.textContent = pct + '%  (' + (d.completed||0) + '/' + (d.total||0) + '일)';
+      var etaEl = document.getElementById('recompute-eta');
       var statusEl = document.getElementById('recompute-status-text');
       if (d.status === 'running') {
         if (statusEl) statusEl.textContent = '계산 중... ' + (d.current_date || '');
         var detailEl = document.getElementById('recompute-detail');
         if (detailEl) detailEl.textContent = d.current_date ? (d.current_date + ' 처리 완료') : '';
+        // ETA 계산
+        var completed = d.completed || 0, total = d.total || 0;
+        if (completed > 0 && total > completed) {
+          var elapsed = (d.started_at ? Date.now()/1000 - d.started_at : Date.now()/1000 - startTime);
+          var remaining = (elapsed / completed) * (total - completed);
+          if (etaEl) etaEl.textContent = fmtEta(remaining);
+        }
       } else if (d.status === 'completed') {
+        if (etaEl) etaEl.textContent = '';
         if (statusEl) { statusEl.textContent = '✅ 재계산 완료'; statusEl.style.color = 'var(--green)'; }
         if (bar) bar.style.background = 'var(--green)';
         btn.disabled = false; btn.textContent = '재계산 시작';
@@ -905,8 +925,10 @@ def metrics_recompute():
     except (ValueError, TypeError):
         days = 90
 
+    import time as _time
     _set_recompute_state(status="running", days=days, completed=0, total=days,
-                         current_date="", pct=0, error=None)
+                         current_date="", pct=0, error=None,
+                         started_at=_time.time())
 
     def _on_progress(date_str: str, completed: int, total: int) -> None:
         pct = round(completed / total * 100, 1) if total > 0 else 0

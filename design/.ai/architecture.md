@@ -297,12 +297,12 @@ card: background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: 
 | 바 차트 | ECharts (CDN) | TIDS, TRIMP 주간, 거리 추세 |
 | 수치 카드 | HTML + CSS | 요약 지표 |
 
-### 하단 네비게이션 (5탭)
+### 하단 네비게이션 (6+1탭)
 ```
-홈(대시보드) | 활동 | 훈련 | AI 코치 | 설정
+홈(대시보드) | 활동 | 레포트 | 훈련 | AI코치 | 설정 (+개발자)
 ```
-`templates/macros/nav.html`에 Jinja2 매크로로 공통화.
-사용법: `{% from 'macros/nav.html' import bottom_nav %}{{ bottom_nav('dashboard') }}`
+`src/web/helpers.py`의 `bottom_nav()` 함수. `base.html`에서 `{{ bottom_nav(active_tab) }}` 호출.
+레이스 예측(`/race`)은 레포트 탭 하위, 웰니스(`/wellness`)는 상단 드롭다운 nav에서 접근.
 
 ---
 

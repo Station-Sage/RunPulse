@@ -65,6 +65,7 @@ from .views_activity_source_cards import (  # noqa: F401, E402
     _render_intervals_metrics,
     _render_runalyze_metrics,
     _render_source_comparison,
+    _render_service_tabs,
 )
 
 
@@ -493,11 +494,37 @@ def _render_daily_scores_card(day_metrics: dict) -> str:
         else:
             acwr_interp = " <span style='font-size:0.72rem;color:var(--red);'>과부하 위험</span>"
 
+    utrs_interp = ""
+    if utrs is not None:
+        uv = float(utrs)
+        if uv >= 70:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--green);'>컨디션 최적 — 고강도 훈련 가능</span>"
+        elif uv >= 50:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--cyan);'>보통 — 일반 훈련 적합</span>"
+        elif uv >= 30:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--orange);'>피로 누적 — 경량 훈련 권장</span>"
+        else:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--red);'>휴식 필요 — 회복에 집중</span>"
+
+    cirs_interp = ""
+    if cirs_val is not None:
+        cv = float(cirs_val)
+        if cv < 30:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--green);'>안전 수준</span>"
+        elif cv < 50:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--cyan);'>낮은 위험</span>"
+        elif cv < 75:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--orange);'>주의 — 부상 위험 증가</span>"
+        else:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--red);'>경고 — 강도 즉시 낮추기</span>"
+
     return (
         "<div class='card'>"
         "<h2>당일 훈련 지수</h2>"
         + _gauge_bar(utrs, 100, utrs_color, "UTRS — 훈련 준비도")
+        + (f"<div style='margin:-0.5rem 0 0.6rem;'>{utrs_interp}</div>" if utrs_interp else "")
         + _gauge_bar(cirs_val, 100, cirs_color, "CIRS — 부상 위험도")
+        + (f"<div style='margin:-0.5rem 0 0.6rem;'>{cirs_interp}</div>" if cirs_interp else "")
         + "<div style='margin-bottom:0.75rem;'>"
         + f"<div style='display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:3px;'>"
         + f"<span style='color:var(--muted);'>ACWR — 급성/만성 부하비</span>"

@@ -205,7 +205,7 @@
   - `_load_activity_computed_metrics`, `_load_day_computed_metrics`: DB 조회
   - `html_page()` → `render_template('generic_page.html')` 전환 (5개 엔드포인트)
 - [x] V2-4-6: `_render_horizontal_scroll` — 핵심 메트릭 수평 스크롤 바 (거리/시간/페이스/심박/고도/FEARP/GAP)
-- [ ] V2-4-5: activity_deep — 지도 (Mapbox/Leaflet) — v0.3으로 이연
+- [x] V2-4-5: activity_deep — 지도 (Mapbox GL JS) ✅ 완료 (2026-03-25, V2-9-9에서 구현)
 
 ---
 
@@ -420,15 +420,14 @@
 
 ### Sprint 5-D: 미완료 — 다음 스프린트 (Phase B+C)
 
-- [ ] **S5-B1**: 메트릭 재계산 Progress bar (SSE 스트리밍)
-  - `src/metrics/engine.py` `recompute_all()` 에 `progress_callback` 파라미터 추가
-  - `src/web/views_settings.py` SSE 엔드포인트 `/metrics/recompute-stream` 추가
-  - 설정 화면 진행률 바 (날짜별 %, 예상 남은 시간)
-- [ ] **S5-C1**: 활동 상세 UI — RunPulse/서비스 데이터 분리 표시 (D-V2-16 반영)
-  - Primary 탭: RunPulse 1차/2차 메트릭 (`computed_metrics`)
-  - Secondary 서브탭: 서비스 1차 메트릭 (Garmin training_effect, Strava suffer_score, Intervals icu_training_load 등)
-  - 지표 hover 툴팁 (의미 + 공식 설명)
-  - 현재 수치 해설 텍스트 (예: "CIRS 78 — 부상 위험 높음, 강도 낮추기 권장")
+- [x] **S5-B1**: 메트릭 재계산 Progress bar (SSE 스트리밍) ✅ 완료 (2026-03-25)
+  - SSE + 폴링 fallback 이미 구현, ETA(예상 남은 시간) 표시 추가
+  - `started_at` 타임스탬프 기반 elapsed/remaining 계산
+- [x] **S5-C1**: 활동 상세 UI — RunPulse/서비스 데이터 분리 표시 ✅ 완료 (2026-03-25)
+  - 서비스 카드 탭 UI (`_render_service_tabs`): Garmin/Strava/Intervals/Runalyze 탭 전환
+  - RunPulse/서비스 원본 탭 (`_render_secondary_metrics_card`) 기존 유지
+  - UTRS/CIRS/ACWR 해설 텍스트 추가 (컨디션 상태별 권장사항)
+  - 메트릭 hover 툴팁 (`_METRIC_META`) 기존 16개 메트릭 커버
 - [ ] **S5-C2**: 대폭 확장된 데이터 반영 UI 전면 재설계 (로드맵으로 이연 — 별도 스프린트)
   - Sprint 5-A~C로 추가된 데이터(날씨/존/running dynamics/running tolerance 등)를 UI에 노출하는 구조 재설계 필요
   - 현재 activity 상세 UI는 v0.1 기준 설계 → 새로운 데이터 계층 구조에 맞게 전면 재검토
