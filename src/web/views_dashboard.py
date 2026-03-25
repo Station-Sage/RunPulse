@@ -7,6 +7,8 @@ from datetime import date, timedelta
 
 from flask import Blueprint, render_template
 
+from src.db_setup import get_needs_resync
+
 from .helpers import db_path
 from .views_dashboard_cards import (
     _CIRS_COLORS,
@@ -165,11 +167,29 @@ def dashboard():
         darp_data = _load_darp_data(conn, today)
         risk_data = _load_risk_pills(conn, today, pmc_data)
         vdot, marathon_shape = _load_fitness_data(conn, today)
+        # 스키마 마이그레이션 후 재동기화 배너
+        needs_resync = False
+        try:
+            needs_resync = get_needs_resync(conn)
+        except Exception:
+            pass
 
     tsb_last = pmc_data[-1]["tsb"] if pmc_data else None
 
+    banner = ""
+    if needs_resync:
+        banner = (
+            "<div class='card' style='background:var(--orange,#ffaa00);color:#000;"
+            "padding:12px 16px;margin-bottom:12px;border-radius:8px;'>"
+            "<strong>DB 스키마가 업데이트되었습니다.</strong> "
+            "새 데이터를 채우려면 <a href='/settings' style='color:#000;"
+            "text-decoration:underline;font-weight:bold'>전체 동기화</a>를 실행하세요."
+            "</div>"
+        )
+
     # CIRS 경고 배너
-    banner = _render_cirs_banner(cirs_val or 0.0) if cirs_val is not None else ""
+    cirs_banner = _render_cirs_banner(cirs_val or 0.0) if cirs_val is not None else ""
+    banner += cirs_banner
 
     # 훈련 권장 카드
     recommendation_card = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)

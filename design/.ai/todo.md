@@ -356,11 +356,15 @@
 
 ### Priority B — 다음 스프린트
 
-- [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)
-  - `src/web/views_activity.py` 1529줄, `src/web/app.py` 1351줄, `src/web/helpers.py` 1033줄
-  - `src/web/views_activities.py` 1024줄, `src/db_setup.py` 1026줄, `src/web/views_settings.py` 857줄
-- [ ] **B-2**: `V2-9-3` graceful fallback 전면 보강 — no-data card 통일, metric 계산 불가 이유 표시
-- [ ] **B-3**: `V2-9-4` Settings hub 고도화 — sync status, 동기화 진행률, token 상태 시각화
+- [x] **B-1**: 파일 크기 리팩토링 (기능 기준 분리) ✅ 부분 완료 (2026-03-25)
+  - [x] helpers.py → helpers_svg.py 분리 (1042→854줄)
+  - [x] views_activity_cards.py → views_activity_source_cards.py 분리 (1102→731줄)
+  - [x] views_activity.py → views_activity_cards.py + views_activity_loaders.py 분리 (1529→185줄)
+  - [x] app.py → views_dev.py 분리 (1351→839줄)
+- [x] **B-2**: `V2-9-3` graceful fallback 전면 보강 ✅ 완료 (2026-03-25)
+  - DB exists() 체크, "데이터 수집 중" 통일, try/except Exception 전면 적용
+- [x] **B-3**: `V2-9-4` Settings hub 고도화 ✅ 완료 (2026-03-25)
+  - last_sync 시각 표시, 사용자 프로필 설정 폼(max_hr/threshold_pace/weekly_km), POST /settings/profile
 
 ---
 
@@ -443,26 +447,27 @@
 
 ---
 
-## Phase 7: AI 코칭 UI (Sprint 5) ✅ 기본 구현 완료 (2026-03-25)
+## Phase 7: AI 코칭 UI (Sprint 5→6) ✅ 구현 완료 (2026-03-25)
 
-- [x] V2-7-1: `src/web/views_ai_coach.py` (204줄) — `/ai-coaching` 라우트
-  - 코치 프로필 카드 + 오늘의 브리핑 카드
-  - UTRS/CIRS/DARP 수치를 브리핑 컨텍스트에 포함
-  - 추천 칩 (FEARP, CIRS, Marathon Shape 기반)
-  - `templates/ai_coaching.html` Jinja2 템플릿
-  - bottom_nav('ai-coach')
-  - 채팅 인터페이스는 v0.3으로 이연
+- [x] V2-7-1: `src/web/views_ai_coach.py` — `/ai-coach` 라우트
+  - 코치 프로필 카드 + 오늘의 브리핑 카드 (UTRS/CIRS/ACWR/LSI/DI/DARP)
+  - 웰니스 컨텍스트 카드 (바디배터리/수면/HRV/안정심박/스트레스)
+  - suggestions.py 연동 규칙 기반 추천 칩 (하드코딩 제거)
+  - 채팅 인터페이스 placeholder (v0.3으로 이연)
 
 ---
 
 ## Phase 8: 훈련 계획 캘린더 UI (Sprint 6)
 
-- [ ] V2-8-1a: `src/web/views_training_plan.py` 스캐폴딩
-  - Blueprint training_bp, /training GET
-  - placeholder 페이지: "훈련 계획 기능이 곧 추가됩니다"
-  - bottom_nav('training') 연결
-- [→] V2-8-1 풀 구현 → v0.3으로 이연 (캘린더 UI, 운동 CRUD, 캘린더 연동)
-- [→] V2-8-2: 기존 `src/training/` 모듈과 연동 → v0.3
+- [x] V2-8-1a: `src/web/views_training.py` 스캐폴딩 ✅ 완료 (2026-03-25)
+- [x] V2-8-1b: `/training` 탭 실제 구현 ✅ 완료 (2026-03-25)
+  - 활성 목표 카드 (goals.get_active_goal, D-day 표시)
+  - 주간 요약 (완료율, 총거리, 훈련일)
+  - 7일 캘린더 뷰 (타입별 색상, 오늘 하이라이트, 완료 표시)
+  - 컨디션 조정 카드 (adjuster.adjust_todays_plan 연동)
+  - POST /training/generate (planner.generate_weekly_plan + save)
+- [→] V2-8-1 풀 구현 → v0.3으로 이연 (운동 CRUD, 캘린더 연동, 편집)
+- [→] V2-8-2: 기존 `src/training/` 모듈과 연동 → 기본 연동 완료, CRUD는 v0.3
 
 ---
 
@@ -470,20 +475,28 @@
 
 - [→] V2-9-1: 전체 뷰 하단 nav 통일 → **Sprint 4-A로 이동 (V2-4A-3/4)**
 - [→] V2-9-2: ECharts CDN 로드 실패 시 fallback → **Sprint 4-A 이후 처리**
-- [ ] V2-9-3: 메트릭 데이터 부재 시 graceful UI ("데이터 수집 중" 카드)
-- [ ] V2-9-4: `views_settings.py` 설정 4섹션 통합 (ui-spec 3-7 기준)
-  - A. 소스 연동 (기존, 마지막 동기화 시간 `last_sync_at` 추가)
-  - B. 동기화 — `/sync-status` 인라인 흡수 (배치 제어 + 진행률 폴링)
-  - C. 데이터 관리 — `/import`(GPX/FIT/TCX/ZIP) + `/import-export`(CSV) 흡수
-  - D. 앱 설정 — AI 모델 select, 기본 레이스 거리 select
-- [ ] V2-9-5: `src/web/views_dev.py` + `/dev` 라우트 (개발자 탭, dev_mode 조건부)
-  - DB 테이블 뷰어, Payload 뷰어, DB 경로 설정, 레거시 분석 링크
-  - `bottom_nav` 에서 `config.get('dev_mode', False)` 플래그로 조건부 노출
+- [x] V2-9-3: 메트릭 데이터 부재 시 graceful UI ("데이터 수집 중" 카드) ✅ 완료 (2026-03-25)
+- [x] V2-9-4: `views_settings.py` 설정 고도화 ✅ 완료 (2026-03-25)
+  - A. 소스 연동 (기존, 마지막 동기화 시간 last_sync 추가)
+  - B. 사용자 프로필 설정 (max_hr, threshold_pace, weekly_km, POST /settings/profile)
+  - [→] C. 데이터 관리 / D. 앱 설정 → v0.3으로 이연
+- [x] V2-9-5: `/dev` 탭 등록 ✅ 완료 (2026-03-25)
+  - html_page dev_mode 자동 감지 (config → default True)
+  - Jinja2 context_processor dev_mode 주입
+  - bottom_nav B패턴→A패턴 통일
 - [ ] V2-9-6: 통합 테스트 (`test_web_dashboard.py`, `test_web_report.py`, `test_web_race.py`)
 - [ ] V2-9-7: `/analyze/*` → 신규 화면 리다이렉트
   - `/analyze/today` → `/dashboard`
   - `/analyze/full` → `/report`
   - `/analyze/race` → `/race`
+- [x] V2-9-10: DB 스키마 마이그레이션 시스템 ✅ 완료 (2026-03-25)
+  - PRAGMA user_version 기반 버전 추적 (SCHEMA_VERSION=1)
+  - ALTER TABLE ADD COLUMN 자동 적용 (기존 DB 컬럼 보강)
+  - schema_meta 테이블 (needs_resync 플래그)
+  - 대시보드 재동기화 배너 + 동기화 완료 시 자동 해제
+- [x] V2-9-11: 테스트 전면 수정 ✅ 완료 (2026-03-25)
+  - 21개 테스트 오류 수정 (15 failed + 6 errors → 792 passed)
+  - fitparse/garth lazy import, fixture 파라미터 수정
 - [ ] V2-9-8: `.ai/changelog.md` 업데이트
 - [ ] V2-9-9: Mapbox 토큰 설정 추가 (`config.json` `mapbox.token` 키, 활동 상세 지도용)
 

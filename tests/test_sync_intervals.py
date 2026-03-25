@@ -37,11 +37,12 @@ class TestSyncActivities:
         assert row[0] == "intervals"
         assert row[1] == "i789"
 
-        metrics = db_conn.execute(
-            "SELECT metric_name FROM activity_detail_metrics ORDER BY metric_name"
-        ).fetchall()
-        names = [m[0] for m in metrics]
-        assert "icu_training_load" in names
+        # icu_training_load는 activity_summaries 컬럼에 직접 저장
+        row = db_conn.execute(
+            "SELECT icu_training_load FROM activity_summaries WHERE source_id='i789'"
+        ).fetchone()
+        assert row is not None
+        assert row[0] == 95
 
     @patch("src.sync.intervals_activity_sync.api.get")
     def test_stores_icu_fields_in_summary(self, mock_get, db_conn, sample_config):

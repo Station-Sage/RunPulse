@@ -113,16 +113,21 @@ def _days_since_last_sync(sources: list[str]) -> int:
 
 
 def _auto_migrate() -> None:
-    """앱 시작 시 기존 DB에 v0.2 신규 테이블 자동 마이그레이션."""
+    """앱 시작 시 기존 DB 스키마를 최신 버전으로 자동 마이그레이션."""
     db = _db_path()
     if not db.exists():
         return
     try:
         from src.db_setup import migrate_db
         with sqlite3.connect(str(db)) as conn:
-            migrate_db(conn)
-    except Exception:
-        pass  # 마이그레이션 실패해도 앱 기동은 계속
+            conn.execute("PRAGMA journal_mode=WAL")
+            migrated = migrate_db(conn)
+            if migrated:
+                import logging
+                logging.getLogger(__name__).info("DB 스키마 마이그레이션 완료, 재동기화 필요")
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("마이그레이션 실패: %s", exc)
 
 
 def create_app() -> Flask:
@@ -135,10 +140,15 @@ def create_app() -> Flask:
 
     @app.context_processor
     def _inject_ui_context():
+        try:
+            _dev = bool(load_config().get("dev_mode", True))
+        except Exception:
+            _dev = True
         return {
             "stylesheet": _CSS,
             "nav_html": _build_nav(),
             "sync_js": _SYNC_JS,
+            "dev_mode": _dev,
         }
 
     app.jinja_env.globals["bottom_nav"] = bottom_nav

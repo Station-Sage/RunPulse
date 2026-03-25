@@ -223,7 +223,7 @@ def wellness_view():
     dpath = db_path()
     if not dpath.exists():
         body = "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
-        return html_page("회복/웰니스", body)
+        return html_page("회복/웰니스", body, active_tab="dashboard")
 
     date_str = request.args.get("date", "").strip() or date.today().isoformat()
 
@@ -234,7 +234,7 @@ def wellness_view():
             steps, weight_kg = _fetch_steps_weight(conn, date_str)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
-        return html_page("회복/웰니스", body)
+        return html_page("회복/웰니스", body, active_tab="dashboard")
 
     date_form = (
         "<div class='card'>"
@@ -247,4 +247,4 @@ def wellness_view():
     )
 
     body = date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg)
-    return html_page(f"회복/웰니스 — {date_str}", body)
+    return html_page(f"회복/웰니스 — {date_str}", body, active_tab="dashboard")

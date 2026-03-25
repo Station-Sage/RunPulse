@@ -75,23 +75,29 @@
 
 | 파일 | 라우트 | 줄수 |
 |------|--------|------|
-| `app.py` | Flask 앱 팩토리 + 12 블루프린트 | 1351 ⚠️ |
+| `app.py` | Flask 앱 팩토리 + 블루프린트 | 839 ⚠️ |
 | `bg_sync.py` | 백그라운드 sync 스레드 | — |
 | `sync_ui.py` | SSE 병렬 동기화 프로그레스 | — |
-| `helpers.py` | SVG/ECharts/nav/다크테마 | 1033 ⚠️ |
+| `helpers.py` | ECharts/nav/다크테마 (SVG는 helpers_svg.py로 분리) | 854 ⚠️ |
+| `helpers_svg.py` | SVG 게이지·레이더 차트 헬퍼 (신규) | 177 |
 | `views_dashboard.py` | GET /dashboard | 222 |
 | `views_dashboard_cards.py` | 대시보드 하위 카드 | — |
 | `views_activities.py` | GET /activities | 1024 ⚠️ |
-| `views_activity.py` | GET /activity/deep | 1529 ⚠️ |
+| `views_activity.py` | GET /activity/deep (분리 후) | 185 |
+| `views_activity_cards.py` | 활동 상세 카드 (re-export 포함) | 731 ⚠️ |
+| `views_activity_source_cards.py` | 소스별 카드 (garmin/strava/intervals/runalyze) (신규) | 384 |
+| `views_activity_loaders.py` | 활동 데이터 로더 (신규) | — |
 | `views_activity_merge.py` | 활동 그룹 관리 | — |
 | `views_report.py` | GET /report | — |
 | `views_report_sections.py` | 레포트 하위 섹션 | 358 ⚠️ |
 | `views_race.py` | GET /race | 225 |
-| `views_ai_coach.py` | GET /ai-coaching | 204 |
+| `views_ai_coach.py` | GET /ai-coach (브리핑+칩+웰니스) | 254 |
 | `views_wellness.py` | GET /wellness | 250 |
 | `views_import.py` | GET/POST /import/strava-archive | — |
-| `views_settings.py` | GET /settings | 857 ⚠️ |
-| `views_export_import.py` | CSV 임포트/내보내기 | — |
+| `views_settings.py` | GET /settings + POST /settings/profile | 941 ⚠️ |
+| `views_training.py` | GET /training + POST /training/generate | 299 |
+| `views_dev.py` | GET /dev (개발자 탭, dev_mode 조건부) | — |
+| `views_export_import.py` | CSV 임포트/내보내기 (lazy import) | 233 |
 | `views_shoes.py` | /shoes | — |
 
 ## ✅ src/services/
@@ -152,17 +158,26 @@
 
 ---
 
-## ⚠️ 300줄 초과 파일 (B-1 리팩토링 대상)
+## ⚠️ 300줄 초과 파일 (잔여)
 
-| 파일 | 줄수 | 분리 방안 |
-|------|------|-----------|
-| `views_activity.py` | 1529 | → views_activity.py + views_activity_sources.py + views_activity_metrics.py |
-| `app.py` | 1351 | → app.py(create_app) + app_routes.py + app_helpers.py |
-| `helpers.py` | 1033 | → helpers.py + helpers_svg.py + helpers_nav.py |
-| `views_activities.py` | 1024 | → views_activities.py + views_activities_filters.py |
-| `db_setup.py` | 1026 | → db_setup.py + db_migrate.py |
-| `views_settings.py` | 857 | → views_settings.py + views_settings_garmin.py + views_settings_strava.py |
-| `report.py` (analysis) | 719 | 검토 필요 |
+| 파일 | 줄수 | 비고 |
+|------|------|------|
+| `app.py` | 839 | 블루프린트 등록 + 팩토리 — 기능 분리 완료 |
+| `helpers.py` | 854 | ECharts/nav 공통 — SVG 분리 완료 |
+| `views_activity_cards.py` | 731 | 활동 상세 카드 — 소스 카드 분리 완료 |
+| `views_settings.py` | 941 | 설정 허브 고도화로 증가 — v0.3 이후 검토 |
+| `views_activities.py` | 1024 | 필터링/정렬 복잡도 — v0.3 이후 검토 |
+| `views_report_sections.py` | 358 | 섹션별 분리 가능하나 현재 허용 |
+| `db_setup.py` | 742 | 마이그레이션 시스템 추가 (PRAGMA user_version + ALTER TABLE) |
+
+## ✅ B-1 리팩토링 완료 (2026-03-25)
+
+| 분리 전 | 분리 후 | 줄수 변화 |
+|---------|---------|---------|
+| `views_activity.py` 1529줄 | views_activity.py + views_activity_cards.py + views_activity_loaders.py | 185줄 |
+| `helpers.py` 1042줄 | helpers.py + helpers_svg.py | 854 + 177 |
+| `views_activity_cards.py` 1102줄 | views_activity_cards.py + views_activity_source_cards.py | 731 + 384 |
+| `app.py` 1351줄 | app.py + views_dev.py | 839줄 |
 
 ---
 
@@ -170,8 +185,7 @@
 
 | 파일 | 역할 | 스프린트 |
 |------|------|---------|
-| `views_training_plan.py` | GET /training (스캐폴딩) | V2-8-1a |
-| `views_dev.py` | GET /dev (개발자 탭, 조건부) | V2-9-5 |
+| V2-9-5 `/dev` 탭 등록 | bottom_nav dev_mode 조건부 표시 | Sprint 6 |
 
 ---
 

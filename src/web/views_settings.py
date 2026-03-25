@@ -25,7 +25,7 @@ from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config, save_config
-from .helpers import db_path, metric_row, score_badge
+from .helpers import db_path, metric_row, score_badge, last_sync_info
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -76,34 +76,88 @@ def _service_card(
     connect_url: str,
     disconnect_url: str | None = None,
     extra_html: str = "",
+    last_sync: str | None = None,
 ) -> str:
     """서비스 연동 상태 카드 HTML."""
     badge = _status_badge(status["ok"], status["status"])
     detail = _html.escape(status.get("detail", ""))
     connect_label = "재연동" if status["ok"] else "연동하기"
     disconnect_btn = ""
-    if disconnect_url and status["ok"]:  # 연결됨 상태일 때만 해제 버튼 표시
+    if disconnect_url and status["ok"]:
         disconnect_btn = (
             f"<form method='post' action='{disconnect_url}' style='display:inline'>"
             f"<button type='submit' style='margin-left:0.5rem; background:#fdd; border:1px solid #c00; border-radius:4px; padding:0.2rem 0.6rem; cursor:pointer;'>연동 해제</button>"
             f"</form>"
         )
+    sync_html = (
+        f"<p class='muted' style='font-size:0.8rem;margin:0.3rem 0 0;'>"
+        f"마지막 동기화: {_html.escape(last_sync)}</p>"
+        if last_sync else
+        "<p class='muted' style='font-size:0.8rem;margin:0.3rem 0 0;'>동기화 기록 없음</p>"
+    )
     return f"""
 <div class='card'>
   <h2>{_html.escape(icon)} {_html.escape(name)}</h2>
   <p>{badge} <small class='muted'>{detail}</small></p>
-  <a href='{connect_url}'>
-    <button style='padding:0.4rem 1rem; cursor:pointer;'>{connect_label}</button>
-  </a>
-  {disconnect_btn}
+  {sync_html}
+  <div style='margin-top:0.6rem;'>
+    <a href='{connect_url}'>
+      <button style='padding:0.4rem 1rem; cursor:pointer;'>{connect_label}</button>
+    </a>
+    {disconnect_btn}
+  </div>
   {extra_html}
+</div>"""
+
+
+def _render_user_profile_section(config: dict) -> str:
+    """사용자 프로필 설정 섹션 (max_hr, threshold_pace, weekly_target)."""
+    u = config.get("user", {})
+    max_hr = u.get("max_hr", 190)
+    thr_pace = u.get("threshold_pace", 300)
+    weekly_km = u.get("weekly_distance_target", 40.0)
+    # threshold_pace: sec/km → mm:ss 표시
+    thr_mm = int(thr_pace) // 60
+    thr_ss = int(thr_pace) % 60
+    return f"""
+<div class='card'>
+  <h2 style='margin-bottom:0.8rem;'>사용자 프로필</h2>
+  <form method='post' action='/settings/profile'
+        style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem 1.5rem;'>
+    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
+      최대 심박수 (bpm)
+      <input type='number' name='max_hr' value='{max_hr}' min='120' max='230'
+             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
+      주간 목표 거리 (km)
+      <input type='number' name='weekly_km' value='{weekly_km}' min='1' max='300' step='0.5'
+             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
+      역치 페이스 (분)
+      <input type='number' name='threshold_pace_min' value='{thr_mm}' min='2' max='10'
+             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
+      역치 페이스 (초)
+      <input type='number' name='threshold_pace_sec' value='{thr_ss}' min='0' max='59'
+             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <div style='grid-column:1/-1;'>
+      <button type='submit'
+              style='padding:0.45rem 1.4rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+        저장
+      </button>
+    </div>
+  </form>
 </div>"""
 
 
 # ── /settings — 전체 연동 상태 페이지 ──────────────────────────────
 @settings_bp.get("/settings")
 def settings_view() -> str:
-    """4개 서비스 연동 상태 개요 페이지."""
+    """서비스 연동 + 사용자 프로필 설정 허브."""
     config = load_config()
 
     garmin_status = check_garmin_connection(config)
@@ -112,27 +166,33 @@ def settings_view() -> str:
     runalyze_status = check_runalyze_connection(config)
 
     tokenstore = _tokenstore_path(config)
+    garmin_extra = f"<p class='muted' style='font-size:0.82rem;margin-top:0.3rem;'>토큰: <code>{_html.escape(str(tokenstore))}</code></p>"
 
-    garmin_extra = f"<p class='muted' style='font-size:0.85rem;'>토큰 저장소: <code>{_html.escape(str(tokenstore))}</code></p>"
+    sync = last_sync_info(["garmin", "strava", "intervals", "runalyze"])
 
     msg = _html.escape(request.args.get("msg", ""))
     msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
 
     body = f"""
 {msg_html}
-<p>각 서비스의 연동 상태를 확인하고 설정하세요.</p>
+<h2 style='margin:0.5rem 0 0.8rem;font-size:1rem;color:var(--muted);'>데이터 소스 연동</h2>
 <div class='cards-row'>
   {_service_card("Garmin Connect", "⌚", garmin_status,
-                 "/connect/garmin", "/connect/garmin/disconnect", garmin_extra)}
+                 "/connect/garmin", "/connect/garmin/disconnect", garmin_extra,
+                 last_sync=sync.get("garmin"))}
   {_service_card("Strava", "🏃", strava_status,
-                 "/connect/strava", "/connect/strava/disconnect")}
+                 "/connect/strava", "/connect/strava/disconnect",
+                 last_sync=sync.get("strava"))}
 </div>
 <div class='cards-row'>
   {_service_card("Intervals.icu", "📊", intervals_status,
-                 "/connect/intervals", "/connect/intervals/disconnect")}
+                 "/connect/intervals", "/connect/intervals/disconnect",
+                 last_sync=sync.get("intervals"))}
   {_service_card("Runalyze", "📈", runalyze_status,
-                 "/connect/runalyze", "/connect/runalyze/disconnect")}
+                 "/connect/runalyze", "/connect/runalyze/disconnect",
+                 last_sync=sync.get("runalyze"))}
 </div>
+{_render_user_profile_section(config)}
 <hr>
 <div class='card'>
   <h2>Strava 아카이브 임포트</h2>
@@ -328,8 +388,12 @@ def garmin_connect_post():
     """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트, MFA 2단계 지원)."""
     import threading
     import time as _time
-    import garth as _garth
-    from garth import sso as _sso
+    try:
+        import garth as _garth
+        from garth import sso as _sso
+    except ImportError:
+        _garth = None  # type: ignore[assignment]
+        _sso = None  # type: ignore[assignment]
 
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "").strip()
@@ -348,6 +412,10 @@ def garmin_connect_post():
         return redirect("/connect/garmin?msg=" + urllib.parse.quote("저장 완료. 다음 sync 시 자동 로그인됩니다."))
 
     # ── save_and_test: garth sso로 로그인 시도 ──
+    if _garth is None or _sso is None:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "garth 라이브러리가 설치되지 않았습니다. pip install garth"))
+
     config = load_config()
     _pw = password or config.get("garmin", {}).get("password", "")
     if not _pw:
@@ -436,8 +504,12 @@ def garmin_mfa_view():
 @settings_bp.post("/connect/garmin/mfa")
 def garmin_mfa_submit():
     """Garmin MFA 코드 제출 → 로그인 완료."""
-    from garth import sso as _sso
-    import garth as _garth
+    try:
+        from garth import sso as _sso
+        import garth as _garth
+    except ImportError:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "garth 라이브러리가 설치되지 않았습니다."))
 
     key = request.form.get("key", "")
     mfa_code = request.form.get("mfa_code", "").strip()
@@ -855,3 +927,25 @@ def metrics_recompute_status():
     from flask import jsonify
     with _recompute_lock:
         return jsonify(dict(_recompute_state))
+
+
+# ── 사용자 프로필 저장 ────────────────────────────────────────────────
+@settings_bp.post("/settings/profile")
+def settings_profile_post():
+    """사용자 프로필 설정(max_hr, threshold_pace, weekly_km) 저장."""
+    try:
+        max_hr = int(request.form.get("max_hr", 190))
+        weekly_km = float(request.form.get("weekly_km", 40.0))
+        thr_min = int(request.form.get("threshold_pace_min", 5))
+        thr_sec = int(request.form.get("threshold_pace_sec", 0))
+        threshold_pace = thr_min * 60 + thr_sec
+    except (ValueError, TypeError):
+        return redirect("/settings?msg=입력값이 올바르지 않습니다")
+
+    config = load_config()
+    config.setdefault("user", {})
+    config["user"]["max_hr"] = max_hr
+    config["user"]["weekly_distance_target"] = weekly_km
+    config["user"]["threshold_pace"] = threshold_pace
+    save_config(config)
+    return redirect("/settings?msg=프로필이 저장되었습니다")
