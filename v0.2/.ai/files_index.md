@@ -209,4 +209,4 @@
 | `app-UI/ai_coaching.html` | AI 코칭 프로토타입 |
 | `app-UI/training_plan.html` | 훈련 계획 프로토타입 |
 
-> 주의: 프로토타입은 `design/app-UI/`가 아니라 루트 `app-UI/`에 위치
+> 주의: 프로토타입은 `v0.2/app-UI/`에 위치 (gitignore 대상, .ai/*.md만 추적)

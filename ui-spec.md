@@ -1,6 +1,6 @@
 # RunPulse UI 설계 명세서 (v0.2)
 
-> **기준**: `design/app-UI/*.html` 프로토타입 기반
+> **기준**: `v0.2/app-UI/*.html` 프로토타입 기반
 > **목적**: Jinja2 템플릿 구현 시 참조하는 단일 진실 소스
 > **구현 방식**: Flask `render_template()` + Jinja2 템플릿
 
@@ -170,7 +170,7 @@ font-family: 'Noto Sans KR', 'Inter', -apple-system, sans-serif;
 
 **파일**: `templates/dashboard.html`
 **뷰**: `src/web/views_dashboard.py`
-**소스 파일**: `design/app-UI/dashboard.html`
+**소스 파일**: `v0.2/app-UI/dashboard.html`
 
 #### 섹션 구성 (위→아래)
 
@@ -367,7 +367,7 @@ bottom_nav('dashboard')  {# 웰니스는 홈 탭 하위 #}
 
 **파일**: `templates/report.html`
 **뷰**: `src/web/views_report.py`
-**소스 파일**: `design/app-UI/analysis_report.html`
+**소스 파일**: `v0.2/app-UI/analysis_report.html`
 
 #### 섹션 구성
 
@@ -436,7 +436,7 @@ bottom_nav('report')
 ### 3-3. 활동 상세 (`/activity/deep/<id>`)
 
 **파일**: 기존 `views_activity.py` 확장 (현재 inline HTML → Jinja2 미전환)
-**소스 파일**: `design/app-UI/activity_detail.html`
+**소스 파일**: `v0.2/app-UI/activity_detail.html`
 **Sprint**: Sprint 4 (현재 Sprint 3에서는 스킵)
 
 > Sprint 3에서는 기존 views_activity.py 그대로 유지.
@@ -485,7 +485,7 @@ bottom_nav('report')
 
 **파일**: `templates/race.html`
 **뷰**: `src/web/views_race.py`
-**소스 파일**: `design/app-UI/race_prediction.html`
+**소스 파일**: `v0.2/app-UI/race_prediction.html`
 
 #### 섹션 구성
 
@@ -544,7 +544,7 @@ bottom_nav('report')  {# 레이스 예측은 레포트 탭 하위 화면 #}
 
 **파일**: `templates/ai_coach.html`
 **뷰**: `src/web/views_ai_coach.py` (기존 AI 뷰 확장 또는 신규)
-**소스 파일**: `design/app-UI/ai_coaching.html`
+**소스 파일**: `v0.2/app-UI/ai_coaching.html`
 
 #### 섹션 구성
 
@@ -594,7 +594,7 @@ Header: "AI 코칭"
 
 **파일**: `templates/training_plan.html`
 **뷰**: `src/web/views_training_plan.py`
-**소스 파일**: `design/app-UI/training_plan.html`
+**소스 파일**: `v0.2/app-UI/training_plan.html`
 
 #### 섹션 구성
 
@@ -659,7 +659,7 @@ bottom_nav('training')
 
 **파일**: `templates/settings.html`
 **뷰**: `src/web/views_settings.py` (기존 확장)
-**소스 파일**: `design/app-UI/settings_sync.html`
+**소스 파일**: `v0.2/app-UI/settings_sync.html`
 
 #### 섹션 구성
 

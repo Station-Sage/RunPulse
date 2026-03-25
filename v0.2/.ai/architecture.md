@@ -312,5 +312,5 @@ card: background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: 
 2. **DI**: 90분+ 세션 8주 3회 미달 → `None` 반환 → "장거리 세션 부족 (8주 3회 이상 필요)" 표시
 3. **FEARP**: GPS 고도 없으면 `grade_factor=1.0`; 날씨 API 실패 시 `temp=15, humidity=50`
 4. **CIRS**: Garmin GCT 비대칭 데이터 없으면 `asym_risk=0`, 나머지 3요소만으로 정규화 계산
-5. **메트릭 계산식**: `design/.ai/metrics.md` (PDF 원본) 기준 구현. 차이 시 PDF 우선
+5. **메트릭 계산식**: `v0.2/.ai/metrics.md` (PDF 원본) 기준 구현. 차이 시 PDF 우선
 6. **두 버전 설계**: 구현은 PDF 버전으로, `metrics_by_claude.md`는 추후 비교/선택용 보존

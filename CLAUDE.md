@@ -1,18 +1,18 @@
 # CLAUDE.md - RunPulse
 
 ## 필수 읽기 (세션 시작 시 반드시)
-1. `design/.ai/index.md` — 전체 네비게이션, 현재 진행 상태 (여기서 시작)
-2. `design/.ai/todo.md` — v0.2 작업 목록, Phase별 체크리스트
-3. `design/.ai/architecture.md` — v0.1 기존 코드 구조 + v0.2 추가 모듈 전체 맵
+1. `v0.2/.ai/todo.md` — **상단 "현재 미완료 작업" 섹션만** 읽을 것 (약 50줄)
+2. `v0.2/.ai/architecture.md` — 코드 구조 + 모듈 맵 (새 모듈 작성 시)
 
 필요 시 참조:
-- `design/.ai/metrics.md` — 2차 메트릭 계산식 (PDF 원본 확정)
-- `design/.ai/metrics_by_claude.md` — 2차 메트릭 계산식 (Claude 연구 버전, 비교용)
-- `design/.ai/decisions.md` — v0.2 설계 결정 기록 (D-V2-01~)
-- `design/.ai/roadmap.md` — 스프린트 단계, 의존 관계
-- `design/.ai/files_index.md` — 신규/수정/참고 파일 전체 목록
+- `v0.2/.ai/metrics.md` — 2차 메트릭 계산식 (PDF 원본 확정)
+- `v0.2/.ai/metrics_by_claude.md` — 2차 메트릭 계산식 (Claude 연구 버전, 비교용)
+- `v0.2/.ai/decisions.md` — v0.2 설계 결정 기록 (D-V2-01~)
+- `v0.2/.ai/roadmap.md` — 버전별 고수준 목표, 의존 관계
+- `v0.2/.ai/files_index.md` — 신규/수정/참고 파일 전체 목록
+- `v0.2/.ai/index.md` — v0.2 상세 네비게이션 (파일 목록, 생성 파일 맵)
 
-v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~D18)
+v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/decisions.md` (D1~D18)
 
 ---
 
@@ -42,7 +42,7 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
 - 활동 상세: 서비스 탭 UI (Garmin/Strava/Intervals/Runalyze 분리) + 메트릭 해설
 - Mapbox 지도 (GPS 경로 표시)
 - 테스트: 829개 통과
-- 자세한 내용: `design/.ai/index.md`
+- 자세한 내용: `v0.2/.ai/index.md`
 
 ### v0.3 (계획)
 - 6.4~6.8 UI 보완 + S5-C2 UI 전면 재설계
@@ -103,6 +103,15 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
 10. AI 응답 파싱 실패 시 항상 graceful fallback (규칙 기반 등)
 11. v0.2 새 기능: 메트릭 데이터 없을 때 에러 대신 "데이터 수집 중" graceful UI
 12. 하단 네비게이션 6+1탭 유지: 홈 | 활동 | 레포트 | 훈련 | AI코치 | 설정 (+개발자)
+
+---
+
+## 폴더 구조
+```
+v0.1/.ai/     — v0.1 히스토리 (완료된 작업 기록, 참고용)
+v0.2/.ai/     — v0.2 작업 문서 (todo, roadmap, architecture, metrics 등)
+v0.2/         — v0.2 설계 참고 자료 (PDF, HTML 목업, gitignore 대상)
+```
 
 ---
 
