@@ -116,6 +116,9 @@ src/
 │   ├── views_report.py      ← GET /report (기간별 분석)
 │   ├── views_report_sections.py ← 레포트 하위 섹션 렌더러
 │   ├── views_race.py        ← GET /race (DARP 레이스 예측)
+│   ├── views_training.py    ← GET /training 메인 라우트 (3-tier: loaders → cards → 조립)
+│   ├── views_training_cards.py  ← 훈련 카드 렌더러 S1~S7 (7열 캘린더, AI 추천)
+│   ├── views_training_loaders.py ← 훈련 DB 로더 (goal, workouts, metrics, sync)
 │   ├── views_ai_coach.py    ← GET /ai-coaching (브리핑+추천칩)
 │   ├── views_wellness.py    ← GET /wellness (수면/HRV/BB 트렌드)
 │   ├── views_import.py      ← GET/POST /import/strava-archive

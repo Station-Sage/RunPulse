@@ -120,7 +120,9 @@
 | `views_import.py` | GET/POST /import/strava-archive | — |
 | `views_settings.py` | GET /settings | 941 ⚠️ |
 | `views_settings_hub.py` | sync 상태/시스템 정보 카드 | — |
-| `views_training.py` | GET /training | 299 |
+| `views_training.py` | GET /training 메인 라우트 + 조립 | 100 |
+| `views_training_cards.py` | 훈련 카드 렌더러 S1~S7 (신규) | 300 |
+| `views_training_loaders.py` | 훈련 데이터 로더 5개 (신규) | 100 |
 | `views_dev.py` | GET /dev (dev_mode 조건부) | — |
 | `views_export_import.py` | CSV 임포트/내보내기 | 233 |
 | `views_shoes.py` | /shoes | — |
