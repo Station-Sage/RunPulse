@@ -196,17 +196,8 @@ def sync_card_html(
 
   <!-- 백그라운드 동기화 진행 섹션 -->
   <div id="bg-progress-section" style="display:none; margin-top:0.8rem; border-top:1px solid var(--card-border); padding-top:0.8rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-      <span id="bg-progress-title" style="font-weight:600; font-size:0.9rem;"></span>
-      <span id="bg-progress-pct" style="font-size:0.85rem; color:var(--muted);"></span>
-    </div>
-    <!-- 진행 바 -->
-    <div style="background:var(--row-border); border-radius:4px; height:10px; overflow:hidden; margin-bottom:0.5rem;">
-      <div id="bg-progress-bar" style="height:100%; background:#0066cc; border-radius:4px; width:0%; transition:width 0.4s;"></div>
-    </div>
-    <p id="bg-progress-detail" style="margin:0.25rem 0; font-size:0.82rem; color:var(--muted);"></p>
-    <p id="bg-rate-info" style="margin:0.25rem 0; font-size:0.8rem; color:var(--muted);"></p>
-    <p id="bg-error-info" style="margin:0.25rem 0; font-size:0.8rem; color:#c0392b; display:none;"></p>
+    <!-- 서비스별 진행 행 (JS가 동적으로 채움) -->
+    <div id="bg-jobs-container" style="margin-bottom:0.5rem;"></div>
     <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
       <button id="bg-btn-pause" onclick="bgSyncPause()"
         style="padding:0.3rem 0.8rem; border-radius:4px; border:1px solid #ccc;

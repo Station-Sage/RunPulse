@@ -5,13 +5,12 @@ from __future__ import annotations
 import html
 import sqlite3
 import sys
-from collections import Counter
+import time
 from pathlib import Path
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, session
 
-from src.analysis import generate_report
-from src.utils.config import load_config, redact_config_for_display
+from src.utils.config import load_config
 from src.sync.garmin import check_garmin_connection
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
@@ -26,17 +25,58 @@ from .views_activity_merge import merge_bp
 from .views_export_import import export_import_bp
 from .views_shoes import shoes_bp
 
+# Phase 3 (v0.2) Blueprint imports
+from .views_dashboard import dashboard_bp
+from .views_report import report_bp
+from .views_import import import_bp
+from .views_race import race_bp
+from .views_ai_coach import ai_coach_bp
+from .views_dev import dev_bp, _table, _scan_history_dir
+from .views_training import training_bp
+# ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
+_HOME_CACHE_TTL = 60
+# db_path 문자열 → {"ts": float, "data": dict} 맵
+_home_cache: dict[str, dict] = {}
+
+
+def _get_home_data(db_path: Path) -> dict:
+    """TTL 캐시로 홈 화면 분석 데이터 반환. 캐시 유효 시 재계산 생략.
+
+    db_path별로 독립 캐시 항목을 유지하므로 다른 DB 간 오염 없음.
+    """
+    cache_key = str(db_path)
+    now = time.monotonic()
+    entry = _home_cache.get(cache_key)
+    if entry and now - entry["ts"] < _HOME_CACHE_TTL:
+        return entry["data"]
+
+    from src.analysis.recovery import get_recovery_status
+    from src.analysis.weekly_score import calculate_weekly_score
+    from src.services.unified_activities import fetch_unified_activities
+    from datetime import date as _date
+
+    today = _date.today().isoformat()
+    with sqlite3.connect(str(db_path)) as conn:
+        recovery = get_recovery_status(conn, today)
+        try:
+            weekly = calculate_weekly_score(conn)
+        except Exception:
+            weekly = None
+        recent_unified, _, _ = fetch_unified_activities(conn, page=1, page_size=5)
+
+    data = {"recovery": recovery, "weekly": weekly, "recent_rows": recent_unified}
+    _home_cache[cache_key] = {"ts": now, "data": data}
+    return data
+
 
 def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
 def _db_path() -> Path:
-    config = load_config()
-    db_value = config.get("database", {}).get("path")
-    if db_value:
-        return Path(db_value).expanduser()
-    return _project_root() / "running.db"
+    """helpers.db_path() 위임 — 사용자별 DB 경로 반환."""
+    from .helpers import db_path as _dbp
+    return _dbp()
 
 
 def _html_page(title: str, body: str) -> str:
@@ -72,123 +112,74 @@ def _days_since_last_sync(sources: list[str]) -> int:
         return 7
 
 
-def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:
-    return conn.execute(sql).fetchall()
-
-
-def _query_value(conn: sqlite3.Connection, sql: str) -> int:
-    row = conn.execute(sql).fetchone()
-    return int(row[0]) if row and row[0] is not None else 0
-
-
-def _table(headers: list[str], rows: list[tuple]) -> str:
-    if not rows:
-        return "<p class='muted'>(no rows)</p>"
-    head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
-    body_rows = []
-    for row in rows:
-        cols = "".join(f"<td>{html.escape(str(v))}</td>" for v in row)
-        body_rows.append(f"<tr>{cols}</tr>")
-    body = "".join(body_rows)
-    return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
-
-
-def _payload_recent_table(rows: list[tuple]) -> str:
-    if not rows:
-        return "<p class='muted'>(no rows)</p>"
-
-    headers = ["id", "source", "entity_type", "entity_id", "activity_id", "payload_len", "updated_at", "view"]
-    head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
-
-    body_rows = []
-    for row in rows:
-        payload_id, source, entity_type, entity_id, activity_id, payload_len, updated_at = row
-        view_html = f"<a href='/payloads/view?id={payload_id}'>open</a>"
-        cols = "".join(
-            [
-                f"<td>{html.escape(str(payload_id))}</td>",
-                f"<td>{html.escape(str(source))}</td>",
-                f"<td>{html.escape(str(entity_type))}</td>",
-                f"<td>{html.escape(str(entity_id))}</td>",
-                f"<td>{html.escape(str(activity_id))}</td>",
-                f"<td>{html.escape(str(payload_len))}</td>",
-                f"<td>{html.escape(str(updated_at))}</td>",
-                f"<td>{view_html}</td>",
-            ]
-        )
-        body_rows.append(f"<tr>{cols}</tr>")
-
-    body = "".join(body_rows)
-    return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
-
-
-def _bool_text(value: bool) -> str:
-    return "yes" if value else "no"
-
-
-def _to_int(value, default: int) -> int:
+def _auto_migrate() -> None:
+    """앱 시작 시 기존 DB에 v0.2 신규 테이블 자동 마이그레이션."""
+    db = _db_path()
+    if not db.exists():
+        return
     try:
-        return int(value)
+        from src.db_setup import migrate_db
+        with sqlite3.connect(str(db)) as conn:
+            migrate_db(conn)
     except Exception:
-        return default
-
-
-def _json_pretty_block(value) -> str:
-    import json
-
-    try:
-        if isinstance(value, str):
-            parsed = json.loads(value)
-        else:
-            parsed = value
-        pretty = json.dumps(parsed, ensure_ascii=False, indent=2, sort_keys=True)
-    except Exception:
-        pretty = str(value)
-    return f"<pre>{html.escape(pretty)}</pre>"
-
-
-def _scan_history_dir(base_dir: Path) -> dict:
-    _SUPPORTED = {".fit", ".gpx", ".tcx", ".fit.gz", ".gpx.gz", ".tcx.gz"}
-    if not base_dir.exists():
-        return {
-            "exists": False,
-            "base_dir": str(base_dir),
-            "total_files": 0,
-            "by_ext": [],
-            "sample_files": [],
-        }
-
-    files = [
-        p for p in base_dir.rglob("*")
-        if p.is_file() and any(
-            "".join(p.suffixes).lower().endswith(ext) for ext in _SUPPORTED
-        )
-    ]
-    # 복합 확장자(.fit.gz) 포함 집계
-    def _ext(p: Path) -> str:
-        s = "".join(p.suffixes).lower()
-        for ext in (".fit.gz", ".gpx.gz", ".tcx.gz"):
-            if s.endswith(ext):
-                return ext
-        return p.suffix.lower()
-
-    counts = Counter(_ext(p) for p in files)
-    samples = [str(p.relative_to(_project_root())) for p in sorted(files)[:20]]
-
-    return {
-        "exists": True,
-        "base_dir": str(base_dir),
-        "total_files": len(files),
-        "by_ext": sorted(counts.items()),
-        "sample_files": samples,
-    }
+        pass  # 마이그레이션 실패해도 앱 기동은 계속
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder=str(_project_root() / "templates"))
+    app.secret_key = "runpulse-local-dev"  # 로컬 전용, 상업용 아님
+    _auto_migrate()
+
+    # ── Jinja2 설정 ──────────────────────────────────────────────────────────
+    from .helpers import _CSS, _SYNC_JS, _build_nav, bottom_nav
+
+    @app.context_processor
+    def _inject_ui_context():
+        return {
+            "stylesheet": _CSS,
+            "nav_html": _build_nav(),
+            "sync_js": _SYNC_JS,
+        }
+
+    app.jinja_env.globals["bottom_nav"] = bottom_nav
+
+    # ── 사용자 전환 ──────────────────────────────────────────────────────
+    @app.route("/switch-user", methods=["GET", "POST"])
+    def switch_user():
+        if request.method == "POST":
+            uid = request.form.get("user_id", "").strip() or "default"
+            session["user_id"] = uid
+            # 새 사용자 DB 초기화
+            from src.db_setup import init_db
+            init_db(uid)
+            return redirect("/")
+        # GET: 사용자 목록
+        users_dir = _project_root() / "data" / "users"
+        users = sorted(d.name for d in users_dir.iterdir() if d.is_dir()) if users_dir.exists() else ["default"]
+        current = session.get("user_id", "default")
+        options = "".join(
+            f'<option value="{u}" {"selected" if u == current else ""}>{u}</option>'
+            for u in users
+        )
+        body = (
+            '<div class="card"><h2>사용자 전환</h2>'
+            '<form method="post" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">'
+            f'<select name="user_id" style="padding:8px;border-radius:8px">{options}</select>'
+            '<span>또는 새 사용자:</span>'
+            '<input name="user_id" placeholder="새 이름" style="padding:8px;border-radius:8px;width:120px">'
+            '<button type="submit">전환</button>'
+            '</form></div>'
+        )
+        from .helpers import html_page
+        return html_page("사용자 전환", body)
+
 
     @app.get("/")
     def index():
+        return redirect("/dashboard")
+
+    @app.get("/home-legacy")
+    def index_legacy():
         db_path = _db_path()
 
         if not db_path.exists():
@@ -206,31 +197,16 @@ def create_app() -> Flask:
             """
             return _html_page("RunPulse 대시보드", body)
 
-        # ── 대시보드 데이터 수집 ────────────────────────────────────────
+        # ── 대시보드 데이터 수집 (TTL 캐시 60초) ───────────────────────
         recovery_card_html = ""
         weekly_card_html = ""
         recent_acts_html = ""
 
         try:
-            from src.analysis.recovery import get_recovery_status
-            from src.analysis.weekly_score import calculate_weekly_score
-
-            with sqlite3.connect(str(db_path)) as conn:
-                # 회복 상태 (오늘)
-                from datetime import date as _date
-                today = _date.today().isoformat()
-                recovery = get_recovery_status(conn, today)
-
-                # 주간 점수
-                try:
-                    weekly = calculate_weekly_score(conn)
-                except Exception:
-                    weekly = None
-
-                # 최근 활동 5개 (통합 그룹 기준)
-                from src.services.unified_activities import fetch_unified_activities
-                recent_unified, _, _ = fetch_unified_activities(conn, page=1, page_size=5)
-                recent_rows = recent_unified  # UnifiedActivity 리스트
+            home_data = _get_home_data(db_path)
+            recovery = home_data["recovery"]
+            weekly = home_data["weekly"]
+            recent_rows = home_data["recent_rows"]
 
         except Exception as exc:
             body = (
@@ -367,75 +343,6 @@ def create_app() -> Flask:
         <p class="muted">DB: {html.escape(str(db_path))}</p>
         """
         return _html_page("RunPulse 대시보드", body)
-
-    @app.get("/config")
-    def config_summary():
-        """설정 현황 + 각 서비스별 직접 수정 링크 제공."""
-        import json as _json
-        config = load_config()
-        db_path = _db_path()
-        redacted = redact_config_for_display(config)
-
-        garmin_status = check_garmin_connection(config)
-        strava_status = check_strava_connection(config)
-        intervals_status = check_intervals_connection(config)
-        runalyze_status = check_runalyze_connection(config)
-
-        def _svc_card(name: str, href: str, status: dict) -> str:
-            ok = status["ok"]
-            badge_cls = "grade-good" if ok else "grade-poor"
-            badge_txt = html.escape(status["status"])
-            detail = html.escape(status.get("detail", ""))
-            icon = "✅" if ok else "❌"
-            return (
-                f"<div class='card' style='flex:1; min-width:200px; margin:0;'>"
-                f"<h2 style='margin-bottom:0.3rem;'>{icon} {html.escape(name)}</h2>"
-                f"<p><span class='score-badge {badge_cls}' style='font-size:0.85rem;'>{badge_txt}</span></p>"
-                f"<p class='muted' style='font-size:0.82rem;'>{detail}</p>"
-                f"<a href='{href}'><button style='padding:0.3rem 0.8rem; cursor:pointer;'>설정 변경</button></a>"
-                f"</div>"
-            )
-
-        svc_cards = (
-            "<div class='cards-row'>"
-            + _svc_card("Garmin Connect", "/connect/garmin", garmin_status)
-            + _svc_card("Strava", "/connect/strava", strava_status)
-            + _svc_card("Intervals.icu", "/connect/intervals", intervals_status)
-            + _svc_card("Runalyze", "/connect/runalyze", runalyze_status)
-            + "</div>"
-        )
-
-        # DB 경로 수정 폼
-        db_form = f"""
-        <div class="card">
-          <h2>DB 경로</h2>
-          <form method="post" action="/config/db-path">
-            <input type="text" name="db_path" value="{html.escape(str(db_path))}"
-                   style="width:340px; padding:0.3rem 0.5rem;">
-            <button type="submit" style="padding:0.3rem 0.8rem; cursor:pointer; margin-left:0.5rem;">저장</button>
-          </form>
-          <p class='muted' style='font-size:0.82rem;'>DB 존재: {_bool_text(db_path.exists())}</p>
-        </div>
-        """
-
-        body = (
-            "<h2>서비스 연동 상태 / 설정 변경</h2>"
-            + svc_cards
-            + db_form
-            + "<h2>전체 설정 내용 (민감정보 전체 마스킹)</h2>"
-            + f"<pre>{html.escape(_json.dumps(redacted, indent=2, ensure_ascii=False))}</pre>"
-            + "<p class='muted'>민감 정보(비밀번호/토큰/API키)는 ****로 완전 숨김 처리됩니다.</p>"
-        )
-        return _html_page("Config", body)
-
-    @app.post("/config/db-path")
-    def config_db_path():
-        """DB 경로 설정 저장."""
-        from src.utils.config import update_service_config
-        new_path = request.form.get("db_path", "").strip()
-        if new_path:
-            update_service_config("database", {"path": new_path})
-        return redirect("/config")
 
     @app.post("/trigger-sync")
     def trigger_sync():
@@ -913,368 +820,6 @@ python src/sync.py --source all --days 7</pre>
         return _html_page("Sync Status", body)
 
 
-    @app.get("/payloads")
-    def payloads():
-        db_path = _db_path()
-        if not db_path.exists():
-            body = "<div class='card'><h2>DB 없음</h2><p>running.db가 없습니다.</p></div>"
-            return _html_page("Payloads", body)
-
-        source = request.args.get("source", "").strip()
-        entity_type = request.args.get("entity_type", "").strip()
-        activity_id = request.args.get("activity_id", "").strip()
-        limit = max(1, min(_to_int(request.args.get("limit", "20"), 20), 200))
-
-        where = []
-        params = []
-
-        if source:
-            where.append("source = ?")
-            params.append(source)
-        if entity_type:
-            where.append("entity_type = ?")
-            params.append(entity_type)
-        if activity_id:
-            where.append("activity_id = ?")
-            params.append(activity_id)
-
-        where_sql = ("WHERE " + " AND ".join(where)) if where else ""
-
-        try:
-            with sqlite3.connect(db_path) as conn:
-                payload_counts = conn.execute(
-                    """
-                    SELECT source, entity_type, count(*) AS cnt
-                    FROM raw_source_payloads
-                    GROUP BY source, entity_type
-                    ORDER BY source, entity_type
-                    """
-                ).fetchall()
-
-                metric_counts = conn.execute(
-                    """
-                    SELECT source, metric_name, count(*) AS cnt
-                    FROM activity_detail_metrics
-                    GROUP BY source, metric_name
-                    ORDER BY source, metric_name
-                    LIMIT 100
-                    """
-                ).fetchall()
-
-                recent_payloads = conn.execute(
-                    f"""
-                    SELECT id, source, entity_type, entity_id, activity_id,
-                           length(payload_json) AS payload_len, updated_at
-                    FROM raw_source_payloads
-                    {where_sql}
-                    ORDER BY updated_at DESC
-                    LIMIT ?
-                    """,
-                    (*params, limit),
-                ).fetchall()
-        except Exception as e:
-            return _html_page("Payloads", f"<div class='card'><h2>조회 실패</h2><pre>{html.escape(str(e))}</pre></div>")
-
-        filter_form = f"""
-        <div class="card">
-          <h2>filters</h2>
-          <form method="get" action="/payloads">
-            <label>source <input type="text" name="source" value="{html.escape(source)}"></label>
-            <label> entity_type <input type="text" name="entity_type" value="{html.escape(entity_type)}"></label>
-            <label> activity_id <input type="text" name="activity_id" value="{html.escape(activity_id)}"></label>
-            <label> limit <input type="number" name="limit" min="1" max="200" value="{limit}"></label>
-            <button type="submit">apply</button>
-          </form>
-          <p class="muted">예: /payloads?source=intervals&entity_type=wellness&limit=50</p>
-        </div>
-        """
-
-        body = (
-            filter_form
-            + "<div class='card'><h2>source_payloads counts</h2>"
-            + _table(["source", "entity_type", "count"], payload_counts)
-            + "</div>"
-            + "<div class='card'><h2>source_metrics counts</h2>"
-            + _table(["source", "metric_name", "count"], metric_counts)
-            + "</div>"
-            + "<div class='card'><h2>recent payloads</h2>"
-            + _payload_recent_table(recent_payloads)
-            + "</div>"
-        )
-        return _html_page("Payloads", body)
-
-
-    @app.get("/payloads/view")
-    def payload_view():
-        db_path = _db_path()
-        if not db_path.exists():
-            body = "<div class='card'><h2>DB 없음</h2><p>running.db가 없습니다.</p></div>"
-            return _html_page("Payload View", body)
-
-        payload_id = request.args.get("id", "").strip()
-        if not payload_id:
-            body = "<div class='card'><h2>잘못된 요청</h2><p>id 파라미터가 필요합니다.</p></div>"
-            return _html_page("Payload View", body)
-
-        try:
-            with sqlite3.connect(db_path) as conn:
-                row = conn.execute(
-                    """
-                    SELECT id, source, entity_type, entity_id, activity_id, payload_json, created_at, updated_at
-                    FROM raw_source_payloads
-                    WHERE id = ?
-                    """,
-                    (payload_id,),
-                ).fetchone()
-
-                if not row:
-                    body = f"<div class='card'><h2>없음</h2><p>payload id={html.escape(payload_id)} 를 찾을 수 없습니다.</p></div>"
-                    return _html_page("Payload View", body)
-
-                metrics = []
-                if row[4]:
-                    metrics = conn.execute(
-                        """
-                        SELECT source, metric_name,
-                               COALESCE(CAST(metric_value AS TEXT), metric_json) AS metric_data
-                        FROM activity_detail_metrics
-                        WHERE activity_id = ?
-                        ORDER BY source, metric_name
-                        LIMIT 100
-                        """,
-                        (row[4],),
-                    ).fetchall()
-        except sqlite3.Error as exc:
-            body = f"<div class='card'><h2>DB 오류</h2><pre>{html.escape(str(exc))}</pre></div>"
-            return _html_page("Payload View", body)
-
-        detail_rows = [
-            ("id", row[0]),
-            ("source", row[1]),
-            ("entity_type", row[2]),
-            ("entity_id", row[3]),
-            ("activity_id", row[4]),
-            ("created_at", row[6]),
-            ("updated_at", row[7]),
-        ]
-
-        extra = ""
-        if row[4]:
-            extra += (
-                "<div class='card'><h2>연관 source_metrics</h2>"
-                + _table(["source", "metric_name", "metric_data"], metrics)
-                + "</div>"
-            )
-
-        body = (
-            "<div class='card'><h2>payload metadata</h2>"
-            + _table(["field", "value"], detail_rows)
-            + "</div>"
-            + "<div class='card'><h2>payload json</h2>"
-            + _json_pretty_block(row[5])
-            + "</div>"
-            + extra
-            + "<p><a href='/payloads'>← payloads 목록으로</a></p>"
-        )
-        return _html_page(f"Payload View #{row[0]}", body)
-
-    @app.get("/db")
-    def db_summary():
-        db_path = _db_path()
-        if not db_path.exists():
-            body = f"""
-            <p>데이터베이스가 없습니다: <code>{html.escape(str(db_path))}</code></p>
-
-            <div class="card">
-              <h2>다음 액션</h2>
-              <ol>
-                <li><code>python src/db_setup.py</code> 로 DB 스키마 생성</li>
-                <li>최근 데이터는 sync CLI로 가져오기</li>
-                <li>과거 파일은 import_history CLI로 가져오기</li>
-              </ol>
-            </div>
-
-            <div class="card">
-              <h2>예시 명령</h2>
-              <pre>python src/db_setup.py
-
-python src/import_history.py data/history/garmin --source garmin -r
-python src/import_history.py data/history/strava --source strava -r
-
-python src/analyze.py today
-python src/analyze.py full</pre>
-            </div>
-
-            <div class="card">
-              <h2>권장 디렉터리</h2>
-              <pre>data/history/garmin/
-data/history/strava/</pre>
-            </div>
-            """
-            return _html_page("DB Summary", body)
-
-        conn = sqlite3.connect(str(db_path))
-        try:
-            table_counts = [
-                ("activity_summaries", _query_value(conn, "select count(*) from activity_summaries")),
-                ("activity_detail_metrics", _query_value(conn, "select count(*) from activity_detail_metrics")),
-                ("daily_wellness", _query_value(conn, "select count(*) from daily_wellness")),
-                ("daily_fitness", _query_value(conn, "select count(*) from daily_fitness")),
-                ("goals", _query_value(conn, "select count(*) from goals")),
-            ]
-
-            activities_total = dict(table_counts).get("activity_summaries", 0)
-
-            activities_by_source = _query_rows(
-                conn,
-                """
-                select source, count(*)
-                from activity_summaries
-                group by source
-                order by source
-                """,
-            )
-            fitness_by_source = _query_rows(
-                conn,
-                """
-                select source, count(*)
-                from daily_fitness
-                group by source
-                order by source
-                """,
-            )
-            wellness_by_source = _query_rows(
-                conn,
-                """
-                select source, count(*)
-                from daily_wellness
-                group by source
-                order by source
-                """,
-            )
-            recent_activities = _query_rows(
-                conn,
-                """
-                select id, source, activity_type, start_time, distance_km, duration_sec
-                from activity_summaries
-                order by start_time desc
-                limit 20
-                """,
-            )
-            matched_groups = _query_rows(
-                conn,
-                """
-                select matched_group_id, count(*)
-                from activity_summaries
-                where matched_group_id is not null
-                group by matched_group_id
-                having count(*) > 1
-                order by count(*) desc, matched_group_id
-                limit 20
-                """,
-            )
-        finally:
-            conn.close()
-
-        body = (
-            f"<p class='muted'>DB path: {html.escape(str(db_path))}</p>"
-            + "<h2>Table row counts</h2>"
-            + _table(["table", "count"], table_counts)
-        )
-
-        if activities_total == 0:
-            body += """
-            <div class="card">
-              <h2>빈 DB 상태</h2>
-              <p>DB 파일과 스키마는 존재하지만 아직 activity 데이터가 없습니다.</p>
-              <ol>
-                <li>최근 데이터는 <code>sync.py</code>로 가져오기</li>
-                <li>과거 파일은 <code>import_history.py</code>로 가져오기</li>
-                <li>데이터가 들어오면 이 페이지에 source별 집계와 최근 활동이 표시됩니다.</li>
-              </ol>
-            </div>
-            <div class="card">
-              <h2>추천 명령</h2>
-              <pre>python src/sync.py --source all --days 7
-
-python src/import_history.py data/history/garmin --source garmin -r
-python src/import_history.py data/history/strava --source strava -r</pre>
-            </div>
-            """
-            return _html_page("DB Summary", body)
-
-        # 최근 활동 테이블에 심층 분석 링크 추가
-        act_rows_with_link = []
-        for row in recent_activities:
-            act_id = row[0]
-            act_rows_with_link.append(row + (f"/activity/deep?id={act_id}",))
-
-        def _recent_acts_table(rows):
-            if not rows:
-                return "<p class='muted'>(no rows)</p>"
-            headers = ["id", "source", "activity_type", "start_time", "distance_km", "duration_sec", "심층 분석"]
-            head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
-            body_rows = []
-            for row in rows:
-                *data_cols, link = row
-                cols = "".join(f"<td>{html.escape(str(v))}</td>" for v in data_cols)
-                cols += f"<td><a href='{html.escape(str(link))}'>보기</a></td>"
-                body_rows.append(f"<tr>{cols}</tr>")
-            return f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
-
-        body += (
-            "<h2>Activities by source</h2>"
-            + _table(["source", "count"], activities_by_source)
-            + "<h2>Daily fitness by source</h2>"
-            + _table(["source", "count"], fitness_by_source)
-            + "<h2>Daily wellness by source</h2>"
-            + _table(["source", "count"], wellness_by_source)
-            + "<h2>Recent activities</h2>"
-            + _recent_acts_table(act_rows_with_link)
-            + "<h2>Matched groups</h2>"
-            + _table(["matched_group_id", "count"], matched_groups)
-        )
-        return _html_page("DB Summary", body)
-
-    # ── /db 테이블에 활동 심층 링크 추가는 recent_activities 쿼리에서 처리 ──
-
-    @app.get("/analyze/<report_type>")
-    def analyze_preview(report_type: str):
-        allowed = {"today", "full", "race"}
-        if report_type not in allowed:
-            return _html_page(
-                "Analyze Preview",
-                f"<p>지원하지 않는 report_type: {html.escape(report_type)}</p>",
-            ), 404
-
-        db_path = _db_path()
-        if not db_path.exists():
-            body = f"<p>데이터베이스가 없습니다: {html.escape(str(db_path))}</p>"
-            return _html_page("Analyze Preview", body)
-
-        config = load_config()
-        if report_type == "race":
-            race_date = request.args.get("date")
-            race_distance = request.args.get("distance")
-            if race_date:
-                config.setdefault("race", {})
-                config["race"]["date"] = race_date
-            if race_distance:
-                config.setdefault("race", {})
-                try:
-                    config["race"]["distance"] = float(race_distance)
-                except ValueError:
-                    pass
-
-        conn = sqlite3.connect(str(db_path))
-        try:
-            output = generate_report(conn, report_type=report_type, config=config)
-        finally:
-            conn.close()
-
-        body = f"<pre>{html.escape(output)}</pre>"
-        return _html_page(f"Analyze Preview: {report_type}", body)
-
     # ── Blueprint 등록 ─────────────────────────────────────────────────
     app.register_blueprint(wellness_bp)
     app.register_blueprint(activity_bp)
@@ -1283,5 +828,12 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
     app.register_blueprint(export_import_bp)  # Export CSV 임포트
     app.register_blueprint(shoes_bp)          # 신발 목록
+    app.register_blueprint(dashboard_bp)      # v0.2 통합 대시보드
+    app.register_blueprint(report_bp)         # v0.2 분석 레포트
+    app.register_blueprint(import_bp)         # v0.2 Strava 아카이브 임포트
+    app.register_blueprint(race_bp)          # v0.2 Sprint5 레이스 예측
+    app.register_blueprint(ai_coach_bp)      # v0.2 Sprint5 AI 코칭
+    app.register_blueprint(training_bp)       # v0.3 훈련 계획 (스캐폴딩)
+    app.register_blueprint(dev_bp)            # 개발자/디버그 도구
 
     return app

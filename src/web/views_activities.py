@@ -22,7 +22,7 @@ from src.services.unified_activities import (
     UnifiedActivity,
     fetch_unified_activities,
 )
-from .helpers import db_path, fmt_duration, html_page
+from .helpers import bottom_nav, db_path, fmt_duration, html_page
 
 activities_bp = Blueprint("activities", __name__)
 
@@ -162,9 +162,12 @@ def _provenance_tip(source: str | None) -> str:
     )
 
 
-# Garmin trainingEffectLabel + intervals.icu tags → 표시명 + 색상
+# Garmin trainingEffectLabel + intervals.icu tags + event_type → 표시명 + 색상
 _LABEL_MAP: list[tuple[str, str, str]] = [
     # (키워드(소문자 포함), 표시명, 색상)
+    ("a_race",             "A레이스",     "#c0392b"),
+    ("b_race",             "B레이스",     "#e74c3c"),
+    ("c_race",             "C레이스",     "#e67e22"),
     ("vo2max",             "VO2 Max",    "#2980b9"),
     ("vo2",                "VO2 Max",    "#2980b9"),
     ("lactate_threshold",  "역치",        "#8e44ad"),
@@ -177,16 +180,25 @@ _LABEL_MAP: list[tuple[str, str, str]] = [
     ("리커버리",            "회복",        "#7f8c8d"),
     ("interval",           "인터벌",      "#d35400"),
     ("longrun",            "장거리",      "#e67e22"),
+    ("long_run",           "장거리",      "#e67e22"),
     ("long",               "장거리",      "#e67e22"),
     ("easyrun",            "이지런",      "#27ae60"),
+    ("easy_run",           "이지런",      "#27ae60"),
     ("easy",               "이지런",      "#27ae60"),
     ("race",               "레이스",      "#e74c3c"),
     ("overreaching",       "과부하",      "#c0392b"),
 ]
 
+# Strava workout_type 정수 → (표시명, 색상)
+_STRAVA_WORKOUT_TYPE: dict[int, tuple[str, str]] = {
+    1: ("레이스",  "#e74c3c"),
+    2: ("장거리",  "#e67e22"),
+    3: ("훈련",    "#d35400"),
+}
+
 
 def _label_badge(label: str) -> str:
-    """workout_label → 표시명 뱃지 HTML."""
+    """단일 label 문자열 → 뱃지 HTML."""
     normalized = label.lower().strip()
     display = label  # fallback: 원본값
     color = "#888"
@@ -201,6 +213,45 @@ def _label_badge(label: str) -> str:
         f"title='{html.escape(label)}'>"
         f"{html.escape(display)}</span>"
     )
+
+
+def _make_tag_badges(ua) -> str:
+    """workout_label + event_type + Strava workout_type → 뱃지 HTML 모음.
+
+    중복 의미 뱃지(예: workout_label="race" + event_type="race")는 하나만 표시.
+    """
+    badges = []
+    seen: set[str] = set()
+
+    def _add(label: str) -> None:
+        if not label:
+            return
+        normalized = label.lower().strip()
+        if normalized in seen:
+            return
+        seen.add(normalized)
+        badges.append(_label_badge(label))
+
+    # 1. workout_label (Garmin trainingEffectLabel / Intervals tags)
+    _add(ua.workout_label.value or "")
+
+    # 2. event_type (Garmin eventType / Intervals category)
+    _add(ua.event_type.value or "")
+
+    # 3. Strava workout_type 정수 → 레이블 변환
+    strava_row = ua.source_rows.get("strava", {})
+    wt = strava_row.get("workout_type")
+    if wt and int(wt) in _STRAVA_WORKOUT_TYPE:
+        disp, clr = _STRAVA_WORKOUT_TYPE[int(wt)]
+        # 이미 같은 의미 뱃지가 없을 때만 추가
+        if disp not in {b for b in seen}:
+            badges.append(
+                f"<span style='background:{clr}; color:#fff; border-radius:3px; "
+                f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;' "
+                f"title='Strava workout_type={wt}'>{html.escape(disp)}</span>"
+            )
+
+    return " ".join(badges)
 
 
 # ── 기간 빠른 선택 JS ─────────────────────────────────────────────────────
@@ -595,7 +646,20 @@ def _render_sub_row(act_id: int, src: str, row: dict, gid: str) -> str:
         "border:1px solid #aaa; border-radius:3px; background:none; margin-left:4px;'>분리</button>"
     )
 
-    label_cell = _label_badge(label) if label else ""
+    badges_parts = []
+    if label:
+        badges_parts.append(_label_badge(label))
+    event_type = row.get("event_type")
+    if event_type and event_type.lower() != (label or "").lower():
+        badges_parts.append(_label_badge(event_type))
+    wt = row.get("workout_type")
+    if wt and int(wt) in _STRAVA_WORKOUT_TYPE:
+        disp, clr = _STRAVA_WORKOUT_TYPE[int(wt)]
+        badges_parts.append(
+            f"<span style='background:{clr}; color:#fff; border-radius:3px; "
+            f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;'>{html.escape(disp)}</span>"
+        )
+    label_cell = " ".join(badges_parts)
 
     return (
         "<tr style='font-size:0.78rem; color:var(--muted);'>"
@@ -760,9 +824,8 @@ def _render_activity_table(
         pace_tip = _provenance_tip(ua.avg_pace_sec_km.source) if show_prov else ""
         hr_tip = _provenance_tip(ua.avg_hr.source) if show_prov else ""
 
-        # 태그
-        label = ua.workout_label.value
-        label_cell = _label_badge(label) if label else ""
+        # 태그 (workout_label + event_type + Strava workout_type 통합)
+        label_cell = _make_tag_badges(ua)
 
         body_rows.append(
             f"<tr>"
@@ -824,7 +887,7 @@ def activities_list():
     dpath = db_path()
     if not dpath.exists():
         body = "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
-        return html_page("활동 목록", body)
+        return html_page("활동 목록", body, active_tab="activities")
 
     source = request.args.get("source", "").strip()
     act_type = request.args.get("type", "").strip()
@@ -907,7 +970,7 @@ def activities_list():
     except Exception as exc:
         import html as _html
         body = f"<div class='card'><p>조회 오류: {_html.escape(str(exc))}</p></div>"
-        return html_page("활동 목록", body)
+        return html_page("활동 목록", body, active_tab="activities")
 
     # base_qs: 필터 파라미터 (페이지네이션, 정렬 링크에 공통 사용)
     qs_parts = []
@@ -958,4 +1021,4 @@ def activities_list():
         + _render_activity_table(activities, sort_url_base=sort_base, cur_sort=sort_by, cur_dir=sort_dir)
         + _render_pagination(page, total, base_qs)
     )
-    return html_page("활동 목록", body)
+    return html_page("활동 목록", body, active_tab="activities")

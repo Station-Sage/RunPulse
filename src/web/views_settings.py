@@ -16,14 +16,16 @@ import urllib.parse
 import uuid
 from pathlib import Path
 
-from flask import Blueprint, redirect, request, url_for
+import sqlite3
+
+from flask import Blueprint, redirect, render_template, request, url_for
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config, save_config
-from .helpers import db_path, html_page, metric_row, score_badge
+from .helpers import db_path, metric_row, score_badge
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -113,7 +115,11 @@ def settings_view() -> str:
 
     garmin_extra = f"<p class='muted' style='font-size:0.85rem;'>토큰 저장소: <code>{_html.escape(str(tokenstore))}</code></p>"
 
+    msg = _html.escape(request.args.get("msg", ""))
+    msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
+
     body = f"""
+{msg_html}
 <p>각 서비스의 연동 상태를 확인하고 설정하세요.</p>
 <div class='cards-row'>
   {_service_card("Garmin Connect", "⌚", garmin_status,
@@ -128,10 +134,132 @@ def settings_view() -> str:
                  "/connect/runalyze", "/connect/runalyze/disconnect")}
 </div>
 <hr>
+<div class='card'>
+  <h2>Strava 아카이브 임포트</h2>
+  <p>Strava에서 내보낸 zip 파일을 임포트하거나, 기존 활동에 FIT/GPX 파일을 재연결합니다.<br>
+  <small class='muted'>Settings → 데이터 내보내기(Export your data)에서 다운로드한 zip 파일을 사용합니다.</small></p>
+  <a href='/import/strava-archive'>
+    <button style='padding:0.4rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+      아카이브 임포트
+    </button>
+  </a>
+</div>
+<div class='card' id='metrics-section'>
+  <h2>메트릭 재계산</h2>
+  <p>기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, RTTI, WLEI, TPDI 등)을 재계산합니다.<br>
+  <small class='muted'>동기화 후 자동으로 실행되지만, 수동으로 강제 재계산할 때 사용합니다.</small></p>
+  <form id='recompute-form' style='display:flex; align-items:center; gap:1rem; flex-wrap:wrap;'>
+    <label>최근 <input type='number' id='recompute-days' value='90' min='1' max='365'
+           style='width:60px; text-align:center;'> 일간 재계산</label>
+    <button type='button' id='recompute-btn' onclick='startRecompute()'
+      style='padding:0.4rem 1.2rem; background:#00d4ff; color:#000; border:none; border-radius:4px; cursor:pointer; font-weight:bold;'>
+      재계산 시작
+    </button>
+  </form>
+  <!-- 진행 섹션 -->
+  <div id='recompute-progress' style='display:none; margin-top:1rem;'>
+    <div style='display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;'>
+      <span id='recompute-status-text' style='color:var(--cyan);'>계산 중...</span>
+      <span id='recompute-pct-text' style='color:var(--muted);'>0%</span>
+    </div>
+    <div style='background:var(--row-border); border-radius:4px; height:10px; overflow:hidden;'>
+      <div id='recompute-bar' style='height:100%; background:#00d4ff; border-radius:4px; width:0%; transition:width 0.5s;'></div>
+    </div>
+    <p id='recompute-detail' style='margin:0.4rem 0 0; font-size:0.78rem; color:var(--muted);'></p>
+  </div>
+</div>
+""" + """
+<script>
+function startRecompute() {
+  var days = document.getElementById('recompute-days').value || 90;
+  var btn = document.getElementById('recompute-btn');
+  btn.disabled = true; btn.textContent = '재계산 중...';
+  document.getElementById('recompute-progress').style.display = 'block';
+  document.getElementById('recompute-bar').style.width = '0%';
+  document.getElementById('recompute-pct-text').textContent = '0%';
+  document.getElementById('recompute-status-text').textContent = '시작 중...';
+  document.getElementById('recompute-detail').textContent = '';
+
+  // POST 시작
+  var fd = new FormData(); fd.append('days', days);
+  fetch('/metrics/recompute', {method:'POST', body:fd}).then(function() {
+    // SSE 연결
+    var es = new EventSource('/metrics/recompute-stream');
+    es.onmessage = function(e) {
+      var d = JSON.parse(e.data);
+      var bar = document.getElementById('recompute-bar');
+      var pct = d.pct || 0;
+      if (bar) bar.style.width = pct + '%';
+      var pctEl = document.getElementById('recompute-pct-text');
+      if (pctEl) pctEl.textContent = pct + '%  (' + (d.completed||0) + '/' + (d.total||0) + '일)';
+      var statusEl = document.getElementById('recompute-status-text');
+      if (d.status === 'running') {
+        if (statusEl) statusEl.textContent = '계산 중... ' + (d.current_date || '');
+        var detailEl = document.getElementById('recompute-detail');
+        if (detailEl) detailEl.textContent = d.current_date ? (d.current_date + ' 처리 완료') : '';
+      } else if (d.status === 'completed') {
+        if (statusEl) { statusEl.textContent = '✅ 재계산 완료'; statusEl.style.color = 'var(--green)'; }
+        if (bar) bar.style.background = 'var(--green)';
+        btn.disabled = false; btn.textContent = '재계산 시작';
+        es.close();
+      } else if (d.status === 'error') {
+        if (statusEl) { statusEl.textContent = '❌ 오류: ' + (d.error||''); statusEl.style.color = 'var(--red)'; }
+        btn.disabled = false; btn.textContent = '재계산 시작';
+        es.close();
+      } else if (d.status === 'idle') {
+        es.close();
+      }
+    };
+    es.onerror = function() {
+      // SSE 오류 시 폴링으로 fallback
+      es.close();
+      pollRecomputeStatus(btn);
+    };
+  }).catch(function(err) {
+    document.getElementById('recompute-status-text').textContent = '❌ 요청 실패';
+    btn.disabled = false; btn.textContent = '재계산 시작';
+  });
+}
+
+function pollRecomputeStatus(btn) {
+  var timer = setInterval(function() {
+    fetch('/metrics/recompute-status').then(function(r){return r.json();}).then(function(d) {
+      var pct = d.pct || 0;
+      var bar = document.getElementById('recompute-bar');
+      if (bar) bar.style.width = pct + '%';
+      var pctEl = document.getElementById('recompute-pct-text');
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (d.status === 'completed' || d.status === 'error' || d.status === 'idle') {
+        clearInterval(timer);
+        if (btn) { btn.disabled = false; btn.textContent = '재계산 시작'; }
+      }
+    }).catch(function(){ clearInterval(timer); });
+  }, 1500);
+}
+
+// 페이지 로드 시 이미 진행 중이면 복구
+(function() {
+  fetch('/metrics/recompute-status').then(function(r){return r.json();}).then(function(d) {
+    if (d.status === 'running') {
+      document.getElementById('recompute-progress').style.display = 'block';
+      var btn = document.getElementById('recompute-btn');
+      if (btn) { btn.disabled = true; btn.textContent = '재계산 중...'; }
+      var es = new EventSource('/metrics/recompute-stream');
+      es.onmessage = function(e) {
+        var d2 = JSON.parse(e.data);
+        var bar = document.getElementById('recompute-bar');
+        if (bar) bar.style.width = (d2.pct||0) + '%';
+        if (d2.status !== 'running') { es.close(); if(btn){btn.disabled=false;btn.textContent='재계산 시작';} }
+      };
+      es.onerror = function(){ es.close(); };
+    }
+  }).catch(function(){});
+})();
+</script>
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
 </p>"""
-    return html_page("서비스 연동 설정", body)
+    return render_template("generic_page.html", title="서비스 연동 설정", body=body, active_tab="settings")
 
 
 # ── Garmin 연동 ─────────────────────────────────────────────────────
@@ -192,7 +320,7 @@ def garmin_connect_view() -> str:
     MFA 코드 입력 화면이 자동으로 나타납니다. 코드 입력 후 로그인이 완료되면 토큰이 저장되어 이후 sync 시 재인증 없이 사용됩니다.
   </p>
 </div>"""
-    return html_page("Garmin 연동", body)
+    return render_template("generic_page.html", title="Garmin 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/garmin")
@@ -302,7 +430,7 @@ def garmin_mfa_view():
   <p class='muted'>코드를 받지 못했다면 Garmin 앱을 확인하거나 이메일을 다시 확인하세요.</p>
   <p class='muted'><a href='/connect/garmin'>← 처음부터 다시 시도</a></p>
 </div>"""
-    return html_page("Garmin MFA 인증", body)
+    return render_template("generic_page.html", title="Garmin MFA 인증", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/garmin/mfa")
@@ -396,7 +524,7 @@ def strava_connect_view() -> str:
     Strava API 앱 설정에서 위 URL을 Authorized Callback Domain에 추가해야 합니다.
   </p>
 </div>"""
-    return html_page("Strava 연동", body)
+    return render_template("generic_page.html", title="Strava 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/strava/save-app")
@@ -531,7 +659,7 @@ def intervals_connect_view() -> str:
     </div>
   </form>
 </div>"""
-    return html_page("Intervals.icu 연동", body)
+    return render_template("generic_page.html", title="Intervals.icu 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/intervals")
@@ -611,7 +739,7 @@ def runalyze_connect_view() -> str:
   </ol>
   <p class='muted'>토큰이 만료되거나 오류가 발생하면 Runalyze에서 재발급하세요.</p>
 </div>"""
-    return html_page("Runalyze 연동", body)
+    return render_template("generic_page.html", title="Runalyze 연동", body=body, active_tab="settings")
 
 
 @settings_bp.post("/connect/runalyze")
@@ -644,3 +772,86 @@ def runalyze_disconnect():
     """Runalyze 연동 해제."""
     update_service_config("runalyze", {"token": ""})
     return redirect("/settings")
+
+
+# ── 메트릭 재계산 ────────────────────────────────────────────────────
+
+# 재계산 진행 상태 (스레드 안전 — 단일 딕셔너리 교체)
+import threading as _threading
+_recompute_state: dict = {"status": "idle"}
+_recompute_lock = _threading.Lock()
+
+
+def _set_recompute_state(**kwargs) -> None:
+    with _recompute_lock:
+        _recompute_state.update(kwargs)
+
+
+@settings_bp.post("/metrics/recompute")
+def metrics_recompute():
+    """기존 DB 데이터 기반 2차 메트릭 일괄 재계산 (백그라운드 + SSE 진행)."""
+    from src.metrics import engine as metrics_engine
+
+    with _recompute_lock:
+        if _recompute_state.get("status") == "running":
+            return redirect("/settings?msg=재계산이 이미 진행 중입니다.")
+
+    try:
+        days = int(request.form.get("days", 90))
+        days = max(1, min(days, 365))
+    except (ValueError, TypeError):
+        days = 90
+
+    _set_recompute_state(status="running", days=days, completed=0, total=days,
+                         current_date="", pct=0, error=None)
+
+    def _on_progress(date_str: str, completed: int, total: int) -> None:
+        pct = round(completed / total * 100, 1) if total > 0 else 0
+        _set_recompute_state(completed=completed, total=total,
+                             current_date=date_str, pct=pct)
+
+    def _run() -> None:
+        try:
+            with sqlite3.connect(str(db_path())) as conn:
+                metrics_engine.recompute_all(conn, days=days, on_progress=_on_progress)
+            _set_recompute_state(status="completed", pct=100)
+        except Exception as exc:
+            _set_recompute_state(status="error", error=str(exc)[:200])
+
+    _threading.Thread(target=_run, daemon=True, name="metrics-recompute").start()
+    return redirect("/settings#metrics-section")
+
+
+@settings_bp.get("/metrics/recompute-stream")
+def metrics_recompute_stream():
+    """메트릭 재계산 진행 상황 SSE 스트림."""
+    import json
+    import time
+    from flask import Response, stream_with_context
+
+    def _generate():
+        while True:
+            with _recompute_lock:
+                state = dict(_recompute_state)
+            data = json.dumps(state)
+            yield f"data: {data}\n\n"
+            if state.get("status") in ("completed", "error", "idle"):
+                break
+            time.sleep(0.8)
+
+    return Response(
+        stream_with_context(_generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@settings_bp.get("/metrics/recompute-status")
+def metrics_recompute_status():
+    """재계산 현재 상태 JSON (폴링 fallback용)."""
+    from flask import jsonify
+    with _recompute_lock:
+        return jsonify(dict(_recompute_state))

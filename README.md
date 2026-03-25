@@ -1,59 +1,98 @@
-# RunPulse
+## version 0.2 설계
 
-Termux 기반 개인 러닝 데이터 분석 및 훈련 코치 에이전트
+## 본 앱/웹의 목적
+### 러닝앱은 매우 다양하게 존재하며, 각 앱별로 기본적인 러닝 데이터, 러닝앱 고유의 1차 메트릭, 훈련 계획 수립, 러닝 분석, 코칭을 제공하고 있음
 
-## 특징
-- Garmin, Strava, Intervals.icu, Runalyze 4개 소스 통합
-- 각 플랫폼의 고유 2차 데이터를 병합하여 다각도 분석
-- 오늘/주간/월간 비교 리포트, 추세 분석
-- 훈련 계획 생성 및 레이스 목표 관리
-- Genspark AI Chat 연동 (클립보드 복사)
-- 전액 무료, Termux에서 완전 동작
+### 그러나 각 러닝앱에서 제공하는 데이터들 (러닝 기본 데이터, 메트릭 등)은 각 서비스 고유의 메트릭으로 만들고 있어, 정확도에 대한 검증이 어렵고, 상호 비교가 되지 않아 사용자에게 어떤 것이 가장 정확하게 들어맞는지 알 수 없을 뿐더러, 각 러닝앱에 분산되어 있어 통합해서 볼 수 없음.
 
-## 4개 소스의 고유 가치
+### 또한, 각 러닝앱에 분산되어 있는 데이터들을 2차 가공하여 보다 고차원적이고 러닝 결과, 훈련 상태, 훈련 프로그램, 페이스 예측, 휴식 상태, 몸 상태, 훈련 방향 설정 등 고차원적인 데이터를 만들 수 있음에도 데이터가 각 러닝앱에 분산되어 있어 기회를 놓치고 있음
 
-    Garmin    : Training Effect, Body Battery, HRV Status, Sleep Score
-    Strava    : Suffer Score, Segment PR, 1초 단위 Stream
-    Intervals : CTL(Fitness), ATL(Fatigue), TSB(Form), Ramp Rate
-    Runalyze  : Effective VO2Max, VDOT, Race Prediction, TRIMP
+### 본 앱은 이러한 문제점을 해결하고자, 각 러닝앱에 저장되어 있는 기본적인 러닝 데이터, 1차 메트릭 등을 통합하고, 2차 메트릭을 만들뿐만 아니라, 새로운 기능들(AI 코칭, 훈련프로그램 생성, 훈련프로그래 캘린더 등록 등)을 추가하고, 기존 러닝앱들이 가지고 있는 기능, 편의성의 불편함을 해소하고자 함
 
-## 빠른 시작
+## 참고파일 구조 (design 폴더)
+### 1. 러닝 플랫폼 1차 상세 메트릭.pdf : 각 러닝플랫폼에서 sync 해오는 러닝 플랫폼 별 고유의 1차 러닝 메트릭과 각 메트릭을 계산하는 계산식, 메트릭에 대한 설명에 대한 상세 자료
 
-    # Termux에서
-    pkg install -y python git sqlite termux-api
-    pip install garminconnect httpx gpxpy python-dateutil fitparse
+### 2. 러닝 플랫폼 2차 가공 메트릭 후보군.pdf : 각 러닝플랫폼에서 sync 해온 데이터를 기반으로 2차 가공하는 러닝 메트릭. 이 앱의 본질적인 차별화 기능이며, 이 앱을 만드는 핵심 이유. 각 메트릭의 의미와 메트릭을 계산하는 방식에 대해 상세히 설명되어 있음
 
-    cd ~/projects
-    git clone -b dev https://github.com/Station-Sage/RunPulse.git
-    cd RunPulse
+### 3. 통합 대시보드 UI 설계.pdf : 여러 러닝 앱의 데이터를 통합할 경우 UI 설계의 예시. 참고자료로 활용할 것.
 
-    cp config.json.example config.json
-    # config.json 편집하여 인증 정보 입력
+### 4. extend_running_app_ui_desgn_resarch.pdf : 3번 파일의 화면 예시. 참고자료로 활용할 것
 
-    python src/db_setup.py
-    python src/sync.py --source all --days 7
-    python src/analyze.py today
-    python src/analyze.py full --clipboard
-    # Genspark AI Chat에 붙여넣고 분석 요청
+### 5-1. 확장형 러닝 앱 UI 설계 연구 보고서.html : 4번 파일과 유사. 화면 예시. 동일한 이름의 폴더에 resource 파일이 있음
 
-## 문서
-- docs/setup-termux.md: Termux 설치 가이드
-- docs/setup-apis.md: API 설정 가이드
-- docs/usage.md: 사용 가이드
-- docs/install-guide.md: 솔루션 및 리소스 설치 가이드
+### 5-2. 통합 러닝 앱 UI 설계 연구 - 1차_2차 메트릭 완전 통합판.html : 4번 파일, 5-1번 파일에 1번 파일, 2번 파일에 있는 메트릭을 추가한 버전. 최종적으로 구현하고자 하는 UI와 유사.
 
-## 아키텍처
+## 진행 순서
 
-    Garmin/Strava/Intervals/Runalyze
-                |
-          [sync.py - 4개 소스 동기화]
-                |
-          [running.db (SQLite)]
-                |
-       +--------+--------+
-       |        |        |
-    analyze  plan.py  serve.py
-       |        |        |
-    리포트   훈련계획  대시보드
-       |        |
-    클립보드 -> Genspark AI Chat
+### design 폴더의 참고파일들을 파악하여, 이해하고, 이를 구현하기 위한 md 파일들을 desing/.ai 폴더에 만든다.
+
+### /design/.ai 폴더의 md파일은 아키텍처, todo, bugs, 로드맵, 상세 구현 방안, changelog, decisions, files_index 등 필요한 내용으로 구성한다. 
+
+### md 파일을 기반으로 단계별로 구현한다. 
+
+### 기존 version 0.1 버전은 소스 러닝앱에서의 데이터 import/export, 동일 러닝 활동 데이터 묶기, api 통한 싱크, 기초적인 러닝 분석, 동기화 설정, 기초적인 db 설계 및 데이터 insert가 완료되어 있으니 이를 적극 활용하여 구현한다.
+
+### design/app-UI 폴더에 참고할만한 화면 UI 소스코드가 있음
+
+파일명	설명	크기
+dashboard.html	통합 대시보드 (UTRS/CIRS 게이지, RMR 레이더, PMC 차트)	15.9 KB
+activity_detail.html	활동 상세 (맵 오버레이, FEARP, 2차 메트릭)	13.6 KB
+ai_coaching.html	AI 코칭 (브리핑, 추천 칩, 채팅)	13.7 KB
+race_prediction.html	레이스 예측 (DARP, DI, 히팅 더 월)	15.6 KB
+settings_sync.html	설정 및 동기화 (플랫폼 연동, Import/Export)	15.7 KB
+training_plan.html	훈련 계획 (캘린더, AI 추천)	16.4 KB
+analysis_report.html	분석 레포트 (주간 요약, AI 인사이트)	19.8 KB
+
+
+#### 각 화면 주요 기능
+1. Dashboard (대시보드)
+UTRS (통합 훈련 준비도) 게이지: 85/100
+CIRS (부상 위험도) 게이지: 15/100
+RMR (러너 성숙도) 레이더 차트 (6개 축)
+PMC (훈련 부하 추세) 차트: CTL/ATL/TSB
+최근 활동 리스트 (UTRS, FEARP 배지)
+하단 네비게이션 바
+2. Activity Detail (활동 상세)
+맵 섹션 (거리, 페이스, 시간, 심박수 오버레이)
+기본 메트릭 그리드 (6개 지표)
+FEARP (환경 보정 페이스) 섹션
+실제 페이스 vs 보정 페이스 비교
+환경 요인 (기온, 습도, 고도, 경사)
+2차 가공 메트릭 (UTRS, CIRS, Aerobic Decoupling, Training Effect, Running Dynamics)
+3. AI Coaching (AI 코칭)
+AI 코치 프로필 (온라인 상태)
+오늘의 브리핑 카드
+UTRS 85/100, CIRS 15/100
+DARP 레이스 예측 (3:45:00)
+히팅 더 월 확률 15%
+추천 칩 (회복, 훈련, FEARP, 부상 경고)
+채팅 인터페이스 (AI/유저 메시지)
+빠른 질문 버튼
+4. Race Prediction (레이스 예측)
+레이스 선택 (5K, 10K, 하프마라톤, 마라톤, 커스텀)
+DARP 예측 결과 (1:45:30)
+스플릿 타임 (5K, 10K, 15K)
+내구성 지수 (DI) 85/100
+페이스 전략 타임라인
+히팅 더 월 위험 (15%)
+훈련 플랜 조정 권장
+5. Settings & Sync (설정 및 동기화)
+실시간 동기화 상태
+플랫폼 연동 목록 (Strava, Garmin, TrainingPeaks, Intervals, Google Calendar, Naver Calendar)
+Import/Export (GPX/TCX, 데이터 Export, iCloud 백업, 암호화 Export)
+동기화 기간 선택
+알림 설정
+Export 데이터 형식 미리보기 (JSON)
+6. Training Plan (훈련 계획)
+주간 요약 (4/5 훈련 완료, 42km, 3:45, UTRS 85)
+캘린더 뷰 (주간/월간/일간)
+AI 훈련 추천
+캘린더 연동 (Google, Naver, Garmin, TrainingPeaks)
+7. Analysis Report (분석 레포트)
+기간 선택 (오늘/이번 주/이번 달/분기/올해/1년/사용자 정의)
+요약 카드 (총 거리, 시간, UTRS, CIRS)
+활동 추세 차트
+훈련 강도 분포 (TIDS)
+주간 훈련 부하 (TRIMP)
+세부 메트릭 테이블
+AI 인사이트 (내구성 지수, 유산소 효율성, 주간 거리 증가 주의)

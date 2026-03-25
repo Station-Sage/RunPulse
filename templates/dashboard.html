@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}대시보드{% endblock %}
+{% block page_title %}대시보드{% endblock %}
+
+{% block content %}
+{{ banner | safe }}
+{{ recommendation_card | safe }}
+<div class="cards-row" style="align-items:stretch;">
+  {{ utrs_card | safe }}
+  {{ cirs_card | safe }}
+  {{ rmr_card | safe }}
+</div>
+{{ risk_pills | safe }}
+<div class="cards-row" style="align-items:stretch;">
+  {{ darp_card | safe }}
+  {{ fitness_card | safe }}
+</div>
+{{ pmc_chart | safe }}
+{{ activity_list | safe }}
+{% endblock %}

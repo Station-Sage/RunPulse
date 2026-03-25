@@ -177,14 +177,15 @@ def main() -> None:
     gc = goal_sub.add_parser("cancel", help="목표 취소")
     gc.add_argument("--id", type=int, required=True, help="목표 id")
 
+    parser.add_argument("--user", default="default", help="사용자 ID (기본: default)")
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
         return
 
-    config = load_config()
-    init_db()
-    db_path = get_db_path()
+    config = load_config(user_id=args.user)
+    init_db(args.user)
+    db_path = get_db_path(args.user)
 
     with sqlite3.connect(db_path) as conn:
         if args.command == "week":

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunPulse - AI 코칭</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
+        
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header-title { font-size: 20px; font-weight: bold; }
+        
+        /* AI Coach Profile */
+        .coach-profile {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.1));
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .coach-avatar {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px;
+        }
+        .coach-info h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .coach-info p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+        .coach-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Briefing Cards */
+        .briefing-section {
+            margin: 20px 0;
+        }
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px; height: 20px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 2px;
+        }
+        
+        .briefing-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            border-left: 4px solid #00d4ff;
+        }
+        .briefing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .briefing-date {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        .briefing-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .action-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        .briefing-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.9);
+        }
+        .briefing-content p {
+            margin-bottom: 12px;
+        }
+        
+        /* Recommendation Chips */
+        .chips-section {
+            margin: 20px 0;
+        }
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .chip {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 24px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chip:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .chip-icon { font-size: 18px; }
+        .chip-text { font-size: 14px; }
+        
+        /* Chat Interface */
+        .chat-section {
+            margin: 20px 0;
+        }
+        .chat-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 300px;
+        }
+        .chat-message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .chat-message.user { flex-direction: row-reverse; }
+        
+        .chat-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .chat-avatar.ai {
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+        }
+        .chat-avatar.user {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .chat-bubble {
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-width: 70%;
+        }
+        .chat-bubble.ai {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .chat-bubble p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .chat-time {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+        }
+        
+        /* Chat Input */
+        .chat-input-container {
+            position: fixed;
+            bottom: 80px; left: 0; right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .chat-input-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .chat-input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+        .chat-input::placeholder { color: rgba(255,255,255,0.5); }
+        .chat-send-btn {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .chat-send-btn:hover { transform: scale(1.1); }
+        
+        /* Quick Questions */
+        .quick-questions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        .quick-question {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: rgba(255,255,255,0.8);
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        .quick-question:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="header-title">AI 코칭</span>
+        </div>
+        
+        <!-- Coach Profile -->
+        <div class="coach-profile">
+            <div class="coach-avatar">🤖</div>
+            <div class="coach-info">
+                <h2>RunPulse AI 코치</h2>
+                <p>개인 맞춤형 훈련 분석 및 조언</p>
+                <div class="coach-status">
+                    <span class="status-dot"></span>
+                    <span style="font-size: 14px; color: #00ff88;">온라인</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Briefing Cards -->
+        <div class="briefing-section">
+            <div class="section-title">오늘의 브리핑</div>
+            <div class="briefing-card">
+                <div class="briefing-header">
+                    <span class="briefing-date">2024년 3월 22일 오전 6:30</span>
+                    <div class="briefing-actions">
+                        <button class="action-btn">🔄 재생성</button>
+                        <button class="action-btn">📤 공유</button>
+                    </div>
+                </div>
+                <div class="briefing-content">
+                    <p><strong>좋은 아침입니다! 🌅</strong></p>
+                    <p>오늘의 UTRS(통합 훈련 준비도)는 <strong>85/100</strong>으로, 고강도 훈련에 최적화된 상태입니다.</p>
+                    <p>어제의 훈련(10.5km)은 적절한 강도였으며, 회복이 잘 진행되고 있습니다. CIRS 부상 위험도는 15/100으로 안전 범위입니다.</p>
+                    <p><strong>오늘의 추천:</strong> 오늘은 인터벌 훈련이나 템포 러닝과 같은 고강도 세션을 진행하시면 좋겠습니다. DARP 레이스 예측 모델에 따르면, 현재의 훈련 패턴으로 3주 후 마라톤에서 3:45:00 기록이 예상됩니다.</p>
+                    <p>히팅 더 월 확률은 15%로 낮은 편이며, 내구성 지수(DI)가 85/100으로 양호합니다.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendation Chips -->
+        <div class="chips-section">
+            <div class="section-title">추천 칩</div>
+            <div class="chips-container">
+                <div class="chip">
+                    <span class="chip-icon">💪</span>
+                    <span class="chip-text">회복: 오늘은 쉬운 조깅 5km 권장</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">⚡</span>
+                    <span class="chip-text">훈련: 인터벌 세션 추가 시 DI 향상</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">🌡️</span>
+                    <span class="chip-text">FEARP: 어제 훈련은 4:30/km 등가</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">⚠️</span>
+                    <span class="chip-text">부상: 주간 거리 10% 이상 증가 주의</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Interface -->
+        <div class="chat-section">
+            <div class="section-title">대화 이력</div>
+            <div class="chat-container">
+                <div class="chat-message">
+                    <div class="chat-avatar ai">🤖</div>
+                    <div class="chat-bubble ai">
+                        <p>안녕하세요! RunPulse AI 코치입니다. 오늘의 훈련 계획에 대해 도움이 필요하신가요?</p>
+                        <div class="chat-time">오전 6:30</div>
+                    </div>
+                </div>
+                <div class="chat-message user">
+                    <div class="chat-avatar user">👤</div>
+                    <div class="chat-bubble user">
+                        <p>이번 주 훈련량을 늘리고 싶은데, 부상 위험은 어떤가요?</p>
+                        <div class="chat-time">오전 6:35</div>
+                    </div>
+                </div>
+                <div class="chat-message">
+                    <div class="chat-avatar ai">🤖</div>
+                    <div class="chat-bubble ai">
+                        <p>현재 CIRS(복합 부상 위험 스코어)는 <strong>15/100</strong>으로 안전 범위입니다. ACWR(급성/만성 부하 비율)은 0.95로 스위트 스팟(0.8~1.3)에 있습니다.</p>
+                        <p>주간 거리를 현재 42km에서 50km로 늘리시려면, <strong>10% 이상 급격히 늘리지 않도록</strong> 주의하세요. LSI(부하 스파이크 지수)가 1.5를 초과하면 부상 위험이 2배 이상 증가합니다.</p>
+                        <p>권장: 이번 주는 46km로 조정하고, 다음 주에 50km로 진행하세요.</p>
+                        <div class="chat-time">오전 6:36</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Input -->
+    <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+            <input type="text" class="chat-input" placeholder="AI 코치에게 질문하세요...">
+            <button class="chat-send-btn">➤</button>
+        </div>
+        <div class="quick-questions">
+            <button class="quick-question">"오늘 훈련 강도는?"</button>
+            <button class="quick-question">"내구성 지수가 떨어졌어요"</button>
+            <button class="quick-question">"마라톤 준비도 확인"</button>
+            <button class="quick-question">"FEARP 보정 방법"</button>
+        </div>
+    </div>
+</body>
+</html>

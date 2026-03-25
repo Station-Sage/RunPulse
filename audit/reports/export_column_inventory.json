@@ -1,0 +1,648 @@
+{
+  "generated": "2026-03-24T17:28:36.970407",
+  "strava_csv": {
+    "file": "activities.csv",
+    "columns": [
+      "Activity ID",
+      "Activity Date",
+      "Activity Name",
+      "Activity Type",
+      "Activity Description",
+      "Elapsed Time",
+      "Distance",
+      "Max Heart Rate",
+      "Relative Effort",
+      "Commute",
+      "Activity Private Note",
+      "Activity Gear",
+      "Filename",
+      "Athlete Weight",
+      "Bike Weight",
+      "Elapsed Time",
+      "Moving Time",
+      "Distance",
+      "Max Speed",
+      "Average Speed",
+      "Elevation Gain",
+      "Elevation Loss",
+      "Elevation Low",
+      "Elevation High",
+      "Max Grade",
+      "Average Grade",
+      "Average Positive Grade",
+      "Average Negative Grade",
+      "Max Cadence",
+      "Average Cadence",
+      "Max Heart Rate",
+      "Average Heart Rate",
+      "Max Watts",
+      "Average Watts",
+      "Calories",
+      "Max Temperature",
+      "Average Temperature",
+      "Relative Effort",
+      "Total Work",
+      "Number of Runs",
+      "Uphill Time",
+      "Downhill Time",
+      "Other Time",
+      "Perceived Exertion",
+      "Type",
+      "Start Time",
+      "Weighted Average Power",
+      "Power Count",
+      "Prefer Perceived Exertion",
+      "Perceived Relative Effort",
+      "Commute",
+      "Total Weight Lifted",
+      "From Upload",
+      "Grade Adjusted Distance",
+      "Weather Observation Time",
+      "Weather Condition",
+      "Weather Temperature",
+      "Apparent Temperature",
+      "Dewpoint",
+      "Humidity",
+      "Weather Pressure",
+      "Wind Speed",
+      "Wind Gust",
+      "Wind Bearing",
+      "Precipitation Intensity",
+      "Sunrise Time",
+      "Sunset Time",
+      "Moon Phase",
+      "Bike",
+      "Gear",
+      "Precipitation Probability",
+      "Precipitation Type",
+      "Cloud Cover",
+      "Weather Visibility",
+      "UV Index",
+      "Weather Ozone",
+      "Jump Count",
+      "Total Grit",
+      "Average Flow",
+      "Flagged",
+      "Average Elapsed Speed",
+      "Dirt Distance",
+      "Newly Explored Distance",
+      "Newly Explored Dirt Distance",
+      "Activity Count",
+      "Total Steps",
+      "Carbon Saved",
+      "Pool Length",
+      "Training Load",
+      "Intensity",
+      "Average Grade Adjusted Pace",
+      "Timer Time",
+      "Total Cycles",
+      "Recovery",
+      "With Pet",
+      "Competition",
+      "Long Run",
+      "For a Cause",
+      "With Kid",
+      "Downhill Distance",
+      "Media"
+    ],
+    "rows": 490,
+    "other_csvs": {
+      "applications.csv": {
+        "columns": [
+          "App Name",
+          "App Description"
+        ],
+        "rows": 1
+      },
+      "bikes.csv": {
+        "columns": [
+          "Bike Name",
+          "Bike Brand",
+          "Bike Model",
+          "Bike Default Sport Types"
+        ],
+        "rows": 0
+      },
+      "blocks.csv": {
+        "columns": [
+          "Blocked Athlete ID",
+          "Created At"
+        ],
+        "rows": 0
+      },
+      "clubs.csv": {
+        "columns": [
+          "Club Name",
+          "Club Description",
+          "Club Type",
+          "Club Sport",
+          "City",
+          "Country",
+          "State",
+          "Club Website",
+          "Cover Photo",
+          "Club Picture"
+        ],
+        "rows": 0
+      },
+      "comments.csv": {
+        "columns": [
+          "Comment Date",
+          "Comment"
+        ],
+        "rows": 1
+      },
+      "components.csv": {
+        "columns": [
+          "Bike Name",
+          "Component Type",
+          "Component Brand",
+          "Component Model"
+        ],
+        "rows": 0
+      },
+      "connected_apps.csv": {
+        "columns": [
+          "Enabled Application Name"
+        ],
+        "rows": 8
+      },
+      "contacts.csv": {
+        "columns": [
+          "Athlete ID",
+          "Contact Type",
+          "Contact",
+          "Contact Source",
+          "Contact Name"
+        ],
+        "rows": 0
+      },
+      "email_preferences.csv": {
+        "columns": [
+          "When someone I know joins Strava",
+          "When I achieve a new KOM/QOM/CR/LCL",
+          "When someone takes a KOM/QOM/CR/LCL from me",
+          "When I've joined, made progress on, or completed a challenge",
+          "When I complete a challenge that has a reward, donation, or an opportunity to learn more",
+          "When a friend invites me to join a club",
+          "When someone requests to join a club of which I am an administrator",
+          "When a post is added in one of my clubs",
+          "When an event is added in one of my clubs",
+          "When a friend invites me to join an event",
+          "When it is 24 hours before one of my events",
+          "When one of my events is changed or cancelled",
+          "When one of my events has a new discussion",
+          "When someone comments on an event discussion",
+          "When someone mentions me",
+          "When someone comments on my post or replies to my comment on a post",
+          "When someone kudos one of my posts",
+          "When I have new friends to follow",
+          "When my friends post interesting activities",
+          "When I have analysis available for a recent segment effort",
+          "When I upload a file that includes health data that I haven't given Strava consent to process",
+          "When someone follows / requests to follow me",
+          "Receive Follower Feed Emails",
+          "Receive an email when someone comments on one of my activities",
+          "Receive am email when someone kudos one of my activities",
+          "Receive the Strava newsletter email",
+          "When someone shares a Challenge with me",
+          "When someone shares a Route with me",
+          "When someone shares an Activity with me",
+          "When someone invites me to join a Challenge",
+          "When my request to join a club has been accepted",
+          "When Strava would like to hear my experience and learn from me through product feedback, surveys and research"
+        ],
+        "rows": 1
+      },
+      "events.csv": {
+        "columns": [
+          "Event Title",
+          "Event Description",
+          "Start Time"
+        ],
+        "rows": 0
+      },
+      "flags.csv": {
+        "columns": [
+          "Category",
+          "Flagged Type",
+          "Flagged ID",
+          "Comments",
+          "Created At"
+        ],
+        "rows": 7
+      },
+      "followers.csv": {
+        "columns": [
+          "Follower Athlete ID",
+          "Follow Status",
+          "Favorite Status"
+        ],
+        "rows": 1
+      },
+      "following.csv": {
+        "columns": [
+          "Following Athlete ID",
+          "Follow Status",
+          "Favorite Status"
+        ],
+        "rows": 1
+      },
+      "general_preferences.csv": {
+        "columns": [
+          "Date of Birth",
+          "Weight",
+          "Functional Threshold Power",
+          "Maximum Heartrate",
+          "Athlete Type",
+          "Measurement Preference",
+          "Date Preference",
+          "Chart Preference",
+          "Email Language",
+          "Pace Zone Time",
+          "Pace Zone Distance",
+          "Default Leaderboard View"
+        ],
+        "rows": 1
+      },
+      "global_challenges.csv": {
+        "columns": [
+          "Join Date",
+          "Name",
+          "Completed"
+        ],
+        "rows": 52
+      },
+      "goals.csv": {
+        "columns": [
+          "Goal Type",
+          "Activity Type",
+          "Goal",
+          "Start Date",
+          "End Date",
+          "Segment ID",
+          "Time Period",
+          "Interval Time"
+        ],
+        "rows": 7
+      },
+      "group_challenges.csv": {
+        "columns": [
+          "Join Date",
+          "Name",
+          "Completed"
+        ],
+        "rows": 0
+      },
+      "local_legend_segments.csv": {
+        "columns": [
+          "Segment ID",
+          "Segment Name"
+        ],
+        "rows": 0
+      },
+      "logins.csv": {
+        "columns": [
+          "IP Address",
+          "Login Source",
+          "Login Date & Time"
+        ],
+        "rows": 79
+      },
+      "media.csv": {
+        "columns": [
+          "Media Filename",
+          "Media Caption"
+        ],
+        "rows": 1
+      },
+      "memberships.csv": {
+        "columns": [
+          "Join Date",
+          "Club Name"
+        ],
+        "rows": 0
+      },
+      "mobile_device_identifiers.csv": {
+        "columns": [
+          "Mobile Device ID"
+        ],
+        "rows": 4
+      },
+      "orders.csv": {
+        "columns": [
+          "Order Number",
+          "Plan",
+          "Total Price",
+          "Created At"
+        ],
+        "rows": 2
+      },
+      "partner_opt_outs.csv": {
+        "columns": [
+          "Aaptiv activity treatment opt-out",
+          "Bkool activity treatment opt-out",
+          "Concept2 activity treatment opt-out",
+          "Digme activity treatment opt-out",
+          "Expresso activity treatment opt-out",
+          "Fitbod activity treatment opt-out",
+          "FitReserve activity treatment opt-out",
+          "Flywheel activity treatment opt-out",
+          "Hammerhead activity treatment opt-out",
+          "Kinomap activity treatment opt-out",
+          "Lifetime activity treatment opt-out",
+          "LiveRowing activity treatment opt-out",
+          "MindBody activity treatment opt-out",
+          "MySwimPro activity treatment opt-out",
+          "Peloton activity treatment opt-out",
+          "Polar activity treatment opt-out",
+          "PureGym activity treatment opt-out",
+          "Rouvy activity treatment opt-out",
+          "Slopes activity treatment opt-out",
+          "Suunto activity treatment opt-out",
+          "Sworkit activity treatment opt-out",
+          "Tacx activity treatment opt-out",
+          "Technogym activity treatment opt-out",
+          "Wahoo SYSTM activity treatment opt-out",
+          "TrainerRoad activity treatment opt-out",
+          "Wahoo activity treatment opt-out",
+          "WattBike activity treatment opt-out",
+          "Weav Run activity treatment opt-out",
+          "WHOOP activity treatment opt-out",
+          "Xert activity treatment opt-out",
+          "Yogaglo activity treatment opt-out",
+          "Zwift activity treatment opt-out"
+        ],
+        "rows": 1
+      },
+      "posts.csv": {
+        "columns": [
+          "Post Date",
+          "Post Summary",
+          "Post",
+          "Post URL",
+          "Photos"
+        ],
+        "rows": 0
+      },
+      "privacy_zones.csv": {
+        "columns": [
+          "Address",
+          "Radius",
+          "Latitude & Longitude"
+        ],
+        "rows": 0
+      },
+      "profile.csv": {
+        "columns": [
+          "Athlete ID",
+          "Email Address",
+          "First Name",
+          "Last Name",
+          "Sex",
+          "Description",
+          "Weight",
+          "City",
+          "State",
+          "Country",
+          "Health Consent Status",
+          "Date of Health Consent approval/denial"
+        ],
+        "rows": 1
+      },
+      "reactions.csv": {
+        "columns": [
+          "Reaction Date",
+          "Reaction Type",
+          "Parent Type",
+          "Parent ID"
+        ],
+        "rows": 22
+      },
+      "routes.csv": {
+        "columns": [
+          "Route Name",
+          "Route Filename"
+        ],
+        "rows": 4
+      },
+      "segments.csv": {
+        "columns": [
+          "Segment Name",
+          "Activity ID",
+          "Starting Latitude",
+          "Starting Longitude",
+          "Ending Latitude",
+          "Ending Longitude"
+        ],
+        "rows": 0
+      },
+      "shoes.csv": {
+        "columns": [
+          "Shoe Name",
+          "Shoe Brand",
+          "Shoe Model",
+          "Shoe Default Sport Types"
+        ],
+        "rows": 11
+      },
+      "social_settings.csv": {
+        "columns": [
+          "Facebook autoshare is enabled",
+          "Garmin popular segments enabled",
+          "Default activity highlight image",
+          "Primary club ID number",
+          "Sync contacts enabled",
+          "Do not promote my activities to my followers"
+        ],
+        "rows": 1
+      },
+      "starred_routes.csv": {
+        "columns": [
+          "Date",
+          "Route ID"
+        ],
+        "rows": 4
+      },
+      "starred_segments.csv": {
+        "columns": [
+          "Date",
+          "Segment ID"
+        ],
+        "rows": 0
+      },
+      "structured_details.csv": {
+        "columns": [
+          "Activity ID",
+          "Exercise Name",
+          "Repetitions",
+          "Duration (seconds)",
+          "Weight",
+          "Start Time (milliseconds)"
+        ],
+        "rows": 0
+      },
+      "support_tickets.csv": {
+        "columns": [
+          "Ticket ID",
+          "Ticket Created At",
+          "Message Content"
+        ],
+        "rows": 0
+      },
+      "visibility_settings.csv": {
+        "columns": [
+          "Include your activities in Metro and Heatmap",
+          "Who can see that you were part of a group activity",
+          "Who can see your activity in Flybys",
+          "Who can view your training log",
+          "Profile Visibility",
+          "Default Activity Visibility"
+        ],
+        "rows": 1
+      }
+    },
+    "activity_files": {
+      "gpx": 1,
+      "gpx_gz": 2,
+      "tcx_gz": 129,
+      "other": 355
+    }
+  },
+  "garmin_csv": {
+    "file": "garmin_running_20231029.csv",
+    "columns": [
+      "활동 종류",
+      "날짜",
+      "즐겨찾기",
+      "제목",
+      "거리",
+      "칼로리",
+      "시간",
+      "평균 심박",
+      "최대심박",
+      "유산소 훈련 효과",
+      "평균 달리기 케이던스",
+      "최고 달리기 케이던스",
+      "평균 페이스",
+      "최대 페이스",
+      "총 상승",
+      "총 하강",
+      "평균 보폭",
+      "평균 수직 비율",
+      "평균 수직 진동",
+      "평균 지면 접촉 시간",
+      "평균 GAP",
+      "평균 달리기 케이던스",
+      "최고 달리기 케이던스",
+      "Normalized Power® (NP®)",
+      "Training Stress Score®",
+      "평균 파워",
+      "최대 파워",
+      "걸음",
+      "바디 배터리 방전",
+      "최저 온도",
+      "감압",
+      "최고 랩 기록",
+      "랩 수",
+      "최고 온도",
+      "이동 시간",
+      "경과 시간",
+      "최저 해발",
+      "최고 해발"
+    ],
+    "rows": 320
+  },
+  "intervals_csv": {
+    "file": "i268037_activities.csv",
+    "columns": [
+      "id",
+      "start_date_local",
+      "name",
+      "type",
+      "moving_time",
+      "distance",
+      "elapsed_time",
+      "total_elevation_gain",
+      "max_speed",
+      "average_speed",
+      "has_heartrate",
+      "max_heartrate",
+      "average_heartrate",
+      "average_cadence",
+      "calories",
+      "device_watts",
+      "icu_average_watts",
+      "icu_normalized_watts",
+      "icu_joules",
+      "icu_intensity",
+      "icu_training_load",
+      "icu_training_load_edited",
+      "icu_rpe",
+      "pace",
+      "icu_fatigue",
+      "icu_fitness",
+      "icu_eftp",
+      "icu_variability",
+      "icu_efficiency",
+      "trainer",
+      "commute",
+      "race",
+      "sub_type",
+      "icu_ftp",
+      "icu_w_prime",
+      "p_max",
+      "threshold_pace",
+      "power_load",
+      "hr_load",
+      "pace_load",
+      "icu_resting_hr",
+      "lthr",
+      "hr_z1",
+      "hr_z2",
+      "hr_z3",
+      "hr_z4",
+      "hr_z5",
+      "hr_z6",
+      "hr_max",
+      "hr_z1_secs",
+      "hr_z2_secs",
+      "hr_z3_secs",
+      "hr_z4_secs",
+      "hr_z5_secs",
+      "hr_z6_secs",
+      "hr_z7_secs",
+      "z1_secs",
+      "z2_secs",
+      "z3_secs",
+      "z4_secs",
+      "z5_secs",
+      "z6_secs",
+      "z7_secs",
+      "sweet_spot_secs",
+      "icu_weight",
+      "icu_ignore_power",
+      "icu_ignore_hr",
+      "icu_ignore_time",
+      "icu_recording_time",
+      "icu_warmup_time",
+      "icu_cooldown_time",
+      "icu_hrrc",
+      "icu_hrrc_start_bpm",
+      "icu_power_spike_threshold",
+      "icu_pm_ftp",
+      "icu_pm_cp",
+      "icu_pm_w_prime",
+      "icu_pm_p_max",
+      "start_date",
+      "icu_sync_date",
+      "timezone",
+      "file_type",
+      "external_id",
+      "compliance",
+      "gear",
+      "description"
+    ],
+    "rows": 534
+  }
+}

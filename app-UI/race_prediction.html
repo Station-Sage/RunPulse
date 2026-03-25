@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunPulse - 레이스 예측 (DARP)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
+        
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .back-btn { font-size: 24px; margin-right: 20px; cursor: pointer; }
+        .header-title { font-size: 20px; font-weight: bold; }
+        
+        /* Race Selector */
+        .race-selector {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .selector-title {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.7);
+        }
+        .race-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        .race-option {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .race-option:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .race-option.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .race-option-icon { font-size: 32px; margin-bottom: 8px; }
+        .race-option-name { font-size: 14px; font-weight: 600; }
+        .race-option-dist { font-size: 12px; color: rgba(255,255,255,0.6); }
+        
+        /* Prediction Result */
+        .prediction-result {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.1));
+            border-radius: 24px;
+            padding: 32px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            text-align: center;
+        }
+        .prediction-title {
+            font-size: 16px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 16px;
+        }
+        .prediction-time {
+            font-size: 56px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 16px 0;
+        }
+        .prediction-pace {
+            font-size: 20px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 24px;
+        }
+        
+        .prediction-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .prediction-stat {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+        }
+        .prediction-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        .prediction-stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        /* Durability Index */
+        .di-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .di-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .di-title {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .di-score {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .di-chart {
+            height: 120px;
+            background: linear-gradient(90deg, 
+                rgba(0, 255, 136, 0.3) 0%, 
+                rgba(0, 255, 136, 0.3) 85%, 
+                rgba(255, 170, 0, 0.3) 85%, 
+                rgba(255, 170, 0, 0.3) 100%);
+            border-radius: 12px;
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .di-marker {
+            position: absolute;
+            top: -10px;
+            width: 4px;
+            height: 140px;
+            background: #fff;
+            border-radius: 2px;
+        }
+        .di-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        /* Pace Strategy */
+        .pace-strategy {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .strategy-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .strategy-title::before {
+            content: '';
+            width: 4px; height: 20px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 2px;
+        }
+        
+        .pace-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .pace-segment {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .segment-range {
+            width: 80px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+        .segment-bar {
+            flex: 1;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .segment-fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .segment-fill.green { background: linear-gradient(90deg, #00ff88, #00aa88); }
+        .segment-fill.yellow { background: linear-gradient(90deg, #ffaa00, #cc8800); }
+        .segment-fill.red { background: linear-gradient(90deg, #ff4444, #cc3333); }
+        
+        /* Hitting the Wall */
+        .htw-section {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 170, 0, 0.1));
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+        .htw-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .htw-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff4444;
+        }
+        .htw-probability {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .htw-description {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+        }
+        
+        /* Training Plan Adjust */
+        .training-adjust {
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .adjust-title {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        .adjust-content {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .adjust-btn {
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border: none;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .adjust-btn:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="back-btn">←</span>
+            <span class="header-title">레이스 예측 (DARP)</span>
+        </div>
+        
+        <!-- Race Selector -->
+        <div class="race-selector">
+            <div class="selector-title">목표 레이스 선택</div>
+            <div class="race-options">
+                <div class="race-option">
+                    <div class="race-option-icon">🏃</div>
+                    <div class="race-option-name">5K</div>
+                    <div class="race-option-dist">5km</div>
+                </div>
+                <div class="race-option">
+                    <div class="race-option-icon">🏃</div>
+                    <div class="race-option-name">10K</div>
+                    <div class="race-option-dist">10km</div>
+                </div>
+                <div class="race-option active">
+                    <div class="race-option-icon">🏃</div>
+                    <div class="race-option-name">하프마라톤</div>
+                    <div class="race-option-dist">21.0975km</div>
+                </div>
+                <div class="race-option">
+                    <div class="race-option-icon">🏃</div>
+                    <div class="race-option-name">마라톤</div>
+                    <div class="race-option-dist">42.195km</div>
+                </div>
+                <div class="race-option">
+                    <div class="race-option-icon">⚙️</div>
+                    <div class="race-option-name">커스텀</div>
+                    <div class="race-option-dist">직접 입력</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Prediction Result -->
+        <div class="prediction-result">
+            <div class="prediction-title">예상 완료 시간</div>
+            <div class="prediction-time">1:45:30</div>
+            <div class="prediction-pace">평균 페이스: 5:00/km</div>
+            
+            <div class="prediction-stats">
+                <div class="prediction-stat">
+                    <div class="prediction-stat-label">5K 스플릿</div>
+                    <div class="prediction-stat-value" style="color: #00ff88;">24:30</div>
+                </div>
+                <div class="prediction-stat">
+                    <div class="prediction-stat-label">10K 스플릿</div>
+                    <div class="prediction-stat-value" style="color: #00ff88;">49:00</div>
+                </div>
+                <div class="prediction-stat">
+                    <div class="prediction-stat-label">15K 스플릿</div>
+                    <div class="prediction-stat-value" style="color: #ffaa00;">1:14:30</div>
+                </div>
+                <div class="prediction-stat">
+                    <div class="prediction-stat-label">예상 순위</div>
+                    <div class="prediction-stat-value" style="color: #00d4ff;">상위 15%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Durability Index -->
+        <div class="di-section">
+            <div class="di-header">
+                <div class="di-title">
+                    <span>💪</span>
+                    <span>내구성 지수 (DI)</span>
+                </div>
+                <div class="di-score">85/100</div>
+            </div>
+            <div class="di-chart">
+                <div class="di-marker" style="left: 85%;"></div>
+            </div>
+            <div class="di-labels">
+                <span>부족</span>
+                <span>양호</span>
+                <span>우수</span>
+            </div>
+            <p style="margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.7);">
+                최근 4주간 90분 이상 세션 데이터를 분석한 결과, 내구성이 양호합니다.
+                마라톤 후반부 페이스 저하율은 약 5%로 예상됩니다.
+            </p>
+        </div>
+        
+        <!-- Pace Strategy -->
+        <div class="pace-strategy">
+            <div class="strategy-title">페이스 전략</div>
+            <div class="pace-timeline">
+                <div class="pace-segment">
+                    <div class="segment-range">0-5km</div>
+                    <div class="segment-bar">
+                        <div class="segment-fill green" style="width: 100%;">5:00/km</div>
+                    </div>
+                </div>
+                <div class="pace-segment">
+                    <div class="segment-range">5-10km</div>
+                    <div class="segment-bar">
+                        <div class="segment-fill green" style="width: 100%;">5:00/km</div>
+                    </div>
+                </div>
+                <div class="pace-segment">
+                    <div class="segment-range">10-15km</div>
+                    <div class="segment-bar">
+                        <div class="segment-fill yellow" style="width: 100%;">5:05/km</div>
+                    </div>
+                </div>
+                <div class="pace-segment">
+                    <div class="segment-range">15-21km</div>
+                    <div class="segment-bar">
+                        <div class="segment-fill yellow" style="width: 100%;">5:10/km</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hitting the Wall -->
+        <div class="htw-section">
+            <div class="htw-header">
+                <div class="htw-title">⚠️ 히팅 더 월 (Hitting the Wall) 위험</div>
+                <div class="htw-probability">15%</div>
+            </div>
+            <div class="htw-description">
+                내구성 지수(DI)가 85/100으로 양호하여, 마라톤 후반부 급격한 체력 고갈 위험은 낮습니다.
+                그러나 30km 이후 페이스 전략을 준수하고, 적절한 수분/탄수화물 보충이 필요합니다.
+            </div>
+        </div>
+        
+        <!-- Training Plan Adjust -->
+        <div class="training-adjust">
+            <div class="adjust-title">🎯 훈련 플랜 조정 권장</div>
+            <div class="adjust-content">
+                목표 완료 시간(1:45:30) 달성을 위해 다음과 같은 훈련 조정이 권장됩니다:<br><br>
+                • 주간 장거리 훈련 거리를 현재 15km에서 18km로 증가<br>
+                • tempo run 주 1회 추가 (목표 페이스 5:00/km)<br>
+                • 내구성 지수(DI)를 90점 이상으로 향상 목표<br>
+                • 3주 전부터 테이퍼링(tapering) 시작
+            </div>
+            <button class="adjust-btn">훈련 플랜에 반영하기</button>
+        </div>
+    </div>
+</body>
+</html>

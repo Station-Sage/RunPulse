@@ -1,0 +1,173 @@
+================================================================================
+  STEP 2 — API 필드 실측 검증 최종 리포트
+================================================================================
+
+■ 감사 파일 현황
+  ✓ api_field_audit                 있음          54,016 bytes
+  ✓ garmin_field_audit              있음          55,635 bytes
+  ✓ unused_api_garmin               있음          91,437 bytes
+  ✓ unused_api_strava               있음           5,077 bytes
+  ✓ unused_api_intervals            있음          71,593 bytes
+
+■ STRAVA  —  총 10개 엔드포인트  (성공 10 / 실패 0)
+  엔드포인트                                              상태            키/항목수
+  -------------------------------------------------- -------- ----------
+  [기본] activity_detail                               OK               73
+  [기본] activity_summary                              OK               57
+  [기본] streams                                       OK                2
+  [기본] zones                                         OK                1
+  [미사용] activity_comments                            OK                0
+  [미사용] activity_kudos                               OK                0
+  [미사용] activity_laps                                OK                3
+  [미사용] athlete_profile                              OK               19
+  [미사용] athlete_stats                                OK                9
+  [미사용] gear_detail                                  OK               12
+
+■ GARMIN  —  총 48개 엔드포인트  (성공 48 / 실패 0)
+  엔드포인트                                              상태            키/항목수
+  -------------------------------------------------- -------- ----------
+  [기본] activity_detail                               OK               13
+  [기본] activity_summary                              OK              102
+  [기본] hr_zones                                      OK                5
+  [기본] splits                                        OK                3
+  [기본] weather                                       OK               13
+  [기본] wellness_body_battery                         OK                1
+  [기본] wellness_body_composition                     OK                4
+  [기본] wellness_hrv                                  OK               11
+  [기본] wellness_max_metrics                          OK                0
+  [기본] wellness_respiration                          OK               24
+  [기본] wellness_rhr                                  OK                5
+  [기본] wellness_sleep                                OK               24
+  [기본] wellness_spo2                                 OK               26
+  [기본] wellness_stress                               OK               14
+  [기본] wellness_training_readiness                   OK                1
+  [미사용] activities_by_date                           OK                3
+  [미사용] activity_details                             OK               10
+  [미사용] activity_exercise_sets                       OK                2
+  [미사용] activity_gear                                OK                1
+  [미사용] activity_power_zones                         OK                3
+  [미사용] activity_split_summaries                     OK                3
+  [미사용] activity_typed_splits                        OK                3
+  [미사용] activity_types                               OK                3
+  [미사용] all_day_stress                               OK               14
+  [미사용] body_battery_events                          OK                3
+  [미사용] daily_weigh_ins                              OK                4
+  [미사용] device_last_used                             OK                8
+  [미사용] devices                                      OK                1
+  [미사용] endurance_score                              OK               16
+  [미사용] fitnessage                                   OK                6
+  [미사용] heart_rates                                  OK               12
+  [미사용] hill_score                                   OK               11
+  [미사용] intensity_minutes                            OK               17
+  [미사용] lactate_threshold                            OK                2
+  [미사용] personal_records                             OK                3
+  [미사용] primary_training_device                      OK                5
+  [미사용] progress_summary                             OK                1
+  [미사용] race_predictions                             OK                8
+  [미사용] running_tolerance                            OK                0
+  [미사용] stats                                        OK               94
+  [미사용] stats_and_body                               OK              105
+  [미사용] steps_data                                   OK                3
+  [미사용] training_status                              OK                5
+  [미사용] user_profile                                 OK                6
+  [미사용] user_summary                                 OK               94
+  [미사용] weekly_intensity_mins                        OK                2
+  [미사용] weekly_steps                                 OK                3
+  [미사용] weekly_stress                                OK                3
+
+■ INTERVALS.ICU  —  총 35개 엔드포인트  (성공 32 / 실패 3)
+  엔드포인트                                              상태            키/항목수
+  -------------------------------------------------- -------- ----------
+  [기본] activity_detail                               OK                1
+  [기본] activity_list_item                            OK              173
+  [기본] power_curve                                   OK                1
+  [기본] streams                                       OK                1
+  [기본] wellness                                      OK               46
+  [미사용] activity_best_efforts                        FAIL              0
+  [미사용] activity_detail                              OK              173
+  [미사용] activity_gap_histogram                       OK                3
+  [미사용] activity_hr_curve                            OK               18
+  [미사용] activity_hr_histogram                        OK                3
+  [미사용] activity_hr_load_model                       OK                8
+  [미사용] activity_intervals                           OK                4
+  [미사용] activity_map                                 OK                4
+  [미사용] activity_pace_curve                          OK               20
+  [미사용] activity_pace_histogram                      OK                3
+  [미사용] activity_power_curve                         OK               31
+  [미사용] activity_power_histogram                     OK                3
+  [미사용] activity_power_vs_hr                         OK               19
+  [미사용] activity_segments                            OK                0
+  [미사용] activity_streams                             OK                3
+  [미사용] activity_time_at_hr                          OK                4
+  [미사용] activity_weather                             OK               34
+  [미사용] athlete_activity_tags                        OK                3
+  [미사용] athlete_gear                                 OK                3
+  [미사용] athlete_hr_curves                            OK                2
+  [미사용] athlete_pace_curves                          OK                2
+  [미사용] athlete_power_curves                         FAIL              0
+  [미사용] athlete_power_hr_curve                       FAIL              0
+  [미사용] athlete_profile                              OK              158
+  [미사용] athlete_routes                               OK                0
+  [미사용] athlete_sport_run                            OK               61
+  [미사용] athlete_sport_settings                       OK                3
+  [미사용] athlete_weather_config                       OK                1
+  [미사용] athlete_weather_forecast                     OK                1
+  [미사용] wellness_yesterday                           OK               46
+
+■ 데이터 카테고리별 가용성 매트릭스
+
+  카테고리                      Strava                    Garmin                    Intervals.icu            
+  ------------------------- ------------------------- ------------------------- -------------------------
+  기본 (거리/시간/칼로리)            summary+detail            summary+detail            activity_detail          
+  심박 (평균/최대/zones)          detail+streams            summary+zones             detail+zones             
+  페이스/속도                    detail+streams            summary+splits            detail+streams           
+  파워 (watts)                detail+streams            summary+zones             detail+streams+zones     
+  케이던스                      detail+streams            summary                   detail+streams           
+  고도/경사                     detail+streams            summary+detail            detail+streams           
+  GPS 좌표                    streams(latlng)           detail(GPS)               streams+map              
+  랩/스플릿                     laps API                  splits API                intervals+laps           
+  Best Efforts              detail.best_efforts       personal_records          best_efforts             
+  훈련 부하/효과                  suffer_score              training_effect           load+TRIMP+HRSS          
+  VO2max                    ✗                         max_metrics               ✗                        
+  러닝 다이내믹스                  ✗                         detail(GCT,VO)            detail(GCT,VO)           
+  날씨                        ✗                         weather API               weather API              
+  장비/기어                     gear_detail               activity_gear             gear                     
+  수면                        ✗                         sleep API                 wellness                 
+  HRV                       ✗                         hrv API                   wellness                 
+  Body Battery              ✗                         body_battery              ✗                        
+  스트레스                      ✗                         stress API                wellness(stress)         
+  SpO2                      ✗                         spo2 API                  ✗                        
+  Training Readiness        ✗                         training_readiness        ✗                        
+  체성분                       ✗                         body_composition          wellness(weight)         
+  안정시 심박                    ✗                         rhr API                   wellness(restingHR)      
+  Race Predictions          ✗                         race_predictions          ✗                        
+  Endurance/Hill Score      ✗                         endurance+hill            ✗                        
+  Lactate Threshold         ✗                         lactate_threshold         ✗                        
+  시계열 스트림                   11 streams                FIT files                 activity_streams         
+  프로필/통계                    athlete+stats             user_summary+stats        athlete_profile          
+
+■ 서비스별 고유 필드 수 (API 기준)
+  Strava:       15
+  Garmin:       70
+  Intervals:    (구조 파싱 필요)
+
+■ 엔드포인트별 총 키/항목 수 (raw 기반 합산)
+  STRAVA: 176 keys/items (OK 엔드포인트 합산)
+  GARMIN: 700 keys/items (OK 엔드포인트 합산)
+  INTERVALS.ICU: 832 keys/items (OK 엔드포인트 합산)
+
+■ Step 2 결론 및 Step 3 진행 사항
+
+  [완료] 3개 서비스 API 실측 검증
+    • Strava: 기본 4 + 미사용 6 = 총 10 엔드포인트 검증
+    • Garmin: 기본 15 + 미사용 33 = 총 48 엔드포인트 검증
+    • Intervals: 기본 5 + 미사용 30 = 총 35 엔드포인트 검증
+
+  [Step 3 → 슈퍼셋 스키마 정의]
+    1. 위 매트릭스 기반으로 테이블 구조 설계
+    2. activities 테이블: 공통 + 서비스별 고유 컬럼
+    3. activity_laps: 랩/스플릿 정규화
+    4. activity_streams: 시계열 데이터 (GPS, HR, power, cadence...)
+    5. wellness_daily: 수면, HRV, stress, body_battery 등
+    6. athlete_profile/stats: 프로필, 누적 통계
+    7. gear: 장비 추적
