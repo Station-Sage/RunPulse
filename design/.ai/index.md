@@ -9,12 +9,12 @@
 
 | 항목 | 내용 |
 |------|------|
-| 현재 버전 | v0.2 개발 중 — Sprint 6 진행 중 |
-| 작업 브랜치 | `claude/start-session-aiXbW` (dev 기반) |
+| 현재 버전 | v0.2 개발 중 — Sprint 6 후반 |
+| 작업 브랜치 | `claude/sprint6-settings-refactor` (dev 기반) |
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
-| 현재 테스트 | **717개 수집** (fitparse 미설치 환경 6개 collect error 별개) |
-| 완료 | Phase 0~5 · Sprint 4A~4C · Sprint 5A~5F · Sprint 6 V2-8-1a/V2-9-3/V2-9-4/B-1~B-3 |
-| 다음 작업 | V2-9-5 `/dev` 탭 등록 · A 탭/화면 구성 정리 (wellness/race 배치 결정) |
+| 현재 테스트 | **792개 통과** (gpxpy 미설치 2개 collect error 별개) |
+| 완료 | Phase 0~7 · Sprint 4A~5F · Sprint 6 전체 (V2-8-1b/V2-9-3~V2-9-5/V2-9-10~11/B-1~B-3) |
+| 다음 작업 | V2-9-6 통합 테스트 · V2-9-7 리다이렉트 · 탭 UI 리뉴얼 |
 
 ---
 

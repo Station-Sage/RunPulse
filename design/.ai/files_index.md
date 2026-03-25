@@ -91,13 +91,13 @@
 | `views_report.py` | GET /report | — |
 | `views_report_sections.py` | 레포트 하위 섹션 | 358 ⚠️ |
 | `views_race.py` | GET /race | 225 |
-| `views_ai_coach.py` | GET /ai-coaching | 204 |
+| `views_ai_coach.py` | GET /ai-coach (브리핑+칩+웰니스) | 254 |
 | `views_wellness.py` | GET /wellness | 250 |
 | `views_import.py` | GET/POST /import/strava-archive | — |
 | `views_settings.py` | GET /settings + POST /settings/profile | 941 ⚠️ |
-| `views_training.py` | GET /training (스캐폴딩) (신규) | — |
-| `views_dev.py` | GET /dev (개발자 탭, 조건부) (신규) | — |
-| `views_export_import.py` | CSV 임포트/내보내기 | — |
+| `views_training.py` | GET /training + POST /training/generate | 299 |
+| `views_dev.py` | GET /dev (개발자 탭, dev_mode 조건부) | — |
+| `views_export_import.py` | CSV 임포트/내보내기 (lazy import) | 233 |
 | `views_shoes.py` | /shoes | — |
 
 ## ✅ src/services/
@@ -168,7 +168,7 @@
 | `views_settings.py` | 941 | 설정 허브 고도화로 증가 — v0.3 이후 검토 |
 | `views_activities.py` | 1024 | 필터링/정렬 복잡도 — v0.3 이후 검토 |
 | `views_report_sections.py` | 358 | 섹션별 분리 가능하나 현재 허용 |
-| `db_setup.py` | 1026 | 마이그레이션 분리 — v0.3 이후 검토 |
+| `db_setup.py` | 742 | 마이그레이션 시스템 추가 (PRAGMA user_version + ALTER TABLE) |
 
 ## ✅ B-1 리팩토링 완료 (2026-03-25)
 
