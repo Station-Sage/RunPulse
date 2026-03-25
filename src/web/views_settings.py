@@ -388,8 +388,12 @@ def garmin_connect_post():
     """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트, MFA 2단계 지원)."""
     import threading
     import time as _time
-    import garth as _garth
-    from garth import sso as _sso
+    try:
+        import garth as _garth
+        from garth import sso as _sso
+    except ImportError:
+        _garth = None  # type: ignore[assignment]
+        _sso = None  # type: ignore[assignment]
 
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "").strip()
@@ -408,6 +412,10 @@ def garmin_connect_post():
         return redirect("/connect/garmin?msg=" + urllib.parse.quote("저장 완료. 다음 sync 시 자동 로그인됩니다."))
 
     # ── save_and_test: garth sso로 로그인 시도 ──
+    if _garth is None or _sso is None:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "garth 라이브러리가 설치되지 않았습니다. pip install garth"))
+
     config = load_config()
     _pw = password or config.get("garmin", {}).get("password", "")
     if not _pw:
@@ -496,8 +504,12 @@ def garmin_mfa_view():
 @settings_bp.post("/connect/garmin/mfa")
 def garmin_mfa_submit():
     """Garmin MFA 코드 제출 → 로그인 완료."""
-    from garth import sso as _sso
-    import garth as _garth
+    try:
+        from garth import sso as _sso
+        import garth as _garth
+    except ImportError:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "garth 라이브러리가 설치되지 않았습니다."))
 
     key = request.form.get("key", "")
     mfa_code = request.form.get("mfa_code", "").strip()
