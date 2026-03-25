@@ -622,6 +622,12 @@ def html_page(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192-maskable.png">
   <title>{_html.escape(title)} — RunPulse</title>
   {_FONTS_CDN}
   <style>{_CSS}</style>
@@ -638,6 +644,9 @@ def html_page(
   </main>
   {bottom}
   <script>{_SYNC_JS}</script>
+  <script>
+  if('serviceWorker' in navigator){{navigator.serviceWorker.register('/static/sw.js').catch(function(){{}});}}
+  </script>
 </body>
 </html>"""
 

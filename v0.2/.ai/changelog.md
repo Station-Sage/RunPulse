@@ -2,6 +2,58 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.3-perf] 2026-03-25
+
+### DB 쿼리 성능 최적화
+
+**신규 파일:**
+- `src/web/views_perf.py`: 배치 로더 4개 + TTL 캐시 (30초)
+  - `load_metrics_batch()`: 여러 일별 메트릭 1쿼리 로드 (기존 개별 6~9회 → 1회)
+  - `load_metrics_json_batch()`: 여러 JSON 메트릭 1쿼리 로드 (기존 3회 → 1회)
+  - `load_activity_metrics_batch()`: N+1 제거 — 활동 ID 리스트로 IN절 1쿼리
+  - `load_darp_batch()`: DARP 4거리 1쿼리 로드 (기존 루프 4회 → 1회)
+  - `cached_page()`: 페이지별 TTL 캐시, `invalidate_cache()` 무효화
+
+**대시보드 최적화** (`views_dashboard.py`):
+- `_load_metric()` 7회 + `_load_metric_json()` 4회 → `load_metrics_batch` 2회
+- `_load_recent_activities()` N+1 (5×2=10쿼리) → `load_activity_metrics_batch` 1회
+- `_load_darp_data()` 루프 4회 → `load_darp_batch` 1회
+- 페이지 TTL 캐시 적용 (30초)
+- **예상: 25~30쿼리 → 8~10쿼리 (70% 감소)**
+
+**레포트 최적화** (`views_report.py`):
+- `_load_activity_metrics()` N+1 (15×1=15쿼리) → `load_activity_metrics_batch` 1회
+- **예상: 15쿼리 → 1쿼리**
+
+**테스트:** 904개 통과 (신규 14개: 배치 로더 10 + 캐시 4)
+
+---
+
+## [v0.3-pwa] 2026-03-25
+
+### PWA 인프라 구현
+
+**신규 파일:**
+- `static/manifest.json`: PWA 매니페스트 (standalone, theme #1a1a2e, 아이콘 4종)
+- `static/sw.js`: Service Worker — Cache First (CDN/정적), Network First (HTML→offline fallback, API)
+- `static/offline.html`: 오프라인 폴백 페이지 (다크 테마, 재시도 버튼)
+- `static/icons/`: icon-192.png, icon-512.png, icon-192-maskable.png, icon-512-maskable.png (플레이스홀더)
+- `tests/test_pwa.py`: 15개 테스트 (정적 파일, 메타 태그, 매니페스트 무결성)
+
+**수정:**
+- `src/web/app.py`: Flask static_folder를 프로젝트 루트 `static/`으로 설정
+- `src/web/helpers.py`: html_page()에 PWA 메타 태그 (theme-color, manifest, apple-touch-icon) + SW 등록 스크립트
+- `templates/base.html`: 동일 PWA 메타 태그 + SW 등록 (Jinja2 경로)
+
+**SW 캐시 전략:**
+- `cacheFirst`: CDN (ECharts, Google Fonts), 정적 파일
+- `networkFirstHtml`: HTML 페이지 → 캐시 → offline.html 폴백
+- `networkFirst`: API/기타
+
+**테스트:** 890개 수집 (PWA 15개 추가)
+
+---
+
 ## [v0.2-training-ui] 2026-03-25
 
 ### 6.7 Training Plan UI 재설계

@@ -131,7 +131,12 @@ def _auto_migrate() -> None:
 
 
 def create_app() -> Flask:
-    app = Flask(__name__, template_folder=str(_project_root() / "templates"))
+    app = Flask(
+        __name__,
+        template_folder=str(_project_root() / "templates"),
+        static_folder=str(_project_root() / "static"),
+        static_url_path="/static",
+    )
     app.secret_key = "runpulse-local-dev"  # 로컬 전용, 상업용 아님
     _auto_migrate()
 

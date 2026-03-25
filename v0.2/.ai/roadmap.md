@@ -24,7 +24,7 @@
 
 ### 인프라
 - 인증/로그인 시스템 (bcrypt, 세션)
-- PWA (오프라인, service worker)
+- ~~PWA (오프라인, service worker)~~ ✅ 완료
 - REST API (`/api/v1/*`)
 - DB 정규화, 멀티유저 강화
 
