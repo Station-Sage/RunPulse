@@ -108,15 +108,15 @@
 | `views_dashboard_cards.py` | 대시보드 카드 (기존+신규 4개 렌더러) | ~530 |
 | `views_dashboard_loaders.py` | 대시보드 신규 로더 (웰니스/주간/추세/리스크7일) | 119 |
 | `views_report.py` | GET /report (8섹션 오케스트레이션) | 265 |
-| `views_report_sections.py` | 레포트 기존 섹션 (TIDS/TRIMP/Risk/DARP/Fitness/AI) | 551 ⚠️ |
+| `views_report_sections.py` | 레포트 기존 섹션 (TIDS/TRIMP+비교선/Risk/DARP/Fitness/AI) | 566 ⚠️ |
 | `views_report_loaders.py` | 레포트 신규 로더 (질/리스크/폼/웰니스 시리즈) | 155 |
 | `views_report_charts.py` | 레포트 신규 차트 (질/TIDS주간/리스크/폼/컨디션) | 285 |
 | `views_race.py` | GET /race (6섹션 오케스트레이션) | ~340 |
-| `views_race_enhanced.py` | 레이스 신규 로더+렌더러 (추세/준비요소/목표갭/DI해석/해설) | 293 |
+| `views_race_enhanced.py` | 레이스 신규 로더+렌더러 (추세/준비요소/목표갭+훈련권장/DI해석/해설) | 307 |
 | `views_ai_coach.py` | GET /ai-coach | 254 |
 | `views_ai_coach_cards.py` | AI 코칭 카드 분리 | — |
 | `views_wellness.py` | GET /wellness (9섹션 보강) | ~370 |
-| `views_wellness_enhanced.py` | 웰니스 신규 로더+렌더러 (대시/패턴/주간비교/미니차트) | 283 |
+| `views_wellness_enhanced.py` | 웰니스 신규 로더+렌더러 (대시/패턴/주간비교/미니차트/해설/수면시간/이상치/패턴권장) | 557 ⚠️ |
 | `views_import.py` | GET/POST /import/strava-archive | — |
 | `views_settings.py` | GET /settings | 941 ⚠️ |
 | `views_settings_hub.py` | sync 상태/시스템 정보 카드 | — |
