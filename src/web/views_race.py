@@ -10,6 +10,12 @@ from src.web.helpers import (
     html_page, no_data_card, fmt_pace, fmt_duration, db_path,
     metric_row, render_sub_nav, svg_semicircle_gauge,
 )
+from src.web.views_race_enhanced import (
+    load_prediction_trend, load_fitness_factors,
+    render_goal_gap, render_prediction_trend_chart,
+    render_fitness_factors_chart, render_di_interpretation,
+    render_metric_glossary,
+)
 
 race_bp = Blueprint("race", __name__)
 
@@ -247,6 +253,11 @@ def race_page():
             pace_sec = darp_json.get("avg_pace_sec") if darp_json else None
             darp_key = _KM_TO_DARP_KEY.get(active_km, f"DARP_{active_km}")
             history = _load_prediction_history(conn, darp_key)
+
+            # Enhanced sections
+            trend = load_prediction_trend(conn, darp_key)
+            factors = load_fitness_factors(conn)
+
             body = (
                 render_sub_nav("race")
                 + '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
@@ -254,12 +265,25 @@ def race_page():
                 'border-bottom:1px solid rgba(255,255,255,0.1)">'
                 '<span style="font-size:20px;font-weight:bold">레이스 예측 (DARP)</span></div>'
                 + _render_distance_selector(active_km)
+                # §1: 예측 + 목표 갭
                 + _render_prediction_card(darp_val, darp_json, pace_sec)
-                + _render_di_card(di_val, di_json)
+                + render_goal_gap(darp_val, active_km,
+                                  vdot=darp_json.get("vdot") if darp_json else None,
+                                  di_val=di_val)
+                # §2: 예측 추세
+                + render_prediction_trend_chart(trend)
+                # §3: 준비 요소
+                + render_fitness_factors_chart(factors)
+                # §4: 페이스 전략 + DI + DI 해석
                 + _render_pace_strategy(darp_json)
+                + _render_di_card(di_val, di_json)
+                + render_di_interpretation(di_val)
+                # §5: HTW + 훈련 조정 + 이력
                 + _render_htw_card(darp_json)
                 + _render_training_adjust(darp_json)
                 + _render_prediction_history(history)
+                # §6: 메트릭 해설
+                + render_metric_glossary()
                 + '</div>'
             )
         finally:

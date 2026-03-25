@@ -18,7 +18,7 @@ from .helpers import (
     readiness_badge,
     safe_str,
 )
-from .views_activity_cards import _fmt_int, _fmt_float1, _fmt_min_sec
+from .views_activity_cards_common import fmt_int as _fmt_int, fmt_float1 as _fmt_float1, fmt_min_sec as _fmt_min_sec
 
 
 def _render_garmin_daily_detail(detail: dict, act_date: str) -> str:
@@ -419,13 +419,13 @@ def _render_service_tabs(
 
     tab_keys_js = ",".join(f"'{t[0]}'" for t in active_tabs)
     return (
-        "<div class='card' style='padding:0.8rem 1rem;'>"
-        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;'>"
-        "<h2 style='margin:0;font-size:1rem;'>서비스 데이터</h2>"
+        "<details class='card' style='padding:0.8rem 1rem;'>"
+        "<summary style='cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;'>"
+        "<h2 style='margin:0;font-size:1rem;'>서비스 원본 데이터 ▸</h2>"
         f"<div style='display:flex;gap:4px;flex-wrap:wrap;'>{''.join(btns)}</div>"
-        "</div>"
+        "</summary>"
         + "".join(panels)
-        + "</div>"
+        + "</details>"
         "<script>"
         f"var _svcTabKeys=[{tab_keys_js}];"
         "function switchSvcTab(t){"

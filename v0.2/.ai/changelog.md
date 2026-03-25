@@ -2,6 +2,129 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.2-ui-gap-fix] 2026-03-25
+
+### UI 스펙 갭 해소 — 8건 구현
+
+**웰니스 (#1~#5):**
+- `views_wellness_enhanced.py`: `render_wellness_glossary` (HRV/BB/SDNN/Training Readiness 접이식 해설), `render_sleep_time_pattern` (평균 취침/기상 시각), `build_outlier_mark_points` (이상치 빨간 점 markPoint), `build_pattern_recovery_tips` (패턴→회복 권장 연동), `load_sleep_times` (취침/기상 timestamp 로더), `_baseline_badge` 확장 (BB/수면/스트레스/RHR 14일 평균 기준 배지)
+- `views_wellness.py`: 신규 import 통합, `_render_sleep_card`에 시간대 패턴 추가, 라우트에서 sleep_times/outlier_points/pattern_tips 로드, `_render_recovery_recommendation`에 패턴 권장 연동, `render_wellness_glossary` 최하단 삽입
+
+**레포트 (#6):**
+- `views_report_sections.py`: `render_trimp_weekly_chart`에 이전 기간 비교선 (회색 점선) 오버레이 추가
+- `views_report.py`: 이전 기간 TRIMP 로드 후 차트에 전달
+
+**레이스 (#7):**
+- `views_race_enhanced.py`: `render_goal_gap`에 목표 갭 기반 구체적 훈련 권장 (VDOT 향상 필요량/DI 연동) JS 추가
+- `views_race.py`: vdot/di_val을 goal_gap에 전달
+
+**활동 상세 (#8):**
+- `views_activity_g2_performance.py`: ADTI 스텁 버그 수정 — `day_metrics`에서 ADTI 값 로드
+- `views_activity.py`: `render_group2_performance`에 `day_metrics_data` 전달
+
+**테스트:** 884개 통과
+
+---
+
+## [v0.2-ui-redesign] 2026-03-25
+
+### UI-R5: 레이스 예측 보강 — 6개 섹션 추가
+
+**신규 파일:**
+- `views_race_enhanced.py` (293줄): 로더 2개 (DARP/VDOT 12주 추세, DI/MarathonShape/EF 12주 추세) + 렌더러 5개 (목표 갭 계산기, 예측 추세 ECharts, 준비 요소 ECharts, DI 해석 배지, 메트릭 해설 접이식)
+
+**수정:**
+- `views_race.py`: 신규 import 통합, 라우트 body에 6개 섹션 삽입 — 목표 갭(예측 카드 아래), 예측 추세 차트, 준비 요소 차트, DI 해석(DI 카드 아래), 메트릭 해설(최하단)
+
+**6개 섹션:** 예측+목표갭 → 예측추세차트(신규) → 준비요소차트(신규) → 페이스전략+DI+DI해석(신규) → HTW+훈련조정+이력 → 메트릭해설(신규)
+
+**테스트:** 884개 통과
+
+---
+
+### UI-R4: 웰니스 보강 — 9개 섹션 구조
+
+**신규 파일:**
+- `views_wellness_enhanced.py` (283줄): 로더 3개 (14일 웰니스, HRV 기준선, 주간 비교) + 렌더러 6개 (핵심 지표 대시, 7일 차트+기준선 밴드, 수면 미니 바, HRV 미니 차트+해석, 패턴 인사이트, 주간 비교 테이블)
+
+**수정:**
+- `views_wellness.py`: 신규 import 통합, `_render_sleep_card`/`_render_hrv_card`에 미니차트 추가, `_render_wellness_body` 9섹션 재구성 (핵심대시+패턴+주간비교 삽입), 라우트에서 신규 로더 호출
+
+**9개 섹션:** 오늘상태 → 핵심지표대시(신규) → 수면+HRV상세(미니차트 보강) → 패턴인사이트(신규) → 주간비교(신규) → 기타+활동 → 7일차트(기준선밴드) → 회복권장 → 14일추세
+
+**테스트:** 884개 통과
+
+---
+
+### UI-R3: 레포트 재설계 — 8개 섹션 구조
+
+**신규 파일:**
+- `views_report_loaders.py` (155줄): 이전 기간 통계, 훈련 질(EF/Dec/VO2Max) 시리즈, 리스크(ACWR/Mono/Strain) 시리즈, 폼(RMR/GCT/수직비율/보폭) 시리즈, 웰니스(HRV/수면/BB/스트레스/안정심박) 시리즈, 주간 TIDS
+- `views_report_charts.py` (285줄): 6개 신규 렌더러 — `render_summary_delta` (이전 기간 대비 델타 행), `render_training_quality_chart` (EF/Dec/VO2Max 3라인 ECharts), `render_tids_weekly_chart` (주간 z12/z3/z45 스택 바), `render_risk_trend_chart` (ACWR+Mono+Strain 차트 + sweet spot 밴드), `render_form_trend` (RMR 레이더 시작/끝 비교 + GCT/수직비율/보폭 라인), `render_wellness_trend_chart` (HRV/수면/BB/스트레스/안정심박 + 기간 평균)
+
+**수정:**
+- `views_report.py` (265줄): 8섹션 순서 재작성 — 기간요약+델타 → 볼륨 → 훈련질(신규) → 분포+주간TIDS(신규) → 리스크차트(신규)+테이블 → 폼(신규) → 컨디션(신규) → 피트니스&레이스 → 메트릭테이블 → AI인사이트
+
+**테스트:** 884개 통과
+
+---
+
+### UI-R2: 대시보드 재설계 — 7개 섹션 구조
+
+**신규 파일:**
+- `views_dashboard_loaders.py` (119줄): 웰니스 미니, 주간 요약, Monotony/Strain/EF 추세, 리스크 7일 추세 로더
+
+**수정:**
+- `views_dashboard_cards.py`: 4개 신규 렌더러 추가 — `render_daily_status_strip` (UTRS/CIRS 미니게이지 + ACWR/RTTI/BB/수면/HRV 아이콘), `render_weekly_summary` (주간 거리 진행률 바 + TIDS 도넛), `render_fitness_trends_chart` (PMC + Monotony/Strain 오버레이 + EF 스파크라인 ECharts), `render_risk_pills_v2` (Strain 추가 + 7일 추세 화살표)
+- `views_dashboard.py` (210줄): 7섹션 오케스트레이션 재작성 — body 단일 변수로 조립
+- `dashboard.html`: 개별 변수 → `{{ body | safe }}` 단일 렌더
+
+**7개 섹션:** 상태스트립 → 훈련권장 → 주간요약(신규) → 피트니스추세(확장) → 레이스&피트니스 → 리스크상세(확장) → 최근활동
+
+**테스트:** 884개 통과
+
+---
+
+### UI-R1: 활동 상세 재설계 — 7개 목적별 그룹 구조
+
+**신규 파일 10개:**
+- `views_activity_cards_common.py` (294줄): 공통 헬퍼 추출 — 포매터, METRIC_META, gauge_bar, rp_row, source_badge, no_data_msg, group_header, summary/nav/scroll/badge/splits
+- `views_activity_map.py` (52줄): Mapbox GPS 경로 지도 (activity_streams 연동)
+- `views_activity_loaders_v2.py` (104줄): 신규 데이터 로더 — EF/Decoupling 30일 시리즈, ACWR/Monotony/Strain/LSI 60일 시리즈, TIDS 8주 추세, DARP 값
+- `views_activity_g1_status.py` (142줄): 그룹1 일일상태 스트립 — UTRS/CIRS/ACWR/RTTI/Training Readiness 미니게이지
+- `views_activity_g2_performance.py` (206줄): 그룹2 퍼포먼스 — FEARP/GAP/EF+스파크라인/Decoupling+스파크라인/ADTI/VO2Max 승격
+- `views_activity_g3_load.py` (119줄): 그룹3 부하 — TRIMP+WLEI 메인, RE/TL/SS/TE 서브행 + 소스 배지
+- `views_activity_g4_risk.py` (87줄): 그룹4 과훈련 위험 — ACWR+Monotony+Strain+LSI ECharts 멀티라인
+- `views_activity_g5_biomechanics.py` (104줄): 그룹5 바이오메카닉스 — RMR 5축 레이더, GCT/수직진동/수직비율/보폭/케이던스
+- `views_activity_g6_distribution.py` (161줄): 그룹6 훈련분포 — HR존 막대, TIDS 8주 스택 차트, MarathonShape, TPDI
+- `views_activity_g7_fitness.py` (170줄): 그룹7 피트니스 — PMC 차트, DI, DARP 요약, CTL/ATL/TSB
+
+**수정:**
+- `views_activity.py` (200줄): 오케스트레이션 7그룹 순서 재작성
+- `views_activity_source_cards.py`: `<details>` 접이식 래핑, import 경로 수정
+- `views_activity_loaders.py`: 신규 loaders → loaders_v2.py로 분리
+- `activity_deep.py`: garmin_data에 `avg_vertical_oscillation` 추가
+
+**폐기:** `views_activity_cards.py`, `views_activity_s5_cards.py` → 내용 10개 파일로 분배 완료
+
+**테스트:** 884개 통과
+
+---
+
+## [v0.2-ui-minor-revision] 2026-03-25
+
+### S5-C2: Sprint 5 데이터 UI 노출
+- `views_activity_s5_cards.py` (신규 277줄): RTTI/WLEI/TPDI/Running Tolerance/HR존 차트 렌더링 카드
+  - RTTI: 게이지 바 + 부하/권장최대 상세 + 과부하 판정
+  - WLEI: TRIMP 대비 보정 비율 + 기온/습도 스트레스 계수
+  - TPDI: 실내/실외 FEARP 격차 + 양방향 해석
+  - Running Tolerance: Garmin 원시 데이터 (load/optimal_max/score) + 사용률 게이지
+  - HR Zone: 존 1~5 수평 막대 차트 (색상 + 시간 + 비율)
+- `views_activity_loaders.py`: `_load_running_tolerance()`, `_load_hr_zone_times()` 추가
+- `views_activity.py`: S5 카드 통합 (WLEI/RTTI → TPDI/RunTolerance → HR존 → DI 순서 배치)
+
+---
+
 ## [v0.2-ui-minor] 2026-03-25
 
 ### 6.4 Settings 보완

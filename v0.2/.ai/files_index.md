@@ -71,34 +71,65 @@
 |------|------|
 | `runalyze.py` | VDOT/Marathon Shape/Race Prediction |
 
-## ✅ src/web/ (16개)
+## ✅ src/web/ (26개)
 
-| 파일 | 라우트 | 줄수 |
-|------|--------|------|
+### 공통
+| 파일 | 역할 | 줄수 |
+|------|------|------|
 | `app.py` | Flask 앱 팩토리 + 블루프린트 | 839 ⚠️ |
 | `bg_sync.py` | 백그라운드 sync 스레드 | — |
 | `sync_ui.py` | SSE 병렬 동기화 프로그레스 | — |
-| `helpers.py` | ECharts/nav/다크테마 (SVG는 helpers_svg.py로 분리) | 854 ⚠️ |
-| `helpers_svg.py` | SVG 게이지·레이더 차트 헬퍼 (신규) | 177 |
-| `views_dashboard.py` | GET /dashboard | 222 |
-| `views_dashboard_cards.py` | 대시보드 하위 카드 | — |
+| `helpers.py` | ECharts/nav/다크테마 | 854 ⚠️ |
+| `helpers_svg.py` | SVG 게이지·레이더 차트 헬퍼 | 177 |
+
+### 활동 상세 (UI-R1 재설계, 13개)
+| 파일 | 역할 | 줄수 |
+|------|------|------|
+| `views_activity.py` | GET /activity/deep 오케스트레이션 | 200 |
+| `views_activity_cards_common.py` | 공통 헬퍼 (포매터, 위젯, summary/nav/scroll) | 294 |
+| `views_activity_map.py` | Mapbox GPS 경로 지도 | 52 |
+| `views_activity_loaders.py` | 데이터 로더 (소스/인접/메트릭/PMC/HR존) | 315 |
+| `views_activity_loaders_v2.py` | 신규 로더 (EF시리즈/위험시리즈/TIDS/DARP) | 104 |
+| `views_activity_source_cards.py` | 소스 비교 + 서비스 탭 (접이식) | 441 |
+| `views_activity_g1_status.py` | G1 일일상태 스트립 | 142 |
+| `views_activity_g2_performance.py` | G2 퍼포먼스 | 206 |
+| `views_activity_g3_load.py` | G3 부하/노력 | 119 |
+| `views_activity_g4_risk.py` | G4 과훈련 위험 (멀티라인 차트) | 87 |
+| `views_activity_g5_biomechanics.py` | G5 폼/바이오메카닉스 (RMR 레이더) | 104 |
+| `views_activity_g6_distribution.py` | G6 훈련분포 (HR존/TIDS/TPDI) | 161 |
+| `views_activity_g7_fitness.py` | G7 피트니스 (PMC/DI/DARP) | 170 |
+
+### 기타 뷰
+| 파일 | 라우트 | 줄수 |
+|------|--------|------|
 | `views_activities.py` | GET /activities | 1024 ⚠️ |
-| `views_activity.py` | GET /activity/deep (분리 후) | 185 |
-| `views_activity_cards.py` | 활동 상세 카드 (re-export 포함) | 731 ⚠️ |
-| `views_activity_source_cards.py` | 소스별 카드 (garmin/strava/intervals/runalyze) (신규) | 384 |
-| `views_activity_loaders.py` | 활동 데이터 로더 (신규) | — |
 | `views_activity_merge.py` | 활동 그룹 관리 | — |
-| `views_report.py` | GET /report | — |
-| `views_report_sections.py` | 레포트 하위 섹션 | 358 ⚠️ |
-| `views_race.py` | GET /race | 225 |
-| `views_ai_coach.py` | GET /ai-coach (브리핑+칩+웰니스) | 254 |
-| `views_wellness.py` | GET /wellness | 250 |
+| `views_dashboard.py` | GET /dashboard (7섹션 오케스트레이션) | 210 |
+| `views_dashboard_cards.py` | 대시보드 카드 (기존+신규 4개 렌더러) | ~530 |
+| `views_dashboard_loaders.py` | 대시보드 신규 로더 (웰니스/주간/추세/리스크7일) | 119 |
+| `views_report.py` | GET /report (8섹션 오케스트레이션) | 265 |
+| `views_report_sections.py` | 레포트 기존 섹션 (TIDS/TRIMP/Risk/DARP/Fitness/AI) | 551 ⚠️ |
+| `views_report_loaders.py` | 레포트 신규 로더 (질/리스크/폼/웰니스 시리즈) | 155 |
+| `views_report_charts.py` | 레포트 신규 차트 (질/TIDS주간/리스크/폼/컨디션) | 285 |
+| `views_race.py` | GET /race (6섹션 오케스트레이션) | ~340 |
+| `views_race_enhanced.py` | 레이스 신규 로더+렌더러 (추세/준비요소/목표갭/DI해석/해설) | 293 |
+| `views_ai_coach.py` | GET /ai-coach | 254 |
+| `views_ai_coach_cards.py` | AI 코칭 카드 분리 | — |
+| `views_wellness.py` | GET /wellness (9섹션 보강) | ~370 |
+| `views_wellness_enhanced.py` | 웰니스 신규 로더+렌더러 (대시/패턴/주간비교/미니차트) | 283 |
 | `views_import.py` | GET/POST /import/strava-archive | — |
-| `views_settings.py` | GET /settings + POST /settings/profile | 941 ⚠️ |
-| `views_training.py` | GET /training + POST /training/generate | 299 |
-| `views_dev.py` | GET /dev (개발자 탭, dev_mode 조건부) | — |
-| `views_export_import.py` | CSV 임포트/내보내기 (lazy import) | 233 |
+| `views_settings.py` | GET /settings | 941 ⚠️ |
+| `views_settings_hub.py` | sync 상태/시스템 정보 카드 | — |
+| `views_training.py` | GET /training | 299 |
+| `views_dev.py` | GET /dev (dev_mode 조건부) | — |
+| `views_export_import.py` | CSV 임포트/내보내기 | 233 |
 | `views_shoes.py` | /shoes | — |
+
+### 폐기 (UI-R1에서 분배 완료)
+| 파일 | 상태 |
+|------|------|
+| `views_activity_cards.py` | 내용 → cards_common + g1~g7로 분배 |
+| `views_activity_s5_cards.py` | 내용 → g1~g7로 분배 |
 
 ## ✅ src/services/
 
@@ -164,11 +195,12 @@
 |------|------|------|
 | `app.py` | 839 | 블루프린트 등록 + 팩토리 — 기능 분리 완료 |
 | `helpers.py` | 854 | ECharts/nav 공통 — SVG 분리 완료 |
-| `views_activity_cards.py` | 731 | 활동 상세 카드 — 소스 카드 분리 완료 |
+| `views_activity_source_cards.py` | 441 | 소스 비교 + 서비스 탭 |
+| `views_activity_loaders.py` | 315 | 기존 로더 (신규는 loaders_v2로 분리) |
 | `views_settings.py` | 941 | 설정 허브 고도화로 증가 — v0.3 이후 검토 |
 | `views_activities.py` | 1024 | 필터링/정렬 복잡도 — v0.3 이후 검토 |
 | `views_report_sections.py` | 358 | 섹션별 분리 가능하나 현재 허용 |
-| `db_setup.py` | 742 | 마이그레이션 시스템 추가 (PRAGMA user_version + ALTER TABLE) |
+| `db_setup.py` | 742 | 마이그레이션 시스템 추가 |
 
 ## ✅ B-1 리팩토링 완료 (2026-03-25)
 
@@ -178,6 +210,14 @@
 | `helpers.py` 1042줄 | helpers.py + helpers_svg.py | 854 + 177 |
 | `views_activity_cards.py` 1102줄 | views_activity_cards.py + views_activity_source_cards.py | 731 + 384 |
 | `app.py` 1351줄 | app.py + views_dev.py | 839줄 |
+
+## ✅ UI-R1 리팩토링 완료 (2026-03-25)
+
+| 분리 전 | 분리 후 | 줄수 변화 |
+|---------|---------|---------|
+| `views_activity_cards.py` 731줄 | cards_common(294) + g1(142) + g2(206) + g3(119) + g4(87) + g5(104) + g6(161) + g7(170) + map(52) | 모두 300줄 이하 |
+| `views_activity_s5_cards.py` 278줄 | g1~g7로 분배 | 삭제 |
+| `views_activity_loaders.py` 411줄 | loaders.py(315) + loaders_v2.py(104) | 분리 |
 
 ---
 
