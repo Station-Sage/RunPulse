@@ -1,6 +1,6 @@
 # v0.2 작업 목록
 
-최종 업데이트: 2026-03-25
+최종 업데이트: 2026-03-25 (6.7 Training Plan UI 재설계 완료)
 
 ---
 
@@ -32,7 +32,14 @@
 - [x] **6.4**: Settings 보완 — sync 상태 허브, 시스템 정보 카드
 - [x] **6.5**: Race Prediction 잔여 — 예측 이력 테이블
 - [x] **6.6**: AI Coach 잔여 — 최근 훈련 요약, 리스크 요약 카드
-- [ ] **6.7**: Training Plan UI (v0.3 예정)
+- [x] **6.7**: Training Plan UI 재설계
+  - 7열 그리드 캘린더 + 주 네비게이션 (?week= 파라미터)
+  - UTRS/CIRS 통합 (목표 카드 + 주간 요약 + AI 추천)
+  - AI 훈련 추천 카드 (규칙 기반, UTRS/CIRS 연동)
+  - 데이터 연동 상태 (Garmin/Strava/Intervals/Runalyze)
+  - 헤더 액션 (공유 + 플랜 생성 버튼)
+  - 파일 분리: loaders.py + cards.py + 메인 라우트
+  - 875 테스트 통과 (2026-03-25)
 - [x] **6.8**: Wellness 보완 — 7일 트렌드 차트, 회복 권장 카드
 - [x] **S5-C2**: 대폭 확장된 데이터 반영 UI 노출
 - [x] **V2-5-3**: Report AI 인사이트 실체화

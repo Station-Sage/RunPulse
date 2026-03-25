@@ -96,6 +96,21 @@
 - **이유**: 설정 페이지가 버전별로 확장되므로 로드맵을 미리 문서화하여 UI/DB 설계 시 확장성 고려
 - **결과**: `views_settings.py` 확장 시 이 로드맵 참조, v0.3 인증 시스템과 자연스럽게 통합
 
+## D-V2-18: Training Plan UI를 loaders/cards 패턴으로 분리
+- **결정**: `views_training.py`를 3파일로 분리 (메인 100줄 + cards 300줄 + loaders 100줄)
+- **이유**: 다른 재설계 뷰(Dashboard, Race, AI Coach)와 동일한 3-tier 패턴 유지. 300줄 규칙 준수
+- **결과**: 로더는 `views_training_loaders.py`, 렌더러는 `views_training_cards.py`로 분리
+
+## D-V2-19: Training 캘린더를 7열 그리드 + week_offset 파라미터로 구현
+- **결정**: 리스트형 → 7열 CSS Grid + `?week=` 쿼리 파라미터로 이전/다음 주 이동
+- **이유**: 프로토타입(training_plan.html) 디자인 준수. 월/일 뷰는 v0.3으로 이연 (서버 사이드 렌더링 한계)
+- **결과**: `repeat(7, 1fr)` 그리드, 모바일에서 가로 스크롤 지원
+
+## D-V2-20: AI 훈련 추천은 규칙 기반 (LLM 호출 없이)
+- **결정**: UTRS/CIRS 값 기반 if-else 규칙으로 추천 텍스트 생성
+- **이유**: Training 페이지 로드마다 LLM API 호출은 지연/비용 부담. AI Coach 탭에서 이미 LLM 기반 브리핑 제공
+- **결과**: `render_ai_recommendation()`에서 UTRS ≥70/40/0 기준 3단계 메시지 + CIRS 부상 위험 알림
+
 ## D-V2-15: sync 병렬화는 src/sync/__init__.py에 _sync_source 배치
 - **결정**: SOURCES 딕트와 _sync_source 함수를 `src/sync/__init__.py`에 두고, `src/sync.py` CLI는 이를 임포트
 - **이유**: Python 패키지 우선 규칙 — `src/sync/`(패키지)가 있으면 `src.sync`는 패키지를 가리킴. CLI 파일(`src/sync.py`)에 둔 함수는 `from src.sync import`로 접근 불가

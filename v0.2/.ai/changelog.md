@@ -2,6 +2,32 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.2-training-ui] 2026-03-25
+
+### 6.7 Training Plan UI 재설계
+
+**신규 파일:**
+- `views_training_loaders.py`: DB 로더 5개 (goal, workouts, adjustment, metrics, sync_status)
+- `views_training_cards.py`: 카드 렌더러 7개 (S1~S7)
+- `test_web_training.py`: 통합 + 단위 테스트 40개
+
+**views_training.py 리팩터:**
+- 기존 300줄 → 100줄 (로더/카드 분리)
+- `?week=` 쿼리 파라미터로 주 네비게이션 지원
+
+**UI 변경:**
+- S1: 헤더 액션 — 공유 + 플랜 생성 버튼 (기존 하단 폼 → 헤더 이동)
+- S2: 목표 카드 — UTRS 미니 배지 통합
+- S3: 주간 요약 — 4칸 그리드 (완료/km/시간/UTRS), 프로토타입 디자인 적용
+- S4: 컨디션 조정 — 웰니스 상세 (BB/Sleep/HRV/TSB) 인라인 표시 추가
+- S5: 주간 캘린더 — 리스트형 → 7열 그리드, ←→ 주 네비게이션, 타입별 배경색
+- S6: AI 훈련 추천 — UTRS/CIRS 기반 규칙 기반 추천 카드 (🤖 아바타)
+- S7: 데이터 연동 — Garmin/Strava/Intervals/Runalyze 동기화 상태 표시
+
+**테스트:** 875개 통과 (기존 835 + 신규 40)
+
+---
+
 ## [v0.2-ui-gap-fix] 2026-03-25
 
 ### UI 스펙 갭 해소 — 8건 구현
