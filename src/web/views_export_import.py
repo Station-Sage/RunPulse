@@ -15,21 +15,9 @@ from pathlib import Path
 from flask import Blueprint, request
 
 from .helpers import db_path, html_page
-
-
-def _import_garmin_folder(*args, **kwargs):
-    from src.import_export.garmin_csv import import_garmin_folder
-    return import_garmin_folder(*args, **kwargs)
-
-
-def _import_strava_folder(*args, **kwargs):
-    from src.import_export.strava_csv import import_strava_folder
-    return import_strava_folder(*args, **kwargs)
-
-
-def _import_intervals_folder(*args, **kwargs):
-    from src.import_export.intervals_fit import import_intervals_folder
-    return import_intervals_folder(*args, **kwargs)
+from src.import_export.garmin_csv import import_garmin_folder
+from src.import_export.strava_csv import import_strava_folder
+from src.import_export.intervals_fit import import_intervals_folder
 
 export_import_bp = Blueprint("export_import", __name__)
 
@@ -203,19 +191,19 @@ def export_import_run():
         with sqlite3.connect(str(dpath)) as conn:
             if target in ("garmin", "all"):
                 if garmin_folder.is_dir():
-                    result["garmin"] = _import_garmin_folder(conn, garmin_folder)
+                    result["garmin"] = import_garmin_folder(conn, garmin_folder)
                 else:
                     result["garmin"] = {"error": f"폴더 없음: {garmin_folder}"}
 
             if target in ("strava", "all"):
                 if strava_folder.is_dir():
-                    result["strava"] = _import_strava_folder(conn, strava_folder)
+                    result["strava"] = import_strava_folder(conn, strava_folder)
                 else:
                     result["strava"] = {"error": f"폴더 없음: {strava_folder}"}
 
             if target in ("intervals", "all"):
                 if intervals_folder.is_dir():
-                    result["intervals"] = _import_intervals_folder(conn, intervals_folder)
+                    result["intervals"] = import_intervals_folder(conn, intervals_folder)
                 else:
                     result["intervals"] = {"error": f"폴더 없음: {intervals_folder}"}
 

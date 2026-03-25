@@ -42,8 +42,6 @@ def mem_db():
             matched_group_id TEXT,
             workout_label TEXT,
             avg_power REAL,
-            event_type TEXT,
-            workout_type TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)

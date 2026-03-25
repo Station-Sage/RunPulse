@@ -28,7 +28,7 @@ def temp_db(tmp_path, monkeypatch):
     conn.commit()
     conn.close()
 
-    monkeypatch.setattr(analyze, "_db_path", lambda user_id=None: db)
+    monkeypatch.setattr(analyze, "_db_path", lambda: db)
     monkeypatch.setattr(analyze, "copy_to_clipboard", lambda text: True)
     return db
 

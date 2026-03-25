@@ -21,7 +21,6 @@ _COLS = [
     "distance_km", "duration_sec", "avg_pace_sec_km", "avg_hr",
     "max_hr", "avg_cadence", "elevation_gain", "calories",
     "description", "matched_group_id", "workout_label", "avg_power",
-    "event_type", "workout_type",
 ]
 
 
@@ -54,7 +53,6 @@ class UnifiedActivity:
     calories: UnifiedField = field(default_factory=UnifiedField)
     description: UnifiedField = field(default_factory=UnifiedField)
     workout_label: UnifiedField = field(default_factory=UnifiedField)
-    event_type: UnifiedField = field(default_factory=UnifiedField)
 
     @property
     def date(self) -> str:
@@ -129,7 +127,6 @@ def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedAct
         "activity_type", "start_time", "distance_km", "duration_sec",
         "avg_pace_sec_km", "avg_hr", "max_hr", "avg_cadence",
         "elevation_gain", "calories", "description", "workout_label",
-        "event_type",
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
 
@@ -221,93 +218,88 @@ def fetch_unified_activities(
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-    # 정렬 컬럼 매핑: 그룹별 집계값으로 DB 정렬
-    _DB_SORT_COL: dict[str, str] = {
-        "date":     "MAX(start_time)",
-        "distance": "MAX(distance_km)",
-        "duration": "MAX(duration_sec)",
-        "pace":     "MIN(CASE WHEN avg_pace_sec_km > 0 THEN avg_pace_sec_km END)",
-        "hr":       "MAX(avg_hr)",
-    }
-    sort_col = _DB_SORT_COL.get(sort_by, "MAX(start_time)")
-    order = "ASC" if sort_dir == "asc" else "DESC"
-
-    # ── Step 1: 전체 그룹 수 + 통계 (DB 레벨) ───────────────────────────
-    # 그룹별 1행으로 집계하여 total_count와 total_dist 계산
-    stats_sql = f"""
-        SELECT
-            COUNT(*),
-            COALESCE(SUM(rep_dist), 0)
-        FROM (
-            SELECT MAX(distance_km) AS rep_dist
-            FROM activity_summaries
-            {where}
-            GROUP BY COALESCE(matched_group_id, CAST(id AS TEXT))
-        )
-    """
-    stats_row = conn.execute(stats_sql, params).fetchone()
-    total_count = stats_row[0] if stats_row else 0
-    total_dist = float(stats_row[1]) if stats_row else 0.0
-
-    # ── Step 2: 현재 페이지의 eff_gid 목록만 LIMIT/OFFSET으로 가져옴 ───
-    offset = (page - 1) * page_size
-    page_sql = f"""
-        SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS eff_gid,
-               MAX(matched_group_id IS NOT NULL) AS is_group
+    # 통합 그룹을 고려한 쿼리: 그룹에 속한 활동은 한 번만 집계
+    # effective_group_id = COALESCE(matched_group_id, CAST(id AS TEXT))
+    # 그룹별 대표 행(MIN(id)) + 소스 필터 시 그룹 전체를 가져와야 하므로
+    # 전략: WHERE 절 적용 → 대상 effective_group_id 집합 → 해당 그룹의 모든 행 로드
+    rows_sql = f"""
+        SELECT {', '.join(_COLS)}
         FROM activity_summaries
         {where}
-        GROUP BY eff_gid
-        ORDER BY {sort_col} {order}
-        LIMIT ? OFFSET ?
+        ORDER BY start_time DESC
     """
-    page_rows = conn.execute(page_sql, params + [page_size, offset]).fetchall()
-    page_eids = [r[0] for r in page_rows]
+    all_rows = conn.execute(rows_sql, params).fetchall()
+    row_dicts = [dict(zip(_COLS, r)) for r in all_rows]
 
-    if not page_eids:
-        return [], total_count, {"total_count": total_count, "total_dist_km": total_dist}
-
-    # ── Step 3: 해당 페이지 그룹의 rows만 로드 ──────────────────────────
-    # is_group 플래그로 구분 (matched_group_id는 숫자처럼 보이는 hex도 있음)
-    group_ids: list[str] = []
-    solo_ids: list[int] = []
-    for eid, is_group in page_rows:
-        if is_group:
-            group_ids.append(eid)
-        else:
-            solo_ids.append(int(eid))
-
-    all_rows: list[dict] = []
-    cols_str = ", ".join(_COLS)
-    if group_ids:
-        ph = ",".join("?" * len(group_ids))
-        rows = conn.execute(
-            f"SELECT {cols_str} FROM activity_summaries WHERE matched_group_id IN ({ph})",
-            group_ids,
-        ).fetchall()
-        all_rows.extend(dict(zip(_COLS, r)) for r in rows)
-    if solo_ids:
-        ph = ",".join("?" * len(solo_ids))
-        rows = conn.execute(
-            f"SELECT {cols_str} FROM activity_summaries WHERE id IN ({ph})",
-            solo_ids,
-        ).fetchall()
-        all_rows.extend(dict(zip(_COLS, r)) for r in rows)
-
-    # ── Step 4: Python에서 그룹화 → UnifiedActivity (현재 페이지 분만) ──
-    groups: dict[str, list[dict]] = {}
-    for rd in all_rows:
+    # 그룹화: effective_group_id 기준으로 묶기
+    # source_filter가 있어도 같은 그룹의 다른 소스 행도 포함해야 함
+    group_ids_in_filter: set[str] = set()
+    solo_ids_in_filter: set[int] = set()
+    for rd in row_dicts:
         gid = rd.get("matched_group_id")
-        eid = gid if gid else str(rd["id"])
+        if gid:
+            group_ids_in_filter.add(gid)
+        else:
+            solo_ids_in_filter.add(rd["id"])
+
+    # 그룹에 속한 행은 전체 소스 포함하여 다시 로드
+    all_group_rows: list[dict] = []
+    if group_ids_in_filter:
+        gid_placeholders = ",".join("?" * len(group_ids_in_filter))
+        g_rows = conn.execute(
+            f"SELECT {', '.join(_COLS)} FROM activity_summaries "
+            f"WHERE matched_group_id IN ({gid_placeholders})",
+            list(group_ids_in_filter),
+        ).fetchall()
+        all_group_rows = [dict(zip(_COLS, r)) for r in g_rows]
+
+    # 단일 소스 행 (solo)
+    solo_rows = [rd for rd in row_dicts if rd["id"] in solo_ids_in_filter]
+
+    # groups dict 구성
+    groups: dict[str, list[dict]] = {}
+    for rd in all_group_rows:
+        gid = rd["matched_group_id"]
+        groups.setdefault(gid, []).append(rd)
+    for rd in solo_rows:
+        eid = str(rd["id"])
         groups.setdefault(eid, []).append(rd)
 
-    # page_eids 순서(DB 정렬 순) 유지
-    paged: list[UnifiedActivity] = []
-    for eid in page_eids:
-        g_rows = groups.get(eid)
-        if not g_rows:
+    # UnifiedActivity 리스트 (시간 역순)
+    unified_list: list[UnifiedActivity] = []
+    seen: set[str] = set()
+    # row_dicts 순서(start_time DESC)를 따름
+    for rd in row_dicts:
+        gid = rd.get("matched_group_id")
+        eid = gid if gid else str(rd["id"])
+        if eid in seen:
             continue
-        gid = g_rows[0].get("matched_group_id")
-        paged.append(build_unified_activity(gid, g_rows))
+        seen.add(eid)
+        g_rows = groups.get(eid, [rd])
+        ua = build_unified_activity(gid, g_rows)
+        unified_list.append(ua)
+
+    # 정렬
+    _SORT_KEY: dict[str, Any] = {
+        "date":     lambda ua: ua.start_time.value or "",
+        "distance": lambda ua: ua.distance_km.value or 0,
+        "duration": lambda ua: ua.duration_sec.value or 0,
+        "pace":     lambda ua: ua.avg_pace_sec_km.value or 0,
+        "hr":       lambda ua: ua.avg_hr.value or 0,
+    }
+    key_fn = _SORT_KEY.get(sort_by, _SORT_KEY["date"])
+    reverse = (sort_dir != "asc")
+    unified_list.sort(key=key_fn, reverse=reverse)
+
+    # 통계 (필터 기준)
+    total_count = len(unified_list)
+    total_dist = sum(
+        (ua.distance_km.value or 0) for ua in unified_list
+    )
+
+    # 페이지네이션
+    offset = (page - 1) * page_size
+    paged = unified_list[offset: offset + page_size]
 
     stats = {"total_count": total_count, "total_dist_km": total_dist}
     return paged, total_count, stats

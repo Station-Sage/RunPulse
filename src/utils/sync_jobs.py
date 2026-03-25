@@ -111,62 +111,12 @@ _COLS = (
 )
 
 
-def _jobs_db_path(user_id: str | None = None) -> str:
-    """sync_jobs 전용 DB 경로 — running.db와 별도 파일로 write 경합 방지."""
-    return str(get_db_path(user_id).parent / "sync_jobs.db")
-
-
 def _conn() -> sqlite3.Connection:
-    """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
-    # Web 컨텍스트에서는 Flask 세션의 user_id를 자동 반영
-    try:
-        from src.web.helpers import get_current_user_id
-        uid = get_current_user_id()
-    except (ImportError, RuntimeError):
-        uid = None
-    conn = sqlite3.connect(_jobs_db_path(uid), timeout=10)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("""CREATE TABLE IF NOT EXISTS sync_jobs (
-        id TEXT PRIMARY KEY,
-        service TEXT NOT NULL,
-        from_date TEXT NOT NULL,
-        to_date TEXT NOT NULL,
-        window_days INTEGER NOT NULL DEFAULT 14,
-        current_from TEXT,
-        status TEXT NOT NULL DEFAULT 'pending',
-        completed_days INTEGER NOT NULL DEFAULT 0,
-        total_days INTEGER NOT NULL DEFAULT 0,
-        synced_count INTEGER NOT NULL DEFAULT 0,
-        req_count INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        retry_after TEXT,
-        last_error TEXT
-    )""")
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_sync_jobs_service ON sync_jobs(service, created_at)"
-    )
-    return conn
+    return sqlite3.connect(str(get_db_path()))
 
 
 def _row(row: tuple) -> SyncJob:
     return SyncJob(*row)
-
-
-def cleanup_stale_running_jobs() -> int:
-    """프로세스 재시작 시 남아있는 'running'/'pending' 작업을 'stopped'로 정리.
-
-    Returns:
-        정리된 작업 수.
-    """
-    now = datetime.now().isoformat(timespec="seconds")
-    with _conn() as conn:
-        cur = conn.execute(
-            "UPDATE sync_jobs SET status='stopped', updated_at=?, last_error='프로세스 재시작으로 중단됨' "
-            "WHERE status IN ('running', 'pending')",
-            (now,),
-        )
-        return cur.rowcount
 
 
 # ── CRUD ─────────────────────────────────────────────────────────────────

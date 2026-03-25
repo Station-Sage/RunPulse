@@ -40,22 +40,22 @@ def _fetch_strava_details_for_group(conn: sqlite3.Connection, ids: list[int]) ->
         return
 
     for act_id in ids:
-        try:
-            row = conn.execute(
-                "SELECT source, source_id FROM activity_summaries WHERE id = ?",
-                (act_id,),
-            ).fetchone()
-            if not row or row[0] != "strava":
-                continue
-            has_detail = conn.execute(
-                "SELECT 1 FROM activity_detail_metrics "
-                "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
-                (act_id,),
-            ).fetchone()
-            if not has_detail:
+        row = conn.execute(
+            "SELECT source, source_id FROM activity_summaries WHERE id = ?",
+            (act_id,),
+        ).fetchone()
+        if not row or row[0] != "strava":
+            continue
+        has_detail = conn.execute(
+            "SELECT 1 FROM activity_detail_metrics "
+            "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
+            (act_id,),
+        ).fetchone()
+        if not has_detail:
+            try:
                 _fetch_and_store_strava_detail(conn, row[1], act_id, headers)
-        except Exception:
-            pass
+            except Exception:
+                pass
     conn.commit()
 
 

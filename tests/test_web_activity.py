@@ -25,7 +25,6 @@ def app_client(tmp_path, monkeypatch):
     # Blueprint는 helpers에서 직접 import하므로 각 모듈에서 패치해야 함
     monkeypatch.setattr("src.web.views_wellness.db_path", lambda: db_file)
     monkeypatch.setattr("src.web.views_activity.db_path", lambda: db_file)
-    monkeypatch.setattr("src.web.views_dashboard.db_path", lambda: db_file)
     monkeypatch.setattr("src.web.app._db_path", lambda: db_file)
 
     flask_app = create_app()
@@ -212,30 +211,22 @@ class TestActivityDeepRoute:
 # ── 홈 대시보드 테스트 ───────────────────────────────────────────────────
 
 class TestHomeDashboard:
-    def test_root_redirects_to_dashboard(self, app_client):
-        """`/` 접근 시 /dashboard로 리다이렉트."""
-        client, _ = app_client
-        resp = client.get("/")
-        assert resp.status_code == 302
-        assert "/dashboard" in resp.headers.get("Location", "")
-
     def test_no_db_shows_setup(self, tmp_path, monkeypatch):
         """DB 없으면 설정 안내 표시."""
         missing = tmp_path / "nonexistent.db"
         monkeypatch.setattr("src.web.helpers.db_path", lambda: missing)
-        monkeypatch.setattr("src.web.views_dashboard.db_path", lambda: missing)
         monkeypatch.setattr("src.web.app._db_path", lambda: missing)
         flask_app = create_app()
         flask_app.config["TESTING"] = True
         with flask_app.test_client() as client:
-            resp = client.get("/dashboard")
+            resp = client.get("/")
         assert resp.status_code == 200
         assert "db_setup" in resp.data.decode()
 
     def test_empty_db_shows_dashboard(self, app_client):
         """빈 DB여도 대시보드 반환."""
         client, _ = app_client
-        resp = client.get("/dashboard")
+        resp = client.get("/")
         assert resp.status_code == 200
         text = resp.data.decode()
         assert "RunPulse" in text
@@ -247,17 +238,15 @@ class TestHomeDashboard:
         _insert_activity(conn, distance_km=15.0)
         conn.close()
 
-        resp = client.get("/dashboard")
+        resp = client.get("/")
         assert resp.status_code == 200
         text = resp.data.decode()
         assert "최근 활동" in text
         assert "15.0" in text
 
-    def test_dashboard_has_gauge_section(self, app_client):
-        """대시보드에 게이지 섹션(UTRS/CIRS) 포함."""
+    def test_recovery_card_link(self, app_client):
+        """회복/웰니스 상세 링크 포함."""
         client, _ = app_client
-        resp = client.get("/dashboard")
+        resp = client.get("/")
         assert resp.status_code == 200
-        text = resp.data.decode()
-        assert "UTRS" in text
-        assert "CIRS" in text
+        assert "/wellness" in resp.data.decode()

@@ -1,71 +1,494 @@
-"""Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
+"""Strava 데이터 동기화 (OAuth2)."""
 
-하위 모듈:
-  strava_auth.py         — 토큰 관리, 연결 확인
-  strava_activity_sync.py — 활동 동기화 (list/detail/streams/laps/best_efforts)
-  strava_athlete_sync.py  — 선수 프로필, 통계, 기어
-"""
-
+import json
 import sqlite3
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
 
-# 하위 호환성을 위한 re-export
-from .strava_auth import (  # noqa: F401
-    _BASE_URL,
-    refresh_token as _refresh_token,
-    check_strava_connection,
-)
-from .strava_activity_sync import (  # noqa: F401
-    sync_activity_detail as _fetch_and_store_strava_detail,
-    sync_activities,
-    _parse_rate_limit,
-)
-from .strava_athlete_sync import (  # noqa: F401
-    sync_athlete_profile,
-    sync_athlete_stats,
-    sync_gear,
-    sync_athlete_and_gear,
-)
-
-from src.utils.sync_state import mark_finished
+from src.utils import api
+from src.utils.config import update_service_config
+from src.utils.dedup import assign_group_id
+from src.utils.raw_payload import update_changed_fields
+from src.utils.raw_payload import store_raw_payload as _store_rp
+from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
+from src.utils.sync_state import get_rate_state, mark_finished
 
 
-def sync_strava(
+def _store_raw_payload(
+    conn: sqlite3.Connection,
+    entity_type: str,
+    entity_id: str,
+    payload: dict,
+    activity_id: int | None = None,
+) -> None:
+    """Strava raw payload를 raw_source_payloads에 저장/병합."""
+    _store_rp(conn, "strava", entity_type, entity_id, payload, activity_id=activity_id)
+
+
+_BASE_URL = "https://www.strava.com/api/v3"
+_TOKEN_URL = "https://www.strava.com/oauth/token"
+_STREAMS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "sources" / "strava"
+
+# best_efforts에서 추출할 이름-거리 매핑 (미터)
+_BEST_EFFORT_DISTANCES = {
+    "400m": 400, "1/2 mile": 804, "1k": 1000,
+    "1 mile": 1609, "2 mile": 3218, "5k": 5000,
+    "10k": 10000, "15k": 15000, "10 mile": 16090,
+    "20k": 20000, "Half-Marathon": 21097, "Marathon": 42195,
+}
+
+
+def _refresh_token(config: dict) -> str:
+    """access_token 만료 시 갱신. config dict 업데이트.
+
+    Args:
+        config: 전체 설정 딕셔너리.
+
+    Returns:
+        유효한 access_token.
+    """
+    strava = config["strava"]
+    if strava.get("expires_at", 0) > time.time():
+        return strava["access_token"]
+
+    result = api.post(
+        _TOKEN_URL,
+        data={
+            "client_id": strava["client_id"],
+            "client_secret": strava["client_secret"],
+            "refresh_token": strava["refresh_token"],
+            "grant_type": "refresh_token",
+        },
+    )
+
+    strava["access_token"] = result["access_token"]
+    strava["refresh_token"] = result["refresh_token"]
+    strava["expires_at"] = result["expires_at"]
+
+    # 공유 헬퍼로 config.json 업데이트 (ad hoc 파일 직접 쓰기 제거)
+    try:
+        update_service_config("strava", {
+            "access_token": strava["access_token"],
+            "refresh_token": strava["refresh_token"],
+            "expires_at": strava["expires_at"],
+        })
+    except Exception as e:
+        print(f"[strava] 토큰 저장 실패 (동기화는 계속됨): {e}")
+
+    return strava["access_token"]
+
+
+def _extract_best_efforts(best_efforts: list) -> dict:
+    """Strava best_efforts 배열에서 거리별 최고 기록 추출 (초 단위).
+
+    Args:
+        best_efforts: Strava activity detail의 best_efforts 배열.
+
+    Returns:
+        {"1k": 245, "5k": 1320, ...} 형태의 딕셔너리.
+    """
+    result = {}
+    if not best_efforts:
+        return result
+
+    # 거리→키 역매핑
+    dist_to_key = {v: k for k, v in _BEST_EFFORT_DISTANCES.items()}
+
+    for effort in best_efforts:
+        dist = effort.get("distance")
+        elapsed = effort.get("elapsed_time")
+        if dist and elapsed and dist in dist_to_key:
+            result[dist_to_key[dist]] = int(elapsed)
+
+    return result
+
+
+def _parse_rate_limit(resp_headers: dict) -> dict:
+    """Strava 응답 헤더에서 rate limit 상태 추출.
+
+    Strava 헤더 형식:
+      X-RateLimit-Limit: 200,2000
+      X-RateLimit-Usage: 150,1500
+    """
+    state: dict = {}
+    try:
+        limit_hdr = resp_headers.get("x-ratelimit-limit", "")
+        usage_hdr = resp_headers.get("x-ratelimit-usage", "")
+        if limit_hdr and usage_hdr:
+            limits = [int(x) for x in limit_hdr.split(",")]
+            usages = [int(x) for x in usage_hdr.split(",")]
+            state["limit"] = limits[0] if limits else 0
+            state["usage"] = usages[0] if usages else 0
+            state["daily_limit"] = limits[1] if len(limits) > 1 else 0
+            state["daily_usage"] = usages[1] if len(usages) > 1 else 0
+    except Exception:
+        pass
+    return state
+
+
+def _fetch_and_store_strava_detail(
+    conn: sqlite3.Connection,
+    source_id: str,
+    activity_id: int,
+    headers: dict,
+) -> None:
+    """Strava 활동 상세 지표(suffer_score, best_efforts, extra metrics, stream) 취득 및 저장.
+
+    신규 활동 + 기존 활동 중 detail 누락 시 모두 호출.
+    """
+    try:
+        detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+        _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
+
+        suffer_score = detail.get("suffer_score")
+        if suffer_score is not None:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_value)
+                   VALUES (?, 'strava', 'relative_effort', ?)""",
+                (activity_id, float(suffer_score)),
+            )
+
+        best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
+        if best_efforts:
+            conn.execute(
+                """INSERT OR IGNORE INTO activity_detail_metrics
+                   (activity_id, source, metric_name, metric_json)
+                   VALUES (?, 'strava', 'best_efforts', ?)""",
+                (activity_id, json.dumps(best_efforts)),
+            )
+
+        extra_metrics = {
+            "moving_time_sec": detail.get("moving_time"),
+            "elapsed_time_sec": detail.get("elapsed_time"),
+            "max_speed_mps": detail.get("max_speed"),
+            "average_speed_mps": detail.get("average_speed"),
+            "elev_high_m": detail.get("elev_high"),
+            "elev_low_m": detail.get("elev_low"),
+            "avg_grade_pct": detail.get("average_grade"),
+            "max_grade_pct": detail.get("max_grade"),
+            "total_steps": detail.get("total_steps"),
+            "device_watts": detail.get("device_watts"),
+        }
+        for mname, mval in extra_metrics.items():
+            if mval is not None:
+                conn.execute(
+                    """INSERT OR IGNORE INTO activity_detail_metrics
+                       (activity_id, source, metric_name, metric_value)
+                       VALUES (?, 'strava', ?, ?)""",
+                    (activity_id, mname, float(mval)),
+                )
+    except api.ApiError as e:
+        if e.status_code == 429:
+            print(f"[strava] ⚠️ rate limit — 상세 조회 중단 (source_id={source_id})")
+            from src.utils.sync_state import set_retry_after
+            set_retry_after("strava", 900)
+        else:
+            print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+    except Exception as e:
+        print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+
+    # 스트림 저장
+    try:
+        streams = api.get(
+            f"{_BASE_URL}/activities/{source_id}/streams",
+            headers=headers,
+            params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
+        )
+        _STREAMS_DIR.mkdir(parents=True, exist_ok=True)
+        stream_path = _STREAMS_DIR / f"{source_id}.json"
+        with open(stream_path, "w", encoding="utf-8") as f:
+            json.dump(streams, f)
+        conn.execute(
+            """INSERT OR IGNORE INTO activity_detail_metrics
+               (activity_id, source, metric_name, metric_json)
+               VALUES (?, 'strava', 'stream_file', ?)""",
+            (activity_id, str(stream_path)),
+        )
+    except Exception as e:
+        print(f"[strava] 스트림 저장 실패 {source_id}: {e}")
+
+
+def sync_activities(
     config: dict,
     conn: sqlite3.Connection,
     days: int,
     from_date: str | None = None,
     to_date: str | None = None,
     bg_mode: bool = False,
-) -> dict:
-    """Strava 전체 동기화: 활동 + 선수 프로필 + 통계 + 기어.
+) -> int:
+    """Strava 활동 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
-        from_date: 기간 동기화 시작일.
-        to_date: 기간 동기화 종료일.
+        days: 가져올 일수 (from_date 미지정 시 사용).
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
         bg_mode: True이면 mark_finished 호출 생략.
 
     Returns:
-        {"activities": N, "profile": bool, "stats": bool, "gear": int}
+        새로 저장된 활동 수.
     """
-    from .strava_auth import refresh_token
-
-    token = refresh_token(config)
+    policy = POLICIES["strava"]
+    token = _refresh_token(config)
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 1. 활동 동기화
-    act_count = sync_activities(config, conn, days, from_date, to_date, bg_mode=True)
+    if from_date:
+        after = int(datetime.fromisoformat(from_date).timestamp())
+        before = int(
+            (datetime.fromisoformat(to_date) + timedelta(days=1)).timestamp()
+        ) if to_date else None
+    else:
+        after = int((datetime.now() - timedelta(days=days)).timestamp())
+        before = None
 
-    # 2. 선수 프로필 + 통계 + 기어
-    try:
-        sync_athlete_and_gear(config, conn, headers)
-    except Exception as e:
-        print(f"[strava] 선수/기어 동기화 실패: {e}")
+    count = 0
+    page = 1
+    rate_state = get_rate_state("strava")  # 이전 저장된 rate 상태 로드
+    partial = False
+
+    while True:
+        try:
+            params: dict = {"after": after, "per_page": 30, "page": page}
+            if before is not None:
+                params["before"] = before
+            activity_summaries, resp_headers = api.get_with_headers(
+                f"{_BASE_URL}/athlete/activities",
+                headers=headers,
+                params=params,
+            )
+            # rate limit 상태 갱신
+            new_rate = _parse_rate_limit(resp_headers)
+            if new_rate:
+                rate_state = new_rate
+        except api.ApiError as e:
+            if e.status_code == 429:
+                print("[strava] ⚠️ Strava 요청 제한(429) 발생. 15분 후 재시도를 권장합니다.")
+                from src.utils.sync_state import set_retry_after
+                set_retry_after("strava", 900)  # 15분 후 재시도
+                partial = True
+            raise
+
+        if not activity_summaries:
+            break
+
+        # 80% 이상 소진 시 고비용 호출 생략
+        skip_expensive = should_reduce_expensive_calls("strava", rate_state)
+        if skip_expensive:
+            print(
+                f"[strava] ⚠️ API 사용량이 한도({rate_state.get('usage')}/{rate_state.get('limit')})에 "
+                f"근접했습니다. 상세/스트림 조회를 건너뜁니다."
+            )
+
+        for act in activity_summaries:
+            source_id = str(act.get("id", ""))
+            distance_km = (act.get("distance") or 0) / 1000
+            duration_sec = int(act.get("moving_time") or 0)
+            avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
+
+            # Strava는 stride/min 반환 → steps/min으로 환산 (* 2)
+            cadence = act.get("average_cadence")
+            if cadence:
+                cadence = int(cadence * 2)
+
+            # start_date_local: Strava가 Z suffix를 붙이지만 실제 로컬 시간 → Z 제거
+            start_time = act.get("start_date_local", "").rstrip("Z")
+
+            try:
+                cursor = conn.execute(
+                    """INSERT OR IGNORE INTO activity_summaries
+                       (source, source_id, activity_type, start_time, distance_km,
+                        duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
+                        elevation_gain, calories, description)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        "strava", source_id,
+                        act.get("type", "Run").lower(),
+                        start_time, distance_km, duration_sec, avg_pace,
+                        act.get("average_heartrate"), act.get("max_heartrate"),
+                        cadence, act.get("total_elevation_gain"),
+                        act.get("calories"), act.get("name"),
+                    ),
+                )
+            except sqlite3.Error as e:
+                print(f"[strava] 활동 삽입 실패 {source_id}: {e}")
+                continue
+
+            if cursor.rowcount == 0:
+                # 이미 존재 — 변경/누락 필드 업데이트 + raw payload merge
+                existing_id = update_changed_fields(conn, "strava", source_id, {
+                    "avg_hr": act.get("average_heartrate"),
+                    "max_hr": act.get("max_heartrate"),
+                    "avg_cadence": cadence,
+                    "elevation_gain": act.get("total_elevation_gain"),
+                    "calories": act.get("calories"),
+                    "description": act.get("name"),
+                })
+                if existing_id:
+                    _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=existing_id)
+                    # 상세 지표가 누락된 경우 재취득 (이전 sync에서 rate limit으로 건너뜀 등)
+                    if not skip_expensive:
+                        has_detail = conn.execute(
+                            "SELECT 1 FROM activity_detail_metrics "
+                            "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
+                            (existing_id,),
+                        ).fetchone()
+                        if not has_detail:
+                            _fetch_and_store_strava_detail(
+                                conn, source_id, existing_id, headers
+                            )
+                continue
+
+            activity_id = cursor.lastrowid
+            count += 1
+            _store_raw_payload(conn, "activity_summary", source_id, act, activity_id=activity_id)
+
+            if skip_expensive:
+                # 한도 근접 시 상세/스트림 생략 — 다음 동기화로 이월
+                partial = True
+                assign_group_id(conn, activity_id)
+                time.sleep(policy.per_request_sleep_sec)
+                continue
+
+            # 상세 조회 (suffer_score + best_efforts)
+            try:
+                detail = api.get(f"{_BASE_URL}/activities/{source_id}", headers=headers)
+                _store_raw_payload(conn, "activity_detail", source_id, detail, activity_id=activity_id)
+
+                suffer_score = detail.get("suffer_score")
+                if suffer_score is not None:
+                    conn.execute(
+                        """INSERT INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_value)
+                           VALUES (?, 'strava', 'relative_effort', ?)""",
+                        (activity_id, float(suffer_score)),
+                    )
+
+                best_efforts = _extract_best_efforts(detail.get("best_efforts") or [])
+                if best_efforts:
+                    conn.execute(
+                        """INSERT INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'best_efforts', ?)""",
+                        (activity_id, json.dumps(best_efforts)),
+                    )
+
+                # 추가 수치 지표
+                extra_metrics = {
+                    "moving_time_sec": detail.get("moving_time"),
+                    "elapsed_time_sec": detail.get("elapsed_time"),
+                    "max_speed_mps": detail.get("max_speed"),
+                    "average_speed_mps": detail.get("average_speed"),
+                    "elev_high_m": detail.get("elev_high"),
+                    "elev_low_m": detail.get("elev_low"),
+                    "avg_grade_pct": detail.get("average_grade"),
+                    "max_grade_pct": detail.get("max_grade"),
+                    "total_steps": detail.get("total_steps"),
+                    "device_watts": detail.get("device_watts"),
+                }
+                for mname, mval in extra_metrics.items():
+                    if mval is not None:
+                        conn.execute(
+                            """INSERT OR IGNORE INTO activity_detail_metrics
+                               (activity_id, source, metric_name, metric_value)
+                               VALUES (?, 'strava', ?, ?)""",
+                            (activity_id, mname, float(mval)),
+                        )
+            except api.ApiError as e:
+                if e.status_code == 429:
+                    print(f"[strava] ⚠️ rate limit — 상세 조회 중단 (source_id={source_id})")
+                    from src.utils.sync_state import set_retry_after
+                    set_retry_after("strava", 900)
+                    partial = True
+                    conn.commit()
+                    if not bg_mode:
+                        mark_finished("strava", count=count, partial=True,
+                                      error="Strava 요청 제한(429). 약 15분 후 재시도하세요.",
+                                      rate_state=rate_state)
+                    return count
+                print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+            except Exception as e:
+                print(f"[strava] 상세 조회 실패 {source_id}: {e}")
+
+            # 스트림 저장 (한도 재확인)
+            if not should_reduce_expensive_calls("strava", rate_state):
+                try:
+                    streams = api.get(
+                        f"{_BASE_URL}/activities/{source_id}/streams",
+                        headers=headers,
+                        params={"keys": "time,distance,heartrate,velocity_smooth,cadence,altitude"},
+                    )
+                    _STREAMS_DIR.mkdir(parents=True, exist_ok=True)
+                    stream_path = _STREAMS_DIR / f"{source_id}.json"
+                    with open(stream_path, "w", encoding="utf-8") as f:
+                        json.dump(streams, f)
+                    conn.execute(
+                        """INSERT INTO activity_detail_metrics
+                           (activity_id, source, metric_name, metric_json)
+                           VALUES (?, 'strava', 'stream_file', ?)""",
+                        (activity_id, str(stream_path)),
+                    )
+                except Exception as e:
+                    print(f"[strava] 스트림 저장 실패 {source_id}: {e}")
+
+            assign_group_id(conn, activity_id)
+            time.sleep(policy.per_request_sleep_sec)
+
+        if len(activity_summaries) < 30:
+            break
+        page += 1
 
     conn.commit()
     if not bg_mode:
-        mark_finished("strava", count=act_count)
+        mark_finished("strava", count=count, partial=partial, rate_state=rate_state)
+    if partial:
+        print(
+            "[strava] ⚠️ 호출 제한에 근접하여 일부 상세 데이터는 다음 동기화로 미뤘습니다."
+        )
+    return count
 
-    return {"activities": act_count, "profile": True, "stats": True}
+
+def check_strava_connection(config: dict) -> dict:
+    """Strava 연결 상태 확인.
+
+    Returns:
+        {"ok": bool, "status": str, "detail": str}
+    """
+    import time as _time
+    strava = config.get("strava", {})
+    has_client = bool(strava.get("client_id") and strava.get("client_secret"))
+    has_refresh = bool(strava.get("refresh_token"))
+    access_token = strava.get("access_token")
+    expires_at = strava.get("expires_at", 0)
+
+    if not has_client:
+        return {
+            "ok": False,
+            "status": "설정 누락",
+            "detail": "client_id / client_secret 미설정. /settings에서 연동하세요.",
+        }
+    if not has_refresh:
+        return {
+            "ok": False,
+            "status": "재연동 필요",
+            "detail": "refresh_token 없음. /connect/strava에서 OAuth 연동을 완료하세요.",
+        }
+    if not access_token:
+        return {
+            "ok": True,
+            "status": "갱신 필요",
+            "detail": "access_token 없음. 다음 sync 시 자동 갱신됩니다.",
+        }
+    if expires_at and expires_at < _time.time():
+        return {
+            "ok": True,
+            "status": "토큰 만료",
+            "detail": "access_token 만료. 다음 sync 시 자동 갱신됩니다.",
+        }
+    return {
+        "ok": True,
+        "status": "연결됨",
+        "detail": f"토큰 유효. 만료: {expires_at}",
+    }

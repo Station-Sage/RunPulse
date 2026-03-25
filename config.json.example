@@ -36,8 +36,5 @@
     "briefing_auto": true,
     "suggestion_chips_count": 5,
     "plan_json_format": true
-  },
-  "mapbox": {
-    "token": ""
   }
 }
