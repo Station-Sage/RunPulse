@@ -35,6 +35,13 @@ from .views_dashboard_loaders import (
     load_weekly_summary,
     load_wellness_mini,
 )
+from .views_perf import (
+    cached_page,
+    load_activity_metrics_batch,
+    load_darp_batch,
+    load_metrics_batch,
+    load_metrics_json_batch,
+)
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -83,43 +90,25 @@ def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[di
            ORDER BY a.start_time DESC LIMIT ?""",
         (limit,),
     ).fetchall()
+    if not rows:
+        return []
+    act_ids = [r[0] for r in rows]
+    metrics = load_activity_metrics_batch(conn, act_ids, ["FEARP", "RelativeEffort"])
     result = []
     for r in rows:
         act_id, start_time, _, dist, dur, pace, hr = r
-        fearp_row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE activity_id=? AND metric_name='FEARP' LIMIT 1",
-            (act_id,),
-        ).fetchone()
-        re_row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE activity_id=? AND metric_name='RelativeEffort' LIMIT 1",
-            (act_id,),
-        ).fetchone()
+        m = metrics.get(act_id, {})
         result.append({
             "id": act_id, "start_time": start_time, "date": str(start_time)[:10],
             "distance_km": dist, "duration_sec": dur, "avg_pace_sec_km": pace, "avg_hr": hr,
-            "fearp": float(fearp_row[0]) if fearp_row and fearp_row[0] else None,
-            "relative_effort": float(re_row[0]) if re_row and re_row[0] else None,
+            "fearp": m.get("FEARP"),
+            "relative_effort": m.get("RelativeEffort"),
         })
     return result
 
 
 def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
-    result = {}
-    for key in ("DARP_5k", "DARP_10k", "DARP_half", "DARP_full"):
-        row = conn.execute(
-            """SELECT metric_value, metric_json FROM computed_metrics
-               WHERE date <= ? AND metric_name = ? AND activity_id IS NULL
-               ORDER BY date DESC LIMIT 1""",
-            (target_date, key),
-        ).fetchone()
-        if row and row[0] is not None:
-            dist_key = key.split("_", 1)[1]
-            try:
-                mj = json.loads(row[1]) if row[1] else {}
-            except Exception:
-                mj = {}
-            result[dist_key] = mj or {"pace_sec_km": float(row[0])}
-    return result
+    return load_darp_batch(conn, target_date)
 
 
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
@@ -158,26 +147,37 @@ def dashboard():
                  "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p></div>")
         return render_template("dashboard.html", body=no_db, active_tab="dashboard")
 
+    body = cached_page("dashboard", str(db), lambda: _build_dashboard(db))
+    return render_template("dashboard.html", body=body, active_tab="dashboard")
+
+
+def _build_dashboard(db) -> str:
+    """대시보드 body HTML 생성 (캐시 builder)."""
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
     with sqlite3.connect(str(db)) as conn:
-        # 기존 메트릭
-        utrs_val = _load_metric(conn, today, "UTRS")
-        utrs_json = _load_metric_json(conn, today, "UTRS") or {}
-        cirs_val = _load_metric(conn, today, "CIRS")
-        cirs_json = _load_metric_json(conn, today, "CIRS") or {}
-        acwr_val = _load_metric(conn, today, "ACWR")
-        rtti_val = _load_metric(conn, today, "RTTI")
-        rmr_json = _load_metric_json(conn, today, "RMR") or {}
-        rmr_old_json = _load_metric_json(conn, three_months_ago, "RMR") or {}
+        # 배치 메트릭 로드 (개별 쿼리 9→2회)
+        _val_names = ["UTRS", "CIRS", "ACWR", "RTTI", "Monotony", "LSI", "Strain"]
+        vals = load_metrics_batch(conn, today, _val_names)
+        utrs_val = vals["UTRS"]
+        cirs_val = vals["CIRS"]
+        acwr_val = vals["ACWR"]
+        rtti_val = vals["RTTI"]
+        mono_val = vals["Monotony"]
+        lsi_val = vals["LSI"]
+        strain_val = vals["Strain"]
+
+        jsons = load_metrics_json_batch(conn, today, ["UTRS", "CIRS", "RMR"])
+        utrs_json = jsons.get("UTRS") or {}
+        cirs_json = jsons.get("CIRS") or {}
+        rmr_json = jsons.get("RMR") or {}
+        rmr_old_json = load_metrics_json_batch(conn, three_months_ago, ["RMR"]).get("RMR") or {}
+
         pmc_data = _load_pmc_data(conn, today, days=60)
         recent_acts = _load_recent_activities(conn, limit=5)
         darp_data = _load_darp_data(conn, today)
         vdot, marathon_shape = _load_fitness_data(conn, today)
-        mono_val = _load_metric(conn, today, "Monotony")
-        lsi_val = _load_metric(conn, today, "LSI")
-        strain_val = _load_metric(conn, today, "Strain")
         # 신규 로더
         wellness = load_wellness_mini(conn, today)
         weekly = load_weekly_summary(conn, today)
@@ -249,4 +249,4 @@ def dashboard():
         + activity_list
     )
 
-    return render_template("dashboard.html", body=body, active_tab="dashboard")
+    return body

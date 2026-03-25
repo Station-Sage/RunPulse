@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from flask import Blueprint, render_template, request
 
 from .helpers import db_path, render_sub_nav
+from .views_perf import load_activity_metrics_batch
 from .views_report_charts import (
     render_form_trend,
     render_risk_trend_chart,
@@ -109,15 +110,14 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
            ORDER BY start_time DESC LIMIT 15""",
         (start, end + "T23:59:59"),
     ).fetchall()
+    if not acts:
+        return []
+    act_ids = [a[0] for a in acts]
+    metrics = load_activity_metrics_batch(
+        conn, act_ids, ["FEARP", "RelativeEffort", "AerobicDecoupling"])
     result = []
     for act_id, start_time, dist, pace in acts:
-        mrows = conn.execute(
-            """SELECT metric_name, metric_value FROM computed_metrics
-               WHERE activity_id = ?
-                 AND metric_name IN ('FEARP', 'RelativeEffort', 'AerobicDecoupling')""",
-            (act_id,),
-        ).fetchall()
-        m = {r[0]: r[1] for r in mrows}
+        m = metrics.get(act_id, {})
         result.append({
             "date": str(start_time)[:10], "dist_km": dist, "pace": pace,
             "fearp": m.get("FEARP"), "relative_effort": m.get("RelativeEffort"),

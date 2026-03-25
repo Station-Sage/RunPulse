@@ -1,9 +1,10 @@
-"""성능 개선 관련 테스트 (PERF-1~4).
+"""성능 개선 관련 테��트 (PERF-1~5).
 
-- PERF-1: db_setup — 인덱스 존재 + v_canonical_activities LEFT JOIN 패턴
-- PERF-2: unified_activities — DB 레벨 페이지네이션
+- PERF-1: db_setup — 인덱스 존재 + v_canonical_activities LEFT JOIN ��턴
+- PERF-2: unified_activities ��� DB 레벨 페이지네이션
 - PERF-3: app — TTL 캐시 (_get_home_data)
 - PERF-4: sync — 병렬 동기화 (_sync_source 독립 실행)
+- PERF-5: views_perf — 배치 로더 + 페이지 TTL 캐시
 """
 from __future__ import annotations
 
@@ -339,3 +340,154 @@ class TestParallelSync:
         assert results["strava"]["activities"] == 2
         assert results["intervals"]["activities"] == 3
         assert results["runalyze"]["activities"] == 1
+
+
+# ── PERF-5: views_perf 배치 로더 + 페이지 TTL 캐시 ──────────────────────────
+
+@pytest.fixture()
+def metric_conn():
+    """computed_metrics 테이블이 있는 인메모리 DB."""
+    c = sqlite3.connect(":memory:")
+    c.execute("""
+        CREATE TABLE computed_metrics (
+            id INTEGER PRIMARY KEY,
+            date TEXT,
+            metric_name TEXT,
+            metric_value REAL,
+            metric_json TEXT,
+            activity_id INTEGER
+        )
+    """)
+    return c
+
+
+def _seed_daily(conn, dt, name, value, json_str=None):
+    conn.execute(
+        "INSERT INTO computed_metrics (date, metric_name, metric_value, metric_json, activity_id) "
+        "VALUES (?, ?, ?, ?, NULL)",
+        (dt, name, value, json_str),
+    )
+
+
+def _seed_activity_metric(conn, activity_id, name, value, dt="2026-03-25"):
+    conn.execute(
+        "INSERT INTO computed_metrics (date, metric_name, metric_value, metric_json, activity_id) "
+        "VALUES (?, ?, ?, NULL, ?)",
+        (dt, name, value, activity_id),
+    )
+
+
+class TestLoadMetricsBatch:
+    def test_empty(self, metric_conn):
+        from src.web.views_perf import load_metrics_batch
+        assert load_metrics_batch(metric_conn, "2026-03-25", []) == {}
+
+    def test_multiple(self, metric_conn):
+        from src.web.views_perf import load_metrics_batch
+        _seed_daily(metric_conn, "2026-03-25", "UTRS", 75.0)
+        _seed_daily(metric_conn, "2026-03-25", "CIRS", 30.0)
+        _seed_daily(metric_conn, "2026-03-25", "ACWR", 1.2)
+        r = load_metrics_batch(metric_conn, "2026-03-25", ["UTRS", "CIRS", "ACWR"])
+        assert r["UTRS"] == 75.0
+        assert r["CIRS"] == 30.0
+        assert r["ACWR"] == pytest.approx(1.2)
+
+    def test_missing_returns_none(self, metric_conn):
+        from src.web.views_perf import load_metrics_batch
+        _seed_daily(metric_conn, "2026-03-25", "UTRS", 75.0)
+        r = load_metrics_batch(metric_conn, "2026-03-25", ["UTRS", "MISSING"])
+        assert r["UTRS"] == 75.0
+        assert r["MISSING"] is None
+
+    def test_latest_before_date(self, metric_conn):
+        from src.web.views_perf import load_metrics_batch
+        _seed_daily(metric_conn, "2026-03-20", "UTRS", 60.0)
+        _seed_daily(metric_conn, "2026-03-25", "UTRS", 80.0)
+        r = load_metrics_batch(metric_conn, "2026-03-22", ["UTRS"])
+        assert r["UTRS"] == 60.0
+
+
+class TestLoadMetricsJsonBatch:
+    def test_parses_json(self, metric_conn):
+        from src.web.views_perf import load_metrics_json_batch
+        _seed_daily(metric_conn, "2026-03-25", "RMR", 0, '{"axes": {"vo2": 80}}')
+        r = load_metrics_json_batch(metric_conn, "2026-03-25", ["RMR"])
+        assert r["RMR"]["axes"]["vo2"] == 80
+
+    def test_invalid_json(self, metric_conn):
+        from src.web.views_perf import load_metrics_json_batch
+        _seed_daily(metric_conn, "2026-03-25", "RMR", 0, "not-json")
+        r = load_metrics_json_batch(metric_conn, "2026-03-25", ["RMR"])
+        assert r["RMR"] is None
+
+
+class TestLoadActivityMetricsBatch:
+    def test_multiple_activities(self, metric_conn):
+        from src.web.views_perf import load_activity_metrics_batch
+        _seed_activity_metric(metric_conn, 100, "FEARP", 5.5)
+        _seed_activity_metric(metric_conn, 200, "FEARP", 6.0)
+        _seed_activity_metric(metric_conn, 200, "RelativeEffort", 90.0)
+        r = load_activity_metrics_batch(metric_conn, [100, 200], ["FEARP", "RelativeEffort"])
+        assert r[100]["FEARP"] == 5.5
+        assert r[100]["RelativeEffort"] is None
+        assert r[200]["FEARP"] == 6.0
+        assert r[200]["RelativeEffort"] == 90.0
+
+    def test_empty_ids(self, metric_conn):
+        from src.web.views_perf import load_activity_metrics_batch
+        assert load_activity_metrics_batch(metric_conn, [], ["FEARP"]) == {}
+
+
+class TestLoadDarpBatch:
+    def test_all_distances(self, metric_conn):
+        import json as _json
+        from src.web.views_perf import load_darp_batch
+        for key, pace in [("DARP_5k", 300), ("DARP_10k", 310),
+                          ("DARP_half", 320), ("DARP_full", 330)]:
+            _seed_daily(metric_conn, "2026-03-25", key, pace,
+                        _json.dumps({"pace_sec_km": pace}))
+        r = load_darp_batch(metric_conn, "2026-03-25")
+        assert set(r.keys()) == {"5k", "10k", "half", "full"}
+        assert r["5k"]["pace_sec_km"] == 300
+
+    def test_empty(self, metric_conn):
+        from src.web.views_perf import load_darp_batch
+        assert load_darp_batch(metric_conn, "2026-03-25") == {}
+
+
+class TestPageCache:
+    def setup_method(self):
+        from src.web.views_perf import _page_cache
+        _page_cache.clear()
+
+    def test_caches_html(self):
+        from src.web.views_perf import cached_page
+        count = {"n": 0}
+        def build():
+            count["n"] += 1
+            return "<html>test</html>"
+        r1 = cached_page("test", "/db", build)
+        r2 = cached_page("test", "/db", build)
+        assert r1 == r2
+        assert count["n"] == 1
+
+    def test_separate_keys(self):
+        from src.web.views_perf import cached_page
+        cached_page("dash", "/db", lambda: "DASH")
+        cached_page("report", "/db", lambda: "REPORT")
+        assert cached_page("dash", "/db", lambda: "X") == "DASH"
+        assert cached_page("report", "/db", lambda: "X") == "REPORT"
+
+    def test_invalidate_specific(self):
+        from src.web.views_perf import cached_page, invalidate_cache
+        cached_page("t", "/a", lambda: "A")
+        cached_page("t", "/b", lambda: "B")
+        invalidate_cache("/a")
+        assert cached_page("t", "/a", lambda: "NEW") == "NEW"
+        assert cached_page("t", "/b", lambda: "X") == "B"
+
+    def test_invalidate_all(self):
+        from src.web.views_perf import cached_page, invalidate_cache
+        cached_page("t", "/a", lambda: "A")
+        invalidate_cache()
+        assert cached_page("t", "/a", lambda: "NEW") == "NEW"
