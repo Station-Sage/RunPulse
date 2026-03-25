@@ -2,6 +2,31 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.3-pwa] 2026-03-25
+
+### PWA 인프라 구현
+
+**신규 파일:**
+- `static/manifest.json`: PWA 매니페스트 (standalone, theme #1a1a2e, 아이콘 4종)
+- `static/sw.js`: Service Worker — Cache First (CDN/정적), Network First (HTML→offline fallback, API)
+- `static/offline.html`: 오프라인 폴백 페이지 (다크 테마, 재시도 버튼)
+- `static/icons/`: icon-192.png, icon-512.png, icon-192-maskable.png, icon-512-maskable.png (플레이스홀더)
+- `tests/test_pwa.py`: 15개 테스트 (정적 파일, 메타 태그, 매니페스트 무결성)
+
+**수정:**
+- `src/web/app.py`: Flask static_folder를 프로젝트 루트 `static/`으로 설정
+- `src/web/helpers.py`: html_page()에 PWA 메타 태그 (theme-color, manifest, apple-touch-icon) + SW 등록 스크립트
+- `templates/base.html`: 동일 PWA 메타 태그 + SW 등록 (Jinja2 경로)
+
+**SW 캐시 전략:**
+- `cacheFirst`: CDN (ECharts, Google Fonts), 정적 파일
+- `networkFirstHtml`: HTML 페이지 → 캐시 → offline.html 폴백
+- `networkFirst`: API/기타
+
+**테스트:** 890개 수집 (PWA 15개 추가)
+
+---
+
 ## [v0.2-training-ui] 2026-03-25
 
 ### 6.7 Training Plan UI 재설계
