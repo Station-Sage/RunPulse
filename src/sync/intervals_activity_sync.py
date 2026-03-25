@@ -37,18 +37,16 @@ def _upsert_activity_metrics(
     except sqlite3.Error:
         pass
 
+    # activity_summaries에 이미 저장되는 항목(icu_training_load, icu_intensity,
+    # icu_hrss, icu_efficiency_factor, strain_score, session_rpe,
+    # polarization_index, icu_gap, normalized_power, elevation_loss)은 제외.
+    # detail_metrics에는 고유 데이터만 저장.
     numeric_metrics = {
-        "icu_training_load": act.get("icu_training_load"),
-        "icu_intensity": act.get("icu_intensity"),
-        "icu_hrss": act.get("icu_hrss"),
         "trimp": act.get("trimp"),
-        "strain_score": act.get("strain_score"),
-        "icu_efficiency_factor": act.get("icu_efficiency_factor"),
         "decoupling": act.get("decoupling"),
         "hr_load": act.get("hr_load"),
         "pace_load": act.get("pace_load"),
         "power_load": act.get("power_load"),
-        "session_rpe": act.get("session_rpe"),
         "average_stride": act.get("average_stride"),
         "icu_lap_count": act.get("icu_lap_count"),
         "icu_ftp": act.get("icu_ftp"),
@@ -59,18 +57,14 @@ def _upsert_activity_metrics(
         "icu_variability_index": act.get("icu_variability_index"),
         "icu_weighted_avg_watts": act.get("icu_weighted_avg_watts"),
         "icu_average_watts": act.get("icu_average_watts"),
-        "gap": act.get("gap"),
-        "normalized_power": act.get("icu_weighted_avg_watts"),
         "max_speed": act.get("max_speed"),
         "max_power": act.get("p_max"),
-        "elevation_loss": act.get("total_elevation_loss"),
         "avg_run_cadence": act.get("average_cadence"),
         "avg_temp_c": act.get("average_weather_temp"),
         "weather_wind_speed": act.get("average_wind_speed"),
         "weather_wind_gust": act.get("average_wind_gust"),
         "weather_feels_like": act.get("average_feels_like"),
         "weather_clouds": act.get("average_clouds"),
-        "polarization_index": act.get("polarization_index"),
         "icu_power_hr": act.get("icu_power_hr"),
     }
     for name, value in numeric_metrics.items():
