@@ -245,6 +245,8 @@ def race_page():
             darp_val, darp_json = _load_darp(conn, active_km)
             di_val, di_json = _load_di(conn)
             pace_sec = darp_json.get("avg_pace_sec") if darp_json else None
+            darp_key = _KM_TO_DARP_KEY.get(active_km, f"DARP_{active_km}")
+            history = _load_prediction_history(conn, darp_key)
             body = (
                 render_sub_nav("race")
                 + '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
@@ -257,6 +259,7 @@ def race_page():
                 + _render_pace_strategy(darp_json)
                 + _render_htw_card(darp_json)
                 + _render_training_adjust(darp_json)
+                + _render_prediction_history(history)
                 + '</div>'
             )
         finally:
@@ -274,3 +277,46 @@ def race_page():
 
 def _load_di(conn):
     return _load_metric(conn, "DI")
+
+
+def _load_prediction_history(conn, key: str, limit: int = 10) -> list[dict]:
+    """최근 DARP 예측 이력 로드."""
+    rows = conn.execute(
+        "SELECT date, metric_value, metric_json FROM computed_metrics "
+        "WHERE metric_name=? ORDER BY date DESC LIMIT ?", (key, limit),
+    ).fetchall()
+    result = []
+    for d, val, mj in rows:
+        j = _safe_json(mj)
+        result.append({"date": d, "time_sec": val, "pace": j.get("avg_pace_sec")})
+    return result
+
+
+def _render_prediction_history(history: list[dict]) -> str:
+    """예측 이력 카드."""
+    if not history:
+        return ""
+    rows_html = ""
+    for h in history:
+        t = fmt_duration(int(h["time_sec"])) if h["time_sec"] else "-"
+        p = fmt_pace(h["pace"]) if h.get("pace") else "-"
+        rows_html += (
+            f"<tr><td style='padding:6px 10px;border-bottom:1px solid var(--row-border);'>{h['date']}</td>"
+            f"<td style='padding:6px 10px;border-bottom:1px solid var(--row-border);font-weight:600;color:#00d4ff;'>{t}</td>"
+            f"<td style='padding:6px 10px;border-bottom:1px solid var(--row-border);'>{p}/km</td></tr>"
+        )
+    return (
+        '<div style="background:rgba(255,255,255,0.05);border-radius:20px;padding:24px;margin:20px 0">'
+        '<div style="font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">'
+        '<span style="width:4px;height:20px;background:linear-gradient(135deg,#00d4ff,#00ff88);border-radius:2px;display:inline-block"></span>'
+        '예측 이력</div>'
+        '<div style="overflow-x:auto;">'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">'
+        '<thead><tr style="color:var(--muted);font-size:0.78rem;">'
+        '<th style="text-align:left;padding:6px 10px;">날짜</th>'
+        '<th style="text-align:left;padding:6px 10px;">예측 시간</th>'
+        '<th style="text-align:left;padding:6px 10px;">평균 페이스</th>'
+        '</tr></thead><tbody>'
+        + rows_html
+        + '</tbody></table></div></div>'
+    )

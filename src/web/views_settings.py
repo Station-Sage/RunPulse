@@ -26,6 +26,7 @@ from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config, save_config
 from .helpers import db_path, metric_row, score_badge, last_sync_info
+from .views_settings_hub import render_sync_overview, render_system_info
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -203,8 +204,16 @@ def settings_view() -> str:
     msg = _html.escape(request.args.get("msg", ""))
     msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
 
+    statuses = {
+        "garmin": garmin_status, "strava": strava_status,
+        "intervals": intervals_status, "runalyze": runalyze_status,
+    }
+    sync_overview = render_sync_overview(statuses, sync)
+    system_info = render_system_info(config)
+
     body = f"""
 {msg_html}
+{sync_overview}
 <h2 style='margin:0.5rem 0 0.8rem;font-size:1rem;color:var(--muted);'>데이터 소스 연동</h2>
 <div class='cards-row'>
   {_service_card("Garmin Connect", "⌚", garmin_status,
@@ -367,6 +376,7 @@ function pollRecomputeStatus(btn) {
   }).catch(function(){});
 })();
 </script>
+{system_info}
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
 </p>"""

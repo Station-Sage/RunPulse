@@ -2,6 +2,26 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.2-ui-minor] 2026-03-25
+
+### 6.4 Settings 보완
+- `views_settings_hub.py` (신규): sync 상태 요약 카드 (연결 수, 최근 동기화, 서비스별 도트) + 시스템 정보 카드 (버전, DB 크기, 공식 버전, AI 모델)
+- `views_settings.py`: 상단에 sync 개요, 하단에 시스템 정보 배치
+
+### 6.5 Race Prediction 잔여
+- `views_race.py`: 예측 이력 섹션 추가 (`_load_prediction_history`, `_render_prediction_history`) — 최근 10회 DARP 값 테이블
+
+### 6.6 AI Coach 잔여
+- `views_ai_coach_cards.py` (신규): 렌더링 카드 분리 (300줄 규칙)
+- `views_ai_coach.py`: 최근 훈련 3건 요약 카드 + 리스크 요약 카드 (CIRS/ACWR/LSI) 추가
+- 코치 프로필/브리핑/칩/채팅 렌더링 → cards 모듈로 분리
+
+### 6.8 Wellness 보완
+- `views_wellness.py`: 7일 웰니스 트렌드 ECharts 라인 차트 (수면/HRV/바디배터리/스트레스/안정심박)
+- 회복 권장 카드 — 바디배터리/수면/스트레스/HRV 기반 규칙 조언
+
+---
+
 ## [v0.2-sprint7] 2026-03-25
 
 ### 추가/변경

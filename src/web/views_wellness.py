@@ -119,6 +119,106 @@ def _render_other_card(detail: dict) -> str:
     )
 
 
+def _load_7day_wellness(conn, date_str: str) -> list[dict]:
+    """최근 7일 웰니스 데이터 로드 (ECharts용)."""
+    rows = conn.execute(
+        "SELECT date, sleep_score, hrv_value, body_battery, stress_avg, resting_hr "
+        "FROM daily_wellness WHERE source='garmin' AND date <= ? "
+        "ORDER BY date DESC LIMIT 7",
+        (date_str,),
+    ).fetchall()
+    result = []
+    for r in reversed(rows):
+        result.append({
+            "date": r[0], "sleep": r[1], "hrv": r[2],
+            "bb": r[3], "stress": r[4], "rhr": r[5],
+        })
+    return result
+
+
+def _render_7day_chart(data: list[dict]) -> str:
+    """7일 웰니스 트렌드 ECharts 차트."""
+    if not data:
+        return ""
+    import json as _json
+    dates = [d["date"][-5:] for d in data]  # MM-DD
+    sleep = [d.get("sleep") for d in data]
+    hrv = [d.get("hrv") for d in data]
+    bb = [d.get("bb") for d in data]
+    stress = [d.get("stress") for d in data]
+    rhr = [d.get("rhr") for d in data]
+
+    option = {
+        "tooltip": {"trigger": "axis"},
+        "legend": {"data": ["수면", "HRV", "바디배터리", "스트레스", "안정심박"],
+                   "textStyle": {"color": "rgba(255,255,255,0.7)", "fontSize": 11},
+                   "top": 0},
+        "grid": {"top": 40, "bottom": 25, "left": 40, "right": 10},
+        "xAxis": {"type": "category", "data": dates,
+                  "axisLabel": {"color": "rgba(255,255,255,0.6)", "fontSize": 11}},
+        "yAxis": {"type": "value",
+                  "axisLabel": {"color": "rgba(255,255,255,0.6)", "fontSize": 11},
+                  "splitLine": {"lineStyle": {"color": "rgba(255,255,255,0.08)"}}},
+        "series": [
+            {"name": "수면", "type": "line", "data": sleep, "color": "#00d4ff", "smooth": True},
+            {"name": "HRV", "type": "line", "data": hrv, "color": "#00ff88", "smooth": True},
+            {"name": "바디배터리", "type": "line", "data": bb, "color": "#ffaa00", "smooth": True},
+            {"name": "스트레스", "type": "line", "data": stress, "color": "#ff4444", "smooth": True},
+            {"name": "안정심박", "type": "line", "data": rhr, "color": "#cc88ff", "smooth": True},
+        ],
+    }
+    opt_json = _json.dumps(option, ensure_ascii=False)
+    return (
+        "<div class='card'>"
+        "<h2>7일 웰니스 트렌드</h2>"
+        "<div id='wellness7d' style='width:100%;height:280px;'></div>"
+        "<script>"
+        f"(function(){{var c=echarts.init(document.getElementById('wellness7d'),null,"
+        f"{{renderer:'canvas'}});c.setOption({opt_json});"
+        f"window.addEventListener('resize',function(){{c.resize();}});}})();"
+        "</script></div>"
+    )
+
+
+def _render_recovery_recommendation(status: dict) -> str:
+    """회복 권장 사항 카드."""
+    if not status.get("available"):
+        return ""
+    raw = status.get("raw") or {}
+    grade = status.get("grade")
+    tips = []
+    bb = raw.get("body_battery")
+    sleep = raw.get("sleep_score")
+    stress = raw.get("stress_avg")
+    hrv = raw.get("hrv_value")
+
+    if bb is not None and bb < 30:
+        tips.append("바디배터리가 매우 낮습니다. 고강도 훈련을 피하고 충분한 휴식을 취하세요.")
+    elif bb is not None and bb < 60:
+        tips.append("바디배터리가 보통입니다. 가벼운 조깅이나 회복 러닝을 권장합니다.")
+    if sleep is not None and sleep < 40:
+        tips.append("수면 품질이 낮습니다. 취침 시간을 규칙적으로 유지하세요.")
+    if stress is not None and stress > 60:
+        tips.append("스트레스 수준이 높습니다. 호흡 운동이나 스트레칭을 시도하세요.")
+    if hrv is not None and hrv < 30:
+        tips.append("HRV가 낮습니다. 자율신경 회복이 필요하므로 오버트레이닝에 주의하세요.")
+    if grade == "good" or (not tips and grade):
+        tips.append("전반적인 회복 상태가 양호합니다. 계획대로 훈련을 진행해도 좋습니다.")
+
+    if not tips:
+        return ""
+    items_html = "".join(
+        f"<li style='margin-bottom:6px;font-size:0.88rem;color:rgba(255,255,255,0.85);'>{t}</li>"
+        for t in tips
+    )
+    return (
+        "<div class='card' style='border-left:4px solid #00d4ff;'>"
+        "<h2>회복 권장</h2>"
+        f"<ul style='margin:0;padding-left:1.2rem;'>{items_html}</ul>"
+        "</div>"
+    )
+
+
 def _render_trend_card(trend_data: dict) -> str:
     """14일 회복 추세 카드."""
     scores = trend_data.get("scores") or []
@@ -233,6 +333,7 @@ def wellness_view():
             status = get_recovery_status(conn, date_str)
             trend_data = recovery_trend(conn, days=14)
             steps, weight_kg = _fetch_steps_weight(conn, date_str)
+            wellness_7d = _load_7day_wellness(conn, date_str)
     except Exception as exc:
         body = render_sub_nav("wellness") + f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("회복/웰니스", body, active_tab="dashboard")
@@ -247,5 +348,6 @@ def wellness_view():
         "</div>"
     )
 
-    body = render_sub_nav("wellness") + date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg)
+    extra = _render_7day_chart(wellness_7d) + _render_recovery_recommendation(status)
+    body = render_sub_nav("wellness") + date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg) + extra
     return html_page(f"회복/웰니스 — {date_str}", body, active_tab="dashboard")
