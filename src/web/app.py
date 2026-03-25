@@ -188,6 +188,19 @@ def create_app() -> Flask:
     def index():
         return redirect("/dashboard")
 
+    # ── v0.1 → v0.2 리다이렉트 (V2-9-7) ──────────────────────────────
+    @app.get("/analyze/today")
+    def analyze_today_redirect():
+        return redirect("/dashboard")
+
+    @app.get("/analyze/full")
+    def analyze_full_redirect():
+        return redirect("/report")
+
+    @app.get("/analyze/race")
+    def analyze_race_redirect():
+        return redirect("/race")
+
     @app.get("/home-legacy")
     def index_legacy():
         db_path = _db_path()
@@ -283,7 +296,7 @@ def create_app() -> Flask:
             w_data = weekly.get("data") or {}
             weekly_card_html = f"""
             <div class="card">
-              <h2>이번 주 훈련 점수 <a href="/analyze/today" style="font-size:0.8rem; font-weight:normal;">리포트 &rarr;</a></h2>
+              <h2>이번 주 훈련 점수 <a href="/report" style="font-size:0.8rem; font-weight:normal;">리포트 &rarr;</a></h2>
               <p style="font-size:1.4rem; margin:0.3rem 0;">
                 <strong>{html.escape(str(w_score) if w_score is not None else "—")}</strong>
                 <span style="font-size:1rem; color:#666;">/ 100 ({html.escape(str(w_grade))})</span>

@@ -297,12 +297,12 @@ card: background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: 
 | 바 차트 | ECharts (CDN) | TIDS, TRIMP 주간, 거리 추세 |
 | 수치 카드 | HTML + CSS | 요약 지표 |
 
-### 하단 네비게이션 (5탭)
+### 하단 네비게이션 (6+1탭)
 ```
-홈(대시보드) | 활동 | 훈련 | AI 코치 | 설정
+홈(대시보드) | 활동 | 레포트 | 훈련 | AI코치 | 설정 (+개발자)
 ```
-`templates/macros/nav.html`에 Jinja2 매크로로 공통화.
-사용법: `{% from 'macros/nav.html' import bottom_nav %}{{ bottom_nav('dashboard') }}`
+`src/web/helpers.py`의 `bottom_nav()` 함수. `base.html`에서 `{{ bottom_nav(active_tab) }}` 호출.
+레이스 예측(`/race`)은 레포트 탭 하위, 웰니스(`/wellness`)는 상단 드롭다운 nav에서 접근.
 
 ---
 
@@ -312,5 +312,5 @@ card: background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: 
 2. **DI**: 90분+ 세션 8주 3회 미달 → `None` 반환 → "장거리 세션 부족 (8주 3회 이상 필요)" 표시
 3. **FEARP**: GPS 고도 없으면 `grade_factor=1.0`; 날씨 API 실패 시 `temp=15, humidity=50`
 4. **CIRS**: Garmin GCT 비대칭 데이터 없으면 `asym_risk=0`, 나머지 3요소만으로 정규화 계산
-5. **메트릭 계산식**: `design/.ai/metrics.md` (PDF 원본) 기준 구현. 차이 시 PDF 우선
+5. **메트릭 계산식**: `v0.2/.ai/metrics.md` (PDF 원본) 기준 구현. 차이 시 PDF 우선
 6. **두 버전 설계**: 구현은 PDF 버전으로, `metrics_by_claude.md`는 추후 비교/선택용 보존

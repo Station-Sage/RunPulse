@@ -13,8 +13,9 @@
 | 작업 브랜치 | `claude/sprint6-settings-refactor` (dev 기반) |
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
 | 현재 테스트 | **792개 통과** (gpxpy 미설치 2개 collect error 별개) |
-| 완료 | Phase 0~7 · Sprint 4A~5F · Sprint 6 전체 (V2-8-1b/V2-9-3~V2-9-5/V2-9-10~11/B-1~B-3) |
-| 다음 작업 | V2-9-6 통합 테스트 · V2-9-7 리다이렉트 · 탭 UI 리뉴얼 |
+| 완료 | Phase 0~7 · Sprint 4A~5F · Sprint 6 전체 (V2-8-1b/V2-9-3~V2-9-11/B-1~B-3) |
+| 현재 테스트 | **829개 통과** (기존 792 + 신규 37) |
+| 다음 작업 | 탭 UI 리뉴얼 · Phase 9 완료 |
 
 ---
 
@@ -23,36 +24,36 @@
 ### 작업 계획
 | 파일 | 용도 | 언제 읽나 |
 |------|------|-----------|
-| `design/.ai/todo.md` | v0.2 전체 작업 체크리스트 (Phase 0~9) | 매 세션 시작 |
-| `design/.ai/roadmap.md` | 스프린트 단계, 검증 기준, 의존 관계 | 스프린트 시작/전환 시 |
+| `v0.2/.ai/todo.md` | v0.2 작업 체크리스트 (**상단 미완료 섹션만** 읽을 것) | 매 세션 시작 |
+| `v0.2/.ai/roadmap.md` | 버전별 고수준 목표, 의존 관계 | 스프린트 시작/전환 시 |
 
 ### 설계 기준
 | 파일 | 용도 | 언제 읽나 |
 |------|------|-----------|
-| `design/.ai/architecture.md` | v0.1 기존 코드 구조 + v0.2 추가 모듈 맵 | 새 모듈 작성 전 |
-| `design/.ai/metrics.md` | 2차 메트릭 확정 계산식 (PDF 원본 기준) | 메트릭 함수 구현 시 |
-| `design/.ai/metrics_by_claude.md` | 2차 메트릭 대안 계산식 (비교용) | 두 버전 비교 시 |
-| `design/.ai/decisions.md` | v0.2 설계 결정 기록 (D-V2-01~) | 설계 판단 필요 시 |
+| `v0.2/.ai/architecture.md` | v0.1 기존 코드 구조 + v0.2 추가 모듈 맵 | 새 모듈 작성 전 |
+| `v0.2/.ai/metrics.md` | 2차 메트릭 확정 계산식 (PDF 원본 기준) | 메트릭 함수 구현 시 |
+| `v0.2/.ai/metrics_by_claude.md` | 2차 메트릭 대안 계산식 (비교용) | 두 버전 비교 시 |
+| `v0.2/.ai/decisions.md` | v0.2 설계 결정 기록 (D-V2-01~) | 설계 판단 필요 시 |
 
 ### 파일 목록
 | 파일 | 용도 | 언제 읽나 |
 |------|------|-----------|
-| `design/.ai/files_index.md` | 신규/수정/참고 파일 인덱스 | 어떤 파일을 만들어야 할지 모를 때 |
+| `v0.2/.ai/files_index.md` | 신규/수정/참고 파일 인덱스 | 어떤 파일을 만들어야 할지 모를 때 |
 
 ### UI 레퍼런스
 | 파일 | 용도 |
 |------|------|
-| `design/3_통합_대시보드_UI_설계.html` | 대시보드 레이아웃/컴포넌트/색상 기준 |
-| `design/1_러닝플랫폼_1차_상세메트릭.html` | 1차 메트릭 계산식 원본 |
-| `design/2_러닝플랫폼_2차_가공메트릭_후보군.html` | 2차 메트릭 공식/우선순위 원본 |
-| `design/app-UI/*.html` | 각 화면별 UI 프로토타입 |
+| `v0.2/3_통합_대시보드_UI_설계.html` | 대시보드 레이아웃/컴포넌트/색상 기준 |
+| `v0.2/1_러닝플랫폼_1차_상세메트릭.html` | 1차 메트릭 계산식 원본 |
+| `v0.2/2_러닝플랫폼_2차_가공메트릭_후보군.html` | 2차 메트릭 공식/우선순위 원본 |
+| `v0.2/app-UI/*.html` | 각 화면별 UI 프로토타입 |
 
 ### v0.1 히스토리 (참고용)
 | 파일 | 용도 |
 |------|------|
-| `.ai/todo.md` | v0.1 완료 작업 전체 히스토리 |
-| `.ai/architecture.md` | v0.1 아키텍처 상세 |
-| `.ai/decisions.md` | v0.1 설계 결정 D1~D18 |
+| `v0.1/.ai/todo.md` | v0.1 완료 작업 전체 히스토리 |
+| `v0.1/.ai/architecture.md` | v0.1 아키텍처 상세 |
+| `v0.1/.ai/decisions.md` | v0.1 설계 결정 D1~D18 |
 
 ---
 
@@ -155,17 +156,17 @@ src/web/helpers.py      ← SVG 게이지/레이더/ECharts/bottom_nav/다크테
 ## 작업 시 필수 체크리스트
 
 ### 새 파일 생성 전
-- [ ] `design/.ai/architecture.md`에서 해당 모듈 위치 확인
-- [ ] `design/.ai/files_index.md`에서 이미 설계된 파일명 확인
+- [ ] `v0.2/.ai/architecture.md`에서 해당 모듈 위치 확인
+- [ ] `v0.2/.ai/files_index.md`에서 이미 설계된 파일명 확인
 - [ ] 300줄 이하 유지 계획 수립
 
 ### 메트릭 함수 구현 전
-- [ ] `design/.ai/metrics.md`에서 해당 메트릭 계산식 확인
-- [ ] 필요한 DB 컬럼/테이블 확인 (`design/.ai/architecture.md` DB 스키마 섹션)
+- [ ] `v0.2/.ai/metrics.md`에서 해당 메트릭 계산식 확인
+- [ ] 필요한 DB 컬럼/테이블 확인 (`v0.2/.ai/architecture.md` DB 스키마 섹션)
 - [ ] 데이터 없을 때 graceful fallback 방안 결정 (None 반환 또는 기본값)
 
 ### UI 구현 전
-- [ ] `design/3_통합_대시보드_UI_설계.html` 해당 섹션 참조
+- [ ] `v0.2/3_통합_대시보드_UI_설계.html` 해당 섹션 참조
 - [ ] 다크 테마 색상 코드 사용: `#00d4ff`(cyan), `#00ff88`(green), `#ff4444`(red), `#ffaa00`(orange)
 - [ ] Chart.js CDN 사용 (별도 설치 금지), SVG fallback 준비
 

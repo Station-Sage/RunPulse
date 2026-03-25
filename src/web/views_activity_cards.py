@@ -65,6 +65,7 @@ from .views_activity_source_cards import (  # noqa: F401, E402
     _render_intervals_metrics,
     _render_runalyze_metrics,
     _render_source_comparison,
+    _render_service_tabs,
 )
 
 
@@ -493,11 +494,37 @@ def _render_daily_scores_card(day_metrics: dict) -> str:
         else:
             acwr_interp = " <span style='font-size:0.72rem;color:var(--red);'>과부하 위험</span>"
 
+    utrs_interp = ""
+    if utrs is not None:
+        uv = float(utrs)
+        if uv >= 70:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--green);'>컨디션 최적 — 고강도 훈련 가능</span>"
+        elif uv >= 50:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--cyan);'>보통 — 일반 훈련 적합</span>"
+        elif uv >= 30:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--orange);'>피로 누적 — 경량 훈련 권장</span>"
+        else:
+            utrs_interp = "<span style='font-size:0.72rem;color:var(--red);'>휴식 필요 — 회복에 집중</span>"
+
+    cirs_interp = ""
+    if cirs_val is not None:
+        cv = float(cirs_val)
+        if cv < 30:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--green);'>안전 수준</span>"
+        elif cv < 50:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--cyan);'>낮은 위험</span>"
+        elif cv < 75:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--orange);'>주의 — 부상 위험 증가</span>"
+        else:
+            cirs_interp = "<span style='font-size:0.72rem;color:var(--red);'>경고 — 강도 즉시 낮추기</span>"
+
     return (
         "<div class='card'>"
         "<h2>당일 훈련 지수</h2>"
         + _gauge_bar(utrs, 100, utrs_color, "UTRS — 훈련 준비도")
+        + (f"<div style='margin:-0.5rem 0 0.6rem;'>{utrs_interp}</div>" if utrs_interp else "")
         + _gauge_bar(cirs_val, 100, cirs_color, "CIRS — 부상 위험도")
+        + (f"<div style='margin:-0.5rem 0 0.6rem;'>{cirs_interp}</div>" if cirs_interp else "")
         + "<div style='margin-bottom:0.75rem;'>"
         + f"<div style='display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:3px;'>"
         + f"<span style='color:var(--muted);'>ACWR — 급성/만성 부하비</span>"
@@ -718,14 +745,66 @@ def _render_decoupling_detail_card(metrics: dict, metric_jsons: dict) -> str:
     )
 
 
-def _render_map_placeholder() -> str:
-    """지도 플레이스홀더 (Mapbox 토큰 미설정 시 graceful fallback)."""
+def _render_map_placeholder(activity_id: int | None = None) -> str:
+    """활동 경로 지도 (Mapbox 토큰 있으면 렌더링, 없으면 안내)."""
+    from src.utils.config import load_config
+    token = load_config().get("mapbox", {}).get("token", "")
+    if not token or not activity_id:
+        return (
+            "<div class='card' style='text-align:center;min-height:120px;"
+            "display:flex;flex-direction:column;align-items:center;justify-content:center;'>"
+            "<div style='font-size:2.5rem;margin-bottom:0.4rem;'>&#128506;</div>"
+            "<h2 style='font-size:0.95rem;margin-bottom:0.3rem;'>활동 경로 지도</h2>"
+            "<p class='muted' style='font-size:0.8rem;margin:0;'>Mapbox 토큰 설정 후 표시됩니다.</p>"
+            "<p class='muted' style='font-size:0.74rem;margin-top:0.2rem;'>설정 → Mapbox 토큰 입력</p>"
+            "</div>"
+        )
+    # GPS 스트림 로드
+    import json
+    import sqlite3
+    from .helpers import db_path
+    coords = []
+    try:
+        with sqlite3.connect(str(db_path())) as conn:
+            rows = conn.execute(
+                "SELECT stream_data FROM activity_streams WHERE activity_id=? AND stream_type='latlng' LIMIT 1",
+                (activity_id,),
+            ).fetchone()
+            if rows and rows[0]:
+                coords = json.loads(rows[0]) if isinstance(rows[0], str) else rows[0]
+    except Exception:
+        pass
+    if not coords or len(coords) < 2:
+        return (
+            "<div class='card' style='text-align:center;min-height:120px;"
+            "display:flex;flex-direction:column;align-items:center;justify-content:center;'>"
+            "<div style='font-size:2.5rem;margin-bottom:0.4rem;'>&#128506;</div>"
+            "<h2 style='font-size:0.95rem;margin-bottom:0.3rem;'>활동 경로 지도</h2>"
+            "<p class='muted' style='font-size:0.8rem;margin:0;'>GPS 데이터가 없습니다.</p>"
+            "</div>"
+        )
+    # GeoJSON LineString
+    geojson = json.dumps({"type": "LineString", "coordinates": [[c[1], c[0]] for c in coords]})
+    mid = coords[len(coords) // 2]
     return (
-        "<div class='card' style='text-align:center;min-height:120px;"
-        "display:flex;flex-direction:column;align-items:center;justify-content:center;'>"
-        "<div style='font-size:2.5rem;margin-bottom:0.4rem;'>&#128506;</div>"
-        "<h2 style='font-size:0.95rem;margin-bottom:0.3rem;'>활동 경로 지도</h2>"
-        "<p class='muted' style='font-size:0.8rem;margin:0;'>Mapbox 토큰 설정 후 표시됩니다.</p>"
-        "<p class='muted' style='font-size:0.74rem;margin-top:0.2rem;'>설정 → Mapbox 토큰 입력</p>"
-        "</div>"
+        "<div class='card' style='padding:0;overflow:hidden;border-radius:20px;'>"
+        f"<div id='activity-map' style='height:300px;width:100%;' "
+        f"data-token='{token}' data-center='[{mid[1]},{mid[0]}]'></div></div>"
+        "<script src='https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js'></script>"
+        "<link href='https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css' rel='stylesheet'/>"
+        "<script>"
+        "(function(){"
+        "var el=document.getElementById('activity-map');if(!el||!mapboxgl)return;"
+        f"mapboxgl.accessToken='{token}';"
+        f"var map=new mapboxgl.Map({{container:'activity-map',style:'mapbox://styles/mapbox/dark-v11',"
+        f"center:{json.dumps([mid[1],mid[0]])},zoom:13}});"
+        f"var geojson={geojson};"
+        "map.on('load',function(){"
+        "map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:geojson}});"
+        "map.addLayer({id:'route',type:'line',source:'route',"
+        "paint:{'line-color':'#00d4ff','line-width':3}});"
+        "var bounds=new mapboxgl.LngLatBounds();"
+        "geojson.coordinates.forEach(function(c){bounds.extend(c);});"
+        "map.fitBounds(bounds,{padding:40});"
+        "});})();</script>"
     )

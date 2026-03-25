@@ -6,33 +6,7 @@ from pathlib import Path
 
 from src.utils.config import load_config
 
-# ── 내비게이션 그룹 구조 ──────────────────────────────────────────────
-# (label, href_or_None, [(sub_label, sub_href), ...])
-_NAV_GROUPS = [
-    ("홈", "/", []),
-    ("훈련 데이터", None, [
-        ("활동 목록", "/activities"),
-        ("활동 심층 분석", "/activity/deep"),
-        ("회복·웰니스", "/wellness"),
-    ]),
-    ("분석", None, [
-        ("Today", "/analyze/today"),
-        ("Full Report", "/analyze/full"),
-        ("Race 준비도", "/analyze/race?date=2026-06-01&distance=42.195"),
-    ]),
-    ("⚙️ 설정", None, [
-        ("연동 설정", "/settings"),
-        ("동기화", "/sync-status"),
-        ("Config", "/config"),
-    ]),
-    ("🔧 개발자", None, [
-        ("DB", "/db"),
-        ("Payloads", "/payloads"),
-        ("Import (GPX/FIT)", "/import"),
-        ("Export 임포트", "/import-export"),
-        ("신발 목록", "/shoes"),
-    ]),
-]
+# 상단 드롭다운 nav 제거 — 하단 탭 + 페이지 내 서브링크로 대체
 
 _CSS = """
     /* ── RunPulse v0.2 다크 테마 (ui-spec.md 기준) ── */
@@ -66,39 +40,17 @@ _CSS = """
     a { color: var(--cyan); text-decoration: none; }
     a:visited { color: var(--cyan); opacity: 0.85; }
     a:hover { text-decoration: underline; opacity: 1; }
-    /* ── 스티키 헤더 & 드롭다운 네비게이션 ── */
+    /* ── 스티키 헤더 ── */
     header {
         position: sticky; top: 0; z-index: 200;
         background: var(--nav-bg); backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--nav-border);
-        padding: 0 1rem;
+        padding: 0.4rem 1rem; display: flex; align-items: center;
     }
     header .brand {
-        font-weight: bold; font-size: 1rem; padding: 0.5rem 0.4rem;
-        display: inline-block; text-decoration: none; color: var(--cyan);
+        font-weight: bold; font-size: 1rem;
+        text-decoration: none; color: var(--cyan);
     }
-    nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
-    .nav-item { position: relative; }
-    .nav-item > a, .nav-item > span {
-        display: inline-block; padding: 0.55rem 0.75rem;
-        white-space: nowrap; text-decoration: none; color: var(--secondary);
-        font-size: 0.9rem; cursor: pointer; border-radius: 4px;
-    }
-    .nav-item > a:hover, .nav-item > span:hover,
-    .nav-item:hover > span { background: var(--nav-hover); color: var(--fg); }
-    .nav-item > span::after { content: " ▾"; font-size: 0.7rem; opacity: 0.7; }
-    .dropdown-menu {
-        display: none; position: absolute; top: 100%; left: 0;
-        background: #16213e; border: 1px solid var(--nav-border);
-        border-radius: 6px; min-width: 160px;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.4); z-index: 300; padding: 0.25rem 0;
-    }
-    .nav-item:hover .dropdown-menu { display: block; }
-    .dropdown-menu a {
-        display: block; padding: 0.45rem 1rem;
-        text-decoration: none; color: var(--secondary); font-size: 0.88rem;
-    }
-    .dropdown-menu a:hover { background: var(--nav-hover); color: var(--fg); }
     /* ── 콘텐츠 ── */
     main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 6rem; }
     pre { white-space: pre-wrap; word-break: break-word;
@@ -217,25 +169,31 @@ def db_path(user_id: str | None = None) -> Path:
 
 # ── HTML 조립 ───────────────────────────────────────────────────────────
 def _build_nav() -> str:
-    """그룹 드롭다운 네비게이션 HTML 빌드."""
-    items = []
-    for label, href, children in _NAV_GROUPS:
-        if not children:
-            items.append(
-                f'<div class="nav-item"><a href="{href}">{_html.escape(label)}</a></div>'
-            )
+    """상단 nav — 드롭다운 제거, 빈 문자열 반환. 하단 탭이 주 네비게이션."""
+    return ""
+
+
+def render_sub_nav(active: str = "report") -> str:
+    """페이지 내 서브 네비게이션 (레포트/레이스/웰니스)."""
+    items = [
+        ("report", "📊 레포트", "/report"),
+        ("race", "🏁 레이스 예측", "/race"),
+        ("wellness", "💚 웰니스", "/wellness"),
+    ]
+    links = []
+    for key, label, href in items:
+        if key == active:
+            style = "background:var(--cyan);color:#000;font-weight:600;"
         else:
-            links = "".join(
-                f'<a href="{child_href}">{_html.escape(child_label)}</a>'
-                for child_label, child_href in children
-            )
-            items.append(
-                f'<div class="nav-item">'
-                f'<span>{_html.escape(label)}</span>'
-                f'<div class="dropdown-menu">{links}</div>'
-                f'</div>'
-            )
-    return "".join(items)
+            style = "background:rgba(255,255,255,0.07);color:var(--secondary);"
+        links.append(
+            f"<a href='{href}' style='{style}padding:0.4rem 0.9rem;"
+            f"border-radius:20px;text-decoration:none;font-size:0.85rem;white-space:nowrap;'>{label}</a>"
+        )
+    return (
+        "<div style='display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;'>"
+        + "".join(links) + "</div>"
+    )
 
 
 _SYNC_JS = """
@@ -658,7 +616,6 @@ def html_page(
             dev_mode = bool(load_config().get("dev_mode", True))
         except Exception:
             dev_mode = True
-    nav_html = _build_nav()
     bottom = bottom_nav(active_tab, dev_mode) if active_tab else ""
     return f"""<!doctype html>
 <html lang="ko">
@@ -674,7 +631,6 @@ def html_page(
 <body>
   <header>
     <a class="brand" href="/">RunPulse</a>
-    <nav>{nav_html}</nav>
   </header>
   <main>
     <h1>{_html.escape(title)}</h1>

@@ -35,17 +35,13 @@ from .views_activity_cards import (
     _render_efficiency,
     _render_fearp_breakdown_card,
     _render_fitness_context,
-    _render_garmin_daily_detail,
-    _render_garmin_metrics,
     _render_horizontal_scroll,
-    _render_intervals_metrics,
     _render_map_placeholder,
     _render_pmc_sparkline_card,
-    _render_runalyze_metrics,
     _render_secondary_metrics_card,
+    _render_service_tabs,
     _render_source_comparison,
     _render_splits,
-    _render_strava_metrics,
 )
 
 activity_bp = Blueprint("activity", __name__)
@@ -158,15 +154,7 @@ def activity_deep_view():
         + _render_activity_classification_badge(act)
         + _render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
-        + _render_garmin_daily_detail(garmin_detail, act_date)
-        + "<div class='cards-row'>"
-        + _render_garmin_metrics(garmin)
-        + _render_strava_metrics(strava)
-        + "</div>"
-        + "<div class='cards-row'>"
-        + _render_intervals_metrics(intervals)
-        + _render_runalyze_metrics(runalyze)
-        + "</div>"
+        + _render_service_tabs(garmin, strava, intervals, runalyze, garmin_detail, act_date)
         + "<div class='cards-row'>"
         + _render_fitness_context(fitness_ctx)
         + _render_efficiency(efficiency)
@@ -182,7 +170,7 @@ def activity_deep_view():
         + _render_pmc_sparkline_card(pmc_series)
         + "<div class='cards-row'>"
         + _render_di_card(day_metrics_data)
-        + _render_map_placeholder()
+        + _render_map_placeholder(resolved_id)
         + "</div>"
         + _render_splits(splits)
     )

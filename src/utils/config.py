@@ -36,6 +36,7 @@ def _default_config() -> dict:
         "strava": {},
         "intervals": {},
         "runalyze": {},
+        "mapbox": {},
     }
 
 

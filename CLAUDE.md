@@ -1,18 +1,18 @@
 # CLAUDE.md - RunPulse
 
 ## 필수 읽기 (세션 시작 시 반드시)
-1. `design/.ai/index.md` — 전체 네비게이션, 현재 진행 상태 (여기서 시작)
-2. `design/.ai/todo.md` — v0.2 작업 목록, Phase별 체크리스트
-3. `design/.ai/architecture.md` — v0.1 기존 코드 구조 + v0.2 추가 모듈 전체 맵
+1. `v0.2/.ai/todo.md` — **상단 "현재 미완료 작업" 섹션만** 읽을 것 (약 50줄)
+2. `v0.2/.ai/architecture.md` — 코드 구조 + 모듈 맵 (새 모듈 작성 시)
 
 필요 시 참조:
-- `design/.ai/metrics.md` — 2차 메트릭 계산식 (PDF 원본 확정)
-- `design/.ai/metrics_by_claude.md` — 2차 메트릭 계산식 (Claude 연구 버전, 비교용)
-- `design/.ai/decisions.md` — v0.2 설계 결정 기록 (D-V2-01~)
-- `design/.ai/roadmap.md` — 스프린트 단계, 의존 관계
-- `design/.ai/files_index.md` — 신규/수정/참고 파일 전체 목록
+- `v0.2/.ai/metrics.md` — 2차 메트릭 계산식 (PDF 원본 확정)
+- `v0.2/.ai/metrics_by_claude.md` — 2차 메트릭 계산식 (Claude 연구 버전, 비교용)
+- `v0.2/.ai/decisions.md` — v0.2 설계 결정 기록 (D-V2-01~)
+- `v0.2/.ai/roadmap.md` — 버전별 고수준 목표, 의존 관계
+- `v0.2/.ai/files_index.md` — 신규/수정/참고 파일 전체 목록
+- `v0.2/.ai/index.md` — v0.2 상세 네비게이션 (파일 목록, 생성 파일 맵)
 
-v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~D18)
+v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/decisions.md` (D1~D18)
 
 ---
 
@@ -35,11 +35,24 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
 - Phase 5: 웹 대시보드 (홈/활동/웰니스/설정, Flask)
 - 테스트: 652개 통과
 
-### v0.2 (진행 중, `claude/v0.2` 브랜치)
-- 2차 메트릭 계산 엔진 (UTRS, CIRS, FEARP, DI, DARP, RMR, TIDS 등)
+### v0.2 (진행 중)
+- 2차 메트릭 계산 엔진 (UTRS, CIRS, FEARP, DI, DARP, RMR, TIDS, RTTI, WLEI, TPDI 등)
 - 고도화된 통합 대시보드 UI (PMC 차트, 레이더 차트, 게이지)
-- 레이스 예측, 분석 레포트 UI
-- 자세한 내용: `design/.ai/index.md`
+- 레이스 예측, 분석 레포트, 웰니스 UI
+- 활동 상세: 서비스 탭 UI (Garmin/Strava/Intervals/Runalyze 분리) + 메트릭 해설
+- Mapbox 지도 (GPS 경로 표시)
+- 테스트: 829개 통과
+- 자세한 내용: `v0.2/.ai/index.md`
+
+### v0.3 (계획)
+- 6.4~6.8 UI 보완 + S5-C2 UI 전면 재설계
+- 인증/로그인 시스템, PWA, REST API (`/api/v1/*`)
+- DB 정규화, 멀티유저 지원
+- 메트릭 추가: eFTP, Critical Power, REC, RRI, SAPI, TEROI
+
+### v0.4 (계획)
+- React Native 모바일 앱
+- ML 기반 메트릭: TQI (훈련 품질 지수), PLTD (개인화 역치 자동 탐지)
 
 ---
 
@@ -49,7 +62,8 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
 - httpx (Strava/Intervals/Runalyze API)
 - gpxpy, fitparse (GPX/FIT 파싱)
 - Flask 3.x (웹 대시보드)
-- Chart.js (CDN, 차트), SVG (게이지/레이더)
+- ECharts (CDN, 차트), SVG (게이지/레이더)
+- Mapbox GL JS (지도, 선택, 무료 플랜)
 - Open-Meteo API (날씨, 무료, 키 없음)
 
 ---
@@ -72,7 +86,7 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
     python src/analyze.py full --clipboard         # 전체 리포트 클립보드
     python src/plan.py week                        # 이번 주 훈련 계획
     source .venv/Scripts/activate && python src/serve.py   # 웹 대시보드 localhost:18080
-    python -m pytest tests/                        # 테스트 (652개 기준)
+    python -m pytest tests/                        # 테스트 (829개 기준)
 
 ---
 
@@ -88,6 +102,16 @@ v0.1 히스토리: `.ai/todo.md`, `.ai/architecture.md`, `.ai/decisions.md` (D1~
 9. 프롬프트 템플릿은 `src/ai/prompt_templates/*.txt`에 분리 관리
 10. AI 응답 파싱 실패 시 항상 graceful fallback (규칙 기반 등)
 11. v0.2 새 기능: 메트릭 데이터 없을 때 에러 대신 "데이터 수집 중" graceful UI
+12. 하단 네비게이션 6+1탭 유지: 홈 | 활동 | 레포트 | 훈련 | AI코치 | 설정 (+개발자)
+
+---
+
+## 폴더 구조
+```
+v0.1/.ai/     — v0.1 히스토리 (완료된 작업 기록, 참고용)
+v0.2/.ai/     — v0.2 작업 문서 (todo, roadmap, architecture, metrics 등)
+v0.2/         — v0.2 설계 참고 자료 (PDF, HTML 목업, gitignore 대상)
+```
 
 ---
 

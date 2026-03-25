@@ -154,6 +154,36 @@ def _render_user_profile_section(config: dict) -> str:
 </div>"""
 
 
+def _render_mapbox_section(config: dict) -> str:
+    """Mapbox 토큰 설정 섹션."""
+    token = config.get("mapbox", {}).get("token", "")
+    masked = "****" + token[-6:] if len(token) > 10 else ("설정됨" if token else "미설정")
+    status_color = "var(--green)" if token else "var(--muted)"
+    return f"""
+<div class='card'>
+  <h2 style='margin-bottom:0.5rem;'>Mapbox 지도 설정</h2>
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
+    활동 상세 페이지에서 GPS 경로 지도를 표시합니다.
+    <a href='https://account.mapbox.com/access-tokens/' target='_blank' rel='noopener'
+       style='color:var(--cyan);'>토큰 발급</a> (무료 플랜 사용 가능)
+  </p>
+  <p style='font-size:0.82rem;margin-bottom:0.6rem;'>
+    상태: <span style='color:{status_color};font-weight:600;'>{masked}</span>
+  </p>
+  <form method='post' action='/settings/mapbox' style='display:flex;gap:0.6rem;align-items:end;flex-wrap:wrap;'>
+    <label style='flex:1;min-width:200px;display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
+      Access Token
+      <input type='text' name='mapbox_token' placeholder='pk.eyJ1Ijo...'
+             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <button type='submit'
+            style='padding:0.45rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+      저장
+    </button>
+  </form>
+</div>"""
+
+
 # ── /settings — 전체 연동 상태 페이지 ──────────────────────────────
 @settings_bp.get("/settings")
 def settings_view() -> str:
@@ -193,6 +223,7 @@ def settings_view() -> str:
                  last_sync=sync.get("runalyze"))}
 </div>
 {_render_user_profile_section(config)}
+{_render_mapbox_section(config)}
 <hr>
 <div class='card'>
   <h2>Strava 아카이브 임포트</h2>
@@ -225,20 +256,31 @@ def settings_view() -> str:
     <div style='background:var(--row-border); border-radius:4px; height:10px; overflow:hidden;'>
       <div id='recompute-bar' style='height:100%; background:#00d4ff; border-radius:4px; width:0%; transition:width 0.5s;'></div>
     </div>
-    <p id='recompute-detail' style='margin:0.4rem 0 0; font-size:0.78rem; color:var(--muted);'></p>
+    <div style='display:flex; justify-content:space-between; margin:0.4rem 0 0;'>
+      <span id='recompute-detail' style='font-size:0.78rem; color:var(--muted);'></span>
+      <span id='recompute-eta' style='font-size:0.78rem; color:var(--muted);'></span>
+    </div>
   </div>
 </div>
 """ + """
 <script>
+function fmtEta(sec) {
+  if (!sec || sec <= 0) return '';
+  if (sec < 60) return Math.ceil(sec) + '초 남음';
+  var m = Math.floor(sec / 60), s = Math.ceil(sec % 60);
+  return m + '분 ' + (s > 0 ? s + '초' : '') + ' 남음';
+}
 function startRecompute() {
   var days = document.getElementById('recompute-days').value || 90;
   var btn = document.getElementById('recompute-btn');
+  var startTime = Date.now() / 1000;
   btn.disabled = true; btn.textContent = '재계산 중...';
   document.getElementById('recompute-progress').style.display = 'block';
   document.getElementById('recompute-bar').style.width = '0%';
   document.getElementById('recompute-pct-text').textContent = '0%';
   document.getElementById('recompute-status-text').textContent = '시작 중...';
   document.getElementById('recompute-detail').textContent = '';
+  document.getElementById('recompute-eta').textContent = '';
 
   // POST 시작
   var fd = new FormData(); fd.append('days', days);
@@ -252,12 +294,21 @@ function startRecompute() {
       if (bar) bar.style.width = pct + '%';
       var pctEl = document.getElementById('recompute-pct-text');
       if (pctEl) pctEl.textContent = pct + '%  (' + (d.completed||0) + '/' + (d.total||0) + '일)';
+      var etaEl = document.getElementById('recompute-eta');
       var statusEl = document.getElementById('recompute-status-text');
       if (d.status === 'running') {
         if (statusEl) statusEl.textContent = '계산 중... ' + (d.current_date || '');
         var detailEl = document.getElementById('recompute-detail');
         if (detailEl) detailEl.textContent = d.current_date ? (d.current_date + ' 처리 완료') : '';
+        // ETA 계산
+        var completed = d.completed || 0, total = d.total || 0;
+        if (completed > 0 && total > completed) {
+          var elapsed = (d.started_at ? Date.now()/1000 - d.started_at : Date.now()/1000 - startTime);
+          var remaining = (elapsed / completed) * (total - completed);
+          if (etaEl) etaEl.textContent = fmtEta(remaining);
+        }
       } else if (d.status === 'completed') {
+        if (etaEl) etaEl.textContent = '';
         if (statusEl) { statusEl.textContent = '✅ 재계산 완료'; statusEl.style.color = 'var(--green)'; }
         if (bar) bar.style.background = 'var(--green)';
         btn.disabled = false; btn.textContent = '재계산 시작';
@@ -874,8 +925,10 @@ def metrics_recompute():
     except (ValueError, TypeError):
         days = 90
 
+    import time as _time
     _set_recompute_state(status="running", days=days, completed=0, total=days,
-                         current_date="", pct=0, error=None)
+                         current_date="", pct=0, error=None,
+                         started_at=_time.time())
 
     def _on_progress(date_str: str, completed: int, total: int) -> None:
         pct = round(completed / total * 100, 1) if total > 0 else 0
@@ -949,3 +1002,16 @@ def settings_profile_post():
     config["user"]["threshold_pace"] = threshold_pace
     save_config(config)
     return redirect("/settings?msg=프로필이 저장되었습니다")
+
+
+# ── Mapbox 토큰 저장 ─────────────────────────────────────────────────
+@settings_bp.post("/settings/mapbox")
+def settings_mapbox_post():
+    """Mapbox access token 저장."""
+    token = (request.form.get("mapbox_token") or "").strip()
+    config = load_config()
+    config.setdefault("mapbox", {})
+    config["mapbox"]["token"] = token
+    save_config(config)
+    msg = "Mapbox 토큰이 저장되었습니다" if token else "Mapbox 토큰이 제거되었습니다"
+    return redirect(f"/settings?msg={msg}")

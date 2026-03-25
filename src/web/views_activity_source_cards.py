@@ -382,3 +382,60 @@ def _render_source_comparison(
         + payload_link
         + "</div>"
     )
+
+
+def _render_service_tabs(
+    garmin: dict, strava: dict, intervals: dict, runalyze: dict,
+    garmin_detail: dict, act_date: str,
+) -> str:
+    """서비스별 1차 메트릭을 탭 UI로 렌더링 (S5-C1)."""
+    tabs_data = [
+        ("garmin", "⌚ Garmin", _render_garmin_daily_detail(garmin_detail, act_date) + _render_garmin_metrics(garmin)),
+        ("strava", "🏃 Strava", _render_strava_metrics(strava)),
+        ("intervals", "📊 Intervals", _render_intervals_metrics(intervals)),
+        ("runalyze", "📈 Runalyze", _render_runalyze_metrics(runalyze)),
+    ]
+    # 데이터가 있는 탭만 표시
+    active_tabs = [(key, label, content) for key, label, content in tabs_data if content.strip()]
+    if not active_tabs:
+        return ""
+
+    first_key = active_tabs[0][0]
+    btns = []
+    panels = []
+    for i, (key, label, content) in enumerate(active_tabs):
+        is_first = (key == first_key)
+        bg = "var(--cyan)" if is_first else "none"
+        color = "#000" if is_first else "var(--muted)"
+        border = "var(--cyan)" if is_first else "var(--card-border)"
+        btns.append(
+            f"<button id='svctab-btn-{key}' onclick='switchSvcTab(\"{key}\")'"
+            f" style='padding:0.3rem 0.7rem;font-size:0.8rem;border:1px solid {border};"
+            f"background:{bg};color:{color};border-radius:4px;cursor:pointer;white-space:nowrap;'>"
+            f"{label}</button>"
+        )
+        display = "block" if is_first else "none"
+        panels.append(f"<div id='svctab-panel-{key}' style='display:{display};'>{content}</div>")
+
+    tab_keys_js = ",".join(f"'{t[0]}'" for t in active_tabs)
+    return (
+        "<div class='card' style='padding:0.8rem 1rem;'>"
+        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;'>"
+        "<h2 style='margin:0;font-size:1rem;'>서비스 데이터</h2>"
+        f"<div style='display:flex;gap:4px;flex-wrap:wrap;'>{''.join(btns)}</div>"
+        "</div>"
+        + "".join(panels)
+        + "</div>"
+        "<script>"
+        f"var _svcTabKeys=[{tab_keys_js}];"
+        "function switchSvcTab(t){"
+        "_svcTabKeys.forEach(function(k){"
+        "var p=document.getElementById('svctab-panel-'+k);"
+        "var b=document.getElementById('svctab-btn-'+k);"
+        "if(!p||!b)return;"
+        "if(k===t){p.style.display='block';b.style.background='var(--cyan)';b.style.color='#000';b.style.borderColor='var(--cyan)';}"
+        "else{p.style.display='none';b.style.background='none';b.style.color='var(--muted)';b.style.borderColor='var(--card-border)';}"
+        "});"
+        "}"
+        "</script>"
+    )

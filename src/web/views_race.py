@@ -8,7 +8,7 @@ import sqlite3
 from flask import Blueprint, request
 from src.web.helpers import (
     html_page, no_data_card, fmt_pace, fmt_duration, db_path,
-    metric_row, svg_semicircle_gauge,
+    metric_row, render_sub_nav, svg_semicircle_gauge,
 )
 
 race_bp = Blueprint("race", __name__)
@@ -201,7 +201,7 @@ def race_page():
 
     dbp = db_path()
     if not dbp or not dbp.exists():
-        body = no_data_card("레이스 예측", "데이터 수집 중입니다. 동기화 후 확인하세요.")
+        body = render_sub_nav("race") + no_data_card("레이스 예측", "데이터 수집 중입니다. 동기화 후 확인하세요.")
         return html_page("레이스 예측", body, active_tab="report")
 
     try:
@@ -211,7 +211,8 @@ def race_page():
             di_val, di_json = _load_di(conn)
             pace_sec = darp_json.get("avg_pace_sec") if darp_json else None
             body = (
-                '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
+                render_sub_nav("race")
+                + '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
                 '<div style="display:flex;align-items:center;padding:20px 0;'
                 'border-bottom:1px solid rgba(255,255,255,0.1)">'
                 '<span style="font-size:20px;font-weight:bold">레이스 예측 (DARP)</span></div>'
