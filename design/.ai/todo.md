@@ -356,11 +356,15 @@
 
 ### Priority B — 다음 스프린트
 
-- [ ] **B-1**: 파일 크기 리팩토링 (300줄 초과 파일 분리)
-  - `src/web/views_activity.py` 1529줄, `src/web/app.py` 1351줄, `src/web/helpers.py` 1033줄
-  - `src/web/views_activities.py` 1024줄, `src/db_setup.py` 1026줄, `src/web/views_settings.py` 857줄
-- [ ] **B-2**: `V2-9-3` graceful fallback 전면 보강 — no-data card 통일, metric 계산 불가 이유 표시
-- [ ] **B-3**: `V2-9-4` Settings hub 고도화 — sync status, 동기화 진행률, token 상태 시각화
+- [x] **B-1**: 파일 크기 리팩토링 (기능 기준 분리) ✅ 부분 완료 (2026-03-25)
+  - [x] helpers.py → helpers_svg.py 분리 (1042→854줄)
+  - [x] views_activity_cards.py → views_activity_source_cards.py 분리 (1102→731줄)
+  - [x] views_activity.py → views_activity_cards.py + views_activity_loaders.py 분리 (1529→185줄)
+  - [x] app.py → views_dev.py 분리 (1351→839줄)
+- [x] **B-2**: `V2-9-3` graceful fallback 전면 보강 ✅ 완료 (2026-03-25)
+  - DB exists() 체크, "데이터 수집 중" 통일, try/except Exception 전면 적용
+- [x] **B-3**: `V2-9-4` Settings hub 고도화 ✅ 완료 (2026-03-25)
+  - last_sync 시각 표시, 사용자 프로필 설정 폼(max_hr/threshold_pace/weekly_km), POST /settings/profile
 
 ---
 
@@ -457,7 +461,7 @@
 
 ## Phase 8: 훈련 계획 캘린더 UI (Sprint 6)
 
-- [ ] V2-8-1a: `src/web/views_training_plan.py` 스캐폴딩
+- [x] V2-8-1a: `src/web/views_training.py` 스캐폴딩 ✅ 완료 (2026-03-25)
   - Blueprint training_bp, /training GET
   - placeholder 페이지: "훈련 계획 기능이 곧 추가됩니다"
   - bottom_nav('training') 연결
@@ -470,12 +474,11 @@
 
 - [→] V2-9-1: 전체 뷰 하단 nav 통일 → **Sprint 4-A로 이동 (V2-4A-3/4)**
 - [→] V2-9-2: ECharts CDN 로드 실패 시 fallback → **Sprint 4-A 이후 처리**
-- [ ] V2-9-3: 메트릭 데이터 부재 시 graceful UI ("데이터 수집 중" 카드)
-- [ ] V2-9-4: `views_settings.py` 설정 4섹션 통합 (ui-spec 3-7 기준)
-  - A. 소스 연동 (기존, 마지막 동기화 시간 `last_sync_at` 추가)
-  - B. 동기화 — `/sync-status` 인라인 흡수 (배치 제어 + 진행률 폴링)
-  - C. 데이터 관리 — `/import`(GPX/FIT/TCX/ZIP) + `/import-export`(CSV) 흡수
-  - D. 앱 설정 — AI 모델 select, 기본 레이스 거리 select
+- [x] V2-9-3: 메트릭 데이터 부재 시 graceful UI ("데이터 수집 중" 카드) ✅ 완료 (2026-03-25)
+- [x] V2-9-4: `views_settings.py` 설정 고도화 ✅ 완료 (2026-03-25)
+  - A. 소스 연동 (기존, 마지막 동기화 시간 last_sync 추가)
+  - B. 사용자 프로필 설정 (max_hr, threshold_pace, weekly_km, POST /settings/profile)
+  - [→] C. 데이터 관리 / D. 앱 설정 → v0.3으로 이연
 - [ ] V2-9-5: `src/web/views_dev.py` + `/dev` 라우트 (개발자 탭, dev_mode 조건부)
   - DB 테이블 뷰어, Payload 뷰어, DB 경로 설정, 레거시 분석 링크
   - `bottom_nav` 에서 `config.get('dev_mode', False)` 플래그로 조건부 노출

@@ -118,15 +118,19 @@ TQI, TEROI, PLTD, SAPI 고도화
 
 ---
 
-## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9) ⏳ 다음
+## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9) ⏳ 진행 중
 
-- [ ] V2-8-1a: `/training` 스캐폴딩 (placeholder)
-- [ ] V2-9-3: graceful fallback 전면 보강
-- [ ] V2-9-4: Settings hub 고도화
-- [ ] V2-9-5: `/dev` 개발자 탭
+- [x] V2-8-1a: `/training` 스캐폴딩 (placeholder) ✅ 완료 (2026-03-25)
+- [x] V2-9-3: graceful fallback 전면 보강 ✅ 완료 (2026-03-25)
+- [x] V2-9-4: Settings hub 고도화 (last_sync 표시 + 사용자 프로필 설정) ✅ 완료 (2026-03-25)
+- [ ] V2-9-5: `/dev` 개발자 탭 (views_dev.py 구현됨, 탭 등록만)
+- [ ] A: 탭/화면 구성 정리 (wellness/race 탭 배치 결정)
 - [ ] V2-9-10/11: 디자인 파일 원격 커밋
-- [ ] V2-9-12~14: 문서 정합성 해소
-- [ ] B-1: 파일 크기 리팩토링 (6개 파일 300줄 초과)
+- [x] B-1: 파일 크기 리팩토링 (기능 기준 분리) ✅ 부분 완료 (2026-03-25)
+  - [x] helpers.py → helpers_svg.py 분리 (1042→854줄)
+  - [x] views_activity_cards.py → views_activity_source_cards.py 분리 (1102→731줄)
+  - [x] views_activity.py → views_activity_cards.py + views_activity_loaders.py 분리 (1529→185줄)
+  - [x] app.py → views_dev.py 분리 (1351→839줄)
 
 ---
 
@@ -140,9 +144,9 @@ Phase 2 (sync 연동) → Phase 3 (대시보드)              ← ✅ 완료
                             ↓
                     Sprint 5 (데이터+Race+AI+Wellness) ← ✅ 완료
                             ↓
-                    Sprint 6 (Training+Settings+마무리) ← ⏳ 다음
+                    Sprint 6 (Training+Settings+마무리) ← ⏳ 진행 중
                             ↓
-                    Priority B (파일 리팩토링+fallback) ← ⏳ 대기
+                    A (탭/화면 구성 정리)               ← ⏳ 다음
 ```
 
 ---

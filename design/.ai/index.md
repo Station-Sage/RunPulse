@@ -9,12 +9,12 @@
 
 | 항목 | 내용 |
 |------|------|
-| 현재 버전 | v0.2 개발 중 — Sprint 5 완료 |
-| 작업 브랜치 | `claude/v0.2-sprint5` (세션 브랜치: `claude/start-session-aiXbW`) |
+| 현재 버전 | v0.2 개발 중 — Sprint 6 진행 중 |
+| 작업 브랜치 | `claude/start-session-aiXbW` (dev 기반) |
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
 | 현재 테스트 | **717개 수집** (fitparse 미설치 환경 6개 collect error 별개) |
-| 완료 | Phase 0~5 · Sprint 4A~4C · Sprint 5A~5F · Phase UI-Gap · Phase API(Garmin/Strava/Intervals) · Race/AI Coach/Wellness UI |
-| 다음 작업 | B-1 파일 리팩토링 (300줄 초과 5개) 또는 V2-8-1a Training Plan 스캐폴딩 |
+| 완료 | Phase 0~5 · Sprint 4A~4C · Sprint 5A~5F · Sprint 6 V2-8-1a/V2-9-3/V2-9-4/B-1~B-3 |
+| 다음 작업 | V2-9-5 `/dev` 탭 등록 · A 탭/화면 구성 정리 (wellness/race 배치 결정) |
 
 ---
 
@@ -82,11 +82,14 @@ src/metrics/ (23개)     ← 2차 메트릭 계산 함수들
 src/weather/
   provider.py     ← Open-Meteo API (FEARP용)
 
-src/web/ (신규 뷰 10개)
+src/web/ (신규 뷰 14개)
   views_dashboard.py, views_dashboard_cards.py
   views_report.py, views_report_sections.py
   views_race.py, views_ai_coach.py, views_wellness.py
   views_import.py, views_shoes.py, sync_ui.py
+  views_training.py, views_dev.py           # Sprint 6 추가
+  views_activity_source_cards.py            # B-1 분리
+  helpers_svg.py                            # B-1 분리
 
 src/sync/ (모듈 분리 — Garmin/Strava/Intervals 각각)
   garmin_activity_sync.py, garmin_api_extensions.py
