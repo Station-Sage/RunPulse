@@ -111,14 +111,20 @@ _COLS = (
 )
 
 
-def _jobs_db_path() -> str:
+def _jobs_db_path(user_id: str | None = None) -> str:
     """sync_jobs 전용 DB 경로 — running.db와 별도 파일로 write 경합 방지."""
-    return str(get_db_path().parent / "sync_jobs.db")
+    return str(get_db_path(user_id).parent / "sync_jobs.db")
 
 
 def _conn() -> sqlite3.Connection:
     """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
-    conn = sqlite3.connect(_jobs_db_path(), timeout=10)
+    # Web 컨텍스트에서는 Flask 세션의 user_id를 자동 반영
+    try:
+        from src.web.helpers import get_current_user_id
+        uid = get_current_user_id()
+    except (ImportError, RuntimeError):
+        uid = None
+    conn = sqlite3.connect(_jobs_db_path(uid), timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""CREATE TABLE IF NOT EXISTS sync_jobs (
         id TEXT PRIMARY KEY,

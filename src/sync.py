@@ -32,11 +32,16 @@ def main() -> None:
         default=7,
         help="가져올 일수 (기본: 7)",
     )
+    parser.add_argument(
+        "--user",
+        default="default",
+        help="사용자 ID (기본: default)",
+    )
     args = parser.parse_args()
 
-    config = load_config()
-    init_db()
-    db_path = get_db_path()
+    config = load_config(user_id=args.user)
+    init_db(args.user)
+    db_path = get_db_path(args.user)
     sources = list(SOURCES.keys()) if args.source == "all" else [args.source]
 
     total_activities = 0

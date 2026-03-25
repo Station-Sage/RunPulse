@@ -489,6 +489,22 @@
 
 ---
 
+## Phase Multi-User: 멀티유저 지원 ✅ 기본 완료 (2026-03-25)
+
+- [x] `get_db_path(user_id)` → `data/users/{user_id}/running.db`
+- [x] `load_config(user_id=)` → 사용자별 config.json
+- [x] Flask 세션 기반 user_id 자동 추출 (helpers.get_current_user_id)
+- [x] `/switch-user` 사용자 전환 UI
+- [x] CLI `--user` 파라미터 (sync.py, plan.py, analyze.py)
+- [x] sync_jobs.db 사용자별 분리
+- [ ] 인증/로그인 시스템 (v0.3 이연)
+  - 로그인 폼 + 세션 기반 인증
+  - 비밀번호 해시 저장 (bcrypt)
+  - 미인증 시 로그인 페이지 리다이렉트
+  - 사용자 등록/관리 UI
+
+---
+
 ## v0.3 로드맵 (공식 확정, 3-6개월)
 
 > 모두 수식 기반. 데이터 누적 또는 추가 연동 필요.

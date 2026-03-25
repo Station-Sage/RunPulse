@@ -109,6 +109,15 @@ TQI, TEROI, PLTD, SAPI 고도화
 
 ---
 
+## Multi-User: 사용자별 DB/config 분리 ✅ 완료 (2026-03-25)
+
+- [x] `data/users/{user_id}/running.db` + `config.json` 분리
+- [x] Flask 세션 기반 user_id + `/switch-user` UI
+- [x] CLI `--user` 파라미터
+- [ ] 인증/로그인 → v0.3
+
+---
+
 ## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9) ⏳ 다음
 
 - [ ] V2-8-1a: `/training` 스캐폴딩 (placeholder)

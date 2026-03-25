@@ -89,6 +89,9 @@ running.db.backup_*
 # Temp files
 0
 
+# User data (DB, config per user)
+data/users/
+
 # Export data and DB
 audit/export_data/
 .claude/worktrees/

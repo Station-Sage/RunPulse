@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, session
 
 from src.utils.config import load_config
 from src.sync.garmin import check_garmin_connection
@@ -73,11 +73,9 @@ def _project_root() -> Path:
 
 
 def _db_path() -> Path:
-    config = load_config()
-    db_value = config.get("database", {}).get("path")
-    if db_value:
-        return Path(db_value).expanduser()
-    return _project_root() / "running.db"
+    """helpers.db_path() 위임 — 사용자별 DB 경로 반환."""
+    from .helpers import db_path as _dbp
+    return _dbp()
 
 
 def _html_page(title: str, body: str) -> str:
@@ -128,6 +126,7 @@ def _auto_migrate() -> None:
 
 def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(_project_root() / "templates"))
+    app.secret_key = "runpulse-local-dev"  # 로컬 전용, 상업용 아님
     _auto_migrate()
 
     # ── Jinja2 설정 ──────────────────────────────────────────────────────────
@@ -142,6 +141,36 @@ def create_app() -> Flask:
         }
 
     app.jinja_env.globals["bottom_nav"] = bottom_nav
+
+    # ── 사용자 전환 ──────────────────────────────────────────────────────
+    @app.route("/switch-user", methods=["GET", "POST"])
+    def switch_user():
+        if request.method == "POST":
+            uid = request.form.get("user_id", "").strip() or "default"
+            session["user_id"] = uid
+            # 새 사용자 DB 초기화
+            from src.db_setup import init_db
+            init_db(uid)
+            return redirect("/")
+        # GET: 사용자 목록
+        users_dir = _project_root() / "data" / "users"
+        users = sorted(d.name for d in users_dir.iterdir() if d.is_dir()) if users_dir.exists() else ["default"]
+        current = session.get("user_id", "default")
+        options = "".join(
+            f'<option value="{u}" {"selected" if u == current else ""}>{u}</option>'
+            for u in users
+        )
+        body = (
+            '<div class="card"><h2>사용자 전환</h2>'
+            '<form method="post" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">'
+            f'<select name="user_id" style="padding:8px;border-radius:8px">{options}</select>'
+            '<span>또는 새 사용자:</span>'
+            '<input name="user_id" placeholder="새 이름" style="padding:8px;border-radius:8px;width:120px">'
+            '<button type="submit">전환</button>'
+            '</form></div>'
+        )
+        from .helpers import html_page
+        return html_page("사용자 전환", body)
 
 
     @app.get("/")

@@ -3,10 +3,22 @@
 import sqlite3
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-def get_db_path() -> Path:
-    """프로젝트 루트의 running.db 경로 반환."""
-    return Path(__file__).resolve().parent.parent / "running.db"
+# 기본 사용자 ID (싱글유저 하위호환)
+DEFAULT_USER = "default"
+
+
+def get_db_path(user_id: str | None = None) -> Path:
+    """사용자별 running.db 경로 반환.
+
+    - user_id=None 또는 "default": data/users/default/running.db
+    - user_id="alice": data/users/alice/running.db
+    """
+    uid = user_id or DEFAULT_USER
+    user_dir = _PROJECT_ROOT / "data" / "users" / uid
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir / "running.db"
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
@@ -470,13 +482,13 @@ def create_tables(conn: sqlite3.Connection) -> None:
 migrate_db = create_tables
 
 
-def init_db() -> Path:
+def init_db(user_id: str | None = None) -> Path:
     """DB 초기화: 테이블 생성 + WAL 모드 설정. DB 경로 반환."""
-    db_path = get_db_path()
-    with sqlite3.connect(db_path) as conn:
+    dbp = get_db_path(user_id)
+    with sqlite3.connect(dbp) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         create_tables(conn)
-    return db_path
+    return dbp
 
 
 def main() -> None:
