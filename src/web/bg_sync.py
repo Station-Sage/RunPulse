@@ -154,13 +154,17 @@ class BgSyncThread(threading.Thread):
 
         update_job(self.job_id, status="completed")
 
-        # 동기화 완료 후 메트릭 자동 재계산
+        # 동기화 완료 후 메트릭 자동 재계산 + 재동기화 플래그 해제
         try:
             import sqlite3 as _sqlite3
             from src.metrics import engine as metrics_engine
             with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
                 conn.execute("PRAGMA journal_mode=WAL")
                 metrics_engine.run_for_date_range(conn, job.from_date, job.to_date)
+                # 스키마 마이그레이션 후 재동기화 플래그 해제
+                from src.db_setup import clear_needs_resync
+                clear_needs_resync(conn)
+                conn.commit()
         except Exception as exc:
             update_job(self.job_id, last_error=f"메트릭 계산 실패: {str(exc)[:150]}")
 
