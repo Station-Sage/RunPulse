@@ -8,7 +8,11 @@
 
 ### v0.2 잔여
 
-- [ ] **6.4~6.8**: UI 보완 (v0.2_ui_gap_analysis.md 기준, 다음 스프린트)
+- [x] **6.4**: Settings 보완 — sync 상태 허브, 시스템 정보 카드
+- [x] **6.5**: Race Prediction 잔여 — 예측 이력 테이블
+- [x] **6.6**: AI Coach 잔여 — 최근 훈련 요약, 리스크 요약 카드
+- [ ] **6.7**: Training Plan UI (v0.3 예정)
+- [x] **6.8**: Wellness 보완 — 7일 트렌드 차트, 회복 권장 카드
 - [ ] **S5-C2**: 대폭 확장된 데이터 반영 UI 전면 재설계
   - Sprint 5-A~C로 추가된 데이터(날씨/존/running dynamics/running tolerance 등) UI 노출
 - [x] **V2-5-3**: Report AI 인사이트 실체화 (규칙 기반 메트릭 분석, briefing.py 구조 활용)
