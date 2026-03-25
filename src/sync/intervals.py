@@ -1,354 +1,55 @@
-"""Intervals.icu 데이터 동기화 (Basic Auth)."""
+"""Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
 
-import json
+하위 모듈:
+  intervals_auth.py           — 인증, 연결 확인
+  intervals_activity_sync.py  — 활동 동기화 (list/intervals/streams)
+  intervals_wellness_sync.py  — 웰니스/피트니스 동기화
+  intervals_athlete_sync.py   — 선수 프로필, 통계 스냅샷
+"""
+
 import sqlite3
-from datetime import datetime, timedelta
 
-from src.utils import api
-from src.utils.dedup import assign_group_id
-from src.utils.raw_payload import update_changed_fields
-from src.utils.raw_payload import store_raw_payload as _store_rp
-
-
-def _store_raw_payload(
-    conn: sqlite3.Connection,
-    source: str,
-    entity_type: str,
-    entity_id: str,
-    payload: dict,
-    activity_id: int | None = None,
-) -> None:
-    """원본 API payload 저장/병합."""
-    _store_rp(conn, source, entity_type, entity_id, payload, activity_id=activity_id)
+# 하위 호환성을 위한 re-export
+from .intervals_auth import (  # noqa: F401
+    base_url as _base_url,
+    auth as _auth,
+    check_intervals_connection,
+)
+from .intervals_activity_sync import sync_activities  # noqa: F401
+from .intervals_wellness_sync import sync_wellness  # noqa: F401
+from .intervals_athlete_sync import (  # noqa: F401
+    sync_athlete_profile,
+    sync_athlete_stats_snapshot,
+)
 
 
-
-def _refresh_activity_metrics(
-    conn: sqlite3.Connection,
-    activity_id: int,
-    act: dict,
-) -> None:
-    """Intervals activity metrics 재저장 (기존/신규 activity 공통)."""
-    try:
-        conn.execute(
-            "DELETE FROM activity_detail_metrics WHERE source = 'intervals' AND activity_id = ?",
-            (activity_id,),
-        )
-    except sqlite3.Error:
-        pass
-
-    metrics = {
-        "icu_training_load": act.get("icu_training_load"),
-        "icu_intensity": act.get("icu_intensity"),
-        "icu_hrss": act.get("icu_hrss"),
-        "trimp": act.get("trimp"),
-        "strain_score": act.get("strain_score"),
-        "icu_efficiency_factor": act.get("icu_efficiency_factor"),
-        "decoupling": act.get("decoupling"),
-        "hr_load": act.get("hr_load"),
-        "pace_load": act.get("pace_load"),
-        "power_load": act.get("power_load"),
-        "session_rpe": act.get("session_rpe"),
-        "average_stride": act.get("average_stride"),
-        "icu_lap_count": act.get("icu_lap_count"),
-    }
-    for name, value in metrics.items():
-        if value is not None:
-            try:
-                conn.execute(
-                    """INSERT INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'intervals', ?, ?)""",
-                    (activity_id, name, float(value)),
-                )
-            except sqlite3.Error:
-                pass
-
-    for metric_name, payload in [
-        ("icu_zone_times", act.get("icu_zone_times")),
-        ("icu_hr_zone_times", act.get("icu_hr_zone_times")),
-        ("pace_zone_times", act.get("pace_zone_times")),
-        ("gap_zone_times", act.get("gap_zone_times")),
-        ("interval_summary", act.get("interval_summary")),
-        ("stream_types", act.get("stream_types")),
-    ]:
-        if payload not in (None, [], {}):
-            try:
-                conn.execute(
-                    """INSERT INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_json)
-                       VALUES (?, 'intervals', ?, ?)""",
-                    (activity_id, metric_name, json.dumps(payload, ensure_ascii=False)),
-                )
-            except sqlite3.Error:
-                pass
-
-def _base_url(config: dict) -> str:
-    """Intervals.icu API base URL."""
-    athlete_id = config["intervals"]["athlete_id"]
-    return f"https://intervals.icu/api/v1/athlete/{athlete_id}"
-
-
-def _auth(config: dict) -> tuple[str, str]:
-    """Basic Auth 튜플 (API_KEY, api_key)."""
-    return ("API_KEY", config["intervals"]["api_key"])
-
-
-def sync_activities(
+def sync_intervals(
     config: dict,
     conn: sqlite3.Connection,
     days: int,
     from_date: str | None = None,
     to_date: str | None = None,
-) -> int:
-    """Intervals.icu 활동 데이터를 가져와 DB에 저장.
-
-    Args:
-        config: 전체 설정 딕셔너리.
-        conn: SQLite 연결.
-        days: 가져올 일수 (from_date 미지정 시 사용).
-        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
-        to_date: 기간 동기화 종료일 (YYYY-MM-DD). None이면 오늘.
-
-    Returns:
-        새로 저장된 활동 수.
-    """
-    base = _base_url(config)
-    auth = _auth(config)
-    if from_date:
-        oldest = from_date
-        newest = to_date if to_date else datetime.now().strftime("%Y-%m-%d")
-    else:
-        oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        newest = datetime.now().strftime("%Y-%m-%d")
-
-    # 올바른 Intervals.icu API 엔드포인트: /activities (activity_summaries 아님)
-    activity_summaries = api.get(
-        f"{base}/activities",
-        params={"oldest": oldest, "newest": newest},
-        auth=auth,
-    )
-    count = 0
-
-    for act in activity_summaries:
-        source_id = str(act.get("id", ""))
-        distance_km = (act.get("distance") or 0) / 1000
-        duration_sec = int(act.get("moving_time") or 0)
-        avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
-        # start_date_local: Z suffix가 있으면 로컬 시간으로 취급하여 제거
-        start_time = act.get("start_date_local", "").rstrip("Z")
-
-        # intervals.icu API는 cadence를 한쪽 발(stride/min)로 반환 → 양발 spm으로 변환
-        raw_cadence = act.get("average_cadence")
-        avg_cadence = int(raw_cadence * 2) if raw_cadence is not None else None
-
-        # tags 배열 → 쉼표 구분 workout_label
-        tags = act.get("tags")
-        workout_label = ", ".join(tags) if tags else None
-
-        try:
-            cursor = conn.execute(
-                """INSERT OR IGNORE INTO activity_summaries
-                   (source, source_id, activity_type, start_time, distance_km,
-                    duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
-                    elevation_gain, calories, description, workout_label)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    "intervals", source_id,
-                    act.get("type", "Run").lower(),
-                    start_time, distance_km, duration_sec, avg_pace,
-                    act.get("average_heartrate"), act.get("max_heartrate"),
-                    avg_cadence,
-                    act.get("total_elevation_gain"), act.get("calories"),
-                    act.get("name"), workout_label,
-                ),
-            )
-        except sqlite3.Error as e:
-            print(f"[intervals] 활동 삽입 실패 {source_id}: {e}")
-            continue
-
-        if cursor.rowcount == 0:
-            # 이미 존재 — 변경/누락 필드 업데이트 + raw payload merge
-            existing_id = update_changed_fields(conn, "intervals", source_id, {
-                "avg_hr": act.get("average_heartrate"),
-                "max_hr": act.get("max_heartrate"),
-                "avg_cadence": avg_cadence,
-                "elevation_gain": act.get("total_elevation_gain"),
-                "calories": act.get("calories"),
-                "description": act.get("name"),
-                "workout_label": workout_label,
-            })
-            _store_raw_payload(conn, "intervals", "activity", source_id, act, activity_id=existing_id)
-            if existing_id:
-                _refresh_activity_metrics(conn, existing_id, act)
-            continue
-
-        activity_id = cursor.lastrowid
-        count += 1
-
-        _store_raw_payload(
-            conn,
-            "intervals",
-            "activity",
-            source_id,
-            act,
-            activity_id=activity_id,
-        )
-
-        # 활동 단위 고유 지표 (per-activity → activity_detail_metrics 유지)
-        _refresh_activity_metrics(conn, activity_id, act)
-
-        # TODO: HR Zone Distribution 수집
-        # Intervals.icu activity detail에 hr_zones 필드가 있을 수 있음
-        # 현재 API 응답 구조 확인 필요. 확인 후 구현 예정.
-        # hr_zones = act.get("hr_zones")  # 예상 필드명
-        # if hr_zones:
-        #     conn.execute(INSERT INTO activity_detail_metrics ... 'hr_zone_distribution', metric_json=json.dumps(hr_zones))
-
-        assign_group_id(conn, activity_id)
-
-    conn.commit()
-    return count
-
-
-def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
-    """Intervals.icu 웰니스/피트니스 데이터를 가져와 DB에 저장.
-
-    CTL/ATL/TSB는 daily_fitness 테이블에 저장 (일별 피트니스 추적).
-    수면/HRV 등은 daily_wellness 테이블에 저장.
+) -> dict:
+    """Intervals.icu 전체 동기화: 활동 + 웰니스 + 선수 프로필.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
         days: 가져올 일수.
+        from_date: 기간 동기화 시작일.
+        to_date: 기간 동기화 종료일.
 
     Returns:
-        저장된 레코드 수.
+        {"activities": N, "wellness": N, "profile": bool}
     """
-    base = _base_url(config)
-    auth = _auth(config)
-    oldest = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    newest = datetime.now().strftime("%Y-%m-%d")
+    act_count = sync_activities(config, conn, days, from_date, to_date)
+    well_count = sync_wellness(config, conn, days)
 
-    wellness_data = api.get(
-        f"{base}/wellness",
-        params={"oldest": oldest, "newest": newest},
-        auth=auth,
-    )
-    count = 0
-
-    for entry in wellness_data:
-        date_str = entry.get("id", "")  # Intervals.icu wellness ID는 날짜
-        if not date_str:
-            continue
-
-        _store_raw_payload(
-            conn,
-            "intervals",
-            "wellness",
-            date_str,
-            entry,
-            activity_id=None,
-        )
-
-        # 수면/HRV → daily_wellness
-        try:
-            conn.execute(
-                """INSERT OR REPLACE INTO daily_wellness
-                   (date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
-                    resting_hr, avg_sleeping_hr, readiness_score,
-                    fatigue, mood, motivation, steps, weight_kg)
-                   VALUES (?, 'intervals', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    date_str,
-                    entry.get("sleepQuality"),
-                    entry.get("sleepSecs", 0) / 3600 if entry.get("sleepSecs") else None,
-                    entry.get("hrv"),
-                    entry.get("hrvSDNN"),
-                    entry.get("restingHR"),
-                    entry.get("avgSleepingHR"),
-                    entry.get("readiness"),
-                    entry.get("fatigue"),
-                    entry.get("mood"),
-                    entry.get("motivation"),
-                    entry.get("steps"),
-                    entry.get("weight"),
-                ),
-            )
-            count += 1
-        except sqlite3.Error as e:
-            print(f"[intervals] 웰니스 삽입 실패 {date_str}: {e}")
-
-        # CTL/ATL/TSB → daily_fitness (일별 피트니스 지표)
-        ctl = entry.get("ctl")
-        atl = entry.get("atl")
-        # Intervals.icu는 form = CTL - ATL (TSB)
-        tsb = entry.get("form")
-        if tsb is None and ctl is not None and atl is not None:
-            tsb = round(ctl - atl, 2)
-        ramp_rate = entry.get("rampRate")
-
-        if any(v is not None for v in [ctl, atl, tsb]):
-            try:
-                conn.execute("""
-                    INSERT INTO daily_fitness (date, source, ctl, atl, tsb, ramp_rate)
-                    VALUES (?, 'intervals', ?, ?, ?, ?)
-                    ON CONFLICT(date, source) DO UPDATE SET
-                        ctl = COALESCE(excluded.ctl, ctl),
-                        atl = COALESCE(excluded.atl, atl),
-                        tsb = COALESCE(excluded.tsb, tsb),
-                        ramp_rate = COALESCE(excluded.ramp_rate, ramp_rate),
-                        updated_at = datetime('now')
-                """, (date_str, ctl, atl, tsb, ramp_rate))
-            except sqlite3.OperationalError:
-                pass  # daily_fitness 테이블 미생성 환경 (graceful)
-            except sqlite3.Error as e:
-                print(f"[intervals] daily_fitness 삽입 실패 {date_str}: {e}")
+    try:
+        sync_athlete_profile(config, conn)
+        sync_athlete_stats_snapshot(config, conn)
+    except Exception as e:
+        print(f"[intervals] 선수 프로필 동기화 실패: {e}")
 
     conn.commit()
-    return count
-
-
-def check_intervals_connection(config: dict) -> dict:
-    """Intervals.icu 연결 상태를 실제 API 호출로 확인.
-
-    Returns:
-        {"ok": bool, "status": str, "detail": str}
-    """
-    intervals_cfg = config.get("intervals", {})
-    athlete_id = intervals_cfg.get("athlete_id", "")
-    api_key = intervals_cfg.get("api_key", "")
-
-    if not athlete_id or not api_key:
-        missing = []
-        if not athlete_id:
-            missing.append("athlete_id")
-        if not api_key:
-            missing.append("api_key")
-        return {
-            "ok": False,
-            "status": "설정 누락",
-            "detail": f"{', '.join(missing)} 미설정. /settings에서 입력하세요.",
-        }
-
-    # 프로필 조회로 인증 확인
-    try:
-        result = api.get(
-            f"https://intervals.icu/api/v1/athlete/{athlete_id}",
-            auth=("API_KEY", api_key),
-            timeout=10,
-        )
-        name = result.get("name") or result.get("username") or athlete_id
-        return {
-            "ok": True,
-            "status": "연결됨",
-            "detail": f"athlete: {name} ({athlete_id})",
-        }
-    except api.ApiError as e:
-        if e.status_code == 401:
-            return {"ok": False, "status": "잘못된 API 키", "detail": "인증 실패 (401). API 키를 확인하세요."}
-        if e.status_code == 404:
-            return {"ok": False, "status": "잘못된 athlete_id", "detail": f"athlete_id '{athlete_id}'를 찾을 수 없습니다 (404)."}
-        return {"ok": False, "status": "연결 실패", "detail": str(e)}
-    except Exception as e:
-        return {"ok": False, "status": "연결 오류", "detail": str(e)}
+    return {"activities": act_count, "wellness": well_count, "profile": True}

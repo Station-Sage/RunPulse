@@ -53,13 +53,14 @@ def test_check_garmin_tokenstore_exists(tmp_path):
     assert "토큰" in result["status"]
 
 
-def test_check_garmin_tokenstore_with_valid_token(tmp_path):
-    """oauth2_token.json이 있고 만료되지 않으면 ok=True."""
+def test_check_garmin_tokenstore_with_valid_token(tmp_path, monkeypatch):
+    """oauth2_token.json이 있고 garth 로드 성공 시 ok=True."""
     import time
     import json
+    import types
+
     tokenstore = tmp_path / "garth"
     tokenstore.mkdir()
-    # oauth1 + oauth2 토큰 파일 생성
     (tokenstore / "oauth1_token.json").write_text(json.dumps({
         "oauth_token": "tok", "oauth_token_secret": "sec", "mfa_token": None, "domain": "garmin.com",
     }), encoding="utf-8")
@@ -70,6 +71,21 @@ def test_check_garmin_tokenstore_with_valid_token(tmp_path):
         "expires_in": 3600, "expires_at": future,
         "refresh_token_expires_in": 7776000, "refresh_token_expires_at": future + 7776000,
     }), encoding="utf-8")
+
+    # garth mock: Client().load()로 토큰 읽기 성공 시뮬레이션
+    class _FakeToken:
+        expired = False
+        refresh_expired = False
+
+    class _FakeClient:
+        oauth2_token = _FakeToken()
+        def load(self, path):
+            pass
+
+    fake_garth = types.ModuleType("garth")
+    fake_garth.Client = lambda: _FakeClient()
+    monkeypatch.setitem(__import__("sys").modules, "garth", fake_garth)
+
     config = {"garmin": {"tokenstore": str(tokenstore)}}
     result = check_garmin_connection(config)
     assert result["ok"] is True
@@ -93,7 +109,7 @@ def test_login_uses_tokenstore_if_exists(tmp_path):
     mock_client = MagicMock()
     mock_client.login.return_value = (None, None)
 
-    with patch("src.sync.garmin.Garmin", return_value=mock_client) as MockGarmin:
+    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client) as MockGarmin:
         from src.sync.garmin import _login
         result = _login(config)
         # 이메일/패스워드 없이 Garmin() 생성됨
@@ -129,7 +145,7 @@ def test_login_falls_back_to_email_pw_if_tokenstore_fails(tmp_path):
             return mock_client_token
         return mock_client_pw
 
-    with patch("src.sync.garmin.Garmin", side_effect=mock_garmin):
+    with patch("src.sync.garmin_auth.Garmin", side_effect=mock_garmin):
         from src.sync.garmin import _login
         result = _login(config)
         assert result is mock_client_pw

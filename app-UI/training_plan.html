@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunPulse - 훈련 계획</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header-title { font-size: 20px; font-weight: bold; }
+        .header-actions { display: flex; gap: 12px; }
+        .action-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+        }
+        
+        /* Weekly Summary */
+        .weekly-summary {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .summary-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .summary-title::before {
+            content: '';
+            width: 4px; height: 20px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 2px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .summary-stat {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+        .summary-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .summary-stat-label { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+        .summary-stat-progress {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .summary-stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 2px;
+        }
+        
+        /* Calendar */
+        .calendar-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .calendar-month {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .calendar-nav-btn {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .calendar-view-selector {
+            display: flex;
+            gap: 8px;
+        }
+        .view-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: rgba(255,255,255,0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .view-btn.active {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+        
+        /* Week View */
+        .week-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+        }
+        .day-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .day-header {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        .day-header.today { color: #00d4ff; font-weight: bold; }
+        .day-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            min-height: 120px;
+            padding: 12px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .day-card:hover { background: rgba(255,255,255,0.1); }
+        .day-card.today { border: 1px solid rgba(0, 212, 255, 0.5); }
+        .day-number { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+        .day-card.today .day-number { color: #00d4ff; font-weight: bold; }
+        
+        .workout-item {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 255, 136, 0.2));
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .workout-item:hover { transform: scale(1.05); }
+        .workout-item.completed { opacity: 0.5; text-decoration: line-through; }
+        .workout-item.easy { background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 200, 100, 0.2)); }
+        .workout-item.tempo { background: linear-gradient(135deg, rgba(255, 170, 0, 0.2), rgba(200, 130, 0, 0.2)); }
+        .workout-item.interval { background: linear-gradient(135deg, rgba(255, 68, 68, 0.2), rgba(200, 50, 50, 0.2)); }
+        .workout-item.long { background: linear-gradient(135deg, rgba(128, 0, 255, 0.2), rgba(100, 0, 200, 0.2)); }
+        
+        .workout-type { font-weight: 600; margin-bottom: 2px; }
+        .workout-dist { font-size: 10px; color: rgba(255,255,255,0.7); }
+        
+        /* AI Recommendation */
+        .ai-recommendation {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.1));
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .ai-avatar {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+        }
+        .ai-title { font-size: 18px; font-weight: bold; }
+        .ai-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        /* Calendar Sync */
+        .calendar-sync {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .sync-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .sync-title { font-size: 18px; }
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #00ff88;
+        }
+        .sync-status-dot {
+            width: 8px; height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+        }
+        
+        .sync-platforms {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .sync-platform {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 13px;
+        }
+        .sync-platform img {
+            width: 20px; height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">훈련 계획</div>
+            <div class="header-actions">
+                <button class="action-btn">📤 공유</button>
+                <button class="action-btn primary">+ 새 훈련</button>
+            </div>
+        </div>
+        
+        <!-- Weekly Summary -->
+        <div class="weekly-summary">
+            <div class="summary-title">이번 주 요약</div>
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="summary-stat-value">4/5</div>
+                    <div class="summary-stat-label">훈련 완료</div>
+                    <div class="summary-stat-progress"><div class="summary-stat-fill" style="width: 80%;"></div></div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">42</div>
+                    <div class="summary-stat-label">목표 km</div>
+                    <div class="summary-stat-progress"><div class="summary-stat-fill" style="width: 65%;"></div></div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">3:45</div>
+                    <div class="summary-stat-label">목표 시간</div>
+                    <div class="summary-stat-progress"><div class="summary-stat-fill" style="width: 70%;"></div></div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-value">85</div>
+                    <div class="summary-stat-label">UTRS</div>
+                    <div class="summary-stat-progress"><div class="summary-stat-fill" style="width: 85%;"></div></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calendar -->
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button class="calendar-nav-btn">←</button>
+                    <span class="calendar-month">2024년 3월</span>
+                    <button class="calendar-nav-btn">→</button>
+                </div>
+                <div class="calendar-view-selector">
+                    <button class="view-btn">월</button>
+                    <button class="view-btn active">주</button>
+                    <button class="view-btn">일</button>
+                </div>
+            </div>
+            
+            <div class="week-view">
+                <!-- Monday -->
+                <div class="day-column">
+                    <div class="day-header">월</div>
+                    <div class="day-card">
+                        <div class="day-number">18</div>
+                        <div class="workout-item easy completed">
+                            <div class="workout-type">Easy Run</div>
+                            <div class="workout-dist">5km</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tuesday -->
+                <div class="day-column">
+                    <div class="day-header today">화</div>
+                    <div class="day-card today">
+                        <div class="day-number">19</div>
+                        <div class="workout-item interval">
+                            <div class="workout-type">Interval</div>
+                            <div class="workout-dist">8×400m</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Wednesday -->
+                <div class="day-column">
+                    <div class="day-header">수</div>
+                    <div class="day-card">
+                        <div class="day-number">20</div>
+                        <div class="workout-item easy completed">
+                            <div class="workout-type">Recovery</div>
+                            <div class="workout-dist">5km</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Thursday -->
+                <div class="day-column">
+                    <div class="day-header">목</div>
+                    <div class="day-card">
+                        <div class="day-number">21</div>
+                        <div class="workout-item tempo">
+                            <div class="workout-type">Tempo</div>
+                            <div class="workout-dist">10km</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Friday -->
+                <div class="day-column">
+                    <div class="day-header">금</div>
+                    <div class="day-card">
+                        <div class="day-number">22</div>
+                        <div class="workout-item easy completed">
+                            <div class="workout-type">Easy Run</div>
+                            <div class="workout-dist">6km</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Saturday -->
+                <div class="day-column">
+                    <div class="day-header">토</div>
+                    <div class="day-card">
+                        <div class="day-number">23</div>
+                        <div class="workout-item long">
+                            <div class="workout-type">Long Run</div>
+                            <div class="workout-dist">18km</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Sunday -->
+                <div class="day-column">
+                    <div class="day-header">일</div>
+                    <div class="day-card">
+                        <div class="day-number">24</div>
+                        <div class="workout-item easy">
+                            <div class="workout-type">Rest/XT</div>
+                            <div class="workout-dist">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Recommendation -->
+        <div class="ai-recommendation">
+            <div class="ai-header">
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-title">AI 훈련 추천</div>
+            </div>
+            <div class="ai-content">
+                <p>현재 <strong>UTRS 85</strong>로 고강도 훈련 준비가 완료되었습니다. 이번 주 훈련 계획은 다음과 같이 조정되었습니다:</p>
+                <ul style="margin-top: 12px; margin-left: 20px; line-height: 1.8;">
+                    <li>내일(3/20) 인터벌 훈련: 8×400m @ 5K 페이스 + 90초 회복</li>
+                    <li>토요일 장거리: 18km (목표 마라톤 페이스 + 30초/km)</li>
+                    <li>DI(내구성 지수)를 85→90으로 향상을 위한 누적 주간 거리 조정</li>
+                </ul>
+                <p style="margin-top: 12px;">TrainingPeaks와 Garmin Connect에 자동 반영됩니다.</p>
+            </div>
+        </div>
+        
+        <!-- Calendar Sync -->
+        <div class="calendar-sync">
+            <div class="sync-header">
+                <div class="sync-title">캘린더 연동</div>
+                <div class="sync-status">
+                    <div class="sync-status-dot"></div>
+                    <span>실시간 동기화 중</span>
+                </div>
+            </div>
+            <div class="sync-platforms">
+                <div class="sync-platform">📅 Google Calendar</div>
+                <div class="sync-platform">🇰🇷 Naver Calendar</div>
+                <div class="sync-platform">⌚ Garmin Connect</div>
+                <div class="sync-platform">📊 TrainingPeaks</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "report_date": "2026-03-24T07:00:29.156712",
+  "services": {
+    "strava": {
+      "endpoints_audited": 10,
+      "ok": 10,
+      "doc_total_get": 29,
+      "unaudited_relevant": 0
+    },
+    "garmin": {
+      "endpoints_audited": 48,
+      "ok": 48,
+      "doc_total_get": 93,
+      "unaudited_relevant": 0
+    },
+    "intervals": {
+      "endpoints_audited": 35,
+      "ok": 32,
+      "doc_total_get": 76,
+      "unaudited_relevant": 0
+    }
+  },
+  "total_endpoints_audited": 93,
+  "total_keys_discovered": 1708,
+  "conclusion": "Step 2 완료. 스키마 설계에 필요한 모든 API 필드 구조 확인됨.",
+  "known_issues": [
+    "Strava zones: 402 Premium required",
+    "Intervals API key expired: 403",
+    "Garmin parameter mismatches: 5 methods"
+  ],
+  "next_step": "Step 3: 슈퍼셋 스키마 정의"
+}

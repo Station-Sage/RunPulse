@@ -71,13 +71,13 @@ def test_runalyze_connection_401():
 
 
 def test_runalyze_connection_403():
-    """403 오류도 토큰 오류 상태."""
+    """403 오류 시 권한 없음 상태."""
     from src.utils.api import ApiError
     config = {"runalyze": {"token": "bad_token"}}
     with patch("src.sync.runalyze.api.get", side_effect=ApiError("403", status_code=403)):
         result = check_runalyze_connection(config)
     assert result["ok"] is False
-    assert "토큰 오류" in result["status"]
+    assert "권한 없음" in result["status"]
 
 
 def test_runalyze_connection_404():

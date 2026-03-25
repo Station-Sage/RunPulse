@@ -3,8 +3,17 @@
 import json
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_CONFIG_PATH = _PROJECT_ROOT / "config.json"
 
-_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.json"
+
+def get_config_path(user_id: str | None = None) -> Path:
+    """사용자별 config.json 경로. None이면 프로젝트 루트 config.json."""
+    if user_id and user_id != "default":
+        user_dir = _PROJECT_ROOT / "data" / "users" / user_id
+        user_dir.mkdir(parents=True, exist_ok=True)
+        return user_dir / "config.json"
+    return _CONFIG_PATH
 
 # 화면에 표시할 때 마스킹할 키 목록
 _REDACT_KEYS = {"password", "client_secret", "refresh_token", "access_token", "token", "api_key"}
@@ -27,6 +36,7 @@ def _default_config() -> dict:
         "strava": {},
         "intervals": {},
         "runalyze": {},
+        "mapbox": {},
     }
 
 
@@ -37,9 +47,28 @@ def _resolve_path(path: Path | str | None) -> Path:
     return Path(path).expanduser().resolve()
 
 
-def load_config(path: Path | None = None) -> dict:
-    """config.json을 읽어서 dict로 반환. 없으면 기본값 반환."""
-    config_path = _resolve_path(path)
+def _auto_user_id(user_id: str | None) -> str | None:
+    """user_id 미지정 시 Flask 세션에서 자동 추출."""
+    if user_id is not None:
+        return user_id
+    try:
+        from src.web.helpers import get_current_user_id
+        return get_current_user_id()
+    except (ImportError, RuntimeError):
+        return None
+
+
+def load_config(path: Path | None = None, *, user_id: str | None = None) -> dict:
+    """config.json을 읽어서 dict로 반환. 없으면 기본값 반환.
+
+    user_id가 지정되면 사용자별 config를 로드.
+    path가 명시되면 path 우선.
+    Web 컨텍스트에서 둘 다 미지정이면 Flask 세션 user_id 자동 사용.
+    """
+    if path is not None:
+        config_path = _resolve_path(path)
+    else:
+        config_path = get_config_path(_auto_user_id(user_id))
     base = _default_config()
 
     if not config_path.exists():
@@ -57,14 +86,14 @@ def load_config(path: Path | None = None) -> dict:
     return base
 
 
-def save_config(config: dict, path: Path | None = None) -> None:
-    """config 딕셔너리를 config.json에 저장.
-
-    Args:
-        config: 저장할 설정 딕셔너리.
-        path: 저장 경로. None이면 기본 경로.
-    """
-    config_path = _resolve_path(path)
+def save_config(
+    config: dict, path: Path | None = None, *, user_id: str | None = None
+) -> None:
+    """config 딕셔너리를 config.json에 저장."""
+    if path is not None:
+        config_path = _resolve_path(path)
+    else:
+        config_path = get_config_path(_auto_user_id(user_id))
     config_path.parent.mkdir(parents=True, exist_ok=True)
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
@@ -74,20 +103,12 @@ def update_service_config(
     service_name: str,
     updates: dict,
     path: Path | None = None,
+    *,
+    user_id: str | None = None,
 ) -> dict:
-    """특정 서비스 설정 블록을 업데이트하고 저장.
+    """특정 서비스 설정 블록을 업데이트하고 저장."""
+    config_path = _resolve_path(path) if path else get_config_path(_auto_user_id(user_id))
 
-    Args:
-        service_name: 서비스 이름 (garmin, strava, intervals, runalyze).
-        updates: 업데이트할 키/값 딕셔너리.
-        path: 설정 파일 경로. None이면 기본 경로.
-
-    Returns:
-        업데이트된 전체 설정 딕셔너리.
-    """
-    config_path = _resolve_path(path)
-
-    # 기존 파일에서 로드 (없으면 기본값)
     if config_path.exists():
         with open(config_path, encoding="utf-8") as f:
             current = json.load(f)
@@ -98,7 +119,7 @@ def update_service_config(
         current[service_name] = {}
 
     current[service_name].update(updates)
-    save_config(current, path)
+    save_config(current, config_path)
     return current
 
 

@@ -1,0 +1,1652 @@
+{
+  "strava": {
+    "activity_summary": {
+      "raw": {
+        "resource_state": 2,
+        "athlete": {
+          "id": 127496686,
+          "resource_state": 1
+        },
+        "name": "불패런 half",
+        "distance": 21047.5,
+        "moving_time": 6148,
+        "elapsed_time": 6148,
+        "total_elevation_gain": 17.0,
+        "type": "Run",
+        "sport_type": "Run",
+        "workout_type": 1,
+        "device_name": "Garmin epix Pro (Gen 2) 51mm",
+        "id": 17810425052,
+        "start_date": "2026-03-22T00:00:31Z",
+        "start_date_local": "2026-03-22T09:00:31Z",
+        "timezone": "(GMT+09:00) Asia/Seoul",
+        "utc_offset": 32400.0,
+        "location_city": null,
+        "location_state": null,
+        "location_country": null,
+        "achievement_count": 7,
+        "kudos_count": 0,
+        "comment_count": 0,
+        "athlete_count": 21,
+        "photo_count": 0,
+        "map": {
+          "id": "a17810425052",
+          "summary_polyline": "atadFe}teWy@xDs@fEGrASjAY~Aa@zAOfAW`GU~A]vAOhAA|AG~AMt@q@vBKt@E|A?hAFbATtB`@`BfAvCZnBDl@Tl@Xl@rA~ARd@Dv@CdAWxCIXW^g@FcA|AuAlA}C|EkBdCiBtD{ChF[x@}BbE_@t@aCbE[|@E`AETc@fAg@|@[~@g@nA_AjBcHvMaAzAm@lAs@v@[p@Qn@sAhDo@nAeC~Fk@r@cBfBc@r@WVcAt@u@n@kB`AkA~@gB|@i@`@aAvAUPkAfBYf@kAfCg@p@aAjBkArBg@r@e@`AcFlI}B`FOPSh@_@lAo@`Cg@dCWl@Uz@iC~Fc@fAk@zBCr@I\\D\\CNw@vEo@fDyEtEqB|BsBjDs@`Aa@v@}AjBoBlCa@`@{@jAcBrBcCdDqCbE{@~Ac@p@qC`G[h@{@lB}@dBYr@wBnEi@x@}@rBeApBu@`Bs@rASh@u@pA_AzB[b@Ob@uAtCUZcA`C[d@g@jA_@p@}B|EyApCM^w@xAo@xAwCbGaDnGeBvD{D|HiAfCmD|Gc@dAyC|FoBlEyApCUh@cElIa@n@u@~AETqBrEcClHoBjHSbAaB~FyA|F{CtKm@bC{@vCa@bBD@\\_BrHyX|CkLjA{EfB_GlCiHlB_EfBkDz@oB|BmEhB{Df@}@pAsC~A}ChB_EbIcPtBqEr@qApBoE`AkBtEsJ`AiBtD}Hr@qAXa@`AcCl@eAFQnAcCzAeDXa@lAsCr@qAf@mAt@qAz@mBt@uAdCqFdAkB`A{B`AiBd@eA|AmCPa@rAyBd@k@nBwCzKmNdCmDfCaE|CiDbBcBj@QHIb@aDpA}GCe@Js@ZeANs@bA{BtBqF\\mAp@{C|@_DvAiDhA_CbDqFVk@fAcBxB_Eb@o@r@uAl@{@pAgCrCcEx@q@bB_AjA_Al@Y~DuCd@q@dD}DzAmD~AoD`@w@h@mALk@Xu@x@eA^m@`AqB|FoK~@uBr@sA`A{BPm@d@u@Nc@JuA`@kAzEoIxAwCn@}@Vc@FUr@iAdA_Cx@_BxBsCnAyBx@iAfB_Br@kAh@MX[Jq@TaCBmACg@I]OWgAmAu@}BMi@?WUqAcAgDg@qBQuAC}@?cADuAFu@~@cDJeBAg@BwAPwAd@yBNwADuBLoBx@yD\\uDl@aDLkAXuAXeAFc@",
+          "resource_state": 2
+        },
+        "trainer": false,
+        "commute": false,
+        "manual": false,
+        "private": false,
+        "visibility": "everyone",
+        "flagged": false,
+        "gear_id": "g21778552",
+        "start_latlng": [
+          37.532048,
+          126.926976
+        ],
+        "end_latlng": [
+          37.532034,
+          126.927077
+        ],
+        "average_speed": 3.423,
+        "max_speed": 4.48,
+        "average_cadence": 91.6,
+        "average_temp": 15,
+        "average_watts": 281.8,
+        "max_watts": 394,
+        "weighted_average_watts": 282,
+        "device_watts": true,
+        "kilojoules": 1732.8,
+        "has_heartrate": true,
+        "average_heartrate": 176.4,
+        "max_heartrate": 191.0,
+        "heartrate_opt_out": false,
+        "display_hide_heartrate_option": true,
+        "elev_high": 11.6,
+        "elev_low": 5.0,
+        "upload_id": 18909648860,
+        "upload_id_str": "18909648860",
+        "external_id": "fit_activity_upload.healthsync.fit",
+        "from_accepted_tag": false,
+        "pr_count": 7,
+        "total_photo_count": 0,
+        "has_kudoed": false
+      },
+      "structure": [
+        "('summary.achievement_count', 'int', '7')",
+        "('summary.athlete', 'dict', '{2 keys}')",
+        "('summary.athlete.id', 'int', '127496686')",
+        "('summary.athlete.resource_state', 'int', '1')",
+        "('summary.athlete_count', 'int', '21')"
+      ]
+    },
+    "activity_detail": {
+      "raw": {
+        "resource_state": 3,
+        "athlete": {
+          "id": 127496686,
+          "resource_state": 1
+        },
+        "name": "불패런 half",
+        "distance": 21047.5,
+        "moving_time": 6148,
+        "elapsed_time": 6148,
+        "total_elevation_gain": 17.0,
+        "type": "Run",
+        "sport_type": "Run",
+        "workout_type": 1,
+        "device_name": "Garmin epix Pro (Gen 2) 51mm",
+        "id": 17810425052,
+        "start_date": "2026-03-22T00:00:31Z",
+        "start_date_local": "2026-03-22T09:00:31Z",
+        "timezone": "(GMT+09:00) Asia/Seoul",
+        "utc_offset": 32400.0,
+        "location_city": null,
+        "location_state": null,
+        "location_country": null,
+        "achievement_count": 7,
+        "kudos_count": 0,
+        "comment_count": 0,
+        "athlete_count": 21,
+        "photo_count": 0,
+        "map": {
+          "id": "a17810425052",
+          "polyline": "gnadFqlueWW|@Un@AHNjAE\\g@lA_@l@ORWPEHwAvG_@xBE^Ml@GrASjAY~Aa@zAOfAW`GU~AM`@Ot@OhACdCKrAQr@g@|AG`@Gl@CpABhALjBPjA\\tAfAvCZnBDl@Nb@Zp@RZbAhARd@Dv@CdAWxCIXMVIFIBMAOD[b@OZW\\uAlAQTkCfEkBdCiBtDmAxBMN_A~A[x@Y`@{@dBg@z@_@t@aCbESb@GXE`AETc@fASZS`@[~@g@nA_AjBc@r@_@v@e@t@Wn@o@fAqB|DaAzAm@lAa@`@QT[p@Qn@sAhDo@nAeC~Fk@r@cBfBc@r@WVcAt@u@n@aAj@i@TkA~@}@f@i@TUNSPaAvAUPe@x@e@l@Yf@Sl@w@xAg@p@aAjBkArBg@r@e@`AcA~AcCfE[d@}B`FOPSh@_@lAQ|@]bAg@dCWl@Uz@iC~Fc@fAk@zBCr@I\\D\\CNO`AQv@U|Ao@fD[^w@n@mAlASXc@\\wA|AY^sBjDs@`Aa@v@}AjBoBlCa@`@{@jAcBrB{AtBg@n@s@fA_@d@}@tA{@~Ac@p@qC`G[h@{@lB}@dBYr@uAlCa@`Ai@x@}@rBeApBu@`Bs@rASh@u@pA_AzB[b@Ob@aAnBSd@UZcA`C[d@g@jA_@p@O^_@n@mAlC[h@}@fBM^w@xAo@xAkBpDk@pAu@rAO^{AzCWl@mAhC{D|HSd@e@~@O`@mD|Gc@dA_CvEYd@M^Wd@iAfCyApCUh@MRUj@u@tAc@~@S\\q@xAa@n@u@~AETe@~@Yv@q@zAw@zBk@jBOZOh@eAvDQ|@Wt@SbAq@xBo@dCOn@]dAk@fCSh@gCjJm@bC{@vCAPUp@I^BB@A\\_B\\gALq@Pi@dAaEHSR}@zBmITs@VeAn@_CbA}DPg@jA{EfB_GjAyCb@sATg@FStAsCVk@fBkDz@oB|BmEhB{Df@}@pAsChA_CT]hB_El@iA|AcDT]lAmCrAiCdBoDNa@r@qAx@mBl@mAHSVe@N_@Xe@^{@lCoFf@gA`AiBd@gAn@qAPWlAkCr@qAXa@Nc@p@_Bl@eAFQVc@FS^u@NUzAeDXa@lAsCr@qAf@mAt@qAz@mBt@uA`@_A^s@bA}BXc@j@gA`A{B`AiBN_@Te@|AmCPa@rAyBd@k@Zg@rAoBbAkAHQVYh@w@fBuBR[nCkDdCmDxAeCl@{@|CiD`A_A`@c@TMTCHIFm@L}@H_@BUj@mCVgBLg@Ce@Js@ZeANs@bA{BFSlAuC^gAPw@JUp@{C|@_DvAiDhA_CbDqFVk@fAcBxB_Eb@o@r@uAl@{@pAgCf@w@bAqAf@y@x@q@\\Q^Ud@WjA_Al@Y~DuCHIZg@fCwC\\e@rAyCFSVe@fAiC`@w@h@mALk@Xu@LWj@m@P]LOh@cAVm@Va@Vk@Xa@zC{FVc@~@uBr@sA`A{BBOL]d@u@Nc@JuALa@Ri@zEoIxAwCn@}@Vc@FUNQb@w@dA_Cx@_BxBsCnAyBx@iAfB_Br@kAJE\\GPOFKJq@TaCBmACg@COMYkAsA[w@i@oBA]WwAaAaDa@yAQoAIkA?sADuAJeAn@mBJe@JeBAg@BwAPwANm@TkANwAD_A?u@FwAPeA^wALs@NiAFoAr@}DLkAJc@Lq@XeANaAPg@DMZ_@n@gAb@iA@MM{@?_@x@yB",
+          "resource_state": 3,
+          "summary_polyline": "atadFe}teWy@xDs@fEGrASjAY~Aa@zAOfAW`GU~A]vAOhAA|AG~AMt@q@vBKt@E|A?hAFbATtB`@`BfAvCZnBDl@Tl@Xl@rA~ARd@Dv@CdAWxCIXW^g@FcA|AuAlA}C|EkBdCiBtD{ChF[x@}BbE_@t@aCbE[|@E`AETc@fAg@|@[~@g@nA_AjBcHvMaAzAm@lAs@v@[p@Qn@sAhDo@nAeC~Fk@r@cBfBc@r@WVcAt@u@n@kB`AkA~@gB|@i@`@aAvAUPkAfBYf@kAfCg@p@aAjBkArBg@r@e@`AcFlI}B`FOPSh@_@lAo@`Cg@dCWl@Uz@iC~Fc@fAk@zBCr@I\\D\\CNw@vEo@fDyEtEqB|BsBjDs@`Aa@v@}AjBoBlCa@`@{@jAcBrBcCdDqCbE{@~Ac@p@qC`G[h@{@lB}@dBYr@wBnEi@x@}@rBeApBu@`Bs@rASh@u@pA_AzB[b@Ob@uAtCUZcA`C[d@g@jA_@p@}B|EyApCM^w@xAo@xAwCbGaDnGeBvD{D|HiAfCmD|Gc@dAyC|FoBlEyApCUh@cElIa@n@u@~AETqBrEcClHoBjHSbAaB~FyA|F{CtKm@bC{@vCa@bBD@\\_BrHyX|CkLjA{EfB_GlCiHlB_EfBkDz@oB|BmEhB{Df@}@pAsC~A}ChB_EbIcPtBqEr@qApBoE`AkBtEsJ`AiBtD}Hr@qAXa@`AcCl@eAFQnAcCzAeDXa@lAsCr@qAf@mAt@qAz@mBt@uAdCqFdAkB`A{B`AiBd@eA|AmCPa@rAyBd@k@nBwCzKmNdCmDfCaE|CiDbBcBj@QHIb@aDpA}GCe@Js@ZeANs@bA{BtBqF\\mAp@{C|@_DvAiDhA_CbDqFVk@fAcBxB_Eb@o@r@uAl@{@pAgCrCcEx@q@bB_AjA_Al@Y~DuCd@q@dD}DzAmD~AoD`@w@h@mALk@Xu@x@eA^m@`AqB|FoK~@uBr@sA`A{BPm@d@u@Nc@JuA`@kAzEoIxAwCn@}@Vc@FUr@iAdA_Cx@_BxBsCnAyBx@iAfB_Br@kAh@MX[Jq@TaCBmACg@I]OWgAmAu@}BMi@?WUqAcAgDg@qBQuAC}@?cADuAFu@~@cDJeBAg@BwAPwAd@yBNwADuBLoBx@yD\\uDl@aDLkAXuAXeAFc@"
+        },
+        "trainer": false,
+        "commute": false,
+        "manual": false,
+        "private": false,
+        "visibility": "everyone",
+        "flagged": false,
+        "gear_id": "g21778552",
+        "start_latlng": [
+          37.532048,
+          126.926976
+        ],
+        "end_latlng": [
+          37.532034,
+          126.927077
+        ],
+        "average_speed": 3.423,
+        "max_speed": 4.48,
+        "average_cadence": 91.6,
+        "average_temp": 15,
+        "average_watts": 281.8,
+        "max_watts": 394,
+        "weighted_average_watts": 282,
+        "device_watts": true,
+        "kilojoules": 1732.8,
+        "has_heartrate": true,
+        "average_heartrate": 176.4,
+        "max_heartrate": 191.0,
+        "heartrate_opt_out": false,
+        "display_hide_heartrate_option": true,
+        "elev_high": 11.6,
+        "elev_low": 5.0,
+        "upload_id": 18909648860,
+        "upload_id_str": "18909648860",
+        "external_id": "fit_activity_upload.healthsync.fit",
+        "from_accepted_tag": false,
+        "pr_count": 7,
+        "total_photo_count": 0,
+        "has_kudoed": false,
+        "description": "1:42:22",
+        "calories": 1303.0,
+        "perceived_exertion": null,
+        "prefer_perceived_exertion": false,
+        "segment_efforts": [
+          {
+            "id": 3470641909555484862,
+            "resource_state": 2,
+            "name": "안합~염강나들목",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 444,
+            "moving_time": 444,
+            "start_date": "2026-03-22T00:27:24Z",
+            "start_date_local": "2026-03-22T09:27:24Z",
+            "distance": 1495.3,
+            "start_index": 1613,
+            "end_index": 2057,
+            "average_cadence": 91.4,
+            "device_watts": true,
+            "average_watts": 276.7,
+            "average_heartrate": 183.1,
+            "max_heartrate": 188.0,
+            "segment": {
+              "id": 24318404,
+              "resource_state": 2,
+              "name": "안합~염강나들목",
+              "activity_type": "Run",
+              "distance": 1495.3,
+              "average_grade": -0.0,
+              "maximum_grade": 2.6,
+              "elevation_high": 14.8,
+              "elevation_low": 12.0,
+              "start_latlng": [
+                37.553807,
+                126.878099
+              ],
+              "end_latlng": [
+                37.56226,
+                126.865262
+              ],
+              "elevation_profile": null,
+              "elevation_profiles": null,
+              "climb_category": 0,
+              "city": null,
+              "state": null,
+              "country": null,
+              "private": false,
+              "hazardous": false,
+              "starred": false
+            },
+            "pr_rank": 1,
+            "achievements": [
+              {
+                "type_id": 3,
+                "type": "pr",
+                "rank": 1
+              }
+            ],
+            "visibility": "everyone",
+            "hidden": false
+          },
+          {
+            "id": 3470641909556251838,
+            "resource_state": 2,
+            "name": "Yeomchang Tunnel to GaYang Bridge",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 470,
+            "moving_time": 470,
+            "start_date": "2026-03-22T00:30:35Z",
+            "start_date_local": "2026-03-22T09:30:35Z",
+            "distance": 1586.8,
+            "start_index": 1804,
+            "end_index": 2274,
+            "average_cadence": 91.4,
+            "device_watts": true,
+            "average_watts": 276.0,
+            "average_heartrate": 182.7,
+            "max_heartrate": 189.0,
+            "segment": {
+              "id": 21112124,
+              "resource_state": 2,
+              "name": "Yeomchang Tunnel to GaYang Bridge",
+              "activity_type": "Run",
+              "distance": 1586.8,
+              "average_grade": -0.1,
+              "maximum_grade": 2.8,
+              "elevation_high": 15.4,
+              "elevation_low": 12.2,
+              "start_latlng": [
+                37.557138,
+                126.872491
+              ],
+              "end_latlng": [
+                37.566179,
+                126.858658
+              ],
+              "elevation_profile": null,
+              "elevation_profiles": null,
+              "climb_category": 0,
+              "city": "Yeongdeungpo-gu",
+              "state": "Seoul",
+              "country": "South Korea",
+              "private": false,
+              "hazardous": false,
+              "starred": false
+            },
+            "pr_rank": 1,
+            "achievements": [
+              {
+                "type_id": 3,
+                "type": "pr",
+                "rank": 1
+              }
+            ],
+            "visibility": "everyone",
+            "hidden": false
+          },
+          {
+            "id": 3470641909555462334,
+            "resource_state": 2,
+            "name": "Seoul Botanic Park exit tunnel to Gongamnaru Park",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 406,
+            "moving_time": 406,
+            "start_date": "2026-03-22T00:56:41Z",
+            "start_date_local": "2026-03-22T09:56:41Z",
+            "distance": 1428.6,
+            "start_index": 3370,
+            "end_index": 3776,
+            "average_cadence": 92.3,
+            "device_watts": true,
+            "average_watts": 289.4,
+            "average_heartrate": 184.1,
+            "max_heartrate": 188.0,
+            "segment": {
+              "id": 34821867,
+              "resource_state": 2,
+              "name": "Seoul Botanic Park exit tunnel to Gongamnaru Park",
+              "activity_type": "Run",
+              "distance": 1428.6,
+              "average_grade": -0.0,
+              "maximum_grade": 1.0,
+              "elevation_high": 12.8,
+              "elevation_low": 12.4,
+              "start_latlng": [
+                37.577548,
+                126.838442
+              ],
+              "end_latlng": [
+                37.570208,
+                126.851626
+              ],
+              "elevation_profile": null,
+              "elevation_profiles": null,
+              "climb_category": 0,
+              "city": "Gayang 1(il)-dong",
+              "state": "Seoul",
+              "country": "South Korea",
+              "private": false,
+              "hazardous": false,
+              "starred": false
+            },
+            "pr_rank": null,
+            "achievements": [],
+            "visibility": "everyone",
+            "hidden": false
+          },
+          {
+            "id": 3470641909554271422,
+            "resource_state": 2,
+            "name": "구암나들목-안양천 합수부",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 818,
+            "moving_time": 818,
+            "start_date": "2026-03-22T01:04:02Z",
+            "start_date_local": "2026-03-22T10:04:02Z",
+            "distance": 2873.7,
+            "start_index": 3811,
+            "end_index": 4629,
+            "average_cadence": 92.7,
+            "device_watts": true,
+            "average_watts": 292.4,
+            "average_heartrate": 183.8,
+            "max_heartrate": 191.0,
+            "segment": {
+              "id": 20595658,
+              "resource_state": 2,
+              "name": "구암나들목-안양천 합수부",
+              "activity_type": "Run",
+              "distance": 2873.7,
+              "average_grade": -0.1,
+              "maximum_grade": 10.6,
+              "elevation_high": 19.5,
+              "elevation_low": 4.6,
+              "start_latlng": [
+                37.569548,
+                126.852805
+              ],
+              "end_latlng": [
+                37.553794,
+                126.878314
+              ],
+              "elevation_profile": null,
+              "elevation_profiles": null,
+              "climb_category": 0,
+              "city": "Gangseo-gu",
+              "state": "Seoul",
+              "country": "South Korea",
+              "private": false,
+              "hazardous": false,
+              "starred": false
+            },
+            "pr_rank": 1,
+            "achievements": [
+              {
+                "type_id": 3,
+                "type": "pr",
+                "rank": 1
+              }
+            ],
+            "visibility": "everyone",
+            "hidden": false
+          },
+          {
+            "id": 3470641909553472702,
+            "resource_state": 2,
+            "name": "염강나들목~안합",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 418,
+            "moving_time": 418,
+            "start_date": "2026-03-22T01:10:37Z",
+            "start_date_local": "2026-03-22T10:10:37Z",
+            "distance": 1461.2,
+            "start_index": 4206,
+            "end_index": 4624,
+            "average_cadence": 92.7,
+            "device_watts": true,
+            "average_watts": 292.1,
+            "average_heartrate": 184.6,
+            "max_heartrate": 191.0,
+            "segment": {
+              "id": 19042602,
+              "resource_state": 2,
+              "name": "염강나들목~안합",
+              "activity_type": "Run",
+              "distance": 1461.2,
+              "average_grade": -0.1,
+              "maximum_grade": 10.3,
+              "elevation_high": 13.8,
+              "elevation_low": 11.4,
+              "start_latlng": [
+                37.562122,
+                126.865537
+              ],
+              "end_latlng": [
+                37.553823,
+                126.87807
+              ],
+              "elevation_profile": null,
+              "elevation_profiles": null,
+              "climb_category": 0,
+              "city": "Gangseo-gu",
+              "state": "Seoul",
+              "country": "South Korea",
+              "private": false,
+              "hazardous": false,
+              "starred": false
+            },
+            "pr_rank": 1,
+            "achievements": [
+              {
+                "type_id": 3,
+                "type": "pr",
+                "rank": 1
+              }
+            ],
+            "visibility": "everyone",
+            "hidden": false
+          }
+        ],
+        "splits_metric": [
+          {
+            "distance": 1002.0,
+            "elapsed_time": 312,
+            "elevation_difference": 3.8,
+            "moving_time": 312,
+            "split": 1,
+            "average_speed": 3.21,
+            "average_grade_adjusted_speed": 3.25,
+            "average_heartrate": 139.04807692307693,
+            "pace_zone": 3
+          },
+          {
+            "distance": 999.6,
+            "elapsed_time": 319,
+            "elevation_difference": -1.2,
+            "moving_time": 319,
+            "split": 2,
+            "average_speed": 3.13,
+            "average_grade_adjusted_speed": 3.14,
+            "average_heartrate": 155.29780564263322,
+            "pace_zone": 2
+          },
+          {
+            "distance": 999.3,
+            "elapsed_time": 299,
+            "elevation_difference": 2.0,
+            "moving_time": 299,
+            "split": 3,
+            "average_speed": 3.34,
+            "average_grade_adjusted_speed": 3.37,
+            "average_heartrate": 164.4314381270903,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1000.3,
+            "elapsed_time": 294,
+            "elevation_difference": -3.4,
+            "moving_time": 294,
+            "split": 4,
+            "average_speed": 3.4,
+            "average_grade_adjusted_speed": 3.39,
+            "average_heartrate": 167.33673469387756,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1000.5,
+            "elapsed_time": 296,
+            "elevation_difference": 0.6,
+            "moving_time": 296,
+            "split": 5,
+            "average_speed": 3.38,
+            "average_grade_adjusted_speed": 3.4,
+            "average_heartrate": 169.22635135135135,
+            "pace_zone": 3
+          }
+        ],
+        "splits_standard": [
+          {
+            "distance": 1609.5,
+            "elapsed_time": 510,
+            "elevation_difference": 4.2,
+            "moving_time": 510,
+            "split": 1,
+            "average_speed": 3.16,
+            "average_grade_adjusted_speed": 3.18,
+            "average_heartrate": 144.55490196078432,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1611.2,
+            "elapsed_time": 485,
+            "elevation_difference": 0.4,
+            "moving_time": 485,
+            "split": 2,
+            "average_speed": 3.32,
+            "average_grade_adjusted_speed": 3.34,
+            "average_heartrate": 163.48659793814434,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1608.5,
+            "elapsed_time": 474,
+            "elevation_difference": -2.6,
+            "moving_time": 474,
+            "split": 3,
+            "average_speed": 3.39,
+            "average_grade_adjusted_speed": 3.4,
+            "average_heartrate": 167.73628691983123,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1611.2,
+            "elapsed_time": 477,
+            "elevation_difference": 0.0,
+            "moving_time": 477,
+            "split": 4,
+            "average_speed": 3.38,
+            "average_grade_adjusted_speed": 3.38,
+            "average_heartrate": 180.22431865828094,
+            "pace_zone": 3
+          },
+          {
+            "distance": 1610.0,
+            "elapsed_time": 477,
+            "elevation_difference": -0.8,
+            "moving_time": 477,
+            "split": 5,
+            "average_speed": 3.38,
+            "average_grade_adjusted_speed": 3.38,
+            "average_heartrate": 181.38784067085953,
+            "pace_zone": 3
+          }
+        ],
+        "laps": [
+          {
+            "id": 63686702221,
+            "resource_state": 2,
+            "name": "Lap 1",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 311,
+            "moving_time": 311,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 1000.0,
+            "average_speed": 3.22,
+            "max_speed": 3.92,
+            "lap_index": 1,
+            "split": 1,
+            "start_index": 0,
+            "end_index": 235,
+            "total_elevation_gain": 3.8,
+            "average_cadence": 90.2,
+            "device_watts": true,
+            "average_watts": 267.7,
+            "average_heartrate": 139.0,
+            "max_heartrate": 150.0,
+            "pace_zone": 3
+          },
+          {
+            "id": 63686702223,
+            "resource_state": 2,
+            "name": "Lap 2",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 319,
+            "moving_time": 319,
+            "start_date": "2026-03-22T00:05:44Z",
+            "start_date_local": "2026-03-22T09:05:44Z",
+            "distance": 1000.0,
+            "average_speed": 3.13,
+            "max_speed": 3.64,
+            "lap_index": 2,
+            "split": 2,
+            "start_index": 236,
+            "end_index": 555,
+            "total_elevation_gain": 1.8,
+            "average_cadence": 90.6,
+            "device_watts": true,
+            "average_watts": 255.7,
+            "average_heartrate": 155.3,
+            "max_heartrate": 162.0,
+            "pace_zone": 2
+          },
+          {
+            "id": 63686702226,
+            "resource_state": 2,
+            "name": "Lap 3",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 299,
+            "moving_time": 299,
+            "start_date": "2026-03-22T00:11:04Z",
+            "start_date_local": "2026-03-22T09:11:04Z",
+            "distance": 1000.0,
+            "average_speed": 3.34,
+            "max_speed": 4.2,
+            "lap_index": 3,
+            "split": 3,
+            "start_index": 556,
+            "end_index": 854,
+            "total_elevation_gain": 2.8,
+            "average_cadence": 91.2,
+            "device_watts": true,
+            "average_watts": 279.5,
+            "average_heartrate": 164.5,
+            "max_heartrate": 169.0,
+            "pace_zone": 3
+          },
+          {
+            "id": 63686702228,
+            "resource_state": 2,
+            "name": "Lap 4",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 293,
+            "moving_time": 293,
+            "start_date": "2026-03-22T00:16:03Z",
+            "start_date_local": "2026-03-22T09:16:03Z",
+            "distance": 1000.0,
+            "average_speed": 3.41,
+            "max_speed": 3.7,
+            "lap_index": 4,
+            "split": 4,
+            "start_index": 855,
+            "end_index": 1148,
+            "total_elevation_gain": 0.0,
+            "average_cadence": 90.8,
+            "device_watts": true,
+            "average_watts": 276.1,
+            "average_heartrate": 167.3,
+            "max_heartrate": 170.0,
+            "pace_zone": 3
+          },
+          {
+            "id": 63686702230,
+            "resource_state": 2,
+            "name": "Lap 5",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 295,
+            "moving_time": 295,
+            "start_date": "2026-03-22T00:20:57Z",
+            "start_date_local": "2026-03-22T09:20:57Z",
+            "distance": 1000.0,
+            "average_speed": 3.39,
+            "max_speed": 3.94,
+            "lap_index": 5,
+            "split": 5,
+            "start_index": 1149,
+            "end_index": 1444,
+            "total_elevation_gain": 2.0,
+            "average_cadence": 90.8,
+            "device_watts": true,
+            "average_watts": 279.0,
+            "average_heartrate": 169.3,
+            "max_heartrate": 176.0,
+            "pace_zone": 3
+          }
+        ],
+        "best_efforts": [
+          {
+            "id": 74858753186,
+            "resource_state": 2,
+            "name": "400m",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 111,
+            "moving_time": 111,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 400,
+            "pr_rank": null,
+            "achievements": [],
+            "start_index": 3749,
+            "end_index": 3860
+          },
+          {
+            "id": 74858753187,
+            "resource_state": 2,
+            "name": "1/2 mile",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 225,
+            "moving_time": 225,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 805,
+            "pr_rank": null,
+            "achievements": [],
+            "start_index": 3748,
+            "end_index": 3973
+          },
+          {
+            "id": 74858753188,
+            "resource_state": 2,
+            "name": "1K",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 280,
+            "moving_time": 280,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 1000,
+            "pr_rank": null,
+            "achievements": [],
+            "start_index": 3723,
+            "end_index": 4003
+          },
+          {
+            "id": 74858753179,
+            "resource_state": 2,
+            "name": "1 mile",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 453,
+            "moving_time": 453,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 1609,
+            "pr_rank": null,
+            "achievements": [],
+            "start_index": 3756,
+            "end_index": 4209
+          },
+          {
+            "id": 74858753180,
+            "resource_state": 2,
+            "name": "2 mile",
+            "activity": {
+              "id": 17810425052,
+              "visibility": "everyone",
+              "resource_state": 1
+            },
+            "athlete": {
+              "id": 127496686,
+              "resource_state": 1
+            },
+            "elapsed_time": 908,
+            "moving_time": 908,
+            "start_date": "2026-03-22T00:00:31Z",
+            "start_date_local": "2026-03-22T09:00:31Z",
+            "distance": 3219,
+            "pr_rank": null,
+            "achievements": [],
+            "start_index": 3701,
+            "end_index": 4609
+          }
+        ],
+        "gear": {
+          "id": "g21778552",
+          "primary": false,
+          "name": "New Balance SC Elite v4",
+          "nickname": null,
+          "resource_state": 2,
+          "retired": false,
+          "distance": 199950,
+          "converted_distance": 200.0
+        },
+        "photos": {
+          "primary": null,
+          "count": 0
+        },
+        "stats_visibility": [
+          {
+            "type": "heart_rate",
+            "visibility": "everyone"
+          },
+          {
+            "type": "pace",
+            "visibility": "everyone"
+          },
+          {
+            "type": "power",
+            "visibility": "everyone"
+          },
+          {
+            "type": "speed",
+            "visibility": "everyone"
+          },
+          {
+            "type": "calories",
+            "visibility": "everyone"
+          }
+        ],
+        "hide_from_home": false,
+        "embed_token": "e61083fbd400f7135d67826f4d646a375560c426",
+        "similar_activities": {
+          "effort_count": 1,
+          "average_speed": 3.4234710474951204,
+          "min_average_speed": 3.4234710474951204,
+          "mid_average_speed": 3.4234710474951204,
+          "max_average_speed": 3.4234710474951204,
+          "pr_rank": null,
+          "frequency_milestone": null,
+          "trend": {
+            "speeds": [
+              3.4234710474951204
+            ],
+            "current_activity_index": 0,
+            "min_speed": 3.4234710474951204,
+            "mid_speed": 3.4234710474951204,
+            "max_speed": 3.4234710474951204,
+            "direction": 0
+          },
+          "resource_state": 2
+        },
+        "available_zones": []
+      },
+      "structure": [
+        "('detail.achievement_count', 'int', '7')",
+        "('detail.athlete', 'dict', '{2 keys}')",
+        "('detail.athlete.id', 'int', '127496686')",
+        "('detail.athlete.resource_state', 'int', '1')",
+        "('detail.athlete_count', 'int', '21')"
+      ]
+    },
+    "streams": {
+      "raw_keys": [
+        "time",
+        "distance",
+        "latlng",
+        "altitude",
+        "heartrate"
+      ],
+      "structure": [
+        "('streams', 'list[11]', '')",
+        "('streams[0].data', 'list[6149]', '')",
+        "('streams[0].data[0]', 'int', '0')",
+        "('streams[0].original_size', 'int', '6149')",
+        "('streams[0].resolution', 'str', 'high')"
+      ]
+    },
+    "zones": {
+      "error": "Client error '402 Payment Required' for url 'https://www.strava.com/api/v3/activities/17810425052/zones'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402"
+    }
+  },
+  "garmin": {
+    "error": "Login failed: Error in request: 429 Client Error: Too Many Requests for url: https://sso.garmin.com/sso/signin?id=gauth-widget&embedWidget=true&gauthHost=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed&service=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed&source=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed&redirectAfterAccountLoginUrl=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed&redirectAfterAccountCreationUrl=https%3A%2F%2Fsso.garmin.com%2Fsso%2Fembed"
+  },
+  "intervals": {
+    "activity_list_item": {
+      "raw": {
+        "id": "i133820338",
+        "start_date_local": "2026-03-22T09:00:31",
+        "type": "Run",
+        "icu_ignore_time": false,
+        "icu_pm_cp": 282,
+        "icu_pm_w_prime": 24740,
+        "icu_pm_p_max": 394,
+        "icu_pm_ftp": 288,
+        "icu_pm_ftp_secs": 3300,
+        "icu_pm_ftp_watts": 289,
+        "icu_ignore_power": false,
+        "icu_rolling_cp": null,
+        "icu_rolling_w_prime": 24825.375,
+        "icu_rolling_p_max": 539.17285,
+        "icu_rolling_ftp": 294,
+        "icu_rolling_ftp_delta": 0,
+        "icu_training_load": 163,
+        "icu_atl": 49.536743,
+        "icu_ctl": 34.34374,
+        "ss_p_max": 0.032396942,
+        "ss_w_prime": 1.2730523,
+        "ss_cp": 177.32344,
+        "paired_event_id": null,
+        "icu_ftp": 289,
+        "icu_joules": 1732814,
+        "icu_recording_time": 6147,
+        "elapsed_time": 6148,
+        "icu_weighted_avg_watts": 282,
+        "carbs_used": null,
+        "name": "불패 마라톤 (bulpaerun)",
+        "description": "1:42:22",
+        "start_date": "2026-03-22T00:00:31Z",
+        "distance": 21047.51,
+        "icu_distance": 21047.51,
+        "moving_time": 6148,
+        "coasting_time": 8,
+        "total_elevation_gain": 751.0,
+        "total_elevation_loss": 750.0,
+        "timezone": null,
+        "trainer": null,
+        "sub_type": "RACE",
+        "commute": false,
+        "race": true,
+        "max_speed": 4.106,
+        "average_speed": 3.424,
+        "device_watts": true,
+        "has_heartrate": true,
+        "max_heartrate": 182,
+        "average_heartrate": 175,
+        "average_cadence": 91.59974,
+        "calories": 1303,
+        "average_temp": 15.672142,
+        "min_temp": 13,
+        "max_temp": 24,
+        "avg_lr_balance": null,
+        "gap": 3.7707913,
+        "gap_model": "STRAVA_RUN",
+        "use_elevation_correction": true,
+        "gear": {
+          "id": "g21778552",
+          "name": null,
+          "distance": null,
+          "primary": null
+        },
+        "perceived_exertion": null,
+        "device_name": "GARMIN EPIX_GEN2_PRO_51",
+        "power_meter": null,
+        "power_meter_serial": null,
+        "power_meter_battery": null,
+        "crank_length": null,
+        "external_id": "22254941084",
+        "file_sport_index": 0,
+        "file_type": "fit",
+        "icu_athlete_id": "i268037",
+        "created": "2026-03-22T01:55:33.747+00:00",
+        "icu_sync_date": "2026-03-22T04:00:39.539+00:00",
+        "analyzed": "2026-03-22T04:00:39.539+00:00",
+        "icu_w_prime": null,
+        "p_max": null,
+        "threshold_pace": 3.6630037,
+        "icu_hr_zones": [
+          143,
+          152,
+          160,
+          169,
+          173
+        ],
+        "pace_zones": [
+          77.5,
+          87.7,
+          94.3,
+          100.0,
+          103.4
+        ],
+        "lthr": 170,
+        "icu_resting_hr": 50,
+        "icu_weight": 59.4,
+        "icu_power_zones": [
+          55,
+          75,
+          90,
+          105,
+          120
+        ],
+        "icu_sweet_spot_min": 84,
+        "icu_sweet_spot_max": 97,
+        "icu_power_spike_threshold": null,
+        "trimp": 382.5824,
+        "icu_warmup_time": 300,
+        "icu_cooldown_time": 300,
+        "icu_chat_id": null,
+        "icu_ignore_hr": false,
+        "ignore_velocity": false,
+        "ignore_pace": false,
+        "ignore_parts": null,
+        "icu_training_load_data": 100,
+        "interval_summary": [
+          "1x 1h42m 281w"
+        ],
+        "skyline_chart_bytes": "CAcSAoUwGgFhIgEEKAE=",
+        "stream_types": [
+          "time",
+          "watts",
+          "cadence",
+          "heartrate",
+          "distance"
+        ],
+        "has_weather": false,
+        "has_segments": false,
+        "power_field_names": [
+          "power"
+        ],
+        "power_field": "power",
+        "icu_zone_times": [
+          {
+            "id": "Z1",
+            "secs": 8
+          },
+          {
+            "id": "Z2",
+            "secs": 7
+          },
+          {
+            "id": "Z3",
+            "secs": 318
+          },
+          {
+            "id": "Z4",
+            "secs": 5660
+          },
+          {
+            "id": "Z5",
+            "secs": 150
+          }
+        ],
+        "icu_hr_zone_times": [
+          150,
+          250,
+          205,
+          848,
+          159
+        ],
+        "pace_zone_times": [
+          8,
+          533,
+          3053,
+          2511,
+          38
+        ],
+        "gap_zone_times": [
+          33,
+          1578,
+          1592,
+          1078,
+          288
+        ],
+        "use_gap_zone_times": true,
+        "custom_zones": null,
+        "tiz_order": "POWER_HR_PACE",
+        "polarization_index": null,
+        "icu_achievements": [
+          {
+            "id": "pa0_88",
+            "type": "BEST_PACE",
+            "message": null,
+            "watts": null,
+            "secs": 2851,
+            "value": null,
+            "distance": 10000.0,
+            "pace": 3.5075412,
+            "point": {
+              "start_index": 3147,
+              "end_index": 5998,
+              "secs": 0,
+              "value": 0
+            }
+          },
+          {
+            "id": "pa0_104",
+            "type": "BEST_PACE",
+            "message": null,
+            "watts": null,
+            "secs": 5822,
+            "value": null,
+            "distance": 20000.0,
+            "pace": 3.4352455,
+            "point": {
+              "start_index": 326,
+              "end_index": 6148,
+              "secs": 0,
+              "value": 0
+            }
+          },
+          {
+            "id": "lthr",
+            "type": "LTHR_UP",
+            "message": "1h at 181 bpm",
+            "watts": null,
+            "secs": null,
+            "value": 181,
+            "distance": null,
+            "pace": null,
+            "point": {
+              "start_index": 2548,
+              "end_index": 6148,
+              "secs": 3600,
+              "value": 181
+            }
+          }
+        ],
+        "icu_intervals_edited": true,
+        "lock_intervals": null,
+        "icu_lap_count": 22,
+        "icu_joules_above_ftp": 11608,
+        "icu_max_wbal_depletion": 9113,
+        "icu_hrr": null,
+        "icu_sync_error": null,
+        "icu_color": null,
+        "icu_power_hr_z2": 1.6674342,
+        "icu_power_hr_z2_mins": 1,
+        "icu_cadence_z2": 90,
+        "icu_rpe": null,
+        "feel": null,
+        "kg_lifted": null,
+        "decoupling": -0.5187679,
+        "icu_median_time_delta": 1,
+        "p30s_exponent": null,
+        "workout_shift_secs": null,
+        "strava_id": null,
+        "lengths": null,
+        "pool_length": null,
+        "compliance": null,
+        "coach_tick": null,
+        "source": "GARMIN_CONNECT",
+        "oauth_client_id": 57,
+        "oauth_client_name": "Health Sync",
+        "average_altitude": 9.807285,
+        "min_altitude": -5.0,
+        "max_altitude": 43.0,
+        "power_load": 163,
+        "hr_load": 171,
+        "pace_load": 181,
+        "hr_load_type": "HRSS",
+        "pace_load_type": "RUN",
+        "tags": null,
+        "attachments": null,
+        "recording_stops": null,
+        "average_weather_temp": null,
+        "min_weather_temp": null,
+        "max_weather_temp": null,
+        "average_feels_like": null,
+        "min_feels_like": null,
+        "max_feels_like": null,
+        "average_wind_speed": null,
+        "average_wind_gust": null,
+        "prevailing_wind_deg": null,
+        "headwind_percent": null,
+        "tailwind_percent": null,
+        "average_clouds": null,
+        "max_rain": null,
+        "max_snow": null,
+        "carbs_ingested": null,
+        "route_id": null,
+        "pace": 3.4234726,
+        "athlete_max_hr": 182,
+        "group": "106df362",
+        "icu_intensity": 97.57786,
+        "icu_efficiency_factor": 1.6114286,
+        "icu_power_hr": 1.6114286,
+        "session_rpe": null,
+        "average_stride": 1.1212279,
+        "icu_average_watts": 282,
+        "icu_variability_index": 1.0,
+        "strain_score": 178.62889
+      },
+      "structure": [
+        "('intervals_activity.analyzed', 'str', '2026-03-22T04:00:39.539+00:00')",
+        "('intervals_activity.athlete_max_hr', 'int', '182')",
+        "('intervals_activity.attachments', 'null', 'null')",
+        "('intervals_activity.average_altitude', 'float', '9.807285')",
+        "('intervals_activity.average_cadence', 'float', '91.59974')"
+      ]
+    },
+    "activity_detail": {
+      "raw": [
+        {
+          "id": "i133820338",
+          "start_date_local": "2026-03-22T09:00:31",
+          "type": "Run",
+          "icu_ignore_time": false,
+          "icu_pm_cp": 282,
+          "icu_pm_w_prime": 24740,
+          "icu_pm_p_max": 394,
+          "icu_pm_ftp": 288,
+          "icu_pm_ftp_secs": 3300,
+          "icu_pm_ftp_watts": 289,
+          "icu_ignore_power": false,
+          "icu_rolling_cp": null,
+          "icu_rolling_w_prime": 24825.375,
+          "icu_rolling_p_max": 539.17285,
+          "icu_rolling_ftp": 294,
+          "icu_rolling_ftp_delta": 0,
+          "icu_training_load": 163,
+          "icu_atl": 49.536743,
+          "icu_ctl": 34.34374,
+          "ss_p_max": 0.032396942,
+          "ss_w_prime": 1.2730523,
+          "ss_cp": 177.32344,
+          "paired_event_id": null,
+          "icu_ftp": 289,
+          "icu_joules": 1732814,
+          "icu_recording_time": 6147,
+          "elapsed_time": 6148,
+          "icu_weighted_avg_watts": 282,
+          "carbs_used": null,
+          "name": "불패 마라톤 (bulpaerun)",
+          "description": "1:42:22",
+          "start_date": "2026-03-22T00:00:31Z",
+          "distance": 21047.51,
+          "icu_distance": 21047.51,
+          "moving_time": 6148,
+          "coasting_time": 8,
+          "total_elevation_gain": 751.0,
+          "total_elevation_loss": 750.0,
+          "timezone": null,
+          "trainer": null,
+          "sub_type": "RACE",
+          "commute": false,
+          "race": true,
+          "max_speed": 4.106,
+          "average_speed": 3.424,
+          "device_watts": true,
+          "has_heartrate": true,
+          "max_heartrate": 182,
+          "average_heartrate": 175,
+          "average_cadence": 91.59974,
+          "calories": 1303,
+          "average_temp": 15.672142,
+          "min_temp": 13,
+          "max_temp": 24,
+          "avg_lr_balance": null,
+          "gap": 3.7707913,
+          "gap_model": "STRAVA_RUN",
+          "use_elevation_correction": true,
+          "gear": {
+            "id": "g21778552",
+            "name": null,
+            "distance": null,
+            "primary": null
+          },
+          "perceived_exertion": null,
+          "device_name": "GARMIN EPIX_GEN2_PRO_51",
+          "power_meter": null,
+          "power_meter_serial": null,
+          "power_meter_battery": null,
+          "crank_length": null,
+          "external_id": "22254941084",
+          "file_sport_index": 0,
+          "file_type": "fit",
+          "icu_athlete_id": "i268037",
+          "created": "2026-03-22T01:55:33.747+00:00",
+          "icu_sync_date": "2026-03-22T04:00:39.539+00:00",
+          "analyzed": "2026-03-22T04:00:39.539+00:00",
+          "icu_w_prime": null,
+          "p_max": null,
+          "threshold_pace": 3.6630037,
+          "icu_hr_zones": [
+            143,
+            152,
+            160,
+            169,
+            173
+          ],
+          "pace_zones": [
+            77.5,
+            87.7,
+            94.3,
+            100.0,
+            103.4
+          ],
+          "lthr": 170,
+          "icu_resting_hr": 50,
+          "icu_weight": 59.4,
+          "icu_power_zones": [
+            55,
+            75,
+            90,
+            105,
+            120
+          ],
+          "icu_sweet_spot_min": 84,
+          "icu_sweet_spot_max": 97,
+          "icu_power_spike_threshold": null,
+          "trimp": 382.5824,
+          "icu_warmup_time": 300,
+          "icu_cooldown_time": 300,
+          "icu_chat_id": null,
+          "icu_ignore_hr": false,
+          "ignore_velocity": false,
+          "ignore_pace": false,
+          "ignore_parts": null,
+          "icu_training_load_data": 100,
+          "interval_summary": [
+            "1x 1h42m 281w"
+          ],
+          "skyline_chart_bytes": "CAcSAoUwGgFhIgEEKAE=",
+          "stream_types": [
+            "time",
+            "watts",
+            "cadence",
+            "heartrate",
+            "distance"
+          ],
+          "has_weather": false,
+          "has_segments": false,
+          "power_field_names": [
+            "power"
+          ],
+          "power_field": "power",
+          "icu_zone_times": [
+            {
+              "id": "Z1",
+              "secs": 8
+            },
+            {
+              "id": "Z2",
+              "secs": 7
+            },
+            {
+              "id": "Z3",
+              "secs": 318
+            },
+            {
+              "id": "Z4",
+              "secs": 5660
+            },
+            {
+              "id": "Z5",
+              "secs": 150
+            }
+          ],
+          "icu_hr_zone_times": [
+            150,
+            250,
+            205,
+            848,
+            159
+          ],
+          "pace_zone_times": [
+            8,
+            533,
+            3053,
+            2511,
+            38
+          ],
+          "gap_zone_times": [
+            33,
+            1578,
+            1592,
+            1078,
+            288
+          ],
+          "use_gap_zone_times": true,
+          "custom_zones": null,
+          "tiz_order": "POWER_HR_PACE",
+          "polarization_index": null,
+          "icu_achievements": [
+            {
+              "id": "pa0_88",
+              "type": "BEST_PACE",
+              "message": null,
+              "watts": null,
+              "secs": 2851,
+              "value": null,
+              "distance": 10000.0,
+              "pace": 3.5075412,
+              "point": {
+                "start_index": 3147,
+                "end_index": 5998,
+                "secs": 0,
+                "value": 0
+              }
+            },
+            {
+              "id": "pa0_104",
+              "type": "BEST_PACE",
+              "message": null,
+              "watts": null,
+              "secs": 5822,
+              "value": null,
+              "distance": 20000.0,
+              "pace": 3.4352455,
+              "point": {
+                "start_index": 326,
+                "end_index": 6148,
+                "secs": 0,
+                "value": 0
+              }
+            },
+            {
+              "id": "lthr",
+              "type": "LTHR_UP",
+              "message": "1h at 181 bpm",
+              "watts": null,
+              "secs": null,
+              "value": 181,
+              "distance": null,
+              "pace": null,
+              "point": {
+                "start_index": 2548,
+                "end_index": 6148,
+                "secs": 3600,
+                "value": 181
+              }
+            }
+          ],
+          "icu_intervals_edited": true,
+          "lock_intervals": null,
+          "icu_lap_count": 22,
+          "icu_joules_above_ftp": 11608,
+          "icu_max_wbal_depletion": 9113,
+          "icu_hrr": null,
+          "icu_sync_error": null,
+          "icu_color": null,
+          "icu_power_hr_z2": 1.6674342,
+          "icu_power_hr_z2_mins": 1,
+          "icu_cadence_z2": 90,
+          "icu_rpe": null,
+          "feel": null,
+          "kg_lifted": null,
+          "decoupling": -0.5187679,
+          "icu_median_time_delta": 1,
+          "p30s_exponent": null,
+          "workout_shift_secs": null,
+          "strava_id": null,
+          "lengths": null,
+          "pool_length": null,
+          "compliance": null,
+          "coach_tick": null,
+          "source": "GARMIN_CONNECT",
+          "oauth_client_id": 57,
+          "oauth_client_name": "Health Sync",
+          "average_altitude": 9.807285,
+          "min_altitude": -5.0,
+          "max_altitude": 43.0,
+          "power_load": 163,
+          "hr_load": 171,
+          "pace_load": 181,
+          "hr_load_type": "HRSS",
+          "pace_load_type": "RUN",
+          "tags": null,
+          "attachments": null,
+          "recording_stops": null,
+          "average_weather_temp": null,
+          "min_weather_temp": null,
+          "max_weather_temp": null,
+          "average_feels_like": null,
+          "min_feels_like": null,
+          "max_feels_like": null,
+          "average_wind_speed": null,
+          "average_wind_gust": null,
+          "prevailing_wind_deg": null,
+          "headwind_percent": null,
+          "tailwind_percent": null,
+          "average_clouds": null,
+          "max_rain": null,
+          "max_snow": null,
+          "carbs_ingested": null,
+          "route_id": null,
+          "pace": 3.4234726,
+          "athlete_max_hr": 182,
+          "group": "106df362",
+          "icu_intensity": 97.57786,
+          "icu_efficiency_factor": 1.6114286,
+          "icu_power_hr": 1.6114286,
+          "session_rpe": null,
+          "average_stride": 1.1212279,
+          "icu_average_watts": 282,
+          "icu_variability_index": 1.0,
+          "strain_score": 178.62889
+        }
+      ],
+      "structure": [
+        "('intervals_detail', 'list[1]', '')",
+        "('intervals_detail[0].analyzed', 'str', '2026-03-22T04:00:39.539+00:00')",
+        "('intervals_detail[0].athlete_max_hr', 'int', '182')",
+        "('intervals_detail[0].attachments', 'null', 'null')",
+        "('intervals_detail[0].average_altitude', 'float', '9.807285')"
+      ]
+    },
+    "streams": {
+      "error": "Client error '404 Not Found' for url 'https://intervals.icu/api/v1/athlete/i268037/activities/i133820338/streams'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+    },
+    "power_curve": {
+      "error": "Client error '404 Not Found' for url 'https://intervals.icu/api/v1/athlete/i268037/activities/i133820338/power-curve'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"
+    },
+    "wellness": {
+      "raw": {
+        "id": "2026-03-17",
+        "ctl": 31.613703,
+        "atl": 34.601566,
+        "rampRate": 0.54050636,
+        "ctlLoad": 0.0,
+        "atlLoad": 0.0,
+        "sportInfo": [
+          {
+            "type": "Ride",
+            "eftp": null,
+            "wPrime": null,
+            "pMax": null
+          },
+          {
+            "type": "Run",
+            "eftp": 295.0,
+            "wPrime": 24900.0,
+            "pMax": 540.7936
+          }
+        ],
+        "updated": "2026-03-17T16:30:59.941+00:00",
+        "weight": null,
+        "restingHR": 45,
+        "hrv": 69.73077,
+        "hrvSDNN": null,
+        "menstrualPhase": null,
+        "menstrualPhasePredicted": null,
+        "kcalConsumed": null,
+        "sleepSecs": 27765,
+        "sleepScore": 71.0,
+        "sleepQuality": 3,
+        "avgSleepingHR": null,
+        "soreness": null,
+        "fatigue": null,
+        "stress": null,
+        "mood": null,
+        "motivation": null,
+        "injury": null,
+        "spO2": 97.0,
+        "systolic": null,
+        "diastolic": null,
+        "hydration": null,
+        "hydrationVolume": null,
+        "readiness": null,
+        "baevskySI": null,
+        "bloodGlucose": null,
+        "lactate": null,
+        "bodyFat": null,
+        "abdomen": null,
+        "vo2max": null,
+        "comments": null,
+        "steps": 5634,
+        "respiration": 19.481112,
+        "carbohydrates": null,
+        "protein": null,
+        "fatTotal": null,
+        "locked": null,
+        "tempWeight": false,
+        "tempRestingHR": false
+      },
+      "structure": [
+        "('intervals_wellness.abdomen', 'null', 'null')",
+        "('intervals_wellness.atl', 'float', '34.601566')",
+        "('intervals_wellness.atlLoad', 'float', '0.0')",
+        "('intervals_wellness.avgSleepingHR', 'null', 'null')",
+        "('intervals_wellness.baevskySI', 'null', 'null')"
+      ],
+      "total_records": 8
+    }
+  }
+}
