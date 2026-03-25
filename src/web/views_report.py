@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request
 
-from .helpers import db_path, fmt_duration, fmt_pace, no_data_card
+from .helpers import db_path, fmt_duration, fmt_pace, no_data_card, render_sub_nav
 from .views_report_sections import (
     _load_adti,
     _load_darp_latest,
@@ -114,6 +114,7 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
 
 
 # ── 렌더링 헬퍼 ──────────────────────────────────────────────────────────────
+
 
 def _render_period_tabs(current: str) -> str:
     """기간 선택 탭 HTML."""
@@ -289,7 +290,8 @@ def report_view():
         )
 
     body = (
-        _render_period_tabs(period)
+        render_sub_nav("report")
+        + _render_period_tabs(period)
         + _render_summary_cards(stats, metrics_avg)
         + _render_weekly_chart(weekly_data)
         + render_tids_section(tids_data)

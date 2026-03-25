@@ -22,6 +22,7 @@ from .helpers import (
     make_table,
     metric_row,
     readiness_badge,
+    render_sub_nav,
     safe_str,
     score_badge,
 )
@@ -222,7 +223,7 @@ def wellness_view():
     """회복/웰니스 상세 페이지."""
     dpath = db_path()
     if not dpath.exists():
-        body = "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
+        body = render_sub_nav("wellness") + "<div class='card'><p>running.db 가 없습니다. DB를 먼저 초기화하세요.</p></div>"
         return html_page("회복/웰니스", body, active_tab="dashboard")
 
     date_str = request.args.get("date", "").strip() or date.today().isoformat()
@@ -233,7 +234,7 @@ def wellness_view():
             trend_data = recovery_trend(conn, days=14)
             steps, weight_kg = _fetch_steps_weight(conn, date_str)
     except Exception as exc:
-        body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
+        body = render_sub_nav("wellness") + f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("회복/웰니스", body, active_tab="dashboard")
 
     date_form = (
@@ -246,5 +247,5 @@ def wellness_view():
         "</div>"
     )
 
-    body = date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg)
+    body = render_sub_nav("wellness") + date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg)
     return html_page(f"회복/웰니스 — {date_str}", body, active_tab="dashboard")
