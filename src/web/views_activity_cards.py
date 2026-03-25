@@ -162,7 +162,7 @@ def _render_garmin_metrics(garmin: dict) -> str:
         content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>HR 존별 시간</p>" + zone_content
 
     if not content:
-        content = "<p class='muted' style='margin:0;'>데이터 없음 (동기화 필요)</p>"
+        content = "<p class='muted' style='margin:0;'>데이터 수집 중입니다</p>"
     return "<div class='card'><h2>Garmin</h2>" + content + "</div>"
 
 
@@ -232,7 +232,7 @@ def _render_strava_metrics(strava: dict) -> str:
                 "<br><small>Strava 동기화 재실행 시 자동으로 수집됩니다.</small></p>"
             )
         else:
-            content = "<p class='muted' style='margin:0;'>데이터 없음 (Strava API 동기화 필요)</p>"
+            content = "<p class='muted' style='margin:0;'>데이터 수집 중입니다</p>"
 
     return (
         "<div class='card'>"
@@ -286,7 +286,7 @@ def _render_intervals_metrics(intervals: dict) -> str:
         content += "<p style='margin:0.5rem 0 0.1rem; font-size:0.8rem; color:var(--muted); font-weight:600;'>FIT 파일</p>" + fit_content
 
     if not content:
-        content = "<p class='muted' style='margin:0;'>데이터 없음 (intervals 동기화 필요)</p>"
+        content = "<p class='muted' style='margin:0;'>데이터 수집 중입니다</p>"
     return "<div class='card'><h2>Intervals.icu</h2>" + content + "</div>"
 
 
@@ -840,7 +840,7 @@ def _render_daily_scores_card(day_metrics: dict) -> str:
         return (
             "<div class='card'>"
             "<h2>당일 훈련 지수</h2>"
-            "<p class='muted' style='margin:0;'>해당 날짜의 UTRS/CIRS 데이터가 없습니다.</p>"
+            "<p class='muted' style='margin:0;'>데이터 수집 중입니다</p>"
             "</div>"
         )
 

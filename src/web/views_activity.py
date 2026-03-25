@@ -15,6 +15,7 @@ from src.analysis.activity_deep import deep_analyze
 from .helpers import db_path
 
 from .views_activity_loaders import (
+    _extract_gap,
     _fetch_adjacent,
     _fetch_source_rows,
     _load_activity_computed_metrics,
@@ -100,6 +101,11 @@ def activity_deep_view():
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
                     source_rows = _fetch_source_rows(conn, cur[0])
                     act_metrics = _load_activity_computed_metrics(conn, cur[0])
+                    # GAP은 서비스 1차 메트릭 — activity_summaries에서 추출해 주입
+                    if "GAP" not in act_metrics:
+                        _gap = _extract_gap(source_rows)
+                        if _gap is not None:
+                            act_metrics["GAP"] = _gap
                     service_metrics = _load_service_metrics(conn, cur[0])
                     act_date_tmp = str(cur[1])[:10]
                     day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)

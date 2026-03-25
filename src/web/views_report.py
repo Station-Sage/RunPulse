@@ -167,7 +167,7 @@ def _render_summary_cards(stats: dict, metrics_avg: dict) -> str:
 def _render_weekly_chart(weekly_data: list[dict]) -> str:
     """ECharts 주별 거리 바차트."""
     if not weekly_data:
-        return no_data_card("주별 거리 추세", "훈련 데이터 동기화 후 표시됩니다")
+        return no_data_card("주별 거리 추세", "데이터 수집 중입니다")
 
     labels = [d["week"] for d in weekly_data]
     values = [d["km"] for d in weekly_data]

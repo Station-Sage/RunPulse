@@ -271,3 +271,18 @@ def _load_pmc_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
         "acwr": [acwr_map.get(d) for d in dates],
         "target_date": target_date,
     }
+
+
+def _extract_gap(source_rows: dict) -> float | None:
+    """source_rows에서 GAP(sec/km)을 추출.
+
+    우선순위: Intervals icu_gap(sec/km) → Garmin avg_grade_adjusted_speed(m/s 변환).
+    """
+    iv = source_rows.get("intervals") or {}
+    if iv.get("icu_gap") is not None:
+        return float(iv["icu_gap"])
+    g = source_rows.get("garmin") or {}
+    speed = g.get("avg_grade_adjusted_speed")
+    if speed and float(speed) > 0:
+        return round(1000.0 / float(speed), 1)
+    return None
