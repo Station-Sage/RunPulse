@@ -655,9 +655,9 @@ def html_page(
     """
     if dev_mode is None:
         try:
-            dev_mode = bool(load_config().get("dev_mode", False))
+            dev_mode = bool(load_config().get("dev_mode", True))
         except Exception:
-            dev_mode = False
+            dev_mode = True
     nav_html = _build_nav()
     bottom = bottom_nav(active_tab, dev_mode) if active_tab else ""
     return f"""<!doctype html>

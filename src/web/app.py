@@ -136,9 +136,9 @@ def create_app() -> Flask:
     @app.context_processor
     def _inject_ui_context():
         try:
-            _dev = bool(load_config().get("dev_mode", False))
+            _dev = bool(load_config().get("dev_mode", True))
         except Exception:
-            _dev = False
+            _dev = True
         return {
             "stylesheet": _CSS,
             "nav_html": _build_nav(),
