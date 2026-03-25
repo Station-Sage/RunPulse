@@ -28,12 +28,9 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _db_path() -> Path:
-    config = load_config()
-    db_value = config.get("database", {}).get("path")
-    if db_value:
-        return Path(db_value).expanduser()
-    return _project_root() / "running.db"
+def _db_path(user_id: str | None = None) -> Path:
+    from src.db_setup import get_db_path
+    return get_db_path(user_id)
 
 
 def _save_output(text: str, save_path: str | None) -> None:
@@ -187,10 +184,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    parser.add_argument("--user", default="default", help="사용자 ID (기본: default)")
     args = parser.parse_args(argv)
 
-    config = load_config()
-    db_path = _db_path()
+    config = load_config(user_id=args.user)
+    db_path = _db_path(args.user)
 
     if not Path(db_path).exists():
         print(f"데이터베이스가 없습니다: {db_path}", file=sys.stderr)

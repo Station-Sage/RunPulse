@@ -14,30 +14,70 @@ v0.2 (진행): + [2차 메트릭 엔진] + [고도화 대시보드 UI]
 
 ---
 
-## v0.1 기존 코드 구조 (건드리지 않는 파일들)
+## 전체 코드 구조 (v0.2 기준, 2026-03-25)
 
 ```
 src/
-├── db_setup.py              ← DB 초기화/마이그레이션 (v0.2에서 테이블 추가)
-├── sync.py                  ← 동기화 CLI 진입점 (v0.2에서 후크 추가)
+├── db_setup.py              ← DB 초기화/마이그레이션 (15+ 테이블, 1026줄)
+├── sync.py                  ← 동기화 CLI 진입점 + engine 후크
 ├── analyze.py               ← 분석 CLI 진입점
 ├── plan.py                  ← 훈련 계획 CLI 진입점
 ├── serve.py                 ← Flask 서버 (포트: 18080)
 │
-├── sync/
-│   ├── garmin.py            ← Garmin Connect 활동/웰니스/생체역학
-│   ├── strava.py            ← Strava OAuth2 활동/스트림/상세
-│   ├── intervals.py         ← Intervals.icu CTL/ATL/TSB/HR존
-│   └── runalyze.py          ← Runalyze VDOT/Marathon Shape/Race Prediction
+├── sync/                    ← v0.2에서 모듈 분리 (Garmin/Strava/Intervals 각각)
+│   ├── garmin.py            ← Garmin 통합 sync 오케스트레이터
+│   ├── garmin_auth.py       ← Garmin 인증
+│   ├── garmin_activity_sync.py   ← 활동 + splits + backfill
+│   ├── garmin_api_extensions.py  ← streams/gear/exercise_sets
+│   ├── garmin_daily_extensions.py ← race_predictions/training_status/fitness/HR/stress/BB
+│   ├── garmin_athlete_extensions.py ← profile/stats/personal_records
+│   ├── garmin_wellness_sync.py   ← 웰니스 (수면/HRV/BB/스트레스/SPO2)
+│   ├── garmin_v2_mappings.py     ← ZIP/detail 필드 매핑
+│   ├── garmin_backfill.py        ← 기존 활동 보강
+│   ├── garmin_helpers.py         ← 공통 헬퍼
+│   ├── strava.py            ← Strava 통합 sync 오케스트레이터
+│   ├── strava_auth.py       ← OAuth2 토큰 관리
+│   ├── strava_activity_sync.py   ← 활동/streams/laps/best_efforts
+│   ├── strava_athlete_sync.py    ← profile/stats/gear
+│   ├── intervals.py         ← Intervals.icu 통합 sync 오케스트레이터
+│   ├── intervals_auth.py    ← API 인증
+│   ├── intervals_activity_sync.py ← 활동/intervals/streams
+│   ├── intervals_athlete_sync.py  ← profile/stats
+│   ├── intervals_wellness_sync.py ← 웰니스/피트니스
+│   └── runalyze.py          ← Runalyze VDOT/Marathon Shape
+│
+├── metrics/                 ← 2차 메트릭 계산 엔진 (23개 파일)
+│   ├── engine.py            ← 배치 오케스트레이터
+│   ├── store.py             ← computed_metrics DB UPSERT 헬퍼
+│   ├── gap.py               ← GAP + NGP (경사 보정 페이스)
+│   ├── lsi.py               ← 부하 스파이크 지수
+│   ├── fearp.py             ← 환경 보정 페이스
+│   ├── adti.py              ← 유산소 분리 추세
+│   ├── tids.py              ← 훈련 강도 분포
+│   ├── relative_effort.py   ← Relative Effort (Strava 방식)
+│   ├── marathon_shape.py    ← Marathon Shape (Runalyze 방식)
+│   ├── acwr.py              ← 급성/만성 부하 비율
+│   ├── trimp.py             ← TRIMPexp + HRSS
+│   ├── monotony.py          ← Monotony + Strain
+│   ├── utrs.py              ← 통합 훈련 준비도
+│   ├── cirs.py              ← 복합 부상 위험
+│   ├── decoupling.py        ← Aerobic Decoupling + EF
+│   ├── di.py                ← 내구성 지수
+│   ├── darp.py              ← 레이스 예측 (VDOT + DI)
+│   ├── rmr.py               ← 러너 성숙도 레이더 (5축)
+│   ├── vdot.py              ← VDOT 계산
+│   ├── rtti.py              ← 러닝 내성 훈련 지수 (Sprint 5)
+│   ├── wlei.py              ← 날씨 가중 노력 지수 (Sprint 5)
+│   └── tpdi.py              ← 실내/야외 퍼포먼스 격차 (Sprint 5)
 │
 ├── analysis/
 │   ├── compare.py           ← 기간 비교
-│   ├── trends.py            ← 주간 추세, ACWR
+│   ├── trends.py            ← 주간 추세
 │   ├── recovery.py          ← 회복 상태 평가
-│   ├── weekly_score.py      ← 주간 종합 점수 (0-100)
+│   ├── weekly_score.py      ← 주간 종합 점수
 │   ├── efficiency.py        ← Aerobic EF + Cardiac Decoupling
 │   ├── zones_analysis.py    ← HR/Pace 존 분포
-│   ├── activity_deep.py     ← 단일 활동 심층 분석 (v0.2에서 확장)
+│   ├── activity_deep.py     ← 단일 활동 심층 분석
 │   ├── race_readiness.py    ← 레이스 준비도
 │   └── report.py            ← 마크다운 리포트
 │
@@ -54,15 +94,37 @@ src/
 │   ├── planner.py           ← 주간/월간 훈련 계획
 │   └── adjuster.py          ← 컨디션 기반 계획 조정
 │
-├── web/
-│   ├── app.py               ← Flask 앱, 블루프린트 등록 (v0.2에서 추가)
-│   ├── bg_sync.py           ← 백그라운드 동기화 스레드 (v0.2에서 후크 추가)
-│   ├── views_activity.py    ← /activities, /activity/deep (v0.2에서 확장)
+├── services/
+│   └── unified_activities.py ← DB 레벨 2단계 페이지네이션 + 통합 활동 조회
+│
+├── import_export/
+│   ├── strava_archive.py    ← Strava ZIP 아카이브 임포트
+│   ├── strava_csv.py        ← Strava CSV 파싱
+│   ├── garmin_csv.py        ← Garmin CSV 파싱
+│   └── intervals_fit.py     ← Intervals.icu FIT 파싱
+│
+├── web/                     ← Flask 블루프린트 (12개 등록)
+│   ├── app.py               ← Flask 앱 팩토리 + context_processor (1351줄 ⚠️)
+│   ├── bg_sync.py           ← 백그라운드 동기화 스레드
+│   ├── sync_ui.py           ← 병렬 동기화 SSE 프로그레스
+│   ├── helpers.py           ← SVG/ECharts/bottom_nav/다크테마 (1033줄 ⚠️)
+│   ├── views_dashboard.py   ← GET /dashboard
+│   ├── views_dashboard_cards.py ← 대시보드 하위 카드 렌더러
+│   ├── views_activities.py  ← GET /activities (필터/정렬/그룹)
+│   ├── views_activity.py    ← GET /activity/deep (2차 메트릭 통합) (1529줄 ⚠️)
 │   ├── views_activity_merge.py ← 활동 그룹 관리
-│   ├── views_settings.py    ← /settings, /connect/*
-│   ├── views_export_import.py ← CSV/GPX 임포트/내보내기
-│   ├── views_shoes.py       ← /shoes
-│   └── helpers.py           ← connected_services() 등 공통 헬퍼
+│   ├── views_report.py      ← GET /report (기간별 분석)
+│   ├── views_report_sections.py ← 레포트 하위 섹션 렌더러
+│   ├── views_race.py        ← GET /race (DARP 레이스 예측)
+│   ├── views_ai_coach.py    ← GET /ai-coaching (브리핑+추천칩)
+│   ├── views_wellness.py    ← GET /wellness (수면/HRV/BB 트렌드)
+│   ├── views_import.py      ← GET/POST /import/strava-archive
+│   ├── views_settings.py    ← GET /settings (4소스 연결) (857줄 ⚠️)
+│   ├── views_export_import.py ← CSV 임포트/내보내기
+│   └── views_shoes.py       ← /shoes
+│
+├── weather/
+│   └── provider.py          ← Open-Meteo API (무료, 키 없음)
 │
 └── utils/
     ├── api.py               ← 외부 API 래퍼 (모든 API 호출은 여기서)
@@ -70,133 +132,109 @@ src/
     ├── dedup.py             ← 중복 활동 매칭/그룹 관리
     ├── pace.py              ← 페이스 변환
     ├── zones.py             ← HR/Pace 존 계산
-    └── clipboard.py         ← termux-clipboard-set 래퍼
-```
+    ├── clipboard.py         ← termux-clipboard-set 래퍼
+    ├── raw_payload.py       ← 원시 API 응답 저장/조회
+    ├── sync_jobs.py         ← 동기화 작업 관리
+    ├── sync_policy.py       ← 동기화 정책
+    └── sync_state.py        ← 동기화 상태 추적
 
----
-
-## v0.2 새로 추가되는 모듈
-
-### src/metrics/ — 2차 메트릭 계산 엔진
-```
-src/metrics/
-├── __init__.py
-├── lsi.py           ← 부하 스파이크 지수 (today_load / rolling_21day_avg)
-├── fearp.py         ← 환경 보정 페이스 (날씨×고도×경사)
-├── adti.py          ← 유산소 분리 추세 (8주 선형 회귀)
-├── tids.py          ← 훈련 강도 분포 (폴라리제드/피라미드/건강유지)
-├── acwr.py          ← 급성/만성 부하 비율
-├── trimp.py         ← TRIMPexp 자체 계산 (intervals.icu 폴백)
-├── utrs.py          ← 통합 훈련 준비도 (5요소 가중합)
-├── cirs.py          ← 복합 부상 위험 (ACWR×0.4 + Mono×0.2 + Spike×0.3 + Asym×0.1)
-├── decoupling.py    ← Aerobic Decoupling (Pa:HR 전/후반 비교)
-├── di.py            ← 내구성 지수 (pace/HR 비율법, 90분+ 세션 필요)
-├── darp.py          ← 레이스 예측 (VDOT + DI 보정)
-├── rmr.py           ← 러너 성숙도 레이더 (5축)
-└── engine.py        ← 배치 오케스트레이터 (sync 완료 후 자동 실행)
-```
-
-각 함수 시그니처:
-- 일별 메트릭: `compute_*(conn, date: str) -> float | None`
-- 활동별 메트릭: `compute_*(conn, activity_id: int) -> float | None`
-- 복합 결과: `compute_*(conn, ...) -> dict`
-- engine: `recompute_recent(conn, days: int = 7) -> None`
-
-### src/weather/ — Open-Meteo 날씨 API
-```
-src/weather/
-├── __init__.py
-└── provider.py      ← get_weather(lat, lon, date_str) -> dict
-                        {temp_c, humidity_pct, wind_kmh, ...}
-                        결과는 weather_data 테이블에 캐싱
-```
-
-### src/web/ — 새 뷰 블루프린트
-```
-src/web/
-├── views_dashboard.py     ← GET /dashboard (홈 대시보드)
-├── views_report.py        ← GET /report?period=week (분석 레포트)
-├── views_race.py          ← GET /race?distance=half (레이스 예측)
-└── views_training_plan.py ← GET /training (훈련 계획 캘린더)
-```
-
-### templates/ — 새 Jinja2 매크로/템플릿
-```
 templates/
-├── macros/
-│   ├── nav.html      ← 하단 5탭 네비게이션 매크로
-│   ├── gauge.html    ← 반원 게이지 SVG 매크로 (UTRS/CIRS)
-│   └── radar.html    ← 레이더 차트 SVG 매크로 (RMR 5축)
-├── dashboard.html
-├── report.html
-├── race.html
-└── training_plan.html
+├── base.html               ← 공통 레이아웃 (stylesheet/nav/sync context_processor)
+├── dashboard.html           ← 대시보드
+├── ai_coaching.html         ← AI 코칭
+├── race.html                ← 레이스 예측
+├── generic_page.html        ← 범용 페이지 래퍼
+└── macros/
+    ├── gauge.html           ← 반원 게이지 SVG 매크로
+    ├── radar.html           ← 레이더 차트 SVG 매크로
+    └── no_data.html         ← 데이터 없음 카드 매크로
 ```
 
 ---
 
-## v0.2 수정되는 기존 파일
+## v0.2 추가 모듈 상세
+
+> 전체 구조는 위 "전체 코드 구조" 섹션 참조. 여기는 핵심 모듈의 함수 시그니처만 기술.
+
+### src/metrics/ — 함수 시그니처
+- 일별 메트릭: `calc_*(conn, date: str) -> float | None`
+- 활동별 메트릭: `calc_*(conn, activity_id: int) -> float | None`
+- 복합 결과: `calc_*(conn, ...) -> dict`
+- engine: `run_for_date(conn, date)`, `run_for_date_range(conn, start, end)`, `recompute_all(conn)`
+- store: `save_metric(conn, date, name, value, json)`, `load_metric(conn, date, name)`
+
+---
+
+## v0.2에서 대폭 수정된 기존 파일
 
 | 파일 | 변경 내용 |
 |------|-----------|
-| `src/db_setup.py` | `computed_metrics`, `weather_data` 테이블 추가; `migrate_db()` 업데이트 |
-| `src/sync.py` | sync 완료 콜백에 `engine.recompute_recent(conn)` 추가 |
-| `src/web/app.py` | 새 블루프린트 4개 등록; `/` → `/dashboard` 리다이렉트 |
-| `src/web/bg_sync.py` | 백그라운드 sync 완료 후 메트릭 재계산 후크 |
-| `src/web/views_activity.py` | `activity_deep`에 FEARP 섹션 + 2차 메트릭 카드 추가 |
+| `src/db_setup.py` | 15+ 테이블, activity_summaries 80컬럼, migrate_db 전면 확장 |
+| `src/sync.py` | sync 완료 콜백 + 4소스 ThreadPoolExecutor 병렬화 |
+| `src/web/app.py` | 12개 블루프린트, context_processor, template_folder |
+| `src/web/bg_sync.py` | 백그라운드 sync + 메트릭 재계산 + SSE 진행률 |
+| `src/web/views_activity.py` | 2차 메트릭 + FEARP + DI + classification + source 비교 |
+| `src/web/views_activities.py` | 필터/정렬/그룹핑/페이지네이션 대폭 확장 |
+| `src/web/helpers.py` | SVG 게이지/레이더 + ECharts CDN + bottom_nav + 다크 테마 CSS |
 
 ---
 
 ## DB 스키마 — v0.2 추가 테이블
 
-### computed_metrics (새 테이블)
+### computed_metrics
 ```sql
 CREATE TABLE IF NOT EXISTS computed_metrics (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    date         TEXT NOT NULL,                     -- YYYY-MM-DD
-    metric_name  TEXT NOT NULL,                     -- 'utrs', 'cirs', 'acwr', 'lsi', 'di', 'rmr', ...
-    metric_value REAL,                              -- 단일 숫자 (복합값은 metric_json)
-    metric_json  TEXT,                              -- JSON (rmr, tids 등 복합 구조)
+    date         TEXT NOT NULL,
+    activity_id  INTEGER REFERENCES activity_summaries(id),  -- NULL=일별, NOT NULL=활동별
+    metric_name  TEXT NOT NULL,
+    metric_value REAL,
+    metric_json  TEXT,
     computed_at  TEXT DEFAULT (datetime('now')),
-    UNIQUE(date, metric_name)                       -- ON CONFLICT DO UPDATE
+    UNIQUE(date, activity_id, metric_name)
 );
 ```
 
-저장 패턴:
-- 일별 단일값: `('2026-03-22', 'utrs', 72.5, NULL)`
-- 활동별: metric_name에 activity_id 포함 `('2026-03-22', 'fearp_12345', 285.3, NULL)`
-- 복합값: `('2026-03-22', 'rmr', NULL, '{"유산소용량":80,"역치강도":70,...}')`
-
-### weather_data (새 테이블)
+### weather_data
 ```sql
 CREATE TABLE IF NOT EXISTS weather_data (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    activity_id  INTEGER REFERENCES activity_summaries(id),
-    date         TEXT,
-    lat          REAL,
-    lon          REAL,
+    date         TEXT NOT NULL,
+    hour         INTEGER NOT NULL DEFAULT 12,
+    latitude     REAL NOT NULL,
+    longitude    REAL NOT NULL,
     temp_c       REAL,
-    humidity_pct REAL,
-    wind_kmh     REAL,
-    source       TEXT DEFAULT 'open-meteo',
-    fetched_at   TEXT DEFAULT (datetime('now'))
+    feels_like_c REAL,
+    humidity_pct INTEGER,
+    wind_speed_ms REAL,
+    precipitation_mm REAL,
+    cloudcover_pct INTEGER,
+    fetched_at   TEXT DEFAULT (datetime('now')),
+    UNIQUE(date, hour, latitude, longitude)
 );
 ```
 
-### 기존 핵심 테이블 (v0.1, 수정 없음)
+### v0.2 추가 테이블
+- `activity_laps` — 활동별 랩/스플릿 (36컬럼)
+- `activity_streams` — GPS/시계열 스트림 데이터
+- `activity_best_efforts` — 베스트 에포트 (1K~마라톤)
+- `activity_exercise_sets` — 운동 세트 (근력/인터벌)
+- `athlete_profile` — 소스별 선수 프로필
+- `athlete_stats` — 누적 통계 스냅샷
+- `gear` — 신발/장비
+- `sync_jobs` — 동기화 작업 추적
 
-**activity_summaries** (통합 활동 목록)
-- 주요: `id, source, source_id, activity_type, start_time, distance_km, duration_sec, avg_pace_sec_km, avg_hr, matched_group_id`
+### 핵심 테이블 (v0.2에서 대폭 확장)
 
-**activity_detail_metrics** (활동별 소스 고유 지표)
-- 주요: `id, activity_id, source, metric_name, metric_value, metric_json`
-- 예: garmin `aerobic_te`, strava `suffer_score`, intervals `trimp`, runalyze `vdot`
+**activity_summaries** (80+ 컬럼)
+- 기본: `id, source, source_id, activity_type, start_time, distance_km, duration_sec`
+- v0.2 추가: `name, sport_type, moving_time_sec, avg_speed_ms, max_speed_ms, aerobic_training_effect, anaerobic_training_effect, training_load, vo2max_activity, icu_*, strava_gear_id, ...`
 
 **daily_fitness** (일별 피트니스)
-- 주요: `date, ctl, atl, tsb, vo2max_precise, hrv_weekly_average, body_battery_delta, sleep_score, resting_hr`
+- `date, source, ctl, atl, tsb, ramp_rate, garmin_vo2max, runalyze_evo2max, runalyze_vdot, runalyze_marathon_shape`
 
 **daily_wellness** (일별 웰니스)
-- 주요: `date, source, sleep_score, hrv_value, resting_hr, body_battery, stress_avg`
+- `date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn, resting_hr, avg_sleeping_hr, body_battery, stress_avg, readiness_score, fatigue, mood, motivation, steps, weight_kg`
 
 ---
 
@@ -253,10 +291,10 @@ card: background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: 
 ### 차트 컴포넌트
 | 컴포넌트 | 구현 방식 | 용도 |
 |---------|-----------|------|
-| 반원 게이지 | SVG + CSS conic-gradient | UTRS, CIRS |
-| 레이더 차트 | 순수 SVG polygon | RMR 5축 |
-| 라인 차트 | Chart.js (CDN) | PMC (CTL/ATL/TSB) |
-| 바 차트 | Chart.js (CDN) | TIDS, TRIMP 주간 |
+| 반원 게이지 | SVG (Jinja2 매크로) | UTRS, CIRS |
+| 레이더 차트 | 순수 SVG polygon (Jinja2 매크로) | RMR 5축 |
+| 라인 차트 | ECharts (CDN) | PMC (CTL/ATL/TSB) |
+| 바 차트 | ECharts (CDN) | TIDS, TRIMP 주간, 거리 추세 |
 | 수치 카드 | HTML + CSS | 요약 지표 |
 
 ### 하단 네비게이션 (5탭)

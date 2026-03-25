@@ -72,81 +72,77 @@ TQI, TEROI, PLTD, SAPI 고도화
 
 ---
 
-## Sprint 4-A: 공통 UI 기반 (현재)
-**목표**: 전체 화면에 공통 적용할 차트·네비·테마 기반 구축
+## Sprint 4-A: 공통 UI 기반 ✅ 완료
 
-- ECharts CDN으로 교체 (`helpers.py` Chart.js → ECharts, 대시보드 PMC 재작성)
-- `bottom_nav(active_tab)` 함수 추가 (helpers.py, 7탭, 개발자 탭 조건부)
-- 다크 테마 CSS 공통화 (`html_page()`에 ui-spec.md 색상 토큰 반영)
-- 기존 구현된 `/dashboard` 에 bottom_nav 적용
-
-**검증 기준**: `/dashboard` 접속 시 ECharts PMC 차트 + 7탭 하단 네비 렌더링
+- [x] ECharts CDN으로 교체 (Chart.js → ECharts, PMC 재작성)
+- [x] `bottom_nav(active_tab)` 함수 (7탭, 개발자 탭 조건부)
+- [x] 다크 테마 CSS 공통화
+- [x] 기존 `/dashboard`, `/settings`, `/activities`에 bottom_nav 적용
 
 ---
 
-## Sprint 4-B: Jinja2 render_template 전환
-**목표**: Python 인라인 HTML → Jinja2 템플릿 파일 분리
+## Sprint 4-B: Jinja2 render_template 전환 ✅ 완료
 
-- `templates/macros/base.html` — page_shell 매크로
-- `templates/macros/nav.html` — bottom_nav 매크로
-- `templates/macros/gauge.html` — half_gauge SVG 매크로
-- `templates/macros/radar.html` — radar_chart SVG 매크로
-- `templates/macros/no_data.html` — no_data_card 매크로
-- 기존 views_*.py 파일을 render_template() 방식으로 순차 전환
-
-**검증 기준**: 모든 뷰가 render_template() 사용, 기존 테스트 통과
+- [x] `templates/base.html` — 공통 레이아웃
+- [x] `templates/macros/gauge.html`, `radar.html`, `no_data.html`
+- [x] views_dashboard.py, views_settings.py → render_template 전환
 
 ---
 
-## Sprint 4-C: 화면 구현 (Phase 4-5)
-**목표**: 활동 심층 분석에 2차 메트릭 통합, 기간별 분석 레포트
+## Sprint 4-C: 화면 구현 (Phase 4-5) ✅ 완료
 
-- activity_deep에 FEARP 섹션 + 2차 메트릭 카드
-- 분석 레포트 `/report` 구현 (기간 선택, ECharts 차트, AI 인사이트)
-
-**검증 기준**: 활동 상세에서 FEARP 보정값 표시, 주간 레포트에서 TIDS/TRIMP 차트 렌더링
+- [x] activity_deep에 FEARP + DI + 2차 메트릭 카드 + classification 배지
+- [x] 분석 레포트 `/report` (기간 선택, ECharts, TIDS/TRIMP/Risk/DARP)
 
 ---
 
-## Sprint 5: 레이스 예측 + AI 코칭 고도화 (Phase 6-7)
-**목표**: 레이스 예측 화면 + AI 브리핑에 2차 메트릭 통합
+## Sprint 5: 데이터 파이프라인 + 레이스 + AI 코칭 ✅ 완료 (2026-03-25)
 
-- `/race` 레이스 예측 화면 (DARP, DI, 페이스 전략, 히팅 더 월, bottom_nav='report')
-- `/ai-coach` 라우트 정비, 채팅 버블 UI, UTRS/CIRS/DARP 브리핑 컨텍스트 포함
-- POST `/ai-coach/briefing` 재생성, POST `/ai-coach/chat` 대화
-
-**검증 기준**: `/race?distance=half` 에서 DARP 예측 시간 표시, `/ai-coach` 접속 정상
+- [x] Sprint 5-A: 데이터 레이어 아키텍처 확립
+- [x] Sprint 5-B: 동기화 인프라 (4소스 병렬, Garmin/Strava/Intervals 신규 API)
+- [x] Sprint 5-C: 메트릭 추가 (RTTI, WLEI, TPDI) + zone 소스 fallback
+- [x] Sprint 5-E: 버그 수정 (unified_activities, icu_intensity, 4xx 로그)
+- [x] Sprint 5-F: API 데이터 감사 수정 (5건)
+- [x] `/race` 레이스 예측 화면 (DARP, DI, templates/race.html)
+- [x] `/ai-coaching` AI 코칭 (브리핑+추천칩, templates/ai_coaching.html)
+- [x] `/wellness` 웰니스 트렌드 (수면/HRV/BB/스트레스)
 
 ---
 
-## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9)
-**목표**: 훈련 계획 캘린더 + 설정 4섹션 통합 + dev 탭 + 전체 정리
+## Multi-User: 사용자별 DB/config 분리 ✅ 완료 (2026-03-25)
 
-- 훈련 계획 캘린더 (`/training`) — 주/월/일 뷰, 색상 코딩, AI 요약, POST /training/apply-darp
-- 설정 페이지 4섹션 통합 (소스연동/동기화/데이터관리/앱설정)
-- `/dev` 개발자 탭 (dev_mode 조건부, DB뷰어/Payload/Config)
-- `/analyze/*` → 신규 화면 리다이렉트
-- 통합 테스트 + 버그픽스
+- [x] `data/users/{user_id}/running.db` + `config.json` 분리
+- [x] Flask 세션 기반 user_id + `/switch-user` UI
+- [x] CLI `--user` 파라미터
+- [ ] 인증/로그인 → v0.3
 
-**검증 기준**: 7탭(대시보드/활동/레포트/훈련/AI코치/설정/[개발자]) 모두 정상 동작
+---
+
+## Sprint 6: 훈련 계획 + 설정 통합 + 마무리 (Phase 8-9) ⏳ 다음
+
+- [ ] V2-8-1a: `/training` 스캐폴딩 (placeholder)
+- [ ] V2-9-3: graceful fallback 전면 보강
+- [ ] V2-9-4: Settings hub 고도화
+- [ ] V2-9-5: `/dev` 개발자 탭
+- [ ] V2-9-10/11: 디자인 파일 원격 커밋
+- [ ] V2-9-12~14: 문서 정합성 해소
+- [ ] B-1: 파일 크기 리팩토링 (6개 파일 300줄 초과)
 
 ---
 
 ## 의존 관계
 ```
-Phase 0 (DB+날씨) → Phase 1 (메트릭 엔진)
+Phase 0 (DB+날씨) → Phase 1 (메트릭 엔진)           ← ✅ 완료
                             ↓
-Phase 2 (sync 연동) → Phase 3 (대시보드)
+Phase 2 (sync 연동) → Phase 3 (대시보드)              ← ✅ 완료
                             ↓
-                    Sprint 4-A (ECharts + bottom_nav + 다크 테마)
+                    Sprint 4-A/B/C (UI 기반+화면)     ← ✅ 완료
                             ↓
-                    Sprint 4-B (Jinja2 전환)
+                    Sprint 5 (데이터+Race+AI+Wellness) ← ✅ 완료
                             ↓
-                    Sprint 4-C (활동 상세 + 레포트)
+                    Sprint 6 (Training+Settings+마무리) ← ⏳ 다음
                             ↓
-                    Sprint 5 (레이스 예측 + AI 코칭)
-                            ↓
-                    Sprint 6 (훈련 계획 + 설정 통합 + 마무리)
+                    Priority B (파일 리팩토링+fallback) ← ⏳ 대기
 ```
 
 ---
@@ -154,7 +150,7 @@ Phase 2 (sync 연동) → Phase 3 (대시보드)
 ## 구현 시 주의사항
 1. **메트릭 데이터 없을 때**: 모든 UI는 "데이터 없음" 대신 "수집 중" 상태를 graceful하게 표시
 2. **PDF 계산식 우선**: 본 문서와 구현 차이 발생 시 HTML 변환 PDF(1번, 2번) 기준으로 수정
-3. **Chart.js**: CDN 방식 사용, 로드 실패 시 SVG fallback
+3. **ECharts**: CDN 방식 사용 (Sprint 4-A에서 Chart.js → ECharts 교체 완료)
 4. **파일 300줄 제한**: 각 metrics/*.py 파일 분리 유지
 5. **날씨 API**: Open-Meteo (https://open-meteo.com) - 키 없이 사용, 과거 날씨 지원
 6. **RMR**: 5개 축 (유산소용량/역치강도/지구력/동작효율성/회복력) — 6개 축 아님

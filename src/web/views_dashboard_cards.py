@@ -118,7 +118,7 @@ def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
 
 def _render_pmc_chart(pmc_data: list[dict]) -> str:
     if not pmc_data:
-        return no_data_card("PMC 차트 (CTL/ATL/TSB)", "훈련 데이터 동기화 후 표시됩니다")
+        return no_data_card("PMC 차트 (CTL/ATL/TSB)", "데이터 수집 중입니다")
     labels = [r["date"] for r in pmc_data]
     ctl = [round(r["ctl"] or 0, 1) for r in pmc_data]
     atl = [round(r["atl"] or 0, 1) for r in pmc_data]
@@ -184,7 +184,7 @@ def _render_pmc_chart(pmc_data: list[dict]) -> str:
 
 def _render_activity_list(activities: list[dict]) -> str:
     if not activities:
-        return no_data_card("최근 활동", "동기화 후 표시됩니다")
+        return no_data_card("최근 활동", "데이터 수집 중입니다")
     items = []
     for act in activities:
         dist = f"{act['distance_km']:.1f} km" if act["distance_km"] else "—"
@@ -220,7 +220,7 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
                                     cirs_val: float | None, tsb_last: float | None) -> str:
     """오늘의 훈련 권장 카드."""
     if utrs_val is None and cirs_val is None:
-        return no_data_card("오늘의 훈련 권장", "데이터 동기화 후 표시됩니다")
+        return no_data_card("오늘의 훈련 권장", "데이터 수집 중입니다")
     grade = (utrs_json or {}).get("grade", "")
     if cirs_val and cirs_val >= 75:
         icon, intensity, desc, dur = "&#128683;", "완전 휴식", "부상 위험 매우 높음. 훈련 중단, 회복 집중.", ""
@@ -290,7 +290,7 @@ def _render_risk_pills(risk_data: dict) -> str:
 def _render_darp_mini(darp_data: dict) -> str:
     """DARP 레이스 예측 미니 카드."""
     if not darp_data:
-        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 동기화 후 표시됩니다")
+        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프", "full": "마라톤"}
     rows = ""
     for key, lbl in _LABELS.items():
@@ -306,7 +306,7 @@ def _render_darp_mini(darp_data: dict) -> str:
                  f"<td style='padding:0.28rem 0.5rem;font-size:0.83rem;font-weight:700;color:var(--cyan);'>{t_str}</td>"
                  f"<td style='padding:0.28rem 0.5rem;font-size:0.8rem;color:var(--muted);'>{fmt_pace(pace)}/km</td></tr>")
     if not rows:
-        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 동기화 후 표시됩니다")
+        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>레이스 예측 (DARP)</h2>"
         f"<table style='width:100%;border-collapse:collapse;'>{rows}</table>"
@@ -317,7 +317,7 @@ def _render_darp_mini(darp_data: dict) -> str:
 def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None) -> str:
     """VDOT / Marathon Shape 피트니스 미니 카드."""
     if vdot is None and marathon_shape_pct is None:
-        return no_data_card("피트니스 현황", "Runalyze 동기화 후 표시됩니다")
+        return no_data_card("피트니스 현황", "데이터 수집 중입니다")
     vdot_str = f"{vdot:.1f}" if vdot is not None else "—"
     shape_str = f"{marathon_shape_pct:.0f}%" if marathon_shape_pct is not None else "—"
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70

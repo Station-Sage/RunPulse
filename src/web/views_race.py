@@ -42,10 +42,17 @@ def _load_metric(conn, name):
     return row[0], _safe_json(row[1])
 
 
+_KM_TO_DARP_KEY = {
+    5.0: "DARP_5k", 10.0: "DARP_10k",
+    21.0975: "DARP_half", 42.195: "DARP_full",
+}
+
+
 def _load_darp(conn, km):
-    val, mj = _load_metric(conn, f"darp_{km}")
+    key = _KM_TO_DARP_KEY.get(km, f"DARP_{km}")
+    val, mj = _load_metric(conn, key)
     if val is None:
-        val, mj = _load_metric(conn, "darp_half")
+        val, mj = _load_metric(conn, "DARP_half")
     return val, mj
 
 
@@ -193,33 +200,41 @@ def race_page():
         active_km = 21.0975
 
     dbp = db_path()
-    if not dbp:
-        body = no_data_card("레이스 예측", "데이터베이스를 찾을 수 없습니다")
+    if not dbp or not dbp.exists():
+        body = no_data_card("레이스 예측", "데이터 수집 중입니다. 동기화 후 확인하세요.")
         return html_page("레이스 예측", body + bottom_nav("report"))
 
-    conn = sqlite3.connect(dbp)
     try:
-        darp_val, darp_json = _load_darp(conn, active_km)
-        di_val, di_json = _load_di(conn)
-        pace_sec = darp_json.get("avg_pace_sec")
+        conn = sqlite3.connect(str(dbp))
+        try:
+            darp_val, darp_json = _load_darp(conn, active_km)
+            di_val, di_json = _load_di(conn)
+            pace_sec = darp_json.get("avg_pace_sec") if darp_json else None
+            body = (
+                '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
+                '<div style="display:flex;align-items:center;padding:20px 0;'
+                'border-bottom:1px solid rgba(255,255,255,0.1)">'
+                '<span style="font-size:20px;font-weight:bold">레이스 예측 (DARP)</span></div>'
+                + _render_distance_selector(active_km)
+                + _render_prediction_card(darp_val, darp_json, pace_sec)
+                + _render_di_card(di_val, di_json)
+                + _render_pace_strategy(darp_json)
+                + _render_htw_card(darp_json)
+                + _render_training_adjust(darp_json)
+                + '</div>'
+            )
+        finally:
+            conn.close()
+    except Exception as exc:
+        import html as _html
         body = (
-            '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
-            '<div style="display:flex;align-items:center;padding:20px 0;'
-            'border-bottom:1px solid rgba(255,255,255,0.1)">'
-            '<span style="font-size:20px;font-weight:bold">레이스 예측 (DARP)</span></div>'
-            + _render_distance_selector(active_km)
-            + _render_prediction_card(darp_val, darp_json, pace_sec)
-            + _render_di_card(di_val, di_json)
-            + _render_pace_strategy(darp_json)
-            + _render_htw_card(darp_json)
-            + _render_training_adjust(darp_json)
-            + '</div>'
+            "<div class='card'><p style='color:var(--red)'>오류가 발생했습니다: "
+            + _html.escape(str(exc))
+            + "</p><p class='muted'>데이터 수집 중이거나 DB에 문제가 있을 수 있습니다.</p></div>"
         )
-    finally:
-        conn.close()
 
     return html_page("레이스 예측", body + bottom_nav("report"))
 
 
 def _load_di(conn):
-    return _load_metric(conn, "di")
+    return _load_metric(conn, "DI")

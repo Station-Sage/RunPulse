@@ -98,7 +98,7 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
         mrows = conn.execute(
             """SELECT metric_name, metric_value FROM computed_metrics
                WHERE activity_id = ?
-                 AND metric_name IN ('FEARP', 'GAP', 'RelativeEffort', 'Decoupling')""",
+                 AND metric_name IN ('FEARP', 'RelativeEffort', 'AerobicDecoupling')""",
             (act_id,),
         ).fetchall()
         m = {r[0]: r[1] for r in mrows}
@@ -107,9 +107,8 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
             "dist_km": dist,
             "pace": pace,
             "fearp": m.get("FEARP"),
-            "gap": m.get("GAP"),
             "relative_effort": m.get("RelativeEffort"),
-            "decoupling": m.get("Decoupling"),
+            "decoupling": m.get("AerobicDecoupling"),
         })
     return result
 
@@ -168,7 +167,7 @@ def _render_summary_cards(stats: dict, metrics_avg: dict) -> str:
 def _render_weekly_chart(weekly_data: list[dict]) -> str:
     """ECharts 주별 거리 바차트."""
     if not weekly_data:
-        return no_data_card("주별 거리 추세", "훈련 데이터 동기화 후 표시됩니다")
+        return no_data_card("주별 거리 추세", "데이터 수집 중입니다")
 
     labels = [d["week"] for d in weekly_data]
     values = [d["km"] for d in weekly_data]
@@ -222,7 +221,6 @@ def _render_metrics_table(activities: list[dict]) -> str:
     rows_html = ""
     for a in activities:
         fearp_str = f"{fmt_pace(a['fearp'])}/km" if a["fearp"] is not None else "—"
-        gap_str = f"{fmt_pace(a['gap'])}/km" if a["gap"] is not None else "—"
         re_str = f"{float(a['relative_effort']):.0f}" if a["relative_effort"] is not None else "—"
         dec_str = f"{float(a['decoupling']):.1f}%" if a["decoupling"] is not None else "—"
         pace_str = f"{fmt_pace(a['pace'])}/km" if a["pace"] is not None else "—"
@@ -234,7 +232,6 @@ def _render_metrics_table(activities: list[dict]) -> str:
             f"<td>{dist_str} km</td>"
             f"<td>{pace_str}</td>"
             f"<td>{fearp_str}</td>"
-            f"<td>{gap_str}</td>"
             f"<td>{re_str}</td>"
             f"<td>{dec_str}</td>"
             f"</tr>"
@@ -246,7 +243,7 @@ def _render_metrics_table(activities: list[dict]) -> str:
         "<div style='overflow-x:auto;'>"
         "<table><thead><tr>"
         "<th>날짜</th><th>거리</th><th>페이스</th>"
-        "<th>FEARP</th><th>GAP</th><th>Rel.Effort</th><th>Decoupling</th>"
+        "<th>FEARP</th><th>Rel.Effort</th><th>Decoupling</th>"
         "</tr></thead><tbody>"
         + rows_html
         + "</tbody></table></div></div>"

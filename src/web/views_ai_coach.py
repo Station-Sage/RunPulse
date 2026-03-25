@@ -35,10 +35,10 @@ def _load_metric(conn, name):
 
 def _generate_briefing(conn):
     """src/ai/briefing.py 연동 시도, 실패 시 메트릭 기반 간이 브리핑."""
-    utrs_val, utrs_json = _load_metric(conn, "utrs")
-    cirs_val, cirs_json = _load_metric(conn, "cirs")
-    darp_val, darp_json = _load_metric(conn, "darp_half")
-    di_val, _ = _load_metric(conn, "di")
+    utrs_val, utrs_json = _load_metric(conn, "UTRS")
+    cirs_val, cirs_json = _load_metric(conn, "CIRS")
+    darp_val, darp_json = _load_metric(conn, "DARP_half")
+    di_val, _ = _load_metric(conn, "DI")
 
     try:
         from src.ai.briefing import generate_daily_briefing
@@ -107,10 +107,10 @@ def _render_briefing_card(briefing_text):
 
 
 def _render_recommendation_chips(conn):
-    utrs_val, _ = _load_metric(conn, "utrs")
-    cirs_val, _ = _load_metric(conn, "cirs")
-    di_val, _ = _load_metric(conn, "di")
-    fearp_val, fearp_json = _load_metric(conn, "fearp")
+    utrs_val, _ = _load_metric(conn, "UTRS")
+    cirs_val, _ = _load_metric(conn, "CIRS")
+    di_val, _ = _load_metric(conn, "DI")
+    fearp_val, fearp_json = _load_metric(conn, "FEARP")
 
     chips = []
     if utrs_val is not None:
@@ -180,25 +180,33 @@ def _render_quick_questions():
 @ai_coach_bp.route("/ai-coach")
 def ai_coach_page():
     dbp = db_path()
-    if not dbp:
-        body = no_data_card("AI 코치", "데이터베이스를 찾을 수 없습니다")
+    if not dbp or not dbp.exists():
+        body = no_data_card("AI 코치", "데이터 수집 중입니다. 동기화 후 확인하세요.")
         return html_page("AI 코칭", body + bottom_nav("ai-coach"))
 
-    conn = sqlite3.connect(dbp)
     try:
-        briefing_text = _generate_briefing(conn)
+        conn = sqlite3.connect(str(dbp))
+        try:
+            briefing_text = _generate_briefing(conn)
+            body = (
+                '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
+                '<div style="display:flex;align-items:center;padding:20px 0;'
+                'border-bottom:1px solid rgba(255,255,255,0.1)">'
+                '<span style="font-size:20px;font-weight:bold">AI 코칭</span></div>'
+                + _render_coach_profile()
+                + _render_briefing_card(briefing_text)
+                + _render_recommendation_chips(conn)
+                + _render_quick_questions()
+                + '</div>'
+            )
+        finally:
+            conn.close()
+    except Exception as exc:
+        import html as _html
         body = (
-            '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
-            '<div style="display:flex;align-items:center;padding:20px 0;'
-            'border-bottom:1px solid rgba(255,255,255,0.1)">'
-            '<span style="font-size:20px;font-weight:bold">AI 코칭</span></div>'
-            + _render_coach_profile()
-            + _render_briefing_card(briefing_text)
-            + _render_recommendation_chips(conn)
-            + _render_quick_questions()
-            + '</div>'
+            "<div class='card'><p style='color:var(--red)'>오류가 발생했습니다: "
+            + _html.escape(str(exc))
+            + "</p><p class='muted'>데이터 수집 중이거나 DB에 문제가 있을 수 있습니다.</p></div>"
         )
-    finally:
-        conn.close()
 
     return html_page("AI 코칭", body + bottom_nav("ai-coach"))

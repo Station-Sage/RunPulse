@@ -114,7 +114,7 @@ def _load_fitness_data(conn: sqlite3.Connection, end: str) -> tuple[float | None
 def render_tids_section(tids: dict | None) -> str:
     """TIDS 훈련 강도 분포 섹션."""
     if not tids:
-        return no_data_card("TIDS 훈련 강도 분포", "HR존 데이터 동기화 후 표시됩니다")
+        return no_data_card("TIDS 훈련 강도 분포", "데이터 수집 중입니다")
     z12 = tids.get("z12", 0)
     z3 = tids.get("z3", 0)
     z45 = tids.get("z45", 0)
@@ -174,7 +174,7 @@ def render_tids_section(tids: dict | None) -> str:
 def render_trimp_weekly_chart(trimp_data: list[dict]) -> str:
     """주별 TRIMP 합계 ECharts 바차트."""
     if not trimp_data:
-        return no_data_card("주별 TRIMP 부하", "심박수 데이터 동기화 후 표시됩니다")
+        return no_data_card("주별 TRIMP 부하", "데이터 수집 중입니다")
     labels = [d["week"] for d in trimp_data]
     values = [d["trimp"] for d in trimp_data]
     avg = sum(values) / len(values) if values else 0
@@ -208,7 +208,7 @@ def render_trimp_weekly_chart(trimp_data: list[dict]) -> str:
 def render_risk_overview(risk: dict) -> str:
     """ACWR / LSI / Monotony / CIRS 위험 개요 카드."""
     if not risk:
-        return no_data_card("위험 지표 개요", "훈련 데이터 동기화 후 표시됩니다")
+        return no_data_card("위험 지표 개요", "데이터 수집 중입니다")
 
     def _risk_row(label: str, key: str, lo: float, hi: float, fmt: str = ".2f") -> str:
         d = risk.get(key)
@@ -238,7 +238,7 @@ def render_risk_overview(risk: dict) -> str:
     )
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>위험 지표 개요</h2>"
-        + (rows if rows else "<p class='muted' style='margin:0;'>해당 기간 위험 데이터 없음</p>")
+        + (rows if rows else "<p class='muted' style='margin:0;'>데이터 수집 중</p>")
         + "</div>"
     )
 
@@ -246,7 +246,7 @@ def render_risk_overview(risk: dict) -> str:
 def render_darp_card(darp: dict) -> str:
     """레이스 예측 (DARP) 카드."""
     if not darp:
-        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 동기화 후 표시됩니다")
+        return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프마라톤", "full": "마라톤"}
     rows = ""
     for key, lbl in _LABELS.items():
@@ -270,7 +270,7 @@ def render_darp_card(darp: dict) -> str:
             f"</div></div>"
         )
     if not rows:
-        return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 동기화 후 표시됩니다")
+        return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.4rem;'>레이스 예측 (DARP)</h2>"
         + rows
@@ -281,7 +281,7 @@ def render_darp_card(darp: dict) -> str:
 def render_fitness_trend(vdot: float | None, shape: float | None) -> str:
     """VDOT + Marathon Shape 피트니스 현황 카드."""
     if vdot is None and shape is None:
-        return no_data_card("피트니스 현황", "Runalyze 동기화 후 표시됩니다")
+        return no_data_card("피트니스 현황", "데이터 수집 중입니다")
     vdot_str = f"{vdot:.1f}" if vdot is not None else "—"
     shape_str = f"{shape:.0f}%" if shape is not None else "—"
     s_clr = ("var(--green)" if (shape or 0) >= 70
