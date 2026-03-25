@@ -5,8 +5,10 @@ config.json
 tmp_*.py
 
 # DB
-running.db
 *.db-journal
+sync_jobs.db
+sync_jobs.db-wal
+sync_jobs.db-shm
 
 # 실제 데이터
 data/activities/*.json
@@ -54,3 +56,42 @@ sync_state.json
 
 # 로컬 export 데이터 (개인정보 포함, 커밋 금지)
 activities data/
+
+# version 0.2 설계 문서 (앱 UI 목업, HTML 제외) — v0.2/.ai/*.md 는 추적
+v0.2/*
+!v0.2/.ai
+v0.2/.ai/*
+!v0.2/.ai/*.md
+
+# Large export data (binary/compressed)
+audit/export_data/strava/activities/*.fit.gz
+audit/export_data/strava/activities/*.tcx.gz
+audit/export_data/strava/activities/*.gpx.gz
+audit/export_data/strava/activities/*.gpx
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Uploaded-Files/*.zip
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Device/*.zip
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Fitness/*_Part*.zip
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Metrics/*_Part*.zip
+audit/export_data/strava/media/*.jpg
+audit/export_data/strava/profile.jpg
+audit/export_data/strava/routes/*.gpx
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-User/*.png
+audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Health-Uploaded-Files/*.zip
+
+# DB files
+running.db
+running.db.*
+
+# DB backups
+*.backup_*
+running.db.backup_*
+
+# Temp files
+0
+
+# User data (DB, config per user)
+data/users/
+
+# Export data and DB
+audit/export_data/
+.claude/worktrees/

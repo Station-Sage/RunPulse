@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}RunPulse{% endblock %} — RunPulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>{{ stylesheet }}</style>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">RunPulse</a>
+  </header>
+  <main>
+    {% block page_header %}<h1>{% block page_title %}{% endblock %}</h1>{% endblock %}
+    {% block content %}{% endblock %}
+  </main>
+  {% if active_tab %}
+  {{ bottom_nav(active_tab, dev_mode|default(false)) | safe }}
+  {% endif %}
+  <script>{{ sync_js | safe }}</script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

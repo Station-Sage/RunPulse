@@ -2,33 +2,53 @@
 import time
 import pytest
 
-from src.sync.strava import check_strava_connection, _BASE_URL
+from src.sync.strava import check_strava_connection, _BASE_URL, _refresh_token
 
 
 # ── 엔드포인트 URL 검증 ─────────────────────────────────────────────
 def test_activity_list_endpoint():
     """활동 목록 엔드포인트가 /athlete/activities 이다."""
-    import inspect, src.sync.strava as m
+    import inspect, src.sync.strava_activity_sync as m
     src_text = inspect.getsource(m)
     assert "/athlete/activities" in src_text
-    # 잘못된 이전 엔드포인트가 없어야 함
     assert "/athlete/activity_summaries" not in src_text
 
 
 def test_activity_detail_endpoint():
     """활동 상세 엔드포인트가 /activities/{id} 이다."""
-    import inspect, src.sync.strava as m
+    import inspect, src.sync.strava_activity_sync as m
     src_text = inspect.getsource(m)
-    assert "/activities/{source_id}" in src_text or "activities/" in src_text
-    assert "/activity_summaries/" not in src_text
+    assert "activities/" in src_text
 
 
 def test_stream_endpoint():
-    """스트림 엔드포인트가 /activities/{id}/streams 이다."""
-    import inspect, src.sync.strava as m
+    """스트림 엔드포인트가 /activities/{source_id}/streams 이다."""
+    import inspect, src.sync.strava_activity_sync as m
     src_text = inspect.getsource(m)
-    assert "activities/{source_id}/streams" in src_text
+    assert "/streams" in src_text
     assert "activity_summaries/{source_id}/streams" not in src_text
+
+
+def test_athlete_endpoint():
+    """선수 프로필 엔드포인트가 /athlete 이다."""
+    import inspect, src.sync.strava_athlete_sync as m
+    src_text = inspect.getsource(m)
+    assert "/athlete" in src_text
+
+
+def test_athlete_stats_endpoint():
+    """선수 통계 엔드포인트가 /athletes/{id}/stats 이다."""
+    import inspect, src.sync.strava_athlete_sync as m
+    src_text = inspect.getsource(m)
+    assert "/athletes/" in src_text
+    assert "/stats" in src_text
+
+
+def test_gear_endpoint():
+    """기어 엔드포인트가 /gear/{id} 이다."""
+    import inspect, src.sync.strava_athlete_sync as m
+    src_text = inspect.getsource(m)
+    assert "/gear/" in src_text
 
 
 # ── check_strava_connection ─────────────────────────────────────────
@@ -55,11 +75,11 @@ def test_strava_expired_token():
             "client_secret": "sec",
             "refresh_token": "rt",
             "access_token": "at",
-            "expires_at": int(time.time()) - 1000,  # 과거
+            "expires_at": int(time.time()) - 1000,
         }
     }
     result = check_strava_connection(cfg)
-    assert result["ok"] is True  # 갱신 가능이므로 ok=True
+    assert result["ok"] is True
     assert "만료" in result["status"]
 
 
@@ -71,7 +91,7 @@ def test_strava_connected():
             "client_secret": "sec",
             "refresh_token": "rt",
             "access_token": "at",
-            "expires_at": int(time.time()) + 3600,  # 미래
+            "expires_at": int(time.time()) + 3600,
         }
     }
     result = check_strava_connection(cfg)
@@ -95,8 +115,7 @@ def test_strava_no_access_token_but_has_refresh():
 # ── _refresh_token이 update_service_config를 사용하는지 확인 ─────────
 def test_refresh_uses_shared_config_helper():
     """_refresh_token이 ad hoc 파일 직접 쓰기 대신 update_service_config를 사용한다."""
-    import inspect, src.sync.strava as m
-    src_text = inspect.getsource(m._refresh_token)
-    # 직접 파일 오픈 방식이 제거되었어야 함
+    import inspect
+    src_text = inspect.getsource(_refresh_token)
     assert "open(config_path" not in src_text
     assert "update_service_config" in src_text

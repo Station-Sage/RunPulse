@@ -1,0 +1,829 @@
+
+======================================================================
+  Garmin > activity_summary
+======================================================================
+  garmin_summary.activityId                                    int              ex: 22254941084
+  garmin_summary.activityName                                  str              ex: 불패 마라톤 (bulpaerun)
+  garmin_summary.activityTrainingLoad                          float            ex: 739.977783203125
+  garmin_summary.activityType                                  dict             ex: {6 keys}
+  garmin_summary.activityType.isHidden                         bool             ex: False
+  garmin_summary.activityType.parentTypeId                     int              ex: 17
+  garmin_summary.activityType.restricted                       bool             ex: False
+  garmin_summary.activityType.trimmable                        bool             ex: True
+  garmin_summary.activityType.typeId                           int              ex: 1
+  garmin_summary.activityType.typeKey                          str              ex: running
+  garmin_summary.activityUUID                                  str              ex: 3a0df8c7-304f-41c9-b665-ad71a34cb5b6
+  garmin_summary.aerobicTrainingEffect                         float            ex: 5.0
+  garmin_summary.aerobicTrainingEffectMessage                  str              ex: OVERREACHING_17
+  garmin_summary.anaerobicTrainingEffect                       float            ex: 2.5
+  garmin_summary.anaerobicTrainingEffectMessage                str              ex: MAINTAINING_ANAEROBIC_BASE_1
+  garmin_summary.atpActivity                                   bool             ex: False
+  garmin_summary.autoCalcCalories                              bool             ex: False
+  garmin_summary.averageHR                                     float            ex: 176.0
+  garmin_summary.averageRunningCadenceInStepsPerMinute         float            ex: 183.546875
+  garmin_summary.averageSpeed                                  float            ex: 3.4240000247955327
+  garmin_summary.avgElevation                                  float            ex: 7.989167206614686
+  garmin_summary.avgGradeAdjustedSpeed                         float            ex: 3.4189999103546143
+  garmin_summary.avgGroundContactTime                          float            ex: 231.5
+  garmin_summary.avgPower                                      float            ex: 282.0
+  garmin_summary.avgStrideLength                               float            ex: 111.21999511718751
+  garmin_summary.avgVerticalOscillation                        float            ex: 8.469999694824219
+  garmin_summary.avgVerticalRatio                              float            ex: 7.619999885559082
+  garmin_summary.beginTimestamp                                int              ex: 1774137631000
+  garmin_summary.bmrCalories                                   float            ex: 124.0
+  garmin_summary.calendarEventUuid                             str              ex: b5b5f63d-3bc2-4a9c-8eec-38c5b9223c2a
+  garmin_summary.calories                                      float            ex: 1303.0
+  garmin_summary.decoDive                                      bool             ex: False
+  garmin_summary.description                                   str              ex: 1:42:22
+  garmin_summary.deviceId                                      int              ex: 3604321050
+  garmin_summary.differenceBodyBattery                         int              ex: -33
+  garmin_summary.distance                                      float            ex: 21047.509765625
+  garmin_summary.duration                                      float            ex: 6147.72021484375
+  garmin_summary.elapsedDuration                               float            ex: 6147.72021484375
+  garmin_summary.elevationCorrected                            bool             ex: False
+  garmin_summary.elevationGain                                 float            ex: 17.019999999552965
+  garmin_summary.elevationLoss                                 float            ex: 11.509999990463257
+  garmin_summary.endLatitude                                   float            ex: 37.53203130327165
+  garmin_summary.endLongitude                                  float            ex: 126.92707490175962
+  garmin_summary.endTimeGMT                                    str              ex: 2026-03-22 01:42:58
+  garmin_summary.eventType                                     dict             ex: {3 keys}
+  garmin_summary.eventType.sortOrder                           int              ex: 5
+  garmin_summary.eventType.typeId                              int              ex: 1
+  garmin_summary.eventType.typeKey                             str              ex: race
+  garmin_summary.fastestSplit_1000                             float            ex: 279.9100036621094
+  garmin_summary.fastestSplit_10000                            float            ex: 2850.555908203125
+  garmin_summary.fastestSplit_1609                             float            ex: 452.7409973144531
+  garmin_summary.fastestSplit_5000                             float            ex: 1413.7679443359375
+  garmin_summary.favorite                                      bool             ex: False
+  garmin_summary.hasHeatMap                                    bool             ex: False
+  garmin_summary.hasImages                                     bool             ex: False
+  garmin_summary.hasPolyline                                   bool             ex: True
+  garmin_summary.hasSplits                                     bool             ex: True
+  garmin_summary.hasVideo                                      bool             ex: False
+  garmin_summary.hrTimeInZone_1                                float            ex: 118.999
+  garmin_summary.hrTimeInZone_2                                float            ex: 422.981
+  garmin_summary.hrTimeInZone_3                                float            ex: 956.933
+  garmin_summary.hrTimeInZone_4                                float            ex: 475.04
+  garmin_summary.hrTimeInZone_5                                float            ex: 4142.656
+  garmin_summary.lapCount                                      int              ex: 22
+  garmin_summary.manualActivity                                bool             ex: False
+  garmin_summary.manufacturer                                  str              ex: GARMIN
+  garmin_summary.maxDoubleCadence                              float            ex: 192.0
+  garmin_summary.maxElevation                                  float            ex: 11.600000381469727
+  garmin_summary.maxHR                                         float            ex: 191.0
+  garmin_summary.maxPower                                      float            ex: 394.0
+  garmin_summary.maxRunningCadenceInStepsPerMinute             float            ex: 192.0
+  garmin_summary.maxSpeed                                      float            ex: 4.105999946594238
+  garmin_summary.maxTemperature                                float            ex: 24.0
+  garmin_summary.maxVerticalSpeed                              float            ex: 0.40000009536743164
+  garmin_summary.minActivityLapDuration                        float            ex: 11.958999633789062
+  garmin_summary.minElevation                                  float            ex: 5.0
+  garmin_summary.minTemperature                                float            ex: 13.0
+  garmin_summary.moderateIntensityMinutes                      int              ex: 16
+  garmin_summary.movingDuration                                float            ex: 6143.587982177734
+  garmin_summary.normPower                                     float            ex: 283.0
+  garmin_summary.ownerDisplayName                              str              ex: 993e17bf-1882-46be-91a9-a47efd88632c
+  garmin_summary.ownerFullName                                 str              ex: Chansu Park
+  garmin_summary.ownerId                                       int              ex: 133326671
+  garmin_summary.ownerProfileImageUrlLarge                     str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_summary.ownerProfileImageUrlMedium                    str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_summary.ownerProfileImageUrlSmall                     str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_summary.parent                                        bool             ex: False
+  garmin_summary.powerTimeInZone_1                             float            ex: 5.0
+  garmin_summary.powerTimeInZone_2                             float            ex: 454.977
+  garmin_summary.powerTimeInZone_3                             float            ex: 4611.584
+  garmin_summary.powerTimeInZone_4                             float            ex: 1054.047
+  garmin_summary.powerTimeInZone_5                             float            ex: 10.999
+  garmin_summary.pr                                            bool             ex: False
+  garmin_summary.privacy                                       dict             ex: {2 keys}
+  garmin_summary.privacy.typeId                                int              ex: 1
+  garmin_summary.privacy.typeKey                               str              ex: public
+  garmin_summary.purposeful                                    bool             ex: False
+  garmin_summary.qualifyingDive                                bool             ex: False
+  garmin_summary.splitSummaries                                list[2]        
+  garmin_summary.splitSummaries[0]                             dict             ex: {13 keys}
+  garmin_summary.splitSummaries[0].averageElevationGain        float            ex: 17.660000026226044
+  garmin_summary.splitSummaries[0].averageSpeed                float            ex: 3.4240000247955322
+  garmin_summary.splitSummaries[0].distance                    float            ex: 21047.470703125
+  garmin_summary.splitSummaries[0].duration                    float            ex: 6147.4931640625
+  garmin_summary.splitSummaries[0].elevationLoss               float            ex: 11.270000010728836
+  garmin_summary.splitSummaries[0].maxDistance                 int              ex: 21047
+  garmin_summary.splitSummaries[0].maxElevationGain            float            ex: 17.660000026226044
+  garmin_summary.splitSummaries[0].maxSpeed                    float            ex: 4.105999946594238
+  garmin_summary.splitSummaries[0].noOfSplits                  int              ex: 3
+  garmin_summary.splitSummaries[0].numClimbSends               int              ex: 0
+  garmin_summary.splitSummaries[0].numFalls                    int              ex: 0
+  garmin_summary.splitSummaries[0].splitType                   str              ex: RWD_RUN
+  garmin_summary.splitSummaries[0].totalAscent                 float            ex: 17.660000026226044
+  garmin_summary.sportTypeId                                   int              ex: 1
+  garmin_summary.startLatitude                                 float            ex: 37.53204831853509
+  garmin_summary.startLongitude                                float            ex: 126.92697557620704
+  garmin_summary.startTimeGMT                                  str              ex: 2026-03-22 00:00:31
+  garmin_summary.startTimeLocal                                str              ex: 2026-03-22 09:00:31
+  garmin_summary.steps                                         int              ex: 18712
+  garmin_summary.summarizedDiveInfo                            dict             ex: {1 keys}
+  garmin_summary.summarizedDiveInfo.summarizedDiveGases        list[0]        
+  garmin_summary.timeZoneId                                    int              ex: 164
+  garmin_summary.trainingEffectLabel                           str              ex: VO2MAX
+  garmin_summary.userPro                                       bool             ex: False
+  garmin_summary.userRoles                                     list[30]       
+  garmin_summary.userRoles[0]                                  str              ex: SCOPE_GOLF_API_READ
+  garmin_summary.vO2MaxValue                                   float            ex: 52.0
+  garmin_summary.vigorousIntensityMinutes                      int              ex: 73
+  garmin_summary.waterEstimated                                float            ex: 1424.0
+
+======================================================================
+  Garmin > activity_detail
+======================================================================
+  garmin_detail.accessControlRuleDTO                           dict             ex: {2 keys}
+  garmin_detail.accessControlRuleDTO.typeId                    int              ex: 1
+  garmin_detail.accessControlRuleDTO.typeKey                   str              ex: public
+  garmin_detail.activityId                                     int              ex: 22254941084
+  garmin_detail.activityName                                   str              ex: 불패 마라톤 (bulpaerun)
+  garmin_detail.activityTypeDTO                                dict             ex: {6 keys}
+  garmin_detail.activityTypeDTO.isHidden                       bool             ex: False
+  garmin_detail.activityTypeDTO.parentTypeId                   int              ex: 17
+  garmin_detail.activityTypeDTO.restricted                     bool             ex: False
+  garmin_detail.activityTypeDTO.trimmable                      bool             ex: True
+  garmin_detail.activityTypeDTO.typeId                         int              ex: 1
+  garmin_detail.activityTypeDTO.typeKey                        str              ex: running
+  garmin_detail.activityUUID                                   dict             ex: {1 keys}
+  garmin_detail.activityUUID.uuid                              str              ex: 3a0df8c7-304f-41c9-b665-ad71a34cb5b6
+  garmin_detail.description                                    str              ex: 1:42:22
+  garmin_detail.eventTypeDTO                                   dict             ex: {3 keys}
+  garmin_detail.eventTypeDTO.sortOrder                         int              ex: 5
+  garmin_detail.eventTypeDTO.typeId                            int              ex: 1
+  garmin_detail.eventTypeDTO.typeKey                           str              ex: race
+  garmin_detail.isMultiSportParent                             bool             ex: False
+  garmin_detail.metadataDTO                                    dict             ex: {42 keys}
+  garmin_detail.metadataDTO.activityImages                     list[0]        
+  garmin_detail.metadataDTO.agentApplicationInstallationId     null             ex: null
+  garmin_detail.metadataDTO.agentString                        null             ex: null
+  garmin_detail.metadataDTO.associatedCourseId                 null             ex: null
+  garmin_detail.metadataDTO.associatedWorkoutId                null             ex: null
+  garmin_detail.metadataDTO.autoCalcCalories                   bool             ex: False
+  garmin_detail.metadataDTO.calendarEventInfo                  dict             ex: {6 keys}
+  garmin_detail.metadataDTO.calendarEventInfo.calendarEventId  null             ex: null
+  garmin_detail.metadataDTO.calendarEventInfo.calendarEventUuid str              ex: b5b5f63d-3bc2-4a9c-8eec-38c5b9223c2a
+  garmin_detail.metadataDTO.calendarEventInfo.completionTargetUnitType str              ex: distance
+  garmin_detail.metadataDTO.calendarEventInfo.completionTargetValue float            ex: 21100.0
+  garmin_detail.metadataDTO.calendarEventInfo.customGoalUnitType str              ex: time
+  garmin_detail.metadataDTO.calendarEventInfo.customGoalValue  float            ex: 5999.0
+  garmin_detail.metadataDTO.childActivityTypes                 list[0]        
+  garmin_detail.metadataDTO.childIds                           list[0]        
+  garmin_detail.metadataDTO.deviceApplicationInstallationId    int              ex: 1005017
+  garmin_detail.metadataDTO.deviceMetaDataDTO                  dict             ex: {3 keys}
+  garmin_detail.metadataDTO.deviceMetaDataDTO.deviceId         str              ex: 3604321050
+  garmin_detail.metadataDTO.deviceMetaDataDTO.deviceTypePk     int              ex: 37081
+  garmin_detail.metadataDTO.deviceMetaDataDTO.deviceVersionPk  int              ex: 1005017
+  garmin_detail.metadataDTO.diveNumber                         null             ex: null
+  garmin_detail.metadataDTO.eBikeAssistModeInfoDTOList         null             ex: null
+  garmin_detail.metadataDTO.eBikeBatteryRemaining              null             ex: null
+  garmin_detail.metadataDTO.eBikeBatteryUsage                  null             ex: null
+  garmin_detail.metadataDTO.eBikeMaxAssistModes                null             ex: null
+  garmin_detail.metadataDTO.elevationCorrected                 bool             ex: False
+  garmin_detail.metadataDTO.favorite                           bool             ex: False
+  garmin_detail.metadataDTO.fileFormat                         dict             ex: {2 keys}
+  garmin_detail.metadataDTO.fileFormat.formatId                int              ex: 7
+  garmin_detail.metadataDTO.fileFormat.formatKey               str              ex: fit
+  garmin_detail.metadataDTO.gcj02                              bool             ex: False
+  garmin_detail.metadataDTO.groupRideUUID                      null             ex: null
+  garmin_detail.metadataDTO.hasChartData                       bool             ex: True
+  garmin_detail.metadataDTO.hasHeatMap                         bool             ex: False
+  garmin_detail.metadataDTO.hasHrTimeInZones                   bool             ex: True
+  garmin_detail.metadataDTO.hasIntensityIntervals              bool             ex: False
+  garmin_detail.metadataDTO.hasPolyline                        bool             ex: True
+  garmin_detail.metadataDTO.hasPowerTimeInZones                bool             ex: True
+  garmin_detail.metadataDTO.hasRunPowerWindData                bool             ex: True
+  garmin_detail.metadataDTO.hasSplits                          bool             ex: True
+  garmin_detail.metadataDTO.isAtpActivity                      null             ex: null
+  garmin_detail.metadataDTO.isOriginal                         bool             ex: True
+  garmin_detail.metadataDTO.lapCount                           int              ex: 22
+  garmin_detail.metadataDTO.lastUpdateDate                     str              ex: 2026-03-22T02:31:25.0
+  garmin_detail.metadataDTO.manualActivity                     bool             ex: False
+  garmin_detail.metadataDTO.manufacturer                       str              ex: GARMIN
+  garmin_detail.metadataDTO.personalRecord                     bool             ex: False
+  garmin_detail.metadataDTO.runPowerWindDataEnabled            bool             ex: True
+  garmin_detail.metadataDTO.sensors                            null             ex: null
+  garmin_detail.metadataDTO.trimmed                            bool             ex: False
+  garmin_detail.metadataDTO.uploadedDate                       str              ex: 2026-03-22T01:55:26.0
+  garmin_detail.metadataDTO.userInfoDto                        dict             ex: {7 keys}
+  garmin_detail.metadataDTO.userInfoDto.displayname            str              ex: 993e17bf-1882-46be-91a9-a47efd88632c
+  garmin_detail.metadataDTO.userInfoDto.fullname               str              ex: Chansu Park
+  garmin_detail.metadataDTO.userInfoDto.profileImageUrlLarge   str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_detail.metadataDTO.userInfoDto.profileImageUrlMedium  str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_detail.metadataDTO.userInfoDto.profileImageUrlSmall   str              ex: https://s3.amazonaws.com/garmin-connect-prod/profile_images/473b141c-4507-48b6-b
+  garmin_detail.metadataDTO.userInfoDto.userPro                bool             ex: False
+  garmin_detail.metadataDTO.userInfoDto.userProfilePk          int              ex: 133326671
+  garmin_detail.metadataDTO.videoUrl                           null             ex: null
+  garmin_detail.splitSummaries                                 list[2]        
+  garmin_detail.splitSummaries[0]                              dict             ex: {35 keys}
+  garmin_detail.splitSummaries[0].averageElevationGain         float            ex: 17.66
+  garmin_detail.splitSummaries[0].averageHR                    float            ex: 176.0
+  garmin_detail.splitSummaries[0].averageMovingSpeed           float            ex: 3.424019719985359
+  garmin_detail.splitSummaries[0].averagePower                 float            ex: 282.0
+  garmin_detail.splitSummaries[0].averageRunCadence            float            ex: 183.53125
+  garmin_detail.splitSummaries[0].averageSpeed                 float            ex: 3.4240000247955327
+  garmin_detail.splitSummaries[0].averageTemperature           float            ex: 16.0
+  garmin_detail.splitSummaries[0].avgGradeAdjustedSpeed        float            ex: 3.4189999103546143
+  garmin_detail.splitSummaries[0].avgStepFrequency             float            ex: 183.53125
+  garmin_detail.splitSummaries[0].avgStepLength                float            ex: 1.112199951171875
+  garmin_detail.splitSummaries[0].avgVerticalSpeed             float            ex: 0.0010000000474974513
+  garmin_detail.splitSummaries[0].bmrCalories                  float            ex: 124.0
+  garmin_detail.splitSummaries[0].calories                     float            ex: 1303.0
+  garmin_detail.splitSummaries[0].distance                     float            ex: 21047.47
+  garmin_detail.splitSummaries[0].duration                     float            ex: 6147.493
+  garmin_detail.splitSummaries[0].elevationGain                float            ex: 17.66
+  garmin_detail.splitSummaries[0].elevationLoss                float            ex: 11.27
+  garmin_detail.splitSummaries[0].groundContactTime            float            ex: 231.5
+  garmin_detail.splitSummaries[0].maxDistance                  int              ex: 21047
+  garmin_detail.splitSummaries[0].maxDistanceWithPrecision     float            ex: 21047.45
+  garmin_detail.splitSummaries[0].maxElevationGain             float            ex: 17.66
+  garmin_detail.splitSummaries[0].maxHR                        float            ex: 191.0
+  garmin_detail.splitSummaries[0].maxPower                     float            ex: 394.0
+  garmin_detail.splitSummaries[0].maxRunCadence                float            ex: 192.0
+  garmin_detail.splitSummaries[0].maxSpeed                     float            ex: 4.105999946594238
+  garmin_detail.splitSummaries[0].maxTemperature               float            ex: 24.0
+  garmin_detail.splitSummaries[0].minTemperature               float            ex: 13.0
+  garmin_detail.splitSummaries[0].movingDuration               float            ex: 6147.0
+  garmin_detail.splitSummaries[0].noOfSplits                   int              ex: 3
+  garmin_detail.splitSummaries[0].normalizedPower              float            ex: 283.0
+  garmin_detail.splitSummaries[0].splitType                    str              ex: RWD_RUN
+  garmin_detail.splitSummaries[0].strideLength                 float            ex: 111.21999511718751
+  garmin_detail.splitSummaries[0].totalExerciseReps            int              ex: 0
+  garmin_detail.splitSummaries[0].verticalOscillation          float            ex: 8.469999694824219
+  garmin_detail.splitSummaries[0].verticalRatio                float            ex: 7.619999885559082
+  garmin_detail.summaryDTO                                     dict             ex: {55 keys}
+  garmin_detail.summaryDTO.activityTrainingLoad                float            ex: 739.977783203125
+  garmin_detail.summaryDTO.aerobicTrainingEffectMessage        str              ex: OVERREACHING_17
+  garmin_detail.summaryDTO.anaerobicTrainingEffect             float            ex: 2.5
+  garmin_detail.summaryDTO.anaerobicTrainingEffectMessage      str              ex: MAINTAINING_ANAEROBIC_BASE_1
+  garmin_detail.summaryDTO.averageHR                           float            ex: 176.0
+  garmin_detail.summaryDTO.averageMovingSpeed                  float            ex: 3.4259312028545623
+  garmin_detail.summaryDTO.averagePower                        float            ex: 282.0
+  garmin_detail.summaryDTO.averageRunCadence                   float            ex: 183.546875
+  garmin_detail.summaryDTO.averageSpeed                        float            ex: 3.4240000247955327
+  garmin_detail.summaryDTO.averageTemperature                  float            ex: 15.632622499758183
+  garmin_detail.summaryDTO.avgElevation                        float            ex: 7.99
+  garmin_detail.summaryDTO.avgGradeAdjustedSpeed               float            ex: 3.4189999103546143
+  garmin_detail.summaryDTO.beginPotentialStamina               float            ex: 97.0
+  garmin_detail.summaryDTO.bmrCalories                         float            ex: 124.0
+  garmin_detail.summaryDTO.calories                            float            ex: 1303.0
+  garmin_detail.summaryDTO.differenceBodyBattery               int              ex: -33
+  garmin_detail.summaryDTO.distance                            float            ex: 21047.51
+  garmin_detail.summaryDTO.duration                            float            ex: 6147.72
+  garmin_detail.summaryDTO.elapsedDuration                     float            ex: 6147.72
+  garmin_detail.summaryDTO.elevationGain                       float            ex: 17.02
+  garmin_detail.summaryDTO.elevationLoss                       float            ex: 11.51
+  garmin_detail.summaryDTO.endLatitude                         float            ex: 37.53203130327165
+  garmin_detail.summaryDTO.endLongitude                        float            ex: 126.92707490175962
+  garmin_detail.summaryDTO.endPotentialStamina                 float            ex: 13.0
+  garmin_detail.summaryDTO.groundContactTime                   float            ex: 231.5
+  garmin_detail.summaryDTO.maxElevation                        float            ex: 11.6
+  garmin_detail.summaryDTO.maxHR                               float            ex: 191.0
+  garmin_detail.summaryDTO.maxPower                            float            ex: 394.0
+  garmin_detail.summaryDTO.maxRunCadence                       float            ex: 192.0
+  garmin_detail.summaryDTO.maxSpeed                            float            ex: 4.105999946594238
+  garmin_detail.summaryDTO.maxTemperature                      float            ex: 24.0
+  garmin_detail.summaryDTO.maxVerticalSpeed                    float            ex: 0.40000009536743164
+  garmin_detail.summaryDTO.minActivityLapDuration              float            ex: 11.959
+  garmin_detail.summaryDTO.minAvailableStamina                 float            ex: 13.0
+  garmin_detail.summaryDTO.minElevation                        float            ex: 5.0
+  garmin_detail.summaryDTO.minHR                               float            ex: 85.0
+  garmin_detail.summaryDTO.minPower                            float            ex: 0.0
+  garmin_detail.summaryDTO.minTemperature                      float            ex: 13.0
+  garmin_detail.summaryDTO.moderateIntensityMinutes            int              ex: 16
+  garmin_detail.summaryDTO.movingDuration                      float            ex: 6143.588
+  garmin_detail.summaryDTO.normalizedPower                     float            ex: 283.0
+  garmin_detail.summaryDTO.recoveryHeartRate                   int              ex: 26
+  garmin_detail.summaryDTO.startLatitude                       float            ex: 37.53204831853509
+  garmin_detail.summaryDTO.startLongitude                      float            ex: 126.92697557620704
+  garmin_detail.summaryDTO.startTimeGMT                        str              ex: 2026-03-22T00:00:31.0
+  garmin_detail.summaryDTO.startTimeLocal                      str              ex: 2026-03-22T09:00:31.0
+  garmin_detail.summaryDTO.steps                               int              ex: 18712
+  garmin_detail.summaryDTO.strideLength                        float            ex: 111.21999511718751
+  garmin_detail.summaryDTO.totalWork                           float            ex: 413.60184438260444
+  garmin_detail.summaryDTO.trainingEffect                      float            ex: 5.0
+  garmin_detail.summaryDTO.trainingEffectLabel                 str              ex: VO2MAX
+  garmin_detail.summaryDTO.verticalOscillation                 float            ex: 8.469999694824219
+  garmin_detail.summaryDTO.verticalRatio                       float            ex: 7.619999885559082
+  garmin_detail.summaryDTO.vigorousIntensityMinutes            int              ex: 73
+  garmin_detail.summaryDTO.waterEstimated                      float            ex: 1424.0
+  garmin_detail.timeZoneUnitDTO                                dict             ex: {4 keys}
+  garmin_detail.timeZoneUnitDTO.factor                         float            ex: 0.0
+  garmin_detail.timeZoneUnitDTO.timeZone                       str              ex: Asia/Tokyo
+  garmin_detail.timeZoneUnitDTO.unitId                         int              ex: 164
+  garmin_detail.timeZoneUnitDTO.unitKey                        str              ex: Asia/Tokyo
+  garmin_detail.userProfileId                                  int              ex: 133326671
+
+======================================================================
+  Garmin > splits
+======================================================================
+  garmin_splits.activityId                                     int              ex: 22254941084
+  garmin_splits.eventDTOs                                      list[3]        
+  garmin_splits.eventDTOs[0]                                   dict             ex: {3 keys}
+  garmin_splits.eventDTOs[0].sectionTypeDTO                    dict             ex: {3 keys}
+  garmin_splits.eventDTOs[0].sectionTypeDTO.id                 int              ex: 4
+  garmin_splits.eventDTOs[0].sectionTypeDTO.key                str              ex: timerTrigger
+  garmin_splits.eventDTOs[0].sectionTypeDTO.sectionTypeKey     str              ex: TIMER_TRIGGER
+  garmin_splits.eventDTOs[0].startTimeGMT                      str              ex: 2026-03-22T00:00:30.0
+  garmin_splits.eventDTOs[0].startTimeGMTDoubleValue           float            ex: 1774137630000.0
+  garmin_splits.lapDTOs                                        list[22]       
+  garmin_splits.lapDTOs[0]                                     dict             ex: {41 keys}
+  garmin_splits.lapDTOs[0].averageHR                           float            ex: 139.0
+  garmin_splits.lapDTOs[0].averageMovingSpeed                  float            ex: 3.2059811585990117
+  garmin_splits.lapDTOs[0].averagePower                        float            ex: 267.0
+  garmin_splits.lapDTOs[0].averageRunCadence                   float            ex: 181.015625
+  garmin_splits.lapDTOs[0].averageSpeed                        float            ex: 3.2060000896453857
+  garmin_splits.lapDTOs[0].averageTemperature                  float            ex: 21.0
+  garmin_splits.lapDTOs[0].avgGradeAdjustedSpeed               float            ex: 3.20799994468689
+  garmin_splits.lapDTOs[0].bmrCalories                         float            ex: 6.0
+  garmin_splits.lapDTOs[0].calories                            float            ex: 54.0
+  garmin_splits.lapDTOs[0].connectIQMeasurement                list[0]        
+  garmin_splits.lapDTOs[0].distance                            float            ex: 1000.0
+  garmin_splits.lapDTOs[0].duration                            float            ex: 311.917
+  garmin_splits.lapDTOs[0].elapsedDuration                     float            ex: 311.917
+  garmin_splits.lapDTOs[0].elevationGain                       float            ex: 3.09
+  garmin_splits.lapDTOs[0].elevationLoss                       float            ex: 0.0
+  garmin_splits.lapDTOs[0].endLatitude                         float            ex: 37.53472985699773
+  garmin_splits.lapDTOs[0].endLongitude                        float            ex: 126.91642770543694
+  garmin_splits.lapDTOs[0].groundContactTime                   float            ex: 239.6999969482422
+  garmin_splits.lapDTOs[0].intensityType                       str              ex: INTERVAL
+  garmin_splits.lapDTOs[0].lapIndex                            int              ex: 1
+  garmin_splits.lapDTOs[0].lengthDTOs                          list[0]        
+  garmin_splits.lapDTOs[0].maxElevation                        float            ex: 8.8
+  garmin_splits.lapDTOs[0].maxHR                               float            ex: 150.0
+  garmin_splits.lapDTOs[0].maxPower                            float            ex: 299.0
+  garmin_splits.lapDTOs[0].maxRunCadence                       float            ex: 186.0
+  garmin_splits.lapDTOs[0].maxSpeed                            float            ex: 3.4800000190734863
+  garmin_splits.lapDTOs[0].maxTemperature                      float            ex: 24.0
+  garmin_splits.lapDTOs[0].maxVerticalSpeed                    float            ex: 0.20000076293945312
+  garmin_splits.lapDTOs[0].messageIndex                        int              ex: 0
+  garmin_splits.lapDTOs[0].minElevation                        float            ex: 5.0
+  garmin_splits.lapDTOs[0].minPower                            float            ex: 165.0
+  garmin_splits.lapDTOs[0].minTemperature                      float            ex: 18.0
+  garmin_splits.lapDTOs[0].movingDuration                      float            ex: 311.917
+  garmin_splits.lapDTOs[0].normalizedPower                     float            ex: 269.0
+  garmin_splits.lapDTOs[0].startLatitude                       float            ex: 37.53204831853509
+  garmin_splits.lapDTOs[0].startLongitude                      float            ex: 126.92697557620704
+  garmin_splits.lapDTOs[0].startTimeGMT                        str              ex: 2026-03-22T00:00:31.0
+  garmin_splits.lapDTOs[0].strideLength                        float            ex: 105.40999755859376
+  garmin_splits.lapDTOs[0].totalWork                           float            ex: 20.047637004119313
+  garmin_splits.lapDTOs[0].verticalOscillation                 float            ex: 8.430000305175781
+  garmin_splits.lapDTOs[0].verticalRatio                       float            ex: 8.010000228881836
+
+======================================================================
+  Garmin > hr_zones
+======================================================================
+  garmin_hr_zones                                              list[5]        
+  garmin_hr_zones[0].secsInZone                                float            ex: 118.999
+  garmin_hr_zones[0].zoneLowBoundary                           int              ex: 116
+  garmin_hr_zones[0].zoneNumber                                int              ex: 1
+
+======================================================================
+  Garmin > weather
+======================================================================
+  garmin_weather.apparentTemp                                  int              ex: 47
+  garmin_weather.dewPoint                                      int              ex: 22
+  garmin_weather.issueDate                                     str              ex: 2026-03-22T00:00:00.000+00:00
+  garmin_weather.latitude                                      float            ex: 37.56669994443655
+  garmin_weather.longitude                                     float            ex: 126.949999993667
+  garmin_weather.relativeHumidity                              int              ex: 38
+  garmin_weather.temp                                          int              ex: 47
+  garmin_weather.weatherStationDTO                             dict             ex: {3 keys}
+  garmin_weather.weatherStationDTO.id                          str              ex: 47108
+  garmin_weather.weatherStationDTO.name                        str            
+  garmin_weather.weatherStationDTO.timezone                    null             ex: null
+  garmin_weather.weatherTypeDTO                                dict             ex: {3 keys}
+  garmin_weather.weatherTypeDTO.desc                           str              ex: Mostly Cloudy
+  garmin_weather.weatherTypeDTO.image                          null             ex: null
+  garmin_weather.weatherTypeDTO.weatherTypePk                  null             ex: null
+  garmin_weather.windDirection                                 int              ex: 50
+  garmin_weather.windDirectionCompassPoint                     str              ex: ne
+  garmin_weather.windGust                                      null             ex: null
+  garmin_weather.windSpeed                                     int              ex: 2
+
+======================================================================
+  Garmin > wellness_sleep
+======================================================================
+  garmin_sleep.avgOvernightHrv                                 float            ex: 51.0
+  garmin_sleep.avgSkinTempDeviationC                           float            ex: -0.5
+  garmin_sleep.avgSkinTempDeviationF                           float            ex: -0.9
+  garmin_sleep.bodyBatteryChange                               int              ex: 34
+  garmin_sleep.breathingDisruptionData                         list[8]        
+  garmin_sleep.breathingDisruptionData[0]                      dict             ex: {3 keys}
+  garmin_sleep.breathingDisruptionData[0].endGMT               int              ex: 1774203852000
+  garmin_sleep.breathingDisruptionData[0].startGMT             int              ex: 1774203852000
+  garmin_sleep.breathingDisruptionData[0].value                int              ex: 1
+  garmin_sleep.dailySleepDTO                                   dict             ex: {42 keys}
+  garmin_sleep.dailySleepDTO.ageGroup                          str              ex: ADULT
+  garmin_sleep.dailySleepDTO.autoSleepEndTimestampGMT          null             ex: null
+  garmin_sleep.dailySleepDTO.autoSleepStartTimestampGMT        null             ex: null
+  garmin_sleep.dailySleepDTO.averageRespirationValue           float            ex: 14.0
+  garmin_sleep.dailySleepDTO.averageSpO2HRSleep                float            ex: 54.0
+  garmin_sleep.dailySleepDTO.averageSpO2Value                  float            ex: 96.0
+  garmin_sleep.dailySleepDTO.avgHeartRate                      float            ex: 55.0
+  garmin_sleep.dailySleepDTO.avgSleepStress                    float            ex: 16.0
+  garmin_sleep.dailySleepDTO.awakeCount                        int              ex: 0
+  garmin_sleep.dailySleepDTO.awakeSleepSeconds                 int              ex: 0
+  garmin_sleep.dailySleepDTO.breathingDisruptionSeverity       str              ex: LOW
+  garmin_sleep.dailySleepDTO.calendarDate                      str              ex: 2026-03-23
+  garmin_sleep.dailySleepDTO.deepSleepSeconds                  int              ex: 3900
+  garmin_sleep.dailySleepDTO.deviceRemCapable                  bool             ex: True
+  garmin_sleep.dailySleepDTO.highestRespirationValue           float            ex: 18.0
+  garmin_sleep.dailySleepDTO.highestSpO2Value                  int              ex: 98
+  garmin_sleep.dailySleepDTO.id                                int              ex: 1774203852000
+  garmin_sleep.dailySleepDTO.lightSleepSeconds                 int              ex: 7620
+  garmin_sleep.dailySleepDTO.lowestRespirationValue            float            ex: 8.0
+  garmin_sleep.dailySleepDTO.lowestSpO2Value                   int              ex: 89
+  garmin_sleep.dailySleepDTO.napTimeSeconds                    int              ex: 0
+  garmin_sleep.dailySleepDTO.nextSleepNeed                     dict             ex: {13 keys}
+  garmin_sleep.dailySleepDTO.nextSleepNeed.actual              int              ex: 540
+  garmin_sleep.dailySleepDTO.nextSleepNeed.baseline            int              ex: 470
+  garmin_sleep.dailySleepDTO.nextSleepNeed.calendarDate        str              ex: 2026-03-24
+  garmin_sleep.dailySleepDTO.nextSleepNeed.deviceId            int              ex: 3604321050
+  garmin_sleep.dailySleepDTO.nextSleepNeed.displayedForTheDay  bool             ex: True
+  garmin_sleep.dailySleepDTO.nextSleepNeed.feedback            str              ex: HIGHLY_INCREASED
+  garmin_sleep.dailySleepDTO.nextSleepNeed.hrvAdjustment       str              ex: INCREASING
+  garmin_sleep.dailySleepDTO.nextSleepNeed.napAdjustment       str              ex: NO_CHANGE
+  garmin_sleep.dailySleepDTO.nextSleepNeed.preferredActivityTracker bool             ex: True
+  garmin_sleep.dailySleepDTO.nextSleepNeed.sleepHistoryAdjustment str              ex: INCREASING
+  garmin_sleep.dailySleepDTO.nextSleepNeed.timestampGmt        str              ex: 2026-03-22T22:05:35
+  garmin_sleep.dailySleepDTO.nextSleepNeed.trainingFeedback    str              ex: CHRONIC
+  garmin_sleep.dailySleepDTO.nextSleepNeed.userProfilePk       int              ex: 133326671
+  garmin_sleep.dailySleepDTO.remSleepSeconds                   int              ex: 1800
+  garmin_sleep.dailySleepDTO.retro                             bool             ex: False
+  garmin_sleep.dailySleepDTO.sleepEndTimestampGMT              int              ex: 1774217134000
+  garmin_sleep.dailySleepDTO.sleepEndTimestampLocal            int              ex: 1774249534000
+  garmin_sleep.dailySleepDTO.sleepFromDevice                   bool             ex: True
+  garmin_sleep.dailySleepDTO.sleepNeed                         dict             ex: {13 keys}
+  garmin_sleep.dailySleepDTO.sleepNeed.actual                  int              ex: 490
+  garmin_sleep.dailySleepDTO.sleepNeed.baseline                int              ex: 470
+  garmin_sleep.dailySleepDTO.sleepNeed.calendarDate            str              ex: 2026-03-23
+  garmin_sleep.dailySleepDTO.sleepNeed.deviceId                int              ex: 3604321050
+  garmin_sleep.dailySleepDTO.sleepNeed.displayedForTheDay      bool             ex: True
+  garmin_sleep.dailySleepDTO.sleepNeed.feedback                str              ex: INCREASED
+  garmin_sleep.dailySleepDTO.sleepNeed.hrvAdjustment           str              ex: NO_CHANGE
+  garmin_sleep.dailySleepDTO.sleepNeed.napAdjustment           str              ex: DECREASING
+  garmin_sleep.dailySleepDTO.sleepNeed.preferredActivityTracker bool             ex: True
+  garmin_sleep.dailySleepDTO.sleepNeed.sleepHistoryAdjustment  str              ex: INCREASING
+  garmin_sleep.dailySleepDTO.sleepNeed.timestampGmt            str              ex: 2026-03-22T08:56:16
+  garmin_sleep.dailySleepDTO.sleepNeed.trainingFeedback        str              ex: TODAYS_LOAD_AND_CHRONIC
+  garmin_sleep.dailySleepDTO.sleepNeed.userProfilePk           int              ex: 133326671
+  garmin_sleep.dailySleepDTO.sleepQualityTypePK                null             ex: null
+  garmin_sleep.dailySleepDTO.sleepResultTypePK                 null             ex: null
+  garmin_sleep.dailySleepDTO.sleepScoreFeedback                str              ex: POSITIVE_SHORT_BUT_DEEP
+  garmin_sleep.dailySleepDTO.sleepScoreInsight                 str              ex: NONE
+  garmin_sleep.dailySleepDTO.sleepScorePersonalizedInsight     str              ex: NAPPING_POS_POOR_SLEEP_NOTGOOD_DURATION
+  garmin_sleep.dailySleepDTO.sleepScores                       dict             ex: {8 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.awakeCount            dict             ex: {3 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.awakeCount.optimalEnd float            ex: 1.0
+  garmin_sleep.dailySleepDTO.sleepScores.awakeCount.optimalStart float            ex: 0.0
+  garmin_sleep.dailySleepDTO.sleepScores.awakeCount.qualifierKey str              ex: EXCELLENT
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage        dict             ex: {6 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.idealEndInSeconds float            ex: 4383.06
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.idealStartInSeconds float            ex: 2125.12
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.optimalEnd float            ex: 33.0
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.optimalStart float            ex: 16.0
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.qualifierKey str              ex: EXCELLENT
+  garmin_sleep.dailySleepDTO.sleepScores.deepPercentage.value  int              ex: 29
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage       dict             ex: {6 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.idealEndInSeconds float            ex: 8500.48
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.idealStartInSeconds float            ex: 3984.6
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.optimalEnd float            ex: 64.0
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.optimalStart float            ex: 30.0
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.qualifierKey str              ex: EXCELLENT
+  garmin_sleep.dailySleepDTO.sleepScores.lightPercentage.value int              ex: 57
+  garmin_sleep.dailySleepDTO.sleepScores.overall               dict             ex: {2 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.overall.qualifierKey  str              ex: POOR
+  garmin_sleep.dailySleepDTO.sleepScores.overall.value         int              ex: 49
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage         dict             ex: {6 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.idealEndInSeconds float            ex: 4117.42
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.idealStartInSeconds float            ex: 2789.22
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.optimalEnd float            ex: 31.0
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.optimalStart float            ex: 21.0
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.qualifierKey str              ex: FAIR
+  garmin_sleep.dailySleepDTO.sleepScores.remPercentage.value   int              ex: 14
+  garmin_sleep.dailySleepDTO.sleepScores.restlessness          dict             ex: {3 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.restlessness.optimalEnd float            ex: 5.0
+  garmin_sleep.dailySleepDTO.sleepScores.restlessness.optimalStart float            ex: 0.0
+  garmin_sleep.dailySleepDTO.sleepScores.restlessness.qualifierKey str              ex: EXCELLENT
+  garmin_sleep.dailySleepDTO.sleepScores.stress                dict             ex: {3 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.stress.optimalEnd     float            ex: 15.0
+  garmin_sleep.dailySleepDTO.sleepScores.stress.optimalStart   float            ex: 0.0
+  garmin_sleep.dailySleepDTO.sleepScores.stress.qualifierKey   str              ex: FAIR
+  garmin_sleep.dailySleepDTO.sleepScores.totalDuration         dict             ex: {3 keys}
+  garmin_sleep.dailySleepDTO.sleepScores.totalDuration.optimalEnd float            ex: 28200.0
+  garmin_sleep.dailySleepDTO.sleepScores.totalDuration.optimalStart float            ex: 28200.0
+  garmin_sleep.dailySleepDTO.sleepScores.totalDuration.qualifierKey str              ex: POOR
+  garmin_sleep.dailySleepDTO.sleepStartTimestampGMT            int              ex: 1774203852000
+  garmin_sleep.dailySleepDTO.sleepStartTimestampLocal          int              ex: 1774236252000
+  garmin_sleep.dailySleepDTO.sleepTimeSeconds                  int              ex: 13282
+  garmin_sleep.dailySleepDTO.sleepVersion                      int              ex: 2
+  garmin_sleep.dailySleepDTO.sleepWindowConfirmationType       str              ex: enhanced_confirmed_final
+  garmin_sleep.dailySleepDTO.sleepWindowConfirmed              bool             ex: True
+  garmin_sleep.dailySleepDTO.unmeasurableSleepSeconds          int              ex: 0
+  garmin_sleep.dailySleepDTO.userProfilePK                     int              ex: 133326671
+  garmin_sleep.hrvData                                         list[44]       
+  garmin_sleep.hrvData[0]                                      dict             ex: {2 keys}
+  garmin_sleep.hrvData[0].startGMT                             int              ex: 1774204107000
+  garmin_sleep.hrvData[0].value                                float            ex: 44.0
+  garmin_sleep.hrvStatus                                       str              ex: UNBALANCED
+  garmin_sleep.remSleepData                                    bool             ex: True
+  garmin_sleep.respirationVersion                              int              ex: 200
+  garmin_sleep.restingHeartRate                                int              ex: 50
+  garmin_sleep.restlessMomentsCount                            int              ex: 22
+  garmin_sleep.skinTempCalibrationDays                         int              ex: 19
+  garmin_sleep.skinTempDataExists                              bool             ex: True
+  garmin_sleep.sleepBodyBattery                                list[74]       
+  garmin_sleep.sleepBodyBattery[0]                             dict             ex: {2 keys}
+  garmin_sleep.sleepBodyBattery[0].startGMT                    int              ex: 1774203840000
+  garmin_sleep.sleepBodyBattery[0].value                       int              ex: 5
+  garmin_sleep.sleepHeartRate                                  list[111]      
+  garmin_sleep.sleepHeartRate[0]                               dict             ex: {2 keys}
+  garmin_sleep.sleepHeartRate[0].startGMT                      int              ex: 1774203840000
+  garmin_sleep.sleepHeartRate[0].value                         int              ex: 55
+  garmin_sleep.sleepLevels                                     list[9]        
+  garmin_sleep.sleepLevels[0]                                  dict             ex: {3 keys}
+  garmin_sleep.sleepLevels[0].activityLevel                    float            ex: 1.0
+  garmin_sleep.sleepLevels[0].endGMT                           str              ex: 2026-03-22T18:36:12.0
+  garmin_sleep.sleepLevels[0].startGMT                         str              ex: 2026-03-22T18:24:12.0
+  garmin_sleep.sleepMovement                                   list[341]      
+  garmin_sleep.sleepMovement[0]                                dict             ex: {3 keys}
+  garmin_sleep.sleepMovement[0].activityLevel                  float            ex: 5.7132322516847305
+  garmin_sleep.sleepMovement[0].endGMT                         str              ex: 2026-03-22T17:25:00.0
+  garmin_sleep.sleepMovement[0].startGMT                       str              ex: 2026-03-22T17:24:00.0
+  garmin_sleep.sleepRestlessMoments                            list[20]       
+  garmin_sleep.sleepRestlessMoments[0]                         dict             ex: {2 keys}
+  garmin_sleep.sleepRestlessMoments[0].startGMT                int              ex: 1774204752000
+  garmin_sleep.sleepRestlessMoments[0].value                   int              ex: 1
+  garmin_sleep.sleepStress                                     list[74]       
+  garmin_sleep.sleepStress[0]                                  dict             ex: {2 keys}
+  garmin_sleep.sleepStress[0].startGMT                         int              ex: 1774203840000
+  garmin_sleep.sleepStress[0].value                            int              ex: 28
+  garmin_sleep.wellnessEpochRespirationAveragesList            list[5]        
+  garmin_sleep.wellnessEpochRespirationAveragesList[0]         dict             ex: {4 keys}
+  garmin_sleep.wellnessEpochRespirationAveragesList[0].epochEndTimestampGmt int              ex: 1774206000000
+  garmin_sleep.wellnessEpochRespirationAveragesList[0].respirationAverageValue float            ex: -2.0
+  garmin_sleep.wellnessEpochRespirationAveragesList[0].respirationHighValue null             ex: null
+  garmin_sleep.wellnessEpochRespirationAveragesList[0].respirationLowValue null             ex: null
+  garmin_sleep.wellnessEpochRespirationDataDTOList             list[111]      
+  garmin_sleep.wellnessEpochRespirationDataDTOList[0]          dict             ex: {2 keys}
+  garmin_sleep.wellnessEpochRespirationDataDTOList[0].respirationValue float            ex: 14.0
+  garmin_sleep.wellnessEpochRespirationDataDTOList[0].startTimeGMT int              ex: 1774203852000
+  garmin_sleep.wellnessEpochSPO2DataDTOList                    list[218]      
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0]                 dict             ex: {7 keys}
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].calendarDate    str              ex: 2026-03-23T00:00:00.0
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].deviceId        int              ex: 3604321050
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].epochDuration   int              ex: 60
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].epochTimestamp  str              ex: 2026-03-22T18:25:00.0
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].readingConfidence int              ex: 3
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].spo2Reading     int              ex: 94
+  garmin_sleep.wellnessEpochSPO2DataDTOList[0].userProfilePK   int              ex: 133326671
+  garmin_sleep.wellnessSpO2SleepSummaryDTO                     dict             ex: {10 keys}
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.alertThresholdValue null             ex: null
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.averageSPO2         float            ex: 96.0
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.averageSpO2HR       float            ex: 54.0
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.deviceId            int              ex: 3604321050
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.durationOfEventsBelowThreshold null             ex: null
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.lowestSPO2          int              ex: 89
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.numberOfEventsBelowThreshold null             ex: null
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.sleepMeasurementEndGMT str              ex: 2026-03-22T22:05:00.0
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.sleepMeasurementStartGMT str              ex: 2026-03-22T18:25:00.0
+  garmin_sleep.wellnessSpO2SleepSummaryDTO.userProfilePk       int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_hrv
+======================================================================
+  garmin_hrv.endTimestampGMT                                   str              ex: 2026-03-22T22:03:27.0
+  garmin_hrv.endTimestampLocal                                 str              ex: 2026-03-23T07:03:27.0
+  garmin_hrv.hrvReadings                                       list[44]       
+  garmin_hrv.hrvReadings[0]                                    dict             ex: {3 keys}
+  garmin_hrv.hrvReadings[0].hrvValue                           int              ex: 44
+  garmin_hrv.hrvReadings[0].readingTimeGMT                     str              ex: 2026-03-22T18:28:27.0
+  garmin_hrv.hrvReadings[0].readingTimeLocal                   str              ex: 2026-03-23T03:28:27.0
+  garmin_hrv.hrvSummary                                        dict             ex: {8 keys}
+  garmin_hrv.hrvSummary.baseline                               dict             ex: {4 keys}
+  garmin_hrv.hrvSummary.baseline.balancedLow                   int              ex: 61
+  garmin_hrv.hrvSummary.baseline.balancedUpper                 int              ex: 104
+  garmin_hrv.hrvSummary.baseline.lowUpper                      int              ex: 52
+  garmin_hrv.hrvSummary.baseline.markerValue                   float            ex: 0.24603271
+  garmin_hrv.hrvSummary.calendarDate                           str              ex: 2026-03-23
+  garmin_hrv.hrvSummary.createTimeStamp                        str              ex: 2026-03-22T22:06:20.315
+  garmin_hrv.hrvSummary.feedbackPhrase                         str              ex: HRV_UNBALANCED_7
+  garmin_hrv.hrvSummary.lastNight5MinHigh                      int              ex: 98
+  garmin_hrv.hrvSummary.lastNightAvg                           int              ex: 51
+  garmin_hrv.hrvSummary.status                                 str              ex: UNBALANCED
+  garmin_hrv.hrvSummary.weeklyAvg                              int              ex: 60
+  garmin_hrv.sleepEndTimestampGMT                              str              ex: 2026-03-22T22:05:34.0
+  garmin_hrv.sleepEndTimestampLocal                            str              ex: 2026-03-23T07:05:34.0
+  garmin_hrv.sleepStartTimestampGMT                            str              ex: 2026-03-22T18:24:12.0
+  garmin_hrv.sleepStartTimestampLocal                          str              ex: 2026-03-23T03:24:12.0
+  garmin_hrv.startTimestampGMT                                 str              ex: 2026-03-22T18:24:12.0
+  garmin_hrv.startTimestampLocal                               str              ex: 2026-03-23T03:24:12.0
+  garmin_hrv.userProfilePk                                     int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_body_battery
+======================================================================
+  garmin_body_battery                                          list[1]        
+  garmin_body_battery[0].bodyBatteryActivityEvent              list[5]        
+  garmin_body_battery[0].bodyBatteryActivityEvent[0]           dict             ex: {7 keys}
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].bodyBatteryImpact int              ex: 34
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].durationInMilliseconds int              ex: 13260000
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].eventStartTimeGmt str              ex: 2026-03-22T18:24:12.0
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].eventType str              ex: SLEEP
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].feedbackType str              ex: NONE
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].shortFeedback str              ex: NONE
+  garmin_body_battery[0].bodyBatteryActivityEvent[0].timezoneOffset int              ex: 32400000
+  garmin_body_battery[0].bodyBatteryDynamicFeedbackEvent       dict             ex: {4 keys}
+  garmin_body_battery[0].bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  garmin_body_battery[0].bodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-23T13:52:56.0
+  garmin_body_battery[0].bodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE_AND_BB_LOW_MORNING_AND_NOW
+  garmin_body_battery[0].bodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_PREPARATION_RECOVERING_AND_INACTIVE
+  garmin_body_battery[0].bodyBatteryValueDescriptorDTOList     list[2]        
+  garmin_body_battery[0].bodyBatteryValueDescriptorDTOList[0]  dict             ex: {2 keys}
+  garmin_body_battery[0].bodyBatteryValueDescriptorDTOList[0].bodyBatteryValueDescriptorIndex int              ex: 0
+  garmin_body_battery[0].bodyBatteryValueDescriptorDTOList[0].bodyBatteryValueDescriptorKey str              ex: timestamp
+  garmin_body_battery[0].bodyBatteryValuesArray                list[6]        
+  garmin_body_battery[0].bodyBatteryValuesArray[0]             list             ex: [1774191600000, 5]
+  garmin_body_battery[0].charged                               int              ex: 42
+  garmin_body_battery[0].date                                  str              ex: 2026-03-23
+  garmin_body_battery[0].drained                               int              ex: 34
+  garmin_body_battery[0].endOfDayBodyBatteryDynamicFeedbackEvent dict             ex: {4 keys}
+  garmin_body_battery[0].endOfDayBodyBatteryDynamicFeedbackEvent.bodyBatteryLevel str              ex: LOW
+  garmin_body_battery[0].endOfDayBodyBatteryDynamicFeedbackEvent.eventTimestampGmt str              ex: 2026-03-22T19:07:36.0
+  garmin_body_battery[0].endOfDayBodyBatteryDynamicFeedbackEvent.feedbackLongType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE_AND_BB_LOW
+  garmin_body_battery[0].endOfDayBodyBatteryDynamicFeedbackEvent.feedbackShortType str              ex: SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE
+  garmin_body_battery[0].endTimestampGMT                       str              ex: 2026-03-23T15:00:00.0
+  garmin_body_battery[0].endTimestampLocal                     str              ex: 2026-03-24T00:00:00.0
+  garmin_body_battery[0].startTimestampGMT                     str              ex: 2026-03-22T15:00:00.0
+  garmin_body_battery[0].startTimestampLocal                   str              ex: 2026-03-23T00:00:00.0
+
+======================================================================
+  Garmin > wellness_stress
+======================================================================
+  garmin_stress.avgStressLevel                                 int              ex: 24
+  garmin_stress.bodyBatteryValueDescriptorsDTOList             list[4]        
+  garmin_stress.bodyBatteryValueDescriptorsDTOList[0]          dict             ex: {2 keys}
+  garmin_stress.bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorIndex int              ex: 0
+  garmin_stress.bodyBatteryValueDescriptorsDTOList[0].bodyBatteryValueDescriptorKey str              ex: timestamp
+  garmin_stress.bodyBatteryValuesArray                         list[480]      
+  garmin_stress.bodyBatteryValuesArray[0]                      list             ex: [1774191600000, 'MEASURED', 5, 3.0]
+  garmin_stress.calendarDate                                   str              ex: 2026-03-23
+  garmin_stress.endTimestampGMT                                str              ex: 2026-03-23T15:00:00.0
+  garmin_stress.endTimestampLocal                              str              ex: 2026-03-24T00:00:00.0
+  garmin_stress.maxStressLevel                                 int              ex: 99
+  garmin_stress.startTimestampGMT                              str              ex: 2026-03-22T15:00:00.0
+  garmin_stress.startTimestampLocal                            str              ex: 2026-03-23T00:00:00.0
+  garmin_stress.stressChartValueOffset                         int              ex: 1
+  garmin_stress.stressChartYAxisOrigin                         int              ex: -1
+  garmin_stress.stressValueDescriptorsDTOList                  list[2]        
+  garmin_stress.stressValueDescriptorsDTOList[0]               dict             ex: {2 keys}
+  garmin_stress.stressValueDescriptorsDTOList[0].index         int              ex: 0
+  garmin_stress.stressValueDescriptorsDTOList[0].key           str              ex: timestamp
+  garmin_stress.stressValuesArray                              list[480]      
+  garmin_stress.stressValuesArray[0]                           list             ex: [1774191600000, -1]
+  garmin_stress.userProfilePK                                  int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_respiration
+======================================================================
+  garmin_respiration.avgSleepRespirationValue                  float            ex: 14.0
+  garmin_respiration.avgTomorrowSleepRespirationValue          float            ex: 14.0
+  garmin_respiration.avgWakingRespirationValue                 float            ex: 13.0
+  garmin_respiration.calendarDate                              str              ex: 2026-03-23
+  garmin_respiration.endTimestampGMT                           str              ex: 2026-03-23T15:00:00.0
+  garmin_respiration.endTimestampLocal                         str              ex: 2026-03-24T00:00:00.0
+  garmin_respiration.highestRespirationValue                   float            ex: 21.0
+  garmin_respiration.lowestRespirationValue                    float            ex: 6.0
+  garmin_respiration.respirationAveragesValueDescriptorDTOList list[4]        
+  garmin_respiration.respirationAveragesValueDescriptorDTOList[0] dict             ex: {2 keys}
+  garmin_respiration.respirationAveragesValueDescriptorDTOList[0].respirationAveragesValueDescriptionKey str              ex: timestamp
+  garmin_respiration.respirationAveragesValueDescriptorDTOList[0].respirationAveragesValueDescriptorIndex int              ex: 0
+  garmin_respiration.respirationAveragesValuesArray            list[24]       
+  garmin_respiration.respirationAveragesValuesArray[0]         list             ex: [1774195200000, 16.5, 21.0, 10.0]
+  garmin_respiration.respirationValueDescriptorsDTOList        list[2]        
+  garmin_respiration.respirationValueDescriptorsDTOList[0]     dict             ex: {2 keys}
+  garmin_respiration.respirationValueDescriptorsDTOList[0].index int              ex: 0
+  garmin_respiration.respirationValueDescriptorsDTOList[0].key str              ex: timestamp
+  garmin_respiration.respirationValuesArray                    list[720]      
+  garmin_respiration.respirationValuesArray[0]                 list             ex: [1774191720000, 17.0]
+  garmin_respiration.respirationVersion                        int              ex: 200
+  garmin_respiration.sleepEndTimestampGMT                      str              ex: 2026-03-22T22:05:34.0
+  garmin_respiration.sleepEndTimestampLocal                    str              ex: 2026-03-23T07:05:34.0
+  garmin_respiration.sleepStartTimestampGMT                    str              ex: 2026-03-22T18:24:12.0
+  garmin_respiration.sleepStartTimestampLocal                  str              ex: 2026-03-23T03:24:12.0
+  garmin_respiration.startTimestampGMT                         str              ex: 2026-03-22T15:00:00.0
+  garmin_respiration.startTimestampLocal                       str              ex: 2026-03-23T00:00:00.0
+  garmin_respiration.tomorrowSleepEndTimestampGMT              str              ex: 2026-03-23T21:59:34.0
+  garmin_respiration.tomorrowSleepEndTimestampLocal            str              ex: 2026-03-24T06:59:34.0
+  garmin_respiration.tomorrowSleepStartTimestampGMT            str              ex: 2026-03-23T14:41:34.0
+  garmin_respiration.tomorrowSleepStartTimestampLocal          str              ex: 2026-03-23T23:41:34.0
+  garmin_respiration.userProfilePK                             int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_spo2
+======================================================================
+  garmin_spo2.averageSpO2                                      float            ex: 95.0
+  garmin_spo2.avgSleepSpO2                                     float            ex: 96.0
+  garmin_spo2.avgTomorrowSleepSpO2                             float            ex: 96.0
+  garmin_spo2.calendarDate                                     str              ex: 2026-03-23
+  garmin_spo2.continuousReadingDTOList                         null             ex: null
+  garmin_spo2.endTimestampGMT                                  str              ex: 2026-03-23T15:00:00.0
+  garmin_spo2.endTimestampLocal                                str              ex: 2026-03-24T00:00:00.0
+  garmin_spo2.lastSevenDaysAvgSpO2                             float            ex: 96.0
+  garmin_spo2.latestSpO2                                       int              ex: 95
+  garmin_spo2.latestSpO2TimestampGMT                           str              ex: 2026-03-23T15:00:00.0
+  garmin_spo2.latestSpO2TimestampLocal                         str              ex: 2026-03-24T00:00:00.0
+  garmin_spo2.lowestSpO2                                       int              ex: 88
+  garmin_spo2.sleepEndTimestampGMT                             str              ex: 2026-03-22T22:05:34.0
+  garmin_spo2.sleepEndTimestampLocal                           str              ex: 2026-03-23T07:05:34.0
+  garmin_spo2.sleepStartTimestampGMT                           str              ex: 2026-03-22T18:24:12.0
+  garmin_spo2.sleepStartTimestampLocal                         str              ex: 2026-03-23T03:24:12.0
+  garmin_spo2.spO2HourlyAverages                               list[21]       
+  garmin_spo2.spO2HourlyAverages[0]                            list             ex: [1774191600000, 96]
+  garmin_spo2.spO2SingleValues                                 null             ex: null
+  garmin_spo2.spO2ValueDescriptorsDTOList                      list[3]        
+  garmin_spo2.spO2ValueDescriptorsDTOList[0]                   dict             ex: {2 keys}
+  garmin_spo2.spO2ValueDescriptorsDTOList[0].spo2ValueDescriptorIndex int              ex: 0
+  garmin_spo2.spO2ValueDescriptorsDTOList[0].spo2ValueDescriptorKey str              ex: timestamp
+  garmin_spo2.startTimestampGMT                                str              ex: 2026-03-22T15:00:00.0
+  garmin_spo2.startTimestampLocal                              str              ex: 2026-03-23T00:00:00.0
+  garmin_spo2.tomorrowSleepEndTimestampGMT                     str              ex: 2026-03-23T21:59:34.0
+  garmin_spo2.tomorrowSleepEndTimestampLocal                   str              ex: 2026-03-24T06:59:34.0
+  garmin_spo2.tomorrowSleepStartTimestampGMT                   str              ex: 2026-03-23T14:41:34.0
+  garmin_spo2.tomorrowSleepStartTimestampLocal                 str              ex: 2026-03-23T23:41:34.0
+  garmin_spo2.userProfilePK                                    int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_training_readiness
+======================================================================
+  garmin_training_readiness                                    list[1]        
+  garmin_training_readiness[0].acuteLoad                       int              ex: 1282
+  garmin_training_readiness[0].acwrFactorFeedback              str              ex: GOOD
+  garmin_training_readiness[0].acwrFactorPercent               int              ex: 77
+  garmin_training_readiness[0].calendarDate                    str              ex: 2026-03-23
+  garmin_training_readiness[0].deviceId                        int              ex: 3604321050
+  garmin_training_readiness[0].feedbackLong                    str              ex: POOR_HRV_UNBALANCED
+  garmin_training_readiness[0].feedbackShort                   str              ex: TIME_TO_SLOW_DOWN
+  garmin_training_readiness[0].hrvFactorFeedback               str              ex: MODERATE
+  garmin_training_readiness[0].hrvFactorPercent                int              ex: 69
+  garmin_training_readiness[0].hrvWeeklyAverage                int              ex: 60
+  garmin_training_readiness[0].inputContext                    str              ex: AFTER_WAKEUP_RESET
+  garmin_training_readiness[0].level                           str              ex: POOR
+  garmin_training_readiness[0].primaryActivityTracker          bool             ex: True
+  garmin_training_readiness[0].recoveryTime                    int              ex: 3493
+  garmin_training_readiness[0].recoveryTimeChangePhrase        str              ex: POOR_SLEEP
+  garmin_training_readiness[0].recoveryTimeFactorFeedback      str              ex: POOR
+  garmin_training_readiness[0].recoveryTimeFactorPercent       int              ex: 21
+  garmin_training_readiness[0].score                           int              ex: 1
+  garmin_training_readiness[0].sleepHistoryFactorFeedback      str              ex: POOR
+  garmin_training_readiness[0].sleepHistoryFactorPercent       int              ex: 39
+  garmin_training_readiness[0].sleepScore                      int              ex: 49
+  garmin_training_readiness[0].sleepScoreFactorFeedback        str              ex: POOR
+  garmin_training_readiness[0].sleepScoreFactorPercent         int              ex: 34
+  garmin_training_readiness[0].stressHistoryFactorFeedback     str              ex: MODERATE
+  garmin_training_readiness[0].stressHistoryFactorPercent      int              ex: 61
+  garmin_training_readiness[0].timestamp                       str              ex: 2026-03-22T22:05:35.0
+  garmin_training_readiness[0].timestampLocal                  str              ex: 2026-03-23T07:05:35.0
+  garmin_training_readiness[0].userProfilePK                   int              ex: 133326671
+  garmin_training_readiness[0].validSleep                      bool             ex: True
+
+======================================================================
+  Garmin > wellness_body_composition
+======================================================================
+  garmin_body_composition.dateWeightList                       list[0]        
+  garmin_body_composition.endDate                              str              ex: 2026-03-23
+  garmin_body_composition.startDate                            str              ex: 2026-03-23
+  garmin_body_composition.totalAverage                         dict             ex: {11 keys}
+  garmin_body_composition.totalAverage.bmi                     null             ex: null
+  garmin_body_composition.totalAverage.bodyFat                 null             ex: null
+  garmin_body_composition.totalAverage.bodyWater               null             ex: null
+  garmin_body_composition.totalAverage.boneMass                null             ex: null
+  garmin_body_composition.totalAverage.from                    int              ex: 1774224000000
+  garmin_body_composition.totalAverage.metabolicAge            null             ex: null
+  garmin_body_composition.totalAverage.muscleMass              null             ex: null
+  garmin_body_composition.totalAverage.physiqueRating          null             ex: null
+  garmin_body_composition.totalAverage.until                   int              ex: 1774310399999
+  garmin_body_composition.totalAverage.visceralFat             null             ex: null
+  garmin_body_composition.totalAverage.weight                  null             ex: null
+
+======================================================================
+  Garmin > wellness_rhr
+======================================================================
+  garmin_rhr.allMetrics                                        dict             ex: {1 keys}
+  garmin_rhr.allMetrics.metricsMap                             dict             ex: {1 keys}
+  garmin_rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE list[1]        
+  garmin_rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE[0] dict             ex: {2 keys}
+  garmin_rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE[0].calendarDate str              ex: 2026-03-23
+  garmin_rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE[0].value float            ex: 50.0
+  garmin_rhr.groupedMetrics                                    null             ex: null
+  garmin_rhr.statisticsEndDate                                 str              ex: 2026-03-23
+  garmin_rhr.statisticsStartDate                               str              ex: 2026-03-23
+  garmin_rhr.userProfileId                                     int              ex: 133326671
+
+======================================================================
+  Garmin > wellness_max_metrics
+======================================================================
+  garmin_max_metrics                                           list[0]        

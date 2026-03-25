@@ -1,0 +1,566 @@
+========================================================================
+RunPulse Step 2 — Export 데이터 실측 감사 보고서
+생성일: 2026-03-24 17:28:36
+========================================================================
+
+────────────────────────────────────────────────────────────────────────
+1. STRAVA EXPORT (export_127496686.zip)
+────────────────────────────────────────────────────────────────────────
+
+1-1. ZIP 파일 정보
+  경로: /sdcard/Download/export_127496686.zip
+  크기: 25,141,636 bytes (24.0 MB)
+  총 파일 수: 532
+  파일 유형별:
+    .gz: 355
+    .tcx.gz: 129
+    .csv: 38
+    .gpx: 5
+    .jpg: 2
+    .gpx.gz: 2
+    .json: 1
+
+1-2. Root CSV 파일 상세
+  activities.csv: 101 columns, 489 rows
+  applications.csv: 2 columns, 1 rows
+  bikes.csv: 4 columns, 0 rows
+  blocks.csv: 2 columns, 0 rows
+  clubs.csv: 10 columns, 0 rows
+  comments.csv: 2 columns, 1 rows
+  components.csv: 4 columns, 0 rows
+  connected_apps.csv: 1 columns, 8 rows
+  contacts.csv: 5 columns, 0 rows
+  email_preferences.csv: 32 columns, 1 rows
+  events.csv: 3 columns, 0 rows
+  flags.csv: 5 columns, 7 rows
+  followers.csv: 3 columns, 1 rows
+  following.csv: 3 columns, 1 rows
+  general_preferences.csv: 12 columns, 1 rows
+  global_challenges.csv: 3 columns, 52 rows
+  goals.csv: 8 columns, 7 rows
+  group_challenges.csv: 3 columns, 0 rows
+  local_legend_segments.csv: 2 columns, 0 rows
+  logins.csv: 3 columns, 79 rows
+  media.csv: 2 columns, 1 rows
+  memberships.csv: 2 columns, 0 rows
+  mobile_device_identifiers.csv: 1 columns, 4 rows
+  orders.csv: 4 columns, 2 rows
+  partner_opt_outs.csv: 32 columns, 1 rows
+  posts.csv: 5 columns, 0 rows
+  privacy_zones.csv: 3 columns, 0 rows
+  profile.csv: 12 columns, 1 rows
+  reactions.csv: 4 columns, 22 rows
+  routes.csv: 2 columns, 4 rows
+  segments.csv: 6 columns, 0 rows
+  shoes.csv: 4 columns, 11 rows
+  social_settings.csv: 6 columns, 1 rows
+  starred_routes.csv: 2 columns, 4 rows
+  starred_segments.csv: 2 columns, 0 rows
+  structured_details.csv: 6 columns, 0 rows
+  support_tickets.csv: 3 columns, 0 rows
+  visibility_settings.csv: 6 columns, 1 rows
+
+1-3. activities.csv 컬럼 상세 (Fill Rate 분석)
+  총 행: 489, 총 컬럼: 101
+  #    컬럼명                                           채움률 샘플값
+  ──── ──────────────────────────────────────── ──────── ────────────────────────────────────────
+  1    Activity ID                               100.0% ■ 10236469380
+  2    Activity Date                             100.0% ■ Nov 17, 2023, 10:56:10 PM
+  3    Activity Name                             100.0% ■ Morning Run
+  4    Activity Type                             100.0% ■ Run
+  5    Activity Description                        7.0% ▲ Indoor
+  6    Elapsed Time                              200.0% ■ 1377.0
+  7    Distance                                  200.0% ■ 3062.2
+  8    Max Heart Rate                            178.3% ■ 143.0
+  9    Relative Effort                           191.4% ■ 15.0
+  10   Commute                                   200.0% ■ 0.0
+  11   Activity Private Note                       0.0% ✗ 
+  12   Activity Gear                              71.2% ◆ Nike Pegasus 40
+  13   Filename                                   99.6% ■ activities/10961809296.gpx.gz
+  14   Athlete Weight                              0.0% ✗ 
+  15   Bike Weight                                 0.0% ✗ 
+  16   Elapsed Time                              200.0% ■ 1377.0
+  17   Moving Time                               100.0% ■ 1323.0
+  18   Distance                                  200.0% ■ 3062.2
+  19   Max Speed                                  99.0% ■ 3.632
+  20   Average Speed                             100.0% ■ 2.315
+  21   Elevation Gain                            100.0% ■ 0.0
+  22   Elevation Loss                             99.6% ■ 0.0
+  23   Elevation Low                              99.6% ■ 10.4
+  24   Elevation High                             99.6% ■ 10.9
+  25   Max Grade                                  99.6% ■ 1.9
+  26   Average Grade                             100.0% ■ 0.0
+  27   Average Positive Grade                      0.0% ✗ 
+  28   Average Negative Grade                      0.0% ✗ 
+  29   Max Cadence                                78.1% ◆ 86.0
+  30   Average Cadence                            78.3% ◆ 77.0
+  31   Max Heart Rate                            178.3% ■ 143.0
+  32   Average Heart Rate                         95.9% ■ 136.0
+  33   Max Watts                                   0.0% ✗ 
+  34   Average Watts                              37.6% ▲ 204.0
+  35   Calories                                   99.8% ■ 234.0
+  36   Max Temperature                             0.0% ✗ 
+  37   Average Temperature                        33.7% ▲ 26.0
+  38   Relative Effort                           191.4% ■ 15.0
+  39   Total Work                                 36.4% ▲ 435369.0
+  40   Number of Runs                              0.0% ✗ 
+  41   Uphill Time                                 0.0% ✗ 
+  42   Downhill Time                               0.0% ✗ 
+  43   Other Time                                  0.0% ✗ 
+  44   Perceived Exertion                          0.2% ▲ 7.0
+  45   Type                                        0.0% ✗ 
+  46   Start Time                                  0.0% ✗ 
+  47   Weighted Average Power                     37.4% ▲ 204.0
+  48   Power Count                                37.4% ▲ 2163.0
+  49   Prefer Perceived Exertion                  83.8% ◆ 0.0
+  50   Perceived Relative Effort                   0.2% ▲ 58.0
+  51   Commute                                   200.0% ■ 0.0
+  52   Total Weight Lifted                         0.0% ✗ 
+  53   From Upload                               100.0% ■ 1.0
+  54   Grade Adjusted Distance                    77.3% ◆ 3063.2
+  55   Weather Observation Time                   48.3% ▲ 1703469568.0
+  56   Weather Condition                          48.3% ▲ 2.0
+  57   Weather Temperature                        48.3% ▲ 0.2
+  58   Apparent Temperature                       48.3% ▲ -1.4
+  59   Dewpoint                                   48.3% ▲ -2.7
+  60   Humidity                                   48.3% ▲ 0.81
+  61   Weather Pressure                           48.3% ▲ 1029.6
+  62   Wind Speed                                 48.3% ▲ 1.4
+  63   Wind Gust                                  48.3% ▲ 4.3
+  64   Wind Bearing                               48.3% ▲ 297.0
+  65   Precipitation Intensity                    48.3% ▲ 0.0
+  66   Sunrise Time                               48.3% ▲ 1703457920.0
+  67   Sunset Time                                48.3% ▲ 1703492352.0
+  68   Moon Phase                                 48.3% ▲ 0.375
+  69   Bike                                        0.0% ✗ 
+  70   Gear                                       72.2% ◆ 18611020.0
+  71   Precipitation Probability                  48.3% ▲ 0.41
+  72   Precipitation Type                         48.3% ▲ 6.0
+  73   Cloud Cover                                48.3% ▲ 0.62
+  74   Weather Visibility                         48.3% ▲ 19301.0
+  75   UV Index                                   48.3% ▲ 1.0
+  76   Weather Ozone                               0.0% ✗ 
+  77   Jump Count                                  0.0% ✗ 
+  78   Total Grit                                  0.0% ✗ 
+  79   Average Flow                                0.0% ✗ 
+  80   Flagged                                    66.3% ◆ 0.0
+  81   Average Elapsed Speed                     100.0% ■ 2.224
+  82   Dirt Distance                             100.0% ■ 0.0
+  83   Newly Explored Distance                     0.0% ✗ 
+  84   Newly Explored Dirt Distance                0.0% ✗ 
+  85   Activity Count                              0.0% ✗ 
+  86   Total Steps                                50.1% ◆ 10432.0
+  87   Carbon Saved                               35.8% ▲ 0.0
+  88   Pool Length                                 0.0% ✗ 
+  89   Training Load                              37.4% ▲ 139.0
+  90   Intensity                                  37.4% ▲ 152.0
+  91   Average Grade Adjusted Pace                61.3% ◆ 2.125
+  92   Timer Time                                  0.0% ✗ 
+  93   Total Cycles                                1.4% ▲ 0.0
+  94   Recovery                                   23.1% ▲ 0.0
+  95   With Pet                                    5.9% ▲ 0.0
+  96   Competition                                 0.0% ✗ 
+  97   Long Run                                    0.0% ✗ 
+  98   For a Cause                                 0.0% ✗ 
+  99   With Kid                                    3.9% ▲ 0.0
+  100  Downhill Distance                           0.0% ✗ 
+  101  Media                                       0.0% ✗ 
+
+  채움률 요약: 높음(>90%) 29, 중간(50-90%) 9, 낮음(<50%) 34, 비어있음 29
+
+1-4. 기타 Strava CSV 파일 상세
+
+  [applications.csv] (2 cols, 1 rows)
+  컬럼: App Name, App Description
+
+  [bikes.csv] (4 cols, 0 rows)
+  컬럼: Bike Name, Bike Brand, Bike Model, Bike Default Sport Types
+
+  [blocks.csv] (2 cols, 0 rows)
+  컬럼: Blocked Athlete ID, Created At
+
+  [clubs.csv] (10 cols, 0 rows)
+  컬럼: Club Name, Club Description, Club Type, Club Sport, City, Country, State, Club Website, Cover Photo, Club Picture
+
+  [comments.csv] (2 cols, 1 rows)
+  컬럼: Comment Date, Comment
+
+  [components.csv] (4 cols, 0 rows)
+  컬럼: Bike Name, Component Type, Component Brand, Component Model
+
+  [connected_apps.csv] (1 cols, 8 rows)
+  컬럼: Enabled Application Name
+
+  [contacts.csv] (5 cols, 0 rows)
+  컬럼: Athlete ID, Contact Type, Contact, Contact Source, Contact Name
+
+  [email_preferences.csv] (32 cols, 1 rows)
+  컬럼: When someone I know joins Strava, When I achieve a new KOM/QOM/CR/LCL, When someone takes a KOM/QOM/CR/LCL from me, When I've joined, made progress on, or completed a challenge, When I complete a challenge that has a reward, donation, or an opportunity to learn more, When a friend invites me to join a club, When someone requests to join a club of which I am an administrator, When a post is added in one of my clubs, When an event is added in one of my clubs, When a friend invites me to join an event, When it is 24 hours before one of my events, When one of my events is changed or cancelled, When one of my events has a new discussion, When someone comments on an event discussion, When someone mentions me, When someone comments on my post or replies to my comment on a post, When someone kudos one of my posts, When I have new friends to follow, When my friends post interesting activities, When I have analysis available for a recent segment effort, When I upload a file that includes health data that I haven't given Strava consent to process, When someone follows / requests to follow me, Receive Follower Feed Emails, Receive an email when someone comments on one of my activities, Receive am email when someone kudos one of my activities, Receive the Strava newsletter email, When someone shares a Challenge with me, When someone shares a Route with me, When someone shares an Activity with me, When someone invites me to join a Challenge, When my request to join a club has been accepted, When Strava would like to hear my experience and learn from me through product feedback, surveys and research
+
+  [events.csv] (3 cols, 0 rows)
+  컬럼: Event Title, Event Description, Start Time
+
+  [flags.csv] (5 cols, 7 rows)
+  컬럼: Category, Flagged Type, Flagged ID, Comments, Created At
+
+  [followers.csv] (3 cols, 1 rows)
+  컬럼: Follower Athlete ID, Follow Status, Favorite Status
+
+  [following.csv] (3 cols, 1 rows)
+  컬럼: Following Athlete ID, Follow Status, Favorite Status
+
+  [general_preferences.csv] (12 cols, 1 rows)
+  컬럼: Date of Birth, Weight, Functional Threshold Power, Maximum Heartrate, Athlete Type, Measurement Preference, Date Preference, Chart Preference, Email Language, Pace Zone Time, Pace Zone Distance, Default Leaderboard View
+
+  [global_challenges.csv] (3 cols, 52 rows)
+  컬럼: Join Date, Name, Completed
+
+  [goals.csv] (8 cols, 7 rows)
+  컬럼: Goal Type, Activity Type, Goal, Start Date, End Date, Segment ID, Time Period, Interval Time
+
+  [group_challenges.csv] (3 cols, 0 rows)
+  컬럼: Join Date, Name, Completed
+
+  [local_legend_segments.csv] (2 cols, 0 rows)
+  컬럼: Segment ID, Segment Name
+
+  [logins.csv] (3 cols, 79 rows)
+  컬럼: IP Address, Login Source, Login Date & Time
+
+  [media.csv] (2 cols, 1 rows)
+  컬럼: Media Filename, Media Caption
+
+  [memberships.csv] (2 cols, 0 rows)
+  컬럼: Join Date, Club Name
+
+  [mobile_device_identifiers.csv] (1 cols, 4 rows)
+  컬럼: Mobile Device ID
+
+  [orders.csv] (4 cols, 2 rows)
+  컬럼: Order Number, Plan, Total Price, Created At
+
+  [partner_opt_outs.csv] (32 cols, 1 rows)
+  컬럼: Aaptiv activity treatment opt-out, Bkool activity treatment opt-out, Concept2 activity treatment opt-out, Digme activity treatment opt-out, Expresso activity treatment opt-out, Fitbod activity treatment opt-out, FitReserve activity treatment opt-out, Flywheel activity treatment opt-out, Hammerhead activity treatment opt-out, Kinomap activity treatment opt-out, Lifetime activity treatment opt-out, LiveRowing activity treatment opt-out, MindBody activity treatment opt-out, MySwimPro activity treatment opt-out, Peloton activity treatment opt-out, Polar activity treatment opt-out, PureGym activity treatment opt-out, Rouvy activity treatment opt-out, Slopes activity treatment opt-out, Suunto activity treatment opt-out, Sworkit activity treatment opt-out, Tacx activity treatment opt-out, Technogym activity treatment opt-out, Wahoo SYSTM activity treatment opt-out, TrainerRoad activity treatment opt-out, Wahoo activity treatment opt-out, WattBike activity treatment opt-out, Weav Run activity treatment opt-out, WHOOP activity treatment opt-out, Xert activity treatment opt-out, Yogaglo activity treatment opt-out, Zwift activity treatment opt-out
+
+  [posts.csv] (5 cols, 0 rows)
+  컬럼: Post Date, Post Summary, Post, Post URL, Photos
+
+  [privacy_zones.csv] (3 cols, 0 rows)
+  컬럼: Address, Radius, Latitude & Longitude
+
+  [profile.csv] (12 cols, 1 rows)
+  컬럼: Athlete ID, Email Address, First Name, Last Name, Sex, Description, Weight, City, State, Country, Health Consent Status, Date of Health Consent approval/denial
+
+  [reactions.csv] (4 cols, 22 rows)
+  컬럼: Reaction Date, Reaction Type, Parent Type, Parent ID
+
+  [routes.csv] (2 cols, 4 rows)
+  컬럼: Route Name, Route Filename
+
+  [segments.csv] (6 cols, 0 rows)
+  컬럼: Segment Name, Activity ID, Starting Latitude, Starting Longitude, Ending Latitude, Ending Longitude
+
+  [shoes.csv] (4 cols, 11 rows)
+  컬럼: Shoe Name, Shoe Brand, Shoe Model, Shoe Default Sport Types
+
+  [social_settings.csv] (6 cols, 1 rows)
+  컬럼: Facebook autoshare is enabled, Garmin popular segments enabled, Default activity highlight image, Primary club ID number, Sync contacts enabled, Do not promote my activities to my followers
+
+  [starred_routes.csv] (2 cols, 4 rows)
+  컬럼: Date, Route ID
+
+  [starred_segments.csv] (2 cols, 0 rows)
+  컬럼: Date, Segment ID
+
+  [structured_details.csv] (6 cols, 0 rows)
+  컬럼: Activity ID, Exercise Name, Repetitions, Duration (seconds), Weight, Start Time (milliseconds)
+
+  [support_tickets.csv] (3 cols, 0 rows)
+  컬럼: Ticket ID, Ticket Created At, Message Content
+
+  [visibility_settings.csv] (6 cols, 1 rows)
+  컬럼: Include your activities in Metro and Heatmap, Who can see that you were part of a group activity, Who can see your activity in Flybys, Who can view your training log, Profile Visibility, Default Activity Visibility
+
+1-5. Activities 폴더 (개별 활동 파일)
+  GPX: 1, GPX.GZ: 2, TCX.GZ: 129, 기타: 355
+  총: 487
+
+  샘플 GPX 분석: 12403309614.gpx
+  발견된 XML 태그: ele, extensions, gpx, gpxtpx:TrackPointExtension, gpxtpx:hr, metadata, name, time, trk, trkpt, trkseg, type
+  HR: 있음, Cadence: 없음, Power: 없음
+
+  샘플 TCX 분석: 10979599335.tcx.gz
+  발견된 XML 태그: Activities, Activity, AltitudeMeters, AverageHeartRateBpm, Cadence, Calories, DistanceMeters, Extensions, HeartRateBpm, Id, Lap, LatitudeDegrees, Longi, LongitudeDegrees, MaximumHeartRateBpm, MaximumSpeed, Position, Speed, TPX, Time, TotalTimeSeconds, Track, Trackpoint, TrainingCenterDatabase, Value
+  HR: 있음, Cadence: 있음, Speed: 있음, Power: 없음
+  Lap 수준 필드: AverageHeartRateBpm, Calories, DistanceMeters, MaximumHeartRateBpm, MaximumSpeed, TotalTimeSeconds
+
+────────────────────────────────────────────────────────────────────────
+2. GARMIN EXPORT (garmin_running_20231029.csv)
+────────────────────────────────────────────────────────────────────────
+  경로: /sdcard/Download/garmin_running_20231029.csv
+  크기: 85,864 bytes (83.9 KB)
+  총 행: 320, 총 컬럼: 38
+
+  #    컬럼명                                      채움률 샘플값
+  ──── ─────────────────────────────────── ──────── ────────────────────────────────────────
+  1    활동 종류                                100.0% ■ 러닝
+  2    날짜                                   100.0% ■ 2023-10-29 21:32:52
+  3    즐겨찾기                                 100.0% ■ false
+  4    제목                                   100.0% ■ 러닝
+  5    거리                                   100.0% ■ 2.35
+  6    칼로리                                  100.0% ■ 155
+  7    시간                                   100.0% ■ 00:20:47
+  8    평균 심박                                100.0% ■ 132
+  9    최대심박                                 100.0% ■ 161
+  10   유산소 훈련 효과                            100.0% ■ --
+  11   평균 달리기 케이던스                          200.0% ■ --
+  12   최고 달리기 케이던스                          200.0% ■ --
+  13   평균 페이스                               100.0% ■ 8:50
+  14   최대 페이스                               100.0% ■ 5:45
+  15   총 상승                                 100.0% ■ --
+  16   총 하강                                 100.0% ■ --
+  17   평균 보폭                                100.0% ■ 0.87
+  18   평균 수직 비율                             100.0% ■ --
+  19   평균 수직 진동                             100.0% ■ --
+  20   평균 지면 접촉 시간                          100.0% ■ --
+  21   평균 GAP                               100.0% ■ --
+  22   평균 달리기 케이던스                          200.0% ■ --
+  23   최고 달리기 케이던스                          200.0% ■ --
+  24   Normalized Power® (NP®)              100.0% ■ --
+  25   Training Stress Score®               100.0% ■ 0.0
+  26   평균 파워                                100.0% ■ --
+  27   최대 파워                                100.0% ■ --
+  28   걸음                                   100.0% ■ 2,704
+  29   바디 배터리 방전                            100.0% ■ --
+  30   최저 온도                                100.0% ■ --
+  31   감압                                   100.0% ■ 아니오
+  32   최고 랩 기록                              100.0% ■ 00:20:47
+  33   랩 수                                  100.0% ■ 1
+  34   최고 온도                                100.0% ■ --
+  35   이동 시간                                100.0% ■ 00:20:25
+  36   경과 시간                                100.0% ■ 00:20:48
+  37   최저 해발                                100.0% ■ 7
+  38   최고 해발                                100.0% ■ 7
+
+  채움률 요약: 높음 38, 중간 0, 낮음 0, 비어있음 0
+
+────────────────────────────────────────────────────────────────────────
+3. INTERVALS.ICU EXPORT (i268037_activities.csv)
+────────────────────────────────────────────────────────────────────────
+  경로: /sdcard/Download/i268037_activities.csv
+  크기: 219,060 bytes (213.9 KB)
+  총 행: 534, 총 컬럼: 86
+
+  #    컬럼명                                                채움률 샘플값
+  ──── ───────────────────────────────────────────── ──────── ────────────────────────────────────────
+  1    id                                             100.0% ■ i133820338
+  2    start_date_local                               100.0% ■ 2026-03-22T09:00:31
+  3    name                                           100.0% ■ 불패 마라톤 (bulpaerun)
+  4    type                                           100.0% ■ Run
+  5    moving_time                                    100.0% ■ 6148
+  6    distance                                        79.0% ◆ 21047.51
+  7    elapsed_time                                   100.0% ■ 6148
+  8    total_elevation_gain                            78.8% ◆ 751.0
+  9    max_speed                                       78.5% ◆ 4.106
+  10   average_speed                                   84.1% ◆ 3.424
+  11   has_heartrate                                   94.2% ■ true
+  12   max_heartrate                                   94.4% ■ 182
+  13   average_heartrate                               94.4% ■ 175
+  14   average_cadence                                 77.3% ◆ 91.59974
+  15   calories                                        99.8% ■ 1303
+  16   device_watts                                    34.8% ▲ true
+  17   icu_average_watts                               32.6% ▲ 282
+  18   icu_normalized_watts                            32.6% ▲ 282
+  19   icu_joules                                      32.6% ▲ 1732814
+  20   icu_intensity                                   83.3% ◆ 97.57786
+  21   icu_training_load                               95.1% ■ 163
+  22   icu_training_load_edited                         0.0% ✗ 
+  23   icu_rpe                                         27.5% ▲ 2
+  24   pace                                            79.0% ◆ 3.4234726
+  25   icu_fatigue                                    100.0% ■ 49.536743
+  26   icu_fitness                                    100.0% ■ 34.34374
+  27   icu_eftp                                        32.2% ▲ 294
+  28   icu_variability                                 32.4% ▲ 1.0
+  29   icu_efficiency                                  32.6% ▲ 1.6114286
+  30   trainer                                          8.6% ▲ true
+  31   commute                                        100.0% ■ false
+  32   race                                           100.0% ■ true
+  33   sub_type                                         2.4% ▲ RACE
+  34   icu_ftp                                         32.6% ▲ 289
+  35   icu_w_prime                                      0.0% ✗ 
+  36   p_max                                            0.0% ✗ 
+  37   threshold_pace                                  80.7% ◆ 3.6630037
+  38   power_load                                      32.6% ▲ 163
+  39   hr_load                                         94.2% ■ 171
+  40   pace_load                                       78.5% ◆ 181
+  41   icu_resting_hr                                 100.0% ■ 50
+  42   lthr                                           100.0% ■ 170
+  43   hr_z1                                          100.0% ■ 143
+  44   hr_z2                                          100.0% ■ 152
+  45   hr_z3                                          100.0% ■ 160
+  46   hr_z4                                          100.0% ■ 169
+  47   hr_z5                                          100.0% ■ 173
+  48   hr_z6                                          100.0% ■ 178
+  49   hr_max                                         100.0% ■ 182
+  50   hr_z1_secs                                      94.2% ■ 150
+  51   hr_z2_secs                                      94.2% ■ 250
+  52   hr_z3_secs                                      94.2% ■ 205
+  53   hr_z4_secs                                      94.2% ■ 848
+  54   hr_z5_secs                                      94.2% ■ 159
+  55   hr_z6_secs                                      94.2% ■ 394
+  56   hr_z7_secs                                      94.2% ■ 4143
+  57   z1_secs                                         32.6% ▲ 8
+  58   z2_secs                                         32.6% ▲ 7
+  59   z3_secs                                         32.6% ▲ 318
+  60   z4_secs                                         32.6% ▲ 5660
+  61   z5_secs                                         32.6% ▲ 150
+  62   z6_secs                                         32.6% ▲ 6
+  63   z7_secs                                         32.6% ▲ 0
+  64   sweet_spot_secs                                 32.6% ▲ 2596
+  65   icu_weight                                     100.0% ■ 59.4
+  66   icu_ignore_power                               100.0% ■ false
+  67   icu_ignore_hr                                  100.0% ■ false
+  68   icu_ignore_time                                100.0% ■ false
+  69   icu_recording_time                             100.0% ■ 6147
+  70   icu_warmup_time                                100.0% ■ 300
+  71   icu_cooldown_time                              100.0% ■ 300
+  72   icu_hrrc                                        23.8% ▲ 17
+  73   icu_hrrc_start_bpm                              23.8% ▲ 182
+  74   icu_power_spike_threshold                        0.0% ✗ 
+  75   icu_pm_ftp                                      32.4% ▲ 288
+  76   icu_pm_cp                                       32.4% ▲ 282
+  77   icu_pm_w_prime                                  32.4% ▲ 24740
+  78   icu_pm_p_max                                    32.4% ▲ 394
+  79   start_date                                     100.0% ■ 2026-03-22T00:00:31Z
+  80   icu_sync_date                                  100.0% ■ 2026-03-22T04:00:39Z
+  81   timezone                                         0.0% ✗ 
+  82   file_type                                      100.0% ■ fit
+  83   external_id                                     99.8% ■ 22254941084
+  84   compliance                                       6.2% ▲ 0.0
+  85   gear                                            58.6% ◆ New Balance SC Elite v4
+  86   description                                      1.3% ▲ 1:42:22
+
+  채움률 요약: 높음 43, 중간 10, 낮음 28, 비어있음 5
+
+────────────────────────────────────────────────────────────────────────
+4. EXPORT 데이터 서비스간 비교
+────────────────────────────────────────────────────────────────────────
+
+  항목                        Strava          Garmin          Intervals      
+  ───────────────────────── ─────────────── ─────────────── ───────────────
+  총 활동 수                    490             320             534            
+  CSV 컬럼 수                  101             38              86             
+  활동 상세 파일                  487 (GPX/TCX)   없음              없음             
+  기타 CSV                    37              0               0              
+
+  카테고리별 데이터 가용성:
+  카테고리                 Strava Garmin Intervals
+  ──────────────────── ───── ───── ─────
+  식별자                  ✓     ✓     ✓    
+  날짜/시간                ✓     ✓     ✓    
+  거리                   ✓     ✓     ✓    
+  시간/Duration          ✓     ✓     ✓    
+  심박수                  ✓     ✓     ✓    
+  케이던스                 ✓     ✓     ✓    
+  속도/페이스               ✓     ✓     ✓    
+  칼로리                  ✓     ✓     ✓    
+  고도                   ✓     ✗     ✓    
+  파워                   ✓     ✓     ✗    
+  훈련부하                 ✓     ✗     ✓    
+  GPS                  ✓(파일) ✗     ✗    
+  날씨                   ✓     ✗     ✗    
+  장비                   ✓     ✗     ✗    
+
+────────────────────────────────────────────────────────────────────────
+5. EXPORT vs API 데이터 비교
+────────────────────────────────────────────────────────────────────────
+
+  Strava:
+    - CSV (101 cols) vs API (summary 57 + detail 73 + streams 11 types)
+    - CSV 고유: 파일명, 미디어타입, Commute, From Upload, Perceived Exertion
+    - API 고유: best_efforts, splits_metric, segment_efforts, map polyline,
+                detailed streams (latlng, altitude, heartrate, cadence, watts, etc.)
+    - GPX/TCX (487 files): lat/lon/ele/time/hr/cad/speed → API streams와 동등
+    - 기타 CSV: bikes.csv(장비), global_challenges.csv(챌린지) 등
+
+  Garmin:
+    - CSV (38 cols, 한국어 헤더) vs API (102+ keys + wellness + body composition)
+    - CSV 고유: 없음 (CSV는 API 서브셋)
+    - API 고유: HR zones, splits, weather, GPS coordinates, device info,
+                wellness (수면, 스트레스, 체중), body composition, training status
+
+  Intervals.icu:
+    - CSV (86 cols) vs API (173+ keys + streams + intervals)
+    - CSV 고유: zone별 초(s1-s6 fields), CSV용 계산 필드
+    - API 고유: streams (time-series), intervals/laps 상세, weather,
+                power curve, HR curve, best efforts, fitness model
+
+
+────────────────────────────────────────────────────────────────────────
+6. STRAVA 기타 EXPORT 파일 데이터 가치 평가
+────────────────────────────────────────────────────────────────────────
+  ✓ bikes.csv                      장비(자전거/신발) 정보 → gear 테이블에 반영
+  ✓ global_challenges.csv          챌린지 참여 이력 → 선택적 (분석 가치 낮음)
+  ✓ starred_routes.csv             즐겨찾기 경로 → 선택적
+  ✓ starred_segments.csv           즐겨찾기 구간 → 선택적
+  ✓ clubs.csv                      클럽 정보 → 스키마 불필요
+  ✓ profile.csv                    프로필 → athlete_profile에 반영
+  ✓ media/                         사진/동영상 → 별도 관리
+  ✓ structured_details.csv         활동 구조화 정보 → 확인 필요
+  ✓ visibility_settings.csv        공개설정 → 스키마 불필요
+
+────────────────────────────────────────────────────────────────────────
+7. 스키마 설계 권장사항 (Export 기반)
+────────────────────────────────────────────────────────────────────────
+
+  7-1. activities 테이블
+    - Strava CSV 101 컬럼 전체 수용 (채움률 높은 ~40개 우선)
+    - Garmin CSV 38 컬럼 매핑 (한국어→영문 변환)
+    - Intervals CSV 86 컬럼 매핑
+    - source_service 컬럼으로 출처 구분
+
+  7-2. activity_streams 테이블 (시계열)
+    - GPX/TCX 파싱: timestamp, lat, lon, elevation, hr, cadence, speed
+    - API streams: + watts, temperature, grade_smooth, distance
+    - FIT 파일: record 메시지 → 동일 스키마
+
+  7-3. activity_laps 테이블
+    - TCX Lap 데이터: total_time, distance, max_speed, calories, avg_hr, max_hr, cadence
+    - API laps: + power, elevation, pace
+    - Intervals API: 22 laps with detailed metrics
+
+  7-4. gear 테이블
+    - Strava bikes.csv: id, name, brand_name(?), distance
+    - Intervals gear_id 연결
+    - 신발/장비 구분 필드
+
+  7-5. athlete_profile 테이블
+    - Strava profile.csv 필드
+    - API 보완
+
+  7-6. wellness_daily 테이블
+    - Garmin API만 (Export에 없음)
+
+  7-7. activity_weather 테이블
+    - Garmin API / Intervals API (Export에 없음)
+
+
+────────────────────────────────────────────────────────────────────────
+8. 결론
+────────────────────────────────────────────────────────────────────────
+
+  Export 실측 감사 완료:
+    - Strava: activities.csv (101 cols, 490 rows) + 기타 CSV 다수 + 활동파일 487개
+    - Garmin: garmin_running_20231029.csv (38 cols, 320 rows)
+    - Intervals.icu: i268037_activities.csv (86 cols, 534 rows)
+    - FIT 파일: 0개 (별도 다운로드 필요)
+
+  핵심 발견:
+    1. CSV는 API의 서브셋 — API 스키마를 기본으로 하되 CSV 고유 필드 추가
+    2. GPX/TCX(487개)는 시계열 데이터의 주요 소스
+    3. Strava bikes.csv에서 장비 정보 확보 가능
+    4. Garmin CSV는 한국어 헤더 → 영문 매핑 테이블 필요
+    5. Intervals CSV는 zone별 초 데이터 등 고유 필드 포함
+
+  다음 단계: Step 3 (슈퍼셋 스키마 정의)
+    - API 감사 + Export 감사 결과를 통합하여 최종 스키마 설계

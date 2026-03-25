@@ -18,6 +18,7 @@ from src.db_setup import get_db_path
 from src.utils.sync_jobs import (
     SyncJob,
     INTER_BATCH_SLEEP,
+    cleanup_stale_running_jobs,
     create_job,
     get_active_job,
     get_job,
@@ -29,6 +30,14 @@ from src.utils.sync_state import get_retry_after_sec
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
 _threads: dict[str, "BgSyncThread"] = {}
 _lock = threading.Lock()
+
+# 프로세스 시작 시 이전 실행에서 남은 stale "running" 작업 정리
+try:
+    _cleaned = cleanup_stale_running_jobs()
+    if _cleaned:
+        print(f"[bg_sync] stale 작업 {_cleaned}개 정리됨")
+except Exception:
+    pass
 
 
 # ── 스레드 ───────────────────────────────────────────────────────────────
@@ -145,6 +154,20 @@ class BgSyncThread(threading.Thread):
 
         update_job(self.job_id, status="completed")
 
+        # 동기화 완료 후 메트릭 자동 재계산 + 재동기화 플래그 해제
+        try:
+            import sqlite3 as _sqlite3
+            from src.metrics import engine as metrics_engine
+            with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                metrics_engine.run_for_date_range(conn, job.from_date, job.to_date)
+                # 스키마 마이그레이션 후 재동기화 플래그 해제
+                from src.db_setup import clear_needs_resync
+                clear_needs_resync(conn)
+                conn.commit()
+        except Exception as exc:
+            update_job(self.job_id, last_error=f"메트릭 계산 실패: {str(exc)[:150]}")
+
     # ── 배치 실행 ─────────────────────────────────────────────────────
 
     def _run_one_batch(
@@ -158,7 +181,10 @@ class BgSyncThread(threading.Thread):
         count = 0
         req_added = 0
         try:
-            with sqlite3.connect(str(get_db_path())) as conn:
+            # isolation_level=None → autocommit: INSERT마다 즉시 commit → 병렬 서비스 간 write lock 경합 해소
+            conn = sqlite3.connect(str(get_db_path()), timeout=30, isolation_level=None)
+            conn.execute("PRAGMA journal_mode=WAL")
+            try:
                 if service == "garmin":
                     from src.sync.garmin import sync_activities
                     count = sync_activities(
@@ -175,21 +201,23 @@ class BgSyncThread(threading.Thread):
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
-                    req_added = count * 3 + 1   # list + detail + stream
+                    req_added = count * 4 + 1   # list + detail + stream + zones
                 elif service == "intervals":
                     from src.sync.intervals import sync_activities
                     count = sync_activities(
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
-                    req_added = count + 1
+                    req_added = count * 3 + 1   # list + intervals + streams + power_curve
                 elif service == "runalyze":
                     from src.sync.runalyze import sync_activities
                     count = sync_activities(
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
-                    req_added = count + 1
+                    req_added = count * 2 + 1   # list + detail
+            finally:
+                conn.close()
         except Exception as exc:
             update_job(self.job_id, last_error=str(exc)[:200])
         return count, req_added

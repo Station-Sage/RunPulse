@@ -270,6 +270,7 @@ def deep_analyze(
         "avg_run_cadence": g.get("avg_run_cadence"),
         "max_run_cadence": g.get("max_run_cadence"),
         "avg_vertical_ratio": g.get("avg_vertical_ratio"),
+        "avg_vertical_oscillation": g.get("avg_vertical_oscillation_cm"),
         "avg_ground_contact_time": g.get("avg_ground_contact_time"),
         # HR 존 시간 (초)
         "hr_zone_time_1": g.get("hr_zone_time_1"),
