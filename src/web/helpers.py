@@ -16,9 +16,9 @@ _NAV_GROUPS = [
         ("회복·웰니스", "/wellness"),
     ]),
     ("분석", None, [
-        ("Today", "/analyze/today"),
-        ("Full Report", "/analyze/full"),
-        ("Race 준비도", "/analyze/race?date=2026-06-01&distance=42.195"),
+        ("대시보드", "/dashboard"),
+        ("레포트", "/report"),
+        ("레이스 예측", "/race"),
     ]),
     ("⚙️ 설정", None, [
         ("연동 설정", "/settings"),

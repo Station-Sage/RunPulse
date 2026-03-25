@@ -484,8 +484,12 @@
   - html_page dev_mode 자동 감지 (config → default True)
   - Jinja2 context_processor dev_mode 주입
   - bottom_nav B패턴→A패턴 통일
-- [ ] V2-9-6: 통합 테스트 (`test_web_dashboard.py`, `test_web_report.py`, `test_web_race.py`)
-- [ ] V2-9-7: `/analyze/*` → 신규 화면 리다이렉트
+- [x] V2-9-6: 통합 테스트 (`test_web_dashboard.py`, `test_web_report.py`, `test_web_race.py`) ✅ 완료 (2026-03-25)
+  - 37개 테스트: dashboard 12개 + report 11개 + race 14개
+  - DB 시드 fixture, 메트릭/활동 데이터 유무 케이스 커버
+- [x] V2-9-7: `/analyze/*` → 신규 화면 리다이렉트 ✅ 완료 (2026-03-25)
+  - `/analyze/today` → `/dashboard`, `/analyze/full` → `/report`, `/analyze/race` → `/race`
+  - helpers.py 네비게이션 링크도 신규 경로로 업데이트
   - `/analyze/today` → `/dashboard`
   - `/analyze/full` → `/report`
   - `/analyze/race` → `/race`
