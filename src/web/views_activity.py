@@ -22,8 +22,17 @@ from .views_activity_loaders import (
     _load_activity_metric_jsons,
     _load_day_computed_metrics,
     _load_day_metric_jsons,
+    _load_hr_zone_times,
     _load_pmc_series,
+    _load_running_tolerance,
     _load_service_metrics,
+)
+from .views_activity_s5_cards import (
+    render_hr_zone_chart,
+    render_rtti_card,
+    render_running_tolerance_card,
+    render_tpdi_card,
+    render_wlei_card,
 )
 from .views_activity_cards import (
     _render_activity_classification_badge,
@@ -74,6 +83,8 @@ def activity_deep_view():
     day_metric_jsons: dict = {}
     service_metrics: dict = {}
     pmc_series: dict = {}
+    running_tolerance: dict = {}
+    hr_zones: list = []
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -108,6 +119,8 @@ def activity_deep_view():
                     act_metric_jsons = _load_activity_metric_jsons(conn, cur[0])
                     day_metric_jsons = _load_day_metric_jsons(conn, act_date_tmp)
                     pmc_series = _load_pmc_series(conn, act_date_tmp)
+                    running_tolerance = _load_running_tolerance(conn, act_date_tmp)
+                    hr_zones = _load_hr_zone_times(source_rows)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
@@ -168,6 +181,15 @@ def activity_deep_view():
         + _render_decoupling_detail_card(act_metrics, act_metric_jsons)
         + "</div>"
         + _render_pmc_sparkline_card(pmc_series)
+        + "<div class='cards-row'>"
+        + render_wlei_card(act_metrics, act_metric_jsons)
+        + render_rtti_card(day_metrics_data, day_metric_jsons)
+        + "</div>"
+        + "<div class='cards-row'>"
+        + render_tpdi_card(day_metrics_data, day_metric_jsons)
+        + render_running_tolerance_card(running_tolerance)
+        + "</div>"
+        + render_hr_zone_chart(hr_zones)
         + "<div class='cards-row'>"
         + _render_di_card(day_metrics_data)
         + _render_map_placeholder(resolved_id)

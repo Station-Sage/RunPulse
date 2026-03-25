@@ -286,3 +286,27 @@ def _extract_gap(source_rows: dict) -> float | None:
     if speed and float(speed) > 0:
         return round(1000.0 / float(speed), 1)
     return None
+
+
+def _load_running_tolerance(conn: sqlite3.Connection, act_date: str) -> dict:
+    """Running Tolerance 일별 데이터 조회."""
+    rows = conn.execute(
+        """SELECT metric_name, metric_value FROM daily_detail_metrics
+           WHERE date=? AND metric_name IN (
+             'running_tolerance_load',
+             'running_tolerance_optimal_max',
+             'running_tolerance_score'
+           )""",
+        (act_date,),
+    ).fetchall()
+    return {r[0]: r[1] for r in rows if r[1] is not None}
+
+
+def _load_hr_zone_times(source_rows: dict) -> list[float | None]:
+    """HR 존 1~5 시간(초) 리스트 반환 (Garmin 소스 우선)."""
+    garmin = source_rows.get("garmin") or {}
+    zones = []
+    for i in range(1, 6):
+        v = garmin.get(f"hr_zone_time_{i}")
+        zones.append(float(v) if v is not None else None)
+    return zones

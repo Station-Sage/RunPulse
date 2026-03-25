@@ -13,8 +13,10 @@
 - [x] **6.6**: AI Coach 잔여 — 최근 훈련 요약, 리스크 요약 카드
 - [ ] **6.7**: Training Plan UI (v0.3 예정)
 - [x] **6.8**: Wellness 보완 — 7일 트렌드 차트, 회복 권장 카드
-- [ ] **S5-C2**: 대폭 확장된 데이터 반영 UI 전면 재설계
-  - Sprint 5-A~C로 추가된 데이터(날씨/존/running dynamics/running tolerance 등) UI 노출
+- [x] **S5-C2**: 대폭 확장된 데이터 반영 UI 노출
+  - RTTI/WLEI/TPDI 전용 카드 (게이지 바 + 해석 + 상세 JSON)
+  - Running Tolerance 원시 데이터 카드 (부하/권장최대/점수 + 사용률 게이지)
+  - HR 존 1~5 시간 분포 수평 막대 차트
 - [x] **V2-5-3**: Report AI 인사이트 실체화 (규칙 기반 메트릭 분석, briefing.py 구조 활용)
 - [x] **V2-5-4**: Report 기간 선택기 7개 확장 (today/week/month/quarter/year/1year/custom)
 - [x] **V2-6-1a~f**: 레이스 예측 UI 참고 디자인 수준 보강 (splits 그리드, VDOT/순위, DI 게이지)

@@ -2,6 +2,20 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.2-ui-minor-revision] 2026-03-25
+
+### S5-C2: Sprint 5 데이터 UI 노출
+- `views_activity_s5_cards.py` (신규 277줄): RTTI/WLEI/TPDI/Running Tolerance/HR존 차트 렌더링 카드
+  - RTTI: 게이지 바 + 부하/권장최대 상세 + 과부하 판정
+  - WLEI: TRIMP 대비 보정 비율 + 기온/습도 스트레스 계수
+  - TPDI: 실내/실외 FEARP 격차 + 양방향 해석
+  - Running Tolerance: Garmin 원시 데이터 (load/optimal_max/score) + 사용률 게이지
+  - HR Zone: 존 1~5 수평 막대 차트 (색상 + 시간 + 비율)
+- `views_activity_loaders.py`: `_load_running_tolerance()`, `_load_hr_zone_times()` 추가
+- `views_activity.py`: S5 카드 통합 (WLEI/RTTI → TPDI/RunTolerance → HR존 → DI 순서 배치)
+
+---
+
 ## [v0.2-ui-minor] 2026-03-25
 
 ### 6.4 Settings 보완
