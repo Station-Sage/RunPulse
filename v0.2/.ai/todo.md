@@ -6,6 +6,21 @@
 
 ## 현재 미완료 작업 (이 섹션만 읽을 것)
 
+### UI 재설계 (v0.2/UI_redesign.md 기준, §9.2 순서)
+
+- [x] **UI-R1**: 활동 상세 재설계 — 7개 목적별 그룹 + 서비스 접이식
+  - 신규 파일 10개 (g1~g7, cards_common, map, loaders_v2)
+  - 신규 차트: G4 멀티라인(ACWR/Monotony/Strain/LSI), G5 RMR 레이더, G2 EF/Dec 스파크라인, G6 TIDS 주간
+  - 승격: VO2Max/GCT/수직진동/보폭 (서비스탭→메인), Training Readiness
+  - 884 테스트 통과 (2026-03-25)
+- [x] **UI-R2**: 대시보드 재설계 — 웰니스 미니, RTTI, 주간 요약, EF 스파크라인, Monotony/Strain
+- [x] **UI-R3**: 레포트 재설계 — 시계열 차트 6종, 비교 델타, 폼 섹션, 웰니스 기간
+- [x] **UI-R4**: 웰니스 보강 — 기준선 밴드, 패턴 인사이트, 주간 비교, 수면/HRV 미니차트
+- [x] **UI-R5**: 레이스 예측 보강 — DARP/VDOT/DI 추세, 목표 갭, MarathonShape, 메트릭 해설
+  - 신규: views_race_enhanced.py (로더 2 + 렌더러 5)
+  - 추가 섹션: 목표 갭 계산기, 예측 추세 차트, 준비 요소 차트, DI 해석, 메트릭 해설
+  - 884 테스트 통과 (2026-03-25)
+
 ### v0.2 잔여
 
 - [x] **6.4**: Settings 보완 — sync 상태 허브, 시스템 정보 카드
@@ -14,17 +29,11 @@
 - [ ] **6.7**: Training Plan UI (v0.3 예정)
 - [x] **6.8**: Wellness 보완 — 7일 트렌드 차트, 회복 권장 카드
 - [x] **S5-C2**: 대폭 확장된 데이터 반영 UI 노출
-  - RTTI/WLEI/TPDI 전용 카드 (게이지 바 + 해석 + 상세 JSON)
-  - Running Tolerance 원시 데이터 카드 (부하/권장최대/점수 + 사용률 게이지)
-  - HR 존 1~5 시간 분포 수평 막대 차트
-- [x] **V2-5-3**: Report AI 인사이트 실체화 (규칙 기반 메트릭 분석, briefing.py 구조 활용)
-- [x] **V2-5-4**: Report 기간 선택기 7개 확장 (today/week/month/quarter/year/1year/custom)
-- [x] **V2-6-1a~f**: 레이스 예측 UI 참고 디자인 수준 보강 (splits 그리드, VDOT/순위, DI 게이지)
-- [x] **V2-7-1a~e**: AI 코칭 UI 참고 디자인 수준 보강 (프로필 애니메이션, 브리핑 액션, 채팅 레이아웃)
-- [x] **V2-9-12**: decisions.md Settings Platform Roadmap 추가 (D-V2-17)
-- [x] **V2-9-13**: 비전-코드 DI/CIRS 공식 불일치 주석
-- [x] **V2-9-14**: design/app-UI/dashboard.html RMR 6축→5축 수정
-- [x] **B-4**: 참고 디자인 RMR 5축 수정 (V2-9-14와 동일)
+- [x] **V2-5-3**: Report AI 인사이트 실체화
+- [x] **V2-5-4**: Report 기간 선택기 7개 확장
+- [x] **V2-6-1a~f**: 레이스 예측 UI 보강
+- [x] **V2-7-1a~e**: AI 코칭 UI 보강
+- [x] **V2-9-12~14, B-4**: 문서/참고디자인 수정
 
 ### v0.3 예정 (메트릭)
 

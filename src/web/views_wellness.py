@@ -26,6 +26,22 @@ from .helpers import (
     safe_str,
     score_badge,
 )
+from .views_wellness_enhanced import (
+    build_outlier_mark_points,
+    build_pattern_recovery_tips,
+    load_hrv_baseline,
+    load_sleep_times,
+    load_weekly_comparison,
+    load_wellness_14d,
+    render_7day_chart_enhanced,
+    render_hrv_mini_chart,
+    render_metrics_dash,
+    render_pattern_insights,
+    render_sleep_mini_chart,
+    render_sleep_time_pattern,
+    render_weekly_comparison,
+    render_wellness_glossary,
+)
 
 wellness_bp = Blueprint("wellness", __name__)
 
@@ -62,12 +78,15 @@ def _render_recovery_card(raw: dict, grade: str | None, score) -> str:
     )
 
 
-def _render_sleep_card(raw: dict, detail: dict) -> str:
-    """수면 상세 카드."""
+def _render_sleep_card(raw: dict, detail: dict, data_14d: list[dict] | None = None,
+                       sleep_times: list[dict] | None = None) -> str:
+    """수면 상세 카드 + 7일 미니 바 차트 + 시간대 패턴."""
     deep_sec = detail.get("sleep_stage_deep_sec")
     rem_sec = detail.get("sleep_stage_rem_sec")
     restless = detail.get("sleep_restless_moments")
     sleep_score = raw.get("sleep_score")
+    mini = render_sleep_mini_chart(data_14d) if data_14d else ""
+    time_pattern = render_sleep_time_pattern(sleep_times) if sleep_times else ""
     return (
         "<div class='card'>"
         "<h2>수면 상세</h2>"
@@ -75,12 +94,15 @@ def _render_sleep_card(raw: dict, detail: dict) -> str:
         + metric_row("딥 슬립", fmt_min(deep_sec))
         + metric_row("REM 슬립", fmt_min(rem_sec))
         + metric_row("뒤척임 횟수", restless)
+        + mini
+        + time_pattern
         + "</div>"
     )
 
 
-def _render_hrv_card(raw: dict, detail: dict) -> str:
-    """야간 HRV 카드."""
+def _render_hrv_card(raw: dict, detail: dict, data_14d: list[dict] | None = None,
+                     baseline_data: dict | None = None) -> str:
+    """야간 HRV 카드 + 미니 차트 + 기준선 해석."""
     hrv_raw = raw.get("hrv_value")
     hrv_avg = detail.get("overnight_hrv_avg")
     hrv_sdnn = detail.get("overnight_hrv_sdnn")
@@ -91,6 +113,7 @@ def _render_hrv_card(raw: dict, detail: dict) -> str:
         if (hrv_low is not None or hrv_high is not None)
         else None
     )
+    mini = render_hrv_mini_chart(data_14d, baseline_data or {}) if data_14d else ""
     return (
         "<div class='card'>"
         "<h2>야간 HRV</h2>"
@@ -98,6 +121,7 @@ def _render_hrv_card(raw: dict, detail: dict) -> str:
         + metric_row("야간 평균 HRV", hrv_avg, " ms")
         + metric_row("HRV SDNN", hrv_sdnn, " ms")
         + metric_row("개인 기준선", baseline)
+        + mini
         + "</div>"
     )
 
@@ -180,8 +204,8 @@ def _render_7day_chart(data: list[dict]) -> str:
     )
 
 
-def _render_recovery_recommendation(status: dict) -> str:
-    """회복 권장 사항 카드."""
+def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None = None) -> str:
+    """회복 권장 사항 카드 (패턴 연동)."""
     if not status.get("available"):
         return ""
     raw = status.get("raw") or {}
@@ -202,6 +226,9 @@ def _render_recovery_recommendation(status: dict) -> str:
         tips.append("스트레스 수준이 높습니다. 호흡 운동이나 스트레칭을 시도하세요.")
     if hrv is not None and hrv < 30:
         tips.append("HRV가 낮습니다. 자율신경 회복이 필요하므로 오버트레이닝에 주의하세요.")
+    # 패턴 기반 구체적 권장 (#5)
+    if pattern_tips:
+        tips.extend(pattern_tips)
     if grade == "good" or (not tips and grade):
         tips.append("전반적인 회복 상태가 양호합니다. 계획대로 훈련을 진행해도 좋습니다.")
 
@@ -285,10 +312,11 @@ def _fetch_steps_weight(conn, date_str: str) -> tuple:
 
 
 def _render_wellness_body(
-    status: dict, trend_data: dict, date_str: str, steps=None, weight_kg=None
+    status: dict, trend_data: dict, date_str: str, steps=None, weight_kg=None,
+    data_14d: list[dict] | None = None, baseline: dict | None = None,
+    weekly_comp: dict | None = None, sleep_times: list[dict] | None = None,
 ) -> str:
-    """회복/웰니스 본문 HTML 조립."""
-    # 추세 카드는 데이터 유무와 무관하게 항상 표시
+    """회복/웰니스 본문 HTML 조립 (보강 버전)."""
     trend_section = _render_trend_card(trend_data)
 
     if not status.get("available"):
@@ -298,20 +326,32 @@ def _render_wellness_body(
     detail = status.get("detail") or {}
     grade = status.get("grade")
     score = status.get("recovery_score")
-
-    activity_section = _render_activity_card(steps, weight_kg)
+    data_14d = data_14d or []
+    baseline = baseline or {}
 
     return (
+        # 섹션 1: 오늘의 상태
         _render_readiness_card(detail)
         + "<div class='cards-row'>"
         + _render_recovery_card(raw, grade, score)
-        + _render_sleep_card(raw, detail)
         + "</div>"
+        # 섹션 2: 핵심 지표 대시 (신규)
+        + render_metrics_dash(raw, data_14d, baseline)
+        # 섹션 4+5: 수면/HRV 상세 (미니차트 보강)
         + "<div class='cards-row'>"
-        + _render_hrv_card(raw, detail)
-        + _render_other_card(detail)
+        + _render_sleep_card(raw, detail, data_14d, sleep_times)
+        + _render_hrv_card(raw, detail, data_14d, baseline)
         + "</div>"
-        + activity_section
+        # 섹션 6: 패턴 인사이트 (신규)
+        + render_pattern_insights(data_14d, baseline)
+        # 섹션 7: 주간 비교 (신규)
+        + render_weekly_comparison(weekly_comp or {})
+        # 섹션 8: 기타 + 활동
+        + "<div class='cards-row'>"
+        + _render_other_card(detail)
+        + _render_activity_card(steps, weight_kg)
+        + "</div>"
+        # 섹션 9: 14일 추세 테이블
         + trend_section
     )
 
@@ -333,7 +373,11 @@ def wellness_view():
             status = get_recovery_status(conn, date_str)
             trend_data = recovery_trend(conn, days=14)
             steps, weight_kg = _fetch_steps_weight(conn, date_str)
-            wellness_7d = _load_7day_wellness(conn, date_str)
+            # 신규 로더
+            data_14d = load_wellness_14d(conn, date_str)
+            baseline = load_hrv_baseline(conn, date_str)
+            weekly_comp = load_weekly_comparison(conn, date_str)
+            sleep_times = load_sleep_times(conn, date_str)
     except Exception as exc:
         body = render_sub_nav("wellness") + f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return html_page("회복/웰니스", body, active_tab="dashboard")
@@ -348,6 +392,22 @@ def wellness_view():
         "</div>"
     )
 
-    extra = _render_7day_chart(wellness_7d) + _render_recovery_recommendation(status)
-    body = render_sub_nav("wellness") + date_form + _render_wellness_body(status, trend_data, date_str, steps, weight_kg) + extra
+    # 7일 차트 (기준선 밴드 + 이상치 빨간 점 보강) + 회복 권장
+    outlier_pts = build_outlier_mark_points(data_14d[-7:], baseline)
+    chart_7d = render_7day_chart_enhanced(data_14d[-7:], baseline, outlier_points=outlier_pts)
+    pattern_tips = build_pattern_recovery_tips(data_14d, baseline)
+    recovery_rec = _render_recovery_recommendation(status, pattern_tips)
+
+    body = (
+        render_sub_nav("wellness")
+        + date_form
+        + _render_wellness_body(
+            status, trend_data, date_str, steps, weight_kg,
+            data_14d=data_14d, baseline=baseline, weekly_comp=weekly_comp,
+            sleep_times=sleep_times,
+        )
+        + chart_7d
+        + recovery_rec
+        + render_wellness_glossary()
+    )
     return html_page(f"회복/웰니스 — {date_str}", body, active_tab="dashboard")

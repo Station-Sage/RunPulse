@@ -310,3 +310,6 @@ def _load_hr_zone_times(source_rows: dict) -> list[float | None]:
         v = garmin.get(f"hr_zone_time_{i}")
         zones.append(float(v) if v is not None else None)
     return zones
+
+
+# 신규 loaders → views_activity_loaders_v2.py 로 분리

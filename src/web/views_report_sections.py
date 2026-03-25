@@ -171,8 +171,8 @@ def render_tids_section(tids: dict | None) -> str:
     )
 
 
-def render_trimp_weekly_chart(trimp_data: list[dict]) -> str:
-    """주별 TRIMP 합계 ECharts 바차트."""
+def render_trimp_weekly_chart(trimp_data: list[dict], prev_trimp: list[dict] | None = None) -> str:
+    """주별 TRIMP 합계 ECharts 바차트 + 이전 기간 비교선."""
     if not trimp_data:
         return no_data_card("주별 TRIMP 부하", "데이터 수집 중입니다")
     labels = [d["week"] for d in trimp_data]
@@ -180,10 +180,26 @@ def render_trimp_weekly_chart(trimp_data: list[dict]) -> str:
     avg = sum(values) / len(values) if values else 0
     lj = json.dumps(labels)
     vj = json.dumps(values)
+    # 이전 기간 비교선 (#6)
+    prev_series = ""
+    prev_note = ""
+    if prev_trimp and len(prev_trimp) >= 2:
+        prev_vals = [d["trimp"] for d in prev_trimp]
+        # 길이 맞추기 (현재 기간 주 수에 맞춤)
+        while len(prev_vals) < len(values):
+            prev_vals.append(None)
+        prev_vals = prev_vals[:len(values)]
+        pj = json.dumps(prev_vals)
+        prev_series = (
+            f",{{name:'이전 기간',type:'line',data:{pj},smooth:true,symbol:'none',"
+            f"lineStyle:{{color:'rgba(255,255,255,0.25)',width:1.5,type:'dashed'}},"
+            f"itemStyle:{{color:'rgba(255,255,255,0.25)'}}}}"
+        )
+        prev_note = " | 점선 = 이전 동일 기간"
     return f"""<div class='card'>
   <h2 style='font-size:1rem;margin-bottom:0.8rem;'>주별 TRIMP 훈련 부하</h2>
   <div id='trimpChart' style='height:180px;'></div>
-  <p class='muted' style='font-size:0.78rem;margin:0.3rem 0 0;'>주평균 {avg:.0f} TRIMP | 높을수록 고강도/고볼륨</p>
+  <p class='muted' style='font-size:0.78rem;margin:0.3rem 0 0;'>주평균 {avg:.0f} TRIMP | 높을수록 고강도/고볼륨{prev_note}</p>
 </div>
 <script>
 (function(){{
@@ -191,14 +207,14 @@ def render_trimp_weekly_chart(trimp_data: list[dict]) -> str:
   if(!el||typeof echarts==='undefined') return;
   var c=echarts.init(el,'dark',{{backgroundColor:'transparent'}});
   c.setOption({{backgroundColor:'transparent',
-    tooltip:{{trigger:'axis',formatter:function(p){{return p[0].axisValue+'<br>TRIMP: '+p[0].value.toFixed(0);}}}},
+    tooltip:{{trigger:'axis'}},
     grid:{{left:48,right:12,bottom:36,top:12}},
     xAxis:{{type:'category',data:{lj},axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:9,rotate:30}}}},
     yAxis:{{type:'value',axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}},
       splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.08)'}}}}}},
-    series:[{{type:'bar',data:{vj},itemStyle:{{color:'#ffaa00',borderRadius:[3,3,0,0]}},
+    series:[{{name:'이번 기간',type:'bar',data:{vj},itemStyle:{{color:'#ffaa00',borderRadius:[3,3,0,0]}},
       markLine:{{silent:true,data:[{{type:'average',label:{{formatter:'avg {{c}}',color:'#00d4ff',fontSize:10}},
-        lineStyle:{{color:'#00d4ff',type:'dashed'}}}}]}}}}]
+        lineStyle:{{color:'#00d4ff',type:'dashed'}}}}]}}}}{prev_series}]
   }});
   window.addEventListener('resize',function(){{c.resize();}});
 }})();

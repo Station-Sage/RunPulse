@@ -10,6 +10,276 @@ _UTRS_COLORS = [(0, "#e53935"), (40, "#fb8c00"), (60, "#43a047"), (80, "#00acc1"
 _CIRS_COLORS = [(0, "#43a047"), (20, "#fb8c00"), (50, "#ef6c00"), (75, "#e53935")]
 
 
+# ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────────────
+
+def _mini_gauge(label: str, value: float | None, max_val: float,
+                colors: list, grade: str = "") -> str:
+    """60px 미니 반원 게이지."""
+    if value is None:
+        return (f"<div style='text-align:center;min-width:80px;opacity:0.4;'>"
+                f"<div style='font-size:0.7rem;color:var(--muted);'>{label}</div>"
+                f"<div style='font-size:1.1rem;font-weight:700;'>—</div></div>")
+    gauge = svg_semicircle_gauge(value, max_val, grade, colors, width=70)
+    return (f"<div style='text-align:center;min-width:80px;'>"
+            f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{label}</div>"
+            f"{gauge}</div>")
+
+
+def _mini_icon_val(icon: str, label: str, value, unit: str = "", color: str = "var(--cyan)") -> str:
+    """아이콘 + 값 미니 표시."""
+    val_str = f"{value}" if value is not None else "—"
+    opacity = "1" if value is not None else "0.4"
+    return (f"<div style='text-align:center;min-width:60px;opacity:{opacity};'>"
+            f"<div style='font-size:1.1rem;'>{icon}</div>"
+            f"<div style='font-size:0.95rem;font-weight:700;color:{color};'>{val_str}{unit}</div>"
+            f"<div style='font-size:0.65rem;color:var(--muted);'>{label}</div></div>")
+
+
+def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
+                              cirs_val: float | None, cirs_json: dict,
+                              acwr: float | None, rtti: float | None,
+                              wellness: dict) -> str:
+    """섹션 1: 오늘의 상태 한 줄 스트립."""
+    utrs_grade = {"rest": "휴식", "light": "경량", "moderate": "보통", "optimal": "최적"}.get(
+        (utrs_json or {}).get("grade", ""), "")
+    cirs_grade = {"safe": "안전", "caution": "주의", "warning": "경고", "danger": "위험"}.get(
+        (cirs_json or {}).get("grade", ""), "")
+
+    # ACWR 색상
+    if acwr is None:
+        acwr_clr = "var(--muted)"
+    elif acwr > 1.5:
+        acwr_clr = "var(--red)"
+    elif acwr > 1.3:
+        acwr_clr = "var(--orange)"
+    else:
+        acwr_clr = "var(--green)"
+    acwr_str = f"{acwr:.2f}" if acwr is not None else "—"
+
+    bb = wellness.get("body_battery")
+    sleep = wellness.get("sleep_score")
+    hrv = wellness.get("hrv")
+
+    parts = [
+        _mini_gauge("UTRS", utrs_val, 100, _UTRS_COLORS, utrs_grade),
+        _mini_gauge("CIRS", cirs_val, 100, _CIRS_COLORS, cirs_grade),
+        # ACWR 텍스트
+        (f"<div style='text-align:center;min-width:70px;'>"
+         f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>ACWR</div>"
+         f"<div style='font-size:1.3rem;font-weight:700;color:{acwr_clr};'>{acwr_str}</div></div>"),
+        _mini_gauge("RTTI", rtti, 100, [(0, "#e53935"), (40, "#fb8c00"), (70, "#43a047")]),
+        # 웰니스 미니 아이콘
+        _mini_icon_val("&#128267;", "BB", bb, "", "var(--orange)"),
+        _mini_icon_val("&#128164;", "수면", sleep, "", "var(--cyan)"),
+        _mini_icon_val("&#128147;", "HRV", f"{hrv:.0f}" if hrv else None, "", "var(--green)"),
+    ]
+
+    return (
+        "<div class='card' style='padding:0.6rem 0.8rem;'>"
+        "<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;'>오늘의 상태</div>"
+        "<div style='display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;justify-content:space-around;'>"
+        + "".join(parts) +
+        "</div></div>"
+    )
+
+
+# ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────────────
+
+def render_weekly_summary(weekly: dict, weekly_target_km: float = 40.0) -> str:
+    """섹션 3: 주간 거리/시간 진행률 + TIDS 도넛."""
+    if not weekly or weekly.get("count", 0) == 0:
+        return no_data_card("이번 주 훈련 요약", "이번 주 활동이 없습니다")
+
+    dist = weekly["distance_km"]
+    dur = weekly["duration_sec"]
+    count = weekly["count"]
+    pct = min(100, round(dist / weekly_target_km * 100)) if weekly_target_km > 0 else 0
+
+    # 진행률 바
+    bar_clr = "var(--green)" if pct >= 80 else ("var(--orange)" if pct >= 50 else "var(--cyan)")
+    progress = (
+        f"<div style='margin-bottom:0.6rem;'>"
+        f"<div style='display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;'>"
+        f"<span>{dist:.1f} km / {weekly_target_km:.0f} km</span>"
+        f"<span style='color:{bar_clr};font-weight:600;'>{pct}%</span></div>"
+        f"<div style='background:rgba(255,255,255,0.1);border-radius:4px;height:8px;'>"
+        f"<div style='width:{pct}%;background:{bar_clr};border-radius:4px;height:8px;"
+        f"transition:width 0.5s;'></div></div></div>"
+    )
+
+    stats = (
+        f"<div style='display:flex;gap:1rem;font-size:0.8rem;color:var(--secondary);'>"
+        f"<span>{count}회</span><span>{fmt_duration(dur)}</span></div>"
+    )
+
+    # TIDS 도넛 (CSS 원형)
+    z12 = weekly.get("tids_z12") or 0
+    z3 = weekly.get("tids_z3") or 0
+    z45 = weekly.get("tids_z45") or 0
+    total = z12 + z3 + z45
+    tids_html = ""
+    if total > 0:
+        p12 = round(z12 / total * 100)
+        p3 = round(z3 / total * 100)
+        p45 = 100 - p12 - p3
+        # conic-gradient 도넛
+        tids_html = (
+            f"<div style='display:flex;align-items:center;gap:0.8rem;margin-top:0.6rem;'>"
+            f"<div style='width:60px;height:60px;border-radius:50%;"
+            f"background:conic-gradient(#00d4ff 0% {p12}%, #ffaa00 {p12}% {p12 + p3}%, #ff4444 {p12 + p3}% 100%);"
+            f"position:relative;'>"
+            f"<div style='position:absolute;inset:12px;border-radius:50%;background:var(--bg);'></div></div>"
+            f"<div style='font-size:0.75rem;line-height:1.5;'>"
+            f"<div><span style='color:#00d4ff;'>&#9632;</span> Z1-2 {p12}%</div>"
+            f"<div><span style='color:#ffaa00;'>&#9632;</span> Z3 {p3}%</div>"
+            f"<div><span style='color:#ff4444;'>&#9632;</span> Z4-5 {p45}%</div></div></div>"
+        )
+
+    return (
+        "<div class='card'>"
+        "<h2 style='font-size:1rem;margin-bottom:0.5rem;'>이번 주 훈련 요약</h2>"
+        + progress + stats + tids_html +
+        "</div>"
+    )
+
+
+# ── 섹션 4: 피트니스 추세 확장 ─────────────────────────────────────────────────
+
+def render_fitness_trends_chart(pmc_data: list[dict], trends: dict) -> str:
+    """섹션 4: PMC + Monotony/Strain 오버레이 + EF 스파크라인."""
+    if not pmc_data and not trends.get("dates"):
+        return no_data_card("피트니스 추세", "데이터 수집 중입니다")
+
+    # PMC 데이터
+    pmc_labels = json.dumps([r["date"] for r in pmc_data]) if pmc_data else "[]"
+    pmc_ctl = json.dumps([round(r["ctl"] or 0, 1) for r in pmc_data]) if pmc_data else "[]"
+    pmc_atl = json.dumps([round(r["atl"] or 0, 1) for r in pmc_data]) if pmc_data else "[]"
+    pmc_tsb = json.dumps([round(r["tsb"] or 0, 1) for r in pmc_data]) if pmc_data else "[]"
+
+    # Monotony/Strain
+    ms_dates = json.dumps(trends.get("dates", []))
+    mono = json.dumps(trends.get("monotony", []))
+    strain = json.dumps(trends.get("strain", []))
+
+    # EF
+    ef_dates = json.dumps(trends.get("ef_dates", []))
+    ef_vals = json.dumps(trends.get("ef_values", []))
+
+    return f"""<div class='card'>
+  <h2 style='font-size:1rem;margin-bottom:0.5rem;'>피트니스 추세</h2>
+  <div id='fitTrendChart' style='height:260px;'></div>
+  <p class='muted' style='font-size:0.74rem;margin:0.3rem 0 0;'>
+    CTL/ATL/TSB 60일 + Monotony/Strain 오버레이
+  </p>
+  <h3 style='font-size:0.9rem;margin:0.8rem 0 0.3rem;color:var(--secondary);'>EF 효율 추세</h3>
+  <div id='efTrendChart' style='height:120px;'></div>
+</div>
+<script>
+(function(){{
+  var el=document.getElementById('fitTrendChart');
+  if(!el||typeof echarts==='undefined') return;
+  var c=echarts.init(el,'dark',{{backgroundColor:'transparent'}});
+  var pDates={pmc_labels},pCtl={pmc_ctl},pAtl={pmc_atl},pTsb={pmc_tsb};
+  var msDates={ms_dates},mono={mono},strain={strain};
+  var sl=pDates.map(function(d){{return d.slice(5);}});
+  var msSl=msDates.map(function(d){{return d.slice(5);}});
+  c.setOption({{backgroundColor:'transparent',
+    tooltip:{{trigger:'axis'}},
+    legend:{{top:0,textStyle:{{color:'rgba(255,255,255,0.7)',fontSize:10}}}},
+    grid:{{left:48,right:48,bottom:28,top:34}},
+    xAxis:{{type:'category',data:sl,axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10,interval:Math.floor(sl.length/7)}},
+      axisLine:{{lineStyle:{{color:'rgba(255,255,255,0.2)'}}}}}},
+    yAxis:[
+      {{type:'value',name:'CTL/ATL',nameTextStyle:{{color:'rgba(255,255,255,0.5)',fontSize:9}},
+        splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.08)'}}}},axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}}}},
+      {{type:'value',name:'TSB/Mono',position:'right',splitLine:{{show:false}},
+        nameTextStyle:{{color:'#ffaa00',fontSize:9}},axisLabel:{{color:'#ffaa00',fontSize:10}}}}
+    ],
+    series:[
+      {{name:'CTL',type:'line',data:pCtl,smooth:true,symbol:'none',lineStyle:{{color:'#00d4ff',width:2}},yAxisIndex:0}},
+      {{name:'ATL',type:'line',data:pAtl,smooth:true,symbol:'none',lineStyle:{{color:'#00ff88',width:2}},yAxisIndex:0}},
+      {{name:'TSB',type:'line',data:pTsb,smooth:true,symbol:'none',lineStyle:{{color:'#ffaa00',width:1.5,type:'dashed'}},yAxisIndex:1}},
+      {{name:'Monotony',type:'line',data:mono,smooth:true,symbol:'none',lineStyle:{{color:'#cc88ff',width:1.5}},yAxisIndex:1,
+        markLine:{{silent:true,data:[{{yAxis:2.0,lineStyle:{{color:'rgba(255,68,68,0.5)',type:'dashed'}},label:{{show:false}}}}]}}}},
+      {{name:'Strain',type:'bar',data:strain,barWidth:3,itemStyle:{{color:'rgba(255,68,68,0.35)'}},yAxisIndex:1}}
+    ]
+  }});
+  window.addEventListener('resize',function(){{c.resize();}});
+  // EF 스파크라인
+  var el2=document.getElementById('efTrendChart');
+  if(!el2) return;
+  var c2=echarts.init(el2,'dark',{{backgroundColor:'transparent'}});
+  var efD={ef_dates},efV={ef_vals};
+  var efSl=efD.map(function(d){{return d.slice(5);}});
+  c2.setOption({{backgroundColor:'transparent',
+    tooltip:{{trigger:'axis',formatter:function(p){{return p[0]?p[0].axisValue+'<br>EF: '+p[0].value:''}}}},
+    grid:{{left:48,right:16,bottom:20,top:8}},
+    xAxis:{{type:'category',data:efSl,axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10,interval:Math.floor(efSl.length/6)}},
+      axisLine:{{lineStyle:{{color:'rgba(255,255,255,0.15)'}}}}}},
+    yAxis:{{type:'value',splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.06)'}}}},axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}}}},
+    series:[{{type:'line',data:efV,smooth:true,symbol:'circle',symbolSize:4,
+      lineStyle:{{color:'#00d4ff',width:2}},itemStyle:{{color:'#00d4ff'}},
+      areaStyle:{{color:'rgba(0,212,255,0.08)'}}}}]
+  }});
+  window.addEventListener('resize',function(){{c2.resize();}});
+}})();
+</script>"""
+
+
+# ── 섹션 6: 리스크 상세 확장 ──────────────────────────────────────────────────
+
+def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
+    """섹션 6: 위험지표 pills + Strain + 7일 미니 추세 화살표."""
+    if not risk_data:
+        return ""
+
+    def _trend_arrow(vals: list) -> str:
+        """7일 추세 화살표."""
+        clean = [v for v in vals if v is not None]
+        if len(clean) < 2:
+            return ""
+        diff = clean[-1] - clean[0]
+        if abs(diff) < 0.01:
+            return "<span style='color:var(--muted);font-size:0.7rem;'>&#8594;</span>"
+        if diff > 0:
+            return "<span style='color:var(--red);font-size:0.7rem;'>&#8593;</span>"
+        return "<span style='color:var(--green);font-size:0.7rem;'>&#8595;</span>"
+
+    def _pill(label: str, val: float | None, lo: float, hi: float,
+              fmt: str = ".2f", invert: bool = False, trend_key: str = "") -> str:
+        trend = _trend_arrow(trends_7d.get(trend_key, [])) if trend_key else ""
+        if val is None:
+            return (f"<span style='background:rgba(255,255,255,0.08);color:var(--muted);"
+                    f"border-radius:16px;padding:0.25rem 0.7rem;font-size:0.78rem;"
+                    f"white-space:nowrap;'>{label} — {trend}</span>")
+        bad = val > hi if not invert else val < lo
+        warn = (lo < val <= hi) if not invert else (lo <= val < hi)
+        if bad:
+            bg, clr = "rgba(255,68,68,0.18)", "var(--red)"
+        elif warn:
+            bg, clr = "rgba(255,170,0,0.18)", "var(--orange)"
+        else:
+            bg, clr = "rgba(0,255,136,0.15)", "var(--green)"
+        return (f"<span style='background:{bg};color:{clr};border-radius:16px;"
+                f"padding:0.25rem 0.7rem;font-size:0.78rem;white-space:nowrap;'>"
+                f"{label} {val:{fmt}} {trend}</span>")
+
+    tsb = risk_data.get("tsb")
+    strain = risk_data.get("strain")
+
+    return (
+        "<div class='card' style='padding:0.6rem 1rem;'>"
+        "<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.3rem;'>리스크 상세</div>"
+        "<div style='display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;'>"
+        + _pill("ACWR", risk_data.get("acwr"), 1.3, 1.5, ".2f", trend_key="ACWR")
+        + _pill("LSI", risk_data.get("lsi"), 1.0, 1.5, ".1f", trend_key="LSI")
+        + _pill("단조로움", risk_data.get("monotony"), 1.5, 2.0, ".1f", trend_key="Monotony")
+        + _pill("Strain", strain, 200, 400, ".0f", trend_key="Strain")
+        + _pill("TSB", tsb, -20, -10, ".0f", invert=True, trend_key="TSB")
+        + "</div></div>"
+    )
+
+
 # ── 경고 배너 ─────────────────────────────────────────────────────────────────
 
 def _render_cirs_banner(cirs: float) -> str:

@@ -3,6 +3,8 @@
 /activity/deep?id=<activity_id>
 /activity/deep?date=YYYY-MM-DD
 /activity/deep          → 최근 활동
+
+7개 목적별 그룹 + 서비스 원시 탭 + 지도 + 스플릿.
 """
 from __future__ import annotations
 
@@ -14,6 +16,7 @@ from flask import Blueprint, render_template, request
 from src.analysis.activity_deep import deep_analyze
 from .helpers import db_path
 
+# 기존 loaders
 from .views_activity_loaders import (
     _extract_gap,
     _fetch_adjacent,
@@ -27,31 +30,35 @@ from .views_activity_loaders import (
     _load_running_tolerance,
     _load_service_metrics,
 )
-from .views_activity_s5_cards import (
-    render_hr_zone_chart,
-    render_rtti_card,
-    render_running_tolerance_card,
-    render_tpdi_card,
-    render_wlei_card,
+# 신규 loaders
+from .views_activity_loaders_v2 import (
+    load_darp_values,
+    load_ef_decoupling_series,
+    load_risk_series,
+    load_tids_weekly_series,
 )
-from .views_activity_cards import (
-    _render_activity_classification_badge,
-    _render_activity_nav,
-    _render_activity_summary,
-    _render_daily_scores_card,
-    _render_decoupling_detail_card,
-    _render_di_card,
-    _render_efficiency,
-    _render_fearp_breakdown_card,
-    _render_fitness_context,
-    _render_horizontal_scroll,
-    _render_map_placeholder,
-    _render_pmc_sparkline_card,
-    _render_secondary_metrics_card,
+# 공통 카드
+from .views_activity_cards_common import (
+    render_activity_nav,
+    render_activity_summary,
+    render_classification_badge,
+    render_horizontal_scroll,
+    render_splits,
+)
+from .views_activity_map import render_map_placeholder
+# 소스 비교 + 서비스 탭
+from .views_activity_source_cards import (
     _render_service_tabs,
     _render_source_comparison,
-    _render_splits,
 )
+# 7개 그룹
+from .views_activity_g1_status import render_group1_daily_status
+from .views_activity_g2_performance import render_group2_performance
+from .views_activity_g3_load import render_group3_load
+from .views_activity_g4_risk import render_group4_risk
+from .views_activity_g5_biomechanics import render_group5_biomechanics
+from .views_activity_g6_distribution import render_group6_distribution
+from .views_activity_g7_fitness import render_group7_fitness
 
 activity_bp = Blueprint("activity", __name__)
 
@@ -75,6 +82,7 @@ def activity_deep_view():
             body = f"<div class='card'><p>잘못된 activity id: {html.escape(activity_id_str)}</p></div>"
             return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
+    # 데이터 로딩
     source_rows: dict = {}
     resolved_id: int | None = None
     act_metrics: dict = {}
@@ -83,8 +91,12 @@ def activity_deep_view():
     day_metric_jsons: dict = {}
     service_metrics: dict = {}
     pmc_series: dict = {}
-    running_tolerance: dict = {}
     hr_zones: list = []
+    ef_dec_series: dict = {}
+    risk_series: dict = {}
+    tids_weekly: dict = {}
+    darp_data: dict = {}
+
     try:
         with sqlite3.connect(str(dpath)) as conn:
             data = deep_analyze(conn, activity_id=activity_id, date=date_str or None)
@@ -105,22 +117,25 @@ def activity_deep_view():
                     ).fetchone() if act_date else None
                 if cur:
                     resolved_id = cur[0]
+                    act_date_tmp = str(cur[1])[:10]
                     prev_row, next_row = _fetch_adjacent(conn, cur[0], cur[1])
                     source_rows = _fetch_source_rows(conn, cur[0])
                     act_metrics = _load_activity_computed_metrics(conn, cur[0])
-                    # GAP은 서비스 1차 메트릭 — activity_summaries에서 추출해 주입
                     if "GAP" not in act_metrics:
                         _gap = _extract_gap(source_rows)
                         if _gap is not None:
                             act_metrics["GAP"] = _gap
                     service_metrics = _load_service_metrics(conn, cur[0])
-                    act_date_tmp = str(cur[1])[:10]
                     day_metrics_data = _load_day_computed_metrics(conn, act_date_tmp)
                     act_metric_jsons = _load_activity_metric_jsons(conn, cur[0])
                     day_metric_jsons = _load_day_metric_jsons(conn, act_date_tmp)
                     pmc_series = _load_pmc_series(conn, act_date_tmp)
-                    running_tolerance = _load_running_tolerance(conn, act_date_tmp)
                     hr_zones = _load_hr_zone_times(source_rows)
+                    # 신규 loaders
+                    ef_dec_series = load_ef_decoupling_series(conn, act_date_tmp)
+                    risk_series = load_risk_series(conn, act_date_tmp)
+                    tids_weekly = load_tids_weekly_series(conn, act_date_tmp)
+                    darp_data = load_darp_values(conn, act_date_tmp)
     except Exception as exc:
         body = f"<div class='card'><p>조회 오류: {html.escape(str(exc))}</p></div>"
         return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
@@ -129,23 +144,14 @@ def activity_deep_view():
         "<div class='card'>"
         "<form method='get' action='/activity/deep' "
         "style='display:flex; gap:1rem; align-items:center; flex-wrap:wrap;'>"
-        "<label>날짜: <input type='date' name='date' "
-        f"value='{html.escape(date_str)}'></label>"
-        "<label>또는 활동 ID: <input type='number' name='id' "
-        f"value='{html.escape(activity_id_str)}' style='width:6rem;'></label>"
-        "<button type='submit'>조회</button>"
-        "</form>"
-        "</div>"
+        f"<label>날짜: <input type='date' name='date' value='{html.escape(date_str)}'></label>"
+        f"<label>또는 활동 ID: <input type='number' name='id' value='{html.escape(activity_id_str)}' style='width:6rem;'></label>"
+        "<button type='submit'>조회</button></form></div>"
     )
 
     if data is None:
         msg = f"activity id={activity_id_str}" if activity_id_str else f"날짜={date_str or '오늘'}"
-        body = (
-            query_form
-            + "<div class='card'>"
-            f"<p class='muted'>분석 가능한 활동이 없습니다 ({html.escape(msg)}).</p>"
-            "</div>"
-        )
+        body = query_form + f"<div class='card'><p class='muted'>분석 가능한 활동이 없습니다 ({html.escape(msg)}).</p></div>"
         return render_template("generic_page.html", title="활동 심층 분석", body=body, active_tab="activities")
 
     act = data.get("activity") or {}
@@ -156,45 +162,38 @@ def activity_deep_view():
     intervals = data.get("intervals") or {}
     runalyze = data.get("runalyze") or {}
     fitness_ctx = data.get("fitness_context") or {}
-    calculated = data.get("calculated") or {}
-    efficiency = calculated.get("efficiency") or {}
-    splits = strava.get("pace_splits") or []
+    splits = (strava.get("pace_splits") or [])
 
+    # EF/Decoupling 스파크라인 데이터
+    ef_series = ef_dec_series.get("ef", {})
+    dec_series = ef_dec_series.get("decoupling", {})
+
+    # ── 7그룹 구조로 렌더링 ─────────────────────────────────────────────
     body = (
         query_form
-        + _render_activity_nav(prev_row, next_row)
-        + _render_horizontal_scroll(act, act_metrics)
-        + _render_activity_classification_badge(act)
-        + _render_activity_summary(act)
+        + render_activity_nav(prev_row, next_row)
+        + render_horizontal_scroll(act, act_metrics)
+        + render_classification_badge(act)
+        + render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
+        # 그룹 1: 오늘의 상태
+        + render_group1_daily_status(day_metrics_data, day_metric_jsons, garmin_detail)
+        # 그룹 2: 퍼포먼스
+        + render_group2_performance(act_metrics, act_metric_jsons, garmin, fitness_ctx, ef_series, dec_series, day_metrics_data)
+        # 그룹 3: 부하/노력
+        + render_group3_load(act_metrics, act_metric_jsons, service_metrics, garmin, strava)
+        # 그룹 4: 과훈련 위험
+        + render_group4_risk(risk_series)
+        # 그룹 5: 폼/바이오메카닉스
+        + render_group5_biomechanics(day_metric_jsons, garmin, act)
+        # 그룹 6: 훈련 분포
+        + render_group6_distribution(hr_zones, day_metrics_data, day_metric_jsons, tids_weekly)
+        # 그룹 7: 피트니스 컨텍스트
+        + render_group7_fitness(fitness_ctx, pmc_series, day_metrics_data, darp_data)
+        # 하단: 서비스 원본 (접이식)
         + _render_service_tabs(garmin, strava, intervals, runalyze, garmin_detail, act_date)
-        + "<div class='cards-row'>"
-        + _render_fitness_context(fitness_ctx)
-        + _render_efficiency(efficiency)
-        + "</div>"
-        + "<div class='cards-row'>"
-        + _render_secondary_metrics_card(act_metrics, day_metrics_data, service_metrics=service_metrics, day_metric_jsons=day_metric_jsons)
-        + _render_daily_scores_card(day_metrics_data)
-        + "</div>"
-        + "<div class='cards-row'>"
-        + _render_fearp_breakdown_card(act_metric_jsons)
-        + _render_decoupling_detail_card(act_metrics, act_metric_jsons)
-        + "</div>"
-        + _render_pmc_sparkline_card(pmc_series)
-        + "<div class='cards-row'>"
-        + render_wlei_card(act_metrics, act_metric_jsons)
-        + render_rtti_card(day_metrics_data, day_metric_jsons)
-        + "</div>"
-        + "<div class='cards-row'>"
-        + render_tpdi_card(day_metrics_data, day_metric_jsons)
-        + render_running_tolerance_card(running_tolerance)
-        + "</div>"
-        + render_hr_zone_chart(hr_zones)
-        + "<div class='cards-row'>"
-        + _render_di_card(day_metrics_data)
-        + _render_map_placeholder(resolved_id)
-        + "</div>"
-        + _render_splits(splits)
+        + render_map_placeholder(resolved_id)
+        + render_splits(splits)
     )
 
     title = f"활동 심층 분석 — {act_date}"

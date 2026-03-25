@@ -1,4 +1,7 @@
-"""통합 대시보드 뷰 — Flask Blueprint."""
+"""통합 대시보드 뷰 — Flask Blueprint.
+
+7개 섹션: 상태스트립 / 훈련권장 / 주간요약 / 피트니스추세 / 레이스&피트니스 / 리스크상세 / 최근활동.
+"""
 from __future__ import annotations
 
 import json
@@ -18,12 +21,19 @@ from .views_dashboard_cards import (
     _render_cirs_breakdown,
     _render_darp_mini,
     _render_fitness_mini,
-    _render_gauge_card,
-    _render_pmc_chart,
-    _render_risk_pills,
     _render_rmr_card,
     _render_training_recommendation,
     _render_utrs_factors,
+    render_daily_status_strip,
+    render_fitness_trends_chart,
+    render_risk_pills_v2,
+    render_weekly_summary,
+)
+from .views_dashboard_loaders import (
+    load_fitness_trends,
+    load_risk_7day_trends,
+    load_weekly_summary,
+    load_wellness_mini,
 )
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -94,7 +104,6 @@ def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[di
 
 
 def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
-    """DARP_5k / _10k / _half / _full 메트릭 JSON 조회."""
     result = {}
     for key in ("DARP_5k", "DARP_10k", "DARP_half", "DARP_full"):
         row = conn.execute(
@@ -104,7 +113,7 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
             (target_date, key),
         ).fetchone()
         if row and row[0] is not None:
-            dist_key = key.split("_", 1)[1]  # "5k", "10k", "half", "full"
+            dist_key = key.split("_", 1)[1]
             try:
                 mj = json.loads(row[1]) if row[1] else {}
             except Exception:
@@ -113,17 +122,7 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
     return result
 
 
-def _load_risk_pills(conn: sqlite3.Connection, target_date: str, pmc_data: list[dict]) -> dict:
-    """위험 지표 pill 데이터 (ACWR / LSI / Monotony + TSB 최신값)."""
-    acwr = _load_metric(conn, target_date, "ACWR")
-    lsi = _load_metric(conn, target_date, "LSI")
-    mono = _load_metric(conn, target_date, "Monotony")
-    tsb = pmc_data[-1]["tsb"] if pmc_data and pmc_data[-1].get("tsb") is not None else None
-    return {"acwr": acwr, "lsi": lsi, "monotony": mono, "tsb": tsb}
-
-
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
-    """VDOT + Marathon Shape 조회."""
     vdot_row = conn.execute(
         "SELECT runalyze_vdot FROM daily_fitness WHERE runalyze_vdot IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
         (target_date,),
@@ -139,6 +138,16 @@ def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[floa
     return vdot, shape
 
 
+def _load_weekly_target(conn: sqlite3.Connection) -> float:
+    """config에서 주간 거리 목표 조회."""
+    from src.utils.config import load_config
+    try:
+        cfg = load_config()
+        return float(cfg.get("user", {}).get("weekly_distance_target", 40.0))
+    except Exception:
+        return 40.0
+
+
 # ── 메인 뷰 ─────────────────────────────────────────────────────────────────
 
 @dashboard_bp.get("/dashboard")
@@ -147,27 +156,35 @@ def dashboard():
     if not db.exists():
         no_db = ("<div class='card'><p>DB가 초기화되지 않았습니다.</p>"
                  "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p></div>")
-        return render_template("dashboard.html", banner=no_db, recommendation_card="",
-                               utrs_card="", cirs_card="", rmr_card="", risk_pills="",
-                               darp_card="", fitness_card="", pmc_chart="",
-                               activity_list="", active_tab="dashboard")
+        return render_template("dashboard.html", body=no_db, active_tab="dashboard")
 
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
     with sqlite3.connect(str(db)) as conn:
+        # 기존 메트릭
         utrs_val = _load_metric(conn, today, "UTRS")
         utrs_json = _load_metric_json(conn, today, "UTRS") or {}
         cirs_val = _load_metric(conn, today, "CIRS")
         cirs_json = _load_metric_json(conn, today, "CIRS") or {}
+        acwr_val = _load_metric(conn, today, "ACWR")
+        rtti_val = _load_metric(conn, today, "RTTI")
         rmr_json = _load_metric_json(conn, today, "RMR") or {}
         rmr_old_json = _load_metric_json(conn, three_months_ago, "RMR") or {}
         pmc_data = _load_pmc_data(conn, today, days=60)
         recent_acts = _load_recent_activities(conn, limit=5)
         darp_data = _load_darp_data(conn, today)
-        risk_data = _load_risk_pills(conn, today, pmc_data)
         vdot, marathon_shape = _load_fitness_data(conn, today)
-        # 스키마 마이그레이션 후 재동기화 배너
+        mono_val = _load_metric(conn, today, "Monotony")
+        lsi_val = _load_metric(conn, today, "LSI")
+        strain_val = _load_metric(conn, today, "Strain")
+        # 신규 로더
+        wellness = load_wellness_mini(conn, today)
+        weekly = load_weekly_summary(conn, today)
+        trends = load_fitness_trends(conn, today, days=60)
+        risk_7d = load_risk_7day_trends(conn, today)
+        weekly_target = _load_weekly_target(conn)
+        # resync
         needs_resync = False
         try:
             needs_resync = get_needs_resync(conn)
@@ -176,6 +193,7 @@ def dashboard():
 
     tsb_last = pmc_data[-1]["tsb"] if pmc_data else None
 
+    # ── 배너 ─────────────────────────────────────────────────────────────
     banner = ""
     if needs_resync:
         banner = (
@@ -186,57 +204,49 @@ def dashboard():
             "text-decoration:underline;font-weight:bold'>전체 동기화</a>를 실행하세요."
             "</div>"
         )
-
-    # CIRS 경고 배너
     cirs_banner = _render_cirs_banner(cirs_val or 0.0) if cirs_val is not None else ""
     banner += cirs_banner
 
-    # 훈련 권장 카드
-    recommendation_card = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)
+    # ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────
+    status_strip = render_daily_status_strip(
+        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness)
 
-    # UTRS 게이지
-    utrs_grade_map = {"rest": "휴식", "light": "경량", "moderate": "보통", "optimal": "최적"}
-    utrs_grade_str = utrs_grade_map.get((utrs_json or {}).get("grade", ""), "")
-    utrs_factors_html = _render_utrs_factors(utrs_json) if utrs_json else ""
-    utrs_card = _render_gauge_card("UTRS 훈련 준비도", utrs_val, 100.0, _UTRS_COLORS,
-                                   subtitle="통합 훈련 준비도 지수 (0-100)",
-                                   extra_html=utrs_factors_html, grade_label=utrs_grade_str)
+    # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
+    recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)
 
-    # CIRS 게이지
-    cirs_grade_map = {"safe": "안전", "caution": "주의", "warning": "경고", "danger": "위험"}
-    cirs_grade_str = cirs_grade_map.get((cirs_json or {}).get("grade", ""), "")
-    cirs_breakdown = _render_cirs_breakdown(cirs_json) if cirs_json else ""
-    cirs_card = _render_gauge_card("CIRS 부상 위험도", cirs_val, 100.0, _CIRS_COLORS,
-                                   subtitle="복합 부상 위험 점수 (낮을수록 안전)",
-                                   extra_html=cirs_breakdown, grade_label=cirs_grade_str)
+    # ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────
+    weekly_card = render_weekly_summary(weekly, weekly_target)
 
-    # RMR 레이더
+    # ── 섹션 4: 피트니스 추세 ─────────────────────────────────────────────
+    fitness_chart = render_fitness_trends_chart(pmc_data, trends)
+
+    # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
+    darp_card = _render_darp_mini(darp_data)
+    fitness_card = _render_fitness_mini(vdot, marathon_shape)
     rmr_axes = rmr_json.get("axes") if rmr_json else None
     rmr_compare = rmr_old_json.get("axes") if rmr_old_json else None
     rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None)
 
-    # 위험 지표 pills
-    risk_pills = _render_risk_pills(risk_data)
+    # ── 섹션 6: 리스크 상세 ───────────────────────────────────────────────
+    risk_data = {"acwr": acwr_val, "lsi": lsi_val, "monotony": mono_val,
+                 "strain": strain_val, "tsb": tsb_last}
+    risk_pills = render_risk_pills_v2(risk_data, risk_7d)
 
-    # DARP + Fitness 카드
-    darp_card = _render_darp_mini(darp_data)
-    fitness_card = _render_fitness_mini(vdot, marathon_shape)
-
-    # PMC 차트 + 활동 목록
-    pmc_chart = _render_pmc_chart(pmc_data)
+    # ── 섹션 7: 최근 활동 ─────────────────────────────────────────────────
     activity_list = _render_activity_list(recent_acts)
 
-    return render_template(
-        "dashboard.html",
-        banner=banner,
-        recommendation_card=recommendation_card,
-        utrs_card=utrs_card,
-        cirs_card=cirs_card,
-        rmr_card=rmr_card,
-        risk_pills=risk_pills,
-        darp_card=darp_card,
-        fitness_card=fitness_card,
-        pmc_chart=pmc_chart,
-        activity_list=activity_list,
-        active_tab="dashboard",
+    # ── 조립 ──────────────────────────────────────────────────────────────
+    body = (
+        banner
+        + status_strip
+        + recommendation
+        + weekly_card
+        + fitness_chart
+        + "<div class='cards-row' style='align-items:stretch;'>"
+        + darp_card + fitness_card + rmr_card
+        + "</div>"
+        + risk_pills
+        + activity_list
     )
+
+    return render_template("dashboard.html", body=body, active_tab="dashboard")
