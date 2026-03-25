@@ -22,7 +22,7 @@ from src.services.unified_activities import (
     UnifiedActivity,
     fetch_unified_activities,
 )
-from .helpers import bottom_nav, db_path, fmt_duration, html_page
+from .helpers import db_path, fmt_duration, html_page
 
 activities_bp = Blueprint("activities", __name__)
 

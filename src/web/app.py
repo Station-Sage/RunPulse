@@ -135,10 +135,15 @@ def create_app() -> Flask:
 
     @app.context_processor
     def _inject_ui_context():
+        try:
+            _dev = bool(load_config().get("dev_mode", False))
+        except Exception:
+            _dev = False
         return {
             "stylesheet": _CSS,
             "nav_html": _build_nav(),
             "sync_js": _SYNC_JS,
+            "dev_mode": _dev,
         }
 
     app.jinja_env.globals["bottom_nav"] = bottom_nav

@@ -36,7 +36,7 @@ def _db_path() -> Path:
 def _html_page(title: str, body: str) -> str:
     """helpers.html_page 위임 — CSS/nav 중복 제거."""
     from .helpers import html_page as _hp
-    return _hp(title, body)
+    return _hp(title, body, active_tab="dev", dev_mode=True)
 
 
 def _query_rows(conn: sqlite3.Connection, sql: str) -> list[tuple]:

@@ -7,7 +7,7 @@ import json
 import sqlite3
 from flask import Blueprint, request
 from src.web.helpers import (
-    html_page, bottom_nav, no_data_card, fmt_pace, fmt_duration, db_path,
+    html_page, no_data_card, fmt_pace, fmt_duration, db_path,
     metric_row, svg_semicircle_gauge,
 )
 
@@ -202,7 +202,7 @@ def race_page():
     dbp = db_path()
     if not dbp or not dbp.exists():
         body = no_data_card("레이스 예측", "데이터 수집 중입니다. 동기화 후 확인하세요.")
-        return html_page("레이스 예측", body + bottom_nav("report"))
+        return html_page("레이스 예측", body, active_tab="report")
 
     try:
         conn = sqlite3.connect(str(dbp))
@@ -233,7 +233,7 @@ def race_page():
             + "</p><p class='muted'>데이터 수집 중이거나 DB에 문제가 있을 수 있습니다.</p></div>"
         )
 
-    return html_page("레이스 예측", body + bottom_nav("report"))
+    return html_page("레이스 예측", body, active_tab="report")
 
 
 def _load_di(conn):

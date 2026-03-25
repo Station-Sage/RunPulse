@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from flask import Blueprint
 
-from src.web.helpers import html_page, bottom_nav, no_data_card
+from src.web.helpers import html_page, no_data_card
 
 training_bp = Blueprint("training", __name__)
 
@@ -73,4 +73,4 @@ def training_page():
         + _render_coming_soon()
         + "</div>"
     )
-    return html_page("훈련 계획", body + bottom_nav("training"))
+    return html_page("훈련 계획", body, active_tab="training")

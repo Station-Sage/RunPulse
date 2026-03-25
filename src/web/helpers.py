@@ -642,7 +642,7 @@ def html_page(
     body: str,
     extra_head: str = "",
     active_tab: str = "",
-    dev_mode: bool = False,
+    dev_mode: bool | None = None,
 ) -> str:
     """전체 HTML 페이지 생성 (스티키 헤더 + 드롭다운 nav + 하단 7탭 nav 포함).
 
@@ -651,8 +651,13 @@ def html_page(
         body: main 영역 HTML.
         extra_head: <head> 내 추가 태그 (스크립트/스타일).
         active_tab: 하단 7탭 nav 활성 탭 키. 빈 문자열이면 nav 미표시.
-        dev_mode: True 이면 개발자 탭 노출.
+        dev_mode: True/False 명시 또는 None(config에서 자동 읽기).
     """
+    if dev_mode is None:
+        try:
+            dev_mode = bool(load_config().get("dev_mode", False))
+        except Exception:
+            dev_mode = False
     nav_html = _build_nav()
     bottom = bottom_nav(active_tab, dev_mode) if active_tab else ""
     return f"""<!doctype html>

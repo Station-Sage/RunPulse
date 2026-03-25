@@ -7,7 +7,7 @@ import json
 import sqlite3
 from flask import Blueprint
 from src.web.helpers import (
-    html_page, bottom_nav, no_data_card, fmt_pace, db_path,
+    html_page, no_data_card, fmt_pace, db_path,
 )
 
 ai_coach_bp = Blueprint("ai_coach", __name__)
@@ -182,7 +182,7 @@ def ai_coach_page():
     dbp = db_path()
     if not dbp or not dbp.exists():
         body = no_data_card("AI 코치", "데이터 수집 중입니다. 동기화 후 확인하세요.")
-        return html_page("AI 코칭", body + bottom_nav("ai-coach"))
+        return html_page("AI 코칭", body, active_tab="ai-coach")
 
     try:
         conn = sqlite3.connect(str(dbp))
@@ -209,4 +209,4 @@ def ai_coach_page():
             + "</p><p class='muted'>데이터 수집 중이거나 DB에 문제가 있을 수 있습니다.</p></div>"
         )
 
-    return html_page("AI 코칭", body + bottom_nav("ai-coach"))
+    return html_page("AI 코칭", body, active_tab="ai-coach")
