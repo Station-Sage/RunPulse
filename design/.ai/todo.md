@@ -501,8 +501,12 @@
 - [x] V2-9-11: 테스트 전면 수정 ✅ 완료 (2026-03-25)
   - 21개 테스트 오류 수정 (15 failed + 6 errors → 792 passed)
   - fitparse/garth lazy import, fixture 파라미터 수정
-- [ ] V2-9-8: `.ai/changelog.md` 업데이트
-- [ ] V2-9-9: Mapbox 토큰 설정 추가 (`config.json` `mapbox.token` 키, 활동 상세 지도용)
+- [x] V2-9-8: `.ai/changelog.md` 업데이트 ✅ 완료 (2026-03-25)
+- [x] V2-9-9: Mapbox 토큰 설정 추가 ✅ 완료 (2026-03-25)
+  - `config.json.example`에 `mapbox.token` 키 추가
+  - `/settings`에 Mapbox 토큰 입력/저장 UI 섹션
+  - `POST /settings/mapbox` 토큰 저장 핸들러
+  - `_render_map_placeholder()` → 토큰+GPS 데이터 존재 시 Mapbox GL JS 지도 렌더링
 
 ---
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.2-sprint6-final] 2026-03-25
+
+### 추가
+
+**V2-9-6: 웹 뷰 통합 테스트 37개**
+- `tests/test_web_dashboard.py` (12개): 기본 렌더링, DB 미존재, 활동/메트릭 시드, PMC/RMR 카드, resync 배너, /analyze/* 리다이렉트
+- `tests/test_web_report.py` (11개): 기간 파라미터(week/month/3month), 폴백, 요약 카드, 주별 차트, 메트릭 테이블, 탭
+- `tests/test_web_race.py` (14개): 거리 선택기(5K/10K/하프/풀), DARP/DI/페이스전략/HTW 카드, no-data 처리
+
+**V2-9-7: /analyze/* 레거시 경로 리다이렉트**
+- `src/web/app.py`: `/analyze/today` → `/dashboard`, `/analyze/full` → `/report`, `/analyze/race` → `/race`
+- `src/web/helpers.py`: 네비게이션 메뉴 링크 신규 경로로 업데이트
+
+**V2-9-9: Mapbox 토큰 설정**
+- `src/web/views_settings.py`: 설정 페이지에 Mapbox 토큰 입력/저장 섹션 추가
+- `config.json.example`: `mapbox.token` 키 추가
+- `src/web/views_activity_cards.py`: 토큰 존재 시 Mapbox GL JS 지도 렌더링
+
+### 테스트
+- 전체 829개 통과 (기존 792 + 신규 37)
+
+---
+
 ## [v0.2-sprint5-audit] 2026-03-25
 
 ### API 데이터 감사 후 수정

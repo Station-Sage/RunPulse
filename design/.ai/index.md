@@ -13,9 +13,9 @@
 | 작업 브랜치 | `claude/sprint6-settings-refactor` (dev 기반) |
 | v0.1 기반 | `main` 브랜치에 태그됨, 테스트 652개 통과 |
 | 현재 테스트 | **792개 통과** (gpxpy 미설치 2개 collect error 별개) |
-| 완료 | Phase 0~7 · Sprint 4A~5F · Sprint 6 전체 (V2-8-1b/V2-9-3~V2-9-7/V2-9-10~11/B-1~B-3) |
+| 완료 | Phase 0~7 · Sprint 4A~5F · Sprint 6 전체 (V2-8-1b/V2-9-3~V2-9-11/B-1~B-3) |
 | 현재 테스트 | **829개 통과** (기존 792 + 신규 37) |
-| 다음 작업 | V2-9-8 changelog · V2-9-9 Mapbox 토큰 · 탭 UI 리뉴얼 |
+| 다음 작업 | 탭 UI 리뉴얼 · Phase 9 완료 |
 
 ---
 

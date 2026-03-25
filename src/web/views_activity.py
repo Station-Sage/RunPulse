@@ -182,7 +182,7 @@ def activity_deep_view():
         + _render_pmc_sparkline_card(pmc_series)
         + "<div class='cards-row'>"
         + _render_di_card(day_metrics_data)
-        + _render_map_placeholder()
+        + _render_map_placeholder(resolved_id)
         + "</div>"
         + _render_splits(splits)
     )
