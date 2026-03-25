@@ -1,7 +1,7 @@
 """분석 레포트 뷰 — Flask Blueprint.
 
-/report?period=week|month|3month
-  - 기간 선택 탭
+/report?period=today|week|month|quarter|year|1year|custom&start=...&end=...
+  - 기간 선택 탭 (7개 + custom 날짜 선택)
   - 요약 카드 (활동 수/거리/시간/평균 UTRS)
   - 주별 거리 ECharts 바차트
   - 활동별 메트릭 테이블 (FEARP/GAP/Relative Effort/Decoupling)
@@ -9,13 +9,12 @@
 from __future__ import annotations
 
 import html as _html
-import json
 import sqlite3
 from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request
 
-from .helpers import db_path, fmt_duration, fmt_pace, no_data_card, render_sub_nav
+from .helpers import db_path, render_sub_nav
 from .views_report_sections import (
     _load_adti,
     _load_darp_latest,
@@ -23,22 +22,29 @@ from .views_report_sections import (
     _load_risk_overview,
     _load_tids_data,
     _load_trimp_weekly,
-    render_ai_insight_placeholder,
+    render_ai_insight,
     render_darp_card,
     render_endurance_trend,
     render_export_buttons,
     render_fitness_trend,
+    render_metrics_table,
     render_risk_overview,
+    render_summary_cards,
     render_tids_section,
     render_trimp_weekly_chart,
+    render_weekly_chart,
 )
 
 report_bp = Blueprint("report", __name__)
 
 _PERIODS: dict[str, tuple[str, int]] = {
-    "week":   ("이번 주 (7일)",    7),
-    "month":  ("이번 달 (30일)",   30),
-    "3month": ("최근 3개월 (90일)", 90),
+    "today":   ("오늘",            1),
+    "week":    ("7일",             7),
+    "month":   ("30일",            30),
+    "quarter": ("3개월",           90),
+    "year":    ("올해",            -1),   # 1/1~오늘 (days는 동적 계산)
+    "1year":   ("최근 1년",        365),
+    "custom":  ("기간 선택",       0),    # start/end 쿼리 파라미터
 }
 
 
@@ -116,139 +122,53 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
 # ── 렌더링 헬퍼 ──────────────────────────────────────────────────────────────
 
 
-def _render_period_tabs(current: str) -> str:
-    """기간 선택 탭 HTML."""
+def _render_period_tabs(current: str, custom_start: str = "", custom_end: str = "") -> str:
+    """기간 선택 탭 HTML (7개 + custom 날짜 입력)."""
     tabs = []
     for key, (label, _) in _PERIODS.items():
+        if key == "custom":
+            continue  # custom은 별도 렌더링
         active = "border-bottom:2px solid var(--cyan);color:var(--cyan);" if key == current else ""
         tabs.append(
-            f"<a href='/report?period={key}' style='padding:0.5rem 1rem;"
-            f"text-decoration:none;color:var(--secondary);font-size:0.9rem;{active}'>{label}</a>"
+            f"<a href='/report?period={key}' style='padding:0.4rem 0.7rem;"
+            f"text-decoration:none;color:var(--secondary);font-size:0.85rem;"
+            f"white-space:nowrap;{active}'>{label}</a>"
         )
+    # custom 탭
+    custom_active = "border-bottom:2px solid var(--cyan);color:var(--cyan);" if current == "custom" else ""
+    tabs.append(
+        f"<a href='#' onclick=\"document.getElementById('customRange').style.display="
+        f"document.getElementById('customRange').style.display==='none'?'flex':'none';"
+        f"return false;\" style='padding:0.4rem 0.7rem;text-decoration:none;"
+        f"color:var(--secondary);font-size:0.85rem;white-space:nowrap;{custom_active}'>기간 선택</a>"
+    )
+    today = date.today().isoformat()
+    cs = custom_start or (date.today() - timedelta(days=30)).isoformat()
+    ce = custom_end or today
+    show = "flex" if current == "custom" else "none"
+    custom_row = (
+        f"<div id='customRange' style='display:{show};gap:0.5rem;align-items:center;"
+        f"padding:0.5rem 0;flex-wrap:wrap;font-size:0.85rem;'>"
+        f"<input type='date' id='csInput' value='{cs}' max='{today}' "
+        f"style='background:var(--card-bg);color:var(--fg);border:1px solid var(--card-border);"
+        f"border-radius:8px;padding:0.3rem 0.5rem;font-size:0.85rem;'/>"
+        f"<span style='color:var(--muted);'>~</span>"
+        f"<input type='date' id='ceInput' value='{ce}' max='{today}' "
+        f"style='background:var(--card-bg);color:var(--fg);border:1px solid var(--card-border);"
+        f"border-radius:8px;padding:0.3rem 0.5rem;font-size:0.85rem;'/>"
+        f"<a onclick=\"location.href='/report?period=custom&start='+document.getElementById('csInput').value"
+        f"+'&end='+document.getElementById('ceInput').value\" "
+        f"style='cursor:pointer;background:var(--cyan);color:#000;padding:0.3rem 0.8rem;"
+        f"border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;'>적용</a>"
+        f"</div>"
+    )
     return (
         "<div style='display:flex;border-bottom:1px solid var(--card-border);"
-        "margin-bottom:1rem;flex-wrap:wrap;'>" + "".join(tabs) + "</div>"
+        "margin-bottom:0.5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;'>"
+        + "".join(tabs) + "</div>" + custom_row
     )
 
 
-def _render_summary_cards(stats: dict, metrics_avg: dict) -> str:
-    """요약 지표 카드 4개 (2×2 grid)."""
-    utrs_avg = metrics_avg.get("UTRS")
-    cirs_avg = metrics_avg.get("CIRS")
-
-    def _stat_card(title: str, value: str, color: str = "var(--fg)") -> str:
-        return (
-            f"<div class='card'>"
-            f"<h2 style='font-size:0.8rem;color:var(--muted);margin-bottom:0.3rem;'>{title}</h2>"
-            f"<p style='font-size:1.8rem;font-weight:700;margin:0;color:{color};'>{value}</p>"
-            f"</div>"
-        )
-
-    utrs_str = f"{utrs_avg:.0f}" if utrs_avg is not None else "—"
-    cirs_str = f"{cirs_avg:.0f}" if cirs_avg is not None else "—"
-    km_per_act = (
-        f"{stats['total_km'] / stats['count']:.1f} km/회"
-        if stats["count"] > 0 else "—"
-    )
-
-    return (
-        "<div class='cards-row'>"
-        + _stat_card("활동 수", f"{stats['count']}회")
-        + _stat_card("총 거리", f"{stats['total_km']:.1f} km", "var(--cyan)")
-        + _stat_card("총 시간", fmt_duration(stats["total_sec"]))
-        + _stat_card("평균 거리", km_per_act)
-        + "</div>"
-        "<div class='cards-row'>"
-        + _stat_card("평균 UTRS", utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
-        + _stat_card("평균 CIRS", cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
-        + "</div>"
-    )
-
-
-def _render_weekly_chart(weekly_data: list[dict]) -> str:
-    """ECharts 주별 거리 바차트."""
-    if not weekly_data:
-        return no_data_card("주별 거리 추세", "데이터 수집 중입니다")
-
-    labels = [d["week"] for d in weekly_data]
-    values = [d["km"] for d in weekly_data]
-    avg_km = sum(values) / len(values) if values else 0
-    labels_json = json.dumps(labels)
-    values_json = json.dumps(values)
-
-    return f"""
-<div class='card'>
-  <h2 style='font-size:1rem;margin-bottom:0.8rem;'>주별 거리 추세</h2>
-  <div id='weeklyDistChart' style='height:200px;'></div>
-  <p class='muted' style='font-size:0.78rem;margin:0.4rem 0 0;'>주평균 {avg_km:.1f} km</p>
-</div>
-<script>
-(function() {{
-  var el = document.getElementById('weeklyDistChart');
-  if (!el || typeof echarts === 'undefined') return;
-  var chart = echarts.init(el, 'dark', {{backgroundColor: 'transparent'}});
-  chart.setOption({{
-    backgroundColor: 'transparent',
-    tooltip: {{ trigger: 'axis',
-      formatter: function(p) {{ return p[0].axisValue + '<br>거리: ' + p[0].value.toFixed(1) + ' km'; }}
-    }},
-    grid: {{ left: 48, right: 12, bottom: 40, top: 16 }},
-    xAxis: {{ type: 'category', data: {labels_json},
-      axisLabel: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10, rotate: 30 }} }},
-    yAxis: {{ type: 'value', name: 'km',
-      nameTextStyle: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }},
-      axisLabel: {{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }},
-      splitLine: {{ lineStyle: {{ color: 'rgba(255,255,255,0.08)' }} }} }},
-    series: [{{
-      type: 'bar', data: {values_json},
-      itemStyle: {{ color: '#00d4ff', borderRadius: [4,4,0,0] }},
-      markLine: {{ silent: true, data: [{{
-        type: 'average',
-        label: {{ formatter: 'avg {{c}} km', color: '#ffaa00', fontSize: 10 }},
-        lineStyle: {{ color: '#ffaa00', type: 'dashed' }}
-      }}] }}
-    }}]
-  }});
-  window.addEventListener('resize', function() {{ chart.resize(); }});
-}})();
-</script>"""
-
-
-def _render_metrics_table(activities: list[dict]) -> str:
-    """활동별 메트릭 요약 테이블."""
-    if not activities:
-        return ""
-
-    rows_html = ""
-    for a in activities:
-        fearp_str = f"{fmt_pace(a['fearp'])}/km" if a["fearp"] is not None else "—"
-        re_str = f"{float(a['relative_effort']):.0f}" if a["relative_effort"] is not None else "—"
-        dec_str = f"{float(a['decoupling']):.1f}%" if a["decoupling"] is not None else "—"
-        pace_str = f"{fmt_pace(a['pace'])}/km" if a["pace"] is not None else "—"
-        dist_str = f"{float(a['dist_km']):.1f}" if a["dist_km"] is not None else "—"
-
-        rows_html += (
-            f"<tr>"
-            f"<td>{_html.escape(a['date'])}</td>"
-            f"<td>{dist_str} km</td>"
-            f"<td>{pace_str}</td>"
-            f"<td>{fearp_str}</td>"
-            f"<td>{re_str}</td>"
-            f"<td>{dec_str}</td>"
-            f"</tr>"
-        )
-
-    return (
-        "<div class='card'>"
-        "<h2 style='font-size:1rem;margin-bottom:0.6rem;'>최근 활동 메트릭</h2>"
-        "<div style='overflow-x:auto;'>"
-        "<table><thead><tr>"
-        "<th>날짜</th><th>거리</th><th>페이스</th>"
-        "<th>FEARP</th><th>Rel.Effort</th><th>Decoupling</th>"
-        "</tr></thead><tbody>"
-        + rows_html
-        + "</tbody></table></div></div>"
-    )
 
 
 # ── 라우트 ───────────────────────────────────────────────────────────────────
@@ -264,12 +184,43 @@ def report_view():
         )
 
     period = request.args.get("period", "week")
+    if period == "3month":
+        period = "quarter"  # 하위 호환
     if period not in _PERIODS:
         period = "week"
     period_label, days = _PERIODS[period]
 
-    end_date = date.today().isoformat()
-    start_date = (date.today() - timedelta(days=days)).isoformat()
+    today = date.today()
+    custom_start_str = ""
+    custom_end_str = ""
+
+    if period == "year":
+        # 올해 1/1 ~ 오늘
+        start_date = date(today.year, 1, 1).isoformat()
+        end_date = today.isoformat()
+        days = (today - date(today.year, 1, 1)).days or 1
+    elif period == "custom":
+        custom_start_str = request.args.get("start", "")
+        custom_end_str = request.args.get("end", "")
+        try:
+            sd = date.fromisoformat(custom_start_str)
+            ed = date.fromisoformat(custom_end_str)
+            if sd > ed:
+                sd, ed = ed, sd
+            if ed > today:
+                ed = today
+            start_date = sd.isoformat()
+            end_date = ed.isoformat()
+            days = (ed - sd).days or 1
+            period_label = f"{start_date} ~ {end_date}"
+        except (ValueError, TypeError):
+            period = "week"
+            period_label, days = _PERIODS[period]
+            start_date = (today - timedelta(days=days)).isoformat()
+            end_date = today.isoformat()
+    else:
+        end_date = today.isoformat()
+        start_date = (today - timedelta(days=days)).isoformat()
 
     try:
         with sqlite3.connect(str(dpath)) as conn:
@@ -283,6 +234,7 @@ def report_view():
             adti_val = _load_adti(conn, end_date)
             darp_data = _load_darp_latest(conn, end_date)
             vdot, shape = _load_fitness_data(conn, end_date)
+            ai_insight_html = render_ai_insight(conn, start_date, end_date)
     except Exception as exc:
         return render_template(
             "generic_page.html", title="레포트", active_tab="report",
@@ -291,9 +243,9 @@ def report_view():
 
     body = (
         render_sub_nav("report")
-        + _render_period_tabs(period)
-        + _render_summary_cards(stats, metrics_avg)
-        + _render_weekly_chart(weekly_data)
+        + _render_period_tabs(period, custom_start_str, custom_end_str)
+        + render_summary_cards(stats, metrics_avg)
+        + render_weekly_chart(weekly_data)
         + render_tids_section(tids_data)
         + render_trimp_weekly_chart(trimp_weekly)
         + "<div class='cards-row' style='align-items:start;'>"
@@ -304,8 +256,8 @@ def report_view():
         + render_darp_card(darp_data)
         + render_fitness_trend(vdot, shape)
         + "</div>"
-        + _render_metrics_table(activity_metrics)
-        + render_ai_insight_placeholder()
+        + render_metrics_table(activity_metrics)
+        + ai_insight_html
         + render_export_buttons(period)
     )
 

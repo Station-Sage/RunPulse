@@ -6,6 +6,15 @@ DI(t) = (pace_t / pace_0) / (HR_t / HR_0)
 
 요약: 최근 8주 90분+ 세션의 DI 평균
 최소 데이터: 90분+ 세션 8주간 3회 이상 (미충족 시 None)
+
+[비전-코드 공식 차이] (D-V2-08b 기준, PDF 우선 채택)
+  - PDF 원본 (채택): pace/HR 비율법 — DI = (pace_t/pace_0) / (HR_t/HR_0)
+    → HR 변화를 반영하여 진정한 내구성 측정 (동일 HR 대비 페이스 유지력)
+  - Claude 연구: 페이스 저하율법 — DI = 100 - clamp(pace_drop_pct * 5, 0, 100)
+    → HR 무시, 단순 페이스 하락만 측정. 스케일 0-100
+  - 핵심 차이: Claude 버전은 HR 컨텍스트 없어 과도한 노력으로 페이스를 유지한 경우를
+    내구성 양호로 오판할 수 있음
+  비교: v0.2/.ai/metrics.md (PDF) vs v0.2/.ai/metrics_by_claude.md (Claude)
 """
 from __future__ import annotations
 

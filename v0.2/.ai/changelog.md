@@ -2,6 +2,49 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.2-sprint7] 2026-03-25
+
+### 추가/변경
+
+**V2-5-3: Report AI 인사이트 실체화**
+- `views_report_sections.py`: `render_ai_insight()` — 기간별 규칙 기반 메트릭 분석 (UTRS 추세, CIRS 경고, Monotony, TIDS 편향, ACWR 상태)
+- placeholder 제거, 실 데이터 연동
+
+**V2-5-4: Report 기간 선택기 7개 확장**
+- `views_report.py`: `_PERIODS` 7개 (today/week/month/quarter/year/1year/custom)
+- custom 기간: 날짜 입력 UI + 쿼리 파라미터 파싱
+- `3month` → `quarter` 하위 호환 리다이렉트
+- 탭 UI 모바일 대응 (overflow-x:auto)
+
+**V2-6-1a~f: 레이스 예측 UI 보강**
+- 거리 선택기 카드 래핑 + "목표 레이스 선택" 타이틀
+- 스플릿 그리드 색상 코딩 (전반=green, 후반=yellow/orange)
+- VDOT/예상 순위(percentile) 표시 (DARP JSON에서)
+- DI 게이지 3단계(부족/양호/우수) + 세션 수/등급 설명 자동 생성
+
+**V2-7-1a~e: AI 코칭 UI 보강**
+- 코치 프로필: 80px 아바타 + 펄스 애니메이션 상태 표시등
+- 브리핑 카드: 타임스탬프 + 재생성/공유 액션 버튼
+- 채팅 UI: 샘플 AI 메시지 + 입력 필드 + 전송 버튼 + 빠른 질문 칩 (v0.3 대비 레이아웃)
+
+**V2-9-12: decisions.md Settings Platform Roadmap**
+- D-V2-17 항목 추가 (v0.2→v0.3→v0.4 3단계 진화 로드맵)
+
+**V2-9-13: DI/CIRS 비전-코드 공식 불일치 주석**
+- `di.py`, `cirs.py` docstring에 PDF vs Claude 연구 버전 차이 상세 기술
+
+**V2-9-14 / B-4: RMR 6축→5축 수정**
+- `app-UI/dashboard.html` SVG: 정육각형→정오각형, "경제성" 라벨 제거
+
+### 리팩터링
+- `views_report.py` → `views_report_sections.py`: `render_summary_cards`, `render_weekly_chart`, `render_metrics_table` 이동 (300줄 제한 준수)
+
+### 마이그레이션
+- V2-9-4a (GPX/FIT/TCX Import), V2-9-4b (CSV/JSON Export) → v0.4로 이동
+
+### 테스트
+- 884 passed (6개 신규 테스트: period_today, period_year, period_1year, period_custom, custom_invalid, period_quarter)
+
 ## [v0.2-sprint6-final] 2026-03-25
 
 ### 추가

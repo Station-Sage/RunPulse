@@ -113,27 +113,42 @@ def _load_chips(conn: sqlite3.Connection) -> list[dict]:
 
 def _render_coach_profile() -> str:
     return (
+        '<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}</style>'
         '<div style="background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(0,255,136,0.1));'
         'border-radius:20px;padding:24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;'
         'border:1px solid rgba(0,212,255,0.3)">'
-        '<div style="width:64px;height:64px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
-        'border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px">'
+        '<div style="width:80px;height:80px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px">'
         '🤖</div>'
-        '<div><h2 style="font-size:18px;margin:0 0 4px">RunPulse AI 코치</h2>'
-        '<p style="font-size:13px;color:rgba(255,255,255,0.6);margin:0">'
-        '개인 맞춤형 훈련 분석 및 조언</p></div></div>'
+        '<div><h2 style="font-size:20px;margin:0 0 8px">RunPulse AI 코치</h2>'
+        '<p style="font-size:14px;color:rgba(255,255,255,0.7);margin:0 0 8px">'
+        '개인 맞춤형 훈련 분석 및 조언</p>'
+        '<div style="display:flex;align-items:center;gap:8px">'
+        '<span style="width:8px;height:8px;background:#00ff88;border-radius:50%;'
+        'animation:pulse 2s infinite;display:inline-block"></span>'
+        '<span style="font-size:14px;color:#00ff88">온라인</span></div></div></div>'
     )
 
 
 def _render_briefing_card(briefing_text: str | None) -> str:
+    from datetime import datetime
     if not briefing_text:
         return no_data_card("오늘의 브리핑", "메트릭 데이터가 수집되면 브리핑이 생성됩니다")
+    now_str = datetime.now().strftime("%Y년 %m월 %d일 %H:%M")
     return (
         '<div class="card" style="border-left:4px solid #00d4ff;margin-bottom:16px;">'
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">'
         '<h3 style="margin:0;">오늘의 브리핑</h3>'
-        '<span style="font-size:0.75rem;color:var(--muted);">메트릭 기반 자동 생성</span></div>'
-        f'<div style="font-size:0.92rem;line-height:1.7;color:rgba(255,255,255,0.9)">'
+        '<div style="display:flex;align-items:center;gap:8px;">'
+        f'<span style="font-size:0.75rem;color:var(--muted);">{now_str}</span>'
+        '<button onclick="location.reload()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;'
+        'padding:6px 12px;border-radius:16px;cursor:pointer;font-size:0.75rem;">재생성</button>'
+        '<button onclick="if(navigator.clipboard){navigator.clipboard.writeText(document.querySelector('
+        "'.briefing-body').innerText).then(function(){alert('복사됨');});}\" "
+        'style="background:rgba(255,255,255,0.1);border:none;color:#fff;'
+        'padding:6px 12px;border-radius:16px;cursor:pointer;font-size:0.75rem;">공유</button>'
+        '</div></div>'
+        f'<div class="briefing-body" style="font-size:0.92rem;line-height:1.7;color:rgba(255,255,255,0.9)">'
         f'{briefing_text}</div></div>'
     )
 
@@ -201,17 +216,47 @@ def _render_chips(chips: list[dict]) -> str:
     )
 
 
-def _render_chat_placeholder() -> str:
-    """채팅 인터페이스 placeholder."""
+def _render_chat_section() -> str:
+    """채팅 인터페이스 (v0.3 대비 레이아웃 + 샘플 메시지)."""
+    ai_avatar = (
+        '<div style="width:40px;height:40px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;'
+        'font-size:18px">🤖</div>'
+    )
     return (
         '<div class="card" style="margin-bottom:16px;">'
         '<h3 style="margin:0 0 12px;">대화</h3>'
-        '<div style="background:rgba(255,255,255,0.03);border-radius:16px;'
-        'padding:40px;text-align:center;min-height:120px;'
-        'display:flex;flex-direction:column;align-items:center;justify-content:center;">'
-        '<span style="font-size:1.5rem;margin-bottom:8px;">💬</span>'
-        '<p class="muted" style="margin:0;font-size:0.9rem;">대화형 AI 코칭</p>'
-        '<p class="muted" style="margin:4px 0 0;font-size:0.78rem;">v0.3에서 추가됩니다</p></div></div>'
+        '<div style="background:rgba(255,255,255,0.03);border-radius:16px;padding:20px;min-height:160px;">'
+        # 샘플 AI 메시지
+        f'<div style="display:flex;gap:12px;margin-bottom:16px">{ai_avatar}'
+        '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+        'border-radius:16px;padding:12px 16px;max-width:75%">'
+        '<p style="font-size:14px;line-height:1.5;margin:0">안녕하세요! RunPulse AI 코치입니다. '
+        '오늘의 훈련 계획이나 메트릭에 대해 궁금한 점이 있으신가요?</p>'
+        '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">자동 생성</div>'
+        '</div></div>'
+        '</div>'
+        # 채팅 입력 UI (v0.3 대비)
+        '<div style="display:flex;gap:12px;align-items:center;margin-top:12px">'
+        '<input type="text" placeholder="AI 코치에게 질문하세요..." disabled '
+        'style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
+        'border-radius:24px;padding:12px 20px;color:#fff;font-size:14px;outline:none;opacity:0.5"/>'
+        '<button disabled style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        'border:none;border-radius:50%;color:#fff;font-size:20px;cursor:not-allowed;opacity:0.5" '
+        'title="v0.3에서 활성화">➤</button></div>'
+        # 빠른 질문 칩
+        '<div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px">'
+        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
+        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
+        '"오늘 훈련 강도는?"</button>'
+        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
+        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
+        '"마라톤 준비도 확인"</button>'
+        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
+        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
+        '"FEARP 보정 방법"</button></div>'
+        '<p class="muted" style="margin:8px 0 0;font-size:0.72rem;text-align:center;">'
+        'v0.3에서 대화형 AI 코칭이 활성화됩니다</p></div>'
     )
 
 
@@ -239,7 +284,7 @@ def ai_coach_page():
                 + _render_wellness_card(wellness)
                 + _render_briefing_card(briefing_text)
                 + _render_chips(chips)
-                + _render_chat_placeholder()
+                + _render_chat_section()
                 + '</div>'
             )
         finally:

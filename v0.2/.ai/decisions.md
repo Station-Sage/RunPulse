@@ -88,6 +88,14 @@
   - TPDI: Strava/Garmin trainer 컬럼(서비스 데이터) + FEARP(RunPulse 1차) 조합
   - UI에서 RunPulse 메트릭(`computed_metrics`)을 primary, 서비스 1차 메트릭을 secondary subtab으로 표시
 
+## D-V2-17: Settings Platform Roadmap
+- **결정**: 설정 페이지 진화 로드맵을 3단계로 설정
+  - v0.2: 4소스 연결 상태 확인 + API 키/토큰 설정 (현재)
+  - v0.3: 인증/로그인, PWA 설정, REST API 키 관리, 알림 설정, 데이터 백업/복원
+  - v0.4: 멀티유저 프로필 관리, 모바일 앱 연동 설정, ML 모델 파라미터 튜닝
+- **이유**: 설정 페이지가 버전별로 확장되므로 로드맵을 미리 문서화하여 UI/DB 설계 시 확장성 고려
+- **결과**: `views_settings.py` 확장 시 이 로드맵 참조, v0.3 인증 시스템과 자연스럽게 통합
+
 ## D-V2-15: sync 병렬화는 src/sync/__init__.py에 _sync_source 배치
 - **결정**: SOURCES 딕트와 _sync_source 함수를 `src/sync/__init__.py`에 두고, `src/sync.py` CLI는 이를 임포트
 - **이유**: Python 패키지 우선 규칙 — `src/sync/`(패키지)가 있으면 `src.sync`는 패키지를 가리킴. CLI 파일(`src/sync.py`)에 둔 함수는 `from src.sync import`로 접근 불가
