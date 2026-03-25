@@ -11,16 +11,14 @@
 - [ ] **6.4~6.8**: UI 보완 (v0.2_ui_gap_analysis.md 기준, 다음 스프린트)
 - [ ] **S5-C2**: 대폭 확장된 데이터 반영 UI 전면 재설계
   - Sprint 5-A~C로 추가된 데이터(날씨/존/running dynamics/running tolerance 등) UI 노출
-- [ ] **V2-5-3**: Report AI 인사이트 실체화 (briefing.py 연결)
-- [ ] **V2-5-4**: Report 기간 선택기 7개 확장 (today/week/month/quarter/year/1year/custom)
-- [ ] **V2-6-1a~f**: 레이스 예측 UI 참고 디자인 수준 보강
-- [ ] **V2-7-1a~e**: AI 코칭 UI 참고 디자인 수준 보강
-- [ ] **V2-9-4a**: GPX/FIT/TCX 개별 파일 Import
-- [ ] **V2-9-4b**: CSV/JSON Export
-- [ ] **V2-9-12**: decisions.md Settings Platform Roadmap 추가
-- [ ] **V2-9-13**: 비전-코드 DI/CIRS 공식 불일치 주석
-- [ ] **V2-9-14**: design/app-UI/dashboard.html RMR 6축→5축 수정
-- [ ] **B-4**: 참고 디자인 RMR 5축 수정 (V2-9-14와 동일)
+- [x] **V2-5-3**: Report AI 인사이트 실체화 (규칙 기반 메트릭 분석, briefing.py 구조 활용)
+- [x] **V2-5-4**: Report 기간 선택기 7개 확장 (today/week/month/quarter/year/1year/custom)
+- [x] **V2-6-1a~f**: 레이스 예측 UI 참고 디자인 수준 보강 (splits 그리드, VDOT/순위, DI 게이지)
+- [x] **V2-7-1a~e**: AI 코칭 UI 참고 디자인 수준 보강 (프로필 애니메이션, 브리핑 액션, 채팅 레이아웃)
+- [x] **V2-9-12**: decisions.md Settings Platform Roadmap 추가 (D-V2-17)
+- [x] **V2-9-13**: 비전-코드 DI/CIRS 공식 불일치 주석
+- [x] **V2-9-14**: design/app-UI/dashboard.html RMR 6축→5축 수정
+- [x] **B-4**: 참고 디자인 RMR 5축 수정 (V2-9-14와 동일)
 
 ### v0.3 예정 (메트릭)
 
@@ -45,6 +43,8 @@
 - [ ] React Native 모바일 앱
 - [ ] **V4-1-1**: TQI (훈련 품질 지수) — ML 기반
 - [ ] **V4-1-2**: PLTD (개인화 역치 자동 탐지) — ML 기반
+- [ ] **V2-9-4a**: GPX/FIT/TCX 개별 파일 Import (v0.2에서 이동)
+- [ ] **V2-9-4b**: CSV/JSON Export (v0.2에서 이동)
 
 ---
 ---

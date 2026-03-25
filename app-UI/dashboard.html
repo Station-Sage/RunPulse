@@ -252,34 +252,33 @@
             <div class="chart-title">러너 성숙도 레이더 (RMR)</div>
             <div class="radar-container">
                 <svg class="radar-svg" viewBox="0 0 300 300">
-                    <!-- Background grid -->
-                    <polygon points="150,50 230,100 230,200 150,250 70,200 70,100" 
+                    <!-- Background grid (5축 정오각형, D-V2-09) -->
+                    <!-- 꼭짓점: 150,50 / 245,119 / 209,231 / 91,231 / 55,119 (중심150,150 반지름100) -->
+                    <polygon points="150,50 245,119 209,231 91,231 55,119"
                              fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                    <polygon points="150,75 207,112 207,187 150,225 93,187 93,112" 
+                    <polygon points="150,83 213,128 191,202 109,202 87,128"
                              fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                    <polygon points="150,100 185,125 185,175 150,200 115,175 115,125" 
+                    <polygon points="150,117 181,138 173,173 127,173 119,138"
                              fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                    
-                    <!-- Axes -->
+
+                    <!-- Axes (5개) -->
                     <line x1="150" y1="150" x2="150" y2="50" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    <line x1="150" y1="150" x2="230" y2="100" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    <line x1="150" y1="150" x2="230" y2="200" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    <line x1="150" y1="150" x2="150" y2="250" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    <line x1="150" y1="150" x2="70" y2="200" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    <line x1="150" y1="150" x2="70" y2="100" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                    
-                    <!-- Data polygon -->
-                    <polygon points="150,70 215,110 220,190 150,230 80,190 85,110" 
-                             fill="rgba(0, 212, 255, 0.3)" 
+                    <line x1="150" y1="150" x2="245" y2="119" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                    <line x1="150" y1="150" x2="209" y2="231" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                    <line x1="150" y1="150" x2="91" y2="231" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                    <line x1="150" y1="150" x2="55" y2="119" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+
+                    <!-- Data polygon (샘플 데이터, 5축) -->
+                    <polygon points="150,65 235,122 200,220 100,215 70,125"
+                             fill="rgba(0, 212, 255, 0.3)"
                              stroke="#00d4ff" stroke-width="2"/>
-                    
-                    <!-- Labels -->
+
+                    <!-- Labels (5축: 유산소용량/역치강도/지구력/동작효율성/회복력) -->
                     <text x="150" y="40" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="12">유산소 용량</text>
-                    <text x="240" y="95" text-anchor="start" fill="rgba(255,255,255,0.7)" font-size="12">역치 강도</text>
-                    <text x="240" y="210" text-anchor="start" fill="rgba(255,255,255,0.7)" font-size="12">지구력</text>
-                    <text x="150" y="265" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="12">동작 효율성</text>
-                    <text x="60" y="210" text-anchor="end" fill="rgba(255,255,255,0.7)" font-size="12">회복력</text>
-                    <text x="60" y="95" text-anchor="end" fill="rgba(255,255,255,0.7)" font-size="12">경제성</text>
+                    <text x="255" y="119" text-anchor="start" fill="rgba(255,255,255,0.7)" font-size="12">역치 강도</text>
+                    <text x="215" y="245" text-anchor="start" fill="rgba(255,255,255,0.7)" font-size="12">지구력</text>
+                    <text x="85" y="245" text-anchor="end" fill="rgba(255,255,255,0.7)" font-size="12">동작 효율성</text>
+                    <text x="45" y="119" text-anchor="end" fill="rgba(255,255,255,0.7)" font-size="12">회복력</text>
                 </svg>
             </div>
         </div>

@@ -91,17 +91,60 @@ def test_report_period_month(app_client):
 
 
 def test_report_period_3month(app_client):
-    """/report?period=3month 가 90일 기간 표시."""
+    """/report?period=3month 은 quarter로 리다이렉트 (하위 호환)."""
     client, _ = app_client
     body = client.get("/report?period=3month").data.decode("utf-8")
     assert "3개월" in body or "90일" in body
+
+
+def test_report_period_quarter(app_client):
+    """/report?period=quarter 가 90일 기간 표시."""
+    client, _ = app_client
+    body = client.get("/report?period=quarter").data.decode("utf-8")
+    assert "3개월" in body
+
+
+def test_report_period_today(app_client):
+    """/report?period=today 가 오늘 기간 표시."""
+    client, _ = app_client
+    body = client.get("/report?period=today").data.decode("utf-8")
+    assert "오늘" in body
+
+
+def test_report_period_year(app_client):
+    """/report?period=year 가 올해 기간 표시."""
+    client, _ = app_client
+    body = client.get("/report?period=year").data.decode("utf-8")
+    assert "올해" in body
+
+
+def test_report_period_1year(app_client):
+    """/report?period=1year 가 최근 1년 기간 표시."""
+    client, _ = app_client
+    body = client.get("/report?period=1year").data.decode("utf-8")
+    assert "최근 1년" in body or "1년" in body
+
+
+def test_report_period_custom(app_client):
+    """/report?period=custom&start=...&end=... 가 커스텀 기간 표시."""
+    client, _ = app_client
+    body = client.get("/report?period=custom&start=2026-01-01&end=2026-03-01").data.decode("utf-8")
+    assert "2026-01-01" in body
+    assert "2026-03-01" in body
+
+
+def test_report_custom_invalid_falls_back(app_client):
+    """custom 기간에 잘못된 날짜 시 week으로 폴백."""
+    client, _ = app_client
+    body = client.get("/report?period=custom&start=bad&end=bad").data.decode("utf-8")
+    assert "7일" in body
 
 
 def test_report_invalid_period_falls_back(app_client):
     """잘못된 period 파라미터는 week으로 폴백."""
     client, _ = app_client
     body = client.get("/report?period=invalid").data.decode("utf-8")
-    assert "이번 주" in body or "7일" in body
+    assert "7일" in body
 
 
 def test_report_no_db_shows_message(tmp_path, monkeypatch):
@@ -165,9 +208,13 @@ def test_report_metrics_table(app_client):
 # ── 기간 탭 HTML ─────────────────────────────────────────────────────────
 
 def test_report_period_tabs_present(app_client):
-    """기간 선택 탭 3개가 모두 표시된다."""
+    """기간 선택 탭 7개가 모두 표시된다."""
     client, _ = app_client
     body = client.get("/report").data.decode("utf-8")
+    assert "period=today" in body
     assert "period=week" in body
     assert "period=month" in body
-    assert "period=3month" in body
+    assert "period=quarter" in body
+    assert "period=year" in body
+    assert "period=1year" in body
+    assert "기간 선택" in body  # custom 탭

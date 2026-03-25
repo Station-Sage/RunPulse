@@ -57,19 +57,33 @@ def _load_darp(conn, km):
 
 
 def _render_distance_selector(active_km):
-    html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:20px 0">'
+    html = (
+        '<div style="background:rgba(255,255,255,0.05);border-radius:20px;padding:24px;margin:20px 0">'
+        '<div style="font-size:16px;margin-bottom:16px;color:rgba(255,255,255,0.7)">목표 레이스 선택</div>'
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px">'
+    )
     for name, km, icon in DISTANCES:
-        border = "border:2px solid #00d4ff;background:rgba(0,212,255,0.1)" if km == active_km else "border:2px solid transparent"
+        active = "border:2px solid #00d4ff;background:rgba(0,212,255,0.1)" if km == active_km else "border:2px solid transparent"
         href = f"/race?distance={km}" if km > 0 else "/race?distance=0"
+        dist_label = f"{km}km" if km > 0 else "직접 입력"
         html += (
-            f'<a href="{href}" style="text-decoration:none;color:#fff;{border};'
-            f'background:rgba(255,255,255,0.1);border-radius:16px;padding:16px;text-align:center;display:block">'
+            f'<a href="{href}" style="text-decoration:none;color:#fff;{active};'
+            f'background:rgba(255,255,255,0.1);border-radius:16px;padding:16px;text-align:center;'
+            f'display:block;transition:all 0.3s">'
             f'<div style="font-size:32px;margin-bottom:8px">{icon}</div>'
             f'<div style="font-size:14px;font-weight:600">{name}</div>'
-            f'<div style="font-size:12px;color:rgba(255,255,255,0.6)">{km}km</div></a>'
+            f'<div style="font-size:12px;color:rgba(255,255,255,0.6)">{dist_label}</div></a>'
         )
-    html += '</div>'
+    html += '</div></div>'
     return html
+
+
+def _split_color(idx: int, total: int) -> str:
+    """스플릿 인덱스에 따라 색상 지정 (앞쪽=green, 뒤쪽=yellow/orange)."""
+    if total <= 1:
+        return "#00ff88"
+    ratio = idx / (total - 1)
+    return "#00ff88" if ratio < 0.5 else "#ffaa00" if ratio < 0.8 else "#ff8844"
 
 
 def _render_prediction_card(darp_val, darp_json, pace_sec):
@@ -78,6 +92,9 @@ def _render_prediction_card(darp_val, darp_json, pace_sec):
     time_str = fmt_duration(int(darp_val))
     pace_str = fmt_pace(pace_sec) if pace_sec else "-"
     splits = darp_json.get("splits", {})
+    vdot = darp_json.get("vdot")
+    percentile = darp_json.get("percentile")
+
     html = (
         '<div style="background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(0,255,136,0.1));'
         'border-radius:24px;padding:32px;margin:20px 0;border:1px solid rgba(0,212,255,0.3);text-align:center">'
@@ -86,13 +103,25 @@ def _render_prediction_card(darp_val, darp_json, pace_sec):
         f'-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:16px 0">{time_str}</div>'
         f'<div style="font-size:20px;color:rgba(255,255,255,0.8);margin-bottom:24px">평균 페이스: {pace_str}/km</div>'
     )
+
+    # 스플릿 + 추가 정보 (VDOT, 예상 순위)
+    stat_items = []
     if splits:
+        for i, (label, sval) in enumerate(splits.items()):
+            color = _split_color(i, len(splits))
+            stat_items.append((label, fmt_duration(int(sval)), color))
+    if vdot is not None:
+        stat_items.append(("VDOT", f"{float(vdot):.1f}", "#00d4ff"))
+    if percentile is not None:
+        stat_items.append(("예상 순위", f"상위 {int(percentile)}%", "#00d4ff"))
+
+    if stat_items:
         html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-top:24px">'
-        for label, sval in splits.items():
+        for label, val, color in stat_items:
             html += (
-                f'<div style="background:rgba(0,0,0,0.3);border-radius:16px;padding:16px">'
+                f'<div style="background:rgba(0,0,0,0.3);border-radius:16px;padding:20px">'
                 f'<div style="font-size:12px;color:rgba(255,255,255,0.7)">{label}</div>'
-                f'<div style="font-size:24px;font-weight:bold;color:#00ff88;margin:8px 0">{fmt_duration(int(sval))}</div></div>'
+                f'<div style="font-size:24px;font-weight:bold;color:{color};margin:8px 0">{val}</div></div>'
             )
         html += '</div>'
     html += '</div>'
@@ -101,29 +130,35 @@ def _render_prediction_card(darp_val, darp_json, pace_sec):
 
 def _render_di_card(di_val, di_json):
     if di_val is None:
-        return no_data_card("내구성 지수 (DI)", "90분+ 세션 데이터 필요")
+        return no_data_card("내구성 지수 (DI)", "90분+ 세션 데이터 필요 (8주 3회 이상)")
     score = min(100, max(0, int(di_val)))
-    pct = score
     color = "#00ff88" if score >= 70 else "#ffaa00" if score >= 40 else "#ff4444"
+    sessions = di_json.get("sessions_analyzed", "?")
+    grade = "우수" if score >= 70 else "양호" if score >= 40 else "부족"
     desc = di_json.get("description", "")
+    if not desc:
+        desc = (
+            f"최근 분석된 {sessions}개 장거리 세션 기반. "
+            f"내구성 등급: <strong>{grade}</strong>."
+        )
     html = (
         '<div style="background:rgba(255,255,255,0.05);border-radius:20px;padding:24px;margin:20px 0">'
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
         '<div style="font-size:18px;display:flex;align-items:center;gap:10px">'
         '<span>💪</span><span>내구성 지수 (DI)</span></div>'
-        f'<div style="background:rgba({",".join(str(int(color[i:i+2],16)) for i in (1,3,5))},0.2);'
-        f'color:{color};padding:8px 16px;border-radius:20px;font-size:16px;font-weight:bold">{score}/100</div></div>'
+        f'<div style="background:rgba(255,255,255,0.1);color:{color};'
+        f'padding:8px 16px;border-radius:20px;font-size:16px;font-weight:bold">{score}/100</div></div>'
+        # 3-zone gradient bar (참고 디자인 매칭)
         f'<div style="height:24px;background:linear-gradient(90deg,'
         f'rgba(255,68,68,0.3) 0%,rgba(255,170,0,0.3) 40%,rgba(0,255,136,0.3) 70%,rgba(0,255,136,0.3) 100%);'
-        f'border-radius:12px;position:relative;margin-bottom:16px">'
-        f'<div style="position:absolute;top:-4px;left:{pct}%;width:4px;height:32px;'
-        f'background:#fff;border-radius:2px"></div></div>'
+        f'border-radius:12px;position:relative;margin-bottom:12px">'
+        f'<div style="position:absolute;top:-6px;left:calc({score}% - 2px);width:4px;height:36px;'
+        f'background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,0.5)"></div></div>'
         '<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,0.6)">'
         '<span>부족</span><span>양호</span><span>우수</span></div>'
+        f'<p style="margin-top:16px;font-size:14px;color:rgba(255,255,255,0.7)">{desc}</p>'
+        '</div>'
     )
-    if desc:
-        html += f'<p style="margin-top:16px;font-size:14px;color:rgba(255,255,255,0.7)">{desc}</p>'
-    html += '</div>'
     return html
 
 
