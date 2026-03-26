@@ -438,6 +438,7 @@ def render_ai_recommendation(
     workouts: list[dict],
     config: dict | None = None,
     conn: "sqlite3.Connection | None" = None,
+    ai_override: str | None = None,
 ) -> str:
     """AI 우선 훈련 추천 카드. 규칙 기반 fallback."""
     if utrs_val is None and cirs_val is None:
@@ -447,16 +448,10 @@ def render_ai_recommendation(
     lines: list[str] = _build_rule_recommendation(utrs_val, cirs_val, cirs_json, workouts)
     rule_msg = "</p><p style='margin:8px 0;'>".join(lines) if lines else ""
 
-    # AI 시도
-    ai_msg = None
-    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
-        try:
-            from src.ai.ai_message import get_card_ai_message
-            ai_msg = get_card_ai_message("training_coaching", conn, rule_msg, config)
-            if ai_msg and ai_msg != rule_msg:
-                lines = [ai_msg]
-        except Exception:
-            pass
+    # AI 오버라이드 (탭별 통합 호출에서 전달)
+    ai_msg = ai_override
+    if ai_msg:
+        lines = [ai_msg]
 
     if not lines:
         return ""

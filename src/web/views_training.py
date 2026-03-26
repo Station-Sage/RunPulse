@@ -90,6 +90,14 @@ def training_page():
                 except ValueError:
                     pass
 
+            # AI 탭별 통합 호출
+            _train_ai = {}
+            try:
+                from src.ai.ai_message import get_tab_ai
+                _train_ai = get_tab_ai("training", conn, config) or {}
+            except Exception:
+                pass
+
             body = (
                 render_header_actions(bool(workouts))
                 + render_goal_card(goal, utrs_val)
@@ -101,7 +109,8 @@ def training_page():
                 + render_week_calendar(workouts, week_start, week_offset)
                 + _render_workout_form(week_start)
                 + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts,
-                                          config=config, conn=conn)
+                                          config=config, conn=conn,
+                                          ai_override=_train_ai.get("coaching"))
                 + render_sync_status(sync_info)
             )
         finally:
