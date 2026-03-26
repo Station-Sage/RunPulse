@@ -281,6 +281,55 @@ def _render_ai_section(config: dict) -> str:
 </div>"""
 
 
+def _render_caldav_section(config: dict) -> str:
+    """CalDAV 캘린더 설정 섹션."""
+    c = config.get("caldav", {})
+    url = c.get("url", "")
+    username = c.get("username", "")
+    has_pw = bool(c.get("password", ""))
+    status = "<span style='color:var(--green);'>설정됨</span>" if url and username else "<span style='color:var(--muted);'>미설정</span>"
+    return f"""
+<div class='card'>
+  <h2 style='margin-bottom:0.5rem;'>캘린더 연동 (CalDAV)</h2>
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
+    훈련 계획을 Google/네이버/Apple 캘린더에 자동 등록합니다.
+  </p>
+  <p style='font-size:0.82rem;margin-bottom:0.6rem;'>상태: {status}</p>
+  <form method='post' action='/settings/caldav' style='display:flex;flex-direction:column;gap:0.5rem;'>
+    <label style='font-size:0.88rem;'>
+      CalDAV URL
+      <input type='text' name='caldav_url' value='{url}' placeholder='https://caldav.googleapis.com/...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='font-size:0.88rem;'>
+      사용자명
+      <input type='text' name='caldav_username' value='{username}' placeholder='user@gmail.com'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='font-size:0.88rem;'>
+      비밀번호 (앱 비밀번호) <span class='muted' style='font-size:0.78rem;'>({'설정됨' if has_pw else '미설정'})</span>
+      <input type='password' name='caldav_password' placeholder='앱 비밀번호 입력...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <div style='display:flex;gap:0.5rem;'>
+      <button type='submit'
+        style='padding:0.45rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+        저장</button>
+      <button type='button' onclick="fetch('/settings/caldav-test').then(r=>r.text()).then(t=>alert(t))"
+        style='padding:0.45rem 1.2rem;background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid rgba(255,255,255,0.2);border-radius:4px;cursor:pointer;'>
+        연결 테스트</button>
+    </div>
+  </form>
+  <p class='muted' style='font-size:0.75rem;margin-top:0.5rem;'>
+    Google: <a href='https://myaccount.google.com/apppasswords' target='_blank' style='color:var(--cyan);'>앱 비밀번호 발급</a> ·
+    네이버: <a href='https://nid.naver.com/user2/help/myInfoV2?m=viewSecurity' target='_blank' style='color:var(--cyan);'>앱 비밀번호</a>
+  </p>
+</div>"""
+
+
 # ── /settings — 전체 연동 상태 페이지 ──────────────────────────────
 @settings_bp.get("/settings")
 def settings_view() -> str:
@@ -330,6 +379,7 @@ def settings_view() -> str:
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
 {_render_ai_section(config)}
+{_render_caldav_section(config)}
 <hr>
 <div class='card'>
   <h2>Strava 아카이브 임포트</h2>
@@ -1141,3 +1191,27 @@ def settings_mapbox_post():
     save_config(config)
     msg = "Mapbox 토큰이 저장되었습니다" if token else "Mapbox 토큰이 제거되었습니다"
     return redirect(f"/settings?msg={msg}")
+
+
+# ── CalDAV 설정 저장 ─────────────────────────────────────────────────
+@settings_bp.post("/settings/caldav")
+def settings_caldav_post():
+    """CalDAV 설정 저장."""
+    config = load_config()
+    config.setdefault("caldav", {})
+    config["caldav"]["url"] = (request.form.get("caldav_url") or "").strip()
+    config["caldav"]["username"] = (request.form.get("caldav_username") or "").strip()
+    pw = (request.form.get("caldav_password") or "").strip()
+    if pw:
+        config["caldav"]["password"] = pw
+    save_config(config)
+    return redirect("/settings?msg=CalDAV 설정이 저장되었습니다")
+
+
+@settings_bp.get("/settings/caldav-test")
+def settings_caldav_test():
+    """CalDAV 연결 테스트."""
+    from src.training.caldav_push import test_connection
+    config = load_config()
+    ok, msg = test_connection(config)
+    return msg

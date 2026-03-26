@@ -598,7 +598,8 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
         badges += f"<span style='color:var(--cyan);font-size:0.82rem;font-weight:600;'>VDOT {vdot:.1f}</span>"
     if di is not None:
         di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
-        badges += f"<span style='color:{di_clr};font-size:0.82rem;font-weight:600;margin-left:0.5rem;'>DI {di:.0f}</span>"
+        di_fmt = f"{di:.2f}" if di < 2 else f"{di:.0f}"
+        badges += f"<span style='color:{di_clr};font-size:0.82rem;font-weight:600;margin-left:0.5rem;'>DI {di_fmt}</span>"
     badge_row = f"<div style='margin-bottom:0.4rem;'>{badges}</div>" if badges else ""
 
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프", "full": "마라톤"}

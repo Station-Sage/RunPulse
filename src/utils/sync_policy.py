@@ -37,7 +37,7 @@ POLICIES: dict[str, SyncPolicy] = {
         min_incremental_interval_sec=300,    # 5분 — 반복 로그인 차단 방지
         recommended_max_days=30,
         hard_max_days=90,
-        per_request_sleep_sec=1.5,           # Garmin Connect 과부하 방지
+        per_request_sleep_sec=0.8,           # Garmin Connect 과부하 방지 (1.5→0.8)
     ),
     "strava": SyncPolicy(
         service_ko="Strava",

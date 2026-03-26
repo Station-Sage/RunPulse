@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import html as _html
 import sqlite3
-from datetime import timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, redirect, request
 
@@ -19,6 +19,7 @@ from src.web.views_training_cards import (
     render_ai_recommendation,
     render_goal_card,
     render_header_actions,
+    render_plan_overview,
     render_sync_status,
     render_week_calendar,
     render_weekly_summary,
@@ -54,6 +55,18 @@ def training_page():
 
             goal = load_goal(conn)
             workouts, week_start = load_workouts(conn, week_offset)
+
+            # 빈 주이고 목표가 있으면 자동 생성
+            if not workouts and goal and week_offset >= 0:
+                try:
+                    from src.training.planner import generate_weekly_plan, save_weekly_plan
+                    plan = generate_weekly_plan(conn, config=config, week_start=week_start)
+                    save_weekly_plan(conn, plan)
+                    conn.commit()
+                    workouts, week_start = load_workouts(conn, week_offset)
+                except Exception:
+                    pass
+
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
@@ -63,9 +76,24 @@ def training_page():
             cirs_val = metrics.get("cirs_val")
             cirs_json = metrics.get("cirs_json", {})
 
+            # 현재 훈련 단계 계산
+            current_phase = "base"
+            weeks_left = None
+            if goal and goal.get("race_date"):
+                try:
+                    race_d = date.fromisoformat(goal["race_date"])
+                    weeks_left = max(0, (race_d - date.today()).days // 7)
+                    if weeks_left > 16: current_phase = "base"
+                    elif weeks_left > 8: current_phase = "build"
+                    elif weeks_left > 3: current_phase = "peak"
+                    else: current_phase = "taper"
+                except ValueError:
+                    pass
+
             body = (
                 render_header_actions(bool(workouts))
                 + render_goal_card(goal, utrs_val)
+                + render_plan_overview(goal, current_phase, weeks_left)
                 + _render_goal_form(goals_list)
                 + render_weekly_summary(workouts, utrs_val)
                 + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val)
@@ -97,9 +125,14 @@ def training_generate():
         conn = sqlite3.connect(str(dbp))
         try:
             from src.training.planner import generate_weekly_plan, save_weekly_plan
+            from datetime import timedelta as _td
             config = load_config()
-            plan = generate_weekly_plan(conn, config=config)
-            save_weekly_plan(conn, plan)
+            base = date.today() - _td(days=date.today().weekday())
+            # 4주치 생성 (이번 주 + 다음 3주)
+            for w in range(4):
+                ws = base + _td(weeks=w)
+                plan = generate_weekly_plan(conn, config=config, week_start=ws)
+                save_weekly_plan(conn, plan)
             conn.commit()
         finally:
             conn.close()

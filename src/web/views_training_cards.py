@@ -41,16 +41,29 @@ def _esc(s: str) -> str:
 def render_header_actions(has_plan: bool) -> str:
     """타이틀 영역 액션 버튼 (공유 + 플랜 생성)."""
     label = "🗓️ 재생성" if has_plan else "🗓️ 플랜 생성"
+    garmin_btn = (
+        "<form method='POST' action='/training/push-garmin' style='margin:0;'>"
+        "<button type='submit' style='background:rgba(255,170,0,0.2);border:1px solid rgba(255,170,0,0.4);"
+        "color:#ffaa00;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;'>"
+        "⌚ Garmin</button></form>"
+    ) if has_plan else ""
+    caldav_btn = (
+        "<form method='POST' action='/training/push-caldav' style='margin:0;'>"
+        "<button type='submit' style='background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);"
+        "color:var(--cyan);padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;'>"
+        "📅 캘린더</button></form>"
+    ) if has_plan else ""
     return (
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:16px 0;border-bottom:1px solid var(--card-border);margin-bottom:20px;'>"
         "<div style='font-size:18px;font-weight:bold;'>훈련 계획</div>"
-        "<div style='display:flex;gap:10px;'>"
+        "<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
         "<button onclick=\"if(navigator.clipboard){navigator.clipboard.writeText("
         "window.location.href).then(function(){alert('링크 복사됨');});}\" "
         "style='background:rgba(255,255,255,0.1);border:none;color:#fff;"
         "padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;'>"
         "📤 공유</button>"
+        + garmin_btn + caldav_btn +
         "<form method='POST' action='/training/generate' style='margin:0;'>"
         f"<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
         f"color:#000;border:none;padding:8px 16px;border-radius:20px;font-size:13px;"
@@ -496,6 +509,83 @@ def render_ai_recommendation(
         "<span style='font-size:16px;font-weight:bold;'>AI 훈련 추천</span></div>"
         f"<div style='font-size:13px;line-height:1.7;color:rgba(255,255,255,0.9);'>"
         f"<p style='margin:0 0 8px;'>{content}</p></div></div>"
+    )
+
+
+# ── S6b: 전체 훈련 계획 개요 ──────────────────────────────────────────
+
+_PHASE_INFO: dict[str, tuple[str, str, str]] = {
+    "base":  ("기초 체력", "#27ae60", "유산소 기반 구축. 볼륨 점진 증가."),
+    "build": ("강화",     "#e67e22", "강도 증가. 템포/인터벌 도입."),
+    "peak":  ("정점",     "#e74c3c", "최고 강도. 레이스 시뮬레이션."),
+    "taper": ("테이퍼",   "#8e44ad", "볼륨 감소. 신선도 확보."),
+}
+
+
+def render_plan_overview(goal: dict | None, current_phase: str = "base",
+                         weeks_left: int | None = None) -> str:
+    """전체 훈련 계획 개요 — 단계별 타임라인."""
+    if not goal or not goal.get("race_date"):
+        return ""
+
+    from datetime import date as _date
+    try:
+        race = _date.fromisoformat(goal["race_date"])
+        today = _date.today()
+        total_weeks = max(1, (race - today).days // 7)
+    except ValueError:
+        return ""
+
+    if total_weeks <= 0:
+        return ""
+
+    # 단계별 주 수 계산
+    phases = []
+    if total_weeks > 16:
+        phases.append(("base", total_weeks - 16))
+        phases.append(("build", 8))
+        phases.append(("peak", 5))
+        phases.append(("taper", 3))
+    elif total_weeks > 8:
+        phases.append(("build", total_weeks - 8))
+        phases.append(("peak", 5))
+        phases.append(("taper", 3))
+    elif total_weeks > 3:
+        phases.append(("peak", total_weeks - 3))
+        phases.append(("taper", 3))
+    else:
+        phases.append(("taper", total_weeks))
+
+    # 타임라인 바
+    bar_parts = ""
+    for phase, weeks in phases:
+        label, color, _ = _PHASE_INFO[phase]
+        pct = weeks / total_weeks * 100
+        is_current = phase == current_phase
+        border = "border:2px solid #fff;" if is_current else ""
+        bar_parts += (
+            f"<div style='flex:{pct};background:{color};padding:4px 6px;font-size:10px;"
+            f"color:#fff;text-align:center;white-space:nowrap;{border}'>"
+            f"{label} {weeks}주</div>"
+        )
+
+    # 단계 설명
+    phase_label, phase_color, phase_desc = _PHASE_INFO.get(current_phase, _PHASE_INFO["base"])
+    wl_str = f"D-{(weeks_left or 0) * 7}" if weeks_left else ""
+
+    return (
+        "<div class='card' style='margin-top:16px;'>"
+        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"
+        f"<h3 style='margin:0;font-size:1rem;'>📋 전체 훈련 계획</h3>"
+        f"<span style='font-size:0.85rem;color:var(--cyan);'>"
+        f"{goal.get('name', '')} · {total_weeks}주 남음 {wl_str}</span></div>"
+        f"<div style='display:flex;border-radius:8px;overflow:hidden;height:28px;margin-bottom:10px;'>"
+        f"{bar_parts}</div>"
+        f"<div style='display:flex;align-items:center;gap:8px;'>"
+        f"<span style='background:{phase_color};color:#fff;padding:2px 10px;"
+        f"border-radius:12px;font-size:12px;font-weight:600;'>현재: {phase_label}</span>"
+        f"<span style='font-size:0.82rem;color:var(--muted);'>{phase_desc}</span></div>"
+        "</div>"
     )
 
 
