@@ -237,13 +237,17 @@ def _render_ai_section(config: dict) -> str:
     """AI 코치 설정 섹션."""
     ai_cfg = config.get("ai", {})
     provider = ai_cfg.get("provider", "rule")
+    gemini_key = ai_cfg.get("gemini_api_key", "")
+    groq_key = ai_cfg.get("groq_api_key", "")
     claude_key = ai_cfg.get("claude_api_key", "")
     openai_key = ai_cfg.get("openai_api_key", "")
+    gemini_masked = "****" + gemini_key[-6:] if len(gemini_key) > 10 else ("설정됨" if gemini_key else "미설정")
+    groq_masked = "****" + groq_key[-6:] if len(groq_key) > 10 else ("설정됨" if groq_key else "미설정")
     claude_masked = "****" + claude_key[-6:] if len(claude_key) > 10 else ("설정됨" if claude_key else "미설정")
     openai_masked = "****" + openai_key[-6:] if len(openai_key) > 10 else ("설정됨" if openai_key else "미설정")
 
     provider_options = ""
-    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("genspark", "Genspark (수동 복사/붙여넣기)"), ("genspark_auto", "Genspark (자동, proot+Selenium)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
+    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("gemini", "Google Gemini (무료)"), ("groq", "Groq (무료, Llama 3.3)"), ("genspark", "Genspark (수동 복사/붙여넣기)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
         sel = " selected" if val == provider else ""
         provider_options += f"<option value='{val}'{sel}>{label}</option>"
 
@@ -261,6 +265,20 @@ def _render_ai_section(config: dict) -> str:
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
         {provider_options}
       </select>
+    </label>
+    <label style='font-size:0.88rem;'>
+      Gemini API 키 <span class='muted' style='font-size:0.78rem;'>({gemini_masked})</span>
+      <input type='password' name='gemini_api_key' placeholder='AIza...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://aistudio.google.com/apikey' target='_blank' style='color:var(--cyan);'>무료 API 키 발급</a></span>
+    </label>
+    <label style='font-size:0.88rem;'>
+      Groq API 키 <span class='muted' style='font-size:0.78rem;'>({groq_masked})</span>
+      <input type='password' name='groq_api_key' placeholder='gsk_...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://console.groq.com/keys' target='_blank' style='color:var(--cyan);'>무료 API 키 발급</a></span>
     </label>
     <label style='font-size:0.88rem;'>
       Claude API 키 <span class='muted' style='font-size:0.78rem;'>({claude_masked})</span>
@@ -1169,6 +1187,12 @@ def settings_ai_post():
     config.setdefault("ai", {})
     provider = (request.form.get("ai_provider") or "rule").strip()
     config["ai"]["provider"] = provider
+    gemini_key = (request.form.get("gemini_api_key") or "").strip()
+    if gemini_key:
+        config["ai"]["gemini_api_key"] = gemini_key
+    groq_key = (request.form.get("groq_api_key") or "").strip()
+    if groq_key:
+        config["ai"]["groq_api_key"] = groq_key
     claude_key = (request.form.get("claude_api_key") or "").strip()
     if claude_key:
         config["ai"]["claude_api_key"] = claude_key

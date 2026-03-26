@@ -2,6 +2,22 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-ai-providers] 2026-03-26
+
+### AI 제공자 확장
+
+- **Google Gemini**: 무료 API (1,500 RPD, gemini-2.0-flash)
+- **Groq**: 무료 API (14,400 RPD, llama-3.3-70b-versatile)
+- **Genspark iframe**: AI 코치 탭에 내장
+- **Genspark B방식**: 프롬프트 복사 + 응답 붙여넣기
+- **Genspark A방식**: Cloudflare 403으로 보류
+- 설정 UI: 6개 provider 선택 + API 키 입력 + 발급 링크
+- `start.sh`: proot bind mount 서버 시작 스크립트
+
+지원: rule / gemini / groq / genspark / claude / openai
+
+---
+
 ## [v0.4-calendar-ai] 2026-03-26
 
 ### Garmin Connect 워크아웃 전송

@@ -54,6 +54,10 @@ def chat(
         return _call_claude(prompt, config)
     elif provider == "openai":
         return _call_openai(prompt, config)
+    elif provider == "gemini":
+        return _call_gemini(prompt, config)
+    elif provider == "groq":
+        return _call_groq(prompt, config)
     elif provider == "genspark":
         return _call_genspark(prompt, config)
     elif provider == "genspark_auto":
@@ -372,6 +376,70 @@ def _call_openai(prompt: str, config: dict | None) -> str:
     except Exception as exc:
         log.warning("OpenAI API 오류: %s", exc)
         return f"AI 응답 생성 실패: {exc}"
+
+
+def _call_gemini(prompt: str, config: dict | None) -> str:
+    """Google Gemini API 호출 (무료 tier)."""
+    api_key = (config or {}).get("ai", {}).get("gemini_api_key", "")
+    if not api_key:
+        return "Gemini API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://aistudio.google.com/apikey"
+    model = (config or {}).get("ai", {}).get("gemini_model", "gemini-2.0-flash")
+    try:
+        import httpx
+        resp = httpx.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+            params={"key": api_key},
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "maxOutputTokens": 2048,
+                    "temperature": 0.7,
+                },
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if parts:
+                return parts[0].get("text", "빈 응답")
+        return "Gemini에서 빈 응답을 받았습니다."
+    except Exception as exc:
+        log.warning("Gemini API 오류: %s", exc)
+        return f"Gemini 응답 생성 실패: {exc}"
+
+
+def _call_groq(prompt: str, config: dict | None) -> str:
+    """Groq API 호출 (무료 tier, Llama 3.3 70B 등)."""
+    api_key = (config or {}).get("ai", {}).get("groq_api_key", "")
+    if not api_key:
+        return "Groq API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://console.groq.com/keys"
+    model = (config or {}).get("ai", {}).get("groq_model", "llama-3.3-70b-versatile")
+    try:
+        import httpx
+        resp = httpx.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 2048,
+                "temperature": 0.7,
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
+    except Exception as exc:
+        log.warning("Groq API 오류: %s", exc)
+        return f"Groq 응답 생성 실패: {exc}"
 
 
 def _call_genspark(prompt: str, config: dict | None) -> str:

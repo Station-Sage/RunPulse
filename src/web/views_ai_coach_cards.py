@@ -231,6 +231,18 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
         '<p style="font-size:0.72rem;color:var(--muted);margin:6px 0 0;">'
         '프롬프트에 현재 메트릭/웰니스/훈련 데이터가 자동 포함됩니다.</p>'
         '</div></details>'
+        # Genspark iframe
+        '<details style="margin-top:8px;">'
+        '<summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);list-style:none;">'
+        '🌐 Genspark AI 채팅 (내장)</summary>'
+        '<div style="margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">'
+        '<iframe src="https://www.genspark.ai/agents?type=ai_chat" '
+        'style="width:100%;height:500px;border:none;background:#1a1a2e;" '
+        'sandbox="allow-scripts allow-same-origin allow-forms allow-popups" '
+        'loading="lazy"></iframe>'
+        '<p style="font-size:0.7rem;color:var(--muted);padding:6px 10px;margin:0;">'
+        '⚠️ Genspark이 iframe을 차단할 수 있습니다. 차단 시 위의 "Genspark 열기" 버튼을 사용하세요.</p>'
+        '</div></details>'
         '<script>var cb=document.getElementById("chatBox");if(cb)cb.scrollTop=cb.scrollHeight;</script>'
         '</div>'
     )
