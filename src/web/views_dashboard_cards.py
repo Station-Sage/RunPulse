@@ -38,7 +38,8 @@ def _mini_icon_val(icon: str, label: str, value, unit: str = "", color: str = "v
 def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
                               cirs_val: float | None, cirs_json: dict,
                               acwr: float | None, rtti: float | None,
-                              wellness: dict) -> str:
+                              wellness: dict,
+                              metric_date: str | None = None) -> str:
     """섹션 1: 오늘의 상태 한 줄 스트립."""
     utrs_grade = {"rest": "휴식", "light": "경량", "moderate": "보통", "optimal": "최적"}.get(
         (utrs_json or {}).get("grade", ""), "")
@@ -74,9 +75,13 @@ def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
         _mini_icon_val("&#128147;", "HRV", f"{hrv:.0f}" if hrv else None, "", "var(--green)"),
     ]
 
+    from datetime import date as _date
+    date_label = "오늘의 상태"
+    if metric_date and metric_date != _date.today().isoformat():
+        date_label = f"최근 상태 ({metric_date})"
     return (
         "<div class='card' style='padding:0.6rem 0.8rem;'>"
-        "<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;'>오늘의 상태</div>"
+        f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;'>{date_label}</div>"
         "<div style='display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;justify-content:space-around;'>"
         + "".join(parts) +
         "</div></div>"

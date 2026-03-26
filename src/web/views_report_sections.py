@@ -94,18 +94,25 @@ def _load_darp_latest(conn: sqlite3.Connection, end: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, end: str) -> tuple[float | None, float | None]:
-    """VDOT + Marathon Shape 최신값."""
+    """VDOT + Marathon Shape 최신값. Runalyze VDOT 우선, Garmin VO2Max fallback."""
     vdot_row = conn.execute(
-        "SELECT runalyze_vdot FROM daily_fitness WHERE runalyze_vdot IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+        "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+        "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+        "AND date<=? ORDER BY date DESC LIMIT 1",
         (end,),
     ).fetchone()
+    vdot = None
+    if vdot_row:
+        vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
+            float(vdot_row[1]) if vdot_row[1] is not None else None
+        )
     shape_row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE metric_name='MarathonShape' AND activity_id IS NULL AND date<=?
            ORDER BY date DESC LIMIT 1""",
         (end,),
     ).fetchone()
-    return (float(vdot_row[0]) if vdot_row else None,
+    return (vdot,
             float(shape_row[0]) if shape_row and shape_row[0] is not None else None)
 
 

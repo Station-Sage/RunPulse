@@ -47,6 +47,30 @@ from .views_perf import (
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
+import logging as _logging
+
+_log = _logging.getLogger(__name__)
+
+
+def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
+    """오늘 날짜 메트릭이 없으면 자동 계산."""
+    row = conn.execute(
+        "SELECT 1 FROM computed_metrics WHERE date=? AND metric_name='UTRS' "
+        "AND activity_id IS NULL LIMIT 1",
+        (today,),
+    ).fetchone()
+    if row:
+        return
+    try:
+        from src.metrics.engine import run_for_date
+        _log.info("오늘(%s) 메트릭 자동 계산 시작", today)
+        run_for_date(conn, today, include_weekly=False)
+        conn.commit()
+        _log.info("오늘 메트릭 계산 완료")
+    except Exception as exc:
+        _log.warning("오늘 메트릭 자동 계산 실패: %s", exc)
+
+
 # ── 데이터 조회 ─────────────────────────────────────────────────────────────
 
 def _load_metric(conn: sqlite3.Connection, target_date: str, metric_name: str) -> float | None:
@@ -113,17 +137,24 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
+    # VDOT: Runalyze 우선, 없으면 Garmin VO2Max fallback
     vdot_row = conn.execute(
-        "SELECT runalyze_vdot FROM daily_fitness WHERE runalyze_vdot IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+        "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+        "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+        "AND date<=? ORDER BY date DESC LIMIT 1",
         (target_date,),
     ).fetchone()
+    vdot = None
+    if vdot_row:
+        vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
+            float(vdot_row[1]) if vdot_row[1] is not None else None
+        )
     shape_row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE date <= ? AND metric_name = 'MarathonShape' AND activity_id IS NULL
            ORDER BY date DESC LIMIT 1""",
         (target_date,),
     ).fetchone()
-    vdot = float(vdot_row[0]) if vdot_row else None
     shape = float(shape_row[0]) if shape_row and shape_row[0] is not None else None
     return vdot, shape
 
@@ -158,6 +189,9 @@ def _build_dashboard(db) -> str:
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
     with sqlite3.connect(str(db)) as conn:
+        # 오늘 메트릭이 없으면 자동 계산
+        _ensure_today_metrics(conn, today)
+
         # 배치 메트릭 로드 (개별 쿼리 9→2회)
         _val_names = ["UTRS", "CIRS", "ACWR", "RTTI", "Monotony", "LSI", "Strain"]
         vals = load_metrics_batch(conn, today, _val_names)

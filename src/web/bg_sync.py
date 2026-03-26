@@ -158,9 +158,12 @@ class BgSyncThread(threading.Thread):
         try:
             import sqlite3 as _sqlite3
             from src.metrics import engine as metrics_engine
+            from datetime import date as _date
             with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
                 conn.execute("PRAGMA journal_mode=WAL")
-                metrics_engine.run_for_date_range(conn, job.from_date, job.to_date)
+                # 오늘 날짜를 항상 포함하여 메트릭 계산
+                end = max(job.to_date, _date.today().isoformat())
+                metrics_engine.run_for_date_range(conn, job.from_date, end)
                 # 스키마 마이그레이션 후 재동기화 플래그 해제
                 from src.db_setup import clear_needs_resync
                 clear_needs_resync(conn)
