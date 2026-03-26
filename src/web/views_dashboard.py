@@ -203,6 +203,19 @@ def dashboard():
                  "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p></div>")
         return render_template("dashboard.html", body=no_db, active_tab="dashboard")
 
+    # AI 분석 업데이트 요청 시 AI 캐시 무효화
+    from flask import request as _req
+    if _req.args.get("refresh_ai"):
+        try:
+            import sqlite3 as _sql
+            with _sql.connect(str(db)) as _c:
+                from src.ai.ai_cache import invalidate
+                invalidate(_c, "dashboard")
+        except Exception:
+            pass
+        from .views_perf import invalidate_cache
+        invalidate_cache(str(db))
+
     body = cached_page("dashboard", str(db), lambda: _build_dashboard(db))
     return render_template("dashboard.html", body=body, active_tab="dashboard")
 
@@ -263,13 +276,18 @@ def _build_dashboard(db) -> str:
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
         f"<span>마지막 동기화: {sync_time_str}</span>"
-        "<div style='display:flex;gap:6px;'>"
+        "<div style='display:flex;gap:8px;align-items:center;'>"
         "<form method='POST' action='/trigger-sync' style='margin:0;'>"
         "<input type='hidden' name='mode' value='basic'/>"
-        "<button type='submit' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
-        "border:none;padding:4px 12px;border-radius:12px;font-size:0.75rem;cursor:pointer;'>동기화</button>"
-        "</form>"
-        "<a href='/settings' style='color:var(--muted);font-size:0.75rem;'>설정</a>"
+        "<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
+        "color:#000;border:none;padding:6px 14px;border-radius:16px;font-size:0.75rem;"
+        "font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;'>"
+        "🔄 동기화</button></form>"
+        "<a href='/dashboard?refresh_ai=1' style='background:rgba(0,212,255,0.12);"
+        "color:var(--cyan);border:1px solid rgba(0,212,255,0.3);padding:5px 12px;"
+        "border-radius:16px;font-size:0.73rem;text-decoration:none;display:flex;"
+        "align-items:center;gap:4px;'>✨ AI 분석 업데이트</a>"
+        "<a href='/settings' style='color:var(--muted);font-size:0.73rem;text-decoration:none;'>⚙️</a>"
         "</div></div>"
     )
 
@@ -292,15 +310,21 @@ def _build_dashboard(db) -> str:
         utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness,
         metric_date=metric_date)
 
-    # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
+    # ── AI 탭별 통합 호출 (1회) ──────────────────────────────────────────
     _cfg = None
+    _ai_data = {}
     try:
         from src.utils.config import load_config as _lc
         _cfg = _lc()
+        from src.ai.ai_message import get_tab_ai
+        _ai_data = get_tab_ai("dashboard", conn, _cfg) or {}
     except Exception:
         pass
+
+    # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
     recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last,
-                                                     config=_cfg, conn=conn)
+                                                     config=_cfg, conn=conn,
+                                                     ai_override=_ai_data.get("recommendation"))
 
     # ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────
     weekly_card = render_weekly_summary(weekly, weekly_target)
@@ -314,16 +338,19 @@ def _build_dashboard(db) -> str:
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),
         rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"),
-        config=_cfg, conn=conn)
+        config=_cfg, conn=conn,
+        ai_override=_ai_data.get("fitness"))
     rmr_axes = rmr_json.get("axes") if rmr_json else None
     rmr_compare = rmr_old_json.get("axes") if rmr_old_json else None
     rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None,
-                                config=_cfg, conn=conn)
+                                config=_cfg, conn=conn,
+                                ai_override=_ai_data.get("rmr"))
 
     # ── 섹션 6: 리스크 상세 ───────────────────────────────────────────────
     risk_data = {"acwr": acwr_val, "lsi": lsi_val, "monotony": mono_val,
                  "strain": strain_val, "tsb": tsb_last}
-    risk_pills = render_risk_pills_v2(risk_data, risk_7d, config=_cfg, conn=conn)
+    risk_pills = render_risk_pills_v2(risk_data, risk_7d, config=_cfg, conn=conn,
+                                      ai_override=_ai_data.get("risk"))
 
     # ── 섹션 7: 최근 활동 ─────────────────────────────────────────────────
     activity_list = _render_activity_list(recent_acts)

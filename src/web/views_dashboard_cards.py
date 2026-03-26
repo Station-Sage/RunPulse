@@ -237,7 +237,8 @@ def render_fitness_trends_chart(pmc_data: list[dict], trends: dict) -> str:
 # ── 섹션 6: 리스크 상세 확장 ──────────────────────────────────────────────────
 
 def render_risk_pills_v2(risk_data: dict, trends_7d: dict,
-                         config: dict | None = None, conn=None) -> str:
+                         config: dict | None = None, conn=None,
+                         ai_override: str | None = None) -> str:
     """섹션 6: 위험지표 pills + AI 요약."""
     if not risk_data:
         return ""
@@ -298,24 +299,18 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict,
         + _pill("Strain", strain, 200, 400, ".0f", trend_key="Strain")
         + _pill("TSB", tsb, -20, -10, ".0f", invert=True, trend_key="TSB")
         + "</div>"
-        + _risk_ai_summary(risk_data, config, conn)
+        + _risk_ai_summary(risk_data, config, conn, ai_override=ai_override)
         + "</div>"
     )
 
 
-def _risk_ai_summary(risk_data: dict, config, conn) -> str:
+def _risk_ai_summary(risk_data: dict, config, conn, ai_override: str | None = None) -> str:
     """리스크 AI 한 줄 요약."""
-    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+    msg = ai_override
+    if not msg:
         return ""
-    try:
-        from src.ai.ai_message import get_card_ai_message
-        msg = get_card_ai_message("dashboard_risk", conn, "", config)
-        if msg:
-            return (f"<div style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
-                    f"💡 {msg}</div>")
-    except Exception:
-        pass
-    return ""
+    return (f"<div style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
+            f"💡 {msg}</div>")
 
 
 # ── 경고 배너 ─────────────────────────────────────────────────────────────────
@@ -408,7 +403,8 @@ def _render_gauge_card(title: str, value: float | None, max_value: float,
 
 
 def _render_rmr_card(axes: dict, compare_axes: dict | None = None,
-                     config: dict | None = None, conn=None) -> str:
+                     config: dict | None = None, conn=None,
+                     ai_override: str | None = None) -> str:
     if not axes:
         return no_data_card("RMR 러너 성숙도 레이더")
     from datetime import date as _date, timedelta as _td
@@ -426,24 +422,18 @@ def _render_rmr_card(axes: dict, compare_axes: dict | None = None,
         f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.78rem;'>"
         f"종합 {overall:.1f}점 · {period_text}</p>"
         f"{radar}{compare_note}"
-        + _rmr_ai_note(axes, config, conn)
+        + _rmr_ai_note(axes, config, conn, ai_override=ai_override)
         + "</div>"
     )
 
 
-def _rmr_ai_note(axes: dict, config, conn) -> str:
+def _rmr_ai_note(axes: dict, config, conn, ai_override: str | None = None) -> str:
     """RMR AI 강점/약점 분석."""
-    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+    msg = ai_override
+    if not msg:
         return ""
-    try:
-        from src.ai.ai_message import get_card_ai_message
-        msg = get_card_ai_message("dashboard_rmr", conn, "", config)
-        if msg:
-            return (f"<p style='text-align:left;margin-top:0.4rem;font-size:0.78rem;"
-                    f"color:var(--secondary);'>💡 {msg}</p>")
-    except Exception:
-        pass
-    return ""
+    return (f"<p style='text-align:left;margin-top:0.4rem;font-size:0.78rem;"
+            f"color:var(--secondary);'>💡 {msg}</p>")
 
 
 # ── PMC 차트 ──────────────────────────────────────────────────────────────────
@@ -554,7 +544,8 @@ def _render_activity_list(activities: list[dict]) -> str:
 
 def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
                                     cirs_val: float | None, tsb_last: float | None,
-                                    config: dict | None = None, conn=None) -> str:
+                                    config: dict | None = None, conn=None,
+                                    ai_override: str | None = None) -> str:
     """오늘의 훈련 권장 카드 — AI 우선, 규칙 기반 fallback."""
     if utrs_val is None and cirs_val is None:
         return no_data_card("오늘의 훈련 권장", "데이터 수집 중입니다")
@@ -571,15 +562,9 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
         icon, intensity, desc, dur = "&#127939;", "중강도 훈련", "템포런 또는 유산소 훈련 가능.", "40-60분, Z2-Z3"
     else:
         icon, intensity, desc, dur = "&#128293;", "고강도 훈련 최적", "인터벌, 레이스페이스 훈련 최적 상태.", "60분+, Z4-Z5 포함"
-    # AI 해석 시도
-    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
-        try:
-            from src.ai.ai_message import get_card_ai_message
-            ai_desc = get_card_ai_message("dashboard_recommendation", conn, desc, config)
-            if ai_desc and ai_desc != desc:
-                desc = ai_desc
-        except Exception:
-            pass
+    # AI 오버라이드 (탭별 통합 호출에서 전달)
+    if ai_override:
+        desc = ai_override
 
     notes = ""
     if tsb_last is not None and tsb_last < -30:
@@ -678,7 +663,8 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
 def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
                          eftp: float | None = None, rec: float | None = None,
                          rri: float | None = None, vdot_adj: float | None = None,
-                         config: dict | None = None, conn=None) -> str:
+                         config: dict | None = None, conn=None,
+                         ai_override: str | None = None) -> str:
     """VDOT / Marathon Shape / eFTP / REC / RRI 피트니스 미니 카드."""
     if all(v is None for v in [vdot, marathon_shape_pct, eftp, rec]):
         return no_data_card("피트니스 현황", "데이터 수집 중입니다")
@@ -726,21 +712,15 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
         f"<div style='font-size:1.8rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
         f"<div class='muted' style='font-size:0.76rem;'>{tooltip('Marathon Shape', METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
         + extra_row
-        + _fitness_ai_note(config, conn)
+        + _fitness_ai_note(config, conn, ai_override=ai_override)
         + "</div>"
     )
 
 
-def _fitness_ai_note(config, conn) -> str:
+def _fitness_ai_note(config, conn, ai_override: str | None = None) -> str:
     """피트니스 AI 평가."""
-    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+    msg = ai_override
+    if not msg:
         return ""
-    try:
-        from src.ai.ai_message import get_card_ai_message
-        msg = get_card_ai_message("dashboard_fitness", conn, "", config)
-        if msg:
-            return (f"<p style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
-                    f"💡 {msg}</p>")
-    except Exception:
-        pass
-    return ""
+    return (f"<p style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
+            f"💡 {msg}</p>")
