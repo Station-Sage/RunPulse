@@ -254,10 +254,13 @@ def _render_ai_section(config: dict) -> str:
     return f"""
 <div class='card'>
   <h2 style='margin-bottom:0.5rem;'>AI 코치 설정</h2>
-  <p class='muted' style='font-size:0.82rem;margin-bottom:0.8rem;'>
-    AI 코치 채팅에 사용할 AI 제공자를 선택합니다.
-    규칙 기반은 API 키 없이 메트릭 데이터로 답변합니다.
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
+    AI 코치, 브리핑, 훈련 추천, 메트릭 해석에 사용할 AI를 선택합니다.
   </p>
+  <div style='font-size:0.75rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.6;'>
+    💡 <strong>Gemini</strong> (무료, 일 1,500회) · <strong>Groq</strong> (무료, 일 14,400회) 추천<br>
+    Claude/ChatGPT는 유료. 규칙 기반은 API 없이 동작.
+  </div>
   <form method='post' action='/settings/ai' style='display:flex;flex-direction:column;gap:0.6rem;'>
     <label style='font-size:0.88rem;'>
       AI 제공자
@@ -285,18 +288,62 @@ def _render_ai_section(config: dict) -> str:
       <input type='password' name='claude_api_key' placeholder='sk-ant-...'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://console.anthropic.com/settings/keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
     </label>
     <label style='font-size:0.88rem;'>
       OpenAI API 키 <span class='muted' style='font-size:0.78rem;'>({openai_masked})</span>
       <input type='password' name='openai_api_key' placeholder='sk-...'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://platform.openai.com/api-keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
     </label>
     <button type='submit'
       style='align-self:flex-start;padding:0.45rem 1.2rem;background:var(--cyan);color:#000;
       border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>저장</button>
   </form>
 </div>"""
+
+
+def _render_prompt_management(config: dict) -> str:
+    """AI 프롬프트 관리 섹션."""
+    from src.ai.prompt_config import get_all_prompts
+    prompts = get_all_prompts(config)
+    rows = ""
+    for key, info in prompts.items():
+        is_custom = info.get("is_custom")
+        badge = " <span style='color:var(--cyan);font-size:0.7rem;'>수정됨</span>" if is_custom else ""
+        rows += (
+            f"<div style='border-bottom:1px solid rgba(255,255,255,0.06);padding:8px 0;'>"
+            f"<div style='display:flex;justify-content:space-between;align-items:center;'>"
+            f"<strong style='font-size:0.82rem;'>{info['description']}{badge}</strong>"
+            f"<span class='muted' style='font-size:0.7rem;'>max {info['max_tokens']} tokens</span></div>"
+            f"<textarea name='prompt_{key}' rows='2' "
+            f"style='width:100%;margin-top:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
+            f"border-radius:8px;padding:6px 8px;color:var(--fg);font-size:0.75rem;resize:vertical;'>"
+            f"{info['template']}</textarea></div>"
+        )
+    return f"""
+<details style='margin-bottom:16px;'>
+<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;
+padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>
+🔧 AI 프롬프트 관리</summary>
+<div class='card' style='margin-top:8px;'>
+  <p class='muted' style='font-size:0.78rem;margin-bottom:0.5rem;'>
+    각 카드에서 AI에게 보내는 프롬프트를 수정할 수 있습니다.
+    {{context}}는 자동으로 현재 데이터로 치환됩니다.
+  </p>
+  <form method='post' action='/settings/prompts'>
+    {rows}
+    <div style='display:flex;gap:0.5rem;margin-top:0.5rem;'>
+      <button type='submit'
+        style='padding:0.4rem 1rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+        저장</button>
+      <button type='button' onclick="if(confirm('모든 프롬프트를 기본값으로 복원합니까?'))location.href='/settings/prompts-reset'"
+        style='padding:0.4rem 1rem;background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid rgba(255,255,255,0.2);border-radius:4px;cursor:pointer;'>
+        기본값 복원</button>
+    </div>
+  </form>
+</div></details>"""
 
 
 def _render_caldav_section(config: dict) -> str:
@@ -397,6 +444,7 @@ def settings_view() -> str:
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
 {_render_ai_section(config)}
+{_render_prompt_management(config)}
 {_render_caldav_section(config)}
 <hr>
 <div class='card'>
@@ -1215,6 +1263,32 @@ def settings_mapbox_post():
     save_config(config)
     msg = "Mapbox 토큰이 저장되었습니다" if token else "Mapbox 토큰이 제거되었습니다"
     return redirect(f"/settings?msg={msg}")
+
+
+# ── 프롬프트 저장 ─────────────────────────────────────────────────
+@settings_bp.post("/settings/prompts")
+def settings_prompts_post():
+    """사용자 커스텀 프롬프트 저장."""
+    from src.ai.prompt_config import DEFAULT_PROMPTS
+    config = load_config()
+    config.setdefault("ai", {})
+    custom = {}
+    for key in DEFAULT_PROMPTS:
+        val = request.form.get(f"prompt_{key}", "").strip()
+        if val and val != DEFAULT_PROMPTS[key]["template"]:
+            custom[key] = {"template": val}
+    config["ai"]["custom_prompts"] = custom
+    save_config(config)
+    return redirect("/settings?msg=프롬프트가 저장되었습니다")
+
+
+@settings_bp.get("/settings/prompts-reset")
+def settings_prompts_reset():
+    """프롬프트 기본값 복원."""
+    config = load_config()
+    config.get("ai", {}).pop("custom_prompts", None)
+    save_config(config)
+    return redirect("/settings?msg=프롬프트가 기본값으로 복원되었습니다")
 
 
 # ── CalDAV 설정 저장 ─────────────────────────────────────────────────

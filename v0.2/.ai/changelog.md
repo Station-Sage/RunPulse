@@ -2,6 +2,26 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-ai-everywhere] 2026-03-26
+
+### AI Everywhere — 전체 UI AI 해석 통합
+
+**기반 모듈:**
+- `ai_message.py`: provider 체인 (선택→gemini→groq→규칙) + 카드별 자동 컨텍스트
+- `context_builders.py`: 탭별 컨텍스트 빌더 6개 (시계열 포함)
+- `prompt_config.py`: 프롬프트 템플릿 14종 + 사용자 커스텀 병합
+
+**AI 적용 카드 (7곳):**
+- 대시보드 훈련 권장, AI 코치 브리핑, 훈련탭 AI 추천
+- 레포트 AI 인사이트 (기간별), 웰니스 회복 권장, 레이스 DI 해석
+
+**설정 UI:**
+- AI provider별 API 키 발급 링크 (Gemini/Groq 무료, Claude/OpenAI 유료)
+- 무료/유료 명시 안내
+- 🔧 프롬프트 관리 접이식: 14종 프롬프트 미리보기/수정 + 기본값 복원
+
+---
+
 ## [v0.4-ai-providers] 2026-03-26
 
 ### AI 제공자 확장
