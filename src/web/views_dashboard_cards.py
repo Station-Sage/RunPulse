@@ -496,11 +496,13 @@ def _render_activity_list(activities: list[dict]) -> str:
                 f"border-radius:12px;padding:0.1rem 0.5rem;font-size:0.76rem;'>RE {act['relative_effort']:.0f}</span>"
             )
         name = _html.escape(act.get("name", "")) or "러닝"
+        route_svg = act.get("route_svg", "")
+        thumb = route_svg if route_svg else "<div style='font-size:1.5rem;'>&#127939;</div>"
         items.append(
             f"<a href='/activity/deep?id={act['id']}' style='text-decoration:none;color:inherit;'>"
             f"<div class='card' style='display:flex;align-items:center;gap:0.8rem;"
             f"padding:0.7rem 0.9rem;margin:0.4rem 0;'>"
-            f"<div style='font-size:1.5rem;'>&#127939;</div>"
+            f"{thumb}"
             f"<div style='flex:1;min-width:0;'>"
             f"<div style='font-weight:600;font-size:0.9rem;'>{name}</div>"
             f"<div class='muted' style='font-size:0.8rem;margin-top:0.1rem;'>"
