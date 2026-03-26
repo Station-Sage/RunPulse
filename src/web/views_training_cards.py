@@ -68,7 +68,7 @@ def render_goal_card(goal: dict | None, utrs_val: float | None = None) -> str:
             "<div class='card' style='text-align:center;padding:1.5rem;'>"
             "<p class='muted'>설정된 목표가 없습니다.</p>"
             "<p style='font-size:0.85rem;color:var(--muted);'>"
-            "<code>python src/plan.py goal add</code>로 목표를 추가하세요.</p>"
+            "아래 🎯 목표 관리에서 목표를 추가하세요.</p>"
             "</div>"
         )
 
