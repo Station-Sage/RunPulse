@@ -64,8 +64,9 @@
 - [x] DB 쿼리 성능 최적화 — 배치 로더 (N+1 제거), TTL 캐시, 대시보드 25→8쿼리, 레포트 N+1 제거
 - [ ] REST API (`/api/v1/*`)
 - [ ] DB 정규화, 멀티유저 강화
-- [ ] AI 채팅 (대화형 코칭)
-- [ ] Training Plan 풀 구현 (캘린더 UI, 운동 CRUD, 캘린더 연동)
+- [x] AI 채팅 (대화형 코칭) — chat_messages 테이블, POST /ai-coach/chat, 교체 가능 엔진 (rule/claude/openai), 칩 트리거, 히스토리 UI
+- [x] Training Plan 풀 구현 — 워크아웃 CRUD, 완료 토글, 목표 웹 UI, ICS 내보내기
+- [ ] (향후) 캘린더 API 연동 (Google Calendar 등)
 - [ ] (낮음) Mapbox 사용량 표시 또는 지도 API 대안 검토
 
 ### v0.4 예정

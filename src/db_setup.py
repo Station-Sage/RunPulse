@@ -256,6 +256,16 @@ def create_tables(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
+        -- v0.3: AI 채팅 메시지 히스토리
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+            content TEXT NOT NULL,
+            chip_id TEXT,
+            ai_model TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
         -- v0.2: 활동별 랩 스플릿 데이터 (DARP 페이스 전략, 분할 분석)
         CREATE TABLE IF NOT EXISTS activity_laps (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

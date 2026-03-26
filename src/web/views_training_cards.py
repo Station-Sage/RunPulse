@@ -255,7 +255,7 @@ def render_week_calendar(
     week_start: date,
     week_offset: int = 0,
 ) -> str:
-    """7열 그리드 캘린더 + 주 네비게이션."""
+    """7열 그리드 캘린더 + 주 네비게이션 + 완료 토글/삭제 버튼."""
     today_iso = date.today().isoformat()
 
     # 네비게이션
@@ -279,7 +279,9 @@ def render_week_calendar(
         "align-items:center;justify-content:center;text-decoration:none;color:#fff;'>→</a>"
         "</div>"
         "<div style='display:flex;gap:6px;'>"
-        + _view_toggle_btn("리스트", False)
+        f"<a href='/training/export.ics?week={week_offset}' style='background:rgba(255,255,255,0.1);"
+        "color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:20px;font-size:12px;"
+        "text-decoration:none;'>📅 ICS</a>"
         + _view_toggle_btn("주간", True)
         + "</div></div>"
     )
@@ -303,6 +305,7 @@ def render_week_calendar(
         # 워크아웃 아이템
         workout_html = ""
         if w:
+            wid = w.get("id")
             wtype = w.get("workout_type", "easy")
             style_info = _TYPE_STYLE.get(wtype, _TYPE_STYLE["easy"])
             _, label_ko, icon = style_info
@@ -320,14 +323,32 @@ def render_week_calendar(
             if p_min and p_max:
                 pace_str = f"{fmt_pace(p_min)}~{fmt_pace(p_max)}"
 
+            # 완료 토글 + 삭제 버튼
+            actions = ""
+            if wid:
+                toggle_label = "↩️" if completed else "✓"
+                actions = (
+                    "<div style='display:flex;gap:4px;margin-top:4px;'>"
+                    f"<form method='POST' action='/training/workout/{wid}/toggle' style='margin:0;'>"
+                    f"<input type='hidden' name='week' value='{week_offset}'/>"
+                    f"<button type='submit' style='background:rgba(255,255,255,0.15);border:none;"
+                    f"color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;cursor:pointer;'>"
+                    f"{toggle_label}</button></form>"
+                    f"<form method='POST' action='/training/workout/{wid}/delete' style='margin:0;'>"
+                    f"<button type='submit' style='background:rgba(255,68,68,0.2);border:none;"
+                    f"color:#ff4444;padding:2px 6px;border-radius:6px;font-size:10px;cursor:pointer;'"
+                    f" onclick=\"return confirm('삭제?')\">✕</button></form></div>"
+                )
+
             workout_html = (
                 f"<div style='background:{bg};border-radius:8px;padding:8px;"
-                f"font-size:11px;cursor:pointer;transition:all 0.2s;{comp_cls}'>"
+                f"font-size:11px;transition:all 0.2s;{comp_cls}'>"
                 f"<div style='font-weight:600;margin-bottom:2px;'>{icon} {label_ko}{check}</div>"
                 + (f"<div style='font-size:10px;color:rgba(255,255,255,0.7);'>{dist_str}</div>"
                    if dist_str else "")
                 + (f"<div style='font-size:9px;color:rgba(255,255,255,0.5);'>{pace_str}</div>"
                    if pace_str else "")
+                + actions
                 + "</div>"
             )
 
