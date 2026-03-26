@@ -279,7 +279,13 @@ def report_view():
                 (end_date,),
             ).fetchone()
             sapi_val = float(_sapi_row[0]) if _sapi_row and _sapi_row[0] is not None else None
-            ai_insight_html = render_ai_insight(conn, start_date, end_date)
+            _rpt_cfg = None
+            try:
+                from src.utils.config import load_config as _lc_rpt
+                _rpt_cfg = _lc_rpt()
+            except Exception:
+                pass
+            ai_insight_html = render_ai_insight(conn, start_date, end_date, config=_rpt_cfg)
             # 신규 로더
             prev_stats = load_prev_period_stats(conn, start_date, end_date)
             quality = load_training_quality_series(conn, start_date, end_date)

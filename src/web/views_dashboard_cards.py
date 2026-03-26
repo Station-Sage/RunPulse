@@ -517,8 +517,9 @@ def _render_activity_list(activities: list[dict]) -> str:
 # ── 신규 카드들 ───────────────────────────────────────────────────────────────
 
 def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
-                                    cirs_val: float | None, tsb_last: float | None) -> str:
-    """오늘의 훈련 권장 카드."""
+                                    cirs_val: float | None, tsb_last: float | None,
+                                    config: dict | None = None, conn=None) -> str:
+    """오늘의 훈련 권장 카드 — AI 우선, 규칙 기반 fallback."""
     if utrs_val is None and cirs_val is None:
         return no_data_card("오늘의 훈련 권장", "데이터 수집 중입니다")
     grade = (utrs_json or {}).get("grade", "")
@@ -534,6 +535,16 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
         icon, intensity, desc, dur = "&#127939;", "중강도 훈련", "템포런 또는 유산소 훈련 가능.", "40-60분, Z2-Z3"
     else:
         icon, intensity, desc, dur = "&#128293;", "고강도 훈련 최적", "인터벌, 레이스페이스 훈련 최적 상태.", "60분+, Z4-Z5 포함"
+    # AI 해석 시도
+    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
+        try:
+            from src.ai.ai_message import get_card_ai_message
+            ai_desc = get_card_ai_message("dashboard_recommendation", conn, desc, config)
+            if ai_desc and ai_desc != desc:
+                desc = ai_desc
+        except Exception:
+            pass
+
     notes = ""
     if tsb_last is not None and tsb_last < -30:
         notes += f"<p style='color:var(--red);font-size:0.78rem;margin-top:0.3rem;'>&#9888; TSB {tsb_last:.0f} — 과부하. 휴식 우선</p>"
