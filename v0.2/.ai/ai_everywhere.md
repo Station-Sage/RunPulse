@@ -1,266 +1,263 @@
-# AI Everywhere — 전체 UI AI 해석 통합 설계
+# AI Everywhere v2 — 캐시 기반 AI 해석 통합 설계
 
-> 모든 카드/섹션에서 AI 해석을 제공하되, API 없으면 규칙 기반 fallback.
-> provider 체인: 사용자 선택 → Gemini → Groq → 규칙 기반
-
----
-
-## 아키텍처
-
-### 공통 모듈
-
-```
-src/ai/ai_message.py
-├── get_ai_message(prompt, rule_fallback, config, cache_key)
-├── get_metric_interpretation(metric_name, value, context, config)
-├── build_tab_context(conn, tab, **kwargs)  ← 신규
-└── PROMPT_TEMPLATES  ← 신규
-```
-
-### Provider 체인
-
-```
-사용자 선택 provider
-  ↓ 실패
-gemini (무료, 1500 RPD)
-  ↓ 실패
-groq (무료, 14400 RPD)
-  ↓ 실패
-규칙 기반 fallback (항상 동작)
-```
-
-### 캐시 전략
-
-- 동일 cache_key는 세션 내 재사용 (메모리 캐시)
-- 대시보드: 30초 TTL (기존 페이지 캐시와 연동)
-- 레포트: 기간+날짜 조합 키
-- 활동 상세: activity_id 키
+> 탭별 1회 API 호출 → DB 캐시 → 8시간/동기화 후 갱신
+> 검증 + 재시도 + 규칙 기반 fallback
 
 ---
 
-## 탭별 상세 설계
+## 아키텍처 (v2)
 
-### 1. 대시보드 (4개 카드)
+### 호출 흐름
 
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 훈련 권장 | UTRS/CIRS/TSB + 오늘 계획 | UTRS 7일 | "오늘 ~하세요" 조언 | 2문장 |
-| 리스크 해석 | ACWR/LSI/Mono/Strain/TSB | 7일 추세 | 위험 요약 + 조언 | 1~2문장 |
-| RMR 분석 | 5축 점수 + 28일 변화 | 이전 vs 현재 | 강점/약점 분석 | 2문장 |
-| 피트니스 평가 | VDOT/Shape/eFTP/REC/RRI | 4주 추세 | 체력 변화 평가 | 2문장 |
-
-**컨텍스트 빌더:**
-```python
-def _dashboard_context(conn, today):
-    return {
-        "utrs_7d": load_metric_series("UTRS", -7, today),
-        "cirs_7d": load_metric_series("CIRS", -7, today),
-        "acwr_7d": load_metric_series("ACWR", -7, today),
-        "tsb_7d": load_metric_series("TSB", -7, today),
-        "wellness": {bb, sleep, hrv, stress},
-        "today_plan": planned_workout,
-        "recent_3_activities": [...],
-        "weekly_volume": {this_week, last_week, change_pct},
-    }
+```
+페이지 접속
+    ↓
+ai_cache 테이블에서 해당 탭 캐시 조회
+    ↓
+캐시 유효? (8시간 이내 AND 동기화 후 생성)
+    ├─ YES → 캐시에서 즉시 표시 (API 호출 0)
+    └─ NO  → 탭별 통합 프롬프트 1회 호출
+              ↓
+           포맷 검증 (JSON 파싱, 필수 키)
+              ├─ 실패 → 재시도 1회 (엄격 프롬프트)
+              └─ 통과 → 내용 검증 (길이, 데이터 정합성)
+                          ├─ 실패 → 규칙 기반 fallback
+                          └─ 통과 → ai_cache에 저장 → 표시
 ```
 
-### 2. 활동 심층분석 (3개 카드)
+### 갱신 조건
 
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 활동 종합 | 거리/페이스/HR/존/스플릿/EF/Dec | 최근 10회 유사 | 총평 + 잘한 점/개선점 | 3~4문장 |
-| 메트릭 해설 | 각 메트릭 값 | 해당 메트릭 추세 | 메트릭별 1줄 해석 | 1문장/메트릭 |
-| 환경 영향 | FEARP 요소 (기온/습도/고도) | 동일 코스 이력 | 환경 보정 설명 | 1~2문장 |
+| 조건 | 동작 |
+|------|------|
+| 동기화 직후 첫 접속 | AI 재생성 (데이터 변경됨) |
+| 마지막 생성 후 8시간 경과 | AI 재생성 (하루 3회: 아침/점심/저녁) |
+| 수동 "AI 분석 업데이트" | AI 재생성 |
+| 캐시 유효 | DB에서 즉시 표시 (0회 호출) |
 
-**컨텍스트 빌더:**
-```python
-def _activity_context(conn, activity_id):
-    return {
-        "activity": {distance, pace, hr, duration, type, name},
-        "zones": [z1%, z2%, z3%, z4%, z5%],
-        "splits": [...],
-        "metrics": {EF, Dec, FEARP, TRIMP, WLEI, ...},
-        "recent_similar": [최근 10회 유사 거리 활동],
-        "personal_best": {5k, 10k, half, full},
-        "weather": {temp, humidity, wind},
-        "workout_classification": {type, effect, confidence},
-    }
+### 일일 API 호출 예상
+
 ```
-
-### 3. 레포트 (3개 카드)
-
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 기간 종합 인사이트 | **선택 기간** 전체 메트릭 | 기간 내 주별 추세 | 5항목 분석 | 5줄 |
-| 활동 효과 | 활동별 분류/RE/Dec | 기간 내 활동 목록 | 활동별 1줄 효과 | 1문장/활동 |
-| 진전/퇴보 | 이전 기간 vs 현재 기간 | 양 기간 비교 | 변화 포인트 3개 | 3줄 |
-
-**⚠️ 기간 변경 시 기간에 맞춰 데이터 재조회**
-
-**컨텍스트 빌더:**
-```python
-def _report_context(conn, start_date, end_date):
-    # 이전 동일 기간도 함께 로드
-    span = (end - start).days
-    prev_start = start - timedelta(days=span)
-    prev_end = start - timedelta(days=1)
-    return {
-        "period": f"{start_date} ~ {end_date}",
-        "stats": {count, total_km, total_sec},
-        "prev_stats": {count, total_km, total_sec},
-        "utrs_series": [...],  # 기간 내 일별
-        "cirs_series": [...],
-        "acwr_series": [...],
-        "weekly_distance": [...],  # 기간 내 주별
-        "tids_trend": [...],  # 기간 내 TIDS 변화
-        "top_activities": [...],  # 기간 내 상위 5개
-        "wellness_avg": {bb, sleep, hrv},
-    }
+탭 6개 × 하루 3회 = 18회/일 (최대)
+실제: 사용하는 탭만 → 약 10~12회/일
+Gemini 무료 1,500 RPD → 충분
 ```
-
-### 4. 레이스 예측 (3개 카드)
-
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 레이스 준비도 | VDOT/CTL/DI/CIRS/MarathonShape | 12주 추세 | 종합 준비도 + 확률 | 3문장 |
-| 훈련 조정 제안 | 목표 갭 + 남은 기간 | D-day 카운트다운 | 핵심 훈련 3가지 | 3줄 |
-| 페이스 전략 | DARP 스플릿 + DI | 최근 장거리 이력 | 구간별 조언 | 4줄 |
-
-**컨텍스트 빌더:**
-```python
-def _race_context(conn, target_distance):
-    return {
-        "goal": {name, distance, race_date, target_time, d_day},
-        "vdot_12w": [...],
-        "di_12w": [...],
-        "ctl_trend": [...],
-        "marathon_shape": value,
-        "darp_predictions": {5k, 10k, half, full},
-        "long_run_history": [최근 15km+ 활동],
-        "cirs_current": value,
-    }
-```
-
-### 5. 웰니스 (3개 카드)
-
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 회복 분석 | BB/수면/HRV/스트레스 | 14일 추세 | 회복 상태 + 원인 | 2~3문장 |
-| 수면 분석 | 수면 점수/시간/패턴 | 14일 + 주중/주말 | 수면 질 평가 + 팁 | 2문장 |
-| 생활 패턴 | 전체 웰니스 패턴 | 14일 상관분석 | 훈련↔회복 상관 | 2~3문장 |
-
-**컨텍스트 빌더:**
-```python
-def _wellness_context(conn, today):
-    return {
-        "today": {bb, sleep_score, hrv, stress, resting_hr},
-        "bb_14d": [...],
-        "sleep_14d": [...],
-        "hrv_14d": [...],
-        "stress_14d": [...],
-        "sleep_times": [{bed, wake}, ...],  # 취침/기상 패턴
-        "training_load_7d": [...],  # 훈련 부하 → 회복 상관
-        "outliers": [...],  # 이상치 날짜
-    }
-```
-
-### 6. 훈련 계획 (4개 카드)
-
-| 카드 | 프롬프트 인풋 | 시계열 | AI 출력 | 길이 제약 |
-|------|-------------|--------|---------|----------|
-| 종합 코칭 | 이행률 + 지표 + 오늘 결과 | 4주 볼륨 | 종합 조언 | 3~4문장 |
-| 컨디션 조정 | fatigue + 웰니스 + CIRS | 웰니스 7일 | 오늘 조정 사항 | 2문장 |
-| 주간 피드백 | 주간 완료율 + 볼륨 | 이번 주 일별 | 남은 일 권장 | 2문장 |
-| 다음 주 미리보기 | 훈련 단계 + 목표 | 다음 주 계획 | 볼륨/강도 예고 | 2문장 |
-
-**컨텍스트 빌더:**
-```python
-def _training_context(conn, week_offset=0):
-    return {
-        "goal": {name, distance, race_date, d_day},
-        "phase": "build",  # base/build/peak/taper
-        "this_week": {workouts: [...], completion_pct, total_km, total_time},
-        "last_4_weeks": [{week, km, count}, ...],
-        "today_activity": {있으면 오늘 활동 데이터},
-        "today_plan": {workout_type, distance, pace},
-        "remaining_workouts": [이번 주 남은 워크아웃],
-        "next_week_plan": [...],
-        "utrs": value, "cirs": value,
-        "wellness": {bb, sleep, hrv},
-        "volume_change_pct": 지난주 대비 변화율,
-    }
-```
-
-### 7. AI 코치 (브리핑 + 채팅)
-
-| 카드 | 프롬프트 인풋 | AI 출력 | 길이 제약 |
-|------|-------------|---------|----------|
-| 브리핑 | 위 모든 컨텍스트 통합 | 5항목 구조화 브리핑 | 10~15줄 |
-| 채팅 | 위 + 대화 히스토리 | 자연어 대화 | 자유 |
 
 ---
 
-## 프롬프트 템플릿 관리
+## DB 스키마
 
-### 기본 구조
+### ai_cache 테이블
 
-```python
-PROMPT_TEMPLATES = {
-    "dashboard_recommendation": {
-        "system": "당신은 경험 많은 러닝 코치입니다.",
-        "template": "아래 데이터로 오늘 훈련 조언을 한국어 2문장으로.\n\n{context}",
-        "max_length": "50자",
-        "editable": True,
-    },
-    "report_insight": {
-        "system": "당신은 러닝 데이터 분석가입니다.",
-        "template": "{period} 기간 분석을 5항목으로.\n\n{context}",
-        "max_length": "각 항목 1줄",
-        "editable": True,
-    },
-    # ...
+```sql
+CREATE TABLE IF NOT EXISTS ai_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tab TEXT NOT NULL,           -- 'dashboard', 'activity', 'report', ...
+    cache_key TEXT NOT NULL,     -- 탭 내 고유 키 (activity_id, period 등)
+    content_json TEXT NOT NULL,  -- {"recommendation": "...", "risk": "...", ...}
+    generated_at TEXT NOT NULL,  -- 생성 시각
+    data_hash TEXT,              -- 입력 데이터 해시 (변경 감지용)
+    UNIQUE(tab, cache_key)
+);
+```
+
+---
+
+## 탭별 통합 프롬프트
+
+### 대시보드 (1회 호출 → 4개 카드)
+
+```json
+// 응답 포맷
+{
+  "recommendation": "오늘은 이지런 6km 권장. BB 61이고 어제 템포런 후 회복 중.",
+  "risk": "ACWR 1.2 적정. 지난주 대비 안정적 추세.",
+  "rmr": "강점: 유산소용량 82. 약점: 회복력 55 — 수면 개선 필요.",
+  "fitness": "VDOT 43.7 유지. eFTP 5:17로 2주 전 대비 3초 개선."
 }
 ```
 
-### 설정 UI에서 관리
+### 활동 심층분석 (1회 호출 → 종합 + 메트릭별)
 
-- 설정 → "AI 프롬프트 관리" 섹션
-- 각 프롬프트 미리보기 (읽기 전용 또는 수정 가능)
-- "기본값 복원" 버튼
-- config.json의 `ai.custom_prompts`에 사용자 수정본 저장
+```json
+{
+  "summary": "템포런 8km. EF 1.58로 효율 양호. Dec 3.2%로 유산소 기반 안정.",
+  "metrics": {
+    "EF": "1.58 — 효율 양호, 이번 달 평균 대비 5% 향상",
+    "AerobicDecoupling": "3.2% — 유산소 기반 안정, 5% 이하 유지",
+    "TRIMP": "328 — 고부하, 내일 회복일 권장",
+    "FEARP": "4:51 — 기온 22°C 반영, 실제보다 3초 빠른 조건"
+  }
+}
+```
+
+### 레포트 (1회 호출)
+
+```json
+{
+  "insight": "이번 주 42km/목표 40km 달성. UTRS 48→55 회복 추세. ACWR 1.1 안정."
+}
+```
+
+### 훈련 (1회 호출)
+
+```json
+{
+  "coaching": "이행률 80%. 내일 인터벌 예정, 컨디션 양호하니 계획대로.",
+  "adjustment": "BB 61, 수면 62 → 정상 범위. 조정 불필요."
+}
+```
+
+### 웰니스 (1회 호출)
+
+```json
+{
+  "recovery": "BB 49 → 보통. 어제 고강도 후 회복 중. 스트레칭 권장.",
+  "pattern": "HRV 3일 연속 하락 → 누적 피로 주의. 수면 시간 일정."
+}
+```
+
+### 레이스 (1회 호출)
+
+```json
+{
+  "readiness": "RRI 65. VDOT 43.7 기준 하프 1:43 예상. DI 70 양호.",
+  "pacing": "전반 4:55, 후반 4:50 네거티브 스플릿 가능."
+}
+```
+
+---
+
+## 검증 + 재시도
+
+### 3단계 검증
+
+```python
+def validate_ai_response(tab, response_json, actual_data):
+    # 1. 포맷 검증
+    if not isinstance(response_json, dict):
+        return False, "JSON 형식 아님"
+    required_keys = TAB_REQUIRED_KEYS[tab]
+    for key in required_keys:
+        if key not in response_json:
+            return False, f"필수 키 누락: {key}"
+
+    # 2. 길이 검증
+    for key, text in response_json.items():
+        if len(text) < 5:
+            return False, f"{key}: 너무 짧음 ({len(text)}자)"
+        if len(text) > 500:
+            return False, f"{key}: 너무 김 ({len(text)}자)"
+
+    # 3. 데이터 정합성
+    return validate_data_consistency(tab, response_json, actual_data)
+```
+
+### 데이터 정합성 규칙
+
+```python
+CONSISTENCY_RULES = {
+    "dashboard": [
+        # UTRS 낮은데 고강도 추천 → 모순
+        lambda data, ai: not (data["utrs"] < 40 and
+            any(w in ai.get("recommendation","") for w in ["고강도","인터벌","레이스페이스"])),
+        # CIRS 위험인데 정상 훈련 → 모순
+        lambda data, ai: not (data["cirs"] > 75 and
+            any(w in ai.get("recommendation","") for w in ["계획대로","정상","가능"])),
+    ],
+    "wellness": [
+        # BB 30 미만인데 양호 → 모순
+        lambda data, ai: not (data.get("bb",100) < 30 and
+            "양호" in ai.get("recovery","")),
+    ],
+}
+```
+
+### 재시도 전략
+
+```
+1차 시도: temperature=0.3, JSON 형식 요청
+    ↓ 검증 실패
+2차 시도: temperature=0.1, 실패 이유 포함 + "반드시 JSON으로"
+    ↓ 검증 실패
+규칙 기반 fallback (항상 동작)
+```
+
+---
+
+## API 호출 최적화
+
+### temperature 설정
+
+| 용도 | temperature | 이유 |
+|------|------------|------|
+| 분석/해석 | 0.3 | 일관성 + 약간의 변화 |
+| 재시도 | 0.1 | 더 엄격한 일관성 |
+| AI 채팅 | 0.7 | 대화적 자연스러움 |
+
+### JSON 강제
+
+```python
+# Gemini: response_mime_type
+json={"generationConfig": {"responseMimeType": "application/json"}}
+
+# OpenAI/Groq: response_format
+json={"response_format": {"type": "json_object"}}
+```
+
+### Few-shot 예시 포함
+
+```
+프롬프트 끝에:
+예시 응답:
+{"recommendation": "컨디션 양호. 템포런 8km, Z3-4 유지.", "risk": "ACWR 1.1 적정."}
+```
+
+---
+
+## 공통 모듈 구조 (v2)
+
+```
+src/ai/
+├── ai_message.py        ← get_tab_ai() 탭별 통합 호출 (리팩토링)
+├── ai_cache.py          ← DB 캐시 관리 (신규)
+├── ai_validator.py      ← 검증 + 재시도 (신규)
+├── context_builders.py  ← 탭별 컨텍스트 빌더 (기존)
+├── prompt_config.py     ← 프롬프트 템플릿 (리팩토링: 탭별 통합)
+├── chat_engine.py       ← AI 채팅 (기존, 변경 없음)
+└── genspark_driver.py   ← Genspark DOM (기존)
+```
 
 ---
 
 ## 구현 순서
 
-### Phase 1: 기반 (이번 PR)
-- [ ] `ai_message.py` 확장 — `build_tab_context()` + `PROMPT_TEMPLATES`
-- [ ] 프롬프트 템플릿 14종 정의
-- [ ] 컨텍스트 빌더 7개 (탭별)
+### Phase A: 캐시 인프라
+- [ ] ai_cache 테이블 (db_setup.py)
+- [ ] ai_cache.py — get/set/invalidate/is_fresh
+- [ ] 동기화 후 캐시 무효화 훅
 
-### Phase 2: 핵심 탭 적용 (이번 PR)
-- [ ] 훈련탭 4개 카드
-- [ ] 대시보드 4개 카드
-- [ ] AI 코치 브리핑
+### Phase B: 탭별 통합 프롬프트
+- [ ] 대시보드: 4카드 → 1회 호출
+- [ ] 활동: 종합 + 메트릭배치 → 1회 호출
+- [ ] 훈련/레포트/웰니스/레이스: 각 1회 호출
+- [ ] temperature 0.3 + JSON 강제
 
-### Phase 3: 전체 확장 (다음 PR)
-- [ ] 레포트 3개 카드 (기간 변동 지원)
-- [ ] 레이스 3개 카드
-- [ ] 웰니스 3개 카드
-- [ ] 활동 심층분석 3개 카드
+### Phase C: 검증 + 재시도
+- [ ] ai_validator.py — 포맷/길이/정합성
+- [ ] 재시도 로직 (temperature 0.1)
+- [ ] 정합성 규칙 탭별 정의
 
-### Phase 4: 설정 + 품질 (다음 PR)
-- [ ] 설정 UI 프롬프트 관리
-- [ ] 프롬프트 튜닝 + 테스트
-- [ ] 응답 품질 모니터링 (too long / off-topic 감지)
+### Phase D: UI
+- [ ] "AI 분석 업데이트" 버튼 (각 탭 또는 설정)
+- [ ] AI 배지 (생성 시각 표시)
+- [ ] 프롬프트 관리 설정 UI (기존)
 
 ---
 
 ## 주의사항
 
-1. **API 호출 비용**: 페이지 로딩마다 호출하면 RPD 소진. 캐시 필수
-2. **응답 시간**: AI 호출은 1~5초. 페이지 렌더링 지연 방지 (비동기 or 캐시)
-3. **길이 제약**: 카드마다 다름. 프롬프트에 명시적 길이 지정
-4. **기간 변경**: 레포트 기간 바꾸면 AI 인사이트도 재생성 필요
-5. **규칙 기반은 항상 유지**: AI 실패 시 즉시 fallback. 빈 카드 없어야 함
-6. **시계열 데이터 크기**: 90일 일별 데이터 = ~90 토큰. 적절히 다운샘플링
+1. **캐시 키**: 대시보드=날짜, 활동=activity_id, 레포트=기간
+2. **동기화 감지**: sync_jobs.updated_at vs ai_cache.generated_at
+3. **규칙 기반 항상 유지**: AI 없어도 동작
+4. **API 에러 시 무음 실패**: 사용자에게 에러 안 보임, 규칙 기반 표시
+5. **캐시 TTL**: 8시간 (하루 3회 갱신)
