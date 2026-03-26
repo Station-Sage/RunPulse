@@ -1,6 +1,6 @@
 # v0.2 작업 목록
 
-최종 업데이트: 2026-03-25 (v0.3 PWA 구현 완료)
+최종 업데이트: 2026-03-26 (v0.3 전체 UI 피드백 + 메트릭 + 분류기 + 버그 수정)
 
 ---
 
@@ -68,7 +68,21 @@
 - [x] AI 채팅 (대화형 코칭) — chat_messages 테이블, POST /ai-coach/chat, 교체 가능 엔진 (rule/claude/openai), 칩 트리거, 히스토리 UI
 - [x] Training Plan 풀 구현 — 워크아웃 CRUD, 완료 토글, 목표 웹 UI, ICS 내보내기
 - [ ] (향후) 캘린더 API 연동 (Google Calendar / 네이버 캘린더 / Garmin Connect 선택)
-- [ ] (낮음) Mapbox → Leaflet+OSM 대안 검토 (완전 무료, API 키 불필요) 또는 사용량 표시
+- [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
+- [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
+- [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준
+- [x] UI 피드백 25건 수정 (버그 10 + 툴팁 5 + UX 5 + 활동탭 4 + 추가 버그)
+- [x] ACWR 표준 공식 수정 + DI 0~100 스케일 변환 + DARP 완주 시간 표시
+- [x] AI 채팅 키워드 매칭 8분기 + 브리핑 코치 톤
+- [x] 기간 동기화 시 기존 활동 업데이트 (INSERT OR REPLACE)
+- [x] GPS 경로 SVG 썸네일 (API 없이 자체 렌더링)
+- [x] 설정: AI provider/API 키 + 프로필 추정값 + 적용 버튼
+
+### 미해결 버그 (v0.3)
+
+- [ ] Strava detail 수집 누락 — best_efforts/zones/streams 미저장 (기본 4건만)
+- [ ] Garmin aerobic Training Effect 미저장 — API 키 이름 확인 필요
+- [ ] 웰니스 3/13~3/18 데이터 빈 값 — Garmin 웰니스 동기화 누락 원인 조사
 
 ### v0.4 예정
 
@@ -203,4 +217,4 @@
 
 ---
 
-테스트: **904개** 통과 (2026-03-25 기준, fitparse 미설치 3파일 제외)
+테스트: **904개** 통과 (2026-03-26 기준, fitparse 미설치 3파일 제외)

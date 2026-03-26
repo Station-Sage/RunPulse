@@ -111,8 +111,44 @@ def _service_card(
 </div>"""
 
 
+def _estimate_profile() -> dict:
+    """DB에서 사용자 프로필 추정값 계산."""
+    import sqlite3
+    from .helpers import db_path
+    est: dict = {}
+    try:
+        dbp = db_path()
+        if not dbp or not dbp.exists():
+            return est
+        with sqlite3.connect(str(dbp)) as conn:
+            # 최대 HR: 전체 활동 중 최고 max_hr
+            row = conn.execute("SELECT MAX(max_hr) FROM activity_summaries WHERE max_hr IS NOT NULL").fetchone()
+            if row and row[0]:
+                est["max_hr"] = int(row[0])
+            # eFTP: computed_metrics에서
+            row = conn.execute(
+                "SELECT metric_value FROM computed_metrics WHERE metric_name='eFTP' "
+                "AND activity_id IS NULL AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1"
+            ).fetchone()
+            if row and row[0]:
+                est["eftp"] = int(row[0])
+            # 주간 평균 거리: 최근 4주
+            from datetime import date, timedelta
+            start = (date.today() - timedelta(weeks=4)).isoformat()
+            row = conn.execute(
+                "SELECT COALESCE(SUM(distance_km), 0) FROM v_canonical_activities "
+                "WHERE activity_type='running' AND DATE(start_time) >= ?",
+                (start,),
+            ).fetchone()
+            if row and row[0]:
+                est["weekly_km"] = round(float(row[0]) / 4, 1)
+    except Exception:
+        pass
+    return est
+
+
 def _render_user_profile_section(config: dict) -> str:
-    """사용자 프로필 설정 섹션 (max_hr, threshold_pace, weekly_target)."""
+    """사용자 프로필 설정 섹션 + RunPulse 추정값."""
     u = config.get("user", {})
     max_hr = u.get("max_hr", 190)
     thr_pace = u.get("threshold_pace", 300)
@@ -120,9 +156,37 @@ def _render_user_profile_section(config: dict) -> str:
     # threshold_pace: sec/km → mm:ss 표시
     thr_mm = int(thr_pace) // 60
     thr_ss = int(thr_pace) % 60
+
+    # RunPulse 추정값
+    est = _estimate_profile()
+    est_parts = []
+    if est.get("max_hr"):
+        est_parts.append(f"최대HR <strong>{est['max_hr']}</strong>bpm")
+    if est.get("eftp"):
+        m, s = divmod(est["eftp"], 60)
+        est_parts.append(f"역치 <strong>{m}:{s:02d}</strong>/km")
+    if est.get("weekly_km"):
+        est_parts.append(f"주간 <strong>{est['weekly_km']:.1f}</strong>km")
+    est_note = ""
+    if est_parts:
+        est_note = (
+            "<div style='display:flex;align-items:center;gap:0.6rem;margin:0 0 0.6rem;flex-wrap:wrap;'>"
+            f"<span style='font-size:0.8rem;color:var(--cyan);'>📊 RunPulse 추정: {' · '.join(est_parts)}</span>"
+            f"<button type='button' onclick=\"applyEstimate({est.get('max_hr', 190)},{est.get('eftp', 300)},{est.get('weekly_km', 40)})\" "
+            "style='background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);"
+            "border-radius:12px;padding:2px 10px;font-size:0.75rem;cursor:pointer;'>적용</button></div>"
+            "<script>function applyEstimate(hr,eftp,wk){"
+            f"document.querySelector('[name=max_hr]').value=hr;"
+            f"document.querySelector('[name=threshold_pace_min]').value=Math.floor(eftp/60);"
+            f"document.querySelector('[name=threshold_pace_sec]').value=eftp%60;"
+            f"document.querySelector('[name=weekly_km]').value=wk;"
+            "}</script>"
+        )
+
     return f"""
 <div class='card'>
-  <h2 style='margin-bottom:0.8rem;'>사용자 프로필</h2>
+  <h2 style='margin-bottom:0.5rem;'>사용자 프로필</h2>
+  {est_note}
   <form method='post' action='/settings/profile'
         style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem 1.5rem;'>
     <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
@@ -166,6 +230,54 @@ def _render_mapbox_section(config: dict) -> str:
   <p class='muted' style='font-size:0.8rem;margin:0;'>
     활동 상세 페이지에서 GPS 경로 지도를 표시합니다. API 키 없이 무료로 동작합니다.
   </p>
+</div>"""
+
+
+def _render_ai_section(config: dict) -> str:
+    """AI 코치 설정 섹션."""
+    ai_cfg = config.get("ai", {})
+    provider = ai_cfg.get("provider", "rule")
+    claude_key = ai_cfg.get("claude_api_key", "")
+    openai_key = ai_cfg.get("openai_api_key", "")
+    claude_masked = "****" + claude_key[-6:] if len(claude_key) > 10 else ("설정됨" if claude_key else "미설정")
+    openai_masked = "****" + openai_key[-6:] if len(openai_key) > 10 else ("설정됨" if openai_key else "미설정")
+
+    provider_options = ""
+    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
+        sel = " selected" if val == provider else ""
+        provider_options += f"<option value='{val}'{sel}>{label}</option>"
+
+    return f"""
+<div class='card'>
+  <h2 style='margin-bottom:0.5rem;'>AI 코치 설정</h2>
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.8rem;'>
+    AI 코치 채팅에 사용할 AI 제공자를 선택합니다.
+    규칙 기반은 API 키 없이 메트릭 데이터로 답변합니다.
+  </p>
+  <form method='post' action='/settings/ai' style='display:flex;flex-direction:column;gap:0.6rem;'>
+    <label style='font-size:0.88rem;'>
+      AI 제공자
+      <select name='ai_provider' style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+        {provider_options}
+      </select>
+    </label>
+    <label style='font-size:0.88rem;'>
+      Claude API 키 <span class='muted' style='font-size:0.78rem;'>({claude_masked})</span>
+      <input type='password' name='claude_api_key' placeholder='sk-ant-...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='font-size:0.88rem;'>
+      OpenAI API 키 <span class='muted' style='font-size:0.78rem;'>({openai_masked})</span>
+      <input type='password' name='openai_api_key' placeholder='sk-...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <button type='submit'
+      style='align-self:flex-start;padding:0.45rem 1.2rem;background:var(--cyan);color:#000;
+      border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>저장</button>
+  </form>
 </div>"""
 
 
@@ -217,6 +329,7 @@ def settings_view() -> str:
 </div>
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
+{_render_ai_section(config)}
 <hr>
 <div class='card'>
   <h2>Strava 아카이브 임포트</h2>
@@ -996,6 +1109,25 @@ def settings_profile_post():
     config["user"]["threshold_pace"] = threshold_pace
     save_config(config)
     return redirect("/settings?msg=프로필이 저장되었습니다")
+
+
+# ── AI 설정 저장 ─────────────────────────────────────────────────────
+@settings_bp.post("/settings/ai")
+def settings_ai_post():
+    """AI 코치 설정 저장."""
+    config = load_config()
+    config.setdefault("ai", {})
+    provider = (request.form.get("ai_provider") or "rule").strip()
+    config["ai"]["provider"] = provider
+    claude_key = (request.form.get("claude_api_key") or "").strip()
+    if claude_key:
+        config["ai"]["claude_api_key"] = claude_key
+    openai_key = (request.form.get("openai_api_key") or "").strip()
+    if openai_key:
+        config["ai"]["openai_api_key"] = openai_key
+    save_config(config)
+    msg = f"AI 설정 저장됨 (제공자: {provider})"
+    return redirect(f"/settings?msg={msg}")
 
 
 # ── Mapbox 토큰 저장 ─────────────────────────────────────────────────

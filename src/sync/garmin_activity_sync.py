@@ -136,8 +136,18 @@ def sync_activities(
                 activity_id=activity_id,
             )
             summary = detail.get("summaryDTO", {})
-            aerobic_te = detail.get("aerobicTrainingEffect", summary.get("aerobicTrainingEffect"))
-            anaerobic_te = detail.get("anaerobicTrainingEffect", summary.get("anaerobicTrainingEffect"))
+            aerobic_te = (
+                detail.get("aerobicTrainingEffect")
+                or summary.get("aerobicTrainingEffect")
+                or act.get("aerobicTrainingEffect")
+                or detail.get("trainingEffectAerobic")
+                or summary.get("trainingEffectAerobic")
+            )
+            anaerobic_te = (
+                detail.get("anaerobicTrainingEffect")
+                or summary.get("anaerobicTrainingEffect")
+                or act.get("anaerobicTrainingEffect")
+            )
             training_load = detail.get("activityTrainingLoad", summary.get("activityTrainingLoad"))
             vo2max = detail.get("vO2MaxValue", summary.get("vO2MaxValue"))
 

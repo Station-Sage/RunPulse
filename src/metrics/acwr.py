@@ -18,7 +18,10 @@ from src.metrics.trimp import get_daily_trimp, get_trimp_series
 
 
 def calc_acwr(trimp_7d: list[float], trimp_28d: list[float]) -> float | None:
-    """ACWR 계산 (순수 함수).
+    """ACWR 계산 (표준 공식).
+
+    ACWR = (7일 합계 / 7) / (28일 합계 / 28)
+    휴식일(TRIMP=0)도 포함하여 평균 계산.
 
     Args:
         trimp_7d: 최근 7일 일별 TRIMP 리스트.
@@ -27,14 +30,13 @@ def calc_acwr(trimp_7d: list[float], trimp_28d: list[float]) -> float | None:
     Returns:
         ACWR 값 또는 None (만성 부하 = 0).
     """
-    acute = sum(trimp_7d)
-    chronic_days = [v for v in trimp_28d if v > 0]
-    if not chronic_days:
+    if not trimp_28d:
         return None
-    chronic_mean = sum(chronic_days) / len(chronic_days)
-    if chronic_mean <= 0:
+    acute_avg = sum(trimp_7d) / 7
+    chronic_avg = sum(trimp_28d) / 28
+    if chronic_avg <= 0:
         return None
-    return acute / chronic_mean
+    return round(acute_avg / chronic_avg, 2)
 
 
 def acwr_risk_level(acwr: float) -> str:
@@ -81,8 +83,10 @@ def calc_and_save_acwr(conn: sqlite3.Connection, target_date: str) -> float | No
             value=acwr,
             extra_json={
                 "risk": acwr_risk_level(acwr),
-                "acute_trimp": sum(trimp_7d),
-                "chronic_mean": sum(trimp_28d) / max(len([v for v in trimp_28d if v > 0]), 1),
+                "status": acwr_risk_level(acwr),
+                "acute_avg": round(sum(trimp_7d) / 7, 1),
+                "chronic_avg": round(sum(trimp_28d) / 28, 1),
+                "acute_trimp": round(sum(trimp_7d), 1),
             },
         )
     return acwr

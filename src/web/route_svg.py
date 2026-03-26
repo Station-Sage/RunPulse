@@ -38,12 +38,26 @@ def render_route_svg(
 
 
 def _load_latlng(conn: sqlite3.Connection, activity_id: int) -> list[tuple[float, float]]:
-    """activity_streams에서 latlng 좌표 로드."""
+    """activity_streams에서 latlng 좌표 로드. 그룹 내 다른 소스도 탐색."""
+    # 1. 직접 조회
     row = conn.execute(
         "SELECT data_json FROM activity_streams "
         "WHERE activity_id=? AND stream_type='latlng' LIMIT 1",
         (activity_id,),
     ).fetchone()
+    # 2. 없으면 같은 그룹의 다른 활동에서 탐색
+    if not row or not row[0]:
+        group_row = conn.execute(
+            "SELECT matched_group_id FROM activity_summaries WHERE id=?",
+            (activity_id,),
+        ).fetchone()
+        if group_row and group_row[0]:
+            row = conn.execute(
+                "SELECT s.data_json FROM activity_streams s "
+                "JOIN activity_summaries a ON a.id=s.activity_id "
+                "WHERE a.matched_group_id=? AND s.stream_type='latlng' LIMIT 1",
+                (group_row[0],),
+            ).fetchone()
     if not row or not row[0]:
         return []
     try:

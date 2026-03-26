@@ -166,15 +166,14 @@ class TestTrimp:
 
 class TestAcwr:
     def test_consistent_training_ratio(self):
-        """일정 훈련 시 ACWR = sum(7d) / mean(28d) = 7 * daily / daily = 7."""
+        """일정 훈련 시 ACWR = acute_avg / chronic_avg = 80/80 = 1.0."""
         from src.metrics.acwr import calc_acwr
 
         trimp_7d = [80.0] * 7
         trimp_28d = [80.0] * 28
         acwr = calc_acwr(trimp_7d, trimp_28d)
         assert acwr is not None
-        # acute = 80*7=560, chronic_mean = 80, ratio = 7.0
-        assert abs(acwr - 7.0) < 0.01
+        assert abs(acwr - 1.0) < 0.01
 
     def test_no_chronic_returns_none(self):
         from src.metrics.acwr import calc_acwr
@@ -203,12 +202,12 @@ class TestAcwr:
     def test_acute_chronic_ratio(self):
         from src.metrics.acwr import calc_acwr
 
-        # 7일 합 = 7*100, 28일 평균 = 50 → ACWR = 700/50 = 14.0
+        # acute_avg = 700/7 = 100, chronic_avg = 1400/28 = 50 → ACWR = 2.0
         trimp_7d = [100.0] * 7
         trimp_28d = [50.0] * 28
         acwr = calc_acwr(trimp_7d, trimp_28d)
         assert acwr is not None
-        assert abs(acwr - 14.0) < 0.5
+        assert abs(acwr - 2.0) < 0.1
 
 
 # ---------------------------------------------------------------------------

@@ -77,27 +77,45 @@ def _generate_briefing(conn: sqlite3.Connection) -> str | None:
     acwr_val, acwr_json = _load_metric(conn, "ACWR")
 
     parts = []
+
+    # 종합 판단 (코치 톤)
+    if cirs_val is not None and cirs_val >= 75:
+        parts.append("🚨 <strong>오늘은 쉬는 날입니다.</strong> 부상 위험이 높아 훈련을 중단하고 회복에 집중하세요.")
+    elif utrs_val is not None and utrs_val < 40:
+        parts.append("😴 <strong>회복이 필요합니다.</strong> 가벼운 스트레칭이나 산책 정도만 권장합니다.")
+    elif utrs_val is not None and utrs_val >= 85:
+        parts.append("🔥 <strong>컨디션 최고!</strong> 고강도 훈련(인터벌/템포)에 도전해보세요.")
+    elif utrs_val is not None and utrs_val >= 70:
+        parts.append("✅ <strong>정상 훈련 가능합니다.</strong> 계획대로 진행하세요.")
+    elif utrs_val is not None:
+        parts.append("⚡ <strong>볼륨을 줄이세요.</strong> 이지런이나 회복 조깅을 권장합니다.")
+
+    # 세부 지표
+    details = []
     if utrs_val is not None:
-        grade = (
-            "고강도 훈련 최적" if utrs_val >= 85
-            else "정상 훈련 가능" if utrs_val >= 70
-            else "볼륨 감소 권장" if utrs_val >= 55
-            else "완전 휴식 권장"
-        )
-        parts.append(f"UTRS <strong>{int(utrs_val)}/100</strong> — {grade}")
+        details.append(f"준비도(UTRS) {int(utrs_val)}")
     if cirs_val is not None:
-        risk = "안전" if cirs_val <= 25 else "주의" if cirs_val <= 50 else "경고" if cirs_val <= 75 else "위험"
-        parts.append(f"CIRS <strong>{int(cirs_val)}/100</strong> — {risk}")
+        details.append(f"부상위험(CIRS) {int(cirs_val)}")
     if acwr_val is not None:
-        status = acwr_json.get("status", "")
-        status_ko = {"safe": "적정", "caution": "주의", "danger": "위험", "low": "부족"}.get(status, "")
-        parts.append(f"ACWR <strong>{acwr_val:.2f}</strong>" + (f" — {status_ko}" if status_ko else ""))
-    if lsi_val is not None:
-        parts.append(f"LSI <strong>{lsi_val:.1f}</strong>" + (" ⚠️ 부하 급증" if lsi_val > 1.5 else ""))
+        acwr_status = acwr_json.get("status") or acwr_json.get("risk", "")
+        status_ko = {"optimal": "적정", "caution": "주의", "danger": "위험",
+                     "undertraining": "부족"}.get(acwr_status, "")
+        details.append(f"ACWR {acwr_val:.2f}" + (f"({status_ko})" if status_ko else ""))
+    if lsi_val is not None and lsi_val > 1.0:
+        details.append(f"부하 스파이크 {lsi_val:.1f}")
     if di_val is not None:
-        parts.append(f"내구성(DI) <strong>{int(di_val)}/100</strong>")
+        details.append(f"내구성 {int(di_val)}")
+    if details:
+        parts.append("<span style='font-size:0.85rem;color:var(--muted);'>" + " · ".join(details) + "</span>")
     if darp_val is not None:
-        parts.append(f"DARP 하프 예측 <strong>{fmt_duration(int(darp_val))}</strong>")
+        # darp_json에 time_sec가 있으면 완주 시간, 없으면 페이스×거리로 추정
+        darp_time = darp_json.get("time_sec") if darp_json else None
+        if darp_time:
+            parts.append(f"DARP 하프 예측 <strong>{fmt_duration(int(darp_time))}</strong>")
+        else:
+            # darp_val은 pace(sec/km), 하프=21.0975km
+            est_sec = int(darp_val * 21.0975)
+            parts.append(f"DARP 하프 예측 <strong>{fmt_duration(est_sec)}</strong>")
 
     if not parts:
         return None

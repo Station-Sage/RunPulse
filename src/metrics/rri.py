@@ -42,7 +42,7 @@ def calc_rri(
     # CTL 충족률
     ctl_pct = min(1.0, ctl / target_ctl) if target_ctl > 0 else 0.5
 
-    # DI 계수 (70 이상이면 1.0)
+    # DI 계수 (0~100 스케일, 70 이상이면 1.0)
     di_factor = min(1.0, (di or 50) / 70)
 
     # 안전 계수 (CIRS 낮을수록 좋음)

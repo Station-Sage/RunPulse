@@ -73,9 +73,16 @@ _CSS = """
         background: rgba(22,33,62,0.95); color: rgba(255,255,255,0.9);
         border: 1px solid var(--card-border); border-radius: 12px;
         padding: 10px 14px; font-size: 0.78rem; line-height: 1.5;
-        width: max-content; max-width: 280px;
+        width: max-content; max-width: 250px;
         pointer-events: none; transition: opacity 0.2s;
         box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        word-break: keep-all; overflow-wrap: break-word;
+    }
+    @media (max-width: 640px) {
+        .rp-tip .rp-tip-text {
+            position: fixed; left: 8px; right: 8px; bottom: auto; top: 50%;
+            transform: translateY(-50%); max-width: none; width: auto;
+        }
     }
     .rp-tip:hover .rp-tip-text,
     .rp-tip:focus .rp-tip-text,

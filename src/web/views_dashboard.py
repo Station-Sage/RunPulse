@@ -53,13 +53,13 @@ _log = _logging.getLogger(__name__)
 
 
 def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
-    """마지막 동기화 완료 시간."""
+    """마지막 동기화 완료 시간 (sync_jobs.db에서 조회)."""
     try:
-        row = conn.execute(
-            "SELECT updated_at FROM sync_jobs WHERE status='completed' "
-            "ORDER BY updated_at DESC LIMIT 1"
-        ).fetchone()
-        return row[0] if row else None
+        from src.utils.sync_jobs import list_recent_jobs
+        jobs = list_recent_jobs(limit=1)
+        if jobs and jobs[0].updated_at:
+            return jobs[0].updated_at
+        return None
     except Exception:
         return None
 
@@ -240,7 +240,7 @@ def _build_dashboard(db) -> str:
         darp_data = _load_darp_data(conn, today)
         vdot, marathon_shape = _load_fitness_data(conn, today)
         # v0.3 신규 메트릭
-        _v3 = load_metrics_batch(conn, today, ["eFTP", "REC", "RRI", "VDOT_ADJ", "TEROI", "SAPI"])
+        _v3 = load_metrics_batch(conn, today, ["eFTP", "REC", "RRI", "VDOT_ADJ", "TEROI", "SAPI", "DI"])
         # 신규 로더
         wellness = load_wellness_mini(conn, today)
         weekly = load_weekly_summary(conn, today)
@@ -263,9 +263,14 @@ def _build_dashboard(db) -> str:
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
         f"<span>마지막 동기화: {sync_time_str}</span>"
-        "<a href='/settings' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
-        "padding:4px 12px;border-radius:12px;font-size:0.75rem;text-decoration:none;'>동기화</a>"
-        "</div>"
+        "<div style='display:flex;gap:6px;'>"
+        "<form method='POST' action='/trigger-sync' style='margin:0;'>"
+        "<input type='hidden' name='mode' value='basic'/>"
+        "<button type='submit' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+        "border:none;padding:4px 12px;border-radius:12px;font-size:0.75rem;cursor:pointer;'>동기화</button>"
+        "</form>"
+        "<a href='/settings' style='color:var(--muted);font-size:0.75rem;'>설정</a>"
+        "</div></div>"
     )
 
     # ── 배너 ─────────────────────────────────────────────────────────────
@@ -297,7 +302,7 @@ def _build_dashboard(db) -> str:
     fitness_chart = render_fitness_trends_chart(pmc_data, trends)
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
-    darp_card = _render_darp_mini(darp_data)
+    darp_card = _render_darp_mini(darp_data, vdot=vdot, di=_v3.get("DI"))
     fitness_card = _render_fitness_mini(
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),

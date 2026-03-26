@@ -587,10 +587,20 @@ def _render_risk_pills(risk_data: dict) -> str:
     )
 
 
-def _render_darp_mini(darp_data: dict) -> str:
-    """DARP 레이스 예측 미니 카드."""
+def _render_darp_mini(darp_data: dict, vdot: float | None = None,
+                      di: float | None = None) -> str:
+    """DARP 레이스 예측 미니 카드 + VDOT/DI 배지."""
     if not darp_data:
         return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
+
+    badges = ""
+    if vdot is not None:
+        badges += f"<span style='color:var(--cyan);font-size:0.82rem;font-weight:600;'>VDOT {vdot:.1f}</span>"
+    if di is not None:
+        di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
+        badges += f"<span style='color:{di_clr};font-size:0.82rem;font-weight:600;margin-left:0.5rem;'>DI {di:.0f}</span>"
+    badge_row = f"<div style='margin-bottom:0.4rem;'>{badges}</div>" if badges else ""
+
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프", "full": "마라톤"}
     rows = ""
     for key, lbl in _LABELS.items():
@@ -599,6 +609,9 @@ def _render_darp_mini(darp_data: dict) -> str:
             continue
         ts = int(d.get("time_sec") or 0)
         pace = d.get("pace_sec_km") or 0
+        if ts <= 0 and pace > 0:
+            _dist = {"5k": 5, "10k": 10, "half": 21.0975, "full": 42.195}.get(key, 21)
+            ts = int(pace * _dist)
         h, rem = divmod(ts, 3600)
         m, s = divmod(rem, 60)
         t_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
@@ -609,8 +622,8 @@ def _render_darp_mini(darp_data: dict) -> str:
         return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>레이스 예측 (DARP)</h2>"
-        f"<table style='width:100%;border-collapse:collapse;'>{rows}</table>"
-        "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>VDOT + DI 보정 기반 예측</p></div>"
+        + badge_row
+        + f"<table style='width:100%;border-collapse:collapse;'>{rows}</table></div>"
     )
 
 
