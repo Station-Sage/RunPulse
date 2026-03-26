@@ -37,6 +37,20 @@ def invalidate_cache(db_path: str | None = None) -> None:
             del _page_cache[k]
 
 
+def load_latest_metric_date(
+    conn: sqlite3.Connection,
+    target_date: str,
+    metric_name: str = "UTRS",
+) -> str | None:
+    """메트릭의 가장 최근 계산 날짜 반환."""
+    row = conn.execute(
+        "SELECT date FROM computed_metrics WHERE metric_name=? AND activity_id IS NULL "
+        "AND date <= ? ORDER BY date DESC LIMIT 1",
+        (metric_name, target_date),
+    ).fetchone()
+    return row[0] if row else None
+
+
 def load_metrics_batch(
     conn: sqlite3.Connection,
     target_date: str,

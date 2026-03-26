@@ -39,6 +39,7 @@ from .views_perf import (
     cached_page,
     load_activity_metrics_batch,
     load_darp_batch,
+    load_latest_metric_date,
     load_metrics_batch,
     load_metrics_json_batch,
 )
@@ -168,6 +169,7 @@ def _build_dashboard(db) -> str:
         lsi_val = vals["LSI"]
         strain_val = vals["Strain"]
 
+        metric_date = load_latest_metric_date(conn, today, "UTRS")
         jsons = load_metrics_json_batch(conn, today, ["UTRS", "CIRS", "RMR"])
         utrs_json = jsons.get("UTRS") or {}
         cirs_json = jsons.get("CIRS") or {}
@@ -209,7 +211,8 @@ def _build_dashboard(db) -> str:
 
     # ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────
     status_strip = render_daily_status_strip(
-        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness)
+        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness,
+        metric_date=metric_date)
 
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
     recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)

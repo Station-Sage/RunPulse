@@ -175,7 +175,17 @@ def render_trimp_weekly_chart(trimp_data: list[dict], prev_trimp: list[dict] | N
     """주별 TRIMP 합계 ECharts 바차트 + 이전 기간 비교선."""
     if not trimp_data:
         return no_data_card("주별 TRIMP 부하", "데이터 수집 중입니다")
-    labels = [d["week"] for d in trimp_data]
+    def _week_label(w: str) -> str:
+        """YYYY-WW → 'M/D' (주 시작일)."""
+        try:
+            from datetime import datetime, timedelta
+            year, wk = w.split("-")
+            jan1 = datetime(int(year), 1, 1)
+            start = jan1 + timedelta(weeks=int(wk), days=-jan1.weekday())
+            return f"{start.month}/{start.day}"
+        except Exception:
+            return w
+    labels = [_week_label(d["week"]) for d in trimp_data]
     values = [d["trimp"] for d in trimp_data]
     avg = sum(values) / len(values) if values else 0
     lj = json.dumps(labels)
@@ -512,7 +522,17 @@ def render_weekly_chart(weekly_data: list[dict]) -> str:
     """ECharts 주별 거리 바차트."""
     if not weekly_data:
         return no_data_card("주별 거리 추세", "데이터 수집 중입니다")
-    labels = [d["week"] for d in weekly_data]
+    def _week_label(w: str) -> str:
+        """YYYY-WW → 'M/D' (주 시작일)."""
+        try:
+            from datetime import datetime, timedelta
+            year, wk = w.split("-")
+            jan1 = datetime(int(year), 1, 1)
+            start = jan1 + timedelta(weeks=int(wk), days=-jan1.weekday())
+            return f"{start.month}/{start.day}"
+        except Exception:
+            return w
+    labels = [_week_label(d["week"]) for d in weekly_data]
     values = [d["km"] for d in weekly_data]
     avg_km = sum(values) / len(values) if values else 0
     lj, vj = json.dumps(labels), json.dumps(values)

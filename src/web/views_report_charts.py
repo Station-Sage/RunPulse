@@ -76,20 +76,22 @@ def render_training_quality_chart(quality: dict) -> str:
   c.setOption({{backgroundColor:'transparent',
     tooltip:{{trigger:'axis'}},
     legend:{{top:0,textStyle:{{color:'rgba(255,255,255,0.7)',fontSize:10}}}},
-    grid:{{left:48,right:48,bottom:25,top:32}},
+    grid:{{left:48,right:80,bottom:25,top:32}},
     xAxis:{{type:'category',data:dates,axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10,interval:Math.floor(dates.length/7)}},
       axisLine:{{lineStyle:{{color:'rgba(255,255,255,0.2)'}}}}}},
     yAxis:[
-      {{type:'value',name:'EF/Dec',nameTextStyle:{{color:'rgba(255,255,255,0.5)',fontSize:9}},
-        splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.06)'}}}},axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}}}},
-      {{type:'value',name:'VO2Max',position:'right',splitLine:{{show:false}},
-        nameTextStyle:{{color:'#cc88ff',fontSize:9}},axisLabel:{{color:'#cc88ff',fontSize:10}}}}
+      {{type:'value',name:'EF',nameTextStyle:{{color:'#00d4ff',fontSize:9}},
+        splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.06)'}}}},axisLabel:{{color:'#00d4ff',fontSize:10}}}},
+      {{type:'value',name:'VO2Max',position:'right',splitLine:{{show:false}},offset:0,
+        nameTextStyle:{{color:'#cc88ff',fontSize:9}},axisLabel:{{color:'#cc88ff',fontSize:10}}}},
+      {{type:'value',name:'Dec%',position:'right',splitLine:{{show:false}},offset:40,
+        nameTextStyle:{{color:'#ffaa00',fontSize:9}},axisLabel:{{color:'#ffaa00',fontSize:10,formatter:'{{value}}%'}}}}
     ],
     series:[
       {{name:'EF',type:'line',data:{ef_vals},smooth:true,symbol:'circle',symbolSize:3,
         connectNulls:true,lineStyle:{{color:'#00d4ff',width:2}},itemStyle:{{color:'#00d4ff'}},yAxisIndex:0}},
       {{name:'Decoupling %',type:'line',data:{dec_vals},smooth:true,symbol:'circle',symbolSize:3,
-        connectNulls:true,lineStyle:{{color:'#ffaa00',width:1.5}},itemStyle:{{color:'#ffaa00'}},yAxisIndex:0}},
+        connectNulls:true,lineStyle:{{color:'#ffaa00',width:1.5}},itemStyle:{{color:'#ffaa00'}},yAxisIndex:2}},
       {{name:'VO2Max',type:'line',data:{vo2_vals},smooth:true,symbol:'circle',symbolSize:4,
         connectNulls:true,lineStyle:{{color:'#cc88ff',width:2}},itemStyle:{{color:'#cc88ff'}},yAxisIndex:1}}
     ]
@@ -174,13 +176,15 @@ def render_risk_trend_chart(risk_series: dict) -> str:
         axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}}}}
     ],
     series:[
-      {{name:'ACWR',type:'line',data:{aj},smooth:true,symbol:'none',lineStyle:{{color:'#ff4444',width:2}},yAxisIndex:0,
+      {{name:'ACWR',type:'line',data:{aj},smooth:true,symbol:'circle',symbolSize:3,
+        lineStyle:{{color:'#ff4444',width:2}},itemStyle:{{color:'#ff4444'}},yAxisIndex:0,
         markArea:{{silent:true,data:[[{{yAxis:0.8,itemStyle:{{color:'rgba(0,255,136,0.06)'}}}},{{yAxis:1.3}}],
           [{{yAxis:1.3,itemStyle:{{color:'rgba(255,170,0,0.08)'}}}},{{yAxis:1.5}}],
           [{{yAxis:1.5,itemStyle:{{color:'rgba(255,68,68,0.1)'}}}},{{yAxis:3}}]]}}}},
-      {{name:'Monotony',type:'line',data:{mj},smooth:true,symbol:'none',lineStyle:{{color:'#cc88ff',width:1.5}},yAxisIndex:0,
+      {{name:'Monotony',type:'line',data:{mj},smooth:true,symbol:'circle',symbolSize:3,
+        lineStyle:{{color:'#cc88ff',width:1.5}},itemStyle:{{color:'#cc88ff'}},yAxisIndex:0,
         markLine:{{silent:true,data:[{{yAxis:2.0,lineStyle:{{color:'rgba(255,68,68,0.4)',type:'dashed'}},label:{{show:false}}}}]}}}},
-      {{name:'Strain',type:'bar',data:{sj},barWidth:3,itemStyle:{{color:'rgba(255,170,0,0.4)'}},yAxisIndex:1}}
+      {{name:'Strain',type:'bar',data:{sj},barWidth:3,itemStyle:{{color:'#ffaa00',borderRadius:[2,2,0,0]}},yAxisIndex:1}}
     ]
   }});
   window.addEventListener('resize',function(){{c.resize();}});
@@ -319,11 +323,11 @@ def render_wellness_trend_chart(wellness: dict) -> str:
     yAxis:{{type:'value',splitLine:{{lineStyle:{{color:'rgba(255,255,255,0.06)'}}}},
       axisLabel:{{color:'rgba(255,255,255,0.5)',fontSize:10}}}},
     series:[
-      {{name:'HRV',type:'line',data:{hrv_j},smooth:true,symbol:'none',lineStyle:{{color:'#00ff88',width:2}},connectNulls:true}},
-      {{name:'수면',type:'line',data:{sleep_j},smooth:true,symbol:'none',lineStyle:{{color:'#00d4ff',width:1.5}},connectNulls:true}},
-      {{name:'BB',type:'line',data:{bb_j},smooth:true,symbol:'none',lineStyle:{{color:'#ffaa00',width:1.5}},connectNulls:true}},
-      {{name:'스트레스',type:'line',data:{stress_j},smooth:true,symbol:'none',lineStyle:{{color:'#ff4444',width:1}},connectNulls:true}},
-      {{name:'안정심박',type:'line',data:{rhr_j},smooth:true,symbol:'none',lineStyle:{{color:'#cc88ff',width:1}},connectNulls:true}}
+      {{name:'HRV',type:'line',data:{hrv_j},smooth:true,symbol:'circle',symbolSize:3,lineStyle:{{color:'#00ff88',width:2}},itemStyle:{{color:'#00ff88'}},connectNulls:true}},
+      {{name:'수면',type:'line',data:{sleep_j},smooth:true,symbol:'circle',symbolSize:3,lineStyle:{{color:'#00d4ff',width:1.5}},itemStyle:{{color:'#00d4ff'}},connectNulls:true}},
+      {{name:'BB',type:'line',data:{bb_j},smooth:true,symbol:'circle',symbolSize:3,lineStyle:{{color:'#ffaa00',width:1.5}},itemStyle:{{color:'#ffaa00'}},connectNulls:true}},
+      {{name:'스트레스',type:'line',data:{stress_j},smooth:true,symbol:'circle',symbolSize:3,lineStyle:{{color:'#ff4444',width:1}},itemStyle:{{color:'#ff4444'}},connectNulls:true}},
+      {{name:'안정심박',type:'line',data:{rhr_j},smooth:true,symbol:'circle',symbolSize:3,lineStyle:{{color:'#cc88ff',width:1}},itemStyle:{{color:'#cc88ff'}},connectNulls:true}}
     ]
   }});
   window.addEventListener('resize',function(){{c.resize();}});
