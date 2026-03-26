@@ -45,7 +45,13 @@ def render_header_actions(has_plan: bool) -> str:
         "<form method='POST' action='/training/push-garmin' style='margin:0;'>"
         "<button type='submit' style='background:rgba(255,170,0,0.2);border:1px solid rgba(255,170,0,0.4);"
         "color:#ffaa00;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;'>"
-        "⌚ Garmin 전송</button></form>"
+        "⌚ Garmin</button></form>"
+    ) if has_plan else ""
+    caldav_btn = (
+        "<form method='POST' action='/training/push-caldav' style='margin:0;'>"
+        "<button type='submit' style='background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);"
+        "color:var(--cyan);padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;'>"
+        "📅 캘린더</button></form>"
     ) if has_plan else ""
     return (
         "<div style='display:flex;justify-content:space-between;align-items:center;"
@@ -57,7 +63,7 @@ def render_header_actions(has_plan: bool) -> str:
         "style='background:rgba(255,255,255,0.1);border:none;color:#fff;"
         "padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;'>"
         "📤 공유</button>"
-        + garmin_btn +
+        + garmin_btn + caldav_btn +
         "<form method='POST' action='/training/generate' style='margin:0;'>"
         f"<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
         f"color:#000;border:none;padding:8px 16px;border-radius:20px;font-size:13px;"
