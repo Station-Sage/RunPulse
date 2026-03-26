@@ -1,6 +1,7 @@
 """AI 코칭 뷰 — Flask Blueprint.
 
-/ai-coach : 일일 브리핑 + 추천 칩 + 웰니스 컨텍스트
+/ai-coach       : 일일 브리핑 + 추천 칩 + 웰니스 컨텍스트 + 채팅
+POST /ai-coach/chat : 메시지 전송 → AI 응답
 """
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ import html as _html
 import json
 import sqlite3
 
-from flask import Blueprint
+from flask import Blueprint, redirect, request
 
 from src.web.helpers import (
     db_path, fmt_pace, html_page, no_data_card, fmt_duration,
@@ -144,6 +145,7 @@ def ai_coach_page():
             wellness = _load_wellness(conn)
             chips = _load_chips(conn)
             recent = _load_recent_activities(conn)
+            chat_history = _load_chat_history(conn)
 
             body = (
                 '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px;">'
@@ -158,7 +160,7 @@ def ai_coach_page():
                 + '</div></div>'
                 + render_briefing_card(briefing_text)
                 + render_chips(chips)
-                + render_chat_section()
+                + render_chat_section(chat_history)
                 + '</div>'
             )
         finally:
@@ -171,3 +173,67 @@ def ai_coach_page():
         )
 
     return html_page("AI 코칭", body, active_tab="ai-coach")
+
+
+# ── 채팅 라우트 ──────────────────────────────────────────────────────
+
+
+@ai_coach_bp.route("/ai-coach/chat", methods=["POST"])
+def ai_coach_chat():
+    """사용자 메시지 수신 → AI 응답 생성 → 저장 → 리다이렉트."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/ai-coach")
+
+    user_msg = request.form.get("message", "").strip()
+    chip_id = request.form.get("chip_id", "").strip() or None
+
+    if not user_msg and not chip_id:
+        return redirect("/ai-coach")
+
+    # 칩 클릭이면 기본 메시지 설정
+    if chip_id and not user_msg:
+        from src.ai.suggestions import CHIP_REGISTRY
+        chip_info = CHIP_REGISTRY.get(chip_id, {})
+        user_msg = chip_info.get("label", chip_id)
+
+    try:
+        from src.ai.chat_engine import chat
+        from src.utils.config import load_config
+
+        conn = sqlite3.connect(str(dbp))
+        try:
+            config = load_config()
+            conn.execute(
+                "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
+                (user_msg, chip_id),
+            )
+            ai_response = chat(conn, user_msg, config=config, chip_id=chip_id)
+            ai_model = config.get("ai", {}).get("provider", "rule")
+            conn.execute(
+                "INSERT INTO chat_messages (role, content, chip_id, ai_model) VALUES ('assistant', ?, ?, ?)",
+                (ai_response, chip_id, ai_model),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+    return redirect("/ai-coach")
+
+
+def _load_chat_history(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
+    """최근 채팅 히스토리 로드."""
+    try:
+        rows = conn.execute(
+            "SELECT role, content, chip_id, ai_model, created_at "
+            "FROM chat_messages ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [
+            {"role": r[0], "content": r[1], "chip_id": r[2], "ai_model": r[3], "time": r[4]}
+            for r in reversed(rows)
+        ]
+    except Exception:
+        return []

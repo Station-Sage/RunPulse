@@ -33,6 +33,7 @@ from .views_race import race_bp
 from .views_ai_coach import ai_coach_bp
 from .views_dev import dev_bp, _table, _scan_history_dir
 from .views_training import training_bp
+from .views_training_crud import training_crud_bp
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
 _HOME_CACHE_TTL = 60
 # db_path 문자열 → {"ts": float, "data": dict} 맵
@@ -862,6 +863,7 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(race_bp)          # v0.2 Sprint5 레이스 예측
     app.register_blueprint(ai_coach_bp)      # v0.2 Sprint5 AI 코칭
     app.register_blueprint(training_bp)       # v0.3 훈련 계획 (스캐폴딩)
+    app.register_blueprint(training_crud_bp)  # v0.3 훈련 CRUD/목표/ICS
     app.register_blueprint(dev_bp)            # 개발자/디버그 도구
 
     return app

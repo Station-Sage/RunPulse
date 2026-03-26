@@ -1,15 +1,14 @@
 """훈련 계획 뷰 — Flask Blueprint.
 
 /training            : 주간 훈련 플랜 + 목표 + 컨디션 + AI 추천
-POST /training/generate : 플랜 자동 생성
-
-UI 재설계: 7열 그리드 캘린더, UTRS/CIRS 통합, AI 추천 카드, 동기화 상태.
+CRUD/목표/ICS 라우트 → views_training_crud.py에 분리.
 렌더러 → views_training_cards.py, 로더 → views_training_loaders.py.
 """
 from __future__ import annotations
 
 import html as _html
 import sqlite3
+from datetime import timedelta
 
 from flask import Blueprint, redirect, request
 
@@ -35,7 +34,7 @@ from src.web.views_training_loaders import (
 training_bp = Blueprint("training", __name__)
 
 
-# ── 라우트 ──────────────────────────────────────────────────────────────
+# ── 메인 라우트 ──────────────────────────────────────────────────────────
 
 
 @training_bp.route("/training")
@@ -53,28 +52,27 @@ def training_page():
         try:
             config = load_config()
 
-            # 데이터 로드
             goal = load_goal(conn)
             workouts, week_start = load_workouts(conn, week_offset)
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
+            goals_list = _load_goals_list(conn)
 
             utrs_val = metrics.get("utrs_val")
             cirs_val = metrics.get("cirs_val")
             cirs_json = metrics.get("cirs_json", {})
 
-            # 섹션 조립 (S1~S7)
             body = (
-                render_header_actions(bool(workouts))           # S1
-                + render_goal_card(goal, utrs_val)              # S2
-                + render_weekly_summary(workouts, utrs_val)     # S3
-                + render_adjustment_card(adjustment)            # S4
-                + render_week_calendar(                         # S5
-                    workouts, week_start, week_offset)
-                + render_ai_recommendation(                     # S6
-                    utrs_val, cirs_val, cirs_json, workouts)
-                + render_sync_status(sync_info)                 # S7
+                render_header_actions(bool(workouts))
+                + render_goal_card(goal, utrs_val)
+                + _render_goal_form(goals_list)
+                + render_weekly_summary(workouts, utrs_val)
+                + render_adjustment_card(adjustment)
+                + render_week_calendar(workouts, week_start, week_offset)
+                + _render_workout_form(week_start)
+                + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts)
+                + render_sync_status(sync_info)
             )
         finally:
             conn.close()
@@ -106,6 +104,105 @@ def training_generate():
         finally:
             conn.close()
     except Exception:
-        pass  # 실패해도 리다이렉트
+        pass
 
     return redirect("/training")
+
+
+# ── UI 헬퍼 ──────────────────────────────────────────────────────────
+
+
+def _load_goals_list(conn: sqlite3.Connection) -> list[dict]:
+    """목표 목록 로드."""
+    from src.training.goals import list_goals
+    try:
+        return list_goals(conn, status="all")
+    except Exception:
+        return []
+
+
+def _render_goal_form(goals: list[dict]) -> str:
+    """목표 추가 폼 + 기존 목표 목록 (접이식)."""
+    goal_rows = ""
+    for g in goals:
+        status_badge = {
+            "active": "<span style='color:#00ff88;'>활성</span>",
+            "completed": "<span style='color:var(--muted);'>완료</span>",
+            "cancelled": "<span style='color:var(--muted);'>취소</span>",
+        }.get(g.get("status", ""), "")
+        actions = ""
+        if g.get("status") == "active":
+            gid = g["id"]
+            actions = (
+                f"<form method='POST' action='/training/goal/{gid}/complete' style='display:inline;margin:0;'>"
+                "<button type='submit' style='background:rgba(0,255,136,0.2);border:none;color:#00ff88;"
+                "padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;'>완료</button></form>"
+                f"<form method='POST' action='/training/goal/{gid}/cancel' style='display:inline;margin:0;'>"
+                "<button type='submit' style='background:rgba(255,68,68,0.2);border:none;color:#ff4444;"
+                "padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;'>취소</button></form>"
+            )
+        goal_rows += (
+            f"<div style='display:flex;justify-content:space-between;align-items:center;"
+            f"padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.85rem;'>"
+            f"<div><strong>{_html.escape(g.get('name', ''))}</strong> "
+            f"<span class='muted'>{g.get('distance_km', '')}km</span> {status_badge}</div>"
+            f"<div style='display:flex;gap:6px;'>{actions}</div></div>"
+        )
+
+    return (
+        "<details style='margin-bottom:16px;'>"
+        "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
+        "padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>"
+        "🎯 목표 관리</summary>"
+        "<div class='card' style='margin-top:8px;'>"
+        + (goal_rows if goal_rows else "<p class='muted'>설정된 목표가 없습니다.</p>")
+        + "<form method='POST' action='/training/goal' style='margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;'>"
+        "<input name='name' placeholder='목표명 (예: 서울마라톤)' required "
+        "style='flex:1;min-width:120px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        "border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'/>"
+        "<input name='distance_km' type='number' step='0.1' placeholder='거리(km)' required "
+        "style='width:80px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        "border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'/>"
+        "<input name='race_date' type='date' placeholder='레이스 날짜' "
+        "style='background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        "border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'/>"
+        "<input name='target_time' placeholder='목표시간 (H:MM:SS)' "
+        "style='width:100px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        "border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'/>"
+        "<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
+        "color:#000;border:none;padding:8px 16px;border-radius:8px;font-size:13px;"
+        "font-weight:bold;cursor:pointer;'>추가</button></form>"
+        "</div></details>"
+    )
+
+
+def _render_workout_form(week_start) -> str:
+    """워크아웃 수동 추가 폼 (접이식)."""
+    options = "".join(
+        f"<option value='{(week_start + timedelta(days=i)).isoformat()}'>"
+        f"{['월','화','수','목','금','토','일'][i]} ({(week_start + timedelta(days=i)).isoformat()})</option>"
+        for i in range(7)
+    )
+    type_opts = "".join(
+        f"<option value='{t}'>{l}</option>"
+        for t, l in [("easy", "이지런"), ("tempo", "템포런"), ("interval", "인터벌"),
+                     ("long", "롱런"), ("rest", "휴식"), ("recovery", "회복조깅"), ("race", "레이스")]
+    )
+    return (
+        "<details style='margin-bottom:16px;'>"
+        "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
+        "padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>"
+        "➕ 워크아웃 추가</summary>"
+        "<div class='card' style='margin-top:8px;'>"
+        "<form method='POST' action='/training/workout' style='display:flex;gap:8px;flex-wrap:wrap;'>"
+        f"<select name='date' style='background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        f"border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'>{options}</select>"
+        f"<select name='workout_type' style='background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        f"border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'>{type_opts}</select>"
+        "<input name='distance_km' type='number' step='0.1' placeholder='거리(km)' "
+        "style='width:80px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);"
+        "border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;'/>"
+        "<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
+        "color:#000;border:none;padding:8px 16px;border-radius:8px;font-size:13px;"
+        "font-weight:bold;cursor:pointer;'>추가</button></form></div></details>"
+    )

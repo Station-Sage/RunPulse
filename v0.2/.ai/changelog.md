@@ -2,6 +2,45 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.3-ai-chat-training] 2026-03-26
+
+### AI 대화형 코칭
+
+**신규 파일:**
+- `src/ai/chat_engine.py` (175줄): 교체 가능 AI 엔진
+  - `chat()`: 메시지 → 컨텍스트 빌드 → AI 응답 생성
+  - 4개 provider: `rule` (기본, 규칙 기반), `claude`, `openai`, `genspark`
+  - `_rule_based_response()`: API 없이 메트릭 기반 응답 생성
+  - `_call_claude()`, `_call_openai()`: httpx 기반 API 호출
+
+**수정:**
+- `src/db_setup.py`: `chat_messages` 테이블 추가 (role, content, chip_id, ai_model)
+- `views_ai_coach.py`: `POST /ai-coach/chat` 라우트, `_load_chat_history()`, 칩→채팅 연동
+- `views_ai_coach_cards.py`:
+  - `render_chat_section()`: disabled 스텁 → 활성 채팅 UI (히스토리, 입력, 빠른 질문)
+  - `render_chips()`: 칩 클릭 → POST /ai-coach/chat 폼 제출
+
+### Training Plan 풀 구현
+
+**신규 파일:**
+- `views_training_crud.py` (277줄): CRUD + 목표 + ICS 분리
+  - `POST /training/workout`: 워크아웃 생성
+  - `POST /training/workout/<id>/update`: 수정
+  - `POST /training/workout/<id>/delete`: 삭제
+  - `POST /training/workout/<id>/toggle`: 완료 토글
+  - `POST /training/goal`: 목표 추가
+  - `POST /training/goal/<id>/complete|cancel`: 목표 상태 변경
+  - `GET /training/export.ics`: iCal 내보내기
+
+**수정:**
+- `views_training.py`: 목표 폼 + 워크아웃 폼 UI (접이식)
+- `views_training_cards.py`: 캘린더 그리드에 완료 토글 ✓ / 삭제 ✕ 버튼 + ICS 내보내기 링크
+- `app.py`: `training_crud_bp` Blueprint 등록
+
+**테스트:** 904개 통과
+
+---
+
 ## [v0.3-perf] 2026-03-25
 
 ### DB 쿼리 성능 최적화

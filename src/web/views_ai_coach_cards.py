@@ -95,66 +95,114 @@ def render_wellness_card(wellness: dict) -> str:
 
 
 def render_chips(chips: list[dict]) -> str:
-    """추천 칩 목록."""
+    """추천 칩 목록 — 클릭 시 AI 채팅 트리거."""
     if not chips:
         return ""
     html_parts = []
     for chip in chips:
         label = _html.escape(chip.get("label", ""))
+        chip_id = _html.escape(chip.get("id", ""))
         html_parts.append(
-            f'<button style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+            f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+            f'<input type="hidden" name="chip_id" value="{chip_id}"/>'
+            f'<button type="submit" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
             f'border-radius:24px;padding:10px 18px;color:rgba(255,255,255,0.9);'
-            f'font-size:0.85rem;cursor:pointer;white-space:nowrap;">{label}</button>'
+            f'font-size:0.85rem;cursor:pointer;white-space:nowrap;">{label}</button></form>'
         )
     return (
         '<div class="card" style="margin-bottom:16px;">'
         '<h3 style="margin:0 0 12px;">추천</h3>'
         '<div style="display:flex;flex-wrap:wrap;gap:10px;">'
         + "".join(html_parts)
-        + '</div>'
-        '<p class="muted" style="margin:8px 0 0;font-size:0.75rem;">'
-        'v0.3에서 칩 클릭 시 AI 대화가 시작됩니다.</p></div>'
+        + '</div></div>'
     )
 
 
-def render_chat_section() -> str:
-    """채팅 인터페이스 (v0.3 대비 레이아웃 + 샘플 메시지)."""
+def render_chat_section(chat_history: list[dict] | None = None) -> str:
+    """채팅 인터페이스 — 히스토리 표시 + 메시지 입력."""
     ai_avatar = (
-        '<div style="width:40px;height:40px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '<div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
         'border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;'
-        'font-size:18px">🤖</div>'
+        'font-size:16px">🤖</div>'
     )
+    user_avatar = (
+        '<div style="width:36px;height:36px;background:rgba(255,255,255,0.2);'
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;'
+        'font-size:16px">🏃</div>'
+    )
+
+    # 채팅 히스토리 렌더링
+    messages_html = ""
+    if chat_history:
+        for msg in chat_history:
+            role = msg.get("role", "user")
+            content = _html.escape(msg.get("content", ""))
+            # 마크다운 볼드 처리 (간이)
+            content = content.replace("**", "<strong>", 1)
+            while "**" in content:
+                content = content.replace("**", "</strong>", 1)
+                if "**" in content:
+                    content = content.replace("**", "<strong>", 1)
+            content = content.replace("\n", "<br>")
+            time_str = msg.get("time", "")[:16] if msg.get("time") else ""
+
+            if role == "assistant":
+                messages_html += (
+                    f'<div style="display:flex;gap:10px;margin-bottom:12px">{ai_avatar}'
+                    '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+                    'border-radius:16px;padding:10px 14px;max-width:80%">'
+                    f'<div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">{content}</div>'
+                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">{time_str}</div>'
+                    '</div></div>'
+                )
+            else:
+                messages_html += (
+                    f'<div style="display:flex;gap:10px;margin-bottom:12px;flex-direction:row-reverse">{user_avatar}'
+                    '<div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
+                    'border-radius:16px;padding:10px 14px;max-width:80%">'
+                    f'<div style="font-size:13px;line-height:1.6">{content}</div>'
+                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right">{time_str}</div>'
+                    '</div></div>'
+                )
+    else:
+        # 기본 인사 메시지
+        messages_html = (
+            f'<div style="display:flex;gap:10px;margin-bottom:12px">{ai_avatar}'
+            '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+            'border-radius:16px;padding:10px 14px;max-width:80%">'
+            '<div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">'
+            '안녕하세요! RunPulse AI 코치입니다. '
+            '훈련이나 메트릭에 대해 궁금한 점을 질문해주세요.</div></div></div>'
+        )
+
+    # 빠른 질문 버튼
+    quick_btns = "".join(
+        f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+        f'<input type="hidden" name="message" value="{q}"/>'
+        f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
+        f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
+        f'white-space:nowrap;cursor:pointer;">{q}</button></form>'
+        for q in ["오늘 훈련 강도는?", "마라톤 준비도 확인", "회복 조언"]
+    )
+
     return (
         '<div class="card" style="margin-bottom:16px;">'
         '<h3 style="margin:0 0 12px;">대화</h3>'
-        '<div style="background:rgba(255,255,255,0.03);border-radius:16px;padding:20px;min-height:160px;">'
-        f'<div style="display:flex;gap:12px;margin-bottom:16px">{ai_avatar}'
-        '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
-        'border-radius:16px;padding:12px 16px;max-width:75%">'
-        '<p style="font-size:14px;line-height:1.5;margin:0">안녕하세요! RunPulse AI 코치입니다. '
-        '오늘의 훈련 계획이나 메트릭에 대해 궁금한 점이 있으신가요?</p>'
-        '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">자동 생성</div>'
-        '</div></div>'
-        '</div>'
-        '<div style="display:flex;gap:12px;align-items:center;margin-top:12px">'
-        '<input type="text" placeholder="AI 코치에게 질문하세요..." disabled '
+        f'<div id="chatBox" style="background:rgba(255,255,255,0.03);border-radius:16px;'
+        f'padding:16px;min-height:160px;max-height:400px;overflow-y:auto;">'
+        f'{messages_html}</div>'
+        '<form method="POST" action="/ai-coach/chat" '
+        'style="display:flex;gap:10px;align-items:center;margin-top:12px">'
+        '<input type="text" name="message" placeholder="AI 코치에게 질문하세요..." '
         'style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
-        'border-radius:24px;padding:12px 20px;color:#fff;font-size:14px;outline:none;opacity:0.5"/>'
-        '<button disabled style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
-        'border:none;border-radius:50%;color:#fff;font-size:20px;cursor:not-allowed;opacity:0.5" '
-        'title="v0.3에서 활성화">➤</button></div>'
-        '<div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px">'
-        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
-        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
-        '"오늘 훈련 강도는?"</button>'
-        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
-        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
-        '"마라톤 준비도 확인"</button>'
-        '<button disabled style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);'
-        'padding:8px 16px;border-radius:16px;font-size:13px;white-space:nowrap;cursor:not-allowed">'
-        '"FEARP 보정 방법"</button></div>'
-        '<p class="muted" style="margin:8px 0 0;font-size:0.72rem;text-align:center;">'
-        'v0.3에서 대화형 AI 코칭이 활성화됩니다</p></div>'
+        'border-radius:24px;padding:12px 20px;color:#fff;font-size:14px;outline:none"/>'
+        '<button type="submit" style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        'border:none;border-radius:50%;color:#000;font-size:20px;cursor:pointer;font-weight:bold">➤</button>'
+        '</form>'
+        f'<div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px">'
+        f'{quick_btns}</div>'
+        '<script>var cb=document.getElementById("chatBox");if(cb)cb.scrollTop=cb.scrollHeight;</script>'
+        '</div>'
     )
 
 
