@@ -304,6 +304,48 @@ def _render_ai_section(config: dict) -> str:
 </div>"""
 
 
+def _render_prompt_management(config: dict) -> str:
+    """AI 프롬프트 관리 섹션."""
+    from src.ai.prompt_config import get_all_prompts
+    prompts = get_all_prompts(config)
+    rows = ""
+    for key, info in prompts.items():
+        is_custom = info.get("is_custom")
+        badge = " <span style='color:var(--cyan);font-size:0.7rem;'>수정됨</span>" if is_custom else ""
+        rows += (
+            f"<div style='border-bottom:1px solid rgba(255,255,255,0.06);padding:8px 0;'>"
+            f"<div style='display:flex;justify-content:space-between;align-items:center;'>"
+            f"<strong style='font-size:0.82rem;'>{info['description']}{badge}</strong>"
+            f"<span class='muted' style='font-size:0.7rem;'>max {info['max_tokens']} tokens</span></div>"
+            f"<textarea name='prompt_{key}' rows='2' "
+            f"style='width:100%;margin-top:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
+            f"border-radius:8px;padding:6px 8px;color:var(--fg);font-size:0.75rem;resize:vertical;'>"
+            f"{info['template']}</textarea></div>"
+        )
+    return f"""
+<details style='margin-bottom:16px;'>
+<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;
+padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>
+🔧 AI 프롬프트 관리</summary>
+<div class='card' style='margin-top:8px;'>
+  <p class='muted' style='font-size:0.78rem;margin-bottom:0.5rem;'>
+    각 카드에서 AI에게 보내는 프롬프트를 수정할 수 있습니다.
+    {{context}}는 자동으로 현재 데이터로 치환됩니다.
+  </p>
+  <form method='post' action='/settings/prompts'>
+    {rows}
+    <div style='display:flex;gap:0.5rem;margin-top:0.5rem;'>
+      <button type='submit'
+        style='padding:0.4rem 1rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
+        저장</button>
+      <button type='button' onclick="if(confirm('모든 프롬프트를 기본값으로 복원합니까?'))location.href='/settings/prompts-reset'"
+        style='padding:0.4rem 1rem;background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid rgba(255,255,255,0.2);border-radius:4px;cursor:pointer;'>
+        기본값 복원</button>
+    </div>
+  </form>
+</div></details>"""
+
+
 def _render_caldav_section(config: dict) -> str:
     """CalDAV 캘린더 설정 섹션."""
     c = config.get("caldav", {})
@@ -402,6 +444,7 @@ def settings_view() -> str:
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
 {_render_ai_section(config)}
+{_render_prompt_management(config)}
 {_render_caldav_section(config)}
 <hr>
 <div class='card'>
@@ -1220,6 +1263,32 @@ def settings_mapbox_post():
     save_config(config)
     msg = "Mapbox 토큰이 저장되었습니다" if token else "Mapbox 토큰이 제거되었습니다"
     return redirect(f"/settings?msg={msg}")
+
+
+# ── 프롬프트 저장 ─────────────────────────────────────────────────
+@settings_bp.post("/settings/prompts")
+def settings_prompts_post():
+    """사용자 커스텀 프롬프트 저장."""
+    from src.ai.prompt_config import DEFAULT_PROMPTS
+    config = load_config()
+    config.setdefault("ai", {})
+    custom = {}
+    for key in DEFAULT_PROMPTS:
+        val = request.form.get(f"prompt_{key}", "").strip()
+        if val and val != DEFAULT_PROMPTS[key]["template"]:
+            custom[key] = {"template": val}
+    config["ai"]["custom_prompts"] = custom
+    save_config(config)
+    return redirect("/settings?msg=프롬프트가 저장되었습니다")
+
+
+@settings_bp.get("/settings/prompts-reset")
+def settings_prompts_reset():
+    """프롬프트 기본값 복원."""
+    config = load_config()
+    config.get("ai", {}).pop("custom_prompts", None)
+    save_config(config)
+    return redirect("/settings?msg=프롬프트가 기본값으로 복원되었습니다")
 
 
 # ── CalDAV 설정 저장 ─────────────────────────────────────────────────
