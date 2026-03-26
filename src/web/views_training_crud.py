@@ -275,3 +275,31 @@ def training_export_ics():
         mimetype="text/calendar",
         headers={"Content-Disposition": "attachment; filename=runpulse-training.ics"},
     )
+
+
+# ── Garmin 워크아웃 전송 ──────────────────────────────────────────
+
+
+@training_crud_bp.route("/training/push-garmin", methods=["POST"])
+def push_to_garmin():
+    """주간 훈련 계획을 Garmin Connect에 전송."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training")
+
+    from src.training.garmin_push import push_weekly_plan
+    from src.utils.config import load_config
+
+    try:
+        config = load_config()
+        conn = sqlite3.connect(str(dbp))
+        try:
+            count = push_weekly_plan(config, conn)
+        finally:
+            conn.close()
+        if count > 0:
+            return redirect(f"/training?msg=Garmin에 {count}개 워크아웃 전송 완료")
+        else:
+            return redirect("/training?msg=전송할 워크아웃이 없습니다 (이미 전송되었거나 휴식일)")
+    except Exception as exc:
+        return redirect(f"/training?msg=Garmin 전송 실패: {str(exc)[:100]}")

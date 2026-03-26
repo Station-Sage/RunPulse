@@ -41,16 +41,23 @@ def _esc(s: str) -> str:
 def render_header_actions(has_plan: bool) -> str:
     """타이틀 영역 액션 버튼 (공유 + 플랜 생성)."""
     label = "🗓️ 재생성" if has_plan else "🗓️ 플랜 생성"
+    garmin_btn = (
+        "<form method='POST' action='/training/push-garmin' style='margin:0;'>"
+        "<button type='submit' style='background:rgba(255,170,0,0.2);border:1px solid rgba(255,170,0,0.4);"
+        "color:#ffaa00;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;'>"
+        "⌚ Garmin 전송</button></form>"
+    ) if has_plan else ""
     return (
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:16px 0;border-bottom:1px solid var(--card-border);margin-bottom:20px;'>"
         "<div style='font-size:18px;font-weight:bold;'>훈련 계획</div>"
-        "<div style='display:flex;gap:10px;'>"
+        "<div style='display:flex;gap:10px;flex-wrap:wrap;'>"
         "<button onclick=\"if(navigator.clipboard){navigator.clipboard.writeText("
         "window.location.href).then(function(){alert('링크 복사됨');});}\" "
         "style='background:rgba(255,255,255,0.1);border:none;color:#fff;"
         "padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;'>"
         "📤 공유</button>"
+        + garmin_btn +
         "<form method='POST' action='/training/generate' style='margin:0;'>"
         f"<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
         f"color:#000;border:none;padding:8px 16px;border-radius:20px;font-size:13px;"
