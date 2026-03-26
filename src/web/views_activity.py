@@ -168,6 +168,9 @@ def activity_deep_view():
     ef_series = ef_dec_series.get("ef", {})
     dec_series = ef_dec_series.get("decoupling", {})
 
+    # ── AI 배치 메트릭 해석 (2차 호출) ─────────────────────────────────
+    _load_ai_metric_interpretations(conn, act_metrics)
+
     # ── 7그룹 구조로 렌더링 ─────────────────────────────────────────────
     body = (
         query_form
@@ -199,6 +202,44 @@ def activity_deep_view():
 
     title = f"활동 심층 분석 — {act_date}"
     return render_template("generic_page.html", title=title, body=body, active_tab="activities")
+
+
+def _load_ai_metric_interpretations(conn, act_metrics: dict) -> None:
+    """활동 메트릭을 배치로 AI 해석 → 캐시에 저장."""
+    from .views_activity_cards_common import clear_ai_metric_cache, set_ai_metric_cache
+    clear_ai_metric_cache()
+    try:
+        from src.utils.config import load_config
+        config = load_config()
+        if config.get("ai", {}).get("provider", "rule") == "rule":
+            return
+        # 해석할 메트릭 수집
+        items = {k: round(float(v), 2) for k, v in act_metrics.items()
+                 if v is not None and k not in ("id", "date", "activity_id")}
+        if not items:
+            return
+        # 배치 프롬프트
+        metric_list = "\n".join(f"- {k}: {v}" for k, v in items.items())
+        prompt = (
+            "당신은 러닝 코치입니다. 아래 메트릭을 각각 한국어 1줄(15자 이내)로 해석하세요.\n"
+            "JSON 형식으로 답변: {\"메트릭명\": \"해석\"}\n\n"
+            f"{metric_list}"
+        )
+        from src.ai.ai_message import get_ai_message
+        result = get_ai_message(prompt, "", config, cache_key=f"batch_metrics:{hash(metric_list)}")
+        if not result:
+            return
+        # JSON 파싱
+        import json
+        # AI 응답에서 JSON 추출
+        start = result.find("{")
+        end = result.rfind("}") + 1
+        if start >= 0 and end > start:
+            parsed = json.loads(result[start:end])
+            if isinstance(parsed, dict):
+                set_ai_metric_cache(parsed)
+    except Exception:
+        pass
 
 
 def _render_ai_activity_analysis(conn, activity_id: int, act: dict, metrics: dict) -> str:

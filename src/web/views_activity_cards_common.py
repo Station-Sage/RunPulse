@@ -101,8 +101,31 @@ def metric_tooltip_icon(key: str) -> str:
     return f" <span style='cursor:help;color:var(--muted);font-size:0.75rem;' title='{desc}'>ⓘ</span>"
 
 
+# AI 배치 해석 캐시 (활동 페이지 진입 시 한 번 생성)
+_ai_metric_cache: dict[str, str] = {}
+
+
+def set_ai_metric_cache(cache: dict[str, str]) -> None:
+    """AI 메트릭 배치 해석 캐시 설정."""
+    global _ai_metric_cache
+    _ai_metric_cache = cache
+
+
+def clear_ai_metric_cache() -> None:
+    """AI 메트릭 캐시 초기화."""
+    global _ai_metric_cache
+    _ai_metric_cache = {}
+
+
 def metric_interp_badge(key: str, value: float) -> str:
-    """현재 수치 해설 뱃지 HTML."""
+    """현재 수치 해설 뱃지 HTML — AI 캐시 우선, 규칙 기반 fallback."""
+    # AI 배치 해석이 있으면 우선 사용
+    ai_text = _ai_metric_cache.get(key)
+    if ai_text:
+        return (f" <span style='font-size:0.72rem;color:var(--cyan);margin-left:6px;'>"
+                f"{ai_text}</span>")
+
+    # 규칙 기반
     meta = METRIC_META.get(key)
     if not meta or meta[1] is None:
         return ""
