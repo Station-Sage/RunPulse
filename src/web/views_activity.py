@@ -194,14 +194,75 @@ def activity_deep_view():
         + render_group6_distribution(hr_zones, day_metrics_data, day_metric_jsons, tids_weekly)
         # 그룹 7: 피트니스 컨텍스트
         + render_group7_fitness(fitness_ctx, pmc_series, day_metrics_data, darp_data)
-        # 하단: 서비스 원본 (접이식)
-        + _render_service_tabs(garmin, strava, intervals, runalyze, garmin_detail, act_date)
+        # 하단: 서비스 원본 (접이식, lazy load)
+        + _render_service_tabs_lazy(resolved_id)
         + render_map_placeholder(resolved_id)
         + render_splits(splits)
     )
 
     title = f"활동 심층 분석 — {act_date}"
     return render_template("generic_page.html", title=title, body=body, active_tab="activities")
+
+
+def _render_service_tabs_lazy(activity_id: int | None) -> str:
+    """서비스 원본 데이터 — 접이식 클릭 시 AJAX로 로드."""
+    if activity_id is None:
+        return ""
+    return (
+        f"<details id='svc-lazy-wrap' class='card' style='padding:0.8rem 1rem;'>"
+        "<summary style='cursor:pointer;display:flex;justify-content:space-between;align-items:center;'>"
+        "<h2 style='margin:0;font-size:1rem;'>서비스 원본 데이터 ▸</h2>"
+        "</summary>"
+        f"<div id='svc-lazy-content'>"
+        "<p class='muted' style='text-align:center;padding:1rem;'>로딩 중...</p>"
+        "</div></details>"
+        "<script>"
+        "(function(){"
+        "var d=document.getElementById('svc-lazy-wrap'),loaded=false;"
+        "d.addEventListener('toggle',function(){"
+        "if(!d.open||loaded)return;loaded=true;"
+        f"fetch('/activity/service-data?id={activity_id}')"
+        ".then(function(r){return r.text();})"
+        ".then(function(h){document.getElementById('svc-lazy-content').innerHTML=h;})"
+        ".catch(function(){document.getElementById('svc-lazy-content').innerHTML="
+        "\"<p class='muted'>서비스 데이터 로드 실패</p>\";});"
+        "});"
+        "})();"
+        "</script>"
+    )
+
+
+@activity_bp.route("/activity/service-data")
+def activity_service_data():
+    """서비스 원본 데이터 AJAX 엔드포인트."""
+    from flask import abort
+    dpath = db_path()
+    if not dpath or not dpath.exists():
+        abort(404)
+
+    aid_str = request.args.get("id", "").strip()
+    if not aid_str:
+        abort(400)
+    try:
+        activity_id = int(aid_str)
+    except ValueError:
+        abort(400)
+
+    try:
+        with sqlite3.connect(str(dpath)) as conn:
+            data = deep_analyze(conn, activity_id=activity_id)
+            if not data:
+                return "<p class='muted'>데이터 없음</p>"
+            garmin = data.get("garmin") or {}
+            garmin_detail = data.get("garmin_daily_detail") or {}
+            strava = data.get("strava") or {}
+            intervals = data.get("intervals") or {}
+            runalyze = data.get("runalyze") or {}
+            act_date = (data.get("activity") or {}).get("date", "")
+            return _render_service_tabs(garmin, strava, intervals, runalyze,
+                                        garmin_detail, act_date)
+    except Exception as exc:
+        return f"<p class='muted'>오류: {html.escape(str(exc))}</p>"
 
 
 def _load_ai_metric_interpretations(conn, act_metrics: dict) -> None:

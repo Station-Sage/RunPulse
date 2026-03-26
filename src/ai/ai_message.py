@@ -160,9 +160,12 @@ def get_tab_ai(
 
     # 1. 캐시 확인
     try:
-        from .ai_cache import get_cached
+        from .ai_cache import get_cached, get_cache_age
         cached = get_cached(conn, tab, cache_key)
         if cached:
+            age = get_cache_age(conn, tab, cache_key)
+            if age:
+                cached["_ai_cache_age"] = age
             return cached
     except Exception:
         pass
@@ -243,10 +246,11 @@ def get_tab_ai(
 
 def _try_provider_with_temp(provider: str, prompt: str, config: dict,
                             temperature: float) -> str | None:
-    """temperature 지정하여 provider 호출."""
+    """temperature 지정하여 provider 호출. 429 시 None → 다음 provider로."""
     try:
-        from src.ai.chat_engine import _call_gemini, _call_groq, _call_claude, _call_openai
-        # temperature override는 config를 임시 수정
+        from src.ai.chat_engine import (
+            RateLimitError, _call_gemini, _call_groq, _call_claude, _call_openai,
+        )
         import copy
         cfg = copy.deepcopy(config)
         cfg.setdefault("ai", {})["_temperature"] = temperature
@@ -261,6 +265,9 @@ def _try_provider_with_temp(provider: str, prompt: str, config: dict,
         result = fn(prompt, cfg)
         if result and "설정되지 않았습니다" not in result and "실패" not in result:
             return result
+        return None
+    except RateLimitError:
+        log.warning("%s 429 rate limit → 다음 provider로 전환", provider)
         return None
     except Exception as exc:
         log.warning("AI provider '%s' 실패: %s", provider, exc)
@@ -280,9 +287,11 @@ def _build_provider_chain(selected: str, ai_cfg: dict) -> list[str]:
 
 
 def _try_provider(provider: str, prompt: str, config: dict) -> str | None:
-    """단일 provider 호출. 성공 시 텍스트, 실패 시 None."""
+    """단일 provider 호출. 성공 시 텍스트, 429/실패 시 None."""
     try:
-        from src.ai.chat_engine import _call_claude, _call_gemini, _call_groq, _call_openai
+        from src.ai.chat_engine import (
+            RateLimitError, _call_claude, _call_gemini, _call_groq, _call_openai,
+        )
         _dispatch = {
             "gemini": _call_gemini, "groq": _call_groq,
             "claude": _call_claude, "openai": _call_openai,
@@ -293,6 +302,9 @@ def _try_provider(provider: str, prompt: str, config: dict) -> str | None:
         result = fn(prompt, config)
         if result and "설정되지 않았습니다" not in result and "실패" not in result:
             return result
+        return None
+    except RateLimitError:
+        log.warning("%s 429 rate limit → 다음 provider로 전환", provider)
         return None
     except Exception as exc:
         log.warning("AI provider '%s' 실패: %s", provider, exc)
