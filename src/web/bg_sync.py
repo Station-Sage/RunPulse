@@ -196,7 +196,14 @@ class BgSyncThread(threading.Thread):
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
-                    req_added = count * 2 + 1   # list + detail
+                    # 웰니스 동기화 (기간 포함)
+                    from src.sync.garmin_wellness_sync import sync_wellness
+                    try:
+                        sync_wellness(self.config, conn, 7, client=garmin_client,
+                                      from_date=win_from, to_date=win_to)
+                    except Exception as we:
+                        print(f"[garmin] 웰니스 동기화 실패: {we}")
+                    req_added = count * 2 + 1 + 7  # list + detail + wellness
                 elif service == "strava":
                     from src.sync.strava import sync_activities
                     count = sync_activities(
