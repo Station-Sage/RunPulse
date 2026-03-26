@@ -53,13 +53,13 @@ _log = _logging.getLogger(__name__)
 
 
 def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
-    """마지막 동기화 완료 시간."""
+    """마지막 동기화 완료 시간 (sync_jobs.db에서 조회)."""
     try:
-        row = conn.execute(
-            "SELECT updated_at FROM sync_jobs WHERE status='completed' "
-            "ORDER BY updated_at DESC LIMIT 1"
-        ).fetchone()
-        return row[0] if row else None
+        from src.utils.sync_jobs import list_recent_jobs
+        jobs = list_recent_jobs(limit=1)
+        if jobs and jobs[0].updated_at:
+            return jobs[0].updated_at
+        return None
     except Exception:
         return None
 
