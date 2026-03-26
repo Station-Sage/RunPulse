@@ -241,6 +241,53 @@ def ai_coach_chat():
     return redirect("/ai-coach")
 
 
+@ai_coach_bp.route("/ai-coach/prompt", methods=["GET"])
+def ai_coach_get_prompt():
+    """현재 컨텍스트로 프롬프트 생성 → JSON 반환 (복사용)."""
+    from flask import jsonify
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return jsonify({"prompt": "데이터가 없습니다."})
+
+    try:
+        from src.ai.briefing import build_briefing_prompt
+        conn = sqlite3.connect(str(dbp))
+        try:
+            prompt = build_briefing_prompt(conn)
+        finally:
+            conn.close()
+        return jsonify({"prompt": prompt})
+    except Exception as exc:
+        return jsonify({"prompt": f"프롬프트 생성 실패: {exc}"})
+
+
+@ai_coach_bp.route("/ai-coach/paste-response", methods=["POST"])
+def ai_coach_paste_response():
+    """사용자가 외부 AI 응답을 붙여넣기 → 저장."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/ai-coach")
+
+    response_text = request.form.get("ai_response", "").strip()
+    if not response_text:
+        return redirect("/ai-coach")
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            conn.execute(
+                "INSERT INTO chat_messages (role, content, ai_model) VALUES ('assistant', ?, 'genspark_manual')",
+                (response_text,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+    return redirect("/ai-coach")
+
+
 def _load_chat_history(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
     """최근 채팅 히스토리 로드."""
     try:

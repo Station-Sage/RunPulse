@@ -68,6 +68,8 @@
 - [x] AI 채팅 (대화형 코칭) — chat_messages 테이블, POST /ai-coach/chat, 교체 가능 엔진 (rule/claude/openai), 칩 트리거, 히스토리 UI
 - [x] Training Plan 풀 구현 — 워크아웃 CRUD, 완료 토글, 목표 웹 UI, ICS 내보내기
 - [ ] (향후) 캘린더 API 연동 (Google Calendar / 네이버 캘린더 / Garmin Connect 선택)
+- [x] Garmin Connect 워크아웃 전송 (캘린더 + 워치) + CalDAV 연동
+- [x] Genspark AI 연동 B방식 (프롬프트 복사 + 응답 붙여넣기) + A방식 (proot+Selenium 드라이버)
 - [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
 - [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
 - [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준
@@ -78,11 +80,11 @@
 - [x] GPS 경로 SVG 썸네일 (API 없이 자체 렌더링)
 - [x] 설정: AI provider/API 키 + 프로필 추정값 + 적용 버튼
 
-### 미해결 버그 (v0.3)
+### 미해결 버그 (v0.3) — 수정 완료, 재동기화 후 확인 필요
 
-- [ ] Strava detail 수집 누락 — best_efforts/zones/streams 미저장 (기본 4건만)
-- [ ] Garmin aerobic Training Effect 미저장 — API 키 이름 확인 필요
-- [ ] 웰니스 3/13~3/18 데이터 빈 값 — Garmin 웰니스 동기화 누락 원인 조사
+- [x] Strava detail 수집 누락 — force_streams 시 detail 강제 재조회 (PR #36)
+- [x] Garmin aerobic TE — 추가 키 fallback (PR #35, 재동기화 필요)
+- [x] 웰니스 빈 값 — bg_sync에 웰니스 호출 + from_date 지원 (PR #37)
 
 ### v0.4 예정
 

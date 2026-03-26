@@ -56,6 +56,8 @@ def chat(
         return _call_openai(prompt, config)
     elif provider == "genspark":
         return _call_genspark(prompt, config)
+    elif provider == "genspark_auto":
+        return _call_genspark_selenium(prompt, config)
     else:
         return _rule_based_response(conn, user_message, chip_id)
 
@@ -373,6 +375,34 @@ def _call_openai(prompt: str, config: dict | None) -> str:
 
 
 def _call_genspark(prompt: str, config: dict | None) -> str:
-    """Genspark API 호출 (무료, 향후 구현)."""
-    return ("Genspark 연동은 아직 구현되지 않았습니다. "
-            "config.json에서 ai.provider를 'claude' 또는 'openai'로 변경하세요.")
+    """Genspark 수동 모드 — 프롬프트를 준비하고 사용자가 붙여넣기.
+
+    이 모드에서는 실제 AI 호출을 하지 않고, 프롬프트를 저장해둡니다.
+    사용자가 Genspark에서 응답을 받아 붙여넣기하면 저장됩니다.
+    """
+    # 프롬프트를 _last_prompt에 저장 (UI에서 접근)
+    _call_genspark._last_prompt = prompt
+    return (
+        "📋 **프롬프트가 준비되었습니다.**\n\n"
+        "1. 아래 '프롬프트 복사' 버튼을 클릭하세요\n"
+        "2. [Genspark AI 채팅](https://www.genspark.ai/agents?type=ai_chat)을 열어 붙여넣으세요\n"
+        "3. AI 응답을 받으면 '응답 붙여넣기'에 입력하세요"
+    )
+
+_call_genspark._last_prompt = ""
+
+
+def _call_genspark_selenium(prompt: str, config: dict | None) -> str:
+    """Genspark 자동 모드 — proot + Selenium으로 DOM 자동화.
+
+    설정 필요: proot-distro + chromium + chromedriver + selenium
+    """
+    try:
+        from src.ai.genspark_driver import send_and_receive
+        return send_and_receive(prompt)
+    except ImportError:
+        return ("Genspark 자동 모드에는 proot + Selenium 설정이 필요합니다.\n"
+                "설정 → AI에서 'genspark' (수동 모드)로 변경하세요.")
+    except Exception as exc:
+        log.warning("Genspark Selenium 오류: %s", exc)
+        return f"Genspark 자동 모드 오류: {exc}"

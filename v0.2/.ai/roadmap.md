@@ -52,7 +52,8 @@
 - React Native 모바일 앱
 - TQI (훈련 품질 지수) — ML 기반
 - PLTD (개인화 역치 자동 탐지) — ML 기반
-- Google/Naver Calendar 연동
+- ~~Google/Naver Calendar 연동~~ ✅ CalDAV + Garmin 워크아웃 전송 완료
+- Genspark AI 연동 (수동 B방식 + 자동 A방식 proot+Selenium)
 
 ---
 
