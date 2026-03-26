@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import html as _html
 import sqlite3
-from datetime import timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, redirect, request
 
@@ -54,6 +54,18 @@ def training_page():
 
             goal = load_goal(conn)
             workouts, week_start = load_workouts(conn, week_offset)
+
+            # 빈 주이고 목표가 있으면 자동 생성
+            if not workouts and goal and week_offset >= 0:
+                try:
+                    from src.training.planner import generate_weekly_plan, save_weekly_plan
+                    plan = generate_weekly_plan(conn, config=config, week_start=week_start)
+                    save_weekly_plan(conn, plan)
+                    conn.commit()
+                    workouts, week_start = load_workouts(conn, week_offset)
+                except Exception:
+                    pass
+
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
@@ -97,9 +109,14 @@ def training_generate():
         conn = sqlite3.connect(str(dbp))
         try:
             from src.training.planner import generate_weekly_plan, save_weekly_plan
+            from datetime import timedelta as _td
             config = load_config()
-            plan = generate_weekly_plan(conn, config=config)
-            save_weekly_plan(conn, plan)
+            base = date.today() - _td(days=date.today().weekday())
+            # 4주치 생성 (이번 주 + 다음 3주)
+            for w in range(4):
+                ws = base + _td(weeks=w)
+                plan = generate_weekly_plan(conn, config=config, week_start=ws)
+                save_weekly_plan(conn, plan)
             conn.commit()
         finally:
             conn.close()
