@@ -4,7 +4,7 @@ from __future__ import annotations
 import html as _html
 import json
 
-from .helpers import fmt_duration, fmt_pace, metric_row, no_data_card, svg_radar_chart, svg_semicircle_gauge
+from .helpers import METRIC_DESCRIPTIONS, fmt_duration, fmt_pace, metric_row, no_data_card, svg_radar_chart, svg_semicircle_gauge, tooltip
 
 _UTRS_COLORS = [(0, "#e53935"), (40, "#fb8c00"), (60, "#43a047"), (80, "#00acc1")]
 _CIRS_COLORS = [(0, "#43a047"), (20, "#fb8c00"), (50, "#ef6c00"), (75, "#e53935")]
@@ -14,14 +14,16 @@ _CIRS_COLORS = [(0, "#43a047"), (20, "#fb8c00"), (50, "#ef6c00"), (75, "#e53935"
 
 def _mini_gauge(label: str, value: float | None, max_val: float,
                 colors: list, grade: str = "") -> str:
-    """60px 미니 반원 게이지."""
+    """60px 미니 반원 게이지 + 툴팁."""
+    desc = METRIC_DESCRIPTIONS.get(label, "")
+    tip_label = tooltip(label, desc) if desc else label
     if value is None:
         return (f"<div style='text-align:center;min-width:80px;opacity:0.4;'>"
-                f"<div style='font-size:0.7rem;color:var(--muted);'>{label}</div>"
+                f"<div style='font-size:0.7rem;color:var(--muted);'>{tip_label}</div>"
                 f"<div style='font-size:1.1rem;font-weight:700;'>—</div></div>")
     gauge = svg_semicircle_gauge(value, max_val, grade, colors, width=70)
     return (f"<div style='text-align:center;min-width:80px;'>"
-            f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{label}</div>"
+            f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{tip_label}</div>"
             f"{gauge}</div>")
 
 
@@ -61,12 +63,13 @@ def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
     sleep = wellness.get("sleep_score")
     hrv = wellness.get("hrv")
 
+    acwr_tip = tooltip("ACWR", METRIC_DESCRIPTIONS.get("ACWR", ""))
     parts = [
         _mini_gauge("UTRS", utrs_val, 100, _UTRS_COLORS, utrs_grade),
         _mini_gauge("CIRS", cirs_val, 100, _CIRS_COLORS, cirs_grade),
         # ACWR 텍스트
         (f"<div style='text-align:center;min-width:70px;'>"
-         f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>ACWR</div>"
+         f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{acwr_tip}</div>"
          f"<div style='font-size:1.3rem;font-weight:700;color:{acwr_clr};'>{acwr_str}</div></div>"),
         _mini_gauge("RTTI", rtti, 100, [(0, "#e53935"), (40, "#fb8c00"), (70, "#43a047")]),
         # 웰니스 미니 아이콘
@@ -251,12 +254,24 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
         return "<span style='color:var(--green);font-size:0.7rem;'>&#8595;</span>"
 
     def _pill(label: str, val: float | None, lo: float, hi: float,
-              fmt: str = ".2f", invert: bool = False, trend_key: str = "") -> str:
+              fmt: str = ".2f", invert: bool = False, trend_key: str = "",
+              desc_key: str = "") -> str:
         trend = _trend_arrow(trends_7d.get(trend_key, [])) if trend_key else ""
+        # 범위 + 상태 설명
+        desc = METRIC_DESCRIPTIONS.get(desc_key or trend_key, "")
+        if val is not None:
+            if not invert:
+                status = "위험" if val > hi else "주의" if val > lo else "적정"
+            else:
+                status = "위험" if val < lo else "주의" if val < hi else "적정"
+            range_text = f" (적정: {lo}~{hi})"
+            desc = f"{desc}{range_text} | 현재: {status}" if desc else f"적정 범위: {lo}~{hi} | 현재: {status}"
+        tip_label = tooltip(label, desc) if desc else label
+
         if val is None:
             return (f"<span style='background:rgba(255,255,255,0.08);color:var(--muted);"
                     f"border-radius:16px;padding:0.25rem 0.7rem;font-size:0.78rem;"
-                    f"white-space:nowrap;'>{label} — {trend}</span>")
+                    f"white-space:nowrap;'>{tip_label} — {trend}</span>")
         bad = val > hi if not invert else val < lo
         warn = (lo < val <= hi) if not invert else (lo <= val < hi)
         if bad:
@@ -267,7 +282,7 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
             bg, clr = "rgba(0,255,136,0.15)", "var(--green)"
         return (f"<span style='background:{bg};color:{clr};border-radius:16px;"
                 f"padding:0.25rem 0.7rem;font-size:0.78rem;white-space:nowrap;'>"
-                f"{label} {val:{fmt}} {trend}</span>")
+                f"{tip_label} {val:{fmt}} {trend}</span>")
 
     tsb = risk_data.get("tsb")
     strain = risk_data.get("strain")

@@ -16,7 +16,7 @@ import html as _html
 import json
 import sqlite3
 
-from .helpers import fmt_duration, fmt_pace, no_data_card
+from .helpers import METRIC_DESCRIPTIONS, fmt_duration, fmt_pace, no_data_card, tooltip
 
 
 # ── 데이터 로더 ───────────────────────────────────────────────────────────────
@@ -165,12 +165,32 @@ def render_tids_section(tids: dict | None) -> str:
             f"<span style='background:rgba(255,255,255,{bg_alpha});border-radius:12px;"
             f"padding:0.2rem 0.6rem;font-size:0.76rem;color:{pill_clr};'>{lbl} {d:.0f}pt</span>"
         )
-    dev_pills = " ".join(pill_parts)
+    # 모델 설명 추가
+    _MODEL_DESC = {
+        "폴라리제드": "80% 저강도 + 20% 고강도. 엘리트 선수가 주로 사용. 효율적 체력 향상",
+        "피라미드": "저강도 > 중강도 > 고강도 순. 일반 러너에게 안전. 점진적 강화",
+        "건강유지": "대부분 저강도. 건강 목적 러닝. 부상 위험 최소",
+    }
+    pill_parts_with_tips = []
+    for m, d in deviations:
+        is_dom = m == dominant
+        bg_alpha = "0.15" if is_dom else "0.06"
+        pill_clr = "var(--cyan)" if is_dom else "var(--muted)"
+        lbl = model_labels.get(m, m)
+        desc = _MODEL_DESC.get(lbl, "")
+        tip = tooltip(f"{lbl} {d:.0f}pt", f"{desc}. 편차 점수가 낮을수록 해당 모델에 가까움") if desc else f"{lbl} {d:.0f}pt"
+        pill_parts_with_tips.append(
+            f"<span style='background:rgba(255,255,255,{bg_alpha});border-radius:12px;"
+            f"padding:0.2rem 0.6rem;font-size:0.76rem;color:{pill_clr};'>{tip}</span>"
+        )
+    dev_pills = " ".join(pill_parts_with_tips)
+    dominant_desc = _MODEL_DESC.get(dominant_lbl, "")
+    dominant_tip = tooltip(dominant_lbl, dominant_desc) if dominant_desc else dominant_lbl
     return (
         "<div class='card'>"
-        "<h2 style='font-size:1rem;margin-bottom:0.3rem;'>TIDS 훈련 강도 분포</h2>"
+        f"<h2 style='font-size:1rem;margin-bottom:0.3rem;'>{tooltip('TIDS 훈련 강도 분포', METRIC_DESCRIPTIONS['TIDS'])}</h2>"
         f"<p style='font-size:0.8rem;color:var(--secondary);margin-bottom:0.6rem;'>"
-        f"현재 모델: <strong style='color:var(--cyan);'>{dominant_lbl}</strong> (편차 최소)</p>"
+        f"현재 모델: <strong style='color:var(--cyan);'>{dominant_tip}</strong> (편차 최소)</p>"
         f"{bars}"
         f"<div style='display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;'>{dev_pills}</div>"
         "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>수직선(|) = 폴라리제드 목표값 기준</p>"
@@ -249,18 +269,23 @@ def render_risk_overview(risk: dict) -> str:
             return ""
         avg, mx = d["avg"], d["max"]
         if avg <= lo:
-            clr = "var(--green)"
+            clr, status = "var(--green)", "적정"
         elif avg <= hi:
-            clr = "var(--orange)"
+            clr, status = "var(--orange)", "주의"
         else:
-            clr = "var(--red)"
+            clr, status = "var(--red)", "위험"
+        desc = METRIC_DESCRIPTIONS.get(key, "")
+        tip = tooltip(label, desc) if desc else label
         return (
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.83rem;'>"
-            f"<span style='color:var(--secondary);'>{label}</span>"
+            f"<span style='color:var(--secondary);'>{tip}</span>"
             f"<div style='text-align:right;'>"
             f"<span style='color:{clr};font-weight:600;'>평균 {avg:{fmt}}</span>"
-            f"<span class='muted' style='font-size:0.74rem;margin-left:0.4rem;'>최고 {mx:{fmt}}</span></div></div>"
+            f"<span class='muted' style='font-size:0.74rem;margin-left:0.4rem;'>최고 {mx:{fmt}}</span>"
+            f"<span style='font-size:0.7rem;margin-left:0.3rem;color:{clr};'>({status})</span>"
+            f"<span class='muted' style='font-size:0.68rem;margin-left:0.3rem;'>적정 ≤{lo:{fmt}}</span>"
+            f"</div></div>"
         )
 
     rows = (
@@ -519,8 +544,8 @@ def render_summary_cards(stats: dict, metrics_avg: dict) -> str:
         + _card("평균 거리", km_per)
         + "</div>"
         "<div class='cards-row'>"
-        + _card("평균 UTRS", utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
-        + _card("평균 CIRS", cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
+        + _card(tooltip("평균 UTRS", METRIC_DESCRIPTIONS["UTRS"]), utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
+        + _card(tooltip("평균 CIRS", METRIC_DESCRIPTIONS["CIRS"]), cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
         + "</div>"
     )
 
