@@ -28,6 +28,7 @@ def mem_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT NOT NULL,
             source_id TEXT,
+            name TEXT,
             activity_type TEXT,
             start_time TEXT,
             distance_km REAL,

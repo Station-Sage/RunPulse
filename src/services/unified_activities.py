@@ -17,7 +17,7 @@ SOURCE_COLORS: dict[str, str] = {
 }
 
 _COLS = [
-    "id", "source", "source_id", "activity_type", "start_time",
+    "id", "source", "source_id", "name", "activity_type", "start_time",
     "distance_km", "duration_sec", "avg_pace_sec_km", "avg_hr",
     "max_hr", "avg_cadence", "elevation_gain", "calories",
     "description", "matched_group_id", "workout_label", "avg_power",

@@ -25,6 +25,7 @@ def mem_conn():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source TEXT NOT NULL,
             source_id TEXT,
+            name TEXT,
             activity_type TEXT DEFAULT 'running',
             start_time TEXT NOT NULL,
             distance_km REAL,

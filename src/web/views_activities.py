@@ -245,8 +245,8 @@ def _make_tag_badges(ua) -> str:
     wt = strava_row.get("workout_type")
     if wt and int(wt) in _STRAVA_WORKOUT_TYPE:
         disp, clr = _STRAVA_WORKOUT_TYPE[int(wt)]
-        # 이미 같은 의미 뱃지가 없을 때만 추가
-        if disp not in {b for b in seen}:
+        if disp.lower().strip() not in seen and disp.lower().strip() not in _HIDE_TAGS:
+            seen.add(disp.lower().strip())
             badges.append(
                 f"<span style='background:{clr}; color:#fff; border-radius:3px; "
                 f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;' "
@@ -643,7 +643,9 @@ def _render_sub_row(act_id: int, src: str, row: dict, gid: str) -> str:
     dur = fmt_duration(row.get("duration_sec"))
     pace = _fmt_pace(row.get("avg_pace_sec_km"))
     avg_hr = row.get("avg_hr")
-    name = html.escape(str(row.get("description") or "—"))
+    # 활동명: name 우선, description fallback
+    raw_name = row.get("name") or row.get("description") or ""
+    name = html.escape(str(raw_name)) if raw_name else "—"
     label = row.get("workout_label")
     deep_url = f"/activity/deep?id={act_id}"
 
@@ -653,19 +655,24 @@ def _render_sub_row(act_id: int, src: str, row: dict, gid: str) -> str:
         "border:1px solid #aaa; border-radius:3px; background:none; margin-left:4px;'>분리</button>"
     )
 
+    _HIDE = {"uncategorized", "other", "default", "none", "-", ""}
+    seen_sub: set[str] = set()
     badges_parts = []
-    if label:
+    if label and label.lower().strip() not in _HIDE:
+        seen_sub.add(label.lower().strip())
         badges_parts.append(_label_badge(label))
     event_type = row.get("event_type")
-    if event_type and event_type.lower() != (label or "").lower():
+    if event_type and event_type.lower().strip() not in _HIDE and event_type.lower().strip() not in seen_sub:
+        seen_sub.add(event_type.lower().strip())
         badges_parts.append(_label_badge(event_type))
     wt = row.get("workout_type")
     if wt and int(wt) in _STRAVA_WORKOUT_TYPE:
         disp, clr = _STRAVA_WORKOUT_TYPE[int(wt)]
-        badges_parts.append(
-            f"<span style='background:{clr}; color:#fff; border-radius:3px; "
-            f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;'>{html.escape(disp)}</span>"
-        )
+        if disp.lower().strip() not in seen_sub and disp.lower().strip() not in _HIDE:
+            badges_parts.append(
+                f"<span style='background:{clr}; color:#fff; border-radius:3px; "
+                f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;'>{html.escape(disp)}</span>"
+            )
     label_cell = " ".join(badges_parts)
 
     return (
