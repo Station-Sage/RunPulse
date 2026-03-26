@@ -240,7 +240,7 @@ def _build_dashboard(db) -> str:
         darp_data = _load_darp_data(conn, today)
         vdot, marathon_shape = _load_fitness_data(conn, today)
         # v0.3 신규 메트릭
-        _v3 = load_metrics_batch(conn, today, ["eFTP", "REC", "RRI", "VDOT_ADJ", "TEROI", "SAPI"])
+        _v3 = load_metrics_batch(conn, today, ["eFTP", "REC", "RRI", "VDOT_ADJ", "TEROI", "SAPI", "DI"])
         # 신규 로더
         wellness = load_wellness_mini(conn, today)
         weekly = load_weekly_summary(conn, today)
@@ -302,7 +302,7 @@ def _build_dashboard(db) -> str:
     fitness_chart = render_fitness_trends_chart(pmc_data, trends)
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
-    darp_card = _render_darp_mini(darp_data)
+    darp_card = _render_darp_mini(darp_data, vdot=vdot, di=_v3.get("DI"))
     fitness_card = _render_fitness_mini(
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),

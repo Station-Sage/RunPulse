@@ -43,7 +43,11 @@ def calc_rri(
     ctl_pct = min(1.0, ctl / target_ctl) if target_ctl > 0 else 0.5
 
     # DI 계수 (70 이상이면 1.0)
-    di_factor = min(1.0, (di or 50) / 70)
+    # DI < 2이면 구 비율값(0.8~1.2) → 0~100 스케일로 변환
+    di_val = di or 50
+    if di_val < 2.0:
+        di_val = max(0, min(100, 70 + (di_val - 1.0) * 300))
+    di_factor = min(1.0, di_val / 70)
 
     # 안전 계수 (CIRS 낮을수록 좋음)
     safety = (100 - min(100, cirs or 0)) / 100
