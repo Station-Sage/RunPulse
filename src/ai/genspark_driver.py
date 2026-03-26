@@ -1,40 +1,74 @@
-"""Genspark AI 채팅 DOM 자동화 — proot + Selenium headless Chromium.
+"""Genspark AI 채팅 DOM 자동화 — proot subprocess 브릿지.
+
+Termux에서 실행되는 RunPulse가 proot-distro debian 안의
+Selenium + Chromium을 subprocess로 호출합니다.
 
 전제 조건:
   1. proot-distro install debian
-  2. proot-distro login debian
-  3. apt install chromium chromium-driver
-  4. pip install selenium
-
-사용:
-  from src.ai.genspark_driver import send_and_receive
-  response = send_and_receive("오늘 훈련 강도는?")
+  2. proot-distro login debian -- apt install chromium chromium-driver python3-full
+  3. python3 -m venv /root/selenium-env
+  4. /root/selenium-env/bin/pip install selenium
 """
 from __future__ import annotations
 
+import json
 import logging
-import time
+import subprocess
+import tempfile
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
 _GENSPARK_URL = "https://www.genspark.ai/agents?type=ai_chat"
+_PROOT_PYTHON = "/root/selenium-env/bin/python3"
+_RESPONSE_TIMEOUT = 120
 
-# DOM 셀렉터 (Genspark 페이지 구조에 따라 변경 필요)
-_INPUT_SELECTOR = 'textarea[placeholder], input[type="text"]'
-_SEND_BUTTON_SELECTOR = 'button[type="submit"], button[aria-label="Send"]'
-_RESPONSE_SELECTOR = '.message-content, .response-text, .markdown-body'
+# proot 안에서 실행될 Selenium 스크립트
+_SELENIUM_SCRIPT = r'''
+import json
+import sys
+import time
 
-# 타임아웃 설정
-_PAGE_LOAD_TIMEOUT = 30
-_RESPONSE_WAIT_TIMEOUT = 120
-_POLL_INTERVAL = 2
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
+GENSPARK_URL = "https://www.genspark.ai/agents?type=ai_chat"
+TIMEOUT = int(sys.argv[2]) if len(sys.argv) > 2 else 120
+POLL = 2
 
-def _create_driver():
-    """Selenium Chrome 드라이버 생성 (headless, no-sandbox)."""
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
+def find_input(driver):
+    for sel in ["textarea", "input[type='text']", "[contenteditable='true']"]:
+        try:
+            els = driver.find_elements(By.CSS_SELECTOR, sel)
+            for el in els:
+                if el.is_displayed() and el.is_enabled():
+                    return el
+        except Exception:
+            pass
+    return None
+
+def find_send_btn(driver):
+    for sel in ["button[type='submit']", "button[aria-label='Send']", "button[aria-label='전송']"]:
+        try:
+            els = driver.find_elements(By.CSS_SELECTOR, sel)
+            for el in els:
+                if el.is_displayed() and el.is_enabled():
+                    return el
+        except Exception:
+            pass
+    return None
+
+def count_msgs(driver):
+    try:
+        return len(driver.find_elements(By.CSS_SELECTOR, ".message-content, .response-text, .markdown-body, [class*='message']"))
+    except Exception:
+        return 0
+
+def main():
+    prompt = sys.argv[1]
 
     options = Options()
     options.add_argument("--headless")
@@ -43,19 +77,89 @@ def _create_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-extensions")
     options.add_argument("--window-size=1280,720")
-    # Termux proot에서 Chromium 경로
-    for path in ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome"]:
+    for p in ["/usr/bin/chromium", "/usr/bin/chromium-browser"]:
         import os
-        if os.path.exists(path):
-            options.binary_location = path
+        if os.path.exists(p):
+            options.binary_location = p
             break
 
     service = Service("/usr/bin/chromedriver")
-    return webdriver.Chrome(service=service, options=options)
+    driver = webdriver.Chrome(service=service, options=options)
+
+    try:
+        driver.get(GENSPARK_URL)
+        time.sleep(5)
+
+        inp = find_input(driver)
+        if not inp:
+            print(json.dumps({"error": "입력창을 찾을 수 없습니다"}))
+            return
+
+        prev = count_msgs(driver)
+
+        driver.execute_script(
+            "arguments[0].value = arguments[1]; "
+            "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));",
+            inp, prompt
+        )
+        time.sleep(0.5)
+
+        btn = find_send_btn(driver)
+        if btn:
+            btn.click()
+        else:
+            inp.send_keys(Keys.RETURN)
+
+        start = time.monotonic()
+        last_text = ""
+        stable = 0
+
+        while time.monotonic() - start < TIMEOUT:
+            time.sleep(POLL)
+            try:
+                msgs = driver.find_elements(By.CSS_SELECTOR, ".message-content, .response-text, .markdown-body, [class*='message']")
+                if len(msgs) > prev:
+                    txt = msgs[-1].text.strip()
+                    if txt == last_text and txt:
+                        stable += 1
+                        if stable >= 3:
+                            print(json.dumps({"response": txt}))
+                            return
+                    else:
+                        last_text = txt
+                        stable = 0
+            except Exception:
+                pass
+
+        print(json.dumps({"response": last_text or "", "timeout": True}))
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    main()
+'''
 
 
-def send_and_receive(prompt: str, timeout: int = _RESPONSE_WAIT_TIMEOUT) -> str:
+def _is_inside_proot() -> bool:
+    """현재 환경이 proot 내부인지 감지."""
+    import os
+    # proot 안에서는 /etc/debian_version이 존재하고 Termux 환경변수가 없음
+    if os.path.exists("/etc/debian_version") and not os.environ.get("TERMUX_VERSION"):
+        return True
+    # Selenium import 가능하면 proot 안
+    try:
+        import selenium  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def send_and_receive(prompt: str, timeout: int = _RESPONSE_TIMEOUT) -> str:
     """Genspark에 프롬프트를 전송하고 응답을 받아 반환.
+
+    환경 자동 감지:
+    - proot 안이면 → Selenium 직접 실행
+    - Termux이면 → proot subprocess 호출
 
     Args:
         prompt: AI에게 보낼 프롬프트.
@@ -63,136 +167,153 @@ def send_and_receive(prompt: str, timeout: int = _RESPONSE_WAIT_TIMEOUT) -> str:
 
     Returns:
         AI 응답 텍스트.
-
-    Raises:
-        RuntimeError: DOM 요소를 찾을 수 없거나 타임아웃.
     """
+    if _is_inside_proot():
+        return _run_selenium_direct(prompt, timeout)
+    return _run_via_proot(prompt, timeout)
+
+
+def _run_selenium_direct(prompt: str, timeout: int) -> str:
+    """proot 안에서 직접 Selenium 실행."""
+    import json as _json
+    import time
+
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.by import By
     from selenium.webdriver.common.keys import Keys
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
 
-    driver = _create_driver()
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    import os
+    for p in ["/usr/bin/chromium", "/usr/bin/chromium-browser"]:
+        if os.path.exists(p):
+            options.binary_location = p
+            break
+
+    service = Service("/usr/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=options)
     try:
-        log.info("Genspark 페이지 로딩...")
         driver.get(_GENSPARK_URL)
-        time.sleep(5)  # 초기 로딩 대기
+        time.sleep(5)
 
         # 입력창 찾기
-        input_el = _find_input(driver)
-        if not input_el:
-            raise RuntimeError("Genspark 입력창을 찾을 수 없습니다. DOM 구조가 변경되었을 수 있습니다.")
+        inp = None
+        for sel in ["textarea", "input[type='text']", "[contenteditable='true']"]:
+            try:
+                els = driver.find_elements(By.CSS_SELECTOR, sel)
+                for el in els:
+                    if el.is_displayed() and el.is_enabled():
+                        inp = el
+                        break
+            except Exception:
+                pass
+            if inp:
+                break
+        if not inp:
+            return "Genspark 입력창을 찾을 수 없습니다."
 
-        # 기존 메시지 수 기록 (응답 감지용)
-        existing_msgs = _count_messages(driver)
+        prev = len(driver.find_elements(By.CSS_SELECTOR, ".message-content, .response-text, .markdown-body, [class*='message']"))
 
-        # 프롬프트 입력 + 전송
-        log.info("프롬프트 전송 중...")
-        input_el.clear()
-        # 긴 프롬프트는 JS로 주입
         driver.execute_script(
             "arguments[0].value = arguments[1]; "
             "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));",
-            input_el, prompt
+            inp, prompt
         )
         time.sleep(0.5)
 
-        # 전송 버튼 클릭 또는 Enter
-        send_btn = _find_send_button(driver)
-        if send_btn:
-            send_btn.click()
+        # 전송
+        btn = None
+        for sel in ["button[type='submit']", "button[aria-label='Send']"]:
+            try:
+                els = driver.find_elements(By.CSS_SELECTOR, sel)
+                for el in els:
+                    if el.is_displayed():
+                        btn = el
+                        break
+            except Exception:
+                pass
+            if btn:
+                break
+        if btn:
+            btn.click()
         else:
-            input_el.send_keys(Keys.RETURN)
+            inp.send_keys(Keys.RETURN)
 
         # 응답 대기
-        log.info("응답 대기 (최대 %d초)...", timeout)
-        response = _wait_for_response(driver, existing_msgs, timeout)
-
-        if not response:
-            raise RuntimeError(f"응답 타임아웃 ({timeout}초)")
-
-        log.info("응답 수신 완료 (%d자)", len(response))
-        return response
-
+        start = time.monotonic()
+        last_text = ""
+        stable = 0
+        while time.monotonic() - start < timeout:
+            time.sleep(2)
+            try:
+                msgs = driver.find_elements(By.CSS_SELECTOR, ".message-content, .response-text, .markdown-body, [class*='message']")
+                if len(msgs) > prev:
+                    txt = msgs[-1].text.strip()
+                    if txt == last_text and txt:
+                        stable += 1
+                        if stable >= 3:
+                            return txt
+                    else:
+                        last_text = txt
+                        stable = 0
+            except Exception:
+                pass
+        return last_text or "Genspark 응답 타임아웃"
     finally:
         driver.quit()
 
 
-def _find_input(driver) -> object | None:
-    """입력창 찾기 — 여러 셀렉터 시도."""
-    from selenium.webdriver.common.by import By
+def _run_via_proot(prompt: str, timeout: int) -> str:
+    """Termux에서 proot subprocess로 Selenium 실행."""
+    # 임시 파일에 스크립트 저장
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(_SELENIUM_SCRIPT)
+        script_path = f.name
 
-    selectors = [
-        'textarea',
-        'input[type="text"]',
-        '[contenteditable="true"]',
-        _INPUT_SELECTOR,
-    ]
-    for sel in selectors:
-        try:
-            els = driver.find_elements(By.CSS_SELECTOR, sel)
-            for el in els:
-                if el.is_displayed() and el.is_enabled():
-                    return el
-        except Exception:
-            pass
-    return None
-
-
-def _find_send_button(driver) -> object | None:
-    """전송 버튼 찾기."""
-    from selenium.webdriver.common.by import By
-
-    selectors = [
-        'button[type="submit"]',
-        'button[aria-label="Send"]',
-        'button[aria-label="전송"]',
-        'button svg',  # 아이콘 버튼
-    ]
-    for sel in selectors:
-        try:
-            els = driver.find_elements(By.CSS_SELECTOR, sel)
-            for el in els:
-                if el.is_displayed() and el.is_enabled():
-                    return el
-        except Exception:
-            pass
-    return None
-
-
-def _count_messages(driver) -> int:
-    """현재 메시지 수 카운트."""
-    from selenium.webdriver.common.by import By
     try:
-        msgs = driver.find_elements(By.CSS_SELECTOR, _RESPONSE_SELECTOR)
-        return len(msgs)
-    except Exception:
-        return 0
+        log.info("Genspark 자동 모드 시작 (proot + Selenium)...")
+        result = subprocess.run(
+            [
+                "proot-distro", "login", "debian", "--",
+                _PROOT_PYTHON, script_path, prompt, str(timeout),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout + 30,  # subprocess 타임아웃은 넉넉하게
+        )
 
+        if result.returncode != 0:
+            log.warning("proot Selenium 오류: %s", result.stderr[:300])
+            return f"Genspark 자동 모드 오류: {result.stderr[:200]}"
 
-def _wait_for_response(driver, prev_count: int, timeout: int) -> str:
-    """새 메시지가 나타날 때까지 polling."""
-    from selenium.webdriver.common.by import By
+        # JSON 파싱
+        output = result.stdout.strip()
+        if not output:
+            return "Genspark에서 응답이 없습니다."
 
-    start = time.monotonic()
-    last_text = ""
-    stable_count = 0
-
-    while time.monotonic() - start < timeout:
-        time.sleep(_POLL_INTERVAL)
         try:
-            msgs = driver.find_elements(By.CSS_SELECTOR, _RESPONSE_SELECTOR)
-            if len(msgs) > prev_count:
-                # 마지막 메시지 텍스트
-                current_text = msgs[-1].text.strip()
-                if current_text == last_text and current_text:
-                    stable_count += 1
-                    if stable_count >= 3:  # 6초간 변화 없으면 완료
-                        return current_text
-                else:
-                    last_text = current_text
-                    stable_count = 0
-        except Exception:
-            pass
+            data = json.loads(output)
+            if "error" in data:
+                return f"Genspark 오류: {data['error']}"
+            response = data.get("response", "")
+            if data.get("timeout"):
+                response += "\n\n⚠️ 응답 대기 타임아웃 (일부 응답일 수 있습니다)"
+            return response or "Genspark에서 빈 응답을 받았습니다."
+        except json.JSONDecodeError:
+            # JSON이 아니면 그대로 반환
+            return output
 
-    return last_text  # 타임아웃이어도 마지막 텍스트 반환
+    except subprocess.TimeoutExpired:
+        return f"Genspark 자동 모드 타임아웃 ({timeout + 30}초)"
+    except FileNotFoundError:
+        return "proot-distro가 설치되지 않았습니다. pkg install proot-distro"
+    except Exception as exc:
+        log.warning("Genspark 자동 모드 실패: %s", exc)
+        return f"Genspark 자동 모드 실패: {exc}"
+    finally:
+        Path(script_path).unlink(missing_ok=True)
