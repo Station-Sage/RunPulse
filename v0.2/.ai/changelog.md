@@ -2,6 +2,40 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.3-ui-fix] 2026-03-26
+
+### UI 버그 수정 10건
+
+**D1**: 대시보드 접속 시 오늘 메트릭 자동 재계산 (`_ensure_today_metrics`)
+**D2/R11**: VDOT 조회 개선 — computed_metrics 우선 + Garmin VO2Max fallback
+**D4**: 게이지 arc large-arc-flag 수정 (50% 이상 정상 렌더링) + 다크 테마 트랙 색상
+**D6**: RTTI 자체 추정 fallback — ATL/(CTL×wellness_factor) 공식
+**R3/R4**: 주별 차트 X축 YYYY-WW → M/D 형식 (주 시작일)
+**R5**: Decoupling% 별도 Y축 분리 (EF/VO2Max/Dec 3축)
+**R7/R9**: 리스크·컨디션 추세 범례-실선 색상 일치 (itemStyle+symbol)
+
+### 메트릭 설명 툴팁 5건
+
+- `helpers.py`: `tooltip()` 함수 + `METRIC_DESCRIPTIONS` 17개 메트릭 설명 사전
+- CSS `.rp-tip`: 호버/터치 팝업 (다크 테마, 280px, 모바일 클릭 토글)
+- **D5**: 대시보드 UTRS/CIRS/ACWR/RTTI 게이지 툴팁
+- **D8**: 리스크 pill에 적정 범위 + 상태 배지 (적정/주의/위험)
+- **R2**: 레포트 평균 UTRS/CIRS 툴팁
+- **R6**: TIDS 모델명 설명 (폴라리제드/피라미드/건강유지) + 편차 점수 해석
+- **R8**: 위험 지표 개요에 적정 기준값 + 상태 표시
+
+### 기타
+
+- RTTI 자체 추정: `ATL / (CTL × wellness_factor) × 100` (Garmin 데이터 없을 때)
+- VDOT: `src/metrics/vdot.py` (기존) Jack Daniels 정확 공식 + best_efforts + 고강도 활동 추정
+- MarathonShape: `_get_vdot` Garmin VO2Max fallback + 자체 추정 연결
+- bg_sync: 동기화 후 오늘까지 메트릭 계산 보장
+- todo: V3-2-5 VDOT HR-페이스 회귀 보정 추가
+
+**테스트:** 904개 통과
+
+---
+
 ## [v0.3-ai-chat-training] 2026-03-26
 
 ### AI 대화형 코칭
