@@ -517,10 +517,13 @@ def _render_activity_list(activities: list[dict]) -> str:
 # ── 신규 카드들 ───────────────────────────────────────────────────────────────
 
 def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
-                                    cirs_val: float | None, tsb_last: float | None) -> str:
-    """오늘의 훈련 권장 카드."""
+                                    cirs_val: float | None, tsb_last: float | None,
+                                    config: dict | None = None) -> str:
+    """오늘의 훈련 권장 카드 — AI 우선, 규칙 기반 fallback."""
     if utrs_val is None and cirs_val is None:
         return no_data_card("오늘의 훈련 권장", "데이터 수집 중입니다")
+
+    # 규칙 기반 메시지 생성
     grade = (utrs_json or {}).get("grade", "")
     if cirs_val and cirs_val >= 75:
         icon, intensity, desc, dur = "&#128683;", "완전 휴식", "부상 위험 매우 높음. 훈련 중단, 회복 집중.", ""
@@ -534,6 +537,21 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
         icon, intensity, desc, dur = "&#127939;", "중강도 훈련", "템포런 또는 유산소 훈련 가능.", "40-60분, Z2-Z3"
     else:
         icon, intensity, desc, dur = "&#128293;", "고강도 훈련 최적", "인터벌, 레이스페이스 훈련 최적 상태.", "60분+, Z4-Z5 포함"
+
+    # AI 해석 시도
+    rule_desc = desc
+    try:
+        from src.ai.ai_message import get_ai_message
+        prompt = (
+            f"러닝 코치로서 오늘 훈련 조언을 한국어 2문장으로 해주세요.\n"
+            f"UTRS: {utrs_val}, CIRS: {cirs_val}, TSB: {tsb_last}\n"
+            f"규칙 판단: {intensity}. 구체적이고 실용적으로."
+        )
+        ai_desc = get_ai_message(prompt, rule_desc, config, cache_key=f"rec:{utrs_val}:{cirs_val}")
+        if ai_desc != rule_desc:
+            desc = ai_desc
+    except Exception:
+        pass
     notes = ""
     if tsb_last is not None and tsb_last < -30:
         notes += f"<p style='color:var(--red);font-size:0.78rem;margin-top:0.3rem;'>&#9888; TSB {tsb_last:.0f} — 과부하. 휴식 우선</p>"

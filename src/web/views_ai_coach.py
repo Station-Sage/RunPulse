@@ -67,8 +67,25 @@ def _load_wellness(conn: sqlite3.Connection) -> dict:
 # ── 브리핑 생성 ────────────────────────────────────────────────────────
 
 
-def _generate_briefing(conn: sqlite3.Connection) -> str | None:
-    """메트릭 기반 간이 브리핑 생성."""
+def _generate_briefing(conn: sqlite3.Connection, config: dict | None = None) -> str | None:
+    """메트릭 기반 브리핑 — AI 우선, 규칙 기반 fallback."""
+    # AI 브리핑 시도
+    if config and config.get("ai", {}).get("provider", "rule") != "rule":
+        try:
+            from src.ai.briefing import build_briefing_prompt
+            from src.ai.ai_message import get_ai_message
+            prompt = build_briefing_prompt(conn)
+            rule_fallback = _generate_briefing_rule(conn)
+            ai_result = get_ai_message(prompt, rule_fallback or "", config, cache_key="briefing")
+            if ai_result:
+                return ai_result
+        except Exception:
+            pass
+    return _generate_briefing_rule(conn)
+
+
+def _generate_briefing_rule(conn: sqlite3.Connection) -> str | None:
+    """규칙 기반 브리핑 (fallback)."""
     utrs_val, utrs_json = _load_metric(conn, "UTRS")
     cirs_val, cirs_json = _load_metric(conn, "CIRS")
     darp_val, darp_json = _load_metric(conn, "DARP_half")
@@ -159,7 +176,13 @@ def ai_coach_page():
     try:
         conn = sqlite3.connect(str(dbp))
         try:
-            briefing_text = _generate_briefing(conn)
+            from src.utils.config import load_config as _lc
+            _cfg = None
+            try:
+                _cfg = _lc()
+            except Exception:
+                pass
+            briefing_text = _generate_briefing(conn, config=_cfg)
             wellness = _load_wellness(conn)
             chips = _load_chips(conn)
             recent = _load_recent_activities(conn)

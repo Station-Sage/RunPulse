@@ -47,6 +47,15 @@ from .views_perf import (
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
+def _load_config_safe() -> dict | None:
+    """config 로드 (실패 시 None)."""
+    try:
+        from src.utils.config import load_config
+        return load_config()
+    except Exception:
+        return None
+
+
 import logging as _logging
 
 _log = _logging.getLogger(__name__)
@@ -293,7 +302,8 @@ def _build_dashboard(db) -> str:
         metric_date=metric_date)
 
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
-    recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)
+    recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last,
+                                                     config=_load_config_safe())
 
     # ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────
     weekly_card = render_weekly_summary(weekly, weekly_target)
