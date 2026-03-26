@@ -19,6 +19,7 @@ from src.web.views_training_cards import (
     render_ai_recommendation,
     render_goal_card,
     render_header_actions,
+    render_plan_overview,
     render_sync_status,
     render_week_calendar,
     render_weekly_summary,
@@ -75,9 +76,24 @@ def training_page():
             cirs_val = metrics.get("cirs_val")
             cirs_json = metrics.get("cirs_json", {})
 
+            # 현재 훈련 단계 계산
+            current_phase = "base"
+            weeks_left = None
+            if goal and goal.get("race_date"):
+                try:
+                    race_d = date.fromisoformat(goal["race_date"])
+                    weeks_left = max(0, (race_d - date.today()).days // 7)
+                    if weeks_left > 16: current_phase = "base"
+                    elif weeks_left > 8: current_phase = "build"
+                    elif weeks_left > 3: current_phase = "peak"
+                    else: current_phase = "taper"
+                except ValueError:
+                    pass
+
             body = (
                 render_header_actions(bool(workouts))
                 + render_goal_card(goal, utrs_val)
+                + render_plan_overview(goal, current_phase, weeks_left)
                 + _render_goal_form(goals_list)
                 + render_weekly_summary(workouts, utrs_val)
                 + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val)

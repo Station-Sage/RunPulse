@@ -512,6 +512,83 @@ def render_ai_recommendation(
     )
 
 
+# ── S6b: 전체 훈련 계획 개요 ──────────────────────────────────────────
+
+_PHASE_INFO: dict[str, tuple[str, str, str]] = {
+    "base":  ("기초 체력", "#27ae60", "유산소 기반 구축. 볼륨 점진 증가."),
+    "build": ("강화",     "#e67e22", "강도 증가. 템포/인터벌 도입."),
+    "peak":  ("정점",     "#e74c3c", "최고 강도. 레이스 시뮬레이션."),
+    "taper": ("테이퍼",   "#8e44ad", "볼륨 감소. 신선도 확보."),
+}
+
+
+def render_plan_overview(goal: dict | None, current_phase: str = "base",
+                         weeks_left: int | None = None) -> str:
+    """전체 훈련 계획 개요 — 단계별 타임라인."""
+    if not goal or not goal.get("race_date"):
+        return ""
+
+    from datetime import date as _date
+    try:
+        race = _date.fromisoformat(goal["race_date"])
+        today = _date.today()
+        total_weeks = max(1, (race - today).days // 7)
+    except ValueError:
+        return ""
+
+    if total_weeks <= 0:
+        return ""
+
+    # 단계별 주 수 계산
+    phases = []
+    if total_weeks > 16:
+        phases.append(("base", total_weeks - 16))
+        phases.append(("build", 8))
+        phases.append(("peak", 5))
+        phases.append(("taper", 3))
+    elif total_weeks > 8:
+        phases.append(("build", total_weeks - 8))
+        phases.append(("peak", 5))
+        phases.append(("taper", 3))
+    elif total_weeks > 3:
+        phases.append(("peak", total_weeks - 3))
+        phases.append(("taper", 3))
+    else:
+        phases.append(("taper", total_weeks))
+
+    # 타임라인 바
+    bar_parts = ""
+    for phase, weeks in phases:
+        label, color, _ = _PHASE_INFO[phase]
+        pct = weeks / total_weeks * 100
+        is_current = phase == current_phase
+        border = "border:2px solid #fff;" if is_current else ""
+        bar_parts += (
+            f"<div style='flex:{pct};background:{color};padding:4px 6px;font-size:10px;"
+            f"color:#fff;text-align:center;white-space:nowrap;{border}'>"
+            f"{label} {weeks}주</div>"
+        )
+
+    # 단계 설명
+    phase_label, phase_color, phase_desc = _PHASE_INFO.get(current_phase, _PHASE_INFO["base"])
+    wl_str = f"D-{(weeks_left or 0) * 7}" if weeks_left else ""
+
+    return (
+        "<div class='card' style='margin-top:16px;'>"
+        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>"
+        f"<h3 style='margin:0;font-size:1rem;'>📋 전체 훈련 계획</h3>"
+        f"<span style='font-size:0.85rem;color:var(--cyan);'>"
+        f"{goal.get('name', '')} · {total_weeks}주 남음 {wl_str}</span></div>"
+        f"<div style='display:flex;border-radius:8px;overflow:hidden;height:28px;margin-bottom:10px;'>"
+        f"{bar_parts}</div>"
+        f"<div style='display:flex;align-items:center;gap:8px;'>"
+        f"<span style='background:{phase_color};color:#fff;padding:2px 10px;"
+        f"border-radius:12px;font-size:12px;font-weight:600;'>현재: {phase_label}</span>"
+        f"<span style='font-size:0.82rem;color:var(--muted);'>{phase_desc}</span></div>"
+        "</div>"
+    )
+
+
 # ── S7: 캘린더 연동 상태 ──────────────────────────────────────────────
 
 _SERVICE_LABEL: dict[str, tuple[str, str]] = {
