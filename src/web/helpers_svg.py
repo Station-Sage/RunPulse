@@ -12,21 +12,23 @@ def svg_semicircle_gauge(
     color_stops: list[tuple[float, str]] | None = None,
     width: int = 220,
 ) -> str:
-    """반원 SVG 게이지 (UTRS/CIRS용).
+    """반원 SVG 게이지 (UTRS/CIRS용). stroke-dasharray 기반.
 
     Args:
         value: 현재 값 (0~max_value).
         max_value: 최대값.
         label: 게이지 아래 레이블.
-        color_stops: [(threshold_pct, color), ...] 임계값 기반 색상. 없으면 그라데이션.
+        color_stops: [(threshold_pct, color), ...] 임계값 기반 색상.
         width: SVG 너비(px).
 
     Returns:
         SVG HTML 문자열.
     """
     pct = max(0.0, min(1.0, value / max_value if max_value > 0 else 0.0))
-    h = width // 2 + 20
-    cx, cy, r = width // 2, width // 2, width // 2 - 16
+    cx = width / 2
+    r = width / 2 - 16
+    h = int(r + 24)
+    cy = r + 4  # 반원 중심 Y
 
     if color_stops:
         track_color = "rgba(255,255,255,0.15)"
@@ -38,46 +40,36 @@ def svg_semicircle_gauge(
         arc_color = "#00d4ff"
         track_color = "rgba(255,255,255,0.15)"
 
-    def polar(angle_deg: float) -> tuple[float, float]:
-        """각도(도) → SVG 좌표. 상단 반원: 180°(좌) → 270°(상) → 360°(우)."""
-        rad = math.radians(angle_deg)
-        return cx + r * math.cos(rad), cy + r * math.sin(rad)
-
-    # 상단 반원: 좌(180°) → 상(270°) → 우(360°)
-    # needle_angle: 0%=180°(좌), 50%=270°(상), 100%=360°(우)
-    needle_angle = 180.0 + pct * 180.0
-
-    sx, sy = polar(180.0)   # 좌측 시작점
-    ex, ey = polar(360.0)   # 우측 끝점
-    vx, vy = polar(needle_angle)
-
-    sw = max(1, width // 18)
-
-    # 트랙: 좌→상→우 (반시계, sweep=0)
-    track_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,0 {ex:.1f},{ey:.1f}"
-    # 값 arc: 좌 → needle_angle (반시계, sweep=0, 항상 short arc)
-    value_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,0 {vx:.1f},{vy:.1f}"
-
-    needle_len = r - sw * 2
-    tip_x = cx + needle_len * math.cos(math.radians(needle_angle))
-    tip_y = cy + needle_len * math.sin(math.radians(needle_angle))
+    sw = max(2, width // 16)
+    # 반원 둘레 = π × r
+    semi_circumference = math.pi * r
+    # 값 arc 길이
+    value_len = semi_circumference * pct
+    gap = semi_circumference - value_len
 
     val_disp = f"{value:.0f}"
     label_esc = _html.escape(label)
 
+    # 반원 path: 좌측에서 시작, 상단을 거쳐 우측으로
+    # M (cx-r, cy) A r,r 0 1,1 (cx+r, cy) — large_arc=1, sweep=1로 상단 반원
+    sx = cx - r
+    ex = cx + r
+
     return (
         f'<svg width="{width}" height="{h}" viewBox="0 0 {width} {h}" '
         f'style="display:block;margin:0 auto;">'
-        f'<path d="{track_path}" fill="none" stroke="{track_color}" '
-        f'stroke-width="{sw}" stroke-linecap="round"/>'
-        f'<path d="{value_path}" fill="none" stroke="{arc_color}" '
-        f'stroke-width="{sw}" stroke-linecap="round"/>'
-        f'<line x1="{cx}" y1="{cy}" x2="{tip_x:.1f}" y2="{tip_y:.1f}" '
-        f'stroke="#333" stroke-width="3" stroke-linecap="round"/>'
-        f'<circle cx="{cx}" cy="{cy}" r="5" fill="#333"/>'
-        f'<text x="{cx}" y="{cy - 4}" text-anchor="middle" '
+        # 트랙 (전체 반원)
+        f'<path d="M {sx:.1f},{cy:.1f} A {r:.1f},{r:.1f} 0 1,1 {ex:.1f},{cy:.1f}" '
+        f'fill="none" stroke="{track_color}" stroke-width="{sw}" stroke-linecap="round"/>'
+        # 값 (dasharray로 퍼센트 제어)
+        f'<path d="M {sx:.1f},{cy:.1f} A {r:.1f},{r:.1f} 0 1,1 {ex:.1f},{cy:.1f}" '
+        f'fill="none" stroke="{arc_color}" stroke-width="{sw}" stroke-linecap="round" '
+        f'stroke-dasharray="{value_len:.1f} {gap:.1f}"/>'
+        # 숫자
+        f'<text x="{cx}" y="{cy - 2}" text-anchor="middle" '
         f'font-size="{width // 7}" font-weight="bold" fill="currentColor">{val_disp}</text>'
-        f'<text x="{cx}" y="{cy + 18}" text-anchor="middle" '
+        # 레이블
+        f'<text x="{cx}" y="{cy + 16}" text-anchor="middle" '
         f'font-size="{width // 14}" fill="var(--muted)">{label_esc}</text>'
         f'</svg>'
     )

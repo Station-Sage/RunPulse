@@ -216,15 +216,16 @@ def _label_badge(label: str) -> str:
 
 
 def _make_tag_badges(ua) -> str:
-    """workout_label + event_type + Strava workout_type → 뱃지 HTML 모음.
+    """RP 자동 분류 태그 + 소스 태그 통합 뱃지.
 
-    중복 의미 뱃지(예: workout_label="race" + event_type="race")는 하나만 표시.
+    RP 분류 태그를 맨 앞에 표시, 소스 태그는 RP 태그와 중복이 아닌 경우만.
     """
+    from src.metrics.workout_classifier import TAG_COLORS, TAG_LABELS
+
     badges = []
     seen: set[str] = set()
 
     _HIDE_TAGS = {"uncategorized", "other", "default", "none", "-", ""}
-    # 영어-한국어 의미 동등 매핑 (양쪽 다 seen에 등록)
     _SYNONYMS: dict[str, str] = {
         "race": "레이스", "레이스": "race",
         "long run": "장거리", "장거리": "long run", "longrun": "장거리",
@@ -242,11 +243,33 @@ def _make_tag_badges(ua) -> str:
         if normalized in seen or normalized in _HIDE_TAGS:
             return
         seen.add(normalized)
-        # 동의어도 seen에 등록
         syn = _SYNONYMS.get(normalized)
         if syn:
             seen.add(syn.lower())
         badges.append(_label_badge(label))
+
+    # 0. RP 자동 분류 태그 (최우선)
+    rep_id = ua.representative_id
+    rp_type = ua.source_rows.get("_rp_workout_type")
+    if rp_type:
+        wtype = rp_type.get("type", "")
+        label_ko = TAG_LABELS.get(wtype, wtype)
+        color = TAG_COLORS.get(wtype, "#888")
+        effect = rp_type.get("effect", "")
+        if label_ko:
+            badges.append(
+                f"<span style='background:{color}; color:#fff; border-radius:3px; "
+                f"padding:1px 6px; font-size:0.72rem; white-space:nowrap;' "
+                f"title='RP 분류: {html.escape(effect)}'>{html.escape(label_ko)}</span>"
+            )
+            seen.add(label_ko.lower())
+            seen.add(wtype.lower())
+            syn = _SYNONYMS.get(wtype.lower())
+            if syn:
+                seen.add(syn.lower())
+            syn2 = _SYNONYMS.get(label_ko.lower())
+            if syn2:
+                seen.add(syn2.lower())
 
     # 1. workout_label (Garmin trainingEffectLabel / Intervals tags)
     _add(ua.workout_label.value or "")
@@ -1048,6 +1071,27 @@ def activities_list():
         f"<div style='margin-top:8px;'>{sync_btn}</div></details>"
     )
 
+    # 분류 기준 가이드
+    _guide = (
+        "<details style='margin-top:12px;'>"
+        "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
+        "padding:10px 16px;font-size:13px;font-weight:600;list-style:none;color:var(--muted);'>"
+        "📊 운동 분류 기준</summary>"
+        "<div class='card' style='margin-top:8px;font-size:0.82rem;'>"
+        "<table style='width:100%;'><thead><tr>"
+        "<th>분류</th><th>기준</th><th>훈련 효과</th></tr></thead><tbody>"
+        "<tr><td style='color:#27ae60;'>이지런</td><td>Z1-2 &gt; 70%</td><td>유산소 기반 강화</td></tr>"
+        "<tr><td style='color:#e67e22;'>템포</td><td>Z3 &gt; 30%, HR 75~88%</td><td>젖산역치 개선</td></tr>"
+        "<tr><td style='color:#8e44ad;'>역치</td><td>페이스 ≈ eFTP ±5%, Z3-4</td><td>역치 페이스 향상</td></tr>"
+        "<tr><td style='color:#e74c3c;'>인터벌</td><td>Z4-5 &gt; 25%</td><td>VO2Max 자극</td></tr>"
+        "<tr><td style='color:#2980b9;'>장거리</td><td>90분+ 또는 15km+, Z1-2 위주</td><td>지구력/지방 연소</td></tr>"
+        "<tr><td style='color:#c0392b;'>레이스</td><td>HR &gt; 90% maxHR, 5km+, Z4-5 높음</td><td>최대 퍼포먼스</td></tr>"
+        "<tr><td style='color:#7f8c8d;'>회복</td><td>5km 미만, 40분 미만, Z1-2 &gt; 85%</td><td>피로 해소</td></tr>"
+        "</tbody></table>"
+        "<p class='muted' style='margin:0.5rem 0 0;'>RunPulse가 HR존·페이스·거리·시간을 분석하여 자동 분류합니다. "
+        "소스(Garmin/Strava/Intervals) 태그와 독립적입니다.</p></div></details>"
+    )
+
     body = (
         _JS
         + _EDIT_BAR
@@ -1057,6 +1101,7 @@ def activities_list():
         + _render_summary(total, stats.get("total_dist_km", 0.0))
         + _render_activity_table(activities, sort_url_base=sort_base, cur_sort=sort_by, cur_dir=sort_dir)
         + _render_pagination(page, total, base_qs)
+        + _guide
         + sync_section
     )
     return html_page("활동 목록", body, active_tab="activities")
