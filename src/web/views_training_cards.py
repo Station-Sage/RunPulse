@@ -187,13 +187,39 @@ def _summary_stat(label: str, value: str, pct: int) -> str:
 
 # ── S4: 컨디션 조정 ───────────────────────────────────────────────────
 
-def render_adjustment_card(adj: dict | None) -> str:
-    """오늘 컨디션 조정 카드 + 웰니스 상세."""
+def render_adjustment_card(adj: dict | None, cirs_val: float | None = None,
+                           utrs_val: float | None = None) -> str:
+    """오늘 컨디션 조정 카드 + 웰니스 상세 + CIRS/UTRS 반영."""
     if not adj:
         return ""
 
     wellness = adj.get("wellness", {})
     fatigue = adj.get("fatigue_level", "low")
+
+    # 피로도 한국어 변환
+    _FATIGUE_KO = {"low": "낮음", "moderate": "보통", "high": "높음"}
+    fatigue_ko = _FATIGUE_KO.get(fatigue, fatigue)
+
+    # CIRS/UTRS 기반 경고 오버라이드
+    cirs_warning = ""
+    if cirs_val is not None and cirs_val >= 75:
+        cirs_warning = (
+            f"<p style='color:#ff4444;font-weight:600;margin:0 0 6px;'>"
+            f"⚠️ CIRS {cirs_val:.0f} — 부상 위험 높음. 훈련 강도를 낮추세요.</p>"
+        )
+        fatigue_ko = "높음"
+    elif cirs_val is not None and cirs_val >= 50:
+        cirs_warning = (
+            f"<p style='color:#ffaa00;margin:0 0 6px;'>"
+            f"CIRS {cirs_val:.0f} — 주의 필요. 워밍업/쿨다운 충실히.</p>"
+        )
+
+    utrs_note = ""
+    if utrs_val is not None and utrs_val < 40:
+        utrs_note = (
+            f"<p style='color:#ff4444;margin:0 0 6px;'>"
+            f"UTRS {utrs_val:.0f} — 회복이 필요합니다. 가벼운 활동만 권장.</p>"
+        )
 
     # 웰니스 미니 표시
     well_items = []
@@ -219,12 +245,14 @@ def render_adjustment_card(adj: dict | None) -> str:
     ) if well_items else ""
 
     if not adj.get("adjusted"):
-        color = "#00ff88" if fatigue == "low" else "#ffaa00"
-        boost = " 볼륨 부스트 가능! 💪" if adj.get("volume_boost") else ""
+        color = "#00ff88" if fatigue == "low" and not cirs_warning else "#ffaa00" if not cirs_warning else "#ff4444"
+        boost = " 볼륨 부스트 가능! 💪" if adj.get("volume_boost") and not cirs_warning else ""
+        msg = "계획대로 진행하세요." if not cirs_warning else "컨디션을 확인하세요."
         return (
             f"<div class='card' style='border-left:4px solid {color};'>"
             "<h3 style='margin:0 0 8px;'>오늘 컨디션</h3>"
-            f"<p style='margin:0;'>피로도: <strong>{fatigue}</strong> — 계획대로 진행하세요.{boost}</p>"
+            + cirs_warning + utrs_note
+            + f"<p style='margin:0;'>피로도: <strong>{fatigue_ko}</strong> — {msg}{boost}</p>"
             + wellness_html
             + "</div>"
         )
@@ -232,14 +260,15 @@ def render_adjustment_card(adj: dict | None) -> str:
     orig = adj.get("original_type", "")
     new_type = adj.get("adjusted_type", "")
     reason = adj.get("adjustment_reason", "")
-    color = "#ff4444" if fatigue == "high" else "#ffaa00"
+    color = "#ff4444" if fatigue == "high" or cirs_warning else "#ffaa00"
     orig_label = _TYPE_STYLE.get(orig, ("", orig, ""))[1]
     new_label = _TYPE_STYLE.get(new_type, ("", new_type, ""))[1]
 
     return (
         f"<div class='card' style='border-left:4px solid {color};'>"
         "<h3 style='margin:0 0 8px;'>⚠️ 오늘 컨디션 조정</h3>"
-        f"<p style='margin:0 0 4px;'>피로도: <strong>{fatigue}</strong></p>"
+        + cirs_warning + utrs_note
+        + f"<p style='margin:0 0 4px;'>피로도: <strong>{fatigue_ko}</strong></p>"
         f"<p style='margin:0 0 4px;'>{orig_label} → <strong>{new_label}</strong>으로 변경</p>"
         + (f"<p class='muted' style='margin:0;font-size:0.85rem;'>{_esc(reason)}</p>"
            if reason else "")

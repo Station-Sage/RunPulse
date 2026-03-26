@@ -68,7 +68,7 @@ def training_page():
                 + render_goal_card(goal, utrs_val)
                 + _render_goal_form(goals_list)
                 + render_weekly_summary(workouts, utrs_val)
-                + render_adjustment_card(adjustment)
+                + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val)
                 + render_week_calendar(workouts, week_start, week_offset)
                 + _render_workout_form(week_start)
                 + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts)
@@ -149,8 +149,10 @@ def _render_goal_form(goals: list[dict]) -> str:
             f"<div style='display:flex;gap:6px;'>{actions}</div></div>"
         )
 
+    has_active = any(g.get("status") == "active" for g in goals)
+    open_attr = " open" if not has_active else ""
     return (
-        "<details style='margin-bottom:16px;'>"
+        f"<details style='margin-bottom:16px;'{open_attr}>"
         "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
         "padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>"
         "🎯 목표 관리</summary>"
