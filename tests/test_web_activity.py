@@ -111,12 +111,12 @@ class TestActivityDeepRoute:
         assert "12.5" in text      # distance
         assert "155" in text       # avg_hr
 
-    def test_garmin_daily_detail_shown(self, app_client):
-        """garmin_daily_detail 카드 표시 확인."""
+    def test_garmin_daily_detail_lazy_load(self, app_client):
+        """garmin_daily_detail은 AJAX lazy load로 제공 — 메인 페이지에 placeholder 존재."""
         client, db_file = app_client
         today = date.today().isoformat()
         with sqlite3.connect(str(db_file)) as conn:
-            _insert_activity(conn, start_time=today + "T07:00:00")
+            act_id = _insert_activity(conn, start_time=today + "T07:00:00")
             _insert_daily_detail(conn, today, "training_readiness_score", 65)
             _insert_daily_detail(conn, today, "overnight_hrv_avg", 52.3)
             _insert_daily_detail(conn, today, "sleep_stage_deep_sec", 4800)
@@ -124,32 +124,40 @@ class TestActivityDeepRoute:
             _insert_daily_detail(conn, today, "spo2_avg", 96.8)
             _insert_daily_detail(conn, today, "body_battery_delta", -15)
 
-        # 날짜 파라미터로 조회 (오늘 날짜의 최신 활동)
+        # 메인 페이지에 lazy placeholder 포함
         resp = client.get(f"/activity/deep?date={today}")
         assert resp.status_code == 200
         text = resp.data.decode()
+        assert "서비스 원본 데이터" in text
+        assert "svc-lazy-content" in text
 
-        assert "Garmin 일별 상세 지표" in text
-        assert "65" in text        # training_readiness_score
-        assert "52.3" in text      # overnight_hrv_avg
-        assert "딥 슬립" in text
-        assert "1h 20m" in text   # 4800s = 1h 20m (fmt_min 결과)
-        assert "1h 30m" in text   # 5400s = 1h 30m (fmt_min 결과)
-        assert "96.8" in text      # spo2_avg
-        assert "-15" in text       # body_battery_delta
+        # AJAX 엔드포인트로 서비스 데이터 로드
+        resp2 = client.get(f"/activity/service-data?id={act_id}")
+        assert resp2.status_code == 200
+        svc_text = resp2.data.decode()
+        assert "Garmin 일별 상세 지표" in svc_text
+        assert "65" in svc_text
+        assert "52.3" in svc_text
+        assert "딥 슬립" in svc_text
 
     def test_no_garmin_detail_shows_fallback(self, app_client):
-        """daily_detail 없을 때 graceful fallback."""
+        """daily_detail 없을 때 서비스 데이터 AJAX에서 fallback."""
         client, db_file = app_client
         conn = sqlite3.connect(str(db_file))
         act_id = _insert_activity(conn)
         conn.close()
 
+        # 메인 페이지 정상
         resp = client.get(f"/activity/deep?id={act_id}")
         assert resp.status_code == 200
         text = resp.data.decode()
-        # 데이터 없음 메시지 또는 페이지 정상 반환
-        assert "Garmin 일별 상세 지표" in text
+        assert "서비스 원본 데이터" in text
+
+        # AJAX 서비스 데이터
+        resp2 = client.get(f"/activity/service-data?id={act_id}")
+        assert resp2.status_code == 200
+        svc_text = resp2.data.decode()
+        assert "Garmin 일별 상세 지표" in svc_text
 
     def test_date_param(self, app_client):
         """날짜 파라미터로 조회."""

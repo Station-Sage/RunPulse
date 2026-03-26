@@ -20,13 +20,18 @@ def get_ai_provider(config: dict | None = None) -> str:
     return config.get("ai", {}).get("provider", "rule")
 
 
+class RateLimitError(Exception):
+    """429 Too Many Requests — provider 전환 트리거."""
+    pass
+
+
 def chat(
     conn: sqlite3.Connection,
     user_message: str,
     config: dict | None = None,
     chip_id: str | None = None,
 ) -> str:
-    """사용자 메시지에 대한 AI 응답 생성.
+    """사용자 메시지에 대한 AI 응답 생성 — provider chain fallback 지원.
 
     Args:
         conn: DB 연결 (컨텍스트 빌드용).
@@ -49,21 +54,50 @@ def chat(
         ctx_text = format_context_text(ctx)
         prompt = f"당신은 RunPulse AI 러닝 코치입니다. 아래 분석 데이터를 참고하여 답변하세요.\n\n{ctx_text}\n\n사용자 질문: {user_message}"
 
-    # 제공자별 분기
-    if provider == "claude":
-        return _call_claude(prompt, config)
-    elif provider == "openai":
-        return _call_openai(prompt, config)
-    elif provider == "gemini":
-        return _call_gemini(prompt, config)
-    elif provider == "groq":
-        return _call_groq(prompt, config)
-    elif provider == "genspark":
-        return _call_genspark(prompt, config)
-    elif provider == "genspark_auto":
-        return _call_genspark_selenium(prompt, config)
-    else:
-        return _rule_based_response(conn, user_message, chip_id)
+    # provider chain: 선택 → gemini → groq → rule
+    chain = _build_chat_provider_chain(provider, config)
+    for prov in chain:
+        result = _call_provider(prov, prompt, config)
+        if result:
+            return result
+
+    return _rule_based_response(conn, user_message, chip_id)
+
+
+def _build_chat_provider_chain(selected: str, config: dict | None) -> list[str]:
+    """채팅용 provider 시도 순서."""
+    ai_cfg = (config or {}).get("ai", {})
+    chain = []
+    _PROVIDERS = {"gemini", "groq", "claude", "openai"}
+    if selected in _PROVIDERS:
+        chain.append(selected)
+    if "gemini" not in chain and ai_cfg.get("gemini_api_key"):
+        chain.append("gemini")
+    if "groq" not in chain and ai_cfg.get("groq_api_key"):
+        chain.append("groq")
+    return chain
+
+
+def _call_provider(provider: str, prompt: str, config: dict | None) -> str | None:
+    """단일 provider 호출. 성공 시 텍스트, 실패/429 시 None."""
+    _dispatch = {
+        "gemini": _call_gemini, "groq": _call_groq,
+        "claude": _call_claude, "openai": _call_openai,
+    }
+    fn = _dispatch.get(provider)
+    if not fn:
+        return None
+    try:
+        result = fn(prompt, config)
+        if result and "설정되지 않았습니다" not in result and "실패" not in result:
+            return result
+        return None
+    except RateLimitError:
+        log.warning("%s 429 rate limit → 다음 provider로 전환", provider)
+        return None
+    except Exception as exc:
+        log.warning("provider '%s' 호출 실패: %s", provider, exc)
+        return None
 
 
 def _rule_based_response(
@@ -379,11 +413,12 @@ def _call_openai(prompt: str, config: dict | None) -> str:
 
 
 def _call_gemini(prompt: str, config: dict | None) -> str:
-    """Google Gemini API 호출 (무료 tier)."""
+    """Google Gemini API 호출 (무료 tier). 429 시 RateLimitError."""
     api_key = (config or {}).get("ai", {}).get("gemini_api_key", "")
     if not api_key:
         return "Gemini API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://aistudio.google.com/apikey"
     model = (config or {}).get("ai", {}).get("gemini_model", "gemini-2.0-flash")
+    temp = (config or {}).get("ai", {}).get("_temperature", 0.7)
     try:
         import httpx
         resp = httpx.post(
@@ -394,11 +429,14 @@ def _call_gemini(prompt: str, config: dict | None) -> str:
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "maxOutputTokens": 2048,
-                    "temperature": 0.7,
+                    "temperature": temp,
                 },
             },
             timeout=60,
         )
+        if resp.status_code == 429:
+            log.warning("Gemini 429 Too Many Requests")
+            raise RateLimitError("Gemini 429")
         resp.raise_for_status()
         data = resp.json()
         candidates = data.get("candidates", [])
@@ -407,17 +445,20 @@ def _call_gemini(prompt: str, config: dict | None) -> str:
             if parts:
                 return parts[0].get("text", "빈 응답")
         return "Gemini에서 빈 응답을 받았습니다."
+    except RateLimitError:
+        raise
     except Exception as exc:
         log.warning("Gemini API 오류: %s", exc)
         return f"Gemini 응답 생성 실패: {exc}"
 
 
 def _call_groq(prompt: str, config: dict | None) -> str:
-    """Groq API 호출 (무료 tier, Llama 3.3 70B 등)."""
+    """Groq API 호출 (무료 tier, Llama 3.3 70B 등). 429 시 RateLimitError."""
     api_key = (config or {}).get("ai", {}).get("groq_api_key", "")
     if not api_key:
         return "Groq API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://console.groq.com/keys"
     model = (config or {}).get("ai", {}).get("groq_model", "llama-3.3-70b-versatile")
+    temp = (config or {}).get("ai", {}).get("_temperature", 0.7)
     try:
         import httpx
         resp = httpx.post(
@@ -430,13 +471,18 @@ def _call_groq(prompt: str, config: dict | None) -> str:
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 2048,
-                "temperature": 0.7,
+                "temperature": temp,
             },
             timeout=60,
         )
+        if resp.status_code == 429:
+            log.warning("Groq 429 Too Many Requests")
+            raise RateLimitError("Groq 429")
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
+    except RateLimitError:
+        raise
     except Exception as exc:
         log.warning("Groq API 오류: %s", exc)
         return f"Groq 응답 생성 실패: {exc}"

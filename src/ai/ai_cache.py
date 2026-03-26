@@ -63,6 +63,41 @@ def set_cached(conn: sqlite3.Connection, tab: str, cache_key: str,
     conn.commit()
 
 
+def get_cache_age(conn: sqlite3.Connection, tab: str,
+                   cache_key: str = "default") -> str | None:
+    """캐시 생성 시점의 상대 시간 문자열 반환. 없으면 None.
+
+    Returns:
+        '방금 전', '5분 전', '2시간 전' 등.
+    """
+    try:
+        row = conn.execute(
+            "SELECT generated_at FROM ai_cache WHERE tab=? AND cache_key=?",
+            (tab, cache_key),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+
+    if not row or not row[0]:
+        return None
+
+    try:
+        gen_time = datetime.fromisoformat(row[0])
+    except (ValueError, TypeError):
+        return None
+
+    delta = datetime.now() - gen_time
+    secs = int(delta.total_seconds())
+    if secs < 60:
+        return "방금 전"
+    elif secs < 3600:
+        return f"{secs // 60}분 전"
+    elif secs < 86400:
+        return f"{secs // 3600}시간 전"
+    else:
+        return f"{secs // 86400}일 전"
+
+
 def invalidate(conn: sqlite3.Connection, tab: str | None = None) -> None:
     """캐시 무효화. tab 지정 시 해당 탭만, 없으면 전체."""
     _ensure_table(conn)

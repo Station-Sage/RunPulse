@@ -270,8 +270,31 @@ def _build_dashboard(db) -> str:
 
     tsb_last = pmc_data[-1]["tsb"] if pmc_data else None
 
-    # ── 동기화 상태 바 ──────────────────────────────────────────────────
+    # sync_bar는 AI 호출 후에 빌드 (캐시 나이 표시 위해 아래에서 생성)
+
+    # ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────
+    status_strip = render_daily_status_strip(
+        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness,
+        metric_date=metric_date)
+
+    # ── AI 탭별 통합 호출 (1회) ──────────────────────────────────────────
+    _cfg = None
+    _ai_data = {}
+    try:
+        from src.utils.config import load_config as _lc
+        _cfg = _lc()
+        from src.ai.ai_message import get_tab_ai
+        _ai_data = get_tab_ai("dashboard", conn, _cfg) or {}
+    except Exception:
+        pass
+
+    # ── 동기화 상태 바 (AI 캐시 나이 포함) ────────────────────────────────
     sync_time_str = last_sync[:16] if last_sync else "없음"
+    _ai_age = _ai_data.get("_ai_cache_age", "")
+    _ai_age_html = (
+        f"<span style='font-size:0.65rem;color:var(--muted);white-space:nowrap;'>AI {_ai_age}</span>"
+        if _ai_age else ""
+    )
     sync_bar = (
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
@@ -287,6 +310,7 @@ def _build_dashboard(db) -> str:
         "color:var(--cyan);border:1px solid rgba(0,212,255,0.3);padding:5px 12px;"
         "border-radius:16px;font-size:0.73rem;text-decoration:none;display:flex;"
         "align-items:center;gap:4px;'>✨ AI 분석 업데이트</a>"
+        + _ai_age_html +
         "<a href='/settings' style='color:var(--muted);font-size:0.73rem;text-decoration:none;'>⚙️</a>"
         "</div></div>"
     )
@@ -304,22 +328,6 @@ def _build_dashboard(db) -> str:
         )
     cirs_banner = _render_cirs_banner(cirs_val or 0.0) if cirs_val is not None else ""
     banner += cirs_banner
-
-    # ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────
-    status_strip = render_daily_status_strip(
-        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness,
-        metric_date=metric_date)
-
-    # ── AI 탭별 통합 호출 (1회) ──────────────────────────────────────────
-    _cfg = None
-    _ai_data = {}
-    try:
-        from src.utils.config import load_config as _lc
-        _cfg = _lc()
-        from src.ai.ai_message import get_tab_ai
-        _ai_data = get_tab_ai("dashboard", conn, _cfg) or {}
-    except Exception:
-        pass
 
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
     recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last,
