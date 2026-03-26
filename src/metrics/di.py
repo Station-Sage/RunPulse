@@ -126,18 +126,41 @@ def calc_and_save_di(conn: sqlite3.Connection, target_date: str) -> float | None
         return None
 
     di_summary = calc_di_summary(di_values)
+    # 비율값(0.8~1.2)을 0~100 스케일로 변환
+    # 0.8 이하 → 0, 1.0 → 70, 1.1+ → 100
+    di_pct = _ratio_to_pct(di_summary)
     save_metric(
         conn,
         date=target_date,
         metric_name="DI",
-        value=di_summary,
+        value=di_pct,
         extra_json={
             "sessions_analyzed": len(di_values),
             "sessions_available": len(long_activities),
+            "di_raw": round(di_summary, 4),
             "di_values": [round(v, 3) for v in di_values],
         },
     )
-    return di_summary
+    return di_pct
+
+
+def _ratio_to_pct(di_raw: float) -> float:
+    """DI 비율값을 0~100 스케일로 변환.
+
+    0.80 이하 → 0~20 (부족)
+    0.90     → 40
+    0.95     → 55
+    1.00     → 70 (양호)
+    1.05     → 85
+    1.10+    → 100 (우수)
+    """
+    if di_raw <= 0.80:
+        return max(0.0, round(di_raw / 0.80 * 20, 1))
+    if di_raw <= 1.00:
+        # 0.80→20, 1.00→70 선형
+        return round(20 + (di_raw - 0.80) / 0.20 * 50, 1)
+    # 1.00→70, 1.10→100
+    return min(100.0, round(70 + (di_raw - 1.00) / 0.10 * 30, 1))
 
 
 def get_di(conn: sqlite3.Connection, target_date: str) -> float | None:

@@ -95,8 +95,14 @@ def _split_color(idx: int, total: int) -> str:
 def _render_prediction_card(darp_val, darp_json, pace_sec):
     if darp_val is None:
         return no_data_card("DARP 예측", "데이터 수집 중입니다")
-    time_str = fmt_duration(int(darp_val))
-    pace_str = fmt_pace(pace_sec) if pace_sec else "-"
+    # darp_json에 time_sec가 있으면 완주 시간, 없으면 페이스×거리로 추정
+    darp_time = darp_json.get("time_sec") if darp_json else None
+    if darp_time:
+        time_str = fmt_duration(int(darp_time))
+    else:
+        dist = darp_json.get("distance_km", 21.0975) if darp_json else 21.0975
+        time_str = fmt_duration(int(darp_val * dist))
+    pace_str = fmt_pace(pace_sec) if pace_sec else (fmt_pace(int(darp_val)) if darp_val else "-")
     splits = darp_json.get("splits", {})
     vdot = darp_json.get("vdot")
     percentile = darp_json.get("percentile")
@@ -312,7 +318,18 @@ def _load_prediction_history(conn, key: str, limit: int = 10) -> list[dict]:
     result = []
     for d, val, mj in rows:
         j = _safe_json(mj)
-        result.append({"date": d, "time_sec": val, "pace": j.get("avg_pace_sec")})
+        # metric_json에 time_sec가 있으면 사용, 없으면 페이스×거리로 추정
+        time_sec = j.get("time_sec")
+        if not time_sec and val:
+            dist = j.get("distance_km")
+            if not dist:
+                # DARP 키에서 거리 추정
+                _dist_map = {"5k": 5.0, "10k": 10.0, "half": 21.0975, "full": 42.195}
+                suffix = key.split("_")[-1] if "_" in key else "half"
+                dist = _dist_map.get(suffix, 21.0975)
+            time_sec = int(val * dist)
+        pace = j.get("avg_pace_sec") or (int(val) if val else None)
+        result.append({"date": d, "time_sec": time_sec, "pace": pace})
     return result
 
 
