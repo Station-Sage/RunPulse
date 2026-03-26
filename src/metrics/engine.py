@@ -31,6 +31,14 @@ from src.metrics.trimp import calc_and_save_daily_trimp, calc_and_save_trimp_for
 from src.metrics.utrs import calc_and_save_utrs
 from src.metrics.vdot import calc_and_save_vdot
 from src.metrics.wlei import calc_and_save_wlei
+# v0.3 신규 메트릭
+from src.metrics.eftp import calc_and_save_eftp
+from src.metrics.rec import calc_and_save_rec
+from src.metrics.teroi import calc_and_save_teroi
+from src.metrics.rri import calc_and_save_rri
+from src.metrics.sapi import calc_and_save_sapi
+from src.metrics.vdot_adj import calc_and_save_vdot_adj
+from src.metrics.critical_power import calc_and_save_cp
 logger = logging.getLogger(__name__)
 
 
@@ -200,6 +208,64 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
             results["TPDI"] = tpdi
     except Exception:
         logger.exception("TPDI 계산 실패: %s", target_date)
+
+    # ── v0.3 신규 메트릭 ─────────────────────────────────────────────────
+
+    # 13. eFTP (역치 페이스 추정)
+    try:
+        eftp = calc_and_save_eftp(conn, target_date)
+        if eftp is not None:
+            results["eFTP"] = eftp
+    except Exception:
+        logger.exception("eFTP 계산 실패: %s", target_date)
+
+    # 14. REC (통합 러닝 효율성)
+    try:
+        rec = calc_and_save_rec(conn, target_date)
+        if rec is not None:
+            results["REC"] = rec
+    except Exception:
+        logger.exception("REC 계산 실패: %s", target_date)
+
+    # 15. TEROI (훈련 효과 ROI)
+    try:
+        teroi = calc_and_save_teroi(conn, target_date)
+        if teroi is not None:
+            results["TEROI"] = teroi
+    except Exception:
+        logger.exception("TEROI 계산 실패: %s", target_date)
+
+    # 16. RRI (레이스 준비도 지수)
+    try:
+        rri = calc_and_save_rri(conn, target_date)
+        if rri is not None:
+            results["RRI"] = rri
+    except Exception:
+        logger.exception("RRI 계산 실패: %s", target_date)
+
+    # 17. SAPI (계절 성과 비교)
+    try:
+        sapi = calc_and_save_sapi(conn, target_date)
+        if sapi is not None:
+            results["SAPI"] = sapi
+    except Exception:
+        logger.exception("SAPI 계산 실패: %s", target_date)
+
+    # 18. VDOT_ADJ (HR-페이스 보정 VDOT)
+    try:
+        vdot_adj = calc_and_save_vdot_adj(conn, target_date)
+        if vdot_adj is not None:
+            results["VDOT_ADJ"] = vdot_adj
+    except Exception:
+        logger.exception("VDOT_ADJ 계산 실패: %s", target_date)
+
+    # 19. CP/W' (Critical Power, 파워 데이터 있을 때만)
+    try:
+        cp = calc_and_save_cp(conn, target_date)
+        if cp is not None:
+            results["CP"] = cp
+    except Exception:
+        logger.exception("CP 계산 실패: %s", target_date)
 
     return results
 

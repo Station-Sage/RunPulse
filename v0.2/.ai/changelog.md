@@ -2,6 +2,27 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.3-metrics] 2026-03-26
+
+### v0.3 신규 메트릭 7개
+
+**신규 파일:**
+- `src/metrics/eftp.py`: eFTP — Intervals FTP 우선, 없으면 40~70분 고강도 활동 페이스 추정
+- `src/metrics/rec.py`: REC — EF × (1-Dec%) × 폼팩터, 7일 평균 기반 (0~100)
+- `src/metrics/teroi.py`: TEROI — CTL 변화 / 총 TRIMP × 1000 (28일 단위 ROI)
+- `src/metrics/rri.py`: RRI — VDOT진행률 × CTL충족률 × DI × (100-CIRS)/100 (0~100)
+- `src/metrics/sapi.py`: SAPI — 기온 구간별 FEARP 비교 (기준 10~15°C 대비 비율)
+- `src/metrics/vdot_adj.py`: VDOT_ADJ — HR-페이스 선형 회귀 + EF 28일 추세 보정
+- `src/metrics/critical_power.py`: CP/W' — P×t=W'+CP×t 2파라미터 선형 회귀
+
+**수정:**
+- `engine.py`: 13~19번 신규 메트릭 등록 (TPDI 다음, 일별 계산)
+- `helpers.py`: METRIC_DESCRIPTIONS에 7개 메트릭 설명 추가
+
+**테스트:** 904개 통과
+
+---
+
 ## [v0.3-ui-fix] 2026-03-26
 
 ### UI 버그 수정 10건
