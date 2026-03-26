@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import html as _html
 import json
+import logging
 import sqlite3
 
 from flask import Blueprint, redirect, request
@@ -24,6 +25,7 @@ from src.web.views_ai_coach_cards import (
     render_wellness_card,
 )
 
+log = logging.getLogger(__name__)
 ai_coach_bp = Blueprint("ai_coach", __name__)
 
 
@@ -116,12 +118,10 @@ def _generate_briefing_rule(conn: sqlite3.Connection) -> str | None:
     if details:
         parts.append("<span style='font-size:0.85rem;color:var(--muted);'>" + " · ".join(details) + "</span>")
     if darp_val is not None:
-        # darp_json에 time_sec가 있으면 완주 시간, 없으면 페이스×거리로 추정
         darp_time = darp_json.get("time_sec") if darp_json else None
         if darp_time:
             parts.append(f"DARP 하프 예측 <strong>{fmt_duration(int(darp_time))}</strong>")
         else:
-            # darp_val은 pace(sec/km), 하프=21.0975km
             est_sec = int(darp_val * 21.0975)
             parts.append(f"DARP 하프 예측 <strong>{fmt_duration(est_sec)}</strong>")
 
@@ -140,6 +140,7 @@ def _load_chips(conn: sqlite3.Connection) -> list[dict]:
         state = get_runner_state(conn)
         return rule_based_chips(state)
     except Exception:
+        log.warning("추천 칩 로드 실패", exc_info=True)
         return []
 
 
@@ -164,6 +165,15 @@ def ai_coach_page():
         body = no_data_card("AI 코치", "데이터 수집 중입니다. 동기화 후 확인하세요.")
         return html_page("AI 코칭", body, active_tab="ai-coach")
 
+    # refresh=1 시 AI 캐시 무효화
+    if request.args.get("refresh"):
+        try:
+            with sqlite3.connect(str(dbp)) as _c:
+                from src.ai.ai_cache import invalidate
+                invalidate(_c, "dashboard")
+        except Exception:
+            log.warning("AI 캐시 무효화 실패", exc_info=True)
+
     try:
         conn = sqlite3.connect(str(dbp))
         try:
@@ -175,7 +185,7 @@ def ai_coach_page():
                 from src.ai.ai_message import get_tab_ai
                 _coach_ai = get_tab_ai("dashboard", conn, _cfg) or {}
             except Exception:
-                pass
+                log.warning("AI 코치 탭 AI 호출 실패", exc_info=True)
             briefing_text = _generate_briefing(conn, config=_cfg,
                                               ai_override=_coach_ai.get("recommendation"))
             wellness = _load_wellness(conn)
@@ -196,12 +206,13 @@ def ai_coach_page():
                 + '</div></div>'
                 + render_briefing_card(briefing_text)
                 + render_chips(chips)
-                + render_chat_section(chat_history)
+                + render_chat_section(chat_history, chips=chips)
                 + '</div>'
             )
         finally:
             conn.close()
     except Exception as exc:
+        log.error("AI 코치 페이지 오류", exc_info=True)
         body = (
             "<div class='card'><p style='color:var(--red);'>오류: "
             + _html.escape(str(exc))
@@ -221,7 +232,7 @@ def ai_coach_chat():
     if not dbp or not dbp.exists():
         return redirect("/ai-coach")
 
-    user_msg = request.form.get("message", "").strip()
+    user_msg = request.form.get("message", "").strip()[:500]
     chip_id = request.form.get("chip_id", "").strip() or None
 
     if not user_msg and not chip_id:
@@ -230,8 +241,9 @@ def ai_coach_chat():
     # 칩 클릭이면 기본 메시지 설정
     if chip_id and not user_msg:
         from src.ai.suggestions import CHIP_REGISTRY
-        chip_info = CHIP_REGISTRY.get(chip_id, {})
-        user_msg = chip_info.get("label", chip_id)
+        if chip_id not in CHIP_REGISTRY:
+            return redirect("/ai-coach")
+        user_msg = CHIP_REGISTRY[chip_id].get("label", chip_id)
 
     try:
         from src.ai.chat_engine import chat
@@ -254,7 +266,7 @@ def ai_coach_chat():
         finally:
             conn.close()
     except Exception:
-        pass
+        log.warning("AI 채팅 처리 실패", exc_info=True)
 
     return redirect("/ai-coach")
 
@@ -294,14 +306,14 @@ def ai_coach_paste_response():
         conn = sqlite3.connect(str(dbp))
         try:
             conn.execute(
-                "INSERT INTO chat_messages (role, content, ai_model) VALUES ('assistant', ?, 'genspark_manual')",
+                "INSERT INTO chat_messages (role, content, ai_model) VALUES ('assistant', ?, 'external')",
                 (response_text,),
             )
             conn.commit()
         finally:
             conn.close()
     except Exception:
-        pass
+        log.warning("외부 AI 응답 저장 실패", exc_info=True)
 
     return redirect("/ai-coach")
 
@@ -319,4 +331,5 @@ def _load_chat_history(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
             for r in reversed(rows)
         ]
     except Exception:
+        log.debug("채팅 히스토리 로드 실패 (테이블 미생성일 수 있음)", exc_info=True)
         return []
