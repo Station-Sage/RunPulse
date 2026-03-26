@@ -19,14 +19,18 @@ def sync_wellness(
     conn: sqlite3.Connection,
     days: int,
     client: "Garmin | None" = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
 ) -> int:
     """Garmin 웰니스 데이터를 가져와 DB에 저장.
 
     Args:
         config: 전체 설정 딕셔너리.
         conn: SQLite 연결.
-        days: 가져올 일수.
+        days: 가져올 일수 (from_date 미지정 시).
         client: 기존 Garmin 클라이언트. None이면 새로 로그인.
+        from_date: 기간 동기화 시작일 (YYYY-MM-DD). 지정 시 days 무시.
+        to_date: 기간 동기화 종료일.
 
     Returns:
         저장된 레코드 수.
@@ -36,6 +40,14 @@ def sync_wellness(
 
     count = 0
     today = datetime.now().date()
+
+    # from_date 지정 시 해당 기간 전체
+    if from_date:
+        from datetime import date as _date
+        start = _date.fromisoformat(from_date)
+        end = _date.fromisoformat(to_date) if to_date else today
+        days = (end - start).days + 1
+        today = end
 
     for i in range(days):
         day = today - timedelta(days=i)
