@@ -78,6 +78,12 @@
 - [x] GPS 경로 SVG 썸네일 (API 없이 자체 렌더링)
 - [x] 설정: AI provider/API 키 + 프로필 추정값 + 적용 버튼
 
+### 미해결 버그 (v0.3)
+
+- [ ] Strava detail 수집 누락 — best_efforts/zones/streams 미저장 (기본 4건만)
+- [ ] Garmin aerobic Training Effect 미저장 — API 키 이름 확인 필요
+- [ ] 웰니스 3/13~3/18 데이터 빈 값 — Garmin 웰니스 동기화 누락 원인 조사
+
 ### v0.4 예정
 
 - [ ] React Native 모바일 앱

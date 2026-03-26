@@ -35,6 +35,21 @@
 - 동기화 버튼 → POST /trigger-sync (설정 이동 대신 바로 시작)
 - 툴팁 모바일 넘침 방지 (fixed 중앙)
 
+**GPS 경로:**
+- 그룹 내 다른 소스에서 latlng 자동 탐색 (Garmin 대표 + Strava GPS)
+
+**Garmin aerobic TE:**
+- 추가 키 fallback (act/trainingEffectAerobic)
+
+**설정:**
+- 프로필 RunPulse 추정값 표시 (최대HR/역치/주간거리) + '적용' 버튼
+- 마지막 동기화: sync_jobs.db에서 조회 (별도 DB)
+
+**미해결:**
+- Strava detail 수집 누락 (best_efforts/zones 미저장)
+- Garmin aerobic TE 실제 API 키 확인 필요
+- 웰니스 3/13~3/18 데이터 빈 값 원인 조사
+
 **테스트:** 904개 통과
 
 ---
