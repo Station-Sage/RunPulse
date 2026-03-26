@@ -293,7 +293,14 @@ def _build_dashboard(db) -> str:
         metric_date=metric_date)
 
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
-    recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)
+    _cfg = None
+    try:
+        from src.utils.config import load_config as _lc
+        _cfg = _lc()
+    except Exception:
+        pass
+    recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last,
+                                                     config=_cfg, conn=conn)
 
     # ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────
     weekly_card = render_weekly_summary(weekly, weekly_target)

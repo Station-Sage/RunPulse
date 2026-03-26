@@ -99,7 +99,8 @@ def training_page():
                 + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val)
                 + render_week_calendar(workouts, week_start, week_offset)
                 + _render_workout_form(week_start)
-                + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts)
+                + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts,
+                                          config=config, conn=conn)
                 + render_sync_status(sync_info)
             )
         finally:
