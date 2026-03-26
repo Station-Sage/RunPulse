@@ -538,8 +538,9 @@ def render_export_buttons(period: str) -> str:
 # ── views_report.py에서 이동된 렌더 함수 ────────────────────────────────────
 
 
-def render_summary_cards(stats: dict, metrics_avg: dict) -> str:
-    """요약 지표 카드 (활동 수/거리/시간 + 평균 UTRS/CIRS)."""
+def render_summary_cards(stats: dict, metrics_avg: dict,
+                         teroi: float | None = None, sapi: float | None = None) -> str:
+    """요약 지표 카드 (활동 수/거리/시간 + 평균 UTRS/CIRS + TEROI/SAPI)."""
     utrs_avg = metrics_avg.get("UTRS")
     cirs_avg = metrics_avg.get("CIRS")
 
@@ -564,6 +565,12 @@ def render_summary_cards(stats: dict, metrics_avg: dict) -> str:
         "<div class='cards-row'>"
         + _card(tooltip("평균 UTRS", METRIC_DESCRIPTIONS["UTRS"]), utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
         + _card(tooltip("평균 CIRS", METRIC_DESCRIPTIONS["CIRS"]), cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
+        + (_card(tooltip("TEROI", METRIC_DESCRIPTIONS.get("TEROI", "")),
+                 f"{teroi:+.1f}", "var(--green)" if teroi and teroi > 0 else "var(--red)")
+           if teroi is not None else "")
+        + (_card(tooltip("SAPI", METRIC_DESCRIPTIONS.get("SAPI", "")),
+                 f"{sapi:.0f}%", "var(--cyan)" if sapi and sapi >= 95 else "var(--orange)")
+           if sapi is not None else "")
         + "</div>"
     )
 

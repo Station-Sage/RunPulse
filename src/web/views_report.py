@@ -248,6 +248,19 @@ def report_view():
                 (end_date,),
             ).fetchone()
             di_val = float(_di_row[0]) if _di_row and _di_row[0] is not None else None
+            # v0.3 메트릭
+            _teroi_row = conn.execute(
+                "SELECT metric_value FROM computed_metrics WHERE metric_name='TEROI' "
+                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                (end_date,),
+            ).fetchone()
+            teroi_val = float(_teroi_row[0]) if _teroi_row and _teroi_row[0] is not None else None
+            _sapi_row = conn.execute(
+                "SELECT metric_value FROM computed_metrics WHERE metric_name='SAPI' "
+                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                (end_date,),
+            ).fetchone()
+            sapi_val = float(_sapi_row[0]) if _sapi_row and _sapi_row[0] is not None else None
             ai_insight_html = render_ai_insight(conn, start_date, end_date)
             # 신규 로더
             prev_stats = load_prev_period_stats(conn, start_date, end_date)
@@ -266,7 +279,7 @@ def report_view():
         render_sub_nav("report")
         + _render_period_tabs(period, custom_start_str, custom_end_str)
         # 섹션 1: 기간 요약 + 델타
-        + render_summary_cards(stats, metrics_avg)
+        + render_summary_cards(stats, metrics_avg, teroi=teroi_val, sapi=sapi_val)
         + render_summary_delta(stats, prev_stats)
         # 섹션 2: 볼륨 추세
         + render_weekly_chart(weekly_data)

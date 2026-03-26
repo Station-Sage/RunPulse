@@ -209,7 +209,8 @@ def _build_dashboard(db) -> str:
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
-    with sqlite3.connect(str(db)) as conn:
+    with sqlite3.connect(str(db), timeout=10) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
         # 오늘 메트릭이 없으면 자동 계산
         _ensure_today_metrics(conn, today)
 
@@ -235,6 +236,8 @@ def _build_dashboard(db) -> str:
         recent_acts = _load_recent_activities(conn, limit=5)
         darp_data = _load_darp_data(conn, today)
         vdot, marathon_shape = _load_fitness_data(conn, today)
+        # v0.3 신규 메트릭
+        _v3 = load_metrics_batch(conn, today, ["eFTP", "REC", "RRI", "VDOT_ADJ", "TEROI", "SAPI"])
         # 신규 로더
         wellness = load_wellness_mini(conn, today)
         weekly = load_weekly_summary(conn, today)
@@ -292,7 +295,10 @@ def _build_dashboard(db) -> str:
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
     darp_card = _render_darp_mini(darp_data)
-    fitness_card = _render_fitness_mini(vdot, marathon_shape)
+    fitness_card = _render_fitness_mini(
+        vdot, marathon_shape,
+        eftp=_v3.get("eFTP"), rec=_v3.get("REC"),
+        rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"))
     rmr_axes = rmr_json.get("axes") if rmr_json else None
     rmr_compare = rmr_old_json.get("axes") if rmr_old_json else None
     rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None)

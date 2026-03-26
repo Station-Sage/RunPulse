@@ -612,22 +612,54 @@ def _render_darp_mini(darp_data: dict) -> str:
     )
 
 
-def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None) -> str:
-    """VDOT / Marathon Shape 피트니스 미니 카드."""
-    if vdot is None and marathon_shape_pct is None:
+def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
+                         eftp: float | None = None, rec: float | None = None,
+                         rri: float | None = None, vdot_adj: float | None = None) -> str:
+    """VDOT / Marathon Shape / eFTP / REC / RRI 피트니스 미니 카드."""
+    if all(v is None for v in [vdot, marathon_shape_pct, eftp, rec]):
         return no_data_card("피트니스 현황", "데이터 수집 중입니다")
     vdot_str = f"{vdot:.1f}" if vdot is not None else "—"
+    if vdot_adj and vdot and abs(vdot_adj - vdot) > 0.3:
+        vdot_str += f" <span style='font-size:0.7rem;color:var(--muted);'>(보정 {vdot_adj:.1f})</span>"
     shape_str = f"{marathon_shape_pct:.0f}%" if marathon_shape_pct is not None else "—"
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70
              else ("var(--orange)" if (marathon_shape_pct or 0) >= 50 else "var(--muted)"))
+
+    # 추가 메트릭 행
+    extra_items = []
+    if eftp is not None:
+        extra_items.append(
+            f"<div style='text-align:center;'>"
+            f"<div style='font-size:1.2rem;font-weight:700;color:var(--cyan);'>{fmt_pace(int(eftp))}</div>"
+            f"<div class='muted' style='font-size:0.72rem;'>{tooltip('eFTP', METRIC_DESCRIPTIONS.get('eFTP', ''))}</div></div>"
+        )
+    if rec is not None:
+        rec_clr = "var(--green)" if rec >= 60 else "var(--orange)" if rec >= 30 else "var(--red)"
+        extra_items.append(
+            f"<div style='text-align:center;'>"
+            f"<div style='font-size:1.2rem;font-weight:700;color:{rec_clr};'>{rec:.0f}</div>"
+            f"<div class='muted' style='font-size:0.72rem;'>{tooltip('REC', METRIC_DESCRIPTIONS.get('REC', ''))}</div></div>"
+        )
+    if rri is not None:
+        rri_clr = "var(--green)" if rri >= 70 else "var(--orange)" if rri >= 50 else "var(--red)"
+        extra_items.append(
+            f"<div style='text-align:center;'>"
+            f"<div style='font-size:1.2rem;font-weight:700;color:{rri_clr};'>{rri:.0f}</div>"
+            f"<div class='muted' style='font-size:0.72rem;'>{tooltip('RRI', METRIC_DESCRIPTIONS.get('RRI', ''))}</div></div>"
+        )
+    extra_row = (
+        "<div style='display:flex;gap:1rem;justify-content:space-around;margin-top:0.5rem;'>"
+        + "".join(extra_items) + "</div>"
+    ) if extra_items else ""
+
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>피트니스 현황</h2>"
         "<div style='display:flex;gap:1rem;justify-content:space-around;'>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:var(--cyan);'>{vdot_str}</div>"
-        f"<div class='muted' style='font-size:0.76rem;'>VDOT</div></div>"
+        f"<div class='muted' style='font-size:0.76rem;'>{tooltip('VDOT', METRIC_DESCRIPTIONS.get('VDOT', ''))}</div></div>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
-        f"<div class='muted' style='font-size:0.76rem;'>Marathon Shape</div></div></div>"
-        "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;text-align:center;'>Runalyze 기준</p></div>"
+        f"<div class='muted' style='font-size:0.76rem;'>{tooltip('Marathon Shape', METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
+        + extra_row + "</div>"
     )
