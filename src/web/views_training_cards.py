@@ -435,12 +435,50 @@ def render_ai_recommendation(
     cirs_val: float | None,
     cirs_json: dict,
     workouts: list[dict],
+    config: dict | None = None,
+    conn: "sqlite3.Connection | None" = None,
 ) -> str:
-    """UTRS/CIRS 기반 규칙 기반 AI 훈련 추천 카드."""
-    # 데이터 없으면 미표시
+    """AI 우선 훈련 추천 카드. 규칙 기반 fallback."""
     if utrs_val is None and cirs_val is None:
         return ""
 
+    # 규칙 기반 메시지 생성
+    lines: list[str] = _build_rule_recommendation(utrs_val, cirs_val, cirs_json, workouts)
+    rule_msg = "</p><p style='margin:8px 0;'>".join(lines) if lines else ""
+
+    # AI 시도
+    ai_msg = None
+    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
+        try:
+            from src.ai.ai_message import get_card_ai_message
+            ai_msg = get_card_ai_message("training_coaching", conn, rule_msg, config)
+            if ai_msg and ai_msg != rule_msg:
+                lines = [ai_msg]
+        except Exception:
+            pass
+
+    if not lines:
+        return ""
+
+    content = "</p><p style='margin:8px 0;'>".join(lines)
+    ai_badge = " <span style='font-size:0.65rem;color:var(--cyan);'>AI</span>" if ai_msg and ai_msg != rule_msg else ""
+
+    return (
+        "<div style='background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(0,255,136,0.1));"
+        "border-radius:20px;padding:24px;margin-top:16px;margin-bottom:16px;"
+        "border:1px solid rgba(0,212,255,0.3);'>"
+        "<div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;'>"
+        "<div style='width:44px;height:44px;background:linear-gradient(135deg,#00d4ff,#00ff88);"
+        "border-radius:50%;display:flex;align-items:center;justify-content:center;"
+        "font-size:22px;'>🤖</div>"
+        f"<span style='font-size:16px;font-weight:bold;'>AI 훈련 추천{ai_badge}</span></div>"
+        f"<div style='font-size:13px;line-height:1.7;color:rgba(255,255,255,0.9);'>"
+        f"<p style='margin:0 0 8px;'>{content}</p></div></div>"
+    )
+
+
+def _build_rule_recommendation(utrs_val, cirs_val, cirs_json, workouts) -> list[str]:
+    """규칙 기반 훈련 추천 메시지."""
     lines: list[str] = []
 
     # UTRS 기반 메시지
@@ -493,23 +531,7 @@ def render_ai_recommendation(
         if tips:
             lines.append("이번 주 핵심 훈련: " + " / ".join(tips))
 
-    if not lines:
-        return ""
-
-    content = "</p><p style='margin:8px 0;'>".join(lines)
-
-    return (
-        "<div style='background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(0,255,136,0.1));"
-        "border-radius:20px;padding:24px;margin-top:16px;margin-bottom:16px;"
-        "border:1px solid rgba(0,212,255,0.3);'>"
-        "<div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;'>"
-        "<div style='width:44px;height:44px;background:linear-gradient(135deg,#00d4ff,#00ff88);"
-        "border-radius:50%;display:flex;align-items:center;justify-content:center;"
-        "font-size:22px;'>🤖</div>"
-        "<span style='font-size:16px;font-weight:bold;'>AI 훈련 추천</span></div>"
-        f"<div style='font-size:13px;line-height:1.7;color:rgba(255,255,255,0.9);'>"
-        f"<p style='margin:0 0 8px;'>{content}</p></div></div>"
-    )
+    return lines
 
 
 # ── S6b: 전체 훈련 계획 개요 ──────────────────────────────────────────
