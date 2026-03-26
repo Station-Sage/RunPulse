@@ -174,6 +174,7 @@ def activity_deep_view():
         + render_activity_nav(prev_row, next_row)
         + render_horizontal_scroll(act, act_metrics)
         + render_classification_badge(act)
+        + _render_ai_activity_analysis(conn, resolved_id, act, act_metrics)
         + render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
         # 그룹 1: 오늘의 상태
@@ -198,3 +199,25 @@ def activity_deep_view():
 
     title = f"활동 심층 분석 — {act_date}"
     return render_template("generic_page.html", title=title, body=body, active_tab="activities")
+
+
+def _render_ai_activity_analysis(conn, activity_id: int, act: dict, metrics: dict) -> str:
+    """활동 AI 종합 분석 카드. API 없으면 빈 문자열."""
+    try:
+        from src.utils.config import load_config
+        config = load_config()
+        if config.get("ai", {}).get("provider", "rule") == "rule":
+            return ""
+        from src.ai.ai_message import get_card_ai_message
+        msg = get_card_ai_message("activity_analysis", conn, "", config, activity_id=activity_id)
+        if not msg:
+            return ""
+        return (
+            "<div class='card' style='border-left:4px solid var(--cyan);margin-bottom:16px;'>"
+            "<h3 style='margin:0 0 8px;font-size:0.95rem;'>"
+            "🤖 AI 활동 분석 <span style='font-size:0.65rem;color:var(--cyan);'>AI</span></h3>"
+            f"<div style='font-size:0.85rem;color:var(--secondary);line-height:1.7;'>{msg}</div>"
+            "</div>"
+        )
+    except Exception:
+        return ""
