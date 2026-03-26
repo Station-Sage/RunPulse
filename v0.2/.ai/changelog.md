@@ -2,6 +2,35 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-calendar-ai] 2026-03-26
+
+### Garmin Connect 워크아웃 전송
+- `garmin_push.py`: upload_running_workout → schedule_workout → DB에 garmin_workout_id 저장
+- 타입별 워크아웃 구조: easy/tempo/threshold(워밍업+메인+쿨다운), interval(3분×5 반복)
+- 훈련탭 "⌚ Garmin" 버튼
+
+### CalDAV 캘린더 연동
+- `caldav_push.py`: iCal 이벤트 생성 → CalDAV 서버 등록 (Google/네이버/Apple/Synology)
+- 설정: URL + 사용자명 + 앱 비밀번호 + 연결 테스트
+- 훈련탭 "📅 캘린더" 버튼
+
+### Genspark AI 연동
+- **B방식 (수동)**: 프롬프트 복사 → Genspark/ChatGPT/Claude에 붙여넣기 → 응답 저장
+  - /ai-coach/prompt (프롬프트 생성 API), /ai-coach/paste-response (응답 저장)
+  - 외부 AI 연동 접이식 섹션 (링크 + 복사 + 붙여넣기)
+- **A방식 (자동)**: proot + Selenium headless Chromium으로 Genspark DOM 자동화
+  - `genspark_driver.py`: send_and_receive(), 다중 셀렉터, 응답 polling
+
+### 훈련 계획 개선
+- 4주치 플랜 한 번에 생성 + 빈 주 자동 생성
+- 전체 훈련 계획 개요 카드 (base/build/peak/taper 타임라인)
+
+### 성능
+- WorkoutType N+1 → 배치 로드
+- Garmin per_request_sleep 1.5→0.8초
+
+---
+
 ## [v0.3-training-fixes] 2026-03-26
 
 ### 훈련탭 + AI코치 + 데이터 버그 수정
