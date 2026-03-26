@@ -392,14 +392,20 @@ def _render_gauge_card(title: str, value: float | None, max_value: float,
 def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
     if not axes:
         return no_data_card("RMR 러너 성숙도 레이더")
+    from datetime import date as _date, timedelta as _td
     radar = svg_radar_chart(axes, max_value=100.0, compare_axes=compare_axes, width=260)
     overall = sum(axes.values()) / len(axes) if axes else 0
-    compare_note = ("<p class='muted' style='margin:0.3rem 0 0;font-size:0.8rem;'>&#128993; 3개월 전 비교</p>"
+    today = _date.today()
+    period_text = f"최근 28일 기준 ({(today - _td(days=28)).strftime('%m/%d')}~{today.strftime('%m/%d')})"
+    compare_note = (f"<p class='muted' style='margin:0.3rem 0 0;font-size:0.78rem;'>"
+                    f"&#128993; 3개월 전 대비</p>"
                    if compare_axes else "")
+    rmr_tip = tooltip("RMR 러너 성숙도", METRIC_DESCRIPTIONS.get("RMR", ""))
     return (
         "<div class='card' style='text-align:center;'>"
-        "<h2 style='margin-bottom:0.3rem;font-size:1rem;'>RMR 러너 성숙도</h2>"
-        f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.8rem;'>종합 {overall:.1f}점</p>"
+        f"<h2 style='margin-bottom:0.3rem;font-size:1rem;'>{rmr_tip}</h2>"
+        f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.78rem;'>"
+        f"종합 {overall:.1f}점 · {period_text}</p>"
         f"{radar}{compare_note}</div>"
     )
 
@@ -489,14 +495,16 @@ def _render_activity_list(activities: list[dict]) -> str:
                 f"<span style='background:rgba(0,255,136,0.12);color:var(--green);"
                 f"border-radius:12px;padding:0.1rem 0.5rem;font-size:0.76rem;'>RE {act['relative_effort']:.0f}</span>"
             )
+        name = _html.escape(act.get("name", "")) or "러닝"
         items.append(
             f"<a href='/activity/deep?id={act['id']}' style='text-decoration:none;color:inherit;'>"
             f"<div class='card' style='display:flex;align-items:center;gap:0.8rem;"
             f"padding:0.7rem 0.9rem;margin:0.4rem 0;'>"
             f"<div style='font-size:1.5rem;'>&#127939;</div>"
             f"<div style='flex:1;min-width:0;'>"
-            f"<div style='font-weight:600;font-size:0.9rem;'>{_html.escape(act['date'])} · {_html.escape(dist)}</div>"
+            f"<div style='font-weight:600;font-size:0.9rem;'>{name}</div>"
             f"<div class='muted' style='font-size:0.8rem;margin-top:0.1rem;'>"
+            f"{_html.escape(act['date'])} · {_html.escape(dist)} · "
             f"{fmt_duration(act['duration_sec'])} · {fmt_pace(act['avg_pace_sec_km'])}/km · &#9829; {act['avg_hr'] or '—'} bpm</div>"
             f"<div style='margin-top:0.25rem;'>{' '.join(badges)}</div></div>"
             f"<div style='color:var(--muted);'>&#8250;</div></div></a>"

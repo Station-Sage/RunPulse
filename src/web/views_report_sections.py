@@ -301,10 +301,29 @@ def render_risk_overview(risk: dict) -> str:
     )
 
 
-def render_darp_card(darp: dict) -> str:
-    """레이스 예측 (DARP) 카드."""
+def render_darp_card(darp: dict, vdot: float | None = None, di: float | None = None) -> str:
+    """레이스 예측 (DARP) 카드 + VDOT 공통 표시 + DI."""
     if not darp:
         return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
+
+    # VDOT/DI 상단 공통 표시
+    header_badges = ""
+    if vdot is not None:
+        vdot_tip = tooltip("VDOT", METRIC_DESCRIPTIONS.get("VDOT", ""))
+        header_badges += (
+            f"<span style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+            f"border-radius:12px;padding:0.15rem 0.6rem;font-size:0.78rem;'>"
+            f"{vdot_tip} {vdot:.1f}</span>"
+        )
+    if di is not None:
+        di_tip = tooltip("DI", METRIC_DESCRIPTIONS.get("DI", ""))
+        di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
+        header_badges += (
+            f"<span style='background:rgba(0,255,136,0.12);color:{di_clr};"
+            f"border-radius:12px;padding:0.15rem 0.6rem;font-size:0.78rem;margin-left:0.3rem;'>"
+            f"{di_tip} {di:.0f}</span>"
+        )
+
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프마라톤", "full": "마라톤"}
     rows = ""
     for key, lbl in _LABELS.items():
@@ -316,23 +335,22 @@ def render_darp_card(darp: dict) -> str:
         h, rem = divmod(ts, 3600)
         m, s = divmod(rem, 60)
         t_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-        vdot = d.get("vdot")
-        vdot_note = f" (VDOT {vdot:.1f})" if vdot else ""
         rows += (
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.06);'>"
             f"<span style='font-size:0.85rem;color:var(--secondary);'>{lbl}</span>"
             f"<div style='text-align:right;'>"
             f"<span style='font-size:0.9rem;font-weight:700;color:var(--cyan);'>{t_str}</span>"
-            f"<span class='muted' style='font-size:0.76rem;margin-left:0.4rem;'>{fmt_pace(pace)}/km{vdot_note}</span>"
+            f"<span class='muted' style='font-size:0.76rem;margin-left:0.4rem;'>{fmt_pace(pace)}/km</span>"
             f"</div></div>"
         )
     if not rows:
         return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.4rem;'>레이스 예측 (DARP)</h2>"
+        + (f"<div style='margin-bottom:0.5rem;'>{header_badges}</div>" if header_badges else "")
         + rows
-        + "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>Jack Daniels VDOT 기반 + DI 내구성 보정</p></div>"
+        + "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>VDOT 기반 + DI 내구성 보정</p></div>"
     )
 
 
@@ -595,8 +613,30 @@ def render_weekly_chart(weekly_data: list[dict]) -> str:
 </script>"""
 
 
+def _activity_effect(a: dict) -> str:
+    """활동의 효과/영향을 한 줄로 해석."""
+    parts = []
+    re = a.get("relative_effort")
+    dec = a.get("decoupling")
+    if re is not None:
+        if re >= 150:
+            parts.append("고강도 자극")
+        elif re >= 80:
+            parts.append("적정 부하")
+        else:
+            parts.append("저강도 회복")
+    if dec is not None:
+        if dec <= 5:
+            parts.append("유산소 기반 양호")
+        elif dec <= 10:
+            parts.append("지구력 보통")
+        else:
+            parts.append("지구력 개선 필요")
+    return " · ".join(parts) if parts else ""
+
+
 def render_metrics_table(activities: list[dict]) -> str:
-    """활동별 메트릭 요약 테이블."""
+    """활동별 메트릭 요약 테이블 + 효과 해석."""
     if not activities:
         return ""
     rows = ""
@@ -606,13 +646,15 @@ def render_metrics_table(activities: list[dict]) -> str:
         dec = f"{float(a['decoupling']):.1f}%" if a["decoupling"] is not None else "—"
         pace = f"{fmt_pace(a['pace'])}/km" if a["pace"] is not None else "—"
         dist = f"{float(a['dist_km']):.1f}" if a["dist_km"] is not None else "—"
+        effect = _activity_effect(a)
+        effect_td = f"<td style='font-size:0.75rem;color:var(--muted);'>{effect}</td>" if effect else "<td></td>"
         rows += (
             f"<tr><td>{_html.escape(a['date'])}</td><td>{dist} km</td><td>{pace}</td>"
-            f"<td>{fearp}</td><td>{re}</td><td>{dec}</td></tr>"
+            f"<td>{fearp}</td><td>{re}</td><td>{dec}</td>{effect_td}</tr>"
         )
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.6rem;'>최근 활동 메트릭</h2>"
         "<div style='overflow-x:auto;'><table><thead><tr>"
-        "<th>날짜</th><th>거리</th><th>페이스</th><th>FEARP</th><th>Rel.Effort</th><th>Decoupling</th>"
+        "<th>날짜</th><th>거리</th><th>페이스</th><th>FEARP</th><th>RE</th><th>Dec%</th><th>효과</th>"
         "</tr></thead><tbody>" + rows + "</tbody></table></div></div>"
     )

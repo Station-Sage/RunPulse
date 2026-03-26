@@ -52,6 +52,18 @@ import logging as _logging
 _log = _logging.getLogger(__name__)
 
 
+def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
+    """마지막 동기화 완료 시간."""
+    try:
+        row = conn.execute(
+            "SELECT updated_at FROM sync_jobs WHERE status='completed' "
+            "ORDER BY updated_at DESC LIMIT 1"
+        ).fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
 def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
     """오늘 날짜 메트릭이 없으면 자동 계산."""
     row = conn.execute(
@@ -110,7 +122,7 @@ def _load_pmc_data(conn: sqlite3.Connection, end_date: str, days: int = 60) -> l
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
     rows = conn.execute(
         """SELECT a.id, a.start_time, a.activity_type, a.distance_km,
-                  a.duration_sec, a.avg_pace_sec_km, a.avg_hr
+                  a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name
            FROM v_canonical_activities a WHERE a.activity_type = 'running'
            ORDER BY a.start_time DESC LIMIT ?""",
         (limit,),
@@ -121,11 +133,12 @@ def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[di
     metrics = load_activity_metrics_batch(conn, act_ids, ["FEARP", "RelativeEffort"])
     result = []
     for r in rows:
-        act_id, start_time, _, dist, dur, pace, hr = r
+        act_id, start_time, _, dist, dur, pace, hr, name = r
         m = metrics.get(act_id, {})
         result.append({
             "id": act_id, "start_time": start_time, "date": str(start_time)[:10],
             "distance_km": dist, "duration_sec": dur, "avg_pace_sec_km": pace, "avg_hr": hr,
+            "name": name or "",
             "fearp": m.get("FEARP"),
             "relative_effort": m.get("RelativeEffort"),
         })
@@ -228,17 +241,29 @@ def _build_dashboard(db) -> str:
         trends = load_fitness_trends(conn, today, days=60)
         risk_7d = load_risk_7day_trends(conn, today)
         weekly_target = _load_weekly_target(conn)
-        # resync
+        # resync + 마지막 동기화 시간
         needs_resync = False
         try:
             needs_resync = get_needs_resync(conn)
         except Exception:
             pass
+        last_sync = _load_last_sync_time(conn)
 
     tsb_last = pmc_data[-1]["tsb"] if pmc_data else None
 
+    # ── 동기화 상태 바 ──────────────────────────────────────────────────
+    sync_time_str = last_sync[:16] if last_sync else "없음"
+    sync_bar = (
+        "<div style='display:flex;justify-content:space-between;align-items:center;"
+        "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
+        f"<span>마지막 동기화: {sync_time_str}</span>"
+        "<a href='/settings' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+        "padding:4px 12px;border-radius:12px;font-size:0.75rem;text-decoration:none;'>동기화</a>"
+        "</div>"
+    )
+
     # ── 배너 ─────────────────────────────────────────────────────────────
-    banner = ""
+    banner = sync_bar
     if needs_resync:
         banner = (
             "<div class='card' style='background:var(--orange,#ffaa00);color:#000;"
