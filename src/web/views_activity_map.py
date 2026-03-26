@@ -37,6 +37,19 @@ def _load_coords(activity_id: int) -> list[list[float]]:
                 "WHERE activity_id=? AND stream_type='latlng' LIMIT 1",
                 (activity_id,),
             ).fetchone()
+            # 그룹 내 다른 소스에서 GPS 탐색
+            if not row or not row[0]:
+                grp = conn.execute(
+                    "SELECT matched_group_id FROM activity_summaries WHERE id=?",
+                    (activity_id,),
+                ).fetchone()
+                if grp and grp[0]:
+                    row = conn.execute(
+                        "SELECT s.data_json FROM activity_streams s "
+                        "JOIN activity_summaries a ON a.id=s.activity_id "
+                        "WHERE a.matched_group_id=? AND s.stream_type='latlng' LIMIT 1",
+                        (grp[0],),
+                    ).fetchone()
             if row and row[0]:
                 data = json.loads(row[0]) if isinstance(row[0], str) else row[0]
                 if isinstance(data, list) and len(data) >= 2:

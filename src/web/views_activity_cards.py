@@ -766,6 +766,19 @@ def _render_map_placeholder(activity_id: int | None = None) -> str:
                 "SELECT data_json FROM activity_streams WHERE activity_id=? AND stream_type='latlng' LIMIT 1",
                 (activity_id,),
             ).fetchone()
+            # 그룹 내 다른 소스에서 GPS 탐색
+            if not rows or not rows[0]:
+                grp = conn.execute(
+                    "SELECT matched_group_id FROM activity_summaries WHERE id=?",
+                    (activity_id,),
+                ).fetchone()
+                if grp and grp[0]:
+                    rows = conn.execute(
+                        "SELECT s.data_json FROM activity_streams s "
+                        "JOIN activity_summaries a ON a.id=s.activity_id "
+                        "WHERE a.matched_group_id=? AND s.stream_type='latlng' LIMIT 1",
+                        (grp[0],),
+                    ).fetchone()
             if rows and rows[0]:
                 data = json.loads(rows[0]) if isinstance(rows[0], str) else rows[0]
                 if isinstance(data, list) and len(data) >= 2 and isinstance(data[0], (list, tuple)):
