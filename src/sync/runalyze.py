@@ -155,8 +155,9 @@ def sync_activities(
         avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
 
         try:
+            _verb = "INSERT OR REPLACE" if from_date else "INSERT OR IGNORE"
             cursor = conn.execute(
-                """INSERT OR IGNORE INTO activity_summaries
+                f"""{_verb} INTO activity_summaries
                    (source, source_id, activity_type, start_time, distance_km,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr,
                     elevation_gain, calories, description)

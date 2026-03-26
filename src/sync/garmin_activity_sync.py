@@ -99,8 +99,9 @@ def sync_activities(
         try:
             cols = ", ".join(summary_fields.keys())
             placeholders = ", ".join(["?"] * len(summary_fields))
+            verb = "INSERT OR REPLACE" if from_date else "INSERT OR IGNORE"
             cursor = conn.execute(
-                f"INSERT OR IGNORE INTO activity_summaries ({cols}) VALUES ({placeholders})",
+                f"{verb} INTO activity_summaries ({cols}) VALUES ({placeholders})",
                 list(summary_fields.values())
             )
         except sqlite3.Error as e:
