@@ -24,14 +24,83 @@ _INTENT_KEYWORDS: dict[str, list[str]] = {
     "recovery": ["회복", "피로", "쉬어", "컨디션", "휴식", "오버", "과훈련", "부상"],
 }
 
+# 날짜 패턴: "3월 15일", "3/15", "2025-03-15", "지난주 월요일", "어제" 등
+import re as _re
 
-def detect_intent(message: str) -> str:
-    """사용자 메시지에서 의도 감지. 복수 매칭 시 우선순위 적용."""
+_DATE_PATTERNS = [
+    # 2025-03-15, 2025.03.15
+    _re.compile(r"(\d{4})[-./](\d{1,2})[-./](\d{1,2})"),
+    # 3월 15일, 3월15일
+    _re.compile(r"(\d{1,2})월\s*(\d{1,2})일"),
+    # 3/15
+    _re.compile(r"(\d{1,2})/(\d{1,2})"),
+]
+
+_RELATIVE_DATE_KW: dict[str, int] = {
+    "어제": -1, "그제": -2, "그저께": -2, "엊그제": -2,
+    "그끄저께": -3, "3일전": -3, "3일 전": -3,
+}
+
+
+def _extract_date(message: str) -> str | None:
+    """메시지에서 날짜 추출. 없으면 None."""
+    today = date.today()
+
+    # 상대 날짜
+    for kw, delta in _RELATIVE_DATE_KW.items():
+        if kw in message:
+            return (today + timedelta(days=delta)).isoformat()
+
+    # 지난주 + 요일
+    _WEEKDAY_KO = {"월": 0, "화": 1, "수": 2, "목": 3, "금": 4, "토": 5, "일": 6}
+    m = _re.search(r"지난\s*주?\s*(월|화|수|목|금|토|일)", message)
+    if m:
+        wd = _WEEKDAY_KO[m.group(1)]
+        last_monday = today - timedelta(days=today.weekday() + 7)
+        return (last_monday + timedelta(days=wd)).isoformat()
+
+    # 절대 날짜
+    for pat in _DATE_PATTERNS:
+        m = pat.search(message)
+        if m:
+            groups = m.groups()
+            try:
+                if len(groups) == 3:  # YYYY-MM-DD
+                    return date(int(groups[0]), int(groups[1]), int(groups[2])).isoformat()
+                elif len(groups) == 2:  # M월D일 or M/D
+                    y = today.year
+                    d = date(y, int(groups[0]), int(groups[1]))
+                    # 미래면 작년으로
+                    if d > today:
+                        d = date(y - 1, int(groups[0]), int(groups[1]))
+                    return d.isoformat()
+            except ValueError:
+                continue
+
+    return None
+
+
+def detect_intent(message: str) -> tuple[str, str | None]:
+    """사용자 메시지에서 의도 + 날짜 감지.
+
+    Returns:
+        (intent, target_date) — target_date는 특정 날짜 조회 시 YYYY-MM-DD.
+    """
     msg = message.lower()
+    target_date = _extract_date(message)
+
+    # 날짜가 있으면 lookup 의도 (다른 의도와 조합 가능)
+    if target_date:
+        # 날짜 + 레이스 키워드 → race
+        for intent, keywords in _INTENT_KEYWORDS.items():
+            if any(k in msg for k in keywords):
+                return intent, target_date
+        return "lookup", target_date
+
     for intent, keywords in _INTENT_KEYWORDS.items():
         if any(k in msg for k in keywords):
-            return intent
-    return "general"
+            return intent, None
+    return "general", None
 
 
 # ── 기본 컨텍스트 (항상 포함) ──────────────────────────────────────────
@@ -260,12 +329,73 @@ def _add_recovery_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
 
 # ── 통합 빌더 ──────────────────────────────────────────────────────────
 
+def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
+    """특정 날짜 활동 조회 — 해당 날짜의 모든 활동 + 메트릭 + 웰니스."""
+    target = ctx.get("_target_date", today)
+
+    # 해당 날짜 활동 (복수 가능)
+    acts = conn.execute(
+        "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
+        "elevation_gain_m, calories, name FROM v_canonical_activities "
+        "WHERE activity_type='running' AND date(start_time)=? "
+        "ORDER BY start_time", (target,),
+    ).fetchall()
+
+    lookup_acts = []
+    for act in acts:
+        aid = act[0]
+        detail = {
+            "distance_km": act[1], "duration_sec": act[2],
+            "pace": seconds_to_pace(act[3]) if act[3] else None,
+            "avg_hr": act[4], "max_hr": act[5],
+            "elevation": act[6], "calories": act[7],
+            "name": act[8],
+        }
+        # 2차 메트릭
+        metrics = conn.execute(
+            "SELECT metric_name, metric_value FROM computed_metrics "
+            "WHERE activity_id=? AND metric_value IS NOT NULL", (aid,),
+        ).fetchall()
+        detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
+
+        # 분류
+        cls = conn.execute(
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='workout_type' AND activity_id=?", (aid,),
+        ).fetchone()
+        if cls:
+            detail["workout_type"] = cls[0]
+        lookup_acts.append(detail)
+
+    ctx["lookup_date"] = target
+    ctx["lookup_activities"] = lookup_acts
+
+    # 해당 날짜 일별 메트릭
+    day_metrics = conn.execute(
+        "SELECT metric_name, metric_value FROM computed_metrics "
+        "WHERE date=? AND activity_id IS NULL AND metric_value IS NOT NULL",
+        (target,),
+    ).fetchall()
+    ctx["lookup_day_metrics"] = {r[0]: round(float(r[1]), 2) for r in day_metrics}
+
+    # 해당 날짜 웰니스
+    well = conn.execute(
+        "SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
+        "FROM daily_wellness WHERE source='garmin' AND date=? LIMIT 1",
+        (target,),
+    ).fetchone()
+    if well:
+        ctx["lookup_wellness"] = {"bb": well[0], "sleep": well[1], "hrv": well[2],
+                                   "stress": well[3], "rhr": well[4]}
+
+
 _INTENT_BUILDERS = {
     "today": _add_today_context,
     "race": _add_race_context,
     "compare": _add_compare_context,
     "plan": _add_plan_context,
     "recovery": _add_recovery_context,
+    "lookup": _add_lookup_context,
 }
 
 
@@ -279,13 +409,21 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
         chat_history: 최근 대화 이력 (맥락 유지용).
     """
     today = date.today().isoformat()
-    intent = detect_intent(message)
+    intent, target_date = detect_intent(message)
 
     # 1. 기본 컨텍스트
     ctx = _build_base_context(conn, today)
     ctx["intent"] = intent
+    if target_date:
+        ctx["_target_date"] = target_date
 
     # 2. 의도별 추가 컨텍스트
+    # 날짜 지정 시 lookup도 같이 추가
+    if target_date and intent != "lookup":
+        try:
+            _add_lookup_context(conn, ctx, today)
+        except Exception:
+            log.warning("lookup 컨텍스트 빌드 실패", exc_info=True)
     builder = _INTENT_BUILDERS.get(intent)
     if builder:
         try:
@@ -407,6 +545,40 @@ def _format_chat_context(ctx: dict, message: str,
         for d in ctx["wellness_3d"]:
             lines.append(f"- {d['date']}: BB={d.get('bb', '-')} 수면={d.get('sleep', '-')} "
                         f"HRV={d.get('hrv', '-')}")
+
+    # 날짜 지정 활동 조회
+    if ctx.get("lookup_activities") is not None:
+        ld = ctx.get("lookup_date", "")
+        acts = ctx["lookup_activities"]
+        if acts:
+            lines.append(f"\n### {ld} 활동 ({len(acts)}개)")
+            for a in acts:
+                dur = _fmt_sec(a.get("duration_sec")) if a.get("duration_sec") else "-"
+                lines.append(f"- {a.get('name', '러닝')}: {a.get('distance_km', '-')}km, "
+                            f"{a.get('pace', '-')}/km, HR {a.get('avg_hr', '-')}/{a.get('max_hr', '-')}, "
+                            f"{dur}")
+                if a.get("workout_type"):
+                    lines.append(f"  분류: {a['workout_type']}")
+                if a.get("metrics"):
+                    m_parts = [f"{k}={v}" for k, v in a["metrics"].items()]
+                    # 너무 길면 주요 메트릭만
+                    if len(m_parts) > 8:
+                        m_parts = m_parts[:8] + [f"외 {len(m_parts)-8}개"]
+                    lines.append(f"  메트릭: {', '.join(m_parts)}")
+        else:
+            lines.append(f"\n### {ld}: 활동 기록 없음")
+
+        # 해당 날짜 일별 메트릭
+        dm = ctx.get("lookup_day_metrics", {})
+        if dm:
+            dm_parts = [f"{k}={v}" for k, v in list(dm.items())[:10]]
+            lines.append(f"일별 메트릭: {', '.join(dm_parts)}")
+
+        # 해당 날짜 웰니스
+        lw = ctx.get("lookup_wellness")
+        if lw:
+            lines.append(f"컨디션: BB={lw.get('bb', '-')} 수면={lw.get('sleep', '-')} "
+                        f"HRV={lw.get('hrv', '-')} 스트레스={lw.get('stress', '-')}")
 
     # 회복 상세
     if ctx.get("wellness_7d"):
