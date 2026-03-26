@@ -263,9 +263,14 @@ def _build_dashboard(db) -> str:
         "<div style='display:flex;justify-content:space-between;align-items:center;"
         "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
         f"<span>마지막 동기화: {sync_time_str}</span>"
-        "<a href='/settings' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
-        "padding:4px 12px;border-radius:12px;font-size:0.75rem;text-decoration:none;'>동기화</a>"
-        "</div>"
+        "<div style='display:flex;gap:6px;'>"
+        "<form method='POST' action='/trigger-sync' style='margin:0;'>"
+        "<input type='hidden' name='mode' value='basic'/>"
+        "<button type='submit' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+        "border:none;padding:4px 12px;border-radius:12px;font-size:0.75rem;cursor:pointer;'>동기화</button>"
+        "</form>"
+        "<a href='/settings' style='color:var(--muted);font-size:0.75rem;'>설정</a>"
+        "</div></div>"
     )
 
     # ── 배너 ─────────────────────────────────────────────────────────────
