@@ -13,8 +13,10 @@ echo "🏃 RunPulse 서버 시작 (포트: $PORT)"
 echo "   http://localhost:$PORT/dashboard"
 echo ""
 
-proot-distro login debian -- bash -c "
+PROJ_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+proot-distro login debian --bind "$PROJ_DIR:/root/RunPulse" -- bash -c "
   source /root/venvs/runpulse/bin/activate
-  cd /root/projects/RunPulse
+  cd /root/RunPulse
   python src/serve.py --port $PORT
 "
