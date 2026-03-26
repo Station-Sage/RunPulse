@@ -230,19 +230,19 @@ def ai_coach_chat():
     """사용자 메시지 수신 → AI 응답 생성 → 저장 → 리다이렉트."""
     dbp = db_path()
     if not dbp or not dbp.exists():
-        return redirect("/ai-coach")
+        return redirect("/ai-coach#chatCard")
 
     user_msg = request.form.get("message", "").strip()[:500]
     chip_id = request.form.get("chip_id", "").strip() or None
 
     if not user_msg and not chip_id:
-        return redirect("/ai-coach")
+        return redirect("/ai-coach#chatCard")
 
     # 칩 클릭이면 기본 메시지 설정
     if chip_id and not user_msg:
         from src.ai.suggestions import CHIP_REGISTRY
         if chip_id not in CHIP_REGISTRY:
-            return redirect("/ai-coach")
+            return redirect("/ai-coach#chatCard")
         user_msg = CHIP_REGISTRY[chip_id].get("label", chip_id)
 
     try:
@@ -268,7 +268,7 @@ def ai_coach_chat():
     except Exception:
         log.warning("AI 채팅 처리 실패", exc_info=True)
 
-    return redirect("/ai-coach")
+    return redirect("/ai-coach#chatCard")
 
 
 @ai_coach_bp.route("/ai-coach/prompt", methods=["GET"])
@@ -296,11 +296,11 @@ def ai_coach_paste_response():
     """사용자가 외부 AI 응답을 붙여넣기 → 저장."""
     dbp = db_path()
     if not dbp or not dbp.exists():
-        return redirect("/ai-coach")
+        return redirect("/ai-coach#chatCard")
 
     response_text = request.form.get("ai_response", "").strip()
     if not response_text:
-        return redirect("/ai-coach")
+        return redirect("/ai-coach#chatCard")
 
     try:
         conn = sqlite3.connect(str(dbp))
@@ -315,7 +315,7 @@ def ai_coach_paste_response():
     except Exception:
         log.warning("외부 AI 응답 저장 실패", exc_info=True)
 
-    return redirect("/ai-coach")
+    return redirect("/ai-coach#chatCard")
 
 
 def _load_chat_history(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:

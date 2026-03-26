@@ -18,6 +18,16 @@ def _md_to_html(text: str) -> str:
     return text
 
 
+def _parse_followup(text: str) -> tuple[str, list[str]]:
+    """AI 응답에서 [추천: Q1 | Q2 | Q3] 추출. (본문, 추천질문 리스트)."""
+    m = re.search(r"\[추천:\s*(.+?)\]\s*$", text, re.MULTILINE)
+    if not m:
+        return text, []
+    questions = [q.strip() for q in m.group(1).split("|") if q.strip()]
+    clean_text = text[:m.start()].rstrip()
+    return clean_text, questions
+
+
 def render_coach_profile() -> str:
     """AI 코치 프로필 헤더."""
     return (
@@ -119,7 +129,7 @@ def render_chips(chips: list[dict]) -> str:
         label = _html.escape(chip.get("label", ""))
         chip_id = _html.escape(chip.get("id", ""))
         html_parts.append(
-            f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+            f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
             f'<input type="hidden" name="chip_id" value="{chip_id}"/>'
             f'<button type="submit" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
             f'border-radius:24px;padding:10px 18px;color:rgba(255,255,255,0.9);'
@@ -150,11 +160,16 @@ def render_chat_section(chat_history: list[dict] | None = None,
 
     # 채팅 히스토리 렌더링
     messages_html = ""
+    followup_chips_html = ""  # 마지막 AI 응답의 추천 질문
     if chat_history:
-        for msg in chat_history:
+        last_ai_idx = -1
+        for i, msg in enumerate(chat_history):
+            if msg.get("role") == "assistant":
+                last_ai_idx = i
+
+        for i, msg in enumerate(chat_history):
             role = msg.get("role", "user")
-            content = _html.escape(msg.get("content", ""))
-            content = _md_to_html(content)
+            raw_content = msg.get("content", "")
             time_str = msg.get("time", "")[:16] if msg.get("time") else ""
             model = msg.get("ai_model", "")
             provider_badge = ""
@@ -163,6 +178,14 @@ def render_chat_section(chat_history: list[dict] | None = None,
                     f'<span style="font-size:9px;color:var(--cyan);margin-left:6px;">'
                     f'via {_html.escape(model)}</span>'
                 )
+
+            # 추천 질문 파싱 (마지막 AI 메시지만)
+            followups: list[str] = []
+            if role == "assistant" and i == last_ai_idx:
+                display_text, followups = _parse_followup(raw_content)
+                content = _md_to_html(_html.escape(display_text))
+            else:
+                content = _md_to_html(_html.escape(raw_content))
 
             if role == "assistant":
                 messages_html += (
@@ -174,6 +197,21 @@ def render_chat_section(chat_history: list[dict] | None = None,
                     f'{time_str}{provider_badge}</div>'
                     '</div></div>'
                 )
+                # 추천 질문 플로팅 칩
+                if followups:
+                    fu_btns = "".join(
+                        f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
+                        f'<input type="hidden" name="message" value="{_html.escape(q)}"/>'
+                        f'<button type="submit" style="background:rgba(0,212,255,0.08);'
+                        f'border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:6px 14px;'
+                        f'color:var(--cyan);font-size:0.78rem;cursor:pointer;white-space:nowrap;">'
+                        f'{_html.escape(q)}</button></form>'
+                        for q in followups[:3]
+                    )
+                    followup_chips_html = (
+                        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px 46px;">'
+                        + fu_btns + '</div>'
+                    )
             else:
                 messages_html += (
                     f'<div style="display:flex;gap:10px;margin-bottom:12px;flex-direction:row-reverse">{user_avatar}'
@@ -183,6 +221,8 @@ def render_chat_section(chat_history: list[dict] | None = None,
                     f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right">{time_str}</div>'
                     '</div></div>'
                 )
+        # 추천질문 칩은 메시지 영역 하단에 배치
+        messages_html += followup_chips_html
     else:
         messages_html = (
             f'<div style="display:flex;gap:10px;margin-bottom:12px">{ai_avatar}'
@@ -200,7 +240,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
             label = _html.escape(c.get("label", ""))
             cid = _html.escape(c.get("id", ""))
             quick_items.append(
-                f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
                 f'<input type="hidden" name="chip_id" value="{cid}"/>'
                 f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
                 f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
@@ -209,7 +249,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
     if not quick_items:
         for q in ["오늘 훈련 강도는?", "회복 상태 분석", "이번 주 훈련 리뷰"]:
             quick_items.append(
-                f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
                 f'<input type="hidden" name="message" value="{q}"/>'
                 f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
                 f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
@@ -227,7 +267,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
         f'<div id="chatBox" style="background:rgba(255,255,255,0.03);border-radius:16px;'
         f'padding:16px;min-height:160px;max-height:400px;overflow-y:auto;transition:max-height 0.3s;">'
         f'{messages_html}</div>'
-        '<form method="POST" action="/ai-coach/chat" '
+        '<form method="POST" action="/ai-coach/chat#chatCard" '
         'style="display:flex;gap:10px;align-items:center;margin-top:12px">'
         '<input type="text" name="message" placeholder="AI 코치에게 질문하세요..." maxlength="500" '
         'style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
