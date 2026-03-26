@@ -69,7 +69,7 @@
 - [x] Training Plan 풀 구현 — 워크아웃 CRUD, 완료 토글, 목표 웹 UI, ICS 내보내기
 - [ ] (향후) 캘린더 API 연동 (Google Calendar / 네이버 캘린더 / Garmin Connect 선택)
 - [x] Garmin Connect 워크아웃 전송 (캘린더 + 워치) + CalDAV 연동
-- [x] Genspark AI 연동 B방식 (프롬프트 복사 + 응답 붙여넣기) + A방식 (proot+Selenium 드라이버)
+- [x] Genspark AI 연동 B방식 (프롬프트 복사 + 응답 붙여넣기) + ~~A방식 (proot+Selenium)~~ Cloudflare 403 차단으로 보류
 - [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
 - [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
 - [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준
