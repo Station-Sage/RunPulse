@@ -5,9 +5,27 @@
 from __future__ import annotations
 
 import html as _html
+import re
 import sqlite3
 
 from src.web.helpers import fmt_pace, fmt_duration, no_data_card
+
+
+def _md_to_html(text: str) -> str:
+    """간이 마크다운→HTML 변환 (볼드+줄바꿈)."""
+    text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
+    text = text.replace("\n", "<br>")
+    return text
+
+
+def _parse_followup(text: str) -> tuple[str, list[str]]:
+    """AI 응답에서 [추천: Q1 | Q2 | Q3] 추출. (본문, 추천질문 리스트)."""
+    m = re.search(r"\[추천:\s*(.+?)\]\s*$", text, re.MULTILINE)
+    if not m:
+        return text, []
+    questions = [q.strip() for q in m.group(1).split("|") if q.strip()]
+    clean_text = text[:m.start()].rstrip()
+    return clean_text, questions
 
 
 def render_coach_profile() -> str:
@@ -31,7 +49,7 @@ def render_coach_profile() -> str:
 
 
 def render_briefing_card(briefing_text: str | None) -> str:
-    """오늘의 브리핑 카드."""
+    """오늘의 브리핑 카드 — 재생성은 AJAX."""
     from datetime import datetime
     if not briefing_text:
         return no_data_card("오늘의 브리핑", "메트릭 데이터가 수집되면 브리핑이 생성됩니다")
@@ -42,8 +60,8 @@ def render_briefing_card(briefing_text: str | None) -> str:
         '<h3 style="margin:0;">오늘의 브리핑</h3>'
         '<div style="display:flex;align-items:center;gap:8px;">'
         f'<span style="font-size:0.75rem;color:var(--muted);">{now_str}</span>'
-        '<button onclick="location.reload()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;'
-        'padding:6px 12px;border-radius:16px;cursor:pointer;font-size:0.75rem;">재생성</button>'
+        '<a href="/ai-coach?refresh=1" style="background:rgba(255,255,255,0.1);border:none;color:#fff;'
+        'padding:6px 12px;border-radius:16px;font-size:0.75rem;text-decoration:none;">재생성</a>'
         '<button onclick="if(navigator.clipboard){navigator.clipboard.writeText(document.querySelector('
         "'.briefing-body').innerText).then(function(){alert('복사됨');});}\" "
         'style="background:rgba(255,255,255,0.1);border:none;color:#fff;'
@@ -55,7 +73,7 @@ def render_briefing_card(briefing_text: str | None) -> str:
 
 
 def render_wellness_card(wellness: dict) -> str:
-    """오늘 웰니스 요약 카드."""
+    """오늘 웰니스 요약 카드 — 수면시간, HRV 상태색 포함."""
     if not wellness:
         return ""
     items = []
@@ -66,11 +84,19 @@ def render_wellness_card(wellness: dict) -> str:
     if "sleep_score" in wellness:
         ss = wellness["sleep_score"]
         color = "#00ff88" if ss >= 70 else "#ffaa00" if ss >= 40 else "#ff4444"
-        items.append(("😴", "수면", f"{int(ss)}", color))
+        label = "수면"
+        if "sleep_hours" in wellness:
+            h = wellness["sleep_hours"]
+            label = f"수면 ({h:.1f}h)"
+        items.append(("😴", label, f"{int(ss)}점", color))
     if "hrv_value" in wellness:
-        items.append(("💓", "HRV", f"{int(wellness['hrv_value'])}ms", "#00d4ff"))
+        hrv = int(wellness["hrv_value"])
+        color = "#00ff88" if hrv >= 50 else "#ffaa00" if hrv >= 30 else "#ff4444"
+        items.append(("💓", "HRV", f"{hrv} ms", color))
     if "resting_hr" in wellness:
-        items.append(("❤️", "안정심박", f"{int(wellness['resting_hr'])}bpm", "#00d4ff"))
+        rhr = int(wellness["resting_hr"])
+        color = "#00ff88" if rhr <= 55 else "#ffaa00" if rhr <= 70 else "#ff4444"
+        items.append(("❤️", "안정심박", f"{rhr} bpm", color))
     if "stress_avg" in wellness:
         st = wellness["stress_avg"]
         color = "#00ff88" if st <= 30 else "#ffaa00" if st <= 60 else "#ff4444"
@@ -103,7 +129,7 @@ def render_chips(chips: list[dict]) -> str:
         label = _html.escape(chip.get("label", ""))
         chip_id = _html.escape(chip.get("id", ""))
         html_parts.append(
-            f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
+            f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
             f'<input type="hidden" name="chip_id" value="{chip_id}"/>'
             f'<button type="submit" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
             f'border-radius:24px;padding:10px 18px;color:rgba(255,255,255,0.9);'
@@ -118,8 +144,9 @@ def render_chips(chips: list[dict]) -> str:
     )
 
 
-def render_chat_section(chat_history: list[dict] | None = None) -> str:
-    """채팅 인터페이스 — 히스토리 표시 + 메시지 입력."""
+def render_chat_section(chat_history: list[dict] | None = None,
+                        chips: list[dict] | None = None) -> str:
+    """채팅 인터페이스 — 히스토리 + 빠른 질문(칩 연동) + 외부 AI + 전체화면."""
     ai_avatar = (
         '<div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
         'border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;'
@@ -133,18 +160,32 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
 
     # 채팅 히스토리 렌더링
     messages_html = ""
+    followup_chips_html = ""  # 마지막 AI 응답의 추천 질문
     if chat_history:
-        for msg in chat_history:
+        last_ai_idx = -1
+        for i, msg in enumerate(chat_history):
+            if msg.get("role") == "assistant":
+                last_ai_idx = i
+
+        for i, msg in enumerate(chat_history):
             role = msg.get("role", "user")
-            content = _html.escape(msg.get("content", ""))
-            # 마크다운 볼드 처리 (간이)
-            content = content.replace("**", "<strong>", 1)
-            while "**" in content:
-                content = content.replace("**", "</strong>", 1)
-                if "**" in content:
-                    content = content.replace("**", "<strong>", 1)
-            content = content.replace("\n", "<br>")
+            raw_content = msg.get("content", "")
             time_str = msg.get("time", "")[:16] if msg.get("time") else ""
+            model = msg.get("ai_model", "")
+            provider_badge = ""
+            if role == "assistant" and model and model != "rule":
+                provider_badge = (
+                    f'<span style="font-size:9px;color:var(--cyan);margin-left:6px;">'
+                    f'via {_html.escape(model)}</span>'
+                )
+
+            # 추천 질문 파싱 (마지막 AI 메시지만)
+            followups: list[str] = []
+            if role == "assistant" and i == last_ai_idx:
+                display_text, followups = _parse_followup(raw_content)
+                content = _md_to_html(_html.escape(display_text))
+            else:
+                content = _md_to_html(_html.escape(raw_content))
 
             if role == "assistant":
                 messages_html += (
@@ -152,9 +193,25 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
                     '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
                     'border-radius:16px;padding:10px 14px;max-width:80%">'
                     f'<div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">{content}</div>'
-                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">{time_str}</div>'
+                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">'
+                    f'{time_str}{provider_badge}</div>'
                     '</div></div>'
                 )
+                # 추천 질문 플로팅 칩
+                if followups:
+                    fu_btns = "".join(
+                        f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
+                        f'<input type="hidden" name="message" value="{_html.escape(q)}"/>'
+                        f'<button type="submit" style="background:rgba(0,212,255,0.08);'
+                        f'border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:6px 14px;'
+                        f'color:var(--cyan);font-size:0.78rem;cursor:pointer;white-space:nowrap;">'
+                        f'{_html.escape(q)}</button></form>'
+                        for q in followups[:3]
+                    )
+                    followup_chips_html = (
+                        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px 46px;">'
+                        + fu_btns + '</div>'
+                    )
             else:
                 messages_html += (
                     f'<div style="display:flex;gap:10px;margin-bottom:12px;flex-direction:row-reverse">{user_avatar}'
@@ -164,8 +221,9 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
                     f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right">{time_str}</div>'
                     '</div></div>'
                 )
+        # 추천질문 칩은 메시지 영역 하단에 배치
+        messages_html += followup_chips_html
     else:
-        # 기본 인사 메시지
         messages_html = (
             f'<div style="display:flex;gap:10px;margin-bottom:12px">{ai_avatar}'
             '<div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
@@ -175,15 +233,29 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
             '훈련이나 메트릭에 대해 궁금한 점을 질문해주세요.</div></div></div>'
         )
 
-    # 빠른 질문 버튼
-    quick_btns = "".join(
-        f'<form method="POST" action="/ai-coach/chat" style="margin:0;display:inline;">'
-        f'<input type="hidden" name="message" value="{q}"/>'
-        f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
-        f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
-        f'white-space:nowrap;cursor:pointer;">{q}</button></form>'
-        for q in ["오늘 훈련 강도는?", "마라톤 준비도 확인", "회복 조언"]
-    )
+    # 빠른 질문 — 칩 시스템 연동 (없으면 기본 3개)
+    quick_items = []
+    if chips:
+        for c in chips[:5]:
+            label = _html.escape(c.get("label", ""))
+            cid = _html.escape(c.get("id", ""))
+            quick_items.append(
+                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
+                f'<input type="hidden" name="chip_id" value="{cid}"/>'
+                f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
+                f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
+                f'white-space:nowrap;cursor:pointer;">{label}</button></form>'
+            )
+    if not quick_items:
+        for q in ["오늘 훈련 강도는?", "회복 상태 분석", "이번 주 훈련 리뷰"]:
+            quick_items.append(
+                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
+                f'<input type="hidden" name="message" value="{q}"/>'
+                f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
+                f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
+                f'white-space:nowrap;cursor:pointer;">{q}</button></form>'
+            )
+    quick_btns = "".join(quick_items)
 
     return (
         '<div id="chatCard" class="card" style="margin-bottom:16px;transition:all 0.3s;">'
@@ -195,9 +267,9 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
         f'<div id="chatBox" style="background:rgba(255,255,255,0.03);border-radius:16px;'
         f'padding:16px;min-height:160px;max-height:400px;overflow-y:auto;transition:max-height 0.3s;">'
         f'{messages_html}</div>'
-        '<form method="POST" action="/ai-coach/chat" '
+        '<form method="POST" action="/ai-coach/chat#chatCard" '
         'style="display:flex;gap:10px;align-items:center;margin-top:12px">'
-        '<input type="text" name="message" placeholder="AI 코치에게 질문하세요..." '
+        '<input type="text" name="message" placeholder="AI 코치에게 질문하세요..." maxlength="500" '
         'style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
         'border-radius:24px;padding:12px 20px;color:#fff;font-size:14px;outline:none"/>'
         '<button type="submit" style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
@@ -205,19 +277,21 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
         '</form>'
         f'<div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px">'
         f'{quick_btns}</div>'
-        # Genspark 수동 연동 섹션
+        # 외부 AI 연동 섹션
         '<details style="margin-top:12px;">'
         '<summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);list-style:none;">'
-        '🔗 외부 AI 연동 (Genspark/ChatGPT/Claude)</summary>'
+        '🔗 외부 AI 연동 (프롬프트 복사 → 붙여넣기)</summary>'
         '<div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.03);border-radius:12px;">'
+        '<p style="font-size:0.75rem;color:var(--muted);margin:0 0 8px;">'
+        '① 프롬프트 복사 → ② 외부 AI에 붙여넣기 → ③ 응답을 아래에 저장</p>'
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
         '<button onclick="fetch(\'/ai-coach/prompt\').then(r=>r.json()).then(d=>'
-        '{navigator.clipboard.writeText(d.prompt).then(()=>alert(\'프롬프트가 복사되었습니다. AI 채팅에 붙여넣으세요.\'))})" '
+        '{navigator.clipboard.writeText(d.prompt).then(()=>alert(\'프롬프트가 복사되었습니다.\'))})" '
         'style="background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);'
         'border-radius:12px;padding:6px 14px;font-size:0.78rem;cursor:pointer;">📋 프롬프트 복사</button>'
         '<a href="https://www.genspark.ai/agents?type=ai_chat" target="_blank" '
         'style="background:rgba(255,170,0,0.15);color:#ffaa00;border:1px solid rgba(255,170,0,0.3);'
-        'border-radius:12px;padding:6px 14px;font-size:0.78rem;text-decoration:none;">🔗 Genspark 열기</a>'
+        'border-radius:12px;padding:6px 14px;font-size:0.78rem;text-decoration:none;">Genspark</a>'
         '<a href="https://chatgpt.com" target="_blank" '
         'style="background:rgba(255,255,255,0.08);color:var(--muted);'
         'border-radius:12px;padding:6px 14px;font-size:0.78rem;text-decoration:none;">ChatGPT</a>'
@@ -232,21 +306,8 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
         '<button type="submit" style="align-self:flex-end;background:var(--cyan);color:#000;'
         'border:none;padding:8px 14px;border-radius:12px;font-size:13px;cursor:pointer;font-weight:600;">저장</button>'
         '</form>'
-        '<p style="font-size:0.72rem;color:var(--muted);margin:6px 0 0;">'
-        '프롬프트에 현재 메트릭/웰니스/훈련 데이터가 자동 포함됩니다.</p>'
         '</div></details>'
-        # Genspark iframe
-        '<details style="margin-top:8px;">'
-        '<summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);list-style:none;">'
-        '🌐 Genspark AI 채팅 (내장)</summary>'
-        '<div style="margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">'
-        '<iframe src="https://www.genspark.ai/agents?type=ai_chat" '
-        'style="width:100%;height:500px;border:none;background:#1a1a2e;" '
-        'sandbox="allow-scripts allow-same-origin allow-forms allow-popups" '
-        'loading="lazy"></iframe>'
-        '<p style="font-size:0.7rem;color:var(--muted);padding:6px 10px;margin:0;">'
-        '⚠️ Genspark이 iframe을 차단할 수 있습니다. 차단 시 위의 "Genspark 열기" 버튼을 사용하세요.</p>'
-        '</div></details>'
+        # 전체화면 토글 + 스크롤
         '<script>'
         'var cb=document.getElementById("chatBox");if(cb)cb.scrollTop=cb.scrollHeight;'
         'function toggleChatFullscreen(){'
@@ -258,12 +319,15 @@ def render_chat_section(chat_history: list[dict] | None = None) -> str:
         '    box.style.maxHeight="400px";'
         '    btn.textContent="⛶ 전체화면";'
         '    card.dataset.fs="0";'
+        '    document.body.style.overflow="";'
         '  }else{'
-        '    card.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:999;'
-        '      margin:0;border-radius:0;overflow-y:auto;background:var(--bg);transition:all 0.3s;";'
-        '    box.style.maxHeight="calc(100vh - 200px)";'
+        '    card.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;'
+        '      margin:0;border-radius:0;overflow-y:auto;background:var(--bg);transition:all 0.3s;'
+        '      padding:16px;padding-bottom:env(safe-area-inset-bottom,0);";'
+        '    box.style.maxHeight="calc(100vh - 220px)";'
         '    btn.textContent="✕ 원래대로";'
         '    card.dataset.fs="1";'
+        '    document.body.style.overflow="hidden";'
         '    box.scrollTop=box.scrollHeight;'
         '  }'
         '}'

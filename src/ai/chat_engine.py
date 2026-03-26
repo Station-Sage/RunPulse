@@ -44,15 +44,17 @@ def chat(
     """
     provider = get_ai_provider(config)
 
+    # 최근 대화 이력 (맥락 유지)
+    chat_history = _load_recent_chat(conn, limit=3)
+
     # 프롬프트 빌드
     if chip_id:
         from .briefing import build_chip_prompt
         prompt = build_chip_prompt(conn, chip_id)
     else:
-        from .ai_context import build_context, format_context_text
-        ctx = build_context(conn)
-        ctx_text = format_context_text(ctx)
-        prompt = f"당신은 RunPulse AI 러닝 코치입니다. 아래 분석 데이터를 참고하여 답변하세요.\n\n{ctx_text}\n\n사용자 질문: {user_message}"
+        from .chat_context import build_chat_context
+        ctx_text = build_chat_context(conn, user_message, chat_history, provider=provider)
+        prompt = _build_system_prompt(ctx_text, user_message, chat_history)
 
     # provider chain: 선택 → gemini → groq → rule
     chain = _build_chat_provider_chain(provider, config)
@@ -98,6 +100,51 @@ def _call_provider(provider: str, prompt: str, config: dict | None) -> str | Non
     except Exception as exc:
         log.warning("provider '%s' 호출 실패: %s", provider, exc)
         return None
+
+
+_SYSTEM_PROMPT = """당신은 RunPulse AI 러닝 코치입니다.
+
+## 역할
+- 사용자의 러닝 데이터를 기반으로 개인 맞춤형 조언을 제공합니다.
+- 데이터에 근거한 구체적 분석을 하고, 추측은 최소화합니다.
+
+## 응답 규칙
+1. 한국어로 답변. 3~5문장 이내로 간결하게.
+2. 숫자/메트릭을 인용할 때 데이터에 있는 값만 사용.
+3. 훈련 조언은 구체적으로: "이지런 6km" ≫ "가볍게 달리세요".
+4. 위험 신호(CIRS>75, ACWR>1.5) 발견 시 반드시 경고.
+5. 데이터가 부족하면 솔직히 말하고, 어떤 데이터가 더 필요한지 안내.
+6. 응답 마지막에 반드시 추천 질문 3개를 아래 형식으로 포함:
+   [추천: 질문1 | 질문2 | 질문3]
+   예: [추천: 이번 주 훈련 리뷰해줘 | 내일 뭐 하면 좋을까 | 부상 위험 체크]
+"""
+
+
+def _build_system_prompt(context: str, user_message: str,
+                         chat_history: list[dict] | None = None) -> str:
+    """시스템 프롬프트 + 컨텍스트 + 대화 이력 + 질문 조합."""
+    parts = [_SYSTEM_PROMPT, "\n", context]
+
+    if chat_history:
+        parts.append("\n\n## 이전 대화")
+        for msg in chat_history:
+            role = "사용자" if msg.get("role") == "user" else "코치"
+            parts.append(f"\n{role}: {msg.get('content', '')[:200]}")
+
+    parts.append(f"\n\n## 사용자 질문\n{user_message}")
+    return "".join(parts)
+
+
+def _load_recent_chat(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
+    """최근 채팅 이력 로드 (프롬프트 컨텍스트용)."""
+    try:
+        rows = conn.execute(
+            "SELECT role, content FROM chat_messages ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
+    except Exception:
+        return []
 
 
 def _rule_based_response(
