@@ -209,7 +209,8 @@ def _build_dashboard(db) -> str:
     today = date.today().isoformat()
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
-    with sqlite3.connect(str(db)) as conn:
+    with sqlite3.connect(str(db), timeout=10) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
         # 오늘 메트릭이 없으면 자동 계산
         _ensure_today_metrics(conn, today)
 
