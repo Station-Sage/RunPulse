@@ -111,8 +111,44 @@ def _service_card(
 </div>"""
 
 
+def _estimate_profile() -> dict:
+    """DB에서 사용자 프로필 추정값 계산."""
+    import sqlite3
+    from .helpers import db_path
+    est: dict = {}
+    try:
+        dbp = db_path()
+        if not dbp or not dbp.exists():
+            return est
+        with sqlite3.connect(str(dbp)) as conn:
+            # 최대 HR: 전체 활동 중 최고 max_hr
+            row = conn.execute("SELECT MAX(max_hr) FROM activity_summaries WHERE max_hr IS NOT NULL").fetchone()
+            if row and row[0]:
+                est["max_hr"] = int(row[0])
+            # eFTP: computed_metrics에서
+            row = conn.execute(
+                "SELECT metric_value FROM computed_metrics WHERE metric_name='eFTP' "
+                "AND activity_id IS NULL AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1"
+            ).fetchone()
+            if row and row[0]:
+                est["eftp"] = int(row[0])
+            # 주간 평균 거리: 최근 4주
+            from datetime import date, timedelta
+            start = (date.today() - timedelta(weeks=4)).isoformat()
+            row = conn.execute(
+                "SELECT COALESCE(SUM(distance_km), 0) FROM v_canonical_activities "
+                "WHERE activity_type='running' AND DATE(start_time) >= ?",
+                (start,),
+            ).fetchone()
+            if row and row[0]:
+                est["weekly_km"] = round(float(row[0]) / 4, 1)
+    except Exception:
+        pass
+    return est
+
+
 def _render_user_profile_section(config: dict) -> str:
-    """사용자 프로필 설정 섹션 (max_hr, threshold_pace, weekly_target)."""
+    """사용자 프로필 설정 섹션 + RunPulse 추정값."""
     u = config.get("user", {})
     max_hr = u.get("max_hr", 190)
     thr_pace = u.get("threshold_pace", 300)
@@ -120,9 +156,26 @@ def _render_user_profile_section(config: dict) -> str:
     # threshold_pace: sec/km → mm:ss 표시
     thr_mm = int(thr_pace) // 60
     thr_ss = int(thr_pace) % 60
+
+    # RunPulse 추정값
+    est = _estimate_profile()
+    est_parts = []
+    if est.get("max_hr"):
+        est_parts.append(f"최대HR <strong>{est['max_hr']}</strong>bpm")
+    if est.get("eftp"):
+        m, s = divmod(est["eftp"], 60)
+        est_parts.append(f"역치 <strong>{m}:{s:02d}</strong>/km")
+    if est.get("weekly_km"):
+        est_parts.append(f"주간 <strong>{est['weekly_km']:.1f}</strong>km")
+    est_note = (
+        "<p style='font-size:0.8rem;color:var(--cyan);margin:0 0 0.6rem;'>"
+        f"📊 RunPulse 추정: {' · '.join(est_parts)}</p>"
+    ) if est_parts else ""
+
     return f"""
 <div class='card'>
-  <h2 style='margin-bottom:0.8rem;'>사용자 프로필</h2>
+  <h2 style='margin-bottom:0.5rem;'>사용자 프로필</h2>
+  {est_note}
   <form method='post' action='/settings/profile'
         style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem 1.5rem;'>
     <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
