@@ -264,6 +264,17 @@ def race_page():
             trend = load_prediction_trend(conn, darp_key)
             factors = load_fitness_factors(conn)
 
+            # AI 탭 통합 호출
+            _race_ai: dict = {}
+            try:
+                from src.utils.config import load_config as _lc
+                _race_cfg = _lc()
+                from src.ai.ai_message import get_tab_ai
+                _race_ai = get_tab_ai("race", conn, _race_cfg,
+                                      cache_key=str(active_km)) or {}
+            except Exception:
+                pass
+
             body = (
                 render_sub_nav("race")
                 + '<div style="max-width:1200px;margin:0 auto;padding:20px;padding-bottom:100px">'
@@ -283,7 +294,8 @@ def race_page():
                 # §4: 페이스 전략 + DI + DI 해석
                 + _render_pace_strategy(darp_json)
                 + _render_di_card(di_val, di_json)
-                + render_di_interpretation(di_val)
+                + render_di_interpretation(di_val,
+                                         ai_override=_race_ai.get("di_interpretation"))
                 # §5: HTW + 훈련 조정 + 이력
                 + _render_htw_card(darp_json)
                 + _render_training_adjust(darp_json)

@@ -401,32 +401,31 @@ def render_endurance_trend(adti: float | None) -> str:
 
 
 def render_ai_insight(conn: sqlite3.Connection, start: str, end: str,
-                      config: dict | None = None) -> str:
-    """AI 인사이트 카드 — AI 우선, 규칙 기반 fallback.
-
-    AI API 있으면 기간 데이터를 프롬프트로 보내 자연어 인사이트 생성.
+                      config: dict | None = None,
+                      ai_override: str | None = None) -> str:
+    """AI 인사이트 카드 — ai_override 우선, 규칙 기반 fallback.
     """
-    # AI 시도
-    if config and config.get("ai", {}).get("provider", "rule") != "rule":
+    # AI 오버라이드 (탭별 통합 호출에서 전달)
+    ai_result = ai_override
+    if not ai_result and config and config.get("ai", {}).get("provider", "rule") != "rule":
         try:
             from src.ai.ai_message import get_card_ai_message
-            rule_html = _render_ai_insight_rule(conn, start, end)
             ai_result = get_card_ai_message(
                 "report_insight", conn, "", config,
                 start_date=start, end_date=end, period=f"{start} ~ {end}",
             )
-            if ai_result:
-                return (
-                    "<div class='card'>"
-                    "<h2 style='font-size:1rem;margin-bottom:0.6rem;color:var(--cyan);'>"
-                    "AI 코치 인사이트 <span style='font-size:0.65rem;color:var(--cyan);'>AI</span></h2>"
-                    f"<div style='font-size:0.85rem;color:var(--secondary);line-height:1.7;'>{ai_result}</div>"
-                    "<p class='muted' style='font-size:0.74rem;margin-top:0.5rem;'>"
-                    "<a href='/ai-coach' style='color:var(--cyan);'>AI 코치</a>에서 전체 분석 보기</p>"
-                    "</div>"
-                )
         except Exception:
             pass
+    if ai_result:
+        return (
+            "<div class='card'>"
+            "<h2 style='font-size:1rem;margin-bottom:0.6rem;color:var(--cyan);'>"
+            "AI 코치 인사이트 <span style='font-size:0.65rem;color:var(--cyan);'>AI</span></h2>"
+            f"<div style='font-size:0.85rem;color:var(--secondary);line-height:1.7;'>{ai_result}</div>"
+            "<p class='muted' style='font-size:0.74rem;margin-top:0.5rem;'>"
+            "<a href='/ai-coach' style='color:var(--cyan);'>AI 코치</a>에서 전체 분석 보기</p>"
+            "</div>"
+        )
     return _render_ai_insight_rule(conn, start, end)
 
 
