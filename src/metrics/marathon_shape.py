@@ -16,6 +16,7 @@
 """
 from __future__ import annotations
 
+import math
 import sqlite3
 from datetime import date, timedelta
 
@@ -110,25 +111,144 @@ def _get_recent_running_data(
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
     """가장 최신 VDOT 값 조회.
 
-    우선순위: daily_fitness.runalyze_vdot > 직접 계산 예정.
+    우선순위: runalyze_vdot > garmin_vo2max > computed_metrics VDOT > 자체 추정.
     """
+    # 1. Runalyze VDOT 또는 Garmin VO2Max
     row = conn.execute(
-        """SELECT runalyze_vdot FROM daily_fitness
-           WHERE runalyze_vdot IS NOT NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness
+           WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL)
+           AND date <= ? ORDER BY date DESC LIMIT 1""",
         (target_date,),
     ).fetchone()
-    if row and row[0]:
-        return float(row[0])
+    if row:
+        if row[0] is not None:
+            return float(row[0])
+        if row[1] is not None:
+            return float(row[1])
 
-    # computed_metrics에 VDOT이 있으면 사용
+    # 2. computed_metrics에 VDOT이 있으면 사용
     row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date <= ?
            ORDER BY date DESC LIMIT 1""",
         (target_date,),
     ).fetchone()
-    return float(row[0]) if row and row[0] else None
+    if row and row[0]:
+        return float(row[0])
+
+    # 3. 자체 추정: 최근 best effort로 VDOT 추정
+    return _estimate_vdot_from_activities(conn, target_date)
+
+
+def _vo2_from_velocity(v: float) -> float:
+    """Jack Daniels VO2 공식 — 속도(m/min)에서 산소 소비량(ml/kg/min) 추정.
+
+    VO2 = -4.60 + 0.182258·v + 0.000104·v²
+    출처: Daniels' Running Formula, 3rd Edition.
+    """
+    return -4.60 + 0.182258 * v + 0.000104 * v * v
+
+
+def _pct_vo2max_from_time(t_min: float) -> float:
+    """Jack Daniels %VO2max 공식 — 레이스 시간(분)에서 지속 가능 %VO2max.
+
+    %VO2max = 0.8 + 0.1894393·e^(-0.012778·t) + 0.2989558·e^(-0.1932605·t)
+    출처: Daniels' Running Formula, 3rd Edition.
+    """
+    return (0.8
+            + 0.1894393 * math.exp(-0.012778 * t_min)
+            + 0.2989558 * math.exp(-0.1932605 * t_min))
+
+
+def estimate_vdot(distance_km: float, duration_sec: float) -> float | None:
+    """Jack Daniels VDOT 추정 (정확한 공식).
+
+    VDOT = VO2(v) / %VO2max(t)
+    - v = 레이스 속도 (m/min)
+    - t = 레이스 시간 (min)
+
+    Args:
+        distance_km: 레이스 거리 (km).
+        duration_sec: 완주 시간 (초).
+
+    Returns:
+        VDOT 추정값 또는 None.
+    """
+    if distance_km <= 0 or duration_sec <= 0:
+        return None
+
+    v = (distance_km * 1000) / (duration_sec / 60)  # m/min
+    t_min = duration_sec / 60
+
+    vo2 = _vo2_from_velocity(v)
+    pct = _pct_vo2max_from_time(t_min)
+    if pct <= 0:
+        return None
+
+    vdot = round(vo2 / pct, 1)
+    if vdot < 15 or vdot > 90:
+        return None
+    return vdot
+
+
+def _estimate_vdot_from_activities(conn: sqlite3.Connection, target_date: str) -> float | None:
+    """최근 활동에서 VDOT 추정 (Jack Daniels 정확 공식).
+
+    12주 이내 5K~하프 거리의 베스트 페이스 활동으로 추정.
+    여러 거리 결과가 있으면 가장 높은 VDOT을 채택.
+    """
+    td = date.fromisoformat(target_date)
+    start = (td - timedelta(weeks=12)).isoformat()
+
+    # 최근 12주 이내 5~21km 활동 (빠른 페이스 순 상위 5개)
+    rows = conn.execute(
+        """SELECT distance_km, duration_sec FROM v_canonical_activities
+           WHERE activity_type='running'
+             AND distance_km BETWEEN 4.5 AND 22
+             AND duration_sec > 0
+             AND DATE(start_time) BETWEEN ? AND ?
+           ORDER BY (CAST(duration_sec AS REAL) / distance_km) ASC
+           LIMIT 5""",
+        (start, target_date),
+    ).fetchall()
+    if not rows:
+        return None
+
+    best_vdot: float | None = None
+    for dist_km, dur_sec in rows:
+        v = estimate_vdot(float(dist_km), float(dur_sec))
+        if v is not None and (best_vdot is None or v > best_vdot):
+            best_vdot = v
+
+    return best_vdot
+
+
+def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
+    """VDOT 계산 후 저장. 외부 소스 우선, 없으면 Jack Daniels 추정.
+
+    Returns:
+        VDOT 값 또는 None.
+    """
+    vdot = _get_vdot(conn, target_date)
+    if vdot is not None:
+        # 소스 판별
+        row = conn.execute(
+            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+            "AND date<=? ORDER BY date DESC LIMIT 1",
+            (target_date,),
+        ).fetchone()
+        source = "estimated"
+        if row:
+            if row[0] is not None:
+                source = "runalyze"
+            elif row[1] is not None:
+                source = "garmin"
+        save_metric(
+            conn, date=target_date, metric_name="VDOT", value=vdot,
+            extra_json={"source": source, "vdot": vdot},
+        )
+    return vdot
 
 
 def calc_and_save_marathon_shape(

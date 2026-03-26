@@ -137,18 +137,26 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
-    # VDOT: Runalyze 우선, 없으면 Garmin VO2Max fallback
-    vdot_row = conn.execute(
-        "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
-        "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
-        "AND date<=? ORDER BY date DESC LIMIT 1",
+    # VDOT: computed_metrics 우선, 없으면 daily_fitness (Runalyze > Garmin)
+    vdot = None
+    cm_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
         (target_date,),
     ).fetchone()
-    vdot = None
-    if vdot_row:
-        vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
-            float(vdot_row[1]) if vdot_row[1] is not None else None
-        )
+    if cm_row and cm_row[0]:
+        vdot = float(cm_row[0])
+    else:
+        vdot_row = conn.execute(
+            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+            "AND date<=? ORDER BY date DESC LIMIT 1",
+            (target_date,),
+        ).fetchone()
+        if vdot_row:
+            vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
+                float(vdot_row[1]) if vdot_row[1] is not None else None
+            )
     shape_row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE date <= ? AND metric_name = 'MarathonShape' AND activity_id IS NULL
