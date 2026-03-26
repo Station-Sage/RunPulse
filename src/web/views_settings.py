@@ -169,6 +169,54 @@ def _render_mapbox_section(config: dict) -> str:
 </div>"""
 
 
+def _render_ai_section(config: dict) -> str:
+    """AI 코치 설정 섹션."""
+    ai_cfg = config.get("ai", {})
+    provider = ai_cfg.get("provider", "rule")
+    claude_key = ai_cfg.get("claude_api_key", "")
+    openai_key = ai_cfg.get("openai_api_key", "")
+    claude_masked = "****" + claude_key[-6:] if len(claude_key) > 10 else ("설정됨" if claude_key else "미설정")
+    openai_masked = "****" + openai_key[-6:] if len(openai_key) > 10 else ("설정됨" if openai_key else "미설정")
+
+    provider_options = ""
+    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
+        sel = " selected" if val == provider else ""
+        provider_options += f"<option value='{val}'{sel}>{label}</option>"
+
+    return f"""
+<div class='card'>
+  <h2 style='margin-bottom:0.5rem;'>AI 코치 설정</h2>
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.8rem;'>
+    AI 코치 채팅에 사용할 AI 제공자를 선택합니다.
+    규칙 기반은 API 키 없이 메트릭 데이터로 답변합니다.
+  </p>
+  <form method='post' action='/settings/ai' style='display:flex;flex-direction:column;gap:0.6rem;'>
+    <label style='font-size:0.88rem;'>
+      AI 제공자
+      <select name='ai_provider' style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+        {provider_options}
+      </select>
+    </label>
+    <label style='font-size:0.88rem;'>
+      Claude API 키 <span class='muted' style='font-size:0.78rem;'>({claude_masked})</span>
+      <input type='password' name='claude_api_key' placeholder='sk-ant-...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <label style='font-size:0.88rem;'>
+      OpenAI API 키 <span class='muted' style='font-size:0.78rem;'>({openai_masked})</span>
+      <input type='password' name='openai_api_key' placeholder='sk-...'
+        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
+        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+    </label>
+    <button type='submit'
+      style='align-self:flex-start;padding:0.45rem 1.2rem;background:var(--cyan);color:#000;
+      border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>저장</button>
+  </form>
+</div>"""
+
+
 # ── /settings — 전체 연동 상태 페이지 ──────────────────────────────
 @settings_bp.get("/settings")
 def settings_view() -> str:
@@ -217,6 +265,7 @@ def settings_view() -> str:
 </div>
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
+{_render_ai_section(config)}
 <hr>
 <div class='card'>
   <h2>Strava 아카이브 임포트</h2>
@@ -996,6 +1045,25 @@ def settings_profile_post():
     config["user"]["threshold_pace"] = threshold_pace
     save_config(config)
     return redirect("/settings?msg=프로필이 저장되었습니다")
+
+
+# ── AI 설정 저장 ─────────────────────────────────────────────────────
+@settings_bp.post("/settings/ai")
+def settings_ai_post():
+    """AI 코치 설정 저장."""
+    config = load_config()
+    config.setdefault("ai", {})
+    provider = (request.form.get("ai_provider") or "rule").strip()
+    config["ai"]["provider"] = provider
+    claude_key = (request.form.get("claude_api_key") or "").strip()
+    if claude_key:
+        config["ai"]["claude_api_key"] = claude_key
+    openai_key = (request.form.get("openai_api_key") or "").strip()
+    if openai_key:
+        config["ai"]["openai_api_key"] = openai_key
+    save_config(config)
+    msg = f"AI 설정 저장됨 (제공자: {provider})"
+    return redirect(f"/settings?msg={msg}")
 
 
 # ── Mapbox 토큰 저장 ─────────────────────────────────────────────────
