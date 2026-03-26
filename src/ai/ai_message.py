@@ -136,6 +136,137 @@ def get_card_ai_message(
         return rule_based_fallback
 
 
+def get_tab_ai(
+    tab: str,
+    conn: sqlite3.Connection,
+    config: dict | None = None,
+    cache_key: str = "default",
+    **extra_kwargs,
+) -> dict | None:
+    """탭별 1회 통합 AI 호출 — 캐시 우선, 검증 + 재시도.
+
+    Args:
+        tab: 탭 이름 ('dashboard', 'activity', 'report', ...).
+        conn: DB 연결.
+        config: 설정 dict.
+        cache_key: 캐시 키 (활동 ID, 기간 등).
+        **extra_kwargs: start_date, end_date, activity_id 등.
+
+    Returns:
+        AI 해석 dict 또는 None (AI 비활성/실패).
+    """
+    if not config or config.get("ai", {}).get("provider", "rule") == "rule":
+        return None
+
+    # 1. 캐시 확인
+    try:
+        from .ai_cache import get_cached
+        cached = get_cached(conn, tab, cache_key)
+        if cached:
+            return cached
+    except Exception:
+        pass
+
+    # 2. 컨텍스트 빌드
+    try:
+        from .context_builders import (
+            build_dashboard_context, build_training_context,
+            build_report_context, build_race_context,
+            build_wellness_context, build_activity_context,
+            format_context_compact,
+        )
+        from .prompt_config import get_tab_prompt
+        from datetime import date
+
+        today = date.today().isoformat()
+        if tab == "dashboard":
+            ctx = build_dashboard_context(conn, today)
+        elif tab == "training":
+            ctx = build_training_context(conn, today)
+        elif tab == "report":
+            ctx = build_report_context(conn,
+                                       extra_kwargs.get("start_date", today),
+                                       extra_kwargs.get("end_date", today))
+        elif tab == "race":
+            ctx = build_race_context(conn, today)
+        elif tab == "wellness":
+            ctx = build_wellness_context(conn, today)
+        elif tab == "activity":
+            aid = extra_kwargs.get("activity_id")
+            ctx = build_activity_context(conn, aid) if aid else {}
+        else:
+            ctx = {}
+
+        context_text = format_context_compact(ctx)
+        prompt = get_tab_prompt(tab, context=context_text, **extra_kwargs)
+    except Exception as exc:
+        log.warning("탭 AI 컨텍스트 빌드 실패 (%s): %s", tab, exc)
+        return None
+
+    # 3. API 호출 + 검증 + 재시도
+    from .ai_validator import validate_response, parse_json_response
+
+    providers = _build_provider_chain(
+        config.get("ai", {}).get("provider", "rule"),
+        config.get("ai", {}),
+    )
+
+    for attempt in range(2):
+        temp = 0.3 if attempt == 0 else 0.1
+        for prov in providers:
+            result_text = _try_provider_with_temp(prov, prompt, config, temp)
+            if not result_text:
+                continue
+
+            parsed = parse_json_response(result_text)
+            if not parsed:
+                log.info("탭 AI JSON 파싱 실패 (%s, attempt=%d)", tab, attempt)
+                continue
+
+            ok, reason = validate_response(tab, parsed, ctx)
+            if ok:
+                # 캐시 저장
+                try:
+                    from .ai_cache import set_cached
+                    set_cached(conn, tab, cache_key, parsed)
+                except Exception:
+                    pass
+                return parsed
+            else:
+                log.info("탭 AI 검증 실패 (%s): %s", tab, reason)
+                # 재시도 프롬프트에 실패 이유 추가
+                prompt += f"\n\n[이전 응답이 부적절: {reason}. 다시 답변하세요.]"
+                break  # 다음 attempt로
+
+    return None
+
+
+def _try_provider_with_temp(provider: str, prompt: str, config: dict,
+                            temperature: float) -> str | None:
+    """temperature 지정하여 provider 호출."""
+    try:
+        from src.ai.chat_engine import _call_gemini, _call_groq, _call_claude, _call_openai
+        # temperature override는 config를 임시 수정
+        import copy
+        cfg = copy.deepcopy(config)
+        cfg.setdefault("ai", {})["_temperature"] = temperature
+
+        _dispatch = {
+            "gemini": _call_gemini, "groq": _call_groq,
+            "claude": _call_claude, "openai": _call_openai,
+        }
+        fn = _dispatch.get(provider)
+        if not fn:
+            return None
+        result = fn(prompt, cfg)
+        if result and "설정되지 않았습니다" not in result and "실패" not in result:
+            return result
+        return None
+    except Exception as exc:
+        log.warning("AI provider '%s' 실패: %s", provider, exc)
+        return None
+
+
 def _build_provider_chain(selected: str, ai_cfg: dict) -> list[str]:
     """provider 시도 순서: 선택 → gemini → groq."""
     chain = []

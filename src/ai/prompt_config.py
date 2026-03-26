@@ -178,3 +178,64 @@ def get_all_prompts(config: dict | None = None) -> dict[str, dict]:
             "is_custom": bool(custom),
         }
     return result
+
+
+# ── 탭별 통합 프롬프트 ──────────────────────────────────────────────────
+
+_TAB_PROMPTS: dict[str, str] = {
+    "dashboard": (
+        "당신은 러닝 코치입니다. 아래 데이터로 4가지 항목을 한국어로 분석하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"recommendation": "오늘 훈련 조언 2문장", '
+        '"risk": "위험 지표 요약 1문장", '
+        '"rmr": "RMR 강점/약점 1문장", '
+        '"fitness": "체력 변화 평가 1문장"}}'
+    ),
+    "activity": (
+        "당신은 러닝 코치입니다. 아래 활동 데이터를 분석하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"summary": "활동 종합 분석 3문장", '
+        '"metrics": {{"메트릭명": "15자 이내 해석", ...}}}}'
+    ),
+    "report": (
+        "당신은 러닝 데이터 분석가입니다. 아래 기간 데이터를 분석하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"insight": "5개 핵심 포인트, 각 1줄"}}'
+    ),
+    "training": (
+        "당신은 러닝 코치입니다. 훈련 계획을 평가하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"coaching": "종합 코칭 3문장", "adjustment": "컨디션 조정 1~2문장"}}'
+    ),
+    "wellness": (
+        "당신은 스포츠 의학 전문가입니다. 회복 상태를 분석하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"recovery": "회복 조언 2~3문장", "pattern": "패턴 분석 1~2문장"}}'
+    ),
+    "race": (
+        "당신은 레이스 전문 코치입니다. 준비도를 평가하세요.\n"
+        "반드시 JSON 형식으로만 답변하세요.\n\n"
+        "{context}\n\n"
+        "응답 형식:\n"
+        '{{"readiness": "준비도 평가 2~3문장", "pacing": "페이스 전략 1~2문장"}}'
+    ),
+}
+
+
+def get_tab_prompt(tab: str, **kwargs) -> str:
+    """탭별 통합 프롬프트 반환."""
+    template = _TAB_PROMPTS.get(tab, "{context}")
+    try:
+        return template.format(**kwargs)
+    except KeyError:
+        return template
