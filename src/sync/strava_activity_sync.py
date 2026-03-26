@@ -473,7 +473,7 @@ def sync_activities(
                             "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
                             (existing_id,),
                         ).fetchone()
-                        if not has_detail:
+                        if not has_detail or force_streams:
                             sync_activity_detail(conn, source_id, existing_id, headers)
                             _sync_activity_streams(conn, source_id, existing_id, headers, force=force_streams)
                     elif get_retry_after_sec("strava"):
