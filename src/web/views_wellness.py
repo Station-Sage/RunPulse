@@ -204,8 +204,9 @@ def _render_7day_chart(data: list[dict]) -> str:
     )
 
 
-def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None = None) -> str:
-    """회복 권장 사항 카드 (패턴 연동)."""
+def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None = None,
+                                    config: dict | None = None, conn=None) -> str:
+    """회복 권장 사항 카드 — AI 우선, 규칙 기반 fallback."""
     if not status.get("available"):
         return ""
     raw = status.get("raw") or {}
@@ -234,13 +235,28 @@ def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None
 
     if not tips:
         return ""
+
+    rule_text = " ".join(tips)
+
+    # AI 시도
+    ai_text = None
+    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
+        try:
+            from src.ai.ai_message import get_card_ai_message
+            ai_text = get_card_ai_message("wellness_recovery", conn, rule_text, config)
+            if ai_text and ai_text != rule_text:
+                tips = [ai_text]
+        except Exception:
+            pass
+
+    ai_badge = " <span style='font-size:0.65rem;color:var(--cyan);'>AI</span>" if ai_text and ai_text != rule_text else ""
     items_html = "".join(
         f"<li style='margin-bottom:6px;font-size:0.88rem;color:rgba(255,255,255,0.85);'>{t}</li>"
         for t in tips
     )
     return (
         "<div class='card' style='border-left:4px solid #00d4ff;'>"
-        "<h2>회복 권장</h2>"
+        f"<h2>회복 권장{ai_badge}</h2>"
         f"<ul style='margin:0;padding-left:1.2rem;'>{items_html}</ul>"
         "</div>"
     )
@@ -396,7 +412,13 @@ def wellness_view():
     outlier_pts = build_outlier_mark_points(data_14d[-7:], baseline)
     chart_7d = render_7day_chart_enhanced(data_14d[-7:], baseline, outlier_points=outlier_pts)
     pattern_tips = build_pattern_recovery_tips(data_14d, baseline)
-    recovery_rec = _render_recovery_recommendation(status, pattern_tips)
+    _w_cfg = None
+    try:
+        from src.utils.config import load_config as _lc
+        _w_cfg = _lc()
+    except Exception:
+        pass
+    recovery_rec = _render_recovery_recommendation(status, pattern_tips, config=_w_cfg, conn=conn)
 
     body = (
         render_sub_nav("wellness")
