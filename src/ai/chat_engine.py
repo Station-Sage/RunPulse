@@ -59,6 +59,12 @@ def chat(
     # provider chain: 선택 → gemini → groq → rule
     chain = _build_chat_provider_chain(provider, config)
     for prov in chain:
+        # Function calling 지원 provider는 도구 기반 호출
+        if prov == "gemini" and not chip_id:
+            result = _call_gemini_with_tools(conn, prompt, config)
+            if result:
+                return result
+            continue
         result = _call_provider(prov, prompt, config)
         if result:
             return result
@@ -457,6 +463,88 @@ def _call_openai(prompt: str, config: dict | None) -> str:
     except Exception as exc:
         log.warning("OpenAI API 오류: %s", exc)
         return f"AI 응답 생성 실패: {exc}"
+
+
+def _call_gemini_with_tools(conn: sqlite3.Connection, prompt: str,
+                            config: dict | None) -> str | None:
+    """Gemini Function Calling — AI가 도구를 호출하여 DB 데이터 수집 후 답변."""
+    api_key = (config or {}).get("ai", {}).get("gemini_api_key", "")
+    if not api_key:
+        return None
+    model = (config or {}).get("ai", {}).get("gemini_model", "gemini-2.0-flash")
+    temp = (config or {}).get("ai", {}).get("_temperature", 0.7)
+
+    from .tools import TOOL_DECLARATIONS, execute_tool
+    try:
+        import httpx
+
+        # 1차 호출: 프롬프트 + 도구 목록
+        contents = [{"parts": [{"text": prompt}]}]
+        body: dict = {
+            "contents": contents,
+            "tools": [{"function_declarations": TOOL_DECLARATIONS}],
+            "generationConfig": {"maxOutputTokens": 2048, "temperature": temp},
+        }
+
+        max_rounds = 3  # 최대 도구 호출 횟수
+        for _ in range(max_rounds):
+            resp = httpx.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                params={"key": api_key},
+                headers={"Content-Type": "application/json"},
+                json=body, timeout=60,
+            )
+            if resp.status_code == 429:
+                raise RateLimitError("Gemini 429")
+            resp.raise_for_status()
+            data = resp.json()
+
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None
+
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if not parts:
+                return None
+
+            # 텍스트 응답 확인
+            text_parts = [p["text"] for p in parts if "text" in p]
+            func_calls = [p["functionCall"] for p in parts if "functionCall" in p]
+
+            if not func_calls:
+                # 도구 호출 없음 → 텍스트 답변 반환
+                return text_parts[0] if text_parts else None
+
+            # 도구 호출 실행
+            # 대화에 AI 응답 추가
+            contents.append({"role": "model", "parts": parts})
+
+            # 각 함수 호출 실행 + 결과 추가
+            func_response_parts = []
+            for fc in func_calls:
+                fn_name = fc["name"]
+                fn_args = fc.get("args", {})
+                log.info("Gemini 도구 호출: %s(%s)", fn_name, fn_args)
+                result_json = execute_tool(conn, fn_name, fn_args)
+                func_response_parts.append({
+                    "functionResponse": {
+                        "name": fn_name,
+                        "response": {"content": result_json},
+                    }
+                })
+
+            contents.append({"parts": func_response_parts})
+            body["contents"] = contents
+
+        # max_rounds 초과
+        log.warning("Gemini function calling %d회 초과", max_rounds)
+        return text_parts[0] if text_parts else None
+
+    except RateLimitError:
+        raise
+    except Exception as exc:
+        log.warning("Gemini function calling 실패: %s", exc)
+        return None
 
 
 def _call_gemini(prompt: str, config: dict | None) -> str:
