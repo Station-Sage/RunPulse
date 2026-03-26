@@ -318,8 +318,11 @@ def _render_prompt_management(config: dict) -> str:
             f"<strong style='font-size:0.82rem;'>{info['description']}{badge}</strong>"
             f"<span class='muted' style='font-size:0.7rem;'>max {info['max_tokens']} tokens</span></div>"
             f"<textarea name='prompt_{key}' rows='2' "
+            f"onfocus='this.rows=10;this.style.borderColor=\"var(--cyan)\"' "
+            f"onblur='this.rows=2;this.style.borderColor=\"rgba(255,255,255,0.1)\"' "
             f"style='width:100%;margin-top:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
-            f"border-radius:8px;padding:6px 8px;color:var(--fg);font-size:0.75rem;resize:vertical;'>"
+            f"border-radius:8px;padding:6px 8px;color:var(--fg);font-size:0.75rem;resize:vertical;"
+            f"transition:all 0.2s;'>"
             f"{info['template']}</textarea></div>"
         )
     return f"""
