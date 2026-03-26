@@ -89,7 +89,7 @@ def _pick_value(source_rows: dict[str, dict], field_name: str) -> UnifiedField:
     return UnifiedField(value=None, source=None, all_values={})
 
 
-def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedActivity:
+def build_unified_activity(group_id: str | None, rows: list[dict], **kwargs) -> UnifiedActivity:
     """row 목록(같은 그룹)으로 UnifiedActivity 생성.
 
     Args:
@@ -133,15 +133,21 @@ def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedAct
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
 
-    # RP 자동 분류 태그 주입
+    # RP 자동 분류 태그: 호출자가 wt_cache를 전달하면 사용, 아니면 개별 조회
     try:
         import json as _json
-        wt_row = conn.execute(
-            "SELECT metric_json FROM computed_metrics WHERE activity_id=? AND metric_name='WorkoutType'",
-            (rep_id,),
-        ).fetchone()
-        if wt_row and wt_row[0]:
-            source_rows["_rp_workout_type"] = _json.loads(wt_row[0])
+        wt_data = None
+        if "_wt_cache" in kwargs:
+            wt_data = kwargs["_wt_cache"].get(rep_id)
+        else:
+            wt_row = conn.execute(
+                "SELECT metric_json FROM computed_metrics WHERE activity_id=? AND metric_name='WorkoutType'",
+                (rep_id,),
+            ).fetchone()
+            if wt_row and wt_row[0]:
+                wt_data = _json.loads(wt_row[0])
+        if wt_data:
+            source_rows["_rp_workout_type"] = wt_data
     except Exception:
         pass
 
@@ -312,6 +318,27 @@ def fetch_unified_activities(
         eid = gid if gid else str(rd["id"])
         groups.setdefault(eid, []).append(rd)
 
+    # WorkoutType 배치 로드 (N+1 방지)
+    import json as _json
+    _wt_cache: dict[int, dict] = {}
+    all_act_ids = [rd["id"] for rd in all_rows]
+    if all_act_ids:
+        try:
+            _ph = ",".join("?" * len(all_act_ids))
+            _wt_rows = conn.execute(
+                f"SELECT activity_id, metric_json FROM computed_metrics "
+                f"WHERE activity_id IN ({_ph}) AND metric_name='WorkoutType'",
+                all_act_ids,
+            ).fetchall()
+            for _aid, _mj in _wt_rows:
+                if _mj:
+                    try:
+                        _wt_cache[_aid] = _json.loads(_mj)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     # page_eids 순서(DB 정렬 순) 유지
     paged: list[UnifiedActivity] = []
     for eid in page_eids:
@@ -319,7 +346,7 @@ def fetch_unified_activities(
         if not g_rows:
             continue
         gid = g_rows[0].get("matched_group_id")
-        paged.append(build_unified_activity(gid, g_rows))
+        paged.append(build_unified_activity(gid, g_rows, _wt_cache=_wt_cache))
 
     stats = {"total_count": total_count, "total_dist_km": total_dist}
     return paged, total_count, stats
