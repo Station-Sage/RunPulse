@@ -64,6 +64,22 @@ _CSS = """
              text-align: left; vertical-align: top; }
     th { background: var(--th-bg); color: var(--secondary); }
     .muted { color: var(--muted); }
+    /* ── 툴팁 (터치/호버) ── */
+    .rp-tip { position: relative; cursor: help; border-bottom: 1px dotted rgba(255,255,255,0.3); }
+    .rp-tip .rp-tip-text {
+        visibility: hidden; opacity: 0;
+        position: absolute; z-index: 100; bottom: 125%; left: 50%;
+        transform: translateX(-50%);
+        background: rgba(22,33,62,0.95); color: rgba(255,255,255,0.9);
+        border: 1px solid var(--card-border); border-radius: 12px;
+        padding: 10px 14px; font-size: 0.78rem; line-height: 1.5;
+        width: max-content; max-width: 280px;
+        pointer-events: none; transition: opacity 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .rp-tip:hover .rp-tip-text,
+    .rp-tip:focus .rp-tip-text,
+    .rp-tip.active .rp-tip-text { visibility: visible; opacity: 1; pointer-events: auto; }
     .card { border: 1px solid var(--card-border); border-radius: 20px;
             padding: 1.2rem; margin: 1rem 0;
             background: var(--card-bg); backdrop-filter: blur(10px); }
@@ -646,6 +662,7 @@ def html_page(
   <script>{_SYNC_JS}</script>
   <script>
   if('serviceWorker' in navigator){{navigator.serviceWorker.register('/static/sw.js').catch(function(){{}});}}
+  document.addEventListener('click',function(e){{var t=e.target.closest('.rp-tip');document.querySelectorAll('.rp-tip.active').forEach(function(el){{if(el!==t)el.classList.remove('active')}});if(t)t.classList.toggle('active');}});
   </script>
 </body>
 </html>"""
@@ -770,6 +787,41 @@ def connected_services() -> set[str]:
         return {src for src, chk in checkers.items() if chk(cfg).get("ok")}
     except Exception:
         return set()
+
+
+def tooltip(label: str, description: str) -> str:
+    """터치/호버 시 설명이 표시되는 인라인 툴팁.
+
+    Args:
+        label: 표시 텍스트 (예: 'UTRS').
+        description: 툴팁 설명 텍스트.
+    """
+    return (
+        f"<span class='rp-tip' tabindex='0'>{_html.escape(label)}"
+        f"<span class='rp-tip-text'>{_html.escape(description)}</span></span>"
+    )
+
+
+# 메트릭 설명 사전
+METRIC_DESCRIPTIONS: dict[str, str] = {
+    "UTRS": "통합 훈련 준비도 (0~100). 웰니스·피트니스·부하를 종합. 70+ 고강도 가능, 40 미만 휴식 권장",
+    "CIRS": "복합 부상 위험 지수 (0~100). ACWR·Monotony·부하 스파이크 종합. 25 이하 안전, 50+ 주의",
+    "ACWR": "급성:만성 부하 비율. 0.8~1.3 적정(Sweet Spot), 1.5+ 부상 위험, 0.8 미만 훈련 부족",
+    "RTTI": "달리기 내성 지수 (%). 100=적정 훈련량, 100+ 과부하, 70 미만 여유",
+    "LSI": "부하 스파이크. 1.0 이하 안정, 1.5+ 급격한 부하 증가 주의",
+    "Monotony": "훈련 단조로움. 2.0+ 위험 (매일 비슷한 부하), 1.5 이하 적정",
+    "Strain": "훈련 부담 = 주간TRIMP × Monotony. Monotony 높을 때 Strain도 급증",
+    "TSB": "훈련 스트레스 밸런스 = CTL-ATL. 양수=신선, 음수=피로 축적, -10~+10 적정",
+    "VDOT": "Jack Daniels VO2Max 추정치. 레이스 기록 기반 유산소 능력 지표",
+    "MarathonShape": "마라톤 훈련 완성도 (%). 주간 거리+장거리런 대비 VDOT 기준 달성률",
+    "EF": "효율 계수 = 속도/심박. 같은 HR에서 더 빠르면 EF↑ → 체력 향상",
+    "Decoupling": "심박-페이스 분리율(%). 5% 이하면 유산소 기반 양호, 10%+ 지구력 부족",
+    "TIDS": "훈련 강도 분포. Z1-2(저강도)/Z3(중강도)/Z4-5(고강도) 비율",
+    "DI": "내구성 지수. 장거리 러닝에서 후반부 페이스 유지 능력",
+    "DARP": "내구성 보정 레이스 예측. DI 반영한 실제 레이스 완주 시간 예측",
+    "RMR": "러너 성숙도 레이더. 유산소용량/역치강도/지구력/동작효율성/회복력 5축",
+    "FEARP": "환경 보정 페이스. 기온·습도·고도를 반영한 실질 페이스",
+}
 
 
 def no_data_card(metric_name: str, reason: str = "데이터 수집 중") -> str:

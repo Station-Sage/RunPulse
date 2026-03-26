@@ -241,6 +241,13 @@ def report_view():
             adti_val = _load_adti(conn, end_date)
             darp_data = _load_darp_latest(conn, end_date)
             vdot, shape = _load_fitness_data(conn, end_date)
+            # DI (내구성 지수)
+            _di_row = conn.execute(
+                "SELECT metric_value FROM computed_metrics WHERE metric_name='DI' "
+                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                (end_date,),
+            ).fetchone()
+            di_val = float(_di_row[0]) if _di_row and _di_row[0] is not None else None
             ai_insight_html = render_ai_insight(conn, start_date, end_date)
             # 신규 로더
             prev_stats = load_prev_period_stats(conn, start_date, end_date)
@@ -281,7 +288,7 @@ def report_view():
         + render_wellness_trend_chart(wellness)
         # 섹션 8: 피트니스 & 레이스
         + "<div class='cards-row' style='align-items:start;'>"
-        + render_darp_card(darp_data)
+        + render_darp_card(darp_data, vdot=vdot, di=di_val)
         + render_fitness_trend(vdot, shape)
         + "</div>"
         # 기존 유지

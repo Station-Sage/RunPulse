@@ -16,7 +16,7 @@ import html as _html
 import json
 import sqlite3
 
-from .helpers import fmt_duration, fmt_pace, no_data_card
+from .helpers import METRIC_DESCRIPTIONS, fmt_duration, fmt_pace, no_data_card, tooltip
 
 
 # ── 데이터 로더 ───────────────────────────────────────────────────────────────
@@ -94,18 +94,25 @@ def _load_darp_latest(conn: sqlite3.Connection, end: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, end: str) -> tuple[float | None, float | None]:
-    """VDOT + Marathon Shape 최신값."""
+    """VDOT + Marathon Shape 최신값. Runalyze VDOT 우선, Garmin VO2Max fallback."""
     vdot_row = conn.execute(
-        "SELECT runalyze_vdot FROM daily_fitness WHERE runalyze_vdot IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+        "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+        "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+        "AND date<=? ORDER BY date DESC LIMIT 1",
         (end,),
     ).fetchone()
+    vdot = None
+    if vdot_row:
+        vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
+            float(vdot_row[1]) if vdot_row[1] is not None else None
+        )
     shape_row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE metric_name='MarathonShape' AND activity_id IS NULL AND date<=?
            ORDER BY date DESC LIMIT 1""",
         (end,),
     ).fetchone()
-    return (float(vdot_row[0]) if vdot_row else None,
+    return (vdot,
             float(shape_row[0]) if shape_row and shape_row[0] is not None else None)
 
 
@@ -158,12 +165,32 @@ def render_tids_section(tids: dict | None) -> str:
             f"<span style='background:rgba(255,255,255,{bg_alpha});border-radius:12px;"
             f"padding:0.2rem 0.6rem;font-size:0.76rem;color:{pill_clr};'>{lbl} {d:.0f}pt</span>"
         )
-    dev_pills = " ".join(pill_parts)
+    # 모델 설명 추가
+    _MODEL_DESC = {
+        "폴라리제드": "80% 저강도 + 20% 고강도. 엘리트 선수가 주로 사용. 효율적 체력 향상",
+        "피라미드": "저강도 > 중강도 > 고강도 순. 일반 러너에게 안전. 점진적 강화",
+        "건강유지": "대부분 저강도. 건강 목적 러닝. 부상 위험 최소",
+    }
+    pill_parts_with_tips = []
+    for m, d in deviations:
+        is_dom = m == dominant
+        bg_alpha = "0.15" if is_dom else "0.06"
+        pill_clr = "var(--cyan)" if is_dom else "var(--muted)"
+        lbl = model_labels.get(m, m)
+        desc = _MODEL_DESC.get(lbl, "")
+        tip = tooltip(f"{lbl} {d:.0f}pt", f"{desc}. 편차 점수가 낮을수록 해당 모델에 가까움") if desc else f"{lbl} {d:.0f}pt"
+        pill_parts_with_tips.append(
+            f"<span style='background:rgba(255,255,255,{bg_alpha});border-radius:12px;"
+            f"padding:0.2rem 0.6rem;font-size:0.76rem;color:{pill_clr};'>{tip}</span>"
+        )
+    dev_pills = " ".join(pill_parts_with_tips)
+    dominant_desc = _MODEL_DESC.get(dominant_lbl, "")
+    dominant_tip = tooltip(dominant_lbl, dominant_desc) if dominant_desc else dominant_lbl
     return (
         "<div class='card'>"
-        "<h2 style='font-size:1rem;margin-bottom:0.3rem;'>TIDS 훈련 강도 분포</h2>"
+        f"<h2 style='font-size:1rem;margin-bottom:0.3rem;'>{tooltip('TIDS 훈련 강도 분포', METRIC_DESCRIPTIONS['TIDS'])}</h2>"
         f"<p style='font-size:0.8rem;color:var(--secondary);margin-bottom:0.6rem;'>"
-        f"현재 모델: <strong style='color:var(--cyan);'>{dominant_lbl}</strong> (편차 최소)</p>"
+        f"현재 모델: <strong style='color:var(--cyan);'>{dominant_tip}</strong> (편차 최소)</p>"
         f"{bars}"
         f"<div style='display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.4rem;'>{dev_pills}</div>"
         "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>수직선(|) = 폴라리제드 목표값 기준</p>"
@@ -175,7 +202,17 @@ def render_trimp_weekly_chart(trimp_data: list[dict], prev_trimp: list[dict] | N
     """주별 TRIMP 합계 ECharts 바차트 + 이전 기간 비교선."""
     if not trimp_data:
         return no_data_card("주별 TRIMP 부하", "데이터 수집 중입니다")
-    labels = [d["week"] for d in trimp_data]
+    def _week_label(w: str) -> str:
+        """YYYY-WW → 'M/D' (주 시작일)."""
+        try:
+            from datetime import datetime, timedelta
+            year, wk = w.split("-")
+            jan1 = datetime(int(year), 1, 1)
+            start = jan1 + timedelta(weeks=int(wk), days=-jan1.weekday())
+            return f"{start.month}/{start.day}"
+        except Exception:
+            return w
+    labels = [_week_label(d["week"]) for d in trimp_data]
     values = [d["trimp"] for d in trimp_data]
     avg = sum(values) / len(values) if values else 0
     lj = json.dumps(labels)
@@ -232,18 +269,23 @@ def render_risk_overview(risk: dict) -> str:
             return ""
         avg, mx = d["avg"], d["max"]
         if avg <= lo:
-            clr = "var(--green)"
+            clr, status = "var(--green)", "적정"
         elif avg <= hi:
-            clr = "var(--orange)"
+            clr, status = "var(--orange)", "주의"
         else:
-            clr = "var(--red)"
+            clr, status = "var(--red)", "위험"
+        desc = METRIC_DESCRIPTIONS.get(key, "")
+        tip = tooltip(label, desc) if desc else label
         return (
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.83rem;'>"
-            f"<span style='color:var(--secondary);'>{label}</span>"
+            f"<span style='color:var(--secondary);'>{tip}</span>"
             f"<div style='text-align:right;'>"
             f"<span style='color:{clr};font-weight:600;'>평균 {avg:{fmt}}</span>"
-            f"<span class='muted' style='font-size:0.74rem;margin-left:0.4rem;'>최고 {mx:{fmt}}</span></div></div>"
+            f"<span class='muted' style='font-size:0.74rem;margin-left:0.4rem;'>최고 {mx:{fmt}}</span>"
+            f"<span style='font-size:0.7rem;margin-left:0.3rem;color:{clr};'>({status})</span>"
+            f"<span class='muted' style='font-size:0.68rem;margin-left:0.3rem;'>적정 ≤{lo:{fmt}}</span>"
+            f"</div></div>"
         )
 
     rows = (
@@ -259,10 +301,29 @@ def render_risk_overview(risk: dict) -> str:
     )
 
 
-def render_darp_card(darp: dict) -> str:
-    """레이스 예측 (DARP) 카드."""
+def render_darp_card(darp: dict, vdot: float | None = None, di: float | None = None) -> str:
+    """레이스 예측 (DARP) 카드 + VDOT 공통 표시 + DI."""
     if not darp:
         return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
+
+    # VDOT/DI 상단 공통 표시
+    header_badges = ""
+    if vdot is not None:
+        vdot_tip = tooltip("VDOT", METRIC_DESCRIPTIONS.get("VDOT", ""))
+        header_badges += (
+            f"<span style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+            f"border-radius:12px;padding:0.15rem 0.6rem;font-size:0.78rem;'>"
+            f"{vdot_tip} {vdot:.1f}</span>"
+        )
+    if di is not None:
+        di_tip = tooltip("DI", METRIC_DESCRIPTIONS.get("DI", ""))
+        di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
+        header_badges += (
+            f"<span style='background:rgba(0,255,136,0.12);color:{di_clr};"
+            f"border-radius:12px;padding:0.15rem 0.6rem;font-size:0.78rem;margin-left:0.3rem;'>"
+            f"{di_tip} {di:.0f}</span>"
+        )
+
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프마라톤", "full": "마라톤"}
     rows = ""
     for key, lbl in _LABELS.items():
@@ -274,23 +335,22 @@ def render_darp_card(darp: dict) -> str:
         h, rem = divmod(ts, 3600)
         m, s = divmod(rem, 60)
         t_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-        vdot = d.get("vdot")
-        vdot_note = f" (VDOT {vdot:.1f})" if vdot else ""
         rows += (
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.06);'>"
             f"<span style='font-size:0.85rem;color:var(--secondary);'>{lbl}</span>"
             f"<div style='text-align:right;'>"
             f"<span style='font-size:0.9rem;font-weight:700;color:var(--cyan);'>{t_str}</span>"
-            f"<span class='muted' style='font-size:0.76rem;margin-left:0.4rem;'>{fmt_pace(pace)}/km{vdot_note}</span>"
+            f"<span class='muted' style='font-size:0.76rem;margin-left:0.4rem;'>{fmt_pace(pace)}/km</span>"
             f"</div></div>"
         )
     if not rows:
         return no_data_card("레이스 예측 (DARP)", "데이터 수집 중입니다")
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.4rem;'>레이스 예측 (DARP)</h2>"
+        + (f"<div style='margin-bottom:0.5rem;'>{header_badges}</div>" if header_badges else "")
         + rows
-        + "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>Jack Daniels VDOT 기반 + DI 내구성 보정</p></div>"
+        + "<p class='muted' style='font-size:0.74rem;margin-top:0.4rem;'>VDOT 기반 + DI 내구성 보정</p></div>"
     )
 
 
@@ -502,8 +562,8 @@ def render_summary_cards(stats: dict, metrics_avg: dict) -> str:
         + _card("평균 거리", km_per)
         + "</div>"
         "<div class='cards-row'>"
-        + _card("평균 UTRS", utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
-        + _card("평균 CIRS", cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
+        + _card(tooltip("평균 UTRS", METRIC_DESCRIPTIONS["UTRS"]), utrs_str, "var(--green)" if utrs_avg and utrs_avg >= 60 else "var(--fg)")
+        + _card(tooltip("평균 CIRS", METRIC_DESCRIPTIONS["CIRS"]), cirs_str, "var(--red)" if cirs_avg and cirs_avg >= 50 else "var(--fg)")
         + "</div>"
     )
 
@@ -512,7 +572,17 @@ def render_weekly_chart(weekly_data: list[dict]) -> str:
     """ECharts 주별 거리 바차트."""
     if not weekly_data:
         return no_data_card("주별 거리 추세", "데이터 수집 중입니다")
-    labels = [d["week"] for d in weekly_data]
+    def _week_label(w: str) -> str:
+        """YYYY-WW → 'M/D' (주 시작일)."""
+        try:
+            from datetime import datetime, timedelta
+            year, wk = w.split("-")
+            jan1 = datetime(int(year), 1, 1)
+            start = jan1 + timedelta(weeks=int(wk), days=-jan1.weekday())
+            return f"{start.month}/{start.day}"
+        except Exception:
+            return w
+    labels = [_week_label(d["week"]) for d in weekly_data]
     values = [d["km"] for d in weekly_data]
     avg_km = sum(values) / len(values) if values else 0
     lj, vj = json.dumps(labels), json.dumps(values)
@@ -543,8 +613,30 @@ def render_weekly_chart(weekly_data: list[dict]) -> str:
 </script>"""
 
 
+def _activity_effect(a: dict) -> str:
+    """활동의 효과/영향을 한 줄로 해석."""
+    parts = []
+    re = a.get("relative_effort")
+    dec = a.get("decoupling")
+    if re is not None:
+        if re >= 150:
+            parts.append("고강도 자극")
+        elif re >= 80:
+            parts.append("적정 부하")
+        else:
+            parts.append("저강도 회복")
+    if dec is not None:
+        if dec <= 5:
+            parts.append("유산소 기반 양호")
+        elif dec <= 10:
+            parts.append("지구력 보통")
+        else:
+            parts.append("지구력 개선 필요")
+    return " · ".join(parts) if parts else ""
+
+
 def render_metrics_table(activities: list[dict]) -> str:
-    """활동별 메트릭 요약 테이블."""
+    """활동별 메트릭 요약 테이블 + 효과 해석."""
     if not activities:
         return ""
     rows = ""
@@ -554,13 +646,15 @@ def render_metrics_table(activities: list[dict]) -> str:
         dec = f"{float(a['decoupling']):.1f}%" if a["decoupling"] is not None else "—"
         pace = f"{fmt_pace(a['pace'])}/km" if a["pace"] is not None else "—"
         dist = f"{float(a['dist_km']):.1f}" if a["dist_km"] is not None else "—"
+        effect = _activity_effect(a)
+        effect_td = f"<td style='font-size:0.75rem;color:var(--muted);'>{effect}</td>" if effect else "<td></td>"
         rows += (
             f"<tr><td>{_html.escape(a['date'])}</td><td>{dist} km</td><td>{pace}</td>"
-            f"<td>{fearp}</td><td>{re}</td><td>{dec}</td></tr>"
+            f"<td>{fearp}</td><td>{re}</td><td>{dec}</td>{effect_td}</tr>"
         )
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.6rem;'>최근 활동 메트릭</h2>"
         "<div style='overflow-x:auto;'><table><thead><tr>"
-        "<th>날짜</th><th>거리</th><th>페이스</th><th>FEARP</th><th>Rel.Effort</th><th>Decoupling</th>"
+        "<th>날짜</th><th>거리</th><th>페이스</th><th>FEARP</th><th>RE</th><th>Dec%</th><th>효과</th>"
         "</tr></thead><tbody>" + rows + "</tbody></table></div></div>"
     )

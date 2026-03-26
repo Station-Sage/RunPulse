@@ -39,11 +39,48 @@ from .views_perf import (
     cached_page,
     load_activity_metrics_batch,
     load_darp_batch,
+    load_latest_metric_date,
     load_metrics_batch,
     load_metrics_json_batch,
 )
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
+
+import logging as _logging
+
+_log = _logging.getLogger(__name__)
+
+
+def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
+    """마지막 동기화 완료 시간."""
+    try:
+        row = conn.execute(
+            "SELECT updated_at FROM sync_jobs WHERE status='completed' "
+            "ORDER BY updated_at DESC LIMIT 1"
+        ).fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
+def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
+    """오늘 날짜 메트릭이 없으면 자동 계산."""
+    row = conn.execute(
+        "SELECT 1 FROM computed_metrics WHERE date=? AND metric_name='UTRS' "
+        "AND activity_id IS NULL LIMIT 1",
+        (today,),
+    ).fetchone()
+    if row:
+        return
+    try:
+        from src.metrics.engine import run_for_date
+        _log.info("오늘(%s) 메트릭 자동 계산 시작", today)
+        run_for_date(conn, today, include_weekly=False)
+        conn.commit()
+        _log.info("오늘 메트릭 계산 완료")
+    except Exception as exc:
+        _log.warning("오늘 메트릭 자동 계산 실패: %s", exc)
 
 
 # ── 데이터 조회 ─────────────────────────────────────────────────────────────
@@ -85,7 +122,7 @@ def _load_pmc_data(conn: sqlite3.Connection, end_date: str, days: int = 60) -> l
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
     rows = conn.execute(
         """SELECT a.id, a.start_time, a.activity_type, a.distance_km,
-                  a.duration_sec, a.avg_pace_sec_km, a.avg_hr
+                  a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name
            FROM v_canonical_activities a WHERE a.activity_type = 'running'
            ORDER BY a.start_time DESC LIMIT ?""",
         (limit,),
@@ -96,11 +133,12 @@ def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[di
     metrics = load_activity_metrics_batch(conn, act_ids, ["FEARP", "RelativeEffort"])
     result = []
     for r in rows:
-        act_id, start_time, _, dist, dur, pace, hr = r
+        act_id, start_time, _, dist, dur, pace, hr, name = r
         m = metrics.get(act_id, {})
         result.append({
             "id": act_id, "start_time": start_time, "date": str(start_time)[:10],
             "distance_km": dist, "duration_sec": dur, "avg_pace_sec_km": pace, "avg_hr": hr,
+            "name": name or "",
             "fearp": m.get("FEARP"),
             "relative_effort": m.get("RelativeEffort"),
         })
@@ -112,17 +150,32 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
-    vdot_row = conn.execute(
-        "SELECT runalyze_vdot FROM daily_fitness WHERE runalyze_vdot IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+    # VDOT: computed_metrics 우선, 없으면 daily_fitness (Runalyze > Garmin)
+    vdot = None
+    cm_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
         (target_date,),
     ).fetchone()
+    if cm_row and cm_row[0]:
+        vdot = float(cm_row[0])
+    else:
+        vdot_row = conn.execute(
+            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+            "AND date<=? ORDER BY date DESC LIMIT 1",
+            (target_date,),
+        ).fetchone()
+        if vdot_row:
+            vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
+                float(vdot_row[1]) if vdot_row[1] is not None else None
+            )
     shape_row = conn.execute(
         """SELECT metric_value FROM computed_metrics
            WHERE date <= ? AND metric_name = 'MarathonShape' AND activity_id IS NULL
            ORDER BY date DESC LIMIT 1""",
         (target_date,),
     ).fetchone()
-    vdot = float(vdot_row[0]) if vdot_row else None
     shape = float(shape_row[0]) if shape_row and shape_row[0] is not None else None
     return vdot, shape
 
@@ -157,6 +210,9 @@ def _build_dashboard(db) -> str:
     three_months_ago = (date.today() - timedelta(days=90)).isoformat()
 
     with sqlite3.connect(str(db)) as conn:
+        # 오늘 메트릭이 없으면 자동 계산
+        _ensure_today_metrics(conn, today)
+
         # 배치 메트릭 로드 (개별 쿼리 9→2회)
         _val_names = ["UTRS", "CIRS", "ACWR", "RTTI", "Monotony", "LSI", "Strain"]
         vals = load_metrics_batch(conn, today, _val_names)
@@ -168,6 +224,7 @@ def _build_dashboard(db) -> str:
         lsi_val = vals["LSI"]
         strain_val = vals["Strain"]
 
+        metric_date = load_latest_metric_date(conn, today, "UTRS")
         jsons = load_metrics_json_batch(conn, today, ["UTRS", "CIRS", "RMR"])
         utrs_json = jsons.get("UTRS") or {}
         cirs_json = jsons.get("CIRS") or {}
@@ -184,17 +241,29 @@ def _build_dashboard(db) -> str:
         trends = load_fitness_trends(conn, today, days=60)
         risk_7d = load_risk_7day_trends(conn, today)
         weekly_target = _load_weekly_target(conn)
-        # resync
+        # resync + 마지막 동기화 시간
         needs_resync = False
         try:
             needs_resync = get_needs_resync(conn)
         except Exception:
             pass
+        last_sync = _load_last_sync_time(conn)
 
     tsb_last = pmc_data[-1]["tsb"] if pmc_data else None
 
+    # ── 동기화 상태 바 ──────────────────────────────────────────────────
+    sync_time_str = last_sync[:16] if last_sync else "없음"
+    sync_bar = (
+        "<div style='display:flex;justify-content:space-between;align-items:center;"
+        "padding:8px 12px;margin-bottom:12px;font-size:0.78rem;color:var(--muted);'>"
+        f"<span>마지막 동기화: {sync_time_str}</span>"
+        "<a href='/settings' style='background:rgba(0,212,255,0.15);color:var(--cyan);"
+        "padding:4px 12px;border-radius:12px;font-size:0.75rem;text-decoration:none;'>동기화</a>"
+        "</div>"
+    )
+
     # ── 배너 ─────────────────────────────────────────────────────────────
-    banner = ""
+    banner = sync_bar
     if needs_resync:
         banner = (
             "<div class='card' style='background:var(--orange,#ffaa00);color:#000;"
@@ -209,7 +278,8 @@ def _build_dashboard(db) -> str:
 
     # ── 섹션 1: 오늘의 상태 스트립 ────────────────────────────────────────
     status_strip = render_daily_status_strip(
-        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness)
+        utrs_val, utrs_json, cirs_val, cirs_json, acwr_val, rtti_val, wellness,
+        metric_date=metric_date)
 
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
     recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last)

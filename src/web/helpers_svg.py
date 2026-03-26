@@ -29,14 +29,14 @@ def svg_semicircle_gauge(
     cx, cy, r = width // 2, width // 2, width // 2 - 16
 
     if color_stops:
-        track_color = "#e0e0e0"
+        track_color = "rgba(255,255,255,0.15)"
         arc_color = "#4caf50"
         for threshold, color in sorted(color_stops):
             if pct * 100 >= threshold:
                 arc_color = color
     else:
         arc_color = "#00d4ff"
-        track_color = "#e0e0e0"
+        track_color = "rgba(255,255,255,0.15)"
 
     def polar(angle_deg: float) -> tuple[float, float]:
         rad = math.radians(angle_deg)
@@ -54,7 +54,8 @@ def svg_semicircle_gauge(
 
     track_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,1 {ex:.1f},{ey:.1f}"
     vx, vy = polar(needle_angle)
-    value_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,1 {vx:.1f},{vy:.1f}"
+    large_arc = 1 if pct > 0.5 else 0
+    value_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 {large_arc},1 {vx:.1f},{vy:.1f}"
 
     needle_len = r - sw * 2
     tip_x = cx + needle_len * math.cos(math.radians(needle_angle))

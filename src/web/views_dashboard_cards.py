@@ -4,7 +4,7 @@ from __future__ import annotations
 import html as _html
 import json
 
-from .helpers import fmt_duration, fmt_pace, metric_row, no_data_card, svg_radar_chart, svg_semicircle_gauge
+from .helpers import METRIC_DESCRIPTIONS, fmt_duration, fmt_pace, metric_row, no_data_card, svg_radar_chart, svg_semicircle_gauge, tooltip
 
 _UTRS_COLORS = [(0, "#e53935"), (40, "#fb8c00"), (60, "#43a047"), (80, "#00acc1")]
 _CIRS_COLORS = [(0, "#43a047"), (20, "#fb8c00"), (50, "#ef6c00"), (75, "#e53935")]
@@ -14,14 +14,16 @@ _CIRS_COLORS = [(0, "#43a047"), (20, "#fb8c00"), (50, "#ef6c00"), (75, "#e53935"
 
 def _mini_gauge(label: str, value: float | None, max_val: float,
                 colors: list, grade: str = "") -> str:
-    """60px 미니 반원 게이지."""
+    """60px 미니 반원 게이지 + 툴팁."""
+    desc = METRIC_DESCRIPTIONS.get(label, "")
+    tip_label = tooltip(label, desc) if desc else label
     if value is None:
         return (f"<div style='text-align:center;min-width:80px;opacity:0.4;'>"
-                f"<div style='font-size:0.7rem;color:var(--muted);'>{label}</div>"
+                f"<div style='font-size:0.7rem;color:var(--muted);'>{tip_label}</div>"
                 f"<div style='font-size:1.1rem;font-weight:700;'>—</div></div>")
     gauge = svg_semicircle_gauge(value, max_val, grade, colors, width=70)
     return (f"<div style='text-align:center;min-width:80px;'>"
-            f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{label}</div>"
+            f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{tip_label}</div>"
             f"{gauge}</div>")
 
 
@@ -38,7 +40,8 @@ def _mini_icon_val(icon: str, label: str, value, unit: str = "", color: str = "v
 def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
                               cirs_val: float | None, cirs_json: dict,
                               acwr: float | None, rtti: float | None,
-                              wellness: dict) -> str:
+                              wellness: dict,
+                              metric_date: str | None = None) -> str:
     """섹션 1: 오늘의 상태 한 줄 스트립."""
     utrs_grade = {"rest": "휴식", "light": "경량", "moderate": "보통", "optimal": "최적"}.get(
         (utrs_json or {}).get("grade", ""), "")
@@ -60,12 +63,13 @@ def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
     sleep = wellness.get("sleep_score")
     hrv = wellness.get("hrv")
 
+    acwr_tip = tooltip("ACWR", METRIC_DESCRIPTIONS.get("ACWR", ""))
     parts = [
         _mini_gauge("UTRS", utrs_val, 100, _UTRS_COLORS, utrs_grade),
         _mini_gauge("CIRS", cirs_val, 100, _CIRS_COLORS, cirs_grade),
         # ACWR 텍스트
         (f"<div style='text-align:center;min-width:70px;'>"
-         f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>ACWR</div>"
+         f"<div style='font-size:0.7rem;color:var(--muted);margin-bottom:2px;'>{acwr_tip}</div>"
          f"<div style='font-size:1.3rem;font-weight:700;color:{acwr_clr};'>{acwr_str}</div></div>"),
         _mini_gauge("RTTI", rtti, 100, [(0, "#e53935"), (40, "#fb8c00"), (70, "#43a047")]),
         # 웰니스 미니 아이콘
@@ -74,9 +78,13 @@ def render_daily_status_strip(utrs_val: float | None, utrs_json: dict,
         _mini_icon_val("&#128147;", "HRV", f"{hrv:.0f}" if hrv else None, "", "var(--green)"),
     ]
 
+    from datetime import date as _date
+    date_label = "오늘의 상태"
+    if metric_date and metric_date != _date.today().isoformat():
+        date_label = f"최근 상태 ({metric_date})"
     return (
         "<div class='card' style='padding:0.6rem 0.8rem;'>"
-        "<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;'>오늘의 상태</div>"
+        f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;'>{date_label}</div>"
         "<div style='display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end;justify-content:space-around;'>"
         + "".join(parts) +
         "</div></div>"
@@ -246,12 +254,24 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
         return "<span style='color:var(--green);font-size:0.7rem;'>&#8595;</span>"
 
     def _pill(label: str, val: float | None, lo: float, hi: float,
-              fmt: str = ".2f", invert: bool = False, trend_key: str = "") -> str:
+              fmt: str = ".2f", invert: bool = False, trend_key: str = "",
+              desc_key: str = "") -> str:
         trend = _trend_arrow(trends_7d.get(trend_key, [])) if trend_key else ""
+        # 범위 + 상태 설명
+        desc = METRIC_DESCRIPTIONS.get(desc_key or trend_key, "")
+        if val is not None:
+            if not invert:
+                status = "위험" if val > hi else "주의" if val > lo else "적정"
+            else:
+                status = "위험" if val < lo else "주의" if val < hi else "적정"
+            range_text = f" (적정: {lo}~{hi})"
+            desc = f"{desc}{range_text} | 현재: {status}" if desc else f"적정 범위: {lo}~{hi} | 현재: {status}"
+        tip_label = tooltip(label, desc) if desc else label
+
         if val is None:
             return (f"<span style='background:rgba(255,255,255,0.08);color:var(--muted);"
                     f"border-radius:16px;padding:0.25rem 0.7rem;font-size:0.78rem;"
-                    f"white-space:nowrap;'>{label} — {trend}</span>")
+                    f"white-space:nowrap;'>{tip_label} — {trend}</span>")
         bad = val > hi if not invert else val < lo
         warn = (lo < val <= hi) if not invert else (lo <= val < hi)
         if bad:
@@ -262,7 +282,7 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
             bg, clr = "rgba(0,255,136,0.15)", "var(--green)"
         return (f"<span style='background:{bg};color:{clr};border-radius:16px;"
                 f"padding:0.25rem 0.7rem;font-size:0.78rem;white-space:nowrap;'>"
-                f"{label} {val:{fmt}} {trend}</span>")
+                f"{tip_label} {val:{fmt}} {trend}</span>")
 
     tsb = risk_data.get("tsb")
     strain = risk_data.get("strain")
@@ -372,14 +392,20 @@ def _render_gauge_card(title: str, value: float | None, max_value: float,
 def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
     if not axes:
         return no_data_card("RMR 러너 성숙도 레이더")
+    from datetime import date as _date, timedelta as _td
     radar = svg_radar_chart(axes, max_value=100.0, compare_axes=compare_axes, width=260)
     overall = sum(axes.values()) / len(axes) if axes else 0
-    compare_note = ("<p class='muted' style='margin:0.3rem 0 0;font-size:0.8rem;'>&#128993; 3개월 전 비교</p>"
+    today = _date.today()
+    period_text = f"최근 28일 기준 ({(today - _td(days=28)).strftime('%m/%d')}~{today.strftime('%m/%d')})"
+    compare_note = (f"<p class='muted' style='margin:0.3rem 0 0;font-size:0.78rem;'>"
+                    f"&#128993; 3개월 전 대비</p>"
                    if compare_axes else "")
+    rmr_tip = tooltip("RMR 러너 성숙도", METRIC_DESCRIPTIONS.get("RMR", ""))
     return (
         "<div class='card' style='text-align:center;'>"
-        "<h2 style='margin-bottom:0.3rem;font-size:1rem;'>RMR 러너 성숙도</h2>"
-        f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.8rem;'>종합 {overall:.1f}점</p>"
+        f"<h2 style='margin-bottom:0.3rem;font-size:1rem;'>{rmr_tip}</h2>"
+        f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.78rem;'>"
+        f"종합 {overall:.1f}점 · {period_text}</p>"
         f"{radar}{compare_note}</div>"
     )
 
@@ -469,14 +495,16 @@ def _render_activity_list(activities: list[dict]) -> str:
                 f"<span style='background:rgba(0,255,136,0.12);color:var(--green);"
                 f"border-radius:12px;padding:0.1rem 0.5rem;font-size:0.76rem;'>RE {act['relative_effort']:.0f}</span>"
             )
+        name = _html.escape(act.get("name", "")) or "러닝"
         items.append(
             f"<a href='/activity/deep?id={act['id']}' style='text-decoration:none;color:inherit;'>"
             f"<div class='card' style='display:flex;align-items:center;gap:0.8rem;"
             f"padding:0.7rem 0.9rem;margin:0.4rem 0;'>"
             f"<div style='font-size:1.5rem;'>&#127939;</div>"
             f"<div style='flex:1;min-width:0;'>"
-            f"<div style='font-weight:600;font-size:0.9rem;'>{_html.escape(act['date'])} · {_html.escape(dist)}</div>"
+            f"<div style='font-weight:600;font-size:0.9rem;'>{name}</div>"
             f"<div class='muted' style='font-size:0.8rem;margin-top:0.1rem;'>"
+            f"{_html.escape(act['date'])} · {_html.escape(dist)} · "
             f"{fmt_duration(act['duration_sec'])} · {fmt_pace(act['avg_pace_sec_km'])}/km · &#9829; {act['avg_hr'] or '—'} bpm</div>"
             f"<div style='margin-top:0.25rem;'>{' '.join(badges)}</div></div>"
             f"<div style='color:var(--muted);'>&#8250;</div></div></a>"

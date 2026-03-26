@@ -223,11 +223,13 @@ def _make_tag_badges(ua) -> str:
     badges = []
     seen: set[str] = set()
 
+    _HIDE_TAGS = {"uncategorized", "other", "default", "none", "-", ""}
+
     def _add(label: str) -> None:
         if not label:
             return
         normalized = label.lower().strip()
-        if normalized in seen:
+        if normalized in seen or normalized in _HIDE_TAGS:
             return
         seen.add(normalized)
         badges.append(_label_badge(label))
@@ -417,25 +419,29 @@ def _render_filter_form(
         + "<div class='card' style='padding:0.8rem 1rem;'>"
         + "<form id='filter-form' method='get' action='/activities'>"
         + f"<input type='hidden' id='type-hidden' name='type' value='{html.escape(act_type)}'>"
-        # 검색 + 소스 + 날짜 범위
+        # 검색바 (항상 노출)
+        + "<div style='display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;'>"
+        + f"<input type='search' name='q' value='{html.escape(q)}' placeholder='활동 검색…' "
+        + f"style='{_inp} flex:1; min-width:140px; box-sizing:border-box;'>"
+        + "<button type='submit' style='height:2rem; font-size:0.85rem; padding:0 0.8rem;'>조회</button>"
+        + "<a href='/activities' style='font-size:0.82rem; color:var(--muted);'>초기화</a>"
+        + "</div>"
+        # 상세 필터 (접이식)
+        + "<details style='margin-top:0.5rem;'>"
+        + "<summary style='font-size:0.8rem; color:var(--muted); cursor:pointer; list-style:none;'>"
+        + "🔍 상세 필터</summary>"
+        + "<div style='padding-top:0.5rem;'>"
+        # 소스 + 날짜 범위
         + "<div style='display:flex; gap:0.7rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:0.55rem;'>"
-        + "<label style='display:flex; flex-direction:column; font-size:0.82rem; flex:1; min-width:120px;'>활동명 검색"
-        + f"<input type='search' name='q' value='{html.escape(q)}' placeholder='검색어…' style='{_inp} width:100%; box-sizing:border-box;'></label>"
         + "<label style='display:flex; flex-direction:column; font-size:0.82rem;'>소스"
         + f"<select name='source' style='font-size:0.85rem;'>{source_opts}</select></label>"
         + "<label style='display:flex; flex-direction:column; font-size:0.82rem;'>시작일"
         + f"<input type='date' id='filter-from' name='from' value='{html.escape(date_from)}' style='font-size:0.85rem;'></label>"
         + "<label style='display:flex; flex-direction:column; font-size:0.82rem;'>종료일"
         + f"<input type='date' id='filter-to' name='to' value='{html.escape(date_to)}' style='font-size:0.85rem;'></label>"
-        + "<button type='submit' style='height:2rem; font-size:0.85rem; padding:0 0.8rem;'>조회</button>"
-        + "<a href='/activities' style='line-height:2rem; font-size:0.82rem; color:var(--muted);'>초기화</a>"
         + "</div>"
         # 거리/시간/페이스 범위 필터
-        + "<details style='margin-bottom:0.45rem;'>"
-        + "<summary style='font-size:0.8rem; color:var(--muted); cursor:pointer; user-select:none; list-style:none; display:inline-flex; align-items:center; gap:4px;'>"
-        + ("▼ " if any([min_dist, max_dist, min_pace_raw, max_pace_raw, min_dur_raw, max_dur_raw]) else "▶ ")
-        + "범위 필터</summary>"
-        + "<div style='display:flex; gap:0.6rem; flex-wrap:wrap; align-items:flex-end; padding:0.5rem 0 0.3rem;'>"
+        + "<div style='display:flex; gap:0.6rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:0.5rem;'>"
         + f"<label style='display:flex; flex-direction:column; font-size:0.78rem;'>최소 거리(km)<input id='f-min-dist' type='number' name='min_dist' min='0' step='0.1' value='{html.escape(min_dist_v)}' style='{_inp} width:70px;'></label>"
         + f"<label style='display:flex; flex-direction:column; font-size:0.78rem;'>최대 거리(km)<input id='f-max-dist' type='number' name='max_dist' min='0' step='0.1' value='{html.escape(max_dist_v)}' style='{_inp} width:70px;'></label>"
         + f"<label style='display:flex; flex-direction:column; font-size:0.78rem;'>최소 페이스(M:SS)<input id='f-min-pace' type='text' name='min_pace' placeholder='5:00' value='{html.escape(min_pace_raw)}' style='{_inp} width:60px;'></label>"
@@ -443,7 +449,6 @@ def _render_filter_form(
         + f"<label style='display:flex; flex-direction:column; font-size:0.78rem;'>최소 시간(분)<input type='number' name='min_dur' min='0' value='{html.escape(min_dur_raw)}' style='{_inp} width:60px;'></label>"
         + f"<label style='display:flex; flex-direction:column; font-size:0.78rem;'>최대 시간(분)<input type='number' name='max_dur' min='0' value='{html.escape(max_dur_raw)}' style='{_inp} width:60px;'></label>"
         + "</div>"
-        + "</details>"
         # 운동 유형 pills
         + "<div style='display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.35rem;'>"
         + f"<span style='font-size:0.78rem; color:var(--muted); line-height:1.8rem; margin-right:2px;'>유형</span>"
@@ -459,11 +464,13 @@ def _render_filter_form(
         + f"<span style='font-size:0.78rem; color:var(--muted); line-height:1.8rem; margin-right:2px;'>거리</span>"
         + dist_preset_pills
         + "</div>"
-        # 페이스 프리셋 pills (러닝에만 의미있음)
+        # 페이스 프리셋 pills
         + "<div style='display:flex; gap:0.35rem; flex-wrap:wrap;'>"
         + f"<span style='font-size:0.78rem; color:var(--muted); line-height:1.8rem; margin-right:2px;'>페이스</span>"
         + pace_preset_pills
         + "</div>"
+        + "</div>"  # details content
+        + "</details>"
         + "</form>"
         + "</div>"
     )
@@ -706,17 +713,18 @@ _ACTIVITY_TABLE_CSS = """
 .dt-yr { }           /* 연도 "2026-" */
 .dt-md { }           /* 월일 "03-08" */
 .dt-tm { }           /* 시간 " 15:16" */
-/* 640px 이하: 시간 숨김, 태그·심박 컬럼 숨김 */
+/* 640px 이하: 시간+연도 숨김, 태그·심박 컬럼 숨김, 날짜 축약 */
 @media (max-width: 640px) {
     .act-table { font-size: 0.8rem; }
     .act-table th, .act-table td { padding: 0.3rem 0.35rem; }
     .act-table .col-mob-hide { display: none; }
     .dt-tm { display: none; }
+    .dt-yr { display: none; }
+    .col-date { min-width: 42px !important; }
 }
-/* 440px 이하: 연도도 숨김, 페이스 숨김 */
+/* 440px 이하: 페이스 숨김 */
 @media (max-width: 440px) {
     .act-table .col-pace-hide { display: none; }
-    .dt-yr { display: none; }
 }
 </style>
 """
@@ -1010,15 +1018,24 @@ def activities_list():
         connected=connected_services(),
     )
 
+    # 동기화 카드를 접이식으로 하단 배치
+    sync_section = (
+        "<details style='margin-top:12px;'>"
+        "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
+        "padding:10px 16px;font-size:13px;font-weight:600;list-style:none;color:var(--muted);'>"
+        "🔄 동기화 상태</summary>"
+        f"<div style='margin-top:8px;'>{sync_btn}</div></details>"
+    )
+
     body = (
         _JS
         + _EDIT_BAR
         + _MERGE_BAR
-        + sync_btn
         + _render_filter_form(source, act_type, date_from, date_to, q,
                              min_dist, max_dist, min_pace_raw, max_pace_raw, min_dur_raw, max_dur_raw)
         + _render_summary(total, stats.get("total_dist_km", 0.0))
         + _render_activity_table(activities, sort_url_base=sort_base, cur_sort=sort_by, cur_dir=sort_dir)
         + _render_pagination(page, total, base_qs)
+        + sync_section
     )
     return html_page("활동 목록", body, active_tab="activities")

@@ -319,7 +319,7 @@ def _render_source_comparison(
             fv, fu = float(v), float(unified_v)
             if fu == 0:
                 return fv != 0
-            return abs(fv - fu) / abs(fu) > 0.005
+            return abs(fv - fu) / abs(fu) > 0.05  # 5% 이상 차이만 강조
         except (TypeError, ValueError):
             return str(v) != str(unified_v)
 
