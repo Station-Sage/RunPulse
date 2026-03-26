@@ -29,14 +29,19 @@
 - DB 정규화, 멀티유저 강화
 
 ### 메트릭
-- eFTP, Critical Power / W'
-- REC (러닝 효율성), RRI (레이스 준비도)
-- SAPI (계절 성과 비교), TEROI (훈련 ROI)
+- ~~eFTP, Critical Power / W'~~ ✅ 완료
+- ~~REC (러닝 효율성), RRI (레이스 준비도)~~ ✅ 완료
+- ~~SAPI (계절 성과 비교), TEROI (훈련 ROI)~~ ✅ 완료
+- ~~VDOT_ADJ (HR-페이스 보정)~~ ✅ 완료
+- 운동 유형 자동 분류기 ✅ 완료
 
 ### UI
-- 6.4~6.8 UI 보완 + S5-C2 UI 전면 재설계
-- Training Plan 풀 구현 (캘린더, 운동 CRUD)
-- AI 채팅 (대화형 코칭)
+- ~~6.4~6.8 UI 보완 + S5-C2 UI 전면 재설계~~ ✅ v0.2에서 완료
+- ~~Training Plan 풀 구현 (캘린더, 운동 CRUD)~~ ✅ 완료
+- ~~AI 채팅 (대화형 코칭)~~ ✅ 완료
+- ~~Mapbox → Leaflet+OSM~~ ✅ 완료
+- 용어집/가이드 페이지 ✅ 완료
+- UI 피드백 25건+ 수정 ✅ 완료
 
 ---
 
