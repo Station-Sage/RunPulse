@@ -236,8 +236,9 @@ def render_fitness_trends_chart(pmc_data: list[dict], trends: dict) -> str:
 
 # ── 섹션 6: 리스크 상세 확장 ──────────────────────────────────────────────────
 
-def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
-    """섹션 6: 위험지표 pills + Strain + 7일 미니 추세 화살표."""
+def render_risk_pills_v2(risk_data: dict, trends_7d: dict,
+                         config: dict | None = None, conn=None) -> str:
+    """섹션 6: 위험지표 pills + AI 요약."""
     if not risk_data:
         return ""
 
@@ -296,8 +297,25 @@ def render_risk_pills_v2(risk_data: dict, trends_7d: dict) -> str:
         + _pill("단조로움", risk_data.get("monotony"), 1.5, 2.0, ".1f", trend_key="Monotony")
         + _pill("Strain", strain, 200, 400, ".0f", trend_key="Strain")
         + _pill("TSB", tsb, -20, -10, ".0f", invert=True, trend_key="TSB")
-        + "</div></div>"
+        + "</div>"
+        + _risk_ai_summary(risk_data, config, conn)
+        + "</div>"
     )
+
+
+def _risk_ai_summary(risk_data: dict, config, conn) -> str:
+    """리스크 AI 한 줄 요약."""
+    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+        return ""
+    try:
+        from src.ai.ai_message import get_card_ai_message
+        msg = get_card_ai_message("dashboard_risk", conn, "", config)
+        if msg:
+            return (f"<div style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
+                    f"💡 {msg}</div>")
+    except Exception:
+        pass
+    return ""
 
 
 # ── 경고 배너 ─────────────────────────────────────────────────────────────────
@@ -389,7 +407,8 @@ def _render_gauge_card(title: str, value: float | None, max_value: float,
     )
 
 
-def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
+def _render_rmr_card(axes: dict, compare_axes: dict | None = None,
+                     config: dict | None = None, conn=None) -> str:
     if not axes:
         return no_data_card("RMR 러너 성숙도 레이더")
     from datetime import date as _date, timedelta as _td
@@ -406,8 +425,25 @@ def _render_rmr_card(axes: dict, compare_axes: dict | None = None) -> str:
         f"<h2 style='margin-bottom:0.3rem;font-size:1rem;'>{rmr_tip}</h2>"
         f"<p class='muted' style='margin:0 0 0.5rem;font-size:0.78rem;'>"
         f"종합 {overall:.1f}점 · {period_text}</p>"
-        f"{radar}{compare_note}</div>"
+        f"{radar}{compare_note}"
+        + _rmr_ai_note(axes, config, conn)
+        + "</div>"
     )
+
+
+def _rmr_ai_note(axes: dict, config, conn) -> str:
+    """RMR AI 강점/약점 분석."""
+    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+        return ""
+    try:
+        from src.ai.ai_message import get_card_ai_message
+        msg = get_card_ai_message("dashboard_rmr", conn, "", config)
+        if msg:
+            return (f"<p style='text-align:left;margin-top:0.4rem;font-size:0.78rem;"
+                    f"color:var(--secondary);'>💡 {msg}</p>")
+    except Exception:
+        pass
+    return ""
 
 
 # ── PMC 차트 ──────────────────────────────────────────────────────────────────
@@ -641,7 +677,8 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
 
 def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
                          eftp: float | None = None, rec: float | None = None,
-                         rri: float | None = None, vdot_adj: float | None = None) -> str:
+                         rri: float | None = None, vdot_adj: float | None = None,
+                         config: dict | None = None, conn=None) -> str:
     """VDOT / Marathon Shape / eFTP / REC / RRI 피트니스 미니 카드."""
     if all(v is None for v in [vdot, marathon_shape_pct, eftp, rec]):
         return no_data_card("피트니스 현황", "데이터 수집 중입니다")
@@ -688,5 +725,22 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
         f"<div class='muted' style='font-size:0.76rem;'>{tooltip('Marathon Shape', METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
-        + extra_row + "</div>"
+        + extra_row
+        + _fitness_ai_note(config, conn)
+        + "</div>"
     )
+
+
+def _fitness_ai_note(config, conn) -> str:
+    """피트니스 AI 평가."""
+    if not config or not conn or config.get("ai", {}).get("provider", "rule") == "rule":
+        return ""
+    try:
+        from src.ai.ai_message import get_card_ai_message
+        msg = get_card_ai_message("dashboard_fitness", conn, "", config)
+        if msg:
+            return (f"<p style='margin-top:0.4rem;font-size:0.78rem;color:var(--secondary);'>"
+                    f"💡 {msg}</p>")
+    except Exception:
+        pass
+    return ""

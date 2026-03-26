@@ -313,15 +313,17 @@ def _build_dashboard(db) -> str:
     fitness_card = _render_fitness_mini(
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),
-        rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"))
+        rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"),
+        config=_cfg, conn=conn)
     rmr_axes = rmr_json.get("axes") if rmr_json else None
     rmr_compare = rmr_old_json.get("axes") if rmr_old_json else None
-    rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None)
+    rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None,
+                                config=_cfg, conn=conn)
 
     # ── 섹션 6: 리스크 상세 ───────────────────────────────────────────────
     risk_data = {"acwr": acwr_val, "lsi": lsi_val, "monotony": mono_val,
                  "strain": strain_val, "tsb": tsb_last}
-    risk_pills = render_risk_pills_v2(risk_data, risk_7d)
+    risk_pills = render_risk_pills_v2(risk_data, risk_7d, config=_cfg, conn=conn)
 
     # ── 섹션 7: 최근 활동 ─────────────────────────────────────────────────
     activity_list = _render_activity_list(recent_acts)

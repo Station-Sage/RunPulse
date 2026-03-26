@@ -201,7 +201,8 @@ def _summary_stat(label: str, value: str, pct: int) -> str:
 # ── S4: 컨디션 조정 ───────────────────────────────────────────────────
 
 def render_adjustment_card(adj: dict | None, cirs_val: float | None = None,
-                           utrs_val: float | None = None) -> str:
+                           utrs_val: float | None = None,
+                           config: dict | None = None, conn=None) -> str:
     """오늘 컨디션 조정 카드 + 웰니스 상세 + CIRS/UTRS 반영."""
     if not adj:
         return ""
