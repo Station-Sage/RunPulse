@@ -10,7 +10,7 @@
  *     - 나머지: Network First
  */
 
-const CACHE_VERSION = "runpulse-v1";
+const CACHE_VERSION = "runpulse-v2";
 const OFFLINE_URL = "/static/offline.html";
 
 /** Install 시 선캐시할 자산 목록. */
@@ -20,6 +20,8 @@ const PRECACHE_URLS = [
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
   "https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js",
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
   "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Inter:wght@400;600&display=swap",
 ];
 
