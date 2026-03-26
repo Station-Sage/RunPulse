@@ -254,10 +254,13 @@ def _render_ai_section(config: dict) -> str:
     return f"""
 <div class='card'>
   <h2 style='margin-bottom:0.5rem;'>AI 코치 설정</h2>
-  <p class='muted' style='font-size:0.82rem;margin-bottom:0.8rem;'>
-    AI 코치 채팅에 사용할 AI 제공자를 선택합니다.
-    규칙 기반은 API 키 없이 메트릭 데이터로 답변합니다.
+  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
+    AI 코치, 브리핑, 훈련 추천, 메트릭 해석에 사용할 AI를 선택합니다.
   </p>
+  <div style='font-size:0.75rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.6;'>
+    💡 <strong>Gemini</strong> (무료, 일 1,500회) · <strong>Groq</strong> (무료, 일 14,400회) 추천<br>
+    Claude/ChatGPT는 유료. 규칙 기반은 API 없이 동작.
+  </div>
   <form method='post' action='/settings/ai' style='display:flex;flex-direction:column;gap:0.6rem;'>
     <label style='font-size:0.88rem;'>
       AI 제공자
@@ -285,12 +288,14 @@ def _render_ai_section(config: dict) -> str:
       <input type='password' name='claude_api_key' placeholder='sk-ant-...'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://console.anthropic.com/settings/keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
     </label>
     <label style='font-size:0.88rem;'>
       OpenAI API 키 <span class='muted' style='font-size:0.78rem;'>({openai_masked})</span>
       <input type='password' name='openai_api_key' placeholder='sk-...'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
+      <span class='muted' style='font-size:0.72rem;'><a href='https://platform.openai.com/api-keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
     </label>
     <button type='submit'
       style='align-self:flex-start;padding:0.45rem 1.2rem;background:var(--cyan);color:#000;

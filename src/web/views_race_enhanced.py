@@ -250,8 +250,9 @@ def render_fitness_factors_chart(factors: dict) -> str:
 
 # ── DI 해설 보강 (기존 카드에 추가) ──────────────────────────────────────────
 
-def render_di_interpretation(di_val: float | None) -> str:
-    """DI 점수에 따른 레이스 영향 해설."""
+def render_di_interpretation(di_val: float | None, config: dict | None = None,
+                             conn=None) -> str:
+    """DI 점수에 따른 레이스 영향 해설 — AI 우선."""
     if di_val is None:
         return ""
     score = int(di_val)
@@ -263,6 +264,17 @@ def render_di_interpretation(di_val: float | None) -> str:
         msg = f"DI {score} = 후반 5~10% 페이스 드롭 가능. 전반 보수적 출발 권장."
     else:
         msg = f"DI {score} = 후반 10%+ 급격한 페이스 드롭 위험. 장거리 훈련 강화가 시급합니다."
+
+    # AI 시도
+    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
+        try:
+            from src.ai.ai_message import get_card_ai_message
+            ai_msg = get_card_ai_message("race_readiness", conn, msg, config)
+            if ai_msg and ai_msg != msg:
+                msg = ai_msg
+        except Exception:
+            pass
+
     return (
         f"<div style='background:rgba(0,255,136,0.06);border-radius:12px;padding:12px 16px;"
         f"margin:8px 0;font-size:0.82rem;color:var(--secondary);'>"
