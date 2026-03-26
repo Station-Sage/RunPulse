@@ -73,6 +73,8 @@
 - [x] Google Gemini API 연동 (무료 1,500 RPD) + Groq API 연동 (무료 14,400 RPD)
 - [x] Genspark iframe 내장 (AI 코치 탭)
 - [x] AI Everywhere v2: 탭별 1회 통합 호출 + DB 캐시 + 검증/재시도 + 13곳 AI + 전체화면 채팅 + AI 업데이트 버튼
+- [x] AI 코치 v2: Gemini Function Calling (10도구) + 의도 감지 7종 + 날짜 추출 + Provider별 컨텍스트 전략 + 추천질문 칩 + UX 10건 개선
+- [ ] (향후) MCP 서버 — 외부 AI 웹 UI(Claude Desktop 등)에서 RunPulse DB 직접 접근
 - [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
 - [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
 - [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준

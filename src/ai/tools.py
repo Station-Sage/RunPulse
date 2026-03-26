@@ -177,7 +177,7 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
         aid, km, sec, pace, avg_hr, max_hr, elev, cal, name = a
         detail: dict[str, Any] = {
             "name": name, "distance_km": km, "duration_sec": sec,
-            "pace": seconds_to_pace(pace) if pace else None,
+            "pace": seconds_to_pace(int(pace)) if pace else None,
             "avg_hr": avg_hr, "max_hr": max_hr,
             "elevation_m": elev, "calories": cal,
         }
@@ -211,7 +211,7 @@ def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
         "count": len(rows),
         "activities": [
             {"date": r[0], "km": r[1], "sec": r[2],
-             "pace": seconds_to_pace(r[3]) if r[3] else None,
+             "pace": seconds_to_pace(int(r[3])) if r[3] else None,
              "hr": r[4], "name": r[5]}
             for r in rows
         ],
@@ -301,7 +301,7 @@ def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
     return {
         "races": [
             {"date": str(r[0])[:10], "km": r[1], "duration": r[2],
-             "pace": seconds_to_pace(r[3]) if r[3] else None,
+             "pace": seconds_to_pace(int(r[3])) if r[3] else None,
              "hr": r[4], "name": r[5]}
             for r in rows
         ],
@@ -330,7 +330,7 @@ def _exec_compare_periods(conn: sqlite3.Connection, args: dict) -> dict:
         return {
             "period": f"{s}~{e}", "runs": rows[0],
             "total_km": round(float(rows[1]), 1),
-            "avg_pace": seconds_to_pace(rows[2]) if rows[2] else None,
+            "avg_pace": seconds_to_pace(int(rows[2])) if rows[2] else None,
             "avg_hr": round(float(rows[3]), 1) if rows[3] else None,
             "metrics": metrics,
         }

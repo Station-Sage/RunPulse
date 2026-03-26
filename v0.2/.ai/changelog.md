@@ -2,6 +2,44 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-ai-coach-v2] 2026-03-26
+
+### AI 코치 v2 — Function Calling + 의도 감지 + 풍부한 컨텍스트
+
+**Function Calling (Gemini):**
+- `tools.py`: 10개 도구 정의 (get_activity, compare_periods, get_race_history 등)
+- AI가 사용자 질문에 필요한 데이터를 **직접 판단**하여 DB 조회
+- Multi-turn: 최대 3라운드 도구 호출 → 최종 답변 생성
+- Groq/Claude/OpenAI fallback: 기존 프롬프트 주입 방식 유지
+
+**의도 감지 + 날짜 추출 (`chat_context.py`):**
+- 7개 의도: today, lookup, race, compare, plan, recovery, general
+- 한국어 날짜 파싱: "3월 15일", "어제", "지난주 수요일", "2026-03-20"
+- Provider별 컨텍스트 전략:
+  - Gemini (1M): 30일 풀 활동/메트릭/웰니스/피트니스
+  - Claude/OpenAI (200K): 14일 + 의도별
+  - Groq (128K): 의도 기반 선택적 수집
+- 레이스 이력 + 동일 유형 과거 활동 자동 포함
+- 러너 프로필 요약 (주간 평균, VO2Max, 목표 D-day)
+
+**AI 코치탭 UX 개선:**
+- 마크다운 볼드 파싱: 깨진 루프 → regex 정확 변환
+- 추천질문 플로팅 칩: AI 응답 `[추천: Q1 | Q2 | Q3]` 파싱 → 클릭 가능 칩
+- AI provider 배지: 채팅 메시지에 "via gemini" 표시
+- 웰니스 카드: HRV/안정심박 상태색 + 수면시간 표시
+- 빠른 질문 → 칩 시스템 연동
+- 전체화면 토글: z-index 9999 + body overflow hidden + safe-area 패딩
+- 채팅 전송 후 `#chatCard` 앵커 → 스크롤 유지
+- Genspark iframe 제거 (100% 차단), 수동 연동 UX 개선
+- Silent exception → logging 추가
+
+**시스템 프롬프트:**
+- 코치 역할 정의 + 응답 규칙 (간결성, 위험 경고, 데이터 근거)
+- 추천질문 3개 자동 생성 규칙
+- 최근 3개 대화 이력 포함 (맥락 유지)
+
+---
+
 ## [v0.4-ai-everywhere] 2026-03-26
 
 ### AI Everywhere — 전체 UI AI 해석 통합

@@ -10,7 +10,12 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from src.utils.pace import seconds_to_pace
+from src.utils.pace import seconds_to_pace as _raw_pace
+
+
+def seconds_to_pace(val) -> str:
+    """float-safe wrapper."""
+    return _raw_pace(int(val))
 
 log = logging.getLogger(__name__)
 
