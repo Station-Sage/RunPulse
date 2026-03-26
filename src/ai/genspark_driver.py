@@ -140,18 +140,50 @@ if __name__ == "__main__":
 '''
 
 
-def _is_inside_proot() -> bool:
-    """현재 환경이 proot 내부인지 감지."""
+def _detect_env() -> str:
+    """실행 환경 감지.
+
+    Returns:
+        'direct' — Selenium 직접 실행 가능 (Linux/Win/Mac/proot/venv)
+        'proot'  — Termux에서 proot subprocess 필요
+        'error'  — Selenium 없고 proot도 없음
+    """
     import os
-    # proot 안에서는 /etc/debian_version이 존재하고 Termux 환경변수가 없음
-    if os.path.exists("/etc/debian_version") and not os.environ.get("TERMUX_VERSION"):
-        return True
-    # Selenium import 가능하면 proot 안
+    import shutil
+
+    # 1. 현재 환경에서 Selenium import 가능하면 직접 실행
     try:
         import selenium  # noqa: F401
-        return True
+        return "direct"
     except ImportError:
-        return False
+        pass
+
+    # 2. venv에 Selenium이 있는지 확인 (Termux venv 또는 proot venv)
+    _VENV_PATHS = [
+        os.path.expanduser("~/.venv/bin/python3"),
+        os.path.expanduser("~/selenium-env/bin/python3"),
+        "/root/selenium-env/bin/python3",
+    ]
+    for vp in _VENV_PATHS:
+        if os.path.exists(vp):
+            try:
+                import subprocess
+                r = subprocess.run([vp, "-c", "import selenium"], capture_output=True, timeout=5)
+                if r.returncode == 0:
+                    # venv python 경로를 기억
+                    _detect_env._venv_python = vp
+                    return "direct"
+            except Exception:
+                pass
+
+    # 3. Termux + proot-distro 있으면 proot 모드
+    if os.environ.get("TERMUX_VERSION") or os.environ.get("PREFIX", "").startswith("/data/data/com.termux"):
+        if shutil.which("proot-distro"):
+            return "proot"
+
+    return "error"
+
+_detect_env._venv_python = None
 
 
 def send_and_receive(prompt: str, timeout: int = _RESPONSE_TIMEOUT) -> str:
@@ -168,9 +200,19 @@ def send_and_receive(prompt: str, timeout: int = _RESPONSE_TIMEOUT) -> str:
     Returns:
         AI 응답 텍스트.
     """
-    if _is_inside_proot():
+    env = _detect_env()
+    if env == "direct":
+        venv_py = _detect_env._venv_python
+        if venv_py:
+            # venv에서 실행 (subprocess)
+            return _run_via_venv(prompt, timeout, venv_py)
         return _run_selenium_direct(prompt, timeout)
-    return _run_via_proot(prompt, timeout)
+    elif env == "proot":
+        return _run_via_proot(prompt, timeout)
+    else:
+        return ("Selenium을 찾을 수 없습니다.\n"
+                "설치: pip install selenium + Chrome/Chromium 필요\n"
+                "Termux: proot-distro install debian + chromium + selenium")
 
 
 def _run_selenium_direct(prompt: str, timeout: int) -> str:
@@ -268,6 +310,45 @@ def _run_selenium_direct(prompt: str, timeout: int) -> str:
         driver.quit()
 
 
+def _run_via_venv(prompt: str, timeout: int, venv_python: str) -> str:
+    """venv Python으로 Selenium 실행 (subprocess)."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(_SELENIUM_SCRIPT)
+        script_path = f.name
+    try:
+        log.info("Genspark venv 모드: %s", venv_python)
+        result = subprocess.run(
+            [venv_python, script_path, prompt, str(timeout)],
+            capture_output=True, text=True, timeout=timeout + 30,
+        )
+        if result.returncode != 0:
+            return f"Genspark venv 오류: {result.stderr[:200]}"
+        return _parse_selenium_output(result.stdout)
+    except subprocess.TimeoutExpired:
+        return f"Genspark venv 타임아웃 ({timeout + 30}초)"
+    except Exception as exc:
+        return f"Genspark venv 실패: {exc}"
+    finally:
+        Path(script_path).unlink(missing_ok=True)
+
+
+def _parse_selenium_output(stdout: str) -> str:
+    """Selenium 스크립트의 JSON 출력 파싱."""
+    output = stdout.strip()
+    if not output:
+        return "Genspark에서 응답이 없습니다."
+    try:
+        data = json.loads(output)
+        if "error" in data:
+            return f"Genspark 오류: {data['error']}"
+        response = data.get("response", "")
+        if data.get("timeout"):
+            response += "\n\n⚠️ 응답 대기 타임아웃"
+        return response or "Genspark에서 빈 응답을 받았습니다."
+    except json.JSONDecodeError:
+        return output
+
+
 def _run_via_proot(prompt: str, timeout: int) -> str:
     """Termux에서 proot subprocess로 Selenium 실행."""
     # 임시 파일에 스크립트 저장
@@ -289,24 +370,8 @@ def _run_via_proot(prompt: str, timeout: int) -> str:
 
         if result.returncode != 0:
             log.warning("proot Selenium 오류: %s", result.stderr[:300])
-            return f"Genspark 자동 모드 오류: {result.stderr[:200]}"
-
-        # JSON 파싱
-        output = result.stdout.strip()
-        if not output:
-            return "Genspark에서 응답이 없습니다."
-
-        try:
-            data = json.loads(output)
-            if "error" in data:
-                return f"Genspark 오류: {data['error']}"
-            response = data.get("response", "")
-            if data.get("timeout"):
-                response += "\n\n⚠️ 응답 대기 타임아웃 (일부 응답일 수 있습니다)"
-            return response or "Genspark에서 빈 응답을 받았습니다."
-        except json.JSONDecodeError:
-            # JSON이 아니면 그대로 반환
-            return output
+            return f"Genspark proot 오류: {result.stderr[:200]}"
+        return _parse_selenium_output(result.stdout)
 
     except subprocess.TimeoutExpired:
         return f"Genspark 자동 모드 타임아웃 ({timeout + 30}초)"
