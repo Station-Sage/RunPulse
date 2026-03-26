@@ -224,6 +224,16 @@ def _make_tag_badges(ua) -> str:
     seen: set[str] = set()
 
     _HIDE_TAGS = {"uncategorized", "other", "default", "none", "-", ""}
+    # 영어-한국어 의미 동등 매핑 (양쪽 다 seen에 등록)
+    _SYNONYMS: dict[str, str] = {
+        "race": "레이스", "레이스": "race",
+        "long run": "장거리", "장거리": "long run", "longrun": "장거리",
+        "easy run": "이지런", "이지런": "easy run", "easyrun": "이지런",
+        "interval": "인터벌", "인터벌": "interval",
+        "tempo": "템포", "템포": "tempo",
+        "recovery": "회복", "회복": "recovery",
+        "threshold": "역치", "역치": "threshold",
+    }
 
     def _add(label: str) -> None:
         if not label:
@@ -232,6 +242,10 @@ def _make_tag_badges(ua) -> str:
         if normalized in seen or normalized in _HIDE_TAGS:
             return
         seen.add(normalized)
+        # 동의어도 seen에 등록
+        syn = _SYNONYMS.get(normalized)
+        if syn:
+            seen.add(syn.lower())
         badges.append(_label_badge(label))
 
     # 1. workout_label (Garmin trainingEffectLabel / Intervals tags)
