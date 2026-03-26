@@ -205,10 +205,21 @@ def _render_7day_chart(data: list[dict]) -> str:
 
 
 def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None = None,
-                                    config: dict | None = None, conn=None) -> str:
-    """회복 권장 사항 카드 — AI 우선, 규칙 기반 fallback."""
+                                    config: dict | None = None, conn=None,
+                                    ai_override: str | None = None) -> str:
+    """회복 권장 사항 카드 — ai_override(탭 통합 AI) 우선, 규칙 기반 fallback."""
     if not status.get("available"):
         return ""
+
+    # AI 탭 통합 결과 우선
+    if ai_override:
+        return (
+            "<div class='card' style='border-left:4px solid #00d4ff;'>"
+            "<h2>회복 권장 <span style='font-size:0.65rem;color:var(--cyan);'>AI</span></h2>"
+            f"<div style='font-size:0.88rem;color:rgba(255,255,255,0.85);line-height:1.7;'>{ai_override}</div>"
+            "</div>"
+        )
+
     raw = status.get("raw") or {}
     grade = status.get("grade")
     tips = []
@@ -236,27 +247,13 @@ def _render_recovery_recommendation(status: dict, pattern_tips: list[str] | None
     if not tips:
         return ""
 
-    rule_text = " ".join(tips)
-
-    # AI 시도
-    ai_text = None
-    if config and conn and config.get("ai", {}).get("provider", "rule") != "rule":
-        try:
-            from src.ai.ai_message import get_card_ai_message
-            ai_text = get_card_ai_message("wellness_recovery", conn, rule_text, config)
-            if ai_text and ai_text != rule_text:
-                tips = [ai_text]
-        except Exception:
-            pass
-
-    ai_badge = " <span style='font-size:0.65rem;color:var(--cyan);'>AI</span>" if ai_text and ai_text != rule_text else ""
     items_html = "".join(
         f"<li style='margin-bottom:6px;font-size:0.88rem;color:rgba(255,255,255,0.85);'>{t}</li>"
         for t in tips
     )
     return (
         "<div class='card' style='border-left:4px solid #00d4ff;'>"
-        f"<h2>회복 권장{ai_badge}</h2>"
+        "<h2>회복 권장</h2>"
         f"<ul style='margin:0;padding-left:1.2rem;'>{items_html}</ul>"
         "</div>"
     )
@@ -331,6 +328,7 @@ def _render_wellness_body(
     status: dict, trend_data: dict, date_str: str, steps=None, weight_kg=None,
     data_14d: list[dict] | None = None, baseline: dict | None = None,
     weekly_comp: dict | None = None, sleep_times: list[dict] | None = None,
+    wellness_ai: dict | None = None,
 ) -> str:
     """회복/웰니스 본문 HTML 조립 (보강 버전)."""
     trend_section = _render_trend_card(trend_data)
@@ -359,7 +357,8 @@ def _render_wellness_body(
         + _render_hrv_card(raw, detail, data_14d, baseline)
         + "</div>"
         # 섹션 6: 패턴 인사이트 (신규)
-        + render_pattern_insights(data_14d, baseline)
+        + render_pattern_insights(data_14d, baseline,
+                                  ai_override=(wellness_ai or {}).get("pattern_insights"))
         # 섹션 7: 주간 비교 (신규)
         + render_weekly_comparison(weekly_comp or {})
         # 섹션 8: 기타 + 활동
@@ -413,12 +412,18 @@ def wellness_view():
     chart_7d = render_7day_chart_enhanced(data_14d[-7:], baseline, outlier_points=outlier_pts)
     pattern_tips = build_pattern_recovery_tips(data_14d, baseline)
     _w_cfg = None
+    _wellness_ai: dict = {}
     try:
         from src.utils.config import load_config as _lc
         _w_cfg = _lc()
+        from src.ai.ai_message import get_tab_ai
+        _wellness_ai = get_tab_ai("wellness", conn, _w_cfg, cache_key=date_str) or {}
     except Exception:
         pass
-    recovery_rec = _render_recovery_recommendation(status, pattern_tips, config=_w_cfg, conn=conn)
+    recovery_rec = _render_recovery_recommendation(
+        status, pattern_tips, config=_w_cfg, conn=conn,
+        ai_override=_wellness_ai.get("recovery"),
+    )
 
     body = (
         render_sub_nav("wellness")
@@ -426,7 +431,7 @@ def wellness_view():
         + _render_wellness_body(
             status, trend_data, date_str, steps, weight_kg,
             data_14d=data_14d, baseline=baseline, weekly_comp=weekly_comp,
-            sleep_times=sleep_times,
+            sleep_times=sleep_times, wellness_ai=_wellness_ai,
         )
         + chart_7d
         + recovery_rec

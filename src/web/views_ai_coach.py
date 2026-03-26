@@ -67,18 +67,11 @@ def _load_wellness(conn: sqlite3.Connection) -> dict:
 # ── 브리핑 생성 ────────────────────────────────────────────────────────
 
 
-def _generate_briefing(conn: sqlite3.Connection, config: dict | None = None) -> str | None:
-    """AI 우선 브리핑 생성. 규칙 기반 fallback."""
-    # AI 브리핑 시도
-    if config and config.get("ai", {}).get("provider", "rule") != "rule":
-        try:
-            from src.ai.ai_message import get_card_ai_message
-            rule_fallback = _generate_briefing_rule(conn)
-            ai_result = get_card_ai_message("coach_briefing", conn, rule_fallback or "", config)
-            if ai_result and ai_result != (rule_fallback or ""):
-                return ai_result
-        except Exception:
-            pass
+def _generate_briefing(conn: sqlite3.Connection, config: dict | None = None,
+                       ai_override: str | None = None) -> str | None:
+    """AI 우선 브리핑 생성. ai_override(탭 통합 AI) 우선, 규칙 기반 fallback."""
+    if ai_override:
+        return f"<p>{ai_override}</p>"
     return _generate_briefing_rule(conn)
 
 
@@ -175,12 +168,16 @@ def ai_coach_page():
         conn = sqlite3.connect(str(dbp))
         try:
             _cfg = None
+            _coach_ai = {}
             try:
                 from src.utils.config import load_config as _lc
                 _cfg = _lc()
+                from src.ai.ai_message import get_tab_ai
+                _coach_ai = get_tab_ai("dashboard", conn, _cfg) or {}
             except Exception:
                 pass
-            briefing_text = _generate_briefing(conn, config=_cfg)
+            briefing_text = _generate_briefing(conn, config=_cfg,
+                                              ai_override=_coach_ai.get("recommendation"))
             wellness = _load_wellness(conn)
             chips = _load_chips(conn)
             recent = _load_recent_activities(conn)
