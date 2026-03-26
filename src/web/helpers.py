@@ -796,9 +796,14 @@ def tooltip(label: str, description: str) -> str:
         label: 표시 텍스트 (예: 'UTRS').
         description: 툴팁 설명 텍스트.
     """
+    # 메트릭명이면 가이드 페이지 앵커 링크 추가
+    guide_link = ""
+    if label.upper() in METRIC_DESCRIPTIONS or label.rstrip("0123456789 ") in METRIC_DESCRIPTIONS:
+        anchor = _html.escape(label.split()[0])
+        guide_link = f" <a href='/guide#{anchor}' style='color:var(--cyan);font-size:0.7rem;'>자세히</a>"
     return (
         f"<span class='rp-tip' tabindex='0'>{_html.escape(label)}"
-        f"<span class='rp-tip-text'>{_html.escape(description)}</span></span>"
+        f"<span class='rp-tip-text'>{_html.escape(description)}{guide_link}</span></span>"
     )
 
 
