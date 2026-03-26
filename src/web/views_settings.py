@@ -167,10 +167,21 @@ def _render_user_profile_section(config: dict) -> str:
         est_parts.append(f"역치 <strong>{m}:{s:02d}</strong>/km")
     if est.get("weekly_km"):
         est_parts.append(f"주간 <strong>{est['weekly_km']:.1f}</strong>km")
-    est_note = (
-        "<p style='font-size:0.8rem;color:var(--cyan);margin:0 0 0.6rem;'>"
-        f"📊 RunPulse 추정: {' · '.join(est_parts)}</p>"
-    ) if est_parts else ""
+    est_note = ""
+    if est_parts:
+        est_note = (
+            "<div style='display:flex;align-items:center;gap:0.6rem;margin:0 0 0.6rem;flex-wrap:wrap;'>"
+            f"<span style='font-size:0.8rem;color:var(--cyan);'>📊 RunPulse 추정: {' · '.join(est_parts)}</span>"
+            f"<button type='button' onclick=\"applyEstimate({est.get('max_hr', 190)},{est.get('eftp', 300)},{est.get('weekly_km', 40)})\" "
+            "style='background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);"
+            "border-radius:12px;padding:2px 10px;font-size:0.75rem;cursor:pointer;'>적용</button></div>"
+            "<script>function applyEstimate(hr,eftp,wk){"
+            f"document.querySelector('[name=max_hr]').value=hr;"
+            f"document.querySelector('[name=threshold_pace_min]').value=Math.floor(eftp/60);"
+            f"document.querySelector('[name=threshold_pace_sec]').value=eftp%60;"
+            f"document.querySelector('[name=weekly_km]').value=wk;"
+            "}</script>"
+        )
 
     return f"""
 <div class='card'>
