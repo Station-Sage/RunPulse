@@ -96,7 +96,8 @@ def training_page():
                 + render_plan_overview(goal, current_phase, weeks_left)
                 + _render_goal_form(goals_list)
                 + render_weekly_summary(workouts, utrs_val)
-                + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val)
+                + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val,
+                                       config=config, conn=conn)
                 + render_week_calendar(workouts, week_start, week_offset)
                 + _render_workout_form(week_start)
                 + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts,
