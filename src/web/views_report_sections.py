@@ -621,7 +621,13 @@ def render_weekly_chart(weekly_data: list[dict]) -> str:
 
 
 def _activity_effect(a: dict) -> str:
-    """활동의 효과/영향을 한 줄로 해석."""
+    """활동의 효과/영향 — RP 분류기 우선, fallback 규칙 기반."""
+    # RP 분류기 결과가 있으면 우선 사용
+    rp_effect = a.get("rp_effect", "")
+    if rp_effect:
+        return rp_effect
+
+    # fallback: 규칙 기반
     parts = []
     re = a.get("relative_effort")
     dec = a.get("decoupling")

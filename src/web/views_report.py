@@ -115,13 +115,31 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
     act_ids = [a[0] for a in acts]
     metrics = load_activity_metrics_batch(
         conn, act_ids, ["FEARP", "RelativeEffort", "AerobicDecoupling"])
+    # WorkoutType 분류 로드
+    import json as _json
+    wt_map: dict[int, dict] = {}
+    if act_ids:
+        ph = ",".join("?" * len(act_ids))
+        wt_rows = conn.execute(
+            f"SELECT activity_id, metric_json FROM computed_metrics "
+            f"WHERE activity_id IN ({ph}) AND metric_name='WorkoutType'",
+            act_ids,
+        ).fetchall()
+        for aid, mj in wt_rows:
+            if mj:
+                try:
+                    wt_map[aid] = _json.loads(mj)
+                except Exception:
+                    pass
     result = []
     for act_id, start_time, dist, pace in acts:
         m = metrics.get(act_id, {})
+        wt = wt_map.get(act_id, {})
         result.append({
             "date": str(start_time)[:10], "dist_km": dist, "pace": pace,
             "fearp": m.get("FEARP"), "relative_effort": m.get("RelativeEffort"),
             "decoupling": m.get("AerobicDecoupling"),
+            "rp_type": wt.get("type", ""), "rp_effect": wt.get("effect", ""),
         })
     return result
 

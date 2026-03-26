@@ -133,6 +133,18 @@ def build_unified_activity(group_id: str | None, rows: list[dict]) -> UnifiedAct
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
 
+    # RP 자동 분류 태그 주입
+    try:
+        import json as _json
+        wt_row = conn.execute(
+            "SELECT metric_json FROM computed_metrics WHERE activity_id=? AND metric_name='WorkoutType'",
+            (rep_id,),
+        ).fetchone()
+        if wt_row and wt_row[0]:
+            source_rows["_rp_workout_type"] = _json.loads(wt_row[0])
+    except Exception:
+        pass
+
     return ua
 
 

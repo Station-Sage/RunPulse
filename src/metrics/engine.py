@@ -90,6 +90,20 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     except Exception:
         logger.exception("WLEI 계산 실패: activity_id=%d", activity_id)
 
+    # 운동 유형 자동 분류 (모든 활동별 메트릭 계산 후)
+    try:
+        from src.metrics.workout_classifier import classify_and_save
+        act_row = conn.execute(
+            "SELECT DATE(start_time) FROM activity_summaries WHERE id=?",
+            (activity_id,),
+        ).fetchone()
+        if act_row:
+            cls = classify_and_save(conn, activity_id, act_row[0])
+            if cls:
+                results["WorkoutType"] = cls.workout_type
+    except Exception:
+        logger.exception("WorkoutType 분류 실패: activity_id=%d", activity_id)
+
     return results
 
 
