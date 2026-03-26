@@ -318,7 +318,7 @@ def render_hrv_mini_chart(data: list[dict], baseline: dict) -> str:
 # ── 섹션 6: 패턴 인사이트 ────────────────────────────────────────────────────
 
 def render_pattern_insights(data_14d: list[dict], baseline: dict) -> str:
-    """규칙 기반 패턴 감지 인사이트."""
+    """패턴 인사이트 — AI 우선, 규칙 기반 fallback."""
     if len(data_14d) < 3:
         return ""
     insights: list[str] = []
@@ -359,6 +359,30 @@ def render_pattern_insights(data_14d: list[dict], baseline: dict) -> str:
 
     if not insights:
         return ""
+
+    rule_text = " / ".join(insights)
+
+    # AI 시도
+    ai_text = None
+    try:
+        from src.utils.config import load_config as _lc
+        from src.web.helpers import db_path as _dbp
+        import sqlite3 as _sql
+        _pcfg = _lc()
+        _pdb = _dbp()
+        if _pcfg and _pdb and _pdb.exists() and _pcfg.get("ai", {}).get("provider", "rule") != "rule":
+            with _sql.connect(str(_pdb)) as _pconn:
+                from src.ai.ai_message import get_card_ai_message
+                ai_text = get_card_ai_message("wellness_recovery", _pconn, rule_text, _pcfg)
+                if ai_text and ai_text != rule_text:
+                    return (
+                        "<div class='card'>"
+                        "<h2 style='font-size:1rem;margin-bottom:0.4rem;'>"
+                        "패턴 인사이트 <span style='font-size:0.65rem;color:var(--cyan);'>AI</span></h2>"
+                        f"<div style='font-size:0.83rem;color:var(--secondary);line-height:1.7;'>{ai_text}</div></div>"
+                    )
+    except Exception:
+        pass
 
     items = "".join(
         f"<li style='margin-bottom:0.35rem;font-size:0.83rem;color:var(--secondary);'>{i}</li>"
