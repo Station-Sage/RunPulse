@@ -53,7 +53,7 @@ def chat(
         prompt = build_chip_prompt(conn, chip_id)
     else:
         from .chat_context import build_chat_context
-        ctx_text = build_chat_context(conn, user_message, chat_history)
+        ctx_text = build_chat_context(conn, user_message, chat_history, provider=provider)
         prompt = _build_system_prompt(ctx_text, user_message, chat_history)
 
     # provider chain: 선택 → gemini → groq → rule

@@ -399,14 +399,214 @@ _INTENT_BUILDERS = {
 }
 
 
+# ── 풍부한 컨텍스트 (대형 컨텍스트 윈도우 provider용) ──────────────────
+
+
+def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
+    """Gemini용 30일 풀 데이터 — 활동/메트릭/웰니스/피트니스 전체."""
+    start_30d = (date.fromisoformat(today) - timedelta(days=30)).isoformat()
+
+    # 30일 전체 활동
+    acts = conn.execute(
+        "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "avg_hr, max_hr, elevation_gain_m, name FROM v_canonical_activities "
+        "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
+        (start_30d,),
+    ).fetchall()
+    ctx["activities_30d"] = [
+        {"date": r[0], "km": r[1], "sec": r[2],
+         "pace": seconds_to_pace(r[3]) if r[3] else None,
+         "avg_hr": r[4], "max_hr": r[5], "elev": r[6], "name": r[7]}
+        for r in acts
+    ]
+
+    # 30일 일별 메트릭 (주요 메트릭만)
+    key_metrics = ["UTRS", "CIRS", "ACWR", "DI", "RTTI", "REC", "RRI",
+                   "Monotony", "LSI", "Strain", "SAPI", "TEROI"]
+    metric_rows = conn.execute(
+        "SELECT date, metric_name, metric_value FROM computed_metrics "
+        "WHERE activity_id IS NULL AND metric_name IN ({}) AND date>=? "
+        "ORDER BY date".format(",".join(f"'{m}'" for m in key_metrics)),
+        (start_30d,),
+    ).fetchall()
+    daily_metrics: dict[str, dict] = {}
+    for d, name, val in metric_rows:
+        if val is None:
+            continue
+        daily_metrics.setdefault(d, {})[name] = round(float(val), 2)
+    ctx["daily_metrics_30d"] = daily_metrics
+
+    # 30일 웰니스
+    well_rows = conn.execute(
+        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
+        "FROM daily_wellness WHERE source='garmin' AND date>=? ORDER BY date",
+        (start_30d,),
+    ).fetchall()
+    ctx["wellness_30d"] = [
+        {"date": r[0], "bb": r[1], "sleep": r[2], "hrv": r[3],
+         "stress": r[4], "rhr": r[5]}
+        for r in well_rows
+    ]
+
+    # 30일 피트니스 (CTL/ATL/TSB)
+    fit_rows = conn.execute(
+        "SELECT date, ctl, atl, tsb FROM daily_fitness "
+        "WHERE date>=? ORDER BY date", (start_30d,),
+    ).fetchall()
+    ctx["fitness_30d"] = [
+        {"date": r[0], "ctl": round(float(r[1]), 1) if r[1] else None,
+         "atl": round(float(r[2]), 1) if r[2] else None,
+         "tsb": round(float(r[3]), 1) if r[3] else None}
+        for r in fit_rows
+    ]
+
+    # 러너 프로필 요약
+    ctx["runner_profile"] = _build_runner_profile(conn, today)
+
+    # 레이스 활동 이력 (태그 기반)
+    race_acts = conn.execute(
+        "SELECT a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
+        "FROM v_canonical_activities a "
+        "LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
+        "WHERE a.activity_type='running' AND (c.metric_value='race' OR a.name LIKE '%레이스%' "
+        "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
+        "ORDER BY a.start_time DESC LIMIT 10",
+    ).fetchall()
+    if race_acts:
+        ctx["race_history"] = [
+            {"date": str(r[0])[:10], "km": r[1], "sec": r[2],
+             "pace": seconds_to_pace(r[3]) if r[3] else None,
+             "hr": r[4], "name": r[5]}
+            for r in race_acts
+        ]
+
+    # 오늘과 같은 유형의 과거 활동 (비교용)
+    today_type = conn.execute(
+        "SELECT c.metric_value FROM v_canonical_activities a "
+        "JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
+        "WHERE a.activity_type='running' AND date(a.start_time)=? "
+        "ORDER BY a.start_time DESC LIMIT 1", (today,),
+    ).fetchone()
+    if today_type and today_type[0]:
+        wtype = today_type[0]
+        similar = conn.execute(
+            "SELECT date(a.start_time), a.distance_km, a.avg_pace_sec_km, a.avg_hr "
+            "FROM v_canonical_activities a "
+            "JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
+            "WHERE c.metric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
+            "ORDER BY a.start_time DESC LIMIT 5", (wtype, today),
+        ).fetchall()
+        if similar:
+            ctx["similar_activities"] = {
+                "type": wtype,
+                "history": [
+                    {"date": r[0], "km": r[1],
+                     "pace": seconds_to_pace(r[2]) if r[2] else None, "hr": r[3]}
+                    for r in similar
+                ],
+            }
+
+
+def _add_mid_14d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
+    """Claude/OpenAI용 14일 데이터."""
+    start_14d = (date.fromisoformat(today) - timedelta(days=14)).isoformat()
+
+    # 14일 활동
+    acts = conn.execute(
+        "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "avg_hr, name FROM v_canonical_activities "
+        "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
+        (start_14d,),
+    ).fetchall()
+    ctx["activities_14d"] = [
+        {"date": r[0], "km": r[1], "sec": r[2],
+         "pace": seconds_to_pace(r[3]) if r[3] else None,
+         "avg_hr": r[4], "name": r[5]}
+        for r in acts
+    ]
+
+    # 14일 웰니스
+    well_rows = conn.execute(
+        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg "
+        "FROM daily_wellness WHERE source='garmin' AND date>=? ORDER BY date",
+        (start_14d,),
+    ).fetchall()
+    ctx["wellness_14d"] = [
+        {"date": r[0], "bb": r[1], "sleep": r[2], "hrv": r[3], "stress": r[4]}
+        for r in well_rows
+    ]
+
+    ctx["runner_profile"] = _build_runner_profile(conn, today)
+
+
+def _build_runner_profile(conn: sqlite3.Connection, today: str) -> dict:
+    """러너 프로필 요약 — 주간 볼륨, 수준, 경향 등."""
+    profile: dict[str, Any] = {}
+
+    # 최근 4주 주간 평균
+    start_4w = (date.fromisoformat(today) - timedelta(weeks=4)).isoformat()
+    vol = conn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(distance_km),0), COALESCE(AVG(avg_pace_sec_km),0) "
+        "FROM v_canonical_activities WHERE activity_type='running' AND start_time>=?",
+        (start_4w,),
+    ).fetchone()
+    if vol and vol[0]:
+        weeks = 4
+        profile["weekly_avg_runs"] = round(vol[0] / weeks, 1)
+        profile["weekly_avg_km"] = round(float(vol[1]) / weeks, 1)
+        profile["avg_pace"] = seconds_to_pace(vol[2]) if vol[2] else None
+
+    # VDOT / VO2Max
+    for name in ["VDOT_ADJ", "DI"]:
+        row = conn.execute(
+            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
+            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            (name, today),
+        ).fetchone()
+        if row and row[0]:
+            profile[name.lower()] = round(float(row[0]), 1)
+
+    fit = conn.execute(
+        "SELECT garmin_vo2max FROM daily_fitness WHERE date<=? ORDER BY date DESC LIMIT 1",
+        (today,),
+    ).fetchone()
+    if fit and fit[0]:
+        profile["vo2max"] = round(float(fit[0]), 1)
+
+    # 목표
+    try:
+        from src.training.goals import get_active_goal
+        goal = get_active_goal(conn)
+        if goal:
+            profile["goal"] = goal.get("name")
+            if goal.get("race_date"):
+                try:
+                    dl = (date.fromisoformat(goal["race_date"]) - date.fromisoformat(today)).days
+                    profile["race_dday"] = dl
+                except ValueError:
+                    pass
+    except Exception:
+        pass
+
+    return profile
+
+
+# Provider별 컨텍스트 전략
+_RICH_PROVIDERS = {"gemini"}      # 1M 컨텍스트 → 30일 풀 데이터
+_MID_PROVIDERS = {"claude", "openai"}  # 200K → 14일 + 의도별
+# groq, rule 등: 의도 기반 선택적 (128K 이하)
+
+
 def build_chat_context(conn: sqlite3.Connection, message: str,
-                       chat_history: list[dict] | None = None) -> str:
-    """사용자 질문 의도에 맞는 풍부한 컨텍스트 텍스트 생성.
+                       chat_history: list[dict] | None = None,
+                       provider: str = "rule") -> str:
+    """Provider 컨텍스트 용량에 맞는 채팅 컨텍스트 생성.
 
     Args:
         conn: DB 연결.
         message: 사용자 메시지.
         chat_history: 최근 대화 이력 (맥락 유지용).
+        provider: AI provider 이름 (gemini/groq/claude/openai/rule).
     """
     today = date.today().isoformat()
     intent, target_date = detect_intent(message)
@@ -417,8 +617,21 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
     if target_date:
         ctx["_target_date"] = target_date
 
-    # 2. 의도별 추가 컨텍스트
-    # 날짜 지정 시 lookup도 같이 추가
+    # 2. Provider별 전략
+    if provider in _RICH_PROVIDERS:
+        # Gemini: 30일 풀 데이터 + 의도별 추가
+        try:
+            _add_rich_30d_context(conn, ctx, today)
+        except Exception:
+            log.warning("30일 풀 컨텍스트 빌드 실패", exc_info=True)
+    elif provider in _MID_PROVIDERS:
+        # Claude/OpenAI: 14일 + 의도별
+        try:
+            _add_mid_14d_context(conn, ctx, today)
+        except Exception:
+            log.warning("14일 컨텍스트 빌드 실패", exc_info=True)
+
+    # 3. 의도별 추가 컨텍스트 (모든 provider 공통)
     if target_date and intent != "lookup":
         try:
             _add_lookup_context(conn, ctx, today)
@@ -431,7 +644,7 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
         except Exception:
             log.warning("의도별 컨텍스트 빌드 실패 (%s)", intent, exc_info=True)
 
-    # 3. 텍스트 조립
+    # 4. 텍스트 조립
     return _format_chat_context(ctx, message, chat_history)
 
 
@@ -472,13 +685,104 @@ def _format_chat_context(ctx: dict, message: str,
         if parts:
             lines.append("오늘 컨디션: " + " | ".join(parts))
 
-    # 최근 활동
-    recent = ctx.get("recent_activities", [])
-    if recent:
-        lines.append("\n### 최근 활동")
-        for a in recent:
-            pace = seconds_to_pace(a["pace"]) if a.get("pace") else "-"
-            lines.append(f"- {a['date']}: {a.get('km', '-')}km, {pace}/km, HR {a.get('hr', '-')}")
+    # 러너 프로필 (있으면)
+    rp = ctx.get("runner_profile", {})
+    if rp:
+        rp_parts = []
+        if rp.get("weekly_avg_km"):
+            rp_parts.append(f"주간 평균 {rp['weekly_avg_km']}km/{rp.get('weekly_avg_runs', '?')}회")
+        if rp.get("avg_pace"):
+            rp_parts.append(f"평균 페이스 {rp['avg_pace']}/km")
+        if rp.get("vo2max"):
+            rp_parts.append(f"VO2Max={rp['vo2max']}")
+        if rp.get("vdot_adj"):
+            rp_parts.append(f"VDOT={rp['vdot_adj']}")
+        if rp.get("goal"):
+            dday = f" D-{rp['race_dday']}" if rp.get("race_dday") else ""
+            rp_parts.append(f"목표: {rp['goal']}{dday}")
+        if rp_parts:
+            lines.append("프로필: " + " | ".join(rp_parts))
+
+    # ── 풍부한 컨텍스트 (Gemini/Claude용) ──
+
+    # 30일 전체 활동 (Gemini)
+    acts_30d = ctx.get("activities_30d", [])
+    if acts_30d:
+        lines.append(f"\n### 최근 30일 활동 ({len(acts_30d)}개)")
+        for a in acts_30d:
+            dur = _fmt_sec(a.get("sec")) if a.get("sec") else "-"
+            name = a.get("name") or "러닝"
+            lines.append(f"- {a['date']} {name}: {a.get('km', '-')}km, "
+                        f"{a.get('pace', '-')}/km, HR {a.get('avg_hr', '-')}, {dur}")
+
+    # 14일 활동 (Claude/OpenAI)
+    acts_14d = ctx.get("activities_14d", [])
+    if acts_14d and not acts_30d:
+        lines.append(f"\n### 최근 14일 활동 ({len(acts_14d)}개)")
+        for a in acts_14d:
+            lines.append(f"- {a['date']}: {a.get('km', '-')}km, "
+                        f"{a.get('pace', '-')}/km, HR {a.get('avg_hr', '-')}")
+
+    # 최근 활동 3개 (Groq/rule — 위 데이터가 없을 때만)
+    if not acts_30d and not acts_14d:
+        recent = ctx.get("recent_activities", [])
+        if recent:
+            lines.append("\n### 최근 활동")
+            for a in recent:
+                pace = seconds_to_pace(a["pace"]) if a.get("pace") else "-"
+                lines.append(f"- {a['date']}: {a.get('km', '-')}km, {pace}/km, HR {a.get('hr', '-')}")
+
+    # 30일 일별 메트릭 (Gemini)
+    dm_30d = ctx.get("daily_metrics_30d", {})
+    if dm_30d:
+        lines.append(f"\n### 30일 메트릭 추세 ({len(dm_30d)}일)")
+        for d in sorted(dm_30d.keys()):
+            vals = dm_30d[d]
+            parts = [f"{k}={v}" for k, v in vals.items()]
+            lines.append(f"- {d}: {', '.join(parts)}")
+
+    # 30일 웰니스 (Gemini)
+    w30 = ctx.get("wellness_30d", [])
+    if w30:
+        lines.append(f"\n### 30일 웰니스 ({len(w30)}일)")
+        for d in w30:
+            lines.append(f"- {d['date']}: BB={d.get('bb', '-')} 수면={d.get('sleep', '-')} "
+                        f"HRV={d.get('hrv', '-')} 스트레스={d.get('stress', '-')} RHR={d.get('rhr', '-')}")
+
+    # 14일 웰니스 (Claude/OpenAI)
+    w14 = ctx.get("wellness_14d", [])
+    if w14 and not w30:
+        lines.append(f"\n### 14일 웰니스 ({len(w14)}일)")
+        for d in w14:
+            lines.append(f"- {d['date']}: BB={d.get('bb', '-')} 수면={d.get('sleep', '-')} "
+                        f"HRV={d.get('hrv', '-')} 스트레스={d.get('stress', '-')}")
+
+    # 30일 피트니스 (Gemini)
+    f30 = ctx.get("fitness_30d", [])
+    if f30:
+        lines.append(f"\n### 30일 피트니스 ({len(f30)}일)")
+        for d in f30[-10:]:  # 최근 10일만 표시 (나머지는 추세 파악용)
+            lines.append(f"- {d['date']}: CTL={d.get('ctl', '-')} ATL={d.get('atl', '-')} "
+                        f"TSB={d.get('tsb', '-')}")
+        if len(f30) > 10:
+            lines.append(f"  (이전 {len(f30)-10}일 데이터 포함)")
+
+    # 레이스 이력
+    rh = ctx.get("race_history", [])
+    if rh:
+        lines.append(f"\n### 레이스 이력 ({len(rh)}개)")
+        for r in rh:
+            dur = _fmt_sec(r.get("sec")) if r.get("sec") else "-"
+            lines.append(f"- {r['date']} {r.get('name', '레이스')}: "
+                        f"{r.get('km', '-')}km, {r.get('pace', '-')}/km, {dur}")
+
+    # 같은 유형 과거 활동
+    sim = ctx.get("similar_activities")
+    if sim:
+        lines.append(f"\n### 오늘과 같은 유형({sim['type']}) 과거 활동")
+        for a in sim["history"]:
+            lines.append(f"- {a['date']}: {a.get('km', '-')}km, "
+                        f"{a.get('pace', '-')}/km, HR {a.get('hr', '-')}")
 
     # ── 의도별 추가 데이터 ──
 
