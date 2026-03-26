@@ -120,6 +120,7 @@ def _load_pmc_data(conn: sqlite3.Connection, end_date: str, days: int = 60) -> l
 
 
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
+    from .route_svg import render_route_svg
     rows = conn.execute(
         """SELECT a.id, a.start_time, a.activity_type, a.distance_km,
                   a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name
@@ -135,10 +136,12 @@ def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[di
     for r in rows:
         act_id, start_time, _, dist, dur, pace, hr, name = r
         m = metrics.get(act_id, {})
+        svg = render_route_svg(conn, act_id, width=60, height=40)
         result.append({
             "id": act_id, "start_time": start_time, "date": str(start_time)[:10],
             "distance_km": dist, "duration_sec": dur, "avg_pace_sec_km": pace, "avg_hr": hr,
             "name": name or "",
+            "route_svg": svg,
             "fearp": m.get("FEARP"),
             "relative_effort": m.get("RelativeEffort"),
         })

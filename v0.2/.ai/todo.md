@@ -67,8 +67,8 @@
 - [ ] DB 정규화, 멀티유저 강화
 - [x] AI 채팅 (대화형 코칭) — chat_messages 테이블, POST /ai-coach/chat, 교체 가능 엔진 (rule/claude/openai), 칩 트리거, 히스토리 UI
 - [x] Training Plan 풀 구현 — 워크아웃 CRUD, 완료 토글, 목표 웹 UI, ICS 내보내기
-- [ ] (향후) 캘린더 API 연동 (Google Calendar 등)
-- [ ] (낮음) Mapbox 사용량 표시 또는 지도 API 대안 검토
+- [ ] (향후) 캘린더 API 연동 (Google Calendar / 네이버 캘린더 / Garmin Connect 선택)
+- [ ] (낮음) Mapbox → Leaflet+OSM 대안 검토 (완전 무료, API 키 불필요) 또는 사용량 표시
 
 ### v0.4 예정
 

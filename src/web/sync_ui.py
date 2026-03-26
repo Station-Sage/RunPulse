@@ -162,8 +162,8 @@ def sync_card_html(
   <!-- 기본 동기화 패널 -->
   <div id="spanel-basic">
     {basic_src}
+    <p class="muted" style="font-size:0.78rem;margin:0.4rem 0;">새로운 활동만 추가합니다. 기존 데이터는 변경되지 않습니다.</p>
     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-top:0.5rem;">
-      <span class="muted" style="font-size:0.85rem;">마지막 동기화 이후 신규 기록</span>
       <button id="sbtn-basic" onclick="doSync('basic')" style="{_BTN_STYLE}">&#9654; 동기화</button>
     </div>
     {last_sync_html}
@@ -173,6 +173,7 @@ def sync_card_html(
   <!-- 기간 동기화 패널 -->
   <div id="spanel-hist" style="display:none;">
     {hist_src}
+    <p class="muted" style="font-size:0.78rem;margin:0.4rem 0;">지정 기간의 모든 활동을 다시 가져옵니다. 기존 데이터도 최신 값으로 업데이트됩니다.</p>
     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end; margin-top:0.5rem; margin-bottom:0.6rem;">
       <label style="display:flex; flex-direction:column; font-size:0.82rem; color:var(--muted);">
         시작일

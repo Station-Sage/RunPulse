@@ -184,7 +184,7 @@ def report_view():
             body="<div class='card'><p>running.db 가 없습니다.</p></div>",
         )
 
-    period = request.args.get("period", "week")
+    period = request.args.get("period", "month")
     if period == "3month":
         period = "quarter"
     if period not in _PERIODS:

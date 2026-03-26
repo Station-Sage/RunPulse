@@ -313,8 +313,9 @@ def sync_activities(
         start_lon = start_latlng[1] if len(start_latlng) > 1 else None
 
         try:
+            _verb = "INSERT OR REPLACE" if from_date else "INSERT OR IGNORE"
             cursor = conn.execute(
-                """INSERT OR IGNORE INTO activity_summaries
+                f"""{_verb} INTO activity_summaries
                    (source, source_id, name, activity_type, sport_type, start_time,
                     distance_km, duration_sec, moving_time_sec, elapsed_time_sec,
                     avg_pace_sec_km, avg_hr, max_hr, avg_cadence,

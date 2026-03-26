@@ -39,23 +39,24 @@ def svg_semicircle_gauge(
         track_color = "rgba(255,255,255,0.15)"
 
     def polar(angle_deg: float) -> tuple[float, float]:
+        """각도(도) → SVG 좌표. 상단 반원: 180°(좌) → 270°(상) → 360°(우)."""
         rad = math.radians(angle_deg)
         return cx + r * math.cos(rad), cy + r * math.sin(rad)
 
-    start_angle = 180.0
-    end_angle = 0.0
-    needle_angle = 180.0 - pct * 180.0
+    # 상단 반원: 좌(180°) → 상(270°) → 우(360°)
+    # needle_angle: 0%=180°(좌), 50%=270°(상), 100%=360°(우)
+    needle_angle = 180.0 + pct * 180.0
 
-    sx, sy = polar(start_angle)
-    ex, ey = polar(end_angle)
-    nx, ny = polar(needle_angle)
+    sx, sy = polar(180.0)   # 좌측 시작점
+    ex, ey = polar(360.0)   # 우측 끝점
+    vx, vy = polar(needle_angle)
 
     sw = max(1, width // 18)
 
-    track_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,1 {ex:.1f},{ey:.1f}"
-    vx, vy = polar(needle_angle)
-    large_arc = 1 if pct > 0.5 else 0
-    value_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 {large_arc},1 {vx:.1f},{vy:.1f}"
+    # 트랙: 좌→상→우 (반시계, sweep=0)
+    track_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,0 {ex:.1f},{ey:.1f}"
+    # 값 arc: 좌 → needle_angle (반시계, sweep=0, 항상 short arc)
+    value_path = f"M {sx:.1f},{sy:.1f} A {r},{r} 0 0,0 {vx:.1f},{vy:.1f}"
 
     needle_len = r - sw * 2
     tip_x = cx + needle_len * math.cos(math.radians(needle_angle))

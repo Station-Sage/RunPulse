@@ -156,32 +156,16 @@ def _render_user_profile_section(config: dict) -> str:
 
 
 def _render_mapbox_section(config: dict) -> str:
-    """Mapbox 토큰 설정 섹션."""
-    token = config.get("mapbox", {}).get("token", "")
-    masked = "****" + token[-6:] if len(token) > 10 else ("설정됨" if token else "미설정")
-    status_color = "var(--green)" if token else "var(--muted)"
-    return f"""
+    """지도 설정 섹션 (Leaflet + OSM)."""
+    return """
 <div class='card'>
-  <h2 style='margin-bottom:0.5rem;'>Mapbox 지도 설정</h2>
-  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
-    활동 상세 페이지에서 GPS 경로 지도를 표시합니다.
-    <a href='https://account.mapbox.com/access-tokens/' target='_blank' rel='noopener'
-       style='color:var(--cyan);'>토큰 발급</a> (무료 플랜 사용 가능)
+  <h2 style='margin-bottom:0.5rem;'>지도 설정</h2>
+  <p style='font-size:0.82rem;margin-bottom:0.4rem;'>
+    <span style='color:var(--green);font-weight:600;'>✓ Leaflet + OpenStreetMap</span> 사용 중
   </p>
-  <p style='font-size:0.82rem;margin-bottom:0.6rem;'>
-    상태: <span style='color:{status_color};font-weight:600;'>{masked}</span>
+  <p class='muted' style='font-size:0.8rem;margin:0;'>
+    활동 상세 페이지에서 GPS 경로 지도를 표시합니다. API 키 없이 무료로 동작합니다.
   </p>
-  <form method='post' action='/settings/mapbox' style='display:flex;gap:0.6rem;align-items:end;flex-wrap:wrap;'>
-    <label style='flex:1;min-width:200px;display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
-      Access Token
-      <input type='text' name='mapbox_token' placeholder='pk.eyJ1Ijo...'
-             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <button type='submit'
-            style='padding:0.45rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
-      저장
-    </button>
-  </form>
 </div>"""
 
 
