@@ -243,7 +243,7 @@ def _render_ai_section(config: dict) -> str:
     openai_masked = "****" + openai_key[-6:] if len(openai_key) > 10 else ("설정됨" if openai_key else "미설정")
 
     provider_options = ""
-    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
+    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("genspark", "Genspark (수동 복사/붙여넣기)"), ("genspark_auto", "Genspark (자동, proot+Selenium)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
         sel = " selected" if val == provider else ""
         provider_options += f"<option value='{val}'{sel}>{label}</option>"
 
