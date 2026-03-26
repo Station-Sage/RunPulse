@@ -72,7 +72,7 @@
 - [x] Genspark AI 연동 B방식 (프롬프트 복사 + 응답 붙여넣기) + ~~A방식~~ Cloudflare 403 차단
 - [x] Google Gemini API 연동 (무료 1,500 RPD) + Groq API 연동 (무료 14,400 RPD)
 - [x] Genspark iframe 내장 (AI 코치 탭)
-- [x] AI Everywhere: 컨텍스트 빌더 6개 + 프롬프트 템플릿 14종 + 11곳 AI 적용 + 프롬프트 관리 UI
+- [x] AI Everywhere v2: 캐시(ai_cache) + 검증(ai_validator) + 탭별 통합 호출(get_tab_ai) + 13곳 AI 적용
 - [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
 - [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
 - [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준
