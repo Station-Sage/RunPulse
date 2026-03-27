@@ -6,14 +6,10 @@ from datetime import date, timedelta
 
 
 def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
-    """activity_id와 같은 그룹의 Strava stream 파일 경로 반환.
+    """activity_id와 같은 그룹의 Strava stream 식별자 반환.
 
-    Args:
-        conn: SQLite 연결.
-        activity_id: activities 테이블 id.
-
-    Returns:
-        stream 파일 경로, 없으면 None.
+    activity_streams 테이블 또는 activity_detail_metrics.stream_file 탐색.
+    반환값은 _load_stream에서 사용 (activity_id 또는 파일 경로).
     """
     row = conn.execute(
         "SELECT matched_group_id, source FROM activity_summaries WHERE id = ?",
@@ -36,6 +32,15 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
         strava_ids = []
 
     for (sid,) in strava_ids:
+        # 1. activity_streams 테이블에서 확인 (우선)
+        stream_check = conn.execute(
+            "SELECT COUNT(*) FROM activity_streams WHERE activity_id = ?",
+            (sid,),
+        ).fetchone()
+        if stream_check and stream_check[0] > 0:
+            return f"db:{sid}"  # DB 기반 식별자
+
+        # 2. activity_detail_metrics.stream_file fallback (레거시)
         r = conn.execute(
             "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",
@@ -46,19 +51,34 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
     return None
 
 
-def _load_stream(path: str) -> dict | None:
-    """Stream JSON 파일 로드. Strava API 리스트 형식도 dict로 변환.
+def _load_stream(path: str, conn: sqlite3.Connection | None = None) -> dict | None:
+    """Stream 데이터 로드 — DB 또는 파일.
 
     Args:
-        path: stream JSON 파일 경로.
+        path: "db:{activity_id}" (DB) 또는 파일 경로.
+        conn: SQLite 연결 (DB 로드 시 필요).
 
     Returns:
         {"heartrate": [...], "velocity_smooth": [...], ...} 또는 None.
     """
+    # DB 기반 (activity_streams 테이블)
+    if path.startswith("db:") and conn is not None:
+        try:
+            aid = int(path[3:])
+            rows = conn.execute(
+                "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
+                (aid,),
+            ).fetchall()
+            if not rows:
+                return None
+            return {r[0]: json.loads(r[1]) for r in rows if r[1]}
+        except Exception:
+            return None
+
+    # 파일 기반 (레거시)
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        # Strava API는 리스트 형식: [{type, data}, ...]
         if isinstance(data, list):
             return {s["type"]: s["data"] for s in data if "type" in s and "data" in s}
         return data
@@ -120,7 +140,7 @@ def calculate_efficiency(conn: sqlite3.Connection, activity_id: int) -> dict | N
     if not stream_path:
         return _get_intervals_metrics(conn, activity_id)
 
-    stream = _load_stream(stream_path)
+    stream = _load_stream(stream_path, conn=conn)
     if stream is None:
         return _get_intervals_metrics(conn, activity_id)
 

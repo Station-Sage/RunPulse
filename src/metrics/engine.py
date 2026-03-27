@@ -283,6 +283,15 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     except Exception:
         logger.exception("CP 계산 실패: %s", target_date)
 
+    # 20. CTL/ATL/TSB 자체 계산 (Intervals.icu 미제공 날짜 채우기)
+    try:
+        from src.metrics.ctl_atl import calc_and_fill_ctl_atl
+        ctl_count = calc_and_fill_ctl_atl(conn, start_date=target_date, end_date=target_date)
+        if ctl_count > 0:
+            results["CTL_ATL_filled"] = ctl_count
+    except Exception:
+        logger.exception("CTL/ATL 계산 실패: %s", target_date)
+
     return results
 
 

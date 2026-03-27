@@ -2,6 +2,33 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-stream-fix] 2026-03-27
+
+### Stream 데이터 접근 버그 수정 + CTL/ATL 자체 계산
+
+**Stream 접근 경로 수정 (핵심 버그):**
+- 동기화: activity_streams 테이블에 저장
+- 분석: activity_detail_metrics.stream_file 파일 경로 탐색 → 항상 None!
+- 수정: activity_streams DB 테이블 우선 조회 (5곳 전부)
+- 영향: EF, Decoupling, VDOT_ADJ(Stream 역치), maxHR(30초 peak), HR존 분석
+
+**CTL/ATL/TSB 자체 계산 (ctl_atl.py 신규):**
+- Intervals.icu API가 과거 CTL/ATL 미제공 (최근 ~30일만)
+- DailyTRIMP 기반 EMA: CTL(42일), ATL(7일), TSB=CTL-ATL
+- Intervals 값 있는 날짜는 스킵, 없는 날짜만 source='runpulse'로 채움
+
+**레이스 분류기 수정:**
+- 원본 event_type 태그 최우선 (Garmin "race" → 무조건 레이스)
+- 풀마라톤 HR 75%+ 대응 (기존 90% → 거리별 차등)
+
+**MarathonShape VDOT_ADJ 통일:**
+- DARP/eFTP/MarathonShape 모두 VDOT_ADJ 사용 → Shape 카드 간 일관성
+
+**DARP Shape 배지:**
+- half → full → 10k → 5k 우선순위로 목표 거리 Shape 표시
+
+---
+
 ## [v0.4-race-vdot] 2026-03-27
 
 ### 레이스 기반 VDOT + 예측 정밀화

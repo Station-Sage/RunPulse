@@ -183,7 +183,7 @@ def _extract_threshold_from_streams(
         path = _get_stream_path(conn, aid)
         if not path:
             continue
-        stream = _load_stream(path)
+        stream = _load_stream(path, conn=conn)
         if not stream:
             continue
 

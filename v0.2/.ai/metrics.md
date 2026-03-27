@@ -170,6 +170,15 @@ hr_hi = restingHR + hrr × 0.88   # LT 상한
 #   레이스 0~4주: ±3%, 4~8주: ±5%, 8주+: ±7%
 ```
 
+### CTL/ATL/TSB 자체 계산 (RunPulse)
+```python
+# Intervals.icu 미제공 날짜를 DailyTRIMP 기반으로 자체 계산
+CTL(n) = CTL(n-1) + (TRIMP(n) - CTL(n-1)) / 42  # 만성 훈련 부하
+ATL(n) = ATL(n-1) + (TRIMP(n) - ATL(n-1)) / 7   # 급성 훈련 부하
+TSB(n) = CTL(n) - ATL(n)                          # 훈련 스트레스 밸런스
+# Intervals 값 있으면 유지, 없는 날짜만 채움
+```
+
 ### rTSS — Running TSS (TrainingPeaks)
 ```python
 ngp_m_per_min  = 1000 / ngp_min_per_km

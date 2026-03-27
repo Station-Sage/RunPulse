@@ -640,8 +640,15 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
     if di is not None:
         di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
         badges.append(_badge("DI", f"{di:.0f}" if di >= 2 else f"{di:.2f}", di_clr))
-    # Shape/EF from first available DARP entry
-    _sample = next((d for d in darp_data.values() if isinstance(d, dict)), {})
+    # Shape/EF from DARP data — 목표 거리(half 또는 full) 우선
+    _target_keys = ["half", "full", "10k", "5k"]  # 선호 순서
+    _sample = {}
+    for _tk in _target_keys:
+        if _tk in darp_data and isinstance(darp_data[_tk], dict):
+            _sample = darp_data[_tk]
+            break
+    if not _sample:
+        _sample = next((d for d in darp_data.values() if isinstance(d, dict)), {})
     _sh = _sample.get("race_shape")
     _ef = _sample.get("ef")
     if _sh is not None:
