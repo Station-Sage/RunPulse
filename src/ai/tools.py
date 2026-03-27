@@ -177,7 +177,7 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
         aid, km, sec, pace, avg_hr, max_hr, elev, cal, name = a
         detail: dict[str, Any] = {
             "name": name,
-            "distance_km": round(float(km), 1) if km else None,
+            "distance_km": round(float(km), 2) if km else None,
             "duration_sec": round(float(sec)) if sec else None,
             "pace": seconds_to_pace(int(pace)) if pace else None,
             "avg_hr": round(float(avg_hr)) if avg_hr else None,
@@ -214,7 +214,7 @@ def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
         "period": f"{s} ~ {e}",
         "count": len(rows),
         "activities": [
-            {"date": r[0], "km": round(float(r[1]), 1) if r[1] else None,
+            {"date": r[0], "km": round(float(r[1]), 2) if r[1] else None,
              "sec": round(float(r[2])) if r[2] else None,
              "pace": seconds_to_pace(int(r[3])) if r[3] else None,
              "hr": round(float(r[4])) if r[4] else None, "name": r[5]}
@@ -284,7 +284,7 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
     return {
         "days": days,
         "data": [
-            {"date": r[0], "ctl": round(float(r[1]), 1) if r[1] else None,
+            {"date": r[0], "ctl": round(float(r[1]), 2) if r[1] else None,
              "atl": round(float(r[2]), 1) if r[2] else None,
              "tsb": round(float(r[3]), 1) if r[3] else None,
              "vo2max": round(float(r[4]), 1) if r[4] else None}

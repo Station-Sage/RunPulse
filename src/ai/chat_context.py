@@ -14,8 +14,8 @@ from src.utils.pace import seconds_to_pace as _raw_pace
 
 
 def _r1(v) -> float | None:
-    """소수점 1자리 반올림."""
-    return round(float(v), 1) if v is not None else None
+    """소수점 2자리 반올림 (거리/페이스 등)."""
+    return round(float(v), 2) if v is not None else None
 
 
 def _ri(v) -> int | None:
