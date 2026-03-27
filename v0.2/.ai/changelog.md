@@ -2,6 +2,46 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-metrics-precision] 2026-03-27
+
+### 메트릭 정밀화 — 논문 기반 전면 재설계
+
+**maxHR 추정:**
+- Stream 30초 슬라이딩 윈도우 peak HR (ACSM/Beltz/Robergs 기준)
+- 고강도 활동 IQR 이상치 제거 fallback
+- 시계열 저장 (28일 캐시, 나이 변화 추적)
+
+**VDOT_ADJ (현재 체력):**
+- A. Strava stream 역치 HR 구간(Karvonen HRR 개인화) 페이스 추출
+- B. 연속 역치런 평균 페이스 fallback
+- C. HR-페이스 회귀 fallback
+- Daniels T-pace 역보간 → VDOT
+- HR 스파이크 ±30bpm 제거
+
+**Karvonen HRR 역치 범위:**
+- restingHR + HRR × 0.75~0.88 (Karvonen 1957, Daniels 2014)
+- 안정심박 웰니스 7일 중앙값 사용
+- 고정 %maxHR fallback
+
+**Race Shape 논문 기반 가중치:**
+- 10K (Midgley 2007): 페이스 40%, 일관성 27%, 볼륨 20%
+- 하프 (Schmid 2012): 볼륨 28%, 페이스 25%, 최장 18%
+- 마라톤 (Hagan 1981): 볼륨 34%, 최장 27%, 빈도 19%
+
+**DI 보정 거리별 차등:**
+- 5K 0%, 10K 최대 2%, 하프 최대 5%, 풀 최대 10%
+
+**DARP Shape 페널티 축소:**
+- Shape<70 → 5K 2%, 10K 4%, 하프 7%, 풀 10%
+
+**계산 순서 수정:**
+- VDOT_ADJ를 DARP/eFTP 앞으로 이동
+
+**eFTP:**
+- VDOT_ADJ Daniels T-pace 우선
+
+---
+
 ## [v0.4-sync-tab] 2026-03-27
 
 ### 동기화 탭 분리 + AI 응답 품질

@@ -125,6 +125,43 @@ shape_pct = (weekly * 0.35 + long * 0.20 + freq * 0.20
            + consistency * 0.15 + quality * 0.10) * 100
 ```
 
+### maxHR (최대심박 추정)
+```python
+# A. Strava stream 기반 (가장 정확)
+#    30초 슬라이딩 윈도우 평균 HR의 최대값
+#    References: ACSM(2018), Beltz(2016), Robergs(2002)
+maxHR = max(mean(hr[i:i+30]) for i in range(len(hr)-30))
+
+# B. 활동 max_hr 기반 (fallback)
+#    고강도 활동(avg_hr/max_hr > 75%) 상위 10개 → IQR 이상치 제거 → 최대값
+
+# 시계열 저장: computed_metrics('maxHR', date)
+# 28일 캐시 재사용 (단기간 maxHR 변동 미미)
+```
+
+### VDOT_ADJ (현재 체력 보정 VDOT)
+```python
+# 3단계 fallback:
+# A. Strava stream에서 역치 HR 구간의 실제 페이스 추출
+# B. 연속 역치런(avg_hr 역치 범위, 20~60분) 평균 페이스
+# C. HR-페이스 회귀 → HR 88%에서 예측 (최후 fallback)
+
+# 역치 HR 범위 — Karvonen HRR 개인화
+#   References: Karvonen(1957), Daniels(2014)
+hrr = maxHR - restingHR
+hr_thresh_lo = restingHR + hrr × 0.75   # LT 하한
+hr_thresh_hi = restingHR + hrr × 0.88   # LT 상한 (Daniels T-zone)
+
+# Stream에서 역치 구간 추출 (인터벌 세션도 정확)
+threshold_speeds = [vel[i] for i in range(n)
+                    if hr_lo <= hr[i] <= hr_hi and vel[i] > 0.5]
+threshold_pace = 1000 / mean(threshold_speeds)  # sec/km
+
+# Daniels T-pace 역보간 → VDOT
+VDOT_ADJ = daniels_t_pace_inverse(threshold_pace)
+# 보정 범위: VDOT_base ± 15%
+```
+
 ### rTSS — Running TSS (TrainingPeaks)
 ```python
 ngp_m_per_min  = 1000 / ngp_min_per_km
