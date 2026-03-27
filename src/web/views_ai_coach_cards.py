@@ -200,7 +200,12 @@ def render_chat_section(chat_history: list[dict] | None = None,
         for i, msg in enumerate(chat_history):
             role = msg.get("role", "user")
             raw_content = msg.get("content", "")
-            time_str = msg.get("time", "")[:16] if msg.get("time") else ""
+            time_str = msg.get("time", "")[:19] if msg.get("time") else ""
+            # 서버 시간을 data 속성으로 저장, JS에서 로컬 변환
+            time_html = (
+                f'<span class="chat-time" data-utc="{_html.escape(time_str)}">{time_str[:16]}</span>'
+                if time_str else ""
+            )
             model = msg.get("ai_model", "")
             provider_badge = ""
             if role == "assistant" and model and model != "rule":
@@ -224,7 +229,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
                     'border-radius:16px;padding:10px 14px;max-width:80%">'
                     f'<div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">{content}</div>'
                     f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">'
-                    f'{time_str}{provider_badge}</div>'
+                    f'{time_html}{provider_badge}</div>'
                     '</div></div>'
                 )
                 # 추천 질문 플로팅 칩
@@ -248,7 +253,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
                     '<div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
                     'border-radius:16px;padding:10px 14px;max-width:80%">'
                     f'<div style="font-size:13px;line-height:1.6">{content}</div>'
-                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right">{time_str}</div>'
+                    f'<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right">{time_html}</div>'
                     '</div></div>'
                 )
         # 추천질문 칩은 메시지 영역 하단에 배치
@@ -379,6 +384,13 @@ def render_chat_section(chat_history: list[dict] | None = None,
         # AJAX 채팅 + 전체화면 토글 + 스크롤
         '<script>'
         'var cb=document.getElementById("chatBox");if(cb)cb.scrollTop=cb.scrollHeight;'
+        # 서버 시간 → 클라이언트 로컬 시간 변환
+        'document.querySelectorAll(".chat-time").forEach(function(el){'
+        '  var utc=el.dataset.utc;if(!utc)return;'
+        '  try{var d=new Date(utc);'
+        '  el.textContent=d.toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});'
+        '  }catch(e){}'
+        '});'
         # AJAX 채팅 전송
         'function sendChat(e){'
         '  e.preventDefault();'
@@ -421,7 +433,9 @@ def render_chat_section(chat_history: list[dict] | None = None,
         '      <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
         '      border-radius:16px;padding:10px 14px;max-width:80%">'
         '      <div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">\'+d.response+\'</div>'
-        '      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">\'+d.provider+\'</div>'
+        '      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">\''
+        '        +new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})'
+        '        +\' <span style="color:var(--cyan);">\'+d.provider+\'</span></div>'
         '      </div></div>\';'
         '    box.scrollTop=box.scrollHeight;btn.disabled=false;'
         '  }).catch(function(){'
