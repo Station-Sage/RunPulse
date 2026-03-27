@@ -52,7 +52,7 @@ _CSS = """
         text-decoration: none; color: var(--cyan);
     }
     /* ── 콘텐츠 ── */
-    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 6rem; }
+    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem calc(6rem + env(safe-area-inset-bottom, 0px)); }
     pre { white-space: pre-wrap; word-break: break-word;
           background: var(--pre-bg); padding: 1rem; border-radius: 8px;
           overflow-x: auto; border: 1px solid var(--card-border);
@@ -135,9 +135,11 @@ _CSS = """
     }
     /* ── 하단 7탭 네비게이션 ── */
     .bottom-nav {
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-        background: rgba(26,26,46,0.96); backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(255,255,255,0.1); padding: 4px 0;
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+        background: rgba(26,26,46,0.98); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
     }
     .nav-items {
         max-width: 720px; margin: 0 auto; display: flex;
@@ -155,7 +157,7 @@ _CSS = """
     .nav-item-label { font-size: 10px; white-space: nowrap; }
     /* ── 모바일 반응형 ── */
     @media (max-width: 640px) {
-        main { padding: 1rem 0.5rem 6rem; }
+        main { padding: 1rem 0.5rem calc(6rem + env(safe-area-inset-bottom, 0px)); }
         .cards-row { flex-direction: column; }
         .cards-row > .card { min-width: unset; }
         table { font-size: 0.85rem; }
@@ -644,7 +646,7 @@ def html_page(
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
