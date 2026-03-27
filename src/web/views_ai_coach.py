@@ -273,21 +273,30 @@ def ai_coach_chat():
 
 @ai_coach_bp.route("/ai-coach/prompt", methods=["GET"])
 def ai_coach_get_prompt():
-    """현재 컨텍스트로 프롬프트 생성 → JSON 반환 (복사용)."""
+    """30일 풀 데이터 포함 프롬프트 → JSON 반환 (외부 AI 복사용)."""
     from flask import jsonify
     dbp = db_path()
     if not dbp or not dbp.exists():
         return jsonify({"prompt": "데이터가 없습니다."})
 
     try:
-        from src.ai.briefing import build_briefing_prompt
+        from src.ai.chat_context import build_chat_context
+        from src.ai.chat_engine import _SYSTEM_PROMPT
         conn = sqlite3.connect(str(dbp))
         try:
-            prompt = build_briefing_prompt(conn)
+            ctx_text = build_chat_context(
+                conn, "종합 분석", provider="gemini",
+            )
+            prompt = (
+                _SYSTEM_PROMPT
+                + "\n" + ctx_text
+                + "\n\n## 사용자 질문\n(여기에 질문을 입력하세요)"
+            )
         finally:
             conn.close()
         return jsonify({"prompt": prompt})
     except Exception as exc:
+        log.warning("프롬프트 생성 실패", exc_info=True)
         return jsonify({"prompt": f"프롬프트 생성 실패: {exc}"})
 
 
