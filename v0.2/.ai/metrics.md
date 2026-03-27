@@ -103,14 +103,23 @@ vo2max = (vo2 / pct_vo2max) * correction_factor  # correction_factor: 0.85~0.95
 # 하프:    45~60km     18~28km      16km+      5회      8주
 # 마라톤:  60~80km     28~37km      25km+      6회     12주
 
-# 5요소 가중 배합
-weekly_score  = min(1.0, weekly_avg / target_weekly)         # 35%
-long_score    = min(1.0, longest_km / target_long)           # 20%
-freq_score    = min(1.0, long_run_count / target_count)      # 20%
+# 5요소 가중 배합 — 거리별 차등 (스포츠과학 논문 기반)
+#                 볼륨  최장  빈도  일관성 페이스
+# 10K  (Midgley): 20%   8%   5%   27%   40%  ← VO2max/역치 지배
+# 하프 (Schmid):  28%  18%  12%   17%   25%  ← 균형
+# 마라톤(Hagan):  34%  27%  19%   10%   10%  ← 볼륨/장거리 지배
+#
+# References:
+#   Hagan et al. (1981,1987) — 마라톤 r: 주간거리-0.76, 최장-0.60, 빈도-0.43
+#   Schmid et al. (2012) — 하프 예측: 훈련속도 > 주간km > 빈도
+#   Midgley et al. (2007) — 10K: VO2max가 성적 분산 80% 설명
+weekly_score  = min(1.0, weekly_avg / target_weekly)
+long_score    = min(1.0, longest_km / target_long)
+freq_score    = min(1.0, long_run_count / target_count)
 # 일관성: N주 주당 횟수 변동계수(CV) 기반
-consistency   = active_ratio × cv_score × freq_score         # 15%
+consistency   = active_ratio × cv_score × freq_score
 # 장거리 페이스 품질: VDOT E-pace ±15% 범위 내 비율
-quality       = good_pace_runs / total_long_runs             # 10%
+quality       = good_pace_runs / total_long_runs
 
 shape_pct = (weekly * 0.35 + long * 0.20 + freq * 0.20
            + consistency * 0.15 + quality * 0.10) * 100
