@@ -23,31 +23,57 @@ from datetime import date, timedelta
 from src.metrics.store import save_metric
 
 
+def _get_race_targets(vdot: float, race_km: float) -> dict:
+    """거리별 목표 주간 볼륨/장거리런/일관성 기간."""
+    if race_km <= 10.5:
+        # 10K
+        return {
+            "weekly_km": max(25.0, 10 + vdot * 0.5),     # VDOT 50 → 35km
+            "long_km": min(18.0, max(10.0, race_km * 1.5)),  # 15km
+            "consistency_weeks": 6,
+        }
+    elif race_km <= 21.5:
+        # 하프마라톤
+        return {
+            "weekly_km": max(30.0, 15 + vdot * 0.7),     # VDOT 50 → 50km
+            "long_km": min(25.0, max(15.0, race_km * 1.0)),  # 21km
+            "consistency_weeks": 8,
+        }
+    else:
+        # 마라톤
+        return {
+            "weekly_km": max(40.0, 20 + vdot * 0.9),     # VDOT 50 → 65km
+            "long_km": min(35.0, max(20.0, 10 + vdot * 0.35)),  # 27.5km
+            "consistency_weeks": 12,
+        }
+
+
 def calc_marathon_shape(
     weekly_km_avg: float,
     longest_run_km: float,
     vdot: float,
     consistency_score: float = 0.0,
+    race_distance_km: float = 42.195,
 ) -> float | None:
-    """Marathon Shape 계산.
+    """Race Shape 계산 — 목표 거리별 준비도.
 
     Args:
-        weekly_km_avg: 최근 4주 평균 주간 거리 (km).
-        longest_run_km: 최근 4주 최장 거리 (km).
+        weekly_km_avg: 최근 N주 평균 주간 거리 (km).
+        longest_run_km: 최근 N주 최장 거리 (km).
         vdot: VDOT 값.
-        consistency_score: 12주 일관성 점수 (0~1). 0이면 자동 추정.
+        consistency_score: N주 일관성 점수 (0~1).
+        race_distance_km: 목표 레이스 거리 (기본 마라톤).
 
     Returns:
-        Marathon Shape 퍼센트 (0~100) 또는 None (VDOT 없음).
+        Shape 퍼센트 (0~100) 또는 None.
     """
     if not vdot or vdot <= 0:
         return None
 
-    # 마라톤 목표 볼륨 (VDOT 기반, 최소치 보장)
-    # VDOT 40 → 주간 56km, VDOT 50 → 65km, VDOT 60 → 74km
-    target_weekly_km = max(40.0, 20 + vdot * 0.9)
-    # 장거리런: VDOT 40 → 24km, VDOT 50 → 27.5km, VDOT 60 → 31km
-    target_long_km = min(35.0, max(20.0, 10 + vdot * 0.35))
+    # 거리별 목표 파라미터
+    targets = _get_race_targets(vdot, race_distance_km)
+    target_weekly_km = targets["weekly_km"]
+    target_long_km = targets["long_km"]
 
     weekly_shape = min(1.0, weekly_km_avg / target_weekly_km)
     long_run_shape = min(1.0, longest_run_km / target_long_km)
@@ -377,11 +403,26 @@ def calc_and_save_marathon_shape(
     if vdot is None:
         return None
 
-    weekly_km_avg, longest_km = _get_recent_running_data(conn, target_date)
-    consistency = _calc_consistency(conn, target_date, weeks=12)
+    # 목표 레이스 거리 (goals 테이블에서)
+    race_km = 42.195
+    try:
+        from src.training.goals import get_active_goal
+        goal = get_active_goal(conn)
+        if goal and goal.get("distance_km"):
+            race_km = float(goal["distance_km"])
+    except Exception:
+        pass
+
+    targets = _get_race_targets(vdot, race_km)
+    consistency_weeks = targets["consistency_weeks"]
+
+    weekly_km_avg, longest_km = _get_recent_running_data(
+        conn, target_date, weeks=min(consistency_weeks, 4))
+    consistency = _calc_consistency(conn, target_date, weeks=consistency_weeks)
 
     shape = calc_marathon_shape(weekly_km_avg, longest_km, vdot,
-                                consistency_score=consistency)
+                                consistency_score=consistency,
+                                race_distance_km=race_km)
     if shape is not None:
         save_metric(
             conn,
@@ -393,8 +434,11 @@ def calc_and_save_marathon_shape(
                 "weekly_km_avg": round(weekly_km_avg, 1),
                 "longest_run_km": round(longest_km, 1),
                 "vdot": vdot,
-                "target_weekly_km": round(max(40.0, 20 + vdot * 0.9), 1),
-                "target_long_km": round(min(35.0, max(20.0, 10 + vdot * 0.35)), 1),
+                "race_distance_km": race_km,
+                "consistency_weeks": consistency_weeks,
+                "consistency_score": round(consistency, 3),
+                "target_weekly_km": round(targets["weekly_km"], 1),
+                "target_long_km": round(targets["long_km"], 1),
             },
         )
     return shape
