@@ -118,18 +118,17 @@ def _render_prediction_card(darp_val, darp_json, pace_sec):
 
     # 스플릿 + 추가 정보 (VDOT, 예상 순위)
     stat_items = []
+    _dj = darp_json or {}
     if splits:
         for i, (label, sval) in enumerate(splits.items()):
             color = _split_color(i, len(splits))
             stat_items.append((label, fmt_duration(int(sval)), color))
     if vdot is not None:
         _vdot_display = f"{float(vdot):.1f}"
-        # darp_json의 vdot은 VDOT_ADJ일 수 있음 → 원본 VDOT과 비교
-        _vdot_src = (_dj or {}).get("vdot_source", "")
+        _vdot_src = _dj.get("vdot_source", "")
         if _vdot_src == "vdot_adj":
             _vdot_display = f"{float(vdot):.1f} (보정)"
         stat_items.append(("VDOT", _vdot_display, "#00d4ff"))
-    _dj = darp_json or {}
     _di_p = _dj.get("di_penalty", 0)
     _sh_p = _dj.get("shape_penalty", 0)
     _ef_b = _dj.get("ef_bonus", 0)

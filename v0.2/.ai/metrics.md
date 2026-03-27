@@ -139,27 +139,35 @@ maxHR = max(mean(hr[i:i+30]) for i in range(len(hr)-30))
 # 28일 캐시 재사용 (단기간 maxHR 변동 미미)
 ```
 
+### VDOT (소스 우선순위)
+```python
+# 1. 최근 레이스 기록 (8주 이내, 가장 정확)
+#    - HR 검증: avg_hr ≥ maxHR × 82%
+#    - 거리 검증: 공식 거리(5K/10K/하프/풀) ±5%
+#    - FEARP 환경 보정 (날씨/고도/경사)
+#    - 복수 레이스: 중앙값, 교차 검증 ±20%
+# 2. 고강도 활동 가중 평균 (레이스 없을 때)
+# 3. Runalyze / Garmin fallback
+```
+
 ### VDOT_ADJ (현재 체력 보정 VDOT)
 ```python
-# 3단계 fallback:
-# A. Strava stream에서 역치 HR 구간의 실제 페이스 추출
-# B. 연속 역치런(avg_hr 역치 범위, 20~60분) 평균 페이스
-# C. HR-페이스 회귀 → HR 88%에서 예측 (최후 fallback)
+# 역치 페이스 추출 (3단계 fallback):
+# A. Strava stream: HR 역치 구간(Karvonen HRR 85~92%) 실제 속도
+#    - 인터벌 세션에서도 고강도 구간만 추출
+#    - HR 스파이크 ±30bpm 제거, 속도 0.5m/s+ 필터
+# B. 연속 역치런: avg_hr 역치 범위, 20~60분, IQR 이상치 제거
+# C. HR-페이스 회귀: HR 88%에서 예측 (최후 fallback)
 
 # 역치 HR 범위 — Karvonen HRR 개인화
 #   References: Karvonen(1957), Daniels(2014)
-hrr = maxHR - restingHR
-hr_thresh_lo = restingHR + hrr × 0.75   # LT 하한
-hr_thresh_hi = restingHR + hrr × 0.88   # LT 상한 (Daniels T-zone)
+hrr = maxHR - restingHR  # restingHR = 웰니스 7일 중앙값
+hr_lo = restingHR + hrr × 0.75   # LT 하한
+hr_hi = restingHR + hrr × 0.88   # LT 상한
 
-# Stream에서 역치 구간 추출 (인터벌 세션도 정확)
-threshold_speeds = [vel[i] for i in range(n)
-                    if hr_lo <= hr[i] <= hr_hi and vel[i] > 0.5]
-threshold_pace = 1000 / mean(threshold_speeds)  # sec/km
-
-# Daniels T-pace 역보간 → VDOT
-VDOT_ADJ = daniels_t_pace_inverse(threshold_pace)
-# 보정 범위: VDOT_base ± 15%
+# Daniels T-pace 역보간 → VDOT_ADJ
+# 보정 범위 (Daniels/Pugh 1970/Garmin 기준):
+#   레이스 0~4주: ±3%, 4~8주: ±5%, 8주+: ±7%
 ```
 
 ### rTSS — Running TSS (TrainingPeaks)

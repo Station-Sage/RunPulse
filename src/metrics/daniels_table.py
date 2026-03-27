@@ -157,16 +157,41 @@ def get_training_paces(vdot: float) -> dict[str, int]:
 
 
 def get_race_predictions(vdot: float) -> dict[str, int]:
-    """VDOT → 레이스 예측 시간 (초). Daniels 테이블 보간 (1 VDOT 단위).
+    """VDOT → 레이스 예측 시간 (초). Daniels-Gilbert 공식으로 정확 계산.
+
+    테이블 보간 대신 수학 공식 직접 사용 (테이블 데이터 오류 방지).
 
     Returns:
-        {"5k": 1277, "10k": 2614, "half": 5742, "full": 11798}
+        {"5k": sec, "10k": sec, "half": sec, "full": sec}
     """
+    import math
+
+    _DISTANCES_M = {"5k": 5000, "10k": 10000, "half": 21097.5, "full": 42195}
+
+    def _solve_time(vdot_val: float, dist_m: float) -> int | None:
+        if vdot_val <= 0 or dist_m <= 0:
+            return None
+        lo, hi = 600.0, 21600.0
+        for _ in range(50):
+            mid = (lo + hi) / 2.0
+            t_min = mid / 60.0
+            v = dist_m / t_min
+            vo2 = -4.60 + 0.182258 * v + 0.000104 * v * v
+            pct = (0.8
+                   + 0.1894393 * math.exp(-0.012778 * t_min)
+                   + 0.2989558 * math.exp(-0.1932605 * t_min))
+            calc_vdot = vo2 / pct if pct > 0 else 0
+            if calc_vdot > vdot_val:
+                lo = mid
+            else:
+                hi = mid
+        return round((lo + hi) / 2.0)
+
     result = {}
-    for key in ("5k", "10k", "half", "full"):
-        val = _interpolate(_VDOT_RACE_TABLE, vdot, key)
-        if val is not None:
-            result[key] = round(val)
+    for key, dist in _DISTANCES_M.items():
+        t = _solve_time(vdot, dist)
+        if t:
+            result[key] = t
     return result
 
 

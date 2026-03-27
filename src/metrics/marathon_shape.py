@@ -245,15 +245,22 @@ def _calc_consistency(conn: sqlite3.Connection, target_date: str,
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
     """해당 날짜의 VDOT 값 조회.
 
-    우선순위: 자체 추정(Jack Daniels) > Runalyze > Garmin VO2Max.
-    RunPulse 계산이 최우선. 외부 소스는 참고/fallback.
+    우선순위:
+    1. 최근 레이스/타임트라이얼 기록에서 직접 역산 (가장 정확)
+    2. 고강도 활동 가중 평균 (레이스 없을 때)
+    3. Runalyze/Garmin fallback
     """
-    # 1. 자체 추정: 최근 best effort로 VDOT 추정
+    # 1. 최근 레이스 기록 → VDOT 직접 역산
+    race_vdot = _estimate_vdot_from_races(conn, target_date)
+    if race_vdot is not None:
+        return race_vdot
+
+    # 2. 자체 추정: 고강도 활동 가중 평균
     estimated = _estimate_vdot_from_activities(conn, target_date)
     if estimated is not None:
         return estimated
 
-    # 2. Runalyze VDOT 또는 Garmin VO2Max (fallback)
+    # 3. Runalyze VDOT 또는 Garmin VO2Max (fallback)
     row = conn.execute(
         """SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness
            WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL)
@@ -267,6 +274,102 @@ def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
             return float(row[1])
 
     return None
+
+
+def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> float | None:
+    """최근 레이스/타임트라이얼에서 VDOT 역산 — 검증 포함.
+
+    검증:
+    1. HR 검증: 평균심박이 maxHR 82%+ (진짜 레이스 강도)
+    2. 거리 검증: 공식 거리(5K/10K/하프/풀) ±5% 이내
+    3. 복수 레이스: 2개 이상이면 중앙값 (이상치 방지)
+    4. 교차 검증: 활동 기반 추정과 ±20% 이내
+    """
+    td = date.fromisoformat(target_date)
+    start = (td - timedelta(weeks=12)).isoformat()
+
+    # 최근 8주 이내 레이스만 (8주+ 지난 레이스는 현재 체력 반영 안 됨)
+    start_8w = (td - timedelta(weeks=8)).isoformat()
+    rows = conn.execute(
+        """SELECT a.distance_km, a.duration_sec, a.avg_hr, a.max_hr, DATE(a.start_time)
+           FROM v_canonical_activities a
+           LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
+           WHERE a.activity_type='running'
+             AND a.distance_km >= 4.5 AND a.duration_sec > 0
+             AND (c.metric_value='race' OR a.name LIKE '%레이스%'
+                  OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
+             AND DATE(a.start_time) BETWEEN ? AND ?
+           ORDER BY a.start_time DESC LIMIT 5""",
+        (start_8w, target_date),
+    ).fetchall()
+
+    if not rows:
+        return None
+
+    # maxHR for HR 검증
+    from src.metrics.store import estimate_max_hr
+    max_hr = estimate_max_hr(conn, target_date, weeks=12)
+
+    # 공식 거리 (±5% 매칭)
+    _OFFICIAL_KM = [5.0, 10.0, 15.0, 21.0975, 42.195]
+
+    valid_vdots: list[float] = []
+    for dist_km, dur_sec, avg_hr, max_hr_act, act_date in rows:
+        dist = float(dist_km)
+        dur = float(dur_sec)
+
+        # 1. HR 검증: 레이스 강도 (평균심박 ≥ maxHR 82%)
+        if avg_hr and max_hr:
+            if float(avg_hr) < max_hr * 0.82:
+                continue  # 이지런 강도 → 레이스 아님
+
+        # 2. 거리 검증: 공식 거리 ±5% 이내만
+        matched = False
+        for official in _OFFICIAL_KM:
+            if abs(dist - official) / official <= 0.05:
+                dist = official  # 공식 거리로 보정
+                matched = True
+                break
+        if not matched:
+            continue  # 비공식 거리 → 스킵
+
+        # FEARP 보정: 날씨/고도/경사 환경 보정된 페이스가 있으면 사용
+        fearp_row = conn.execute(
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='FEARP' AND activity_id=("
+            "  SELECT id FROM activity_summaries "
+            "  WHERE date(start_time)=? AND activity_type='running' "
+            "  ORDER BY start_time DESC LIMIT 1"
+            ") AND metric_value IS NOT NULL",
+            (act_date,),
+        ).fetchone()
+        if fearp_row and fearp_row[0] and float(fearp_row[0]) > 120:
+            # FEARP = 표준 조건 환산 페이스 (sec/km)
+            adjusted_dur = float(fearp_row[0]) * dist  # 보정 페이스 × 거리
+            v = estimate_vdot(dist, adjusted_dur)
+        else:
+            v = estimate_vdot(dist, dur)
+
+        if v is not None and 20 <= v <= 85:
+            valid_vdots.append(v)
+
+    if not valid_vdots:
+        return None
+
+    # 3. 복수 레이스: 중앙값 (단일이면 그대로)
+    valid_vdots.sort()
+    mid = len(valid_vdots) // 2
+    race_vdot = valid_vdots[mid]
+
+    # 4. 교차 검증: 활동 기반 추정과 ±20% 이내
+    activity_vdot = _estimate_vdot_from_activities(conn, target_date)
+    if activity_vdot and activity_vdot > 0:
+        ratio = race_vdot / activity_vdot
+        if ratio < 0.80 or ratio > 1.20:
+            # 큰 차이 → 둘의 평균 사용 (어느 한쪽이 극단)
+            race_vdot = round((race_vdot + activity_vdot) / 2, 1)
+
+    return round(race_vdot, 1)
 
 
 def _vo2_from_velocity(v: float) -> float:
@@ -403,11 +506,16 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
     Returns:
         VDOT 값 또는 None.
     """
-    vdot = _get_vdot(conn, target_date)
-    if vdot is not None:
-        # 소스 판별: 자체 추정이 가능했으면 estimated, 아니면 외부
+    # 소스별 VDOT 시도 (순서대로)
+    source = "unknown"
+    race_vdot = _estimate_vdot_from_races(conn, target_date)
+    if race_vdot is not None:
+        vdot = race_vdot
+        source = "race"
+    else:
         estimated = _estimate_vdot_from_activities(conn, target_date)
         if estimated is not None:
+            vdot = estimated
             source = "estimated"
         else:
             row = conn.execute(
@@ -416,9 +524,15 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
                 "AND date<=? ORDER BY date DESC LIMIT 1",
                 (target_date,),
             ).fetchone()
-            source = "runalyze" if row and row[0] is not None else (
-                "garmin" if row and row[1] is not None else "unknown"
-            )
+            if row and row[0] is not None:
+                vdot = float(row[0])
+                source = "runalyze"
+            elif row and row[1] is not None:
+                vdot = float(row[1])
+                source = "garmin"
+            else:
+                vdot = None
+    if vdot is not None:
         # 외부 소스 값도 참고로 저장
         ref_runalyze = None
         ref_garmin = None
