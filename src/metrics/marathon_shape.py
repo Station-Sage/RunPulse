@@ -24,28 +24,9 @@ from src.metrics.store import save_metric
 
 
 def _get_race_targets(vdot: float, race_km: float) -> dict:
-    """거리별 목표 주간 볼륨/장거리런/일관성 기간."""
-    if race_km <= 10.5:
-        # 10K
-        return {
-            "weekly_km": max(25.0, 10 + vdot * 0.5),     # VDOT 50 → 35km
-            "long_km": min(18.0, max(10.0, race_km * 1.5)),  # 15km
-            "consistency_weeks": 6,
-        }
-    elif race_km <= 21.5:
-        # 하프마라톤
-        return {
-            "weekly_km": max(30.0, 15 + vdot * 0.7),     # VDOT 50 → 50km
-            "long_km": min(25.0, max(15.0, race_km * 1.0)),  # 21km
-            "consistency_weeks": 8,
-        }
-    else:
-        # 마라톤
-        return {
-            "weekly_km": max(40.0, 20 + vdot * 0.9),     # VDOT 50 → 65km
-            "long_km": min(35.0, max(20.0, 10 + vdot * 0.35)),  # 27.5km
-            "consistency_weeks": 12,
-        }
+    """거리별 목표 — Daniels VDOT 테이블 + Pfitzinger 볼륨 기반."""
+    from src.metrics.daniels_table import get_race_volume_targets
+    return get_race_volume_targets(vdot, race_km)
 
 
 def calc_marathon_shape(
@@ -54,15 +35,19 @@ def calc_marathon_shape(
     vdot: float,
     consistency_score: float = 0.0,
     race_distance_km: float = 42.195,
+    long_run_count: int = 0,
+    long_run_quality: float = 0.0,
 ) -> float | None:
-    """Race Shape 계산 — 목표 거리별 준비도.
+    """Race Shape 계산 — 5요소 종합 준비도.
 
     Args:
         weekly_km_avg: 최근 N주 평균 주간 거리 (km).
         longest_run_km: 최근 N주 최장 거리 (km).
         vdot: VDOT 값.
         consistency_score: N주 일관성 점수 (0~1).
-        race_distance_km: 목표 레이스 거리 (기본 마라톤).
+        race_distance_km: 목표 레이스 거리.
+        long_run_count: 기간 내 장거리런 횟수 (threshold 이상).
+        long_run_quality: 장거리런 페이스 품질 (0~1). 0이면 미사용.
 
     Returns:
         Shape 퍼센트 (0~100) 또는 None.
@@ -70,20 +55,34 @@ def calc_marathon_shape(
     if not vdot or vdot <= 0:
         return None
 
-    # 거리별 목표 파라미터
     targets = _get_race_targets(vdot, race_distance_km)
-    target_weekly_km = targets["weekly_km"]
-    target_long_km = targets["long_km"]
+    target_weekly = targets["weekly_target"]
+    target_long = targets["long_max"]
+    target_count = targets["long_count_target"]
 
-    weekly_shape = min(1.0, weekly_km_avg / target_weekly_km)
-    long_run_shape = min(1.0, longest_run_km / target_long_km)
+    # 1. 주간 볼륨 (35%)
+    weekly_score = min(1.0, weekly_km_avg / target_weekly)
 
-    # 일관성: 외부에서 전달되지 않으면 볼륨 기반 간이 추정
+    # 2. 최장 거리 (20%)
+    long_score = min(1.0, longest_run_km / target_long)
+
+    # 3. 장거리 빈도 (20%) — 기간 내 threshold 이상 달린 횟수
+    freq_score = min(1.0, long_run_count / target_count) if target_count > 0 else 0
+
+    # 4. 일관성 (15%)
     if consistency_score <= 0:
         consistency_score = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
 
-    # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
-    shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency_score * 0.2) * 100
+    # 5. 장거리 페이스 품질 (10%) — VDOT E-pace 기준 적정 속도였는지
+    quality = long_run_quality if long_run_quality > 0 else 0.5  # 데이터 없으면 중립
+
+    shape_pct = (
+        weekly_score * 0.35
+        + long_score * 0.20
+        + freq_score * 0.20
+        + consistency_score * 0.15
+        + quality * 0.10
+    ) * 100
 
     return round(shape_pct, 1)
 
@@ -140,6 +139,48 @@ def _get_recent_running_data(
     weekly_avg = total_km / weeks if weeks > 0 else 0.0
 
     return weekly_avg, longest_km
+
+
+def _calc_long_run_stats(conn: sqlite3.Connection, target_date: str,
+                         weeks: int = 12, threshold_km: float = 25.0,
+                         vdot: float = 50.0) -> tuple[int, float]:
+    """장거리런 빈도 + 페이스 품질.
+
+    Args:
+        threshold_km: 이 거리 이상이면 "장거리런".
+        vdot: E-pace 계산용.
+
+    Returns:
+        (long_run_count, quality_score 0~1)
+    """
+    td = date.fromisoformat(target_date)
+    start = (td - timedelta(weeks=weeks)).isoformat()
+
+    rows = conn.execute(
+        "SELECT distance_km, duration_sec, avg_pace_sec_km FROM v_canonical_activities "
+        "WHERE activity_type='running' AND distance_km>=? "
+        "AND DATE(start_time) BETWEEN ? AND ? ORDER BY start_time",
+        (threshold_km, start, target_date),
+    ).fetchall()
+
+    count = len(rows)
+    if count == 0:
+        return 0, 0.0
+
+    # 페이스 품질: Daniels E-pace 기준 ±15% 범위 내인지
+    from src.metrics.daniels_table import get_training_paces
+    paces = get_training_paces(vdot)
+    e_pace = paces.get("E", 330)
+    pace_low = e_pace * 0.85   # 빠른 한계
+    pace_high = e_pace * 1.15  # 느린 한계
+
+    quality_hits = 0
+    for dist, dur, pace in rows:
+        if pace and pace_low <= float(pace) <= pace_high:
+            quality_hits += 1
+
+    quality = quality_hits / count if count > 0 else 0.0
+    return count, round(quality, 3)
 
 
 def _calc_consistency(conn: sqlite3.Connection, target_date: str,
@@ -415,14 +456,24 @@ def calc_and_save_marathon_shape(
 
     targets = _get_race_targets(vdot, race_km)
     consistency_weeks = targets["consistency_weeks"]
+    long_threshold = targets["long_threshold"]
 
     weekly_km_avg, longest_km = _get_recent_running_data(
         conn, target_date, weeks=min(consistency_weeks, 4))
     consistency = _calc_consistency(conn, target_date, weeks=consistency_weeks)
 
-    shape = calc_marathon_shape(weekly_km_avg, longest_km, vdot,
-                                consistency_score=consistency,
-                                race_distance_km=race_km)
+    # 장거리런 빈도: threshold 이상 달린 횟수
+    long_count, long_quality = _calc_long_run_stats(
+        conn, target_date, weeks=consistency_weeks,
+        threshold_km=long_threshold, vdot=vdot)
+
+    shape = calc_marathon_shape(
+        weekly_km_avg, longest_km, vdot,
+        consistency_score=consistency,
+        race_distance_km=race_km,
+        long_run_count=long_count,
+        long_run_quality=long_quality,
+    )
     if shape is not None:
         save_metric(
             conn,
@@ -437,8 +488,12 @@ def calc_and_save_marathon_shape(
                 "race_distance_km": race_km,
                 "consistency_weeks": consistency_weeks,
                 "consistency_score": round(consistency, 3),
-                "target_weekly_km": round(targets["weekly_km"], 1),
-                "target_long_km": round(targets["long_km"], 1),
+                "long_run_count": long_count,
+                "long_run_quality": round(long_quality, 2),
+                "long_threshold_km": long_threshold,
+                "target_weekly_km": round(targets["weekly_target"], 1),
+                "target_long_km": round(targets["long_max"], 1),
+                "target_long_count": targets["long_count_target"],
             },
         )
     return shape

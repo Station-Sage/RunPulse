@@ -95,29 +95,25 @@ vo2 = velocity * 0.2 + 3.5
 vo2max = (vo2 / pct_vo2max) * correction_factor  # correction_factor: 0.85~0.95
 ```
 
-### Race Shape (RunPulse v2)
+### Race Shape (RunPulse v3) — 5요소 종합 준비도
 ```python
-# 거리별 목표 파라미터
-if race_km <= 10.5:    # 10K
-    target_weekly = max(25, 10 + vdot * 0.5)   # VDOT 50 → 35km
-    target_long   = min(18, max(10, race_km * 1.5))  # 15km
-    consistency_weeks = 6
-elif race_km <= 21.5:  # 하프
-    target_weekly = max(30, 15 + vdot * 0.7)   # VDOT 50 → 50km
-    target_long   = min(25, max(15, race_km * 1.0))  # 21km
-    consistency_weeks = 8
-else:                  # 마라톤
-    target_weekly = max(40, 20 + vdot * 0.9)   # VDOT 50 → 65km
-    target_long   = min(35, max(20, 10 + vdot * 0.35))  # 27.5km
-    consistency_weeks = 12
+# 거리별 목표 (Pfitzinger/Daniels 기반)
+#              주간볼륨     최장거리     장거리기준  장거리횟수  기간
+# 10K:     35~45km     12~20km      12km+      4회      6주
+# 하프:    45~60km     18~28km      16km+      5회      8주
+# 마라톤:  60~80km     28~37km      25km+      6회     12주
 
-weekly_shape   = min(1.0, weekly_km_avg / target_weekly)
-long_run_shape = min(1.0, longest_run_km / target_long)
-# 일관성: N주간 주당 훈련 횟수의 변동계수(CV) 기반
-consistency    = active_ratio × cv_score × freq_score  # 0~1
+# 5요소 가중 배합
+weekly_score  = min(1.0, weekly_avg / target_weekly)         # 35%
+long_score    = min(1.0, longest_km / target_long)           # 20%
+freq_score    = min(1.0, long_run_count / target_count)      # 20%
+# 일관성: N주 주당 횟수 변동계수(CV) 기반
+consistency   = active_ratio × cv_score × freq_score         # 15%
+# 장거리 페이스 품질: VDOT E-pace ±15% 범위 내 비율
+quality       = good_pace_runs / total_long_runs             # 10%
 
-# 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
-shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency * 0.2) * 100
+shape_pct = (weekly * 0.35 + long * 0.20 + freq * 0.20
+           + consistency * 0.15 + quality * 0.10) * 100
 ```
 
 ### rTSS — Running TSS (TrainingPeaks)
@@ -265,19 +261,25 @@ CP = coeffs[0]; W_prime = coeffs[1]
 
 ---
 
-### DARP — Dynamic Adjusted Race Predictor
-- **정의**: VDOT 기반 + DI 보정 레이스 예측
-- **PDF 확정 계산식**:
+### DARP — Dynamic Adjusted Race Predictor (v3)
+- **정의**: Daniels VDOT 테이블 기반 + DI 보정 + Race Shape 보정 레이스 예측
+- **계산식**:
   ```python
-  # VDOT에서 목표 거리 페이스 역산 (Jack Daniels 공식)
-  target_pace = vdot_to_pace(runalyze_vdot, distance_km)
+  # 1. Daniels 테이블에서 기본 예측 시간 (보간 지원)
+  base_time = daniels_table.get_race_predictions(vdot)["full"]  # 초
 
-  # DI 보정 (하프마라톤 이상에만 적용)
-  di_penalty = max(0, 1.0 - DI) * 0.05  # DI 1.0 이하 → 후반 페이스 저하
-  darp_pace  = target_pace * (1 + di_penalty)
-  darp_time  = darp_pace * distance_km
+  # 2. DI 보정 (하프/풀만, 0~100 스케일)
+  #    DI 70+ → 0%, DI 0 → +8%
+  di_penalty = (70 - clamp(DI, 0, 100)) / 70 * 0.08  if DI < 70
+
+  # 3. Race Shape 보정 (거리별 가중)
+  #    Shape 80+ → 0%, Shape 0 → 최대 15%
+  #    5K ×0.3, 10K ×0.5, 하프 ×0.8, 풀 ×1.0
+  shape_penalty = (80 - clamp(Shape, 0, 100)) / 80 * 0.15 * dist_factor
+
+  darp_time = base_time × (1 + di_penalty) × (1 + shape_penalty)
   ```
-- **저장**: `computed_metrics` (date, 'darp_5k'/'darp_10k'/'darp_half'/'darp_full')
+- **저장**: `computed_metrics` (date, 'DARP_5k'/'DARP_10k'/'DARP_half'/'DARP_full', value=time_sec)
 
 ---
 

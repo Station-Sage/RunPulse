@@ -256,7 +256,7 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
     from datetime import date as _d
     from src.metrics.marathon_shape import (
         calc_marathon_shape, _get_vdot, _get_recent_running_data,
-        _calc_consistency, _get_race_targets,
+        _calc_consistency, _calc_long_run_stats, _get_race_targets,
     )
 
     today = target_date or _d.today().isoformat()
@@ -277,27 +277,38 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
         data_weeks = min(weeks, 4)
         weekly_avg, longest = _get_recent_running_data(conn, today, weeks=data_weeks)
         consistency = _calc_consistency(conn, today, weeks=weeks)
-        shape = calc_marathon_shape(weekly_avg, longest, vdot,
-                                    consistency_score=consistency,
-                                    race_distance_km=km)
+        long_count, long_quality = _calc_long_run_stats(
+            conn, today, weeks=weeks,
+            threshold_km=targets["long_threshold"], vdot=vdot)
+        shape = calc_marathon_shape(
+            weekly_avg, longest, vdot,
+            consistency_score=consistency,
+            race_distance_km=km,
+            long_run_count=long_count,
+            long_run_quality=long_quality,
+        )
         if shape is None:
             continue
 
         color = "#00ff88" if shape >= 70 else "#ffaa00" if shape >= 50 else "#ff4444"
-        target_w = targets["weekly_km"]
-        target_l = targets["long_km"]
+        target_w = targets["weekly_target"]
+        target_l = targets["long_max"]
+        target_cnt = targets["long_count_target"]
         weekly_pct = min(100, int(weekly_avg / target_w * 100)) if target_w > 0 else 0
         long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
+        freq_pct = min(100, int(long_count / target_cnt * 100)) if target_cnt > 0 else 0
 
         cards.append(
-            f"<div style='flex:1;min-width:120px;text-align:center;padding:12px;"
+            f"<div style='flex:1;min-width:130px;text-align:center;padding:12px;"
             f"background:rgba(255,255,255,0.03);border-radius:12px;'>"
             f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:4px;'>{label}</div>"
             f"<div style='font-size:1.6rem;font-weight:700;color:{color};'>{shape:.0f}%</div>"
             f"<div style='font-size:0.68rem;color:var(--muted);margin-top:6px;'>"
             f"주간 {weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</div>"
             f"<div style='font-size:0.68rem;color:var(--muted);'>"
-            f"장거리 {longest:.0f}/{target_l:.0f}km ({long_pct}%)</div>"
+            f"최장 {longest:.0f}/{target_l:.0f}km ({long_pct}%)</div>"
+            f"<div style='font-size:0.68rem;color:var(--muted);'>"
+            f"장거리 {long_count}/{target_cnt}회 ({freq_pct}%)</div>"
             f"<div style='font-size:0.65rem;color:var(--muted);'>"
             f"일관성 {weeks}주</div>"
             f"</div>"
@@ -359,9 +370,10 @@ def render_metric_glossary() -> str:
          "내구성 지수는 장거리 후반부에서 페이스를 유지하는 능력입니다. "
          "90분 이상 세션에서 전반/후반 페이스 비율로 계산합니다. "
          "70+ = 우수(네거티브 스플릿 가능), 40~70 = 양호, 40 미만 = 장거리 훈련 필요."),
-        ("DARP (Durability-Adjusted Race Prediction)란?",
-         "VDOT 기반 기본 예측에 내구성(DI)을 반영한 보정 레이스 예측입니다. "
-         "DI가 높으면 기본 예측보다 빠른 시간을, 낮으면 보수적인 시간을 제시합니다."),
+        ("DARP (Dynamic Adjusted Race Prediction)란?",
+         "Daniels VDOT 테이블 기반 예측에 내구성(DI)과 훈련 준비도(Race Shape)를 "
+         "반영한 보정 레이스 예측입니다. DI가 낮으면 후반 페이스 드롭 반영, "
+         "Race Shape가 낮으면 훈련 부족에 따른 시간 추가. 거리별 보정 비율 차등 적용."),
         ("Race Shape이란?",
          "목표 레이스 거리별 훈련 준비도입니다. 주간 볼륨(50%) + 장거리런(30%) + "
          "일관성(20%)을 종합하여 0~100%로 표현합니다. 목표가 10K면 6주, 하프 8주, "

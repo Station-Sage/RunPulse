@@ -1,154 +1,166 @@
-"""DARP (Dynamic Adjusted Race Predictor) — 내구성 보정 레이스 예측.
+"""DARP (Dynamic Adjusted Race Predictor) — 내구성 + 훈련 준비도 보정 레이스 예측.
 
 공식:
-    target_pace = vdot_to_pace(vdot, distance_km)   # Jack Daniels 역산
-    di_penalty  = max(0, 1.0 - DI) * 0.05           # DI < 1 → 후반 페이스 저하
-    darp_pace   = target_pace * (1 + di_penalty)     # 하프마라톤 이상에만 DI 보정
-    darp_time   = darp_pace * distance_km
+    base_time = Daniels VDOT 테이블 기반 예측 시간
+    di_adj    = DI 기반 내구성 보정 (하프/풀만, DI 낮으면 시간 추가)
+    shape_adj = Race Shape 기반 훈련 준비도 보정 (준비 부족하면 시간 추가)
+    darp_time = base_time × (1 + di_penalty) × (1 + shape_penalty)
 
 저장: computed_metrics (date, None, 'DARP_{distance}')
-     e.g., 'DARP_5k', 'DARP_10k', 'DARP_half', 'DARP_full'
 """
 from __future__ import annotations
 
-import math
 import sqlite3
 from datetime import date
 
 from src.metrics.di import get_di
 from src.metrics.store import save_metric
 
-# Jack Daniels 거리별 퍼센트 VO2max 대응 (대략 레이스 페이스)
-# VDOT에서 특정 거리 페이스 역산:
-# velocity(m/min) = VDOT과 pct_VO2max로부터 역산
-# 대신 실용적 근사: 거리별 계수를 통해 마라톤 페이스 대비 비율 사용
 
-# Jack Daniels VDOT → 거리별 레이스 페이스 (sec/km) 근사 계수
-# 계수 = 마라톤 페이스 대비 (1.0 = 마라톤 페이스)
-_DISTANCE_PACE_FACTOR = {
-    "5k":   0.828,  # 5K는 마라톤보다 ~17% 빠름
-    "10k":  0.893,  # 10K는 마라톤보다 ~11% 빠름
-    "half": 0.946,  # 하프는 마라톤보다 ~5% 빠름
-    "full": 1.000,  # 마라톤 기준
-}
-
-# DI 보정을 적용할 최소 거리 (하프마라톤 이상)
-_DI_APPLY_DISTANCES = {"half", "full"}
-
-
-def vdot_to_marathon_pace_sec_km(vdot: float) -> float:
-    """VDOT → 마라톤 페이스 (초/km) 역산 (Jack Daniels 근사).
-
-    공식: velocity(m/min) = (VDOT × 0.9) / 0.2 (대략적 VO2max ~90% 사용)
-    실제로는 이진 탐색으로 정확히 계산하나, 근사식으로 충분.
-    """
-    if vdot <= 0:
-        return 0.0
-    # VO2max에서 마라톤 강도 ~79% 사용 (Daniels 기준)
-    # velocity ≈ sqrt(VDOT * 3.5) * 3  (경험적 근사)
-    # 더 정확한 공식: 반복법으로 Daniels-Gilbert 풀기
-    vo2_marathon = vdot * 0.79  # 마라톤 강도 79% VO2max
-    # velocity = (vo2 + 4.6) / (0.182258 + 0.000104 * velocity) → 이진 탐색
-    velocity = _solve_velocity(vo2_marathon)
-    if velocity <= 0:
-        return 0.0
-    return 1000.0 / velocity * 60.0  # m/min → sec/km
-
-
-def _solve_velocity(target_vo2: float, iterations: int = 30) -> float:
-    """VO2 목표값에서 속도(m/min) 역산 (이진 탐색)."""
-    lo, hi = 50.0, 500.0
-    for _ in range(iterations):
-        mid = (lo + hi) / 2.0
-        vo2 = -4.60 + 0.182258 * mid + 0.000104 * mid**2
-        if vo2 < target_vo2:
-            lo = mid
-        else:
-            hi = mid
-    return (lo + hi) / 2.0
-
-
-def calc_darp(vdot: float, distance_key: str, di: float | None = None) -> dict | None:
-    """DARP 계산 (순수 함수).
+def calc_darp(vdot: float, distance_key: str,
+              di: float | None = None,
+              race_shape: float | None = None) -> dict | None:
+    """DARP 계산 — Daniels 테이블 + DI + Race Shape 보정.
 
     Args:
         vdot: VDOT 값.
         distance_key: '5k' | '10k' | 'half' | 'full'.
-        di: DI 값 (없으면 DI 보정 생략).
+        di: DI 값 (0~100). 없으면 DI 보정 생략.
+        race_shape: Race Shape (0~100). 없으면 Shape 보정 생략.
 
     Returns:
-        {'pace_sec_km': ..., 'time_sec': ..., 'distance_km': ..., 'di_penalty': ...}
-        또는 None.
+        {'pace_sec_km': ..., 'time_sec': ..., 'distance_km': ...,
+         'di_penalty': ..., 'shape_penalty': ..., 'vdot': ...}
     """
-    if vdot <= 0 or distance_key not in _DISTANCE_PACE_FACTOR:
+    from src.metrics.daniels_table import get_race_predictions, get_training_paces
+
+    if vdot <= 0:
         return None
 
-    marathon_pace = vdot_to_marathon_pace_sec_km(vdot)
-    if marathon_pace <= 0:
+    _DIST_MAP = {"5k": 5.0, "10k": 10.0, "half": 21.0975, "full": 42.195}
+    _RACE_KEY = {"5k": "5k", "10k": "10k", "half": "half", "full": "full"}
+    dist_km = _DIST_MAP.get(distance_key)
+    race_key = _RACE_KEY.get(distance_key)
+    if dist_km is None or race_key is None:
         return None
 
-    factor = _DISTANCE_PACE_FACTOR[distance_key]
-    target_pace = marathon_pace * factor
+    # 1. Daniels 테이블에서 기본 예측 시간
+    predictions = get_race_predictions(vdot)
+    base_time = predictions.get(race_key)
+    if not base_time or base_time <= 0:
+        return None
 
-    # DI 보정 (하프마라톤 이상에만)
+    # 2. DI 보정 (하프/풀만) — DI 0~100 스케일
+    #    DI 70(양호) → 0% 페널티
+    #    DI 50 → +2% 페널티
+    #    DI 30 → +5% 페널티
+    #    DI 0  → +8% 페널티
     di_penalty = 0.0
-    if di is not None and distance_key in _DI_APPLY_DISTANCES:
-        di_penalty = max(0.0, 1.0 - di) * 0.05
+    if di is not None and distance_key in ("half", "full"):
+        di_clamped = max(0.0, min(100.0, di))
+        if di_clamped < 70:
+            di_penalty = (70 - di_clamped) / 70 * 0.08  # 최대 8%
 
-    darp_pace = target_pace * (1.0 + di_penalty)
+    # 3. Race Shape 보정 (10K 이상) — Shape 0~100 스케일
+    #    Shape 80+(준비 완료) → 0% 페널티
+    #    Shape 60 → +3% 페널티
+    #    Shape 40 → +7% 페널티
+    #    Shape 20 → +12% 페널티
+    #    5K는 훈련 준비도 영향이 상대적으로 작음 → 계수 축소
+    shape_penalty = 0.0
+    if race_shape is not None:
+        shape_clamped = max(0.0, min(100.0, race_shape))
+        if shape_clamped < 80:
+            base_penalty = (80 - shape_clamped) / 80 * 0.15  # 최대 15%
+            # 거리별 영향 계수: 5K 30%, 10K 50%, 하프 80%, 풀 100%
+            dist_factor = {"5k": 0.3, "10k": 0.5, "half": 0.8, "full": 1.0}
+            shape_penalty = base_penalty * dist_factor.get(distance_key, 1.0)
 
-    distances = {"5k": 5.0, "10k": 10.0, "half": 21.0975, "full": 42.195}
-    dist_km = distances[distance_key]
-    darp_time_sec = darp_pace * dist_km
+    # 4. 최종 예측
+    adjusted_time = base_time * (1.0 + di_penalty) * (1.0 + shape_penalty)
+    adjusted_pace = adjusted_time / dist_km
+
+    # 페이스 정보 (Daniels 기준)
+    paces = get_training_paces(vdot)
 
     return {
-        "pace_sec_km": round(darp_pace, 1),
-        "time_sec": round(darp_time_sec),
+        "pace_sec_km": round(adjusted_pace, 1),
+        "time_sec": round(adjusted_time),
         "distance_km": dist_km,
+        "base_time_sec": base_time,
         "di_penalty": round(di_penalty, 4),
+        "shape_penalty": round(shape_penalty, 4),
         "vdot": vdot,
+        "avg_pace_sec": round(adjusted_pace),
+        "m_pace": paces.get("M"),
     }
 
 
 def calc_and_save_darp(conn: sqlite3.Connection, target_date: str) -> dict:
     """4개 거리 DARP 계산 후 저장.
 
-    Args:
-        conn: SQLite 커넥션.
-        target_date: YYYY-MM-DD.
-
-    Returns:
-        {distance_key: result_dict, ...} — 계산된 것만 포함.
+    VDOT 소스: computed_metrics.VDOT 우선.
+    DI: computed_metrics.DI.
+    Race Shape: computed_metrics.MarathonShape (거리별 재계산).
     """
-    # VDOT 조회
+    # VDOT 조회 (computed_metrics 우선)
     row = conn.execute(
-        """SELECT runalyze_vdot FROM daily_fitness
-           WHERE runalyze_vdot IS NOT NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
+        "SELECT metric_value FROM computed_metrics "
+        "WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date<=? "
+        "ORDER BY date DESC LIMIT 1",
         (target_date,),
     ).fetchone()
-    if row is None or not row[0]:
+    if not row or not row[0]:
+        # fallback: daily_fitness
         row = conn.execute(
-            """SELECT metric_value FROM computed_metrics
-               WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date <= ?
-               ORDER BY date DESC LIMIT 1""",
+            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+            "AND date<=? ORDER BY date DESC LIMIT 1",
             (target_date,),
         ).fetchone()
-        if row is None or not row[0]:
+        if not row:
             return {}
-    vdot = float(row[0])
+        vdot = float(row[0]) if row[0] else (float(row[1]) if row[1] else None)
+        if not vdot:
+            return {}
+    else:
+        vdot = float(row[0])
 
     di = get_di(conn, target_date)
 
+    # Race Shape (거리별로 다름 → 각 거리에 맞는 shape 계산)
+    from src.metrics.marathon_shape import calc_marathon_shape, _get_race_targets
+    from src.metrics.marathon_shape import (
+        _get_recent_running_data, _calc_consistency, _calc_long_run_stats,
+    )
+    _DIST_KM = {"5k": 5.0, "10k": 10.0, "half": 21.0975, "full": 42.195}
+
     results = {}
-    for dist_key in ("5k", "10k", "half", "full"):
-        result = calc_darp(vdot, dist_key, di)
+    for dist_key, dist_km in _DIST_KM.items():
+        # 거리별 Race Shape 계산
+        targets = _get_race_targets(vdot, dist_km)
+        weeks = targets["consistency_weeks"]
+        weekly_avg, longest = _get_recent_running_data(conn, target_date, weeks=min(weeks, 4))
+        consistency = _calc_consistency(conn, target_date, weeks=weeks)
+        long_count, long_quality = _calc_long_run_stats(
+            conn, target_date, weeks=weeks,
+            threshold_km=targets["long_threshold"], vdot=vdot)
+        shape = calc_marathon_shape(
+            weekly_avg, longest, vdot,
+            consistency_score=consistency,
+            race_distance_km=dist_km,
+            long_run_count=long_count,
+            long_run_quality=long_quality,
+        )
+
+        result = calc_darp(vdot, dist_key, di=di, race_shape=shape)
         if result:
+            result["race_shape"] = shape
             save_metric(
                 conn,
                 date=target_date,
                 metric_name=f"DARP_{dist_key}",
-                value=result["pace_sec_km"],
+                value=result["time_sec"],  # 시간(초)을 저장 (이전: pace)
                 extra_json=result,
             )
             results[dist_key] = result
