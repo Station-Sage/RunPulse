@@ -98,10 +98,16 @@ def load_metric_json(
 
 def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
                     weeks: int = 12) -> float:
-    """이상치 제거된 최대심박 추정.
+    """최대심박 추정 — 고강도 활동 기반 + 이상치 제거.
 
-    상위 max_hr 5개의 중앙값 사용 (센서 스파이크 방지).
-    데이터 없으면 220-나이 공식 대신 190 기본값.
+    방법:
+    1. 고강도 활동(avg_hr > max_hr×0.75) 중 max_hr 상위 10개 수집
+    2. IQR 이상치 제거 (Q3 + 1.5×IQR 초과 제거)
+    3. 남은 값 중 최대값 = 추정 maxHR
+
+    Fallback: 데이터 없으면 Tanaka (2001) 공식 또는 190 기본값.
+    Reference: Tanaka et al. (2001) "Age-predicted maximal heart rate revisited"
+               208 - 0.7 × age
 
     Args:
         conn: DB 연결.
@@ -113,29 +119,53 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
     """
     from datetime import date as _d, timedelta as _td
 
+    date_filter = ""
+    params: list = []
     if target_date:
         start = (_d.fromisoformat(target_date) - _td(weeks=weeks)).isoformat()
+        date_filter = "AND DATE(start_time) BETWEEN ? AND ?"
+        params = [start, target_date]
+
+    # 고강도 활동의 max_hr 수집 (이지런 제외)
+    # avg_hr / max_hr > 0.75 → 전체적으로 고강도였던 활동
+    rows = conn.execute(
+        f"SELECT max_hr FROM v_canonical_activities "
+        f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
+        f"AND avg_hr IS NOT NULL AND avg_hr > 0 "
+        f"AND CAST(avg_hr AS REAL) / CAST(max_hr AS REAL) > 0.75 "
+        f"{date_filter} "
+        f"ORDER BY max_hr DESC LIMIT 10",
+        params,
+    ).fetchall()
+
+    if not rows:
+        # 이지런 포함 전체에서 상위 수집 (fallback)
         rows = conn.execute(
-            "SELECT max_hr FROM v_canonical_activities "
-            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
-            "AND DATE(start_time) BETWEEN ? AND ? "
-            "ORDER BY max_hr DESC LIMIT 5",
-            (start, target_date),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT max_hr FROM v_canonical_activities "
-            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
-            "ORDER BY max_hr DESC LIMIT 5",
+            f"SELECT max_hr FROM v_canonical_activities "
+            f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
+            f"{date_filter} "
+            f"ORDER BY max_hr DESC LIMIT 10",
+            params,
         ).fetchall()
 
     if not rows:
         return 190.0
 
     vals = sorted([float(r[0]) for r in rows])
-    # 중앙값 (상위 5개 중)
-    mid = len(vals) // 2
-    return vals[mid]
+
+    # IQR 이상치 제거
+    if len(vals) >= 4:
+        q1 = vals[len(vals) // 4]
+        q3 = vals[len(vals) * 3 // 4]
+        iqr = q3 - q1
+        upper_bound = q3 + 1.5 * iqr
+        vals = [v for v in vals if v <= upper_bound]
+
+    if not vals:
+        return 190.0
+
+    # 이상치 제거 후 최대값 = 추정 maxHR
+    return max(vals)
 
 
 def load_metric_series(
