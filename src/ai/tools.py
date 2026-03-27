@@ -361,4 +361,19 @@ def _exec_get_training_plan(conn: sqlite3.Connection, args: dict) -> dict:
 
 def _exec_get_runner_profile(conn: sqlite3.Connection, args: dict) -> dict:
     from src.ai.chat_context import _build_runner_profile
-    return _build_runner_profile(conn, date.today().isoformat())
+    profile = _build_runner_profile(conn, date.today().isoformat())
+    # Daniels 훈련 페이스 추가
+    vdot_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1",
+    ).fetchone()
+    if vdot_row and vdot_row[0]:
+        from src.metrics.daniels_table import get_training_paces
+        paces = get_training_paces(float(vdot_row[0]))
+        profile["training_paces"] = {
+            k: f"{v // 60}:{v % 60:02d}/km" for k, v in paces.items()
+            if k != "R_400m"
+        }
+        if "R_400m" in paces:
+            profile["training_paces"]["R_400m"] = f"{paces['R_400m']}초"
+    return profile
