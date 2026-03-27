@@ -60,28 +60,32 @@ def calc_marathon_shape(
     target_long = targets["long_max"]
     target_count = targets["long_count_target"]
 
-    # 1. 주간 볼륨 (35%)
+    # 1~5 요소 점수 계산
     weekly_score = min(1.0, weekly_km_avg / target_weekly)
-
-    # 2. 최장 거리 (20%)
     long_score = min(1.0, longest_run_km / target_long)
-
-    # 3. 장거리 빈도 (20%) — 기간 내 threshold 이상 달린 횟수
     freq_score = min(1.0, long_run_count / target_count) if target_count > 0 else 0
-
-    # 4. 일관성 (15%)
     if consistency_score <= 0:
         consistency_score = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
+    quality = long_run_quality if long_run_quality > 0 else 0.5
 
-    # 5. 장거리 페이스 품질 (10%) — VDOT E-pace 기준 적정 속도였는지
-    quality = long_run_quality if long_run_quality > 0 else 0.5  # 데이터 없으면 중립
+    # 거리별 가중치 차등
+    #              볼륨  최장  빈도  일관성 페이스품질
+    # 10K:  스피드/일관성 중심, 장거리 비중 낮음
+    # 하프:  균형
+    # 마라톤: 장거리/볼륨 중심
+    if race_distance_km <= 10.5:
+        w = (0.30, 0.10, 0.10, 0.25, 0.25)  # 10K
+    elif race_distance_km <= 21.5:
+        w = (0.30, 0.20, 0.15, 0.20, 0.15)  # 하프
+    else:
+        w = (0.30, 0.25, 0.25, 0.10, 0.10)  # 마라톤
 
     shape_pct = (
-        weekly_score * 0.35
-        + long_score * 0.20
-        + freq_score * 0.20
-        + consistency_score * 0.15
-        + quality * 0.10
+        weekly_score * w[0]
+        + long_score * w[1]
+        + freq_score * w[2]
+        + consistency_score * w[3]
+        + quality * w[4]
     ) * 100
 
     return round(shape_pct, 1)
