@@ -121,12 +121,18 @@ def classify_workout(
     #    하프/풀(20km+): HR > 85% (레이스 강도가 HR 85~90%)
     #    또는 페이스가 eFTP보다 빠름 + HR 85%+
     is_race = False
-    if dist >= 4.5 and hr_intensity > 0.85:
-        if z45 > 25 or hr_intensity > 0.90:
+    if dist >= 4.5:
+        # 5K~10K: HR > 90% 또는 Z4-5 > 25%
+        if hr_intensity > 0.90 or (hr_intensity > 0.85 and z45 > 25):
             is_race = True
+        # 하프(20km+): HR > 82% (레이스 강도 85~90%)
         if dist >= 20 and hr_intensity > 0.82:
             is_race = True
-        if pace_ratio < 1.0 and hr_intensity > 0.85:
+        # 풀마라톤(40km+): HR > 75% (레이스 강도 75~85%)
+        if dist >= 38 and hr_intensity > 0.75:
+            is_race = True
+        # 페이스가 eFTP보다 빠름 + HR 82%+
+        if pace_ratio < 1.0 and hr_intensity > 0.82:
             is_race = True
     if is_race:
         return WorkoutClassification("race", _EFFECTS["race"], 0.9,
