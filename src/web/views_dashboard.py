@@ -343,7 +343,7 @@ def _build_dashboard(db) -> str:
     fitness_chart = render_fitness_trends_chart(pmc_data, trends)
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
-    darp_card = _render_darp_mini(darp_data, vdot=vdot, di=_v3.get("DI"))
+    darp_card = _render_darp_mini(darp_data, vdot=_v3.get("VDOT_ADJ") or vdot, di=_v3.get("DI"))
     fitness_card = _render_fitness_mini(
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),

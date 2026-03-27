@@ -26,23 +26,10 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
     """
     td = date.fromisoformat(target_date)
 
-    # 1. Intervals.icu FTP
-    row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name='icu_ftp' AND date<=? AND metric_value IS NOT NULL
-           ORDER BY date DESC LIMIT 1""",
-        (target_date,),
-    ).fetchone()
-    if row and row[0]:
-        eftp = float(row[0])
-        save_metric(conn, target_date, "eFTP", eftp,
-                    extra_json={"source": "intervals", "pace_sec_km": eftp})
-        return eftp
-
-    # 2. VDOT_ADJ 우선 → VDOT fallback → Daniels T-pace
+    # 1. VDOT 기반 Daniels T-pace (가장 정확)
     vdot_val = None
     vdot_src = "unknown"
-    for mname in ("VDOT_ADJ", "VDOT"):
+    for mname in ("VDOT",):
         vdot_row = conn.execute(
             "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
             "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
@@ -63,6 +50,19 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
                                     "vdot": vdot_val,
                                     "vdot_source": vdot_src})
             return t_pace
+
+    # 2. Intervals.icu FTP (VDOT 없을 때 fallback)
+    icu_row = conn.execute(
+        """SELECT metric_value FROM computed_metrics
+           WHERE metric_name='icu_ftp' AND date<=? AND metric_value IS NOT NULL
+           ORDER BY date DESC LIMIT 1""",
+        (target_date,),
+    ).fetchone()
+    if icu_row and icu_row[0]:
+        eftp = float(icu_row[0])
+        save_metric(conn, target_date, "eFTP", eftp,
+                    extra_json={"source": "intervals", "pace_sec_km": eftp})
+        return eftp
 
     # 3. 자체 추정: 고강도 활동의 역치 페이스 추정
     #    HR 기반: 최대심박 85%+ 활동 → 역치 근처 노력
