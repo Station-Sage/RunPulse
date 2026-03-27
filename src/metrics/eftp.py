@@ -39,7 +39,24 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
                     extra_json={"source": "intervals", "pace_sec_km": eftp})
         return eftp
 
-    # 2. 자체 추정: 고강도 활동의 역치 페이스 추정
+    # 2. VDOT 기반 Daniels T-pace (가장 정확)
+    vdot_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+        (target_date,),
+    ).fetchone()
+    if vdot_row and vdot_row[0]:
+        from src.metrics.daniels_table import get_training_paces
+        paces = get_training_paces(float(vdot_row[0]))
+        t_pace = paces.get("T")
+        if t_pace:
+            save_metric(conn, target_date, "eFTP", t_pace,
+                        extra_json={"source": "daniels_t_pace",
+                                    "pace_sec_km": t_pace,
+                                    "vdot": float(vdot_row[0])})
+            return t_pace
+
+    # 3. 자체 추정: 고강도 활동의 역치 페이스 추정
     #    HR 기반: 최대심박 85%+ 활동 → 역치 근처 노력
     start = (td - timedelta(weeks=12)).isoformat()
 

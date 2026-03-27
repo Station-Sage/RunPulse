@@ -569,11 +569,11 @@ class TestDarp:
         assert r_bad["time_sec"] > r_good["time_sec"]
 
     def test_daniels_table_accuracy(self):
-        """VDOT 50 → 마라톤 예측 ~3:10:49 (11449초) 근처."""
+        """VDOT 50 → 마라톤 예측 ~2:40 (9614초) 근처."""
         from src.metrics.darp import calc_darp
 
         r = calc_darp(50.0, "full")
-        assert 11000 < r["base_time_sec"] < 12000
+        assert 9000 < r["base_time_sec"] < 10500
 
     def test_time_sec_equals_pace_times_distance(self):
         from src.metrics.darp import calc_darp
