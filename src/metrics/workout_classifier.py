@@ -116,36 +116,10 @@ def classify_workout(
     pace_ratio = avg_pace_sec_km / eftp_sec_km if avg_pace_sec_km and eftp_sec_km and eftp_sec_km > 0 else 1.0
 
     # ── 분류 규칙 (우선순위 순) ──────────────────────────────────────
+    # 레이스는 분류하지 않음 — 원본 event_type='race'를 그대로 사용
+    # (activity_summaries.event_type → UI/VDOT에서 직접 참조)
 
-    # 0. 원본 태그 우선 (Garmin event_type / Strava workout_type)
-    #    서비스에서 이미 "race"로 태깅한 경우 그대로 사용
-    if event_type and event_type.lower().strip() == "race":
-        return WorkoutClassification("race", _EFFECTS["race"], 0.95,
-                                     f"원본 태그: {event_type}")
-
-    # 1. 레이스: 고강도 + 일정 거리 이상
-    #    5K~10K: HR > 90% + Z4-5 > 25%
-    #    하프/풀(20km+): HR > 85% (레이스 강도가 HR 85~90%)
-    #    또는 페이스가 eFTP보다 빠름 + HR 85%+
-    is_race = False
-    if dist >= 4.5:
-        # 5K~10K: HR > 90% 또는 Z4-5 > 25%
-        if hr_intensity > 0.90 or (hr_intensity > 0.85 and z45 > 25):
-            is_race = True
-        # 하프(20km+): HR > 82% (레이스 강도 85~90%)
-        if dist >= 20 and hr_intensity > 0.82:
-            is_race = True
-        # 풀마라톤(40km+): HR > 75% (레이스 강도 75~85%)
-        if dist >= 38 and hr_intensity > 0.75:
-            is_race = True
-        # 페이스가 eFTP보다 빠름 + HR 82%+
-        if pace_ratio < 1.0 and hr_intensity > 0.82:
-            is_race = True
-    if is_race:
-        return WorkoutClassification("race", _EFFECTS["race"], 0.9,
-                                     f"HR {hr_intensity:.0%} maxHR, {dist:.1f}km")
-
-    # 2. 인터벌: Z4-5 > 25% (고강도 비율 높음)
+    # 1. 인터벌: Z4-5 > 25% (고강도 비율 높음)
     if z45 > 25:
         return WorkoutClassification("interval", _EFFECTS["interval"], 0.85,
                                      f"Z4-5 {z45:.0f}%")

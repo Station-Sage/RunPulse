@@ -179,17 +179,21 @@ def _calc_long_run_stats(conn: sqlite3.Connection, target_date: str,
     if count == 0:
         return 0, 0.0
 
-    # 페이스 품질: Daniels E-pace 기준 ±15% 범위 내인지
+    # 페이스 품질: 적정 강도로 달렸는지
+    #   I/T/M/E 모두 유효 — 너무 느린 것(E+20% 초과)만 비적정
+    #   장거리를 빠르게(T/I 페이스) 뛴 것도 좋은 훈련
     from src.metrics.daniels_table import get_training_paces
     paces = get_training_paces(vdot)
     e_pace = paces.get("E", 330)
-    pace_low = e_pace * 0.85   # 빠른 한계
-    pace_high = e_pace * 1.15  # 느린 한계
+    pace_high = e_pace * 1.20      # E-pace보다 20% 느린 것까지 허용
+    pace_low = 120                 # 2'00"/km 미만은 GPS 오류
 
     quality_hits = 0
     for dist, dur, pace in rows:
-        if pace and pace_low <= float(pace) <= pace_high:
-            quality_hits += 1
+        if pace and float(pace) > 0:
+            p = float(pace)
+            if pace_low <= p <= pace_high:
+                quality_hits += 1
 
     quality = quality_hits / count if count > 0 else 0.0
     return count, round(quality, 3)
@@ -292,11 +296,10 @@ def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> flo
     start_8w = (td - timedelta(weeks=8)).isoformat()
     rows = conn.execute(
         """SELECT a.distance_km, a.duration_sec, a.avg_hr, a.max_hr, DATE(a.start_time)
-           FROM v_canonical_activities a
-           LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
+           FROM activity_summaries a
            WHERE a.activity_type='running'
              AND a.distance_km >= 4.5 AND a.duration_sec > 0
-             AND (c.metric_value='race' OR a.name LIKE '%레이스%'
+             AND (a.event_type='race' OR a.name LIKE '%레이스%'
                   OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
              AND DATE(a.start_time) BETWEEN ? AND ?
            ORDER BY a.start_time DESC LIMIT 5""",
