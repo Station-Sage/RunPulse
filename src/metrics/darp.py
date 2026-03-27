@@ -77,16 +77,14 @@ def calc_darp(vdot: float, distance_key: str,
             dist_factor = {"5k": 0.3, "10k": 0.5, "half": 0.8, "full": 1.0}
             shape_penalty = base_penalty * dist_factor.get(distance_key, 1.0)
 
-    # 4. EF 보정 — 효율이 높으면 보너스 (시간 단축)
-    #    EF 1.0(기준) → 0%, EF 1.3(우수) → -2%, EF 1.5+(탁월) → -3%
-    #    EF < 1.0(저효율) → +2% 페널티
-    #    10K 이상에서만 유의미
+    # 4. EF 보정 — 저효율 시 페널티만 (보너스 없음)
+    #    VDOT_ADJ에 이미 EF 추세가 반영되므로, 높은 EF에 보너스 → 이중 보정
+    #    EF < 1.0(저효율) → 최대 +3% 페널티 (10K+)
+    #    EF >= 1.0 → 0% (이미 VDOT_ADJ에 반영)
     ef_bonus = 0.0
     if ef is not None and distance_key in ("10k", "half", "full"):
-        if ef >= 1.0:
-            ef_bonus = -min(0.03, (ef - 1.0) * 0.06)  # 최대 -3%
-        else:
-            ef_bonus = min(0.03, (1.0 - ef) * 0.06)   # 최대 +3%
+        if ef < 1.0:
+            ef_bonus = min(0.03, (1.0 - ef) * 0.06)  # 최대 +3% 페널티
 
     # 5. 최종 예측
     adjusted_time = base_time * (1.0 + di_penalty) * (1.0 + shape_penalty) * (1.0 + ef_bonus)
@@ -112,32 +110,42 @@ def calc_darp(vdot: float, distance_key: str,
 def calc_and_save_darp(conn: sqlite3.Connection, target_date: str) -> dict:
     """4개 거리 DARP 계산 후 저장.
 
-    VDOT 소스: computed_metrics.VDOT 우선.
-    DI: computed_metrics.DI.
-    Race Shape: computed_metrics.MarathonShape (거리별 재계산).
+    VDOT 소스: VDOT_ADJ 우선 (현재 체력 반영) → VDOT → daily_fitness fallback.
     """
-    # VDOT 조회 (computed_metrics 우선)
-    row = conn.execute(
+    # VDOT_ADJ 우선 (HR-페이스 보정 → 현재 실력 반영)
+    vdot = None
+    vdot_source = "unknown"
+    adj_row = conn.execute(
         "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date<=? "
+        "WHERE metric_name='VDOT_ADJ' AND metric_value IS NOT NULL AND date<=? "
         "ORDER BY date DESC LIMIT 1",
         (target_date,),
     ).fetchone()
-    if not row or not row[0]:
-        # fallback: daily_fitness
+    if adj_row and adj_row[0]:
+        vdot = float(adj_row[0])
+        vdot_source = "vdot_adj"
+    else:
         row = conn.execute(
-            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
-            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
-            "AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date<=? "
+            "ORDER BY date DESC LIMIT 1",
             (target_date,),
         ).fetchone()
-        if not row:
-            return {}
-        vdot = float(row[0]) if row[0] else (float(row[1]) if row[1] else None)
-        if not vdot:
-            return {}
-    else:
-        vdot = float(row[0])
+        if row and row[0]:
+            vdot = float(row[0])
+            vdot_source = "vdot"
+        else:
+            row = conn.execute(
+                "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+                "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+                "AND date<=? ORDER BY date DESC LIMIT 1",
+                (target_date,),
+            ).fetchone()
+            if row:
+                vdot = float(row[0]) if row[0] else (float(row[1]) if row[1] else None)
+                vdot_source = "runalyze" if row[0] else "garmin"
+    if not vdot:
+        return {}
 
     di = get_di(conn, target_date)
 
@@ -181,6 +189,7 @@ def calc_and_save_darp(conn: sqlite3.Connection, target_date: str) -> dict:
         if result:
             result["race_shape"] = shape
             result["ef"] = ef_val
+            result["vdot_source"] = vdot_source
             save_metric(
                 conn,
                 date=target_date,
