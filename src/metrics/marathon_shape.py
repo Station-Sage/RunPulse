@@ -24,26 +24,38 @@ from src.metrics.store import save_metric
 
 
 def _get_race_targets(vdot: float, race_km: float) -> dict:
-    """거리별 목표 주간 볼륨/장거리런/일관성 기간."""
+    """거리별 목표 — Pfitzinger/Daniels 기반 현실적 수치.
+
+    References:
+    - Pfitzinger "Advanced Marathoning": 주 88~120km, 장거리 26~37km
+    - Daniels "Running Formula": 주간 peak mileage 기준
+    - 10K/하프는 비례 축소
+    """
     if race_km <= 10.5:
-        # 10K
+        # 10K — 주 35~50km, 장거리 15~18km, 장거리 빈도 주 1회
         return {
-            "weekly_km": max(25.0, 10 + vdot * 0.5),     # VDOT 50 → 35km
-            "long_km": min(18.0, max(10.0, race_km * 1.5)),  # 15km
+            "weekly_km": max(35.0, 15 + vdot * 0.6),        # VDOT 50 → 45km
+            "long_km": min(20.0, max(12.0, 5 + vdot * 0.25)),  # VDOT 50 → 17.5km
+            "long_threshold_km": 12.0,  # 이 거리 이상이면 "장거리"
+            "long_count_target": 4,     # 기간 내 장거리 목표 횟수
             "consistency_weeks": 6,
         }
     elif race_km <= 21.5:
-        # 하프마라톤
+        # 하프마라톤 — 주 45~65km, 장거리 18~25km
         return {
-            "weekly_km": max(30.0, 15 + vdot * 0.7),     # VDOT 50 → 50km
-            "long_km": min(25.0, max(15.0, race_km * 1.0)),  # 21km
+            "weekly_km": max(45.0, 20 + vdot * 0.8),        # VDOT 50 → 60km
+            "long_km": min(28.0, max(18.0, 8 + vdot * 0.35)),  # VDOT 50 → 25.5km
+            "long_threshold_km": 16.0,
+            "long_count_target": 5,
             "consistency_weeks": 8,
         }
     else:
-        # 마라톤
+        # 마라톤 — 주 60~100km, 장거리 28~37km
         return {
-            "weekly_km": max(40.0, 20 + vdot * 0.9),     # VDOT 50 → 65km
-            "long_km": min(35.0, max(20.0, 10 + vdot * 0.35)),  # 27.5km
+            "weekly_km": max(60.0, 25 + vdot * 1.1),        # VDOT 50 → 80km
+            "long_km": min(37.0, max(28.0, 15 + vdot * 0.4)),  # VDOT 50 → 35km
+            "long_threshold_km": 25.0,  # 25km+ 가 마라톤 "장거리"
+            "long_count_target": 6,     # 12주 내 25km+ 6회
             "consistency_weeks": 12,
         }
 
@@ -54,15 +66,19 @@ def calc_marathon_shape(
     vdot: float,
     consistency_score: float = 0.0,
     race_distance_km: float = 42.195,
+    long_run_count: int = 0,
+    long_run_quality: float = 0.0,
 ) -> float | None:
-    """Race Shape 계산 — 목표 거리별 준비도.
+    """Race Shape 계산 — 5요소 종합 준비도.
 
     Args:
         weekly_km_avg: 최근 N주 평균 주간 거리 (km).
         longest_run_km: 최근 N주 최장 거리 (km).
         vdot: VDOT 값.
         consistency_score: N주 일관성 점수 (0~1).
-        race_distance_km: 목표 레이스 거리 (기본 마라톤).
+        race_distance_km: 목표 레이스 거리.
+        long_run_count: 기간 내 장거리런 횟수 (threshold 이상).
+        long_run_quality: 장거리런 페이스 품질 (0~1). 0이면 미사용.
 
     Returns:
         Shape 퍼센트 (0~100) 또는 None.
@@ -70,20 +86,34 @@ def calc_marathon_shape(
     if not vdot or vdot <= 0:
         return None
 
-    # 거리별 목표 파라미터
     targets = _get_race_targets(vdot, race_distance_km)
-    target_weekly_km = targets["weekly_km"]
-    target_long_km = targets["long_km"]
+    target_weekly = targets["weekly_km"]
+    target_long = targets["long_km"]
+    target_count = targets["long_count_target"]
 
-    weekly_shape = min(1.0, weekly_km_avg / target_weekly_km)
-    long_run_shape = min(1.0, longest_run_km / target_long_km)
+    # 1. 주간 볼륨 (35%)
+    weekly_score = min(1.0, weekly_km_avg / target_weekly)
 
-    # 일관성: 외부에서 전달되지 않으면 볼륨 기반 간이 추정
+    # 2. 최장 거리 (20%)
+    long_score = min(1.0, longest_run_km / target_long)
+
+    # 3. 장거리 빈도 (20%) — 기간 내 threshold 이상 달린 횟수
+    freq_score = min(1.0, long_run_count / target_count) if target_count > 0 else 0
+
+    # 4. 일관성 (15%)
     if consistency_score <= 0:
         consistency_score = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
 
-    # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
-    shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency_score * 0.2) * 100
+    # 5. 장거리 페이스 품질 (10%) — VDOT E-pace 기준 적정 속도였는지
+    quality = long_run_quality if long_run_quality > 0 else 0.5  # 데이터 없으면 중립
+
+    shape_pct = (
+        weekly_score * 0.35
+        + long_score * 0.20
+        + freq_score * 0.20
+        + consistency_score * 0.15
+        + quality * 0.10
+    ) * 100
 
     return round(shape_pct, 1)
 
@@ -140,6 +170,48 @@ def _get_recent_running_data(
     weekly_avg = total_km / weeks if weeks > 0 else 0.0
 
     return weekly_avg, longest_km
+
+
+def _calc_long_run_stats(conn: sqlite3.Connection, target_date: str,
+                         weeks: int = 12, threshold_km: float = 25.0,
+                         vdot: float = 50.0) -> tuple[int, float]:
+    """장거리런 빈도 + 페이스 품질.
+
+    Args:
+        threshold_km: 이 거리 이상이면 "장거리런".
+        vdot: E-pace 계산용.
+
+    Returns:
+        (long_run_count, quality_score 0~1)
+    """
+    td = date.fromisoformat(target_date)
+    start = (td - timedelta(weeks=weeks)).isoformat()
+
+    rows = conn.execute(
+        "SELECT distance_km, duration_sec, avg_pace_sec_km FROM v_canonical_activities "
+        "WHERE activity_type='running' AND distance_km>=? "
+        "AND DATE(start_time) BETWEEN ? AND ? ORDER BY start_time",
+        (threshold_km, start, target_date),
+    ).fetchall()
+
+    count = len(rows)
+    if count == 0:
+        return 0, 0.0
+
+    # 페이스 품질: VDOT E-pace 기준 ±20% 범위 내인지
+    # E-pace ≈ VDOT 기반 easy pace (대략 VDOT 50 → ~5'30"/km = 330 sec/km)
+    # Jack Daniels E-pace: VDOT 30→7'20", 40→6'12", 50→5'30", 60→4'58"
+    e_pace = max(180, 500 - vdot * 3.4)  # 간이 추정
+    pace_low = e_pace * 0.85   # 빠른 한계 (너무 빠르면 이지런 아님)
+    pace_high = e_pace * 1.15  # 느린 한계
+
+    quality_hits = 0
+    for dist, dur, pace in rows:
+        if pace and pace_low <= float(pace) <= pace_high:
+            quality_hits += 1
+
+    quality = quality_hits / count if count > 0 else 0.0
+    return count, round(quality, 3)
 
 
 def _calc_consistency(conn: sqlite3.Connection, target_date: str,
@@ -415,14 +487,24 @@ def calc_and_save_marathon_shape(
 
     targets = _get_race_targets(vdot, race_km)
     consistency_weeks = targets["consistency_weeks"]
+    long_threshold = targets["long_threshold_km"]
 
     weekly_km_avg, longest_km = _get_recent_running_data(
         conn, target_date, weeks=min(consistency_weeks, 4))
     consistency = _calc_consistency(conn, target_date, weeks=consistency_weeks)
 
-    shape = calc_marathon_shape(weekly_km_avg, longest_km, vdot,
-                                consistency_score=consistency,
-                                race_distance_km=race_km)
+    # 장거리런 빈도: threshold 이상 달린 횟수
+    long_count, long_quality = _calc_long_run_stats(
+        conn, target_date, weeks=consistency_weeks,
+        threshold_km=long_threshold, vdot=vdot)
+
+    shape = calc_marathon_shape(
+        weekly_km_avg, longest_km, vdot,
+        consistency_score=consistency,
+        race_distance_km=race_km,
+        long_run_count=long_count,
+        long_run_quality=long_quality,
+    )
     if shape is not None:
         save_metric(
             conn,
@@ -437,8 +519,12 @@ def calc_and_save_marathon_shape(
                 "race_distance_km": race_km,
                 "consistency_weeks": consistency_weeks,
                 "consistency_score": round(consistency, 3),
+                "long_run_count": long_count,
+                "long_run_quality": round(long_quality, 2),
+                "long_threshold_km": long_threshold,
                 "target_weekly_km": round(targets["weekly_km"], 1),
                 "target_long_km": round(targets["long_km"], 1),
+                "target_long_count": targets["long_count_target"],
             },
         )
     return shape
