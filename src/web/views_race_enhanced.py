@@ -332,10 +332,12 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
             f"<span style='color:{_pct_clr(freq_pct)};'>{long_count}/{target_cnt}회 ({freq_pct}%)</span></div>"
             f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
             f"<span style='color:var(--muted);'>일관성</span>"
-            f"<span style='color:{_pct_clr(con_pct)};'>{con_pct}% ({weeks}주)</span></div>"
+            f"<span style='color:{_pct_clr(con_pct)};'>주{consistency*4:.1f}회 ({con_pct}%)</span></div>"
             f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
             f"<span style='color:var(--muted);'>페이스 품질</span>"
-            f"<span style='color:{_pct_clr(qual_pct)};'>{qual_pct}%</span></div>"
+            f"<span style='color:{_pct_clr(qual_pct)};'>"
+            + (f"{int(long_quality * long_count)}/{long_count}회 ({qual_pct}%)" if long_count > 0 else f"{qual_pct}%")
+            + f"</span></div>"
             f"</div></div>"
         )
 
