@@ -427,40 +427,19 @@ def settings_view() -> str:
 
     body = f"""
 {msg_html}
-{sync_overview}
-<h2 style='margin:0.5rem 0 0.8rem;font-size:1rem;color:var(--muted);'>데이터 소스 연동</h2>
-<div class='cards-row'>
-  {_service_card("Garmin Connect", "⌚", garmin_status,
-                 "/connect/garmin", "/connect/garmin/disconnect", garmin_extra,
-                 last_sync=sync.get("garmin"))}
-  {_service_card("Strava", "🏃", strava_status,
-                 "/connect/strava", "/connect/strava/disconnect",
-                 last_sync=sync.get("strava"))}
-</div>
-<div class='cards-row'>
-  {_service_card("Intervals.icu", "📊", intervals_status,
-                 "/connect/intervals", "/connect/intervals/disconnect",
-                 last_sync=sync.get("intervals"))}
-  {_service_card("Runalyze", "📈", runalyze_status,
-                 "/connect/runalyze", "/connect/runalyze/disconnect",
-                 last_sync=sync.get("runalyze"))}
+<div class='card' style='display:flex;justify-content:space-between;align-items:center;'>
+  <div>
+    <h2 style='margin:0;font-size:1rem;'>동기화 · 서비스 연결</h2>
+    <p class='muted' style='margin:0.3rem 0 0;font-size:0.82rem;'>데이터 동기화, 서비스 연동, 임포트는 동기화 탭에서 관리합니다.</p>
+  </div>
+  <a href='/sync' style='background:var(--cyan);color:#000;padding:0.4rem 1.2rem;
+     border-radius:8px;font-weight:600;font-size:0.85rem;text-decoration:none;'>🔄 동기화 탭</a>
 </div>
 {_render_user_profile_section(config)}
 {_render_mapbox_section(config)}
 {_render_ai_section(config)}
 {_render_prompt_management(config)}
 {_render_caldav_section(config)}
-<hr>
-<div class='card'>
-  <h2>Strava 아카이브 임포트</h2>
-  <p>Strava에서 내보낸 zip 파일을 임포트하거나, 기존 활동에 FIT/GPX 파일을 재연결합니다.<br>
-  <small class='muted'>Settings → 데이터 내보내기(Export your data)에서 다운로드한 zip 파일을 사용합니다.</small></p>
-  <a href='/import/strava-archive'>
-    <button style='padding:0.4rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
-      아카이브 임포트
-    </button>
-  </a>
-</div>
 <div class='card' id='metrics-section'>
   <h2>메트릭 재계산</h2>
   <p>기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, RTTI, WLEI, TPDI 등)을 재계산합니다.<br>

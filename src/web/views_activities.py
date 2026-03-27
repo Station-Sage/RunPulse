@@ -1053,22 +1053,11 @@ def activities_list():
     # 정렬 링크용 베이스 (sort/dir 없이 모든 필터 포함)
     sort_base = "/activities?" + base_qs
 
-    from .sync_ui import sync_card_html
-    from .helpers import last_sync_info, connected_services
-    from src.utils.sync_state import get_all_states
-    sync_btn = sync_card_html(
-        last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
-        sync_states=get_all_states(),
-        connected=connected_services(),
-    )
-
-    # 동기화 카드를 접이식으로 하단 배치
+    # 동기화 탭 링크 (기존 동기화 카드 대신)
     sync_section = (
-        "<details style='margin-top:12px;'>"
-        "<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;"
-        "padding:10px 16px;font-size:13px;font-weight:600;list-style:none;color:var(--muted);'>"
-        "🔄 동기화 상태</summary>"
-        f"<div style='margin-top:8px;'>{sync_btn}</div></details>"
+        "<div style='margin-top:12px;text-align:center;'>"
+        "<a href='/sync' style='color:var(--cyan);font-size:0.82rem;text-decoration:none;'>"
+        "🔄 동기화 관리 →</a></div>"
     )
 
     # 분류 기준 가이드

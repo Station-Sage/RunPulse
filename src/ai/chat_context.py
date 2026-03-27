@@ -13,6 +13,16 @@ from typing import Any
 from src.utils.pace import seconds_to_pace as _raw_pace
 
 
+def _r1(v) -> float | None:
+    """소수점 2자리 반올림 (거리/페이스 등)."""
+    return round(float(v), 2) if v is not None else None
+
+
+def _ri(v) -> int | None:
+    """정수 반올림."""
+    return round(float(v)) if v is not None else None
+
+
 def seconds_to_pace(val) -> str:
     """float-safe wrapper."""
     return _raw_pace(int(val))
@@ -152,7 +162,7 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
         "ORDER BY start_time DESC LIMIT 3",
     ).fetchall()
     ctx["recent_activities"] = [
-        {"date": str(r[0])[:10], "km": r[1], "sec": r[2], "pace": r[3], "hr": r[4]}
+        {"date": str(r[0])[:10], "km": _r1(r[1]), "sec": _ri(r[2]), "pace": r[3], "hr": _ri(r[4])}
         for r in acts
     ]
 

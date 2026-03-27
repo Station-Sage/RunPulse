@@ -176,10 +176,14 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
     for a in acts:
         aid, km, sec, pace, avg_hr, max_hr, elev, cal, name = a
         detail: dict[str, Any] = {
-            "name": name, "distance_km": km, "duration_sec": sec,
+            "name": name,
+            "distance_km": round(float(km), 2) if km else None,
+            "duration_sec": round(float(sec)) if sec else None,
             "pace": seconds_to_pace(int(pace)) if pace else None,
-            "avg_hr": avg_hr, "max_hr": max_hr,
-            "elevation_m": elev, "calories": cal,
+            "avg_hr": round(float(avg_hr)) if avg_hr else None,
+            "max_hr": round(float(max_hr)) if max_hr else None,
+            "elevation_m": round(float(elev)) if elev else None,
+            "calories": round(float(cal)) if cal else None,
         }
         # 메트릭
         metrics = conn.execute(
@@ -210,9 +214,10 @@ def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
         "period": f"{s} ~ {e}",
         "count": len(rows),
         "activities": [
-            {"date": r[0], "km": r[1], "sec": r[2],
+            {"date": r[0], "km": round(float(r[1]), 2) if r[1] else None,
+             "sec": round(float(r[2])) if r[2] else None,
              "pace": seconds_to_pace(int(r[3])) if r[3] else None,
-             "hr": r[4], "name": r[5]}
+             "hr": round(float(r[4])) if r[4] else None, "name": r[5]}
             for r in rows
         ],
     }
@@ -279,7 +284,7 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
     return {
         "days": days,
         "data": [
-            {"date": r[0], "ctl": round(float(r[1]), 1) if r[1] else None,
+            {"date": r[0], "ctl": round(float(r[1]), 2) if r[1] else None,
              "atl": round(float(r[2]), 1) if r[2] else None,
              "tsb": round(float(r[3]), 1) if r[3] else None,
              "vo2max": round(float(r[4]), 1) if r[4] else None}
@@ -356,4 +361,19 @@ def _exec_get_training_plan(conn: sqlite3.Connection, args: dict) -> dict:
 
 def _exec_get_runner_profile(conn: sqlite3.Connection, args: dict) -> dict:
     from src.ai.chat_context import _build_runner_profile
-    return _build_runner_profile(conn, date.today().isoformat())
+    profile = _build_runner_profile(conn, date.today().isoformat())
+    # Daniels 훈련 페이스 추가
+    vdot_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1",
+    ).fetchone()
+    if vdot_row and vdot_row[0]:
+        from src.metrics.daniels_table import get_training_paces
+        paces = get_training_paces(float(vdot_row[0]))
+        profile["training_paces"] = {
+            k: f"{v // 60}:{v % 60:02d}/km" for k, v in paces.items()
+            if k != "R_400m"
+        }
+        if "R_400m" in paces:
+            profile["training_paces"]["R_400m"] = f"{paces['R_400m']}초"
+    return profile
