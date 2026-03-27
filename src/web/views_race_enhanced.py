@@ -279,7 +279,7 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
         consistency = _calc_consistency(conn, today, weeks=weeks)
         long_count, long_quality = _calc_long_run_stats(
             conn, today, weeks=weeks,
-            threshold_km=targets["long_threshold_km"], vdot=vdot)
+            threshold_km=targets["long_threshold"], vdot=vdot)
         shape = calc_marathon_shape(
             weekly_avg, longest, vdot,
             consistency_score=consistency,
@@ -291,8 +291,8 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
             continue
 
         color = "#00ff88" if shape >= 70 else "#ffaa00" if shape >= 50 else "#ff4444"
-        target_w = targets["weekly_km"]
-        target_l = targets["long_km"]
+        target_w = targets["weekly_target"]
+        target_l = targets["long_max"]
         target_cnt = targets["long_count_target"]
         weekly_pct = min(100, int(weekly_avg / target_w * 100)) if target_w > 0 else 0
         long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
