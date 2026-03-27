@@ -261,19 +261,25 @@ CP = coeffs[0]; W_prime = coeffs[1]
 
 ---
 
-### DARP — Dynamic Adjusted Race Predictor
-- **정의**: VDOT 기반 + DI 보정 레이스 예측
-- **PDF 확정 계산식**:
+### DARP — Dynamic Adjusted Race Predictor (v3)
+- **정의**: Daniels VDOT 테이블 기반 + DI 보정 + Race Shape 보정 레이스 예측
+- **계산식**:
   ```python
-  # VDOT에서 목표 거리 페이스 역산 (Jack Daniels 공식)
-  target_pace = vdot_to_pace(runalyze_vdot, distance_km)
+  # 1. Daniels 테이블에서 기본 예측 시간 (보간 지원)
+  base_time = daniels_table.get_race_predictions(vdot)["full"]  # 초
 
-  # DI 보정 (하프마라톤 이상에만 적용)
-  di_penalty = max(0, 1.0 - DI) * 0.05  # DI 1.0 이하 → 후반 페이스 저하
-  darp_pace  = target_pace * (1 + di_penalty)
-  darp_time  = darp_pace * distance_km
+  # 2. DI 보정 (하프/풀만, 0~100 스케일)
+  #    DI 70+ → 0%, DI 0 → +8%
+  di_penalty = (70 - clamp(DI, 0, 100)) / 70 * 0.08  if DI < 70
+
+  # 3. Race Shape 보정 (거리별 가중)
+  #    Shape 80+ → 0%, Shape 0 → 최대 15%
+  #    5K ×0.3, 10K ×0.5, 하프 ×0.8, 풀 ×1.0
+  shape_penalty = (80 - clamp(Shape, 0, 100)) / 80 * 0.15 * dist_factor
+
+  darp_time = base_time × (1 + di_penalty) × (1 + shape_penalty)
   ```
-- **저장**: `computed_metrics` (date, 'darp_5k'/'darp_10k'/'darp_half'/'darp_full')
+- **저장**: `computed_metrics` (date, 'DARP_5k'/'DARP_10k'/'DARP_half'/'DARP_full', value=time_sec)
 
 ---
 

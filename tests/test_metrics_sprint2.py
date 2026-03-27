@@ -521,9 +521,10 @@ class TestDarp:
             result = calc_darp(vdot=50.0, distance_key=dist)
             assert result is not None
             assert result["pace_sec_km"] > 0
+            assert result["time_sec"] > 0
 
     def test_5k_faster_than_marathon(self):
-        """5K 페이스 < 마라톤 페이스 (더 빠름 = 낮은 sec/km)."""
+        """5K 페이스 < 마라톤 페이스."""
         from src.metrics.darp import calc_darp
 
         r5k = calc_darp(50.0, "5k")
@@ -531,44 +532,48 @@ class TestDarp:
         assert r5k["pace_sec_km"] < rfull["pace_sec_km"]
 
     def test_di_penalty_half_only(self):
-        """DI < 1 → 하프/풀에만 페이스 페널티 적용."""
+        """DI 낮으면 하프/풀에만 페널티. 5K는 영향 없음."""
         from src.metrics.darp import calc_darp
 
-        r5k_no_di = calc_darp(50.0, "5k")
-        r5k_with_di = calc_darp(50.0, "5k", di=0.8)
-        # 5K는 DI 보정 없음
-        assert r5k_no_di["pace_sec_km"] == r5k_with_di["pace_sec_km"]
+        r5k_no = calc_darp(50.0, "5k")
+        r5k_di = calc_darp(50.0, "5k", di=30)  # DI 30/100
+        assert r5k_no["pace_sec_km"] == r5k_di["pace_sec_km"]
 
-        rhalf_no_di = calc_darp(50.0, "half")
-        rhalf_with_di = calc_darp(50.0, "half", di=0.8)
-        # 하프에는 적용 → with_di 페이스가 더 느림
-        assert rhalf_with_di["pace_sec_km"] > rhalf_no_di["pace_sec_km"]
+        rhalf_no = calc_darp(50.0, "half")
+        rhalf_di = calc_darp(50.0, "half", di=30)
+        assert rhalf_di["pace_sec_km"] > rhalf_no["pace_sec_km"]
 
     def test_invalid_vdot_returns_none(self):
         from src.metrics.darp import calc_darp
-
         assert calc_darp(0.0, "5k") is None
         assert calc_darp(-10.0, "full") is None
 
     def test_unknown_distance_returns_none(self):
         from src.metrics.darp import calc_darp
-
         assert calc_darp(50.0, "marathon") is None
 
-    def test_di_ge_one_no_penalty(self):
-        """DI >= 1 → 페널티 없음."""
+    def test_di_high_no_penalty(self):
+        """DI 70+ → 페널티 없음."""
         from src.metrics.darp import calc_darp
 
         rhalf_base = calc_darp(50.0, "half")
-        rhalf_di_gt1 = calc_darp(50.0, "half", di=1.2)
-        assert rhalf_base["pace_sec_km"] == rhalf_di_gt1["pace_sec_km"]
+        rhalf_di_high = calc_darp(50.0, "half", di=80)
+        assert rhalf_base["pace_sec_km"] == rhalf_di_high["pace_sec_km"]
 
-    def test_vdot_to_marathon_pace_sanity(self):
-        """VDOT 50 → 마라톤 페이스 약 4:30-5:00/km."""
-        from src.metrics.darp import vdot_to_marathon_pace_sec_km
+    def test_shape_penalty(self):
+        """Race Shape 낮으면 시간 추가."""
+        from src.metrics.darp import calc_darp
 
-        pace = vdot_to_marathon_pace_sec_km(50.0)
-        assert 250 < pace < 330  # 4:10~5:30/km 범위
+        r_good = calc_darp(50.0, "full", race_shape=90)
+        r_bad = calc_darp(50.0, "full", race_shape=30)
+        assert r_bad["time_sec"] > r_good["time_sec"]
+
+    def test_daniels_table_accuracy(self):
+        """VDOT 50 → 마라톤 예측 ~3:10:49 (11449초) 근처."""
+        from src.metrics.darp import calc_darp
+
+        r = calc_darp(50.0, "full")
+        assert 11000 < r["base_time_sec"] < 12000
 
     def test_time_sec_equals_pace_times_distance(self):
         from src.metrics.darp import calc_darp
