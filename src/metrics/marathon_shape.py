@@ -245,15 +245,22 @@ def _calc_consistency(conn: sqlite3.Connection, target_date: str,
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
     """해당 날짜의 VDOT 값 조회.
 
-    우선순위: 자체 추정(Jack Daniels) > Runalyze > Garmin VO2Max.
-    RunPulse 계산이 최우선. 외부 소스는 참고/fallback.
+    우선순위:
+    1. 최근 레이스/타임트라이얼 기록에서 직접 역산 (가장 정확)
+    2. 고강도 활동 가중 평균 (레이스 없을 때)
+    3. Runalyze/Garmin fallback
     """
-    # 1. 자체 추정: 최근 best effort로 VDOT 추정
+    # 1. 최근 레이스 기록 → VDOT 직접 역산
+    race_vdot = _estimate_vdot_from_races(conn, target_date)
+    if race_vdot is not None:
+        return race_vdot
+
+    # 2. 자체 추정: 고강도 활동 가중 평균
     estimated = _estimate_vdot_from_activities(conn, target_date)
     if estimated is not None:
         return estimated
 
-    # 2. Runalyze VDOT 또는 Garmin VO2Max (fallback)
+    # 3. Runalyze VDOT 또는 Garmin VO2Max (fallback)
     row = conn.execute(
         """SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness
            WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL)
@@ -267,6 +274,41 @@ def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
             return float(row[1])
 
     return None
+
+
+def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> float | None:
+    """최근 레이스/타임트라이얼에서 VDOT 직접 역산.
+
+    레이스 활동 = workout_type='race' 또는 이름에 '대회/레이스/Race' 포함.
+    최근 12주 레이스 중 가장 최근 것 사용.
+    """
+    td = date.fromisoformat(target_date)
+    start = (td - timedelta(weeks=12)).isoformat()
+
+    rows = conn.execute(
+        """SELECT a.distance_km, a.duration_sec, DATE(a.start_time)
+           FROM v_canonical_activities a
+           LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
+           WHERE a.activity_type='running'
+             AND a.distance_km >= 5 AND a.duration_sec > 0
+             AND (c.metric_value='race' OR a.name LIKE '%레이스%'
+                  OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
+             AND DATE(a.start_time) BETWEEN ? AND ?
+           ORDER BY a.start_time DESC LIMIT 3""",
+        (start, target_date),
+    ).fetchall()
+
+    if not rows:
+        return None
+
+    # 각 레이스의 VDOT 계산 → 최대값 사용 (최고 성적 기준)
+    best_vdot = None
+    for dist_km, dur_sec, act_date in rows:
+        v = estimate_vdot(float(dist_km), float(dur_sec))
+        if v is not None and (best_vdot is None or v > best_vdot):
+            best_vdot = v
+
+    return best_vdot
 
 
 def _vo2_from_velocity(v: float) -> float:
