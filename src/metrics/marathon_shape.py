@@ -179,12 +179,15 @@ def _calc_long_run_stats(conn: sqlite3.Connection, target_date: str,
     if count == 0:
         return 0, 0.0
 
-    # 페이스 품질: Daniels E-pace 기준 ±15% 범위 내인지
+    # 페이스 품질: M-pace ~ E-pace+15% 범위 내인지
+    #   E-pace보다 빠른 것(M-pace 수준)도 유효한 장거리 훈련
+    #   너무 느리면 (E-pace+15% 초과) 비효율적 훈련
     from src.metrics.daniels_table import get_training_paces
     paces = get_training_paces(vdot)
+    m_pace = paces.get("M", 300)   # 마라톤 페이스 (빠른 한계)
     e_pace = paces.get("E", 330)
-    pace_low = e_pace * 0.85   # 빠른 한계
-    pace_high = e_pace * 1.15  # 느린 한계
+    pace_low = m_pace * 0.90       # M-pace보다 10% 빠른 것까지 허용 (레이스/T-런)
+    pace_high = e_pace * 1.15      # E-pace보다 15% 느린 것까지 허용
 
     quality_hits = 0
     for dist, dur, pace in rows:
