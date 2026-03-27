@@ -2,6 +2,50 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-training-activity-vdot] 2026-03-27
+
+### 훈련탭 UX 개선 (PR #52)
+- 워크아웃 인라인 편집: ✎ 버튼 → 유형/거리 변경 폼
+- Garmin/CalDAV/플랜 생성 결과 메시지 표시 (?msg= → 상단 배너)
+- 플랜 재생성 confirm 대화상자 ("4주 계획을 재생성합니다")
+- 주 네비게이션 "오늘" 버튼 (다른 주 볼 때만)
+- Silent exception 3곳 → logging 추가
+
+### 활동탭 개선 (PR #52)
+- 7개 분석 그룹 `<details>` 접이식: G1-2 펼침, G3-7 접힘
+- 빈 그룹 자동 숨김, 페이지 스크롤 대폭 감소
+
+### VDOT 전문화 (PR #53)
+- 추정 알고리즘: 베스트 1개 → **가중 평균** (최신 가중 + 장거리 가중)
+- HR 검증: 최대심박 75%+ 노력 활동만 (이지런 제외)
+- 이상치 제거: 중앙값 ±2SD 벗어난 값 제외
+- 우선순위: RunPulse 자체 추정 > Runalyze > Garmin
+- 대시보드/레포트 VDOT 소스 통일 (computed_metrics 우선)
+- 피트니스 카드에 "Runalyze 43.7 · Garmin 48.0" 소스 비교 표시
+- metric_json에 runalyze_vdot/garmin_vo2max 참고값 저장
+
+### AI 채팅 버그 수정 6건 (PR #53)
+- AJAX 실시간 채팅 (`/ai-coach/chat-async`):
+  즉시 사용자 메시지 표시 + "생성 중..." 로딩 애니메이션 + 응답 (리로드 없음)
+- JSON 노출 방지: 코드블록(```) 자동 제거 + `{"suggestions":[]}` 파싱 → 추천질문 칩
+- 마크다운 변환 확장: ### 헤딩, - 리스트, 번호 리스트
+- 타임스탬프: 클라이언트 로컬 시간 (JS toLocaleString)
+- 전체화면: flex 레이아웃 안정화
+- 텍스트 입력: AJAX sendChat() (빈 입력 검증)
+
+### 429 Fallback + 캐시 나이 + Lazy Load (PR #49)
+- Gemini 429 → Groq 자동 전환 (RateLimitError 예외)
+- chat() provider chain fallback 패턴 적용
+- AI 캐시 생성 시점 표시 ("AI 3시간 전")
+- 활동 상세 서비스 원본 데이터 lazy load (AJAX)
+
+### AI Everywhere 탭별 통합 호출 마이그레이션 (PR #48)
+- AI Coach/Wellness/Race → get_tab_ai() 통합 호출 전환
+- 개별 get_card_ai_message() 제거
+- Report orphaned except 구문 오류 수정
+
+---
+
 ## [v0.4-ai-coach-v2] 2026-03-26
 
 ### AI 코치 v2 — Function Calling + 의도 감지 + 풍부한 컨텍스트

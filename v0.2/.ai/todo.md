@@ -1,6 +1,6 @@
 # v0.2 작업 목록
 
-최종 업데이트: 2026-03-26 (v0.3 전체 UI 피드백 + 메트릭 + 분류기 + 버그 수정)
+최종 업데이트: 2026-03-27 (AI 코치 v2 + 훈련탭/활동탭 개선 + VDOT 전문화)
 
 ---
 
@@ -74,7 +74,16 @@
 - [x] Genspark iframe 내장 (AI 코치 탭)
 - [x] AI Everywhere v2: 탭별 1회 통합 호출 + DB 캐시 + 검증/재시도 + 13곳 AI + 전체화면 채팅 + AI 업데이트 버튼
 - [x] AI 코치 v2: Gemini Function Calling (10도구) + 의도 감지 7종 + 날짜 추출 + Provider별 컨텍스트 전략 + 추천질문 칩 + UX 10건 개선
-- [ ] (향후) MCP 서버 — 외부 AI 웹 UI(Claude Desktop 등)에서 RunPulse DB 직접 접근
+- [x] MCP 서버 (src/mcp_server.py) — Claude Desktop/CLI에서 RunPulse DB 직접 접근 (10개 도구)
+- [x] Gemini 429→Groq 자동 fallback (RateLimitError) + chat() provider chain
+- [x] AI 캐시 나이 표시 ("AI 3시간 전") + 서비스 탭 lazy load (AJAX)
+- [x] 훈련탭 UX: 워크아웃 인라인 편집(✎) + 결과 메시지 표시 + 플랜 재생성 확인 + "오늘" 버튼
+- [x] 활동탭: 7그룹 접이식 (G1-2 펼침, G3-7 접힘) + 서비스 탭 lazy load
+- [x] VDOT 전문화: 가중 평균 + 이상치 제거 + HR 검증, 자체 추정 최우선, 소스 비교 UI
+- [x] AI 채팅 AJAX: 실시간 메시지 + "생성 중..." 로딩 + JSON 노출 방지 + 마크다운 확장
+- [x] 프롬프트 복사 보강: 30일 풀 데이터 (Gemini 1M 대응)
+- [x] 채팅 타임스탬프: 클라이언트 로컬 시간 (JS toLocaleString)
+- [ ] (향후) ngrok 터널링 / VPS 배포 — 외부 AI 서비스에서 API 접근
 - [x] Mapbox → Leaflet+OSM 전환 (완전 무료, API 키 불필요)
 - [x] 운동 유형 자동 분류기 (HR존/페이스/거리 기반 7분류)
 - [x] 용어집/가이드 페이지 (/guide) — 25개 메트릭 상세 + 분류 기준
@@ -224,4 +233,4 @@
 
 ---
 
-테스트: **904개** 통과 (2026-03-26 기준, fitparse 미설치 3파일 제외)
+테스트: **944개** 통과 (2026-03-27 기준, fitparse 미설치 3파일 제외)

@@ -39,9 +39,12 @@ v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/dec
 - 2차 메트릭 계산 엔진 (UTRS, CIRS, FEARP, DI, DARP, RMR, TIDS, RTTI, WLEI, TPDI 등)
 - 고도화된 통합 대시보드 UI (PMC 차트, 레이더 차트, 게이지)
 - 레이스 예측, 분석 레포트, 웰니스 UI
-- 활동 상세: 서비스 탭 UI (Garmin/Strava/Intervals/Runalyze 분리) + 메트릭 해설
-- Mapbox 지도 (GPS 경로 표시)
-- 테스트: 829개 통과
+- 활동 상세: 7그룹 접이식 + 서비스 탭 lazy load
+- Leaflet+OSM 지도 (GPS 경로 표시, API 키 불필요)
+- AI 코치 v2: Gemini Function Calling (10도구) + 의도 감지 + AJAX 실시간 채팅
+- MCP 서버 (Claude Desktop/CLI용)
+- VDOT 전문 추정 (가중 평균 + HR 검증 + 이상치 제거)
+- 테스트: 944개 통과
 - 자세한 내용: `v0.2/.ai/index.md`
 
 ### v0.3 (계획)
