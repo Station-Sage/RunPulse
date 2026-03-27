@@ -12,20 +12,50 @@ from src.web.helpers import fmt_pace, fmt_duration, no_data_card
 
 
 def _md_to_html(text: str) -> str:
-    """간이 마크다운→HTML 변환 (볼드+줄바꿈)."""
+    """간이 마크다운→HTML 변환 (볼드+헤딩+리스트+코드블록 제거+줄바꿈)."""
+    # 코드블록(```...```) 제거 (JSON 노출 방지)
+    text = re.sub(r"```[\s\S]*?```", "", text)
+    # 헤딩 ### → bold
+    text = re.sub(r"^#{1,4}\s*(.+)$", r"<strong>\1</strong>", text, flags=re.MULTILINE)
+    # 볼드 **text**
     text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
+    # 리스트 아이템 - text → 불릿
+    text = re.sub(r"^[-*]\s+", "• ", text, flags=re.MULTILINE)
+    # 번호 리스트 1. text
+    text = re.sub(r"^(\d+)\.\s+", r"\1. ", text, flags=re.MULTILINE)
     text = text.replace("\n", "<br>")
     return text
 
 
 def _parse_followup(text: str) -> tuple[str, list[str]]:
-    """AI 응답에서 [추천: Q1 | Q2 | Q3] 추출. (본문, 추천질문 리스트)."""
+    """AI 응답에서 추천질문 추출. 여러 형식 지원."""
+    # 형식 1: [추천: Q1 | Q2 | Q3]
     m = re.search(r"\[추천:\s*(.+?)\]\s*$", text, re.MULTILINE)
-    if not m:
-        return text, []
-    questions = [q.strip() for q in m.group(1).split("|") if q.strip()]
-    clean_text = text[:m.start()].rstrip()
-    return clean_text, questions
+    if m:
+        questions = [q.strip() for q in m.group(1).split("|") if q.strip()]
+        return text[:m.start()].rstrip(), questions
+
+    # 형식 2: ```json {"suggestions": [...]} ``` (Gemini가 자주 사용)
+    m = re.search(r'```json\s*\{[^}]*"suggestions"\s*:\s*\[([^\]]+)\][^}]*\}\s*```', text, re.DOTALL)
+    if m:
+        try:
+            items = re.findall(r'"([^"]+)"', m.group(1))
+            if items:
+                return text[:m.start()].rstrip(), items[:3]
+        except Exception:
+            pass
+
+    # 형식 3: JSON 블록이 응답 끝에 있을 때 (코드블록 없이)
+    m = re.search(r'\{\s*"suggestions"\s*:\s*\[([^\]]+)\]\s*\}\s*$', text, re.DOTALL)
+    if m:
+        try:
+            items = re.findall(r'"([^"]+)"', m.group(1))
+            if items:
+                return text[:m.start()].rstrip(), items[:3]
+        except Exception:
+            pass
+
+    return text, []
 
 
 def render_coach_profile() -> str:
@@ -267,12 +297,13 @@ def render_chat_section(chat_history: list[dict] | None = None,
         f'<div id="chatBox" style="background:rgba(255,255,255,0.03);border-radius:16px;'
         f'padding:16px;min-height:160px;max-height:400px;overflow-y:auto;transition:max-height 0.3s;">'
         f'{messages_html}</div>'
-        '<form method="POST" action="/ai-coach/chat#chatCard" '
-        'style="display:flex;gap:10px;align-items:center;margin-top:12px">'
-        '<input type="text" name="message" placeholder="AI 코치에게 질문하세요..." maxlength="500" '
+        '<form id="chatForm" method="POST" action="/ai-coach/chat#chatCard" '
+        'style="display:flex;gap:10px;align-items:center;margin-top:12px" '
+        'onsubmit="return sendChat(event)">'
+        '<input id="chatInput" type="text" name="message" placeholder="AI 코치에게 질문하세요..." maxlength="500" '
         'style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
         'border-radius:24px;padding:12px 20px;color:#fff;font-size:14px;outline:none"/>'
-        '<button type="submit" style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '<button id="chatSendBtn" type="submit" style="width:48px;height:48px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
         'border:none;border-radius:50%;color:#000;font-size:20px;cursor:pointer;font-weight:bold">➤</button>'
         '</form>'
         f'<div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px">'
@@ -345,9 +376,62 @@ def render_chat_section(chat_history: list[dict] | None = None,
         '<p style="color:var(--muted);margin:4px 0 0;font-size:0.72rem;">'
         'Claude Desktop에서 러닝 데이터 직접 조회 가능 (10개 도구)</p>'
         '</div></div></details>'
-        # 전체화면 토글 + 스크롤
+        # AJAX 채팅 + 전체화면 토글 + 스크롤
         '<script>'
         'var cb=document.getElementById("chatBox");if(cb)cb.scrollTop=cb.scrollHeight;'
+        # AJAX 채팅 전송
+        'function sendChat(e){'
+        '  e.preventDefault();'
+        '  var inp=document.getElementById("chatInput");'
+        '  var msg=inp.value.trim();'
+        '  if(!msg)return false;'
+        '  var box=document.getElementById("chatBox");'
+        '  var btn=document.getElementById("chatSendBtn");'
+        # 사용자 메시지 즉시 표시
+        '  box.innerHTML+='
+        '    \'<div style="display:flex;gap:10px;margin-bottom:12px;flex-direction:row-reverse">'
+        '    <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:50%;'
+        '    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🏃</div>'
+        '    <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
+        '    border-radius:16px;padding:10px 14px;max-width:80%">'
+        '    <div style="font-size:13px;line-height:1.6">\'+msg.replace(/</g,"&lt;")+\'</div>'
+        '    </div></div>\';'
+        # 로딩 표시
+        '  box.innerHTML+='
+        '    \'<div id="aiLoading" style="display:flex;gap:10px;margin-bottom:12px">'
+        '    <div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '    border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🤖</div>'
+        '    <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+        '    border-radius:16px;padding:10px 14px">'
+        '    <div style="font-size:13px;color:var(--cyan);">생성 중'
+        '    <span class="dots" style="animation:dotPulse 1.5s infinite">...</span></div>'
+        '    </div></div>\';'
+        '  box.scrollTop=box.scrollHeight;'
+        '  inp.value="";btn.disabled=true;'
+        # fetch로 전송
+        '  var fd=new FormData();fd.append("message",msg);'
+        '  fetch("/ai-coach/chat-async",{method:"POST",body:fd})'
+        '  .then(function(r){return r.json();})'
+        '  .then(function(d){'
+        '    var el=document.getElementById("aiLoading");if(el)el.remove();'
+        '    box.innerHTML+='
+        '      \'<div style="display:flex;gap:10px;margin-bottom:12px">'
+        '      <div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '      border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🤖</div>'
+        '      <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+        '      border-radius:16px;padding:10px 14px;max-width:80%">'
+        '      <div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">\'+d.response+\'</div>'
+        '      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">\'+d.provider+\'</div>'
+        '      </div></div>\';'
+        '    box.scrollTop=box.scrollHeight;btn.disabled=false;'
+        '  }).catch(function(){'
+        '    var el=document.getElementById("aiLoading");if(el)el.remove();'
+        '    box.innerHTML+=\'<div style="color:var(--red);font-size:12px;margin:8px 0;">응답 생성 실패. 다시 시도해주세요.</div>\';'
+        '    btn.disabled=false;'
+        '  });'
+        '  return false;'
+        '}'
+        # 전체화면 토글
         'function toggleChatFullscreen(){'
         '  var card=document.getElementById("chatCard");'
         '  var box=document.getElementById("chatBox");'
@@ -361,8 +445,8 @@ def render_chat_section(chat_history: list[dict] | None = None,
         '  }else{'
         '    card.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;'
         '      margin:0;border-radius:0;overflow-y:auto;background:var(--bg);transition:all 0.3s;'
-        '      padding:16px;padding-bottom:env(safe-area-inset-bottom,0);";'
-        '    box.style.maxHeight="calc(100vh - 220px)";'
+        '      padding:16px;display:flex;flex-direction:column;";'
+        '    box.style.maxHeight="none";box.style.flex="1";'
         '    btn.textContent="✕ 원래대로";'
         '    card.dataset.fs="1";'
         '    document.body.style.overflow="hidden";'
@@ -370,6 +454,7 @@ def render_chat_section(chat_history: list[dict] | None = None,
         '  }'
         '}'
         '</script>'
+        '<style>@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}</style>'
         '</div>'
     )
 
