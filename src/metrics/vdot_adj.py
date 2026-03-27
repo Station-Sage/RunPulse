@@ -20,6 +20,20 @@ from src.metrics.store import save_metric
 log = logging.getLogger(__name__)
 
 
+def _get_resting_hr(conn: sqlite3.Connection, target_date: str) -> float | None:
+    """최근 7일 안정심박 중앙값 (웰니스 데이터)."""
+    row = conn.execute(
+        "SELECT resting_hr FROM daily_wellness "
+        "WHERE source='garmin' AND resting_hr IS NOT NULL AND resting_hr > 30 "
+        "AND date <= ? ORDER BY date DESC LIMIT 7",
+        (target_date,),
+    ).fetchall()
+    if not row:
+        return None
+    vals = sorted([float(r[0]) for r in row])
+    return vals[len(vals) // 2]  # 중앙값
+
+
 def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float | None:
     """VDOT 보정 계산 후 저장.
 
@@ -43,8 +57,20 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
 
     from src.metrics.store import estimate_max_hr
     hr_max = estimate_max_hr(conn, target_date)
-    hr_thresh_lo = hr_max * 0.85
-    hr_thresh_hi = hr_max * 0.92
+
+    # 안정심박 조회 → Karvonen HRR 기반 역치 범위 (개인화)
+    # References:
+    #   Karvonen (1957): HRR = maxHR - restingHR, LT ≈ 75~85% HRR
+    #   Daniels (2014): T-zone ≈ 88~92% maxHR ≈ 80~88% HRR
+    resting_hr = _get_resting_hr(conn, target_date)
+    if resting_hr and resting_hr > 30:
+        hrr = hr_max - resting_hr
+        hr_thresh_lo = resting_hr + hrr * 0.75   # LT 하한 (Karvonen 75%)
+        hr_thresh_hi = resting_hr + hrr * 0.88   # LT 상한 (Daniels T-zone)
+    else:
+        # 안정심박 없으면 고정 %maxHR fallback
+        hr_thresh_lo = hr_max * 0.85
+        hr_thresh_hi = hr_max * 0.92
     start_12w = (td - timedelta(weeks=12)).isoformat()
 
     # A. Stream 기반 역치 페이스 추출
@@ -91,6 +117,8 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         "method": method,
         "sample_count": sample_count,
         "hr_threshold_range": f"{hr_thresh_lo:.0f}-{hr_thresh_hi:.0f}",
+        "resting_hr": resting_hr,
+        "hr_method": "karvonen" if resting_hr and resting_hr > 30 else "fixed_pct",
     })
     return vdot_adj
 
