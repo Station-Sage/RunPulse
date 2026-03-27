@@ -277,38 +277,81 @@ def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
 
 
 def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> float | None:
-    """최근 레이스/타임트라이얼에서 VDOT 직접 역산.
+    """최근 레이스/타임트라이얼에서 VDOT 역산 — 검증 포함.
 
-    레이스 활동 = workout_type='race' 또는 이름에 '대회/레이스/Race' 포함.
-    최근 12주 레이스 중 가장 최근 것 사용.
+    검증:
+    1. HR 검증: 평균심박이 maxHR 82%+ (진짜 레이스 강도)
+    2. 거리 검증: 공식 거리(5K/10K/하프/풀) ±5% 이내
+    3. 복수 레이스: 2개 이상이면 중앙값 (이상치 방지)
+    4. 교차 검증: 활동 기반 추정과 ±20% 이내
     """
     td = date.fromisoformat(target_date)
     start = (td - timedelta(weeks=12)).isoformat()
 
     rows = conn.execute(
-        """SELECT a.distance_km, a.duration_sec, DATE(a.start_time)
+        """SELECT a.distance_km, a.duration_sec, a.avg_hr, a.max_hr, DATE(a.start_time)
            FROM v_canonical_activities a
            LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
            WHERE a.activity_type='running'
-             AND a.distance_km >= 5 AND a.duration_sec > 0
+             AND a.distance_km >= 4.5 AND a.duration_sec > 0
              AND (c.metric_value='race' OR a.name LIKE '%레이스%'
                   OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
              AND DATE(a.start_time) BETWEEN ? AND ?
-           ORDER BY a.start_time DESC LIMIT 3""",
+           ORDER BY a.start_time DESC LIMIT 5""",
         (start, target_date),
     ).fetchall()
 
     if not rows:
         return None
 
-    # 각 레이스의 VDOT 계산 → 최대값 사용 (최고 성적 기준)
-    best_vdot = None
-    for dist_km, dur_sec, act_date in rows:
-        v = estimate_vdot(float(dist_km), float(dur_sec))
-        if v is not None and (best_vdot is None or v > best_vdot):
-            best_vdot = v
+    # maxHR for HR 검증
+    from src.metrics.store import estimate_max_hr
+    max_hr = estimate_max_hr(conn, target_date, weeks=12)
 
-    return best_vdot
+    # 공식 거리 (±5% 매칭)
+    _OFFICIAL_KM = [5.0, 10.0, 15.0, 21.0975, 42.195]
+
+    valid_vdots: list[float] = []
+    for dist_km, dur_sec, avg_hr, max_hr_act, act_date in rows:
+        dist = float(dist_km)
+        dur = float(dur_sec)
+
+        # 1. HR 검증: 레이스 강도 (평균심박 ≥ maxHR 82%)
+        if avg_hr and max_hr:
+            if float(avg_hr) < max_hr * 0.82:
+                continue  # 이지런 강도 → 레이스 아님
+
+        # 2. 거리 검증: 공식 거리 ±5% 이내만
+        matched = False
+        for official in _OFFICIAL_KM:
+            if abs(dist - official) / official <= 0.05:
+                dist = official  # 공식 거리로 보정
+                matched = True
+                break
+        if not matched:
+            continue  # 비공식 거리 → 스킵
+
+        v = estimate_vdot(dist, dur)
+        if v is not None and 20 <= v <= 85:
+            valid_vdots.append(v)
+
+    if not valid_vdots:
+        return None
+
+    # 3. 복수 레이스: 중앙값 (단일이면 그대로)
+    valid_vdots.sort()
+    mid = len(valid_vdots) // 2
+    race_vdot = valid_vdots[mid]
+
+    # 4. 교차 검증: 활동 기반 추정과 ±20% 이내
+    activity_vdot = _estimate_vdot_from_activities(conn, target_date)
+    if activity_vdot and activity_vdot > 0:
+        ratio = race_vdot / activity_vdot
+        if ratio < 0.80 or ratio > 1.20:
+            # 큰 차이 → 둘의 평균 사용 (어느 한쪽이 극단)
+            race_vdot = round((race_vdot + activity_vdot) / 2, 1)
+
+    return round(race_vdot, 1)
 
 
 def _vo2_from_velocity(v: float) -> float:
