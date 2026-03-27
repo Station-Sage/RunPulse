@@ -68,19 +68,20 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         paces = [float(r[1]) for r in rows]
         slope, intercept = _linear_regression(hrs, paces)
 
-        # HR 80%에서의 예상 페이스
+        # HR 88% (역치 영역)에서의 예상 페이스
         from src.metrics.store import estimate_max_hr
         hr_max = estimate_max_hr(conn, target_date)
-        hr_80pct = hr_max * 0.8
-        predicted_pace = slope * hr_80pct + intercept
+        hr_threshold = hr_max * 0.88
+        predicted_pace = slope * hr_threshold + intercept
 
-        if predicted_pace > 0:
-            from src.metrics.vdot import estimate_vdot
-            hr_vdot = estimate_vdot(10000, predicted_pace * 10)  # 10km 환산
+        if predicted_pace > 120:  # 2'00"/km 이상만 유효
+            from src.metrics.marathon_shape import estimate_vdot
+            # estimate_vdot(distance_km, duration_sec)
+            hr_vdot = estimate_vdot(10.0, predicted_pace * 10)  # 10km 환산
             if hr_vdot and hr_vdot > 0:
                 hr_pace_correction = hr_vdot / vdot_base
-                # 보정 범위 제한 (±15%)
-                hr_pace_correction = max(0.85, min(1.15, hr_pace_correction))
+                # 보정 범위 제한 (±10%) — 이전 ±15%에서 축소
+                hr_pace_correction = max(0.90, min(1.10, hr_pace_correction))
 
     # 2. EF 추세 (28일)
     start_28d = (td - timedelta(days=28)).isoformat()
