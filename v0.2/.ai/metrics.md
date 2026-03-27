@@ -95,13 +95,18 @@ vo2 = velocity * 0.2 + 3.5
 vo2max = (vo2 / pct_vo2max) * correction_factor  # correction_factor: 0.85~0.95
 ```
 
-### Marathon Shape (Runalyze)
+### Marathon Shape (RunPulse v2)
 ```python
-target_weekly_km = vdot * 0.8
-target_long_km   = vdot * 0.35
+# 목표 볼륨 (VDOT 기반, 최소치 보장)
+target_weekly_km = max(40, 20 + vdot * 0.9)   # VDOT 50 → 65km
+target_long_km   = min(35, max(20, 10 + vdot * 0.35))  # VDOT 50 → 27.5km
+
 weekly_shape   = min(1.0, weekly_km_avg / target_weekly_km)
 long_run_shape = min(1.0, longest_run_km / target_long_km)
-shape_pct = (weekly_shape * 2/3 + long_run_shape * 1/3) * 100
+consistency    = min(1.0, weekly_km_avg / 4 / 8)  # 주 4회×8km 분산 기준
+
+# 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
+shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency * 0.2) * 100
 ```
 
 ### rTSS — Running TSS (TrainingPeaks)

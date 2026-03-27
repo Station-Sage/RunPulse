@@ -27,13 +27,15 @@ def calc_marathon_shape(
     weekly_km_avg: float,
     longest_run_km: float,
     vdot: float,
+    consistency_score: float = 0.0,
 ) -> float | None:
-    """Marathon Shape 계산 (순수 함수).
+    """Marathon Shape 계산.
 
     Args:
         weekly_km_avg: 최근 4주 평균 주간 거리 (km).
         longest_run_km: 최근 4주 최장 거리 (km).
         vdot: VDOT 값.
+        consistency_score: 12주 일관성 점수 (0~1). 0이면 자동 추정.
 
     Returns:
         Marathon Shape 퍼센트 (0~100) 또는 None (VDOT 없음).
@@ -42,18 +44,20 @@ def calc_marathon_shape(
         return None
 
     # 마라톤 목표 볼륨 (VDOT 기반, 최소치 보장)
-    # VDOT 40 → 주간 50km, VDOT 50 → 65km, VDOT 60 → 80km
+    # VDOT 40 → 주간 56km, VDOT 50 → 65km, VDOT 60 → 74km
     target_weekly_km = max(40.0, 20 + vdot * 0.9)
-    # 장거리런: VDOT 40 → 25km, VDOT 50 → 30km, VDOT 60 → 32km
+    # 장거리런: VDOT 40 → 24km, VDOT 50 → 27.5km, VDOT 60 → 31km
     target_long_km = min(35.0, max(20.0, 10 + vdot * 0.35))
 
     weekly_shape = min(1.0, weekly_km_avg / target_weekly_km)
     long_run_shape = min(1.0, longest_run_km / target_long_km)
 
-    # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 보너스 20%
-    # 일관성: 주간 거리가 최소 4회 분산 (10km/회 이상이면 일관적)
-    consistency = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
-    shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency * 0.2) * 100
+    # 일관성: 외부에서 전달되지 않으면 볼륨 기반 간이 추정
+    if consistency_score <= 0:
+        consistency_score = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
+
+    # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
+    shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency_score * 0.2) * 100
 
     return round(shape_pct, 1)
 
@@ -110,6 +114,53 @@ def _get_recent_running_data(
     weekly_avg = total_km / weeks if weeks > 0 else 0.0
 
     return weekly_avg, longest_km
+
+
+def _calc_consistency(conn: sqlite3.Connection, target_date: str,
+                      weeks: int = 12) -> float:
+    """12주 훈련 일관성 점수 (0~1).
+
+    주당 훈련 횟수의 변동계수(CV)가 낮을수록 일관적.
+    - 매주 4회 → CV≈0 → 1.0
+    - 어떤 주 0회, 어떤 주 7회 → CV 높음 → 0.3
+    - 훈련 주 비율도 반영 (12주 중 10주 달림 → 0.83)
+    """
+    td = date.fromisoformat(target_date)
+
+    weekly_counts: list[int] = []
+    for w in range(weeks):
+        ws = td - timedelta(weeks=w + 1)
+        we = td - timedelta(weeks=w)
+        row = conn.execute(
+            "SELECT COUNT(*) FROM v_canonical_activities "
+            "WHERE activity_type='running' AND DATE(start_time) BETWEEN ? AND ?",
+            (ws.isoformat(), we.isoformat()),
+        ).fetchone()
+        weekly_counts.append(row[0] if row else 0)
+
+    if not weekly_counts:
+        return 0.0
+
+    # 훈련 주 비율 (0주 제외)
+    active_weeks = sum(1 for c in weekly_counts if c > 0)
+    active_ratio = active_weeks / len(weekly_counts)
+
+    # 평균 주당 횟수
+    avg = sum(weekly_counts) / len(weekly_counts)
+    if avg <= 0:
+        return 0.0
+
+    # 변동계수 (CV) — 낮을수록 일관적
+    sd = (sum((c - avg) ** 2 for c in weekly_counts) / len(weekly_counts)) ** 0.5
+    cv = sd / avg if avg > 0 else 1.0
+
+    # CV → 점수 변환: CV 0=1.0, CV 0.5=0.7, CV 1.0=0.3
+    cv_score = max(0.0, 1.0 - cv * 0.7)
+
+    # 최종: 활성 주 비율 × CV 점수 × 주당 평균 횟수 달성도(4회 기준)
+    freq_score = min(1.0, avg / 4.0)
+
+    return round(active_ratio * cv_score * freq_score, 3)
 
 
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
@@ -327,8 +378,10 @@ def calc_and_save_marathon_shape(
         return None
 
     weekly_km_avg, longest_km = _get_recent_running_data(conn, target_date)
+    consistency = _calc_consistency(conn, target_date, weeks=12)
 
-    shape = calc_marathon_shape(weekly_km_avg, longest_km, vdot)
+    shape = calc_marathon_shape(weekly_km_avg, longest_km, vdot,
+                                consistency_score=consistency)
     if shape is not None:
         save_metric(
             conn,
