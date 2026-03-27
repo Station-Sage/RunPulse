@@ -109,11 +109,17 @@ def _get_recent_running_data(
 
 
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
-    """가장 최신 VDOT 값 조회.
+    """해당 날짜의 VDOT 값 조회.
 
-    우선순위: runalyze_vdot > garmin_vo2max > computed_metrics VDOT > 자체 추정.
+    우선순위: 자체 추정(Jack Daniels) > Runalyze > Garmin VO2Max.
+    RunPulse 계산이 최우선. 외부 소스는 참고/fallback.
     """
-    # 1. Runalyze VDOT 또는 Garmin VO2Max
+    # 1. 자체 추정: 최근 best effort로 VDOT 추정
+    estimated = _estimate_vdot_from_activities(conn, target_date)
+    if estimated is not None:
+        return estimated
+
+    # 2. Runalyze VDOT 또는 Garmin VO2Max (fallback)
     row = conn.execute(
         """SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness
            WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL)
@@ -126,18 +132,7 @@ def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
         if row[1] is not None:
             return float(row[1])
 
-    # 2. computed_metrics에 VDOT이 있으면 사용
-    row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
-        (target_date,),
-    ).fetchone()
-    if row and row[0]:
-        return float(row[0])
-
-    # 3. 자체 추정: 최근 best effort로 VDOT 추정
-    return _estimate_vdot_from_activities(conn, target_date)
+    return None
 
 
 def _vo2_from_velocity(v: float) -> float:
@@ -231,22 +226,37 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
     """
     vdot = _get_vdot(conn, target_date)
     if vdot is not None:
-        # 소스 판별
-        row = conn.execute(
+        # 소스 판별: 자체 추정이 가능했으면 estimated, 아니면 외부
+        estimated = _estimate_vdot_from_activities(conn, target_date)
+        if estimated is not None:
+            source = "estimated"
+        else:
+            row = conn.execute(
+                "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+                "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+                "AND date<=? ORDER BY date DESC LIMIT 1",
+                (target_date,),
+            ).fetchone()
+            source = "runalyze" if row and row[0] is not None else (
+                "garmin" if row and row[1] is not None else "unknown"
+            )
+        # 외부 소스 값도 참고로 저장
+        ref_runalyze = None
+        ref_garmin = None
+        ref_row = conn.execute(
             "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
-            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
-            "AND date<=? ORDER BY date DESC LIMIT 1",
+            "WHERE date<=? ORDER BY date DESC LIMIT 1",
             (target_date,),
         ).fetchone()
-        source = "estimated"
-        if row:
-            if row[0] is not None:
-                source = "runalyze"
-            elif row[1] is not None:
-                source = "garmin"
+        if ref_row:
+            ref_runalyze = float(ref_row[0]) if ref_row[0] else None
+            ref_garmin = float(ref_row[1]) if ref_row[1] else None
         save_metric(
             conn, date=target_date, metric_name="VDOT", value=vdot,
-            extra_json={"source": source, "vdot": vdot},
+            extra_json={
+                "source": source, "vdot": vdot,
+                "runalyze_vdot": ref_runalyze, "garmin_vo2max": ref_garmin,
+            },
         )
     return vdot
 
