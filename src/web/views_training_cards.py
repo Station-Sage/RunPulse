@@ -64,7 +64,8 @@ def render_header_actions(has_plan: bool) -> str:
         "padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;'>"
         "📤 공유</button>"
         + garmin_btn + caldav_btn +
-        "<form method='POST' action='/training/generate' style='margin:0;'>"
+        "<form method='POST' action='/training/generate' style='margin:0;'"
+        " onsubmit=\"return confirm('4주 훈련 계획을 " + ("재" if has_plan else "") + "생성합니다. 기존 자동 생성 계획은 덮어씁니다.')\">"
         f"<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
         f"color:#000;border:none;padding:8px 16px;border-radius:20px;font-size:13px;"
         f"font-weight:bold;cursor:pointer;'>{label}</button></form>"
@@ -320,7 +321,10 @@ def render_week_calendar(
         f"<a href='/training?week={next_w}' style='width:32px;height:32px;"
         "background:rgba(255,255,255,0.1);border-radius:50%;display:flex;"
         "align-items:center;justify-content:center;text-decoration:none;color:#fff;'>→</a>"
-        "</div>"
+        + (f"<a href='/training' style='font-size:11px;color:var(--cyan);text-decoration:none;"
+           "padding:4px 10px;border:1px solid rgba(0,212,255,0.3);border-radius:12px;'>오늘</a>"
+           if week_offset != 0 else "")
+        + "</div>"
         "<div style='display:flex;gap:6px;'>"
         f"<a href='/training/export.ics?week={week_offset}' style='background:rgba(255,255,255,0.1);"
         "color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:20px;font-size:12px;"
@@ -366,10 +370,11 @@ def render_week_calendar(
             if p_min and p_max:
                 pace_str = f"{fmt_pace(p_min)}~{fmt_pace(p_max)}"
 
-            # 완료 토글 + 삭제 버튼
+            # 완료 토글 + 수정 + 삭제 버튼
             actions = ""
             if wid:
                 toggle_label = "↩️" if completed else "✓"
+                edit_id = f"edit-{wid}"
                 actions = (
                     "<div style='display:flex;gap:4px;margin-top:4px;'>"
                     f"<form method='POST' action='/training/workout/{wid}/toggle' style='margin:0;'>"
@@ -377,10 +382,33 @@ def render_week_calendar(
                     f"<button type='submit' style='background:rgba(255,255,255,0.15);border:none;"
                     f"color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;cursor:pointer;'>"
                     f"{toggle_label}</button></form>"
+                    f"<button onclick=\"document.getElementById('{edit_id}').style.display="
+                    f"document.getElementById('{edit_id}').style.display==='none'?'block':'none'\" "
+                    f"style='background:rgba(0,212,255,0.15);border:none;color:var(--cyan);"
+                    f"padding:2px 6px;border-radius:6px;font-size:10px;cursor:pointer;'>✎</button>"
                     f"<form method='POST' action='/training/workout/{wid}/delete' style='margin:0;'>"
+                    f"<input type='hidden' name='week' value='{week_offset}'/>"
                     f"<button type='submit' style='background:rgba(255,68,68,0.2);border:none;"
                     f"color:#ff4444;padding:2px 6px;border-radius:6px;font-size:10px;cursor:pointer;'"
                     f" onclick=\"return confirm('삭제?')\">✕</button></form></div>"
+                    # 인라인 수정 폼 (숨김)
+                    f"<div id='{edit_id}' style='display:none;margin-top:6px;'>"
+                    f"<form method='POST' action='/training/workout/{wid}/update' "
+                    f"style='display:flex;flex-direction:column;gap:4px;'>"
+                    f"<input type='hidden' name='week' value='{week_offset}'/>"
+                    f"<select name='workout_type' style='background:rgba(255,255,255,0.1);border:1px solid "
+                    f"rgba(255,255,255,0.2);border-radius:4px;color:#fff;font-size:10px;padding:3px;'>"
+                    + "".join(
+                        f"<option value='{t}'{' selected' if t == wtype else ''}>{s[1]}</option>"
+                        for t, s in _TYPE_STYLE.items()
+                    )
+                    + f"</select>"
+                    f"<input name='distance_km' type='number' step='0.1' value='{dist or ''}' "
+                    f"placeholder='km' style='background:rgba(255,255,255,0.1);border:1px solid "
+                    f"rgba(255,255,255,0.2);border-radius:4px;color:#fff;font-size:10px;padding:3px;width:100%;'/>"
+                    f"<button type='submit' style='background:var(--cyan);color:#000;border:none;"
+                    f"border-radius:4px;padding:3px;font-size:10px;cursor:pointer;'>저장</button>"
+                    f"</form></div>"
                 )
 
             workout_html = (
