@@ -96,6 +96,10 @@
 - [x] 레이스 예측: 잘못된 테이블 → Daniels 수학 공식 직접 계산
 - [x] VDOT_ADJ 보정 범위: ±3~7% (레이스 경과 기간별, Daniels/Pugh 기준)
 - [x] 메트릭 계산 순서 수정 (VDOT_ADJ → DARP/eFTP 앞으로)
+- [x] Stream 접근 버그 수정: activity_streams 테이블 연결 (5곳)
+- [x] CTL/ATL/TSB 자체 계산 (DailyTRIMP 기반 EMA, Intervals 미제공 구간)
+- [x] 레이스 분류기: event_type 원본 태그 최우선 + 거리별 HR 기준
+- [x] MarathonShape/DARP/eFTP VDOT_ADJ 통일 → Shape 카드 일관성
 - [x] AI 채팅 AJAX: 실시간 메시지 + "생성 중..." 로딩 + JSON 노출 방지 + 마크다운 확장
 - [x] 프롬프트 복사 보강: 30일 풀 데이터 (Gemini 1M 대응)
 - [x] 채팅 타임스탬프: 클라이언트 로컬 시간 (JS toLocaleString)
