@@ -96,6 +96,48 @@ def load_metric_json(
     return json.loads(row[0])
 
 
+def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
+                    weeks: int = 12) -> float:
+    """이상치 제거된 최대심박 추정.
+
+    상위 max_hr 5개의 중앙값 사용 (센서 스파이크 방지).
+    데이터 없으면 220-나이 공식 대신 190 기본값.
+
+    Args:
+        conn: DB 연결.
+        target_date: 기준일 (None이면 전체).
+        weeks: 최근 N주 활동만.
+
+    Returns:
+        추정 최대심박 (bpm).
+    """
+    from datetime import date as _d, timedelta as _td
+
+    if target_date:
+        start = (_d.fromisoformat(target_date) - _td(weeks=weeks)).isoformat()
+        rows = conn.execute(
+            "SELECT max_hr FROM v_canonical_activities "
+            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
+            "AND DATE(start_time) BETWEEN ? AND ? "
+            "ORDER BY max_hr DESC LIMIT 5",
+            (start, target_date),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT max_hr FROM v_canonical_activities "
+            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
+            "ORDER BY max_hr DESC LIMIT 5",
+        ).fetchall()
+
+    if not rows:
+        return 190.0
+
+    vals = sorted([float(r[0]) for r in rows])
+    # 중앙값 (상위 5개 중)
+    mid = len(vals) // 2
+    return vals[mid]
+
+
 def load_metric_series(
     conn: sqlite3.Connection,
     metric_name: str,

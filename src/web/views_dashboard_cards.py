@@ -663,10 +663,10 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
 def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
                          eftp: float | None = None, rec: float | None = None,
                          rri: float | None = None, vdot_adj: float | None = None,
-                         vdot_json: dict | None = None,
+                         vdot_json: dict | None = None, shape_json: dict | None = None,
                          config: dict | None = None, conn=None,
                          ai_override: str | None = None) -> str:
-    """VDOT / Marathon Shape / eFTP / REC / RRI 피트니스 미니 카드."""
+    """VDOT / Race Shape / eFTP / REC / RRI 피트니스 미니 카드."""
     if all(v is None for v in [vdot, marathon_shape_pct, eftp, rec]):
         return no_data_card("피트니스 현황", "데이터 수집 중입니다")
     vdot_str = f"{vdot:.1f}" if vdot is not None else "—"
@@ -691,6 +691,8 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
     shape_str = f"{marathon_shape_pct:.0f}%" if marathon_shape_pct is not None else "—"
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70
              else ("var(--orange)" if (marathon_shape_pct or 0) >= 50 else "var(--muted)"))
+    from .helpers import race_shape_label
+    shape_label = race_shape_label(shape_json)
 
     # 추가 메트릭 행
     extra_items = []
@@ -728,7 +730,7 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
         + vdot_compare + "</div>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
-        f"<div class='muted' style='font-size:0.76rem;'>{tooltip('Marathon Shape', METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
+        f"<div class='muted' style='font-size:0.76rem;'>{tooltip(shape_label, METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
         + extra_row
         + _fitness_ai_note(config, conn, ai_override=ai_override)
         + "</div>"

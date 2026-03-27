@@ -69,10 +69,8 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         slope, intercept = _linear_regression(hrs, paces)
 
         # HR 80%에서의 예상 페이스
-        hr_max_row = conn.execute(
-            "SELECT MAX(max_hr) FROM activity_summaries WHERE max_hr IS NOT NULL"
-        ).fetchone()
-        hr_max = float(hr_max_row[0]) if hr_max_row and hr_max_row[0] else 190.0
+        from src.metrics.store import estimate_max_hr
+        hr_max = estimate_max_hr(conn, target_date)
         hr_80pct = hr_max * 0.8
         predicted_pace = slope * hr_80pct + intercept
 

@@ -825,7 +825,7 @@ METRIC_DESCRIPTIONS: dict[str, str] = {
     "Strain": "훈련 부담 = 주간TRIMP × Monotony. Monotony 높을 때 Strain도 급증",
     "TSB": "훈련 스트레스 밸런스 = CTL-ATL. 양수=신선, 음수=피로 축적, -10~+10 적정",
     "VDOT": "Jack Daniels VO2Max 추정치. 레이스 기록 기반 유산소 능력 지표",
-    "MarathonShape": "마라톤 훈련 완성도 (%). 주간 거리+장거리런 대비 VDOT 기준 달성률",
+    "MarathonShape": "레이스 준비도 (%). 목표 거리별 주간 볼륨+장거리런+일관성 종합 달성률",
     "EF": "효율 계수 = 속도/심박. 같은 HR에서 더 빠르면 EF↑ → 체력 향상",
     "Decoupling": "심박-페이스 분리율(%). 5% 이하면 유산소 기반 양호, 10%+ 지구력 부족",
     "TIDS": "훈련 강도 분포. Z1-2(저강도)/Z3(중강도)/Z4-5(고강도) 비율",
@@ -841,6 +841,18 @@ METRIC_DESCRIPTIONS: dict[str, str] = {
     "VDOT_ADJ": "보정 VDOT. HR-페이스 회귀+EF 추세로 Jack Daniels VDOT을 미세 조정",
     "CP": "Critical Power (watts). 장시간 유지 가능한 임계 파워. 파워미터 필요",
 }
+
+
+def race_shape_label(shape_json: dict | None = None) -> str:
+    """MarathonShape metric_json에서 거리별 라벨 반환."""
+    if not shape_json:
+        return "Race Shape"
+    km = shape_json.get("race_distance_km", 42.195)
+    if km <= 10.5:
+        return "10K Shape"
+    elif km <= 21.5:
+        return "Half Shape"
+    return "Marathon Shape"
 
 
 def no_data_card(metric_name: str, reason: str = "데이터 수집 중") -> str:

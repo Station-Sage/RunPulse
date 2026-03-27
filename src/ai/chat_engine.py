@@ -59,15 +59,22 @@ def chat(
     # provider chain: 선택 → gemini → groq → rule
     chain = _build_chat_provider_chain(provider, config)
     for prov in chain:
-        # Function calling 지원 provider는 도구 기반 호출
-        if prov == "gemini" and not chip_id:
-            result = _call_gemini_with_tools(conn, prompt, config)
+        try:
+            # Function calling 지원 provider는 도구 기반 호출
+            if prov == "gemini" and not chip_id:
+                result = _call_gemini_with_tools(conn, prompt, config)
+                if result:
+                    return result
+                continue
+            result = _call_provider(prov, prompt, config)
             if result:
                 return result
+        except RateLimitError:
+            log.warning("%s 429 → 다음 provider로 전환", prov)
             continue
-        result = _call_provider(prov, prompt, config)
-        if result:
-            return result
+        except Exception:
+            log.warning("provider '%s' 실패, 다음으로", prov, exc_info=True)
+            continue
 
     return _rule_based_response(conn, user_message, chip_id)
 

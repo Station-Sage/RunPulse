@@ -14,7 +14,7 @@ from src.web.views_race_enhanced import (
     load_prediction_trend, load_fitness_factors,
     render_goal_gap, render_prediction_trend_chart,
     render_fitness_factors_chart, render_di_interpretation,
-    render_metric_glossary,
+    render_metric_glossary, render_race_shape_trio,
 )
 
 race_bp = Blueprint("race", __name__)
@@ -291,6 +291,7 @@ def race_page():
                 + render_prediction_trend_chart(trend)
                 # §3: 준비 요소
                 + render_fitness_factors_chart(factors)
+                + render_race_shape_trio(conn)
                 # §4: 페이스 전략 + DI + DI 해석
                 + _render_pace_strategy(darp_json)
                 + _render_di_card(di_val, di_json)

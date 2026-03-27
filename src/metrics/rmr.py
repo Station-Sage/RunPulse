@@ -16,7 +16,7 @@ import sqlite3
 from datetime import date, timedelta
 
 from src.metrics.di import get_di
-from src.metrics.store import save_metric
+from src.metrics.store import estimate_max_hr, save_metric
 
 _AXIS_NAMES = ["유산소용량", "역치강도", "지구력", "동작효율성", "회복력"]
 _OPTIMAL_CADENCE = 178  # 170-185 spm 중간값
@@ -129,13 +129,8 @@ def calc_and_save_rmr(conn: sqlite3.Connection, target_date: str) -> dict | None
     vo2max = float(row[0]) if row and row[0] else None
 
     # HR 파라미터
-    row = conn.execute(
-        """SELECT MAX(max_hr) FROM activity_summaries
-           WHERE max_hr IS NOT NULL
-             AND DATE(start_time) >= DATE(?, '-90 days')""",
-        (target_date,),
-    ).fetchone()
-    hr_max = float(row[0]) if row and row[0] else None
+    hr_max_est = estimate_max_hr(conn, target_date)
+    hr_max = hr_max_est if hr_max_est != 190.0 else None  # 190 = 기본값 → 데이터 없음
     hr_lthr = (hr_max * 0.87) if hr_max else None
 
     # DI
