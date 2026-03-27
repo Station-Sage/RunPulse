@@ -288,6 +288,8 @@ def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> flo
     td = date.fromisoformat(target_date)
     start = (td - timedelta(weeks=12)).isoformat()
 
+    # 최근 8주 이내 레이스만 (8주+ 지난 레이스는 현재 체력 반영 안 됨)
+    start_8w = (td - timedelta(weeks=8)).isoformat()
     rows = conn.execute(
         """SELECT a.distance_km, a.duration_sec, a.avg_hr, a.max_hr, DATE(a.start_time)
            FROM v_canonical_activities a
@@ -298,7 +300,7 @@ def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> flo
                   OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
              AND DATE(a.start_time) BETWEEN ? AND ?
            ORDER BY a.start_time DESC LIMIT 5""",
-        (start, target_date),
+        (start_8w, target_date),
     ).fetchall()
 
     if not rows:

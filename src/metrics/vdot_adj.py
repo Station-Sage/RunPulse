@@ -55,10 +55,26 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         return None
     vdot_base = float(base_row[0])
 
-    # VDOT 소스 확인: 레이스 기반이면 이미 정확 → 보정 최소화
+    # VDOT 소스 + 레이스 경과 시간 확인
     import json as _json
     vdot_json = _json.loads(base_row[1]) if base_row[1] else {}
-    vdot_from_race = vdot_json.get("source") == "race"
+    vdot_source = vdot_json.get("source", "")
+
+    # 레이스 경과 주 수 확인 (최근 레이스가 몇 주 전인지)
+    race_weeks_ago = None
+    if vdot_source == "race":
+        race_row = conn.execute(
+            """SELECT DATE(a.start_time) FROM v_canonical_activities a
+               LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
+               WHERE a.activity_type='running'
+                 AND (c.metric_value='race' OR a.name LIKE '%레이스%'
+                      OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
+                 AND DATE(a.start_time) <= ?
+               ORDER BY a.start_time DESC LIMIT 1""",
+            (target_date,),
+        ).fetchone()
+        if race_row:
+            race_weeks_ago = (td - date.fromisoformat(race_row[0])).days / 7
 
     from src.metrics.store import estimate_max_hr
     hr_max = estimate_max_hr(conn, target_date)
@@ -106,10 +122,19 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
     if vdot_adj is None:
         vdot_adj = vdot_base
 
-    # 보정 범위 제한
-    # 레이스 기반 VDOT → 이미 정확하므로 ±5% (Pugh 1970: 날씨/코스 영향 ~2-5%)
-    # 비레이스 → ±10%
-    max_correction = 0.05 if vdot_from_race else 0.10
+    # 보정 범위 — 레이스 경과 시간에 따라 차등
+    # Daniels: VDOT 4~6주마다 업데이트 권장
+    # Pugh (1970): 환경 영향 2~5%
+    # References:
+    #   Daniels: 레이스 VDOT은 보정 불필요 (0%)
+    #   Pugh (1970): 환경 영향 2~5%
+    #   Garmin VO2Max: 일반 변동 ±1~3%
+    if race_weeks_ago is not None and race_weeks_ago <= 4:
+        max_correction = 0.03  # 4주 이내 레이스 → ±3% (환경 수준)
+    elif race_weeks_ago is not None and race_weeks_ago <= 8:
+        max_correction = 0.05  # 4~8주 → ±5% (체력 변화 가능)
+    else:
+        max_correction = 0.07  # 8주+ 또는 비레이스 → ±7%
     if vdot_base > 0:
         ratio = vdot_adj / vdot_base
         lo = 1.0 - max_correction
