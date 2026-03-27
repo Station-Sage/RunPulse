@@ -88,6 +88,11 @@
 - [x] 하단 네비 z-index 1000 + safe-area (갤럭시 폴드)
 - [x] 동기화 탭 분리: 설정/활동에서 동기화 → /sync 독립 탭 (7+1탭)
 - [x] AI 시스템 프롬프트 강화: 훈련 스케줄 상세 형식, 한국어 전용, 데이터 반올림
+- [x] maxHR: Stream 30초 peak HR + IQR 이상치 제거 + 시계열 저장 (ACSM/Beltz 기준)
+- [x] VDOT_ADJ: Stream 역치 HR 구간 페이스 추출 + Karvonen HRR 개인화
+- [x] Race Shape 논문 기반 가중치 (Midgley/Schmid/Hagan)
+- [x] DI 보정 거리별 차등 (5K 0%, 10K 2%, 하프 5%, 풀 10%)
+- [x] 메트릭 계산 순서 수정 (VDOT_ADJ → DARP/eFTP 앞으로)
 - [x] AI 채팅 AJAX: 실시간 메시지 + "생성 중..." 로딩 + JSON 노출 방지 + 마크다운 확장
 - [x] 프롬프트 복사 보강: 30일 풀 데이터 (Gemini 1M 대응)
 - [x] 채팅 타임스탬프: 클라이언트 로컬 시간 (JS toLocaleString)

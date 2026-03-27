@@ -98,44 +98,149 @@ def load_metric_json(
 
 def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
                     weeks: int = 12) -> float:
-    """이상치 제거된 최대심박 추정.
+    """최대심박 추정 — Stream 기반 지속 HR + 활동 기반 fallback.
 
-    상위 max_hr 5개의 중앙값 사용 (센서 스파이크 방지).
-    데이터 없으면 220-나이 공식 대신 190 기본값.
+    방법 (우선순위):
+    A. Strava stream: 10초 이상 연속 유지된 최고 HR (진짜 maxHR)
+    B. 활동 max_hr: 고강도 활동 기반, IQR 이상치 제거
 
-    Args:
-        conn: DB 연결.
-        target_date: 기준일 (None이면 전체).
-        weeks: 최근 N주 활동만.
+    Reference: Tanaka et al. (2001) — fallback 190 기본값
 
     Returns:
         추정 최대심박 (bpm).
     """
     from datetime import date as _d, timedelta as _td
 
+    date_filter = ""
+    params: list = []
     if target_date:
         start = (_d.fromisoformat(target_date) - _td(weeks=weeks)).isoformat()
+        date_filter = "AND DATE(start_time) BETWEEN ? AND ?"
+        params = [start, target_date]
+
+    # 0. computed_metrics에 저장된 최근 maxHR 확인 (이미 계산된 값)
+    if target_date:
+        cached = conn.execute(
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='maxHR' AND metric_value IS NOT NULL AND date<=? "
+            "ORDER BY date DESC LIMIT 1",
+            (target_date,),
+        ).fetchone()
+        # 최근 4주 이내 계산된 값이면 재사용
+        if cached and cached[0]:
+            cache_date = conn.execute(
+                "SELECT date FROM computed_metrics "
+                "WHERE metric_name='maxHR' AND metric_value IS NOT NULL AND date<=? "
+                "ORDER BY date DESC LIMIT 1",
+                (target_date,),
+            ).fetchone()
+            if cache_date:
+                from datetime import date as _d2
+                days_old = (_d.fromisoformat(target_date) - _d.fromisoformat(cache_date[0])).days
+                if days_old <= 28:
+                    return float(cached[0])
+
+    # A. Stream 기반: 30초 연속 유지된 최고 HR
+    stream_max = _estimate_max_hr_from_streams(conn, date_filter, params)
+    if stream_max and stream_max > 150:
+        # 시계열 저장
+        if target_date:
+            save_metric(conn, target_date, "maxHR", stream_max,
+                        extra_json={"method": "stream_30s", "sustained_sec": 30})
+        return stream_max
+
+    # B. 활동 max_hr 기반 (fallback)
+    rows = conn.execute(
+        f"SELECT max_hr FROM v_canonical_activities "
+        f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
+        f"AND avg_hr IS NOT NULL AND avg_hr > 0 "
+        f"AND CAST(avg_hr AS REAL) / CAST(max_hr AS REAL) > 0.75 "
+        f"{date_filter} "
+        f"ORDER BY max_hr DESC LIMIT 10",
+        params,
+    ).fetchall()
+
+    if not rows:
         rows = conn.execute(
-            "SELECT max_hr FROM v_canonical_activities "
-            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
-            "AND DATE(start_time) BETWEEN ? AND ? "
-            "ORDER BY max_hr DESC LIMIT 5",
-            (start, target_date),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT max_hr FROM v_canonical_activities "
-            "WHERE activity_type='running' AND max_hr > 100 AND max_hr < 230 "
-            "ORDER BY max_hr DESC LIMIT 5",
+            f"SELECT max_hr FROM v_canonical_activities "
+            f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
+            f"{date_filter} "
+            f"ORDER BY max_hr DESC LIMIT 10",
+            params,
         ).fetchall()
 
     if not rows:
         return 190.0
 
     vals = sorted([float(r[0]) for r in rows])
-    # 중앙값 (상위 5개 중)
-    mid = len(vals) // 2
-    return vals[mid]
+
+    # IQR 이상치 제거
+    if len(vals) >= 4:
+        q1 = vals[len(vals) // 4]
+        q3 = vals[len(vals) * 3 // 4]
+        iqr = q3 - q1
+        upper_bound = q3 + 1.5 * iqr
+        vals = [v for v in vals if v <= upper_bound]
+
+    result = max(vals) if vals else 190.0
+    # 시계열 저장
+    if target_date and result > 150:
+        save_metric(conn, target_date, "maxHR", result,
+                    extra_json={"method": "activity_iqr"})
+    return result
+
+
+def _estimate_max_hr_from_streams(conn, date_filter: str, params: list,
+                                   sustain_sec: int = 30) -> float | None:
+    """Strava stream에서 N초 이상 연속 유지된 최고 HR.
+
+    30초 슬라이딩 윈도우 평균의 최대값 = 추정 maxHR.
+    References:
+    - ACSM (2018): GXT에서 마지막 1분 peak HR
+    - Beltz et al. (2016): 3분 all-out 마지막 30초 평균
+    - Robergs & Landwehr (2002): 마지막 1분 최고 HR
+
+    Args:
+        sustain_sec: 최소 연속 유지 시간 (초). 기본 30초.
+    """
+    try:
+        from src.analysis.efficiency import _get_stream_path, _load_stream
+    except ImportError:
+        return None
+
+    # 최근 고강도 활동 (avg_hr/max_hr > 0.8)
+    acts = conn.execute(
+        f"SELECT id FROM v_canonical_activities "
+        f"WHERE activity_type='running' AND max_hr > 150 "
+        f"AND avg_hr IS NOT NULL AND CAST(avg_hr AS REAL) / CAST(max_hr AS REAL) > 0.80 "
+        f"{date_filter} "
+        f"ORDER BY max_hr DESC LIMIT 10",
+        params,
+    ).fetchall()
+
+    best_sustained = 0.0
+
+    for (aid,) in acts:
+        path = _get_stream_path(conn, aid)
+        if not path:
+            continue
+        stream = _load_stream(path)
+        if not stream:
+            continue
+        hr = stream.get("heartrate", [])
+        if len(hr) < sustain_sec:
+            continue
+
+        # 슬라이딩 윈도우: N초 연속 평균 HR의 최대값
+        for i in range(len(hr) - sustain_sec + 1):
+            window = hr[i:i + sustain_sec]
+            if any(h is None or h < 50 for h in window):
+                continue
+            avg_window = sum(window) / sustain_sec
+            if avg_window > best_sustained:
+                best_sustained = avg_window
+
+    return round(best_sustained) if best_sustained > 150 else None
 
 
 def load_metric_series(

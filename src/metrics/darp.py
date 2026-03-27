@@ -51,16 +51,17 @@ def calc_darp(vdot: float, distance_key: str,
     if not base_time or base_time <= 0:
         return None
 
-    # 2. DI 보정 (하프/풀만) — DI 0~100 스케일
-    #    DI 70(양호) → 0% 페널티
-    #    DI 50 → +2% 페널티
-    #    DI 30 → +5% 페널티
-    #    DI 0  → +8% 페널티
+    # 2. DI 보정 — 거리별 차등
+    #    5K: 내구성 무관 (0%)
+    #    10K: 미미 (최대 2%)
+    #    하프: 중간 (최대 5%) — 90분+ 레이스
+    #    풀:  결정적 (최대 10%) — 3~4시간 레이스
     di_penalty = 0.0
-    if di is not None and distance_key in ("half", "full"):
+    if di is not None:
         di_clamped = max(0.0, min(100.0, di))
         if di_clamped < 70:
-            di_penalty = (70 - di_clamped) / 70 * 0.08  # 최대 8%
+            max_di = {"5k": 0.0, "10k": 0.02, "half": 0.05, "full": 0.10}
+            di_penalty = (70 - di_clamped) / 70 * max_di.get(distance_key, 0.0)
 
     # 3. Race Shape 보정 — Shape 0~100
     #    Shape 70+(준비 완료) → 0%
