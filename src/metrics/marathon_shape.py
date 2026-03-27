@@ -60,28 +60,40 @@ def calc_marathon_shape(
     target_long = targets["long_max"]
     target_count = targets["long_count_target"]
 
-    # 1. 주간 볼륨 (35%)
+    # 1~5 요소 점수 계산
     weekly_score = min(1.0, weekly_km_avg / target_weekly)
-
-    # 2. 최장 거리 (20%)
     long_score = min(1.0, longest_run_km / target_long)
-
-    # 3. 장거리 빈도 (20%) — 기간 내 threshold 이상 달린 횟수
     freq_score = min(1.0, long_run_count / target_count) if target_count > 0 else 0
-
-    # 4. 일관성 (15%)
     if consistency_score <= 0:
         consistency_score = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
+    quality = long_run_quality if long_run_quality > 0 else 0.5
 
-    # 5. 장거리 페이스 품질 (10%) — VDOT E-pace 기준 적정 속도였는지
-    quality = long_run_quality if long_run_quality > 0 else 0.5  # 데이터 없으면 중립
+    # 거리별 5요소 가중치 — 스포츠과학 연구 기반
+    #
+    # 마라톤: Hagan(1981,1987) 상관계수 정규화
+    #   주간거리 r=-0.76 → 34%, 최장거리 r=-0.60 → 27%, 빈도 r=-0.43 → 19%
+    #   일관성/페이스 = 나머지 10%씩
+    #
+    # 하프: Schmid(2012) — 훈련 속도 > 주간 km > 빈도
+    #   페이스품질 25%, 볼륨 28%, 최장 18%, 빈도 12%, 일관성 17%
+    #
+    # 10K: Midgley(2007) — VO2max/역치가 성적 분산 80% 설명
+    #   페이스품질 40%, 일관성 27%, 볼륨 20%, 최장 8%, 빈도 5%
+    #
+    #            (볼륨, 최장, 빈도, 일관성, 페이스품질)
+    if race_distance_km <= 10.5:
+        w = (0.20, 0.08, 0.05, 0.27, 0.40)  # 10K — Midgley
+    elif race_distance_km <= 21.5:
+        w = (0.28, 0.18, 0.12, 0.17, 0.25)  # 하프 — Schmid
+    else:
+        w = (0.34, 0.27, 0.19, 0.10, 0.10)  # 마라톤 — Hagan
 
     shape_pct = (
-        weekly_score * 0.35
-        + long_score * 0.20
-        + freq_score * 0.20
-        + consistency_score * 0.15
-        + quality * 0.10
+        weekly_score * w[0]
+        + long_score * w[1]
+        + freq_score * w[2]
+        + consistency_score * w[3]
+        + quality * w[4]
     ) * 100
 
     return round(shape_pct, 1)

@@ -62,20 +62,16 @@ def calc_darp(vdot: float, distance_key: str,
         if di_clamped < 70:
             di_penalty = (70 - di_clamped) / 70 * 0.08  # 최대 8%
 
-    # 3. Race Shape 보정 (10K 이상) — Shape 0~100 스케일
-    #    Shape 80+(준비 완료) → 0% 페널티
-    #    Shape 60 → +3% 페널티
-    #    Shape 40 → +7% 페널티
-    #    Shape 20 → +12% 페널티
-    #    5K는 훈련 준비도 영향이 상대적으로 작음 → 계수 축소
+    # 3. Race Shape 보정 — Shape 0~100
+    #    Shape 70+(준비 완료) → 0%
+    #    Shape 0 → 최대 페널티 (거리별 차등)
+    #    5K: 최대 2%, 10K: 최대 4%, 하프: 최대 7%, 풀: 최대 10%
     shape_penalty = 0.0
     if race_shape is not None:
         shape_clamped = max(0.0, min(100.0, race_shape))
-        if shape_clamped < 80:
-            base_penalty = (80 - shape_clamped) / 80 * 0.15  # 최대 15%
-            # 거리별 영향 계수: 5K 30%, 10K 50%, 하프 80%, 풀 100%
-            dist_factor = {"5k": 0.3, "10k": 0.5, "half": 0.8, "full": 1.0}
-            shape_penalty = base_penalty * dist_factor.get(distance_key, 1.0)
+        if shape_clamped < 70:
+            max_penalty = {"5k": 0.02, "10k": 0.04, "half": 0.07, "full": 0.10}
+            shape_penalty = (70 - shape_clamped) / 70 * max_penalty.get(distance_key, 0.10)
 
     # 4. EF 보정 — 효율이 레이스 당일 페이스 유지에 영향
     #    EF 1.0(기준) → 0%

@@ -183,6 +183,14 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     except Exception:
         logger.exception("VDOT 계산 실패: %s", target_date)
 
+    # 7.6. VDOT_ADJ (HR-페이스 보정 — DARP/eFTP보다 먼저 계산해야 함)
+    try:
+        vdot_adj = calc_and_save_vdot_adj(conn, target_date)
+        if vdot_adj is not None:
+            results["VDOT_ADJ"] = vdot_adj
+    except Exception:
+        logger.exception("VDOT_ADJ 계산 실패: %s", target_date)
+
     # 8. TIDS (훈련 강도 분포)
     try:
         tids = calc_and_save_tids(conn, target_date)
@@ -265,13 +273,7 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     except Exception:
         logger.exception("SAPI 계산 실패: %s", target_date)
 
-    # 18. VDOT_ADJ (HR-페이스 보정 VDOT)
-    try:
-        vdot_adj = calc_and_save_vdot_adj(conn, target_date)
-        if vdot_adj is not None:
-            results["VDOT_ADJ"] = vdot_adj
-    except Exception:
-        logger.exception("VDOT_ADJ 계산 실패: %s", target_date)
+    # 18. (VDOT_ADJ → 7.6으로 이동)
 
     # 19. CP/W' (Critical Power, 파워 데이터 있을 때만)
     try:
