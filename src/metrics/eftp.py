@@ -39,32 +39,47 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
                     extra_json={"source": "intervals", "pace_sec_km": eftp})
         return eftp
 
-    # 2. 자체 추정: 40~70분 고강도 활동의 best pace
+    # 2. 자체 추정: 고강도 활동의 역치 페이스 추정
+    #    HR 기반: 최대심박 85%+ 활동 → 역치 근처 노력
     start = (td - timedelta(weeks=12)).isoformat()
+
+    # 사용자 최대심박 추정
+    max_hr_row = conn.execute(
+        "SELECT MAX(max_hr) FROM v_canonical_activities "
+        "WHERE activity_type='running' AND max_hr > 0 AND max_hr < 230 "
+        "AND DATE(start_time) BETWEEN ? AND ?",
+        (start, target_date),
+    ).fetchone()
+    max_hr = float(max_hr_row[0]) if max_hr_row and max_hr_row[0] else 190.0
+    hr_threshold = max_hr * 0.82  # 역치 최소 노력도
+
+    # 30~70분, HR 역치 이상 활동 (고강도)
     rows = conn.execute(
         """SELECT avg_pace_sec_km, duration_sec, avg_hr, distance_km
            FROM v_canonical_activities
            WHERE activity_type='running'
-             AND duration_sec BETWEEN 2400 AND 4200
+             AND duration_sec BETWEEN 1800 AND 4200
              AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 0
-             AND avg_hr IS NOT NULL AND avg_hr > 150
+             AND avg_hr IS NOT NULL AND avg_hr >= ?
              AND DATE(start_time) BETWEEN ? AND ?
            ORDER BY avg_pace_sec_km ASC
            LIMIT 5""",
-        (start, target_date),
+        (hr_threshold, start, target_date),
     ).fetchall()
     if not rows:
-        # 더 넓은 범위: 20~90분 활동
+        # 더 넓은 범위: 20~90분, HR 75%+ (템포~역치)
+        hr_min = max_hr * 0.75
         rows = conn.execute(
             """SELECT avg_pace_sec_km, duration_sec, avg_hr, distance_km
                FROM v_canonical_activities
                WHERE activity_type='running'
                  AND duration_sec BETWEEN 1200 AND 5400
                  AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 0
+                 AND avg_hr IS NOT NULL AND avg_hr >= ?
                  AND DATE(start_time) BETWEEN ? AND ?
                ORDER BY avg_pace_sec_km ASC
                LIMIT 5""",
-            (start, target_date),
+            (hr_min, start, target_date),
         ).fetchall()
 
     if not rows:
