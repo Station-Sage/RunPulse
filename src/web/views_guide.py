@@ -47,9 +47,9 @@ _METRIC_DETAILS: dict[str, dict] = {
                    "detail": "전반/후반 HR:페이스 비율 차이. 5% 이하면 유산소 기반 양호. "
                              "10% 이상이면 지구력 부족 → 장거리 훈련 필요."},
     "VDOT": {"range": "20~85", "good": "-", "warn": "-", "bad": "-",
-             "detail": "Jack Daniels VDOT. 12주 활동에서 가중 평균 추정 (최신+장거리 가중, "
-                       "이지런 제외, 이상치 제거). 일반인 30~45, 중급 45~55, 고급 55~65. "
-                       "VDOT_ADJ = Strava stream 역치 HR 구간 페이스로 보정한 현재 체력 VDOT."},
+             "detail": "Jack Daniels VDOT. ①최근 레이스 기록(8주 이내, FEARP 환경 보정) "
+                       "②고강도 활동 가중 평균 ③Runalyze/Garmin. "
+                       "보정(VDOT_ADJ): Strava stream 역치 HR 구간 페이스 기반 (±3~7%)."},
     "DI": {"range": "0~100", "good": ">70", "warn": "40~70", "bad": "<40",
            "detail": "90분+ 장거리 러닝에서 후반부 페이스 유지 비율. "
                      "70 이상 우수, 40 미만 장거리 훈련 필요. "

@@ -92,6 +92,9 @@
 - [x] VDOT_ADJ: Stream 역치 HR 구간 페이스 추출 + Karvonen HRR 개인화
 - [x] Race Shape 논문 기반 가중치 (Midgley/Schmid/Hagan)
 - [x] DI 보정 거리별 차등 (5K 0%, 10K 2%, 하프 5%, 풀 10%)
+- [x] 레이스 기반 VDOT 1순위 (8주 이내, HR/거리/FEARP 검증)
+- [x] 레이스 예측: 잘못된 테이블 → Daniels 수학 공식 직접 계산
+- [x] VDOT_ADJ 보정 범위: ±3~7% (레이스 경과 기간별, Daniels/Pugh 기준)
 - [x] 메트릭 계산 순서 수정 (VDOT_ADJ → DARP/eFTP 앞으로)
 - [x] AI 채팅 AJAX: 실시간 메시지 + "생성 중..." 로딩 + JSON 노출 방지 + 마크다운 확장
 - [x] 프롬프트 복사 보강: 30일 풀 데이터 (Gemini 1M 대응)
