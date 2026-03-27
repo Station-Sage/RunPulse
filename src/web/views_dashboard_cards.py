@@ -620,6 +620,7 @@ def _render_risk_pills(risk_data: dict) -> str:
 
 
 def _render_darp_mini(darp_data: dict, vdot: float | None = None,
+                      vdot_adj: float | None = None,
                       di: float | None = None) -> str:
     """DARP 레이스 예측 미니 카드 + VDOT/DI/Shape/EF 배지."""
     if not darp_data:
@@ -632,7 +633,10 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
     )
     badges = []
     if vdot is not None:
-        badges.append(_badge("VDOT", f"{vdot:.1f}", "var(--cyan)"))
+        _vdot_str = f"{vdot:.1f}"
+        if vdot_adj and abs(vdot - vdot_adj) > 0.3:
+            _vdot_str += f" (보정 {vdot_adj:.1f})"
+        badges.append(_badge("VDOT", _vdot_str, "var(--cyan)"))
     if di is not None:
         di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
         badges.append(_badge("DI", f"{di:.0f}" if di >= 2 else f"{di:.2f}", di_clr))
@@ -693,7 +697,6 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
     vj = vdot_json or {}
     vdot_compare = ""
     ref_parts = []
-    src = vj.get("source", "")
     r_vdot = vj.get("runalyze_vdot")
     g_vdot = vj.get("garmin_vo2max")
     if r_vdot is not None:
