@@ -19,18 +19,19 @@ from src.metrics.store import save_metric
 
 def calc_darp(vdot: float, distance_key: str,
               di: float | None = None,
-              race_shape: float | None = None) -> dict | None:
-    """DARP 계산 — Daniels 테이블 + DI + Race Shape 보정.
+              race_shape: float | None = None,
+              ef: float | None = None) -> dict | None:
+    """DARP 계산 — Daniels 테이블 + DI + Race Shape + EF 보정.
 
     Args:
         vdot: VDOT 값.
         distance_key: '5k' | '10k' | 'half' | 'full'.
         di: DI 값 (0~100). 없으면 DI 보정 생략.
         race_shape: Race Shape (0~100). 없으면 Shape 보정 생략.
+        ef: Efficiency Factor (보통 1.0~1.8). 없으면 EF 보정 생략.
 
     Returns:
-        {'pace_sec_km': ..., 'time_sec': ..., 'distance_km': ...,
-         'di_penalty': ..., 'shape_penalty': ..., 'vdot': ...}
+        {..., 'di_penalty', 'shape_penalty', 'ef_bonus', ...}
     """
     from src.metrics.daniels_table import get_race_predictions, get_training_paces
 
@@ -76,8 +77,19 @@ def calc_darp(vdot: float, distance_key: str,
             dist_factor = {"5k": 0.3, "10k": 0.5, "half": 0.8, "full": 1.0}
             shape_penalty = base_penalty * dist_factor.get(distance_key, 1.0)
 
-    # 4. 최종 예측
-    adjusted_time = base_time * (1.0 + di_penalty) * (1.0 + shape_penalty)
+    # 4. EF 보정 — 효율이 높으면 보너스 (시간 단축)
+    #    EF 1.0(기준) → 0%, EF 1.3(우수) → -2%, EF 1.5+(탁월) → -3%
+    #    EF < 1.0(저효율) → +2% 페널티
+    #    10K 이상에서만 유의미
+    ef_bonus = 0.0
+    if ef is not None and distance_key in ("10k", "half", "full"):
+        if ef >= 1.0:
+            ef_bonus = -min(0.03, (ef - 1.0) * 0.06)  # 최대 -3%
+        else:
+            ef_bonus = min(0.03, (1.0 - ef) * 0.06)   # 최대 +3%
+
+    # 5. 최종 예측
+    adjusted_time = base_time * (1.0 + di_penalty) * (1.0 + shape_penalty) * (1.0 + ef_bonus)
     adjusted_pace = adjusted_time / dist_km
 
     # 페이스 정보 (Daniels 기준)
@@ -90,6 +102,7 @@ def calc_darp(vdot: float, distance_key: str,
         "base_time_sec": base_time,
         "di_penalty": round(di_penalty, 4),
         "shape_penalty": round(shape_penalty, 4),
+        "ef_bonus": round(ef_bonus, 4),
         "vdot": vdot,
         "avg_pace_sec": round(adjusted_pace),
         "m_pace": paces.get("M"),
@@ -128,6 +141,17 @@ def calc_and_save_darp(conn: sqlite3.Connection, target_date: str) -> dict:
 
     di = get_di(conn, target_date)
 
+    # EF (최근 7일 평균)
+    ef_val = None
+    ef_row = conn.execute(
+        "SELECT AVG(metric_value) FROM computed_metrics "
+        "WHERE metric_name='EF' AND activity_id IS NOT NULL "
+        "AND metric_value IS NOT NULL AND date>=date(?, '-7 days') AND date<=?",
+        (target_date, target_date),
+    ).fetchone()
+    if ef_row and ef_row[0]:
+        ef_val = round(float(ef_row[0]), 3)
+
     # Race Shape (거리별로 다름 → 각 거리에 맞는 shape 계산)
     from src.metrics.marathon_shape import calc_marathon_shape, _get_race_targets
     from src.metrics.marathon_shape import (
@@ -153,9 +177,10 @@ def calc_and_save_darp(conn: sqlite3.Connection, target_date: str) -> dict:
             long_run_quality=long_quality,
         )
 
-        result = calc_darp(vdot, dist_key, di=di, race_shape=shape)
+        result = calc_darp(vdot, dist_key, di=di, race_shape=shape, ef=ef_val)
         if result:
             result["race_shape"] = shape
+            result["ef"] = ef_val
             save_metric(
                 conn,
                 date=target_date,

@@ -621,18 +621,35 @@ def _render_risk_pills(risk_data: dict) -> str:
 
 def _render_darp_mini(darp_data: dict, vdot: float | None = None,
                       di: float | None = None) -> str:
-    """DARP 레이스 예측 미니 카드 + VDOT/DI 배지."""
+    """DARP 레이스 예측 미니 카드 + VDOT/DI/Shape/EF 배지."""
     if not darp_data:
         return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
 
-    badges = ""
+    _badge = lambda lbl, val, clr: (
+        f"<span style='background:rgba(255,255,255,0.06);border:1px solid {clr};"
+        f"color:{clr};border-radius:12px;padding:2px 8px;font-size:0.72rem;"
+        f"font-weight:600;white-space:nowrap;'>{lbl} {val}</span>"
+    )
+    badges = []
     if vdot is not None:
-        badges += f"<span style='color:var(--cyan);font-size:0.82rem;font-weight:600;'>VDOT {vdot:.1f}</span>"
+        badges.append(_badge("VDOT", f"{vdot:.1f}", "var(--cyan)"))
     if di is not None:
         di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
-        di_fmt = f"{di:.2f}" if di < 2 else f"{di:.0f}"
-        badges += f"<span style='color:{di_clr};font-size:0.82rem;font-weight:600;margin-left:0.5rem;'>DI {di_fmt}</span>"
-    badge_row = f"<div style='margin-bottom:0.4rem;'>{badges}</div>" if badges else ""
+        badges.append(_badge("DI", f"{di:.0f}" if di >= 2 else f"{di:.2f}", di_clr))
+    # Shape/EF from first available DARP entry
+    _sample = next((d for d in darp_data.values() if isinstance(d, dict)), {})
+    _sh = _sample.get("race_shape")
+    _ef = _sample.get("ef")
+    if _sh is not None:
+        sh_clr = "var(--green)" if _sh >= 70 else "var(--orange)" if _sh >= 50 else "var(--red)"
+        badges.append(_badge("Shape", f"{_sh:.0f}%", sh_clr))
+    if _ef is not None:
+        ef_clr = "var(--green)" if _ef >= 1.0 else "var(--orange)"
+        badges.append(_badge("EF", f"{_ef:.2f}", ef_clr))
+    badge_row = (
+        f"<div style='display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.5rem;'>"
+        f"{''.join(badges)}</div>"
+    ) if badges else ""
 
     _LABELS = {"5k": "5K", "10k": "10K", "half": "하프", "full": "마라톤"}
     rows = ""
