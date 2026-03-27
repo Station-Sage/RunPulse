@@ -46,7 +46,7 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
 
     # 기본 VDOT
     base_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
+        "SELECT metric_value, metric_json FROM computed_metrics WHERE metric_name='VDOT' "
         "AND activity_id IS NULL AND date<=? AND metric_value IS NOT NULL "
         "ORDER BY date DESC LIMIT 1",
         (target_date,),
@@ -54,6 +54,11 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
     if not base_row:
         return None
     vdot_base = float(base_row[0])
+
+    # VDOT 소스 확인: 레이스 기반이면 이미 정확 → 보정 최소화
+    import json as _json
+    vdot_json = _json.loads(base_row[1]) if base_row[1] else {}
+    vdot_from_race = vdot_json.get("source") == "race"
 
     from src.metrics.store import estimate_max_hr
     hr_max = estimate_max_hr(conn, target_date)
@@ -101,11 +106,16 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
     if vdot_adj is None:
         vdot_adj = vdot_base
 
-    # 보정 범위 제한 (±15%)
+    # 보정 범위 제한
+    # 레이스 기반 VDOT → 이미 정확하므로 ±5% (Pugh 1970: 날씨/코스 영향 ~2-5%)
+    # 비레이스 → ±10%
+    max_correction = 0.05 if vdot_from_race else 0.10
     if vdot_base > 0:
         ratio = vdot_adj / vdot_base
-        if ratio < 0.85 or ratio > 1.15:
-            vdot_adj = round(vdot_base * max(0.85, min(1.15, ratio)), 1)
+        lo = 1.0 - max_correction
+        hi = 1.0 + max_correction
+        if ratio < lo or ratio > hi:
+            vdot_adj = round(vdot_base * max(lo, min(hi, ratio)), 1)
 
     vdot_adj = round(vdot_adj, 1)
     if vdot_adj < 15 or vdot_adj > 90:

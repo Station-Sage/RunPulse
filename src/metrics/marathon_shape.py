@@ -504,11 +504,16 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
     Returns:
         VDOT 값 또는 None.
     """
-    vdot = _get_vdot(conn, target_date)
-    if vdot is not None:
-        # 소스 판별: 자체 추정이 가능했으면 estimated, 아니면 외부
+    # 소스별 VDOT 시도 (순서대로)
+    source = "unknown"
+    race_vdot = _estimate_vdot_from_races(conn, target_date)
+    if race_vdot is not None:
+        vdot = race_vdot
+        source = "race"
+    else:
         estimated = _estimate_vdot_from_activities(conn, target_date)
         if estimated is not None:
+            vdot = estimated
             source = "estimated"
         else:
             row = conn.execute(
@@ -517,9 +522,15 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
                 "AND date<=? ORDER BY date DESC LIMIT 1",
                 (target_date,),
             ).fetchone()
-            source = "runalyze" if row and row[0] is not None else (
-                "garmin" if row and row[1] is not None else "unknown"
-            )
+            if row and row[0] is not None:
+                vdot = float(row[0])
+                source = "runalyze"
+            elif row and row[1] is not None:
+                vdot = float(row[1])
+                source = "garmin"
+            else:
+                vdot = None
+    if vdot is not None:
         # 외부 소스 값도 참고로 저장
         ref_runalyze = None
         ref_garmin = None
