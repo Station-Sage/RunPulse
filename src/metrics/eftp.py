@@ -43,14 +43,10 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
     #    HR 기반: 최대심박 85%+ 활동 → 역치 근처 노력
     start = (td - timedelta(weeks=12)).isoformat()
 
-    # 사용자 최대심박 추정
-    max_hr_row = conn.execute(
-        "SELECT MAX(max_hr) FROM v_canonical_activities "
-        "WHERE activity_type='running' AND max_hr > 0 AND max_hr < 230 "
-        "AND DATE(start_time) BETWEEN ? AND ?",
-        (start, target_date),
-    ).fetchone()
-    max_hr = float(max_hr_row[0]) if max_hr_row and max_hr_row[0] else 190.0
+    from src.metrics.store import estimate_max_hr
+
+    # 사용자 최대심박 추정 (이상치 제거)
+    max_hr = estimate_max_hr(conn, target_date, weeks=12)
     hr_threshold = max_hr * 0.82  # 역치 최소 노력도
 
     # 30~70분, HR 역치 이상 활동 (고강도)

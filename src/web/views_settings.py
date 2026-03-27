@@ -121,10 +121,11 @@ def _estimate_profile() -> dict:
         if not dbp or not dbp.exists():
             return est
         with sqlite3.connect(str(dbp)) as conn:
-            # 최대 HR: 전체 활동 중 최고 max_hr
-            row = conn.execute("SELECT MAX(max_hr) FROM activity_summaries WHERE max_hr IS NOT NULL").fetchone()
-            if row and row[0]:
-                est["max_hr"] = int(row[0])
+            # 최대 HR: 이상치 제거된 추정값
+            from src.metrics.store import estimate_max_hr
+            max_hr_est = estimate_max_hr(conn)
+            if max_hr_est != 190.0:  # 190 = 기본값 → 데이터 없음
+                est["max_hr"] = int(max_hr_est)
             # eFTP: computed_metrics에서
             row = conn.execute(
                 "SELECT metric_value FROM computed_metrics WHERE metric_name='eFTP' "

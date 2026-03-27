@@ -20,6 +20,8 @@ import json
 import sqlite3
 from dataclasses import dataclass
 
+from src.metrics.store import estimate_max_hr
+
 
 @dataclass
 class WorkoutClassification:
@@ -178,10 +180,8 @@ def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClas
     duration_sec, distance_km, avg_hr, max_hr_act = row[0], row[1], row[2], row[3]
 
     # maxHR: 활동 max_hr가 아닌 사용자 maxHR (전체 최대)
-    max_hr_row = conn.execute(
-        "SELECT MAX(max_hr) FROM activity_summaries WHERE max_hr IS NOT NULL"
-    ).fetchone()
-    max_hr = int(max_hr_row[0]) if max_hr_row and max_hr_row[0] else (max_hr_act or 190)
+    max_hr_est = estimate_max_hr(conn)
+    max_hr = int(max_hr_est) if max_hr_est != 190.0 else (max_hr_act or 190)
 
     # HR존 시간 비율
     hr_zone_pcts = _load_hr_zone_pcts(conn, activity_id, duration_sec)

@@ -19,7 +19,7 @@ import math
 import sqlite3
 from datetime import date, timedelta
 
-from src.metrics.store import save_metric
+from src.metrics.store import estimate_max_hr, save_metric
 
 # 기본 생리 파라미터 (사용자 설정 없을 때 fallback)
 _DEFAULT_HR_REST = 50
@@ -95,13 +95,8 @@ def _get_user_hr_params(conn: sqlite3.Connection) -> tuple[int, int, int]:
     ).fetchone()
     hr_rest = int(row[0]) if row and row[0] else _DEFAULT_HR_REST
 
-    # activity_summaries에서 최근 90일 최대 심박
-    row = conn.execute(
-        """SELECT MAX(max_hr) FROM activity_summaries
-           WHERE max_hr IS NOT NULL
-             AND DATE(start_time) >= DATE('now', '-90 days')"""
-    ).fetchone()
-    hr_max = int(row[0]) if row and row[0] else _DEFAULT_HR_MAX
+    # estimate_max_hr: 이상치 제거된 최대심박 추정 (기본값 190)
+    hr_max = int(estimate_max_hr(conn))
 
     hr_lthr = int(hr_max * _DEFAULT_LTHR_RATIO)
     return hr_rest, hr_max, hr_lthr

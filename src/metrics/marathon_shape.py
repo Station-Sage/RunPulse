@@ -212,16 +212,9 @@ def _estimate_vdot_from_activities(conn: sqlite3.Connection, target_date: str) -
     if not rows:
         return None
 
-    # 사용자 최대심박 추정 (DB에서 최근 max_hr 상위값)
-    max_hr_est = None
-    hr_row = conn.execute(
-        "SELECT MAX(max_hr) FROM v_canonical_activities "
-        "WHERE activity_type='running' AND max_hr > 0 AND max_hr < 230 "
-        "AND DATE(start_time) BETWEEN ? AND ?",
-        (start, target_date),
-    ).fetchone()
-    if hr_row and hr_row[0]:
-        max_hr_est = float(hr_row[0])
+    # 사용자 최대심박 추정 (이상치 제거)
+    from src.metrics.store import estimate_max_hr
+    max_hr_est = estimate_max_hr(conn, target_date, weeks=12)
 
     # 각 활동의 VDOT 계산 + HR 검증
     candidates: list[tuple[float, float, float]] = []  # (vdot, recency_weight, distance_weight)
