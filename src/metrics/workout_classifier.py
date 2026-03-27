@@ -116,14 +116,10 @@ def classify_workout(
     pace_ratio = avg_pace_sec_km / eftp_sec_km if avg_pace_sec_km and eftp_sec_km and eftp_sec_km > 0 else 1.0
 
     # ── 분류 규칙 (우선순위 순) ──────────────────────────────────────
+    # 레이스는 분류하지 않음 — 원본 event_type='race'를 그대로 사용
+    # (activity_summaries.event_type → UI/VDOT에서 직접 참조)
 
-    # 0. 레이스: 원본 태그가 있을 때만 (Garmin/Strava event_type='race')
-    #    데이터 기반 자체 판별 안 함 — 오분류 시 VDOT에 큰 영향
-    if event_type and event_type.lower().strip() == "race":
-        return WorkoutClassification("race", _EFFECTS["race"], 0.95,
-                                     f"원본 태그: {event_type}")
-
-    # 2. 인터벌: Z4-5 > 25% (고강도 비율 높음)
+    # 1. 인터벌: Z4-5 > 25% (고강도 비율 높음)
     if z45 > 25:
         return WorkoutClassification("interval", _EFFECTS["interval"], 0.85,
                                      f"Z4-5 {z45:.0f}%")
