@@ -242,10 +242,11 @@ def _build_dashboard(db) -> str:
         strain_val = vals["Strain"]
 
         metric_date = load_latest_metric_date(conn, today, "UTRS")
-        jsons = load_metrics_json_batch(conn, today, ["UTRS", "CIRS", "RMR"])
+        jsons = load_metrics_json_batch(conn, today, ["UTRS", "CIRS", "RMR", "VDOT"])
         utrs_json = jsons.get("UTRS") or {}
         cirs_json = jsons.get("CIRS") or {}
         rmr_json = jsons.get("RMR") or {}
+        vdot_json = jsons.get("VDOT") or {}
         rmr_old_json = load_metrics_json_batch(conn, three_months_ago, ["RMR"]).get("RMR") or {}
 
         pmc_data = _load_pmc_data(conn, today, days=60)
@@ -346,6 +347,7 @@ def _build_dashboard(db) -> str:
         vdot, marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),
         rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"),
+        vdot_json=vdot_json,
         config=_cfg, conn=conn,
         ai_override=_ai_data.get("fitness"))
     rmr_axes = rmr_json.get("axes") if rmr_json else None

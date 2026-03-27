@@ -225,6 +225,64 @@ def ai_coach_page():
 # ── 채팅 라우트 ──────────────────────────────────────────────────────
 
 
+@ai_coach_bp.route("/ai-coach/chat-async", methods=["POST"])
+def ai_coach_chat_async():
+    """AJAX 채팅 — JSON 응답 (페이지 리로드 없음)."""
+    from flask import jsonify
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return jsonify({"response": "DB가 없습니다.", "provider": ""})
+
+    user_msg = request.form.get("message", "").strip()[:500]
+    chip_id = request.form.get("chip_id", "").strip() or None
+
+    if not user_msg and not chip_id:
+        return jsonify({"response": "질문을 입력해주세요.", "provider": ""})
+
+    if chip_id and not user_msg:
+        from src.ai.suggestions import CHIP_REGISTRY
+        if chip_id not in CHIP_REGISTRY:
+            return jsonify({"response": "알 수 없는 칩입니다.", "provider": ""})
+        user_msg = CHIP_REGISTRY[chip_id].get("label", chip_id)
+
+    try:
+        from src.ai.chat_engine import chat
+        from src.utils.config import load_config
+
+        conn = sqlite3.connect(str(dbp))
+        try:
+            config = load_config()
+            conn.execute(
+                "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
+                (user_msg, chip_id),
+            )
+            ai_response = chat(conn, user_msg, config=config, chip_id=chip_id)
+            ai_model = config.get("ai", {}).get("provider", "rule")
+            conn.execute(
+                "INSERT INTO chat_messages (role, content, chip_id, ai_model) VALUES ('assistant', ?, ?, ?)",
+                (ai_response, chip_id, ai_model),
+            )
+            conn.commit()
+
+            # 마크다운 → HTML 변환 + JSON 추천질문 제거
+            from src.web.views_ai_coach_cards import _md_to_html, _parse_followup
+            import html as _h
+            clean_text, followups = _parse_followup(ai_response)
+            html_response = _md_to_html(_h.escape(clean_text))
+            provider_str = f"via {ai_model}" if ai_model and ai_model != "rule" else ""
+
+            return jsonify({
+                "response": html_response,
+                "provider": provider_str,
+                "followups": followups,
+            })
+        finally:
+            conn.close()
+    except Exception as exc:
+        log.warning("AJAX 채팅 처리 실패", exc_info=True)
+        return jsonify({"response": f"응답 생성 실패: {str(exc)[:100]}", "provider": ""})
+
+
 @ai_coach_bp.route("/ai-coach/chat", methods=["POST"])
 def ai_coach_chat():
     """사용자 메시지 수신 → AI 응답 생성 → 저장 → 리다이렉트."""

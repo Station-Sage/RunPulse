@@ -109,11 +109,17 @@ def _get_recent_running_data(
 
 
 def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
-    """가장 최신 VDOT 값 조회.
+    """해당 날짜의 VDOT 값 조회.
 
-    우선순위: runalyze_vdot > garmin_vo2max > computed_metrics VDOT > 자체 추정.
+    우선순위: 자체 추정(Jack Daniels) > Runalyze > Garmin VO2Max.
+    RunPulse 계산이 최우선. 외부 소스는 참고/fallback.
     """
-    # 1. Runalyze VDOT 또는 Garmin VO2Max
+    # 1. 자체 추정: 최근 best effort로 VDOT 추정
+    estimated = _estimate_vdot_from_activities(conn, target_date)
+    if estimated is not None:
+        return estimated
+
+    # 2. Runalyze VDOT 또는 Garmin VO2Max (fallback)
     row = conn.execute(
         """SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness
            WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL)
@@ -126,18 +132,7 @@ def _get_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
         if row[1] is not None:
             return float(row[1])
 
-    # 2. computed_metrics에 VDOT이 있으면 사용
-    row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name='VDOT' AND metric_value IS NOT NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
-        (target_date,),
-    ).fetchone()
-    if row and row[0]:
-        return float(row[0])
-
-    # 3. 자체 추정: 최근 best effort로 VDOT 추정
-    return _estimate_vdot_from_activities(conn, target_date)
+    return None
 
 
 def _vo2_from_velocity(v: float) -> float:
@@ -192,35 +187,87 @@ def estimate_vdot(distance_km: float, duration_sec: float) -> float | None:
 
 
 def _estimate_vdot_from_activities(conn: sqlite3.Connection, target_date: str) -> float | None:
-    """최근 활동에서 VDOT 추정 (Jack Daniels 정확 공식).
+    """최근 활동에서 VDOT 추정 — 가중 평균 + 이상치 제거 + HR 검증.
 
-    12주 이내 5K~하프 거리의 베스트 페이스 활동으로 추정.
-    여러 거리 결과가 있으면 가장 높은 VDOT을 채택.
+    전문 알고리즘:
+    1. 12주 이내 적격 활동 수집 (5K+, 20분+)
+    2. HR 검증: 최대심박 75%+ 노력 활동만 (이지런 제외)
+    3. 이상치 제거: 중앙값 ±2SD 벗어난 값 제외
+    4. 가중 평균: 최신 가중치 ↑ × 장거리 가중치 ↑
     """
     td = date.fromisoformat(target_date)
     start = (td - timedelta(weeks=12)).isoformat()
 
-    # 최근 12주 이내 5~21km 활동 (빠른 페이스 순 상위 5개)
+    # 적격 활동: 5K+ 거리, 20분+ 시간
     rows = conn.execute(
-        """SELECT distance_km, duration_sec FROM v_canonical_activities
+        """SELECT distance_km, duration_sec, avg_hr, max_hr, DATE(start_time)
+           FROM v_canonical_activities
            WHERE activity_type='running'
-             AND distance_km BETWEEN 4.5 AND 22
-             AND duration_sec > 0
+             AND distance_km >= 4.5
+             AND duration_sec >= 1200
              AND DATE(start_time) BETWEEN ? AND ?
-           ORDER BY (CAST(duration_sec AS REAL) / distance_km) ASC
-           LIMIT 5""",
+           ORDER BY start_time DESC""",
         (start, target_date),
     ).fetchall()
     if not rows:
         return None
 
-    best_vdot: float | None = None
-    for dist_km, dur_sec in rows:
-        v = estimate_vdot(float(dist_km), float(dur_sec))
-        if v is not None and (best_vdot is None or v > best_vdot):
-            best_vdot = v
+    # 사용자 최대심박 추정 (DB에서 최근 max_hr 상위값)
+    max_hr_est = None
+    hr_row = conn.execute(
+        "SELECT MAX(max_hr) FROM v_canonical_activities "
+        "WHERE activity_type='running' AND max_hr > 0 AND max_hr < 230 "
+        "AND DATE(start_time) BETWEEN ? AND ?",
+        (start, target_date),
+    ).fetchone()
+    if hr_row and hr_row[0]:
+        max_hr_est = float(hr_row[0])
 
-    return best_vdot
+    # 각 활동의 VDOT 계산 + HR 검증
+    candidates: list[tuple[float, float, float]] = []  # (vdot, recency_weight, distance_weight)
+    for dist_km, dur_sec, avg_hr, max_hr_act, act_date in rows:
+        v = estimate_vdot(float(dist_km), float(dur_sec))
+        if v is None:
+            continue
+
+        # HR 검증: 평균심박이 최대심박의 75% 미만이면 이지런 → VDOT 추정 부적격
+        if max_hr_est and avg_hr:
+            effort_pct = float(avg_hr) / max_hr_est
+            if effort_pct < 0.75:
+                continue  # 이지런/회복런 제외
+
+        # 최신 가중치: 12주=84일, 오늘=1.0 → 84일 전=0.3 (지수 감쇠)
+        days_ago = (td - date.fromisoformat(act_date)).days
+        recency_w = math.exp(-0.014 * days_ago)  # 반감기 ~50일
+
+        # 거리 가중치: 장거리가 더 신뢰도 높음 (5K=1.0, 10K=1.3, 하프=1.5)
+        dist_w = min(float(dist_km) / 5.0, 3.0) ** 0.3
+
+        candidates.append((v, recency_w, dist_w))
+
+    if not candidates:
+        return None
+
+    # 이상치 제거: 중앙값 ±2SD
+    vdots = [c[0] for c in candidates]
+    if len(vdots) >= 3:
+        vdots_sorted = sorted(vdots)
+        median = vdots_sorted[len(vdots_sorted) // 2]
+        mean = sum(vdots) / len(vdots)
+        sd = (sum((v - mean) ** 2 for v in vdots) / len(vdots)) ** 0.5
+        if sd > 0:
+            candidates = [c for c in candidates if abs(c[0] - median) <= 2 * sd]
+
+    if not candidates:
+        return None
+
+    # 가중 평균
+    total_weight = sum(c[1] * c[2] for c in candidates)
+    if total_weight <= 0:
+        return None
+    weighted_vdot = sum(c[0] * c[1] * c[2] for c in candidates) / total_weight
+
+    return round(weighted_vdot, 1)
 
 
 def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | None:
@@ -231,22 +278,37 @@ def calc_and_save_vdot(conn: sqlite3.Connection, target_date: str) -> float | No
     """
     vdot = _get_vdot(conn, target_date)
     if vdot is not None:
-        # 소스 판별
-        row = conn.execute(
+        # 소스 판별: 자체 추정이 가능했으면 estimated, 아니면 외부
+        estimated = _estimate_vdot_from_activities(conn, target_date)
+        if estimated is not None:
+            source = "estimated"
+        else:
+            row = conn.execute(
+                "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
+                "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
+                "AND date<=? ORDER BY date DESC LIMIT 1",
+                (target_date,),
+            ).fetchone()
+            source = "runalyze" if row and row[0] is not None else (
+                "garmin" if row and row[1] is not None else "unknown"
+            )
+        # 외부 소스 값도 참고로 저장
+        ref_runalyze = None
+        ref_garmin = None
+        ref_row = conn.execute(
             "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
-            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
-            "AND date<=? ORDER BY date DESC LIMIT 1",
+            "WHERE date<=? ORDER BY date DESC LIMIT 1",
             (target_date,),
         ).fetchone()
-        source = "estimated"
-        if row:
-            if row[0] is not None:
-                source = "runalyze"
-            elif row[1] is not None:
-                source = "garmin"
+        if ref_row:
+            ref_runalyze = float(ref_row[0]) if ref_row[0] else None
+            ref_garmin = float(ref_row[1]) if ref_row[1] else None
         save_metric(
             conn, date=target_date, metric_name="VDOT", value=vdot,
-            extra_json={"source": source, "vdot": vdot},
+            extra_json={
+                "source": source, "vdot": vdot,
+                "runalyze_vdot": ref_runalyze, "garmin_vo2max": ref_garmin,
+            },
         )
     return vdot
 

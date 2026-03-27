@@ -663,6 +663,7 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
 def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
                          eftp: float | None = None, rec: float | None = None,
                          rri: float | None = None, vdot_adj: float | None = None,
+                         vdot_json: dict | None = None,
                          config: dict | None = None, conn=None,
                          ai_override: str | None = None) -> str:
     """VDOT / Marathon Shape / eFTP / REC / RRI 피트니스 미니 카드."""
@@ -671,6 +672,22 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
     vdot_str = f"{vdot:.1f}" if vdot is not None else "—"
     if vdot_adj and vdot and abs(vdot_adj - vdot) > 0.3:
         vdot_str += f" <span style='font-size:0.7rem;color:var(--muted);'>(보정 {vdot_adj:.1f})</span>"
+    # VDOT 소스 비교 (RunPulse vs Runalyze vs Garmin)
+    vj = vdot_json or {}
+    vdot_compare = ""
+    ref_parts = []
+    src = vj.get("source", "")
+    r_vdot = vj.get("runalyze_vdot")
+    g_vdot = vj.get("garmin_vo2max")
+    if r_vdot is not None:
+        ref_parts.append(f"Runalyze {r_vdot:.1f}")
+    if g_vdot is not None:
+        ref_parts.append(f"Garmin {g_vdot:.1f}")
+    if ref_parts:
+        vdot_compare = (
+            f"<div style='font-size:0.68rem;color:var(--muted);margin-top:2px;'>"
+            f"{' · '.join(ref_parts)}</div>"
+        )
     shape_str = f"{marathon_shape_pct:.0f}%" if marathon_shape_pct is not None else "—"
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70
              else ("var(--orange)" if (marathon_shape_pct or 0) >= 50 else "var(--muted)"))
@@ -707,7 +724,8 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
         "<div style='display:flex;gap:1rem;justify-content:space-around;'>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:var(--cyan);'>{vdot_str}</div>"
-        f"<div class='muted' style='font-size:0.76rem;'>{tooltip('VDOT', METRIC_DESCRIPTIONS.get('VDOT', ''))}</div></div>"
+        f"<div class='muted' style='font-size:0.76rem;'>{tooltip('VDOT', METRIC_DESCRIPTIONS.get('VDOT', ''))}</div>"
+        + vdot_compare + "</div>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:1.8rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
         f"<div class='muted' style='font-size:0.76rem;'>{tooltip('Marathon Shape', METRIC_DESCRIPTIONS.get('MarathonShape', ''))}</div></div></div>"
