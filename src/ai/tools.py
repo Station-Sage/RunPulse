@@ -176,10 +176,14 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
     for a in acts:
         aid, km, sec, pace, avg_hr, max_hr, elev, cal, name = a
         detail: dict[str, Any] = {
-            "name": name, "distance_km": km, "duration_sec": sec,
+            "name": name,
+            "distance_km": round(float(km), 1) if km else None,
+            "duration_sec": round(float(sec)) if sec else None,
             "pace": seconds_to_pace(int(pace)) if pace else None,
-            "avg_hr": avg_hr, "max_hr": max_hr,
-            "elevation_m": elev, "calories": cal,
+            "avg_hr": round(float(avg_hr)) if avg_hr else None,
+            "max_hr": round(float(max_hr)) if max_hr else None,
+            "elevation_m": round(float(elev)) if elev else None,
+            "calories": round(float(cal)) if cal else None,
         }
         # 메트릭
         metrics = conn.execute(
@@ -210,9 +214,10 @@ def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
         "period": f"{s} ~ {e}",
         "count": len(rows),
         "activities": [
-            {"date": r[0], "km": r[1], "sec": r[2],
+            {"date": r[0], "km": round(float(r[1]), 1) if r[1] else None,
+             "sec": round(float(r[2])) if r[2] else None,
              "pace": seconds_to_pace(int(r[3])) if r[3] else None,
-             "hr": r[4], "name": r[5]}
+             "hr": round(float(r[4])) if r[4] else None, "name": r[5]}
             for r in rows
         ],
     }
