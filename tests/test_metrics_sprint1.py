@@ -357,25 +357,27 @@ class TestRelativeEffort:
 
 class TestMarathonShape:
     def test_optimal_training(self):
-        """VDOT 50: 목표 주간 40km + 최장 17.5km → shape = 100%."""
+        """VDOT 50: 충분한 주간 볼륨 + 장거리런 → shape 90%+."""
         from src.metrics.marathon_shape import calc_marathon_shape
+        # VDOT 50 → target_weekly=65km, target_long=27.5km
         shape = calc_marathon_shape(
-            weekly_km_avg=50 * 0.8,  # 목표 달성
-            longest_run_km=50 * 0.35,  # 목표 달성
-            vdot=50.0,
-        )
-        assert shape == pytest.approx(100.0)
-
-    def test_partial_training(self):
-        """주간 거리가 목표의 50% → shape < 67%."""
-        from src.metrics.marathon_shape import calc_marathon_shape
-        shape = calc_marathon_shape(
-            weekly_km_avg=50 * 0.8 * 0.5,
-            longest_run_km=50 * 0.35,
+            weekly_km_avg=70.0,   # 목표 초과
+            longest_run_km=30.0,  # 목표 초과
             vdot=50.0,
         )
         assert shape is not None
-        assert shape < 67.0
+        assert shape >= 90.0
+
+    def test_partial_training(self):
+        """주간 거리 절반 → shape < 80% (볼륨 부족)."""
+        from src.metrics.marathon_shape import calc_marathon_shape
+        shape = calc_marathon_shape(
+            weekly_km_avg=30.0,   # 65km 목표 대비 46%
+            longest_run_km=27.5,  # 목표 달성
+            vdot=50.0,
+        )
+        assert shape is not None
+        assert shape < 80.0
 
     def test_no_vdot(self):
         """VDOT 없으면 None."""

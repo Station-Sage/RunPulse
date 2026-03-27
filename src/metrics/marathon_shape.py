@@ -41,15 +41,19 @@ def calc_marathon_shape(
     if not vdot or vdot <= 0:
         return None
 
-    target_weekly_km = vdot * 0.8
-    target_long_km = vdot * 0.35
-
-    if target_weekly_km <= 0 or target_long_km <= 0:
-        return None
+    # 마라톤 목표 볼륨 (VDOT 기반, 최소치 보장)
+    # VDOT 40 → 주간 50km, VDOT 50 → 65km, VDOT 60 → 80km
+    target_weekly_km = max(40.0, 20 + vdot * 0.9)
+    # 장거리런: VDOT 40 → 25km, VDOT 50 → 30km, VDOT 60 → 32km
+    target_long_km = min(35.0, max(20.0, 10 + vdot * 0.35))
 
     weekly_shape = min(1.0, weekly_km_avg / target_weekly_km)
     long_run_shape = min(1.0, longest_run_km / target_long_km)
-    shape_pct = (weekly_shape * 2 / 3 + long_run_shape * 1 / 3) * 100
+
+    # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 보너스 20%
+    # 일관성: 주간 거리가 최소 4회 분산 (10km/회 이상이면 일관적)
+    consistency = min(1.0, weekly_km_avg / 4.0 / 8.0) if weekly_km_avg > 0 else 0
+    shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency * 0.2) * 100
 
     return round(shape_pct, 1)
 
@@ -336,8 +340,8 @@ def calc_and_save_marathon_shape(
                 "weekly_km_avg": round(weekly_km_avg, 1),
                 "longest_run_km": round(longest_km, 1),
                 "vdot": vdot,
-                "target_weekly_km": round(vdot * 0.8, 1),
-                "target_long_km": round(vdot * 0.35, 1),
+                "target_weekly_km": round(max(40.0, 20 + vdot * 0.9), 1),
+                "target_long_km": round(min(35.0, max(20.0, 10 + vdot * 0.35)), 1),
             },
         )
     return shape

@@ -55,7 +55,7 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
            FROM v_canonical_activities
            WHERE activity_type='running'
              AND duration_sec BETWEEN 1800 AND 4200
-             AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 0
+             AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 180
              AND avg_hr IS NOT NULL AND avg_hr >= ?
              AND DATE(start_time) BETWEEN ? AND ?
            ORDER BY avg_pace_sec_km ASC
@@ -70,7 +70,7 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
                FROM v_canonical_activities
                WHERE activity_type='running'
                  AND duration_sec BETWEEN 1200 AND 5400
-                 AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 0
+                 AND avg_pace_sec_km IS NOT NULL AND avg_pace_sec_km > 180
                  AND avg_hr IS NOT NULL AND avg_hr >= ?
                  AND DATE(start_time) BETWEEN ? AND ?
                ORDER BY avg_pace_sec_km ASC
