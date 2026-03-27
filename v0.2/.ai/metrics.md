@@ -95,15 +95,26 @@ vo2 = velocity * 0.2 + 3.5
 vo2max = (vo2 / pct_vo2max) * correction_factor  # correction_factor: 0.85~0.95
 ```
 
-### Marathon Shape (RunPulse v2)
+### Race Shape (RunPulse v2)
 ```python
-# 목표 볼륨 (VDOT 기반, 최소치 보장)
-target_weekly_km = max(40, 20 + vdot * 0.9)   # VDOT 50 → 65km
-target_long_km   = min(35, max(20, 10 + vdot * 0.35))  # VDOT 50 → 27.5km
+# 거리별 목표 파라미터
+if race_km <= 10.5:    # 10K
+    target_weekly = max(25, 10 + vdot * 0.5)   # VDOT 50 → 35km
+    target_long   = min(18, max(10, race_km * 1.5))  # 15km
+    consistency_weeks = 6
+elif race_km <= 21.5:  # 하프
+    target_weekly = max(30, 15 + vdot * 0.7)   # VDOT 50 → 50km
+    target_long   = min(25, max(15, race_km * 1.0))  # 21km
+    consistency_weeks = 8
+else:                  # 마라톤
+    target_weekly = max(40, 20 + vdot * 0.9)   # VDOT 50 → 65km
+    target_long   = min(35, max(20, 10 + vdot * 0.35))  # 27.5km
+    consistency_weeks = 12
 
-weekly_shape   = min(1.0, weekly_km_avg / target_weekly_km)
-long_run_shape = min(1.0, longest_run_km / target_long_km)
-consistency    = min(1.0, weekly_km_avg / 4 / 8)  # 주 4회×8km 분산 기준
+weekly_shape   = min(1.0, weekly_km_avg / target_weekly)
+long_run_shape = min(1.0, longest_run_km / target_long)
+# 일관성: N주간 주당 훈련 횟수의 변동계수(CV) 기반
+consistency    = active_ratio × cv_score × freq_score  # 0~1
 
 # 가중 배합: 주간 볼륨 50% + 장거리 30% + 일관성 20%
 shape_pct = (weekly_shape * 0.5 + long_run_shape * 0.3 + consistency * 0.2) * 100

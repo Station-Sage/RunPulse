@@ -248,6 +248,72 @@ def render_fitness_factors_chart(factors: dict) -> str:
 </script>"""
 
 
+# ── Race Shape 3거리 비교 ──────────────────────────────────────────────────
+
+
+def render_race_shape_trio(conn, target_date: str | None = None) -> str:
+    """10K / Half / Marathon Race Shape를 나란히 표시."""
+    from datetime import date as _d
+    from src.metrics.marathon_shape import (
+        calc_marathon_shape, _get_vdot, _get_recent_running_data,
+        _calc_consistency, _get_race_targets,
+    )
+
+    today = target_date or _d.today().isoformat()
+    vdot = _get_vdot(conn, today)
+    if vdot is None:
+        return ""
+
+    distances = [
+        ("10K", 10.0),
+        ("하프", 21.0975),
+        ("마라톤", 42.195),
+    ]
+
+    cards = []
+    for label, km in distances:
+        targets = _get_race_targets(vdot, km)
+        weeks = targets["consistency_weeks"]
+        data_weeks = min(weeks, 4)
+        weekly_avg, longest = _get_recent_running_data(conn, today, weeks=data_weeks)
+        consistency = _calc_consistency(conn, today, weeks=weeks)
+        shape = calc_marathon_shape(weekly_avg, longest, vdot,
+                                    consistency_score=consistency,
+                                    race_distance_km=km)
+        if shape is None:
+            continue
+
+        color = "#00ff88" if shape >= 70 else "#ffaa00" if shape >= 50 else "#ff4444"
+        target_w = targets["weekly_km"]
+        target_l = targets["long_km"]
+        weekly_pct = min(100, int(weekly_avg / target_w * 100)) if target_w > 0 else 0
+        long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
+
+        cards.append(
+            f"<div style='flex:1;min-width:120px;text-align:center;padding:12px;"
+            f"background:rgba(255,255,255,0.03);border-radius:12px;'>"
+            f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:4px;'>{label}</div>"
+            f"<div style='font-size:1.6rem;font-weight:700;color:{color};'>{shape:.0f}%</div>"
+            f"<div style='font-size:0.68rem;color:var(--muted);margin-top:6px;'>"
+            f"주간 {weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</div>"
+            f"<div style='font-size:0.68rem;color:var(--muted);'>"
+            f"장거리 {longest:.0f}/{target_l:.0f}km ({long_pct}%)</div>"
+            f"<div style='font-size:0.65rem;color:var(--muted);'>"
+            f"일관성 {weeks}주</div>"
+            f"</div>"
+        )
+
+    if not cards:
+        return ""
+
+    return (
+        "<div class='card' style='margin-top:12px;'>"
+        "<h2 style='font-size:1rem;margin-bottom:10px;'>거리별 Race Shape</h2>"
+        f"<div style='display:flex;gap:10px;flex-wrap:wrap;'>{''.join(cards)}</div>"
+        "</div>"
+    )
+
+
 # ── DI 해설 보강 (기존 카드에 추가) ──────────────────────────────────────────
 
 def render_di_interpretation(di_val: float | None, ai_override: str | None = None) -> str:
