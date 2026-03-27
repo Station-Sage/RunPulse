@@ -118,9 +118,35 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
         date_filter = "AND DATE(start_time) BETWEEN ? AND ?"
         params = [start, target_date]
 
-    # A. Stream 기반: 10초 연속 유지된 최고 HR
+    # 0. computed_metrics에 저장된 최근 maxHR 확인 (이미 계산된 값)
+    if target_date:
+        cached = conn.execute(
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='maxHR' AND metric_value IS NOT NULL AND date<=? "
+            "ORDER BY date DESC LIMIT 1",
+            (target_date,),
+        ).fetchone()
+        # 최근 4주 이내 계산된 값이면 재사용
+        if cached and cached[0]:
+            cache_date = conn.execute(
+                "SELECT date FROM computed_metrics "
+                "WHERE metric_name='maxHR' AND metric_value IS NOT NULL AND date<=? "
+                "ORDER BY date DESC LIMIT 1",
+                (target_date,),
+            ).fetchone()
+            if cache_date:
+                from datetime import date as _d2
+                days_old = (_d.fromisoformat(target_date) - _d.fromisoformat(cache_date[0])).days
+                if days_old <= 28:
+                    return float(cached[0])
+
+    # A. Stream 기반: 30초 연속 유지된 최고 HR
     stream_max = _estimate_max_hr_from_streams(conn, date_filter, params)
     if stream_max and stream_max > 150:
+        # 시계열 저장
+        if target_date:
+            save_metric(conn, target_date, "maxHR", stream_max,
+                        extra_json={"method": "stream_30s", "sustained_sec": 30})
         return stream_max
 
     # B. 활동 max_hr 기반 (fallback)
@@ -156,7 +182,12 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
         upper_bound = q3 + 1.5 * iqr
         vals = [v for v in vals if v <= upper_bound]
 
-    return max(vals) if vals else 190.0
+    result = max(vals) if vals else 190.0
+    # 시계열 저장
+    if target_date and result > 150:
+        save_metric(conn, target_date, "maxHR", result,
+                    extra_json={"method": "activity_iqr"})
+    return result
 
 
 def _estimate_max_hr_from_streams(conn, date_filter: str, params: list,
