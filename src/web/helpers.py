@@ -589,6 +589,7 @@ _BOTTOM_NAV_TABS = [
     ("report",      "📊", "레포트", "/report"),
     ("training",    "🗓️", "훈련",   "/training"),
     ("ai-coach",    "🤖", "AI코치", "/ai-coach"),
+    ("sync",        "🔄", "동기화", "/sync"),
     ("settings",    "⚙️", "설정",   "/settings"),
 ]
 _BOTTOM_NAV_DEV = ("dev", "🛠️", "개발자", "/dev")
