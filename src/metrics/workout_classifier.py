@@ -116,10 +116,21 @@ def classify_workout(
 
     # ── 분류 규칙 (우선순위 순) ──────────────────────────────────────
 
-    # 1. 레이스: HR > 90% maxHR + 거리 5km+ + 전 구간 고강도
-    if hr_intensity > 0.90 and dist >= 4.5 and z45 > 30:
+    # 1. 레이스: 고강도 + 일정 거리 이상
+    #    5K~10K: HR > 90% + Z4-5 > 25%
+    #    하프/풀(20km+): HR > 85% (레이스 강도가 HR 85~90%)
+    #    또는 페이스가 eFTP보다 빠름 + HR 85%+
+    is_race = False
+    if dist >= 4.5 and hr_intensity > 0.85:
+        if z45 > 25 or hr_intensity > 0.90:
+            is_race = True
+        if dist >= 20 and hr_intensity > 0.82:
+            is_race = True
+        if pace_ratio < 1.0 and hr_intensity > 0.85:
+            is_race = True
+    if is_race:
         return WorkoutClassification("race", _EFFECTS["race"], 0.9,
-                                     f"HR {hr_intensity:.0%} maxHR, Z4-5 {z45:.0f}%")
+                                     f"HR {hr_intensity:.0%} maxHR, {dist:.1f}km")
 
     # 2. 인터벌: Z4-5 > 25% (고강도 비율 높음)
     if z45 > 25:
