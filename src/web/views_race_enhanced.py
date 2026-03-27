@@ -260,7 +260,18 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
     )
 
     today = target_date or _d.today().isoformat()
-    vdot = _get_vdot(conn, today)
+
+    # VDOT_ADJ 우선 (DARP와 동일한 소스)
+    vdot = None
+    adj_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics "
+        "WHERE metric_name='VDOT_ADJ' AND metric_value IS NOT NULL AND date<=? "
+        "ORDER BY date DESC LIMIT 1", (today,),
+    ).fetchone()
+    if adj_row and adj_row[0]:
+        vdot = float(adj_row[0])
+    else:
+        vdot = _get_vdot(conn, today)
     if vdot is None:
         return ""
 
@@ -298,20 +309,34 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
         long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
         freq_pct = min(100, int(long_count / target_cnt * 100)) if target_cnt > 0 else 0
 
+        # 5요소 점수 색상
+        def _pct_clr(pct):
+            return "#00ff88" if pct >= 80 else "#ffaa00" if pct >= 50 else "#ff4444"
+        con_pct = int(consistency * 100)
+        qual_pct = int(long_quality * 100)
+
         cards.append(
-            f"<div style='flex:1;min-width:130px;text-align:center;padding:12px;"
+            f"<div style='flex:1;min-width:140px;text-align:center;padding:12px;"
             f"background:rgba(255,255,255,0.03);border-radius:12px;'>"
             f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:4px;'>{label}</div>"
             f"<div style='font-size:1.6rem;font-weight:700;color:{color};'>{shape:.0f}%</div>"
-            f"<div style='font-size:0.68rem;color:var(--muted);margin-top:6px;'>"
-            f"주간 {weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</div>"
-            f"<div style='font-size:0.68rem;color:var(--muted);'>"
-            f"최장 {longest:.0f}/{target_l:.0f}km ({long_pct}%)</div>"
-            f"<div style='font-size:0.68rem;color:var(--muted);'>"
-            f"장거리 {long_count}/{target_cnt}회 ({freq_pct}%)</div>"
-            f"<div style='font-size:0.65rem;color:var(--muted);'>"
-            f"일관성 {weeks}주</div>"
-            f"</div>"
+            f"<div style='margin-top:8px;text-align:left;font-size:0.65rem;'>"
+            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+            f"<span style='color:var(--muted);'>주간 볼륨</span>"
+            f"<span style='color:{_pct_clr(weekly_pct)};'>{weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</span></div>"
+            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+            f"<span style='color:var(--muted);'>최장 거리</span>"
+            f"<span style='color:{_pct_clr(long_pct)};'>{longest:.0f}/{target_l:.0f}km ({long_pct}%)</span></div>"
+            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+            f"<span style='color:var(--muted);'>장거리 횟수</span>"
+            f"<span style='color:{_pct_clr(freq_pct)};'>{long_count}/{target_cnt}회 ({freq_pct}%)</span></div>"
+            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+            f"<span style='color:var(--muted);'>일관성</span>"
+            f"<span style='color:{_pct_clr(con_pct)};'>{con_pct}% ({weeks}주)</span></div>"
+            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+            f"<span style='color:var(--muted);'>페이스 품질</span>"
+            f"<span style='color:{_pct_clr(qual_pct)};'>{qual_pct}%</span></div>"
+            f"</div></div>"
         )
 
     if not cards:
