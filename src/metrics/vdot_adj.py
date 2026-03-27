@@ -83,31 +83,8 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
                 # 보정 범위 제한 (±10%) — 이전 ±15%에서 축소
                 hr_pace_correction = max(0.90, min(1.10, hr_pace_correction))
 
-    # 2. EF 추세 (28일)
-    start_28d = (td - timedelta(days=28)).isoformat()
-    mid_date = (td - timedelta(days=14)).isoformat()
-
-    ef_first = conn.execute(
-        "SELECT AVG(metric_value) FROM computed_metrics WHERE metric_name='EF' "
-        "AND activity_id IS NOT NULL AND date BETWEEN ? AND ? AND metric_value IS NOT NULL",
-        (start_28d, mid_date),
-    ).fetchone()
-    ef_second = conn.execute(
-        "SELECT AVG(metric_value) FROM computed_metrics WHERE metric_name='EF' "
-        "AND activity_id IS NOT NULL AND date BETWEEN ? AND ? AND metric_value IS NOT NULL",
-        (mid_date, target_date),
-    ).fetchone()
-
-    ef_trend = 0.0
-    if ef_first and ef_second and ef_first[0] and ef_second[0]:
-        ef1 = float(ef_first[0])
-        ef2 = float(ef_second[0])
-        if ef1 > 0:
-            ef_trend = (ef2 - ef1) / ef1  # 변화율
-            ef_trend = max(-0.1, min(0.1, ef_trend))  # ±10% 범위 제한
-
-    # 보정 VDOT
-    vdot_adj = round(vdot_base * hr_pace_correction * (1 + ef_trend), 1)
+    # 보정 VDOT (HR-페이스 회귀만, EF는 DARP에서 별도 반영)
+    vdot_adj = round(vdot_base * hr_pace_correction, 1)
     # 합리적 범위
     if vdot_adj < 15 or vdot_adj > 90:
         vdot_adj = vdot_base
@@ -115,7 +92,6 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
     save_metric(conn, target_date, "VDOT_ADJ", vdot_adj, extra_json={
         "vdot_base": vdot_base,
         "hr_pace_correction": round(hr_pace_correction, 4),
-        "ef_trend": round(ef_trend, 4),
         "sample_count": len(rows),
     })
     return vdot_adj

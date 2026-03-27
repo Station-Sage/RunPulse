@@ -77,14 +77,15 @@ def calc_darp(vdot: float, distance_key: str,
             dist_factor = {"5k": 0.3, "10k": 0.5, "half": 0.8, "full": 1.0}
             shape_penalty = base_penalty * dist_factor.get(distance_key, 1.0)
 
-    # 4. EF 보정 — 저효율 시 페널티만 (보너스 없음)
-    #    VDOT_ADJ에 이미 EF 추세가 반영되므로, 높은 EF에 보너스 → 이중 보정
-    #    EF < 1.0(저효율) → 최대 +3% 페널티 (10K+)
-    #    EF >= 1.0 → 0% (이미 VDOT_ADJ에 반영)
+    # 4. EF 보정 — 효율이 레이스 당일 페이스 유지에 영향
+    #    EF 1.0(기준) → 0%
+    #    EF 1.3(우수) → -2% 보너스 (시간 단축)
+    #    EF 0.8(저효율) → +1.2% 페널티
+    #    10K 이상에서만 유의미
     ef_bonus = 0.0
     if ef is not None and distance_key in ("10k", "half", "full"):
-        if ef < 1.0:
-            ef_bonus = min(0.03, (1.0 - ef) * 0.06)  # 최대 +3% 페널티
+        ef_bonus = -(ef - 1.0) * 0.06  # EF 1.3 → -1.8%, EF 0.8 → +1.2%
+        ef_bonus = max(-0.03, min(0.03, ef_bonus))  # ±3% 범위 제한
 
     # 5. 최종 예측
     adjusted_time = base_time * (1.0 + di_penalty) * (1.0 + shape_penalty) * (1.0 + ef_bonus)
