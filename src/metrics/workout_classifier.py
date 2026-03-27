@@ -117,29 +117,28 @@ def classify_workout(
 
     # ── 분류 규칙 (우선순위 순) ──────────────────────────────────────
 
-    # 0. 원본 태그 우선 (Garmin event_type / Strava workout_type)
-    #    서비스에서 이미 "race"로 태깅한 경우 그대로 사용
+    # 0. 원본 태그 (Garmin event_type) — 검증 후 수용
+    #    Garmin이 race로 태깅해도 HR/페이스가 레이스 수준인지 확인
     if event_type and event_type.lower().strip() == "race":
-        return WorkoutClassification("race", _EFFECTS["race"], 0.95,
-                                     f"원본 태그: {event_type}")
+        # 최소 검증: HR 80%+ 또는 20km+ (풀마라톤은 HR 낮을 수 있음)
+        if hr_intensity > 0.80 or dist >= 20:
+            return WorkoutClassification("race", _EFFECTS["race"], 0.95,
+                                         f"원본 태그: {event_type}, HR {hr_intensity:.0%}")
+        # HR 80% 미만 + 20km 미만 → 레이스가 아닌 일반 훈련
 
-    # 1. 레이스: 고강도 + 일정 거리 이상
-    #    5K~10K: HR > 90% + Z4-5 > 25%
-    #    하프/풀(20km+): HR > 85% (레이스 강도가 HR 85~90%)
-    #    또는 페이스가 eFTP보다 빠름 + HR 85%+
+    # 1. 레이스: 원본 태그 없이 데이터만으로 판별 — 매우 보수적
+    #    레이스는 드문 이벤트이므로 잘못 분류하면 VDOT에 큰 영향
+    #    → 높은 기준 유지, 인터벌/템포와 구분
     is_race = False
     if dist >= 4.5:
-        # 5K~10K: HR > 90% 또는 Z4-5 > 25%
-        if hr_intensity > 0.90 or (hr_intensity > 0.85 and z45 > 25):
+        # 5K~10K: HR > 92% + Z4-5 > 30% (인터벌과 구분)
+        if hr_intensity > 0.92 and z45 > 30:
             is_race = True
-        # 하프(20km+): HR > 82% (레이스 강도 85~90%)
-        if dist >= 20 and hr_intensity > 0.82:
+        # 하프(20km+): HR > 85%
+        if dist >= 20 and hr_intensity > 0.85:
             is_race = True
-        # 풀마라톤(40km+): HR > 75% (레이스 강도 75~85%)
-        if dist >= 38 and hr_intensity > 0.75:
-            is_race = True
-        # 페이스가 eFTP보다 빠름 + HR 82%+
-        if pace_ratio < 1.0 and hr_intensity > 0.82:
+        # 풀마라톤(38km+): HR > 78%
+        if dist >= 38 and hr_intensity > 0.78:
             is_race = True
     if is_race:
         return WorkoutClassification("race", _EFFECTS["race"], 0.9,

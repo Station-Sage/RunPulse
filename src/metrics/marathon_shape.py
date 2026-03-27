@@ -188,8 +188,10 @@ def _calc_long_run_stats(conn: sqlite3.Connection, target_date: str,
 
     quality_hits = 0
     for dist, dur, pace in rows:
-        if pace and pace_low <= float(pace) <= pace_high:
-            quality_hits += 1
+        if pace and float(pace) > 0:
+            p = float(pace)
+            if pace_low <= p <= pace_high:
+                quality_hits += 1
 
     quality = quality_hits / count if count > 0 else 0.0
     return count, round(quality, 3)

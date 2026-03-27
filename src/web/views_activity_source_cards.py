@@ -419,14 +419,9 @@ def _render_service_tabs(
 
     tab_keys_js = ",".join(f"'{t[0]}'" for t in active_tabs)
     return (
-        "<details class='card' style='padding:0.8rem 1rem;'>"
-        "<summary style='cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;'>"
-        "<h2 style='margin:0;font-size:1rem;'>서비스 원본 데이터 ▸</h2>"
-        f"<div style='display:flex;gap:4px;flex-wrap:wrap;'>{''.join(btns)}</div>"
-        "</summary>"
+        f"<div style='display:flex;gap:4px;flex-wrap:wrap;margin-bottom:0.6rem;'>{''.join(btns)}</div>"
         + "".join(panels)
-        + "</details>"
-        "<script>"
+        + "<script>"
         f"var _svcTabKeys=[{tab_keys_js}];"
         "function switchSvcTab(t){"
         "_svcTabKeys.forEach(function(k){"
