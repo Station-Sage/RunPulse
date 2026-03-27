@@ -98,21 +98,13 @@ def load_metric_json(
 
 def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
                     weeks: int = 12) -> float:
-    """최대심박 추정 — 고강도 활동 기반 + 이상치 제거.
+    """최대심박 추정 — Stream 기반 지속 HR + 활동 기반 fallback.
 
-    방법:
-    1. 고강도 활동(avg_hr > max_hr×0.75) 중 max_hr 상위 10개 수집
-    2. IQR 이상치 제거 (Q3 + 1.5×IQR 초과 제거)
-    3. 남은 값 중 최대값 = 추정 maxHR
+    방법 (우선순위):
+    A. Strava stream: 10초 이상 연속 유지된 최고 HR (진짜 maxHR)
+    B. 활동 max_hr: 고강도 활동 기반, IQR 이상치 제거
 
-    Fallback: 데이터 없으면 Tanaka (2001) 공식 또는 190 기본값.
-    Reference: Tanaka et al. (2001) "Age-predicted maximal heart rate revisited"
-               208 - 0.7 × age
-
-    Args:
-        conn: DB 연결.
-        target_date: 기준일 (None이면 전체).
-        weeks: 최근 N주 활동만.
+    Reference: Tanaka et al. (2001) — fallback 190 기본값
 
     Returns:
         추정 최대심박 (bpm).
@@ -126,8 +118,12 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
         date_filter = "AND DATE(start_time) BETWEEN ? AND ?"
         params = [start, target_date]
 
-    # 고강도 활동의 max_hr 수집 (이지런 제외)
-    # avg_hr / max_hr > 0.75 → 전체적으로 고강도였던 활동
+    # A. Stream 기반: 10초 연속 유지된 최고 HR
+    stream_max = _estimate_max_hr_from_streams(conn, date_filter, params)
+    if stream_max and stream_max > 150:
+        return stream_max
+
+    # B. 활동 max_hr 기반 (fallback)
     rows = conn.execute(
         f"SELECT max_hr FROM v_canonical_activities "
         f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
@@ -139,7 +135,6 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
     ).fetchall()
 
     if not rows:
-        # 이지런 포함 전체에서 상위 수집 (fallback)
         rows = conn.execute(
             f"SELECT max_hr FROM v_canonical_activities "
             f"WHERE activity_type='running' AND max_hr > 120 AND max_hr < 230 "
@@ -161,11 +156,60 @@ def estimate_max_hr(conn: sqlite3.Connection, target_date: str | None = None,
         upper_bound = q3 + 1.5 * iqr
         vals = [v for v in vals if v <= upper_bound]
 
-    if not vals:
-        return 190.0
+    return max(vals) if vals else 190.0
 
-    # 이상치 제거 후 최대값 = 추정 maxHR
-    return max(vals)
+
+def _estimate_max_hr_from_streams(conn, date_filter: str, params: list,
+                                   sustain_sec: int = 30) -> float | None:
+    """Strava stream에서 N초 이상 연속 유지된 최고 HR.
+
+    30초 슬라이딩 윈도우 평균의 최대값 = 추정 maxHR.
+    References:
+    - ACSM (2018): GXT에서 마지막 1분 peak HR
+    - Beltz et al. (2016): 3분 all-out 마지막 30초 평균
+    - Robergs & Landwehr (2002): 마지막 1분 최고 HR
+
+    Args:
+        sustain_sec: 최소 연속 유지 시간 (초). 기본 30초.
+    """
+    try:
+        from src.analysis.efficiency import _get_stream_path, _load_stream
+    except ImportError:
+        return None
+
+    # 최근 고강도 활동 (avg_hr/max_hr > 0.8)
+    acts = conn.execute(
+        f"SELECT id FROM v_canonical_activities "
+        f"WHERE activity_type='running' AND max_hr > 150 "
+        f"AND avg_hr IS NOT NULL AND CAST(avg_hr AS REAL) / CAST(max_hr AS REAL) > 0.80 "
+        f"{date_filter} "
+        f"ORDER BY max_hr DESC LIMIT 10",
+        params,
+    ).fetchall()
+
+    best_sustained = 0.0
+
+    for (aid,) in acts:
+        path = _get_stream_path(conn, aid)
+        if not path:
+            continue
+        stream = _load_stream(path)
+        if not stream:
+            continue
+        hr = stream.get("heartrate", [])
+        if len(hr) < sustain_sec:
+            continue
+
+        # 슬라이딩 윈도우: N초 연속 평균 HR의 최대값
+        for i in range(len(hr) - sustain_sec + 1):
+            window = hr[i:i + sustain_sec]
+            if any(h is None or h < 50 for h in window):
+                continue
+            avg_window = sum(window) / sustain_sec
+            if avg_window > best_sustained:
+                best_sustained = avg_window
+
+    return round(best_sustained) if best_sustained > 150 else None
 
 
 def load_metric_series(
