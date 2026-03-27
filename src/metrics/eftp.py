@@ -39,21 +39,29 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
                     extra_json={"source": "intervals", "pace_sec_km": eftp})
         return eftp
 
-    # 2. VDOT 기반 Daniels T-pace (가장 정확)
-    vdot_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
-        (target_date,),
-    ).fetchone()
-    if vdot_row and vdot_row[0]:
+    # 2. VDOT_ADJ 우선 → VDOT fallback → Daniels T-pace
+    vdot_val = None
+    vdot_src = "unknown"
+    for mname in ("VDOT_ADJ", "VDOT"):
+        vdot_row = conn.execute(
+            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
+            "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            (mname, target_date),
+        ).fetchone()
+        if vdot_row and vdot_row[0]:
+            vdot_val = float(vdot_row[0])
+            vdot_src = mname.lower()
+            break
+    if vdot_val:
         from src.metrics.daniels_table import get_training_paces
-        paces = get_training_paces(float(vdot_row[0]))
+        paces = get_training_paces(vdot_val)
         t_pace = paces.get("T")
         if t_pace:
             save_metric(conn, target_date, "eFTP", t_pace,
-                        extra_json={"source": "daniels_t_pace",
+                        extra_json={"source": f"daniels_t_pace ({vdot_src})",
                                     "pace_sec_km": t_pace,
-                                    "vdot": float(vdot_row[0])})
+                                    "vdot": vdot_val,
+                                    "vdot_source": vdot_src})
             return t_pace
 
     # 3. 자체 추정: 고강도 활동의 역치 페이스 추정
