@@ -63,6 +63,20 @@ from .views_activity_g7_fitness import render_group7_fitness
 activity_bp = Blueprint("activity", __name__)
 
 
+def _collapsible(title: str, content: str, open: bool = False) -> str:
+    """그룹을 접이식 섹션으로 감싸기."""
+    if not content or not content.strip():
+        return ""
+    open_attr = " open" if open else ""
+    return (
+        f"<details{open_attr} style='margin-bottom:4px;'>"
+        f"<summary style='cursor:pointer;font-size:0.95rem;font-weight:600;"
+        f"padding:10px 0;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.08);'>"
+        f"▸ {title}</summary>"
+        f"<div style='padding-top:8px;'>{content}</div></details>"
+    )
+
+
 @activity_bp.route("/activity/deep")
 def activity_deep_view():
     """활동 심층 분석 페이지."""
@@ -180,20 +194,20 @@ def activity_deep_view():
         + _render_ai_activity_analysis(conn, resolved_id, act, act_metrics)
         + render_activity_summary(act)
         + _render_source_comparison(source_rows, resolved_id)
-        # 그룹 1: 오늘의 상태
-        + render_group1_daily_status(day_metrics_data, day_metric_jsons, garmin_detail)
-        # 그룹 2: 퍼포먼스
-        + render_group2_performance(act_metrics, act_metric_jsons, garmin, fitness_ctx, ef_series, dec_series, day_metrics_data)
+        # 그룹 1: 오늘의 상태 (기본 펼침)
+        + _collapsible("오늘의 상태", render_group1_daily_status(day_metrics_data, day_metric_jsons, garmin_detail), open=True)
+        # 그룹 2: 퍼포먼스 (기본 펼침)
+        + _collapsible("퍼포먼스", render_group2_performance(act_metrics, act_metric_jsons, garmin, fitness_ctx, ef_series, dec_series, day_metrics_data), open=True)
         # 그룹 3: 부하/노력
-        + render_group3_load(act_metrics, act_metric_jsons, service_metrics, garmin, strava)
+        + _collapsible("부하 / 노력", render_group3_load(act_metrics, act_metric_jsons, service_metrics, garmin, strava))
         # 그룹 4: 과훈련 위험
-        + render_group4_risk(risk_series)
+        + _collapsible("과훈련 위험", render_group4_risk(risk_series))
         # 그룹 5: 폼/바이오메카닉스
-        + render_group5_biomechanics(day_metric_jsons, garmin, act)
+        + _collapsible("폼 / 바이오메카닉스", render_group5_biomechanics(day_metric_jsons, garmin, act))
         # 그룹 6: 훈련 분포
-        + render_group6_distribution(hr_zones, day_metrics_data, day_metric_jsons, tids_weekly)
+        + _collapsible("훈련 분포", render_group6_distribution(hr_zones, day_metrics_data, day_metric_jsons, tids_weekly))
         # 그룹 7: 피트니스 컨텍스트
-        + render_group7_fitness(fitness_ctx, pmc_series, day_metrics_data, darp_data)
+        + _collapsible("피트니스 컨텍스트", render_group7_fitness(fitness_ctx, pmc_series, day_metrics_data, darp_data))
         # 하단: 서비스 원본 (접이식, lazy load)
         + _render_service_tabs_lazy(resolved_id)
         + render_map_placeholder(resolved_id)

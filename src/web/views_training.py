@@ -7,10 +7,13 @@ CRUD/목표/ICS 라우트 → views_training_crud.py에 분리.
 from __future__ import annotations
 
 import html as _html
+import logging
 import sqlite3
 from datetime import date, timedelta
 
 from flask import Blueprint, redirect, request
+
+log = logging.getLogger(__name__)
 
 from src.utils.config import load_config
 from src.web.helpers import db_path, html_page, no_data_card
@@ -47,6 +50,16 @@ def training_page():
         return html_page("훈련 계획", body, active_tab="training")
 
     week_offset = request.args.get("week", 0, type=int)
+    # 액션 결과 메시지 (Garmin/CalDAV/생성 등)
+    _msg = request.args.get("msg", "")
+    _msg_html = ""
+    if _msg:
+        _msg_color = "#00ff88" if "성공" in _msg or "완료" in _msg else "#ffaa00"
+        _msg_html = (
+            f"<div style='background:rgba(0,0,0,0.3);border-left:4px solid {_msg_color};"
+            f"padding:10px 14px;margin-bottom:12px;border-radius:8px;font-size:0.85rem;'>"
+            f"{_html.escape(_msg)}</div>"
+        )
 
     try:
         conn = sqlite3.connect(str(dbp))
@@ -65,7 +78,7 @@ def training_page():
                     conn.commit()
                     workouts, week_start = load_workouts(conn, week_offset)
                 except Exception:
-                    pass
+                    log.warning("주간 플랜 자동 생성 실패", exc_info=True)
 
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
@@ -96,10 +109,11 @@ def training_page():
                 from src.ai.ai_message import get_tab_ai
                 _train_ai = get_tab_ai("training", conn, config) or {}
             except Exception:
-                pass
+                log.warning("훈련탭 AI 호출 실패", exc_info=True)
 
             body = (
-                render_header_actions(bool(workouts))
+                _msg_html
+                + render_header_actions(bool(workouts))
                 + render_goal_card(goal, utrs_val)
                 + render_plan_overview(goal, current_phase, weeks_left)
                 + _render_goal_form(goals_list)
@@ -148,9 +162,9 @@ def training_generate():
         finally:
             conn.close()
     except Exception:
-        pass
+        log.warning("훈련 플랜 생성 실패", exc_info=True)
 
-    return redirect("/training")
+    return redirect("/training?msg=4주 훈련 계획 생성 완료")
 
 
 # ── UI 헬퍼 ──────────────────────────────────────────────────────────
