@@ -223,7 +223,7 @@ _METRIC_META: dict[str, tuple[str, object]] = {
                        lambda v: ("부하 부족" if v < 0.8 else "적절한 훈련량" if v <= 1.3 else "과부하 위험", "var(--cyan)" if v < 0.8 else "var(--green)" if v <= 1.3 else "var(--red)")),
     "ADTI":           ("유산소 분리 추세 (ADTI) — 8주 Decoupling 선형 회귀 기울기. 음수면 개선 추세.",
                        lambda v: ("유산소 개선 추세" if v < 0 else "유산소 정체" if v < 0.5 else "유산소 저하 추세", "var(--green)" if v < 0 else "var(--cyan)" if v < 0.5 else "var(--orange)")),
-    "MarathonShape":  ("마라톤 상태 (Marathon Shape) — 주간 거리·장거리런 기준 훈련 준비도 (0~100%).",
+    "MarathonShape":  ("레이스 준비도 (Race Shape) — 목표 거리별 볼륨+장거리+일관성 (0~100%).",
                        lambda v: ("레이스 준비 미흡" if v < 40 else "기본 준비됨" if v < 70 else "레이스 준비 완료", "var(--red)" if v < 40 else "var(--orange)" if v < 70 else "var(--green)")),
     "RTTI":           ("러닝 내성 훈련 지수 (RTTI) — Garmin 권장 최대 부하 대비 실제 훈련 부하 비율. 100% = 권장 한계.",
                        lambda v: ("훈련 여유 있음" if v < 80 else "권장 범위 내" if v <= 100 else "권장 한계 초과", "var(--cyan)" if v < 80 else "var(--green)" if v <= 100 else "var(--red)")),

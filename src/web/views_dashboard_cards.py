@@ -691,15 +691,8 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
     shape_str = f"{marathon_shape_pct:.0f}%" if marathon_shape_pct is not None else "—"
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70
              else ("var(--orange)" if (marathon_shape_pct or 0) >= 50 else "var(--muted)"))
-    # 목표 레이스 거리에 따른 라벨
-    sj = shape_json or {}
-    race_km = sj.get("race_distance_km", 42.195)
-    if race_km <= 10.5:
-        shape_label = "10K Shape"
-    elif race_km <= 21.5:
-        shape_label = "Half Shape"
-    else:
-        shape_label = "Marathon Shape"
+    from .helpers import race_shape_label
+    shape_label = race_shape_label(shape_json)
 
     # 추가 메트릭 행
     extra_items = []

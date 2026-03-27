@@ -380,9 +380,9 @@ def render_fitness_trend(vdot: float | None, shape: float | None) -> str:
         f"<div style='font-size:0.72rem;color:var(--muted);margin-top:0.1rem;'>유산소 용량 지수</div></div>"
         f"<div style='text-align:center;'>"
         f"<div style='font-size:2rem;font-weight:700;color:{s_clr};'>{shape_str}</div>"
-        f"<div class='muted' style='font-size:0.76rem;'>Marathon Shape</div>"
-        f"<div style='font-size:0.72rem;color:var(--muted);margin-top:0.1rem;'>주간/장거리 달성도</div></div></div>"
-        "<p class='muted' style='font-size:0.74rem;margin-top:0.5rem;text-align:center;'>Runalyze 기준 | 70%+ 이상적</p></div>"
+        f"<div class='muted' style='font-size:0.76rem;'>Race Shape</div>"
+        f"<div style='font-size:0.72rem;color:var(--muted);margin-top:0.1rem;'>목표 거리별 훈련 준비도</div></div></div>"
+        "<p class='muted' style='font-size:0.74rem;margin-top:0.5rem;text-align:center;'>RunPulse 추정 | 70%+ 이상적</p></div>"
     )
 
 

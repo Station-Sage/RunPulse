@@ -142,7 +142,7 @@ def render_group6_distribution(
         ms_row = (
             "<div style='display:flex;justify-content:space-between;align-items:center;"
             "padding:0.4rem 0;border-bottom:1px solid var(--row-border);'>"
-            f"<span style='font-size:0.85rem;color:var(--muted);'>MarathonShape{source_badge('RP')}</span>"
+            f"<span style='font-size:0.85rem;color:var(--muted);'>Race Shape{source_badge('RP')}</span>"
             f"<span style='font-size:0.9rem;font-weight:600;'>{v:.1f}%{badge}"
             f" <a href='/race' style='font-size:0.72rem;color:var(--cyan);'>레이스 →</a></span></div>"
         )

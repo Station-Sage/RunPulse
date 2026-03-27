@@ -237,7 +237,7 @@ def render_fitness_factors_chart(factors: dict) -> str:
     series:[
       {{name:'DI',type:'line',data:{di_j},smooth:true,symbol:'circle',symbolSize:4,
         connectNulls:true,lineStyle:{{color:'#00ff88',width:2}},itemStyle:{{color:'#00ff88'}},yAxisIndex:0}},
-      {{name:'MarathonShape',type:'line',data:{ms_j},smooth:true,symbol:'circle',symbolSize:4,
+      {{name:'Race Shape',type:'line',data:{ms_j},smooth:true,symbol:'circle',symbolSize:4,
         connectNulls:true,lineStyle:{{color:'#ffaa00',width:1.5}},itemStyle:{{color:'#ffaa00'}},yAxisIndex:0}},
       {{name:'EF',type:'line',data:{ef_j},smooth:true,symbol:'circle',symbolSize:3,
         connectNulls:true,lineStyle:{{color:'#00d4ff',width:1.5}},itemStyle:{{color:'#00d4ff'}},yAxisIndex:1}}
@@ -296,10 +296,10 @@ def render_metric_glossary() -> str:
         ("DARP (Durability-Adjusted Race Prediction)란?",
          "VDOT 기반 기본 예측에 내구성(DI)을 반영한 보정 레이스 예측입니다. "
          "DI가 높으면 기본 예측보다 빠른 시간을, 낮으면 보수적인 시간을 제시합니다."),
-        ("MarathonShape이란?",
-         "마라톤 특화 준비도 지표입니다. 주간 장거리 훈련 비율, 총 볼륨, "
-         "최근 장거리 세션 빈도를 종합하여 0~100%로 표현합니다. "
-         "70%+ = 마라톤 준비 양호, 50% 미만 = 장거리 훈련 보강 필요."),
+        ("Race Shape이란?",
+         "목표 레이스 거리별 훈련 준비도입니다. 주간 볼륨(50%) + 장거리런(30%) + "
+         "일관성(20%)을 종합하여 0~100%로 표현합니다. 목표가 10K면 6주, 하프 8주, "
+         "마라톤 12주 기준. 70%+ = 준비 양호, 50% 미만 = 훈련 보강 필요."),
     ]
     items = ""
     for title, desc in entries:
