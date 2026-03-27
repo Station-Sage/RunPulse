@@ -2,6 +2,35 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [v0.4-daniels-darp-v4] 2026-03-27
+
+### Daniels VDOT 테이블 + Race Shape v3 + DARP v4 (PR #56)
+
+**daniels_table.py (신규):**
+- VDOT 30~85 훈련 페이스 (E/M/T/I/R) — Daniels Running Formula 3rd Ed
+- VDOT 30~80 레이스 예측 시간 (5K/10K/하프/풀)
+- VDOT 30~70 권장 볼륨 (Pfitzinger + Daniels 종합)
+- 선형 보간, 거리별 자동 축소 (10K 55%, 하프 70%)
+
+**Race Shape v3 (5요소 종합):**
+- 주간 볼륨 35% + 최장 거리 20% + 장거리 빈도 20% + 일관성 15% + 페이스 품질 10%
+- Daniels 테이블 기반 목표 (VDOT 50 마라톤: 주 77.5km, 장거리 34km, 25km+ 6회/12주)
+- E-pace 품질: Daniels 테이블 정확 E-pace ±15% 범위 검증
+
+**DARP v4 (4요소 보정):**
+- 기본: Daniels 테이블 직접 룩업 (임의 근사 공식 제거)
+- DI 보정: DI<70 → 최대 +8% (하프/풀)
+- Shape 보정: Shape<80 → 최대 +15% (거리별 계수)
+- EF 보정: EF≥1.0 → 최대 -3% 보너스, EF<1.0 → 최대 +3% (10K+)
+- 모든 UI에 VDOT/DI/Shape/EF 4배지 일관 표시
+
+**기타:**
+- 최대심박 이상치 제거: estimate_max_hr() 상위 5개 중앙값 (8파일)
+- eFTP HR 역치 필터 (82%+) + GPS 이상치 (3'00"/km) 제거
+- 하단 네비: z-index 1000 + safe-area (갤럭시 폴드8)
+
+---
+
 ## [v0.4-training-activity-vdot] 2026-03-27
 
 ### 훈련탭 UX 개선 (PR #52)

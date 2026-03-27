@@ -261,12 +261,12 @@ CP = coeffs[0]; W_prime = coeffs[1]
 
 ---
 
-### DARP — Dynamic Adjusted Race Predictor (v3)
-- **정의**: Daniels VDOT 테이블 기반 + DI 보정 + Race Shape 보정 레이스 예측
+### DARP — Dynamic Adjusted Race Predictor (v4)
+- **정의**: Daniels VDOT 테이블 기반 + DI + Race Shape + EF 4요소 보정 레이스 예측
 - **계산식**:
   ```python
-  # 1. Daniels 테이블에서 기본 예측 시간 (보간 지원)
-  base_time = daniels_table.get_race_predictions(vdot)["full"]  # 초
+  # 1. Daniels 테이블에서 기본 예측 시간 (선형 보간)
+  base_time = daniels_table.get_race_predictions(vdot)[dist_key]
 
   # 2. DI 보정 (하프/풀만, 0~100 스케일)
   #    DI 70+ → 0%, DI 0 → +8%
@@ -277,9 +277,15 @@ CP = coeffs[0]; W_prime = coeffs[1]
   #    5K ×0.3, 10K ×0.5, 하프 ×0.8, 풀 ×1.0
   shape_penalty = (80 - clamp(Shape, 0, 100)) / 80 * 0.15 * dist_factor
 
-  darp_time = base_time × (1 + di_penalty) × (1 + shape_penalty)
+  # 4. EF 보정 (10K 이상, 7일 평균)
+  #    EF ≥ 1.0 → 최대 -3% 보너스, EF < 1.0 → 최대 +3% 페널티
+  ef_bonus = -min(0.03, (EF - 1.0) * 0.06)  if EF >= 1.0
+  ef_bonus = +min(0.03, (1.0 - EF) * 0.06)  if EF < 1.0
+
+  darp_time = base_time × (1 + di_penalty) × (1 + shape_penalty) × (1 + ef_bonus)
   ```
 - **저장**: `computed_metrics` (date, 'DARP_5k'/'DARP_10k'/'DARP_half'/'DARP_full', value=time_sec)
+- **UI**: 모든 예측 카드에 VDOT / DI / Shape / EF 4배지 일관 표시
 
 ---
 
