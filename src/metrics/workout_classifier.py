@@ -84,6 +84,7 @@ def classify_workout(
     eftp_sec_km: int | None = None,
     relative_effort: float | None = None,
     decoupling: float | None = None,
+    event_type: str | None = None,
 ) -> WorkoutClassification:
     """데이터 기반 운동 유형 분류 (순수 함수).
 
@@ -115,6 +116,12 @@ def classify_workout(
     pace_ratio = avg_pace_sec_km / eftp_sec_km if avg_pace_sec_km and eftp_sec_km and eftp_sec_km > 0 else 1.0
 
     # ── 분류 규칙 (우선순위 순) ──────────────────────────────────────
+
+    # 0. 원본 태그 우선 (Garmin event_type / Strava workout_type)
+    #    서비스에서 이미 "race"로 태깅한 경우 그대로 사용
+    if event_type and event_type.lower().strip() == "race":
+        return WorkoutClassification("race", _EFFECTS["race"], 0.95,
+                                     f"원본 태그: {event_type}")
 
     # 1. 레이스: 고강도 + 일정 거리 이상
     #    5K~10K: HR > 90% + Z4-5 > 25%
@@ -187,7 +194,7 @@ def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClas
         WorkoutClassification 또는 None.
     """
     row = conn.execute(
-        "SELECT duration_sec, distance_km, avg_hr, max_hr, avg_pace_sec_km "
+        "SELECT duration_sec, distance_km, avg_hr, max_hr, avg_pace_sec_km, event_type "
         "FROM activity_summaries WHERE id=?",
         (activity_id,),
     ).fetchone()
@@ -195,6 +202,7 @@ def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClas
         return None
 
     duration_sec, distance_km, avg_hr, max_hr_act = row[0], row[1], row[2], row[3]
+    _event_type = row[5] if len(row) > 5 else None
 
     # maxHR: 활동 max_hr가 아닌 사용자 maxHR (전체 최대)
     max_hr_est = estimate_max_hr(conn)
@@ -231,6 +239,7 @@ def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClas
         eftp_sec_km=eftp,
         relative_effort=float(re_row[0]) if re_row and re_row[0] else None,
         decoupling=float(dec_row[0]) if dec_row and dec_row[0] else None,
+        event_type=_event_type,
     )
 
 
