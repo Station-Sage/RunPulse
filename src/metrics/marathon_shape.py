@@ -331,7 +331,23 @@ def _estimate_vdot_from_races(conn: sqlite3.Connection, target_date: str) -> flo
         if not matched:
             continue  # 비공식 거리 → 스킵
 
-        v = estimate_vdot(dist, dur)
+        # FEARP 보정: 날씨/고도/경사 환경 보정된 페이스가 있으면 사용
+        fearp_row = conn.execute(
+            "SELECT metric_value FROM computed_metrics "
+            "WHERE metric_name='FEARP' AND activity_id=("
+            "  SELECT id FROM activity_summaries "
+            "  WHERE date(start_time)=? AND activity_type='running' "
+            "  ORDER BY start_time DESC LIMIT 1"
+            ") AND metric_value IS NOT NULL",
+            (act_date,),
+        ).fetchone()
+        if fearp_row and fearp_row[0] and float(fearp_row[0]) > 120:
+            # FEARP = 표준 조건 환산 페이스 (sec/km)
+            adjusted_dur = float(fearp_row[0]) * dist  # 보정 페이스 × 거리
+            v = estimate_vdot(dist, adjusted_dur)
+        else:
+            v = estimate_vdot(dist, dur)
+
         if v is not None and 20 <= v <= 85:
             valid_vdots.append(v)
 
