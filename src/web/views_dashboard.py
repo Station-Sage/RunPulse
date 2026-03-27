@@ -344,8 +344,14 @@ def _build_dashboard(db) -> str:
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
     darp_card = _render_darp_mini(darp_data, vdot=vdot, vdot_adj=_v3.get("VDOT_ADJ"), di=_v3.get("DI"))
+    # Shape를 DARP 소스에서 가져와서 피트니스 카드와 통일
+    _darp_shape = None
+    for _dk in ("half", "full", "10k", "5k"):
+        if _dk in darp_data and isinstance(darp_data[_dk], dict):
+            _darp_shape = darp_data[_dk].get("race_shape")
+            break
     fitness_card = _render_fitness_mini(
-        vdot, marathon_shape,
+        vdot, _darp_shape if _darp_shape is not None else marathon_shape,
         eftp=_v3.get("eFTP"), rec=_v3.get("REC"),
         rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"),
         vdot_json=vdot_json, shape_json=shape_json,
