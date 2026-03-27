@@ -566,7 +566,17 @@ def calc_and_save_marathon_shape(
     Returns:
         shape_pct 또는 None.
     """
-    vdot = _get_vdot(conn, target_date)
+    # VDOT_ADJ 우선 (DARP와 동일 소스 → Shape 일관성)
+    adj_row = conn.execute(
+        "SELECT metric_value FROM computed_metrics "
+        "WHERE metric_name='VDOT_ADJ' AND metric_value IS NOT NULL AND date<=? "
+        "ORDER BY date DESC LIMIT 1",
+        (target_date,),
+    ).fetchone()
+    if adj_row and adj_row[0]:
+        vdot = float(adj_row[0])
+    else:
+        vdot = _get_vdot(conn, target_date)
     if vdot is None:
         return None
 
