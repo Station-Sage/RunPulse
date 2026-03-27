@@ -114,6 +114,14 @@ def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
         strava_ids = []
 
     for (sid,) in strava_ids:
+        # activity_streams 테이블 우선
+        rows = conn.execute(
+            "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
+            (sid,),
+        ).fetchall()
+        if rows:
+            return {r[0]: json.loads(r[1]) for r in rows if r[1]}
+        # 레거시 파일 경로
         r = conn.execute(
             "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",

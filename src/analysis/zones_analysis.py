@@ -79,6 +79,13 @@ def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
         acts = []
 
     for (sid,) in acts:
+        # activity_streams 테이블 우선
+        sc = conn.execute(
+            "SELECT COUNT(*) FROM activity_streams WHERE activity_id = ?", (sid,),
+        ).fetchone()
+        if sc and sc[0] > 0:
+            return f"db:{sid}"
+        # 레거시 파일 경로
         r = conn.execute(
             "SELECT metric_json FROM activity_detail_metrics "
             "WHERE activity_id = ? AND metric_name = 'stream_file'",
@@ -89,8 +96,18 @@ def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
     return None
 
 
-def _load_stream(path: str) -> dict | None:
-    """Stream JSON 파일 로드. Strava API 리스트 형식도 dict로 변환."""
+def _load_stream(path: str, conn=None) -> dict | None:
+    """Stream 로드 — DB(activity_streams) 또는 파일."""
+    if path.startswith("db:") and conn is not None:
+        try:
+            aid = int(path[3:])
+            rows = conn.execute(
+                "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
+                (aid,),
+            ).fetchall()
+            return {r[0]: json.loads(r[1]) for r in rows if r[1]} if rows else None
+        except Exception:
+            return None
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -215,7 +232,7 @@ def analyze_zones(
         # 우선순위 1: Strava stream
         stream_path = _find_stream_path(conn, rep_id)
         if stream_path:
-            stream = _load_stream(stream_path)
+            stream = _load_stream(stream_path, conn=conn)
             if stream and stream.get("heartrate"):
                 for hr_val in stream["heartrate"]:
                     z = _classify_hr(int(hr_val), zone_uppers)
