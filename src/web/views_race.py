@@ -124,6 +124,19 @@ def _render_prediction_card(darp_val, darp_json, pace_sec):
             stat_items.append((label, fmt_duration(int(sval)), color))
     if vdot is not None:
         stat_items.append(("VDOT", f"{float(vdot):.1f}", "#00d4ff"))
+    _dj = darp_json or {}
+    _di_p = _dj.get("di_penalty", 0)
+    _sh_p = _dj.get("shape_penalty", 0)
+    _ef_b = _dj.get("ef_bonus", 0)
+    _di_v = _dj.get("di")
+    _sh_v = _dj.get("race_shape")
+    _ef_v = _dj.get("ef")
+    if _di_v is not None:
+        stat_items.append(("DI", f"{int(_di_v)}", "#00ff88" if _di_p == 0 else "#ffaa00"))
+    if _sh_v is not None:
+        stat_items.append(("Shape", f"{_sh_v:.0f}%", "#00ff88" if _sh_p == 0 else "#ffaa00"))
+    if _ef_v is not None:
+        stat_items.append(("EF", f"{_ef_v:.2f}", "#00ff88" if _ef_b <= 0 else "#ffaa00"))
     if percentile is not None:
         stat_items.append(("예상 순위", f"상위 {int(percentile)}%", "#00d4ff"))
 
