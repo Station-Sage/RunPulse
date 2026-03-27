@@ -26,10 +26,11 @@ def calc_and_save_eftp(conn: sqlite3.Connection, target_date: str) -> float | No
     """
     td = date.fromisoformat(target_date)
 
-    # 1. VDOT 기반 Daniels T-pace (가장 정확)
+    # 1. VDOT_ADJ 기반 Daniels T-pace (현재 체력 기준 역치)
+    #    VDOT_ADJ 없으면 VDOT fallback
     vdot_val = None
     vdot_src = "unknown"
-    for mname in ("VDOT",):
+    for mname in ("VDOT_ADJ", "VDOT"):
         vdot_row = conn.execute(
             "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
             "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
