@@ -1,0 +1,248 @@
+"""훈련 계획 Wizard — Blueprint + 라우트 (Phase C).
+
+GET  /training/wizard          — Step 1 전체 페이지
+POST /training/wizard/step     — step별 AJAX (JSON: {step, html})
+POST /training/wizard/complete — 목표+설정 저장 + 플랜 생성 → redirect
+"""
+from __future__ import annotations
+
+import json
+import sqlite3
+
+from flask import Blueprint, jsonify, redirect, request
+
+from src.web.helpers import db_path
+
+wizard_bp = Blueprint("training_wizard", __name__)
+
+_DIST_KM: dict[str, float] = {
+    "1.5k": 1.5, "3k": 3.0, "5k": 5.0,
+    "10k": 10.0, "half": 21.097, "full": 42.195,
+}
+
+
+# ── 내부 헬퍼 ──────────────────────────────────────────────────────────
+
+
+def _parse_time(s: str) -> int | None:
+    """H:MM:SS 또는 MM:SS → 초."""
+    if not s:
+        return None
+    try:
+        parts = s.strip().split(":")
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def _dist_km(label: str, custom: str) -> float:
+    """거리 레이블 → km."""
+    if label == "custom":
+        try:
+            return max(1.0, float(custom))
+        except (ValueError, TypeError):
+            return 10.0
+    return _DIST_KM.get(label, 10.0)
+
+
+def _collect_mask(prefix: str) -> int:
+    """form에서 요일 체크박스 비트마스크 수집."""
+    mask = 0
+    for i in range(7):
+        if request.form.get(f"{prefix}{i}"):
+            mask |= (1 << i)
+    return mask
+
+
+def _load_wizard_data() -> dict:
+    """hidden wizard_data JSON 파싱. 실패 시 빈 dict."""
+    raw = request.form.get("wizard_data", "{}")
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        return {}
+
+
+# ── 라우트 ─────────────────────────────────────────────────────────────
+
+
+@wizard_bp.route("/training/wizard")
+def wizard_page():
+    """Step 1 전체 페이지."""
+    from src.web.views_training_wizard_render import render_wizard_page
+    return render_wizard_page(step=1, data={})
+
+
+@wizard_bp.route("/training/wizard/step", methods=["POST"])
+def wizard_step():
+    """AJAX step 처리. Returns JSON {step, html}."""
+    step = request.form.get("step", type=int)
+
+    if step == 1:
+        return _handle_step1()
+    if step == 2:
+        return _handle_step2()
+    if step == 3:
+        return _handle_step3()
+    return jsonify({"error": "unknown step"}), 400
+
+
+@wizard_bp.route("/training/wizard/complete", methods=["POST"])
+def wizard_complete():
+    """목표 + 환경설정 저장 + 이번 주 플랜 생성."""
+    data = _load_wizard_data()
+    if not data:
+        return redirect("/training?msg=위저드 데이터 오류")
+
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training?msg=DB를 찾을 수 없습니다")
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            count = _save_and_generate(conn, data)
+        finally:
+            conn.close()
+    except Exception as exc:
+        return redirect(f"/training?msg=플랜 생성 실패: {str(exc)[:80]}")
+
+    return redirect(f"/training?msg=훈련 계획이 생성되었습니다 ({count}개 워크아웃)")
+
+
+# ── step 핸들러 ────────────────────────────────────────────────────────
+
+
+def _handle_step1():
+    """Step 1 입력 검증 → Step 2 HTML 반환."""
+    from src.training.readiness import get_recommended_weeks
+    from src.web.views_training_wizard_render import render_step2
+
+    label = request.form.get("distance_label", "10k")
+    custom = request.form.get("custom_km", "")
+    race_date = request.form.get("race_date", "")
+    target_time = request.form.get("target_time", "")
+    target_pace = request.form.get("target_pace", "")
+    goal_name = request.form.get("goal_name", "").strip()
+
+    dist = _dist_km(label, custom)
+    time_sec = _parse_time(target_time)
+    pace_sec = _parse_time(target_pace)
+    if not time_sec and pace_sec and dist > 0:
+        time_sec = int(pace_sec * dist)
+
+    rec = get_recommended_weeks(dist)
+    data = {
+        "goal_name": goal_name,
+        "distance_label": label,
+        "custom_km": custom,
+        "dist_km": dist,
+        "race_date": race_date,
+        "target_time": target_time,
+        "time_sec": time_sec,
+        "target_pace": target_pace,
+        "pace_sec": pace_sec,
+    }
+    return jsonify({"step": 2, "html": render_step2(data, rec)})
+
+
+def _handle_step2():
+    """Step 2 입력 수집 + readiness 분석 → Step 3 HTML 반환."""
+    from src.training.readiness import analyze_readiness, get_recommended_weeks
+    from src.web.views_training_wizard_render import render_step3
+
+    data = _load_wizard_data()
+    rest_mask = _collect_mask("rest_day_")
+    long_mask = _collect_mask("long_day_")
+    blocked_raw = request.form.get("blocked_dates", "").strip()
+    blocked = (
+        [d.strip() for d in blocked_raw.split(",") if len(d.strip()) == 10]
+        if blocked_raw else []
+    )
+    try:
+        rep_m = max(100, min(5000, int(request.form.get("interval_rep_m", 1000))))
+    except (ValueError, TypeError):
+        rep_m = 1000
+    try:
+        plan_weeks = max(1, min(52, int(request.form.get("plan_weeks", 12))))
+    except (ValueError, TypeError):
+        plan_weeks = 12
+
+    data.update({
+        "rest_mask": rest_mask, "long_mask": long_mask,
+        "blocked": blocked, "interval_rep_m": rep_m, "plan_weeks": plan_weeks,
+    })
+
+    readiness: dict = {}
+    dbp = db_path()
+    if dbp and dbp.exists() and data.get("dist_km") and data.get("time_sec"):
+        try:
+            with sqlite3.connect(str(dbp)) as conn:
+                readiness = analyze_readiness(
+                    conn, data["dist_km"], data["time_sec"], plan_weeks
+                )
+            data["current_vdot"] = readiness.get("current_vdot")
+        except Exception:
+            pass
+
+    if not readiness:
+        # DB 없어도 추천 기간은 제공
+        rec = get_recommended_weeks(data.get("dist_km", 10.0))
+        readiness = {
+            "recommended_weeks": rec,
+            "status_summary": "VDOT 데이터가 없습니다. 동기화 후 정확한 분석이 가능합니다.",
+            "warnings": ["VDOT 데이터가 없습니다 — 동기화 후 재분석하세요."],
+        }
+
+    return jsonify({"step": 3, "html": render_step3(data, readiness)})
+
+
+def _handle_step3():
+    """Step 3 확인 → Step 4 HTML 반환."""
+    from src.web.views_training_wizard_render import render_step4
+    data = _load_wizard_data()
+    return jsonify({"step": 4, "html": render_step4(data)})
+
+
+# ── 저장 + 플랜 생성 ───────────────────────────────────────────────────
+
+
+def _save_and_generate(conn: sqlite3.Connection, data: dict) -> int:
+    """goals + prefs 저장 후 이번 주 플랜 생성. 생성된 워크아웃 수 반환."""
+    from src.training.goals import add_goal
+    from src.training.planner import (
+        generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs,
+    )
+
+    goal_id = add_goal(
+        conn,
+        data.get("goal_name", "훈련 목표"),
+        data.get("dist_km", 10.0),
+        data.get("race_date") or None,
+        data.get("time_sec"),
+        data.get("pace_sec"),
+    )
+
+    plan_weeks = data.get("plan_weeks")
+    if plan_weeks:
+        conn.execute(
+            "UPDATE goals SET plan_weeks=? WHERE id=?",
+            (int(plan_weeks), goal_id),
+        )
+    conn.commit()
+
+    upsert_user_training_prefs(
+        conn,
+        data.get("rest_mask", 0),
+        data.get("blocked", []),
+        data.get("interval_rep_m", 1000),
+        0,
+        data.get("long_mask", 0),
+    )
+
+    plan = generate_weekly_plan(conn, goal_id=goal_id)
+    return save_weekly_plan(conn, plan)

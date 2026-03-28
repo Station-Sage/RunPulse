@@ -17,22 +17,27 @@ log = logging.getLogger(__name__)
 
 from src.utils.config import load_config
 from src.web.helpers import db_path, html_page, no_data_card
+from src.web.views_training_prefs import render_training_prefs_collapsed
 from src.web.views_training_cards import (
     render_adjustment_card,
     render_ai_recommendation,
+    render_checkin_card,
     render_goal_card,
     render_header_actions,
+    render_interval_prescription_card,
     render_plan_overview,
     render_sync_status,
     render_week_calendar,
     render_weekly_summary,
 )
 from src.web.views_training_loaders import (
+    load_actual_activities,
     load_adjustment,
     load_goal,
     load_sync_status,
     load_training_metrics,
     load_workouts,
+    load_yesterday_pending,
 )
 
 training_bp = Blueprint("training", __name__)
@@ -83,6 +88,8 @@ def training_page():
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
+            yesterday_pending = load_yesterday_pending(conn) if week_offset == 0 else None
+            actual_activities = load_actual_activities(conn, week_start)
             goals_list = _load_goals_list(conn)
 
             utrs_val = metrics.get("utrs_val")
@@ -117,15 +124,23 @@ def training_page():
                 + render_goal_card(goal, utrs_val)
                 + render_plan_overview(goal, current_phase, weeks_left)
                 + _render_goal_form(goals_list)
+                + render_checkin_card(yesterday_pending)
+                + render_interval_prescription_card(
+                    next((w for w in workouts
+                          if w["date"] == date.today().isoformat()
+                          and w["workout_type"] == "interval"), None)
+                )
                 + render_weekly_summary(workouts, utrs_val)
                 + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val,
                                        config=config, conn=conn)
-                + render_week_calendar(workouts, week_start, week_offset)
+                + render_week_calendar(workouts, week_start, week_offset,
+                                      actual_activities=actual_activities)
                 + _render_workout_form(week_start)
                 + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts,
                                           config=config, conn=conn,
                                           ai_override=_train_ai.get("coaching"))
                 + render_sync_status(sync_info)
+                + render_training_prefs_collapsed(conn)
             )
         finally:
             conn.close()

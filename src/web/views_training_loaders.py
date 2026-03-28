@@ -81,6 +81,45 @@ def load_training_metrics(conn: sqlite3.Connection) -> dict:
     return result
 
 
+def load_yesterday_pending(conn: sqlite3.Connection) -> dict | None:
+    """어제 날짜의 미확인(완료도 건너뜀도 아닌) 계획 조회.
+
+    Returns:
+        미확인 워크아웃 dict (id, date, workout_type, distance_km, completed 포함),
+        없으면 None.
+    """
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    row = conn.execute(
+        "SELECT id, date, workout_type, distance_km, completed "
+        "FROM planned_workouts "
+        "WHERE date=? AND workout_type != 'rest' AND completed = 0 "
+        "ORDER BY id DESC LIMIT 1",
+        (yesterday,),
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0], "date": row[1], "workout_type": row[2],
+        "distance_km": row[3], "completed": row[4],
+    }
+
+
+def load_actual_activities(
+    conn: sqlite3.Connection,
+    week_start: date,
+) -> dict[str, dict]:
+    """주간 날짜별 실제 러닝 활동 조회.
+
+    Returns:
+        {"2026-03-25": {"id": 123, "km": 10.5, "pace": 305, "hr": 148}, ...}
+    """
+    from src.training.matcher import get_actual_activities_for_week
+    try:
+        return get_actual_activities_for_week(conn, week_start)
+    except Exception:
+        return {}
+
+
 def load_sync_status(conn: sqlite3.Connection) -> list[dict]:
     """소스별 마지막 동기화 시각 조회.
 

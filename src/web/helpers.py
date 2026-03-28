@@ -843,6 +843,8 @@ METRIC_DESCRIPTIONS: dict[str, str] = {
     "SAPI": "계절 성과 비교. 기준 기온(10~15°C) 대비 현재 성능 비율. 100=동일",
     "VDOT_ADJ": "보정 VDOT. HR-페이스 회귀+EF 추세로 Jack Daniels VDOT을 미세 조정",
     "CP": "Critical Power (watts). 장시간 유지 가능한 임계 파워. 파워미터 필요",
+    "CRS": "복합 훈련 준비도 점수 (0~100). 5개 게이트(ACWR/HRV/BB/TSB/CIRS) 필터 + UTRS 기반 참고 점수. "
+           "레벨 0=휴식, 1=이지런만, 2=템포이하, 3=계획대로, 4=볼륨+5%",
 }
 
 

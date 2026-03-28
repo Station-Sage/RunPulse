@@ -545,26 +545,112 @@ def _render_activity_list(activities: list[dict]) -> str:
 def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
                                     cirs_val: float | None, tsb_last: float | None,
                                     config: dict | None = None, conn=None,
-                                    ai_override: str | None = None) -> str:
-    """오늘의 훈련 권장 카드 — AI 우선, 규칙 기반 fallback."""
+                                    ai_override: str | None = None,
+                                    acwr_val: float | None = None,
+                                    di_val: float | None = None,
+                                    planned_workout: dict | None = None) -> str:
+    """오늘의 훈련 권장 카드 — AI 우선, 규칙 기반 fallback.
+
+    UTRS만 보지 않고 ACWR/CIRS/DI를 종합해 강도 조정:
+      - CIRS ≥75: 완전 휴식 (부상 위험)
+      - UTRS < 40 또는 TSB < -30: 완전 휴식
+      - ACWR 적정(1.0-1.3) + CIRS < 30 + DI > 80 → UTRS 등급 한 단계 상향 보정
+      - ACWR 과부하(> 1.5) 또는 TSB < -20 → 한 단계 하향 보정
+    """
     if utrs_val is None and cirs_val is None:
         return no_data_card("오늘의 훈련 권장", "데이터 수집 중입니다")
     grade = (utrs_json or {}).get("grade", "")
+    effective_level = 0  # 0=휴식, 1=가벼운, 2=중강도, 3=고강도
+
+    # 절대 제약 먼저 확인
     if cirs_val and cirs_val >= 75:
         icon, intensity, desc, dur = "&#128683;", "완전 휴식", "부상 위험 매우 높음. 훈련 중단, 회복 집중.", ""
     elif not utrs_val:
         icon, intensity, desc, dur = "&#128310;", "데이터 부족", "UTRS 데이터가 부족합니다.", ""
     elif grade == "rest" or utrs_val < 40:
         icon, intensity, desc, dur = "&#128564;", "완전 휴식 권장", "피로 회복 집중. 스트레칭만 권장.", "15-20분 이내"
-    elif grade == "light" or utrs_val < 60:
-        icon, intensity, desc, dur = "&#128694;", "가벼운 활동", "쉬운 조깅 또는 회복런만 권장.", "30-40분, Z1-Z2"
-    elif grade == "moderate" or utrs_val < 75:
-        icon, intensity, desc, dur = "&#127939;", "중강도 훈련", "템포런 또는 유산소 훈련 가능.", "40-60분, Z2-Z3"
+        effective_level = 0
     else:
-        icon, intensity, desc, dur = "&#128293;", "고강도 훈련 최적", "인터벌, 레이스페이스 훈련 최적 상태.", "60분+, Z4-Z5 포함"
+        # UTRS 기반 기준 등급 결정
+        if utrs_val < 60:
+            base_level = 1   # 가벼운
+        elif utrs_val < 75:
+            base_level = 2   # 중강도
+        else:
+            base_level = 3   # 고강도
+
+        # ACWR/CIRS/DI 종합 조정
+        # 좋은 컨디션: ACWR 적정(1.0-1.3) + 낮은 부상 위험(CIRS<30) + 높은 지구력(DI>80)
+        boost = (
+            acwr_val is not None and 1.0 <= acwr_val <= 1.3
+            and (cirs_val is None or cirs_val < 30)
+            and (di_val is None or di_val > 80)
+        )
+        # 과부하 신호: ACWR 높음(>1.5) → 보수적으로
+        suppress = acwr_val is not None and acwr_val > 1.5
+
+        if boost and not suppress:
+            effective_level = min(base_level + 1, 3)
+        elif suppress:
+            effective_level = max(base_level - 1, 1)
+        else:
+            effective_level = base_level
+
+        if effective_level == 1:
+            icon, intensity, desc, dur = "&#128694;", "가벼운 활동", "이지런 또는 회복런 권장.", "30-40분, Z1-Z2"
+        elif effective_level == 2:
+            icon, intensity, desc, dur = "&#127939;", "중강도 훈련", "템포런 또는 유산소 훈련 가능.", "40-60분, Z2-Z3"
+        else:
+            icon, intensity, desc, dur = "&#128293;", "고강도 훈련 최적", "인터벌, 레이스페이스 훈련 최적 상태.", "60분+, Z4-Z5 포함"
     # AI 오버라이드 (탭별 통합 호출에서 전달)
     if ai_override:
         desc = ai_override
+
+    # ── 계획된 훈련 비교 블록 ──────────────────────────────────────────
+    planned_html = ""
+    if planned_workout and planned_workout.get("type") != "rest":
+        pw_type = planned_workout.get("type", "")
+        pw_dist = planned_workout.get("distance_km")
+        pw_desc = planned_workout.get("description", "")
+        # workout_type → 강도 레벨 매핑
+        _pw_level_map = {"recovery": 0, "easy": 1, "long": 1, "tempo": 2, "threshold": 2, "interval": 3, "race": 3}
+        pw_level = _pw_level_map.get(pw_type, 1)
+        _type_labels = {"easy": "이지런", "long": "장거리런", "tempo": "템포런",
+                        "threshold": "역치런", "interval": "인터벌", "race": "레이스", "recovery": "회복런"}
+        pw_label = _type_labels.get(pw_type, pw_type)
+        dist_str = f" {pw_dist:.1f}km" if pw_dist else ""
+
+        if not utrs_val or utrs_val < 40:
+            plan_advice = f"계획된 {pw_label}{dist_str}은 오늘 컨디션에 너무 과합니다. 대체: 완전 휴식 또는 회복런."
+            plan_color = "var(--red)"
+        elif effective_level >= pw_level:
+            plan_advice = f"계획된 {pw_label}{dist_str} — 컨디션 양호, 계획대로 진행하세요."
+            plan_color = "var(--green,#27ae60)"
+        elif effective_level == pw_level - 1:
+            _downgrade = {"interval": "템포런", "tempo": "이지런", "threshold": "이지런", "long": "이지런"}
+            alt = _downgrade.get(pw_type, "이지런")
+            plan_advice = f"계획된 {pw_label}{dist_str}을 {alt}으로 강도 낮춰 진행 권장."
+            plan_color = "var(--orange)"
+        else:
+            plan_advice = f"계획된 {pw_label}{dist_str} — 오늘은 건너뛰고 내일로 미루는 것을 권장합니다."
+            plan_color = "var(--red)"
+
+        planned_html = (
+            f"<div style='margin-top:0.5rem;padding:0.4rem 0.6rem;"
+            f"background:rgba(255,255,255,0.05);border-radius:6px;"
+            f"border-left:3px solid {plan_color};'>"
+            f"<div style='font-size:0.75rem;color:var(--muted);margin-bottom:0.15rem;'>📋 오늘 계획</div>"
+            f"<div style='font-size:0.8rem;color:{plan_color};'>{plan_advice}</div>"
+            f"</div>"
+        )
+    elif planned_workout and planned_workout.get("type") == "rest":
+        planned_html = (
+            "<div style='margin-top:0.5rem;padding:0.4rem 0.6rem;"
+            "background:rgba(255,255,255,0.05);border-radius:6px;"
+            "border-left:3px solid var(--muted);'>"
+            "<div style='font-size:0.8rem;color:var(--muted);'>📋 오늘 계획: 휴식일</div>"
+            "</div>"
+        )
 
     notes = ""
     if tsb_last is not None and tsb_last < -30:
@@ -573,6 +659,11 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
         notes += f"<p style='color:var(--orange);font-size:0.78rem;margin-top:0.3rem;'>&#9889; TSB {tsb_last:.0f} — 누적 피로 높음. 강도 조절 권장</p>"
     if cirs_val and 50 <= cirs_val < 75:
         notes += f"<p style='color:var(--orange);font-size:0.78rem;margin-top:0.3rem;'>&#127973; CIRS {cirs_val:.0f} — 부상 주의. 충격 운동 자제</p>"
+    # ACWR 과부하 경고
+    if acwr_val is not None and acwr_val > 1.5:
+        notes += f"<p style='color:var(--red);font-size:0.78rem;margin-top:0.3rem;'>&#9888; ACWR {acwr_val:.2f} — 훈련 급증. 강도 낮춤</p>"
+    elif acwr_val is not None and acwr_val > 1.3:
+        notes += f"<p style='color:var(--orange);font-size:0.78rem;margin-top:0.3rem;'>&#9889; ACWR {acwr_val:.2f} — 부하 주의</p>"
     dur_html = f"<div style='font-size:0.8rem;color:var(--secondary);margin-top:0.1rem;'>&#8987; {dur}</div>" if dur else ""
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>오늘의 훈련 권장</h2>"
@@ -581,7 +672,8 @@ def _render_training_recommendation(utrs_val: float | None, utrs_json: dict,
         "<div>"
         f"<div style='font-size:0.95rem;font-weight:700;color:var(--cyan);'>{intensity}</div>"
         f"<div style='font-size:0.8rem;color:var(--muted);margin-top:0.1rem;'>{desc}</div>"
-        f"{dur_html}</div></div>{notes}</div>"
+        f"{dur_html}</div></div>"
+        f"{planned_html}{notes}</div>"
     )
 
 
@@ -621,7 +713,8 @@ def _render_risk_pills(risk_data: dict) -> str:
 
 def _render_darp_mini(darp_data: dict, vdot: float | None = None,
                       vdot_adj: float | None = None,
-                      di: float | None = None) -> str:
+                      di: float | None = None,
+                      goal_dist_key: str | None = None) -> str:
     """DARP 레이스 예측 미니 카드 + VDOT/DI/Shape/EF 배지."""
     if not darp_data:
         return no_data_card("레이스 예측 (DARP)", "VDOT 데이터 수집 중입니다")
@@ -640,12 +733,18 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
     if di is not None:
         di_clr = "var(--green)" if di >= 70 else "var(--orange)" if di >= 40 else "var(--red)"
         badges.append(_badge("DI", f"{di:.0f}" if di >= 2 else f"{di:.2f}", di_clr))
-    # Shape/EF from DARP data — 목표 거리(half 또는 full) 우선
-    _target_keys = ["half", "full", "10k", "5k"]  # 선호 순서
+    # Shape/EF from DARP data — 목표 거리 우선, 없으면 half→full→10k→5k
+    _fallback = ("half", "full", "10k", "5k")
+    _target_keys = (
+        (goal_dist_key,) + tuple(k for k in _fallback if k != goal_dist_key)
+        if goal_dist_key else _fallback
+    )
     _sample = {}
+    _sample_key = None
     for _tk in _target_keys:
         if _tk in darp_data and isinstance(darp_data[_tk], dict):
             _sample = darp_data[_tk]
+            _sample_key = _tk
             break
     if not _sample:
         _sample = next((d for d in darp_data.values() if isinstance(d, dict)), {})
@@ -653,7 +752,9 @@ def _render_darp_mini(darp_data: dict, vdot: float | None = None,
     _ef = _sample.get("ef")
     if _sh is not None:
         sh_clr = "var(--green)" if _sh >= 70 else "var(--orange)" if _sh >= 50 else "var(--red)"
-        badges.append(_badge("Shape", f"{_sh:.0f}%", sh_clr))
+        _sh_dist_labels = {"5k": "5K Shape", "10k": "10K Shape", "half": "Half Shape", "full": "Full Shape"}
+        _sh_badge_label = _sh_dist_labels.get(_sample_key, "Shape")
+        badges.append(_badge(_sh_badge_label, f"{_sh:.0f}%", sh_clr))
     if _ef is not None:
         ef_clr = "var(--green)" if _ef >= 1.0 else "var(--orange)"
         badges.append(_badge("EF", f"{_ef:.2f}", ef_clr))
@@ -693,7 +794,8 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
                          rri: float | None = None, vdot_adj: float | None = None,
                          vdot_json: dict | None = None, shape_json: dict | None = None,
                          config: dict | None = None, conn=None,
-                         ai_override: str | None = None) -> str:
+                         ai_override: str | None = None,
+                         shape_dist_key: str | None = None) -> str:
     """VDOT / Race Shape / eFTP / REC / RRI 피트니스 미니 카드."""
     if all(v is None for v in [vdot, marathon_shape_pct, eftp, rec]):
         return no_data_card("피트니스 현황", "데이터 수집 중입니다")
@@ -719,7 +821,12 @@ def _render_fitness_mini(vdot: float | None, marathon_shape_pct: float | None,
     s_clr = ("var(--green)" if (marathon_shape_pct or 0) >= 70
              else ("var(--orange)" if (marathon_shape_pct or 0) >= 50 else "var(--muted)"))
     from .helpers import race_shape_label
-    shape_label = race_shape_label(shape_json)
+    # shape_dist_key가 있으면 DARP 소스 거리 기준으로 라벨 결정 (값과 라벨 소스 일치)
+    if shape_dist_key:
+        _dist_label_map = {"5k": "5K Shape", "10k": "10K Shape", "half": "Half Shape", "full": "Marathon Shape"}
+        shape_label = _dist_label_map.get(shape_dist_key, "Race Shape")
+    else:
+        shape_label = race_shape_label(shape_json)
 
     # 추가 메트릭 행
     extra_items = []

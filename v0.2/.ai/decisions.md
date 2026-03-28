@@ -111,6 +111,21 @@
 - **이유**: Training 페이지 로드마다 LLM API 호출은 지연/비용 부담. AI Coach 탭에서 이미 LLM 기반 브리핑 제공
 - **결과**: `render_ai_recommendation()`에서 UTRS ≥70/40/0 기준 3단계 메시지 + CIRS 부상 위험 알림
 
+## D-V2-21: Wizard 렌더러를 라우트 파일과 분리 (views_training_wizard_render.py)
+- **결정**: `views_training_wizard.py`(라우트+로직)와 `views_training_wizard_render.py`(HTML 렌더러) 분리
+- **이유**: 300줄 규칙. 4단계 Step HTML + JS + 라우트를 한 파일에 넣으면 350+ 줄 초과
+- **결과**: 라우트 파일 ~170줄 / 렌더러 파일 ~220줄. 기존 prefs(renderers)↔crud(routes) 패턴과 일관성 유지
+
+## D-V2-22: Wizard step 전환은 `_wizHistory` JS 배열 기반 (서버 왕복 없이 뒤로가기)
+- **결정**: 뒤로가기 시 서버에 재요청하지 않고 `_wizHistory.push/pop`으로 innerHTML 복원
+- **이유**: 서버 재요청 시 이전 step의 사용자 입력값이 사라짐. JS 메모리 배열이 단순하고 충분
+- **결과**: Step 전환 AJAX + `wizardBack()` JS 함수. history 배열은 페이지 reload 시 초기화됨
+
+## D-V2-23: Wizard step3 — DB 없을 때 graceful (analyze_readiness 스킵)
+- **결정**: `_handle_step2()`에서 DB 없거나 `analyze_readiness` 실패 시 경고 메시지 포함 fallback dict 반환
+- **이유**: 초기 설치 시 DB가 없어도 Wizard를 사용할 수 있어야 함. 오류로 막히면 UX 불량
+- **결과**: `readiness = {"status_summary": "...", "warnings": [...]}` fallback → step3 HTML은 항상 반환
+
 ## D-V2-15: sync 병렬화는 src/sync/__init__.py에 _sync_source 배치
 - **결정**: SOURCES 딕트와 _sync_source 함수를 `src/sync/__init__.py`에 두고, `src/sync.py` CLI는 이를 임포트
 - **이유**: Python 패키지 우선 규칙 — `src/sync/`(패키지)가 있으면 `src.sync`는 패키지를 가리킴. CLI 파일(`src/sync.py`)에 둔 함수는 `from src.sync import`로 접근 불가

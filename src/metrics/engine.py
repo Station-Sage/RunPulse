@@ -286,7 +286,14 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     # 20. CTL/ATL/TSB 자체 계산 (Intervals.icu 미제공 날짜 채우기)
     try:
         from src.metrics.ctl_atl import calc_and_fill_ctl_atl
-        ctl_count = calc_and_fill_ctl_atl(conn, start_date=target_date, end_date=target_date)
+        # 전날 CTL/ATL이 없으면(gap) 가장 오래된 DailyTRIMP부터 전체 backfill
+        prev_day = (date.fromisoformat(target_date) - timedelta(days=1)).isoformat()
+        has_prev = conn.execute(
+            "SELECT 1 FROM daily_fitness WHERE date=? AND ctl IS NOT NULL LIMIT 1",
+            (prev_day,),
+        ).fetchone()
+        ctl_start = None if not has_prev else target_date
+        ctl_count = calc_and_fill_ctl_atl(conn, start_date=ctl_start, end_date=target_date)
         if ctl_count > 0:
             results["CTL_ATL_filled"] = ctl_count
     except Exception:
@@ -427,7 +434,7 @@ def recompute_all(
 
     Args:
         conn: SQLite 커넥션.
-        days: 계산할 일 수 (기본 90일).
+        days: 계산할 일 수 (기본 90일). 0이면 DB의 가장 오래된 활동부터 전체 재계산.
         target_date: 기준일 (없으면 오늘).
         on_progress: 날짜 완료 시 콜백 (date_str, completed, total).
 
@@ -435,7 +442,15 @@ def recompute_all(
         run_for_date_range 결과.
     """
     end = date.fromisoformat(target_date) if target_date else date.today()
-    start = end - timedelta(days=days - 1)
+    if days <= 0:
+        # 전체 기간: DB에서 가장 오래된 활동 날짜부터
+        row = conn.execute(
+            "SELECT MIN(DATE(start_time)) FROM activity_summaries"
+        ).fetchone()
+        earliest = row[0] if row and row[0] else None
+        start = date.fromisoformat(earliest) if earliest else end - timedelta(days=89)
+    else:
+        start = end - timedelta(days=days - 1)
     logger.info("메트릭 전체 재계산 시작: %s ~ %s", start.isoformat(), end.isoformat())
     return run_for_date_range(
         conn, start.isoformat(), end.isoformat(),

@@ -496,12 +496,70 @@ def create_tables(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_weather_data_date
             ON weather_data(date, latitude, longitude);
+
+        -- v3: 사용자 훈련 환경 설정 (싱글유저, id=1 고정)
+        CREATE TABLE IF NOT EXISTS user_training_prefs (
+            id                 INTEGER PRIMARY KEY DEFAULT 1 CHECK(id = 1),
+            -- 정기 휴식 요일 비트마스크: bit0=월(1), bit1=화(2), ..., bit6=일(64)
+            rest_weekdays_mask INTEGER NOT NULL DEFAULT 0,
+            -- 일회성 차단 날짜 JSON 배열 ["2026-04-05", ...]
+            blocked_dates      TEXT    NOT NULL DEFAULT '[]',
+            -- 인터벌 기본 반복 거리(m): 자유 입력 (200~2000, 320 같은 비표준 포함)
+            interval_rep_m     INTEGER NOT NULL DEFAULT 1000,
+            -- 주간 최대 Q-day 수 (0=자동)
+            max_q_days         INTEGER NOT NULL DEFAULT 0,
+            updated_at         TEXT
+        );
+
+        -- v3: 훈련 세션 성과 기록 (ML 학습 데이터)
+        -- 계획 vs 실제 비교 + 훈련 당시 컨디션 스냅샷
+        CREATE TABLE IF NOT EXISTS session_outcomes (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            planned_id      INTEGER REFERENCES planned_workouts(id),
+            activity_id     INTEGER REFERENCES activity_summaries(id),
+            date            TEXT NOT NULL,
+            -- 달성률 (Buchheit & Laursen 2013: 세션 볼륨 목표 대비)
+            planned_dist_km REAL,
+            actual_dist_km  REAL,
+            dist_ratio      REAL,           -- actual/planned, 1.0=100%
+            -- 페이스 편차 (Daniels 처방 대비)
+            planned_pace    INTEGER,        -- sec/km
+            actual_pace     INTEGER,        -- sec/km
+            pace_delta_pct  REAL,           -- (actual-planned)/planned
+            -- 심박 존 분포 (Seiler 2010 3존 기준)
+            hr_z1_pct       REAL,           -- VT1 이하 비율
+            hr_z2_pct       REAL,           -- VT1~VT2
+            hr_z3_pct       REAL,           -- VT2 이상
+            target_zone     INTEGER,        -- 계획 HR zone (1~5)
+            actual_avg_hr   INTEGER,
+            hr_delta        INTEGER,        -- actual_hr - target_hr
+            -- 훈련 품질 (Friel 2012: decoupling 5% 기준)
+            decoupling_pct  REAL,
+            trimp           REAL,
+            -- 컨디션 스냅샷 (훈련 시점 — ML 피처)
+            crs_at_session  REAL,           -- 복합 준비도 점수
+            tsb_at_session  REAL,           -- Coggan 2003
+            hrv_at_session  REAL,           -- Plews 2013
+            bb_at_session   INTEGER,        -- Body Battery
+            acwr_at_session REAL,           -- Gabbett 2016
+            -- ML 타겟 레이블
+            outcome_label   TEXT CHECK(outcome_label IN (
+                'on_target','overperformed','underperformed','skipped','modified'
+            )),
+            computed_at     TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_session_outcomes_date
+            ON session_outcomes(date DESC);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_session_outcomes_planned_id
+            ON session_outcomes(planned_id);
+        CREATE INDEX IF NOT EXISTS idx_session_outcomes_activity
+            ON session_outcomes(activity_id);
     """)
 
 
 # ── 스키마 버전 관리 ───────────────────────────────────────────────────────
 # 새 마이그레이션 추가 시: SCHEMA_VERSION 증가 + _migrate_to_vN 함수 작성
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 4  # display: 3.1
 
 
 def _get_user_version(conn: sqlite3.Connection) -> int:
@@ -631,6 +689,40 @@ _V1_DAILY_WELLNESS_COLUMNS: list[tuple[str, str]] = [
     ("weight_kg", "REAL"),
 ]
 
+# planned_workouts 추가 컬럼 (v0.2 훈련 이행 추적)
+_V1_PLANNED_WORKOUTS_COLUMNS: list[tuple[str, str]] = [
+    ("skip_reason", "TEXT"),
+    ("updated_at", "TEXT"),  # ALTER TABLE은 non-constant default 불가
+]
+
+# v3 추가 컬럼
+_V3_PLANNED_WORKOUTS_COLUMNS: list[tuple[str, str]] = [
+    # 인터벌 처방 JSON: {"rep_m":320,"sets":10,"rest_sec":94,"recovery_pace":330}
+    ("interval_prescription", "TEXT"),
+]
+
+_V3_GOALS_COLUMNS: list[tuple[str, str]] = [
+    # 표준 거리 레이블: '1.5k'|'3k'|'5k'|'10k'|'half'|'full'|'custom'
+    ("distance_label", "TEXT"),
+]
+
+_V4_GOALS_COLUMNS: list[tuple[str, str]] = [
+    # Wizard: 사용자 목표 주간 km
+    ("weekly_km_target", "REAL"),
+    # Wizard: 사용자 선택 훈련 기간 (주)
+    ("plan_weeks", "INTEGER"),
+]
+
+_V4_SCHEMA_META_COLUMNS: list[tuple[str, str]] = [
+    # 사람이 읽을 수 있는 버전 표시 (예: '3.1')
+    ("display_version", "TEXT"),
+]
+
+_V4_TRAINING_PREFS_COLUMNS: list[tuple[str, str]] = [
+    # 롱런 요일 마스크 (비트 플래그, 0=일 ~ 6=토). 0이면 플래너가 자동 선택
+    ("long_run_weekday_mask", "INTEGER DEFAULT 0"),
+]
+
 
 def _migrate_to_v1(conn: sqlite3.Connection) -> bool:
     """v0 → v1: 모든 v0.2 컬럼/테이블 보장.
@@ -658,6 +750,11 @@ def _migrate_to_v1(conn: sqlite3.Connection) -> bool:
             if _add_column_if_missing(conn, "daily_wellness", col, typedef):
                 changed = True
 
+    if "planned_workouts" in existing_tables:
+        for col, typedef in _V1_PLANNED_WORKOUTS_COLUMNS:
+            if _add_column_if_missing(conn, "planned_workouts", col, typedef):
+                changed = True
+
     # 2) 신규 테이블/뷰/인덱스 생성 (IF NOT EXISTS)
     create_tables(conn)
     tables_after = {
@@ -674,9 +771,125 @@ def _migrate_to_v1(conn: sqlite3.Connection) -> bool:
     return changed
 
 
+def _migrate_to_v2(conn: sqlite3.Connection) -> bool:
+    """v1 → v2: planned_workouts 훈련 이행 추적 컬럼 추가.
+
+    - skip_reason TEXT: 건너뜀 사유
+    - updated_at TEXT: 마지막 수정 시각
+
+    Returns: True if any changes were made.
+    """
+    changed = False
+    existing_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    if "planned_workouts" in existing_tables:
+        for col, typedef in _V1_PLANNED_WORKOUTS_COLUMNS:
+            if _add_column_if_missing(conn, "planned_workouts", col, typedef):
+                changed = True
+    return changed
+
+
+def _migrate_to_v3(conn: sqlite3.Connection) -> bool:
+    """v2 → v3: 훈련 엔진 v2 스키마.
+
+    신규 테이블:
+    - user_training_prefs: 사용자 훈련 환경 설정 (휴식 요일, 인터벌 설정)
+    - session_outcomes: 훈련 세션 성과 기록 (ML 학습 데이터)
+
+    기존 테이블 컬럼 추가:
+    - planned_workouts.interval_prescription: 인터벌 처방 JSON
+    - goals.distance_label: 표준 거리 레이블
+
+    Returns: True if any changes were made.
+    """
+    changed = False
+    existing_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+
+    # 기존 테이블에 컬럼 추가
+    if "planned_workouts" in existing_tables:
+        for col, typedef in _V3_PLANNED_WORKOUTS_COLUMNS:
+            if _add_column_if_missing(conn, "planned_workouts", col, typedef):
+                changed = True
+
+    if "goals" in existing_tables:
+        for col, typedef in _V3_GOALS_COLUMNS:
+            if _add_column_if_missing(conn, "goals", col, typedef):
+                changed = True
+
+    # 신규 테이블 생성 (user_training_prefs, session_outcomes)
+    create_tables(conn)
+    tables_after = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    new_tables = tables_after - existing_tables
+    if new_tables:
+        log.info("신규 테이블 생성 (v3): %s", ", ".join(sorted(new_tables)))
+        changed = True
+
+    return changed
+
+
+def _migrate_to_v4(conn: sqlite3.Connection) -> bool:
+    """v3 → v4: 훈련탭 UX 재설계 (display_version='3.1').
+
+    신규 컬럼:
+    - schema_meta.display_version TEXT: 사람이 읽을 수 있는 버전 문자열
+    - goals.weekly_km_target REAL: 사용자 목표 주간 km
+    - goals.plan_weeks INTEGER: 사용자 선택 훈련 기간 (주)
+    - user_training_prefs.long_run_weekday_mask INTEGER: 롱런 요일 설정
+
+    Returns: True if any changes were made.
+    """
+    changed = False
+    existing_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+
+    # schema_meta에 display_version 컬럼 추가
+    if "schema_meta" in existing_tables:
+        for col, typedef in _V4_SCHEMA_META_COLUMNS:
+            if _add_column_if_missing(conn, "schema_meta", col, typedef):
+                changed = True
+        conn.execute(
+            "UPDATE schema_meta SET display_version = '3.1' WHERE id = 1"
+        )
+
+    # goals에 Wizard 컬럼 추가
+    if "goals" in existing_tables:
+        for col, typedef in _V4_GOALS_COLUMNS:
+            if _add_column_if_missing(conn, "goals", col, typedef):
+                changed = True
+
+    # user_training_prefs에 롱런 요일 컬럼 추가
+    if "user_training_prefs" in existing_tables:
+        for col, typedef in _V4_TRAINING_PREFS_COLUMNS:
+            if _add_column_if_missing(conn, "user_training_prefs", col, typedef):
+                changed = True
+
+    return changed
+
+
 # 마이그레이션 함수 레지스트리: {target_version: migrate_fn}
 _MIGRATIONS: dict[int, callable] = {
     1: _migrate_to_v1,
+    2: _migrate_to_v2,
+    3: _migrate_to_v3,
+    4: _migrate_to_v4,
 }
 
 

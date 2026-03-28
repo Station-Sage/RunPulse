@@ -19,7 +19,9 @@ guide_bp = Blueprint("guide", __name__)
 _METRIC_DETAILS: dict[str, dict] = {
     "UTRS": {"range": "0~100", "good": "70+", "warn": "40~70", "bad": "<40",
              "detail": "웰니스(HRV, 수면, BB)·피트니스(CTL, TSB)·부하(ACWR)를 종합한 훈련 준비도. "
-                       "70 이상이면 고강도 훈련 가능, 40 미만이면 휴식 권장."},
+                       "70 이상이면 고강도 훈련 가능, 40 미만이면 휴식 권장. "
+                       "대시보드 훈련 권장 카드는 UTRS 단독이 아닌 ACWR/CIRS/DI를 종합 보정: "
+                       "ACWR 1.0~1.3 + CIRS < 30 + DI > 80이면 한 등급 상향, ACWR > 1.5이면 하향."},
     "CIRS": {"range": "0~100", "good": "<25", "warn": "25~50", "bad": ">50",
              "detail": "ACWR×0.4 + Monotony×0.2 + Spike×0.3 + Asym×0.1로 계산. "
                        "25 이하 안전, 50 이상 부상 위험 증가, 75 이상 즉시 훈련 중단 권장."},
@@ -77,9 +79,20 @@ _METRIC_DETAILS: dict[str, dict] = {
                       "각 축 0~100, 종합 평균. 28일 기준."},
     "MarathonShape": {"range": "0~100%", "good": ">80%", "warn": "50~80%", "bad": "<50%",
                       "detail": "5요소 종합: 주간 볼륨(35%) + 최장 거리(20%) + 장거리 빈도(20%) "
-                                "+ 일관성(15%) + 페이스 품질(10%). 거리별 목표 차등 "
-                                "(마라톤: 주 60~80km, 장거리 28~37km, 25km+ 6회). "
-                                "80%+ 레이스 준비 충분."},
+                                "+ 일관성(15%) + 페이스 품질(10%). 거리별 목표·기준 차등 "
+                                "(마라톤: 주 60~80km·장거리 28~37km, 하프: 주 40~60km·장거리 18~24km, "
+                                "10K: 주 30~45km, 5K: 주 20~35km). "
+                                "DARP 보정에 거리별 shape 각각 적용. "
+                                "대시보드는 활성 목표 거리의 shape를 우선 표시 (목표 없으면 하프 기준)."},
+    "CRS": {"range": "0~100 (레벨 0~4)", "good": "레벨 3~4", "warn": "레벨 2", "bad": "레벨 0~1",
+            "detail": "복합 훈련 준비도 점수 (Composite Readiness Score). "
+                      "5개 게이트를 순서대로 평가, 최솟값이 최종 레벨 결정. "
+                      "Gate 1 ACWR >1.5 → Z1만 허용 (Gabbett 2016, BJSM). "
+                      "Gate 2 HRV rolling 대비 -10% 이하 → Z3 금지 (Plews 2013, IJSPP). "
+                      "Gate 3 Body Battery <20 → 휴식, <35 → Z1. "
+                      "Gate 4 TSB <-30 → Z1만 허용 (Coggan 2003). "
+                      "Gate 5 CIRS >80 → Z1만 허용. "
+                      "레벨 0=휴식, 1=이지런만, 2=템포이하, 3=계획대로, 4=볼륨+5%."},
 }
 
 
@@ -95,7 +108,12 @@ def _render_guide() -> str:
     parts = [
         "<div style='max-width:800px;margin:0 auto;'>",
         "<h1 style='font-size:1.3rem;margin-bottom:0.5rem;'>📖 RunPulse 용어집 · 가이드</h1>",
-        "<p class='muted' style='margin-bottom:1.5rem;'>메트릭 설명, 적정 범위, 운동 분류 기준</p>",
+        "<p class='muted' style='margin-bottom:1.5rem;'>메트릭 설명, 적정 범위, 운동 분류 기준, 훈련탭 기능 안내</p>",
+        "<div style='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.2rem;font-size:0.82rem;'>"
+        "<a href='#workout-type' style='color:var(--cyan);'>🏃 운동 유형</a>"
+        "<a href='#training-features' style='color:var(--cyan);'>🏋️ 훈련탭 기능</a>"
+        "<a href='#UTRS' style='color:var(--cyan);'>📊 메트릭 상세</a>"
+        "</div>",
     ]
 
     # 운동 분류 섹션
@@ -110,7 +128,7 @@ def _render_guide() -> str:
         "threshold": "페이스 ≈ eFTP ±5%, Z3-4",
         "interval": "Z4-5 > 25%",
         "long": "90분+ 또는 15km+, Z1-2 위주",
-        "race": "HR > 90% maxHR, 5km+, Z4-5",
+        "race": "소스 태그 기반 (Garmin event_type=race / Strava workout_type=1 / Intervals sub_type=RACE)",
         "recovery": "5km 미만, 40분 미만, Z1-2 > 85%",
     }
     for wtype in ["easy", "tempo", "threshold", "interval", "long", "race", "recovery"]:
@@ -123,6 +141,48 @@ def _render_guide() -> str:
     parts.append("</tbody></table>"
                  "<p class='muted' style='margin:0.5rem 0 0;font-size:0.78rem;'>"
                  "RunPulse가 HR존·페이스·거리·시간을 분석하여 자동 분류합니다.</p></div>")
+
+    # 훈련탭 기능 섹션
+    parts.append("<h2 id='training-features' style='font-size:1.1rem;margin:1.5rem 0 0.5rem;"
+                 "border-bottom:1px solid var(--card-border);padding-bottom:0.3rem;'>"
+                 "🏋️ 훈련탭 기능</h2>")
+    _TRAINING_FEATURES = [
+        ("📋 어제 훈련 체크인",
+         "어제 계획한 훈련의 완료 여부를 확인합니다. "
+         "완료: 활동이 자동 매칭되거나 수동으로 완료 처리됩니다. "
+         "건너뜀: session_outcomes에 'skipped' 기록 후 잔여 주간 계획을 자동 재조정합니다."),
+        ("🔄 자동 재조정 규칙",
+         "Rule 1 — 고강도 이동 (Hard-Easy 원칙, Lydiard): 건너뛴 interval/tempo/long을 이번 주 남은 rest/easy 날로 이동. "
+         "Q-day 사이 최소 1일 간격 보장. "
+         "Rule 2 — 연속 건너뜀 볼륨 축소 (Gabbett 2016): 최근 2일 이상 연속 건너뜀 → 고강도 볼륨 10% 감소. "
+         "Rule 3 — 피드백 기반 재조정: 최근 3회 dist_ratio 평균 <0.85 → 볼륨 -10% 경고. "
+         "Rule 4 — 테이퍼 보호 (Mujika & Padilla 2003): 레이스 2주 이내 이동 금지, 볼륨 5% 축소만."),
+        ("📊 session_outcomes (ML 피처)",
+         "매칭 완료된 훈련마다 계획 vs 실제를 비교 기록합니다. "
+         "dist_ratio: 실제/계획 거리 비율. "
+         "pace_delta_pct: 실제-처방 페이스 편차(%). "
+         "outcome_label: on_target / overperformed / underperformed / skipped / modified. "
+         "컨디션 스냅샷(CRS/TSB/HRV/BB/ACWR)도 함께 저장 → 향후 CRS 게이트 가중치 ML 보정 기반."),
+        ("⚡ 동기화 후 자동 매칭",
+         "동기화 완료 시 이번 주 + 지난 주 계획을 실제 활동과 자동 매칭합니다 (날짜 기반). "
+         "백그라운드 동기화 완료 시에는 최근 4주를 자동 매칭합니다. "
+         "같은 날 여러 활동이 있으면 계획 거리에 가장 가까운 활동을 선택합니다."),
+        ("🗓️ 훈련 계획 Wizard",
+         "4단계 AJAX Wizard(/training/wizard)로 처음부터 맞춤 플랜을 생성합니다. "
+         "Step 1: 목표 레이스(종목/날짜/목표 시간 또는 페이스). "
+         "Step 2: 훈련 환경(휴식·롱런 요일, 인터벌 거리, 훈련 기간). "
+         "Step 3: 현재 VDOT_ADJ 기반 달성 가능률·예상 기록 분석 (readiness.analyze_readiness). "
+         "Step 4: 플랜 요약(Base/Build/Peak/Taper 배분, 주간 km 범위) → [플랜 생성] 클릭 시 goals + user_training_prefs 저장 후 이번 주 플랜 자동 생성."),
+    ]
+    parts.append("<div class='card'><table style='width:100%;font-size:0.85rem;border-collapse:collapse;'>"
+                 "<tbody>")
+    for feat, desc in _TRAINING_FEATURES:
+        parts.append(f"<tr style='border-bottom:1px solid rgba(255,255,255,0.07);'>"
+                     f"<td style='padding:8px 6px;font-weight:600;white-space:nowrap;"
+                     f"vertical-align:top;min-width:130px;'>{feat}</td>"
+                     f"<td style='padding:8px 6px;color:var(--secondary);font-size:0.83rem;'>"
+                     f"{_html.escape(desc)}</td></tr>")
+    parts.append("</tbody></table></div>")
 
     # 메트릭 상세 섹션
     parts.append("<h2 style='font-size:1.1rem;margin:1.5rem 0 0.5rem;"

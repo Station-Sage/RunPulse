@@ -271,6 +271,21 @@ def race_page():
     try:
         conn = sqlite3.connect(str(dbp))
         try:
+            # 오늘 DARP가 없으면 재계산 (시계열 최신화)
+            from datetime import date as _date
+            _today = _date.today().isoformat()
+            _darp_today = conn.execute(
+                "SELECT 1 FROM computed_metrics WHERE date=? AND metric_name='DARP_half' "
+                "AND activity_id IS NULL LIMIT 1", (_today,),
+            ).fetchone()
+            if not _darp_today:
+                try:
+                    from src.metrics.engine import run_for_date
+                    run_for_date(conn, _today, include_weekly=False)
+                    conn.commit()
+                except Exception:
+                    pass
+
             darp_val, darp_json = _load_darp(conn, active_km)
             di_val, di_json = _load_di(conn)
             pace_sec = darp_json.get("avg_pace_sec") if darp_json else None

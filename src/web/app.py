@@ -34,6 +34,7 @@ from .views_ai_coach import ai_coach_bp
 from .views_dev import dev_bp, _table, _scan_history_dir
 from .views_training import training_bp
 from .views_training_crud import training_crud_bp
+from .views_training_wizard import wizard_bp
 from .views_sync import sync_bp
 from .views_guide import guide_bp
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
@@ -113,6 +114,26 @@ def _days_since_last_sync(sources: list[str]) -> int:
         return max(1, min((date.today() - last_date).days + 2, 365))
     except Exception:
         return 7
+
+
+def _auto_match_after_sync() -> None:
+    """동기화 완료 후 이번 주 + 지난 주 계획↔활동 자동 매칭."""
+    from datetime import date as _date, timedelta as _td
+    db = _db_path()
+    if not db.exists():
+        return
+    try:
+        from src.training.matcher import match_week_activities
+        today = _date.today()
+        this_week = today - _td(days=today.weekday())
+        last_week = this_week - _td(weeks=1)
+        with sqlite3.connect(str(db)) as conn:
+            n_this = match_week_activities(conn, this_week)
+            n_last = match_week_activities(conn, last_week)
+            conn.commit()
+        log.debug("자동 매칭 완료: 이번 주 %d건, 지난 주 %d건", n_this, n_last)
+    except Exception:
+        log.warning("자동 매칭 실패", exc_info=True)
 
 
 def _auto_migrate() -> None:
@@ -524,6 +545,11 @@ def create_app() -> Flask:
 
         total_count = sum(r.get("count", 0) for r in results)
         overall_ok = any(r.get("ok") for r in results)
+
+        # 동기화 성공 시 이번 주 + 지난 주 계획 자동 매칭
+        if overall_ok:
+            _auto_match_after_sync()
+
         return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
 
     # ── 백그라운드 기간 동기화 ────────────────────────────────────────────
@@ -866,6 +892,7 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(ai_coach_bp)      # v0.2 Sprint5 AI 코칭
     app.register_blueprint(training_bp)       # v0.3 훈련 계획 (스캐폴딩)
     app.register_blueprint(training_crud_bp)  # v0.3 훈련 CRUD/목표/ICS
+    app.register_blueprint(wizard_bp)         # v0.2 훈련 계획 Wizard
     app.register_blueprint(dev_bp)            # 개발자/디버그 도구
     app.register_blueprint(guide_bp)          # 용어집/가이드
     app.register_blueprint(sync_bp)           # 동기화 탭

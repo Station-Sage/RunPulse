@@ -62,6 +62,55 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     ).fetchone()
     ctx["weekly"] = {"count": int(vol[0]), "km": round(float(vol[1]), 1)}
 
+    # 오늘 계획된 훈련
+    plan_row = conn.execute(
+        "SELECT workout_type, distance_km, target_pace_min, target_pace_max, "
+        "target_hr_zone, description FROM planned_workouts WHERE date=? "
+        "ORDER BY id DESC LIMIT 1",
+        (today,),
+    ).fetchone()
+    if plan_row:
+        ctx["planned_workout"] = {
+            "type": plan_row[0],
+            "distance_km": plan_row[1],
+            "pace_min": plan_row[2],
+            "pace_max": plan_row[3],
+            "hr_zone": plan_row[4],
+            "description": plan_row[5],
+        }
+
+    # 어제 훈련 이행 여부
+    yesterday = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
+    yrow = conn.execute(
+        "SELECT workout_type, distance_km, completed, skip_reason "
+        "FROM planned_workouts WHERE date=? AND workout_type!='rest' "
+        "ORDER BY id DESC LIMIT 1",
+        (yesterday,),
+    ).fetchone()
+    if yrow:
+        c = yrow[2]
+        ctx["yesterday_plan"] = {
+            "type": yrow[0], "km": yrow[1],
+            "status": "completed" if c == 1 else "skipped" if c == -1 else "unknown",
+        }
+
+    # 이번 주 이행률
+    td = date.fromisoformat(today)
+    week_start = td - timedelta(days=td.weekday())
+    week_rows = conn.execute(
+        "SELECT completed FROM planned_workouts "
+        "WHERE date BETWEEN ? AND ? AND date<=? AND workout_type!='rest'",
+        (week_start.isoformat(), today, today),
+    ).fetchall()
+    if week_rows:
+        total = len(week_rows)
+        done = sum(1 for r in week_rows if r[0] == 1)
+        skipped = sum(1 for r in week_rows if r[0] == -1)
+        ctx["plan_compliance"] = {
+            "total": total, "completed": done, "skipped": skipped,
+            "pct": round(done / total * 100) if total else 0,
+        }
+
     return ctx
 
 
@@ -156,6 +205,37 @@ def build_training_context(conn: sqlite3.Connection, today: str,
     if act:
         ctx["today_activity"] = {
             "km": act[0], "sec": act[1], "pace": act[2], "hr": act[3],
+        }
+
+    # 어제 훈련 이행 + 이번 주 이행률
+    yesterday = (td - timedelta(days=1)).isoformat()
+    yrow = conn.execute(
+        "SELECT workout_type, distance_km, completed FROM planned_workouts "
+        "WHERE date=? AND workout_type!='rest' ORDER BY id DESC LIMIT 1",
+        (yesterday,),
+    ).fetchone()
+    if yrow:
+        c = yrow[2]
+        ctx["yesterday_plan"] = {
+            "type": yrow[0], "km": yrow[1],
+            "status": "completed" if c == 1 else "skipped" if c == -1 else "unknown",
+        }
+
+    week_rows = conn.execute(
+        "SELECT completed FROM planned_workouts "
+        "WHERE date BETWEEN ? AND ? AND date<=? AND workout_type!='rest'",
+        (ws.isoformat(), today, today),
+    ).fetchall()
+    if week_rows:
+        total = len(week_rows)
+        done = sum(1 for r in week_rows if r[0] == 1)
+        skipped = sum(1 for r in week_rows if r[0] == -1)
+        if "this_week" in ctx:
+            ctx["this_week"]["compliance_pct"] = round(done / total * 100) if total else 0
+            ctx["this_week"]["skipped"] = skipped
+        ctx["plan_compliance"] = {
+            "total": total, "completed": done, "skipped": skipped,
+            "pct": round(done / total * 100) if total else 0,
         }
 
     return ctx

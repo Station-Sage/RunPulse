@@ -171,6 +171,21 @@ class BgSyncThread(threading.Thread):
         except Exception as exc:
             update_job(self.job_id, last_error=f"메트릭 계산 실패: {str(exc)[:150]}")
 
+        # 동기화 완료 후 최근 4주 계획↔활동 자동 매칭
+        try:
+            import sqlite3 as _sqlite3
+            from datetime import date as _date, timedelta as _td
+            from src.training.matcher import match_week_activities
+            today = _date.today()
+            this_week = today - _td(days=today.weekday())
+            with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                for w in range(4):
+                    match_week_activities(conn, this_week - _td(weeks=w))
+                conn.commit()
+        except Exception:
+            pass
+
     # ── 배치 실행 ─────────────────────────────────────────────────────
 
     def _run_one_batch(

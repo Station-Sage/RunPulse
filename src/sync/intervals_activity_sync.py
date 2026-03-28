@@ -362,7 +362,7 @@ def sync_activities(
                     act.get("session_rpe"),
                     act.get("strain_score"),
                     act.get("polarization_index"),
-                    (act.get("category") or "").lower() or None,
+                    "race" if ((act.get("sub_type") or "").upper() == "RACE" or act.get("race") is True) else (act.get("category") or "").lower() or None,
                 ),
             )
         except sqlite3.Error as e:

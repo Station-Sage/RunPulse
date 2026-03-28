@@ -164,6 +164,11 @@ def classify_workout(
 def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClassification | None:
     """DB에서 활동 데이터를 읽어 분류.
 
+    소스 레이스 태그 우선:
+      - Garmin: event_type='race'
+      - Strava: workout_type=1
+    3개 소스 중 하나라도 레이스이면 레이스로 확정.
+
     Returns:
         WorkoutClassification 또는 None.
     """
@@ -177,6 +182,31 @@ def classify_activity(conn: sqlite3.Connection, activity_id: int) -> WorkoutClas
 
     duration_sec, distance_km, avg_hr, max_hr_act = row[0], row[1], row[2], row[3]
     _event_type = row[5] if len(row) > 5 else None
+
+    # 동일 matched_group_id의 모든 소스에서 레이스 태그 확인
+    is_source_race = False
+    group_row = conn.execute(
+        "SELECT matched_group_id FROM activity_summaries WHERE id=?", (activity_id,)
+    ).fetchone()
+    if group_row and group_row[0]:
+        race_check = conn.execute(
+            """SELECT 1 FROM activity_summaries
+               WHERE matched_group_id=?
+                 AND (
+                   (source='garmin' AND event_type='race')
+                   OR (source='strava' AND workout_type=1)
+                   OR (source='intervals' AND event_type='race')
+                 ) LIMIT 1""",
+            (group_row[0],),
+        ).fetchone()
+        is_source_race = race_check is not None
+    elif _event_type == 'race':
+        is_source_race = True
+
+    if is_source_race:
+        return WorkoutClassification(
+            "race", _EFFECTS["race"], 1.0, "소스 레이스 태그 (Garmin event_type=race 또는 Strava workout_type=1)"
+        )
 
     # maxHR: 활동 max_hr가 아닌 사용자 maxHR (전체 최대)
     max_hr_est = estimate_max_hr(conn)

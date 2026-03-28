@@ -1,4 +1,4 @@
-"""CTL/ATL/TSB 자체 계산 — DailyTRIMP 기반 지수 이동 평균.
+"""CTL/ATL/TSB 자체 계산 — TRIMP 기반 지수 이동 평균.
 
 Intervals.icu에서 CTL/ATL을 제공하지 않는 과거 데이터를 자체 계산.
 기존 Intervals 값이 있으면 그대로 유지, 없는 날짜만 채움.
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 def calc_and_fill_ctl_atl(conn: sqlite3.Connection,
                            start_date: str | None = None,
                            end_date: str | None = None) -> int:
-    """DailyTRIMP 기반 CTL/ATL/TSB 계산 → daily_fitness에 저장.
+    """TRIMP 기반 CTL/ATL/TSB 계산 → daily_fitness에 저장.
 
     Intervals.icu 값이 있는 날짜는 스킵.
     없는 날짜만 RunPulse 자체 계산으로 채움.
@@ -38,7 +38,7 @@ def calc_and_fill_ctl_atl(conn: sqlite3.Connection,
     if not start_date:
         row = conn.execute(
             "SELECT MIN(date) FROM computed_metrics "
-            "WHERE metric_name='DailyTRIMP' AND metric_value IS NOT NULL"
+            "WHERE metric_name='TRIMP' AND activity_id IS NULL AND metric_value IS NOT NULL"
         ).fetchone()
         start_date = row[0] if row and row[0] else None
     if not start_date:
@@ -46,7 +46,7 @@ def calc_and_fill_ctl_atl(conn: sqlite3.Connection,
     if not end_date:
         end_date = date.today().isoformat()
 
-    # 이미 Intervals 값이 있는 날짜
+    # 이미 Intervals 값이 있는 날짜 (스킵 대상)
     existing = set()
     rows = conn.execute(
         "SELECT date FROM daily_fitness WHERE source='intervals' "
@@ -56,10 +56,10 @@ def calc_and_fill_ctl_atl(conn: sqlite3.Connection,
     for r in rows:
         existing.add(r[0])
 
-    # DailyTRIMP 시계열 로드
+    # TRIMP 시계열 로드 (일별 합산만, activity_id IS NULL)
     trimp_rows = conn.execute(
         "SELECT date, metric_value FROM computed_metrics "
-        "WHERE metric_name='DailyTRIMP' AND date BETWEEN ? AND ? "
+        "WHERE metric_name='TRIMP' AND activity_id IS NULL AND date BETWEEN ? AND ? "
         "ORDER BY date",
         (start_date, end_date),
     ).fetchall()
@@ -71,8 +71,22 @@ def calc_and_fill_ctl_atl(conn: sqlite3.Connection,
         "SELECT ctl, atl FROM daily_fitness WHERE date=? ORDER BY source DESC LIMIT 1",
         (prev_day,),
     ).fetchone()
-    ctl = float(init[0]) if init and init[0] else 0.0
-    atl = float(init[1]) if init and init[1] else 0.0
+    if init and init[0]:
+        ctl = float(init[0])
+        atl = float(init[1]) if init[1] else 0.0
+    else:
+        # 전날 값 없으면 첫 42일 TRIMP 평균을 CTL seed로 사용 (콜드 스타트 보정)
+        seed_row = conn.execute(
+            "SELECT AVG(metric_value) FROM ("
+            "  SELECT metric_value FROM computed_metrics "
+            "  WHERE metric_name='TRIMP' AND activity_id IS NULL AND date >= ? AND date <= ? "
+            "  ORDER BY date LIMIT 42"
+            ")",
+            (start_date, end_date),
+        ).fetchone()
+        seed = float(seed_row[0]) if seed_row and seed_row[0] else 0.0
+        ctl = seed
+        atl = seed
 
     # 날짜별 순회
     count = 0

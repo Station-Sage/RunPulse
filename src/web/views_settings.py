@@ -234,6 +234,157 @@ def _render_mapbox_section(config: dict) -> str:
 </div>"""
 
 
+def _render_training_prefs_section() -> str:
+    """훈련 환경 설정 섹션 (휴식 요일, 일회성 차단 날짜, 인터벌 설정)."""
+    import json
+    import sqlite3
+    from src.db_setup import get_db_path
+
+    # 현재 저장된 prefs 로드
+    prefs = {"rest_weekdays_mask": 0, "blocked_dates": "[]",
+             "interval_rep_m": 1000, "max_q_days": 0}
+    try:
+        dbp = get_db_path()
+        if dbp and dbp.exists():
+            conn = sqlite3.connect(str(dbp))
+            row = conn.execute(
+                "SELECT rest_weekdays_mask, blocked_dates, interval_rep_m, max_q_days "
+                "FROM user_training_prefs LIMIT 1"
+            ).fetchone()
+            conn.close()
+            if row:
+                prefs = {"rest_weekdays_mask": row[0] or 0,
+                         "blocked_dates": row[1] or "[]",
+                         "interval_rep_m": row[2] or 1000,
+                         "max_q_days": row[3] or 0}
+    except Exception:
+        pass
+
+    mask = int(prefs["rest_weekdays_mask"])
+    try:
+        blocked_list = json.loads(prefs["blocked_dates"]) if prefs["blocked_dates"] else []
+    except Exception:
+        blocked_list = []
+    blocked_str = ", ".join(blocked_list)
+    rep_m = int(prefs["interval_rep_m"])
+    max_q = int(prefs["max_q_days"])
+
+    # 요일 체크박스 (월~일)
+    days = ["월", "화", "수", "목", "금", "토", "일"]
+    day_checks = ""
+    for i, dname in enumerate(days):
+        bit = 1 << i
+        checked = "checked" if (mask & bit) else ""
+        day_checks += (
+            f"<label style='display:flex;align-items:center;gap:4px;cursor:pointer;'>"
+            f"<input type='checkbox' name='rest_day_{i}' value='{bit}' {checked} "
+            f"style='width:16px;height:16px;'> {dname}</label>"
+        )
+
+    # 표준 인터벌 거리 옵션 (Buchheit & Laursen 2013 구간 기준 + 비표준 허용)
+    std_distances = [200, 300, 400, 600, 800, 1000, 1200, 1600, 2000]
+    std_opts = "".join(
+        f"<option value='{d}' {'selected' if d == rep_m else ''}>{d}m</option>"
+        for d in std_distances
+    )
+    # 비표준 거리이면 "직접 입력" 선택
+    is_custom = rep_m not in std_distances
+    custom_selected = "selected" if is_custom else ""
+    custom_val = str(rep_m) if is_custom else ""
+
+    return f"""
+<div class='card' id='training-prefs-section'>
+  <h2 style='margin:0 0 0.8rem;font-size:0.95rem;'>훈련 환경 설정</h2>
+  <p class='muted' style='font-size:0.82rem;margin:0 0 1rem;'>
+    훈련 계획 자동 생성 시 반영됩니다. 휴식일로 지정된 날은 계획에서 제외됩니다.
+  </p>
+  <form method='post' action='/settings/training-prefs'>
+
+    <div style='margin-bottom:1.2rem;'>
+      <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.5rem;'>
+        정기 휴식 요일 (매주 반복)
+      </label>
+      <div style='display:flex;gap:12px;flex-wrap:wrap;'>
+        {day_checks}
+      </div>
+    </div>
+
+    <div style='margin-bottom:1.2rem;'>
+      <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
+        일회성 차단 날짜 (쉼표 구분, YYYY-MM-DD)
+      </label>
+      <input type='text' name='blocked_dates' value='{_html.escape(blocked_str)}'
+        placeholder='예: 2026-04-05, 2026-05-01'
+        style='width:100%;padding:0.4rem;background:var(--card);border:1px solid var(--card-border);
+               color:var(--text);border-radius:4px;font-size:0.88rem;box-sizing:border-box;'>
+    </div>
+
+    <div style='display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.2rem;'>
+      <div>
+        <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
+          인터벌 기본 반복 거리
+          <span class='muted' style='font-weight:normal;font-size:0.78rem;'>
+            (Buchheit &amp; Laursen 2013 — 200~2000m, 비표준 입력 가능)
+          </span>
+        </label>
+        <div style='display:flex;gap:8px;align-items:center;'>
+          <select id='rep-select' name='interval_rep_m_select'
+            onchange='syncRepM(this.value)'
+            style='padding:0.35rem;background:var(--card);border:1px solid var(--card-border);
+                   color:var(--text);border-radius:4px;'>
+            {std_opts}
+            <option value='custom' {custom_selected}>직접 입력</option>
+          </select>
+          <input type='number' id='rep-custom' name='interval_rep_m'
+            value='{rep_m}' min='100' max='5000' step='10'
+            style='width:90px;padding:0.35rem;background:var(--card);
+                   border:1px solid var(--card-border);color:var(--text);
+                   border-radius:4px;{"display:none;" if not is_custom else ""}'
+            placeholder='예: 320'>
+          <span class='muted' style='font-size:0.82rem;'>m</span>
+        </div>
+      </div>
+
+      <div>
+        <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
+          주간 최대 Q-day 수
+          <span class='muted' style='font-weight:normal;font-size:0.78rem;'>(0=자동)</span>
+        </label>
+        <input type='number' name='max_q_days' value='{max_q}' min='0' max='4'
+          style='width:70px;padding:0.35rem;background:var(--card);
+                 border:1px solid var(--card-border);color:var(--text);border-radius:4px;'>
+      </div>
+    </div>
+
+    <button type='submit'
+      style='background:var(--cyan);color:#000;border:none;padding:0.4rem 1.4rem;
+             border-radius:6px;font-weight:600;cursor:pointer;font-size:0.88rem;'>
+      저장
+    </button>
+  </form>
+  <script>
+  function syncRepM(val) {{
+    const custom = document.getElementById('rep-custom');
+    if (val === 'custom') {{
+      custom.style.display = '';
+      custom.focus();
+    }} else {{
+      custom.style.display = 'none';
+      custom.value = val;
+    }}
+  }}
+  // 초기화: select와 hidden input 동기화
+  document.addEventListener('DOMContentLoaded', function() {{
+    const sel = document.getElementById('rep-select');
+    const cust = document.getElementById('rep-custom');
+    if (sel && cust && sel.value !== 'custom') {{
+      cust.value = sel.value;
+    }}
+  }});
+  </script>
+</div>"""
+
+
 def _render_ai_section(config: dict) -> str:
     """AI 코치 설정 섹션."""
     ai_cfg = config.get("ai", {})
@@ -250,7 +401,7 @@ def _render_ai_section(config: dict) -> str:
     provider_options = ""
     for val, label in [("rule", "규칙 기반 (API 불필요)"), ("gemini", "Google Gemini (무료)"), ("groq", "Groq (무료, Llama 3.3)"), ("genspark", "Genspark (수동 복사/붙여넣기)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
         sel = " selected" if val == provider else ""
-        provider_options += f"<option value='{val}'{sel}>{label}</option>"
+        provider_options += f"<option value='{val}'{sel} style='background:#1a2035;color:#e0e6f0;'>{label}</option>"
 
     return f"""
 <div class='card'>
@@ -436,6 +587,18 @@ def settings_view() -> str:
      border-radius:8px;font-weight:600;font-size:0.85rem;text-decoration:none;'>🔄 동기화 탭</a>
 </div>
 {_render_user_profile_section(config)}
+<div class='card' style='border-left:4px solid var(--cyan);'>
+  <h2 style='margin:0 0 0.5rem;font-size:0.95rem;'>훈련 환경 설정</h2>
+  <p class='muted' style='font-size:0.85rem;margin:0 0 0.8rem;'>
+    휴식 요일, 롱런 요일, 인터벌 거리 등 훈련 설정은 훈련 탭으로 이동했습니다.
+  </p>
+  <a href='/training#training-prefs-details'
+    style='background:var(--cyan);color:#000;padding:0.4rem 1.2rem;
+           border-radius:8px;font-weight:600;font-size:0.85rem;text-decoration:none;
+           display:inline-block;'>
+    ⚙️ 훈련 환경 설정 바로가기
+  </a>
+</div>
 {_render_mapbox_section(config)}
 {_render_ai_section(config)}
 {_render_prompt_management(config)}
@@ -445,11 +608,15 @@ def settings_view() -> str:
   <p>기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, RTTI, WLEI, TPDI 등)을 재계산합니다.<br>
   <small class='muted'>동기화 후 자동으로 실행되지만, 수동으로 강제 재계산할 때 사용합니다.</small></p>
   <form id='recompute-form' style='display:flex; align-items:center; gap:1rem; flex-wrap:wrap;'>
-    <label>최근 <input type='number' id='recompute-days' value='90' min='1' max='365'
+    <label>최근 <input type='number' id='recompute-days' value='90' min='1'
            style='width:60px; text-align:center;'> 일간 재계산</label>
     <button type='button' id='recompute-btn' onclick='startRecompute()'
       style='padding:0.4rem 1.2rem; background:#00d4ff; color:#000; border:none; border-radius:4px; cursor:pointer; font-weight:bold;'>
       재계산 시작
+    </button>
+    <button type='button' onclick='document.getElementById("recompute-days").value=0; startRecompute()'
+      style='padding:0.4rem 1.2rem; background:rgba(255,255,255,0.1); color:var(--muted); border:1px solid var(--card-border); border-radius:4px; cursor:pointer;'>
+      전체 기간
     </button>
   </form>
   <!-- 진행 섹션 -->
@@ -1127,7 +1294,8 @@ def metrics_recompute():
 
     try:
         days = int(request.form.get("days", 90))
-        days = max(1, min(days, 365))
+        if days < 0:
+            days = 0  # 0 = 전체 기간
     except (ValueError, TypeError):
         days = 90
 
@@ -1188,6 +1356,41 @@ def metrics_recompute_status():
         return jsonify(dict(_recompute_state))
 
 
+@settings_bp.get("/recompute-metrics")
+def recompute_metrics_get():
+    """동기화 탭에서 호출하는 GET 재계산 엔드포인트 (간단 버전, JSON 응답)."""
+    from flask import jsonify
+    from src.metrics import engine as metrics_engine
+
+    with _recompute_lock:
+        if _recompute_state.get("status") == "running":
+            return jsonify({"message": "재계산이 이미 진행 중입니다."})
+
+    try:
+        days = int(request.args.get("days", 90))
+        if days < 0:
+            days = 0
+    except (ValueError, TypeError):
+        days = 90
+
+    import time as _time
+    _set_recompute_state(status="running", days=days, completed=0, total=days,
+                         current_date="", pct=0, error=None,
+                         started_at=_time.time())
+
+    def _run() -> None:
+        try:
+            with sqlite3.connect(str(db_path())) as conn:
+                metrics_engine.recompute_all(conn, days=days)
+            _set_recompute_state(status="completed", pct=100)
+        except Exception as exc:
+            _set_recompute_state(status="error", error=str(exc)[:200])
+
+    _threading.Thread(target=_run, daemon=True, name="metrics-recompute-get").start()
+    label = "전체 기간" if days == 0 else f"최근 {days}일"
+    return jsonify({"message": f"재계산 시작 ({label}). 백그라운드에서 진행 중..."})
+
+
 # ── 사용자 프로필 저장 ────────────────────────────────────────────────
 @settings_bp.post("/settings/profile")
 def settings_profile_post():
@@ -1208,6 +1411,13 @@ def settings_profile_post():
     config["user"]["threshold_pace"] = threshold_pace
     save_config(config)
     return redirect("/settings?msg=프로필이 저장되었습니다")
+
+
+# ── 훈련 환경 설정 저장 ──────────────────────────────────────────────
+@settings_bp.post("/settings/training-prefs")
+def settings_training_prefs_post():
+    """훈련 환경 설정 — 훈련 탭으로 이전됨. 하위 호환 리디렉션."""
+    return redirect("/training?msg=훈련 환경 설정은 훈련 탭 하단에서 변경하세요")
 
 
 # ── AI 설정 저장 ─────────────────────────────────────────────────────

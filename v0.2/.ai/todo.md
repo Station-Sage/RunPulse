@@ -1,6 +1,42 @@
 # v0.2 작업 목록
 
-최종 업데이트: 2026-03-27 (AI 코치 v2 + 훈련탭/활동탭 개선 + VDOT 전문화)
+최종 업데이트: 2026-03-28 (훈련탭 UX 재설계 Phase C 완료 — Wizard 4단계)
+
+---
+
+## ▶ 다음 세션 시작 시 여기부터 (2026-03-28 기준)
+
+### 최근 완료 요약 (상세: `changelog.md` 참조)
+- **Phase C 완료**: 4단계 AJAX Wizard (`/training/wizard`)
+  - `views_training_wizard.py` 신규 (Blueprint + 3 라우트)
+  - `views_training_wizard_render.py` 신규 (Step 1~4 HTML 렌더러, JS)
+  - Step 1: 목표 이름/종목/날짜/시간·페이스 입력
+  - Step 2: 환경 설정(휴식·롱런 요일, 인터벌 거리, 훈련 기간)
+  - Step 3: `readiness.analyze_readiness()` 호출 — 달성률·예상 기록·경고 표시 (DB 없으면 graceful)
+  - Step 4: 플랜 요약 + 생성 버튼 → `POST /training/wizard/complete`
+  - `wizard_bp` app.py 등록
+  - 목표 없을 때 "🗓️ 훈련 계획 시작하기" 버튼 (`views_training_cards.py`)
+  - `tests/test_training_wizard.py` 18개 통과
+- **현재 상태: SCHEMA_VERSION=3.1(내부4), 1097 테스트 통과 (2026-03-28)**
+
+### 다음 우선 작업 — Phase D부터 시작
+
+**Phase D: 워크아웃 편집 메뉴**
+- [ ] 각 워크아웃 카드 `⚙️` 편집 버튼 + inline 패널 (AJAX)
+- [ ] `PATCH /training/workout/<id>` 편집 라우트
+- [ ] 인터벌 타입: `interval_calc.py` 재계산 연동
+
+**Phase E: 전체 계획 뷰**
+- [ ] `planner.py` — 전체 기간(N주) 계획 생성 함수 추가
+- [ ] `src/web/views_training_fullplan.py` 신규 (표/캘린더 뷰, Collapsible)
+
+**Phase F: 비교 차트 + 훈련 분석 카드**
+- [ ] 계획 vs 실제 km 비교 바 차트 (ECharts)
+- [ ] 달성도·가능률·예상 기록 카드 (`readiness.analyze_readiness()` 연동)
+- [ ] Q-day 달성률, 페이스 준수율 뱃지
+
+**Phase G: 목표 관리 개선**
+- [ ] 이전 목표 Collapsible 섹션 + [불러오기] 버튼
 
 ---
 
@@ -98,7 +134,21 @@
 - [x] 메트릭 계산 순서 수정 (VDOT_ADJ → DARP/eFTP 앞으로)
 - [x] Stream 접근 버그 수정: activity_streams 테이블 연결 (5곳)
 - [x] CTL/ATL/TSB 자체 계산 (DailyTRIMP 기반 EMA, Intervals 미제공 구간)
-- [x] 레이스 분류기: event_type 원본 태그 최우선 + 거리별 HR 기준
+- [x] 훈련 이행 추적 — 어제 체크인 카드, 계획 vs 실제 캘린더 비교, skip(-1)/confirm(1) 구분
+- [x] 훈련 재조정 — 건너뜀 시 고강도→빈 날 이동, 연속 건너뜀 시 볼륨 10% 축소 (replanner.py)
+- [x] 날짜 기반 계획↔활동 자동 매칭 (matcher.py)
+- [x] DB 스키마 v2 마이그레이션 — planned_workouts에 skip_reason, updated_at 컬럼
+- [x] AI 브리핑 이행 현황 연동 — ai_context/context_builders에 yesterday_plan + plan_compliance, briefing.txt 항목 4/5 업데이트
+- [x] 재계산 365일 제한 제거 — days=0 시 전체 기간(DB 최초 활동부터), sync 탭 GET /recompute-metrics 라우트 추가
+- [x] 레이스 분류기: 소스 태그 기반으로 전면 교체 (Garmin event_type / Strava workout_type / Intervals sub_type+race)
+- [x] Intervals sync: sub_type='RACE' + race=True 필드 캡처 (category 대신)
+- [x] VDOT_ADJ 버그 수정: source 키 누락 + T-pace 블렌딩 (easy run HR 오염 방지)
+- [x] VDOT_ADJ 보정 범위 재정의: 4주이내 ±1%, 4~8주 ±3%, 8주+ ±7%
+- [x] 대시보드 DARP 갱신: _ensure_today_metrics에 DARP_half 조건 포함
+- [x] 레이스 탭: 오늘 DARP 없으면 자동 재계산
+- [x] 훈련 권장 카드: ACWR/CIRS/DI 종합 보정 + 계획된 훈련 비교 블록
+- [x] Shape 라벨 소스 일치: DARP 소스 거리로 라벨 결정 (값·라벨 불일치 버그)
+- [x] 목표 거리 기반 Shape 우선 표시 (대시보드 DARP 카드 + 피트니스 카드)
 - [x] MarathonShape/DARP/eFTP VDOT_ADJ 통일 → Shape 카드 일관성
 - [x] AI 채팅 AJAX: 실시간 메시지 + "생성 중..." 로딩 + JSON 노출 방지 + 마크다운 확장
 - [x] 프롬프트 복사 보강: 30일 풀 데이터 (Gemini 1M 대응)

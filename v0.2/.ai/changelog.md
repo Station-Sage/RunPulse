@@ -2,6 +2,230 @@
 
 > 이전 이력은 `changelog_history.md` 참조
 
+## [fix/metrics-everythings] 2026-03-28 (훈련탭 UX 재설계 Phase C — Wizard)
+
+### Phase C: 4단계 AJAX Wizard (`/training/wizard`)
+- `src/web/views_training_wizard.py` 신규: `wizard_bp` Blueprint
+  - `GET /training/wizard` — Step 1 전체 페이지
+  - `POST /training/wizard/step` — AJAX step별 처리 (JSON: `{step, html}`)
+  - `POST /training/wizard/complete` — goals + prefs 저장 + 플랜 생성 후 redirect
+- `src/web/views_training_wizard_render.py` 신규: HTML 렌더러 + JS
+  - `render_step1()` ~ `render_step4()`: 각 단계 HTML
+  - `wizard_js()`: `_wizHistory` 배열 기반 JS 뒤로가기 + AJAX step 전환
+- `src/web/app.py`: `wizard_bp` 등록
+- `src/web/views_training_cards.py`: 목표 없을 때 "🗓️ 훈련 계획 시작하기" 버튼 추가
+- `tests/test_training_wizard.py` 신규: 18개 테스트 통과 (단위 + 통합)
+- 테스트: **1097개 통과** (기존 1047 + readiness 32 + wizard 18)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (훈련탭 UX 재설계 Phase A+B)
+
+### SCHEMA_VERSION 3.1 — 마이그레이션 v4
+- `db_setup.py`: `SCHEMA_VERSION = 4` (display: '3.1')
+- `_migrate_to_v4()`: `schema_meta.display_version`, `goals.weekly_km_target`, `goals.plan_weeks`, `user_training_prefs.long_run_weekday_mask` 추가
+
+### Phase A: readiness.py 신규
+- `src/training/readiness.py`: 훈련 준비도 분석 + 목표 달성 가능성 예측
+  - VDOT 성장 모델: VO2max + 러닝 경제성(RE) + 젖산역치(LT) 합산 (Saunders 2004, Coyle 1988)
+  - VDOT 구간별 `base_gain`: < 30(0.65) / 30~40(0.40) / 40~50(0.27) / 50~60(0.14) / 60+(0.07)
+  - 최솟값 미만 기간 선택 시 달성률 70% 상한 페널티
+  - 거리별 논문 기반 훈련 기간 (5K:6~10주/테이퍼1주, Full:16~20주/테이퍼3주 등)
+  - `vdot_to_time()`, `get_taper_weeks()`, `recommend_weekly_km()`, `analyze_readiness()`
+- `tests/test_readiness.py`: 32개 테스트 통과
+- `planner.py`: `upsert_user_training_prefs()`에 `long_run_weekday_mask` 파라미터 추가
+
+### Phase B: 훈련 환경 설정 → 훈련탭 이전
+- `src/web/views_training_prefs.py` **신규**: `render_training_prefs_collapsed()` — `<details>` Collapsible 카드 (휴식 요일, 롱런 요일, 일회성 쉬는 날, 인터벌 거리, Q-day)
+- `views_training_crud.py`: `POST /training/prefs` 라우트 추가
+- `views_training.py`: 훈련탭 하단에 prefs 섹션 연결
+- `views_settings.py`: 훈련환경설정 → "훈련탭 바로가기" 링크로 교체, 구 라우트 redirect
+- 1047 테스트 통과 유지
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (테스트 추가 — matcher/replanner/crs)
+
+### 신규 테스트 55개 (55 passed)
+- `tests/test_matcher.py` (12개): 매칭 기본 동작, completed 플래그, rest 제외, 멱등성, session_outcomes 저장/레이블
+- `tests/test_replanner.py` (10개): Rule1 고강도 이동, Rule2 연속건너뜀 볼륨축소, Rule3 달성률 경고, Rule4 테이퍼 보호
+- `tests/test_crs.py` (33개): Gate 1~5 단위 + CRS 점수 범위/보정 + evaluate() 통합
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (동기화 후 자동 매칭)
+
+### 동기화 완료 시 계획↔활동 자동 매칭
+- `app.py`: `_auto_match_after_sync()` 헬퍼 추가
+  - `trigger_sync()` 성공 후 이번 주 + 지난 주 `match_week_activities()` 자동 호출
+- `bg_sync.py`: 백그라운드 sync 완료 블록에 최근 4주 자동 매칭 추가
+  - 메트릭 재계산 블록 이후 실행, 실패 시 조용히 무시 (pass)
+- 61 테스트 통과 (test_planner + test_web_training)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (훈련탭 체크인 UX 개선)
+
+### 훈련탭 체크인 AJAX 처리 + 재조정 diff 카드
+- `views_training_crud.py`: `/confirm`, `/skip` 라우트에 `Accept: application/json` 헤더 시 JSON 응답 추가
+  - confirm → `{"ok": true}`
+  - skip → `{"ok": true, "message", "changes": [...], "warnings": [...], "moved", "target_date"}`
+  - `result` 변수 초기화를 try 블록 앞으로 이동 (예외 발생 시 변수 미정의 버그 수정)
+- `views_training_cards.py`: 체크인 카드 form POST → fetch AJAX 전환
+  - 완료 버튼: 카드 fade-out 후 DOM 제거 (페이지 새로고침 없음)
+  - 건너뜀 버튼: 재조정 결과를 인라인 diff 테이블로 표시 (날짜·변경 전→후·경고 메시지)
+  - fallback: fetch 실패 시 `location.reload()` (기존 동작 유지)
+- 테스트: 990 통과 (2개 기존 실패 `test_web_settings.py` — `get_db_path` import 버그, 무관)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (훈련 엔진 v2)
+
+### 훈련 엔진 v2 전면 재설계 (논문 기반)
+
+**DB 스키마 v3 마이그레이션:**
+- `user_training_prefs` 신규: 휴식요일 bitmask, 차단날짜 JSON, 인터벌 rep 거리, max Q-day
+- `session_outcomes` 신규: ML 훈련 데이터 (달성률/페이스편차/HR분포/컨디션 스냅샷/outcome_label)
+- `planned_workouts.interval_prescription TEXT` 컬럼 추가
+- `goals.distance_label TEXT` 컬럼 추가 ('1.5k'|'3k'|'5k'|'10k'|'half'|'full'|'custom')
+- UNIQUE INDEX on `session_outcomes(planned_id)`
+
+**`src/metrics/crs.py` 신규 (게이트 기반 훈련 준비도):**
+- Gate 1: ACWR (Gabbett 2016, BJSM) — >1.5 Z1 강제, >1.3 Z3 금지
+- Gate 2: HRV (Plews 2013, IJSPP) — 7일 rolling avg 대비 -10% 임계
+- Gate 3: Body Battery / Sleep Score — <25 휴식, <50 Z3 금지
+- Gate 4: TSB (Coggan 2003) — <-30 즉시 회복주
+- Gate 5: CIRS (내부) — >80 위험
+- CRS 참고 점수 0~100 (UTRS 기반 + ACWR/CIRS 보정)
+- 훈련 레벨: 0=REST, 1=Z1_ONLY, 2=Z1_Z2, 3=FULL, 4=BOOST
+
+**`src/training/interval_calc.py` 신규 (Billat/Buchheit 공식):**
+- `prescribe_interval(rep_m, interval_pace_sec_km)` — Billat 2001 휴식 비율 (60~240초 선형 보간)
+- `prescribe_from_vdot(rep_m, vdot)` — VDOT_ADJ → Daniels I-pace → 처방
+- Buchheit & Laursen 2013 rep 거리별 총 볼륨 상한
+- VO2max 자극 60초 미달 경고
+
+**`src/training/planner.py` 전면 개편 (v2):**
+- `DISTANCE_LABEL_KM` — 6 표준 레이스 거리 + custom
+- `_training_phase(weeks_left, week_idx)` — Foster 1998 3:1 사이클 (week_idx%4==3 → recovery_week)
+- `_weekly_volume_km(ctl, phase, tsb, shape_pct)` — CTL 기반 + Mujika 2003 테이퍼 55% 감소
+- `_get_available_days(week_start, prefs)` — bitmask + blocked_dates
+- `_assign_qdayslots()` — Seiler 2009 Hard-Easy 48h 간격
+- `generate_weekly_plan()` — CRS 게이트 다운그레이드, Seiler 80/20, Daniels 페이스
+- `upsert_user_training_prefs()` — INSERT OR REPLACE
+
+**`src/training/matcher.py` 확장:**
+- `match_week_activities()` — session_outcomes 자동 저장
+- `_save_session_outcome()` — dist_ratio, pace_delta_pct, HR zone 분포, 컨디션 스냅샷
+- `save_skipped_outcome()` — 건너뜀 outcome_label='skipped' 기록
+
+**`src/training/replanner.py` 재작성 (v2):**
+- Rule 1: 고강도/long → Hard-Easy 2일 간격 보장하며 이동 (Lydiard/Bowerman)
+- Rule 2: 연속 건너뜀 → 볼륨 10% 축소 (Gabbett 2016 ACWR)
+- Rule 3: session_outcomes 피드백 — dist_ratio/pace/CRS 기반 경고
+- Rule 4: 테이퍼 보호 — 이동 없이 볼륨 5% 축소만 (Mujika 2003)
+
+**`src/web/views_settings.py` 훈련 설정 UI:**
+- 요일별 휴식 체크박스 (bitmask)
+- 일회성 차단 날짜 입력
+- 인터벌 rep 거리 드롭다운 + 커스텀 입력 (320m 등 비표준 포함)
+- `POST /settings/training-prefs` 라우트
+
+**`src/web/views_training_cards.py` 인터벌 처방 카드:**
+- `render_interval_prescription_card(workout)` — rep×sets, 페이스, 휴식, 총볼륨, 세션시간
+- 논문 인용 표시 (Billat 2001, Buchheit 2013)
+
+**설계 문서:**
+- `v0.2/.ai/training_engine_v2_design.md` — 논문 참조표 + 모듈 구조 + ML 로드맵
+
+**테스트:** 992 통과 (test_planner.py v2 API 반영)
+
+---
+
+## [feat/training-compliance] 2026-03-28
+
+### 훈련 이행 추적 + 재조정 + 브리핑 연동
+
+**DB 스키마 v2 마이그레이션:**
+- `planned_workouts` 테이블에 `skip_reason TEXT`, `updated_at TEXT` 컬럼 추가
+- `completed`: 0=대기, 1=완료, -1=건너뜀 (3-state)
+- `SCHEMA_VERSION` 1→2, `_migrate_to_v2` 함수 추가
+
+**어제 훈련 체크인 카드 (Phase A):**
+- 훈련 탭 상단에 어제 미확인 계획이 있으면 체크인 카드 표시
+- "완료했어요" → `POST /training/workout/{id}/confirm` → `completed=1` + 자동 매칭
+- "건너뜀" → `POST /training/workout/{id}/skip` → `completed=-1` + 자동 재조정 실행
+- `views_training_cards.py`: `render_checkin_card()` 신규
+- `views_training_loaders.py`: `load_yesterday_pending()` 신규
+- `views_training_crud.py`: confirm/skip/replan 라우트 신규
+
+**계획 vs 실제 캘린더 비교 (Phase B):**
+- `src/training/matcher.py` 신규 — 날짜 기반 계획↔활동 자동 매칭, 거리 근사치 선택
+- `views_training_loaders.py`: `load_actual_activities()` 신규
+- `render_week_calendar()`: `actual_activities` 파라미터 추가
+  - 과거 날짜 각 칸에 "실제 Xkm · P:SS/km" 표시
+  - 달성률 ≥90% 초록, 70~89% 주황, <70% 빨강
+
+**계획 재조정 (Phase C):**
+- `src/training/replanner.py` 신규
+  - 건너뛴 고강도(interval/tempo)/long → 이번 주 남은 rest/easy 날로 이동
+  - 연속 2일 건너뜀 → 남은 고강도 볼륨 10% 축소
+- `POST /training/replan` 라우트 (수동 재조정)
+
+**AI 브리핑 이행 현황 연동:**
+- `ai_context.py`: `build_context()`에 `yesterday_plan`, `plan_compliance` 추가
+- `ai_context.py`: `format_context_text()`에 "훈련 계획 이행 현황" 섹션 추가
+- `context_builders.py`: `build_dashboard_context()`, `build_training_context()`에 어제 이행 + 이행률 추가
+- `briefing.txt`: 항목 4(오늘 권장 훈련) — 어제 이행 여부 반영 지시; 항목 5(이번 주 나머지) — 건너뜀 이력 반영 지시
+
+**재계산 개선 (sync 탭):**
+- `views_settings.py`: `GET /recompute-metrics` 라우트 신규 (sync 탭 JS 호환)
+- `days=0` = 전체 기간 (DB 최초 활동부터)
+- 365일 상한 제거
+
+---
+
+## [fix/metrics-everythings] 2026-03-28
+
+### 메트릭 버그 수정 + 대시보드 브리핑 개선 + Shape 라벨 통일
+
+**레이스 감지 소스 기반으로 전면 교체:**
+- 기존: HR 임계값(90% maxHR) 또는 레이블 텍스트 기반 → 템포런이 레이스로 오분류
+- 수정: Garmin `event_type='race'`, Strava `workout_type=1`, Intervals `sub_type='RACE'`/`race=True` 소스 태그 기준
+- 영향 파일: `vdot_adj.py`, `workout_classifier.py`, `intervals_activity_sync.py`
+
+**VDOT_ADJ 버그 수정 2건:**
+- `vdot.py`: `"source": "race_estimate"` 키 누락 → race_estimate 소스 인식 불가 수정
+- `vdot_adj.py` 보정 범위: 4주 이내 ±1%, 4~8주 ±3%, 8주+ ±7% (이전: 8주+ ±7% 적용 조건 버그)
+- `vdot_adj.py` T-pace 블렌딩: 레이스 직후 easy run HR 오염 방지 (레이스 implied T-pace × race_weight + stream 측정값 × (1-weight))
+
+**대시보드 DARP 갱신 일관성:**
+- `views_dashboard.py`: `_ensure_today_metrics` 조건에 `DARP_half` 포함 (UTRS만 있어도 스킵하던 버그)
+- `views_race.py`: 레이스 탭 접근 시 오늘 `DARP_half` 없으면 자동 재계산
+
+**대시보드 훈련 권장 카드 개선 (`views_dashboard_cards.py`):**
+- UTRS 단독 판단 → ACWR/CIRS/DI 종합 보정
+  - ACWR 1.0~1.3 + CIRS < 30 + DI > 80 → effective_level +1 상향
+  - ACWR > 1.5 → effective_level -1 하향
+- ACWR 과부하 경고 notes 추가 (> 1.5 빨간, 1.3~1.5 주황)
+- 오늘 계획된 훈련 비교 블록 추가
+  - `planned_workouts` 테이블에서 오늘 계획 조회
+  - effective_level vs 계획 강도 비교 → "계획대로 진행 / 강도 낮춰 진행 / 건너뛰기 권장" 색상 표시
+- `context_builders.py`: 대시보드 AI 컨텍스트에 `planned_workout` 포함
+- `prompt_config.py`: `dashboard_recommendation` 프롬프트에 계획 대비 조언 지시 추가
+
+**Shape 라벨 소스 불일치 수정 (`views_dashboard_cards.py`):**
+- 기존: 값은 `darp_data["half"]["race_shape"]`(84%), 라벨은 `MarathonShape` metric의 `race_distance_km`(10km) → "10K Shape" 오표시
+- 수정: `shape_dist_key` 파라미터 추가, DARP 소스 거리와 라벨 일치
+- `_render_darp_mini` Shape 배지도 "Shape" → "Half Shape"/"10K Shape" 등 명시
+
+**목표 거리 기반 Shape/DARP 우선 표시 (`views_dashboard.py`):**
+- `get_active_goal()` 조회 → `_goal_dist_key` 결정
+- 대시보드 피트니스 카드 + DARP 카드 모두 목표 거리 shape 우선 표시
+- 목표 없으면 half → full → 10k → 5k 순서 fallback
+
+---
+
 ## [v0.4-stream-fix] 2026-03-27
 
 ### Stream 데이터 접근 버그 수정 + CTL/ATL 자체 계산
@@ -27,221 +251,4 @@
 **DARP Shape 배지:**
 - half → full → 10k → 5k 우선순위로 목표 거리 Shape 표시
 
----
-
-## [v0.4-race-vdot] 2026-03-27
-
-### 레이스 기반 VDOT + 예측 정밀화
-
-**VDOT 소스 우선순위 변경:**
-- ①최근 레이스(8주 이내) → ②고강도 가중 평균 → ③Runalyze/Garmin
-- 레이스 검증: HR 82%+, 공식 거리 ±5%, FEARP 환경 보정
-- 복수 레이스: 중앙값 + 교차 검증 ±20%
-
-**레이스 예측: 잘못된 테이블 → Daniels 수학 공식:**
-- Before: VDOT 44 → 하프 1:33 (테이블 오류)
-- After:  VDOT 44 → 하프 1:42 (공식 정확)
-- Round-trip 검증: 하프 1:42 → VDOT 44.1 → 예측 1:42:00 ✓
-
-**VDOT_ADJ 보정 범위 축소 (Daniels/Pugh 기준):**
-- 레이스 0~4주: ±3%, 4~8주: ±5%, 8주+: ±7%
-- Before: ±15% (37.1) → After: ±3% (최소 42.8)
-
----
-
-## [v0.4-metrics-precision] 2026-03-27
-
-### 메트릭 정밀화 — 논문 기반 전면 재설계
-
-**maxHR 추정:**
-- Stream 30초 슬라이딩 윈도우 peak HR (ACSM/Beltz/Robergs 기준)
-- 고강도 활동 IQR 이상치 제거 fallback
-- 시계열 저장 (28일 캐시, 나이 변화 추적)
-
-**VDOT_ADJ (현재 체력):**
-- A. Strava stream 역치 HR 구간(Karvonen HRR 개인화) 페이스 추출
-- B. 연속 역치런 평균 페이스 fallback
-- C. HR-페이스 회귀 fallback
-- Daniels T-pace 역보간 → VDOT
-- HR 스파이크 ±30bpm 제거
-
-**Karvonen HRR 역치 범위:**
-- restingHR + HRR × 0.75~0.88 (Karvonen 1957, Daniels 2014)
-- 안정심박 웰니스 7일 중앙값 사용
-- 고정 %maxHR fallback
-
-**Race Shape 논문 기반 가중치:**
-- 10K (Midgley 2007): 페이스 40%, 일관성 27%, 볼륨 20%
-- 하프 (Schmid 2012): 볼륨 28%, 페이스 25%, 최장 18%
-- 마라톤 (Hagan 1981): 볼륨 34%, 최장 27%, 빈도 19%
-
-**DI 보정 거리별 차등:**
-- 5K 0%, 10K 최대 2%, 하프 최대 5%, 풀 최대 10%
-
-**DARP Shape 페널티 축소:**
-- Shape<70 → 5K 2%, 10K 4%, 하프 7%, 풀 10%
-
-**계산 순서 수정:**
-- VDOT_ADJ를 DARP/eFTP 앞으로 이동
-
-**eFTP:**
-- VDOT_ADJ Daniels T-pace 우선
-
----
-
-## [v0.4-sync-tab] 2026-03-27
-
-### 동기화 탭 분리 + AI 응답 품질
-
-**동기화 탭 (/sync):**
-- 설정탭에서 동기화/서비스 연결/임포트/재계산 분리 → 독립 `/sync` 탭
-- 활동탭에서 동기화 카드 제거 → "동기화 관리 →" 링크
-- 하단 네비 7+1탭: 홈|활동|레포트|훈련|AI코치|동기화|설정(+개발자)
-- 설정탭에는 "동기화 탭" 바로가기 배너만 남김
-
-**AI 응답 품질 개선:**
-- 시스템 프롬프트 대폭 강화 (한국어 전용, 훈련 원칙, 데이터 해석 가이드)
-- 훈련 스케줄 상세 형식: 날짜별 워밍업/메인/쿨다운 구간 + Daniels 페이스
-- 대화 이력 3→6개 (맥락 유지)
-- 데이터 반올림: "21.047509765625km" → "21.0km"
-- get_runner_profile 도구에 Daniels 훈련 페이스 포함
-
-**eFTP/VDOT_ADJ/DARP 정확도:**
-- eFTP: Daniels T-pace 우선 (5'17" → 4'25")
-- VDOT_ADJ: HR 88% 역치 기준, EF 제거 (순수 체력)
-- DARP: VDOT_ADJ 우선 + EF ±3% 대칭 보정
-- Daniels 레이스 테이블 1 VDOT 단위 (30~60)
-
----
-
-## [v0.4-daniels-darp-v4] 2026-03-27
-
-### Daniels VDOT 테이블 + Race Shape v3 + DARP v4 (PR #56)
-
-**daniels_table.py (신규):**
-- VDOT 30~85 훈련 페이스 (E/M/T/I/R) — Daniels Running Formula 3rd Ed
-- VDOT 30~80 레이스 예측 시간 (5K/10K/하프/풀)
-- VDOT 30~70 권장 볼륨 (Pfitzinger + Daniels 종합)
-- 선형 보간, 거리별 자동 축소 (10K 55%, 하프 70%)
-
-**Race Shape v3 (5요소 종합):**
-- 주간 볼륨 35% + 최장 거리 20% + 장거리 빈도 20% + 일관성 15% + 페이스 품질 10%
-- Daniels 테이블 기반 목표 (VDOT 50 마라톤: 주 77.5km, 장거리 34km, 25km+ 6회/12주)
-- E-pace 품질: Daniels 테이블 정확 E-pace ±15% 범위 검증
-
-**DARP v4 (4요소 보정):**
-- 기본: Daniels 테이블 직접 룩업 (임의 근사 공식 제거)
-- DI 보정: DI<70 → 최대 +8% (하프/풀)
-- Shape 보정: Shape<80 → 최대 +15% (거리별 계수)
-- EF 보정: EF≥1.0 → 최대 -3% 보너스, EF<1.0 → 최대 +3% (10K+)
-- 모든 UI에 VDOT/DI/Shape/EF 4배지 일관 표시
-
-**기타:**
-- 최대심박 이상치 제거: estimate_max_hr() 상위 5개 중앙값 (8파일)
-- eFTP HR 역치 필터 (82%+) + GPS 이상치 (3'00"/km) 제거
-- 하단 네비: z-index 1000 + safe-area (갤럭시 폴드8)
-
----
-
-## [v0.4-training-activity-vdot] 2026-03-27
-
-### 훈련탭 UX 개선 (PR #52)
-- 워크아웃 인라인 편집: ✎ 버튼 → 유형/거리 변경 폼
-- Garmin/CalDAV/플랜 생성 결과 메시지 표시 (?msg= → 상단 배너)
-- 플랜 재생성 confirm 대화상자 ("4주 계획을 재생성합니다")
-- 주 네비게이션 "오늘" 버튼 (다른 주 볼 때만)
-- Silent exception 3곳 → logging 추가
-
-### 활동탭 개선 (PR #52)
-- 7개 분석 그룹 `<details>` 접이식: G1-2 펼침, G3-7 접힘
-- 빈 그룹 자동 숨김, 페이지 스크롤 대폭 감소
-
-### VDOT 전문화 (PR #53)
-- 추정 알고리즘: 베스트 1개 → **가중 평균** (최신 가중 + 장거리 가중)
-- HR 검증: 최대심박 75%+ 노력 활동만 (이지런 제외)
-- 이상치 제거: 중앙값 ±2SD 벗어난 값 제외
-- 우선순위: RunPulse 자체 추정 > Runalyze > Garmin
-- 대시보드/레포트 VDOT 소스 통일 (computed_metrics 우선)
-- 피트니스 카드에 "Runalyze 43.7 · Garmin 48.0" 소스 비교 표시
-- metric_json에 runalyze_vdot/garmin_vo2max 참고값 저장
-
-### AI 채팅 버그 수정 6건 (PR #53)
-- AJAX 실시간 채팅 (`/ai-coach/chat-async`):
-  즉시 사용자 메시지 표시 + "생성 중..." 로딩 애니메이션 + 응답 (리로드 없음)
-- JSON 노출 방지: 코드블록(```) 자동 제거 + `{"suggestions":[]}` 파싱 → 추천질문 칩
-- 마크다운 변환 확장: ### 헤딩, - 리스트, 번호 리스트
-- 타임스탬프: 클라이언트 로컬 시간 (JS toLocaleString)
-- 전체화면: flex 레이아웃 안정화
-- 텍스트 입력: AJAX sendChat() (빈 입력 검증)
-
-### 429 Fallback + 캐시 나이 + Lazy Load (PR #49)
-- Gemini 429 → Groq 자동 전환 (RateLimitError 예외)
-- chat() provider chain fallback 패턴 적용
-- AI 캐시 생성 시점 표시 ("AI 3시간 전")
-- 활동 상세 서비스 원본 데이터 lazy load (AJAX)
-
-### AI Everywhere 탭별 통합 호출 마이그레이션 (PR #48)
-- AI Coach/Wellness/Race → get_tab_ai() 통합 호출 전환
-- 개별 get_card_ai_message() 제거
-- Report orphaned except 구문 오류 수정
-
----
-
-## [v0.4-ai-coach-v2] 2026-03-26
-
-### AI 코치 v2 — Function Calling + 의도 감지 + 풍부한 컨텍스트
-
-**Function Calling (Gemini):**
-- `tools.py`: 10개 도구 정의 (get_activity, compare_periods, get_race_history 등)
-- AI가 사용자 질문에 필요한 데이터를 **직접 판단**하여 DB 조회
-- Multi-turn: 최대 3라운드 도구 호출 → 최종 답변 생성
-- Groq/Claude/OpenAI fallback: 기존 프롬프트 주입 방식 유지
-
-**의도 감지 + 날짜 추출 (`chat_context.py`):**
-- 7개 의도: today, lookup, race, compare, plan, recovery, general
-- 한국어 날짜 파싱: "3월 15일", "어제", "지난주 수요일", "2026-03-20"
-- Provider별 컨텍스트 전략:
-  - Gemini (1M): 30일 풀 활동/메트릭/웰니스/피트니스
-  - Claude/OpenAI (200K): 14일 + 의도별
-  - Groq (128K): 의도 기반 선택적 수집
-- 레이스 이력 + 동일 유형 과거 활동 자동 포함
-- 러너 프로필 요약 (주간 평균, VO2Max, 목표 D-day)
-
-**AI 코치탭 UX 개선:**
-- 마크다운 볼드 파싱: 깨진 루프 → regex 정확 변환
-- 추천질문 플로팅 칩: AI 응답 `[추천: Q1 | Q2 | Q3]` 파싱 → 클릭 가능 칩
-- AI provider 배지: 채팅 메시지에 "via gemini" 표시
-- 웰니스 카드: HRV/안정심박 상태색 + 수면시간 표시
-- 빠른 질문 → 칩 시스템 연동
-- 전체화면 토글: z-index 9999 + body overflow hidden + safe-area 패딩
-- 채팅 전송 후 `#chatCard` 앵커 → 스크롤 유지
-- Genspark iframe 제거 (100% 차단), 수동 연동 UX 개선
-- Silent exception → logging 추가
-
-**시스템 프롬프트:**
-- 코치 역할 정의 + 응답 규칙 (간결성, 위험 경고, 데이터 근거)
-- 추천질문 3개 자동 생성 규칙
-- 최근 3개 대화 이력 포함 (맥락 유지)
-
----
-
-## [v0.4-ai-everywhere] 2026-03-26
-
-### AI Everywhere — 전체 UI AI 해석 통합
-
-**기반 모듈:**
-- `ai_message.py`: provider 체인 (선택→gemini→groq→규칙) + 카드별 자동 컨텍스트
-- `context_builders.py`: 탭별 컨텍스트 빌더 6개 (시계열 포함)
-- `prompt_config.py`: 프롬프트 템플릿 14종 + 사용자 커스텀 병합
-
-**AI 적용 카드 (7곳):**
-- 대시보드 훈련 권장, AI 코치 브리핑, 훈련탭 AI 추천
-- 레포트 AI 인사이트 (기간별), 웰니스 회복 권장, 레이스 DI 해석
-
-**설정 UI:**
-- AI provider별 API 키 발급 링크 (Gemini/Groq 무료, Claude/OpenAI 유료)
-- 무료/유료 명시 안내
-- 🔧 프롬프트 관리 접이식: 14종 프롬프트 미리보기/수정 + 기본값 복원
-
----
 

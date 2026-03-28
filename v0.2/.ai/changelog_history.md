@@ -2,6 +2,89 @@
 
 > 최신 3회분은 `changelog.md` 참조. 이 파일은 그 이전 이력 보관용.
 
+## [v0.4-ai-everywhere] 2026-03-26
+
+### AI Everywhere — 전체 UI AI 해석 통합
+
+**기반 모듈:**
+- `ai_message.py`: provider 체인 (선택→gemini→groq→규칙) + 카드별 자동 컨텍스트
+- `context_builders.py`: 탭별 컨텍스트 빌더 6개 (시계열 포함)
+- `prompt_config.py`: 프롬프트 템플릿 14종 + 사용자 커스텀 병합
+
+**AI 적용 카드 (7곳):**
+- 대시보드 훈련 권장, AI 코치 브리핑, 훈련탭 AI 추천
+- 레포트 AI 인사이트 (기간별), 웰니스 회복 권장, 레이스 DI 해석
+
+**설정 UI:**
+- AI provider별 API 키 발급 링크 (Gemini/Groq 무료, Claude/OpenAI 유료)
+- 🔧 프롬프트 관리 접이식: 14종 프롬프트 미리보기/수정 + 기본값 복원
+
+---
+
+## [v0.4-ai-coach-v2] 2026-03-26
+
+### AI 코치 v2 — Function Calling + 의도 감지 + 풍부한 컨텍스트
+
+- `tools.py`: 10개 도구, Multi-turn 최대 3라운드
+- 의도 감지 7종 + 한국어 날짜 파싱
+- Provider별 컨텍스트 전략 (Gemini 30일 풀 / Groq 의도별)
+- AI 코치탭 UX 개선 10건 (추천질문 칩, 전체화면, 마크다운)
+
+---
+
+## [v0.4-training-activity-vdot] 2026-03-27
+
+### 훈련탭 UX + 활동탭 접이식 + VDOT 전문화 + AI 채팅 버그 수정
+
+- 워크아웃 인라인 편집, 결과 메시지, 재생성 confirm
+- 7개 분석 그룹 접이식 (G1-2 펼침, G3-7 접힘)
+- VDOT 가중 평균 + HR 검증 + 이상치 제거
+- AI 채팅 AJAX 실시간 + JSON 노출 방지 + 429 fallback
+
+---
+
+## [v0.4-daniels-darp-v4] 2026-03-27
+
+### Daniels VDOT 테이블 + Race Shape v3 + DARP v4
+
+- `daniels_table.py`: VDOT 30~85 훈련/레이스/볼륨 테이블, 선형 보간
+- Race Shape v3: 5요소 (볼륨35%+최장20%+빈도20%+일관성15%+페이스품질10%)
+- DARP v4: Daniels 직접 룩업 + DI/Shape/EF 4요소 보정
+- maxHR 이상치 제거, eFTP HR 역치 필터, 하단 네비 safe-area
+
+---
+
+## [v0.4-sync-tab] 2026-03-27
+
+### 동기화 탭 분리 + AI 응답 품질 + eFTP/VDOT_ADJ/DARP 정확도
+
+- `/sync` 독립 탭, 7+1탭 네비
+- 시스템 프롬프트 강화 (한국어, Daniels 페이스, 이력 6개)
+- eFTP Daniels T-pace 우선, VDOT_ADJ HR 88% 역치
+
+---
+
+## [v0.4-metrics-precision] 2026-03-27
+
+### 메트릭 정밀화 — 논문 기반
+
+- maxHR: Stream 30초 peak (ACSM/Beltz), IQR 이상치 제거
+- VDOT_ADJ: Karvonen HRR 역치, Stream 페이스, T-pace 역보간
+- Race Shape: 논문 기반 가중치 (Midgley/Schmid/Hagan)
+- DI 보정 거리별 차등 (5K 0%~풀 10%)
+
+---
+
+## [v0.4-race-vdot] 2026-03-27
+
+### 레이스 기반 VDOT + 예측 정밀화
+
+- VDOT 소스 우선순위: ①레이스(8주) → ②고강도 → ③Runalyze/Garmin
+- 레이스 예측: 잘못된 테이블 → Daniels 수학 공식 직접 계산
+- VDOT_ADJ 보정 범위: 0~4주 ±3%, 4~8주 ±5%, 8주+ ±7%
+
+---
+
 ## [v0.4-ai-providers] 2026-03-26
 
 ### AI 제공자 확장

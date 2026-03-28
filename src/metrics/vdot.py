@@ -129,6 +129,7 @@ def estimate_vdot_from_activity(distance_km: float, duration_sec: int, avg_hr: i
             "duration_sec": duration_sec,
             "avg_hr": avg_hr,
             "method": "race_estimate",
+            "source": "race_estimate",
         }
     return None
 

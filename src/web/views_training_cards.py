@@ -80,9 +80,11 @@ def render_goal_card(goal: dict | None, utrs_val: float | None = None) -> str:
     if not goal:
         return (
             "<div class='card' style='text-align:center;padding:1.5rem;'>"
-            "<p class='muted'>설정된 목표가 없습니다.</p>"
-            "<p style='font-size:0.85rem;color:var(--muted);'>"
-            "아래 🎯 목표 관리에서 목표를 추가하세요.</p>"
+            "<p class='muted' style='margin-bottom:1rem;'>설정된 목표가 없습니다.</p>"
+            "<a href='/training/wizard'"
+            " style='display:inline-block;background:linear-gradient(135deg,#00d4ff,#00ff88);"
+            "color:#000;text-decoration:none;padding:0.6rem 1.4rem;border-radius:20px;"
+            "font-weight:bold;font-size:0.9rem;'>🗓️ 훈련 계획 시작하기</a>"
             "</div>"
         )
 
@@ -292,15 +294,237 @@ def render_adjustment_card(adj: dict | None, cirs_val: float | None = None,
     )
 
 
+# ── S4.5: 어제 훈련 체크인 카드 ───────────────────────────────────────
+
+def render_checkin_card(yesterday_pending: dict | None) -> str:
+    """어제 미확인 훈련 체크인 카드.
+
+    완료 여부를 사용자가 직접 확인하는 카드.
+    completed=0인 어제 계획이 있을 때만 표시.
+    AJAX 방식: 완료 시 카드 제거, 건너뜀 시 재조정 diff 인라인 표시.
+    """
+    if not yesterday_pending:
+        return ""
+
+    wid = yesterday_pending["id"]
+    wtype = yesterday_pending["workout_type"]
+    dist = yesterday_pending.get("distance_km")
+    d = yesterday_pending["date"]
+
+    style_info = _TYPE_STYLE.get(wtype, _TYPE_STYLE["easy"])
+    _, label_ko, icon = style_info
+
+    dist_str = f" {dist:.1f}km" if dist else ""
+    day_str = f"{d[5:7]}/{d[8:10]}"  # MM/DD
+    _grad = style_info[0]
+    type_color = _grad.split(",")[1].strip() if "," in _grad else "#ffaa00"
+
+    card_id = f"checkin-card-{wid}"
+
+    script = f"""
+<script>
+(function() {{
+  var card = document.getElementById('{card_id}');
+
+  function _typeLabel(t) {{
+    var m = {{easy:'이지런',tempo:'템포런',interval:'인터벌',long:'롱런',
+              rest:'휴식',recovery:'회복조깅',race:'레이스'}};
+    return m[t] || t;
+  }}
+
+  function _renderDiff(data) {{
+    var html = '<div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">';
+    html += '<p style="margin:0 0 8px;font-size:0.88rem;color:#ffaa00;font-weight:600;">📋 재조정 결과</p>';
+    html += '<p style="margin:0 0 10px;font-size:0.85rem;color:var(--muted);">' + data.message + '</p>';
+
+    if (data.changes && data.changes.length > 0) {{
+      html += '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:8px;">';
+      html += '<tr><th style="text-align:left;color:var(--muted);padding:3px 6px;">날짜</th>'
+            + '<th style="text-align:left;color:var(--muted);padding:3px 6px;">변경 전</th>'
+            + '<th style="text-align:left;color:var(--muted);padding:3px 6px;">변경 후</th></tr>';
+      data.changes.forEach(function(c) {{
+        html += '<tr>'
+              + '<td style="padding:3px 6px;color:#fff;">' + (c.date || '') + '</td>'
+              + '<td style="padding:3px 6px;color:#aaa;">' + _typeLabel(c.before) + '</td>'
+              + '<td style="padding:3px 6px;color:#00ff88;font-weight:600;">→ ' + _typeLabel(c.after) + '</td>'
+              + '</tr>';
+      }});
+      html += '</table>';
+    }}
+
+    if (data.warnings && data.warnings.length > 0) {{
+      data.warnings.forEach(function(w) {{
+        html += '<p style="margin:4px 0;font-size:0.82rem;color:#ffaa00;">⚠️ ' + w + '</p>';
+      }});
+    }}
+
+    html += '<button onclick="document.getElementById(\\'{card_id}\\').remove();" '
+          + 'style="margin-top:10px;background:none;border:none;color:var(--muted);'
+          + 'font-size:0.8rem;cursor:pointer;padding:0;">✕ 닫기</button>';
+    html += '</div>';
+    return html;
+  }}
+
+  document.getElementById('checkin-confirm-{wid}').addEventListener('click', function() {{
+    this.disabled = true;
+    fetch('/training/workout/{wid}/confirm', {{
+      method: 'POST',
+      headers: {{'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}}
+    }})
+    .then(function(r) {{ return r.json(); }})
+    .then(function() {{
+      card.style.transition = 'opacity 0.3s';
+      card.style.opacity = '0';
+      setTimeout(function() {{ card.remove(); }}, 300);
+    }})
+    .catch(function() {{ location.reload(); }});
+  }});
+
+  document.getElementById('checkin-skip-{wid}').addEventListener('click', function() {{
+    this.disabled = true;
+    document.getElementById('checkin-confirm-{wid}').disabled = true;
+    fetch('/training/workout/{wid}/skip', {{
+      method: 'POST',
+      headers: {{'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}}
+    }})
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
+      var btnRow = document.getElementById('checkin-btns-{wid}');
+      if (btnRow) btnRow.style.display = 'none';
+      card.querySelector('.checkin-question').style.display = 'none';
+      card.insertAdjacentHTML('beforeend', _renderDiff(data));
+    }})
+    .catch(function() {{ location.reload(); }});
+  }});
+}})();
+</script>"""
+
+    return (
+        f"<div class='card' id='{card_id}' style='border-left:4px solid #ffaa00;'>"
+        "<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;'>"
+        "<span style='font-size:1.1rem;'>📋</span>"
+        "<h3 style='margin:0;font-size:0.95rem;'>어제 훈련 확인</h3>"
+        f"<span class='muted' style='font-size:0.78rem;'>({day_str})</span>"
+        "</div>"
+        f"<p class='checkin-question' style='margin:0 0 12px;font-size:0.9rem;'>"
+        f"어제 계획된 <strong style='color:{type_color};'>"
+        f"{icon} {label_ko}{dist_str}</strong>을 완료했나요?"
+        "</p>"
+        f"<div id='checkin-btns-{wid}' style='display:flex;gap:8px;flex-wrap:wrap;'>"
+        f"<button id='checkin-confirm-{wid}' "
+        "style='background:rgba(0,255,136,0.2);border:1px solid rgba(0,255,136,0.4);"
+        "color:#00ff88;padding:6px 18px;border-radius:20px;font-size:0.85rem;cursor:pointer;font-weight:600;'>"
+        "✅ 완료했어요</button>"
+        f"<button id='checkin-skip-{wid}' "
+        "style='background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.3);"
+        "color:#ff6b6b;padding:6px 18px;border-radius:20px;font-size:0.85rem;cursor:pointer;'>"
+        "❌ 건너뜀</button>"
+        "</div>"
+        "</div>"
+        + script
+    )
+
+
+# ── S4.6: 인터벌 처방 카드 ────────────────────────────────────────────
+
+def render_interval_prescription_card(workout: dict) -> str:
+    """인터벌 처방 상세 카드 렌더링.
+
+    workout['interval_prescription'] JSON에서 처방 정보 표시.
+    논문 출처: Billat 2001, Buchheit & Laursen 2013.
+    """
+    import json
+
+    if not workout or workout.get("workout_type") != "interval":
+        return ""
+    rx_json = workout.get("interval_prescription")
+    if not rx_json:
+        return ""
+
+    try:
+        rx = json.loads(rx_json)
+    except (json.JSONDecodeError, TypeError):
+        return ""
+
+    rep_m = rx.get("rep_m", 0)
+    sets = rx.get("sets", 0)
+    rest_sec = rx.get("rest_sec", 0)
+    i_pace = rx.get("interval_pace", 0)
+    rec_pace = rx.get("recovery_pace", 0)
+    total_m = rx.get("total_volume_m", 0)
+    session_min = rx.get("session_duration_min", 0)
+    warning = rx.get("warning")
+
+    def fmt_pace(sec_km: int) -> str:
+        if not sec_km:
+            return "—"
+        return f"{sec_km // 60}:{sec_km % 60:02d}/km"
+
+    def fmt_sec(sec: int) -> str:
+        if not sec:
+            return "—"
+        m, s = divmod(sec, 60)
+        return f"{m}:{s:02d}"
+
+    warning_html = ""
+    if warning:
+        warning_html = (
+            f"<p style='margin:8px 0 0;font-size:0.78rem;color:#ffaa00;"
+            f"background:rgba(255,170,0,0.1);padding:6px 10px;border-radius:6px;'>"
+            f"⚠️ {warning}</p>"
+        )
+
+    buchheit_range = rx.get("buchheit_range", {})
+    vol_min = buchheit_range.get("vol_min_km", 0)
+    vol_max = buchheit_range.get("vol_max_km", 0)
+    intensity_pct = buchheit_range.get("intensity_pct", 0)
+
+    items = [
+        ("반복 구성", f"{rep_m}m × {sets}세트"),
+        ("반복 페이스", fmt_pace(i_pace)),
+        ("세트 간 휴식", f"{fmt_sec(rest_sec)} (회복 조깅 {fmt_pace(rec_pace)})"),
+        ("총 인터벌 거리", f"{total_m/1000:.1f}km"),
+        ("예상 세션 시간", f"~{session_min}분 (웜업+인터벌+쿨다운)"),
+    ]
+    rows_html = "".join(
+        f"<div style='display:flex;justify-content:space-between;padding:5px 0;"
+        f"border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.85rem;'>"
+        f"<span class='muted'>{k}</span><span style='font-weight:500;'>{v}</span></div>"
+        for k, v in items
+    )
+
+    return (
+        "<div class='card' style='border-left:3px solid rgba(255,68,68,0.5);"
+        "margin-top:0.8rem;'>"
+        "<div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;'>"
+        "<span style='font-size:1rem;'>🔴</span>"
+        "<h3 style='margin:0;font-size:0.88rem;font-weight:600;'>인터벌 처방</h3>"
+        f"<span class='muted' style='font-size:0.75rem;margin-left:auto;'>"
+        f"~{intensity_pct}% vVO2max · 목표볼륨 {vol_min}~{vol_max}km"
+        f"</span></div>"
+        f"{rows_html}"
+        f"{warning_html}"
+        "<p style='margin:8px 0 0;font-size:0.72rem;color:var(--muted);'>"
+        "출처: Buchheit &amp; Laursen 2013 세트 구성 · Billat 2001 휴식 비율</p>"
+        "</div>"
+    )
+
+
 # ── S5: 주간 캘린더 (7열 그리드) ──────────────────────────────────────
 
 def render_week_calendar(
     workouts: list[dict],
     week_start: date,
     week_offset: int = 0,
+    actual_activities: dict[str, dict] | None = None,
 ) -> str:
-    """7열 그리드 캘린더 + 주 네비게이션 + 완료 토글/삭제 버튼."""
+    """7열 그리드 캘린더 + 주 네비게이션 + 완료 토글/삭제 버튼.
+
+    Args:
+        actual_activities: 날짜별 실제 활동 dict {"2026-03-25": {"km": 10.5, ...}}
+    """
     today_iso = date.today().isoformat()
+    actual_activities = actual_activities or {}
 
     # 네비게이션
     month_str = f"{week_start.year}년 {week_start.month}월"
@@ -423,6 +647,38 @@ def render_week_calendar(
                 + "</div>"
             )
 
+        # 실제 활동 표시 (과거 날짜만)
+        actual_html = ""
+        if d_iso < today_iso or (d_iso == today_iso):
+            act = actual_activities.get(d_iso)
+            if act:
+                act_km = act.get("km")
+                act_pace = act.get("pace")
+                plan_km = w.get("distance_km") if w else None
+
+                # 달성률 색상
+                if plan_km and act_km:
+                    ratio = act_km / plan_km
+                    act_color = "#00ff88" if ratio >= 0.9 else "#ffaa00" if ratio >= 0.7 else "#ff6b6b"
+                else:
+                    act_color = "rgba(255,255,255,0.5)"
+
+                pace_str_act = ""
+                if act_pace:
+                    m, s = divmod(int(act_pace), 60)
+                    pace_str_act = f"{m}:{s:02d}"
+
+                km_str = f"{act_km:.1f}km" if act_km else ""
+                actual_html = (
+                    f"<div style='margin-top:4px;padding:4px 6px;background:rgba(0,255,136,0.08);"
+                    f"border-radius:6px;border-left:2px solid {act_color};font-size:9px;"
+                    f"color:rgba(255,255,255,0.7);'>"
+                    f"<span style='color:{act_color};font-weight:600;'>실제</span> "
+                    + (f"{km_str} " if km_str else "")
+                    + (f"· {pace_str_act}/km" if pace_str_act else "")
+                    + "</div>"
+                )
+
         cols += (
             "<div style='display:flex;flex-direction:column;gap:6px;'>"
             f"<div style='text-align:center;padding:6px;font-size:12px;{header_cls}'>"
@@ -431,6 +687,7 @@ def render_week_calendar(
             f"min-height:100px;padding:10px;{day_border}'>"
             f"<div style='font-size:13px;margin-bottom:6px;{num_style}'>{d.day}</div>"
             + workout_html
+            + actual_html
             + "</div></div>"
         )
 

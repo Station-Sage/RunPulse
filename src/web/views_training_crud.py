@@ -8,7 +8,7 @@ import html as _html
 import sqlite3
 from datetime import date, timedelta
 
-from flask import Blueprint, Response, redirect, request
+from flask import Blueprint, Response, jsonify, redirect, request
 
 from src.web.helpers import db_path
 from src.web.views_training_loaders import load_workouts
@@ -111,6 +111,113 @@ def workout_delete(workout_id: int):
         pass
 
     return redirect("/training")
+
+
+@training_crud_bp.route("/training/workout/<int:workout_id>/confirm", methods=["POST"])
+def workout_confirm(workout_id: int):
+    """어제 체크인: 훈련 완료 확인."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training")
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            # 같은 날 실제 활동 자동 매칭 시도
+            row = conn.execute(
+                "SELECT date FROM planned_workouts WHERE id=?", (workout_id,)
+            ).fetchone()
+            if row:
+                from src.training.matcher import match_week_activities
+                from datetime import date as _date, timedelta as _td
+                plan_date = _date.fromisoformat(row[0])
+                week_start = plan_date - _td(days=plan_date.weekday())
+                match_week_activities(conn, week_start)
+            # 매칭 안 됐으면 수동 완료
+            conn.execute(
+                "UPDATE planned_workouts SET completed=1, updated_at=datetime('now') "
+                "WHERE id=? AND completed=0",
+                (workout_id,),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+    if request.headers.get("Accept") == "application/json":
+        return jsonify({"ok": True})
+    return redirect("/training?msg=훈련 완료로 기록했습니다.")
+
+
+@training_crud_bp.route("/training/workout/<int:workout_id>/skip", methods=["POST"])
+def workout_skip(workout_id: int):
+    """어제 체크인: 훈련 건너뜀 처리 + 재조정 여부 반환."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training")
+    skip_reason = request.form.get("reason", "")
+    result: dict = {}
+    msg = "건너뜀 처리 완료"
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            row = conn.execute(
+                "SELECT date, distance_km FROM planned_workouts WHERE id=?",
+                (workout_id,),
+            ).fetchone()
+            conn.execute(
+                "UPDATE planned_workouts SET completed=-1, skip_reason=?, "
+                "updated_at=datetime('now') WHERE id=?",
+                (skip_reason or None, workout_id),
+            )
+            conn.commit()
+
+            # session_outcomes: skipped 기록
+            if row:
+                from src.training.matcher import save_skipped_outcome
+                save_skipped_outcome(conn, workout_id, row[0], row[1])
+
+            # 재조정 자동 실행
+            from src.training.replanner import replan_remaining_week
+            result = replan_remaining_week(conn, workout_id)
+            msg = result.get("message", "건너뜀 처리 완료")
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+    if request.headers.get("Accept") == "application/json":
+        return jsonify({
+            "ok": True,
+            "message": msg,
+            "changes": result.get("changes", []),
+            "warnings": result.get("warnings", []),
+            "moved": result.get("moved", False),
+            "target_date": result.get("target_date"),
+        })
+    return redirect(f"/training?msg={msg}")
+
+
+@training_crud_bp.route("/training/replan", methods=["POST"])
+def training_replan():
+    """이번 주 잔여 계획 재조정 (수동 요청)."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training")
+    skipped_id = request.form.get("skipped_id", type=int)
+    if not skipped_id:
+        return redirect("/training")
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            from src.training.replanner import replan_remaining_week
+            result = replan_remaining_week(conn, skipped_id)
+            msg = result.get("message", "재조정 완료")
+        finally:
+            conn.close()
+    except Exception as exc:
+        msg = f"재조정 실패: {str(exc)[:80]}"
+    return redirect(f"/training?msg={msg}")
 
 
 @training_crud_bp.route("/training/workout/<int:workout_id>/toggle", methods=["POST"])
@@ -330,3 +437,58 @@ def push_to_caldav():
             return redirect("/training?msg=등록할 워크아웃이 없습니다")
     except Exception as exc:
         return redirect(f"/training?msg=캘린더 등록 실패: {str(exc)[:100]}")
+
+
+# ── 훈련 환경 설정 저장 ────────────────────────────────────────────────────
+
+@training_crud_bp.route("/training/prefs", methods=["POST"])
+def training_prefs_post():
+    """훈련 환경 설정 저장 (휴식 요일, 롱런 요일, 차단 날짜, 인터벌 거리)."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return redirect("/training?msg=DB를 찾을 수 없습니다")
+
+    # 휴식 요일 비트마스크
+    rest_mask = 0
+    for i in range(7):
+        if request.form.get(f"rest_day_{i}"):
+            rest_mask |= (1 << i)
+
+    # 롱런 요일 비트마스크
+    long_mask = 0
+    for i in range(7):
+        if request.form.get(f"long_day_{i}"):
+            long_mask |= (1 << i)
+
+    # 일회성 차단 날짜
+    blocked_raw = request.form.get("blocked_dates", "").strip()
+    blocked = [
+        d.strip() for d in blocked_raw.split(",")
+        if len(d.strip()) == 10 and d.strip()[4] == "-" and d.strip()[7] == "-"
+    ] if blocked_raw else []
+
+    # 인터벌 거리
+    try:
+        rep_m = max(100, min(5000, int(request.form.get("interval_rep_m", 1000))))
+    except (ValueError, TypeError):
+        rep_m = 1000
+
+    # Q-day 최대 수
+    try:
+        max_q = max(0, min(4, int(request.form.get("max_q_days", 0))))
+    except (ValueError, TypeError):
+        max_q = 0
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            from src.training.planner import upsert_user_training_prefs
+            upsert_user_training_prefs(
+                conn, rest_mask, blocked, rep_m, max_q, long_mask
+            )
+        finally:
+            conn.close()
+    except Exception as exc:
+        return redirect(f"/training?msg=설정 저장 오류: {str(exc)[:80]}")
+
+    return redirect("/training?msg=훈련 환경 설정이 저장되었습니다")

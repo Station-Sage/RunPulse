@@ -1,18 +1,28 @@
 # CLAUDE.md - RunPulse
 
-## 필수 읽기 (세션 시작 시 반드시)
-1. `v0.2/.ai/todo.md` — **상단 "현재 미완료 작업" 섹션만** 읽을 것 (약 50줄)
-2. `v0.2/.ai/architecture.md` — 코드 구조 + 모듈 맵 (새 모듈 작성 시)
+## 필수 읽기 (세션 시작 시 — 토큰 절약 규칙)
 
-필요 시 참조:
-- `v0.2/.ai/metrics.md` — 2차 메트릭 계산식 (PDF 원본 확정)
-- `v0.2/.ai/metrics_by_claude.md` — 2차 메트릭 계산식 (Claude 연구 버전, 비교용)
-- `v0.2/.ai/decisions.md` — v0.2 설계 결정 기록 (D-V2-01~)
-- `v0.2/.ai/roadmap.md` — 버전별 고수준 목표, 의존 관계
-- `v0.2/.ai/files_index.md` — 신규/수정/참고 파일 전체 목록
-- `v0.2/.ai/index.md` — v0.2 상세 네비게이션 (파일 목록, 생성 파일 맵)
+### 반드시 읽을 것
+1. `v0.2/.ai/todo.md` — **`## ▶ 다음 세션 시작 시 여기부터` 섹션만** (상단 ~55줄)
+   - ⚠️ 그 아래 `## 현재 미완료 작업` 섹션(100줄+)은 **읽지 말 것** — 완료 이력, 토큰 낭비
 
-v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/decisions.md` (D1~D18)
+### 작업 유형별 참조 (필요할 때만)
+
+| 작업 | 참조 파일 | 읽을 부분 |
+|------|----------|----------|
+| 새 모듈/파일 작성 | `v0.2/.ai/architecture.md` | 전체 (짧음) |
+| 메트릭 계산식 수정 | `v0.2/.ai/metrics.md` | 해당 메트릭 섹션만 |
+| 설계 결정 확인 | `v0.2/.ai/decisions.md` | 관련 D-V2-XX만 grep |
+| 훈련 엔진 설계 | `v0.2/.ai/training_engine_v2_design.md` | 해당 섹션 번호만 |
+| changelog 확인 | `v0.2/.ai/changelog.md` | 최신 2~3개 항목만 |
+| 버전 목표/의존성 | `v0.2/.ai/roadmap.md` | 해당 버전 섹션만 |
+
+### 읽지 말 것 (세션 시작 시)
+- `v0.2/.ai/todo.md` 전체 (→ 위 `▶ 다음 세션` 섹션만)
+- `v0.2/.ai/changelog_history.md` (→ 과거 이력, 거의 불필요)
+- `v0.2/.ai/metrics_by_claude.md` (→ 연구용 초안, metrics.md 우선)
+- `v0.2/.ai/index.md`, `v0.2/.ai/files_index.md` (→ 파일 탐색은 Grep/Glob 사용)
+- v0.1 히스토리 일체 (`v0.1/.ai/` 폴더) — 완료된 버전, 참고 불필요
 
 ---
 
@@ -35,27 +45,30 @@ v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/dec
 - Phase 5: 웹 대시보드 (홈/활동/웰니스/설정, Flask)
 - 테스트: 652개 통과
 
-### v0.2 (진행 중)
+### v0.2 (진행 중, `fix/metrics-everythings` 브랜치)
 - 2차 메트릭 계산 엔진 (UTRS, CIRS, FEARP, DI, DARP, RMR, TIDS, RTTI, WLEI, TPDI 등)
 - 고도화된 통합 대시보드 UI (PMC 차트, 레이더 차트, 게이지)
 - 레이스 예측, 분석 레포트, 웰니스 UI
 - 활동 상세: 7그룹 접이식 + 서비스 탭 lazy load
-- Leaflet+OSM 지도 (GPS 경로 표시, API 키 불필요)
 - AI 코치 v2: Gemini Function Calling (10도구) + 의도 감지 + AJAX 실시간 채팅
 - MCP 서버 (Claude Desktop/CLI용)
 - VDOT 전문 추정 (가중 평균 + HR 검증 + 이상치 제거)
-- 테스트: 944개 통과
-- 자세한 내용: `v0.2/.ai/index.md`
+- **훈련 엔진 v2 (논문 기반)**: Gate 5종(CRS) + Seiler 80/20 + Daniels 페이스 + session_outcomes ML 기반 — DB v3
+- **훈련탭 UX**: 체크인 AJAX + 재조정 diff 인라인 + 동기화 후 자동 매칭
+- **DB SCHEMA_VERSION = 3** (최신)
+- 테스트: **1047개** 통과 (2026-03-28)
+- 자세한 내용: `v0.2/.ai/todo.md` 상단 섹션
 
 ### v0.3 (계획)
-- 6.4~6.8 UI 보완 + S5-C2 UI 전면 재설계
 - 인증/로그인 시스템, PWA, REST API (`/api/v1/*`)
 - DB 정규화, 멀티유저 지원
-- 메트릭 추가: eFTP, Critical Power, REC, RRI, SAPI, TEROI
+- GPX/FIT/TCX Import, CSV/JSON Export
+- 메트릭 추가: eFTP(완료), Critical Power(완료), REC/RRI/SAPI/TEROI(완료)
 
 ### v0.4 (계획)
 - React Native 모바일 앱
-- ML 기반 메트릭: TQI (훈련 품질 지수), PLTD (개인화 역치 자동 탐지)
+- ML 기반 개인화: session_outcomes 누적 → CRS 가중치 자동 도출 (기반 완료, 데이터 축적 중)
+- TQI (훈련 품질 지수), PLTD (개인화 역치 자동 탐지)
 
 ---
 
@@ -89,7 +102,7 @@ v0.1 히스토리: `v0.1/.ai/todo.md`, `v0.1/.ai/architecture.md`, `v0.1/.ai/dec
     python src/analyze.py full --clipboard         # 전체 리포트 클립보드
     python src/plan.py week                        # 이번 주 훈련 계획
     source .venv/Scripts/activate && python src/serve.py   # 웹 대시보드 localhost:18080
-    python -m pytest tests/                        # 테스트 (829개 기준)
+    python -m pytest tests/                        # 테스트 (1047개 기준, 2026-03-28)
 
 ---
 

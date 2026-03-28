@@ -65,13 +65,19 @@ def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
 
 
 def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
-    """오늘 날짜 메트릭이 없으면 자동 계산."""
-    row = conn.execute(
-        "SELECT 1 FROM computed_metrics WHERE date=? AND metric_name='UTRS' "
-        "AND activity_id IS NULL LIMIT 1",
+    """오늘 날짜 메트릭이 없으면 자동 계산.
+
+    UTRS + DARP_half 둘 다 오늘 날짜에 존재해야 skip.
+    DARP는 live 계산(render_race_shape_trio)과 일치시키기 위해
+    오늘 날짜 기준으로 항상 최신 상태를 유지해야 함.
+    """
+    count = conn.execute(
+        "SELECT COUNT(*) FROM computed_metrics "
+        "WHERE date=? AND metric_name IN ('UTRS', 'DARP_half') "
+        "AND activity_id IS NULL",
         (today,),
-    ).fetchone()
-    if row:
+    ).fetchone()[0]
+    if count >= 2:
         return
     try:
         from src.metrics.engine import run_for_date
@@ -262,6 +268,34 @@ def _build_dashboard(db) -> str:
         trends = load_fitness_trends(conn, today, days=60)
         risk_7d = load_risk_7day_trends(conn, today)
         weekly_target = _load_weekly_target(conn)
+        # 활성 목표 거리 → shape/DARP 우선 표시 거리 결정
+        _goal_dist_key = None
+        try:
+            from src.training.goals import get_active_goal
+            _goal = get_active_goal(conn)
+            if _goal and _goal.get("distance_km"):
+                _gkm = float(_goal["distance_km"])
+                if _gkm >= 35:
+                    _goal_dist_key = "full"
+                elif _gkm >= 16:
+                    _goal_dist_key = "half"
+                elif _gkm >= 8:
+                    _goal_dist_key = "10k"
+                else:
+                    _goal_dist_key = "5k"
+        except Exception:
+            pass
+        # 오늘 계획된 훈련
+        _plan_row = conn.execute(
+            "SELECT workout_type, distance_km, target_pace_min, target_pace_max, "
+            "target_hr_zone, description FROM planned_workouts WHERE date=? "
+            "ORDER BY id DESC LIMIT 1",
+            (today,),
+        ).fetchone()
+        _today_plan = dict(zip(
+            ["type", "distance_km", "pace_min", "pace_max", "hr_zone", "description"],
+            _plan_row,
+        )) if _plan_row else None
         # resync + 마지막 동기화 시간
         needs_resync = False
         try:
@@ -334,7 +368,10 @@ def _build_dashboard(db) -> str:
     # ── 섹션 2: 훈련 권장 ─────────────────────────────────────────────────
     recommendation = _render_training_recommendation(utrs_val, utrs_json, cirs_val, tsb_last,
                                                      config=_cfg, conn=conn,
-                                                     ai_override=_ai_data.get("recommendation"))
+                                                     ai_override=_ai_data.get("recommendation"),
+                                                     acwr_val=acwr_val,
+                                                     di_val=_v3.get("DI"),
+                                                     planned_workout=_today_plan)
 
     # ── 섹션 3: 이번 주 훈련 요약 ─────────────────────────────────────────
     weekly_card = render_weekly_summary(weekly, weekly_target)
@@ -343,12 +380,20 @@ def _build_dashboard(db) -> str:
     fitness_chart = render_fitness_trends_chart(pmc_data, trends)
 
     # ── 섹션 5: 레이스 & 피트니스 ─────────────────────────────────────────
-    darp_card = _render_darp_mini(darp_data, vdot=vdot, vdot_adj=_v3.get("VDOT_ADJ"), di=_v3.get("DI"))
-    # Shape를 DARP 소스에서 가져와서 피트니스 카드와 통일
+    darp_card = _render_darp_mini(darp_data, vdot=vdot, vdot_adj=_v3.get("VDOT_ADJ"), di=_v3.get("DI"),
+                                 goal_dist_key=_goal_dist_key)
+    # Shape를 DARP 소스에서 가져와서 피트니스 카드와 통일 — 목표 거리 우선, 없으면 half→full→10k→5k
     _darp_shape = None
-    for _dk in ("half", "full", "10k", "5k"):
+    _darp_shape_key = None
+    _fallback_order = ("half", "full", "10k", "5k")
+    _shape_search = (
+        (_goal_dist_key,) + tuple(k for k in _fallback_order if k != _goal_dist_key)
+        if _goal_dist_key else _fallback_order
+    )
+    for _dk in _shape_search:
         if _dk in darp_data and isinstance(darp_data[_dk], dict):
             _darp_shape = darp_data[_dk].get("race_shape")
+            _darp_shape_key = _dk
             break
     fitness_card = _render_fitness_mini(
         vdot, _darp_shape if _darp_shape is not None else marathon_shape,
@@ -356,7 +401,8 @@ def _build_dashboard(db) -> str:
         rri=_v3.get("RRI"), vdot_adj=_v3.get("VDOT_ADJ"),
         vdot_json=vdot_json, shape_json=shape_json,
         config=_cfg, conn=conn,
-        ai_override=_ai_data.get("fitness"))
+        ai_override=_ai_data.get("fitness"),
+        shape_dist_key=_darp_shape_key)
     rmr_axes = rmr_json.get("axes") if rmr_json else None
     rmr_compare = rmr_old_json.get("axes") if rmr_old_json else None
     rmr_card = _render_rmr_card(rmr_axes or {}, compare_axes=rmr_compare or None,

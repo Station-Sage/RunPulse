@@ -55,29 +55,31 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         return None
     vdot_base = float(base_row[0])
 
-    # VDOT 소스 + 레이스 경과 시간 확인
     import json as _json
     vdot_json = _json.loads(base_row[1]) if base_row[1] else {}
-    vdot_source = vdot_json.get("source", "")
-
-    # 레이스 경과 주 수 확인 (최근 레이스가 몇 주 전인지)
-    race_weeks_ago = None
-    if vdot_source == "race":
-        race_row = conn.execute(
-            """SELECT DATE(a.start_time) FROM v_canonical_activities a
-               LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type'
-               WHERE a.activity_type='running'
-                 AND (c.metric_value='race' OR a.name LIKE '%레이스%'
-                      OR a.name LIKE '%대회%' OR a.name LIKE '%Race%')
-                 AND DATE(a.start_time) <= ?
-               ORDER BY a.start_time DESC LIMIT 1""",
-            (target_date,),
-        ).fetchone()
-        if race_row:
-            race_weeks_ago = (td - date.fromisoformat(race_row[0])).days / 7
 
     from src.metrics.store import estimate_max_hr
     hr_max = estimate_max_hr(conn, target_date)
+
+    # 레이스 경과 주 수 확인
+    # Strava workout_type=1 = race (유일한 신뢰 가능 소스)
+    # Garmin/Intervals에는 별도 레이스 필드 없음
+    # 3개 소스 중 하나라도 레이스로 태그되어 있으면 레이스로 인정
+    race_weeks_ago = None
+    race_row = conn.execute(
+        """SELECT DATE(start_time) FROM activity_summaries
+           WHERE activity_type='running'
+             AND (
+               (source='strava' AND workout_type=1)
+               OR (source='garmin' AND event_type='race')
+               OR (source='intervals' AND event_type='race')
+             )
+             AND DATE(start_time) <= ?
+           ORDER BY start_time DESC LIMIT 1""",
+        (target_date,),
+    ).fetchone()
+    if race_row:
+        race_weeks_ago = (td - date.fromisoformat(race_row[0])).days / 7
 
     # 안정심박 조회 → Karvonen HRR 기반 역치 범위 (개인화)
     # References:
@@ -117,24 +119,30 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
                     extra_json={"vdot_base": vdot_base, "method": "none", "sample_count": 0})
         return vdot_base
 
+    # 레이스 직후일수록 레이스 VDOT에서 역산한 T-pace를 블렌딩
+    # stream 측정 threshold가 easy run HR 오염으로 느리게 나올 때 보정
+    race_implied_t_pace = _vdot_to_t_pace(vdot_base)
+    if race_implied_t_pace and race_weeks_ago is not None:
+        # 4주 이내: 레이스 비중 60%, 8주까지: 40%, 이후: 0%
+        race_weight = max(0.0, 0.6 - (race_weeks_ago / 8) * 0.6)
+        threshold_pace = race_implied_t_pace * race_weight + threshold_pace * (1.0 - race_weight)
+        method = f"{method}+race_blend({race_weight:.2f})"
+
     # 역치 페이스 → Daniels T-pace 역산 → VDOT
     vdot_adj = _t_pace_to_vdot(threshold_pace)
     if vdot_adj is None:
         vdot_adj = vdot_base
 
-    # 보정 범위 — 레이스 경과 시간에 따라 차등
-    # Daniels: VDOT 4~6주마다 업데이트 권장
-    # Pugh (1970): 환경 영향 2~5%
-    # References:
-    #   Daniels: 레이스 VDOT은 보정 불필요 (0%)
-    #   Pugh (1970): 환경 영향 2~5%
-    #   Garmin VO2Max: 일반 변동 ±1~3%
+    # 보정 범위 — 레이스급 고강도 활동(avg_hr≥88% maxHR, ≥10km) 경과 시간에 따라 차등
+    # 4주 이내: ±1% (레이스 직후, 거의 보정 없음)
+    # 4~8주:   ±3%
+    # 8주+:    ±7%
     if race_weeks_ago is not None and race_weeks_ago <= 4:
-        max_correction = 0.03  # 4주 이내 레이스 → ±3% (환경 수준)
+        max_correction = 0.01
     elif race_weeks_ago is not None and race_weeks_ago <= 8:
-        max_correction = 0.05  # 4~8주 → ±5% (체력 변화 가능)
+        max_correction = 0.03
     else:
-        max_correction = 0.07  # 8주+ 또는 비레이스 → ±7%
+        max_correction = 0.07
     if vdot_base > 0:
         ratio = vdot_adj / vdot_base
         lo = 1.0 - max_correction
@@ -154,6 +162,8 @@ def calc_and_save_vdot_adj(conn: sqlite3.Connection, target_date: str) -> float 
         "hr_threshold_range": f"{hr_thresh_lo:.0f}-{hr_thresh_hi:.0f}",
         "resting_hr": resting_hr,
         "hr_method": "karvonen" if resting_hr and resting_hr > 30 else "fixed_pct",
+        "race_weeks_ago": round(race_weeks_ago, 1) if race_weeks_ago is not None else None,
+        "max_correction_pct": round(max_correction * 100),
     })
     return vdot_adj
 
@@ -284,6 +294,26 @@ def _extract_threshold_from_regression(
 
     predicted_pace = slope * (hr_max * 0.88) + intercept
     return (predicted_pace, len(rows)) if predicted_pace > 120 else (None, 0)
+
+
+def _vdot_to_t_pace(vdot: float) -> float | None:
+    """VDOT → Daniels T-pace (sec/km) 정방향 조회."""
+    from src.metrics.daniels_table import _VDOT_PACE_TABLE
+    for i in range(len(_VDOT_PACE_TABLE) - 1):
+        lo = _VDOT_PACE_TABLE[i]
+        hi = _VDOT_PACE_TABLE[i + 1]
+        if lo["vdot"] <= vdot <= hi["vdot"]:
+            ratio = (vdot - lo["vdot"]) / (hi["vdot"] - lo["vdot"])
+            t_lo = lo.get("T", 0)
+            t_hi = hi.get("T", 0)
+            if t_lo and t_hi:
+                return round(t_lo + ratio * (t_hi - t_lo), 1)
+    # 범위 밖
+    if vdot <= _VDOT_PACE_TABLE[0]["vdot"]:
+        return _VDOT_PACE_TABLE[0].get("T")
+    if vdot >= _VDOT_PACE_TABLE[-1]["vdot"]:
+        return _VDOT_PACE_TABLE[-1].get("T")
+    return None
 
 
 def _t_pace_to_vdot(t_pace_sec_km: float) -> float | None:

@@ -94,6 +94,46 @@ def build_context(conn: sqlite3.Connection, date_str: str | None = None) -> dict
     except Exception:
         ctx["plan_today"] = None
 
+    # 훈련 계획 이행 현황 (이번 주 + 어제)
+    try:
+        td = date.fromisoformat(date_str)
+        week_start = td - timedelta(days=td.weekday())
+        week_end = week_start + timedelta(days=6)
+        yesterday = (td - timedelta(days=1)).isoformat()
+
+        # 어제 계획 상태
+        yrow = conn.execute(
+            "SELECT workout_type, distance_km, completed, skip_reason "
+            "FROM planned_workouts WHERE date=? AND workout_type!='rest' "
+            "ORDER BY id DESC LIMIT 1",
+            (yesterday,),
+        ).fetchone()
+        if yrow:
+            c = yrow[2]
+            ctx["yesterday_plan"] = {
+                "type": yrow[0], "km": yrow[1],
+                "status": "completed" if c == 1 else "skipped" if c == -1 else "unknown",
+                "skip_reason": yrow[3],
+            }
+
+        # 이번 주 이행률 (과거 날짜만)
+        week_rows = conn.execute(
+            "SELECT workout_type, completed FROM planned_workouts "
+            "WHERE date BETWEEN ? AND ? AND date <= ? AND workout_type!='rest'",
+            (week_start.isoformat(), week_end.isoformat(), date_str),
+        ).fetchall()
+        if week_rows:
+            total = len(week_rows)
+            done = sum(1 for r in week_rows if r[1] == 1)
+            skipped = sum(1 for r in week_rows if r[1] == -1)
+            ctx["plan_compliance"] = {
+                "total": total, "completed": done, "skipped": skipped,
+                "pending": total - done - skipped,
+                "pct": round(done / total * 100) if total else 0,
+            }
+    except Exception:
+        pass
+
     return ctx
 
 
@@ -220,6 +260,24 @@ def format_context_text(ctx: dict) -> str:
             f"- 설명: {plan.get('description', '-')}",
             f"- 근거: {plan.get('rationale', '-')}",
         ]
+
+    # 훈련 계획 이행 현황
+    yp = ctx.get("yesterday_plan")
+    pc = ctx.get("plan_compliance")
+    if yp or pc:
+        lines.append("\n### 훈련 계획 이행 현황")
+        if yp:
+            _status_ko = {"completed": "완료 ✅", "skipped": "건너뜀 ❌", "unknown": "미확인 ❓"}
+            status_str = _status_ko.get(yp["status"], yp["status"])
+            dist_str = f" {yp['km']:.1f}km" if yp.get("km") else ""
+            lines.append(f"- 어제 계획: {yp['type']}{dist_str} → {status_str}")
+            if yp.get("skip_reason"):
+                lines.append(f"  (사유: {yp['skip_reason']})")
+        if pc:
+            lines.append(
+                f"- 이번 주: {pc['completed']}/{pc['total']} 완료 "
+                f"({pc['pct']}%), 건너뜀 {pc['skipped']}회"
+            )
 
     return "\n".join(lines)
 
