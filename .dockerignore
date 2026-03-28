@@ -1,0 +1,28 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.git/
+.github/
+.vscode/
+.idea/
+
+# 개인정보 / 로컬 전용
+config.json
+running.db
+running.db.*
+data/users/
+data/activities/
+data/wellness/
+data/sources/
+*.log
+.env
+.env.*
+
+# 테스트 / 문서
+tests/
+v0.1/
+v0.2/
+audit/
+design/

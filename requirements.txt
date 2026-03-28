@@ -1,8 +1,23 @@
-garminconnect>=0.2.0
-httpx>=0.27.0
-gpxpy>=1.6.0
-fitparse>=0.0.12
-python-dateutil>=2.9.0
-pytest>=8.0.0
+# RunPulse 런타임 의존성
+# 개발/테스트 추가 패키지: pip install pytest
 
-flask
+# Garmin 연동
+garminconnect>=0.2.0
+garth>=0.4.0
+
+# HTTP 클라이언트 (Strava, Intervals, Runalyze API)
+httpx>=0.27.0
+
+# 웹 프레임워크
+flask>=3.0
+
+# 파일 파싱
+gpxpy>=1.6.0
+fitparse>=1.0.0
+
+# 날짜 유틸
+python-dateutil>=2.9.0
+
+# 선택적 기능 (필요 시 주석 해제)
+# caldav>=1.0.0      # CalDAV 캘린더 연동 (/training/push-caldav)
+# selenium>=4.0.0    # Genspark AI 드라이버 (Termux/Chrome 전용)
