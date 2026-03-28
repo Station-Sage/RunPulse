@@ -5,7 +5,7 @@
 set -e
 
 REPO_URL="https://github.com/Station-Sage/RunPulse.git"
-APP_DIR="$HOME/RunPulse"
+APP_DIR="$HOME/projects/RunPulse"
 
 echo "=== [1/5] 시스템 패키지 업데이트 ==="
 sudo apt-get update && sudo apt-get upgrade -y
