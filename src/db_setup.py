@@ -253,7 +253,10 @@ def create_tables(conn: sqlite3.Connection) -> None:
             target_time_sec INTEGER,
             target_pace_sec_km INTEGER,
             status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'cancelled')),
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            distance_label TEXT,
+            weekly_km_target REAL,
+            plan_weeks INTEGER
         );
 
         -- v0.3: AI 채팅 메시지 히스토리

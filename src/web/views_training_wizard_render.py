@@ -206,8 +206,8 @@ def render_step3(data: dict, r: dict) -> str:
     )
 
 
-def render_step4(data: dict) -> str:
-    """Step 4: 플랜 요약 + 생성 버튼."""
+def render_step4(data: dict, mode: str = "create") -> str:
+    """Step 4: 플랜 요약 + 생성 버튼. edit 모드이면 재생성 여부 체크박스 표시."""
     from src.training.readiness import (
         get_taper_weeks, get_phase_for_week, recommend_weekly_km,
     )
@@ -238,9 +238,21 @@ def render_step4(data: dict) -> str:
             f"<p style='margin:0.3rem 0;font-size:0.88rem;'>"
             f"목표 페이스: <strong>{_fmt_pace(data['pace_sec'])}/km</strong></p>"
         )
+    is_edit = mode == "edit" or data.get("_mode") == "edit"
+    regen_html = ""
+    if is_edit:
+        regen_html = (
+            f"<label style='display:flex;align-items:center;gap:8px;margin:1rem 0;"
+            f"font-size:0.88rem;cursor:pointer;'>"
+            f"<input type='checkbox' name='_regen_plan_check' id='wiz-regen-cb'"
+            f" style='accent-color:var(--cyan);width:16px;height:16px;'>"
+            f"이번 주 훈련 플랜도 재생성 <span class='muted'>(기존 일정 덮어씀)</span></label>"
+        )
+    submit_label = "✅ 목표 수정 완료" if is_edit else "✅ 플랜 생성"
+    confirm_msg = "목표를 수정합니다." if is_edit else "이 설정으로 훈련 계획을 생성합니다."
     return (
         f"<div id='wizard-container'>{_steps(4)}"
-        f"<h3 style='margin:0 0 1rem;'>Step 4 — 플랜 확인 및 생성</h3>"
+        f"<h3 style='margin:0 0 1rem;'>Step 4 — {'목표 수정 확인' if is_edit else '플랜 확인 및 생성'}</h3>"
         f"<div class='card' style='padding:1rem;margin-bottom:1rem;'>"
         f"<h4 style='margin:0 0 0.8rem;'>🎯 {_html.escape(data.get('goal_name', ''))}</h4>"
         f"<p style='margin:0.3rem 0;font-size:0.88rem;'>"
@@ -251,13 +263,23 @@ def render_step4(data: dict) -> str:
         f"훈련 기간: <strong>{weeks}주</strong> ({phase_str})</p>"
         f"<p style='margin:0.3rem 0;font-size:0.88rem;'>"
         f"주간 예상 km: <strong>{km_min:.0f}~{km_max:.0f}km</strong></p></div>"
+        f"{regen_html}"
         f"<form method='post' action='/training/wizard/complete'"
-        f" onsubmit=\"return confirm('이 설정으로 훈련 계획을 생성합니다.');\">"
+        f" onsubmit=\"return confirm('{confirm_msg}');\">"
         f"{_hidden(data)}"
+        f"<input type='hidden' id='wiz-regen-hidden' name='_regen_plan_val' value='0'>"
         f"<div style='display:flex;justify-content:space-between;margin-top:1rem;'>"
         f"<button type='button' onclick='wizardBack()' style='{_BACK}'>← 이전</button>"
-        f"<button type='submit' style='{_NEXT}'>✅ 플랜 생성</button>"
+        f"<button type='submit' style='{_NEXT}'>{submit_label}</button>"
         f"</div></form></div>"
+        + (
+            "<script>"
+            "(function(){var cb=document.getElementById('wiz-regen-cb');"
+            "var hd=document.getElementById('wiz-regen-hidden');"
+            "if(cb&&hd)cb.addEventListener('change',function(){hd.value=cb.checked?'1':'0';});})();"
+            "</script>"
+            if is_edit else ""
+        )
     )
 
 
@@ -302,9 +324,15 @@ function wizWeeksCheck(el, minVal) {
 </script>"""
 
 
-def render_wizard_page(step: int = 1, data: dict | None = None) -> str:
+def render_wizard_page(
+    step: int = 1,
+    data: dict | None = None,
+    mode: str = "create",
+    goal_id: int | None = None,
+) -> str:
     """Wizard 전체 페이지 (html_page 래퍼)."""
     from src.web.helpers import html_page
+    title = "목표 수정" if mode == "edit" else "훈련 계획 시작"
     body = (
         f"<div style='max-width:600px;margin:0 auto;'>"
         f"<div class='card' id='wizard-card'>"
@@ -312,4 +340,4 @@ def render_wizard_page(step: int = 1, data: dict | None = None) -> str:
         f"</div></div>"
         f"{wizard_js()}"
     )
-    return html_page("훈련 계획 시작", body, active_tab="training")
+    return html_page(title, body, active_tab="training")

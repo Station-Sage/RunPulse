@@ -21,6 +21,9 @@ from .views_wellness import wellness_bp
 from .views_activity import activity_bp
 from .views_activities import activities_bp
 from .views_settings import settings_bp
+from .views_settings_garmin import settings_garmin_bp
+from .views_settings_integrations import settings_integrations_bp
+from .views_settings_metrics import settings_metrics_bp
 from .views_activity_merge import merge_bp
 from .views_export_import import export_import_bp
 from .views_shoes import shoes_bp
@@ -34,7 +37,10 @@ from .views_ai_coach import ai_coach_bp
 from .views_dev import dev_bp, _table, _scan_history_dir
 from .views_training import training_bp
 from .views_training_crud import training_crud_bp
+from .views_training_goal_crud import training_goal_crud_bp
+from .views_training_export import training_export_bp
 from .views_training_wizard import wizard_bp
+from .views_training_fullplan import fullplan_bp
 from .views_sync import sync_bp
 from .views_guide import guide_bp
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
@@ -881,7 +887,10 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(wellness_bp)
     app.register_blueprint(activity_bp)
     app.register_blueprint(activities_bp)
-    app.register_blueprint(settings_bp)  # 서비스 연동 설정
+    app.register_blueprint(settings_bp)              # 설정 메인
+    app.register_blueprint(settings_garmin_bp)       # 설정 — Garmin 연동
+    app.register_blueprint(settings_integrations_bp) # 설정 — Strava/Intervals/Runalyze
+    app.register_blueprint(settings_metrics_bp)      # 설정 — 메트릭 재계산
     app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
     app.register_blueprint(export_import_bp)  # Export CSV 임포트
     app.register_blueprint(shoes_bp)          # 신발 목록
@@ -890,9 +899,12 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(import_bp)         # v0.2 Strava 아카이브 임포트
     app.register_blueprint(race_bp)          # v0.2 Sprint5 레이스 예측
     app.register_blueprint(ai_coach_bp)      # v0.2 Sprint5 AI 코칭
-    app.register_blueprint(training_bp)       # v0.3 훈련 계획 (스캐폴딩)
-    app.register_blueprint(training_crud_bp)  # v0.3 훈련 CRUD/목표/ICS
+    app.register_blueprint(training_bp)            # v0.3 훈련 계획 (스캐폴딩)
+    app.register_blueprint(training_crud_bp)       # v0.3 훈련 워크아웃 CRUD
+    app.register_blueprint(training_goal_crud_bp)  # v0.3 훈련 목표 CRUD
+    app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송
     app.register_blueprint(wizard_bp)         # v0.2 훈련 계획 Wizard
+    app.register_blueprint(fullplan_bp)       # v0.2 전체 훈련 일정 뷰
     app.register_blueprint(dev_bp)            # 개발자/디버그 도구
     app.register_blueprint(guide_bp)          # 용어집/가이드
     app.register_blueprint(sync_bp)           # 동기화 탭

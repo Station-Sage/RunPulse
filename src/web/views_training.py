@@ -22,6 +22,7 @@ from src.web.views_training_cards import (
     render_adjustment_card,
     render_ai_recommendation,
     render_checkin_card,
+    render_condition_ai_card,
     render_goal_card,
     render_header_actions,
     render_interval_prescription_card,
@@ -34,11 +35,15 @@ from src.web.views_training_loaders import (
     load_actual_activities,
     load_adjustment,
     load_goal,
+    load_goals_with_stats,
+    load_month_workouts,
     load_sync_status,
     load_training_metrics,
     load_workouts,
     load_yesterday_pending,
 )
+from src.web.views_training_goals import render_goals_panel
+from src.web.views_training_month import render_month_calendar
 
 training_bp = Blueprint("training", __name__)
 
@@ -55,6 +60,7 @@ def training_page():
         return html_page("훈련 계획", body, active_tab="training")
 
     week_offset = request.args.get("week", 0, type=int)
+    view_mode = request.args.get("view", "week")  # "week" | "month"
     # 액션 결과 메시지 (Garmin/CalDAV/생성 등)
     _msg = request.args.get("msg", "")
     _msg_html = ""
@@ -90,7 +96,7 @@ def training_page():
             sync_info = load_sync_status(conn)
             yesterday_pending = load_yesterday_pending(conn) if week_offset == 0 else None
             actual_activities = load_actual_activities(conn, week_start)
-            goals_list = _load_goals_list(conn)
+            goals_list = load_goals_with_stats(conn)
 
             utrs_val = metrics.get("utrs_val")
             cirs_val = metrics.get("cirs_val")
@@ -118,12 +124,20 @@ def training_page():
             except Exception:
                 log.warning("훈련탭 AI 호출 실패", exc_info=True)
 
+            # 오늘 워크아웃 (휴식 제외, 미완료 우선)
+            today_str = date.today().isoformat()
+            today_workout = next(
+                (w for w in workouts
+                 if w["date"] == today_str and w.get("workout_type") != "rest"),
+                None,
+            )
+
             body = (
                 _msg_html
                 + render_header_actions(bool(workouts))
-                + render_goal_card(goal, utrs_val)
+                + render_goal_card(goal, utrs_val, today_workout=today_workout)
                 + render_plan_overview(goal, current_phase, weeks_left)
-                + _render_goal_form(goals_list)
+                + render_goals_panel(goals_list)
                 + render_checkin_card(yesterday_pending)
                 + render_interval_prescription_card(
                     next((w for w in workouts
@@ -131,14 +145,18 @@ def training_page():
                           and w["workout_type"] == "interval"), None)
                 )
                 + render_weekly_summary(workouts, utrs_val)
-                + render_adjustment_card(adjustment, cirs_val=cirs_val, utrs_val=utrs_val,
-                                       config=config, conn=conn)
-                + render_week_calendar(workouts, week_start, week_offset,
-                                      actual_activities=actual_activities)
-                + _render_workout_form(week_start)
-                + render_ai_recommendation(utrs_val, cirs_val, cirs_json, workouts,
-                                          config=config, conn=conn,
-                                          ai_override=_train_ai.get("coaching"))
+                + render_condition_ai_card(
+                    adjustment, utrs_val, cirs_val, cirs_json, workouts,
+                    config=config, conn=conn,
+                    ai_override=_train_ai.get("coaching"),
+                )
+                + (render_month_calendar(
+                       load_month_workouts(conn, week_offset),
+                       week_offset=week_offset,
+                       actual_activities=actual_activities,
+                   ) if view_mode == "month" else
+                   render_week_calendar(workouts, week_start, week_offset,
+                                        actual_activities=actual_activities))
                 + render_sync_status(sync_info)
                 + render_training_prefs_collapsed(conn)
             )
@@ -152,6 +170,61 @@ def training_page():
         )
 
     return html_page("훈련 계획", body, active_tab="training")
+
+
+@training_bp.route("/training/calendar-partial")
+def training_calendar_partial():
+    """캘린더 섹션만 반환 — 주 이동 AJAX용 (스크롤 위치 유지).
+
+    ?view=week (기본) 또는 ?view=month 지원.
+    """
+    from flask import Response as _Resp
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return _Resp("", status=404)
+
+    week_offset = request.args.get("week", 0, type=int)
+    view_mode = request.args.get("view", "week")
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            if view_mode == "month":
+                weeks_data = load_month_workouts(conn, week_offset)
+                # 월간 뷰: 첫 번째 주 기준 actual_activities 범위
+                first_ws = weeks_data[0][1] if weeks_data else date.today()
+                last_ws = weeks_data[-1][1] if weeks_data else first_ws
+                actual_activities = load_actual_activities(
+                    conn, first_ws,
+                    end_date=last_ws + timedelta(days=7) if weeks_data else None,
+                )
+                html = render_month_calendar(
+                    weeks_data, week_offset=week_offset,
+                    actual_activities=actual_activities,
+                )
+            else:
+                workouts, week_start = load_workouts(conn, week_offset)
+                if not workouts and week_offset >= 0:
+                    goal = load_goal(conn)
+                    if goal:
+                        try:
+                            from src.training.planner import generate_weekly_plan, save_weekly_plan
+                            config = load_config()
+                            plan = generate_weekly_plan(conn, config=config, week_start=week_start)
+                            save_weekly_plan(conn, plan)
+                            conn.commit()
+                            workouts, week_start = load_workouts(conn, week_offset)
+                        except Exception:
+                            pass
+                actual_activities = load_actual_activities(conn, week_start)
+                html = render_week_calendar(workouts, week_start, week_offset,
+                                            actual_activities=actual_activities)
+        finally:
+            conn.close()
+    except Exception:
+        return _Resp("", status=500)
+
+    return _Resp(html, status=200, mimetype="text/html")
 
 
 @training_bp.route("/training/generate", methods=["POST"])

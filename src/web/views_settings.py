@@ -1,556 +1,39 @@
-"""서비스 연동 설정 뷰 — Blueprint.
+"""서비스 연동 설정 뷰 — 메인 허브 + 설정 저장 라우트.
 
-/settings            : 전체 연동 상태 개요
-/connect/garmin      : Garmin 연동 폼 (이메일/패스워드 → 토큰 저장)
-/connect/garmin/mfa  : Garmin MFA 코드 입력 (2단계 로그인)
-/connect/strava      : Strava OAuth2 시작 (→ strava.com 리다이렉트)
-/connect/strava/callback : OAuth2 콜백 (code → token 교환 → 저장)
-/connect/intervals   : Intervals.icu API 키 폼 (저장 + 연결 테스트)
-/connect/runalyze    : Runalyze 토큰 폼 (저장 + 연결 테스트)
-/connect/{service}/disconnect : 서비스 연동 해제
+분리된 하위 모듈:
+  views_settings_render.py       — 서비스 카드/프로필/Mapbox/CalDAV 렌더러
+  views_settings_render_prefs.py — 훈련환경설정/AI/프롬프트 렌더러
+  views_settings_garmin.py       — Garmin 연동 라우트 (settings_garmin_bp)
+  views_settings_integrations.py — Strava/Intervals/Runalyze 라우트 (settings_integrations_bp)
+  views_settings_metrics.py      — 메트릭 재계산 라우트 (settings_metrics_bp)
 """
 from __future__ import annotations
 
 import html as _html
-import urllib.parse
-import uuid
-from pathlib import Path
-
 import sqlite3
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request
 
 from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
-from src.utils.config import load_config, update_service_config, save_config
-from .helpers import db_path, metric_row, score_badge, last_sync_info
-from .views_settings_hub import render_sync_overview, render_system_info
+from src.utils.config import load_config, save_config, update_service_config
+from src.web.helpers import db_path, last_sync_info
+from src.web.views_settings_hub import render_sync_overview, render_system_info
+from src.web.views_settings_render import (
+    _service_card, _render_user_profile_section,
+    _render_mapbox_section, _render_caldav_section,
+)
+from src.web.views_settings_render_prefs import (
+    _render_ai_section, _render_prompt_management,
+)
 
 settings_bp = Blueprint("settings", __name__)
 
-# Garmin MFA 대기 세션 (key → {mfa_needed, event, holder, result, email, tokenstore})
-_pending_mfa: dict = {}
-
-
-def _garmin_token_status_html(tokenstore) -> str:
-    """garth 토큰 파일 존재·만료 여부를 HTML 배지로 반환."""
-    oauth2_file = tokenstore / "oauth2_token.json"
-    if not tokenstore.exists():
-        return "<span class='score-badge grade-poor'>토큰 없음 — 로그인 필요</span>"
-    if not oauth2_file.exists():
-        return "<span class='score-badge grade-moderate'>디렉터리 존재, 토큰 파일 없음 — 로그인 필요</span>"
-    try:
-        import garth as _garth
-        g = _garth.Client()
-        g.load(str(tokenstore))
-        tok = g.oauth2_token
-        if tok is None:
-            return "<span class='score-badge grade-poor'>토큰 파일 손상</span>"
-        if tok.refresh_expired:
-            return "<span class='score-badge grade-poor'>토큰 만료 — 재로그인 필요</span>"
-        if tok.expired:
-            return "<span class='score-badge grade-moderate'>access_token 만료 (refresh 유효, sync 시 자동 갱신)</span>"
-        return "<span class='score-badge grade-good'>토큰 유효 ✓</span>"
-    except Exception as e:
-        return f"<span class='score-badge grade-poor'>토큰 읽기 실패: {_html.escape(str(e)[:60])}</span>"
-
-# Strava OAuth2 설정
-_STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
-_STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
-_STRAVA_SCOPE = "read,activity:read_all"
-_STRAVA_REDIRECT_PATH = "/connect/strava/callback"
-
-
-# ── 상태 배지 렌더링 ────────────────────────────────────────────────
-def _status_badge(ok: bool, status: str) -> str:
-    """연결 상태 배지 HTML."""
-    cls = "grade-good" if ok else "grade-poor"
-    return f"<span class='score-badge {cls}'>{_html.escape(status)}</span>"
-
-
-def _service_card(
-    name: str,
-    icon: str,
-    status: dict,
-    connect_url: str,
-    disconnect_url: str | None = None,
-    extra_html: str = "",
-    last_sync: str | None = None,
-) -> str:
-    """서비스 연동 상태 카드 HTML."""
-    badge = _status_badge(status["ok"], status["status"])
-    detail = _html.escape(status.get("detail", ""))
-    connect_label = "재연동" if status["ok"] else "연동하기"
-    disconnect_btn = ""
-    if disconnect_url and status["ok"]:
-        disconnect_btn = (
-            f"<form method='post' action='{disconnect_url}' style='display:inline'>"
-            f"<button type='submit' style='margin-left:0.5rem; background:#fdd; border:1px solid #c00; border-radius:4px; padding:0.2rem 0.6rem; cursor:pointer;'>연동 해제</button>"
-            f"</form>"
-        )
-    sync_html = (
-        f"<p class='muted' style='font-size:0.8rem;margin:0.3rem 0 0;'>"
-        f"마지막 동기화: {_html.escape(last_sync)}</p>"
-        if last_sync else
-        "<p class='muted' style='font-size:0.8rem;margin:0.3rem 0 0;'>동기화 기록 없음</p>"
-    )
-    return f"""
-<div class='card'>
-  <h2>{_html.escape(icon)} {_html.escape(name)}</h2>
-  <p>{badge} <small class='muted'>{detail}</small></p>
-  {sync_html}
-  <div style='margin-top:0.6rem;'>
-    <a href='{connect_url}'>
-      <button style='padding:0.4rem 1rem; cursor:pointer;'>{connect_label}</button>
-    </a>
-    {disconnect_btn}
-  </div>
-  {extra_html}
-</div>"""
-
-
-def _estimate_profile() -> dict:
-    """DB에서 사용자 프로필 추정값 계산."""
-    import sqlite3
-    from .helpers import db_path
-    est: dict = {}
-    try:
-        dbp = db_path()
-        if not dbp or not dbp.exists():
-            return est
-        with sqlite3.connect(str(dbp)) as conn:
-            # 최대 HR: 이상치 제거된 추정값
-            from src.metrics.store import estimate_max_hr
-            max_hr_est = estimate_max_hr(conn)
-            if max_hr_est != 190.0:  # 190 = 기본값 → 데이터 없음
-                est["max_hr"] = int(max_hr_est)
-            # eFTP: computed_metrics에서
-            row = conn.execute(
-                "SELECT metric_value FROM computed_metrics WHERE metric_name='eFTP' "
-                "AND activity_id IS NULL AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1"
-            ).fetchone()
-            if row and row[0]:
-                est["eftp"] = int(row[0])
-            # 주간 평균 거리: 최근 4주
-            from datetime import date, timedelta
-            start = (date.today() - timedelta(weeks=4)).isoformat()
-            row = conn.execute(
-                "SELECT COALESCE(SUM(distance_km), 0) FROM v_canonical_activities "
-                "WHERE activity_type='running' AND DATE(start_time) >= ?",
-                (start,),
-            ).fetchone()
-            if row and row[0]:
-                est["weekly_km"] = round(float(row[0]) / 4, 1)
-    except Exception:
-        pass
-    return est
-
-
-def _render_user_profile_section(config: dict) -> str:
-    """사용자 프로필 설정 섹션 + RunPulse 추정값."""
-    u = config.get("user", {})
-    max_hr = u.get("max_hr", 190)
-    thr_pace = u.get("threshold_pace", 300)
-    weekly_km = u.get("weekly_distance_target", 40.0)
-    # threshold_pace: sec/km → mm:ss 표시
-    thr_mm = int(thr_pace) // 60
-    thr_ss = int(thr_pace) % 60
-
-    # RunPulse 추정값
-    est = _estimate_profile()
-    est_parts = []
-    if est.get("max_hr"):
-        est_parts.append(f"최대HR <strong>{est['max_hr']}</strong>bpm")
-    if est.get("eftp"):
-        m, s = divmod(est["eftp"], 60)
-        est_parts.append(f"역치 <strong>{m}:{s:02d}</strong>/km")
-    if est.get("weekly_km"):
-        est_parts.append(f"주간 <strong>{est['weekly_km']:.1f}</strong>km")
-    est_note = ""
-    if est_parts:
-        est_note = (
-            "<div style='display:flex;align-items:center;gap:0.6rem;margin:0 0 0.6rem;flex-wrap:wrap;'>"
-            f"<span style='font-size:0.8rem;color:var(--cyan);'>📊 RunPulse 추정: {' · '.join(est_parts)}</span>"
-            f"<button type='button' onclick=\"applyEstimate({est.get('max_hr', 190)},{est.get('eftp', 300)},{est.get('weekly_km', 40)})\" "
-            "style='background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);"
-            "border-radius:12px;padding:2px 10px;font-size:0.75rem;cursor:pointer;'>적용</button></div>"
-            "<script>function applyEstimate(hr,eftp,wk){"
-            f"document.querySelector('[name=max_hr]').value=hr;"
-            f"document.querySelector('[name=threshold_pace_min]').value=Math.floor(eftp/60);"
-            f"document.querySelector('[name=threshold_pace_sec]').value=eftp%60;"
-            f"document.querySelector('[name=weekly_km]').value=wk;"
-            "}</script>"
-        )
-
-    return f"""
-<div class='card'>
-  <h2 style='margin-bottom:0.5rem;'>사용자 프로필</h2>
-  {est_note}
-  <form method='post' action='/settings/profile'
-        style='display:grid;grid-template-columns:1fr 1fr;gap:0.8rem 1.5rem;'>
-    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
-      최대 심박수 (bpm)
-      <input type='number' name='max_hr' value='{max_hr}' min='120' max='230'
-             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
-      주간 목표 거리 (km)
-      <input type='number' name='weekly_km' value='{weekly_km}' min='1' max='300' step='0.5'
-             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
-      역치 페이스 (분)
-      <input type='number' name='threshold_pace_min' value='{thr_mm}' min='2' max='10'
-             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <label style='display:flex;flex-direction:column;gap:0.3rem;font-size:0.88rem;'>
-      역치 페이스 (초)
-      <input type='number' name='threshold_pace_sec' value='{thr_ss}' min='0' max='59'
-             style='padding:0.4rem;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <div style='grid-column:1/-1;'>
-      <button type='submit'
-              style='padding:0.45rem 1.4rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
-        저장
-      </button>
-    </div>
-  </form>
-</div>"""
-
-
-def _render_mapbox_section(config: dict) -> str:
-    """지도 설정 섹션 (Leaflet + OSM)."""
-    return """
-<div class='card'>
-  <h2 style='margin-bottom:0.5rem;'>지도 설정</h2>
-  <p style='font-size:0.82rem;margin-bottom:0.4rem;'>
-    <span style='color:var(--green);font-weight:600;'>✓ Leaflet + OpenStreetMap</span> 사용 중
-  </p>
-  <p class='muted' style='font-size:0.8rem;margin:0;'>
-    활동 상세 페이지에서 GPS 경로 지도를 표시합니다. API 키 없이 무료로 동작합니다.
-  </p>
-</div>"""
-
-
-def _render_training_prefs_section() -> str:
-    """훈련 환경 설정 섹션 (휴식 요일, 일회성 차단 날짜, 인터벌 설정)."""
-    import json
-    import sqlite3
-    from src.db_setup import get_db_path
-
-    # 현재 저장된 prefs 로드
-    prefs = {"rest_weekdays_mask": 0, "blocked_dates": "[]",
-             "interval_rep_m": 1000, "max_q_days": 0}
-    try:
-        dbp = get_db_path()
-        if dbp and dbp.exists():
-            conn = sqlite3.connect(str(dbp))
-            row = conn.execute(
-                "SELECT rest_weekdays_mask, blocked_dates, interval_rep_m, max_q_days "
-                "FROM user_training_prefs LIMIT 1"
-            ).fetchone()
-            conn.close()
-            if row:
-                prefs = {"rest_weekdays_mask": row[0] or 0,
-                         "blocked_dates": row[1] or "[]",
-                         "interval_rep_m": row[2] or 1000,
-                         "max_q_days": row[3] or 0}
-    except Exception:
-        pass
-
-    mask = int(prefs["rest_weekdays_mask"])
-    try:
-        blocked_list = json.loads(prefs["blocked_dates"]) if prefs["blocked_dates"] else []
-    except Exception:
-        blocked_list = []
-    blocked_str = ", ".join(blocked_list)
-    rep_m = int(prefs["interval_rep_m"])
-    max_q = int(prefs["max_q_days"])
-
-    # 요일 체크박스 (월~일)
-    days = ["월", "화", "수", "목", "금", "토", "일"]
-    day_checks = ""
-    for i, dname in enumerate(days):
-        bit = 1 << i
-        checked = "checked" if (mask & bit) else ""
-        day_checks += (
-            f"<label style='display:flex;align-items:center;gap:4px;cursor:pointer;'>"
-            f"<input type='checkbox' name='rest_day_{i}' value='{bit}' {checked} "
-            f"style='width:16px;height:16px;'> {dname}</label>"
-        )
-
-    # 표준 인터벌 거리 옵션 (Buchheit & Laursen 2013 구간 기준 + 비표준 허용)
-    std_distances = [200, 300, 400, 600, 800, 1000, 1200, 1600, 2000]
-    std_opts = "".join(
-        f"<option value='{d}' {'selected' if d == rep_m else ''}>{d}m</option>"
-        for d in std_distances
-    )
-    # 비표준 거리이면 "직접 입력" 선택
-    is_custom = rep_m not in std_distances
-    custom_selected = "selected" if is_custom else ""
-    custom_val = str(rep_m) if is_custom else ""
-
-    return f"""
-<div class='card' id='training-prefs-section'>
-  <h2 style='margin:0 0 0.8rem;font-size:0.95rem;'>훈련 환경 설정</h2>
-  <p class='muted' style='font-size:0.82rem;margin:0 0 1rem;'>
-    훈련 계획 자동 생성 시 반영됩니다. 휴식일로 지정된 날은 계획에서 제외됩니다.
-  </p>
-  <form method='post' action='/settings/training-prefs'>
-
-    <div style='margin-bottom:1.2rem;'>
-      <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.5rem;'>
-        정기 휴식 요일 (매주 반복)
-      </label>
-      <div style='display:flex;gap:12px;flex-wrap:wrap;'>
-        {day_checks}
-      </div>
-    </div>
-
-    <div style='margin-bottom:1.2rem;'>
-      <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
-        일회성 차단 날짜 (쉼표 구분, YYYY-MM-DD)
-      </label>
-      <input type='text' name='blocked_dates' value='{_html.escape(blocked_str)}'
-        placeholder='예: 2026-04-05, 2026-05-01'
-        style='width:100%;padding:0.4rem;background:var(--card);border:1px solid var(--card-border);
-               color:var(--text);border-radius:4px;font-size:0.88rem;box-sizing:border-box;'>
-    </div>
-
-    <div style='display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.2rem;'>
-      <div>
-        <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
-          인터벌 기본 반복 거리
-          <span class='muted' style='font-weight:normal;font-size:0.78rem;'>
-            (Buchheit &amp; Laursen 2013 — 200~2000m, 비표준 입력 가능)
-          </span>
-        </label>
-        <div style='display:flex;gap:8px;align-items:center;'>
-          <select id='rep-select' name='interval_rep_m_select'
-            onchange='syncRepM(this.value)'
-            style='padding:0.35rem;background:var(--card);border:1px solid var(--card-border);
-                   color:var(--text);border-radius:4px;'>
-            {std_opts}
-            <option value='custom' {custom_selected}>직접 입력</option>
-          </select>
-          <input type='number' id='rep-custom' name='interval_rep_m'
-            value='{rep_m}' min='100' max='5000' step='10'
-            style='width:90px;padding:0.35rem;background:var(--card);
-                   border:1px solid var(--card-border);color:var(--text);
-                   border-radius:4px;{"display:none;" if not is_custom else ""}'
-            placeholder='예: 320'>
-          <span class='muted' style='font-size:0.82rem;'>m</span>
-        </div>
-      </div>
-
-      <div>
-        <label style='font-size:0.88rem;font-weight:600;display:block;margin-bottom:0.4rem;'>
-          주간 최대 Q-day 수
-          <span class='muted' style='font-weight:normal;font-size:0.78rem;'>(0=자동)</span>
-        </label>
-        <input type='number' name='max_q_days' value='{max_q}' min='0' max='4'
-          style='width:70px;padding:0.35rem;background:var(--card);
-                 border:1px solid var(--card-border);color:var(--text);border-radius:4px;'>
-      </div>
-    </div>
-
-    <button type='submit'
-      style='background:var(--cyan);color:#000;border:none;padding:0.4rem 1.4rem;
-             border-radius:6px;font-weight:600;cursor:pointer;font-size:0.88rem;'>
-      저장
-    </button>
-  </form>
-  <script>
-  function syncRepM(val) {{
-    const custom = document.getElementById('rep-custom');
-    if (val === 'custom') {{
-      custom.style.display = '';
-      custom.focus();
-    }} else {{
-      custom.style.display = 'none';
-      custom.value = val;
-    }}
-  }}
-  // 초기화: select와 hidden input 동기화
-  document.addEventListener('DOMContentLoaded', function() {{
-    const sel = document.getElementById('rep-select');
-    const cust = document.getElementById('rep-custom');
-    if (sel && cust && sel.value !== 'custom') {{
-      cust.value = sel.value;
-    }}
-  }});
-  </script>
-</div>"""
-
-
-def _render_ai_section(config: dict) -> str:
-    """AI 코치 설정 섹션."""
-    ai_cfg = config.get("ai", {})
-    provider = ai_cfg.get("provider", "rule")
-    gemini_key = ai_cfg.get("gemini_api_key", "")
-    groq_key = ai_cfg.get("groq_api_key", "")
-    claude_key = ai_cfg.get("claude_api_key", "")
-    openai_key = ai_cfg.get("openai_api_key", "")
-    gemini_masked = "****" + gemini_key[-6:] if len(gemini_key) > 10 else ("설정됨" if gemini_key else "미설정")
-    groq_masked = "****" + groq_key[-6:] if len(groq_key) > 10 else ("설정됨" if groq_key else "미설정")
-    claude_masked = "****" + claude_key[-6:] if len(claude_key) > 10 else ("설정됨" if claude_key else "미설정")
-    openai_masked = "****" + openai_key[-6:] if len(openai_key) > 10 else ("설정됨" if openai_key else "미설정")
-
-    provider_options = ""
-    for val, label in [("rule", "규칙 기반 (API 불필요)"), ("gemini", "Google Gemini (무료)"), ("groq", "Groq (무료, Llama 3.3)"), ("genspark", "Genspark (수동 복사/붙여넣기)"), ("claude", "Claude (Anthropic)"), ("openai", "ChatGPT (OpenAI)")]:
-        sel = " selected" if val == provider else ""
-        provider_options += f"<option value='{val}'{sel} style='background:#1a2035;color:#e0e6f0;'>{label}</option>"
-
-    return f"""
-<div class='card'>
-  <h2 style='margin-bottom:0.5rem;'>AI 코치 설정</h2>
-  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
-    AI 코치, 브리핑, 훈련 추천, 메트릭 해석에 사용할 AI를 선택합니다.
-  </p>
-  <div style='font-size:0.75rem;color:var(--muted);margin-bottom:0.6rem;line-height:1.6;'>
-    💡 <strong>Gemini</strong> (무료, 일 1,500회) · <strong>Groq</strong> (무료, 일 14,400회) 추천<br>
-    Claude/ChatGPT는 유료. 규칙 기반은 API 없이 동작.
-  </div>
-  <form method='post' action='/settings/ai' style='display:flex;flex-direction:column;gap:0.6rem;'>
-    <label style='font-size:0.88rem;'>
-      AI 제공자
-      <select name='ai_provider' style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-        {provider_options}
-      </select>
-    </label>
-    <label style='font-size:0.88rem;'>
-      Gemini API 키 <span class='muted' style='font-size:0.78rem;'>({gemini_masked})</span>
-      <input type='password' name='gemini_api_key' placeholder='AIza...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-      <span class='muted' style='font-size:0.72rem;'><a href='https://aistudio.google.com/apikey' target='_blank' style='color:var(--cyan);'>무료 API 키 발급</a></span>
-    </label>
-    <label style='font-size:0.88rem;'>
-      Groq API 키 <span class='muted' style='font-size:0.78rem;'>({groq_masked})</span>
-      <input type='password' name='groq_api_key' placeholder='gsk_...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-      <span class='muted' style='font-size:0.72rem;'><a href='https://console.groq.com/keys' target='_blank' style='color:var(--cyan);'>무료 API 키 발급</a></span>
-    </label>
-    <label style='font-size:0.88rem;'>
-      Claude API 키 <span class='muted' style='font-size:0.78rem;'>({claude_masked})</span>
-      <input type='password' name='claude_api_key' placeholder='sk-ant-...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-      <span class='muted' style='font-size:0.72rem;'><a href='https://console.anthropic.com/settings/keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
-    </label>
-    <label style='font-size:0.88rem;'>
-      OpenAI API 키 <span class='muted' style='font-size:0.78rem;'>({openai_masked})</span>
-      <input type='password' name='openai_api_key' placeholder='sk-...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-      <span class='muted' style='font-size:0.72rem;'><a href='https://platform.openai.com/api-keys' target='_blank' style='color:var(--cyan);'>API 키 발급</a> (유료)</span>
-    </label>
-    <button type='submit'
-      style='align-self:flex-start;padding:0.45rem 1.2rem;background:var(--cyan);color:#000;
-      border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>저장</button>
-  </form>
-</div>"""
-
-
-def _render_prompt_management(config: dict) -> str:
-    """AI 프롬프트 관리 섹션."""
-    from src.ai.prompt_config import get_all_prompts
-    prompts = get_all_prompts(config)
-    rows = ""
-    for key, info in prompts.items():
-        is_custom = info.get("is_custom")
-        badge = " <span style='color:var(--cyan);font-size:0.7rem;'>수정됨</span>" if is_custom else ""
-        rows += (
-            f"<div style='border-bottom:1px solid rgba(255,255,255,0.06);padding:8px 0;'>"
-            f"<div style='display:flex;justify-content:space-between;align-items:center;'>"
-            f"<strong style='font-size:0.82rem;'>{info['description']}{badge}</strong>"
-            f"<span class='muted' style='font-size:0.7rem;'>max {info['max_tokens']} tokens</span></div>"
-            f"<textarea name='prompt_{key}' rows='2' "
-            f"onfocus='this.rows=10;this.style.borderColor=\"var(--cyan)\"' "
-            f"onblur='this.rows=2;this.style.borderColor=\"rgba(255,255,255,0.1)\"' "
-            f"style='width:100%;margin-top:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
-            f"border-radius:8px;padding:6px 8px;color:var(--fg);font-size:0.75rem;resize:vertical;"
-            f"transition:all 0.2s;'>"
-            f"{info['template']}</textarea></div>"
-        )
-    return f"""
-<details style='margin-bottom:16px;'>
-<summary style='cursor:pointer;background:rgba(255,255,255,0.05);border-radius:12px;
-padding:12px 16px;font-size:14px;font-weight:600;list-style:none;'>
-🔧 AI 프롬프트 관리</summary>
-<div class='card' style='margin-top:8px;'>
-  <p class='muted' style='font-size:0.78rem;margin-bottom:0.5rem;'>
-    각 카드에서 AI에게 보내는 프롬프트를 수정할 수 있습니다.
-    {{context}}는 자동으로 현재 데이터로 치환됩니다.
-  </p>
-  <form method='post' action='/settings/prompts'>
-    {rows}
-    <div style='display:flex;gap:0.5rem;margin-top:0.5rem;'>
-      <button type='submit'
-        style='padding:0.4rem 1rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
-        저장</button>
-      <button type='button' onclick="if(confirm('모든 프롬프트를 기본값으로 복원합니까?'))location.href='/settings/prompts-reset'"
-        style='padding:0.4rem 1rem;background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid rgba(255,255,255,0.2);border-radius:4px;cursor:pointer;'>
-        기본값 복원</button>
-    </div>
-  </form>
-</div></details>"""
-
-
-def _render_caldav_section(config: dict) -> str:
-    """CalDAV 캘린더 설정 섹션."""
-    c = config.get("caldav", {})
-    url = c.get("url", "")
-    username = c.get("username", "")
-    has_pw = bool(c.get("password", ""))
-    status = "<span style='color:var(--green);'>설정됨</span>" if url and username else "<span style='color:var(--muted);'>미설정</span>"
-    return f"""
-<div class='card'>
-  <h2 style='margin-bottom:0.5rem;'>캘린더 연동 (CalDAV)</h2>
-  <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
-    훈련 계획을 Google/네이버/Apple 캘린더에 자동 등록합니다.
-  </p>
-  <p style='font-size:0.82rem;margin-bottom:0.6rem;'>상태: {status}</p>
-  <form method='post' action='/settings/caldav' style='display:flex;flex-direction:column;gap:0.5rem;'>
-    <label style='font-size:0.88rem;'>
-      CalDAV URL
-      <input type='text' name='caldav_url' value='{url}' placeholder='https://caldav.googleapis.com/...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <label style='font-size:0.88rem;'>
-      사용자명
-      <input type='text' name='caldav_username' value='{username}' placeholder='user@gmail.com'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <label style='font-size:0.88rem;'>
-      비밀번호 (앱 비밀번호) <span class='muted' style='font-size:0.78rem;'>({'설정됨' if has_pw else '미설정'})</span>
-      <input type='password' name='caldav_password' placeholder='앱 비밀번호 입력...'
-        style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
-        border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
-    </label>
-    <div style='display:flex;gap:0.5rem;'>
-      <button type='submit'
-        style='padding:0.45rem 1.2rem;background:var(--cyan);color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:bold;'>
-        저장</button>
-      <button type='button' onclick="fetch('/settings/caldav-test').then(r=>r.text()).then(t=>alert(t))"
-        style='padding:0.45rem 1.2rem;background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid rgba(255,255,255,0.2);border-radius:4px;cursor:pointer;'>
-        연결 테스트</button>
-    </div>
-  </form>
-  <p class='muted' style='font-size:0.75rem;margin-top:0.5rem;'>
-    Google: <a href='https://myaccount.google.com/apppasswords' target='_blank' style='color:var(--cyan);'>앱 비밀번호 발급</a> ·
-    네이버: <a href='https://nid.naver.com/user2/help/myInfoV2?m=viewSecurity' target='_blank' style='color:var(--cyan);'>앱 비밀번호</a>
-  </p>
-</div>"""
-
 
 # ── /settings — 전체 연동 상태 페이지 ──────────────────────────────
+
 @settings_bp.get("/settings")
 def settings_view() -> str:
     """서비스 연동 + 사용자 프로필 설정 허브."""
@@ -619,7 +102,6 @@ def settings_view() -> str:
       전체 기간
     </button>
   </form>
-  <!-- 진행 섹션 -->
   <div id='recompute-progress' style='display:none; margin-top:1rem;'>
     <div style='display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;'>
       <span id='recompute-status-text' style='color:var(--cyan);'>계산 중...</span>
@@ -653,11 +135,8 @@ function startRecompute() {
   document.getElementById('recompute-status-text').textContent = '시작 중...';
   document.getElementById('recompute-detail').textContent = '';
   document.getElementById('recompute-eta').textContent = '';
-
-  // POST 시작
   var fd = new FormData(); fd.append('days', days);
   fetch('/metrics/recompute', {method:'POST', body:fd}).then(function() {
-    // SSE 연결
     var es = new EventSource('/metrics/recompute-stream');
     es.onmessage = function(e) {
       var d = JSON.parse(e.data);
@@ -672,7 +151,6 @@ function startRecompute() {
         if (statusEl) statusEl.textContent = '계산 중... ' + (d.current_date || '');
         var detailEl = document.getElementById('recompute-detail');
         if (detailEl) detailEl.textContent = d.current_date ? (d.current_date + ' 처리 완료') : '';
-        // ETA 계산
         var completed = d.completed || 0, total = d.total || 0;
         if (completed > 0 && total > completed) {
           var elapsed = (d.started_at ? Date.now()/1000 - d.started_at : Date.now()/1000 - startTime);
@@ -689,21 +167,14 @@ function startRecompute() {
         if (statusEl) { statusEl.textContent = '❌ 오류: ' + (d.error||''); statusEl.style.color = 'var(--red)'; }
         btn.disabled = false; btn.textContent = '재계산 시작';
         es.close();
-      } else if (d.status === 'idle') {
-        es.close();
-      }
+      } else if (d.status === 'idle') { es.close(); }
     };
-    es.onerror = function() {
-      // SSE 오류 시 폴링으로 fallback
-      es.close();
-      pollRecomputeStatus(btn);
-    };
+    es.onerror = function() { es.close(); pollRecomputeStatus(btn); };
   }).catch(function(err) {
     document.getElementById('recompute-status-text').textContent = '❌ 요청 실패';
     btn.disabled = false; btn.textContent = '재계산 시작';
   });
 }
-
 function pollRecomputeStatus(btn) {
   var timer = setInterval(function() {
     fetch('/metrics/recompute-status').then(function(r){return r.json();}).then(function(d) {
@@ -719,8 +190,6 @@ function pollRecomputeStatus(btn) {
     }).catch(function(){ clearInterval(timer); });
   }, 1500);
 }
-
-// 페이지 로드 시 이미 진행 중이면 복구
 (function() {
   fetch('/metrics/recompute-status').then(function(r){return r.json();}).then(function(d) {
     if (d.status === 'running') {
@@ -739,6 +208,7 @@ function pollRecomputeStatus(btn) {
   }).catch(function(){});
 })();
 </script>
+""" + f"""
 {system_info}
 <p class='muted' style='font-size:0.85rem;'>
   연동 정보는 <code>config.json</code>에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
@@ -746,652 +216,8 @@ function pollRecomputeStatus(btn) {
     return render_template("generic_page.html", title="서비스 연동 설정", body=body, active_tab="settings")
 
 
-# ── Garmin 연동 ─────────────────────────────────────────────────────
-@settings_bp.get("/connect/garmin")
-def garmin_connect_view() -> str:
-    """Garmin 연동 폼."""
-    config = load_config()
-    garmin_cfg = config.get("garmin", {})
-    tokenstore = _tokenstore_path(config)
-    current_email = _html.escape(garmin_cfg.get("email", ""))
-    current_tokenstore = _html.escape(str(tokenstore))
+# ── 설정 저장 라우트 ────────────────────────────────────────────────────
 
-    msg = _html.escape(request.args.get("msg", ""))
-    msg_html = f"<div class='card' style='border-color:#f0c040;'><p>{msg}</p></div>" if msg else ""
-    err = _html.escape(request.args.get("error", ""))
-    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
-
-    body = f"""
-{err_html}{msg_html}
-<div class='card'>
-  <h2>Garmin Connect 연동</h2>
-  <p>이메일/패스워드로 로그인하면 토큰이 로컬에 저장됩니다. 이후 재로그인 시 저장된 토큰을 우선 사용합니다.</p>
-  <form method='post' action='/connect/garmin'>
-    <table style='width:auto; border:none;'>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>이메일:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='email' name='email' value='{current_email}' required style='width:260px;'>
-        </td>
-      </tr>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>패스워드:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='password' name='password' placeholder='패스워드 입력' style='width:260px;'>
-        </td>
-      </tr>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>토큰 저장 경로:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='text' name='tokenstore' value='{current_tokenstore}' style='width:260px;'>
-          <small class='muted'>(기본: ~/.garth)</small>
-        </td>
-      </tr>
-    </table>
-    <div style='margin-top:1rem;'>
-      <button type='submit' name='action' value='save'>저장만 하기</button>
-      &nbsp;
-      <button type='submit' name='action' value='save_and_test' style='background:#d4edff;'>저장 + 연결 테스트</button>
-    </div>
-  </form>
-</div>
-<div class='card'>
-  <h3>토큰 저장소 상태</h3>
-  <p>경로: <code>{current_tokenstore}</code></p>
-  {_garmin_token_status_html(tokenstore)}
-  <p class='muted' style='margin-top:0.5rem;'>
-    <strong>MFA 흐름:</strong> "저장 + 연결 테스트" 클릭 시 토큰이 없으면 Garmin이 이메일/앱으로 인증 코드를 발송합니다.
-    MFA 코드 입력 화면이 자동으로 나타납니다. 코드 입력 후 로그인이 완료되면 토큰이 저장되어 이후 sync 시 재인증 없이 사용됩니다.
-  </p>
-</div>"""
-    return render_template("generic_page.html", title="Garmin 연동", body=body, active_tab="settings")
-
-
-@settings_bp.post("/connect/garmin")
-def garmin_connect_post():
-    """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트, MFA 2단계 지원)."""
-    import threading
-    import time as _time
-    try:
-        import garth as _garth
-        from garth import sso as _sso
-    except ImportError:
-        _garth = None  # type: ignore[assignment]
-        _sso = None  # type: ignore[assignment]
-
-    email = request.form.get("email", "").strip()
-    password = request.form.get("password", "").strip()
-    tokenstore_str = request.form.get("tokenstore", "~/.garth").strip()
-    action = request.form.get("action", "save")
-
-    if not email:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("이메일을 입력하세요."))
-
-    updates: dict = {"email": email, "tokenstore": tokenstore_str}
-    if password:
-        updates["password"] = password
-    update_service_config("garmin", updates)
-
-    if action == "save":
-        return redirect("/connect/garmin?msg=" + urllib.parse.quote("저장 완료. 다음 sync 시 자동 로그인됩니다."))
-
-    # ── save_and_test: garth sso로 로그인 시도 ──
-    if _garth is None or _sso is None:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "garth 라이브러리가 설치되지 않았습니다. pip install garth"))
-
-    config = load_config()
-    _pw = password or config.get("garmin", {}).get("password", "")
-    if not _pw:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("패스워드가 없습니다. 입력 후 다시 시도하세요."))
-
-    tokenstore = Path(tokenstore_str).expanduser()
-
-    try:
-        g = _garth.Client()
-        result = _sso.login(email, _pw, client=g, return_on_mfa=True)
-
-        # MFA 필요한 경우
-        if isinstance(result, tuple) and result[0] == "needs_mfa":
-            key = str(uuid.uuid4())
-            client_state = result[1]
-            _pending_mfa[key] = {
-                "client_state": client_state,
-                "garth_client": g,
-                "tokenstore": str(tokenstore),
-                "email": email,
-            }
-            mfa_url = "/connect/garmin/mfa?" + urllib.parse.urlencode({
-                "key": key,
-                "tokenstore": tokenstore_str,
-            })
-            return redirect(mfa_url)
-
-        # MFA 없이 성공: result는 (oauth1, oauth2) 튜플
-        oauth1, oauth2 = result
-        g.oauth1_token = oauth1
-        g.oauth2_token = oauth2
-        tokenstore.mkdir(parents=True, exist_ok=True)
-        g.dump(str(tokenstore))
-        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
-            f"연결 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
-        ))
-
-    except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("garth 미설치. pip install garth"))
-    except Exception as e:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(f"로그인 실패: {str(e)[:200]}"))
-
-
-@settings_bp.get("/connect/garmin/mfa")
-def garmin_mfa_view():
-    """Garmin MFA 코드 입력 폼."""
-    key = request.args.get("key", "")
-    tokenstore_str = request.args.get("tokenstore", "~/.garth")
-    err = _html.escape(request.args.get("error", ""))
-    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
-
-    if not key or key not in _pending_mfa:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "MFA 세션이 만료되었거나 없습니다. 다시 시도하세요."
-        ))
-
-    body = f"""
-{err_html}
-<div class='card'>
-  <h2>Garmin MFA 인증</h2>
-  <p>Garmin 앱 또는 이메일로 전송된 6자리 인증 코드를 입력하세요.</p>
-  <form method='post' action='/connect/garmin/mfa'>
-    <input type='hidden' name='key' value='{_html.escape(key)}'>
-    <input type='hidden' name='tokenstore' value='{_html.escape(tokenstore_str)}'>
-    <table style='width:auto; border:none;'>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>인증 코드:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='text' name='mfa_code' maxlength='8' autofocus
-                 placeholder='123456' style='width:140px; font-size:1.2rem; letter-spacing:0.2rem;'>
-        </td>
-      </tr>
-    </table>
-    <div style='margin-top:1rem;'>
-      <button type='submit' style='padding:0.5rem 1.5rem; font-size:1rem;'>인증 완료</button>
-    </div>
-  </form>
-</div>
-<div class='card'>
-  <p class='muted'>코드를 받지 못했다면 Garmin 앱을 확인하거나 이메일을 다시 확인하세요.</p>
-  <p class='muted'><a href='/connect/garmin'>← 처음부터 다시 시도</a></p>
-</div>"""
-    return render_template("generic_page.html", title="Garmin MFA 인증", body=body, active_tab="settings")
-
-
-@settings_bp.post("/connect/garmin/mfa")
-def garmin_mfa_submit():
-    """Garmin MFA 코드 제출 → 로그인 완료."""
-    try:
-        from garth import sso as _sso
-        import garth as _garth
-    except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "garth 라이브러리가 설치되지 않았습니다."))
-
-    key = request.form.get("key", "")
-    mfa_code = request.form.get("mfa_code", "").strip()
-    tokenstore_str = request.form.get("tokenstore", "~/.garth")
-
-    if not key or key not in _pending_mfa:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("MFA 세션 만료. 다시 시도하세요."))
-    if not mfa_code:
-        mfa_url = "/connect/garmin/mfa?" + urllib.parse.urlencode({
-            "key": key, "tokenstore": tokenstore_str, "error": "인증 코드를 입력하세요."
-        })
-        return redirect(mfa_url)
-
-    pending = _pending_mfa.pop(key)
-    try:
-        g = pending["garth_client"]
-        oauth1, oauth2 = _sso.resume_login(pending["client_state"], mfa_code)
-        g.oauth1_token = oauth1
-        g.oauth2_token = oauth2
-        tokenstore = Path(pending["tokenstore"]).expanduser()
-        tokenstore.mkdir(parents=True, exist_ok=True)
-        g.dump(str(tokenstore))
-        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
-            f"MFA 인증 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
-        ))
-    except Exception as e:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(f"MFA 인증 실패: {str(e)[:200]}"))
-
-
-@settings_bp.post("/connect/garmin/disconnect")
-def garmin_disconnect():
-    """Garmin 연동 해제 (이메일/패스워드 삭제, tokenstore 유지)."""
-    update_service_config("garmin", {"email": "", "password": ""})
-    return redirect("/settings?msg=Garmin+연동+해제+완료")
-
-
-# ── Strava OAuth2 연동 ──────────────────────────────────────────────
-@settings_bp.get("/connect/strava")
-def strava_connect_view() -> str:
-    """Strava 연동 화면 — client_id/secret 입력 + OAuth 시작."""
-    config = load_config()
-    strava_cfg = config.get("strava", {})
-    client_id = _html.escape(str(strava_cfg.get("client_id", "")))
-    msg = _html.escape(request.args.get("msg", ""))
-    msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
-    err = _html.escape(request.args.get("error", ""))
-    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
-
-    body = f"""
-{err_html}{msg_html}
-<div class='card'>
-  <h2>Strava OAuth2 연동</h2>
-  <p>Strava API 앱(client_id, client_secret)을 먼저 저장한 후 OAuth 인증을 시작하세요.</p>
-  <form method='post' action='/connect/strava/save-app'>
-    <table style='width:auto; border:none;'>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>Client ID:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='text' name='client_id' value='{client_id}' required style='width:200px;'>
-        </td>
-      </tr>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>Client Secret:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='password' name='client_secret' placeholder='변경하려면 입력' style='width:200px;'>
-        </td>
-      </tr>
-    </table>
-    <div style='margin-top:1rem;'>
-      <button type='submit'>앱 정보 저장</button>
-    </div>
-  </form>
-</div>
-<div class='card'>
-  <h3>OAuth2 인증 시작</h3>
-  <p>위 앱 정보를 저장한 후 아래 버튼을 클릭하여 Strava 로그인 페이지로 이동합니다.</p>
-  <a href='/connect/strava/oauth-start'>
-    <button style='padding:0.4rem 1rem; background:#fc4c02; color:white; border:none; border-radius:4px; cursor:pointer;'>
-      Strava로 로그인
-    </button>
-  </a>
-  <p class='muted' style='font-size:0.85rem;'>
-    콜백 URL: <code>http://localhost:18080{_STRAVA_REDIRECT_PATH}</code><br>
-    Strava API 앱 설정에서 위 URL을 Authorized Callback Domain에 추가해야 합니다.
-  </p>
-</div>"""
-    return render_template("generic_page.html", title="Strava 연동", body=body, active_tab="settings")
-
-
-@settings_bp.post("/connect/strava/save-app")
-def strava_save_app():
-    """Strava client_id/secret 저장."""
-    client_id = request.form.get("client_id", "").strip()
-    client_secret = request.form.get("client_secret", "").strip()
-    if not client_id:
-        return redirect("/connect/strava?error=" + urllib.parse.quote("Client ID를 입력하세요."))
-
-    updates: dict = {"client_id": client_id}
-    if client_secret:
-        updates["client_secret"] = client_secret
-    update_service_config("strava", updates)
-    return redirect("/connect/strava?msg=" + urllib.parse.quote("앱 정보 저장 완료."))
-
-
-@settings_bp.get("/connect/strava/oauth-start")
-def strava_oauth_start():
-    """Strava OAuth2 인증 시작 — strava.com으로 리다이렉트."""
-    config = load_config()
-    strava_cfg = config.get("strava", {})
-    client_id = strava_cfg.get("client_id", "")
-    if not client_id:
-        return redirect("/connect/strava?error=" + urllib.parse.quote("Client ID를 먼저 저장하세요."))
-
-    params = {
-        "client_id": client_id,
-        "redirect_uri": f"http://localhost:18080{_STRAVA_REDIRECT_PATH}",
-        "response_type": "code",
-        "approval_prompt": "auto",
-        "scope": _STRAVA_SCOPE,
-    }
-    auth_url = _STRAVA_AUTH_URL + "?" + urllib.parse.urlencode(params)
-    return redirect(auth_url)
-
-
-@settings_bp.get("/connect/strava/callback")
-def strava_oauth_callback():
-    """Strava OAuth2 콜백 — code → token 교환 → 저장."""
-    import httpx
-    error = request.args.get("error")
-    if error:
-        return redirect("/connect/strava?error=" + urllib.parse.quote(f"OAuth 오류: {error}"))
-
-    code = request.args.get("code", "")
-    if not code:
-        return redirect("/connect/strava?error=" + urllib.parse.quote("인증 코드가 없습니다."))
-
-    config = load_config()
-    strava_cfg = config.get("strava", {})
-    client_id = strava_cfg.get("client_id", "")
-    client_secret = strava_cfg.get("client_secret", "")
-
-    if not client_id or not client_secret:
-        return redirect("/connect/strava?error=" + urllib.parse.quote("Client ID/Secret 미설정."))
-
-    # authorization_code → access_token 교환
-    try:
-        with httpx.Client(timeout=15) as client:
-            resp = client.post(_STRAVA_TOKEN_URL, data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "code": code,
-                "grant_type": "authorization_code",
-            })
-            resp.raise_for_status()
-            token_data = resp.json()
-    except Exception as e:
-        return redirect("/connect/strava?error=" + urllib.parse.quote(f"토큰 교환 실패: {e}"))
-
-    update_service_config("strava", {
-        "access_token": token_data.get("access_token", ""),
-        "refresh_token": token_data.get("refresh_token", ""),
-        "expires_at": token_data.get("expires_at", 0),
-    })
-    return redirect("/connect/strava?msg=" + urllib.parse.quote("Strava 연동 완료! 토큰이 저장되었습니다."))
-
-
-@settings_bp.post("/connect/strava/disconnect")
-def strava_disconnect():
-    """Strava 연동 해제."""
-    update_service_config("strava", {"access_token": "", "refresh_token": "", "expires_at": 0})
-    return redirect("/settings")
-
-
-# ── Intervals.icu 연동 ──────────────────────────────────────────────
-@settings_bp.get("/connect/intervals")
-def intervals_connect_view() -> str:
-    """Intervals.icu API 키 입력 폼."""
-    config = load_config()
-    intervals_cfg = config.get("intervals", {})
-    athlete_id = _html.escape(str(intervals_cfg.get("athlete_id", "")))
-    msg = _html.escape(request.args.get("msg", ""))
-    msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
-    err = _html.escape(request.args.get("error", ""))
-    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
-
-    body = f"""
-{err_html}{msg_html}
-<div class='card'>
-  <h2>Intervals.icu 연동</h2>
-  <p>
-    <a href='https://intervals.icu/settings' target='_blank' rel='noopener'>
-      <button style='padding:0.4rem 1rem; background:#e35300; color:#fff; border:none; border-radius:4px; cursor:pointer; margin-bottom:0.5rem;'>
-        ↗ Intervals.icu 설정 페이지 열기
-      </button>
-    </a>
-  </p>
-  <p class='muted' style='font-size:0.85rem;'>설정 → Profile → API 탭 → API Key 복사 후 아래에 붙여넣으세요.</p>
-  <form method='post' action='/connect/intervals'>
-    <table style='width:auto; border:none;'>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>Athlete ID:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='text' name='athlete_id' value='{athlete_id}' required
-                 placeholder='예: i12345' style='width:200px;'>
-          <small class='muted'>(URL의 /athlete/i12345 부분)</small>
-        </td>
-      </tr>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>API Key:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='password' name='api_key' placeholder='API 키 입력' required style='width:200px;'>
-        </td>
-      </tr>
-    </table>
-    <div style='margin-top:1rem;'>
-      <button type='submit' name='action' value='save'>저장만 하기</button>
-      &nbsp;
-      <button type='submit' name='action' value='save_and_test' style='background:#d4edff;'>저장 + 연결 테스트</button>
-    </div>
-  </form>
-</div>"""
-    return render_template("generic_page.html", title="Intervals.icu 연동", body=body, active_tab="settings")
-
-
-@settings_bp.post("/connect/intervals")
-def intervals_connect_post():
-    """Intervals.icu API 키 저장 + 연결 테스트."""
-    athlete_id = request.form.get("athlete_id", "").strip()
-    api_key = request.form.get("api_key", "").strip()
-    action = request.form.get("action", "save")
-
-    if not athlete_id or not api_key:
-        return redirect("/connect/intervals?error=" + urllib.parse.quote("athlete_id와 API 키를 모두 입력하세요."))
-
-    update_service_config("intervals", {"athlete_id": athlete_id, "api_key": api_key})
-
-    if action == "save":
-        return redirect("/connect/intervals?msg=" + urllib.parse.quote("저장 완료."))
-
-    # 연결 테스트
-    config = load_config()
-    result = check_intervals_connection(config)
-    if result["ok"]:
-        return redirect("/connect/intervals?msg=" + urllib.parse.quote(f"연결 성공: {result['detail']}"))
-    return redirect("/connect/intervals?error=" + urllib.parse.quote(f"연결 실패 [{result['status']}]: {result['detail']}"))
-
-
-@settings_bp.post("/connect/intervals/disconnect")
-def intervals_disconnect():
-    """Intervals.icu 연동 해제."""
-    update_service_config("intervals", {"athlete_id": "", "api_key": ""})
-    return redirect("/settings")
-
-
-# ── Runalyze 연동 ───────────────────────────────────────────────────
-@settings_bp.get("/connect/runalyze")
-def runalyze_connect_view() -> str:
-    """Runalyze 토큰 입력 폼."""
-    msg = _html.escape(request.args.get("msg", ""))
-    msg_html = f"<div class='card' style='border-color:#4caf50;'><p>{msg}</p></div>" if msg else ""
-    err = _html.escape(request.args.get("error", ""))
-    err_html = f"<div class='card' style='border-color:#c0392b;'><p style='color:#c0392b;'>{err}</p></div>" if err else ""
-
-    body = f"""
-{err_html}{msg_html}
-<div class='card'>
-  <h2>Runalyze 연동</h2>
-  <p>
-    <a href='https://runalyze.com/settings/personal-api' target='_blank' rel='noopener'>
-      <button style='padding:0.4rem 1rem; background:#2980b9; color:#fff; border:none; border-radius:4px; cursor:pointer; margin-bottom:0.5rem;'>
-        ↗ Runalyze API 토큰 페이지 열기
-      </button>
-    </a>
-  </p>
-  <p class='muted' style='font-size:0.85rem;'>설정 → Account → Personal API → 토큰 복사 후 아래에 붙여넣으세요.</p>
-  <form method='post' action='/connect/runalyze'>
-    <table style='width:auto; border:none;'>
-      <tr>
-        <td style='border:none; padding:0.3rem 0.5rem;'><label>API Token:</label></td>
-        <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='password' name='token' placeholder='Personal API 토큰 입력' required style='width:280px;'>
-        </td>
-      </tr>
-    </table>
-    <div style='margin-top:1rem;'>
-      <button type='submit' name='action' value='save'>저장만 하기</button>
-      &nbsp;
-      <button type='submit' name='action' value='save_and_test' style='background:#d4edff;'>저장 + 연결 테스트</button>
-    </div>
-  </form>
-</div>
-<div class='card'>
-  <h3>토큰 발급 방법</h3>
-  <ol>
-    <li>runalyze.com에 로그인</li>
-    <li>Settings → Personal API 이동</li>
-    <li>"Generate new token" 클릭</li>
-    <li>생성된 토큰을 위 입력창에 붙여넣기</li>
-  </ol>
-  <p class='muted'>토큰이 만료되거나 오류가 발생하면 Runalyze에서 재발급하세요.</p>
-</div>"""
-    return render_template("generic_page.html", title="Runalyze 연동", body=body, active_tab="settings")
-
-
-@settings_bp.post("/connect/runalyze")
-def runalyze_connect_post():
-    """Runalyze 토큰 저장 + 연결 테스트."""
-    token = request.form.get("token", "").strip()
-    action = request.form.get("action", "save")
-
-    if not token:
-        return redirect("/connect/runalyze?error=" + urllib.parse.quote("토큰을 입력하세요."))
-
-    update_service_config("runalyze", {"token": token})
-    # 이전 403 오류로 인한 동기화 차단 해제 (새 토큰 저장 시 자동 클리어)
-    from src.utils.sync_state import clear_retry_after
-    clear_retry_after("runalyze")
-
-    if action == "save":
-        return redirect("/connect/runalyze?msg=" + urllib.parse.quote("저장 완료."))
-
-    # 연결 테스트
-    config = load_config()
-    result = check_runalyze_connection(config)
-    if result["ok"]:
-        return redirect("/connect/runalyze?msg=" + urllib.parse.quote(f"연결 성공: {result['detail']}"))
-    return redirect("/connect/runalyze?error=" + urllib.parse.quote(f"연결 실패 [{result['status']}]: {result['detail']}"))
-
-
-@settings_bp.post("/connect/runalyze/disconnect")
-def runalyze_disconnect():
-    """Runalyze 연동 해제."""
-    update_service_config("runalyze", {"token": ""})
-    return redirect("/settings")
-
-
-# ── 메트릭 재계산 ────────────────────────────────────────────────────
-
-# 재계산 진행 상태 (스레드 안전 — 단일 딕셔너리 교체)
-import threading as _threading
-_recompute_state: dict = {"status": "idle"}
-_recompute_lock = _threading.Lock()
-
-
-def _set_recompute_state(**kwargs) -> None:
-    with _recompute_lock:
-        _recompute_state.update(kwargs)
-
-
-@settings_bp.post("/metrics/recompute")
-def metrics_recompute():
-    """기존 DB 데이터 기반 2차 메트릭 일괄 재계산 (백그라운드 + SSE 진행)."""
-    from src.metrics import engine as metrics_engine
-
-    with _recompute_lock:
-        if _recompute_state.get("status") == "running":
-            return redirect("/settings?msg=재계산이 이미 진행 중입니다.")
-
-    try:
-        days = int(request.form.get("days", 90))
-        if days < 0:
-            days = 0  # 0 = 전체 기간
-    except (ValueError, TypeError):
-        days = 90
-
-    import time as _time
-    _set_recompute_state(status="running", days=days, completed=0, total=days,
-                         current_date="", pct=0, error=None,
-                         started_at=_time.time())
-
-    def _on_progress(date_str: str, completed: int, total: int) -> None:
-        pct = round(completed / total * 100, 1) if total > 0 else 0
-        _set_recompute_state(completed=completed, total=total,
-                             current_date=date_str, pct=pct)
-
-    def _run() -> None:
-        try:
-            with sqlite3.connect(str(db_path())) as conn:
-                metrics_engine.recompute_all(conn, days=days, on_progress=_on_progress)
-            _set_recompute_state(status="completed", pct=100)
-        except Exception as exc:
-            _set_recompute_state(status="error", error=str(exc)[:200])
-
-    _threading.Thread(target=_run, daemon=True, name="metrics-recompute").start()
-    return redirect("/settings#metrics-section")
-
-
-@settings_bp.get("/metrics/recompute-stream")
-def metrics_recompute_stream():
-    """메트릭 재계산 진행 상황 SSE 스트림."""
-    import json
-    import time
-    from flask import Response, stream_with_context
-
-    def _generate():
-        while True:
-            with _recompute_lock:
-                state = dict(_recompute_state)
-            data = json.dumps(state)
-            yield f"data: {data}\n\n"
-            if state.get("status") in ("completed", "error", "idle"):
-                break
-            time.sleep(0.8)
-
-    return Response(
-        stream_with_context(_generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@settings_bp.get("/metrics/recompute-status")
-def metrics_recompute_status():
-    """재계산 현재 상태 JSON (폴링 fallback용)."""
-    from flask import jsonify
-    with _recompute_lock:
-        return jsonify(dict(_recompute_state))
-
-
-@settings_bp.get("/recompute-metrics")
-def recompute_metrics_get():
-    """동기화 탭에서 호출하는 GET 재계산 엔드포인트 (간단 버전, JSON 응답)."""
-    from flask import jsonify
-    from src.metrics import engine as metrics_engine
-
-    with _recompute_lock:
-        if _recompute_state.get("status") == "running":
-            return jsonify({"message": "재계산이 이미 진행 중입니다."})
-
-    try:
-        days = int(request.args.get("days", 90))
-        if days < 0:
-            days = 0
-    except (ValueError, TypeError):
-        days = 90
-
-    import time as _time
-    _set_recompute_state(status="running", days=days, completed=0, total=days,
-                         current_date="", pct=0, error=None,
-                         started_at=_time.time())
-
-    def _run() -> None:
-        try:
-            with sqlite3.connect(str(db_path())) as conn:
-                metrics_engine.recompute_all(conn, days=days)
-            _set_recompute_state(status="completed", pct=100)
-        except Exception as exc:
-            _set_recompute_state(status="error", error=str(exc)[:200])
-
-    _threading.Thread(target=_run, daemon=True, name="metrics-recompute-get").start()
-    label = "전체 기간" if days == 0 else f"최근 {days}일"
-    return jsonify({"message": f"재계산 시작 ({label}). 백그라운드에서 진행 중..."})
-
-
-# ── 사용자 프로필 저장 ────────────────────────────────────────────────
 @settings_bp.post("/settings/profile")
 def settings_profile_post():
     """사용자 프로필 설정(max_hr, threshold_pace, weekly_km) 저장."""
@@ -1413,14 +239,12 @@ def settings_profile_post():
     return redirect("/settings?msg=프로필이 저장되었습니다")
 
 
-# ── 훈련 환경 설정 저장 ──────────────────────────────────────────────
 @settings_bp.post("/settings/training-prefs")
 def settings_training_prefs_post():
     """훈련 환경 설정 — 훈련 탭으로 이전됨. 하위 호환 리디렉션."""
     return redirect("/training?msg=훈련 환경 설정은 훈련 탭 하단에서 변경하세요")
 
 
-# ── AI 설정 저장 ─────────────────────────────────────────────────────
 @settings_bp.post("/settings/ai")
 def settings_ai_post():
     """AI 코치 설정 저장."""
@@ -1428,24 +252,14 @@ def settings_ai_post():
     config.setdefault("ai", {})
     provider = (request.form.get("ai_provider") or "rule").strip()
     config["ai"]["provider"] = provider
-    gemini_key = (request.form.get("gemini_api_key") or "").strip()
-    if gemini_key:
-        config["ai"]["gemini_api_key"] = gemini_key
-    groq_key = (request.form.get("groq_api_key") or "").strip()
-    if groq_key:
-        config["ai"]["groq_api_key"] = groq_key
-    claude_key = (request.form.get("claude_api_key") or "").strip()
-    if claude_key:
-        config["ai"]["claude_api_key"] = claude_key
-    openai_key = (request.form.get("openai_api_key") or "").strip()
-    if openai_key:
-        config["ai"]["openai_api_key"] = openai_key
+    for key_name in ("gemini_api_key", "groq_api_key", "claude_api_key", "openai_api_key"):
+        val = (request.form.get(key_name) or "").strip()
+        if val:
+            config["ai"][key_name] = val
     save_config(config)
-    msg = f"AI 설정 저장됨 (제공자: {provider})"
-    return redirect(f"/settings?msg={msg}")
+    return redirect(f"/settings?msg=AI 설정 저장됨 (제공자: {provider})")
 
 
-# ── Mapbox 토큰 저장 ─────────────────────────────────────────────────
 @settings_bp.post("/settings/mapbox")
 def settings_mapbox_post():
     """Mapbox access token 저장."""
@@ -1458,7 +272,6 @@ def settings_mapbox_post():
     return redirect(f"/settings?msg={msg}")
 
 
-# ── 프롬프트 저장 ─────────────────────────────────────────────────
 @settings_bp.post("/settings/prompts")
 def settings_prompts_post():
     """사용자 커스텀 프롬프트 저장."""
@@ -1484,7 +297,6 @@ def settings_prompts_reset():
     return redirect("/settings?msg=프롬프트가 기본값으로 복원되었습니다")
 
 
-# ── CalDAV 설정 저장 ─────────────────────────────────────────────────
 @settings_bp.post("/settings/caldav")
 def settings_caldav_post():
     """CalDAV 설정 저장."""

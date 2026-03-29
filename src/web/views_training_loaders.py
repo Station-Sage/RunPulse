@@ -107,17 +107,226 @@ def load_yesterday_pending(conn: sqlite3.Connection) -> dict | None:
 def load_actual_activities(
     conn: sqlite3.Connection,
     week_start: date,
+    end_date: date | None = None,
 ) -> dict[str, dict]:
-    """주간 날짜별 실제 러닝 활동 조회.
+    """날짜별 실제 러닝 활동 조회.
+
+    Args:
+        end_date: None이면 week_start 기준 1주, 지정하면 그 범위까지.
 
     Returns:
         {"2026-03-25": {"id": 123, "km": 10.5, "pace": 305, "hr": 148}, ...}
     """
     from src.training.matcher import get_actual_activities_for_week
     try:
-        return get_actual_activities_for_week(conn, week_start)
+        if end_date is None:
+            return get_actual_activities_for_week(conn, week_start)
+        # 복수 주: 1주씩 순회 후 병합
+        result: dict[str, dict] = {}
+        cur = week_start
+        while cur < end_date:
+            result.update(get_actual_activities_for_week(conn, cur))
+            cur += timedelta(weeks=1)
+        return result
     except Exception:
         return {}
+
+
+def load_month_workouts(
+    conn: sqlite3.Connection,
+    week_offset: int = 0,
+) -> list[tuple[list[dict], date]]:
+    """4주치 워크아웃 반환 — 월간 캘린더용.
+
+    Returns:
+        [(workouts, week_start), ...] — 4개 (week_offset 기준 시작)
+    """
+    from src.training.planner import get_planned_workouts
+
+    today = date.today()
+    base_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+
+    result = []
+    for i in range(4):
+        ws = base_week + timedelta(weeks=i)
+        workouts = get_planned_workouts(conn, week_start=ws)
+        result.append((workouts, ws))
+    return result
+
+
+def load_full_plan_weeks(
+    conn: sqlite3.Connection,
+    goal: dict | None,
+) -> list[dict]:
+    """전체 기간 planned_workouts를 주별로 그룹화해 반환.
+
+    Returns:
+        list of {week_start, is_current, workouts, total_km,
+                 total_count, completed_count}
+    """
+    from collections import defaultdict
+
+    today = date.today()
+    today_week = today - timedelta(days=today.weekday())
+
+    # 기간 끝: 레이스 날짜 + 1주 또는 12주 앞
+    if goal and goal.get("race_date"):
+        try:
+            end_date = date.fromisoformat(goal["race_date"]) + timedelta(days=7)
+        except ValueError:
+            end_date = today + timedelta(weeks=12)
+    else:
+        end_date = today + timedelta(weeks=12)
+
+    # 기간 시작: DB 최초 워크아웃 (최대 52주 전까지)
+    row = conn.execute(
+        "SELECT MIN(date) FROM planned_workouts WHERE date >= ?",
+        ((today - timedelta(weeks=52)).isoformat(),),
+    ).fetchone()
+    if row and row[0]:
+        try:
+            earliest = date.fromisoformat(row[0])
+            start_week = earliest - timedelta(days=earliest.weekday())
+        except ValueError:
+            start_week = today_week
+    else:
+        start_week = today_week
+
+    rows = conn.execute(
+        """SELECT id, date, workout_type, distance_km,
+                  target_pace_min, target_pace_max,
+                  description, completed, source
+           FROM planned_workouts
+           WHERE date >= ? AND date < ?
+           ORDER BY date""",
+        (start_week.isoformat(), end_date.isoformat()),
+    ).fetchall()
+
+    keys = ["id", "date", "workout_type", "distance_km",
+            "target_pace_min", "target_pace_max",
+            "description", "completed", "source"]
+    workouts = [dict(zip(keys, r)) for r in rows]
+
+    week_map: dict[str, list] = defaultdict(list)
+    for w in workouts:
+        d = date.fromisoformat(w["date"])
+        ws = (d - timedelta(days=d.weekday())).isoformat()
+        week_map[ws].append(w)
+
+    weeks = []
+    for ws_iso in sorted(week_map.keys()):
+        ws = date.fromisoformat(ws_iso)
+        wlist = week_map[ws_iso]
+        non_rest = [w for w in wlist if w.get("workout_type") != "rest"]
+        total_km = sum(w.get("distance_km") or 0 for w in wlist)
+        completed = sum(1 for w in non_rest if w.get("completed") == 1)
+        weeks.append({
+            "week_start": ws,
+            "is_current": ws == today_week,
+            "workouts": wlist,
+            "total_km": total_km,
+            "total_count": len(non_rest),
+            "completed_count": completed,
+        })
+
+    return weeks
+
+
+def load_goals_with_stats(conn: sqlite3.Connection) -> list[dict]:
+    """전체 목표 목록 + 수행률 통계.
+
+    Returns:
+        goals list — 각 dict에 completed_count, total_count 추가.
+    """
+    from src.training.goals import list_goals
+    goals = list_goals(conn, status="all")
+    for g in goals:
+        start, end = _goal_date_range(g)
+        row = conn.execute(
+            """SELECT
+                COUNT(CASE WHEN workout_type != 'rest' THEN 1 END),
+                COUNT(CASE WHEN completed = 1 AND workout_type != 'rest' THEN 1 END)
+               FROM planned_workouts WHERE date >= ? AND date <= ?""",
+            (start, end),
+        ).fetchone()
+        g["total_count"] = row[0] if row else 0
+        g["completed_count"] = row[1] if row else 0
+    return goals
+
+
+def load_goal_weeks(
+    conn: sqlite3.Connection,
+    goal: dict,
+) -> list[dict]:
+    """목표 기간의 planned_workouts를 주별로 그룹화.
+
+    Returns:
+        list of {week_start, is_current, workouts, total_km,
+                 total_count, completed_count}
+    """
+    from collections import defaultdict
+
+    today = date.today()
+    today_week = today - timedelta(days=today.weekday())
+    start, end = _goal_date_range(goal)
+
+    rows = conn.execute(
+        """SELECT id, date, workout_type, distance_km, completed
+           FROM planned_workouts
+           WHERE date >= ? AND date <= ?
+           ORDER BY date""",
+        (start, end),
+    ).fetchall()
+    keys = ["id", "date", "workout_type", "distance_km", "completed"]
+    workouts = [dict(zip(keys, r)) for r in rows]
+
+    week_map: dict[str, list] = defaultdict(list)
+    for w in workouts:
+        d = date.fromisoformat(w["date"])
+        ws = (d - timedelta(days=d.weekday())).isoformat()
+        week_map[ws].append(w)
+
+    weeks = []
+    for ws_iso in sorted(week_map.keys()):
+        ws = date.fromisoformat(ws_iso)
+        wlist = week_map[ws_iso]
+        non_rest = [w for w in wlist if w.get("workout_type") != "rest"]
+        total_km = sum(w.get("distance_km") or 0 for w in wlist)
+        completed = sum(1 for w in non_rest if w.get("completed") == 1)
+        weeks.append({
+            "week_start": ws,
+            "is_current": ws == today_week,
+            "workouts": wlist,
+            "total_km": total_km,
+            "total_count": len(non_rest),
+            "completed_count": completed,
+        })
+    return weeks
+
+
+def _goal_date_range(goal: dict) -> tuple[str, str]:
+    """목표의 플랜 날짜 범위 (start_iso, end_iso).
+
+    created_at 기준 주 월요일부터 race_date+7일 또는 plan_weeks 기준 종료일.
+    """
+    raw_start = (goal.get("created_at") or "").split(" ")[0].split("T")[0]
+    try:
+        created = date.fromisoformat(raw_start)
+        # 해당 주 월요일로 확장 (주 중반에 생성된 경우 앞 워크아웃 포함)
+        start = (created - timedelta(days=created.weekday())).isoformat()
+    except ValueError:
+        start = (date.today() - timedelta(weeks=52)).isoformat()
+
+    race = goal.get("race_date")
+    if race:
+        try:
+            end = (date.fromisoformat(race) + timedelta(days=7)).isoformat()
+            return start, end
+        except ValueError:
+            pass
+    plan_weeks = goal.get("plan_weeks") or 12
+    end = (date.fromisoformat(start) + timedelta(weeks=int(plan_weeks) + 1)).isoformat()
+    return start, end
 
 
 def load_sync_status(conn: sqlite3.Connection) -> list[dict]:

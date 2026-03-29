@@ -1,6 +1,123 @@
 # Changelog History (v0.2)
 
-> 최신 3회분은 `changelog.md` 참조. 이 파일은 그 이전 이력 보관용.
+> 최신 1회분은 `changelog.md` 참조. 이 파일은 그 이전 이력 보관용.
+
+## [fix/metrics-everythings] 2026-03-29 (리팩토링 2차: settings/activities/chat_context 분리)
+
+- `views_settings.py` 1508줄 → 6분리: settings(285) + render(210) + render_prefs(270) + garmin(230) + integrations(280) + metrics(120)
+- `views_activities.py` 1096줄 → 4분리: activities(155) + helpers(245) + filter(195) + table(290)
+- `src/ai/chat_context.py` 932줄 → 6분리: context(75) + utils(35) + intent(70) + builders(240) + rich(180) + format(260)
+- `app.py`: settings_garmin_bp, settings_integrations_bp, settings_metrics_bp 블루프린트 등록
+- `views_sync.py`: import 경로 수정
+- `tests/test_web_settings.py`: 패치 경로 5개 수정
+- 테스트: 1122 통과
+
+---
+
+## [fix/metrics-everythings] 2026-03-29 (리팩토링 1차: crud 분리 + README 신설)
+
+- `views_training_crud.py` 896줄 → crud(468) + goal_crud(336) + export(117)
+- `views_activity_cards.py` 삭제 (827줄, 미사용)
+- `src/web/README.md`, `src/training/README.md`, `src/ai/README.md` 신규
+- `CLAUDE.md`: 폴더 README 참조 추가
+- `files_index.md`: wc -l 실측 갱신, 300줄 초과 테이블 재작성
+- 테스트: 1122 통과
+
+---
+
+## [fix/metrics-everythings] 2026-03-29 (goal_name 버그 수정 + 컨디션/AI 통합 카드)
+
+- `db_setup.py`: `CREATE TABLE goals` 컬럼 누락 수정 → `test_ai_context`, `test_suggestions` 통과
+- `views_training_condition.py` (149줄, 신규): `render_condition_ai_card`
+- 테스트: 1122 통과
+
+---
+
+## [fix/metrics-everythings] 2026-03-29 (Phase H-1~H-3: 캘린더 UX 고도화)
+
+- `views_training_cal_js.py` (298줄, 신규): `CALENDAR_JS` — nav/edit/스와이프/모달/툴팁 JS 통합
+- `views_training_week.py` (293줄): `WORKOUT_EDIT_JS` 제거 → `CALENDAR_JS` import; 카드에 data attrs + `onclick='rpOpenWorkout(this)'`; actions div `event.stopPropagation()`
+- `views_training_month.py` (211줄): `_month_js` 제거 → `CALENDAR_JS` import; `data-week-offset`/`data-view='month'`; 셀에 data attrs + `data-tip` + `onclick`
+- `views_training_crud.py`: `workout_toggle` — JSON 반환 지원 추가
+- H-1 `rpInitSwipe`: 수평 50px 임계값, 주간·월간 공통, AJAX 후 재초기화
+- H-2 `#rp-wmodal`: 하단 슬라이드업 모달, ✓ `/toggle` / ✕ `/skip` AJAX, ✏️ 편집패널 토글
+- H-3 `rpInitMonthTips`: `mouseenter` 툴팁 + 200ms 롱탭 미리보기
+- 테스트: 1105 통과 (2 실패는 goal_name 기존 버그)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (버그픽스 + Phase G + 캘린더 AJAX 전환)
+
+- helpers.py select option CSS 수정 (드롭다운 글자 가시성)
+- goals.py plan_weeks 컬럼 추가 → Wizard edit pre-populate
+- views_training_goals.py (신규): G-1 목표리스트(수행률/D-day) + G-2 드릴다운 AJAX + G-3 취소 + G-4 훈련가져오기
+- views_training_crud.py: goal detail/import-preview/import 라우트 + goal_cancel AJAX
+- rpNavTo(href, calUrl): 주간·월간 탭·화살표 AJAX 전환 (스크롤 유지)
+- 테스트: 총 1156개 통과 (test_training_phase_g.py 12개 신규)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (views_training_cards 모듈 분리)
+
+- views_training_cards.py (1307줄) → 5개 모듈로 분리 (모두 400줄 이하)
+  - views_training_shared.py (31줄): 공통 상수 _TYPE_STYLE/_TYPE_BG/_esc
+  - views_training_wellness.py (320줄): S4 컨디션조정 + S4.5 체크인 + S4.6 인터벌처방
+  - views_training_week.py (390줄): S5 주간캘린더 + JS(WORKOUT_EDIT_JS) + 편집패널
+  - views_training_plan_ui.py (247줄): S6 AI추천 + S6b 계획개요 + S7 동기화상태
+  - views_training_cards.py (370줄): S1~S3 + re-export (기존 import 경로 호환 유지)
+- views_training_month.py: _TYPE_ICON 중복 제거 → views_training_shared._TYPE_STYLE 활용
+- test_web_training.py: test_share_button_present → test_header_title_present (Phase G 레이블 변경 반영)
+- 테스트: 67개 통과 (회귀 없음)
+
+## [fix/metrics-everythings] 2026-03-28 (버그픽스 + Phase F/G + 스크롤 AJAX)
+
+- select option 전역 CSS / goals.py plan_weeks / 페이스 입력 단일 필드(4:30/430) / 버튼 tooltip
+- Phase F: Wizard edit 모드 + 목표 카드 ✏️/✕/✓ AJAX + match-check 폴링 (1144→1156 테스트)
+- Phase G: 목표 리스트(수행률/D-day) + 드릴다운 + 취소 AJAX + 훈련 가져오기(미리보기/범위/실행)
+- 캘린더 AJAX 전환: rpNavTo() 추가, 월간←→화살표·탭 전환 full reload→AJAX(스크롤 유지)
+- 워크아웃 수동 추가 폼 제거 (동기화 자동 매칭으로 대체)
+- 신규 파일: views_training_goals.py / tests/test_training_phase_g.py
+
+## [fix/metrics-everythings] 2026-03-28 (훈련탭 UX Phase A~E)
+
+### Phase D+E: 워크아웃 편집 + 뷰 확장 (2026-03-28)
+- D-fix1: `/training/calendar-partial` AJAX + `rpWeekNav()` 스크롤 유지
+- D-fix2: "📤 내보내기 ▾" 드롭다운 통합 (Garmin/CalDAV/ICS/링크복사)
+- Phase D: 워크아웃 ⚙️ AJAX 편집 (`PATCH /training/workout/<id>`, interval-calc 연동)
+- Phase E-1: `/training/fullplan` 전체 일정 뷰 (주별 Collapsible, phase 배지)
+- Phase E-2: `?view=month` 월간 뷰 (4주×7일 그리드, 3탭)
+- 테스트: 1129개 통과 (D 10 + E-1 11 + E-2 11 추가)
+
+### Phase C: 4단계 AJAX Wizard (2026-03-28)
+- `views_training_wizard.py` + `views_training_wizard_render.py` 신규
+- `GET /training/wizard` → Step 1~4 AJAX 전환, readiness 분석, 플랜 생성
+- 테스트: 18개 추가, 1097개 통과
+
+### Phase A+B: readiness.py + 훈련환경설정 (2026-03-28)
+- `src/training/readiness.py`: VDOT 성장 모델, 거리별 기간 추천, 달성률 예측
+- `views_training_prefs.py`: 훈련환경설정 Collapsible 카드 (훈련탭 이전)
+- SCHEMA_VERSION 3.1 (내부4): `goals.plan_weeks`, `user_training_prefs.long_run_weekday_mask`
+- 테스트: readiness 32개, 1047개 통과
+
+### 훈련 엔진 v2 + 체크인 UX (2026-03-28)
+- `src/metrics/crs.py` 신규: Gate 5종(ACWR/HRV/BB/TSB/CIRS), CRS 0~100
+- `src/training/interval_calc.py` 신규: Billat/Buchheit 공식, rep×sets 처방
+- `planner.py` v2: Seiler 80/20, Daniels 페이스, CRS 다운그레이드
+- 체크인 AJAX: confirm/skip 인라인 처리, 재조정 diff 카드
+- 동기화 후 자동 매칭 (`app.py` + `bg_sync.py`)
+
+---
+
+## [fix/metrics-everythings] 2026-03-28 (메트릭 버그 수정 + 대시보드)
+- 레이스 감지: 소스 태그 기반 (Garmin event_type, Strava workout_type=1)
+- VDOT_ADJ 버그 2건, DARP 갱신 일관성, 대시보드 훈련 권장 개선
+- Shape 라벨 소스 불일치 수정, 목표 거리 기반 DARP 우선 표시
+
+## [v0.4-stream-fix] 2026-03-27
+- Stream 접근 경로 수정 (activity_streams DB 우선)
+- CTL/ATL/TSB 자체 계산 (`ctl_atl.py`), 레이스 분류기 수정
+
+---
 
 ## [v0.4-ai-everywhere] 2026-03-26
 

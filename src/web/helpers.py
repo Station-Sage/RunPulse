@@ -119,6 +119,9 @@ _CSS = """
         border: 1px solid var(--card-border); border-radius: 6px;
         padding: 0.4rem 0.7rem;
     }
+    select option {
+        background: #1a2035; color: var(--fg);
+    }
     button {
         font-family: inherit; cursor: pointer;
         background: rgba(255,255,255,0.1); color: var(--fg);

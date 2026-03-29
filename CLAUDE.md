@@ -16,12 +16,16 @@
 | 훈련 엔진 설계 | `v0.2/.ai/training_engine_v2_design.md` | 해당 섹션 번호만 |
 | changelog 확인 | `v0.2/.ai/changelog.md` | 최신 2~3개 항목만 |
 | 버전 목표/의존성 | `v0.2/.ai/roadmap.md` | 해당 버전 섹션만 |
+| **웹 뷰 파일 찾기/수정** | `src/web/README.md` | 전체 (파일 목록 + 블루프린트) |
+| **훈련 엔진 수정** | `src/training/README.md` | 전체 (아키텍처 + 함수 목록) |
+| **AI 코치 수정** | `src/ai/README.md` | 전체 (파일 역할 + 아키텍처) |
+| **파일 줄수/목록 확인** | `v0.2/.ai/files_index.md` | 해당 섹션만 |
 
 ### 읽지 말 것 (세션 시작 시)
 - `v0.2/.ai/todo.md` 전체 (→ 위 `▶ 다음 세션` 섹션만)
 - `v0.2/.ai/changelog_history.md` (→ 과거 이력, 거의 불필요)
 - `v0.2/.ai/metrics_by_claude.md` (→ 연구용 초안, metrics.md 우선)
-- `v0.2/.ai/index.md`, `v0.2/.ai/files_index.md` (→ 파일 탐색은 Grep/Glob 사용)
+- `v0.2/.ai/index.md` (→ 파일 탐색은 `src/*/README.md` 또는 Grep/Glob 사용)
 - v0.1 히스토리 일체 (`v0.1/.ai/` 폴더) — 완료된 버전, 참고 불필요
 
 ---

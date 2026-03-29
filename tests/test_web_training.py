@@ -201,11 +201,12 @@ class TestHeaderActions:
         assert "플랜 생성" in html
         assert "/training/generate" in html
 
-    def test_share_button_present(self, app_client):
+    def test_header_title_present(self, app_client):
+        """훈련 계획 헤더 타이틀 항상 표시."""
         client, _ = app_client
         resp = client.get("/training")
         html = resp.data.decode()
-        assert "공유" in html
+        assert "훈련 계획" in html
 
 
 class TestMetricsIntegration:

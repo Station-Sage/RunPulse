@@ -1,4 +1,4 @@
-# v0.2 파일 인덱스 (2026-03-25 기준)
+# v0.2 파일 인덱스 (2026-03-29 기준)
 
 ## ✅ src/metrics/ (23개, Sprint 1+2+5)
 
@@ -71,7 +71,7 @@
 |------|------|
 | `runalyze.py` | VDOT/Marathon Shape/Race Prediction |
 
-## ✅ src/web/ (26개)
+## ✅ src/web/ (31개)
 
 ### 공통
 | 파일 | 역할 | 줄수 |
@@ -102,10 +102,17 @@
 ### 기타 뷰
 | 파일 | 라우트 | 줄수 |
 |------|--------|------|
-| `views_activities.py` | GET /activities | 1024 ⚠️ |
+| `views_activities.py` | GET /activities (라우트 핸들러) | ~155 |
+| `views_activities_helpers.py` | 포맷 헬퍼 + 아이콘/배지 (type/source/label) | ~245 |
+| `views_activities_filter.py` | 필터 폼 + 날짜 프리셋 JS | ~195 |
+| `views_activities_table.py` | 테이블 + 요약 + 편집 바 + JS + 페이지네이션 | ~290 |
 | `views_activity_merge.py` | 활동 그룹 관리 | — |
 | `views_dashboard.py` | GET /dashboard (7섹션 오케스트레이션) | 210 |
-| `views_dashboard_cards.py` | 대시보드 카드 (기존+신규 4개 렌더러) | ~530 |
+| `views_dashboard_cards.py` | 대시보드 카드 진입점 (re-export) | 34 |
+| `views_dashboard_cards_status.py` | 상태 스트립 + 주간 요약 + 색상상수 | 145 |
+| `views_dashboard_cards_fitness.py` | 피트니스 추세/PMC/활동목록/피트니스미니 | 280 |
+| `views_dashboard_cards_risk.py` | 리스크 pills + CIRS/UTRS 상세 | 185 |
+| `views_dashboard_cards_recommend.py` | 훈련 권장 + DARP + 게이지/RMR | 267 |
 | `views_dashboard_loaders.py` | 대시보드 신규 로더 (웰니스/주간/추세/리스크7일) | 119 |
 | `views_report.py` | GET /report (8섹션 오케스트레이션) | 265 |
 | `views_report_sections.py` | 레포트 기존 섹션 (TIDS/TRIMP+비교선/Risk/DARP/Fitness/AI) | 566 ⚠️ |
@@ -118,11 +125,31 @@
 | `views_wellness.py` | GET /wellness (9섹션 보강) | ~370 |
 | `views_wellness_enhanced.py` | 웰니스 신규 로더+렌더러 (대시/패턴/주간비교/미니차트/해설/수면시간/이상치/패턴권장) | 557 ⚠️ |
 | `views_import.py` | GET/POST /import/strava-archive | — |
-| `views_settings.py` | GET /settings | 941 ⚠️ |
+| `views_settings.py` | GET /settings + POST 저장 라우트 | ~285 |
+| `views_settings_render.py` | 서비스카드/프로필/Mapbox/CalDAV 렌더러 (블루프린트 없음) | ~210 |
+| `views_settings_render_prefs.py` | 훈련환경설정/AI/프롬프트 렌더러 (블루프린트 없음) | ~270 |
+| `views_settings_garmin.py` | settings_garmin_bp — Garmin 연동/MFA/해제 라우트 | ~230 |
+| `views_settings_integrations.py` | settings_integrations_bp — Strava/Intervals/Runalyze 라우트 | ~280 |
+| `views_settings_metrics.py` | settings_metrics_bp — 메트릭 재계산 SSE 라우트 | ~120 |
 | `views_settings_hub.py` | sync 상태/시스템 정보 카드 | — |
-| `views_training.py` | GET /training 메인 라우트 + 조립 | 100 |
-| `views_training_cards.py` | 훈련 카드 렌더러 S1~S7 (신규) | 300 |
-| `views_training_loaders.py` | 훈련 데이터 로더 5개 (신규) | 100 |
+| `views_training.py` | GET /training 메인 라우트 + 조립 | ~130 |
+| `views_training_shared.py` | 공통 상수 (`_TYPE_STYLE`, `_TYPE_BG`, `_esc`) | 31 |
+| `views_training_cal_js.py` | 캘린더 공통 JS — `CALENDAR_JS` (H-1 스와이프/H-2 모달/H-3 툴팁) | 298 |
+| `views_training_cards.py` | S1 헤더 + S2 목표카드 + S3 주간요약 + re-export | 372 ⚠️ |
+| `views_training_condition.py` | S5 컨디션+AI추천 통합 카드 (UTRS/CIRS/BB/수면/HRV/TSB 배지) | 152 |
+| `views_training_wellness.py` | S4 컨디션조정 + S4.5 체크인 + S4.6 인터벌처방 | 320 ⚠️ |
+| `views_training_week.py` | S5 주간캘린더 + 인라인 편집패널 (`CALENDAR_JS` 공유) | 293 |
+| `views_training_month.py` | 월간 4주 캘린더 + 네비게이션 (`CALENDAR_JS` 공유) | 211 |
+| `views_training_plan_ui.py` | S6 AI추천 + S6b 계획개요 + S7 동기화상태 | 247 |
+| `views_training_goals.py` | 목표 리스트(수행률/D-day/드릴다운) | 431 ⚠️ |
+| `views_training_fullplan.py` | 전체 일정 뷰 (주별 collapsible) | 260 |
+| `views_training_wizard.py` | Wizard 렌더러 (create/edit 모드) | 363 ⚠️ |
+| `views_training_wizard_render.py` | Wizard 스텝별 렌더러 | 343 ⚠️ |
+| `views_training_loaders.py` | 훈련 데이터 로더 (readiness/workouts/goals 등) | 349 ⚠️ |
+| `views_training_crud.py` | 워크아웃 CRUD 라우트 (create/update/delete/confirm/skip/toggle/patch/prefs) | 468 ⚠️ |
+| `views_training_goal_crud.py` | 목표 CRUD 라우트 (create/complete/cancel/detail/import) | 336 ⚠️ |
+| `views_training_export.py` | 내보내기/전송 (ICS, Garmin, CalDAV) | 117 |
+| `views_training_prefs.py` | 훈련 환경설정 카드 (렌더링 전용) | 207 |
 | `views_dev.py` | GET /dev (dev_mode 조건부) | — |
 | `views_export_import.py` | CSV 임포트/내보내기 | 233 |
 | `views_shoes.py` | /shoes | — |
@@ -187,22 +214,41 @@
 | `test_metrics_sprint5.py` | Sprint 5 메트릭 (RTTI/WLEI/TPDI) | 14 |
 | 기타 51개 | sync/analysis/web/ai/utils | — |
 
-총 717개 수집 (fitparse 미설치 시 6개 collect error)
+총 **1122개 통과** (2026-03-29, fitparse 미설치 시 일부 collect error 허용)
 
 ---
 
-## ⚠️ 300줄 초과 파일 (잔여)
+## ⚠️ 300줄 초과 파일 (2026-03-29 기준 wc -l 실측)
 
-| 파일 | 줄수 | 비고 |
+| 파일 | 실측 | 비고 |
 |------|------|------|
-| `app.py` | 839 | 블루프린트 등록 + 팩토리 — 기능 분리 완료 |
-| `helpers.py` | 854 | ECharts/nav 공통 — SVG 분리 완료 |
-| `views_activity_source_cards.py` | 441 | 소스 비교 + 서비스 탭 |
-| `views_activity_loaders.py` | 315 | 기존 로더 (신규는 loaders_v2로 분리) |
-| `views_settings.py` | 941 | 설정 허브 고도화로 증가 — v0.3 이후 검토 |
-| `views_activities.py` | 1024 | 필터링/정렬 복잡도 — v0.3 이후 검토 |
-| `views_report_sections.py` | 358 | 섹션별 분리 가능하나 현재 허용 |
-| `db_setup.py` | 742 | 마이그레이션 시스템 추가 |
+| ~~`views_dashboard_cards.py`~~ | ~~880~~ | → 4분리 완료 |
+| `helpers.py` | 915 | ECharts/nav 공통 — SVG 분리 완료 |
+| `app.py` | 902 | 블루프린트 등록 + 팩토리 |
+| `src/ai/chat_engine.py` | 696 | AI 채팅 엔진 |
+| `views_report_sections.py` | 707 | 레포트 섹션별 렌더러 |
+| `src/training/planner.py` | 713 | 훈련 플래너 — 복잡도 높음 |
+| `db_setup.py` | 968 | 마이그레이션 시스템 포함 |
+| `views_training_goals.py` | 431 | 목표 렌더링 — 분리 후보 |
+| `views_training_cards.py` | 372 | 약간 초과 |
+| `views_training_wizard.py` | 363 | Wizard 렌더러 |
+| `views_training_wizard_render.py` | 343 | Wizard 스텝별 |
+| `views_training_loaders.py` | 349 | 훈련 로더 |
+| `views_training_wellness.py` | 320 | 컨디션/체크인/인터벌처방 |
+| `views_activity_source_cards.py` | 436 | 소스 비교 + 서비스 탭 |
+| `views_training_goal_crud.py` | 336 | 목표 CRUD + import |
+
+## ✅ 리팩토링 완료 (2026-03-29 세션)
+
+| 분리 전 | 분리 후 | 결과 |
+|---------|---------|------|
+| `views_training_crud.py` 896줄 | crud(468) + goal_crud(336) + export(117) | 모두 ≤468줄 |
+| `views_settings.py` 1508줄 | settings(285) + render(210) + render_prefs(270) + garmin(230) + integrations(280) + metrics(120) | 모두 ≤285줄 |
+| `views_activities.py` 1096줄 | activities(155) + helpers(245) + filter(195) + table(290) | 모두 ≤290줄 |
+| `src/ai/chat_context.py` 932줄 | context(75) + utils(35) + intent(70) + builders(240) + rich(180) + format(260) | 모두 ≤260줄 |
+| `views_dashboard_cards.py` 880줄 | cards(34) + status(145) + fitness(280) + risk(185) + recommend(267) | 모두 ≤280줄 |
+| `views_activity_cards.py` 827줄 | 삭제 (미사용 확인) | — |
+| 폴더 README 신설 | `src/web/README.md`, `src/training/README.md`, `src/ai/README.md` | CLAUDE.md에 참조 추가 |
 
 ## ✅ B-1 리팩토링 완료 (2026-03-25)
 

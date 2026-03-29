@@ -17,7 +17,8 @@ from src.sync.runalyze import check_runalyze_connection
 from .helpers import db_path, html_page, last_sync_info
 from .sync_ui import sync_card_html
 from .views_settings_hub import render_sync_overview
-from .views_settings import _service_card, _garmin_token_status_html
+from .views_settings_render import _service_card
+from .views_settings_garmin import _garmin_token_status_html
 
 log = logging.getLogger(__name__)
 sync_bp = Blueprint("sync_tab", __name__)

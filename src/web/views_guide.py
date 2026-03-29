@@ -173,6 +173,25 @@ def _render_guide() -> str:
          "Step 2: 훈련 환경(휴식·롱런 요일, 인터벌 거리, 훈련 기간). "
          "Step 3: 현재 VDOT_ADJ 기반 달성 가능률·예상 기록 분석 (readiness.analyze_readiness). "
          "Step 4: 플랜 요약(Base/Build/Peak/Taper 배분, 주간 km 범위) → [플랜 생성] 클릭 시 goals + user_training_prefs 저장 후 이번 주 플랜 자동 생성."),
+        ("⚙️ 워크아웃 AJAX 편집",
+         "캘린더 각 워크아웃 카드의 ⚙️ 버튼을 클릭하면 인라인 편집 패널이 열립니다. "
+         "타입/거리/페이스(초/km) 수정 후 [저장] → PATCH /training/workout/<id> AJAX 호출, 페이지 새로고침 없이 반영. "
+         "인터벌 타입 선택 시 반복거리(m) 입력 + [처방↺] 버튼으로 Buchheit & Laursen 2013 기반 세트·휴식·총 볼륨 처방을 미리 확인할 수 있습니다."),
+        ("📋 전체 훈련 일정",
+         "/training/fullplan 페이지에서 목표 기간 전체 훈련 계획을 주별 접이식 카드로 확인합니다. "
+         "현재 주는 자동으로 펼쳐져 있으며, 각 주마다 총 거리·완료율 미니 바를 표시합니다. "
+         "훈련 단계(Base/Build/Peak/Taper)를 색상으로 구분하고, 각 워크아웃의 날짜·종류·거리·페이스·완료 여부를 테이블로 보여줍니다."),
+        ("📅 주간 / 월간 / 전체 뷰",
+         "캘린더 우측 탭으로 뷰를 전환합니다. "
+         "주간: 7열 그리드, 워크아웃 편집·완료 토글 가능. "
+         "월간: 4주×7일 컴팩트 그리드, ← → 버튼으로 4주씩 이동, 실제 활동 달성 여부 표시. "
+         "전체: /training/fullplan 페이지로 이동."),
+        ("📤 훈련 내보내기",
+         "S1 헤더의 [📤 내보내기 ▾] 드롭다운에서 4가지 내보내기 방법을 선택합니다. "
+         "⌚ Garmin 워크아웃: Garmin Connect에 이번 주 계획을 structured workout으로 전송. "
+         "📅 CalDAV 캘린더: CalDAV 서버에 이번 주 일정을 VEVENT로 등록. "
+         "📁 ICS 파일: 이번 주 플랜을 .ics 파일로 다운로드. "
+         "🔗 링크 복사: 현재 페이지 URL을 클립보드에 복사."),
     ]
     parts.append("<div class='card'><table style='width:100%;font-size:0.85rem;border-collapse:collapse;'>"
                  "<tbody>")

@@ -43,7 +43,7 @@ def test_garmin_connect_page_loads(client):
 def test_garmin_connect_post_save(client, tmp_path):
     """POST /connect/garmin?action=save가 저장 후 리다이렉트한다."""
     config_file = tmp_path / "config.json"
-    with patch("src.web.views_settings.update_service_config") as mock_update:
+    with patch("src.web.views_settings_garmin.update_service_config") as mock_update:
         resp = client.post("/connect/garmin", data={
             "email": "test@test.com",
             "password": "pw",
@@ -66,7 +66,7 @@ def test_garmin_connect_post_no_email(client):
 
 def test_garmin_disconnect(client):
     """POST /connect/garmin/disconnect가 /settings로 리다이렉트한다."""
-    with patch("src.web.views_settings.update_service_config"):
+    with patch("src.web.views_settings_garmin.update_service_config"):
         resp = client.post("/connect/garmin/disconnect")
     assert resp.status_code == 302
     assert "/settings" in resp.headers["Location"]
@@ -90,7 +90,7 @@ def test_strava_save_app_missing_client_id(client):
 
 def test_strava_oauth_start_no_client_id(client):
     """client_id 없으면 OAuth 시작 시 오류 리다이렉트."""
-    with patch("src.web.views_settings.load_config", return_value={"strava": {}}):
+    with patch("src.web.views_settings_integrations.load_config", return_value={"strava": {}}):
         resp = client.get("/connect/strava/oauth-start")
     assert resp.status_code == 302
     assert "error" in resp.headers["Location"]
@@ -98,7 +98,7 @@ def test_strava_oauth_start_no_client_id(client):
 
 def test_strava_oauth_start_redirects(client):
     """client_id 있으면 strava.com으로 리다이렉트."""
-    with patch("src.web.views_settings.load_config", return_value={"strava": {"client_id": "123"}}):
+    with patch("src.web.views_settings_integrations.load_config", return_value={"strava": {"client_id": "123"}}):
         resp = client.get("/connect/strava/oauth-start")
     assert resp.status_code == 302
     assert "strava.com" in resp.headers["Location"]
@@ -106,7 +106,7 @@ def test_strava_oauth_start_redirects(client):
 
 def test_strava_disconnect(client):
     """POST /connect/strava/disconnect가 /settings로 리다이렉트."""
-    with patch("src.web.views_settings.update_service_config"):
+    with patch("src.web.views_settings_integrations.update_service_config"):
         resp = client.post("/connect/strava/disconnect")
     assert resp.status_code == 302
 
@@ -128,7 +128,7 @@ def test_intervals_connect_missing_fields(client):
 
 def test_intervals_connect_save(client):
     """올바른 입력으로 POST 시 저장 후 리다이렉트."""
-    with patch("src.web.views_settings.update_service_config") as mock_upd:
+    with patch("src.web.views_settings_integrations.update_service_config") as mock_upd:
         resp = client.post("/connect/intervals", data={
             "athlete_id": "i123",
             "api_key": "mykey",
@@ -140,8 +140,8 @@ def test_intervals_connect_save(client):
 
 def test_intervals_connect_test_success(client):
     """연결 테스트 성공 시 msg 리다이렉트."""
-    with patch("src.web.views_settings.update_service_config"):
-        with patch("src.web.views_settings.check_intervals_connection",
+    with patch("src.web.views_settings_integrations.update_service_config"):
+        with patch("src.web.views_settings_integrations.check_intervals_connection",
                    return_value={"ok": True, "status": "연결됨", "detail": "athlete: X"}):
             resp = client.post("/connect/intervals", data={
                 "athlete_id": "i123",
@@ -154,7 +154,7 @@ def test_intervals_connect_test_success(client):
 
 def test_intervals_disconnect(client):
     """POST /connect/intervals/disconnect가 /settings로 리다이렉트."""
-    with patch("src.web.views_settings.update_service_config"):
+    with patch("src.web.views_settings_integrations.update_service_config"):
         resp = client.post("/connect/intervals/disconnect")
     assert resp.status_code == 302
 
@@ -176,7 +176,7 @@ def test_runalyze_connect_missing_token(client):
 
 def test_runalyze_connect_save(client):
     """올바른 토큰으로 POST 시 저장."""
-    with patch("src.web.views_settings.update_service_config") as mock_upd:
+    with patch("src.web.views_settings_integrations.update_service_config") as mock_upd:
         resp = client.post("/connect/runalyze", data={
             "token": "valid_token",
             "action": "save",
@@ -188,8 +188,8 @@ def test_runalyze_connect_save(client):
 
 def test_runalyze_connect_test_failure(client):
     """연결 테스트 실패 시 error 리다이렉트."""
-    with patch("src.web.views_settings.update_service_config"):
-        with patch("src.web.views_settings.check_runalyze_connection",
+    with patch("src.web.views_settings_integrations.update_service_config"):
+        with patch("src.web.views_settings_integrations.check_runalyze_connection",
                    return_value={"ok": False, "status": "토큰 오류", "detail": "401"}):
             resp = client.post("/connect/runalyze", data={
                 "token": "bad_token",

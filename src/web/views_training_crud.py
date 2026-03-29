@@ -1,12 +1,12 @@
-"""훈련 계획 — CRUD 라우트 + 목표 관리 + ICS 내보내기.
+"""훈련 계획 — 워크아웃 CRUD 라우트 + 환경설정.
 
-300줄 규칙 준수를 위해 views_training.py에서 분리.
+목표 CRUD → views_training_goal_crud.py
+내보내기/전송 → views_training_export.py
 """
 from __future__ import annotations
 
-import html as _html
 import sqlite3
-from datetime import date, timedelta
+from datetime import date
 
 from flask import Blueprint, Response, jsonify, redirect, request
 
@@ -115,16 +115,19 @@ def workout_delete(workout_id: int):
 
 @training_crud_bp.route("/training/workout/<int:workout_id>/confirm", methods=["POST"])
 def workout_confirm(workout_id: int):
-    """어제 체크인: 훈련 완료 확인."""
+    """어제 체크인: 훈련 완료 확인. JSON 모드에서 matched + activity_summary 반환."""
     dbp = db_path()
     if not dbp or not dbp.exists():
         return redirect("/training")
+
+    matched = False
+    activity_summary = ""
     try:
         conn = sqlite3.connect(str(dbp))
         try:
-            # 같은 날 실제 활동 자동 매칭 시도
             row = conn.execute(
-                "SELECT date FROM planned_workouts WHERE id=?", (workout_id,)
+                "SELECT date, workout_type, distance_km FROM planned_workouts WHERE id=?",
+                (workout_id,),
             ).fetchone()
             if row:
                 from src.training.matcher import match_week_activities
@@ -132,7 +135,27 @@ def workout_confirm(workout_id: int):
                 plan_date = _date.fromisoformat(row[0])
                 week_start = plan_date - _td(days=plan_date.weekday())
                 match_week_activities(conn, week_start)
-            # 매칭 안 됐으면 수동 완료
+
+                # 매칭 결과 확인: matched_activity_id가 채워졌으면 성공
+                m_row = conn.execute(
+                    "SELECT matched_activity_id FROM planned_workouts WHERE id=?",
+                    (workout_id,),
+                ).fetchone()
+                if m_row and m_row[0]:
+                    matched = True
+                    # 실제 활동 요약 (거리 + 페이스)
+                    act = conn.execute(
+                        "SELECT distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
+                        (m_row[0],),
+                    ).fetchone()
+                    if act and act[0]:
+                        summary_parts = [f"{act[0]:.1f}km"]
+                        if act[1]:
+                            m, s = divmod(int(act[1]), 60)
+                            summary_parts.append(f"{m}:{s:02d}/km")
+                        activity_summary = " · ".join(summary_parts)
+
+            # 매칭 여부 무관하게 수동 완료 표시
             conn.execute(
                 "UPDATE planned_workouts SET completed=1, updated_at=datetime('now') "
                 "WHERE id=? AND completed=0",
@@ -145,8 +168,51 @@ def workout_confirm(workout_id: int):
         pass
 
     if request.headers.get("Accept") == "application/json":
-        return jsonify({"ok": True})
+        return jsonify({
+            "ok": True,
+            "matched": matched,
+            "activity_summary": activity_summary,
+        })
     return redirect("/training?msg=훈련 완료로 기록했습니다.")
+
+
+@training_crud_bp.route("/training/workout/<int:workout_id>/match-check", methods=["GET"])
+def workout_match_check(workout_id: int):
+    """매칭 상태 폴링용 — matched 여부 + activity_summary 반환 (JSON)."""
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return jsonify({"ok": False, "matched": False}), 404
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            row = conn.execute(
+                "SELECT matched_activity_id FROM planned_workouts WHERE id=?",
+                (workout_id,),
+            ).fetchone()
+            if not row:
+                return jsonify({"ok": False, "matched": False, "error": "없음"}), 404
+
+            activity_id = row[0]
+            matched = bool(activity_id)
+            activity_summary = ""
+            if matched:
+                act = conn.execute(
+                    "SELECT distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
+                    (activity_id,),
+                ).fetchone()
+                if act and act[0]:
+                    parts = [f"{act[0]:.1f}km"]
+                    if act[1]:
+                        m, s = divmod(int(act[1]), 60)
+                        parts.append(f"{m}:{s:02d}/km")
+                    activity_summary = " · ".join(parts)
+        finally:
+            conn.close()
+    except Exception as exc:
+        return jsonify({"ok": False, "matched": False, "error": str(exc)[:80]}), 500
+
+    return jsonify({"ok": True, "matched": matched, "activity_summary": activity_summary})
 
 
 @training_crud_bp.route("/training/workout/<int:workout_id>/skip", methods=["POST"])
@@ -222,10 +288,11 @@ def training_replan():
 
 @training_crud_bp.route("/training/workout/<int:workout_id>/toggle", methods=["POST"])
 def workout_toggle(workout_id: int):
-    """워크아웃 완료 상태 토글."""
+    """워크아웃 완료 상태 토글. Accept: application/json → JSON 반환."""
     dbp = db_path()
+    is_ajax = request.headers.get("Accept") == "application/json"
     if not dbp or not dbp.exists():
-        return redirect("/training")
+        return jsonify({"ok": False, "error": "DB 없음"}) if is_ajax else redirect("/training")
 
     try:
         conn = sqlite3.connect(str(dbp))
@@ -241,205 +308,112 @@ def workout_toggle(workout_id: int):
     except Exception:
         pass
 
+    if is_ajax:
+        return jsonify({"ok": True})
     week = request.form.get("week", "0")
     return redirect(f"/training?week={week}")
 
 
-# ── 목표 관리 ──────────────────────────────────────────────────────────
+# ── 훈련 환경 설정 저장 ────────────────────────────────────────────────────
 
+@training_crud_bp.route("/training/workout/<int:workout_id>", methods=["PATCH"])
+def workout_patch(workout_id: int):
+    """워크아웃 AJAX 편집 (JSON 반환).
 
-@training_crud_bp.route("/training/goal", methods=["POST"])
-def goal_create():
-    """목표 추가."""
+    인터벌 타입이고 interval_rep_m이 있으면 interval_calc 처방을 description에 저장.
+    """
     dbp = db_path()
     if not dbp or not dbp.exists():
-        return redirect("/training")
+        return jsonify({"ok": False, "error": "DB 없음"}), 404
 
-    from src.training.goals import add_goal
+    data = request.get_json(silent=True) or {}
+    workout_type = data.get("workout_type")
+    distance = data.get("distance_km")
+    pace_min = data.get("target_pace_min")
+    pace_max = data.get("target_pace_max")
+    interval_rep_m = data.get("interval_rep_m")
 
-    name = request.form.get("name", "").strip()
-    distance = request.form.get("distance_km", "")
-    race_date = request.form.get("race_date", "") or None
-    target_time = request.form.get("target_time", "")
-
-    if not name or not distance:
-        return redirect("/training")
-
-    target_sec = None
-    if target_time:
+    # 인터벌 처방 계산
+    description: str | None = None
+    if workout_type == "interval" and interval_rep_m:
         try:
-            parts = target_time.split(":")
-            if len(parts) == 3:
-                target_sec = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-            elif len(parts) == 2:
-                target_sec = int(parts[0]) * 60 + int(parts[1])
-        except (ValueError, IndexError):
+            from src.training.interval_calc import prescribe_interval
+            i_pace = int(pace_min) if pace_min else 240
+            rx = prescribe_interval(int(interval_rep_m), i_pace)
+            description = rx["rationale"]
+        except Exception:
             pass
 
-    try:
-        conn = sqlite3.connect(str(dbp))
-        try:
-            add_goal(conn, name, float(distance), race_date, target_sec)
-        finally:
-            conn.close()
-    except Exception:
-        pass
+    fields: list[str] = []
+    values: list = []
+    if workout_type is not None:
+        fields.append("workout_type=?")
+        values.append(workout_type)
+    if distance is not None:
+        fields.append("distance_km=?")
+        values.append(float(distance) if distance != "" else None)
+    if pace_min is not None:
+        fields.append("target_pace_min=?")
+        values.append(int(pace_min) if pace_min != "" else None)
+    if pace_max is not None:
+        fields.append("target_pace_max=?")
+        values.append(int(pace_max) if pace_max != "" else None)
+    if description is not None:
+        fields.append("description=?")
+        values.append(description)
+    if not fields:
+        return jsonify({"ok": False, "error": "변경 없음"}), 400
 
-    return redirect("/training")
-
-
-@training_crud_bp.route("/training/goal/<int:goal_id>/complete", methods=["POST"])
-def goal_complete(goal_id: int):
-    """목표 완료."""
-    dbp = db_path()
-    if not dbp or not dbp.exists():
-        return redirect("/training")
-
-    from src.training.goals import complete_goal
-
-    try:
-        conn = sqlite3.connect(str(dbp))
-        try:
-            complete_goal(conn, goal_id)
-        finally:
-            conn.close()
-    except Exception:
-        pass
-
-    return redirect("/training")
-
-
-@training_crud_bp.route("/training/goal/<int:goal_id>/cancel", methods=["POST"])
-def goal_cancel(goal_id: int):
-    """목표 취소."""
-    dbp = db_path()
-    if not dbp or not dbp.exists():
-        return redirect("/training")
-
-    from src.training.goals import cancel_goal
+    fields.append("updated_at=datetime('now')")
+    values.append(workout_id)
 
     try:
         conn = sqlite3.connect(str(dbp))
         try:
-            cancel_goal(conn, goal_id)
+            conn.execute(
+                f"UPDATE planned_workouts SET {','.join(fields)} WHERE id=?",
+                values,
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT workout_type, distance_km, target_pace_min, target_pace_max, description "
+                "FROM planned_workouts WHERE id=?",
+                (workout_id,),
+            ).fetchone()
         finally:
             conn.close()
-    except Exception:
-        pass
-
-    return redirect("/training")
-
-
-# ── ICS 내보내기 ──────────────────────────────────────────────────────
-
-
-@training_crud_bp.route("/training/export.ics")
-def training_export_ics():
-    """주간 훈련 계획을 iCal 형식으로 내보내기."""
-    dbp = db_path()
-    if not dbp or not dbp.exists():
-        return Response("No data", status=404)
-
-    week_offset = request.args.get("week", 0, type=int)
-
-    try:
-        conn = sqlite3.connect(str(dbp))
-        try:
-            workouts, _ = load_workouts(conn, week_offset)
-        finally:
-            conn.close()
-    except Exception:
-        workouts = []
-
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//RunPulse//Training Plan//KO",
-        "CALSCALE:GREGORIAN",
-    ]
-    for w in workouts:
-        wtype = w.get("workout_type", "easy")
-        if wtype == "rest":
-            continue
-        dist = w.get("distance_km")
-        d = w.get("date", "").replace("-", "")
-        summary = f"RunPulse: {wtype}"
-        if dist:
-            summary += f" {dist:.1f}km"
-        desc = w.get("description", "")
-        lines += [
-            "BEGIN:VEVENT",
-            f"DTSTART;VALUE=DATE:{d}",
-            f"DTEND;VALUE=DATE:{d}",
-            f"SUMMARY:{summary}",
-            f"DESCRIPTION:{desc}",
-            "END:VEVENT",
-        ]
-    lines.append("END:VCALENDAR")
-
-    return Response(
-        "\r\n".join(lines),
-        mimetype="text/calendar",
-        headers={"Content-Disposition": "attachment; filename=runpulse-training.ics"},
-    )
-
-
-# ── Garmin 워크아웃 전송 ──────────────────────────────────────────
-
-
-@training_crud_bp.route("/training/push-garmin", methods=["POST"])
-def push_to_garmin():
-    """주간 훈련 계획을 Garmin Connect에 전송."""
-    dbp = db_path()
-    if not dbp or not dbp.exists():
-        return redirect("/training")
-
-    from src.training.garmin_push import push_weekly_plan
-    from src.utils.config import load_config
-
-    try:
-        config = load_config()
-        conn = sqlite3.connect(str(dbp))
-        try:
-            count = push_weekly_plan(config, conn)
-        finally:
-            conn.close()
-        if count > 0:
-            return redirect(f"/training?msg=Garmin에 {count}개 워크아웃 전송 완료")
-        else:
-            return redirect("/training?msg=전송할 워크아웃이 없습니다 (이미 전송되었거나 휴식일)")
     except Exception as exc:
-        return redirect(f"/training?msg=Garmin 전송 실패: {str(exc)[:100]}")
+        return jsonify({"ok": False, "error": str(exc)[:100]}), 500
+
+    result: dict = {"ok": True}
+    if row:
+        result.update({
+            "workout_type": row[0],
+            "distance_km": row[1],
+            "target_pace_min": row[2],
+            "target_pace_max": row[3],
+            "description": row[4],
+        })
+    return jsonify(result)
 
 
-@training_crud_bp.route("/training/push-caldav", methods=["POST"])
-def push_to_caldav():
-    """주간 훈련 계획을 CalDAV 캘린더에 전송."""
-    dbp = db_path()
-    if not dbp or not dbp.exists():
-        return redirect("/training")
+@training_crud_bp.route(
+    "/training/workout/<int:workout_id>/interval-calc", methods=["GET"]
+)
+def workout_interval_calc(workout_id: int):
+    """인터벌 처방 미리보기 (JSON).
 
-    from src.training.caldav_push import push_weekly_plan_to_caldav
-    from src.utils.config import load_config
-
+    Query params: rep_m (int, 기본 1000), pace (int 초/km, 기본 240)
+    """
     try:
-        config = load_config()
-        if not config.get("caldav", {}).get("url"):
-            return redirect("/training?msg=CalDAV 설정이 필요합니다. 설정 페이지에서 입력하세요.")
-        conn = sqlite3.connect(str(dbp))
-        try:
-            count = push_weekly_plan_to_caldav(config, conn)
-        finally:
-            conn.close()
-        if count > 0:
-            return redirect(f"/training?msg=캘린더에 {count}개 워크아웃 등록 완료")
-        else:
-            return redirect("/training?msg=등록할 워크아웃이 없습니다")
+        rep_m = request.args.get("rep_m", 1000, type=int)
+        pace = request.args.get("pace", 240, type=int)
+        from src.training.interval_calc import prescribe_interval
+        rx = prescribe_interval(rep_m, pace)
+        return jsonify({"ok": True, **rx})
     except Exception as exc:
-        return redirect(f"/training?msg=캘린더 등록 실패: {str(exc)[:100]}")
+        return jsonify({"ok": False, "error": str(exc)[:100]}), 400
 
-
-# ── 훈련 환경 설정 저장 ────────────────────────────────────────────────────
 
 @training_crud_bp.route("/training/prefs", methods=["POST"])
 def training_prefs_post():

@@ -72,9 +72,28 @@ def _load_wizard_data() -> dict:
 
 @wizard_bp.route("/training/wizard")
 def wizard_page():
-    """Step 1 전체 페이지."""
+    """Step 1 전체 페이지. ?mode=edit&goal_id=N 이면 기존 목표 pre-populate."""
     from src.web.views_training_wizard_render import render_wizard_page
-    return render_wizard_page(step=1, data={})
+
+    mode = request.args.get("mode", "create")
+    goal_id = request.args.get("goal_id", type=int)
+    data: dict = {}
+
+    if mode == "edit" and goal_id:
+        dbp = db_path()
+        if dbp and dbp.exists():
+            try:
+                with sqlite3.connect(str(dbp)) as conn:
+                    from src.training.goals import get_goal
+                    g = get_goal(conn, goal_id)
+                    if g:
+                        data = _goal_to_wizard_data(g)
+            except Exception:
+                pass
+        data["_mode"] = "edit"
+        data["_goal_id"] = goal_id
+
+    return render_wizard_page(step=1, data=data, mode=mode, goal_id=goal_id)
 
 
 @wizard_bp.route("/training/wizard/step", methods=["POST"])
@@ -102,16 +121,28 @@ def wizard_complete():
     if not dbp or not dbp.exists():
         return redirect("/training?msg=DB를 찾을 수 없습니다")
 
+    is_edit = data.get("_mode") == "edit" and data.get("_goal_id")
+    # 체크박스 값은 form 필드로 별도 전달됨 (wizard_data에 없음)
+    if is_edit and request.form.get("_regen_plan_val") == "1":
+        data["_regen_plan"] = True
+
     try:
         conn = sqlite3.connect(str(dbp))
         try:
-            count = _save_and_generate(conn, data)
+            if is_edit:
+                count = _update_and_maybe_regen(conn, data)
+                msg = f"목표가 수정되었습니다"
+                if count > 0:
+                    msg += f" (플랜 재생성: {count}개 워크아웃)"
+            else:
+                count = _save_and_generate(conn, data)
+                msg = f"훈련 계획이 생성되었습니다 ({count}개 워크아웃)"
         finally:
             conn.close()
     except Exception as exc:
-        return redirect(f"/training?msg=플랜 생성 실패: {str(exc)[:80]}")
+        return redirect(f"/training?msg=저장 실패: {str(exc)[:80]}")
 
-    return redirect(f"/training?msg=훈련 계획이 생성되었습니다 ({count}개 워크아웃)")
+    return redirect(f"/training?msg={msg}")
 
 
 # ── step 핸들러 ────────────────────────────────────────────────────────
@@ -205,10 +236,94 @@ def _handle_step3():
     """Step 3 확인 → Step 4 HTML 반환."""
     from src.web.views_training_wizard_render import render_step4
     data = _load_wizard_data()
-    return jsonify({"step": 4, "html": render_step4(data)})
+    mode = "edit" if data.get("_mode") == "edit" else "create"
+    return jsonify({"step": 4, "html": render_step4(data, mode=mode)})
+
+
+# ── 유틸 ───────────────────────────────────────────────────────────────
+
+
+def _fmt_time_hms(sec: int | None) -> str:
+    """초 → H:MM:SS 문자열. None 이면 빈 문자열."""
+    if not sec:
+        return ""
+    h, r = divmod(int(sec), 3600)
+    m, s = divmod(r, 60)
+    return f"{h}:{m:02d}:{s:02d}"
+
+
+def _fmt_pace_mmss(sec: int | None) -> str:
+    """초/km → MM:SS 문자열. None 이면 빈 문자열."""
+    if not sec:
+        return ""
+    return f"{sec // 60}:{sec % 60:02d}"
+
+
+def _goal_to_wizard_data(g: dict) -> dict:
+    """goals DB 행 → wizard_data dict (Step 1 pre-populate용)."""
+    dist = g.get("distance_km", 10.0)
+    # distance_label 추정
+    label_map = {1.5: "1.5k", 3.0: "3k", 5.0: "5k",
+                 10.0: "10k", 21.097: "half", 42.195: "full"}
+    label = next((k for k, v in {
+        "1.5k": 1.5, "3k": 3.0, "5k": 5.0,
+        "10k": 10.0, "half": 21.097, "full": 42.195,
+    }.items() if abs(v - dist) < 0.01), "custom")
+    return {
+        "goal_name": g.get("name", ""),
+        "distance_label": label,
+        "custom_km": "" if label != "custom" else str(dist),
+        "dist_km": dist,
+        "race_date": g.get("race_date") or "",
+        "target_time": _fmt_time_hms(g.get("target_time_sec")),
+        "time_sec": g.get("target_time_sec"),
+        "target_pace": _fmt_pace_mmss(g.get("target_pace_sec_km")),
+        "pace_sec": g.get("target_pace_sec_km"),
+        "plan_weeks": g.get("plan_weeks"),
+    }
 
 
 # ── 저장 + 플랜 생성 ───────────────────────────────────────────────────
+
+
+def _update_and_maybe_regen(conn: sqlite3.Connection, data: dict) -> int:
+    """edit 모드: 목표 필드 업데이트 + 선택적 플랜 재생성. 재생성된 워크아웃 수 반환."""
+    from src.training.goals import update_goal
+    from src.training.planner import (
+        generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs,
+    )
+
+    goal_id = int(data["_goal_id"])
+    update_goal(
+        conn,
+        goal_id,
+        name=data.get("goal_name", ""),
+        distance_km=data.get("dist_km", 10.0),
+        race_date=data.get("race_date") or None,
+        target_time_sec=data.get("time_sec"),
+        target_pace_sec_km=data.get("pace_sec"),
+    )
+    if data.get("plan_weeks"):
+        conn.execute(
+            "UPDATE goals SET plan_weeks=? WHERE id=?",
+            (int(data["plan_weeks"]), goal_id),
+        )
+    conn.commit()
+
+    upsert_user_training_prefs(
+        conn,
+        data.get("rest_mask", 0),
+        data.get("blocked", []),
+        data.get("interval_rep_m", 1000),
+        0,
+        data.get("long_mask", 0),
+    )
+
+    if not data.get("_regen_plan"):
+        return 0
+
+    plan = generate_weekly_plan(conn, goal_id=goal_id)
+    return save_weekly_plan(conn, plan)
 
 
 def _save_and_generate(conn: sqlite3.Connection, data: dict) -> int:

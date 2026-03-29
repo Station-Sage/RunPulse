@@ -321,23 +321,49 @@ def recommend_weekly_km(
 2. `views_training_crud.py`에 Wizard 처리 라우트 추가
 3. `tests/test_training_wizard.py` 작성
 
-### Phase D: 워크아웃 편집 메뉴
-1. `views_training_cards.py` — 편집 버튼 + inline 패널
-2. `views_training_crud.py` — 편집 AJAX 라우트
-3. `planner.py` — 인터벌 재계산 연동
+### Phase D: 워크아웃 편집 메뉴 ✅ 완료
+- `views_training_cards.py`: `_render_edit_panel()` + `_WORKOUT_EDIT_JS` (⚙️ AJAX)
+- `views_training_crud.py`: `PATCH /training/workout/<id>`, `GET /interval-calc`
+- D-fix1: `/training/calendar-partial` + `rpWeekNav()` (스크롤 버그 수정)
+- D-fix2: "📤 내보내기 ▾" 드롭다운 (Garmin/CalDAV/ICS/링크복사 통합)
 
-### Phase E: 전체 계획 뷰
-1. `planner.py` — 전체 기간(N주) 계획 생성 함수
-2. `views_training_fullplan.py` 신규 — 표/캘린더 뷰
-3. `views_training_loaders.py` — 전체 플랜 로더
+### Phase E: 전체 계획 뷰 + 월간 뷰 ✅ 완료
+- E-1: `views_training_fullplan.py` 신규 (`GET /training/fullplan`, 주별 Collapsible)
+- E-1: `views_training_loaders.py`: `load_full_plan_weeks()`
+- E-2: `views_training_month.py` 신규 (`?view=month`, 4주×7일 그리드)
+- E-2: `load_month_workouts()`, `load_actual_activities(end_date)`, `_week_view_tabs()` 3탭
 
-### Phase F: 비교 차트 + 훈련 분석 카드
-1. `views_training_fullplan.py` — 비교 섹션 추가
-2. `views_training_cards.py` — 분석 카드 (달성도, 가능률, 예상 기록)
-3. `views_training_loaders.py` — 실제 달성 데이터 로더
+### Phase F: Wizard + 목표 카드 인터랙션 ✅ 완료 (2026-03-28)
+- F-1: Wizard edit 모드 (`?mode=edit&goal_id=N`) — pre-populate + UPDATE + 재생성 체크박스
+- F-2: 목표 카드 ✏️ → Wizard edit 모드 직접 링크
+- F-3: 목표 카드 ✕ → AJAX skip + replanner + 인라인 알림(재조정 변경사항)
+- F-4: 목표 카드 ✓ → AJAX confirm + matched/activity_summary + match-check 폴링 엔드포인트
 
-### Phase G: 목표 관리 개선
-1. `views_training_cards.py` — 이전 목표 Collapsible + 불러오기
+### Phase G: 목표 관리 개선 ✅ 완료 (2026-03-28)
+- G-1: 목표 리스트 (수행률 바, D-day, 상태 배지) — `views_training_goals.py` 신규
+- G-2: 클릭 → AJAX 드릴다운 (주차별 수행도)
+- G-3: 목표 취소 → AJAX (인라인 처리)
+- G-4: 훈련 가져오기 — 소스 목표 선택 + 새 시작일 + 범위(전체/특정일/기간) + 미리보기 + 실행
+
+### Phase G+: 캘린더 AJAX 전환 ✅ 완료 (2026-03-28)
+- `rpNavTo(href, calUrl)` 추가 — 월간 화살표·탭 전환 full reload → AJAX (스크롤 유지)
+
+### Phase H: 훈련 캘린더 UX 고도화
+- [ ] H-1: 모바일 스와이프 주 이동
+  - `#rp-calendar`에 `data-week-offset`, `data-view="week|month"` 추가
+  - touchstart/end 50px 임계값, `|deltaY| < |deltaX|` (수직 스크롤 구분)
+  - week: `rpWeekNav(offset±1)` / month: `rpNavTo(href, calUrl)`
+  - 구현: `WORKOUT_EDIT_JS` (views_training_week.py), `_month_js` (views_training_month.py)
+- [ ] H-2: 워크아웃 카드 클릭 → 상세 팝업 모달 (주간·월간 공통)
+  - 카드에 `data-wid/wtype/dist/pace-min/pace-max/date/completed/label` 추가
+  - `rpOpenWorkout(el)` → 공통 모달 `#rp-wmodal` (하단 슬라이드업)
+  - 모달 액션: ✓ 완료 (POST /confirm AJAX) / ✕ 스킵 (POST /skip AJAX) / ✏️ 수정
+  - 성공 후 캘린더 갱신: `rpWeekNav` 또는 `rpNavTo`
+  - 주간 기존 인라인 버튼: `event.stopPropagation()` 추가 (팝업과 공존)
+- [ ] H-3: 월간 훈련 카드 미리보기
+  - 데스크탑: `mouseenter` → `#rp-tip` position:absolute 툴팁 (타입/거리/페이스)
+  - 모바일: 200ms 롱탭(touchstart+timer) → 미리보기 / 단순탭(<200ms) → 모달
+  - 툴팁 내용: data 속성에서 읽어 JS로 생성 (서버 요청 없음)
 
 ---
 

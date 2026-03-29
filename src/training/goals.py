@@ -2,13 +2,13 @@
 
 import sqlite3
 
-_COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at"
+_COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at, plan_weeks"
 
 
 def _row_to_dict(row: tuple) -> dict:
     """DB 행을 dict로 변환."""
     keys = ["id", "name", "race_date", "distance_km", "target_time_sec",
-            "target_pace_sec_km", "status", "created_at"]
+            "target_pace_sec_km", "status", "created_at", "plan_weeks"]
     return dict(zip(keys, row))
 
 
