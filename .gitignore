@@ -3,6 +3,7 @@ config.json
 *.token
 .garmin_tokens/
 .garth/
+.mcp.json
 tmp_*.py
 
 # DB
