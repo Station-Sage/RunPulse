@@ -288,6 +288,8 @@ def _goal_to_wizard_data(g: dict) -> dict:
 
 def _update_and_maybe_regen(conn: sqlite3.Connection, data: dict) -> int:
     """edit 모드: 목표 필드 업데이트 + 선택적 플랜 재생성. 재생성된 워크아웃 수 반환."""
+    from datetime import date, timedelta
+
     from src.training.goals import update_goal
     from src.training.planner import (
         generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs,
@@ -322,12 +324,40 @@ def _update_and_maybe_regen(conn: sqlite3.Connection, data: dict) -> int:
     if not data.get("_regen_plan"):
         return 0
 
-    plan = generate_weekly_plan(conn, goal_id=goal_id)
-    return save_weekly_plan(conn, plan)
+    # 재생성: 현재 주 이후 기존 planner 워크아웃 삭제 후 전체 기간 재생성
+    today = date.today()
+    current_week = today - timedelta(days=today.weekday())
+    conn.execute(
+        "DELETE FROM planned_workouts WHERE source='planner' AND date >= ?",
+        (current_week.isoformat(),),
+    )
+    conn.commit()
+
+    race_date_str = data.get("race_date")
+    plan_weeks = data.get("plan_weeks")
+    if race_date_str:
+        try:
+            end_date = date.fromisoformat(race_date_str) + timedelta(days=7)
+        except ValueError:
+            end_date = current_week + timedelta(weeks=int(plan_weeks or 12))
+    else:
+        end_date = current_week + timedelta(weeks=int(plan_weeks or 12))
+    # 레이스 날짜가 과거여도 최소 1주는 생성
+    end_date = max(end_date, current_week + timedelta(weeks=1))
+
+    total_count = 0
+    ws = current_week
+    while ws < end_date:
+        plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+        total_count += save_weekly_plan(conn, plan)
+        ws += timedelta(weeks=1)
+    return total_count
 
 
 def _save_and_generate(conn: sqlite3.Connection, data: dict) -> int:
-    """goals + prefs 저장 후 이번 주 플랜 생성. 생성된 워크아웃 수 반환."""
+    """goals + prefs 저장 후 전체 기간 플랜 생성. 생성된 워크아웃 수 반환."""
+    from datetime import date, timedelta
+
     from src.training.goals import add_goal
     from src.training.planner import (
         generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs,
@@ -359,5 +389,25 @@ def _save_and_generate(conn: sqlite3.Connection, data: dict) -> int:
         data.get("long_mask", 0),
     )
 
-    plan = generate_weekly_plan(conn, goal_id=goal_id)
-    return save_weekly_plan(conn, plan)
+    # 전체 기간 플랜 생성: race_date 또는 plan_weeks 기반
+    today = date.today()
+    current_week = today - timedelta(days=today.weekday())
+
+    race_date_str = data.get("race_date")
+    if race_date_str:
+        try:
+            end_date = date.fromisoformat(race_date_str) + timedelta(days=7)
+        except ValueError:
+            end_date = current_week + timedelta(weeks=int(plan_weeks or 12))
+    else:
+        end_date = current_week + timedelta(weeks=int(plan_weeks or 12))
+    # 최소 1주 보장
+    end_date = max(end_date, current_week + timedelta(weeks=1))
+
+    total_count = 0
+    ws = current_week
+    while ws < end_date:
+        plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+        total_count += save_weekly_plan(conn, plan)
+        ws += timedelta(weeks=1)
+    return total_count

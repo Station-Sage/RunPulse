@@ -104,7 +104,7 @@ def render_header_actions(has_plan: bool) -> str:
            "white-space:nowrap;'>📋 전체 일정</a>"
            if has_plan else "")
         + "<form method='POST' action='/training/generate' style='margin:0;'"
-        " onsubmit=\"return confirm('4주 훈련 계획을 " + ("재" if has_plan else "") + "생성합니다. 기존 자동 생성 계획은 덮어씁니다.')\">"
+        " onsubmit=\"return confirm('전체 훈련 계획을 " + ("재" if has_plan else "") + "생성합니다. 기존 자동 생성 계획은 덮어씁니다.')\">"
         f"<button type='submit' style='background:linear-gradient(135deg,#00d4ff,#00ff88);"
         f"color:#000;border:none;padding:8px 16px;border-radius:20px;font-size:13px;"
         f"font-weight:bold;cursor:pointer;'>{label}</button></form>"

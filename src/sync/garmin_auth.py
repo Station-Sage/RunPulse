@@ -16,9 +16,25 @@ except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
 
 
 def _tokenstore_path(config: dict) -> Path:
-    """garth 토큰 저장소 경로 반환. 기본: ~/.garth"""
-    path_str = config.get("garmin", {}).get("tokenstore", "~/.garth")
-    return Path(path_str).expanduser()
+    """garth 토큰 저장소 경로 반환.
+
+    우선순위:
+    1. config["garmin"]["tokenstore"] 명시 경로
+    2. config["garmin"]["user_id"] 기반 사용자별 경로 (~/.garth/{user_id}/)
+    3. 기본값: ~/.garth/
+    """
+    garmin_cfg = config.get("garmin", {})
+    explicit = garmin_cfg.get("tokenstore", "")
+    if explicit:
+        return Path(explicit).expanduser()
+
+    user_id = garmin_cfg.get("user_id", "")
+    if user_id and user_id != "default":
+        # 이메일 등 특수문자가 포함된 user_id를 경로 안전하게 변환
+        safe_uid = user_id.replace("/", "_").replace("\\", "_")
+        return Path(f"~/.garth/{safe_uid}").expanduser()
+
+    return Path("~/.garth").expanduser()
 
 
 def _login(config: dict) -> "Garmin":

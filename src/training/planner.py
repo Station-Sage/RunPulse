@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import sqlite3
 from datetime import date, timedelta
 
@@ -118,11 +119,12 @@ def generate_weekly_plan(
         available = list(range(7))
 
     # Q-day 수 결정
+    # Seiler 2010 80/20: 가용일의 20% → ceil로 올림 (round는 7일→1개로 과소)
     max_q = prefs.get("max_q_days") or MAX_Q_DAYS_BY_LABEL.get(dlabel, 2)
     if phase in ("taper", "base", "recovery_week"):
         max_q = min(max_q, 1)
     n_avail = len(available)
-    n_q = min(max_q, max(1, round(n_avail * 0.20)))
+    n_q = min(max_q, max(1, math.ceil(n_avail * 0.20)))
     if n_avail <= 3:
         n_q = min(1, n_q)
 
@@ -133,18 +135,18 @@ def generate_weekly_plan(
     has_long = dlabel not in ("1.5k", "3k") and phase != "taper"
     long_slot = assign_long_run_slot(available, q_slots) if has_long else None
 
-    # 테이퍼: interval→tempo로 전환
+    # Q-day 타입: phase 기반 순수 결정 (CRS 게이트 없음 — 일일 추천카드에서 적용)
+    # build/peak → interval, base/taper/recovery_week → tempo
     q_type_for_slot = "interval" if phase not in ("taper", "base", "recovery_week") else "tempo"
 
-    # CRS 게이트 (오늘 기준)
-    try:
-        from src.metrics.crs import evaluate as crs_evaluate, LEVEL_Z1, LEVEL_Z1_Z2
-        crs_result = crs_evaluate(conn)
-        crs_level = crs_result["level"]
-        crs_score = crs_result["crs"]
-    except Exception:
-        crs_level = 3
-        crs_score = 60.0
+    # Q-day 다음날 → recovery (Daniels Hard-Easy 원칙: Lydiard/Bowerman)
+    # 플랜 생성 시 구조적으로 항상 적용
+    recovery_slots: set[int] = set()
+    for qs in q_slots:
+        nxt = qs + 1
+        if (nxt < 7 and nxt in available
+                and nxt not in q_slots and nxt != long_slot):
+            recovery_slots.add(nxt)
 
     # 7일 템플릿 구성
     template: list[str] = []
@@ -154,14 +156,10 @@ def generate_weekly_plan(
         elif i == long_slot and has_long:
             template.append("long")
         elif i in q_slots:
-            if crs_level <= 1:
-                template.append("easy")
-            elif crs_level == 2:
-                template.append("tempo")
-            else:
-                template.append(q_type_for_slot)
-        elif i == available[0]:
-            template.append("easy")
+            template.append(q_type_for_slot)
+        elif i in recovery_slots:
+            # Q-day 다음날: 회복 조깅 (Daniels: E+50~+90 영역)
+            template.append("recovery")
         else:
             template.append("easy")
 
@@ -198,7 +196,6 @@ def generate_weekly_plan(
             "source": "planner",
             "interval_prescription": interval_json,
             "_phase": phase,
-            "_crs": crs_score,
             "_vdot": vdot,
         })
 

@@ -2,9 +2,11 @@
 
 ## 작업 순서
 1. `BACKLOG.md`에서 NOW 항목 확인
-2. 작업 시작 전 계획(plan)을 제시하고 승인 대기
-3. 승인 후 구현
-4. 완료 시 아래 "완료 체크리스트" 수행
+2. (복잡한 작업 시)sequential-thinking MCP로 작업을 단계별 분해
+3. 작업 시작 전 계획(plan)을 제시하고 승인 대기
+4. 승인 후 구현
+5. 완료 시 아래 "완료 체크리스트" 수행
+6. `BACKLOG.md`, 폴더별 해당 `GUIDE.md`, `requirement.txt` 등 문서 업데이트
 
 ## 세션 시작 프로토콜
 1. `BACKLOG.md` 읽기 (NOW + BUGS만)
@@ -24,6 +26,9 @@
 - 사용자가 구두로 지시한 수정사항 → 먼저 BACKLOG.md BUGS에 기록 후 진행
 - NOW 항목 모두 완료 시 → NEXT에서 NOW로 승격 (사용자 확인 후)
 - DONE 10건 초과 시 → 오래된 것부터 삭제 (git log에 이력 보존)
+- 사용자가 "나중에" "다음에" "지금은 아니고" 등으로 미룬 항목 → `LATER.md`에 기록
+- `LATER.md`는 장기 아이디어 풀이며, Claude가 자발적으로 읽지 않음
+- `LATER.md` → BACKLOG.md 승격은 반드시 사용자 지시로만 진행
 
 ## Hotfix 절차
 - BACKLOG.md 기록이 어려운 긴급 1건은 직접 지시로 진행 가능

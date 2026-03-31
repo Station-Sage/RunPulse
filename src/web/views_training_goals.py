@@ -119,6 +119,18 @@ def _render_goal_item(g: dict) -> str:
             "border-radius:10px;'>✏️</a>"
         )
 
+    # 취소된 목표: 삭제 버튼
+    cancel_delete_btn = ""
+    if status == "cancelled" and gid:
+        cancel_delete_btn = (
+            f"<button onclick='event.stopPropagation();rpGoalDeleteEntry({gid})' "
+            "title='목표 기록 삭제' "
+            "style='background:rgba(255,68,68,0.15);color:#ff6b6b;"
+            "border:1px solid rgba(255,68,68,0.3);"
+            "padding:3px 8px;border-radius:10px;font-size:11px;cursor:pointer;'>"
+            "삭제</button>"
+        )
+
     return (
         f"<div id='goal-row-{gid}'>"
         f"<div onclick='rpGoalToggle({gid})' "
@@ -138,6 +150,7 @@ def _render_goal_item(g: dict) -> str:
         + (f"<span style='font-size:1rem;font-weight:bold;color:#00d4ff;"
            f"white-space:nowrap;'>{dday}</span>" if dday else "")
         + edit_link
+        + cancel_delete_btn
         + f"<span id='goal-arrow-{gid}' "
           "style='color:var(--muted);font-size:11px;'>▼</span>"
         + "</div></div>"
@@ -202,8 +215,9 @@ def render_goal_detail_html(
         + "</tbody></table>"
     )
 
-    # G-3: 삭제(취소) 버튼
+    # G-3: 목표 취소 + 계획 삭제 버튼
     delete_btn = ""
+    delete_plan_btn = ""
     if status == "active" and gid:
         delete_btn = (
             f"<button onclick='rpGoalDelete({gid})' title='목표 취소 (플랜 유지)' "
@@ -211,6 +225,13 @@ def render_goal_detail_html(
             "border:1px solid rgba(255,68,68,0.3);"
             "padding:5px 12px;border-radius:12px;font-size:11px;cursor:pointer;'>"
             "🗑️ 목표 취소</button>"
+        )
+        delete_plan_btn = (
+            f"<button onclick='rpDeletePlan({gid})' title='AI 자동 생성 훈련 계획 삭제' "
+            "style='background:rgba(255,100,0,0.15);color:#ff8844;"
+            "border:1px solid rgba(255,100,0,0.3);"
+            "padding:5px 12px;border-radius:12px;font-size:11px;cursor:pointer;'>"
+            "📅 훈련 계획 삭제</button>"
         )
 
     # G-4: 가져오기 패널
@@ -232,7 +253,7 @@ def render_goal_detail_html(
         "padding:10px;border:1px solid rgba(255,255,255,0.06);'>"
         + table_html
         + "<div style='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;'>"
-        + delete_btn + import_btn
+        + delete_btn + delete_plan_btn + import_btn
         + "</div>"
         + import_panel
         + "</div>"
@@ -349,6 +370,40 @@ function rpGoalDelete(gid){
     if(row)row.style.opacity='0.5';
   })
   .catch(function(){alert('오류가 발생했습니다.');});
+}
+
+function rpDeletePlan(gid){
+  if(!confirm('AI 자동 생성 훈련 계획을 모두 삭제합니다.\\n수동 입력 계획은 유지됩니다.\\n계속하시겠습니까?'))return;
+  fetch('/training/goal/'+gid+'/delete-plan',{
+    method:'POST',
+    headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded'}
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){
+      alert('훈련 계획이 삭제되었습니다. ('+d.count+'개)');
+      location.reload();
+    }else{
+      alert('오류: '+(d.error||'알 수 없음'));
+    }
+  })
+  .catch(function(){alert('요청 오류가 발생했습니다.');});
+}
+
+function rpGoalDeleteEntry(gid){
+  if(!confirm('이 목표 기록을 완전히 삭제하시겠습니까?\\n이 작업은 되돌릴 수 없습니다.'))return;
+  fetch('/training/goal/'+gid+'/delete',{
+    method:'POST',
+    headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded'}
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){
+      var row=document.getElementById('goal-row-'+gid);
+      if(row)row.remove();
+    }else{
+      alert('오류: '+(d.error||'알 수 없음'));
+    }
+  })
+  .catch(function(){alert('요청 오류가 발생했습니다.');});
 }
 
 function rpImportRange(gid,type){

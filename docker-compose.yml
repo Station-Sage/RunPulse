@@ -8,7 +8,10 @@ services:
       - .:/app
       # 호스트 .venv가 컨테이너 패키지를 덮어쓰지 않도록 익명 볼륨으로 격리
       - /app/.venv
+      # Garmin garth 토큰 공유 (프로젝트 .garth → 컨테이너 /root/.garth)
+      - ./.garth:/root/.garth
+    env_file:
+      - .env                  # VPS에만 존재, git 제외됨 (.gitignore)
     environment:
       - FLASK_HOST=0.0.0.0
-      - FLASK_DEBUG=1
     restart: unless-stopped

@@ -45,10 +45,11 @@ except Exception:
 class BgSyncThread(threading.Thread):
     """서비스별 백그라운드 동기화 스레드."""
 
-    def __init__(self, job_id: str, config: dict) -> None:
+    def __init__(self, job_id: str, config: dict, user_id: str = "default") -> None:
         super().__init__(daemon=True, name=f"bgsync-{job_id[:8]}")
         self.job_id = job_id
         self.config = config
+        self.user_id = user_id
         self._pause_event = threading.Event()
         self._stop_event = threading.Event()
         self._pause_event.set()   # 기본: 실행 상태
@@ -159,7 +160,7 @@ class BgSyncThread(threading.Thread):
             import sqlite3 as _sqlite3
             from src.metrics import engine as metrics_engine
             from datetime import date as _date
-            with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+            with _sqlite3.connect(str(get_db_path(self.user_id)), timeout=30) as conn:
                 conn.execute("PRAGMA journal_mode=WAL")
                 # 오늘 날짜를 항상 포함하여 메트릭 계산
                 end = max(job.to_date, _date.today().isoformat())
@@ -178,7 +179,7 @@ class BgSyncThread(threading.Thread):
             from src.training.matcher import match_week_activities
             today = _date.today()
             this_week = today - _td(days=today.weekday())
-            with _sqlite3.connect(str(get_db_path()), timeout=30) as conn:
+            with _sqlite3.connect(str(get_db_path(self.user_id)), timeout=30) as conn:
                 conn.execute("PRAGMA journal_mode=WAL")
                 for w in range(4):
                     match_week_activities(conn, this_week - _td(weeks=w))
@@ -200,7 +201,7 @@ class BgSyncThread(threading.Thread):
         req_added = 0
         try:
             # isolation_level=None → autocommit: INSERT마다 즉시 commit → 병렬 서비스 간 write lock 경합 해소
-            conn = sqlite3.connect(str(get_db_path()), timeout=30, isolation_level=None)
+            conn = sqlite3.connect(str(get_db_path(self.user_id)), timeout=30, isolation_level=None)
             conn.execute("PRAGMA journal_mode=WAL")
             try:
                 if service == "garmin":
@@ -271,6 +272,7 @@ def start_job(
     from_date: str,
     to_date: str,
     config: dict,
+    user_id: str = "default",
 ) -> str:
     """새 백그라운드 동기화 시작. job_id 반환.
 
@@ -283,7 +285,7 @@ def start_job(
             return existing.id if existing else ""
 
     job = create_job(service, from_date, to_date)
-    thread = BgSyncThread(job.id, config)
+    thread = BgSyncThread(job.id, config, user_id=user_id)
     with _lock:
         _threads[service] = thread
     thread.start()
@@ -312,7 +314,7 @@ def stop_job(service: str) -> bool:
     return False
 
 
-def resume_job(service: str, config: dict) -> bool:
+def resume_job(service: str, config: dict, user_id: str = "default") -> bool:
     """일시정지/중지 상태에서 재개. 스레드가 살아 있으면 resume, 없으면 새 스레드 생성."""
     with _lock:
         t = _threads.get(service)
@@ -324,7 +326,7 @@ def resume_job(service: str, config: dict) -> bool:
     if not job or job.status not in ("paused", "stopped", "rate_limited"):
         return False
 
-    thread = BgSyncThread(job.id, config)
+    thread = BgSyncThread(job.id, config, user_id=user_id)
     with _lock:
         _threads[service] = thread
     thread.start()

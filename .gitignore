@@ -2,6 +2,7 @@
 config.json
 *.token
 .garmin_tokens/
+.garth/
 tmp_*.py
 
 # DB

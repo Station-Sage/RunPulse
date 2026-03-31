@@ -160,21 +160,35 @@ def get_paces_from_vdot(vdot: float | None,
 
 
 def pace_range(workout_type: str, paces: dict[str, int]) -> tuple[int | None, int | None]:
-    """훈련 유형 → 페이스 범위 (min, max) sec/km."""
-    mapping = {
-        "easy":     ("E", 30),
-        "long":     ("E", 30),
-        "recovery": ("E", 50),
-        "tempo":    ("T", 10),
-        "interval": ("I", 10),
-        "rest":     None,
-    }
-    spec = mapping.get(workout_type)
-    if spec is None:
-        return None, None
-    key, delta = spec
-    base = paces.get(key, 300)
-    return base - delta, base + delta
+    """훈련 유형 → 페이스 범위 (pace_min, pace_max) sec/km.
+
+    Daniels VDOT 테이블 존 관계에서 직접 도출:
+      E  = 이지 페이스 (테이블 값, 이 이상 빨리 달리면 안 됨)
+      M  = 마라톤 페이스 (E보다 빠름 = 낮은 sec/km)
+      T  = 역치 페이스
+      I  = 인터벌 페이스
+
+    - easy    : E-10 ~ E+30  (E를 중심으로, M 쪽으로 약간 빠르게 허용)
+    - long    : E+10 ~ E+50  (E보다 느린 쪽 — Daniels: 롱런은 이지 이하)
+    - recovery: E+50 ~ E+90  (매우 느림, conversational)
+    - tempo   : T-5  ~ T+10  (역치 ±타이트, 느린 쪽 약간 허용)
+    - interval: I-5  ~ I+10  (VO2max ±타이트)
+    """
+    E = paces.get("E", 360)
+    T = paces.get("T", 300)
+    I = paces.get("I", 270)
+
+    if workout_type == "easy":
+        return E - 10, E + 30
+    if workout_type == "long":
+        return E + 10, E + 50
+    if workout_type == "recovery":
+        return E + 50, E + 90
+    if workout_type == "tempo":
+        return T - 5, T + 10
+    if workout_type == "interval":
+        return I - 5, I + 10
+    return None, None
 
 
 # ── 볼륨 배분 ─────────────────────────────────────────────────────────────

@@ -106,6 +106,57 @@ def goal_cancel(goal_id: int):
     return redirect("/training")
 
 
+@training_goal_crud_bp.route("/training/goal/<int:goal_id>/delete-plan", methods=["POST"])
+def goal_delete_plan(goal_id: int):
+    """AI 자동 생성 훈련 계획 삭제 (source='planner'). AJAX → JSON."""
+    import sqlite3
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return jsonify({"ok": False, "error": "DB 없음"})
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            cur = conn.execute(
+                "DELETE FROM planned_workouts WHERE source='planner'"
+            )
+            count = cur.rowcount
+            conn.commit()
+        finally:
+            conn.close()
+        return jsonify({"ok": True, "count": count})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)})
+
+
+@training_goal_crud_bp.route("/training/goal/<int:goal_id>/delete", methods=["POST"])
+def goal_delete(goal_id: int):
+    """취소된 목표 기록 완전 삭제. AJAX → JSON."""
+    import sqlite3
+    dbp = db_path()
+    if not dbp or not dbp.exists():
+        return jsonify({"ok": False, "error": "DB 없음"})
+
+    try:
+        conn = sqlite3.connect(str(dbp))
+        try:
+            # cancelled 상태인 경우만 삭제 허용
+            row = conn.execute(
+                "SELECT status FROM goals WHERE id=?", (goal_id,)
+            ).fetchone()
+            if not row:
+                return jsonify({"ok": False, "error": "목표를 찾을 수 없습니다."})
+            if row[0] != "cancelled":
+                return jsonify({"ok": False, "error": "취소된 목표만 삭제할 수 있습니다."})
+            conn.execute("DELETE FROM goals WHERE id=?", (goal_id,))
+            conn.commit()
+        finally:
+            conn.close()
+        return jsonify({"ok": True})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)})
+
+
 # ── G-2: 목표 드릴다운 ────────────────────────────────────────────────
 
 

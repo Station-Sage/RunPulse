@@ -69,8 +69,8 @@ OAuth1 토큰을 받아 약 1년간 유효한 세션을 유지합니다.
 3. 앱 생성:
    - Application Name: RunPulse
    - Category: Data Importer
-   - Website: http://localhost
-   - Authorization Callback Domain: localhost
+   - Website: https://runpulse.stationsage.dev
+   - Authorization Callback Domain: runpulse.stationsage.dev
 4. 생성 완료 후 확인:
    - Client ID (숫자)
    - Client Secret (영문+숫자 문자열)
@@ -78,14 +78,8 @@ OAuth1 토큰을 받아 약 1년간 유효한 세션을 유지합니다.
 ### 최초 토큰 발급
 브라우저에서 아래 URL 접속 (YOUR_CLIENT_ID를 실제 값으로 교체):
 
-    https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,activity:read_all
-
-Strava 로그인 페이지가 뜹니다 (여기서 구글 로그인 가능).
-"Authorize" 클릭 후 "사이트에 연결할 수 없음" 페이지로 이동됩니다.
-
-URL 바를 확인합니다:
-
-    http://localhost/exchange_token?state=&code=abc123def456&scope=read_all,activity:read_all
+RunPulse 웹 설정 → Strava 연동 → "Strava로 로그인" 버튼을 클릭하면 자동으로 OAuth 인증이 시작됩니다.
+콜백 URL: `https://runpulse.stationsage.dev/connect/strava/callback`
 
 code= 뒤의 값(abc123def456)을 복사합니다.
 

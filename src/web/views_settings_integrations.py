@@ -5,6 +5,7 @@ views_settings.py에서 분리 (2026-03-29).
 from __future__ import annotations
 
 import html as _html
+import os
 import urllib.parse
 
 from flask import Blueprint, redirect, render_template, request
@@ -20,6 +21,7 @@ _STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
 _STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 _STRAVA_SCOPE = "read,activity:read_all"
 _STRAVA_REDIRECT_PATH = "/connect/strava/callback"
+_PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://runpulse.stationsage.dev").rstrip("/")
 
 
 # ── Strava ─────────────────────────────────────────────────────────────
@@ -69,7 +71,7 @@ def strava_connect_view() -> str:
     </button>
   </a>
   <p class='muted' style='font-size:0.85rem;'>
-    콜백 URL: <code>http://localhost:18080{_STRAVA_REDIRECT_PATH}</code><br>
+    콜백 URL: <code>{_PUBLIC_BASE_URL}{_STRAVA_REDIRECT_PATH}</code><br>
     Strava API 앱 설정에서 위 URL을 Authorized Callback Domain에 추가해야 합니다.
   </p>
 </div>"""
@@ -99,7 +101,7 @@ def strava_oauth_start():
         return redirect("/connect/strava?error=" + urllib.parse.quote("Client ID를 먼저 저장하세요."))
     params = {
         "client_id": client_id,
-        "redirect_uri": f"http://localhost:18080{_STRAVA_REDIRECT_PATH}",
+        "redirect_uri": f"{_PUBLIC_BASE_URL}{_STRAVA_REDIRECT_PATH}",
         "response_type": "code",
         "approval_prompt": "auto",
         "scope": _STRAVA_SCOPE,

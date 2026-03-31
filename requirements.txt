@@ -1,6 +1,12 @@
 # RunPulse 런타임 의존성
 # 개발/테스트 추가 패키지: pip install pytest
 
+# 환경변수 관리
+python-dotenv>=1.0.0
+
+# 자격증명 암호화 (Fernet AES-128-CBC + HMAC-SHA256)
+cryptography>=42.0.0
+
 # Garmin 연동
 garminconnect>=0.2.0
 garth>=0.4.0

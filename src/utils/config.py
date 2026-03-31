@@ -64,6 +64,7 @@ def load_config(path: Path | None = None, *, user_id: str | None = None) -> dict
     user_id가 지정되면 사용자별 config를 로드.
     path가 명시되면 path 우선.
     Web 컨텍스트에서 둘 다 미지정이면 Flask 세션 user_id 자동 사용.
+    민감 필드(패스워드, 토큰 등)는 자동 복호화됨.
     """
     if path is not None:
         config_path = _resolve_path(path)
@@ -83,20 +84,32 @@ def load_config(path: Path | None = None, *, user_id: str | None = None) -> dict
         else:
             base[key] = value
 
-    return base
+    # 현재 user_id를 garmin 섹션에 주입 (garth 토큰 경로 결정에 사용)
+    resolved_uid = _auto_user_id(user_id)
+    if resolved_uid and "garmin" in base and isinstance(base["garmin"], dict):
+        base["garmin"].setdefault("user_id", resolved_uid)
+
+    # 암호화된 자격증명 투명 복호화
+    from src.utils.credential_store import decrypt_config_credentials
+    return decrypt_config_credentials(base)
 
 
 def save_config(
     config: dict, path: Path | None = None, *, user_id: str | None = None
 ) -> None:
-    """config 딕셔너리를 config.json에 저장."""
+    """config 딕셔너리를 config.json에 저장. 민감 필드는 자동 암호화됨."""
     if path is not None:
         config_path = _resolve_path(path)
     else:
         config_path = get_config_path(_auto_user_id(user_id))
     config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 민감 자격증명 암호화 후 저장
+    from src.utils.credential_store import encrypt_config_credentials
+    to_save = encrypt_config_credentials(config)
+
     with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+        json.dump(to_save, f, indent=2, ensure_ascii=False)
 
 
 def update_service_config(

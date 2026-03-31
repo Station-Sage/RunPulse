@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import html
+import logging
+import os
 import sqlite3
 import sys
 import time
@@ -11,6 +13,8 @@ from pathlib import Path
 from flask import Flask, redirect, request, session
 
 from src.utils.config import load_config
+
+log = logging.getLogger(__name__)
 from src.sync.garmin import check_garmin_connection
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
@@ -160,6 +164,21 @@ def _auto_migrate() -> None:
         logging.getLogger(__name__).warning("마이그레이션 실패: %s", exc)
 
 
+def _resolve_secret_key() -> str:
+    """FLASK_SECRET_KEY 환경변수 우선. 없으면 production 시 시작 거부."""
+    key = os.environ.get("FLASK_SECRET_KEY", "")
+    if key:
+        return key
+    is_production = os.environ.get("APP_ENV", "development").lower() == "production"
+    if is_production:
+        raise RuntimeError(
+            "[app] FLASK_SECRET_KEY 환경변수가 설정되지 않았습니다. "
+            "production 환경에서는 필수입니다. .env 파일을 확인하세요."
+        )
+    log.warning("[app] FLASK_SECRET_KEY 미설정 — 로컬 개발 전용 키 사용 (production 금지)")
+    return "runpulse-local-dev-only"
+
+
 def create_app() -> Flask:
     app = Flask(
         __name__,
@@ -167,7 +186,13 @@ def create_app() -> Flask:
         static_folder=str(_project_root() / "static"),
         static_url_path="/static",
     )
-    app.secret_key = "runpulse-local-dev"  # 로컬 전용, 상업용 아님
+    app.secret_key = _resolve_secret_key()
+    app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7  # 7일
+
+    # CF Zero Trust 헤더 기반 사용자 식별 미들웨어 등록
+    from .auth_cf import init_cf_auth
+    init_cf_auth(app)
+
     _auto_migrate()
 
     # ── Jinja2 설정 ──────────────────────────────────────────────────────────
@@ -581,8 +606,10 @@ def create_app() -> Flask:
         except ValueError:
             return jsonify({"ok": False, "error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)."}), 400
 
+        from .helpers import get_current_user_id
         config = load_config()
-        job_id = start_job(source, from_date, to_date, config)
+        user_id = get_current_user_id()
+        job_id = start_job(source, from_date, to_date, config, user_id=user_id)
         return jsonify({"ok": True, "job_id": job_id, "source": source})
 
     @app.post("/bg-sync/pause")
@@ -605,9 +632,10 @@ def create_app() -> Flask:
     def bg_sync_resume():
         from flask import jsonify
         from .bg_sync import resume_job
+        from .helpers import get_current_user_id
         source = request.form.get("source", "").strip()
         config = load_config()
-        ok = resume_job(source, config)
+        ok = resume_job(source, config, user_id=get_current_user_id())
         return jsonify({"ok": ok})
 
     @app.get("/bg-sync/status")

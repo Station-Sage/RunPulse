@@ -110,10 +110,22 @@ if (!window.rpSaveEdit) {
     if (el._rpSwipeInited) return;
     el._rpSwipeInited = true;
     var tx = 0, ty = 0;
+    var _hScrollEl = null, _hScrollStart = 0;
     el.addEventListener('touchstart', function(e) {
       tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+      /* 가로 스크롤 가능한 자식 요소를 찾아 초기 scrollLeft 기록 */
+      _hScrollEl = null; _hScrollStart = 0;
+      var t = e.target;
+      while (t && t !== el) {
+        if (t.scrollWidth > t.clientWidth + 2) {
+          _hScrollEl = t; _hScrollStart = t.scrollLeft; break;
+        }
+        t = t.parentElement;
+      }
     }, {passive: true});
     el.addEventListener('touchend', function(e) {
+      /* 가로 스크롤이 실제로 발생했으면 스와이프 무시 */
+      if (_hScrollEl && Math.abs(_hScrollEl.scrollLeft - _hScrollStart) > 5) return;
       var dx = e.changedTouches[0].clientX - tx;
       var dy = e.changedTouches[0].clientY - ty;
       if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
@@ -222,7 +234,7 @@ if (!window.rpSaveEdit) {
         tip.style.top  = Math.max(8, e.clientY - 40) + 'px';
       });
       el.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
-      /* 모바일: 200ms 롱탭 → 미리보기 / 단순탭 → 모달 */
+      /* 모바일: 200ms 롱탭 → 툴팁 미리보기 / 단순탭 → onclick이 모달 처리 (주간과 동일) */
       var _timer = null, _long = false;
       el.addEventListener('touchstart', function() {
         _long = false;
@@ -244,8 +256,11 @@ if (!window.rpSaveEdit) {
       }, {passive: true});
       el.addEventListener('touchend', function(e) {
         if (_timer) { clearTimeout(_timer); _timer = null; }
-        if (_long) { e.preventDefault(); _long = false; }
-        else { rpOpenWorkout(el); }
+        if (_long) {
+          /* 롱탭: 툴팁 표시 중 — 클릭 이벤트 억제 */
+          e.preventDefault(); _long = false;
+        }
+        /* 단순탭: 합성 click 이벤트가 발생하여 onclick='rpOpenWorkout(this)'가 처리 */
       });
       el.addEventListener('click', function(e) { e.stopPropagation(); });
     });

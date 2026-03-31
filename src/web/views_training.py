@@ -80,17 +80,6 @@ def training_page():
             goal = load_goal(conn)
             workouts, week_start = load_workouts(conn, week_offset)
 
-            # 빈 주이고 목표가 있으면 자동 생성
-            if not workouts and goal and week_offset >= 0:
-                try:
-                    from src.training.planner import generate_weekly_plan, save_weekly_plan
-                    plan = generate_weekly_plan(conn, config=config, week_start=week_start)
-                    save_weekly_plan(conn, plan)
-                    conn.commit()
-                    workouts, week_start = load_workouts(conn, week_offset)
-                except Exception:
-                    log.warning("주간 플랜 자동 생성 실패", exc_info=True)
-
             adjustment = load_adjustment(conn, config)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
@@ -204,18 +193,6 @@ def training_calendar_partial():
                 )
             else:
                 workouts, week_start = load_workouts(conn, week_offset)
-                if not workouts and week_offset >= 0:
-                    goal = load_goal(conn)
-                    if goal:
-                        try:
-                            from src.training.planner import generate_weekly_plan, save_weekly_plan
-                            config = load_config()
-                            plan = generate_weekly_plan(conn, config=config, week_start=week_start)
-                            save_weekly_plan(conn, plan)
-                            conn.commit()
-                            workouts, week_start = load_workouts(conn, week_offset)
-                        except Exception:
-                            pass
                 actual_activities = load_actual_activities(conn, week_start)
                 html = render_week_calendar(workouts, week_start, week_offset,
                                             actual_activities=actual_activities)
@@ -229,30 +206,46 @@ def training_calendar_partial():
 
 @training_bp.route("/training/generate", methods=["POST"])
 def training_generate():
-    """규칙 기반 주간 플랜 생성 후 /training 으로 리다이렉트."""
+    """규칙 기반 플랜 생성 (목표 기간 전체) 후 /training 으로 리다이렉트."""
     dbp = db_path()
     if not dbp or not dbp.exists():
         return redirect("/training")
 
+    total_weeks = 4
     try:
         conn = sqlite3.connect(str(dbp))
         try:
             from src.training.planner import generate_weekly_plan, save_weekly_plan
-            from datetime import timedelta as _td
             config = load_config()
-            base = date.today() - _td(days=date.today().weekday())
-            # 4주치 생성 (이번 주 + 다음 3주)
-            for w in range(4):
-                ws = base + _td(weeks=w)
+            goal = load_goal(conn)
+            base = date.today() - timedelta(days=date.today().weekday())
+
+            # 목표 race_date 또는 plan_weeks 기반으로 기간 결정
+            if goal and goal.get("race_date"):
+                try:
+                    end_date = date.fromisoformat(goal["race_date"]) + timedelta(days=7)
+                except ValueError:
+                    end_date = base + timedelta(weeks=12)
+            elif goal and goal.get("plan_weeks"):
+                end_date = base + timedelta(weeks=int(goal["plan_weeks"]))
+            else:
+                end_date = base + timedelta(weeks=4)
+            # 최소 1주 보장
+            end_date = max(end_date, base + timedelta(weeks=1))
+            total_weeks = max(1, (end_date - base).days // 7)
+
+            ws = base
+            while ws < end_date:
                 plan = generate_weekly_plan(conn, config=config, week_start=ws)
                 save_weekly_plan(conn, plan)
+                ws += timedelta(weeks=1)
             conn.commit()
         finally:
             conn.close()
     except Exception:
         log.warning("훈련 플랜 생성 실패", exc_info=True)
 
-    return redirect("/training?msg=4주 훈련 계획 생성 완료")
+    return redirect(f"/training?msg={total_weeks}주 훈련 계획 생성 완료")
 
 
 # ── UI 헬퍼 ──────────────────────────────────────────────────────────

@@ -7,6 +7,8 @@
 - 변수명/함수명: snake_case 영어
 - 클래스명: PascalCase 영어
 - 상수: UPPER_SNAKE_CASE
+- 한국어 주석 허용, 코드와 변수명은 영어
+- 커밋 메시지: conventional commits (feat: fix: docs: refactor: test:)
 
 ## 파일 규칙
 - 파일당 300줄 이하. 초과 시 분리
@@ -21,6 +23,8 @@
 ## 에러 처리
 - API 호출 실패 시 재시도 1회 후 로그 남기고 계속 진행 (전체 sync 중단 금지)
 - 파일 I/O 에러는 명확한 메시지 출력 후 종료
+- AI 응답 파싱 실패 시 항상 graceful fallback (규칙 기반 등)
+- 메트릭 데이터 없을 때 에러 대신 "데이터 수집 중" graceful UI
 
 ## 테스트
 - tests/ 폴더에 test_모듈명.py 형식

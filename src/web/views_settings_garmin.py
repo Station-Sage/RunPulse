@@ -12,7 +12,7 @@ from pathlib import Path
 from flask import Blueprint, redirect, render_template, request
 
 from src.sync.garmin import _tokenstore_path
-from src.utils.config import load_config, update_service_config
+from src.utils.config import _auto_user_id, load_config, update_service_config
 
 settings_garmin_bp = Blueprint("settings_garmin", __name__)
 
@@ -121,7 +121,12 @@ def garmin_connect_post():
     if not email:
         return redirect("/connect/garmin?error=" + urllib.parse.quote("이메일을 입력하세요."))
 
-    updates: dict = {"email": email, "tokenstore": tokenstore_str}
+    cf_uid = _auto_user_id(None) or "default"
+    safe_uid = cf_uid.replace("/", "_").replace("\\", "_")
+    updates: dict = {
+        "email": email,
+        "tokenstore": f"~/.garth/{safe_uid}",
+    }
     if password:
         updates["password"] = password
     update_service_config("garmin", updates)
