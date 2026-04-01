@@ -14,6 +14,7 @@ from flask import Blueprint, redirect, request
 
 from src.web.helpers import (
     db_path, fmt_pace, html_page, no_data_card, fmt_duration,
+    get_current_user_id,
 )
 from src.web.views_ai_coach_cards import (
     render_briefing_card,
@@ -181,7 +182,7 @@ def ai_coach_page():
             _coach_ai = {}
             try:
                 from src.utils.config import load_config as _lc
-                _cfg = _lc()
+                _cfg = _lc(user_id=get_current_user_id())
                 from src.ai.ai_message import get_tab_ai
                 _coach_ai = get_tab_ai("dashboard", conn, _cfg) or {}
             except Exception:
@@ -205,7 +206,6 @@ def ai_coach_page():
                 + render_risk_summary(conn)
                 + '</div></div>'
                 + render_briefing_card(briefing_text)
-                + render_chips(chips)
                 + render_chat_section(chat_history, chips=chips)
                 + '</div>'
             )
@@ -251,7 +251,7 @@ def ai_coach_chat_async():
 
         conn = sqlite3.connect(str(dbp))
         try:
-            config = load_config()
+            config = load_config(user_id=get_current_user_id())
             conn.execute(
                 "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
                 (user_msg, chip_id),
@@ -309,7 +309,7 @@ def ai_coach_chat():
 
         conn = sqlite3.connect(str(dbp))
         try:
-            config = load_config()
+            config = load_config(user_id=get_current_user_id())
             conn.execute(
                 "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
                 (user_msg, chip_id),

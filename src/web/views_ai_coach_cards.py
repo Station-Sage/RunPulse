@@ -235,12 +235,11 @@ def render_chat_section(chat_history: list[dict] | None = None,
                 # 추천 질문 플로팅 칩
                 if followups:
                     fu_btns = "".join(
-                        f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
-                        f'<input type="hidden" name="message" value="{_html.escape(q)}"/>'
-                        f'<button type="submit" style="background:rgba(0,212,255,0.08);'
+                        f'<button type="button" onclick="sendMsgChat(\'{_html.escape(q).replace(chr(39), "&#39;")}\')" '
+                        f'style="background:rgba(0,212,255,0.08);'
                         f'border:1px solid rgba(0,212,255,0.25);border-radius:16px;padding:6px 14px;'
                         f'color:var(--cyan);font-size:0.78rem;cursor:pointer;white-space:nowrap;">'
-                        f'{_html.escape(q)}</button></form>'
+                        f'{_html.escape(q)}</button>'
                         for q in followups[:3]
                     )
                     followup_chips_html = (
@@ -275,20 +274,18 @@ def render_chat_section(chat_history: list[dict] | None = None,
             label = _html.escape(c.get("label", ""))
             cid = _html.escape(c.get("id", ""))
             quick_items.append(
-                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
-                f'<input type="hidden" name="chip_id" value="{cid}"/>'
-                f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
+                f'<button type="button" onclick="sendChipChat(\'{cid}\',\'{label.replace(chr(39), "&#39;")}\')" '
+                f'style="background:rgba(255,255,255,0.1);border:none;'
                 f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
-                f'white-space:nowrap;cursor:pointer;">{label}</button></form>'
+                f'white-space:nowrap;cursor:pointer;">{label}</button>'
             )
     if not quick_items:
         for q in ["오늘 훈련 강도는?", "회복 상태 분석", "이번 주 훈련 리뷰"]:
             quick_items.append(
-                f'<form method="POST" action="/ai-coach/chat#chatCard" style="margin:0;display:inline;">'
-                f'<input type="hidden" name="message" value="{q}"/>'
-                f'<button type="submit" style="background:rgba(255,255,255,0.1);border:none;'
+                f'<button type="button" onclick="sendMsgChat(\'{q}\')" '
+                f'style="background:rgba(255,255,255,0.1);border:none;'
                 f'color:rgba(255,255,255,0.8);padding:8px 16px;border-radius:16px;font-size:12px;'
-                f'white-space:nowrap;cursor:pointer;">{q}</button></form>'
+                f'white-space:nowrap;cursor:pointer;">{q}</button>'
             )
     quick_btns = "".join(quick_items)
 
@@ -444,6 +441,58 @@ def render_chat_section(chat_history: list[dict] | None = None,
         '    btn.disabled=false;'
         '  });'
         '  return false;'
+        '}'
+        'function sendChipChat(chipId,label){'
+        '  var fd=new FormData();fd.append("chip_id",chipId);fd.append("message",label);'
+        '  _doAsyncChat(fd,label);'
+        '}'
+        'function sendMsgChat(msg){'
+        '  var fd=new FormData();fd.append("message",msg);'
+        '  _doAsyncChat(fd,msg);'
+        '}'
+        'function _doAsyncChat(fd,displayMsg){'
+        '  var box=document.getElementById("chatBox");'
+        '  var btn=document.getElementById("chatSendBtn");'
+        '  box.innerHTML+='
+        '    \'<div style="display:flex;gap:10px;margin-bottom:12px;flex-direction:row-reverse">'
+        '    <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:50%;'
+        '    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🏃</div>'
+        '    <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);'
+        '    border-radius:16px;padding:10px 14px;max-width:80%">'
+        '    <div style="font-size:13px;line-height:1.6">\'+displayMsg.replace(/</g,"&lt;")+\'</div>'
+        '    </div></div>\';'
+        '  box.innerHTML+='
+        '    \'<div id="aiLoading" style="display:flex;gap:10px;margin-bottom:12px">'
+        '    <div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '    border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🤖</div>'
+        '    <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+        '    border-radius:16px;padding:10px 14px">'
+        '    <div style="font-size:13px;color:var(--cyan);">생성 중'
+        '    <span style="animation:dotPulse 1.5s infinite">...</span></div>'
+        '    </div></div>\';'
+        '  box.scrollTop=box.scrollHeight;btn.disabled=true;'
+        '  document.getElementById("chatInput").value="";'
+        '  fetch("/ai-coach/chat-async",{method:"POST",body:fd})'
+        '  .then(function(r){return r.json();})'
+        '  .then(function(d){'
+        '    var el=document.getElementById("aiLoading");if(el)el.remove();'
+        '    box.innerHTML+='
+        '      \'<div style="display:flex;gap:10px;margin-bottom:12px">'
+        '      <div style="width:36px;height:36px;background:linear-gradient(135deg,#00d4ff,#00ff88);'
+        '      border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">🤖</div>'
+        '      <div style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);'
+        '      border-radius:16px;padding:10px 14px;max-width:80%">'
+        '      <div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,0.9)">\'+d.response+\'</div>'
+        '      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px">\''
+        '        +new Date().toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})'
+        '        +\' <span style="color:var(--cyan);">\'+d.provider+\'</span></div>'
+        '      </div></div>\';'
+        '    box.scrollTop=box.scrollHeight;btn.disabled=false;'
+        '  }).catch(function(){'
+        '    var el=document.getElementById("aiLoading");if(el)el.remove();'
+        '    box.innerHTML+=\'<div style="color:var(--red);font-size:12px;margin:8px 0;">응답 생성 실패</div>\';'
+        '    btn.disabled=false;'
+        '  });'
         '}'
         # 전체화면 토글
         'function toggleChatFullscreen(){'

@@ -111,6 +111,35 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
             "pct": round(done / total * 100) if total else 0,
         }
 
+        # 오늘 활동
+    today_acts = conn.execute(
+        "SELECT distance_km, duration_sec, avg_pace_sec_km, avg_hr, name "
+        "FROM v_canonical_activities "
+        "WHERE activity_type='running' AND DATE(start_time)=? "
+        "ORDER BY start_time DESC",
+        (today,),
+    ).fetchall()
+    if today_acts:
+        ctx["today_activities"] = [
+            {"km": a[0], "sec": a[1], "pace": a[2], "hr": a[3], "name": a[4]}
+            for a in today_acts
+        ]
+
+    # 최근 3일 활동 요약
+    start_3d = (date.fromisoformat(today) - timedelta(days=2)).isoformat()
+    recent = conn.execute(
+        "SELECT DATE(start_time), distance_km, duration_sec, avg_pace_sec_km, avg_hr "
+        "FROM v_canonical_activities "
+        "WHERE activity_type='running' AND DATE(start_time) BETWEEN ? AND ? "
+        "ORDER BY start_time DESC",
+        (start_3d, today),
+    ).fetchall()
+    if recent:
+        ctx["recent_3d"] = [
+            {"d": str(r[0]), "km": r[1], "sec": r[2], "pace": r[3], "hr": r[4]}
+            for r in recent
+        ]
+        
     return ctx
 
 

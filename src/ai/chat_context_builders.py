@@ -65,7 +65,7 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """오늘 활동 상세 — 메트릭, HR존, 분류, 컨디션."""
     act = conn.execute(
         "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
-        "elevation_gain_m, calories FROM v_canonical_activities "
+        "elevation_gain, calories FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time DESC LIMIT 1", (today,),
     ).fetchone()
@@ -227,7 +227,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
 
     acts = conn.execute(
         "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
-        "elevation_gain_m, calories, name FROM v_canonical_activities "
+        "elevation_gain, calories, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time", (target,),
     ).fetchall()

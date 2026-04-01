@@ -130,6 +130,30 @@ TOOL_DECLARATIONS = [
         "description": "러너의 전체 프로필 요약. 주간 평균, VO2Max, 목표, 수준.",
         "parameters": {"type": "object", "properties": {}},
     },
+    {
+        "name": "get_activity_detail",
+        "description": "특정 활동의 km별 스플릿(페이스·심박·케이던스·파워), 랩 데이터, HR zone 비율을 조회한다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "activity_id": {"type": "integer", "description": "활동 ID"}
+            },
+            "required": ["activity_id"]
+        }
+    },
+    {
+        "name": "get_weather",
+        "description": "특정 날짜(또는 기간)의 날씨 데이터를 조회한다. 기온, 체감온도, 습도, 풍속, 강수량, 운량.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "date": {"type": "string", "description": "조회 날짜 YYYY-MM-DD"},
+                "to_date": {"type": "string", "description": "종료 날짜 YYYY-MM-DD (선택, 기간 조회 시)"}
+            },
+            "required": ["date"]
+        }
+    },
+
 ]
 
 
@@ -149,6 +173,8 @@ def execute_tool(conn: sqlite3.Connection, name: str, args: dict) -> str:
         "compare_periods": _exec_compare_periods,
         "get_training_plan": _exec_get_training_plan,
         "get_runner_profile": _exec_get_runner_profile,
+        "get_activity_detail": _exec_get_activity_detail,
+        "get_weather": _exec_get_weather,
     }
     fn = _dispatch.get(name)
     if not fn:
@@ -165,7 +191,7 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
     d = args.get("date", date.today().isoformat())
     acts = conn.execute(
         "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
-        "elevation_gain_m, calories, name FROM v_canonical_activities "
+        "elevation_gain, calories, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? ORDER BY start_time",
         (d,),
     ).fetchall()
@@ -308,6 +334,145 @@ def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
             {"date": str(r[0])[:10], "km": r[1], "duration": r[2],
              "pace": seconds_to_pace(int(r[3])) if r[3] else None,
              "hr": r[4], "name": r[5]}
+            for r in rows
+        ],
+    }
+
+def _exec_get_activity_detail(conn: sqlite3.Connection, args: dict) -> dict:
+    import json as _json
+    import math as _math
+    aid = args["activity_id"]
+
+    # laps
+    laps_raw = conn.execute(
+        "SELECT lap_index, distance_km, duration_sec, avg_pace_sec_km, avg_hr "
+        "FROM activity_laps WHERE activity_id=? ORDER BY lap_index", (aid,)
+    ).fetchall()
+    laps = [
+        {"lap": r[0], "km": round(r[1], 2), "sec": r[2],
+         "pace": f"{int(r[3]//60)}:{int(r[3]%60):02d}" if r[3] else None,
+         "hr": r[4]}
+        for r in laps_raw
+    ]
+
+    # streams
+    streams: dict = {}
+    for row in conn.execute(
+        "SELECT stream_type, data_json FROM activity_streams WHERE activity_id=?",
+        (aid,),
+    ).fetchall():
+        try:
+            streams[row[0]] = _json.loads(row[1])
+        except Exception:
+            pass
+    
+    # latlng 두 형식 지원: 분리형(latlng_lat/lon) vs 통합형(latlng [[lat,lon],...])
+    lat_s = streams.get("latlng_lat", [])
+    lon_s = streams.get("latlng_lon", [])
+    if not lat_s and "latlng" in streams:
+        latlng = streams["latlng"]
+        lat_s = [p[0] for p in latlng]
+        lon_s = [p[1] for p in latlng]    
+    hr = streams.get("heartrate", [])
+    cad = streams.get("cadence", [])
+    pwr = streams.get("watts", [])
+
+    def _haversine(lat1, lon1, lat2, lon2):
+        R = 6371000
+        p = _math.pi / 180
+        a = (_math.sin((lat2 - lat1) * p / 2) ** 2
+             + _math.cos(lat1 * p) * _math.cos(lat2 * p)
+             * _math.sin((lon2 - lon1) * p / 2) ** 2)
+        return 2 * R * _math.asin(_math.sqrt(a))
+
+    # km splits (latlng 기반 거리 + time 스트림 기반 시간)
+    km_splits: list[dict] = []
+    if lat_s and lon_s and len(lat_s) == len(lon_s):
+        time_s = streams.get("time", [])
+        # time 스트림 없으면 총시간으로 균등 근사
+        act_row = conn.execute(
+            "SELECT duration_sec FROM activity_summaries WHERE id=?", (aid,)
+        ).fetchone()
+        total_sec = act_row[0] if act_row else len(lat_s)
+        total_pts = len(lat_s)
+
+        dist_acc = 0.0
+        seg_start = 0
+        for i in range(1, len(lat_s)):
+            dist_acc += _haversine(lat_s[i-1], lon_s[i-1], lat_s[i], lon_s[i])
+            if dist_acc >= 1000:
+                n = i - seg_start + 1
+                if time_s and len(time_s) > i:
+                    seg_sec = time_s[i] - (time_s[seg_start] if seg_start < len(time_s) else 0)
+                else:
+                    seg_sec = total_sec / total_pts * n
+                pace_s = seg_sec / (dist_acc / 1000) if dist_acc > 0 else 0
+
+                split: dict = {
+                    "km": len(km_splits) + 1,
+                    "pace": f"{int(pace_s//60)}:{int(pace_s%60):02d}" if pace_s else None,
+                }
+                if hr and len(hr) > i:
+                    seg_hr = hr[seg_start:i+1]
+                    if seg_hr:
+                        split["avg_hr"] = round(sum(seg_hr) / len(seg_hr))
+                if cad and len(cad) > i:
+                    seg_cad = cad[seg_start:i+1]
+                    if seg_cad:
+                        split["cadence"] = round(sum(seg_cad) / len(seg_cad))
+                if pwr and len(pwr) > i:
+                    seg_pwr = pwr[seg_start:i+1]
+                    if seg_pwr:
+                        split["power"] = round(sum(seg_pwr) / len(seg_pwr))
+                km_splits.append(split)
+                dist_acc -= 1000
+                seg_start = i + 1
+
+    # HR zones
+    hr_zones: dict = {}
+    if hr:
+        total = len(hr)
+        for name, lo, hi in [
+            ("z1_<120", 0, 120), ("z2_120-140", 120, 140),
+            ("z3_140-160", 140, 160), ("z4_160-180", 160, 180),
+            ("z5_180+", 180, 999),
+        ]:
+            cnt = sum(1 for h in hr if lo <= h < hi)
+            hr_zones[name] = f"{round(cnt / total * 100)}%"
+
+    avg_power = round(sum(pwr) / len(pwr)) if pwr else None
+
+    return {
+        "activity_id": aid,
+        "laps": laps,
+        "km_splits": km_splits,
+        "hr_zones": hr_zones,
+        "avg_power": avg_power,
+    }
+
+
+
+def _exec_get_weather(conn: sqlite3.Connection, args: dict) -> dict:
+    date_str = args["date"]
+    to_date = args.get("to_date", date_str)
+
+    rows = conn.execute(
+        "SELECT date, hour, temp_c, feels_like_c, humidity_pct, "
+        "wind_speed_ms, precipitation_mm, cloudcover_pct "
+        "FROM weather_data WHERE date BETWEEN ? AND ? ORDER BY date, hour",
+        (date_str, to_date),
+    ).fetchall()
+
+    if not rows:
+        return {"date": date_str, "data": [], "message": "날씨 데이터 없음"}
+
+    return {
+        "date": date_str,
+        "to_date": to_date,
+        "data": [
+            {"date": r[0], "hour": r[1], "temp_c": r[2], "feels_like_c": r[3],
+             "humidity_pct": r[4], "wind_speed_ms": r[5],
+             "precipitation_mm": r[6], "cloudcover_pct": r[7]}
             for r in rows
         ],
     }

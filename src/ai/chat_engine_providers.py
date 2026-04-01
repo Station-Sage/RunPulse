@@ -84,8 +84,19 @@ def call_gemini_with_tools(conn: sqlite3.Connection, prompt: str,
     try:
         import httpx
 
+        system_text = (
+            "당신은 러닝 AI 코치입니다. 사용자의 질문에 정확히 답하기 위해 도구를 적극 활용하세요.\n"
+            "- km별 페이스, 스플릿, 심박존, 케이던스, 파워 등 상세 데이터 → get_activity_detail 호출\n"
+            "- 특정 날짜 날씨 → get_weather 호출\n"
+            "- 웰니스(수면, HRV, 스트레스) → get_wellness 호출\n"
+            "- 피트니스 추이(CTL, ATL, TSB) → get_fitness_trend 호출\n"
+            "- 레이스 기록 → get_race_history 호출\n"
+            "- 기간별 비교 → get_period_comparison 호출\n"
+            "컨텍스트에 요약 데이터만 있고 상세가 필요하면, 반드시 도구를 호출하세요."
+        )
         contents = [{"parts": [{"text": prompt}]}]
         body: dict = {
+            "systemInstruction": {"parts": [{"text": system_text}]},
             "contents": contents,
             "tools": [{"function_declarations": TOOL_DECLARATIONS}],
             "generationConfig": {"maxOutputTokens": 2048, "temperature": temp},

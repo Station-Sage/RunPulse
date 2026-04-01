@@ -553,14 +553,21 @@ def create_app() -> Flask:
                         "warn": guard.message_ko,
                     })
                 else:
-                    # 부분 성공 여부는 stdout에서 힌트 확인
+                    # stderr에서 에러 메시지 추출
+                    error_msg = None
+                    if stderr_tail:
+                        error_msg = stderr_tail.strip().split('\n')[-1][:200]
+                    
                     partial = "일부" in proc.stdout or "⚠️" in proc.stdout
+                    has_error = bool(error_msg)
                     if not _already_finished(proc.stdout):
-                        mark_finished(src, count=count, partial=partial)
+                        mark_finished(src, count=count, partial=partial or has_error,
+                                    error=error_msg if has_error else None)
                     results.append({
-                        "source": src, "ok": True, "skipped": False,
-                        "count": count, "error": None,
-                        "partial": partial,
+                        "source": src, "ok": count > 0 or not has_error,
+                        "skipped": False, "count": count,
+                        "error": error_msg if has_error else None,
+                        "partial": partial or has_error,
                         "warn": guard.message_ko,
                     })
             except subprocess.TimeoutExpired:

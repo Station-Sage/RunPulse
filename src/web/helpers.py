@@ -350,8 +350,17 @@ async function doSync(mode) {
     var failed = data.results.filter(function(r) { return !r.ok && !r.skipped; });
     var succeeded = data.results.filter(function(r) { return r.ok; });
     if (failed.length === 0) {
-      syncToast('\u2705 동기화 완료 \u2014 활동 ' + data.total_count + '개 업데이트', 'success');
-      setTimeout(function() { location.reload(); }, 2200);
+        if (data.total_count === 0) {
+            var errors = data.results.filter(function(r) { return r.error; });
+            if (errors.length > 0) {
+                syncToast('⚠️ ' + errors.map(function(r) { return r.source + ': ' + r.error; }).join(' | '), 'warn');
+            } else {
+                syncToast('✅ 동기화 완료 — 새 활동 없음', 'success');
+            }
+        } else {
+            syncToast('✅ 동기화 완료 — 활동 ' + data.total_count + '개 업데이트', 'success');
+        }
+        setTimeout(function() { location.reload(); }, 2200);
     } else if (succeeded.length > 0) {
       syncToast('\u26a0\ufe0f 일부 동기화 완료 \u2014 활동 ' + data.total_count + '개', 'warn');
       syncModal(data);

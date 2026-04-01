@@ -223,8 +223,9 @@ def sync_card_html(
 <div id="sync-modal"
   style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
          z-index:1000; align-items:center; justify-content:center;">
-  <div style="background:var(--card-bg); border-radius:10px; padding:1.5rem 1.8rem;
-              max-width:440px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+  <div style="background:#1e2a4a; border-radius:10px; padding:1.5rem 1.8rem;
+              max-width:440px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.25);
+              border:1px solid rgba(255,255,255,0.15);">
     <div id="sync-modal-body"></div>
     <button onclick="document.getElementById('sync-modal').style.display='none'"
       style="margin-top:1rem; padding:0.4rem 1.2rem; cursor:pointer;

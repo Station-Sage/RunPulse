@@ -17,7 +17,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
 
     acts = conn.execute(
         "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
-        "avg_hr, max_hr, elevation_gain_m, name FROM v_canonical_activities "
+        "avg_hr, max_hr, elevation_gain, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
         (start_30d,),
     ).fetchall()
