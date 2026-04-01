@@ -532,7 +532,7 @@ def create_app() -> Flask:
             mark_running(src, mode)
             try:
                 proc = subprocess.run(
-                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src)],
+                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id],
                     capture_output=True, text=True, timeout=300,
                     cwd=str(_project_root()),
                 )

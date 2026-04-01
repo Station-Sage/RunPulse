@@ -94,3 +94,18 @@ VPS에서 Docker 컨테이너로 실행되는 환경.
 컨테이너용 Dockerfile 또는 별도 requirements 필요 여부 검토.
 
 파일: `requirements.txt`, `Dockerfile`(신규 가능)
+
+---
+
+## BUG-IMPORT-USER
+**import_history.py user_id 미전달**
+
+`src/web/app.py`의 import 관련 subprocess 호출에서 `--user` 인자를 전달하지 않음.
+`src/import_history.py`도 `--user` 인자를 받지 않고, `get_db_path()`를 인자 없이 호출하여 항상 default DB에 접근.
+
+수정 필요:
+1. `src/import_history.py`에 `--user` argparse 인자 추가
+2. `get_db_path(args.user)` 전달
+3. `src/web/app.py` import subprocess 호출에 `--user` 추가
+
+파일: `src/import_history.py`, `src/web/app.py`

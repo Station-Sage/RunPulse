@@ -8,11 +8,11 @@ import json
 import sqlite3
 from datetime import date, timedelta
 
-from flask import Blueprint, render_template
+from flask import Blueprint
 
 from src.db_setup import get_needs_resync
 
-from .helpers import db_path
+from .helpers import db_path, html_page
 from .views_dashboard_cards import (
     _CIRS_COLORS,
     _UTRS_COLORS,
@@ -207,7 +207,8 @@ def dashboard():
     if not db.exists():
         no_db = ("<div class='card'><p>DB가 초기화되지 않았습니다.</p>"
                  "<p><code>python src/db_setup.py</code> 후 동기화하세요.</p></div>")
-        return render_template("dashboard.html", body=no_db, active_tab="dashboard")
+        
+        return html_page("대시보드", no_db, active_tab="dashboard")
 
     # AI 분석 업데이트 요청 시 AI 캐시 무효화
     from flask import request as _req
@@ -222,8 +223,8 @@ def dashboard():
         from .views_perf import invalidate_cache
         invalidate_cache(str(db))
 
-    body = cached_page("dashboard", str(db), lambda: _build_dashboard(db))
-    return render_template("dashboard.html", body=body, active_tab="dashboard")
+    body = cached_page("dashboard", str(db), lambda: _build_dashboard(db)) 
+    return html_page("대시보드", body, active_tab="dashboard")
 
 
 def _build_dashboard(db) -> str:

@@ -34,9 +34,12 @@ _CSS = """
         font-family: 'Noto Sans KR', 'Inter', -apple-system, sans-serif;
         margin: 0; padding: 0; line-height: 1.5;
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        background-color: #1a1a2e; 
         background-attachment: fixed;
         color: var(--fg); min-height: 100vh;
+        overflow-x: hidden;
     }
+    html { overflow-x: hidden; }
     a { color: var(--cyan); text-decoration: none; }
     a:visited { color: var(--cyan); opacity: 0.85; }
     a:hover { text-decoration: underline; opacity: 1; }
@@ -143,10 +146,12 @@ _CSS = """
         -webkit-backdrop-filter: blur(12px);
         border-top: 1px solid rgba(255,255,255,0.1);
         padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
     }
     .nav-items {
-        max-width: 720px; margin: 0 auto; display: flex;
-        justify-content: space-around;
+    margin: 0 auto; display: flex;
+    justify-content: space-around; padding: 0 4px;
+    width: 100%;
     }
     .nav-item-tab {
         display: flex; flex-direction: column; align-items: center;
@@ -559,6 +564,8 @@ async function bgSyncResume() {
 
 // 페이지 로드 시 활성 BG 작업 복구 (새로고침 후에도 진행 표시)
 (function() {
+  // sync 탭에서만 BG 작업 복구 폴링
+  if (!document.querySelector('.nav-item-tab.active[href="/sync"]')) return;
   var sources = ['garmin', 'strava', 'intervals', 'runalyze'];
   var active = [];
   Promise.all(sources.map(function(src) {

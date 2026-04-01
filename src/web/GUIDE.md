@@ -117,6 +117,7 @@
 - DB: `db_path()` → `sqlite3.connect()` with try/finally
 - config 로드: 웹 라우트에서 `load_config(user_id=get_current_user_id())` 필수. user_id 없이 호출 금지 (글로벌 config 로드됨)
 - 하단 네비게이션 7+1탭 유지: 홈 | 활동 | 레포트 | 훈련 | AI코치 | 동기화 | 설정 (+개발자)
+- subprocess로 sync.py/import_history.py 호출 시 반드시 --user user_id 전달
 
 ## 주의사항 — 300줄 초과 파일
 | 파일 | 줄수 | 비고 |

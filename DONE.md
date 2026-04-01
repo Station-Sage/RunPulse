@@ -3,6 +3,12 @@
 ## 2026-04-01
 - BUG-GARMIN-AUTH: Garmin 토큰 경로 수정 + 비밀번호 서버 저장 제거 + load_config user_id 전달
 - BUG-TEST-PWA: test_pwa.py DB 경로 monkeypatch 수정 (helpers.db_path + views_dashboard.db_path)
+- fix: subprocess --user 인자 추가 (sync.py에 user_id 전달)
+- fix: 하단탭 UI (overflow-x hidden, nav-items width 100%, body background-color)
+- fix: _SYNC_JS IIFE sync 탭에서만 bg-sync 폴링
+- fix: views_dashboard → html_page() 통합 (render_template 제거)
+- fix: views_sync.py load_config(user_id) 전달
+- infra: PYTHONUNBUFFERED=1 docker-compose 추가
 
 ## 2026-03-31
 - DESIGN-TRAINING: CRS 게이트 제거 + auto_gen 제거 (일일 추천카드에만 CRS 유지)

@@ -49,6 +49,7 @@
 2. API 실패 시 재시도 1회 후 로그 남기고 계속 (전체 sync 중단 금지)
 3. 비밀 정보(토큰)는 `config.json`에서 로드 (`load_config()` 호출 시 자동 복호화됨). 절대 하드코딩/커밋 금지
 4. 중복 활동 매칭: timestamp ±5분 AND distance ±3% (`src/utils/dedup.py`)
+5. src/sync.py는 --user 인자로 user_id를 받아 load_config(user_id=) 및 get_db_path(user_id) 사용
 
 ## 의존성
 - `src/utils/api.py` — HTTP 래퍼

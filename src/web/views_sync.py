@@ -27,7 +27,8 @@ sync_bp = Blueprint("sync_tab", __name__)
 @sync_bp.route("/sync")
 def sync_page():
     """동기화 탭 메인 페이지."""
-    config = load_config()
+    from .helpers import get_current_user_id
+    config = load_config(user_id=get_current_user_id())
 
     garmin_status = check_garmin_connection(config)
     strava_status = check_strava_connection(config)
@@ -56,7 +57,7 @@ def sync_page():
     sync_overview = render_sync_overview(statuses, sync)
 
     # 동기화 실행 카드 (기본/기간 2탭)
-    connected = {k for k, v in statuses.items() if v}
+    connected = {k for k, v in statuses.items() if v.get("ok")}
     sync_card = sync_card_html(last_sync=sync, connected=connected)
 
     # 서비스 연결 카드
