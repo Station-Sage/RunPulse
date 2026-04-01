@@ -458,7 +458,9 @@ def create_app() -> Flask:
             # 콤마 구분 다중 소스 지원
             parts = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
             sources_to_sync = parts if parts else list(checkers.keys())
-        config = load_config()
+        from .helpers import get_current_user_id
+        user_id = get_current_user_id()
+        config = load_config(user_id=user_id)
 
         # 기간 동기화: days 공통 계산
         hist_days: int | None = None
@@ -607,8 +609,8 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)."}), 400
 
         from .helpers import get_current_user_id
-        config = load_config()
         user_id = get_current_user_id()
+        config = load_config(user_id=user_id)
         job_id = start_job(source, from_date, to_date, config, user_id=user_id)
         return jsonify({"ok": True, "job_id": job_id, "source": source})
 
@@ -634,8 +636,9 @@ def create_app() -> Flask:
         from .bg_sync import resume_job
         from .helpers import get_current_user_id
         source = request.form.get("source", "").strip()
-        config = load_config()
-        ok = resume_job(source, config, user_id=get_current_user_id())
+        user_id = get_current_user_id()
+        config = load_config(user_id=user_id)
+        ok = resume_job(source, config, user_id=user_id)
         return jsonify({"ok": ok})
 
     @app.get("/bg-sync/status")
@@ -867,8 +870,8 @@ def create_app() -> Flask:
 
     @app.get("/sync-status")
     def sync_status():
-        config = load_config()
-
+        from .helpers import get_current_user_id
+        config = load_config(user_id=get_current_user_id())
         garmin_st = check_garmin_connection(config)
         strava_st = check_strava_connection(config)
         intervals_st = check_intervals_connection(config)

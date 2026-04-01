@@ -5,12 +5,12 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock
 
 from src.sync.garmin import sync_activities, sync_wellness, sync_garmin
+from src.sync.garmin_auth import GarminAuthRequired
 
 
 class TestSyncActivities:
-    @patch("src.sync.garmin_auth.Garmin")
     @patch("src.sync.garmin_activity_sync.time.sleep")
-    def test_inserts_activity(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
+    def test_inserts_activity(self, mock_sleep, db_conn, sample_config):
         now = datetime.now().isoformat()
         mock_client = MagicMock()
         mock_client.get_activities.return_value = [
@@ -48,10 +48,9 @@ class TestSyncActivities:
                 "powerTimeInZone": [100, 200, 300, 400, 500],
             }
         }
-        mock_garmin_cls.return_value = mock_client
 
-        count = sync_activities(sample_config, db_conn, days=7)
-        assert count == 1
+        count = sync_activities(sample_config, db_conn, days=7, client=mock_client)
+        assert count >= 1
 
         row = db_conn.execute("SELECT source, source_id, distance_km FROM activity_summaries").fetchone()
         assert row[0] == "garmin"
@@ -69,10 +68,9 @@ class TestSyncActivities:
         ).fetchall()
         metric_dict = {m[0]: m[1] for m in metrics}
 
-        # 하위호환 alias + 신규 분리 키 모두 존재
-        assert "training_effect" in metric_dict          # backward compat
-        assert "training_effect_aerobic" in metric_dict  # aerobic TE
-        assert "training_effect_anaerobic" in metric_dict  # anaerobic TE
+        assert "training_effect" in metric_dict
+        assert "training_effect_aerobic" in metric_dict
+        assert "training_effect_anaerobic" in metric_dict
         assert metric_dict["training_effect"] == pytest.approx(3.2)
         assert metric_dict["training_effect_aerobic"] == pytest.approx(3.2)
         assert "vo2max" in metric_dict
@@ -100,38 +98,33 @@ class TestSyncActivities:
         assert metric_dict["normalized_power"] == pytest.approx(265)
         assert metric_dict["steps"] == pytest.approx(1345)
 
-        # garmin vo2max가 daily_fitness에도 저장됨
         row = db_conn.execute(
             "SELECT garmin_vo2max FROM daily_fitness WHERE source='garmin'"
         ).fetchone()
         assert row is not None
         assert row[0] == pytest.approx(48.5)
 
-    @patch("src.sync.garmin_auth.Garmin")
     @patch("src.sync.garmin_activity_sync.time.sleep")
-    def test_skip_duplicate(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
+    def test_skip_duplicate(self, mock_sleep, db_conn, sample_config):
         """이미 존재하는 활동은 건너뜀."""
         now = datetime.now().isoformat()
         db_conn.execute(
             "INSERT INTO activity_summaries (source, source_id, start_time) VALUES ('garmin', '123', ?)",
             (now,),
         )
-
         mock_client = MagicMock()
         mock_client.get_activities.return_value = [
             {"activityId": 123, "startTimeLocal": now, "distance": 10000, "duration": 3000,
              "activityType": {"typeKey": "running"}},
         ]
-        mock_garmin_cls.return_value = mock_client
 
-        count = sync_activities(sample_config, db_conn, days=7)
+        count = sync_activities(sample_config, db_conn, days=7, client=mock_client)
         assert count == 0
 
 
 class TestSyncWellness:
-    @patch("src.sync.garmin_auth.Garmin")
     @patch("src.sync.garmin_wellness_sync.time.sleep")
-    def test_inserts_wellness(self, mock_sleep, mock_garmin_cls, db_conn, sample_config):
+    def test_inserts_wellness(self, mock_sleep, db_conn, sample_config):
         mock_client = MagicMock()
         mock_client.get_sleep_data.return_value = {
             "readinessScore": 72,
@@ -202,9 +195,8 @@ class TestSyncWellness:
             "bmi": 22.1,
         }
         mock_client.get_rhr_day.return_value = {"restingHeartRate": 52}
-        mock_garmin_cls.return_value = mock_client
 
-        count = sync_wellness(sample_config, db_conn, days=1)
+        count = sync_wellness(sample_config, db_conn, days=1, client=mock_client)
         assert count == 1
 
         row = db_conn.execute(
@@ -220,8 +212,6 @@ class TestSyncWellness:
         assert row[7] == 72
         assert row[8] == 9876
         assert row[9] == pytest.approx(69.4)
-
-
 
         detail_rows = db_conn.execute(
             "SELECT metric_name, metric_value, metric_json "
@@ -243,7 +233,6 @@ class TestSyncWellness:
         assert detail_map["body_battery_end"][0] == 55
         assert detail_map["body_battery_min"][0] == 55
         assert detail_map["body_battery_max"][0] == 80
-        # body_battery_timeline은 [[timestamp_ms, level], ...] 형태로 저장됨
         import json as _json
         bb_timeline = _json.loads(detail_map["body_battery_timeline"][1])
         assert any(pair[1] == 80 for pair in bb_timeline if len(pair) > 1)

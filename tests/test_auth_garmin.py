@@ -101,52 +101,39 @@ def test_check_garmin_tokenstore_missing_email_missing():
 
 # ── _login 토큰 우선 흐름 (단위 mock) ──────────────────────────────
 def test_login_uses_tokenstore_if_exists(tmp_path):
-    """tokenstore가 있으면 이메일/패스워드 없이도 Garmin() 호출."""
+    """tokenstore에 oauth2_token.json이 있으면 토큰으로 로그인."""
     tokenstore = tmp_path / "garth"
     tokenstore.mkdir()
+    # 더미 토큰 파일 생성
+    (tokenstore / "oauth2_token.json").write_text('{"access_token":"x"}')
     config = {"garmin": {"tokenstore": str(tokenstore)}}
 
     mock_client = MagicMock()
     mock_client.login.return_value = (None, None)
 
-    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client) as MockGarmin:
+    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client):
         from src.sync.garmin import _login
         result = _login(config)
-        # 이메일/패스워드 없이 Garmin() 생성됨
-        MockGarmin.assert_called_once_with()
         mock_client.login.assert_called_once_with(tokenstore=str(tokenstore))
         assert result is mock_client
 
-
-def test_login_falls_back_to_email_pw_if_tokenstore_fails(tmp_path):
-    """tokenstore 복구 실패 시 이메일/패스워드로 fallback."""
+def test_login_raises_auth_required_if_token_fails(tmp_path):
+    """토큰 복구 실패 시 GarminAuthRequired 발생 (비밀번호 fallback 없음)."""
     tokenstore = tmp_path / "garth"
     tokenstore.mkdir()
+    (tokenstore / "oauth2_token.json").write_text('{"access_token":"x"}')
     config = {
         "garmin": {
             "tokenstore": str(tokenstore),
             "email": "a@b.com",
-            "password": "pw",
         }
     }
 
-    mock_client_token = MagicMock()
-    mock_client_token.login.side_effect = Exception("토큰 만료")
+    mock_client = MagicMock()
+    mock_client.login.side_effect = Exception("토큰 만료")
 
-    mock_client_pw = MagicMock()
-    mock_client_pw.login.return_value = ("access", "refresh")
-    mock_client_pw.garth = MagicMock()
-
-    call_count = [0]
-
-    def mock_garmin(*args, **kwargs):
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return mock_client_token
-        return mock_client_pw
-
-    with patch("src.sync.garmin_auth.Garmin", side_effect=mock_garmin):
+    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client):
         from src.sync.garmin import _login
-        result = _login(config)
-        assert result is mock_client_pw
-        assert call_count[0] == 2
+        from src.sync.garmin_auth import GarminAuthRequired
+        with pytest.raises(GarminAuthRequired):
+            _login(config)

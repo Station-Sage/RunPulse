@@ -56,9 +56,10 @@
 
 ## 규칙
 1. AI 응답 파싱 실패 시 항상 graceful fallback (규칙 기반)
-2. 프롬프트 템플릿은 `prompt_templates/*.txt`에 분리 관리 (인라인 금지)
+2. 프롬프트 템플릿은 `src/ai/prompt_templates/*.txt`에 분리 관리 (코드 내 하드코딩 금지)
 3. 백엔드 교체: `genspark_driver.py`와 같은 인터페이스 (`send_message(prompt, context) -> str`)
 4. 캐시: TTL 300초, 키는 `hash(prompt + context_fingerprint)`
+5. 숫자 계산은 Python에서 수행. AI는 해석/서술/계획 생성에만 활용
 
 ## 주의사항 — 300줄 초과
 없음 (REFAC-3 완료: chat_engine.py 207줄 + chat_engine_providers.py 248줄 + chat_engine_rules.py 259줄)

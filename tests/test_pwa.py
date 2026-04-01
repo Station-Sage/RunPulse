@@ -19,7 +19,9 @@ def app_client(tmp_path, monkeypatch):
     migrate_db(conn)
     conn.close()
 
-    monkeypatch.setattr("src.web.app._db_path", lambda: db_file)
+    _mock_db = lambda user_id=None: db_file
+    monkeypatch.setattr("src.web.helpers.db_path", _mock_db)
+    monkeypatch.setattr("src.web.views_dashboard.db_path", _mock_db)
 
     flask_app = create_app()
     flask_app.config["TESTING"] = True

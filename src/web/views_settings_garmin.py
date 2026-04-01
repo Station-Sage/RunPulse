@@ -73,7 +73,8 @@ def garmin_connect_view() -> str:
       <tr>
         <td style='border:none; padding:0.3rem 0.5rem;'><label>패스워드:</label></td>
         <td style='border:none; padding:0.3rem 0.5rem;'>
-          <input type='password' name='password' placeholder='패스워드 입력' style='width:260px;'>
+          <input type='password' name='password' placeholder='로그인 시에만 사용 (저장 안 됨)' style='width:260px;'>
+          <br><small class='muted'>패스워드는 로그인에만 사용되며 서버에 저장되지 않습니다.</small>
         </td>
       </tr>
       <tr>
@@ -105,17 +106,16 @@ def garmin_connect_view() -> str:
 
 @settings_garmin_bp.post("/connect/garmin")
 def garmin_connect_post():
-    """Garmin 이메일/패스워드 저장 (+ 선택적으로 연결 테스트, MFA 2단계 지원)."""
+    """Garmin 로그인 → 토큰 저장. 비밀번호는 config에 저장하지 않음."""
     try:
         import garth as _garth
         from garth import sso as _sso
     except ImportError:
-        _garth = None  # type: ignore[assignment]
-        _sso = None  # type: ignore[assignment]
+        _garth = None
+        _sso = None
 
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "").strip()
-    tokenstore_str = request.form.get("tokenstore", "~/.garth").strip()
     action = request.form.get("action", "save")
 
     if not email:
@@ -123,31 +123,33 @@ def garmin_connect_post():
 
     cf_uid = _auto_user_id(None) or "default"
     safe_uid = cf_uid.replace("/", "_").replace("\\", "_")
+
+    # 비밀번호는 저장하지 않음 — 이메일과 토큰 경로만 저장
     updates: dict = {
         "email": email,
-        "tokenstore": f"~/.garth/{safe_uid}",
     }
-    if password:
-        updates["password"] = password
     update_service_config("garmin", updates)
 
     if action == "save":
-        return redirect("/connect/garmin?msg=" + urllib.parse.quote("저장 완료. 다음 sync 시 자동 로그인됩니다."))
+        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
+            "저장 완료. '저장 + 연결 테스트'로 로그인하세요."
+        ))
 
+    # 연결 테스트: 비밀번호 필수
     if _garth is None or _sso is None:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
             "garth 라이브러리가 설치되지 않았습니다. pip install garth"))
 
-    config = load_config()
-    _pw = password or config.get("garmin", {}).get("password", "")
-    if not _pw:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("패스워드가 없습니다. 입력 후 다시 시도하세요."))
+    if not password:
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "로그인하려면 패스워드를 입력하세요. (패스워드는 서버에 저장되지 않습니다)"
+        ))
 
-    tokenstore = Path(tokenstore_str).expanduser()
+    tokenstore = Path(f"~/.garth/{safe_uid}").expanduser()
 
     try:
         g = _garth.Client()
-        result = _sso.login(email, _pw, client=g, return_on_mfa=True)
+        result = _sso.login(email, password, client=g, return_on_mfa=True)
 
         if isinstance(result, tuple) and result[0] == "needs_mfa":
             key = str(uuid.uuid4())
@@ -158,7 +160,7 @@ def garmin_connect_post():
                 "email": email,
             }
             mfa_url = "/connect/garmin/mfa?" + urllib.parse.urlencode({
-                "key": key, "tokenstore": tokenstore_str,
+                "key": key, "tokenstore": str(tokenstore),
             })
             return redirect(mfa_url)
 
@@ -167,14 +169,17 @@ def garmin_connect_post():
         g.oauth2_token = oauth2
         tokenstore.mkdir(parents=True, exist_ok=True)
         g.dump(str(tokenstore))
+        # tokenstore 경로를 config에 저장
+        update_service_config("garmin", {"tokenstore": str(tokenstore)})
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
-            f"연결 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
+            "연결 성공! 토큰이 저장되었습니다. 패스워드는 서버에 보관되지 않습니다."
         ))
 
     except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("garth 미설치. pip install garth"))
+        return redirect("/connect/garmin?error=" + urllib.parse.quote("garth 미설치."))
     except Exception as e:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(f"로그인 실패: {str(e)[:200]}"))
+
 
 
 @settings_garmin_bp.get("/connect/garmin/mfa")
@@ -250,6 +255,8 @@ def garmin_mfa_submit():
         tokenstore = Path(pending["tokenstore"]).expanduser()
         tokenstore.mkdir(parents=True, exist_ok=True)
         g.dump(str(tokenstore))
+        # tokenstore 경로를 config에 저장
+        update_service_config("garmin", {"tokenstore": str(tokenstore)})
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
             f"MFA 인증 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
         ))
@@ -259,6 +266,6 @@ def garmin_mfa_submit():
 
 @settings_garmin_bp.post("/connect/garmin/disconnect")
 def garmin_disconnect():
-    """Garmin 연동 해제."""
-    update_service_config("garmin", {"email": "", "password": ""})
+    """Garmin 연동 해제 — 이메일 + 토큰 경로 제거."""
+    update_service_config("garmin", {"email": "", "tokenstore": ""})
     return redirect("/settings?msg=Garmin+연동+해제+완료")

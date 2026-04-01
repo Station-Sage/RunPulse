@@ -1,87 +1,21 @@
 # BACKLOG.md — RunPulse 작업 추적
 
-## 현재 상태
-| 항목 | 값 |
-|------|---|
-| 현재 버전 | v0.3 진행 중 |
-| 개발 브랜치 | `fix/metrics-everythings` |
-| DB | SCHEMA_VERSION 3.1 (내부 migration v4) |
-| 테스트 | 1139개 통과 (2026-03-30) |
-| 기술 스택 | Python 3.11+ / Flask 3.x / SQLite3 / ECharts / Leaflet+OSM / Gemini |
+## 상태
+v0.3 | 1139 tests | DB 3.1 | fix/metrics-everythings
 
-> **운영 규칙**
-> - NOW: 최대 3개. 모두 완료 시 NEXT에서 승격.
-> - NEXT: 최대 5개. 우선순위 높은 순.
-> - BUGS: 사용자 테스트 발견 즉시 기록. 수정 후 DONE으로.
-> - DONE: 최근 10건만 유지. 초과 시 오래된 것부터 삭제 (git log에 이력 보존).
-> - Claude Code는 BACKLOG.md에 없는 작업을 임의 진행하지 않는다.
-> - 긴급 hotfix 1건은 직접 지시 가능. 완료 후 반드시 DONE에 기록.
+## NOW
 
----
+## NEXT
+- INFRA-1: 앱 자체 Google OAuth 로그인
+- INFRA-2: REST API /api/v1 (INFRA-3 완료됨, 진행 가능)
+- REFAC-4: helpers.py 915줄 분리
+- REFAC-5: db_setup.py 968줄 분리
 
-## NOW (진행 중)
-
-- [x] **INFRA-SEC**: 자격증명 암호화 저장 ✓
-- [x] **INFRA-3**: CF 헤더 기반 사용자 식별 + secret_key env 적용 ✓
-
----
-
-## NEXT (대기)
-
-- [ ] **INFRA-1**: 앱 자체 Google OAuth 로그인
-  - scope: Authlib + Google OIDC, Flask 세션, login_required 데코레이터
-  - files: `src/web/auth.py`(신규), `src/web/app.py`(수정)
-  - done: /login 동작 + 테스트 5개+
-  - 비고: Cloudflare Zero Trust 이전 또는 앱 자체 인증 필요 시 구현
-
-- [ ] **INFRA-2**: REST API (`/api/v1/*`)
-  - scope: 활동/메트릭/웰니스 JSON 엔드포인트
-  - files: `src/web/api_v1.py`(신규)
-  - done: 주요 엔드포인트 테스트 + Swagger/OpenAPI 문서
-  - 의존: INFRA-3 완료 후 진행
-
-- [ ] **REFAC-4**: `helpers.py` (915줄) 분리 검토
-  - scope: SVG 헬퍼, ECharts 헬퍼, nav 헬퍼 등 역할별 분리
-  - done: 각 파일 300줄 이하 + 기존 테스트 전체 통과
-
-- [ ] **REFAC-5**: `db_setup.py` (968줄) 분리 검토
-  - scope: 마이그레이션 로직과 스키마 정의 분리
-  - done: 각 파일 300줄 이하 + DB 초기화/마이그레이션 정상 동작
-
----
-
-## BUGS (사용자 테스트 발견)
-
-- [ ] **pwa manifest 수정 : 과거 IP 기반으로 작성. 도메인 기반 변경 필요. 또는 없다면 작성 필요
-- [ ] **(훈련탭) : plan 없을 때 헤더 버튼 전체 숨김.→ 아직 해결되지 않음
-- [x] **(훈련탭) : 재생성은 기존 계획과 무관하게 무조건 4주가 생김. → race_date/plan_weeks 기반으로 전체 기간 재생성 (2026-03-31)
-- [x] **(훈련탭) 수립된 훈련계획을 삭제하는 방법이 없음 : 목표 드롭다운에 "훈련 계획 삭제" 버튼 추가 (2026-03-30)
-- [ ] **(훈련탭) 오늘의 훈련 자동 매핑 edge case : 오늘 러닝 활동이 2개일 경우, 어떤 것을 매핑할 것인가? 훈련 계획에 러닝 타입과 실제 활동의 러닝 타입 비교?(평상시에 훈련 계획이 이지런이더라도 사용자가 템포런 하나만 뛰었다면 이것과 매핑시켜야 하니, 이 방식으로 하면 평소의 UX가 나빠짐) 또는 사용자에게 알림줘서 선택하게 해야 함.
-- [x] **(훈련탭) 목표관리의 기존 취소 계획 삭제 불가능 : 취소 목표 행에 삭제 버튼 추가 (2026-03-30)
-- [x] **(훈련탭) 목표관리의 기존 계획 삭제 오류 : 훈련 일정이 삭제되나, 당일 훈련은 삭제되지 않고 유지 됨 → session 플래그로 삭제 직후 auto-gen 1회 억제 (2026-03-31)
-- [ ] **(훈련탭) 기존 훈련 가져오기, 미리보기 눌러야 적용 됨 : 의도한 기능?
-- [x] **(훈련탭) 훈련 계획 카드 (주간) UI 오류 : 가로 스크롤 발생 시 스와이프 무시 로직 추가 (2026-03-30)
-- [x] **(훈련탭) 훈련 계획 카드 (월간) UI 오류 : touchend에서 rpOpenWorkout 제거, onclick 처리로 통일 (2026-03-30)
-- [x] **(훈련탭) 훈련 계획 생성 오류 : n_q ceil 수정(build/peak 2개 Q-day), Q-day 다음날 recovery 타입 추가 (2026-03-30)
-- [x] **(훈련탭) 훈련 계획 생성 오류 : Q훈련 나오지 않음 → CRS 소프트게이트(BB/HRV) Z1_Z2 플로어 적용 (2026-03-31)
-- [x] **(훈련탭) 훈련 목표 수립 : 수립된 일정이 훈련일정표 탭 (주간, 월간,전체 등)에 표시되지 않음. 1주일만 나옴 → wizard에서 race_date/plan_weeks까지 전체 주 생성 (2026-03-31)
-- [ ] **(훈련탭) 목표 일자 - 훈련기간 미스매치 : 훈련 계획 생성 wizard에서 레이스 목표 일자를 선택할 경우, 자동으로 해당일에 맞춰 훈련 프로그램 기간이 셋팅 되어야 함. 훈련 캘린더에는 레이스 목표 일자를 레이스 데이로 표시도 해야 함. 
-- [ ] **(훈련탭) 목표 - 훈련계획 미스매치 : 목표에 레이스(목표)일자, 목표 시간(페이스) 생성되어 있을 경우, 훈련 계획 생성 버튼 클릭시 자동으로 데이터를 가져와서 프리필 해야함. 목표 설정 과정에서 제일 마지막 단계에서 훈련 프로그램을 추천받으시겠습니까 창을 띄어서 yes일 경우 훈련 계획 wizard 띄워야 함. 데이터는 프리셋으로 채워야 하고.
-- [x] **(훈련탭) 훈련 계획 삭제 오류 : 삭제하더라도 1주일은 남음 → session 플래그로 삭제 직후 auto-gen 1회 억제 (2026-03-31)
-- [x] **(훈련탭) 훈련 계획 추천 페이스 오류 : Daniels VDOT 존 관계 기반으로 재작성. easy/long 명확히 구분 (2026-03-30)
-- [ ] **requirements.txt : vps에서는 컨테이너 환경에서 실행 됨.
-- [X] **config.json : 유저별 분리 필요.
----
-
-## DONE (최근 완료, 최대 10건)
-
-- [x] **DESIGN-TRAINING**: 플랜생성 CRS 게이트 제거 + auto_gen 제거 (일일 추천카드에만 CRS 유지) (2026-03-31)
-- [x] **BUG-TRAINING-2**: 훈련탭 버그 4종 — Q훈련 미생성/1주일만표시/재생성4주/삭제auto-gen (2026-03-31)
-- [x] **BUG-TRAINING**: 훈련탭 버그 7종 수정 — 페이스/Q-day/recovery/재생성/계획삭제/월간토스트/스와이프 (2026-03-30)
-- [x] **INFRA-3**: CF 헤더 사용자 식별 미들웨어 + FLASK_SECRET_KEY env (2026-03-30)
-- [x] **INFRA-SEC**: Fernet 암호화 레이어 + garth 경로 격리 + 마이그레이션 스크립트 (2026-03-30)
-- [x] **REFAC-1**: `views_report_sections.py` 707줄 분리 (2026-03-29)
-- [x] **REFAC-2**: `src/training/planner.py` 713줄 분리 (2026-03-29)
-- [x] **REFAC-3**: `src/ai/chat_engine.py` 696줄 분리 (2026-03-29)
-- [x] **REFAC-D1**: `views_dashboard_cards.py` 880줄 → 5분리 (2026-03-29)
-- [x] **REFAC-D2**: `views_settings.py` 1508줄 → 6분리 (2026-03-28)
+## BUGS
+- BUG-PWA: manifest IP→도메인 변경 → [상세](BUGS_DETAIL.md#bug-pwa)
+- BUG-TRAIN-HDR: plan 없을 때 헤더버튼 숨김 → [상세](BUGS_DETAIL.md#bug-train-hdr)
+- BUG-TRAIN-MAP: 오늘 러닝 2개 자동매핑 (판단 필요) → [상세](BUGS_DETAIL.md#bug-train-map)
+- BUG-TRAIN-IMP: 가져오기 미리보기 필수 (판단 필요) → [상세](BUGS_DETAIL.md#bug-train-imp)
+- BUG-TRAIN-DATE: 목표일자→훈련기간 자동셋팅 → [상세](BUGS_DETAIL.md#bug-train-date)
+- BUG-TRAIN-GOAL: 목표→wizard 프리필 → [상세](BUGS_DETAIL.md#bug-train-goal)
+- BUG-REQ: requirements.txt 컨테이너 대응 → [상세](BUGS_DETAIL.md#bug-req)

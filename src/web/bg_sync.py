@@ -89,7 +89,8 @@ class BgSyncThread(threading.Thread):
         if job.service == "garmin":
             garmin_client = self._garmin_login()
             if garmin_client is None:
-                update_job(self.job_id, status="stopped", last_error="Garmin 로그인 실패")
+                update_job(self.job_id, status="auth_required",
+                        last_error="Garmin 토큰 만료 또는 없음. /connect/garmin에서 재로그인하세요.")
                 return
 
         total_synced = job.synced_count
@@ -253,9 +254,22 @@ class BgSyncThread(threading.Thread):
             from src.sync.garmin import _login
             return _login(self.config)
         except Exception as exc:
-            print(f"[bg_sync] Garmin 로그인 실패: {exc}")
-            return None
+            from src.sync.garmin_auth import GarminAuthRequired
+            try:
+                from garminconnect import GarminConnectTooManyRequestsError
+            except ImportError:
+                GarminConnectTooManyRequestsError = type(None)
 
+            if isinstance(exc, GarminConnectTooManyRequestsError):
+                print(f"[bg_sync] Garmin 요청 제한(429). 잠시 후 재시도합니다: {exc}")
+                update_job(self.job_id, last_error="Garmin 요청 제한(429). 잠시 후 재시도됩니다.")
+            elif isinstance(exc, GarminAuthRequired):
+                print(f"[bg_sync] Garmin 재인증 필요: {exc}")
+                update_job(self.job_id, last_error="Garmin 재인증 필요. /connect/garmin에서 로그인하세요.")
+            else:
+                print(f"[bg_sync] Garmin 로그인 실패: {exc}")
+            return None
+            
     def _interruptible_sleep(self, seconds: float) -> None:
         """중단 가능한 sleep."""
         end = time.monotonic() + seconds

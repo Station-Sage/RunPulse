@@ -93,6 +93,16 @@ def load_config(path: Path | None = None, *, user_id: str | None = None) -> dict
     from src.utils.credential_store import decrypt_config_credentials
     return decrypt_config_credentials(base)
 
+    # 마이그레이션: garmin password 잔존 시 메모리에서만 제거 (경고 출력)
+    garmin_sec = result.get("garmin", {})
+    if "password" in garmin_sec:
+        del garmin_sec["password"]
+        log.warning("[config] garmin.password가 config에 남아있습니다. "
+                    "보안을 위해 config.json에서 수동 제거하거나 "
+                    "/connect/garmin에서 재저장하세요.")
+
+    return result
+
 
 def save_config(
     config: dict, path: Path | None = None, *, user_id: str | None = None

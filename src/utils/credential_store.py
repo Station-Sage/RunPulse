@@ -29,7 +29,7 @@ _ENC_PREFIX = "enc:"
 
 # 암호화할 (서비스, 키) 쌍
 _SENSITIVE_FIELDS: set[tuple[str, str]] = {
-    ("garmin", "password"),
+    # ("garmin", "password"),  ← 제거: 비밀번호 더 이상 저장 안 함
     ("strava", "client_secret"),
     ("strava", "refresh_token"),
     ("strava", "access_token"),

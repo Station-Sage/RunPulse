@@ -10,73 +10,74 @@ try:
         from garminconnect import GarminConnectTooManyRequestsError
     except ImportError:
         GarminConnectTooManyRequestsError = Exception
-except ImportError:  # 선택 의존성 — 테스트/Termux 환경 대응
+except ImportError:
     Garmin = None
     GarminConnectTooManyRequestsError = Exception
 
 
-def _tokenstore_path(config: dict) -> Path:
-    """garth 토큰 저장소 경로 반환.
+class GarminAuthRequired(Exception):
+    """Garmin 토큰이 없거나 만료되어 웹 UI에서 재인증이 필요할 때."""
+    pass
 
-    우선순위:
-    1. config["garmin"]["tokenstore"] 명시 경로
-    2. config["garmin"]["user_id"] 기반 사용자별 경로 (~/.garth/{user_id}/)
-    3. 기본값: ~/.garth/
-    """
+
+def _tokenstore_path(config: dict) -> Path:
     garmin_cfg = config.get("garmin", {})
+    # 1) 명시적 경로
     explicit = garmin_cfg.get("tokenstore", "")
     if explicit:
         return Path(explicit).expanduser()
-
+    # 2) user_id(이메일)로 서브폴더
     user_id = garmin_cfg.get("user_id", "")
-    if user_id and user_id != "default":
-        # 이메일 등 특수문자가 포함된 user_id를 경로 안전하게 변환
-        safe_uid = user_id.replace("/", "_").replace("\\", "_")
+    if user_id:
+        safe_uid = user_id.replace("/", "_")
         return Path(f"~/.garth/{safe_uid}").expanduser()
-
+    # 3) 기본
     return Path("~/.garth").expanduser()
 
 
 def _login(config: dict) -> "Garmin":
-    """Garmin Connect 인증.
+    """Garmin Connect 인증 — 토큰 기반만 허용.
 
-    순서:
-    1. garth 토큰 저장소에서 세션 복구 시도
-    2. 실패 시 이메일/패스워드 로그인 + 토큰 저장
+    토큰이 없거나 복구 실패 시 GarminAuthRequired 발생.
+    비밀번호 로그인은 웹 UI(/connect/garmin)에서만 처리.
     """
     if Garmin is None:
         raise ImportError("garminconnect 패키지가 필요합니다: pip install garminconnect")
 
-    garmin_cfg = config.get("garmin", {})
     tokenstore = _tokenstore_path(config)
 
-    if tokenstore.exists():
-        try:
-            client = Garmin()
-            client.login(tokenstore=str(tokenstore))
-            return client
-        except Exception as e:
-            print(f"[garmin] 토큰 복구 실패, 이메일/패스워드 로그인 시도: {e}")
-
-    email = garmin_cfg.get("email", "")
-    password = garmin_cfg.get("password", "")
-    if not email or not password:
-        raise ValueError(
-            "Garmin 이메일/패스워드 미설정. config.json에 garmin.email/password를 입력하거나 "
-            "웹 UI(/settings)에서 연동하세요."
+    if not tokenstore.exists():
+        raise GarminAuthRequired(
+            "Garmin 토큰 없음. /connect/garmin에서 로그인하세요."
         )
 
-    client = Garmin(email, password)
-    client.login()
+    oauth2_file = tokenstore / "oauth2_token.json"
+    if not oauth2_file.exists():
+        raise GarminAuthRequired(
+            "Garmin 토큰 파일 없음. /connect/garmin에서 로그인하세요."
+        )
 
     try:
-        tokenstore.mkdir(parents=True, exist_ok=True)
-        client.garth.dump(str(tokenstore))
-        print(f"[garmin] 토큰 저장 완료: {tokenstore}")
+        client = Garmin()
+        client.login(tokenstore=str(tokenstore))
+        return client
     except Exception as e:
-        print(f"[garmin] 토큰 저장 실패 (동기화는 계속됨): {e}")
+        raise GarminAuthRequired(
+            f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."
+        ) from e
 
-    return client
+    try:
+        client = Garmin()
+        client.login(tokenstore=str(tokenstore))
+        return client
+    except GarminConnectTooManyRequestsError as e:
+        raise GarminConnectTooManyRequestsError(
+            f"Garmin API 요청 제한. 잠시 후 다시 시도하세요. ({e})"
+        ) from e
+    except Exception as e:
+        raise GarminAuthRequired(
+            f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."
+        ) from e
 
 
 def check_garmin_connection(config: dict) -> dict:
@@ -86,10 +87,6 @@ def check_garmin_connection(config: dict) -> dict:
         {"ok": bool, "status": str, "detail": str}
     """
     tokenstore = _tokenstore_path(config)
-    garmin_cfg = config.get("garmin", {})
-    has_email = bool(garmin_cfg.get("email"))
-    has_password = bool(garmin_cfg.get("password"))
-
     oauth2_file = tokenstore / "oauth2_token.json"
 
     if oauth2_file.exists():
@@ -104,7 +101,7 @@ def check_garmin_connection(config: dict) -> dict:
                 return {
                     "ok": False,
                     "status": "토큰 만료 (재로그인 필요)",
-                    "detail": "refresh_token 만료. /connect/garmin 에서 재로그인하세요.",
+                    "detail": "refresh_token 만료. /connect/garmin에서 재로그인하세요.",
                 }
             if token.expired:
                 return {
@@ -128,17 +125,11 @@ def check_garmin_connection(config: dict) -> dict:
         return {
             "ok": False,
             "status": "토큰 없음",
-            "detail": f"{tokenstore} 디렉터리만 존재. /connect/garmin 에서 로그인하세요.",
+            "detail": f"{tokenstore} 디렉터리만 존재. /connect/garmin에서 로그인하세요.",
         }
 
-    if has_email and has_password:
-        return {
-            "ok": False,
-            "status": "미로그인",
-            "detail": "이메일/패스워드 설정됨. /connect/garmin 에서 '저장 + 연결 테스트'로 로그인하세요.",
-        }
     return {
         "ok": False,
         "status": "미설정",
-        "detail": "이메일/패스워드 미설정 및 토큰 없음. /connect/garmin 에서 연동하세요.",
+        "detail": "토큰 없음. /connect/garmin에서 연동하세요.",
     }

@@ -115,6 +115,8 @@
 - 색상: cyan `#00d4ff` (긍정), green `#00ff88` (안전), red `#ff4444` (위험), orange `#ffaa00` (주의)
 - 차트: ECharts CDN (라인/바), SVG (게이지/레이더)
 - DB: `db_path()` → `sqlite3.connect()` with try/finally
+- config 로드: 웹 라우트에서 `load_config(user_id=get_current_user_id())` 필수. user_id 없이 호출 금지 (글로벌 config 로드됨)
+- 하단 네비게이션 7+1탭 유지: 홈 | 활동 | 레포트 | 훈련 | AI코치 | 동기화 | 설정 (+개발자)
 
 ## 주의사항 — 300줄 초과 파일
 | 파일 | 줄수 | 비고 |

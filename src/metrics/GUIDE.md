@@ -63,6 +63,7 @@
 4. DI: 90분+ 세션 8주 3회 미달 → `None`.
 5. FEARP: GPS 고도 없으면 `grade_factor=1.0`, 날씨 API 실패 시 `temp=15, humidity=50`.
 6. CIRS 가중치: `ACWR×0.4 + Monotony×0.2 + Spike×0.3 + Asym×0.1`.
+7. 숫자 계산은 반드시 Python에서 수행. LLM은 해석/서술/계획 생성에만 활용
 
 ## 새 메트릭 추가 체크리스트
 1. `src/metrics/<name>.py` 생성 — `calc_<name>()` 함수 export

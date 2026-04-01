@@ -12,7 +12,7 @@
 | 파일 | 역할 |
 |------|------|
 | `garmin.py` | 통합 sync 오케스트레이터 |
-| `garmin_auth.py` | 인증. garth 토큰 경로를 `config["garmin"]["user_id"]` 기반으로 격리 (`~/.garth/{user_id}/`) |
+| `garmin_auth.py` | 인증. 토큰 전용 (비밀번호 fallback 없음). 경로: config `tokenstore` → `user_id` 서브폴더 → `~/.garth/` 순. 429는 `GarminConnectTooManyRequestsError`, 토큰 없음은 `GarminAuthRequired` 발생 |
 | `garmin_activity_sync.py` | 활동 + splits + backfill |
 | `garmin_api_extensions.py` | streams/gear/exercise_sets |
 | `garmin_athlete_extensions.py` | profile/stats/personal_records |
@@ -45,7 +45,7 @@
 | `runalyze.py` | VDOT/Marathon Shape/Race Prediction |
 
 ## 규칙
-1. 모든 외부 API 호출은 `src/utils/api.py` 래퍼 사용
+1. 모든 외부 API 호출은 `src/utils/api.py` 래퍼 사용 (직접 httpx/requests 금지)
 2. API 실패 시 재시도 1회 후 로그 남기고 계속 (전체 sync 중단 금지)
 3. 비밀 정보(토큰)는 `config.json`에서 로드 (`load_config()` 호출 시 자동 복호화됨). 절대 하드코딩/커밋 금지
 4. 중복 활동 매칭: timestamp ±5분 AND distance ±3% (`src/utils/dedup.py`)

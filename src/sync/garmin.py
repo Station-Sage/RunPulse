@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 
 from src.sync.garmin_auth import (  # noqa: F401 (re-export)
     Garmin,
+    GarminAuthRequired,
     GarminConnectTooManyRequestsError,
     _login,
     _tokenstore_path,
@@ -176,8 +177,11 @@ def sync_garmin(config: dict, conn: sqlite3.Connection, days: int) -> dict:
 
     Returns:
         {"activity_summaries": 저장 수, "wellness": 저장 수, "daily_ext": 처리 일수}
+
+    Raises:
+        GarminAuthRequired: 토큰이 없거나 만료된 경우.
     """
-    client = _login(config)
+    client = _login(config)  # 토큰 실패 시 GarminAuthRequired 발생
     act_count = sync_activities(config, conn, days, client=client)
     well_count = sync_wellness(config, conn, days, client=client)
     daily_count = sync_daily_extensions(config, conn, days, client=client)

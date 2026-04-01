@@ -105,8 +105,10 @@ def test_encrypted_values_have_prefix(with_key):
     from src.utils.credential_store import encrypt_config_credentials, _ENC_PREFIX
     encrypted = encrypt_config_credentials(_sample_config())
 
-    assert encrypted["garmin"]["password"].startswith(_ENC_PREFIX)
-    assert encrypted["strava"]["refresh_token"].startswith(_ENC_PREFIX)
+    # garmin.password는 더 이상 암호화 대상이 아님
+    assert encrypted["strava"]["client_secret"].startswith(_ENC_PREFIX)
+    assert encrypted["intervals"]["api_key"].startswith(_ENC_PREFIX)
+    assert encrypted["runalyze"]["token"].startswith(_ENC_PREFIX)
 
 
 def test_no_double_encryption(with_key):
