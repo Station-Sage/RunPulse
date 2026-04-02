@@ -12,7 +12,7 @@
 | 파일 | 역할 |
 |------|------|
 | `garmin.py` | 통합 sync 오케스트레이터 |
-| `garmin_auth.py` | 인증. 토큰 전용 (비밀번호 fallback 없음). 경로: config `tokenstore` → `user_id` 서브폴더 → `~/.garth/` 순. 429는 `GarminConnectTooManyRequestsError`, 토큰 없음은 `GarminAuthRequired` 발생 |
+| `garmin_auth.py` | 인증. 토큰 전용 (비밀번호 fallback 없음). 경로: config `tokenstore` → `user_id` 서브폴더 → `~/.garth/` 순. 429는 `GarminConnectTooManyRequestsError`, 토큰 없음은 `GarminAuthRequired` 발생. **주의: VPS/클라우드 IP에서 가민 SSO 및 connectapi가 차단될 수 있음 → 사용자 브라우저 로그인 + ticket 교환 방식 권장 (`views_settings_garmin.py`)** |
 | `garmin_activity_sync.py` | 활동 + splits + backfill |
 | `garmin_api_extensions.py` | streams/gear/exercise_sets |
 | `garmin_athlete_extensions.py` | profile/stats/personal_records |

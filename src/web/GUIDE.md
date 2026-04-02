@@ -92,7 +92,7 @@
 | `views_wellness.py` / `views_wellness_enhanced.py` | 웰니스 |
 | `views_settings.py` | 설정 메인 |
 | `views_settings_hub.py` | 설정 허브 |
-| `views_settings_garmin.py` | Garmin 설정 |
+| `views_settings_garmin.py` | Garmin 연동 — 브라우저 로그인(ticket→OAuth 교환), 토큰 파일 업로드, 토큰 JSON/URL 붙여넣기, 서버 직접 로그인(fallback), MFA flow |
 | `views_settings_integrations.py` | 연동 설정 |
 | `views_settings_metrics.py` | 메트릭 설정 |
 | `views_settings_render.py` | 설정 렌더러 |
