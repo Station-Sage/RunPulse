@@ -1,5 +1,20 @@
 # DONE.md — 완료 이력 (최근 10건)
 
+## 2026-04-02
+- **AI-TOOL-UNIFIED**: 전 provider 공통 tool calling 함수 `call_with_tools` 구현
+  - Gemini/Groq/OpenAI: OpenAI 호환 엔드포인트 통합
+  - Claude: Messages API 별도 분기
+  - 기존 `call_gemini_with_tools` 제거
+- **AI-TOOL-NEW**: `get_activity_detail` (km별 스플릿/HR zone/파워), `get_weather` tool 추가
+  - latlng 기반 거리 계산 (두 형식 지원: 분리형/통합형)
+  - time 스트림 있으면 정확한 페이스, 없으면 균등 근사
+- **AI-CONTEXT-ID**: 컨텍스트에 activity_id 포함 (30일/14일/레이스/유사/lookup 활동)
+  - chat_context_rich.py, chat_context_builders.py, chat_context_format.py 수정
+- **AI-TOOL-PROMPT**: tool calling 시스템 프롬프트 강화 (구간별/스플릿 요청 시 반드시 tool 호출)
+- **AI-PROVIDER-DISPLAY**: 실제 응답한 provider 표시 (chat() → 튜플 반환)
+- **FIX-ELEVATION**: elevation_gain_m → elevation_gain 수정 (4파일)
+- **FIX-GEMINI-ENDPOINT**: Gemini OpenAI 호환 엔드포인트로 전환
+
 ## 2026-04-01
 - BUG-GARMIN-AUTH: Garmin 토큰 경로 수정 + 비밀번호 서버 저장 제거 + load_config user_id 전달
 - BUG-TEST-PWA: test_pwa.py DB 경로 monkeypatch 수정 (helpers.db_path + views_dashboard.db_path)

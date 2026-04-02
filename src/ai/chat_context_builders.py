@@ -236,6 +236,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
     for act in acts:
         aid = act[0]
         detail = {
+            "id": aid,
             "distance_km": act[1], "duration_sec": act[2],
             "pace": seconds_to_pace(act[3]) if act[3] else None,
             "avg_hr": act[4], "max_hr": act[5],

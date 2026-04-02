@@ -10,6 +10,9 @@ v0.3 | 1139 tests | DB 3.1 | fix/metrics-everythings
 - INFRA-2: REST API /api/v1 (INFRA-3 완료됨, 진행 가능)
 - REFAC-4: helpers.py 915줄 분리
 - REFAC-5: db_setup.py 968줄 분리
+- **AI-TIER**: 무료/유료 API tier별 토큰·컨텍스트·tool 라운드 차등화
+- **AI-RULE-SPLIT**: rule based에 km별 스플릿 직접 조회 기능 추가
+- **STRAVA-STREAM-TIME**: Strava 스트림 재동기화 시 time 스트림 확인
 
 ## BUGS
 - BUG-PWA: manifest IP→도메인 변경 → [상세](BUGS_DETAIL.md#bug-pwa)

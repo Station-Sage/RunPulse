@@ -16,15 +16,15 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     start_30d = (date.fromisoformat(today) - timedelta(days=30)).isoformat()
 
     acts = conn.execute(
-        "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "SELECT id, date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
         "avg_hr, max_hr, elevation_gain, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
         (start_30d,),
     ).fetchall()
     ctx["activities_30d"] = [
-        {"date": r[0], "km": r[1], "sec": r[2],
-         "pace": seconds_to_pace(r[3]) if r[3] else None,
-         "avg_hr": r[4], "max_hr": r[5], "elev": r[6], "name": r[7]}
+        {"id": r[0], "date": r[1], "km": r[2], "sec": r[3],
+         "pace": seconds_to_pace(r[4]) if r[4] else None,
+         "avg_hr": r[5], "max_hr": r[6], "elev": r[7], "name": r[8]}
         for r in acts
     ]
 
@@ -68,7 +68,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     ctx["runner_profile"] = _build_runner_profile(conn, today)
 
     race_acts = conn.execute(
-        "SELECT a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
+        "SELECT a.id, a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
         "FROM v_canonical_activities a "
         "LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
         "WHERE a.activity_type='running' AND (c.metric_value='race' OR a.name LIKE '%레이스%' "
@@ -77,9 +77,9 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     ).fetchall()
     if race_acts:
         ctx["race_history"] = [
-            {"date": str(r[0])[:10], "km": r[1], "sec": r[2],
-             "pace": seconds_to_pace(r[3]) if r[3] else None,
-             "hr": r[4], "name": r[5]}
+            {"id": r[0], "date": str(r[1])[:10], "km": r[2], "sec": r[3],
+             "pace": seconds_to_pace(r[4]) if r[4] else None,
+             "hr": r[5], "name": r[6]}
             for r in race_acts
         ]
 
@@ -92,7 +92,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     if today_type and today_type[0]:
         wtype = today_type[0]
         similar = conn.execute(
-            "SELECT date(a.start_time), a.distance_km, a.avg_pace_sec_km, a.avg_hr "
+            "SELECT a.id, date(a.start_time), a.distance_km, a.avg_pace_sec_km, a.avg_hr "
             "FROM v_canonical_activities a "
             "JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
             "WHERE c.metric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
@@ -102,8 +102,8 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
             ctx["similar_activities"] = {
                 "type": wtype,
                 "history": [
-                    {"date": r[0], "km": r[1],
-                     "pace": seconds_to_pace(r[2]) if r[2] else None, "hr": r[3]}
+                    {"id": r[0], "date": r[1], "km": r[2],
+                     "pace": seconds_to_pace(r[3]) if r[3] else None, "hr": r[4]}
                     for r in similar
                 ],
             }

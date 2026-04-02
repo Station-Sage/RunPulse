@@ -256,8 +256,8 @@ def ai_coach_chat_async():
                 "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
                 (user_msg, chip_id),
             )
-            ai_response = chat(conn, user_msg, config=config, chip_id=chip_id)
-            ai_model = config.get("ai", {}).get("provider", "rule")
+            ai_response, actual_provider = chat(conn, user_msg, config=config, chip_id=chip_id)
+            ai_model = actual_provider
             conn.execute(
                 "INSERT INTO chat_messages (role, content, chip_id, ai_model) VALUES ('assistant', ?, ?, ?)",
                 (ai_response, chip_id, ai_model),
@@ -314,8 +314,8 @@ def ai_coach_chat():
                 "INSERT INTO chat_messages (role, content, chip_id) VALUES ('user', ?, ?)",
                 (user_msg, chip_id),
             )
-            ai_response = chat(conn, user_msg, config=config, chip_id=chip_id)
-            ai_model = config.get("ai", {}).get("provider", "rule")
+            ai_response, actual_provider = chat(conn, user_msg, config=config, chip_id=chip_id)
+            ai_model = actual_provider
             conn.execute(
                 "INSERT INTO chat_messages (role, content, chip_id, ai_model) VALUES ('assistant', ?, ?, ?)",
                 (ai_response, chip_id, ai_model),

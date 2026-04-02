@@ -13,15 +13,16 @@ from __future__ import annotations
 import logging
 import sqlite3
 
+from .chat_engine_rules import rule_based_response
+
 from .chat_engine_providers import (
     RateLimitError,  # noqa: F401 (re-export)
     call_claude,
     call_gemini,
-    call_gemini_with_tools,
     call_groq,
     call_openai,
+    call_with_tools,  
 )
-from .chat_engine_rules import rule_based_response
 
 log = logging.getLogger(__name__)
 
@@ -74,14 +75,14 @@ def chat(
     chain = _build_chat_provider_chain(provider, config)
     for prov in chain:
         try:
-            if prov == "gemini" and not chip_id:
-                result = call_gemini_with_tools(conn, prompt, config)
+            if not chip_id:
+                result = call_with_tools(conn, prompt, config, prov)
                 if result:
-                    return result
+                    return result, prov
                 continue
             result = _call_provider(prov, prompt, config)
             if result:
-                return result
+                return result, prov
         except RateLimitError:
             log.warning("%s 429 → 다음 provider로 전환", prov)
             continue
@@ -89,7 +90,7 @@ def chat(
             log.warning("provider '%s' 실패, 다음으로", prov, exc_info=True)
             continue
 
-    return rule_based_response(conn, user_message, chip_id)
+    return rule_based_response(conn, user_message, chip_id), "rule"
 
 
 def _build_chat_provider_chain(selected: str, config: dict | None) -> list[str]:

@@ -5,6 +5,7 @@ chat_engine.py에서 분리. Claude, OpenAI, Gemini, Groq, Genspark 등
 """
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 from typing import Any
@@ -16,6 +17,210 @@ class RateLimitError(Exception):
     """429 Too Many Requests — provider 전환 트리거."""
     pass
 
+
+# ── 공통 Tool Calling ────────────────────────────────────────────────
+
+def _gemini_to_openai_tools(declarations: list[dict]) -> list[dict]:
+    """Gemini function_declarations → OpenAI tools 형식 변환."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": d["name"],
+                "description": d.get("description", ""),
+                "parameters": d.get("parameters", {"type": "object", "properties": {}}),
+            },
+        }
+        for d in declarations
+    ]
+
+
+_TOOL_SYSTEM_TEXT = (
+    "당신은 러닝 AI 코치입니다. 사용자의 질문에 정확히 답하기 위해 도구를 적극 활용하세요.\n\n"
+    "## 반드시 도구를 호출해야 하는 경우\n"
+    "- km별 페이스, 스플릿, 구간별 데이터 → get_activity_detail (activity_id는 정수)\n"
+    "- 심박존 분포, 케이던스, 파워 상세 → get_activity_detail\n"
+    "- 특정 날짜 날씨 → get_weather\n"
+    "- 웰니스(수면, HRV, 스트레스) 기간 데이터 → get_wellness\n"
+    "- 피트니스 추이(CTL, ATL, TSB) → get_fitness_trend\n"
+    "- 레이스 기록 → get_race_history\n"
+    "- 기간별 비교 → get_period_comparison\n\n"
+    "## 중요 규칙\n"
+    "- 컨텍스트에 평균 페이스/심박만 있어도, 사용자가 '구간별', 'km별', '스플릿', '상세' 등을 요청하면 반드시 도구를 호출하세요.\n"
+    "- 도구를 호출하지 않고 '데이터가 없습니다'라고 답하지 마세요.\n"
+    "- activity_id는 컨텍스트에 포함된 정수 ID를 사용하세요.\n"
+    "- 한국어로 답변하세요."
+)
+
+
+def call_with_tools(conn: sqlite3.Connection, prompt: str,
+                    config: dict | None, provider: str) -> str | None:
+    """모든 provider 공통 tool calling 함수."""
+    ai_cfg = (config or {}).get("ai", {})
+
+    PROVIDER_CONFIG = {
+        "gemini": {
+            "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            "key": ai_cfg.get("gemini_api_key", ""),
+            "model": ai_cfg.get("gemini_model", "gemini-2.0-flash"),
+        },
+        "groq": {
+            "url": "https://api.groq.com/openai/v1/chat/completions",
+            "key": ai_cfg.get("groq_api_key", ""),
+            "model": ai_cfg.get("groq_model", "llama-3.3-70b-versatile"),
+        },
+        "openai": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "key": ai_cfg.get("openai_api_key", ""),
+            "model": ai_cfg.get("openai_model", "gpt-4o-mini"),
+        },
+        "claude": {
+            "url": "https://api.anthropic.com/v1/messages",
+            "key": ai_cfg.get("claude_api_key", ""),
+            "model": ai_cfg.get("claude_model", "claude-sonnet-4-20250514"),
+        },
+    }
+
+    pcfg = PROVIDER_CONFIG.get(provider)
+    if not pcfg or not pcfg["key"]:
+        return None
+
+    from .tools import TOOL_DECLARATIONS, execute_tool
+    temp = ai_cfg.get("_temperature", 0.7)
+
+    # Claude는 API 형식이 다름
+    if provider == "claude":
+        return _call_claude_with_tools(
+            conn, prompt, pcfg, TOOL_DECLARATIONS, execute_tool, temp
+        )
+
+    # Gemini / Groq / OpenAI — OpenAI 호환 공통
+    try:
+        import httpx
+
+        tools = _gemini_to_openai_tools(TOOL_DECLARATIONS)
+        messages = [
+            {"role": "system", "content": _TOOL_SYSTEM_TEXT},
+            {"role": "user", "content": prompt},
+        ]
+
+        max_rounds = 3
+        for _ in range(max_rounds):
+            resp = httpx.post(
+                pcfg["url"],
+                headers={
+                    "Authorization": f"Bearer {pcfg['key']}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": pcfg["model"],
+                    "messages": messages,
+                    "tools": tools,
+                    "tool_choice": "auto",
+                    "max_tokens": 2048,
+                    "temperature": temp,
+                },
+                timeout=60,
+            )
+            if resp.status_code == 429:
+                raise RateLimitError(f"{provider} 429")
+            resp.raise_for_status()
+            data = resp.json()
+
+            msg = data["choices"][0]["message"]
+            if not msg.get("tool_calls"):
+                return msg.get("content", "")
+
+            messages.append(msg)
+            for tc in msg["tool_calls"]:
+                fn_name = tc["function"]["name"]
+                fn_args = json.loads(tc["function"]["arguments"])
+                log.info("%s 도구 호출: %s(%s)", provider, fn_name, fn_args)
+                result_json = execute_tool(conn, fn_name, fn_args)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "name": fn_name,
+                    "content": result_json,
+                })
+
+        return msg.get("content", "")
+
+    except RateLimitError:
+        raise
+    except Exception as exc:
+        log.warning("%s tool calling 실패: %s", provider, exc)
+        return None
+
+
+def _call_claude_with_tools(conn, prompt, pcfg, tool_declarations,
+                            execute_tool, temp):
+    """Claude Messages API tool calling."""
+    import httpx
+
+    claude_tools = [
+        {
+            "name": d["name"],
+            "description": d.get("description", ""),
+            "input_schema": d.get("parameters", {"type": "object", "properties": {}}),
+        }
+        for d in tool_declarations
+    ]
+
+    messages = [{"role": "user", "content": prompt}]
+
+    max_rounds = 3
+    text_parts = []
+    for _ in range(max_rounds):
+        resp = httpx.post(
+            pcfg["url"],
+            headers={
+                "x-api-key": pcfg["key"],
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": pcfg["model"],
+                "system": _TOOL_SYSTEM_TEXT,
+                "max_tokens": 2048,
+                "temperature": temp,
+                "tools": claude_tools,
+                "messages": messages,
+            },
+            timeout=60,
+        )
+        if resp.status_code == 429:
+            raise RateLimitError("Claude 429")
+        resp.raise_for_status()
+        data = resp.json()
+
+        text_parts = []
+        tool_uses = []
+        for block in data.get("content", []):
+            if block["type"] == "text":
+                text_parts.append(block["text"])
+            elif block["type"] == "tool_use":
+                tool_uses.append(block)
+
+        if not tool_uses:
+            return "\n".join(text_parts) if text_parts else None
+
+        messages.append({"role": "assistant", "content": data["content"]})
+        tool_results = []
+        for tu in tool_uses:
+            log.info("Claude 도구 호출: %s(%s)", tu["name"], tu["input"])
+            result_json = execute_tool(conn, tu["name"], tu["input"])
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tu["id"],
+                "content": result_json,
+            })
+        messages.append({"role": "user", "content": tool_results})
+
+    return "\n".join(text_parts) if text_parts else None
+
+
+# ── 단순 호출 (tool calling 없이, fallback용) ────────────────────────
 
 def call_claude(prompt: str, config: dict | None) -> str:
     """Claude API 호출."""
@@ -71,94 +276,8 @@ def call_openai(prompt: str, config: dict | None) -> str:
         return f"AI 응답 생성 실패: {exc}"
 
 
-def call_gemini_with_tools(conn: sqlite3.Connection, prompt: str,
-                           config: dict | None) -> str | None:
-    """Gemini Function Calling — AI가 도구를 호출하여 DB 데이터 수집 후 답변."""
-    api_key = (config or {}).get("ai", {}).get("gemini_api_key", "")
-    if not api_key:
-        return None
-    model = (config or {}).get("ai", {}).get("gemini_model", "gemini-2.0-flash")
-    temp = (config or {}).get("ai", {}).get("_temperature", 0.7)
-
-    from .tools import TOOL_DECLARATIONS, execute_tool
-    try:
-        import httpx
-
-        system_text = (
-            "당신은 러닝 AI 코치입니다. 사용자의 질문에 정확히 답하기 위해 도구를 적극 활용하세요.\n"
-            "- km별 페이스, 스플릿, 심박존, 케이던스, 파워 등 상세 데이터 → get_activity_detail 호출\n"
-            "- 특정 날짜 날씨 → get_weather 호출\n"
-            "- 웰니스(수면, HRV, 스트레스) → get_wellness 호출\n"
-            "- 피트니스 추이(CTL, ATL, TSB) → get_fitness_trend 호출\n"
-            "- 레이스 기록 → get_race_history 호출\n"
-            "- 기간별 비교 → get_period_comparison 호출\n"
-            "컨텍스트에 요약 데이터만 있고 상세가 필요하면, 반드시 도구를 호출하세요."
-        )
-        contents = [{"parts": [{"text": prompt}]}]
-        body: dict = {
-            "systemInstruction": {"parts": [{"text": system_text}]},
-            "contents": contents,
-            "tools": [{"function_declarations": TOOL_DECLARATIONS}],
-            "generationConfig": {"maxOutputTokens": 2048, "temperature": temp},
-        }
-
-        max_rounds = 3
-        for _ in range(max_rounds):
-            resp = httpx.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-                params={"key": api_key},
-                headers={"Content-Type": "application/json"},
-                json=body, timeout=60,
-            )
-            if resp.status_code == 429:
-                raise RateLimitError("Gemini 429")
-            resp.raise_for_status()
-            data = resp.json()
-
-            candidates = data.get("candidates", [])
-            if not candidates:
-                return None
-
-            parts = candidates[0].get("content", {}).get("parts", [])
-            if not parts:
-                return None
-
-            text_parts = [p["text"] for p in parts if "text" in p]
-            func_calls = [p["functionCall"] for p in parts if "functionCall" in p]
-
-            if not func_calls:
-                return text_parts[0] if text_parts else None
-
-            contents.append({"role": "model", "parts": parts})
-
-            func_response_parts = []
-            for fc in func_calls:
-                fn_name = fc["name"]
-                fn_args = fc.get("args", {})
-                log.info("Gemini 도구 호출: %s(%s)", fn_name, fn_args)
-                result_json = execute_tool(conn, fn_name, fn_args)
-                func_response_parts.append({
-                    "functionResponse": {
-                        "name": fn_name,
-                        "response": {"content": result_json},
-                    }
-                })
-
-            contents.append({"parts": func_response_parts})
-            body["contents"] = contents
-
-        log.warning("Gemini function calling %d회 초과", max_rounds)
-        return text_parts[0] if text_parts else None
-
-    except RateLimitError:
-        raise
-    except Exception as exc:
-        log.warning("Gemini function calling 실패: %s", exc)
-        return None
-
-
 def call_gemini(prompt: str, config: dict | None) -> str:
-    """Google Gemini API 호출 (무료 tier). 429 시 RateLimitError."""
+    """Google Gemini API 호출 (tool calling 없이). 429 시 RateLimitError."""
     api_key = (config or {}).get("ai", {}).get("gemini_api_key", "")
     if not api_key:
         return "Gemini API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://aistudio.google.com/apikey"
@@ -167,15 +286,16 @@ def call_gemini(prompt: str, config: dict | None) -> str:
     try:
         import httpx
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            params={"key": api_key},
-            headers={"Content-Type": "application/json"},
+            f"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
             json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "maxOutputTokens": 2048,
-                    "temperature": temp,
-                },
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 2048,
+                "temperature": temp,
             },
             timeout=60,
         )
@@ -184,12 +304,7 @@ def call_gemini(prompt: str, config: dict | None) -> str:
             raise RateLimitError("Gemini 429")
         resp.raise_for_status()
         data = resp.json()
-        candidates = data.get("candidates", [])
-        if candidates:
-            parts = candidates[0].get("content", {}).get("parts", [])
-            if parts:
-                return parts[0].get("text", "빈 응답")
-        return "Gemini에서 빈 응답을 받았습니다."
+        return data["choices"][0]["message"]["content"]
     except RateLimitError:
         raise
     except Exception as exc:
@@ -198,7 +313,7 @@ def call_gemini(prompt: str, config: dict | None) -> str:
 
 
 def call_groq(prompt: str, config: dict | None) -> str:
-    """Groq API 호출 (무료 tier, Llama 3.3 70B 등). 429 시 RateLimitError."""
+    """Groq API 호출 (tool calling 없이). 429 시 RateLimitError."""
     api_key = (config or {}).get("ai", {}).get("groq_api_key", "")
     if not api_key:
         return "Groq API 키가 설정되지 않았습니다. 설정 > AI에서 키를 입력하세요.\n발급: https://console.groq.com/keys"

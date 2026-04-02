@@ -109,6 +109,12 @@
 - **CRS 게이트**: `adjuster.py` (일일 추천카드)에서만 적용. 플랜 생성(`planner.py`)에는 CRS/TSB/ACWR/HRV/Body Battery 게이트 없음
 - **Q-day 이후 recovery**: Daniels Hard-Easy 원칙에 따라 플랜 생성 시 항상 구조적으로 적용 (컨디션 무관)
 
+## AI 코치 provider chain
+- chat() → gemini → groq → rule 순 fallback
+- 모든 provider에서 tool calling 시도 (chip_id 없을 때)
+- 429 발생 시 자동으로 다음 provider 전환
+- 전부 실패 시 rule_based_response 사용
+
 ## 규칙
 - HTML: f-string 인라인. `base.html` 레이아웃 + `bottom_nav(active_tab)`.
 - 다크 테마: `background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)`, card: `rgba(255,255,255,0.05)`

@@ -71,7 +71,8 @@ def _format_chat_context(ctx: dict, message: str,
         for a in acts_30d:
             dur = _fmt_sec(a.get("sec")) if a.get("sec") else "-"
             name = a.get("name") or "러닝"
-            lines.append(f"- {a['date']} {name}: {a.get('km', '-')}km, "
+            aid = a.get('id', '')
+            lines.append(f"- [id:{aid}] {a['date']} {name}: {a.get('km', '-')}km, "
                         f"{a.get('pace', '-')}/km, HR {a.get('avg_hr', '-')}, {dur}")
 
     # 14일 활동 (Claude/OpenAI)
@@ -79,7 +80,8 @@ def _format_chat_context(ctx: dict, message: str,
     if acts_14d and not acts_30d:
         lines.append(f"\n### 최근 14일 활동 ({len(acts_14d)}개)")
         for a in acts_14d:
-            lines.append(f"- {a['date']}: {a.get('km', '-')}km, "
+            aid = a.get('id', '')
+            lines.append(f"- [id:{aid}] {a['date']}: {a.get('km', '-')}km, "
                         f"{a.get('pace', '-')}/km, HR {a.get('avg_hr', '-')}")
 
     # 최근 활동 3개 (Groq/rule)
@@ -132,7 +134,8 @@ def _format_chat_context(ctx: dict, message: str,
         lines.append(f"\n### 레이스 이력 ({len(rh)}개)")
         for r in rh:
             dur = _fmt_sec(r.get("sec")) if r.get("sec") else "-"
-            lines.append(f"- {r['date']} {r.get('name', '레이스')}: "
+            aid = r.get('id', '')
+            lines.append(f"- [id:{aid}] {r['date']} {r.get('name', '레이스')}: "
                         f"{r.get('km', '-')}km, {r.get('pace', '-')}/km, {dur}")
 
     # 같은 유형 과거 활동
@@ -140,14 +143,16 @@ def _format_chat_context(ctx: dict, message: str,
     if sim:
         lines.append(f"\n### 오늘과 같은 유형({sim['type']}) 과거 활동")
         for a in sim["history"]:
-            lines.append(f"- {a['date']}: {a.get('km', '-')}km, "
+            aid = a.get('id', '')
+            lines.append(f"- [id:{aid}] {a['date']}: {a.get('km', '-')}km, "
                         f"{a.get('pace', '-')}/km, HR {a.get('hr', '-')}")
 
     # 오늘 활동 상세
     td = ctx.get("today_detail")
     if td:
         lines.append(f"\n### 오늘 활동 상세")
-        lines.append(f"- {td.get('distance_km', '-')}km, {td.get('pace', '-')}/km, "
+        aid = td.get('id', '')
+        lines.append(f"- [id:{aid}] {td.get('distance_km', '-')}km, {td.get('pace', '-')}/km, "
                      f"HR {td.get('avg_hr', '-')}/{td.get('max_hr', '-')}")
         if td.get("workout_type"):
             lines.append(f"- 분류: {td['workout_type']}")
