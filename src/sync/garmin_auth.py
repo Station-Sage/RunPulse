@@ -9,10 +9,14 @@ try:
     try:
         from garminconnect import GarminConnectTooManyRequestsError
     except ImportError:
-        GarminConnectTooManyRequestsError = Exception
+        class GarminConnectTooManyRequestsError(Exception):
+            """garminconnect 미설치 시 placeholder — 어떤 예외도 매칭되지 않음."""
+            pass
 except ImportError:
     Garmin = None
-    GarminConnectTooManyRequestsError = Exception
+    class GarminConnectTooManyRequestsError(Exception):
+        """garminconnect 미설치 시 placeholder."""
+        pass
 
 
 class GarminAuthRequired(Exception):
@@ -39,6 +43,7 @@ def _login(config: dict) -> "Garmin":
     """Garmin Connect 인증 — 토큰 기반만 허용.
 
     토큰이 없거나 복구 실패 시 GarminAuthRequired 발생.
+    429 발생 시 GarminConnectTooManyRequestsError 그대로 전파.
     비밀번호 로그인은 웹 UI(/connect/garmin)에서만 처리.
     """
     if Garmin is None:
@@ -61,19 +66,8 @@ def _login(config: dict) -> "Garmin":
         client = Garmin()
         client.login(tokenstore=str(tokenstore))
         return client
-    except Exception as e:
-        raise GarminAuthRequired(
-            f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."
-        ) from e
-
-    try:
-        client = Garmin()
-        client.login(tokenstore=str(tokenstore))
-        return client
-    except GarminConnectTooManyRequestsError as e:
-        raise GarminConnectTooManyRequestsError(
-            f"Garmin API 요청 제한. 잠시 후 다시 시도하세요. ({e})"
-        ) from e
+    except GarminConnectTooManyRequestsError:
+        raise  # 429는 그대로 전파 — GarminAuthRequired로 감싸지 않음
     except Exception as e:
         raise GarminAuthRequired(
             f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."

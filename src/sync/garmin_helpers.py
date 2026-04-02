@@ -83,13 +83,31 @@ def _store_daily_detail_metrics(
 
 
 def _handle_rate_limit(service: str, source_id: str = "") -> None:
-    """rate limit 발생 시 공통 처리 — 메시지 출력 + 재시도 시각 설정."""
+    """rate limit 발생 시 공통 처리 — exponential backoff + 메시지 출력.
+
+    이미 대기 중이면 대기 시간을 2배로 증가 (최대 24시간).
+    첫 발생 시 15분.
+    """
+    from src.utils.sync_state import get_retry_after_sec
+
+    current = get_retry_after_sec(service)
+    if current and current > 0:
+        next_wait = min(current * 2, 86400)  # 2배, 최대 24시간
+    else:
+        next_wait = 900  # 첫 번째: 15분
+
+    hours = next_wait // 3600
+    mins = (next_wait % 3600) // 60
+    if hours > 0:
+        wait_str = f"{hours}시간 {mins}분" if mins else f"{hours}시간"
+    else:
+        wait_str = f"{mins}분"
+
     msg = (
-        f"[{service}] ⚠️ Garmin 로그인/조회 요청이 짧은 시간에 너무 많이 발생하여 "
-        f"일시적으로 제한되었습니다 (Error 1015 / Too Many Requests). "
-        f"약 15분 후 다시 시도하세요."
+        f"[{service}] ⚠️ API 요청 제한(429). "
+        f"{wait_str} 후 재시도합니다."
     )
     if source_id:
-        msg += f" (마지막 처리 활동: {source_id})"
+        msg += f" (마지막 처리: {source_id})"
     print(msg)
-    set_retry_after(service, 900)  # 15분
+    set_retry_after(service, next_wait)

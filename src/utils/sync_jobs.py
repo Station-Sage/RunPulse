@@ -32,10 +32,10 @@ RATE_LIMITS: dict[str, dict[str, int]] = {
 
 # 배치 간 대기 (초) — API 부하 방지
 INTER_BATCH_SLEEP: dict[str, float] = {
-    "garmin": 5.0,
-    "strava": 3.0,
-    "intervals": 1.5,
-    "runalyze": 10.0,
+    "garmin": 15.0,
+    "strava": 5.0,
+    "intervals": 3.0,
+    "runalyze": 15.0,
 }
 
 

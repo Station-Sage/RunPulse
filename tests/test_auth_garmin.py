@@ -137,3 +137,23 @@ def test_login_raises_auth_required_if_token_fails(tmp_path):
         from src.sync.garmin_auth import GarminAuthRequired
         with pytest.raises(GarminAuthRequired):
             _login(config)
+
+
+def test_login_429_not_wrapped_as_auth_required(tmp_path):
+    """429 에러는 GarminAuthRequired가 아닌 원본 예외로 전파되어야 한다."""
+    tokenstore = tmp_path / "garth"
+    tokenstore.mkdir()
+    (tokenstore / "oauth2_token.json").write_text('{"access_token":"x"}')
+    config = {"garmin": {"tokenstore": str(tokenstore)}}
+
+    class FakeTooManyRequests(Exception):
+        pass
+
+    mock_client = MagicMock()
+    mock_client.login.side_effect = FakeTooManyRequests("429")
+
+    with patch("src.sync.garmin_auth.Garmin", return_value=mock_client), \
+         patch("src.sync.garmin_auth.GarminConnectTooManyRequestsError", FakeTooManyRequests):
+        from src.sync.garmin_auth import _login, GarminAuthRequired
+        with pytest.raises(FakeTooManyRequests):
+            _login(config)
