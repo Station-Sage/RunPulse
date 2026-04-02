@@ -89,6 +89,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "days": {"type": "integer", "description": "최근 N일 (기본 30)"},
             },
+            "required": [],
         },
     },
     {
@@ -99,6 +100,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "limit": {"type": "integer", "description": "최대 결과 수 (기본 10)"},
             },
+            "required": [],
         },
     },
     {
@@ -123,12 +125,13 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "week_offset": {"type": "integer", "description": "0=이번주, 1=다음주, -1=지난주"},
             },
+            "required": [],
         },
     },
     {
         "name": "get_runner_profile",
         "description": "러너의 전체 프로필 요약. 주간 평균, VO2Max, 목표, 수준.",
-        "parameters": {"type": "object", "properties": {}},
+        "parameters": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "get_activity_detail",
