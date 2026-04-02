@@ -52,6 +52,7 @@ class UnifiedActivity:
     avg_cadence: UnifiedField = field(default_factory=UnifiedField)
     elevation_gain: UnifiedField = field(default_factory=UnifiedField)
     calories: UnifiedField = field(default_factory=UnifiedField)
+    name: UnifiedField = field(default_factory=UnifiedField)
     description: UnifiedField = field(default_factory=UnifiedField)
     workout_label: UnifiedField = field(default_factory=UnifiedField)
     event_type: UnifiedField = field(default_factory=UnifiedField)
@@ -128,7 +129,7 @@ def build_unified_activity(group_id: str | None, rows: list[dict], **kwargs) -> 
     for fname in [
         "activity_type", "start_time", "distance_km", "duration_sec",
         "avg_pace_sec_km", "avg_hr", "max_hr", "avg_cadence",
-        "elevation_gain", "calories", "description", "workout_label",
+        "elevation_gain", "calories", "name", "description", "workout_label",
         "event_type",
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))

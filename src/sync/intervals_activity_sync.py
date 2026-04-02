@@ -331,7 +331,7 @@ def sync_activities(
                 (
                     "intervals", source_id,
                     act.get("name"),
-                    act.get("type", "Run").lower(),
+                    normalize_activity_type(act.get("type", "Run")),
                     act.get("sport_type"),
                     start_time,
                     distance_km, duration_sec,

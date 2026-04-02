@@ -340,7 +340,7 @@ def _render_activity_table(
             f"</span>"
         )
 
-        name_raw = ua.description.value or ""
+        name_raw = ua.name.value or ua.description.value or ""
         name_display = html.escape(str(name_raw)) if name_raw else html.escape(str(ua.activity_type.value or "—"))
         type_ico = _type_icon(ua.activity_type.value)
         name_cell = (

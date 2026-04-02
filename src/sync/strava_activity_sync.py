@@ -11,6 +11,9 @@ from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_policy import POLICIES, should_reduce_expensive_calls
 from src.utils.sync_state import get_rate_state, get_retry_after_sec, mark_finished
+from src.utils.activity_types import normalize_activity_type
+from src.utils.activity_types import normalize_activity_type
+from src.utils.activity_types import normalize_activity_type
 
 from .strava_auth import _BASE_URL, refresh_token
 
@@ -413,7 +416,7 @@ def sync_activities(
                     (
                         "strava", source_id,
                         act.get("name"),
-                        act.get("type", "Run").lower(),
+                        normalize_activity_type(act.get("type", "Run")),
                         act.get("sport_type"),
                         start_time,
                         distance_km, duration_sec,
