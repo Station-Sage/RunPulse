@@ -2207,3 +2207,36 @@ def test_garmin_sync_full_flow(mock_garmin_api, test_db):
 - Phase 3: 74 tests (신규)
 - 기타 잔존: ~379 tests
 - **합계: 600 passed**
+
+### 설계 vs 구현 차이점 기록
+
+#### 이름 변경 (간소화)
+| 설계 | 구현 | 사유 |
+|------|------|------|
+| `_calculate_retry_after()` | `_retry_after()` | 이름 간소화 |
+| `_sync_streams()` | `_fetch_and_save_streams()` | 역할 명확화 |
+| `_ensure_valid_token()` | `_ensure_token()` | 이름 간소화 |
+| `run_dedup()` | `run()` | 모듈명이 dedup이므로 중복 제거 |
+| `_create_job_id()` + `upsert_sync_job()` | `SyncResult.to_sync_job_dict()` + `record_sync_job()` | SyncResult에 책임 통합 |
+
+#### 파일명 변경
+| 설계 | 구현 | 사유 |
+|------|------|------|
+| `src/sync.py` (CLI) | `src/sync_cli.py` | `src/sync/` 패키지와 이름 충돌 방지 |
+
+#### 구조 세분화 (설계 대비 확장)
+| 설계 | 구현 | 내용 |
+|------|------|------|
+| `reprocess_all()` 단일 함수 | 6개 내부 함수로 분리 | `_clear_derived_data`, `_reprocess_activity_summaries`, `_reprocess_activity_details`, `_reprocess_activity_streams`, `_reprocess_best_efforts`, `_reprocess_wellness` |
+| (미명시) | `src/sync/_helpers.py` 추가 | Extractor → DB adapter 레이어. save_activity_core, save_metrics, save_laps 등 9개 함수 |
+
+#### 테스트 확장
+| 설계 | 구현 |
+|------|------|
+| 5개 파일 (rate_limiter, raw_store, dedup, reprocess, garmin_integration) | 12개 파일, 74개 테스트 |
+| 단위 테스트 위주 | 단위 + 소스별 mock 통합 테스트 (garmin/strava/intervals/runalyze/orchestrator) |
+
+#### 버그 수정 (설계에 미포함)
+- `src/sync/extractors/strava_extractor.py`: `start_date` → `start_date_local` fallback 추가 (ADR-006)
+- 6개 sync 모듈: `datetime.utcnow()` → `datetime.now(timezone.utc)` Python 3.12 경고 제거
+- `src/sync/intervals_activity_sync.py`: wellness extractor 키워드 `wellness_day` → `wellness` 수정
