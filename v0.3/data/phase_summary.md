@@ -4,14 +4,46 @@
 ## Phase 진행 현황
 
 | Phase | 상태 | 완료일 | 비고 |
-|-------|------|--------|------|
-| Phase 1 – Schema & Base Infrastructure | ✅ 완료 | 2026-04-03 | 64 tests all pass |
-| Phase 2 – Extractors | ✅ 완료 | 2026-04-03 | 11/11 DoD 충족, 7 test files, 83+ tests |
-| Phase 3 – Sync Orchestrators | ✅ 완료 | 2026-04-03 | 600 tests, DoD 11/11 충족 |
-| Phase 4 – Metric Engine | ✅ 완료 | 2026-04-03 | 19 calculators, engine, 46 tests |
-| Phase 5 – Consumer Migration | 🔲 대기 | - | - |
-| Phase 6 – Full Data Load | 🔲 대기 | - | - |
-| Phase 7 – Future Extensions | 🔲 대기 | - | - |
+|-------|------|--------|### Phase 4 산출물
+
+| 파일 | 설명 |
+|------|------|
+| `src/metrics/base.py` | MetricCalculator ABC, CalcResult, CalcContext (prefetch/cache), ConfidenceBuilder |
+| `src/metrics/trimp.py` | TRIMP (Banister 1991) |
+| `src/metrics/hrss.py` | HRSS (LTHR 정규화) |
+| `src/metrics/decoupling.py` | Aerobic Decoupling (stream 기반) |
+| `src/metrics/gap.py` | GAP (Minetti 2002, stream 기반) |
+| `src/metrics/classifier.py` | Workout Type Classifier (json) |
+| `src/metrics/vdot.py` | VDOT (Jack Daniels) |
+| `src/metrics/efficiency.py` | Efficiency Factor |
+| `src/metrics/fearp.py` | FEARP (환경 보정 + confidence) |
+| `src/metrics/pmc.py` | ATL/CTL/TSB/Ramp Rate (EMA) |
+| `src/metrics/acwr.py` | ACWR |
+| `src/metrics/lsi.py` | Load Spike Index |
+| `src/metrics/monotony.py` | Monotony & Training Strain |
+| `src/metrics/utrs.py` | UTRS (readiness, confidence) |
+| `src/metrics/cirs.py` | CIRS (injury risk, confidence) |
+| `src/metrics/di.py` | Durability Index |
+| `src/metrics/darp.py` | DARP (레이스 예측) |
+| `src/metrics/tids.py` | TIDS (강도 분포, json) |
+| `src/metrics/rmr.py` | RMR (성숙도 레이더, json) |
+| `src/metrics/adti.py` | ADTI (디커플링 추세) |
+| `src/metrics/engine.py` | Topological sort engine + ComputeResult + prefetch + dirty tracking |
+| `src/metrics/reprocess.py` | Layer 0→1/2 재구축 |
+| `src/metrics/cli.py` | CLI (status/recompute/clear) |
+| `src/utils/metric_groups.py` | 7개 semantic group |
+| `src/sync/integration.py` | Phase 3→4 통합 |
+| `tests/helpers/mock_context.py` | MockCalcContext (DB-less testing) |
+| 테스트 10개 파일 | 108 tests — DoD, 설계서 spec, mock, naming, metadata |
+
+### Phase 4 핵심 성과
+
+- **19개 calculator**: activity-scope 8개 + daily-scope 11개, 의존성 자동 해소
+- **보강 12항목 완료**: Prefetch/Cache, ComputeResult, Dirty Tracking, MockCalcContext, ConfidenceBuilder, UI 메타데이터, Semantic Grouping, 이름 충돌 검증, CLI, Daily Prefetch, Phase 3↔4 통합
+- **DoD 11/11 통과**: ALL_CALCULATORS 19개, topological sort, recompute 무에러, metric_store 저장, confidence/json_value 설정 등
+- **108 tests passed** in 0.94s
+
+
 
 ## 전체 구조 리캡
 

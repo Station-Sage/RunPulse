@@ -1,4 +1,56 @@
 # CHANGELOG — RunPulse v0.3 Data Architecture
+## [Phase 4] Metrics Engine 완료 — 2026-04-03
+
+### Added
+- `src/metrics/base.py` — MetricCalculator ABC, CalcResult, CalcContext (prefetch & cache), ConfidenceBuilder
+- `src/metrics/trimp.py` — TRIMP (Banister 1991)
+- `src/metrics/hrss.py` — HRSS (LTHR 정규화)
+- `src/metrics/decoupling.py` — Aerobic Decoupling (needs_streams=True)
+- `src/metrics/gap.py` — Grade Adjusted Pace (Minetti 2002, needs_streams=True)
+- `src/metrics/classifier.py` — Workout Type Classifier (json_value)
+- `src/metrics/vdot.py` — VDOT (Jack Daniels)
+- `src/metrics/efficiency.py` — Efficiency Factor
+- `src/metrics/fearp.py` — FEARP (환경 보정 + confidence)
+- `src/metrics/pmc.py` — ATL/CTL/TSB/Ramp Rate (EMA decay)
+- `src/metrics/acwr.py` — ACWR (Acute:Chronic Workload Ratio)
+- `src/metrics/lsi.py` — Load Spike Index
+- `src/metrics/monotony.py` — Monotony & Training Strain
+- `src/metrics/utrs.py` — UTRS (Unified Training Readiness Score, confidence)
+- `src/metrics/cirs.py` — CIRS (Composite Injury Risk Score, confidence)
+- `src/metrics/di.py` — Durability Index
+- `src/metrics/darp.py` — DARP (Dynamic Adjusted Race Predictor)
+- `src/metrics/tids.py` — TIDS (Training Intensity Distribution, json_value)
+- `src/metrics/rmr.py` — RMR (Runner Maturity Radar, json_value)
+- `src/metrics/adti.py` — ADTI (Aerobic Decoupling Trend Index)
+- `src/metrics/engine.py` — Topological sort engine, ComputeResult, prefetch, dirty tracking
+- `src/metrics/reprocess.py` — Layer 0→1/2 재구축 로직
+- `src/metrics/cli.py` — CLI (status, recompute, recompute-all, recompute-single, clear)
+- `src/utils/metric_groups.py` — 7개 semantic group + helper functions
+- `src/sync/integration.py` — Phase 3→4 통합 (compute_metrics_after_sync)
+- `tests/helpers/mock_context.py` — MockCalcContext (DB-less unit testing)
+- 10개 테스트 파일, 108개 테스트:
+  - `tests/test_trimp_calc.py` — TRIMP/HRSS 단위 테스트
+  - `tests/test_activity_calcs.py` — Decoupling/GAP/Classifier/VDOT/EF 테스트
+  - `tests/test_daily_calcs.py` — PMC/ACWR/LSI/Monotony 테스트
+  - `tests/test_daily2_calcs.py` — UTRS/CIRS/FEARP/RMR/ADTI 테스트
+  - `tests/test_engine.py` — Engine topological sort + 통합 테스트
+  - `tests/test_phase4_dod.py` — DoD 11항목 검증 (15 tests)
+  - `tests/test_round2.py` — ComputeResult/dirty tracking/integration 테스트
+  - `tests/test_mock_calcs.py` — MockCalcContext 기반 단위 테스트
+  - `tests/test_metric_naming.py` — 메트릭 이름 충돌 검증
+  - `tests/test_round4.py` — 메타데이터/semantic grouping/CLI 테스트
+  - `tests/test_phase4_spec.py` — 설계서 4-6 누락 케이스 (9 tests)
+
+### Changed
+- 19개 calculator에 UI 메타데이터 추가 (display_name, description, unit, ranges, format_type)
+- `src/metrics/engine.py` — 중복 코드 제거, _failed 키 반환 추가
+
+### Verified
+- Phase 4 DoD 11개 조건 전체 충족
+- Phase 4-6 테스트 계획 전체 구현
+- 보강 항목 12/12 전부 완료
+- 전체 108 tests passed, 0 failed (0.94s)
+
 ## [Phase 3] Sync Orchestrators 완료 — 2026-04-03
 
 ### Added

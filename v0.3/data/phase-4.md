@@ -3303,3 +3303,108 @@ def background_sync_task(conn, sources, days):
 | 12 | Phase 3↔4 통합 지점 | 아키텍처 | 호출 시점 명확화 |
 
 이 12개 항목을 Phase 4 설계에 반영하면, Phase 1~3과 동등한 깊이와 완성도가 됩니다. 나머지 Phase 5, 6도 이어서 설계할까요?
+
+---
+
+## Phase 4 구현 완료 기록 — 2026-04-03
+
+### 구현 이력
+
+| 순서 | 커밋 | 내용 |
+|------|------|------|
+| 1 | Phase 4: Metrics Engine 전체 구현 완료 | 19 calculators + engine + 4 test files |
+| 2 | Phase 4 설계서-구현 검증 수정 | 1차 중요 5건 + 경미 5건 반영 |
+| 3 | fix: engine에 실패 calculator 목록 반환 | _failed 키 추가 |
+| 4 | Phase 4 DoD 완료 | test_phase4_dod.py (15 tests), fearp confidence |
+| 5 | 보강 라운드1+2 | Prefetch/Cache, ComputeResult, Dirty Tracking, Integration |
+| 6 | 보강 라운드3 | MockCalcContext, ConfidenceBuilder, metric naming |
+| 7 | 보강 라운드4 | Calculator metadata, Semantic Grouping, CLI |
+| 8 | engine.py 중복 코드 제거 | 713행→612행 축소 |
+| 9 | Phase 4-6 테스트 계획 완전 구현 | test_phase4_spec.py (9 tests) |
+
+### DoD 충족 현황
+
+| # | 조건 | 상태 |
+|---|------|------|
+| 1 | ALL_CALCULATORS에 19개 calculator 등록 | ✅ |
+| 2 | _topological_sort()가 의존성 순서 해소 (TRIMP < PMC < ACWR < CIRS) | ✅ |
+| 3 | recompute_recent(conn, days=7) 에러 없이 완료 | ✅ |
+| 4 | metric_store에 provider LIKE 'runpulse%' 행 존재 | ✅ |
+| 5 | 각 activity에 TRIMP, workout_type, efficiency_factor 3개+ 생성 | ✅ |
+| 6 | 각 date에 CTL, ATL, TSB, UTRS 4개+ 생성 | ✅ |
+| 7 | clear_runpulse_metrics() → recompute_all() 동일 결과 재현 | ✅ |
+| 8 | 소스 메트릭은 clear_runpulse_metrics()에 영향 없음 | ✅ |
+| 9 | confidence 필드: UTRS, CIRS, FEARP에 설정됨 | ✅ |
+| 10 | json_value: TIDS, RMR, workout_type에 설정됨 | ✅ |
+| 11 | 전체 pytest 통과 | ✅ 108 tests passed |
+
+### 보강 항목 충족 현황
+
+| # | 항목 | 구현 위치 | 상태 |
+|---|------|----------|------|
+| 1 | CalcContext Prefetch & Cache | base.py (_metric_cache, _prefetched_*) | ✅ |
+| 2 | Stream needs_streams 플래그 | base.py, decoupling.py, gap.py | ✅ |
+| 3 | ComputeResult 에러 추적 | engine.py (ComputeResult dataclass) | ✅ |
+| 4 | Dirty Tracking | engine.py (compute_for_activities/dates) | ✅ |
+| 5 | MockCalcContext | tests/helpers/mock_context.py | ✅ |
+| 6 | ConfidenceBuilder | base.py (ConfidenceBuilder class) | ✅ |
+| 7 | Calculator 메타데이터 | 19 calculator files (display_name, unit, ranges) | ✅ |
+| 8 | Semantic Grouping | src/utils/metric_groups.py (7 groups) | ✅ |
+| 9 | 메트릭 이름 충돌 검증 | tests/test_metric_naming.py (4 tests) | ✅ |
+| 10 | 재계산 CLI 세분화 | src/metrics/cli.py + engine.py | ✅ |
+| 11 | Daily Prefetch 상세 | engine.py (_prefetch_daily_*) | ✅ |
+| 12 | Phase 3↔4 통합 지점 | src/sync/integration.py | ✅ |
+
+### 테스트 현황
+
+| 파일 | 테스트 수 | 내용 |
+|------|----------|------|
+| test_trimp_calc.py | 7 | TRIMP/HRSS 단위 |
+| test_activity_calcs.py | 12 | Decoupling/GAP/Classifier/VDOT/EF |
+| test_daily_calcs.py | 8 | PMC/ACWR/LSI/Monotony |
+| test_daily2_calcs.py | 10 | UTRS/CIRS/FEARP/RMR/ADTI |
+| test_engine.py | 12 | Engine topological sort + 통합 |
+| test_phase4_dod.py | 15 | DoD 11항목 검증 |
+| test_round2.py | 9 | ComputeResult/dirty tracking |
+| test_mock_calcs.py | 10 | MockCalcContext 기반 |
+| test_metric_naming.py | 4 | 이름 충돌 방지 |
+| test_round4.py | 11 | 메타데이터/grouping/CLI |
+| test_phase4_spec.py | 9 | 설계서 4-6 누락 케이스 |
+| **합계** | **108** | **0.94s** |
+
+### 최종 파일 구조
+
+    src/metrics/
+    ├── __init__.py
+    ├── base.py          # MetricCalculator, CalcResult, CalcContext, ConfidenceBuilder
+    ├── engine.py        # Topological engine, ComputeResult, prefetch, dirty tracking
+    ├── reprocess.py     # Layer 0→1/2 재구축
+    ├── cli.py           # CLI (status, recompute, clear)
+    ├── trimp.py         # TRIMP (Banister)
+    ├── hrss.py          # HRSS
+    ├── decoupling.py    # Aerobic Decoupling
+    ├── gap.py           # GAP (Minetti)
+    ├── classifier.py    # Workout Classifier
+    ├── vdot.py          # VDOT (Daniels)
+    ├── efficiency.py    # Efficiency Factor
+    ├── fearp.py         # FEARP (환경 보정)
+    ├── pmc.py           # ATL/CTL/TSB/Ramp Rate
+    ├── acwr.py          # ACWR
+    ├── lsi.py           # Load Spike Index
+    ├── monotony.py      # Monotony & Strain
+    ├── utrs.py          # UTRS
+    ├── cirs.py          # CIRS
+    ├── di.py            # Durability Index
+    ├── darp.py          # DARP
+    ├── tids.py          # TIDS
+    ├── rmr.py           # RMR
+    └── adti.py          # ADTI
+
+    src/utils/
+    ├── metric_groups.py # 7 semantic groups
+
+    src/sync/
+    ├── integration.py   # Phase 3→4 통합
+
+    tests/helpers/
+    ├── mock_context.py  # MockCalcContext
