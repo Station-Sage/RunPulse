@@ -70,7 +70,7 @@ class WLEICalculator(MetricCalculator):
         return [self._result(
             value=wlei,
             confidence=conf,
-            json_value={
+            json_val={
                 "trimp": round(float(trimp), 1),
                 "temp_c": temp_c,
                 "humidity_pct": humidity_pct,

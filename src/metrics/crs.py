@@ -186,8 +186,8 @@ class CRSCalculator(MetricCalculator):
 
         return [self._result(
             value=crs_score,
-            text_value=LEVEL_LABELS[final_level],
-            json_value={
+            text=LEVEL_LABELS[final_level],
+            json_val={
                 "level": final_level,
                 "level_label": LEVEL_LABELS[final_level],
                 "crs": crs_score,

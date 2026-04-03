@@ -67,7 +67,7 @@ class RECCalculator(MetricCalculator):
 
         return [self._result(
             value=round(rec, 1),
-            json_value={
+            json_val={
                 "ef_avg": round(ef_avg, 4),
                 "dec_avg": round(dec_avg, 1),
                 "ef_count": len(ef_rows),

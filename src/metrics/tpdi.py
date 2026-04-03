@@ -68,7 +68,7 @@ class TPDICalculator(MetricCalculator):
 
         return [self._result(
             value=tpdi,
-            json_value={
+            json_val={
                 "outdoor_avg": round(outdoor_avg, 1),
                 "indoor_avg": round(indoor_avg, 1),
                 "outdoor_count": len(outdoor_rows),

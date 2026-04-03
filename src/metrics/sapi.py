@@ -110,7 +110,7 @@ class SAPICalculator(MetricCalculator):
 
         return [self._result(
             value=sapi,
-            json_value={
+            json_val={
                 "ref_avg_fearp": round(ref_avg, 1),
                 "current_avg_fearp": round(current_avg, 1),
                 "bins": bin_stats,

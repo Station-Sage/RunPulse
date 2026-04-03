@@ -70,7 +70,7 @@ class RTTICalculator(MetricCalculator):
 
         return [self._result(
             value=rtti,
-            json_value={
+            json_val={
                 "atl": round(atl, 1),
                 "ctl": round(ctl, 1),
                 "wellness_factor": round(wf, 2),

@@ -40,7 +40,7 @@ class EFTPCalculator(MetricCalculator):
                 return [self._result(
                     value=round(t_pace),
                     confidence=0.85,
-                    json_value={
+                    json_val={
                         "source": "daniels_t_pace",
                         "vdot": round(float(vdot), 1),
                         "pace_sec_km": round(t_pace),
@@ -99,7 +99,7 @@ class EFTPCalculator(MetricCalculator):
         return [self._result(
             value=eftp,
             confidence=0.65,
-            json_value={
+            json_val={
                 "source": "estimated",
                 "pace_sec_km": eftp,
                 "sample_count": len(top),

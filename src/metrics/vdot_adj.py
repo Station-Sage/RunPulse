@@ -76,7 +76,7 @@ class VDOTAdjCalculator(MetricCalculator):
             return [self._result(
                 value=vdot_base,
                 confidence=0.5,
-                json_value={"vdot_base": vdot_base, "method": "passthrough"},
+                json_val={"vdot_base": vdot_base, "method": "passthrough"},
             )]
 
         # T-pace → VDOT 역산
@@ -97,7 +97,7 @@ class VDOTAdjCalculator(MetricCalculator):
         return [self._result(
             value=round(vdot_adj, 1),
             confidence=0.75 if method == "threshold_activities" else 0.55,
-            json_value={
+            json_val={
                 "vdot_base": vdot_base,
                 "threshold_pace": round(threshold_pace, 1),
                 "method": method,

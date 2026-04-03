@@ -61,7 +61,7 @@ class RRICalculator(MetricCalculator):
 
         return [self._result(
             value=rri,
-            json_value={
+            json_val={
                 "vdot": round(vdot, 1),
                 "vdot_target": round(vdot_target, 1),
                 "ctl": round(ctl, 1),

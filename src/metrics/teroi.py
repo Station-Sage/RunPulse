@@ -67,7 +67,7 @@ class TEROICalculator(MetricCalculator):
 
         return [self._result(
             value=teroi,
-            json_value={
+            json_val={
                 "ctl_start": round(ctl_start, 1),
                 "ctl_end": round(ctl_end, 1),
                 "total_trimp": round(total_trimp, 1),

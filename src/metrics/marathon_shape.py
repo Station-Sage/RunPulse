@@ -80,7 +80,7 @@ class MarathonShapeCalculator(MetricCalculator):
 
         return [self._result(
             value=shape_pct,
-            json_value={
+            json_val={
                 "label": label,
                 "weekly_km_avg": round(weekly_avg, 1),
                 "longest_run_km": round(longest_km, 1),
