@@ -38,29 +38,15 @@ class RECCalculator(MetricCalculator):
         td = date.fromisoformat(target)
         start = (td - timedelta(days=7)).isoformat()
 
-        # 최근 7일 EF
-        ef_rows = ctx.conn.execute(
-            "SELECT ms.numeric_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='efficiency_factor_rp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
-        if not ef_rows:
+        # 최근 7일 EF — CalcContext API
+        ef_data = ctx.get_activity_metric_series("efficiency_factor_rp", days=7)
+        if not ef_data:
             return []
-        ef_avg = sum(r[0] for r in ef_rows) / len(ef_rows)
+        ef_avg = sum(d["numeric"] for d in ef_data) / len(ef_data)
 
         # 최근 7일 Decoupling
-        dec_rows = ctx.conn.execute(
-            "SELECT ms.numeric_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='aerobic_decoupling_rp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
-        dec_avg = sum(r[0] for r in dec_rows) / len(dec_rows) if dec_rows else 5.0
+        dec_data = ctx.get_activity_metric_series("aerobic_decoupling_rp", days=7)
+        dec_avg = sum(d["numeric"] for d in dec_data) / len(dec_data) if dec_data else 5.0
 
         dec_factor = max(0.5, 1.0 - dec_avg / 100)
         raw = ef_avg * dec_factor
@@ -71,7 +57,7 @@ class RECCalculator(MetricCalculator):
             json_val={
                 "ef_avg": round(ef_avg, 4),
                 "dec_avg": round(dec_avg, 1),
-                "ef_count": len(ef_rows),
+                "ef_count": len(ef_data),
             },
         
             confidence=1.0,

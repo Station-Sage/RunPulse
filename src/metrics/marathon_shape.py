@@ -50,27 +50,17 @@ class MarathonShapeCalculator(MetricCalculator):
         weekly_target = targets.get("weekly_target", 70)
         long_max = targets.get("long_max", 32)
 
-        # 최근 4주 주간 평균 거리
+        # 최근 4주 주간 평균 거리 — CalcContext API
         weeks = 4
-        start = (td - timedelta(weeks=weeks)).isoformat()
-        dist_row = ctx.conn.execute(
-            "SELECT SUM(distance_m) FROM activity_summaries "
-            "WHERE activity_type='running' "
-            "AND DATE(start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchone()
-        total_km = float(dist_row[0]) / 1000.0 if dist_row and dist_row[0] else 0.0
+        activities_4w = ctx.get_activities_in_range(days=weeks * 7, activity_type="running")
+        distances_4w = [a["distance_m"] for a in activities_4w if a.get("distance_m")]
+        total_km = sum(distances_4w) / 1000.0
         weekly_avg = total_km / weeks
 
         # 최근 12주 최장 거리 런
-        long_start = (td - timedelta(weeks=12)).isoformat()
-        long_row = ctx.conn.execute(
-            "SELECT MAX(distance_m) FROM activity_summaries "
-            "WHERE activity_type='running' "
-            "AND DATE(start_time) BETWEEN ? AND ?",
-            (long_start, target),
-        ).fetchone()
-        longest_km = float(long_row[0]) / 1000.0 if long_row and long_row[0] else 0.0
+        activities_12w = ctx.get_activities_in_range(days=84, activity_type="running")
+        distances_12w = [a["distance_m"] for a in activities_12w if a.get("distance_m")]
+        longest_km = max(distances_12w) / 1000.0 if distances_12w else 0.0
 
         # Shape 계산
         weekly_shape = min(1.0, weekly_avg / weekly_target) if weekly_target > 0 else 0.0

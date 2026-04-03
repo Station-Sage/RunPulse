@@ -19,6 +19,8 @@ class MockCalcContext(CalcContext):
         self._mock_activities_range = []
         self._mock_daily_series = {}
         self._mock_activity_metrics = {}
+        self._mock_activity_metric_series = {}  # {metric_name: [{"numeric":..., "activity_type":...}]}
+        self._mock_wellness_series = []
 
     def _build_metric_cache(self, metrics: dict) -> dict:
         """{'trimp': 85.0} → {('trimp', None): ..., ('trimp', provider): ...}"""
@@ -77,6 +79,18 @@ class MockCalcContext(CalcContext):
 
     def get_daily_load(self, date_str: str) -> float:
         return self._mock_daily_series.get("_daily_load", {}).get(date_str, 0)
+
+
+    def get_activity_metric_series(self, metric_name: str, days: int,
+                                    activity_type: str = None,
+                                    include_json: bool = False) -> list[dict]:
+        data = self._mock_activity_metric_series.get(metric_name, [])
+        if activity_type:
+            data = [d for d in data if d.get("activity_type") == activity_type]
+        return data
+
+    def get_wellness_series(self, days: int, fields: list[str] = None) -> list[dict]:
+        return self._mock_wellness_series
 
     def get_laps(self, activity_id: int = None) -> list[dict]:
         return []

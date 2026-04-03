@@ -348,6 +348,86 @@ class CalcContext:
 
     # ── 계산 결과를 metric_cache에 즉시 반영 ──
 
+    def get_activity_metric_series(self, metric_name: str, days: int,
+                                    activity_type: str = None,
+                                    include_json: bool = False,
+                                    ) -> list[dict]:
+        """activity-scope metric을 날짜 범위로 조회.
+
+        반환: [{"activity_id": int, "date": str, "numeric": float,
+                "json": str|None, "activity_type": str}, ...]
+        패턴 A 쿼리를 범용화: tpdi, rec, sapi, teroi 등에서 사용.
+        """
+        if self.scope_type == "daily":
+            end_date = self.scope_id
+        else:
+            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (
+            datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=days)
+        ).strftime("%Y-%m-%d")
+
+        cols = "ms.numeric_value, a.id, DATE(a.start_time), a.activity_type"
+        if include_json:
+            cols += ", ms.json_value"
+
+        sql = (
+            f"SELECT {cols} FROM metric_store ms "
+            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
+            "WHERE ms.metric_name=? AND ms.scope_type='activity' "
+            "AND ms.numeric_value IS NOT NULL "
+            "AND DATE(a.start_time) BETWEEN ? AND ?"
+        )
+        params: list = [metric_name, start_date, end_date]
+        if activity_type:
+            sql += " AND a.activity_type = ?"
+            params.append(activity_type)
+        sql += " ORDER BY a.start_time"
+
+        rows = self.conn.execute(sql, params).fetchall()
+        results = []
+        for r in rows:
+            entry = {
+                "numeric": r[0], "activity_id": r[1],
+                "date": r[2], "activity_type": r[3],
+            }
+            if include_json:
+                entry["json"] = r[4]
+            results.append(entry)
+        return results
+
+    def get_wellness_series(self, days: int,
+                            fields: list[str] = None) -> list[dict]:
+        """daily_wellness 이력을 날짜 범위로 조회.
+
+        반환: [{"date": str, field1: val, field2: val, ...}, ...]
+        패턴 C 쿼리를 범용화: crs 등에서 사용.
+        """
+        if self.scope_type == "daily":
+            end_date = self.scope_id
+        else:
+            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        start_date = (
+            datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=days)
+        ).strftime("%Y-%m-%d")
+
+        if fields:
+            cols = ", ".join(["date"] + fields)
+        else:
+            cols = "*"
+
+        rows = self.conn.execute(
+            f"SELECT {cols} FROM daily_wellness "
+            "WHERE date BETWEEN ? AND ? ORDER BY date",
+            [start_date, end_date],
+        ).fetchall()
+
+        if not rows:
+            return []
+        col_names = [d[0] for d in self.conn.execute(
+            f"SELECT {cols} FROM daily_wellness LIMIT 0"
+        ).description]
+        return [dict(zip(col_names, row)) for row in rows]
+
     def update_metric_cache(self, metric_name: str, provider: str,
                             numeric: float = None, text: str = None, json_val: str = None):
         """후속 calculator가 방금 계산된 값을 참조할 수 있도록 캐시 업데이트."""

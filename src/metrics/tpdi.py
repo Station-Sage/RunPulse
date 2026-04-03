@@ -34,33 +34,17 @@ class TPDICalculator(MetricCalculator):
         td = date.fromisoformat(target)
         start = (td - timedelta(weeks=8)).isoformat()
 
-        # 실외 FEARP
-        outdoor_rows = ctx.conn.execute(
-            "SELECT ms.numeric_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='fearp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND a.activity_type IN ('running', 'trail_running') "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
+        # 실외/실내 FEARP — CalcContext API
+        outdoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="running")
+        trail_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="trail_running")
+        outdoor_data = outdoor_data + trail_data
+        indoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="treadmill")
 
-        # 실내 FEARP
-        indoor_rows = ctx.conn.execute(
-            "SELECT ms.numeric_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='fearp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND a.activity_type = 'treadmill' "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
-
-        if not outdoor_rows or not indoor_rows:
+        if not outdoor_data or not indoor_data:
             return []
 
-        outdoor_avg = sum(r[0] for r in outdoor_rows) / len(outdoor_rows)
-        indoor_avg = sum(r[0] for r in indoor_rows) / len(indoor_rows)
+        outdoor_avg = sum(d["numeric"] for d in outdoor_data) / len(outdoor_data)
+        indoor_avg = sum(d["numeric"] for d in indoor_data) / len(indoor_data)
 
         if outdoor_avg <= 0:
             return []
@@ -72,8 +56,8 @@ class TPDICalculator(MetricCalculator):
             json_val={
                 "outdoor_avg": round(outdoor_avg, 1),
                 "indoor_avg": round(indoor_avg, 1),
-                "outdoor_count": len(outdoor_rows),
-                "indoor_count": len(indoor_rows),
+                "outdoor_count": len(outdoor_data),
+                "indoor_count": len(indoor_data),
             },
         
             confidence=1.0,

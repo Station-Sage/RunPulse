@@ -56,18 +56,14 @@ class CriticalPowerCalculator(MetricCalculator):
 
         powers, durations = [], []
 
-        # 1. power_curve JSON에서
-        rows = ctx.conn.execute(
-            "SELECT ms.json_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='power_curve' AND ms.scope_type='activity' "
-            "AND ms.json_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
-        for row in rows:
+        # 1. power_curve JSON에서 — CalcContext API
+        pc_data = ctx.get_activity_metric_series("power_curve", days=84, include_json=True)
+        for entry in pc_data:
             try:
-                pc = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                raw_json = entry.get("json")
+                if not raw_json:
+                    continue
+                pc = json.loads(raw_json) if isinstance(raw_json, str) else raw_json
                 if isinstance(pc, dict):
                     for t_str, p in pc.items():
                         t = int(t_str)
@@ -79,17 +75,12 @@ class CriticalPowerCalculator(MetricCalculator):
 
         # 2. 활동별 avg_power + duration
         if len(powers) < 3:
-            act_rows = ctx.conn.execute(
-                "SELECT avg_power, moving_time_sec FROM activity_summaries "
-                "WHERE avg_power IS NOT NULL AND avg_power > 0 "
-                "AND moving_time_sec >= 120 "
-                "AND DATE(start_time) BETWEEN ? AND ? "
-                "ORDER BY start_time DESC LIMIT 20",
-                (start, target),
-            ).fetchall()
-            for p, t in act_rows:
-                powers.append(float(p))
-                durations.append(float(t))
+            activities = ctx.get_activities_in_range(days=90)
+            for a in activities:
+                p, t = a.get("avg_power"), a.get("moving_time_sec")
+                if p and p > 0 and t and t >= 120:
+                    powers.append(float(p))
+                    durations.append(float(t))
 
         if len(powers) < 3:
             return []

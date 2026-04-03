@@ -44,15 +44,8 @@ class TEROICalculator(MetricCalculator):
         ctl_start = series[0][1] if series else 0.0
 
         # 28일간 총 TRIMP
-        rows = ctx.conn.execute(
-            "SELECT SUM(ms.numeric_value) FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='trimp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchone()
-        total_trimp = float(rows[0]) if rows and rows[0] else 0.0
+        trimp_series = ctx.get_activity_metric_series("trimp", days=28)
+        total_trimp = sum(d["numeric"] for d in trimp_series) if trimp_series else 0.0
 
         if total_trimp <= 0:
             return []

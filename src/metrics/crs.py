@@ -158,12 +158,9 @@ class CRSCalculator(MetricCalculator):
         if hrv_today is not None:
             td = date.fromisoformat(ctx.scope_id)
             since = (td - timedelta(days=7)).isoformat()
-            rows = ctx.conn.execute(
-                "SELECT hrv_weekly_avg FROM daily_wellness "
-                "WHERE hrv_weekly_avg IS NOT NULL AND date BETWEEN ? AND ?",
-                (since, ctx.scope_id),
-            ).fetchall()
-            vals = [float(r[0]) for r in rows if r[0]]
+            wellness_hist = ctx.get_wellness_series(days=7, fields=["hrv_weekly_avg"])
+            vals = [float(w["hrv_weekly_avg"]) for w in wellness_hist
+                    if w.get("hrv_weekly_avg") is not None]
             hrv_rolling = sum(vals) / len(vals) if vals else None
 
         # 게이트 평가

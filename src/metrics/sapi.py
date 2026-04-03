@@ -45,19 +45,11 @@ class SAPICalculator(MetricCalculator):
         td = date.fromisoformat(target)
         start = (td - timedelta(days=90)).isoformat()
 
-        # FEARP + json (기온 정보 포함) 수집
-        rows = ctx.conn.execute(
-            "SELECT ms.numeric_value, ms.json_value, DATE(a.start_time) "
-            "FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='fearp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchall()
-
-        if len(rows) < 3:
+        # FEARP + json (기온 정보 포함) — CalcContext API
+        all_fearp = ctx.get_activity_metric_series("fearp", days=90, include_json=True)
+        if len(all_fearp) < 3:
             return []
+        rows = [(d["numeric"], d.get("json"), d["date"]) for d in all_fearp]
 
         # 기온 구간별 집계
         bin_data: dict[str, list[float]] = {b[0]: [] for b in _TEMP_BINS}
@@ -84,18 +76,10 @@ class SAPICalculator(MetricCalculator):
             return []
 
         # 최근 7일 평균 FEARP
-        recent_start = (td - timedelta(days=7)).isoformat()
-        recent_rows = ctx.conn.execute(
-            "SELECT ms.numeric_value FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
-            "WHERE ms.metric_name='fearp' AND ms.scope_type='activity' "
-            "AND ms.numeric_value IS NOT NULL "
-            "AND DATE(a.start_time) BETWEEN ? AND ?",
-            (recent_start, target),
-        ).fetchall()
-        if not recent_rows:
+        recent_fearp = ctx.get_activity_metric_series("fearp", days=7)
+        if not recent_fearp:
             return []
-        current_avg = sum(r[0] for r in recent_rows) / len(recent_rows)
+        current_avg = sum(d["numeric"] for d in recent_fearp) / len(recent_fearp)
         if current_avg <= 0:
             return []
 
