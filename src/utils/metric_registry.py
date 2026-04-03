@@ -281,6 +281,67 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("weight_setting", "athlete", "kg", "설정 체중", scope="athlete"),
     MetricDef("ftp_setting", "athlete", "W", "설정 FTP", scope="athlete"),
     MetricDef("lthr_setting", "athlete", "bpm", "설정 LTHR", scope="athlete"),
+
+    # ── 추가 메트릭 정의 (기존 _DEFINITIONS 리스트에 append) ──
+
+    # --- Running Dynamics 확장 ---
+    MetricDef("ground_contact_time_balance", "dynamics", "activity", "%", ["gct_balance", "ground_contact_balance"]),
+    MetricDef("stance_time", "dynamics", "activity", "ms", ["ground_contact_time_left", "ground_contact_time_right"]),
+    MetricDef("leg_spring_stiffness", "dynamics", "activity", "kN/m", ["lss"]),
+    MetricDef("form_power", "dynamics", "activity", "W", ["running_form_power"]),
+    MetricDef("impact_loading_rate", "dynamics", "activity", "BW/s", ["ilr"]),
+
+    # --- HR Zone 확장 ---
+    MetricDef("hr_zone_1_sec", "hr_zone", "activity", "s", ["time_in_zone_1", "hr_z1_time"]),
+    MetricDef("hr_zone_2_sec", "hr_zone", "activity", "s", ["time_in_zone_2", "hr_z2_time"]),
+    MetricDef("hr_zone_3_sec", "hr_zone", "activity", "s", ["time_in_zone_3", "hr_z3_time"]),
+    MetricDef("hr_zone_4_sec", "hr_zone", "activity", "s", ["time_in_zone_4", "hr_z4_time"]),
+    MetricDef("hr_zone_5_sec", "hr_zone", "activity", "s", ["time_in_zone_5", "hr_z5_time"]),
+    MetricDef("hr_zone_1_pct", "hr_zone", "activity", "%", ["pct_hr_zone_1"]),
+    MetricDef("hr_zone_2_pct", "hr_zone", "activity", "%", ["pct_hr_zone_2"]),
+    MetricDef("hr_zone_3_pct", "hr_zone", "activity", "%", ["pct_hr_zone_3"]),
+    MetricDef("hr_zone_4_pct", "hr_zone", "activity", "%", ["pct_hr_zone_4"]),
+    MetricDef("hr_zone_5_pct", "hr_zone", "activity", "%", ["pct_hr_zone_5"]),
+
+    # --- Power Zone ---
+    MetricDef("power_zone_1_sec", "power_zone", "activity", "s", ["time_in_power_zone_1"]),
+    MetricDef("power_zone_2_sec", "power_zone", "activity", "s", ["time_in_power_zone_2"]),
+    MetricDef("power_zone_3_sec", "power_zone", "activity", "s", ["time_in_power_zone_3"]),
+    MetricDef("power_zone_4_sec", "power_zone", "activity", "s", ["time_in_power_zone_4"]),
+    MetricDef("power_zone_5_sec", "power_zone", "activity", "s", ["time_in_power_zone_5"]),
+
+    # --- Pace splits ---
+    MetricDef("pace_1k", "pace", "activity", "s/km", ["split_1k_pace"]),
+    MetricDef("pace_5k", "pace", "activity", "s/km", ["split_5k_pace"]),
+    MetricDef("pace_10k", "pace", "activity", "s/km", ["split_10k_pace"]),
+    MetricDef("negative_split_ratio", "pace", "activity", "ratio", ["neg_split"]),
+
+    # --- Wellness 확장 ---
+    MetricDef("sleep_deep_sec", "sleep", "daily", "s", ["deep_sleep_duration", "deep_sleep_seconds"]),
+    MetricDef("sleep_light_sec", "sleep", "daily", "s", ["light_sleep_duration", "light_sleep_seconds"]),
+    MetricDef("sleep_rem_sec", "sleep", "daily", "s", ["rem_sleep_duration", "rem_sleep_seconds"]),
+    MetricDef("sleep_awake_sec", "sleep", "daily", "s", ["awake_duration", "awake_seconds"]),
+    MetricDef("respiration_rate", "wellness", "daily", "brpm", ["avg_respiration", "breathing_rate"]),
+    MetricDef("spo2_avg", "wellness", "daily", "%", ["avg_spo2", "blood_oxygen"]),
+    MetricDef("stress_avg", "wellness", "daily", "score", ["avg_stress_level", "stress_level"]),
+    MetricDef("calories_active", "wellness", "daily", "kcal", ["active_calories"]),
+    MetricDef("calories_total", "wellness", "daily", "kcal", ["total_calories"]),
+    MetricDef("steps", "wellness", "daily", "count", ["daily_steps", "step_count"]),
+    MetricDef("floors_climbed", "wellness", "daily", "count", ["floors"]),
+    MetricDef("intensity_minutes", "wellness", "daily", "min", ["intensity_mins", "vigorous_minutes"]),
+
+    # --- Training Load 확장 ---
+    MetricDef("training_effect_aerobic", "training_load", "activity", "score", ["aerobic_te", "aerobic_training_effect"]),
+    MetricDef("training_effect_anaerobic", "training_load", "activity", "score", ["anaerobic_te", "anaerobic_training_effect"]),
+    MetricDef("training_load_peak", "training_load", "activity", "score", ["peak_training_load"]),
+    MetricDef("performance_condition", "training_load", "activity", "score", ["perf_condition"]),
+
+    # --- Race Prediction ---
+    MetricDef("predicted_5k_sec", "prediction", "athlete", "s", ["race_pred_5k"]),
+    MetricDef("predicted_10k_sec", "prediction", "athlete", "s", ["race_pred_10k"]),
+    MetricDef("predicted_half_sec", "prediction", "athlete", "s", ["race_pred_half"]),
+    MetricDef("predicted_full_sec", "prediction", "athlete", "s", ["race_pred_marathon"]),
+
 ]
 
 
@@ -315,8 +376,11 @@ METRIC_CATEGORIES: dict[str, str] = {
     "sleep": "수면 상세",
     "stress": "스트레스",
     "readiness": "훈련 준비도",
-    "prediction": "예측",
+    "prediction": "레이스 예측",
     "pmc": "성과 관리 차트",
+    "pace":        "페이스 / 스플릿",
+    "dynamics": "러닝 다이내믹스 (확장)", 
+    "wellness": "일일 웰니스", 
     "rp_readiness": "RunPulse 준비도",
     "rp_risk": "RunPulse 부상 위험",
     "rp_load": "RunPulse 부하 분석",
