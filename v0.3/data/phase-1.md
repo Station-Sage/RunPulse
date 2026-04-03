@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS source_payloads (
 
 ### `activity_summaries` — 핵심 설계
 
-여기가 가장 중요합니다. v0.3 설계서에서 ~45컬럼으로 정의했는데, 이제 하나하나 확정합니다.
+여기가 가장 중요합니다. v0.3 설계서에서 ~44컬럼으로 정의했는데, 이제 하나하나 확정합니다.
 
 **컬럼 포함 기준 재확인**:
 
@@ -219,7 +219,7 @@ updated_at              TEXT DEFAULT (datetime('now')),
 
 ---
 
-### `activity_summaries` 최종 DDL — 46컬럼 확정
+### `activity_summaries` 최종 DDL — 44컬럼 확정
 
 ```sql
 CREATE TABLE IF NOT EXISTS activity_summaries (
@@ -311,7 +311,7 @@ CREATE INDEX IF NOT EXISTS idx_as_gear ON activity_summaries(gear_id);
 
 | 항목 | v0.2 (기존) | v0.3 (신규) | 사유 |
 |------|------------|------------|------|
-| 총 컬럼 수 | 80+ (대부분 미사용) | 46 (전부 용도 명확) | 역할 분리 |
+| 총 컬럼 수 | 80+ (대부분 미사용) | 44 (전부 용도 명확) | 역할 분리 |
 | 거리 단위 | `distance_km` (REAL) | `distance_m` (REAL) | SI 통일, 소스 원본 m |
 | `sport_type` | 있음 | 제거 | → metric_store |
 | `workout_label` | 있음 | 제거 | → metric_store (runpulse:rule) |
@@ -660,7 +660,7 @@ Garmin 우선순위를 1로 합니다. 이유: Garmin이 가장 많은 필드를
 | # | 테이블 | Layer | 컬럼 수 | 예상 행 수 (1년) |
 |---|--------|-------|---------|-----------------|
 | 1 | `source_payloads` | 0 | 10 | ~3,000 |
-| 2 | `activity_summaries` | 1 | 46 | ~600 |
+| 2 | `activity_summaries` | 1 | 44 | ~600 |
 | 3 | `daily_wellness` | 1 | 15 | ~365 |
 | 4 | `daily_fitness` | 1 | 9 | ~1,100 (365×3 소스) |
 | 5 | `metric_store` | 2 | 16 | ~50,000 |
@@ -808,7 +808,7 @@ def resolve_primaries_for_scope(conn, scope_type: str, scope_id: str):
 def upsert_activity_summary(conn, data: dict) -> int:
     """activity_summaries에 INSERT OR REPLACE. 반환: id"""
     # data에서 key가 activity_summaries 컬럼에 해당하는 것만 필터
-    valid_columns = get_activity_summary_columns()  # 46개 컬럼명 set
+    valid_columns = get_activity_summary_columns()  # 44개 컬럼명 set
     filtered = {k: v for k, v in data.items() if k in valid_columns and v is not None}
     
     columns = ", ".join(filtered.keys())
@@ -995,7 +995,7 @@ def test_all_tables_created():
     """13개 데이터 테이블 + 5개 앱 테이블 + 1 뷰 존재 확인"""
 
 def test_activity_summaries_columns():
-    """46개 컬럼명과 타입 검증"""
+    """44개 컬럼명과 타입 검증"""
 
 def test_metric_store_unique_constraint():
     """같은 (scope_type, scope_id, metric_name, provider) 중복 삽입 시 REPLACE 확인"""
@@ -1077,7 +1077,7 @@ def test_get_all_providers():
 1. `python src/db_setup.py` 실행 시 빈 DB가 정상 생성됨
 2. `PRAGMA user_version` = 10
 3. 13개 테이블 + 1개 뷰 + 5개 앱 테이블 존재
-4. `activity_summaries` PRAGMA table_info로 46개 컬럼 확인
+4. `activity_summaries` PRAGMA table_info로 44 컬럼 확인
 5. `metric_registry.py`에 120+ 메트릭 정의, alias 충돌 없음
 6. `canonicalize()` 테스트 통과
 7. `resolve_primary()` 테스트 통과
@@ -1085,7 +1085,6 @@ def test_get_all_providers():
 9. `get_primary_metrics()`, `get_all_providers_for_metric()` 테스트 통과
 10. `pytest tests/test_db_setup.py tests/test_metric_registry.py tests/test_metric_priority.py tests/test_db_helpers.py` 전체 통과
 
----
 ---
 
 ## 구현 결과 (Implementation Result)
