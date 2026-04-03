@@ -30,10 +30,12 @@ class TestCalculatorMetadata:
             if calc.ranges is not None:
                 assert isinstance(calc.ranges, dict), f"{calc.name} ranges not dict"
                 for label, bounds in calc.ranges.items():
-                    if isinstance(bounds, (list, tuple)):
-                        assert len(bounds) == 2, f"{calc.name} range needs [low, high]"
-                    else:
-                        assert isinstance(bounds, (int, float)), f"{calc.name} range must be number or list"
+                    assert isinstance(bounds, (list, tuple)), \
+                        f"{calc.name} range '{label}' must be [low, high], got {type(bounds).__name__}"
+                    assert len(bounds) == 2, \
+                        f"{calc.name} range '{label}' needs [low, high], got length {len(bounds)}"
+                    assert bounds[0] <= bounds[1], \
+                        f"{calc.name} range '{label}' low ({bounds[0]}) > high ({bounds[1]})"
 
     def test_groups_have_members(self):
         for name, group in SEMANTIC_GROUPS.items():
