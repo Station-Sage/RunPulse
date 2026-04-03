@@ -803,6 +803,64 @@ METRIC_CATEGORIES = {
 
 ---
 
+
+
+## Part 4.5: Metrics Engine — CalcContext API 설계 (2026-04-04 추가)
+
+### 설계 원칙: Calculator = 순수 함수
+
+MetricCalculator는 CalcContext API를 통해서만 데이터에 접근합니다. ctx.conn.execute()로 raw SQL을 직접 실행하는 것은 금지입니다 (ADR-009).
+
+이 원칙의 근거:
+1. **스키마 독립성**: 테이블 구조 변경 시 CalcContext만 수정하면 32개 calculator는 영향 없음
+2. **테스트 용이성**: MockCalcContext로 DB 없이 단위 테스트 가능
+3. **A/B 테스트 지원**: 동일 입력에 대해 알고리즘만 교체하여 비교 실험 가능
+4. **확장성**: 메트릭과 스포츠 종목이 계속 증가해도 calculator 개발자는 SQL을 몰라도 됨
+
+### CalcContext API 표면 (13개 메서드)
+
+| 메서드 | 반환 | 용도 |
+|--------|------|------|
+| activity | dict | 현재 activity의 activity_summaries 전체 |
+| get_metric(name) | float or None | 현재 scope의 primary numeric_value |
+| get_metric_json(name) | str or None | 현재 scope의 primary json_value |
+| get_metric_text(name) | str or None | 현재 scope의 primary text_value |
+| get_wellness() | dict | 현재 날짜의 daily_wellness |
+| get_streams() | dict | activity의 time-series |
+| get_laps() | list[dict] | activity의 랩 |
+| get_activities_in_range(days, activity_type?) | list[dict] | 날짜 범위 활동 목록 |
+| get_activity_metric(activity_id, name) | float or None | 특정 activity의 numeric_value |
+| get_activity_metric_text(activity_id, name) | str or None | 특정 activity의 text_value |
+| get_daily_metric_series(name, days) | list[dict] | daily-scope metric 시계열 |
+| get_daily_load(date_str) | float | 특정 날짜의 TRIMP 합산 (prefetch) |
+| get_activity_metric_series(name, days, activity_type?, include_json?) | list[dict] | activity-scope metric 시계열 + 필터 |
+| get_wellness_series(days, fields?) | list[dict] | daily_wellness 히스토리 |
+
+### Prefetch 최적화
+
+engine.py가 배치 실행 시 다음을 미리 로드하여 N+1 쿼리 문제를 방지합니다:
+
+- _prefetched_activity_data — activity_summaries 전체
+- _prefetched_metrics — 해당 scope의 metric_store
+- _prefetched_wellness_map — daily_wellness (daily-scope 전용)
+- _prefetched_daily_loads — 날짜별 TRIMP 합산 (PMC/LSI/Monotony 전용)
+
+### Calculator 메타데이터
+
+모든 calculator는 UI 연동을 위한 7개 속성을 선언합니다: display_name, description, unit, ranges ([low, high] 리스트, ADR-007), higher_is_better, format_type, decimal_places.
+
+### 시맨틱 그룹 (13개)
+
+src/utils/metric_groups.py에서 동일 개념의 소스별 메트릭을 그룹으로 묶어 비교 뷰를 지원합니다: training_load, training_strain, heart_rate, efficiency, race_prediction, readiness, pmc, body_composition, sleep, vo2max, vdot, training_trend, seasonal_performance.
+
+### 현재 상태 (2026-04-04)
+
+- 32개 calculator 전부 CalcContext API 전용 (raw SQL 0건)
+- 13개 CalcContext API 메서드
+- 13개 시맨틱 그룹
+- ConfidenceBuilder 패턴으로 utrs, cirs 신뢰도 계산
+- 791 tests passed (74개 파일)
+
 ## Part 5: 전체 데이터 흐름 다이어그램
 
 ```
@@ -1282,7 +1340,7 @@ def get_unit(metric_name: str) -> str:
 13. `intervals_activity_sync.py` 전면 재작성
 14. `reprocess.py`
 
-### Phase 4 — Metrics Engine 정비 (3일)
+### Phase 4 — Metrics Engine 구현 + 포팅 + API 정비 (완료, 2026-04-04)
 
 15. `workout_classifier.py` → metric_store 직접 조회
 16. 나머지 metrics/*.py → 정규 이름 기반 조회

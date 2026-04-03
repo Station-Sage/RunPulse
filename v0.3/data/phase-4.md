@@ -3474,3 +3474,50 @@ Phase 1-2-3-4 설계 원칙 대비 전수 점검 후 수정 완료:
 | test_round4.py | 단일 숫자 허용 | [low,high]만 허용 + low≤high 검증 |
 | GUIDE.md | v0.2 기준 (store.py, computed_metrics) | v0.3 기준 전면 재작성 |
 | architecture.md | computed_metrics 잔존 | metric_store로 수정 |
+
+---
+
+### 구현 완료 상태 (2026-04-04 최종)
+
+#### Phase 4 DoD 11/11 완료
+
+| # | 완료 기준 | 상태 |
+|---|----------|------|
+| 1 | ALL_CALCULATORS에 32개 calculator 등록 | OK |
+| 2 | _topological_sort() 의존성 순서 해소 (TRIMP < PMC < ACWR < CIRS) | OK |
+| 3 | recompute_recent(conn, days=7) 에러 없이 완료 | OK |
+| 4 | metric_store에 provider LIKE 'runpulse%' 행 존재 | OK |
+| 5 | 각 activity에 최소 TRIMP, workout_type, efficiency_factor 3개 이상 | OK |
+| 6 | 각 date에 최소 CTL, ATL, TSB, UTRS 4개 이상 | OK |
+| 7 | clear_runpulse_metrics() 후 recompute_all() 동일 결과 재현 | OK |
+| 8 | 소스 메트릭은 clear_runpulse_metrics()에 영향 없음 | OK |
+| 9 | confidence 필드가 복합 메트릭에 설정됨 | OK |
+| 10 | json_value가 구조화 메트릭에 설정됨 | OK |
+| 11 | 독립 테스트 파일 전체 통과 | OK |
+
+#### 보강 12항목 완료
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Prefetch/Cache + CalcContext API 전용 (ADR-009) | OK (raw SQL 0건) |
+| 2 | needs_streams 플래그 | OK |
+| 3 | ComputeResult 에러 추적 | OK |
+| 4 | Dirty Tracking | OK |
+| 5 | MockCalcContext (DB-less 테스트) | OK (독립 파일에 mock 포함) |
+| 6 | ConfidenceBuilder | OK (utrs, cirs 적용) |
+| 7 | Calculator 메타데이터 (7 속성) | OK |
+| 8 | Semantic Grouping (13개 그룹) | OK |
+| 9 | 메트릭 이름 충돌 검증 | OK |
+| 10 | 재계산 CLI 세분화 | OK |
+| 11 | Daily Prefetch 상세 | OK |
+| 12 | Phase 3-4 통합 (integration.py) | OK |
+
+#### CalcContext API (13개)
+
+activity, get_metric, get_metric_json, get_metric_text, get_wellness, get_streams, get_laps, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_daily_metric_series, get_daily_load, get_activity_metric_series, get_wellness_series
+
+#### 테스트 현황
+
+- 독립 메트릭 테스트 13개 파일 신규 (relative_effort, wlei, teroi, tpdi, rec, rtti, critical_power, eftp, sapi, rri, vdot_adj, marathon_shape, crs)
+- test_porting_activity.py, test_porting_daily.py 삭제 (독립 파일로 대체)
+- 전체: **791 passed**, 0 failed (74개 파일, 28.86s)

@@ -1,7 +1,7 @@
 # RunPulse v0.3 — 파일 인덱스
 
 > 자동 생성: 2026-04-04
-> 총 테스트: **755 passed** | 32 metric calculators | 4 data sources
+> 총 테스트: **791 passed** | 32 metric calculators | 4 data sources | 74 test files
 
 ## 1. 진입점 스크립트
 
@@ -23,7 +23,7 @@
 | 파일 | 줄수 | 역할 |
 |------|------|------|
 | `__init__.py` | 0 | 패키지 init |
-| `base.py` | 405 | MetricCalculator ABC, CalcResult, CalcContext |
+| `base.py` | 440 | MetricCalculator ABC, CalcResult, CalcContext (13 API + prefetch), ConfidenceBuilder |
 | `engine.py` | 639 | ALL_CALCULATORS 등록, _save_results, run_activity/daily_metrics |
 | `cli.py` | 122 | CLI: status, recompute, validate |
 
@@ -47,17 +47,17 @@
 | `lsi.py` | 55 | daily | rp_load |
 | `marathon_shape.py` | 105 | daily | rp_performance |
 | `monotony.py` | 61 | daily | rp_load |
-| `pmc.py` | 80 | activity | rp_load |
-| `rec.py` | 77 | activity | rp_efficiency |
+| `pmc.py` | 80 | daily | rp_load |
+| `rec.py` | 77 | daily | rp_efficiency |
 | `relative_effort.py` | 76 | activity | rp_load |
-| `reprocess.py` | 87 | activity |  |
+| `reprocess.py` | 87 | — | 인프라 (재처리) |
 | `rmr.py` | 66 | daily | rp_recovery |
 | `rri.py` | 74 | daily | rp_performance |
 | `rtti.py` | 81 | daily | rp_load |
-| `sapi.py` | 141 | activity | rp_performance |
-| `teroi.py` | 77 | activity | rp_trend |
-| `tids.py` | 61 | activity | rp_distribution |
-| `tpdi.py` | 79 | activity | rp_trend |
+| `sapi.py` | 141 | daily | rp_performance |
+| `teroi.py` | 77 | daily | rp_trend |
+| `tids.py` | 61 | daily | rp_distribution |
+| `tpdi.py` | 79 | daily | rp_trend |
 | `trimp.py` | 85 | activity | rp_load |
 | `utrs.py` | 90 | daily | rp_readiness |
 | `vdot.py` | 66 | activity | rp_performance |
@@ -77,7 +77,7 @@
 | `daniels_table.py` | 242 | VDOT 테이블, 페이스 변환 |
 | `db_helpers.py` | 694 | upsert_metric, upsert_metrics_batch, DB 유틸 |
 | `dedup.py` | 218 |  |
-| `metric_groups.py` | 128 | SEMANTIC_GROUPS (11개), get_group_for_metric() |
+| `metric_groups.py` | 155 | SEMANTIC_GROUPS (13개), get_group_for_metric() |
 | `metric_priority.py` | 138 | PROVIDER_PRIORITY, resolve_primary/resolve_for_scope |
 | `metric_registry.py` | 468 | MetricDef 등록, CATEGORY_LABELS, METRIC_REGISTRY |
 | `pace.py` | 73 |  |
@@ -282,6 +282,22 @@
 | `test_db_setup.py` | 150 |
 | `test_dedup.py` | 74 |
 | `test_engine.py` | 117 |
+| `test_cirs.py` | 65 |
+| `test_critical_power.py` | 45 |
+| `test_crs.py` | 80 |
+| `test_eftp.py` | 50 |
+| `test_marathon_shape.py` | 55 |
+| `test_pmc.py` | 60 |
+| `test_rec.py` | 45 |
+| `test_relative_effort.py` | 95 |
+| `test_rri.py` | 75 |
+| `test_rtti.py` | 70 |
+| `test_sapi.py` | 70 |
+| `test_teroi.py` | 45 |
+| `test_tpdi.py` | 50 |
+| `test_utrs.py` | 80 |
+| `test_vdot_adj.py` | 45 |
+| `test_wlei.py` | 75 |
 | `test_extractor_base.py` | 76 |
 | `test_extractors_cross.py` | 305 |
 | `test_fixture_loader.py` | 17 |
@@ -301,8 +317,6 @@
 | `test_phase1_schema.py` | 778 |
 | `test_phase4_dod.py` | 322 |
 | `test_phase4_spec.py` | 271 |
-| `test_porting_activity.py` | 138 |
-| `test_porting_daily.py` | 368 |
 | `test_rate_limiter.py` | 52 |
 | `test_raw_payload.py` | 209 |
 | `test_raw_store.py` | 48 |
@@ -318,6 +332,10 @@
 | `test_sync_result.py` | 39 |
 | `test_training_fullplan.py` | 145 |
 | `test_training_month.py` | 109 |
+| `test_training_phase_f.py` | 80 |
+| `test_training_phase_g.py` | 75 |
+| `test_training_workout_edit.py` | 60 |
+| `test_unified_activities.py` | 90 |
 | `test_training_phase_f.py` | 226 |
 | `test_training_phase_g.py` | 218 |
 | `test_training_workout_edit.py` | 204 |
@@ -355,7 +373,7 @@
 | `src/web/GUIDE.md` | 143 |
 | `src/sync/GUIDE.md` | 116 |
 | `src/training/GUIDE.md` | 78 |
-| `src/metrics/GUIDE.md` | 173 |
+| `src/metrics/GUIDE.md` | 230 |
 
 ## 통계 요약
 
@@ -363,9 +381,9 @@
 |------|------|
 | Python 파일 | 354 |
 | HTML 템플릿 | 16 |
-| 테스트 파일 | 60 |
+| 테스트 파일 | 74 |
 | 총 코드 줄수 (py+html) | ~73,942 |
-| 테스트 통과 | 755 |
+| 테스트 통과 | 791 |
 | Metric Calculators | 32 |
 | 데이터 소스 | 4 (Garmin, Strava, Intervals.icu, Runalyze) |
 | DB 테이블 | 16 |

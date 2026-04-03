@@ -31,17 +31,35 @@
 | `src/metrics/engine.py` | Topological sort engine + ComputeResult + prefetch + dirty tracking |
 | `src/metrics/reprocess.py` | Layer 0→1/2 재구축 |
 | `src/metrics/cli.py` | CLI (status/recompute/clear) |
-| `src/utils/metric_groups.py` | 7개 semantic group |
+| `src/utils/metric_groups.py` | 13개 semantic group |
 | `src/sync/integration.py` | Phase 3→4 통합 |
 | `tests/helpers/mock_context.py` | MockCalcContext (DB-less testing) |
-| 테스트 10개 파일 | 108 tests — DoD, 설계서 spec, mock, naming, metadata |
+| `src/metrics/relative_effort.py` | 심박존 노력도 (activity-scope) |
+| `src/metrics/wlei.py` | 날씨 가중 노력 지수 (activity-scope) |
+| `src/metrics/teroi.py` | 훈련 효과 ROI |
+| `src/metrics/tpdi.py` | 실내/실외 FEARP 격차 |
+| `src/metrics/rec.py` | 통합 러닝 효율성 |
+| `src/metrics/rtti.py` | 달리기 내성 지수 |
+| `src/metrics/critical_power.py` | CP/W' 임계 파워 |
+| `src/metrics/eftp.py` | 역치 페이스 추정 |
+| `src/metrics/sapi.py` | 계절 성과 비교 |
+| `src/metrics/rri.py` | 레이스 준비도 종합 |
+| `src/metrics/vdot_adj.py` | VDOT 보정 |
+| `src/metrics/marathon_shape.py` | 마라톤 훈련 완성도 |
+| `src/metrics/crs.py` | 복합 준비도 (5-gate) |
+| 테스트 27개 파일 | 791 tests — DoD, 설계서 spec, mock, naming, metadata, 독립 메트릭 테스트 |
 
 ### Phase 4 핵심 성과
 
-- **19개 calculator**: activity-scope 8개 + daily-scope 11개, 의존성 자동 해소
-- **보강 12항목 완료**: Prefetch/Cache, ComputeResult, Dirty Tracking, MockCalcContext, ConfidenceBuilder, UI 메타데이터, Semantic Grouping, 이름 충돌 검증, CLI, Daily Prefetch, Phase 3↔4 통합
-- **DoD 11/11 통과**: ALL_CALCULATORS 19개, topological sort, recompute 무에러, metric_store 저장, confidence/json_value 설정 등
-- **108 tests passed** in 0.94s
+- **32개 calculator**: activity-scope 10개 + daily-scope 22개, 의존성 자동 해소
+- **v0.2→v0.3 포팅 완료**: 13개 메트릭 (relative_effort, wlei, teroi, tpdi, rec, rtti, critical_power, eftp, sapi, rri, vdot_adj, marathon_shape, crs)
+- **CalcContext API 전용**: 32개 calculator 전부 CalcContext API만 사용, raw SQL 0건 (ADR-009)
+- **CalcContext API 13개**: get_metric, get_wellness, get_activities_in_range, get_activity_metric_series, get_wellness_series 등
+- **ConfidenceBuilder 적용**: utrs.py, cirs.py
+- **시맨틱 그룹 13개**: training_load, training_strain, heart_rate, efficiency, race_prediction, readiness, pmc, body_composition, sleep, vo2max, vdot, training_trend, seasonal_performance
+- **보강 12항목 완료**: Prefetch/Cache, ComputeResult, Dirty Tracking, MockCalcContext, ConfidenceBuilder, UI 메타데이터, Semantic Grouping, 이름 충돌 검증, CLI, Daily Prefetch, Phase 3↔4 통합, raw SQL 제거
+- **DoD 11/11 통과**: ALL_CALCULATORS 32개, topological sort, recompute 무에러, metric_store 저장, confidence/json_value 설정 등
+- **791 tests passed** (74개 파일, 28.86s)
 
 
 

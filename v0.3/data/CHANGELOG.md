@@ -17,6 +17,32 @@
 - 전체 테스트: 755 passed, 0 failed
 
 # CHANGELOG — RunPulse v0.3 Data Architecture
+
+## [Phase 4 완료] CalcContext API 전환 + 문서 정비 — 2026-04-04
+
+### Added
+- `CalcContext.get_activity_metric_series()` — activity-scope metric 시계열 (activity_type 필터, JSON 포함)
+- `CalcContext.get_wellness_series()` — daily_wellness 히스토리 조회
+- `CalcContext.get_activity_metric_text()` — activity-scope text_value 조회
+- `MockCalcContext`에 위 3개 API mock 구현
+- ADR-009: Calculator 데이터 접근 정책 (CalcContext API 전용, raw SQL 금지)
+- 독립 테스트 파일 13개: test_relative_effort, test_wlei, test_teroi, test_tpdi, test_rec, test_rtti, test_critical_power, test_eftp, test_sapi, test_rri, test_vdot_adj, test_marathon_shape, test_crs
+- 시맨틱 그룹 3개 추가: training_trend (teroi/tpdi/adti), seasonal_performance (sapi/fearp), training_load에 wlei/rtti 편입 → 총 13개 그룹
+
+### Changed
+- **9개 신규 calculator raw SQL → CalcContext API 전환**: teroi, tpdi, rec, critical_power, eftp, sapi, marathon_shape, crs, vdot_adj
+- **2개 기존 calculator raw SQL → CalcContext API 전환**: pmc (_get_daily_loads → get_daily_load), tids (workout_type → get_activity_metric_text)
+- `src/metrics/*.py` 내 `ctx.conn.execute` 잔여: **0건** (32개 calculator 전부 CalcContext API 전용)
+- ConfidenceBuilder 적용: utrs.py, cirs.py (수동 가중치 계산 → ConfidenceBuilder 패턴)
+- MockCalcContext 테스트 분리: test_mock_calcs.py에서 각 메트릭 독립 파일로 mock 테스트 이동
+- test_porting_activity.py, test_porting_daily.py 삭제 (독립 파일로 대체)
+
+### Verified
+- 전체 테스트: **791 passed**, 0 failed (74개 테스트 파일, 28.86s)
+- 32개 calculator × CalcContext API 전용 확인
+- 13개 시맨틱 그룹 전체 메트릭 포함 확인
+- DoD 11/11, 보강 12/12 항목 완료
+
 ## [Phase 4 추가] v0.2→v0.3 메트릭 포팅 완료 — 2026-04-03
 
 ### Added (13 calculators + 1 utility)

@@ -47,3 +47,17 @@
 - **맥락**: metric_registry의 소스 메트릭은 training_load, efficiency 등 일반 카테고리, RunPulse calculator는 rp_ 접두사 사용
 - **결정**: 의도적 분리 유지. 소스 메트릭(garmin/strava/intervals)은 도메인별 카테고리, RunPulse 메트릭은 rp_ 접두사
 - **결과**: UI에서 소스별/RunPulse별 필터링 가능, 이름 충돌 방지
+
+## ADR-009: Calculator 데이터 접근 정책 — CalcContext API 전용
+- **날짜**: 2026-04-04
+- **맥락**: MetricCalculator 내부에서 `ctx.conn.execute()`로 raw SQL을 직접 실행하면, 스키마 변경 시 모든 calculator를 수정해야 하고, MockCalcContext로 단위 테스트가 불가능하며, A/B 테스트 시 입력 데이터를 통제할 수 없음. 메트릭 공식은 지속적으로 변경·확장될 예정이므로 calculator의 순수 함수화가 필수.
+- **결정**: Calculator는 반드시 CalcContext API(13개 메서드)만 사용하여 데이터에 접근. `ctx.conn.execute()` 직접 호출 금지. 필요한 쿼리 패턴이 없으면 CalcContext에 새 API를 추가.
+- **적용 범위**:
+  - Level 1 (필수): 단일 scope metric/wellness → `get_metric()`, `get_wellness()` 등
+  - Level 2 (필수): 히스토리 조회 → `get_daily_metric_series()`, `get_activities_in_range()`, `get_activity_metric_series()`, `get_wellness_series()`
+- **신규 API (이 정책을 위해 추가됨)**:
+  - `get_activity_metric_series(name, days, activity_type?, include_json?)` — activity-scope metric 시계열 + activity_type 필터
+  - `get_wellness_series(days, fields?)` — daily_wellness 히스토리
+  - `get_activity_metric_text(activity_id, name)` — activity-scope text_value 조회
+- **결과**: 32개 calculator 전부 CalcContext API 전용으로 전환 완료. `src/metrics/*.py` 내 `ctx.conn.execute` 잔여 0건. Calculator가 순수 함수로 동작하여 Mock 테스트, A/B 테스트, 스키마 변경 시 영향 최소화.
+- **검증**: `grep -rc "ctx.conn.execute" src/metrics/*.py` → 0
