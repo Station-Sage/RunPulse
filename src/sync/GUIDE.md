@@ -1,62 +1,116 @@
-# src/sync/ GUIDE — 4소스 데이터 동기화
+# src/sync/ GUIDE — v0.3 Sync Orchestrator
 
-## 구조
-- 소스별 오케스트레이터 (`garmin.py`, `strava.py`, `intervals.py`, `runalyze.py`)
-- 각 오케스트레이터 아래 세부 모듈 (auth, activity_sync, wellness_sync 등)
-- `src/sync.py` (CLI 진입점) → ThreadPoolExecutor 4소스 병렬 실행
-- sync 완료 후 `src/metrics/engine.py` 자동 호출 (메트릭 재계산 훅)
+## 아키텍처 개요
 
-## 파일 맵
+v0.3에서 sync 모듈은 **5-Layer 파이프라인**의 Layer 0 → Layer 1/2 데이터 흐름을 담당합니다.
 
-### Garmin (10개)
+    API 호출 → raw_store (Layer 0) → extractor → DB helpers (Layer 1/2)
+                                         ↓
+                                 SyncResult 반환 → sync_jobs 기록
+
+## 진입점
+
+| 방법 | 명령 |
+|------|------|
+| CLI (sync) | `python3 src/sync_cli.py sync --source garmin --days 7` |
+| CLI (reprocess) | `python3 src/sync_cli.py reprocess --source garmin` |
+| Python | `from src.sync.orchestrator import full_sync` |
+
+## 파일 구조
+
+### Core (7개)
 | 파일 | 역할 |
 |------|------|
-| `garmin.py` | 통합 sync 오케스트레이터 |
-| `garmin_auth.py` | 인증. 토큰 전용 (비밀번호 fallback 없음). 경로: config `tokenstore` → `user_id` 서브폴더 → `~/.garth/` 순. 429는 `GarminConnectTooManyRequestsError`, 토큰 없음은 `GarminAuthRequired` 발생. **주의: VPS/클라우드 IP에서 가민 SSO 및 connectapi가 차단될 수 있음 → 사용자 브라우저 로그인 + ticket 교환 방식 권장 (`views_settings_garmin.py`)** |
-| `garmin_activity_sync.py` | 활동 + splits + backfill |
-| `garmin_api_extensions.py` | streams/gear/exercise_sets |
-| `garmin_athlete_extensions.py` | profile/stats/personal_records |
-| `garmin_daily_extensions.py` | race_predictions/training_status/fitness/HR/stress/BB |
-| `garmin_wellness_sync.py` | 수면/HRV/BB/스트레스/SPO2 |
+| `orchestrator.py` | full_sync() — 전체 sync 통합 진입점, sync_jobs 기록, dedup 실행 |
+| `sync_result.py` | SyncResult dataclass — status/counts/errors/retry_after 통합 |
+| `rate_limiter.py` | 소스별 rate-limit 정책 + 429 exponential backoff |
+| `raw_store.py` | payload_hash 기반 변경 감지 (skip-unchanged) |
+| `_helpers.py` | Extractor → DB adapter (save_activity_core, save_metrics 등) |
+| `dedup.py` | 5분/3% cross-source 중복 매칭 |
+| `reprocess.py` | Layer 0 raw payload → Layer 1/2 재구축 (API 호출 없음) |
+
+### Source Orchestrators (5개)
+| 파일 | 소스 | 기능 |
+|------|------|------|
+| `garmin_activity_sync.py` | Garmin | 활동 목록/상세/스트림 sync |
+| `garmin_wellness_sync.py` | Garmin | 6개 wellness endpoint (sleep/HRV/BB/stress/summary/readiness) |
+| `strava_activity_sync.py` | Strava | OAuth + 활동 목록/상세/스트림/laps/best_efforts |
+| `intervals_activity_sync.py` | Intervals.icu | 활동 + wellness sync |
+| `runalyze_activity_sync.py` | Runalyze | 활동 목록 sync |
+
+### Legacy Wrappers (4개) — v0.2 호환용, web layer 참조
+| 파일 | 역할 |
+|------|------|
+| `garmin.py` | check_garmin_connection() + daily/athlete extensions |
+| `strava.py` | check_strava_connection() re-export |
+| `intervals.py` | check_intervals_connection() re-export |
+| `runalyze.py` | (미사용, 향후 정리 대상) |
+
+### 지원 모듈
+| 파일 | 역할 |
+|------|------|
+| `garmin_auth.py` | Garmin 토큰 인증 |
+| `garmin_helpers.py` | Garmin 공통 헬퍼 |
 | `garmin_v2_mappings.py` | ZIP/detail 필드 매핑 |
 | `garmin_backfill.py` | 기존 활동 보강 |
-| `garmin_helpers.py` | 공통 헬퍼 |
-
-### Strava (4개)
-| 파일 | 역할 |
-|------|------|
-| `strava.py` | 통합 sync 오케스트레이터 |
+| `garmin_api_extensions.py` | streams/gear/exercise_sets |
+| `garmin_athlete_extensions.py` | profile/stats/personal_records |
+| `garmin_daily_extensions.py` | race_predictions/training_status 등 |
 | `strava_auth.py` | OAuth2 토큰 관리 |
-| `strava_activity_sync.py` | 활동/streams/laps/best_efforts |
-| `strava_athlete_sync.py` | profile/stats/gear |
+| `strava_activity_sync.py` | (위 orchestrator와 동일) |
+| `strava_athlete_sync.py` | 선수 프로필/통계/기어 |
+| `intervals_auth.py` | Intervals.icu 인증 |
+| `intervals_athlete_sync.py` | 선수 프로필/통계 |
+| `intervals_wellness_sync.py` | (intervals_activity_sync.py에 통합) |
 
-### Intervals.icu (5개)
-| 파일 | 역할 |
-|------|------|
-| `intervals.py` | 통합 sync 오케스트레이터 |
-| `intervals_auth.py` | API 인증 |
-| `intervals_activity_sync.py` | 활동/intervals/streams |
-| `intervals_athlete_sync.py` | profile/stats |
-| `intervals_wellness_sync.py` | 웰니스/피트니스 (CTL/ATL/TSB) |
+## Rate Limit 정책
 
-### Runalyze (1개)
-| 파일 | 역할 |
-|------|------|
-| `runalyze.py` | VDOT/Marathon Shape/Race Prediction |
+| 소스 | 요청 간격 | 최대 재시도 | Backoff 기본값 | 일일 한도 |
+|------|----------|-----------|--------------|----------|
+| Garmin | 2초 | 3회 | 120초 | - |
+| Strava | 0.5초 | 3회 | 60초 | 2000 (15분당 200) |
+| Intervals | 0.3초 | 2회 | 30초 | - |
+| Runalyze | 1초 | 2회 | 60초 | - |
 
-## 규칙
-1. 모든 외부 API 호출은 `src/utils/api.py` 래퍼 사용 (직접 httpx/requests 금지)
-2. API 실패 시 재시도 1회 후 로그 남기고 계속 (전체 sync 중단 금지)
-3. 비밀 정보(토큰)는 `config.json`에서 로드 (`load_config()` 호출 시 자동 복호화됨). 절대 하드코딩/커밋 금지
-4. 중복 활동 매칭: timestamp ±5분 AND distance ±3% (`src/utils/dedup.py`)
-5. src/sync.py는 --user 인자로 user_id를 받아 load_config(user_id=) 및 get_db_path(user_id) 사용
+## Sync 흐름 (예: Garmin Activity)
 
-## 의존성
-- `src/utils/api.py` — HTTP 래퍼
-- `src/utils/config.py` — config.json 로드
-- `src/utils/dedup.py` — 중복 매칭
-- `src/utils/sync_jobs.py` — 동기화 작업 관리
-- `src/utils/sync_policy.py` — 동기화 정책
-- `src/utils/sync_state.py` — 동기화 상태 추적
-- `src/metrics/engine.py` — sync 완료 후 메트릭 재계산 훅
-- `src/web/bg_sync.py` — 웹에서 백그라운드 동기화 실행
+1. API에서 활동 목록 조회 (days 기간)
+2. 각 활동에 대해:
+   - raw_store.upsert_raw_payload() → 변경 감지
+   - 변경 없으면 skip
+   - extractor.extract_activity_core() → activity_summaries upsert
+   - API에서 상세 조회 → raw payload 저장
+   - extractor.extract_activity_metrics() → metric_store upsert
+   - extractor.extract_laps() → activity_laps upsert
+   - (옵션) streams 조회 → activity_streams upsert
+3. resolve_primaries() — 우선순위 기반 is_primary 플래그 설정
+4. SyncResult 반환
+
+## Reprocess 흐름
+
+API 호출 없이 Layer 0 (source_payloads)에서 Layer 1/2를 재구축:
+
+1. clear_first=True면 derived 테이블 초기화
+2. activity_summary payload → extract_activity_core → upsert
+3. activity_detail payload → extract_metrics + laps → upsert
+4. activity_streams payload → extract_streams → upsert
+5. wellness payload → extract_wellness_core + metrics → upsert
+6. dedup.run() 실행
+
+## 테스트
+
+| 파일 | 테스트 수 | 범위 |
+|------|----------|------|
+| test_sync_result.py | 5 | SyncResult merge/rate_limited/to_sync_job |
+| test_rate_limiter.py | 5 | 정책 로딩/window 제한/429 backoff |
+| test_raw_store.py | 5 | payload upsert/hash 변경 감지 |
+| test_db_helpers_batch.py | 8 | laps/streams/best_efforts batch upsert |
+| test_dedup.py | 6 | 5분/3% 매칭 규칙 |
+| test_garmin_activity_sync.py | 7 | Garmin activity sync mock |
+| test_garmin_wellness_sync.py | 6 | Garmin wellness 6 endpoint mock |
+| test_strava_sync.py | 5 | Strava OAuth + detail mock |
+| test_intervals_sync.py | 7 | Intervals activity + wellness mock |
+| test_runalyze_sync.py | 5 | Runalyze basic sync mock |
+| test_orchestrator.py | 5 | full_sync + dedup + sync_jobs |
+| test_reprocess.py | 10 | reprocess rebuild/preserve/dedup |
+| **합계** | **74** | |

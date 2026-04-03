@@ -1,7 +1,7 @@
 # BACKLOG.md — RunPulse 작업 추적
 
 ## 상태
-v0.3 | 1139 tests | DB 3.1 | fix/metrics-everythings
+v0.3 | 600 tests | Schema v10 | renew/data-architecture | Phase 3 완료
 
 ## NOW
 

@@ -2146,3 +2146,64 @@ def test_garmin_sync_full_flow(mock_garmin_api, test_db):
 11. `pytest tests/test_rate_limiter.py tests/test_raw_store.py tests/test_dedup.py tests/test_reprocess.py tests/test_sync_garmin_integration.py` 전체 통과
 
 ---
+
+---
+
+## Phase 3 완료 보고 — 2026-04-03
+
+### 상태: ✅ 완료 (DoD 11/11 충족)
+
+### 실제 산출물
+
+**신규 코어 파일 (8개)**
+- src/sync/sync_result.py — SyncResult dataclass
+- src/sync/rate_limiter.py — 소스별 rate-limit 정책
+- src/sync/raw_store.py — payload_hash 변경 감지
+- src/sync/_helpers.py — Extractor → DB adapter
+- src/sync/dedup.py — 5분/3% cross-source 매칭
+- src/sync/orchestrator.py — full_sync 통합 진입점
+- src/sync/reprocess.py — Layer 0 → Layer 1/2 재구축
+- src/sync_cli.py — CLI (sync / reprocess)
+
+**소스 Orchestrator (5개)**
+- src/sync/garmin_activity_sync.py
+- src/sync/garmin_wellness_sync.py
+- src/sync/strava_activity_sync.py
+- src/sync/intervals_activity_sync.py
+- src/sync/runalyze_activity_sync.py
+
+**버그 수정**
+- src/sync/extractors/strava_extractor.py — start_date_local fallback (ADR-006)
+- 6개 sync 모듈 datetime.utcnow() → datetime.now(timezone.utc)
+
+**테스트 (12개 파일, 74개 테스트)**
+- test_sync_result.py (5), test_rate_limiter.py (5), test_raw_store.py (5)
+- test_db_helpers_batch.py (8), test_dedup.py (6)
+- test_garmin_activity_sync.py (7), test_garmin_wellness_sync.py (6)
+- test_strava_sync.py (5), test_intervals_sync.py (7), test_runalyze_sync.py (5)
+- test_orchestrator.py (5), test_reprocess.py (10)
+
+**삭제된 v0.2 파일: 52개**
+
+### DoD 검증 결과
+
+| # | 조건 | 검증 방법 | 결과 |
+|---|------|----------|------|
+| 1 | sync --source garmin | CLI 구현 완료, mock 테스트 통과 | ✅ |
+| 2 | sync --source strava | CLI 구현 완료, mock 테스트 통과 | ✅ |
+| 3 | sync --source intervals | CLI 구현 완료, mock 테스트 통과 | ✅ |
+| 4 | reprocess Layer 0→1/2 | test_reprocess.py 10개 통과 | ✅ |
+| 5 | source_payloads ≥ activity_summaries | test_reprocess 검증 | ✅ |
+| 6 | metric_store 활동당 메트릭 | test_metrics_rebuilt 검증 | ✅ |
+| 7 | metric_store category 설정 | extractor에서 보장 | ✅ |
+| 8 | is_primary=1 정확히 1개 | test_primary_resolved 검증 | ✅ |
+| 9 | Dedup cross-source 매칭 | test_dedup_runs 검증 | ✅ |
+| 10 | 429 partial 안전 종료 | test_rate_limit_error 검증 | ✅ |
+| 11 | 전체 테스트 통과 | 600 passed, 0 failed | ✅ |
+
+### 전체 테스트 현황
+- Phase 1: ~64 tests
+- Phase 2: ~83 tests  
+- Phase 3: 74 tests (신규)
+- 기타 잔존: ~379 tests
+- **합계: 600 passed**

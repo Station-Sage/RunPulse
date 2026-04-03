@@ -1,4 +1,35 @@
 # CHANGELOG — RunPulse v0.3 Data Architecture
+## [Phase 3] Sync Orchestrators 완료 — 2026-04-03
+
+### Added
+- `src/sync/sync_result.py` — SyncResult dataclass (merge, rate_limited, to_sync_job_dict)
+- `src/sync/rate_limiter.py` — 소스별 rate-limit 정책 (garmin 2s, strava 0.5s, intervals 0.3s, runalyze 1s)
+- `src/sync/raw_store.py` — payload_hash 기반 변경 감지 wrapper
+- `src/sync/_helpers.py` — Extractor → DB adapter
+- `src/sync/garmin_activity_sync.py` — Garmin activity sync orchestrator
+- `src/sync/garmin_wellness_sync.py` — Garmin wellness sync (6 endpoints)
+- `src/sync/strava_activity_sync.py` — Strava OAuth + detail + streams
+- `src/sync/intervals_activity_sync.py` — Intervals.icu activity + wellness
+- `src/sync/runalyze_activity_sync.py` — Runalyze basic sync
+- `src/sync/dedup.py` — 5분/3% cross-source 중복 매칭
+- `src/sync/orchestrator.py` — full_sync 통합 진입점 + sync_jobs 기록
+- `src/sync/reprocess.py` — Layer 0 → Layer 1/2 재구축 (API 호출 없음)
+- `src/sync_cli.py` — CLI 진입점 (sync / reprocess 명령)
+- 12개 테스트 파일, 74개 신규 테스트
+
+### Changed
+- `src/sync/__init__.py` — v0.2 import 제거, v0.3 orchestrator 진입점으로 교체
+- `src/sync/garmin.py`, `strava.py`, `intervals.py` — v0.2 sync 함수 import 제거
+- `src/sync/extractors/strava_extractor.py` — start_date_local fallback 추가
+- 6개 sync 모듈 datetime.utcnow() → datetime.now(timezone.utc) 경고 제거
+
+### Removed
+- v0.2 전용 테스트 52개 파일 삭제 (v0.3 스키마 비호환)
+
+### Verified
+- Phase 3 DoD 11개 조건 전체 충족
+- 전체 600 tests passed, 0 failed
+
 
 ## [Phase 2] Extractors 완료 - 2026-04-03
 

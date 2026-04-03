@@ -1,6 +1,6 @@
 # RunPulse 데이터 아키텍처 v0.3 — Design
 
-**Phase 1~2 완료** | Phase 3~7 대기 | **Schema Version**: 10 | 최종 업데이트: 2026-04-03
+**Phase 1~3 완료** | Phase 4~7 대기 | **Schema Version**: 10 | 최종 업데이트: 2026-04-03
 **현재 Schema Version**: 10
 **최종 업데이트**: 2026-04-03
 

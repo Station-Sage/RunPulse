@@ -1,5 +1,13 @@
 # DONE.md — 완료 이력 (최근 10건)
 
+## 2026-04-03 (v0.3 Phase 3)
+- **PHASE3-SYNC**: Sync Orchestrator 전체 구현 완료
+  - SyncResult, RateLimiter, raw_store, dedup, orchestrator, reprocess, CLI
+  - 5개 소스 orchestrator (garmin activity/wellness, strava, intervals, runalyze)
+  - Strava extractor start_date_local fallback 버그 수정
+  - v0.2 legacy 테스트 52개 삭제, 74개 신규 테스트 추가
+  - 전체 600 tests passed, DoD 11/11 충족
+
 ## 2026-04-02
 - **AI-TOOL-UNIFIED**: 전 provider 공통 tool calling 함수 `call_with_tools` 구현
   - Gemini/Groq/OpenAI: OpenAI 호환 엔드포인트 통합
