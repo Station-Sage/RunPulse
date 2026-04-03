@@ -28,14 +28,7 @@ class TIDSCalculator(MetricCalculator):
                  "interval": 0, "long_run": 0, "race": 0, "unknown": 0}
 
         for act in activities:
-            # workout_type은 text_value에 저장됨
-            row = ctx.conn.execute(
-                "SELECT text_value FROM metric_store "
-                "WHERE scope_type='activity' AND scope_id=? "
-                "AND metric_name='workout_type' AND is_primary=1",
-                [str(act["id"])]
-            ).fetchone()
-            wt_type = row[0] if row and row[0] else "unknown"
+            wt_type = ctx.get_activity_metric_text(act["id"], "workout_type") or "unknown"
             types[wt_type] = types.get(wt_type, 0) + 1
 
         total = sum(types.values()) or 1

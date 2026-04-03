@@ -77,6 +77,13 @@ class MockCalcContext(CalcContext):
     def get_activity_metric(self, activity_id: int, metric_name: str) -> Optional[float]:
         return self._mock_activity_metrics.get((activity_id, metric_name))
 
+    def get_activity_metric_text(self, activity_id: int, metric_name: str) -> str | None:
+        """Mock: activity-scope text_value 조회."""
+        for m in self._metrics:
+            if m.get("metric_name") == metric_name and m.get("scope_id") == str(activity_id):
+                return m.get("text_value") or m.get("text")
+        return None
+
     def get_daily_load(self, date_str: str) -> float:
         return self._mock_daily_series.get("_daily_load", {}).get(date_str, 0)
 

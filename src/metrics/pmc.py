@@ -63,18 +63,12 @@ class PMCCalculator(MetricCalculator):
         ]
 
     def _get_daily_loads(self, ctx: CalcContext, days: int) -> dict:
+        """CalcContext.get_daily_load() API를 사용하여 날짜별 TRIMP 합산."""
         target = datetime.strptime(ctx.scope_id, "%Y-%m-%d")
-        start = (target - timedelta(days=days)).strftime("%Y-%m-%d")
-        end = ctx.scope_id
-        rows = ctx.conn.execute("""
-            SELECT substr(a.start_time, 1, 10) as date, m.numeric_value
-            FROM metric_store m
-            JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER) = a.id
-            WHERE m.scope_type = 'activity'
-            AND m.metric_name = 'trimp' AND m.is_primary = 1
-            AND substr(a.start_time, 1, 10) BETWEEN ? AND ?
-        """, [start, end]).fetchall()
         daily: dict = {}
-        for date, val in rows:
-            daily[date] = daily.get(date, 0) + (val or 0)
+        for i in range(days + 1):
+            ds = (target - timedelta(days=days - i)).strftime("%Y-%m-%d")
+            load = ctx.get_daily_load(ds)
+            if load:
+                daily[ds] = load
         return daily

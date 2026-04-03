@@ -271,6 +271,15 @@ class CalcContext:
 
     # ── Stream 접근 (cache-first) ──
 
+    def get_activity_metric_text(self, activity_id: int, metric_name: str) -> Optional[str]:
+        """activity-scope metric의 text_value 조회."""
+        row = self.conn.execute(
+            "SELECT text_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=? AND metric_name=? AND is_primary=1",
+            [str(activity_id), metric_name],
+        ).fetchone()
+        return row[0] if row else None
+
     def get_streams(self, activity_id: int = None) -> list[dict]:
         aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)
         if aid is None:
