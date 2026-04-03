@@ -44,6 +44,15 @@ class MetricCalculator(ABC):
     produces: list[str] = []
     needs_streams: bool = False  # 보강 #2: stream prefetch 플래그
 
+    # ── UI 메타데이터 (보강 #7) ──
+    display_name: str = ""
+    description: str = ""
+    unit: str = ""
+    ranges: dict = None           # {"low": [0,50], "high": [50,999]}
+    higher_is_better: bool = None  # True/False/None(적절 범위가 중요)
+    format_type: str = "number"   # "number"|"time"|"pace"|"percentage"|"json"
+    decimal_places: int = 1
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if not cls.produces:

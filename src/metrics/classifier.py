@@ -15,6 +15,12 @@ class WorkoutClassifier(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_classification"
+    display_name = "운동 유형"
+    description = "거리, 심박, 존 분포 기반 규칙 분류."
+    format_type = "json"
+    display_name = "운동 유형"
+    description = "거리, 심박, 존 분포 기반 규칙 분류."
+    format_type = "json"
     requires = []
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

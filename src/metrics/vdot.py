@@ -15,6 +15,16 @@ class VDOTCalculator(MetricCalculator):
     version = "daniels_2005"
     scope_type = "activity"
     category = "rp_performance"
+    display_name = "VDOT (Daniels)"
+    description = "Jack Daniels VDOT. 거리와 시간으로 추정한 VO₂Max 지표."
+    unit = ""
+    ranges = {"beginner": [20, 35], "intermediate": [35, 50], "advanced": [50, 60], "elite": [60, 85]}
+    higher_is_better = True
+    display_name = "VDOT (Daniels)"
+    description = "Jack Daniels VDOT. 거리와 시간으로 추정한 VO₂Max 지표."
+    unit = ""
+    ranges = {"beginner": [20, 35], "intermediate": [35, 50], "advanced": [50, 60], "elite": [60, 85]}
+    higher_is_better = True
     requires = []
 
     MINIMUM_DISTANCE_M = 1500

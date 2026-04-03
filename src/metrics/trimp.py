@@ -16,6 +16,18 @@ class TRIMPCalculator(MetricCalculator):
     version = "banister_1991"
     scope_type = "activity"
     category = "rp_load"
+    display_name = "TRIMP (Banister)"
+    description = "심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표."
+    unit = "AU"
+    ranges = {"recovery": [0, 50], "easy": [50, 100], "moderate": [100, 200], "hard": [200, 350], "very_hard": [350, 999]}
+    higher_is_better = None
+    decimal_places = 0
+    display_name = "TRIMP (Banister)"
+    description = "심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표."
+    unit = "AU"
+    ranges = {"recovery": [0, 50], "easy": [50, 100], "moderate": [100, 200], "hard": [200, 350], "very_hard": [350, 999]}
+    higher_is_better = None
+    decimal_places = 0
     requires = []
 
     MALE_A = 1.92

@@ -15,6 +15,18 @@ class LSICalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_load"
+    display_name = "부하 급증 지수 (LSI)"
+    description = "당일 부하 / 21일 평균. >1.5면 급격한 부하 증가."
+    unit = ""
+    ranges = {"normal": [0, 1.3], "elevated": [1.3, 1.5], "spike": [1.5, 10]}
+    higher_is_better = None
+    decimal_places = 2
+    display_name = "부하 급증 지수 (LSI)"
+    description = "당일 부하 / 21일 평균. >1.5면 급격한 부하 증가."
+    unit = ""
+    ranges = {"normal": [0, 1.3], "elevated": [1.3, 1.5], "spike": [1.5, 10]}
+    higher_is_better = None
+    decimal_places = 2
     requires = ["trimp"]
 
     ROLLING_DAYS = 21

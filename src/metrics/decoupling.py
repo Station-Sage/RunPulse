@@ -15,6 +15,18 @@ class AerobicDecouplingCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_efficiency"
+    display_name = "유산소 분리"
+    description = "후반부 효율 저하율. <5% = 좋은 유산소 체력."
+    unit = "%"
+    ranges = {"excellent": [-5, 5], "good": [5, 10], "fair": [10, 15], "poor": [15, 100]}
+    higher_is_better = False
+    decimal_places = 2
+    display_name = "유산소 분리"
+    description = "후반부 효율 저하율. <5% = 좋은 유산소 체력."
+    unit = "%"
+    ranges = {"excellent": [-5, 5], "good": [5, 10], "fair": [10, 15], "poor": [15, 100]}
+    higher_is_better = False
+    decimal_places = 2
     needs_streams = True
     requires = []
 

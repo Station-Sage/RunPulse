@@ -13,6 +13,16 @@ class DICalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_endurance"
+    display_name = "내구성 지수 (DI)"
+    description = "장거리 달리기에서 후반 페이스 유지 능력. 0~100."
+    unit = "점"
+    higher_is_better = True
+    decimal_places = 1
+    display_name = "내구성 지수 (DI)"
+    description = "장거리 달리기에서 후반 페이스 유지 능력. 0~100."
+    unit = "점"
+    higher_is_better = True
+    decimal_places = 1
     requires = []
 
     MIN_DURATION_SEC = 5400  # 90분

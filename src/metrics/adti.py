@@ -13,6 +13,18 @@ class ADTICalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_trend"
+    display_name = "훈련 추세 (ADTI)"
+    description = "28일간 CTL 변화율. 양수=상승, 음수=하락."
+    unit = ""
+    ranges = {"declining": [-100, -10], "stable": [-10, 10], "building": [10, 100]}
+    higher_is_better = True
+    decimal_places = 1
+    display_name = "훈련 추세 (ADTI)"
+    description = "28일간 CTL 변화율. 양수=상승, 음수=하락."
+    unit = ""
+    ranges = {"declining": [-100, -10], "stable": [-10, 10], "building": [10, 100]}
+    higher_is_better = True
+    decimal_places = 1
     requires = ["ctl"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

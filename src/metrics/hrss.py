@@ -16,6 +16,14 @@ class HRSSCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_load"
+    display_name = "HRSS"
+    description = "TRIMP을 젖산역치 심박으로 정규화한 스트레스 점수. 1시간 LTHR 운동 = 100."
+    unit = "점"
+    higher_is_better = None
+    display_name = "HRSS"
+    description = "TRIMP을 젖산역치 심박으로 정규화한 스트레스 점수. 1시간 LTHR 운동 = 100."
+    unit = "점"
+    higher_is_better = None
     requires = ["trimp"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

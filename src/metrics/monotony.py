@@ -18,6 +18,18 @@ class MonotonyStrainCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_load"
+    display_name = "단조로움 (Monotony)"
+    description = "7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험."
+    unit = ""
+    ranges = {"varied": [0, 1.5], "moderate": [1.5, 2.0], "monotonous": [2.0, 10]}
+    higher_is_better = False
+    decimal_places = 2
+    display_name = "단조로움 (Monotony)"
+    description = "7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험."
+    unit = ""
+    ranges = {"varied": [0, 1.5], "moderate": [1.5, 2.0], "monotonous": [2.0, 10]}
+    higher_is_better = False
+    decimal_places = 2
     requires = ["trimp"]
     produces = ["monotony", "training_strain"]
 

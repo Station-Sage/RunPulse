@@ -15,6 +15,18 @@ class DARPCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_prediction"
+    display_name = "레이스 예측 (DARP)"
+    description = "VDOT과 내구성 지수 기반 레이스 시간 예측."
+    unit = "sec"
+    format_type = "time"
+    higher_is_better = False
+    decimal_places = 0
+    display_name = "레이스 예측 (DARP)"
+    description = "VDOT과 내구성 지수 기반 레이스 시간 예측."
+    unit = "sec"
+    format_type = "time"
+    higher_is_better = False
+    decimal_places = 0
     requires = ["runpulse_vdot"]
     produces = ["darp_5k", "darp_10k", "darp_half", "darp_marathon"]
 

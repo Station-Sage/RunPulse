@@ -13,6 +13,16 @@ class FEARPCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_performance"
+    display_name = "FEARP (환경 보정 페이스)"
+    description = "기온, 습도, 고도를 보정한 환경 보정 페이스."
+    unit = "sec/km"
+    format_type = "pace"
+    higher_is_better = False
+    display_name = "FEARP (환경 보정 페이스)"
+    description = "기온, 습도, 고도를 보정한 환경 보정 페이스."
+    unit = "sec/km"
+    format_type = "pace"
+    higher_is_better = False
     requires = []
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

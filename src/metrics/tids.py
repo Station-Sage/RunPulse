@@ -13,6 +13,10 @@ class TIDSCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_training"
+
+    display_name = "강도 분포 (TIDS)"
+    description = "8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed."
+    format_type = "json"
     requires = ["workout_type"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

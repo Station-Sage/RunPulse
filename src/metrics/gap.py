@@ -13,6 +13,16 @@ class GAPCalculator(MetricCalculator):
     version = "minetti_2002"
     scope_type = "activity"
     category = "rp_performance"
+    display_name = "GAP (경사 보정 페이스)"
+    description = "Minetti 모델로 경사를 보정한 평지 환산 페이스."
+    unit = "sec/km"
+    format_type = "pace"
+    higher_is_better = False
+    display_name = "GAP (경사 보정 페이스)"
+    description = "Minetti 모델로 경사를 보정한 평지 환산 페이스."
+    unit = "sec/km"
+    format_type = "pace"
+    higher_is_better = False
     needs_streams = True
     requires = []
 

@@ -14,6 +14,18 @@ class UTRSCalculator(MetricCalculator):
     version = "pdf_weights_v1"
     scope_type = "daily"
     category = "rp_readiness"
+    display_name = "훈련 준비도 (UTRS)"
+    description = "수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도."
+    unit = "점"
+    ranges = {"poor": [0, 30], "low": [30, 50], "moderate": [50, 70], "good": [70, 85], "excellent": [85, 100]}
+    higher_is_better = True
+    decimal_places = 0
+    display_name = "훈련 준비도 (UTRS)"
+    description = "수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도."
+    unit = "점"
+    ranges = {"poor": [0, 30], "low": [30, 50], "moderate": [50, 70], "good": [70, 85], "excellent": [85, 100]}
+    higher_is_better = True
+    decimal_places = 0
     requires = ["tsb"]
 
     WEIGHTS = {

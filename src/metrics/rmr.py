@@ -13,6 +13,18 @@ class RMRCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_recovery"
+    display_name = "회복 준비도 (RMR)"
+    description = "안정심박, 체력배터리, TSB, 수면을 종합한 회복 상태."
+    unit = "점"
+    ranges = {"poor": [0, 30], "low": [30, 50], "moderate": [50, 70], "good": [70, 85], "excellent": [85, 100]}
+    higher_is_better = True
+    decimal_places = 1
+    display_name = "회복 준비도 (RMR)"
+    description = "안정심박, 체력배터리, TSB, 수면을 종합한 회복 상태."
+    unit = "점"
+    ranges = {"poor": [0, 30], "low": [30, 50], "moderate": [50, 70], "good": [70, 85], "excellent": [85, 100]}
+    higher_is_better = True
+    decimal_places = 1
     requires = ["tsb"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

@@ -16,6 +16,18 @@ class CIRSCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_injury"
+    display_name = "부상 위험 지수 (CIRS)"
+    description = "ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도."
+    unit = "점"
+    ranges = {"low": [0, 30], "moderate": [30, 50], "high": [50, 70], "critical": [70, 100]}
+    higher_is_better = False
+    decimal_places = 0
+    display_name = "부상 위험 지수 (CIRS)"
+    description = "ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도."
+    unit = "점"
+    ranges = {"low": [0, 30], "moderate": [30, 50], "high": [50, 70], "critical": [70, 100]}
+    higher_is_better = False
+    decimal_places = 0
     requires = ["acwr", "lsi", "ctl", "tsb"]
 
     WEIGHTS = {

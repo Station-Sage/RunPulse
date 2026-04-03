@@ -13,6 +13,16 @@ class EfficiencyFactorCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_efficiency"
+    display_name = "효율 계수 (EF)"
+    description = "평균속도/평균심박 × 1000. 높을수록 효율적."
+    unit = ""
+    higher_is_better = True
+    decimal_places = 2
+    display_name = "효율 계수 (EF)"
+    description = "평균속도/평균심박 × 1000. 높을수록 효율적."
+    unit = ""
+    higher_is_better = True
+    decimal_places = 2
     requires = []
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
