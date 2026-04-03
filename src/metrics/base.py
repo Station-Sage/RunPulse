@@ -354,3 +354,43 @@ class CalcContext:
                 self._prefetched_daily_metrics[self.scope_id] = {}
             self._prefetched_daily_metrics[self.scope_id][(metric_name, provider)] = entry
             self._prefetched_daily_metrics[self.scope_id][(metric_name, None)] = entry
+
+
+class ConfidenceBuilder:
+    """메트릭 confidence를 체계적으로 계산하는 헬퍼 (보강 #6).
+
+    사용법:
+        cb = ConfidenceBuilder()
+        cb.add_input("avg_hr", is_available=True, weight=0.3)
+        cb.add_input("max_hr", is_available=True, weight=0.2, is_estimated=True)
+        cb.add_input("streams", is_available=False, weight=0.5)
+        confidence = cb.compute()  # → 0.4
+    """
+
+    def __init__(self):
+        self._inputs: list[dict] = []
+
+    def add_input(self, name: str, is_available: bool, weight: float = 1.0,
+                  is_estimated: bool = False) -> "ConfidenceBuilder":
+        self._inputs.append({
+            "name": name,
+            "available": is_available,
+            "weight": weight,
+            "estimated": is_estimated,
+        })
+        return self
+
+    def compute(self) -> float:
+        if not self._inputs:
+            return 0.0
+        total_weight = sum(i["weight"] for i in self._inputs)
+        if total_weight == 0:
+            return 0.0
+        score = 0.0
+        for inp in self._inputs:
+            if inp["available"]:
+                contribution = inp["weight"] / total_weight
+                if inp["estimated"]:
+                    contribution *= 0.7  # 추정값 30% 페널티
+                score += contribution
+        return round(min(score, 1.0), 2)
