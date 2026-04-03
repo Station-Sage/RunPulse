@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
@@ -40,7 +40,7 @@ def sync(
     base = f"https://intervals.icu/api/v1/athlete/{athlete_id}"
     auth = ("API_KEY", api_key)
 
-    end_date = datetime.utcnow().date()
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
 
     try:
@@ -114,7 +114,7 @@ def sync_wellness(
     base = f"https://intervals.icu/api/v1/athlete/{athlete_id}"
     auth = ("API_KEY", api_key)
 
-    end_date = datetime.utcnow().date()
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days)
 
     try:

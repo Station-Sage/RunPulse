@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
@@ -35,7 +35,7 @@ def sync(
         return result
 
     headers = {"token": token}
-    since = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
     try:
         limiter.pre_request()

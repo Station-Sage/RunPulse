@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
@@ -39,7 +39,7 @@ def sync(
         return result
 
     headers = {"Authorization": f"Bearer {token}"}
-    after_ts = int((datetime.utcnow() - timedelta(days=days)).timestamp())
+    after_ts = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
 
     try:
         limiter.pre_request()
@@ -142,7 +142,7 @@ def _fetch_and_save_streams(conn, headers, extractor, limiter, result, sid, aid)
 
 def _ensure_token(config):
     sc = config.get("strava", {})
-    if datetime.utcnow().timestamp() < sc.get("expires_at", 0) - 600:
+    if datetime.now(timezone.utc).timestamp() < sc.get("expires_at", 0) - 600:
         return sc.get("access_token")
     try:
         resp = requests.post("https://www.strava.com/oauth/token", data={

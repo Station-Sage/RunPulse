@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
@@ -39,7 +39,7 @@ def sync(conn, api, days: int = 7, *, _sleep_fn=None) -> SyncResult:
     extractor = get_extractor("garmin")
     limiter = RateLimiter("garmin", sleep_fn=_sleep_fn)
 
-    end_date = datetime.utcnow().date()
+    end_date = datetime.now(timezone.utc).date()
     start_date = end_date - timedelta(days=days - 1)
     dates = []
     cur = start_date
@@ -134,5 +134,5 @@ def _is_rate_limit_error(e):
 
 def _retry_after(limiter):
     wait = limiter.policy.backoff_base * (limiter.policy.backoff_multiplier ** limiter._consecutive_429)
-    at = datetime.utcnow() + timedelta(seconds=wait)
+    at = datetime.now(timezone.utc) + timedelta(seconds=wait)
     return at.isoformat() + "Z"

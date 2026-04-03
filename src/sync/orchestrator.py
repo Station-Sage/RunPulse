@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.sync.sync_result import SyncResult
 from src.sync._helpers import record_sync_job
@@ -42,8 +42,8 @@ def full_sync(
         configs = {}
 
     results: dict[str, list[SyncResult]] = {}
-    from_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
-    to_date = datetime.utcnow().strftime("%Y-%m-%d")
+    from_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    to_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     for source in sources:
         source_results: list[SyncResult] = []
