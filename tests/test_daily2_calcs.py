@@ -32,6 +32,9 @@ class TestUTRS:
         assert 0 <= results[0].numeric_value <= 100
         assert results[0].confidence > 0
 
+
+
+
     def test_no_data(self):
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
@@ -52,6 +55,9 @@ class TestCIRS:
         results = CIRSCalculator().compute(ctx)
         assert len(results) == 1
         assert results[0].numeric_value > 0
+
+
+
 
     def test_no_data(self):
         conn = _conn()

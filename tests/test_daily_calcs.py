@@ -52,6 +52,9 @@ class TestPMC:
         for r in results:
             assert r.numeric_value is not None
 
+
+
+
     def test_no_data(self):
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
