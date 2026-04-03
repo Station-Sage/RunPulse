@@ -46,6 +46,7 @@ from src.metrics.rri import RRICalculator
 from src.metrics.eftp import EFTPCalculator
 from src.metrics.vdot_adj import VDOTAdjCalculator
 from src.metrics.marathon_shape import MarathonShapeCalculator
+from src.metrics.crs import CRSCalculator
 
 log = logging.getLogger(__name__)
 
@@ -102,6 +103,7 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     EFTPCalculator(),
     VDOTAdjCalculator(),
     MarathonShapeCalculator(),
+    CRSCalculator(),
 ]
 
 
