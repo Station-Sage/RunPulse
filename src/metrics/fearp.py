@@ -50,4 +50,14 @@ class FEARPCalculator(MetricCalculator):
 
         fearp = pace / adjustment
 
-        return [self._result(value=round(fearp, 1))]
+        # confidence: 보정 데이터 가용성에 따라 조정
+        conf = 0.6  # 기본 (페이스만 있는 경우)
+        if temp is not None:
+            conf += 0.15
+        if humidity is not None:
+            conf += 0.1
+        if elevation and elevation > 0:
+            conf += 0.15
+        conf = min(conf, 1.0)
+
+        return [self._result(value=round(fearp, 1), confidence=conf)]
