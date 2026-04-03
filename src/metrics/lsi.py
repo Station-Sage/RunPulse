@@ -39,12 +39,5 @@ class LSICalculator(MetricCalculator):
 
     @staticmethod
     def _get_day_load(ctx, date_str) -> float:
-        rows = ctx.conn.execute("""
-            SELECT m.numeric_value
-            FROM metric_store m
-            JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER) = a.id
-            WHERE m.scope_type = 'activity'
-            AND m.metric_name = 'trimp' AND m.is_primary = 1
-            AND substr(a.start_time, 1, 10) = ?
-        """, [date_str]).fetchall()
-        return sum(r[0] or 0 for r in rows)
+        """특정 날짜의 TRIMP 합계 (prefetch 지원)."""
+        return ctx.get_daily_load(date_str)

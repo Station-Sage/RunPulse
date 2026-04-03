@@ -13,6 +13,7 @@ class GAPCalculator(MetricCalculator):
     version = "minetti_2002"
     scope_type = "activity"
     category = "rp_performance"
+    needs_streams = True
     requires = []
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

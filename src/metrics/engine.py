@@ -1,6 +1,6 @@
-"""Metrics Engine — topological sort 기반 실행. 설계서 4-5 기준.
+"""Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
-ALL_CALCULATORS 등록 → 의존성 그래프 해소 → scope별 순차 실행 → metric_store 저장.
+ALL_CALCULATORS 등록 → 의존성 그래프 해소 → prefetch → scope별 순차 실행 → metric_store 저장.
 """
 from __future__ import annotations
 
@@ -39,7 +39,6 @@ log = logging.getLogger(__name__)
 
 # ── Calculator 레지스트리 ──
 ALL_CALCULATORS: list[MetricCalculator] = [
-    # Activity-scope
     TRIMPCalculator(),
     HRSSCalculator(),
     AerobicDecouplingCalculator(),
@@ -48,12 +47,10 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     VDOTCalculator(),
     EfficiencyFactorCalculator(),
     FEARPCalculator(),
-    # Daily-scope 1차
     PMCCalculator(),
     ACWRCalculator(),
     LSICalculator(),
     MonotonyStrainCalculator(),
-    # Daily-scope 2차
     UTRSCalculator(),
     CIRSCalculator(),
     DICalculator(),
@@ -64,15 +61,17 @@ ALL_CALCULATORS: list[MetricCalculator] = [
 ]
 
 
+# ═══════════════════════════════════════════
+# Topological Sort
+# ═══════════════════════════════════════════
+
 def _topological_sort(calculators: list[MetricCalculator]) -> list[MetricCalculator]:
-    """의존성 그래프 기반 위상 정렬."""
-    # produces → calculator 매핑
+    """의존성 그래프 기반 위상 정렬 (Kahn's algorithm)."""
     producer_map: dict[str, MetricCalculator] = {}
     for calc in calculators:
         for p in calc.produces:
             producer_map[p] = calc
 
-    # 인접 리스트 (calc → 의존하는 calc 목록)
     graph: dict[str, list[str]] = defaultdict(list)
     in_degree: dict[str, int] = {}
 
@@ -86,7 +85,6 @@ def _topological_sort(calculators: list[MetricCalculator]) -> list[MetricCalcula
                 graph[dep_name].append(key)
                 in_degree[key] = in_degree.get(key, 0) + 1
 
-    # Kahn's algorithm
     queue = [k for k, v in in_degree.items() if v == 0]
     sorted_names: list[str] = []
 
@@ -98,14 +96,9 @@ def _topological_sort(calculators: list[MetricCalculator]) -> list[MetricCalcula
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
 
-    # 이름 → calculator 매핑
     name_to_calc = {c.name: c for c in calculators}
-    result = []
-    for name in sorted_names:
-        if name in name_to_calc:
-            result.append(name_to_calc[name])
+    result = [name_to_calc[n] for n in sorted_names if n in name_to_calc]
 
-    # 그래프에 포함되지 않은 calculator 추가 (requires=[] 이고 produces가 다른 calc에 안 쓰이는 경우)
     included = {c.name for c in result}
     for calc in calculators:
         if calc.name not in included:
@@ -114,6 +107,103 @@ def _topological_sort(calculators: list[MetricCalculator]) -> list[MetricCalcula
     return result
 
 
+# ═══════════════════════════════════════════
+# Prefetch 함수들 (보강 #1, #11)
+# ═══════════════════════════════════════════
+
+def _load_all_metrics_for_scope(conn: sqlite3.Connection,
+                                scope_type: str, scope_id: str) -> dict:
+    """한 scope의 모든 메트릭을 dict로 로드.
+    key: (metric_name, provider) → {numeric, text, json}
+    is_primary인 것은 (metric_name, None)으로도 매핑.
+    """
+    rows = conn.execute("""
+        SELECT metric_name, provider, numeric_value, text_value, json_value, is_primary
+        FROM metric_store WHERE scope_type = ? AND scope_id = ?
+    """, [scope_type, scope_id]).fetchall()
+
+    cache = {}
+    for name, provider, num, text, json_val, is_primary in rows:
+        entry = {"numeric": num, "text": text, "json": json_val}
+        cache[(name, provider)] = entry
+        if is_primary:
+            cache[(name, None)] = entry
+    return cache
+
+
+def _prefetch_daily_trimp_sums(conn: sqlite3.Connection,
+                               start_date: str, end_date: str) -> dict:
+    """전체 기간의 날짜별 TRIMP 합산을 한 번에 로드. {date: trimp_sum}"""
+    rows = conn.execute("""
+        SELECT substr(a.start_time, 1, 10) as date,
+               SUM(m.numeric_value) as total_trimp
+        FROM metric_store m
+        JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER) = a.id
+        WHERE m.scope_type = 'activity'
+        AND m.metric_name = 'trimp' AND m.is_primary = 1
+        AND substr(a.start_time, 1, 10) BETWEEN ? AND ?
+        GROUP BY date
+    """, [start_date, end_date]).fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def _prefetch_all_wellness(conn: sqlite3.Connection,
+                           start_date: str, end_date: str) -> dict:
+    """전체 기간의 daily_wellness를 한 번에 로드. {date: {col: value}}"""
+    rows = conn.execute(
+        "SELECT * FROM daily_wellness WHERE date BETWEEN ? AND ?",
+        [start_date, end_date],
+    ).fetchall()
+    if not rows:
+        return {}
+    cols = [c[1] for c in conn.execute("PRAGMA table_info(daily_wellness)").fetchall()]
+    result = {}
+    for row in rows:
+        d = dict(zip(cols, row))
+        result[d["date"]] = d
+    return result
+
+
+def _prefetch_daily_metrics(conn: sqlite3.Connection,
+                            start_date: str, end_date: str) -> dict:
+    """전체 기간의 daily scope metric_store를 한 번에 로드.
+    {date: {(metric_name, provider): {numeric, text, json}}}
+    """
+    rows = conn.execute("""
+        SELECT scope_id, metric_name, provider, numeric_value, text_value, json_value, is_primary
+        FROM metric_store
+        WHERE scope_type = 'daily' AND scope_id BETWEEN ? AND ?
+    """, [start_date, end_date]).fetchall()
+
+    result: dict = {}
+    for scope_id, name, provider, num, text, json_val, is_primary in rows:
+        if scope_id not in result:
+            result[scope_id] = {}
+        entry = {"numeric": num, "text": text, "json": json_val}
+        result[scope_id][(name, provider)] = entry
+        if is_primary:
+            result[scope_id][(name, None)] = entry
+    return result
+
+
+def _load_streams(conn: sqlite3.Connection, activity_id: int) -> list[dict]:
+    """활동의 stream 데이터를 로드."""
+    rows = conn.execute(
+        "SELECT * FROM activity_streams WHERE activity_id = ? ORDER BY elapsed_sec",
+        [activity_id],
+    ).fetchall()
+    if not rows:
+        return []
+    cols = [d[0] for d in conn.execute(
+        "SELECT * FROM activity_streams LIMIT 0"
+    ).description]
+    return [dict(zip(cols, row)) for row in rows]
+
+
+# ═══════════════════════════════════════════
+# Save Results
+# ═══════════════════════════════════════════
+
 def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
                   results: list[CalcResult], scope_id: str) -> int:
     """CalcResult 리스트를 metric_store에 저장."""
@@ -121,7 +211,7 @@ def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
     for r in results:
         if r.is_empty():
             continue
-        r.scope_id = scope_id  # engine이 채워줌
+        r.scope_id = scope_id
         upsert_metric(
             conn,
             scope_type=r.scope_type,
@@ -139,14 +229,45 @@ def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
     return saved
 
 
+# ═══════════════════════════════════════════
+# Activity-Scope 실행 (prefetch 적용)
+# ═══════════════════════════════════════════
+
 def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
-    """단일 활동에 대한 모든 activity-scope calculator 실행."""
+    """단일 활동에 대한 모든 activity-scope calculator 실행 (prefetch 포함)."""
     sorted_calcs = _topological_sort(
         [c for c in ALL_CALCULATORS if c.scope_type == "activity"]
     )
     results: dict = {}
     failed: list[dict] = []
-    ctx = CalcContext(conn=conn, scope_type="activity", scope_id=str(activity_id))
+
+    # prefetch: activity row
+    row = conn.execute(
+        "SELECT * FROM activity_summaries WHERE id = ?", [activity_id]
+    ).fetchone()
+    activity_cache = None
+    if row:
+        cols = [d[0] for d in conn.execute(
+            "SELECT * FROM activity_summaries LIMIT 0"
+        ).description]
+        activity_cache = dict(zip(cols, row))
+
+    # prefetch: metrics for this scope
+    metric_cache = _load_all_metrics_for_scope(conn, "activity", str(activity_id))
+
+    # prefetch: streams (only if any calculator needs them)
+    stream_cache = None
+    if any(c.needs_streams for c in sorted_calcs):
+        stream_cache = _load_streams(conn, activity_id)
+
+    ctx = CalcContext(
+        conn=conn,
+        scope_type="activity",
+        scope_id=str(activity_id),
+        _activity_cache=activity_cache,
+        _metric_cache=metric_cache,
+        _stream_cache=stream_cache,
+    )
 
     for calc in sorted_calcs:
         try:
@@ -156,6 +277,13 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
                 for r in calc_results:
                     if not r.is_empty():
                         results[r.metric_name] = r.numeric_value or r.text_value
+                        # 후속 calculator용 캐시 업데이트
+                        ctx.update_metric_cache(
+                            r.metric_name, calc.provider,
+                            numeric=r.numeric_value,
+                            text=r.text_value,
+                            json_val=r.json_value,
+                        )
         except Exception as e:
             log.exception("Calculator %s 실패: activity_id=%d", calc.name, activity_id)
             failed.append({"calculator": calc.name, "error": str(e)})
@@ -165,14 +293,35 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     return results
 
 
-def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
-    """특정 날짜의 모든 daily-scope calculator 실행."""
+# ═══════════════════════════════════════════
+# Daily-Scope 실행 (prefetch 적용)
+# ═══════════════════════════════════════════
+
+def run_daily_metrics(conn: sqlite3.Connection, target_date: str,
+                      prefetched_daily_loads: dict = None,
+                      prefetched_wellness_map: dict = None,
+                      prefetched_daily_metrics: dict = None) -> dict:
+    """특정 날짜의 모든 daily-scope calculator 실행 (prefetch 지원)."""
     sorted_calcs = _topological_sort(
         [c for c in ALL_CALCULATORS if c.scope_type == "daily"]
     )
     results: dict = {}
     failed: list[dict] = []
-    ctx = CalcContext(conn=conn, scope_type="daily", scope_id=target_date)
+
+    # per-scope metric cache
+    metric_cache = None
+    if prefetched_daily_metrics is not None:
+        metric_cache = prefetched_daily_metrics.get(target_date, {})
+
+    ctx = CalcContext(
+        conn=conn,
+        scope_type="daily",
+        scope_id=target_date,
+        _metric_cache=metric_cache,
+        _prefetched_daily_loads=prefetched_daily_loads,
+        _prefetched_wellness_map=prefetched_wellness_map,
+        _prefetched_daily_metrics=prefetched_daily_metrics,
+    )
 
     for calc in sorted_calcs:
         try:
@@ -182,6 +331,12 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
                 for r in calc_results:
                     if not r.is_empty():
                         results[r.metric_name] = r.numeric_value or r.text_value
+                        ctx.update_metric_cache(
+                            r.metric_name, calc.provider,
+                            numeric=r.numeric_value,
+                            text=r.text_value,
+                            json_val=r.json_value,
+                        )
         except Exception as e:
             log.exception("Calculator %s 실패: %s", calc.name, target_date)
             failed.append({"calculator": calc.name, "error": str(e)})
@@ -191,7 +346,14 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
     return results
 
 
-def run_for_date(conn: sqlite3.Connection, target_date: str) -> dict:
+# ═══════════════════════════════════════════
+# Composite: run_for_date (prefetch 적용)
+# ═══════════════════════════════════════════
+
+def run_for_date(conn: sqlite3.Connection, target_date: str,
+                 prefetched_daily_loads: dict = None,
+                 prefetched_wellness_map: dict = None,
+                 prefetched_daily_metrics: dict = None) -> dict:
     """특정 날짜의 전체 메트릭 계산 (활동별 → 일별)."""
     activities = conn.execute(
         "SELECT id FROM activity_summaries "
@@ -204,7 +366,12 @@ def run_for_date(conn: sqlite3.Connection, target_date: str) -> dict:
     for (act_id,) in activities:
         activity_results[act_id] = run_activity_metrics(conn, act_id)
 
-    daily_results = run_daily_metrics(conn, target_date)
+    daily_results = run_daily_metrics(
+        conn, target_date,
+        prefetched_daily_loads=prefetched_daily_loads,
+        prefetched_wellness_map=prefetched_wellness_map,
+        prefetched_daily_metrics=prefetched_daily_metrics,
+    )
 
     return {
         "activity_metrics": activity_results,
@@ -212,14 +379,30 @@ def run_for_date(conn: sqlite3.Connection, target_date: str) -> dict:
     }
 
 
-def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
-    """최근 N일 메트릭 재계산."""
-    today = date.today()
-    all_results = {}
+# ═══════════════════════════════════════════
+# Recompute (batch prefetch 적용)
+# ═══════════════════════════════════════════
 
+def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
+    """최근 N일 메트릭 재계산 (batch prefetch 포함)."""
+    today = date.today()
+    start_date = (today - timedelta(days=days + 49)).isoformat()  # CTL 42일 + 여유
+    end_date = today.isoformat()
+
+    # batch prefetch
+    daily_loads = _prefetch_daily_trimp_sums(conn, start_date, end_date)
+    wellness_map = _prefetch_all_wellness(conn, start_date, end_date)
+    daily_metrics = _prefetch_daily_metrics(conn, start_date, end_date)
+
+    all_results = {}
     for i in range(days):
         d = (today - timedelta(days=days - 1 - i)).isoformat()
-        all_results[d] = run_for_date(conn, d)
+        all_results[d] = run_for_date(
+            conn, d,
+            prefetched_daily_loads=daily_loads,
+            prefetched_wellness_map=wellness_map,
+            prefetched_daily_metrics=daily_metrics,
+        )
 
     resolve_all_primaries(conn)
     return all_results
@@ -237,14 +420,26 @@ def clear_runpulse_metrics(conn: sqlite3.Connection) -> int:
 
 
 def recompute_all(conn: sqlite3.Connection, days: int = 90) -> dict:
-    """전체 재계산: RunPulse 메트릭 삭제 → 재실행."""
+    """전체 재계산: RunPulse 메트릭 삭제 → batch prefetch → 재실행."""
     clear_runpulse_metrics(conn)
     today = date.today()
-    all_results = {}
+    start_date = (today - timedelta(days=days + 49)).isoformat()
+    end_date = today.isoformat()
 
+    # batch prefetch
+    daily_loads = _prefetch_daily_trimp_sums(conn, start_date, end_date)
+    wellness_map = _prefetch_all_wellness(conn, start_date, end_date)
+    daily_metrics = _prefetch_daily_metrics(conn, start_date, end_date)
+
+    all_results = {}
     for i in range(days):
         d = (today - timedelta(days=days - 1 - i)).isoformat()
-        all_results[d] = run_for_date(conn, d)
+        all_results[d] = run_for_date(
+            conn, d,
+            prefetched_daily_loads=daily_loads,
+            prefetched_wellness_map=wellness_map,
+            prefetched_daily_metrics=daily_metrics,
+        )
 
     resolve_all_primaries(conn)
     return all_results

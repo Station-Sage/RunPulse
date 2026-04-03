@@ -15,6 +15,7 @@ class AerobicDecouplingCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_efficiency"
+    needs_streams = True
     requires = []
 
     MINIMUM_DURATION_SEC = 1200  # 20분

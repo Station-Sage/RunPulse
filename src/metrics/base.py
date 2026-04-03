@@ -1,6 +1,6 @@
 """MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
-Phase 4 핵심 인프라. 설계서 4-1 기준.
+Phase 4 핵심 인프라. 설계서 4-1 + 보강 #1,#2,#11 기준.
 """
 from __future__ import annotations
 
@@ -42,6 +42,7 @@ class MetricCalculator(ABC):
     category: str = ""
     requires: list[str] = []
     produces: list[str] = []
+    needs_streams: bool = False  # 보강 #2: stream prefetch 플래그
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -69,11 +70,22 @@ class MetricCalculator(ABC):
 
 @dataclass
 class CalcContext:
-    """Calculator에 전달되는 컨텍스트. lazy-load."""
+    """Calculator에 전달되는 컨텍스트. prefetch + cache-first, fallback DB."""
     conn: object
     scope_type: str
     scope_id: str
+
+    # ── Per-scope cache (engine이 prefetch하거나 lazy-load) ──
     _activity_cache: Optional[dict] = field(default=None, repr=False)
+    _metric_cache: Optional[dict] = field(default=None, repr=False)
+    _stream_cache: Optional[list] = field(default=None, repr=False)
+
+    # ── Prefetched shared data (engine이 일괄 로드) ──
+    _prefetched_daily_loads: Optional[dict] = field(default=None, repr=False)
+    _prefetched_wellness_map: Optional[dict] = field(default=None, repr=False)
+    _prefetched_daily_metrics: Optional[dict] = field(default=None, repr=False)
+
+    # ── Activity 데이터 접근 ──
 
     @property
     def activity(self) -> dict:
@@ -91,10 +103,40 @@ class CalcContext:
                 self._activity_cache = {}
         return self._activity_cache or {}
 
+    # ── Metric 데이터 접근 (cache-first) ──
+
     def get_metric(self, metric_name: str, provider: str = None,
                    scope_type: str = None, scope_id: str = None) -> Optional[float]:
         st = scope_type or self.scope_type
         sid = scope_id or self.scope_id
+
+        # cache-first: 현재 scope의 요청이면 캐시 조회
+        if st == self.scope_type and sid == self.scope_id and self._metric_cache is not None:
+            key = (metric_name, provider)
+            entry = self._metric_cache.get(key)
+            if entry:
+                return entry.get("numeric")
+            # provider=None이면 primary 조회
+            if provider is None:
+                entry = self._metric_cache.get((metric_name, None))
+                if entry:
+                    return entry.get("numeric")
+            return None
+
+        # daily scope prefetch 데이터 참조
+        if st == "daily" and self._prefetched_daily_metrics is not None:
+            day_cache = self._prefetched_daily_metrics.get(sid, {})
+            key = (metric_name, provider)
+            entry = day_cache.get(key)
+            if entry:
+                return entry.get("numeric")
+            if provider is None:
+                entry = day_cache.get((metric_name, None))
+                if entry:
+                    return entry.get("numeric")
+            return None
+
+        # fallback: DB 직접 쿼리
         if provider:
             row = self.conn.execute(
                 "SELECT numeric_value FROM metric_store "
@@ -110,6 +152,14 @@ class CalcContext:
         return row[0] if row else None
 
     def get_metric_json(self, metric_name: str, provider: str = None) -> Optional[str]:
+        # cache-first
+        if self._metric_cache is not None:
+            key = (metric_name, provider) if provider else (metric_name, None)
+            entry = self._metric_cache.get(key)
+            if entry:
+                return entry.get("json")
+            return None
+        # fallback
         if provider:
             row = self.conn.execute(
                 "SELECT json_value FROM metric_store "
@@ -125,6 +175,13 @@ class CalcContext:
         return row[0] if row else None
 
     def get_metric_text(self, metric_name: str) -> Optional[str]:
+        # cache-first
+        if self._metric_cache is not None:
+            entry = self._metric_cache.get((metric_name, None))
+            if entry:
+                return entry.get("text")
+            return None
+        # fallback
         row = self.conn.execute(
             "SELECT text_value FROM metric_store "
             "WHERE scope_type=? AND scope_id=? AND metric_name=? AND is_primary=1",
@@ -141,6 +198,23 @@ class CalcContext:
         start_date = (
             datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=days)
         ).strftime("%Y-%m-%d")
+
+        # prefetch된 daily metrics가 있으면 활용
+        if self._prefetched_daily_metrics is not None:
+            results = []
+            current = datetime.strptime(start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            while current <= end_dt:
+                ds = current.strftime("%Y-%m-%d")
+                day_cache = self._prefetched_daily_metrics.get(ds, {})
+                key = (metric_name, provider) if provider else (metric_name, None)
+                entry = day_cache.get(key)
+                if entry and entry.get("numeric") is not None:
+                    results.append((ds, entry["numeric"]))
+                current += timedelta(days=1)
+            return results
+
+        # fallback: DB
         if provider:
             rows = self.conn.execute(
                 "SELECT scope_id, numeric_value FROM metric_store "
@@ -186,10 +260,17 @@ class CalcContext:
         ).fetchone()
         return row[0] if row else None
 
+    # ── Stream 접근 (cache-first) ──
+
     def get_streams(self, activity_id: int = None) -> list[dict]:
         aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)
         if aid is None:
             return []
+
+        # cache-first
+        if self._stream_cache is not None and (activity_id is None or activity_id == int(self.scope_id)):
+            return self._stream_cache
+
         rows = self.conn.execute(
             "SELECT * FROM activity_streams WHERE activity_id = ? ORDER BY elapsed_sec",
             [aid],
@@ -199,7 +280,12 @@ class CalcContext:
         cols = [d[0] for d in self.conn.execute(
             "SELECT * FROM activity_streams LIMIT 0"
         ).description]
-        return [dict(zip(cols, row)) for row in rows]
+        result = [dict(zip(cols, row)) for row in rows]
+
+        # 현재 scope의 stream이면 캐시
+        if activity_id is None or (self.scope_type == "activity" and str(aid) == self.scope_id):
+            self._stream_cache = result
+        return result
 
     def get_laps(self, activity_id: int = None) -> list[dict]:
         aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)
@@ -216,8 +302,14 @@ class CalcContext:
         ).description]
         return [dict(zip(cols, row)) for row in rows]
 
+    # ── Wellness 접근 (prefetch-first) ──
+
     def get_wellness(self, date: str = None) -> dict:
         d = date or self.scope_id
+        # prefetch-first
+        if self._prefetched_wellness_map is not None:
+            return self._prefetched_wellness_map.get(d, {})
+        # fallback: DB
         row = self.conn.execute(
             "SELECT * FROM daily_wellness WHERE date = ?", [d]
         ).fetchone()
@@ -227,3 +319,38 @@ class CalcContext:
             ).fetchall()]
             return dict(zip(cols, row))
         return {}
+
+    # ── Daily Load 접근 (prefetch-first, PMC/LSI/Monotony용) ──
+
+    def get_daily_load(self, date_str: str) -> float:
+        """prefetch된 daily TRIMP 합산. PMC, LSI, Monotony에서 사용."""
+        if self._prefetched_daily_loads is not None:
+            return self._prefetched_daily_loads.get(date_str, 0)
+        # fallback: direct query
+        rows = self.conn.execute("""
+            SELECT m.numeric_value
+            FROM metric_store m
+            JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER) = a.id
+            WHERE m.scope_type = 'activity'
+            AND m.metric_name = 'trimp' AND m.is_primary = 1
+            AND substr(a.start_time, 1, 10) = ?
+        """, [date_str]).fetchall()
+        return sum(r[0] or 0 for r in rows)
+
+    # ── 계산 결과를 metric_cache에 즉시 반영 ──
+
+    def update_metric_cache(self, metric_name: str, provider: str,
+                            numeric: float = None, text: str = None, json_val: str = None):
+        """후속 calculator가 방금 계산된 값을 참조할 수 있도록 캐시 업데이트."""
+        if self._metric_cache is None:
+            self._metric_cache = {}
+        entry = {"numeric": numeric, "text": text, "json": json_val}
+        self._metric_cache[(metric_name, provider)] = entry
+        self._metric_cache[(metric_name, None)] = entry  # primary로도 매핑
+
+        # daily prefetched에도 반영
+        if self.scope_type == "daily" and self._prefetched_daily_metrics is not None:
+            if self.scope_id not in self._prefetched_daily_metrics:
+                self._prefetched_daily_metrics[self.scope_id] = {}
+            self._prefetched_daily_metrics[self.scope_id][(metric_name, provider)] = entry
+            self._prefetched_daily_metrics[self.scope_id][(metric_name, None)] = entry
