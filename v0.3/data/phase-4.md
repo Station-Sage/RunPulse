@@ -3454,3 +3454,23 @@ def background_sync_task(conn, sources, days):
 | **합계** | **47** | |
 
 전체 테스트: **755 passed**, 0 failed (28.50s)
+
+
+### 설계 원칙 준수 정비 (2026-04-03)
+
+Phase 1-2-3-4 설계 원칙 대비 전수 점검 후 수정 완료:
+
+| 항목 | 내용 | 조치 |
+|------|------|------|
+| metric_registry | 17개 메트릭 미등록 | 등록 완료 (기존 4 + 포팅 13) |
+| CATEGORY_LABELS | 7개 카테고리 누락 | 추가 (rp_efficiency, rp_trend 등) |
+| category 불일치 | cirs=rp_injury, tids=rp_training | registry 기준 통일 (rp_risk, rp_distribution) |
+| metric_groups | 중복 그룹 존재 | 재정비 11개 (중복 제거 + 병합) |
+| engine.py json_value | 이중 직렬화로 NULL 저장 | json.loads() 역직렬화 추가 |
+| engine.py resolve | Phase 3 sync와 불일치 | resolve_for_scope 명시 호출 추가 |
+| critical_power requires | 의존성 미선언 | requires=["power_curve"] 명시 |
+| confidence | 신규 9개 미설정 | 전부 confidence 추가 |
+| ranges 형식 | 단일 숫자 vs [low,high] 혼재 | [low,high] 리스트 통일 (설계서 기준) |
+| test_round4.py | 단일 숫자 허용 | [low,high]만 허용 + low≤high 검증 |
+| GUIDE.md | v0.2 기준 (store.py, computed_metrics) | v0.3 기준 전면 재작성 |
+| architecture.md | computed_metrics 잔존 | metric_store로 수정 |

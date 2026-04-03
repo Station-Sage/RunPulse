@@ -212,7 +212,7 @@ CREATE TABLE activity_summaries (
 기존에는 3개 테이블로 분리했습니다:
 - `activity_detail_metrics` (활동별 소스 메트릭)
 - `daily_detail_metrics` (일별 소스 메트릭)  
-- `computed_metrics` (RunPulse 계산 결과)
+- `metric_store` (RunPulse 계산 결과: provider=runpulse:formula_v1)
 
 이것을 **하나의 테이블로 통합**합니다.
 

@@ -73,5 +73,6 @@
 ## 의존성
 - `src/web/views_ai_coach.py` — 웹 라우트에서 호출
 - `src/training/` — 훈련 계획 생성 시 참조
-- `src/metrics/store.py` — 메트릭 데이터 조회
+- `src/metrics/engine.py` — 메트릭 데이터 조회 (metric_store 기반)
+- `src/utils/metric_registry.py` — 메트릭 이름 정규화, 카테고리 조회
 - `src/weather/provider.py` — 날씨 예보 도구

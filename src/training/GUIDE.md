@@ -72,6 +72,7 @@ readiness.py ──→ planner.py ──→ planned_workouts 테이블
 
 ## 의존성
 - `src/metrics/crs.py` — CRS Gate 참조
-- `src/metrics/store.py` — UTRS, CIRS, ACWR 등 메트릭 로드
+- `src/metrics/engine.py` — UTRS, CIRS, ACWR 등 메트릭 로드 (metric_store 기반)
+- `src/utils/metric_registry.py` — 메트릭 이름/카테고리 조회
 - `src/web/views_training*.py` — 웹 UI에서 호출
 - `src/ai/` — AI 코치가 훈련 계획 생성 시 호출
