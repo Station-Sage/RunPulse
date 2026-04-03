@@ -3408,3 +3408,37 @@ def background_sync_task(conn, sources, days):
 
     tests/helpers/
     ├── mock_context.py  # MockCalcContext
+
+
+## v0.2→v0.3 메트릭 포팅 기록 — 2026-04-03
+
+### 포팅 대상 (v0.2에만 있던 14개)
+
+| 배치 | 파일 | scope | 설명 |
+|------|------|-------|------|
+| 1 | daniels_table | utility | VDOT 룩업 (페이스/레이스/볼륨) |
+| 1 | relative_effort | activity | 심박존 노력도 (Strava 방식) |
+| 1 | wlei | activity | 날씨 가중 노력 지수 |
+| 2 | teroi | daily | 훈련 효과 ROI |
+| 2 | tpdi | daily | 실내/실외 FEARP 격차 |
+| 2 | rec | daily | 통합 러닝 효율성 |
+| 2 | rtti | daily | 달리기 내성 지수 |
+| 2 | critical_power | daily | CP/W' 임계 파워 |
+| 3 | sapi | daily | 계절 성과 비교 |
+| 3 | rri | daily | 레이스 준비도 |
+| 4 | eftp | daily | 역치 페이스 (daniels_table 의존) |
+| 4 | vdot_adj | daily | VDOT 보정 (daniels_table 의존) |
+| 4 | marathon_shape | daily | 마라톤 완성도 (daniels_table 의존) |
+| 5 | crs | daily | 복합 준비도 게이트 시스템 |
+
+### 최종 ALL_CALCULATORS (32개)
+
+    Activity-scope (10): trimp, hrss, aerobic_decoupling_rp, gap_rp,
+        workout_type, runpulse_vdot, efficiency_factor_rp, fearp,
+        relative_effort, wlei
+
+    Daily-scope (22): ctl, acwr, lsi, monotony, utrs, cirs, di, darp,
+        tids, rmr, adti, teroi, tpdi, rec, rtti, critical_power,
+        sapi, rri, eftp, vdot_adj, marathon_shape, crs
+
+### 테스트: 708 passed, 0 failed

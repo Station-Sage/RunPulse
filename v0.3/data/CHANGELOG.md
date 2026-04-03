@@ -1,4 +1,31 @@
 # CHANGELOG — RunPulse v0.3 Data Architecture
+## [Phase 4 추가] v0.2→v0.3 메트릭 포팅 완료 — 2026-04-03
+
+### Added (13 calculators + 1 utility)
+- `src/utils/daniels_table.py` — VDOT 룩업 테이블 (페이스/레이스/볼륨, 보간/역산)
+- `src/metrics/relative_effort.py` — 심박존 노력도 (Strava 방식, activity-scope)
+- `src/metrics/wlei.py` — 날씨 가중 노력 지수 (activity-scope)
+- `src/metrics/teroi.py` — 훈련 효과 ROI (CTL증가/TRIMP 비율)
+- `src/metrics/tpdi.py` — 실내/실외 FEARP 격차 지수
+- `src/metrics/rec.py` — 통합 러닝 효율성 (EF+Decoupling)
+- `src/metrics/rtti.py` — 달리기 내성 지수 (ATL/CTL×wellness)
+- `src/metrics/critical_power.py` — CP/W' 임계 파워 (2파라미터 회귀)
+- `src/metrics/sapi.py` — 계절 성과 비교 (기온 구간별 FEARP)
+- `src/metrics/rri.py` — 레이스 준비도 종합 지수
+- `src/metrics/eftp.py` — 역치 페이스 추정 (Daniels T-pace)
+- `src/metrics/vdot_adj.py` — VDOT 보정 (역치런/HR회귀)
+- `src/metrics/marathon_shape.py` — 마라톤 훈련 완성도
+- `src/metrics/crs.py` — 복합 훈련 준비도 (5-gate 필터 + CRS 점수)
+
+### Changed
+- `src/metrics/engine.py` — ALL_CALCULATORS 19→32개 확장
+- `tests/test_phase4_dod.py` — 32 calculators 대응
+- `tests/test_round4.py` — ranges 형식 검증 수정
+
+### Verified
+- v0.2 메트릭 14개 전부 v0.3 MetricCalculator 형식으로 포팅 완료
+- 전체 708 tests passed, 0 failed
+
 ## [Phase 4] Metrics Engine 완료 — 2026-04-03
 
 ### Added
