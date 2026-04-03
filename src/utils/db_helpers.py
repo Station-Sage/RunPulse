@@ -555,3 +555,137 @@ def get_db_status(conn: sqlite3.Connection) -> dict:
         status["primary_violations"] = -1
 
     return status
+
+# ─────────────────────────────────────────────────────────────────────────────
+# activity_laps (Layer 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def upsert_laps_batch(
+    conn: sqlite3.Connection,
+    activity_id: int,
+    laps: list[dict],
+) -> int:
+    """activity_laps 일괄 UPSERT. UNIQUE(activity_id, source, lap_index) 기준.
+
+    Returns: 처리된 랩 수.
+    """
+    _LAP_COLUMNS = [
+        "source", "lap_index", "start_time", "duration_sec",
+        "distance_m", "avg_hr", "max_hr", "avg_pace_sec_km",
+        "avg_cadence", "avg_power", "max_power",
+        "elevation_gain", "calories", "lap_trigger",
+    ]
+    count = 0
+    for lap in laps:
+        if lap.get("lap_index") is None:
+            continue
+        cols = ["activity_id"]
+        vals: list[Any] = [activity_id]
+        for c in _LAP_COLUMNS:
+            if c in lap:
+                cols.append(c)
+                vals.append(lap[c])
+
+        cols_str = ", ".join(cols)
+        placeholders = ", ".join("?" * len(cols))
+        update_cols = [c for c in cols if c not in ("activity_id", "source", "lap_index")]
+        if update_cols:
+            update_clause = ", ".join(f"{c} = excluded.{c}" for c in update_cols)
+            sql = (
+                f"INSERT INTO activity_laps ({cols_str}) VALUES ({placeholders}) "
+                f"ON CONFLICT(activity_id, source, lap_index) DO UPDATE SET {update_clause}"
+            )
+        else:
+            sql = f"INSERT OR IGNORE INTO activity_laps ({cols_str}) VALUES ({placeholders})"
+        conn.execute(sql, vals)
+        count += 1
+    return count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# activity_streams (Layer 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def upsert_streams_batch(
+    conn: sqlite3.Connection,
+    activity_id: int,
+    rows: list[dict],
+) -> int:
+    """activity_streams 일괄 INSERT. 기존 동일 activity+source 데이터를 DELETE 후 재삽입.
+
+    Returns: 삽입된 행 수.
+    """
+    if not rows:
+        return 0
+
+    _STREAM_COLUMNS = [
+        "activity_id", "source", "elapsed_sec", "distance_m",
+        "heart_rate", "cadence", "power_watts", "altitude_m",
+        "speed_ms", "latitude", "longitude", "grade_pct", "temperature_c",
+    ]
+
+    sources = {r.get("source", "") for r in rows}
+    for src in sources:
+        conn.execute(
+            "DELETE FROM activity_streams WHERE activity_id = ? AND source = ?",
+            (activity_id, src),
+        )
+
+    count = 0
+    for row in rows:
+        vals = []
+        for c in _STREAM_COLUMNS:
+            if c == "activity_id":
+                vals.append(activity_id)
+            else:
+                vals.append(row.get(c))
+        placeholders = ", ".join("?" * len(_STREAM_COLUMNS))
+        conn.execute(
+            f"INSERT INTO activity_streams ({', '.join(_STREAM_COLUMNS)}) "
+            f"VALUES ({placeholders})",
+            vals,
+        )
+        count += 1
+    return count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# activity_best_efforts (Layer 3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def upsert_best_efforts_batch(
+    conn: sqlite3.Connection,
+    activity_id: int,
+    efforts: list[dict],
+) -> int:
+    """activity_best_efforts 일괄 UPSERT. UNIQUE(activity_id, source, effort_name) 기준.
+
+    Returns: 처리된 effort 수.
+    """
+    count = 0
+    for effort in efforts:
+        if not effort.get("effort_name"):
+            continue
+        conn.execute("""
+            INSERT INTO activity_best_efforts
+                (activity_id, source, effort_name, elapsed_sec, distance_m,
+                 start_index, end_index, pr_rank)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(activity_id, source, effort_name) DO UPDATE SET
+                elapsed_sec = excluded.elapsed_sec,
+                distance_m = excluded.distance_m,
+                start_index = excluded.start_index,
+                end_index = excluded.end_index,
+                pr_rank = excluded.pr_rank
+        """, (
+            activity_id,
+            effort.get("source", ""),
+            effort["effort_name"],
+            effort.get("elapsed_sec"),
+            effort.get("distance_m"),
+            effort.get("start_index"),
+            effort.get("end_index"),
+            effort.get("pr_rank"),
+        ))
+        count += 1
+    return count

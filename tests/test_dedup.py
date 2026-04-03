@@ -1,95 +1,74 @@
-"""dedup 유틸리티 테스트."""
+"""Dedup 단위 테스트."""
 
-from src.utils.dedup import is_duplicate, find_duplicates, assign_group_id
+import sqlite3
+from src.db_setup import create_tables
+from src.sync.dedup import run as run_dedup
 
 
-class TestIsDuplicate:
-    def test_same_activity(self):
-        assert is_duplicate(
-            "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:00:00", 10.0,
+def _conn_with_activities(activities):
+    conn = sqlite3.connect(":memory:")
+    create_tables(conn)
+    for a in activities:
+        conn.execute(
+            "INSERT INTO activity_summaries (source, source_id, activity_type, start_time, distance_m) "
+            "VALUES (?, ?, 'running', ?, ?)",
+            (a["source"], a["source_id"], a["start_time"], a.get("distance_m")),
         )
-
-    def test_within_tolerance(self):
-        """시간 3분 차이, 거리 2% 차이 → 중복."""
-        assert is_duplicate(
-            "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:03:00", 10.15,
-        )
-
-    def test_time_outside_tolerance(self):
-        """시간 8분 차이 → 중복 아님 (허용 7분)."""
-        assert not is_duplicate(
-            "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:08:00", 10.0,
-        )
-
-    def test_distance_outside_tolerance(self):
-        """거리 20% 차이 → 중복 아님 (허용 15%)."""
-        assert not is_duplicate(
-            "2026-03-18T07:00:00", 10.0,
-            "2026-03-18T07:01:00", 12.1,
-        )
-
-    def test_both_zero_distance(self):
-        """거리 둘 다 0 → 중복."""
-        assert is_duplicate(
-            "2026-03-18T07:00:00", 0,
-            "2026-03-18T07:02:00", 0,
-        )
+    conn.commit()
+    return conn
 
 
-class TestFindDuplicates:
-    def test_no_duplicates(self):
-        activities = [
-            {"start_time": "2026-03-18T07:00:00", "distance_km": 10.0},
-            {"start_time": "2026-03-18T18:00:00", "distance_km": 5.0},
-        ]
-        assert find_duplicates(activities) == []
+class TestDedup:
+    def test_same_activity_different_sources(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": 10050},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 1
+        rows = conn.execute("SELECT matched_group_id FROM activity_summaries").fetchall()
+        assert rows[0][0] == rows[1][0]
+        assert rows[0][0] is not None
 
-    def test_one_group(self):
-        activities = [
-            {"start_time": "2026-03-18T07:00:00", "distance_km": 10.0, "source": "garmin"},
-            {"start_time": "2026-03-18T07:02:00", "distance_km": 10.1, "source": "strava"},
-        ]
-        groups = find_duplicates(activities)
-        assert len(groups) == 1
-        assert len(groups[0]) == 2
+    def test_different_activities_not_grouped(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T18:00:00", "distance_m": 5000},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 0
 
-    def test_multiple_groups(self):
-        activities = [
-            {"start_time": "2026-03-18T07:00:00", "distance_km": 10.0},
-            {"start_time": "2026-03-18T07:01:00", "distance_km": 10.1},
-            {"start_time": "2026-03-18T18:00:00", "distance_km": 5.0},
-            {"start_time": "2026-03-18T18:02:00", "distance_km": 5.05},
-        ]
-        groups = find_duplicates(activities)
-        assert len(groups) == 2
+    def test_same_source_not_grouped(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "garmin", "source_id": "g2", "start_time": "2026-04-01T08:01:00", "distance_m": 10050},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 0
 
+    def test_distance_threshold_exceeded(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": 15000},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 0
 
-class TestAssignGroupId:
-    def test_no_match(self, db_conn):
-        db_conn.execute(
-            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
-        )
-        db_conn.execute(
-            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T18:00:00', 5.0)"
-        )
-        result = assign_group_id(db_conn, 2)
-        assert result is None
+    def test_three_sources_same_activity(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": 10020},
+            {"source": "intervals", "source_id": "i1", "start_time": "2026-04-01T08:00:30", "distance_m": 10010},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 1
+        gids = conn.execute("SELECT DISTINCT matched_group_id FROM activity_summaries WHERE matched_group_id IS NOT NULL").fetchall()
+        assert len(gids) == 1
 
-    def test_match_assigns_group(self, db_conn):
-        db_conn.execute(
-            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('garmin', '1', '2026-03-18T07:00:00', 10.0)"
-        )
-        db_conn.execute(
-            "INSERT INTO activity_summaries (source, source_id, start_time, distance_km) VALUES ('strava', '2', '2026-03-18T07:02:00', 10.1)"
-        )
-        group_id = assign_group_id(db_conn, 2)
-        assert group_id is not None
-
-        # 두 활동 모두 같은 group_id를 가짐
-        rows = db_conn.execute(
-            "SELECT matched_group_id FROM activity_summaries ORDER BY id"
-        ).fetchall()
-        assert rows[0][0] == rows[1][0] == group_id
+    def test_no_distance_falls_back_to_time(self):
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": None},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:02:00", "distance_m": None},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 1
