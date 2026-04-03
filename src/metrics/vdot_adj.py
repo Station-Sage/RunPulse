@@ -41,12 +41,10 @@ class VDOTAdjCalculator(MetricCalculator):
         start = (td - timedelta(weeks=12)).isoformat()
 
         # max_hr 추정
-        hr_row = ctx.conn.execute(
-            "SELECT MAX(max_hr) FROM activity_summaries "
-            "WHERE max_hr IS NOT NULL AND max_hr > 100 "
-            "AND DATE(start_time) BETWEEN ? AND ?",
-            (start, target),
-        ).fetchone()
+        # CalcContext API 활용 (보강 #1)
+        activities = ctx.get_activities_in_range(days=90)
+        hr_vals = [a["max_hr"] for a in activities if a.get("max_hr") and a["max_hr"] > 100]
+        hr_row = (max(hr_vals),) if hr_vals else (None,)
         hr_max = float(hr_row[0]) if hr_row and hr_row[0] else 190.0
 
         # resting_hr

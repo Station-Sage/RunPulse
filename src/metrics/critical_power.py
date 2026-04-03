@@ -49,6 +49,7 @@ class CriticalPowerCalculator(MetricCalculator):
         return round(cp, 1), round(w_prime, 0)
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
+        # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
         target = ctx.scope_id
         td = date.fromisoformat(target)
         start = (td - timedelta(weeks=12)).isoformat()

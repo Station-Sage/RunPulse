@@ -40,6 +40,7 @@ class SAPICalculator(MetricCalculator):
     decimal_places = 1
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
+        # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
         target = ctx.scope_id
         td = date.fromisoformat(target)
         start = (td - timedelta(days=90)).isoformat()

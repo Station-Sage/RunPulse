@@ -31,6 +31,7 @@ class EFTPCalculator(MetricCalculator):
     decimal_places = 0
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
+        # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
         # 1차: VDOT → Daniels T-pace
         vdot = ctx.get_metric("runpulse_vdot", provider="runpulse:formula_v1")
         if vdot is not None:

@@ -39,14 +39,9 @@ class TEROICalculator(MetricCalculator):
             return []
         ctl_end = float(ctl_end)
 
-        row = ctx.conn.execute(
-            "SELECT numeric_value FROM metric_store "
-            "WHERE metric_name='ctl' AND scope_type='daily' "
-            "AND scope_id=? AND numeric_value IS NOT NULL "
-            "ORDER BY scope_id DESC LIMIT 1",
-            (start,),
-        ).fetchone()
-        ctl_start = float(row[0]) if row else 0.0
+        # CalcContext API 활용 (보강 #1)
+        series = ctx.get_daily_metric_series("ctl", days=28, provider="runpulse:formula_v1")
+        ctl_start = series[0][1] if series else 0.0
 
         # 28일간 총 TRIMP
         rows = ctx.conn.execute(

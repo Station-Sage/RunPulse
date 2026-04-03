@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.base import CalcContext, CalcResult, MetricCalculator, ConfidenceBuilder
 from src.metrics.lsi import LSICalculator
 
 
@@ -79,7 +79,10 @@ class CIRSCalculator(MetricCalculator):
         score = sum(
             components[k] * self.WEIGHTS[k] for k in components
         ) / total_weight
-        confidence = round(min(total_weight / sum(self.WEIGHTS.values()), 1.0), 2)
+        cb = ConfidenceBuilder()
+        for k, w in self.WEIGHTS.items():
+            cb.add_input(k, is_available=(k in components), weight=w)
+        confidence = cb.compute()
 
         return [self._result(
             value=round(score, 1),

@@ -28,6 +28,8 @@ SEMANTIC_GROUPS: dict[str, dict] = {
             ("training_load", "garmin"),
             ("suffer_score", "strava"),
             ("hrss", "runpulse:formula_v1"),
+            ("wlei", "runpulse:formula_v1"),
+            ("rtti", "runpulse:formula_v1"),
         ],
         "primary_strategy": "show_all",
     },
@@ -106,6 +108,23 @@ SEMANTIC_GROUPS: dict[str, dict] = {
             ("effective_vo2max", "runalyze"),
         ],
         "primary_strategy": "prefer_runpulse",
+    },
+    "training_trend": {
+        "display_name": "훈련 트렌드",
+        "members": [
+            ("teroi", "runpulse:formula_v1"),
+            ("tpdi", "runpulse:formula_v1"),
+            ("adti", "runpulse:formula_v1"),
+        ],
+        "primary_strategy": "show_all",
+    },
+    "seasonal_performance": {
+        "display_name": "환경별 성과",
+        "members": [
+            ("sapi", "runpulse:formula_v1"),
+            ("fearp", "runpulse:formula_v1"),
+        ],
+        "primary_strategy": "show_all",
     },
 }
 

@@ -31,6 +31,7 @@ class MarathonShapeCalculator(MetricCalculator):
     decimal_places = 1
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
+        # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
         # VDOT (vdot_adj 우선, 없으면 runpulse_vdot)
         vdot_val = ctx.get_metric("vdot_adj", provider="runpulse:formula_v1")
         if vdot_val is None:

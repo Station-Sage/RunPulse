@@ -76,3 +76,27 @@ class TestRTTI:
         results = RTTICalculator().compute(ctx)
         if results:
             assert results[0].category == "rp_load"
+
+# ══════════════════════════════════════════
+# Mock 테스트 (보강 #5)
+# ══════════════════════════════════════════
+from tests.helpers.mock_context import MockCalcContext
+
+
+class TestRTTIMock:
+    def test_optimal_mock(self):
+        ctx = MockCalcContext(
+            scope_type="daily", scope_id="2026-04-01",
+            metrics={
+                "ctl": {"numeric": 50.0, "text": None, "json": None},
+                "atl": {"numeric": 50.0, "text": None, "json": None},
+            },
+            wellness_data={"body_battery_high": 80, "sleep_score": 85},
+        )
+        results = RTTICalculator().compute(ctx)
+        assert len(results) == 1
+        assert 90 <= results[0].numeric_value <= 110
+
+    def test_no_data_mock(self):
+        ctx = MockCalcContext(scope_type="daily", scope_id="2026-04-01")
+        assert RTTICalculator().compute(ctx) == []

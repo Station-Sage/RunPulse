@@ -78,3 +78,31 @@ class TestRRI:
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RRICalculator().compute(ctx)
         assert results[0].category == "rp_performance"
+
+# ══════════════════════════════════════════
+# Mock 테스트 (보강 #5)
+# ══════════════════════════════════════════
+from tests.helpers.mock_context import MockCalcContext
+
+
+class TestRRIMock:
+    def test_with_all_inputs_mock(self):
+        ctx = MockCalcContext(
+            scope_type="daily", scope_id="2026-04-01",
+            metrics={
+                "runpulse_vdot": {"numeric": 50.0, "text": None, "json": None},
+                "ctl": {"numeric": 45.0, "text": None, "json": None},
+                "di": {"numeric": 75.0, "text": None, "json": None},
+                "cirs": {"numeric": 25.0, "text": None, "json": None},
+            },
+        )
+        results = RRICalculator().compute(ctx)
+        assert len(results) == 1
+        assert 0 <= results[0].numeric_value <= 100
+
+    def test_no_vdot_mock(self):
+        ctx = MockCalcContext(
+            scope_type="daily", scope_id="2026-04-01",
+            metrics={"ctl": {"numeric": 45.0, "text": None, "json": None}},
+        )
+        assert RRICalculator().compute(ctx) == []

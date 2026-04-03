@@ -90,3 +90,27 @@ class TestRelativeEffort:
         ctx = CalcContext(conn=conn, scope_type="activity", scope_id=str(aid))
         results = RelativeEffortCalculator().compute(ctx)
         assert results[0].category == "rp_load"
+
+# ══════════════════════════════════════════
+# Mock 테스트 (보강 #5)
+# ══════════════════════════════════════════
+from tests.helpers.mock_context import MockCalcContext
+
+
+class TestRelativeEffortMock:
+    def test_basic_mock(self):
+        ctx = MockCalcContext(
+            activity_data={
+                "avg_hr": 155, "max_hr": 185,
+                "moving_time_sec": 3600, "activity_type": "running",
+            },
+        )
+        results = RelativeEffortCalculator().compute(ctx)
+        assert len(results) == 1
+        assert results[0].numeric_value > 0
+
+    def test_no_hr_mock(self):
+        ctx = MockCalcContext(
+            activity_data={"moving_time_sec": 3600, "activity_type": "running"},
+        )
+        assert RelativeEffortCalculator().compute(ctx) == []

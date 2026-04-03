@@ -123,3 +123,5 @@ class TestConfidenceBuilder:
         cb.add_input("rest_hr", is_available=False, weight=0.1)
         conf = cb.compute()
         assert 0.5 < conf < 1.0
+
+
