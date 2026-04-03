@@ -1,0 +1,24 @@
+{
+  "id": 7890,
+  "title": "Morning Run",
+  "sport": {"name": "Running"},
+  "datetime": "2025-03-25T15:30:00+09:00",
+  "distance": 10025.0,
+  "s": 3115,
+  "pulse_avg": 154,
+  "pulse_max": 177,
+  "cadence": 172,
+  "elevation": 118.0,
+  "kcal": 612,
+  "trimp": 83,
+  "temperature": 22,
+  "vo2max": 52.5,
+  "vdot": 48.3,
+  "marathonShape": 85,
+  "racePredictions": {
+    "5k": 1190,
+    "10k": 2500,
+    "half": 5350,
+    "marathon": 11300
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": 9876543210,
+  "name": "Evening Run",
+  "type": "Run",
+  "start_date": "2025-03-25T09:30:00Z",
+  "distance": 10050.0,
+  "elapsed_time": 3150,
+  "moving_time": 3060,
+  "average_speed": 3.284,
+  "max_speed": 4.8,
+  "average_heartrate": 153.0,
+  "max_heartrate": 176.0,
+  "average_cadence": 85.5,
+  "total_elevation_gain": 118.0,
+  "calories": 610,
+  "suffer_score": 78,
+  "start_latlng": [37.5665, 126.978],
+  "end_latlng": [37.567, 126.979],
+  "average_temp": 21,
+  "device_name": "Garmin Forerunner 265",
+  "gear_id": "g12345",
+  "workout_type": 0,
+  "kilojoules": 2554.0,
+  "perceived_exertion": 7,
+  "achievement_count": 3,
+  "pr_count": 1,
+  "kudos_count": 5,
+  "weighted_average_watts": 280,
+  "max_watts": 420,
+  "timezone": "(GMT+09:00) Asia/Seoul",
+  "splits_metric": [
+    {"distance": 1000, "elapsed_time": 310, "average_heartrate": 148}
+  ],
+  "best_efforts": [
+    {"name": "1k", "elapsed_time": 280, "distance": 1000, "start_index": 0, "end_index": 280, "pr_rank": 3}
+  ]
+}

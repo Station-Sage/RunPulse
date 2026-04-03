@@ -1,14 +1,12 @@
-[
-  {
-    "id": "2026-03-18",
-    "sleepQuality": 4,
-    "sleepSecs": 28800,
-    "hrv": 42,
-    "restingHR": 50,
-    "readiness": null,
-    "ctl": 42.3,
-    "atl": 55.1,
-    "form": -12.8,
-    "rampRate": 1.5
-  }
-]
+{
+  "sleepQuality": 80,
+  "sleepSecs": 27000,
+  "hrv": 48.0,
+  "restingHR": 52,
+  "weight": 70.5,
+  "steps": 12500,
+  "ctl": 45.2,
+  "atl": 52.1,
+  "tsb": -6.9,
+  "rampRate": 1.2
+}

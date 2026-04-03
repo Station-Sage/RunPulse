@@ -1,0 +1,56 @@
+{
+  "sleep_day": {
+    "overallScore": 82,
+    "sleepTimeSeconds": 27000,
+    "deepSleepSeconds": 5400,
+    "lightSleepSeconds": 14400,
+    "remSleepSeconds": 5400,
+    "awakeSleepSeconds": 1800,
+    "averageRespiration": 14.5,
+    "averageSpO2Value": 96.5,
+    "sleepScores": {"overall": 82, "deep": 75, "rem": 80, "recovery": 85},
+    "sleepStartTimestampGMT": "2025-03-24T23:15:00.0"
+  },
+  "hrv_day": {
+    "hrvSummary": {
+      "weeklyAvg": 45.0,
+      "lastNightAvg": 48.0,
+      "restingHeartRate": 52,
+      "status": "BALANCED",
+      "baselineLowUpper": 35.0,
+      "baselineBalancedLow": 40.0,
+      "baselineBalancedUpper": 55.0
+    }
+  },
+  "body_battery_day": {
+    "bodyBatteryHigh": 95,
+    "bodyBatteryLow": 25
+  },
+  "stress_day": {
+    "overallStressLevel": 35,
+    "highStressDuration": 3600,
+    "mediumStressDuration": 7200,
+    "lowStressDuration": 10800,
+    "restStressDuration": 14400
+  },
+  "user_summary_day": {
+    "totalSteps": 12500,
+    "activeKilocalories": 450,
+    "restingHeartRate": 52,
+    "floorsAscended": 8,
+    "totalKilocalories": 2200
+  },
+  "training_readiness": {
+    "score": 72,
+    "level": "MODERATE",
+    "sleepScoreFactorPercent": 80,
+    "hrvFactorPercent": 65,
+    "recoveryFactorPercent": 70
+  },
+  "race_predictions": {
+    "raceTime5K": 1200,
+    "raceTime10K": 2520,
+    "raceTimeHalf": 5400,
+    "raceTimeMarathon": 11400
+  }
+}

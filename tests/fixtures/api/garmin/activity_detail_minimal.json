@@ -1,0 +1,40 @@
+{
+  "hrTimeInZone": [120, 480, 960, 1200, 360],
+  "powerTimeInZone": null,
+  "weatherDTO": {
+    "temp": 22,
+    "relativeHumidity": 65,
+    "windSpeed": 3.5,
+    "windDirection": 180,
+    "dewPoint": 15.2
+  },
+  "laps": [
+    {
+      "startTimeGMT": "2025-03-25T06:30:00.0",
+      "duration": 312.0,
+      "distance": 1000.0,
+      "averageSpeed": 3.205,
+      "averageHR": 148,
+      "maxHR": 160,
+      "averageRunningCadenceInStepsPerMinute": 170,
+      "elevationGain": 12.0,
+      "calories": 62,
+      "lapTrigger": "DISTANCE"
+    },
+    {
+      "startTimeGMT": "2025-03-25T06:35:12.0",
+      "duration": 305.0,
+      "distance": 1000.0,
+      "averageSpeed": 3.278,
+      "averageHR": 155,
+      "maxHR": 170,
+      "averageRunningCadenceInStepsPerMinute": 173,
+      "elevationGain": 15.0,
+      "calories": 65,
+      "lapTrigger": "DISTANCE"
+    }
+  ],
+  "splitSummaries": [
+    {"splitType": "KM", "distance": 1000, "duration": 312, "averageHR": 148}
+  ]
+}
