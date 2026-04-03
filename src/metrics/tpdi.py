@@ -23,7 +23,7 @@ class TPDICalculator(MetricCalculator):
     display_name = "TPDI (실내/실외 격차)"
     description = "실내 vs 실외 달리기 FEARP 격차. 0에 가까울수록 일관됨."
     unit = "%"
-    ranges = {"consistent": 5, "moderate": 10, "large": 20}
+    ranges = {"consistent": [0, 5], "moderate": [5, 10], "large": [10, 100]}
     higher_is_better = False
     format_type = "number"
     decimal_places = 1

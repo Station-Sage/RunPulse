@@ -22,7 +22,7 @@ class RTTICalculator(MetricCalculator):
     display_name = "RTTI (훈련 내성 지수)"
     description = "ATL/CTL 기반 훈련 내성. 100=적정, >100 과부하, <70 여유."
     unit = "%"
-    ranges = {"under": 70, "optimal": 100, "overload": 130, "danger": 160}
+    ranges = {"under": [0, 70], "optimal": [70, 100], "overload": [100, 130], "danger": [130, 300]}
     higher_is_better = None
     format_type = "number"
     decimal_places = 1

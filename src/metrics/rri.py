@@ -24,7 +24,7 @@ class RRICalculator(MetricCalculator):
     display_name = "RRI (레이스 준비도)"
     description = "VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100)"
     unit = ""
-    ranges = {"insufficient": 40, "building": 60, "ready": 80, "peak": 95}
+    ranges = {"insufficient": [0, 40], "building": [40, 60], "ready": [60, 80], "peak": [80, 100]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1

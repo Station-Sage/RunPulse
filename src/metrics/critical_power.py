@@ -24,7 +24,7 @@ class CriticalPowerCalculator(MetricCalculator):
     display_name = "Critical Power (CP)"
     description = "임계 파워 (W). 2파라미터 선형 회귀 모델."
     unit = "W"
-    ranges = {"low": 200, "moderate": 280, "high": 350}
+    ranges = {"low": [0, 200], "moderate": [200, 280], "high": [280, 500]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1

@@ -23,7 +23,7 @@ class TEROICalculator(MetricCalculator):
     display_name = "TEROI (훈련 효과 ROI)"
     description = "TRIMP 투입 대비 CTL 증가율. 높을수록 효율적 훈련."
     unit = ""
-    ranges = {"negative": 0, "low": 5, "good": 15, "excellent": 30}
+    ranges = {"negative": [-100, 0], "low": [0, 5], "good": [5, 15], "excellent": [15, 100]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 2

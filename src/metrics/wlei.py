@@ -26,7 +26,7 @@ class WLEICalculator(MetricCalculator):
     display_name = "WLEI (날씨 가중 노력)"
     description = "TRIMP에 기온/습도 스트레스 계수를 적용한 실제 신체 부담 지수"
     unit = "AU"
-    ranges = {"low": 50, "moderate": 100, "high": 200, "very_high": 300}
+    ranges = {"low": [0, 50], "moderate": [50, 100], "high": [100, 200], "very_high": [200, 999]}
     higher_is_better = None
     format_type = "number"
     decimal_places = 1

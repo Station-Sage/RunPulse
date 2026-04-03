@@ -25,7 +25,7 @@ class MarathonShapeCalculator(MetricCalculator):
     display_name = "Marathon Shape"
     description = "마라톤 훈련 완성도 (%). 주간볼륨+장거리런 기반."
     unit = "%"
-    ranges = {"insufficient": 30, "base": 50, "building": 70, "ready": 85, "peak": 95}
+    ranges = {"insufficient": [0, 30], "base": [30, 50], "building": [50, 70], "ready": [70, 85], "peak": [85, 100]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1

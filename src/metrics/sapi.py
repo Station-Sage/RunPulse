@@ -34,7 +34,7 @@ class SAPICalculator(MetricCalculator):
     display_name = "SAPI (계절 성과 지수)"
     description = "기온 구간별 FEARP 비교. 100=기준 동일, >100 더 빠름."
     unit = ""
-    ranges = {"poor": 85, "normal": 100, "good": 110}
+    ranges = {"poor": [0, 85], "normal": [85, 100], "good": [100, 150]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1

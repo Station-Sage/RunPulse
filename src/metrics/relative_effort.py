@@ -24,7 +24,7 @@ class RelativeEffortCalculator(MetricCalculator):
     display_name = "Relative Effort"
     description = "심박존 기반 노력도 점수 (Strava 방식)"
     unit = "AU"
-    ranges = {"low": 50, "moderate": 100, "high": 200, "very_high": 300}
+    ranges = {"low": [0, 50], "moderate": [50, 100], "high": [100, 200], "very_high": [200, 999]}
     higher_is_better = None
     format_type = "number"
     decimal_places = 1

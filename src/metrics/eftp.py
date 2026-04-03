@@ -25,7 +25,7 @@ class EFTPCalculator(MetricCalculator):
     display_name = "eFTP (역치 페이스)"
     description = "기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름."
     unit = "sec/km"
-    ranges = {"elite": 210, "advanced": 260, "intermediate": 320, "beginner": 400}
+    ranges = {"elite": [150, 210], "advanced": [210, 260], "intermediate": [260, 320], "beginner": [320, 600]}
     higher_is_better = False
     format_type = "pace"
     decimal_places = 0

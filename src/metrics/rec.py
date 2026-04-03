@@ -27,7 +27,7 @@ class RECCalculator(MetricCalculator):
     display_name = "REC (러닝 효율성)"
     description = "EF와 Decoupling 기반 통합 러닝 효율성 (0~100)"
     unit = ""
-    ranges = {"poor": 30, "fair": 50, "good": 70, "excellent": 85}
+    ranges = {"poor": [0, 30], "fair": [30, 50], "good": [50, 70], "excellent": [70, 100]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1

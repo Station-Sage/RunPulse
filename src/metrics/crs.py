@@ -123,7 +123,7 @@ class CRSCalculator(MetricCalculator):
     display_name = "CRS (훈련 준비도)"
     description = "게이트 기반 복합 준비도. level 0~4 + CRS 참고 점수 0~100."
     unit = ""
-    ranges = {"rest": 20, "easy_only": 40, "moderate": 60, "full": 80, "boost": 95}
+    ranges = {"rest": [0, 20], "easy_only": [20, 40], "moderate": [40, 60], "full": [60, 80], "boost": [80, 100]}
     higher_is_better = True
     format_type = "json"
     decimal_places = 1

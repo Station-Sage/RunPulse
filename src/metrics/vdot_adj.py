@@ -25,7 +25,7 @@ class VDOTAdjCalculator(MetricCalculator):
     display_name = "VDOT 보정"
     description = "역치 페이스 기반 현재 체력 VDOT 보정값"
     unit = ""
-    ranges = {"beginner": 35, "intermediate": 45, "advanced": 55, "elite": 65}
+    ranges = {"beginner": [20, 35], "intermediate": [35, 45], "advanced": [45, 55], "elite": [55, 85]}
     higher_is_better = True
     format_type = "number"
     decimal_places = 1
