@@ -3441,4 +3441,16 @@ def background_sync_task(conn, sources, days):
         tids, rmr, adti, teroi, tpdi, rec, rtti, critical_power,
         sapi, rri, eftp, vdot_adj, marathon_shape, crs
 
-### 테스트: 708 passed, 0 failed
+### 테스트: 755 passed, 0 failed
+
+
+### 포팅 메트릭 테스트 (2026-04-03 추가)
+
+| 파일 | 테스트 수 | 대상 |
+|------|-----------|------|
+| test_daniels_table.py | 12 | 훈련 페이스, 레이스 예측, 볼륨, T-pace |
+| test_porting_activity.py | 10 | RelativeEffort, WLEI |
+| test_porting_daily.py | 25 | TEROI, REC, RTTI, CP, RRI, EFTP, VDOTAdj, MarathonShape, CRS, TPDI, SAPI |
+| **합계** | **47** | |
+
+전체 테스트: **755 passed**, 0 failed (28.50s)

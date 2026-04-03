@@ -1,3 +1,9 @@
+### Phase 4 – 포팅 메트릭 테스트 (2026-04-03)
+- tests/test_daniels_table.py: 12 tests (훈련 페이스, 레이스 예측, T-pace 변환)
+- tests/test_porting_activity.py: 10 tests (RelativeEffort, WLEI)
+- tests/test_porting_daily.py: 25 tests (TEROI, REC, RTTI, CP, RRI, EFTP, VDOTAdj, MarathonShape, CRS, TPDI, SAPI)
+- 전체 테스트: 755 passed, 0 failed
+
 # CHANGELOG — RunPulse v0.3 Data Architecture
 ## [Phase 4 추가] v0.2→v0.3 메트릭 포팅 완료 — 2026-04-03
 
