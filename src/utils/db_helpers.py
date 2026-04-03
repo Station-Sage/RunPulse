@@ -251,6 +251,9 @@ def upsert_metric(
         "WHERE scope_type = ? AND scope_id = ? AND metric_name = ? AND provider = ?",
         (scope_type, scope_id_str, metric_name, provider),
     ).fetchone()
+    # is_primary 자동 결정 (설계서 architecture.md 기준)
+    from src.utils.metric_priority import resolve_primary
+    resolve_primary(conn, scope_type, scope_id_str, metric_name)
     return row[0]
 
 
