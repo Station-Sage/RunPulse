@@ -26,7 +26,7 @@ class StravaExtractor(BaseExtractor):
             "activity_type": normalize_activity_type(
                 raw.get("type", "unknown"), self.SOURCE
             ),
-            "start_time": raw.get("start_date"),
+            "start_time": raw.get("start_date_local") or raw.get("start_date"),
             "distance_m": raw.get("distance"),
             "duration_sec": raw.get("elapsed_time"),
             "moving_time_sec": raw.get("moving_time"),
