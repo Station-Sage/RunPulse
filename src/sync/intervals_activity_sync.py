@@ -143,11 +143,11 @@ def sync_wellness(
                 result.skipped_count += 1
                 continue
 
-            core = extractor.extract_wellness_core(ds, wellness_day=w)
+            core = extractor.extract_wellness_core(ds, wellness=w)
             if core:
                 save_daily_wellness(conn, ds, core)
 
-            metrics = extractor.extract_wellness_metrics(ds, wellness_day=w)
+            metrics = extractor.extract_wellness_metrics(ds, wellness=w)
             if metrics:
                 save_metrics(conn, "daily", ds, "intervals", metrics)
 
