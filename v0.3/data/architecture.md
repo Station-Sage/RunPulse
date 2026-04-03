@@ -1,5 +1,9 @@
 # RunPulse 데이터 아키텍처 v0.3 — Design
 
+**구현 현황**: Phase 1 ✅ | Phase 2~7 🔲
+**현재 Schema Version**: 10
+**최종 업데이트**: 2026-04-03
+
 ## Part 1: 설계 원점으로 돌아가기
 
 ### RunPulse는 어떤 앱인가

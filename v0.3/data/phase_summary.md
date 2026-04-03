@@ -1,9 +1,17 @@
-프라이빗 레포라서 직접 접근은 불가하지만, 대화 히스토리에서 충분한 정보를 확보했습니다. 이제 v0
-3 데이터 아키텍처 기반으로 전체 구현 로드맵을 깊이 있게 설계하겠습니다.
-
----
 
 # RunPulse v0.3 데이터 아키텍처 — Phase별 구현 계획서
+
+## Phase 진행 현황
+
+| Phase | 상태 | 완료일 | 비고 |
+|-------|------|--------|------|
+| Phase 1 – Schema & Base Infrastructure | ✅ 완료 | 2026-04-03 | 64 tests all pass |
+| Phase 2 – Extractors | 🔲 대기 | - | - |
+| Phase 3 – Sync Orchestrators | 🔲 대기 | - | - |
+| Phase 4 – Metric Engine | 🔲 대기 | - | - |
+| Phase 5 – Consumer Migration | 🔲 대기 | - | - |
+| Phase 6 – Full Data Load | 🔲 대기 | - | - |
+| Phase 7 – Future Extensions | 🔲 대기 | - | - |
 
 ## 전체 구조 리캡
 

@@ -1086,3 +1086,27 @@ def test_get_all_providers():
 10. `pytest tests/test_db_setup.py tests/test_metric_registry.py tests/test_metric_priority.py tests/test_db_helpers.py` 전체 통과
 
 ---
+---
+
+## 구현 결과 (Implementation Result)
+
+### 완료일: 2026-04-03
+
+### 생성/수정 파일
+| 파일 | 구분 | 설명 |
+|------|------|------|
+| `src/db_setup.py` | 수정 | v0.3 스키마 재작성, SCHEMA_VERSION=10, 12 pipeline + 5 app tables + 1 view |
+| `src/utils/metric_registry.py` | 신규 | 80+ 메트릭 정의, alias mapping, canonicalize API |
+| `src/utils/metric_priority.py` | 신규 | provider priority (user 0 ~ runalyze 130), resolve_primary |
+| `src/utils/db_helpers.py` | 신규 | 전 레이어 CRUD (payload, activity, metric, wellness, fitness) |
+| `tests/conftest.py` | 수정 | v0.3 fixtures (in-memory + real DB copy) |
+| `tests/test_phase1_schema.py` | 신규 | 64 tests (schema, constraints, view, registry, priority, CRUD, perf) |
+
+### 설계 대비 변경점
+1. `weather_cache` UNIQUE 제약조건에서 `ROUND()` 함수 제거 → Python 단에서 rounding 처리
+2. `_DDL_INDEXES`를 정적 SQL에서 `_safe_create_indexes()` 동적 생성으로 변경 (v0.2 → v0.3 마이그레이션 호환)
+3. Real DB fixture 추가 (설계 문서에 없었으나 마이그레이션 검증을 위해 추가)
+
+### 테스트 결과
+- 총 64 tests, 전체 통과 (57 in-memory + 7 real DB)
+- 성능 벤치마크: activity list < 200ms, 1000 metric inserts < 1s ✅
