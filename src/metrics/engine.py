@@ -11,6 +11,7 @@ from datetime import date, timedelta
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 from src.utils.db_helpers import upsert_metric
+from src.utils.metric_priority import resolve_all_primaries
 
 # ── Calculator 임포트 ──
 from src.metrics.trimp import TRIMPCalculator
@@ -212,6 +213,7 @@ def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
         d = (today - timedelta(days=days - 1 - i)).isoformat()
         all_results[d] = run_for_date(conn, d)
 
+    resolve_all_primaries(conn)
     return all_results
 
 
@@ -236,4 +238,5 @@ def recompute_all(conn: sqlite3.Connection, days: int = 90) -> dict:
         d = (today - timedelta(days=days - 1 - i)).isoformat()
         all_results[d] = run_for_date(conn, d)
 
+    resolve_all_primaries(conn)
     return all_results

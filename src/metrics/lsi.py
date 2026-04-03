@@ -42,7 +42,7 @@ class LSICalculator(MetricCalculator):
         rows = ctx.conn.execute("""
             SELECT m.numeric_value
             FROM metric_store m
-            JOIN activity_summaries a ON CAST(m.scope_id AS INTEGER) = a.id
+            JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER) = a.id
             WHERE m.scope_type = 'activity'
             AND m.metric_name = 'trimp' AND m.is_primary = 1
             AND substr(a.start_time, 1, 10) = ?

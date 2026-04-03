@@ -20,6 +20,8 @@ class TRIMPCalculator(MetricCalculator):
 
     MALE_A = 1.92
     MALE_B = 0.64
+    # TODO: config에서 성별 가져와 FEMALE_A=1.67, FEMALE_B=1.92 분기
+    # TODO: config에서 성별 가져와 FEMALE_A=1.67, FEMALE_B=1.92 분기
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         act = ctx.activity

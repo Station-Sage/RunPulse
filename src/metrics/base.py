@@ -25,6 +25,7 @@ class CalcResult:
     text_value: Optional[str] = None
     json_value: Optional[str] = None
     confidence: Optional[float] = None
+    parent_metric_id: Optional[int] = None
 
     def is_empty(self) -> bool:
         return (self.numeric_value is None
@@ -162,7 +163,7 @@ class CalcContext:
         else:
             end = datetime.now(timezone.utc)
         start = end - timedelta(days=days)
-        sql = ("SELECT * FROM activity_summaries "
+        sql = ("SELECT * FROM v_canonical_activities "
                "WHERE start_time >= ? AND start_time <= ?")
         params: list = [start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d 23:59:59")]
         if activity_type:
@@ -173,7 +174,7 @@ class CalcContext:
         if not rows:
             return []
         cols = [d[0] for d in self.conn.execute(
-            "SELECT * FROM activity_summaries LIMIT 0"
+            "SELECT * FROM v_canonical_activities LIMIT 0"
         ).description]
         return [dict(zip(cols, row)) for row in rows]
 
