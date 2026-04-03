@@ -35,3 +35,15 @@
 - **맥락**: Strava API가 start_date(UTC)와 start_date_local 둘 다 반환. extractor가 start_date만 사용하여 다른 소스와 시간대 불일치, dedup 매칭 실패
 - **결정**: start_date_local 우선, start_date fallback
 - **결과**: cross-source dedup 시간 비교 정확도 향상
+
+## ADR-007: ranges 형식 [low, high] 리스트 통일
+- **날짜**: 2026-04-03
+- **맥락**: 설계서(보강 #7)는 ranges를 [low, high] 리스트로 정의했으나, 포팅 메트릭이 단일 숫자로 구현됨
+- **결정**: 전체 32개 calculator의 ranges를 [low, high] 리스트 형식으로 통일
+- **결과**: UI에서 범위 시각화(게이지, 색상 바) 구현 시 일관된 데이터 구조 보장
+
+## ADR-008: category 체계 — 소스 vs RunPulse 분리
+- **날짜**: 2026-04-03
+- **맥락**: metric_registry의 소스 메트릭은 training_load, efficiency 등 일반 카테고리, RunPulse calculator는 rp_ 접두사 사용
+- **결정**: 의도적 분리 유지. 소스 메트릭(garmin/strava/intervals)은 도메인별 카테고리, RunPulse 메트릭은 rp_ 접두사
+- **결과**: UI에서 소스별/RunPulse별 필터링 가능, 이름 충돌 방지

@@ -1,78 +1,173 @@
-# src/metrics/ GUIDE — 2차 메트릭 계산 엔진
+# src/metrics/ GUIDE — v0.3 Metrics Engine
 
-## 구조
-- **engine.py**: 배치 오케스트레이터. 모든 메트릭의 일괄 계산/재계산 담당.
-- **store.py**: `computed_metrics` 테이블 UPSERT/조회 헬퍼.
-- **개별 메트릭 파일**: 하나의 메트릭 = 하나의 파일. `calc_*()` 함수 export.
+## 아키텍처 개요
 
-## 파일 맵
+v0.3 메트릭 엔진은 **MetricCalculator ABC 기반 플러그인 아키텍처**입니다.
+모든 calculator는 `metric_store`에서 읽고 `metric_store`에 `provider=runpulse:formula_v1`로 저장합니다.
 
-### 엔진/저장
+    activity_summaries (Layer 1) ─┐
+    metric_store (Layer 2, 소스) ──┼→ CalcContext → Calculator.compute() → CalcResult
+    daily_wellness (Layer 1) ─────┘                      ↓
+                                              engine._save_results()
+                                                         ↓
+                                              metric_store (Layer 2, runpulse)
+                                                         ↓
+                                              resolve_for_scope() → is_primary 결정
+
+## 핵심 설계 원칙
+
+1. **metric_store 단일 저장소**: 소스 메트릭과 RunPulse 메트릭이 같은 테이블에 공존, provider로 구분
+2. **의존성 자동 해소**: requires/produces 선언 → topological sort → 올바른 실행 순서
+3. **데이터 부족 시 빈 리스트 반환**: 에러 아닌 graceful skip, confidence로 신뢰도 표시
+4. **재계산 용이**: `provider LIKE 'runpulse%'` 삭제 후 재실행
+5. **is_primary 자동 결정**: upsert_metric → resolve_primary 호출 (metric_priority.py 우선순위)
+
+## 진입점
+
+| 방법 | 명령 |
+|------|------|
+| CLI | `python3 -m src.metrics.cli status` |
+| CLI | `python3 -m src.metrics.cli recompute --days 7` |
+| Python | `from src.metrics.engine import run_activity_metrics, run_daily_metrics` |
+| Sync 연동 | `from src.sync.integration import compute_metrics_after_sync` |
+
+## 파일 구조
+
+### 인프라 (5개)
 | 파일 | 역할 |
 |------|------|
-| `engine.py` | `run_for_date()`, `run_for_date_range()`, `recompute_all()` |
-| `store.py` | `save_metric()`, `load_metric()`, `load_metric_series()` |
+| `base.py` | MetricCalculator ABC, CalcResult, CalcContext, ConfidenceBuilder |
+| `engine.py` | ALL_CALCULATORS 등록, topological sort, prefetch, 배치 실행, _save_results |
+| `reprocess.py` | metric_store 기반 재처리 |
+| `cli.py` | CLI 진입점 (status, recompute) |
+| `__init__.py` | 패키지 초기화 |
 
-### 일별 메트릭 — `calc_*(conn, date: str) -> float | None`
-| 파일 | 메트릭 | 설명 |
-|------|--------|------|
-| `acwr.py` | ACWR | 급성/만성 부하 비율 |
-| `adti.py` | ADTI | 유산소 분리 추세 |
-| `cirs.py` | CIRS | 복합 부상 위험 |
-| `ctl_atl.py` | CTL/ATL | 자체 계산 피트니스/피로 |
-| `lsi.py` | LSI | 부하 스파이크 지수 |
-| `monotony.py` | Monotony/Strain | 단조로움 + 스트레인 |
-| `sapi.py` | SAPI | 계절 성과 비교 |
-| `teroi.py` | TEROI | 훈련 ROI |
-| `tids.py` | TIDS | 훈련 강도 분포 |
-| `trimp.py` | TRIMP/HRSS | TRIMPexp + HR 기반 부하 |
-| `utrs.py` | UTRS | 통합 훈련 준비도 |
+### Activity-Scope Calculators (10개)
+| 파일 | name | 설명 | category |
+|------|------|------|----------|
+| `trimp.py` | trimp | Banister TRIMPexp | rp_load |
+| `hrss.py` | hrss | HR Stress Score (LTHR 기반) | rp_load |
+| `decoupling.py` | aerobic_decoupling_rp | 유산소 분리 (%) | rp_efficiency |
+| `gap.py` | gap_rp | 경사 보정 페이스 | rp_performance |
+| `vdot.py` | runpulse_vdot | Jack Daniels VDOT | rp_performance |
+| `classifier.py` | workout_type | 운동 유형 자동 분류 | rp_classification |
+| `efficiency.py` | efficiency_factor_rp | 효율 계수 (EF) | rp_efficiency |
+| `fearp.py` | fearp | 환경 보정 페이스 (날씨+경사) | rp_performance |
+| `relative_effort.py` | relative_effort | 심박존 기반 노력도 | rp_load |
+| `wlei.py` | wlei | 날씨 가중 노력 지수 | rp_load |
 
-### 활동별 메트릭 — `calc_*(conn, activity_id: int) -> float | dict | None`
-| 파일 | 메트릭 | 설명 |
-|------|--------|------|
-| `decoupling.py` | Decoupling/EF | 유산소 분리 + 효율 팩터 |
-| `di.py` | DI | 내구성 지수 (90분+ 세션 필요) |
-| `fearp.py` | FEARP | 환경 보정 페이스 (날씨+경사) |
-| `gap.py` | GAP/NGP | 경사 보정 페이스 |
-| `rec.py` | REC | 러닝 효율성 |
-| `relative_effort.py` | RE | Relative Effort (Strava 방식) |
-| `rmr.py` | RMR | 러너 성숙도 레이더 5축 |
-| `rri.py` | RRI | 레이스 준비도 지수 |
-| `rtti.py` | RTTI | 러닝 내성 훈련 지수 |
-| `tpdi.py` | TPDI | 실내/야외 퍼포먼스 격차 |
-| `wlei.py` | WLEI | 날씨 가중 노력 지수 |
+### Daily-Scope Calculators — 1차 (4개, 활동 메트릭 집계)
+| 파일 | name | 설명 | category |
+|------|------|------|----------|
+| `pmc.py` | ctl | ATL/CTL/TSB/Ramp Rate (PMC) | rp_load |
+| `acwr.py` | acwr | 급성:만성 부하 비율 | rp_load |
+| `lsi.py` | lsi | 부하 급증 지수 | rp_load |
+| `monotony.py` | monotony | 단조로움 + 스트레인 | rp_load |
 
-### 복합/참조
+### Daily-Scope Calculators — 2차 (8개, RunPulse 고유)
+| 파일 | name | 설명 | category |
+|------|------|------|----------|
+| `utrs.py` | utrs | 통합 훈련 준비도 | rp_readiness |
+| `cirs.py` | cirs | 복합 부상 위험 | rp_risk |
+| `di.py` | di | 내구성 지수 | rp_endurance |
+| `darp.py` | darp | 레이스 예측 (VDOT+DI) | rp_prediction |
+| `tids.py` | tids | 훈련 강도 분포 | rp_distribution |
+| `rmr.py` | rmr | 회복 준비도 레이더 | rp_recovery |
+| `adti.py` | adti | 유산소 분리 추세 | rp_trend |
+| `crs.py` | crs | 복합 준비도 게이트 (5-gate) | rp_readiness |
+
+### Daily-Scope Calculators — 3차 (10개, v0.2 포팅)
+| 파일 | name | 설명 | category |
+|------|------|------|----------|
+| `teroi.py` | teroi | 훈련 효과 ROI | rp_trend |
+| `tpdi.py` | tpdi | 실내/실외 격차 | rp_trend |
+| `rec.py` | rec | 통합 러닝 효율성 | rp_efficiency |
+| `rtti.py` | rtti | 달리기 내성 지수 | rp_load |
+| `critical_power.py` | critical_power | CP/W' 임계 파워 | rp_performance |
+| `eftp.py` | eftp | 역치 페이스 추정 | rp_performance |
+| `sapi.py` | sapi | 계절 성과 비교 | rp_performance |
+| `rri.py` | rri | 레이스 준비도 | rp_performance |
+| `vdot_adj.py` | vdot_adj | VDOT 보정 | rp_performance |
+| `marathon_shape.py` | marathon_shape | 마라톤 훈련 완성도 | rp_performance |
+
+### 유틸리티
 | 파일 | 역할 |
 |------|------|
-| `crs.py` | CRS Gate 5종 (훈련 엔진 연동) |
-| `critical_power.py` | Critical Power / W' |
-| `daniels_table.py` | Daniels VDOT 참조 테이블 |
-| `darp.py` | DARP 레이스 예측 (VDOT+DI) |
-| `eftp.py` | eFTP (추정 기능적 역치 페이스) |
-| `marathon_shape.py` | Marathon Shape (Runalyze 방식) |
-| `vdot.py` | VDOT 계산 |
-| `vdot_adj.py` | VDOT HR-페이스 보정 |
-| `workout_classifier.py` | 운동 유형 자동 분류 |
+| `src/utils/daniels_table.py` | Daniels VDOT 룩업 (훈련 페이스, 레이스 예측, 볼륨) |
+| `src/utils/metric_priority.py` | provider 우선순위 → is_primary 결정 |
+| `src/utils/metric_registry.py` | MetricDef 등록, 이름 정규화, CATEGORY_LABELS |
+| `src/utils/metric_groups.py` | 시맨틱 그룹 (소스 비교 뷰 지원, 11개 그룹) |
+
+## Calculator 메타데이터 (UI 힌트)
+
+모든 calculator는 다음 속성을 선언합니다:
+
+| 속성 | 설명 | 예시 |
+|------|------|------|
+| display_name | UI 표시 이름 | "TRIMP (Banister)" |
+| description | 설명 텍스트 | "심박 기반 훈련 부하 점수" |
+| unit | 단위 | "AU", "sec/km", "%", "W" |
+| ranges | 범위 | {"easy": [0, 50], "hard": [200, 350]} |
+| higher_is_better | 방향성 | True / False / None |
+| format_type | UI 포맷 | "number", "pace", "json" |
+| decimal_places | 소수점 | 0, 1, 2 |
+
+## 의존성 그래프 (주요)
+
+    trimp ──→ pmc(ctl/atl/tsb) ──→ acwr ──→ cirs ──→ crs
+                │                    │         │
+                ├→ lsi               │         └→ rri
+                ├→ monotony          │
+                └→ rtti              └→ utrs ──→ crs
+    
+    runpulse_vdot ──→ eftp
+                  ──→ vdot_adj ──→ marathon_shape
+                  ──→ darp
+                  ──→ rri
+    
+    fearp ──→ sapi
+          ──→ tpdi
+    
+    efficiency_factor_rp ──→ rec
+    aerobic_decoupling_rp ──→ rec
+                          ──→ adti
 
 ## 규칙
-1. **데이터 없으면 `None` 반환** — UI에서 "데이터 수집 중" 표시. 절대 에러 발생 금지.
-2. 계산식은 `v0.2/.ai/metrics.md` (PDF 원본) 기준. 차이 시 PDF 우선.
-3. 모든 저장은 `store.save_metric()` 사용. 직접 SQL 금지.
-4. DI: 90분+ 세션 8주 3회 미달 → `None`.
-5. FEARP: GPS 고도 없으면 `grade_factor=1.0`, 날씨 API 실패 시 `temp=15, humidity=50`.
-6. CIRS 가중치: `ACWR×0.4 + Monotony×0.2 + Spike×0.3 + Asym×0.1`.
-7. 숫자 계산은 반드시 Python에서 수행. LLM은 해석/서술/계획 생성에만 활용
+
+1. **데이터 없으면 빈 리스트 반환** — 에러 발생 금지, UI에서 "데이터 수집 중" 표시
+2. 모든 저장은 `engine._save_results() → upsert_metric()` 경로 사용
+3. `confidence`는 모든 메트릭에 설정 (1.0=완전, 0.8=추정값 포함, 0.6=부분 데이터)
+4. `ranges`는 반드시 `[low, high]` 리스트 형식
+5. `provider = "runpulse:formula_v1"` 통일
+6. `category`는 `rp_` 접두사 (metric_registry.py CATEGORY_LABELS와 일치)
 
 ## 새 메트릭 추가 체크리스트
-1. `src/metrics/<name>.py` 생성 — `calc_<name>()` 함수 export
-2. `engine.py`에 호출 추가 (일별 or 활동별)
-3. `store.save_metric()` 으로 저장
-4. 테스트 `tests/test_<name>.py` 작성
-5. 이 GUIDE.md 파일맵에 추가
 
-## 의존성
-- `src/weather/provider.py` — FEARP, WLEI 날씨 데이터
-- `src/web/` — 뷰에서 `store.load_metric()` 으로 조회
-- `src/training/crs.py`가 아닌 `src/metrics/crs.py` — 훈련 엔진이 참조
+1. `src/metrics/<name>.py` 생성 — MetricCalculator 서브클래스
+2. name, provider, scope_type, category, requires, produces, UI 메타데이터 설정
+3. `compute()` 구현 (데이터 부족 시 `return []`)
+4. `engine.py`에 import + ALL_CALCULATORS 등록
+5. `src/utils/metric_registry.py`에 MetricDef 추가
+6. `src/utils/metric_groups.py`에 시맨틱 그룹 추가 (해당 시)
+7. 테스트 작성
+8. 이 GUIDE.md 파일맵에 추가
+
+## 테스트
+
+| 파일 | 테스트 수 | 범위 |
+|------|----------|------|
+| test_trimp_calc.py | 6 | TRIMP, HRSS 기본 계산 |
+| test_activity_calcs.py | 12 | Activity-scope 7개 calculator |
+| test_daily_calcs.py | 10 | Daily-scope 1차 (PMC, ACWR, LSI, Monotony) |
+| test_daily2_calcs.py | 12 | Daily-scope 2차 (UTRS, CIRS, DI, DARP, TIDS, RMR, ADTI) |
+| test_engine.py | 8 | Topological sort, prefetch, batch 실행 |
+| test_phase4_dod.py | 12 | DoD 11항목 검증 |
+| test_phase4_spec.py | 9 | 설계서 테스트 케이스 6건 |
+| test_round2.py | 5 | 2차 보강 검증 |
+| test_round4.py | 11 | 메타데이터, 그룹, CLI |
+| test_mock_calcs.py | 6 | MockCalcContext DB-less 테스트 |
+| test_metric_naming.py | 5 | 이름 충돌 방지 검증 |
+| test_daniels_table.py | 12 | VDOT 룩업, T-pace, 레이스 예측 |
+| test_porting_activity.py | 10 | RelativeEffort, WLEI |
+| test_porting_daily.py | 25 | 포팅 메트릭 11개 |
+| **합계** | **143** | |
