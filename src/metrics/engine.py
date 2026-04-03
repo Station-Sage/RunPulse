@@ -41,6 +41,8 @@ from src.metrics.tpdi import TPDICalculator
 from src.metrics.rec import RECCalculator
 from src.metrics.rtti import RTTICalculator
 from src.metrics.critical_power import CriticalPowerCalculator
+from src.metrics.sapi import SAPICalculator
+from src.metrics.rri import RRICalculator
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +94,8 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     RECCalculator(),
     RTTICalculator(),
     CriticalPowerCalculator(),
+    SAPICalculator(),
+    RRICalculator(),
 ]
 
 
