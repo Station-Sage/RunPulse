@@ -31,8 +31,8 @@ from src.sync.garmin_helpers import (  # noqa: F401 (re-export)
     _upsert_daily_detail_metric,
     _upsert_vo2max,
 )
-from src.sync.garmin_activity_sync import sync_activities, _sync_activity_splits  # noqa: F401
-from src.sync.garmin_wellness_sync import sync_wellness  # noqa: F401
+# v0.3: garmin_activity_sync는 sync() 시그니처로 변경됨
+# v0.3: garmin_wellness_sync는 sync() 시그니처로 변경됨
 from src.sync.garmin_daily_extensions import (
     sync_daily_race_predictions,
     sync_daily_training_status,

@@ -15,8 +15,8 @@ from .intervals_auth import (  # noqa: F401
     auth as _auth,
     check_intervals_connection,
 )
-from .intervals_activity_sync import sync_activities  # noqa: F401
-from .intervals_wellness_sync import sync_wellness  # noqa: F401
+# v0.3: removed — use intervals_activity_sync.sync()
+# v0.3: removed — use intervals_wellness_sync.sync()
 from .intervals_athlete_sync import (  # noqa: F401
     sync_athlete_profile,
     sync_athlete_stats_snapshot,

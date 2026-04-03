@@ -87,7 +87,7 @@ audit/export_data/garmin_full/DI_CONNECT/DI-Connect-Health-Uploaded-Files/*.zip
 running.db
 running.db.*
 
-# DB backups
+# DB backupsc
 *.backup_*
 running.db.backup_*
 

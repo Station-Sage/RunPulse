@@ -14,11 +14,7 @@ from .strava_auth import (  # noqa: F401
     refresh_token as _refresh_token,
     check_strava_connection,
 )
-from .strava_activity_sync import (  # noqa: F401
-    sync_activity_detail as _fetch_and_store_strava_detail,
-    sync_activities,
-    _parse_rate_limit,
-)
+# v0.3: removed — use strava_activity_sync.sync()
 from .strava_athlete_sync import (  # noqa: F401
     sync_athlete_profile,
     sync_athlete_stats,
