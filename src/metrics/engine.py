@@ -34,6 +34,8 @@ from src.metrics.darp import DARPCalculator
 from src.metrics.tids import TIDSCalculator
 from src.metrics.rmr import RMRCalculator
 from src.metrics.adti import ADTICalculator
+from src.metrics.relative_effort import RelativeEffortCalculator
+from src.metrics.wlei import WLEICalculator
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +80,8 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     TIDSCalculator(),
     RMRCalculator(),
     ADTICalculator(),
+    RelativeEffortCalculator(),
+    WLEICalculator(),
 ]
 
 
