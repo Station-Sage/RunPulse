@@ -1,6 +1,6 @@
 # RunPulse 데이터 아키텍처 v0.3 — Design
 
-**구현 현황**: Phase 1 ✅ | Phase 2~7 🔲
+**Phase 1~2 완료** | Phase 3~7 대기 | **Schema Version**: 10 | 최종 업데이트: 2026-04-03
 **현재 Schema Version**: 10
 **최종 업데이트**: 2026-04-03
 
@@ -750,6 +750,10 @@ def resolve_primary(conn, scope_type: str, scope_id: str, metric_name: str):
     if best_id:
         conn.execute("UPDATE metric_store SET is_primary=1 WHERE id=?", [best_id])
 ```
+### **구현 상태 (2026-04-03):** Part 3의 Extractor 설계는 Phase 2에서 구현 완료.
+> `get_extractor(source)` 팩토리로 4개 소스 인스턴스 반환.
+> `activity_summaries`와 `metric_store` 이중 저장 금지 원칙 적용 확인.
+> Sync Orchestrator (Phase 3)에서 이 Extractor를 호출하여 DB 저장 수행 예정.
 
 ---
 

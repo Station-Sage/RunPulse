@@ -1790,3 +1790,69 @@ class TestCrossExtractorConsistency:
 11. `pytest tests/test_*_extractor.py tests/test_extractors_cross.py` 전체 통과
 
 ---
+
+## 2-12. 구현 결과 & 설계 대비 변경 로그 (2026-04-03)
+
+### 변경 1: Strava `normalized_power` 매핑 위치 변경
+
+**설계**: `extract_activity_metrics`에서 `weighted_average_watts` → `normalized_power` MetricRecord로 생성.
+
+**문제**: `normalized_power`는 `activity_summaries` 컬럼에 이미 존재. 이중 저장 금지 원칙(`activity_summaries`에 있는 필드는 `metric_store`에 넣지 않음) 위배.
+
+**구현**: `extract_activity_core`에서 `"normalized_power": raw.get("weighted_average_watts")`로 매핑. `extract_activity_metrics`에서는 해당 항목 제거.
+
+**근거**: architecture.md Part 3 — "activity_summaries에 이미 저장된 값은 metric_store에 중복 저장하지 않는다."
+
+### 변경 2: `get_extractor()` 팩토리 함수 추가
+
+**설계**: `EXTRACTORS = {"garmin": GarminExtractor, ...}` dict만 정의.
+
+**구현**: `__init__.py`에 `get_extractor(source: str) → BaseExtractor` 함수 추가. case-insensitive 처리, 미지원 소스 시 `KeyError` 발생. `__all__`에 export.
+
+**근거**: DoD 조건 2 — `get_extractor("garmin")` 팩토리 함수 정상 동작 요구.
+
+### 변경 3: `test_extractors_cross.py` 신규 파일 추가
+
+**설계**: Phase 2 산출물 목록에 cross-extractor 테스트 파일 없음.
+
+**구현**: `tests/test_extractors_cross.py` 작성 — 7개 테스트 클래스, 약 20+ 테스트 케이스.
+
+**근거**: DoD 조건 10, 11 — cross-extractor 일관성 테스트 통과 요구.
+
+### 변경 4: `src/utils/activity_types.py` 추가
+
+**설계**: 설계서에서 `normalize_activity_type(type_key, source)`를 사용하나, 별도 모듈로 분리하는 것은 명시하지 않음.
+
+**구현**: `src/utils/activity_types.py`에 5개 운동 유형(running, cycling, swimming, walking, strength), 소스별 매핑(_STRAVA_MAP, _INTERVALS_MAP), `normalize_activity_type()` 함수 구현.
+
+**근거**: 4개 extractor 모두에서 공통 사용하므로 모듈 분리가 적절.
+
+### 최종 파일 구조
+
+    src/sync/extractors/
+    ├── __init__.py              # EXTRACTORS dict + get_extractor()
+    ├── base.py                  # MetricRecord + BaseExtractor
+    ├── garmin_extractor.py      # GarminExtractor (activity + wellness + fitness)
+    ├── strava_extractor.py      # StravaExtractor (activity + streams + best_efforts)
+    ├── intervals_extractor.py   # IntervalsExtractor (activity + wellness + fitness)
+    └── runalyze_extractor.py    # RunalyzeExtractor (activity + fitness)
+
+    src/utils/
+    ├── activity_types.py        # normalize_activity_type()
+    ├── metric_registry.py       # Phase 1
+    ├── metric_priority.py       # Phase 1
+    └── db_helpers.py            # Phase 1
+
+    tests/
+    ├── test_extractor_base.py
+    ├── test_garmin_extractor.py
+    ├── test_strava_extractor.py
+    ├── test_intervals_extractor.py
+    ├── test_runalyze_extractor.py
+    ├── test_activity_types.py
+    ├── test_extractors_cross.py
+    └── fixtures/api/
+        ├── garmin/   (3 files)
+        ├── strava/   (1 file)
+        ├── intervals/ (2 files)
+        └── runalyze/  (1 file)
