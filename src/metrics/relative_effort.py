@@ -18,7 +18,7 @@ class RelativeEffortCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "activity"
     category = "rp_load"
-    requires = []
+    requires = []  # activity_summaries.avg_hr 직접 조회 (소스 컬럼)
     produces = ["relative_effort"]
 
     display_name = "Relative Effort"

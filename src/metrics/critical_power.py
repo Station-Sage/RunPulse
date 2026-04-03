@@ -18,7 +18,7 @@ class CriticalPowerCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "rp_performance"
-    requires = []
+    requires = ["power_curve"]  # 소스 메트릭 (intervals 등)
     produces = ["critical_power"]
 
     display_name = "Critical Power (CP)"

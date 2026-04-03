@@ -12,6 +12,7 @@ from datetime import date, timedelta
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 from src.utils.db_helpers import upsert_metric
+from src.utils.metric_priority import resolve_for_scope
 from src.utils.metric_priority import resolve_all_primaries
 
 # ── Calculator 임포트 ──
@@ -337,6 +338,8 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
 
     if failed:
         results["_failed"] = failed
+    # Phase 3 sync와 동일: scope별 is_primary 재결정
+    resolve_for_scope(conn, "activity", str(activity_id))
     return results
 
 
@@ -390,6 +393,8 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str,
 
     if failed:
         results["_failed"] = failed
+    # Phase 3 sync와 동일: scope별 is_primary 재결정
+    resolve_for_scope(conn, "daily", target_date)
     return results
 
 
