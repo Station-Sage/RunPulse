@@ -43,6 +43,9 @@ from src.metrics.rtti import RTTICalculator
 from src.metrics.critical_power import CriticalPowerCalculator
 from src.metrics.sapi import SAPICalculator
 from src.metrics.rri import RRICalculator
+from src.metrics.eftp import EFTPCalculator
+from src.metrics.vdot_adj import VDOTAdjCalculator
+from src.metrics.marathon_shape import MarathonShapeCalculator
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +99,9 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     CriticalPowerCalculator(),
     SAPICalculator(),
     RRICalculator(),
+    EFTPCalculator(),
+    VDOTAdjCalculator(),
+    MarathonShapeCalculator(),
 ]
 
 
