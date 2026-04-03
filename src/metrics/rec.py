@@ -20,7 +20,7 @@ class RECCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_performance"
+    category = "rp_efficiency"
     requires = ["efficiency_factor_rp", "aerobic_decoupling_rp"]
     produces = ["rec"]
 

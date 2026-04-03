@@ -4,6 +4,7 @@ ALL_CALCULATORS 등록 → 의존성 그래프 해소 → prefetch → scope별 
 """
 from __future__ import annotations
 
+import json as json_mod
 import logging
 import sqlite3
 from collections import defaultdict
@@ -266,7 +267,7 @@ def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
             provider=calc.provider,
             numeric_value=r.numeric_value,
             text_value=r.text_value,
-            json_value=r.json_value if isinstance(r.json_value, dict) else None,
+            json_value=(json_mod.loads(r.json_value) if isinstance(r.json_value, str) else r.json_value) if r.json_value else None,
             category=r.category,
             algorithm_version=calc.version,
             confidence=r.confidence,
