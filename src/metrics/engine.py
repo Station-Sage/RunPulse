@@ -36,6 +36,11 @@ from src.metrics.rmr import RMRCalculator
 from src.metrics.adti import ADTICalculator
 from src.metrics.relative_effort import RelativeEffortCalculator
 from src.metrics.wlei import WLEICalculator
+from src.metrics.teroi import TEROICalculator
+from src.metrics.tpdi import TPDICalculator
+from src.metrics.rec import RECCalculator
+from src.metrics.rtti import RTTICalculator
+from src.metrics.critical_power import CriticalPowerCalculator
 
 log = logging.getLogger(__name__)
 
@@ -82,6 +87,11 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     ADTICalculator(),
     RelativeEffortCalculator(),
     WLEICalculator(),
+    TEROICalculator(),
+    TPDICalculator(),
+    RECCalculator(),
+    RTTICalculator(),
+    CriticalPowerCalculator(),
 ]
 
 
