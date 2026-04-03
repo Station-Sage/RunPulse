@@ -88,6 +88,8 @@ class MarathonShapeCalculator(MetricCalculator):
                 "target_weekly_km": round(weekly_target, 1),
                 "target_long_km": round(long_max, 1),
             },
+        
+            confidence=1.0,
         )]
 
     @staticmethod

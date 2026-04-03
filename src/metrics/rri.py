@@ -69,4 +69,6 @@ class RRICalculator(MetricCalculator):
                 "di": round(di, 1) if di else None,
                 "cirs": round(cirs, 1) if cirs else None,
             },
+        
+            confidence=1.0,
         )]

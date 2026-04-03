@@ -74,4 +74,6 @@ class TPDICalculator(MetricCalculator):
                 "outdoor_count": len(outdoor_rows),
                 "indoor_count": len(indoor_rows),
             },
+        
+            confidence=1.0,
         )]

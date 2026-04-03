@@ -115,6 +115,8 @@ class SAPICalculator(MetricCalculator):
                 "current_avg_fearp": round(current_avg, 1),
                 "bins": bin_stats,
             },
+        
+            confidence=1.0,
         )]
 
     @staticmethod

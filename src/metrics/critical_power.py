@@ -101,4 +101,6 @@ class CriticalPowerCalculator(MetricCalculator):
         return [self._result(
             value=cp,
             json_val={"w_prime": w_prime, "sample_count": len(powers)},
+        
+            confidence=0.8,
         )]

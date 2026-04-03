@@ -76,4 +76,6 @@ class RTTICalculator(MetricCalculator):
                 "wellness_factor": round(wf, 2),
                 "capacity": round(capacity, 1),
             },
+        
+            confidence=1.0,
         )]

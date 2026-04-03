@@ -72,4 +72,6 @@ class RECCalculator(MetricCalculator):
                 "dec_avg": round(dec_avg, 1),
                 "ef_count": len(ef_rows),
             },
+        
+            confidence=1.0,
         )]

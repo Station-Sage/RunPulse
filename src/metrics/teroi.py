@@ -72,4 +72,6 @@ class TEROICalculator(MetricCalculator):
                 "ctl_end": round(ctl_end, 1),
                 "total_trimp": round(total_trimp, 1),
             },
+        
+            confidence=1.0,
         )]

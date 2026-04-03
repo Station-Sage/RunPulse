@@ -203,4 +203,6 @@ class CRSCalculator(MetricCalculator):
                     "utrs": utrs,
                 },
             },
+        
+            confidence=1.0,
         )]
