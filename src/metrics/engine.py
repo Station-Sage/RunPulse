@@ -145,6 +145,7 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
         [c for c in ALL_CALCULATORS if c.scope_type == "activity"]
     )
     results: dict = {}
+    failed: list[dict] = []
     ctx = CalcContext(conn=conn, scope_type="activity", scope_id=str(activity_id))
 
     for calc in sorted_calcs:
@@ -155,9 +156,12 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
                 for r in calc_results:
                     if not r.is_empty():
                         results[r.metric_name] = r.numeric_value or r.text_value
-        except Exception:
+        except Exception as e:
             log.exception("Calculator %s 실패: activity_id=%d", calc.name, activity_id)
+            failed.append({"calculator": calc.name, "error": str(e)})
 
+    if failed:
+        results["_failed"] = failed
     return results
 
 
@@ -167,6 +171,7 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
         [c for c in ALL_CALCULATORS if c.scope_type == "daily"]
     )
     results: dict = {}
+    failed: list[dict] = []
     ctx = CalcContext(conn=conn, scope_type="daily", scope_id=target_date)
 
     for calc in sorted_calcs:
@@ -177,9 +182,12 @@ def run_daily_metrics(conn: sqlite3.Connection, target_date: str) -> dict:
                 for r in calc_results:
                     if not r.is_empty():
                         results[r.metric_name] = r.numeric_value or r.text_value
-        except Exception:
+        except Exception as e:
             log.exception("Calculator %s 실패: %s", calc.name, target_date)
+            failed.append({"calculator": calc.name, "error": str(e)})
 
+    if failed:
+        results["_failed"] = failed
     return results
 
 
