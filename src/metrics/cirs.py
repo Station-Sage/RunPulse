@@ -15,7 +15,7 @@ class CIRSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_injury"
+    category = "rp_risk"
     display_name = "부상 위험 지수 (CIRS)"
     description = "ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도."
     unit = "점"

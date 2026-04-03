@@ -38,52 +38,91 @@ SEMANTIC_GROUPS: dict[str, dict] = {
             ("vo2max_activity", "garmin"),
             ("effective_vo2max", "runalyze"),
         ],
-        "primary_strategy": "show_all",
+        "primary_strategy": "prefer_runpulse",
     },
     "race_prediction": {
         "display_name": "레이스 예측",
         "members": [
-            ("darp_5k", "runpulse:formula_v1"),
-            ("darp_10k", "runpulse:formula_v1"),
-            ("darp_half", "runpulse:formula_v1"),
-            ("darp_marathon", "runpulse:formula_v1"),
-            ("race_pred_5k_sec", "garmin"),
-            ("race_pred_10k_sec", "garmin"),
-            ("race_pred_half_sec", "garmin"),
-            ("race_pred_marathon_sec", "garmin"),
+            ("darp_5k_sec", "runpulse:formula_v1"),
+            ("darp_10k_sec", "runpulse:formula_v1"),
+            ("darp_half_sec", "runpulse:formula_v1"),
+            ("darp_marathon_sec", "runpulse:formula_v1"),
+            ("rri", "runpulse:formula_v1"),
+            ("marathon_shape", "runpulse:formula_v1"),
         ],
         "primary_strategy": "show_all",
     },
     "readiness": {
         "display_name": "훈련 준비도",
         "members": [
+            ("crs", "runpulse:formula_v1"),
             ("utrs", "runpulse:formula_v1"),
-            ("training_readiness_score", "garmin"),
+            ("training_readiness", "garmin"),
         ],
-        "primary_strategy": "show_all",
+        "primary_strategy": "prefer_runpulse",
     },
     "recovery": {
         "display_name": "회복 상태",
         "members": [
-            ("rmr", "runpulse:formula_v1"),
             ("body_battery_high", "garmin"),
+            ("body_battery_low", "garmin"),
+            ("rmr", "runpulse:formula_v1"),
         ],
         "primary_strategy": "show_all",
+    },
+    "relative_effort": {
+        "display_name": "상대적 노력도",
+        "members": [
+            ("relative_effort", "runpulse:formula_v1"),
+            ("suffer_score", "strava"),
+            ("training_load_score", "intervals"),
+        ],
+        "primary_strategy": "show_all",
+    },
+    "threshold_power": {
+        "display_name": "임계 파워/페이스",
+        "members": [
+            ("critical_power", "runpulse:formula_v1"),
+            ("eftp", "runpulse:formula_v1"),
+            ("icu_ftp", "intervals"),
+        ],
+        "primary_strategy": "show_all",
+    },
+    "running_efficiency": {
+        "display_name": "러닝 효율성",
+        "members": [
+            ("rec", "runpulse:formula_v1"),
+            ("efficiency_factor_rp", "runpulse:formula_v1"),
+            ("efficiency_factor", "intervals"),
+        ],
+        "primary_strategy": "prefer_runpulse",
+    },
+    "vdot": {
+        "display_name": "VDOT",
+        "members": [
+            ("runpulse_vdot", "runpulse:formula_v1"),
+            ("vdot_adj", "runpulse:formula_v1"),
+            ("vo2max_activity", "garmin"),
+            ("effective_vo2max", "runalyze"),
+        ],
+        "primary_strategy": "prefer_runpulse",
     },
 }
 
 
 def get_group_for_metric(metric_name: str, provider: str = None) -> str | None:
-    """메트릭이 속한 그룹명 반환. 없으면 None."""
+    """메트릭이 속한 시맨틱 그룹 이름 반환. 없으면 None."""
     for group_name, group in SEMANTIC_GROUPS.items():
-        for m_name, m_prov in group["members"]:
-            if m_name == metric_name:
-                if provider is None or m_prov == provider:
+        for member_name, member_provider in group["members"]:
+            if member_name == metric_name:
+                if provider is None or member_provider == provider:
                     return group_name
     return None
 
 
 def get_group_members(group_name: str) -> list[tuple[str, str]]:
-    """그룹의 (metric_name, provider) 목록 반환."""
+    """그룹에 속한 (metric_name, provider) 목록 반환."""
     group = SEMANTIC_GROUPS.get(group_name)
-    return group["members"] if group else []
+    if group is None:
+        return []
+    return list(group["members"])

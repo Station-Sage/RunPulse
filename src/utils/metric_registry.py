@@ -270,6 +270,28 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("tids", "rp_distribution", "", "Training Intensity Distribution Score", scope="weekly"),
     MetricDef("adti", "rp_efficiency", "", "Aerobic Decoupling Trend Index", scope="weekly"),
 
+
+    # ── Phase 4 기존 calculator (registry 미등록분) ──
+    MetricDef("aerobic_decoupling_rp", "rp_efficiency", "%", "RunPulse 유산소 분리"),
+    MetricDef("gap_rp", "rp_performance", "sec/km", "RunPulse GAP (경사 보정 페이스)"),
+    MetricDef("runpulse_vdot", "rp_performance", "", "RunPulse VDOT (Daniels)"),
+    MetricDef("efficiency_factor_rp", "rp_efficiency", "", "RunPulse 효율 계수 (EF)"),
+
+    # ── Phase 4 v0.2 포팅 메트릭 (13개) ──
+    MetricDef("relative_effort", "rp_load", "AU", "Relative Effort (심박존 기반)"),
+    MetricDef("wlei", "rp_load", "AU", "WLEI (날씨 가중 노력 지수)"),
+    MetricDef("teroi", "rp_trend", "", "TEROI (훈련 효과 ROI)"),
+    MetricDef("tpdi", "rp_trend", "%", "TPDI (실내/실외 격차 지수)"),
+    MetricDef("rec", "rp_efficiency", "", "REC (통합 러닝 효율성)", scope="daily"),
+    MetricDef("rtti", "rp_load", "%", "RTTI (달리기 내성 지수)", scope="daily"),
+    MetricDef("critical_power", "rp_performance", "W", "Critical Power (CP)", scope="daily"),
+    MetricDef("eftp", "rp_performance", "sec/km", "eFTP (역치 페이스)", scope="daily"),
+    MetricDef("sapi", "rp_performance", "", "SAPI (계절 성과 비교)", scope="daily"),
+    MetricDef("rri", "rp_performance", "", "RRI (레이스 준비도)", scope="daily"),
+    MetricDef("vdot_adj", "rp_performance", "", "VDOT 보정", scope="daily"),
+    MetricDef("marathon_shape", "rp_performance", "%", "Marathon Shape (훈련 완성도)", scope="daily"),
+    MetricDef("crs", "rp_readiness", "", "CRS (복합 준비도 게이트)", scope="daily"),
+
     MetricDef("workout_type_classified", "rp_classification", "", "RunPulse 워크아웃 분류"),
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -385,6 +407,13 @@ METRIC_CATEGORIES: dict[str, str] = {
     "rp_risk": "RunPulse 부상 위험",
     "rp_load": "RunPulse 부하 분석",
     "rp_performance": "RunPulse 퍼포먼스",
+    "rp_classification": "RunPulse 분류",
+    "rp_recovery": "RunPulse 회복",
+    "rp_distribution": "RunPulse 훈련 분포",
+    "rp_prediction": "RunPulse 예측",
+    "rp_endurance": "RunPulse 지구력",
+    "rp_trend": "RunPulse 추세 분석",
+    "rp_efficiency": "RunPulse 효율성",
     "rp_distribution": "RunPulse 강도 분포",
     "rp_efficiency": "RunPulse 효율 분석",
     "rp_classification": "RunPulse 분류",

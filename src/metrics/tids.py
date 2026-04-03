@@ -12,7 +12,7 @@ class TIDSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_training"
+    category = "rp_distribution"
 
     display_name = "강도 분포 (TIDS)"
     description = "8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed."
