@@ -1,7 +1,7 @@
 # RunPulse v0.3 — 파일 인덱스
 
 > 자동 생성: 2026-04-04
-> 총 테스트: **791 passed** | 32 metric calculators | 4 data sources | 74 test files
+> 총 테스트: **797 passed** | 32 metric calculators | 4 data sources | 75 test files
 
 ## 1. 진입점 스크립트
 
@@ -381,7 +381,7 @@
 |------|------|
 | Python 파일 | 354 |
 | HTML 템플릿 | 16 |
-| 테스트 파일 | 74 |
+| 테스트 파일 | 75 |
 | 총 코드 줄수 (py+html) | ~73,942 |
 | 테스트 통과 | 791 |
 | Metric Calculators | 32 |

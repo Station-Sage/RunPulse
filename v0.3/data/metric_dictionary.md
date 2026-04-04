@@ -4,6 +4,8 @@
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
+>
+> **이 파일을 직접 수정하지 마세요.** `python scripts/gen_metric_dictionary.py`로 재생성합니다.
 
 ---
 
@@ -31,9 +33,9 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 2. Activity-Scope 메트릭 (운동별 계산)
+## 2. Activity-Scope 메트릭 (10개)
 
-운동이 기록될 때마다 계산되는 메트릭입니다. 각 활동의 심박, 페이스, 파워, 환경 데이터를 입력으로 사용합니다.
+운동이 기록될 때마다 계산되는 메트릭입니다.
 
 ### TRIMP (Banister)
 
@@ -51,7 +53,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|------|------|
 | recovery | 0 ~ 50 | 회복 수준 |
 | easy | 50 ~ 100 | 쉬운 강도 |
-| moderate | 100 ~ 200 | 보통 강도 |
+| moderate | 100 ~ 200 | 보통 |
 | hard | 200 ~ 350 | 높은 강도 |
 | very_hard | 350 ~ 999 | 매우 높은 강도 |
 
@@ -179,7 +181,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | low | 0 ~ 50 | 낮음 |
-| moderate | 50 ~ 100 | 보통 강도 |
+| moderate | 50 ~ 100 | 보통 |
 | high | 100 ~ 200 | 높음 |
 | very_high | 200 ~ 999 | 매우 높음 |
 
@@ -200,15 +202,15 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | low | 0 ~ 50 | 낮음 |
-| moderate | 50 ~ 100 | 보통 강도 |
+| moderate | 50 ~ 100 | 보통 |
 | high | 100 ~ 200 | 높음 |
 | very_high | 200 ~ 999 | 매우 높음 |
 
 ---
 
-## 3. Daily-Scope 메트릭 (일별 계산)
+## 3. Daily-Scope 메트릭 (22개)
 
-매일 자정 기준으로 최근 활동과 웰니스 데이터를 종합하여 계산됩니다. 훈련 부하 추세, 준비도, 위험도 등 장기 지표를 제공합니다.
+매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
 ### PMC (ATL/CTL/TSB)
 
@@ -279,7 +281,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | varied | 0 ~ 1.5 | 다양함 |
-| moderate | 1.5 ~ 2.0 | 보통 강도 |
+| moderate | 1.5 ~ 2.0 | 보통 |
 | monotonous | 2.0 ~ 10 | 단조로움 |
 
 ---
@@ -301,7 +303,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|------|------|
 | poor | 0 ~ 30 | 미흡 |
 | low | 30 ~ 50 | 낮음 |
-| moderate | 50 ~ 70 | 보통 강도 |
+| moderate | 50 ~ 70 | 보통 |
 | good | 70 ~ 85 | 양호 |
 | excellent | 85 ~ 100 | 우수 |
 
@@ -323,7 +325,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | low | 0 ~ 30 | 낮음 |
-| moderate | 30 ~ 50 | 보통 강도 |
+| moderate | 30 ~ 50 | 보통 |
 | high | 50 ~ 70 | 높음 |
 | critical | 70 ~ 100 | 위험 |
 
@@ -384,7 +386,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|------|------|
 | poor | 0 ~ 30 | 미흡 |
 | low | 30 ~ 50 | 낮음 |
-| moderate | 50 ~ 70 | 보통 강도 |
+| moderate | 50 ~ 70 | 보통 |
 | good | 70 ~ 85 | 양호 |
 | excellent | 85 ~ 100 | 우수 |
 
@@ -407,7 +409,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|------|------|
 | declining | -100 ~ -10 | 하락 |
 | stable | -10 ~ 10 | 안정 |
-| building | 10 ~ 100 | 상승 |
+| building | 10 ~ 100 | 상승 중 |
 
 ---
 
@@ -426,7 +428,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| negative | -100 ~ 0 | negative |
+| negative | -100 ~ 0 | 음수 |
 | low | 0 ~ 5 | 낮음 |
 | good | 5 ~ 15 | 양호 |
 | excellent | 15 ~ 100 | 우수 |
@@ -449,7 +451,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | consistent | 0 ~ 5 | 일관됨 |
-| moderate | 5 ~ 10 | 보통 강도 |
+| moderate | 5 ~ 10 | 보통 |
 | large | 10 ~ 100 | 큰 격차 |
 
 ---
@@ -513,7 +515,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | low | 0 ~ 200 | 낮음 |
-| moderate | 200 ~ 280 | 보통 강도 |
+| moderate | 200 ~ 280 | 보통 |
 | high | 280 ~ 500 | 높음 |
 
 ---
@@ -555,7 +557,7 @@ Garmin/Strava/Intervals/Runalyze
 | 등급 | 범위 | 의미 |
 |------|------|------|
 | insufficient | 0 ~ 40 | 부족 |
-| building | 40 ~ 60 | 상승 |
+| building | 40 ~ 60 | 상승 중 |
 | ready | 60 ~ 80 | 준비됨 |
 | peak | 80 ~ 100 | 피크 |
 
@@ -622,7 +624,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|------|------|
 | insufficient | 0 ~ 30 | 부족 |
 | base | 30 ~ 50 | 기초 |
-| building | 50 ~ 70 | 상승 |
+| building | 50 ~ 70 | 상승 중 |
 | ready | 70 ~ 85 | 준비됨 |
 | peak | 85 ~ 100 | 피크 |
 
@@ -643,17 +645,17 @@ Garmin/Strava/Intervals/Runalyze
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| rest | 0 ~ 20 | 휴식 |
+| rest | 0 ~ 20 | 휴식 필요 |
 | easy_only | 20 ~ 40 | 가벼운 운동만 |
-| moderate | 40 ~ 60 | 보통 강도 |
-| full | 60 ~ 80 | 전면 훈련 |
+| moderate | 40 ~ 60 | 보통 |
+| full | 60 ~ 80 | 전면 훈련 가능 |
 | boost | 80 ~ 100 | 고강도 가능 |
 
 ---
 
-## 4. 시맨틱 그룹 (Semantic Groups)
+## 4. 시맨틱 그룹 (13개)
 
-같은 개념을 측정하는 여러 소스/메트릭을 하나의 그룹으로 묶어, UI에서 비교 뷰를 제공합니다.
+같은 개념을 측정하는 여러 소스/메트릭을 하나의 그룹으로 묶어 UI에서 비교 뷰를 제공합니다.
 
 ### 유산소 분리 (`decoupling`)
 
@@ -791,10 +793,8 @@ Garmin/Strava/Intervals/Runalyze
 
 ## 5. 계산 의존성 그래프
 
-메트릭 엔진은 topological sort로 의존성을 자동 해소합니다.
-
 ```
-Activity-scope (소스 데이터 → 활동 메트릭):
+Activity-scope:
   (소스 직접) --> trimp
   trimp --> hrss
   (소스 직접) --> aerobic_decoupling_rp
@@ -806,7 +806,7 @@ Activity-scope (소스 데이터 → 활동 메트릭):
   (소스 직접) --> relative_effort
   trimp --> wlei
 
-Daily-scope (활동 메트릭 → 일별 메트릭):
+Daily-scope:
   trimp --> ctl, atl, tsb, ramp_rate
   ctl + atl --> acwr
   trimp --> lsi
@@ -849,9 +849,7 @@ Daily-scope (활동 메트릭 → 일별 메트릭):
 
 ## 7. 소스별 원본 메트릭 (참고)
 
-RunPulse가 계산하는 메트릭 외에, 각 소스(Garmin, Strava, Intervals.icu, Runalyze)가
-제공하는 원본 메트릭도 `metric_store`에 저장됩니다. 시맨틱 그룹을 통해 RunPulse 메트릭과
-나란히 비교할 수 있습니다.
+RunPulse가 계산하는 메트릭 외에, 각 소스가 제공하는 원본 메트릭도 `metric_store`에 저장됩니다.
 
 | 소스 | 주요 메트릭 예시 |
 |------|-----------------|

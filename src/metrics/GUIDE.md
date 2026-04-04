@@ -237,3 +237,22 @@ Calculator가 데이터에 접근할 수 있는 유일한 경로입니다.
 | test_mock_calcs.py | 14 | MockCalcContext (TRIMP, HRSS, EF, VDOT, ConfidenceBuilder) |
 | test_metric_naming.py | 5 | 이름 충돌 방지 |
 | test_daniels_table.py | 12 | VDOT 룩업 |
+
+---
+
+## 메트릭 사전 (Metric Dictionary)
+
+`v0.3/data/metric_dictionary.md`는 32개 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
+UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)입니다.
+
+**이 파일을 직접 수정하지 마세요.** Calculator 메타데이터에서 자동 생성됩니다.
+
+재생성 방법:
+
+python scripts/gen_metric_dictionary.py
+
+동기화 검증:
+python scripts/check_docs.py # 전체 문서 정합성 검사 python -m pytest tests/test_doc_sync.py # CI 검증
+
+
+calculator를 추가/변경하면 `test_doc_sync.py`가 자동으로 불일치를 감지합니다.
