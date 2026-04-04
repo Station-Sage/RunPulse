@@ -533,12 +533,12 @@ CREATE TABLE sync_jobs (
 
 ---
 
-### 전체 테이블 목록 (13개)
+### 전체 테이블 목록 (12개 파이프라인 + 5개 앱 + 1 뷰)
 
 | Layer | 테이블 | 역할 | 예상 행 수 |
 |-------|--------|------|-----------|
 | 0 | `source_payloads` | 외부 API 원문 보존 | ~3,000 |
-| 1 | `activity_summaries` | 통합 활동 요약 (45컬럼) | ~600 |
+| 1 | `activity_summaries` | 통합 활동 요약 (44컬럼) | ~600 |
 | 1 | `daily_wellness` | 일별 웰니스 요약 | ~1,500 |
 | 1 | `daily_fitness` | 일별 피트니스 모델 | ~1,500 |
 | 2 | `metric_store` | 모든 메트릭 통합 저장소 | ~50,000 |
@@ -550,7 +550,7 @@ CREATE TABLE sync_jobs (
 | 4 | `sync_jobs` | 동기화 작업 | ~200 |
 | 4 | `v_canonical_activities` | 대표 활동 뷰 | (view) |
 
-기존 v2의 35+ 테이블에서 **13개로 축소**했습니다. ETL 문서의 Phase 4에서 계획했던 13개 신규 Garmin 테이블(sleep_data, training_readiness, race_predictions 등)은 전부 `metric_store`의 `scope_type='daily'`로 흡수됩니다.
+기존 v2의 35+ 테이블에서 **12개 파이프라인 + 5개 앱 = 17개 테이블 + 1 뷰**로 축소했습니다. ETL 문서의 Phase 4에서 계획했던 13개 신규 Garmin 테이블(sleep_data, training_readiness, race_predictions 등)은 전부 `metric_store`의 `scope_type='daily'`로 흡수됩니다.
 
 ---
 
@@ -1319,7 +1319,7 @@ def get_unit(metric_name: str) -> str:
 
 ### Phase 1 — 기반 (1주)
 
-1. `db_setup.py` 전면 재작성 (13개 테이블)
+1. `db_setup.py` 전면 재작성 (12개 파이프라인 + 5개 앱 테이블)
 2. `metric_registry.py` 작성 (정규 사전)
 3. `metric_priority.py` 작성 (is_primary 로직)
 4. `db_helpers.py` 작성 (upsert 함수들)

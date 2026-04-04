@@ -1,21 +1,3 @@
-### Phase 4 — 설계 원칙 준수 정비 (2026-04-03)
-- metric_registry.py: 누락 메트릭 17개 등록 (기존 4 + 포팅 13)
-- CATEGORY_LABELS: rp_efficiency, rp_trend 등 7개 카테고리 추가
-- category 불일치 수정: cirs(rp_injury→rp_risk), tids(rp_training→rp_distribution)
-- metric_groups.py: 11개 시맨틱 그룹 재정비 (중복 제거 + 병합)
-- engine.py: json_value 이중 직렬화 버그 수정, resolve_for_scope 호출 추가
-- critical_power.py: requires에 power_curve 의존성 명시
-- 신규 메트릭 9개에 confidence 추가
-- ranges 형식 통일: 단일 숫자 → [low, high] 리스트 (13개 파일)
-- test_round4.py: ranges 검증 엄격화 ([low, high]만 허용, low≤high 검증)
-- src/metrics/GUIDE.md: v0.3 기준 전면 재작성 (32 calculators, 의존성 그래프)
-
-### Phase 4 – 포팅 메트릭 테스트 (2026-04-03)
-- tests/test_daniels_table.py: 12 tests (훈련 페이스, 레이스 예측, T-pace 변환)
-- tests/test_porting_activity.py: 10 tests (RelativeEffort, WLEI)
-- tests/test_porting_daily.py: 25 tests (TEROI, REC, RTTI, CP, RRI, EFTP, VDOTAdj, MarathonShape, CRS, TPDI, SAPI)
-- 전체 테스트: 755 passed, 0 failed
-
 # CHANGELOG — RunPulse v0.3 Data Architecture
 
 ## [Phase 4 완료] CalcContext API 전환 + 문서 정비 — 2026-04-04

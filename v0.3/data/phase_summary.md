@@ -195,7 +195,7 @@ PROVIDER_PRIORITY = [
 
 | 파일 | 설명 |
 |------|------|
-| `src/db_setup.py` | 13개 테이블 DDL, WAL 모드, 인덱스 |
+| `src/db_setup.py` | 12개 파이프라인 + 5개 앱 테이블 DDL, WAL 모드, 인덱스 |
 | `src/utils/metric_registry.py` | ~120 메트릭 정의 & 소스 별칭 |
 | `src/utils/metric_priority.py` | Provider 우선순위 & resolve 로직 |
 | `src/utils/db_helpers.py` | upsert, query 유틸리티 |
