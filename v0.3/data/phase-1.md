@@ -1078,7 +1078,7 @@ def test_get_all_providers():
 |---|----------|------|
 | 1 | `python src/db_setup.py` 실행 시 빈 DB가 정상 생성됨 | ✅ |
 | 2 | `PRAGMA user_version` = 10 | ✅ |
-| 3 | 13개 테이블 + 1개 뷰 + 5개 앱 테이블 존재 | ✅ (12 pipeline + 5 app + 1 view) |
+| 3 | 12개 파이프라인 테이블 + 1개 뷰 + 5개 앱 테이블 존재 | ✅ |
 | 4 | `activity_summaries` PRAGMA table_info로 44 컬럼 확인 | ✅ |
 | 5 | `metric_registry.py`에 120+ 메트릭 정의, alias 충돌 없음 | ✅ (Phase 4 후 137+ 메트릭) |
 | 6 | `canonicalize()` 테스트 통과 | ✅ |
