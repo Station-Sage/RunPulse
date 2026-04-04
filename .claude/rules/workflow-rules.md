@@ -2,7 +2,7 @@
 
 ## 작업 순서
 1. `BACKLOG.md`에서 NOW 확인
-2. 복잡한 작업 시 sequential-thinking MCP로 단계 분해
+2. 복잡한 작업 시 plan mode (Shift+Tab)로 단계 분해
 3. 계획(plan) 제시 → 승인 대기 → 구현
 4. 완료 시 "완료 체크리스트" 수행
 5. `BACKLOG.md`, 해당 `GUIDE.md`, `requirements.txt` 등 문서 업데이트
@@ -16,8 +16,9 @@
 1. `BACKLOG.md` 항목 상태 업데이트
 2. 변경/생성 파일이 해당 `GUIDE.md`에 반영되었는지 확인
 3. `python -m pytest tests/` 전체 통과
-4. 신규 설계 결정 시 `v0.2/.ai/decisions.md` 기록
-5. `python scripts/check_docs.py` 실행 및 불일치 수정
+4. 신규 설계 결정 시 `v0.3/data/decisions.md` 기록
+5. Calculator 추가/변경 시 `python scripts/gen_metric_dictionary.py` 실행
+6. `python scripts/check_docs.py` 실행 및 불일치 수정
 
 ## BACKLOG 운영
 - NOW 최대 3개, NEXT 최대 5개

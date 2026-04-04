@@ -8,6 +8,10 @@
 - AI 응답 파싱 실패: graceful fallback (규칙 기반)
 - 메트릭 데이터 없음: 에러 대신 "데이터 수집 중" UI
 
+## 메트릭
+- Calculator 내부에서 raw SQL 금지 (CalcContext API만 사용, ADR-009)
+- 데이터 부족 시 빈 리스트 반환 (에러 raise 금지)
+
 ## 테스트
 - 새 함수 작성 시 최소 1개 테스트 동반
 
