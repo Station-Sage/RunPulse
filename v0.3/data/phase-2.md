@@ -1777,17 +1777,21 @@ class TestCrossExtractorConsistency:
 
 ## 2-11. Phase 2 완료 기준 (Definition of Done)
 
-1. 4개 extractor 모듈이 모두 `BaseExtractor`를 상속
-2. `get_extractor("garmin")` 등 팩토리 함수 정상 동작
-3. 각 extractor의 `extract_activity_core()`가 `source`, `source_id`, `activity_type`, `start_time` 필수 반환
-4. `extract_activity_core()` 반환 dict의 key가 모두 `activity_summaries` 컬럼명과 일치
-5. `extract_activity_metrics()` 반환 MetricRecord의 `metric_name`이 `activity_summaries` 컬럼명과 겹치지 않음
-6. 모든 MetricRecord에 `category`가 설정됨
-7. `distance_m`가 미터 단위로 통일
-8. `_seconds()` 헬퍼가 밀리초/초 자동 판별
-9. fixture 기반 단위 테스트 전체 통과
-10. Cross-extractor 일관성 테스트 통과
-11. `pytest tests/test_*_extractor.py tests/test_extractors_cross.py` 전체 통과
+| # | 완료 기준 | 상태 |
+|---|----------|------|
+| 1 | 4개 extractor 모듈이 모두 `BaseExtractor`를 상속 | ✅ |
+| 2 | `get_extractor("garmin")` 등 팩토리 함수 정상 동작 | ✅ |
+| 3 | 각 extractor의 `extract_activity_core()`가 `source`, `source_id`, `activity_type`, `start_time` 필수 반환 | ✅ |
+| 4 | `extract_activity_core()` 반환 dict의 key가 모두 `activity_summaries` 컬럼명과 일치 | ✅ |
+| 5 | `extract_activity_metrics()` 반환 MetricRecord의 `metric_name`이 `activity_summaries` 컬럼명과 겹치지 않음 | ✅ |
+| 6 | 모든 MetricRecord에 `category`가 설정됨 | ✅ |
+| 7 | `distance_m`가 미터 단위로 통일 | ✅ |
+| 8 | `_seconds()` 헬퍼가 밀리초/초 자동 판별 | ✅ |
+| 9 | fixture 기반 단위 테스트 전체 통과 | ✅ |
+| 10 | Cross-extractor 일관성 테스트 통과 | ✅ |
+| 11 | `pytest tests/test_*_extractor.py tests/test_extractors_cross.py` 전체 통과 | ✅ |
+
+**Phase 2 완료일: 2026-04-03** — 테스트 83개 전체 통과, 누적 ~147 tests (Phase 1: 64 + Phase 2: 83)
 
 ---
 

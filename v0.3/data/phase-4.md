@@ -1963,6 +1963,167 @@ class ADTICalculator(MetricCalculator):
 
 ---
 
+## 4-4b. v0.2 포팅 메트릭 — Activity-Scope (2026-04-03 추가)
+
+Phase 4 포팅 작업으로 v0.2에서 v0.3 형식으로 전환된 메트릭들이다.
+모든 포팅 메트릭은 provider="runpulse:formula_v1"을 사용하며, CalcContext API만으로 데이터에 접근한다.
+
+### Relative Effort (상대 노력도)
+
+심박존별 시간 가중합으로 계산하는 활동 노력 지표. Strava의 Relative Effort과 유사한 접근.
+
+- **scope**: activity | **category**: rp_load
+- **requires**: [] (소스 데이터 직접 사용: HR zones, duration)
+- **produces**: `relative_effort`
+- **수식**: zone별 가중치 [1, 1.5, 2, 3, 5]를 적용하여 zone 시간(초) 가중합
+- **단위**: 무차원 (0~500+ 범위)
+
+### WLEI (Weather-weighted Load Effort Index)
+
+기온, 습도, 풍속을 반영한 날씨 보정 노력 지수.
+
+- **scope**: activity | **category**: rp_load
+- **requires**: `trimp`
+- **produces**: `wlei`
+- **수식**: `WLEI = TRIMP * weather_factor` (weather_factor는 기온/습도/풍속으로부터 계산)
+- **단위**: 무차원
+
+---
+
+## 4-4c. v0.2 포팅 메트릭 — Daily-Scope (2026-04-03 추가)
+
+### TEROI (Training Effect ROI)
+
+최근 28일 훈련 부하(ATL) 대비 VDOT 변화량의 ROI.
+
+- **scope**: daily | **category**: rp_efficiency
+- **requires**: `runpulse_vdot`, `atl` (from PMC)
+- **produces**: `teroi`
+- **수식**: `TEROI = vdot_change / avg_atl * 1000` (28일 기준)
+- **단위**: 무차원
+- **반환**: teroi, vdot_start, vdot_end, avg_atl
+
+### TPDI (Trainer Physical Disparity Index)
+
+최근 8주간 실내(트레드밀) vs 실외(러닝/트레일) FEARP 격차.
+
+- **scope**: daily | **category**: rp_trend
+- **requires**: `fearp`
+- **produces**: `tpdi`
+- **수식**: `TPDI = (outdoor_avg - indoor_avg) / outdoor_avg * 100`
+- **단위**: % (양수 = 실외가 빠름)
+- **반환**: tpdi, outdoor_avg, indoor_avg, outdoor_count, indoor_count
+
+### REC (Running Efficiency Composite)
+
+7일 평균 EF와 에어로빅 디커플링을 결합한 종합 러닝 효율 점수.
+
+- **scope**: daily | **category**: rp_efficiency
+- **requires**: `efficiency_factor_rp`, `aerobic_decoupling_rp`
+- **produces**: `rec`
+- **수식**: `dec_factor = max(0.5, 1 - dec_avg/100)`, `raw = ef_avg * dec_factor`, `REC = clamp((raw - 0.8) / 1.2 * 100, 0, 100)`
+- **단위**: 0~100 점수
+- **반환**: rec, ef_avg, dec_avg, ef_count
+
+### RTTI (Running Tolerance to Training Index)
+
+최근 21일 CTL 변화 대비 TSB 회복력을 측정하는 내성 지수.
+
+- **scope**: daily | **category**: rp_readiness
+- **requires**: `ctl`, `tsb` (from PMC)
+- **produces**: `rtti`
+- **수식**: `RTTI = tsb_recovery_rate / ctl_increase_rate * 100`
+- **단위**: 무차원 (100 = 회복과 부하가 균형)
+
+### Critical Power (CP / W')
+
+최근 활동의 파워 데이터로부터 CP(임계 파워)와 W'(무산소 용량)를 추정.
+
+- **scope**: daily | **category**: rp_performance
+- **requires**: `power_curve`
+- **produces**: `critical_power`
+- **수식**: 3-parameter hyperbolic model (`P = CP + W'/t`)
+- **단위**: CP는 watts, W'는 joules
+- **반환**: cp, w_prime, r_squared
+
+### SAPI (Seasonal Adjusted Performance Index)
+
+동일 계절(작년 vs 올해) 성과를 비교하는 계절 성과 지표.
+
+- **scope**: daily | **category**: rp_trend
+- **requires**: `runpulse_vdot`
+- **produces**: `sapi`
+- **수식**: `SAPI = (current_season_avg - last_year_season_avg) / last_year_season_avg * 100`
+- **단위**: % (양수 = 개선)
+
+### RRI (Race Readiness Index)
+
+다가오는 레이스에 대한 준비도를 CTL, TSB, 장거리 훈련 빈도로 평가.
+
+- **scope**: daily | **category**: rp_readiness
+- **requires**: `ctl`, `tsb`, `workout_type`
+- **produces**: `rri`
+- **수식**: 3개 컴포넌트(fitness=CTL 기반, freshness=TSB 기반, long_run 빈도) 가중합
+- **단위**: 0~100 점수
+
+### EFTP (Estimated Functional Threshold Pace)
+
+VDOT 기반 역치 페이스 추정. Daniels table 의존.
+
+- **scope**: daily | **category**: rp_performance
+- **requires**: `runpulse_vdot`
+- **produces**: `eftp`
+- **수식**: `daniels_table.get_training_paces(vdot)["T_pace"]`
+- **단위**: sec/km
+- **반환**: eftp, vdot_used
+
+### VDOT Adjustment (보정 VDOT)
+
+최근 레이스/워크아웃 결과와 환경 조건으로 VDOT를 보정.
+
+- **scope**: daily | **category**: rp_performance
+- **requires**: `runpulse_vdot`
+- **produces**: `vdot_adj`
+- **수식**: 최근 30일 VDOT 가중 평균 + 환경 보정 (기온, 고도)
+- **단위**: VDOT 단위 (무차원)
+
+### Marathon Shape (마라톤 완성도)
+
+마라톤 훈련 4대 요소(주간거리, 장거리런, 역치훈련, 인터벌)의 완성도.
+
+- **scope**: daily | **category**: rp_race
+- **requires**: `runpulse_vdot`, `workout_type`
+- **produces**: `marathon_shape`
+- **수식**: 4개 gate (weekly_volume, long_run, threshold, interval) 각각 0~25점, 합산 0~100
+- **단위**: 0~100 점수
+- **반환**: marathon_shape, volume_score, long_run_score, threshold_score, interval_score
+
+### CRS (Composite Readiness Score)
+
+5개 게이트(fitness, freshness, durability, consistency, long_run)의 종합 준비도.
+
+- **scope**: daily | **category**: rp_readiness
+- **requires**: `ctl`, `tsb`, `di`, `monotony`, `workout_type`
+- **produces**: `crs`
+- **수식**: 5개 gate 각 0~20점, 합산 0~100
+- **단위**: 0~100 점수
+- **반환**: crs, fitness_gate, freshness_gate, durability_gate, consistency_gate, long_run_gate
+
+---
+
+### 포팅 메트릭 의존성 요약
+
+
+Activity-scope (소스 데이터 의존): relative_effort ← HR zones (직접) wlei ← trimp + weather_cache
+
+Daily-scope 1차 (activity 메트릭 의존): teroi ← runpulse_vdot + atl tpdi ← fearp rec ← efficiency_factor_rp + aerobic_decoupling_rp rtti ← ctl + tsb critical_power ← power_curve sapi ← runpulse_vdot
+
+Daily-scope 2차 (daily 메트릭 의존): rri ← ctl + tsb + workout_type eftp ← runpulse_vdot (+ daniels_table) vdot_adj ← runpulse_vdot (+ daniels_table) marathon_shape ← runpulse_vdot + workout_type (+ daniels_table)
+
+Daily-scope 3차 (복합 의존): crs ← ctl + tsb + di + monotony + workout_type
+
+---
+
 ## 4-5. Metrics Engine — Topological Execution
 
 ```python
@@ -3441,7 +3602,7 @@ def background_sync_task(conn, sources, days):
         tids, rmr, adti, teroi, tpdi, rec, rtti, critical_power,
         sapi, rri, eftp, vdot_adj, marathon_shape, crs
 
-### 테스트: 755 passed, 0 failed
+### 테스트: 791 passed, 0 failed (최종 2026-04-04)
 
 
 ### 포팅 메트릭 테스트 (2026-04-03 추가)
@@ -3453,7 +3614,7 @@ def background_sync_task(conn, sources, days):
 | test_porting_daily.py | 25 | TEROI, REC, RTTI, CP, RRI, EFTP, VDOTAdj, MarathonShape, CRS, TPDI, SAPI |
 | **합계** | **47** | |
 
-전체 테스트: **755 passed**, 0 failed (28.50s)
+전체 테스트: **791 passed**, 0 failed (74개 파일, 28.86s)
 
 
 ### 설계 원칙 준수 정비 (2026-04-03)

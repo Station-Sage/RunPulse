@@ -1074,16 +1074,20 @@ def test_get_all_providers():
 
 ## 1-9. Phase 1 완료 기준 (Definition of Done)
 
-1. `python src/db_setup.py` 실행 시 빈 DB가 정상 생성됨
-2. `PRAGMA user_version` = 10
-3. 13개 테이블 + 1개 뷰 + 5개 앱 테이블 존재
-4. `activity_summaries` PRAGMA table_info로 44 컬럼 확인
-5. `metric_registry.py`에 120+ 메트릭 정의, alias 충돌 없음
-6. `canonicalize()` 테스트 통과
-7. `resolve_primary()` 테스트 통과
-8. `upsert_activity_summary()`, `upsert_metric()`, `upsert_daily_wellness()` 테스트 통과
-9. `get_primary_metrics()`, `get_all_providers_for_metric()` 테스트 통과
-10. `pytest tests/test_db_setup.py tests/test_metric_registry.py tests/test_metric_priority.py tests/test_db_helpers.py` 전체 통과
+| # | 완료 기준 | 상태 |
+|---|----------|------|
+| 1 | `python src/db_setup.py` 실행 시 빈 DB가 정상 생성됨 | ✅ |
+| 2 | `PRAGMA user_version` = 10 | ✅ |
+| 3 | 13개 테이블 + 1개 뷰 + 5개 앱 테이블 존재 | ✅ (12 pipeline + 5 app + 1 view) |
+| 4 | `activity_summaries` PRAGMA table_info로 44 컬럼 확인 | ✅ |
+| 5 | `metric_registry.py`에 120+ 메트릭 정의, alias 충돌 없음 | ✅ (Phase 4 후 137+ 메트릭) |
+| 6 | `canonicalize()` 테스트 통과 | ✅ |
+| 7 | `resolve_primary()` 테스트 통과 | ✅ |
+| 8 | `upsert_activity_summary()`, `upsert_metric()`, `upsert_daily_wellness()` 테스트 통과 | ✅ |
+| 9 | `get_primary_metrics()`, `get_all_providers_for_metric()` 테스트 통과 | ✅ |
+| 10 | `pytest tests/test_db_setup.py tests/test_metric_registry.py tests/test_metric_priority.py tests/test_db_helpers.py` 전체 통과 | ✅ |
+
+**Phase 1 완료일: 2026-04-03** — 테스트 64개 전체 통과 (57 in-memory + 7 real DB)
 
 ---
 
