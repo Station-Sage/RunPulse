@@ -6,7 +6,7 @@
 
 먼저 기존 코드의 현재 상태를 정확히 파악하고, 거기서 어떤 부분을 살리고 어떤 부분을 새로 쓸지 결정해야 합니다.
 
-기존 `db_setup.py`의 현재 스키마를 기반으로, v0.3 설계서의 13개 테이블과 하나씩 대조하며 최종 DDL을 확정하겠습니다.
+기존 `db_setup.py`의 현재 스키마를 기반으로, v0.3 설계서의 12개 파이프라인 테이블과 하나씩 대조하며 최종 DDL을 확정하겠습니다.
 
 ---
 
@@ -655,7 +655,7 @@ Garmin 우선순위를 1로 합니다. 이유: Garmin이 가장 많은 필드를
 
 ## 1-2. 전체 테이블 요약 — 최종 확정
 
-**데이터 파이프라인 테이블 (13개)**
+**데이터 파이프라인 테이블 (12개)**
 
 | # | 테이블 | Layer | 컬럼 수 | 예상 행 수 (1년) |
 |---|--------|-------|---------|-----------------|
@@ -992,7 +992,7 @@ def init_db(db_path: str):
 ```python
 # tests/test_db_setup.py
 def test_all_tables_created():
-    """13개 데이터 테이블 + 5개 앱 테이블 + 1 뷰 존재 확인"""
+    """12개 데이터 테이블 + 5개 앱 테이블 + 1 뷰 존재 확인"""
 
 def test_activity_summaries_columns():
     """44개 컬럼명과 타입 검증"""
@@ -1061,7 +1061,7 @@ def test_get_all_providers():
 |------|------|------|----------|
 | 1 | `src/utils/metric_registry.py` | MetricDef 정의, 120+ 메트릭, canonicalize() | 2시간 |
 | 2 | `src/utils/metric_priority.py` | PROVIDER_PRIORITY, resolve_primary(), resolve_batch() | 1시간 |
-| 3 | `src/db_setup.py` | 전면 재작성: 13개 테이블 DDL, 인덱스, 뷰, 앱 테이블 유지 | 2시간 |
+| 3 | `src/db_setup.py` | 전면 재작성: 12개 테이블 DDL, 인덱스, 뷰, 앱 테이블 유지 | 2시간 |
 | 4 | `src/utils/db_helpers.py` | upsert 4종, 조회 4종 | 2시간 |
 | 5 | `tests/test_metric_registry.py` | canonicalize, alias 충돌, 카테고리 검증 | 1시간 |
 | 6 | `tests/test_metric_priority.py` | 우선순위 시나리오 테스트 | 1시간 |
@@ -1109,6 +1109,18 @@ def test_get_all_providers():
 1. `weather_cache` UNIQUE 제약조건에서 `ROUND()` 함수 제거 → Python 단에서 rounding 처리
 2. `_DDL_INDEXES`를 정적 SQL에서 `_safe_create_indexes()` 동적 생성으로 변경 (v0.2 → v0.3 마이그레이션 호환)
 3. Real DB fixture 추가 (설계 문서에 없었으나 마이그레이션 검증을 위해 추가)
+4. 파이프라인 테이블 수 보정: 설계 "13개" → 실제 구현 "12개" (v0.2 잔존 테이블 1개 통합)
+5. 인덱스 6개 추가 (설계서 미포함, 구현 시 성능 요구로 추가): idx_sp_source_entity, idx_sp_activity, idx_sp_entity_date, idx_df_date, idx_sync_jobs_source, idx_session_outcomes_date
+6. 앱 테이블 5개 DDL을 db_setup.py에 통합 (CHECK 제약조건 보강 및 컬럼 추가 적용)
+4. 파이프라인 테이블 수 보정: 설계 "13개" → 실제 구현 "12개" (v0.2 잔존 테이블 정리 시 1개 통합)
+5. 인덱스 6개 추가 (설계서 미포함, 구현 시 성능 요구로 추가):
+   - `idx_sp_source_entity` ON source_payloads(source, entity_type, entity_id)
+   - `idx_sp_activity` ON source_payloads(activity_id)
+   - `idx_sp_entity_date` ON source_payloads(entity_date)
+   - `idx_df_date` ON daily_fitness(date)
+   - `idx_sync_jobs_source` ON sync_jobs(source, created_at)
+   - `idx_session_outcomes_date` ON session_outcomes(date DESC)
+6. 앱 테이블 5개 (chat_messages, goals, planned_workouts, user_training_prefs, session_outcomes) DDL을 db_setup.py에 통합 — 설계서에서는 "기존 DDL 유지"로만 기술했으나 실제 구현에서 CHECK 제약조건 보강 및 컬럼 추가 적용
 
 ### 테스트 결과
 - 총 64 tests, 전체 통과 (57 in-memory + 7 real DB)

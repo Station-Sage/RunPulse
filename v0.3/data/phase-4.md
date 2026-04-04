@@ -17,263 +17,78 @@ Phase 3까지 완료되면, `activity_summaries`(Layer 1)와 `metric_store`(Laye
 ## 4-1. MetricCalculator 기본 클래스
 
 ```python
-# src/metrics/base.py
-
-from __future__ import annotations
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Optional
-import logging
-
-log = logging.getLogger(__name__)
-
-
-@dataclass
-class CalcResult:
-    """계산 결과 하나. metric_store에 저장될 데이터."""
-    metric_name: str
-    scope_type: str                        # 'activity' | 'daily' | 'weekly' | 'athlete'
-    scope_id: str
-    category: str
-    numeric_value: Optional[float] = None
-    text_value: Optional[str] = None
-    json_value: Optional[str] = None
-    confidence: Optional[float] = None     # 0.0~1.0
-    parent_metric_id: Optional[int] = None
-    
-    def is_empty(self) -> bool:
-        return (self.numeric_value is None and 
-                self.text_value is None and 
-                self.json_value is None)
-
-
-class MetricCalculator(ABC):
-    """모든 RunPulse 메트릭 계산기의 기본 클래스"""
-    
-    # ── 서브클래스가 반드시 정의해야 하는 속성 ──
-    name: str = ""                         # 정규 메트릭 이름 (예: "trimp")
-    provider: str = "runpulse:formula_v1"  # metric_store.provider 값
-    version: str = "1.0"                   # algorithm_version
-    scope_type: str = "activity"           # 이 calculator가 생성하는 scope
-    category: str = ""                     # metric_store.category
-    
-    # 이 calculator가 필요로 하는 입력 메트릭/컬럼 이름 목록
-    # engine이 topological sort에 사용
-    requires: list[str] = field(default_factory=list)
-    
-    # 이 calculator가 생성하는 메트릭 이름 목록
-    # (대부분 [self.name]이지만, 여러 개를 한 번에 생성하는 경우도 있음)
-    produces: list[str] = field(default_factory=list)
-    
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if not cls.produces:
-            cls.produces = [cls.name] if cls.name else []
-    
-    @abstractmethod
-    def compute(self, ctx: CalcContext) -> list[CalcResult]:
-        """
-        메트릭 계산 실행.
-        
-        반환: CalcResult 리스트 (보통 1개, 여러 메트릭을 동시에 생성하는 경우 N개)
-        입력 데이터가 부족하면 빈 리스트 반환.
-        """
-        ...
-    
-    def _result(self, value=None, text=None, json_val=None,
-                confidence=None, scope_id=None, metric_name=None) -> CalcResult:
-        """CalcResult 생성 헬퍼"""
-        import json as json_mod
-        return CalcResult(
-            metric_name=metric_name or self.name,
-            scope_type=self.scope_type,
-            scope_id=scope_id or "",  # engine에서 채워줌
-            category=self.category,
-            numeric_value=float(value) if value is not None else None,
-            text_value=text,
-            json_value=json_mod.dumps(json_val, ensure_ascii=False) if json_val is not None else None,
-            confidence=confidence,
-        )
-
-
-@dataclass  
 class CalcContext:
     """
     Calculator에 전달되는 컨텍스트.
-    필요한 데이터를 lazy-load로 제공.
+    engine.py가 prefetch한 데이터를 주입받아, Calculator는 CalcContext API만으로 데이터에 접근한다.
+    raw SQL (ctx.conn.execute) 직접 사용은 ADR-009에 의해 금지.
     """
-    conn: object                           # SQLite connection
+    conn: object                           # SQLite connection (직접 사용 금지)
     scope_type: str                        # 현재 계산 대상의 scope
     scope_id: str                          # 현재 계산 대상의 ID
-    
-    _activity_cache: Optional[dict] = field(default=None, repr=False)
-    _metrics_cache: Optional[dict] = field(default=None, repr=False)
-    
-    # ── Activity 데이터 접근 ──
-    
+    target_date: str                       # daily scope의 대상 날짜
+
+    # ── Prefetch 데이터 (engine.py가 주입) ──
+    _prefetched_activities: Optional[dict]  # {activity_id: row_dict}
+    _prefetched_metrics: Optional[dict]     # {(scope_type, scope_id, metric_name): row}
+    _prefetched_wellness: Optional[dict]    # {date: wellness_dict}
+    _prefetched_daily_loads: Optional[dict] # {date: trimp_sum}
+
+    # ── 13개 CalcContext API 메서드 ──
+
     @property
     def activity(self) -> dict:
-        """현재 활동의 activity_summaries 행 (scope_type='activity'일 때)"""
-        if self._activity_cache is None and self.scope_type == "activity":
-            row = self.conn.execute(
-                "SELECT * FROM activity_summaries WHERE id = ?",
-                [int(self.scope_id)]
-            ).fetchone()
-            if row:
-                cols = [d[0] for d in self.conn.execute(
-                    "SELECT * FROM activity_summaries LIMIT 0"
-                ).description]
-                self._activity_cache = dict(zip(cols, row))
-            else:
-                self._activity_cache = {}
-        return self._activity_cache or {}
-    
-    # ── Metric 데이터 접근 ──
-    
-    def get_metric(self, metric_name: str, provider: str = None) -> Optional[float]:
-        """
-        현재 scope의 메트릭 값 조회.
-        provider 미지정 시 is_primary=1인 값 반환.
-        """
-        if provider:
-            row = self.conn.execute("""
-                SELECT numeric_value FROM metric_store
-                WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?
-            """, [self.scope_type, self.scope_id, metric_name, provider]).fetchone()
-        else:
-            row = self.conn.execute("""
-                SELECT numeric_value FROM metric_store
-                WHERE scope_type=? AND scope_id=? AND metric_name=? AND is_primary=1
-            """, [self.scope_type, self.scope_id, metric_name]).fetchone()
-        return row[0] if row else None
-    
-    def get_metric_json(self, metric_name: str, provider: str = None) -> Optional[str]:
-        """JSON 값 조회"""
-        if provider:
-            row = self.conn.execute("""
-                SELECT json_value FROM metric_store
-                WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?
-            """, [self.scope_type, self.scope_id, metric_name, provider]).fetchone()
-        else:
-            row = self.conn.execute("""
-                SELECT json_value FROM metric_store
-                WHERE scope_type=? AND scope_id=? AND metric_name=? AND is_primary=1
-            """, [self.scope_type, self.scope_id, metric_name]).fetchone()
-        return row[0] if row else None
-    
-    def get_metric_text(self, metric_name: str) -> Optional[str]:
-        """텍스트 값 조회"""
-        row = self.conn.execute("""
-            SELECT text_value FROM metric_store
-            WHERE scope_type=? AND scope_id=? AND metric_name=? AND is_primary=1
-        """, [self.scope_type, self.scope_id, metric_name]).fetchone()
-        return row[0] if row else None
-    
-    # ── 시계열/범위 접근 (daily, weekly scope에서 사용) ──
-    
-    def get_daily_metric_series(self, metric_name: str, days: int,
-                                 provider: str = None) -> list[tuple[str, float]]:
-        """
-        과거 N일간의 일별 메트릭 시계열.
-        Returns: [(date, value), ...]
-        """
-        from datetime import datetime, timedelta
-        
-        if self.scope_type == "daily":
-            end_date = self.scope_id
-        else:
-            end_date = datetime.utcnow().strftime("%Y-%m-%d")
-        
-        start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=days)).strftime("%Y-%m-%d")
-        
-        if provider:
-            rows = self.conn.execute("""
-                SELECT scope_id, numeric_value FROM metric_store
-                WHERE scope_type='daily' AND metric_name=? AND provider=?
-                AND scope_id BETWEEN ? AND ?
-                ORDER BY scope_id
-            """, [metric_name, provider, start_date, end_date]).fetchall()
-        else:
-            rows = self.conn.execute("""
-                SELECT scope_id, numeric_value FROM metric_store
-                WHERE scope_type='daily' AND metric_name=? AND is_primary=1
-                AND scope_id BETWEEN ? AND ?
-                ORDER BY scope_id
-            """, [metric_name, start_date, end_date]).fetchall()
-        
-        return [(r[0], r[1]) for r in rows if r[1] is not None]
-    
-    def get_activities_in_range(self, days: int, activity_type: str = None) -> list[dict]:
-        """
-        과거 N일간의 활동 목록 (activity_summaries).
-        """
-        from datetime import datetime, timedelta
-        end = datetime.utcnow()
-        start = end - timedelta(days=days)
-        
-        sql = """
-            SELECT * FROM v_canonical_activities 
-            WHERE start_time >= ? AND start_time <= ?
-        """
-        params = [start.isoformat(), end.isoformat()]
-        
-        if activity_type:
-            sql += " AND activity_type = ?"
-            params.append(activity_type)
-        
-        sql += " ORDER BY start_time"
-        
-        rows = self.conn.execute(sql, params).fetchall()
-        if not rows:
-            return []
-        
-        cols = [d[0] for d in self.conn.execute(
-            "SELECT * FROM v_canonical_activities LIMIT 0"
-        ).description]
-        return [dict(zip(cols, row)) for row in rows]
-    
-    def get_activity_metric(self, activity_id: int, metric_name: str) -> Optional[float]:
-        """특정 활동의 메트릭 값"""
-        row = self.conn.execute("""
-            SELECT numeric_value FROM metric_store
-            WHERE scope_type='activity' AND scope_id=? AND metric_name=? AND is_primary=1
-        """, [str(activity_id), metric_name]).fetchone()
-        return row[0] if row else None
-    
-    # ── Stream 접근 ──
-    
-    def get_streams(self, activity_id: int = None) -> list[dict]:
-        """활동의 스트림 데이터"""
-        aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)
-        if aid is None:
-            return []
-        
-        rows = self.conn.execute("""
-            SELECT elapsed_sec, distance_m, heart_rate, cadence, power_watts,
-                   altitude_m, speed_ms, grade_pct, temperature_c
-            FROM activity_streams
-            WHERE activity_id = ?
-            ORDER BY elapsed_sec
-        """, [aid]).fetchall()
-        
-        cols = ["elapsed_sec", "distance_m", "heart_rate", "cadence", "power_watts",
-                "altitude_m", "speed_ms", "grade_pct", "temperature_c"]
-        return [dict(zip(cols, row)) for row in rows]
-    
-    # ── Wellness 접근 ──
-    
-    def get_wellness(self, date: str = None) -> dict:
-        """특정 날짜의 daily_wellness"""
-        d = date or self.scope_id
-        row = self.conn.execute("SELECT * FROM daily_wellness WHERE date = ?", [d]).fetchone()
-        if row:
-            cols = [desc[0] for desc in self.conn.execute("PRAGMA table_info(daily_wellness)").fetchall()]
-            return dict(zip(cols, row))
-        return {}
+        """현재 활동의 activity_summaries 행 (prefetch-first)"""
+
+    def get_metric(self, metric_name, provider=None) -> Optional[float]:
+        """현재 scope의 primary 메트릭 numeric 값"""
+
+    def get_metric_json(self, metric_name, provider=None) -> Optional[str]:
+        """현재 scope의 메트릭 JSON 값"""
+
+    def get_metric_text(self, metric_name) -> Optional[str]:
+        """현재 scope의 메트릭 text 값"""
+
+    def get_wellness(self, date=None) -> dict:
+        """특정 날짜의 daily_wellness (prefetch-first)"""
+
+    def get_streams(self, activity_id=None) -> list[dict]:
+        """활동의 스트림 데이터 (activity_streams 테이블)"""
+
+    def get_laps(self, activity_id=None) -> list[dict]:
+        """활동의 랩 데이터 (activity_laps 테이블)"""
+
+    def get_activities_in_range(self, days, activity_type=None) -> list[dict]:
+        """과거 N일간의 활동 목록 (v_canonical_activities)"""
+
+    def get_activity_metric(self, activity_id, metric_name) -> Optional[float]:
+        """특정 활동의 메트릭 numeric 값 (prefetch-first)"""
+
+    def get_activity_metric_text(self, activity_id, metric_name) -> Optional[str]:
+        """특정 활동의 메트릭 text 값"""
+
+    def get_daily_metric_series(self, metric_name, days, provider=None) -> list[tuple]:
+        """과거 N일간의 일별 메트릭 시계열 [(date, value), ...]"""
+
+    def get_daily_load(self, date_str) -> float:
+        """특정 날짜의 TRIMP 합산 (prefetch-first, PMC/LSI/Monotony용)"""
+
+    def get_activity_metric_series(self, metric_name, days,
+                                    activity_type=None, include_json=False) -> list[dict]:
+        """과거 N일간의 activity-scope 메트릭 시계열"""
+
+    def get_wellness_series(self, days) -> list[dict]:
+        """과거 N일간의 daily_wellness 시계열"""
 ```
 
----
+> **설계 vs 구현 변경 이력 (2026-04-04)**:
+> - 초기 설계에서는 각 API가 ctx.conn.execute()로 raw SQL을 직접 실행
+> - ADR-009 도입 후, 모든 API가 prefetch 데이터를 우선 사용하고 fallback으로만 DB 접근
+> - get_activity_metric_text, get_activity_metric_series, get_wellness_series 3개 API 신규 추가
+> - get_daily_load API 추가 (PMC/LSI/Monotony에서 공유)
+> - get_laps API 추가
 
+---
 ## 4-2. Activity-Scope 1차 Calculator (소스 데이터 기반)
 
 ### TRIMP Calculator
@@ -2148,21 +1963,34 @@ from src.metrics.gap import GAPCalculator
 from src.metrics.vdot import VDOTCalculator
 from src.metrics.classifier import WorkoutClassifier
 from src.metrics.efficiency import EfficiencyFactorCalculator
+from src.metrics.fearp import FEARPCalculator
+from src.metrics.relative_effort import RelativeEffortCalculator
+from src.metrics.wlei import WLEICalculator
 from src.metrics.pmc import PMCCalculator
 from src.metrics.acwr import ACWRCalculator
 from src.metrics.lsi import LSICalculator
 from src.metrics.monotony import MonotonyStrainCalculator
 from src.metrics.utrs import UTRSCalculator
 from src.metrics.cirs import CIRSCalculator
-from src.metrics.fearp import FEARPCalculator
 from src.metrics.di import DurabilityIndexCalculator
 from src.metrics.darp import DARPCalculator
 from src.metrics.tids import TIDSCalculator
 from src.metrics.rmr import RMRCalculator
 from src.metrics.adti import ADTICalculator
+from src.metrics.teroi import TEROICalculator
+from src.metrics.tpdi import TPDICalculator
+from src.metrics.rec import RECCalculator
+from src.metrics.rtti import RTTICalculator
+from src.metrics.critical_power import CriticalPowerCalculator
+from src.metrics.sapi import SAPICalculator
+from src.metrics.rri import RRICalculator
+from src.metrics.eftp import EFTPCalculator
+from src.metrics.vdot_adj import VDOTAdjCalculator
+from src.metrics.marathon_shape import MarathonShapeCalculator
+from src.metrics.crs import CRSCalculator
 
 ALL_CALCULATORS = [
-    # ── Activity-scope: 1차 (소스 데이터만 필요) ──
+    # ── Activity-scope (10): 소스 데이터 기반 ──
     TRIMPCalculator(),
     HRSSCalculator(),
     AerobicDecouplingCalculator(),
@@ -2171,23 +1999,36 @@ ALL_CALCULATORS = [
     WorkoutClassifier(),
     EfficiencyFactorCalculator(),
     FEARPCalculator(),
-    
-    # ── Daily-scope: 1차 (활동 메트릭 필요) ──
+    RelativeEffortCalculator(),
+    WLEICalculator(),
+
+    # ── Daily-scope 1차 (4): 활동 메트릭 집계 ──
     PMCCalculator(),
     ACWRCalculator(),
     LSICalculator(),
     MonotonyStrainCalculator(),
-    
-    # ── Daily-scope: 2차 (1차 결과 필요) ──
+
+    # ── Daily-scope 2차 (13): 1차 결과 + 소스 데이터 ──
     UTRSCalculator(),
     CIRSCalculator(),
     DurabilityIndexCalculator(),
     DARPCalculator(),
-    RMRCalculator(),
-    
-    # ── Weekly-scope ──
     TIDSCalculator(),
+    RMRCalculator(),
     ADTICalculator(),
+    TEROICalculator(),
+    TPDICalculator(),
+    RECCalculator(),
+    RTTICalculator(),
+    CriticalPowerCalculator(),
+    SAPICalculator(),
+
+    # ── Daily-scope 3차 (5): 복합 의존 ──
+    RRICalculator(),
+    EFTPCalculator(),
+    VDOTAdjCalculator(),
+    MarathonShapeCalculator(),
+    CRSCalculator(),
 ]
 
 
@@ -2195,6 +2036,12 @@ def recompute_recent(conn, days: int = 7):
     """최근 N일 데이터에 대해 전체 메트릭 재계산"""
     
     log.info(f"Recomputing metrics for last {days} days...")
+    
+    # engine.py는 실행 전 prefetch를 수행하여 N+1 쿼리를 방지한다:
+    # - activity_summaries 전체 (scope 범위)
+    # - metric_store (scope 범위)
+    # - daily_wellness (날짜 범위)
+    # - daily_loads (TRIMP 일별 합산)
     
     # Topological sort
     ordered = _topological_sort(ALL_CALCULATORS)
