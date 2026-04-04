@@ -12,6 +12,11 @@
 8. [신규] 테스트 파일 수 vs files_index.md 비교
 9. [신규] "13개 테이블" 같은 outdated 표현 스캔
 """
+# === 검사 추가 방법 ===
+# 1. 이 파일에 check_ 로 시작하는 함수를 추가
+# 2. 함수 내에서 error("msg") 또는 warn("msg") 호출
+# 3. main() 하단의 검사 호출 목록에 함수 등록
+# === 검사 15개 초과 시 scripts/checks/ 디렉토리로 플러그인 구조 분리 검토 ===
 import os
 import re
 import subprocess

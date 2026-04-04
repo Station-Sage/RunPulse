@@ -4,7 +4,7 @@
 - 이름: RunPulse — 개인 러닝 코치 에이전트
 - 목적: Garmin, Strava, Intervals.icu, Runalyze 4개 소스의 러닝/건강 데이터를 통합 분석하고, AI 코치가 훈련 계획을 추천하며, 가민 워치에 자동 등록
 - 저장소: https://github.com/Station-Sage/RunPulse
-- 실행 환경: Android Termux, Python 3.11+, SQLite3, 파일 기반 저장
+- 실행 환경: Ubuntu Linux, Python 3.12+, SQLite3, Flask 웹 앱
 - 버전/테스트/브랜치 현황: **`BACKLOG.md` 상단** 참조
 
 ---
@@ -27,7 +27,7 @@
 ## 실행
     python src/db_setup.py              # DB 초기화
     python src/serve.py                 # 웹 localhost:18080
-    python -m pytest tests/             # 테스트 (1122개)
+    python -m pytest tests/             # 테스트
     python scripts/check_docs.py        # 문서 정합성
 
 ## 문서 체계

@@ -29,6 +29,11 @@
 - `LATER.md` → BACKLOG 승격은 사용자 지시로만
 - Hotfix: 긴급 1건은 직접 지시로 진행 가능. 완료 후 DONE.md 기록
 
+
+## 설계 변경 시 문서 동기화
+- 새 테이블, CalcContext API, Calculator 추가/삭제/변경 시 해당 SKILL.md의 grep 레시피가 여전히 유효한지 확인
+- check_docs.py에 새 검사가 필요한지 검토 (함수 추가 방법은 check_docs.py 상단 주석 참조)
+
 ## 금지
 - BACKLOG.md에 없는 작업 임의 진행
 - config.json 생성/커밋 (config.json.example만 허용)
