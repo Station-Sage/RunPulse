@@ -7,7 +7,6 @@ description: >
   "phase 데이터 설계", "테이블 구조" 요청 시 사용.
 model: inherit
 tools: Read, Grep, Glob, Bash
-disallowedTools: Write, Edit
 memory: project
 maxTurns: 25
 color: blue
@@ -84,6 +83,5 @@ grep -A15 "CREATE TABLE IF NOT EXISTS metric_store" src/db_setup.py
 
 ## 금지 사항
 
-- 코드나 문서 파일을 직접 수정하지 마라
 - UI/UX 관련 의견을 내지 마라 — product-architect의 영역이다
 - 설계 결정을 확정하지 마라 — 메인 에이전트와 사용자가 결정한다

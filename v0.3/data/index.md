@@ -2,7 +2,7 @@
 
 ## 세션 시작 시 필수 읽기
 1. **이 파일** (index.md) — 문서 구조 파악
-2. **phase_summary.md** — 전체 Phase 상태, 진행률, 테스트 현황
+2. **phase-1~5.md** — 각 Phase 상세 설계, 완료 기준, 구현 결과
 3. 작업 대상 Phase의 설계 문서 (phase-1~7.md)
 
 ## 문서 맵
@@ -10,7 +10,6 @@
 ### 설계 문서 (v0.3/data/)
 | 파일 | 내용 | 줄수 |
 |------|------|------|
-| phase_summary.md | 전체 Phase 상태 요약, 산출물 목록 | 683 |
 | architecture.md | 5-Layer 아키텍처, 테이블 설계, EAV vs Wide Table | 1307 |
 | decisions.md | ADR-001~008 설계 결정 기록 | 50+ |
 | CHANGELOG.md | Phase별 변경 이력 | 170+ |
@@ -22,14 +21,14 @@
 | phase-6.md | Full Data Load — 전체 데이터 재로드 (미구현) | 339 |
 | phase-7(preview).md | Preview — ML 메트릭, A/B 테스트 (미구현) | 572 |
 
-### 소스 코드 가이드 (GUIDE.md)
+### 소스 코드 가이드 (files_index.md + docstring)
 | 파일 | 내용 |
 |------|------|
-| src/metrics/GUIDE.md | 32 calculators, 의존성 그래프, 추가 체크리스트 |
-| src/sync/GUIDE.md | 5-Layer sync 파이프라인, rate limit, reprocess |
-| src/ai/GUIDE.md | AI 코치 엔진, provider chain, function calling |
-| src/training/GUIDE.md | 훈련 엔진, Daniels VDOT, CRS gate |
-| src/web/GUIDE.md | Flask 대시보드, 3-tier 패턴, 7+1 탭 |
+| files_index.md (metrics 섹션) | 32 calculators, 의존성 그래프, 추가 체크리스트 |
+| files_index.md (sync 섹션) | 5-Layer sync 파이프라인, rate limit, reprocess |
+| files_index.md (ai 섹션) | AI 코치 엔진, provider chain, function calling |
+| files_index.md (training 섹션) | 훈련 엔진, Daniels VDOT, CRS gate |
+| files_index.md (web 섹션) | Flask 대시보드, 3-tier 패턴, 7+1 탭 |
 
 ### 메트릭 참조 문서 (v0.2/.ai/)
 | 파일 | 내용 |
@@ -68,5 +67,5 @@
 
 ## 토큰 절약 규칙
 - 세션당 2~3개 문서만 읽기
-- phase_summary.md로 전체 파악 후 필요한 phase-N.md만 열기
-- GUIDE.md로 소스 구조 파악 후 실제 코드 읽기
+- architecture.md로 전체 파악 후 필요한 phase-N.md만 열기
+- files_index.md + 각 모듈 docstring으로 소스 구조 파악 후 실제 코드 읽기

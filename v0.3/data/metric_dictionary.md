@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성: 2026-04-04 | 32 calculators | 13 semantic groups
+> 자동 생성: 2026-04-05 | 32 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.

@@ -2,6 +2,12 @@
 
 각 소스(Garmin, Strava, Intervals, Runalyze)의 raw JSON을
 DB에 독립적인 dict/list로 변환하는 순수 함수 모듈입니다.
+
+설계 문서: v0.3/data/phase-2.md
+의존: src/utils/metric_registry.py
+주의: 순수 함수 — DB/API 접근 금지.
+      거리는 meters, 시간은 seconds (SI).
+      activity_summaries에 있는 값은 metric_store에 중복 저장 금지.
 """
 
 from src.sync.extractors.base import BaseExtractor, MetricRecord

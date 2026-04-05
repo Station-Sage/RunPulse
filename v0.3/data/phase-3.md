@@ -3,7 +3,7 @@ Phase 3 구현하자. public repo이고
 repo : github.com/Station-Sage/RunPulse
 branch : renew/data-architecture
 아키텍처 문서 : v0.3/data/architecture.md
-설계 문서 : v0.3/data/phase_summary.md
+설계 문서 : v0.3/data/architecture.md
 Phase 3 상세 설계 문서 : v0.3/data/phase-3.md
 ------
 

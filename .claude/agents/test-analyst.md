@@ -25,7 +25,7 @@ pytest의 방대한 출력을 분석하고, 요약된 결과만 반환한다.
 
 ### Step 1: 테스트 실행
 
-    python -m pytest <대상경로> --tb=short -q
+    python3 -m pytest <대상경로> --tb=short -q
 
 대상경로가 없으면 tests/ 전체를 실행한다.
 
@@ -33,7 +33,7 @@ pytest의 방대한 출력을 분석하고, 요약된 결과만 반환한다.
 
 실패가 있으면 실패 테스트만 재실행한다:
 
-    python -m pytest <실패테스트> --tb=long -v
+    python3 -m pytest <실패테스트> --tb=long -v
 
 ### Step 3: 실패 원인 분류
 

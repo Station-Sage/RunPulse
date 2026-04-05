@@ -73,9 +73,9 @@ _DEFINITIONS: list[MetricDef] = [
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # Training Load 계열
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("trimp", "training_load", "score", "TRIMP (Banister)",
+    MetricDef("trimp", "rp_load", "score", "TRIMP (Banister)",
               aliases={"intervals": "icu_trimp"}),
-    MetricDef("hrss", "training_load", "score", "HR Stress Score",
+    MetricDef("hrss", "rp_load", "score", "HR Stress Score",
               aliases={"intervals": "icu_hrss"}),
     MetricDef("rtss", "training_load", "score", "Running TSS (rTSS)"),
     MetricDef("intensity_factor", "training_load", "", "Intensity Factor (IF)",
@@ -244,10 +244,10 @@ _DEFINITIONS: list[MetricDef] = [
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # PMC (daily_fitness에도 있지만, metric_store에서 provider별 비교용)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("ctl", "pmc", "", "Chronic Training Load", scope="daily"),
-    MetricDef("atl", "pmc", "", "Acute Training Load", scope="daily"),
-    MetricDef("tsb", "pmc", "", "Training Stress Balance", scope="daily"),
-    MetricDef("ramp_rate", "pmc", "", "CTL 증가율", scope="daily"),
+    MetricDef("ctl", "rp_load", "", "Chronic Training Load", scope="daily"),
+    MetricDef("atl", "rp_load", "", "Acute Training Load", scope="daily"),
+    MetricDef("tsb", "rp_load", "", "Training Stress Balance", scope="daily"),
+    MetricDef("ramp_rate", "rp_load", "", "CTL 증가율", scope="daily"),
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # RunPulse Computed (2차 메트릭)
@@ -264,11 +264,11 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("darp_10k_sec", "rp_performance", "sec", "DARP 10K 예측", scope="daily"),
     MetricDef("darp_half_sec", "rp_performance", "sec", "DARP 하프 예측", scope="daily"),
     MetricDef("darp_marathon_sec", "rp_performance", "sec", "DARP 마라톤 예측", scope="daily"),
-    MetricDef("di", "rp_performance", "", "Durability Index", scope="weekly"),
-    MetricDef("rmr", "rp_performance", "json", "Runner Maturity Radar", scope="weekly"),
+    MetricDef("di", "rp_endurance", "", "Durability Index", scope="weekly"),
+    MetricDef("rmr", "rp_recovery", "json", "Runner Maturity Radar", scope="weekly"),
 
     MetricDef("tids", "rp_distribution", "", "Training Intensity Distribution Score", scope="weekly"),
-    MetricDef("adti", "rp_efficiency", "", "Aerobic Decoupling Trend Index", scope="weekly"),
+    MetricDef("adti", "rp_trend", "", "Aerobic Decoupling Trend Index", scope="weekly"),
 
 
     # ── Phase 4 기존 calculator (registry 미등록분) ──

@@ -274,12 +274,12 @@ class TestMetricRegistry:
     def test_canonicalize_intervals_trimp(self):
         name, cat = canonicalize("icu_trimp", source="intervals")
         assert name == "trimp"
-        assert cat == "training_load"
+        assert cat == "rp_load"
 
     def test_canonicalize_direct_name(self):
         name, cat = canonicalize("trimp")
         assert name == "trimp"
-        assert cat == "training_load"
+        assert cat == "rp_load"
 
     def test_canonicalize_unmapped(self):
         name, cat = canonicalize("completely_unknown_field", source="garmin")
@@ -290,7 +290,7 @@ class TestMetricRegistry:
         md = get_metric("trimp")
         assert md is not None
         assert md.name == "trimp"
-        assert md.category == "training_load"
+        assert md.category == "rp_load"
 
     def test_get_metric_not_exists(self):
         assert get_metric("nonexistent_metric") is None

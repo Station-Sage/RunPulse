@@ -7,7 +7,6 @@ description: >
   "인터랙션 설계" 요청 시 사용.
 model: inherit
 tools: Read, Grep, Glob, Bash
-disallowedTools: Write, Edit
 memory: project
 maxTurns: 25
 color: purple
@@ -98,7 +97,6 @@ ls src/web/views_dashboard_cards*.py
 
 ## 금지 사항
 
-- 코드나 문서 파일을 직접 수정하지 마라
 - DB 스키마나 API 구조에 대해 의견을 내지 마라 — system-architect의 영역이다
 - 기술 구현 세부사항(어떤 프레임워크, 어떤 라이브러리)을 결정하지 마라
 - 설계 결정을 확정하지 마라 — 메인 에이전트와 사용자가 결정한다

@@ -93,6 +93,10 @@ running.db.backup_*
 
 # Temp files
 0
+temp.sh
+
+# Audit files
+v0.3/data/audit/
 
 # User data (DB, config per user)
 data/users/
@@ -100,3 +104,4 @@ data/users/
 # Export data and DB
 audit/export_data/
 .claude/worktrees/
+data/runpulse.db
