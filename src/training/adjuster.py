@@ -34,9 +34,11 @@ def _get_todays_wellness(conn: sqlite3.Connection) -> dict:
 
 
 def _get_latest_tsb(conn: sqlite3.Connection) -> float | None:
-    """최근 TSB 조회."""
+    """최근 TSB 조회 (metric_store daily)."""
     row = conn.execute(
-        "SELECT tsb FROM daily_fitness ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
+        " ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return row[0] if row else None
 

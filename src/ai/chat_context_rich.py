@@ -54,15 +54,18 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         for r in well_rows
     ]
 
-    fit_rows = conn.execute(
-        "SELECT date, ctl, atl, tsb FROM daily_fitness "
-        "WHERE date>=? ORDER BY date", (start_30d,),
+    ms_rows = conn.execute(
+        "SELECT scope_id, metric_name, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name IN ('ctl','atl','tsb') AND is_primary=1"
+        "   AND scope_id>=? AND numeric_value IS NOT NULL ORDER BY scope_id",
+        (start_30d,),
     ).fetchall()
+    fitness_by_date: dict[str, dict] = {}
+    for _d, _name, _val in ms_rows:
+        fitness_by_date.setdefault(_d, {})[_name] = round(float(_val), 1)
     ctx["fitness_30d"] = [
-        {"date": r[0], "ctl": round(float(r[1]), 1) if r[1] else None,
-         "atl": round(float(r[2]), 1) if r[2] else None,
-         "tsb": round(float(r[3]), 1) if r[3] else None}
-        for r in fit_rows
+        {"date": _d, "ctl": _v.get("ctl"), "atl": _v.get("atl"), "tsb": _v.get("tsb")}
+        for _d, _v in sorted(fitness_by_date.items())
     ]
 
     ctx["runner_profile"] = _build_runner_profile(conn, today)
@@ -164,10 +167,12 @@ def _build_runner_profile(conn: sqlite3.Connection, today: str) -> dict[str, Any
             profile[name.lower()] = round(float(row[0]), 1)
 
     fit = conn.execute(
-        "SELECT garmin_vo2max FROM daily_fitness WHERE date<=? ORDER BY date DESC LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='vo2max' AND is_primary=1"
+        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
         (today,),
     ).fetchone()
-    if fit and fit[0]:
+    if fit:
         profile["vo2max"] = round(float(fit[0]), 1)
 
     try:

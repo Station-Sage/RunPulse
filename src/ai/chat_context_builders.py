@@ -26,15 +26,14 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
         ).fetchone()
         ctx[name] = round(float(row[0]), 2) if row and row[0] is not None else None
 
-    fit = conn.execute(
-        "SELECT ctl, atl, tsb, garmin_vo2max FROM daily_fitness "
-        "WHERE date<=? ORDER BY date DESC LIMIT 1", (today,),
-    ).fetchone()
-    if fit:
-        ctx["ctl"] = round(float(fit[0]), 1) if fit[0] else None
-        ctx["atl"] = round(float(fit[1]), 1) if fit[1] else None
-        ctx["tsb"] = round(float(fit[2]), 1) if fit[2] else None
-        ctx["vo2max"] = round(float(fit[3]), 1) if fit[3] else None
+    for _ms_name, _ctx_key in [("ctl", "ctl"), ("atl", "atl"), ("tsb", "tsb"), ("vo2max", "vo2max")]:
+        _row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name=? AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
+            (_ms_name, today),
+        ).fetchone()
+        ctx[_ctx_key] = round(float(_row[0]), 1) if _row else None
 
     well = conn.execute(
         "SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
@@ -141,14 +140,16 @@ def _add_compare_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
                 (name, ref, ref),
             ).fetchone()
             snap[name] = round(float(row[0]), 2) if row and row[0] is not None else None
-        fit = conn.execute(
-            "SELECT ctl, garmin_vo2max FROM daily_fitness "
-            "WHERE date BETWEEN ? AND date(?, '+7 days') ORDER BY date LIMIT 1",
-            (ref, ref),
-        ).fetchone()
-        if fit:
-            snap["ctl"] = round(float(fit[0]), 1) if fit[0] else None
-            snap["vo2max"] = round(float(fit[1]), 1) if fit[1] else None
+        for _ms_name, _snap_key in [("ctl", "ctl"), ("vo2max", "vo2max")]:
+            _row = conn.execute(
+                "SELECT numeric_value FROM metric_store"
+                " WHERE scope_type='daily' AND metric_name=? AND is_primary=1"
+                "   AND scope_id BETWEEN ? AND date(?, '+7 days')"
+                "   AND numeric_value IS NOT NULL ORDER BY scope_id LIMIT 1",
+                (_ms_name, ref, ref),
+            ).fetchone()
+            if _row:
+                snap[_snap_key] = round(float(_row[0]), 1)
 
         vol = conn.execute(
             "SELECT COUNT(*), COALESCE(SUM(distance_km),0), "

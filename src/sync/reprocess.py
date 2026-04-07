@@ -2,7 +2,7 @@
 
 API 호출 없이 source_payloads의 JSON만으로
 activity_summaries, metric_store, activity_laps, activity_streams,
-daily_wellness, daily_fitness를 재생성합니다.
+daily_wellness를 재생성합니다.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from src.sync._helpers import (
     save_streams,
     save_best_efforts,
     save_daily_wellness,
-    save_daily_fitness,
+    save_daily_fitness,  # noqa: F401 — kept for extractor dispatch, writes to metric_store
     resolve_primaries,
 )
 
@@ -103,7 +103,6 @@ def _clear_derived_data(conn: sqlite3.Connection, source: str | None):
         conn.execute("DELETE FROM activity_streams")
         conn.execute("DELETE FROM activity_best_efforts")
         conn.execute("DELETE FROM daily_wellness")
-        conn.execute("DELETE FROM daily_fitness")
     conn.commit()
     log.info("Cleared derived data for source=%s", source or "all")
 
@@ -238,7 +237,7 @@ def _reprocess_best_efforts(conn, source, activity_id_map, stats):
 
 
 def _reprocess_wellness(conn, source, stats):
-    """Wellness payloads → daily_wellness + metric_store + daily_fitness."""
+    """Wellness payloads → daily_wellness + metric_store."""
     wellness_types = (
         "wellness_sleep", "wellness_hrv", "wellness_body_battery", "wellness_stress",
         "wellness_user_summary", "wellness_training_readiness",

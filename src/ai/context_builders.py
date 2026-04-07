@@ -35,7 +35,9 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
 
     # TSB 7일
     tsb_rows = conn.execute(
-        "SELECT date, tsb FROM daily_fitness WHERE date BETWEEN ? AND ? ORDER BY date",
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
+        "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
         (start_7d, today),
     ).fetchall()
     ctx["tsb_7d"] = [{"d": r[0], "v": round(float(r[1]), 1)} for r in tsb_rows if r[1] is not None]
@@ -330,7 +332,9 @@ def build_race_context(conn: sqlite3.Connection, today: str) -> dict:
         ctx[name.lower()] = float(row[0]) if row and row[0] is not None else None
 
     ctl_row = conn.execute(
-        "SELECT ctl FROM daily_fitness WHERE date<=? AND ctl IS NOT NULL ORDER BY date DESC LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='ctl' AND is_primary=1"
+        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
         (today,),
     ).fetchone()
     ctx["ctl"] = float(ctl_row[0]) if ctl_row else None

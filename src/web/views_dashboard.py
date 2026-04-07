@@ -119,10 +119,20 @@ def _load_metric_json(conn: sqlite3.Connection, target_date: str, metric_name: s
 def _load_pmc_data(conn: sqlite3.Connection, end_date: str, days: int = 60) -> list[dict]:
     start = (date.fromisoformat(end_date) - timedelta(days=days - 1)).isoformat()
     rows = conn.execute(
-        "SELECT date, ctl, atl, tsb FROM daily_fitness WHERE date BETWEEN ? AND ? ORDER BY date ASC",
+        "SELECT scope_id AS date, metric_name, numeric_value"
+        " FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name IN ('ctl','atl','tsb')"
+        "   AND is_primary=1 AND scope_id BETWEEN ? AND ?"
+        " ORDER BY scope_id",
         (start, end_date),
     ).fetchall()
-    return [{"date": r[0], "ctl": r[1], "atl": r[2], "tsb": r[3]} for r in rows]
+    pivoted: dict[str, dict] = {}
+    for r in rows:
+        d = r[0]
+        if d not in pivoted:
+            pivoted[d] = {"date": d, "ctl": None, "atl": None, "tsb": None}
+        pivoted[d][r[1]] = r[2]
+    return sorted(pivoted.values(), key=lambda x: x["date"])
 
 
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
@@ -159,33 +169,24 @@ def _load_darp_data(conn: sqlite3.Connection, target_date: str) -> dict:
 
 
 def _load_fitness_data(conn: sqlite3.Connection, target_date: str) -> tuple[float | None, float | None]:
-    # VDOT: computed_metrics 우선, 없으면 daily_fitness (Runalyze > Garmin)
-    vdot = None
-    cm_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND metric_value IS NOT NULL AND date<=? ORDER BY date DESC LIMIT 1",
+    """VDOT + MarathonShape 조회 (metric_store daily)."""
+    vdot_row = conn.execute(
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name IN ('vdot_adj','runpulse_vdot')"
+        "   AND numeric_value IS NOT NULL AND scope_id<=?"
+        " ORDER BY scope_id DESC LIMIT 1",
         (target_date,),
     ).fetchone()
-    if cm_row and cm_row[0]:
-        vdot = float(cm_row[0])
-    else:
-        vdot_row = conn.execute(
-            "SELECT runalyze_vdot, garmin_vo2max FROM daily_fitness "
-            "WHERE (runalyze_vdot IS NOT NULL OR garmin_vo2max IS NOT NULL) "
-            "AND date<=? ORDER BY date DESC LIMIT 1",
-            (target_date,),
-        ).fetchone()
-        if vdot_row:
-            vdot = float(vdot_row[0]) if vdot_row[0] is not None else (
-                float(vdot_row[1]) if vdot_row[1] is not None else None
-            )
+    vdot = float(vdot_row[0]) if vdot_row else None
+
     shape_row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE date <= ? AND metric_name = 'MarathonShape' AND activity_id IS NULL
-           ORDER BY date DESC LIMIT 1""",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='marathon_shape'"
+        "   AND numeric_value IS NOT NULL AND scope_id<=?"
+        " ORDER BY scope_id DESC LIMIT 1",
         (target_date,),
     ).fetchone()
-    shape = float(shape_row[0]) if shape_row and shape_row[0] is not None else None
+    shape = float(shape_row[0]) if shape_row else None
     return vdot, shape
 
 

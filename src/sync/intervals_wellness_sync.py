@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.utils import api
+from src.utils.db_helpers import upsert_metric
 from src.utils.raw_payload import store_raw_payload as _store_rp
 
 from .intervals_auth import base_url, auth
@@ -21,7 +22,7 @@ def _store_raw(
 def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
     """Intervals.icu 웰니스/피트니스 데이터를 가져와 DB에 저장.
 
-    CTL/ATL/TSB는 daily_fitness 테이블에 저장 (일별 피트니스 추적).
+    CTL/ATL/TSB는 metric_store(scope=daily)에 저장 (ADR-005).
     수면/HRV 등은 daily_wellness 테이블에 저장.
 
     Args:
@@ -81,7 +82,7 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
         except sqlite3.Error as e:
             print(f"[intervals] 웰니스 삽입 실패 {date_str}: {e}")
 
-        # CTL/ATL/TSB → daily_fitness
+        # CTL/ATL/TSB → metric_store(scope=daily)
         ctl = entry.get("ctl")
         atl = entry.get("atl")
         tsb = entry.get("form")
@@ -89,23 +90,11 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
             tsb = round(ctl - atl, 2)
         ramp_rate = entry.get("rampRate")
 
-        if any(v is not None for v in [ctl, atl, tsb]):
-            try:
-                conn.execute(
-                    """INSERT INTO daily_fitness (date, source, ctl, atl, tsb, ramp_rate)
-                       VALUES (?, 'intervals', ?, ?, ?, ?)
-                       ON CONFLICT(date, source) DO UPDATE SET
-                           ctl = COALESCE(excluded.ctl, ctl),
-                           atl = COALESCE(excluded.atl, atl),
-                           tsb = COALESCE(excluded.tsb, tsb),
-                           ramp_rate = COALESCE(excluded.ramp_rate, ramp_rate),
-                           updated_at = datetime('now')""",
-                    (date_str, ctl, atl, tsb, ramp_rate),
-                )
-            except sqlite3.OperationalError:
-                pass
-            except sqlite3.Error as e:
-                print(f"[intervals] daily_fitness 삽입 실패 {date_str}: {e}")
+        for metric_name, val in [("ctl", ctl), ("atl", atl),
+                                  ("tsb", tsb), ("ramp_rate", ramp_rate)]:
+            if val is not None:
+                upsert_metric(conn, "daily", date_str, metric_name, "intervals",
+                              numeric_value=float(val), category="load")
 
     conn.commit()
     return count

@@ -209,7 +209,7 @@
 > 의존: src/sync/extractors/, src/utils/db_helpers.py, src/utils/rate_limiter.py
 > 주의: Garmin은 rate-limit 감지 후 동적 대기 필요
 
-### `_helpers.py` (132줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
+### `_helpers.py` (140줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
 
 - functions: save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
 
@@ -243,11 +243,11 @@
 
 - functions: backfill_from_zip
 
-### `garmin_daily_extensions.py` (472줄)
+### `garmin_daily_extensions.py` (466줄)
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
-### `garmin_helpers.py` (113줄)
+### `garmin_helpers.py` (106줄)
 
 - (public API 없음)
 
@@ -280,7 +280,7 @@
 
 - functions: base_url, auth, check_intervals_connection
 
-### `intervals_wellness_sync.py` (111줄) — Intervals.icu 웰니스 / 피트니스 동기화.
+### `intervals_wellness_sync.py` (100줄) — Intervals.icu 웰니스 / 피트니스 동기화.
 
 - functions: sync_wellness
 
@@ -297,7 +297,7 @@
 
 - functions: upsert_raw_payload, update_raw_activity_id
 
-### `reprocess.py` (292줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reprocess.py` (291줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -405,7 +405,7 @@
 
 - functions: build_chat_context
 
-### `chat_context_builders.py` (287줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
+### `chat_context_builders.py` (288줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
 
 - (public API 없음)
 
@@ -417,7 +417,7 @@
 
 - functions: detect_intent
 
-### `chat_context_rich.py` (192줄) — AI 채팅 컨텍스트 — 풍부한 컨텍스트 빌더 (Gemini/Claude용).
+### `chat_context_rich.py` (197줄) — AI 채팅 컨텍스트 — 풍부한 컨텍스트 빌더 (Gemini/Claude용).
 
 - (public API 없음)
 
@@ -438,7 +438,7 @@
 
 - functions: rule_based_response
 
-### `context_builders.py` (426줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
+### `context_builders.py` (430줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
 
 - functions: build_dashboard_context, build_training_context, build_report_context, build_race_context, build_wellness_context, build_activity_context, format_context_compact
 
@@ -586,7 +586,7 @@
 
 - functions: render_coach_profile, render_briefing_card, render_wellness_card, render_chips, render_chat_section, render_recent_training, render_risk_summary
 
-### `views_dashboard.py` (436줄) — 통합 대시보드 뷰 — Flask Blueprint.
+### `views_dashboard.py` (437줄) — 통합 대시보드 뷰 — Flask Blueprint.
 
 - functions: dashboard
 
@@ -610,7 +610,7 @@
 
 - functions: render_daily_status_strip, render_weekly_summary
 
-### `views_dashboard_loaders.py` (127줄) — 대시보드 — 신규 데이터 로더 (UI 재설계용).
+### `views_dashboard_loaders.py` (129줄) — 대시보드 — 신규 데이터 로더 (UI 재설계용).
 
 - functions: load_wellness_mini, load_weekly_summary, load_fitness_trends, load_risk_7day_trends
 
@@ -650,7 +650,7 @@
 
 - functions: render_summary_delta, render_training_quality_chart, render_tids_weekly_chart, render_risk_trend_chart, render_form_trend, render_wellness_trend_chart
 
-### `views_report_loaders.py` (179줄) — 레포트 — 신규 데이터 로더 (UI 재설계용).
+### `views_report_loaders.py` (180줄) — 레포트 — 신규 데이터 로더 (UI 재설계용).
 
 - functions: load_prev_period_stats, load_training_quality_series, load_risk_trend_series, load_form_trend_series, load_wellness_trend_series, load_tids_weekly_series
 
@@ -662,7 +662,7 @@
 
 - functions: render_tids_section, render_trimp_weekly_chart, render_risk_overview, render_darp_card, render_fitness_trend, render_endurance_trend
 
-### `views_report_sections_data.py` (112줄) — 레포트 섹션 — 데이터 로더.
+### `views_report_sections_data.py` (102줄) — 레포트 섹션 — 데이터 로더.
 
 - (public API 없음)
 
@@ -788,7 +788,7 @@
 > 
 > 설계 문서: v0.3/data/phase-7(preview).md
 
-### `adjuster.py` (167줄) — 컨디션 기반 당일 훈련 계획 조정.
+### `adjuster.py` (169줄) — 컨디션 기반 당일 훈련 계획 조정.
 
 - functions: adjust_todays_plan
 
@@ -869,9 +869,9 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (694줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (660줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
-- functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, upsert_daily_fitness, get_db_status, upsert_laps_batch, upsert_streams_batch, upsert_best_efforts_batch
+- functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, upsert_best_efforts_batch
 
 ### `dedup.py` (218줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
 
@@ -1016,14 +1016,13 @@
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
 
-### `test_db_helpers.py` (235줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
+### `test_db_helpers.py` (216줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
 - class **TestUpsertActivitySummary**: test_insert_new, test_upsert_updates, test_no_duplicate_rows
 - class **TestUpsertMetric**: test_insert_single, test_batch_upsert, test_upsert_updates_value
 - class **TestUpsertDailyWellness**: test_insert, test_merge_keeps_first_non_null
 - class **TestGetPrimaryMetrics**: test_get_primary_returns_list, test_get_all_providers, test_get_primary_empty_scope
 - class **TestUpsertPayload**: test_insert_and_no_change, test_update_on_change
-- class **TestDailyFitness**: test_insert, test_upsert_coalesce
 - class **TestDbStatus**: test_returns_dict
 - functions: db
 
@@ -1033,10 +1032,10 @@
 - class **TestStreamsBatch**: test_insert_streams, test_replace_on_reinsert
 - class **TestBestEffortsBatch**: test_insert_efforts, test_upsert_effort, test_skip_no_effort_name
 
-### `test_db_setup.py` (150줄) — db_setup 테스트.
+### `test_db_setup.py` (131줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_10, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_46_columns
-- functions: test_get_db_path, test_create_tables, test_daily_fitness_unique_constraint, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_migrate_db_adds_daily_fitness, test_activities_unique_index, test_activities_insert
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_11, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_46_columns
+- functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
 ### `test_dedup.py` (74줄) — Dedup 단위 테스트.
 
@@ -1109,7 +1108,7 @@
 - class **TestIntervalsWellness**: test_wellness_core, test_fitness
 - functions: ext, activity_raw, wellness_raw
 
-### `test_intervals_sync.py` (148줄) — DoD #9: Intervals.icu activity + wellness sync — mock 기반.
+### `test_intervals_sync.py` (156줄) — DoD #9: Intervals.icu activity + wellness sync — mock 기반.
 
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
@@ -1153,7 +1152,7 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
-### `test_phase1_schema.py` (759줄) — Phase 1 스키마 & 기반 인프라 테스트.
+### `test_phase1_schema.py` (760줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
 - class **TestSchemaCreation**: test_all_pipeline_tables_exist, test_all_app_tables_exist, test_canonical_view_exists, test_schema_version, test_activity_summaries_column_count, test_distance_is_meters_not_km, test_metric_store_columns, test_daily_wellness_no_source_column
 - class **TestConstraints**: test_activity_summaries_unique, test_metric_store_unique, test_metric_store_same_name_different_provider, test_daily_wellness_unique_date

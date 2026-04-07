@@ -21,21 +21,11 @@ def test_create_tables(db_conn):
     }
     expected = {
         "activity_summaries", "daily_wellness",
-        "planned_workouts", "goals", "daily_fitness",
+        "planned_workouts", "goals", "metric_store",
     }
     assert expected.issubset(tables)
 
 
-
-def test_daily_fitness_unique_constraint(db_conn):
-    """daily_fitness (date, source) UNIQUE 제약 확인."""
-    db_conn.execute(
-        "INSERT INTO daily_fitness (date, source, ctl) VALUES ('2026-01-01', 'intervals', 50.0)"
-    )
-    with pytest.raises(sqlite3.IntegrityError):
-        db_conn.execute(
-            "INSERT INTO daily_fitness (date, source, ctl) VALUES ('2026-01-01', 'intervals', 55.0)"
-        )
 
 
 def test_planned_workouts_new_columns(db_conn):
@@ -55,15 +45,6 @@ def test_migrate_db_idempotent(db_conn):
     migrate_db(db_conn)
     migrate_db(db_conn)  # 두 번째 실행도 안전해야 함
 
-
-def test_migrate_db_adds_daily_fitness(db_conn):
-    """migrate_db()가 daily_fitness 테이블을 생성."""
-    # db_conn에는 이미 create_tables가 실행됨. migrate_db는 幂等.
-    migrate_db(db_conn)
-    tables = {row[0] for row in db_conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()}
-    assert "daily_fitness" in tables
 
 
 def test_activities_unique_index(db_conn):
@@ -105,26 +86,26 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_10(self):
+    def test_schema_version_is_11(self):
         """조건 2"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 10
+        assert ver == 11
 
     def test_pipeline_tables_count(self):
-        """조건 3: 13개 테이블 (12 pipeline + sync_jobs 또는 source_payloads 포함)"""
+        """조건 3: 11개 pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
         tables = {r[0] for r in self.conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' "
             "AND name NOT LIKE 'sqlite_%'"
         ).fetchall()}
         pipeline = {
             "source_payloads", "activity_summaries", "daily_wellness",
-            "daily_fitness", "metric_store", "activity_streams",
+            "metric_store", "activity_streams",
             "activity_laps", "activity_best_efforts", "gear",
             "weather_cache", "sync_jobs",
         }
-        # 최소 11개 pipeline (설계에 따라 12~13)
         assert pipeline.issubset(tables), f"누락: {pipeline - tables}"
+        assert "daily_fitness" not in tables, "daily_fitness가 삭제되지 않음 (ADR-005)"
 
     def test_app_tables_exist(self):
         """조건 3: 5개 앱 테이블"""

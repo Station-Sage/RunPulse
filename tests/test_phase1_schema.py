@@ -96,6 +96,7 @@ class TestSchemaCreation:
     def test_schema_version(self, db_conn):
         ver = _get_user_version(db_conn)
         assert ver == SCHEMA_VERSION
+        assert ver == 11  # Phase 5-F: daily_fitness 제거
 
     def test_activity_summaries_column_count(self, db_conn):
         cols = db_conn.execute("PRAGMA table_info(activity_summaries)").fetchall()

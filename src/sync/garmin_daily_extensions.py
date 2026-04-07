@@ -7,6 +7,7 @@ import json
 import sqlite3
 from typing import TYPE_CHECKING
 
+from src.utils.db_helpers import upsert_metric
 from src.sync.garmin_helpers import _store_raw_payload, _upsert_daily_detail_metric
 
 if TYPE_CHECKING:
@@ -50,7 +51,7 @@ def sync_daily_training_status(
     client: "Garmin",
     date_str: str,
 ) -> None:
-    """Garmin 훈련 상태/ATL/CTL → daily_fitness + daily_detail_metrics."""
+    """Garmin 훈련 상태/ATL/CTL → metric_store + daily_detail_metrics."""
     try:
         data = client.get_training_status(date_str)
     except Exception as e:
@@ -76,19 +77,12 @@ def sync_daily_training_status(
         data.get("fitnessTrend") or data.get("mostRecentFitnessTrend")
     )
 
-    if atl is not None or ctl is not None:
-        try:
-            conn.execute(
-                """INSERT INTO daily_fitness (date, source, atl, ctl)
-                   VALUES (?, 'garmin', ?, ?)
-                   ON CONFLICT(date, source) DO UPDATE SET
-                       atl = COALESCE(excluded.atl, atl),
-                       ctl = COALESCE(excluded.ctl, ctl),
-                       updated_at = datetime('now')""",
-                (date_str, atl, ctl),
-            )
-        except sqlite3.OperationalError:
-            pass
+    if atl is not None:
+        upsert_metric(conn, "daily", date_str, "atl", "garmin",
+                      numeric_value=float(atl), category="load")
+    if ctl is not None:
+        upsert_metric(conn, "daily", date_str, "ctl", "garmin",
+                      numeric_value=float(ctl), category="load")
 
     if acwr is not None:
         try:

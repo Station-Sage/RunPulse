@@ -117,9 +117,11 @@ def load_risk_7day_trends(conn: sqlite3.Connection, target_date: str) -> dict:
         if name in series:
             series[name].append(float(val) if val is not None else None)
 
-    # TSB from daily_fitness
+    # TSB from metric_store
     tsb_rows = conn.execute(
-        "SELECT tsb FROM daily_fitness WHERE date BETWEEN ? AND ? ORDER BY date",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
+        "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
         (start, target_date),
     ).fetchall()
     series["TSB"] = [float(r[0]) if r[0] is not None else None for r in tsb_rows]

@@ -9,7 +9,6 @@ from src.utils.db_helpers import (
     upsert_metric,
     upsert_metrics_batch,
     upsert_daily_wellness,
-    upsert_daily_fitness,
     get_primary_metrics,
     get_all_providers,
     get_db_status,
@@ -204,24 +203,6 @@ class TestUpsertPayload:
         _, changed = upsert_payload(db, "garmin", "activity", "g001", {"v": 2})
         assert changed is True
 
-
-class TestDailyFitness:
-    """upsert_daily_fitness 기본 동작"""
-
-    def test_insert(self, db):
-        row_id = upsert_daily_fitness(db, "2025-01-15", "garmin", ctl=45.2, atl=52.1, tsb=-6.9)
-        db.commit()
-        assert row_id > 0
-
-    def test_upsert_coalesce(self, db):
-        upsert_daily_fitness(db, "2025-01-15", "garmin", ctl=45.2)
-        upsert_daily_fitness(db, "2025-01-15", "garmin", atl=52.1)
-        db.commit()
-        row = db.execute(
-            "SELECT ctl, atl FROM daily_fitness WHERE date='2025-01-15' AND source='garmin'"
-        ).fetchone()
-        assert row["ctl"] == 45.2
-        assert row["atl"] == 52.1
 
 
 class TestDbStatus:

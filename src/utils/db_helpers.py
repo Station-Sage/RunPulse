@@ -1,6 +1,6 @@
 """RunPulse v0.3 DB 헬퍼 유틸리티.
 
-activity_summaries, metric_store, daily_wellness, daily_fitness 등에 대한
+activity_summaries, metric_store, daily_wellness 등에 대한
 CRUD 함수를 제공합니다. Extractor와 Sync Orchestrator가 이 함수들을 호출합니다.
 
 사용법:
@@ -469,40 +469,6 @@ def upsert_daily_wellness(conn: sqlite3.Connection, data: dict) -> int:
         return cur.lastrowid
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# daily_fitness (Layer 1)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def upsert_daily_fitness(
-    conn: sqlite3.Connection,
-    date: str,
-    source: str,
-    *,
-    ctl: float | None = None,
-    atl: float | None = None,
-    tsb: float | None = None,
-    ramp_rate: float | None = None,
-    vo2max: float | None = None,
-) -> int:
-    """daily_fitness UPSERT. UNIQUE(date, source) 기준."""
-    sql = """
-        INSERT INTO daily_fitness (date, source, ctl, atl, tsb, ramp_rate, vo2max)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(date, source) DO UPDATE SET
-            ctl = COALESCE(excluded.ctl, ctl),
-            atl = COALESCE(excluded.atl, atl),
-            tsb = COALESCE(excluded.tsb, tsb),
-            ramp_rate = COALESCE(excluded.ramp_rate, ramp_rate),
-            vo2max = COALESCE(excluded.vo2max, vo2max),
-            updated_at = datetime('now')
-    """
-    cur = conn.execute(sql, (date, source, ctl, atl, tsb, ramp_rate, vo2max))
-    row = conn.execute(
-        "SELECT id FROM daily_fitness WHERE date = ? AND source = ?",
-        (date, source),
-    ).fetchone()
-    return row[0]
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DB Status (검증/디버깅)
@@ -515,7 +481,7 @@ def get_db_status(conn: sqlite3.Connection) -> dict:
     # 테이블별 행 수
     for table in [
         "source_payloads", "activity_summaries", "daily_wellness",
-        "daily_fitness", "metric_store", "activity_streams",
+        "metric_store", "activity_streams",
         "activity_laps", "activity_best_efforts", "gear",
         "weather_cache", "sync_jobs",
     ]:

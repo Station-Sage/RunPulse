@@ -536,7 +536,7 @@ def check_db_helpers_functions():
         "upsert_activity", "upsert_metric", "upsert_metrics_batch",
         "get_primary_metric", "get_primary_metrics", "get_all_providers",
         "get_metrics_by_category", "get_metric_history",
-        "upsert_daily_wellness", "upsert_daily_fitness",
+        "upsert_daily_wellness",
     ]
     required_metric_priority = [
         "resolve_primary", "resolve_for_scope", "resolve_all_primaries",

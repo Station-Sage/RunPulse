@@ -8,12 +8,12 @@ from typing import Any
 
 from src.utils.db_helpers import (
     upsert_activity,
+    upsert_metric,
     upsert_metrics_batch,
     upsert_laps_batch,
     upsert_streams_batch,
     upsert_best_efforts_batch,
     upsert_daily_wellness,
-    upsert_daily_fitness,
 )
 from src.utils.metric_priority import resolve_for_scope
 
@@ -83,15 +83,23 @@ def save_daily_wellness(
 
 def save_daily_fitness(
     conn: sqlite3.Connection, date_str: str, source: str, fitness: dict
-) -> int:
-    return upsert_daily_fitness(
-        conn, date_str, source,
-        ctl=fitness.get("ctl"),
-        atl=fitness.get("atl"),
-        tsb=fitness.get("tsb"),
-        ramp_rate=fitness.get("ramp_rate"),
-        vo2max=fitness.get("vo2max"),
-    )
+) -> None:
+    """ctl/atl/tsb/ramp_rate/vo2max를 metric_store(scope=daily)에 저장."""
+    metric_map = {
+        "ctl":       ("ctl",       "load"),
+        "atl":       ("atl",       "load"),
+        "tsb":       ("tsb",       "load"),
+        "ramp_rate": ("ramp_rate", "load"),
+        "vo2max":    ("vo2max",    "capacity"),
+    }
+    for fitness_key, (metric_name, category) in metric_map.items():
+        val = fitness.get(fitness_key)
+        if val is not None:
+            upsert_metric(
+                conn, "daily", date_str, metric_name, source,
+                numeric_value=float(val),
+                category=category,
+            )
 
 
 def resolve_primaries(

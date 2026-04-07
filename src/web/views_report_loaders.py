@@ -48,11 +48,12 @@ def load_training_quality_series(conn: sqlite3.Connection, start: str, end: str)
             dec_dates.append(d)
             dec_vals.append(round(float(val), 1))
 
-    # VO2Max (daily_fitness)
+    # VO2Max (metric_store daily, provider=garmin)
     vo2_rows = conn.execute(
-        """SELECT date, garmin_vo2max FROM daily_fitness
-           WHERE garmin_vo2max IS NOT NULL AND date BETWEEN ? AND ?
-           ORDER BY date""",
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='vo2max' AND provider='garmin'"
+        "   AND numeric_value IS NOT NULL AND scope_id BETWEEN ? AND ?"
+        " ORDER BY scope_id",
         (start, end),
     ).fetchall()
     vo2_dates = [r[0] for r in vo2_rows]

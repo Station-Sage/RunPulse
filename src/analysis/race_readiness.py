@@ -49,20 +49,15 @@ def _grade(score: float) -> str:
     return "F"
 
 
-def _latest_daily(conn: sqlite3.Connection, source: str, column: str):
-    try:
-        row = conn.execute(
-            f"""
-            SELECT {column}
-            FROM daily_fitness
-            WHERE source = ? AND {column} IS NOT NULL
-            ORDER BY date DESC
-            LIMIT 1
-            """,
-            (source,),
-        ).fetchone()
-    except sqlite3.OperationalError:
-        return None
+def _latest_daily(conn: sqlite3.Connection, source: str, metric_name: str):
+    """metric_store(scope=daily)에서 최신 값 조회."""
+    row = conn.execute(
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name=? AND provider=?"
+        "   AND numeric_value IS NOT NULL"
+        " ORDER BY scope_id DESC LIMIT 1",
+        (metric_name, source),
+    ).fetchone()
     return row[0] if row else None
 
 

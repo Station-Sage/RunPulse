@@ -133,7 +133,7 @@ class TestIntervalsWellnessSync:
 
     @patch("src.sync.intervals_activity_sync.requests")
     def test_wellness_fitness_stored(self, mock_requests):
-        """ctl/atl/vo2max → daily_fitness 저장."""
+        """ctl/atl → metric_store 저장 (ADR-005: daily_fitness 제거)."""
         conn = _conn()
         resp = MagicMock()
         resp.json.return_value = [SAMPLE_ICU_WELLNESS]
@@ -142,7 +142,15 @@ class TestIntervalsWellnessSync:
 
         sync_wellness(conn, days=7, config=ICU_CONFIG, _sleep_fn=lambda _: None)
 
-        row = conn.execute("SELECT ctl, atl FROM daily_fitness WHERE source='intervals'").fetchone()
-        assert row is not None
-        assert row[0] == 55.0
-        assert row[1] == 48.0
+        ctl_row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='ctl' AND provider='intervals'"
+        ).fetchone()
+        atl_row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='atl' AND provider='intervals'"
+        ).fetchone()
+        assert ctl_row is not None
+        assert ctl_row[0] == 55.0
+        assert atl_row is not None
+        assert atl_row[0] == 48.0

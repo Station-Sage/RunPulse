@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
+from src.utils.db_helpers import upsert_metric
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_state import set_retry_after
 
@@ -21,17 +22,9 @@ def _store_raw_payload(
 
 
 def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
-    """garmin_vo2max를 daily_fitness에 저장/업데이트."""
-    try:
-        conn.execute("""
-            INSERT INTO daily_fitness (date, source, garmin_vo2max)
-            VALUES (?, 'garmin', ?)
-            ON CONFLICT(date, source) DO UPDATE SET
-                garmin_vo2max = excluded.garmin_vo2max,
-                updated_at = datetime('now')
-        """, (date_str, vo2max))
-    except sqlite3.OperationalError:
-        pass  # daily_fitness 테이블 미생성 환경 (graceful)
+    """Garmin vo2max를 metric_store(scope=daily)에 저장."""
+    upsert_metric(conn, "daily", date_str, "vo2max", "garmin",
+                  numeric_value=float(vo2max), category="capacity")
 
 
 def _upsert_daily_detail_metric(

@@ -4,8 +4,8 @@
   Layer 0: source_payloads         — 외부 API 응답 원문 (절대 삭제 안 함)
   Layer 1: activity_summaries      — 통합 활동 요약 (46 컬럼)
            daily_wellness           — 일별 웰니스 core (15 컬럼)
-           daily_fitness            — 일별 피트니스 모델 (9 컬럼)
   Layer 2: metric_store            — 모든 메트릭 통합 EAV (16 컬럼)
+           (daily_fitness 삭제됨 — ADR-005: ctl/atl/tsb/ramp_rate/vo2max → metric_store)
   Layer 3: activity_streams        — 시계열 GPS/HR/Pace
            activity_laps            — 랩/스플릿
            activity_best_efforts    — 베스트 에포트
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 10  # v0.3 시작점. v0.2는 4까지 사용.
+SCHEMA_VERSION = 11  # v0.3.1: daily_fitness 삭제 (ADR-005)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -175,24 +175,6 @@ CREATE TABLE IF NOT EXISTS daily_wellness (
 );
 """
 
-_DDL_DAILY_FITNESS = """
-CREATE TABLE IF NOT EXISTS daily_fitness (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    date                TEXT NOT NULL,
-    source              TEXT NOT NULL,
-
-    ctl                 REAL,
-    atl                 REAL,
-    tsb                 REAL,
-    ramp_rate           REAL,
-    vo2max              REAL,
-
-    created_at          TEXT DEFAULT (datetime('now')),
-    updated_at          TEXT DEFAULT (datetime('now')),
-
-    UNIQUE(date, source)
-);
-"""
 
 _DDL_METRIC_STORE = """
 CREATE TABLE IF NOT EXISTS metric_store (
@@ -453,7 +435,6 @@ PIPELINE_TABLES = [
     "source_payloads",
     "activity_summaries",
     "daily_wellness",
-    "daily_fitness",
     "metric_store",
     "activity_streams",
     "activity_laps",
@@ -497,10 +478,6 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
          "CREATE INDEX IF NOT EXISTS idx_as_matched_group ON activity_summaries(matched_group_id)")
     _idx(conn, "activity_summaries", "gear_id",
          "CREATE INDEX IF NOT EXISTS idx_as_gear ON activity_summaries(gear_id)")
-
-    # daily_fitness
-    _idx(conn, "daily_fitness", "date",
-         "CREATE INDEX IF NOT EXISTS idx_df_date ON daily_fitness(date)")
 
     # metric_store
     _idx(conn, "metric_store", "scope_type",
@@ -548,12 +525,11 @@ def _create_index_if_column_exists(
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """v0.3 스키마: 12 파이프라인 테이블 + 5 앱 테이블 + 1 뷰 생성."""
+    """v0.3 스키마: 11 파이프라인 테이블 + 5 앱 테이블 + 1 뷰 생성."""
     for ddl in [
         _DDL_SOURCE_PAYLOADS,
         _DDL_ACTIVITY_SUMMARIES,
         _DDL_DAILY_WELLNESS,
-        _DDL_DAILY_FITNESS,
         _DDL_METRIC_STORE,
         _DDL_ACTIVITY_STREAMS,
         _DDL_ACTIVITY_LAPS,
@@ -602,10 +578,10 @@ def _get_existing_tables(conn: sqlite3.Connection) -> set[str]:
 
 
 def migrate_db(conn: sqlite3.Connection) -> bool:
-    """v0.2(≤4) → v0.3(=10) 마이그레이션.
+    """v0.2(≤4) → v0.3(≤10) → v0.3.1(=11) 마이그레이션.
 
-    전략: 기존 테이블은 건드리지 않고, 새 테이블만 추가합니다.
-    기존 데이터는 Phase 6의 migration 스크립트(v3_to_v4.py)에서 변환합니다.
+    전략: 기존 테이블은 건드리지 않고, 새 테이블만 추가.
+    v11: daily_fitness 삭제 (ADR-005 — ctl/atl/tsb/ramp_rate/vo2max → metric_store).
     """
     current = _get_user_version(conn)
 
@@ -615,6 +591,10 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
         return False
 
     log.info("스키마 마이그레이션: v%d → v%d", current, SCHEMA_VERSION)
+
+    # v11: daily_fitness 삭제
+    if current < 11:
+        conn.execute("DROP TABLE IF EXISTS daily_fitness")
 
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)
