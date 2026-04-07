@@ -104,4 +104,4 @@ class TestCRS:
         _seed_daily_metrics(conn, "2026-04-01", acwr=1.1, utrs=70.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = CRSCalculator().compute(ctx)
-        assert results[0].category == "rp_readiness"
+        assert results[0].category == "readiness"

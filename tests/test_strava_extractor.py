@@ -57,7 +57,7 @@ class TestStravaActivityMetrics:
         metrics = ext.extract_activity_metrics(activity_raw)
         names = {m.metric_name for m in metrics}
         assert "kilojoules" in names
-        assert "perceived_exertion" in names
+        assert "icu_rpe" in names
         assert "kudos_count" in names
 
     def test_splits_as_json(self, ext, activity_raw):

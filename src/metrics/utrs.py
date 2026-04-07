@@ -13,7 +13,7 @@ class UTRSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "pdf_weights_v1"
     scope_type = "daily"
-    category = "rp_readiness"
+    category = "readiness"
     display_name = "훈련 준비도 (UTRS)"
     description = "수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도."
     unit = "점"

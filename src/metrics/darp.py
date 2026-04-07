@@ -14,7 +14,7 @@ class DARPCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_prediction"
+    category = "prediction"
     display_name = "레이스 예측 (DARP)"
     description = "VDOT과 내구성 지수 기반 레이스 시간 예측."
     unit = "sec"
@@ -28,13 +28,13 @@ class DARPCalculator(MetricCalculator):
     higher_is_better = False
     decimal_places = 0
     requires = ["runpulse_vdot"]
-    produces = ["darp_5k", "darp_10k", "darp_half", "darp_marathon"]
+    produces = ["darp_5k_sec", "darp_10k_sec", "darp_half_sec", "darp_marathon_sec"]
 
     DISTANCES = {
-        "darp_5k": 5000,
-        "darp_10k": 10000,
-        "darp_half": 21097.5,
-        "darp_marathon": 42195,
+        "darp_5k_sec": 5000,
+        "darp_10k_sec": 10000,
+        "darp_half_sec": 21097.5,
+        "darp_marathon_sec": 42195,
     }
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

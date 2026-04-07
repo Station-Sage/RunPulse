@@ -16,7 +16,7 @@ class TPDICalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_trend"
+    category = "efficiency"
     requires = ["fearp"]
     produces = ["tpdi"]
 

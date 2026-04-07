@@ -82,4 +82,4 @@ class TestTEROI:
         _seed_daily_metrics(conn, "2026-03-04", ctl=30.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = TEROICalculator().compute(ctx)
-        assert results[0].category == "rp_trend"
+        assert results[0].category == "efficiency"

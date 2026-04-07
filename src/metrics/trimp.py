@@ -15,7 +15,7 @@ class TRIMPCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "banister_1991"
     scope_type = "activity"
-    category = "rp_load"
+    category = "load"
     display_name = "TRIMP (Banister)"
     description = "심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표."
     unit = "AU"

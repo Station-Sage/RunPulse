@@ -12,7 +12,7 @@ class ADTICalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_trend"
+    category = "load"
     display_name = "훈련 추세 (ADTI)"
     description = "28일간 CTL 변화율. 양수=상승, 음수=하락."
     unit = ""

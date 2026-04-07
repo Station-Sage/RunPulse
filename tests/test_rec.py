@@ -78,4 +78,4 @@ class TestREC:
                           "runpulse:formula_v1", numeric_value=4.0, category="rp_performance")
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RECCalculator().compute(ctx)
-        assert results[0].category == "rp_efficiency"
+        assert results[0].category == "efficiency"

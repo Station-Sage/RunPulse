@@ -75,7 +75,7 @@ class TestRTTI:
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RTTICalculator().compute(ctx)
         if results:
-            assert results[0].category == "rp_load"
+            assert results[0].category == "load"
 
 # ══════════════════════════════════════════
 # Mock 테스트 (보강 #5)

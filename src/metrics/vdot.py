@@ -14,7 +14,7 @@ class VDOTCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "daniels_2005"
     scope_type = "activity"
-    category = "rp_performance"
+    category = "capacity"
     display_name = "VDOT (Daniels)"
     description = "Jack Daniels VDOT. 거리와 시간으로 추정한 VO₂Max 지표."
     unit = ""

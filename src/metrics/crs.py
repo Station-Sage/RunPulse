@@ -116,7 +116,7 @@ class CRSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_readiness"
+    category = "readiness"
     requires = ["acwr", "tsb", "cirs", "utrs"]
     produces = ["crs"]
 

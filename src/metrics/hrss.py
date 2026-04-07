@@ -15,7 +15,7 @@ class HRSSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "activity"
-    category = "rp_load"
+    category = "load"
     display_name = "HRSS"
     description = "TRIMP을 젖산역치 심박으로 정규화한 스트레스 점수. 1시간 LTHR 운동 = 100."
     unit = "점"

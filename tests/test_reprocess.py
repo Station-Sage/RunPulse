@@ -45,6 +45,9 @@ GARMIN_DETAIL = {
 GARMIN_WELLNESS_SLEEP = {
     "overallScore": 85,
     "sleepTimeSeconds": 28000,
+    "deepSleepSeconds": 7200,
+    "lightSleepSeconds": 10800,
+    "remSleepSeconds": 6000,
 }
 
 GARMIN_WELLNESS_HRV = {
@@ -73,13 +76,13 @@ def _seed_garmin_activity(conn):
 
 def _seed_garmin_wellness(conn, date_str="2026-04-01"):
     """source_payloads에 Garmin wellness raw 데이터 삽입."""
-    upsert_payload(conn, "garmin", "sleep_day", date_str, GARMIN_WELLNESS_SLEEP,
+    upsert_payload(conn, "garmin", "wellness_sleep", date_str, GARMIN_WELLNESS_SLEEP,
                    entity_date=date_str)
-    upsert_payload(conn, "garmin", "hrv_day", date_str, GARMIN_WELLNESS_HRV,
+    upsert_payload(conn, "garmin", "wellness_hrv", date_str, GARMIN_WELLNESS_HRV,
                    entity_date=date_str)
-    upsert_payload(conn, "garmin", "stress_day", date_str, GARMIN_WELLNESS_STRESS,
+    upsert_payload(conn, "garmin", "wellness_stress", date_str, GARMIN_WELLNESS_STRESS,
                    entity_date=date_str)
-    upsert_payload(conn, "garmin", "user_summary_day", date_str, GARMIN_WELLNESS_SUMMARY,
+    upsert_payload(conn, "garmin", "wellness_user_summary", date_str, GARMIN_WELLNESS_SUMMARY,
                    entity_date=date_str)
     conn.commit()
 

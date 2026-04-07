@@ -14,7 +14,7 @@ class PMCCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_load"
+    category = "load"
     display_name = "PMC (ATL/CTL/TSB)"
     description = "Performance Management Chart. 42일 만성부하(CTL), 7일 급성부하(ATL), 훈련균형(TSB)."
     unit = "AU"

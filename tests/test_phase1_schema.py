@@ -56,7 +56,6 @@ from src.utils.db_helpers import (
     get_metrics_by_category,
     get_metric_history,
     upsert_daily_wellness,
-    upsert_daily_fitness,
     get_db_status,
 )
 
@@ -191,18 +190,7 @@ class TestConstraints:
                 "INSERT INTO daily_wellness (date, sleep_score) VALUES ('2026-01-01', 90)"
             )
 
-    def test_daily_fitness_unique_date_source(self, db_conn):
-        db_conn.execute(
-            "INSERT INTO daily_fitness (date, source, ctl) VALUES ('2026-01-01', 'garmin', 50)"
-        )
-        with pytest.raises(sqlite3.IntegrityError):
-            db_conn.execute(
-                "INSERT INTO daily_fitness (date, source, ctl) VALUES ('2026-01-01', 'garmin', 55)"
-            )
-        # 같은 날짜, 다른 source는 OK
-        db_conn.execute(
-            "INSERT INTO daily_fitness (date, source, ctl) VALUES ('2026-01-01', 'intervals', 48)"
-        )
+    # daily_fitness는 v0.3.1에서 metric_store로 흡수 (ADR-005). 테스트 삭제.
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -274,12 +262,12 @@ class TestMetricRegistry:
     def test_canonicalize_intervals_trimp(self):
         name, cat = canonicalize("icu_trimp", source="intervals")
         assert name == "trimp"
-        assert cat == "rp_load"
+        assert cat == "load"
 
     def test_canonicalize_direct_name(self):
         name, cat = canonicalize("trimp")
         assert name == "trimp"
-        assert cat == "rp_load"
+        assert cat == "load"
 
     def test_canonicalize_unmapped(self):
         name, cat = canonicalize("completely_unknown_field", source="garmin")
@@ -290,14 +278,14 @@ class TestMetricRegistry:
         md = get_metric("trimp")
         assert md is not None
         assert md.name == "trimp"
-        assert md.category == "rp_load"
+        assert md.category == "load"
 
     def test_get_metric_not_exists(self):
         assert get_metric("nonexistent_metric") is None
 
     def test_list_by_category(self):
-        hr_metrics = list_by_category("hr_zone")
-        assert len(hr_metrics) >= 5  # zone 1-5
+        hr_metrics = list_by_category("hr")
+        assert len(hr_metrics) >= 5  # hr_zone_1~5_sec + hr_zone_1~5_pct 등
 
     def test_list_by_scope(self):
         daily = list_by_scope("daily")
@@ -520,13 +508,6 @@ class TestDbHelpers:
         ).fetchone()
         assert row[0] == 82    # Garmin 값 유지
         assert row[1] == 70.5  # Intervals 값으로 채움
-
-    def test_upsert_daily_fitness(self, db_conn):
-        fid = upsert_daily_fitness(
-            db_conn, "2026-03-25", "intervals",
-            ctl=52.3, atl=68.1, tsb=-15.8,
-        )
-        assert fid > 0
 
     def test_get_db_status(self, db_conn):
         status = get_db_status(db_conn)

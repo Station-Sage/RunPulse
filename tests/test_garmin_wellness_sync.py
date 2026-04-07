@@ -95,8 +95,8 @@ class TestGarminWellnessSync:
         types = {r[0] for r in conn.execute(
             "SELECT entity_type FROM source_payloads WHERE source='garmin'"
         ).fetchall()}
-        for ep in ["sleep_day", "hrv_day", "body_battery_day", "stress_day",
-                    "user_summary_day", "training_readiness"]:
+        for ep in ["wellness_sleep", "wellness_hrv", "wellness_body_battery", "wellness_stress",
+                    "wellness_user_summary", "wellness_training_readiness"]:
             assert ep in types, f"{ep} not in source_payloads"
 
     def test_sync_metrics_created(self):

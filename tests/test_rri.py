@@ -77,7 +77,7 @@ class TestRRI:
                             runpulse_vdot=50.0, ctl=45.0, di=75.0, cirs=25.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RRICalculator().compute(ctx)
-        assert results[0].category == "rp_performance"
+        assert results[0].category == "capacity"
 
 # ══════════════════════════════════════════
 # Mock 테스트 (보강 #5)

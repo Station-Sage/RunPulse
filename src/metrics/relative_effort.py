@@ -17,7 +17,7 @@ class RelativeEffortCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "activity"
-    category = "rp_load"
+    category = "load"
     requires = []  # activity_summaries.avg_hr 직접 조회 (소스 컬럼)
     produces = ["relative_effort"]
 

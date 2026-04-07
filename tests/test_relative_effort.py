@@ -89,7 +89,7 @@ class TestRelativeEffort:
         aid = _seed_activity(conn)
         ctx = CalcContext(conn=conn, scope_type="activity", scope_id=str(aid))
         results = RelativeEffortCalculator().compute(ctx)
-        assert results[0].category == "rp_load"
+        assert results[0].category == "load"
 
 # ══════════════════════════════════════════
 # Mock 테스트 (보강 #5)

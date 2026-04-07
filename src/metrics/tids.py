@@ -12,12 +12,12 @@ class TIDSCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_distribution"
+    category = "load"
 
     display_name = "강도 분포 (TIDS)"
     description = "8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed."
     format_type = "json"
-    requires = ["workout_type"]
+    requires = ["workout_type_classified"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         activities = ctx.get_activities_in_range(days=56, activity_type="running")
@@ -28,7 +28,7 @@ class TIDSCalculator(MetricCalculator):
                  "interval": 0, "long_run": 0, "race": 0, "unknown": 0}
 
         for act in activities:
-            wt_type = ctx.get_activity_metric_text(act["id"], "workout_type") or "unknown"
+            wt_type = ctx.get_activity_metric_text(act["id"], "workout_type_classified") or "unknown"
             types[wt_type] = types.get(wt_type, 0) + 1
 
         total = sum(types.values()) or 1

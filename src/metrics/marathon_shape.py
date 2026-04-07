@@ -18,7 +18,7 @@ class MarathonShapeCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_performance"
+    category = "capacity"
     requires = ["runpulse_vdot"]
     produces = ["marathon_shape"]
 

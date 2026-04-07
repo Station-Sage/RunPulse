@@ -12,7 +12,7 @@ class GAPCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "minetti_2002"
     scope_type = "activity"
-    category = "rp_performance"
+    category = "capacity"
     display_name = "GAP (경사 보정 페이스)"
     description = "Minetti 모델로 경사를 보정한 평지 환산 페이스."
     unit = "sec/km"

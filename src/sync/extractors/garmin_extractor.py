@@ -108,61 +108,48 @@ class GarminExtractor(BaseExtractor):
         raw = summary_raw
 
         metrics = self._collect(
-            # Fitness
             self._metric("vo2max_activity", raw.get("vO2MaxValue"),
-                         category="fitness", raw_name="vO2MaxValue"),
-            # General
+                         raw_name="vO2MaxValue"),
             self._metric("steps_activity", raw.get("steps"),
-                         category="general", raw_name="steps"),
-            self._metric("perceived_exertion", raw.get("averageRPE"),
-                         category="general", raw_name="averageRPE"),
-            # Recovery
+                         raw_name="steps"),
+            self._metric("icu_rpe", raw.get("averageRPE"),
+                         raw_name="averageRPE"),
             self._metric("body_battery_diff", raw.get("differenceBodyBattery"),
-                         category="general", raw_name="differenceBodyBattery"),
-            # Training Load extras
+                         raw_name="differenceBodyBattery"),
             self._metric("intensity_mins_moderate",
                          raw.get("moderateIntensityMinutes"),
-                         category="general", raw_name="moderateIntensityMinutes"),
+                         raw_name="moderateIntensityMinutes"),
             self._metric("intensity_mins_vigorous",
                          raw.get("vigorousIntensityMinutes"),
-                         category="general", raw_name="vigorousIntensityMinutes"),
+                         raw_name="vigorousIntensityMinutes"),
             self._metric("training_stress_score", raw.get("trainingStressScore"),
-                         category="training_load", raw_name="trainingStressScore"),
+                         raw_name="trainingStressScore"),
             self._metric("intensity_factor", raw.get("intensityFactor"),
-                         category="training_load", raw_name="intensityFactor"),
-            # Running Dynamics extra
+                         raw_name="intensityFactor"),
             self._metric("ground_contact_balance",
                          raw.get("avgGroundContactBalance"),
-                         category="running_dynamics",
                          raw_name="avgGroundContactBalance"),
-            # Fitness extras
             self._metric("lactate_threshold_hr", raw.get("lactateThresholdBpm"),
-                         category="threshold", raw_name="lactateThresholdBpm"),
+                         raw_name="lactateThresholdBpm"),
             self._metric("lactate_threshold_speed",
                          raw.get("lactateThresholdSpeed"),
-                         category="threshold", raw_name="lactateThresholdSpeed"),
+                         raw_name="lactateThresholdSpeed"),
             self._metric("performance_condition",
                          raw.get("performanceCondition"),
-                         category="fitness", raw_name="performanceCondition"),
-            # Respiration
+                         raw_name="performanceCondition"),
             self._metric("avg_respiration_rate",
                          raw.get("averageRespirationRate"),
-                         category="running_dynamics",
                          raw_name="averageRespirationRate"),
-            # SpO2
             self._metric("avg_spo2", raw.get("avgSpo2"),
-                         category="fitness", raw_name="avgSpo2"),
+                         raw_name="avgSpo2"),
             self._metric("min_spo2", raw.get("minSpo2"),
-                         category="fitness", raw_name="minSpo2"),
-            # Meta
+                         raw_name="minSpo2"),
             self._metric(
                 "timezone_offset",
                 (raw.get("timeZoneUnitDTO", {}) or {}).get("offset")
                 if isinstance(raw.get("timeZoneUnitDTO"), dict) else None,
-                category="general", raw_name="timeZoneUnitDTO.offset",
+                raw_name="timeZoneUnitDTO.offset",
             ),
-            self._metric("best_pace_sec_km", _best_pace(raw.get("maxSpeed")),
-                         category="general", raw_name="maxSpeed→best_pace"),
         )
 
         if detail_raw:
@@ -182,14 +169,13 @@ class GarminExtractor(BaseExtractor):
                 if secs is not None:
                     r = self._metric(
                         f"hr_zone_{i+1}_sec", secs,
-                        category="hr_zone",
                         raw_name=f"hrTimeInZone[{i}]",
                     )
                     if r:
                         results.append(r)
             r = self._metric(
                 "hr_zones_detail", json_val=hr_zones,
-                category="hr_zone", raw_name="hrTimeInZone",
+                raw_name="hrTimeInZone",
             )
             if r:
                 results.append(r)
@@ -202,14 +188,13 @@ class GarminExtractor(BaseExtractor):
                 if secs is not None:
                     r = self._metric(
                         f"power_zone_{i+1}_sec", secs,
-                        category="power_zone",
                         raw_name=f"powerTimeInZone[{i}]",
                     )
                     if r:
                         results.append(r)
             r = self._metric(
                 "power_zones_detail", json_val=pz,
-                category="power_zone", raw_name="powerTimeInZone",
+                raw_name="powerTimeInZone",
             )
             if r:
                 results.append(r)
@@ -219,22 +204,18 @@ class GarminExtractor(BaseExtractor):
         if weather and isinstance(weather, dict):
             results.extend(self._collect(
                 self._metric("weather_temp_c", weather.get("temp"),
-                             category="weather", raw_name="weatherDTO.temp"),
+                             raw_name="weatherDTO.temp"),
                 self._metric("weather_humidity_pct",
                              weather.get("relativeHumidity"),
-                             category="weather",
                              raw_name="weatherDTO.relativeHumidity"),
                 self._metric("weather_wind_speed_ms",
                              weather.get("windSpeed"),
-                             category="weather",
                              raw_name="weatherDTO.windSpeed"),
                 self._metric("weather_wind_direction_deg",
                              weather.get("windDirection"),
-                             category="weather",
                              raw_name="weatherDTO.windDirection"),
                 self._metric("weather_dew_point_c",
                              weather.get("dewPoint"),
-                             category="weather",
                              raw_name="weatherDTO.dewPoint"),
             ))
 
@@ -243,7 +224,7 @@ class GarminExtractor(BaseExtractor):
         if splits:
             r = self._metric(
                 "splits_metric", json_val=splits,
-                category="general", raw_name="splitSummaries",
+                raw_name="splitSummaries",
             )
             if r:
                 results.append(r)
@@ -287,7 +268,7 @@ class GarminExtractor(BaseExtractor):
         core: dict = {"date": date}
 
         # Sleep
-        sleep = raw_payloads.get("sleep_day", {})
+        sleep = raw_payloads.get("wellness_sleep", {})
         if sleep:
             core["sleep_score"] = _int(
                 sleep.get("overallScore")
@@ -302,7 +283,7 @@ class GarminExtractor(BaseExtractor):
             )
 
         # HRV
-        hrv = raw_payloads.get("hrv_day", {})
+        hrv = raw_payloads.get("wellness_hrv", {})
         if hrv:
             summary = hrv.get("hrvSummary", hrv)
             core["hrv_weekly_avg"] = summary.get("weeklyAvg")
@@ -313,7 +294,7 @@ class GarminExtractor(BaseExtractor):
             core["resting_hr"] = _int(summary.get("restingHeartRate"))
 
         # Body Battery
-        bb = raw_payloads.get("body_battery_day", {})
+        bb = raw_payloads.get("wellness_body_battery", {})
         if bb:
             if isinstance(bb, list) and bb:
                 values = [
@@ -333,7 +314,7 @@ class GarminExtractor(BaseExtractor):
                 )
 
         # Stress
-        stress = raw_payloads.get("stress_day", {})
+        stress = raw_payloads.get("wellness_stress", {})
         if stress:
             core["avg_stress"] = _int(
                 stress.get("overallStressLevel")
@@ -341,7 +322,7 @@ class GarminExtractor(BaseExtractor):
             )
 
         # User Summary
-        summary = raw_payloads.get("user_summary_day", {})
+        summary = raw_payloads.get("wellness_user_summary", {})
         if summary:
             core["steps"] = _int(summary.get("totalSteps"))
             core["active_calories"] = _int(
@@ -359,135 +340,119 @@ class GarminExtractor(BaseExtractor):
         metrics: list[MetricRecord] = []
 
         # Sleep 상세
-        sleep = raw_payloads.get("sleep_day", {})
+        sleep = raw_payloads.get("wellness_sleep", {})
         if sleep:
             metrics.extend(self._collect(
                 self._metric("sleep_deep_sec",
                              _seconds(sleep.get("deepSleepSeconds")),
-                             category="sleep", raw_name="deepSleepSeconds"),
+                             raw_name="deepSleepSeconds"),
                 self._metric("sleep_light_sec",
                              _seconds(sleep.get("lightSleepSeconds")),
-                             category="sleep", raw_name="lightSleepSeconds"),
+                             raw_name="lightSleepSeconds"),
                 self._metric("sleep_rem_sec",
                              _seconds(sleep.get("remSleepSeconds")),
-                             category="sleep", raw_name="remSleepSeconds"),
+                             raw_name="remSleepSeconds"),
                 self._metric("sleep_awake_sec",
                              _seconds(sleep.get("awakeSleepSeconds")),
-                             category="sleep", raw_name="awakeSleepSeconds"),
+                             raw_name="awakeSleepSeconds"),
                 self._metric("avg_respiration_sleep",
                              sleep.get("averageRespiration"),
-                             category="sleep", raw_name="averageRespiration"),
+                             raw_name="averageRespiration"),
                 self._metric("avg_spo2",
                              sleep.get("averageSpO2Value"),
-                             category="sleep", raw_name="averageSpO2Value"),
+                             raw_name="averageSpO2Value"),
                 self._metric("sleep_deep_score",
                              (sleep.get("sleepScores") or {}).get("deep"),
-                             category="sleep", raw_name="sleepScores.deep"),
+                             raw_name="sleepScores.deep"),
                 self._metric("sleep_rem_score",
                              (sleep.get("sleepScores") or {}).get("rem"),
-                             category="sleep", raw_name="sleepScores.rem"),
+                             raw_name="sleepScores.rem"),
                 self._metric("sleep_recovery_score",
                              (sleep.get("sleepScores") or {}).get("recovery"),
-                             category="sleep",
                              raw_name="sleepScores.recovery"),
             ))
 
         # Stress 상세
-        stress = raw_payloads.get("stress_day", {})
+        stress = raw_payloads.get("wellness_stress", {})
         if stress:
             metrics.extend(self._collect(
                 self._metric("stress_high_duration_sec",
                              stress.get("highStressDuration"),
-                             category="stress",
                              raw_name="highStressDuration"),
                 self._metric("stress_medium_duration_sec",
                              stress.get("mediumStressDuration"),
-                             category="stress",
                              raw_name="mediumStressDuration"),
                 self._metric("stress_low_duration_sec",
                              stress.get("lowStressDuration"),
-                             category="stress",
                              raw_name="lowStressDuration"),
                 self._metric("stress_rest_duration_sec",
                              stress.get("restStressDuration"),
-                             category="stress",
                              raw_name="restStressDuration"),
             ))
 
         # Training Readiness
-        tr = raw_payloads.get("training_readiness", {})
+        tr = raw_payloads.get("wellness_training_readiness", {})
         if tr:
             metrics.extend(self._collect(
                 self._metric("training_readiness_score", tr.get("score"),
-                             category="readiness", raw_name="score"),
+                             raw_name="score"),
                 self._metric("training_readiness_level",
                              text=tr.get("level"),
-                             category="readiness", raw_name="level"),
+                             raw_name="level"),
                 self._metric("training_readiness_sleep_factor",
                              tr.get("sleepScoreFactorPercent"),
-                             category="readiness",
                              raw_name="sleepScoreFactorPercent"),
                 self._metric("training_readiness_hrv_factor",
                              tr.get("hrvFactorPercent"),
-                             category="readiness",
                              raw_name="hrvFactorPercent"),
                 self._metric("training_readiness_recovery_factor",
                              tr.get("recoveryFactorPercent"),
-                             category="readiness",
                              raw_name="recoveryFactorPercent"),
             ))
 
         # Race Predictions
-        rp = raw_payloads.get("race_predictions", {})
+        rp = raw_payloads.get("wellness_race_predictions", {})
         if rp:
             metrics.extend(self._collect(
                 self._metric("race_pred_5k_sec", rp.get("raceTime5K"),
-                             category="prediction", raw_name="raceTime5K"),
+                             raw_name="raceTime5K"),
                 self._metric("race_pred_10k_sec", rp.get("raceTime10K"),
-                             category="prediction", raw_name="raceTime10K"),
+                             raw_name="raceTime10K"),
                 self._metric("race_pred_half_sec", rp.get("raceTimeHalf"),
-                             category="prediction", raw_name="raceTimeHalf"),
+                             raw_name="raceTimeHalf"),
                 self._metric("race_pred_marathon_sec",
                              rp.get("raceTimeMarathon"),
-                             category="prediction",
                              raw_name="raceTimeMarathon"),
             ))
 
         # HRV 상세
-        hrv = raw_payloads.get("hrv_day", {})
+        hrv = raw_payloads.get("wellness_hrv", {})
         if hrv:
             s = hrv.get("hrvSummary", hrv)
             metrics.extend(self._collect(
-                self._metric("hrv_7d_avg", s.get("weeklyAvg"),
-                             category="fitness", raw_name="weeklyAvg"),
                 self._metric("hrv_status",
                              text=s.get("status") or s.get("hrvStatus"),
-                             category="fitness", raw_name="status"),
+                             raw_name="status"),
                 self._metric("hrv_baseline_low",
                              s.get("baselineLowUpper"),
-                             category="fitness",
                              raw_name="baselineLowUpper"),
                 self._metric("hrv_baseline_balanced_low",
                              s.get("baselineBalancedLow"),
-                             category="fitness",
                              raw_name="baselineBalancedLow"),
                 self._metric("hrv_baseline_balanced_upper",
                              s.get("baselineBalancedUpper"),
-                             category="fitness",
                              raw_name="baselineBalancedUpper"),
             ))
 
         # User Summary extras
-        summary = raw_payloads.get("user_summary_day", {})
+        summary = raw_payloads.get("wellness_user_summary", {})
         if summary:
             metrics.extend(self._collect(
                 self._metric("floors_climbed",
                              summary.get("floorsAscended"),
-                             category="general",
                              raw_name="floorsAscended"),
-                self._metric("total_calories",
+                self._metric("calories_total",
                              summary.get("totalKilocalories"),
-                             category="general",
                              raw_name="totalKilocalories"),
             ))
 

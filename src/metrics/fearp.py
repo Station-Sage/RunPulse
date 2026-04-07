@@ -12,7 +12,7 @@ class FEARPCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "activity"
-    category = "rp_performance"
+    category = "capacity"
     display_name = "FEARP (환경 보정 페이스)"
     description = "기온, 습도, 고도를 보정한 환경 보정 페이스."
     unit = "sec/km"

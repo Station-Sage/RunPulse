@@ -1,16 +1,13 @@
-"""RunPulse 메트릭 레지스트리 v0.3
+"""RunPulse 메트릭 레지스트리 v0.3.1
 
-모든 메트릭의 정규 이름(canonical name), 카테고리, 단위, 소스별 별칭을 정의합니다.
-Extractor가 소스 raw 필드명을 정규 이름으로 변환할 때 이 레지스트리를 참조합니다.
+모든 메트릭과 Layer 1 컬럼의 정규 이름, 카테고리, 저장 위치, 단위, 소스별 별칭을 정의합니다.
+이 파일이 데이터 정의의 Single Source of Truth(SSOT)입니다.
 
 사용법:
     from src.utils.metric_registry import canonicalize, get_metric, METRIC_REGISTRY
 
     name, category = canonicalize("aerobicTrainingEffect", source="garmin")
-    # → ("training_effect_aerobic", "training_effect")
-
     metric = get_metric("trimp")
-    # → MetricDef(name="trimp", category="training_load", ...)
 """
 
 from __future__ import annotations
@@ -25,9 +22,16 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class MetricDef:
-    """메트릭 정의."""
+    """메트릭/컬럼 정의.
+
+    storage 값:
+        "activity_summary" — activity_summaries 테이블 컬럼 (Layer 1)
+        "wellness"         — daily_wellness 테이블 컬럼 (Layer 1)
+        "metric"           — metric_store 테이블 행 (Layer 2)
+    """
     name: str                                 # 정규 이름 (canonical)
-    category: str                             # 의미적 그룹
+    category: str                             # 도메인 카테고리
+    storage: str = "metric"                   # 저장 위치
     unit: str = ""                            # 표시 단위
     description: str = ""                     # 한국어 설명
     scope: str = "activity"                   # 'activity' | 'daily' | 'weekly' | 'athlete'
@@ -36,334 +40,360 @@ class MetricDef:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 메트릭 정의 — 카테고리별 정리
+# 카테고리 정의 (16 도메인)
+# ─────────────────────────────────────────────────────────────────────────────
+
+METRIC_CATEGORIES: dict[str, str] = {
+    "hr":               "심박",
+    "power":            "파워",
+    "pace":             "페이스",
+    "running_dynamics":  "러닝 다이내믹스",
+    "volume":           "운동량",
+    "load":             "부하",
+    "efficiency":       "효율성",
+    "capacity":         "체력/역량",
+    "prediction":       "예측",
+    "sleep":            "수면",
+    "stress":           "스트레스",
+    "readiness":        "준비도",
+    "weather":          "날씨/환경",
+    "body":             "신체",
+    "meta":             "메타/분류",
+    "athlete":          "선수 설정",
+    "_unmapped":        "미매핑 (개발용)",
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 메트릭 정의
 # ─────────────────────────────────────────────────────────────────────────────
 
 _DEFINITIONS: list[MetricDef] = [
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # HR Zone 분포
+    # Layer 1: activity_summaries 컬럼 (storage="activity_summary")
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("hr_zone_1_sec", "hr_zone", "sec", "HR Zone 1 체류 시간",
+
+    # ── meta ──
+    MetricDef("name", "meta", "activity_summary", "", "활동 이름"),
+    MetricDef("activity_type", "meta", "activity_summary", "", "활동 유형"),
+    MetricDef("start_time", "meta", "activity_summary", "", "시작 시간"),
+    MetricDef("start_lat", "meta", "activity_summary", "°", "시작 위도"),
+    MetricDef("start_lon", "meta", "activity_summary", "°", "시작 경도"),
+    MetricDef("end_lat", "meta", "activity_summary", "°", "종료 위도"),
+    MetricDef("end_lon", "meta", "activity_summary", "°", "종료 경도"),
+    MetricDef("description", "meta", "activity_summary", "", "활동 설명"),
+    MetricDef("event_type", "meta", "activity_summary", "", "이벤트 유형"),
+    MetricDef("device_name", "meta", "activity_summary", "", "기기명"),
+    MetricDef("gear_id", "meta", "activity_summary", "", "장비 FK"),
+    MetricDef("source_url", "meta", "activity_summary", "", "원본 URL"),
+
+    # ── volume ──
+    MetricDef("distance_m", "volume", "activity_summary", "m", "거리"),
+    MetricDef("duration_sec", "volume", "activity_summary", "sec", "총 시간"),
+    MetricDef("moving_time_sec", "volume", "activity_summary", "sec", "이동 시간"),
+    MetricDef("elapsed_time_sec", "volume", "activity_summary", "sec", "경과 시간"),
+    MetricDef("elevation_gain", "volume", "activity_summary", "m", "누적 상승고도"),
+    MetricDef("elevation_loss", "volume", "activity_summary", "m", "누적 하강고도"),
+
+    # ── pace ──
+    MetricDef("avg_speed_ms", "pace", "activity_summary", "m/s", "평균 속도"),
+    MetricDef("max_speed_ms", "pace", "activity_summary", "m/s", "최대 속도"),
+    MetricDef("avg_pace_sec_km", "pace", "activity_summary", "sec/km", "평균 페이스"),
+
+    # ── hr ──
+    MetricDef("avg_hr", "hr", "activity_summary", "bpm", "평균 심박수"),
+    MetricDef("max_hr", "hr", "activity_summary", "bpm", "최대 심박수"),
+
+    # ── running_dynamics ──
+    MetricDef("avg_cadence", "running_dynamics", "activity_summary", "spm", "평균 케이던스"),
+    MetricDef("max_cadence", "running_dynamics", "activity_summary", "spm", "최대 케이던스"),
+    MetricDef("avg_ground_contact_time_ms", "running_dynamics", "activity_summary", "ms", "평균 지면 접촉 시간"),
+    MetricDef("avg_stride_length_cm", "running_dynamics", "activity_summary", "cm", "평균 보폭"),
+    MetricDef("avg_vertical_oscillation_cm", "running_dynamics", "activity_summary", "cm", "평균 수직 진폭"),
+    MetricDef("avg_vertical_ratio_pct", "running_dynamics", "activity_summary", "%", "평균 수직비"),
+
+    # ── power ──
+    MetricDef("avg_power", "power", "activity_summary", "W", "평균 파워"),
+    MetricDef("max_power", "power", "activity_summary", "W", "최대 파워"),
+
+    # ── weather ──
+    MetricDef("avg_temperature", "weather", "activity_summary", "°C", "평균 기온"),
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Layer 1: daily_wellness 컬럼 (storage="wellness")
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # ── sleep ──
+    MetricDef("sleep_score", "sleep", "wellness", "", "수면 점수", scope="daily"),
+    MetricDef("sleep_duration_sec", "sleep", "wellness", "sec", "총 수면 시간", scope="daily"),
+    MetricDef("sleep_start_time", "sleep", "wellness", "", "취침 시각", scope="daily"),
+
+    # ── hr ──
+    MetricDef("hrv_weekly_avg", "hr", "wellness", "ms", "HRV 주간 평균", scope="daily"),
+    MetricDef("hrv_last_night", "hr", "wellness", "ms", "HRV 전날 밤", scope="daily"),
+    MetricDef("resting_hr", "hr", "wellness", "bpm", "안정시 심박수", scope="daily"),
+    # HRV 상세 (metric_store)
+    MetricDef("hrv_status", "hr", "metric", "", "HRV 상태 텍스트 (balanced 등)", scope="daily"),
+    MetricDef("hrv_baseline_low", "hr", "metric", "ms", "HRV 기준선 하한", scope="daily"),
+    MetricDef("hrv_baseline_balanced_low", "hr", "metric", "ms", "HRV 균형 기준선 하한", scope="daily"),
+    MetricDef("hrv_baseline_balanced_upper", "hr", "metric", "ms", "HRV 균형 기준선 상한", scope="daily"),
+
+    # ── body ──
+    MetricDef("body_battery_high", "body", "wellness", "", "Body Battery 최고", scope="daily"),
+    MetricDef("body_battery_low", "body", "wellness", "", "Body Battery 최저", scope="daily"),
+    MetricDef("steps", "body", "wellness", "count", "일일 걸음 수", scope="daily"),
+    MetricDef("active_calories", "body", "wellness", "kcal", "활동 칼로리", scope="daily"),
+    MetricDef("weight_kg", "body", "wellness", "kg", "체중", scope="daily"),
+
+    # ── stress ──
+    MetricDef("avg_stress", "stress", "wellness", "", "평균 스트레스", scope="daily"),
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Layer 2: metric_store (storage="metric")
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # ── hr (zone 분포) ──
+    MetricDef("hr_zone_1_sec", "hr", "metric", "sec", "HR Zone 1 체류 시간",
               aliases={"garmin": "hrTimeInZone_0"}),
-    MetricDef("hr_zone_2_sec", "hr_zone", "sec", "HR Zone 2 체류 시간",
+    MetricDef("hr_zone_2_sec", "hr", "metric", "sec", "HR Zone 2 체류 시간",
               aliases={"garmin": "hrTimeInZone_1"}),
-    MetricDef("hr_zone_3_sec", "hr_zone", "sec", "HR Zone 3 체류 시간",
+    MetricDef("hr_zone_3_sec", "hr", "metric", "sec", "HR Zone 3 체류 시간",
               aliases={"garmin": "hrTimeInZone_2"}),
-    MetricDef("hr_zone_4_sec", "hr_zone", "sec", "HR Zone 4 체류 시간",
+    MetricDef("hr_zone_4_sec", "hr", "metric", "sec", "HR Zone 4 체류 시간",
               aliases={"garmin": "hrTimeInZone_3"}),
-    MetricDef("hr_zone_5_sec", "hr_zone", "sec", "HR Zone 5 체류 시간",
+    MetricDef("hr_zone_5_sec", "hr", "metric", "sec", "HR Zone 5 체류 시간",
               aliases={"garmin": "hrTimeInZone_4"}),
-    MetricDef("hr_zones_detail", "hr_zone", "json", "HR Zone 전체 상세",
+    MetricDef("hr_zone_1_pct", "hr", "metric", "%", "HR Zone 1 비율"),
+    MetricDef("hr_zone_2_pct", "hr", "metric", "%", "HR Zone 2 비율"),
+    MetricDef("hr_zone_3_pct", "hr", "metric", "%", "HR Zone 3 비율"),
+    MetricDef("hr_zone_4_pct", "hr", "metric", "%", "HR Zone 4 비율"),
+    MetricDef("hr_zone_5_pct", "hr", "metric", "%", "HR Zone 5 비율"),
+    MetricDef("hr_zones_detail", "hr", "metric", "json", "HR Zone 전체 상세",
               aliases={"garmin": "hrTimeInZone"}),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Power Zone 분포
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("power_zone_1_sec", "power_zone", "sec", "Power Zone 1 체류 시간",
+    # ── power (zone + 설정) ──
+    MetricDef("power_zone_1_sec", "power", "metric", "sec", "Power Zone 1 체류 시간",
               aliases={"garmin": "powerTimeInZone_0"}),
-    MetricDef("power_zone_2_sec", "power_zone", "sec", "Power Zone 2 체류 시간",
+    MetricDef("power_zone_2_sec", "power", "metric", "sec", "Power Zone 2 체류 시간",
               aliases={"garmin": "powerTimeInZone_1"}),
-    MetricDef("power_zone_3_sec", "power_zone", "sec", "Power Zone 3 체류 시간",
+    MetricDef("power_zone_3_sec", "power", "metric", "sec", "Power Zone 3 체류 시간",
               aliases={"garmin": "powerTimeInZone_2"}),
-    MetricDef("power_zone_4_sec", "power_zone", "sec", "Power Zone 4 체류 시간",
+    MetricDef("power_zone_4_sec", "power", "metric", "sec", "Power Zone 4 체류 시간",
               aliases={"garmin": "powerTimeInZone_3"}),
-    MetricDef("power_zone_5_sec", "power_zone", "sec", "Power Zone 5 체류 시간",
+    MetricDef("power_zone_5_sec", "power", "metric", "sec", "Power Zone 5 체류 시간",
               aliases={"garmin": "powerTimeInZone_4"}),
+    MetricDef("icu_ftp", "power", "metric", "W", "Intervals FTP",
+              aliases={"intervals": "icu_ftp"}),
+    MetricDef("icu_w_prime", "power", "metric", "kJ", "Intervals W'",
+              aliases={"intervals": "icu_w_prime"}),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Training Load 계열
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("trimp", "rp_load", "score", "TRIMP (Banister)",
-              aliases={"intervals": "icu_trimp"}),
-    MetricDef("hrss", "rp_load", "score", "HR Stress Score",
-              aliases={"intervals": "icu_hrss"}),
-    MetricDef("rtss", "training_load", "score", "Running TSS (rTSS)"),
-    MetricDef("intensity_factor", "training_load", "", "Intensity Factor (IF)",
-              aliases={"intervals": "icu_intensity"}),
-    MetricDef("training_stress_score", "training_load", "score", "TSS",
-              aliases={"garmin": "trainingStressScore"}),
+    # ── pace (구간 페이스) ──
+    MetricDef("pace_1k", "pace", "metric", "sec/km", "1km 페이스"),
+    MetricDef("pace_5k", "pace", "metric", "sec/km", "5km 페이스"),
+    MetricDef("pace_10k", "pace", "metric", "sec/km", "10km 페이스"),
+    MetricDef("negative_split_ratio", "pace", "metric", "ratio", "네거티브 스플릿 비율"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Efficiency & Decoupling
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("efficiency_factor", "efficiency", "", "Efficiency Factor (NGP/HR)",
-              aliases={"intervals": "icu_efficiency_factor"}),
-    MetricDef("aerobic_decoupling", "efficiency", "%", "Aerobic Decoupling (%)",
-              aliases={"intervals": "icu_decoupling"}),
-    MetricDef("variability_index", "efficiency", "", "Variability Index (NP/AP)"),
-    MetricDef("pace_variation", "efficiency", "", "Pace Variation",
-              aliases={"intervals": "pace_variation"}),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Running Dynamics (metric_store용 — 상세/보충)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("ground_contact_balance", "running_dynamics", "%", "지면 접촉 밸런스 (L/R)",
+    # ── running_dynamics (확장) ──
+    MetricDef("ground_contact_balance", "running_dynamics", "metric", "%", "지면 접촉 밸런스 (L/R)",
               aliases={"garmin": "avgGroundContactBalance"}),
-    MetricDef("avg_respiration_rate", "running_dynamics", "brpm", "평균 호흡수",
+    MetricDef("avg_respiration_rate", "running_dynamics", "metric", "brpm", "평균 호흡수",
               aliases={"garmin": "avgRespirationRate"}),
+    MetricDef("ground_contact_time_balance", "running_dynamics", "metric", "%", "GCT 밸런스"),
+    MetricDef("stance_time", "running_dynamics", "metric", "ms", "스탠스 타임"),
+    MetricDef("leg_spring_stiffness", "running_dynamics", "metric", "kN/m", "다리 스프링 강성"),
+    MetricDef("form_power", "running_dynamics", "metric", "W", "폼 파워"),
+    MetricDef("impact_loading_rate", "running_dynamics", "metric", "BW/s", "충격 부하율"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Fitness Indicators (activity scope)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("vo2max_activity", "fitness", "ml/kg/min", "활동별 VO2Max 추정치",
-              aliases={"garmin": "vO2MaxValue"}),
-    MetricDef("vdot", "fitness", "", "Jack Daniels VDOT"),
-    MetricDef("gap", "fitness", "sec/km", "Grade Adjusted Pace",
-              aliases={"intervals": "icu_gap", "garmin": "avgGradeAdjustedSpeed"}),
-    MetricDef("performance_condition", "fitness", "", "Garmin 퍼포먼스 컨디션",
-              aliases={"garmin": "performanceCondition"}),
-    MetricDef("endurance_score", "fitness", "", "Garmin 지구력 점수",
-              aliases={"garmin": "enduranceScore"}),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Lactate Threshold
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("lactate_threshold_hr", "threshold", "bpm", "젖산 역치 심박수",
-              aliases={"garmin": "lactateThresholdBpm"}),
-    MetricDef("lactate_threshold_speed", "threshold", "m/s", "젖산 역치 속도",
-              aliases={"garmin": "lactateThresholdSpeed"}),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Weather / Environment
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("weather_temp_c", "weather", "°C", "기온"),
-    MetricDef("weather_humidity_pct", "weather", "%", "습도"),
-    MetricDef("weather_dew_point_c", "weather", "°C", "이슬점"),
-    MetricDef("weather_wind_speed_ms", "weather", "m/s", "풍속"),
-    MetricDef("weather_pressure_hpa", "weather", "hPa", "기압"),
-    MetricDef("weather_condition", "weather", "", "날씨 상태 텍스트"),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Nutrition / General (activity scope)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("water_estimated_ml", "nutrition", "ml", "추정 수분 소모량",
-              aliases={"garmin": "waterEstimated"}),
-    MetricDef("body_battery_diff", "general", "", "활동 중 Body Battery 변화",
-              aliases={"garmin": "differenceBodyBattery"}),
-    MetricDef("intensity_mins_moderate", "general", "min", "중강도 활동 시간",
-              aliases={"garmin": "moderateIntensityMinutes"}),
-    MetricDef("intensity_mins_vigorous", "general", "min", "고강도 활동 시간",
-              aliases={"garmin": "vigorousIntensityMinutes"}),
-    MetricDef("steps_activity", "general", "", "활동 중 걸음수",
+    # ── volume (metric_store) ──
+    MetricDef("steps_activity", "volume", "metric", "count", "활동 중 걸음수",
               aliases={"garmin": "steps"}),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Strava-specific
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("kudos_count", "social", "", "Strava Kudos",
-              aliases={"strava": "kudos_count"}),
-    MetricDef("achievement_count", "social", "", "Strava 업적 수",
-              aliases={"strava": "achievement_count"}),
-    MetricDef("pr_count", "social", "", "Strava PR 수",
-              aliases={"strava": "pr_count"}),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Intervals.icu specific
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("icu_ftp", "power", "W", "Intervals FTP",
-              aliases={"intervals": "icu_ftp"}),
-    MetricDef("icu_w_prime", "power", "kJ", "Intervals W'",
-              aliases={"intervals": "icu_w_prime"}),
-    MetricDef("icu_rpe", "perception", "", "Intervals RPE",
-              aliases={"intervals": "icu_rpe"}),
-    MetricDef("icu_feel", "perception", "", "Intervals Feel",
+    # ── load (훈련 부하) ──
+    MetricDef("trimp", "load", "metric", "score", "TRIMP (Banister)",
+              aliases={"intervals": "icu_trimp"}),
+    MetricDef("hrss", "load", "metric", "score", "HR Stress Score",
+              aliases={"intervals": "icu_hrss"}),
+    MetricDef("rtss", "load", "metric", "score", "Running TSS (rTSS)"),
+    MetricDef("intensity_factor", "load", "metric", "", "Intensity Factor (IF)",
+              aliases={"intervals": "icu_intensity"}),
+    MetricDef("training_stress_score", "load", "metric", "score", "TSS",
+              aliases={"garmin": "trainingStressScore"}),
+    MetricDef("training_effect_aerobic", "load", "metric", "", "유산소 훈련 효과"),
+    MetricDef("training_effect_anaerobic", "load", "metric", "", "무산소 훈련 효과"),
+    MetricDef("training_load_peak", "load", "metric", "", "최대 훈련 부하"),
+    MetricDef("performance_condition", "load", "metric", "", "퍼포먼스 컨디션",
+              aliases={"garmin": "performanceCondition"}),
+    MetricDef("relative_effort", "load", "metric", "AU", "Relative Effort (심박존 기반)"),
+    MetricDef("wlei", "load", "metric", "AU", "WLEI (날씨 가중 노력 지수)"),
+    MetricDef("icu_feel", "load", "metric", "", "체감 (Intervals Feel)",
               aliases={"intervals": "icu_feel"}),
+    MetricDef("icu_rpe", "load", "metric", "", "주관적 운동 강도 (RPE)",
+              aliases={"intervals": "icu_rpe", "garmin": "averageRPE", "strava": "perceived_exertion"}),
+    MetricDef("intensity_mins_moderate", "load", "metric", "min", "중강도 활동 시간",
+              aliases={"garmin": "moderateIntensityMinutes"}),
+    MetricDef("intensity_mins_vigorous", "load", "metric", "min", "고강도 활동 시간",
+              aliases={"garmin": "vigorousIntensityMinutes"}),
+    MetricDef("kilojoules", "load", "metric", "kJ", "에너지 출력 (사이클링)",
+              aliases={"strava": "kilojoules"}),
+    # daily load
+    MetricDef("ctl", "load", "metric", "", "Chronic Training Load", scope="daily"),
+    MetricDef("atl", "load", "metric", "", "Acute Training Load", scope="daily"),
+    MetricDef("tsb", "load", "metric", "", "Training Stress Balance", scope="daily"),
+    MetricDef("ramp_rate", "load", "metric", "", "CTL 증가율", scope="daily"),
+    MetricDef("acwr", "load", "metric", "", "Acute:Chronic Workload Ratio", scope="daily"),
+    MetricDef("lsi", "load", "metric", "", "Load Spike Index", scope="daily"),
+    MetricDef("monotony", "load", "metric", "", "훈련 단조로움", scope="daily"),
+    MetricDef("training_strain", "load", "metric", "", "훈련 스트레인", scope="daily"),
+    MetricDef("rtti", "load", "metric", "%", "달리기 내성 지수 (RTTI)", scope="daily"),
+    # weekly load
+    MetricDef("tids", "load", "metric", "", "Training Intensity Distribution Score", scope="weekly"),
+    MetricDef("adti", "load", "metric", "", "Aerobic Decoupling Trend Index", scope="weekly"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Runalyze specific
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("effective_vo2max", "fitness", "ml/kg/min", "Runalyze eVO2Max",
+    # ── efficiency ──
+    MetricDef("efficiency_factor", "efficiency", "metric", "", "Efficiency Factor (NGP/HR)",
+              aliases={"intervals": "icu_efficiency_factor"}),
+    MetricDef("aerobic_decoupling", "efficiency", "metric", "%", "Aerobic Decoupling (%)",
+              aliases={"intervals": "icu_decoupling"}),
+    MetricDef("variability_index", "efficiency", "metric", "", "Variability Index (NP/AP)"),
+    MetricDef("pace_variation", "efficiency", "metric", "", "Pace Variation",
+              aliases={"intervals": "pace_variation"}),
+    MetricDef("aerobic_decoupling_rp", "efficiency", "metric", "%", "RunPulse 유산소 분리"),
+    MetricDef("efficiency_factor_rp", "efficiency", "metric", "", "RunPulse 효율 계수 (EF)"),
+    MetricDef("teroi", "efficiency", "metric", "", "TEROI (훈련 효과 ROI)"),
+    MetricDef("tpdi", "efficiency", "metric", "%", "TPDI (실내/실외 격차 지수)"),
+    MetricDef("rec", "efficiency", "metric", "", "REC (통합 러닝 효율성)", scope="daily"),
+
+    # ── capacity (체력/역량) ──
+    MetricDef("vo2max_activity", "capacity", "metric", "ml/kg/min", "활동별 VO2Max 추정치",
+              aliases={"garmin": "vO2MaxValue"}),
+    MetricDef("vdot", "capacity", "metric", "", "Jack Daniels VDOT"),
+    MetricDef("gap", "capacity", "metric", "sec/km", "Grade Adjusted Pace",
+              aliases={"intervals": "icu_gap", "garmin": "avgGradeAdjustedSpeed"}),
+    MetricDef("endurance_score", "capacity", "metric", "", "Garmin 지구력 점수",
+              aliases={"garmin": "enduranceScore"}),
+    MetricDef("effective_vo2max", "capacity", "metric", "ml/kg/min", "Runalyze eVO2Max",
               aliases={"runalyze": "effective_vo2max"}),
-    MetricDef("marathon_shape", "fitness", "%", "Runalyze Marathon Shape",
-              aliases={"runalyze": "marathon_shape"}),
+    MetricDef("lactate_threshold_hr", "capacity", "metric", "bpm", "젖산 역치 심박수",
+              aliases={"garmin": "lactateThresholdBpm"}),
+    MetricDef("lactate_threshold_speed", "capacity", "metric", "m/s", "젖산 역치 속도",
+              aliases={"garmin": "lactateThresholdSpeed"}),
+    MetricDef("gap_rp", "capacity", "metric", "sec/km", "RunPulse GAP (경사 보정 페이스)"),
+    MetricDef("runpulse_vdot", "capacity", "metric", "", "RunPulse VDOT (Daniels)"),
+    MetricDef("fearp", "capacity", "metric", "sec/km", "Field-Equivalent Adjusted Running Pace"),
+    MetricDef("critical_power", "capacity", "metric", "W", "Critical Power (CP)", scope="daily"),
+    MetricDef("eftp", "capacity", "metric", "sec/km", "eFTP (역치 페이스)", scope="daily"),
+    MetricDef("vdot_adj", "capacity", "metric", "", "VDOT 보정", scope="daily"),
+    MetricDef("marathon_shape", "capacity", "metric", "%", "Marathon Shape (훈련 완성도)", scope="daily"),
+    MetricDef("sapi", "capacity", "metric", "", "SAPI (계절 성과 비교)", scope="daily"),
+    MetricDef("rri", "capacity", "metric", "", "RRI (레이스 준비도)", scope="daily"),
+    MetricDef("di", "capacity", "metric", "", "Durability Index", scope="weekly"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Source workout/event type (원본 분류)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("source_event_type", "classification", "", "소스 원본 이벤트 분류",
-              aliases={"garmin": "eventType", "strava": "workout_type"}),
-    MetricDef("source_sport_type", "classification", "", "소스 원본 스포츠 하위 분류",
-              aliases={"garmin": "sportType", "strava": "sport_type"}),
+    # ── prediction ──
+    MetricDef("predicted_5k_sec", "prediction", "metric", "sec", "Garmin 5K 예측"),
+    MetricDef("predicted_10k_sec", "prediction", "metric", "sec", "Garmin 10K 예측"),
+    MetricDef("predicted_half_sec", "prediction", "metric", "sec", "Garmin 하프 예측"),
+    MetricDef("predicted_full_sec", "prediction", "metric", "sec", "Garmin 마라톤 예측"),
+    MetricDef("race_pred_5k_sec", "prediction", "metric", "sec", "5K 예측 기록", scope="daily",
+              aliases={"garmin": "raceTime5K", "runalyze": "prediction_5k"}),
+    MetricDef("race_pred_10k_sec", "prediction", "metric", "sec", "10K 예측 기록", scope="daily",
+              aliases={"garmin": "raceTime10K", "runalyze": "prediction_10k"}),
+    MetricDef("race_pred_half_sec", "prediction", "metric", "sec", "하프마라톤 예측 기록", scope="daily",
+              aliases={"garmin": "raceTimeHalf", "runalyze": "prediction_half"}),
+    MetricDef("race_pred_marathon_sec", "prediction", "metric", "sec", "마라톤 예측 기록", scope="daily",
+              aliases={"garmin": "raceTimeMarathon", "runalyze": "prediction_marathon"}),
+    MetricDef("darp_5k_sec", "prediction", "metric", "sec", "DARP 5K 예측", scope="daily"),
+    MetricDef("darp_10k_sec", "prediction", "metric", "sec", "DARP 10K 예측", scope="daily"),
+    MetricDef("darp_half_sec", "prediction", "metric", "sec", "DARP 하프 예측", scope="daily"),
+    MetricDef("darp_marathon_sec", "prediction", "metric", "sec", "DARP 마라톤 예측", scope="daily"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Daily Wellness (metric_store 보충 — core는 daily_wellness 테이블)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("sleep_deep_sec", "sleep", "sec", "깊은 수면 시간", scope="daily",
+    # ── sleep (metric_store 보충) ──
+    MetricDef("sleep_deep_sec", "sleep", "metric", "sec", "깊은 수면 시간", scope="daily",
               aliases={"garmin": "deepSleepSeconds"}),
-    MetricDef("sleep_light_sec", "sleep", "sec", "얕은 수면 시간", scope="daily",
+    MetricDef("sleep_light_sec", "sleep", "metric", "sec", "얕은 수면 시간", scope="daily",
               aliases={"garmin": "lightSleepSeconds"}),
-    MetricDef("sleep_rem_sec", "sleep", "sec", "REM 수면 시간", scope="daily",
+    MetricDef("sleep_rem_sec", "sleep", "metric", "sec", "REM 수면 시간", scope="daily",
               aliases={"garmin": "remSleepSeconds"}),
-    MetricDef("sleep_awake_sec", "sleep", "sec", "깨어있던 시간", scope="daily",
+    MetricDef("sleep_awake_sec", "sleep", "metric", "sec", "깨어있던 시간", scope="daily",
               aliases={"garmin": "awakeSleepSeconds"}),
-    MetricDef("avg_spo2", "sleep", "%", "평균 SpO2", scope="daily",
+    MetricDef("avg_spo2", "sleep", "metric", "%", "평균 SpO2", scope="daily",
               aliases={"garmin": "averageSpO2"}),
-    MetricDef("min_spo2", "sleep", "%", "최저 SpO2", scope="daily",
+    MetricDef("min_spo2", "sleep", "metric", "%", "최저 SpO2", scope="daily",
               aliases={"garmin": "lowestSpO2"}),
-    MetricDef("avg_respiration_sleep", "sleep", "brpm", "수면 중 평균 호흡수", scope="daily",
+    MetricDef("avg_respiration_sleep", "sleep", "metric", "brpm", "수면 중 평균 호흡수", scope="daily",
               aliases={"garmin": "averageRespiration"}),
+    MetricDef("sleep_deep_score", "sleep", "metric", "", "깊은 수면 점수", scope="daily"),
+    MetricDef("sleep_rem_score", "sleep", "metric", "", "REM 수면 점수", scope="daily"),
+    MetricDef("sleep_recovery_score", "sleep", "metric", "", "수면 회복 점수", scope="daily"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Daily Stress 상세
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("stress_high_duration_sec", "stress", "sec", "고스트레스 시간", scope="daily",
+    # ── stress (상세) ──
+    MetricDef("stress_high_duration_sec", "stress", "metric", "sec", "고스트레스 시간", scope="daily",
               aliases={"garmin": "highStressDuration"}),
-    MetricDef("stress_medium_duration_sec", "stress", "sec", "중스트레스 시간", scope="daily",
+    MetricDef("stress_medium_duration_sec", "stress", "metric", "sec", "중스트레스 시간", scope="daily",
               aliases={"garmin": "mediumStressDuration"}),
-    MetricDef("stress_low_duration_sec", "stress", "sec", "저스트레스 시간", scope="daily",
+    MetricDef("stress_low_duration_sec", "stress", "metric", "sec", "저스트레스 시간", scope="daily",
               aliases={"garmin": "lowStressDuration"}),
-    MetricDef("stress_rest_duration_sec", "stress", "sec", "휴식 시간", scope="daily",
+    MetricDef("stress_rest_duration_sec", "stress", "metric", "sec", "휴식 시간", scope="daily",
               aliases={"garmin": "restStressDuration"}),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Training Readiness (Garmin)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("training_readiness_score", "readiness", "", "Garmin 훈련 준비도 점수", scope="daily",
+    # ── readiness ──
+    MetricDef("training_readiness_score", "readiness", "metric", "", "Garmin 훈련 준비도 점수", scope="daily",
               aliases={"garmin": "score"}),
-    MetricDef("training_readiness_level", "readiness", "", "Garmin 훈련 준비도 레벨", scope="daily",
+    MetricDef("training_readiness_level", "readiness", "metric", "", "Garmin 훈련 준비도 레벨", scope="daily",
               aliases={"garmin": "level"}),
-    MetricDef("training_readiness_hrv_factor", "readiness", "%", "훈련 준비도 HRV 요인", scope="daily",
+    MetricDef("training_readiness_hrv_factor", "readiness", "metric", "%", "훈련 준비도 HRV 요인", scope="daily",
               aliases={"garmin": "hrvFactorPercent"}),
-    MetricDef("training_readiness_sleep_factor", "readiness", "%", "훈련 준비도 수면 요인", scope="daily",
+    MetricDef("training_readiness_sleep_factor", "readiness", "metric", "%", "훈련 준비도 수면 요인", scope="daily",
               aliases={"garmin": "sleepScoreFactorPercent"}),
-    MetricDef("training_readiness_recovery_factor", "readiness", "%", "훈련 준비도 회복 요인", scope="daily",
+    MetricDef("training_readiness_recovery_factor", "readiness", "metric", "%", "훈련 준비도 회복 요인", scope="daily",
               aliases={"garmin": "recoveryFactorPercent"}),
+    MetricDef("crs", "readiness", "metric", "", "CRS (복합 준비도 게이트)", scope="daily"),
+    MetricDef("utrs", "readiness", "metric", "", "Unified Training Readiness Score", scope="daily"),
+    MetricDef("cirs", "readiness", "metric", "", "Composite Injury Risk Score", scope="daily"),
+    MetricDef("rmr", "readiness", "metric", "json", "Runner Maturity Radar", scope="weekly"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Race Predictions (Garmin / Runalyze)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("race_pred_5k_sec", "prediction", "sec", "5K 예측 기록", scope="daily",
-              aliases={"garmin": "raceTime5K", "runalyze": "prediction_5k"}),
-    MetricDef("race_pred_10k_sec", "prediction", "sec", "10K 예측 기록", scope="daily",
-              aliases={"garmin": "raceTime10K", "runalyze": "prediction_10k"}),
-    MetricDef("race_pred_half_sec", "prediction", "sec", "하프마라톤 예측 기록", scope="daily",
-              aliases={"garmin": "raceTimeHalf", "runalyze": "prediction_half"}),
-    MetricDef("race_pred_marathon_sec", "prediction", "sec", "마라톤 예측 기록", scope="daily",
-              aliases={"garmin": "raceTimeMarathon", "runalyze": "prediction_marathon"}),
+    # ── weather (metric_store) ──
+    MetricDef("weather_temp_c", "weather", "metric", "°C", "기온"),
+    MetricDef("weather_humidity_pct", "weather", "metric", "%", "습도"),
+    MetricDef("weather_dew_point_c", "weather", "metric", "°C", "이슬점"),
+    MetricDef("weather_wind_speed_ms", "weather", "metric", "m/s", "풍속"),
+    MetricDef("weather_wind_direction_deg", "weather", "metric", "°", "풍향"),
+    MetricDef("weather_pressure_hpa", "weather", "metric", "hPa", "기압"),
+    MetricDef("weather_condition", "weather", "metric", "", "날씨 상태 텍스트"),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # PMC (daily_fitness에도 있지만, metric_store에서 provider별 비교용)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("ctl", "rp_load", "", "Chronic Training Load", scope="daily"),
-    MetricDef("atl", "rp_load", "", "Acute Training Load", scope="daily"),
-    MetricDef("tsb", "rp_load", "", "Training Stress Balance", scope="daily"),
-    MetricDef("ramp_rate", "rp_load", "", "CTL 증가율", scope="daily"),
+    # ── body (metric_store) ──
+    MetricDef("body_battery_diff", "body", "metric", "", "활동 중 Body Battery 변화",
+              aliases={"garmin": "differenceBodyBattery"}),
+    MetricDef("calories_active", "body", "metric", "kcal", "활동 칼로리"),
+    MetricDef("calories_total", "body", "metric", "kcal", "총 칼로리"),
+    MetricDef("floors_climbed", "body", "metric", "count", "오른 층수"),
+    MetricDef("intensity_minutes", "body", "metric", "min", "강도 활동 분"),
+    MetricDef("respiration_rate", "body", "metric", "brpm", "호흡수"),
+    MetricDef("spo2_avg", "body", "metric", "%", "평균 SpO2"),
+    MetricDef("water_estimated_ml", "body", "metric", "ml", "추정 수분 소모량",
+              aliases={"garmin": "waterEstimated"}),
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # RunPulse Computed (2차 메트릭)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("utrs", "rp_readiness", "", "Unified Training Readiness Score", scope="daily"),
-    MetricDef("cirs", "rp_risk", "", "Composite Injury Risk Score", scope="daily"),
-    MetricDef("acwr", "rp_load", "", "Acute:Chronic Workload Ratio", scope="daily"),
-    MetricDef("lsi", "rp_load", "", "Load Spike Index", scope="daily"),
-    MetricDef("monotony", "rp_load", "", "훈련 단조로움", scope="daily"),
-    MetricDef("training_strain", "rp_load", "", "훈련 스트레인", scope="daily"),
+    # ── meta (metric_store) ──
+    MetricDef("source_event_type", "meta", "metric", "", "소스 원본 이벤트 분류",
+              aliases={"garmin": "eventType", "strava": "workout_type"}),
+    MetricDef("source_sport_type", "meta", "metric", "", "소스 원본 스포츠 하위 분류",
+              aliases={"garmin": "sportType", "strava": "sport_type"}),
+    MetricDef("achievement_count", "meta", "metric", "", "Strava 업적 수",
+              aliases={"strava": "achievement_count"}),
+    MetricDef("kudos_count", "meta", "metric", "", "Strava Kudos",
+              aliases={"strava": "kudos_count"}),
+    MetricDef("pr_count", "meta", "metric", "", "Strava PR 수",
+              aliases={"strava": "pr_count"}),
+    MetricDef("timezone_offset", "meta", "metric", "", "타임존 오프셋"),
+    MetricDef("workout_type_classified", "meta", "metric", "", "RunPulse 워크아웃 분류"),
 
-    MetricDef("fearp", "rp_performance", "sec/km", "Field-Equivalent Adjusted Running Pace"),
-    MetricDef("darp_5k_sec", "rp_performance", "sec", "DARP 5K 예측", scope="daily"),
-    MetricDef("darp_10k_sec", "rp_performance", "sec", "DARP 10K 예측", scope="daily"),
-    MetricDef("darp_half_sec", "rp_performance", "sec", "DARP 하프 예측", scope="daily"),
-    MetricDef("darp_marathon_sec", "rp_performance", "sec", "DARP 마라톤 예측", scope="daily"),
-    MetricDef("di", "rp_endurance", "", "Durability Index", scope="weekly"),
-    MetricDef("rmr", "rp_recovery", "json", "Runner Maturity Radar", scope="weekly"),
-
-    MetricDef("tids", "rp_distribution", "", "Training Intensity Distribution Score", scope="weekly"),
-    MetricDef("adti", "rp_trend", "", "Aerobic Decoupling Trend Index", scope="weekly"),
-
-
-    # ── Phase 4 기존 calculator (registry 미등록분) ──
-    MetricDef("aerobic_decoupling_rp", "rp_efficiency", "%", "RunPulse 유산소 분리"),
-    MetricDef("gap_rp", "rp_performance", "sec/km", "RunPulse GAP (경사 보정 페이스)"),
-    MetricDef("runpulse_vdot", "rp_performance", "", "RunPulse VDOT (Daniels)"),
-    MetricDef("efficiency_factor_rp", "rp_efficiency", "", "RunPulse 효율 계수 (EF)"),
-
-    # ── Phase 4 v0.2 포팅 메트릭 (13개) ──
-    MetricDef("relative_effort", "rp_load", "AU", "Relative Effort (심박존 기반)"),
-    MetricDef("wlei", "rp_load", "AU", "WLEI (날씨 가중 노력 지수)"),
-    MetricDef("teroi", "rp_trend", "", "TEROI (훈련 효과 ROI)"),
-    MetricDef("tpdi", "rp_trend", "%", "TPDI (실내/실외 격차 지수)"),
-    MetricDef("rec", "rp_efficiency", "", "REC (통합 러닝 효율성)", scope="daily"),
-    MetricDef("rtti", "rp_load", "%", "RTTI (달리기 내성 지수)", scope="daily"),
-    MetricDef("critical_power", "rp_performance", "W", "Critical Power (CP)", scope="daily"),
-    MetricDef("eftp", "rp_performance", "sec/km", "eFTP (역치 페이스)", scope="daily"),
-    MetricDef("sapi", "rp_performance", "", "SAPI (계절 성과 비교)", scope="daily"),
-    MetricDef("rri", "rp_performance", "", "RRI (레이스 준비도)", scope="daily"),
-    MetricDef("vdot_adj", "rp_performance", "", "VDOT 보정", scope="daily"),
-    MetricDef("marathon_shape", "rp_performance", "%", "Marathon Shape (훈련 완성도)", scope="daily"),
-    MetricDef("crs", "rp_readiness", "", "CRS (복합 준비도 게이트)", scope="daily"),
-
-    MetricDef("workout_type_classified", "rp_classification", "", "RunPulse 워크아웃 분류"),
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Athlete-scope
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    MetricDef("max_hr_setting", "athlete", "bpm", "설정 최대 심박수", scope="athlete"),
-    MetricDef("rest_hr_setting", "athlete", "bpm", "설정 안정시 심박수", scope="athlete"),
-    MetricDef("threshold_pace_setting", "athlete", "sec/km", "설정 역치 페이스", scope="athlete"),
-    MetricDef("weight_setting", "athlete", "kg", "설정 체중", scope="athlete"),
-    MetricDef("ftp_setting", "athlete", "W", "설정 FTP", scope="athlete"),
-    MetricDef("lthr_setting", "athlete", "bpm", "설정 LTHR", scope="athlete"),
-
-    # ── 추가 메트릭 정의 (기존 _DEFINITIONS 리스트에 append) ──
-
-    # --- Running Dynamics 확장 ---
-    MetricDef("ground_contact_time_balance", "dynamics", "activity", "%", ["gct_balance", "ground_contact_balance"]),
-    MetricDef("stance_time", "dynamics", "activity", "ms", ["ground_contact_time_left", "ground_contact_time_right"]),
-    MetricDef("leg_spring_stiffness", "dynamics", "activity", "kN/m", ["lss"]),
-    MetricDef("form_power", "dynamics", "activity", "W", ["running_form_power"]),
-    MetricDef("impact_loading_rate", "dynamics", "activity", "BW/s", ["ilr"]),
-
-    # --- HR Zone 확장 ---
-    MetricDef("hr_zone_1_sec", "hr_zone", "activity", "s", ["time_in_zone_1", "hr_z1_time"]),
-    MetricDef("hr_zone_2_sec", "hr_zone", "activity", "s", ["time_in_zone_2", "hr_z2_time"]),
-    MetricDef("hr_zone_3_sec", "hr_zone", "activity", "s", ["time_in_zone_3", "hr_z3_time"]),
-    MetricDef("hr_zone_4_sec", "hr_zone", "activity", "s", ["time_in_zone_4", "hr_z4_time"]),
-    MetricDef("hr_zone_5_sec", "hr_zone", "activity", "s", ["time_in_zone_5", "hr_z5_time"]),
-    MetricDef("hr_zone_1_pct", "hr_zone", "activity", "%", ["pct_hr_zone_1"]),
-    MetricDef("hr_zone_2_pct", "hr_zone", "activity", "%", ["pct_hr_zone_2"]),
-    MetricDef("hr_zone_3_pct", "hr_zone", "activity", "%", ["pct_hr_zone_3"]),
-    MetricDef("hr_zone_4_pct", "hr_zone", "activity", "%", ["pct_hr_zone_4"]),
-    MetricDef("hr_zone_5_pct", "hr_zone", "activity", "%", ["pct_hr_zone_5"]),
-
-    # --- Power Zone ---
-    MetricDef("power_zone_1_sec", "power_zone", "activity", "s", ["time_in_power_zone_1"]),
-    MetricDef("power_zone_2_sec", "power_zone", "activity", "s", ["time_in_power_zone_2"]),
-    MetricDef("power_zone_3_sec", "power_zone", "activity", "s", ["time_in_power_zone_3"]),
-    MetricDef("power_zone_4_sec", "power_zone", "activity", "s", ["time_in_power_zone_4"]),
-    MetricDef("power_zone_5_sec", "power_zone", "activity", "s", ["time_in_power_zone_5"]),
-
-    # --- Pace splits ---
-    MetricDef("pace_1k", "pace", "activity", "s/km", ["split_1k_pace"]),
-    MetricDef("pace_5k", "pace", "activity", "s/km", ["split_5k_pace"]),
-    MetricDef("pace_10k", "pace", "activity", "s/km", ["split_10k_pace"]),
-    MetricDef("negative_split_ratio", "pace", "activity", "ratio", ["neg_split"]),
-
-    # --- Wellness 확장 ---
-    MetricDef("sleep_deep_sec", "sleep", "daily", "s", ["deep_sleep_duration", "deep_sleep_seconds"]),
-    MetricDef("sleep_light_sec", "sleep", "daily", "s", ["light_sleep_duration", "light_sleep_seconds"]),
-    MetricDef("sleep_rem_sec", "sleep", "daily", "s", ["rem_sleep_duration", "rem_sleep_seconds"]),
-    MetricDef("sleep_awake_sec", "sleep", "daily", "s", ["awake_duration", "awake_seconds"]),
-    MetricDef("respiration_rate", "wellness", "daily", "brpm", ["avg_respiration", "breathing_rate"]),
-    MetricDef("spo2_avg", "wellness", "daily", "%", ["avg_spo2", "blood_oxygen"]),
-    MetricDef("stress_avg", "wellness", "daily", "score", ["avg_stress_level", "stress_level"]),
-    MetricDef("calories_active", "wellness", "daily", "kcal", ["active_calories"]),
-    MetricDef("calories_total", "wellness", "daily", "kcal", ["total_calories"]),
-    MetricDef("steps", "wellness", "daily", "count", ["daily_steps", "step_count"]),
-    MetricDef("floors_climbed", "wellness", "daily", "count", ["floors"]),
-    MetricDef("intensity_minutes", "wellness", "daily", "min", ["intensity_mins", "vigorous_minutes"]),
-
-    # --- Training Load 확장 ---
-    MetricDef("training_effect_aerobic", "training_load", "activity", "score", ["aerobic_te", "aerobic_training_effect"]),
-    MetricDef("training_effect_anaerobic", "training_load", "activity", "score", ["anaerobic_te", "anaerobic_training_effect"]),
-    MetricDef("training_load_peak", "training_load", "activity", "score", ["peak_training_load"]),
-    MetricDef("performance_condition", "training_load", "activity", "score", ["perf_condition"]),
-
-    # --- Race Prediction ---
-    MetricDef("predicted_5k_sec", "prediction", "athlete", "s", ["race_pred_5k"]),
-    MetricDef("predicted_10k_sec", "prediction", "athlete", "s", ["race_pred_10k"]),
-    MetricDef("predicted_half_sec", "prediction", "athlete", "s", ["race_pred_half"]),
-    MetricDef("predicted_full_sec", "prediction", "athlete", "s", ["race_pred_marathon"]),
-
+    # ── athlete ──
+    MetricDef("max_hr_setting", "athlete", "metric", "bpm", "설정 최대 심박수", scope="athlete"),
+    MetricDef("rest_hr_setting", "athlete", "metric", "bpm", "설정 안정시 심박수", scope="athlete"),
+    MetricDef("threshold_pace_setting", "athlete", "metric", "sec/km", "설정 역치 페이스", scope="athlete"),
+    MetricDef("weight_setting", "athlete", "metric", "kg", "설정 체중", scope="athlete"),
+    MetricDef("ftp_setting", "athlete", "metric", "W", "설정 FTP", scope="athlete"),
+    MetricDef("lthr_setting", "athlete", "metric", "bpm", "설정 LTHR", scope="athlete"),
 ]
 
 
@@ -379,90 +409,50 @@ for _md in _DEFINITIONS:
     for _src, _raw in _md.aliases.items():
         _ALIAS_MAP[f"{_src}::{_raw}"] = _md.name
 
-# 카테고리 목록
-METRIC_CATEGORIES: dict[str, str] = {
-    "hr_zone": "심박 존 분포",
-    "power_zone": "파워 존 분포",
-    "training_load": "훈련 부하",
-    "efficiency": "효율성",
-    "running_dynamics": "러닝 다이내믹스",
-    "fitness": "체력 지표",
-    "threshold": "역치",
-    "weather": "날씨/환경",
-    "nutrition": "영양/수분",
-    "general": "일반",
-    "social": "소셜",
-    "power": "파워",
-    "perception": "체감/주관",
-    "classification": "분류",
-    "sleep": "수면 상세",
-    "stress": "스트레스",
-    "readiness": "훈련 준비도",
-    "prediction": "레이스 예측",
-    "pmc": "성과 관리 차트",
-    "pace":        "페이스 / 스플릿",
-    "dynamics": "러닝 다이내믹스 (확장)", 
-    "wellness": "일일 웰니스", 
-    "rp_readiness": "RunPulse 준비도",
-    "rp_risk": "RunPulse 부상 위험",
-    "rp_load": "RunPulse 부하 분석",
-    "rp_performance": "RunPulse 퍼포먼스",
-    "rp_classification": "RunPulse 분류",
-    "rp_recovery": "RunPulse 회복",
-    "rp_distribution": "RunPulse 훈련 분포",
-    "rp_prediction": "RunPulse 예측",
-    "rp_endurance": "RunPulse 지구력",
-    "rp_trend": "RunPulse 추세 분석",
-    "rp_efficiency": "RunPulse 효율성",
-    "rp_distribution": "RunPulse 강도 분포",
-    "rp_efficiency": "RunPulse 효율 분석",
-    "rp_classification": "RunPulse 분류",
-    "athlete": "선수 설정",
-    "_unmapped": "미매핑 (정리 필요)",
-}
-
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Public API
+# 공개 API
 # ─────────────────────────────────────────────────────────────────────────────
 
 def canonicalize(raw_name: str, source: str | None = None) -> tuple[str, str]:
     """소스 raw 필드명 → (정규 이름, 카테고리).
 
-    조회 순서:
-    1. source::raw_name 별칭 매핑
-    2. 정규 이름 직접 매칭
-    3. 미등록 → ("{source}__{raw_name}", "_unmapped")
+    1) source가 있으면 alias map 먼저 조회
+    2) raw_name이 정규 이름이면 직접 반환
+    3) 못 찾으면 source가 있으면 "{source}__{raw_name}", 없으면 raw_name 그대로 반환
     """
     if source:
         key = f"{source}::{raw_name}"
         if key in _ALIAS_MAP:
             canonical = _ALIAS_MAP[key]
             return canonical, METRIC_REGISTRY[canonical].category
-
     if raw_name in METRIC_REGISTRY:
         return raw_name, METRIC_REGISTRY[raw_name].category
-
-    unmapped = f"{source}__{raw_name}" if source else raw_name
-    return unmapped, "_unmapped"
+    unmapped_name = f"{source}__{raw_name}" if source else raw_name
+    return unmapped_name, "_unmapped"
 
 
 def get_metric(name: str) -> Optional[MetricDef]:
-    """정규 이름으로 MetricDef 반환. 없으면 None."""
+    """정규 이름으로 MetricDef 조회."""
     return METRIC_REGISTRY.get(name)
 
 
 def list_by_category(category: str) -> list[MetricDef]:
-    """카테고리에 속하는 메트릭 목록."""
+    """카테고리에 속하는 모든 MetricDef 반환."""
     return [md for md in METRIC_REGISTRY.values() if md.category == category]
 
 
 def list_by_scope(scope: str) -> list[MetricDef]:
-    """scope에 해당하는 메트릭 목록."""
+    """스코프에 속하는 모든 MetricDef 반환."""
     return [md for md in METRIC_REGISTRY.values() if md.scope == scope]
 
 
-def list_unmapped_aliases() -> list[str]:
-    """등록되지 않은 별칭 키 목록 (디버깅용)."""
-    # 이건 runtime에는 빈 리스트. 실제 unmapped는 DB에서 확인.
-    return []
+def list_by_storage(storage: str) -> list[MetricDef]:
+    """저장 위치별 모든 MetricDef 반환."""
+    return [md for md in METRIC_REGISTRY.values() if md.storage == storage]
+
+
+# 하위 호환 alias
+get_by_category = list_by_category
+get_by_scope = list_by_scope
+get_by_storage = list_by_storage

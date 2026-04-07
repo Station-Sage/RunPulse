@@ -201,7 +201,7 @@
 
 - functions: save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
 
-### `dedup.py` (85줄) — 활동 중복 감지 — 5분 / 3% 규칙.
+### `dedup.py` (88줄) — 활동 중복 감지 — 5분 / 3% 규칙.
 
 - functions: run
 
@@ -285,7 +285,7 @@
 
 - functions: upsert_raw_payload, update_raw_activity_id
 
-### `reprocess.py` (291줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reprocess.py` (292줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -335,19 +335,19 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (575줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (540줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `intervals_extractor.py` (201줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
+### `intervals_extractor.py` (191줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
 - class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_fitness
 
-### `runalyze_extractor.py` (102줄) — Runalyze raw JSON → Layer 1 + Layer 2 변환.
+### `runalyze_extractor.py` (100줄) — Runalyze raw JSON → Layer 1 + Layer 2 변환.
 
 - class **RunalyzeExtractor**: extract_activity_core, extract_activity_metrics
 
-### `strava_extractor.py` (211줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
+### `strava_extractor.py` (210줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
 
 - class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_streams, extract_best_efforts
 
@@ -869,10 +869,10 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (468줄) — RunPulse 메트릭 레지스트리 v0.3
+### `metric_registry.py` (458줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
-- functions: canonicalize, get_metric, list_by_category, list_by_scope, list_unmapped_aliases
+- functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
 
 ### `pace.py` (73줄) — 페이스 변환 유틸리티 (초 ↔ 분:초, km/h ↔ min/km).
 
@@ -944,7 +944,7 @@
 
 ### `test_cirs.py` (64줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
-- class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_rp_risk, test_no_data
+- class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data
 
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
 
@@ -1054,7 +1054,7 @@
 
 - functions: test_fixtures_layout_exists
 
-### `test_garmin_activity_sync.py` (159줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
+### `test_garmin_activity_sync.py` (161줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
 
@@ -1125,14 +1125,14 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
-### `test_phase1_schema.py` (778줄) — Phase 1 스키마 & 기반 인프라 테스트.
+### `test_phase1_schema.py` (759줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
 - class **TestSchemaCreation**: test_all_pipeline_tables_exist, test_all_app_tables_exist, test_canonical_view_exists, test_schema_version, test_activity_summaries_column_count, test_distance_is_meters_not_km, test_metric_store_columns, test_daily_wellness_no_source_column
-- class **TestConstraints**: test_activity_summaries_unique, test_metric_store_unique, test_metric_store_same_name_different_provider, test_daily_wellness_unique_date, test_daily_fitness_unique_date_source
+- class **TestConstraints**: test_activity_summaries_unique, test_metric_store_unique, test_metric_store_same_name_different_provider, test_daily_wellness_unique_date
 - class **TestCanonicalView**: test_canonical_returns_one_per_group, test_canonical_prefers_garmin, test_canonical_intervals_second_priority
 - class **TestMetricRegistry**: test_registry_size, test_canonicalize_garmin_alias, test_canonicalize_intervals_trimp, test_canonicalize_direct_name, test_canonicalize_unmapped, test_get_metric_exists, test_get_metric_not_exists, test_list_by_category, test_list_by_scope, test_all_categories_documented
 - class **TestMetricPriority**: test_user_highest_priority, test_runpulse_ml_higher_than_formula, test_runpulse_higher_than_garmin, test_garmin_higher_than_strava, test_unknown_provider, test_resolve_primary_basic, test_user_override, test_resolve_for_scope
-- class **TestDbHelpers**: test_upsert_payload_new, test_upsert_payload_unchanged, test_upsert_payload_changed, test_get_payload, test_upsert_activity, test_upsert_activity_update, test_upsert_metric_and_get_primary, test_upsert_metrics_batch, test_get_all_providers, test_get_metrics_by_category, test_upsert_daily_wellness_merge, test_upsert_daily_fitness, test_get_db_status, test_get_activity_list
+- class **TestDbHelpers**: test_upsert_payload_new, test_upsert_payload_unchanged, test_upsert_payload_changed, test_get_payload, test_upsert_activity, test_upsert_activity_update, test_upsert_metric_and_get_primary, test_upsert_metrics_batch, test_get_all_providers, test_get_metrics_by_category, test_upsert_daily_wellness_merge, test_get_db_status, test_get_activity_list
 - class **TestMigration**: test_migrate_idempotent, test_create_tables_idempotent
 - class **TestPerformance**: test_activity_list_under_200ms, test_metric_store_bulk_insert
 - class **TestRealDbDefault**: test_existing_tables, test_migrate_creates_new_tables, test_existing_data_preserved, test_schema_version_updated
@@ -1201,7 +1201,7 @@
 
 - functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error
 
-### `test_reprocess.py` (248줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
+### `test_reprocess.py` (251줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
 - class **TestReprocessActivity**: test_rebuilds_from_raw, test_metrics_rebuilt, test_primary_resolved, test_preserves_raw, test_clears_derived_only, test_no_clear_accumulates
 - class **TestReprocessWellness**: test_wellness_rebuilt, test_wellness_metrics_rebuilt
@@ -1331,13 +1331,21 @@
 
 ## `scripts/`
 
-### `check_docs.py` (698줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
+### `check_data_consistency.py` (335줄) — RunPulse 데이터 정합성 검증 v1.3
 
-- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, main
+- functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
+
+### `check_docs.py` (902줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
+
+- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, main
 
 ### `encrypt_existing_configs.py` (153줄) — 기존 config.json 파일의 자격증명을 Fernet으로 암호화하는 마이그레이션 스크립트.
 
 - functions: main
+
+### `gen_data_master.py` (276줄) — 데이터 마스터 시트 자동 생성 v3.
+
+- functions: parse_db_setup, cross_validate, generate
 
 ### `gen_files_index.py` (137줄) — files_index.md 자동 생성.
 
@@ -1348,7 +1356,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 277개 파일
+총 279개 파일
 
 ## docstring 누락
 

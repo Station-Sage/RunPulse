@@ -12,7 +12,7 @@ class EfficiencyFactorCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "activity"
-    category = "rp_efficiency"
+    category = "efficiency"
     display_name = "효율 계수 (EF)"
     description = "평균속도/평균심박 × 1000. 높을수록 효율적."
     unit = ""

@@ -43,6 +43,8 @@ SAMPLE_ACTIVITY = {
     "aerobicTrainingEffect": 3.5,
     "anaerobicTrainingEffect": 1.2,
     "activityTrainingLoad": 145.0,
+    "vO2MaxValue": 52.0,
+    "trainingStressScore": 80.0,
 }
 
 SAMPLE_DETAIL = {

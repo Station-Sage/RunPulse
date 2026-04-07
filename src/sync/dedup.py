@@ -19,8 +19,11 @@ DISTANCE_THRESHOLD = 0.03
 def run(conn: sqlite3.Connection) -> int:
     """전체 activity_summaries에 대해 dedup 실행.
 
+    matched_group_id를 전체 초기화 후 재계산.
     Returns: 새로 묶인 그룹 수.
     """
+    conn.execute("UPDATE activity_summaries SET matched_group_id = NULL")
+
     rows = conn.execute(
         "SELECT id, source, source_id, start_time, distance_m, matched_group_id "
         "FROM activity_summaries ORDER BY start_time"

@@ -109,4 +109,4 @@ class TestSAPI:
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = SAPICalculator().compute(ctx)
         if results:
-            assert results[0].category == "rp_performance"
+            assert results[0].category == "capacity"

@@ -15,7 +15,7 @@ class RTTICalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_load"
+    category = "load"
     requires = ["ctl", "atl"]
     produces = ["rtti"]
 

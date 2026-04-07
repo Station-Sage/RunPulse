@@ -71,35 +71,27 @@ class IntervalsExtractor(BaseExtractor):
         raw = detail_raw or summary_raw
 
         metrics = self._collect(
-            # Training Load
             self._metric("trimp", raw.get("icu_trimp"),
-                         category="training_load", raw_name="icu_trimp"),
+                         raw_name="icu_trimp"),
             self._metric("hrss", raw.get("icu_hrss"),
-                         category="training_load", raw_name="icu_hrss"),
-            # Efficiency
+                         raw_name="icu_hrss"),
             self._metric("efficiency_factor",
                          raw.get("icu_efficiency_factor"),
-                         category="efficiency",
                          raw_name="icu_efficiency_factor"),
             self._metric("aerobic_decoupling",
                          raw.get("icu_decoupling"),
-                         category="efficiency",
                          raw_name="icu_decoupling"),
             self._metric("variability_index",
                          raw.get("icu_variability_index"),
-                         category="efficiency",
                          raw_name="icu_variability_index"),
-            # Power
             self._metric("icu_ftp", raw.get("icu_ftp"),
-                         category="power", raw_name="icu_ftp"),
-            # Pace
+                         raw_name="icu_ftp"),
             self._metric("gap", raw.get("icu_gap"),
-                         category="fitness", raw_name="icu_gap"),
-            # Perception
+                         raw_name="icu_gap"),
             self._metric("icu_rpe", raw.get("icu_rpe"),
-                         category="perception", raw_name="icu_rpe"),
+                         raw_name="icu_rpe"),
             self._metric("icu_feel", raw.get("icu_feel"),
-                         category="perception", raw_name="icu_feel"),
+                         raw_name="icu_feel"),
         )
 
         # HR Zone times (JSON)
@@ -109,14 +101,13 @@ class IntervalsExtractor(BaseExtractor):
                 if secs is not None:
                     r = self._metric(
                         f"hr_zone_{i+1}_sec", secs,
-                        category="hr_zone",
                         raw_name=f"icu_hr_zone_times[{i}]",
                     )
                     if r:
                         metrics.append(r)
             r = self._metric(
                 "hr_zones_detail", json_val=hr_zones,
-                category="hr_zone", raw_name="icu_hr_zone_times",
+                raw_name="icu_hr_zone_times",
             )
             if r:
                 metrics.append(r)
@@ -125,7 +116,7 @@ class IntervalsExtractor(BaseExtractor):
         if raw.get("icu_power_curve"):
             r = self._metric(
                 "power_curve", json_val=raw["icu_power_curve"],
-                category="power", raw_name="icu_power_curve",
+                raw_name="icu_power_curve",
             )
             if r:
                 metrics.append(r)
@@ -138,8 +129,7 @@ class IntervalsExtractor(BaseExtractor):
         ]:
             val = raw.get(field)
             if val is not None:
-                r = self._metric(metric, val,
-                                 category="weather", raw_name=field)
+                r = self._metric(metric, val, raw_name=field)
                 if r:
                     metrics.append(r)
 

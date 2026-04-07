@@ -17,6 +17,9 @@
 13. 서비스 레이어 의존 함수 존재 검증                      [phase]
 14. 설계서 숫자 표현 일치 (테이블 수, 컬럼 수)            [schema]
 15. docstring 누락 검사                                   [code]
+16. Phase 2 Extractor 파일 존재 & 인터페이스 검증          [phase]
+17. Phase 3 Sync 핵심 파일 존재 검증                      [phase]
+18. Phase 4 Metrics Engine 파일 존재 & 인터페이스 검증    [phase]
 
 사용법:
   python3 scripts/check_docs.py              # 전체 실행
@@ -432,15 +435,6 @@ def check_schema_columns():
         warn("architecture.md, phase-1.md 모두 없음")
         return
 
-    # KNOWN PENDING: db_setup.py activity_summaries에 6개 메트릭 컬럼 잔존.
-    # 설계서는 38컬럼으로 확정, 코드 반영은 Phase 5 코드 동기화에서 일괄 처리.
-    PENDING_COLUMNS = {
-        "activity_summaries": {
-            "training_load", "suffer_score", "training_effect_aerobic",
-            "training_effect_anaerobic", "normalized_power", "calories",
-        }
-    }
-
     for table in ["activity_summaries", "daily_wellness", "daily_fitness", "metric_store"]:
         setup_cols = _parse_columns_from_ddl(setup_text, table)
         if not setup_cols:
@@ -456,16 +450,11 @@ def check_schema_columns():
                 doc_set, setup_set = set(doc_cols), set(setup_cols)
                 only_doc = doc_set - setup_set
                 only_setup = setup_set - doc_set
-                pending = PENDING_COLUMNS.get(table, set())
-                if only_setup and only_setup <= pending and not only_doc:
-                    warn(f"{table}: {doc_name}={len(doc_cols)}, db_setup.py={len(setup_cols)} "
-                         f"(known pending: {sorted(only_setup)}, Phase 5 코드 동기화 시 해결)")
-                else:
-                    error(f"{table} 컬럼 수 불일치: {doc_name}={len(doc_cols)}, db_setup.py={len(setup_cols)}")
-                    if only_doc:
-                        print(f"    {doc_name}에만 있음: {sorted(only_doc)}")
-                    if only_setup:
-                        print(f"    db_setup.py에만 있음: {sorted(only_setup)}")
+                error(f"{table} 컬럼 수 불일치: {doc_name}={len(doc_cols)}, db_setup.py={len(setup_cols)}")
+                if only_doc:
+                    print(f"    {doc_name}에만 있음: {sorted(only_doc)}")
+                if only_setup:
+                    print(f"    db_setup.py에만 있음: {sorted(only_setup)}")
             else:
                 doc_set, setup_set = set(doc_cols), set(setup_cols)
                 if doc_set != setup_set:
@@ -618,12 +607,7 @@ def check_doc_numbers():
                     doc_num = int(m.group(1))
                     if doc_num != actual:
                         line_num = text[:m.start()].count("\n") + 1
-                        # known pending: activity_summaries 38(설계) vs 44(코드)
-                        if table == "activity_summaries" and doc_num == 38 and actual == 44:
-                            warn(f"{rel}:{line_num} — {table} 컬럼 수: 문서={doc_num}, 코드={actual} "
-                                 f"(known pending: 6개 메트릭 컬럼 Phase 5 코드 동기화 시 제거)")
-                        else:
-                            error(f"{rel}:{line_num} — {table} 컬럼 수: 문서={doc_num}, 코드={actual}")
+                        error(f"{rel}:{line_num} — {table} 컬럼 수: 문서={doc_num}, 코드={actual}")
                     break
 
     if not actual_counts:
@@ -662,6 +646,217 @@ def check_docstrings():
         print(f"  총 {len(missing)}개 파일에 docstring 없음")
     else:
         ok("모든 .py 파일에 docstring 있음")
+
+
+# ════════════════════════════════════════
+#  16. Phase 2 Extractor 파일 존재 & 인터페이스
+# ════════════════════════════════════════
+@check("16. Phase 2 Extractor 파일 존재 & 인터페이스", ["phase"])
+def check_phase2_extractors():
+    extractors_dir = ROOT / "src" / "sync" / "extractors"
+
+    # 필수 파일 존재 확인
+    required = [
+        "base.py", "__init__.py",
+        "garmin_extractor.py", "strava_extractor.py",
+        "intervals_extractor.py", "runalyze_extractor.py",
+    ]
+    missing = [f for f in required if not (extractors_dir / f).exists()]
+    if missing:
+        for f in missing:
+            error(f"src/sync/extractors/{f} 없음")
+        return
+    ok(f"Extractor 파일 {len(required)}개 전부 존재")
+
+    # get_extractor() 팩토리 함수 확인
+    init_text = (extractors_dir / "__init__.py").read_text(encoding="utf-8")
+    if "def get_extractor" not in init_text:
+        error("get_extractor() 없음 — src/sync/extractors/__init__.py")
+    else:
+        ok("get_extractor() 팩토리 함수 존재")
+
+    # activity_types.py 존재 확인
+    if not (ROOT / "src" / "utils" / "activity_types.py").exists():
+        error("src/utils/activity_types.py 없음")
+    else:
+        ok("activity_types.py 존재")
+
+    # 각 extractor에 SOURCE 클래스 변수 및 필수 메서드 확인
+    ext_files = [
+        ("garmin_extractor.py", "garmin"),
+        ("strava_extractor.py", "strava"),
+        ("intervals_extractor.py", "intervals"),
+        ("runalyze_extractor.py", "runalyze"),
+    ]
+    for fname, source in ext_files:
+        text = (extractors_dir / fname).read_text(encoding="utf-8")
+        if f'SOURCE = "{source}"' not in text:
+            warn(f"{fname}: SOURCE = \"{source}\" 없음")
+        if "def extract_activity_core" not in text:
+            error(f"{fname}: extract_activity_core() 미구현")
+        if "def extract_activity_metrics" not in text:
+            error(f"{fname}: extract_activity_metrics() 미구현")
+
+    ok("4개 Extractor SOURCE, extract_activity_core/metrics 구현 확인")
+
+
+# ════════════════════════════════════════
+#  17. Phase 3 Sync 핵심 파일 존재 검증
+# ════════════════════════════════════════
+@check("17. Phase 3 Sync 핵심 파일 존재 검증", ["phase"])
+def check_phase3_sync():
+    sync_dir = ROOT / "src" / "sync"
+    required = [
+        "sync_result.py", "rate_limiter.py", "raw_store.py", "_helpers.py",
+        "dedup.py", "orchestrator.py", "reprocess.py",
+        "garmin_activity_sync.py", "garmin_wellness_sync.py",
+        "strava_activity_sync.py", "intervals_activity_sync.py",
+        "runalyze_activity_sync.py",
+    ]
+    missing = [f for f in required if not (sync_dir / f).exists()]
+    if missing:
+        for f in missing:
+            error(f"src/sync/{f} 없음")
+    else:
+        ok(f"Phase 3 핵심 파일 {len(required)}개 전부 존재")
+
+    # CLI 진입점
+    if not (ROOT / "src" / "sync_cli.py").exists():
+        warn("src/sync_cli.py 없음")
+    else:
+        ok("sync_cli.py 존재")
+
+    # full_sync() 존재 확인
+    orch = sync_dir / "orchestrator.py"
+    if orch.exists():
+        text = orch.read_text(encoding="utf-8")
+        if "def full_sync" not in text:
+            warn("orchestrator.py: full_sync() 없음")
+        else:
+            ok("orchestrator.py: full_sync() 존재")
+
+    # dedup.run() 존재 + 전체 초기화 설계 확인
+    dedup = sync_dir / "dedup.py"
+    if dedup.exists():
+        text = dedup.read_text(encoding="utf-8")
+        if "def run" not in text:
+            warn("dedup.py: run() 없음")
+        else:
+            ok("dedup.py: run() 존재")
+        if "matched_group_id = NULL" not in text:
+            error("dedup.py: run() 시작 시 matched_group_id 전체 초기화 없음 (설계: 전체 reset 후 재계산)")
+        else:
+            ok("dedup.py: matched_group_id 전체 초기화 확인")
+
+    # reprocess_all() 존재 확인
+    rp = sync_dir / "reprocess.py"
+    if rp.exists():
+        text = rp.read_text(encoding="utf-8")
+        if "def reprocess_all" not in text:
+            warn("reprocess.py: reprocess_all() 없음")
+        else:
+            ok("reprocess.py: reprocess_all() 존재")
+
+    # wellness entity_type 이름 검증 (설계: wellness_* prefix)
+    OLD_WELLNESS_TYPES = {"sleep_day", "hrv_day", "body_battery_day",
+                          "stress_day", "user_summary_day"}
+    gws = sync_dir / "garmin_wellness_sync.py"
+    if gws.exists():
+        text = gws.read_text(encoding="utf-8")
+        old_found = [t for t in OLD_WELLNESS_TYPES if f'"{t}"' in text or f"'{t}'" in text]
+        if old_found:
+            error(f"garmin_wellness_sync.py: 구버전 entity_type 사용 — {', '.join(old_found)} (→ wellness_* 로 변경)")
+        else:
+            ok("garmin_wellness_sync.py: wellness_* entity_type 사용 확인")
+    if rp.exists():
+        text = (sync_dir / "reprocess.py").read_text(encoding="utf-8")
+        old_found = [t for t in OLD_WELLNESS_TYPES if f'"{t}"' in text or f"'{t}'" in text]
+        if old_found:
+            error(f"reprocess.py: 구버전 wellness entity_type 사용 — {', '.join(old_found)}")
+        else:
+            ok("reprocess.py: wellness_* entity_type 사용 확인")
+
+
+@check("18. Phase 4 Metrics Engine 파일 존재 & 인터페이스 검증", ["phase"])
+def check_phase4_metrics():
+    metrics_dir = ROOT / "src" / "metrics"
+
+    # 핵심 파일 확인
+    required = [
+        "base.py", "engine.py", "cli.py", "reprocess.py",
+        "trimp.py", "hrss.py", "pmc.py", "acwr.py", "cirs.py",
+        "utrs.py", "vdot.py", "darp.py", "classifier.py",
+    ]
+    missing = [f for f in required if not (metrics_dir / f).exists()]
+    if missing:
+        for f in missing:
+            error(f"src/metrics/{f} 없음")
+    else:
+        ok(f"Phase 4 핵심 파일 {len(required)}개 전부 존재")
+
+    # engine.py: ALL_CALCULATORS 수 + topological_sort + 핵심 함수
+    engine = metrics_dir / "engine.py"
+    if engine.exists():
+        text = engine.read_text(encoding="utf-8")
+        if "ALL_CALCULATORS" not in text:
+            error("engine.py: ALL_CALCULATORS 없음")
+        else:
+            ok("engine.py: ALL_CALCULATORS 존재")
+        if "_topological_sort" not in text:
+            error("engine.py: _topological_sort() 없음")
+        else:
+            ok("engine.py: _topological_sort() 존재")
+        required_fns = ["recompute_recent", "recompute_all", "clear_runpulse_metrics"]
+        missing_fns = [f for f in required_fns if f"def {f}" not in text]
+        if missing_fns:
+            for fn in missing_fns:
+                error(f"engine.py: {fn}() 없음")
+        else:
+            ok(f"engine.py: 실행 함수 {required_fns} 전부 존재")
+        # ALL_CALCULATORS 수 검증 (설계: 32개)
+        try:
+            from src.metrics.engine import ALL_CALCULATORS
+            if len(ALL_CALCULATORS) != 32:
+                error(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계: 32개)")
+            else:
+                ok(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계 32개 일치)")
+        except Exception:
+            warn("ALL_CALCULATORS import 실패 — 수 검증 건너뜀")
+
+    # base.py: CalcContext 전체 API (14개) + CalcResult + ConfidenceBuilder
+    base = metrics_dir / "base.py"
+    if base.exists():
+        text = base.read_text(encoding="utf-8")
+        required_apis = [
+            "def get_metric", "def get_metric_json", "def get_metric_text",
+            "def get_wellness", "def get_streams", "def get_laps",
+            "def get_activities_in_range", "def get_activity_metric",
+            "def get_activity_metric_text", "def get_activity_metric_series",
+            "def get_daily_load", "def get_daily_metric_series",
+            "def get_wellness_series", "def update_metric_cache",
+        ]
+        missing_api = [api for api in required_apis if api not in text]
+        if missing_api:
+            for api in missing_api:
+                error(f"base.py: CalcContext {api}() 없음")
+        else:
+            ok(f"base.py: CalcContext API {len(required_apis)}개 전부 존재")
+        for cls in ["CalcResult", "ConfidenceBuilder"]:
+            if f"class {cls}" not in text:
+                error(f"base.py: {cls} 없음")
+            else:
+                ok(f"base.py: {cls} 존재")
+
+    # SEMANTIC_GROUPS 확인 (metric_groups.py)
+    mg = ROOT / "src" / "utils" / "metric_groups.py"
+    if not mg.exists():
+        error("src/utils/metric_groups.py 없음")
+    else:
+        text = mg.read_text(encoding="utf-8")
+        if "SEMANTIC_GROUPS" not in text:
+            error("metric_groups.py: SEMANTIC_GROUPS 없음")
+        else:
+            ok("metric_groups.py: SEMANTIC_GROUPS 존재")
 
 
 # ════════════════════════════════════════

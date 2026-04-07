@@ -17,7 +17,7 @@ class MonotonyStrainCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_load"
+    category = "load"
     display_name = "단조로움 (Monotony)"
     description = "7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험."
     unit = ""

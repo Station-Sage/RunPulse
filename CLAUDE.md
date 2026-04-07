@@ -55,6 +55,7 @@
   - 디렉토리 설명: `__init__.py` docstring
   - 파일 설명: 각 `.py` 모듈 docstring 첫 줄
 - 문서 정합성 확인: `/doc-sync` (코딩 중 수시로)
+- 데이터 정합성 확인: `/check-data-consistency` (registry/DDL/Extractor 교차 검증)
 - 커밋 전 전체 검증: `/pre-commit`
 
 ---

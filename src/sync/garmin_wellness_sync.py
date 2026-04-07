@@ -24,12 +24,12 @@ class _RateLimitStop(Exception):
 
 
 WELLNESS_ENDPOINTS = {
-    "sleep_day": lambda api, d: api.get_sleep_data(d),
-    "hrv_day": lambda api, d: api.get_hrv_data(d),
-    "body_battery_day": lambda api, d: api.get_body_battery(d),
-    "stress_day": lambda api, d: api.get_stress_data(d),
-    "user_summary_day": lambda api, d: api.get_user_summary(d),
-    "training_readiness": lambda api, d: api.get_training_readiness(d),
+    "wellness_sleep": lambda api, d: api.get_sleep_data(d),
+    "wellness_hrv": lambda api, d: api.get_hrv_data(d),
+    "wellness_body_battery": lambda api, d: api.get_body_battery(d),
+    "wellness_stress": lambda api, d: api.get_stress_data(d),
+    "wellness_user_summary": lambda api, d: api.get_user_summary(d),
+    "wellness_training_readiness": lambda api, d: api.get_training_readiness(d),
 }
 
 
@@ -118,7 +118,7 @@ def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
     if metrics:
         save_metrics(conn, "daily", date_str, "garmin", metrics)
 
-    user_summary = raw_payloads.get("user_summary_day", {})
+    user_summary = raw_payloads.get("wellness_user_summary", {})
     fitness = extractor.extract_fitness(date_str, user_summary)
     if fitness.get("vo2max") is not None:
         save_daily_fitness(conn, date_str, "garmin", fitness)

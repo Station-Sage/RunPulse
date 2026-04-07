@@ -67,22 +67,21 @@ class StravaExtractor(BaseExtractor):
 
         metrics = self._collect(
             self._metric("kilojoules", raw.get("kilojoules"),
-                         category="general", raw_name="kilojoules"),
-            self._metric("perceived_exertion",
+                         raw_name="kilojoules"),
+            self._metric("icu_rpe",
                          raw.get("perceived_exertion"),
-                         category="general",
                          raw_name="perceived_exertion"),
             self._metric("achievement_count",
                          raw.get("achievement_count"),
-                         category="social", raw_name="achievement_count"),
+                         raw_name="achievement_count"),
             self._metric("pr_count", raw.get("pr_count"),
-                         category="social", raw_name="pr_count"),
+                         raw_name="pr_count"),
             self._metric("kudos_count", raw.get("kudos_count"),
-                         category="social", raw_name="kudos_count"),
+                         raw_name="kudos_count"),
             # normalized_power 삭제 — activity_summaries 컬럼과 중복 (이중 저장 금지 원칙)
             self._metric("timezone_offset",
                          text=raw.get("timezone"),
-                         category="general", raw_name="timezone"),
+                         raw_name="timezone"),
         )
 
         # Segment Efforts
@@ -90,7 +89,7 @@ class StravaExtractor(BaseExtractor):
             r = self._metric(
                 "segment_efforts",
                 json_val=_simplify_segments(raw["segment_efforts"]),
-                category="general", raw_name="segment_efforts",
+                raw_name="segment_efforts",
             )
             if r:
                 metrics.append(r)
@@ -99,7 +98,7 @@ class StravaExtractor(BaseExtractor):
         if raw.get("splits_metric"):
             r = self._metric(
                 "splits_metric", json_val=raw["splits_metric"],
-                category="general", raw_name="splits_metric",
+                raw_name="splits_metric",
             )
             if r:
                 metrics.append(r)

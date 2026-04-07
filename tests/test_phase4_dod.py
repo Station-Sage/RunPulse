@@ -55,13 +55,13 @@ class TestDoD1:
         names = {c.name for c in ALL_CALCULATORS}
         expected = {
             "trimp", "hrss", "aerobic_decoupling_rp", "gap_rp",
-            "workout_type", "runpulse_vdot", "efficiency_factor_rp", "fearp",
+            "workout_type_classified", "runpulse_vdot", "efficiency_factor_rp", "fearp",
             "ctl", "acwr", "lsi", "monotony",
             "utrs", "cirs", "di", "darp", "tids", "rmr", "adti",
         }
         core_19 = {
             "trimp", "hrss", "aerobic_decoupling_rp", "gap_rp",
-            "workout_type", "runpulse_vdot", "efficiency_factor_rp",
+            "workout_type_classified", "runpulse_vdot", "efficiency_factor_rp",
             "fearp", "ctl", "acwr", "lsi", "monotony",
             "utrs", "cirs", "di", "darp", "tids", "rmr", "adti",
         }
@@ -122,7 +122,7 @@ class TestDoD5:
         )
         conn.commit()
         results = run_activity_metrics(conn, 1)
-        required = {"trimp", "workout_type", "efficiency_factor_rp"}
+        required = {"trimp", "workout_type_classified", "efficiency_factor_rp"}
         assert required.issubset(set(results.keys())), \
             f"Missing: {required - set(results.keys())}, got: {set(results.keys())}"
 

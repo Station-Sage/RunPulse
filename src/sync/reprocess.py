@@ -240,8 +240,9 @@ def _reprocess_best_efforts(conn, source, activity_id_map, stats):
 def _reprocess_wellness(conn, source, stats):
     """Wellness payloads → daily_wellness + metric_store + daily_fitness."""
     wellness_types = (
-        "sleep_day", "hrv_day", "body_battery_day", "stress_day",
-        "user_summary_day", "training_readiness", "wellness_day", "wellness",
+        "wellness_sleep", "wellness_hrv", "wellness_body_battery", "wellness_stress",
+        "wellness_user_summary", "wellness_training_readiness",
+        "wellness_day", "wellness",  # intervals 전용
     )
     placeholders = ",".join("?" * len(wellness_types))
     query = (

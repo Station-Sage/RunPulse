@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성: 2026-04-05 | 32 calculators | 13 semantic groups
+> 자동 생성: 2026-04-07 | 32 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -44,7 +44,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `trimp` |
 | 설명 | 심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표. |
 | 단위 | AU |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | 소스 데이터 직접 사용 |
 
 **범위 해석:**
@@ -66,7 +66,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `hrss` |
 | 설명 | TRIMP을 젖산역치 심박으로 정규화한 스트레스 점수. 1시간 LTHR 운동 = 100. |
 | 단위 | 점 |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `trimp` |
 
 ---
@@ -78,7 +78,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `aerobic_decoupling_rp` |
 | 설명 | 후반부 효율 저하율. <5% = 좋은 유산소 체력. |
 | 단위 | % |
-| 카테고리 | `rp_efficiency` |
+| 카테고리 | `efficiency` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 낮을수록 좋음 |
 
@@ -100,7 +100,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `gap_rp` |
 | 설명 | Minetti 모델로 경사를 보정한 평지 환산 페이스. |
 | 단위 | sec/km |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 낮을수록 좋음 |
 
@@ -110,10 +110,10 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
-| 메트릭 이름 | `workout_type` |
+| 메트릭 이름 | `workout_type_classified` |
 | 설명 | 거리, 심박, 존 분포 기반 규칙 분류. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_classification` |
+| 카테고리 | `meta` |
 | 의존성 | 소스 데이터 직접 사용 |
 
 ---
@@ -125,7 +125,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `runpulse_vdot` |
 | 설명 | Jack Daniels VDOT. 거리와 시간으로 추정한 VO₂Max 지표. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 높을수록 좋음 |
 
@@ -147,7 +147,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `efficiency_factor_rp` |
 | 설명 | 평균속도/평균심박 × 1000. 높을수록 효율적. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_efficiency` |
+| 카테고리 | `efficiency` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 높을수록 좋음 |
 
@@ -160,7 +160,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `fearp` |
 | 설명 | 기온, 습도, 고도를 보정한 환경 보정 페이스. |
 | 단위 | sec/km |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 낮을수록 좋음 |
 
@@ -173,7 +173,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `relative_effort` |
 | 설명 | 심박존 기반 노력도 점수 (Strava 방식) |
 | 단위 | AU |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | 소스 데이터 직접 사용 |
 
 **범위 해석:**
@@ -194,7 +194,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `wlei` |
 | 설명 | TRIMP에 기온/습도 스트레스 계수를 적용한 실제 신체 부담 지수 |
 | 단위 | AU |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `trimp` |
 
 **범위 해석:**
@@ -219,7 +219,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `ctl`, `atl`, `tsb`, `ramp_rate` |
 | 설명 | Performance Management Chart. 42일 만성부하(CTL), 7일 급성부하(ATL), 훈련균형(TSB). |
 | 단위 | AU |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `trimp` |
 
 ---
@@ -231,7 +231,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `acwr` |
 | 설명 | 급성:만성 부하 비율. 최적 범위 0.8~1.3. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `ctl`, `atl` |
 
 **범위 해석:**
@@ -252,7 +252,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `lsi` |
 | 설명 | 당일 부하 / 21일 평균. >1.5면 급격한 부하 증가. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `trimp` |
 
 **범위 해석:**
@@ -272,7 +272,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `monotony`, `training_strain` |
 | 설명 | 7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `trimp` |
 | 해석 | 낮을수록 좋음 |
 
@@ -293,7 +293,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `utrs` |
 | 설명 | 수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도. |
 | 단위 | 점 |
-| 카테고리 | `rp_readiness` |
+| 카테고리 | `readiness` |
 | 의존성 | `tsb` |
 | 해석 | 높을수록 좋음 |
 
@@ -316,7 +316,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `cirs` |
 | 설명 | ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도. |
 | 단위 | 점 |
-| 카테고리 | `rp_risk` |
+| 카테고리 | `readiness` |
 | 의존성 | `acwr`, `lsi`, `ctl`, `tsb` |
 | 해석 | 낮을수록 좋음 |
 
@@ -338,7 +338,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `di` |
 | 설명 | 장거리 달리기에서 후반 페이스 유지 능력. 0~100. |
 | 단위 | 점 |
-| 카테고리 | `rp_endurance` |
+| 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 높을수록 좋음 |
 
@@ -348,10 +348,10 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
-| 메트릭 이름 | `darp_5k`, `darp_10k`, `darp_half`, `darp_marathon` |
+| 메트릭 이름 | `darp_5k_sec`, `darp_10k_sec`, `darp_half_sec`, `darp_marathon_sec` |
 | 설명 | VDOT과 내구성 지수 기반 레이스 시간 예측. |
 | 단위 | sec |
-| 카테고리 | `rp_prediction` |
+| 카테고리 | `prediction` |
 | 의존성 | `runpulse_vdot` |
 | 해석 | 낮을수록 좋음 |
 
@@ -364,8 +364,8 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `tids` |
 | 설명 | 8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_distribution` |
-| 의존성 | `workout_type` |
+| 카테고리 | `load` |
+| 의존성 | `workout_type_classified` |
 
 ---
 
@@ -376,7 +376,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `rmr` |
 | 설명 | 안정심박, 체력배터리, TSB, 수면을 종합한 회복 상태. |
 | 단위 | 점 |
-| 카테고리 | `rp_recovery` |
+| 카테고리 | `readiness` |
 | 의존성 | `tsb` |
 | 해석 | 높을수록 좋음 |
 
@@ -399,7 +399,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `adti` |
 | 설명 | 28일간 CTL 변화율. 양수=상승, 음수=하락. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_trend` |
+| 카테고리 | `load` |
 | 의존성 | `ctl` |
 | 해석 | 높을수록 좋음 |
 
@@ -420,7 +420,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `teroi` |
 | 설명 | TRIMP 투입 대비 CTL 증가율. 높을수록 효율적 훈련. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_trend` |
+| 카테고리 | `efficiency` |
 | 의존성 | `ctl`, `trimp` |
 | 해석 | 높을수록 좋음 |
 
@@ -442,7 +442,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `tpdi` |
 | 설명 | 실내 vs 실외 달리기 FEARP 격차. 0에 가까울수록 일관됨. |
 | 단위 | % |
-| 카테고리 | `rp_trend` |
+| 카테고리 | `efficiency` |
 | 의존성 | `fearp` |
 | 해석 | 낮을수록 좋음 |
 
@@ -463,7 +463,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `rec` |
 | 설명 | EF와 Decoupling 기반 통합 러닝 효율성 (0~100) |
 | 단위 | 무차원 |
-| 카테고리 | `rp_efficiency` |
+| 카테고리 | `efficiency` |
 | 의존성 | `efficiency_factor_rp`, `aerobic_decoupling_rp` |
 | 해석 | 높을수록 좋음 |
 
@@ -485,7 +485,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `rtti` |
 | 설명 | ATL/CTL 기반 훈련 내성. 100=적정, >100 과부하, <70 여유. |
 | 단위 | % |
-| 카테고리 | `rp_load` |
+| 카테고리 | `load` |
 | 의존성 | `ctl`, `atl` |
 
 **범위 해석:**
@@ -506,7 +506,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `critical_power` |
 | 설명 | 임계 파워 (W). 2파라미터 선형 회귀 모델. |
 | 단위 | W |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `power_curve` |
 | 해석 | 높을수록 좋음 |
 
@@ -527,7 +527,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `sapi` |
 | 설명 | 기온 구간별 FEARP 비교. 100=기준 동일, >100 더 빠름. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `fearp` |
 | 해석 | 높을수록 좋음 |
 
@@ -548,7 +548,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `rri` |
 | 설명 | VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100) |
 | 단위 | 무차원 |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `runpulse_vdot`, `ctl`, `di`, `cirs` |
 | 해석 | 높을수록 좋음 |
 
@@ -570,7 +570,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `eftp` |
 | 설명 | 기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름. |
 | 단위 | sec/km |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `runpulse_vdot` |
 | 해석 | 낮을수록 좋음 |
 
@@ -592,7 +592,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `vdot_adj` |
 | 설명 | 역치 페이스 기반 현재 체력 VDOT 보정값 |
 | 단위 | 무차원 |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `runpulse_vdot` |
 | 해석 | 높을수록 좋음 |
 
@@ -614,7 +614,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `marathon_shape` |
 | 설명 | 마라톤 훈련 완성도 (%). 주간볼륨+장거리런 기반. |
 | 단위 | % |
-| 카테고리 | `rp_performance` |
+| 카테고리 | `capacity` |
 | 의존성 | `runpulse_vdot` |
 | 해석 | 높을수록 좋음 |
 
@@ -637,7 +637,7 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 이름 | `crs` |
 | 설명 | 게이트 기반 복합 준비도. level 0~4 + CRS 참고 점수 0~100. |
 | 단위 | 무차원 |
-| 카테고리 | `rp_readiness` |
+| 카테고리 | `readiness` |
 | 의존성 | `acwr`, `tsb`, `cirs`, `utrs` |
 | 해석 | 높을수록 좋음 |
 
@@ -799,7 +799,7 @@ Activity-scope:
   trimp --> hrss
   (소스 직접) --> aerobic_decoupling_rp
   (소스 직접) --> gap_rp
-  (소스 직접) --> workout_type
+  (소스 직접) --> workout_type_classified
   (소스 직접) --> runpulse_vdot
   (소스 직접) --> efficiency_factor_rp
   (소스 직접) --> fearp
@@ -814,8 +814,8 @@ Daily-scope:
   tsb --> utrs
   acwr + lsi + ctl + tsb --> cirs
   (소스 직접) --> di
-  runpulse_vdot --> darp_5k, darp_10k, darp_half, darp_marathon
-  workout_type --> tids
+  runpulse_vdot --> darp_5k_sec, darp_10k_sec, darp_half_sec, darp_marathon_sec
+  workout_type_classified --> tids
   tsb --> rmr
   ctl --> adti
   ctl + trimp --> teroi
@@ -835,17 +835,12 @@ Daily-scope:
 
 | 카테고리 | 한글명 | 포함 메트릭 |
 |----------|--------|------------|
-| `rp_classification` | 운동 분류 | `workout_type` |
-| `rp_distribution` | 강도 분포 | `tids` |
-| `rp_efficiency` | 러닝 효율성 | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `rec` |
-| `rp_endurance` | 내구성 | `di` |
-| `rp_load` | 훈련 부하 | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `relative_effort`, `wlei`, `rtti` |
-| `rp_performance` | 성과 지표 | `gap_rp`, `runpulse_vdot`, `fearp`, `critical_power`, `sapi`, `rri`, `eftp`, `vdot_adj`, `marathon_shape` |
-| `rp_prediction` | 레이스 예측 | `darp_5k`, `darp_10k`, `darp_half`, `darp_marathon` |
-| `rp_readiness` | 훈련 준비도 | `utrs`, `crs` |
-| `rp_recovery` | 회복 상태 | `rmr` |
-| `rp_risk` | 부상 위험 | `cirs` |
-| `rp_trend` | 훈련 추세 | `adti`, `teroi`, `tpdi` |
+| `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `vdot_adj`, `marathon_shape` |
+| `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
+| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
+| `meta` | meta | `workout_type_classified` |
+| `prediction` | prediction | `darp_5k_sec`, `darp_10k_sec`, `darp_half_sec`, `darp_marathon_sec` |
+| `readiness` | readiness | `utrs`, `cirs`, `rmr`, `crs` |
 
 ## 7. 소스별 원본 메트릭 (참고)
 

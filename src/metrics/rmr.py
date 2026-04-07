@@ -12,7 +12,7 @@ class RMRCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_recovery"
+    category = "readiness"
     display_name = "회복 준비도 (RMR)"
     description = "안정심박, 체력배터리, TSB, 수면을 종합한 회복 상태."
     unit = "점"

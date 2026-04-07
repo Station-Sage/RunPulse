@@ -14,7 +14,7 @@ class AerobicDecouplingCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "activity"
-    category = "rp_efficiency"
+    category = "efficiency"
     display_name = "유산소 분리"
     description = "후반부 효율 저하율. <5% = 좋은 유산소 체력."
     unit = "%"

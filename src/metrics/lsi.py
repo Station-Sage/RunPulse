@@ -14,7 +14,7 @@ class LSICalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_load"
+    category = "load"
     display_name = "부하 급증 지수 (LSI)"
     description = "당일 부하 / 21일 평균. >1.5면 급격한 부하 증가."
     unit = ""

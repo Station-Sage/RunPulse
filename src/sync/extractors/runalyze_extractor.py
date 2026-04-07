@@ -64,13 +64,13 @@ class RunalyzeExtractor(BaseExtractor):
 
         metrics = self._collect(
             self._metric("effective_vo2max", raw.get("vo2max"),
-                         category="fitness", raw_name="vo2max"),
+                         raw_name="vo2max"),
             self._metric("vdot", raw.get("vdot"),
-                         category="fitness", raw_name="vdot"),
+                         raw_name="vdot"),
             self._metric("marathon_shape", raw.get("marathonShape"),
-                         category="fitness", raw_name="marathonShape"),
+                         raw_name="marathonShape"),
             self._metric("trimp", raw.get("trimp"),
-                         category="training_load", raw_name="trimp"),
+                         raw_name="trimp"),
         )
 
         # Race Predictions
@@ -78,15 +78,13 @@ class RunalyzeExtractor(BaseExtractor):
         if preds and isinstance(preds, dict):
             metrics.extend(self._collect(
                 self._metric("race_pred_5k_sec", preds.get("5k"),
-                             category="prediction", raw_name="predictions.5k"),
+                             raw_name="predictions.5k"),
                 self._metric("race_pred_10k_sec", preds.get("10k"),
-                             category="prediction", raw_name="predictions.10k"),
+                             raw_name="predictions.10k"),
                 self._metric("race_pred_half_sec", preds.get("half"),
-                             category="prediction",
                              raw_name="predictions.half"),
                 self._metric("race_pred_marathon_sec",
                              preds.get("marathon") or preds.get("full"),
-                             category="prediction",
                              raw_name="predictions.marathon"),
             ))
 

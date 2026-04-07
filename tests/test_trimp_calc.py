@@ -39,7 +39,7 @@ class TestTRIMPCalculator:
         assert len(results) == 1
         assert results[0].metric_name == "trimp"
         assert results[0].numeric_value > 0
-        assert results[0].category == "rp_load"
+        assert results[0].category == "load"
 
     def test_no_hr(self):
         conn = _conn()

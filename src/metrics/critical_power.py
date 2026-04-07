@@ -17,7 +17,7 @@ class CriticalPowerCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_performance"
+    category = "capacity"
     requires = ["power_curve"]  # 소스 메트릭 (intervals 등)
     produces = ["critical_power"]
 

@@ -51,12 +51,12 @@ class TestCIRS:
         assert results[0].confidence is not None
         assert 0 < results[0].confidence <= 1.0
 
-    def test_category_is_rp_risk(self):
+    def test_category_is_readiness(self):
         conn = _conn()
         _seed_load_metrics(conn, acwr=1.4, monotony=1.8, lsi=1.5)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = CIRSCalculator().compute(ctx)
-        assert results[0].category == "rp_risk"
+        assert results[0].category == "readiness"
 
     def test_no_data(self):
         conn = _conn()

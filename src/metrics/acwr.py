@@ -12,7 +12,7 @@ class ACWRCalculator(MetricCalculator):
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
-    category = "rp_load"
+    category = "load"
     display_name = "ACWR"
     description = "급성:만성 부하 비율. 최적 범위 0.8~1.3."
     unit = ""
