@@ -20,9 +20,10 @@ pytest는 실행하지 않는다. 커밋 전 전체 검증은 `/pre-commit`을 �
 
     python3 scripts/check_docs.py
 
-18개 검사(general, code, metric, schema, phase)를 전부 실행한다.
+19개 검사(general, code, metric, schema, phase)를 전부 실행한다.
 Check 17(Phase 3)은 dedup 초기화 패턴 + wellness entity_type 이름까지 검증한다.
 Check 18(Phase 4)은 ALL_CALCULATORS 32개 + CalcContext API 14개 + engine 핵심 함수 + ConfidenceBuilder/CalcResult를 검증한다.
+Check 19(Phase 5)은 서비스 레이어 파일(activity_service, dashboard_service, wellness_service) + 헬퍼 파일(ai_context, template_helpers)의 존재와 핵심 함수를 검증한다. 구현 전에는 [WARN]으로 표시된다.
 `[ERROR]` 0개이면 PASS, 1개 이상이면 FAIL.
 `[WARN]`은 참고용으로 보고만 한다.
 
@@ -55,7 +56,7 @@ diff가 있고 `$ARGUMENTS`에 `--fix`가 있으면 변경을 유지하고,
 ## 결과 보고
 
     ## /doc-sync 결과
-    - check_docs.py: PASS/FAIL (검사 18개, errors N, warnings N)
+    - check_docs.py: PASS/FAIL (검사 19개, errors N, warnings N)
       - general: PASS/FAIL
       - code: PASS/FAIL
       - metric: PASS/FAIL

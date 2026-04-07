@@ -16,11 +16,23 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py
 > 주의: metric_store 조회 시 is_primary=1 필터 필수
 
+### `activity_service.py` (274줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+
+- functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
+
+### `dashboard_service.py` (224줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
+
+- functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
+
 ### `unified_activities.py` (448줄) — 통합 활동 서비스 — 멀티 소스 활동을 Garmin 우선으로 병합.
 
 - class **UnifiedField**: 없음
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison, assign_group_to_activities, remove_from_group
+
+### `wellness_service.py` (142줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
+
+- functions: get_wellness_detail, get_wellness_trend
 
 ## `src/metrics/`
 
@@ -365,9 +377,9 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate, invalidate_after_sync
 
-### `ai_context.py` (347줄) — 분석 데이터를 AI 프롬프트 컨텍스트로 변환.
+### `ai_context.py` (178줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
 
-- functions: build_context, format_context_text, format_activity_context
+- functions: build_daily_briefing, build_activity_analysis, build_ai_context
 
 ### `ai_message.py` (311줄) — AI 우선 메시지 생성기 — API 있으면 AI, 없으면 규칙 기반.
 
@@ -485,6 +497,10 @@
 ### `sync_ui.py` (238줄) — 동기화 카드 UI 컴포넌트 — 기본(마지막 동기화 이후) / 기간 2탭.
 
 - functions: sync_card_html
+
+### `template_helpers.py` (204줄) — Phase 5 템플릿 헬퍼 — UI와 AI context 공용 포맷/해석 함수.
+
+- functions: format_distance, format_pace, format_duration, format_speed, format_time_prediction, format_metric, interpret_metric_level, metric_level_color, confidence_badge, provider_badge, metric_display_name, metric_unit
 
 ### `views_activities.py` (184줄) — 활동 목록 뷰 — Flask Blueprint + 라우트 핸들러.
 
@@ -921,9 +937,17 @@
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
 
+### `test_activity_service.py` (247줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
+
+- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty
+
 ### `test_activity_types.py` (37줄) — activity_types.py 단위 테스트.
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants
+
+### `test_ai_context.py` (140줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
+
+- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity
 
 ### `test_ai_parser.py` (154줄) — ai_parser 모듈 테스트.
 
@@ -987,6 +1011,10 @@
 - class **TestRacePredictions**: test_vdot_50_predictions, test_sub3_marathon
 - class **TestVolume**: test_marathon_volume, test_race_volume_half, test_race_volume_10k
 - class **TestTpaceConversion**: test_vdot_to_t_pace, test_t_pace_to_vdot_roundtrip, test_t_pace_to_vdot_interpolated
+
+### `test_dashboard_service.py` (200줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
+
+- functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
 
 ### `test_db_helpers.py` (235줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
@@ -1261,6 +1289,10 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
+### `test_template_helpers.py` (194줄) — tests/test_template_helpers.py — Phase 5-E 헬퍼 함수 테스트.
+
+- functions: test_format_distance_km, test_format_distance_decimals, test_format_distance_zero, test_format_distance_none, test_format_pace_normal, test_format_pace_exact, test_format_pace_zero, test_format_pace_none, test_format_duration_under_hour, test_format_duration_over_hour, test_format_duration_zero, test_format_duration_none, test_format_speed, test_format_speed_none, test_format_time_prediction, test_format_time_prediction_none, test_interpret_utrs_good, test_interpret_utrs_great, test_interpret_cirs_low, test_interpret_unknown_metric, test_interpret_none_value, test_metric_level_color_green, test_metric_level_color_yellow, test_metric_level_color_low_higher_is_better, test_metric_level_color_low_lower_is_better, test_confidence_badge_high, test_confidence_badge_medium, test_confidence_badge_low, test_confidence_badge_none, test_provider_badge_runpulse, test_provider_badge_garmin, test_provider_badge_unknown, test_provider_badge_none, test_metric_display_name_known, test_metric_display_name_unknown, test_metric_unit_known, test_metric_unit_unknown
+
 ### `test_teroi.py` (85줄)
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
@@ -1318,6 +1350,10 @@
 
 - class **TestVDOTAdj**: test_passthrough, test_no_vdot, test_confidence
 
+### `test_wellness_service.py` (113줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
+
+- functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
+
 ### `test_wlei.py` (105줄)
 
 - class **TestWLEI**: test_basic, test_hot_weather, test_cold_weather, test_no_trimp, test_json_value, test_confidence
@@ -1331,13 +1367,13 @@
 
 ## `scripts/`
 
-### `check_data_consistency.py` (335줄) — RunPulse 데이터 정합성 검증 v1.3
+### `check_data_consistency.py` (372줄) — RunPulse 데이터 정합성 검증 v1.4
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
-### `check_docs.py` (902줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
+### `check_docs.py` (956줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
 
-- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, main
+- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, main
 
 ### `encrypt_existing_configs.py` (153줄) — 기존 config.json 파일의 자격증명을 Fernet으로 암호화하는 마이그레이션 스크립트.
 
@@ -1356,7 +1392,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 279개 파일
+총 288개 파일
 
 ## docstring 누락
 

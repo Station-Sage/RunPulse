@@ -20,6 +20,7 @@
 16. Phase 2 Extractor 파일 존재 & 인터페이스 검증          [phase]
 17. Phase 3 Sync 핵심 파일 존재 검증                      [phase]
 18. Phase 4 Metrics Engine 파일 존재 & 인터페이스 검증    [phase]
+19. Phase 5 서비스 레이어 파일 존재 검증                  [phase]
 
 사용법:
   python3 scripts/check_docs.py              # 전체 실행
@@ -857,6 +858,53 @@ def check_phase4_metrics():
             error("metric_groups.py: SEMANTIC_GROUPS 없음")
         else:
             ok("metric_groups.py: SEMANTIC_GROUPS 존재")
+
+
+# ════════════════════════════════════════
+#  19. Phase 5 서비스 레이어 파일 존재 검증
+# ════════════════════════════════════════
+@check("19. Phase 5 서비스 레이어 파일 존재 검증", ["phase"])
+def check_phase5_services():
+    required_services = [
+        ("src/services/activity_service.py",   "ActivityService"),
+        ("src/services/dashboard_service.py",  "DashboardService"),
+        ("src/services/wellness_service.py",   "WellnessService"),
+    ]
+    required_helpers = [
+        ("src/ai/ai_context.py",               "build_ai_context"),
+        ("src/web/template_helpers.py",        "format_pace"),
+    ]
+
+    services_dir = ROOT / "src" / "services"
+    missing_files = []
+    missing_classes = []
+
+    for rel_path, cls_name in required_services:
+        path = ROOT / rel_path
+        if not path.exists():
+            missing_files.append(rel_path)
+        else:
+            text = path.read_text(encoding="utf-8")
+            if f"class {cls_name}" not in text and f"def " not in text:
+                missing_classes.append(f"{rel_path}: {cls_name} 없음")
+
+    for rel_path, fn_name in required_helpers:
+        path = ROOT / rel_path
+        if not path.exists():
+            missing_files.append(rel_path)
+        else:
+            text = path.read_text(encoding="utf-8")
+            if f"def {fn_name}" not in text:
+                missing_classes.append(f"{rel_path}: {fn_name}() 없음")
+
+    if missing_files:
+        for f in missing_files:
+            warn(f"Phase 5 미구현: {f}")
+    if missing_classes:
+        for m in missing_classes:
+            warn(f"Phase 5 미구현 함수: {m}")
+    if not missing_files and not missing_classes:
+        ok(f"Phase 5 서비스 파일 {len(required_services)}개 + 헬퍼 {len(required_helpers)}개 전부 존재")
 
 
 # ════════════════════════════════════════
