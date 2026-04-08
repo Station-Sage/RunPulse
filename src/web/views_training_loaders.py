@@ -67,8 +67,9 @@ def load_training_metrics(conn: sqlite3.Connection) -> dict:
     result: dict = {}
     for name in ("UTRS", "CIRS"):
         row = conn.execute(
-            "SELECT metric_value, metric_json FROM computed_metrics "
-            "WHERE metric_name = ? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value, json_value FROM metric_store "
+            "WHERE metric_name=? AND scope_type='daily' AND is_primary=1 "
+            "ORDER BY scope_id DESC LIMIT 1",
             (name,),
         ).fetchone()
         key = name.lower()

@@ -216,14 +216,16 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
         }
         # 메트릭
         metrics = conn.execute(
-            "SELECT metric_name, metric_value FROM computed_metrics "
-            "WHERE activity_id=? AND metric_value IS NOT NULL", (aid,),
+            "SELECT metric_name, numeric_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND numeric_value IS NOT NULL",
+            (aid,),
         ).fetchall()
         detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
         # 분류
         cls = conn.execute(
-            "SELECT metric_value FROM computed_metrics "
-            "WHERE metric_name='workout_type' AND activity_id=?", (aid,),
+            "SELECT numeric_value FROM metric_store "
+            "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+            (aid,),
         ).fetchone()
         if cls:
             detail["workout_type"] = cls[0]
@@ -258,14 +260,15 @@ def _exec_get_metrics(conn: sqlite3.Connection, args: dict) -> dict:
     if names:
         placeholders = ",".join("?" for _ in names)
         rows = conn.execute(
-            f"SELECT metric_name, metric_value FROM computed_metrics "
-            f"WHERE date=? AND activity_id IS NULL AND metric_name IN ({placeholders})",
+            f"SELECT metric_name, numeric_value FROM metric_store"
+            f" WHERE scope_type='daily' AND scope_id=? AND is_primary=1"
+            f"   AND metric_name IN ({placeholders})",
             [d] + names,
         ).fetchall()
     else:
         rows = conn.execute(
-            "SELECT metric_name, metric_value FROM computed_metrics "
-            "WHERE date=? AND activity_id IS NULL AND metric_value IS NOT NULL",
+            "SELECT metric_name, numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND scope_id=? AND is_primary=1 AND numeric_value IS NOT NULL",
             (d,),
         ).fetchall()
     return {"date": d, "metrics": {r[0]: round(float(r[1]), 2) for r in rows if r[1]}}
@@ -276,8 +279,9 @@ def _exec_get_metrics_trend(conn: sqlite3.Connection, args: dict) -> dict:
     days = args.get("days", 30)
     start = (date.today() - timedelta(days=days)).isoformat()
     rows = conn.execute(
-        "SELECT date, metric_value FROM computed_metrics "
-        "WHERE metric_name=? AND activity_id IS NULL AND date>=? ORDER BY date",
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id>=? ORDER BY scope_id",
         (name, start),
     ).fetchall()
     return {
@@ -307,17 +311,25 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
     days = args.get("days", 30)
     start = (date.today() - timedelta(days=days)).isoformat()
     rows = conn.execute(
-        "SELECT date, ctl, atl, tsb, garmin_vo2max FROM daily_fitness "
-        "WHERE date>=? ORDER BY date", (start,),
+        "SELECT scope_id, metric_name, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND is_primary=1"
+        "   AND metric_name IN ('ctl','atl','tsb','garmin_vo2max')"
+        "   AND scope_id>=? AND numeric_value IS NOT NULL ORDER BY scope_id",
+        (start,),
     ).fetchall()
+    # 날짜별로 집계
+    by_date: dict = {}
+    for d, mname, val in rows:
+        by_date.setdefault(d, {})[mname] = val
     return {
         "days": days,
         "data": [
-            {"date": r[0], "ctl": round(float(r[1]), 2) if r[1] else None,
-             "atl": round(float(r[2]), 1) if r[2] else None,
-             "tsb": round(float(r[3]), 1) if r[3] else None,
-             "vo2max": round(float(r[4]), 1) if r[4] else None}
-            for r in rows
+            {"date": d,
+             "ctl": round(float(v["ctl"]), 2) if "ctl" in v else None,
+             "atl": round(float(v["atl"]), 1) if "atl" in v else None,
+             "tsb": round(float(v["tsb"]), 1) if "tsb" in v else None,
+             "vo2max": round(float(v["garmin_vo2max"]), 1) if "garmin_vo2max" in v else None}
+            for d, v in sorted(by_date.items())
         ],
     }
 
@@ -327,8 +339,9 @@ def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
     rows = conn.execute(
         "SELECT a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, "
         "a.avg_hr, a.name FROM v_canonical_activities a "
-        "LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
-        "WHERE a.activity_type='running' AND (c.metric_value='race' OR a.name LIKE '%레이스%' "
+        "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+        "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT ?", (limit,),
     ).fetchall()
@@ -494,8 +507,9 @@ def _exec_compare_periods(conn: sqlite3.Connection, args: dict) -> dict:
         metrics = {}
         for m in ["UTRS", "CIRS", "ACWR", "DI"]:
             mr = conn.execute(
-                "SELECT AVG(metric_value) FROM computed_metrics "
-                "WHERE metric_name=? AND activity_id IS NULL AND date BETWEEN ? AND ?",
+                "SELECT AVG(numeric_value) FROM metric_store"
+                " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+                "   AND scope_id BETWEEN ? AND ?",
                 (m, s, e),
             ).fetchone()
             if mr and mr[0]:
@@ -532,8 +546,9 @@ def _exec_get_runner_profile(conn: sqlite3.Connection, args: dict) -> dict:
     profile = _build_runner_profile(conn, date.today().isoformat())
     # Daniels 훈련 페이스 추가
     vdot_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND metric_value IS NOT NULL ORDER BY date DESC LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
     ).fetchone()
     if vdot_row and vdot_row[0]:
         from src.metrics.daniels_table import get_training_paces

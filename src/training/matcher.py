@@ -128,16 +128,18 @@ def _save_session_outcome(
 
     # AerobicDecoupling (Friel 5% 기준)
     dec_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='AerobicDecoupling' AND activity_id=? LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='AerobicDecoupling' AND scope_type='activity'"
+        "   AND scope_id=CAST(? AS TEXT) LIMIT 1",
         (activity_id,),
     ).fetchone()
     decoupling = float(dec_row[0]) if dec_row else None
 
     # TRIMP
     trimp_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='TRIMP' AND activity_id=? LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='TRIMP' AND scope_type='activity'"
+        "   AND scope_id=CAST(? AS TEXT) LIMIT 1",
         (activity_id,),
     ).fetchone()
     trimp = float(trimp_row[0]) if trimp_row else None
@@ -224,8 +226,9 @@ def _get_hr_zone_dist(
 
         # maxHR 조회 (Zone 경계 계산용)
         max_hr_row = conn.execute(
-            "SELECT metric_value FROM computed_metrics "
-            "WHERE metric_name='maxHR' ORDER BY date DESC LIMIT 1"
+            "SELECT numeric_value FROM metric_store"
+            " WHERE metric_name='maxHR' AND scope_type='daily' AND is_primary=1"
+            "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
         ).fetchone()
         max_hr = float(max_hr_row[0]) if max_hr_row else 185.0
 
@@ -261,8 +264,10 @@ def _get_condition_snapshot(
 
     # TSB
     tsb_row = conn.execute(
-        "SELECT tsb FROM daily_fitness WHERE date<=? AND tsb IS NOT NULL "
-        "ORDER BY date DESC LIMIT 1", (target_date,)
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='tsb' AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
+        (target_date,)
     ).fetchone()
     tsb = float(tsb_row[0]) if tsb_row else None
 
@@ -282,9 +287,10 @@ def _get_condition_snapshot(
 
     # ACWR
     acwr_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='ACWR' AND date<=? AND metric_value IS NOT NULL "
-        "ORDER BY date DESC LIMIT 1", (target_date,)
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='ACWR' AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
+        (target_date,)
     ).fetchone()
     acwr = float(acwr_row[0]) if acwr_row else None
 

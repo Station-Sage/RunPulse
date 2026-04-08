@@ -1,5 +1,6 @@
 """Garmin ZIP export → activity_summaries backfill (v2)"""
 import json, sqlite3, os, sys, glob
+from src.utils.db_helpers import upsert_metric
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -13,29 +14,23 @@ KST = timedelta(hours=9)
 
 
 def _insert_zone_times(conn, activity_id: int, hr_zone_times, power_zone_times) -> None:
-    """HR/Power zone times → activity_detail_metrics 저장 (ZIP backfill용)."""
+    """HR/Power zone times → metric_store 저장 (ZIP backfill용)."""
     if not activity_id:
         return
     for i, val in enumerate(hr_zone_times or []):
         if val is not None:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'garmin', ?, ?)""",
-                    (activity_id, f"hr_zone_time_{i + 1}", float(val)),
-                )
+                upsert_metric(conn, "activity", str(activity_id),
+                              f"hr_zone_time_{i + 1}", "garmin",
+                              numeric_value=float(val), category="intensity")
             except Exception:
                 pass
     for i, val in enumerate(power_zone_times or []):
         if val is not None:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'garmin', ?, ?)""",
-                    (activity_id, f"power_zone_time_{i + 1}", float(val)),
-                )
+                upsert_metric(conn, "activity", str(activity_id),
+                              f"power_zone_time_{i + 1}", "garmin",
+                              numeric_value=float(val), category="intensity")
             except Exception:
                 pass
 

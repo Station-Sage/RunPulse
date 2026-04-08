@@ -47,12 +47,13 @@ def _metric_sum(conn: sqlite3.Connection, start: str, end: str,
                 source: str, metric_name: str) -> float | None:
     """기간 내 특정 소스/지표 합계."""
     row = conn.execute("""
-        SELECT SUM(sm.metric_value)
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT SUM(sm.numeric_value)
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = ? AND sm.metric_name = ?
+          AND sm.provider = ? AND sm.metric_name = ?
     """, (start, end, source, metric_name)).fetchone()
     return row[0]
 
@@ -61,12 +62,13 @@ def _metric_avg(conn: sqlite3.Connection, start: str, end: str,
                 source: str, metric_name: str) -> float | None:
     """기간 내 특정 소스/지표 평균."""
     row = conn.execute("""
-        SELECT AVG(sm.metric_value)
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT AVG(sm.numeric_value)
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = ? AND sm.metric_name = ?
+          AND sm.provider = ? AND sm.metric_name = ?
     """, (start, end, source, metric_name)).fetchone()
     return row[0]
 
@@ -75,12 +77,13 @@ def _last_day_metric(conn: sqlite3.Connection, start: str, end: str,
                      source: str, metric_name: str) -> float | None:
     """기간 마지막 날의 특정 소스/지표 값 (source_metrics)."""
     row = conn.execute("""
-        SELECT sm.metric_value
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT sm.numeric_value
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = ? AND sm.metric_name = ?
+          AND sm.provider = ? AND sm.metric_name = ?
         ORDER BY a.start_time DESC
         LIMIT 1
     """, (start, end, source, metric_name)).fetchone()

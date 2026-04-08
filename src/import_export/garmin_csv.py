@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 
@@ -99,24 +100,13 @@ _TYPE_MAP: dict[str, str] = {
 def _upsert_garmin_detail_metrics(
     conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
 ) -> None:
-    """CSV 파싱 데이터 → activity_detail_metrics INSERT/UPDATE.
-
-    이미 존재하는 metric은 값을 교체(DELETE+INSERT)하여 최신 CSV값으로 갱신한다.
-    """
+    """CSV 파싱 데이터 → metric_store UPSERT."""
     for metric_name, parsed_key in _GARMIN_DETAIL_METRICS:
         val = parsed.get(parsed_key)
         if val is None:
             continue
-        conn.execute(
-            "DELETE FROM activity_detail_metrics "
-            "WHERE activity_id=? AND source='garmin' AND metric_name=?",
-            (activity_id, metric_name),
-        )
-        conn.execute(
-            "INSERT INTO activity_detail_metrics "
-            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
-            (activity_id, "garmin", metric_name, float(val)),
-        )
+        upsert_metric(conn, "activity", str(activity_id), metric_name, "garmin",
+                      numeric_value=float(val))
 
 
 def backfill_garmin_detail_metrics(
@@ -176,13 +166,13 @@ def backfill_garmin_detail_metrics(
 
     for activity_id, parsed in source_data:
         before = conn.execute(
-            "SELECT COUNT(*) FROM activity_detail_metrics WHERE activity_id=? AND source='garmin'",
-            (activity_id,),
+            "SELECT COUNT(*) FROM metric_store WHERE scope_type='activity' AND scope_id=? AND provider='garmin'",
+            (str(activity_id),),
         ).fetchone()[0]
         _upsert_garmin_detail_metrics(conn, activity_id, parsed)
         after = conn.execute(
-            "SELECT COUNT(*) FROM activity_detail_metrics WHERE activity_id=? AND source='garmin'",
-            (activity_id,),
+            "SELECT COUNT(*) FROM metric_store WHERE scope_type='activity' AND scope_id=? AND provider='garmin'",
+            (str(activity_id),),
         ).fetchone()[0]
         if after > before:
             stats["inserted_activities"] += 1

@@ -7,6 +7,7 @@ import sqlite3
 from typing import TYPE_CHECKING
 
 from src.sync.garmin_helpers import _store_raw_payload
+from src.utils.db_helpers import upsert_metric
 
 if TYPE_CHECKING:
     from garminconnect import Garmin
@@ -287,27 +288,16 @@ def sync_activity_weather(
     for name, value in metrics.items():
         if value is not None:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'garmin', ?, ?)""",
-                    (activity_id, name, float(value)),
-                )
-            except (sqlite3.Error, TypeError, ValueError):
+                upsert_metric(conn, "activity", str(activity_id), name, "garmin",
+                              numeric_value=float(value), category="environment")
+            except (TypeError, ValueError):
                 pass
 
     # 날씨 조건 문자열 저장
     condition = weather.get("weatherType") or weather.get("weatherTypeName")
     if condition:
-        try:
-            conn.execute(
-                """INSERT OR IGNORE INTO activity_detail_metrics
-                   (activity_id, source, metric_name, metric_json)
-                   VALUES (?, 'garmin', 'weather_condition', ?)""",
-                (activity_id, json.dumps({"value": condition})),
-            )
-        except sqlite3.Error:
-            pass
+        upsert_metric(conn, "activity", str(activity_id), "weather_condition", "garmin",
+                      json_value={"value": condition}, category="environment")
 
 
 def sync_activity_hr_zones(
@@ -334,25 +324,15 @@ def sync_activity_hr_zones(
         seconds = zone.get("secsInZone") or zone.get("secondsInZone")
         if zone_num is not None and seconds is not None:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'garmin', ?, ?)""",
-                    (activity_id, f"hr_zone_{zone_num}_sec", float(seconds)),
-                )
-            except (sqlite3.Error, TypeError, ValueError):
+                upsert_metric(conn, "activity", str(activity_id),
+                              f"hr_zone_{zone_num}_sec", "garmin",
+                              numeric_value=float(seconds), category="intensity")
+            except (TypeError, ValueError):
                 pass
 
     if zones:
-        try:
-            conn.execute(
-                """INSERT OR IGNORE INTO activity_detail_metrics
-                   (activity_id, source, metric_name, metric_json)
-                   VALUES (?, 'garmin', 'hr_zones_detail', ?)""",
-                (activity_id, json.dumps(zones)),
-            )
-        except sqlite3.Error:
-            pass
+        upsert_metric(conn, "activity", str(activity_id), "hr_zones_detail", "garmin",
+                      json_value=zones, category="intensity")
 
 
 def sync_activity_power_zones(
@@ -379,22 +359,12 @@ def sync_activity_power_zones(
         seconds = zone.get("secsInZone") or zone.get("secondsInZone")
         if zone_num is not None and seconds is not None:
             try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_value)
-                       VALUES (?, 'garmin', ?, ?)""",
-                    (activity_id, f"power_zone_{zone_num}_sec", float(seconds)),
-                )
-            except (sqlite3.Error, TypeError, ValueError):
+                upsert_metric(conn, "activity", str(activity_id),
+                              f"power_zone_{zone_num}_sec", "garmin",
+                              numeric_value=float(seconds), category="intensity")
+            except (TypeError, ValueError):
                 pass
 
     if zones:
-        try:
-            conn.execute(
-                """INSERT OR IGNORE INTO activity_detail_metrics
-                   (activity_id, source, metric_name, metric_json)
-                   VALUES (?, 'garmin', 'power_zones_detail', ?)""",
-                (activity_id, json.dumps(zones)),
-            )
-        except sqlite3.Error:
-            pass
+        upsert_metric(conn, "activity", str(activity_id), "power_zones_detail", "garmin",
+                      json_value=zones, category="intensity")

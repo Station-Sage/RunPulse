@@ -20,8 +20,9 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
 
     for name in ["UTRS", "CIRS", "ACWR", "DI", "RTTI"]:
         row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name=? AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
             (name, today),
         ).fetchone()
         ctx[name] = round(float(row[0]), 2) if row and row[0] is not None else None
@@ -81,14 +82,16 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     }
 
     metrics = conn.execute(
-        "SELECT metric_name, metric_value FROM computed_metrics "
-        "WHERE activity_id=? AND metric_value IS NOT NULL", (aid,),
+        "SELECT metric_name, numeric_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND numeric_value IS NOT NULL",
+        (aid,),
     ).fetchall()
     detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
 
     cls = conn.execute(
-        "SELECT metric_value, metric_json FROM computed_metrics "
-        "WHERE metric_name='workout_type' AND activity_id=?", (aid,),
+        "SELECT numeric_value, json_value FROM metric_store "
+        "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+        (aid,),
     ).fetchone()
     if cls:
         detail["workout_type"] = cls[0]
@@ -101,9 +104,9 @@ def _add_race_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     import json
     start_12w = (date.fromisoformat(today) - timedelta(weeks=12)).isoformat()
     darp_rows = conn.execute(
-        "SELECT date, metric_value, metric_json FROM computed_metrics "
-        "WHERE metric_name='DARP_half' AND activity_id IS NULL "
-        "AND date>=? ORDER BY date", (start_12w,),
+        "SELECT scope_id, numeric_value, json_value FROM metric_store"
+        " WHERE metric_name='DARP_half' AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id>=? ORDER BY scope_id", (start_12w,),
     ).fetchall()
     ctx["darp_trend"] = []
     for r in darp_rows:
@@ -113,8 +116,9 @@ def _add_race_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
         })
 
     di_rows = conn.execute(
-        "SELECT date, metric_value FROM computed_metrics "
-        "WHERE metric_name='DI' AND activity_id IS NULL AND date>=? ORDER BY date",
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE metric_name='DI' AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id>=? ORDER BY scope_id",
         (start_12w,),
     ).fetchall()
     ctx["di_trend"] = [{"date": r[0], "value": round(float(r[1]), 1)} for r in di_rows if r[1]]
@@ -134,9 +138,10 @@ def _add_compare_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
         snap = {}
         for name in ["UTRS", "CIRS", "ACWR", "DI"]:
             row = conn.execute(
-                "SELECT metric_value FROM computed_metrics "
-                "WHERE metric_name=? AND activity_id IS NULL "
-                "AND date BETWEEN ? AND date(?, '+7 days') ORDER BY date LIMIT 1",
+                "SELECT numeric_value FROM metric_store"
+                " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+                "   AND scope_id BETWEEN ? AND date(?, '+7 days')"
+                "   AND numeric_value IS NOT NULL ORDER BY scope_id LIMIT 1",
                 (name, ref, ref),
             ).fetchone()
             snap[name] = round(float(row[0]), 2) if row and row[0] is not None else None
@@ -206,17 +211,23 @@ def _add_recovery_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     ]
 
     bl = conn.execute(
-        "SELECT hrv_baseline_low, hrv_baseline_high FROM daily_detail_metrics "
-        "WHERE metric_name='hrv_baseline_low' AND date<=? ORDER BY date DESC LIMIT 1",
-        (today,),
+        "SELECT "
+        "    MAX(CASE WHEN metric_name='hrv_baseline_low' THEN numeric_value END) AS hrv_baseline_low,"
+        "    MAX(CASE WHEN metric_name='hrv_baseline_high' THEN numeric_value END) AS hrv_baseline_high "
+        "FROM metric_store WHERE scope_type='daily' AND scope_id<=? AND provider='garmin'"
+        "    AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_high')"
+        "    AND scope_id=(SELECT MAX(scope_id) FROM metric_store"
+        "        WHERE scope_type='daily' AND provider='garmin'"
+        "        AND metric_name='hrv_baseline_low' AND scope_id<=?)",
+        (today, today),
     ).fetchone()
-    if bl:
+    if bl and (bl[0] is not None or bl[1] is not None):
         ctx["hrv_baseline"] = {"low": bl[0], "high": bl[1]}
 
     cirs_rows = conn.execute(
-        "SELECT date, metric_value FROM computed_metrics "
-        "WHERE metric_name='CIRS' AND activity_id IS NULL AND date<=? "
-        "ORDER BY date DESC LIMIT 7", (today,),
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE metric_name='CIRS' AND scope_type='daily' AND is_primary=1 AND scope_id<=?"
+        " ORDER BY scope_id DESC LIMIT 7", (today,),
     ).fetchall()
     ctx["cirs_7d"] = [{"date": r[0], "value": round(float(r[1]), 1)}
                       for r in reversed(cirs_rows) if r[1]]
@@ -245,14 +256,16 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
             "name": act[8],
         }
         metrics = conn.execute(
-            "SELECT metric_name, metric_value FROM computed_metrics "
-            "WHERE activity_id=? AND metric_value IS NOT NULL", (aid,),
+            "SELECT metric_name, numeric_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND numeric_value IS NOT NULL",
+            (aid,),
         ).fetchall()
         detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
 
         cls = conn.execute(
-            "SELECT metric_value FROM computed_metrics "
-            "WHERE metric_name='workout_type' AND activity_id=?", (aid,),
+            "SELECT numeric_value FROM metric_store "
+            "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+            (aid,),
         ).fetchone()
         if cls:
             detail["workout_type"] = cls[0]
@@ -262,8 +275,8 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
     ctx["lookup_activities"] = lookup_acts
 
     day_metrics = conn.execute(
-        "SELECT metric_name, metric_value FROM computed_metrics "
-        "WHERE date=? AND activity_id IS NULL AND metric_value IS NOT NULL",
+        "SELECT metric_name, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND scope_id=? AND is_primary=1 AND numeric_value IS NOT NULL",
         (target,),
     ).fetchall()
     ctx["lookup_day_metrics"] = {r[0]: round(float(r[1]), 2) for r in day_metrics}

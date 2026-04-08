@@ -69,12 +69,13 @@ def _load_sum(conn: sqlite3.Connection, start: str, end: str,
               source: str, metric_name: str) -> float:
     """기간 내 특정 부하 지표 합계 (없으면 0)."""
     row = conn.execute("""
-        SELECT COALESCE(SUM(sm.metric_value), 0)
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT COALESCE(SUM(sm.numeric_value), 0)
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = ? AND sm.metric_name = ?
+          AND sm.provider = ? AND sm.metric_name = ?
     """, (start, end, source, metric_name)).fetchone()
     return row[0] or 0.0
 
@@ -182,12 +183,13 @@ def _fitness_last_from_metrics(
 ) -> float | None:
     """source_metrics에서 주간 마지막 값 조회 (fallback)."""
     row = conn.execute("""
-        SELECT sm.metric_value
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT sm.numeric_value
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = ? AND sm.metric_name = ?
+          AND sm.provider = ? AND sm.metric_name = ?
         ORDER BY a.start_time DESC
         LIMIT 1
     """, (wk_start, wk_end, source, metric_name)).fetchone()

@@ -11,13 +11,13 @@ import sqlite3
 def load_ef_decoupling_series(conn: sqlite3.Connection, target_date: str, days: int = 30) -> dict:
     """EF·Decoupling 30일 활동별 시계열."""
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value
-           FROM computed_metrics
+        """SELECT scope_id AS date, metric_name, numeric_value
+           FROM metric_store
            WHERE metric_name IN ('EF', 'AerobicDecoupling')
-             AND activity_id IS NOT NULL
-             AND date >= date(?, '-' || ? || ' days')
-             AND date <= ?
-           ORDER BY date""",
+             AND scope_type='activity' AND is_primary=1
+             AND scope_id >= date(?, '-' || ? || ' days')
+             AND scope_id <= ?
+           ORDER BY scope_id""",
         (target_date, days, target_date),
     ).fetchall()
     dates_ef, vals_ef = [], []
@@ -40,13 +40,13 @@ def load_ef_decoupling_series(conn: sqlite3.Connection, target_date: str, days: 
 def load_risk_series(conn: sqlite3.Connection, target_date: str, days: int = 60) -> dict:
     """ACWR·Monotony·Strain·LSI 일별 시계열 (60일)."""
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value
-           FROM computed_metrics
+        """SELECT scope_id AS date, metric_name, numeric_value
+           FROM metric_store
            WHERE metric_name IN ('ACWR', 'Monotony', 'Strain', 'LSI')
-             AND activity_id IS NULL
-             AND date >= date(?, '-' || ? || ' days')
-             AND date <= ?
-           ORDER BY date""",
+             AND scope_type='daily' AND is_primary=1
+             AND scope_id >= date(?, '-' || ? || ' days')
+             AND scope_id <= ?
+           ORDER BY scope_id""",
         (target_date, days, target_date),
     ).fetchall()
     by_date: dict[str, dict] = {}
@@ -66,13 +66,13 @@ def load_tids_weekly_series(conn: sqlite3.Connection, target_date: str, weeks: i
     """TIDS 주간 z12/z3/z45 시리즈 (8주)."""
     days = weeks * 7
     rows = conn.execute(
-        """SELECT date, metric_json
-           FROM computed_metrics
+        """SELECT scope_id AS date, json_value
+           FROM metric_store
            WHERE metric_name = 'TIDS'
-             AND activity_id IS NULL
-             AND date >= date(?, '-' || ? || ' days')
-             AND date <= ?
-           ORDER BY date""",
+             AND scope_type='daily' AND is_primary=1
+             AND scope_id >= date(?, '-' || ? || ' days')
+             AND scope_id <= ?
+           ORDER BY scope_id""",
         (target_date, days, target_date),
     ).fetchall()
     week_labels, z12_vals, z3_vals, z45_vals = [], [], [], []
@@ -90,11 +90,11 @@ def load_tids_weekly_series(conn: sqlite3.Connection, target_date: str, weeks: i
 def load_darp_values(conn: sqlite3.Connection, target_date: str) -> dict:
     """DARP 레이스 예측 값 (5k/10k/half/full)."""
     rows = conn.execute(
-        """SELECT metric_name, metric_json
-           FROM computed_metrics
+        """SELECT metric_name, json_value
+           FROM metric_store
            WHERE metric_name IN ('DARP_5k', 'DARP_10k', 'DARP_half', 'DARP_full')
-             AND activity_id IS NULL
-             AND date = ?""",
+             AND scope_type='daily' AND is_primary=1
+             AND scope_id = ?""",
         (target_date,),
     ).fetchall()
     result = {}

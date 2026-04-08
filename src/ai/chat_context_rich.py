@@ -31,9 +31,10 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     key_metrics = ["UTRS", "CIRS", "ACWR", "DI", "RTTI", "REC", "RRI",
                    "Monotony", "LSI", "Strain", "SAPI", "TEROI"]
     metric_rows = conn.execute(
-        "SELECT date, metric_name, metric_value FROM computed_metrics "
-        "WHERE activity_id IS NULL AND metric_name IN ({}) AND date>=? "
-        "ORDER BY date".format(",".join(f"'{m}'" for m in key_metrics)),
+        "SELECT scope_id, metric_name, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND is_primary=1"
+        "   AND metric_name IN ({}) AND scope_id>=?"
+        " ORDER BY scope_id".format(",".join(f"'{m}'" for m in key_metrics)),
         (start_30d,),
     ).fetchall()
     daily_metrics: dict[str, dict] = {}
@@ -73,8 +74,9 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     race_acts = conn.execute(
         "SELECT a.id, a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
         "FROM v_canonical_activities a "
-        "LEFT JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
-        "WHERE a.activity_type='running' AND (c.metric_value='race' OR a.name LIKE '%레이스%' "
+        "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+        "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT 10",
     ).fetchall()
@@ -87,8 +89,9 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         ]
 
     today_type = conn.execute(
-        "SELECT c.metric_value FROM v_canonical_activities a "
-        "JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
+        "SELECT c.numeric_value FROM v_canonical_activities a "
+        "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
         "WHERE a.activity_type='running' AND date(a.start_time)=? "
         "ORDER BY a.start_time DESC LIMIT 1", (today,),
     ).fetchone()
@@ -97,8 +100,9 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         similar = conn.execute(
             "SELECT a.id, date(a.start_time), a.distance_km, a.avg_pace_sec_km, a.avg_hr "
             "FROM v_canonical_activities a "
-            "JOIN computed_metrics c ON c.activity_id=a.id AND c.metric_name='workout_type' "
-            "WHERE c.metric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
+            "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
+            "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+            "WHERE c.numeric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
             "ORDER BY a.start_time DESC LIMIT 5", (wtype, today),
         ).fetchall()
         if similar:
@@ -159,8 +163,9 @@ def _build_runner_profile(conn: sqlite3.Connection, today: str) -> dict[str, Any
 
     for name in ["VDOT_ADJ", "DI"]:
         row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
             (name, today),
         ).fetchone()
         if row and row[0]:

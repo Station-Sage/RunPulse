@@ -17,8 +17,9 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     # 주요 메트릭 현재값
     for name in ["UTRS", "CIRS", "ACWR", "RTTI", "Monotony", "LSI", "Strain", "DI", "REC", "RRI"]:
         row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
             (name, today),
         ).fetchone()
         ctx[name.lower()] = float(row[0]) if row and row[0] is not None else None
@@ -27,8 +28,9 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     start_7d = (date.fromisoformat(today) - timedelta(days=6)).isoformat()
     for name in ["UTRS", "CIRS", "ACWR"]:
         rows = conn.execute(
-            "SELECT date, metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date BETWEEN ? AND ? ORDER BY date",
+            "SELECT scope_id, numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
             (name, start_7d, today),
         ).fetchall()
         ctx[f"{name.lower()}_7d"] = [{"d": r[0], "v": round(float(r[1]), 2)} for r in rows if r[1]]
@@ -201,8 +203,9 @@ def build_training_context(conn: sqlite3.Connection, today: str,
     # 현재 지표
     for name in ["UTRS", "CIRS", "ACWR"]:
         row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
             (name, today),
         ).fetchone()
         ctx[name.lower()] = float(row[0]) if row and row[0] is not None else None
@@ -289,8 +292,9 @@ def build_report_context(conn: sqlite3.Connection, start_date: str,
     # 메트릭 시계열 (주별 요약)
     for name in ["UTRS", "CIRS", "ACWR"]:
         rows = conn.execute(
-            "SELECT date, metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date BETWEEN ? AND ? ORDER BY date",
+            "SELECT scope_id, numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
             (name, start_date, end_date),
         ).fetchall()
         vals = [float(r[1]) for r in rows if r[1] is not None]
@@ -315,8 +319,9 @@ def build_race_context(conn: sqlite3.Connection, today: str) -> dict:
     # VDOT 12주 추세
     start_12w = (date.fromisoformat(today) - timedelta(weeks=12)).isoformat()
     rows = conn.execute(
-        "SELECT date, metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND activity_id IS NULL AND date BETWEEN ? AND ? ORDER BY date",
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
         (start_12w, today),
     ).fetchall()
     ctx["vdot_12w"] = [{"d": r[0], "v": round(float(r[1]), 1)} for r in rows if r[1]]
@@ -325,8 +330,9 @@ def build_race_context(conn: sqlite3.Connection, today: str) -> dict:
     # DI, CTL, Marathon Shape
     for name in ["DI", "MarathonShape", "RRI"]:
         row = conn.execute(
-            "SELECT metric_value FROM computed_metrics WHERE metric_name=? "
-            "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+            "SELECT numeric_value FROM metric_store"
+            " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+            "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
             (name, today),
         ).fetchone()
         ctx[name.lower()] = float(row[0]) if row and row[0] is not None else None
@@ -389,7 +395,8 @@ def build_activity_context(conn: sqlite3.Connection, activity_id: int) -> dict:
 
     # 활동별 메트릭
     metrics = conn.execute(
-        "SELECT metric_name, metric_value FROM computed_metrics WHERE activity_id=?",
+        "SELECT metric_name, numeric_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND numeric_value IS NOT NULL",
         (activity_id,),
     ).fetchall()
     ctx["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics if r[1] is not None}

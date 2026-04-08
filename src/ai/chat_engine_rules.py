@@ -116,8 +116,9 @@ def _respond_race_readiness(parts: list[str], ctx: dict, conn) -> None:
         parts.append("설정된 목표 레이스가 없습니다. 훈련 탭에서 목표를 추가하세요.")
 
     rri_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='RRI' "
-        "AND activity_id IS NULL ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='RRI' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if rri_row and rri_row[0]:
         rri = float(rri_row[0])
@@ -157,8 +158,9 @@ def _respond_pace(parts: list[str], ctx: dict, conn) -> None:
     parts.append("**페이스 분석**")
 
     eftp_row = conn.execute(
-        "SELECT metric_value, metric_json FROM computed_metrics WHERE metric_name='eFTP' "
-        "AND activity_id IS NULL ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='eFTP' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if eftp_row and eftp_row[0]:
         pace = int(eftp_row[0])
@@ -166,8 +168,9 @@ def _respond_pace(parts: list[str], ctx: dict, conn) -> None:
         parts.append(f"- 역치 페이스(eFTP): {m}:{s:02d}/km")
 
     vdot_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND activity_id IS NULL ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if vdot_row and vdot_row[0]:
         parts.append(f"- VDOT: {float(vdot_row[0]):.1f}")
@@ -220,15 +223,17 @@ def _respond_fitness(parts: list[str], ctx: dict, conn) -> None:
         parts.append(f"- VO2Max: {vo2:.1f}")
 
     vdot_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='VDOT' "
-        "AND activity_id IS NULL ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if vdot_row and vdot_row[0]:
         parts.append(f"- VDOT: {float(vdot_row[0]):.1f}")
 
     rec_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics WHERE metric_name='REC' "
-        "AND activity_id IS NULL ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='REC' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if rec_row and rec_row[0]:
         parts.append(f"- 러닝 효율성(REC): {float(rec_row[0]):.0f}/100")

@@ -40,8 +40,9 @@ def _safe_json(raw):
 
 def _load_metric(conn, name):
     cur = conn.execute(
-        "SELECT metric_value, metric_json FROM computed_metrics "
-        "WHERE metric_name=? ORDER BY date DESC LIMIT 1", (name,))
+        "SELECT numeric_value, json_value FROM metric_store "
+        "WHERE metric_name=? AND scope_type='daily' AND is_primary=1 ORDER BY scope_id DESC LIMIT 1",
+        (name,))
     row = cur.fetchone()
     if not row:
         return None, {}
@@ -275,8 +276,8 @@ def race_page():
             from datetime import date as _date
             _today = _date.today().isoformat()
             _darp_today = conn.execute(
-                "SELECT 1 FROM computed_metrics WHERE date=? AND metric_name='DARP_half' "
-                "AND activity_id IS NULL LIMIT 1", (_today,),
+                "SELECT 1 FROM metric_store WHERE scope_id=? AND metric_name='DARP_half' "
+                "AND scope_type='daily' AND is_primary=1 LIMIT 1", (_today,),
             ).fetchone()
             if not _darp_today:
                 try:
@@ -357,8 +358,9 @@ def _load_di(conn):
 def _load_prediction_history(conn, key: str, limit: int = 10) -> list[dict]:
     """최근 DARP 예측 이력 로드."""
     rows = conn.execute(
-        "SELECT date, metric_value, metric_json FROM computed_metrics "
-        "WHERE metric_name=? ORDER BY date DESC LIMIT ?", (key, limit),
+        "SELECT scope_id AS date, numeric_value, json_value FROM metric_store "
+        "WHERE metric_name=? AND scope_type='daily' AND is_primary=1 ORDER BY scope_id DESC LIMIT ?",
+        (key, limit),
     ).fetchall()
     result = []
     for d, val, mj in rows:

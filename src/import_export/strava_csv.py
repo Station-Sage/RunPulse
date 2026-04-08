@@ -20,6 +20,7 @@ from typing import Any
 # dedup이 동작하려면 동일 기준으로 맞춰야 하므로 UTC → KST(+9h) 변환.
 _LOCAL_UTC_OFFSET = timedelta(hours=9)
 
+from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 
@@ -192,25 +193,17 @@ _DETAIL_METRIC_KEYS: list[tuple[str, str]] = [
 def _upsert_strava_detail_metrics(
     conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
 ) -> None:
-    """CSV 파싱 데이터 → activity_detail_metrics INSERT/UPDATE.
+    """CSV 파싱 데이터 → metric_store UPSERT.
 
-    이미 존재하는 metric은 값을 교체(DELETE+INSERT)하여 최신 CSV값으로 갱신한다.
+    ON CONFLICT DO UPDATE로 최신 CSV값으로 갱신한다.
     best_efforts, stream_file 등 API 전용 metrics는 건드리지 않는다.
     """
     for metric_name, parsed_key in _DETAIL_METRIC_KEYS:
         val = parsed.get(parsed_key)
         if val is None:
             continue
-        conn.execute(
-            "DELETE FROM activity_detail_metrics "
-            "WHERE activity_id=? AND source='strava' AND metric_name=?",
-            (activity_id, metric_name),
-        )
-        conn.execute(
-            "INSERT INTO activity_detail_metrics "
-            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
-            (activity_id, "strava", metric_name, float(val)),
-        )
+        upsert_metric(conn, "activity", str(activity_id), metric_name, "strava",
+                      numeric_value=float(val))
 
 
 def backfill_strava_detail_metrics(
@@ -264,15 +257,13 @@ def backfill_strava_detail_metrics(
 
     for activity_id, parsed in source_data:
         before = conn.execute(
-            "SELECT COUNT(*) FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND source = 'strava'",
-            (activity_id,),
+            "SELECT COUNT(*) FROM metric_store WHERE scope_type='activity' AND scope_id=? AND provider='strava'",
+            (str(activity_id),),
         ).fetchone()[0]
         _upsert_strava_detail_metrics(conn, activity_id, parsed)
         after = conn.execute(
-            "SELECT COUNT(*) FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND source = 'strava'",
-            (activity_id,),
+            "SELECT COUNT(*) FROM metric_store WHERE scope_type='activity' AND scope_id=? AND provider='strava'",
+            (str(activity_id),),
         ).fetchone()[0]
         if after > before:
             stats["inserted_activities"] += 1

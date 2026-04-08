@@ -19,7 +19,7 @@ SOURCE_COLORS: dict[str, str] = {
 _COLS = [
     "id", "source", "source_id", "name", "activity_type", "start_time",
     "distance_km", "duration_sec", "avg_pace_sec_km", "avg_hr",
-    "max_hr", "avg_cadence", "elevation_gain", "calories",
+    "max_hr", "avg_cadence", "elevation_gain",
     "description", "matched_group_id", "workout_label", "avg_power",
     "event_type", "workout_type",
 ]
@@ -51,7 +51,6 @@ class UnifiedActivity:
     max_hr: UnifiedField = field(default_factory=UnifiedField)
     avg_cadence: UnifiedField = field(default_factory=UnifiedField)
     elevation_gain: UnifiedField = field(default_factory=UnifiedField)
-    calories: UnifiedField = field(default_factory=UnifiedField)
     name: UnifiedField = field(default_factory=UnifiedField)
     description: UnifiedField = field(default_factory=UnifiedField)
     workout_label: UnifiedField = field(default_factory=UnifiedField)
@@ -129,7 +128,7 @@ def build_unified_activity(group_id: str | None, rows: list[dict], **kwargs) -> 
     for fname in [
         "activity_type", "start_time", "distance_km", "duration_sec",
         "avg_pace_sec_km", "avg_hr", "max_hr", "avg_cadence",
-        "elevation_gain", "calories", "name", "description", "workout_label",
+        "elevation_gain", "name", "description", "workout_label",
         "event_type",
     ]:
         setattr(ua, fname, _pick_value(source_rows, fname))
@@ -142,7 +141,8 @@ def build_unified_activity(group_id: str | None, rows: list[dict], **kwargs) -> 
             wt_data = kwargs["_wt_cache"].get(rep_id)
         else:
             wt_row = conn.execute(
-                "SELECT metric_json FROM computed_metrics WHERE activity_id=? AND metric_name='WorkoutType'",
+                "SELECT json_value FROM metric_store"
+                " WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='WorkoutType'",
                 (rep_id,),
             ).fetchone()
             if wt_row and wt_row[0]:
@@ -327,9 +327,10 @@ def fetch_unified_activities(
         try:
             _ph = ",".join("?" * len(all_act_ids))
             _wt_rows = conn.execute(
-                f"SELECT activity_id, metric_json FROM computed_metrics "
-                f"WHERE activity_id IN ({_ph}) AND metric_name='WorkoutType'",
-                all_act_ids,
+                f"SELECT CAST(scope_id AS INTEGER), json_value FROM metric_store"
+                f" WHERE scope_type='activity' AND scope_id IN ({_ph})"
+                f"   AND metric_name='WorkoutType'",
+                [str(i) for i in all_act_ids],
             ).fetchall()
             for _aid, _mj in _wt_rows:
                 if _mj:
@@ -371,7 +372,6 @@ def build_source_comparison(source_rows: dict[str, dict]) -> list[dict]:
         ("케이던스(spm)", "avg_cadence"),
         ("고도 상승(m)", "elevation_gain"),
         ("파워(W)", "avg_power"),
-        ("칼로리(kcal)", "calories"),
     ]
     # avg_power가 activity_detail_metrics에만 있는 경우 source_rows에 보완
     for src, row in source_rows.items():

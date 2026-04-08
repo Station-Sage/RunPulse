@@ -34,22 +34,21 @@ def _upsert_daily_detail_metric(
     metric_value=None,
     metric_json=None,
 ) -> None:
-    """Upsert a Garmin daily detail metric."""
+    """Upsert a Garmin daily detail metric into metric_store."""
     try:
-        conn.execute(
-            """
-            INSERT INTO daily_detail_metrics
-                (date, source, metric_name, metric_value, metric_json)
-            VALUES
-                (?, 'garmin', ?, ?, ?)
-            ON CONFLICT(date, source, metric_name) DO UPDATE SET
-                metric_value = excluded.metric_value,
-                metric_json = excluded.metric_json,
-                updated_at = datetime('now')
-            """,
-            (date_str, metric_name, metric_value, metric_json),
+        # metric_json이 이미 직렬화된 문자열인 경우 역직렬화 후 upsert_metric에 전달
+        json_obj = None
+        if metric_json is not None:
+            if isinstance(metric_json, str):
+                json_obj = json.loads(metric_json)
+            else:
+                json_obj = metric_json
+        upsert_metric(
+            conn, "daily", date_str, metric_name, "garmin",
+            numeric_value=float(metric_value) if metric_value is not None else None,
+            json_value=json_obj,
         )
-    except sqlite3.OperationalError:
+    except (TypeError, ValueError, json.JSONDecodeError):
         pass
 
 

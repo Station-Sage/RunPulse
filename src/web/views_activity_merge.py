@@ -48,9 +48,9 @@ def _fetch_strava_details_for_group(conn: sqlite3.Connection, ids: list[int]) ->
             if not row or row[0] != "strava":
                 continue
             has_detail = conn.execute(
-                "SELECT 1 FROM activity_detail_metrics "
-                "WHERE activity_id = ? AND source = 'strava' LIMIT 1",
-                (act_id,),
+                "SELECT 1 FROM metric_store "
+                "WHERE scope_type='activity' AND scope_id=? AND provider='strava' LIMIT 1",
+                (str(act_id),),
             ).fetchone()
             if not has_detail:
                 _fetch_and_store_strava_detail(conn, row[1], act_id, headers)

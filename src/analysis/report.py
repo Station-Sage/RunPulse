@@ -124,8 +124,8 @@ def _latest_activity_date(conn: sqlite3.Connection):
 
 def _get_daily_detail_metrics(conn: sqlite3.Connection, date_str: str, source: str = "garmin") -> dict:
     rows = conn.execute(
-        "SELECT metric_name, metric_value, metric_json "
-        "FROM daily_detail_metrics WHERE date = ? AND source = ?",
+        "SELECT metric_name, numeric_value, json_value FROM metric_store "
+        "WHERE scope_type='daily' AND scope_id=? AND provider=? AND is_primary=1",
         (date_str, source),
     ).fetchall()
     result = {}

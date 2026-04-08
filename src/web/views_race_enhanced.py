@@ -16,10 +16,10 @@ def load_prediction_trend(conn: sqlite3.Connection, darp_key: str, weeks: int = 
     """DARP 예측 시간 + VDOT 추세 (12주)."""
     days = weeks * 7
     rows = conn.execute(
-        """SELECT date, metric_value, metric_json FROM computed_metrics
-           WHERE metric_name = ? AND activity_id IS NULL
-             AND date >= date('now', '-' || ? || ' days')
-           ORDER BY date""",
+        """SELECT scope_id AS date, numeric_value, json_value FROM metric_store
+           WHERE metric_name = ? AND scope_type='daily' AND is_primary=1
+             AND scope_id >= date('now', '-' || ? || ' days')
+           ORDER BY scope_id""",
         (darp_key, days),
     ).fetchall()
     darp_dates, darp_times, vdot_vals = [], [], []
@@ -39,10 +39,10 @@ def load_fitness_factors(conn: sqlite3.Connection) -> dict:
     result: dict = {}
     for name in ("DI", "MarathonShape"):
         rows = conn.execute(
-            """SELECT date, metric_value FROM computed_metrics
-               WHERE metric_name = ? AND activity_id IS NULL
-                 AND date >= date('now', '-' || ? || ' days')
-               ORDER BY date""",
+            """SELECT scope_id AS date, numeric_value FROM metric_store
+               WHERE metric_name = ? AND scope_type='daily' AND is_primary=1
+                 AND scope_id >= date('now', '-' || ? || ' days')
+               ORDER BY scope_id""",
             (name, days),
         ).fetchall()
         result[name] = {
@@ -51,10 +51,10 @@ def load_fitness_factors(conn: sqlite3.Connection) -> dict:
         }
     # EF (활동별)
     ef_rows = conn.execute(
-        """SELECT date, metric_value FROM computed_metrics
-           WHERE metric_name = 'EF' AND activity_id IS NOT NULL
-             AND date >= date('now', '-' || ? || ' days')
-           ORDER BY date""",
+        """SELECT scope_id AS date, numeric_value FROM metric_store
+           WHERE metric_name = 'EF' AND scope_type='activity' AND is_primary=1
+             AND scope_id >= date('now', '-' || ? || ' days')
+           ORDER BY scope_id""",
         (days,),
     ).fetchall()
     result["EF"] = {
@@ -264,9 +264,10 @@ def render_race_shape_trio(conn, target_date: str | None = None) -> str:
     # VDOT_ADJ 우선 (DARP와 동일한 소스)
     vdot = None
     adj_row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='VDOT_ADJ' AND metric_value IS NOT NULL AND date<=? "
-        "ORDER BY date DESC LIMIT 1", (today,),
+        "SELECT numeric_value FROM metric_store "
+        "WHERE metric_name='VDOT_ADJ' AND numeric_value IS NOT NULL "
+        "AND scope_type='daily' AND is_primary=1 AND scope_id<=? "
+        "ORDER BY scope_id DESC LIMIT 1", (today,),
     ).fetchone()
     if adj_row and adj_row[0]:
         vdot = float(adj_row[0])

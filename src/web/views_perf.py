@@ -44,8 +44,8 @@ def load_latest_metric_date(
 ) -> str | None:
     """메트릭의 가장 최근 계산 날짜 반환."""
     row = conn.execute(
-        "SELECT date FROM computed_metrics WHERE metric_name=? AND activity_id IS NULL "
-        "AND date <= ? ORDER BY date DESC LIMIT 1",
+        "SELECT scope_id FROM metric_store WHERE metric_name=? AND scope_type='daily' "
+        "AND is_primary=1 AND scope_id <= ? ORDER BY scope_id DESC LIMIT 1",
         (metric_name, target_date),
     ).fetchone()
     return row[0] if row else None
@@ -64,11 +64,11 @@ def load_metrics_batch(
         return {}
     ph = ",".join("?" * len(metric_names))
     rows = conn.execute(
-        f"""SELECT metric_name, metric_value
-            FROM computed_metrics
+        f"""SELECT metric_name, numeric_value
+            FROM metric_store
             WHERE metric_name IN ({ph})
-              AND activity_id IS NULL AND date <= ?
-            ORDER BY date DESC""",
+              AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
+            ORDER BY scope_id DESC""",
         (*metric_names, target_date),
     ).fetchall()
     result: dict[str, float | None] = {n: None for n in metric_names}
@@ -88,11 +88,11 @@ def load_metrics_json_batch(
         return {}
     ph = ",".join("?" * len(metric_names))
     rows = conn.execute(
-        f"""SELECT metric_name, metric_json
-            FROM computed_metrics
+        f"""SELECT metric_name, json_value
+            FROM metric_store
             WHERE metric_name IN ({ph})
-              AND activity_id IS NULL AND date <= ?
-            ORDER BY date DESC""",
+              AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
+            ORDER BY scope_id DESC""",
         (*metric_names, target_date),
     ).fetchall()
     result: dict[str, dict | None] = {n: None for n in metric_names}
@@ -115,12 +115,13 @@ def load_activity_metrics_batch(
         return {}
     id_ph = ",".join("?" * len(activity_ids))
     name_ph = ",".join("?" * len(metric_names))
+    str_ids = [str(aid) for aid in activity_ids]
     rows = conn.execute(
-        f"""SELECT activity_id, metric_name, metric_value
-            FROM computed_metrics
-            WHERE activity_id IN ({id_ph})
-              AND metric_name IN ({name_ph})""",
-        (*activity_ids, *metric_names),
+        f"""SELECT CAST(scope_id AS INTEGER) AS activity_id, metric_name, numeric_value
+            FROM metric_store
+            WHERE scope_id IN ({id_ph}) AND scope_type='activity'
+              AND metric_name IN ({name_ph}) AND is_primary=1""",
+        (*str_ids, *metric_names),
     ).fetchall()
     result: dict[int, dict[str, float | None]] = {
         aid: {n: None for n in metric_names} for aid in activity_ids
@@ -139,11 +140,11 @@ def load_darp_batch(
     names = ["DARP_5k", "DARP_10k", "DARP_half", "DARP_full"]
     ph = ",".join("?" * len(names))
     rows = conn.execute(
-        f"""SELECT metric_name, metric_value, metric_json
-            FROM computed_metrics
+        f"""SELECT metric_name, numeric_value, json_value
+            FROM metric_store
             WHERE metric_name IN ({ph})
-              AND activity_id IS NULL AND date <= ?
-            ORDER BY date DESC""",
+              AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
+            ORDER BY scope_id DESC""",
         (*names, target_date),
     ).fetchall()
     result: dict[str, dict] = {}

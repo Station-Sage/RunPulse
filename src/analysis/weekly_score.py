@@ -117,14 +117,15 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
     """HR Zone 기반 Easy 비율 계산 (intervals zone 데이터 우선, 없으면 HR 추정)."""
     # intervals hr_zone_distribution JSON 활용
     rows = conn.execute("""
-        SELECT sm.metric_json
-        FROM activity_detail_metrics sm
-        JOIN activity_summaries a ON sm.activity_id = a.id
-        WHERE a.start_time >= ? AND a.start_time < ?
+        SELECT sm.json_value
+        FROM metric_store sm
+        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
+        WHERE sm.scope_type='activity'
+          AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.source = 'intervals'
+          AND sm.provider = 'intervals'
           AND sm.metric_name = 'hr_zone_distribution'
-          AND sm.metric_json IS NOT NULL
+          AND sm.json_value IS NOT NULL
     """, (start, end)).fetchall()
 
     if rows:

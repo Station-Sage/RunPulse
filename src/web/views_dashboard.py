@@ -72,9 +72,9 @@ def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
     오늘 날짜 기준으로 항상 최신 상태를 유지해야 함.
     """
     count = conn.execute(
-        "SELECT COUNT(*) FROM computed_metrics "
-        "WHERE date=? AND metric_name IN ('UTRS', 'DARP_half') "
-        "AND activity_id IS NULL",
+        "SELECT COUNT(*) FROM metric_store "
+        "WHERE scope_id=? AND metric_name IN ('UTRS', 'DARP_half') "
+        "AND scope_type='daily' AND is_primary=1",
         (today,),
     ).fetchone()[0]
     if count >= 2:
@@ -93,9 +93,9 @@ def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
 
 def _load_metric(conn: sqlite3.Connection, target_date: str, metric_name: str) -> float | None:
     row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE date <= ? AND metric_name = ? AND activity_id IS NULL
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT numeric_value FROM metric_store
+           WHERE scope_id <= ? AND metric_name = ? AND scope_type='daily' AND is_primary=1
+           ORDER BY scope_id DESC LIMIT 1""",
         (target_date, metric_name),
     ).fetchone()
     return float(row[0]) if row and row[0] is not None else None
@@ -103,9 +103,9 @@ def _load_metric(conn: sqlite3.Connection, target_date: str, metric_name: str) -
 
 def _load_metric_json(conn: sqlite3.Connection, target_date: str, metric_name: str) -> dict | None:
     row = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE date <= ? AND metric_name = ? AND activity_id IS NULL
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE scope_id <= ? AND metric_name = ? AND scope_type='daily' AND is_primary=1
+           ORDER BY scope_id DESC LIMIT 1""",
         (target_date, metric_name),
     ).fetchone()
     if row and row[0]:

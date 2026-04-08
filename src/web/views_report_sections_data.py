@@ -12,9 +12,10 @@ import sqlite3
 def _load_tids_data(conn: sqlite3.Connection, start: str, end: str) -> dict | None:
     """기간 내 최신 TIDS metric_json 조회."""
     row = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE metric_name = 'TIDS' AND activity_id IS NULL AND date BETWEEN ? AND ?
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE metric_name = 'TIDS' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchone()
     if row and row[0]:
@@ -28,9 +29,10 @@ def _load_tids_data(conn: sqlite3.Connection, start: str, end: str) -> dict | No
 def _load_trimp_weekly(conn: sqlite3.Connection, start: str, end: str) -> list[dict]:
     """주별 TRIMP 합계 (활동별 합산)."""
     rows = conn.execute(
-        """SELECT strftime('%Y-%W', date) AS week, COALESCE(SUM(metric_value), 0) AS total
-           FROM computed_metrics
-           WHERE metric_name = 'TRIMP' AND activity_id IS NOT NULL AND date BETWEEN ? AND ?
+        """SELECT strftime('%Y-%W', scope_id) AS week, COALESCE(SUM(numeric_value), 0) AS total
+           FROM metric_store
+           WHERE metric_name = 'TRIMP' AND scope_type='activity' AND is_primary=1
+             AND scope_id BETWEEN ? AND ?
            GROUP BY week ORDER BY week ASC""",
         (start, end),
     ).fetchall()
@@ -40,10 +42,10 @@ def _load_trimp_weekly(conn: sqlite3.Connection, start: str, end: str) -> list[d
 def _load_risk_overview(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """기간 내 ACWR / LSI / Monotony / CIRS 평균 및 최고값."""
     rows = conn.execute(
-        """SELECT metric_name, AVG(metric_value), MAX(metric_value)
-           FROM computed_metrics
+        """SELECT metric_name, AVG(numeric_value), MAX(numeric_value)
+           FROM metric_store
            WHERE metric_name IN ('ACWR', 'LSI', 'Monotony', 'CIRS')
-             AND activity_id IS NULL AND date BETWEEN ? AND ?
+             AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
            GROUP BY metric_name""",
         (start, end),
     ).fetchall()
@@ -53,9 +55,10 @@ def _load_risk_overview(conn: sqlite3.Connection, start: str, end: str) -> dict:
 def _load_adti(conn: sqlite3.Connection, end: str) -> float | None:
     """최신 ADTI (유산소 분리 추세) 값 조회."""
     row = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name = 'ADTI' AND activity_id IS NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT numeric_value FROM metric_store
+           WHERE metric_name = 'ADTI' AND scope_type='daily' AND is_primary=1
+             AND scope_id <= ?
+           ORDER BY scope_id DESC LIMIT 1""",
         (end,),
     ).fetchone()
     return float(row[0]) if row and row[0] is not None else None
@@ -66,9 +69,10 @@ def _load_darp_latest(conn: sqlite3.Connection, end: str) -> dict:
     result = {}
     for key in ("DARP_5k", "DARP_10k", "DARP_half", "DARP_full"):
         row = conn.execute(
-            """SELECT metric_value, metric_json FROM computed_metrics
-               WHERE metric_name = ? AND activity_id IS NULL AND date <= ?
-               ORDER BY date DESC LIMIT 1""",
+            """SELECT numeric_value, json_value FROM metric_store
+               WHERE metric_name = ? AND scope_type='daily' AND is_primary=1
+                 AND scope_id <= ?
+               ORDER BY scope_id DESC LIMIT 1""",
             (key, end),
         ).fetchone()
         if row and row[0] is not None:

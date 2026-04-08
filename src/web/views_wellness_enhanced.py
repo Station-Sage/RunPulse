@@ -25,14 +25,15 @@ def load_wellness_14d(conn: sqlite3.Connection, date_str: str) -> list[dict]:
 
 
 def load_sleep_times(conn: sqlite3.Connection, date_str: str, days: int = 7) -> list[dict]:
-    """최근 N일 취침/기상 시각 (daily_detail_metrics)."""
+    """최근 N일 취침/기상 시각 (metric_store scope_type='daily')."""
     try:
         rows = conn.execute(
-            """SELECT d.date, d.metric_name, d.metric_value
-               FROM daily_detail_metrics d
-               WHERE d.date <= ? AND d.date >= date(?, '-' || ? || ' days')
-                 AND d.metric_name IN ('sleep_start_timestamp', 'sleep_end_timestamp')
-               ORDER BY d.date""",
+            """SELECT scope_id, metric_name, numeric_value
+               FROM metric_store
+               WHERE scope_type='daily' AND provider='garmin'
+                 AND scope_id <= ? AND scope_id >= date(?, '-' || ? || ' days')
+                 AND metric_name IN ('sleep_start_timestamp', 'sleep_end_timestamp')
+               ORDER BY scope_id""",
             (date_str, date_str, days),
         ).fetchall()
     except Exception:
@@ -52,13 +53,14 @@ def load_sleep_times(conn: sqlite3.Connection, date_str: str, days: int = 7) -> 
 
 
 def load_hrv_baseline(conn: sqlite3.Connection, date_str: str) -> dict:
-    """HRV 개인 기준선 (Garmin daily_detail_metrics)."""
-    row = conn.execute(
-        """SELECT metric_name, metric_value FROM daily_detail_metrics
-           WHERE date = ? AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_high')""",
+    """HRV 개인 기준선 (metric_store scope_type='daily')."""
+    rows = conn.execute(
+        """SELECT metric_name, numeric_value FROM metric_store
+           WHERE scope_type='daily' AND scope_id=? AND provider='garmin'
+             AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_high')""",
         (date_str,),
     ).fetchall()
-    return {r[0]: float(r[1]) for r in row if r[1] is not None}
+    return {r[0]: float(r[1]) for r in rows if r[1] is not None}
 
 
 def load_weekly_comparison(conn: sqlite3.Connection, date_str: str) -> dict:

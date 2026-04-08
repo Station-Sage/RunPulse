@@ -35,13 +35,13 @@ def _fetch_source_rows(conn: sqlite3.Connection, activity_id: int) -> dict[str, 
         if src not in source_rows:
             source_rows[src] = d
 
-    # avg_power가 activity_summaries에 없으면 activity_detail_metrics에서 보완
+    # avg_power가 activity_summaries에 없으면 metric_store에서 보완
     for d in source_rows.values():
         if d.get("avg_power") is None:
             pw = conn.execute(
-                "SELECT metric_value FROM activity_detail_metrics "
-                "WHERE activity_id = ? AND metric_name = 'avg_power' LIMIT 1",
-                (d["id"],),
+                "SELECT numeric_value FROM metric_store "
+                "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name = 'avg_power' AND is_primary=1 LIMIT 1",
+                (str(d["id"]),),
             ).fetchone()
             if pw and pw[0] is not None:
                 d["avg_power"] = pw[0]
@@ -65,10 +65,11 @@ def _fetch_adjacent(conn, activity_id: int, start_time: str) -> tuple:
 
 
 def _load_activity_computed_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
-    """활동별 computed_metrics 조회 → {metric_name: value} 딕셔너리."""
+    """활동별 metric_store 조회 → {metric_name: value} 딕셔너리."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value FROM computed_metrics WHERE activity_id = ?",
-        (activity_id,),
+        "SELECT metric_name, numeric_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND is_primary=1",
+        (str(activity_id),),
     ).fetchall()
     return {row[0]: row[1] for row in rows}
 
@@ -76,12 +77,11 @@ def _load_activity_computed_metrics(conn: sqlite3.Connection, activity_id: int) 
 def _load_service_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     """서비스 1차 메트릭 조회 (Garmin/Strava/Intervals 제공값).
 
-    그룹 내 모든 소스 row를 조회하여 각 소스별 데이터를 정확히 반환.
+    metric_store에서 provider별로 조회 후 소스별 섹션으로 구성.
 
     Returns:
         {service: {label: (value, unit)}} 딕셔너리.
     """
-    # 대표 활동의 matched_group_id 조회
     anchor = conn.execute(
         "SELECT matched_group_id FROM activity_summaries WHERE id=?",
         (activity_id,),
@@ -90,131 +90,93 @@ def _load_service_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
         return {}
 
     group_id = anchor[0]
-    cols = ("source, aerobic_training_effect, anaerobic_training_effect, training_load,"
-            " suffer_score, avg_power, normalized_power,"
-            " icu_training_load, icu_trimp, icu_hrss,"
-            " icu_intensity, icu_efficiency_factor, icu_atl, icu_ctl, icu_tsb")
-
-    if group_id:
-        raw_rows = conn.execute(
-            f"SELECT {cols} FROM activity_summaries WHERE matched_group_id=?",
-            (group_id,),
-        ).fetchall()
-    else:
-        raw_rows = conn.execute(
-            f"SELECT {cols} FROM activity_summaries WHERE id=?",
-            (activity_id,),
-        ).fetchall()
-
-    # source → row dict
-    src_map: dict[str, tuple] = {}
-    for r in raw_rows:
-        src = r[0] or ""
-        if src not in src_map:
-            src_map[src] = r
-
-    result: dict = {}
-
-    g = src_map.get("garmin") or src_map.get("", ())
-    if g:
-        garmin = {}
-        if g[1] is not None:
-            garmin["에어로빅 훈련 효과 (ATE)"] = (float(g[1]), "/ 5.0")
-        if g[2] is not None:
-            garmin["무산소 훈련 효과 (AnTE)"] = (float(g[2]), "/ 5.0")
-        if g[3] is not None:
-            garmin["훈련 부하"] = (float(g[3]), "")
-        if garmin:
-            result["Garmin"] = garmin
-
-    s = src_map.get("strava", ())
-    if s:
-        strava = {}
-        if s[4] is not None:
-            strava["Suffer Score"] = (float(s[4]), "")
-        if s[5] is not None:
-            strava["평균 파워"] = (float(s[5]), " W")
-        if s[6] is not None:
-            strava["정규화 파워 (NP)"] = (float(s[6]), " W")
-        if strava:
-            result["Strava"] = strava
-
-    iv = src_map.get("intervals", ())
-    if iv:
-        icu = {}
-        if iv[7] is not None:
-            icu["훈련 부하 (Training Load)"] = (float(iv[7]), "")
-        if iv[8] is not None:
-            icu["TRIMP"] = (float(iv[8]), "")
-        if iv[9] is not None:
-            icu["HRSS"] = (float(iv[9]), "")
-        if iv[10] is not None:
-            icu["강도 (Intensity)"] = (float(iv[10]), "")
-        if iv[11] is not None:
-            icu["효율 계수 (EF)"] = (float(iv[11]), "")
-        if iv[12] is not None:
-            icu["ATL"] = (float(iv[12]), "")
-        if iv[13] is not None:
-            icu["CTL"] = (float(iv[13]), "")
-        if iv[14] is not None:
-            icu["TSB"] = (float(iv[14]), "")
-        if icu:
-            result["Intervals.icu"] = icu
-
-    # activity_detail_metrics에서 날씨 + zone 스코어 (그룹 내 모든 활동 포함)
     if group_id:
         all_ids = [r[0] for r in conn.execute(
             "SELECT id FROM activity_summaries WHERE matched_group_id=?", (group_id,)
         ).fetchall()]
     else:
         all_ids = [activity_id]
-    ph = ",".join("?" * len(all_ids))
-    detail_rows = conn.execute(
-        f"""SELECT metric_name, metric_value FROM activity_detail_metrics
-           WHERE activity_id IN ({ph}) AND metric_name IN (
-             'weather_temp_c','weather_humidity_pct','weather_wind_speed_ms',
-             'heartrate_zone_score','power_zone_score'
-           )""",
-        all_ids,
+
+    # metric_store에서 활동 메트릭 조회 (Phase 5-G: 6컬럼 포함)
+    scope_ids = [str(aid) for aid in all_ids]
+    ph = ",".join("?" * len(scope_ids))
+    target_metrics = (
+        "training_load", "training_effect_aerobic", "training_effect_anaerobic",
+        "normalized_power", "suffer_score", "calories",
+        "trimp", "hrss", "efficiency_factor", "intensity_factor",
+        "aerobic_decoupling",
+    )
+    mph = ",".join("?" * len(target_metrics))
+
+    ms_rows = conn.execute(
+        f"SELECT provider, metric_name, numeric_value FROM metric_store"
+        f" WHERE scope_type='activity' AND scope_id IN ({ph})"
+        f" AND metric_name IN ({mph}) AND is_primary=1",
+        scope_ids + list(target_metrics),
     ).fetchall()
-    detail = {r[0]: r[1] for r in detail_rows if r[1] is not None}
 
-    weather = {}
-    if "weather_temp_c" in detail:
-        weather["기온"] = (float(detail["weather_temp_c"]), " °C")
-    if "weather_humidity_pct" in detail:
-        weather["습도"] = (float(detail["weather_humidity_pct"]), " %")
-    if "weather_wind_speed_ms" in detail:
-        weather["풍속"] = (float(detail["weather_wind_speed_ms"]), " m/s")
-    if weather:
-        result["날씨 (서비스)"] = weather
+    # provider → {metric_name: value}
+    by_provider: dict[str, dict] = {}
+    for provider, mname, val in ms_rows:
+        if val is not None:
+            by_provider.setdefault(provider, {})[mname] = val
 
-    zones_svc = {}
-    if "heartrate_zone_score" in detail:
-        zones_svc["HR Zone Score (Strava)"] = (float(detail["heartrate_zone_score"]), "")
-    if "power_zone_score" in detail:
-        zones_svc["Power Zone Score (Strava)"] = (float(detail["power_zone_score"]), "")
-    if zones_svc:
-        result["존 점수 (서비스)"] = zones_svc
+    result: dict = {}
+
+    g = by_provider.get("garmin", {})
+    garmin: dict = {}
+    if g.get("training_effect_aerobic") is not None:
+        garmin["에어로빅 훈련 효과 (ATE)"] = (float(g["training_effect_aerobic"]), "/ 5.0")
+    if g.get("training_effect_anaerobic") is not None:
+        garmin["무산소 훈련 효과 (AnTE)"] = (float(g["training_effect_anaerobic"]), "/ 5.0")
+    if g.get("training_load") is not None:
+        garmin["훈련 부하"] = (float(g["training_load"]), "")
+    if garmin:
+        result["Garmin"] = garmin
+
+    s = by_provider.get("strava", {})
+    strava: dict = {}
+    if s.get("suffer_score") is not None:
+        strava["Suffer Score"] = (float(s["suffer_score"]), "")
+    if s.get("normalized_power") is not None:
+        strava["정규화 파워 (NP)"] = (float(s["normalized_power"]), " W")
+    if strava:
+        result["Strava"] = strava
+
+    iv = by_provider.get("intervals", {})
+    icu: dict = {}
+    if iv.get("training_load") is not None:
+        icu["훈련 부하 (Training Load)"] = (float(iv["training_load"]), "")
+    if iv.get("trimp") is not None:
+        icu["TRIMP"] = (float(iv["trimp"]), "")
+    if iv.get("hrss") is not None:
+        icu["HRSS"] = (float(iv["hrss"]), "")
+    if iv.get("intensity_factor") is not None:
+        icu["강도 (Intensity)"] = (float(iv["intensity_factor"]), "")
+    if iv.get("efficiency_factor") is not None:
+        icu["효율 계수 (EF)"] = (float(iv["efficiency_factor"]), "")
+    if icu:
+        result["Intervals.icu"] = icu
 
     return result
 
 
 def _load_day_computed_metrics(conn: sqlite3.Connection, act_date: str) -> dict:
-    """날짜별 computed_metrics 조회 (activity_id IS NULL) → {metric_name: value}."""
+    """날짜별 metric_store 조회 (scope_type='daily') → {metric_name: value}."""
     rows = conn.execute(
-        """SELECT metric_name, metric_value FROM computed_metrics
-           WHERE date = ? AND activity_id IS NULL""",
+        """SELECT metric_name, numeric_value FROM metric_store
+           WHERE scope_id = ? AND scope_type='daily' AND is_primary=1""",
         (act_date,),
     ).fetchall()
     return {row[0]: row[1] for row in rows}
 
 
 def _load_activity_metric_jsons(conn: sqlite3.Connection, activity_id: int) -> dict:
-    """활동별 computed_metrics metric_json 조회 → {metric_name: dict}."""
+    """활동별 metric_store json_value 조회 → {metric_name: dict}."""
     rows = conn.execute(
-        "SELECT metric_name, metric_json FROM computed_metrics WHERE activity_id = ? AND metric_json IS NOT NULL",
-        (activity_id,),
+        "SELECT metric_name, json_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND is_primary=1 AND json_value IS NOT NULL",
+        (str(activity_id),),
     ).fetchall()
     result = {}
     for name, mj in rows:
@@ -226,10 +188,10 @@ def _load_activity_metric_jsons(conn: sqlite3.Connection, activity_id: int) -> d
 
 
 def _load_day_metric_jsons(conn: sqlite3.Connection, act_date: str) -> dict:
-    """날짜별 computed_metrics metric_json 조회 (activity_id IS NULL) → {metric_name: dict}."""
+    """날짜별 metric_store json_value 조회 (scope_type='daily') → {metric_name: dict}."""
     rows = conn.execute(
-        """SELECT metric_name, metric_json FROM computed_metrics
-           WHERE date = ? AND activity_id IS NULL AND metric_json IS NOT NULL""",
+        """SELECT metric_name, json_value FROM metric_store
+           WHERE scope_id = ? AND scope_type='daily' AND is_primary=1 AND json_value IS NOT NULL""",
         (act_date,),
     ).fetchall()
     result = {}
@@ -247,10 +209,10 @@ def _load_pmc_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
     end = date.fromisoformat(target_date)
     start = end - timedelta(days=days - 1)
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value FROM computed_metrics
-           WHERE date BETWEEN ? AND ? AND activity_id IS NULL
+        """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
+           WHERE scope_id BETWEEN ? AND ? AND scope_type='daily' AND is_primary=1
              AND metric_name IN ('TRIMP_daily','ACWR')
-           ORDER BY date""",
+           ORDER BY scope_id""",
         (start.isoformat(), end.isoformat()),
     ).fetchall()
     dates_set: set[str] = set()
@@ -291,12 +253,13 @@ def _extract_gap(source_rows: dict) -> float | None:
 def _load_running_tolerance(conn: sqlite3.Connection, act_date: str) -> dict:
     """Running Tolerance 일별 데이터 조회."""
     rows = conn.execute(
-        """SELECT metric_name, metric_value FROM daily_detail_metrics
-           WHERE date=? AND metric_name IN (
-             'running_tolerance_load',
-             'running_tolerance_optimal_max',
-             'running_tolerance_score'
-           )""",
+        """SELECT metric_name, numeric_value FROM metric_store
+           WHERE scope_id=? AND scope_type='daily' AND is_primary=1
+             AND metric_name IN (
+               'running_tolerance_load',
+               'running_tolerance_optimal_max',
+               'running_tolerance_score'
+             )""",
         (act_date,),
     ).fetchall()
     return {r[0]: r[1] for r in rows if r[1] is not None}

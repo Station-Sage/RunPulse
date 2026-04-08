@@ -67,7 +67,8 @@ def _get_group_activities(conn: sqlite3.Connection, activity_id: int) -> list[tu
 def _get_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     """activity_id의 source_metrics를 {metric_name: value_or_json} dict로 반환."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value, metric_json FROM activity_detail_metrics WHERE activity_id = ?",
+        "SELECT metric_name, numeric_value, json_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT)",
         (activity_id,),
     ).fetchall()
     result = {}
@@ -84,8 +85,8 @@ def _get_daily_detail_metrics(
 ) -> dict:
     """일자별 daily_detail_metrics를 {metric_name: value_or_json} dict로 반환."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value, metric_json "
-        "FROM daily_detail_metrics WHERE date = ? AND source = ?",
+        "SELECT metric_name, numeric_value, json_value FROM metric_store "
+        "WHERE scope_type='daily' AND scope_id=? AND provider=? AND is_primary=1",
         (date, source),
     ).fetchall()
     result = {}
@@ -123,8 +124,8 @@ def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
             return {r[0]: json.loads(r[1]) for r in rows if r[1]}
         # 레거시 파일 경로
         r = conn.execute(
-            "SELECT metric_json FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND metric_name = 'stream_file'",
+            "SELECT json_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='stream_file'",
             (sid,),
         ).fetchone()
         if r and r[0]:

@@ -87,8 +87,8 @@ def _find_stream_path(conn: sqlite3.Connection, rep_id: int) -> str | None:
             return f"db:{sid}"
         # 레거시 파일 경로
         r = conn.execute(
-            "SELECT metric_json FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND metric_name = 'stream_file'",
+            "SELECT json_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='stream_file'",
             (sid,),
         ).fetchone()
         if r and r[0]:
@@ -149,8 +149,8 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
     for (sid,) in acts:
         # 1) 신규 저장 포맷: icu_hr_zone_times = [z1, z2, z3, ...]
         r = conn.execute(
-            "SELECT metric_json FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND metric_name = 'icu_hr_zone_times'",
+            "SELECT json_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='icu_hr_zone_times'",
             (sid,),
         ).fetchone()
         if r and r[0]:
@@ -163,8 +163,8 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
 
         # 2) 구 포맷: hr_zone_distribution = {1: secs, ...}
         r = conn.execute(
-            "SELECT metric_json FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND metric_name = 'hr_zone_distribution'",
+            "SELECT json_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='hr_zone_distribution'",
             (sid,),
         ).fetchone()
         if r and r[0]:

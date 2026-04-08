@@ -92,9 +92,9 @@ def _load_weekly_distance(conn: sqlite3.Connection, end_date: str, days: int) ->
 
 def _load_metrics_avg(conn: sqlite3.Connection, start: str, end: str) -> dict:
     rows = conn.execute(
-        """SELECT metric_name, AVG(metric_value)
-           FROM computed_metrics
-           WHERE date BETWEEN ? AND ? AND activity_id IS NULL
+        """SELECT metric_name, AVG(numeric_value)
+           FROM metric_store
+           WHERE scope_id BETWEEN ? AND ? AND scope_type='daily' AND is_primary=1
              AND metric_name IN ('UTRS', 'CIRS')
            GROUP BY metric_name""",
         (start, end),
@@ -120,10 +120,11 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
     wt_map: dict[int, dict] = {}
     if act_ids:
         ph = ",".join("?" * len(act_ids))
+        str_ids = [str(aid) for aid in act_ids]
         wt_rows = conn.execute(
-            f"SELECT activity_id, metric_json FROM computed_metrics "
-            f"WHERE activity_id IN ({ph}) AND metric_name='WorkoutType'",
-            act_ids,
+            f"SELECT CAST(scope_id AS INTEGER) AS activity_id, json_value FROM metric_store "
+            f"WHERE scope_type='activity' AND scope_id IN ({ph}) AND metric_name='WorkoutType'",
+            str_ids,
         ).fetchall()
         for aid, mj in wt_rows:
             if mj:
@@ -261,21 +262,21 @@ def report_view():
             vdot, shape = _load_fitness_data(conn, end_date)
             # DI (내구성 지수)
             _di_row = conn.execute(
-                "SELECT metric_value FROM computed_metrics WHERE metric_name='DI' "
-                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                "SELECT numeric_value FROM metric_store WHERE metric_name='DI' "
+                "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()
             di_val = float(_di_row[0]) if _di_row and _di_row[0] is not None else None
             # v0.3 메트릭
             _teroi_row = conn.execute(
-                "SELECT metric_value FROM computed_metrics WHERE metric_name='TEROI' "
-                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                "SELECT numeric_value FROM metric_store WHERE metric_name='TEROI' "
+                "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()
             teroi_val = float(_teroi_row[0]) if _teroi_row and _teroi_row[0] is not None else None
             _sapi_row = conn.execute(
-                "SELECT metric_value FROM computed_metrics WHERE metric_name='SAPI' "
-                "AND activity_id IS NULL AND date<=? ORDER BY date DESC LIMIT 1",
+                "SELECT numeric_value FROM metric_store WHERE metric_name='SAPI' "
+                "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()
             sapi_val = float(_sapi_row[0]) if _sapi_row and _sapi_row[0] is not None else None

@@ -116,20 +116,24 @@ def get_available_days(week_start: date, prefs: dict) -> list[int]:
 
 def get_latest_fitness(conn: sqlite3.Connection) -> dict:
     """최근 CTL/ATL/TSB 조회."""
-    row = conn.execute(
-        "SELECT ctl, atl, tsb FROM daily_fitness ORDER BY date DESC LIMIT 1"
-    ).fetchone()
-    if row:
-        return {"ctl": row[0] or 0.0, "atl": row[1] or 0.0, "tsb": row[2] or 0.0}
+    rows = conn.execute(
+        "SELECT metric_name, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND is_primary=1"
+        "   AND metric_name IN ('ctl','atl','tsb') AND numeric_value IS NOT NULL"
+        " ORDER BY scope_id DESC LIMIT 3"
+    ).fetchall()
+    data = {r[0]: r[1] for r in rows}
+    if data:
+        return {"ctl": data.get("ctl") or 0.0, "atl": data.get("atl") or 0.0, "tsb": data.get("tsb") or 0.0}
     return {"ctl": 0.0, "atl": 0.0, "tsb": 0.0}
 
 
 def get_vdot_adj(conn: sqlite3.Connection) -> float | None:
     """VDOT_ADJ 조회 (최근)."""
     row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='VDOT_ADJ' AND metric_value IS NOT NULL "
-        "ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='VDOT_ADJ' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return float(row[0]) if row else None
 
@@ -137,9 +141,9 @@ def get_vdot_adj(conn: sqlite3.Connection) -> float | None:
 def get_eftp(conn: sqlite3.Connection) -> int | None:
     """eFTP (sec/km) 조회."""
     row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='eFTP' AND metric_value IS NOT NULL "
-        "ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='eFTP' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return int(row[0]) if row else None
 
@@ -147,9 +151,9 @@ def get_eftp(conn: sqlite3.Connection) -> int | None:
 def get_marathon_shape_pct(conn: sqlite3.Connection) -> float | None:
     """MarathonShape 점수 (0~100) 조회."""
     row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name='MarathonShape' AND metric_value IS NOT NULL "
-        "ORDER BY date DESC LIMIT 1"
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name='MarathonShape' AND scope_type='daily' AND is_primary=1"
+        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return float(row[0]) if row else None
 

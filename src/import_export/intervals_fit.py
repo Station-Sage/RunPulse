@@ -18,6 +18,7 @@ try:
 except ImportError as e:
     raise ImportError("fitparse 라이브러리 필요: pip install fitparse") from e
 
+from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 
@@ -171,21 +172,13 @@ def _parse_fit(fit_path: Path) -> dict[str, Any] | None:
 def _upsert_intervals_fit_detail_metrics(
     conn: sqlite3.Connection, activity_id: int, parsed: dict[str, Any]
 ) -> None:
-    """FIT 파싱 데이터 → activity_detail_metrics INSERT/UPDATE."""
+    """FIT 파싱 데이터 → metric_store UPSERT."""
     for metric_name, parsed_key in _INTERVALS_FIT_DETAIL_METRICS:
         val = parsed.get(parsed_key)
         if val is None:
             continue
-        conn.execute(
-            "DELETE FROM activity_detail_metrics "
-            "WHERE activity_id=? AND source='intervals' AND metric_name=?",
-            (activity_id, metric_name),
-        )
-        conn.execute(
-            "INSERT INTO activity_detail_metrics "
-            "(activity_id, source, metric_name, metric_value) VALUES (?,?,?,?)",
-            (activity_id, "intervals", metric_name, float(val)),
-        )
+        upsert_metric(conn, "activity", str(activity_id), metric_name, "intervals",
+                      numeric_value=float(val))
 
 
 def import_intervals_fit(

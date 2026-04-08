@@ -30,10 +30,10 @@ def load_training_quality_series(conn: sqlite3.Connection, start: str, end: str)
     """EF / Decoupling / VO2Max 기간 내 시계열."""
     # EF, Decoupling (활동별)
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value FROM computed_metrics
+        """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
            WHERE metric_name IN ('EF', 'AerobicDecoupling')
-             AND activity_id IS NOT NULL AND date BETWEEN ? AND ?
-           ORDER BY date""",
+             AND scope_type='activity' AND is_primary=1 AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, end),
     ).fetchall()
     ef_dates, ef_vals = [], []
@@ -69,10 +69,11 @@ def load_training_quality_series(conn: sqlite3.Connection, start: str, end: str)
 def load_risk_trend_series(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """ACWR / Monotony / Strain 기간 내 일별 시계열."""
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value FROM computed_metrics
-           WHERE metric_name IN ('ACWR', 'Monotony', 'Strain')
-             AND activity_id IS NULL AND date BETWEEN ? AND ?
-           ORDER BY date""",
+        """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
+           WHERE scope_type='daily' AND is_primary=1
+             AND metric_name IN ('ACWR', 'Monotony', 'Strain')
+             AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, end),
     ).fetchall()
     by_date: dict[str, dict] = {}
@@ -91,15 +92,15 @@ def load_form_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
     """RMR 시작/끝 비교 + GCT/수직비율/보폭 시계열."""
     # RMR 기간 시작 vs 끝
     rmr_start = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE metric_name='RMR' AND activity_id IS NULL AND date >= ?
-           ORDER BY date ASC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE metric_name='RMR' AND scope_type='daily' AND is_primary=1 AND scope_id >= ?
+           ORDER BY scope_id ASC LIMIT 1""",
         (start,),
     ).fetchone()
     rmr_end = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE metric_name='RMR' AND activity_id IS NULL AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE metric_name='RMR' AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
+           ORDER BY scope_id DESC LIMIT 1""",
         (end,),
     ).fetchone()
 
@@ -114,12 +115,13 @@ def load_form_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
     rmr_start_json = _parse_rmr(rmr_start)
     rmr_end_json = _parse_rmr(rmr_end)
 
-    # GCT / 수직비율 / 보폭 (activity_detail_metrics)
+    # GCT / 수직비율 / 보폭 (metric_store activity)
     bio_rows = conn.execute(
-        """SELECT a.start_time, m.metric_name, m.metric_value
-           FROM activity_detail_metrics m
-           JOIN activity_summaries a ON a.id = m.activity_id
-           WHERE m.metric_name IN ('avg_ground_contact_time_ms', 'avg_vertical_ratio_pct', 'avg_stride_length_cm')
+        """SELECT a.start_time, m.metric_name, m.numeric_value
+           FROM metric_store m
+           JOIN activity_summaries a ON a.id = CAST(m.scope_id AS INTEGER)
+           WHERE m.scope_type='activity' AND m.is_primary=1
+             AND m.metric_name IN ('avg_ground_contact_time_ms', 'avg_vertical_ratio_pct', 'avg_stride_length_cm')
              AND a.start_time BETWEEN ? AND ?
            ORDER BY a.start_time""",
         (start, end + "T23:59:59"),
@@ -162,10 +164,10 @@ def load_wellness_trend_series(conn: sqlite3.Connection, start: str, end: str) -
 def load_tids_weekly_series(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """주간 TIDS z12/z3/z45 시리즈."""
     rows = conn.execute(
-        """SELECT date, metric_json FROM computed_metrics
-           WHERE metric_name='TIDS' AND activity_id IS NULL
-             AND date BETWEEN ? AND ?
-           ORDER BY date""",
+        """SELECT scope_id AS date, json_value FROM metric_store
+           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, end),
     ).fetchall()
     weeks, z12, z3, z45 = [], [], [], []

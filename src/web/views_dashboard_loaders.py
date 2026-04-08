@@ -42,10 +42,10 @@ def load_weekly_summary(conn: sqlite3.Connection, target_date: str) -> dict:
 
     # TIDS 최신 (이번 주 내)
     tids_row = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE metric_name='TIDS' AND activity_id IS NULL
-             AND date >= ? AND date <= ?
-           ORDER BY date DESC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+             AND scope_id >= ? AND scope_id <= ?
+           ORDER BY scope_id DESC LIMIT 1""",
         (monday.isoformat(), target_date),
     ).fetchone()
     tids = {}
@@ -71,10 +71,10 @@ def load_fitness_trends(conn: sqlite3.Connection, target_date: str, days: int = 
 
     # Monotony + Strain (일별)
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value FROM computed_metrics
+        """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
            WHERE metric_name IN ('Monotony', 'Strain')
-             AND activity_id IS NULL AND date BETWEEN ? AND ?
-           ORDER BY date""",
+             AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, target_date),
     ).fetchall()
     by_date: dict[str, dict] = {}
@@ -84,10 +84,10 @@ def load_fitness_trends(conn: sqlite3.Connection, target_date: str, days: int = 
 
     # EF (활동별)
     ef_rows = conn.execute(
-        """SELECT date, metric_value FROM computed_metrics
-           WHERE metric_name = 'EF' AND activity_id IS NOT NULL
-             AND date BETWEEN ? AND ?
-           ORDER BY date""",
+        """SELECT scope_id AS date, numeric_value FROM metric_store
+           WHERE metric_name = 'EF' AND scope_type='activity' AND is_primary=1
+             AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, target_date),
     ).fetchall()
     ef_dates = [r[0] for r in ef_rows if r[1] is not None]
@@ -106,10 +106,10 @@ def load_risk_7day_trends(conn: sqlite3.Connection, target_date: str) -> dict:
     """ACWR/LSI/Monotony/Strain/TSB 7일 미니 추세."""
     start = (date.fromisoformat(target_date) - timedelta(days=6)).isoformat()
     rows = conn.execute(
-        """SELECT date, metric_name, metric_value FROM computed_metrics
+        """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
            WHERE metric_name IN ('ACWR', 'LSI', 'Monotony', 'Strain')
-             AND activity_id IS NULL AND date BETWEEN ? AND ?
-           ORDER BY date""",
+             AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
+           ORDER BY scope_id""",
         (start, target_date),
     ).fetchall()
     series: dict[str, list] = {"ACWR": [], "LSI": [], "Monotony": [], "Strain": []}

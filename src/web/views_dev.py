@@ -266,10 +266,11 @@ def payloads():
 
             metric_counts = conn.execute(
                 """
-                SELECT source, metric_name, count(*) AS cnt
-                FROM activity_detail_metrics
-                GROUP BY source, metric_name
-                ORDER BY source, metric_name
+                SELECT provider AS source, metric_name, count(*) AS cnt
+                FROM metric_store
+                WHERE scope_type='activity'
+                GROUP BY provider, metric_name
+                ORDER BY provider, metric_name
                 LIMIT 100
                 """
             ).fetchall()
@@ -348,11 +349,11 @@ def payload_view():
             if row[4]:
                 metrics = conn.execute(
                     """
-                    SELECT source, metric_name,
-                           COALESCE(CAST(metric_value AS TEXT), metric_json) AS metric_data
-                    FROM activity_detail_metrics
-                    WHERE activity_id = ?
-                    ORDER BY source, metric_name
+                    SELECT provider AS source, metric_name,
+                           COALESCE(CAST(numeric_value AS TEXT), json_value) AS metric_data
+                    FROM metric_store
+                    WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT)
+                    ORDER BY provider, metric_name
                     LIMIT 100
                     """,
                     (row[4],),

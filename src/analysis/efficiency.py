@@ -40,10 +40,10 @@ def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
         if stream_check and stream_check[0] > 0:
             return f"db:{sid}"  # DB 기반 식별자
 
-        # 2. activity_detail_metrics.stream_file fallback (레거시)
+        # 2. metric_store.stream_file fallback (레거시)
         r = conn.execute(
-            "SELECT metric_json FROM activity_detail_metrics "
-            "WHERE activity_id = ? AND metric_name = 'stream_file'",
+            "SELECT json_value FROM metric_store "
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='stream_file'",
             (sid,),
         ).fetchone()
         if r and r[0]:
@@ -90,7 +90,8 @@ def _load_stream(path: str, conn: sqlite3.Connection | None = None) -> dict | No
 def _get_intervals_metrics(conn: sqlite3.Connection, activity_id: int) -> dict | None:
     """Intervals source_metrics 기반 효율 지표 fallback."""
     rows = conn.execute(
-        "SELECT metric_name, metric_value FROM activity_detail_metrics WHERE activity_id = ? AND source = 'intervals'",
+        "SELECT metric_name, numeric_value FROM metric_store "
+        "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND provider='intervals'",
         (activity_id,),
     ).fetchall()
     if not rows:

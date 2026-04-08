@@ -124,14 +124,14 @@ def vdot_to_time(vdot: float, distance_m: float,
 
 def _get_recent_metric(conn: sqlite3.Connection, name: str,
                        days_back: int = 14) -> float | None:
-    """computed_metrics에서 최근 N일 내 가장 최근 값 조회."""
+    """metric_store(scope=daily)에서 최근 N일 내 가장 최근 값 조회."""
     since = (date.today() - timedelta(days=days_back)).isoformat()
     today = date.today().isoformat()
     row = conn.execute(
-        "SELECT metric_value FROM computed_metrics "
-        "WHERE metric_name=? AND date<=? AND date>=? AND metric_value IS NOT NULL "
-        "AND activity_id IS NULL "
-        "ORDER BY date DESC LIMIT 1",
+        "SELECT numeric_value FROM metric_store"
+        " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id<=? AND scope_id>=? AND numeric_value IS NOT NULL"
+        " ORDER BY scope_id DESC LIMIT 1",
         (name, today, since),
     ).fetchone()
     return row[0] if row else None
@@ -143,9 +143,10 @@ def _get_recent_activity_metric(conn: sqlite3.Connection, name: str,
     since = (date.today() - timedelta(days=days_back)).isoformat()
     today = date.today().isoformat()
     row = conn.execute(
-        "SELECT AVG(metric_value) FROM computed_metrics "
-        "WHERE metric_name=? AND date<=? AND date>=? AND metric_value IS NOT NULL "
-        "AND activity_id IS NOT NULL",
+        "SELECT AVG(sm.numeric_value) FROM metric_store sm"
+        " JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)"
+        " WHERE sm.metric_name=? AND sm.scope_type='activity'"
+        "   AND a.start_time<=? AND a.start_time>=? AND sm.numeric_value IS NOT NULL",
         (name, today, since),
     ).fetchone()
     return row[0] if (row and row[0] is not None) else None

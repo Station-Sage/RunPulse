@@ -45,8 +45,9 @@ def _safe_json(raw) -> dict:
 def _load_metric(conn: sqlite3.Connection, name: str):
     """최신 메트릭 값+JSON 반환."""
     row = conn.execute(
-        "SELECT metric_value, metric_json FROM computed_metrics "
-        "WHERE metric_name=? ORDER BY date DESC LIMIT 1", (name,),
+        "SELECT numeric_value, json_value FROM metric_store "
+        "WHERE metric_name=? AND scope_type='daily' AND is_primary=1 "
+        "ORDER BY scope_id DESC LIMIT 1", (name,),
     ).fetchone()
     if not row:
         return None, {}

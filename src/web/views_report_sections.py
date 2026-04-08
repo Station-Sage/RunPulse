@@ -64,9 +64,9 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
     """규칙 기반 AI 인사이트 (fallback)."""
     insights: list[str] = []
     utrs_rows = conn.execute(
-        """SELECT date, metric_value FROM computed_metrics
-           WHERE metric_name='UTRS' AND activity_id IS NULL
-             AND date BETWEEN ? AND ? ORDER BY date ASC""",
+        """SELECT scope_id AS date, numeric_value FROM metric_store
+           WHERE metric_name='UTRS' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ? ORDER BY scope_id ASC""",
         (start, end),
     ).fetchall()
     if len(utrs_rows) >= 2:
@@ -77,25 +77,25 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
         elif delta < -5:
             insights.append(f"훈련 준비도(UTRS) <strong>{delta:.0f}</strong> 하락 — 회복 주간 고려")
     cirs_rows = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name='CIRS' AND activity_id IS NULL
-             AND date BETWEEN ? AND ? ORDER BY date DESC LIMIT 1""",
+        """SELECT numeric_value FROM metric_store
+           WHERE metric_name='CIRS' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
     if cirs_rows and float(cirs_rows[0][0]) > 50:
         insights.append(f"부상 위험(CIRS) <strong>{int(cirs_rows[0][0])}/100</strong> — 부하 조절 필요")
     mono_rows = conn.execute(
-        """SELECT metric_value, metric_json FROM computed_metrics
-           WHERE metric_name='Monotony' AND activity_id IS NULL
-             AND date BETWEEN ? AND ? ORDER BY date DESC LIMIT 1""",
+        """SELECT numeric_value, json_value FROM metric_store
+           WHERE metric_name='Monotony' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
     if mono_rows and mono_rows[0][0] is not None and float(mono_rows[0][0]) > 1.5:
         insights.append(f"훈련 단조로움 <strong>{float(mono_rows[0][0]):.1f}</strong> — 강도/유형 다양화 권장")
     tids_rows = conn.execute(
-        """SELECT metric_json FROM computed_metrics
-           WHERE metric_name='TIDS' AND activity_id IS NULL
-             AND date BETWEEN ? AND ? ORDER BY date DESC LIMIT 1""",
+        """SELECT json_value FROM metric_store
+           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
     if tids_rows and tids_rows[0][0]:
@@ -111,9 +111,9 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
         except Exception:
             pass
     acwr_rows = conn.execute(
-        """SELECT metric_value FROM computed_metrics
-           WHERE metric_name='ACWR' AND activity_id IS NULL
-             AND date BETWEEN ? AND ? ORDER BY date DESC LIMIT 1""",
+        """SELECT numeric_value FROM metric_store
+           WHERE metric_name='ACWR' AND scope_type='daily' AND is_primary=1
+             AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
     if acwr_rows and acwr_rows[0][0] is not None:

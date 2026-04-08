@@ -146,16 +146,33 @@ class TestRecommendWeeklyKm:
 
 @pytest.fixture
 def empty_conn():
-    """빈 인메모리 DB (computed_metrics 테이블만 생성)."""
+    """빈 인메모리 DB (metric_store 테이블만 생성)."""
     conn = sqlite3.connect(":memory:")
     conn.execute("""
-        CREATE TABLE computed_metrics (
+        CREATE TABLE metric_store (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scope_type TEXT NOT NULL,
+            scope_id TEXT NOT NULL,
+            metric_name TEXT NOT NULL,
+            category TEXT,
+            provider TEXT NOT NULL DEFAULT 'system',
+            numeric_value REAL,
+            text_value TEXT,
+            json_value TEXT,
+            algorithm_version TEXT DEFAULT '1.0',
+            confidence REAL,
+            raw_name TEXT,
+            parent_metric_id INTEGER,
+            is_primary BOOLEAN DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS activity_summaries (
             id INTEGER PRIMARY KEY,
-            date TEXT,
-            metric_name TEXT,
-            metric_value REAL,
-            metric_json TEXT,
-            activity_id INTEGER
+            source TEXT,
+            start_time TEXT
         )
     """)
     return conn
@@ -166,13 +183,13 @@ def populated_conn(empty_conn):
     """VDOT_ADJ=45, DI=60, RTTI=85 데이터가 있는 DB."""
     today = "2026-03-28"
     rows = [
-        (today, "VDOT_ADJ", 45.0),
-        (today, "DI",       60.0),
-        (today, "RTTI",     85.0),
+        ("daily", today, "VDOT_ADJ", 45.0),
+        ("daily", today, "DI",       60.0),
+        ("daily", today, "RTTI",     85.0),
     ]
     empty_conn.executemany(
-        "INSERT INTO computed_metrics (date, metric_name, metric_value)"
-        " VALUES (?, ?, ?)",
+        "INSERT INTO metric_store (scope_type, scope_id, metric_name, numeric_value, provider, is_primary)"
+        " VALUES (?, ?, ?, ?, 'system', 1)",
         rows,
     )
     return empty_conn

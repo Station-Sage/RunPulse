@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.utils import api
+from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
@@ -203,7 +204,7 @@ def sync_activities(
             trimp = detail.get("trimp")
             marathon_shape = detail.get("marathon_shape") or detail.get("marathonShape")
 
-            # activity_detail_metrics에 저장 (activity 단위)
+            # metric_store에 저장 (activity 단위)
             metrics = {
                 "effective_vo2max": evo2max,
                 "vdot": vdot,
@@ -212,22 +213,14 @@ def sync_activities(
             }
             for name, value in metrics.items():
                 if value is not None:
-                    conn.execute(
-                        """INSERT INTO activity_detail_metrics
-                           (activity_id, source, metric_name, metric_value)
-                           VALUES (?, 'runalyze', ?, ?)""",
-                        (activity_id, name, float(value)),
-                    )
+                    upsert_metric(conn, "activity", str(activity_id), name, "runalyze",
+                                  numeric_value=float(value), category="capacity")
 
-            # race prediction → activity_detail_metrics (JSON)
+            # race prediction → metric_store (JSON)
             race_pred = _extract_race_pred(detail)
             if race_pred:
-                conn.execute(
-                    """INSERT INTO activity_detail_metrics
-                       (activity_id, source, metric_name, metric_json)
-                       VALUES (?, 'runalyze', 'race_prediction', ?)""",
-                    (activity_id, json.dumps(race_pred)),
-                )
+                upsert_metric(conn, "activity", str(activity_id), "race_prediction", "runalyze",
+                              json_value=race_pred, category="performance")
 
             # daily_fitness에도 저장/업데이트
             date_str = start_time[:10]

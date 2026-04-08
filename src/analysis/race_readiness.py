@@ -64,13 +64,10 @@ def _latest_daily(conn: sqlite3.Connection, source: str, metric_name: str):
 def _latest_metric(conn: sqlite3.Connection, source: str, metric_name: str):
     try:
         row = conn.execute(
-            """
-            SELECT metric_value, metric_json
-            FROM activity_detail_metrics
-            WHERE source = ? AND metric_name = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
+            "SELECT numeric_value, json_value FROM metric_store"
+            " WHERE scope_type='activity' AND provider=? AND metric_name=?"
+            " AND (numeric_value IS NOT NULL OR json_value IS NOT NULL)"
+            " ORDER BY CAST(scope_id AS INTEGER) DESC LIMIT 1",
             (source, metric_name),
         ).fetchone()
     except sqlite3.OperationalError:
