@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Garmin Connect 데이터 동기화 — 메인 진입점.
 
 하위 모듈:
@@ -11,6 +9,7 @@ from __future__ import annotations
   garmin_daily_extensions.py — 일별 확장 API (race_predictions, training_status 등)
   garmin_athlete_extensions.py — 선수 프로필/통계 (personal_records, stats)
 """
+from __future__ import annotations
 
 import sqlite3
 import time

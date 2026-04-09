@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성: 2026-04-07 | 32 calculators | 13 semantic groups
+> 자동 생성: 2026-04-09 | 32 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -41,6 +41,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `trimp` |
 | 메트릭 이름 | `trimp` |
 | 설명 | 심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표. |
 | 단위 | AU |
@@ -63,6 +64,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `hrss` |
 | 메트릭 이름 | `hrss` |
 | 설명 | TRIMP을 젖산역치 심박으로 정규화한 스트레스 점수. 1시간 LTHR 운동 = 100. |
 | 단위 | 점 |
@@ -75,6 +77,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `aerobic_decoupling_rp` |
 | 메트릭 이름 | `aerobic_decoupling_rp` |
 | 설명 | 후반부 효율 저하율. <5% = 좋은 유산소 체력. |
 | 단위 | % |
@@ -97,6 +100,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `gap_rp` |
 | 메트릭 이름 | `gap_rp` |
 | 설명 | Minetti 모델로 경사를 보정한 평지 환산 페이스. |
 | 단위 | sec/km |
@@ -110,6 +114,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `workout_type_classified` |
 | 메트릭 이름 | `workout_type_classified` |
 | 설명 | 거리, 심박, 존 분포 기반 규칙 분류. |
 | 단위 | 무차원 |
@@ -122,6 +127,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `runpulse_vdot` |
 | 메트릭 이름 | `runpulse_vdot` |
 | 설명 | Jack Daniels VDOT. 거리와 시간으로 추정한 VO₂Max 지표. |
 | 단위 | 무차원 |
@@ -144,6 +150,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `efficiency_factor_rp` |
 | 메트릭 이름 | `efficiency_factor_rp` |
 | 설명 | 평균속도/평균심박 × 1000. 높을수록 효율적. |
 | 단위 | 무차원 |
@@ -157,6 +164,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `fearp` |
 | 메트릭 이름 | `fearp` |
 | 설명 | 기온, 습도, 고도를 보정한 환경 보정 페이스. |
 | 단위 | sec/km |
@@ -170,6 +178,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `relative_effort` |
 | 메트릭 이름 | `relative_effort` |
 | 설명 | 심박존 기반 노력도 점수 (Strava 방식) |
 | 단위 | AU |
@@ -191,6 +200,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `wlei` |
 | 메트릭 이름 | `wlei` |
 | 설명 | TRIMP에 기온/습도 스트레스 계수를 적용한 실제 신체 부담 지수 |
 | 단위 | AU |
@@ -216,6 +226,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `ctl` |
 | 메트릭 이름 | `ctl`, `atl`, `tsb`, `ramp_rate` |
 | 설명 | Performance Management Chart. 42일 만성부하(CTL), 7일 급성부하(ATL), 훈련균형(TSB). |
 | 단위 | AU |
@@ -228,6 +239,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `acwr` |
 | 메트릭 이름 | `acwr` |
 | 설명 | 급성:만성 부하 비율. 최적 범위 0.8~1.3. |
 | 단위 | 무차원 |
@@ -249,6 +261,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `lsi` |
 | 메트릭 이름 | `lsi` |
 | 설명 | 당일 부하 / 21일 평균. >1.5면 급격한 부하 증가. |
 | 단위 | 무차원 |
@@ -269,6 +282,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `monotony` |
 | 메트릭 이름 | `monotony`, `training_strain` |
 | 설명 | 7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험. |
 | 단위 | 무차원 |
@@ -290,6 +304,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `utrs` |
 | 메트릭 이름 | `utrs` |
 | 설명 | 수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도. |
 | 단위 | 점 |
@@ -313,6 +328,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `cirs` |
 | 메트릭 이름 | `cirs` |
 | 설명 | ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도. |
 | 단위 | 점 |
@@ -335,6 +351,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `di` |
 | 메트릭 이름 | `di` |
 | 설명 | 장거리 달리기에서 후반 페이스 유지 능력. 0~100. |
 | 단위 | 점 |
@@ -348,7 +365,8 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
-| 메트릭 이름 | `darp_5k_sec`, `darp_10k_sec`, `darp_half_sec`, `darp_marathon_sec` |
+| Calculator ID | `darp` |
+| 메트릭 이름 | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | 설명 | VDOT과 내구성 지수 기반 레이스 시간 예측. |
 | 단위 | sec |
 | 카테고리 | `prediction` |
@@ -361,6 +379,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `tids` |
 | 메트릭 이름 | `tids` |
 | 설명 | 8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed. |
 | 단위 | 무차원 |
@@ -373,6 +392,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `rmr` |
 | 메트릭 이름 | `rmr` |
 | 설명 | 안정심박, 체력배터리, TSB, 수면을 종합한 회복 상태. |
 | 단위 | 점 |
@@ -396,6 +416,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `adti` |
 | 메트릭 이름 | `adti` |
 | 설명 | 28일간 CTL 변화율. 양수=상승, 음수=하락. |
 | 단위 | 무차원 |
@@ -417,6 +438,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `teroi` |
 | 메트릭 이름 | `teroi` |
 | 설명 | TRIMP 투입 대비 CTL 증가율. 높을수록 효율적 훈련. |
 | 단위 | 무차원 |
@@ -439,6 +461,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `tpdi` |
 | 메트릭 이름 | `tpdi` |
 | 설명 | 실내 vs 실외 달리기 FEARP 격차. 0에 가까울수록 일관됨. |
 | 단위 | % |
@@ -460,6 +483,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `rec` |
 | 메트릭 이름 | `rec` |
 | 설명 | EF와 Decoupling 기반 통합 러닝 효율성 (0~100) |
 | 단위 | 무차원 |
@@ -482,6 +506,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `rtti` |
 | 메트릭 이름 | `rtti` |
 | 설명 | ATL/CTL 기반 훈련 내성. 100=적정, >100 과부하, <70 여유. |
 | 단위 | % |
@@ -503,6 +528,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `critical_power` |
 | 메트릭 이름 | `critical_power` |
 | 설명 | 임계 파워 (W). 2파라미터 선형 회귀 모델. |
 | 단위 | W |
@@ -524,6 +550,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `sapi` |
 | 메트릭 이름 | `sapi` |
 | 설명 | 기온 구간별 FEARP 비교. 100=기준 동일, >100 더 빠름. |
 | 단위 | 무차원 |
@@ -545,6 +572,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `rri` |
 | 메트릭 이름 | `rri` |
 | 설명 | VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100) |
 | 단위 | 무차원 |
@@ -567,6 +595,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `eftp` |
 | 메트릭 이름 | `eftp` |
 | 설명 | 기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름. |
 | 단위 | sec/km |
@@ -589,6 +618,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `vdot_adj` |
 | 메트릭 이름 | `vdot_adj` |
 | 설명 | 역치 페이스 기반 현재 체력 VDOT 보정값 |
 | 단위 | 무차원 |
@@ -611,6 +641,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `marathon_shape` |
 | 메트릭 이름 | `marathon_shape` |
 | 설명 | 마라톤 훈련 완성도 (%). 주간볼륨+장거리런 기반. |
 | 단위 | % |
@@ -634,6 +665,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 항목 | 값 |
 |------|-----|
+| Calculator ID | `crs` |
 | 메트릭 이름 | `crs` |
 | 설명 | 게이트 기반 복합 준비도. level 0~4 + CRS 참고 점수 0~100. |
 | 단위 | 무차원 |
@@ -704,10 +736,10 @@ Garmin/Strava/Intervals/Runalyze
 
 | 메트릭 | 제공자 |
 |--------|--------|
-| `darp_5k_sec` | runpulse:formula_v1 |
-| `darp_10k_sec` | runpulse:formula_v1 |
-| `darp_half_sec` | runpulse:formula_v1 |
-| `darp_marathon_sec` | runpulse:formula_v1 |
+| `race_pred_5k_sec` | runpulse:formula_v1 |
+| `race_pred_10k_sec` | runpulse:formula_v1 |
+| `race_pred_half_sec` | runpulse:formula_v1 |
+| `race_pred_marathon_sec` | runpulse:formula_v1 |
 | `rri` | runpulse:formula_v1 |
 | `marathon_shape` | runpulse:formula_v1 |
 
@@ -814,7 +846,7 @@ Daily-scope:
   tsb --> utrs
   acwr + lsi + ctl + tsb --> cirs
   (소스 직접) --> di
-  runpulse_vdot --> darp_5k_sec, darp_10k_sec, darp_half_sec, darp_marathon_sec
+  runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
   workout_type_classified --> tids
   tsb --> rmr
   ctl --> adti
@@ -839,7 +871,7 @@ Daily-scope:
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
 | `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
-| `prediction` | prediction | `darp_5k_sec`, `darp_10k_sec`, `darp_half_sec`, `darp_marathon_sec` |
+| `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `cirs`, `rmr`, `crs` |
 
 ## 7. 소스별 원본 메트릭 (참고)

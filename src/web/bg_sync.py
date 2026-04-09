@@ -202,7 +202,7 @@ class BgSyncThread(threading.Thread):
 
     # ── 배치 실행 ─────────────────────────────────────────────────────
 
-        def _run_one_batch(
+    def _run_one_batch(
         self,
         service: str,
         win_from: str,
@@ -271,7 +271,7 @@ class BgSyncThread(threading.Thread):
             update_job(self.job_id, last_error=str(exc)[:200])
         return count, req_added, False  # rate_limited = False
 
-        def _garmin_login(self):
+    def _garmin_login(self):
         try:
             from src.sync.garmin import _login
             return _login(self.config)

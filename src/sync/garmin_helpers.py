@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 """Garmin 동기화 공통 헬퍼."""
+from __future__ import annotations
 
 import json
 import sqlite3

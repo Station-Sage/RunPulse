@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 """Garmin 선수 프로필/통계/기록 동기화 — athlete_profile, athlete_stats,
 personal_records."""
+from __future__ import annotations
 
 import sqlite3
 from datetime import date

@@ -28,13 +28,13 @@ class DARPCalculator(MetricCalculator):
     higher_is_better = False
     decimal_places = 0
     requires = ["runpulse_vdot"]
-    produces = ["darp_5k_sec", "darp_10k_sec", "darp_half_sec", "darp_marathon_sec"]
+    produces = ["race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec"]
 
     DISTANCES = {
-        "darp_5k_sec": 5000,
-        "darp_10k_sec": 10000,
-        "darp_half_sec": 21097.5,
-        "darp_marathon_sec": 42195,
+        "race_pred_5k_sec": 5000,
+        "race_pred_10k_sec": 10000,
+        "race_pred_half_sec": 21097.5,
+        "race_pred_marathon_sec": 42195,
     }
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:

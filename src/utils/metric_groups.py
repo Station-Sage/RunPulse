@@ -45,10 +45,10 @@ SEMANTIC_GROUPS: dict[str, dict] = {
     "race_prediction": {
         "display_name": "레이스 예측",
         "members": [
-            ("darp_5k_sec", "runpulse:formula_v1"),
-            ("darp_10k_sec", "runpulse:formula_v1"),
-            ("darp_half_sec", "runpulse:formula_v1"),
-            ("darp_marathon_sec", "runpulse:formula_v1"),
+            ("race_pred_5k_sec", "runpulse:formula_v1"),
+            ("race_pred_10k_sec", "runpulse:formula_v1"),
+            ("race_pred_half_sec", "runpulse:formula_v1"),
+            ("race_pred_marathon_sec", "runpulse:formula_v1"),
             ("rri", "runpulse:formula_v1"),
             ("marathon_shape", "runpulse:formula_v1"),
         ],

@@ -102,6 +102,7 @@ def generate() -> str:
         lines.append("")
         lines.append("| 항목 | 값 |")
         lines.append("|------|-----|")
+        lines.append(f"| Calculator ID | `{calc.name}` |")
         lines.append(f"| 메트릭 이름 | {produces} |")
         lines.append(f"| 설명 | {desc} |")
         lines.append(f"| 단위 | {unit if unit else '무차원'} |")

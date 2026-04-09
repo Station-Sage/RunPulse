@@ -89,7 +89,7 @@ Calculator는 raw SQL 직접 사용 금지 (ADR-009). `CalcContext` API만 사�
 | `CRSCalculator` | crs | crs | acwr, tsb, cirs | rp_readiness |
 | `CIRSCalculator` | cirs | cirs | acwr, lsi, ctl | rp_risk |
 | `DICalculator` | di | di | — | rp_endurance |
-| `DARPCalculator` | darp | darp_5k, darp_10k, darp_half, darp_marathon | runpulse_vdot | rp_prediction |
+| `DARPCalculator` | darp | race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec | runpulse_vdot | rp_prediction |
 | `TIDSCalculator` | tids | tids | workout_type | rp_distribution |
 | `RMRCalculator` | rmr | rmr | tsb | rp_recovery |
 | `ADTICalculator` | adti | adti | ctl | rp_trend |
@@ -166,7 +166,7 @@ Calculator 실행 후 `update_metric_cache()`로 캐시 갱신 → 후속 calcul
 | running_efficiency | 러닝 효율성 | rec, efficiency_factor_rp | intervals |
 | vo2max | VO2Max | runpulse_vdot | garmin, runalyze |
 | vdot | VDOT | runpulse_vdot, vdot_adj | garmin, runalyze |
-| race_prediction | 레이스 예측 | darp_5k/10k/half/marathon, rri, marathon_shape | — |
+| race_prediction | 레이스 예측 | race_pred_5k_sec/10k_sec/half_sec/marathon_sec, rri, marathon_shape | — |
 | threshold_power | 임계 파워/페이스 | critical_power, eftp | intervals |
 | seasonal_performance | 환경별 성과 | sapi, fearp | — |
 

@@ -172,6 +172,24 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("hr_zones_detail", "hr", "metric", "json", "HR Zone 전체 상세",
               aliases={"garmin": "hrTimeInZone"}),
 
+    # ── volume (activity) ──
+    # activity_summaries → metric_store 이동 (Phase 5-G)
+    MetricDef("calories", "volume", "metric", "kcal", "소모 칼로리 (활동)",
+              scope="activity",
+              aliases={
+                  "garmin": "calories",
+                  "strava": "calories",
+                  "intervals": "calories",
+                  "runalyze": "kcal",
+              }),
+    MetricDef("normalized_power", "power", "metric", "W", "정규화 파워 (NP)",
+              scope="activity",
+              aliases={
+                  "garmin": "normPower",
+                  "strava": "weighted_average_watts",
+                  "intervals": "icu_weighted_avg_watts",
+              }),
+
     # ── power (zone + 설정) ──
     MetricDef("power_zone_1_sec", "power", "metric", "sec", "Power Zone 1 체류 시간",
               aliases={"garmin": "powerTimeInZone_0"}),
@@ -210,6 +228,17 @@ _DEFINITIONS: list[MetricDef] = [
               aliases={"garmin": "steps"}),
 
     # ── load (훈련 부하) ──
+    # activity_summaries → metric_store 이동 (Phase 5-G)
+    MetricDef("training_load", "load", "metric", "score", "훈련 부하 (소스별)",
+              scope="activity",
+              aliases={
+                  "garmin": "activityTrainingLoad",
+                  "intervals": "icu_training_load",
+                  "runalyze": "trimp",
+              }),
+    MetricDef("suffer_score", "load", "metric", "score", "Strava Suffer Score",
+              scope="activity",
+              aliases={"strava": "suffer_score"}),
     MetricDef("trimp", "load", "metric", "score", "TRIMP (Banister)",
               aliases={"intervals": "icu_trimp"}),
     MetricDef("hrss", "load", "metric", "score", "HR Stress Score",
@@ -219,8 +248,12 @@ _DEFINITIONS: list[MetricDef] = [
               aliases={"intervals": "icu_intensity"}),
     MetricDef("training_stress_score", "load", "metric", "score", "TSS",
               aliases={"garmin": "trainingStressScore"}),
-    MetricDef("training_effect_aerobic", "load", "metric", "", "유산소 훈련 효과"),
-    MetricDef("training_effect_anaerobic", "load", "metric", "", "무산소 훈련 효과"),
+    MetricDef("training_effect_aerobic", "load", "metric", "", "유산소 훈련 효과",
+              scope="activity",
+              aliases={"garmin": "aerobicTrainingEffect"}),
+    MetricDef("training_effect_anaerobic", "load", "metric", "", "무산소 훈련 효과",
+              scope="activity",
+              aliases={"garmin": "anaerobicTrainingEffect"}),
     MetricDef("training_load_peak", "load", "metric", "", "최대 훈련 부하"),
     MetricDef("performance_condition", "load", "metric", "", "퍼포먼스 컨디션",
               aliases={"garmin": "performanceCondition"}),
@@ -302,10 +335,6 @@ _DEFINITIONS: list[MetricDef] = [
               aliases={"garmin": "raceTimeHalf", "runalyze": "prediction_half"}),
     MetricDef("race_pred_marathon_sec", "prediction", "metric", "sec", "마라톤 예측 기록", scope="daily",
               aliases={"garmin": "raceTimeMarathon", "runalyze": "prediction_marathon"}),
-    MetricDef("darp_5k_sec", "prediction", "metric", "sec", "DARP 5K 예측", scope="daily"),
-    MetricDef("darp_10k_sec", "prediction", "metric", "sec", "DARP 10K 예측", scope="daily"),
-    MetricDef("darp_half_sec", "prediction", "metric", "sec", "DARP 하프 예측", scope="daily"),
-    MetricDef("darp_marathon_sec", "prediction", "metric", "sec", "DARP 마라톤 예측", scope="daily"),
 
     # ── sleep (metric_store 보충) ──
     MetricDef("sleep_deep_sec", "sleep", "metric", "sec", "깊은 수면 시간", scope="daily",

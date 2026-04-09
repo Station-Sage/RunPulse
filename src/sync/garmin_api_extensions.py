@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 """Garmin 활동 확장 API — streams, gear, exercise_sets, weather, hr/power zones."""
+from __future__ import annotations
 
 import json
 import sqlite3

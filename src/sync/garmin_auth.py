@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 """Garmin Connect 인증 함수."""
+from __future__ import annotations
 
 from pathlib import Path
 

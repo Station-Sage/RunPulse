@@ -4,7 +4,7 @@
 
 ## 5-0. Phase 5의 목표
 
-Phase 1~4가 완료되면, 데이터가 새로운 구조(activity_summaries 46컬럼 + metric_store EAV + daily_wellness/daily_fitness)에 채워져 있습니다. Phase 5에서는 **이 데이터를 읽는 모든 코드** — UI 뷰, Analysis 모듈, AI Context, Training Planner, Export — 를 새 스키마에 맞게 전환합니다.
+Phase 1~4가 완료되면, 데이터가 새로운 구조(activity_summaries 38컬럼 + metric_store EAV + daily_wellness)에 채워져 있습니다. (daily_fitness → Phase 5-F에서 제거. calories 등 6컬럼 → Phase 5-G에서 metric_store로 이동.) Phase 5에서는 **이 데이터를 읽는 모든 코드** — UI 뷰, Analysis 모듈, AI Context, Training Planner, Export — 를 새 스키마에 맞게 전환합니다.
 
 핵심 원칙:
 - UI는 `activity_summaries`에서 빠른 목록/필터를 하고, `metric_store`에서 상세/카드 데이터를 가져온다
@@ -459,7 +459,7 @@ def get_dashboard_data(conn) -> dict:
     # ── Race Predictions (DARP) ──
     darp_metrics = get_primary_metrics(
         conn, "daily", today,
-        names=["darp_5k", "darp_10k", "darp_half", "darp_full"]
+        names=["race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec"]
     )
     race_predictions = {m["metric_name"]: m["numeric_value"] for m in darp_metrics}
     
@@ -795,8 +795,8 @@ def build_daily_briefing_context(conn) -> str:
     predictions = dashboard.get("race_predictions", {})
     if predictions:
         sections.append(f"\n## 레이스 예측 (RunPulse DARP)")
-        for key, label in [("darp_5k", "5K"), ("darp_10k", "10K"), 
-                            ("darp_half", "하프"), ("darp_full", "풀")]:
+        for key, label in [("race_pred_5k_sec", "5K"), ("race_pred_10k_sec", "10K"),
+                            ("race_pred_half_sec", "하프"), ("race_pred_marathon_sec", "풀")]:
             val = predictions.get(key)
             if val:
                 sections.append(f"- {label}: {_format_time(val)}")
@@ -1009,7 +1009,7 @@ def dashboard():
     # 기존: 직접 SQL 여러 개
     activities = conn.execute("SELECT ... FROM activity_summaries ...").fetchall()
     wellness = conn.execute("SELECT ... FROM daily_wellness ...").fetchall()
-    metrics = conn.execute("SELECT ... FROM computed_metrics ...").fetchall()
+    metrics = conn.execute("SELECT ... FROM metric_store ...").fetchall()
     return render_template("dashboard.html", ...)
 
 
@@ -1561,7 +1561,7 @@ class TestTemplateHelpers:
 
 ## 5-12. Phase 5 완료 기준 (Definition of Done)
 
-1. **모든 뷰 모듈**에서 `activity_detail_metrics`, `daily_detail_metrics`, `computed_metrics` 테이블 직접 참조 제거
+1. **모든 뷰 모듈**에서 `activity_detail_metrics`, `daily_detail_metrics`, `metric_store` 테이블 직접 참조 제거 (완료)
 2. **모든 뷰 모듈**이 `src/services/` 레이어를 통해 데이터 조회
 3. `distance_km` 참조 없음 → 모든 곳에서 `distance_m` 사용, UI에서 km 변환
 4. `get_activity_detail()`이 `metrics_by_category`를 올바르게 반환 (카테고리 그룹핑)

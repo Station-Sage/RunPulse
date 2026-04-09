@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 """Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 user_summary, heart_rates."""
+from __future__ import annotations
 
 import json
 import sqlite3
