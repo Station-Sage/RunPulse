@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 13  # v0.3.3: activity_summaries.distance_km → distance_m 컬럼명 수정
+SCHEMA_VERSION = 14  # v0.3.4: activity_streams/activity_best_efforts elapsed_sec 컬럼 보장
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -570,7 +570,7 @@ def _get_existing_tables(conn: sqlite3.Connection) -> set[str]:
 
 
 def migrate_db(conn: sqlite3.Connection) -> bool:
-    """v0.2(≤4) → v0.3(≤10) → v0.3.1(=11) → v0.3.2(=12) → v0.3.3(=13) 마이그레이션.
+    """v0.2(≤4) → v0.3(≤10) → v0.3.1(=11) → v0.3.2(=12) → v0.3.3(=13) → v0.3.4(=14) 마이그레이션.
 
     전략: 기존 테이블은 건드리지 않고, 새 테이블만 추가.
     v11: daily_fitness 삭제 (ADR-005 — ctl/atl/tsb/ramp_rate/vo2max → metric_store).
@@ -578,6 +578,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
          calories/normalized_power/suffer_score/training_effect_aerobic/
          training_effect_anaerobic/training_load — DROP COLUMN.
     v13: activity_summaries.distance_km → distance_m 컬럼명 수정 (SQLite 3.25+ RENAME COLUMN).
+    v14: activity_streams / activity_best_efforts elapsed_sec 컬럼 누락 시 테이블 재생성.
     """
     current = _get_user_version(conn)
 
@@ -616,6 +617,17 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
                 )
             except Exception as exc:
                 log.warning("distance_km → distance_m 컬럼 변환 실패 (SQLite 3.25+ 필요): %s", exc)
+
+    # v14: activity_streams / activity_best_efforts — elapsed_sec 컬럼 보장
+    # 두 테이블은 재동기화로 복원 가능하므로, 컬럼 누락 시 DROP → 재생성
+    if current < 14:
+        for tbl in ("activity_streams", "activity_best_efforts"):
+            existing = {
+                r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()
+            }
+            if existing and "elapsed_sec" not in existing:
+                log.info("v14 마이그레이션: %s elapsed_sec 누락 → 테이블 재생성", tbl)
+                conn.execute(f"DROP TABLE IF EXISTS {tbl}")
 
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)

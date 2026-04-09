@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_13(self):
+    def test_schema_version_is_14(self):
         """조건 2"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 13
+        assert ver == 14
 
     def test_pipeline_tables_count(self):
         """조건 3: 11개 pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
