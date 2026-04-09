@@ -149,7 +149,7 @@ def _load_chips(conn: sqlite3.Connection) -> list[dict]:
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
     """최근 러닝 활동 요약 로드."""
     rows = conn.execute(
-        "SELECT start_time, distance_km, duration_sec, avg_pace_sec_km "
+        "SELECT start_time, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km "
         "FROM v_canonical_activities WHERE activity_type='running' "
         "ORDER BY start_time DESC LIMIT ?", (limit,),
     ).fetchall()

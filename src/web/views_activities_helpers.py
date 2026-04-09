@@ -7,7 +7,8 @@ from __future__ import annotations
 import html
 
 from src.utils.pace import seconds_to_pace
-from src.services.unified_activities import SOURCE_COLORS, UnifiedActivity
+from src.services.activity_service import SOURCE_COLORS
+from src.services.unified_view import UnifiedActivity
 
 
 # ── 포맷 헬퍼 ────────────────────────────────────────────────────────────

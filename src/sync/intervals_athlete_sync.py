@@ -74,18 +74,18 @@ def sync_athlete_stats_snapshot(config: dict, conn: sqlite3.Connection) -> None:
 
     try:
         all_row = conn.execute(
-            """SELECT COUNT(*), SUM(distance_km), SUM(duration_sec), SUM(elevation_gain)
+            """SELECT COUNT(*), SUM(distance_m) / 1000.0, SUM(duration_sec), SUM(elevation_gain)
                FROM activity_summaries WHERE source = 'intervals'"""
         ).fetchone()
 
         ytd_row = conn.execute(
-            """SELECT COUNT(*), SUM(distance_km), SUM(duration_sec)
+            """SELECT COUNT(*), SUM(distance_m) / 1000.0, SUM(duration_sec)
                FROM activity_summaries WHERE source = 'intervals' AND start_time >= ?""",
             (year_start,),
         ).fetchone()
 
         recent_row = conn.execute(
-            """SELECT COUNT(*), SUM(distance_km)
+            """SELECT COUNT(*), SUM(distance_m) / 1000.0
                FROM activity_summaries WHERE source = 'intervals'
                AND start_time >= date('now', '-28 days')"""
         ).fetchone()

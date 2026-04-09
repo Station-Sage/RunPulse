@@ -104,7 +104,7 @@ class TestRecomputeSingleMetric:
         assert before > 0
 
         # trimp만 재계산
-        result = recompute_single_metric(conn, "trimp", days=10)
+        result = recompute_single_metric(conn, "trimp", days=30)
         assert isinstance(result, ComputeResult)
         assert result.computed_count > 0
 

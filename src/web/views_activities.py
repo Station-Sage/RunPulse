@@ -20,7 +20,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, request
 
-from src.services.unified_activities import fetch_unified_activities
+from src.services.unified_view import fetch_unified_activities
 from .helpers import db_path, html_page
 from .views_activities_filter import _render_filter_form
 from .views_activities_table import (

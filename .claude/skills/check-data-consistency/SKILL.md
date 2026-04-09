@@ -2,7 +2,7 @@
 name: check-data-consistency
 description: >
   SSOT(metric_registry.py) ↔ DDL(db_setup.py) ↔ Extractor 데이터 정합성 검증.
-  check_data_consistency.py(15개 검사)를 실행한다.
+  check_data_consistency.py(16개 검사)를 실행한다.
   "데이터 정합성", "consistency 확인", "registry 검증", "extractor 점검" 요청 시 사용.
 user-invocable: true
 argument-hint: "[--db PATH]"
@@ -10,7 +10,7 @@ argument-hint: "[--db PATH]"
 
 # /check-data-consistency — 데이터 정합성 검증
 
-SSOT ↔ DDL ↔ 실제 DB ↔ Extractor 교차 검증. (~3초)
+SSOT ↔ DDL ↔ 실제 DB ↔ Extractor ↔ Validator 교차 검증. (~3초)
 커밋 전 `/pre-commit`에도 포함되어 있다.
 
 ## 실행
@@ -21,7 +21,7 @@ DB까지 검증하려면:
 
     python3 scripts/check_data_consistency.py --db data/running.db
 
-## 검사 항목 (15개)
+## 검사 항목 (16개)
 
 | # | 검사 | 대상 |
 |---|------|------|
@@ -40,6 +40,7 @@ DB까지 검증하려면:
 | 13 | Garmin wellness entity_type 이름 일관성 (wellness_* 설계 spec) | garmin_wellness_sync.py, reprocess.py |
 | 14 | Calculator category 속성 16-domain 준수 (rp_* 등 구버전 방지) | src/metrics/*.py |
 | 15 | Calculator produces ↔ METRIC_REGISTRY 등록 일치 | engine.py × metric_registry |
+| 16 | DataValidator _check_* 메서드 수(12개) + CheckResult 필드 정합성 | src/validation/validator.py |
 
 ## 결과 해석
 
@@ -47,17 +48,10 @@ DB까지 검증하려면:
 - 🟠 경고: 내용 확인 후 판단
 - 🟡 참고: 정보성, 수정 불필요
 
-## 현재 알려진 오류 (BACKLOG 해소 예정)
-
-| 오류 | 해소 시점 | BACKLOG |
-|------|----------|---------|
-| Check 1: activity_summaries DDL에 6컬럼 잔존 | Phase 5-G | calories, normalized_power 등 |
-| Check 3: daily_fitness DDL 존재 | Phase 5-F | metric_store 마이그레이션 후 삭제 |
-
 ## 결과 보고
 
     ## /check-data-consistency 결과
-    - 검사 15개, 🔴 N건, 🟠 N건, 🟡 N건
+    - 검사 16개, 🔴 N건, 🟠 N건, 🟡 N건
     - 🔴 목록: (있으면 열거)
     - 🟠 목록: (있으면 열거)
     -> PASS / FAIL (🔴 0건이면 PASS)

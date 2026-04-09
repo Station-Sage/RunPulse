@@ -1,4 +1,7 @@
-"""중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%)."""
+"""중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
+
+그룹 관리 함수(assign_group_to_activities, remove_from_group)도 포함.
+"""
 
 import sqlite3
 import uuid
@@ -102,7 +105,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
         할당된 group_id 또는 매칭 없으면 None.
     """
     row = conn.execute(
-        "SELECT start_time, distance_km FROM activity_summaries WHERE id = ?",
+        "SELECT start_time, distance_m / 1000.0 AS distance_km FROM activity_summaries WHERE id = ?",
         (activity_id,),
     ).fetchone()
     if not row:
@@ -115,7 +118,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
 
     # substr(replace(...)) 로 Garmin(공백)/Strava(T) 형식 차이 정규화 후 BETWEEN 비교
     candidates = conn.execute(
-        """SELECT id, start_time, distance_km, matched_group_id
+        """SELECT id, start_time, distance_m / 1000.0 AS distance_km, matched_group_id
            FROM activity_summaries
            WHERE id != ? AND
            substr(replace(start_time, ' ', 'T'), 1, 19) BETWEEN ? AND ?""",
@@ -146,7 +149,7 @@ def auto_group_all(conn: sqlite3.Connection) -> dict[str, int]:
         {"groups_created": n, "activities_grouped": n}
     """
     rows = conn.execute(
-        "SELECT id, source, start_time, distance_km, matched_group_id "
+        "SELECT id, source, start_time, distance_m / 1000.0 AS distance_km, matched_group_id "
         "FROM activity_summaries ORDER BY start_time"
     ).fetchall()
 
@@ -216,3 +219,53 @@ def auto_group_all(conn: sqlite3.Connection) -> dict[str, int]:
         "groups_created": new_groups // 2 + new_groups % 2,
         "activities_grouped": len(grouped_ids),
     }
+
+
+def assign_group_to_activities(
+    conn: sqlite3.Connection, activity_ids: list[int]
+) -> str:
+    """activity_ids를 하나의 그룹으로 묶기.
+
+    선택된 활동 중 이미 그룹에 속한 것이 있으면 해당 그룹의 모든 멤버도
+    함께 묶는다 (그룹 병합). 기존 group_id가 있으면 재사용한다.
+
+    Returns:
+        할당한 group_id (UUID 문자열).
+    """
+    if len(activity_ids) < 2:
+        raise ValueError("2개 이상 활동이 필요합니다.")
+
+    placeholders = ",".join("?" * len(activity_ids))
+    rows = conn.execute(
+        f"SELECT id, matched_group_id FROM activity_summaries WHERE id IN ({placeholders})",
+        activity_ids,
+    ).fetchall()
+
+    existing_group_ids = {r[1] for r in rows if r[1] is not None}
+    group_id = next(iter(existing_group_ids), None) or str(uuid.uuid4())
+
+    all_ids = set(activity_ids)
+    if existing_group_ids:
+        gid_placeholders = ",".join("?" * len(existing_group_ids))
+        member_rows = conn.execute(
+            f"SELECT id FROM activity_summaries WHERE matched_group_id IN ({gid_placeholders})",
+            list(existing_group_ids),
+        ).fetchall()
+        all_ids.update(r[0] for r in member_rows)
+
+    all_placeholders = ",".join("?" * len(all_ids))
+    conn.execute(
+        f"UPDATE activity_summaries SET matched_group_id = ? WHERE id IN ({all_placeholders})",
+        [group_id, *all_ids],
+    )
+    conn.commit()
+    return group_id
+
+
+def remove_from_group(conn: sqlite3.Connection, activity_id: int) -> None:
+    """활동을 그룹에서 분리 (matched_group_id = NULL)."""
+    conn.execute(
+        "UPDATE activity_summaries SET matched_group_id = NULL WHERE id = ?",
+        (activity_id,),
+    )
+    conn.commit()

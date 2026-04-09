@@ -18,7 +18,7 @@ def load_prev_period_stats(conn: sqlite3.Connection, start: str, end: str) -> di
     prev_end = (sd - timedelta(days=1)).isoformat()
     prev_start = (sd - timedelta(days=span + 1)).isoformat()
     row = conn.execute(
-        """SELECT COUNT(*), COALESCE(SUM(distance_km), 0), COALESCE(SUM(duration_sec), 0)
+        """SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), COALESCE(SUM(duration_sec), 0)
            FROM v_canonical_activities
            WHERE activity_type = 'running' AND start_time BETWEEN ? AND ?""",
         (prev_start, prev_end + "T23:59:59"),

@@ -138,7 +138,7 @@ def _load_pmc_data(conn: sqlite3.Connection, end_date: str, days: int = 60) -> l
 def _load_recent_activities(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
     from .route_svg import render_route_svg
     rows = conn.execute(
-        """SELECT a.id, a.start_time, a.activity_type, a.distance_km,
+        """SELECT a.id, a.start_time, a.activity_type, a.distance_m / 1000.0 AS distance_km,
                   a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name
            FROM v_canonical_activities a WHERE a.activity_type = 'running'
            ORDER BY a.start_time DESC LIMIT ?""",

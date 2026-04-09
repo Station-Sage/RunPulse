@@ -68,7 +68,7 @@ _PERIODS: dict[str, tuple[str, int]] = {
 
 def _load_period_stats(conn: sqlite3.Connection, start: str, end: str) -> dict:
     row = conn.execute(
-        """SELECT COUNT(*), COALESCE(SUM(distance_km), 0), COALESCE(SUM(duration_sec), 0)
+        """SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), COALESCE(SUM(duration_sec), 0)
            FROM v_canonical_activities
            WHERE activity_type = 'running' AND start_time BETWEEN ? AND ?""",
         (start, end + "T23:59:59"),
@@ -80,7 +80,7 @@ def _load_weekly_distance(conn: sqlite3.Connection, end_date: str, days: int) ->
     weeks = max(days // 7, 4)
     rows = conn.execute(
         """SELECT strftime('%Y-%W', start_time) AS week,
-                  COALESCE(SUM(distance_km), 0) AS total_km
+                  COALESCE(SUM(distance_m) / 1000.0, 0) AS total_km
            FROM v_canonical_activities
            WHERE activity_type = 'running'
              AND start_time >= date(?, ? || ' days')
@@ -104,7 +104,7 @@ def _load_metrics_avg(conn: sqlite3.Connection, start: str, end: str) -> dict:
 
 def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> list[dict]:
     acts = conn.execute(
-        """SELECT id, start_time, distance_km, avg_pace_sec_km
+        """SELECT id, start_time, distance_m / 1000.0 AS distance_km, avg_pace_sec_km
            FROM v_canonical_activities
            WHERE activity_type = 'running' AND start_time BETWEEN ? AND ?
            ORDER BY start_time DESC LIMIT 15""",

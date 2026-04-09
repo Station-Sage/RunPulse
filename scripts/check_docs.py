@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
+"""문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
 검사 항목:
  1. BACKLOG.md NOW 항목 수 (3개 이하)                    [general]
@@ -21,6 +21,7 @@
 17. Phase 3 Sync 핵심 파일 존재 검증                      [phase]
 18. Phase 4 Metrics Engine 파일 존재 & 인터페이스 검증    [phase]
 19. Phase 5 서비스 레이어 파일 존재 검증                  [phase]
+20. Phase 6 초기 적재 & 검증 파일 존재 & 인터페이스 검증  [phase]
 
 사용법:
   python3 scripts/check_docs.py              # 전체 실행
@@ -44,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 SCAN_DIRS = [
     "src/services", "src/metrics", "src/sync", "src/sync/extractors",
-    "src/ai", "src/web", "src/training", "src/utils",
+    "src/ai", "src/web", "src/training", "src/utils", "src/validation",
 ]
 MAX_LINES = 300
 errors = 0
@@ -865,46 +866,143 @@ def check_phase4_metrics():
 # ════════════════════════════════════════
 @check("19. Phase 5 서비스 레이어 파일 존재 검증", ["phase"])
 def check_phase5_services():
+    # 서비스 파일 → 대표 함수
     required_services = [
-        ("src/services/activity_service.py",   "ActivityService"),
-        ("src/services/dashboard_service.py",  "DashboardService"),
-        ("src/services/wellness_service.py",   "WellnessService"),
+        ("src/services/activity_service.py",  "get_activity_list"),
+        ("src/services/dashboard_service.py", "get_dashboard_data"),
+        ("src/services/wellness_service.py",  "get_wellness_detail"),
+        ("src/services/unified_view.py",      "fetch_unified_activities"),
     ]
+    # 헬퍼 파일 → 대표 함수
     required_helpers = [
-        ("src/ai/ai_context.py",               "build_ai_context"),
-        ("src/web/template_helpers.py",        "format_pace"),
+        ("src/ai/ai_context.py",              "build_ai_context"),
+        ("src/web/template_helpers.py",       "format_pace"),
+    ]
+    # dedup 확장 — group 관리 함수
+    required_dedup = [
+        ("src/utils/dedup.py",                "assign_group_to_activities"),
+        ("src/utils/dedup.py",                "remove_from_group"),
     ]
 
-    services_dir = ROOT / "src" / "services"
     missing_files = []
-    missing_classes = []
+    missing_fns = []
 
-    for rel_path, cls_name in required_services:
+    for rel_path, fn_name in required_services + required_helpers + required_dedup:
         path = ROOT / rel_path
         if not path.exists():
-            missing_files.append(rel_path)
-        else:
-            text = path.read_text(encoding="utf-8")
-            if f"class {cls_name}" not in text and f"def " not in text:
-                missing_classes.append(f"{rel_path}: {cls_name} 없음")
-
-    for rel_path, fn_name in required_helpers:
-        path = ROOT / rel_path
-        if not path.exists():
-            missing_files.append(rel_path)
+            if rel_path not in missing_files:
+                missing_files.append(rel_path)
         else:
             text = path.read_text(encoding="utf-8")
             if f"def {fn_name}" not in text:
-                missing_classes.append(f"{rel_path}: {fn_name}() 없음")
+                missing_fns.append(f"{rel_path}: {fn_name}() 없음")
+
+    # unified_activities.py가 re-export shim인지 확인
+    ua_path = ROOT / "src" / "services" / "unified_activities.py"
+    if ua_path.exists():
+        ua_text = ua_path.read_text(encoding="utf-8")
+        if "unified_view" not in ua_text:
+            missing_fns.append("unified_activities.py: re-export shim 변환 필요 (unified_view 미참조)")
+        else:
+            ok("unified_activities.py: re-export shim 확인")
+    else:
+        missing_files.append("src/services/unified_activities.py")
 
     if missing_files:
         for f in missing_files:
-            warn(f"Phase 5 미구현: {f}")
-    if missing_classes:
-        for m in missing_classes:
-            warn(f"Phase 5 미구현 함수: {m}")
-    if not missing_files and not missing_classes:
+            error(f"Phase 5 파일 없음: {f}")
+    if missing_fns:
+        for m in missing_fns:
+            error(f"Phase 5 미구현 함수: {m}")
+    if not missing_files and not missing_fns:
         ok(f"Phase 5 서비스 파일 {len(required_services)}개 + 헬퍼 {len(required_helpers)}개 전부 존재")
+
+
+# ════════════════════════════════════════
+#  20. Phase 6 초기 적재 & 검증 파일 존재 & 인터페이스 검증
+# ════════════════════════════════════════
+@check("20. Phase 6 초기 적재 & 검증 파일 존재 & 인터페이스 검증", ["phase"])
+def check_phase6_load_validate():
+    # ── GarminBulkLoader ──
+    bulk_path = ROOT / "src" / "sync" / "garmin_bulk_loader.py"
+    if not bulk_path.exists():
+        error("src/sync/garmin_bulk_loader.py 없음")
+    else:
+        text = bulk_path.read_text(encoding="utf-8")
+        if "class GarminBulkLoader" not in text:
+            error("garmin_bulk_loader.py: GarminBulkLoader 클래스 없음")
+        else:
+            ok("garmin_bulk_loader.py: GarminBulkLoader 클래스 존재")
+        if "def load" not in text:
+            error("garmin_bulk_loader.py: load() 없음")
+        else:
+            ok("garmin_bulk_loader.py: load() 존재")
+        for const in ("_SUMMARY_SUFFIX", "_DETAIL_SUFFIX"):
+            if const not in text:
+                error(f"garmin_bulk_loader.py: {const} 상수 없음")
+            else:
+                ok(f"garmin_bulk_loader.py: {const} 존재")
+
+    # ── DataValidator & validation 패키지 ──
+    val_pkg = ROOT / "src" / "validation"
+    for fname in ("__init__.py", "validator.py", "__main__.py"):
+        if not (val_pkg / fname).exists():
+            error(f"src/validation/{fname} 없음")
+
+    validator_path = val_pkg / "validator.py"
+    if validator_path.exists():
+        text = validator_path.read_text(encoding="utf-8")
+        if "class DataValidator" not in text:
+            error("validator.py: DataValidator 클래스 없음")
+        else:
+            ok("validator.py: DataValidator 클래스 존재")
+        if "def run_all" not in text:
+            error("validator.py: run_all() 없음")
+        else:
+            ok("validator.py: run_all() 존재")
+        if "class CheckResult" not in text:
+            error("validator.py: CheckResult 없음")
+        else:
+            ok("validator.py: CheckResult 존재")
+        # 12개 _check_* 메서드 확인
+        check_methods = re.findall(r"def (_check_\w+)", text)
+        if len(check_methods) != 12:
+            error(f"validator.py: _check_* 메서드 수 {len(check_methods)}개 (설계: 12개) — {check_methods}")
+        else:
+            ok(f"validator.py: _check_* 메서드 12개 확인")
+
+    # ── db_status.py ──
+    db_status_path = ROOT / "src" / "utils" / "db_status.py"
+    if not db_status_path.exists():
+        error("src/utils/db_status.py 없음")
+    else:
+        text = db_status_path.read_text(encoding="utf-8")
+        for fn in ("get_status", "print_status"):
+            if f"def {fn}" not in text:
+                error(f"db_status.py: {fn}() 없음")
+            else:
+                ok(f"db_status.py: {fn}() 존재")
+
+    # ── sync_cli.py initial-load ──
+    cli_path = ROOT / "src" / "sync_cli.py"
+    if cli_path.exists():
+        text = cli_path.read_text(encoding="utf-8")
+        for fn in ("_parse_steps", "_run_initial_load"):
+            if f"def {fn}" not in text:
+                error(f"sync_cli.py: {fn}() 없음")
+            else:
+                ok(f"sync_cli.py: {fn}() 존재")
+        if "initial-load" not in text:
+            error("sync_cli.py: 'initial-load' 서브커맨드 없음")
+        else:
+            ok("sync_cli.py: 'initial-load' 서브커맨드 존재")
+
+    # ── snapshot.sh ──
+    snapshot = ROOT / "scripts" / "snapshot.sh"
+    if not snapshot.exists():
+        warn("scripts/snapshot.sh 없음 (선택 사항)")
+    else:
+        ok("scripts/snapshot.sh 존재")
 
 
 # ════════════════════════════════════════

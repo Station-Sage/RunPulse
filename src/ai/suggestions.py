@@ -107,7 +107,7 @@ def get_runner_state(conn: sqlite3.Connection) -> RunnerState:
     try:
         row = conn.execute(
             f"SELECT COUNT(DISTINCT COALESCE(matched_group_id, CAST(id AS TEXT))),"
-            f"       COALESCE(SUM(distance_km), 0)"
+            f"       COALESCE(SUM(distance_m) / 1000.0, 0)"
             f" FROM activity_summaries"
             f" WHERE start_time >= ? AND start_time < ?"
             f"   AND activity_type IN {_RUN_TYPES}",

@@ -269,13 +269,13 @@ def import_file(
     try:
         cursor = conn.execute(
             """INSERT OR IGNORE INTO activity_summaries
-               (source, source_id, activity_type, start_time, distance_km,
+               (source, source_id, activity_type, start_time, distance_m,
                 duration_sec, avg_pace_sec_km, avg_hr, max_hr, avg_cadence,
                 elevation_gain, calories, description)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 source, source_id, activity_type,
-                data["start_time"], data["distance_km"], data["duration_sec"],
+                data["start_time"], (data.get("distance_km") or 0) * 1000, data["duration_sec"],
                 data.get("avg_pace_sec_km"), data.get("avg_hr"), data.get("max_hr"),
                 data.get("avg_cadence"), data.get("elevation_gain"),
                 data.get("calories"), data.get("description"),

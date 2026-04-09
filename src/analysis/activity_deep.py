@@ -17,11 +17,11 @@ def _find_activity(
     우선순위: activity_id > date_str > 오늘 날짜.
 
     Returns:
-        (id, source, start_time, distance_km, duration_sec, avg_pace_sec_km,
+        (id, source, start_time, distance_m/1000→distance_km, duration_sec, avg_pace_sec_km,
          avg_hr, max_hr, avg_cadence, elevation_gain, calories, activity_type)
         또는 None.
     """
-    cols = ("id, source, start_time, distance_km, duration_sec, avg_pace_sec_km, "
+    cols = ("id, source, start_time, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
             "avg_hr, max_hr, avg_cadence, elevation_gain, calories, activity_type")
 
     if activity_id is not None:

@@ -16,9 +16,18 @@ from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
 
+SERVICE_PRIORITY = ["garmin", "strava", "intervals", "runalyze"]
+
+SOURCE_COLORS: dict[str, str] = {
+    "garmin": "#0055b3",
+    "strava": "#FC4C02",
+    "intervals": "#00884e",
+    "runalyze": "#7b2d8b",
+}
+
 _ALLOWED_SORT = {
     "start_time", "distance_m", "duration_sec", "avg_hr",
-    "avg_pace_sec_km", "elevation_gain", "training_load",
+    "avg_pace_sec_km", "elevation_gain",
 }
 
 

@@ -60,7 +60,7 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     # 주간 볼륨
     monday = date.fromisoformat(today) - timedelta(days=date.fromisoformat(today).weekday())
     vol = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_km),0) FROM v_canonical_activities "
+        "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0) FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? AND start_time<=?",
         (monday.isoformat(), today + "T23:59:59"),
     ).fetchone()
@@ -117,7 +117,7 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
 
         # 오늘 활동
     today_acts = conn.execute(
-        "SELECT distance_km, duration_sec, avg_pace_sec_km, avg_hr, name "
+        "SELECT distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, name "
         "FROM v_canonical_activities "
         "WHERE activity_type='running' AND DATE(start_time)=? "
         "ORDER BY start_time DESC",
@@ -132,7 +132,7 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     # 최근 3일 활동 요약
     start_3d = (date.fromisoformat(today) - timedelta(days=2)).isoformat()
     recent = conn.execute(
-        "SELECT DATE(start_time), distance_km, duration_sec, avg_pace_sec_km, avg_hr "
+        "SELECT DATE(start_time), distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr "
         "FROM v_canonical_activities "
         "WHERE activity_type='running' AND DATE(start_time) BETWEEN ? AND ? "
         "ORDER BY start_time DESC",
@@ -193,7 +193,7 @@ def build_training_context(conn: sqlite3.Connection, today: str,
         w_start = td - timedelta(days=td.weekday()) - timedelta(weeks=w)
         w_end = w_start + timedelta(days=6)
         row = conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(distance_km),0) FROM v_canonical_activities "
+            "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0) FROM v_canonical_activities "
             "WHERE activity_type='running' AND DATE(start_time) BETWEEN ? AND ?",
             (w_start.isoformat(), w_end.isoformat()),
         ).fetchone()
@@ -232,7 +232,7 @@ def build_training_context(conn: sqlite3.Connection, today: str,
 
     # 오늘 활동
     act = conn.execute(
-        "SELECT distance_km, duration_sec, avg_pace_sec_km, avg_hr FROM v_canonical_activities "
+        "SELECT distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr FROM v_canonical_activities "
         "WHERE activity_type='running' AND DATE(start_time)=? LIMIT 1",
         (today,),
     ).fetchone()
@@ -282,7 +282,7 @@ def build_report_context(conn: sqlite3.Connection, start_date: str,
 
     # 기간 통계
     row = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_km),0), COALESCE(SUM(duration_sec),0) "
+        "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), COALESCE(SUM(duration_sec),0) "
         "FROM v_canonical_activities WHERE activity_type='running' "
         "AND start_time BETWEEN ? AND ?",
         (start_date, end_date + "T23:59:59"),
@@ -383,7 +383,7 @@ def build_activity_context(conn: sqlite3.Connection, activity_id: int) -> dict:
 
     # 활동 기본 데이터
     row = conn.execute(
-        "SELECT name, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
+        "SELECT name, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
         "start_time, activity_type FROM activity_summaries WHERE id=?",
         (activity_id,),
     ).fetchone()
@@ -405,10 +405,10 @@ def build_activity_context(conn: sqlite3.Connection, activity_id: int) -> dict:
     if row and row[1]:
         dist = float(row[1])
         recent = conn.execute(
-            "SELECT distance_km, avg_pace_sec_km, avg_hr FROM v_canonical_activities "
-            "WHERE activity_type='running' AND distance_km BETWEEN ? AND ? "
+            "SELECT distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr FROM v_canonical_activities "
+            "WHERE activity_type='running' AND distance_m BETWEEN ? AND ? "
             "AND id != ? ORDER BY start_time DESC LIMIT 10",
-            (dist * 0.7, dist * 1.3, activity_id),
+            (dist * 0.7 * 1000, dist * 1.3 * 1000, activity_id),
         ).fetchall()
         ctx["similar_recent"] = [
             {"km": r[0], "pace": r[1], "hr": r[2]} for r in recent

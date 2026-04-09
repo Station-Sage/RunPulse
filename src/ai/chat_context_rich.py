@@ -16,7 +16,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     start_30d = (date.fromisoformat(today) - timedelta(days=30)).isoformat()
 
     acts = conn.execute(
-        "SELECT id, date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "SELECT id, date(start_time), distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
         "avg_hr, max_hr, elevation_gain, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
         (start_30d,),
@@ -72,7 +72,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     ctx["runner_profile"] = _build_runner_profile(conn, today)
 
     race_acts = conn.execute(
-        "SELECT a.id, a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
+        "SELECT a.id, a.start_time, a.distance_m / 1000.0 AS distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
         "FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
         "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
@@ -98,7 +98,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     if today_type and today_type[0]:
         wtype = today_type[0]
         similar = conn.execute(
-            "SELECT a.id, date(a.start_time), a.distance_km, a.avg_pace_sec_km, a.avg_hr "
+            "SELECT a.id, date(a.start_time), a.distance_m / 1000.0 AS distance_km, a.avg_pace_sec_km, a.avg_hr "
             "FROM v_canonical_activities a "
             "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
             "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
@@ -121,7 +121,7 @@ def _add_mid_14d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
     start_14d = (date.fromisoformat(today) - timedelta(days=14)).isoformat()
 
     acts = conn.execute(
-        "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "SELECT date(start_time), distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
         "avg_hr, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? ORDER BY start_time",
         (start_14d,),
@@ -152,7 +152,7 @@ def _build_runner_profile(conn: sqlite3.Connection, today: str) -> dict[str, Any
 
     start_4w = (date.fromisoformat(today) - timedelta(weeks=4)).isoformat()
     vol = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_km),0), COALESCE(AVG(avg_pace_sec_km),0) "
+        "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), COALESCE(AVG(avg_pace_sec_km),0) "
         "FROM v_canonical_activities WHERE activity_type='running' AND start_time>=?",
         (start_4w,),
     ).fetchone()

@@ -65,6 +65,8 @@ class BgSyncThread(threading.Thread):
         self._pause_event.set()   # 일시정지 해제 → 루프 종료 진행
 
     def run(self) -> None:
+        from src.utils.sync_state import set_current_user
+        set_current_user(self.user_id)
         job = get_job(self.job_id)
         if job is None:
             return

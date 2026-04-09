@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS source_payloads (
 
 **단위 suffix 원칙**: 컬럼명 끝에 SI 기본 단위를 suffix로 명시한다. 단위 변환은 UI 표시 시점에서만 수행한다. → 상세 규칙은 `architecture.md` ADR-012 참조.
 
-**제외 대상** (→ metric_store): calories, normalized_power, suffer_score, training_effect_aerobic, training_effect_anaerobic, training_load. 이 6개는 현재 DDL에 아직 존재하나 Phase 5에서 제거 예정.
+**metric_store로 이동 완료 (Phase 5-G)**: calories, normalized_power, suffer_score, training_effect_aerobic, training_effect_anaerobic, training_load. Extractor에서 extract_activity_metrics() 경로로 저장.
 
 CREATE TABLE IF NOT EXISTS activity_summaries (
     id                          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,14 +104,6 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     gear_id                     INTEGER,
     source_url                  TEXT,
 
-    -- ── 제거 예정 (6) — Phase 5에서 metric_store로 이동 ──
-    calories                    REAL,
-    normalized_power            REAL,
-    suffer_score                REAL,
-    training_effect_aerobic     REAL,
-    training_effect_anaerobic   REAL,
-    training_load               REAL,
-
     -- ── 관리 (2) ──
     created_at                  TEXT DEFAULT (datetime('now')),
     updated_at                  TEXT DEFAULT (datetime('now')),
@@ -119,7 +111,7 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     UNIQUE(source, source_id)
 );
 
-현재 38컬럼 (제거 예정 6개 포함). Phase 5 이후 32컬럼.
+38컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12).
 
 ---
 
@@ -429,7 +421,7 @@ SELECT * FROM grouped WHERE rn = 1;
 | 9 | weather_cache | 4 | 15 | ~1,000 |
 | 10 | sync_jobs | 4 | 13 | ~200 |
 
-*activity_summaries는 현재 38컬럼 (제거 예정 6개 포함). Phase 5 이후 32컬럼.
+*activity_summaries는 38컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12).
 
 **앱 기능 테이블 (5개)**
 
@@ -514,7 +506,8 @@ PRAGMA user_version으로 관리. db_setup.py 실행 시 현재 버전을 확인
 | 버전 | 변경 내용 |
 |------|----------|
 | 10 | v0.3 초기 스키마 (16 테이블 + 1 뷰) |
-| 11 | v0.3.1 — daily_fitness 삭제, activity_summaries 6컬럼 제거 (예정) |
+| 11 | v0.3.1 — daily_fitness 삭제 (ADR-005: ctl/atl/tsb/vo2max → metric_store) |
+| 12 | v0.3.2 — activity_summaries 6컬럼 → metric_store 이동 (calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load) |
 
 ---
 
@@ -552,9 +545,9 @@ PRAGMA user_version으로 관리. db_setup.py 실행 시 현재 버전을 확인
 | # | 완료 기준 | 상태 |
 |---|----------|------|
 | 1 | python src/db_setup.py 실행 시 빈 DB 정상 생성 | ✅ |
-| 2 | 15개 테이블 + 1개 뷰 존재 | 🔄 (daily_fitness 삭제 예정) |
-| 3 | activity_summaries 32컬럼 확인 | 🔄 (현재 38, Phase 5에서 제거) |
-| 4 | metric_registry.py에 184 MetricDef, alias 충돌 없음 | ✅ |
+| 2 | 15개 테이블 + 1개 뷰 존재 | ✅ (daily_fitness 삭제 완료 v11) |
+| 3 | activity_summaries 38컬럼 확인 | ✅ (Phase 5-G 이후 38컬럼, v12) |
+| 4 | metric_registry.py에 194 MetricDef, alias 충돌 없음 | ✅ |
 | 5 | canonicalize() 테스트 통과 | ✅ |
 | 6 | resolve_primary() 테스트 통과 | ✅ |
 | 7 | upsert/get 함수 테스트 통과 | ✅ |
@@ -574,7 +567,12 @@ PRAGMA user_version으로 관리. db_setup.py 실행 시 현재 버전을 확인
 - 테이블 수 16 → 15 + 1뷰
 - check_data_consistency.py, gen_data_master.py 추가
 
+### v0.3.2 설계 변경사항 (Phase 5-G, 2026-04-07)
+- activity_summaries 6컬럼 → metric_store 이동 (SCHEMA_VERSION=12)
+- calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load
+- MetricDef 194개 (신규 4개 추가)
+
 ### 테스트 결과
-Phase 1 기본 테스트 64개 전체 통과 (57 in-memory + 7 real DB). v0.3.1 변경에 따른 테스트 업데이트는 Phase 5 코드 동기화 시 반영.
+Phase 1 기본 테스트 전체 통과 (883 tests). v0.3.2 Phase 5-G 완료 반영.
 
 ---

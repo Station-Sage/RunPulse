@@ -30,7 +30,7 @@ def weekly_trends(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
 
         rows = conn.execute("""
             SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS gk,
-                   AVG(distance_km)     AS dist,
+                   AVG(distance_m) / 1000.0 AS dist,
                    AVG(duration_sec)    AS dur,
                    AVG(avg_pace_sec_km) AS pace
             FROM activity_summaries

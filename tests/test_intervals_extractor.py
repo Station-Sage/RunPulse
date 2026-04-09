@@ -43,9 +43,12 @@ class TestIntervalsActivityCore:
         # 1.13m → 113.0cm
         assert core["avg_stride_length_cm"] == 113.0
 
-    def test_training_load(self, ext, activity_raw):
-        core = ext.extract_activity_core(activity_raw)
-        assert core["training_load"] == 84.2
+    def test_training_load_in_metrics(self, ext, activity_raw):
+        """training_load/calories → metric_store (Phase 5-G)."""
+        metrics = ext.extract_activity_metrics(activity_raw)
+        names = {m.metric_name for m in metrics}
+        assert "training_load" in names
+        assert "calories" in names
 
 
 class TestIntervalsActivityMetrics:

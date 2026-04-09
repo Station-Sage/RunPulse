@@ -470,7 +470,7 @@ data/history/strava/</pre>
         recent_activities = _query_rows(
             conn,
             """
-            select id, source, activity_type, start_time, distance_km, duration_sec
+            select id, source, activity_type, start_time, distance_m / 1000.0 AS distance_km, duration_sec
             from activity_summaries
             order by start_time desc
             limit 20

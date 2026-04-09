@@ -78,7 +78,7 @@ def _estimate_profile() -> dict:
             from datetime import date, timedelta
             start = (date.today() - timedelta(weeks=4)).isoformat()
             row = conn.execute(
-                "SELECT COALESCE(SUM(distance_km), 0) FROM v_canonical_activities "
+                "SELECT COALESCE(SUM(distance_m) / 1000.0, 0) FROM v_canonical_activities "
                 "WHERE activity_type='running' AND DATE(start_time) >= ?",
                 (start,),
             ).fetchone()

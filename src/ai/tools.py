@@ -193,7 +193,7 @@ def execute_tool(conn: sqlite3.Connection, name: str, args: dict) -> str:
 def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
     d = args.get("date", date.today().isoformat())
     acts = conn.execute(
-        "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
+        "SELECT id, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
         "elevation_gain, calories, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? ORDER BY start_time",
         (d,),
@@ -236,7 +236,7 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
 def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
     s, e = args["start_date"], args["end_date"]
     rows = conn.execute(
-        "SELECT date(start_time), distance_km, duration_sec, avg_pace_sec_km, "
+        "SELECT date(start_time), distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
         "avg_hr, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? AND start_time<=? || 'T99' "
         "ORDER BY start_time", (s, e),
@@ -337,7 +337,7 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
 def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
     limit = args.get("limit", 10)
     rows = conn.execute(
-        "SELECT a.start_time, a.distance_km, a.duration_sec, a.avg_pace_sec_km, "
+        "SELECT a.start_time, a.distance_m / 1000.0 AS distance_km, a.duration_sec, a.avg_pace_sec_km, "
         "a.avg_hr, a.name FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
         "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
@@ -361,7 +361,7 @@ def _exec_get_activity_detail(conn: sqlite3.Connection, args: dict) -> dict:
 
     # laps
     laps_raw = conn.execute(
-        "SELECT lap_index, distance_km, duration_sec, avg_pace_sec_km, avg_hr "
+        "SELECT lap_index, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr "
         "FROM activity_laps WHERE activity_id=? ORDER BY lap_index", (aid,)
     ).fetchall()
     laps = [
@@ -497,7 +497,7 @@ def _exec_get_weather(conn: sqlite3.Connection, args: dict) -> dict:
 def _exec_compare_periods(conn: sqlite3.Connection, args: dict) -> dict:
     def _period_stats(s: str, e: str) -> dict:
         rows = conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(distance_km),0), "
+            "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), "
             "COALESCE(AVG(avg_pace_sec_km),0), COALESCE(AVG(avg_hr),0) "
             "FROM v_canonical_activities "
             "WHERE activity_type='running' AND start_time>=? AND start_time<=? || 'T99'",

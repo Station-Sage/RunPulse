@@ -145,7 +145,7 @@ def workout_confirm(workout_id: int):
                     matched = True
                     # 실제 활동 요약 (거리 + 페이스)
                     act = conn.execute(
-                        "SELECT distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
+                        "SELECT distance_m / 1000.0 AS distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
                         (m_row[0],),
                     ).fetchone()
                     if act and act[0]:
@@ -198,7 +198,7 @@ def workout_match_check(workout_id: int):
             activity_summary = ""
             if matched:
                 act = conn.execute(
-                    "SELECT distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
+                    "SELECT distance_m / 1000.0 AS distance_km, avg_pace_sec_km FROM activity_summaries WHERE id=?",
                     (activity_id,),
                 ).fetchone()
                 if act and act[0]:

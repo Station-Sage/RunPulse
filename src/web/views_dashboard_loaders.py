@@ -32,7 +32,7 @@ def load_weekly_summary(conn: sqlite3.Connection, target_date: str) -> dict:
     # 이번 주 월요일 ~ 오늘
     monday = td - timedelta(days=td.weekday())
     row = conn.execute(
-        """SELECT COUNT(*), COALESCE(SUM(distance_km), 0), COALESCE(SUM(duration_sec), 0)
+        """SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), COALESCE(SUM(duration_sec), 0)
            FROM v_canonical_activities
            WHERE activity_type = 'running'
              AND start_time >= ? AND start_time <= ?""",

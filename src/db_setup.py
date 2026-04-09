@@ -2,7 +2,7 @@
 
 5-Layer 아키텍처:
   Layer 0: source_payloads         — 외부 API 응답 원문 (절대 삭제 안 함)
-  Layer 1: activity_summaries      — 통합 활동 요약 (46 컬럼)
+  Layer 1: activity_summaries      — 통합 활동 요약 (38 컬럼)
            daily_wellness           — 일별 웰니스 core (15 컬럼)
   Layer 2: metric_store            — 모든 메트릭 통합 EAV (16 컬럼)
            (daily_fitness 삭제됨 — ADR-005: ctl/atl/tsb/ramp_rate/vo2max → metric_store)
@@ -14,6 +14,8 @@
 마이그레이션:
   v0.2 → v0.3은 schema reset (SCHEMA_VERSION=10). 기존 데이터는
   source_payloads에 보존되어 있으므로 reprocess로 재구축 가능.
+  v12: calories/normalized_power/suffer_score/training_effect_aerobic/
+       training_effect_anaerobic/training_load → metric_store 이동.
 """
 
 import logging
@@ -24,7 +26,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 11  # v0.3.1: daily_fitness 삭제 (ADR-005)
+SCHEMA_VERSION = 13  # v0.3.3: activity_summaries.distance_km → distance_m 컬럼명 수정
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,23 +94,13 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     avg_cadence                 INTEGER,
     max_cadence                 INTEGER,
 
-    -- ── 파워 (3) ──
+    -- ── 파워 (2) ──
     avg_power                   REAL,
     max_power                   REAL,
-    normalized_power            REAL,
 
     -- ── 고도 (2) ──
     elevation_gain              REAL,
     elevation_loss              REAL,
-
-    -- ── 에너지 (1) ──
-    calories                    INTEGER,
-
-    -- ── 훈련 효과/부하 (4) ──
-    training_effect_aerobic     REAL,
-    training_effect_anaerobic   REAL,
-    training_load               REAL,
-    suffer_score                INTEGER,
 
     -- ── 러닝 다이내믹스 (4) ──
     avg_ground_contact_time_ms  REAL,
@@ -578,10 +570,14 @@ def _get_existing_tables(conn: sqlite3.Connection) -> set[str]:
 
 
 def migrate_db(conn: sqlite3.Connection) -> bool:
-    """v0.2(≤4) → v0.3(≤10) → v0.3.1(=11) 마이그레이션.
+    """v0.2(≤4) → v0.3(≤10) → v0.3.1(=11) → v0.3.2(=12) → v0.3.3(=13) 마이그레이션.
 
     전략: 기존 테이블은 건드리지 않고, 새 테이블만 추가.
     v11: daily_fitness 삭제 (ADR-005 — ctl/atl/tsb/ramp_rate/vo2max → metric_store).
+    v12: activity_summaries 6컬럼 → metric_store 이동.
+         calories/normalized_power/suffer_score/training_effect_aerobic/
+         training_effect_anaerobic/training_load — DROP COLUMN.
+    v13: activity_summaries.distance_km → distance_m 컬럼명 수정 (SQLite 3.25+ RENAME COLUMN).
     """
     current = _get_user_version(conn)
 
@@ -596,6 +592,31 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     if current < 11:
         conn.execute("DROP TABLE IF EXISTS daily_fitness")
 
+    # v12: activity_summaries 6컬럼 DROP (SQLite 3.35+ 필요)
+    if current < 12:
+        _drop_cols = (
+            "calories", "normalized_power", "suffer_score",
+            "training_effect_aerobic", "training_effect_anaerobic", "training_load",
+        )
+        for col in _drop_cols:
+            try:
+                conn.execute(f"ALTER TABLE activity_summaries DROP COLUMN {col}")
+            except Exception:
+                pass  # 이미 없거나 SQLite 버전 미지원 — 무시
+
+    # v13: activity_summaries.distance_km → distance_m (DDL 기준 정렬)
+    if current < 13:
+        existing_cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(activity_summaries)").fetchall()
+        }
+        if "distance_km" in existing_cols and "distance_m" not in existing_cols:
+            try:
+                conn.execute(
+                    "ALTER TABLE activity_summaries RENAME COLUMN distance_km TO distance_m"
+                )
+            except Exception as exc:
+                log.warning("distance_km → distance_m 컬럼 변환 실패 (SQLite 3.25+ 필요): %s", exc)
+
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)
 
@@ -609,6 +630,12 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 # Init
 # ─────────────────────────────────────────────────────────────────────────────
+
+def get_needs_resync(conn: sqlite3.Connection) -> bool:
+    """동기화가 필요한지 확인. 활동 데이터가 없으면 True."""
+    row = conn.execute("SELECT COUNT(*) FROM activity_summaries").fetchone()
+    return (row[0] if row else 0) == 0
+
 
 def init_db(user_id: str | None = None) -> Path:
     """DB 초기화: 테이블 생성 + 마이그레이션 + WAL 모드. DB 경로 반환."""

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import html
 
-from src.services.unified_activities import UnifiedActivity
+from src.services.unified_view import UnifiedActivity
 from .helpers import fmt_duration
 from .views_activities_helpers import (
     _fmt_dist,
@@ -185,7 +185,7 @@ _MERGE_BAR = (
 
 def _render_sub_row(act_id: int, src: str, row: dict, gid: str) -> str:
     """서브트리 소스 행."""
-    dist = _fmt_dist(row.get("distance_km"))
+    dist = _fmt_dist((row.get("distance_m") or 0) / 1000)
     dur = fmt_duration(row.get("duration_sec"))
     pace = _fmt_pace(row.get("avg_pace_sec_km"))
     avg_hr = row.get("avg_hr")
@@ -358,14 +358,14 @@ def _render_activity_table(
             f"<span class='dt-md'>{_md}</span>"
             f"<span class='dt-tm'>{_tm}</span>"
         )
-        dist = html.escape(_fmt_dist(ua.distance_km.value))
+        dist = html.escape(_fmt_dist((ua.distance_m.value or 0) / 1000))
         dur = html.escape(fmt_duration(ua.duration_sec.value))
         pace = html.escape(_fmt_pace(ua.avg_pace_sec_km.value))
         avg_hr = ua.avg_hr.value
         hr_str = html.escape(str(avg_hr) if avg_hr else "—")
 
         show_prov = len(ua.available_sources) > 1
-        dist_tip = _provenance_tip(ua.distance_km.source) if show_prov else ""
+        dist_tip = _provenance_tip(ua.distance_m.source) if show_prov else ""
         dur_tip = _provenance_tip(ua.duration_sec.source) if show_prov else ""
         pace_tip = _provenance_tip(ua.avg_pace_sec_km.source) if show_prov else ""
         hr_tip = _provenance_tip(ua.avg_hr.source) if show_prov else ""

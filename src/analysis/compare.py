@@ -13,7 +13,7 @@ def _get_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """기간 내 기본 지표 (matched_group_id로 중복 제거)."""
     rows = conn.execute("""
         SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS gk,
-               AVG(distance_km)     AS dist,
+               AVG(distance_m) / 1000.0 AS dist,
                AVG(duration_sec)    AS dur,
                AVG(avg_pace_sec_km) AS pace,
                AVG(avg_hr)          AS hr

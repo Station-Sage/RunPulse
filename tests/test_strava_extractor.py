@@ -34,9 +34,13 @@ class TestStravaActivityCore:
         assert core["duration_sec"] == 3150
         assert core["moving_time_sec"] == 3060
 
-    def test_suffer_score(self, ext, activity_raw):
-        core = ext.extract_activity_core(activity_raw)
-        assert core["suffer_score"] == 78
+    def test_suffer_score_in_metrics(self, ext, activity_raw):
+        """suffer_score → metric_store (Phase 5-G)."""
+        metrics = ext.extract_activity_metrics(activity_raw)
+        names = {m.metric_name for m in metrics}
+        assert "suffer_score" in names
+        assert "normalized_power" in names
+        assert "calories" in names
 
     def test_latlng(self, ext, activity_raw):
         core = ext.extract_activity_core(activity_raw)

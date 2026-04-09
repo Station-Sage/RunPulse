@@ -53,7 +53,7 @@ RunPulse는 단순한 러닝 로그 앱이 아닙니다. 여러 플랫폼에 흩
 | Layer | 테이블 | 역할 | 컬럼 | 예상 행 |
 |-------|--------|------|------|---------|
 | 0 | source_payloads | API 원문 보존 | 11 | ~3,000 |
-| 1 | activity_summaries | 통합 활동 요약 | 32 | ~600 |
+| 1 | activity_summaries | 통합 활동 요약 | 38 | ~600 |
 | 1 | daily_wellness | 일별 웰니스 요약 | 16 | ~1,500 |
 | 2 | metric_store | 메트릭 통합 저장소 | 17 | ~55,000 |
 | 3 | activity_streams | 시계열 GPS/HR/Pace | 15 | ~500,000 |

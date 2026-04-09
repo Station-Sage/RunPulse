@@ -11,11 +11,7 @@ import sqlite3
 from flask import Blueprint, Response, request
 
 from .helpers import db_path
-from src.services.unified_activities import (
-    assign_group_to_activities,
-    remove_from_group,
-)
-from src.utils.dedup import auto_group_all
+from src.utils.dedup import auto_group_all, assign_group_to_activities, remove_from_group
 
 merge_bp = Blueprint("activity_merge", __name__)
 
@@ -78,7 +74,7 @@ def activities_merge():
 
     dpath = db_path()
     if not dpath.exists():
-        return _json_response({"ok": False, "error": "running.db 없음"}, 500)
+        return _json_response({"ok": False, "error": "running.db 없음"}, 503)
 
     try:
         with sqlite3.connect(str(dpath)) as conn:
@@ -105,7 +101,7 @@ def activities_ungroup():
 
     dpath = db_path()
     if not dpath.exists():
-        return _json_response({"ok": False, "error": "running.db 없음"}, 500)
+        return _json_response({"ok": False, "error": "running.db 없음"}, 503)
 
     try:
         with sqlite3.connect(str(dpath)) as conn:
@@ -121,7 +117,7 @@ def activities_auto_group():
     """모든 활동에 대해 cross-source 중복 자동 묶기."""
     dpath = db_path()
     if not dpath.exists():
-        return _json_response({"ok": False, "error": "running.db 없음"}, 500)
+        return _json_response({"ok": False, "error": "running.db 없음"}, 503)
 
     try:
         with sqlite3.connect(str(dpath)) as conn:

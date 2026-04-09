@@ -30,6 +30,7 @@ from .views_settings_integrations import settings_integrations_bp
 from .views_settings_metrics import settings_metrics_bp
 from .views_activity_merge import merge_bp
 from .views_export_import import export_import_bp
+from .views_export import export_bp
 from .views_shoes import shoes_bp
 
 # Phase 3 (v0.2) Blueprint imports
@@ -66,7 +67,7 @@ def _get_home_data(db_path: Path) -> dict:
 
     from src.analysis.recovery import get_recovery_status
     from src.analysis.weekly_score import calculate_weekly_score
-    from src.services.unified_activities import fetch_unified_activities
+    from src.services.unified_view import fetch_unified_activities
     from datetime import date as _date
 
     today = _date.today().isoformat()
@@ -194,6 +195,20 @@ def create_app() -> Flask:
     init_cf_auth(app)
 
     _auto_migrate()
+
+    @app.before_request
+    def _ensure_user_db_migrated():
+        """요청마다 현재 사용자 DB를 최신 스키마로 마이그레이션 (이미 최신이면 즉시 반환)."""
+        db = _db_path()
+        if not db.exists():
+            return
+        try:
+            from src.db_setup import migrate_db
+            with sqlite3.connect(str(db)) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                migrate_db(conn)
+        except Exception as exc:
+            log.warning("요청별 마이그레이션 실패: %s", exc)
 
     # ── Jinja2 설정 ──────────────────────────────────────────────────────────
     from .helpers import _CSS, _SYNC_JS, _build_nav, bottom_nav
@@ -410,9 +425,10 @@ def create_app() -> Flask:
         from .sync_ui import sync_card_html
         from .helpers import last_sync_info, connected_services
         from src.utils.sync_state import get_all_states
+        from .helpers import get_current_user_id as _get_uid
         sync_card = sync_card_html(
             last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
-            sync_states=get_all_states(),
+            sync_states=get_all_states(_get_uid()),
             connected=connected_services(),
         )
 
@@ -484,7 +500,7 @@ def create_app() -> Flask:
                 continue
 
             # 2) 중복 실행 방지
-            if is_running(src):
+            if is_running(src, user_id):
                 results.append({
                     "source": src, "ok": False, "skipped": True, "count": 0,
                     "error": f"{src} 동기화가 이미 진행 중입니다. 잠시 후 다시 시도하세요.",
@@ -493,7 +509,7 @@ def create_app() -> Flask:
                 continue
 
             # 3) retry_after 확인 (429 등으로 설정된 경우)
-            retry_sec = get_retry_after_sec(src)
+            retry_sec = get_retry_after_sec(src, user_id)
             if retry_sec and retry_sec > 0:
                 from src.utils.sync_policy import _fmt_duration
                 results.append({
@@ -511,7 +527,7 @@ def create_app() -> Flask:
                 days_for_src = hist_days
             else:
                 # 증분 동기화: cooldown 검사
-                last_at = get_last_sync_at(src)
+                last_at = get_last_sync_at(src, user_id)
                 guard = check_incremental_guard(src, last_at)
                 days_for_src = _days_since_last_sync([src])
 
@@ -529,7 +545,7 @@ def create_app() -> Flask:
                 print(f"[trigger_sync] {guard.message_ko}")
 
             # 5) 동기화 실행
-            mark_running(src, mode)
+            mark_running(src, mode, user_id)
             try:
                 proc = subprocess.run(
                     [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id],
@@ -546,7 +562,7 @@ def create_app() -> Flask:
                 # subprocess 내 sync 함수가 mark_finished 를 직접 호출하지만
                 # subprocess 바깥에서도 실패 시 상태 복구
                 if proc.returncode != 0:
-                    mark_finished(src, count=0, partial=True, error=stderr_tail)
+                    mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
                     results.append({
                         "source": src, "ok": False, "skipped": False,
                         "count": 0, "error": stderr_tail,
@@ -557,12 +573,12 @@ def create_app() -> Flask:
                     error_msg = None
                     if stderr_tail:
                         error_msg = stderr_tail.strip().split('\n')[-1][:200]
-                    
+
                     partial = "일부" in proc.stdout or "⚠️" in proc.stdout
                     has_error = bool(error_msg)
                     if not _already_finished(proc.stdout):
                         mark_finished(src, count=count, partial=partial or has_error,
-                                    error=error_msg if has_error else None)
+                                      error=error_msg if has_error else None, user_id=user_id)
                     results.append({
                         "source": src, "ok": count > 0 or not has_error,
                         "skipped": False, "count": count,
@@ -571,13 +587,13 @@ def create_app() -> Flask:
                         "warn": guard.message_ko,
                     })
             except subprocess.TimeoutExpired:
-                mark_finished(src, count=0, partial=True, error="타임아웃 (300초)")
+                mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
                 results.append({
                     "source": src, "ok": False, "skipped": False,
                     "count": 0, "error": "동기화 타임아웃 (300초 초과)",
                 })
             except Exception as e:
-                mark_finished(src, count=0, partial=True, error=str(e))
+                mark_finished(src, count=0, partial=True, error=str(e), user_id=user_id)
                 results.append({
                     "source": src, "ok": False, "skipped": False,
                     "count": 0, "error": str(e),
@@ -931,6 +947,7 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(settings_metrics_bp)      # 설정 — 메트릭 재계산
     app.register_blueprint(merge_bp)          # 활동 그룹 병합/분리 API
     app.register_blueprint(export_import_bp)  # Export CSV 임포트
+    app.register_blueprint(export_bp)         # 활동 CSV 내보내기
     app.register_blueprint(shoes_bp)          # 신발 목록
     app.register_blueprint(dashboard_bp)      # v0.2 통합 대시보드
     app.register_blueprint(report_bp)         # v0.2 분석 레포트

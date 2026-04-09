@@ -2,7 +2,7 @@
 name: doc-sync
 description: >
   문서 정합성 빠른 확인. 코딩 중 수시로 실행하는 가벼운 검증.
-  check_docs.py(18개 검사) + metric_dictionary 동기화 + files_index 동기화
+  check_docs.py(20개 검사) + metric_dictionary 동기화 + files_index 동기화
   + test_doc_sync만 실행한다. pytest 전체 실행은 포함하지 않는다.
   "문서 검증", "dictionary 확인", "문서 동기화" 요청 시 사용.
 user-invocable: true
@@ -20,16 +20,13 @@ pytest는 실행하지 않는다. 커밋 전 전체 검증은 `/pre-commit`을 �
 
     python3 scripts/check_docs.py
 
-19개 검사(general, code, metric, schema, phase)를 전부 실행한다.
+20개 검사(general, code, metric, schema, phase)를 전부 실행한다.
 Check 17(Phase 3)은 dedup 초기화 패턴 + wellness entity_type 이름까지 검증한다.
 Check 18(Phase 4)은 ALL_CALCULATORS 32개 + CalcContext API 14개 + engine 핵심 함수 + ConfidenceBuilder/CalcResult를 검증한다.
-Check 19(Phase 5)은 서비스 레이어 파일(activity_service, dashboard_service, wellness_service) + 헬퍼 파일(ai_context, template_helpers)의 존재와 핵심 함수를 검증한다. 구현 전에는 [WARN]으로 표시된다.
+Check 19(Phase 5)은 서비스 레이어 파일(activity_service, dashboard_service, wellness_service, unified_view) + 헬퍼 파일(ai_context, template_helpers) + dedup 확장 함수(assign_group_to_activities, remove_from_group) + unified_activities.py re-export shim을 검증한다.
+Check 20(Phase 6)은 GarminBulkLoader(_SUMMARY_SUFFIX/_DETAIL_SUFFIX/load()) + DataValidator(12개 _check_* 메서드/run_all()/CheckResult) + db_status.py(get_status/print_status) + sync_cli.py(initial-load/_parse_steps/_run_initial_load) + snapshot.sh를 검증한다.
 `[ERROR]` 0개이면 PASS, 1개 이상이면 FAIL.
 `[WARN]`은 참고용으로 보고만 한다.
-
-현재 알려진 오류 (BACKLOG 해소 예정):
-- Check 11/14: activity_summaries 컬럼 수 불일치 (설계=38, 코드=44) — Phase 5-G 해소
-- Check 14: daily_fitness 컬럼 수 — Phase 5-F 해소
 
 ### Step 2: metric_dictionary 동기화
 
@@ -56,7 +53,7 @@ diff가 있고 `$ARGUMENTS`에 `--fix`가 있으면 변경을 유지하고,
 ## 결과 보고
 
     ## /doc-sync 결과
-    - check_docs.py: PASS/FAIL (검사 19개, errors N, warnings N)
+    - check_docs.py: PASS/FAIL (검사 20개, errors N, warnings N)
       - general: PASS/FAIL
       - code: PASS/FAIL
       - metric: PASS/FAIL

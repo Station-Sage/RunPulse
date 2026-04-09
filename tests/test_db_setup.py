@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_11(self):
+    def test_schema_version_is_13(self):
         """조건 2"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 11
+        assert ver == 13
 
     def test_pipeline_tables_count(self):
         """조건 3: 11개 pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
@@ -123,9 +123,9 @@ class TestPhase1Schema:
         ).fetchall()}
         assert "v_canonical_activities" in views
 
-    def test_activity_summaries_46_columns(self):
-        """조건 4: 최소 44컬럼 (v0.3 schema)"""
+    def test_activity_summaries_38_columns(self):
+        """조건 4: 38컬럼 (Phase 5-G: 6컬럼 → metric_store 이동)"""
         cols = self.conn.execute(
             "PRAGMA table_info(activity_summaries)"
         ).fetchall()
-        assert len(cols) >= 44, f"컬럼 수: {len(cols)} (44개 이상 필요)"
+        assert len(cols) >= 38, f"컬럼 수: {len(cols)} (38개 이상 필요)"

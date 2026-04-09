@@ -31,7 +31,7 @@ def mem_db():
             name TEXT,
             activity_type TEXT,
             start_time TEXT,
-            distance_km REAL,
+            distance_m REAL,
             duration_sec INTEGER,
             avg_pace_sec_km INTEGER,
             avg_hr REAL,
@@ -51,13 +51,13 @@ def mem_db():
     return conn
 
 
-def _insert(conn, source, distance_km=10.0, matched_group_id=None, **kwargs):
+def _insert(conn, source, distance_m=10000.0, matched_group_id=None, **kwargs):
     vals = {
         "source": source,
         "source_id": f"{source}-1",
         "activity_type": "run",
         "start_time": "2026-01-15T08:00:00",
-        "distance_km": distance_km,
+        "distance_m": distance_m,
         "duration_sec": 3600,
         "avg_pace_sec_km": 360,
         "avg_hr": 150.0,
@@ -71,10 +71,10 @@ def _insert(conn, source, distance_km=10.0, matched_group_id=None, **kwargs):
     }
     cursor = conn.execute(
         """INSERT INTO activity_summaries
-           (source, source_id, activity_type, start_time, distance_km, duration_sec,
+           (source, source_id, activity_type, start_time, distance_m, duration_sec,
             avg_pace_sec_km, avg_hr, max_hr, avg_cadence, elevation_gain, calories,
             description, matched_group_id)
-           VALUES (:source, :source_id, :activity_type, :start_time, :distance_km,
+           VALUES (:source, :source_id, :activity_type, :start_time, :distance_m,
                    :duration_sec, :avg_pace_sec_km, :avg_hr, :max_hr, :avg_cadence,
                    :elevation_gain, :calories, :description, :matched_group_id)""",
         vals,
@@ -87,40 +87,40 @@ def _insert(conn, source, distance_km=10.0, matched_group_id=None, **kwargs):
 class TestPickValue:
     def test_garmin_first(self):
         source_rows = {
-            "strava": {"distance_km": 10.0},
-            "garmin": {"distance_km": 10.5},
+            "strava": {"distance_m": 10000.0},
+            "garmin": {"distance_m": 10500.0},
         }
-        result = _pick_value(source_rows, "distance_km")
-        assert result.value == 10.5
+        result = _pick_value(source_rows, "distance_m")
+        assert result.value == 10500.0
         assert result.source == "garmin"
 
     def test_fallback_when_garmin_missing(self):
         source_rows = {
-            "strava": {"distance_km": 10.1},
-            "intervals": {"distance_km": 10.2},
+            "strava": {"distance_m": 10100.0},
+            "intervals": {"distance_m": 10200.0},
         }
-        result = _pick_value(source_rows, "distance_km")
+        result = _pick_value(source_rows, "distance_m")
         assert result.source == "strava"
-        assert result.value == 10.1
+        assert result.value == 10100.0
 
     def test_none_when_all_missing(self):
-        source_rows = {"garmin": {"distance_km": None}, "strava": {}}
-        result = _pick_value(source_rows, "distance_km")
+        source_rows = {"garmin": {"distance_m": None}, "strava": {}}
+        result = _pick_value(source_rows, "distance_m")
         assert result.value is None
         assert result.source is None
 
     def test_all_values_populated(self):
         source_rows = {
-            "garmin": {"distance_km": 10.0},
-            "strava": {"distance_km": 9.9},
+            "garmin": {"distance_m": 10000.0},
+            "strava": {"distance_m": 9900.0},
         }
-        result = _pick_value(source_rows, "distance_km")
-        assert result.all_values == {"garmin": 10.0, "strava": 9.9}
+        result = _pick_value(source_rows, "distance_m")
+        assert result.all_values == {"garmin": 10000.0, "strava": 9900.0}
 
     def test_service_priority_order(self):
         # 모든 4소스가 있을 때 garmin 우선
-        source_rows = {s: {"distance_km": float(i)} for i, s in enumerate(SERVICE_PRIORITY)}
-        result = _pick_value(source_rows, "distance_km")
+        source_rows = {s: {"distance_m": float(i) * 1000} for i, s in enumerate(SERVICE_PRIORITY)}
+        result = _pick_value(source_rows, "distance_m")
         assert result.source == "garmin"
 
 
@@ -131,7 +131,7 @@ class TestBuildUnifiedActivity:
         return {
             "id": rid, "source": source, "source_id": f"{source}-1",
             "activity_type": "run", "start_time": "2026-01-15T08:00:00",
-            "distance_km": 10.0, "duration_sec": 3600, "avg_pace_sec_km": 360,
+            "distance_m": 10000.0, "duration_sec": 3600, "avg_pace_sec_km": 360,
             "avg_hr": 150.0, "max_hr": 175.0, "avg_cadence": 170.0,
             "elevation_gain": 50.0, "calories": 600.0, "description": "test",
             "matched_group_id": gid,
@@ -186,65 +186,65 @@ class TestBuildUnifiedActivity:
 class TestBuildSourceComparison:
     def test_returns_list_of_dicts(self):
         source_rows = {
-            "garmin": {"distance_km": 10.0, "avg_hr": 150.0, "duration_sec": 3600,
+            "garmin": {"distance_m": 10000.0, "avg_hr": 150.0, "duration_sec": 3600,
                        "avg_pace_sec_km": 360, "max_hr": 175.0, "avg_cadence": 170.0,
-                       "elevation_gain": 50.0, "avg_power": None, "calories": 600.0},
-            "strava": {"distance_km": 9.9, "avg_hr": 148.0, "duration_sec": 3580,
+                       "elevation_gain": 50.0, "avg_power": None},
+            "strava": {"distance_m": 9900.0, "avg_hr": 148.0, "duration_sec": 3580,
                        "avg_pace_sec_km": 362, "max_hr": 172.0, "avg_cadence": None,
-                       "elevation_gain": 48.0, "avg_power": None, "calories": None},
+                       "elevation_gain": 48.0, "avg_power": None},
         }
         rows = build_source_comparison(source_rows)
         assert isinstance(rows, list)
-        assert len(rows) == 9  # 파워 포함 9 fields
+        assert len(rows) == 8  # 파워 포함 8 fields (calories → metric_store, Phase 5-G)
 
     def test_field_names_present(self):
         source_rows = {"garmin": {}, "strava": {}}
         rows = build_source_comparison(source_rows)
         fields = [r["field"] for r in rows]
-        assert "거리(km)" in fields
+        assert "거리(m)" in fields
         assert "평균 심박(bpm)" in fields
         assert "파워(W)" in fields  # 신규
 
     def test_values_per_source(self):
         source_rows = {
-            "garmin": {"distance_km": 10.5},
-            "strava": {"distance_km": 10.1},
+            "garmin": {"distance_m": 10500.0},
+            "strava": {"distance_m": 10100.0},
         }
         rows = build_source_comparison(source_rows)
-        dist_row = next(r for r in rows if r["field"] == "거리(km)")
-        assert dist_row["garmin"] == 10.5
-        assert dist_row["strava"] == 10.1
+        dist_row = next(r for r in rows if r["field"] == "거리(m)")
+        assert dist_row["garmin"] == 10500.0
+        assert dist_row["strava"] == 10100.0
 
     def test_missing_source_not_in_row(self):
-        source_rows = {"garmin": {"distance_km": 10.0}}
+        source_rows = {"garmin": {"distance_m": 10000.0}}
         rows = build_source_comparison(source_rows)
-        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        dist_row = next(r for r in rows if r["field"] == "거리(m)")
         assert "strava" not in dist_row
 
     def test_unified_value_and_source_present(self):
         source_rows = {
-            "garmin": {"distance_km": 10.5},
-            "strava": {"distance_km": 10.1},
+            "garmin": {"distance_m": 10500.0},
+            "strava": {"distance_m": 10100.0},
         }
         rows = build_source_comparison(source_rows)
-        dist_row = next(r for r in rows if r["field"] == "거리(km)")
-        assert dist_row["unified_value"] == 10.5       # garmin 우선
+        dist_row = next(r for r in rows if r["field"] == "거리(m)")
+        assert dist_row["unified_value"] == 10500.0       # garmin 우선
         assert dist_row["unified_source"] == "garmin"
 
     def test_unified_source_fallback(self):
         """garmin 없으면 strava → intervals → runalyze 순서."""
         source_rows = {
-            "strava": {"distance_km": 10.1},
-            "intervals": {"distance_km": 10.2},
+            "strava": {"distance_m": 10100.0},
+            "intervals": {"distance_m": 10200.0},
         }
         rows = build_source_comparison(source_rows)
-        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        dist_row = next(r for r in rows if r["field"] == "거리(m)")
         assert dist_row["unified_source"] == "strava"
 
     def test_unified_value_none_when_all_missing(self):
         source_rows = {"garmin": {}, "strava": {}}
         rows = build_source_comparison(source_rows)
-        dist_row = next(r for r in rows if r["field"] == "거리(km)")
+        dist_row = next(r for r in rows if r["field"] == "거리(m)")
         assert dist_row["unified_value"] is None
         assert dist_row["unified_source"] is None
 
@@ -283,8 +283,8 @@ class TestFetchUnifiedActivities:
         assert len(activities) == 3
 
     def test_stats_total_dist(self, mem_db):
-        _insert(mem_db, "garmin", distance_km=10.0)
-        _insert(mem_db, "strava", distance_km=8.0)
+        _insert(mem_db, "garmin", distance_m=10000.0)
+        _insert(mem_db, "strava", distance_m=8000.0)
         _, _, stats = fetch_unified_activities(mem_db)
         assert stats["total_dist_km"] == pytest.approx(18.0)
 

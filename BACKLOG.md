@@ -7,6 +7,7 @@
 (없음)
 
 ## NEXT
-- Phase 5-J: consumer `distance_km` → `distance_m` (292+ 곳) + DoD #9 Export CSV + DoD #12 Flask 스모크 테스트
-- Phase 6: 데이터 검증 / Dedup
-- Phase 7: UI 재설계
+- Phase 7: UI 재설계 (views_activities_table.py → activity_service 전환 포함)
+
+## DONE (recent)
+- Phase 6: Initial Data Load & Validation — GarminBulkLoader, DataValidator(12-check), initial-load CLI(9-step), db_status, snapshot.sh

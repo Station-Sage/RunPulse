@@ -55,11 +55,14 @@ class TestGarminActivityCore:
         assert core["avg_hr"] == 155
         assert core["max_hr"] == 178
 
-    def test_training_effects(self, ext, summary_raw):
-        core = ext.extract_activity_core(summary_raw)
-        assert core["training_effect_aerobic"] == 3.2
-        assert core["training_effect_anaerobic"] == 1.1
-        assert core["training_load"] == 85.5
+    def test_training_effects_in_metrics(self, ext, summary_raw):
+        """training_effect_* / training_load → metric_store (Phase 5-G)."""
+        metrics = ext.extract_activity_metrics(summary_raw)
+        names = {m.metric_name for m in metrics}
+        assert "training_effect_aerobic" in names
+        assert "training_effect_anaerobic" in names
+        assert "training_load" in names
+        assert "calories" in names
 
     def test_running_dynamics(self, ext, summary_raw):
         core = ext.extract_activity_core(summary_raw)
@@ -113,12 +116,12 @@ class TestGarminActivityMetrics:
         assert "weather_humidity_pct" in names
 
     def test_no_core_duplicates(self, ext, summary_raw):
-        """activity_summaries에 있는 필드가 metric에 중복되면 안 됨."""
+        """activity_summaries 잔류 필드가 metric에 중복되면 안 됨."""
         metrics = ext.extract_activity_metrics(summary_raw)
-        core_fields = {"avg_hr", "max_hr", "distance_m", "duration_sec",
-                        "training_effect_aerobic", "calories"}
+        # Phase 5-G 이후 잔류 activity_summaries 컬럼 (avg_hr 등)
+        core_only_fields = {"avg_hr", "max_hr", "distance_m", "duration_sec"}
         metric_names = {m.metric_name for m in metrics}
-        assert metric_names.isdisjoint(core_fields)
+        assert metric_names.isdisjoint(core_only_fields)
 
 
 class TestGarminLaps:

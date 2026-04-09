@@ -20,7 +20,7 @@ class GarminExtractor(BaseExtractor):
     # ── Activity Core ──
 
     def extract_activity_core(self, raw: dict) -> dict:
-        """Garmin activity summary JSON → activity_summaries dict (44 cols)."""
+        """Garmin activity summary JSON → activity_summaries dict (38 cols)."""
         activity_type_obj = raw.get("activityType", {})
         type_key = (
             activity_type_obj.get("typeKey", "unknown")
@@ -55,16 +55,9 @@ class GarminExtractor(BaseExtractor):
             # 파워
             "avg_power": raw.get("avgPower") or raw.get("averagePower"),
             "max_power": raw.get("maxPower"),
-            "normalized_power": raw.get("normPower"),
             # 고도
             "elevation_gain": raw.get("elevationGain"),
             "elevation_loss": raw.get("elevationLoss"),
-            # 에너지
-            "calories": _int(raw.get("calories")),
-            # 훈련 효과/부하
-            "training_effect_aerobic": raw.get("aerobicTrainingEffect"),
-            "training_effect_anaerobic": raw.get("anaerobicTrainingEffect"),
-            "training_load": raw.get("activityTrainingLoad"),
             # 러닝 다이내믹스
             "avg_ground_contact_time_ms": raw.get("avgGroundContactTime")
                 or raw.get("avgGroundContactTimeMilli"),
@@ -108,6 +101,20 @@ class GarminExtractor(BaseExtractor):
         raw = summary_raw
 
         metrics = self._collect(
+            # activity_summaries → metric_store 이동 (Phase 5-G)
+            self._metric("calories", raw.get("calories"),
+                         raw_name="calories"),
+            self._metric("normalized_power", raw.get("normPower"),
+                         raw_name="normPower"),
+            self._metric("training_effect_aerobic",
+                         raw.get("aerobicTrainingEffect"),
+                         raw_name="aerobicTrainingEffect"),
+            self._metric("training_effect_anaerobic",
+                         raw.get("anaerobicTrainingEffect"),
+                         raw_name="anaerobicTrainingEffect"),
+            self._metric("training_load", raw.get("activityTrainingLoad"),
+                         raw_name="activityTrainingLoad"),
+            # 기존 메트릭
             self._metric("vo2max_activity", raw.get("vO2MaxValue"),
                          raw_name="vO2MaxValue"),
             self._metric("steps_activity", raw.get("steps"),

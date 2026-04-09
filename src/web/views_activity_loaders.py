@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from src.services.unified_activities import _COLS as _SUMMARY_COLS
+from src.services.unified_view import _COLS as _SUMMARY_COLS
 
 
 def _fetch_source_rows(conn: sqlite3.Connection, activity_id: int) -> dict[str, dict]:

@@ -49,7 +49,7 @@ def extract_summary_fields_from_api(act: dict) -> dict:
         "activity_type": act.get("activityType", {}).get("typeKey", "running"),
         "sport_type": act.get("activityType", {}).get("typeKey", "running"),
         "start_time": act.get("startTimeLocal", ""),
-        "distance_km": distance_km,
+        "distance_m": distance_m,
         "duration_sec": duration_sec,
         "moving_time_sec": moving_sec,
         "elapsed_time_sec": duration_sec,
@@ -60,23 +60,20 @@ def extract_summary_fields_from_api(act: dict) -> dict:
         "max_cadence": act.get("maxRunningCadenceInStepsPerMinute"),
         "elevation_gain": act.get("elevationGain"),
         "elevation_loss": act.get("elevationLoss"),
-        "calories": act.get("calories"),
+        # calories/normalized_power/training_load → metric_store (Phase 5-G)
         "bmr_calories": act.get("bmrCalories"),
         "description": act.get("activityName"),
         "avg_speed_ms": act.get("averageSpeed"),
         "max_speed_ms": act.get("maxSpeed"),
         "avg_power": act.get("averagePower"),
         "max_power": act.get("maxPower"),
-        "normalized_power": act.get("normPower"),
         "avg_stride_length_cm": act.get("avgStrideLengthCM") or act.get("averageStrideLength"),
         "avg_vertical_oscillation_cm": act.get("avgVerticalOscillationCM") or act.get("avgVerticalOscillation"),
         "avg_vertical_ratio_percent": act.get("avgVerticalRatioPct") or act.get("avgVerticalRatio"),
         "avg_ground_contact_time_ms": act.get("avgGroundContactTimeMilli") or act.get("avgGroundContactTime"),
         "avg_ground_contact_balance": act.get("avgGroundContactBalance"),
         "avg_double_cadence": act.get("avgDoubleCadence"),
-        "aerobic_training_effect": act.get("aerobicTrainingEffect"),
-        "anaerobic_training_effect": act.get("anaerobicTrainingEffect"),
-        "training_load": act.get("activityTrainingLoad"),
+        # aerobic/anaerobic_training_effect → metric_store (Phase 5-G)
         "vo2max_activity": act.get("vO2MaxValue"),
         "steps": act.get("steps"),
         "lap_count": act.get("lapCount"),
@@ -121,7 +118,8 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
     duration_ms = act.get("duration") or 0
     moving_ms = act.get("movingDuration") or 0
 
-    distance_km = distance_cm / 100_000
+    distance_m = distance_cm / 100
+    distance_km = distance_m / 1000
     duration_sec = int(duration_ms / 1000)
     moving_sec = int(moving_ms / 1000)
 
@@ -150,7 +148,7 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "activity_type": act.get("activityType", "running"),
         "sport_type": act.get("sportType", "").lower() if act.get("sportType") else None,
         "start_time": start_time,
-        "distance_km": distance_km,
+        "distance_m": distance_m,
         "duration_sec": duration_sec,
         "moving_time_sec": moving_sec,
         "elapsed_time_sec": duration_sec,
@@ -161,14 +159,15 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "max_cadence": act.get("maxRunCadence"),
         "elevation_gain": _cm_to_m(act.get("elevationGain")),
         "elevation_loss": _cm_to_m(act.get("elevationLoss")),
-        "calories": act.get("calories"),
+        # calories/normalized_power/training_load → metric_store (Phase 5-G)
         "bmr_calories": act.get("bmrCalories"),
         "description": act.get("description"),
         "avg_speed_ms": avg_speed_ms,
         "max_speed_ms": max_speed_ms,
         "avg_power": act.get("avgPower"),
         "max_power": act.get("maxPower"),
-        "normalized_power": act.get("normPower"),
+        # normalized_power/aerobic_training_effect/anaerobic_training_effect/
+        # training_load → metric_store (Phase 5-G)
         "avg_stride_length_cm": act.get("avgStrideLength"),  # cm
         "avg_vertical_oscillation_cm": act.get("avgVerticalOscillation") / 10
             if act.get("avgVerticalOscillation") is not None else None,  # ZIP: mm → cm
@@ -178,9 +177,6 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "avg_fractional_cadence": act.get("avgFractionalCadence"),
         "max_fractional_cadence": act.get("maxFractionalCadence"),
         "avg_grade_adjusted_speed": act.get("avgGradeAdjustedSpeed"),
-        "aerobic_training_effect": act.get("aerobicTrainingEffect"),
-        "anaerobic_training_effect": act.get("anaerobicTrainingEffect"),
-        "training_load": act.get("activityTrainingLoad"),
         "vo2max_activity": act.get("vO2MaxValue"),
         "workout_label": act.get("trainingEffectLabel"),
         "steps": act.get("steps"),
@@ -245,7 +241,7 @@ def extract_detail_fields(detail: dict, act: dict | None = None) -> dict:
 
     # 기본 필드 (act 목록에 없을 수 있는 것들)
     result["avg_power"] = _pick("averagePower")
-    result["normalized_power"] = _pick("normalizedPower", "normPower")
+    # normalized_power → metric_store (Phase 5-G)
     result["steps"] = _pick("steps")
     result["avg_speed_ms"] = _pick("averageSpeed")
     result["max_speed_ms"] = _pick("maxSpeed")
@@ -260,10 +256,8 @@ def extract_detail_fields(detail: dict, act: dict | None = None) -> dict:
     result["avg_grade_adjusted_speed"] = _pick("avgGradeAdjustedSpeed")
     result["max_double_cadence"] = _pick("maxDoubleCadence")
 
-    # 훈련 효과
-    result["aerobic_training_effect"] = _pick("aerobicTrainingEffect")
-    result["anaerobic_training_effect"] = _pick("anaerobicTrainingEffect")
-    result["training_load"] = _pick("activityTrainingLoad")
+    # 훈련 효과 → metric_store (Phase 5-G)
+    # aerobic/anaerobic_training_effect, training_load 삭제
     result["vo2max_activity"] = _pick("vO2MaxValue")
     result["workout_label"] = _pick("trainingEffectLabel")
 

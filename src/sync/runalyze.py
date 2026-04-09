@@ -151,7 +151,8 @@ def sync_activities(
         except ValueError:
             continue
 
-        distance_km = (act.get("distance") or 0) / 1000
+        distance_m = (act.get("distance") or 0)
+        distance_km = distance_m / 1000
         duration_sec = int(act.get("s") or act.get("duration") or 0)
         avg_pace = round(duration_sec / distance_km) if distance_km > 0 else None
 
@@ -159,13 +160,13 @@ def sync_activities(
             _verb = "INSERT OR REPLACE" if from_date else "INSERT OR IGNORE"
             cursor = conn.execute(
                 f"""{_verb} INTO activity_summaries
-                   (source, source_id, activity_type, start_time, distance_km,
+                   (source, source_id, activity_type, start_time, distance_m,
                     duration_sec, avg_pace_sec_km, avg_hr, max_hr,
                     elevation_gain, calories, description)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "runalyze", source_id, "running",
-                    start_time, distance_km, duration_sec, avg_pace,
+                    start_time, distance_m, duration_sec, avg_pace,
                     act.get("heart_rate_avg") or act.get("pulse_avg"),
                     act.get("heart_rate_max") or act.get("pulse_max"),
                     act.get("elevation"), act.get("calories"),

@@ -39,10 +39,7 @@ class StravaExtractor(BaseExtractor):
             "avg_cadence": _int(raw.get("average_cadence")),
             "avg_power": raw.get("average_watts") or raw.get("weighted_average_watts"),
             "max_power": raw.get("max_watts"),
-            "normalized_power": raw.get("weighted_average_watts"),
             "elevation_gain": raw.get("total_elevation_gain"),
-            "calories": _int(raw.get("calories")),
-            "suffer_score": _int(raw.get("suffer_score")),
             "start_lat": _latlng_idx(raw.get("start_latlng"), 0),
             "start_lon": _latlng_idx(raw.get("start_latlng"), 1),
             "end_lat": _latlng_idx(raw.get("end_latlng"), 0),
@@ -66,6 +63,14 @@ class StravaExtractor(BaseExtractor):
         raw = detail_raw or summary_raw
 
         metrics = self._collect(
+            # activity_summaries → metric_store 이동 (Phase 5-G)
+            self._metric("calories", raw.get("calories"),
+                         raw_name="calories"),
+            self._metric("normalized_power", raw.get("weighted_average_watts"),
+                         raw_name="weighted_average_watts"),
+            self._metric("suffer_score", raw.get("suffer_score"),
+                         raw_name="suffer_score"),
+            # 기존 메트릭
             self._metric("kilojoules", raw.get("kilojoules"),
                          raw_name="kilojoules"),
             self._metric("icu_rpe",
@@ -78,7 +83,6 @@ class StravaExtractor(BaseExtractor):
                          raw_name="pr_count"),
             self._metric("kudos_count", raw.get("kudos_count"),
                          raw_name="kudos_count"),
-            # normalized_power 삭제 — activity_summaries 컬럼과 중복 (이중 저장 금지 원칙)
             self._metric("timezone_offset",
                          text=raw.get("timezone"),
                          raw_name="timezone"),

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RunPulse 데이터 정합성 검증 v1.4
+"""RunPulse 데이터 정합성 검증 v1.5
 
 SSOT (metric_registry.py) ↔ DDL (db_setup.py) ↔ 실제 DB ↔ 설계문서 ↔ Extractor 교차 검증.
 
@@ -15,10 +15,11 @@ SSOT (metric_registry.py) ↔ DDL (db_setup.py) ↔ 실제 DB ↔ 설계문서 �
   9. 실제 DB 검증 (선택)
  10. Extractor _metric() category 값 검증 (16-domain 기준)
  11. Extractor _metric() 미등록 메트릭 이름 검출
- 12. Extractor _metric() 폐기 예정 메트릭 이름 검출 (M-2, M-3)
+ 12. Extractor _metric() 폐기 예정 메트릭 이름 검출
  13. Garmin wellness entity_type 이름 일관성 (wellness_* 설계 spec)
  14. Calculator category 속성 16-domain 준수 (rp_* 등 구버전 방지)
  15. Calculator produces ↔ METRIC_REGISTRY 등록 일치
+ 16. DataValidator _check_* 메서드 수 (설계: 12개) 및 CheckResult 필드 정합성
 
 사용법:
     python scripts/check_data_consistency.py [--db PATH]
@@ -131,7 +132,7 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
     if only_ssot:
         results.append(("🔴", f"activity_summaries: SSOT에만 — {', '.join(sorted(only_ssot))}"))
     if only_ddl:
-        results.append(("🔴", f"activity_summaries: DDL에만 (설계서 불일치) — {', '.join(sorted(only_ddl))}"))
+        results.append(("🔴", f"activity_summaries: DDL에만 (→ metric_store로 이전 필요) — {', '.join(sorted(only_ddl))}"))
 
     # ── Check 2: SSOT wellness ↔ DDL ──
     registry_wl = {md.name for md in get_by_storage("wellness")}
@@ -145,7 +146,7 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
 
     # ── Check 3: daily_fitness 삭제 확인 ──
     if "daily_fitness" in ddl:
-        results.append(("🔴", "daily_fitness: DDL에 존재 — 설계서상 삭제 대상 (Phase 5-F)"))
+        results.append(("🔴", "daily_fitness: DDL에 존재 — 삭제 대상 (metric_store로 대체됨)"))
 
     # ── Check 4: 카테고리 정합성 ──
     cats_used = set(md.category for md in METRIC_REGISTRY.values())
@@ -320,6 +321,41 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
     except ImportError as e:
         results.append(("🟡", f"ALL_CALCULATORS import 실패 — Check 15 건너뜀: {e}"))
 
+    # ── Check 16: DataValidator 구조 일관성 ──
+    # _check_* 메서드가 설계대로 12개인지, CheckResult 필드가 올바른지 검증.
+    validator_path = ROOT / "src" / "validation" / "validator.py"
+    if not validator_path.exists():
+        results.append(("🔴", "src/validation/validator.py 없음 — Phase 6 미구현"))
+    else:
+        import re as _re
+        v_text = validator_path.read_text(encoding="utf-8")
+
+        # _check_* 메서드 수
+        check_methods = _re.findall(r"def (_check_\w+)", v_text)
+        if len(check_methods) != 12:
+            results.append(("🔴", f"DataValidator: _check_* 메서드 수 {len(check_methods)}개 (설계: 12개) — {check_methods}"))
+        else:
+            results.append(("✅", f"DataValidator: _check_* 메서드 12개 확인"))
+
+        # CheckResult 필드 — name, status, expected, actual, message
+        for field in ("name", "status", "expected", "actual", "message"):
+            if field not in v_text:
+                results.append(("🔴", f"CheckResult: '{field}' 필드 없음"))
+
+        # run_all() 반환 타입 힌트 — list[CheckResult]
+        if "def run_all" not in v_text:
+            results.append(("🔴", "DataValidator.run_all() 없음"))
+
+        # PASS/WARN/FAIL 상태 문자열 모두 사용 중인지
+        for status in ("PASS", "WARN", "FAIL"):
+            if f'"{status}"' not in v_text and f"'{status}'" not in v_text:
+                results.append(("🟠", f"DataValidator: '{status}' 상태 미사용"))
+
+        # GarminBulkLoader와의 연계 — source_payloads / metric_store 쿼리
+        for table in ("source_payloads", "metric_store", "activity_summaries"):
+            if table not in v_text:
+                results.append(("🟠", f"DataValidator: '{table}' 테이블 미참조 (체크 누락 가능성)"))
+
     return results
 
 
@@ -343,7 +379,7 @@ def main():
     print(f"{'='*60}")
     print(f"  MetricDefs: {len(METRIC_REGISTRY)}")
     print(f"  Categories: {len(METRIC_CATEGORIES) - 1}")
-    print(f"  검증 항목: 15")
+    print(f"  검증 항목: 16")
     print(f"{'='*60}")
     print(f"  🔴 오류:  {len(red)}")
     print(f"  🟠 경고:  {len(orange)}")

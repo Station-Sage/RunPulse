@@ -96,18 +96,17 @@ class TestSchemaCreation:
     def test_schema_version(self, db_conn):
         ver = _get_user_version(db_conn)
         assert ver == SCHEMA_VERSION
-        assert ver == 11  # Phase 5-F: daily_fitness 제거
+        assert ver == 13  # v0.3.3: distance_km → distance_m 컬럼명 수정
 
     def test_activity_summaries_column_count(self, db_conn):
         cols = db_conn.execute("PRAGMA table_info(activity_summaries)").fetchall()
         col_names = [c[1] for c in cols]
-        # 46 컬럼: 4+3+4+3+2+2+3+2+1+4+4+4+1+5+2 + id = 46 (including id)
-        assert len(col_names) >= 44, f"컬럼 수 부족: {len(col_names)}"
+        # 38 컬럼: Phase 5-G에서 6컬럼 → metric_store 이동 후 기준
+        assert len(col_names) >= 38, f"컬럼 수 부족: {len(col_names)}"
         # 핵심 컬럼 존재 확인
         for expected in [
             "source", "source_id", "activity_type", "start_time",
             "distance_m", "avg_pace_sec_km", "avg_hr",
-            "training_effect_aerobic", "training_load", "suffer_score",
             "avg_ground_contact_time_ms", "avg_stride_length_cm",
             "source_url", "gear_id", "matched_group_id",
         ]:
@@ -416,14 +415,12 @@ class TestDbHelpers:
             "duration_sec": 3120,
             "avg_hr": 155,
             "avg_pace_sec_km": 312.0,
-            "training_effect_aerobic": 3.2,
         })
         assert aid > 0
 
         activity = get_activity(db_conn, aid)
         assert activity["distance_m"] == 10020.0
         assert activity["avg_hr"] == 155
-        assert activity["training_effect_aerobic"] == 3.2
 
     def test_upsert_activity_update(self, db_conn):
         upsert_activity(db_conn, {

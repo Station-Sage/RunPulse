@@ -14,7 +14,8 @@ OUTPUT = ROOT / "v0.3" / "data" / "files_index.md"
 
 SCAN_DIRS = [
     "src/services", "src/metrics", "src/sync", "src/sync/extractors",
-    "src/ai", "src/web", "src/training", "src/utils", "tests", "scripts",
+    "src/ai", "src/web", "src/training", "src/utils", "src/validation",
+    "tests", "scripts",
 ]
 
 

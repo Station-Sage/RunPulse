@@ -1,5 +1,23 @@
 # CHANGELOG — RunPulse v0.3 Data Architecture
 
+## [Phase 5-G 완료] activity_summaries 6컬럼 → metric_store 이동 — 2026-04-07
+
+### Changed
+- **SCHEMA_VERSION 11 → 12**: `ALTER TABLE activity_summaries DROP COLUMN` × 6
+- **activity_summaries** 컬럼 제거: calories, normalized_power, suffer_score, training_effect_aerobic, training_effect_anaerobic, training_load
+- **Extractors** (garmin/strava/intervals/runalyze): `extract_activity_core()` → `extract_activity_metrics()` 경로로 이동
+- **METRIC_REGISTRY**: 6개 MetricDef 추가 (training_load, suffer_score, calories, normalized_power + aliases 보강)
+- **읽기 경로 정비**: `_COLS`, `_ALLOWED_SORT`, `_load_service_metrics()` 업데이트 (metric_store 쿼리)
+- **garmin_v2_mappings.py**: backfill 경로에서도 6개 컬럼 제거
+- **테스트**: 883 passed
+
+### Verified
+- `check_data_consistency.py` Check 1 🔴 → ✅
+- `check_docs.py` activity_summaries 컬럼 수 불일치 → ✅ (38컬럼, 문서/코드 일치)
+- **883 tests passed**
+
+---
+
 ## [Phase 4 완료] CalcContext API 전환 + 문서 정비 — 2026-04-04
 
 ### Added

@@ -28,14 +28,14 @@ def conn(db_conn):
         INSERT INTO activity_summaries
             (source, source_id, matched_group_id, name, activity_type,
              start_time, distance_m, duration_sec, avg_pace_sec_km,
-             avg_hr, max_hr, elevation_gain, training_load, suffer_score)
+             avg_hr, max_hr, elevation_gain)
         VALUES
             ('garmin', 'g123', 'group1', '오후 달리기', 'running',
              '2026-04-03T18:00:00Z', 10020, 3135, 312.8,
-             155, 178, 120.5, 52.0, NULL),
+             155, 178, 120.5),
             ('strava', 's456', 'group1', 'Evening Run', 'running',
              '2026-04-03T18:00:00Z', 10050, 3140, 312.3,
-             154, 177, 118.0, NULL, 78)
+             154, 177, 118.0)
     """)
 
     # 활동 ID 조회

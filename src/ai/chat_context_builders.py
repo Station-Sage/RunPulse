@@ -46,7 +46,7 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
                            "stress": well[3], "rhr": well[4]}
 
     acts = conn.execute(
-        "SELECT start_time, distance_km, duration_sec, avg_pace_sec_km, avg_hr "
+        "SELECT start_time, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr "
         "FROM v_canonical_activities WHERE activity_type='running' "
         "ORDER BY start_time DESC LIMIT 3",
     ).fetchall()
@@ -64,7 +64,7 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
 def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """오늘 활동 상세 — 메트릭, HR존, 분류, 컨디션."""
     act = conn.execute(
-        "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
+        "SELECT id, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
         "elevation_gain, calories FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time DESC LIMIT 1", (today,),
@@ -157,7 +157,7 @@ def _add_compare_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
                 snap[_snap_key] = round(float(_row[0]), 1)
 
         vol = conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(distance_km),0), "
+            "SELECT COUNT(*), COALESCE(SUM(distance_m) / 1000.0, 0), "
             "COALESCE(AVG(avg_pace_sec_km),0) FROM v_canonical_activities "
             "WHERE activity_type='running' "
             "AND start_time BETWEEN ? AND date(?, '+7 days')",
@@ -238,7 +238,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
     target = ctx.get("_target_date", today)
 
     acts = conn.execute(
-        "SELECT id, distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
+        "SELECT id, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
         "elevation_gain, calories, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time", (target,),

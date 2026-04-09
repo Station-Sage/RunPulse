@@ -6,9 +6,10 @@ from src.metrics.engine import ALL_CALCULATORS
 ACTIVITY_SUMMARY_COLUMNS = {
     "distance_m", "duration_sec", "moving_time_sec", "avg_hr", "max_hr",
     "avg_cadence", "avg_speed_ms", "max_speed_ms", "avg_pace_sec_km",
-    "calories", "elevation_gain", "elevation_loss", "avg_power", "max_power",
-    "normalized_power", "training_effect_aerobic", "training_effect_anaerobic",
-    "training_load", "suffer_score", "avg_ground_contact_time_ms",
+    "elevation_gain", "elevation_loss", "avg_power", "max_power",
+    # calories/normalized_power/training_effect_*/training_load/suffer_score
+    # → metric_store 이동 (Phase 5-G) — 컬럼 충돌 체크 목록에서 제거
+    "avg_ground_contact_time_ms",
     "avg_stride_length_cm", "avg_vertical_oscillation_cm",
     "avg_vertical_ratio_pct", "avg_temperature",
 }

@@ -44,11 +44,8 @@ class IntervalsExtractor(BaseExtractor):
             "avg_cadence": _int(raw.get("avg_run_cadence") or raw.get("average_cadence")),
             "avg_power": raw.get("icu_weighted_avg_watts") or raw.get("average_watts"),
             "max_power": raw.get("max_watts") or raw.get("icu_max_watts"),
-            "normalized_power": raw.get("icu_weighted_avg_watts"),
             "elevation_gain": raw.get("total_elevation_gain"),
             "elevation_loss": raw.get("total_elevation_loss"),
-            "calories": _int(raw.get("calories") or raw.get("icu_calories")),
-            "training_load": raw.get("icu_training_load"),
             "avg_stride_length_cm": _stride_cm(raw.get("average_stride")),
             "start_lat": raw.get("start_latlng", [None, None])[0] if isinstance(raw.get("start_latlng"), list) and len(raw.get("start_latlng", [])) >= 2 else None,
             "start_lon": raw.get("start_latlng", [None, None])[1] if isinstance(raw.get("start_latlng"), list) and len(raw.get("start_latlng", [])) >= 2 else None,
@@ -71,6 +68,15 @@ class IntervalsExtractor(BaseExtractor):
         raw = detail_raw or summary_raw
 
         metrics = self._collect(
+            # activity_summaries → metric_store 이동 (Phase 5-G)
+            self._metric("calories",
+                         raw.get("calories") or raw.get("icu_calories"),
+                         raw_name="calories"),
+            self._metric("normalized_power", raw.get("icu_weighted_avg_watts"),
+                         raw_name="icu_weighted_avg_watts"),
+            self._metric("training_load", raw.get("icu_training_load"),
+                         raw_name="icu_training_load"),
+            # 기존 메트릭
             self._metric("trimp", raw.get("icu_trimp"),
                          raw_name="icu_trimp"),
             self._metric("hrss", raw.get("icu_hrss"),

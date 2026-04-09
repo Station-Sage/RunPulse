@@ -16,7 +16,7 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py
 > 주의: metric_store 조회 시 is_primary=1 필터 필수
 
-### `activity_service.py` (274줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (283줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
@@ -24,11 +24,15 @@
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
 
-### `unified_activities.py` (448줄) — 통합 활동 서비스 — 멀티 소스 활동을 Garmin 우선으로 병합.
+### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
+
+- (public API 없음)
+
+### `unified_view.py` (360줄) — 멀티 소스 활동 통합 뷰 — UnifiedActivity 빌드 + 페이지 조회.
 
 - class **UnifiedField**: 없음
 - class **UnifiedActivity**: date, can_expand
-- functions: build_unified_activity, fetch_unified_activities, build_source_comparison, assign_group_to_activities, remove_from_group
+- functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
 ### `wellness_service.py` (142줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
 
@@ -194,6 +198,10 @@
 
 - class **WLEICalculator**: compute
 
+### `workout_classifier.py` (38줄) — 운동 유형 분류 상수 — TAG_COLORS, TAG_LABELS, _EFFECTS.
+
+- (public API 없음)
+
 ## `src/sync/`
 
 > Phase 3 동기화 오케스트레이터.
@@ -217,7 +225,7 @@
 
 - functions: run
 
-### `garmin.py` (193줄)
+### `garmin.py` (192줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
 
 - functions: sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
@@ -226,32 +234,36 @@
 - class **_RateLimitStop**: 없음
 - functions: sync
 
-### `garmin_api_extensions.py` (400줄)
+### `garmin_api_extensions.py` (369줄) — Garmin 활동 확장 API — streams, gear, exercise_sets, weather, hr/power zones.
 
 - functions: sync_activity_streams, sync_activity_gear, sync_activity_exercise_sets, sync_activity_weather, sync_activity_hr_zones, sync_activity_power_zones
 
-### `garmin_athlete_extensions.py` (177줄)
+### `garmin_athlete_extensions.py` (176줄) — Garmin 선수 프로필/통계/기록 동기화 — athlete_profile, athlete_stats,
 
 - functions: sync_athlete_profile, sync_athlete_stats, sync_athlete_personal_records
 
-### `garmin_auth.py` (129줄)
+### `garmin_auth.py` (128줄) — Garmin Connect 인증 함수.
 
 - class **GarminAuthRequired**: 없음
 - functions: check_garmin_connection
 
-### `garmin_backfill.py` (209줄) — Garmin ZIP export → activity_summaries backfill (v2)
+### `garmin_backfill.py` (204줄) — Garmin ZIP export → activity_summaries backfill (v2)
 
 - functions: backfill_from_zip
 
-### `garmin_daily_extensions.py` (466줄)
+### `garmin_bulk_loader.py` (250줄) — Garmin Bulk Export ZIP 로더.
+
+- class **GarminBulkLoader**: load
+
+### `garmin_daily_extensions.py` (465줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
-### `garmin_helpers.py` (106줄)
+### `garmin_helpers.py` (104줄) — Garmin 동기화 공통 헬퍼.
 
 - (public API 없음)
 
-### `garmin_v2_mappings.py` (289줄) — Garmin → activity_summaries v2.5 필드 매핑 정의.
+### `garmin_v2_mappings.py` (283줄) — Garmin → activity_summaries v2.5 필드 매핑 정의.
 
 - functions: extract_summary_fields_from_api, extract_summary_fields_from_zip, extract_detail_fields, build_upsert_sql
 
@@ -301,7 +313,7 @@
 
 - functions: reprocess_all
 
-### `runalyze.py` (300줄) — Runalyze 데이터 동기화 (API Token).
+### `runalyze.py` (294줄) — Runalyze 데이터 동기화 (API Token).
 
 - functions: sync_activities, check_runalyze_connection
 
@@ -347,19 +359,19 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (540줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (547줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `intervals_extractor.py` (191줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
+### `intervals_extractor.py` (197줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
 - class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_fitness
 
-### `runalyze_extractor.py` (100줄) — Runalyze raw JSON → Layer 1 + Layer 2 변환.
+### `runalyze_extractor.py` (105줄) — Runalyze raw JSON → Layer 1 + Layer 2 변환.
 
 - class **RunalyzeExtractor**: extract_activity_core, extract_activity_metrics
 
-### `strava_extractor.py` (210줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
+### `strava_extractor.py` (214줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
 
 - class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_streams, extract_best_efforts
 
@@ -405,7 +417,7 @@
 
 - functions: build_chat_context
 
-### `chat_context_builders.py` (288줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
+### `chat_context_builders.py` (301줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
 
 - (public API 없음)
 
@@ -417,7 +429,7 @@
 
 - functions: detect_intent
 
-### `chat_context_rich.py` (197줄) — AI 채팅 컨텍스트 — 풍부한 컨텍스트 빌더 (Gemini/Claude용).
+### `chat_context_rich.py` (202줄) — AI 채팅 컨텍스트 — 풍부한 컨텍스트 빌더 (Gemini/Claude용).
 
 - (public API 없음)
 
@@ -434,11 +446,11 @@
 - class **RateLimitError**: 없음
 - functions: call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_rules.py` (259줄) — AI 채팅 — 규칙 기반 fallback 응답.
+### `chat_engine_rules.py` (264줄) — AI 채팅 — 규칙 기반 fallback 응답.
 
 - functions: rule_based_response
 
-### `context_builders.py` (430줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
+### `context_builders.py` (437줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
 
 - functions: build_dashboard_context, build_training_context, build_report_context, build_race_context, build_wellness_context, build_activity_context, format_context_compact
 
@@ -455,7 +467,7 @@
 - class **RunnerState**: 없음
 - functions: get_runner_state, rule_based_chips
 
-### `tools.py` (547줄) — AI Function Calling 도구 — DB 조회 함수 정의 + 실행기.
+### `tools.py` (562줄) — AI Function Calling 도구 — DB 조회 함수 정의 + 실행기.
 
 - functions: execute_tool
 
@@ -470,7 +482,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (950줄) — RunPulse integration workbench web app.
+### `app.py` (967줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -478,9 +490,10 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `bg_sync.py` (407줄)
+### `bg_sync.py` (409줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
-- (public API 없음)
+- class **BgSyncThread**: pause, resume, stop, run
+- functions: start_job, pause_job, stop_job, resume_job, get_status
 
 ### `helpers.py` (931줄) — 웹 뷰 공통 헬퍼 함수.
 
@@ -510,7 +523,7 @@
 
 - (public API 없음)
 
-### `views_activities_helpers.py` (264줄) — 활동 목록 뷰 — 포맷 헬퍼 + 아이콘/배지.
+### `views_activities_helpers.py` (265줄) — 활동 목록 뷰 — 포맷 헬퍼 + 아이콘/배지.
 
 - (public API 없음)
 
@@ -554,7 +567,7 @@
 
 - functions: render_group7_fitness
 
-### `views_activity_loaders.py` (315줄) — 활동 상세 — 데이터 로딩 함수.
+### `views_activity_loaders.py` (278줄) — 활동 상세 — 데이터 로딩 함수.
 
 - (public API 없음)
 
@@ -566,7 +579,7 @@
 
 - functions: render_map_placeholder
 
-### `views_activity_merge.py` (132줄) — 활동 그룹 병합/분리 API — Flask Blueprint.
+### `views_activity_merge.py` (128줄) — 활동 그룹 병합/분리 API — Flask Blueprint.
 
 - functions: activities_merge, activities_ungroup, activities_auto_group
 
@@ -574,15 +587,15 @@
 
 - functions: render_rtti_card, render_wlei_card, render_tpdi_card, render_running_tolerance_card, render_hr_zone_chart
 
-### `views_activity_source_cards.py` (436줄) — 활동 상세 — 소스별 서비스 카드 렌더링.
+### `views_activity_source_cards.py` (437줄) — 활동 상세 — 소스별 서비스 카드 렌더링.
 
 - (public API 없음)
 
-### `views_ai_coach.py` (402줄) — AI 코칭 뷰 — Flask Blueprint.
+### `views_ai_coach.py` (403줄) — AI 코칭 뷰 — Flask Blueprint.
 
 - functions: ai_coach_page, ai_coach_chat_async, ai_coach_chat, ai_coach_get_prompt, ai_coach_paste_response
 
-### `views_ai_coach_cards.py` (588줄) — AI 코칭 페이지 렌더링 카드 — views_ai_coach.py에서 분리.
+### `views_ai_coach_cards.py` (591줄) — AI 코칭 페이지 렌더링 카드 — views_ai_coach.py에서 분리.
 
 - functions: render_coach_profile, render_briefing_card, render_wellness_card, render_chips, render_chat_section, render_recent_training, render_risk_summary
 
@@ -614,9 +627,13 @@
 
 - functions: load_wellness_mini, load_weekly_summary, load_fitness_trends, load_risk_7day_trends
 
-### `views_dev.py` (589줄) — Developer/debug routes — config, payloads, DB summary, analyze preview.
+### `views_dev.py` (590줄) — Developer/debug routes — config, payloads, DB summary, analyze preview.
 
 - functions: config_summary, config_db_path, payloads, payload_view, db_summary, analyze_preview
+
+### `views_export.py` (99줄) — 활동 데이터 CSV 내보내기 라우트.
+
+- functions: activities_export_csv
 
 ### `views_export_import.py` (233줄) — Export 데이터 임포트 뷰 — Flask Blueprint.
 
@@ -630,19 +647,19 @@
 
 - functions: strava_archive_view, strava_archive_post, strava_archive_backfill
 
-### `views_perf.py` (160줄) — 성능 최적화 — 배치 데이터 로더 + TTL 캐시.
+### `views_perf.py` (161줄) — 성능 최적화 — 배치 데이터 로더 + TTL 캐시.
 
 - functions: cached_page, invalidate_cache, load_latest_metric_date, load_metrics_batch, load_metrics_json_batch, load_activity_metrics_batch, load_darp_batch
 
-### `views_race.py` (408줄) — Sprint 5 · V2-6-1 — Race Prediction (DARP) UI Blueprint.
+### `views_race.py` (410줄) — Sprint 5 · V2-6-1 — Race Prediction (DARP) UI Blueprint.
 
 - functions: race_page
 
-### `views_race_enhanced.py` (422줄) — 레이스 예측 보강 — 추세 차트, 목표 갭, 준비 요소, 메트릭 해설.
+### `views_race_enhanced.py` (423줄) — 레이스 예측 보강 — 추세 차트, 목표 갭, 준비 요소, 메트릭 해설.
 
 - functions: load_prediction_trend, load_fitness_factors, render_goal_gap, render_prediction_trend_chart, render_fitness_factors_chart, render_race_shape_trio, render_di_interpretation, render_metric_glossary
 
-### `views_report.py` (349줄) — 분석 레포트 뷰 — Flask Blueprint.
+### `views_report.py` (350줄) — 분석 레포트 뷰 — Flask Blueprint.
 
 - functions: report_view
 
@@ -650,7 +667,7 @@
 
 - functions: render_summary_delta, render_training_quality_chart, render_tids_weekly_chart, render_risk_trend_chart, render_form_trend, render_wellness_trend_chart
 
-### `views_report_loaders.py` (180줄) — 레포트 — 신규 데이터 로더 (UI 재설계용).
+### `views_report_loaders.py` (182줄) — 레포트 — 신규 데이터 로더 (UI 재설계용).
 
 - functions: load_prev_period_stats, load_training_quality_series, load_risk_trend_series, load_form_trend_series, load_wellness_trend_series, load_tids_weekly_series
 
@@ -662,7 +679,7 @@
 
 - functions: render_tids_section, render_trimp_weekly_chart, render_risk_overview, render_darp_card, render_fitness_trend, render_endurance_trend
 
-### `views_report_sections_data.py` (102줄) — 레포트 섹션 — 데이터 로더.
+### `views_report_sections_data.py` (106줄) — 레포트 섹션 — 데이터 로더.
 
 - (public API 없음)
 
@@ -686,7 +703,7 @@
 
 - functions: metrics_recompute, metrics_recompute_stream, metrics_recompute_status, recompute_metrics_get
 
-### `views_settings_render.py` (221줄) — 설정 페이지 렌더 헬퍼 — 서비스 카드 + 프로필 + Mapbox + CalDAV.
+### `views_settings_render.py` (222줄) — 설정 페이지 렌더 헬퍼 — 서비스 카드 + 프로필 + Mapbox + CalDAV.
 
 - (public API 없음)
 
@@ -738,7 +755,7 @@
 
 - functions: render_goals_panel, render_goal_detail_html
 
-### `views_training_loaders.py` (349줄) — 훈련 계획 뷰 — 데이터 로더.
+### `views_training_loaders.py` (350줄) — 훈련 계획 뷰 — 데이터 로더.
 
 - functions: load_goal, load_workouts, load_adjustment, load_training_metrics, load_yesterday_pending, load_actual_activities, load_month_workouts, load_full_plan_weeks, load_goals_with_stats, load_goal_weeks, load_sync_status
 
@@ -778,7 +795,7 @@
 
 - functions: wellness_view
 
-### `views_wellness_enhanced.py` (568줄) — 웰니스 보강 — 기준선 밴드, 패턴 인사이트, 주간 비교, 미니차트.
+### `views_wellness_enhanced.py` (570줄) — 웰니스 보강 — 기준선 밴드, 패턴 인사이트, 주간 비교, 미니차트.
 
 - functions: load_wellness_14d, load_sleep_times, load_hrv_baseline, load_weekly_comparison, render_metrics_dash, render_7day_chart_enhanced, render_sleep_mini_chart, render_hrv_mini_chart, render_pattern_insights, render_weekly_comparison, render_wellness_glossary, render_sleep_time_pattern, build_outlier_mark_points, build_pattern_recovery_tips
 
@@ -808,7 +825,7 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
-### `matcher.py` (359줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `matcher.py` (365줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
@@ -816,7 +833,7 @@
 
 - functions: generate_weekly_plan, save_weekly_plan, get_planned_workouts, upsert_user_training_prefs
 
-### `planner_config.py` (173줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
+### `planner_config.py` (177줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
 - functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
@@ -824,7 +841,7 @@
 
 - functions: weeks_to_race, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `readiness.py` (457줄) — 훈련 준비도 분석 + 목표 달성 가능성 예측.
+### `readiness.py` (458줄) — 훈련 준비도 분석 + 목표 달성 가능성 예측.
 
 - functions: vdot_to_time, get_taper_weeks, get_recommended_weeks, recommend_weekly_km, get_phase_for_week, analyze_readiness
 
@@ -869,13 +886,17 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (660줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (657줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, upsert_best_efforts_batch
 
-### `dedup.py` (218줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
+### `db_status.py` (148줄) — DB 상태 대시보드 — 빠른 현황 확인.
 
-- functions: is_duplicate, find_duplicates, assign_group_id, auto_group_all
+- functions: get_status, print_status, main
+
+### `dedup.py` (271줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
+
+- functions: is_duplicate, find_duplicates, assign_group_id, auto_group_all, assign_group_to_activities, remove_from_group
 
 ### `metric_groups.py` (147줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
@@ -885,7 +906,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (458줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (487줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -909,13 +930,36 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (166줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
+### `sync_state.py` (201줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
-- functions: get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after
+- functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after
 
 ### `zones.py` (90줄) — HR존 및 페이스존 계산 유틸리티.
 
 - functions: hr_zones, get_hr_zone, pace_zones, get_pace_zone
+
+## `src/validation/`
+
+> RunPulse 데이터 검증 패키지.
+> 
+> 초기 데이터 적재 후 파이프라인 정합성을 자동 검증합니다.
+> 12개 체크: row_counts, source_distribution, unmapped_metric_ratio,
+> metric_density, primary_uniqueness, provider_distribution,
+> dedup_consistency, data_quality, wellness_coverage,
+> fitness_continuity, referential_integrity, engine_coverage.
+> 
+> 사용법:
+>     from src.validation.validator import DataValidator
+>     results = DataValidator(conn).run_all()
+
+### `__main__.py` (92줄) — python -m src.validation CLI 진입점.
+
+- functions: main
+
+### `validator.py` (334줄) — DataValidator — 12개 데이터 정합성 체크.
+
+- class **CheckResult**: 없음
+- class **DataValidator**: run_all
 
 ## `tests/`
 
@@ -966,6 +1010,17 @@
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
 
+### `test_bulk_loader.py` (247줄) — GarminBulkLoader 테스트.
+
+- class **TestSingleSummary**: test_loads_one_activity, test_activity_core_fields
+- class **TestMultipleSummaries**: test_loads_multiple_activities
+- class **TestDuplicateSkip**: test_duplicate_is_skipped
+- class **TestInvalidJson**: test_bad_json_is_counted_as_error
+- class **TestMissingZip**: test_missing_file_returns_failed
+- class **TestBadZip**: test_not_a_zip_returns_failed
+- class **TestSummaryAndDetail**: test_detail_metrics_saved, test_detail_without_summary_is_skipped
+- class **TestNonJsonFilesIgnored**: test_fit_and_gpx_ignored
+
 ### `test_cirs.py` (64줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data
@@ -977,6 +1032,20 @@
 ### `test_config_utils.py` (99줄) — config.py 헬퍼 함수 테스트 — save_config, update_service_config, redact.
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
+
+### `test_consumer_migration.py` (220줄) — Phase 5-J consumer migration 검증 테스트.
+
+- class **TestActivityService**: test_distance_m_present_in_row, test_filter_min_distance_m
+- class **TestTrends**: test_weekly_distance_km
+- class **TestCompare**: test_compare_periods_distance_km
+- class **TestWeeklyScore**: test_total_distance_km
+- class **TestActivityDeep**: test_distance_km_alias_sql
+- class **TestDedup**: test_assign_group_no_crash, test_auto_group_all_no_crash
+- class **TestGarminV2Mappings**: test_extract_api_returns_distance_m, test_extract_zip_returns_distance_m
+- class **TestRunalyzeExtractor**: test_extract_core_distance_m
+- class **TestIntervalsExtractor**: test_extract_core_distance_m
+- class **TestViewsExportCSV**: test_csv_distance_km_conversion
+- functions: conn
 
 ### `test_credential_store.py` (195줄) — credential_store.py 테스트 — Fernet 암호화/복호화 라운드트립.
 
@@ -1034,7 +1103,7 @@
 
 ### `test_db_setup.py` (131줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_11, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_46_columns
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_13, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
 - functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
 ### `test_dedup.py` (74줄) — Dedup 단위 테스트.
@@ -1063,7 +1132,7 @@
 - class **TestMetricRecord**: test_is_empty_all_none, test_is_not_empty_numeric, test_is_not_empty_text, test_is_not_empty_json
 - class **TestBaseExtractorHelpers**: setup_method, test_metric_returns_none_when_all_none, test_metric_returns_record_with_value, test_metric_with_text, test_metric_with_json, test_collect_filters_none, test_default_methods_return_empty
 
-### `test_extractors_cross.py` (305줄) — Cross-extractor 일관성 테스트.
+### `test_extractors_cross.py` (303줄) — Cross-extractor 일관성 테스트.
 
 - class **TestGetExtractorFactory**: test_returns_correct_instance, test_case_insensitive, test_unknown_source_raises, test_returns_new_instance_each_call
 - class **TestCoreKeysConsistency**: test_required_keys_present, test_all_keys_are_valid_columns, test_no_none_values_in_output
@@ -1081,13 +1150,18 @@
 
 - functions: test_fixtures_layout_exists
 
+### `test_flask_routes.py` (136줄) — Flask 라우트 스모크 테스트 (DoD #12).
+
+- class **TestRouteSmoke**: test_activities_200, test_activities_with_data_rendered, test_activities_export_csv_200, test_activities_export_csv_has_rows, test_activities_export_csv_distance_km, test_activities_filter_source, test_activities_filter_type, test_activities_pagination, test_merge_bad_ids_no_500, test_ungroup_missing_id_no_500
+- functions: mini_app
+
 ### `test_garmin_activity_sync.py` (161줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
 
-### `test_garmin_extractor.py` (169줄) — Garmin Extractor 단위 테스트.
+### `test_garmin_extractor.py` (172줄) — Garmin Extractor 단위 테스트.
 
-- class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
+- class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates
 - class **TestGarminLaps**: test_lap_extraction, test_lap_pace_calculated, test_empty_detail
 - class **TestGarminWellness**: test_wellness_core, test_wellness_metrics, test_wellness_metric_values, test_fitness
@@ -1101,9 +1175,16 @@
 
 - functions: test_add_goal_returns_id, test_get_goal, test_get_goal_not_found, test_list_goals_active_default, test_list_goals_all, test_get_active_goal_returns_latest, test_get_active_goal_none_when_empty, test_update_goal, test_update_goal_invalid_field, test_complete_goal, test_cancel_goal, test_complete_nonexistent_goal, test_cancel_nonexistent_goal, test_list_goals_empty, test_add_goal_minimal
 
-### `test_intervals_extractor.py` (85줄) — Intervals.icu Extractor 단위 테스트.
+### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
-- class **TestIntervalsActivityCore**: test_required_fields, test_distance_time, test_stride_length_converted, test_training_load
+- class **TestParseSteps**: test_all_steps, test_subset, test_dedup_and_sort, test_whitespace_tolerance, test_invalid_exits
+- class **TestArgparse**: test_defaults, test_custom_flags
+- class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
+- class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
+
+### `test_intervals_extractor.py` (88줄) — Intervals.icu Extractor 단위 테스트.
+
+- class **TestIntervalsActivityCore**: test_required_fields, test_distance_time, test_stride_length_converted, test_training_load_in_metrics
 - class **TestIntervalsActivityMetrics**: test_training_metrics, test_hr_zones, test_metric_values
 - class **TestIntervalsWellness**: test_wellness_core, test_fitness
 - functions: ext, activity_raw, wellness_raw
@@ -1117,7 +1198,7 @@
 
 - class **TestMarathonShape**: test_with_data, test_no_vdot, test_json_structure
 
-### `test_metric_naming.py` (50줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
+### `test_metric_naming.py` (51줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 
@@ -1152,7 +1233,7 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
-### `test_phase1_schema.py` (760줄) — Phase 1 스키마 & 기반 인프라 테스트.
+### `test_phase1_schema.py` (757줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
 - class **TestSchemaCreation**: test_all_pipeline_tables_exist, test_all_app_tables_exist, test_canonical_view_exists, test_schema_version, test_activity_summaries_column_count, test_distance_is_meters_not_km, test_metric_store_columns, test_daily_wellness_no_source_column
 - class **TestConstraints**: test_activity_summaries_unique, test_metric_store_unique, test_metric_store_same_name_different_provider, test_daily_wellness_unique_date
@@ -1206,7 +1287,7 @@
 - class **TestUpsertRawPayload**: test_new_payload_returns_true, test_same_payload_returns_false, test_changed_payload_returns_true, test_row_count
 - class **TestUpdateRawActivityId**: test_sets_activity_id
 
-### `test_readiness.py` (236줄) — src/training/readiness.py 단위 테스트.
+### `test_readiness.py` (253줄) — src/training/readiness.py 단위 테스트.
 
 - class **TestVdotFormulas**: test_vdot_from_5k_known, test_vdot_from_marathon_known, test_vdot_from_race_invalid, test_vdot_to_time_roundtrip, test_vdot_to_time_invalid, test_vdot_to_time_higher_vdot_faster
 - class **TestDistanceRules**: test_taper_5k, test_taper_10k, test_taper_half, test_taper_full, test_recommended_5k, test_recommended_full, test_recommended_half
@@ -1272,9 +1353,9 @@
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
 
-### `test_strava_extractor.py` (94줄) — Strava Extractor 단위 테스트.
+### `test_strava_extractor.py` (98줄) — Strava Extractor 단위 테스트.
 
-- class **TestStravaActivityCore**: test_required_fields, test_distance_time, test_suffer_score, test_latlng, test_source_url, test_no_none_values
+- class **TestStravaActivityCore**: test_required_fields, test_distance_time, test_suffer_score_in_metrics, test_latlng, test_source_url, test_no_none_values
 - class **TestStravaActivityMetrics**: test_basic_metrics, test_splits_as_json
 - class **TestStravaBestEfforts**: test_extraction
 - class **TestStravaStreams**: test_stream_extraction, test_empty_streams
@@ -1345,6 +1426,23 @@
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs
 
+### `test_validator.py` (376줄) — DataValidator 테스트.
+
+- class **TestRowCounts**: test_pass, test_fail_empty_db
+- class **TestSourceDistribution**: test_pass, test_fail_missing_source
+- class **TestUnmappedMetricRatio**: test_pass, test_fail_all_null
+- class **TestMetricDensity**: test_pass, test_fail_sparse
+- class **TestPrimaryUniqueness**: test_pass, test_fail_duplicate_primary
+- class **TestProviderDistribution**: test_pass, test_fail_no_runpulse
+- class **TestDedupConsistency**: test_pass, test_fail_same_source_in_group
+- class **TestDataQuality**: test_pass, test_fail_negative_distance
+- class **TestWellnessCoverage**: test_pass, test_fail_no_wellness
+- class **TestFitnessContinuity**: test_pass, test_fail_large_gap
+- class **TestReferentialIntegrity**: test_pass, test_fail_orphan_lap
+- class **TestEngineCoverage**: test_fail_empty_metric_store, test_pass_all_produces_present
+- class **TestRunAll**: test_returns_12_results, test_all_have_valid_status, test_check_result_fields
+- functions: empty_conn, populated_conn
+
 ### `test_vdot_adj.py` (71줄)
 
 - class **TestVDOTAdj**: test_passthrough, test_no_vdot, test_confidence
@@ -1366,13 +1464,13 @@
 
 ## `scripts/`
 
-### `check_data_consistency.py` (372줄) — RunPulse 데이터 정합성 검증 v1.4
+### `check_data_consistency.py` (408줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
-### `check_docs.py` (956줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 5 확장판).
+### `check_docs.py` (1054줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
-- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, main
+- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, main
 
 ### `encrypt_existing_configs.py` (153줄) — 기존 config.json 파일의 자격증명을 Fernet으로 암호화하는 마이그레이션 스크립트.
 
@@ -1382,26 +1480,19 @@
 
 - functions: parse_db_setup, cross_validate, generate
 
-### `gen_files_index.py` (137줄) — files_index.md 자동 생성.
+### `gen_files_index.py` (138줄) — files_index.md 자동 생성.
 
 - functions: get_docstring, get_docstring_first_line, get_public_api, main
 
-### `gen_metric_dictionary.py` (252줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
+### `gen_metric_dictionary.py` (253줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
 
 - functions: generate, get_structural_fingerprint
 
 ---
-총 288개 파일
+총 300개 파일
 
 ## docstring 누락
 
-- `src/sync/garmin.py`
-- `src/sync/garmin_api_extensions.py`
-- `src/sync/garmin_athlete_extensions.py`
-- `src/sync/garmin_auth.py`
-- `src/sync/garmin_daily_extensions.py`
-- `src/sync/garmin_helpers.py`
-- `src/web/bg_sync.py`
 - `tests/__init__.py`
 - `tests/test_critical_power.py`
 - `tests/test_crs.py`

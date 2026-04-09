@@ -45,8 +45,6 @@ class RunalyzeExtractor(BaseExtractor):
             "avg_cadence": _int(raw.get("cadence")),
             "avg_power": raw.get("power"),
             "elevation_gain": raw.get("elevation") or raw.get("elevation_gain"),
-            "calories": _int(raw.get("kcal") or raw.get("calories")),
-            "training_load": raw.get("trimp"),
             "avg_temperature": raw.get("temperature"),
             "description": raw.get("notes"),
             "source_url": (
@@ -63,6 +61,13 @@ class RunalyzeExtractor(BaseExtractor):
         raw = detail_raw or summary_raw
 
         metrics = self._collect(
+            # activity_summaries → metric_store 이동 (Phase 5-G)
+            self._metric("calories",
+                         _int(raw.get("kcal") or raw.get("calories")),
+                         raw_name="kcal"),
+            self._metric("training_load", raw.get("trimp"),
+                         raw_name="trimp"),
+            # 기존 메트릭
             self._metric("effective_vo2max", raw.get("vo2max"),
                          raw_name="vo2max"),
             self._metric("vdot", raw.get("vdot"),

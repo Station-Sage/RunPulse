@@ -150,7 +150,7 @@ def import_strava_archive(
             cursor = conn.execute(
                 """INSERT OR IGNORE INTO activity_summaries
                    (source, source_id, activity_type, start_time,
-                    distance_km, duration_sec, avg_pace_sec_km,
+                    distance_m, duration_sec, avg_pace_sec_km,
                     avg_hr, max_hr, avg_cadence, elevation_gain,
                     calories, description, avg_power, export_filename)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -158,7 +158,7 @@ def import_strava_archive(
                     "strava", source_id,
                     merged.get("activity_type") or "running",
                     merged["start_time"],
-                    merged.get("distance_km"),
+                    (merged.get("distance_km") or 0) * 1000,
                     merged.get("duration_sec"),
                     merged.get("avg_pace_sec_km"),
                     merged.get("avg_hr"),

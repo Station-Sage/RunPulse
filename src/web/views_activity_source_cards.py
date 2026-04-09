@@ -9,7 +9,8 @@ import html
 from typing import Any
 
 from src.utils.pace import seconds_to_pace
-from src.services.unified_activities import SOURCE_COLORS, build_source_comparison
+from src.services.activity_service import SOURCE_COLORS
+from src.services.unified_view import build_source_comparison
 from .helpers import (
     fmt_duration,
     fmt_min,
@@ -297,7 +298,7 @@ def _render_source_comparison(
             + "</div>"
         )
 
-    from src.services.unified_activities import SERVICE_PRIORITY as _SP
+    from src.services.activity_service import SERVICE_PRIORITY as _SP
     comparison = build_source_comparison(source_rows)
     sources = [s for s in _SP if s in source_rows]
 
