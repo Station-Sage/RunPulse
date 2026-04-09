@@ -577,6 +577,21 @@ def recompute_single_metric(conn: sqlite3.Connection,
     resolve_all_primaries(conn)
     result.elapsed_seconds = _time.monotonic() - start
     return result
+def run_for_date_range(
+    conn: sqlite3.Connection,
+    start_date: str,
+    end_date: str,
+) -> ComputeResult:
+    """날짜 범위 일괄 메트릭 계산 (compute_for_dates 래퍼)."""
+    td = date.fromisoformat(start_date)
+    end = date.fromisoformat(end_date)
+    dates = []
+    while td <= end:
+        dates.append(td.isoformat())
+        td += timedelta(days=1)
+    return compute_for_dates(conn, dates)
+
+
 def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
     """최근 N일 메트릭 재계산 (batch prefetch 포함)."""
     today = date.today()
