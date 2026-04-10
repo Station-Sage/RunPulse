@@ -49,6 +49,47 @@ from src.sync.garmin_athlete_extensions import (
     sync_athlete_stats,
     sync_athlete_personal_records,
 )
+import src.sync.garmin_activity_sync as _act_sync
+import src.sync.garmin_wellness_sync as _well_sync
+
+
+def sync_activities(
+    config: dict,
+    conn,
+    days: int = 7,
+    client: "Garmin | None" = None,
+    from_date: "str | None" = None,
+    to_date: "str | None" = None,
+    bg_mode: bool = False,
+) -> int:
+    """Garmin 활동 동기화 래퍼.
+
+    Returns:
+        동기화된 활동 수.
+    """
+    if client is None:
+        client = _login(config)
+    result = _act_sync.sync(conn, client, days, start_date=from_date, end_date=to_date)
+    return result.synced_count
+
+
+def sync_wellness(
+    config: dict,
+    conn,
+    days: int = 7,
+    client: "Garmin | None" = None,
+    from_date: "str | None" = None,
+    to_date: "str | None" = None,
+) -> int:
+    """Garmin wellness 동기화 래퍼.
+
+    Returns:
+        동기화된 날 수.
+    """
+    if client is None:
+        client = _login(config)
+    result = _well_sync.sync(conn, client, days, start_date=from_date, end_date=to_date)
+    return result.synced_count
 
 
 def sync_daily_extensions(

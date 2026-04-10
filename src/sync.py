@@ -14,7 +14,40 @@ from datetime import date, timedelta
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
-from src.sync import SOURCES, _sync_source
+from src.utils.sync_state import set_current_user
+
+_ALL_SOURCES = ["garmin", "strava", "intervals", "runalyze"]
+
+
+def _sync_source(source: str, config: dict, db_path, days: int) -> dict:
+    """단일 소스 동기화. {"activities": int, "wellness": int, "errors": list} 반환."""
+    activities = 0
+    wellness = 0
+    errors = []
+    try:
+        with sqlite3.connect(str(db_path), timeout=30) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            if source == "garmin":
+                from src.sync.garmin import sync_garmin
+                res = sync_garmin(config, conn, days)
+                activities = res.get("activity_summaries", 0)
+                wellness = res.get("wellness", 0)
+            elif source == "strava":
+                from src.sync.strava import sync_strava
+                res = sync_strava(config, conn, days)
+                activities = res.get("activities", 0)
+            elif source == "intervals":
+                from src.sync.intervals import sync_intervals
+                res = sync_intervals(config, conn, days)
+                activities = res.get("activities", 0)
+                wellness = res.get("wellness", 0)
+            elif source == "runalyze":
+                from src.sync.runalyze import sync_activities as sync_runalyze
+                activities = sync_runalyze(config, conn, days)
+            conn.commit()
+    except Exception as e:
+        errors.append(str(e))
+    return {"activities": activities, "wellness": wellness, "errors": errors}
 
 
 def main() -> None:
@@ -39,16 +72,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # sync_state가 올바른 유저 파일에 기록되도록 설정
+    set_current_user(args.user)
+
     config = load_config(user_id=args.user)
     init_db(args.user)
     db_path = get_db_path(args.user)
-    sources = list(SOURCES.keys()) if args.source == "all" else [args.source]
+    sources = _ALL_SOURCES if args.source == "all" else [args.source]
 
     total_activities = 0
     total_wellness = 0
 
     if len(sources) == 1:
-        # 단일 소스: 직접 실행
         source = sources[0]
         print(f"\n--- {source.upper()} 동기화 시작 ---")
         res = _sync_source(source, config, db_path, args.days)
@@ -58,7 +93,6 @@ def main() -> None:
         for err in res["errors"]:
             print(f"[{source}] {err}", file=sys.stderr)
     else:
-        # 복수 소스: ThreadPoolExecutor 병렬 실행
         print(f"4소스 병렬 동기화 시작 ({', '.join(sources)})")
         futures = {}
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:

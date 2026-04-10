@@ -1,7 +1,8 @@
 {
   "garmin": {
     "email": "your@email.com",
-    "password": "your_password"
+    "password": "your_password",
+    "tokenstore": "~/.garminconnect"
   },
   "strava": {
     "client_id": "your_client_id",

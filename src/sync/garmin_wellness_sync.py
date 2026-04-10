@@ -33,17 +33,39 @@ WELLNESS_ENDPOINTS = {
 }
 
 
-def sync(conn, api, days: int = 7, *, _sleep_fn=None) -> SyncResult:
-    """Garmin wellness 동기화."""
+def sync(
+    conn,
+    api,
+    days: int = 7,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    _sleep_fn=None,
+) -> SyncResult:
+    """Garmin wellness 동기화.
+
+    Args:
+        conn: SQLite connection
+        api: garminconnect.Garmin 인스턴스 (로그인 완료)
+        days: 날짜 범위 (start_date/end_date 미지정 시 사용)
+        start_date: ISO 날짜 문자열 (YYYY-MM-DD), 지정 시 days 무시
+        end_date: ISO 날짜 문자열 (YYYY-MM-DD), 지정 시 days 무시
+        _sleep_fn: 테스트용 sleep 오버라이드
+    """
     result = SyncResult(source="garmin", job_type="wellness")
     extractor = get_extractor("garmin")
     limiter = RateLimiter("garmin", sleep_fn=_sleep_fn)
 
-    end_date = datetime.now(timezone.utc).date()
-    start_date = end_date - timedelta(days=days - 1)
+    if start_date and end_date:
+        from datetime import date as _date
+        end_dt = _date.fromisoformat(end_date)
+        start_dt = _date.fromisoformat(start_date)
+    else:
+        end_dt = datetime.now(timezone.utc).date()
+        start_dt = end_dt - timedelta(days=days - 1)
     dates = []
-    cur = start_date
-    while cur <= end_date:
+    cur = start_dt
+    while cur <= end_dt:
         dates.append(cur.isoformat())
         cur += timedelta(days=1)
 

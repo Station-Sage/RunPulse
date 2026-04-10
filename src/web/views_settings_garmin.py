@@ -11,7 +11,7 @@ from pathlib import Path
 
 from flask import Blueprint, redirect, render_template, request
 
-from src.sync.garmin import _tokenstore_path
+from src.sync.garmin import _tokenstore_path, check_garmin_connection
 from src.utils.config import _auto_user_id, load_config, update_service_config
 
 settings_garmin_bp = Blueprint("settings_garmin", __name__)
@@ -20,27 +20,13 @@ settings_garmin_bp = Blueprint("settings_garmin", __name__)
 _pending_mfa: dict = {}
 
 
-def _garmin_token_status_html(tokenstore) -> str:
-    """garth 토큰 파일 존재·만료 여부를 HTML 배지로 반환."""
-    oauth2_file = tokenstore / "oauth2_token.json"
-    if not tokenstore.exists():
-        return "<span class='score-badge grade-poor'>토큰 없음 — 로그인 필요</span>"
-    if not oauth2_file.exists():
-        return "<span class='score-badge grade-moderate'>디렉터리 존재, 토큰 파일 없음 — 로그인 필요</span>"
-    try:
-        import garth as _garth
-        g = _garth.Client()
-        g.load(str(tokenstore))
-        tok = g.oauth2_token
-        if tok is None:
-            return "<span class='score-badge grade-poor'>토큰 파일 손상</span>"
-        if tok.refresh_expired:
-            return "<span class='score-badge grade-poor'>토큰 만료 — 재로그인 필요</span>"
-        if tok.expired:
-            return "<span class='score-badge grade-moderate'>access_token 만료 (refresh 유효, sync 시 자동 갱신)</span>"
-        return "<span class='score-badge grade-good'>토큰 유효 ✓</span>"
-    except Exception as e:
-        return f"<span class='score-badge grade-poor'>토큰 읽기 실패: {_html.escape(str(e)[:60])}</span>"
+def _garmin_token_status_html(config: dict) -> str:
+    """garmin_tokens.json 기반 연결 상태를 HTML 배지로 반환."""
+    result = check_garmin_connection(config)
+    if result["ok"]:
+        return f"<span class='score-badge grade-good'>토큰 유효 ✓</span>"
+    grade = "grade-moderate" if "마이그레이션" in result["status"] or "갱신" in result["status"] else "grade-poor"
+    return f"<span class='score-badge {grade}'>{_html.escape(result['status'])}</span>"
 
 
 @settings_garmin_bp.get("/connect/garmin")
@@ -61,35 +47,6 @@ def garmin_connect_view() -> str:
 {err_html}{msg_html}
 <div class='card'>
   <h2>Garmin Connect 연동</h2>
-
-  <div style='background:#1e293b; border-radius:8px; padding:20px; margin-bottom:20px;'>
-    <h3 style='margin-top:0; color:#4CAF50;'>🌐 브라우저 로그인 (권장)</h3>
-    <p style='color:#aab; font-size:14px; line-height:1.6;'>
-      브라우저에서 가민에 직접 로그인하여 연결합니다.<br>
-      패스워드는 가민 서버에만 전송되며 이 서버를 경유하지 않습니다.
-    </p>
-    <div style='background:#111827; border-radius:6px; padding:16px; margin:12px 0;'>
-      <div style='display:flex; align-items:flex-start; gap:12px; margin-bottom:12px;'>
-        <span style='background:#4CAF50; color:white; border-radius:50%%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;'>1</span>
-        <span style='color:#ccc; font-size:14px;'>
-          <a href='/connect/garmin/browser-login' target='_blank' style='color:#4CAF50; font-weight:bold;'>가민 로그인 페이지 열기</a>
-          → 로그인 + MFA 완료
-        </span>
-      </div>
-      <div style='display:flex; align-items:flex-start; gap:12px; margin-bottom:12px;'>
-        <span style='background:#4CAF50; color:white; border-radius:50%%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;'>2</span>
-        <span style='color:#ccc; font-size:14px;'>로그인 성공 후 주소창 URL 전체를 복사</span>
-      </div>
-      <div style='display:flex; align-items:flex-start; gap:12px;'>
-        <span style='background:#4CAF50; color:white; border-radius:50%%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;'>3</span>
-        <span style='color:#ccc; font-size:14px;'>아래에 붙여넣고 연결하기</span>
-      </div>
-    </div>
-    <form method='post' action='/connect/garmin/paste-token'>
-      <textarea name='oauth2_json' rows='2' placeholder='로그인 완료 후 주소창 URL을 여기에 붙여넣으세요  (예: https://sso.garmin.com/sso/embed?ticket=ST-...)' style='width:100%%; font-size:13px; font-family:monospace; background:#0f172a; color:#e2e8f0; padding:10px; border:1px solid #334155; border-radius:6px; resize:vertical;'></textarea>
-      <button type='submit' style='margin-top:10px; background:#4CAF50; color:white; padding:10px 24px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold;'>연결하기</button>
-    </form>
-  </div>
 
   <details style='margin-bottom:20px;'>
     <summary style='cursor:pointer; color:#94a3b8; font-size:14px;'>🔧 서버 직접 로그인 (서버 IP 차단 시 동작 안 함)</summary>
@@ -118,20 +75,31 @@ def garmin_connect_view() -> str:
     </div>
   </details>
 
-  <details>
-    <summary style='cursor:pointer; color:#94a3b8; font-size:14px;'>📁 토큰 파일 직접 업로드</summary>
+  <details style='margin-bottom:20px;'>
+    <summary style='cursor:pointer; color:#94a3b8; font-size:14px;'>📁 토큰 파일 직접 업로드 (권장)</summary>
     <div style='background:#1e293b; border-radius:8px; padding:16px; margin-top:8px;'>
-      <p style='color:#94a3b8; font-size:13px;'>PC에서 <code>pip install garth</code> 후 토큰 발급하여 업로드</p>
+      <p style='color:#94a3b8; font-size:13px;'>
+        PC에서 아래 명령으로 <code>garmin_tokens.json</code>을 발급한 뒤 업로드하세요.<br>
+        <code>pip install garminconnect curl_cffi ua-generator</code><br>
+        <code>python -c "from garminconnect import Garmin; g=Garmin('email','pw'); g.login(); g.client.dump('.')"</code>
+      </p>
       <form method='post' action='/connect/garmin/upload-token' enctype='multipart/form-data'>
         <div style='margin:8px 0;'>
-          <label style='font-size:13px; color:#94a3b8;'>oauth1_token.json (선택):</label><br>
-          <input type='file' name='oauth1' accept='.json' style='font-size:13px;'>
-        </div>
-        <div style='margin:8px 0;'>
-          <label style='font-size:13px; color:#94a3b8;'>oauth2_token.json (필수):</label><br>
-          <input type='file' name='oauth2' accept='.json' style='font-size:13px;'>
+          <label style='font-size:13px; color:#94a3b8;'>garmin_tokens.json (필수):</label><br>
+          <input type='file' name='token' accept='.json' style='font-size:13px;'>
         </div>
         <button type='submit' style='margin-top:8px;'>토큰 업로드</button>
+      </form>
+    </div>
+  </details>
+
+  <details>
+    <summary style='cursor:pointer; color:#94a3b8; font-size:14px;'>📋 토큰 JSON 직접 붙여넣기</summary>
+    <div style='background:#1e293b; border-radius:8px; padding:16px; margin-top:8px;'>
+      <p style='color:#94a3b8; font-size:13px;'><code>garmin_tokens.json</code> 파일 내용을 그대로 붙여넣으세요.</p>
+      <form method='post' action='/connect/garmin/paste-token'>
+        <textarea name='oauth2_json' rows='4' placeholder='{{"oauth1_token": ..., "oauth2_token": ...}}' style='width:100%%; font-size:13px; font-family:monospace; background:#0f172a; color:#e2e8f0; padding:10px; border:1px solid #334155; border-radius:6px; resize:vertical;'></textarea>
+        <button type='submit' style='margin-top:10px; background:#4CAF50; color:white; padding:10px 24px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold;'>저장하기</button>
       </form>
     </div>
   </details>
@@ -140,7 +108,7 @@ def garmin_connect_view() -> str:
 <div class='card'>
   <h3>연결 상태</h3>
   <p style='color:#94a3b8;'>토큰 경로: <code>{current_tokenstore}</code></p>
-  {_garmin_token_status_html(tokenstore)}
+  {_garmin_token_status_html(config)}
 </div>"""
     return render_template("generic_page.html", title="Garmin 연동", body=body, active_tab="settings")
 
@@ -149,11 +117,12 @@ def garmin_connect_view() -> str:
 def garmin_connect_post():
     """Garmin 로그인 → 토큰 저장. 비밀번호는 config에 저장하지 않음."""
     try:
-        import garth as _garth
-        from garth import sso as _sso
+        from garminconnect import Garmin as _Garmin
     except ImportError:
-        _garth = None
-        _sso = None
+        return redirect("/connect/garmin?error=" + urllib.parse.quote(
+            "garminconnect 라이브러리가 설치되지 않았습니다. "
+            "pip install garminconnect curl_cffi ua-generator"
+        ))
 
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "").strip()
@@ -163,13 +132,10 @@ def garmin_connect_post():
         return redirect("/connect/garmin?error=" + urllib.parse.quote("이메일을 입력하세요."))
 
     cf_uid = _auto_user_id(None) or "default"
-    safe_uid = cf_uid.replace("/", "_").replace("\\", "_")
+    safe_uid = cf_uid.replace("/", "").replace("@", "_at").replace("\\", "_")
 
-    # 비밀번호는 저장하지 않음 — 이메일과 토큰 경로만 저장
-    updates: dict = {
-        "email": email,
-    }
-    update_service_config("garmin", updates)
+    # 비밀번호는 저장하지 않음 — 이메일만 저장
+    update_service_config("garmin", {"email": email})
 
     if action == "save":
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
@@ -177,26 +143,22 @@ def garmin_connect_post():
         ))
 
     # 연결 테스트: 비밀번호 필수
-    if _garth is None or _sso is None:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "garth 라이브러리가 설치되지 않았습니다. pip install garth"))
-
     if not password:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
             "로그인하려면 패스워드를 입력하세요. (패스워드는 서버에 저장되지 않습니다)"
         ))
 
-    tokenstore = Path(f"~/.garth/{safe_uid}").expanduser()
+    tokenstore = Path(f"~/.garminconnect/{safe_uid}").expanduser()
 
     try:
-        g = _garth.Client()
-        result = _sso.login(email, password, client=g, return_on_mfa=True)
+        garmin = _Garmin(email, password, return_on_mfa=True)
+        mfa_status, client_state = garmin.login(tokenstore=str(tokenstore))
 
-        if isinstance(result, tuple) and result[0] == "needs_mfa":
+        if mfa_status == "needs_mfa":
             key = str(uuid.uuid4())
             _pending_mfa[key] = {
-                "client_state": result[1],
-                "garth_client": g,
+                "garmin_client": garmin,
+                "client_state": client_state,
                 "tokenstore": str(tokenstore),
                 "email": email,
             }
@@ -205,19 +167,14 @@ def garmin_connect_post():
             })
             return redirect(mfa_url)
 
-        oauth1, oauth2 = result
-        g.oauth1_token = oauth1
-        g.oauth2_token = oauth2
+        # 로그인 성공 — 토큰 자동 저장
         tokenstore.mkdir(parents=True, exist_ok=True)
-        g.dump(str(tokenstore))
-        # tokenstore 경로를 config에 저장
+        garmin.client.dump(str(tokenstore))
         update_service_config("garmin", {"tokenstore": str(tokenstore)})
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
             "연결 성공! 토큰이 저장되었습니다. 패스워드는 서버에 보관되지 않습니다."
         ))
 
-    except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote("garth 미설치."))
     except Exception as e:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(f"로그인 실패: {str(e)[:200]}"))
 
@@ -268,16 +225,9 @@ def garmin_mfa_view():
 @settings_garmin_bp.post("/connect/garmin/mfa")
 def garmin_mfa_submit():
     """Garmin MFA 코드 제출 → 로그인 완료."""
-    try:
-        from garth import sso as _sso
-        import garth as _garth
-    except ImportError:
-        return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "garth 라이브러리가 설치되지 않았습니다."))
-
     key = request.form.get("key", "")
     mfa_code = request.form.get("mfa_code", "").strip()
-    tokenstore_str = request.form.get("tokenstore", "~/.garth")
+    tokenstore_str = request.form.get("tokenstore", "~/.garminconnect")
 
     if not key or key not in _pending_mfa:
         return redirect("/connect/garmin?error=" + urllib.parse.quote("MFA 세션 만료. 다시 시도하세요."))
@@ -289,14 +239,11 @@ def garmin_mfa_submit():
 
     pending = _pending_mfa.pop(key)
     try:
-        g = pending["garth_client"]
-        oauth1, oauth2 = _sso.resume_login(pending["client_state"], mfa_code)
-        g.oauth1_token = oauth1
-        g.oauth2_token = oauth2
+        garmin = pending["garmin_client"]
+        garmin.resume_login(pending.get("client_state", {}), mfa_code)
         tokenstore = Path(pending["tokenstore"]).expanduser()
         tokenstore.mkdir(parents=True, exist_ok=True)
-        g.dump(str(tokenstore))
-        # tokenstore 경로를 config에 저장
+        garmin.client.dump(str(tokenstore))
         update_service_config("garmin", {"tokenstore": str(tokenstore)})
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
             f"MFA 인증 성공! 토큰이 {tokenstore_str}에 저장되었습니다."
@@ -313,55 +260,52 @@ def garmin_disconnect():
 
 @settings_garmin_bp.get("/connect/garmin/browser-login")
 def garmin_browser_login():
-    """사용자 브라우저에서 가민 SSO 로그인 — 팝업으로 열림."""
-    host = request.host_url.rstrip("/")
-    callback_url = f"{host}/connect/garmin/callback"
-
-    SSO_EMBED = "https://sso.garmin.com/sso/embed"
-
-    params = urllib.parse.urlencode({
-        "id": "gauth-widget",
-        "embedWidget": "true",
-        "gauthHost": SSO_EMBED,
-        "service": SSO_EMBED,
-        "source": SSO_EMBED,
-        "redirectAfterAccountLoginUrl": SSO_EMBED,
-        "redirectAfterAccountCreationUrl": SSO_EMBED,
-    })
-
-    return redirect(f"https://sso.garmin.com/sso/signin?{params}")
+    """브라우저 SSO 안내 — garminconnect 0.3.x 미지원으로 CLI 토큰 발급 안내."""
+    body = """
+<div class='card'>
+  <h2>브라우저 로그인 미지원</h2>
+  <p style='color:#94a3b8;'>
+    garminconnect 0.3.x는 브라우저 기반 SSO를 지원하지 않습니다.<br>
+    PC에서 CLI로 토큰을 발급한 뒤 업로드하거나 붙여넣기 방식을 이용하세요.
+  </p>
+  <div style='background:#1e293b; border-radius:8px; padding:16px; margin-top:12px;'>
+    <p style='font-size:13px; color:#94a3b8; margin:0 0 8px;'>PC에서 실행:</p>
+    <pre style='background:#0f172a; color:#e2e8f0; padding:12px; border-radius:6px; font-size:13px; overflow-x:auto;'>pip install garminconnect curl_cffi ua-generator
+python -c "
+from garminconnect import Garmin
+import json, pathlib
+g = Garmin('your@email.com', 'password')
+g.login()
+g.client.dump('.')
+print(pathlib.Path('garmin_tokens.json').read_text())
+"</pre>
+  </div>
+  <p style='margin-top:16px;'><a href='/connect/garmin'>← 연동 설정으로 돌아가기</a></p>
+</div>"""
+    return render_template("generic_page.html", title="브라우저 로그인 안내", body=body, active_tab="settings")
 
 
 @settings_garmin_bp.post("/connect/garmin/upload-token")
 def garmin_upload_token():
-    """로컬에서 발급받은 garth 토큰 파일 업로드."""
-    oauth1_file = request.files.get("oauth1")
-    oauth2_file = request.files.get("oauth2")
+    """로컬에서 발급받은 garmin_tokens.json 업로드."""
+    import json as _json
 
-    if not oauth2_file:
+    token_file = request.files.get("token")
+    if not token_file:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "oauth2_token.json 파일은 필수입니다."))
+            "garmin_tokens.json 파일은 필수입니다."))
 
     cf_uid = _auto_user_id(None) or "default"
-    safe_uid = cf_uid.replace("/", "_").replace("\\", "_")
-    tokenstore = Path(f"~/.garth/{safe_uid}").expanduser()
+    safe_uid = cf_uid.replace("/", "").replace("@", "_at").replace("\\", "_")
+    tokenstore = Path(f"~/.garminconnect/{safe_uid}").expanduser()
     tokenstore.mkdir(parents=True, exist_ok=True)
 
     try:
-        import json as _json
-        # oauth2 저장
-        oauth2_data = _json.loads(oauth2_file.read())
-        with open(tokenstore / "oauth2_token.json", "w") as f:
-            _json.dump(oauth2_data, f, indent=2)
-
-        # oauth1 저장 (선택)
-        if oauth1_file:
-            oauth1_data = _json.loads(oauth1_file.read())
-            with open(tokenstore / "oauth1_token.json", "w") as f:
-                _json.dump(oauth1_data, f, indent=2)
+        token_data = _json.loads(token_file.read())
+        with open(tokenstore / "garmin_tokens.json", "w") as f:
+            _json.dump(token_data, f, indent=2)
 
         update_service_config("garmin", {"tokenstore": str(tokenstore)})
-
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
             "토큰 업로드 성공! 동기화를 시도해보세요."))
 
@@ -371,52 +315,29 @@ def garmin_upload_token():
 
 @settings_garmin_bp.post("/connect/garmin/paste-token")
 def garmin_paste_token():
-    """OAuth2 토큰 JSON 또는 ticket URL 붙여넣기."""
+    """garmin_tokens.json 내용 붙여넣기."""
+    import json as _json
+
     raw = request.form.get("oauth2_json", "").strip()
     if not raw:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "토큰 JSON 또는 URL을 입력하세요."))
-
-    import re
-    import json as _json
+            "토큰 JSON을 입력하세요."))
 
     cf_uid = _auto_user_id(None) or "default"
-    safe_uid = cf_uid.replace("/", "_").replace("\\", "_")
-    tokenstore = Path(f"~/.garth/{safe_uid}").expanduser()
+    safe_uid = cf_uid.replace("/", "").replace("@", "_at").replace("\\", "_")
+    tokenstore = Path(f"~/.garminconnect/{safe_uid}").expanduser()
     tokenstore.mkdir(parents=True, exist_ok=True)
 
-    # ticket URL인 경우
-    ticket_match = re.search(r'ticket=([A-Za-z0-9\-]+)', raw)
-    if ticket_match:
-        try:
-            import garth as _garth
-            from garth.sso import get_oauth1_token, exchange
-
-            g = _garth.Client()
-            oauth1 = get_oauth1_token(ticket_match.group(1), g)
-            oauth2 = exchange(oauth1, g)
-            g.oauth1_token = oauth1
-            g.oauth2_token = oauth2
-            tokenstore.mkdir(parents=True, exist_ok=True)
-            g.dump(str(tokenstore))
-            update_service_config("garmin", {"tokenstore": str(tokenstore)})
-            return redirect("/connect/garmin?msg=" + urllib.parse.quote(
-                "연결 성공! 토큰이 저장되었습니다."))
-        except Exception as e:
-            return redirect("/connect/garmin?error=" + urllib.parse.quote(
-                f"ticket 교환 실패: {str(e)[:200]}"))
-
-    # JSON인 경우
     try:
         token_data = _json.loads(raw)
-        with open(tokenstore / "oauth2_token.json", "w") as f:
+        with open(tokenstore / "garmin_tokens.json", "w") as f:
             _json.dump(token_data, f, indent=2)
         update_service_config("garmin", {"tokenstore": str(tokenstore)})
         return redirect("/connect/garmin?msg=" + urllib.parse.quote(
             "토큰 저장 성공! 동기화를 시도해보세요."))
     except _json.JSONDecodeError:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
-            "유효한 JSON 또는 ticket URL이 아닙니다."))
+            "유효한 JSON이 아닙니다. garmin_tokens.json 파일 내용을 그대로 붙여넣으세요."))
     except Exception as e:
         return redirect("/connect/garmin?error=" + urllib.parse.quote(
             f"토큰 저장 실패: {str(e)[:200]}"))

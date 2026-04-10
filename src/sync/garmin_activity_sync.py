@@ -34,6 +34,8 @@ def sync(
     days: int = 7,
     include_streams: bool = False,
     *,
+    start_date: str | None = None,
+    end_date: str | None = None,
     _sleep_fn=None,
 ) -> SyncResult:
     """Garmin 활동 동기화.
@@ -41,23 +43,29 @@ def sync(
     Args:
         conn: SQLite connection
         api: garminconnect.Garmin 인스턴스 (로그인 완료)
-        days: 날짜 범위
+        days: 날짜 범위 (start_date/end_date 미지정 시 사용)
         include_streams: 스트림 데이터도 가져올지
+        start_date: ISO 날짜 문자열 (YYYY-MM-DD), 지정 시 days 무시
+        end_date: ISO 날짜 문자열 (YYYY-MM-DD), 지정 시 days 무시
         _sleep_fn: 테스트용 sleep 오버라이드
     """
     result = SyncResult(source="garmin", job_type="activity")
     extractor = get_extractor("garmin")
     limiter = RateLimiter("garmin", sleep_fn=_sleep_fn)
 
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=days)
+    if start_date and end_date:
+        end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+        start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+    else:
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - timedelta(days=days)
 
     # [1] Activity List
     try:
         limiter.pre_request()
         activities_raw = api.get_activities_by_date(
-            start_date.strftime("%Y-%m-%d"),
-            end_date.strftime("%Y-%m-%d"),
+            start_dt.strftime("%Y-%m-%d"),
+            end_dt.strftime("%Y-%m-%d"),
         )
         limiter.post_request(success=True)
         result.api_calls += 1

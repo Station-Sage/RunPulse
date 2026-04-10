@@ -224,14 +224,19 @@ class BgSyncThread(threading.Thread):
             conn.execute("PRAGMA journal_mode=WAL")
             try:
                 if service == "garmin":
-                    from src.sync.garmin import sync_activities
+                    # 배치 시작 시 토큰 갱신 (장시간 세션 대비)
+                    try:
+                        from src.sync.garmin_auth import _tokenstore_path
+                        garmin_client.login(tokenstore=str(_tokenstore_path(self.config)))
+                    except Exception as _te:
+                        print(f"[bg_sync] 토큰 갱신 실패 (계속 진행): {_te}")
+                    from src.sync.garmin import sync_activities, sync_wellness
                     count = sync_activities(
                         self.config, conn, 7,
                         client=garmin_client,
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
-                    from src.sync.garmin_wellness_sync import sync_wellness
                     try:
                         sync_wellness(self.config, conn, 7, client=garmin_client,
                                       from_date=win_from, to_date=win_to)

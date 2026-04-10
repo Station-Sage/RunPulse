@@ -21,6 +21,29 @@ from .intervals_athlete_sync import (  # noqa: F401
     sync_athlete_profile,
     sync_athlete_stats_snapshot,
 )
+import src.sync.intervals_activity_sync as _act_sync
+import src.sync.intervals_wellness_sync as _well_sync
+
+
+def sync_activities(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int = 7,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> int:
+    """Intervals.icu 활동 동기화 wrapper."""
+    result = _act_sync.sync(conn, days, config=config)
+    return result.synced_count
+
+
+def sync_wellness(
+    config: dict,
+    conn: sqlite3.Connection,
+    days: int = 7,
+) -> int:
+    """Intervals.icu 웰니스 동기화 wrapper."""
+    return _well_sync.sync_wellness(config, conn, days)
 
 
 def sync_intervals(
