@@ -105,10 +105,10 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (639줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (654줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
-- functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, recompute_recent, clear_runpulse_metrics, recompute_all
+- functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all
 
 ### `fearp.py` (73줄) — FEARP (Fitness & Environment Adjusted Running Pace) — 설계서 4-4 기준.
 
@@ -225,11 +225,11 @@
 
 - functions: run
 
-### `garmin.py` (192줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
+### `garmin.py` (233줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
 
-- functions: sync_daily_extensions, sync_athlete_extensions, sync_garmin
+- functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (226줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_sync.py` (234줄) — Garmin 활동 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -242,7 +242,7 @@
 
 - functions: sync_athlete_profile, sync_athlete_stats, sync_athlete_personal_records
 
-### `garmin_auth.py` (128줄) — Garmin Connect 인증 함수.
+### `garmin_auth.py` (151줄) — Garmin Connect 인증 — garminconnect 0.3.x 네이티브 DI OAuth.
 
 - class **GarminAuthRequired**: 없음
 - functions: check_garmin_connection
@@ -267,7 +267,7 @@
 
 - functions: extract_summary_fields_from_api, extract_summary_fields_from_zip, extract_detail_fields, build_upsert_sql
 
-### `garmin_wellness_sync.py` (138줄) — Garmin 일별 wellness 동기화 Orchestrator.
+### `garmin_wellness_sync.py` (160줄) — Garmin 일별 wellness 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -276,9 +276,9 @@
 
 - functions: compute_metrics_after_sync
 
-### `intervals.py` (55줄) — Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
+### `intervals.py` (78줄) — Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
 
-- functions: sync_intervals
+- functions: sync_activities, sync_wellness, sync_intervals
 
 ### `intervals_activity_sync.py` (168줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
 
@@ -321,9 +321,9 @@
 
 - functions: sync
 
-### `strava.py` (67줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
+### `strava.py` (81줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
 
-- functions: sync_strava
+- functions: sync_activities, sync_strava
 
 ### `strava_activity_sync.py` (164줄) — Strava 활동 동기화 Orchestrator.
 
@@ -482,15 +482,15 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (967줄) — RunPulse integration workbench web app.
+### `app.py` (1023줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (82줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (99줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
 
-### `bg_sync.py` (409줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (414줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, get_status
@@ -687,7 +687,7 @@
 
 - functions: settings_view, settings_profile_post, settings_training_prefs_post, settings_ai_post, settings_mapbox_post, settings_prompts_post, settings_prompts_reset, settings_caldav_post, settings_caldav_test
 
-### `views_settings_garmin.py` (422줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
+### `views_settings_garmin.py` (450줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
 
 - functions: garmin_connect_view, garmin_connect_post, garmin_mfa_view, garmin_mfa_submit, garmin_disconnect, garmin_browser_login, garmin_upload_token, garmin_paste_token
 
@@ -1103,7 +1103,7 @@
 
 ### `test_db_setup.py` (131줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_13, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_14, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
 - functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
 ### `test_dedup.py` (74줄) — Dedup 단위 테스트.
@@ -1159,6 +1159,12 @@
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
 
+### `test_garmin_auth_migration.py` (185줄) — garmin_auth.py garminconnect 0.3.x 마이그레이션 테스트.
+
+- class **TestTokenstorePath**: test_default_path, test_explicit_path, test_user_id_path, test_user_id_email_sanitize, test_explicit_takes_precedence_over_user_id
+- class **TestLogin**: test_no_token_file_raises, test_token_file_exists_calls_login, test_token_dump_called_on_success, test_429_propagated, test_auth_error_wraps_to_auth_required, test_generic_exception_wraps_to_auth_required
+- class **TestCheckConnection**: test_no_tokenstore_dir, test_dir_exists_no_token_file, test_old_garth_token_detected, test_valid_token_with_access_token, test_valid_token_with_di_access_token, test_corrupted_token_json, test_token_missing_access_key
+
 ### `test_garmin_extractor.py` (172줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
@@ -1166,6 +1172,18 @@
 - class **TestGarminLaps**: test_lap_extraction, test_lap_pace_calculated, test_empty_detail
 - class **TestGarminWellness**: test_wellness_core, test_wellness_metrics, test_wellness_metric_values, test_fitness
 - functions: ext, summary_raw, detail_raw, wellness_raw
+
+### `test_garmin_local_sync_api.py` (283줄) — POST /api/garmin/local-sync 엔드포인트 테스트.
+
+- class **TestGarminLocalSyncEndpoint**: test_returns_202_on_valid_token, test_missing_token_returns_400, test_empty_token_dict_returns_400, test_days_clamped_to_90, test_di_access_token_accepted, test_token_saved_to_disk, test_non_json_body_returns_400
+- class **TestUploadTokenTriggerSync**: garmin_settings_app, test_upload_with_trigger_sync_redirects, test_paste_without_trigger_sync_no_bg_job, test_paste_with_trigger_sync_calls_redirect
+
+### `test_garmin_local_sync_script.py` (206줄) — scripts/garmin_local_sync.py 유닛 테스트.
+
+- class **TestLoadDotenv**: test_loads_from_env_file, test_ignores_comments_and_blank_lines
+- class **TestGarminLogin**: test_returns_token_dict_on_success, test_exits_on_too_many_requests
+- class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
+- class **TestTokenOnlyMode**: test_saves_token_locally
 
 ### `test_garmin_wellness_sync.py` (125줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
@@ -1447,6 +1465,16 @@
 
 - class **TestVDOTAdj**: test_passthrough, test_no_vdot, test_confidence
 
+### `test_views_settings_garmin_migration.py` (352줄) — views_settings_garmin.py garminconnect 0.3.x 마이그레이션 테스트.
+
+- class **TestGarminConnectView**: test_renders_200, test_token_status_shows_garminconnect_path, test_no_token_shows_status_badge
+- class **TestServerLogin**: test_save_only_no_password_required, test_login_calls_garminconnect_garmin, test_mfa_redirect_on_needs_mfa, test_no_email_returns_error, test_429_shows_error_redirect
+- class **TestTokenUpload**: test_upload_garmin_tokens_json, test_no_file_returns_error, test_invalid_json_returns_error
+- class **TestPasteToken**: test_paste_valid_json, test_paste_invalid_json_returns_error, test_empty_input_returns_error
+- class **TestMFA**: test_expired_session_returns_error, test_mfa_submit_calls_resume_login, test_empty_mfa_code_redirects_back, test_mfa_resume_exception_returns_error
+- class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
+- functions: garmin_app
+
 ### `test_wellness_service.py` (113줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -1476,6 +1504,10 @@
 
 - functions: main
 
+### `garmin_local_sync.py` (178줄) — Garmin 로컬 토큰 발급 + VPS 동기화 트리거 스크립트.
+
+- functions: main
+
 ### `gen_data_master.py` (276줄) — 데이터 마스터 시트 자동 생성 v3.
 
 - functions: parse_db_setup, cross_validate, generate
@@ -1489,7 +1521,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 300개 파일
+총 305개 파일
 
 ## docstring 누락
 

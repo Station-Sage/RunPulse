@@ -1,5 +1,8 @@
 # LATER — 장기 아이디어 풀
 
+## Garmin 동기화 개선
+- **GARMIN-C**: 공식 Garmin Developer API 적용 — Push/webhook 기반, IP 차단 무관, 멀티유저 지원 가능. Enterprise 신청 필요. (현 A안의 근본 해결책)
+
 ## v0.4+
 - [ ] React Native 모바일 앱
 - [ ] CalDAV 캘린더 연동 + Garmin workout sync

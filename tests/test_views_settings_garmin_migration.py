@@ -29,7 +29,7 @@ def garmin_app(tmp_path, monkeypatch):
     # load_config / update_service_config 패치 — 실제 config.json 건드리지 않음
     monkeypatch.setattr(
         "src.web.views_settings_garmin.load_config",
-        lambda: {"garmin": {"email": "test@example.com", "tokenstore": str(tmp_path)}},
+        lambda **k: {"garmin": {"email": "test@example.com", "tokenstore": str(tmp_path)}},
     )
     monkeypatch.setattr(
         "src.web.views_settings_garmin.update_service_config",

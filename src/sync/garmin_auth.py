@@ -46,13 +46,14 @@ def _tokenstore_path(config: dict) -> Path:
     explicit = garmin_cfg.get("tokenstore", "")
     if explicit:
         return Path(explicit).expanduser()
-    # 2) user_id(이메일)로 서브폴더
+    # 2) data/users/{user_id}/.garminconnect/ (앱 디렉터리 구조 통일)
     user_id = garmin_cfg.get("user_id", "")
     if user_id:
-        safe_uid = user_id.replace("/", "").replace("@", "_at")
-        return Path(f"~/.garminconnect/{safe_uid}").expanduser()
-    # 3) 기본
-    return Path("~/.garminconnect").expanduser()
+        from src.utils.config import get_config_path
+        return get_config_path(user_id).parent / ".garminconnect"
+    # 3) 기본 (default 사용자)
+    from src.utils.config import get_config_path
+    return get_config_path().parent / ".garminconnect"
 
 
 def _token_file(config: dict) -> Path:
@@ -132,11 +133,17 @@ def check_garmin_connection(config: dict) -> dict:
     try:
         with open(token_file) as f:
             token_data = json.load(f)
-        if not token_data.get("access_token") and not token_data.get("di_access_token"):
+        has_oauth2 = bool(
+            token_data.get("access_token")
+            or token_data.get("di_access_token")
+            or token_data.get("di_token")
+            or (isinstance(token_data.get("oauth2_token"), dict) and token_data["oauth2_token"].get("access_token"))
+        )
+        if not has_oauth2:
             return {
                 "ok": False,
                 "status": "토큰 손상",
-                "detail": "토큰 파일에 access_token 없음. 재로그인 필요.",
+                "detail": "토큰 파일에 유효한 access_token 없음. 재로그인 필요.",
             }
         return {
             "ok": True,

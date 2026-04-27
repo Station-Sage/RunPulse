@@ -29,14 +29,30 @@ def _get_dev_user_id() -> str:
     return os.environ.get("DEV_USER_ID", "default")
 
 
-def init_cf_auth(app: Flask) -> None:
+def _load_svc_token() -> tuple[str, str, str]:
+    """루트 config에서 CF 서비스 토큰 자격증명을 읽어 반환 (요청별 동적 로딩)."""
+    try:
+        from src.utils.config import load_config
+        cfg = load_config(user_id="default")
+        cf = cfg.get("cf", {})
+        svc_user = cfg.get("garmin", {}).get("email", "service")
+        return cf.get("service_client_id", ""), cf.get("service_client_secret", ""), svc_user
+    except Exception:
+        return "", "", "service"
+
+
+def init_cf_auth(app: Flask, config: dict | None = None) -> None:
     """Flask 앱에 CF 헤더 기반 사용자 식별 before_request 훅 등록.
+
+    CF 서비스 토큰은 요청마다 루트 config에서 동적으로 로드하므로
+    설정 변경 후 서버 재시작이 불필요하다.
 
     Args:
         app: Flask 앱 인스턴스.
+        config: 사용하지 않음 (하위 호환 유지용).
     """
     if _IS_PRODUCTION:
-        log.info("[auth_cf] production 모드: CF 헤더 필수")
+        log.info("[auth_cf] production 모드: CF 헤더 필수 (서비스 토큰 동적 로딩)")
     else:
         fallback = _get_dev_user_id()
         log.warning(
@@ -52,12 +68,28 @@ def init_cf_auth(app: Flask) -> None:
             return None
 
         email = request.headers.get(_CF_EMAIL_HEADER, "").strip()
-
         if email:
             session.permanent = True
             session[_SESSION_KEY] = email
             log.debug("[auth_cf] 사용자 식별: %s", email)
             return None
+
+        # CF Zero Trust는 서비스 토큰 헤더를 엣지에서 검증 후 제거하고 전달한다.
+        # /api/garmin/local-sync는 body의 sync_key로 2차 인증하므로 여기서 건너뜀.
+        if request.path == "/api/garmin/local-sync" and request.method == "POST":
+            log.debug("[auth_cf] /api/garmin/local-sync — sync_key 인증으로 위임")
+            return None
+
+        # CF 서비스 토큰 바이패스 (localhost 직접 호출 등 CF 미경유 경로용)
+        svc_id, svc_secret, svc_user = _load_svc_token()
+        if svc_id:
+            req_id = request.headers.get("CF-Access-Client-Id", "")
+            req_secret = request.headers.get("CF-Access-Client-Secret", "")
+            if req_id == svc_id and req_secret == svc_secret:
+                session.permanent = True
+                session[_SESSION_KEY] = svc_user
+                log.debug("[auth_cf] 서비스 토큰 인증 성공 (user=%s)", svc_user)
+                return None
 
         if _IS_PRODUCTION:
             log.warning(

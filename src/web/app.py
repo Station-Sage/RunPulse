@@ -12,7 +12,7 @@ from pathlib import Path
 
 from flask import Flask, redirect, request, session
 
-from src.utils.config import load_config
+from src.utils.config import load_config, get_config_path
 
 log = logging.getLogger(__name__)
 from src.sync.garmin import check_garmin_connection
@@ -192,7 +192,7 @@ def create_app() -> Flask:
 
     # CF Zero Trust 헤더 기반 사용자 식별 미들웨어 등록
     from .auth_cf import init_cf_auth
-    init_cf_auth(app)
+    init_cf_auth(app, config=load_config())
 
     _auto_migrate()
 
@@ -607,6 +607,90 @@ def create_app() -> Flask:
             _auto_match_after_sync()
 
         return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
+
+    # ── Garmin 로컬 토큰 수신 + sync 트리거 (A안) ───────────────────────────
+
+    @app.post("/api/garmin/local-sync")
+    def garmin_local_sync():
+        """로컬 기기에서 발급한 Garmin 토큰 수신 후 bg_sync 실행.
+
+        CF Service Token 인증(auth_cf.py)을 통과한 요청만 도달.
+        Body JSON: { "token": {...garmin_tokens.json...}, "days": 30, "user_id": "github@email.com" }
+        user_id: RunPulse 앱 user_id (GitHub 이메일). CF 서비스 토큰으로 호출 시 필수.
+        """
+        import json as _json
+        from datetime import date as _date, timedelta
+        from pathlib import Path
+        from flask import jsonify
+        from .bg_sync import start_job
+        from .helpers import get_current_user_id
+
+        import hmac as _hmac
+        import os as _os
+
+        data = request.get_json(silent=True) or {}
+
+        # sync_key 인증 — CF가 서비스 토큰 헤더를 제거하므로 body에서 검증
+        sync_key = data.get("sync_key", "")
+        _is_prod = _os.environ.get("APP_ENV", "development").lower() == "production"
+        root_cfg = load_config(user_id="default")
+        expected_key = root_cfg.get("cf", {}).get("service_client_secret", "")
+        if expected_key:
+            if not sync_key or not _hmac.compare_digest(sync_key, expected_key):
+                return jsonify({"error": "sync_key 인증 실패"}), 401
+        elif _is_prod:
+            return jsonify({"error": "서버 CF 설정이 없습니다. /settings에서 CF Service Token을 설정하세요."}), 500
+
+        token = data.get("token")
+        if not isinstance(token, dict) or not token:
+            return jsonify({"error": "token 필드가 없거나 올바른 형식이 아닙니다."}), 400
+
+        try:
+            days = max(1, min(int(data.get("days", 30)), 90))
+        except (TypeError, ValueError):
+            days = 30
+
+        # CF 서비스 토큰으로 호출 시 body의 user_id 사용 (GitHub 이메일 ≠ Garmin 이메일)
+        user_id = data.get("user_id") or get_current_user_id()
+        if not user_id:
+            return jsonify({"error": "user_id 필드가 필요합니다."}), 400
+        tokenstore = get_config_path(user_id).parent / ".garminconnect"
+        tokenstore.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # combined 포맷(garmin_tokens.json)으로 저장 — garth가 OAuth1+OAuth2 모두 로드
+            with open(tokenstore / "garmin_tokens.json", "w") as f:
+                _json.dump(token, f, indent=2)
+            # 구형 garth 호환: 분리 파일도 함께 저장
+            _t2 = token.get("oauth2_token")
+            if isinstance(_t2, dict):
+                with open(tokenstore / "oauth2_token.json", "w") as f:
+                    _json.dump(_t2, f, indent=2)
+                _t1 = token.get("oauth1_token")
+                if isinstance(_t1, dict):
+                    with open(tokenstore / "oauth1_token.json", "w") as f:
+                        _json.dump(_t1, f, indent=2)
+            else:
+                # flat 포맷(구형 garth): oauth2_token.json으로도 저장
+                with open(tokenstore / "oauth2_token.json", "w") as f:
+                    _json.dump(token, f, indent=2)
+        except OSError as e:
+            return jsonify({"error": f"토큰 저장 실패: {e}"}), 500
+
+        from src.utils.config import update_service_config
+        update_service_config("garmin", {"tokenstore": str(tokenstore)}, user_id=user_id)
+
+        config = load_config(user_id=user_id)
+        to_date = _date.today().isoformat()
+        from_date = (_date.today() - timedelta(days=days)).isoformat()
+        job_id = start_job("garmin", from_date, to_date, config, user_id=user_id)
+
+        return jsonify({
+            "status": "sync_started",
+            "days": days,
+            "job_id": job_id,
+            "message": f"토큰 저장 완료. Garmin {days}일 동기화 시작됨.",
+        }), 202
 
     # ── 백그라운드 기간 동기화 ────────────────────────────────────────────
 

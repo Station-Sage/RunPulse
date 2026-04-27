@@ -48,6 +48,15 @@
 - **결정**: 의도적 분리 유지. 소스 메트릭(garmin/strava/intervals)은 도메인별 카테고리, RunPulse 메트릭은 rp_ 접두사
 - **결과**: UI에서 소스별/RunPulse별 필터링 가능, 이름 충돌 방지
 
+## ADR-010: Garmin 동기화 방식 — 로컬 토큰 발급 + CF Service Token + VPS 데이터 sync (A안)
+- **날짜**: 2026-04-25
+- **맥락**: VPS(AWS) IP가 Garmin `diauth.garmin.com`에 의해 차단됨. 토큰 갱신 불가 → 1시간 이상 sync 또는 자동 sync 불가. 상세 조사: `v0.3/sync/MIGRATION-01-01-IP-BLOCK-RESEARCH.md`
+- **결정**: 로컬 기기(Windows/Termux)에서 토큰 발급 → CF Service Token 인증으로 VPS API 호출 → VPS에서 bg_sync 실행
+- **CF 우회 방식**: `X-Garmin-Sync-Key`(커스텀 API 키) 방식 기각 — CF Zero Trust가 앞단에서 차단. CF Service Token(`CF-Access-Client-Id` + `CF-Access-Client-Secret` 헤더)으로 정식 우회.
+- **포기한 것**: 전체기간 sync, 백그라운드 자동 sync
+- **보류**: B안(SSH 역방향 터널) — BACKLOG 등록 / C안(공식 Garmin API) — LATER 등록
+- **결과**: 개인 용도 incremental sync(~30일) 범위에서는 동작. 사용자가 매 sync마다 로컬 스크립트 실행 필요.
+
 ## ADR-009: Calculator 데이터 접근 정책 — CalcContext API 전용
 - **날짜**: 2026-04-04
 - **맥락**: MetricCalculator 내부에서 `ctx.conn.execute()`로 raw SQL을 직접 실행하면, 스키마 변경 시 모든 calculator를 수정해야 하고, MockCalcContext로 단위 테스트가 불가능하며, A/B 테스트 시 입력 데이터를 통제할 수 없음. 메트릭 공식은 지속적으로 변경·확장될 예정이므로 calculator의 순수 함수화가 필수.
