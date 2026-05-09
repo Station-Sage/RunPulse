@@ -1,7 +1,6 @@
-"""raw_source_payloads 저장/병합 유틸리티."""
+"""source_payloads 저장/병합 유틸리티."""
 from __future__ import annotations
 
-import json
 import sqlite3
 
 
@@ -13,55 +12,13 @@ def store_raw_payload(
     payload: dict,
     activity_id: int | None = None,
 ) -> None:
-    """raw_source_payloads에 payload를 저장하거나 기존 데이터와 병합 업데이트.
-
-    기존 레코드가 있으면 얕은 병합(shallow merge): 새 값 우선, 기존에만 있는 키 보존.
-    없으면 신규 삽입.
-
-    Args:
-        conn: SQLite 연결.
-        source: 소스명 (garmin/strava/intervals/runalyze).
-        entity_type: 엔티티 유형 (activity/activity_summary/activity_detail 등).
-        entity_id: 엔티티 고유 ID.
-        payload: 저장할 payload dict.
-        activity_id: 연결된 activity_summaries.id (선택).
-    """
+    """source_payloads에 payload 저장 (v0.3 테이블명)."""
     if not payload:
         return
     try:
-        row = conn.execute(
-            "SELECT payload_json FROM raw_source_payloads "
-            "WHERE source = ? AND entity_type = ? AND entity_id = ?",
-            (source, entity_type, entity_id),
-        ).fetchone()
-
-        if row:
-            try:
-                existing = json.loads(row[0])
-                merged_json = json.dumps({**existing, **payload}, ensure_ascii=False)
-            except Exception:
-                merged_json = json.dumps(payload, ensure_ascii=False)
-            conn.execute(
-                """UPDATE raw_source_payloads SET
-                    payload_json = ?,
-                    activity_id = COALESCE(?, activity_id),
-                    updated_at = datetime('now')
-                   WHERE source = ? AND entity_type = ? AND entity_id = ?""",
-                (merged_json, activity_id, source, entity_type, entity_id),
-            )
-        else:
-            conn.execute(
-                """INSERT INTO raw_source_payloads
-                    (source, entity_type, entity_id, activity_id, payload_json)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (
-                    source, entity_type, entity_id, activity_id,
-                    json.dumps(payload, ensure_ascii=False),
-                ),
-            )
-    except sqlite3.OperationalError:
-        pass  # 테이블 미생성 환경 (graceful)
-    except sqlite3.Error as e:
+        from src.utils.db_helpers import upsert_payload
+        upsert_payload(conn, source, entity_type, entity_id, payload, activity_id=activity_id)
+    except Exception as e:
         print(f"[raw_payload] 저장 실패 {source}/{entity_type}/{entity_id}: {e}")
 
 

@@ -17,7 +17,7 @@ _COLS = [
     "distance_m", "duration_sec", "avg_pace_sec_km", "avg_hr",
     "max_hr", "avg_cadence", "elevation_gain",
     "description", "matched_group_id", "workout_label", "avg_power",
-    "event_type", "workout_type",
+    "event_type",
 ]
 
 
@@ -309,7 +309,7 @@ def fetch_unified_activities(
             _wt_rows = conn.execute(
                 f"SELECT CAST(scope_id AS INTEGER), json_value FROM metric_store"
                 f" WHERE scope_type='activity' AND scope_id IN ({_ph})"
-                f"   AND metric_name='WorkoutType'",
+                f"   AND metric_name='workout_type_classified'",
                 [str(i) for i in all_act_ids],
             ).fetchall()
             for _aid, _mj in _wt_rows:

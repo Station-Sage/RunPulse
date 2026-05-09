@@ -18,7 +18,7 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
     """기본 컨텍스트: 주요 메트릭 + 웰니스 + 피트니스 + 최근 활동 3개."""
     ctx: dict[str, Any] = {"date": today}
 
-    for name in ["UTRS", "CIRS", "ACWR", "DI", "RTTI"]:
+    for name in ["utrs", "cirs", "acwr", "di", "rtti"]:
         row = conn.execute(
             "SELECT numeric_value FROM metric_store"
             " WHERE scope_type='daily' AND metric_name=? AND is_primary=1"
@@ -37,8 +37,8 @@ def _build_base_context(conn: sqlite3.Connection, today: str) -> dict[str, Any]:
         ctx[_ctx_key] = round(float(_row[0]), 1) if _row else None
 
     well = conn.execute(
-        "SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date=? LIMIT 1",
+        "SELECT body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date=? LIMIT 1",
         (today,),
     ).fetchone()
     if well:
@@ -90,7 +90,7 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
 
     cls = conn.execute(
         "SELECT numeric_value, json_value FROM metric_store "
-        "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+        "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
         (aid,),
     ).fetchone()
     if cls:
@@ -105,7 +105,7 @@ def _add_race_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     start_12w = (date.fromisoformat(today) - timedelta(weeks=12)).isoformat()
     darp_rows = conn.execute(
         "SELECT scope_id, numeric_value, json_value FROM metric_store"
-        " WHERE metric_name='DARP_half' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='race_pred_half_sec' AND scope_type='daily' AND is_primary=1"
         "   AND scope_id>=? ORDER BY scope_id", (start_12w,),
     ).fetchall()
     ctx["darp_trend"] = []
@@ -117,7 +117,7 @@ def _add_race_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
 
     di_rows = conn.execute(
         "SELECT scope_id, numeric_value FROM metric_store"
-        " WHERE metric_name='DI' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='di' AND scope_type='daily' AND is_primary=1"
         "   AND scope_id>=? ORDER BY scope_id",
         (start_12w,),
     ).fetchall()
@@ -136,7 +136,7 @@ def _add_compare_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
     for label, months in [("3개월전", 3), ("6개월전", 6), ("12개월전", 12)]:
         ref = (date.fromisoformat(today) - timedelta(days=months * 30)).isoformat()
         snap = {}
-        for name in ["UTRS", "CIRS", "ACWR", "DI"]:
+        for name in ["utrs", "cirs", "acwr", "di"]:
             row = conn.execute(
                 "SELECT numeric_value FROM metric_store"
                 " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
@@ -188,8 +188,8 @@ def _add_plan_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
         ctx["week_plan"] = []
 
     rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg "
-        "FROM daily_wellness WHERE source='garmin' AND date<=? "
+        "SELECT date, body_battery_high, sleep_score, hrv_last_night, avg_stress "
+        "FROM daily_wellness WHERE date<=? "
         "ORDER BY date DESC LIMIT 3", (today,),
     ).fetchall()
     ctx["wellness_3d"] = [
@@ -201,8 +201,8 @@ def _add_plan_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
 def _add_recovery_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """회복 상세 — 웰니스 7일 + HRV 기준선."""
     rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date<=? "
+        "SELECT date, body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date<=? "
         "ORDER BY date DESC LIMIT 7", (today,),
     ).fetchall()
     ctx["wellness_7d"] = [
@@ -212,13 +212,13 @@ def _add_recovery_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
 
     bl = conn.execute(
         "SELECT "
-        "    MAX(CASE WHEN metric_name='hrv_baseline_low' THEN numeric_value END) AS hrv_baseline_low,"
-        "    MAX(CASE WHEN metric_name='hrv_baseline_high' THEN numeric_value END) AS hrv_baseline_high "
+        "    MAX(CASE WHEN metric_name='hrv_baseline_balanced_low' THEN numeric_value END) AS hrv_baseline_low,"
+        "    MAX(CASE WHEN metric_name='hrv_baseline_balanced_upper' THEN numeric_value END) AS hrv_baseline_high "
         "FROM metric_store WHERE scope_type='daily' AND scope_id<=? AND provider='garmin'"
-        "    AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_high')"
+        "    AND metric_name IN ('hrv_baseline_balanced_low', 'hrv_baseline_balanced_upper')"
         "    AND scope_id=(SELECT MAX(scope_id) FROM metric_store"
         "        WHERE scope_type='daily' AND provider='garmin'"
-        "        AND metric_name='hrv_baseline_low' AND scope_id<=?)",
+        "        AND metric_name='hrv_baseline_balanced_low' AND scope_id<=?)",
         (today, today),
     ).fetchone()
     if bl and (bl[0] is not None or bl[1] is not None):
@@ -226,7 +226,7 @@ def _add_recovery_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
 
     cirs_rows = conn.execute(
         "SELECT scope_id, numeric_value FROM metric_store"
-        " WHERE metric_name='CIRS' AND scope_type='daily' AND is_primary=1 AND scope_id<=?"
+        " WHERE metric_name='cirs' AND scope_type='daily' AND is_primary=1 AND scope_id<=?"
         " ORDER BY scope_id DESC LIMIT 7", (today,),
     ).fetchall()
     ctx["cirs_7d"] = [{"date": r[0], "value": round(float(r[1]), 1)}
@@ -264,7 +264,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
 
         cls = conn.execute(
             "SELECT numeric_value FROM metric_store "
-            "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+            "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
             (aid,),
         ).fetchone()
         if cls:
@@ -282,8 +282,8 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
     ctx["lookup_day_metrics"] = {r[0]: round(float(r[1]), 2) for r in day_metrics}
 
     well = conn.execute(
-        "SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date=? LIMIT 1",
+        "SELECT body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date=? LIMIT 1",
         (target,),
     ).fetchone()
     if well:

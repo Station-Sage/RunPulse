@@ -15,7 +15,7 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
     ctx: dict[str, Any] = {"date": today}
 
     # 주요 메트릭 현재값
-    for name in ["UTRS", "CIRS", "ACWR", "RTTI", "Monotony", "LSI", "Strain", "DI", "REC", "RRI"]:
+    for name in ["utrs", "cirs", "acwr", "rtti", "monotony", "lsi", "training_strain", "di", "rec", "rri"]:
         row = conn.execute(
             "SELECT numeric_value FROM metric_store"
             " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
@@ -26,7 +26,7 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
 
     # 7일 시계열
     start_7d = (date.fromisoformat(today) - timedelta(days=6)).isoformat()
-    for name in ["UTRS", "CIRS", "ACWR"]:
+    for name in ["utrs", "cirs", "acwr"]:
         rows = conn.execute(
             "SELECT scope_id, numeric_value FROM metric_store"
             " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
@@ -47,8 +47,8 @@ def build_dashboard_context(conn: sqlite3.Connection, today: str) -> dict:
 
     # 웰니스 오늘
     well = conn.execute(
-        "SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date=? LIMIT 1",
+        "SELECT body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date=? LIMIT 1",
         (today,),
     ).fetchone()
     if well:
@@ -212,8 +212,8 @@ def build_training_context(conn: sqlite3.Connection, today: str,
 
     # 웰니스
     well = conn.execute(
-        "SELECT body_battery, sleep_score, hrv_value FROM daily_wellness "
-        "WHERE source='garmin' AND date=? LIMIT 1", (today,),
+        "SELECT body_battery_high, sleep_score, hrv_last_night FROM daily_wellness "
+        "WHERE date=? LIMIT 1", (today,),
     ).fetchone()
     if well:
         ctx["wellness"] = {"bb": well[0], "sleep": well[1], "hrv": well[2]}
@@ -320,7 +320,7 @@ def build_race_context(conn: sqlite3.Connection, today: str) -> dict:
     start_12w = (date.fromisoformat(today) - timedelta(weeks=12)).isoformat()
     rows = conn.execute(
         "SELECT scope_id, numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='vdot' AND scope_type='daily' AND is_primary=1"
         "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
         (start_12w, today),
     ).fetchall()
@@ -328,7 +328,7 @@ def build_race_context(conn: sqlite3.Connection, today: str) -> dict:
     ctx["vdot"] = float(rows[-1][1]) if rows and rows[-1][1] else None
 
     # DI, CTL, Marathon Shape
-    for name in ["DI", "MarathonShape", "RRI"]:
+    for name in ["di", "marathon_shape", "rri"]:
         row = conn.execute(
             "SELECT numeric_value FROM metric_store"
             " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
@@ -355,8 +355,8 @@ def build_wellness_context(conn: sqlite3.Connection, today: str) -> dict:
 
     # 14일 웰니스 시계열
     rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date BETWEEN ? AND ? ORDER BY date",
+        "SELECT date, body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date BETWEEN ? AND ? ORDER BY date",
         (start_14d, today),
     ).fetchall()
     ctx["wellness_14d"] = [

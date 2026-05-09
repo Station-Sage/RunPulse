@@ -28,7 +28,7 @@ def upsert_payload(
     source: str,
     entity_type: str,
     entity_id: str,
-    payload: str | dict,
+    payload: str | dict | list,
     *,
     entity_date: str | None = None,
     activity_id: int | None = None,
@@ -39,7 +39,7 @@ def upsert_payload(
 
     Returns: (row_id, is_new_or_changed)
     """
-    if isinstance(payload, dict):
+    if isinstance(payload, (dict, list)):
         payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     else:
         payload_str = payload
@@ -60,7 +60,7 @@ def upsert_payload(
         # 변경됨 → UPDATE
         conn.execute(
             "UPDATE source_payloads SET payload = ?, payload_hash = ?, "
-            "entity_date = ?, activity_id = ?, endpoint = ?, "
+            "entity_date = ?, activity_id = COALESCE(?, activity_id), endpoint = ?, "
             "parser_version = ?, fetched_at = datetime('now') "
             "WHERE id = ?",
             (payload_str, payload_hash, entity_date, activity_id,
@@ -613,6 +613,38 @@ def upsert_streams_batch(
         )
         count += 1
     return count
+
+
+def load_activity_streams(conn: sqlite3.Connection, activity_id: int) -> dict:
+    """activity_streams typed columns → stream dict.
+
+    v0.3 typed columns을 소비자 코드가 기대하는 키 형식으로 변환.
+    키: time, heartrate, velocity_smooth, cadence, watts, altitude, distance, latlng
+    """
+    rows = conn.execute(
+        "SELECT elapsed_sec, heart_rate, cadence, speed_ms, power_watts, "
+        "altitude_m, latitude, longitude, distance_m "
+        "FROM activity_streams WHERE activity_id=? ORDER BY elapsed_sec",
+        (activity_id,),
+    ).fetchall()
+    if not rows:
+        return {}
+    result: dict = {"time": [r[0] for r in rows]}
+    if any(r[1] is not None for r in rows):
+        result["heartrate"] = [r[1] for r in rows]
+    if any(r[2] is not None for r in rows):
+        result["cadence"] = [r[2] for r in rows]
+    if any(r[3] is not None for r in rows):
+        result["velocity_smooth"] = [r[3] for r in rows]
+    if any(r[4] is not None for r in rows):
+        result["watts"] = [r[4] for r in rows]
+    if any(r[5] is not None for r in rows):
+        result["altitude"] = [r[5] for r in rows]
+    if any(r[6] is not None and r[7] is not None for r in rows):
+        result["latlng"] = [[r[6], r[7]] for r in rows]
+    if any(r[8] is not None for r in rows):
+        result["distance"] = [r[8] for r in rows]
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────

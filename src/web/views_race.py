@@ -50,16 +50,16 @@ def _load_metric(conn, name):
 
 
 _KM_TO_DARP_KEY = {
-    5.0: "DARP_5k", 10.0: "DARP_10k",
-    21.0975: "DARP_half", 42.195: "DARP_full",
+    5.0: "race_pred_5k_sec", 10.0: "race_pred_10k_sec",
+    21.0975: "race_pred_half_sec", 42.195: "race_pred_marathon_sec",
 }
 
 
 def _load_darp(conn, km):
-    key = _KM_TO_DARP_KEY.get(km, f"DARP_{km}")
+    key = _KM_TO_DARP_KEY.get(km, f"race_pred_{km}_sec")
     val, mj = _load_metric(conn, key)
     if val is None:
-        val, mj = _load_metric(conn, "DARP_half")
+        val, mj = _load_metric(conn, "race_pred_half_sec")
     return val, mj
 
 
@@ -276,7 +276,7 @@ def race_page():
             from datetime import date as _date
             _today = _date.today().isoformat()
             _darp_today = conn.execute(
-                "SELECT 1 FROM metric_store WHERE scope_id=? AND metric_name='DARP_half' "
+                "SELECT 1 FROM metric_store WHERE scope_id=? AND metric_name='race_pred_half_sec' "
                 "AND scope_type='daily' AND is_primary=1 LIMIT 1", (_today,),
             ).fetchone()
             if not _darp_today:

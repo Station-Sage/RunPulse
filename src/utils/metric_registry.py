@@ -279,6 +279,10 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("monotony", "load", "metric", "", "훈련 단조로움", scope="daily"),
     MetricDef("training_strain", "load", "metric", "", "훈련 스트레인", scope="daily"),
     MetricDef("rtti", "load", "metric", "%", "달리기 내성 지수 (RTTI)", scope="daily"),
+    MetricDef("running_tolerance_load", "load", "metric", "score", "러닝 내성 훈련 부하 (Garmin)", scope="daily"),
+    MetricDef("running_tolerance_optimal_min", "load", "metric", "score", "러닝 내성 최적 부하 하한 (Garmin)", scope="daily"),
+    MetricDef("running_tolerance_optimal_max", "load", "metric", "score", "러닝 내성 최적 부하 상한 (Garmin)", scope="daily"),
+    MetricDef("running_tolerance_score", "load", "metric", "score", "러닝 내성 점수 (Garmin)", scope="daily"),
     # weekly load
     MetricDef("tids", "load", "metric", "", "Training Intensity Distribution Score", scope="weekly"),
     MetricDef("adti", "load", "metric", "", "Aerobic Decoupling Trend Index", scope="weekly"),
@@ -320,6 +324,7 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("marathon_shape", "capacity", "metric", "%", "Marathon Shape (훈련 완성도)", scope="daily"),
     MetricDef("sapi", "capacity", "metric", "", "SAPI (계절 성과 비교)", scope="daily"),
     MetricDef("rri", "capacity", "metric", "", "RRI (레이스 준비도)", scope="daily"),
+    MetricDef("vo2max", "capacity", "metric", "ml/kg/min", "일별 VO2Max 추정치 (Garmin wellness)", scope="daily"),
     MetricDef("di", "capacity", "metric", "", "Durability Index", scope="weekly"),
 
     # ── prediction ──

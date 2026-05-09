@@ -219,7 +219,7 @@ def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
         ("intervals_tsb",   "intervals", "tsb",             "intervals", "tsb"),
         ("runalyze_evo2max","runalyze",  "runalyze_evo2max","runalyze",  "effective_vo2max"),
         ("runalyze_vdot",   "runalyze",  "runalyze_vdot",   "runalyze",  "vdot"),
-        ("garmin_vo2max",   "garmin",    "garmin_vo2max",   "garmin",    "vo2max"),
+        ("garmin_vo2max",   "garmin",    "garmin_vo2max",   "garmin",    "vo2max_activity"),
     ]
 
     results = []

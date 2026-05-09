@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import date, timedelta
 
+from src.utils.db_helpers import load_activity_streams
 from src.utils.zones import hr_zones
 
 
@@ -101,11 +102,8 @@ def _load_stream(path: str, conn=None) -> dict | None:
     if path.startswith("db:") and conn is not None:
         try:
             aid = int(path[3:])
-            rows = conn.execute(
-                "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
-                (aid,),
-            ).fetchall()
-            return {r[0]: json.loads(r[1]) for r in rows if r[1]} if rows else None
+            result = load_activity_streams(conn, aid)
+            return result if result else None
         except Exception:
             return None
     try:
@@ -147,10 +145,9 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
         acts = [(rep_id,)] if src_row and src_row[0] == "intervals" else []
 
     for (sid,) in acts:
-        # 1) 신규 저장 포맷: icu_hr_zone_times = [z1, z2, z3, ...]
         r = conn.execute(
             "SELECT json_value FROM metric_store "
-            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='icu_hr_zone_times'",
+            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='hr_zones_detail'",
             (sid,),
         ).fetchone()
         if r and r[0]:
@@ -158,19 +155,6 @@ def _get_intervals_zones(conn: sqlite3.Connection, rep_id: int) -> dict | None:
                 data = json.loads(r[0])
                 if isinstance(data, list):
                     return {idx + 1: int(v or 0) for idx, v in enumerate(data[:5])}
-            except Exception:
-                pass
-
-        # 2) 구 포맷: hr_zone_distribution = {1: secs, ...}
-        r = conn.execute(
-            "SELECT json_value FROM metric_store "
-            "WHERE scope_type='activity' AND scope_id=CAST(? AS TEXT) AND metric_name='hr_zone_distribution'",
-            (sid,),
-        ).fetchone()
-        if r and r[0]:
-            try:
-                data = json.loads(r[0])
-                return {int(k): v for k, v in data.items()}
             except Exception:
                 pass
     return None

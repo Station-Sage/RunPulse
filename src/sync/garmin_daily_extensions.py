@@ -436,7 +436,7 @@ def sync_daily_running_tolerance(
     client: "Garmin",
     date_str: str,
 ) -> None:
-    """Garmin running_tolerance (주간 집계) → daily_detail_metrics 저장."""
+    """Garmin running_tolerance (주간 집계) → metric_store 저장."""
     try:
         # 당일 포함 7일 범위로 집계
         data = client.get_running_tolerance(date_str, date_str, aggregation="weekly")
@@ -459,7 +459,8 @@ def sync_daily_running_tolerance(
         for name, value in metrics.items():
             if value is not None:
                 try:
-                    _upsert_daily_detail_metric(conn, date_str, name, metric_value=float(value))
+                    upsert_metric(conn, "daily", date_str, name, "garmin",
+                                  numeric_value=float(value))
                 except (TypeError, ValueError):
                     pass
         break  # 첫 번째 항목만

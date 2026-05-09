@@ -72,7 +72,10 @@ def get_runner_state(conn: sqlite3.Connection) -> RunnerState:
     # TSB
     try:
         row = conn.execute(
-            "SELECT tsb FROM daily_fitness ORDER BY date DESC LIMIT 1"
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='tsb' AND provider='intervals'"
+            "   AND numeric_value IS NOT NULL"
+            " ORDER BY scope_id DESC LIMIT 1"
         ).fetchone()
         state.tsb = row[0] if row else None
     except Exception:

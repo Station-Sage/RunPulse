@@ -211,7 +211,7 @@ def _load_pmc_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
            WHERE scope_id BETWEEN ? AND ? AND scope_type='daily' AND is_primary=1
-             AND metric_name IN ('TRIMP_daily','ACWR')
+             AND metric_name IN ('trimp','acwr')
            ORDER BY scope_id""",
         (start.isoformat(), end.isoformat()),
     ).fetchall()
@@ -222,9 +222,9 @@ def _load_pmc_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
         if mval is None:
             continue
         dates_set.add(dt)
-        if mname == "TRIMP_daily":
+        if mname == "trimp":
             trimp_map[dt] = round(float(mval), 1)
-        elif mname == "ACWR":
+        elif mname == "acwr":
             acwr_map[dt] = round(float(mval), 3)
     dates = sorted(dates_set)
     return {

@@ -95,7 +95,7 @@ def _load_metrics_avg(conn: sqlite3.Connection, start: str, end: str) -> dict:
         """SELECT metric_name, AVG(numeric_value)
            FROM metric_store
            WHERE scope_id BETWEEN ? AND ? AND scope_type='daily' AND is_primary=1
-             AND metric_name IN ('UTRS', 'CIRS')
+             AND metric_name IN ('utrs', 'cirs')
            GROUP BY metric_name""",
         (start, end),
     ).fetchall()
@@ -114,7 +114,7 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
         return []
     act_ids = [a[0] for a in acts]
     metrics = load_activity_metrics_batch(
-        conn, act_ids, ["FEARP", "RelativeEffort", "AerobicDecoupling"])
+        conn, act_ids, ["fearp", "relative_effort", "aerobic_decoupling_rp"])
     # WorkoutType 분류 로드
     import json as _json
     wt_map: dict[int, dict] = {}
@@ -123,7 +123,7 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
         str_ids = [str(aid) for aid in act_ids]
         wt_rows = conn.execute(
             f"SELECT CAST(scope_id AS INTEGER) AS activity_id, json_value FROM metric_store "
-            f"WHERE scope_type='activity' AND scope_id IN ({ph}) AND metric_name='WorkoutType'",
+            f"WHERE scope_type='activity' AND scope_id IN ({ph}) AND metric_name='workout_type_classified'",
             str_ids,
         ).fetchall()
         for aid, mj in wt_rows:
@@ -138,8 +138,8 @@ def _load_activity_metrics(conn: sqlite3.Connection, start: str, end: str) -> li
         wt = wt_map.get(act_id, {})
         result.append({
             "date": str(start_time)[:10], "dist_km": dist, "pace": pace,
-            "fearp": m.get("FEARP"), "relative_effort": m.get("RelativeEffort"),
-            "decoupling": m.get("AerobicDecoupling"),
+            "fearp": m.get("fearp"), "relative_effort": m.get("relative_effort"),
+            "decoupling": m.get("aerobic_decoupling_rp"),
             "rp_type": wt.get("type", ""), "rp_effect": wt.get("effect", ""),
         })
     return result
@@ -262,20 +262,20 @@ def report_view():
             vdot, shape = _load_fitness_data(conn, end_date)
             # DI (내구성 지수)
             _di_row = conn.execute(
-                "SELECT numeric_value FROM metric_store WHERE metric_name='DI' "
+                "SELECT numeric_value FROM metric_store WHERE metric_name='di' "
                 "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()
             di_val = float(_di_row[0]) if _di_row and _di_row[0] is not None else None
             # v0.3 메트릭
             _teroi_row = conn.execute(
-                "SELECT numeric_value FROM metric_store WHERE metric_name='TEROI' "
+                "SELECT numeric_value FROM metric_store WHERE metric_name='teroi' "
                 "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()
             teroi_val = float(_teroi_row[0]) if _teroi_row and _teroi_row[0] is not None else None
             _sapi_row = conn.execute(
-                "SELECT numeric_value FROM metric_store WHERE metric_name='SAPI' "
+                "SELECT numeric_value FROM metric_store WHERE metric_name='sapi' "
                 "AND scope_type='daily' AND is_primary=1 AND scope_id<=? ORDER BY scope_id DESC LIMIT 1",
                 (end_date,),
             ).fetchone()

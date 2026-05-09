@@ -43,14 +43,12 @@ RANGE_MEANINGS = {
 def generate() -> str:
     """메트릭 사전 markdown 문자열 생성."""
     lines = []
-    from datetime import date
-    today = date.today().isoformat()
     n_calc = len(ALL_CALCULATORS)
     n_groups = len(SEMANTIC_GROUPS)
 
     lines.append("# RunPulse Metric Dictionary")
     lines.append("")
-    lines.append(f"> 자동 생성: {today} | {n_calc} calculators | {n_groups} semantic groups")
+    lines.append(f"> 자동 생성 | {n_calc} calculators | {n_groups} semantic groups")
     lines.append(">")
     lines.append("> 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.")
     lines.append("> UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.")

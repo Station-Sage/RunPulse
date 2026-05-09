@@ -170,3 +170,81 @@ class TestGarminWellness:
         fit = ext.extract_fitness("2025-03-25", raw)
         assert fit["source"] == "garmin"
         assert fit["vo2max"] == 52.0
+
+
+class TestGarminExtractorStreams:
+    """extract_activity_streams — get_activity_details 포맷 파싱."""
+
+    STREAMS_RAW = {
+        "metricDescriptors": [
+            {"key": "directElapsedDuration", "metricsIndex": 0},
+            {"key": "directHeartRate",        "metricsIndex": 1},
+            {"key": "directLatitude",         "metricsIndex": 2},
+            {"key": "directLongitude",        "metricsIndex": 3},
+            {"key": "directSpeed",            "metricsIndex": 4},
+            {"key": "directElevation",        "metricsIndex": 5},
+            {"key": "directDoubleCadence",    "metricsIndex": 6},
+        ],
+        "activityDetailMetrics": [
+            {"metrics": [0,  120, 37.5665, 126.9780, 3.0, 50.0, 180]},
+            {"metrics": [1,  125, 37.5666, 126.9781, 3.1, 50.5, 182]},
+            {"metrics": [2,  130, 37.5667, 126.9782, 3.2, 51.0, None]},
+        ],
+    }
+
+    def test_basic_parsing(self, ext):
+        rows = ext.extract_activity_streams(self.STREAMS_RAW)
+        assert len(rows) == 3
+        assert rows[0]["elapsed_sec"] == 0
+        assert rows[0]["source"] == "garmin"
+        assert rows[0]["heart_rate"] == 120
+        assert rows[0]["latitude"] == 37.5665
+        assert rows[0]["longitude"] == 126.9780
+        assert rows[0]["speed_ms"] == 3.0
+        assert rows[0]["altitude_m"] == 50.0
+        assert rows[0]["cadence"] == 180
+
+    def test_elapsed_sec_sequence(self, ext):
+        rows = ext.extract_activity_streams(self.STREAMS_RAW)
+        assert [r["elapsed_sec"] for r in rows] == [0, 1, 2]
+
+    def test_none_values_excluded(self, ext):
+        rows = ext.extract_activity_streams(self.STREAMS_RAW)
+        # 세 번째 행: cadence=None → 키 없어야 함
+        assert "cadence" not in rows[2]
+
+    def test_elapsed_sec_fallback_to_index(self, ext):
+        """directElapsedDuration 없으면 row index 사용."""
+        raw = {
+            "metricDescriptors": [
+                {"key": "directHeartRate", "metricsIndex": 0},
+            ],
+            "activityDetailMetrics": [
+                {"metrics": [120]},
+                {"metrics": [125]},
+            ],
+        }
+        rows = ext.extract_activity_streams(raw)
+        assert rows[0]["elapsed_sec"] == 0
+        assert rows[1]["elapsed_sec"] == 1
+
+    def test_empty_descriptors_returns_empty(self, ext):
+        assert ext.extract_activity_streams({"metricDescriptors": [], "activityDetailMetrics": []}) == []
+
+    def test_non_dict_input_returns_empty(self, ext):
+        assert ext.extract_activity_streams([]) == []
+        assert ext.extract_activity_streams(None) == []
+
+    def test_temperature_prefers_air(self, ext):
+        raw = {
+            "metricDescriptors": [
+                {"key": "directElapsedDuration",  "metricsIndex": 0},
+                {"key": "directAirTemperature",   "metricsIndex": 1},
+                {"key": "directTemperature",      "metricsIndex": 2},
+            ],
+            "activityDetailMetrics": [
+                {"metrics": [0, 20.0, 22.0]},
+            ],
+        }
+        rows = ext.extract_activity_streams(raw)
+        assert rows[0]["temperature_c"] == 20.0  # directAirTemperature 우선

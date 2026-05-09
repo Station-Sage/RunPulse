@@ -16,7 +16,7 @@ def _mock_api(activities=None, detail=None, streams=None):
     api = MagicMock()
     api.get_activities_by_date.return_value = activities or []
     api.get_activity.return_value = detail
-    api.get_activity_splits.return_value = streams
+    api.get_activity_details.return_value = streams
     return api
 
 
@@ -119,14 +119,34 @@ class TestGarminActivitySync:
         assert r2.synced_count == 0
 
     def test_sync_with_streams(self):
-        """include_streams=True → streams 요청."""
+        """include_streams=True → get_activity_details 호출 + activity_streams 저장."""
         conn = _conn()
-        streams_data = {"lapDTOs": [], "activityDetailMetrics": []}
+        streams_data = {
+            "metricDescriptors": [
+                {"key": "directElapsedDuration", "metricsIndex": 0},
+                {"key": "directHeartRate",        "metricsIndex": 1},
+                {"key": "directLatitude",         "metricsIndex": 2},
+                {"key": "directLongitude",        "metricsIndex": 3},
+                {"key": "directSpeed",            "metricsIndex": 4},
+            ],
+            "activityDetailMetrics": [
+                {"metrics": [0,  120, 37.5665, 126.9780, 3.0]},
+                {"metrics": [1,  125, 37.5666, 126.9781, 3.1]},
+                {"metrics": [2,  130, 37.5667, 126.9782, 3.2]},
+            ],
+        }
         api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL, streams=streams_data)
 
         result = sync(conn, api, days=7, include_streams=True, _sleep_fn=lambda _: None)
         assert result.synced_count == 1
         assert result.api_calls >= 3  # list + detail + streams
+
+        stream_rows = conn.execute(
+            "SELECT elapsed_sec, heart_rate, latitude FROM activity_streams ORDER BY elapsed_sec"
+        ).fetchall()
+        assert len(stream_rows) == 3
+        assert stream_rows[0] == (0, 120, 37.5665)
+        assert stream_rows[2][1] == 130
 
     def test_sync_rate_limit_error(self):
         """429 에러 시 partial/failed 상태."""

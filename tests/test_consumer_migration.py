@@ -8,8 +8,15 @@ from __future__ import annotations
 import csv
 import io
 import sqlite3
+from datetime import date, timedelta
 
 import pytest
+
+_TODAY = date.today()
+_ACT1_DT = f"{(_TODAY - timedelta(days=7)).isoformat()}T08:00:00"   # garmin
+_ACT2_DT = f"{(_TODAY - timedelta(days=3)).isoformat()}T08:00:00"   # strava
+_ACT1_DATE = (_TODAY - timedelta(days=7)).isoformat()
+_ACT2_DATE = (_TODAY - timedelta(days=3)).isoformat()
 
 from src.analysis.trends import weekly_trends
 from src.analysis.compare import compare_periods
@@ -35,8 +42,8 @@ def conn(db_conn):
             duration_sec, avg_pace_sec_km, avg_hr, max_hr, elevation_gain)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         [
-            ("garmin", "g1", "running", "2026-04-01T08:00:00", 10_000, 3600, 360, 150, 170, 100),
-            ("strava", "s1", "running", "2026-04-08T08:00:00", 21_097, 7200, 341, 155, 175, 200),
+            ("garmin", "g1", "running", _ACT1_DT, 10_000, 3600, 360, 150, 170, 100),
+            ("strava", "s1", "running", _ACT2_DT, 21_097, 7200, 341, 155, 175, 200),
         ],
     )
     db_conn.commit()
@@ -78,7 +85,10 @@ class TestTrends:
 
 class TestCompare:
     def test_compare_periods_distance_km(self, conn):
-        p1 = compare_periods(conn, "2026-03-25", "2026-04-08", "2026-04-08", "2026-04-22")
+        p1_start = (_TODAY - timedelta(days=14)).isoformat()
+        mid = (_TODAY - timedelta(days=4)).isoformat()
+        p2_end = (_TODAY + timedelta(days=3)).isoformat()
+        p1 = compare_periods(conn, p1_start, mid, mid, p2_end)
         # 첫 번째 기간에 garmin 10km 활동이 있어야 함
         assert p1["period1"]["total_distance_km"] == pytest.approx(10.0, abs=0.1)
 
@@ -87,7 +97,9 @@ class TestCompare:
 
 class TestWeeklyScore:
     def test_total_distance_km(self, conn):
-        summary = get_week_basics(conn, "2026-03-30", "2026-04-07")
+        week_start = (_TODAY - timedelta(days=8)).isoformat()
+        week_end = (_TODAY - timedelta(days=6)).isoformat()
+        summary = get_week_basics(conn, week_start, week_end)
         dist = summary.get("total_distance_km", 0)
         # garmin 10km 포함
         assert dist == pytest.approx(10.0, abs=0.1)

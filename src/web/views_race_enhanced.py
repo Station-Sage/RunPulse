@@ -34,25 +34,25 @@ def load_prediction_trend(conn: sqlite3.Connection, darp_key: str, weeks: int = 
 
 
 def load_fitness_factors(conn: sqlite3.Connection) -> dict:
-    """DI / MarathonShape / EF 최근 12주 추세."""
+    """DI / marathon_shape / efficiency_factor_rp 최근 12주 추세."""
     days = 84
     result: dict = {}
-    for name in ("DI", "MarathonShape"):
+    for store_name, key in (("di", "DI"), ("marathon_shape", "MarathonShape")):
         rows = conn.execute(
             """SELECT scope_id AS date, numeric_value FROM metric_store
                WHERE metric_name = ? AND scope_type='daily' AND is_primary=1
                  AND scope_id >= date('now', '-' || ? || ' days')
                ORDER BY scope_id""",
-            (name, days),
+            (store_name, days),
         ).fetchall()
-        result[name] = {
+        result[key] = {
             "dates": [r[0] for r in rows if r[1] is not None],
             "values": [round(float(r[1]), 1) for r in rows if r[1] is not None],
         }
-    # EF (활동별)
+    # EF (활동별) — v0.3 metric name: efficiency_factor_rp
     ef_rows = conn.execute(
         """SELECT scope_id AS date, numeric_value FROM metric_store
-           WHERE metric_name = 'EF' AND scope_type='activity' AND is_primary=1
+           WHERE metric_name = 'efficiency_factor_rp' AND scope_type='activity' AND is_primary=1
              AND scope_id >= date('now', '-' || ? || ' days')
            ORDER BY scope_id""",
         (days,),
@@ -252,103 +252,61 @@ def render_fitness_factors_chart(factors: dict) -> str:
 
 
 def render_race_shape_trio(conn, target_date: str | None = None) -> str:
-    """10K / Half / Marathon Race Shape를 나란히 표시."""
+    """Marathon Race Shape 카드 표시 (metric_store 기반).
+
+    marathon_shape 메트릭만 설계에 포함됨 (metric_dictionary §3).
+    shape_10k / shape_half 는 미구현 메트릭 — BACKLOG 참조.
+    """
+    import json as _json
     from datetime import date as _d
-    from src.metrics.marathon_shape import (
-        calc_marathon_shape, _get_vdot, _get_recent_running_data,
-        _calc_consistency, _calc_long_run_stats, _get_race_targets,
-    )
 
     today = target_date or _d.today().isoformat()
 
-    # VDOT_ADJ 우선 (DARP와 동일한 소스)
-    vdot = None
-    adj_row = conn.execute(
-        "SELECT numeric_value FROM metric_store "
-        "WHERE metric_name='VDOT_ADJ' AND numeric_value IS NOT NULL "
-        "AND scope_type='daily' AND is_primary=1 AND scope_id<=? "
-        "ORDER BY scope_id DESC LIMIT 1", (today,),
+    row = conn.execute(
+        """SELECT numeric_value, json_value FROM metric_store
+           WHERE metric_name='marathon_shape' AND scope_type='daily' AND is_primary=1
+             AND scope_id <= ?
+           ORDER BY scope_id DESC LIMIT 1""",
+        (today,),
     ).fetchone()
-    if adj_row and adj_row[0]:
-        vdot = float(adj_row[0])
-    else:
-        vdot = _get_vdot(conn, today)
-    if vdot is None:
+
+    if not row or row[0] is None:
         return ""
 
-    distances = [
-        ("10K", 10.0),
-        ("하프", 21.0975),
-        ("마라톤", 42.195),
-    ]
+    shape_pct = float(row[0])
+    jv = _json.loads(row[1]) if isinstance(row[1], str) and row[1] else {}
 
-    cards = []
-    for label, km in distances:
-        targets = _get_race_targets(vdot, km)
-        weeks = targets["consistency_weeks"]
-        data_weeks = min(weeks, 4)
-        weekly_avg, longest = _get_recent_running_data(conn, today, weeks=data_weeks)
-        consistency = _calc_consistency(conn, today, weeks=weeks)
-        long_count, long_quality = _calc_long_run_stats(
-            conn, today, weeks=weeks,
-            threshold_km=targets["long_threshold"], vdot=vdot)
-        shape = calc_marathon_shape(
-            weekly_avg, longest, vdot,
-            consistency_score=consistency,
-            race_distance_km=km,
-            long_run_count=long_count,
-            long_run_quality=long_quality,
-        )
-        if shape is None:
-            continue
+    color = "#00ff88" if shape_pct >= 70 else "#ffaa00" if shape_pct >= 50 else "#ff4444"
+    weekly_avg = jv.get("weekly_km_avg", 0)
+    longest = jv.get("longest_run_km", 0)
+    target_w = jv.get("target_weekly_km", 0)
+    target_l = jv.get("target_long_km", 0)
 
-        color = "#00ff88" if shape >= 70 else "#ffaa00" if shape >= 50 else "#ff4444"
-        target_w = targets["weekly_target"]
-        target_l = targets["long_max"]
-        target_cnt = targets["long_count_target"]
-        weekly_pct = min(100, int(weekly_avg / target_w * 100)) if target_w > 0 else 0
-        long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
-        freq_pct = min(100, int(long_count / target_cnt * 100)) if target_cnt > 0 else 0
+    weekly_pct = min(100, int(weekly_avg / target_w * 100)) if target_w > 0 else 0
+    long_pct = min(100, int(longest / target_l * 100)) if target_l > 0 else 0
 
-        # 5요소 점수 색상
-        def _pct_clr(pct):
-            return "#00ff88" if pct >= 80 else "#ffaa00" if pct >= 50 else "#ff4444"
-        con_pct = int(consistency * 100)
-        qual_pct = int(long_quality * 100)
+    def _pct_clr(pct: int) -> str:
+        return "#00ff88" if pct >= 80 else "#ffaa00" if pct >= 50 else "#ff4444"
 
-        cards.append(
-            f"<div style='flex:1;min-width:140px;text-align:center;padding:12px;"
-            f"background:rgba(255,255,255,0.03);border-radius:12px;'>"
-            f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:4px;'>{label}</div>"
-            f"<div style='font-size:1.6rem;font-weight:700;color:{color};'>{shape:.0f}%</div>"
-            f"<div style='margin-top:8px;text-align:left;font-size:0.65rem;'>"
-            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
-            f"<span style='color:var(--muted);'>주간 볼륨</span>"
-            f"<span style='color:{_pct_clr(weekly_pct)};'>{weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</span></div>"
-            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
-            f"<span style='color:var(--muted);'>최장 거리</span>"
-            f"<span style='color:{_pct_clr(long_pct)};'>{longest:.0f}/{target_l:.0f}km ({long_pct}%)</span></div>"
-            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
-            f"<span style='color:var(--muted);'>장거리 횟수</span>"
-            f"<span style='color:{_pct_clr(freq_pct)};'>{long_count}/{target_cnt}회 ({freq_pct}%)</span></div>"
-            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
-            f"<span style='color:var(--muted);'>일관성</span>"
-            f"<span style='color:{_pct_clr(con_pct)};'>주{consistency*4:.1f}회 ({con_pct}%)</span></div>"
-            f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
-            f"<span style='color:var(--muted);'>페이스 품질</span>"
-            f"<span style='color:{_pct_clr(qual_pct)};'>"
-            + (f"{int(long_quality * long_count)}/{long_count}회 ({qual_pct}%)" if long_count > 0 else f"{qual_pct}%")
-            + f"</span></div>"
-            f"</div></div>"
-        )
-
-    if not cards:
-        return ""
+    card = (
+        f"<div style='flex:1;min-width:140px;text-align:center;padding:12px;"
+        f"background:rgba(255,255,255,0.03);border-radius:12px;'>"
+        f"<div style='font-size:0.8rem;color:var(--muted);margin-bottom:4px;'>마라톤</div>"
+        f"<div style='font-size:1.6rem;font-weight:700;color:{color};'>{shape_pct:.0f}%</div>"
+        f"<div style='margin-top:8px;text-align:left;font-size:0.65rem;'>"
+        f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+        f"<span style='color:var(--muted);'>주간 볼륨</span>"
+        f"<span style='color:{_pct_clr(weekly_pct)};'>{weekly_avg:.0f}/{target_w:.0f}km ({weekly_pct}%)</span></div>"
+        f"<div style='display:flex;justify-content:space-between;padding:1px 0;'>"
+        f"<span style='color:var(--muted);'>최장 거리</span>"
+        f"<span style='color:{_pct_clr(long_pct)};'>{longest:.0f}/{target_l:.0f}km ({long_pct}%)</span></div>"
+        f"</div></div>"
+    )
 
     return (
         "<div class='card' style='margin-top:12px;'>"
         "<h2 style='font-size:1rem;margin-bottom:10px;'>거리별 Race Shape</h2>"
-        f"<div style='display:flex;gap:10px;flex-wrap:wrap;'>{''.join(cards)}</div>"
+        f"<div style='display:flex;gap:10px;flex-wrap:wrap;'>{card}</div>"
         "</div>"
     )
 

@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import date
 
+from src.utils.db_helpers import load_activity_streams
 from src.utils.pace import seconds_to_pace
 
 
@@ -18,11 +19,11 @@ def _find_activity(
 
     Returns:
         (id, source, start_time, distance_m/1000→distance_km, duration_sec, avg_pace_sec_km,
-         avg_hr, max_hr, avg_cadence, elevation_gain, calories, activity_type)
+         avg_hr, max_hr, avg_cadence, elevation_gain, activity_type)
         또는 None.
     """
     cols = ("id, source, start_time, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
-            "avg_hr, max_hr, avg_cadence, elevation_gain, calories, activity_type")
+            "avg_hr, max_hr, avg_cadence, elevation_gain, activity_type")
 
     if activity_id is not None:
         return conn.execute(
@@ -115,13 +116,9 @@ def _get_stream(conn: sqlite3.Connection, activity_id: int) -> dict | None:
         strava_ids = []
 
     for (sid,) in strava_ids:
-        # activity_streams 테이블 우선
-        rows = conn.execute(
-            "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
-            (sid,),
-        ).fetchall()
-        if rows:
-            return {r[0]: json.loads(r[1]) for r in rows if r[1]}
+        result = load_activity_streams(conn, sid)
+        if result:
+            return result
         # 레거시 파일 경로
         r = conn.execute(
             "SELECT json_value FROM metric_store "
@@ -247,7 +244,7 @@ def deep_analyze(
         return None
 
     (act_id, act_source, start_time, dist_km, dur_sec,
-     avg_pace, avg_hr, max_hr, avg_cadence, elev_gain, calories, act_type) = act_row
+     avg_pace, avg_hr, max_hr, avg_cadence, elev_gain, act_type) = act_row
 
     act_date = start_time[:10]
 
@@ -332,7 +329,7 @@ def deep_analyze(
 
     # Intervals 지표
     iv = source_metrics.get("intervals", {})
-    hr_zones_raw = iv.get("hr_zone_distribution")
+    hr_zones_raw = iv.get("hr_zones_detail")
     if isinstance(hr_zones_raw, str):
         try:
             hr_zones_raw = json.loads(hr_zones_raw)
@@ -391,25 +388,39 @@ def deep_analyze(
     if zones.get("activity_count", 0) == 0:
         zones = None
 
-    # daily_fitness 컨텍스트
-    fitness_row = conn.execute(
-        "SELECT ctl, atl, tsb, garmin_vo2max, runalyze_evo2max, runalyze_vdot "
-        "FROM daily_fitness WHERE date = ? ORDER BY date DESC LIMIT 1",
-        (act_date,),
-    ).fetchone()
+    # fitness 컨텍스트 (metric_store — daily_fitness 테이블 v11 삭제됨)
+    def _ms_daily(metric_name: str, provider: str):
+        row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND scope_id=? AND metric_name=? AND provider=?"
+            "   AND numeric_value IS NOT NULL",
+            (act_date, metric_name, provider),
+        ).fetchone()
+        return row[0] if row else None
+
+    def _ms_activity_latest(metric_name: str, provider: str):
+        row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='activity' AND metric_name=? AND provider=?"
+            "   AND numeric_value IS NOT NULL"
+            " ORDER BY rowid DESC LIMIT 1",
+            (metric_name, provider),
+        ).fetchone()
+        return row[0] if row else None
+
     fitness_ctx: dict = {
-        "ctl": None, "atl": None, "tsb": None,
-        "garmin_vo2max": None, "runalyze_evo2max": None, "runalyze_vdot": None,
+        "ctl":              _ms_daily("ctl", "intervals"),
+        "atl":              _ms_daily("atl", "intervals"),
+        "tsb":              _ms_daily("tsb", "intervals"),
+        "garmin_vo2max":    _ms_activity_latest("vo2max_activity", "garmin"),
+        "runalyze_evo2max": _ms_activity_latest("effective_vo2max", "runalyze"),
+        "runalyze_vdot":    _ms_activity_latest("vdot", "runalyze"),
     }
-    if fitness_row:
-        keys = list(fitness_ctx.keys())
-        for i, k in enumerate(keys):
-            fitness_ctx[k] = fitness_row[i]
 
     # daily_wellness 컨텍스트
     wellness_row = conn.execute(
-        "SELECT body_battery, sleep_score, sleep_hours, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE date = ? AND source = 'garmin'",
+        "SELECT body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date = ?",
         (act_date,),
     ).fetchone()
     recovery_ctx: dict = {
@@ -417,9 +428,12 @@ def deep_analyze(
         "hrv_value": None, "stress_level": None, "resting_hr": None,
     }
     if wellness_row:
+        sleep_hours = wellness_row[2] / 3600.0 if wellness_row[2] else None
         (recovery_ctx["body_battery"], recovery_ctx["sleep_score"],
          recovery_ctx["sleep_hours"], recovery_ctx["hrv_value"],
-         recovery_ctx["stress_level"], recovery_ctx["resting_hr"]) = wellness_row
+         recovery_ctx["stress_level"], recovery_ctx["resting_hr"]) = (
+            wellness_row[0], wellness_row[1], sleep_hours, wellness_row[3], wellness_row[4], wellness_row[5]
+        )
 
     daily_detail = _get_daily_detail_metrics(conn, act_date, source="garmin")
     garmin_daily_detail = {
@@ -451,7 +465,7 @@ def deep_analyze(
             "max_hr": max_hr,
             "avg_cadence": avg_cadence,
             "elevation_gain": elev_gain,
-            "calories": calories,
+            "calories": g.get("calories"),
         },
         "garmin": garmin_data,
         "garmin_daily_detail": garmin_daily_detail,

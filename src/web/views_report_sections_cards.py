@@ -168,10 +168,10 @@ def render_risk_overview(risk: dict) -> str:
         )
 
     rows = (
-        _risk_row("ACWR (급성/만성 부하비)", "ACWR", 1.3, 1.5)
-        + _risk_row("LSI (부하 스파이크)", "LSI", 1.0, 1.5)
-        + _risk_row("Monotony (훈련 단조로움)", "Monotony", 1.5, 2.0)
-        + _risk_row("CIRS (복합 부상 위험)", "CIRS", 50, 75, ".0f")
+        _risk_row("ACWR (급성/만성 부하비)", "acwr", 1.3, 1.5)
+        + _risk_row("LSI (부하 스파이크)", "lsi", 1.0, 1.5)
+        + _risk_row("Monotony (훈련 단조로움)", "monotony", 1.5, 2.0)
+        + _risk_row("CIRS (복합 부상 위험)", "cirs", 50, 75, ".0f")
     )
     return (
         "<div class='card'><h2 style='font-size:1rem;margin-bottom:0.5rem;'>위험 지표 개요</h2>"

@@ -96,7 +96,7 @@ class TestSchemaCreation:
     def test_schema_version(self, db_conn):
         ver = _get_user_version(db_conn)
         assert ver == SCHEMA_VERSION
-        assert ver == 14  # v0.3.4: activity_streams/best_efforts elapsed_sec 보장
+        assert ver == 15  # v0.3.5: activity_summaries.workout_label 추가
 
     def test_activity_summaries_column_count(self, db_conn):
         cols = db_conn.execute("PRAGMA table_info(activity_summaries)").fetchall()

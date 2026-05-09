@@ -5,7 +5,7 @@
   garmin_helpers.py          — 공통 헬퍼 (_store_raw_payload, _upsert_vo2max 등)
   garmin_activity_sync.py    — 활동 동기화 (sync_activities, _sync_activity_splits)
   garmin_wellness_sync.py    — 웰니스 동기화 (sync_wellness)
-  garmin_api_extensions.py   — 활동 확장 API (streams, gear, exercise_sets)
+  garmin_api_extensions.py   — 활동 확장 API (gear, exercise_sets)
   garmin_daily_extensions.py — 일별 확장 API (race_predictions, training_status 등)
   garmin_athlete_extensions.py — 선수 프로필/통계 (personal_records, stats)
 """

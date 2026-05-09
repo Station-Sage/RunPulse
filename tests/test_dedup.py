@@ -72,3 +72,44 @@ class TestDedup:
         ])
         groups = run_dedup(conn)
         assert groups == 1
+
+    def test_one_sided_zero_distance_not_grouped(self):
+        """한쪽만 거리 0이면 매칭하지 않는다."""
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": None},
+        ])
+        groups = run_dedup(conn)
+        assert groups == 0
+
+    def test_preserves_existing_groups_on_rerun(self):
+        """2차 실행 시 기존 그룹 ID가 유지된다."""
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": 10050},
+        ])
+        run_dedup(conn)
+        gid_first = conn.execute("SELECT matched_group_id FROM activity_summaries LIMIT 1").fetchone()[0]
+        run_dedup(conn)
+        gid_second = conn.execute("SELECT matched_group_id FROM activity_summaries LIMIT 1").fetchone()[0]
+        assert gid_first == gid_second
+
+    def test_third_source_joins_existing_group(self):
+        """2차 동기화로 추가된 3번째 소스가 기존 그룹에 합류한다."""
+        conn = _conn_with_activities([
+            {"source": "garmin", "source_id": "g1", "start_time": "2026-04-01T08:00:00", "distance_m": 10000},
+            {"source": "strava", "source_id": "s1", "start_time": "2026-04-01T08:01:00", "distance_m": 10050},
+        ])
+        run_dedup(conn)
+        # intervals 활동 추가 (나중에 동기화된 상황)
+        conn.execute(
+            "INSERT INTO activity_summaries (source, source_id, activity_type, start_time, distance_m) "
+            "VALUES ('intervals', 'i1', 'running', '2026-04-01T08:00:30', 10030)"
+        )
+        conn.commit()
+        groups = run_dedup(conn)
+        assert groups == 1
+        gids = conn.execute(
+            "SELECT DISTINCT matched_group_id FROM activity_summaries WHERE matched_group_id IS NOT NULL"
+        ).fetchall()
+        assert len(gids) == 1

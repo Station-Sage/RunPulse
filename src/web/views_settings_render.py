@@ -69,7 +69,7 @@ def _estimate_profile() -> dict:
             if max_hr_est != 190.0:
                 est["max_hr"] = int(max_hr_est)
             row = conn.execute(
-                "SELECT numeric_value FROM metric_store WHERE metric_name='eFTP' "
+                "SELECT numeric_value FROM metric_store WHERE metric_name='eftp' "
                 "AND scope_type='daily' AND is_primary=1 AND numeric_value IS NOT NULL "
                 "ORDER BY scope_id DESC LIMIT 1"
             ).fetchone()

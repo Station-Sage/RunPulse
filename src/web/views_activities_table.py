@@ -37,15 +37,15 @@ def _render_summary(total: int, total_dist: float) -> str:
         "동일 활동 묶기 ▾</button>"
         "<div id='group-menu' style='"
         "display:none; position:absolute; right:0; top:110%; "
-        "background:#fff; border:1px solid #ccc; border-radius:4px; "
-        "box-shadow:0 2px 8px rgba(0,0,0,0.15); z-index:100; min-width:140px;'>"
+        "background:#1e2a3a; border:1px solid rgba(255,255,255,0.15); border-radius:4px; "
+        "box-shadow:0 2px 8px rgba(0,0,0,0.4); z-index:100; min-width:140px;'>"
         "<button onclick='uaAutoGroup()' style='"
         "display:block; width:100%; text-align:left; padding:0.5rem 0.8rem; "
-        "border:none; background:none; cursor:pointer; font-size:0.85rem;'>"
+        "border:none; background:none; color:var(--fg); cursor:pointer; font-size:0.85rem;'>"
         "자동 묶기</button>"
         "<button onclick='uaEditModeOn()' style='"
         "display:block; width:100%; text-align:left; padding:0.5rem 0.8rem; "
-        "border:none; background:none; cursor:pointer; font-size:0.85rem;'>"
+        "border:none; background:none; color:var(--fg); cursor:pointer; font-size:0.85rem;'>"
         "직접 편집</button>"
         "</div>"
         "</div>"
@@ -73,7 +73,7 @@ document.addEventListener('click', function(e) {
 
 function uaAutoGroup() {
   document.getElementById('group-menu').style.display = 'none';
-  if (!confirm('모든 활동을 대상으로 동일 활동 자동 묶기를 실행합니까?\\n(±5분, ±3% 거리 조건)')) return;
+  if (!confirm('모든 활동을 대상으로 동일 활동 자동 묶기를 실행합니까?\\n(±7분, ±15% 거리 조건)')) return;
   fetch('/activities/auto-group', {method: 'POST'})
     .then(function(r){ return r.json(); })
     .then(function(d){

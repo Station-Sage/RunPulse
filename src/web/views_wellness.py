@@ -146,8 +146,8 @@ def _render_other_card(detail: dict) -> str:
 def _load_7day_wellness(conn, date_str: str) -> list[dict]:
     """최근 7일 웰니스 데이터 로드 (ECharts용)."""
     rows = conn.execute(
-        "SELECT date, sleep_score, hrv_value, body_battery, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date <= ? "
+        "SELECT date, sleep_score, hrv_last_night, body_battery_high, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date <= ? "
         "ORDER BY date DESC LIMIT 7",
         (date_str,),
     ).fetchall()
@@ -314,7 +314,7 @@ def _fetch_steps_weight(conn, date_str: str) -> tuple:
     """intervals daily_wellness에서 걸음 수/체중 조회."""
     try:
         row = conn.execute(
-            "SELECT steps, weight_kg FROM daily_wellness WHERE date = ? AND source = 'intervals'",
+            "SELECT steps, weight_kg FROM daily_wellness WHERE date = ?",
             (date_str,),
         ).fetchone()
         if row:

@@ -115,7 +115,7 @@ def _get_week_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
 
 def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | None:
     """HR Zone 기반 Easy 비율 계산 (intervals zone 데이터 우선, 없으면 HR 추정)."""
-    # intervals hr_zone_distribution JSON 활용
+    # hr_zones_detail = [z1_sec, z2_sec, ...] 리스트 포맷
     rows = conn.execute("""
         SELECT sm.json_value
         FROM metric_store sm
@@ -123,8 +123,7 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
         WHERE sm.scope_type='activity'
           AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.provider = 'intervals'
-          AND sm.metric_name = 'hr_zone_distribution'
+          AND sm.metric_name = 'hr_zones_detail'
           AND sm.json_value IS NOT NULL
     """, (start, end)).fetchall()
 
@@ -134,10 +133,11 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
         for (json_str,) in rows:
             try:
                 zones = json.loads(json_str)
-                for z, t in zones.items():
-                    total_time += t
-                    if str(z).lower() in ("z1", "z2", "zone1", "zone2", "1", "2"):
-                        easy_time += t
+                if isinstance(zones, list):
+                    for idx, t in enumerate(zones[:5]):
+                        total_time += t or 0
+                        if idx < 2:  # Zone 1, Zone 2
+                            easy_time += t or 0
             except (json.JSONDecodeError, AttributeError, TypeError):
                 continue
         if total_time > 0:

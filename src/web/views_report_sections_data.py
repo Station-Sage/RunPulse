@@ -13,7 +13,7 @@ def _load_tids_data(conn: sqlite3.Connection, start: str, end: str) -> dict | No
     """기간 내 최신 TIDS metric_json 조회."""
     row = conn.execute(
         """SELECT json_value FROM metric_store
-           WHERE metric_name = 'TIDS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name = 'tids' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
@@ -31,7 +31,7 @@ def _load_trimp_weekly(conn: sqlite3.Connection, start: str, end: str) -> list[d
     rows = conn.execute(
         """SELECT strftime('%Y-%W', scope_id) AS week, COALESCE(SUM(numeric_value), 0) AS total
            FROM metric_store
-           WHERE metric_name = 'TRIMP' AND scope_type='activity' AND is_primary=1
+           WHERE metric_name = 'trimp' AND scope_type='activity' AND is_primary=1
              AND scope_id BETWEEN ? AND ?
            GROUP BY week ORDER BY week ASC""",
         (start, end),
@@ -44,7 +44,7 @@ def _load_risk_overview(conn: sqlite3.Connection, start: str, end: str) -> dict:
     rows = conn.execute(
         """SELECT metric_name, AVG(numeric_value), MAX(numeric_value)
            FROM metric_store
-           WHERE metric_name IN ('ACWR', 'LSI', 'Monotony', 'CIRS')
+           WHERE metric_name IN ('acwr', 'lsi', 'monotony', 'cirs')
              AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
            GROUP BY metric_name""",
         (start, end),
@@ -56,7 +56,7 @@ def _load_adti(conn: sqlite3.Connection, end: str) -> float | None:
     """최신 ADTI (유산소 분리 추세) 값 조회."""
     row = conn.execute(
         """SELECT numeric_value FROM metric_store
-           WHERE metric_name = 'ADTI' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name = 'adti' AND scope_type='daily' AND is_primary=1
              AND scope_id <= ?
            ORDER BY scope_id DESC LIMIT 1""",
         (end,),
@@ -66,17 +66,22 @@ def _load_adti(conn: sqlite3.Connection, end: str) -> float | None:
 
 def _load_darp_latest(conn: sqlite3.Connection, end: str) -> dict:
     """최신 DARP 거리별 예측값 조회."""
+    _DIST_MAP = {
+        "race_pred_5k_sec": "5k",
+        "race_pred_10k_sec": "10k",
+        "race_pred_half_sec": "half",
+        "race_pred_marathon_sec": "full",
+    }
     result = {}
-    for key in ("DARP_5k", "DARP_10k", "DARP_half", "DARP_full"):
+    for metric_key, dist_key in _DIST_MAP.items():
         row = conn.execute(
             """SELECT numeric_value, json_value FROM metric_store
                WHERE metric_name = ? AND scope_type='daily' AND is_primary=1
                  AND scope_id <= ?
                ORDER BY scope_id DESC LIMIT 1""",
-            (key, end),
+            (metric_key, end),
         ).fetchone()
         if row and row[0] is not None:
-            dist_key = key.split("_", 1)[1]
             try:
                 mj = json.loads(row[1]) if row[1] else {}
             except Exception:

@@ -58,14 +58,22 @@ def _load_wellness(conn: sqlite3.Connection) -> dict:
     """오늘 웰니스 데이터."""
     from datetime import date
     row = conn.execute(
-        "SELECT sleep_score, sleep_hours, hrv_value, resting_hr, body_battery, stress_avg "
-        "FROM daily_wellness WHERE date=? AND source='garmin' LIMIT 1",
+        "SELECT sleep_score, sleep_duration_sec, hrv_last_night, resting_hr, body_battery_high, avg_stress "
+        "FROM daily_wellness WHERE date=? LIMIT 1",
         (date.today().isoformat(),),
     ).fetchone()
     if not row:
         return {}
-    keys = ["sleep_score", "sleep_hours", "hrv_value", "resting_hr", "body_battery", "stress_avg"]
-    return {k: v for k, v in zip(keys, row) if v is not None}
+    sleep_hours = row[1] / 3600.0 if row[1] else None
+    data = {
+        "sleep_score": row[0],
+        "sleep_hours": sleep_hours,
+        "hrv_value": row[2],
+        "resting_hr": row[3],
+        "body_battery": row[4],
+        "stress_avg": row[5],
+    }
+    return {k: v for k, v in data.items() if v is not None}
 
 
 # ── 브리핑 생성 ────────────────────────────────────────────────────────

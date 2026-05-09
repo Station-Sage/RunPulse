@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 import pytest
 
 from src.training.readiness import (
@@ -181,7 +182,7 @@ def empty_conn():
 @pytest.fixture
 def populated_conn(empty_conn):
     """VDOT_ADJ=45, DI=60, RTTI=85 데이터가 있는 DB."""
-    today = "2026-03-28"
+    today = date.today().isoformat()
     rows = [
         ("daily", today, "VDOT_ADJ", 45.0),
         ("daily", today, "DI",       60.0),

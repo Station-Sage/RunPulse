@@ -209,11 +209,9 @@ def import_strava_archive(
         payload = {k: v for k, v in merged.items() if v is not None}
         try:
             conn.execute(
-                """INSERT OR REPLACE INTO raw_source_payloads
-                   (source, entity_type, entity_id, activity_id, payload_json,
-                    created_at, updated_at)
-                   VALUES ('strava', 'archive_import', ?, ?, ?,
-                           datetime('now'), datetime('now'))""",
+                """INSERT OR REPLACE INTO source_payloads
+                   (source, entity_type, entity_id, activity_id, payload)
+                   VALUES ('strava', 'archive_import', ?, ?, ?)""",
                 (source_id, activity_id, json.dumps(payload, ensure_ascii=False)),
             )
         except sqlite3.Error:

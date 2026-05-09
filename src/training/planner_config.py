@@ -132,7 +132,7 @@ def get_vdot_adj(conn: sqlite3.Connection) -> float | None:
     """VDOT_ADJ 조회 (최근)."""
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT_ADJ' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='vdot_adj' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return float(row[0]) if row else None
@@ -142,7 +142,7 @@ def get_eftp(conn: sqlite3.Connection) -> int | None:
     """eFTP (sec/km) 조회."""
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='eFTP' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='eftp' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return int(row[0]) if row else None
@@ -152,7 +152,7 @@ def get_marathon_shape_pct(conn: sqlite3.Connection) -> float | None:
     """MarathonShape 점수 (0~100) 조회."""
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='MarathonShape' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='marathon_shape' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return float(row[0]) if row else None

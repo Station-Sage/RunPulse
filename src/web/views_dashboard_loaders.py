@@ -12,8 +12,8 @@ from datetime import date, timedelta
 def load_wellness_mini(conn: sqlite3.Connection, target_date: str) -> dict:
     """오늘의 웰니스 미니 데이터 (BB, 수면, HRV)."""
     row = conn.execute(
-        "SELECT body_battery, sleep_score, hrv_value, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date=? LIMIT 1",
+        "SELECT body_battery_high, sleep_score, hrv_last_night, resting_hr "
+        "FROM daily_wellness WHERE date=? LIMIT 1",
         (target_date,),
     ).fetchone()
     if not row:
@@ -43,7 +43,7 @@ def load_weekly_summary(conn: sqlite3.Connection, target_date: str) -> dict:
     # TIDS 최신 (이번 주 내)
     tids_row = conn.execute(
         """SELECT json_value FROM metric_store
-           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='tids' AND scope_type='daily' AND is_primary=1
              AND scope_id >= ? AND scope_id <= ?
            ORDER BY scope_id DESC LIMIT 1""",
         (monday.isoformat(), target_date),
@@ -72,7 +72,7 @@ def load_fitness_trends(conn: sqlite3.Connection, target_date: str, days: int = 
     # Monotony + Strain (일별)
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
-           WHERE metric_name IN ('Monotony', 'Strain')
+           WHERE metric_name IN ('monotony', 'training_strain')
              AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, target_date),
@@ -85,7 +85,7 @@ def load_fitness_trends(conn: sqlite3.Connection, target_date: str, days: int = 
     # EF (활동별)
     ef_rows = conn.execute(
         """SELECT scope_id AS date, numeric_value FROM metric_store
-           WHERE metric_name = 'EF' AND scope_type='activity' AND is_primary=1
+           WHERE metric_name = 'efficiency_factor_rp' AND scope_type='activity' AND is_primary=1
              AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, target_date),
@@ -95,8 +95,8 @@ def load_fitness_trends(conn: sqlite3.Connection, target_date: str, days: int = 
 
     return {
         "dates": dates,
-        "monotony": [by_date[d].get("Monotony") for d in dates],
-        "strain": [by_date[d].get("Strain") for d in dates],
+        "monotony": [by_date[d].get("monotony") for d in dates],
+        "strain": [by_date[d].get("training_strain") for d in dates],
         "ef_dates": ef_dates,
         "ef_values": ef_vals,
     }
@@ -107,12 +107,12 @@ def load_risk_7day_trends(conn: sqlite3.Connection, target_date: str) -> dict:
     start = (date.fromisoformat(target_date) - timedelta(days=6)).isoformat()
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
-           WHERE metric_name IN ('ACWR', 'LSI', 'Monotony', 'Strain')
+           WHERE metric_name IN ('acwr', 'lsi', 'monotony', 'training_strain')
              AND scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, target_date),
     ).fetchall()
-    series: dict[str, list] = {"ACWR": [], "LSI": [], "Monotony": [], "Strain": []}
+    series: dict[str, list] = {"acwr": [], "lsi": [], "monotony": [], "training_strain": []}
     for _, name, val in rows:
         if name in series:
             series[name].append(float(val) if val is not None else None)
@@ -124,6 +124,6 @@ def load_risk_7day_trends(conn: sqlite3.Connection, target_date: str) -> dict:
         "   AND scope_id BETWEEN ? AND ? ORDER BY scope_id",
         (start, target_date),
     ).fetchall()
-    series["TSB"] = [float(r[0]) if r[0] is not None else None for r in tsb_rows]
+    series["tsb"] = [float(r[0]) if r[0] is not None else None for r in tsb_rows]
 
     return series

@@ -166,6 +166,7 @@ def sync_card_html(
     <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-top:0.5rem;">
       <button id="sbtn-basic" onclick="doSync('basic')" style="{_BTN_STYLE}">&#9654; 동기화</button>
     </div>
+    <div id="sync-status-panel-basic" style="display:none;margin-top:0.6rem;font-size:0.85rem;"></div>
     {last_sync_html}
     {state_banner}
   </div>
@@ -189,6 +190,7 @@ def sync_card_html(
       </label>
       <button id="sbtn-hist" onclick="doSync('hist')" style="{_BTN_STYLE}">&#9654; 기간 동기화</button>
     </div>
+    <div id="sync-status-panel-hist" style="display:none;margin-top:0.6rem;font-size:0.85rem;"></div>
     <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--muted); margin-bottom:0.4rem; cursor:pointer;">
       <input type="checkbox" id="hist-bg-mode" style="cursor:pointer;">
       백그라운드 자동 동기화 (API 부하 제어 — 배치 단위 순차 처리)

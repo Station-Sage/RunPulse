@@ -129,7 +129,7 @@ def _save_session_outcome(
     # AerobicDecoupling (Friel 5% 기준)
     dec_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='AerobicDecoupling' AND scope_type='activity'"
+        " WHERE metric_name='aerobic_decoupling_rp' AND scope_type='activity'"
         "   AND scope_id=CAST(? AS TEXT) LIMIT 1",
         (activity_id,),
     ).fetchone()
@@ -138,7 +138,7 @@ def _save_session_outcome(
     # TRIMP
     trimp_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='TRIMP' AND scope_type='activity'"
+        " WHERE metric_name='trimp' AND scope_type='activity'"
         "   AND scope_id=CAST(? AS TEXT) LIMIT 1",
         (activity_id,),
     ).fetchone()
@@ -273,14 +273,14 @@ def _get_condition_snapshot(
 
     # HRV
     hrv_row = conn.execute(
-        "SELECT hrv_value FROM daily_wellness WHERE date=? AND hrv_value IS NOT NULL "
+        "SELECT hrv_last_night FROM daily_wellness WHERE date=? AND hrv_last_night IS NOT NULL "
         "LIMIT 1", (target_date,)
     ).fetchone()
     hrv = float(hrv_row[0]) if hrv_row else None
 
     # Body Battery
     bb_row = conn.execute(
-        "SELECT body_battery FROM daily_wellness WHERE date=? AND body_battery IS NOT NULL "
+        "SELECT body_battery_high FROM daily_wellness WHERE date=? AND body_battery_high IS NOT NULL "
         "LIMIT 1", (target_date,)
     ).fetchone()
     bb = int(bb_row[0]) if bb_row else None
@@ -288,7 +288,7 @@ def _get_condition_snapshot(
     # ACWR
     acwr_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='ACWR' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='acwr' AND scope_type='daily' AND is_primary=1"
         "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
         (target_date,)
     ).fetchone()

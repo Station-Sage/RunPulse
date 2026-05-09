@@ -221,7 +221,7 @@ def render_sync_status(sync_info: list[dict]) -> str:
 
     platforms = ""
     for s in sync_info:
-        svc = s.get("service", "")
+        svc = s.get("source", "")
         icon, label = _SERVICE_LABEL.get(svc, ("📌", svc))
         last = s.get("last_sync", "")
         short_date = last[:16] if last else "—"

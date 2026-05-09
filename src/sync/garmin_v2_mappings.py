@@ -69,7 +69,7 @@ def extract_summary_fields_from_api(act: dict) -> dict:
         "max_power": act.get("maxPower"),
         "avg_stride_length_cm": act.get("avgStrideLengthCM") or act.get("averageStrideLength"),
         "avg_vertical_oscillation_cm": act.get("avgVerticalOscillationCM") or act.get("avgVerticalOscillation"),
-        "avg_vertical_ratio_percent": act.get("avgVerticalRatioPct") or act.get("avgVerticalRatio"),
+        "avg_vertical_ratio_pct": act.get("avgVerticalRatioPct") or act.get("avgVerticalRatio"),
         "avg_ground_contact_time_ms": act.get("avgGroundContactTimeMilli") or act.get("avgGroundContactTime"),
         "avg_ground_contact_balance": act.get("avgGroundContactBalance"),
         "avg_double_cadence": act.get("avgDoubleCadence"),
@@ -171,7 +171,7 @@ def extract_summary_fields_from_zip(act: dict) -> dict:
         "avg_stride_length_cm": act.get("avgStrideLength"),  # cm
         "avg_vertical_oscillation_cm": act.get("avgVerticalOscillation") / 10
             if act.get("avgVerticalOscillation") is not None else None,  # ZIP: mm → cm
-        "avg_vertical_ratio_percent": act.get("avgVerticalRatio"),
+        "avg_vertical_ratio_pct": act.get("avgVerticalRatio"),
         "avg_ground_contact_time_ms": act.get("avgGroundContactTime"),  # ms
         "avg_double_cadence": act.get("avgDoubleCadence"),
         "avg_fractional_cadence": act.get("avgFractionalCadence"),
@@ -248,7 +248,7 @@ def extract_detail_fields(detail: dict, act: dict | None = None) -> dict:
     result["avg_cadence"] = _pick("averageRunCadence", "averageRunningCadenceInStepsPerMinute")
     result["max_cadence"] = _pick("maxRunCadence", "maxRunningCadenceInStepsPerMinute")
     result["avg_stride_length_cm"] = _pick("averageStrideLength")
-    result["avg_vertical_ratio_percent"] = _pick("avgVerticalRatio")
+    result["avg_vertical_ratio_pct"] = _pick("avgVerticalRatio")
     result["avg_ground_contact_time_ms"] = _pick("avgGroundContactTime")
     result["avg_vertical_oscillation_cm"] = _pick("avgVerticalOscillation")
     result["avg_ground_contact_balance"] = _pick("avgGroundContactBalance")

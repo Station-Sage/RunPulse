@@ -460,6 +460,8 @@ def create_app() -> Flask:
         source = request.form.get("source", "all").strip()
         from_date = request.form.get("from_date", "").strip()
         to_date = request.form.get("to_date", "").strip()
+        log.info("[trigger_sync] 요청: mode=%s, source=%s, from=%s, to=%s",
+                 mode, source, from_date or "-", to_date or "-")
 
         _VALID_SOURCES = {"garmin", "strava", "intervals", "runalyze"}
         checkers = {
@@ -493,6 +495,7 @@ def create_app() -> Flask:
             # 1) 연결 상태 확인
             conn_status = checkers[src](config)
             if not conn_status["ok"]:
+                log.info("[trigger_sync] %s 미연결: %s", src, conn_status["status"])
                 results.append({
                     "source": src, "ok": False, "skipped": True,
                     "count": 0, "error": f"미연결 ({conn_status['status']})",
@@ -501,6 +504,7 @@ def create_app() -> Flask:
 
             # 2) 중복 실행 방지
             if is_running(src, user_id):
+                log.info("[trigger_sync] %s 이미 실행 중 — skip", src)
                 results.append({
                     "source": src, "ok": False, "skipped": True, "count": 0,
                     "error": f"{src} 동기화가 이미 진행 중입니다. 잠시 후 다시 시도하세요.",
@@ -508,10 +512,23 @@ def create_app() -> Flask:
                 })
                 continue
 
+            # 2-1) bg_sync 활성 중이면 수동 동기화 스킵 (Garmin API 429 방지)
+            from .bg_sync import get_status as _bg_get_status
+            _bg_st = _bg_get_status(src)
+            if _bg_st.get("active") and _bg_st.get("status") in ("running", "pending"):
+                log.info("[trigger_sync] %s bg_sync 활성 중 — skip", src)
+                results.append({
+                    "source": src, "ok": False, "skipped": True, "count": 0,
+                    "error": f"{src} 백그라운드 동기화 진행 중 — 완료 후 재시도하세요.",
+                    "reason": "bg_sync_active",
+                })
+                continue
+
             # 3) retry_after 확인 (429 등으로 설정된 경우)
             retry_sec = get_retry_after_sec(src, user_id)
             if retry_sec and retry_sec > 0:
                 from src.utils.sync_policy import _fmt_duration
+                log.info("[trigger_sync] %s retry_after=%ds — skip", src, retry_sec)
                 results.append({
                     "source": src, "ok": False, "skipped": True, "count": 0,
                     "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
@@ -532,6 +549,7 @@ def create_app() -> Flask:
                 days_for_src = _days_since_last_sync([src])
 
             if not guard.allowed:
+                log.info("[trigger_sync] %s 정책 차단: %s", src, guard.reason)
                 results.append({
                     "source": src, "ok": False, "skipped": True, "count": 0,
                     "error": guard.message_ko or "정책 제한",
@@ -541,17 +559,26 @@ def create_app() -> Flask:
                 continue
 
             if guard.message_ko and guard.reason == "range_auto_reduced":
-                # 경고는 있지만 허용 — 결과에 경고 포함하고 계속
-                print(f"[trigger_sync] {guard.message_ko}")
+                log.info("[trigger_sync] %s 범위 자동 조정: %s", src, guard.message_ko)
 
             # 5) 동기화 실행
             mark_running(src, mode, user_id)
+            log.info("[trigger_sync] subprocess 시작: src=%s, days=%d, user=%s",
+                     src, days_for_src, user_id)
             try:
                 proc = subprocess.run(
                     [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id],
                     capture_output=True, text=True, timeout=300,
                     cwd=str(_project_root()),
                 )
+                log.info("[trigger_sync] subprocess 종료: src=%s, returncode=%d", src, proc.returncode)
+                if proc.stdout:
+                    for line in proc.stdout.splitlines():
+                        log.info("[sync.py stdout] %s", line)
+                if proc.stderr:
+                    for line in proc.stderr.splitlines():
+                        log.warning("[sync.py stderr] %s", line)
+
                 count = 0
                 for line in proc.stdout.splitlines():
                     m = re.search(r"활동 (\d+)개 동기화", line)
@@ -569,30 +596,26 @@ def create_app() -> Flask:
                         "warn": guard.message_ko,
                     })
                 else:
-                    # stderr에서 에러 메시지 추출
-                    error_msg = None
-                    if stderr_tail:
-                        error_msg = stderr_tail.strip().split('\n')[-1][:200]
-
                     partial = "일부" in proc.stdout or "⚠️" in proc.stdout
-                    has_error = bool(error_msg)
                     if not _already_finished(proc.stdout):
-                        mark_finished(src, count=count, partial=partial or has_error,
-                                      error=error_msg if has_error else None, user_id=user_id)
+                        mark_finished(src, count=count, partial=partial, error=None, user_id=user_id)
+                    log.info("[trigger_sync] %s 완료: count=%d, partial=%s",
+                             src, count, partial)
                     results.append({
-                        "source": src, "ok": count > 0 or not has_error,
+                        "source": src, "ok": count > 0 or not partial,
                         "skipped": False, "count": count,
-                        "error": error_msg if has_error else None,
-                        "partial": partial or has_error,
+                        "partial": partial,
                         "warn": guard.message_ko,
                     })
             except subprocess.TimeoutExpired:
+                log.error("[trigger_sync] %s 타임아웃 (300초)", src)
                 mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
                 results.append({
                     "source": src, "ok": False, "skipped": False,
                     "count": 0, "error": "동기화 타임아웃 (300초 초과)",
                 })
             except Exception as e:
+                log.error("[trigger_sync] %s 예외: %s", src, e, exc_info=True)
                 mark_finished(src, count=0, partial=True, error=str(e), user_id=user_id)
                 results.append({
                     "source": src, "ok": False, "skipped": False,
@@ -607,6 +630,179 @@ def create_app() -> Flask:
             _auto_match_after_sync()
 
         return jsonify({"ok": overall_ok, "results": results, "total_count": total_count})
+
+    @app.post("/trigger-sync-stream")
+    def trigger_sync_stream():
+        """동기화 실행 — SSE 스트리밍 응답 (소스별 실시간 진행 상황)."""
+        import json as _json
+        import re
+        import subprocess
+        from datetime import date
+        from flask import Response, stream_with_context
+        from src.utils.sync_policy import check_incremental_guard, check_range_guard
+        from src.utils.sync_state import (
+            is_running, mark_running, mark_finished,
+            get_last_sync_at, get_retry_after_sec,
+        )
+
+        mode = request.form.get("mode", "basic").strip()
+        source = request.form.get("source", "all").strip()
+        from_date = request.form.get("from_date", "").strip()
+        to_date = request.form.get("to_date", "").strip()
+        log.info("[trigger_sync_stream] 요청: mode=%s, source=%s", mode, source)
+
+        _VALID_SOURCES = {"garmin", "strava", "intervals", "runalyze"}
+        checkers = {
+            "garmin": check_garmin_connection,
+            "strava": check_strava_connection,
+            "intervals": check_intervals_connection,
+            "runalyze": check_runalyze_connection,
+        }
+        if source == "all":
+            sources_to_sync = list(checkers.keys())
+        else:
+            parts = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
+            sources_to_sync = parts if parts else list(checkers.keys())
+
+        from .helpers import get_current_user_id
+        user_id = get_current_user_id()
+        config = load_config(user_id=user_id)
+
+        hist_days: int | None = None
+        if mode in ("historical", "hist") and from_date:
+            try:
+                d = date.fromisoformat(from_date)
+                end = date.fromisoformat(to_date) if to_date else date.today()
+                hist_days = max(1, min((end - d).days + 1, 3650))
+            except (ValueError, TypeError):
+                hist_days = 30
+
+        def _sse(data: dict) -> str:
+            return f"data: {_json.dumps(data, ensure_ascii=False)}\n\n"
+
+        def generate():
+            results = []
+            yield _sse({"type": "start", "sources": sources_to_sync})
+
+            for src in sources_to_sync:
+                yield _sse({"type": "source_start", "source": src})
+
+                conn_status = checkers[src](config)
+                if not conn_status["ok"]:
+                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
+                         "error": f"미연결 ({conn_status['status']})"}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                    continue
+
+                if is_running(src, user_id):
+                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
+                         "error": f"{src} 동기화가 이미 진행 중입니다.", "reason": "running"}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                    continue
+
+                # bg_sync 활성 중이면 수동 동기화 스킵 (Garmin API 429 방지)
+                from .bg_sync import get_status as _bg_get_status
+                _bg_st = _bg_get_status(src)
+                if _bg_st.get("active") and _bg_st.get("status") in ("running", "pending"):
+                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
+                         "error": f"{src} 백그라운드 동기화 진행 중 — 완료 후 재시도하세요.",
+                         "reason": "bg_sync_active"}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                    continue
+
+                retry_sec = get_retry_after_sec(src, user_id)
+                if retry_sec and retry_sec > 0:
+                    from src.utils.sync_policy import _fmt_duration
+                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
+                         "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
+                         "reason": "retry_after", "retry_after_sec": retry_sec}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                    continue
+
+                if hist_days is not None:
+                    guard = check_range_guard(src, hist_days)
+                    days_for_src = hist_days
+                else:
+                    last_at = get_last_sync_at(src, user_id)
+                    guard = check_incremental_guard(src, last_at)
+                    days_for_src = _days_since_last_sync([src])
+
+                if not guard.allowed:
+                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
+                         "error": guard.message_ko or "정책 제한",
+                         "reason": guard.reason, "retry_after_sec": guard.retry_after_sec}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                    continue
+
+                mark_running(src, mode, user_id)
+                log.info("[trigger_sync_stream] subprocess: src=%s, days=%d", src, days_for_src)
+                try:
+                    proc = subprocess.run(
+                        [sys.executable, "src/sync.py", "--source", src,
+                         "--days", str(days_for_src), "--user", user_id],
+                        capture_output=True, text=True, timeout=300,
+                        cwd=str(_project_root()),
+                    )
+                    log.info("[trigger_sync_stream] 종료: src=%s, rc=%d", src, proc.returncode)
+                    if proc.stdout:
+                        for line in proc.stdout.splitlines():
+                            log.info("[sync.py stdout] %s", line)
+                    if proc.stderr:
+                        for line in proc.stderr.splitlines():
+                            log.warning("[sync.py stderr] %s", line)
+
+                    count = 0
+                    for line in proc.stdout.splitlines():
+                        m = re.search(r"활동 (\d+)개 동기화", line)
+                        if m:
+                            count += int(m.group(1))
+
+                    if proc.returncode != 0:
+                        stderr_tail = (proc.stderr or "")[-400:]
+                        mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
+                        r = {"source": src, "ok": False, "skipped": False,
+                             "count": 0, "error": stderr_tail}
+                    else:
+                        partial = "일부" in proc.stdout or "⚠️" in proc.stdout
+                        if not _already_finished(proc.stdout):
+                            mark_finished(src, count=count, partial=partial, error=None, user_id=user_id)
+                        r = {"source": src, "ok": count > 0 or not partial,
+                             "skipped": False, "count": count, "partial": partial,
+                             "warn": guard.message_ko}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+
+                except subprocess.TimeoutExpired:
+                    mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
+                    r = {"source": src, "ok": False, "skipped": False,
+                         "count": 0, "error": "동기화 타임아웃 (300초 초과)"}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+                except Exception as e:
+                    log.error("[trigger_sync_stream] %s 예외: %s", src, e, exc_info=True)
+                    mark_finished(src, count=0, partial=True, error=str(e), user_id=user_id)
+                    r = {"source": src, "ok": False, "skipped": False,
+                         "count": 0, "error": str(e)}
+                    results.append(r)
+                    yield _sse({"type": "source_done", **r})
+
+            total_count = sum(r.get("count", 0) for r in results)
+            overall_ok = any(r.get("ok") for r in results)
+            if overall_ok:
+                _auto_match_after_sync()
+            yield _sse({"type": "done", "ok": overall_ok,
+                        "total_count": total_count, "results": results})
+
+        return Response(
+            stream_with_context(generate()),
+            content_type="text/event-stream",
+            headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},
+        )
 
     # ── Garmin 로컬 토큰 수신 + sync 트리거 (A안) ───────────────────────────
 
@@ -629,6 +825,7 @@ def create_app() -> Flask:
         import os as _os
 
         data = request.get_json(silent=True) or {}
+        log.info("[local-sync] 요청 수신 — keys=%s", list(data.keys()))
 
         # sync_key 인증 — CF가 서비스 토큰 헤더를 제거하므로 body에서 검증
         sync_key = data.get("sync_key", "")
@@ -637,13 +834,16 @@ def create_app() -> Flask:
         expected_key = root_cfg.get("cf", {}).get("service_client_secret", "")
         if expected_key:
             if not sync_key or not _hmac.compare_digest(sync_key, expected_key):
+                log.warning("[local-sync] sync_key 인증 실패")
                 return jsonify({"error": "sync_key 인증 실패"}), 401
         elif _is_prod:
             return jsonify({"error": "서버 CF 설정이 없습니다. /settings에서 CF Service Token을 설정하세요."}), 500
 
         token = data.get("token")
         if not isinstance(token, dict) or not token:
+            log.warning("[local-sync] token 필드 없음 또는 잘못된 형식")
             return jsonify({"error": "token 필드가 없거나 올바른 형식이 아닙니다."}), 400
+        log.info("[local-sync] 토큰 수신 OK — token.keys=%s", list(token.keys())[:6])
 
         try:
             days = max(1, min(int(data.get("days", 30)), 90))
@@ -653,9 +853,11 @@ def create_app() -> Flask:
         # CF 서비스 토큰으로 호출 시 body의 user_id 사용 (GitHub 이메일 ≠ Garmin 이메일)
         user_id = data.get("user_id") or get_current_user_id()
         if not user_id:
+            log.warning("[local-sync] user_id 없음")
             return jsonify({"error": "user_id 필드가 필요합니다."}), 400
         tokenstore = get_config_path(user_id).parent / ".garminconnect"
         tokenstore.mkdir(parents=True, exist_ok=True)
+        log.info("[local-sync] user_id=%s, days=%d, tokenstore=%s", user_id, days, tokenstore)
 
         try:
             # combined 포맷(garmin_tokens.json)으로 저장 — garth가 OAuth1+OAuth2 모두 로드
@@ -674,7 +876,9 @@ def create_app() -> Flask:
                 # flat 포맷(구형 garth): oauth2_token.json으로도 저장
                 with open(tokenstore / "oauth2_token.json", "w") as f:
                     _json.dump(token, f, indent=2)
+            log.info("[local-sync] 토큰 파일 저장 완료: %s", tokenstore / "garmin_tokens.json")
         except OSError as e:
+            log.error("[local-sync] 토큰 파일 저장 실패: %s", e)
             return jsonify({"error": f"토큰 저장 실패: {e}"}), 500
 
         from src.utils.config import update_service_config
@@ -683,7 +887,9 @@ def create_app() -> Flask:
         config = load_config(user_id=user_id)
         to_date = _date.today().isoformat()
         from_date = (_date.today() - timedelta(days=days)).isoformat()
+        log.info("[local-sync] bg_sync 시작: %s ~ %s", from_date, to_date)
         job_id = start_job("garmin", from_date, to_date, config, user_id=user_id)
+        log.info("[local-sync] job_id=%s", job_id)
 
         return jsonify({
             "status": "sync_started",

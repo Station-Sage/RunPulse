@@ -6,6 +6,7 @@ from datetime import datetime
 
 from src.utils import api
 from .intervals_auth import auth
+from .raw_store import upsert_raw_payload
 
 
 def sync_athlete_profile(config: dict, conn: sqlite3.Connection) -> None:
@@ -26,6 +27,8 @@ def sync_athlete_profile(config: dict, conn: sqlite3.Connection) -> None:
     except Exception as e:
         print(f"[intervals] 선수 프로필 조회 실패: {e}")
         return
+
+    upsert_raw_payload(conn, "intervals", "athlete_profile", str(athlete_id), profile)
 
     try:
         conn.execute(

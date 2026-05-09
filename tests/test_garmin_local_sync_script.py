@@ -52,18 +52,14 @@ class TestEnsureDeps:
         """garminconnect import 실패 → subprocess.check_call 호출."""
         mod = _import_script()
 
-        original = sys.modules.pop("garminconnect", None)
-        try:
+        with patch.dict(sys.modules, {"garminconnect": None}):
             with patch("subprocess.check_call") as mock_call:
                 mod._ensure_deps()
-            mock_call.assert_called_once()
-            args = mock_call.call_args[0][0]
-            assert sys.executable in args
-            assert "pip" in args
-            assert any("garminconnect" in a for a in args)
-        finally:
-            if original is not None:
-                sys.modules["garminconnect"] = original
+        mock_call.assert_called_once()
+        args = mock_call.call_args[0][0]
+        assert sys.executable in args
+        assert "pip" in args
+        assert any("garminconnect" in a for a in args)
 
 
 # ── _load_dotenv ──────────────────────────────────────────────────────────────

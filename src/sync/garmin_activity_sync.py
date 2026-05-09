@@ -60,6 +60,8 @@ def sync(
         end_dt = datetime.now(timezone.utc)
         start_dt = end_dt - timedelta(days=days)
 
+    log.info("[garmin/activity] sync 시작: %s ~ %s", start_dt.strftime("%Y-%m-%d"), end_dt.strftime("%Y-%m-%d"))
+
     # [1] Activity List
     try:
         limiter.pre_request()
@@ -69,20 +71,26 @@ def sync(
         )
         limiter.post_request(success=True)
         result.api_calls += 1
+        log.info("[garmin/activity] get_activities_by_date 응답: %s건",
+                 len(activities_raw) if activities_raw else 0)
     except Exception as e:
         if _is_rate_limit_error(e):
+            log.warning("[garmin/activity] 활동 목록 조회 중 429: %s", e)
             result.status = "failed"
             result.last_error = "Rate limited on activity list fetch"
             result.retry_after = _retry_after(limiter)
             return result
+        log.error("[garmin/activity] 활동 목록 조회 실패: %s", e, exc_info=True)
         raise
 
     if not activities_raw:
-        log.info("[garmin] No activities found in date range")
+        log.info("[garmin/activity] 해당 기간 활동 없음")
         return result
 
     result.total_items = len(activities_raw)
-    log.info("[garmin] Found %d activities to process", len(activities_raw))
+    log.info("[garmin/activity] 처리 대상 %d건 — IDs: %s",
+             len(activities_raw),
+             [a.get("activityId") for a in activities_raw[:5]])
 
     for raw_activity in activities_raw:
         aid_str = str(raw_activity.get("activityId", ""))
@@ -124,23 +132,35 @@ def sync(
 
 def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) -> bool:
     source_id = str(raw.get("activityId", ""))
+    act_type = raw.get("activityType", {}).get("typeKey", "unknown") if isinstance(raw.get("activityType"), dict) else str(raw.get("activityType", ""))
+    log.info("[garmin/activity] 처리: activityId=%s, type=%s", source_id, act_type)
 
     # [2] Raw summary
     is_new = upsert_raw_payload(
         conn, "garmin", "activity_summary", source_id, raw,
         endpoint="activitylist-service/activities/search/activities",
     )
-    if not is_new:
-        return False
+    log.debug("[garmin/activity] upsert_raw_payload is_new=%s for %s", is_new, source_id)
 
     # [3-4] Core
     core = extractor.extract_activity_core(raw)
     activity_id = save_activity_core(conn, core)
+    log.debug("[garmin/activity] save_activity_core → activity_id=%s", activity_id)
 
     # [5] 역참조
     update_raw_activity_id(conn, "garmin", "activity_summary", source_id, activity_id)
 
-    # [6-7] Detail
+    # [6-7] Detail — summary가 기존에도 detail이 없으면 재시도
+    has_detail = conn.execute(
+        "SELECT 1 FROM source_payloads WHERE source='garmin' "
+        "AND entity_type='activity_detail' AND entity_id=?",
+        (source_id,),
+    ).fetchone() is not None
+    if not is_new and has_detail:
+        log.debug("[garmin/activity] skip (summary+detail 모두 기존): %s", source_id)
+        return False  # summary·detail 모두 이미 있음 → skip
+
+    log.info("[garmin/activity] detail 조회: %s (is_new=%s, has_detail=%s)", source_id, is_new, has_detail)
     detail = _fetch_detail(conn, api, limiter, result, source_id, activity_id)
 
     # [8-9] Metrics
@@ -190,6 +210,12 @@ def _fetch_detail(conn, api, limiter, result, source_id, activity_id):
                 detail = api.get_activity(int(source_id))
                 limiter.post_request(success=True)
                 result.api_calls += 1
+                if detail:
+                    upsert_raw_payload(
+                        conn, "garmin", "activity_detail", source_id, detail,
+                        endpoint=f"activity-service/activity/{source_id}",
+                        activity_id=activity_id,
+                    )
                 return detail
             except Exception:
                 return None
@@ -201,7 +227,7 @@ def _fetch_detail(conn, api, limiter, result, source_id, activity_id):
 def _fetch_streams(conn, api, extractor, limiter, result, source_id, activity_id):
     try:
         limiter.pre_request()
-        streams_raw = api.get_activity_splits(int(source_id))
+        streams_raw = api.get_activity_details(int(source_id), maxpoly=9999999)
         limiter.post_request(success=True)
         result.api_calls += 1
         if streams_raw:

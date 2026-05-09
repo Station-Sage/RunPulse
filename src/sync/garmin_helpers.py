@@ -16,7 +16,7 @@ def _store_raw_payload(
     payload,
     activity_id: int | None = None,
 ) -> None:
-    """Garmin raw payload를 raw_source_payloads에 저장/병합."""
+    """Garmin raw payload를 source_payloads에 저장."""
     _store_rp(conn, "garmin", entity_type, entity_id, payload, activity_id=activity_id)
 
 

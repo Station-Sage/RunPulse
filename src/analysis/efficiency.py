@@ -4,6 +4,8 @@ import json
 import sqlite3
 from datetime import date, timedelta
 
+from src.utils.db_helpers import load_activity_streams
+
 
 def _get_stream_path(conn: sqlite3.Connection, activity_id: int) -> str | None:
     """activity_id와 같은 그룹의 Strava stream 식별자 반환.
@@ -65,13 +67,8 @@ def _load_stream(path: str, conn: sqlite3.Connection | None = None) -> dict | No
     if path.startswith("db:") and conn is not None:
         try:
             aid = int(path[3:])
-            rows = conn.execute(
-                "SELECT stream_type, data_json FROM activity_streams WHERE activity_id = ?",
-                (aid,),
-            ).fetchall()
-            if not rows:
-                return None
-            return {r[0]: json.loads(r[1]) for r in rows if r[1]}
+            result = load_activity_streams(conn, aid)
+            return result if result else None
         except Exception:
             return None
 

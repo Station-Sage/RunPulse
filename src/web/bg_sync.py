@@ -8,11 +8,14 @@
 """
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
 import time
 from datetime import date, datetime, timedelta
 from typing import Optional
+
+log = logging.getLogger(__name__)
 
 from src.db_setup import get_db_path
 from src.utils.sync_jobs import (
@@ -53,6 +56,7 @@ class BgSyncThread(threading.Thread):
         self._pause_event = threading.Event()
         self._stop_event = threading.Event()
         self._pause_event.set()   # 기본: 실행 상태
+        self._last_garmin_login: float = 0.0  # monotonic timestamp of last garmin login
 
     def pause(self) -> None:
         self._pause_event.clear()
@@ -97,6 +101,19 @@ class BgSyncThread(threading.Thread):
 
         total_synced = job.synced_count
         total_req = job.req_count
+        job_from = job.from_date  # progress_cb 클로저에서 사용
+
+        def _progress_cb(day_str: str, synced: int = 0, req: int = 0) -> None:
+            """날짜별 실시간 진행 업데이트 콜백."""
+            completed = (
+                date.fromisoformat(day_str) - date.fromisoformat(job_from)
+            ).days + 1
+            kwargs: dict = {"completed_days": completed, "current_from": day_str}
+            if synced:
+                kwargs["synced_count"] = synced
+            if req:
+                kwargs["req_count"] = req
+            update_job(self.job_id, **kwargs)
 
         for win_from, win_to in pending:
             # 1) 중지 확인
@@ -137,7 +154,10 @@ class BgSyncThread(threading.Thread):
 
             # 4) 배치 실행
             count, req_added, rate_limited = self._run_one_batch(
-                job.service, win_from, win_to, garmin_client
+                job.service, win_from, win_to, garmin_client,
+                progress_cb=_progress_cb,
+                total_synced=total_synced,
+                total_req=total_req,
             )
             total_synced += count
             total_req += req_added
@@ -154,7 +174,7 @@ class BgSyncThread(threading.Thread):
                 )
                 return
 
-            # 5) 진행 업데이트
+            # 5) 윈도우 완료 후 최종 진행 업데이트
             completed = (
                 date.fromisoformat(win_to) - date.fromisoformat(job.from_date)
             ).days + 1
@@ -210,6 +230,9 @@ class BgSyncThread(threading.Thread):
         win_from: str,
         win_to: str,
         garmin_client,
+        progress_cb=None,
+        total_synced: int = 0,
+        total_req: int = 0,
     ) -> tuple[int, int, bool]:
         """단일 날짜 창 동기화. (활동 수, 예상 요청 수, rate_limited 여부) 반환."""
         count = 0
@@ -219,31 +242,52 @@ class BgSyncThread(threading.Thread):
         except ImportError:
             _G429 = type(None)
 
+        log.info("[bg_sync] 배치 시작: service=%s, %s ~ %s", service, win_from, win_to)
         try:
             conn = sqlite3.connect(str(get_db_path(self.user_id)), timeout=30, isolation_level=None)
             conn.execute("PRAGMA journal_mode=WAL")
             try:
                 if service == "garmin":
-                    # 배치 시작 시 토큰 갱신 (장시간 세션 대비)
-                    try:
-                        from src.sync.garmin_auth import _tokenstore_path
-                        garmin_client.login(tokenstore=str(_tokenstore_path(self.config)))
-                    except Exception as _te:
-                        print(f"[bg_sync] 토큰 갱신 실패 (계속 진행): {_te}")
+                    # 45분 이상 경과 시에만 재인증 — auth API 429 방지
+                    _RELOGIN_INTERVAL = 45 * 60  # seconds
+                    elapsed = time.monotonic() - self._last_garmin_login
+                    if elapsed >= _RELOGIN_INTERVAL:
+                        try:
+                            from src.sync.garmin_auth import _tokenstore_path
+                            ts = str(_tokenstore_path(self.config))
+                            log.info("[bg_sync] 토큰 갱신 시도 (경과 %.0fs): tokenstore=%s", elapsed, ts)
+                            garmin_client.login(tokenstore=ts)
+                            self._last_garmin_login = time.monotonic()
+                            log.info("[bg_sync] 토큰 갱신 성공")
+                        except Exception as _te:
+                            log.warning("[bg_sync] 토큰 갱신 실패 (계속 진행): %s", _te)
+                    else:
+                        log.debug("[bg_sync] 토큰 최근 갱신됨 (%.0fs 전) — 재인증 스킵", elapsed)
                     from src.sync.garmin import sync_activities, sync_wellness
+                    log.info("[bg_sync] sync_activities 호출: %s ~ %s", win_from, win_to)
                     count = sync_activities(
                         self.config, conn, 7,
                         client=garmin_client,
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
-                    try:
-                        sync_wellness(self.config, conn, 7, client=garmin_client,
-                                      from_date=win_from, to_date=win_to)
-                    except _G429:
-                        raise  # 429는 위로 전파
-                    except Exception as we:
-                        print(f"[garmin] 웰니스 동기화 실패: {we}")
+                    log.info("[bg_sync] sync_activities 완료: count=%d", count)
+                    # wellness: 날짜별로 개별 호출하여 실시간 진행률 갱신
+                    cur = date.fromisoformat(win_from)
+                    win_end = date.fromisoformat(win_to)
+                    while cur <= win_end:
+                        day = cur.isoformat()
+                        try:
+                            log.info("[bg_sync] sync_wellness 호출: %s", day)
+                            sync_wellness(self.config, conn, 7, client=garmin_client,
+                                          from_date=day, to_date=day)
+                        except _G429:
+                            raise  # 429는 위로 전파
+                        except Exception as we:
+                            log.warning("[bg_sync] 웰니스 동기화 실패 (%s): %s", day, we)
+                        if progress_cb:
+                            progress_cb(day, total_synced + count, total_req + req_added)
+                        cur += timedelta(days=1)
                     req_added = count * 2 + 1 + 7
                 elif service == "strava":
                     from src.sync.strava import sync_activities
@@ -252,6 +296,8 @@ class BgSyncThread(threading.Thread):
                         from_date=win_from, to_date=win_to,
                         bg_mode=True,
                     )
+                    if progress_cb:
+                        progress_cb(win_to, total_synced + count, total_req + req_added)
                     req_added = count * 4 + 1
                 elif service == "intervals":
                     from src.sync.intervals import sync_activities
@@ -259,6 +305,8 @@ class BgSyncThread(threading.Thread):
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
+                    if progress_cb:
+                        progress_cb(win_to, total_synced + count, total_req + req_added)
                     req_added = count * 3 + 1
                 elif service == "runalyze":
                     from src.sync.runalyze import sync_activities
@@ -266,22 +314,30 @@ class BgSyncThread(threading.Thread):
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
                     )
+                    if progress_cb:
+                        progress_cb(win_to, total_synced + count, total_req + req_added)
                     req_added = count * 2 + 1
             finally:
                 conn.close()
         except _G429 as exc:
             from src.sync.garmin_helpers import _handle_rate_limit
             _handle_rate_limit(service, source_id=f"{win_from}~{win_to}")
+            log.warning("[bg_sync] 429 발생 — 배치 중단: %s", exc)
             update_job(self.job_id, last_error=f"429 발생: {str(exc)[:150]}")
             return count, req_added, True  # rate_limited = True
         except Exception as exc:
+            log.error("[bg_sync] 배치 오류: %s", exc, exc_info=True)
             update_job(self.job_id, last_error=str(exc)[:200])
+        log.info("[bg_sync] 배치 완료: service=%s, count=%d", service, count)
         return count, req_added, False  # rate_limited = False
 
     def _garmin_login(self):
+        log.info("[bg_sync] Garmin 로그인 시작 (user_id=%s)", self.user_id)
         try:
             from src.sync.garmin import _login
-            return _login(self.config)
+            client = _login(self.config)
+            log.info("[bg_sync] Garmin 로그인 성공")
+            return client
         except Exception as exc:
             from src.sync.garmin_auth import GarminAuthRequired
             try:
@@ -292,15 +348,15 @@ class BgSyncThread(threading.Thread):
             if isinstance(exc, GarminConnectTooManyRequestsError):
                 from src.sync.garmin_helpers import _handle_rate_limit
                 _handle_rate_limit("garmin")
+                log.warning("[bg_sync] Garmin 429 — 작업 중단: %s", exc)
                 update_job(self.job_id, status="rate_limited",
                           last_error="Garmin 429 — rate limit 대기 중. 자동 재시도하지 않습니다.")
-                print(f"[bg_sync] Garmin 429 — 작업 중단: {exc}")
             elif isinstance(exc, GarminAuthRequired):
-                print(f"[bg_sync] Garmin 재인증 필요: {exc}")
+                log.error("[bg_sync] Garmin 재인증 필요: %s", exc)
                 update_job(self.job_id, status="auth_required",
                           last_error="Garmin 재인증 필요. /connect/garmin에서 로그인하세요.")
             else:
-                print(f"[bg_sync] Garmin 로그인 실패: {exc}")
+                log.error("[bg_sync] Garmin 로그인 실패 (예상치 못한 오류): %s", exc, exc_info=True)
                 update_job(self.job_id, last_error=str(exc)[:200])
             return None
             

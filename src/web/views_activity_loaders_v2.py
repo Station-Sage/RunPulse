@@ -13,7 +13,7 @@ def load_ef_decoupling_series(conn: sqlite3.Connection, target_date: str, days: 
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value
            FROM metric_store
-           WHERE metric_name IN ('EF', 'AerobicDecoupling')
+           WHERE metric_name IN ('efficiency_factor_rp', 'aerobic_decoupling_rp')
              AND scope_type='activity' AND is_primary=1
              AND scope_id >= date(?, '-' || ? || ' days')
              AND scope_id <= ?
@@ -25,10 +25,10 @@ def load_ef_decoupling_series(conn: sqlite3.Connection, target_date: str, days: 
     for d, name, val in rows:
         if val is None:
             continue
-        if name == "EF":
+        if name == "efficiency_factor_rp":
             dates_ef.append(d)
             vals_ef.append(round(float(val), 4))
-        elif name == "AerobicDecoupling":
+        elif name == "aerobic_decoupling_rp":
             dates_dec.append(d)
             vals_dec.append(round(float(val), 1))
     return {
@@ -42,7 +42,7 @@ def load_risk_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value
            FROM metric_store
-           WHERE metric_name IN ('ACWR', 'Monotony', 'Strain', 'LSI')
+           WHERE metric_name IN ('acwr', 'monotony', 'training_strain', 'lsi')
              AND scope_type='daily' AND is_primary=1
              AND scope_id >= date(?, '-' || ? || ' days')
              AND scope_id <= ?
@@ -55,10 +55,10 @@ def load_risk_series(conn: sqlite3.Connection, target_date: str, days: int = 60)
     dates = sorted(by_date.keys())
     return {
         "dates": dates,
-        "acwr": [by_date[d].get("ACWR") for d in dates],
-        "monotony": [by_date[d].get("Monotony") for d in dates],
-        "strain": [by_date[d].get("Strain") for d in dates],
-        "lsi": [by_date[d].get("LSI") for d in dates],
+        "acwr": [by_date[d].get("acwr") for d in dates],
+        "monotony": [by_date[d].get("monotony") for d in dates],
+        "strain": [by_date[d].get("training_strain") for d in dates],
+        "lsi": [by_date[d].get("lsi") for d in dates],
     }
 
 
@@ -68,7 +68,7 @@ def load_tids_weekly_series(conn: sqlite3.Connection, target_date: str, weeks: i
     rows = conn.execute(
         """SELECT scope_id AS date, json_value
            FROM metric_store
-           WHERE metric_name = 'TIDS'
+           WHERE metric_name = 'tids'
              AND scope_type='daily' AND is_primary=1
              AND scope_id >= date(?, '-' || ? || ' days')
              AND scope_id <= ?
@@ -92,7 +92,7 @@ def load_darp_values(conn: sqlite3.Connection, target_date: str) -> dict:
     rows = conn.execute(
         """SELECT metric_name, json_value
            FROM metric_store
-           WHERE metric_name IN ('DARP_5k', 'DARP_10k', 'DARP_half', 'DARP_full')
+           WHERE metric_name IN ('race_pred_5k_sec', 'race_pred_10k_sec', 'race_pred_half_sec', 'race_pred_marathon_sec')
              AND scope_type='daily' AND is_primary=1
              AND scope_id = ?""",
         (target_date,),

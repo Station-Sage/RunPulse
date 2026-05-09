@@ -67,13 +67,13 @@ def _load_last_sync_time(conn: sqlite3.Connection) -> str | None:
 def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
     """오늘 날짜 메트릭이 없으면 자동 계산.
 
-    UTRS + DARP_half 둘 다 오늘 날짜에 존재해야 skip.
+    utrs + race_pred_half_sec 둘 다 오늘 날짜에 존재해야 skip.
     DARP는 live 계산(render_race_shape_trio)과 일치시키기 위해
     오늘 날짜 기준으로 항상 최신 상태를 유지해야 함.
     """
     count = conn.execute(
         "SELECT COUNT(*) FROM metric_store "
-        "WHERE scope_id=? AND metric_name IN ('UTRS', 'DARP_half') "
+        "WHERE scope_id=? AND metric_name IN ('utrs', 'race_pred_half_sec') "
         "AND scope_type='daily' AND is_primary=1",
         (today,),
     ).fetchone()[0]
@@ -82,7 +82,7 @@ def _ensure_today_metrics(conn: sqlite3.Connection, today: str) -> None:
     try:
         from src.metrics.engine import run_for_date
         _log.info("오늘(%s) 메트릭 자동 계산 시작", today)
-        run_for_date(conn, today, include_weekly=False)
+        run_for_date(conn, today)
         conn.commit()
         _log.info("오늘 메트릭 계산 완료")
     except Exception as exc:

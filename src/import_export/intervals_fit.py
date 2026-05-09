@@ -257,10 +257,9 @@ def import_intervals_fit(
     payload["_source_file"] = fit_path.name
     try:
         conn.execute(
-            """INSERT OR REPLACE INTO raw_source_payloads
-               (source, entity_type, entity_id, activity_id, payload_json,
-                created_at, updated_at)
-               VALUES ('intervals', 'fit_export', ?, ?, ?, datetime('now'), datetime('now'))""",
+            """INSERT OR REPLACE INTO source_payloads
+               (source, entity_type, entity_id, activity_id, payload)
+               VALUES ('intervals', 'fit_export', ?, ?, ?)""",
             (source_id, activity_id, json.dumps(payload, ensure_ascii=False, default=str)),
         )
     except sqlite3.Error:

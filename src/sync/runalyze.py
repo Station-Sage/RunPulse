@@ -19,7 +19,7 @@ def _store_raw_payload(
     payload: dict,
     activity_id: int | None = None,
 ) -> None:
-    """Runalyze raw payload를 raw_source_payloads에 저장/병합."""
+    """Runalyze raw payload를 source_payloads에 저장."""
     _store_rp(conn, "runalyze", entity_type, entity_id, payload, activity_id=activity_id)
 
 
@@ -52,32 +52,6 @@ def _extract_race_pred(detail: dict) -> dict:
             result[key] = int(val)
     return result
 
-
-def _upsert_daily_fitness(
-    conn: sqlite3.Connection,
-    date_str: str,
-    evo2max: float | None,
-    vdot: float | None,
-    marathon_shape: float | None,
-) -> None:
-    """runalyze 피트니스 지표를 daily_fitness에 저장/업데이트."""
-    if not any(v is not None for v in [evo2max, vdot, marathon_shape]):
-        return
-    try:
-        conn.execute("""
-            INSERT INTO daily_fitness
-                (date, source, runalyze_evo2max, runalyze_vdot, runalyze_marathon_shape)
-            VALUES (?, 'runalyze', ?, ?, ?)
-            ON CONFLICT(date, source) DO UPDATE SET
-                runalyze_evo2max = COALESCE(excluded.runalyze_evo2max, runalyze_evo2max),
-                runalyze_vdot = COALESCE(excluded.runalyze_vdot, runalyze_vdot),
-                runalyze_marathon_shape = COALESCE(
-                    excluded.runalyze_marathon_shape, runalyze_marathon_shape
-                ),
-                updated_at = datetime('now')
-        """, (date_str, evo2max, vdot, marathon_shape))
-    except sqlite3.OperationalError:
-        pass  # daily_fitness 테이블 미생성 환경 (graceful)
 
 
 def sync_activities(
@@ -222,15 +196,6 @@ def sync_activities(
             if race_pred:
                 upsert_metric(conn, "activity", str(activity_id), "race_prediction", "runalyze",
                               json_value=race_pred, category="performance")
-
-            # daily_fitness에도 저장/업데이트
-            date_str = start_time[:10]
-            _upsert_daily_fitness(
-                conn, date_str,
-                float(evo2max) if evo2max is not None else None,
-                float(vdot) if vdot is not None else None,
-                float(marathon_shape) if marathon_shape is not None else None,
-            )
 
         except Exception as e:
             print(f"[runalyze] 상세 조회 실패 {source_id}: {e}")

@@ -737,7 +737,7 @@ def check_phase3_sync():
         else:
             ok("orchestrator.py: full_sync() 존재")
 
-    # dedup.run() 존재 + 전체 초기화 설계 확인
+    # dedup.run() 존재 + Union-Find 설계 확인
     dedup = sync_dir / "dedup.py"
     if dedup.exists():
         text = dedup.read_text(encoding="utf-8")
@@ -745,10 +745,10 @@ def check_phase3_sync():
             warn("dedup.py: run() 없음")
         else:
             ok("dedup.py: run() 존재")
-        if "matched_group_id = NULL" not in text:
-            error("dedup.py: run() 시작 시 matched_group_id 전체 초기화 없음 (설계: 전체 reset 후 재계산)")
+        if "parent" not in text or "union" not in text:
+            error("dedup.py: Union-Find 알고리즘 없음 (설계: Union-Find로 기존 그룹 보존 + 신규 매칭 추가)")
         else:
-            ok("dedup.py: matched_group_id 전체 초기화 확인")
+            ok("dedup.py: Union-Find 기반 그룹 보존 확인")
 
     # reprocess_all() 존재 확인
     rp = sync_dir / "reprocess.py"

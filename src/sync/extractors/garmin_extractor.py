@@ -36,7 +36,7 @@ class GarminExtractor(BaseExtractor):
             "source_id": str(raw.get("activityId", "")),
             "name": raw.get("activityName"),
             "activity_type": normalize_activity_type(type_key, self.SOURCE),
-            "start_time": raw.get("startTimeGMT") or raw.get("startTimeLocal"),
+            "start_time": raw.get("startTimeLocal") or raw.get("startTimeGMT"),
             # 거리/시간
             "distance_m": raw.get("distance"),
             "duration_sec": _seconds(raw.get("duration")),
@@ -267,6 +267,95 @@ class GarminExtractor(BaseExtractor):
                 lap_dict["avg_pace_sec_km"] = round(1000.0 / avg_speed, 2)
             laps.append({k: v for k, v in lap_dict.items() if v is not None})
         return laps
+
+    # ── Activity Streams ──
+
+    def extract_activity_streams(self, streams_raw: dict | list) -> list[dict]:
+        """Garmin get_activity_details() → activity_streams 행 리스트.
+
+        streams_raw 형식:
+          {"metricDescriptors": [{"key": "directXxx", "metricsIndex": N}, ...],
+           "activityDetailMetrics": [{"metrics": [v0, v1, ...]}, ...]}
+        """
+        if not isinstance(streams_raw, dict):
+            return []
+
+        descriptors = streams_raw.get("metricDescriptors", [])
+        detail_metrics = streams_raw.get("activityDetailMetrics", [])
+        if not descriptors or not detail_metrics:
+            return []
+
+        # Garmin 내부 key → activity_streams 타입 컬럼명
+        _KEY_MAP = {
+            "directElapsedDuration": "elapsed_sec",
+            "directLatitude":        "latitude",
+            "directLongitude":       "longitude",
+            "directElevation":       "altitude_m",
+            "directDistance":        "distance_m",
+            "directSpeed":           "speed_ms",
+            "directHeartRate":       "heart_rate",
+            "directDoubleCadence":   "cadence",
+            "directPower":           "power_watts",
+            "directAirTemperature":  "temperature_c",
+            "directTemperature":     "temperature_c",
+            "directGrade":           "grade_pct",
+        }
+
+        # descriptor → 배열 인덱스 매핑
+        idx_map: dict[str, int] = {}
+        for d in descriptors:
+            k = d.get("key") or d.get("metricsKey")
+            idx = d.get("metricsIndex")
+            if k is not None and idx is not None:
+                idx_map[str(k)] = int(idx)
+
+        has_elapsed = "directElapsedDuration" in idx_map
+        rows: list[dict] = []
+
+        for i, point in enumerate(detail_metrics):
+            metrics = point.get("metrics", [])
+            if not metrics:
+                continue
+
+            def _get(garmin_key, _m=metrics):
+                pos = idx_map.get(garmin_key)
+                if pos is None:
+                    return None
+                if isinstance(_m, list):
+                    return _m[pos] if pos < len(_m) else None
+                if isinstance(_m, dict):
+                    return _m.get(garmin_key)
+                return None
+
+            elapsed_raw = _get("directElapsedDuration") if has_elapsed else None
+            elapsed = int(elapsed_raw) if elapsed_raw is not None else i
+
+            # directAirTemperature 우선, 없으면 directTemperature
+            temp = _get("directAirTemperature")
+            if temp is None:
+                temp = _get("directTemperature")
+
+            row: dict = {
+                "source":      self.SOURCE,
+                "elapsed_sec": elapsed,
+                "latitude":    _get("directLatitude"),
+                "longitude":   _get("directLongitude"),
+                "altitude_m":  _get("directElevation"),
+                "distance_m":  _get("directDistance"),
+                "speed_ms":    _get("directSpeed"),
+                "heart_rate":  _int(_get("directHeartRate")),
+                "cadence":     _int(_get("directDoubleCadence")),
+                "power_watts": _get("directPower"),
+                "temperature_c": temp,
+                "grade_pct":   _get("directGrade"),
+            }
+            # elapsed_sec, source는 항상 포함; 나머지 None 제거
+            rows.append(
+                {k: v for k, v in row.items()
+                 if v is not None or k in ("elapsed_sec", "source")}
+            )
+
+        return rows
 
     # ── Wellness ──
 

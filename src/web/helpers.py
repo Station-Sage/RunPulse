@@ -343,35 +343,100 @@ async function doSync(mode) {
     if (to2) fd.append('to_date', to2);
   }
   var orig = btn.textContent;
-  btn.disabled = true; btn.textContent = '동기화 중\u2026';
+  btn.disabled = true; btn.textContent = '동기화 중…';
+  syncStatusShow(mode);
   try {
-    var resp = await fetch('/trigger-sync', {method: 'POST', body: fd});
-    var data = await resp.json();
-    var failed = data.results.filter(function(r) { return !r.ok && !r.skipped; });
-    var succeeded = data.results.filter(function(r) { return r.ok; });
+    var resp = await fetch('/trigger-sync-stream', {method: 'POST', body: fd});
+    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf = '';
+    var finalEvt = null;
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buf += decoder.decode(chunk.value, {stream: true});
+      var lines = buf.split('\\n');
+      buf = lines.pop();
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line.startsWith('data:')) continue;
+        try {
+          var evt = JSON.parse(line.slice(5).trim());
+          syncStatusUpdate(mode, evt);
+          if (evt.type === 'done') finalEvt = evt;
+        } catch(pe) { /* skip malformed */ }
+      }
+    }
+
+    if (!finalEvt) { throw new Error('응답 스트림 종료 — 결과 없음'); }
+    var data = {results: finalEvt.results, total_count: finalEvt.total_count};
+    var failed = finalEvt.results.filter(function(r) { return !r.ok && !r.skipped; });
+    var succeeded = finalEvt.results.filter(function(r) { return r.ok; });
     if (failed.length === 0) {
-        if (data.total_count === 0) {
-            var errors = data.results.filter(function(r) { return r.error; });
-            if (errors.length > 0) {
-                syncToast('⚠️ ' + errors.map(function(r) { return r.source + ': ' + r.error; }).join(' | '), 'warn');
-            } else {
-                syncToast('✅ 동기화 완료 — 새 활동 없음', 'success');
-            }
+      if (finalEvt.total_count === 0) {
+        var errors = finalEvt.results.filter(function(r) { return r.error; });
+        if (errors.length > 0) {
+          syncToast('⚠️ ' + errors.map(function(r) { return r.source + ': ' + r.error; }).join(' | '), 'warn');
         } else {
-            syncToast('✅ 동기화 완료 — 활동 ' + data.total_count + '개 업데이트', 'success');
+          syncToast('✅ 동기화 완료 — 새 활동 없음', 'success');
         }
-        setTimeout(function() { location.reload(); }, 2200);
+      } else {
+        syncToast('✅ 동기화 완료 — 활동 ' + finalEvt.total_count + '개 업데이트', 'success');
+      }
+      setTimeout(function() { location.reload(); }, 2200);
     } else if (succeeded.length > 0) {
-      syncToast('\u26a0\ufe0f 일부 동기화 완료 \u2014 활동 ' + data.total_count + '개', 'warn');
+      syncToast('⚠️ 일부 동기화 완료 — 활동 ' + finalEvt.total_count + '개', 'warn');
       syncModal(data);
     } else {
       syncModal(data);
     }
   } catch(e) {
-    syncToast('\u274c 요청 실패: ' + e.message, 'error');
+    syncToast('❌ 요청 실패: ' + e.message, 'error');
+    syncStatusHide(mode);
   } finally {
     btn.disabled = false; btn.textContent = orig;
   }
+}
+
+function syncStatusShow(mode) {
+  var panel = document.getElementById('sync-status-panel-' + mode);
+  if (!panel) return;
+  panel.innerHTML = '<span style="color:var(--muted);">연결 중…</span>';
+  panel.style.display = 'block';
+}
+
+function syncStatusUpdate(mode, evt) {
+  var panel = document.getElementById('sync-status-panel-' + mode);
+  if (!panel) return;
+  if (evt.type === 'start') {
+    var html = '';
+    (evt.sources || []).forEach(function(src) {
+      html += '<div id="sync-src-' + mode + '-' + src
+        + '" style="padding:1px 0;color:var(--muted);">⏳ ' + src + '</div>';
+    });
+    panel.innerHTML = html;
+  } else if (evt.type === 'source_start') {
+    var el = document.getElementById('sync-src-' + mode + '-' + evt.source);
+    if (el) { el.innerHTML = '🔄 <strong>' + evt.source + '</strong> 동기화 중…'; el.style.color = ''; }
+  } else if (evt.type === 'source_done') {
+    var el = document.getElementById('sync-src-' + mode + '-' + evt.source);
+    if (el) {
+      var icon = evt.ok ? '✅' : (evt.skipped ? '⏭️' : '❌');
+      var detail = evt.ok ? ('활동 ' + evt.count + '개') : (evt.error || '오류');
+      el.innerHTML = icon + ' <strong>' + evt.source + '</strong>: ' + detail;
+      el.style.color = evt.ok ? '#155724' : (evt.skipped ? '#856404' : '#721c24');
+    }
+  } else if (evt.type === 'done') {
+    setTimeout(function() { syncStatusHide(mode); }, 4000);
+  }
+}
+
+function syncStatusHide(mode) {
+  var panel = document.getElementById('sync-status-panel-' + mode);
+  if (panel) panel.style.display = 'none';
 }
 
 function syncToast(msg, type) {

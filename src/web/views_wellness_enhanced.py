@@ -15,8 +15,8 @@ from .helpers import no_data_card, safe_str
 def load_wellness_14d(conn: sqlite3.Connection, date_str: str) -> list[dict]:
     """최근 14일 웰니스 데이터."""
     rows = conn.execute(
-        "SELECT date, sleep_score, hrv_value, body_battery, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date <= ? "
+        "SELECT date, sleep_score, hrv_last_night, body_battery_high, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date <= ? "
         "ORDER BY date DESC LIMIT 14",
         (date_str,),
     ).fetchall()
@@ -25,30 +25,30 @@ def load_wellness_14d(conn: sqlite3.Connection, date_str: str) -> list[dict]:
 
 
 def load_sleep_times(conn: sqlite3.Connection, date_str: str, days: int = 7) -> list[dict]:
-    """최근 N일 취침/기상 시각 (metric_store scope_type='daily')."""
+    """최근 N일 취침/기상 시각 (daily_wellness 테이블에서 직접 조회)."""
     try:
         rows = conn.execute(
-            """SELECT scope_id, metric_name, numeric_value
-               FROM metric_store
-               WHERE scope_type='daily' AND provider='garmin'
-                 AND scope_id <= ? AND scope_id >= date(?, '-' || ? || ' days')
-                 AND metric_name IN ('sleep_start_timestamp', 'sleep_end_timestamp')
-               ORDER BY scope_id""",
+            """SELECT date, sleep_start_time, sleep_duration_sec
+               FROM daily_wellness
+               WHERE date <= ? AND date >= date(?, '-' || ? || ' days')
+                 AND sleep_start_time IS NOT NULL
+               ORDER BY date""",
             (date_str, date_str, days),
         ).fetchall()
     except Exception:
         return []
-    by_date: dict = {}
-    for d, name, val in rows:
-        by_date.setdefault(d, {})[name] = val
     result = []
-    for d in sorted(by_date):
-        entry = by_date[d]
-        result.append({
-            "date": d,
-            "start": entry.get("sleep_start_timestamp"),
-            "end": entry.get("sleep_end_timestamp"),
-        })
+    for d, start_str, duration_sec in rows:
+        end_str = None
+        if start_str and duration_sec:
+            try:
+                from datetime import datetime, timedelta
+                start_dt = datetime.fromisoformat(start_str.replace("Z", ""))
+                end_dt = start_dt + timedelta(seconds=int(duration_sec))
+                end_str = end_dt.isoformat()
+            except (ValueError, TypeError):
+                pass
+        result.append({"date": d, "start": start_str, "end": end_str})
     return result
 
 
@@ -57,7 +57,7 @@ def load_hrv_baseline(conn: sqlite3.Connection, date_str: str) -> dict:
     rows = conn.execute(
         """SELECT metric_name, numeric_value FROM metric_store
            WHERE scope_type='daily' AND scope_id=? AND provider='garmin'
-             AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_high')""",
+             AND metric_name IN ('hrv_baseline_low', 'hrv_baseline_balanced_upper')""",
         (date_str,),
     ).fetchall()
     return {r[0]: float(r[1]) for r in rows if r[1] is not None}
@@ -72,9 +72,9 @@ def load_weekly_comparison(conn: sqlite3.Connection, date_str: str) -> dict:
 
     def _avg(start: str, end: str) -> dict:
         row = conn.execute(
-            """SELECT AVG(sleep_score), AVG(hrv_value), AVG(body_battery),
-                      AVG(stress_avg), AVG(resting_hr)
-               FROM daily_wellness WHERE source='garmin' AND date BETWEEN ? AND ?""",
+            """SELECT AVG(sleep_score), AVG(hrv_last_night), AVG(body_battery_high),
+                      AVG(avg_stress), AVG(resting_hr)
+               FROM daily_wellness WHERE date BETWEEN ? AND ?""",
             (start, end),
         ).fetchone()
         if not row or row[0] is None:
@@ -122,7 +122,7 @@ def render_metrics_dash(raw: dict, data_14d: list[dict], baseline: dict) -> str:
             return ""
         if key == "hrv":
             lo = baseline.get("hrv_baseline_low")
-            hi = baseline.get("hrv_baseline_high")
+            hi = baseline.get("hrv_baseline_balanced_upper")
             if lo is not None and hi is not None:
                 if value < lo:
                     return "<span style='color:var(--red);font-size:0.65rem;'>기준↓</span>"
@@ -201,7 +201,7 @@ def render_7day_chart_enhanced(data: list[dict], baseline: dict,
     rhr = [d.get("rhr") for d in data]
 
     hrv_lo = baseline.get("hrv_baseline_low")
-    hrv_hi = baseline.get("hrv_baseline_high")
+    hrv_hi = baseline.get("hrv_baseline_balanced_upper")
 
     dj = json.dumps(dates)
     sj = json.dumps(sleep)
@@ -284,7 +284,7 @@ def render_hrv_mini_chart(data: list[dict], baseline: dict) -> str:
     if not any(vals):
         return ""
     lo = baseline.get("hrv_baseline_low")
-    hi = baseline.get("hrv_baseline_high")
+    hi = baseline.get("hrv_baseline_balanced_upper")
     today_hrv = vals[-1] if vals else None
 
     interp = ""
@@ -366,7 +366,7 @@ def render_pattern_insights(data_14d: list[dict], baseline: dict,
     # HRV 기준선 이탈
     lo = baseline.get("hrv_baseline_low")
     if lo and hrv_vals:
-        below = sum(1 for v in hrv_vals[-3:] if v < lo)
+        below = sum(1 for v in hrv_vals[-3:] if v is not None and v < lo)
         if below >= 2:
             insights.append(f"최근 3일 중 {below}일 HRV가 기준선 이하 → 누적 피로 주의.")
 
@@ -524,7 +524,7 @@ def render_sleep_time_pattern(sleep_times: list[dict]) -> str:
 def build_outlier_mark_points(data: list[dict], baseline: dict) -> str:
     """HRV 기준선 이탈일의 ECharts markPoint data 배열 (JS 문자열)."""
     lo = baseline.get("hrv_baseline_low")
-    hi = baseline.get("hrv_baseline_high")
+    hi = baseline.get("hrv_baseline_balanced_upper")
     if lo is None or hi is None:
         return "[]"
     points = []
@@ -563,7 +563,7 @@ def build_pattern_recovery_tips(data_14d: list[dict], baseline: dict) -> list[st
     # HRV 기준선 이하 지속
     lo = baseline.get("hrv_baseline_low")
     if lo and len(hrv_vals) >= 3:
-        below = sum(1 for v in hrv_vals[-3:] if v < lo)
+        below = sum(1 for v in hrv_vals[-3:] if v is not None and v < lo)
         if below >= 2:
             tips.append(f"HRV가 기준선({lo:.0f}ms) 이하 지속 — 누적 피로입니다. 수면 질 개선과 휴식을 우선하세요.")
 

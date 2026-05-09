@@ -56,6 +56,19 @@
 - **포기한 것**: 전체기간 sync, 백그라운드 자동 sync
 - **보류**: B안(SSH 역방향 터널) — BACKLOG 등록 / C안(공식 Garmin API) — LATER 등록
 - **결과**: 개인 용도 incremental sync(~30일) 범위에서는 동작. 사용자가 매 sync마다 로컬 스크립트 실행 필요.
+- **토큰 경로 구현**: `_tokenstore_path()`는 `~/.garminconnect` 대신 프로젝트 로컬 경로를 사용.
+  - `user_id` 없음: `{PROJECT_ROOT}/.garminconnect`
+  - `user_id` 있음: `data/users/{user_id}/.garminconnect`
+  - `tokenstore` 명시: 그 경로 그대로 사용 (존재 여부 무관)
+
+## ADR-011: AI 캐시 무효화 — 데이터 핑거프린트 기반 (2026-05-08)
+- **날짜**: 2026-05-08
+- **맥락**: `_is_fresh()`가 sync job 실행 여부로 캐시 유효성을 판단 → sync 직후 대시보드 접속마다 Gemini API 재호출 → 429 rate limit 발생. 시간 기반(오전/오후/저녁) 자동 갱신도 불필요한 API 호출 유발.
+- **결정**: 캐시 무효화를 의미 있는 데이터 변화에만 한정. 저장 시점의 데이터 상태(`MAX(activity_summaries.id) | MAX(daily_wellness.date) | today`)를 `data_fingerprint`로 캐시에 함께 저장. 조회 시 현재 상태와 비교하여 불일치하면 stale 처리.
+- **무효화 조건**: (1) 신규 활동 추가, (2) 신규 웰니스 레코드, (3) 날짜 변경, (4) TTL 8h 초과, (5) 사용자 명시적 refresh(`?refresh_ai=1`)
+- **제거**: sync job 완료 후 캐시 전체 삭제하던 `invalidate_after_sync()` 함수 제거.
+- **결과**: sync가 실행돼도 실제 새 데이터가 없으면 캐시 재사용 → Gemini API 호출 최소화.
+- **검증**: `grep -n "invalidate_after_sync" src/` → 0건
 
 ## ADR-009: Calculator 데이터 접근 정책 — CalcContext API 전용
 - **날짜**: 2026-04-04

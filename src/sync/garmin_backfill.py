@@ -1,6 +1,7 @@
 """Garmin ZIP export → activity_summaries backfill (v2)"""
 import json, sqlite3, os, sys, glob
-from src.utils.db_helpers import upsert_metric
+from src.utils.db_helpers import upsert_metric, upsert_activity, _ACTIVITY_COLUMNS
+from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -11,6 +12,30 @@ except ImportError:
     from src.sync.garmin_v2_mappings import extract_summary_fields_from_zip
 
 KST = timedelta(hours=9)
+
+# ZIP export 전용 필드 → metric_store 라우팅
+_METRIC_FIELDS = {
+    "bmr_calories": "load",
+    "steps": "wellness",
+    "body_battery_diff": "wellness",
+    "vo2max_activity": "fitness",
+    "moderate_intensity_min": "load",
+    "vigorous_intensity_min": "load",
+}
+
+_ALLOWED_COLS = set(_ACTIVITY_COLUMNS)
+
+
+def _save_zip_metrics(conn, activity_id: int, fields: dict) -> None:
+    """ZIP 전용 메트릭 필드 → metric_store 저장."""
+    for metric_name, category in _METRIC_FIELDS.items():
+        val = fields.get(metric_name)
+        if val is not None:
+            try:
+                upsert_metric(conn, "activity", str(activity_id), metric_name, "garmin",
+                              numeric_value=float(val), category=category)
+            except Exception:
+                pass
 
 
 def _insert_zone_times(conn, activity_id: int, hr_zone_times, power_zone_times) -> None:
@@ -107,15 +132,19 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
     for act in activities:
         aid = str(act.get("activityId", ""))
         start_local = _zip_time_to_iso(act.get("startTimeLocal"))
-        
+
+        # Layer 0: raw payload 항상 보존 (non-DDL 필드 포함)
+        if not dry_run:
+            upsert_raw_payload(conn, "garmin", "activity_zip", aid, act)
+
         # 1순위: source_id로 직접 매칭
         rowid = by_source_id.get(aid)
         old_source_id = None
-        
+
         # 2순위: start_time으로 매칭 (exp_ ID)
         if rowid is None and start_local and start_local in by_start_time:
             old_source_id = by_start_time[start_local]; rowid = old_source_id
-        
+
         if rowid is None:
             if insert_new:
                 fields = extract_summary_fields_from_zip(act)
@@ -124,15 +153,11 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
                 fields["source"] = "garmin"
                 fields["source_id"] = aid
                 if not dry_run:
-                    cols = ", ".join(fields.keys())
-                    placeholders = ", ".join(["?"] * len(fields))
                     try:
-                        cursor2 = conn.execute(
-                            f"INSERT INTO activity_summaries ({cols}) VALUES ({placeholders})",
-                            list(fields.values())
-                        )
-                        new_id = cursor2.lastrowid
+                        new_id = upsert_activity(conn, fields)
                         _insert_zone_times(conn, new_id, hr_zone_times, power_zone_times)
+                        _save_zip_metrics(conn, new_id, fields)
+                        update_raw_activity_id(conn, "garmin", "activity_zip", aid, new_id)
                         inserted += 1
                     except sqlite3.Error as e:
                         print(f"  [INSERT 실패] {aid}: {e}")
@@ -142,7 +167,7 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
             else:
                 not_found += 1
             continue
-        
+
         matched += 1
         fields = extract_summary_fields_from_zip(act)
         hr_zone_times = fields.pop("_hr_zone_times", None)
@@ -153,29 +178,33 @@ def backfill_from_zip(export_dir: str, db_path: str = "running.db",
             fields["source_id"] = aid
             id_upgraded += 1
 
-        if not fields:
+        # DDL 화이트리스트 필터 (non-DDL 컬럼은 source_payloads에 보존됨)
+        filtered_fields = {k: v for k, v in fields.items() if k in _ALLOWED_COLS}
+
+        if not filtered_fields:
             skipped += 1
             continue
 
         if dry_run:
-            print(f"  [DRY] {aid}: {len(fields)} 컬럼 업데이트 예정" +
+            print(f"  [DRY] {aid}: {len(filtered_fields)} 컬럼 업데이트 예정" +
                   (f" (ID 업그레이드: {old_source_id} → {aid})" if old_source_id else ""))
             updated += 1
             continue
 
-        set_clause = ", ".join(f"{k}=?" for k in fields.keys())
+        set_clause = ", ".join(f"{k}=?" for k in filtered_fields.keys())
         try:
             conn.execute(
                 f"UPDATE activity_summaries SET {set_clause} WHERE source='garmin' AND source_id=?",
-                list(fields.values()) + [old_source_id if old_source_id else aid]
+                list(filtered_fields.values()) + [old_source_id if old_source_id else aid]
             )
-            # zone times를 activity_detail_metrics에 저장
             row_id = conn.execute(
                 "SELECT id FROM activity_summaries WHERE source='garmin' AND source_id=?",
                 (aid,),
             ).fetchone()
             if row_id:
                 _insert_zone_times(conn, row_id[0], hr_zone_times, power_zone_times)
+                _save_zip_metrics(conn, row_id[0], fields)
+                update_raw_activity_id(conn, "garmin", "activity_zip", aid, row_id[0])
             updated += 1
         except sqlite3.Error as e:
             print(f"  [UPDATE 실패] {aid}: {e}")

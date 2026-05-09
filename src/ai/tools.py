@@ -224,7 +224,7 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
         # 분류
         cls = conn.execute(
             "SELECT numeric_value FROM metric_store "
-            "WHERE metric_name='workout_type' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
+            "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
             (aid,),
         ).fetchone()
         if cls:
@@ -293,15 +293,15 @@ def _exec_get_metrics_trend(conn: sqlite3.Connection, args: dict) -> dict:
 def _exec_get_wellness(conn: sqlite3.Connection, args: dict) -> dict:
     s, e = args["start_date"], args["end_date"]
     rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, sleep_hours, hrv_value, "
-        "stress_avg, resting_hr FROM daily_wellness "
-        "WHERE source='garmin' AND date BETWEEN ? AND ? ORDER BY date", (s, e),
+        "SELECT date, body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, "
+        "avg_stress, resting_hr FROM daily_wellness "
+        "WHERE date BETWEEN ? AND ? ORDER BY date", (s, e),
     ).fetchall()
     return {
         "period": f"{s} ~ {e}",
         "data": [
             {"date": r[0], "body_battery": r[1], "sleep_score": r[2],
-             "sleep_hours": r[3], "hrv": r[4], "stress": r[5], "resting_hr": r[6]}
+             "sleep_hours": r[3] / 3600.0 if r[3] else None, "hrv": r[4], "stress": r[5], "resting_hr": r[6]}
             for r in rows
         ],
     }
@@ -313,7 +313,7 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
     rows = conn.execute(
         "SELECT scope_id, metric_name, numeric_value FROM metric_store"
         " WHERE scope_type='daily' AND is_primary=1"
-        "   AND metric_name IN ('ctl','atl','tsb','garmin_vo2max')"
+        "   AND metric_name IN ('ctl','atl','tsb','vo2max')"
         "   AND scope_id>=? AND numeric_value IS NOT NULL ORDER BY scope_id",
         (start,),
     ).fetchall()
@@ -328,7 +328,7 @@ def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
              "ctl": round(float(v["ctl"]), 2) if "ctl" in v else None,
              "atl": round(float(v["atl"]), 1) if "atl" in v else None,
              "tsb": round(float(v["tsb"]), 1) if "tsb" in v else None,
-             "vo2max": round(float(v["garmin_vo2max"]), 1) if "garmin_vo2max" in v else None}
+             "vo2max": round(float(v["vo2max"]), 1) if "vo2max" in v else None}
             for d, v in sorted(by_date.items())
         ],
     }
@@ -340,7 +340,7 @@ def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
         "SELECT a.start_time, a.distance_m / 1000.0 AS distance_km, a.duration_sec, a.avg_pace_sec_km, "
         "a.avg_hr, a.name FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
-        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
         "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT ?", (limit,),
@@ -372,23 +372,12 @@ def _exec_get_activity_detail(conn: sqlite3.Connection, args: dict) -> dict:
     ]
 
     # streams
-    streams: dict = {}
-    for row in conn.execute(
-        "SELECT stream_type, data_json FROM activity_streams WHERE activity_id=?",
-        (aid,),
-    ).fetchall():
-        try:
-            streams[row[0]] = _json.loads(row[1])
-        except Exception:
-            pass
-    
-    # latlng 두 형식 지원: 분리형(latlng_lat/lon) vs 통합형(latlng [[lat,lon],...])
-    lat_s = streams.get("latlng_lat", [])
-    lon_s = streams.get("latlng_lon", [])
-    if not lat_s and "latlng" in streams:
-        latlng = streams["latlng"]
-        lat_s = [p[0] for p in latlng]
-        lon_s = [p[1] for p in latlng]    
+    from src.utils.db_helpers import load_activity_streams
+    streams = load_activity_streams(conn, aid)
+
+    latlng = streams.get("latlng", [])
+    lat_s = [p[0] for p in latlng]
+    lon_s = [p[1] for p in latlng]
     hr = streams.get("heartrate", [])
     cad = streams.get("cadence", [])
     pwr = streams.get("watts", [])
@@ -547,7 +536,7 @@ def _exec_get_runner_profile(conn: sqlite3.Connection, args: dict) -> dict:
     # Daniels 훈련 페이스 추가
     vdot_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='vdot' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
     ).fetchone()
     if vdot_row and vdot_row[0]:

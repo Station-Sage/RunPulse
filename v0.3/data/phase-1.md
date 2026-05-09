@@ -104,6 +104,9 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     gear_id                     INTEGER,
     source_url                  TEXT,
 
+    -- ── 훈련 (1) ──
+    workout_label               TEXT,
+
     -- ── 관리 (2) ──
     created_at                  TEXT DEFAULT (datetime('now')),
     updated_at                  TEXT DEFAULT (datetime('now')),
@@ -111,7 +114,7 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     UNIQUE(source, source_id)
 );
 
-38컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12).
+39컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12). workout_label 추가 (v15).
 
 ---
 
@@ -421,7 +424,7 @@ SELECT * FROM grouped WHERE rn = 1;
 | 9 | weather_cache | 4 | 15 | ~1,000 |
 | 10 | sync_jobs | 4 | 13 | ~200 |
 
-*activity_summaries는 38컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12).
+*activity_summaries는 39컬럼. calories/normalized_power/suffer_score/training_effect_aerobic/training_effect_anaerobic/training_load → metric_store 이동 완료 (Phase 5-G, v12). workout_label 추가 (v15).
 
 **앱 기능 테이블 (5개)**
 
@@ -546,7 +549,7 @@ PRAGMA user_version으로 관리. db_setup.py 실행 시 현재 버전을 확인
 |---|----------|------|
 | 1 | python src/db_setup.py 실행 시 빈 DB 정상 생성 | ✅ |
 | 2 | 15개 테이블 + 1개 뷰 존재 | ✅ (daily_fitness 삭제 완료 v11) |
-| 3 | activity_summaries 38컬럼 확인 | ✅ (Phase 5-G 이후 38컬럼, v12) |
+| 3 | activity_summaries 39컬럼 확인 | ✅ (v15: workout_label 추가) |
 | 4 | metric_registry.py에 194 MetricDef, alias 충돌 없음 | ✅ |
 | 5 | canonicalize() 테스트 통과 | ✅ |
 | 6 | resolve_primary() 테스트 통과 | ✅ |

@@ -18,6 +18,11 @@ from src.sync.runalyze import check_runalyze_connection
 dev_bp = Blueprint("dev", __name__)
 
 
+@dev_bp.get("/dev")
+def dev_index():
+    return redirect("/config")
+
+
 # ── 헬퍼 함수 ────────────────────────────────────────────────────────────
 
 
@@ -258,7 +263,7 @@ def payloads():
             payload_counts = conn.execute(
                 """
                 SELECT source, entity_type, count(*) AS cnt
-                FROM raw_source_payloads
+                FROM source_payloads
                 GROUP BY source, entity_type
                 ORDER BY source, entity_type
                 """
@@ -278,10 +283,10 @@ def payloads():
             recent_payloads = conn.execute(
                 f"""
                 SELECT id, source, entity_type, entity_id, activity_id,
-                       length(payload_json) AS payload_len, updated_at
-                FROM raw_source_payloads
+                       length(payload) AS payload_len, fetched_at
+                FROM source_payloads
                 {where_sql}
-                ORDER BY updated_at DESC
+                ORDER BY fetched_at DESC
                 LIMIT ?
                 """,
                 (*params, limit),
@@ -334,8 +339,8 @@ def payload_view():
         with sqlite3.connect(db_path) as conn:
             row = conn.execute(
                 """
-                SELECT id, source, entity_type, entity_id, activity_id, payload_json, created_at, updated_at
-                FROM raw_source_payloads
+                SELECT id, source, entity_type, entity_id, activity_id, payload, fetched_at
+                FROM source_payloads
                 WHERE id = ?
                 """,
                 (payload_id,),
@@ -368,8 +373,7 @@ def payload_view():
         ("entity_type", row[2]),
         ("entity_id", row[3]),
         ("activity_id", row[4]),
-        ("created_at", row[6]),
-        ("updated_at", row[7]),
+        ("fetched_at", row[6]),
     ]
 
     extra = ""
@@ -434,7 +438,7 @@ data/history/strava/</pre>
             ("activity_summaries", _query_value(conn, "select count(*) from activity_summaries")),
             ("activity_detail_metrics", _query_value(conn, "select count(*) from activity_detail_metrics")),
             ("daily_wellness", _query_value(conn, "select count(*) from daily_wellness")),
-            ("daily_fitness", _query_value(conn, "select count(*) from daily_fitness")),
+            ("metric_store", _query_value(conn, "select count(*) from metric_store")),
             ("goals", _query_value(conn, "select count(*) from goals")),
         ]
 
@@ -452,10 +456,11 @@ data/history/strava/</pre>
         fitness_by_source = _query_rows(
             conn,
             """
-            select source, count(*)
-            from daily_fitness
-            group by source
-            order by source
+            select provider, count(distinct scope_id)
+            from metric_store
+            where scope_type='daily' and metric_name in ('ctl', 'atl', 'tsb')
+            group by provider
+            order by provider
             """,
         )
         wellness_by_source = _query_rows(
@@ -540,8 +545,8 @@ python src/import_history.py data/history/strava --source strava -r</pre>
     body += (
         "<h2>Activities by source</h2>"
         + _table(["source", "count"], activities_by_source)
-        + "<h2>Daily fitness by source</h2>"
-        + _table(["source", "count"], fitness_by_source)
+        + "<h2>Daily fitness by provider (metric_store)</h2>"
+        + _table(["provider", "days"], fitness_by_source)
         + "<h2>Daily wellness by source</h2>"
         + _table(["source", "count"], wellness_by_source)
         + "<h2>Recent activities</h2>"

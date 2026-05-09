@@ -181,6 +181,76 @@ detail_raw 기반 (`_extract_detail_metrics`):
 |-------------------|----------------|
 | vo2max | vo2MaxValue / vo2max |
 
+### extract_activity_streams — activity_streams 매핑
+
+**API 엔드포인트**: `get_activity_details(activity_id, maxpoly=9999999)`
+
+**입력 포맷**:
+```json
+{
+  "metricDescriptors": [{"key": "directXxx", "metricsIndex": N}, ...],
+  "activityDetailMetrics": [{"metrics": [v0, v1, ..., vN]}, ...]
+}
+```
+한 행 = 한 시간 지점 (1초 간격).
+
+| activity_streams 컬럼 | Garmin key | 비고 |
+|----------------------|-----------|------|
+| elapsed_sec | directElapsedDuration | 없으면 row index fallback |
+| latitude | directLatitude | |
+| longitude | directLongitude | |
+| altitude_m | directElevation | |
+| distance_m | directDistance | |
+| speed_ms | directSpeed | |
+| heart_rate | directHeartRate | int 변환 |
+| cadence | directDoubleCadence | int 변환 |
+| power_watts | directPower | |
+| temperature_c | directAirTemperature | directTemperature fallback |
+| grade_pct | directGrade | |
+
+**sync 경로**: `garmin_activity_sync._fetch_streams` → `api.get_activity_details()` → `extractor.extract_activity_streams()` → `save_streams()`
+
+### extract_gear — gear 테이블 매핑
+
+**API 엔드포인트**: `get_activity_gear(activity_id)` → `list[dict]`
+
+| gear 컬럼 | Garmin 필드 | 변환 |
+|-----------|------------|------|
+| source | — | "garmin" 고정 |
+| source_gear_id | gearPk \| uuid | str 변환 |
+| name | customMakeModel \| displayName \| name | |
+| total_distance_m | totalDistanceInKilometers × 1000 \| totalDistance | km → m |
+| status | gearStatusName | "inactive" → "inactive", 그 외 → "active" |
+
+**activity_summaries 링크**: gear 저장 후 `UPDATE activity_summaries SET gear_id = ? WHERE id = ?`
+
+**sync 경로**: `garmin_api_extensions.sync_activity_gear()` — Garmin IP 블록 해제 후 `garmin_activity_sync._sync_single()`에 연결 예정
+
+**raw payload**: `source_payloads`에 `entity_type="activity_gear"` 로 저장
+
+### extract_activity_exercise_sets — activity_exercise_sets 매핑
+
+**API 엔드포인트**: `get_activity_exercise_sets(activity_id)` → `list[dict]` 또는 `{"exerciseSets": [...]}`
+
+| activity_exercise_sets 컬럼 | Garmin 필드 | 변환 |
+|-----------------------------|------------|------|
+| activity_id | — | 내부 activity_id |
+| source | — | "garmin" 고정 |
+| set_index | setOrder \| 순서 index | |
+| exercise_name | exerciseType.typeKey \| typeId \| exerciseName | |
+| exercise_category | category \| exerciseType.category | |
+| set_type | setType | |
+| reps | reps | |
+| weight_kg | weight | float 변환 |
+| duration_sec | duration | |
+| distance_m | distance | |
+
+**sync 경로**: `garmin_api_extensions.sync_activity_exercise_sets()` — Garmin IP 블록 해제 후 연결 예정
+
+**raw payload**: `source_payloads`에 `entity_type="activity_exercise_sets"` 로 저장
+
+> **NOTE — weather / hr_zones / power_zones**: `garmin_extractor._extract_detail_metrics()`가 `detail_raw`에서 `weatherDTO`, `hrTimeInZone_*`, `powerTimeInZone_*`를 직접 추출하여 `metric_store`에 저장하는 것이 **정규 경로**임. `garmin_api_extensions`의 `sync_activity_weather/hr_zones/power_zones`는 이 경로의 중복이므로 제거됨.
+
 ---
 
 ## 2-3. Strava Extractor

@@ -334,17 +334,17 @@ def load_sync_status(conn: sqlite3.Connection) -> list[dict]:
     """소스별 마지막 동기화 시각 조회.
 
     Returns:
-        [{"service": "garmin", "last_sync": "2026-03-25 10:30", "status": "completed"}, ...]
+        [{"source": "garmin", "last_sync": "2026-03-25 10:30", "status": "completed"}, ...]
     """
     rows = conn.execute(
-        """SELECT service,
+        """SELECT source,
                   MAX(created_at) AS last_sync,
                   status
            FROM sync_jobs
-           GROUP BY service
-           ORDER BY service""",
+           GROUP BY source
+           ORDER BY source""",
     ).fetchall()
     return [
-        {"service": r[0], "last_sync": r[1], "status": r[2]}
+        {"source": r[0], "last_sync": r[1], "status": r[2]}
         for r in rows
     ]

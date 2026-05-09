@@ -18,7 +18,7 @@ def _conn():
 
 def _seed(conn, days=10):
     from datetime import datetime, timedelta
-    target = datetime(2026, 4, 1)
+    target = datetime.now()
     ids = []
     for i in range(days):
         d = target - timedelta(days=i)
@@ -72,13 +72,17 @@ class TestComputeForActivities:
 
 class TestComputeForDates:
     def test_basic(self):
+        from datetime import datetime, timedelta
         conn = _conn()
         ids = _seed(conn, days=10)
         # activity metrics 먼저 실행해서 TRIMP 생성
         for aid in ids:
             run_activity_metrics(conn, aid)
         conn.commit()
-        result = compute_for_dates(conn, ["2026-04-01", "2026-03-31"])
+        today = datetime.now()
+        d1 = today.strftime("%Y-%m-%d")
+        d2 = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = compute_for_dates(conn, [d1, d2])
         assert isinstance(result, ComputeResult)
         assert result.total_scopes == 2
         assert result.computed_count > 0

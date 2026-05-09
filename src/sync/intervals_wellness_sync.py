@@ -52,28 +52,31 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
 
         _store_raw(conn, "wellness", date_str, entry)
 
-        # 수면/HRV → daily_wellness
+        # 수면/HRV → daily_wellness (v0.3 스키마)
         try:
             conn.execute(
-                """INSERT OR REPLACE INTO daily_wellness
-                   (date, source, sleep_score, sleep_hours, hrv_value, hrv_sdnn,
-                    resting_hr, avg_sleeping_hr, body_battery, stress_avg,
-                    readiness_score, fatigue, mood, motivation, steps, weight_kg)
-                   VALUES (?, 'intervals', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO daily_wellness
+                   (date, sleep_score, sleep_duration_sec, hrv_last_night,
+                    resting_hr, body_battery_high, avg_stress, steps, weight_kg)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(date) DO UPDATE SET
+                       sleep_score = COALESCE(excluded.sleep_score, sleep_score),
+                       sleep_duration_sec = COALESCE(excluded.sleep_duration_sec, sleep_duration_sec),
+                       hrv_last_night = COALESCE(excluded.hrv_last_night, hrv_last_night),
+                       resting_hr = COALESCE(excluded.resting_hr, resting_hr),
+                       body_battery_high = COALESCE(excluded.body_battery_high, body_battery_high),
+                       avg_stress = COALESCE(excluded.avg_stress, avg_stress),
+                       steps = COALESCE(excluded.steps, steps),
+                       weight_kg = COALESCE(excluded.weight_kg, weight_kg),
+                       updated_at = datetime('now')""",
                 (
                     date_str,
                     entry.get("sleepQuality"),
-                    entry.get("sleepSecs", 0) / 3600 if entry.get("sleepSecs") else None,
+                    entry.get("sleepSecs"),
                     entry.get("hrv"),
-                    entry.get("hrvSDNN"),
                     entry.get("restingHR"),
-                    entry.get("avgSleepingHR"),
                     entry.get("bodyBattery"),
                     entry.get("avgStress"),
-                    entry.get("readiness"),
-                    entry.get("fatigue"),
-                    entry.get("mood"),
-                    entry.get("motivation"),
                     entry.get("steps"),
                     entry.get("weight"),
                 ),

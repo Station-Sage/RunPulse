@@ -65,7 +65,7 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
     insights: list[str] = []
     utrs_rows = conn.execute(
         """SELECT scope_id AS date, numeric_value FROM metric_store
-           WHERE metric_name='UTRS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='utrs' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ? ORDER BY scope_id ASC""",
         (start, end),
     ).fetchall()
@@ -78,7 +78,7 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
             insights.append(f"훈련 준비도(UTRS) <strong>{delta:.0f}</strong> 하락 — 회복 주간 고려")
     cirs_rows = conn.execute(
         """SELECT numeric_value FROM metric_store
-           WHERE metric_name='CIRS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='cirs' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
@@ -86,7 +86,7 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
         insights.append(f"부상 위험(CIRS) <strong>{int(cirs_rows[0][0])}/100</strong> — 부하 조절 필요")
     mono_rows = conn.execute(
         """SELECT numeric_value, json_value FROM metric_store
-           WHERE metric_name='Monotony' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='monotony' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
@@ -94,7 +94,7 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
         insights.append(f"훈련 단조로움 <strong>{float(mono_rows[0][0]):.1f}</strong> — 강도/유형 다양화 권장")
     tids_rows = conn.execute(
         """SELECT json_value FROM metric_store
-           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='tids' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
@@ -112,7 +112,7 @@ def _render_ai_insight_rule(conn: sqlite3.Connection, start: str, end: str) -> s
             pass
     acwr_rows = conn.execute(
         """SELECT numeric_value FROM metric_store
-           WHERE metric_name='ACWR' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='acwr' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ? ORDER BY scope_id DESC LIMIT 1""",
         (start, end),
     ).fetchall()
@@ -182,8 +182,8 @@ def render_export_buttons(period: str) -> str:
 def render_summary_cards(stats: dict, metrics_avg: dict,
                          teroi: float | None = None, sapi: float | None = None) -> str:
     """요약 지표 카드."""
-    utrs_avg = metrics_avg.get("UTRS")
-    cirs_avg = metrics_avg.get("CIRS")
+    utrs_avg = metrics_avg.get("utrs")
+    cirs_avg = metrics_avg.get("cirs")
 
     def _card(title: str, value: str, color: str = "var(--fg)") -> str:
         return (

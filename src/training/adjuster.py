@@ -21,14 +21,15 @@ def _get_todays_wellness(conn: sqlite3.Connection) -> dict:
     """오늘 Garmin 웰니스 데이터 조회."""
     today = date.today().isoformat()
     row = conn.execute(
-        "SELECT body_battery, sleep_score, sleep_hours, hrv_value, stress_avg "
-        "FROM daily_wellness WHERE date = ? AND source = 'garmin'",
+        "SELECT body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, avg_stress "
+        "FROM daily_wellness WHERE date = ?",
         (today,),
     ).fetchone()
     if row:
+        sleep_hours = row[2] / 3600.0 if row[2] else None
         return {
             "body_battery": row[0], "sleep_score": row[1],
-            "sleep_hours": row[2], "hrv_value": row[3], "stress_avg": row[4],
+            "sleep_hours": sleep_hours, "hrv_value": row[3], "stress_avg": row[4],
         }
     return {}
 

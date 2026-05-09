@@ -31,7 +31,7 @@ def load_training_quality_series(conn: sqlite3.Connection, start: str, end: str)
     # EF, Decoupling (활동별)
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
-           WHERE metric_name IN ('EF', 'AerobicDecoupling')
+           WHERE metric_name IN ('efficiency_factor_rp', 'aerobic_decoupling_rp')
              AND scope_type='activity' AND is_primary=1 AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, end),
@@ -41,10 +41,10 @@ def load_training_quality_series(conn: sqlite3.Connection, start: str, end: str)
     for d, name, val in rows:
         if val is None:
             continue
-        if name == "EF":
+        if name == "efficiency_factor_rp":
             ef_dates.append(d)
             ef_vals.append(round(float(val), 4))
-        elif name == "AerobicDecoupling":
+        elif name == "aerobic_decoupling_rp":
             dec_dates.append(d)
             dec_vals.append(round(float(val), 1))
 
@@ -71,7 +71,7 @@ def load_risk_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
     rows = conn.execute(
         """SELECT scope_id AS date, metric_name, numeric_value FROM metric_store
            WHERE scope_type='daily' AND is_primary=1
-             AND metric_name IN ('ACWR', 'Monotony', 'Strain')
+             AND metric_name IN ('acwr', 'monotony', 'training_strain')
              AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, end),
@@ -82,9 +82,9 @@ def load_risk_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
     dates = sorted(by_date.keys())
     return {
         "dates": dates,
-        "acwr": [by_date[d].get("ACWR") for d in dates],
-        "monotony": [by_date[d].get("Monotony") for d in dates],
-        "strain": [by_date[d].get("Strain") for d in dates],
+        "acwr": [by_date[d].get("acwr") for d in dates],
+        "monotony": [by_date[d].get("monotony") for d in dates],
+        "strain": [by_date[d].get("training_strain") for d in dates],
     }
 
 
@@ -93,13 +93,13 @@ def load_form_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
     # RMR 기간 시작 vs 끝
     rmr_start = conn.execute(
         """SELECT json_value FROM metric_store
-           WHERE metric_name='RMR' AND scope_type='daily' AND is_primary=1 AND scope_id >= ?
+           WHERE metric_name='rmr' AND scope_type='daily' AND is_primary=1 AND scope_id >= ?
            ORDER BY scope_id ASC LIMIT 1""",
         (start,),
     ).fetchone()
     rmr_end = conn.execute(
         """SELECT json_value FROM metric_store
-           WHERE metric_name='RMR' AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
+           WHERE metric_name='rmr' AND scope_type='daily' AND is_primary=1 AND scope_id <= ?
            ORDER BY scope_id DESC LIMIT 1""",
         (end,),
     ).fetchone()
@@ -145,8 +145,8 @@ def load_form_trend_series(conn: sqlite3.Connection, start: str, end: str) -> di
 def load_wellness_trend_series(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """HRV / 수면 / BB / 스트레스 / 안정심박 기간 내 시계열."""
     rows = conn.execute(
-        """SELECT date, hrv_value, sleep_score, body_battery, stress_avg, resting_hr
-           FROM daily_wellness WHERE source='garmin' AND date BETWEEN ? AND ?
+        """SELECT date, hrv_last_night, sleep_score, body_battery_high, avg_stress, resting_hr
+           FROM daily_wellness WHERE date BETWEEN ? AND ?
            ORDER BY date""",
         (start, end),
     ).fetchall()
@@ -165,7 +165,7 @@ def load_tids_weekly_series(conn: sqlite3.Connection, start: str, end: str) -> d
     """주간 TIDS z12/z3/z45 시리즈."""
     rows = conn.execute(
         """SELECT scope_id AS date, json_value FROM metric_store
-           WHERE metric_name='TIDS' AND scope_type='daily' AND is_primary=1
+           WHERE metric_name='tids' AND scope_type='daily' AND is_primary=1
              AND scope_id BETWEEN ? AND ?
            ORDER BY scope_id""",
         (start, end),

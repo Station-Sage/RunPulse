@@ -9,6 +9,7 @@
   Layer 3: activity_streams        — 시계열 GPS/HR/Pace
            activity_laps            — 랩/스플릿
            activity_best_efforts    — 베스트 에포트
+           activity_exercise_sets   — 근력/운동 세트 (Garmin)
   Layer 4: gear, weather_cache, sync_jobs, v_canonical_activities
 
 마이그레이션:
@@ -26,7 +27,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 14  # v0.3.4: activity_streams/activity_best_efforts elapsed_sec 컬럼 보장
+SCHEMA_VERSION = 15  # v0.3.5: activity_summaries.workout_label 컬럼 추가
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +124,9 @@ CREATE TABLE IF NOT EXISTS activity_summaries (
     device_name                 TEXT,
     gear_id                     TEXT,
     source_url                  TEXT,
+
+    -- ── 훈련 (1) ──
+    workout_label               TEXT,
 
     -- ── 관리 (2) ──
     created_at                  TEXT DEFAULT (datetime('now')),
@@ -250,6 +254,24 @@ CREATE TABLE IF NOT EXISTS activity_best_efforts (
 );
 """
 
+_DDL_ACTIVITY_EXERCISE_SETS = """
+CREATE TABLE IF NOT EXISTS activity_exercise_sets (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    activity_id       INTEGER NOT NULL,
+    source            TEXT NOT NULL,
+    set_index         INTEGER NOT NULL,
+    exercise_name     TEXT,
+    exercise_category TEXT,
+    set_type          TEXT,
+    reps              INTEGER,
+    weight_kg         REAL,
+    duration_sec      REAL,
+    distance_m        REAL,
+    created_at        TEXT DEFAULT (datetime('now')),
+    UNIQUE(activity_id, source, set_index)
+);
+"""
+
 _DDL_GEAR = """
 CREATE TABLE IF NOT EXISTS gear (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -264,6 +286,52 @@ CREATE TABLE IF NOT EXISTS gear (
     created_at          TEXT DEFAULT (datetime('now')),
     updated_at          TEXT DEFAULT (datetime('now')),
     UNIQUE(source, source_gear_id)
+);
+"""
+
+_DDL_ATHLETE_PROFILE = """
+CREATE TABLE IF NOT EXISTS athlete_profile (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    source              TEXT NOT NULL UNIQUE,
+    source_athlete_id   TEXT,
+    firstname           TEXT,
+    lastname            TEXT,
+    city                TEXT,
+    country             TEXT,
+    sex                 TEXT,
+    weight_kg           REAL,
+    ftp                 INTEGER,
+    lthr                INTEGER,
+    vo2max              REAL,
+    profile_json        TEXT,
+    updated_at          TEXT DEFAULT (datetime('now'))
+);
+"""
+
+_DDL_ATHLETE_STATS = """
+CREATE TABLE IF NOT EXISTS athlete_stats (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    source                  TEXT NOT NULL,
+    snapshot_date           TEXT NOT NULL,
+    -- Strava / Intervals (run-scoped totals)
+    all_run_count           INTEGER,
+    all_run_distance_km     REAL,
+    all_run_elapsed_sec     INTEGER,
+    all_run_elevation_m     REAL,
+    ytd_run_count           INTEGER,
+    ytd_run_distance_km     REAL,
+    ytd_run_elapsed_sec     INTEGER,
+    recent_run_count        INTEGER,
+    recent_run_distance_km  REAL,
+    -- Garmin (generic totals)
+    total_distance_km       REAL,
+    total_elevation_m       REAL,
+    total_moving_sec        INTEGER,
+    total_activities        INTEGER,
+    biggest_distance_km     REAL,
+    stats_json              TEXT,
+    updated_at              TEXT DEFAULT (datetime('now')),
+    UNIQUE(source, snapshot_date)
 );
 """
 
@@ -431,7 +499,10 @@ PIPELINE_TABLES = [
     "activity_streams",
     "activity_laps",
     "activity_best_efforts",
+    "activity_exercise_sets",
     "gear",
+    "athlete_profile",
+    "athlete_stats",
     "weather_cache",
     "sync_jobs",
 ]
@@ -497,6 +568,10 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
     _idx(conn, "activity_best_efforts", "activity_id",
          "CREATE INDEX IF NOT EXISTS idx_best_efforts_activity ON activity_best_efforts(activity_id)")
 
+    # activity_exercise_sets
+    _idx(conn, "activity_exercise_sets", "activity_id",
+         "CREATE INDEX IF NOT EXISTS idx_exercise_sets_activity ON activity_exercise_sets(activity_id, source)")
+
     # sync_jobs
     _idx(conn, "sync_jobs", "source",
          "CREATE INDEX IF NOT EXISTS idx_sync_jobs_source ON sync_jobs(source, created_at)")
@@ -517,7 +592,7 @@ def _create_index_if_column_exists(
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """v0.3 스키마: 11 파이프라인 테이블 + 5 앱 테이블 + 1 뷰 생성."""
+    """v0.3 스키마: 13 파이프라인 테이블 + 5 앱 테이블 + 1 뷰 생성."""
     for ddl in [
         _DDL_SOURCE_PAYLOADS,
         _DDL_ACTIVITY_SUMMARIES,
@@ -526,7 +601,10 @@ def create_tables(conn: sqlite3.Connection) -> None:
         _DDL_ACTIVITY_STREAMS,
         _DDL_ACTIVITY_LAPS,
         _DDL_ACTIVITY_BEST_EFFORTS,
+        _DDL_ACTIVITY_EXERCISE_SETS,
         _DDL_GEAR,
+        _DDL_ATHLETE_PROFILE,
+        _DDL_ATHLETE_STATS,
         _DDL_WEATHER_CACHE,
         _DDL_SYNC_JOBS,
         _DDL_APP_TABLES,
@@ -579,6 +657,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
          training_effect_anaerobic/training_load — DROP COLUMN.
     v13: activity_summaries.distance_km → distance_m 컬럼명 수정 (SQLite 3.25+ RENAME COLUMN).
     v14: activity_streams / activity_best_efforts elapsed_sec 컬럼 누락 시 테이블 재생성.
+    v15: activity_summaries.workout_label TEXT 컬럼 추가.
     """
     current = _get_user_version(conn)
 
@@ -628,6 +707,12 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
             if existing and "elapsed_sec" not in existing:
                 log.info("v14 마이그레이션: %s elapsed_sec 누락 → 테이블 재생성", tbl)
                 conn.execute(f"DROP TABLE IF EXISTS {tbl}")
+
+    # v15: activity_summaries.workout_label 추가
+    if current < 15:
+        existing = {r[1] for r in conn.execute("PRAGMA table_info(activity_summaries)").fetchall()}
+        if "workout_label" not in existing:
+            conn.execute("ALTER TABLE activity_summaries ADD COLUMN workout_label TEXT")
 
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)

@@ -118,11 +118,12 @@ def _jobs_db_path(user_id: str | None = None) -> str:
 
 def _conn() -> sqlite3.Connection:
     """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
-    # Web 컨텍스트에서는 Flask 세션의 user_id를 자동 반영
+    # sync_state._resolve_user_id: 인자 → thread-local → Flask session → "default"
+    # bg_sync 스레드는 set_current_user()로 thread-local을 설정하므로 올바른 DB를 사용하게 됨
     try:
-        from src.web.helpers import get_current_user_id
-        uid = get_current_user_id()
-    except (ImportError, RuntimeError):
+        from src.utils.sync_state import _resolve_user_id
+        uid = _resolve_user_id(None)
+    except Exception:
         uid = None
     conn = sqlite3.connect(_jobs_db_path(uid), timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")

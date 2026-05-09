@@ -49,7 +49,7 @@ def _get_7d_avg(conn: sqlite3.Connection, date_str: str, field: str) -> float | 
     start = (date.fromisoformat(date_str) - timedelta(days=7)).isoformat()
     row = conn.execute(
         f"SELECT AVG({field}) FROM daily_wellness "
-        "WHERE date >= ? AND date < ? AND source = 'garmin' AND " + f"{field} IS NOT NULL",
+        f"WHERE date >= ? AND date < ? AND {field} IS NOT NULL",
         (start, end),
     ).fetchone()
     return row[0]
@@ -96,9 +96,9 @@ def get_recovery_status(
     target = date_str or date.today().isoformat()
 
     row = conn.execute("""
-        SELECT body_battery, sleep_score, hrv_value, stress_avg, resting_hr
+        SELECT body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr
         FROM daily_wellness
-        WHERE date = ? AND source = 'garmin'
+        WHERE date = ?
         LIMIT 1
     """, (target,)).fetchone()
 
@@ -110,7 +110,7 @@ def get_recovery_status(
     detail = _get_daily_detail_metrics(conn, target, source="garmin")
 
     # 개인 7일 평균 (HRV, RHR 정규화에 사용)
-    avg_hrv_7d = _get_7d_avg(conn, target, "hrv_value")
+    avg_hrv_7d = _get_7d_avg(conn, target, "hrv_last_night")
     avg_rhr_7d = _get_7d_avg(conn, target, "resting_hr")
 
     # 각 지표 점수화

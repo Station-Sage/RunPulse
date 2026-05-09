@@ -32,34 +32,26 @@ def _load_coords(activity_id: int) -> list[list[float]]:
     """activity_streams에서 latlng 좌표 로드."""
     try:
         with sqlite3.connect(str(db_path())) as conn:
-            row = conn.execute(
-                "SELECT data_json FROM activity_streams "
-                "WHERE activity_id=? AND stream_type='latlng' LIMIT 1",
+            rows = conn.execute(
+                "SELECT latitude, longitude FROM activity_streams "
+                "WHERE activity_id=? AND latitude IS NOT NULL AND longitude IS NOT NULL "
+                "ORDER BY elapsed_sec",
                 (activity_id,),
-            ).fetchone()
-            # 그룹 내 다른 소스에서 GPS 탐색
-            if not row or not row[0]:
+            ).fetchall()
+            if not rows:
                 grp = conn.execute(
                     "SELECT matched_group_id FROM activity_summaries WHERE id=?",
                     (activity_id,),
                 ).fetchone()
                 if grp and grp[0]:
-                    row = conn.execute(
-                        "SELECT s.data_json FROM activity_streams s "
+                    rows = conn.execute(
+                        "SELECT s.latitude, s.longitude FROM activity_streams s "
                         "JOIN activity_summaries a ON a.id=s.activity_id "
-                        "WHERE a.matched_group_id=? AND s.stream_type='latlng' LIMIT 1",
+                        "WHERE a.matched_group_id=? AND s.latitude IS NOT NULL AND s.longitude IS NOT NULL "
+                        "ORDER BY s.elapsed_sec",
                         (grp[0],),
-                    ).fetchone()
-            if row and row[0]:
-                data = json.loads(row[0]) if isinstance(row[0], str) else row[0]
-                if isinstance(data, list) and len(data) >= 2:
-                    if isinstance(data[0], (list, tuple)):
-                        return [[float(p[0]), float(p[1])] for p in data if len(p) >= 2]
-                if isinstance(data, dict):
-                    lats = data.get("lat", data.get("latitude", []))
-                    lngs = data.get("lng", data.get("longitude", []))
-                    if lats and lngs:
-                        return [[float(la), float(lo)] for la, lo in zip(lats, lngs)]
+                    ).fetchall()
+            return [[float(r[0]), float(r[1])] for r in rows] if rows else []
     except Exception:
         pass
     return []

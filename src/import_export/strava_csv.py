@@ -243,9 +243,9 @@ def backfill_strava_detail_metrics(
                 stats["skipped"] += 1
     else:
         payload_rows = conn.execute(
-            "SELECT a.id, p.payload_json "
+            "SELECT a.id, p.payload "
             "FROM activity_summaries a "
-            "JOIN raw_source_payloads p ON p.activity_id = a.id "
+            "JOIN source_payloads p ON p.activity_id = a.id "
             "WHERE a.source = 'strava' AND p.entity_type = 'csv_export'",
         ).fetchall()
         source_data = []
@@ -360,10 +360,9 @@ def import_strava_activities(
         payload = {k: v for k, v in parsed.items() if v is not None}
         try:
             conn.execute(
-                """INSERT OR REPLACE INTO raw_source_payloads
-                   (source, entity_type, entity_id, activity_id, payload_json,
-                    created_at, updated_at)
-                   VALUES ('strava', 'csv_export', ?, ?, ?, datetime('now'), datetime('now'))""",
+                """INSERT OR REPLACE INTO source_payloads
+                   (source, entity_type, entity_id, activity_id, payload)
+                   VALUES ('strava', 'csv_export', ?, ?, ?)""",
                 (source_id, activity_id, json.dumps(payload, ensure_ascii=False)),
             )
         except sqlite3.Error:

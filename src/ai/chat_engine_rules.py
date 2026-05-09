@@ -117,7 +117,7 @@ def _respond_race_readiness(parts: list[str], ctx: dict, conn) -> None:
 
     rri_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='RRI' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='rri' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if rri_row and rri_row[0]:
@@ -159,7 +159,7 @@ def _respond_pace(parts: list[str], ctx: dict, conn) -> None:
 
     eftp_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='eFTP' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='eftp' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if eftp_row and eftp_row[0]:
@@ -169,7 +169,7 @@ def _respond_pace(parts: list[str], ctx: dict, conn) -> None:
 
     vdot_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='vdot' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if vdot_row and vdot_row[0]:
@@ -224,7 +224,7 @@ def _respond_fitness(parts: list[str], ctx: dict, conn) -> None:
 
     vdot_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='vdot' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if vdot_row and vdot_row[0]:
@@ -232,7 +232,7 @@ def _respond_fitness(parts: list[str], ctx: dict, conn) -> None:
 
     rec_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='REC' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='rec' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     if rec_row and rec_row[0]:

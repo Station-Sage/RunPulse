@@ -70,6 +70,8 @@ def sync(
         cur += timedelta(days=1)
 
     result.total_items = len(dates)
+    log.info("[garmin/wellness] sync 시작: %s ~ %s (%d일)",
+             dates[0] if dates else "?", dates[-1] if dates else "?", len(dates))
 
     for date_str in dates:
         try:
@@ -104,6 +106,7 @@ def sync(
 def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
     raw_payloads = {}
     any_new = False
+    log.info("[garmin/wellness] 날짜 처리: %s", date_str)
 
     for entity_type, fetch_fn in WELLNESS_ENDPOINTS.items():
         try:
@@ -121,17 +124,23 @@ def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
                 if is_new:
                     any_new = True
                 raw_payloads[entity_type] = payload
+                log.debug("[garmin/wellness] %s %s OK (is_new=%s)", entity_type, date_str, is_new)
+            else:
+                log.debug("[garmin/wellness] %s %s 응답 없음(빈값)", entity_type, date_str)
 
         except Exception as e:
             if _is_rate_limit_error(e):
+                log.warning("[garmin/wellness] %s %s 429: %s", entity_type, date_str, e)
                 if not limiter.handle_rate_limit():
                     raise _RateLimitStop()
                 continue
             log.warning("[garmin/wellness] %s failed for %s: %s", entity_type, date_str, e)
 
     if not any_new:
+        log.debug("[garmin/wellness] %s — 새 데이터 없음 (skip)", date_str)
         return False
 
+    log.info("[garmin/wellness] %s 추출 시작 — endpoints=%s", date_str, list(raw_payloads.keys()))
     core = extractor.extract_wellness_core(date_str, **raw_payloads)
     if core:
         save_daily_wellness(conn, date_str, core)

@@ -423,9 +423,9 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
 
     row = conn.execute(
         """
-        SELECT steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr
+        SELECT steps, weight_kg, sleep_score, sleep_duration_sec, hrv_last_night, resting_hr
         FROM daily_wellness
-        WHERE date = ? AND source = 'intervals'
+        WHERE date = ?
         ORDER BY id DESC
         LIMIT 1
         """,
@@ -435,13 +435,14 @@ def _wellness_visibility_section(conn: sqlite3.Connection) -> str:
     steps = weight_kg = sleep_score = sleep_hours = hrv_value = resting_hr = None
     detail = _get_daily_detail_metrics(conn, activity_date, source="garmin")
     if row:
-        steps, weight_kg, sleep_score, sleep_hours, hrv_value, resting_hr = row
+        steps, weight_kg, sleep_score, sleep_duration_sec, hrv_value, resting_hr = row
+        sleep_hours = sleep_duration_sec / 3600.0 if sleep_duration_sec else None
 
     if steps is None or weight_kg is None:
         payload_row = conn.execute(
             """
-            SELECT payload_json
-            FROM raw_source_payloads
+            SELECT payload
+            FROM source_payloads
             WHERE source = 'intervals' AND entity_type = 'wellness' AND entity_id = ?
             LIMIT 1
             """,

@@ -19,27 +19,32 @@ from src.sync.garmin_auth import (
 
 class TestTokenstorePath:
     def test_default_path(self):
-        """config 없으면 ~/.garminconnect 반환."""
+        """config 없으면 data/users 기반 프로젝트 로컬 경로 반환."""
+        from src.utils.config import get_config_path
+        expected = get_config_path().parent / ".garminconnect"
         path = _tokenstore_path({})
-        assert path == Path("~/.garminconnect").expanduser()
+        assert path == expected
 
     def test_explicit_path(self, tmp_path):
-        """garmin.tokenstore 명시 시 그 경로 반환."""
+        """garmin.tokenstore 명시 시 그 경로 반환 (존재 여부 무관)."""
         config = {"garmin": {"tokenstore": str(tmp_path)}}
         assert _tokenstore_path(config) == tmp_path
 
     def test_user_id_path(self):
-        """garmin.user_id 설정 시 ~/.garminconnect/{safe_uid} 반환."""
+        """garmin.user_id 설정 시 data/users/{uid}/.garminconnect 반환."""
+        from src.utils.config import get_config_path
         config = {"garmin": {"user_id": "runner"}}
         path = _tokenstore_path(config)
-        assert path == Path("~/.garminconnect/runner").expanduser()
+        expected = get_config_path("runner").parent / ".garminconnect"
+        assert path == expected
 
     def test_user_id_email_sanitize(self):
-        """이메일의 @ → _at, / 제거 처리."""
+        """user_id가 이메일이어도 그대로 경로에 반영된다."""
+        from src.utils.config import get_config_path
         config = {"garmin": {"user_id": "user@example.com"}}
         path = _tokenstore_path(config)
-        assert "user_atexample.com" in str(path)
-        assert "@" not in str(path)
+        expected = get_config_path("user@example.com").parent / ".garminconnect"
+        assert path == expected
 
     def test_explicit_takes_precedence_over_user_id(self, tmp_path):
         """tokenstore가 명시되면 user_id보다 우선."""

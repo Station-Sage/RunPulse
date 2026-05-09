@@ -28,8 +28,8 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         for r in acts
     ]
 
-    key_metrics = ["UTRS", "CIRS", "ACWR", "DI", "RTTI", "REC", "RRI",
-                   "Monotony", "LSI", "Strain", "SAPI", "TEROI"]
+    key_metrics = ["utrs", "cirs", "acwr", "di", "rtti", "rec", "rri",
+                   "monotony", "lsi", "training_strain", "sapi", "teroi"]
     metric_rows = conn.execute(
         "SELECT scope_id, metric_name, numeric_value FROM metric_store"
         " WHERE scope_type='daily' AND is_primary=1"
@@ -45,8 +45,8 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     ctx["daily_metrics_30d"] = daily_metrics
 
     well_rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg, resting_hr "
-        "FROM daily_wellness WHERE source='garmin' AND date>=? ORDER BY date",
+        "SELECT date, body_battery_high, sleep_score, hrv_last_night, avg_stress, resting_hr "
+        "FROM daily_wellness WHERE date>=? ORDER BY date",
         (start_30d,),
     ).fetchall()
     ctx["wellness_30d"] = [
@@ -75,7 +75,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         "SELECT a.id, a.start_time, a.distance_m / 1000.0 AS distance_km, a.duration_sec, a.avg_pace_sec_km, a.avg_hr, a.name "
         "FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
-        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
         "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT 10",
@@ -91,7 +91,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
     today_type = conn.execute(
         "SELECT c.numeric_value FROM v_canonical_activities a "
         "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
-        "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+        "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
         "WHERE a.activity_type='running' AND date(a.start_time)=? "
         "ORDER BY a.start_time DESC LIMIT 1", (today,),
     ).fetchone()
@@ -101,7 +101,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
             "SELECT a.id, date(a.start_time), a.distance_m / 1000.0 AS distance_km, a.avg_pace_sec_km, a.avg_hr "
             "FROM v_canonical_activities a "
             "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
-            "    AND c.scope_type='activity' AND c.metric_name='workout_type' "
+            "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
             "WHERE c.numeric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
             "ORDER BY a.start_time DESC LIMIT 5", (wtype, today),
         ).fetchall()
@@ -134,8 +134,8 @@ def _add_mid_14d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> Non
     ]
 
     well_rows = conn.execute(
-        "SELECT date, body_battery, sleep_score, hrv_value, stress_avg "
-        "FROM daily_wellness WHERE source='garmin' AND date>=? ORDER BY date",
+        "SELECT date, body_battery_high, sleep_score, hrv_last_night, avg_stress "
+        "FROM daily_wellness WHERE date>=? ORDER BY date",
         (start_14d,),
     ).fetchall()
     ctx["wellness_14d"] = [

@@ -549,15 +549,15 @@ def render_recent_training(activities: list[dict]) -> str:
 def render_risk_summary(conn: sqlite3.Connection) -> str:
     """리스크 요약 카드 — CIRS, ACWR, LSI."""
     cirs_row = conn.execute(
-        "SELECT numeric_value FROM metric_store WHERE metric_name='CIRS' "
+        "SELECT numeric_value FROM metric_store WHERE metric_name='cirs' "
         "AND scope_type='daily' AND is_primary=1 ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     acwr_row = conn.execute(
-        "SELECT numeric_value FROM metric_store WHERE metric_name='ACWR' "
+        "SELECT numeric_value FROM metric_store WHERE metric_name='acwr' "
         "AND scope_type='daily' AND is_primary=1 ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     lsi_row = conn.execute(
-        "SELECT numeric_value FROM metric_store WHERE metric_name='LSI' "
+        "SELECT numeric_value FROM metric_store WHERE metric_name='lsi' "
         "AND scope_type='daily' AND is_primary=1 ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
 

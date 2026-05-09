@@ -42,17 +42,19 @@ class GarminAuthRequired(Exception):
 def _tokenstore_path(config: dict) -> Path:
     """멀티유저 토큰 디렉터리 결정."""
     garmin_cfg = config.get("garmin", {})
-    # 1) 명시적 경로
+    from src.utils.config import get_config_path
+
+    # 1) 명시적 경로 — 항상 그대로 사용
     explicit = garmin_cfg.get("tokenstore", "")
     if explicit:
         return Path(explicit).expanduser()
-    # 2) data/users/{user_id}/.garminconnect/ (앱 디렉터리 구조 통일)
+
+    # 2) data/users/{user_id}/.garminconnect/
     user_id = garmin_cfg.get("user_id", "")
     if user_id:
-        from src.utils.config import get_config_path
         return get_config_path(user_id).parent / ".garminconnect"
+
     # 3) 기본 (default 사용자)
-    from src.utils.config import get_config_path
     return get_config_path().parent / ".garminconnect"
 
 
@@ -74,26 +76,49 @@ def _login(config: dict) -> "Garmin":
 
     tokenstore = _tokenstore_path(config)
     token_file = tokenstore / "garmin_tokens.json"
+    log.info("[garmin_auth] tokenstore=%s, token_file_exists=%s", tokenstore, token_file.exists())
 
     if not token_file.exists():
+        log.warning("[garmin_auth] 토큰 파일 없음: %s", token_file)
         raise GarminAuthRequired(
             "Garmin 토큰 없음. /connect/garmin에서 로그인하세요."
         )
 
+    # 토큰 파일 기본 유효성 체크
     try:
+        import json as _json
+        with open(token_file) as _f:
+            _tok = _json.load(_f)
+        _has_access = bool(
+            _tok.get("access_token")
+            or _tok.get("di_access_token")
+            or (isinstance(_tok.get("oauth2_token"), dict) and _tok["oauth2_token"].get("access_token"))
+        )
+        log.info("[garmin_auth] 토큰 파일 읽기 OK — keys=%s, has_access_token=%s",
+                 list(_tok.keys())[:6], _has_access)
+    except Exception as _te:
+        log.warning("[garmin_auth] 토큰 파일 파싱 실패: %s", _te)
+
+    try:
+        log.info("[garmin_auth] Garmin().login(tokenstore=%s) 시작", tokenstore)
         client = Garmin()
         client.login(tokenstore=str(tokenstore))
+        log.info("[garmin_auth] 로그인 성공")
         # 로그인 성공 시 갱신된 토큰 자동 저장
         try:
             client.client.dump(str(tokenstore))
-        except Exception:
-            pass
+            log.debug("[garmin_auth] 갱신 토큰 저장 완료")
+        except Exception as _de:
+            log.debug("[garmin_auth] 토큰 dump 실패(무시): %s", _de)
         return client
     except GarminConnectTooManyRequestsError:
+        log.warning("[garmin_auth] 로그인 중 429 발생")
         raise  # 429는 그대로 전파
     except (GarminConnectAuthenticationError, GarminConnectConnectionError) as e:
+        log.error("[garmin_auth] 인증/연결 오류: %s", e)
         raise GarminAuthRequired(f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요.") from e
     except Exception as e:
+        log.error("[garmin_auth] 예상치 못한 오류: %s", e)
         raise GarminAuthRequired(
             f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."
         ) from e
@@ -133,6 +158,7 @@ def check_garmin_connection(config: dict) -> dict:
     try:
         with open(token_file) as f:
             token_data = json.load(f)
+        # garminconnect 0.3.x: di_token (DI OAuth) 또는 oauth2_token (레거시)
         has_oauth2 = bool(
             token_data.get("access_token")
             or token_data.get("di_access_token")

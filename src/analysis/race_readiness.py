@@ -236,9 +236,9 @@ def assess_race_readiness(
     atl = _safe_float(_latest_daily(conn, "intervals", "atl"))
     tsb = _safe_float(_latest_daily(conn, "intervals", "tsb"))
 
-    vo2max = _safe_float(_latest_daily(conn, "garmin", "garmin_vo2max"))
+    vo2max = _safe_float(_latest_metric(conn, "garmin", "vo2max_activity"))
     if vo2max is None:
-        vo2max = _safe_float(_latest_daily(conn, "runalyze", "runalyze_evo2max"))
+        vo2max = _safe_float(_latest_metric(conn, "runalyze", "effective_vo2max"))
 
     vdot = _safe_float(_latest_daily(conn, "runalyze", "runalyze_vdot"))
     marathon_shape = _safe_float(_latest_daily(conn, "runalyze", "runalyze_marathon_shape"))

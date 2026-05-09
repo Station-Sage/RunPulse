@@ -134,16 +134,15 @@ def sync_gear(conn: sqlite3.Connection, gear_id: str, headers: dict) -> None:
     try:
         conn.execute(
             """INSERT INTO gear
-               (source, source_gear_id, name, brand, model, distance_m,
-                retired, gear_type, gear_json, updated_at)
-               VALUES ('strava', ?, ?, ?, ?, ?, ?, 'shoes', ?, datetime('now'))
+               (source, source_gear_id, name, brand, model, total_distance_m,
+                status, gear_type, updated_at)
+               VALUES ('strava', ?, ?, ?, ?, ?, ?, 'shoes', datetime('now'))
                ON CONFLICT(source, source_gear_id) DO UPDATE SET
                    name = excluded.name,
                    brand = excluded.brand,
                    model = excluded.model,
-                   distance_m = excluded.distance_m,
-                   retired = excluded.retired,
-                   gear_json = excluded.gear_json,
+                   total_distance_m = excluded.total_distance_m,
+                   status = excluded.status,
                    updated_at = datetime('now')""",
             (
                 gear_id,
@@ -151,8 +150,7 @@ def sync_gear(conn: sqlite3.Connection, gear_id: str, headers: dict) -> None:
                 gear.get("brand_name"),
                 gear.get("model_name"),
                 gear.get("distance"),
-                int(bool(gear.get("retired", False))),
-                json.dumps(gear, ensure_ascii=False),
+                "inactive" if gear.get("retired") else "active",
             ),
         )
     except Exception as e:
@@ -178,9 +176,9 @@ def sync_athlete_and_gear(config: dict, conn: sqlite3.Connection, headers: dict)
     # 3. 미수집 기어 동기화 (activity_summaries에 gear_id가 있지만 gear 테이블에 없는 것)
     try:
         gear_ids = conn.execute(
-            """SELECT DISTINCT strava_gear_id FROM activity_summaries
-               WHERE source = 'strava' AND strava_gear_id IS NOT NULL
-               AND strava_gear_id NOT IN (SELECT source_gear_id FROM gear WHERE source = 'strava')"""
+            """SELECT DISTINCT gear_id FROM activity_summaries
+               WHERE source = 'strava' AND gear_id IS NOT NULL
+               AND gear_id NOT IN (SELECT source_gear_id FROM gear WHERE source = 'strava')"""
         ).fetchall()
         for (gid,) in gear_ids:
             sync_gear(conn, gid, headers)
