@@ -105,4 +105,5 @@ data/users/
 # Export data and DB
 audit/export_data/
 .claude/worktrees/
+.claude/settings.json
 data/runpulse.db
