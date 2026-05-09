@@ -5,10 +5,8 @@
 ## BUGS
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
-- [높음] garminconnect 0.3.x connectapi 내부 자동 토큰 갱신 여부 — 장시간 배치 안정성
 - [중간] curl_cffi ARM64 wheel 존재 여부 (AWS Graviton) — Dockerfile 빌드
 - [낮음] test_flask_routes.py garmin 라우트 포함 여부 — 테스트 커버리지
-- [낮음] garminconnect 0.3.x get_body_battery_events(cdate) 시그니처 — 현행 코드가 (cdate, cdate) 2인자 호출
 
 ## NEXT
 

@@ -296,7 +296,7 @@ def sync_daily_body_battery_events(
 ) -> None:
     """Garmin body battery 이벤트 (충전/방전) → daily_detail_metrics."""
     try:
-        data = client.get_body_battery_events(date_str, date_str)
+        data = client.get_body_battery_events(date_str)
     except Exception:
         return
 
