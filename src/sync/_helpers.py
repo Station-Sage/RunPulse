@@ -22,7 +22,10 @@ log = logging.getLogger(__name__)
 
 def save_activity_core(conn: sqlite3.Connection, core_dict: dict) -> int:
     """activity_summaries UPSERT. Returns: row id."""
-    return upsert_activity(conn, core_dict)
+    from src.utils.dedup import assign_group_id
+    activity_id = upsert_activity(conn, core_dict)
+    assign_group_id(conn, activity_id)
+    return activity_id
 
 
 def save_metrics(

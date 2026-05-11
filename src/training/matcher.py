@@ -51,7 +51,7 @@ def match_week_activities(
         return 0
 
     acts = conn.execute(
-        f"SELECT id, DATE(start_time) as d, distance_km, avg_pace_sec_km, avg_hr, "
+        f"SELECT id, DATE(start_time) as d, distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr, "
         f"duration_sec, activity_type "
         f"FROM v_canonical_activities "
         f"WHERE activity_type IN {_RUN_TYPES} "
@@ -347,7 +347,7 @@ def get_actual_activities_for_week(
     """
     week_end = week_start + timedelta(days=6)
     rows = conn.execute(
-        f"SELECT id, DATE(start_time) as d, distance_km, avg_pace_sec_km, avg_hr, "
+        f"SELECT id, DATE(start_time) as d, distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr, "
         f"duration_sec, activity_type "
         f"FROM v_canonical_activities "
         f"WHERE activity_type IN {_RUN_TYPES} "

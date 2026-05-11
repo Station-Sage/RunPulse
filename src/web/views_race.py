@@ -282,7 +282,7 @@ def race_page():
             if not _darp_today:
                 try:
                     from src.metrics.engine import run_for_date
-                    run_for_date(conn, _today, include_weekly=False)
+                    run_for_date(conn, _today)
                     conn.commit()
                 except Exception:
                     pass

@@ -804,6 +804,73 @@ def create_app() -> Flask:
             headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"},
         )
 
+    @app.post("/trigger-sync-bg")
+    def trigger_sync_bg():
+        """기본 동기화 — 백그라운드 실행 후 즉시 JSON 응답 (브라우저 연결 독립)."""
+        from datetime import date as _date, timedelta
+        from flask import jsonify
+        from src.utils.sync_policy import check_incremental_guard
+        from src.utils.sync_state import is_running, get_last_sync_at
+        from .bg_sync import start_basic_sync, get_status as _bg_get_status
+
+        source = request.form.get("source", "all").strip()
+        _VALID_SOURCES = {"garmin", "strava", "intervals", "runalyze"}
+        checkers = {
+            "garmin": check_garmin_connection,
+            "strava": check_strava_connection,
+            "intervals": check_intervals_connection,
+            "runalyze": check_runalyze_connection,
+        }
+        if source == "all":
+            sources_to_sync = list(checkers.keys())
+        else:
+            sources_to_sync = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
+
+        from .helpers import get_current_user_id
+        user_id = get_current_user_id()
+        config = load_config(user_id=user_id)
+        today = _date.today().isoformat()
+
+        started = []
+        skipped = []
+        from_dates: dict[str, str] = {}
+
+        for src in sources_to_sync:
+            conn_status = checkers[src](config)
+            if not conn_status["ok"]:
+                skipped.append({"source": src, "error": f"미연결 ({conn_status['status']})"})
+                continue
+
+            if is_running(src, user_id):
+                skipped.append({"source": src, "error": f"{src} 동기화 이미 진행 중"})
+                continue
+
+            bg_st = _bg_get_status(src)
+            if bg_st.get("active") and bg_st.get("status") in ("running", "pending"):
+                skipped.append({"source": src, "error": f"{src} 백그라운드 동기화 진행 중"})
+                continue
+
+            last_at = get_last_sync_at(src, user_id)
+            guard = check_incremental_guard(src, last_at)
+            if not guard.allowed:
+                skipped.append({
+                    "source": src,
+                    "error": guard.message_ko or "정책 제한",
+                    "retry_after_sec": guard.retry_after_sec,
+                })
+                continue
+
+            days_for_src = _days_since_last_sync([src])
+            from_dates[src] = (_date.today() - timedelta(days=days_for_src)).isoformat()
+            started.append(src)
+
+        job_ids: dict[str, str] = {}
+        if started:
+            job_ids = start_basic_sync(started, from_dates, today, config, user_id)
+
+        log.info("[trigger_sync_bg] started=%s, skipped=%s", started, [s["source"] for s in skipped])
+        return jsonify({"ok": len(started) > 0, "started": started, "skipped": skipped, "job_ids": job_ids})
+
     # ── Garmin 로컬 토큰 수신 + sync 트리거 (A안) ───────────────────────────
 
     @app.post("/api/garmin/local-sync")

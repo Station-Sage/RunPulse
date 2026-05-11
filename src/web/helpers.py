@@ -319,124 +319,41 @@ async function doSync(mode) {
   var source = _getCheckedSources(mode === 'basic' ? 'basic' : 'hist');
   if (!source) { alert('서비스를 하나 이상 선택하세요.'); return; }
 
-  // 기간 동기화 + BG 모드 체크
+  // 기본 동기화: bg_sync 방식 — 브라우저 연결과 무관하게 서버에서 독립 실행
+  if (mode === 'basic') {
+    btn.disabled = true; btn.textContent = '동기화 시작 중…';
+    try {
+      var fd0 = new FormData();
+      fd0.append('source', source);
+      var resp0 = await fetch('/trigger-sync-bg', {method: 'POST', body: fd0});
+      var data0 = await resp0.json();
+      if (!resp0.ok) throw new Error(data0.error || 'HTTP ' + resp0.status);
+      if (data0.started && data0.started.length > 0) {
+        _bgActiveSources = data0.started;
+        syncToast('▶ 동기화 시작 (' + data0.started.join(', ') + ')', 'success');
+        bgShowProgress();
+        bgStartPollingAll(data0.started);
+      } else {
+        var msgs0 = (data0.skipped || []).map(function(s) { return s.source + ': ' + (s.error || ''); });
+        syncToast('⏭️ 건너뜀: ' + (msgs0.join(' | ') || '모든 서비스'), 'warn');
+      }
+    } catch(e) {
+      syncToast('❌ 요청 실패: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '▶ 동기화';
+    }
+    return;
+  }
+
+  // 기간 동기화: 항상 bg_sync 방식
   if (mode === 'hist') {
     var from = (document.getElementById('hist-from') || {}).value || '';
     if (!from) { alert('시작일을 입력하세요.'); return; }
-    var bgMode = (document.getElementById('hist-bg-mode') || {}).checked;
-    if (bgMode) {
-      var srcs = source === 'all'
-        ? ['garmin','strava','intervals','runalyze']
-        : source.split(',');
-      await startBgSyncMulti(srcs, from, (document.getElementById('hist-to') || {}).value || '');
-      return;
-    }
+    var srcs = source === 'all'
+      ? ['garmin','strava','intervals','runalyze']
+      : source.split(',');
+    await startBgSyncMulti(srcs, from, (document.getElementById('hist-to') || {}).value || '');
   }
-
-  var fd = new FormData();
-  fd.append('mode', mode);
-  fd.append('source', source);
-  if (mode === 'hist') {
-    var from2 = (document.getElementById('hist-from') || {}).value || '';
-    fd.append('from_date', from2);
-    var to2 = (document.getElementById('hist-to') || {}).value || '';
-    if (to2) fd.append('to_date', to2);
-  }
-  var orig = btn.textContent;
-  btn.disabled = true; btn.textContent = '동기화 중…';
-  syncStatusShow(mode);
-  try {
-    var resp = await fetch('/trigger-sync-stream', {method: 'POST', body: fd});
-    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
-
-    var reader = resp.body.getReader();
-    var decoder = new TextDecoder();
-    var buf = '';
-    var finalEvt = null;
-
-    while (true) {
-      var chunk = await reader.read();
-      if (chunk.done) break;
-      buf += decoder.decode(chunk.value, {stream: true});
-      var lines = buf.split('\\n');
-      buf = lines.pop();
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].trim();
-        if (!line.startsWith('data:')) continue;
-        try {
-          var evt = JSON.parse(line.slice(5).trim());
-          syncStatusUpdate(mode, evt);
-          if (evt.type === 'done') finalEvt = evt;
-        } catch(pe) { /* skip malformed */ }
-      }
-    }
-
-    if (!finalEvt) { throw new Error('응답 스트림 종료 — 결과 없음'); }
-    var data = {results: finalEvt.results, total_count: finalEvt.total_count};
-    var failed = finalEvt.results.filter(function(r) { return !r.ok && !r.skipped; });
-    var succeeded = finalEvt.results.filter(function(r) { return r.ok; });
-    if (failed.length === 0) {
-      if (finalEvt.total_count === 0) {
-        var errors = finalEvt.results.filter(function(r) { return r.error; });
-        if (errors.length > 0) {
-          syncToast('⚠️ ' + errors.map(function(r) { return r.source + ': ' + r.error; }).join(' | '), 'warn');
-        } else {
-          syncToast('✅ 동기화 완료 — 새 활동 없음', 'success');
-        }
-      } else {
-        syncToast('✅ 동기화 완료 — 활동 ' + finalEvt.total_count + '개 업데이트', 'success');
-      }
-      setTimeout(function() { location.reload(); }, 2200);
-    } else if (succeeded.length > 0) {
-      syncToast('⚠️ 일부 동기화 완료 — 활동 ' + finalEvt.total_count + '개', 'warn');
-      syncModal(data);
-    } else {
-      syncModal(data);
-    }
-  } catch(e) {
-    syncToast('❌ 요청 실패: ' + e.message, 'error');
-    syncStatusHide(mode);
-  } finally {
-    btn.disabled = false; btn.textContent = orig;
-  }
-}
-
-function syncStatusShow(mode) {
-  var panel = document.getElementById('sync-status-panel-' + mode);
-  if (!panel) return;
-  panel.innerHTML = '<span style="color:var(--muted);">연결 중…</span>';
-  panel.style.display = 'block';
-}
-
-function syncStatusUpdate(mode, evt) {
-  var panel = document.getElementById('sync-status-panel-' + mode);
-  if (!panel) return;
-  if (evt.type === 'start') {
-    var html = '';
-    (evt.sources || []).forEach(function(src) {
-      html += '<div id="sync-src-' + mode + '-' + src
-        + '" style="padding:1px 0;color:var(--muted);">⏳ ' + src + '</div>';
-    });
-    panel.innerHTML = html;
-  } else if (evt.type === 'source_start') {
-    var el = document.getElementById('sync-src-' + mode + '-' + evt.source);
-    if (el) { el.innerHTML = '🔄 <strong>' + evt.source + '</strong> 동기화 중…'; el.style.color = ''; }
-  } else if (evt.type === 'source_done') {
-    var el = document.getElementById('sync-src-' + mode + '-' + evt.source);
-    if (el) {
-      var icon = evt.ok ? '✅' : (evt.skipped ? '⏭️' : '❌');
-      var detail = evt.ok ? ('활동 ' + evt.count + '개') : (evt.error || '오류');
-      el.innerHTML = icon + ' <strong>' + evt.source + '</strong>: ' + detail;
-      el.style.color = evt.ok ? '#155724' : (evt.skipped ? '#856404' : '#721c24');
-    }
-  } else if (evt.type === 'done') {
-    setTimeout(function() { syncStatusHide(mode); }, 4000);
-  }
-}
-
-function syncStatusHide(mode) {
-  var panel = document.getElementById('sync-status-panel-' + mode);
-  if (panel) panel.style.display = 'none';
 }
 
 function syncToast(msg, type) {

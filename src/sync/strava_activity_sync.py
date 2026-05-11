@@ -23,7 +23,8 @@ STREAM_KEYS = "time,distance,heartrate,velocity_smooth,cadence,altitude,grade_sm
 
 def sync(
     conn, days: int = 7, include_streams: bool = True,
-    *, config: dict = None, _sleep_fn=None,
+    *, from_date: str = None, to_date: str = None,
+    config: dict = None, _sleep_fn=None,
 ) -> SyncResult:
     result = SyncResult(source="strava", job_type="activity")
     extractor = get_extractor("strava")
@@ -39,22 +40,40 @@ def sync(
         return result
 
     headers = {"Authorization": f"Bearer {token}"}
-    after_ts = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+    if from_date:
+        after_ts = int(datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc).timestamp())
+        before_ts = int(
+            (datetime.fromisoformat(to_date) + timedelta(days=1)).replace(tzinfo=timezone.utc).timestamp()
+        ) if to_date else None
+    else:
+        after_ts = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+        before_ts = None
 
-    try:
-        limiter.pre_request()
-        resp = requests.get(
-            f"{STRAVA_API}/athlete/activities", headers=headers,
-            params={"after": after_ts, "per_page": 100},
-        )
-        resp.raise_for_status()
-        activities = resp.json()
-        limiter.post_request(True)
-        result.api_calls += 1
-    except requests.HTTPError:
-        result.status = "failed"
-        result.last_error = "Strava activity list fetch failed"
-        return result
+    activities: list = []
+    page = 1
+    while True:
+        params: dict = {"after": after_ts, "per_page": 200, "page": page}
+        if before_ts:
+            params["before"] = before_ts
+        try:
+            limiter.pre_request()
+            resp = requests.get(
+                f"{STRAVA_API}/athlete/activities", headers=headers, params=params,
+            )
+            resp.raise_for_status()
+            batch = resp.json()
+            limiter.post_request(True)
+            result.api_calls += 1
+        except requests.HTTPError:
+            result.status = "failed"
+            result.last_error = "Strava activity list fetch failed"
+            return result
+        if not batch:
+            break
+        activities.extend(batch)
+        if len(batch) < 200:
+            break
+        page += 1
 
     result.total_items = len(activities)
 

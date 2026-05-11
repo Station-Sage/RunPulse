@@ -33,7 +33,7 @@ def sync_activities(
     to_date: str | None = None,
 ) -> int:
     """Intervals.icu 활동 동기화 wrapper."""
-    result = _act_sync.sync(conn, days, config=config)
+    result = _act_sync.sync(conn, days, config=config, from_date=from_date, to_date=to_date)
     return result.synced_count
 
 

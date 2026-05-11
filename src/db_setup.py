@@ -734,6 +734,11 @@ def get_needs_resync(conn: sqlite3.Connection) -> bool:
     return (row[0] if row else 0) == 0
 
 
+def clear_needs_resync(conn: sqlite3.Connection) -> None:
+    """재동기화 플래그 해제. get_needs_resync()는 활동 수 기반이므로 no-op."""
+    pass
+
+
 def init_db(user_id: str | None = None) -> Path:
     """DB 초기화: 테이블 생성 + 마이그레이션 + WAL 모드. DB 경로 반환."""
     dbp = get_db_path(user_id)

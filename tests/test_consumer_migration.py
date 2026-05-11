@@ -18,7 +18,7 @@ _ACT2_DT = f"{(_TODAY - timedelta(days=3)).isoformat()}T08:00:00"   # strava
 _ACT1_DATE = (_TODAY - timedelta(days=7)).isoformat()
 _ACT2_DATE = (_TODAY - timedelta(days=3)).isoformat()
 
-from src.analysis.trends import weekly_trends
+from src.analysis.trends import weekly_trends, fitness_trend
 from src.analysis.compare import compare_periods
 from src.analysis.weekly_score import _get_week_basics as get_week_basics
 from src.services.activity_service import get_activity_list
@@ -79,6 +79,44 @@ class TestTrends:
         # 값이 km 단위인지 (10000m → 10km, 21097m → 21km)
         for r in rows:
             assert (r.get("total_distance_km") or 0) < 1000, "km 단위여야 함 (미터 아님)"
+
+    def test_fitness_trend_daily_metrics(self, conn):
+        """CTL/ATL/TSB는 scope_type='daily'에서 조회."""
+        _date = (_TODAY - timedelta(days=3)).isoformat()
+        conn.execute(
+            "INSERT INTO metric_store (scope_type, scope_id, provider, metric_name, numeric_value, is_primary)"
+            " VALUES ('daily', ?, 'intervals', 'ctl', 45.5, 1)",
+            (_date,),
+        )
+        conn.commit()
+
+        rows = fitness_trend(conn, weeks=4)
+        ctl_values = [r["intervals_ctl"] for r in rows if r["intervals_ctl"] is not None]
+        assert len(ctl_values) >= 1
+        assert ctl_values[-1] == pytest.approx(45.5)
+
+    def test_fitness_trend_activity_metrics(self, conn):
+        """VO2max는 scope_type='activity'에서 조회."""
+        act_id = conn.execute("SELECT id FROM activity_summaries LIMIT 1").fetchone()[0]
+        conn.execute(
+            "INSERT INTO metric_store (scope_type, scope_id, provider, metric_name, numeric_value, is_primary)"
+            " VALUES ('activity', ?, 'garmin', 'vo2max_activity', 52.0, 1)",
+            (str(act_id),),
+        )
+        conn.commit()
+
+        rows = fitness_trend(conn, weeks=4)
+        vo2_values = [r["garmin_vo2max"] for r in rows if r["garmin_vo2max"] is not None]
+        assert len(vo2_values) >= 1
+        assert vo2_values[-1] == pytest.approx(52.0)
+
+    def test_fitness_trend_returns_none_when_no_data(self, conn):
+        """데이터 없으면 None 반환 (에러 아님)."""
+        rows = fitness_trend(conn, weeks=2)
+        assert len(rows) == 2
+        for r in rows:
+            assert "week_start" in r
+            assert "intervals_ctl" in r  # 키는 항상 존재
 
 
 # ─── 3. analysis.compare ──────────────────────────────────────────────────

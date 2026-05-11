@@ -150,57 +150,55 @@ def calculate_acwr(
     return results
 
 
-def _fitness_last_from_daily(
+def _fitness_last_from_daily_metrics(
     conn: sqlite3.Connection,
     wk_start: str,
     wk_end: str,
-    source: str,
-    col: str,
-) -> float | None:
-    """daily_fitness에서 주간 마지막 값 조회."""
-    _valid = {"ctl", "atl", "tsb", "ramp_rate", "garmin_vo2max",
-              "runalyze_evo2max", "runalyze_vdot", "runalyze_marathon_shape"}
-    if col not in _valid:
-        return None
-    try:
-        row = conn.execute(
-            f"SELECT {col} FROM daily_fitness "
-            f"WHERE date >= ? AND date < ? AND source = ? AND {col} IS NOT NULL "
-            "ORDER BY date DESC LIMIT 1",
-            (wk_start, wk_end, source),
-        ).fetchone()
-        return row[0] if row else None
-    except sqlite3.OperationalError:
-        return None
-
-
-def _fitness_last_from_metrics(
-    conn: sqlite3.Connection,
-    wk_start: str,
-    wk_end: str,
-    source: str,
+    provider: str,
     metric_name: str,
 ) -> float | None:
-    """source_metrics에서 주간 마지막 값 조회 (fallback)."""
+    """metric_store(scope_type='daily')에서 주간 마지막 값 조회. CTL/ATL/TSB 등 일별 집계 메트릭용."""
+    row = conn.execute("""
+        SELECT numeric_value
+        FROM metric_store
+        WHERE scope_type='daily'
+          AND scope_id >= ? AND scope_id < ?
+          AND provider = ? AND metric_name = ?
+          AND is_primary = 1
+        ORDER BY scope_id DESC
+        LIMIT 1
+    """, (wk_start, wk_end, provider, metric_name)).fetchone()
+    return row[0] if row else None
+
+
+def _fitness_last_from_activity_metrics(
+    conn: sqlite3.Connection,
+    wk_start: str,
+    wk_end: str,
+    provider: str,
+    metric_name: str,
+) -> float | None:
+    """metric_store(scope_type='activity')에서 주간 마지막 값 조회. VO2max/VDOT 등 활동별 메트릭용."""
     row = conn.execute("""
         SELECT sm.numeric_value
         FROM metric_store sm
-        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
-        WHERE sm.scope_type='activity'
+        JOIN activity_summaries a ON sm.scope_id = CAST(a.id AS TEXT)
+        WHERE sm.scope_type = 'activity'
           AND a.start_time >= ? AND a.start_time < ?
           AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
           AND sm.provider = ? AND sm.metric_name = ?
         ORDER BY a.start_time DESC
         LIMIT 1
-    """, (wk_start, wk_end, source, metric_name)).fetchone()
+    """, (wk_start, wk_end, provider, metric_name)).fetchone()
     return row[0] if row else None
 
 
 def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
     """피트니스 지표 주간 추세.
 
-    daily_fitness를 우선 참조하고, 데이터 없으면 source_metrics로 폴백.
-    intervals CTL/ATL/TSB, runalyze VO2Max/VDOT, garmin VO2Max의 주별 마지막 값.
+    metric_store에서 직접 조회.
+    - 'daily' scope: intervals CTL/ATL/TSB (일별 집계)
+    - 'activity' scope: runalyze VO2Max/VDOT, garmin VO2Max (활동별)
 
     Args:
         conn: SQLite 연결.
@@ -212,14 +210,14 @@ def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
     today = date.today()
     current_monday = _week_start(today)
 
-    # (result_key, daily_fitness_source, daily_fitness_col, fallback_source, fallback_metric)
+    # (result_key, scope_type, provider, metric_name)
     fitness_specs = [
-        ("intervals_ctl",   "intervals", "ctl",             "intervals", "ctl"),
-        ("intervals_atl",   "intervals", "atl",             "intervals", "atl"),
-        ("intervals_tsb",   "intervals", "tsb",             "intervals", "tsb"),
-        ("runalyze_evo2max","runalyze",  "runalyze_evo2max","runalyze",  "effective_vo2max"),
-        ("runalyze_vdot",   "runalyze",  "runalyze_vdot",   "runalyze",  "vdot"),
-        ("garmin_vo2max",   "garmin",    "garmin_vo2max",   "garmin",    "vo2max_activity"),
+        ("intervals_ctl",    "daily",    "intervals", "ctl"),
+        ("intervals_atl",    "daily",    "intervals", "atl"),
+        ("intervals_tsb",    "daily",    "intervals", "tsb"),
+        ("runalyze_evo2max", "activity", "runalyze",  "effective_vo2max"),
+        ("runalyze_vdot",    "activity", "runalyze",  "vdot"),
+        ("garmin_vo2max",    "activity", "garmin",     "vo2max_activity"),
     ]
 
     results = []
@@ -230,11 +228,15 @@ def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
         wk_end_str = wk_end.isoformat()
         entry: dict = {"week_start": wk_start_str}
 
-        for result_key, df_src, df_col, fb_src, fb_metric in fitness_specs:
-            # daily_fitness 우선 조회, 없으면 source_metrics 폴백
-            val = _fitness_last_from_daily(conn, wk_start_str, wk_end_str, df_src, df_col)
-            if val is None:
-                val = _fitness_last_from_metrics(conn, wk_start_str, wk_end_str, fb_src, fb_metric)
+        for result_key, scope_type, provider, metric_name in fitness_specs:
+            if scope_type == "daily":
+                val = _fitness_last_from_daily_metrics(
+                    conn, wk_start_str, wk_end_str, provider, metric_name
+                )
+            else:
+                val = _fitness_last_from_activity_metrics(
+                    conn, wk_start_str, wk_end_str, provider, metric_name
+                )
             entry[result_key] = val
 
         results.append(entry)

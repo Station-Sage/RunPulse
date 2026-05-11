@@ -607,7 +607,7 @@ def upsert_streams_batch(
                 vals.append(row.get(c))
         placeholders = ", ".join("?" * len(_STREAM_COLUMNS))
         conn.execute(
-            f"INSERT INTO activity_streams ({', '.join(_STREAM_COLUMNS)}) "
+            f"INSERT OR IGNORE INTO activity_streams ({', '.join(_STREAM_COLUMNS)}) "
             f"VALUES ({placeholders})",
             vals,
         )

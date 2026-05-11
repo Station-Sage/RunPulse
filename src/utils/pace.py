@@ -10,8 +10,8 @@ def seconds_to_pace(seconds: int) -> str:
     Returns:
         "M:SS" 형식 문자열 (예: 300 → "5:00").
     """
-    minutes = seconds // 60
-    secs = seconds % 60
+    minutes = int(seconds) // 60
+    secs = int(seconds) % 60
     return f"{minutes}:{secs:02d}"
 
 
@@ -65,9 +65,9 @@ def format_duration(seconds: int) -> str:
     Returns:
         1시간 이상이면 "H:MM:SS", 미만이면 "M:SS".
     """
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    secs = seconds % 60
+    hours = int(seconds) // 3600
+    minutes = (int(seconds) % 3600) // 60
+    secs = int(seconds) % 60
     if hours > 0:
         return f"{hours}:{minutes:02d}:{secs:02d}"
     return f"{minutes}:{secs:02d}"

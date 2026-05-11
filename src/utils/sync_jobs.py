@@ -182,6 +182,12 @@ def create_job(service: str, from_date: str, to_date: str) -> SyncJob:
     total = max(1, (end - start).days + 1)
 
     with _conn() as conn:
+        # 신규 작업 시작 시 동일 서비스의 기존 미완료 작업을 stopped로 정리
+        conn.execute(
+            "UPDATE sync_jobs SET status='stopped', updated_at=? "
+            "WHERE service=? AND status IN ('pending','paused','stopped','rate_limited')",
+            (now, service),
+        )
         conn.execute(
             f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
@@ -209,6 +215,18 @@ def get_active_job(service: str) -> SyncJob | None:
             f"SELECT {_COLS} FROM sync_jobs "
             "WHERE service = ? AND status NOT IN ('completed', 'stopped') "
             "ORDER BY created_at DESC LIMIT 1",
+            (service,),
+        ).fetchone()
+    return _row(row) if row else None
+
+
+def get_latest_job(service: str) -> SyncJob | None:
+    """서비스의 가장 최근 갱신된 작업 반환 (상태 무관 — UI 표시용)."""
+    with _conn() as conn:
+        row = conn.execute(
+            f"SELECT {_COLS} FROM sync_jobs "
+            "WHERE service = ? "
+            "ORDER BY updated_at DESC LIMIT 1",
             (service,),
         ).fetchone()
     return _row(row) if row else None

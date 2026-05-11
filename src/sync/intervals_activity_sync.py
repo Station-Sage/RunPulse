@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 def sync(
     conn, days: int = 7, include_streams: bool = False,
-    *, config: dict = None, _sleep_fn=None,
+    *, from_date: str = None, to_date: str = None, config: dict = None, _sleep_fn=None,
 ) -> SyncResult:
     result = SyncResult(source="intervals", job_type="activity")
     extractor = get_extractor("intervals")
@@ -40,13 +40,18 @@ def sync(
     base = f"https://intervals.icu/api/v1/athlete/{athlete_id}"
     auth = ("API_KEY", api_key)
 
-    end_date = datetime.now(timezone.utc).date()
-    start_date = end_date - timedelta(days=days)
+    if from_date:
+        oldest = from_date
+        newest = to_date or from_date
+    else:
+        end_date = datetime.now(timezone.utc).date()
+        oldest = (end_date - timedelta(days=days)).isoformat()
+        newest = end_date.isoformat()
 
     try:
         limiter.pre_request()
         resp = requests.get(f"{base}/activities", auth=auth, params={
-            "oldest": start_date.isoformat(), "newest": end_date.isoformat(),
+            "oldest": oldest, "newest": newest,
         })
         resp.raise_for_status()
         activities = resp.json()
