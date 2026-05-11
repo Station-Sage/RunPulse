@@ -17,7 +17,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 18080
 
 ENV PYTHONPATH=/app
-ENV FLASK_HOST=0.0.0.0
-ENV FLASK_DEBUG=0
 
-CMD ["python", "src/serve.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:18080", "--reload", "--access-logfile", "-", "--error-logfile", "-", "src.serve:app"]

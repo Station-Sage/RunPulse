@@ -24,7 +24,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+from src.utils.log_config import setup_logging
+setup_logging(stderr=True)  # stdout은 MCP JSON-RPC 프로토콜 전용
 log = logging.getLogger("runpulse-mcp")
 
 # DB 경로

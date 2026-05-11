@@ -25,6 +25,7 @@ from src.utils.sync_jobs import (
     create_job,
     get_active_job,
     get_job,
+    get_latest_job,
     update_job,
     windows,
 )
@@ -38,7 +39,7 @@ _lock = threading.Lock()
 try:
     _cleaned = cleanup_stale_running_jobs()
     if _cleaned:
-        print(f"[bg_sync] stale 작업 {_cleaned}개 정리됨")
+        log.info("[bg_sync] stale 작업 %d개 정리됨", _cleaned)
 except Exception:
     pass
 
@@ -437,9 +438,26 @@ def resume_job(service: str, config: dict, user_id: str = "default") -> bool:
     return True
 
 
+def start_basic_sync(
+    sources: list[str],
+    from_dates: dict[str, str],
+    to_date: str,
+    config: dict,
+    user_id: str = "default",
+) -> dict[str, str]:
+    """여러 서비스 기본 동기화를 백그라운드로 시작. {service: job_id} 반환."""
+    result = {}
+    for service in sources:
+        from_date = from_dates.get(service, to_date)
+        job_id = start_job(service, from_date, to_date, config, user_id)
+        if job_id:
+            result[service] = job_id
+    return result
+
+
 def get_status(service: str) -> dict:
     """서비스의 현재 백그라운드 동기화 상태 반환 (UI 폴링용)."""
-    job = get_active_job(service)
+    job = get_latest_job(service)
     if not job:
         return {"active": False}
 

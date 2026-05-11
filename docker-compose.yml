@@ -13,8 +13,6 @@ services:
     env_file:
       - .env                  # VPS에만 존재, git 제외됨 (.gitignore)
     environment:
-    - FLASK_HOST=0.0.0.0
     - PYTHONUNBUFFERED=1
-    - FLASK_DEBUG=1
     - TZ=Asia/Seoul
     restart: unless-stopped

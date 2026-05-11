@@ -15,14 +15,13 @@ import argparse
 import logging
 import sys
 
+from src.utils.log_config import setup_logging
+setup_logging()
+
 from src.db_setup import init_db, get_connection
 from src.sync.orchestrator import full_sync
 from src.sync.reprocess import reprocess_all
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
 log = logging.getLogger(__name__)
 
 

@@ -8,12 +8,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    stream=sys.stderr,
-)
+from src.utils.log_config import setup_logging
+setup_logging()
 
 import argparse
 import sqlite3
@@ -23,6 +19,8 @@ from datetime import date, timedelta
 from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
 from src.utils.sync_state import set_current_user
+
+log = logging.getLogger(__name__)
 
 _ALL_SOURCES = ["garmin", "strava", "intervals", "runalyze"]
 
@@ -80,7 +78,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # sync_state가 올바른 유저 파일에 기록되도록 설정
     set_current_user(args.user)
 
     config = load_config(user_id=args.user)
@@ -93,15 +90,15 @@ def main() -> None:
 
     if len(sources) == 1:
         source = sources[0]
-        print(f"\n--- {source.upper()} 동기화 시작 ---")
+        log.info("--- %s 동기화 시작 ---", source.upper())
         res = _sync_source(source, config, db_path, args.days)
         total_activities += res["activities"]
         total_wellness += res["wellness"]
-        print(f"[{source}] 활동 {res['activities']}개, 웰니스 {res['wellness']}개 동기화 완료")
+        log.info("[%s] 활동 %d개, 웰니스 %d개 동기화 완료", source, res["activities"], res["wellness"])
         for err in res["errors"]:
-            print(f"[{source}] {err}", file=sys.stderr)
+            log.error("[%s] %s", source, err)
     else:
-        print(f"4소스 병렬 동기화 시작 ({', '.join(sources)})")
+        log.info("4소스 병렬 동기화 시작 (%s)", ", ".join(sources))
         futures = {}
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:
             for source in sources:
@@ -113,25 +110,24 @@ def main() -> None:
                 res = future.result()
                 total_activities += res["activities"]
                 total_wellness += res["wellness"]
-                print(f"[{source}] 활동 {res['activities']}개, 웰니스 {res['wellness']}개 동기화 완료")
+                log.info("[%s] 활동 %d개, 웰니스 %d개 동기화 완료", source, res["activities"], res["wellness"])
                 for err in res["errors"]:
-                    print(f"[{source}] {err}", file=sys.stderr)
+                    log.error("[%s] %s", source, err)
             except Exception as e:
-                print(f"[{source}] 예외 발생: {e}", file=sys.stderr)
+                log.error("[%s] 예외 발생: %s", source, e)
 
-    print(f"\n동기화 완료: 활동 {total_activities}개, 웰니스 {total_wellness}개")
+    log.info("동기화 완료: 활동 %d개, 웰니스 %d개", total_activities, total_wellness)
 
-    # 메트릭 자동 재계산
-    print("메트릭 계산 시작...")
+    log.info("메트릭 계산 시작...")
     try:
         from src.metrics import engine as metrics_engine
         start_date = (date.today() - timedelta(days=args.days)).isoformat()
         end_date = date.today().isoformat()
         with sqlite3.connect(str(db_path)) as conn:
             metrics_engine.run_for_date_range(conn, start_date, end_date)
-        print(f"메트릭 계산 완료 ({start_date} ~ {end_date})")
+        log.info("메트릭 계산 완료 (%s ~ %s)", start_date, end_date)
     except Exception as exc:
-        print(f"메트릭 계산 실패 (sync는 정상 완료): {exc}", file=sys.stderr)
+        log.error("메트릭 계산 실패 (sync는 정상 완료): %s", exc)
 
 
 if __name__ == "__main__":
