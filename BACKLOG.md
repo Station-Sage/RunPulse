@@ -14,6 +14,7 @@
 ## NEXT
 
 ## DONE (recent)
+- **[TEST-DATA-QUALITY]** `tests/test_data_quality.py` 신규 (45개 테스트): 4주 러너 픽스처 기반으로 trends/compare/weekly_score/race_readiness/activity_deep/suggestions/dashboard/wellness 분석 파이프라인의 물리적 범위·의미론적 정확성 검증. `conn.lastrowid` → `cursor.lastrowid` 수정. 1091 passed.
 - **[BUG-TRENDS-DAILY-FITNESS]** `fitness_trend()` CTL/ATL/TSB 항상 None 수정: `_fitness_last_from_daily_metrics(scope_type='daily')` + `_fitness_last_from_activity_metrics(scope_type='activity')` 분리, 죽은 코드 `_fitness_last_from_daily()`/`_fitness_last_from_metrics()` 제거. 1046 passed.
 - **[LOG-OVERHAUL]** 로그 중앙화: `src/utils/log_config.py` 신규 (dictConfig + stdout + werkzeug WARNING). 진입점 4곳(`serve.py`, `sync.py`, `sync_cli.py`, `mcp_server.py`) basicConfig → setup_logging() 전환. `sync.py` print() 12건 → log, `bg_sync.py` print() 1건 → log. Dockerfile CMD → gunicorn --reload (auto-reload + docker logs 완전 캡처). 1043 passed.
 - **[BUG-PACE-FORMAT]** `pace.py` `seconds_to_pace()`/`format_duration()` — float 입력 시 `:02d` format code 에러. `int(seconds)` 변환 추가. grouped activity `/activity/deep` 조회 오류 해소.
