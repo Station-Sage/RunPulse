@@ -18,23 +18,32 @@ Phase 7 UI가 필요로 하는 데이터 레이어 변경 5건을 ADR 형식으�
 |----|------|------|----------|
 | **D5** | `src/services/` 서비스 레이어 | Phase 7a | 모든 API 구현 차단 |
 | **D3** | `user_inputs` / `ai_feedback` 테이블 | Phase 7a | QuickInput, Coach 차단 |
-| **D1** | `json_value` 분해 스키마 표준화 | Phase 7a | MetricBreakdown 차단 |
+| **D1** | `parent_metric_id` 트리 활성화 (Calculator 자식 메트릭 행 저장) | Phase 7a | MetricBreakdown 차단 |
 | **D2** | 활동 그룹 마스터 테이블 | Phase 7b | Library Provider 비교 |
 | **D4** | `athlete_profile_snapshots` 테이블 | Phase 7c | Plan 생성 고도화 |
 
 ---
 
-## D5. 서비스 레이어 신설 (`src/services/`)
+## D5. 서비스 레이어 구현 (`src/services/`)
 
 ### 현재 상태 (문제)
 
 `AUDIT-SERVICE-LAYER` 버그: 웹 뷰 40+ 곳에서 raw SQL 직접 작성.  
 Flask API 라우터를 추가하면 같은 쿼리가 또 복사된다.  
-Phase 5 설계에서 `activity_service`, `metrics_loader`, `wellness_loader` 명시했으나 미구현.
+**phase-5 설계에서 `activity_service`, `metrics_loader`, `wellness_loader` 등 서비스 레이어를 이미 명시했으나 미구현 상태.**  
 
 ### 결정
 
-API 라우터는 서비스 함수만 호출한다. 서비스 함수는 `CalcContext` API만 사용한다 (ADR-009 준수).  
+D5는 신규 설계가 아닌 **phase-5 서비스 레이어 설계의 구현 및 UI용 확장**이다.  
+phase-5 문서(`v0.3/data/phase-5.md`)를 전제 문서로 참조하고, 여기서 정의된 인터페이스와 충돌하지 않도록 구현한다.
+
+**데이터 접근 정책 (중요)**:
+- **서비스 레이어** (`src/services/`): `db_helpers` 및 raw SQL 사용. CalcContext는 사용하지 않는다.
+- **Calculator** (`src/calculators/`): `CalcContext` API만 사용한다 (ADR-009). `conn.execute()` 직접 호출 금지.
+
+이 둘은 독립된 레이어이며 데이터 접근 정책이 다르다. 혼동하면 ADR-009 위반이 발생한다.
+
+API 라우터는 서비스 함수만 호출한다.  
 기존 뷰(`views_*.py`)는 서비스 레이어로 점진적 교체 — Phase 7a에서 API 신규 경로만 커버,  
 기존 HTML 뷰는 마이그레이션 단계에서 순차 교체.
 
@@ -120,7 +129,7 @@ def get_metric_breakdown(conn, slug: str,
 
 ---
 
-## D1. json_value 분해 스키마 표준화
+## D1. parent_metric_id 트리 활성화
 
 ### 현재 상태 (문제)
 
@@ -191,6 +200,10 @@ MetricBreakdown에서 leaf 노드 표시 시 `json_value` 원본을 그대로 �
 2. 위 4개 Calculator 수정 → 자식 메트릭 행 저장
 3. 기존 `parent_metric_id = NULL` 레코드는 유지 (leaf로 처리)
 4. `metrics_service.get_metric_breakdown()` 구현
+
+**고아 행 정리 (중요)**: `recompute_runpulse_metrics()` 재처리 흐름에서 부모 메트릭을 덮어쓸 때 기존 자식 행이 고아로 남지 않도록, Calculator 수정 시 자식 저장 전 기존 자식 행 삭제 또는 `upsert_metric()`에서 `parent_metric_id` 기반 덮어쓰기(ON CONFLICT DO UPDATE)를 구현해야 한다.
+
+**metric_store 예상 행 수**: 현재 약 55k. D1 적용으로 합성 메트릭당 자식 행이 4개 내외 추가되므로, 완전 적용 후 약 60~65k로 증가 예상. 인덱스 전략은 변경 불필요.
 
 ### 테스트 요건
 
@@ -406,8 +419,8 @@ Plan 생성 또는 레이스 완료 시 현재 피트니스 상태를 스냅샷�
 ```sql
 CREATE TABLE IF NOT EXISTS athlete_profile_snapshots (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    snapshot_date       TEXT NOT NULL UNIQUE,         -- YYYY-MM-DD
-    snapshot_trigger    TEXT,                         -- 'plan_create' | 'race_complete' | 'weekly_auto'
+    snapshot_date       TEXT NOT NULL,                -- YYYY-MM-DD
+    snapshot_trigger    TEXT NOT NULL DEFAULT 'manual', -- 'plan_create' | 'race_complete' | 'weekly_auto' | 'manual'
     -- 피트니스 상태 (RunPulse 계산)
     ctl                 REAL,
     atl                 REAL,
@@ -421,7 +434,8 @@ CREATE TABLE IF NOT EXISTS athlete_profile_snapshots (
     best_marathon_sec   INTEGER,
     -- 원본 JSON (추가 지표 확장용)
     profile_json        TEXT,
-    created_at          TEXT DEFAULT (datetime('now'))
+    created_at          TEXT DEFAULT (datetime('now')),
+    UNIQUE(snapshot_date, snapshot_trigger)           -- 같은 날 같은 트리거는 1건만
 );
 ```
 
@@ -498,7 +512,7 @@ def test_snapshot_values_from_metric_store():
 | `src/calculators/cirs_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
 | `src/calculators/race_readiness_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
 | `src/matchers/matcher.py` | 수정 | D2: assign_group_id() → activity_groups upsert |
-| `src/services/` | 신규 | D5 전체 |
+| `src/services/` | 신규 (phase-5 설계 구현) | D5 전체 |
 | `src/api/` | 신규 | D5 소비 |
 | `scripts/backfill_activity_groups.py` | 신규 | D2 백필 |
 | `scripts/init_profile_snapshot.py` | 신규 | D4 초기화 |

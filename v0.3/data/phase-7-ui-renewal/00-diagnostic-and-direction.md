@@ -114,11 +114,11 @@ UI 점수 3/10과 데이터 점수 8.5/10의 5.5점 갭이 RunPulse의 현 상�
 
 | 번호 | 항목 | 비고 |
 |---|---|---|
-| D1 | 합성 메트릭 `json_value` 분해 스키마 표준화 (`{components: [{label, value, weight, raw}]}`) | 원칙 2 (투명성) 강화 |
+| D1 | 합성 메트릭 분해 구조 — 기존 `parent_metric_id` 컬럼 활성화, Calculator가 자식 메트릭 행 저장 (json_value 내부 표준화 불필요) | 원칙 2 (투명성) 강화 |
 | D2 | 활동 그룹 ID 모델 명시화 (auto_group 결과를 그룹 마스터 테이블로) | 원칙 1 (통합) 강화 |
 | D3 | `user_inputs` 테이블 신설 (RPE/통증/노트), `ai_feedback` 테이블 신설 | 비전 5.3, 7장 KPI |
 | D4 | `athlete_profile_snapshots` 테이블 신설 (러너 프로필 마스터, 다중 프로그램 입력) | 비전 A.2 |
-| D5 | `src/services/` 서비스 레이어 신설 (BACKLOG `AUDIT-SERVICE-LAYER` 해결) | 모든 리뉴얼의 전제조건 |
+| D5 | `src/services/` 서비스 레이어 구현 — phase-5에서 설계됐으나 미구현 (`AUDIT-SERVICE-LAYER` 해결). 신설이 아닌 기존 설계의 실제 구현 | 모든 리뉴얼의 전제조건 |
 
 **D5는 다른 모든 UI 리뉴얼의 전제조건**이다. 서비스 레이어 없이는 새 UI도 또다시 "raw SQL을 다른 모양의 HTML로 옮기는 작업"이 된다.
 
@@ -232,7 +232,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 
 | 단계 | 영역 | 산출물 | 데이터 레이어 작업 |
 |---|---|---|---|
-| **1단계** (Phase 7a) | Today + Coach MVP + 입력 + 메트릭 드릴다운 인프라 | `<EvidenceQuote>` 컴포넌트, RPE/통증 입력, 빠른 AI 브리핑, 모든 메트릭의 드릴다운 가능 | **D5** (services 신설), **D3** (user_inputs, ai_feedback), **D1** (분해 스키마) |
+| **1단계** (Phase 7a) | Today + Coach MVP + 입력 + 메트릭 드릴다운 인프라 | `<EvidenceQuote>` 컴포넌트, RPE/통증 입력, 빠른 AI 브리핑, 모든 메트릭의 드릴다운 가능 | **D5** (phase-5 서비스 레이어 구현), **D3** (user_inputs, ai_feedback), **D1** (parent_metric_id 트리 활성화) |
 | **2단계** (Phase 7b) | Library 전면화 + Story 내러티브 + 적응형 프로그램 기반 | provider 비교 뷰, 시맨틱 그룹 13개 매트릭스, 시간축 스토리, 일일 세션 구체화 | **D2** (그룹 ID 모델) |
 | **3단계** (Phase 7c) | Plan 다중 프로그램 + ML 개인화 | 3~5개 프로그램 병렬 비교, PlanFitReport, 사후 분석 | **D4** (athlete_profile_snapshots) |
 | **4단계** (Phase 7d) | 신규 데이터 소스 + Training Balance Radar 완성 | COROS/Polar/Apple Health/Whoop extractor 흡수 | — (기존 extractor 패턴) |
@@ -262,7 +262,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 
 1. **`<EvidenceQuote>`** — AI 응답·내러티브·권장 안에서 메트릭/차트/활동을 인용. 클릭 가능 칩으로 렌더, 클릭 시 우측 패널이나 모달로 원천 점프. *(원칙 1, 7장 KPI 직접 매핑)*
 2. **`<MetricCell>`** — 메트릭 값 + provider 표식 + 등급 배지 + 호버 시 정의 + 클릭 시 드릴다운. 모든 화면에서 메트릭을 표시하는 기본 단위. *(원칙 2, 3)*
-3. **`<MetricBreakdown>`** — 합성 메트릭(UTRS, CIRS, RRI 등)의 계산 분해 시각화. `metric_store.json_value`의 표준 분해 스키마(D1)를 입력으로 받아 components를 가중치 시각화. *(원칙 2)*
+3. **`<MetricBreakdown>`** — 합성 메트릭(UTRS, CIRS, RRI 등)의 계산 분해 시각화. `metric_store.parent_metric_id` 트리(D1)를 탐색해 자식 메트릭을 가중치 시각화. *(원칙 2)*
 4. **`<ProviderComparison>`** — 동일 시맨틱 그룹의 다중 provider 값을 병렬 표시. 시맨틱 그룹 13개 × provider 4개 매트릭스의 셀 단위 컴포넌트. *(원칙 3, 9장 정체성)*
 5. **`<QuickInput>`** — RPE·통증·노트 빠른 입력. 모든 영역에서 한 손가락 거리에 배치. 키보드 단축키 지원. *(원칙 6, 7장 KPI)*
 6. **`<RecommendationCard>`** — 오늘의 권장 / Coach 응답. 결론 + 근거 인용(`<EvidenceQuote>` 2개 이상 의무) + 액션 + thumbs up/down 피드백. *(원칙 1, 7장 KPI)*
@@ -314,7 +314,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 > - **C. 디자인**: Quiet Data 미니멀리즘 + Story 영역 에디토리얼, 글래스모피즘 폐기
 > - **D. 마이그레이션**: `/v2/` 단계별 + 완성 시점 디폴트 스위치, Phase 7a→7d 단계와 정렬
 >
-> **데이터 레이어 확장 5건**: D1(분해 스키마) D2(그룹 ID) D3(user_inputs, ai_feedback) D4(athlete_profile_snapshots) D5(서비스 레이어) — D5가 모든 작업의 전제.
+> **데이터 레이어 확장 5건**: D1(parent_metric_id 트리 활성화) D2(그룹 ID) D3(user_inputs, ai_feedback) D4(athlete_profile_snapshots) D5(phase-5 서비스 레이어 구현) — D5가 모든 작업의 전제.
 >
 > **설계 원칙 8개**: Evidence-First / Drillable Everything / Provider Transparency / Intent-Centered IA / Quiet Data / One Finger Reach for Input / State-Bound Plan / Local-First Identity.
 >
