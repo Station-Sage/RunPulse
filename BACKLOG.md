@@ -2,6 +2,8 @@
 
 ## NOW
 
+- **[PHASE-7]** UI Renewal 설계 문서 작성 진행 중 → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
+
 ## BUGS
 
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
@@ -14,6 +16,7 @@
 ## NEXT
 
 ## DONE (recent)
+- **[TEST-REALDB-INTEGRATION]** `tests/test_integration_realdb.py` 신규 (97개 테스트, 20 클래스): pansongit@gmail.com 실 DB session-scoped read-only 연결, Part1(원시 무결성)·Part2(분석 파이프라인)·Part3(서비스 레이어)·Part4(보조 검증) 풀 커버리지. 컬럼명 수정(`sport`→`activity_type`, `elapsed_duration_sec`→`elapsed_time_sec`, `elevation_gain_m`→`elevation_gain`, `lat/lon`→`latitude/longitude`, `altitude`→`altitude_m`, `group_id`→`matched_group_id`). 1188 passed.
 - **[TEST-DATA-QUALITY]** `tests/test_data_quality.py` 신규 (45개 테스트): 4주 러너 픽스처 기반으로 trends/compare/weekly_score/race_readiness/activity_deep/suggestions/dashboard/wellness 분석 파이프라인의 물리적 범위·의미론적 정확성 검증. `conn.lastrowid` → `cursor.lastrowid` 수정. 1091 passed.
 - **[BUG-TRENDS-DAILY-FITNESS]** `fitness_trend()` CTL/ATL/TSB 항상 None 수정: `_fitness_last_from_daily_metrics(scope_type='daily')` + `_fitness_last_from_activity_metrics(scope_type='activity')` 분리, 죽은 코드 `_fitness_last_from_daily()`/`_fitness_last_from_metrics()` 제거. 1046 passed.
 - **[LOG-OVERHAUL]** 로그 중앙화: `src/utils/log_config.py` 신규 (dictConfig + stdout + werkzeug WARNING). 진입점 4곳(`serve.py`, `sync.py`, `sync_cli.py`, `mcp_server.py`) basicConfig → setup_logging() 전환. `sync.py` print() 12건 → log, `bg_sync.py` print() 1건 → log. Dockerfile CMD → gunicorn --reload (auto-reload + docker logs 완전 캡처). 1043 passed.
