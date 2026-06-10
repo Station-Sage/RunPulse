@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 데이터 레이어 확장 (D1~D5)
 
-**문서 상태**: Draft v0.3  
+**문서 상태**: Draft v0.4  
 **작성일**: 2026-06-10  
 **전제 문서**: `00-diagnostic-and-direction.md`, `05-tech-architecture.md`  
 **후속 문서**: `07-migration-roadmap.md`
@@ -112,6 +112,31 @@ def get_metric_breakdown(conn, slug: str,
                          provider: str = None) -> BreakdownNode:
     """metric_store parent_metric_id 트리 탐색 → D1 표준화 스키마 사용."""
 ```
+
+### 쿼리 경로 분리 정책 (AO-4 — 200ms 목표 보장)
+
+아키텍처는 두 가지 데이터 경로를 제공한다:
+
+| 경로 | 테이블 | 행 수 | 용도 |
+|------|--------|-------|------|
+| **Fat Summary 경로** | `activity_summaries` | ~600행 | 요약·목록·트렌드 |
+| **EAV 경로** | `metric_store` | ~55k행 | 상세 드릴다운 전용 |
+
+서비스 함수는 두 경로를 혼용하지 않는다:
+
+```python
+# 허용: 요약/목록 → activity_summaries 직조회
+def list_activities(conn, ...)  # activity_summaries 단독 쿼리
+def get_today_status(conn, ...)  # activity_summaries + 집계
+
+# 허용: 상세 드릴다운 → metric_store 한정 조회
+def get_metric_breakdown(conn, slug, ...)  # metric_store JOIN
+
+# 금지: 요약 화면용 트렌드를 metric_store EAV로 전체 조회
+# ❌ SELECT * FROM metric_store WHERE ...  (Today 트렌드 목적)
+```
+
+위반 시 Today 트렌드 같은 요약 화면에서 metric_store 55k행을 풀스캔해 200ms 목표 위협.
 
 ### 마이그레이션 전략
 
@@ -365,7 +390,7 @@ SELECT
         WHEN 2 THEN 'intervals'
         WHEN 3 THEN 'strava'
         WHEN 4 THEN 'runalyze'
-        ELSE MIN(source) END  AS primary_source,  -- metric_priority.py 우선순위 기준
+        ELSE MIN(source) END  AS primary_source,  -- dedup.py / v_canonical_activities 정적 순서 기준
     DATE(MIN(start_time)) AS activity_date,
     AVG(distance_m) AS distance_m,
     COUNT(*) AS member_count
@@ -393,7 +418,7 @@ def get_provider_comparison(conn, activity_id: int) -> list[ComparisonRow]:
 ### 마이그레이션 전략
 
 1. `_DDL_ACTIVITY_GROUPS` DDL 추가, `migrate()` 등록
-2. `assign_group_id()` 호출 시 `activity_groups` 동시 upsert — `primary_source`는 `metric_priority.py`의 provider 우선순위(garmin > intervals > strava > runalyze)로 결정. `ProviderComparison.primaryReason` 컴포넌트가 표시하는 "왜 이 provider가 대표값인가"와 동일 기준을 써야 한다 (G3 정합성).
+2. `assign_group_id()` 호출 시 `activity_groups` 동시 upsert — `primary_source`는 `dedup.py` / `v_canonical_activities` 뷰의 정적 순서(garmin > intervals > strava > runalyze)로 결정. `ProviderComparison.primaryReason` 컴포넌트가 표시하는 "왜 이 provider가 대표값인가"와 동일 기준을 써야 한다 (AO-3 정합성).
 3. 기존 레코드 백필 스크립트 (`scripts/backfill_activity_groups.py`)
 
 ### 테스트 요건
@@ -541,6 +566,7 @@ def test_snapshot_values_from_metric_store():
 
 ## 작성 이력
 
+- v0.4 (2026-06-10): REVIEW-02 반영 — AO-3: D2 SQL 주석·마이그레이션 전략 primary_source 근거를 `metric_priority.py` → `dedup.py / v_canonical_activities 정적 순서`로 정정; AO-4: D5에 쿼리 경로 분리 정책(activity_summaries vs metric_store) 추가
 - v0.3 (2026-06-10): D1 Calculator 단계 배분을 07 로드맵과 정렬 (7a=fitness, 7b=utrs/cirs/race_readiness). 실행 순서 동기화.
 - v0.2 (2026-06-10): REVIEW 반영 — D1 마이그레이션 순서 Calculator 4개로 통일(race_readiness 추가), D2 백필 primary_source를 MIN(source) 알파벳 정렬에서 metric_priority.py 우선순위 기반 CASE 식으로 수정, assign_group_id() G3 정합성 주석 추가
 - v0.1 (2026-06-10): 초안 — D1~D5 ADR, DDL, 마이그레이션 전략, 테스트 요건, 실행 순서

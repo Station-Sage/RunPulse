@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 컴포넌트 카탈로그
 
-**문서 상태**: Draft v0.1  
+**문서 상태**: Draft v0.2  
 **작성일**: 2026-06-10  
 **전제 문서**: `01-design-principles.md`, `03-screen-catalog.md`  
 **후속 문서**: `05-tech-architecture.md`
@@ -73,7 +73,11 @@ interface EvidenceQuoteProps {
   unavailable?: boolean   // true면 "(데이터 수집 중)" 레이블로 표시
 }
 
-type ProviderKey = 'garmin' | 'strava' | 'intervals' | 'runalyze' | 'runpulse'
+type ProviderKey =
+  | 'garmin' | 'strava' | 'intervals' | 'runalyze'
+  | 'runpulse'            // 버전 미분류 RunPulse 메트릭 (하위 호환)
+  | `runpulse:${string}`  // 버전 명시 RunPulse 메트릭 (e.g. 'runpulse:formula_v1', 'runpulse:ml_v1')
+// 화면 표시: 'runpulse:formula_v1' → "[RunPulse · formula_v1]" 배지
 ```
 
 ### 상태
@@ -202,6 +206,10 @@ runpulse  → --color-provider-runpulse  (회색)
 │  ● status  ↑ +4      │  ← 상태 도트 + 추세 레이블
 │  ▁▂▃▄▅▅▄▃▃▄  (7pts) │  ← 스파크라인 (trend.data 있을 때만)
 └──────────────────────┘
+
+*배지 표시 규칙*: `provider='runpulse:formula_v1'` → `[RunPulse · formula_v1]`,  
+`provider='runpulse:ml_v1'` → `[RunPulse · ml_v1]`. `:` 앞은 소스명, 뒤는 버전 배지.  
+신뢰도(`confidence`)가 있으면 `[RunPulse · formula_v1 · conf 0.82]` 형태로 병기.
 ```
 
 ### 인터랙션
@@ -251,6 +259,12 @@ interface MetricBreakdownData {
   provider: ProviderKey
   formula?: string          // 계산식 설명 e.g. "42일 지수이동평균(TSS)"
 
+  // RunPulse 합성 메트릭 전용 (provider = 'runpulse:*' 형태일 때)
+  computedAt?: string       // ISO 날짜시간 e.g. "2026-06-09T14:30:00"
+  version?: string          // 공식 버전 e.g. "formula_v1"
+  prevValue?: number        // 직전 계산값 (diff 표시용)
+  confidence?: number       // 신뢰도 0~1
+
   children?: MetricBreakdownNode[]
 }
 
@@ -283,6 +297,9 @@ interface MetricBreakdownNode {
 ├────────────────────────────────────┤
 │  현재값: 68  ● 상태      [Prv배지] │
 │  formula 설명                      │
+│  (RunPulse 메트릭 — provider='runpulse:*'일 때만)       │
+│  재계산: 2026-06-09 14:30 · formula_v1 · conf 0.82  │
+│  이전값: 66 → 68  (+2, +3%)        │  ← prevValue 있을 때
 │  ──────────────────────────────    │
 │  ▾ 하위 메트릭 A   0.84  [Prv]  40%│ ← L2, 탭으로 펼침
 │    ▾ 하위 B        0.91  [Prv]    │  ← L3 (raw), 펼침 불가
@@ -355,11 +372,13 @@ interface ComparisonRow {
   }
   preferredProvider?: ProviderKey
 
-  // is_primary 근거 — API가 내려주는 우선순위 이유 (P3 투명성)
+  // is_primary 근거 — dedup.py / v_canonical_activities 정적 순서에서 도출 (P3 투명성)
+  // 동적 coverage 기반이 아님. 실제 DB 로직(dedup.py)과 동일 근거를 써야 한다.
   primaryReason?: {
     provider: ProviderKey
-    rule: string          // e.g. "coverage: 98.5% (최고)", "manual: 사용자 설정"
-    ruleType: 'coverage' | 'manual' | 'default_order'
+    rule: string          // e.g. "소스 우선순위 1순위 (garmin > intervals > strava > runalyze)"
+                          //   or "RunPulse — 자체 산출 (always primary)"
+    ruleType: 'static_priority' | 'runpulse_always'
   }
 }
 
@@ -389,8 +408,12 @@ TSS              —        —        52            51      ★Intervals
 VO2Max           51.2     —        —            51.1     ★Garmin
 
 ★ 표시 = is_primary Provider (showPrimaryReason=true 시)
-  마우스 오버 / 탭 → 툴팁: "Garmin — coverage 98.5% (최고)"
+  마우스 오버 / 탭 → 툴팁: "Garmin — 소스 우선순위 1순위 (dedup.py 정적 순서)"
 ⚠ Garmin ↔ Strava 거리 50m 차이 (0.5%)
+
+*컬럼(세로축) 렌더링*: 위 예시는 4-provider 고정이 아님.
+`providers` prop이 없으면 해당 시맨틱 그룹에 실제 데이터가 있는 provider 집합으로 동적 렌더링.
+빈 컬럼은 자동 제외. 신규 provider(Apple Health, COROS 등) 추가 시 코드 수정 불필요.
 ```
 
 ### 인터랙션
@@ -604,7 +627,8 @@ interface Milestone {
   date: string
   label: string
   activityId?: number
-  type: 'distance_milestone' | 'pace_pb' | 'ctl_peak' | 'custom'
+  type: 'distance_milestone' | 'pace_pb' | 'ctl_peak' | 'metric_recompute' | 'custom'
+  // metric_recompute: RunPulse 공식 버전 갱신 후 재계산된 이벤트
 }
 ```
 
@@ -758,4 +782,5 @@ QuickInput (독립)
 
 ## 작성 이력
 
+- v0.2 (2026-06-10): REVIEW-02 반영 — AO-1: ProviderKey `runpulse:${string}` 확장·MetricBreakdownData computedAt/version/prevValue/confidence·MetricCell RunPulse 버전 배지·Milestone metric_recompute 타입 추가; AO-2: ProviderComparison 컬럼 동적 렌더링 명시; AO-3: primaryReason ruleType `static_priority|runpulse_always` 정정(coverage/manual 제거)·툴팁 텍스트 dedup.py 정적 순서로 수정
 - v0.1 (2026-06-10): 초안 — 7개 컴포넌트 props 인터페이스, 상태, 디자인 토큰, 인터랙션 패턴

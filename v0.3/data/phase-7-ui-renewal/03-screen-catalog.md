@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 화면 카탈로그
 
-**문서 상태**: Draft v0.2  
+**문서 상태**: Draft v0.3  
 **작성일**: 2026-06-10  
 **전제 문서**: `01-design-principles.md`, `02-information-architecture.md`  
 **후속 문서**: `04-component-catalog.md`
@@ -169,6 +169,8 @@
 │                                                                     │
 │  🎯 누적 500km 돌파  (6/3)                                          │
 │  🏃 하프마라톤 PB  1:52:04  (6/8)  → /library/activities/4821     │
+│  🔄 RunPulse 재계산 (6/9)  formula_v2 적용 — CTL 66→68 (+2)       │
+│                            ← Milestone.type='metric_recompute'     │
 │                                                                     │
 │  [전체 마일스톤 →]  → /story/milestones                            │
 │                                                                     │
@@ -409,6 +411,8 @@
 │  기간: [최근 4주 ▾]                                                 │
 │                                                                     │
 │  <ProviderComparison showPrimaryReason=true>                        │
+│  (* 세로축: 시맨틱 그룹별 실제 연결된 Provider 집합으로 동적 렌더링.  │
+│     미연결·데이터 없는 Provider 열은 자동 제외. 아래는 예시.)        │
 │                                                                     │
 │  시맨틱 그룹           Garmin   Strava  Intervals RunPulse  대표값  │
 │  ────────────────────────────────────────────────────────────────  │
@@ -452,8 +456,9 @@
 │  대표값: Garmin  138bpm                            │
 │                                                    │
 │  우선순위 근거:  ★ Garmin                          │
-│  규칙: coverage 98.5% (최고)                       │
-│  → Garmin 데이터가 가장 많은 날에 수집됨            │
+│  규칙: 소스 우선순위 1순위                          │
+│  (garmin > intervals > strava > runalyze)           │
+│  → dedup.py v_canonical_activities 정적 순서 기준  │
 │                                  ★ P3 투명성       │
 │  Provider별 값:                                    │
 │  Garmin    138bpm  [기준값 ★]                      │
@@ -799,5 +804,6 @@ Plan 관련 세션 카드에서 상태 조정이 필요할 때:
 
 ## 작성 이력
 
+- v0.3 (2026-06-10): REVIEW-02 반영 — AO-1: Story 마일스톤 metric_recompute 이벤트 예시 추가; AO-2: 3-G-1 매트릭스 세로축 동적 렌더링 명시(그룹별 실제 연결 provider 기준); AO-3: 3-G-1 셀 팝업 우선순위 근거 coverage → dedup.py 정적 순서로 정정
 - v0.2 (2026-06-10): REVIEW 반영 — G2: 3-G Provider 비교 13×4 매트릭스 + 셀 인터랙션 구체화, G4: 활동 상세 환경 컨텍스트 카드 추가, G5: QuickInput 전 영역 배치 원칙(7-5) + 3-C·5-A compact 슬롯 추가
 - v0.1 (2026-06-10): 초안 — 6개 영역 22개 화면 와이어프레임, 공통 패턴 4개
