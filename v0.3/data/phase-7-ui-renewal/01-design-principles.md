@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 설계 원칙
 
-**문서 상태**: Draft v0.1  
+**문서 상태**: Draft v0.2  
 **작성일**: 2026-06-09  
 **전제 문서**: `00-diagnostic-and-direction.md` (분기점 확정)  
 **후속 문서**: `02-information-architecture.md`
@@ -140,6 +140,7 @@ RunPulse의 핵심 자산은 4개 소스 통합이다. 이 통합이 UI에서 �
 - primary provider 값 표시 + 호버/탭 시 타 provider 값 비교 표시
 - "RunPulse 계산" 메트릭은 명시적으로 RunPulse 배지 부착
 - provider 우선순위가 왜 이 provider인지 설명 가능해야 함
+  (기준: metric_priority.py — garmin > intervals > strava > runalyze, ADR-003)
 - Library 영역: 시맨틱 그룹 13개 × provider 4개 매트릭스를 일급 화면으로 구성 (P2-003)
 
 ### 위반 예시
@@ -155,7 +156,7 @@ RunPulse의 핵심 자산은 4개 소스 통합이다. 이 통합이 UI에서 �
 ```
 ✓ VO2max: 47.3 [Garmin]
   탭 시: "Garmin: 47.3 / Runalyze: 46.8 / RunPulse: 47.1
-         Primary: Garmin (이유: 가장 최근 측정, ADR-006)"
+         Primary: Garmin (이유: provider 우선순위 1순위 — metric_priority.py)"
 
 ✓ 안정시 심박: 48 bpm [Garmin]
   → "Garmin 7일 평균. Whoop 연동 시 Whoop 값이 primary가 됩니다."
@@ -444,4 +445,6 @@ P8 ☐ 오프라인에서도 이 화면이 동작하는가, 동작 안 한다면
 
 ## 작성 이력
 
+- v0.2 (2026-06-10): P3 예시의 provider 우선순위 근거를 ADR-006(중복제거)에서
+  metric_priority.py/ADR-003으로 정정. 06 D2와 인용 기준 통일.
 - v0.1 (2026-06-09): 초안 — 8개 원칙 정의, 적용/위반/준수 예시, 충돌 해결, 체크리스트

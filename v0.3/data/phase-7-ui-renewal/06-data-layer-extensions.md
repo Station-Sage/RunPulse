@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 데이터 레이어 확장 (D1~D5)
 
-**문서 상태**: Draft v0.2  
+**문서 상태**: Draft v0.3  
 **작성일**: 2026-06-10  
 **전제 문서**: `00-diagnostic-and-direction.md`, `05-tech-architecture.md`  
 **후속 문서**: `07-migration-roadmap.md`
@@ -198,6 +198,8 @@ MetricBreakdown에서 leaf 노드 표시 시 `json_value` 원본을 그대로 �
 
 1. `upsert_metric()` 헬퍼에 `parent_metric_id` 파라미터 추가 (기본 None)
 2. 위 4개 Calculator 수정 → 자식 메트릭 행 저장
+   - Phase 7a: fitness_calculator (CTL/ATL/TSB)
+   - Phase 7b: utrs / cirs / race_readiness
 3. 기존 `parent_metric_id = NULL` 레코드는 유지 (leaf로 처리)
 4. `metrics_service.get_metric_breakdown()` 구현
 
@@ -492,7 +494,7 @@ def test_snapshot_values_from_metric_store():
 1. D5: src/services/ stub 생성
 2. D3: user_inputs, ai_feedback DDL 추가 + migrate() 등록
 3. D1: upsert_metric() parent_metric_id 파라미터 추가
-       + fitness/utrs/cirs/race_readiness Calculator 자식 메트릭 저장 수정 (4개)
+       + fitness_calculator 자식 메트릭 저장 수정 (Today용 CTL/ATL/TSB)
 4. src/api/ 블루프린트 생성, serve.py 등록
 5. frontend/ SvelteKit 초기화
 ```
@@ -500,8 +502,11 @@ def test_snapshot_values_from_metric_store():
 ### Phase 7b
 
 ```
-6. D2: activity_groups DDL + 백필 스크립트 실행
-7. activity_service.get_provider_comparison() 구현
+6. D1: utrs/cirs/race_readiness Calculator 자식 메트릭 저장 수정 (3개)
+       — Library MetricBreakdown 노출용
+7. D2: activity_groups DDL + 백필 스크립트 실행
+8. activity_service.get_provider_comparison() 구현
+9. metrics_service.get_metric_breakdown() 구현
 ```
 
 ### Phase 7c
@@ -536,5 +541,6 @@ def test_snapshot_values_from_metric_store():
 
 ## 작성 이력
 
+- v0.3 (2026-06-10): D1 Calculator 단계 배분을 07 로드맵과 정렬 (7a=fitness, 7b=utrs/cirs/race_readiness). 실행 순서 동기화.
 - v0.2 (2026-06-10): REVIEW 반영 — D1 마이그레이션 순서 Calculator 4개로 통일(race_readiness 추가), D2 백필 primary_source를 MIN(source) 알파벳 정렬에서 metric_priority.py 우선순위 기반 CASE 식으로 수정, assign_group_id() G3 정합성 주석 추가
 - v0.1 (2026-06-10): 초안 — D1~D5 ADR, DDL, 마이그레이션 전략, 테스트 요건, 실행 순서
