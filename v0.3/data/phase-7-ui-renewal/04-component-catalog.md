@@ -333,6 +333,9 @@ interface ProviderComparisonProps {
 
   // 우선 Provider 설정 UI 표시 여부
   showPreferenceSetter?: boolean   // 기본: false
+
+  // is_primary 근거 배지 표시 여부 (P3 투명성 — "왜 이 Provider가 대표값인가")
+  showPrimaryReason?: boolean      // 기본: false
 }
 ```
 
@@ -351,6 +354,13 @@ interface ComparisonRow {
     severity: 'info' | 'warning'
   }
   preferredProvider?: ProviderKey
+
+  // is_primary 근거 — API가 내려주는 우선순위 이유 (P3 투명성)
+  primaryReason?: {
+    provider: ProviderKey
+    rule: string          // e.g. "coverage: 98.5% (최고)", "manual: 사용자 설정"
+    ruleType: 'coverage' | 'manual' | 'default_order'
+  }
 }
 
 interface ComparisonCell {
@@ -371,13 +381,15 @@ interface ComparisonCell {
 ### 레이아웃
 
 ```
-메트릭           Garmin   Strava   Intervals  RunPulse
-──────────────────────────────────────────────────────
-HR avg           138bpm   137bpm      —          —
-거리             10.24km  10.19km  10.24km       —       ⚠ 50m 차
-TSS              —        —        52            51
-VO2Max           51.2     —        —            51.1
+메트릭           Garmin   Strava   Intervals  RunPulse  대표값
+──────────────────────────────────────────────────────────────
+HR avg           138bpm   137bpm      —          —       ★Garmin
+거리             10.24km  10.19km  10.24km       —       ★Garmin  ⚠ 50m 차
+TSS              —        —        52            51      ★Intervals
+VO2Max           51.2     —        —            51.1     ★Garmin
 
+★ 표시 = is_primary Provider (showPrimaryReason=true 시)
+  마우스 오버 / 탭 → 툴팁: "Garmin — coverage 98.5% (최고)"
 ⚠ Garmin ↔ Strava 거리 50m 차이 (0.5%)
 ```
 

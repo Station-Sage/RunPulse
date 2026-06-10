@@ -31,11 +31,11 @@
 ### 데이터 레이어 확장 5건 (미구현)
 | ID | 내용 | 단계 |
 |----|------|------|
-| D1 | 합성 메트릭 `json_value` 분해 스키마 표준화 | Phase 7a |
+| D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a |
 | D2 | 활동 그룹 ID 모델 명시화 (그룹 마스터 테이블) | Phase 7b |
 | D3 | `user_inputs` / `ai_feedback` 테이블 신설 | Phase 7a |
 | D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c |
-| D5 | `src/services/` 서비스 레이어 신설 | Phase 7a (전제조건) |
+| D5 | `src/services/` — phase-5 서비스 레이어 설계 구현 | Phase 7a (전제조건) |
 
 ---
 

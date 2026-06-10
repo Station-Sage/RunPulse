@@ -17,24 +17,26 @@ Phase 7a→7d 4단계의 범위, 산출물, 검증 기준, 단계 전환 조건�
 ## 전체 흐름
 
 ```
-Phase 7a          Phase 7b          Phase 7c          Phase 7d
-────────────      ────────────      ────────────      ────────────
-기반 구축          핵심 탐색          계획·심층           코치·전환
+Phase 7a            Phase 7b              Phase 7c          Phase 7d
+──────────────      ──────────────        ──────────────    ──────────────
+기반·Coach MVP      탐색·Plan 기반         계획·ML            확장·전환
 
-D5 서비스레이어    D2 그룹 마스터     D4 프로필 스냅샷    Coach UI
-D3 user_inputs    Story UI          Plan UI            PWA 완성
-D1 트리 계층       Library 전체       MetricBreakdown    /v2/ → 기본
-Flask API 골격    ProviderComparison  state-bound 조정   v1 제거
-Today UI          QuickInput 완성    프로그램 비교        
-Library/activities                                     
+D5 서비스레이어      D2 그룹 마스터         D4 프로필 스냅샷   신규 데이터 소스
+D3 user_inputs      Story UI              Plan ML 개인화    COROS/Polar/etc
+D1 트리 계층         Library 전체           PlanFitReport     Training Balance
+Flask API 골격      ProviderComparison     PWA               Radar 완성
+Today UI            Plan 정적 비교 기반    state-bound 조정   /v2/ → 기본
+Coach MVP UI        (3~5 옵션 골격)                          v1 제거
+Library/activities  
 ```
 
 ---
 
-## Phase 7a — 기반 구축
+## Phase 7a — 기반 구축 + Coach MVP
 
-**목표**: API 골격과 가장 중요한 두 화면(Today, Library/activities)을 실제로 동작시킨다.  
-베타 토글 ON 시 `/v2/today`와 `/v2/library/activities`가 실제 데이터를 표시한다.
+**목표**: API 골격, Today, Library/activities, 그리고 Coach MVP를 동작시킨다.  
+00-diagnostic-and-direction.md 4.1에서 결정: Coach MVP는 Today + 입력과 함께 1단계에 묶여야 가치 발현이 즉시 보인다.  
+베타 토글 ON 시 `/v2/today`, `/v2/library/activities`, `/v2/coach`(MVP)가 실제 데이터를 표시한다.
 
 ### 전제조건 (시작 전 충족)
 
@@ -45,9 +47,10 @@ Library/activities
 ### 산출물
 
 **데이터 레이어**
-- [ ] D5: `src/services/` 7개 파일 — stub + Today/Library 구현 완료
+- [ ] D5: `src/services/` 8개 파일 — stub + Today/Library/Coach 구현 완료
   - `today_service.get_today_status()`, `get_today_briefing()`, `get_recent_activities()`
   - `activity_service.list_activities()`, `get_activity_detail()`, `get_activity_streams()`
+  - `coach_service.list_threads()`, `create_thread()`, `add_message()` (스레드 CRUD + AI 호출 래핑)
   - `save_checkin()` (D3 연동)
 - [ ] D3: `user_inputs`, `ai_feedback` DDL + `db_setup.migrate()` 등록
 - [ ] D1: `upsert_metric()` `parent_metric_id` 파라미터 추가 + fitness Calculator 자식 저장
@@ -59,6 +62,12 @@ Library/activities
 - [ ] `GET /api/v1/library/activities/:id` — 상세
 - [ ] `GET /api/v1/library/activities/:id/streams` — 스트림
 
+**Flask API (Coach MVP 추가)**
+- [ ] `GET /api/v1/coach/threads`
+- [ ] `POST /api/v1/coach/threads`
+- [ ] `GET /api/v1/coach/threads/:id`
+- [ ] `POST /api/v1/coach/threads/:id/messages` — AI 응답 포함
+
 **SvelteKit UI**
 - [ ] 공통 레이아웃: 탭 바 (데스크탑/모바일), 우측 패널 슬롯, 슬라이드업 시트
 - [ ] `<EvidenceQuote>` (C1) — 기본 칩 + 패널 열기
@@ -67,6 +76,7 @@ Library/activities
 - [ ] `<RecommendationCard>` (C6) — EvidenceQuote 연동
 - [ ] Today 화면 — 03-screen-catalog.md 1-A 구현
 - [ ] Library/activities 화면 — 3-B, 3-C, 3-D 구현
+- [ ] **Coach MVP 화면** — 스레드 목록 + 대화창 (5-A 기본 구현, 컨텍스트 패널 제외)
 - [ ] `/v2/` 베타 토글 UI (`/data/settings`)
 
 ### 검증 기준
@@ -91,10 +101,10 @@ Library/activities
 
 ---
 
-## Phase 7b — 핵심 탐색
+## Phase 7b — 핵심 탐색 + Plan 기반
 
-**목표**: Story와 Library 전체를 완성한다.  
-메트릭 브라우저, Provider 비교, 웰니스가 동작한다.
+**목표**: Story와 Library 전체를 완성하고, Plan 정적 비교 골격을 구축한다.  
+메트릭 브라우저, Provider 비교, 웰니스, 고정 훈련 플랜 선택이 동작한다.
 
 ### 전제조건
 
@@ -108,6 +118,7 @@ Library/activities
 - [ ] D1: utrs/cirs/race_readiness Calculator 자식 메트릭 저장 수정
 - [ ] `metrics_service.get_metric_breakdown()` — parent_metric_id 트리 조립
 - [ ] `activity_service.get_provider_comparison()` — D2 연동
+- [ ] `plan_service.get_static_plan_templates()` — 고정 훈련 프로그램 3~5개 반환 (ML 없음)
 
 **Flask API**
 - [ ] `GET /api/v1/story` — 내러티브 + 하이라이트 + 마일스톤
@@ -116,6 +127,9 @@ Library/activities
 - [ ] `GET /api/v1/library/metrics/:slug` — 상세 + 추세 + 분해 트리
 - [ ] `GET /api/v1/library/wellness`
 - [ ] `GET /api/v1/library/providers` — Provider 비교
+- [ ] `GET /api/v1/plan/templates` — 정적 플랜 템플릿 목록
+- [ ] `GET /api/v1/plan/compare` — 템플릿 비교 (CTL·주간 거리 기반)
+- [ ] `POST /api/v1/plan` — 템플릿 선택 확정
 
 **SvelteKit UI**
 - [ ] `<MetricBreakdown>` (C3) — parent_metric_id 트리 렌더링
@@ -126,6 +140,7 @@ Library/activities
 - [ ] Library/wellness 화면
 - [ ] Library/providers 화면 — 3-G 구현
 - [ ] Library 홈 — 3-A 구현
+- [ ] Plan 새 프로그램 화면 (정적 비교 골격) — 4-C, 4-D 구현
 
 ### 검증 기준
 
@@ -136,55 +151,58 @@ Library/activities
 ✓ Library/metrics: 전체 시맨틱 그룹 13개 탐색 가능
 ✓ Provider 배지: Library 전체에서 출처 없는 수치 없음 (P3)
 ✓ 드릴다운 3레벨: Summary → Breakdown → Library 이동 동작
+✓ Plan 정적 비교: 3개 이상 고정 플랜 템플릿 표시 + 비교 가능
+✓ Plan 선택 확정 → active plan 생성 확인
 ```
 
 ### 7b → 7c 전환 조건
 
 - 검증 기준 전체 충족
-- Story + Library 전체 베타 사용 1주 이상
+- Story + Library + Plan 정적 비교 베타 사용 1주 이상
 - D2 활동 그룹 마스터: 기존 그룹 100% 마이그레이션 확인
 
 ---
 
-## Phase 7c — 계획·심층
+## Phase 7c — 계획 ML 개인화 + PWA
 
-**목표**: Plan 영역과 MetricBreakdown 고급 기능을 완성한다.  
-상태 기반 세션 조정이 실제로 동작한다.
+**목표**: Plan ML 개인화와 PlanFitReport를 완성하고 PWA를 적용한다.  
+정적 템플릿에서 개인 프로필 기반 ML 플랜 생성으로 업그레이드된다.
 
 ### 전제조건
 
-- Phase 7b 완료
+- Phase 7b 완료 (Plan 정적 비교 동작 중)
 - D4 athlete_profile_snapshots 초기 스냅샷 생성
 
 ### 산출물
 
 **데이터 레이어**
 - [ ] D4: `athlete_profile_snapshots` DDL + 초기화 스크립트 실행
-- [ ] `plan_service.generate_plan_options()` — D4 기반 VDOT 추정
+- [ ] `plan_service.generate_plan_options()` — D4 VDOT + CTL 기반 ML 개인화 옵션 생성
+- [ ] `plan_service.get_plan_fit_report()` — 현재 상태 vs 플랜 적합도 평가
 - [ ] `plan_service.get_session_adjustments()` — HRV/TSB 기반 세션 조정
 - [ ] `wellness_service.get_wellness_for_date()` — user_inputs 병합
 
 **Flask API**
 - [ ] `GET /api/v1/plan/active`
-- [ ] `POST /api/v1/plan/generate` — 3~5개 옵션 생성
-- [ ] `POST /api/v1/plan` — 선택 확정
+- [ ] `POST /api/v1/plan/generate` — ML 개인화 옵션 3~5개 생성 (D4 기반)
 - [ ] `GET /api/v1/plan/:id`
+- [ ] `GET /api/v1/plan/:id/fit-report` — PlanFitReport
 - [ ] `GET /api/v1/plan/:id/session/:week/:day` — 상태 조정 포함
 - [ ] `PUT /api/v1/plan/:id/session/:week/:day/accept-adjustment`
-- [ ] `GET /api/v1/plan/compare` (옵션 비교용 임시 저장소)
 
 **SvelteKit UI**
-- [ ] Plan 홈 (진행 중 / 없음 분기) — 4-A, 4-B 구현
-- [ ] Plan 새 프로그램 생성 3단계 플로 — 4-C 구현
-- [ ] Plan 비교 화면 — 4-D 구현
+- [ ] Plan 홈 (진행 중 / 없음 분기) — 4-A, 4-B 구현 (ML 개인화 옵션으로 업그레이드)
+- [ ] Plan 새 프로그램 생성 3단계 플로 — 4-C 구현 (ML 옵션 표시)
 - [ ] Plan 일일 세션 상세 (상태 조정 UI) — 4-E 구현
+- [ ] PlanFitReport 화면
 - [ ] Today 화면 "오늘 예정 세션" — Plan 연동 활성화
 - [ ] PWA Service Worker — Cache-First 전략 적용
 
 ### 검증 기준
 
 ```
-✓ 새 프로그램 생성: 목표 입력 → 3개 옵션 반환 (CTL·주간 거리 기반)
+✓ ML 플랜 생성: 목표 + athlete_profile → 3개 개인화 옵션 반환
+✓ PlanFitReport: 현재 CTL·VDOT 대비 플랜 난이도 평가 표시
 ✓ 세션 조정: HRV −12% 시 거리 −10~15% 조정 제안 표시
 ✓ Plan → Today 연동: 세션 수정이 Today에 반영
 ✓ state-bound 배지: 모든 세션 카드에 ACWR/HRV 상태 표시
@@ -195,33 +213,39 @@ Library/activities
 ### 7c → 7d 전환 조건
 
 - 검증 기준 전체 충족
-- Plan 전체 + PWA 베타 사용 2주 이상
+- Plan ML + PWA 베타 사용 2주 이상
 - 기존 v1 `/training` 화면과 기능 동등성 확인 (누락 기능 없음)
 
 ---
 
-## Phase 7d — 코치·전환
+## Phase 7d — 신규 데이터 소스 확장 + v2 전환
 
-**목표**: Coach 영역 완성 후 v2를 기본값으로 전환한다.  
+**목표**: 신규 데이터 소스를 통합하고 Training Balance Radar를 완성한 후 v2를 기본값으로 전환한다.  
 v1 HTML 뷰는 리다이렉트 전용으로 유지하다 제거한다.
 
 ### 전제조건
 
 - Phase 7c 완료
-- `coach_service.py` AI 호출 래핑 설계 완료
+- 신규 데이터 소스 API 접근 가능 여부 확인 (COROS / Polar / Apple Health / Whoop)
 
 ### 산출물
 
+**데이터 레이어**
+- [ ] 신규 소스 커넥터 — COROS 또는 Polar 중 1개 우선 (기존 `src/connectors/` 패턴 동일)
+- [ ] Training Balance Radar 메트릭 계산 — 다차원 레이더 데이터 (stress/load/recovery/form/sleep/hrv)
+- [ ] `sync.py` 신규 소스 등록
+
 **Flask API**
-- [ ] `GET /api/v1/coach/threads`
-- [ ] `POST /api/v1/coach/threads`
-- [ ] `GET /api/v1/coach/threads/:id`
-- [ ] `POST /api/v1/coach/threads/:id/messages` — AI 응답 포함
-- [ ] `GET /api/v1/data/sources`, `/data/sync`, `/data/settings`
+- [ ] `GET /api/v1/data/sources` — 소스 연결 상태 (신규 소스 포함)
+- [ ] `GET /api/v1/data/sync`
+- [ ] `POST /api/v1/data/sync` — 동기화 실행
+- [ ] `GET /api/v1/data/settings`
+- [ ] `GET /api/v1/library/metrics/training-balance` — Training Balance Radar 데이터
 
 **SvelteKit UI**
-- [ ] Coach 홈 + 스레드 화면 — 5-A, 5-B 구현
-- [ ] Data 화면 — 6-A, 6-B 구현
+- [ ] Data 화면 — 6-A, 6-B 구현 (신규 소스 연결 카드 포함)
+- [ ] Coach 스레드 완성 — 5-B 컨텍스트 패널 구현 (7a MVP에서 제외된 부분)
+- [ ] Training Balance Radar 차트 — Library 또는 Today 내 표시
 - [ ] 베타 토글 → 전체 영역 커버 확인
 
 **v2 기본 전환**
@@ -241,7 +265,8 @@ v1 HTML 뷰는 리다이렉트 전용으로 유지하다 제거한다.
 ### 검증 기준
 
 ```
-✓ Coach 대화: 실제 AI 응답 + EvidenceQuote 칩 표시
+✓ 신규 소스 동기화: COROS or Polar 활동 DB 저장 확인
+✓ Training Balance Radar: 6개 축 데이터 정상 렌더링
 ✓ Coach 컨텍스트 패널: 대화 중 메트릭 차트 패널 표시
 ✓ Data 화면: 소스 연결 상태 + 동기화 실행 가능
 ✓ 구 URL 접근 시 v2로 301 리다이렉트
@@ -296,7 +321,8 @@ v2가 v1을 대체하기 전 확인해야 할 v1 기능 목록.
 | HR 존 분포 | Activity 상세 내 표시 | 7a |
 | Provider 비교 | Library/providers | 7b |
 | Training 계획 보기 | Plan 홈 | 7c |
-| AI Coach 대화 | Coach 화면 | 7d |
+| AI Coach 대화 (MVP) | Coach 화면 | 7a |
+| AI Coach 컨텍스트 패널 | Coach 화면 | 7d |
 | 동기화 실행 | Data/sync | 7d |
 | 소스 연결 관리 | Data/sources | 7d |
 | 설정 | Data/settings | 7d |
@@ -308,11 +334,10 @@ v2가 v1을 대체하기 전 확인해야 할 v1 기능 목록.
 ```
 main                  (안정)
  └── renew/data-architecture   (현재 브랜치 — Phase 7 기반)
-       ├── feat/phase-7a-api-foundation
-       ├── feat/phase-7a-today-ui
-       ├── feat/phase-7b-story-library
-       ├── feat/phase-7c-plan
-       └── feat/phase-7d-coach-switch
+       ├── feat/phase-7a-foundation-coach-mvp
+       ├── feat/phase-7b-explore-plan-static
+       ├── feat/phase-7c-plan-ml-pwa
+       └── feat/phase-7d-expansion-switch
 ```
 
 각 Phase는 feature 브랜치에서 개발 → `renew/data-architecture`로 PR.  
