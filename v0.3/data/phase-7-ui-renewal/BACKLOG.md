@@ -55,7 +55,7 @@
 
 ## LATER
 
-- **[P7-IMPL-D1]** parent_metric_id 활성화 — fitness/utrs/cirs Calculator 수정 (Phase 7a)
+- **[P7-IMPL-D1]** parent_metric_id 활성화 — fitness/utrs/cirs/race_readiness Calculator 수정 4개 (Phase 7a)
 - **[P7-IMPL-SVELTE]** SvelteKit 프로젝트 초기화 + 공통 컴포넌트 7개 구현 (Phase 7a)
 
 ---

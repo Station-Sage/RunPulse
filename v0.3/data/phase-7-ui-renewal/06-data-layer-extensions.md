@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 데이터 레이어 확장 (D1~D5)
 
-**문서 상태**: Draft v0.1  
+**문서 상태**: Draft v0.2  
 **작성일**: 2026-06-10  
 **전제 문서**: `00-diagnostic-and-direction.md`, `05-tech-architecture.md`  
 **후속 문서**: `07-migration-roadmap.md`
@@ -348,10 +348,22 @@ CREATE TABLE IF NOT EXISTS activity_groups (
 
 ```sql
 -- 기존 matched_group_id로부터 activity_groups 행 생성
+-- provider 우선순위: garmin(1) > intervals(2) > strava(3) > runalyze(4) — architecture.md is_primary 규칙과 동일
+-- MIN(source) 알파벳 정렬은 garmin < intervals < runalyze < strava이므로 runalyze/strava 구간에서 우선순위와 역전됨.
 INSERT OR IGNORE INTO activity_groups (group_id, primary_source, activity_date, distance_m, member_count)
 SELECT
     matched_group_id AS group_id,
-    MIN(source) AS primary_source,           -- 가장 먼저 들어온 소스를 primary로
+    CASE MIN(CASE source
+             WHEN 'garmin'     THEN 1
+             WHEN 'intervals'  THEN 2
+             WHEN 'strava'     THEN 3
+             WHEN 'runalyze'   THEN 4
+             ELSE 5 END)
+        WHEN 1 THEN 'garmin'
+        WHEN 2 THEN 'intervals'
+        WHEN 3 THEN 'strava'
+        WHEN 4 THEN 'runalyze'
+        ELSE MIN(source) END  AS primary_source,  -- metric_priority.py 우선순위 기준
     DATE(MIN(start_time)) AS activity_date,
     AVG(distance_m) AS distance_m,
     COUNT(*) AS member_count
@@ -379,7 +391,7 @@ def get_provider_comparison(conn, activity_id: int) -> list[ComparisonRow]:
 ### 마이그레이션 전략
 
 1. `_DDL_ACTIVITY_GROUPS` DDL 추가, `migrate()` 등록
-2. `assign_group_id()` 호출 시 `activity_groups` 동시 upsert
+2. `assign_group_id()` 호출 시 `activity_groups` 동시 upsert — `primary_source`는 `metric_priority.py`의 provider 우선순위(garmin > intervals > strava > runalyze)로 결정. `ProviderComparison.primaryReason` 컴포넌트가 표시하는 "왜 이 provider가 대표값인가"와 동일 기준을 써야 한다 (G3 정합성).
 3. 기존 레코드 백필 스크립트 (`scripts/backfill_activity_groups.py`)
 
 ### 테스트 요건
@@ -480,7 +492,7 @@ def test_snapshot_values_from_metric_store():
 1. D5: src/services/ stub 생성
 2. D3: user_inputs, ai_feedback DDL 추가 + migrate() 등록
 3. D1: upsert_metric() parent_metric_id 파라미터 추가
-       + fitness/utrs/cirs Calculator 자식 메트릭 저장 수정
+       + fitness/utrs/cirs/race_readiness Calculator 자식 메트릭 저장 수정 (4개)
 4. src/api/ 블루프린트 생성, serve.py 등록
 5. frontend/ SvelteKit 초기화
 ```
@@ -524,4 +536,5 @@ def test_snapshot_values_from_metric_store():
 
 ## 작성 이력
 
+- v0.2 (2026-06-10): REVIEW 반영 — D1 마이그레이션 순서 Calculator 4개로 통일(race_readiness 추가), D2 백필 primary_source를 MIN(source) 알파벳 정렬에서 metric_priority.py 우선순위 기반 CASE 식으로 수정, assign_group_id() G3 정합성 주석 추가
 - v0.1 (2026-06-10): 초안 — D1~D5 ADR, DDL, 마이그레이션 전략, 테스트 요건, 실행 순서
