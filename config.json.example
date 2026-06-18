@@ -44,5 +44,10 @@
   "cf": {
     "service_client_id": "xxxxxxxx.access",
     "service_client_secret": "your_cf_service_token_secret_here"
+  },
+  "auto_sync": {
+    "enabled": true,
+    "interval_hours": 4,
+    "days": 2
   }
 }

@@ -196,6 +196,13 @@ def create_app() -> Flask:
 
     _auto_migrate()
 
+    # 자동 주기 동기화 daemon thread 시작
+    try:
+        from .auto_sync import start as _start_auto_sync
+        _start_auto_sync(load_config())
+    except Exception as _e:
+        log.warning("[auto_sync] 시작 실패: %s", _e)
+
     @app.before_request
     def _ensure_user_db_migrated():
         """요청마다 현재 사용자 DB를 최신 스키마로 마이그레이션 (이미 최신이면 즉시 반환)."""

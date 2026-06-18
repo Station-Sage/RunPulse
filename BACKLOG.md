@@ -16,6 +16,7 @@
 ## NEXT
 
 ## DONE (recent)
+- **[AUTO-SYNC]** 자동 주기 동기화 구현: `src/web/auto_sync.py` daemon thread, `src/utils/sync_state.py` 타임스탬프 함수, `config.json.example` auto_sync 섹션, 동기화 탭 설정 UI (활성화/주기/범위) + POST `/sync/auto-sync-settings`. 1091 passed.
 - **[TEST-REALDB-INTEGRATION]** `tests/test_integration_realdb.py` 신규 (97개 테스트, 20 클래스): pansongit@gmail.com 실 DB session-scoped read-only 연결, Part1(원시 무결성)·Part2(분석 파이프라인)·Part3(서비스 레이어)·Part4(보조 검증) 풀 커버리지. 컬럼명 수정(`sport`→`activity_type`, `elapsed_duration_sec`→`elapsed_time_sec`, `elevation_gain_m`→`elevation_gain`, `lat/lon`→`latitude/longitude`, `altitude`→`altitude_m`, `group_id`→`matched_group_id`). 1188 passed.
 - **[TEST-DATA-QUALITY]** `tests/test_data_quality.py` 신규 (45개 테스트): 4주 러너 픽스처 기반으로 trends/compare/weekly_score/race_readiness/activity_deep/suggestions/dashboard/wellness 분석 파이프라인의 물리적 범위·의미론적 정확성 검증. `conn.lastrowid` → `cursor.lastrowid` 수정. 1091 passed.
 - **[BUG-TRENDS-DAILY-FITNESS]** `fitness_trend()` CTL/ATL/TSB 항상 None 수정: `_fitness_last_from_daily_metrics(scope_type='daily')` + `_fitness_last_from_activity_metrics(scope_type='activity')` 분리, 죽은 코드 `_fitness_last_from_daily()`/`_fitness_last_from_metrics()` 제거. 1046 passed.

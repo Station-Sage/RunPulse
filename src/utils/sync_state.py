@@ -199,3 +199,29 @@ def clear_retry_after(service: str, user_id: str | None = None) -> None:
         if service in state:
             state[service].pop("retry_after", None)
             _save(state, uid)
+
+
+# ── 자동 주기 동기화 타임스탬프 ──────────────────────────────────────────
+
+_AUTO_SYNC_KEY = "_auto_sync"
+
+
+def get_last_auto_sync(user_id: str | None = None) -> datetime | None:
+    """마지막 자동 동기화 실행 시각."""
+    val = _load(user_id).get(_AUTO_SYNC_KEY, {}).get("last_run")
+    if not val:
+        return None
+    try:
+        return datetime.fromisoformat(val)
+    except ValueError:
+        return None
+
+
+def mark_auto_sync_ran(user_id: str | None = None) -> None:
+    """자동 동기화 실행 완료 기록."""
+    with _LOCK:
+        uid = _resolve_user_id(user_id)
+        state = _load(uid)
+        state.setdefault(_AUTO_SYNC_KEY, {})
+        state[_AUTO_SYNC_KEY]["last_run"] = datetime.now().isoformat(timespec="seconds")
+        _save(state, uid)
