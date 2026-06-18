@@ -889,25 +889,14 @@ def fmt_pace(pace_sec_km) -> str:
 
 
 def last_sync_info(sources: list[str]) -> dict[str, str | None]:
-    """소스별 마지막 동기화 시점(start_time 기준) 반환.
+    """소스별 마지막 동기화 수행 시각 반환.
 
     Returns:
         {"garmin": "2026-03-20 14:30", "strava": None, ...}
     """
-    import sqlite3
-    dpath = db_path()
-    if not dpath.exists():
-        return {s: None for s in sources}
+    from src.utils.sync_state import get_last_sync_at
     result: dict[str, str | None] = {}
-    try:
-        with sqlite3.connect(str(dpath)) as conn:
-            for src in sources:
-                row = conn.execute(
-                    "SELECT MAX(start_time) FROM activity_summaries WHERE source = ?",
-                    (src,),
-                ).fetchone()
-                val = row[0] if row and row[0] else None
-                result[src] = str(val)[:16].replace("T", " ") if val else None
-    except Exception:
-        result = {s: None for s in sources}
+    for src in sources:
+        dt = get_last_sync_at(src)
+        result[src] = dt.strftime("%Y-%m-%d %H:%M") if dt else None
     return result
