@@ -215,10 +215,22 @@ def create_app() -> Flask:
                         migrate_db(_conn)
                 except Exception as _me:
                     log.warning("[startup] %s DB 마이그레이션 실패: %s", _uid, _me)
-        # default가 아닌 실제 유저 우선, 없으면 default
+        # 자격증명이 있는 non-default 유저 우선, 없으면 첫 번째 non-default, 최후에 default
+        def _has_creds(uid: str) -> bool:
+            try:
+                cfg = load_config(user_id=uid)
+                return bool(
+                    cfg.get("garmin", {}).get("email")
+                    or cfg.get("strava", {}).get("refresh_token")
+                    or cfg.get("intervals", {}).get("api_key")
+                )
+            except Exception:
+                return False
+
         _sync_uid = next(
-            (uid for uid in user_ids if uid != "default"),
-            user_ids[0] if user_ids else "default",
+            (uid for uid in user_ids if uid != "default" and _has_creds(uid)),
+            next((uid for uid in user_ids if uid != "default"),
+                 user_ids[0] if user_ids else "default"),
         )
         _start_auto_sync(load_config(user_id=_sync_uid), user_id=_sync_uid)
     except Exception as _e:

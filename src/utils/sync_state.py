@@ -76,9 +76,37 @@ def get_service_state(service: str, user_id: str | None = None) -> dict:
     return _load(user_id).get(service, {})
 
 
+_STALE_THRESHOLD = timedelta(hours=1)
+
+import logging as _log_mod
+_log = _log_mod.getLogger(__name__)
+
+
 def is_running(service: str, user_id: str | None = None) -> bool:
-    """현재 동기화 실행 중 여부."""
-    return bool(_load(user_id).get(service, {}).get("is_running", False))
+    """현재 동기화 실행 중 여부. started_at 1시간 초과 시 stale로 자동 초기화."""
+    state = _load(user_id).get(service, {})
+    if not state.get("is_running", False):
+        return False
+    started_str = state.get("started_at")
+    if started_str:
+        try:
+            elapsed = datetime.now() - datetime.fromisoformat(started_str)
+            if elapsed > _STALE_THRESHOLD:
+                with _LOCK:
+                    uid = _resolve_user_id(user_id)
+                    full = _load(uid)
+                    full.setdefault(service, {})
+                    full[service]["is_running"] = False
+                    full[service]["last_error"] = "프로세스 종료 (stale 감지)"
+                    _save(full, uid)
+                _log.warning(
+                    "[sync_state] %s is_running stale 감지 → 초기화 (started: %s)",
+                    service, started_str,
+                )
+                return False
+        except Exception:
+            pass
+    return True
 
 
 def get_last_sync_at(service: str, user_id: str | None = None) -> datetime | None:
