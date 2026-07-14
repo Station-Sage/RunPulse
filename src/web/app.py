@@ -196,10 +196,31 @@ def create_app() -> Flask:
 
     _auto_migrate()
 
-    # 자동 주기 동기화 daemon thread 시작
+    # 모든 유저 DB 마이그레이션 + 자동 주기 동기화 daemon thread 시작
     try:
         from .auto_sync import start as _start_auto_sync
-        _start_auto_sync(load_config())
+        from src.db_setup import migrate_db, get_db_path
+        users_dir = _project_root() / "data" / "users"
+        user_ids = (
+            sorted(d.name for d in users_dir.iterdir() if d.is_dir())
+            if users_dir.exists() else ["default"]
+        )
+        # 모든 유저 DB를 최신 스키마로 마이그레이션
+        for _uid in user_ids:
+            _db = get_db_path(_uid)
+            if _db.exists():
+                try:
+                    with sqlite3.connect(str(_db)) as _conn:
+                        _conn.execute("PRAGMA journal_mode=WAL")
+                        migrate_db(_conn)
+                except Exception as _me:
+                    log.warning("[startup] %s DB 마이그레이션 실패: %s", _uid, _me)
+        # default가 아닌 실제 유저 우선, 없으면 default
+        _sync_uid = next(
+            (uid for uid in user_ids if uid != "default"),
+            user_ids[0] if user_ids else "default",
+        )
+        _start_auto_sync(load_config(user_id=_sync_uid), user_id=_sync_uid)
     except Exception as _e:
         log.warning("[auto_sync] 시작 실패: %s", _e)
 
