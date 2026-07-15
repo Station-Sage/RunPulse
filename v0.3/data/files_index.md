@@ -217,7 +217,7 @@
 > 의존: src/sync/extractors/, src/utils/db_helpers.py, src/utils/rate_limiter.py
 > 주의: Garmin은 rate-limit 감지 후 동적 대기 필요
 
-### `_helpers.py` (140줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
+### `_helpers.py` (143줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
 
 - functions: save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
 
@@ -280,7 +280,7 @@
 
 - functions: sync_activities, sync_wellness, sync_intervals
 
-### `intervals_activity_sync.py` (168줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
+### `intervals_activity_sync.py` (173줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
 
 - functions: sync, sync_wellness
 
@@ -325,7 +325,7 @@
 
 - functions: sync_activities, sync_strava
 
-### `strava_activity_sync.py` (164줄) — Strava 활동 동기화 Orchestrator.
+### `strava_activity_sync.py` (183줄) — Strava 활동 동기화 Orchestrator.
 
 - functions: sync
 
@@ -482,7 +482,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1257줄) — RunPulse integration workbench web app.
+### `app.py` (1364줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -490,12 +490,16 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `bg_sync.py` (470줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `auto_sync.py` (119줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+
+- functions: start, stop, restart, status
+
+### `bg_sync.py` (488줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
-- functions: start_job, pause_job, stop_job, resume_job, get_status
+- functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
 
-### `helpers.py` (996줄) — 웹 뷰 공통 헬퍼 함수.
+### `helpers.py` (902줄) — 웹 뷰 공통 헬퍼 함수.
 
 - functions: project_root, get_current_user_id, db_path, render_sub_nav, bottom_nav, html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration, safe_str, connected_services, tooltip, race_shape_label, no_data_card, fmt_pace, last_sync_info
 
@@ -507,7 +511,7 @@
 
 - functions: render_route_svg
 
-### `sync_ui.py` (240줄) — 동기화 카드 UI 컴포넌트 — 기본(마지막 동기화 이후) / 기간 2탭.
+### `sync_ui.py` (234줄) — 동기화 카드 UI 컴포넌트 — 기본(마지막 동기화 이후) / 기간 2탭.
 
 - functions: sync_card_html
 
@@ -715,9 +719,9 @@
 
 - functions: shoes_list
 
-### `views_sync.py` (132줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
+### `views_sync.py` (229줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
 
-- functions: sync_page
+- functions: sync_page, auto_sync_settings_post
 
 ### `views_training.py` (349줄) — 훈련 계획 뷰 — Flask Blueprint.
 
@@ -898,6 +902,10 @@
 
 - functions: is_duplicate, find_duplicates, assign_group_id, auto_group_all, assign_group_to_activities, remove_from_group
 
+### `log_config.py` (39줄) — 로깅 중앙 설정 — 모든 진입점에서 setup_logging() 한 번 호출.
+
+- functions: setup_logging
+
 ### `metric_groups.py` (147줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
@@ -919,10 +927,10 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `sync_jobs.py` (239줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (257줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
-- functions: windows, cleanup_stale_running_jobs, create_job, get_job, get_active_job, update_job, list_recent_jobs
+- functions: windows, cleanup_stale_running_jobs, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
 
 ### `sync_policy.py` (176줄) — 동기화 정책 — 서비스별 rate limit / cooldown / 기간 제한 정책 정의 및 검사.
 
@@ -930,9 +938,9 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (201줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
+### `sync_state.py` (255줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
-- functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after
+- functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
 
 ### `zones.py` (90줄) — HR존 및 페이스존 계산 유틸리티.
 
@@ -1033,10 +1041,10 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_consumer_migration.py` (232줄) — Phase 5-J consumer migration 검증 테스트.
+### `test_consumer_migration.py` (270줄) — Phase 5-J consumer migration 검증 테스트.
 
 - class **TestActivityService**: test_distance_m_present_in_row, test_filter_min_distance_m
-- class **TestTrends**: test_weekly_distance_km
+- class **TestTrends**: test_weekly_distance_km, test_fitness_trend_daily_metrics, test_fitness_trend_activity_metrics, test_fitness_trend_returns_none_when_no_data
 - class **TestCompare**: test_compare_periods_distance_km
 - class **TestWeeklyScore**: test_total_distance_km
 - class **TestActivityDeep**: test_distance_km_alias_sql
@@ -1084,6 +1092,18 @@
 ### `test_dashboard_service.py` (200줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
+
+### `test_data_quality.py` (481줄) — 분석 파이프라인 데이터 품질 검증 테스트.
+
+- class **TestTrendsRanges**: test_weekly_distances_in_km, test_weekly_pace_range, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_exist, test_fitness_ctl_present
+- class **TestCompareRanges**: test_all_required_keys, test_delta_equals_p2_minus_p1, test_distances_in_km_range, test_avg_hr_range_when_present
+- class **TestWeeklyScoreRanges**: test_score_0_to_100, test_grade_valid, test_components_non_negative, test_data_distance_km
+- class **TestRaceReadinessRanges**: test_readiness_score_range, test_grade_valid, test_5k_prediction_range, test_10k_prediction_range, test_half_prediction_range, test_full_prediction_range, test_recommendation_nonempty, test_component_scores_range, test_predictions_come_from_fixture_data
+- class **TestActivityDeepRanges**: first_act_id, test_structure_keys, test_pace_format, test_distance_km_not_m, test_hr_range, test_fitness_context_ctl_present
+- class **TestSuggestionsRanges**: test_state_acwr_status_valid, test_weekly_run_count_plausible, test_total_distance_non_negative, test_chips_count_range, test_chips_have_required_keys, test_danger_acwr_triggers_injury_chip, test_safe_acwr_no_injury_as_first_chip
+- class **TestDashboardRanges**: test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_range_when_present, test_recent_activities_have_distance
+- class **TestWellnessRanges**: test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length, test_wellness_detail_has_core
+- functions: rich_conn
 
 ### `test_db_helpers.py` (216줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
@@ -1209,6 +1229,35 @@
 - class **TestArgparse**: test_defaults, test_custom_flags
 - class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
 - class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
+
+### `test_integration_realdb.py` (1160줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+
+- class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
+- class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
+- class **TestRawMetricStore**: test_ctl_atl_range, test_tsb_range, test_acwr_range, test_vo2max_range, test_training_load_range, test_hr_zone_sec_range, test_is_primary_uniqueness
+- class **TestRawActivityStreams**: test_heart_rate_range, test_cadence_range, test_speed_ms_range, test_altitude_range, test_lat_lon_bounds
+- class **TestRawCanonicalView**: test_no_source_id_dupes, test_canonical_lte_summaries, test_valid_sources, test_distance_range
+- class **TestTrendsRangesReal**: test_weekly_distances_in_km, test_weekly_pace_running, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_count
+- class **TestCompareRangesReal**: test_compare_periods_keys, test_compare_periods_delta_math, test_compare_this_week_vs_last, test_compare_today_vs_yesterday, test_compare_this_month_vs_last
+- class **TestWeeklyScoreRangesReal**: test_score_range, test_grade_valid, test_components_non_negative
+- class **TestRaceReadinessRangesReal**: test_readiness_score_range, test_grade_valid, test_predictions_range, test_component_scores_range, test_vdot_race_predictions
+- class **TestActivityDeepRangesReal**: recent_run_ids, test_structure_keys, test_pace_format_or_none, test_distance_km_unit, test_hr_in_range
+- class **TestEfficiencyRangesReal**: run_with_streams_id, test_calculate_efficiency_structure, test_decoupling_pct_range, test_efficiency_trend_structure, test_efficiency_trend_ef_values
+- class **TestRecoveryRangesReal**: test_recovery_status_always_dict, test_recovery_score_range, test_recovery_grade_valid, test_recovery_trend_structure
+- class **TestZonesRangesReal**: test_analyze_zones_structure, test_zone_pct_sums, test_weekly_zone_trend_length, test_weekly_zone_trend_pct_range
+- class **TestSuggestionsRangesReal**: test_acwr_status_valid, test_weekly_run_count_plausible, test_chips_count_range, test_chips_keys, test_no_exception
+- class **TestDashboardRangesReal**: dashboard, test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_when_present, test_pmc_chart_sorted, test_pmc_chart_values, test_daily_metric_chart
+- class **TestWellnessRangesReal**: test_detail_is_dict, test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length
+- class **TestActivityServiceRangesReal**: test_list_pagination, test_list_distance_km, test_detail_structure, test_filter_sport, test_streams_values
+- class **TestUnifiedViewRangesReal**: unified_page, test_pagination, test_distance_km_range, test_meta_keys, test_source_comparison
+- class **TestDedupIntegrity**: test_group_source_uniqueness, test_canonical_ratio_plausible, test_no_orphan_canonical
+- class **TestExportRangesReal**: test_distance_km_from_canonical, test_pace_conversion_plausible
+- class **TestAllActivitySummaryColumns**: test_column_range
+- class **TestAllWellnessColumns**: test_column_range, test_sleep_start_time_exists
+- class **TestAllMetricStoreRanges**: test_metric_range
+- class **TestAllLapsRanges**: has_laps, test_laps_table_has_data, test_lap_distance_m_range, test_lap_duration_sec_range, test_lap_avg_hr_range, test_lap_avg_pace_running
+- class **TestAllBestEffortsRanges**: has_efforts, test_efforts_table_has_data, test_effort_distance_m_range, test_effort_elapsed_time_range, test_effort_implied_pace_running
+- functions: real_conn
 
 ### `test_intervals_extractor.py` (88줄) — Intervals.icu Extractor 단위 테스트.
 
@@ -1526,12 +1575,12 @@
 
 - functions: get_docstring, get_docstring_first_line, get_public_api, main
 
-### `gen_metric_dictionary.py` (253줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
+### `gen_metric_dictionary.py` (251줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
 
 - functions: generate, get_structural_fingerprint
 
 ---
-총 306개 파일
+총 310개 파일
 
 ## docstring 누락
 
