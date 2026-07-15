@@ -25,8 +25,9 @@ log = logging.getLogger(__name__)
 _ALL_SOURCES = ["garmin", "strava", "intervals", "runalyze"]
 
 
-def _sync_source(source: str, config: dict, db_path, days: int) -> dict:
+def _sync_source(source: str, config: dict, db_path, days: int, user_id: str = "default") -> dict:
     """단일 소스 동기화. {"activities": int, "wellness": int, "errors": list} 반환."""
+    from src.utils.sync_state import mark_finished
     activities = 0
     wellness = 0
     errors = []
@@ -52,7 +53,12 @@ def _sync_source(source: str, config: dict, db_path, days: int) -> dict:
                 activities = sync_runalyze(config, conn, days)
             conn.commit()
     except Exception as e:
-        errors.append(str(e))
+        err_msg = str(e)
+        errors.append(err_msg)
+        try:
+            mark_finished(source, count=0, error=err_msg, user_id=user_id)
+        except Exception:
+            pass
     return {"activities": activities, "wellness": wellness, "errors": errors}
 
 
@@ -91,7 +97,7 @@ def main() -> None:
     if len(sources) == 1:
         source = sources[0]
         log.info("--- %s 동기화 시작 ---", source.upper())
-        res = _sync_source(source, config, db_path, args.days)
+        res = _sync_source(source, config, db_path, args.days, user_id=args.user)
         total_activities += res["activities"]
         total_wellness += res["wellness"]
         log.info("[%s] 활동 %d개, 웰니스 %d개 동기화 완료", source, res["activities"], res["wellness"])
@@ -102,7 +108,7 @@ def main() -> None:
         futures = {}
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:
             for source in sources:
-                future = executor.submit(_sync_source, source, config, db_path, args.days)
+                future = executor.submit(_sync_source, source, config, db_path, args.days, args.user)
                 futures[future] = source
 
         for future, source in futures.items():
