@@ -83,6 +83,7 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("end_lat", "meta", "activity_summary", "°", "종료 위도"),
     MetricDef("end_lon", "meta", "activity_summary", "°", "종료 경도"),
     MetricDef("description", "meta", "activity_summary", "", "활동 설명"),
+    MetricDef("workout_label", "meta", "activity_summary", "", "워크아웃 레이블"),
     MetricDef("event_type", "meta", "activity_summary", "", "이벤트 유형"),
     MetricDef("device_name", "meta", "activity_summary", "", "기기명"),
     MetricDef("gear_id", "meta", "activity_summary", "", "장비 FK"),

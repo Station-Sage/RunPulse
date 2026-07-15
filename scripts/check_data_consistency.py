@@ -65,7 +65,7 @@ def parse_ddl_tables() -> dict[str, list[str]]:
                 continue
             if re.match(r'^(UNIQUE|FOREIGN|CHECK|CONSTRAINT|PRIMARY KEY)\b', line, re.IGNORECASE):
                 continue
-            col_match = re.match(r'^(\w+)\s+(INTEGER|TEXT|REAL|BLOB)', line, re.IGNORECASE)
+            col_match = re.match(r'^(\w+)\s+(INTEGER|TEXT|REAL|BLOB|BOOLEAN)', line, re.IGNORECASE)
             if col_match:
                 cols.append(col_match.group(1))
         tables[tname] = cols

@@ -32,7 +32,8 @@ def _connected_sources(config: dict) -> list[str]:
 
 def _trigger(config: dict, user_id: str, days: int) -> None:
     from src.web.bg_sync import start_basic_sync
-    from src.utils.sync_state import mark_auto_sync_ran
+    from src.utils.sync_state import mark_auto_sync_ran, set_current_user
+    set_current_user(user_id)
 
     sources = _connected_sources(config)
     if not sources:
