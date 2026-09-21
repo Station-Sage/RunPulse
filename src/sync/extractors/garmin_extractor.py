@@ -348,7 +348,7 @@ class GarminExtractor(BaseExtractor):
                 "altitude_m":  _get("directElevation"),
                 "distance_m":  _get("directDistance"),
                 "speed_ms":    _get("directSpeed"),
-                "heart_rate":  _int(_get("directHeartRate")),
+                "heart_rate":  _positive_int(_get("directHeartRate")),
                 "cadence":     _int(_get("directDoubleCadence")),
                 "power_watts": _get("directPower"),
                 "temperature_c": temp,
@@ -583,6 +583,12 @@ def _epoch_ms_to_iso(value) -> str | None:
     return datetime.fromtimestamp(float(value) / 1000, tz=timezone.utc).strftime(
         "%Y-%m-%dT%H:%M:%S"
     )
+
+
+def _positive_int(value) -> int | None:
+    """0은 센서 미측정(심박 끊김)을 뜻하므로 NULL로 취급한다."""
+    parsed = _int(value)
+    return parsed if parsed else None
 
 
 def _body_battery_levels(payload) -> list[int]:

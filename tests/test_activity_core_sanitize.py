@@ -50,6 +50,25 @@ class TestSanitizeActivityCore:
         assert (row["avg_hr"], row["max_hr"], row["max_speed_ms"]) == (None, None, None)
 
 
+class TestStreamHeartRate:
+    def test_zero_heart_rate_becomes_null(self):
+        """심박 0은 센서 미측정이므로 스트림에서도 NULL 처리한다."""
+        from src.sync.extractors.garmin_extractor import GarminExtractor
+
+        rows = GarminExtractor().extract_activity_streams({
+            "metricDescriptors": [
+                {"key": "directElapsedDuration", "metricsIndex": 0},
+                {"key": "directHeartRate", "metricsIndex": 1},
+            ],
+            "activityDetailMetrics": [
+                {"metrics": [0.0, 0.0]},
+                {"metrics": [1.0, 120.0]},
+            ],
+        })
+        assert "heart_rate" not in rows[0]
+        assert rows[1]["heart_rate"] == 120
+
+
 class TestACWRCap:
     def _compute(self, atl, ctl):
         conn = _conn()

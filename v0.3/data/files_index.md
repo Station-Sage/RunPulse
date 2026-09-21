@@ -355,7 +355,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (667줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (673줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -463,7 +463,19 @@
 - class **RunnerState**: 없음
 - functions: get_runner_state, rule_based_chips
 
-### `tools.py` (551줄) — AI Function Calling 도구 — DB 조회 함수 정의 + 실행기.
+### `tool_declarations.py` (188줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+
+- (public API 없음)
+
+### `tool_exec_activity.py` (280줄) — 활동 단위 도구 실행기 — 요약, 기간 목록, 상세, 랩, 세트 비교.
+
+- (public API 없음)
+
+### `tool_exec_context.py` (208줄) — 일별/기간 단위 도구 실행기 — 메트릭, 웰니스, 피트니스, 날씨, 기간 비교, 프로필.
+
+- (public API 없음)
+
+### `tools.py` (46줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -979,9 +991,10 @@
 - class **TestVDOT**: test_compute, test_too_short, test_non_running
 - class **TestEF**: test_compute, test_no_hr
 
-### `test_activity_core_sanitize.py` (70줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
+### `test_activity_core_sanitize.py` (89줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
 
 - class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
+- class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
 - class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_extreme_ratio_is_capped, test_zero_ctl_returns_empty
 
 ### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
@@ -1009,6 +1022,13 @@
 ### `test_ai_schema.py` (92줄) — ai_schema 모듈 테스트.
 
 - functions: test_validate_valid_plan, test_validate_not_dict, test_validate_no_workouts, test_validate_invalid_type, test_validate_invalid_date, test_validate_distance_out_of_range, test_validate_too_many_workouts, test_validate_rest_no_distance_ok, test_normalize_uses_type_key, test_normalize_uses_workout_type_key, test_normalize_source_is_ai, test_normalize_none_distance
+
+### `test_ai_tools_laps.py` (193줄) — 랩(세트) 조회 도구 — get_activity_laps, compare_workout_sets.
+
+- class **TestToolDeclarations**: test_new_tools_declared, test_declarations_have_schema
+- class **TestGetActivityLaps**: test_returns_compact_rows, test_pace_formatted, test_lap_types_counted, test_filter_active_only, test_all_null_column_dropped, test_no_laps_returns_message
+- class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
+- class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
 
 ### `test_api.py` (81줄) — api.py httpx 래퍼 테스트.
 
@@ -1584,7 +1604,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 310개 파일
+총 314개 파일
 
 ## docstring 누락
 
