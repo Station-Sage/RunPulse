@@ -5,6 +5,10 @@ import sqlite3
 from datetime import date
 from typing import Any
 
+from src.ai.tool_format import (
+    DEFAULT_WEEK_START, WEEKLY_ACTIVITY_FIELDS, columnar, num,
+    resolve_granularity, span_days, weekly_activity_rows,
+)
 from src.utils.pace import seconds_to_pace
 
 
@@ -41,11 +45,11 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
         detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
         # 분류
         cls = conn.execute(
-            "SELECT numeric_value FROM metric_store "
+            "SELECT text_value FROM metric_store "
             "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
             (aid,),
         ).fetchone()
-        if cls:
+        if cls and cls[0]:
             detail["workout_type"] = cls[0]
         result.append(detail)
     return {"date": d, "activities": result}
@@ -53,24 +57,30 @@ def _exec_get_activity(conn: sqlite3.Connection, args: dict) -> dict:
 
 def _exec_get_activities_range(conn: sqlite3.Connection, args: dict) -> dict:
     s, e = args["start_date"], args["end_date"]
+    first = args.get("week_start", DEFAULT_WEEK_START)
+    gran, note = resolve_granularity(args.get("granularity"), span_days(s, e))
     rows = conn.execute(
         "SELECT date(start_time), distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, "
         "avg_hr, name, id FROM v_canonical_activities "
         "WHERE activity_type='running' AND start_time>=? AND start_time<=? || 'T99' "
         "ORDER BY start_time", (s, e),
     ).fetchall()
-    return {
-        "period": f"{s} ~ {e}",
-        "count": len(rows),
-        "activities": [
-            {"activity_id": r[6], "date": r[0],
-             "km": round(float(r[1]), 2) if r[1] else None,
-             "sec": round(float(r[2])) if r[2] else None,
-             "pace": seconds_to_pace(int(r[3])) if r[3] else None,
-             "hr": round(float(r[4])) if r[4] else None, "name": r[5]}
-            for r in rows
-        ],
-    }
+    out: dict[str, Any] = {"period": f"{s} ~ {e}", "count": len(rows), "granularity": gran}
+    if note:
+        out["note"] = note
+    if gran == "week":
+        out["unit"] = f"week({'Mon' if first == 'mon' else 'Sun'}-start)"
+        out.update(columnar(WEEKLY_ACTIVITY_FIELDS, weekly_activity_rows(
+            [(r[0], r[1], r[2], r[4]) for r in rows], first, (s, e))))
+        return out
+    out.update(columnar(
+        ["id", "date", "km", "min", "pace", "hr", "name"],
+        [[r[6], r[0], num(r[1], 2) if r[1] else None,
+          num(r[2] / 60, 1) if r[2] else None,
+          seconds_to_pace(int(r[3])) if r[3] else None,
+          num(r[4]), r[5]] for r in rows],
+    ))
+    return out
 
 
 def _exec_get_activity_detail(conn: sqlite3.Connection, args: dict) -> dict:
@@ -173,108 +183,3 @@ def _exec_get_activity_detail(conn: sqlite3.Connection, args: dict) -> dict:
         "hr_zones": hr_zones,
         "avg_power": avg_power,
     }
-
-
-_LAP_FIELDS = [
-    ("lap", "lap_index"), ("km", "distance_m"), ("sec", "duration_sec"),
-    ("pace", "avg_pace_sec_km"), ("hr", "avg_hr"), ("cad", "avg_cadence"),
-    ("pwr", "avg_power"), ("type", "lap_trigger"),
-]
-
-
-def _lap_value(key: str, raw) -> Any:
-    if raw is None:
-        return None
-    if key == "km":
-        return round(float(raw) / 1000.0, 2)
-    if key == "pace":
-        return seconds_to_pace(int(raw))
-    if key in ("sec", "hr", "cad", "pwr"):
-        return round(float(raw))
-    return raw
-
-
-def _exec_get_activity_laps(conn: sqlite3.Connection, args: dict) -> dict:
-    aid = args["activity_id"]
-    lap_type = args.get("lap_type")
-
-    sql = ("SELECT lap_index, distance_m, duration_sec, avg_pace_sec_km, avg_hr, "
-           "avg_cadence, avg_power, lap_trigger FROM activity_laps WHERE activity_id=?")
-    params: list = [aid]
-    if lap_type:
-        sql += " AND lap_trigger=?"
-        params.append(str(lap_type).upper())
-    rows = conn.execute(sql + " ORDER BY lap_index", params).fetchall()
-
-    head = conn.execute(
-        "SELECT name, date(start_time) FROM activity_summaries WHERE id=?", (aid,)
-    ).fetchone()
-    base: dict[str, Any] = {"activity_id": aid}
-    if head:
-        base["name"], base["date"] = head[0], head[1]
-
-    if not rows:
-        base["laps"] = []
-        base["message"] = "랩 데이터가 없습니다 (동기화되지 않은 활동일 수 있음)"
-        return base
-
-    values = [[_lap_value(k, r[i]) for i, (k, _) in enumerate(_LAP_FIELDS)] for r in rows]
-    keep = [i for i in range(len(_LAP_FIELDS))
-            if any(v[i] is not None for v in values)]
-    base["fields"] = [_LAP_FIELDS[i][0] for i in keep]
-    base["laps"] = [[v[i] for i in keep] for v in values]
-
-    types: dict[str, int] = {}
-    for r in rows:
-        types[r[7] or "UNKNOWN"] = types.get(r[7] or "UNKNOWN", 0) + 1
-    base["lap_count"] = len(rows)
-    base["lap_types"] = types
-    return base
-
-
-def _exec_compare_workout_sets(conn: sqlite3.Connection, args: dict) -> dict:
-    limit = int(args.get("limit", 5))
-    sql = ("SELECT a.id, a.name, date(a.start_time) FROM v_canonical_activities a "
-           "WHERE EXISTS (SELECT 1 FROM activity_laps l "
-           "              WHERE l.activity_id = a.id AND l.lap_trigger = 'ACTIVE')")
-    params: list = []
-    if args.get("name_contains"):
-        sql += " AND a.name LIKE ?"
-        params.append(f"%{args['name_contains']}%")
-    if args.get("start_date"):
-        sql += " AND a.start_time >= ?"
-        params.append(args["start_date"])
-    if args.get("end_date"):
-        sql += " AND a.start_time <= ? || 'T99'"
-        params.append(args["end_date"])
-    sql += " ORDER BY a.start_time DESC LIMIT ?"
-    params.append(limit)
-
-    sessions = []
-    for aid, name, day in conn.execute(sql, params).fetchall():
-        laps = conn.execute(
-            "SELECT distance_m, avg_pace_sec_km, avg_hr FROM activity_laps "
-            "WHERE activity_id=? AND lap_trigger='ACTIVE' ORDER BY lap_index", (aid,)
-        ).fetchall()
-        paces = [r[1] for r in laps if r[1]]
-        hrs = [r[2] for r in laps if r[2]]
-        entry: dict[str, Any] = {
-            "activity_id": aid, "date": day, "name": name, "sets": len(laps),
-            "work_km": round(sum(r[0] or 0 for r in laps) / 1000.0, 2),
-        }
-        if paces:
-            entry["set_paces"] = [seconds_to_pace(int(p)) for p in paces]
-            entry["avg_pace"] = seconds_to_pace(int(sum(paces) / len(paces)))
-            entry["best_pace"] = seconds_to_pace(int(min(paces)))
-            entry["worst_pace"] = seconds_to_pace(int(max(paces)))
-            # 양수 = 마지막 세트가 첫 세트보다 느려짐(페이스 드리프트)
-            entry["drift_sec"] = round(paces[-1] - paces[0])
-        if hrs:
-            entry["avg_hr"] = round(sum(hrs) / len(hrs))
-            entry["max_set_hr"] = round(max(hrs))
-        sessions.append(entry)
-
-    if not sessions:
-        return {"sessions": [],
-                "message": "ACTIVE 랩이 있는 구조화 워크아웃을 찾지 못했습니다"}
-    return {"count": len(sessions), "sessions": sessions}

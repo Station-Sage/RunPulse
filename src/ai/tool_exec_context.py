@@ -4,6 +4,10 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
+from src.ai.tool_format import (
+    DEFAULT_WEEK_START, columnar, num, resolve_granularity, span_days,
+    weekly_last, weekly_mean,
+)
 from src.utils.pace import seconds_to_pace
 
 
@@ -29,62 +33,87 @@ def _exec_get_metrics(conn: sqlite3.Connection, args: dict) -> dict:
 
 def _exec_get_metrics_trend(conn: sqlite3.Connection, args: dict) -> dict:
     name = args["metric_name"]
-    days = args.get("days", 30)
+    days = int(args.get("days", 30))
+    first = args.get("week_start", DEFAULT_WEEK_START)
+    gran, note = resolve_granularity(args.get("granularity"), days)
     start = (date.today() - timedelta(days=days)).isoformat()
     rows = conn.execute(
         "SELECT scope_id, numeric_value FROM metric_store"
         " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
-        "   AND scope_id>=? ORDER BY scope_id",
+        "   AND scope_id>=? AND numeric_value IS NOT NULL ORDER BY scope_id",
         (name, start),
     ).fetchall()
-    return {
-        "metric": name, "days": days,
-        "data": [{"date": r[0], "value": round(float(r[1]), 2)} for r in rows if r[1]],
-    }
+    out: dict = {"metric": name, "days": days, "granularity": gran}
+    if note:
+        out["note"] = note
+    if gran == "week":
+        out["unit"] = f"week({'Mon' if first == 'mon' else 'Sun'}-start)"
+        out.update(columnar(["week", "n", "value"],
+                            weekly_mean([[r[0], r[1]] for r in rows], [2], first)))
+    else:
+        out.update(columnar(["date", "value"], [[r[0], num(r[1], 2)] for r in rows]))
+    return out
+
 
 
 def _exec_get_wellness(conn: sqlite3.Connection, args: dict) -> dict:
     s, e = args["start_date"], args["end_date"]
+    first = args.get("week_start", DEFAULT_WEEK_START)
+    gran, note = resolve_granularity(args.get("granularity"), span_days(s, e))
     rows = conn.execute(
         "SELECT date, body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, "
         "avg_stress, resting_hr FROM daily_wellness "
         "WHERE date BETWEEN ? AND ? ORDER BY date", (s, e),
     ).fetchall()
-    return {
-        "period": f"{s} ~ {e}",
-        "data": [
-            {"date": r[0], "body_battery": r[1], "sleep_score": r[2],
-             "sleep_hours": r[3] / 3600.0 if r[3] else None, "hrv": r[4], "stress": r[5], "resting_hr": r[6]}
-            for r in rows
-        ],
-    }
+    fields = ["bb", "sleep_score", "sleep_h", "hrv", "stress", "rhr"]
+    daily = [[r[0], r[1], r[2], r[3] / 3600.0 if r[3] else None, r[4], r[5], r[6]] for r in rows]
+    out: dict = {"period": f"{s} ~ {e}", "granularity": gran}
+    if note:
+        out["note"] = note
+    if gran == "week":
+        out["unit"] = f"week({'Mon' if first == 'mon' else 'Sun'}-start) 평균"
+        out.update(columnar(["week", "n", *fields], weekly_mean(daily, [0, 0, 1, 0, 0, 0], first)))
+    else:
+        digits = [0, 0, 1, 0, 0, 0]
+        out.update(columnar(["date", *fields], [
+            [r[0], *[num(v, nd) for v, nd in zip(r[1:], digits)]] for r in daily]))
+    return out
+
+
+
+def fitness_rows(conn: sqlite3.Connection, start: str, end: str | None = None) -> list[list]:
+    """[date, ctl, atl, tsb, vo2max] 일별 (primary 값, 날짜 오름차순)."""
+    sql = ("SELECT scope_id, metric_name, numeric_value FROM metric_store"
+           " WHERE scope_type='daily' AND is_primary=1"
+           "   AND metric_name IN ('ctl','atl','tsb','vo2max')"
+           "   AND scope_id>=? AND numeric_value IS NOT NULL")
+    params: list = [start]
+    if end:
+        sql += " AND scope_id<=?"
+        params.append(end)
+    by_date: dict = {}
+    for d, mname, val in conn.execute(sql + " ORDER BY scope_id", params).fetchall():
+        by_date.setdefault(d, {})[mname] = val
+    return [[d, *[num(v[m], 1) if m in v else None for m in ("ctl", "atl", "tsb", "vo2max")]]
+            for d, v in sorted(by_date.items())]
 
 
 def _exec_get_fitness(conn: sqlite3.Connection, args: dict) -> dict:
-    days = args.get("days", 30)
-    start = (date.today() - timedelta(days=days)).isoformat()
-    rows = conn.execute(
-        "SELECT scope_id, metric_name, numeric_value FROM metric_store"
-        " WHERE scope_type='daily' AND is_primary=1"
-        "   AND metric_name IN ('ctl','atl','tsb','vo2max')"
-        "   AND scope_id>=? AND numeric_value IS NOT NULL ORDER BY scope_id",
-        (start,),
-    ).fetchall()
-    # 날짜별로 집계
-    by_date: dict = {}
-    for d, mname, val in rows:
-        by_date.setdefault(d, {})[mname] = val
-    return {
-        "days": days,
-        "data": [
-            {"date": d,
-             "ctl": round(float(v["ctl"]), 2) if "ctl" in v else None,
-             "atl": round(float(v["atl"]), 1) if "atl" in v else None,
-             "tsb": round(float(v["tsb"]), 1) if "tsb" in v else None,
-             "vo2max": round(float(v["vo2max"]), 1) if "vo2max" in v else None}
-            for d, v in sorted(by_date.items())
-        ],
-    }
+    days = int(args.get("days", 30))
+    first = args.get("week_start", DEFAULT_WEEK_START)
+    gran, note = resolve_granularity(args.get("granularity"), days)
+    rows = fitness_rows(conn, (date.today() - timedelta(days=days)).isoformat())
+    out: dict = {"days": days, "granularity": gran}
+    if note:
+        out["note"] = note
+    if gran == "week":
+        out["unit"] = f"week({'Mon' if first == 'mon' else 'Sun'}-start) 주말 값"
+        rows = weekly_last(rows, first)
+        out.update(columnar(["week", "ctl", "atl", "tsb", "vo2max"], rows))
+    else:
+        out.update(columnar(["date", "ctl", "atl", "tsb", "vo2max"], rows))
+    return out
+
 
 
 def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
@@ -94,7 +123,7 @@ def _exec_get_race_history(conn: sqlite3.Connection, args: dict) -> dict:
         "a.avg_hr, a.name FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
         "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
-        "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
+        "WHERE a.activity_type='running' AND (c.text_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT ?", (limit,),
     ).fetchall()
@@ -120,17 +149,15 @@ def _exec_get_weather(conn: sqlite3.Connection, args: dict) -> dict:
     ).fetchall()
 
     if not rows:
-        return {"date": date_str, "data": [], "message": "날씨 데이터 없음"}
+        return {"date": date_str, "rows": [], "message": "날씨 데이터 없음"}
 
     return {
         "date": date_str,
         "to_date": to_date,
-        "data": [
-            {"date": r[0], "hour": r[1], "temp_c": r[2],
-             "humidity_pct": r[3], "wind_speed_ms": r[4],
-             "cloud_cover_pct": r[5], "condition": r[6]}
-            for r in rows
-        ],
+        **columnar(
+            ["date", "hour", "temp_c", "humidity", "wind_ms", "cloud", "condition"],
+            [[r[0], r[1], num(r[2], 1), num(r[3]), num(r[4], 1), num(r[5]), r[6]] for r in rows],
+        ),
     }
 
 

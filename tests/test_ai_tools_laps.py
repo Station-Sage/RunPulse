@@ -62,16 +62,16 @@ class TestGetActivityLaps:
         out = _call(conn, "get_activity_laps", {"activity_id": 1})
         assert out["lap_count"] == 5
         assert out["name"] == "2. 템포런"
-        assert len(out["laps"]) == 5
+        assert len(out["rows"]) == 5
         # 키 반복 없는 배열 형태 — 행 길이가 fields 길이와 같아야 한다
-        assert all(len(row) == len(out["fields"]) for row in out["laps"])
+        assert all(len(row) == len(out["fields"]) for row in out["rows"])
 
     def test_pace_formatted(self):
         conn = _conn()
         _seed_tempo(conn)
         out = _call(conn, "get_activity_laps", {"activity_id": 1})
         pace_i = out["fields"].index("pace")
-        assert out["laps"][1][pace_i] == "4:37"
+        assert out["rows"][1][pace_i] == "4:37"
 
     def test_lap_types_counted(self):
         conn = _conn()
@@ -102,7 +102,7 @@ class TestGetActivityLaps:
         _add_activity(conn, 3, "랩없음", "2026-02-20 06:00:00")
         conn.commit()
         out = _call(conn, "get_activity_laps", {"activity_id": 3})
-        assert out["laps"] == []
+        assert out["rows"] == []
         assert "message" in out
 
 
@@ -190,4 +190,4 @@ class TestActivityIdExposed:
         _seed_tempo(conn)
         out = _call(conn, "get_activities_range",
                     {"start_date": "2026-02-01", "end_date": "2026-02-28"})
-        assert out["activities"][0]["activity_id"] == 1
+        assert out["rows"][0][out["fields"].index("id")] == 1

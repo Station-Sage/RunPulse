@@ -463,19 +463,35 @@
 - class **RunnerState**: 없음
 - functions: get_runner_state, rule_based_chips
 
-### `tool_declarations.py` (188줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+### `tool_declarations.py` (210줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
 - (public API 없음)
 
-### `tool_exec_activity.py` (280줄) — 활동 단위 도구 실행기 — 요약, 기간 목록, 상세, 랩, 세트 비교.
+### `tool_exec_activity.py` (185줄) — 활동 단위 도구 실행기 — 요약, 기간 목록, 상세, 랩, 세트 비교.
 
 - (public API 없음)
 
-### `tool_exec_context.py` (208줄) — 일별/기간 단위 도구 실행기 — 메트릭, 웰니스, 피트니스, 날씨, 기간 비교, 프로필.
+### `tool_exec_context.py` (235줄) — 일별/기간 단위 도구 실행기 — 메트릭, 웰니스, 피트니스, 날씨, 기간 비교, 프로필.
+
+- functions: fitness_rows
+
+### `tool_exec_laps.py` (112줄) — 랩(세트) 단위 도구 실행기 — 랩별 기록, 세션 간 세트 비교.
 
 - (public API 없음)
 
-### `tools.py` (46줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
+### `tool_exec_summary.py` (80줄) — 기간 요약 도구 실행기 — get_training_summary (주별 볼륨·부하 + 주요 세션).
+
+- (public API 없음)
+
+### `tool_format.py` (125줄) — 도구 응답 압축 헬퍼 — 호출당 토큰 사용량 절감.
+
+- functions: num, columnar, span_days, resolve_granularity, week_start_of, group_by_week, weekly_activity_rows, weekly_mean, weekly_last
+
+### `tool_guide.py` (23줄) — 도구 사용 가이드 — MCP initialize의 instructions로 전달되는 호출 레시피.
+
+- (public API 없음)
+
+### `tools.py` (50줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -1023,6 +1039,30 @@
 
 - functions: test_validate_valid_plan, test_validate_not_dict, test_validate_no_workouts, test_validate_invalid_type, test_validate_invalid_date, test_validate_distance_out_of_range, test_validate_too_many_workouts, test_validate_rest_no_distance_ok, test_normalize_uses_type_key, test_normalize_uses_workout_type_key, test_normalize_source_is_ai, test_normalize_none_distance
 
+### `test_ai_tool_format.py` (115줄) — 도구 응답 압축 헬퍼 — columnar, 반올림, 주별 롤업.
+
+- class **TestNum**: test_integer_valued_float_becomes_int, test_rounds_to_digits, test_none_passthrough, test_integer_after_rounding_drops_decimal
+- class **TestColumnar**: test_rows_follow_fields, test_all_null_column_is_dropped, test_empty_rows
+- class **TestGranularity**: test_auto_short_is_daily, test_auto_long_is_weekly, test_explicit_day_within_limit, test_explicit_day_beyond_limit_falls_back_with_note, test_explicit_week, test_unknown_value_is_auto, test_span_days_inclusive
+- class **TestWeekStart**: test_sunday_start, test_monday_start, test_accepts_timestamp
+- class **TestWeeklyActivity**: test_totals_pace_and_long_run, test_pace_is_time_over_distance_not_mean_of_paces, test_hr_is_time_weighted, test_gap_weeks_are_filled_within_span, test_no_span_keeps_only_active_weeks
+- class **TestWeeklyAggregates**: test_mean_skips_nulls_and_counts_days, test_last_takes_final_non_null_per_column
+
+### `test_ai_tool_guide.py` (38줄) — 호출 가이드 — 도구 목록과 어긋나지 않는지, 세션 고정 비용이 상한을 넘지 않는지.
+
+- functions: test_guide_within_length_budget, test_guide_mentions_every_tool, test_guide_and_skill_reference_only_real_tools, test_skill_mentions_every_tool, test_declaration_fixed_cost_budget
+
+### `test_ai_tools_compact.py` (276줄) — 토큰 최적화 도구 — 압축 응답(fields+rows), 주별 롤업, get_training_summary.
+
+- class **TestActivitiesRange**: test_short_range_is_daily_columnar_with_id, test_long_range_rolls_up_weekly, test_weekly_fills_gap_weeks, test_explicit_day_overrides_auto_within_limit, test_day_beyond_limit_falls_back_with_note, test_columnar_is_much_smaller_than_keyed_rows
+- class **TestWellness**: test_daily_values_are_rounded, test_long_range_weekly_mean_with_day_count
+- class **TestFitness**: test_daily_and_weekly, test_weekly_takes_end_of_week_value
+- class **TestMetricsTrend**: test_daily_columnar, test_long_period_weekly
+- class **TestTrainingSummary**: test_totals_and_weekly_rows_include_gap_week, test_weekly_load_is_end_of_week_value, test_notable_has_race_and_structured_session_with_sets, test_notable_is_capped_with_omitted_count_and_races_first, test_empty_period_returns_zero_totals, test_monday_week_start
+- class **TestWorkoutTypeFromTextValue**: test_get_activity_reports_workout_type, test_race_history_matches_classified_race_without_keyword_in_name
+- class **TestWeather**: test_columnar_and_empty
+- class **TestDeclarations**: test_all_tools_execute_without_error_on_empty_db, test_list_tools_expose_granularity, test_response_json_has_no_padding_whitespace
+
 ### `test_ai_tools_laps.py` (193줄) — 랩(세트) 조회 도구 — get_activity_laps, compare_workout_sets.
 
 - class **TestToolDeclarations**: test_new_tools_declared, test_declarations_have_schema
@@ -1297,6 +1337,14 @@
 ### `test_marathon_shape.py` (83줄)
 
 - class **TestMarathonShape**: test_with_data, test_no_vdot, test_json_structure
+
+### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
+
+- class **TestResolveDbPath**: test_requires_user_id, test_blank_user_id_is_rejected, test_path_traversal_is_rejected, test_unknown_user_raises_and_creates_no_directory, test_env_var_is_used
+- class **TestReadOnly**: test_connection_rejects_writes
+- class **TestFraming**: test_write_is_single_line_with_no_padding, test_read_skips_blank_lines_and_returns_none_at_eof
+- class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
+- functions: db_path
 
 ### `test_metric_naming.py` (51줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
@@ -1604,7 +1652,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 314개 파일
+총 322개 파일
 
 ## docstring 누락
 

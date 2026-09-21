@@ -120,3 +120,14 @@
 - **결정(스트림)**: `sync_activities` 래퍼의 `include_streams` 기본값을 True로 두되 **증분 경로(bg_sync/auto-sync, `src/sync.py`)에만 적용**한다. 활동당 API 1회와 약 2,000행이 추가되므로(월 15건 기준 약 30,000행·2 MB) 증분에서는 수용 가능하지만, 1,400건 규모 초기 적재에서는 약 280만 행이 된다. `sync_cli`는 `garmin_activity_sync.sync`를 직접 호출하며 `--streams` 옵션으로 별도 제어하므로 대량 적재는 영향받지 않는다.
 - **결과**: 활동당 Garmin API 호출이 1회(detail)에서 3회(detail + splits + streams)로 늘어난다. rate limiter와 429 백오프가 기존대로 적용된다. 과거 활동의 랩·스트림 보충은 해당 기간 date-range 동기화가 필요하다.
 - **검증**: `tests/test_garmin_activity_sync.py::TestGarminLaps`
+
+## ADR-016: AI/MCP 도구 응답 — columnar 압축, 주별 롤업, 읽기 전용 stdio MCP (2026-09-21)
+- **날짜**: 2026-09-21
+- **맥락**: MCP는 호출마다 응답이 컨텍스트에 쌓인다. 실측 시 활동 목록 1년치가 21.9KB(≈7,300 tok), 웰니스 30일이 3.9KB였고 대부분이 행마다 반복되는 키와 `6.333333333333333` 같은 자릿수였다. 또한 "최근 블록 어땠어" 한 질문에 활동 목록·피트니스·분류를 3~4회 호출해야 했다.
+- **결정(형식)**: 목록형 응답은 `{"fields":[...],"rows":[[...]]}`로 통일(`src/ai/tool_format.py`). 전 행 NULL 컬럼은 헤더째 제거, 값은 필요한 자릿수로 반올림(`84.0`→`84`), JSON은 공백 없는 separators. 랩 도구도 같은 형식(`laps`→`rows`).
+- **결정(롤업)**: 기간이 62일을 넘으면 일별 대신 주별로 자동 집계(`granularity=auto`). `day`를 명시해도 180일 초과는 주별로 전환하고 `note`로 알린다 — 응답 크기에 상한을 두는 것이 목적. 주 시작은 **일요일** 기본(마라톤 플랜 주차가 일요일 시작), `week_start:"mon"`으로 변경 가능. 주별 페이스는 총시간/총거리, 심박은 시간 가중 평균(평균의 평균은 짧은 조깅에 왜곡됨). 활동이 없던 주도 `runs=0` 행으로 채운다(훈련 단절이 표에서 사라지지 않도록).
+- **결정(요약 도구)**: `get_training_summary`를 신설해 주별 볼륨 + 주말 CTL/ATL/TSB + 대회·퀄리티 세션(id 포함)을 1회로 제공. 분류기가 `easy`로 두는 크루즈·짧은 인터벌은 ACTIVE 랩이 있으면 `notable`에 포함하고 `sets` 컬럼으로 표시한다.
+- **결정(MCP)**: (1) 유저 DB는 `RUNPULSE_USER_ID` 필수 — 기존에는 활동 0건인 `default` DB를 하드코딩해 조용히 빈 결과를 돌려줬다. (2) DB는 `mode=ro`로 연다. (3) stdio 프레임을 MCP 사양대로 줄바꿈 구분 JSON으로 수정(기존은 LSP식 Content-Length 헤더). (4) 호출 레시피를 `tool_guide.USAGE_GUIDE`로 두고 initialize `instructions`로 전달, 상세는 `.claude/skills/runpulse-data/SKILL.md`. 원격(HTTP) 노출은 범위 밖 → BACKLOG `MCP-REMOTE`.
+- **부수 수정**: `workout_type_classified`는 `text_value`에 저장되는데 도구가 `numeric_value`를 읽어 `get_activity.workout_type`이 한 번도 나오지 않았고 `get_race_history`는 이름 키워드로만 매칭됐다.
+- **결과**: 활동 목록 1년 ≈7,300→780 tok, 웰니스 30일 ≈1,300→380, 피트니스 30일 ≈830→330. 도구 선언은 ≈1,470→1,580 tok(도구 1개 추가, 기간 도구 4개에 `granularity` 추가 후 설명 축약). 응답 형태가 바뀌었으므로 소비자는 `fields` 헤더를 읽어야 한다 — 앱 내 AI 채팅(`chat_engine_providers`)은 LLM이 직접 읽으므로 코드 변경 없음.
+- **검증**: `tests/test_ai_tool_format.py`, `test_ai_tools_compact.py`, `test_ai_tool_guide.py`(선언 5,000자·가이드 1,400자 상한, 스킬/가이드가 실제 도구명과 일치), `test_mcp_server.py`

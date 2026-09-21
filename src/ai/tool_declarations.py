@@ -4,7 +4,31 @@
 """
 from __future__ import annotations
 
+# 목록형 도구 공통 — 긴 기간은 주별 롤업으로 응답 크기를 제한한다
+_GRANULARITY = {
+    "type": "string",
+    "enum": ["auto", "day", "week"],
+    "description": "기본 auto(62일 초과 시 주별). day는 180일까지.",
+}
+
 TOOL_DECLARATIONS = [
+    {
+        "name": "get_training_summary",
+        "description": (
+            "기간 훈련 요약 1회 반환: 주별 거리·페이스·심박·주말 CTL/ATL/TSB, "
+            "대회·퀄리티 세션(id 포함). 훈련 기간 질문의 첫 호출."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "시작일 (YYYY-MM-DD)"},
+                "end_date": {"type": "string", "description": "종료일 (YYYY-MM-DD)"},
+                "week_start": {"type": "string", "enum": ["sun", "mon"],
+                               "description": "주 시작 요일 (기본 sun)"},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    },
     {
         "name": "get_activity",
         "description": "특정 날짜의 러닝 활동 상세 데이터를 조회한다. 거리, 페이스, 심박, 메트릭, 운동 분류 포함.",
@@ -24,6 +48,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "start_date": {"type": "string", "description": "시작일 (YYYY-MM-DD)"},
                 "end_date": {"type": "string", "description": "종료일 (YYYY-MM-DD)"},
+                "granularity": _GRANULARITY
             },
             "required": ["start_date", "end_date"],
         },
@@ -52,6 +77,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "metric_name": {"type": "string", "description": "메트릭 이름 (UTRS, CIRS, ACWR 등)"},
                 "days": {"type": "integer", "description": "최근 N일 (기본 30)"},
+                "granularity": _GRANULARITY
             },
             "required": ["metric_name"],
         },
@@ -64,6 +90,7 @@ TOOL_DECLARATIONS = [
             "properties": {
                 "start_date": {"type": "string", "description": "시작일 (YYYY-MM-DD)"},
                 "end_date": {"type": "string", "description": "종료일 (YYYY-MM-DD)"},
+                "granularity": _GRANULARITY
             },
             "required": ["start_date", "end_date"],
         },
@@ -75,6 +102,7 @@ TOOL_DECLARATIONS = [
             "type": "object",
             "properties": {
                 "days": {"type": "integer", "description": "최근 N일 (기본 30)"},
+                "granularity": _GRANULARITY
             },
             "required": [],
         },
@@ -96,10 +124,10 @@ TOOL_DECLARATIONS = [
         "parameters": {
             "type": "object",
             "properties": {
-                "period_a_start": {"type": "string", "description": "기간A 시작일"},
-                "period_a_end": {"type": "string", "description": "기간A 종료일"},
-                "period_b_start": {"type": "string", "description": "기간B 시작일"},
-                "period_b_end": {"type": "string", "description": "기간B 종료일"},
+                "period_a_start": {"type": "string"},
+                "period_a_end": {"type": "string"},
+                "period_b_start": {"type": "string"},
+                "period_b_end": {"type": "string"},
             },
             "required": ["period_a_start", "period_a_end", "period_b_start", "period_b_end"],
         },
@@ -134,10 +162,8 @@ TOOL_DECLARATIONS = [
     {
         "name": "get_activity_laps",
         "description": (
-            "특정 활동의 랩(세트)별 기록을 조회한다. 거리·페이스·심박·케이던스·파워와 "
-            "랩 종류(WARMUP/ACTIVE/RECOVERY/COOLDOWN/INTERVAL)를 반환한다. "
-            "인터벌·크루즈 세션의 세트별 수행을 볼 때 사용. activity_id는 "
-            "get_activity 또는 get_activities_range 결과에 포함된다."
+            "활동의 랩(세트)별 거리·페이스·심박·케이던스·파워·랩 종류를 조회한다. "
+            "인터벌·크루즈 세트별 수행 확인용. id는 요약/목록 결과에 있다."
         ),
         "parameters": {
             "type": "object",
@@ -145,10 +171,7 @@ TOOL_DECLARATIONS = [
                 "activity_id": {"type": "integer", "description": "활동 ID"},
                 "lap_type": {
                     "type": "string",
-                    "description": (
-                        "특정 랩 종류만 필터 (ACTIVE=작업 구간, RECOVERY=회복, "
-                        "WARMUP, COOLDOWN, INTERVAL=자동 1km랩). 생략 시 전체."
-                    ),
+                    "description": "랩 종류 필터: ACTIVE(작업)|RECOVERY|WARMUP|COOLDOWN|INTERVAL(자동1km). 생략=전체",
                 },
             },
             "required": ["activity_id"]
@@ -157,9 +180,8 @@ TOOL_DECLARATIONS = [
     {
         "name": "compare_workout_sets",
         "description": (
-            "구조화 워크아웃(ACTIVE 랩이 있는 세션)의 작업 구간을 세션 간 비교한다. "
-            "세션별 세트 수, 세트 페이스 목록, 평균/최고/최저, 첫→마지막 세트 드리프트를 "
-            "반환한다. '지난 크루즈 세션들과 비교' 같은 질문에 사용."
+            "ACTIVE 랩이 있는 구조화 워크아웃의 작업 구간을 세션 간 비교한다. "
+            "세트 수·세트 페이스·평균/최고/최저·첫→마지막 드리프트. '지난 크루즈들과 비교'용."
         ),
         "parameters": {
             "type": "object",
@@ -174,7 +196,7 @@ TOOL_DECLARATIONS = [
     },
     {
         "name": "get_weather",
-        "description": "특정 날짜(또는 기간)의 날씨 데이터를 조회한다. 기온, 체감온도, 습도, 풍속, 강수량, 운량.",
+        "description": "특정 날짜(또는 기간)의 시간별 날씨를 조회한다. 기온, 습도, 풍속, 운량, 날씨 상태.",
         "parameters": {
             "type": "object",
             "properties": {

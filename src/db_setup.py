@@ -34,11 +34,16 @@ SCHEMA_VERSION = 15  # v0.3.5: activity_summaries.workout_label 컬럼 추가
 # DB Path
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_db_path(user_id: str | None = None) -> Path:
-    """사용자별 running.db 경로 반환."""
+def get_db_path(user_id: str | None = None, *, create: bool = True) -> Path:
+    """사용자별 running.db 경로 반환.
+
+    create=False 는 읽기 전용 소비자(MCP 서버 등)용 — 오타 난 user_id로 빈 디렉터리가
+    생기지 않도록 디렉터리를 만들지 않는다.
+    """
     uid = user_id or DEFAULT_USER
     user_dir = _PROJECT_ROOT / "data" / "users" / uid
-    user_dir.mkdir(parents=True, exist_ok=True)
+    if create:
+        user_dir.mkdir(parents=True, exist_ok=True)
     return user_dir / "running.db"
 
 
