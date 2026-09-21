@@ -83,3 +83,21 @@
   - `get_activity_metric_text(activity_id, name)` — activity-scope text_value 조회
 - **결과**: 32개 calculator 전부 CalcContext API 전용으로 전환 완료. `src/metrics/*.py` 내 `ctx.conn.execute` 잔여 0건. Calculator가 순수 함수로 동작하여 Mock 테스트, A/B 테스트, 스키마 변경 시 영향 최소화.
 - **검증**: `grep -rc "ctx.conn.execute" src/metrics/*.py` → 0
+
+## ADR-012: daily_wellness merge 정책 — Garmin은 최신 non-null로 갱신 (2026-09-21)
+- **날짜**: 2026-09-21
+- **맥락**: `upsert_daily_wellness()`가 "기존 NULL인 필드만 채움"이라 하루 중 첫 동기화 값이 고정됨. Garmin은 하루에 여러 번 동기화되어 첫 값이 부분 하루치(걸음수 9, 활동칼로리 0, 스트레스 14, RHR 46)로 굳고, 이후 최종값(34,818보, 1,622kcal, 42, RHR 42)이 반영되지 않았음. 재처리(`reprocess`)도 같은 함수를 써서 교정 불가. 함께 발견: Garmin extractor가 실제 payload 구조(`dailySleepDTO`, `baseline.*`, `data[0].bodyBatteryValuesArray`)와 달라 수면/바디배터리/HRV baseline이 NULL이었음(2026-05-08 Intervals 동기화 종료 이후).
+- **결정**: `upsert_daily_wellness(..., overwrite=False)` 옵션 추가. Garmin 경로(`garmin_wellness_sync`, `reprocess`의 garmin 소스)는 `overwrite=True`로 새 non-null 값이 기존 값을 갱신. 기본값(Intervals 등)은 기존대로 NULL만 채움. 새 값이 NULL이면 기존 값을 유지.
+- **`resting_hr` 출처**: `wellness_user_summary.restingHeartRate`(일 최종값) 우선, 없으면 `wellness_sleep.restingHeartRate`. `hrvSummary.restingHeartRate`는 실제 payload에 없음. `hrv_last_night`는 `lastNightAvg`만 사용(`lastNight5MinHigh` fallback 제거).
+- **저장 위치**: 컬럼 추가 없이 metric_store 사용. 신규 metric: `hrv_5min_high`, `min_respiration_sleep`, `sleep_avg_hr`, `sleep_body_battery_change`, `skin_temp_deviation`. 실제 payload에 없는 `sleep_deep_score`/`sleep_rem_score`/`sleep_recovery_score`는 제거.
+- **결과**: source_payloads에서 API 호출 없이 재구축 가능(`reprocess_all(conn, source="garmin")`).
+- **검증**: `tests/test_garmin_extractor.py`, `tests/test_garmin_wellness_sync.py::test_resync_updates_partial_day_values`, `tests/test_reprocess.py::test_garmin_reprocess_corrects_stale_partial_day_row`
+
+## ADR-013: 활동 데이터 품질 가드 — 저장 진입점에서 미측정/글리치 값을 NULL 처리 (2026-09-21)
+- **날짜**: 2026-09-21
+- **맥락**: 실DB 범위 검증 13건 실패. 원인은 (1) Garmin이 센서 미측정을 0(심박)·-1(스트레스)로 반환, (2) GPS 글리치 최대속도(30~103 m/s), (3) 2023-10~2025-05 Garmin 러닝 케이던스가 양발 합산으로 약 2배(300~420 spm), (4) ACWR이 CTL 극소 구간에서 5를 초과, (5) 검증 기준이 소스 2종·러닝 전용·`%` 단위 가정으로 낡음.
+- **결정**: `sanitize_activity_core()`(`src/sync/_helpers.py`)를 `save_activity_core()` 진입점에 적용해 모든 소스에 공통으로 avg/max HR 0 → NULL, `max_speed_ms` > 30 → NULL. 소스 고유 문제인 케이던스는 Garmin extractor의 `_running_cadence()`에서 250 spm 초과 시 절반으로 정규화(요약·랩). Garmin `avgStressLevel` < 0 → 저장 안 함. ACWR은 계산기 `ranges` 상한과 같은 5.0으로 캡(RTTI 200 캡과 동일 패턴).
+- **포기한 것**: 원본 payload 자체 수정(원본은 그대로 보존, 정규화는 파생 컬럼에만 적용).
+- **검증 기준 조정**: pace 상한 900 → 1800 s/km(걷기 수준 러닝 존재), group 내 source 수는 DB의 전체 source 수 이하, stride는 러닝/걷기 활동만, rtti 0~200, aerobic_decoupling_rp -50~100.
+- **결과**: 기존 행 정정(HR 0 92행, stress 1행, cadence 66행, max_speed 3행, ACWR 3행) 후 `test_integration_realdb` 전부 통과.
+- **검증**: `tests/test_activity_core_sanitize.py`, `tests/test_garmin_extractor.py::TestGarminDataQualityGuards`, `tests/test_integration_realdb.py`

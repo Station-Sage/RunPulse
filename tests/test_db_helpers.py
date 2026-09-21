@@ -149,6 +149,28 @@ class TestUpsertDailyWellness:
         assert row["resting_hr"] == 52
         assert row["sleep_score"] == 85
 
+    def test_default_does_not_overwrite_existing(self, db):
+        upsert_daily_wellness(db, {"date": "2025-01-15", "steps": 9})
+        upsert_daily_wellness(db, {"date": "2025-01-15", "steps": 12000})
+        row = db.execute("SELECT steps FROM daily_wellness WHERE date='2025-01-15'").fetchone()
+        assert row["steps"] == 9
+
+    def test_overwrite_updates_non_null_values(self, db):
+        upsert_daily_wellness(db, {"date": "2025-01-15", "steps": 9, "resting_hr": 46})
+        upsert_daily_wellness(
+            db, {"date": "2025-01-15", "steps": 12000, "sleep_score": 80}, overwrite=True,
+        )
+        row = db.execute(
+            "SELECT steps, resting_hr, sleep_score FROM daily_wellness WHERE date='2025-01-15'"
+        ).fetchone()
+        assert (row["steps"], row["resting_hr"], row["sleep_score"]) == (12000, 46, 80)
+
+    def test_overwrite_ignores_null_new_values(self, db):
+        upsert_daily_wellness(db, {"date": "2025-01-15", "steps": 9})
+        upsert_daily_wellness(db, {"date": "2025-01-15", "steps": None}, overwrite=True)
+        row = db.execute("SELECT steps FROM daily_wellness WHERE date='2025-01-15'").fetchone()
+        assert row["steps"] == 9
+
 
 class TestGetPrimaryMetrics:
     """조건 9: get_primary_metrics(), get_all_providers()"""

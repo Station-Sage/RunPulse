@@ -7,6 +7,9 @@ from __future__ import annotations
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 
 
+_ACWR_CAP = 5.0
+
+
 class ACWRCalculator(MetricCalculator):
     name = "acwr"
     provider = "runpulse:formula_v1"
@@ -32,4 +35,5 @@ class ACWRCalculator(MetricCalculator):
         ctl = ctx.get_metric("ctl", provider="runpulse:formula_v1")
         if atl is None or ctl is None or ctl == 0:
             return []
-        return [self._result(value=round(atl / ctl, 2))]
+        # CTL이 매우 작을 때(데이터 시작, 휴식 후 복귀) 비율이 무한히 커지므로 ranges 상한으로 캡
+        return [self._result(value=min(round(atl / ctl, 2), _ACWR_CAP))]

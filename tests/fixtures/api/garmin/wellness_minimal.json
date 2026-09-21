@@ -1,44 +1,67 @@
 {
   "wellness_sleep": {
-    "overallScore": 82,
-    "sleepTimeSeconds": 27000,
-    "deepSleepSeconds": 5400,
-    "lightSleepSeconds": 14400,
-    "remSleepSeconds": 5400,
-    "awakeSleepSeconds": 1800,
-    "averageRespiration": 14.5,
-    "averageSpO2Value": 96.5,
-    "sleepScores": {"overall": 82, "deep": 75, "rem": 80, "recovery": 85},
-    "sleepStartTimestampGMT": "2025-03-24T23:15:00.0"
+    "dailySleepDTO": {
+      "calendarDate": "2026-08-23",
+      "sleepTimeSeconds": 23520,
+      "deepSleepSeconds": 3540,
+      "lightSleepSeconds": 16260,
+      "remSleepSeconds": 3720,
+      "awakeSleepSeconds": 660,
+      "averageRespirationValue": 13.0,
+      "lowestRespirationValue": 9.0,
+      "averageSpO2Value": 94.0,
+      "lowestSpO2Value": 85,
+      "avgHeartRate": 48.0,
+      "sleepStartTimestampLocal": 1787441457000,
+      "sleepScores": {
+        "overall": {"qualifierKey": "FAIR", "value": 78},
+        "deepPercentage": {"qualifierKey": "POOR", "value": 15}
+      }
+    },
+    "bodyBatteryChange": 72,
+    "avgSkinTempDeviationC": -0.7,
+    "restingHeartRate": 42
   },
   "wellness_hrv": {
     "hrvSummary": {
-      "weeklyAvg": 45.0,
-      "lastNightAvg": 48.0,
-      "restingHeartRate": 52,
+      "calendarDate": "2026-08-23",
+      "weeklyAvg": 81,
+      "lastNightAvg": 95,
+      "lastNight5MinHigh": 146,
       "status": "BALANCED",
-      "baselineLowUpper": 35.0,
-      "baselineBalancedLow": 40.0,
-      "baselineBalancedUpper": 55.0
+      "baseline": {"balancedLow": 76, "balancedUpper": 112, "lowUpper": 69, "markerValue": 0.32}
     }
   },
   "wellness_body_battery": {
-    "bodyBatteryHigh": 95,
-    "bodyBatteryLow": 25
+    "data": [
+      {
+        "date": "2026-08-23",
+        "charged": 83,
+        "drained": 87,
+        "bodyBatteryValuesArray": [
+          [1787410800000, 15],
+          [1787432940000, 87],
+          [1787439600000, 63],
+          [1787467140000, 20],
+          [1787468400000, null],
+          [1787490720000, 5]
+        ]
+      }
+    ]
   },
   "wellness_stress": {
-    "overallStressLevel": 35,
+    "avgStressLevel": 42,
     "highStressDuration": 3600,
     "mediumStressDuration": 7200,
     "lowStressDuration": 10800,
     "restStressDuration": 14400
   },
   "wellness_user_summary": {
-    "totalSteps": 12500,
-    "activeKilocalories": 450,
-    "restingHeartRate": 52,
-    "floorsAscended": 8,
-    "totalKilocalories": 2200
+    "totalSteps": 34818,
+    "activeKilocalories": 1622.0,
+    "restingHeartRate": 42,
+    "floorsAscended": 10.65,
+    "totalKilocalories": 3359.0
   },
   "wellness_training_readiness": {
     "score": 72,

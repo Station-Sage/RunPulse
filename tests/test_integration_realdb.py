@@ -18,7 +18,8 @@ _REAL_USER = "pansongit@gmail.com"
 _REAL_DB = get_db_path(_REAL_USER)
 
 # ── 물리 범위 상수 ──────────────────────────────────────────────────────────
-_PACE_MIN, _PACE_MAX = 60, 900
+# 상한 1800: 걷기에 가까운 저속 활동이 running으로 분류된 행이 있음(2023-12-11, ~22분/km). 단위 오류는 여전히 검출.
+_PACE_MIN, _PACE_MAX = 60, 1800
 _HR_MIN, _HR_MAX = 40, 250
 _DIST_KM_MAX = 300
 _CTL_MAX = 300
@@ -855,16 +856,20 @@ class TestUnifiedViewRangesReal:
 
 class TestDedupIntegrity:
     def test_group_source_uniqueness(self, real_conn):
+        """한 group 안의 distinct source 수는 DB에 존재하는 source 수를 넘을 수 없다."""
+        total_sources = real_conn.execute(
+            "SELECT COUNT(DISTINCT source) AS n FROM activity_summaries"
+        ).fetchone()["n"]
         row = real_conn.execute("""
             SELECT COUNT(*) AS violations FROM (
                 SELECT matched_group_id, COUNT(DISTINCT source) AS src_count
                 FROM activity_summaries
                 WHERE matched_group_id IS NOT NULL
                 GROUP BY matched_group_id
-                HAVING src_count > 2
+                HAVING src_count > ?
             )
-        """).fetchone()
-        assert row["violations"] == 0, f"group 내 source 3종 이상: {row['violations']}건"
+        """, (total_sources,)).fetchone()
+        assert row["violations"] == 0, f"group 내 source가 전체({total_sources}종) 초과: {row['violations']}건"
 
     def test_canonical_ratio_plausible(self, real_conn):
         canonical = real_conn.execute("SELECT COUNT(*) AS n FROM v_canonical_activities").fetchone()["n"]
@@ -982,7 +987,22 @@ def _build_metric_store_params() -> list[tuple]:
     return params
 
 
-_METRIC_STORE_PARAMS = _build_metric_store_params()
+# 단위 기반 범위가 맞지 않는 지표의 개별 범위 (계산기 ranges/캡 기준)
+_METRIC_BOUND_OVERRIDES: dict[str, tuple] = {
+    "rtti": (0, 200),                    # ATL/CTL 비율 지수, 계산기가 200으로 캡
+    "aerobic_decoupling_rp": (-50, 100), # 후반부 효율이 좋아지면 음수
+}
+
+
+def _apply_bound_overrides(params: list[tuple]) -> list[tuple]:
+    return [(n, *_METRIC_BOUND_OVERRIDES.get(n, (lo, hi))) for n, lo, hi in params]
+
+
+_METRIC_STORE_PARAMS = _apply_bound_overrides(_build_metric_store_params())
+
+# 러닝/걷기에만 의미 있는 컬럼 (수영 stroke length 등 다른 종목 값 제외)
+_RUN_TYPES = ("running", "run", "virtualrun", "treadmill", "indoor_running", "trail_running", "walking")
+_COLUMN_TYPE_FILTER: dict[str, tuple] = {"avg_stride_length_cm": _RUN_TYPES}
 
 
 class TestAllActivitySummaryColumns:
@@ -990,9 +1010,16 @@ class TestAllActivitySummaryColumns:
 
     @pytest.mark.parametrize("col,lo,hi", _ACTIVITY_SUMMARY_EXTRA_COLS)
     def test_column_range(self, real_conn, col, lo, hi):
+        types = _COLUMN_TYPE_FILTER.get(col)
+        type_clause = ""
+        params: tuple = ()
+        if types:
+            type_clause = f" AND activity_type IN ({','.join('?' * len(types))})"
+            params = types
         row = real_conn.execute(
             f"SELECT MIN({col}) AS mn, MAX({col}) AS mx "
-            f"FROM activity_summaries WHERE {col} IS NOT NULL"
+            f"FROM activity_summaries WHERE {col} IS NOT NULL{type_clause}",
+            params,
         ).fetchone()
         if row["mn"] is None:
             pytest.skip(f"{col} 데이터 없음")

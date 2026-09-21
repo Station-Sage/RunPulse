@@ -269,7 +269,7 @@ def _reprocess_wellness(conn, source, stats):
 
             core = extractor.extract_wellness_core(date_str, **payloads)
             if core:
-                save_daily_wellness(conn, date_str, core)
+                save_daily_wellness(conn, date_str, core, overwrite=(src == "garmin"))
                 stats["wellness"] += 1
 
             metrics = extractor.extract_wellness_metrics(date_str, **payloads)

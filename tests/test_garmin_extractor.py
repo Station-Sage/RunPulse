@@ -141,29 +141,102 @@ class TestGarminLaps:
         assert ext.extract_activity_laps({}) == []
 
 
+class TestGarminDataQualityGuards:
+    def test_doubled_cadence_is_halved(self, ext, summary_raw):
+        summary_raw["averageRunningCadenceInStepsPerMinute"] = 340.0
+        summary_raw["maxRunningCadenceInStepsPerMinute"] = 424.0
+        core = ext.extract_activity_core(summary_raw)
+        assert core["avg_cadence"] == 170
+        assert core["max_cadence"] == 212
+
+    def test_normal_cadence_is_kept(self, ext, summary_raw):
+        summary_raw["averageRunningCadenceInStepsPerMinute"] = 176.0
+        summary_raw["maxRunningCadenceInStepsPerMinute"] = 250.0
+        core = ext.extract_activity_core(summary_raw)
+        assert core["avg_cadence"] == 176
+        assert core["max_cadence"] == 250
+
+    def test_missing_cadence_stays_none(self, ext, summary_raw):
+        summary_raw.pop("averageRunningCadenceInStepsPerMinute", None)
+        core = ext.extract_activity_core(summary_raw)
+        assert "avg_cadence" not in core
+
+    def test_lap_doubled_cadence_is_halved(self, ext, detail_raw):
+        detail_raw["laps"] = [{"averageRunningCadenceInStepsPerMinute": 350.0, "distance": 1000}]
+        laps = ext.extract_activity_laps(detail_raw)
+        assert laps[0]["avg_cadence"] == 175
+
+    def test_negative_stress_is_ignored(self, ext, wellness_raw):
+        wellness_raw["wellness_stress"]["avgStressLevel"] = -1
+        core = ext.extract_wellness_core("2026-08-23", **wellness_raw)
+        assert "avg_stress" not in core
+
+
 class TestGarminWellness:
     def test_wellness_core(self, ext, wellness_raw):
-        core = ext.extract_wellness_core("2025-03-25", **wellness_raw)
-        assert core["date"] == "2025-03-25"
-        assert core["sleep_score"] == 82
-        assert core["resting_hr"] == 52
-        assert core["body_battery_high"] == 95
-        assert core["body_battery_low"] == 25
-        assert core["steps"] == 12500
+        core = ext.extract_wellness_core("2026-08-23", **wellness_raw)
+        assert core["date"] == "2026-08-23"
+        assert core["sleep_score"] == 78
+        assert core["sleep_duration_sec"] == 23520
+        assert core["sleep_start_time"] == "2026-08-22T23:30:57"
+        assert core["hrv_weekly_avg"] == 81
+        assert core["hrv_last_night"] == 95
+        assert core["resting_hr"] == 42
+        assert core["body_battery_high"] == 87
+        assert core["body_battery_low"] == 5
+        assert core["avg_stress"] == 42
+        assert core["steps"] == 34818
+        assert core["active_calories"] == 1622
+
+    def test_resting_hr_prefers_user_summary_over_sleep(self, ext, wellness_raw):
+        wellness_raw["wellness_sleep"]["restingHeartRate"] = 46
+        core = ext.extract_wellness_core("2026-08-23", **wellness_raw)
+        assert core["resting_hr"] == 42
+
+    def test_resting_hr_falls_back_to_sleep_payload(self, ext, wellness_raw):
+        del wellness_raw["wellness_user_summary"]
+        core = ext.extract_wellness_core("2026-08-23", **wellness_raw)
+        assert core["resting_hr"] == 42
+
+    def test_missing_sleep_dto_yields_no_sleep_fields(self, ext, wellness_raw):
+        wellness_raw["wellness_sleep"] = {"restingHeartRate": 42}
+        core = ext.extract_wellness_core("2026-08-23", **wellness_raw)
+        assert "sleep_score" not in core
+        assert "sleep_duration_sec" not in core
+
+    def test_body_battery_without_levels_is_skipped(self, ext):
+        raw = {"wellness_body_battery": {"data": [{"bodyBatteryValuesArray": [[1, None]]}]}}
+        core = ext.extract_wellness_core("2026-08-23", **raw)
+        assert "body_battery_high" not in core
 
     def test_wellness_metrics(self, ext, wellness_raw):
-        metrics = ext.extract_wellness_metrics("2025-03-25", **wellness_raw)
+        metrics = ext.extract_wellness_metrics("2026-08-23", **wellness_raw)
         names = {m.metric_name for m in metrics}
-        assert "sleep_deep_sec" in names
-        assert "training_readiness_score" in names
-        assert "race_pred_5k_sec" in names
-        assert "stress_high_duration_sec" in names
+        for expected in (
+            "sleep_deep_sec", "sleep_light_sec", "sleep_rem_sec", "sleep_awake_sec",
+            "avg_respiration_sleep", "min_respiration_sleep", "avg_spo2", "min_spo2",
+            "sleep_avg_hr", "sleep_body_battery_change", "skin_temp_deviation",
+            "hrv_status", "hrv_5min_high", "hrv_baseline_low",
+            "hrv_baseline_balanced_low", "hrv_baseline_balanced_upper",
+            "training_readiness_score", "race_pred_5k_sec", "stress_high_duration_sec",
+        ):
+            assert expected in names, expected
 
     def test_wellness_metric_values(self, ext, wellness_raw):
-        metrics = ext.extract_wellness_metrics("2025-03-25", **wellness_raw)
+        metrics = ext.extract_wellness_metrics("2026-08-23", **wellness_raw)
         by_name = {m.metric_name: m for m in metrics}
         assert by_name["training_readiness_score"].numeric_value == 72
         assert by_name["race_pred_5k_sec"].numeric_value == 1200
+        assert by_name["sleep_deep_sec"].numeric_value == 3540
+        assert by_name["sleep_rem_sec"].numeric_value == 3720
+        assert by_name["min_spo2"].numeric_value == 85
+        assert by_name["skin_temp_deviation"].numeric_value == -0.7
+        assert by_name["sleep_body_battery_change"].numeric_value == 72
+        assert by_name["hrv_5min_high"].numeric_value == 146
+        assert by_name["hrv_baseline_low"].numeric_value == 69
+        assert by_name["hrv_baseline_balanced_low"].numeric_value == 76
+        assert by_name["hrv_baseline_balanced_upper"].numeric_value == 112
+        assert by_name["hrv_status"].text_value == "BALANCED"
 
     def test_fitness(self, ext):
         raw = {"vo2MaxValue": 52.0}

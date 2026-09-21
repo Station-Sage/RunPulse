@@ -43,15 +43,20 @@ GARMIN_DETAIL = {
 }
 
 GARMIN_WELLNESS_SLEEP = {
-    "overallScore": 85,
-    "sleepTimeSeconds": 28000,
-    "deepSleepSeconds": 7200,
-    "lightSleepSeconds": 10800,
-    "remSleepSeconds": 6000,
+    "dailySleepDTO": {
+        "sleepTimeSeconds": 28000,
+        "deepSleepSeconds": 7200,
+        "lightSleepSeconds": 10800,
+        "remSleepSeconds": 6000,
+        "sleepStartTimestampLocal": 1775000000000,
+        "sleepScores": {"overall": {"qualifierKey": "GOOD", "value": 85}},
+    },
+    "restingHeartRate": 48,
 }
 
 GARMIN_WELLNESS_HRV = {
-    "hrvSummary": {"lastNightAvg": 50, "weeklyAvg": 55, "restingHeartRate": 48},
+    "hrvSummary": {"lastNightAvg": 50, "weeklyAvg": 55, "status": "BALANCED",
+                   "baseline": {"balancedLow": 45, "balancedUpper": 65, "lowUpper": 40}},
 }
 
 GARMIN_WELLNESS_STRESS = {
@@ -185,6 +190,35 @@ class TestReprocessWellness:
         assert row is not None
         assert row[0] == 9000
         assert row[1] == 48
+
+    def test_sleep_columns_rebuilt(self):
+        """수면 점수/시간은 dailySleepDTO에서 재구축된다."""
+        conn = _conn()
+        _seed_garmin_wellness(conn)
+
+        reprocess_all(conn)
+
+        row = conn.execute(
+            "SELECT sleep_score, sleep_duration_sec FROM daily_wellness"
+        ).fetchone()
+        assert row[0] == 85
+        assert row[1] == 28000
+
+    def test_garmin_reprocess_corrects_stale_partial_day_row(self):
+        """당일 초반 부분값으로 굳은 행이 Garmin 최종 payload로 교정된다."""
+        conn = _conn()
+        conn.execute(
+            "INSERT INTO daily_wellness (date, steps, active_calories, avg_stress, resting_hr) "
+            "VALUES ('2026-04-01', 9, 0, 14, 46)"
+        )
+        _seed_garmin_wellness(conn)
+
+        reprocess_all(conn, source="garmin")
+
+        row = conn.execute(
+            "SELECT steps, active_calories, avg_stress, resting_hr FROM daily_wellness"
+        ).fetchone()
+        assert tuple(row) == (9000, 450, 30, 48)
 
     def test_wellness_metrics_rebuilt(self):
         """wellness → metric_store."""

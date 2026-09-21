@@ -143,7 +143,7 @@ def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
     log.info("[garmin/wellness] %s 추출 시작 — endpoints=%s", date_str, list(raw_payloads.keys()))
     core = extractor.extract_wellness_core(date_str, **raw_payloads)
     if core:
-        save_daily_wellness(conn, date_str, core)
+        save_daily_wellness(conn, date_str, core, overwrite=True)
 
     metrics = extractor.extract_wellness_metrics(date_str, **raw_payloads)
     if metrics:

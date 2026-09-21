@@ -50,7 +50,7 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/utils/metric_groups.py
 > 주의: category는 calculator의 self.category가 DB 저장값 (registry 아님)
 
-### `acwr.py` (35줄) — ACWR Calculator — 설계서 4-3 기준.
+### `acwr.py` (39줄) — ACWR Calculator — 설계서 4-3 기준.
 
 - class **ACWRCalculator**: compute
 
@@ -217,9 +217,9 @@
 > 의존: src/sync/extractors/, src/utils/db_helpers.py, src/utils/rate_limiter.py
 > 주의: Garmin은 rate-limit 감지 후 동적 대기 필요
 
-### `_helpers.py` (143줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
+### `_helpers.py` (161줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
 
-- functions: save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
+- functions: sanitize_activity_core, save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
 
 ### `dedup.py` (119줄) — 활동 중복 감지 — 7분 / 15% 규칙.
 
@@ -359,7 +359,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (636줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (663줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -490,7 +490,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (119줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (120줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -890,7 +890,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (689줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (697줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -914,7 +914,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (492줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (500줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -982,6 +982,11 @@
 - class **TestClassifier**: test_easy_run, test_long_run, test_non_running
 - class **TestVDOT**: test_compute, test_too_short, test_non_running
 - class **TestEF**: test_compute, test_no_hr
+
+### `test_activity_core_sanitize.py` (70줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
+
+- class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
+- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_extreme_ratio_is_capped, test_zero_ctl_returns_empty
 
 ### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
 
@@ -1105,11 +1110,11 @@
 - class **TestWellnessRanges**: test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length, test_wellness_detail_has_core
 - functions: rich_conn
 
-### `test_db_helpers.py` (216줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
+### `test_db_helpers.py` (238줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
 - class **TestUpsertActivitySummary**: test_insert_new, test_upsert_updates, test_no_duplicate_rows
 - class **TestUpsertMetric**: test_insert_single, test_batch_upsert, test_upsert_updates_value
-- class **TestUpsertDailyWellness**: test_insert, test_merge_keeps_first_non_null
+- class **TestUpsertDailyWellness**: test_insert, test_merge_keeps_first_non_null, test_default_does_not_overwrite_existing, test_overwrite_updates_non_null_values, test_overwrite_ignores_null_new_values
 - class **TestGetPrimaryMetrics**: test_get_primary_returns_list, test_get_all_providers, test_get_primary_empty_scope
 - class **TestUpsertPayload**: test_insert_and_no_change, test_update_on_change
 - class **TestDbStatus**: test_returns_dict
@@ -1190,12 +1195,13 @@
 - class **TestSaveZipMetrics**: test_routes_metric_fields_to_metric_store, test_skips_none_values
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
-### `test_garmin_extractor.py` (250줄) — Garmin Extractor 단위 테스트.
+### `test_garmin_extractor.py` (323줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates
 - class **TestGarminLaps**: test_lap_extraction, test_lap_pace_calculated, test_empty_detail
-- class **TestGarminWellness**: test_wellness_core, test_wellness_metrics, test_wellness_metric_values, test_fitness
+- class **TestGarminDataQualityGuards**: test_doubled_cadence_is_halved, test_normal_cadence_is_kept, test_missing_cadence_stays_none, test_lap_doubled_cadence_is_halved, test_negative_stress_is_ignored
+- class **TestGarminWellness**: test_wellness_core, test_resting_hr_prefers_user_summary_over_sleep, test_resting_hr_falls_back_to_sleep_payload, test_missing_sleep_dto_yields_no_sleep_fields, test_body_battery_without_levels_is_skipped, test_wellness_metrics, test_wellness_metric_values, test_fitness
 - class **TestGarminExtractorStreams**: test_basic_parsing, test_elapsed_sec_sequence, test_none_values_excluded, test_elapsed_sec_fallback_to_index, test_empty_descriptors_returns_empty, test_non_dict_input_returns_empty, test_temperature_prefers_air
 - functions: ext, summary_raw, detail_raw, wellness_raw
 
@@ -1215,9 +1221,9 @@
 - class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
 - class **TestTokenOnlyMode**: test_saves_token_locally
 
-### `test_garmin_wellness_sync.py` (125줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
+### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
-- class **TestGarminWellnessSync**: test_sync_one_day, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
+- class **TestGarminWellnessSync**: test_sync_one_day, test_resync_updates_partial_day_values, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
 
 ### `test_goals.py` (116줄) — goals.py 테스트.
 
@@ -1230,7 +1236,7 @@
 - class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
 - class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
 
-### `test_integration_realdb.py` (1160줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+### `test_integration_realdb.py` (1187줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
 - class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
 - class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
@@ -1386,10 +1392,10 @@
 
 - functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error
 
-### `test_reprocess.py` (251줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
+### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
 - class **TestReprocessActivity**: test_rebuilds_from_raw, test_metrics_rebuilt, test_primary_resolved, test_preserves_raw, test_clears_derived_only, test_no_clear_accumulates
-- class **TestReprocessWellness**: test_wellness_rebuilt, test_wellness_metrics_rebuilt
+- class **TestReprocessWellness**: test_wellness_rebuilt, test_sleep_columns_rebuilt, test_garmin_reprocess_corrects_stale_partial_day_row, test_wellness_metrics_rebuilt
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
@@ -1580,7 +1586,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 310개 파일
+총 311개 파일
 
 ## docstring 누락
 

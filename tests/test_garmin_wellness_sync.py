@@ -14,18 +14,20 @@ def _conn():
 
 def _mock_api():
     api = MagicMock()
-    # sleep — extractor가 sleep_day 최상위에서 overallScore를 찾음
     api.get_sleep_data.return_value = {
-        "overallScore": 82,
-        "sleepTimeSeconds": 27000,
-        "sleepStartTimestampGMT": "2026-04-01T14:00:00.0",
-        "sleepScores": {"overall": 82},
+        "dailySleepDTO": {
+            "sleepTimeSeconds": 27000,
+            "deepSleepSeconds": 5400,
+            "sleepStartTimestampLocal": 1775000000000,
+            "sleepScores": {"overall": {"qualifierKey": "GOOD", "value": 82}},
+        },
+        "restingHeartRate": 50,
     }
     api.get_hrv_data.return_value = {
-        "hrvSummary": {"lastNightAvg": 48, "weeklyAvg": 52, "restingHeartRate": 50}
+        "hrvSummary": {"lastNightAvg": 48, "weeklyAvg": 52}
     }
     api.get_body_battery.return_value = {
-        "bodyBatteryHigh": 75, "bodyBatteryLow": 50,
+        "data": [{"bodyBatteryValuesArray": [[1, 50], [2, 75]]}],
     }
     api.get_stress_data.return_value = {
         "avgStressLevel": 32, "maxStressLevel": 70,
@@ -54,7 +56,8 @@ class TestGarminWellnessSync:
 
         # core 필드 확인 — extractor가 실제로 채우는 필드만 검증
         row = conn.execute(
-            "SELECT hrv_weekly_avg, hrv_last_night, resting_hr, avg_stress, steps "
+            "SELECT hrv_weekly_avg, hrv_last_night, resting_hr, avg_stress, steps, "
+            "sleep_score, sleep_duration_sec, body_battery_high, body_battery_low "
             "FROM daily_wellness"
         ).fetchone()
         assert row is not None
@@ -63,6 +66,29 @@ class TestGarminWellnessSync:
         assert row[2] == 50   # resting_hr
         assert row[3] == 32   # avg_stress
         assert row[4] == 8500 # steps
+        assert row[5] == 82   # sleep_score
+        assert row[6] == 27000  # sleep_duration_sec
+        assert row[7] == 75   # body_battery_high
+        assert row[8] == 50   # body_battery_low
+
+    def test_resync_updates_partial_day_values(self):
+        """같은 날 재동기화 시 최종값(걸음수, 스트레스, RHR)으로 갱신된다."""
+        conn = _conn()
+        api = _mock_api()
+        sync(conn, api, days=1, _sleep_fn=lambda _: None)
+
+        api.get_user_summary.return_value = {
+            "restingHeartRate": 44, "totalSteps": 21000,
+            "activeKilocalories": 900, "totalKilocalories": 2900,
+        }
+        api.get_stress_data.return_value = {"avgStressLevel": 41}
+        result = sync(conn, api, days=1, _sleep_fn=lambda _: None)
+        assert result.synced_count == 1
+
+        row = conn.execute(
+            "SELECT steps, active_calories, avg_stress, resting_hr FROM daily_wellness"
+        ).fetchone()
+        assert tuple(row) == (21000, 900, 41, 44)
 
     def test_sync_multi_day(self):
         """3일 sync → 3행."""

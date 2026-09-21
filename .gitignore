@@ -107,3 +107,7 @@ audit/export_data/
 .claude/worktrees/
 .claude/settings.json
 data/runpulse.db
+
+# 마라톤 플랜 문서(개인 훈련 로그)와 업로드 zip
+data/2026_marathon_plan/
+data/*.zip

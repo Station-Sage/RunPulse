@@ -20,10 +20,28 @@ from src.utils.metric_priority import resolve_for_scope
 log = logging.getLogger(__name__)
 
 
+_MAX_SPEED_MS = 30.0
+
+
+def sanitize_activity_core(core: dict) -> dict:
+    """센서 미측정/GPS 글리치 값을 NULL로 정리.
+
+    심박 0은 '측정 없음'(센서 미착용), 30 m/s 초과 속도는 GPS 글리치다.
+    """
+    clean = dict(core)
+    for key in ("avg_hr", "max_hr"):
+        if clean.get(key) == 0:
+            clean[key] = None
+    max_speed = clean.get("max_speed_ms")
+    if max_speed is not None and max_speed > _MAX_SPEED_MS:
+        clean["max_speed_ms"] = None
+    return clean
+
+
 def save_activity_core(conn: sqlite3.Connection, core_dict: dict) -> int:
     """activity_summaries UPSERT. Returns: row id."""
     from src.utils.dedup import assign_group_id
-    activity_id = upsert_activity(conn, core_dict)
+    activity_id = upsert_activity(conn, sanitize_activity_core(core_dict))
     assign_group_id(conn, activity_id)
     return activity_id
 
@@ -78,10 +96,10 @@ def save_best_efforts(
 
 
 def save_daily_wellness(
-    conn: sqlite3.Connection, date_str: str, core: dict
+    conn: sqlite3.Connection, date_str: str, core: dict, *, overwrite: bool = False
 ) -> int:
     core["date"] = date_str
-    return upsert_daily_wellness(conn, core)
+    return upsert_daily_wellness(conn, core, overwrite=overwrite)
 
 
 def save_daily_fitness(

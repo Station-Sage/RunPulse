@@ -9,6 +9,7 @@ Garmin API 응답 구조:
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
 
@@ -50,8 +51,8 @@ class GarminExtractor(BaseExtractor):
             "avg_hr": _int(raw.get("averageHR")),
             "max_hr": _int(raw.get("maxHR")),
             # 케이던스
-            "avg_cadence": _int(raw.get("averageRunningCadenceInStepsPerMinute")),
-            "max_cadence": _int(raw.get("maxRunningCadenceInStepsPerMinute")),
+            "avg_cadence": _running_cadence(raw.get("averageRunningCadenceInStepsPerMinute")),
+            "max_cadence": _running_cadence(raw.get("maxRunningCadenceInStepsPerMinute")),
             # 파워
             "avg_power": raw.get("avgPower") or raw.get("averagePower"),
             "max_power": raw.get("maxPower"),
@@ -254,7 +255,7 @@ class GarminExtractor(BaseExtractor):
                 "distance_m": lap.get("distance"),
                 "avg_hr": _int(lap.get("averageHR")),
                 "max_hr": _int(lap.get("maxHR")),
-                "avg_cadence": _int(
+                "avg_cadence": _running_cadence(
                     lap.get("averageRunningCadenceInStepsPerMinute")
                 ),
                 "avg_power": lap.get("avgPower"),
@@ -363,19 +364,14 @@ class GarminExtractor(BaseExtractor):
         """여러 Garmin wellness API → daily_wellness 핵심 필드."""
         core: dict = {"date": date}
 
-        # Sleep
+        # Sleep — 실제 payload는 dailySleepDTO 안에 값이 있음
         sleep = raw_payloads.get("wellness_sleep", {})
-        if sleep:
-            core["sleep_score"] = _int(
-                sleep.get("overallScore")
-                or (sleep.get("sleepScores") or {}).get("overall")
-            )
-            core["sleep_duration_sec"] = _seconds(
-                sleep.get("sleepTimeSeconds")
-            )
-            core["sleep_start_time"] = (
-                sleep.get("sleepStartTimestampGMT")
-                or sleep.get("calendarDate")
+        dto = sleep.get("dailySleepDTO") or {}
+        if dto:
+            core["sleep_score"] = _int(_score_value(dto, "overall"))
+            core["sleep_duration_sec"] = _seconds(dto.get("sleepTimeSeconds"))
+            core["sleep_start_time"] = _epoch_ms_to_iso(
+                dto.get("sleepStartTimestampLocal")
             )
 
         # HRV
@@ -383,49 +379,28 @@ class GarminExtractor(BaseExtractor):
         if hrv:
             summary = hrv.get("hrvSummary", hrv)
             core["hrv_weekly_avg"] = summary.get("weeklyAvg")
-            core["hrv_last_night"] = (
-                summary.get("lastNightAvg")
-                or summary.get("lastNight5MinHigh")
-            )
-            core["resting_hr"] = _int(summary.get("restingHeartRate"))
+            core["hrv_last_night"] = summary.get("lastNightAvg")
 
-        # Body Battery
-        bb = raw_payloads.get("wellness_body_battery", {})
-        if bb:
-            if isinstance(bb, list) and bb:
-                values = [
-                    item.get("bodyBatteryLevel", 0)
-                    for item in bb
-                    if item.get("bodyBatteryLevel") is not None
-                ]
-                if values:
-                    core["body_battery_high"] = max(values)
-                    core["body_battery_low"] = min(values)
-            elif isinstance(bb, dict):
-                core["body_battery_high"] = (
-                    bb.get("bodyBatteryHigh") or bb.get("highestValue")
-                )
-                core["body_battery_low"] = (
-                    bb.get("bodyBatteryLow") or bb.get("lowestValue")
-                )
+        # Body Battery — data[0].bodyBatteryValuesArray = [[timestamp, level], ...]
+        levels = _body_battery_levels(raw_payloads.get("wellness_body_battery"))
+        if levels:
+            core["body_battery_high"] = max(levels)
+            core["body_battery_low"] = min(levels)
 
         # Stress
         stress = raw_payloads.get("wellness_stress", {})
         if stress:
-            core["avg_stress"] = _int(
-                stress.get("overallStressLevel")
-                or stress.get("avgStressLevel")
-            )
+            avg_stress = _int(stress.get("avgStressLevel"))
+            core["avg_stress"] = avg_stress if avg_stress is not None and avg_stress >= 0 else None
 
-        # User Summary
+        # User Summary — 일 최종값. resting_hr는 수면 payload 값을 보조로 사용
         summary = raw_payloads.get("wellness_user_summary", {})
         if summary:
             core["steps"] = _int(summary.get("totalSteps"))
-            core["active_calories"] = _int(
-                summary.get("activeKilocalories")
-            )
-            if "resting_hr" not in core or core.get("resting_hr") is None:
-                core["resting_hr"] = _int(summary.get("restingHeartRate"))
+            core["active_calories"] = _int(summary.get("activeKilocalories"))
+            core["resting_hr"] = _int(summary.get("restingHeartRate"))
+        if core.get("resting_hr") is None:
+            core["resting_hr"] = _int(sleep.get("restingHeartRate"))
 
         return {k: v for k, v in core.items() if v is not None}
 
@@ -437,35 +412,42 @@ class GarminExtractor(BaseExtractor):
 
         # Sleep 상세
         sleep = raw_payloads.get("wellness_sleep", {})
-        if sleep:
+        dto = sleep.get("dailySleepDTO") or {}
+        if dto:
             metrics.extend(self._collect(
                 self._metric("sleep_deep_sec",
-                             _seconds(sleep.get("deepSleepSeconds")),
+                             _seconds(dto.get("deepSleepSeconds")),
                              raw_name="deepSleepSeconds"),
                 self._metric("sleep_light_sec",
-                             _seconds(sleep.get("lightSleepSeconds")),
+                             _seconds(dto.get("lightSleepSeconds")),
                              raw_name="lightSleepSeconds"),
                 self._metric("sleep_rem_sec",
-                             _seconds(sleep.get("remSleepSeconds")),
+                             _seconds(dto.get("remSleepSeconds")),
                              raw_name="remSleepSeconds"),
                 self._metric("sleep_awake_sec",
-                             _seconds(sleep.get("awakeSleepSeconds")),
+                             _seconds(dto.get("awakeSleepSeconds")),
                              raw_name="awakeSleepSeconds"),
                 self._metric("avg_respiration_sleep",
-                             sleep.get("averageRespiration"),
-                             raw_name="averageRespiration"),
+                             dto.get("averageRespirationValue"),
+                             raw_name="averageRespirationValue"),
+                self._metric("min_respiration_sleep",
+                             dto.get("lowestRespirationValue"),
+                             raw_name="lowestRespirationValue"),
                 self._metric("avg_spo2",
-                             sleep.get("averageSpO2Value"),
+                             dto.get("averageSpO2Value"),
                              raw_name="averageSpO2Value"),
-                self._metric("sleep_deep_score",
-                             (sleep.get("sleepScores") or {}).get("deep"),
-                             raw_name="sleepScores.deep"),
-                self._metric("sleep_rem_score",
-                             (sleep.get("sleepScores") or {}).get("rem"),
-                             raw_name="sleepScores.rem"),
-                self._metric("sleep_recovery_score",
-                             (sleep.get("sleepScores") or {}).get("recovery"),
-                             raw_name="sleepScores.recovery"),
+                self._metric("min_spo2",
+                             dto.get("lowestSpO2Value"),
+                             raw_name="lowestSpO2Value"),
+                self._metric("sleep_avg_hr",
+                             dto.get("avgHeartRate"),
+                             raw_name="avgHeartRate"),
+                self._metric("sleep_body_battery_change",
+                             sleep.get("bodyBatteryChange"),
+                             raw_name="bodyBatteryChange"),
+                self._metric("skin_temp_deviation",
+                             sleep.get("avgSkinTempDeviationC"),
+                             raw_name="avgSkinTempDeviationC"),
             ))
 
         # Stress 상세
@@ -525,19 +507,23 @@ class GarminExtractor(BaseExtractor):
         hrv = raw_payloads.get("wellness_hrv", {})
         if hrv:
             s = hrv.get("hrvSummary", hrv)
+            baseline = s.get("baseline") or {}
             metrics.extend(self._collect(
                 self._metric("hrv_status",
-                             text=s.get("status") or s.get("hrvStatus"),
+                             text=s.get("status"),
                              raw_name="status"),
+                self._metric("hrv_5min_high",
+                             s.get("lastNight5MinHigh"),
+                             raw_name="lastNight5MinHigh"),
                 self._metric("hrv_baseline_low",
-                             s.get("baselineLowUpper"),
-                             raw_name="baselineLowUpper"),
+                             baseline.get("lowUpper"),
+                             raw_name="baseline.lowUpper"),
                 self._metric("hrv_baseline_balanced_low",
-                             s.get("baselineBalancedLow"),
-                             raw_name="baselineBalancedLow"),
+                             baseline.get("balancedLow"),
+                             raw_name="baseline.balancedLow"),
                 self._metric("hrv_baseline_balanced_upper",
-                             s.get("baselineBalancedUpper"),
-                             raw_name="baselineBalancedUpper"),
+                             baseline.get("balancedUpper"),
+                             raw_name="baseline.balancedUpper"),
             ))
 
         # User Summary extras
@@ -566,6 +552,47 @@ class GarminExtractor(BaseExtractor):
 
 
 # ── Garmin 헬퍼 함수 ──
+
+
+_MAX_RUNNING_CADENCE = 250
+
+
+def _running_cadence(value) -> int | None:
+    """Garmin 러닝 케이던스(spm). 일부 기간(2023-10~2025-05) 원본이 양발 합산으로
+    약 2배(300~420)로 오므로, 생리적 상한(250 spm)을 넘으면 절반으로 정규화한다."""
+    cadence = _int(value)
+    if cadence is not None and cadence > _MAX_RUNNING_CADENCE:
+        return round(cadence / 2)
+    return cadence
+
+
+def _score_value(dto: dict, key: str):
+    """dailySleepDTO.sleepScores[key] = {"value": n, "qualifierKey": ...} → n."""
+    score = (dto.get("sleepScores") or {}).get(key)
+    return score.get("value") if isinstance(score, dict) else None
+
+
+def _epoch_ms_to_iso(value) -> str | None:
+    """Garmin 로컬 epoch ms(로컬 시각을 UTC로 표기) → 'YYYY-MM-DDTHH:MM:SS'."""
+    if value is None:
+        return None
+    return datetime.fromtimestamp(float(value) / 1000, tz=timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%S"
+    )
+
+
+def _body_battery_levels(payload) -> list[int]:
+    """wellness_body_battery payload → 측정된 바디배터리 레벨 목록."""
+    if not isinstance(payload, dict):
+        return []
+    days = payload.get("data")
+    if not days or not isinstance(days[0], dict):
+        return []
+    return [
+        point[1]
+        for point in days[0].get("bodyBatteryValuesArray") or []
+        if len(point) > 1 and point[1] is not None
+    ]
 
 
 def _seconds(value) -> int | None:

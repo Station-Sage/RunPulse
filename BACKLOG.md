@@ -15,7 +15,12 @@
 
 ## NEXT
 
+- **[DATA-LAPS-EMPTY]** 2026-08-24 이후 활동의 `activity_laps` 0건(크루즈/인터벌 세트별 분석 불가, 8/23 이전 기존 로그에는 랩 분석 존재). 랩 동기화 경로(garmin sync 상세 호출, IP 블록/rate limit, 실패 로그) 원인 분석. GARMIN-REPROCESS 항목의 "activity_detail 미보존"과 관련 여부 확인.
+- **[DATA-FITNESS-GAP]** `metric_store`의 CTL/ATL/TSB/ACWR/RTTI(runpulse:formula_v1)가 2026-09-05에서 끊김(9/6~9/21 없음). 2025-05-06부터는 존재하나 월별 일수가 불균등(2026-07 14건, 2026-06 12건 등). 계산 트리거/입력(활동·웰니스) 누락 원인 분석.
+
 ## DONE (recent)
+- **[TEST-REALDB-RANGES]** `test_integration_realdb.py` 13건 실패 해소(1275 passed). 데이터 결함 수정: 심박 0(92행)·스트레스 -1(1행)·GPS 속도 글리치 30 m/s 초과(3행)는 저장 진입점 `sanitize_activity_core`/Garmin 스트레스 가드로 NULL 처리, Garmin 케이던스 2배 값(2023-10~2025-05, 66행)은 250 spm 초과 시 절반 정규화, ACWR은 계산기에 5.0 캡(ADR-013). 기존 행은 백업(`running.db.bak-20260921-pre-dq-fix`) 후 정정. 테스트 기준 조정: 소스 수 상한, pace 상한 1800, 수영 등 stride 제외, rtti 0~200, decoupling 음수 허용. 관찰(미수정): 같은 source 안 중복 그룹 25건(주로 Intervals 근력 훈련 이중 등록).
+- **[DATA-WELLNESS-SLEEP-BB / DATA-WELLNESS-HRV-SPO2-SKIN]** Garmin wellness extractor가 실제 payload 구조와 불일치(`dailySleepDTO`, `hrvSummary.baseline`, `data[0].bodyBatteryValuesArray`)해 수면/바디배터리/HRV baseline이 NULL이던 문제 수정(테스트 fixture도 실제 구조로 교체). `daily_wellness`가 "NULL만 채움"이라 당일 초반 부분값(걸음수 9, RHR 46 등)에 고정되던 문제는 `upsert_daily_wellness(overwrite=True)`(Garmin 경로 한정)로 해결(ADR-012). 신규 metric 5종(`hrv_5min_high`, `min_respiration_sleep`, `sleep_avg_hr`, `sleep_body_battery_change`, `skin_temp_deviation`) 등록, 미사용 `sleep_*_score` 3종 제거. pansongit DB 백업(`running.db.bak-20260921-pre-wellness-reprocess`) 후 `_reprocess_wellness`로 1087일 재구축, payload 대비 불일치 0건. 신규 테스트 포함 관련 141 passed.
 - **[BUG-AUTO-SYNC-USER-ID]** `auto_sync._trigger()` 스레드에 `set_current_user()` 미호출 → `create_job()`이 "default" DB에 job 생성 → BgSyncThread가 실제 유저 DB에서 job 못 찾음 → 즉시 종료. `_trigger()` 첫 줄에 `set_current_user(user_id)` 추가로 수정.
 - **[BUG-CONSISTENCY-FP]** check_data_consistency.py 🔴 2건 수정: (1) `workout_label` metric_registry `meta` 카테고리 등록, (2) DDL 파서 정규식 `BOOLEAN` 타입 누락 → PASS 복원.
 - **[AUTO-SYNC]** 자동 주기 동기화 구현: `src/web/auto_sync.py` daemon thread, `src/utils/sync_state.py` 타임스탬프 함수, `config.json.example` auto_sync 섹션, 동기화 탭 설정 UI (활성화/주기/범위) + POST `/sync/auto-sync-settings`. 1091 passed.

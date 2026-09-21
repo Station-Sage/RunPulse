@@ -421,8 +421,15 @@ _WELLNESS_COLUMNS = [
 ]
 
 
-def upsert_daily_wellness(conn: sqlite3.Connection, data: dict) -> int:
-    """daily_wellness UPSERT. UNIQUE(date) 기준. Merge 전략: NULL만 채움."""
+def upsert_daily_wellness(
+    conn: sqlite3.Connection, data: dict, *, overwrite: bool = False
+) -> int:
+    """daily_wellness UPSERT. UNIQUE(date) 기준.
+
+    Merge 전략: 기본은 기존 NULL인 필드만 채움.
+    overwrite=True는 새 non-null 값으로 갱신한다. 하루 중 여러 번 동기화되는
+    소스(Garmin)가 부분 하루치 값(걸음수, 스트레스, RHR 등)을 최종값으로 갱신하기 위함.
+    """
     date_val = data.get("date")
     if not date_val:
         raise ValueError("daily_wellness requires 'date'")
@@ -433,8 +440,6 @@ def upsert_daily_wellness(conn: sqlite3.Connection, data: dict) -> int:
     ).fetchone()
 
     if existing:
-        # Merge: 기존 NULL인 필드만 새 값으로 채움
-        col_names = [desc[0] for desc in conn.execute("PRAGMA table_info(daily_wellness)").fetchall()]
         col_names = [d[1] for d in conn.execute("PRAGMA table_info(daily_wellness)").fetchall()]
         existing_dict = dict(zip(col_names, existing))
 
@@ -443,7 +448,10 @@ def upsert_daily_wellness(conn: sqlite3.Connection, data: dict) -> int:
             if col == "date":
                 continue
             new_val = data.get(col)
-            if new_val is not None and existing_dict.get(col) is None:
+            if new_val is None:
+                continue
+            current = existing_dict.get(col)
+            if current is None or (overwrite and current != new_val):
                 updates[col] = new_val
 
         if updates:
