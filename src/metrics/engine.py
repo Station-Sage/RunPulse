@@ -13,7 +13,7 @@ from datetime import date, timedelta
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 from src.utils.db_helpers import upsert_metric
 from src.utils.metric_priority import resolve_for_scope
-from src.utils.metric_priority import resolve_all_primaries
+from src.utils.metric_priority import resolve_all_primaries, resolve_for_scope
 
 # ── Calculator 임포트 ──
 from src.metrics.trimp import TRIMPCalculator
@@ -466,14 +466,43 @@ def compute_for_activities(conn: sqlite3.Connection,
     return result
 
 
+def _compute_activity_metrics_for_dates(conn: sqlite3.Connection,
+                                        dates: list[str]) -> dict:
+    """해당 날짜들의 러닝 활동에 activity-scope calculator 실행.
+
+    PMC 등 daily calculator는 활동별 TRIMP를 입력으로 쓰고, prefetch는
+    `is_primary = 1`인 행만 읽는다. 따라서 daily prefetch 이전에 계산과
+    primary 확정을 모두 끝내야 새 TRIMP가 그날 부하에 반영된다.
+
+    Returns: {date: {activity_id: metrics}}
+    """
+    if not dates:
+        return {}
+    placeholders = ",".join("?" * len(dates))
+    rows = conn.execute(
+        f"SELECT id, substr(start_time, 1, 10) FROM activity_summaries "
+        f"WHERE substr(start_time, 1, 10) IN ({placeholders}) "
+        f"AND activity_type IN ('running','trail_running','treadmill')",
+        list(dates),
+    ).fetchall()
+
+    by_date: dict = {d: {} for d in dates}
+    for act_id, act_date in rows:
+        by_date[act_date][act_id] = run_activity_metrics(conn, act_id)
+        resolve_for_scope(conn, "activity", str(act_id))
+    return by_date
+
+
 def compute_for_dates(conn: sqlite3.Connection,
                       dates: list[str]) -> ComputeResult:
-    """특정 날짜들에 대해서만 daily-scope calculator 실행."""
+    """특정 날짜들의 활동 → 일별 metric 순차 실행."""
     result = ComputeResult()
     start = _time.monotonic()
     sorted_calcs = _topological_sort(
         [c for c in ALL_CALCULATORS if c.scope_type == "daily"]
     )
+
+    _compute_activity_metrics_for_dates(conn, dates)
 
     # batch prefetch
     if dates:
@@ -595,26 +624,8 @@ def run_for_date_range(
 def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
     """최근 N일 메트릭 재계산 (batch prefetch 포함)."""
     today = date.today()
-    start_date = (today - timedelta(days=days + 49)).isoformat()  # CTL 42일 + 여유
-    end_date = today.isoformat()
-
-    # batch prefetch
-    daily_loads = _prefetch_daily_trimp_sums(conn, start_date, end_date)
-    wellness_map = _prefetch_all_wellness(conn, start_date, end_date)
-    daily_metrics = _prefetch_daily_metrics(conn, start_date, end_date)
-
-    all_results = {}
-    for i in range(days):
-        d = (today - timedelta(days=days - 1 - i)).isoformat()
-        all_results[d] = run_for_date(
-            conn, d,
-            prefetched_daily_loads=daily_loads,
-            prefetched_wellness_map=wellness_map,
-            prefetched_daily_metrics=daily_metrics,
-        )
-
-    resolve_all_primaries(conn)
-    return all_results
+    dates = [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
+    return _recompute_dates(conn, dates)
 
 
 def clear_runpulse_metrics(conn: sqlite3.Connection) -> int:
@@ -628,27 +639,46 @@ def clear_runpulse_metrics(conn: sqlite3.Connection) -> int:
     return deleted
 
 
-def recompute_all(conn: sqlite3.Connection, days: int = 90) -> dict:
-    """전체 재계산: RunPulse 메트릭 삭제 → batch prefetch → 재실행."""
-    clear_runpulse_metrics(conn)
-    today = date.today()
-    start_date = (today - timedelta(days=days + 49)).isoformat()
-    end_date = today.isoformat()
+def _recompute_dates(conn: sqlite3.Connection, dates: list[str],
+                     on_progress=None) -> dict:
+    """활동 → prefetch → 일별 순서로 재계산.
 
-    # batch prefetch
+    prefetch는 `is_primary = 1`인 TRIMP만 읽으므로 활동 메트릭 계산과
+    primary 확정이 모두 끝난 뒤에 수행해야 한다.
+    """
+    if not dates:
+        return {}
+
+    activity_results = _compute_activity_metrics_for_dates(conn, dates)
+
+    start_date = (date.fromisoformat(min(dates)) - timedelta(days=49)).isoformat()
+    end_date = max(dates)
     daily_loads = _prefetch_daily_trimp_sums(conn, start_date, end_date)
     wellness_map = _prefetch_all_wellness(conn, start_date, end_date)
     daily_metrics = _prefetch_daily_metrics(conn, start_date, end_date)
 
     all_results = {}
-    for i in range(days):
-        d = (today - timedelta(days=days - 1 - i)).isoformat()
-        all_results[d] = run_for_date(
-            conn, d,
-            prefetched_daily_loads=daily_loads,
-            prefetched_wellness_map=wellness_map,
-            prefetched_daily_metrics=daily_metrics,
-        )
+    for i, d in enumerate(dates, start=1):
+        all_results[d] = {
+            "activity_metrics": activity_results.get(d, {}),
+            "daily": run_daily_metrics(
+                conn, d,
+                prefetched_daily_loads=daily_loads,
+                prefetched_wellness_map=wellness_map,
+                prefetched_daily_metrics=daily_metrics,
+            ),
+        }
+        if on_progress:
+            on_progress(d, i, len(dates))
 
     resolve_all_primaries(conn)
     return all_results
+
+
+def recompute_all(conn: sqlite3.Connection, days: int = 90,
+                  on_progress=None) -> dict:
+    """전체 재계산: RunPulse 메트릭 삭제 → 활동 → 일별 순서로 재실행."""
+    clear_runpulse_metrics(conn)
+    today = date.today()
+    dates = [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
+    return _recompute_dates(conn, dates, on_progress=on_progress)

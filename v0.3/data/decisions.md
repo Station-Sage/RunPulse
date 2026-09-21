@@ -101,3 +101,13 @@
 - **검증 기준 조정**: pace 상한 900 → 1800 s/km(걷기 수준 러닝 존재), group 내 source 수는 DB의 전체 source 수 이하, stride는 러닝/걷기 활동만, rtti 0~200, aerobic_decoupling_rp -50~100.
 - **결과**: 기존 행 정정(HR 0 92행, stress 1행, cadence 66행, max_speed 3행, ACWR 3행) 후 `test_integration_realdb` 전부 통과.
 - **검증**: `tests/test_activity_core_sanitize.py`, `tests/test_garmin_extractor.py::TestGarminDataQualityGuards`, `tests/test_integration_realdb.py`
+- **정정 (2026-09-21, ADR-014)**: ACWR 5.39와 RTTI 200의 실제 원인은 '데이터 시작 / 휴식 후 복귀'가 아니라 TRIMP 미계산으로 CTL이 0에 수렴한 것이었다. 백필 후 최근 구간은 ACWR 0.87~1.56, RTTI 87~156으로 정상화됐고 남은 극단값은 백필 경계(2025-05, 2025-09)의 EMA warm-up 구간뿐이다. 캡 자체는 0 division 방어 가드로 유지한다.
+
+## ADR-014: 메트릭 계산 순서 — 활동 → primary 확정 → prefetch → 일별 (2026-09-21)
+- **날짜**: 2026-09-21
+- **맥락**: CTL/ATL/TSB가 2026-09-05 이후 생성되지 않았고, 그 전에도 값이 0에 수렴해 무의미했다(2026-09-05 CTL 0.4 / ATL 0.0). 원인은 동기화 경로가 쓰는 `run_for_date_range` → `compute_for_dates`가 `run_daily_metrics`만 호출해 **활동별 TRIMP를 계산하지 않은 것**. PMC는 TRIMP 합계를 입력으로 쓰므로 마지막 TRIMP(2026-07-18) + 윈도우 49일 = 2026-09-05를 끝으로 빈 결과를 반환했다. `run_for_date`(대시보드 단일 날짜 경로)만 활동+일별을 함께 계산하고 있었다.
+- **결정**: `_compute_activity_metrics_for_dates()`를 추가하고 `compute_for_dates`·`_recompute_dates`가 **활동 계산 → scope별 primary 확정 → prefetch → 일별** 순서로 실행한다. bg_sync와 sync.py는 모두 `run_for_date_range`를 거치므로 호출부 변경 없이 해결된다.
+- **함정 (반드시 유지)**: `_prefetch_daily_trimp_sums()`는 `is_primary = 1`인 행만 읽고 루프 **이전에** 한 번만 실행된다. 활동 메트릭을 prefetch 이후나 루프 안에서 계산하면 맵이 낡아 PMC가 부하 0을 읽고 CTL이 아예 생성되지 않는다. `resolve_for_scope()`로 primary까지 확정한 뒤 prefetch해야 한다. 회귀 테스트가 이 순서를 검증한다.
+- **함께 수정**: `recompute_recent`/`recompute_all`도 같은 순서 결함이 있어 `_recompute_dates()`로 통합. `recompute_all`에 UI(`views_settings_metrics.py`)가 이미 넘기던 `on_progress` 파라미터 추가(기존에는 TypeError). 활동 id를 들고 다니지 않는 `SyncResult` 때문에 연결 불가능했고 이제 중복이 된 `src/sync/integration.py` 삭제.
+- **결과**: 2025-09-01~2026-09-21 백필 후 2026-09-21 기준 CTL 75.0 / ATL 92.4 / TSB -17.4 / ACWR 1.23. 일별 runpulse 메트릭 24종 중 23종이 당일까지 채워짐(`di`는 스트림 의존이라 별도 이슈).
+- **검증**: `tests/test_round2.py::TestComputeForDatesRunsActivityMetrics`, `::TestRecomputeAll`

@@ -105,7 +105,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (654줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (684줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all
@@ -271,10 +271,6 @@
 
 - class **_RateLimitStop**: 없음
 - functions: sync
-
-### `integration.py` (55줄) — Phase 3 → Phase 4 통합 지점 (보강 #12).
-
-- functions: compute_metrics_after_sync
 
 ### `intervals.py` (78줄) — Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
 
@@ -1399,13 +1395,14 @@
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
-### `test_round2.py` (134줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric, integration.
+### `test_round2.py` (193줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric.
 
 - class **TestComputeResult**: test_summary, test_defaults
 - class **TestComputeForActivities**: test_basic, test_empty_list
 - class **TestComputeForDates**: test_basic, test_empty_dates
 - class **TestRecomputeSingleMetric**: test_trimp, test_invalid_metric
-- class **TestIntegration**: test_compute_metrics_after_sync
+- class **TestComputeForDatesRunsActivityMetrics**: test_trimp_is_computed, test_trimp_is_marked_primary, test_ctl_reflects_trimp_from_same_call, test_no_activities_still_runs_daily
+- class **TestRecomputeAll**: test_ctl_recomputed_after_clear, test_on_progress_callback
 
 ### `test_round4.py` (88줄) — 라운드 4 테스트: 메타데이터, semantic grouping, CLI.
 
@@ -1586,7 +1583,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 311개 파일
+총 310개 파일
 
 ## docstring 누락
 
