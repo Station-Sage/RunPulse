@@ -173,7 +173,15 @@ def _reprocess_activity_details(conn, source, activity_id_map, stats):
                 count = save_metrics(conn, "activity", str(activity_id), src, metrics)
                 stats["metrics"] += count
 
-            laps = extractor.extract_activity_laps(detail)
+            # Garmin 랩은 activity_detail이 아니라 activity_splits payload에 있다
+            splits_row = conn.execute(
+                "SELECT payload FROM source_payloads "
+                "WHERE source = ? AND entity_type = 'activity_splits' AND entity_id = ?",
+                (src, eid),
+            ).fetchone()
+            laps = extractor.extract_activity_laps(
+                json.loads(splits_row[0]) if splits_row else detail
+            )
             if laps:
                 save_laps(conn, activity_id, laps)
 

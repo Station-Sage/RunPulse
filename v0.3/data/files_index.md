@@ -225,11 +225,11 @@
 
 - functions: run
 
-### `garmin.py` (233줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
+### `garmin.py` (241줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (260줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_sync.py` (285줄) — Garmin 활동 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -305,7 +305,7 @@
 
 - functions: upsert_raw_payload, update_raw_activity_id
 
-### `reprocess.py` (291줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reprocess.py` (299줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -355,7 +355,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (663줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (667줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -1176,9 +1176,10 @@
 - class **TestRouteSmoke**: test_activities_200, test_activities_with_data_rendered, test_activities_export_csv_200, test_activities_export_csv_has_rows, test_activities_export_csv_distance_km, test_activities_filter_source, test_activities_filter_type, test_activities_pagination, test_merge_bad_ids_no_500, test_ungroup_missing_id_no_500
 - functions: mini_app
 
-### `test_garmin_activity_sync.py` (181줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
+### `test_garmin_activity_sync.py` (262줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
+- class **TestGarminLaps**: test_laps_saved_from_splits, test_splits_payload_stored, test_existing_activity_missing_splits_is_refetched, test_splits_failure_does_not_break_sync
 
 ### `test_garmin_auth_migration.py` (190줄) — garmin_auth.py garminconnect 0.3.x 마이그레이션 테스트.
 

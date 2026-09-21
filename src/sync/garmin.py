@@ -61,15 +61,23 @@ def sync_activities(
     from_date: "str | None" = None,
     to_date: "str | None" = None,
     bg_mode: bool = False,
+    include_streams: bool = True,
 ) -> int:
     """Garmin 활동 동기화 래퍼.
+
+    include_streams는 활동당 API 1회와 약 2,000행을 추가하므로,
+    증분 동기화(웹/auto-sync)에서만 기본 활성화한다. 대량 초기 적재는
+    sync_cli의 --streams 옵션으로 별도 제어한다.
 
     Returns:
         동기화된 활동 수.
     """
     if client is None:
         client = _login(config)
-    result = _act_sync.sync(conn, client, days, start_date=from_date, end_date=to_date)
+    result = _act_sync.sync(
+        conn, client, days, start_date=from_date, end_date=to_date,
+        include_streams=include_streams,
+    )
     return result.synced_count
 
 

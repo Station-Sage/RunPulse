@@ -241,9 +241,12 @@ class GarminExtractor(BaseExtractor):
 
     # ── Activity Laps ──
 
-    def extract_activity_laps(self, detail_raw: dict) -> list[dict]:
-        """Garmin 상세 API에서 랩 추출."""
-        laps_raw = detail_raw.get("laps") or detail_raw.get("lapDTOs") or []
+    def extract_activity_laps(self, splits_raw: dict) -> list[dict]:
+        """Garmin `/splits` 응답(`lapDTOs`)에서 랩 추출.
+
+        랩은 activity detail이 아니라 `get_activity_splits()` 응답에만 들어 있다.
+        """
+        laps_raw = splits_raw.get("lapDTOs") or splits_raw.get("laps") or []
         laps = []
         for i, lap in enumerate(laps_raw):
             avg_speed = lap.get("averageSpeed")
@@ -256,13 +259,14 @@ class GarminExtractor(BaseExtractor):
                 "avg_hr": _int(lap.get("averageHR")),
                 "max_hr": _int(lap.get("maxHR")),
                 "avg_cadence": _running_cadence(
-                    lap.get("averageRunningCadenceInStepsPerMinute")
+                    lap.get("averageRunCadence")
+                    or lap.get("averageRunningCadenceInStepsPerMinute")
                 ),
-                "avg_power": lap.get("avgPower"),
+                "avg_power": lap.get("averagePower") or lap.get("avgPower"),
                 "max_power": lap.get("maxPower"),
                 "elevation_gain": lap.get("elevationGain"),
                 "calories": _int(lap.get("calories")),
-                "lap_trigger": lap.get("lapTrigger"),
+                "lap_trigger": lap.get("intensityType") or lap.get("lapTrigger"),
             }
             if avg_speed and avg_speed > 0:
                 lap_dict["avg_pace_sec_km"] = round(1000.0 / avg_speed, 2)

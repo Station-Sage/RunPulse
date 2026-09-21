@@ -150,15 +150,18 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
     # [5] 역참조
     update_raw_activity_id(conn, "garmin", "activity_summary", source_id, activity_id)
 
-    # [6-7] Detail — summary가 기존에도 detail이 없으면 재시도
-    has_detail = conn.execute(
-        "SELECT 1 FROM source_payloads WHERE source='garmin' "
-        "AND entity_type='activity_detail' AND entity_id=?",
-        (source_id,),
-    ).fetchone() is not None
-    if not is_new and has_detail:
-        log.debug("[garmin/activity] skip (summary+detail 모두 기존): %s", source_id)
-        return False  # summary·detail 모두 이미 있음 → skip
+    # [6-7] Detail — 기존 활동이라도 빠진 payload가 있으면 보충한다
+    stored = {
+        row[0] for row in conn.execute(
+            "SELECT entity_type FROM source_payloads WHERE source='garmin' "
+            "AND entity_type IN ('activity_detail','activity_splits') AND entity_id=?",
+            (source_id,),
+        )
+    }
+    has_detail = "activity_detail" in stored
+    if not is_new and has_detail and "activity_splits" in stored:
+        log.debug("[garmin/activity] skip (summary+detail+splits 모두 기존): %s", source_id)
+        return False
 
     log.info("[garmin/activity] detail 조회: %s (is_new=%s, has_detail=%s)", source_id, is_new, has_detail)
     detail = _fetch_detail(conn, api, limiter, result, source_id, activity_id)
@@ -168,9 +171,10 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
     if metrics:
         save_metrics(conn, "activity", str(activity_id), "garmin", metrics)
 
-    # [10-11] Laps
-    if detail:
-        laps = extractor.extract_activity_laps(detail)
+    # [10-11] Laps — detail에는 lapDTOs가 없고 /splits 응답에만 있음
+    splits = _fetch_splits(conn, api, limiter, result, source_id, activity_id)
+    if splits:
+        laps = extractor.extract_activity_laps(splits)
         if laps:
             save_laps(conn, activity_id, laps)
 
@@ -222,6 +226,27 @@ def _fetch_detail(conn, api, limiter, result, source_id, activity_id):
         log.warning("[garmin] Detail fetch failed for %s: %s", source_id, e)
         return None
 
+
+
+def _fetch_splits(conn, api, limiter, result, source_id, activity_id):
+    """랩 데이터(`/splits`) 조회 후 raw payload 저장."""
+    try:
+        limiter.pre_request()
+        splits = api.get_activity_splits(int(source_id))
+        limiter.post_request(success=True)
+        result.api_calls += 1
+        if splits:
+            upsert_raw_payload(
+                conn, "garmin", "activity_splits", source_id, splits,
+                endpoint=f"activity-service/activity/{source_id}/splits",
+                activity_id=activity_id,
+            )
+        return splits
+    except Exception as e:
+        if _is_rate_limit_error(e) and not limiter.handle_rate_limit():
+            raise _RateLimitStop()
+        log.warning("[garmin] Splits fetch failed for %s: %s", source_id, e)
+        return None
 
 
 def _fetch_streams(conn, api, extractor, limiter, result, source_id, activity_id):

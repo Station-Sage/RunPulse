@@ -12,12 +12,38 @@ def _conn():
     return c
 
 
-def _mock_api(activities=None, detail=None, streams=None):
+def _mock_api(activities=None, detail=None, streams=None, splits=None):
     api = MagicMock()
     api.get_activities_by_date.return_value = activities or []
     api.get_activity.return_value = detail
     api.get_activity_details.return_value = streams
+    # 실제 /splits 응답은 랩이 없어도 activityId를 담은 dict를 반환한다
+    api.get_activity_splits.return_value = (
+        splits if splits is not None else {"activityId": 12345, "lapDTOs": []}
+    )
     return api
+
+
+SAMPLE_SPLITS = {
+    "activityId": 12345,
+    "lapDTOs": [
+        {
+            "lapIndex": 1, "startTimeGMT": "2026-04-01T08:00:00.0",
+            "distance": 1000.0, "duration": 383.841, "averageSpeed": 2.605,
+            "averageHR": 118.0, "maxHR": 128.0,
+            "averageRunCadence": 171.71875, "maxRunCadence": 177.0,
+            "averagePower": 226.0, "maxPower": 249.0,
+            "elevationGain": 1.06, "calories": 57.0, "intensityType": "INTERVAL",
+        },
+        {
+            "lapIndex": 2, "startTimeGMT": "2026-04-01T08:06:24.0",
+            "distance": 1000.0, "duration": 366.9, "averageSpeed": 2.726,
+            "averageHR": 128.0, "maxHR": 132.0,
+            "averageRunCadence": 174.03125, "averagePower": 232.0,
+            "intensityType": "INTERVAL",
+        },
+    ],
+}
 
 
 SAMPLE_ACTIVITY = {
@@ -179,3 +205,58 @@ class TestGarminActivitySync:
             "SELECT COUNT(*) FROM metric_store WHERE is_primary = 1"
         ).fetchone()
         assert primaries[0] > 0
+
+
+class TestGarminLaps:
+    """랩은 activity detail이 아니라 /splits 응답에서 추출된다."""
+
+    def test_laps_saved_from_splits(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL,
+                        splits=SAMPLE_SPLITS)
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+
+        rows = conn.execute(
+            "SELECT lap_index, distance_m, avg_hr, avg_cadence, avg_power, lap_trigger "
+            "FROM activity_laps ORDER BY lap_index"
+        ).fetchall()
+        assert len(rows) == 2
+        assert rows[0] == (0, 1000.0, 118, 172, 226.0, "INTERVAL")
+        assert rows[1][2] == 128
+
+    def test_splits_payload_stored(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL,
+                        splits=SAMPLE_SPLITS)
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+
+        row = conn.execute(
+            "SELECT COUNT(*) FROM source_payloads "
+            "WHERE source='garmin' AND entity_type='activity_splits'"
+        ).fetchone()
+        assert row[0] == 1
+
+    def test_existing_activity_missing_splits_is_refetched(self):
+        """detail만 있던 기존 활동도 다음 동기화에서 랩을 보충한다."""
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL,
+                        splits=SAMPLE_SPLITS)
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+        conn.execute("DELETE FROM activity_laps")
+        conn.execute("DELETE FROM source_payloads WHERE entity_type='activity_splits'")
+        conn.commit()
+
+        result = sync(conn, api, days=7, _sleep_fn=lambda _: None)
+
+        assert result.skipped_count == 0
+        assert conn.execute("SELECT COUNT(*) FROM activity_laps").fetchone()[0] == 2
+
+    def test_splits_failure_does_not_break_sync(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL)
+        api.get_activity_splits.side_effect = Exception("timeout")
+
+        result = sync(conn, api, days=7, _sleep_fn=lambda _: None)
+
+        assert result.synced_count == 1
+        assert conn.execute("SELECT COUNT(*) FROM activity_laps").fetchone()[0] == 0

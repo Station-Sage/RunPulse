@@ -111,3 +111,12 @@
 - **함께 수정**: `recompute_recent`/`recompute_all`도 같은 순서 결함이 있어 `_recompute_dates()`로 통합. `recompute_all`에 UI(`views_settings_metrics.py`)가 이미 넘기던 `on_progress` 파라미터 추가(기존에는 TypeError). 활동 id를 들고 다니지 않는 `SyncResult` 때문에 연결 불가능했고 이제 중복이 된 `src/sync/integration.py` 삭제.
 - **결과**: 2025-09-01~2026-09-21 백필 후 2026-09-21 기준 CTL 75.0 / ATL 92.4 / TSB -17.4 / ACWR 1.23. 일별 runpulse 메트릭 24종 중 23종이 당일까지 채워짐(`di`는 스트림 의존이라 별도 이슈).
 - **검증**: `tests/test_round2.py::TestComputeForDatesRunsActivityMetrics`, `::TestRecomputeAll`
+
+## ADR-015: Garmin 랩은 /splits 엔드포인트, 스트림은 증분 동기화에서만 기본 수집 (2026-09-21)
+- **날짜**: 2026-09-21
+- **맥락**: `activity_laps`가 전 기간 0건이었다(기존 훈련 로그의 세트 분석은 Tredict 출처). `get_activity()`(activity detail) 응답에는 `lapDTOs`가 없고 타입별 집계인 `splitSummaries` 4개만 있어 `extract_activity_laps(detail)`이 항상 빈 리스트를 반환했다. `activity_streams`도 2026-06-23 이후 0건인데, bg_sync가 쓰는 `sync_activities` 래퍼가 `include_streams`를 전달하지 않아 항상 False였다. 그 결과 스트림 의존 calculator인 `di`가 2025-08-31 이후 조용히 빈 결과를 반환했다.
+- **결정(랩)**: `get_activity_splits()`(`/splits`)를 별도 호출해 `activity_splits` entity_type으로 저장하고 랩은 이 payload에서 추출한다. 실제 응답 확인 결과 `{"activityId", "lapDTOs"[], "eventDTOs"[]}` 구조이며, **랩 필드명이 activity summary와 다르다**: `averageRunCadence`(≠ `averageRunningCadenceInStepsPerMinute`), `averagePower`(≠ `avgPower`), `intensityType`(≠ `lapTrigger`). 확인하지 않고 기존 필드명을 재사용했다면 랩이 저장돼도 케이던스·파워가 전부 NULL이 됐을 것이다.
+- **결정(skip 조건)**: 기존 `summary + detail` 존재 시 skip을 `summary + detail + splits`로 확장. detail만 있던 기존 활동도 다음 동기화에서 랩을 보충한다. `/splits`는 랩이 없어도 `activityId`를 담은 dict를 반환하므로 재조회 루프는 생기지 않는다.
+- **결정(스트림)**: `sync_activities` 래퍼의 `include_streams` 기본값을 True로 두되 **증분 경로(bg_sync/auto-sync, `src/sync.py`)에만 적용**한다. 활동당 API 1회와 약 2,000행이 추가되므로(월 15건 기준 약 30,000행·2 MB) 증분에서는 수용 가능하지만, 1,400건 규모 초기 적재에서는 약 280만 행이 된다. `sync_cli`는 `garmin_activity_sync.sync`를 직접 호출하며 `--streams` 옵션으로 별도 제어하므로 대량 적재는 영향받지 않는다.
+- **결과**: 활동당 Garmin API 호출이 1회(detail)에서 3회(detail + splits + streams)로 늘어난다. rate limiter와 429 백오프가 기존대로 적용된다. 과거 활동의 랩·스트림 보충은 해당 기간 date-range 동기화가 필요하다.
+- **검증**: `tests/test_garmin_activity_sync.py::TestGarminLaps`
