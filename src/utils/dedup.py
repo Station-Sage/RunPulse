@@ -15,6 +15,11 @@ from datetime import datetime, timedelta
 _TIME_TOLERANCE = timedelta(minutes=7)
 _DISTANCE_TOLERANCE = 0.15  # 15%
 
+# v_canonical_activities, dedup.py와 동일한 소스 우선순위 (AO-3)
+_SOURCE_PRIORITY: dict[str, int] = {
+    "garmin": 1, "intervals": 2, "strava": 3, "runalyze": 4
+}
+
 
 def _parse_dt(s: str) -> datetime:
     """시간 문자열을 timezone-naive datetime으로 파싱.
@@ -60,14 +65,7 @@ def is_duplicate(
 
 
 def find_duplicates(activities: list[dict]) -> list[list[dict]]:
-    """활동 목록에서 중복 그룹 찾기.
-
-    Args:
-        activities: [{"start_time": str, "distance_km": float, ...}, ...] 리스트.
-
-    Returns:
-        중복 그룹 리스트. 각 그룹은 2개 이상의 활동 dict 리스트.
-    """
+    """활동 목록에서 중복 그룹 찾기. 각 그룹은 2개 이상 활동 dict 리스트."""
     n = len(activities)
     visited: set[int] = set()
     groups: list[list[dict]] = []
@@ -94,16 +92,30 @@ def find_duplicates(activities: list[dict]) -> list[list[dict]]:
     return groups
 
 
+def _upsert_activity_group(conn: sqlite3.Connection, group_id: str) -> None:
+    """activity_groups 마스터 행 생성/갱신 (garmin>intervals>strava>runalyze 우선순위, AO-3)."""
+    rows = conn.execute(
+        "SELECT source, start_time, distance_m FROM activity_summaries "
+        "WHERE matched_group_id = ?", (group_id,),
+    ).fetchall()
+    if not rows:
+        return
+    primary = min(rows, key=lambda r: _SOURCE_PRIORITY.get(r[0], 99))
+    activity_date = (primary[1] or "")[:10]
+    if not activity_date:
+        return
+    conn.execute(
+        "INSERT INTO activity_groups (group_id, primary_source, activity_date, distance_m, member_count)"
+        " VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT(group_id) DO UPDATE SET primary_source=excluded.primary_source,"
+        " activity_date=excluded.activity_date, distance_m=excluded.distance_m,"
+        " member_count=excluded.member_count, updated_at=datetime('now')",
+        (group_id, primary[0], activity_date, primary[2], len(rows)),
+    )
+
+
 def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
-    """새 활동에 대해 기존 활동과 매칭하여 group_id 할당.
-
-    Args:
-        conn: SQLite 연결.
-        activity_id: 매칭할 활동 ID.
-
-    Returns:
-        할당된 group_id 또는 매칭 없으면 None.
-    """
+    """새 활동을 기존 활동과 매칭해 group_id 할당. 매칭 없으면 None 반환."""
     row = conn.execute(
         "SELECT start_time, distance_m / 1000.0 AS distance_km FROM activity_summaries WHERE id = ?",
         (activity_id,),
@@ -133,6 +145,7 @@ def assign_group_id(conn: sqlite3.Connection, activity_id: int) -> str | None:
                 "UPDATE activity_summaries SET matched_group_id = ? WHERE id IN (?, ?)",
                 (group_id, activity_id, cand_id),
             )
+            _upsert_activity_group(conn, group_id)
             return group_id
 
     return None
@@ -215,6 +228,14 @@ def auto_group_all(conn: sqlite3.Connection) -> dict[str, int]:
                 new_groups += 1
 
     conn.commit()
+
+    # activity_groups 마스터 테이블 동기화
+    active_groups = {gid for gid in group_map.values() if gid is not None}
+    for gid in active_groups:
+        _upsert_activity_group(conn, gid)
+    if active_groups:
+        conn.commit()
+
     return {
         "groups_created": new_groups // 2 + new_groups % 2,
         "activities_grouped": len(grouped_ids),
