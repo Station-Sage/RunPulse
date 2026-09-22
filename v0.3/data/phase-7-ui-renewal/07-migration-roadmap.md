@@ -94,9 +94,10 @@ Library/activities                                                v1 제거
 - [x] Today 화면(L0+L1 완성, L2 텍스트 스텁) — `03a-today.md` 1-A' 구현(L2는 문서의 정확한
   두 줄 문구 대신 실제로 조회 가능한 데이터만 — 월간 거리·주간 준수율·다음 세션은
   narrative/plan API가 7b라 아직 없음)
-- [ ] Library/activities 화면 — `03c-library.md` 구현(하단 탭에 "준비 중" 플레이스홀더만 존재)
-- [ ] **Coach MVP 화면** — 스레드 목록 + 대화창 (`03e-coach.md` 기본 구현, 컨텍스트 패널 제외,
-  하단 탭에 "준비 중" 플레이스홀더만 존재)
+- [x] Library/activities 화면 — `03c-library.md` 3-B·3-C(요약 탭) 구현(`P7-IMPL-SVELTE-2A`,
+  2026-09-22, autopilot kind=code). 랩·메트릭 탭·스트림 차트·고급 필터는 범위 밖(7b)
+- [x] **Coach MVP 화면** — 스레드 목록 + 대화창 (`P7-IMPL-SVELTE-2B`, 2026-09-22,
+  autopilot kind=code). 컨텍스트 패널·플랜 섹션은 범위 밖(7d/plan_service 스텁)
 - [ ] 상단 3선 메뉴 UI (`/v2/data/settings` 등 진입점) — ☰ 버튼은 있지만 비활성(Phase 7d 몫)
 
 ### 검증 기준

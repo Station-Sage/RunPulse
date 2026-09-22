@@ -3,7 +3,8 @@
 ## 진행 현황
 
 **현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 진행 중(D5·D3·Flask API·SvelteKit
-Today 화면 완료, Library/Coach 화면 남음).** REVIEW-03(Today as Gateway·모바일 IA)을
+Today/Library/Coach 화면 완료. D1도 완료 — 남은 건 D2/D4, 상단 3선 메뉴 UI뿐).**
+REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
 (`scripts/autopilot/`) 5유닛(00 §10 결정 요약, 00 §5.1/5.3/6/7 IA 영역 서술, 01 P8→P8',
@@ -27,8 +28,9 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 엔드포인트(Today+Library+Coach)도 완료(2026-09-22, 같은 세션). 이어서 SvelteKit
 프론트엔드 착수 — `frontend/` 초기화 + 공통 레이아웃 + 컴포넌트 4개 + Today 화면 완료
 (2026-09-22, `P7-IMPL-SVELTE` 1차 — 사용자가 "UI Renewal인데 실제 UI가 하나도 없다"고
-지적한 게 계기). 상세는 DONE 참조. D1/D2/D4는 아직 미착수, Library/Coach 화면(SvelteKit
-2차)도 아직.
+지적한 게 계기). 이어서 오토파일럿(`kind:"code"`, 신규 확장)으로 D1 + Library/Coach
+화면(SvelteKit 2차, `P7-IMPL-D1`/`P7-IMPL-SVELTE-2A`/`-2B`)까지 완료(2026-09-22, 사용자
+"40분간 오토파일럿 돌리자" 지시). 상세는 DONE 참조. D2/D4·상단 3선 메뉴 UI는 아직.
 
 **보류(사용자 지시, 2026-09-22, "러닝이 우선")**:
 1. PWA 타이밍 — 비전 그룹1 vs 00/07의 7c 배치 불일치.
@@ -69,7 +71,7 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 ### 데이터 레이어 확장 5건
 | ID | 내용 | 단계 | 상태 |
 |----|------|------|------|
-| D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a | 미구현 |
+| D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a | ✅ 완료(2026-09-22) |
 | D2 | 활동 그룹 ID 모델 명시화 (그룹 마스터 테이블) | Phase 7b | 미구현 |
 | D3 | `user_inputs` / `ai_feedback` 테이블 신설 (+ 구현 중 발견: `chat_threads` 신설) | Phase 7a | ✅ 완료(2026-09-22) |
 | D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c | 미구현 |
@@ -90,7 +92,8 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 
 ## NEXT
 
-(비어있음 — AUTOPILOT QUEUE의 3건이 review로 올라오면 병합 검토가 다음 순서)
+(비어있음 — AUTOPILOT QUEUE 3건(D1/2A/2B) 전부 완료·병합됨(2026-09-22). 다음 큐 항목은
+사용자 지시로 채운다)
 
 ---
 
@@ -151,7 +154,7 @@ DONE으로 옮긴다.
   **범위 밖**: Library 홈의 시맨틱 그룹 탐색·Provider 연결 현황(3-A, `/library/metrics`
   등 7b API 필요), 랩·메트릭 탭(엔드포인트 없음), 스트림 전체 차트 시각화(이번엔 스트림
   존재 여부/포인트 수 정도만 표시), 고급 필터(정렬·거리 범위 — sport/날짜/페이지네이션만).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/", "frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/", "frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-SVELTE-2B]** SvelteKit — Coach MVP 화면(`03e-coach.md` 5-A 홈 + 5-B
   대화 스레드, 컨텍스트 패널 제외 — 07 로드맵상 7d 몫). Today와 같은 패턴 재사용
@@ -166,7 +169,7 @@ DONE으로 옮긴다.
   컨텍스트 패널(7d), Coach 홈의 "진행 중 플랜"·"새 프로그램 만들기" 섹션(plan_service가
   아직 스텁), Coach 홈의 QuickInput(compact) 블록 — 이미 Today에 있으니 중복 배치는
   이번엔 생략, 필요하면 후속 판단.
-  <!-- autopilot: {"stage":"review","mode":"auto","attempts":1,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/coach/", "frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 

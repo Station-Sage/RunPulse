@@ -86,7 +86,7 @@
 
 - class **ADTICalculator**: compute
 
-### `base.py` (494줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (497줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
@@ -133,7 +133,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (684줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (692줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all
@@ -162,7 +162,7 @@
 
 - class **MonotonyStrainCalculator**: compute
 
-### `pmc.py` (74줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
+### `pmc.py` (75줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
 
 - class **PMCCalculator**: compute
 
@@ -1268,11 +1268,11 @@
 
 - class **TestEFTP**: test_from_vdot, test_no_vdot, test_confidence
 
-### `test_engine.py` (117줄) — Metrics Engine 통합 테스트.
+### `test_engine.py` (142줄) — Metrics Engine 통합 테스트.
 
 - class **TestTopologicalSort**: test_trimp_before_hrss, test_pmc_before_acwr, test_acwr_before_cirs, test_all_calculators_included
 - class **TestRunActivityMetrics**: test_produces_metrics, test_metrics_in_store
-- class **TestRunDailyMetrics**: test_with_trimp
+- class **TestRunDailyMetrics**: test_with_trimp, test_ramp_rate_parent_metric_id_links_to_ctl
 - class **TestRunForDate**: test_full_pipeline
 - class **TestClearRunpulse**: test_clears_only_runpulse
 
@@ -1484,9 +1484,9 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_pmc.py` (72줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
+### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
-- class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data
+- class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data, test_ramp_rate_has_parent_metric_name_ctl
 
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
