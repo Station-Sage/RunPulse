@@ -305,22 +305,24 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 
 ## 10. 결정 요약 — 한 페이지
 
+> _이 결정은 REVIEW-03(2026-09-22 확정)으로 갱신됨._
+>
 > **현 UI 진단**: 비전 충족도 3/10. 부분 개선이 아닌 전면 재설계가 정당화됨.
 > **데이터 레이어 진단**: 비전 충족도 8.5/10. 비전을 받쳐줄 능력은 충분. UI가 표현 못 하고 있을 뿐.
 >
 > **분기점 결정**:
-> - **A. IA**: 사용자 의도 중심 5+1 영역 (Today/Story/Library/Plan/Coach + Data)
+> - **A. IA**: 하단 3탭(Today/Library/Coach) + 상단 3선 메뉴. Story는 Today 세로축(L2)으로 흡수·독립 라우트 없음. Plan은 현황 보기(Today L2 블록)와 수립·수정 작업(Coach 탭)으로 분할.
 > - **B. 기술 스택**: SvelteKit + Tailwind + Flask API + 단일 프로세스 배포
-> - **C. 디자인**: Quiet Data 미니멀리즘 + Story 영역 에디토리얼, 글래스모피즘 폐기
-> - **D. 마이그레이션**: `/v2/` 단계별 + 완성 시점 디폴트 스위치, Phase 7a→7d 단계와 정렬
+> - **C. 디자인**: Quiet Data 미니멀리즘, 글래스모피즘 폐기. Story 독립 영역 제거됨에 따라 "에디토리얼" 표현은 Today L2 내러티브 블록으로 흡수.
+> - **D. 마이그레이션**: `/v2/` 단계별 + 완성 시점 디폴트 스위치, Phase 7a→7d 단계와 정렬 (IA 변경에 맞춰 화면 분배 재정렬 필요)
 >
 > **데이터 레이어 확장 5건**: D1(parent_metric_id 트리 활성화) D2(그룹 ID) D3(user_inputs, ai_feedback) D4(athlete_profile_snapshots) D5(phase-5 서비스 레이어 구현) — D5가 모든 작업의 전제.
 >
-> **설계 원칙 8개**: Evidence-First / Drillable Everything / Provider Transparency / Intent-Centered IA / Quiet Data / One Finger Reach for Input / State-Bound Plan / Local-First Identity.
+> **설계 원칙 8개**: Evidence-First / Drillable Everything / Provider Transparency / Intent-Centered IA / Quiet Data / One Finger Reach for Input / State-Bound Plan / **Data Ownership & Transparency(P8') — SaaS, 서버 가공, `email@db` 격리 저장, export 가능, AI 전송 범위 고지, source_payloads 보존.**
 >
 > **컴포넌트 카탈로그 1차 7개**: EvidenceQuote, MetricCell, MetricBreakdown, ProviderComparison, QuickInput, RecommendationCard, TimelineNarrative.
 >
-> **다음 단계**: 본 문서 승인 후 `01-design-principles.md` 작성 시작.
+> **다음 단계**: 00~07 문서를 REVIEW-02·REVIEW-03 최종안에 맞춰 재정렬 후 Phase 7a 구현 착수.
 
 ---
 
