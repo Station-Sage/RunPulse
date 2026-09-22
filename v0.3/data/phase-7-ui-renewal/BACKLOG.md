@@ -133,7 +133,7 @@ DONE으로 옮긴다.
   `ramp_rate` 행의 `parent_metric_id`가 같은 날짜 `ctl` 행의 id와 같은지 확인한다.
   `metrics_service.get_metric_breakdown()`(소비 API)은 범위 밖(Phase 7b, `07-migration-
   roadmap.md` 참조) — 이번엔 DB 행 연결까지만.
-  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["src/metrics/base.py","src/metrics/engine.py","src/metrics/pmc.py", "tests/test_pmc.py","tests/test_engine.py"], "verify":["python3 -m pytest tests/test_pmc.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/metrics/base.py", "src/metrics/engine.py", "src/metrics/pmc.py", "tests/test_pmc.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_pmc.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 - **[P7-IMPL-SVELTE-2A]** SvelteKit — Library 활동 목록 + 상세 화면(`03c-library.md`
   3-B·3-C 요약 탭만). `frontend/`의 Today 구현(`P7-IMPL-SVELTE` 1차, 이미 병합됨)이
@@ -151,7 +151,7 @@ DONE으로 옮긴다.
   **범위 밖**: Library 홈의 시맨틱 그룹 탐색·Provider 연결 현황(3-A, `/library/metrics`
   등 7b API 필요), 랩·메트릭 탭(엔드포인트 없음), 스트림 전체 차트 시각화(이번엔 스트림
   존재 여부/포인트 수 정도만 표시), 고급 필터(정렬·거리 범위 — sport/날짜/페이지네이션만).
-  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/library/","frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/", "frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-SVELTE-2B]** SvelteKit — Coach MVP 화면(`03e-coach.md` 5-A 홈 + 5-B
   대화 스레드, 컨텍스트 패널 제외 — 07 로드맵상 7d 몫). Today와 같은 패턴 재사용
