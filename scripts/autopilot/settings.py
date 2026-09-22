@@ -16,8 +16,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 # P7-AUTO-SPLIT-03가 탐색 단계(10턴, 쓰기 전)에서 예산 초과로 실패(실측 $0.510).
 # $1.0로 상향 — 여전히 관측 모드, 더 큰 작업이 나오면 다시 근거를 보고 올린다.
 PER_RUN_MAX_USD = 1.0          # --max-budget-usd (kind="docs")
-DAILY_MAX_USD = 2.0            # 하루 누적 상한 (ledger 기준, docs/code 공통)
-WEEKLY_MAX_USD = 8.0           # 주 누적 상한 (seven_day 사용률을 직접 관측할 수 없어 자체 집계)
+# DAILY_MAX_USD/WEEKLY_MAX_USD 2026-09-22 재조정: 사용자가 실제 계정 사용률(Claude Code
+# 앱 UI의 Session(5hr)/Weekly(7day) 게이지)을 보여줌 — 그날 오토파일럿 문서 작업 5건
+# ($1.88 소진, ledger 기준)을 이미 실행한 시점에도 Session 33%(3시간 뒤 리셋)/Weekly
+# 28%(2일 뒤 리셋)로 여유가 컸다. 즉 이 $ 상한은 실제 요금과 무관한(구독제) 자체 안전
+# 프록시일 뿐인데 너무 보수적으로 잡혀 있어서, code 유닛(런당 최대 $2.5)이 도입된 지금
+# 하루 상한을 채 하나도 못 돌리고 막히는 상황이 됐다. 실측 rate-limit 여유를 근거로
+# 상향 — 여전히 관측 모드(자동 상향 없음), 이후 실측이 이 판단과 어긋나면 다시 낮춘다.
+DAILY_MAX_USD = 8.0            # 하루 누적 상한 (ledger 기준, docs/code 공통)
+WEEKLY_MAX_USD = 30.0          # 주 누적 상한 (seven_day 사용률을 직접 관측할 수 없어 자체 집계)
 
 # kind="code" 전용 — 파일 읽기/쓰기 외에 테스트·빌드 왕복이 들어가 turn 수가 늘어난다.
 # 실측치 없음(2026-09-22 최초 도입) — 관측 모드 원칙(위 주석)과 동일하게, 첫 실측 후
