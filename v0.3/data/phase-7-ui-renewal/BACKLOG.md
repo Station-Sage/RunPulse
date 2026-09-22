@@ -234,7 +234,7 @@ DONE으로 옮긴다.
   `activity_groups` 행 자동 생성 — 06 §D2 테스트 요건 그대로) 등을
   `tests/test_dedup.py`에, 백필 스크립트 테스트는 `tests/test_backfill_activity_
   groups.py` 신규.
-  <!-- autopilot: {"stage": "in_progress", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/utils/dedup.py", "scripts/backfill_activity_groups.py", "tests/test_dedup.py", "tests/test_backfill_activity_groups.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_dedup.py tests/test_db_setup.py tests/test_backfill_activity_groups.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/utils/dedup.py", "scripts/backfill_activity_groups.py", "tests/test_dedup.py", "tests/test_backfill_activity_groups.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_dedup.py tests/test_db_setup.py tests/test_backfill_activity_groups.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 - **[P7-IMPL-D1-REST-UC]** D1 나머지 — utrs/cirs 자식 메트릭 저장만(race_readiness/rri는
   제외 — `DECISIONS.md`의 `P7-IMPL-D1-REST-RRI` 참조, 06 문서 원안이 "RRI의 자식 =
