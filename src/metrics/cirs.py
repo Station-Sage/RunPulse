@@ -84,11 +84,25 @@ class CIRSCalculator(MetricCalculator):
             cb.add_input(k, is_available=(k in components), weight=w)
         confidence = cb.compute()
 
-        return [self._result(
+        results = [self._result(
             value=round(score, 1),
             confidence=confidence,
             json_val={"components": {k: round(v, 1) for k, v in components.items()}},
         )]
+        _child_names = {
+            "acwr": "cirs_acwr",
+            "lsi": "cirs_lsi",
+            "consecutive": "cirs_consecutive",
+            "fatigue": "cirs_fatigue",
+        }
+        for key, child_name in _child_names.items():
+            if key in components:
+                results.append(self._result(
+                    value=round(components[key], 1),
+                    metric_name=child_name,
+                    parent_metric_name="cirs",
+                ))
+        return results
 
     def _consecutive_days(self, ctx: CalcContext) -> int | None:
         """현재 날짜부터 역추적하여 연속 훈련일 수 계산."""

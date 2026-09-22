@@ -28,7 +28,8 @@ class TestUTRS:
         conn.commit()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = UTRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 5 child metrics
+        assert len(results) == 6
         assert results[0].confidence == 1.0
 
     def test_partial_inputs_lower_confidence(self):
@@ -40,7 +41,8 @@ class TestUTRS:
         conn.commit()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = UTRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 2 child metrics (body_battery, sleep)
+        assert len(results) == 3
         assert results[0].confidence < 1.0
         # body_battery(0.30) + sleep(0.20) = 0.50 → confidence = 0.5
         assert results[0].confidence == 0.5
@@ -56,7 +58,8 @@ class TestUTRS:
         conn.commit()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = UTRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 3 child metrics (body_battery, tsb, sleep)
+        assert len(results) == 4
         assert results[0].confidence == 0.75
 
     def test_score_range(self):
@@ -94,3 +97,18 @@ class TestUTRS:
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         assert UTRSCalculator().compute(ctx) == []
+
+    def test_child_metrics_have_parent_and_correct_names(self):
+        """자식 CalcResult: parent_metric_name='utrs', metric_name=utrs_*."""
+        conn = _conn()
+        conn.execute(
+            "INSERT INTO daily_wellness (date, body_battery_high, sleep_score) "
+            "VALUES (?, ?, ?)", ["2026-04-01", 80, 85])
+        conn.commit()
+        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
+        results = UTRSCalculator().compute(ctx)
+        children = results[1:]
+        assert all(r.parent_metric_name == "utrs" for r in children)
+        child_names = {r.metric_name for r in children}
+        assert "utrs_body_battery" in child_names
+        assert "utrs_sleep" in child_names

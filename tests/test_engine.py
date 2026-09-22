@@ -108,6 +108,58 @@ class TestRunDailyMetrics:
         )
 
 
+    def test_utrs_child_parent_metric_id_links(self):
+        """utrs_body_battery 행의 parent_metric_id가 utrs 행의 id와 일치해야 한다."""
+        conn = _conn()
+        _seed_full(conn)
+        run_activity_metrics(conn, 1)
+        conn.commit()
+        run_daily_metrics(conn, "2026-04-01")
+
+        utrs_row = conn.execute(
+            "SELECT id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='utrs' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        assert utrs_row is not None, "utrs 행 없음"
+
+        child_row = conn.execute(
+            "SELECT parent_metric_id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='utrs_body_battery' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        assert child_row is not None, "utrs_body_battery 행 없음"
+        assert child_row[0] == utrs_row[0], (
+            f"utrs_body_battery.parent_metric_id={child_row[0]} != utrs.id={utrs_row[0]}"
+        )
+
+    def test_cirs_child_parent_metric_id_links(self):
+        """cirs_acwr 행의 parent_metric_id가 cirs 행의 id와 일치해야 한다."""
+        conn = _conn()
+        _seed_full(conn)
+        run_activity_metrics(conn, 1)
+        conn.commit()
+        run_daily_metrics(conn, "2026-04-01")
+
+        cirs_row = conn.execute(
+            "SELECT id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='cirs' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        if cirs_row is None:
+            pytest.skip("cirs 미계산 (데이터 부족)")
+
+        child_row = conn.execute(
+            "SELECT parent_metric_id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='cirs_acwr' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        assert child_row is not None, "cirs_acwr 행 없음"
+        assert child_row[0] == cirs_row[0], (
+            f"cirs_acwr.parent_metric_id={child_row[0]} != cirs.id={cirs_row[0]}"
+        )
+
+
 class TestRunForDate:
     def test_full_pipeline(self):
         conn = _conn()
