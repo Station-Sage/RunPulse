@@ -88,12 +88,54 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
   "재정렬"보다 범위가 큼, 착수 시점은 사용자 판단. 2026-09-22 D5/D3 착수 확정 시
   사용자가 이 항목은 보류.
 
+- **[P7-IMPL-D2]** `activity_groups` 마스터 테이블 — 07 로드맵상 Phase 7b 전제조건(D2
+  100% 완료돼야 7b→7c 전환 가능, ProviderComparison(C4)·`get_provider_comparison()`도
+  이게 있어야 동작). 현재는 `activity_summaries.matched_group_id`(TEXT, `src/db_setup.py`)
+  + `src/utils/dedup.py`의 `assign_group_id()`가 문자열 기반으로 그룹을 매기고 있을
+  뿐, 정식 그룹 마스터 테이블·FK는 없다(`06-data-layer-extensions.md` D2 원안 확인
+  필요). **착수 전 설계 필요**: 기존 `matched_group_id` 문자열을 FK로 전환할 때
+  기존 데이터 백필 전략(그룹당 대표 활동 선정 기준 등), `assign_group_id()` 호출부
+  3곳(garmin_csv/intervals_fit/strava_archive) 수정 범위 확정.
+
+- **[P7-IMPL-D1-REST]** D1 나머지 — utrs/cirs/race_readiness Calculator의 자식 메트릭
+  저장(`P7-IMPL-D1`은 2026-09-22에 fitness/pmc의 ramp_rate→ctl만 완료, 07 로드맵
+  §D1 참조). 배선(`parent_metric_name`/`_save_results()`)은 이미 있으니 각
+  Calculator에서 부모-자식 관계를 정의하는 일만 남음 — **착수 전 확인 필요**:
+  utrs/cirs/race_readiness 각각 어떤 메트릭이 부모인지(`v0.2/.ai/metrics.md` 또는
+  해당 Calculator 소스에서 확인, PMC의 ctl↔ramp_rate처럼 명확한 부모-자식 쌍이
+  존재하는지부터 확인).
+
 ---
 
 ## NEXT
 
-(비어있음 — AUTOPILOT QUEUE 3건(D1/2A/2B) 전부 완료·병합됨(2026-09-22). 다음 큐 항목은
-사용자 지시로 채운다)
+Phase 7b(07 로드맵) 본격 착수분 — NOW의 D2/D1-REST 완료 후 순서대로 진행. 사용자
+"UI Renewal 설계·개발·문서화를 할일 목록화" 지시로 2026-09-22 정리(07 로드맵
+§Phase 7b 산출물 목록 기준, 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
+
+- **[P7-DESIGN-7B-API]** Phase 7b Flask API 8종의 서비스 함수 시그니처·DB 쿼리 확정 —
+  `today_service.get_today_narrative()`, `metrics_service.get_metric_breakdown()`
+  (parent_metric_id 트리 조립, D1-REST 선행 필요), `activity_service.
+  get_provider_comparison()`(D2 선행 필요), `plan_service.get_static_plan_templates()`
+  (07 §Phase 7b — 정적 플랜 템플릿 3~5개, **콘텐츠 자체가 아직 없음, 설계 필요**).
+  06-data-layer-extensions.md 수준(테이블·필드명)은 있으나 함수 수준 스펙은 없음 —
+  이후 항목들(API 구현·UI 구현)의 선행 설계 패스.
+
+- **[P7-IMPL-7B-TODAY-L2]** Today L2 완성 — Flask API(`GET /api/v1/today/narrative`,
+  `GET /api/v1/today/milestones`) + SvelteKit `<MetricBreakdown>`(C3)·
+  `<TimelineNarrative>`(C7) 구현 + Today L2 내러티브 블록(`03a-today.md` 1-A(L2)·
+  1-C)을 7a의 텍스트 스텁에서 실제 내러티브·트리 드릴다운으로 교체. `P7-DESIGN-7B-API`
+  완료 후 착수.
+
+- **[P7-IMPL-7B-LIBRARY]** Library 전면화 — Flask API(`GET /api/v1/library/metrics`,
+  `/metrics/:slug`, `/wellness`, `/providers`) + SvelteKit `<ProviderComparison>`(C4)
+  + Library/metrics·wellness·providers·홈 화면(`03c-library.md`). D2 완료 필요
+  (providers는 activity_groups 조인).
+
+- **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
+  5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
+  콘텐츠 설계) + `GET /api/v1/plan/templates`·`/compare`·`POST /api/v1/plan` +
+  Coach 화면에 플랜 선택 UI 추가.
 
 ---
 
