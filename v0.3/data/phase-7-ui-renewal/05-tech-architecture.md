@@ -1,7 +1,7 @@
 # Phase 7 UI Renewal — 기술 아키텍처
 
-**문서 상태**: Draft v0.1  
-**작성일**: 2026-06-10  
+**문서 상태**: Draft v0.2 — REVIEW-03 반영, §11 인증·멀티테넌시 신설  
+**작성일**: 2026-06-10 (v0.1) / 2026-09-22 (v0.2)  
 **전제 문서**: `00-diagnostic-and-direction.md` (B2 결정), `02-information-architecture.md`, `04-component-catalog.md`  
 **후속 문서**: `06-data-layer-extensions.md`, `07-migration-roadmap.md`
 
@@ -29,7 +29,7 @@ SvelteKit(프론트엔드) ↔ Flask(백엔드 API)의 경계, 빌드·배포 �
 │  │                                 │                               │
 │  │  src/services/  (D5)            │ ← 비즈니스 로직 레이어        │
 │  │  src/calculators/               │ ← 메트릭 계산                 │
-│  │  SQLite (running.db)            │ ← 단일 로컬 DB                │
+│  │  SQLite (running.db)            │ ← 현재 단일 파일(§11 참조)     │
 │  └─────────────────────────────────┘                               │
 │                                                                     │
 │  ┌─────────────────────────────────┐                               │
@@ -48,7 +48,9 @@ SvelteKit(프론트엔드) ↔ Flask(백엔드 API)의 경계, 빌드·배포 �
 - **단일 프로세스**: VPS 1대 운용, 프로세스 간 통신 오버헤드 없음
 - **SvelteKit → 정적 빌드** (`adapter-static`): SSR 서버 불필요, Flask가 그대로 서빙
 - **Flask API JSON only**: 기존 데이터 파이프라인 유지, 뷰 레이어만 교체
-- **SQLite 유지**: 로컬 퍼스트(P8), 단일 사용자 특성상 충분
+- **SQLite 유지**: 단일 파일 DB의 운영 단순성. SaaS 확정(REVIEW-03 §8) 이후에도 기술 자체는
+  유지하고, 격리는 파일 단위(`email@db`)로 확장하는 방향 — §11 참조. P8은 P8'(Data
+  Ownership & Transparency)로 재해석됨(00 §6)
 
 ---
 
@@ -80,12 +82,10 @@ RunPulse/
 │   │   │   └── types/           ← 공유 TypeScript 타입
 │   │   │       └── index.ts
 │   │   └── routes/              ← SvelteKit 라우트 (02-IA 매핑)
-│   │       ├── today/
-│   │       ├── story/
+│   │       ├── today/       ← L0~L3, 구 story·plan(보기) 흡수
 │   │       ├── library/
-│   │       ├── plan/
-│   │       ├── coach/
-│   │       └── data/
+│   │       ├── coach/       ← 구 plan(작업) 흡수
+│   │       └── data/        ← ☰ 메뉴 산하
 │   ├── static/
 │   │   ├── manifest.json        ← PWA 매니페스트
 │   │   └── icons/
@@ -98,10 +98,9 @@ RunPulse/
 ├── src/                         ← 기존 Python 백엔드 (유지)
 │   ├── api/                     ← Flask API 라우터 (신규)
 │   │   ├── __init__.py
-│   │   ├── routes_today.py
-│   │   ├── routes_story.py
+│   │   ├── routes_today.py      ← /today/narrative, /today/milestones 포함(구 story 흡수)
 │   │   ├── routes_library.py
-│   │   ├── routes_plan.py
+│   │   ├── routes_plan.py       ← Today(보기)·Coach(작업) 양쪽이 소비
 │   │   ├── routes_coach.py
 │   │   └── routes_data.py
 │   ├── services/                ← D5: 서비스 레이어 (Phase 7a 전제조건)
@@ -138,17 +137,14 @@ GET  /api/v1/today/status
 POST /api/v1/today/checkin
      Body: { fatigue: int, pain: str, note: str }
      → { id: int, saved_at: str }
-```
 
-#### Story
+GET  /api/v1/today/narrative?year=2026&month=6
+     → { summary: str, body: NarrativeSegment[], highlights: Highlights }
+     ← 구 /api/v1/story 흡수. Today L2 "성장 내러티브" 전용(03a-today.md 1-C)
 
-```
-GET  /api/v1/story?year=2026&month=6
-     → { summary: str, body: NarrativeSegment[], highlights: Highlights,
-         milestones: Milestone[] }
-
-GET  /api/v1/story/milestones
+GET  /api/v1/today/milestones
      → { milestones: Milestone[] }
+     ← 구 /api/v1/story/milestones 흡수
 ```
 
 #### Library
@@ -177,6 +173,9 @@ GET  /api/v1/library/providers?activity_id=&from=&to=
 ```
 
 #### Plan
+
+*도메인 리소스로 유지 — IA 탭이 API 경계를 결정하지 않는다(00 §4.1). Today L2가 "보기"로,
+Coach(`03e-coach.md` 5-C~5-G)가 "작업"으로 동일 엔드포인트를 소비한다.*
 
 ```
 GET  /api/v1/plan/active
@@ -332,17 +331,16 @@ export { apiFetch };
 ### 4.3 SvelteKit 라우트 → API 매핑
 
 ```
-/today                    → GET /api/v1/today
-/story                    → GET /api/v1/story?year=&month=
+/today                    → GET /api/v1/today (+ /today/narrative, /today/milestones)
 /library/activities       → GET /api/v1/library/activities
 /library/activities/[id]  → GET /api/v1/library/activities/[id]
 /library/metrics          → GET /api/v1/library/metrics
 /library/metrics/[slug]   → GET /api/v1/library/metrics/[slug]
-/plan                     → GET /api/v1/plan/active
-/plan/new                 → POST /api/v1/plan/generate
 /coach                    → GET /api/v1/coach/threads
 /coach/[threadId]         → GET /api/v1/coach/threads/[threadId]
-/data                     → GET /api/v1/data/sources
+/coach/plan               → GET /api/v1/plan/active
+/coach/plan/new           → POST /api/v1/plan/generate
+/data                     → GET /api/v1/data/sources   (☰ 메뉴 산하)
 ```
 
 ### 4.4 전역 상태 관리 (Svelte stores)
@@ -486,18 +484,21 @@ def serve_v2(path):
 
 ---
 
-## 6. PWA 전략 (P8 Local-First)
+## 6. PWA 전략 (P8' Data Ownership & Transparency)
+
+서버 가공(SaaS, REVIEW-03 §8) 모델이므로 "오프라인 = 로컬 DB"가 아니라 "오프라인 =
+Service Worker가 캐시한 최근 API 응답"이다 — 표현을 이에 맞춰 정정.
 
 ### 6.1 오프라인 지원 범위
 
 | 영역 | 오프라인 동작 | 캐시 전략 |
 |------|-------------|-----------|
-| Today | 정상 (로컬 DB) | Cache-first (API) |
-| Story | 정상 (캐시된 내러티브) | Stale-while-revalidate |
-| Library/activities | 정상 (로컬 DB) | Cache-first |
-| Library/metrics | 정상 (로컬 DB) | Cache-first |
-| Plan | 정상 (로컬 DB) | Cache-first |
-| Coach (열람) | 이전 대화 열람 가능 | Cache-first |
+| Today L0~L1 | 정상 (캐시된 최근 응답) | Cache-first (API) |
+| Today L2 (내러티브) | 정상 (캐시된 내러티브) | Stale-while-revalidate |
+| Library/activities | 정상 (캐시된 응답) | Cache-first |
+| Library/metrics | 정상 (캐시된 응답) | Cache-first |
+| Coach — 플랜 열람 (Today L2 연동분) | 정상 (캐시된 응답) | Cache-first |
+| Coach (대화 열람) | 이전 대화 열람 가능 | Cache-first |
 | Coach (새 메시지) | 오류 표시, 큐에 저장 | Network-first + 큐 |
 | Data/sync | 불가 | Network-only |
 
@@ -510,7 +511,7 @@ const STATIC_CACHE = 'runpulse-static-v1';
 const API_CACHE = 'runpulse-api-v1';
 
 const CACHE_FIRST_APIS = [
-  '/api/v1/today',
+  '/api/v1/today',              // /today/narrative, /today/milestones 포함(prefix 매칭)
   '/api/v1/library/activities',
   '/api/v1/library/metrics',
   '/api/v1/plan/active',
@@ -645,7 +646,8 @@ shadcn-svelte 사용 여부:
 | ADR-V2-02 | `/v2/` base path | v1 병행 운용, 충돌 없는 전환 | 서브도메인 분리 — DNS 관리 복잡 |
 | ADR-V2-03 | Svelte 5 (runes) | 최신 reactive 모델, 보일러플레이트 감소 | Svelte 4 — 안정적이나 구식 |
 | ADR-V2-04 | shadcn-svelte 최소 사용 | C1~C7이 도메인 특화 컴포넌트, UI 라이브러리 의존 최소화 | shadcn 전면 사용 — 커스터마이즈 충돌 |
-| ADR-V2-05 | Service Worker: Cache-First (API) | P8 Local-First, 오프라인 Today/Library 필수 | Network-First — 오프라인 불가 |
+| ADR-V2-05 | Service Worker: Cache-First (API) | P8' Data Ownership, 오프라인 Today/Library 필수 | Network-First — 오프라인 불가 |
+| ADR-V2-07 | 인증은 Flask가 소유, SvelteKit은 세션 쿠키만 전달 | 인증 로직 이중화 방지, P8' 전송 범위 투명성과 일치 | 프론트엔드 토큰 관리 — 로직 중복·노출면 증가 |
 | ADR-V2-06 | API 버전 `/api/v1/` | 미래 v2 API 공존 가능 | 버전 없음 — 호환성 깨짐 위험 |
 
 ---
@@ -663,6 +665,48 @@ Phase 7 구현 시작 전 충족되어야 할 조건:
 
 ---
 
+## 11. 인증·멀티테넌시 (REVIEW-03 §8·§10)
+
+### 11.1 현재 상태
+
+- 정식 로그인 기능 없음. Cloudflare Access가 GitHub email을 로그인 대체로 검증한다 — Flask는
+  `CF-Access-Authenticated-User-Email` 헤더를 신뢰 소스로 사용(운영 환경, Cloudflare가
+  요청 앞단에서 인증을 강제).
+- DB는 현재 단일 파일(`running.db`), 사실상 단일 사용자(`pansongit@gmail.com`)로 운용 중.
+  `email@db` 파일 단위 사용자별 분리 저장은 **로드맵**이다(아직 구현 안 됨).
+
+### 11.2 인증 로드맵
+
+- 1단계(현재): Cloudflare Access 단독.
+- 2단계(로드맵): Google/Apple OAuth 정식 회원가입 오픈. Flask 세션에 인증된 이메일을
+  저장하고, 이후 모든 API 라우터가 세션의 이메일로 DB 파일을 선택하는 구조로 전환.
+- 인증 계층은 Flask(API 서버)가 소유한다 — SvelteKit은 세션 쿠키만 전달하고 인증 로직을
+  프론트엔드에 두지 않는다(ADR-V2-07).
+
+### 11.3 멀티테넌시 — email@db 격리 (범위 경계)
+
+- 로드맵상 DB 경로 해석 규칙(예: `data/{email}/running.db`)으로의 전환은 **이 문서(Phase 7
+  UI 리뉴얼)의 범위 밖**이다 — "데이터 레이어(D1~D5) 변경 없음, 순수 UI/IA 재설계"라는
+  REVIEW-03 §7 원칙과 같은 이유로, DB 파일 라우팅은 별도 시스템 아키텍처 설계·ADR이
+  필요한 결정이다(마이그레이션 스크립트, 파일 권한, 백업 전략 등이 얽힘).
+- 이 문서의 API/SvelteKit 설계는 이 경계에 영향받지 않는다 — `apiFetch()`는 항상 동일
+  오리진 요청이고, 어느 DB 파일을 쓸지는 서버가 세션으로 결정하므로 프론트엔드 코드
+  변경이 필요 없다. Phase 7a~7d 구현은 현재의 단일 파일 DB를 그대로 전제해도 무방하다.
+
+### 11.4 export — P8' 요건 (미배정)
+
+- P8'(00 §6)의 "언제든 export 가능" 요건을 만족할 `GET /api/v1/data/export` 엔드포인트가
+  아직 API 목록(§3.2)에도, `07-migration-roadmap.md`의 어느 단계에도 배정되지 않았다.
+  Phase 7d "Data 화면"(`03f-data.md`) 범위에 포함할지는 판단 보류 — 이번 세션 범위 밖.
+
+---
+
 ## 작성 이력
 
+- v0.2 (2026-09-22): REVIEW-03 반영 — §1/§6의 "로컬 퍼스트(P8)" 표현을 P8'로 정정.
+  Story API(`/api/v1/story`)를 `/api/v1/today/narrative`·`/today/milestones`로 흡수.
+  디렉터리 구조·라우트 매핑·PWA 오프라인 표를 하단 3탭(Today/Library/Coach) 기준으로
+  갱신. §11 인증·멀티테넌시 섹션 신설(CF Access 현황, OAuth 로드맵, email@db — 실제 DB
+  라우팅 구현은 범위 밖으로 명시). ADR-V2-07 추가. export 엔드포인트 미배정 발견(§11.4,
+  판단 보류).
 - v0.1 (2026-06-10): 초안 — 전체 아키텍처, API 엔드포인트 목록, SvelteKit 설정, 빌드·배포 전략, PWA, 베타 토글, ADR 6개

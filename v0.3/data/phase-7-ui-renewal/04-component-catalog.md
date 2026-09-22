@@ -1,7 +1,7 @@
 # Phase 7 UI Renewal — 컴포넌트 카탈로그
 
-**문서 상태**: Draft v0.2  
-**작성일**: 2026-06-10  
+**문서 상태**: Draft v0.3 — REVIEW-03 반영  
+**작성일**: 2026-06-10 (v0.1) / 2026-09-22 (v0.3)  
 **전제 문서**: `01-design-principles.md`, `03-screen-catalog.md`  
 **후속 문서**: `05-tech-architecture.md`
 
@@ -111,7 +111,7 @@ type ProviderKey =
 ```
 칩 탭/클릭
   → dispatch('open', { type, ...payload })
-  → 부모(Today/Story/Coach)가 우측 패널 or 시트 열기 처리
+  → 부모(Today/Coach)가 우측 패널 or 시트 열기 처리
 
 키보드: Enter / Space → 동일
 ```
@@ -136,7 +136,7 @@ TSB가 낮습니다.
 
 단일 메트릭을 카드 형태로 표시. Provider 배지를 항상 포함하고,  
 짧은 스파크라인 추세를 선택적으로 표시한다.  
-탭 시 `<MetricBreakdown>` 패널을 연다 (P2 L1 → L2 진입).
+탭 시 `<MetricBreakdown>` 패널을 연다 (P2 D1 → D2 진입, `03g-common-patterns.md` 7-1 표기법).
 
 ### Props
 
@@ -230,7 +230,7 @@ runpulse  → --color-provider-runpulse  (회색)
 
 메트릭의 계산 트리를 최대 3단계로 분해해 표시하는 패널 컴포넌트.  
 데스크탑: 우측 슬라이드인 패널 / 모바일: 풀스크린 슬라이드업 시트.  
-P2 L2 수준. L3(원본 데이터)는 Library 링크로 연결한다.
+P2 D2 수준. D3(원본 데이터)는 Library 링크로 연결한다.
 
 ### Props
 
@@ -301,13 +301,13 @@ interface MetricBreakdownNode {
 │  재계산: 2026-06-09 14:30 · formula_v1 · conf 0.82  │
 │  이전값: 66 → 68  (+2, +3%)        │  ← prevValue 있을 때
 │  ──────────────────────────────    │
-│  ▾ 하위 메트릭 A   0.84  [Prv]  40%│ ← L2, 탭으로 펼침
-│    ▾ 하위 B        0.91  [Prv]    │  ← L3 (raw), 펼침 불가
+│  ▾ 하위 메트릭 A   0.84  [Prv]  40%│ ← D2, 탭으로 펼침
+│    ▾ 하위 B        0.91  [Prv]    │  ← D3 (raw), 펼침 불가
 │    ── raw 데이터: API 값 표시      │
 │  ▾ 하위 메트릭 C   71    [Prv]  30%│
 │  ▸ 하위 메트릭 D (접힘)            │
 │  ──────────────────────────────    │
-│  [Library에서 전체 추세 →]         │  ← L3 진입점
+│  [Library에서 전체 추세 →]         │  ← D3 진입점
 └────────────────────────────────────┘
 ```
 
@@ -433,7 +433,7 @@ VO2Max           51.2     —        —            51.1     ★Garmin
 ### 역할
 
 오늘의 컨디션(피로도·통증·메모)을 최대 3탭으로 입력한다.  
-Today 화면 최상단에 항상 표시. 입력 완료 시 `user_inputs` 테이블에 저장.  
+Today L0 최상단에 항상 표시. 입력 완료 시 `user_inputs` 테이블에 저장.  
 키보드 단축키(R, P, N) 지원 (P6).
 
 ### Props
@@ -586,7 +586,7 @@ EvidenceQuote 칩 → C1 인터랙션 위임
 
 ### 역할
 
-Story 영역에서 특정 기간의 훈련 내러티브를 표시한다.  
+Today L2(성장 내러티브)에서 특정 기간의 훈련 내러티브를 표시한다.  
 AI 생성 텍스트 안에 `<EvidenceQuote>` 칩과 인라인 미니 차트가 포함된다.  
 마크다운 서브셋 + 특수 태그(`[chart:slug]`)를 파싱해 렌더링한다.
 
@@ -674,6 +674,25 @@ SVG 스파크라인으로 구현한다 (chart.js 불필요).
 │  🎯 6/3  누적 500km  /  🏃 6/8  하프 PB 1:52:04  →         │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 층별 전환 컴포넌트 검토 (REVIEW-03 §5 — 신규 컴포넌트 필요성 판단)
+
+REVIEW-03 §5는 Today의 L0~L3 계층 전환을 표현할 컴포넌트(예: "다음 층 유도 카드", "관여
+상태 표시")가 추가로 필요한지 검토를 요구했다.
+
+**판단: 신규 컴포넌트(C8) 불필요.** Today는 탭·페이지 전환이 아니라 단일 페이지 세로
+스크롤이다(`03a-today.md`). 레이어 사이 전환은 이미 존재하는 시각적 흐름(섹션이 이어서
+보이는 연속 스크롤)만으로 충분하고, 진행률 인디케이터나 "다음 층 유도 카드" 같은 별도
+장치는 Quiet Data 원칙(P5 — UI 장식 절제)과 충돌할 위험이 크다. RunPulse는 1인 사용자가
+반복 방문하는 개인 대시보드라 학습 비용도 낮다.
+
+유일하게 실질적 필요가 있는 지점은 L1→L2 경계 하나뿐이다 — L2(내러티브·마일스톤·
+플랜 현황)가 화면 아래로 접혀 있어 존재 자체를 놓칠 수 있다. 이건 새 컴포넌트가 아니라
+**기존 `<RecommendationCard>`(C6) 하단에 선택적 텍스트 링크 한 줄**로 해결한다 — 이미
+`03a-today.md` 1-A에 "이번 달 전체 이야기 보기 →" 형태로 반영돼 있다. 별도 props 확장이나
+새 컴포넌트 스펙은 필요 없다.
 
 ---
 
@@ -782,5 +801,8 @@ QuickInput (독립)
 
 ## 작성 이력
 
+- v0.3 (2026-09-22): REVIEW-03 반영 — Story→Today L2 참조 정정(C1, C7), 드릴다운 표기
+  L1~L3 → D1~D3 정정(C2, C3, `03g-common-patterns.md`와 일치), 층별 전환 컴포넌트 신규
+  필요성 검토(§5) 결론 추가: 신규 컴포넌트 불필요, 기존 컴포넌트로 충분
 - v0.2 (2026-06-10): REVIEW-02 반영 — AO-1: ProviderKey `runpulse:${string}` 확장·MetricBreakdownData computedAt/version/prevValue/confidence·MetricCell RunPulse 버전 배지·Milestone metric_recompute 타입 추가; AO-2: ProviderComparison 컬럼 동적 렌더링 명시; AO-3: primaryReason ruleType `static_priority|runpulse_always` 정정(coverage/manual 제거)·툴팁 텍스트 dedup.py 정적 순서로 수정
 - v0.1 (2026-06-10): 초안 — 7개 컴포넌트 props 인터페이스, 상태, 디자인 토큰, 인터랙션 패턴
