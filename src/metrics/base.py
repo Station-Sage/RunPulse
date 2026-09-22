@@ -26,6 +26,7 @@ class CalcResult:
     json_value: Optional[str] = None
     confidence: Optional[float] = None
     parent_metric_id: Optional[int] = None
+    parent_metric_name: Optional[str] = None  # 부모 메트릭 이름 (저장 시 id로 변환)
 
     def is_empty(self) -> bool:
         return (self.numeric_value is None
@@ -63,7 +64,8 @@ class MetricCalculator(ABC):
         ...
 
     def _result(self, value=None, text=None, json_val=None,
-                confidence=None, scope_id=None, metric_name=None) -> CalcResult:
+                confidence=None, scope_id=None, metric_name=None,
+                parent_metric_name=None) -> CalcResult:
         return CalcResult(
             metric_name=metric_name or self.name,
             scope_type=self.scope_type,
@@ -74,6 +76,7 @@ class MetricCalculator(ABC):
             json_value=(json_mod.dumps(json_val, ensure_ascii=False)
                         if json_val is not None else None),
             confidence=confidence,
+            parent_metric_name=parent_metric_name,
         )
 
 
