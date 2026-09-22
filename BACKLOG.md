@@ -11,6 +11,7 @@
 - **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 `treadmill`로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. 최근 데이터에는 영향 없음.
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 일부 뷰에서 `v_canonical_activities` 대신 `activity_summaries` 직접 쿼리 → 중복 활동 포함 위험. **(판단 필요)** UI 재설계 범위와 함께 결정.
+- **[BUG-CHAT-RULE-FALLBACK]** `src/ai/chat_engine_rules.rule_based_response()`가 존재하지 않는 `ai_context.build_context`를 import(실제 함수는 문자열 반환 `build_ai_context`로 시그니처도 다름). AI provider가 전혀 설정되지 않았을 때(config 없음/모든 provider 실패) 마지막 안전망인 rule fallback 자체가 ImportError로 죽는다 — v1 `/ai-coach`와 Phase 7 `coach_service`(2026-09-22 구현) 양쪽에 영향. Phase 7a D5 구현 중 테스트로 발견, 수정은 범위 밖이라 보류.
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - [중간] curl_cffi ARM64 wheel 존재 여부 (AWS Graviton) — Dockerfile 빌드

@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_15(self):
+    def test_schema_version_is_16(self):
         """조건 2"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 15
+        assert ver == 16
 
     def test_pipeline_tables_count(self):
         """조건 3: 11개 pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
@@ -108,12 +108,13 @@ class TestPhase1Schema:
         assert "daily_fitness" not in tables, "daily_fitness가 삭제되지 않음 (ADR-005)"
 
     def test_app_tables_exist(self):
-        """조건 3: 5개 앱 테이블"""
+        """조건 3: 8개 앱 테이블 (D3: chat_threads/user_inputs/ai_feedback 추가)"""
         tables = {r[0] for r in self.conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()}
         app = {"chat_messages", "goals", "planned_workouts",
-               "user_training_prefs", "session_outcomes"}
+               "user_training_prefs", "session_outcomes",
+               "chat_threads", "user_inputs", "ai_feedback"}
         assert app.issubset(tables), f"누락: {app - tables}"
 
     def test_canonical_view_exists(self):

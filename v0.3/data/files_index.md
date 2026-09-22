@@ -6,23 +6,51 @@
 
 ## `src/services/`
 
-> Phase 5 서비스 레이어.
+> 서비스 레이어 — Phase 5(읽기 전용 3개) + Phase 7 D5 확장(today/coach 추가, 3개는 스텁).
 > 
-> DB에서 데이터를 읽어 가공된 dict를 반환한다.
-> 읽기 전용 — DB 쓰기 금지. 첫 번째 인자는 항상 sqlite3.Connection.
-> 반환값은 dict (snake_case 키). 단위 변환 하지 않음 — SI 그대로 반환.
+> DB에서 데이터를 읽어 가공된 dict를 반환한다. 원칙은 읽기 전용이지만, Today의
+> save_checkin()과 Coach의 스레드/메시지 저장은 명시적 예외다(07-migration-roadmap.md
+> Phase 7a). 첫 번째 인자는 항상 sqlite3.Connection. 반환값은 dict (snake_case 키).
+> 단위 변환 하지 않음 — SI 그대로 반환.
 > 
-> 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md
-> 의존: src/utils/db_helpers.py, src/utils/metric_registry.py
-> 주의: metric_store 조회 시 is_primary=1 필터 필수
+> 파일: activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
+> today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
+> data_service(Phase 7b~7d 스텁). story_service는 없음 — Story는 Today L2로 흡수됨
+> (REVIEW-03, 00-diagnostic-and-direction.md §5.1).
+> 
+> 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
+> v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5)
+> 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/ai/chat_engine.py(Coach)
+> 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
+> (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
 ### `activity_service.py` (283줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
+### `coach_service.py` (112줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+
+- functions: list_threads, create_thread, add_message
+
 ### `dashboard_service.py` (224줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
+
+### `data_service.py` (7줄) — Phase 7d 서비스 레이어 - 데이터 소스 연결 상태·동기화 트리거 (스텁).
+
+- (public API 없음)
+
+### `metrics_service.py` (7줄) — Phase 7b 서비스 레이어 - 메트릭 시맨틱 그룹·계산 분해 트리 (스텁).
+
+- (public API 없음)
+
+### `plan_service.py` (8줄) — Phase 7b~7c 서비스 레이어 - 훈련 플랜 조회·생성 (스텁).
+
+- (public API 없음)
+
+### `today_service.py` (131줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
+
+- functions: get_today_status, get_recent_activities, get_today_briefing, save_checkin
 
 ### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
 
@@ -433,7 +461,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (208줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (225줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat
 
@@ -1090,9 +1118,19 @@
 - class **TestSummaryAndDetail**: test_detail_metrics_saved, test_detail_without_summary_is_skipped
 - class **TestNonJsonFilesIgnored**: test_fit_and_gpx_ignored
 
+### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
+
+- class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
+
 ### `test_cirs.py` (64줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data
+
+### `test_coach_service.py` (95줄) — coach_service 테스트 — Phase 7a D5.
+
+- class **TestListThreads**: test_empty, test_lists_with_last_message_preview
+- class **TestCreateThread**: test_creates_thread_and_stores_both_messages, test_title_truncated_for_long_message, test_does_not_leak_into_other_threads
+- class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
 
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
 
@@ -1182,9 +1220,9 @@
 - class **TestStreamsBatch**: test_insert_streams, test_replace_on_reinsert
 - class **TestBestEffortsBatch**: test_insert_efforts, test_upsert_effort, test_skip_no_effort_name
 
-### `test_db_setup.py` (131줄) — db_setup 테스트.
+### `test_db_setup.py` (132줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_15, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_16, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
 - functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
 ### `test_dedup.py` (115줄) — Dedup 단위 테스트.
@@ -1526,6 +1564,13 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
+### `test_today_service.py` (95줄) — today_service 테스트 — Phase 7a D5.
+
+- class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics
+- class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order
+- class **TestGetTodayBriefing**: test_no_data_fallback, test_low_tsb_recommends_rest, test_balanced_tsb
+- class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
+
 ### `test_tpdi.py` (117줄)
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
@@ -1570,6 +1615,12 @@
 - class **TestFetchUnifiedActivities**: test_returns_solo_activities, test_groups_by_matched_group_id, test_grouped_activity_has_both_sources, test_pagination, test_stats_total_dist, test_date_filter, test_source_filter
 - class **TestGroupOperations**: test_assign_creates_group, test_assign_requires_two, test_remove_from_group
 - functions: mem_db
+
+### `test_user_inputs.py` (130줄) — D3 — user_inputs / ai_feedback / chat_threads 테이블 스키마 테스트.
+
+- class **TestUserInputs**: test_save_checkin, test_checkin_unique_per_day, test_checkin_raw_insert_conflict_without_upsert_raises, test_activity_id_no_fk_enforcement
+- class **TestAiFeedback**: test_insert_feedback, test_unique_per_thread_message
+- class **TestChatThreads**: test_chat_messages_thread_id_column_exists, test_thread_groups_messages
 
 ### `test_utrs.py` (96줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 
@@ -1652,7 +1703,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 322개 파일
+총 331개 파일
 
 ## docstring 누락
 

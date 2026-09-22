@@ -1,7 +1,7 @@
 # Phase 7 UI Renewal — 데이터 레이어 확장 (D1~D5)
 
-**문서 상태**: Draft v0.4  
-**작성일**: 2026-06-10  
+**문서 상태**: Draft v0.5 — D5·D3 구현 완료, 구현 후기 반영  
+**작성일**: 2026-06-10 (v0.1) / 2026-09-22 (v0.5)  
 **전제 문서**: `00-diagnostic-and-direction.md`, `05-tech-architecture.md`  
 **후속 문서**: `07-migration-roadmap.md`
 
@@ -152,6 +152,27 @@ def get_metric_breakdown(conn, slug, ...)  # metric_store JOIN
 # - test_integration_realdb.py Part3(서비스 레이어) 섹션 활용
 ```
 
+### 구현 후기 (2026-09-22, Phase 7a)
+
+- `today_service.py`/`coach_service.py`는 별도 `tests/test_today_service.py`/
+  `test_coach_service.py`로 테스트했다(`test_services.py` 단일 파일 대신 — 파일당
+  300줄 제한 및 서비스별 관심사 분리 목적, coding-rules.md).
+- `story_service.py`는 만들지 않았다 — REVIEW-03에서 Story가 Today L2로 흡수되어
+  `today_service.get_today_narrative()`(Phase 7b)로 대체됐다. 위 "디렉터리 구조"의
+  8개 파일 목록 중 `story_service.py`만 무효.
+- `activity_service.list_activities()`는 만들지 않았다 — 기존 `get_activity_list()`가
+  이미 필터·정렬·페이지네이션을 전부 지원해 신규 함수가 불필요했다.
+- **Coach 스레드 기능은 이 ADR에 없던 스키마가 추가로 필요했다** — `chat_messages`가
+  `thread_id` 없는 단일 대화 스트림이라 `chat_threads` 테이블 + `chat_messages.thread_id`
+  컬럼을 함께 추가했다(SCHEMA_VERSION 15→16). D3 섹션(아래) 참조.
+- `get_today_briefing()`은 규칙 기반(TSB 임계값)이다. LLM 연동은 범위 밖 — 기존
+  `src/ai/chat_engine.chat()`(provider 체인 fallback)을 재사용하는 건 Coach만 해당.
+- 이 과정에서 **기존 버그를 하나 발견했다(수정하지 않음, 범위 밖)**:
+  `chat_engine_rules.rule_based_response()`가 존재하지 않는 `ai_context.build_context`를
+  import한다(실제 함수는 문자열을 반환하는 `build_ai_context`로 시그니처도 다름) —
+  AI provider가 전혀 설정되지 않았을 때(v1 `/ai-coach` 포함) rule fallback 경로 자체가
+  ImportError로 죽는다. D3/D5와 무관한 별도 버그라 그대로 두고 기록만 남김.
+
 ---
 
 ## D1. parent_metric_id 트리 활성화
@@ -272,7 +293,7 @@ CREATE TABLE IF NOT EXISTS user_inputs (
     pain            TEXT,                             -- 'none'|'mild'|'moderate'|'severe'
     mood            INTEGER,                          -- 1~5 (선택)
     note            TEXT,                             -- 자유 텍스트
-    activity_id     INTEGER REFERENCES activity_summaries(id),
+    activity_id     INTEGER,                          -- FK 제약 없음(구현 시 조정, 아래 참조)
     created_at      TEXT DEFAULT (datetime('now')),
     UNIQUE(input_date, input_type)                    -- 날짜당 타입별 1건
 );
@@ -280,8 +301,8 @@ CREATE TABLE IF NOT EXISTS user_inputs (
 -- ai_feedback: AI 응답 품질 피드백
 CREATE TABLE IF NOT EXISTS ai_feedback (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    thread_id       TEXT NOT NULL,                    -- Coach 스레드 ID
-    message_id      TEXT NOT NULL,                    -- AI 메시지 ID
+    thread_id       INTEGER NOT NULL,                 -- chat_threads.id (구현 시 TEXT→INTEGER 조정)
+    message_id      INTEGER NOT NULL,                 -- chat_messages.id (구현 시 TEXT→INTEGER 조정)
     rating          INTEGER,                          -- 1(나쁨) ~ 5(좋음)
     thumbs          TEXT,                             -- 'up' | 'down'
     comment         TEXT,
@@ -289,6 +310,15 @@ CREATE TABLE IF NOT EXISTS ai_feedback (
     UNIQUE(thread_id, message_id)
 );
 ```
+
+**구현 시 원안 대비 조정 2건(2026-09-22)**:
+1. `user_inputs.activity_id`의 `REFERENCES activity_summaries(id)`를 뺐다 — 이 스키마
+   전체에서 `REFERENCES` 제약을 쓰는 테이블이 하나도 없고(관례 불일치), `PRAGMA
+   foreign_keys=ON` 상태라 활동 재처리/dedup 중 참조 무결성 위반으로 insert가 막힐
+   위험이 있었다.
+2. `ai_feedback.thread_id`/`message_id`를 `TEXT`→`INTEGER`로 바꿨다 — 실제로 참조하는
+   `chat_threads.id`/`chat_messages.id`가 `INTEGER PRIMARY KEY AUTOINCREMENT`라 타입을
+   맞췄다.
 
 ### 인덱스
 
@@ -300,6 +330,27 @@ CREATE INDEX IF NOT EXISTS idx_ui_type
 CREATE INDEX IF NOT EXISTS idx_af_thread
     ON ai_feedback(thread_id);
 ```
+
+### `chat_threads` (구현 시 추가 — 이 ADR 원안에 없던 테이블)
+
+`ai_feedback.thread_id`가 전제하는 "Coach 스레드"가 기존 스키마엔 없었다(`chat_messages`는
+`thread_id` 없는 단일 대화 스트림, v1 `/ai-coach`용). Coach MVP(03e-coach.md 5-A 스레드
+목록)가 동작하려면 최소한의 스레드 테이블이 필요해 구현 시(2026-09-22) 함께 추가했다.
+
+```sql
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT,
+    created_at  TEXT DEFAULT (datetime('now')),
+    updated_at  TEXT DEFAULT (datetime('now'))
+);
+ALTER TABLE chat_messages ADD COLUMN thread_id INTEGER;  -- nullable, 기존 행은 NULL로 유지
+CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id);
+```
+
+기존 `chat_messages` 행에 컬럼을 추가하는 변경이라 `user_inputs`/`ai_feedback`(순수 신규
+테이블)과 달리 `SCHEMA_VERSION` 버전 게이트가 필요했다(15→16, `db_setup.py` v15
+`workout_label` 추가와 동일 패턴).
 
 ### `daily_wellness` 연계
 
@@ -320,9 +371,12 @@ def get_wellness_for_date(conn, date: str) -> WellnessEntry:
 
 ### 마이그레이션 전략
 
-1. `db_setup.py`에 `_DDL_USER_INPUTS`, `_DDL_AI_FEEDBACK` 추가
-2. `DB_TABLES` 목록에 추가
-3. `migrate()` 함수에서 신규 테이블 생성 (기존 DB 무영향)
+1. `src/db_setup.py`의 `_DDL_APP_TABLES`에 DDL 추가(개별 `_DDL_USER_INPUTS` 상수가
+   아니라 기존 "앱 기능 테이블" 통합 블록에 합류 — 그 블록의 기존 관례)
+2. `APP_TABLES` 목록에 추가(문서 초안의 `DB_TABLES`는 실제 코드에 없는 이름 — 정정)
+3. `migrate_db()` 함수가 항상 끝에서 `create_tables()`를 호출하므로 신규 테이블은
+   `CREATE TABLE IF NOT EXISTS`만으로 충분(문서 초안의 `migrate()`도 실제 함수명이
+   아님 — 정정). 기존 DB 무영향.
 
 ### 테스트 요건
 
@@ -332,10 +386,21 @@ def test_save_checkin():
     """fatigue=7, pain='mild' 저장 후 조회 일치 확인."""
 
 def test_checkin_unique_per_day():
-    """같은 날 두 번 저장 시 UNIQUE 제약 → REPLACE 동작 확인."""
+    """같은 날 두 번 저장 시 UNIQUE 제약 위반 확인 + UPSERT로 갱신되는지 확인."""
+```
 
-def test_wellness_merge():
-    """daily_wellness + user_inputs 병합 조회 결과 검증."""
+구현 시 `test_wellness_merge()`는 빼고 위 두 개 + FK 미제약/UNIQUE 원시 검증 몇 개를
+추가했다 — `wellness_service.get_wellness_for_date()`(daily_wellness 병합)는 Phase 7a
+범위 밖(wellness_service 자체를 변경하지 않음)이라 아직 없다.
+
+```python
+# (참고, 위 실제 파일 요약)
+def test_activity_id_no_fk_enforcement(): ...  # REFERENCES 제거 결정 확인
+```
+
+```python
+# tests/test_coach_service.py, tests/test_today_service.py (신규, 서비스 레이어)
+# tests/test_chat_engine_threads.py (신규, chat_engine.chat()의 thread_id 파라미터)
 ```
 
 ---
@@ -547,25 +612,33 @@ def test_snapshot_values_from_metric_store():
 
 | 파일 | 변경 유형 | 항목 |
 |------|---------|------|
-| `src/db_setup.py` | 추가 | D2, D3, D4 DDL + DB_TABLES + migrate() |
-| `src/db_helpers.py` | 수정 | D1: `upsert_metric()` parent_metric_id 파라미터 |
-| `src/calculators/fitness_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
-| `src/calculators/utrs_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
-| `src/calculators/cirs_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
-| `src/calculators/race_readiness_calculator.py` | 수정 | D1: 자식 메트릭 저장 |
-| `src/matchers/matcher.py` | 수정 | D2: assign_group_id() → activity_groups upsert |
-| `src/services/` | 신규 (phase-5 설계 구현) | D5 전체 |
-| `src/api/` | 신규 | D5 소비 |
-| `scripts/backfill_activity_groups.py` | 신규 | D2 백필 |
-| `scripts/init_profile_snapshot.py` | 신규 | D4 초기화 |
-| `tests/test_services.py` | 신규 | D5 |
-| `tests/test_metric_breakdown.py` | 신규 | D1 |
-| `tests/test_user_inputs.py` | 신규 | D3 |
+| `src/db_setup.py` | 수정 ✅완료 | D3: user_inputs/ai_feedback/chat_threads DDL + APP_TABLES + SCHEMA_VERSION 16, D2/D4는 미착수 |
+| `src/db_helpers.py` | 수정 | D1: `upsert_metric()` parent_metric_id 파라미터 (미착수) |
+| `src/calculators/fitness_calculator.py` | 수정 | D1: 자식 메트릭 저장 (미착수) |
+| `src/calculators/utrs_calculator.py` | 수정 | D1: 자식 메트릭 저장 (미착수) |
+| `src/calculators/cirs_calculator.py` | 수정 | D1: 자식 메트릭 저장 (미착수) |
+| `src/calculators/race_readiness_calculator.py` | 수정 | D1: 자식 메트릭 저장 (미착수) |
+| `src/matchers/matcher.py` | 수정 | D2: assign_group_id() → activity_groups upsert (미착수) |
+| `src/services/today_service.py`, `coach_service.py` | 신규 ✅완료 | D5: Phase 7a 전체 구현 |
+| `src/services/metrics_service.py`, `plan_service.py`, `data_service.py` | 신규 ✅완료(스텁) | D5: Phase 7b~7d 구현 예정 |
+| `src/ai/chat_engine.py` | 수정 ✅완료 | D5: `chat()`/`_load_recent_chat()`에 옵션 `thread_id` 추가(Coach, 하위호환) |
+| `src/api/` | 신규 | D5 소비 (P7-IMPL-API, 미착수) |
+| `scripts/backfill_activity_groups.py` | 신규 | D2 백필 (미착수) |
+| `scripts/init_profile_snapshot.py` | 신규 | D4 초기화 (미착수) |
+| `tests/test_today_service.py`, `test_coach_service.py` | 신규 ✅완료 | D5 (`test_services.py` 단일 파일 대신 서비스별 분리) |
+| `tests/test_user_inputs.py` | 신규 ✅완료 | D3 |
+| `tests/test_chat_engine_threads.py` | 신규 ✅완료 | D5: thread_id 필터링 |
+| `tests/test_metric_breakdown.py` | 신규 | D1 (미착수) |
 
 ---
 
 ## 작성 이력
 
+- v0.5 (2026-09-22): D5(today_service/coach_service)·D3(user_inputs/ai_feedback) 구현
+  완료 — "구현 후기" 절 추가(D3 섹션), 원안 대비 조정 2건 기록(FK 제약 제거, ai_feedback
+  타입 정정), ADR에 없던 `chat_threads` 테이블 신설 이유 기록, 마이그레이션 전략의
+  실제 함수명 오류(`migrate()`→`migrate_db()`, `DB_TABLES`→`APP_TABLES`) 정정, 영향
+  받는 파일 목록에 완료 표시. D1/D2/D4는 미착수.
 - v0.4 (2026-06-10): REVIEW-02 반영 — AO-3: D2 SQL 주석·마이그레이션 전략 primary_source 근거를 `metric_priority.py` → `dedup.py / v_canonical_activities 정적 순서`로 정정; AO-4: D5에 쿼리 경로 분리 정책(activity_summaries vs metric_store) 추가
 - v0.3 (2026-06-10): D1 Calculator 단계 배분을 07 로드맵과 정렬 (7a=fitness, 7b=utrs/cirs/race_readiness). 실행 순서 동기화.
 - v0.2 (2026-06-10): REVIEW 반영 — D1 마이그레이션 순서 Calculator 4개로 통일(race_readiness 추가), D2 백필 primary_source를 MIN(source) 알파벳 정렬에서 metric_priority.py 우선순위 기반 CASE 식으로 수정, assign_group_id() G3 정합성 주석 추가

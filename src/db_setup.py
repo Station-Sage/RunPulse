@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 15  # v0.3.5: activity_summaries.workout_label 컬럼 추가
+SCHEMA_VERSION = 16  # v0.3.6: user_inputs/ai_feedback/chat_threads 신설 + chat_messages.thread_id 추가 (D3)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -388,8 +388,49 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT NOT NULL,
     chip_id TEXT,
     ai_model TEXT,
+    thread_id INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT,
+    created_at  TEXT DEFAULT (datetime('now')),
+    updated_at  TEXT DEFAULT (datetime('now'))
+);
+-- idx_chat_thread는 여기 두지 않는다: chat_messages는 기존 테이블이라 thread_id가
+-- 아직 없는 상태로 create_tables()만 단독 호출될 수 있음(migrate_db 없이) — 대신
+-- _safe_create_indexes()의 컬럼 존재 확인 헬퍼로 안전하게 생성한다.
+
+-- D3 (Phase 7): 사용자 체크인 + AI 피드백. 06-data-layer-extensions.md ADR 기준,
+-- activity_id는 FK 제약 없음(이 스키마 전체 관례 일치 — REFERENCES 쓰는 테이블 없음,
+-- PRAGMA foreign_keys=ON 상태에서 활동 재처리 시 참조 무결성 위반 위험 회피).
+CREATE TABLE IF NOT EXISTS user_inputs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    input_date      TEXT NOT NULL,
+    input_type      TEXT NOT NULL,
+    fatigue         INTEGER,
+    pain            TEXT,
+    mood            INTEGER,
+    note            TEXT,
+    activity_id     INTEGER,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(input_date, input_type)
+);
+CREATE INDEX IF NOT EXISTS idx_ui_date ON user_inputs(input_date);
+CREATE INDEX IF NOT EXISTS idx_ui_type ON user_inputs(input_date, input_type);
+
+CREATE TABLE IF NOT EXISTS ai_feedback (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    thread_id       INTEGER NOT NULL,
+    message_id      INTEGER NOT NULL,
+    rating          INTEGER,
+    thumbs          TEXT,
+    comment         TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(thread_id, message_id)
+);
+CREATE INDEX IF NOT EXISTS idx_af_thread ON ai_feedback(thread_id);
 
 CREATE TABLE IF NOT EXISTS goals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -518,6 +559,9 @@ APP_TABLES = [
     "planned_workouts",
     "user_training_prefs",
     "session_outcomes",
+    "chat_threads",
+    "user_inputs",
+    "ai_feedback",
 ]
 
 ALL_TABLES = PIPELINE_TABLES + APP_TABLES
@@ -581,6 +625,10 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
     _idx(conn, "sync_jobs", "source",
          "CREATE INDEX IF NOT EXISTS idx_sync_jobs_source ON sync_jobs(source, created_at)")
 
+    # chat_messages.thread_id (D3) — 기존 테이블에 추가되는 컬럼이라 컬럼 존재 확인 필요
+    _idx(conn, "chat_messages", "thread_id",
+         "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)")
+
 
 def _create_index_if_column_exists(
     conn: sqlite3.Connection, table: str, column: str, ddl: str
@@ -597,7 +645,7 @@ def _create_index_if_column_exists(
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """v0.3 스키마: 13 파이프라인 테이블 + 5 앱 테이블 + 1 뷰 생성."""
+    """v0.3 스키마: 13 파이프라인 테이블 + 8 앱 테이블 + 1 뷰 생성."""
     for ddl in [
         _DDL_SOURCE_PAYLOADS,
         _DDL_ACTIVITY_SUMMARIES,
@@ -663,6 +711,8 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v13: activity_summaries.distance_km → distance_m 컬럼명 수정 (SQLite 3.25+ RENAME COLUMN).
     v14: activity_streams / activity_best_efforts elapsed_sec 컬럼 누락 시 테이블 재생성.
     v15: activity_summaries.workout_label TEXT 컬럼 추가.
+    v16: chat_messages.thread_id 컬럼 추가 (D3 — user_inputs/ai_feedback/chat_threads는
+         신규 테이블이라 create_tables()의 CREATE TABLE IF NOT EXISTS만으로 충분).
     """
     current = _get_user_version(conn)
 
@@ -718,6 +768,12 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
         existing = {r[1] for r in conn.execute("PRAGMA table_info(activity_summaries)").fetchall()}
         if "workout_label" not in existing:
             conn.execute("ALTER TABLE activity_summaries ADD COLUMN workout_label TEXT")
+
+    # v16: chat_messages.thread_id 추가 (D3 — Coach 스레드 지원)
+    if current < 16:
+        existing = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
+        if existing and "thread_id" not in existing:
+            conn.execute("ALTER TABLE chat_messages ADD COLUMN thread_id INTEGER")
 
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)

@@ -45,7 +45,8 @@ def chat(
     user_message: str,
     config: dict | None = None,
     chip_id: str | None = None,
-) -> str:
+    thread_id: int | None = None,
+) -> tuple[str, str]:
     """사용자 메시지에 대한 AI 응답 생성 — provider chain fallback 지원.
 
     Args:
@@ -53,14 +54,17 @@ def chat(
         user_message: 사용자 입력 텍스트.
         config: 설정 dict.
         chip_id: 추천 칩 ID (칩 클릭 시).
+        thread_id: 지정하면 해당 스레드의 대화 이력만 컨텍스트로 사용한다(Phase 7
+            Coach 다중 스레드용, D3). None(기본값)이면 기존 v1 /ai-coach 동작과 동일 —
+            thread_id 구분 없이 최근 메시지 전체를 사용한다.
 
     Returns:
-        AI 응답 텍스트 (마크다운).
+        (AI 응답 텍스트, 실제 응답한 provider 이름) 튜플.
     """
     provider = get_ai_provider(config)
 
     # 최근 대화 이력 (맥락 유지)
-    chat_history = _load_recent_chat(conn, limit=6)
+    chat_history = _load_recent_chat(conn, limit=6, thread_id=thread_id)
 
     # 프롬프트 빌드
     if chip_id:
@@ -196,13 +200,26 @@ def _build_system_prompt(context: str, user_message: str,
     return "".join(parts)
 
 
-def _load_recent_chat(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
-    """최근 채팅 이력 로드 (프롬프트 컨텍스트용)."""
+def _load_recent_chat(
+    conn: sqlite3.Connection, limit: int = 3, thread_id: int | None = None,
+) -> list[dict]:
+    """최근 채팅 이력 로드 (프롬프트 컨텍스트용).
+
+    thread_id가 주어지면 그 스레드로만 필터링한다(Phase 7 Coach). None이면 기존
+    v1 동작대로 전체 최근 메시지를 사용한다.
+    """
     try:
-        rows = conn.execute(
-            "SELECT role, content FROM chat_messages ORDER BY id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
+        if thread_id is not None:
+            rows = conn.execute(
+                "SELECT role, content FROM chat_messages WHERE thread_id = ? "
+                "ORDER BY id DESC LIMIT ?",
+                (thread_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT role, content FROM chat_messages ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
         return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
     except Exception:
         return []

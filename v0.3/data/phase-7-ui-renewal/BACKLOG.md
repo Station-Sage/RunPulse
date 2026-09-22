@@ -2,7 +2,7 @@
 
 ## 진행 현황
 
-**현재 상태**: **S3(데이터 충만) 기준 재정렬 완료.** REVIEW-03(Today as Gateway·모바일 IA)을
+**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 착수(D5·D3 완료).** REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
 (`scripts/autopilot/`) 5유닛(00 §10 결정 요약, 00 §5.1/5.3/6/7 IA 영역 서술, 01 P8→P8',
@@ -19,7 +19,10 @@
   범위 밖으로 명시).
 - 07 — Phase 7a~7d 전체를 신 IA로 재정렬.
 
-데이터 레이어(D1~D5)는 변경 없음 — 이건 순수 UI/IA 재검토(REVIEW-03 §7).
+문서 재정렬 단계에선 데이터 레이어(D1~D5) 변경 없음(REVIEW-03 §7, 순수 UI/IA 재검토).
+이후 실제 구현 단계에서 D5(`today_service.py`/`coach_service.py` 전체, 나머지 3개 스텁)와
+D3(`user_inputs`/`ai_feedback` + 구현 중 발견한 `chat_threads`)를 완료(2026-09-22, plan
+mode로 조사·설계 후 승인받아 진행). 상세는 DONE 참조. D1/D2/D4는 아직 미착수.
 
 **보류(사용자 지시, 2026-09-22, "러닝이 우선")**:
 1. PWA 타이밍 — 비전 그룹1 vs 00/07의 7c 배치 불일치.
@@ -30,6 +33,10 @@
    05 §11.4에서 발견, 판단 보류.
 5. email@db 멀티테넌시 DB 라우팅 실제 구현 — 05 §11.3에서 범위 밖으로 명시, 별도
    시스템 설계 필요.
+6. **(신규 발견, D5/D3와 무관한 기존 버그)** `chat_engine_rules.rule_based_response()`가
+   존재하지 않는 `ai_context.build_context`를 import — AI provider 미설정 시(config
+   없음) rule fallback 자체가 ImportError로 죽는다. v1 `/ai-coach`도 영향받을 수 있음.
+   `06-data-layer-extensions.md` D5 "구현 후기"에 기록, 수정은 안 함.
 
 ---
 
@@ -57,23 +64,19 @@
 ### 핵심 컴포넌트 1차 목록 (확정)
 `<EvidenceQuote>` / `<MetricCell>` / `<MetricBreakdown>` / `<ProviderComparison>` / `<QuickInput>` / `<RecommendationCard>` / `<TimelineNarrative>`
 
-### 데이터 레이어 확장 5건 (미구현)
-| ID | 내용 | 단계 |
-|----|------|------|
-| D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a |
-| D2 | 활동 그룹 ID 모델 명시화 (그룹 마스터 테이블) | Phase 7b |
-| D3 | `user_inputs` / `ai_feedback` 테이블 신설 | Phase 7a |
-| D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c |
-| D5 | `src/services/` — phase-5 서비스 레이어 설계 구현 | Phase 7a (전제조건) |
+### 데이터 레이어 확장 5건
+| ID | 내용 | 단계 | 상태 |
+|----|------|------|------|
+| D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a | 미구현 |
+| D2 | 활동 그룹 ID 모델 명시화 (그룹 마스터 테이블) | Phase 7b | 미구현 |
+| D3 | `user_inputs` / `ai_feedback` 테이블 신설 (+ 구현 중 발견: `chat_threads` 신설) | Phase 7a | ✅ 완료(2026-09-22) |
+| D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c | 미구현 |
+| D5 | `src/services/` — today_service·coach_service 구현, 나머지 3개 스텁 | Phase 7a (전제조건) | ✅ 완료(2026-09-22) |
 
 ---
 
 ## NOW
 
-- **[P7-IMPL-D5]** `src/services/` 서비스 레이어 구현 (Phase 7a 전제조건 — D5). 2026-09-22
-  NEXT→NOW 승격(사용자 확인, AskUserQuestion).
-- **[P7-IMPL-D3]** `user_inputs` / `ai_feedback` DDL + `db_setup.migrate()` 등록 (Phase 7a).
-  2026-09-22 NEXT→NOW 승격.
 - **[P7-REVIEW03-LIFECYCLE]** REVIEW-03 §9·§10이 요구한 S0(비로그인 랜딩)·S1(가입/연결)·
   S2(콜드스타트) 화면 설계가 아직 없다 — 지금까지 한 재정렬은 전부 S3(데이터 충만) 기준.
   §9-4가 정한 구현 순서(S3→S2→S0)상 Phase 7a~7d 착수를 막지는 않지만, 03 화면 카탈로그에
@@ -85,7 +88,8 @@
 
 ## NEXT
 
-- **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 + Today/Library/activities 엔드포인트 (Phase 7a)
+- **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 + Today/Library/activities 엔드포인트 (Phase
+  7a). D5(today_service/coach_service) 완료로 착수 가능 — 다음 승격 후보.
 
 ---
 
@@ -108,6 +112,22 @@ DONE으로 옮긴다.
 
 ## DONE
 
+- **[P7-IMPL-D5, P7-IMPL-D3]** Phase 7a 서비스 레이어 + 신규 테이블 구현(2026-09-22, plan
+  mode로 조사 후 승인받아 진행). D5: `today_service.py`(get_today_status/briefing,
+  get_recent_activities, save_checkin)·`coach_service.py`(list_threads/create_thread/
+  add_message) 전체 구현, `metrics_service.py`/`plan_service.py`/`data_service.py`는
+  스텁(7b~7d). `story_service.py`는 만들지 않음(Story→Today L2 흡수, 이미 반영된 IA
+  결정과 일관). `activity_service.list_activities()`도 안 만듦 — 기존
+  `get_activity_list()`가 이미 필터/정렬/페이지네이션 지원. D3:
+  `user_inputs`/`ai_feedback` DDL(원안 대비 조정 2건 — activity_id FK 제거,
+  ai_feedback 타입 TEXT→INTEGER 정정). **구현 중 ADR에 없던 스키마 필요성 발견**:
+  Coach 스레드 기능에 `chat_threads` 테이블 + `chat_messages.thread_id` 컬럼 필요
+  (SCHEMA_VERSION 15→16) — `chat_engine.chat()`에 하위호환 `thread_id` 옵션 추가로
+  대응. 신규 테스트 28개(`test_user_inputs.py`/`test_today_service.py`/
+  `test_coach_service.py`/`test_chat_engine_threads.py`), 전체 1404 passed. 과정에서
+  D3/D5와 무관한 기존 버그(rule fallback ImportError) 1건 발견 → 최상위
+  `BACKLOG.md`의 `BUG-CHAT-RULE-FALLBACK`로 기록, 수정 안 함. 상세 판단 근거는
+  `06-data-layer-extensions.md` "구현 후기" 절.
 - **[P7-REALIGN-CONTENT]** 03a~03g·04·05를 REVIEW-03 3탭 IA로 재정렬(2026-09-22, 이 세션에서
   직접 작업, 무인 실행 아님). 03a(Today)를 L0~L3 전면 재작성, 03e(Coach)에 구 Plan "작업"
   흡수, 03b/03d는 안내 스텁化. 04는 REVIEW-03 §5의 "신규 컴포넌트 필요성" 질문에 답함(불필요).
