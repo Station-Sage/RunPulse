@@ -257,7 +257,7 @@ DONE으로 옮긴다.
   검증, 저장된 자식 행의 `parent_metric_id`가 같은 날짜 utrs/cirs 행의 id와 같은지 확인.
   `tests/test_utrs.py`/`tests/test_cirs.py`에 단위 테스트(어떤 컴포넌트가 가용/불가용일
   때 자식 개수가 맞게 달라지는지)도 추가.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/metrics/utrs.py", "src/metrics/cirs.py", "tests/test_utrs.py", "tests/test_cirs.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_utrs.py tests/test_cirs.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/metrics/utrs.py", "src/metrics/cirs.py", "tests/test_utrs.py", "tests/test_cirs.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_utrs.py tests/test_cirs.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
