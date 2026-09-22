@@ -37,6 +37,11 @@ def main() -> None:
     print(f"  STOP: {settings.STOP_PATH.exists()}  PAUSE: {settings.PAUSE_PATH.exists()}")
 
     print("\n=== 큐 (v0.3/data/phase-7-ui-renewal/BACKLOG.md) ===")
+    malformed = queue.find_malformed_meta(settings.QUEUE_PATH)
+    if malformed:
+        print(f"  ⚠ 메타 주석 파싱 의심 {len(malformed)}건 (조용히 manual 취급됐을 수 있음):")
+        for w in malformed:
+            print(f"    {w}")
     items = queue.parse(settings.QUEUE_PATH)
     auto_items = [it for it in items if it.mode == "auto"]
     by_stage: dict[str, int] = {}
@@ -47,7 +52,7 @@ def main() -> None:
     print(f"  다음 실행 대상: {nr.item_id if nr else '(없음)'}")
     for it in auto_items:
         if it.stage in ("blocked", "review"):
-            print(f"    [{it.stage}] {it.item_id}: {it.text[:60]}")
+            print(f"    [{it.stage}/{it.kind}] {it.item_id}: {it.text[:60]}")
 
     print("\n=== worktree ===")
     print(f"  경로: {settings.WORKTREE_DIR} (존재: {settings.WORKTREE_DIR.exists()})")

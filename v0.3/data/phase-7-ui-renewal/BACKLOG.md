@@ -90,7 +90,7 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 
 ## NEXT
 
-(비어있음 — 다음 후보는 LATER의 `P7-IMPL-D1`/`P7-IMPL-SVELTE` 중 사용자 판단 후 승격)
+(비어있음 — AUTOPILOT QUEUE의 3건이 review로 올라오면 병합 검토가 다음 순서)
 
 ---
 
@@ -100,16 +100,83 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 건드리지 않는다. 형식·규칙은 `scripts/autopilot/README.md` 참조. 완료 항목은
 DONE으로 옮긴다.
 
-(비어있음 — 다음 유닛은 P7-REALIGN-SCOPE의 판단 이후 추가)
+**2026-09-22 `kind:"code"` 확장** — 지금까지 이 큐는 설계 문서 편집(`kind:"docs"`,
+기본값) 전용이었다. 사용자가 "다음 작업(코드 구현 포함)을 오토파일럿 모드로"라고
+요청해(정확히는 "scripts/autopilot을 코드 구현까지 확장" 선택) `run_unit.py`에
+`kind:"code"` 경로를 추가했다 — 범위(`scope`)와 성공 판정 커맨드(`verify`)를 큐
+메타에 명시하고, `claude -p`가 "성공"을 자체 보고해도 `run_unit.py`가 `verify`
+커맨드를 워크트리에서 독립적으로 다시 돌려 통과해야만 `stage: review`로 넘어간다
+(실패 시 `blocked`). 상세는 `scripts/autopilot/README.md`.
+
+- **[P7-IMPL-D1]** parent_metric_id 트리 연결 — `PMCCalculator`(ctl/atl/tsb/ramp_rate)의
+  `ramp_rate`를 `ctl`의 자식으로 저장한다(`06-data-layer-extensions.md` D1, **Phase 7a
+  몫만** — 그 문서 자체가 "Phase 7a: fitness_calculator, Phase 7b: utrs/cirs/
+  race_readiness"로 나눠뒀는데 LATER의 옛 설명이 4개를 전부 7a로 묶어놔서 부정확했음,
+  이번에 바로잡음). 배선은 이미 대부분 있다 — `CalcResult.parent_metric_id`
+  (`src/metrics/base.py`)와 `upsert_metric()`의 `parent_metric_id` 파라미터
+  (`src/utils/db_helpers.py`)는 이미 존재하는데, `_save_results()`
+  (`src/metrics/engine.py`, `_save_results` 함수)가 각 `CalcResult`를 순서대로
+  `upsert_metric()`에 넘길 때 `parent_metric_id`를 아예 안 넘겨서 끊겨 있다.
+  **구현**: (1) `CalcResult`에 `parent_metric_name: str | None = None` 필드 추가(계산
+  시점엔 부모의 DB row id를 모르니 이름으로 참조) + `MetricCalculator._result()`에
+  같은 파라미터 추가해 그대로 전달. (2) `_save_results()`를 다음처럼 수정: `results`를
+  순서대로 돌며 `name_to_id: dict[str, int] = {}`를 누적하고, 각 result의
+  `parent_metric_id = name_to_id.get(r.parent_metric_name)`을 계산해
+  `upsert_metric()`에 넘긴 뒤 반환된 id를 `name_to_id[r.metric_name] = id`로 기록
+  (부모가 먼저 나와야 자식이 참조 가능 — `PMCCalculator.compute()`는 이미 `ctl`을
+  index 0, `ramp_rate`를 index 3으로 반환하니 순서는 그대로 둘 것). (3)
+  `src/metrics/pmc.py`의 `ramp_rate` `self._result(...)` 호출에
+  `parent_metric_name="ctl"` 추가. 고아 행 걱정 없음 — `upsert_metric()`이 이미
+  `ON CONFLICT ... DO UPDATE`라 `ctl`의 row id는 재계산해도 안 바뀐다. 테스트는
+  `tests/test_engine.py`의 `TestRunDailyMetrics`/`TestRunForDate` 패턴처럼 공개 함수
+  (`run_daily_metrics`/`run_for_date` 등)를 통해 전체 파이프라인으로 검증하고, 저장된
+  `ramp_rate` 행의 `parent_metric_id`가 같은 날짜 `ctl` 행의 id와 같은지 확인한다.
+  `metrics_service.get_metric_breakdown()`(소비 API)은 범위 밖(Phase 7b, `07-migration-
+  roadmap.md` 참조) — 이번엔 DB 행 연결까지만.
+  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["src/metrics/base.py","src/metrics/engine.py","src/metrics/pmc.py", "tests/test_pmc.py","tests/test_engine.py"], "verify":["python3 -m pytest tests/test_pmc.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
+- **[P7-IMPL-SVELTE-2A]** SvelteKit — Library 활동 목록 + 상세 화면(`03c-library.md`
+  3-B·3-C 요약 탭만). `frontend/`의 Today 구현(`P7-IMPL-SVELTE` 1차, 이미 병합됨)이
+  세운 패턴을 그대로 따른다 — `$lib/api/client.ts`의 `apiFetch()`, `$lib/provider.ts`
+  (Provider 배지), `$lib/format.ts`(거리/시간/날짜 포맷), `$lib/components/
+  MetricCell.svelte`(핵심 메트릭 그리드, `drillable=false` — MetricBreakdown은 7b라
+  아직 없음). API는 이미 구현·테스트됨: `GET /api/v1/library/activities`
+  (`?sport=&from=&to=&page=&per_page=`) → `{activities,total,has_more}`,
+  `GET /api/v1/library/activities/:id` → `{activity:{core,metrics_by_category,
+  source_comparison,semantic_groups,streams,laps,best_efforts}}`(요약 탭엔 core +
+  metrics_by_category만 쓰면 됨), `GET /api/v1/library/activities/:id/streams` →
+  `{streams:[...]}`(포인트별 dict 배열, 필드별 배열 아님 — `P7-IMPL-API` DONE 항목
+  참조). 라우트: `frontend/src/routes/library/+page.svelte`(현재 "준비 중" 플레이스홀더
+  교체) = 활동 목록, `frontend/src/routes/library/[id]/+page.svelte` 신규 = 상세.
+  **범위 밖**: Library 홈의 시맨틱 그룹 탐색·Provider 연결 현황(3-A, `/library/metrics`
+  등 7b API 필요), 랩·메트릭 탭(엔드포인트 없음), 스트림 전체 차트 시각화(이번엔 스트림
+  존재 여부/포인트 수 정도만 표시), 고급 필터(정렬·거리 범위 — sport/날짜/페이지네이션만).
+  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/library/","frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-SVELTE-2B]** SvelteKit — Coach MVP 화면(`03e-coach.md` 5-A 홈 + 5-B
+  대화 스레드, 컨텍스트 패널 제외 — 07 로드맵상 7d 몫). Today와 같은 패턴 재사용
+  (`$lib/api/client.ts`, `EvidenceQuote.svelte`를 대화 답변 안 근거 칩에 재사용).
+  API는 이미 구현·테스트됨: `GET /api/v1/coach/threads` → `{threads:[...]}`,
+  `POST /api/v1/coach/threads`(body `initial_message`) → `{thread,message}`,
+  `GET /api/v1/coach/threads/:id` → `{thread,messages:[...]}`,
+  `POST /api/v1/coach/threads/:id/messages`(body `content`) → `{message}`. 라우트:
+  `frontend/src/routes/coach/+page.svelte`(현재 "준비 중" 플레이스홀더 교체) = 최근
+  대화 목록 + [+ 새 대화 시작], `frontend/src/routes/coach/[threadId]/+page.svelte`
+  신규 = 메시지 스레드(사용자/Coach 말풍선 + EvidenceQuote 칩). **범위 밖**: 우측
+  컨텍스트 패널(7d), Coach 홈의 "진행 중 플랜"·"새 프로그램 만들기" 섹션(plan_service가
+  아직 스텁), Coach 홈의 QuickInput(compact) 블록 — 이미 Today에 있으니 중복 배치는
+  이번엔 생략, 필요하면 후속 판단.
+  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
 ## LATER
 
-- **[P7-IMPL-D1]** parent_metric_id 활성화 — fitness/utrs/cirs/race_readiness Calculator 수정 4개 (Phase 7a)
-- **[P7-IMPL-SVELTE-2]** SvelteKit 2차 — Library/activities 화면(`03c-library.md`) + Coach MVP
-  화면(`03e-coach.md`, 컨텍스트 패널 제외) + 상단 3선 메뉴 실제 진입점(Phase 7a 나머지).
-  현재 두 화면 모두 하단 탭에 "준비 중" 플레이스홀더만 있음(`P7-IMPL-SVELTE` 1차 참조)
+- **[P7-DATA-MENU-ENTRY]** 상단 3선 메뉴 실제 진입점(`/v2/data/settings` 등) — Phase 7d
+  Data API(`GET /api/v1/data/sources` 등)가 있어야 채울 수 있음, 지금은 비활성 ☰ 버튼만
+  존재(`P7-IMPL-SVELTE` 1차 참조). D1의 utrs/cirs/race_readiness 자식 메트릭 연결(Phase
+  7b 몫, `06-data-layer-extensions.md` 참조)도 여기 대기 — AUTOPILOT QUEUE의
+  `P7-IMPL-D1`은 fitness(ctl/ramp_rate)만 다룬다.
 
 ---
 

@@ -1119,6 +1119,20 @@
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
 
+### `test_autopilot_queue.py` (124줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
+
+- class **TestParseKindDefault**: test_missing_kind_defaults_to_docs
+- class **TestParseCodeKind**: test_reads_kind_scope_verify
+- class **TestUpdateItemPreservesCodeFields**: test_stage_update_keeps_scope_and_verify, test_docs_item_meta_shape_unchanged
+- class **TestFindMalformedMeta**: test_wrapped_meta_flagged, test_wellformed_meta_not_flagged, test_wrapped_meta_item_silently_becomes_manual
+- class **TestNextRunnableIgnoresKind**: test_code_and_docs_both_runnable
+
+### `test_autopilot_run_unit.py` (87줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+
+- class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_missing_scope_warns_instead_of_empty
+- class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
+- class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
+
 ### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
 
 - functions: conn, test_build_briefing_prompt_contains_context, test_build_briefing_prompt_no_data_graceful, test_build_chip_prompt_weekly_review, test_build_chip_prompt_today_deep_injects_activity_extra, test_build_chip_prompt_unknown_chip, test_get_clipboard_prompt_briefing_mode, test_get_clipboard_prompt_chip_mode
@@ -1721,7 +1735,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 335개 파일
+총 337개 파일
 
 ## docstring 누락
 
