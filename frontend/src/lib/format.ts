@@ -11,6 +11,16 @@ export function formatDuration(sec: number): string {
 	return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+export function formatPace(secPerKm: number): string {
+	const min = Math.floor(secPerKm / 60);
+	const sec = Math.round(secPerKm % 60);
+	return `${min}:${String(sec).padStart(2, '0')}/km`;
+}
+
+export function formatDate(isoStr: string): string {
+	return isoStr.slice(0, 10);
+}
+
 export function formatRelativeDay(isoDate: string): string {
 	const date = new Date(isoDate);
 	const today = new Date();

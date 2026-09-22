@@ -92,6 +92,69 @@ export interface RecommendationCardProps {
 	loading?: boolean;
 }
 
+// ── /api/v1/library 실제 응답 (src/api/routes_library.py, src/services/activity_service.py) ──
+
+// v_canonical_activities의 행 — activity_service.get_activity_list() 기준.
+export interface ActivitySummary {
+	id: number;
+	name: string;
+	activity_type: string;
+	start_time: string;
+	distance_m: number | null;
+	duration_sec: number | null;
+	avg_hr: number | null;
+	avg_pace_sec_km: number | null;
+	elevation_gain: number | null;
+	source: string;
+}
+
+export interface ActivitiesListResponse {
+	activities: ActivitySummary[];
+	total: number;
+	has_more: boolean;
+}
+
+// activity_service._build_metrics_by_category()의 각 항목.
+export interface ActivityMetric {
+	metric_name: string;
+	numeric_value: number | null;
+	text_value: string | null;
+	json_value: string | null;
+	provider: string | null;
+	confidence: number | null;
+	unit: string;
+	description: string;
+}
+
+// activity_summaries 행 (공통 필드 + 인덱스 시그니처).
+export interface ActivityCore {
+	id: number;
+	name: string;
+	activity_type: string;
+	start_time: string;
+	distance_m: number | null;
+	duration_sec: number | null;
+	avg_hr: number | null;
+	avg_pace_sec_km: number | null;
+	elevation_gain: number | null;
+	source: string;
+	[key: string]: unknown;
+}
+
+export interface ActivityDetail {
+	core: ActivityCore;
+	metrics_by_category: Record<string, ActivityMetric[]>;
+	source_comparison: Record<string, unknown>;
+	semantic_groups: Record<string, unknown>;
+	streams: unknown[] | null;
+	laps: unknown[] | null;
+	best_efforts: unknown[] | null;
+}
+
+export interface ActivityDetailResponse {
+	activity: ActivityDetail;
+}
+
 // ── /api/v1/today 실제 응답 (src/api/routes_today.py, src/services/today_service.py 기준) ──
 
 export interface MetricEntry {
