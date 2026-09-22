@@ -156,10 +156,11 @@ def run_once(*, dry_run: bool = False, ignore_night: bool = False, ignore_idle: 
     settings.LOCK_PATH.write_text(str(os.getpid()))
     try:
         worktree.ensure()
-        if not worktree.is_clean():
+        sync_blocked = worktree.sync()
+        if sync_blocked:
             queue.update_item(settings.QUEUE_PATH, item.item_id, stage="blocked")
-            notify.send(f"[autopilot] {item.item_id} 차단: worktree가 청결하지 않음 (이전 실행 잔재 의심) — 수동 확인 필요")
-            print("[worktree] 청결하지 않음 — blocked 처리")
+            notify.send(f"[autopilot] {item.item_id} 차단: {sync_blocked}")
+            print(f"[worktree] 차단: {sync_blocked}")
             return 2
 
         queue.update_item(settings.QUEUE_PATH, item.item_id, stage="in_progress",

@@ -40,6 +40,27 @@ def is_clean() -> bool:
     return r.returncode == 0 and not r.stdout.strip()
 
 
+def sync() -> str:
+    """base 브랜치 최신 커밋 위로 autopilot 브랜치를 rebase.
+
+    ensure()는 worktree가 없을 때만 만들고 그 뒤로는 손대지 않으므로, 이걸 부르지
+    않으면 worktree는 처음 만들어진 시점의 커밋에 영원히 멈춰 있는다 — base에서
+    이후 추가된 문서·코드를 에이전트가 못 보게 된다(실제로 한 번 이렇게 실패함,
+    2026-09-22: REVIEW-02/03·DECISIONS.md가 없는 채로 작업해 예산 초과로 실패).
+
+    Returns: "" 성공, 아니면 차단 사유(dirty | rebase_conflict).
+    """
+    if not settings.WORKTREE_DIR.exists():
+        return ""
+    if not is_clean():
+        return "worktree가 청결하지 않음 (이전 실행 잔재 의심)"
+    r = _run(["git", "rebase", settings.BASE_BRANCH], cwd=settings.WORKTREE_DIR)
+    if r.returncode != 0:
+        _run(["git", "rebase", "--abort"], cwd=settings.WORKTREE_DIR)
+        return f"{settings.BASE_BRANCH} 위로 rebase 충돌 — 수동 개입 필요: {r.stderr.strip()[:300]}"
+    return ""
+
+
 def commits_ahead_of(base_branch: str) -> int:
     r = _run(["git", "rev-list", "--count", f"{base_branch}..{settings.AUTOPILOT_BRANCH}"],
               cwd=settings.PROJECT_ROOT)
