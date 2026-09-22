@@ -59,7 +59,8 @@ class PMCCalculator(MetricCalculator):
             self._result(value=round(ctl, 1), metric_name="ctl"),
             self._result(value=round(atl, 1), metric_name="atl"),
             self._result(value=round(tsb, 1), metric_name="tsb"),
-            self._result(value=round(ramp_rate, 2), metric_name="ramp_rate"),
+            self._result(value=round(ramp_rate, 2), metric_name="ramp_rate",
+                         parent_metric_name="ctl"),
         ]
 
     def _get_daily_loads(self, ctx: CalcContext, days: int) -> dict:

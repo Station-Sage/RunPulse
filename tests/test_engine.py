@@ -82,6 +82,31 @@ class TestRunDailyMetrics:
         # PMC는 최소 1개 TRIMP가 있으면 동작
         assert len(results) > 0
 
+    def test_ramp_rate_parent_metric_id_links_to_ctl(self):
+        """ramp_rate 행의 parent_metric_id가 같은 날짜 ctl 행의 id와 일치해야 한다."""
+        conn = _conn()
+        _seed_full(conn)
+        run_activity_metrics(conn, 1)
+        conn.commit()
+        run_daily_metrics(conn, "2026-04-01")
+
+        ctl_row = conn.execute(
+            "SELECT id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='ctl' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        assert ctl_row is not None, "ctl 행 없음"
+
+        ramp_row = conn.execute(
+            "SELECT parent_metric_id FROM metric_store "
+            "WHERE scope_type='daily' AND scope_id='2026-04-01' "
+            "AND metric_name='ramp_rate' AND provider='runpulse:formula_v1'"
+        ).fetchone()
+        assert ramp_row is not None, "ramp_rate 행 없음"
+        assert ramp_row[0] == ctl_row[0], (
+            f"ramp_rate.parent_metric_id={ramp_row[0]} != ctl.id={ctl_row[0]}"
+        )
+
 
 class TestRunForDate:
     def test_full_pipeline(self):

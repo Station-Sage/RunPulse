@@ -254,13 +254,19 @@ def _load_streams(conn: sqlite3.Connection, activity_id: int) -> list[dict]:
 
 def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
                   results: list[CalcResult], scope_id: str) -> int:
-    """CalcResult 리스트를 metric_store에 저장."""
+    """CalcResult 리스트를 metric_store에 저장.
+
+    results를 순서대로 돌며 name_to_id를 누적한다.
+    parent_metric_name이 설정된 결과는 부모 row id를 parent_metric_id로 연결한다.
+    """
     saved = 0
+    name_to_id: dict[str, int] = {}
     for r in results:
         if r.is_empty():
             continue
         r.scope_id = scope_id
-        upsert_metric(
+        parent_id = name_to_id.get(r.parent_metric_name) if r.parent_metric_name else None
+        row_id = upsert_metric(
             conn,
             scope_type=r.scope_type,
             scope_id=r.scope_id,
@@ -272,7 +278,9 @@ def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
             category=r.category,
             algorithm_version=calc.version,
             confidence=r.confidence,
+            parent_metric_id=parent_id,
         )
+        name_to_id[r.metric_name] = row_id
         saved += 1
     return saved
 

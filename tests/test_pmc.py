@@ -70,3 +70,13 @@ class TestPMC:
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         assert PMCCalculator().compute(ctx) == []
+
+    def test_ramp_rate_has_parent_metric_name_ctl(self):
+        """ramp_rate CalcResult.parent_metric_name 은 'ctl' 이어야 한다."""
+        conn = _conn()
+        _seed_trimp(conn)
+        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
+        results = PMCCalculator().compute(ctx)
+        ramp = next((r for r in results if r.metric_name == "ramp_rate"), None)
+        assert ramp is not None
+        assert ramp.parent_metric_name == "ctl"
