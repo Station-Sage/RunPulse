@@ -1,0 +1,204 @@
+"""자율 실행 러너 — 큐에서 작업 1건을 골라 claude -p로 실행하고 결과를 기록한다.
+
+용법:
+    python3 -m scripts.autopilot.run_unit                # 게이트 통과 시 1건 실행
+    python3 -m scripts.autopilot.run_unit --dry-run       # 무엇을 할지만 출력, LLM 호출 없음
+    python3 -m scripts.autopilot.run_unit --ignore-night  # 시간대 게이트 무시 (수동 검증용)
+
+게이트(gate.py)를 통과해야 실행하며, 실행은 격리된 git worktree(worktree.py)
+안에서만 이루어진다. 완료 후 성공이라도 stage는 "review"로 남는다 — 자동 병합은
+하지 않는다(사람이 검토·병합). 결과는 ledger.py에 기록하고 notify.py로 통지한다.
+
+동시 실행 방지: settings.LOCK_PATH 존재 시 즉시 종료(같은 실행 중이라고 가정).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from . import gate, ledger, notify, queue, settings, worktree
+
+_PROMPT_TEMPLATE = """\
+당신은 RunPulse 프로젝트의 Phase 7 UI 재설계 설계 문서 작업을 무인(사람 없이)으로 수행합니다.
+
+규칙 (반드시 지킬 것):
+- 작업 범위는 v0.3/data/phase-7-ui-renewal/ 안의 설계 문서로 한정합니다. 이 범위 밖
+  (app 코드, DB, CLAUDE.md, .claude/, 다른 브랜치 등)은 절대 건드리지 않습니다.
+- 먼저 CLAUDE.md와 v0.3/data/phase-7-ui-renewal/BACKLOG.md를 읽고 그 규칙을 따릅니다.
+- 이미 확정된 결정(00 문서의 분기점 A~D, 01의 8원칙)을 바꾸는 판단, 또는 비전·방향성
+  트레이드오프가 필요한 갈림길을 만나면 임의로 결정하지 마세요. 대신
+  v0.3/data/phase-7-ui-renewal/DECISIONS.md 맨 끝에 "## [{item_id}] <제목>" 섹션으로
+  질문·선택지 2~3개·당신의 권고 1개를 append하고, 그 갈림길 이전까지 한 작업만 커밋한
+  뒤 종료합니다. 이번 실행은 그것으로 완료된 것으로 간주합니다.
+- 작업을 마치면 (부분 완료라도) 반드시 git commit 하나 이상으로 마무리합니다. 커밋
+  메시지는 conventional commits(docs:/feat: 등), 무엇을 끝냈고 무엇이 남았는지 명시.
+- push는 하지 않습니다. 이 브랜치({branch})는 검토 후 사람이 병합합니다.
+- 확신 없는 사실(DB 값, 기존 코드 동작)은 추측하지 말고, 확인할 수 없으면 문서에
+  "TODO: 확인 필요"로 남기세요.
+
+이번 작업 [{item_id}]:
+{item_text}
+"""
+
+
+def _build_cmd(prompt: str) -> list[str]:
+    return [
+        "claude", "-p", prompt,
+        "--model", settings.MODEL,
+        "--output-format", "stream-json",
+        "--verbose",
+        "--no-session-persistence",
+        "--permission-mode", "acceptEdits",
+        "--allowed-tools", ",".join(settings.ALLOWED_TOOLS),
+        "--disallowed-tools", ",".join(settings.DISALLOWED_TOOLS),
+        "--max-budget-usd", str(settings.PER_RUN_MAX_USD),
+    ]
+
+
+def _parse_stream(raw: str) -> dict:
+    rate_limit_info = None
+    result = None
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if d.get("type") == "rate_limit_event":
+            rate_limit_info = d.get("rate_limit_info")
+        elif d.get("type") == "result":
+            result = d
+    return {"rate_limit_info": rate_limit_info, "result": result}
+
+
+def _run_claude(item: queue.QueueItem) -> dict:
+    prompt = _PROMPT_TEMPLATE.format(
+        item_id=item.item_id, item_text=item.text, branch=settings.AUTOPILOT_BRANCH,
+    )
+    cmd = _build_cmd(prompt)
+    started = time.time()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=settings.WORKTREE_DIR, capture_output=True, text=True,
+            timeout=settings.RUN_TIMEOUT_SEC, stdin=subprocess.DEVNULL,
+        )
+        timed_out = False
+        stdout, returncode = proc.stdout, proc.returncode
+    except subprocess.TimeoutExpired as e:
+        timed_out = True
+        stdout = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+        returncode = -1
+    duration = time.time() - started
+    parsed = _parse_stream(stdout)
+
+    settings.RUN_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = settings.RUN_LOG_DIR / f"{int(started)}_{item.item_id}.jsonl"
+    log_path.write_text(stdout, encoding="utf-8")
+
+    result = parsed["result"] or {}
+    if timed_out:
+        outcome = "timeout"
+    elif result.get("subtype") == "success" and not result.get("is_error"):
+        outcome = "success"
+    else:
+        outcome = "error"
+
+    return {
+        "outcome": outcome,
+        "cost_usd": result.get("total_cost_usd"),
+        "num_turns": result.get("num_turns"),
+        "duration_s": round(duration, 1),
+        "rate_limit": parsed["rate_limit_info"],
+        "returncode": returncode,
+        "log_path": str(log_path),
+        "result_subtype": result.get("subtype"),
+    }
+
+
+def _decisions_changed() -> bool:
+    r = subprocess.run(
+        ["git", "status", "--porcelain", "--", "DECISIONS.md"],
+        cwd=settings.WORKTREE_DIR / "v0.3" / "data" / "phase-7-ui-renewal",
+        capture_output=True, text=True,
+    )
+    return bool(r.stdout.strip())
+
+
+def run_once(*, dry_run: bool = False, ignore_night: bool = False, ignore_idle: bool = False) -> int:
+    """1건 실행 시도. 반환값: 0=실행함/스킵함(정상), 1=게이트 차단, 2=오류."""
+    gr = gate.check(ignore_night_window=ignore_night, ignore_idle=ignore_idle)
+    if not gr.allowed:
+        print(f"[gate] 차단: {gr.reason}")
+        return 1
+
+    items = queue.parse(settings.QUEUE_PATH)
+    item = queue.next_runnable(items)
+    if item is None:
+        print("[queue] 실행할 항목 없음")
+        return 0
+
+    print(f"[queue] 다음 항목: [{item.item_id}] {item.text[:60]}")
+    if dry_run:
+        print("[dry-run] 여기서 중단 — LLM 호출 없음")
+        return 0
+
+    settings.STATE_DIR.mkdir(parents=True, exist_ok=True)
+    if settings.LOCK_PATH.exists():
+        print("[lock] 이미 실행 중으로 보임 — 종료")
+        return 1
+    settings.LOCK_PATH.write_text(str(os.getpid()))
+    try:
+        worktree.ensure()
+        if not worktree.is_clean():
+            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="blocked")
+            notify.send(f"[autopilot] {item.item_id} 차단: worktree가 청결하지 않음 (이전 실행 잔재 의심) — 수동 확인 필요")
+            print("[worktree] 청결하지 않음 — blocked 처리")
+            return 2
+
+        queue.update_item(settings.QUEUE_PATH, item.item_id, stage="in_progress",
+                          attempts=item.attempts + 1)
+
+        outcome = _run_claude(item)
+        ledger.append({"unit_id": item.item_id, **outcome})
+
+        if outcome["outcome"] == "success":
+            new_stage = "blocked" if _decisions_changed() else "review"
+        elif item.attempts + 1 >= 2:
+            new_stage = "blocked"
+        else:
+            new_stage = "queued"  # 재시도 허용
+        queue.update_item(settings.QUEUE_PATH, item.item_id, stage=new_stage)
+
+        cost = outcome.get("cost_usd")
+        cost_str = f"${cost:.3f}" if cost is not None else "N/A"
+        notify.send(
+            f"[autopilot] {item.item_id} → {outcome['outcome']} (stage={new_stage}, "
+            f"cost={cost_str}, {outcome['duration_s']:.0f}s)"
+        )
+        print(f"[done] {item.item_id}: outcome={outcome['outcome']} stage={new_stage} cost={cost_str}")
+        return 0
+    finally:
+        settings.LOCK_PATH.unlink(missing_ok=True)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--ignore-night", action="store_true",
+                        help="시간대 게이트 무시 (수동 검증용)")
+    parser.add_argument("--ignore-idle", action="store_true",
+                        help="유휴 게이트 무시 (수동 검증용 — 스케줄 실행에서 쓰지 말 것)")
+    args = parser.parse_args()
+    sys.exit(run_once(dry_run=args.dry_run, ignore_night=args.ignore_night,
+                      ignore_idle=args.ignore_idle))
+
+
+if __name__ == "__main__":
+    main()

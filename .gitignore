@@ -111,3 +111,6 @@ data/runpulse.db
 # 마라톤 플랜 문서(개인 훈련 로그)와 업로드 zip
 data/2026_marathon_plan/
 data/*.zip
+
+# autopilot 런타임 상태 (원장·잠금·실행 로그 — 운영 이력이지 코드가 아님)
+.claude/autopilot/

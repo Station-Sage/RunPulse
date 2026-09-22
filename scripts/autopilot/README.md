@@ -1,0 +1,69 @@
+# autopilot — Phase 7 설계 작업 자율 실행 러너
+
+`v0.3/data/phase-7-ui-renewal/BACKLOG.md`의 `mode:"auto"` 항목을 골라 `claude -p`로
+1건씩 실행하고, 격리된 worktree(`autopilot/phase7` 브랜치)에 커밋한다. **자동 병합은
+하지 않는다** — 완료된 항목은 `stage: review`로 남고, 병합은 사람이 한다.
+
+## 왜 있는가
+
+- 사용자가 자주 접속하지 않으므로 무인으로 진행이 필요하다.
+- 토큰/비용 한도를 넘기면 안 된다 — Claude Code는 5시간 창의 `rate_limit_event`는
+  내보내지만 주간(seven_day) 사용률은 노출하지 않는다(2026-09-22 확인). 그래서
+  `ledger.py`가 유일한 예산 근거다.
+- 설계 변경은 사람이 확인해야 한다(CLAUDE.md) — 그래서 실행마다 격리 브랜치에
+  커밋만 하고, 최종 판단(병합·방향 결정)은 사람에게 남긴다.
+
+## 사용법
+
+```bash
+# 게이트 통과 시 큐에서 1건 실행 (야간 시간대에만 통과)
+python3 -m scripts.autopilot.run_unit
+
+# 무엇을 할지만 확인 — LLM 호출 없음
+python3 -m scripts.autopilot.run_unit --dry-run
+
+# 시간대 게이트만 무시 (수동 검증용 — 예산/유휴/circuit breaker는 그대로 적용)
+python3 -m scripts.autopilot.run_unit --ignore-night
+
+# 현황 확인
+python3 -m scripts.autopilot.status
+```
+
+정지: `.claude/autopilot/STOP` 파일을 만들면 즉시 멈춘다(지울 때까지 유지).
+일시정지: 같은 자리에 `PAUSE` 파일.
+
+## 안전장치 (gate.py, fail-closed)
+
+1. STOP/PAUSE 파일
+2. 실행 시간대 (기본 KST 02–06시, `settings.py`에서 조정)
+3. 유휴 — 이 프로젝트의 실제 세션이 30분 이내 활동했으면 양보
+4. 연속 실패 2회 → circuit breaker로 정지
+5. 예산 — 일간/주간 누적 상한(`ledger.py`), 실행당 상한은 `--max-budget-usd`
+
+## 큐 형식
+
+`BACKLOG.md`의 `- **[ID]** 설명` 항목 바로 다음 줄에:
+
+```
+<!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[]} -->
+```
+
+메타 줄이 없는 항목(기존 BACKLOG 대부분)은 사람 전용이며 자동 실행에서 건너뛴다.
+`stage`: `queued → in_progress → review|blocked → done`. `blocked`은
+`DECISIONS.md`에 사람 결정이 올라갔다는 뜻.
+
+## 파일
+
+| 파일 | 역할 |
+|---|---|
+| `settings.py` | 예산·시간대·경로·허용 도구 (비밀값 없음, git 추적) |
+| `ledger.py` | 실행 비용 append-only 기록 + 예산 판정 |
+| `gate.py` | 실행 전 5단계 안전 확인 |
+| `queue.py` | BACKLOG.md 큐 파싱/갱신 |
+| `worktree.py` | 격리 git worktree 보장 |
+| `notify.py` | Telegram Bot API 알림 (best-effort) |
+| `run_unit.py` | 메인 진입점 — 1건 실행 |
+| `status.py` | 현황 요약 |
+
+런타임 상태(`ledger.jsonl`, 잠금, 실행 로그)는 `.claude/autopilot/`에 있고
+git에 추적되지 않는다(운영 이력이지 코드가 아님).
