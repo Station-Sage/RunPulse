@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPulse — Today (목업 M1)</title>
+<style>
+/* =========================================================
+   :root 디자인 토큰 (초안 — 목업 안에서 튜닝하며 확정)
+   → 안정화되면 08-design-system.md / tokens.css 로 추출
+   P5 Quiet Data: 무채색 베이스 + 시맨틱 색만 의미 전달
+   ========================================================= */
+:root {
+  /* 서피스 (다크) */
+  --surface-0: #0a0a0b;   /* 앱 최하단 배경 */
+  --surface-1: #121214;   /* 섹션 배경 */
+  --surface-2: #1a1a1d;   /* 카드 배경 */
+  --surface-3: #232328;   /* 호버·활성 */
+  --border-subtle: #2a2a30;
+  --border-strong: #3a3a42;
+
+  /* 텍스트 */
+  --text-primary:   #ededf0;
+  --text-secondary: #a0a0a8;
+  --text-muted:     #6b6b74;
+
+  /* 시맨틱 5단계 */
+  --color-semantic-green:   #22c55e;  /* excellent */
+  --color-semantic-teal:    #14b8a6;  /* good */
+  --color-semantic-neutral: var(--text-primary);
+  --color-semantic-amber:   #f59e0b;  /* caution */
+  --color-semantic-red:     #ef4444;  /* poor */
+
+  /* Provider 색 */
+  --color-provider-garmin:    #0e6dc2;
+  --color-provider-strava:    #fc4c02;
+  --color-provider-intervals: #8b5cf6;
+  --color-provider-runalyze:  #16a34a;
+  --color-provider-runpulse:  #6b7280;
+
+  /* 강조 (액션) */
+  --color-primary: #5b8def;
+
+  /* 타이포 */
+  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  2rem;
+
+  /* 간격 */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  /* 반경 */
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-pill: 999px;
+
+  /* 트랜지션 (P5: 기능적 모션만) */
+  --t-fast: 120ms ease;
+  --t-base: 200ms ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* =========== 상단 네비 =========== */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; font-size: var(--text-lg); letter-spacing: -0.02em; }
+.nav { display: flex; gap: var(--space-5); }
+.nav a {
+  color: var(--text-secondary); text-decoration: none; font-size: var(--text-sm);
+  font-weight: 500; padding: var(--space-1) 0; transition: color var(--t-fast);
+}
+.nav a:hover { color: var(--text-primary); }
+.nav a.active { color: var(--text-primary); border-bottom: 2px solid var(--color-primary); }
+.topbar .sync { font-size: var(--text-xs); color: var(--text-muted); }
+
+/* =========== 레이아웃 =========== */
+.layout { display: flex; }
+.main { flex: 1; max-width: 760px; margin: 0 auto; padding: var(--space-6); width: 100%; }
+.section-label {
+  font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); margin: var(--space-6) 0 var(--space-3);
+  display: flex; align-items: center; gap: var(--space-2);
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+.main > .section-label:first-child { margin-top: 0; }
+
+/* =========== QuickInput (P6) =========== */
+.quickinput {
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--space-5);
+}
+.qi-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
+.qi-head .title { font-weight: 600; font-size: var(--text-base); }
+.qi-head .hint { font-size: var(--text-xs); color: var(--text-muted); }
+.qi-row { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.qi-row .label { width: 56px; font-size: var(--text-sm); color: var(--text-secondary); }
+.dots { display: flex; gap: 6px; }
+.dot {
+  width: 26px; height: 26px; border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong); background: transparent;
+  color: var(--text-muted); font-size: var(--text-xs); cursor: pointer;
+  font-family: var(--font-mono); transition: all var(--t-fast);
+}
+.dot:hover { border-color: var(--color-primary); color: var(--text-primary); }
+.dot.sel { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.pills { display: flex; gap: var(--space-2); }
+.pill {
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong); background: transparent;
+  color: var(--text-secondary); font-size: var(--text-sm); cursor: pointer;
+  transition: all var(--t-fast);
+}
+.pill:hover { border-color: var(--color-primary); }
+.pill.sel { background: var(--surface-3); border-color: var(--color-primary); color: var(--text-primary); }
+.qi-foot { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
+.btn {
+  padding: var(--space-2) var(--space-5); border-radius: var(--radius-md);
+  border: none; background: var(--color-primary); color: #fff;
+  font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: opacity var(--t-fast);
+}
+.btn:hover { opacity: 0.9; }
+.btn.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); }
+
+/* =========== MetricCell (P2 P3) =========== */
+.metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.metric-cell {
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-md); padding: var(--space-4); cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.metric-cell:hover { background: var(--surface-3); }
+.metric-cell.active { border-left-color: var(--color-primary); background: var(--surface-3); }
+.mc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); }
+.mc-label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: 500; }
+.mc-value { font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: 700; letter-spacing: -0.02em; }
+.mc-value .unit { font-size: var(--text-sm); color: var(--text-muted); font-weight: 400; margin-left: 2px; }
+.mc-status { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); margin-top: var(--space-2); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: var(--space-2); }
+.spark span { flex: 1; background: var(--border-strong); border-radius: 1px; }
+
+/* Provider 배지 */
+.badge {
+  font-size: 10px; font-family: var(--font-mono); padding: 2px 6px;
+  border-radius: var(--radius-sm); white-space: nowrap;
+}
+.badge-garmin    { background: color-mix(in srgb, var(--color-provider-garmin) 20%, transparent); color: #6db3f0; }
+.badge-strava    { background: color-mix(in srgb, var(--color-provider-strava) 20%, transparent); color: #ff8a5c; }
+.badge-runpulse  { background: var(--surface-3); color: var(--text-secondary); border: 1px solid var(--border-strong); }
+
+/* =========== RecommendationCard + EvidenceQuote (P1) =========== */
+.rec-card {
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--color-semantic-teal);
+  border-radius: var(--radius-lg); padding: var(--space-5);
+}
+.rec-body { font-size: var(--text-base); line-height: 1.6; }
+.evidence-row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.eq {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill);
+  background: var(--surface-1); border: 1px solid var(--border-subtle);
+  color: var(--text-secondary); cursor: pointer; transition: all var(--t-fast);
+}
+.eq:hover { background: var(--surface-3); border-color: var(--color-primary); color: var(--text-primary); }
+.rec-actions { margin-top: var(--space-4); }
+.rec-actions a { color: var(--color-primary); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+
+/* =========== 최근 활동 =========== */
+.activity-list { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+.activity-row {
+  display: grid; grid-template-columns: 60px 1fr auto auto auto;
+  gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); cursor: pointer;
+  transition: background var(--t-fast);
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-row:hover { background: var(--surface-3); }
+.activity-row .when { color: var(--text-muted); font-size: var(--text-xs); }
+.activity-row .name { font-weight: 500; }
+.activity-row .stat { font-family: var(--font-mono); color: var(--text-secondary); }
+
+/* =========== MetricBreakdown 패널 (P2) =========== */
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 90vw;
+  background: var(--surface-1); border-left: 1px solid var(--border-strong);
+  transform: translateX(100%); transition: transform var(--t-base);
+  z-index: 20; overflow-y: auto; box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+}
+.panel.open { transform: translateX(0); }
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-subtle);
+  position: sticky; top: 0; background: var(--surface-1);
+}
+.panel-head .back { color: var(--text-primary); font-weight: 600; }
+.panel-head .close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+.panel-body { padding: var(--space-5); }
+.pb-value { font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: 700; }
+.pb-meta {
+  font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono);
+  margin: var(--space-3) 0; padding: var(--space-3); background: var(--surface-2);
+  border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); line-height: 1.7;
+}
+.pb-formula { font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-3) 0; }
+.tree { margin-top: var(--space-4); }
+.tree-node {
+  display: grid; grid-template-columns: 1fr auto auto auto; gap: var(--space-2);
+  align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--text-sm);
+}
+.tree-node .nv { font-family: var(--font-mono); color: var(--text-primary); }
+.tree-node .nw { font-size: var(--text-xs); color: var(--text-muted); }
+.panel-link { display: inline-block; margin-top: var(--space-4); color: var(--color-primary); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity var(--t-base); z-index: 15; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+
+/* P7 예정 세션 */
+.session-card { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4); }
+.session-warn { color: var(--color-semantic-amber); font-size: var(--text-sm); margin: var(--space-2) 0; }
+.session-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">RunPulse</div>
+  <nav class="nav">
+    <a href="#" class="active">Today</a>
+    <a href="#">Story</a>
+    <a href="#">Library</a>
+    <a href="#">Plan</a>
+    <a href="#">Coach</a>
+  </nav>
+  <div class="sync">DB 동기화 · 2시간 전</div>
+</header>
+
+<div class="layout">
+<main class="main">
+
+  <!-- QuickInput (P6) -->
+  <div class="section-label">오늘 상태</div>
+  <div class="quickinput">
+    <div class="qi-head">
+      <span class="title">어떻게 느껴지나요?</span>
+      <span class="hint">10초 체크인 · P6</span>
+    </div>
+    <div class="qi-row">
+      <span class="label">피로도</span>
+      <div class="dots" id="fatigue">
+        <button class="dot">1</button><button class="dot">2</button><button class="dot">3</button>
+        <button class="dot">4</button><button class="dot">5</button><button class="dot sel">6</button>
+        <button class="dot">7</button><button class="dot">8</button><button class="dot">9</button><button class="dot">10</button>
+      </div>
+    </div>
+    <div class="qi-row">
+      <span class="label">통증</span>
+      <div class="pills" id="pain">
+        <button class="pill sel">없음</button><button class="pill">경미</button>
+        <button class="pill">중간</button><button class="pill">심함</button>
+      </div>
+    </div>
+    <div class="qi-foot"><button class="btn">저장</button></div>
+  </div>
+
+  <!-- MetricCell ×3 (P2 P3) -->
+  <div class="section-label">현재 상태 지표</div>
+  <div class="metric-grid">
+    <div class="metric-cell" onclick="openPanel('utrs')" data-cell="utrs">
+      <div class="mc-head"><span class="mc-label">UTRS</span><span class="badge badge-runpulse">RunPulse · formula_v1</span></div>
+      <div class="mc-value">72</div>
+      <div class="mc-status"><span class="status-dot" style="background:var(--color-semantic-green)"></span>준비됨</div>
+      <div class="spark"><span style="height:40%"></span><span style="height:55%"></span><span style="height:50%"></span><span style="height:65%"></span><span style="height:60%"></span><span style="height:80%"></span><span style="height:72%"></span></div>
+    </div>
+    <div class="metric-cell" onclick="openPanel('cirs')" data-cell="cirs">
+      <div class="mc-head"><span class="mc-label">CIRS</span><span class="badge badge-runpulse">RunPulse · formula_v1</span></div>
+      <div class="mc-value">68</div>
+      <div class="mc-status"><span class="status-dot" style="background:var(--color-semantic-teal)"></span>보통</div>
+      <div class="spark"><span style="height:60%"></span><span style="height:58%"></span><span style="height:65%"></span><span style="height:62%"></span><span style="height:70%"></span><span style="height:66%"></span><span style="height:68%"></span></div>
+    </div>
+    <div class="metric-cell" onclick="openPanel('tsb')" data-cell="tsb">
+      <div class="mc-head"><span class="mc-label">TSB</span><span class="badge badge-runpulse">RunPulse · formula_v1</span></div>
+      <div class="mc-value">−4</div>
+      <div class="mc-status"><span class="status-dot" style="background:var(--color-semantic-amber)"></span>훈련 가능</div>
+      <div class="spark"><span style="height:70%"></span><span style="height:60%"></span><span style="height:55%"></span><span style="height:45%"></span><span style="height:40%"></span><span style="height:42%"></span><span style="height:38%"></span></div>
+    </div>
+  </div>
+
+  <!-- RecommendationCard (P1) -->
+  <div class="section-label">AI 브리핑</div>
+  <div class="rec-card">
+    <div class="rec-body">오늘은 <strong>E2 쉬운 달리기 50분</strong>이 적합합니다. TSB가 약간 음수이고 HRV가 기준선 아래라 회복 위주 세션을 권장합니다.</div>
+    <div class="evidence-row">
+      <span class="eq" onclick="openPanel('tsb')">📊 TSB −4</span>
+      <span class="eq" onclick="openPanel('hrv')">📊 HRV 58ms ↓12%</span>
+      <span class="eq" onclick="openPanel('fatigue')">📝 어제 피로도 7</span>
+    </div>
+    <div class="rec-actions"><a href="#">Coach에게 더 묻기 →</a></div>
+  </div>
+
+  <!-- 예정 세션 (P7) -->
+  <div class="section-label">오늘 예정 세션</div>
+  <div class="session-card">
+    <div><strong>E2 Long Run 75분 · 12km</strong> <span style="color:var(--text-muted);font-size:var(--text-xs)">춘천 하프 준비 · 8주차</span></div>
+    <div class="session-warn">⚠ 상태 조정: TSB −4 → 60분으로 단축 권장</div>
+    <div class="session-actions">
+      <button class="btn ghost">세션 상세</button>
+      <button class="btn">조정 수락</button>
+      <button class="btn ghost">원래대로</button>
+    </div>
+  </div>
+
+  <!-- 최근 활동 (P3) -->
+  <div class="section-label">최근 활동</div>
+  <div class="activity-list">
+    <div class="activity-row">
+      <span class="when">어제</span><span class="name">Easy Run</span>
+      <span class="stat">10.2km</span><span class="stat">55:34</span><span class="badge badge-garmin">Garmin</span>
+    </div>
+    <div class="activity-row">
+      <span class="when">2일 전</span><span class="name">Interval</span>
+      <span class="stat">8.1km</span><span class="stat">48:12</span><span class="badge badge-garmin">Garmin</span>
+    </div>
+    <div class="activity-row">
+      <span class="when">3일 전</span><span class="name">Easy Run</span>
+      <span class="stat">12.4km</span><span class="stat">1:08:45</span><span class="badge badge-strava">Strava</span>
+    </div>
+  </div>
+
+  <div style="height:64px"></div>
+</main>
+</div>
+
+<!-- MetricBreakdown 패널 (P2 L2) -->
+<div class="scrim" id="scrim" onclick="closePanel()"></div>
+<aside class="panel" id="panel">
+  <div class="panel-head">
+    <span class="back">← <span id="panel-title">UTRS</span> 계산 분해</span>
+    <button class="close" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body">
+    <div class="pb-value">72 <span style="font-size:var(--text-sm);color:var(--color-semantic-green)">● 준비됨</span></div>
+    <!-- AO-1: RunPulse 메트릭 버전·재계산 시각 -->
+    <div class="pb-meta">재계산: 2026-06-09 14:30<br>공식: formula_v1 · 신뢰도 0.82<br>이전값: 68 → 72 (+4, +6%)</div>
+    <div class="pb-formula">가중 평균 — HRV 40% · Sleep 30% · Body Battery 15% · TSB 15%</div>
+    <div class="tree">
+      <div class="tree-node"><span>HRV Index</span><span class="nv">0.84</span><span class="badge badge-garmin">Garmin</span><span class="nw">40%</span></div>
+      <div class="tree-node"><span>Sleep Score</span><span class="nv">71</span><span class="badge badge-garmin">Garmin</span><span class="nw">30%</span></div>
+      <div class="tree-node"><span>Body Battery</span><span class="nv">58</span><span class="badge badge-garmin">Garmin</span><span class="nw">15%</span></div>
+      <div class="tree-node"><span>TSB</span><span class="nv">−4</span><span class="badge badge-runpulse">RunPulse</span><span class="nw">15%</span></div>
+    </div>
+    <a class="panel-link" href="#">Library에서 UTRS 전체 추세 →</a>
+  </div>
+</aside>
+
+<script>
+const titles = { utrs:'UTRS', cirs:'CIRS', tsb:'TSB', hrv:'HRV', fatigue:'피로도' };
+function openPanel(key){
+  document.getElementById('panel-title').textContent = titles[key] || key;
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+  document.querySelectorAll('.metric-cell').forEach(c=>c.classList.toggle('active', c.dataset.cell===key));
+}
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+  document.querySelectorAll('.metric-cell').forEach(c=>c.classList.remove('active'));
+}
+// QuickInput 인터랙션 데모
+document.querySelectorAll('#fatigue .dot').forEach(d=>d.onclick=()=>{
+  document.querySelectorAll('#fatigue .dot').forEach(x=>x.classList.remove('sel')); d.classList.add('sel');
+});
+document.querySelectorAll('#pain .pill').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('#pain .pill').forEach(x=>x.classList.remove('sel')); p.classList.add('sel');
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
+</script>
+
+</body>
+</html>

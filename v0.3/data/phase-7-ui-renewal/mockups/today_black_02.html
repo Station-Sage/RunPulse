@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPulse — Today (목업 M1 v2)</title>
+<style>
+:root{
+  --surface-0:#08080a; --surface-1:#0ف0f12; --surface-2:#16161a; --surface-3:#1f1f25;
+  --surface-1:#0f0f12;
+  --border-subtle:#222228; --border-strong:#33333c;
+  --text-primary:#f2f2f5; --text-secondary:#9b9ba6; --text-muted:#62626d;
+  --green:#34d399; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --blue:#60a5fa;
+  --pv-garmin:#3b82f6; --pv-strava:#fc4c02; --pv-intervals:#a78bfa; --pv-runalyze:#22c55e; --pv-runpulse:#8b8b96;
+  --accent:#6ea8fe;
+  --font-body:'Inter',-apple-system,system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:20px;--r-pill:999px;
+  --t-fast:120ms cubic-bezier(.4,0,.2,1); --t-base:240ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--surface-0);color:var(--text-primary);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--font-mono)}
+
+/* top */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s5);border-bottom:1px solid var(--border-subtle);position:sticky;top:0;background:rgba(8,8,10,.8);backdrop-filter:blur(8px);z-index:30}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.brand .live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green)}
+.nav{display:flex;gap:var(--s5)}
+.nav a{color:var(--text-secondary);text-decoration:none;font-size:13px;font-weight:500;transition:color var(--t-fast)}
+.nav a:hover{color:var(--text-primary)} .nav a.active{color:var(--text-primary)}
+.topbar .sync{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
+
+/* provider fusion strip — RunPulse 정체성 */
+.fusion{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s5);border-bottom:1px solid var(--border-subtle);font-size:11px;color:var(--text-muted);overflow-x:auto}
+.fusion .src{display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--font-mono)}
+.fusion .src .led{width:6px;height:6px;border-radius:50%}
+.fusion .arrow{color:var(--text-muted);opacity:.5}
+.fusion .out{margin-left:auto;color:var(--text-secondary);white-space:nowrap;font-family:var(--font-mono)}
+.fusion .out b{color:var(--text-primary)}
+
+.wrap{max-width:780px;margin:0 auto;padding:var(--s6) var(--s5)}
+.lab{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:var(--s8) 0 var(--s4);font-weight:600}
+.wrap>.lab:first-child{margin-top:0}
+
+/* HERO readiness — 핵심 차별: 숫자 나열이 아니라 "오늘의 판단" */
+.hero{background:linear-gradient(180deg,var(--surface-2),var(--surface-1));border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:var(--s6);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(900px 200px at 80% -40%,color-mix(in srgb,var(--teal) 9%,transparent),transparent);pointer-events:none}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s4);position:relative}
+.verdict .k{font-size:12px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.verdict .v{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-top:6px}
+.verdict .sub{color:var(--text-secondary);font-size:14px;margin-top:8px;max-width:42ch}
+.ring{position:relative;width:96px;height:96px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .num b{font-family:var(--font-mono);font-size:26px;font-weight:700;line-height:1}
+.ring .num s{font-size:10px;color:var(--text-muted);text-decoration:none;letter-spacing:.08em}
+
+/* readiness sub-metrics: 가로 스크롤 없는 반응형 */
+.subs{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);margin-top:var(--s5);position:relative}
+.sub{background:var(--surface-3);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:var(--s3) var(--s4);cursor:pointer;transition:border-color var(--t-fast),transform var(--t-fast)}
+.sub:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.sub .sk{font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center}
+.sub .sv{font-family:var(--font-mono);font-size:24px;font-weight:700;margin-top:4px;display:flex;align-items:baseline;gap:6px}
+.sub .sv .dot{width:7px;height:7px;border-radius:50%;align-self:center}
+.tag{font-size:9px;font-family:var(--font-mono);padding:2px 5px;border-radius:4px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-subtle)}
+
+/* recommendation w/ evidence flow */
+.rec{background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:var(--s5);position:relative}
+.rec .barl{position:absolute;left:0;top:16px;bottom:16px;width:3px;border-radius:3px;background:var(--teal)}
+.rec .body{font-size:15px;line-height:1.65;padding-left:var(--s3)}
+.ev{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s4);padding-left:var(--s3)}
+.eq{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:12px;padding:5px 11px;border-radius:var(--r-pill);background:var(--surface-1);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer;transition:all var(--t-fast)}
+.eq:hover{border-color:var(--accent);color:var(--text-primary)}
+.eq .ed{width:5px;height:5px;border-radius:50%}
+.rec a.more{display:inline-block;margin-top:var(--s4);margin-left:var(--s3);color:var(--accent);font-size:13px;font-weight:600;text-decoration:none}
+
+/* session */
+.sess{background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:var(--s5)}
+.sess .row1{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.sess .ttl{font-weight:600}
+.sess .warn{color:var(--amber);font-size:13px;margin:var(--s3) 0;display:flex;gap:6px;align-items:center}
+.sess .acts{display:flex;gap:var(--s2);flex-wrap:wrap}
+.btn{padding:8px 16px;border-radius:var(--r-md);border:none;background:var(--accent);color:#06121f;font-size:13px;font-weight:700;cursor:pointer;transition:opacity var(--t-fast)}
+.btn:hover{opacity:.9} .btn.ghost{background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary)}
+
+/* quick input compact */
+.qi{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:var(--s4) var(--s5)}
+.qi .q{font-size:14px;color:var(--text-secondary);margin-right:auto}
+.dots{display:flex;gap:5px}
+.dot{width:24px;height:24px;border-radius:50%;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all var(--t-fast)}
+.dot.sel{background:var(--accent);border-color:var(--accent);color:#06121f}
+.pills{display:flex;gap:6px}.pill{padding:5px 12px;border-radius:var(--r-pill);border:1px solid var(--border-strong);background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer}
+.pill.sel{border-color:var(--accent);color:var(--text-primary);background:var(--surface-3)}
+
+/* activities */
+.acts-list{display:flex;flex-direction:column;gap:var(--s2)}
+.act{display:grid;grid-template-columns:auto 1fr auto;gap:var(--s3);align-items:center;background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:var(--s3) var(--s4);cursor:pointer;transition:border-color var(--t-fast)}
+.act:hover{border-color:var(--border-strong)}
+.act .when{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);width:48px}
+.act .nm{font-weight:500;font-size:14px}
+.act .meta{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)}
+.act .r{display:flex;align-items:center;gap:var(--s3)}
+.badge{font-size:9px;font-family:var(--font-mono);padding:2px 6px;border-radius:5px}
+.b-garmin{background:color-mix(in srgb,var(--pv-garmin) 18%,transparent);color:#7fb3ff}
+.b-strava{background:color-mix(in srgb,var(--pv-strava) 18%,transparent);color:#ff8a5c}
+.b-runpulse{background:var(--surface-3);color:var(--text-secondary);border:1px solid var(--border-strong)}
+
+/* panel */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity var(--t-base);z-index:40}
+.scrim.open{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:0;bottom:0;width:430px;max-width:92vw;background:var(--surface-1);border-left:1px solid var(--border-strong);transform:translateX(100%);transition:transform var(--t-base);z-index:50;overflow-y:auto}
+.panel.open{transform:translateX(0)}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:var(--s4) var(--s5);border-bottom:1px solid var(--border-subtle);position:sticky;top:0;background:var(--surface-1)}
+.ph b{font-weight:600} .ph .x{background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer}
+.pbody{padding:var(--s5)}
+.pbig{font-family:var(--font-mono);font-size:40px;font-weight:700;letter-spacing:-.02em}
+.pmeta{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:var(--s4) 0;padding:var(--s3) var(--s4);background:var(--surface-2);border:1px solid var(--border-subtle);border-radius:var(--r-sm);line-height:1.8}
+.pf{font-size:13px;color:var(--text-secondary);margin:var(--s3) 0 var(--s4)}
+.tn{display:grid;grid-template-columns:1fr auto auto auto;gap:var(--s3);align-items:center;padding:var(--s3) 0;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.tn .v{font-family:var(--font-mono)} .tn .w{font-size:11px;color:var(--text-muted)}
+.plink{display:inline-block;margin-top:var(--s4);color:var(--accent);font-size:13px;font-weight:600;text-decoration:none}
+
+@media(max-width:560px){
+  .subs{grid-template-columns:1fr}
+  .verdict .v{font-size:28px}
+  .ring{width:80px;height:80px}
+  .nav{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="live"></span>RunPulse</div>
+  <nav class="nav"><a class="active">Today</a><a>Story</a><a>Library</a><a>Plan</a><a>Coach</a></nav>
+  <div class="sync">synced 2h ago</div>
+</header>
+
+<!-- 4-source fusion: RunPulse 정체성 상시 노출 -->
+<div class="fusion">
+  <span class="src"><span class="led" style="background:var(--pv-garmin)"></span>Garmin</span>
+  <span class="arrow">·</span>
+  <span class="src"><span class="led" style="background:var(--pv-strava)"></span>Strava</span>
+  <span class="arrow">·</span>
+  <span class="src"><span class="led" style="background:var(--pv-intervals)"></span>Intervals</span>
+  <span class="arrow">·</span>
+  <span class="src"><span class="led" style="background:var(--text-muted)"></span>Runalyze</span>
+  <span class="out">3 sources → <b>RunPulse unified</b></span>
+</div>
+
+<main class="wrap">
+
+  <!-- HERO: 오늘의 판단을 먼저 -->
+  <div class="lab">오늘</div>
+  <div class="hero">
+    <div class="hero-top">
+      <div class="verdict">
+        <div class="k">Readiness</div>
+        <div class="v">회복 우선</div>
+        <div class="sub">TSB가 음수로 내려갔고 HRV가 기준선 아래입니다. 강도보다 회복에 무게를 둘 시점입니다.</div>
+      </div>
+      <div class="ring">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="42" fill="none" stroke="var(--border-subtle)" stroke-width="7"/>
+          <circle cx="48" cy="48" r="42" fill="none" stroke="var(--teal)" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="263.8" stroke-dashoffset="73.9"/>
+        </svg>
+        <div class="num"><b>72</b><s>UTRS</s></div>
+      </div>
+    </div>
+
+    <!-- 구성 지표: 반응형, 가로 스크롤 없음 -->
+    <div class="subs">
+      <div class="sub" onclick="op('utrs')">
+        <div class="sk"><span>UTRS</span><span class="tag">formula_v1</span></div>
+        <div class="sv">72 <span class="dot" style="background:var(--green)"></span></div>
+      </div>
+      <div class="sub" onclick="op('cirs')">
+        <div class="sk"><span>CIRS</span><span class="tag">formula_v1</span></div>
+        <div class="sv">68 <span class="dot" style="background:var(--teal)"></span></div>
+      </div>
+      <div class="sub" onclick="op('tsb')">
+        <div class="sk"><span>TSB</span><span class="tag">formula_v1</span></div>
+        <div class="sv">−4 <span class="dot" style="background:var(--amber)"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 브리핑 -->
+  <div class="lab">AI 브리핑</div>
+  <div class="rec">
+    <span class="barl"></span>
+    <div class="body">오늘은 <strong>E2 쉬운 달리기 50분</strong>이 적합합니다. 회복 신호가 우세하므로 심박 Z2 이내로 유지하세요.</div>
+    <div class="ev">
+      <span class="eq" onclick="op('tsb')"><span class="ed" style="background:var(--pv-runpulse)"></span>TSB −4</span>
+      <span class="eq" onclick="op('hrv')"><span class="ed" style="background:var(--pv-garmin)"></span>HRV 58ms ↓12%</span>
+      <span class="eq" onclick="op('fatigue')"><span class="ed" style="background:var(--accent)"></span>어제 피로도 7</span>
+    </div>
+    <a class="more">Coach에게 더 묻기 →</a>
+  </div>
+
+  <!-- 예정 세션 -->
+  <div class="lab">오늘 예정 세션</div>
+  <div class="sess">
+    <div class="row1"><span class="ttl">E2 Long Run · 12km · 75분</span><span style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono)">춘천 하프 · W8</span></div>
+    <div class="warn">⚠ 상태 조정: TSB −4 → 60분 단축 권장</div>
+    <div class="acts"><button class="btn">조정 수락</button><button class="btn ghost">세션 상세</button><button class="btn ghost">원래대로</button></div>
+  </div>
+
+  <!-- 체크인 -->
+  <div class="lab">컨디션 체크인</div>
+  <div class="qi">
+    <span class="q">어떻게 느껴지나요?</span>
+    <div class="dots" id="fat">
+      <button class="dot">3</button><button class="dot">4</button><button class="dot">5</button>
+      <button class="dot sel">6</button><button class="dot">7</button><button class="dot">8</button>
+    </div>
+    <div class="pills" id="pain"><button class="pill sel">통증 없음</button><button class="pill">경미</button><button class="pill">중간</button></div>
+  </div>
+
+  <!-- 최근 활동 -->
+  <div class="lab">최근 활동</div>
+  <div class="acts-list">
+    <div class="act"><span class="when">D-1</span><span class="nm">Easy Run</span><span class="r"><span class="meta">10.2km · 55:34</span><span class="badge b-garmin">Garmin</span></span></div>
+    <div class="act"><span class="when">D-2</span><span class="nm">Interval</span><span class="r"><span class="meta">8.1km · 48:12</span><span class="badge b-garmin">Garmin</span></span></div>
+    <div class="act"><span class="when">D-3</span><span class="nm">Easy Run</span><span class="r"><span class="meta">12.4km · 1:08:45</span><span class="badge b-strava">Strava</span></span></div>
+  </div>
+
+  <div style="height:56px"></div>
+</main>
+
+<div class="scrim" id="scrim" onclick="cp()"></div>
+<aside class="panel" id="panel">
+  <div class="ph"><b>← <span id="pt">UTRS</span> 계산 분해</b><button class="x" onclick="cp()">×</button></div>
+  <div class="pbody">
+    <div class="pbig">72 <span style="font-size:14px;color:var(--green);font-family:var(--font-body)">● 준비됨</span></div>
+    <div class="pmeta">recomputed 2026-06-09 14:30<br>formula_v1 · confidence 0.82<br>prev 68 → 72 (+4, +6%)</div>
+    <div class="pf">가중 평균 — HRV 40% · Sleep 30% · Body Battery 15% · TSB 15%</div>
+    <div class="tn"><span>HRV Index</span><span class="v">0.84</span><span class="badge b-garmin">Garmin</span><span class="w">40%</span></div>
+    <div class="tn"><span>Sleep Score</span><span class="v">71</span><span class="badge b-garmin">Garmin</span><span class="w">30%</span></div>
+    <div class="tn"><span>Body Battery</span><span class="v">58</span><span class="badge b-garmin">Garmin</span><span class="w">15%</span></div>
+    <div class="tn"><span>TSB</span><span class="v">−4</span><span class="badge b-runpulse">RunPulse</span><span class="w">15%</span></div>
+    <a class="plink">Library에서 UTRS 전체 추세 →</a>
+  </div>
+</aside>
+
+<script>
+const T={utrs:'UTRS',cirs:'CIRS',tsb:'TSB',hrv:'HRV',fatigue:'피로도'};
+function op(k){document.getElementById('pt').textContent=T[k]||k;panel.classList.add('open');scrim.classList.add('open')}
+function cp(){panel.classList.remove('open');scrim.classList.remove('open')}
+document.querySelectorAll('#fat .dot').forEach(d=>d.onclick=()=>{document.querySelectorAll('#fat .dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel')});
+document.querySelectorAll('#pain .pill').forEach(p=>p.onclick=()=>{document.querySelectorAll('#pain .pill').forEach(x=>x.classList.remove('sel'));p.classList.add('sel')});
+addEventListener('keydown',e=>{if(e.key==='Escape')cp()});
+</script>
+</body>
+</html>

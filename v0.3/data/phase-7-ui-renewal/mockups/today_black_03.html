@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPulse — Today (M1 v3 · 근거 계층)</title>
+<style>
+:root{
+  --bg:#070708; --s1:#0e0e11; --s2:#16161b; --s3:#1e1e25; --s4:#282831;
+  --bd:#23232b; --bd2:#34343f;
+  --tx:#f3f3f6; --tx2:#9a9aa6; --tx3:#5e5e69;
+  --green:#3ddc91; --teal:#2dd4bf; --amber:#fbbf24; --red:#f87171; --blue:#60a5fa; --violet:#a78bfa;
+  --garmin:#3b82f6; --strava:#fc4c02; --intervals:#a78bfa; --runalyze:#22c55e; --rp:#94949f;
+  --acc:#74a8ff;
+  --fb:'Inter',-apple-system,system-ui,sans-serif;
+  --fm:'JetBrains Mono',ui-monospace,monospace;
+  --r:12px; --rl:18px; --rp:999px;
+  --t:160ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.fm{font-family:var(--fm)}
+button{font-family:inherit;cursor:pointer}
+
+/* topbar */
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg);z-index:30}
+.bd{font-weight:700;font-size:17px;letter-spacing:-.02em;display:flex;gap:8px;align-items:center}
+.bd .p{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.nav{display:flex;gap:22px}.nav a{color:var(--tx2);text-decoration:none;font-size:13px;font-weight:500}.nav a.on{color:var(--tx)}
+.syn{font-size:11px;color:var(--tx3);font-family:var(--fm)}
+
+/* fusion bar */
+.fz{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--bd);font-size:11px;overflow-x:auto}
+.fz .s{display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--fm);color:var(--tx2)}
+.fz .s i{width:6px;height:6px;border-radius:50%;display:inline-block}
+.fz .s.off{color:var(--tx3)} .fz .d{color:var(--tx3)}
+.fz .o{margin-left:auto;font-family:var(--fm);color:var(--tx2);white-space:nowrap}.fz .o b{color:var(--tx)}
+
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px 80px}
+.lab{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);font-weight:700;margin:30px 4px 14px;display:flex;justify-content:space-between;align-items:center}
+.lab a{color:var(--acc);text-decoration:none;font-size:11px;letter-spacing:0;text-transform:none}
+.wrap>.lab:first-child{margin-top:0}
+
+/* ===== HERO: 판단 + 근거 계층 진입점 ===== */
+.hero{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden}
+.hh{display:flex;gap:18px;padding:24px;align-items:center;border-bottom:1px solid var(--bd)}
+.ring{width:104px;height:104px;flex:none;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .c b{font-family:var(--fm);font-size:30px;font-weight:700;line-height:1}
+.ring .c s{font-size:9px;color:var(--tx3);text-decoration:none;letter-spacing:.1em;margin-top:3px}
+.hv .k{font-size:11px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase}
+.hv .v{font-size:30px;font-weight:700;letter-spacing:-.03em;margin-top:4px}
+.hv .s{color:var(--tx2);font-size:14px;margin-top:8px;line-height:1.55}
+/* signals: 근거 지표들이 판단을 떠받친다 */
+.sig{padding:8px 12px}
+.srow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:13px 12px;border-radius:10px;cursor:pointer;transition:background var(--t)}
+.srow:hover{background:var(--s2)}
+.srow+.srow{border-top:1px solid var(--bd)}
+.srow .nm{display:flex;flex-direction:column;gap:3px}
+.srow .nm b{font-size:14px;font-weight:600}
+.srow .nm small{font-size:11px;color:var(--tx3)}
+.srow .val{display:flex;align-items:center;gap:9px;justify-self:end}
+.srow .val .n{font-family:var(--fm);font-size:22px;font-weight:700}
+.srow .val .dt{width:8px;height:8px;border-radius:50%}
+.srow .ch{font-family:var(--fm);font-size:12px;color:var(--tx2);justify-self:end;min-width:54px;text-align:right}
+.srow .ch.up{color:var(--green)}.srow .ch.dn{color:var(--amber)}
+.srow .go{color:var(--tx3);transition:transform var(--t),color var(--t)}
+.srow:hover .go{transform:translateX(3px);color:var(--tx)}
+.spark{display:inline-flex;align-items:flex-end;gap:2px;height:20px;width:64px;vertical-align:middle}
+.spark i{flex:1;background:var(--bd2);border-radius:1px;display:block}
+
+/* ===== AI brief: 근거가 본문에 인라인으로 박힘 ===== */
+.brief{background:var(--s1);border:1px solid var(--bd);border-left:3px solid var(--teal);border-radius:var(--rl);padding:22px}
+.brief .verdict{font-size:13px;color:var(--teal);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+.brief p{font-size:16px;line-height:1.7}
+.eqi{display:inline-flex;align-items:center;gap:5px;font-family:var(--fm);font-size:13px;padding:1px 8px;border-radius:6px;background:var(--s3);border:1px solid var(--bd2);color:var(--tx);cursor:pointer;transition:all var(--t);white-space:nowrap;margin:0 1px}
+.eqi:hover{border-color:var(--acc);background:var(--s4)}
+.eqi i{width:5px;height:5px;border-radius:50%}
+.brief .act{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.btn{padding:9px 16px;border-radius:10px;border:none;background:var(--acc);color:#06121f;font-size:13px;font-weight:700}
+.btn.g{background:transparent;border:1px solid var(--bd2);color:var(--tx2)}
+
+/* session */
+.ses{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rl);padding:20px}
+.ses .t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ses .t b{font-size:16px} .ses .t small{font-family:var(--fm);font-size:11px;color:var(--tx3)}
+.adj{display:flex;gap:8px;align-items:flex-start;margin:14px 0;padding:12px 14px;background:color-mix(in srgb,var(--amber) 9%,transparent);border:1px solid color-mix(in srgb,var(--amber) 25%,transparent);border-radius:10px;font-size:13px}
+.adj b{color:var(--amber)}
+.ses .a{display:flex;gap:8px;flex-wrap:wrap}
+
+/* checkin */
+.ci{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--bd);border-radius:var(--rl);padding:16px 20px}
+.ci .q{font-size:14px;color:var(--tx2);margin-right:auto}
+.dots{display:flex;gap:5px}.dot{width:26px;height:26px;border-radius:50%;border:1px solid var(--bd2);background:transparent;color:var(--tx3);font-size:11px;font-family:var(--fm)}.dot.on{background:var(--acc);border-color:var(--acc);color:#06121f}
+.pl{display:flex;gap:6px}.p{padding:6px 13px;border-radius:var(--rp);border:1px solid var(--bd2);background:transparent;color:var(--tx2);font-size:12px}.p.on{border-color:var(--acc);color:var(--tx);background:var(--s3)}
+
+/* activities w/ multi-source */
+.al{display:flex;flex-direction:column;gap:8px}
+.ac{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color var(--t)}
+.ac:hover{border-color:var(--bd2)}
+.ac .r1{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.ac .wh{font-family:var(--fm);font-size:11px;color:var(--tx3);width:42px}
+.ac .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.ty{font-size:10px;font-family:var(--fm);padding:2px 6px;border-radius:5px;background:var(--s3);color:var(--tx2)}
+.ac .mt{font-family:var(--fm);font-size:13px;color:var(--tx2);text-align:right}
+.ac .r2{display:flex;gap:14px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);font-family:var(--fm);font-size:11px;color:var(--tx3);flex-wrap:wrap}
+.ac .r2 .m{color:var(--tx2)} .ac .r2 .m b{color:var(--tx);font-weight:600}
+.srcs{display:flex;gap:4px;margin-left:auto}
+.bg{font-size:9px;font-family:var(--fm);padding:2px 6px;border-radius:5px;display:inline-flex;align-items:center;gap:4px}
+.bg i{width:5px;height:5px;border-radius:50%}
+.bg.garmin{background:color-mix(in srgb,var(--garmin) 16%,transparent);color:#85b6ff}
+.bg.strava{background:color-mix(in srgb,var(--strava) 16%,transparent);color:#ff905f}
+.bg.intervals{background:color-mix(in srgb,var(--intervals) 16%,transparent);color:#bfa6ff}
+.bg.rp{background:var(--s3);color:var(--tx2)}
+
+/* ===== DRILL PANEL: 계층 탐색 ===== */
+.scr{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:40}
+.scr.on{opacity:1;pointer-events:auto}
+.pan{position:fixed;top:0;right:0;bottom:0;width:480px;max-width:94vw;background:var(--s1);border-left:1px solid var(--bd2);transform:translateX(100%);transition:transform 240ms cubic-bezier(.4,0,.2,1);z-index:50;overflow-y:auto}
+.pan.on{transform:translateX(0)}
+.ph{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--s1);z-index:2}
+.ph .bk{background:none;border:none;color:var(--tx2);font-size:18px}
+.ph b{font-weight:600;font-size:15px;flex:1}
+.ph .x{background:none;border:none;color:var(--tx3);font-size:22px}
+.pb{padding:20px}
+.crumb{font-family:var(--fm);font-size:11px;color:var(--tx3);margin-bottom:14px}.crumb b{color:var(--tx2)}
+.pbig{display:flex;align-items:baseline;gap:12px}.pbig .n{font-family:var(--fm);font-size:44px;font-weight:700;letter-spacing:-.02em}.pbig .st{font-size:14px}
+.pgrade{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--green);margin-top:4px}
+/* provenance box — 투명성의 핵심 */
+.prov{margin:18px 0;border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.prov .h{padding:10px 14px;background:var(--s2);font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between}
+.prov .b{padding:14px}
+.prov .line{font-family:var(--fm);font-size:12px;color:var(--tx2);line-height:1.9}.prov .line b{color:var(--tx)}
+/* component tree */
+.tree{margin-top:6px}
+.tnode{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--bd);font-size:14px;cursor:pointer;transition:opacity var(--t)}
+.tnode:hover{opacity:.85}
+.tnode .nl{display:flex;align-items:center;gap:8px}.tnode .nl .ar{color:var(--tx3);font-size:11px}
+.tnode .nv{font-family:var(--fm);font-weight:600}
+.tnode .nw{font-size:11px;color:var(--tx3);font-family:var(--fm)}
+.tnode .src .bg{font-size:9px}
+.pcmp{margin-top:18px}
+.pcmp .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.pcmp .row .pv{display:flex;align-items:center;gap:8px;font-family:var(--fm);color:var(--tx2)}
+.pcmp .row .pv.star{color:var(--tx)}.pcmp .row .pv .s{color:var(--amber)}
+.plink{display:inline-flex;align-items:center;gap:6px;margin-top:20px;color:var(--acc);font-size:13px;font-weight:600;text-decoration:none}
+
+@media(max-width:580px){
+  .nav{display:none}
+  .hh{flex-direction:column;text-align:center;gap:14px}
+  .hv .s{text-align:left}
+  .srow{grid-template-columns:1fr auto}.srow .ch{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bd"><span class="p"></span>RunPulse</div>
+  <nav class="nav"><a class="on">Today</a><a>Story</a><a>Library</a><a>Plan</a><a>Coach</a></nav>
+  <div class="syn">synced 2h ago</div>
+</header>
+
+<div class="fz">
+  <span class="s"><i style="background:var(--garmin)"></i>Garmin</span><span class="d">·</span>
+  <span class="s"><i style="background:var(--strava)"></i>Strava</span><span class="d">·</span>
+  <span class="s"><i style="background:var(--intervals)"></i>Intervals</span><span class="d">·</span>
+  <span class="s off"><i style="background:var(--tx3)"></i>Runalyze</span>
+  <span class="o">3 / 4 sources → <b>781 metrics unified</b></span>
+</div>
+
+<main class="wrap">
+
+  <!-- HERO -->
+  <div class="lab">오늘의 판단</div>
+  <div class="hero">
+    <div class="hh">
+      <div class="ring">
+        <svg width="104" height="104" viewBox="0 0 104 104">
+          <circle cx="52" cy="52" r="46" fill="none" stroke="var(--bd)" stroke-width="8"/>
+          <circle cx="52" cy="52" r="46" fill="none" stroke="var(--teal)" stroke-width="8" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="81"/>
+        </svg>
+        <div class="c"><b>72</b><s>READINESS</s></div>
+      </div>
+      <div class="hv">
+        <div class="k">오늘 권장</div>
+        <div class="v">회복 우선 · E2</div>
+        <div class="s">컨디션은 양호하나 급성 부하가 만성 부하를 앞질렀습니다. 강도를 올리기보다 유산소 베이스를 유지할 시점입니다.</div>
+      </div>
+    </div>
+    <!-- 판단을 떠받치는 근거 지표들 — 각각이 drill 진입점 -->
+    <div class="sig">
+      <div class="srow" onclick="op('utrs')">
+        <div class="nm"><b>UTRS · 훈련 준비도</b><small>HRV·수면·바디배터리·TSB 합성</small></div>
+        <div class="val"><span class="n">72</span><span class="dt" style="background:var(--green)"></span></div>
+        <span class="ch up">+4 ▲</span><span class="go">›</span>
+      </div>
+      <div class="srow" onclick="op('acwr')">
+        <div class="nm"><b>ACWR · 부하 비율</b><small>급성:만성 부하 7d/28d</small></div>
+        <div class="val"><span class="n">1.34</span><span class="dt" style="background:var(--amber)"></span></div>
+        <span class="ch dn">+0.18 ▲</span><span class="go">›</span>
+      </div>
+      <div class="srow" onclick="op('tsb')">
+        <div class="nm"><b>TSB · 폼/피로 밸런스</b><small>CTL − ATL</small></div>
+        <div class="val"><span class="n">−4</span><span class="dt" style="background:var(--amber)"></span></div>
+        <span class="ch dn">−9 ▼</span><span class="go">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI BRIEF -->
+  <div class="lab">AI 브리핑 <a href="#">Coach에서 전체 대화 →</a></div>
+  <div class="brief">
+    <div class="verdict">● 회복 우선 권장</div>
+    <p>지난 7일 부하가 빠르게 올라
+      <span class="eqi" onclick="op('acwr')"><i style="background:var(--rp)"></i>ACWR 1.34</span>
+      적정 상한(1.30)을 살짝 넘었고,
+      <span class="eqi" onclick="op('hrv')"><i style="background:var(--garmin)"></i>HRV 58ms</span>
+      는 4주 기준선 대비 12% 낮습니다. 어제
+      <span class="eqi" onclick="op('fat')"><i style="background:var(--acc)"></i>피로도 7</span>
+      보고와도 일치합니다. 오늘은 <b>E2 쉬운 달리기 45–50분, 심박 Z2 이내</b>를 권장합니다.</p>
+    <div class="act"><button class="btn">이 세션으로 조정</button><button class="btn g">왜 이렇게 판단했나요?</button></div>
+  </div>
+
+  <!-- SESSION -->
+  <div class="lab">계획된 세션 <a href="#">Plan 전체 →</a></div>
+  <div class="ses">
+    <div class="t"><b>E2 Long Run · 12.0km · 75분</b><small>춘천 하프 준비 · 8주차 / 16주</small></div>
+    <div class="adj"><span>⚠</span><div><b>상태 기반 조정</b> — TSB −4, ACWR 1.34 → <b>10km / 60분</b>으로 단축 권장. 이번 주 누적 부하 예산 82% 소진.</div></div>
+    <div class="a"><button class="btn">조정 수락</button><button class="btn g">세션 상세</button><button class="btn g">원래대로 진행</button></div>
+  </div>
+
+  <!-- CHECKIN -->
+  <div class="lab">컨디션 체크인</div>
+  <div class="ci">
+    <span class="q">오늘 몸 상태는 어떤가요?</span>
+    <div class="dots" id="fd"><button class="dot">4</button><button class="dot">5</button><button class="dot on">6</button><button class="dot">7</button><button class="dot">8</button></div>
+    <div class="pl" id="pn"><button class="p on">통증 없음</button><button class="p">경미</button><button class="p">중간</button></div>
+  </div>
+
+  <!-- ACTIVITIES with multi-source detail -->
+  <div class="lab">최근 활동 <a href="#">Library 전체 →</a></div>
+  <div class="al">
+    <div class="ac" onclick="op('act')">
+      <div class="r1"><span class="wh">D-1</span><span class="nm">Easy Run <span class="ty">E2</span></span><span class="mt">10.24 km · 55:34 · 5:25/km</span></div>
+      <div class="r2"><span class="m">HR <b>138</b></span><span class="m">TSS <b>52</b></span><span class="m">Z2 <b>87%</b></span><span class="m">VO₂ <b>51.2</b></span>
+        <span class="srcs"><span class="bg garmin"><i style="background:var(--garmin)"></i>Garmin</span><span class="bg strava"><i style="background:var(--strava)"></i>Strava</span></span></div>
+    </div>
+    <div class="ac" onclick="op('act')">
+      <div class="r1"><span class="wh">D-2</span><span class="nm">Interval <span class="ty">I</span></span><span class="mt">8.10 km · 48:12 · 5:57/km</span></div>
+      <div class="r2"><span class="m">HR <b>162</b></span><span class="m">TSS <b>71</b></span><span class="m">Z4 <b>34%</b></span><span class="m">6×800m</span>
+        <span class="srcs"><span class="bg garmin"><i style="background:var(--garmin)"></i>Garmin</span><span class="bg intervals"><i style="background:var(--intervals)"></i>Intervals</span></span></div>
+    </div>
+    <div class="ac" onclick="op('act')">
+      <div class="r1"><span class="wh">D-3</span><span class="nm">Long Run <span class="ty">E1</span></span><span class="mt">22.31 km · 2:04:21 · 5:34/km</span></div>
+      <div class="r2"><span class="m">HR <b>144</b></span><span class="m">TSS <b>168</b></span><span class="m">고도 <b>+248m</b></span><span class="m">decoupling <b>4.2%</b></span>
+        <span class="srcs"><span class="bg strava"><i style="background:var(--strava)"></i>Strava</span></span></div>
+    </div>
+  </div>
+
+  <div style="height:40px"></div>
+</main>
+
+<!-- DRILL PANEL (UTRS 예시) -->
+<div class="scr" id="scr" onclick="cp()"></div>
+<aside class="pan" id="pan">
+  <div class="ph"><button class="bk" onclick="cp()">←</button><b id="pt">UTRS · 훈련 준비도</b><button class="x" onclick="cp()">×</button></div>
+  <div class="pb">
+    <div class="crumb">Today › 오늘의 판단 › <b>UTRS</b></div>
+    <div class="pbig"><span class="n">72</span><span class="st"><span class="pgrade">● 준비됨 (good)</span></span></div>
+
+    <!-- 투명성 핵심: 출처/버전/재계산이 작은 글씨가 아니라 명시 블록 -->
+    <div class="prov">
+      <div class="h"><span>출처 &amp; 계산</span><span>RunPulse 합성 지표</span></div>
+      <div class="b">
+        <div class="line"><b>공식</b> &nbsp; formula_v1 &nbsp;·&nbsp; <b>신뢰도</b> 0.82</div>
+        <div class="line"><b>마지막 재계산</b> &nbsp; 2026-06-09 14:30</div>
+        <div class="line"><b>이전값</b> &nbsp; 68 → 72 &nbsp; <span style="color:var(--green)">(+4, +6%)</span></div>
+        <div class="line" style="color:var(--tx3)">42일치 데이터 · Garmin 3개 + RunPulse 1개 구성요소</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">구성요소 (클릭하여 더 파고들기)</div>
+    <div class="tree">
+      <div class="tnode" onclick="op('hrv')"><span class="nl"><span class="ar">▸</span>HRV Index</span><span class="nv">0.84</span><span class="src"><span class="bg garmin"><i style="background:var(--garmin)"></i>Garmin</span></span><span class="nw">×40%</span></div>
+      <div class="tnode" onclick="op('sleep')"><span class="nl"><span class="ar">▸</span>Sleep Score</span><span class="nv">71</span><span class="src"><span class="bg garmin"><i style="background:var(--garmin)"></i>Garmin</span></span><span class="nw">×30%</span></div>
+      <div class="tnode" onclick="op('bb')"><span class="nl"><span class="ar">▸</span>Body Battery</span><span class="nv">58</span><span class="src"><span class="bg garmin"><i style="background:var(--garmin)"></i>Garmin</span></span><span class="nw">×15%</span></div>
+      <div class="tnode" onclick="op('tsb')"><span class="nl"><span class="ar">▸</span>TSB</span><span class="nv">−4</span><span class="src"><span class="bg rp">RunPulse</span></span><span class="nw">×15%</span></div>
+    </div>
+
+    <!-- provider 비교: 같은 지표를 여러 소스가 줄 때 -->
+    <div class="pcmp">
+      <div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">HRV — Provider 비교</div>
+      <div class="row"><span class="pv star"><span class="s">★</span>Garmin</span><span class="fm">58 ms</span></div>
+      <div class="row"><span class="pv">Intervals</span><span class="fm" style="color:var(--tx3)">57 ms · 차이 1.7%</span></div>
+      <div class="row" style="border:none"><span class="pv" style="font-size:11px;color:var(--tx3)">대표값 근거: 소스 우선순위 1순위 (dedup.py 정적 순서)</span></div>
+    </div>
+
+    <a class="plink">Library에서 UTRS 90일 추세 보기 →</a>
+  </div>
+</aside>
+
+<script>
+const T={utrs:'UTRS · 훈련 준비도',acwr:'ACWR · 부하 비율',tsb:'TSB · 폼/피로 밸런스',hrv:'HRV Index',sleep:'Sleep Score',bb:'Body Battery',fat:'피로도 체크인',fd:'피로도',act:'Easy Run · 2026-06-09'};
+function op(k){document.getElementById('pt').textContent=T[k]||k;pan.classList.add('on');scr.classList.add('on')}
+function cp(){pan.classList.remove('on');scr.classList.remove('on')}
+document.querySelectorAll('#fd .dot').forEach(d=>d.onclick=e=>{e.stopPropagation();document.querySelectorAll('#fd .dot').forEach(x=>x.classList.remove('on'));d.classList.add('on')});
+document.querySelectorAll('#pn .p').forEach(p=>p.onclick=e=>{e.stopPropagation();document.querySelectorAll('#pn .p').forEach(x=>x.classList.remove('on'));p.classList.add('on')});
+addEventListener('keydown',e=>{if(e.key==='Escape')cp()});
+</script>
+</body>
+</html>

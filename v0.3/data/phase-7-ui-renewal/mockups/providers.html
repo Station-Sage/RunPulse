@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPulse — Provider 비교 (목업 M2)</title>
+<style>
+/* =========================================================
+   :root 디자인 토큰 (M1과 동일 — 안정화 후 tokens.css 추출)
+   ========================================================= */
+:root {
+  --surface-0: #0a0a0b;
+  --surface-1: #121214;
+  --surface-2: #1a1a1d;
+  --surface-3: #232328;
+  --border-subtle: #2a2a30;
+  --border-strong: #3a3a42;
+
+  --text-primary:   #ededf0;
+  --text-secondary: #a0a0a8;
+  --text-muted:     #6b6b74;
+
+  --color-semantic-green:   #22c55e;
+  --color-semantic-teal:    #14b8a6;
+  --color-semantic-neutral: var(--text-primary);
+  --color-semantic-amber:   #f59e0b;
+  --color-semantic-red:     #ef4444;
+
+  --color-provider-garmin:    #0e6dc2;
+  --color-provider-strava:    #fc4c02;
+  --color-provider-intervals: #8b5cf6;
+  --color-provider-runalyze:  #16a34a;
+  --color-provider-runpulse:  #6b7280;
+
+  --color-primary: #5b8def;
+
+  --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  2rem;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-pill: 999px;
+
+  --t-fast: 120ms ease;
+  --t-base: 200ms ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── TopBar ─── */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 var(--space-5);
+  display: flex; align-items: center; justify-content: space-between;
+  height: 48px;
+}
+.topbar-logo { font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.02em; }
+.topbar-nav  { display: flex; gap: var(--space-1); }
+.nav-item {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm); color: var(--text-secondary);
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--surface-3); color: var(--text-primary); }
+.nav-item.active { color: var(--text-primary); background: var(--surface-3); }
+.topbar-meta { font-size: var(--text-sm); color: var(--text-muted); }
+
+/* ─── Page ─── */
+.page { max-width: 960px; margin: 0 auto; padding: var(--space-6) var(--space-5); }
+
+/* ─── Breadcrumb ─── */
+.subnav {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-sm); color: var(--text-secondary);
+}
+.subnav-sep { color: var(--text-muted); }
+.subnav-cur { color: var(--text-primary); font-weight: 500; }
+
+/* ─── View toggle ─── */
+.view-toggle {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-1); gap: var(--space-1);
+  margin-bottom: var(--space-5);
+}
+.view-btn {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm); cursor: pointer;
+  color: var(--text-secondary);
+  border: none; background: transparent;
+  transition: background var(--t-fast), color var(--t-fast);
+  font-family: var(--font-body);
+}
+.view-btn.active { background: var(--surface-3); color: var(--text-primary); }
+
+/* ─── Controls row ─── */
+.controls-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-4); gap: var(--space-4); flex-wrap: wrap;
+}
+.period-select {
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); color: var(--text-secondary);
+  font-size: var(--text-sm); padding: var(--space-2) var(--space-3);
+  cursor: pointer; font-family: var(--font-body);
+}
+.provider-legend {
+  display: flex; align-items: center; gap: var(--space-3);
+  font-size: var(--text-xs); color: var(--text-muted); flex-wrap: wrap;
+}
+.legend-dot {
+  width: 8px; height: 8px; border-radius: var(--radius-pill);
+  display: inline-block; margin-right: var(--space-1); vertical-align: middle;
+}
+
+/* ─── Discrepancy banner ─── */
+.disc-banner {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm); color: var(--color-semantic-amber);
+}
+
+/* ─── Dynamic column note ─── */
+.dynamic-note {
+  font-size: var(--text-xs); color: var(--text-muted);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.dynamic-note strong { color: var(--text-secondary); }
+
+/* ─── Group filter pills ─── */
+.group-filter { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-5); }
+.group-pill {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs); color: var(--text-muted);
+  background: var(--surface-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill); cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  font-family: var(--font-body);
+}
+.group-pill:hover { background: var(--surface-3); color: var(--text-secondary); }
+.group-pill.active {
+  background: rgba(91, 141, 239, 0.12);
+  border-color: rgba(91, 141, 239, 0.3);
+  color: var(--color-primary);
+}
+
+/* ─── Table ─── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.cmp-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+
+.cmp-table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs); font-weight: 500;
+  color: var(--text-muted); text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+.cmp-table th:first-child { text-align: left; width: 190px; min-width: 160px; }
+.cmp-table th.col-rep { color: var(--color-primary); }
+.cmp-table th.col-g   { color: var(--color-provider-garmin); }
+.cmp-table th.col-s   { color: var(--color-provider-strava); }
+.cmp-table th.col-i   { color: var(--color-provider-intervals); }
+.cmp-table th.col-rp  { color: var(--color-provider-runpulse); }
+
+/* Group header */
+.g-hdr td {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs); font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--surface-1);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.g-hdr:first-child td { border-top: none; }
+
+/* Metric row */
+.m-row { cursor: pointer; transition: background var(--t-fast); }
+.m-row:hover { background: var(--surface-3); }
+.m-row.disc-row { background: rgba(245,158,11,0.04); }
+.m-row.disc-row:hover { background: rgba(245,158,11,0.08); }
+.m-row td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+.m-row:last-of-type td { border-bottom: none; }
+
+.m-label { font-size: var(--text-sm); color: var(--text-secondary); }
+
+.val { font-family: var(--font-mono); font-size: var(--text-sm); text-align: right; }
+.val-empty { color: var(--text-muted); }
+
+/* Representative cell */
+.rep-cell { text-align: right; white-space: nowrap; }
+.rep-val { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; }
+.rep-src { font-size: var(--text-xs); color: var(--text-muted); display: block; margin-top: 1px; }
+.star { color: var(--color-primary); margin-right: 2px; font-size: var(--text-sm); }
+
+/* Discrepancy inline badge */
+.disc-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px var(--space-2);
+  background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25);
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem; color: var(--color-semantic-amber);
+  margin-left: var(--space-2); vertical-align: middle;
+  font-family: var(--font-body);
+}
+
+/* RunPulse version badge */
+.rp-badge {
+  display: inline-flex; align-items: center;
+  padding: 1px var(--space-2);
+  background: rgba(107,114,128,0.15); border: 1px solid rgba(107,114,128,0.25);
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem; color: var(--color-provider-runpulse);
+  font-family: var(--font-mono);
+  margin-left: var(--space-1);
+}
+
+/* ─── Detail Panel ─── */
+.panel-scrim {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-base);
+}
+.panel-scrim.open { opacity: 1; pointer-events: all; }
+
+.detail-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 101;
+  width: 360px; background: var(--surface-2);
+  border-left: 1px solid var(--border-strong);
+  transform: translateX(100%);
+  transition: transform var(--t-base);
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-5);
+}
+.detail-panel.open { transform: translateX(0); }
+
+.panel-back {
+  display: flex; align-items: center; gap: var(--space-2);
+  color: var(--text-secondary); font-size: var(--text-sm);
+  cursor: pointer; margin-bottom: var(--space-5);
+  border: none; background: transparent; padding: 0;
+  transition: color var(--t-fast); font-family: var(--font-body);
+}
+.panel-back:hover { color: var(--text-primary); }
+.panel-title { font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-2); }
+.panel-sub { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-5); }
+
+.p-sec { margin-bottom: var(--space-5); }
+.p-sec-label {
+  font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+}
+
+.reason-box {
+  background: rgba(91,141,239,0.08); border: 1px solid rgba(91,141,239,0.15);
+  border-radius: var(--radius-md); padding: var(--space-4);
+}
+.reason-prov { font-size: var(--text-base); font-weight: 600; margin-bottom: var(--space-2); }
+.reason-rule { font-size: var(--text-sm); color: var(--text-secondary); }
+.reason-src  { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-2); font-family: var(--font-mono); white-space: pre-line; }
+
+.prov-list { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.prov-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-3); border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+.prov-item.is-primary { border-color: rgba(91,141,239,0.2); background: rgba(91,141,239,0.06); }
+.prov-name { font-size: var(--text-sm); color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2); }
+.prov-dot  { width: 8px; height: 8px; border-radius: var(--radius-pill); display: inline-block; }
+.prov-val  { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); }
+.prov-diff { font-size: var(--text-xs); color: var(--text-muted); margin-left: var(--space-2); }
+
+.recompute-box {
+  background: var(--surface-3); border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4); margin-top: var(--space-3);
+}
+.rc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: var(--text-xs); color: var(--text-secondary); padding: 2px 0;
+}
+.rc-label { color: var(--text-muted); }
+.rc-val { font-family: var(--font-mono); color: var(--text-primary); }
+
+.panel-link {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: transparent; border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); color: var(--color-primary);
+  font-size: var(--text-sm); cursor: pointer;
+  transition: background var(--t-fast); margin-top: var(--space-3);
+  width: 100%; font-family: var(--font-body);
+}
+.panel-link:hover { background: rgba(91,141,239,0.08); }
+</style>
+</head>
+<body>
+
+<!-- TopBar -->
+<header class="topbar">
+  <div class="topbar-logo">RunPulse</div>
+  <nav class="topbar-nav">
+    <a class="nav-item" href="#">Today</a>
+    <a class="nav-item" href="#">Story</a>
+    <a class="nav-item active" href="#">Library</a>
+    <a class="nav-item" href="#">Plan</a>
+    <a class="nav-item" href="#">Coach</a>
+  </nav>
+  <div class="topbar-meta">2026-06-08 기준</div>
+</header>
+
+<main class="page">
+
+  <nav class="subnav">
+    <span>Library</span>
+    <span class="subnav-sep">›</span>
+    <span class="subnav-cur">Provider 비교</span>
+  </nav>
+
+  <!-- View mode -->
+  <div class="view-toggle">
+    <button class="view-btn active" onclick="setView(this)">정체성 매트릭스</button>
+    <button class="view-btn" onclick="setView(this)">활동별 비교</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row">
+    <select class="period-select">
+      <option>최근 4주</option><option>최근 8주</option>
+      <option>최근 12주</option><option>이번 시즌</option>
+    </select>
+    <div class="provider-legend">
+      <span><span class="legend-dot" style="background:var(--color-provider-garmin)"></span>Garmin</span>
+      <span><span class="legend-dot" style="background:var(--color-provider-strava)"></span>Strava</span>
+      <span><span class="legend-dot" style="background:var(--color-provider-intervals)"></span>Intervals</span>
+      <span><span class="legend-dot" style="background:var(--color-provider-runpulse)"></span>RunPulse</span>
+      <span style="opacity:.45"><span class="legend-dot" style="background:var(--border-strong)"></span>Runalyze (미연결)</span>
+    </div>
+  </div>
+
+  <!-- Discrepancy banner -->
+  <div class="disc-banner">
+    <span>⚠</span>
+    <div>
+      <strong>불일치 감지</strong>: Garmin ↔ Strava HR max 3bpm 차이 (1.8%).
+      <span style="color:var(--text-secondary)">행을 클릭하면 상세 비교를 확인할 수 있습니다.</span>
+    </div>
+  </div>
+
+  <!-- Dynamic column note (AO-2) -->
+  <div class="dynamic-note">
+    세로축은 시맨틱 그룹별 실제 연결된 Provider 집합으로 <strong>동적 렌더링</strong>됩니다.
+    Runalyze는 미연결 상태로 열이 자동 제외되었습니다.
+    새 Provider(Apple Health 등) 연결 시 코드 수정 없이 열이 자동 추가됩니다. — <strong>AO-2</strong>
+  </div>
+
+  <!-- Group filter pills -->
+  <div class="group-filter">
+    <button class="group-pill active"  onclick="filterGroup(this,'all')">전체</button>
+    <button class="group-pill" onclick="filterGroup(this,'fitness')">피트니스·피로</button>
+    <button class="group-pill" onclick="filterGroup(this,'hr')">심박</button>
+    <button class="group-pill" onclick="filterGroup(this,'pace')">페이스·속도</button>
+    <button class="group-pill" onclick="filterGroup(this,'load')">훈련 부하</button>
+    <button class="group-pill" onclick="filterGroup(this,'sleep')">수면·회복</button>
+    <button class="group-pill" onclick="filterGroup(this,'eff')">달리기 효율</button>
+    <button class="group-pill" onclick="filterGroup(this,'race')">레이스 준비도</button>
+    <button class="group-pill" onclick="filterGroup(this,'power')">파워</button>
+    <button class="group-pill" onclick="filterGroup(this,'injury')">부상 위험</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th>시맨틱 그룹 / 메트릭</th>
+          <th class="col-g">Garmin</th>
+          <th class="col-s">Strava</th>
+          <th class="col-i">Intervals</th>
+          <th class="col-rp">RunPulse</th>
+          <th class="col-rep">대표값</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- 피트니스·피로 -->
+        <tr class="g-hdr" data-group="fitness"><td colspan="6">피트니스·피로 (3)</td></tr>
+        <tr class="m-row" data-group="fitness" onclick="openPanel('ctl')">
+          <td class="m-label">CTL</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="val">68</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">68</span><span class="rep-src">RunPulse <span class="rp-badge">formula_v1</span></span></td>
+        </tr>
+        <tr class="m-row" data-group="fitness" onclick="openPanel('atl')">
+          <td class="m-label">ATL</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="val">72</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">72</span><span class="rep-src">RunPulse <span class="rp-badge">formula_v1</span></span></td>
+        </tr>
+        <tr class="m-row" data-group="fitness" onclick="openPanel('tsb')">
+          <td class="m-label">TSB</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="val">−4</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">−4</span><span class="rep-src">RunPulse <span class="rp-badge">formula_v1</span></span></td>
+        </tr>
+
+        <!-- 심박 -->
+        <tr class="g-hdr" data-group="hr"><td colspan="6">심박 (2)</td></tr>
+        <tr class="m-row" data-group="hr" onclick="openPanel('hravg')">
+          <td class="m-label">HR avg</td>
+          <td class="val">138bpm</td><td class="val">137bpm</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">138bpm</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row disc-row" data-group="hr" onclick="openPanel('hrmax')">
+          <td class="m-label">HR max <span class="disc-badge">⚠ 3bpm</span></td>
+          <td class="val">168bpm</td><td class="val">165bpm</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">168bpm</span><span class="rep-src">Garmin</span></td>
+        </tr>
+
+        <!-- 페이스·속도 -->
+        <tr class="g-hdr" data-group="pace"><td colspan="6">페이스·속도 (2)</td></tr>
+        <tr class="m-row" data-group="pace" onclick="openPanel('avgpace')">
+          <td class="m-label">평균 페이스</td>
+          <td class="val">5:27/km</td><td class="val">5:28/km</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">5:27/km</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row" data-group="pace" onclick="openPanel('maxspeed')">
+          <td class="m-label">최대 속도</td>
+          <td class="val">18.2km/h</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">18.2km/h</span><span class="rep-src">Garmin</span></td>
+        </tr>
+
+        <!-- 훈련 부하 -->
+        <tr class="g-hdr" data-group="load"><td colspan="6">훈련 부하 (2)</td></tr>
+        <tr class="m-row" data-group="load" onclick="openPanel('tss')">
+          <td class="m-label">TSS</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val">52</td><td class="val">51</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">52</span><span class="rep-src">Intervals</span></td>
+        </tr>
+        <tr class="m-row" data-group="load" onclick="openPanel('if')">
+          <td class="m-label">Intensity Factor</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val">0.82</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">0.82</span><span class="rep-src">Intervals</span></td>
+        </tr>
+
+        <!-- 수면·회복 -->
+        <tr class="g-hdr" data-group="sleep"><td colspan="6">수면·회복 (3)</td></tr>
+        <tr class="m-row" data-group="sleep" onclick="openPanel('hrv')">
+          <td class="m-label">HRV</td>
+          <td class="val">58ms</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">58ms</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row" data-group="sleep" onclick="openPanel('bodybattery')">
+          <td class="m-label">Body Battery</td>
+          <td class="val">52</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">52</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row" data-group="sleep" onclick="openPanel('sleepscore')">
+          <td class="m-label">Sleep Score</td>
+          <td class="val">71</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">71</span><span class="rep-src">Garmin</span></td>
+        </tr>
+
+        <!-- 달리기 효율 -->
+        <tr class="g-hdr" data-group="eff"><td colspan="6">달리기 효율 (3)</td></tr>
+        <tr class="m-row" data-group="eff" onclick="openPanel('cadence')">
+          <td class="m-label">케이던스</td>
+          <td class="val">168spm</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">168spm</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row" data-group="eff" onclick="openPanel('vr')">
+          <td class="m-label">수직 진동비</td>
+          <td class="val">7.8%</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">7.8%</span><span class="rep-src">Garmin</span></td>
+        </tr>
+        <tr class="m-row" data-group="eff" onclick="openPanel('gct')">
+          <td class="m-label">지면 접촉 시간</td>
+          <td class="val">228ms</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">228ms</span><span class="rep-src">Garmin</span></td>
+        </tr>
+
+        <!-- 레이스 준비도 -->
+        <tr class="g-hdr" data-group="race"><td colspan="6">레이스 준비도 (1)</td></tr>
+        <tr class="m-row" data-group="race" onclick="openPanel('vo2max')">
+          <td class="m-label">VO₂max</td>
+          <td class="val">51.2</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val">51.1</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val">51.2</span><span class="rep-src">Garmin</span></td>
+        </tr>
+
+        <!-- 파워 (플레이스홀더) -->
+        <tr class="g-hdr" data-group="power"><td colspan="6">파워 (데이터 없음)</td></tr>
+        <tr class="m-row" data-group="power">
+          <td class="m-label" style="color:var(--text-muted)">Power avg</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td>
+          <td class="rep-cell" style="color:var(--text-muted);font-size:var(--text-xs)">데이터 수집 중</td>
+        </tr>
+
+        <!-- 부상 위험 -->
+        <tr class="g-hdr" data-group="injury"><td colspan="6">부상 위험 (1)</td></tr>
+        <tr class="m-row" data-group="injury" onclick="openPanel('injrisk')">
+          <td class="m-label">부상 위험도</td>
+          <td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val val-empty">—</td><td class="val">낮음</td>
+          <td class="rep-cell"><span class="star">★</span><span class="rep-val" style="color:var(--color-semantic-green)">낮음</span><span class="rep-src">RunPulse <span class="rp-badge">formula_v1</span></span></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- Scrim + Panel -->
+<div class="panel-scrim" id="scrim" onclick="closePanel()"></div>
+<aside class="detail-panel" id="panel">
+  <button class="panel-back" onclick="closePanel()">← 닫기</button>
+  <div id="panelBody"></div>
+</aside>
+
+<script>
+const DATA = {
+  ctl: {
+    title: 'CTL (Chronic Training Load)',
+    sub: '피트니스·피로 · 최근 4주 평균',
+    primProv: 'RunPulse', primVal: '68',
+    reason: { label: 'RunPulse — 자체 산출 (always primary)', detail: 'RunPulse 합성 메트릭은 항상 대표값입니다.\n다른 Provider에 동일 메트릭 없음.' },
+    provs: [{ key:'RunPulse', color:'#6b7280', val:'68', primary:true, badge:'formula_v1' }],
+    rc: { at:'2026-06-09 14:30', formula:'formula_v1', conf:'0.82', prev:'66 → 68 (+2, +3%)' }
+  },
+  atl: {
+    title:'ATL (Acute Training Load)', sub:'피트니스·피로',
+    primProv:'RunPulse', primVal:'72',
+    reason:{ label:'RunPulse — 자체 산출 (always primary)', detail:'RunPulse 합성 메트릭은 항상 대표값입니다.' },
+    provs:[{ key:'RunPulse', color:'#6b7280', val:'72', primary:true, badge:'formula_v1' }]
+  },
+  tsb: {
+    title:'TSB (Training Stress Balance)', sub:'피트니스·피로',
+    primProv:'RunPulse', primVal:'−4',
+    reason:{ label:'RunPulse — 자체 산출 (always primary)', detail:'RunPulse 합성 메트릭은 항상 대표값입니다.' },
+    provs:[{ key:'RunPulse', color:'#6b7280', val:'−4', primary:true, badge:'formula_v1' }]
+  },
+  hravg: {
+    title:'HR avg (심박 평균)', sub:'심박 · 최근 4주 평균',
+    primProv:'Garmin', primVal:'138bpm',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py / v_canonical_activities 정적 순서' },
+    provs:[
+      { key:'Garmin',  color:'#0e6dc2', val:'138bpm', primary:true },
+      { key:'Strava',  color:'#fc4c02', val:'137bpm', primary:false, diff:'−1bpm (0.7%)' }
+    ]
+  },
+  hrmax: {
+    title:'HR max (최대 심박)', sub:'심박 · 최근 4주 최대 · ⚠ 불일치',
+    primProv:'Garmin', primVal:'168bpm',
+    disc:'Garmin ↔ Strava 차이 3bpm (1.8%)',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py / v_canonical_activities 정적 순서' },
+    provs:[
+      { key:'Garmin',  color:'#0e6dc2', val:'168bpm', primary:true },
+      { key:'Strava',  color:'#fc4c02', val:'165bpm', primary:false, diff:'−3bpm (1.8%)' }
+    ]
+  },
+  avgpace: {
+    title:'평균 페이스', sub:'페이스·속도',
+    primProv:'Garmin', primVal:'5:27/km',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[
+      { key:'Garmin', color:'#0e6dc2', val:'5:27/km', primary:true },
+      { key:'Strava', color:'#fc4c02', val:'5:28/km', primary:false, diff:'+1s/km (0.3%)' }
+    ]
+  },
+  maxspeed: {
+    title:'최대 속도', sub:'페이스·속도',
+    primProv:'Garmin', primVal:'18.2km/h',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'18.2km/h', primary:true }]
+  },
+  tss: {
+    title:'TSS (Training Stress Score)', sub:'훈련 부하',
+    primProv:'Intervals', primVal:'52',
+    reason:{ label:'소스 우선순위 2순위', detail:'garmin > intervals > strava > runalyze\n→ Garmin에 TSS 없음, intervals 선택 (dedup.py)' },
+    provs:[
+      { key:'Intervals', color:'#8b5cf6', val:'52', primary:true },
+      { key:'RunPulse',  color:'#6b7280', val:'51', primary:false, diff:'−1 (1.9%)', badge:'formula_v1' }
+    ]
+  },
+  'if': {
+    title:'Intensity Factor', sub:'훈련 부하',
+    primProv:'Intervals', primVal:'0.82',
+    reason:{ label:'소스 우선순위 2순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Intervals', color:'#8b5cf6', val:'0.82', primary:true }]
+  },
+  hrv: {
+    title:'HRV', sub:'수면·회복',
+    primProv:'Garmin', primVal:'58ms',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'58ms', primary:true }]
+  },
+  bodybattery: {
+    title:'Body Battery', sub:'수면·회복',
+    primProv:'Garmin', primVal:'52',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'52', primary:true }]
+  },
+  sleepscore: {
+    title:'Sleep Score', sub:'수면·회복',
+    primProv:'Garmin', primVal:'71',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'71', primary:true }]
+  },
+  cadence: {
+    title:'케이던스 (Cadence)', sub:'달리기 효율',
+    primProv:'Garmin', primVal:'168spm',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'168spm', primary:true }]
+  },
+  vr: {
+    title:'수직 진동비 (Vertical Ratio)', sub:'달리기 효율',
+    primProv:'Garmin', primVal:'7.8%',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'7.8%', primary:true }]
+  },
+  gct: {
+    title:'지면 접촉 시간 (GCT)', sub:'달리기 효율',
+    primProv:'Garmin', primVal:'228ms',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[{ key:'Garmin', color:'#0e6dc2', val:'228ms', primary:true }]
+  },
+  vo2max: {
+    title:'VO₂max', sub:'레이스 준비도',
+    primProv:'Garmin', primVal:'51.2',
+    reason:{ label:'소스 우선순위 1순위', detail:'garmin > intervals > strava > runalyze\n→ dedup.py 정적 순서' },
+    provs:[
+      { key:'Garmin',   color:'#0e6dc2', val:'51.2', primary:true },
+      { key:'RunPulse', color:'#6b7280', val:'51.1', primary:false, diff:'−0.1 (0.2%)', badge:'ml_v1' }
+    ]
+  },
+  injrisk: {
+    title:'부상 위험도', sub:'부상 위험',
+    primProv:'RunPulse', primVal:'낮음',
+    reason:{ label:'RunPulse — 자체 산출 (always primary)', detail:'RunPulse 합성 메트릭은 항상 대표값입니다.' },
+    provs:[{ key:'RunPulse', color:'#6b7280', val:'낮음', primary:true, badge:'formula_v1' }]
+  }
+};
+
+function openPanel(slug) {
+  const d = DATA[slug]; if (!d) return;
+
+  const discHtml = d.disc ? `
+    <div class="disc-banner" style="margin-bottom:var(--space-4)">
+      <span>⚠</span><span>${d.disc}</span>
+    </div>` : '';
+
+  const provHtml = d.provs.map(p => `
+    <li class="prov-item ${p.primary ? 'is-primary' : ''}">
+      <div class="prov-name">
+        <span class="prov-dot" style="background:${p.color}"></span>
+        ${p.key}${p.primary ? ' <span class="star" style="font-size:.75rem">★</span>' : ''}
+      </div>
+      <div>
+        <span class="prov-val">${p.val}</span>
+        ${p.diff  ? `<span class="prov-diff">${p.diff}</span>` : ''}
+        ${p.badge ? `<span class="rp-badge" style="margin-left:6px">${p.badge}</span>` : ''}
+      </div>
+    </li>`).join('');
+
+  const rcHtml = d.rc ? `
+    <div class="p-sec">
+      <div class="p-sec-label">RunPulse 재계산 이력 (AO-1)</div>
+      <div class="recompute-box">
+        <div class="rc-row"><span class="rc-label">재계산</span><span class="rc-val">${d.rc.at}</span></div>
+        <div class="rc-row"><span class="rc-label">공식</span><span class="rc-val">${d.rc.formula} · conf ${d.rc.conf}</span></div>
+        <div class="rc-row"><span class="rc-label">이전값</span><span class="rc-val">${d.rc.prev}</span></div>
+      </div>
+    </div>` : '';
+
+  document.getElementById('panelBody').innerHTML = `
+    <div class="panel-title">${d.title}</div>
+    <div class="panel-sub">${d.sub}</div>
+    ${discHtml}
+    <div class="p-sec">
+      <div class="p-sec-label">우선순위 근거 — P3 투명성 (AO-3)</div>
+      <div class="reason-box">
+        <div class="reason-prov">★ ${d.primProv}</div>
+        <div class="reason-rule">${d.reason.label}</div>
+        <div class="reason-src">${d.reason.detail}</div>
+      </div>
+    </div>
+    <div class="p-sec">
+      <div class="p-sec-label">Provider별 값</div>
+      <ul class="prov-list">${provHtml}</ul>
+    </div>
+    ${rcHtml}
+    <button class="panel-link">Library에서 추세 보기 →</button>
+  `;
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+}
+
+function filterGroup(el, key) {
+  document.querySelectorAll('.group-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('[data-group]').forEach(r => {
+    r.style.display = (key === 'all' || r.dataset.group === key) ? '' : 'none';
+  });
+}
+
+function setView(el) {
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+</script>
+
+</body>
+</html>
