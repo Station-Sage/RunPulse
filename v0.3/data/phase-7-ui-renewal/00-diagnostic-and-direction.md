@@ -1,6 +1,6 @@
 # Phase 7 UI Renewal — 진단 및 방향 결정 문서
 
-**문서 상태**: Draft v0.2 — 6~9장 재독 후 재검토 반영
+**문서 상태**: Draft v0.6 — REVIEW-03 IA 반영 + Phase 7a~7d 재정렬 완료
 **작성일**: 2026-05-11
 **스코프**: 웹 UI 전면 리뉴얼의 진단·방향·분기점 결정
 **전제 문서**: `CLAUDE.md`, `README.md`, `v0.3/data/architecture.md`, `v0.3/data/metric_dictionary.md`, `v0.3/data/phase-7(preview).md` 전 9장
@@ -37,7 +37,8 @@
 - 소셜 네트워크가 아님 — Kudos/팔로워/리더보드 배제
 - 라이브 GPS 트래커가 아님 — 실시간 기록 UI 배제, "달린 뒤의 세계"에 집중
 - 경직된 PDF 플랜 생성기가 아님 — 정적 계획표 배제, 상태 기반 적응형
-- **클라우드 종속이 아님** (8장 보강) — 데이터는 로컬에, 사용자 소유
+- **클라우드 종속이 아님** (8장 보강, P8'로 재해석 — §6 참조) — 서버에서 가공되더라도
+  사용자별 격리 저장(`email@db`)·언제든 export·전송 범위 투명 고지로 "내 것"이라는 감각 유지
 
 ### 1.4 타겟 페르소나
 
@@ -134,13 +135,38 @@ UI 점수 3/10과 데이터 점수 8.5/10의 5.5점 갭이 RunPulse의 현 상�
 
 **재검토 결과**: 6장의 묶음이 더 합리적이다. 사용자 입력과 AI 코치 MVP는 Today 영역과 함께 묶여야 가치 발현이 즉시 보이고, Library를 먼저 만든다고 사용자가 즉각 가치를 느끼지 않는다.
 
-**수정된 단계 순서**:
-1. **1단계 (Phase 7a 매핑)**: Today + 사용자 입력 + Coach MVP + 메트릭 드릴다운 인프라
-2. **2단계 (Phase 7b 매핑)**: Library 전면화 + Story(내러티브 인사이트) + 적응형 프로그램 기반
-3. **3단계 (Phase 7c 매핑)**: Plan 다중 프로그램 + ML 개인화
-4. **4단계 (Phase 7d 매핑)**: 신규 데이터 소스 확장 + Training Balance Radar 완성
+**REVIEW-03 IA 반영 (2026-09-22)**: 5+1 영역이 하단 3탭(Today/Library/Coach)으로 재편되면서
+Story·Plan이 독립 화면을 잃고 Today L2/Coach로 흡수됐다(§5.1). 이 재편이 단계 순서 자체를
+바꾸지는 않는다 — 바뀌는 건 "어느 영역을 만드는가"가 아니라 "Today의 어느 층(L0~L3)까지,
+Library/Coach가 얼마나 열리는가"로 서술 단위가 바뀌는 것뿐이다. 실제로 새로 판단해야 하는
+지점은 하나: **Today L2(내러티브 블록)를 1단계에서 완성형으로 넣을 것인가, 2단계로 미룰
+것인가.**
+
+미룬다. 근거는 비전 문서(`phase-7(preview).md`) §6 자신에 있다 — "데일리 브리핑 화면"(그룹1)과
+"내러티브형 월간 보고서"(그룹2)는 애초에 분리된 우선순위였다. IA상 Story가 Today L2라는
+*자리*로 흡수됐다고 해서 그 자리를 채우는 *콘텐츠 숙성도*(AI 서사 생성·마일스톤 감지·인라인
+차트 조립)까지 앞당길 근거는 없다. 이는 본 절 하단의 기존 판단(메트릭 드릴다운은 인프라만
+1단계, 전용 화면은 2단계)과 동일한 패턴이며, §4.2의 Coach MVP 스코프 축소(컨텍스트 패널
+제외, 7d로 이연)와도 일관된다. 7a에서 Today L2는 텍스트 스텁(준수율 한 줄, 다음 세션 한 줄)만
+노출한다 — 빈 자리가 아니라 실데이터 기반의 축약형이다.
+
+**수정된 단계 순서** (REVIEW-03 IA 라벨로 재서술):
+1. **1단계 (Phase 7a 매핑)**: Today L0+L1 완성 + L2 텍스트 스텁 + L3 드릴다운 컴포넌트 인프라
+   + 사용자 입력(QuickInput) + Coach MVP(스레드 Q&A만) + Library/activities(L3 드릴다운 타겟)
+2. **2단계 (Phase 7b 매핑)**: Today L2 완성(TimelineNarrative 에디토리얼, 마일스톤) + Library
+   전면화(metrics/wellness/providers, 13그룹×4provider 매트릭스) + Coach에 정적 플랜 템플릿
+   선택·비교 작업 흐름 추가
+3. **3단계 (Phase 7c 매핑)**: Coach의 플랜 생성이 ML 개인화로 업그레이드(3~5 옵션,
+   PlanFitReport, 세션 조정) + Today L2 "다음 세션"에 상태 조정 반영
+4. **4단계 (Phase 7d 매핑)**: 신규 데이터 소스 확장 + Training Balance Radar 완성 + Coach
+   컨텍스트 패널 완성(7a MVP에서 제외된 부분) + 3선 메뉴 Data 화면
 
 **중요**: 메트릭 드릴다운은 1단계에 **인프라 형태로 포함**된다 — 전용 Library 화면이 2단계로 미뤄지더라도, "메트릭에서 계산식·근거로 드릴다운하는 컴포넌트 패턴"은 1단계에 박혀야 한다. Today와 Coach에서도 이 컴포넌트를 사용하기 때문이다.
+
+**API 네임스페이스 원칙**: REST 리소스는 IA 탭이 아니라 도메인 기준(today/library/coach/plan)을
+유지한다 — 탭 구조가 API 경계를 결정하지 않는다. Story는 독립 리소스로 남기지 않고
+`/api/v1/today/narrative` + `/api/v1/today/milestones`로 흡수한다. `/api/v1/plan/*`은 그대로
+두되, 소비 화면만 Today(보기)·Coach(작업)로 갈린다. 상세 배분은 `07-migration-roadmap.md`.
 
 ### 4.2 7장 (성공 측정) → 컴포넌트 카탈로그 1번 항목 강제
 
@@ -156,7 +182,10 @@ UI 점수 3/10과 데이터 점수 8.5/10의 5.5점 갭이 RunPulse의 현 상�
 
 ### 4.3 8장 (차별화 전략) → 분기점 B (기술 스택) 제약 보강
 
-8장의 "클라우드 종속이 아니다", "로컬 퍼스트", "데이터는 사용자 소유" 원칙이 분기점 B의 SvelteKit/Next.js + 별도 API 분리 모델과 약간의 긴장을 만든다.
+8장의 "클라우드 종속이 아니다", "데이터는 사용자 소유" 원칙이 분기점 B의 SvelteKit/Next.js +
+별도 API 분리 모델과 약간의 긴장을 만든다. (초안 당시 "로컬 퍼스트"로 해석했던 부분은
+REVIEW-03 §8에서 SaaS 배포로 확정 — P8'(§6) 참조. 아래 제약은 P8'와도 여전히 유효하다: 서버
+가공이라도 배포 형태는 단일 프로세스로 단순하게 유지한다는 원칙이기 때문.)
 
 **해결**: B2 추천을 유지하되 다음 제약을 명시한다.
 
@@ -243,10 +272,10 @@ URL 호환: `/dashboard → /today`, `/report → /today` (L2 앵커), `/activit
 
 | 단계 | 영역 | 산출물 | 데이터 레이어 작업 |
 |---|---|---|---|
-| **1단계** (Phase 7a) | Today + Coach MVP + 입력 + 메트릭 드릴다운 인프라 | `<EvidenceQuote>` 컴포넌트, RPE/통증 입력, 빠른 AI 브리핑, 모든 메트릭의 드릴다운 가능 | **D5** (phase-5 서비스 레이어 구현), **D3** (user_inputs, ai_feedback), **D1** (parent_metric_id 트리 활성화) |
-| **2단계** (Phase 7b) | Library 전면화 + Story 내러티브 + 적응형 프로그램 기반 | provider 비교 뷰, 시맨틱 그룹 13개 매트릭스, 시간축 스토리, 일일 세션 구체화 | **D2** (그룹 ID 모델) |
-| **3단계** (Phase 7c) | Plan 다중 프로그램 + ML 개인화 | 3~5개 프로그램 병렬 비교, PlanFitReport, 사후 분석 | **D4** (athlete_profile_snapshots) |
-| **4단계** (Phase 7d) | 신규 데이터 소스 + Training Balance Radar 완성 | COROS/Polar/Apple Health/Whoop extractor 흡수 | — (기존 extractor 패턴) |
+| **1단계** (Phase 7a) | Today(L0+L1 완성, L2 텍스트 스텁, L3 인프라) + Coach MVP + 입력 + Library/activities | `<EvidenceQuote>` 컴포넌트, RPE/통증 입력, 빠른 AI 브리핑, 모든 메트릭의 드릴다운 가능 | **D5** (phase-5 서비스 레이어 구현), **D3** (user_inputs, ai_feedback), **D1** (parent_metric_id 트리 활성화) |
+| **2단계** (Phase 7b) | Today L2 완성(내러티브·마일스톤) + Library 전면화 + Coach 정적 플랜 작업 흐름 | provider 비교 뷰, 시맨틱 그룹 13개 매트릭스, TimelineNarrative 에디토리얼, 정적 플랜 템플릿 3~5개 비교 | **D2** (그룹 ID 모델) |
+| **3단계** (Phase 7c) | Coach 플랜 ML 개인화 + Today L2 상태조정 반영 | 3~5개 ML 개인화 플랜 옵션, PlanFitReport, 세션 상태 조정 | **D4** (athlete_profile_snapshots) |
+| **4단계** (Phase 7d) | 신규 데이터 소스 + Training Balance Radar + Coach 컨텍스트 패널 완성 | COROS/Polar/Apple Health/Whoop extractor 흡수, 컨텍스트 패널 | — (기존 extractor 패턴) |
 
 각 단계에서 사용자 노출은 베타 토글로 최소화. 모든 핵심 화면이 완성된 시점에 디폴트를 v2로 스위치. 이전 UI는 한동안 `/v1/`로 유지하다가 단계적 폐기.
 
@@ -333,11 +362,16 @@ URL 호환: `/dashboard → /today`, `/report → /today` (L2 앵커), `/activit
 >
 > **컴포넌트 카탈로그 1차 7개**: EvidenceQuote, MetricCell, MetricBreakdown, ProviderComparison, QuickInput, RecommendationCard, TimelineNarrative.
 >
-> **다음 단계**: 00~07 문서를 REVIEW-02·REVIEW-03 최종안에 맞춰 재정렬 후 Phase 7a 구현 착수.
+> **다음 단계**: §4·§5.4(본 문서)·07 재정렬 완료. 남은 재정렬은 03a~03g 내용(구조만 분리됨,
+> 내용은 구 IA 그대로)·04·05뿐 — 이후 Phase 7a 구현 착수.
 
 ---
 
 **작성 이력**:
+- v0.6 (2026-09-22): Phase 7a~7d 재정렬 — §4.1 단계 순서를 REVIEW-03 IA 라벨로 재서술(핵심
+  판단: Today L2 완성 시점을 7a→7b로 이연, 근거는 비전 6장 그룹1/그룹2 우선순위 분리), API
+  네임스페이스 원칙 추가; §4.3 P8' 잔여 표현 정정; §5.4 단계별 산출물 표를 신 IA 라벨로 갱신;
+  §1.3 "클라우드 종속 아님" 항목을 P8'로 재해석. 상세는 `07-migration-roadmap.md` v0.2.
 - v0.5 (2026-09-22): REVIEW-03 최종안 반영 — §5.1 IA 결정을 3탭+3선 관여 기반 관문 구조로 갱신; §5.3 Story 영역 예외 → Today L2 내러티브 블록 예외; §6 P8 → P8'(Data Ownership & Transparency); §7 `<TimelineNarrative>` Story → Today L2 표현
 - v0.1 (2026-05-11): 초안 — 현 UI 진단 + 데이터 레이어 적합도 + 분기점 추천
 - v0.2 (2026-05-11): Phase 7 6~9장 재독 반영 — 마이그레이션 단계 순서 6장 정렬, 컴포넌트 카탈로그 1번에 `<EvidenceQuote>` 강제, 분기점 B에 단일 프로세스 배포 제약 추가, 9장에서 Library 정체성 표현 화면 도출, KPI 매핑 추가
