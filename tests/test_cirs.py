@@ -30,7 +30,8 @@ class TestCIRS:
         _seed_load_metrics(conn, acwr=1.8, monotony=2.5, lsi=2.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = CIRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 2 child metrics (acwr, lsi)
+        assert len(results) == 3
         assert results[0].numeric_value >= 50
 
     def test_optimal_acwr_means_low_cirs(self):
@@ -39,7 +40,8 @@ class TestCIRS:
         _seed_load_metrics(conn, acwr=1.0, monotony=1.2, lsi=0.8)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = CIRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 2 child metrics (acwr, lsi)
+        assert len(results) == 3
         assert results[0].numeric_value < 30
 
     def test_confidence_present(self):
@@ -62,3 +64,15 @@ class TestCIRS:
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         assert CIRSCalculator().compute(ctx) == []
+
+    def test_child_metrics_have_parent_and_correct_names(self):
+        """자식 CalcResult: parent_metric_name='cirs', metric_name=cirs_*."""
+        conn = _conn()
+        _seed_load_metrics(conn, acwr=1.4, monotony=1.8, lsi=1.5)
+        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
+        results = CIRSCalculator().compute(ctx)
+        children = results[1:]
+        assert all(r.parent_metric_name == "cirs" for r in children)
+        child_names = {r.metric_name for r in children}
+        assert "cirs_acwr" in child_names
+        assert "cirs_lsi" in child_names

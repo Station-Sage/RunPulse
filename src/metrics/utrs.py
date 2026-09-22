@@ -80,11 +80,26 @@ class UTRSCalculator(MetricCalculator):
             cb.add_input(k, is_available=(k in components), weight=w)
         confidence = cb.compute()
 
-        return [self._result(
+        results = [self._result(
             value=round(score, 1),
             confidence=round(confidence, 2),
             json_val={"components": {k: round(v, 1) for k, v in components.items()}},
         )]
+        _child_names = {
+            "body_battery": "utrs_body_battery",
+            "tsb": "utrs_tsb",
+            "sleep": "utrs_sleep",
+            "hrv": "utrs_hrv",
+            "stress": "utrs_stress",
+        }
+        for key, child_name in _child_names.items():
+            if key in components:
+                results.append(self._result(
+                    value=round(components[key], 1),
+                    metric_name=child_name,
+                    parent_metric_name="utrs",
+                ))
+        return results
 
     @staticmethod
     def _norm(val, lo, hi) -> float:

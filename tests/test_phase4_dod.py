@@ -211,7 +211,8 @@ class TestDoD9:
         ctx = __import__("src.metrics.base", fromlist=["CalcContext"]).CalcContext(
             conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = UTRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 3 child metrics (body_battery, tsb, sleep)
+        assert len(results) == 4
         assert results[0].confidence is not None
         assert 0 < results[0].confidence <= 1.0
 
@@ -226,7 +227,8 @@ class TestDoD9:
         from src.metrics.base import CalcContext
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = CIRSCalculator().compute(ctx)
-        assert len(results) == 1
+        # 1 parent + 2 child metrics (acwr, lsi)
+        assert len(results) == 3
         assert results[0].confidence is not None
         assert 0 < results[0].confidence <= 1.0
 
