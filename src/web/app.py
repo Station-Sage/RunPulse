@@ -48,6 +48,9 @@ from .views_training_wizard import wizard_bp
 from .views_training_fullplan import fullplan_bp
 from .views_sync import sync_bp
 from .views_guide import guide_bp
+
+# Phase 7 /api/v1/ JSON API (SvelteKit v2 소비)
+from src.api import api_bp
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
 _HOME_CACHE_TTL = 60
 # db_path 문자열 → {"ts": float, "data": dict} 맵
@@ -1360,5 +1363,6 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(dev_bp)            # 개발자/디버그 도구
     app.register_blueprint(guide_bp)          # 용어집/가이드
     app.register_blueprint(sync_bp)           # 동기화 탭
+    app.register_blueprint(api_bp)            # Phase 7 /api/v1/ JSON API
 
     return app

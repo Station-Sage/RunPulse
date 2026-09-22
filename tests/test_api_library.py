@@ -1,0 +1,92 @@
+"""tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams) 테스트."""
+from __future__ import annotations
+
+import sqlite3
+
+import pytest
+from flask import Flask
+
+from src.db_setup import create_tables, migrate_db
+
+
+@pytest.fixture
+def mini_app(tmp_path):
+    db_file = tmp_path / "running.db"
+    conn = sqlite3.connect(str(db_file))
+    create_tables(conn)
+    migrate_db(conn)
+    conn.executemany(
+        "INSERT INTO activity_summaries"
+        " (source, source_id, name, activity_type, start_time, distance_m, duration_sec)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            ("garmin", "g1", "아침 러닝", "running", "2026-04-01T08:00:00Z", 10_000, 3600),
+            ("garmin", "g2", "자전거", "cycling", "2026-04-02T08:00:00Z", 20_000, 3600),
+        ],
+    )
+    conn.commit()
+    act_id = conn.execute("SELECT id FROM activity_summaries WHERE source_id='g1'").fetchone()[0]
+    conn.execute(
+        "INSERT INTO activity_streams (activity_id, source, elapsed_sec, heart_rate)"
+        " VALUES (?, 'garmin', 0, 120)",
+        (act_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    import src.api.routes_library as routes_library
+    _orig_route = routes_library.db_path
+    routes_library.db_path = lambda: db_file
+
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    from src.api import api_bp
+    app.register_blueprint(api_bp)
+
+    with app.test_client() as client:
+        yield client, act_id
+
+    routes_library.db_path = _orig_route
+
+
+def test_list_activities_default(mini_app):
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["data"]["total"] == 2
+    assert len(body["data"]["activities"]) == 2
+    assert body["meta"]["page"] == 1
+
+
+def test_list_activities_sport_filter(mini_app):
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities?sport=running")
+    body = res.get_json()
+    assert body["data"]["total"] == 1
+    assert body["data"]["activities"][0]["activity_type"] == "running"
+
+
+def test_get_activity_detail(mini_app):
+    client, act_id = mini_app
+    res = client.get(f"/api/v1/library/activities/{act_id}")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["data"]["activity"]["core"]["name"] == "아침 러닝"
+
+
+def test_get_activity_detail_not_found(mini_app):
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities/9999")
+    assert res.status_code == 404
+    body = res.get_json()
+    assert body["error"]["code"] == "NOT_FOUND"
+
+
+def test_get_activity_streams(mini_app):
+    client, act_id = mini_app
+    res = client.get(f"/api/v1/library/activities/{act_id}/streams")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert len(body["data"]["streams"]) == 1
+    assert body["data"]["streams"][0]["heart_rate"] == 120

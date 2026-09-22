@@ -33,6 +33,21 @@ class TestListThreads:
         assert threads[0]["last_message"] == result["message"]["content"]
 
 
+class TestGetThread:
+    def test_not_found(self, db_conn):
+        assert coach_service.get_thread(db_conn, 9999) is None
+
+    def test_returns_thread_and_messages(self, db_conn):
+        created = coach_service.create_thread(db_conn, "오늘 컨디션이 안 좋은데 뭘 해야 할까?")
+        thread_id = created["thread"]["id"]
+
+        detail = coach_service.get_thread(db_conn, thread_id)
+        assert detail["thread"]["id"] == thread_id
+        assert len(detail["messages"]) == 2
+        assert detail["messages"][0]["role"] == "user"
+        assert detail["messages"][1]["role"] == "assistant"
+
+
 class TestCreateThread:
     def test_creates_thread_and_stores_both_messages(self, db_conn):
         result = coach_service.create_thread(db_conn, "레이스 페이스 전략 궁금해")

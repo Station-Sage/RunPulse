@@ -46,6 +46,23 @@ def list_threads(conn: sqlite3.Connection) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
+    """스레드 상세 + 전체 메시지 목록. 스레드 없으면 None."""
+    conn.row_factory = sqlite3.Row
+    thread = conn.execute(
+        "SELECT id, title, created_at, updated_at FROM chat_threads WHERE id = ?",
+        (thread_id,),
+    ).fetchone()
+    if not thread:
+        return None
+    messages = conn.execute(
+        "SELECT id, role, content, ai_model, created_at FROM chat_messages"
+        " WHERE thread_id = ? ORDER BY id",
+        (thread_id,),
+    ).fetchall()
+    return {"thread": dict(thread), "messages": [dict(m) for m in messages]}
+
+
 def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict | None = None) -> dict:
     """새 스레드 생성 — 첫 메시지 저장 → AI 응답 생성·저장 → 스레드+메시지 반환."""
     from src.ai.chat_engine import chat as ai_chat

@@ -28,9 +28,9 @@
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
-### `coach_service.py` (112줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (129줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
-- functions: list_threads, create_thread, add_message
+- functions: list_threads, get_thread, create_thread, add_message
 
 ### `dashboard_service.py` (224줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
@@ -534,7 +534,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1364줄) — RunPulse integration workbench web app.
+### `app.py` (1368줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1103,6 +1103,18 @@
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
 - class **TestPost**: test_post_json
 
+### `test_api_coach.py` (104줄) — tests/test_api_coach.py — /api/v1/coach/threads(+:id, +:id/messages) 테스트.
+
+- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
+
+### `test_api_library.py` (92줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams) 테스트.
+
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams
+
+### `test_api_today.py` (66줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+
+- functions: mini_app, test_get_today_no_data, test_post_checkin_saves_and_returns, test_post_checkin_no_body
+
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
@@ -1130,9 +1142,10 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data
 
-### `test_coach_service.py` (95줄) — coach_service 테스트 — Phase 7a D5.
+### `test_coach_service.py` (110줄) — coach_service 테스트 — Phase 7a D5.
 
 - class **TestListThreads**: test_empty, test_lists_with_last_message_preview
+- class **TestGetThread**: test_not_found, test_returns_thread_and_messages
 - class **TestCreateThread**: test_creates_thread_and_stores_both_messages, test_title_truncated_for_long_message, test_does_not_leak_into_other_threads
 - class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
 
@@ -1707,7 +1720,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 332개 파일
+총 335개 파일
 
 ## docstring 누락
 

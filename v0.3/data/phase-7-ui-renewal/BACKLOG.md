@@ -2,7 +2,8 @@
 
 ## 진행 현황
 
-**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 착수(D5·D3 완료).** REVIEW-03(Today as Gateway·모바일 IA)을
+**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 진행 중(D5·D3·Flask API 완료, SvelteKit
+프론트엔드 남음).** REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
 (`scripts/autopilot/`) 5유닛(00 §10 결정 요약, 00 §5.1/5.3/6/7 IA 영역 서술, 01 P8→P8',
@@ -22,7 +23,9 @@
 문서 재정렬 단계에선 데이터 레이어(D1~D5) 변경 없음(REVIEW-03 §7, 순수 UI/IA 재검토).
 이후 실제 구현 단계에서 D5(`today_service.py`/`coach_service.py` 전체, 나머지 3개 스텁)와
 D3(`user_inputs`/`ai_feedback` + 구현 중 발견한 `chat_threads`)를 완료(2026-09-22, plan
-mode로 조사·설계 후 승인받아 진행). 상세는 DONE 참조. D1/D2/D4는 아직 미착수.
+mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/api/v1/` 블루프린트 9개
+엔드포인트(Today+Library+Coach)도 완료(2026-09-22, 같은 세션). 상세는 DONE 참조.
+D1/D2/D4는 아직 미착수, SvelteKit 프론트엔드(`P7-IMPL-SVELTE`)도 아직.
 
 **보류(사용자 지시, 2026-09-22, "러닝이 우선")**:
 1. PWA 타이밍 — 비전 그룹1 vs 00/07의 7c 배치 불일치.
@@ -84,8 +87,7 @@ mode로 조사·설계 후 승인받아 진행). 상세는 DONE 참조. D1/D2/D4
 
 ## NEXT
 
-- **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 + Today/Library/activities 엔드포인트 (Phase
-  7a). D5(today_service/coach_service) 완료로 착수 가능 — 다음 승격 후보.
+(비어있음 — 다음 후보는 LATER의 `P7-IMPL-D1`/`P7-IMPL-SVELTE` 중 사용자 판단 후 승격)
 
 ---
 
@@ -125,6 +127,22 @@ DONE으로 옮긴다.
   `BACKLOG.md`의 `BUG-CHAT-RULE-FALLBACK`로 기록, 이 시점엔 범위 밖이라 수정 안 함.
   상세 판단 근거는 `06-data-layer-extensions.md` "구현 후기" 절. **(2026-09-22 후속 수정
   완료 — 최상위 `BACKLOG.md` DONE 참조, 아래 "진행 현황"도 갱신됨)**
+- **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 9개 엔드포인트(2026-09-22, plan mode로 조사 후
+  승인받아 진행). 범위는 사용자 확인으로 BACKLOG 한 줄 설명(Today/Library)보다 넓게
+  확정 — 07 로드맵의 Phase 7a 산출물 체크리스트대로 Coach MVP 4개 포함. `src/api/`
+  신설(`__init__.py`의 `api_bp` + `routes_today.py`/`routes_library.py`/`routes_coach.py`),
+  `src/web/app.py`에 등록. 새 비즈니스 로직 없이 D5 서비스 함수를 그대로 노출하는
+  배선 작업 — 유일한 서비스 레이어 추가는 `coach_service.get_thread()`(스레드 상세+메시지,
+  `GET /coach/threads/:id`에 필요, 읽기 전용이라 D5 원칙과 일관). 응답 포맷은
+  `05-tech-architecture.md` §3.3의 `{data, meta}`/`{error:{code,message}}`를 채택(기존
+  v1 뷰의 `{ok,error}`와는 다른 신규 네임스페이스 계약). Library/activities 쿼리 파라미터는
+  공개 계약(`sport`/`from`/`to`)과 서비스 내부 필터 키(`activity_type`/`date_from`/
+  `date_to`)가 달라 라우트에서 매핑. Streams 응답은 05 문서의 필드별 배열 피벗 대신
+  `get_activity_streams()`의 포인트별 dict 리스트를 그대로 반환(변환 로직 없음, 범위
+  판단 — 06/07 어디에도 피벗 요구 없음). SvelteKit 프론트엔드는 범위 밖(`P7-IMPL-SVELTE`,
+  LATER). 신규 테스트 25개(`test_api_today.py`/`test_api_library.py`/`test_api_coach.py`
+  + `test_coach_service.py`에 `get_thread()` 테스트 2개), 전체 1439 passed,
+  `check_docs.py` 0 errors.
 - **[P7-REALIGN-CONTENT]** 03a~03g·04·05를 REVIEW-03 3탭 IA로 재정렬(2026-09-22, 이 세션에서
   직접 작업, 무인 실행 아님). 03a(Today)를 L0~L3 전면 재작성, 03e(Coach)에 구 Plan "작업"
   흡수, 03b/03d는 안내 스텁化. 04는 REVIEW-03 §5의 "신규 컴포넌트 필요성" 질문에 답함(불필요).

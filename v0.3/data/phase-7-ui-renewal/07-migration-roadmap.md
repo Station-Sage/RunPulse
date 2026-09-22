@@ -54,26 +54,30 @@ Library/activities                                                v1 제거
 ### 산출물
 
 **데이터 레이어**
-- [ ] D5: `src/services/` 8개 파일 — stub + Today/Library/Coach 구현 완료
+- [x] D5: `src/services/` — Today/Library/Coach 구현 완료(`list_activities()`는 만들지
+  않음 — 기존 `get_activity_list()`가 이미 요구사항 충족, 06-data-layer-extensions.md
+  "구현 후기" 참조). `coach_service.get_thread()`(스레드 상세+메시지, ADR에 없던 함수)는
+  API 배선 중 필요해 추가.
   - `today_service.get_today_status()`, `get_today_briefing()`, `get_recent_activities()`
-  - `activity_service.list_activities()`, `get_activity_detail()`, `get_activity_streams()`
-  - `coach_service.list_threads()`, `create_thread()`, `add_message()` (스레드 CRUD + AI 호출 래핑)
+  - `activity_service.get_activity_list()`, `get_activity_detail()`, `get_activity_streams()`
+  - `coach_service.list_threads()`, `create_thread()`, `add_message()`, `get_thread()`
   - `save_checkin()` (D3 연동)
-- [ ] D3: `user_inputs`, `ai_feedback` DDL + `db_setup.migrate()` 등록
+- [x] D3: `user_inputs`, `ai_feedback` DDL + `db_setup.migrate_db()` 등록(+ `chat_threads`
+  테이블·`chat_messages.thread_id` 컬럼, ADR 범위 밖 추가 — 06 참조)
 - [ ] D1: `upsert_metric()` `parent_metric_id` 파라미터 추가 + fitness Calculator 자식 저장
 
 **Flask API**
-- [ ] `GET /api/v1/today` — TodayStatus + Briefing + RecentActivities
-- [ ] `POST /api/v1/today/checkin` — QuickInput 저장
-- [ ] `GET /api/v1/library/activities` — 목록 (필터/페이지)
-- [ ] `GET /api/v1/library/activities/:id` — 상세
-- [ ] `GET /api/v1/library/activities/:id/streams` — 스트림
+- [x] `GET /api/v1/today` — TodayStatus + Briefing + RecentActivities
+- [x] `POST /api/v1/today/checkin` — QuickInput 저장
+- [x] `GET /api/v1/library/activities` — 목록 (필터/페이지)
+- [x] `GET /api/v1/library/activities/:id` — 상세
+- [x] `GET /api/v1/library/activities/:id/streams` — 스트림
 
 **Flask API (Coach MVP 추가)**
-- [ ] `GET /api/v1/coach/threads`
-- [ ] `POST /api/v1/coach/threads`
-- [ ] `GET /api/v1/coach/threads/:id`
-- [ ] `POST /api/v1/coach/threads/:id/messages` — AI 응답 포함
+- [x] `GET /api/v1/coach/threads`
+- [x] `POST /api/v1/coach/threads`
+- [x] `GET /api/v1/coach/threads/:id`
+- [x] `POST /api/v1/coach/threads/:id/messages` — AI 응답 포함
 
 **SvelteKit UI**
 - [ ] 공통 레이아웃: 하단 3탭 바(Today/Library/Coach, 데스크탑은 사이드 네비) + 상단 3선
