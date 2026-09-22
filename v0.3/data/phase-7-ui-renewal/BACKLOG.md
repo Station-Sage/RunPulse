@@ -234,7 +234,30 @@ DONE으로 옮긴다.
   `activity_groups` 행 자동 생성 — 06 §D2 테스트 요건 그대로) 등을
   `tests/test_dedup.py`에, 백필 스크립트 테스트는 `tests/test_backfill_activity_
   groups.py` 신규.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/utils/dedup.py", "scripts/backfill_activity_groups.py", "tests/test_dedup.py", "tests/test_backfill_activity_groups.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_dedup.py tests/test_db_setup.py tests/test_backfill_activity_groups.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "in_progress", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/utils/dedup.py", "scripts/backfill_activity_groups.py", "tests/test_dedup.py", "tests/test_backfill_activity_groups.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_dedup.py tests/test_db_setup.py tests/test_backfill_activity_groups.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
+- **[P7-IMPL-D1-REST-UC]** D1 나머지 — utrs/cirs 자식 메트릭 저장만(race_readiness/rri는
+  제외 — `DECISIONS.md`의 `P7-IMPL-D1-REST-RRI` 참조, 06 문서 원안이 "RRI의 자식 =
+  UTRS/CIRS"라 적어둔 게 이번에 utrs/cirs 자신도 각자 부모가 되는 것과 충돌해서 사용자
+  확인 전까지 보류). `src/metrics/base.py`의 `CalcResult.parent_metric_name`과
+  `src/metrics/engine.py`의 `_save_results()`(`name_to_id` 누적 로직)는 `P7-IMPL-D1`에서
+  이미 만들어져 있음 — PMC와 동일 패턴 재사용, 배선 변경 없음. **구현**: (1)
+  `src/metrics/utrs.py`의 `UTRSCalculator.compute()` — 현재 `components` dict(계산된
+  body_battery/tsb/sleep/hrv/stress 정규화값, 0~100)를 `json_val`에만 넣고 있음.
+  `components`에 실제로 들어간 키마다(가용 데이터만, 조건부) `self._result(value=...,
+  parent_metric_name="utrs")`를 추가로 만들어 반환 리스트에 append — 자식 메트릭 이름은
+  `utrs_body_battery`/`utrs_tsb`/`utrs_sleep`/`utrs_hrv`/`utrs_stress`(기존 공유 메트릭인
+  진짜 `tsb`/`hrv_weekly_avg`와 이름 겹치지 않게 `utrs_` 접두사 필수 — UTRS 자신이
+  정규화한 파생값이지 원본 복사가 아님). UTRS 본체 result가 리스트 0번째여야 함(부모가
+  먼저 나와야 `_save_results()`가 참조 가능, PMC의 ctl 순서와 동일 이유). (2)
+  `src/metrics/cirs.py`의 `CIRSCalculator.compute()` — 동일 패턴, `components`(acwr/lsi/
+  consecutive/fatigue)를 `cirs_acwr`/`cirs_lsi`/`cirs_consecutive`/`cirs_fatigue`
+  자식으로. 테스트는 `P7-IMPL-D1`의 `tests/test_engine.py::test_ramp_rate_parent_metric_
+  id_links_to_ctl` 패턴 그대로 — 공개 함수(`run_daily_metrics` 등)로 전체 파이프라인
+  검증, 저장된 자식 행의 `parent_metric_id`가 같은 날짜 utrs/cirs 행의 id와 같은지 확인.
+  `tests/test_utrs.py`/`tests/test_cirs.py`에 단위 테스트(어떤 컴포넌트가 가용/불가용일
+  때 자식 개수가 맞게 달라지는지)도 추가.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/metrics/utrs.py", "src/metrics/cirs.py", "tests/test_utrs.py", "tests/test_cirs.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_utrs.py tests/test_cirs.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 

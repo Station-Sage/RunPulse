@@ -120,3 +120,34 @@ Today L2로 흡수됨)와 콘텐츠 숙성 우선순위는 별개 축이라는 �
 2. 멀티스포츠 — 비전 그룹1 항목(activity_type 확장)인데 00/07 어디에도 없음. Phase 7이
    "UI 리뉴얼" 스코프라 데이터 레이어 작업이 원래 범위 밖일 가능성 — 재개 시 다른
    BACKLOG/로드맵에 살아있는지 먼저 확인.
+
+---
+
+## [P7-IMPL-D1-REST-RRI] RRI(race_readiness) 자식 메트릭 저장 방식 — 06 문서 원안과 충돌
+
+**배경**: `P7-IMPL-D1-REST`(utrs/cirs/race_readiness 자식 메트릭 저장) 착수 전 확인 중
+발견. `06-data-layer-extensions.md` §D1의 "영향 범위" 표는 `race_readiness_calculator.py`
+(실제 파일명은 `src/metrics/rri.py`, `RRICalculator`, `name="rri"` — 문서의 파일명도
+구식)의 자식을 "UTRS, CIRS, 훈련 완성도"라고 적어뒀다. 이건 utrs/cirs 행 자체를 RRI의
+자식으로 재소속시키라는 뜻인데, `metric_store.parent_metric_id`는 컬럼 하나(1개 부모만
+가능)라 utrs/cirs가 동시에 "자기 자신의 트리의 부모"(이번에 utrs/cirs 자신도 각자
+body_battery/tsb/sleep/hrv/acwr/lsi 등을 자식으로 저장하게 됨)이면서 "RRI의 자식"일
+수 없다 — 트리 소유권 충돌.
+
+utrs/cirs 쪽은 문제없음: 각 Calculator의 `compute()`가 이미 만드는 `components` dict
+(예: utrs의 body_battery/tsb/sleep/hrv/stress, cirs의 acwr/lsi/consecutive/fatigue)를
+`utrs_*`/`cirs_*` 이름의 신규 자식 행으로 저장하면 됨 — 기존 공유 메트릭(진짜 tsb,
+hrv_weekly_avg 등)과 이름이 겹치지 않는 RRI/UTRS/CIRS 각자의 파생값이라 D1(PMC)과
+동일 패턴으로 충돌 없이 적용 가능.
+
+**선택지**:
+- A. RRI는 이번 유닛에서 제외 — utrs+cirs만 먼저 저장, RRI는 이 결정 이후 별도 유닛
+- B. RRI도 같은 패턴 적용 — "UTRS/CIRS를 자식으로" 원안을 버리고, RRI 자신의 계산
+  factor(`vdot_pct`, `ctl_pct`, `di_factor`, `safety`, 이미 `json_val`에 있는 값들)를
+  `rri_*` 이름의 신규 자식 행으로 저장(PMC/utrs/cirs와 동일 패턴, 원안과 다른 해석)
+- C. 원안 그대로 — utrs/cirs 행의 `parent_metric_id`를 RRI 저장 시점에 덮어써 RRI의
+  자식으로 재소속(utrs/cirs 자신의 트리는 포기) — 비권장(먼저 계산되는 utrs/cirs가
+  이미 자기 자식을 가진 상태에서 나중에 RRI가 그 부모 관계를 뺏는 순서 의존성 발생)
+
+**결정**: 미정 — 2026-09-22 Telegram으로 사용자에게 문의, 일단 A로 진행(utrs+cirs만
+큐 등록·실행, RRI는 보류). 사용자 답 오면 갱신.
