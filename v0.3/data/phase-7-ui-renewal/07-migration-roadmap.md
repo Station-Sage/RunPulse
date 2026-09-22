@@ -145,14 +145,12 @@ Library/activities                                                v1 제거
 - [ ] `<MetricBreakdown>` (C3) — parent_metric_id 트리 렌더링
 - [ ] `<ProviderComparison>` (C4) — 불일치 경고 포함
 - [ ] `<TimelineNarrative>` (C7) — 내러티브 + 인라인 스파크라인
-- [ ] Today L2 내러티브 블록 완성 — `03b-story.md` 내용 기반, Today L2로 흡수 구현
-  (`03` 파일 재편 자체는 별도 작업)
+- [ ] Today L2 내러티브 블록 완성 — `03a-today.md` 1-A(L2)·1-C 구현
 - [ ] Library/metrics 화면 — `03c-library.md` 구현
 - [ ] Library/wellness 화면
 - [ ] Library/providers 화면 — `03c-library.md` 구현
 - [ ] Library 홈 — `03c-library.md` 구현
-- [ ] Coach 정적 플랜 비교 작업 흐름(골격) — `03d-plan.md` 내용 기반, Coach 탭으로 흡수 구현
-  (`03` 파일 재편 자체는 별도 작업)
+- [ ] Coach 정적 플랜 비교 작업 흐름(골격) — `03e-coach.md` 5-C~5-F 구현
 
 ### 검증 기준
 
@@ -205,7 +203,7 @@ Library/activities                                                v1 제거
 - [ ] `PUT /api/v1/plan/:id/session/:week/:day/accept-adjustment`
 
 **SvelteKit UI**
-- [ ] Coach 플랜 작업 흐름 (진행 중 / 없음 분기) — `03d-plan.md` 내용 기반, ML 개인화
+- [ ] Coach 플랜 작업 흐름 (진행 중 / 없음 분기) — `03e-coach.md` 5-F 구현, ML 개인화
   옵션으로 업그레이드
 - [ ] Coach 플랜 생성 3단계 플로 — ML 옵션 표시
 - [ ] Coach 일일 세션 상세 (상태 조정 UI)
