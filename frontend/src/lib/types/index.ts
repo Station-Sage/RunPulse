@@ -92,6 +92,113 @@ export interface RecommendationCardProps {
 	loading?: boolean;
 }
 
+// ── /api/v1/library 실제 응답 (src/api/routes_library.py, src/services/activity_service.py) ──
+
+// v_canonical_activities의 행 — activity_service.get_activity_list() 기준.
+export interface ActivitySummary {
+	id: number;
+	name: string;
+	activity_type: string;
+	start_time: string;
+	distance_m: number | null;
+	duration_sec: number | null;
+	avg_hr: number | null;
+	avg_pace_sec_km: number | null;
+	elevation_gain: number | null;
+	source: string;
+}
+
+export interface ActivitiesListResponse {
+	activities: ActivitySummary[];
+	total: number;
+	has_more: boolean;
+}
+
+// activity_service._build_metrics_by_category()의 각 항목.
+export interface ActivityMetric {
+	metric_name: string;
+	numeric_value: number | null;
+	text_value: string | null;
+	json_value: string | null;
+	provider: string | null;
+	confidence: number | null;
+	unit: string;
+	description: string;
+}
+
+// activity_summaries 행 (공통 필드 + 인덱스 시그니처).
+export interface ActivityCore {
+	id: number;
+	name: string;
+	activity_type: string;
+	start_time: string;
+	distance_m: number | null;
+	duration_sec: number | null;
+	avg_hr: number | null;
+	avg_pace_sec_km: number | null;
+	elevation_gain: number | null;
+	source: string;
+	[key: string]: unknown;
+}
+
+export interface ActivityDetail {
+	core: ActivityCore;
+	metrics_by_category: Record<string, ActivityMetric[]>;
+	source_comparison: Record<string, unknown>;
+	semantic_groups: Record<string, unknown>;
+	streams: unknown[] | null;
+	laps: unknown[] | null;
+	best_efforts: unknown[] | null;
+}
+
+export interface ActivityDetailResponse {
+	activity: ActivityDetail;
+}
+
+// ── /api/v1/coach 실제 응답 (src/api/routes_coach.py, src/services/coach_service.py 기준) ──
+
+export interface ChatThread {
+	id: number;
+	title: string;
+	created_at: string;
+	updated_at: string;
+	last_message: string | null;
+	last_message_at: string | null;
+}
+
+export interface ChatMessage {
+	id: number;
+	role: 'user' | 'assistant';
+	content: string;
+	ai_model: string | null;
+	created_at?: string;
+}
+
+export interface ThreadsListResponse {
+	threads: ChatThread[];
+}
+
+export interface ThreadDetail {
+	id: number;
+	title: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ThreadDetailResponse {
+	thread: ThreadDetail;
+	messages: ChatMessage[];
+}
+
+export interface CreateThreadResponse {
+	thread: { id: number; title: string };
+	message: ChatMessage;
+}
+
+export interface AddMessageResponse {
+	message: ChatMessage;
+}
+
 // ── /api/v1/today 실제 응답 (src/api/routes_today.py, src/services/today_service.py 기준) ──
 
 export interface MetricEntry {

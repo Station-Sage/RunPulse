@@ -166,7 +166,7 @@ DONE으로 옮긴다.
   컨텍스트 패널(7d), Coach 홈의 "진행 중 플랜"·"새 프로그램 만들기" 섹션(plan_service가
   아직 스텁), Coach 홈의 QuickInput(compact) 블록 — 이미 Today에 있으니 중복 배치는
   이번엔 생략, 필요하면 후속 판단.
-  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage":"review","mode":"auto","attempts":1,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
