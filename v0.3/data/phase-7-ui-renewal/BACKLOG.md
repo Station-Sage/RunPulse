@@ -70,18 +70,21 @@
 
 ## NOW
 
+- **[P7-IMPL-D5]** `src/services/` 서비스 레이어 구현 (Phase 7a 전제조건 — D5). 2026-09-22
+  NEXT→NOW 승격(사용자 확인, AskUserQuestion).
+- **[P7-IMPL-D3]** `user_inputs` / `ai_feedback` DDL + `db_setup.migrate()` 등록 (Phase 7a).
+  2026-09-22 NEXT→NOW 승격.
 - **[P7-REVIEW03-LIFECYCLE]** REVIEW-03 §9·§10이 요구한 S0(비로그인 랜딩)·S1(가입/연결)·
   S2(콜드스타트) 화면 설계가 아직 없다 — 지금까지 한 재정렬은 전부 S3(데이터 충만) 기준.
   §9-4가 정한 구현 순서(S3→S2→S0)상 Phase 7a~7d 착수를 막지는 않지만, 03 화면 카탈로그에
   언젠가 반영해야 하는 남은 설계 작업. **(판단 필요)** — 새 화면 설계라 지금까지의
-  "재정렬"보다 범위가 큼, 착수 시점은 사용자 판단.
+  "재정렬"보다 범위가 큼, 착수 시점은 사용자 판단. 2026-09-22 D5/D3 착수 확정 시
+  사용자가 이 항목은 보류.
 
 ---
 
 ## NEXT
 
-- **[P7-IMPL-D5]** `src/services/` 서비스 레이어 구현 (Phase 7a 전제조건 — D5)
-- **[P7-IMPL-D3]** `user_inputs` / `ai_feedback` DDL + `db_setup.migrate()` 등록 (Phase 7a)
 - **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 + Today/Library/activities 엔드포인트 (Phase 7a)
 
 ---
