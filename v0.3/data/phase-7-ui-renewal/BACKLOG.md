@@ -88,14 +88,10 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
   "재정렬"보다 범위가 큼, 착수 시점은 사용자 판단. 2026-09-22 D5/D3 착수 확정 시
   사용자가 이 항목은 보류.
 
-- **[P7-IMPL-D2]** `activity_groups` 마스터 테이블 — 07 로드맵상 Phase 7b 전제조건(D2
-  100% 완료돼야 7b→7c 전환 가능, ProviderComparison(C4)·`get_provider_comparison()`도
-  이게 있어야 동작). 현재는 `activity_summaries.matched_group_id`(TEXT, `src/db_setup.py`)
-  + `src/utils/dedup.py`의 `assign_group_id()`가 문자열 기반으로 그룹을 매기고 있을
-  뿐, 정식 그룹 마스터 테이블·FK는 없다(`06-data-layer-extensions.md` D2 원안 확인
-  필요). **착수 전 설계 필요**: 기존 `matched_group_id` 문자열을 FK로 전환할 때
-  기존 데이터 백필 전략(그룹당 대표 활동 선정 기준 등), `assign_group_id()` 호출부
-  3곳(garmin_csv/intervals_fit/strava_archive) 수정 범위 확정.
+P7-IMPL-D2(`activity_groups` 마스터 테이블, Phase 7b 전제조건)는 06 §D2에 설계가
+이미 있어 "착수 전 설계" 없이 바로 큐 등록 가능함을 확인(2026-09-22) — NOW에 별도
+요약을 남기지 않고 AUTOPILOT QUEUE의 `P7-IMPL-D2` 항목(상세 스펙)이 유일한 소스
+(D1 때와 동일 패턴 — ID 중복은 `queue.update_item()`을 깨뜨린다).
 
 - **[P7-IMPL-D1-REST]** D1 나머지 — utrs/cirs/race_readiness Calculator의 자식 메트릭
   저장(`P7-IMPL-D1`은 2026-09-22에 fitness/pmc의 ramp_rate→ctl만 완료, 07 로드맵
@@ -212,6 +208,33 @@ DONE으로 옮긴다.
   아직 스텁), Coach 홈의 QuickInput(compact) 블록 — 이미 Today에 있으니 중복 배치는
   이번엔 생략, 필요하면 후속 판단.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/coach/", "frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-D2]** `activity_groups` 마스터 테이블 — 설계는 `06-data-layer-extensions.md`
+  §D2에 DDL·백필 SQL·마이그레이션 전략까지 이미 확정돼 있음, 이번엔 그대로 코드로
+  옮기는 작업만. **이번 유닛 범위는 데이터 레이어까지만** — `activity_service.
+  get_provider_comparison()`(서비스 함수)은 범위 밖(`P7-IMPL-7B-LIBRARY`에서, API
+  설계 확정 후). **구현**: (1) `src/db_setup.py`의 `_DDL_APP_TABLES` 블록에 06 §D2
+  DDL 그대로 추가(`activity_groups` — `group_id TEXT PRIMARY KEY, primary_source
+  TEXT NOT NULL, activity_date TEXT NOT NULL, distance_m REAL, member_count INTEGER
+  DEFAULT 1, created_at/updated_at TEXT DEFAULT (datetime('now'))`), `APP_TABLES`
+  리스트(556행 부근)에 `"activity_groups"` 추가. 새 테이블 추가라 `SCHEMA_VERSION`
+  올릴 필요 없음(v16 주석 참조 — `create_tables()`의 `CREATE TABLE IF NOT EXISTS`로
+  충분, `migrate_db()`에 버전 분기 안 씀). (2) `src/utils/dedup.py`의
+  `assign_group_id()`(97행) — 매칭 성공 시(`UPDATE activity_summaries SET
+  matched_group_id ...` 직후) `activity_groups`에 upsert 추가: `primary_source`는
+  06 §D2가 명시한 정적 우선순위(garmin=1 > intervals=2 > strava=3 > runalyze=4,
+  나머지는 알파벳순)로 두 후보(`activity_id`, `cand_id`)의 source를 비교해 결정 —
+  `v_canonical_activities`(`src/db_setup.py`, `_DDL_CANONICAL_VIEW`)가 쓰는 것과 동일
+  기준이어야 함(정합성 AO-3). 신규 그룹이면 INSERT, 기존 그룹 재사용이면 UPDATE
+  member_count/updated_at. (3) `scripts/backfill_activity_groups.py` 신규 — 06 §D2의
+  백필 SQL(`INSERT OR IGNORE ... GROUP BY matched_group_id`)을 그대로 쓰는 스크립트.
+  **이 스크립트를 실제로 실행하지는 마세요** — 실 사용자 DB에 쓰는 건 범위 밖(별도
+  승인 필요), 이번엔 스크립트 작성 + `tmp_path` 픽스처로 만든 임시 DB에 대한 테스트
+  통과까지만. 테스트: `test_group_master_created_on_match`(두 소스 매칭 시
+  `activity_groups` 행 자동 생성 — 06 §D2 테스트 요건 그대로) 등을
+  `tests/test_dedup.py`에, 백필 스크립트 테스트는 `tests/test_backfill_activity_
+  groups.py` 신규.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/utils/dedup.py", "scripts/backfill_activity_groups.py", "tests/test_dedup.py", "tests/test_backfill_activity_groups.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_dedup.py tests/test_db_setup.py tests/test_backfill_activity_groups.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
