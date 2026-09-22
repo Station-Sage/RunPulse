@@ -950,7 +950,7 @@
 
 - functions: get_status, print_status, main
 
-### `dedup.py` (271줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
+### `dedup.py` (292줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
 
 - functions: is_duplicate, find_duplicates, assign_group_id, auto_group_all, assign_group_to_activities, remove_from_group
 
@@ -1133,6 +1133,11 @@
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 
+### `test_backfill_activity_groups.py` (84줄) — activity_groups 백필 스크립트 테스트.
+
+- class **TestBackfill**: test_backfill_creates_groups, test_backfill_primary_source_priority, test_backfill_ignores_ungrouped, test_backfill_idempotent, test_backfill_multiple_groups, test_backfill_activity_date_from_start_time
+- functions: conn
+
 ### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
 
 - functions: conn, test_build_briefing_prompt_contains_context, test_build_briefing_prompt_no_data_graceful, test_build_chip_prompt_weekly_review, test_build_chip_prompt_today_deep_injects_activity_extra, test_build_chip_prompt_unknown_chip, test_get_clipboard_prompt_briefing_mode, test_get_clipboard_prompt_chip_mode
@@ -1253,12 +1258,13 @@
 
 ### `test_db_setup.py` (132줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_16, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_17, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
 - functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
-### `test_dedup.py` (115줄) — Dedup 단위 테스트.
+### `test_dedup.py` (189줄) — Dedup 단위 테스트.
 
 - class **TestDedup**: test_same_activity_different_sources, test_different_activities_not_grouped, test_same_source_not_grouped, test_distance_threshold_exceeded, test_three_sources_same_activity, test_no_distance_falls_back_to_time, test_one_sided_zero_distance_not_grouped, test_preserves_existing_groups_on_rerun, test_third_source_joins_existing_group
+- class **TestActivityGroupsUpsert**: test_assign_group_id_creates_activity_group, test_auto_group_all_creates_activity_groups, test_primary_source_priority, test_activity_groups_updated_on_rerun
 
 ### `test_doc_sync.py` (97줄) — 문서 동기화 검증 테스트.
 
@@ -1706,6 +1712,10 @@
 
 ## `scripts/`
 
+### `backfill_activity_groups.py` (89줄) — activity_groups 마스터 테이블 백필 스크립트 (D2).
+
+- functions: backfill, main
+
 ### `check_data_consistency.py` (408줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
@@ -1735,7 +1745,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 337개 파일
+총 339개 파일
 
 ## docstring 누락
 
