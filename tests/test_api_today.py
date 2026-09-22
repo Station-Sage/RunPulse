@@ -48,6 +48,14 @@ def test_get_today_no_data(mini_app):
     assert body["data"]["status"]["date"]
     assert body["data"]["briefing"]["headline"]
     assert body["data"]["recent_activities"] == []
+    assert body["data"]["checkin"] is None
+
+
+def test_get_today_reflects_saved_checkin(mini_app):
+    mini_app.post("/api/v1/today/checkin", json={"fatigue": 6, "pain": "none"})
+    res = mini_app.get("/api/v1/today")
+    body = res.get_json()
+    assert body["data"]["checkin"]["fatigue"] == 6
 
 
 def test_post_checkin_saves_and_returns(mini_app):

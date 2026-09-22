@@ -2,8 +2,8 @@
 
 ## 진행 현황
 
-**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 진행 중(D5·D3·Flask API 완료, SvelteKit
-프론트엔드 남음).** REVIEW-03(Today as Gateway·모바일 IA)을
+**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 진행 중(D5·D3·Flask API·SvelteKit
+Today 화면 완료, Library/Coach 화면 남음).** REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
 (`scripts/autopilot/`) 5유닛(00 §10 결정 요약, 00 §5.1/5.3/6/7 IA 영역 서술, 01 P8→P8',
@@ -24,8 +24,11 @@
 이후 실제 구현 단계에서 D5(`today_service.py`/`coach_service.py` 전체, 나머지 3개 스텁)와
 D3(`user_inputs`/`ai_feedback` + 구현 중 발견한 `chat_threads`)를 완료(2026-09-22, plan
 mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/api/v1/` 블루프린트 9개
-엔드포인트(Today+Library+Coach)도 완료(2026-09-22, 같은 세션). 상세는 DONE 참조.
-D1/D2/D4는 아직 미착수, SvelteKit 프론트엔드(`P7-IMPL-SVELTE`)도 아직.
+엔드포인트(Today+Library+Coach)도 완료(2026-09-22, 같은 세션). 이어서 SvelteKit
+프론트엔드 착수 — `frontend/` 초기화 + 공통 레이아웃 + 컴포넌트 4개 + Today 화면 완료
+(2026-09-22, `P7-IMPL-SVELTE` 1차 — 사용자가 "UI Renewal인데 실제 UI가 하나도 없다"고
+지적한 게 계기). 상세는 DONE 참조. D1/D2/D4는 아직 미착수, Library/Coach 화면(SvelteKit
+2차)도 아직.
 
 **보류(사용자 지시, 2026-09-22, "러닝이 우선")**:
 1. PWA 타이밍 — 비전 그룹1 vs 00/07의 7c 배치 불일치.
@@ -104,7 +107,9 @@ DONE으로 옮긴다.
 ## LATER
 
 - **[P7-IMPL-D1]** parent_metric_id 활성화 — fitness/utrs/cirs/race_readiness Calculator 수정 4개 (Phase 7a)
-- **[P7-IMPL-SVELTE]** SvelteKit 프로젝트 초기화 + 공통 컴포넌트 7개 구현 (Phase 7a)
+- **[P7-IMPL-SVELTE-2]** SvelteKit 2차 — Library/activities 화면(`03c-library.md`) + Coach MVP
+  화면(`03e-coach.md`, 컨텍스트 패널 제외) + 상단 3선 메뉴 실제 진입점(Phase 7a 나머지).
+  현재 두 화면 모두 하단 탭에 "준비 중" 플레이스홀더만 있음(`P7-IMPL-SVELTE` 1차 참조)
 
 ---
 
@@ -143,6 +148,39 @@ DONE으로 옮긴다.
   LATER). 신규 테스트 25개(`test_api_today.py`/`test_api_library.py`/`test_api_coach.py`
   + `test_coach_service.py`에 `get_thread()` 테스트 2개), 전체 1439 passed,
   `check_docs.py` 0 errors.
+- **[P7-IMPL-SVELTE 1차]** SvelteKit 프론트엔드 착수 — 기반 + Today 화면(2026-09-22, plan
+  mode로 조사·설계 후 승인받아 진행, 사용자 auto-accept). 사용자가 "UI Renewal인데 실제
+  UI가 없다"고 지적한 게 계기 — D5/D3/API가 전부 백엔드였고 `frontend/` 자체가 없었음.
+  Library/Coach 화면까지 한 덩어리로 만들면 리뷰가 무거워질 것 같아 범위를 Today까지로
+  좁히기로 사용자와 합의(`P7-IMPL-SVELTE-2`가 나머지, LATER 참조).
+  `npx sv create`로 `frontend/` 초기화(TypeScript + Tailwind v4 + adapter-static — 05
+  문서의 "tailwindcss ^3.x"는 구식, 실제 최신은 v4/설정파일 없이 CSS `@import`. `svelte.config.js`도
+  이번 kit 버전(2.7x)부턴 안 쓰고 `vite.config.ts`의 `sveltekit({adapter, paths})`로 통합됨 —
+  05 문서 예시와 구조가 다름, 갱신함). `base: '/v2'`, 개발 중엔 Vite가 `/api`를 Flask
+  실제 엔트리포인트(`src/serve.py`, 포트 18080 — 05 문서의 5000 예시와 다름)로 프록시.
+  공통 레이아웃(하단 3탭+상단 ☰ 더미) + 컴포넌트 4개(EvidenceQuote/MetricCell/QuickInput/
+  RecommendationCard, 04 스펙대로 — MetricCell은 `drillable=false`, EvidenceQuote는 `onOpen`
+  없으면 비대화형 렌더링. MetricBreakdown 패널이 없는 7a라 그렇게 씀) + Today 화면(L0+L1
+  완성, L2는 실제 조회 가능한 데이터만 표시하는 축약 스텁 — 03a-today.md 1-A' 문구 그대로가
+  아니라 월간거리/준수율/다음세션처럼 아직 없는 데이터를 지어내지 않음, narrative/plan
+  API는 7b) + Library/Coach는 "준비 중" 플레이스홀더.
+
+  **구현 중 발견한 문제 2건** (`today_service.py`에 순수 추가 — 기존 반환 구조 안 건드림):
+  1) `today_service.get_today_status()`가 provider를 안 내려줘서 MetricCell(C2)의 P3(Provider
+     배지 필수) 요건을 못 지킴 → `dashboard_service.get_dashboard_data()`(v1 레거시 공유 함수,
+     직접 안 건드림)는 그대로 두고 UTRS/CIRS/TSB만 별도 쿼리해 최상위 `providers` dict 추가.
+  2) `/api/v1/today` 응답에 오늘 체크인 존재 여부가 없어서 QuickInput(C5)의 "이미 입력했으면
+     compact+complete로 표시"(03g 7-5) 요건을 못 지킴 → `get_todays_checkin()` 신규(읽기 전용,
+     D5 원칙과 일관) + `routes_today.py` 응답에 `checkin` 필드 추가.
+
+  Flask `src/web/app.py`에 `/v2/<path:path>` 정적 서빙 라우트 추가(05 §3.4 그대로,
+  `_project_root()/frontend/build`). 실제 `pansongit@gmail.com` DB로 `/api/v1/today` GET/POST
+  왕복 확인(실 데이터 정상 반환, 테스트로 넣은 체크인 행은 확인 후 삭제). `npm run build`/
+  `npm run check`(svelte-check, 0 errors) 통과. 브라우저 도구가 이 세션에 없어 실제 렌더링·
+  인터랙션의 시각 확인은 못 함 — Flask가 빌드 산출물(JS/CSS)을 올바른 Content-Type으로
+  서빙하는 것과 API 응답까지는 curl로 확인, 최종 시각 확인은 사용자 브라우저 필요.
+  신규 백엔드 테스트 5개(`test_today_service.py`에 3개, `test_api_today.py`에 2개),
+  전체 1444 passed, `check_docs.py` 0 errors(64 warnings, 기존과 동일).
 - **[P7-REALIGN-CONTENT]** 03a~03g·04·05를 REVIEW-03 3탭 IA로 재정렬(2026-09-22, 이 세션에서
   직접 작업, 무인 실행 아님). 03a(Today)를 L0~L3 전면 재작성, 03e(Coach)에 구 Plan "작업"
   흡수, 03b/03d는 안내 스텁化. 04는 REVIEW-03 §5의 "신규 컴포넌트 필요성" 질문에 답함(불필요).

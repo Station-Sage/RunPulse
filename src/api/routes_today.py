@@ -22,6 +22,7 @@ def get_today():
         status = today_service.get_today_status(conn)
         briefing = today_service.get_today_briefing(conn)
         recent_activities = today_service.get_recent_activities(conn, limit=3)
+        checkin = today_service.get_todays_checkin(conn)
     finally:
         conn.close()
 
@@ -29,6 +30,7 @@ def get_today():
         "status": status,
         "briefing": briefing,
         "recent_activities": recent_activities,
+        "checkin": checkin,
     })
 
 

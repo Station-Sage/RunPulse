@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from flask import Flask, redirect, request, session
+from flask import Flask, redirect, request, send_from_directory, session
 
 from src.utils.config import load_config, get_config_path
 
@@ -1336,6 +1336,22 @@ python src/sync.py --source all --days 7</pre>
         )
         return _html_page("Sync Status", body)
 
+    # ── Phase 7 /v2/ 정적 서빙 (SvelteKit 빌드 산출물) ──────────────────
+    # 05-tech-architecture.md §3.4. frontend/build/가 없으면(아직 빌드 전) 404 —
+    # 개발 중엔 `cd frontend && npm run dev`(5173)로 확인한다.
+    @app.route("/v2/", defaults={"path": ""})
+    @app.route("/v2/<path:path>")
+    def serve_v2(path):
+        static_dir = _project_root() / "frontend" / "build"
+        file_path = static_dir / path
+        if path and file_path.is_file():
+            resp = send_from_directory(static_dir, path)
+            if path.startswith("_app/"):
+                resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            return resp
+        resp = send_from_directory(static_dir, "index.html")
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
     # ── Blueprint 등록 ─────────────────────────────────────────────────
     app.register_blueprint(wellness_bp)

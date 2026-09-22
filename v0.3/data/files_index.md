@@ -48,9 +48,9 @@
 
 - (public API 없음)
 
-### `today_service.py` (131줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
+### `today_service.py` (160줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
 
-- functions: get_today_status, get_recent_activities, get_today_briefing, save_checkin
+- functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, save_checkin
 
 ### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
 
@@ -534,7 +534,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1368줄) — RunPulse integration workbench web app.
+### `app.py` (1384줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1111,9 +1111,9 @@
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams
 
-### `test_api_today.py` (66줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (74줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_post_checkin_saves_and_returns, test_post_checkin_no_body
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body
 
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -1581,11 +1581,12 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
-### `test_today_service.py` (95줄) — today_service 테스트 — Phase 7a D5.
+### `test_today_service.py` (121줄) — today_service 테스트 — Phase 7a D5.
 
-- class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics
+- class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
 - class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order
 - class **TestGetTodayBriefing**: test_no_data_fallback, test_low_tsb_recommends_rest, test_balanced_tsb
+- class **TestGetTodaysCheckin**: test_no_checkin_returns_none, test_returns_saved_checkin, test_defaults_to_today_date
 - class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
 
 ### `test_tpdi.py` (117줄)

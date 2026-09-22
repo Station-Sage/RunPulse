@@ -32,14 +32,25 @@ def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
 
     dashboard_service.get_dashboard_data()의 부분집합. 날짜·wellness·race_predictions·
     weekly_summary는 Today L0/L1에서 쓰지 않으므로 뺀다.
+
+    providers는 dashboard_service가 버리는 metric_store.provider를 UTRS/CIRS/TSB에
+    한해 별도로 다시 조회해 얹는다 — MetricCell(C2)의 P3(Provider 배지 필수) 요건 때문.
+    dashboard_service.get_dashboard_data()는 v1 레거시 대시보드와 공유하는 함수라 그
+    반환 구조는 바꾸지 않는다(추가 쿼리 방식, 순수 additive).
     """
     from src.services.dashboard_service import get_dashboard_data
+    from src.utils import db_helpers
 
     data = get_dashboard_data(conn, date)
+    provider_rows = db_helpers.get_primary_metrics(
+        conn, "daily", data["date"], names=["utrs", "cirs", "tsb"],
+    )
+    providers = {r["metric_name"]: r.get("provider") for r in provider_rows}
     return {
         "date": data["date"],
         "readiness": data["readiness"],
         "training_status": data["training_status"],
+        "providers": providers,
     }
 
 
@@ -91,6 +102,24 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
         })
 
     return {"date": status["date"], "headline": headline, "evidence": evidence}
+
+
+def get_todays_checkin(conn: sqlite3.Connection, date: str | None = None) -> dict | None:
+    """오늘(또는 지정 날짜) 체크인 조회 — 없으면 None.
+
+    QuickInput(C5)의 "이미 당일 입력이 있으면 compact+complete 상태로 표시"
+    (03g-common-patterns.md 7-5) 판단에 쓰인다.
+    """
+    if date is None:
+        date = conn.execute("SELECT date('now')").fetchone()[0]
+
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT id, input_date, input_type, fatigue, pain, note, activity_id, created_at"
+        " FROM user_inputs WHERE input_date = ? AND input_type = 'checkin'",
+        (date,),
+    ).fetchone()
+    return dict(row) if row else None
 
 
 def save_checkin(

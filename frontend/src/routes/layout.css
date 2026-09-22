@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+/* 04-component-catalog.md 공유 디자인 토큰 — Quiet Data 팔레트 (다크 기준) */
+@theme {
+	--color-surface-1: #0f172a;
+	--color-surface-2: #1e293b;
+	--color-surface-3: #334155;
+	--color-border-subtle: #334155;
+
+	--color-fg-primary: #f1f5f9;
+	--color-fg-secondary: #94a3b8;
+	--color-fg-muted: #64748b;
+
+	--color-semantic-green: #22c55e;
+	--color-semantic-teal: #14b8a6;
+	--color-semantic-amber: #f59e0b;
+	--color-semantic-red: #ef4444;
+
+	--color-provider-garmin: #0056b3;
+	--color-provider-strava: #fc4c02;
+	--color-provider-intervals: #7c3aed;
+	--color-provider-runalyze: #16a34a;
+	--color-provider-runpulse: #6b7280;
+
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+body {
+	background-color: var(--color-surface-1);
+	color: var(--color-fg-primary);
+}

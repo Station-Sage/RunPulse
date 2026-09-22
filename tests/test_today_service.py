@@ -26,6 +26,7 @@ class TestGetTodayStatus:
         assert status["date"] == "2026-09-22"
         assert status["readiness"]["utrs"] is None
         assert status["training_status"]["tsb"] is None
+        assert status["providers"] == {}
 
     def test_with_metrics(self, db_conn):
         _seed_metric(db_conn, "2026-09-22", "utrs", 72)
@@ -35,6 +36,16 @@ class TestGetTodayStatus:
         status = today_service.get_today_status(db_conn, date="2026-09-22")
         assert status["readiness"]["utrs"]["value"] == 72
         assert status["training_status"]["tsb"] == -4
+
+    def test_providers_surfaced_for_metric_cell(self, db_conn):
+        """MetricCell(C2)의 P3 요건 — provider 없이 표시되는 숫자는 없다."""
+        _seed_metric(db_conn, "2026-09-22", "utrs", 72)
+        _seed_metric(db_conn, "2026-09-22", "cirs", 20)
+        _seed_metric(db_conn, "2026-09-22", "tsb", -4)
+        db_conn.commit()
+
+        status = today_service.get_today_status(db_conn, date="2026-09-22")
+        assert status["providers"] == {"utrs": "runpulse", "cirs": "runpulse", "tsb": "runpulse"}
 
 
 class TestGetRecentActivities:
@@ -69,6 +80,21 @@ class TestGetTodayBriefing:
         db_conn.commit()
         briefing = today_service.get_today_briefing(db_conn, date="2026-09-22")
         assert "균형" in briefing["evidence"][0]["label"]
+
+
+class TestGetTodaysCheckin:
+    def test_no_checkin_returns_none(self, db_conn):
+        assert today_service.get_todays_checkin(db_conn, date="2026-09-22") is None
+
+    def test_returns_saved_checkin(self, db_conn):
+        today_service.save_checkin(db_conn, fatigue=6, pain="none", input_date="2026-09-22")
+        result = today_service.get_todays_checkin(db_conn, date="2026-09-22")
+        assert result["fatigue"] == 6
+        assert result["pain"] == "none"
+
+    def test_defaults_to_today_date(self, db_conn):
+        # date 미지정 시 SQLite date('now') 기준 — 오늘 체크인이 없으면 None.
+        assert today_service.get_todays_checkin(db_conn) is None
 
 
 class TestSaveCheckin:

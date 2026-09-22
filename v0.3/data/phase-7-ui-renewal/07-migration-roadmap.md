@@ -47,9 +47,12 @@ Library/activities                                                v1 제거
 
 ### 전제조건 (시작 전 충족)
 
-- [ ] BACKLOG의 `AUDIT-SERVICE-LAYER` 결정 — D5 진행 승인 확인
-- [ ] `frontend/` SvelteKit 프로젝트 초기화 완료
-- [ ] `src/api/` 블루프린트 등록 완료 (`serve.py`)
+- [x] BACKLOG의 `AUDIT-SERVICE-LAYER` 결정 — D5 진행 승인 확인(2026-09-22, plan mode).
+  단 `AUDIT-SERVICE-LAYER` 자체(기존 v1 뷰 40+곳의 raw SQL)는 별개로 미해결 — 사용자가
+  "레거시 UI는 버릴 예정"이라 밝혀(2026-09-22) 점진적 정리 대상이 아님, v1 제거(7d)로 해소
+- [x] `frontend/` SvelteKit 프로젝트 초기화 완료(2026-09-22, P7-IMPL-SVELTE 1차)
+- [x] `src/api/` 블루프린트 등록 완료 (`src/web/app.py`, `serve.py`가 아니라 `src/serve.py`가
+  실제 엔트리포인트 — 05 문서 예시 경로와 다름)
 
 ### 산출물
 
@@ -79,17 +82,22 @@ Library/activities                                                v1 제거
 - [x] `GET /api/v1/coach/threads/:id`
 - [x] `POST /api/v1/coach/threads/:id/messages` — AI 응답 포함
 
-**SvelteKit UI**
-- [ ] 공통 레이아웃: 하단 3탭 바(Today/Library/Coach, 데스크탑은 사이드 네비) + 상단 3선
-  메뉴(관리 서랍), 우측 패널 슬롯, 슬라이드업 시트
-- [ ] `<EvidenceQuote>` (C1) — 기본 칩 + 패널 열기
-- [ ] `<MetricCell>` (C2) — 값 + Provider 배지 + 상태 도트
-- [ ] `<QuickInput>` (C5) — 저장 기능 포함
-- [ ] `<RecommendationCard>` (C6) — EvidenceQuote 연동
-- [ ] Today 화면(L0+L1 완성, L2 텍스트 스텁) — `03a-today.md` 구현
-- [ ] Library/activities 화면 — `03c-library.md` 구현
-- [ ] **Coach MVP 화면** — 스레드 목록 + 대화창 (`03e-coach.md` 기본 구현, 컨텍스트 패널 제외)
-- [ ] 상단 3선 메뉴 UI (`/v2/data/settings` 등 진입점)
+**SvelteKit UI** (P7-IMPL-SVELTE 1차, 2026-09-22 — Today까지. Library/Coach는 후속)
+- [x] 공통 레이아웃: 하단 3탭 바(Today/Library/Coach) + 상단 ☰ 메뉴(자리만, 비활성) —
+  데스크탑 사이드 네비·우측 패널 슬롯·슬라이드업 시트는 아직(MetricBreakdown 패널이
+  생기는 7b에 같이)
+- [x] `<EvidenceQuote>` (C1) — 칩 렌더링 완료. "패널 열기"는 MetricBreakdown(7b) 이후 —
+  7a엔 열어줄 패널이 없어 `onOpen` 미전달 시 비대화형 span으로 렌더링
+- [x] `<MetricCell>` (C2) — 값 + Provider 배지 + 상태 도트, `drillable=false`로 사용
+- [x] `<QuickInput>` (C5) — 저장 기능 포함, `/api/v1/today/checkin` 왕복 확인(실 DB)
+- [x] `<RecommendationCard>` (C6) — EvidenceQuote 연동
+- [x] Today 화면(L0+L1 완성, L2 텍스트 스텁) — `03a-today.md` 1-A' 구현(L2는 문서의 정확한
+  두 줄 문구 대신 실제로 조회 가능한 데이터만 — 월간 거리·주간 준수율·다음 세션은
+  narrative/plan API가 7b라 아직 없음)
+- [ ] Library/activities 화면 — `03c-library.md` 구현(하단 탭에 "준비 중" 플레이스홀더만 존재)
+- [ ] **Coach MVP 화면** — 스레드 목록 + 대화창 (`03e-coach.md` 기본 구현, 컨텍스트 패널 제외,
+  하단 탭에 "준비 중" 플레이스홀더만 존재)
+- [ ] 상단 3선 메뉴 UI (`/v2/data/settings` 등 진입점) — ☰ 버튼은 있지만 비활성(Phase 7d 몫)
 
 ### 검증 기준
 
