@@ -1,9 +1,9 @@
 """coach_service 테스트 — Phase 7a D5.
 
-chat_engine.chat()은 monkeypatch로 대체한다 — 실제 rule 기반 fallback 경로
-(chat_engine_rules.rule_based_response → ai_context.build_context)가 이미 깨져 있는
-별개의 기존 버그(존재하지 않는 함수 import, D3/D5와 무관)라서 여기서 우회한다.
-coach_service 자체의 스레드/메시지 저장 로직만 검증하는 게 목적.
+chat_engine.chat()은 monkeypatch로 결정적 응답으로 대체한다 — coach_service 자체의
+스레드/메시지 저장 로직만 검증하는 게 목적이고, 실제 AI provider 체인/rule 기반
+fallback(BUG-CHAT-RULE-FALLBACK, 수정 완료 — tests/test_ai_context.py 참조)은
+별도로 검증한다.
 """
 from __future__ import annotations
 

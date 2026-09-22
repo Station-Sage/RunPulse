@@ -167,11 +167,15 @@ def get_metric_breakdown(conn, slug, ...)  # metric_store JOIN
   컬럼을 함께 추가했다(SCHEMA_VERSION 15→16). D3 섹션(아래) 참조.
 - `get_today_briefing()`은 규칙 기반(TSB 임계값)이다. LLM 연동은 범위 밖 — 기존
   `src/ai/chat_engine.chat()`(provider 체인 fallback)을 재사용하는 건 Coach만 해당.
-- 이 과정에서 **기존 버그를 하나 발견했다(수정하지 않음, 범위 밖)**:
-  `chat_engine_rules.rule_based_response()`가 존재하지 않는 `ai_context.build_context`를
-  import한다(실제 함수는 문자열을 반환하는 `build_ai_context`로 시그니처도 다름) —
-  AI provider가 전혀 설정되지 않았을 때(v1 `/ai-coach` 포함) rule fallback 경로 자체가
-  ImportError로 죽는다. D3/D5와 무관한 별도 버그라 그대로 두고 기록만 남김.
+- 이 과정에서 기존 버그를 하나 발견했다(D3/D5와 무관, 당시엔 범위 밖이라 기록만 남기고
+  미수정) — **2026-09-22 후속 세션에서 수정 완료**: `chat_engine_rules.rule_based_response()`
+  와 `briefing.py`의 `build_briefing_prompt()`/`build_chip_prompt()` 3곳 모두 Phase 5
+  리라이트 때 고아가 된 `ai_context.build_context`/`format_context_text`/
+  `format_activity_context`를 import하고 있어 rule fallback 경로 전체가 ImportError로
+  죽고 있었다. 현재 스키마 기준으로 3개 함수를 재작성해 복원(`distance_m` 변환, 삭제된
+  `daily_fitness`→`metric_store`, `calculate_weekly_score()`의 `data` 중첩 평탄화,
+  `get_planned_workouts(week_start=...)` 대응). 상세는 최상위 `BACKLOG.md`의
+  `BUG-CHAT-RULE-FALLBACK`(DONE) 참조.
 
 ---
 

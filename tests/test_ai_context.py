@@ -4,7 +4,10 @@ import pytest
 from src.ai.ai_context import (
     build_activity_analysis,
     build_ai_context,
+    build_context,
     build_daily_briefing,
+    format_activity_context,
+    format_context_text,
 )
 
 DATE = "2026-04-03"
@@ -138,3 +141,89 @@ def test_build_ai_context_with_activity(conn):
     result = build_ai_context(c, DATE, activity_id=act_id)
     assert "---" in result  # briefing + analysis 구분선 포함
     assert "오후 달리기" in result
+
+
+# build_context (BUG-CHAT-RULE-FALLBACK 수정 — chat_engine_rules.rule_based_response·
+# briefing.py가 쓰는 dict 컨텍스트)
+
+def test_build_context_today_activity(conn):
+    c, _ = conn
+    ctx = build_context(c, DATE)
+    assert ctx["date"] == DATE
+    act = ctx["today_activity"]
+    assert act is not None
+    assert act["distance_km"] == pytest.approx(10.02)
+    assert act["avg_hr"] == 155
+
+
+def test_build_context_no_activity(db_conn):
+    ctx = build_context(db_conn, DATE)
+    assert ctx["today_activity"] is None
+
+
+def test_build_context_fitness(conn):
+    c, _ = conn
+    ctx = build_context(c, DATE)
+    assert ctx["fitness"]["ctl"] == pytest.approx(45.2)
+    assert ctx["fitness"]["atl"] == pytest.approx(52.1)
+    assert ctx["fitness"]["tsb"] == pytest.approx(-6.9)
+
+
+def test_build_context_no_data_graceful(db_conn):
+    """데이터 없어도 에러 없이 빈/None 값으로 채워짐 (calculate_weekly_score는 0점짜리
+    유효한 결과를 반환하므로 weekly는 dict 형태 유지, 나머지는 None/빈 리스트)."""
+    ctx = build_context(db_conn, DATE)
+    assert ctx["fitness"] == {
+        "ctl": None, "atl": None, "tsb": None,
+        "vo2max_garmin": None, "vo2max_runalyze": None,
+    }
+    assert isinstance(ctx["weekly"], dict)
+    assert isinstance(ctx["trends_4w"], list)
+    assert ctx["goal"] is None
+
+
+def test_format_context_text_is_string(conn):
+    c, _ = conn
+    ctx = build_context(c, DATE)
+    text = format_context_text(ctx)
+    assert isinstance(text, str)
+    assert DATE in text
+    assert "CTL" in text
+
+
+def test_format_context_text_no_data_graceful(db_conn):
+    ctx = build_context(db_conn, DATE)
+    text = format_context_text(ctx)
+    assert isinstance(text, str)
+    assert "오늘 활동: 없음" in text
+
+
+def test_format_activity_context_is_string(conn):
+    c, act_id = conn
+    text = format_activity_context(c, act_id)
+    assert isinstance(text, str)
+    assert "km" in text
+
+
+def test_format_activity_context_missing_activity(db_conn):
+    text = format_activity_context(db_conn, 9999)
+    assert isinstance(text, str)
+    assert "없음" in text
+
+
+# rule_based_response — BUG-CHAT-RULE-FALLBACK 회귀 테스트 (ImportError 재발 방지)
+
+def test_rule_based_response_does_not_raise(conn):
+    from src.ai.chat_engine_rules import rule_based_response
+
+    c, _ = conn
+    result = rule_based_response(c, "오늘 훈련 강도는 어느 정도가 좋을까?")
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+
+def test_rule_based_response_no_data_graceful(db_conn):
+    from src.ai.chat_engine_rules import rule_based_response
+
+    result = rule_based_response(db_conn, "이번주 어때?")
+    assert isinstance(result, str)

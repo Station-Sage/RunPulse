@@ -33,10 +33,6 @@ mode로 조사·설계 후 승인받아 진행). 상세는 DONE 참조. D1/D2/D4
    05 §11.4에서 발견, 판단 보류.
 5. email@db 멀티테넌시 DB 라우팅 실제 구현 — 05 §11.3에서 범위 밖으로 명시, 별도
    시스템 설계 필요.
-6. **(신규 발견, D5/D3와 무관한 기존 버그)** `chat_engine_rules.rule_based_response()`가
-   존재하지 않는 `ai_context.build_context`를 import — AI provider 미설정 시(config
-   없음) rule fallback 자체가 ImportError로 죽는다. v1 `/ai-coach`도 영향받을 수 있음.
-   `06-data-layer-extensions.md` D5 "구현 후기"에 기록, 수정은 안 함.
 
 ---
 
@@ -126,8 +122,9 @@ DONE으로 옮긴다.
   대응. 신규 테스트 28개(`test_user_inputs.py`/`test_today_service.py`/
   `test_coach_service.py`/`test_chat_engine_threads.py`), 전체 1404 passed. 과정에서
   D3/D5와 무관한 기존 버그(rule fallback ImportError) 1건 발견 → 최상위
-  `BACKLOG.md`의 `BUG-CHAT-RULE-FALLBACK`로 기록, 수정 안 함. 상세 판단 근거는
-  `06-data-layer-extensions.md` "구현 후기" 절.
+  `BACKLOG.md`의 `BUG-CHAT-RULE-FALLBACK`로 기록, 이 시점엔 범위 밖이라 수정 안 함.
+  상세 판단 근거는 `06-data-layer-extensions.md` "구현 후기" 절. **(2026-09-22 후속 수정
+  완료 — 최상위 `BACKLOG.md` DONE 참조, 아래 "진행 현황"도 갱신됨)**
 - **[P7-REALIGN-CONTENT]** 03a~03g·04·05를 REVIEW-03 3탭 IA로 재정렬(2026-09-22, 이 세션에서
   직접 작업, 무인 실행 아님). 03a(Today)를 L0~L3 전면 재작성, 03e(Coach)에 구 Plan "작업"
   흡수, 03b/03d는 안내 스텁化. 04는 REVIEW-03 §5의 "신규 컴포넌트 필요성" 질문에 답함(불필요).

@@ -413,9 +413,9 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate
 
-### `ai_context.py` (178줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
+### `ai_context.py` (457줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
 
-- functions: build_daily_briefing, build_activity_analysis, build_ai_context
+- functions: build_daily_briefing, build_activity_analysis, build_ai_context, build_context, format_context_text, format_activity_context
 
 ### `ai_message.py` (311줄) — AI 우선 메시지 생성기 — API 있으면 AI, 없으면 규칙 기반.
 
@@ -1055,9 +1055,9 @@
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants
 
-### `test_ai_context.py` (140줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
+### `test_ai_context.py` (229줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
-- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity
+- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful
 
 ### `test_ai_parser.py` (154줄) — ai_parser 모듈 테스트.
 
@@ -1106,6 +1106,10 @@
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
+
+### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
+
+- functions: conn, test_build_briefing_prompt_contains_context, test_build_briefing_prompt_no_data_graceful, test_build_chip_prompt_weekly_review, test_build_chip_prompt_today_deep_injects_activity_extra, test_build_chip_prompt_unknown_chip, test_get_clipboard_prompt_briefing_mode, test_get_clipboard_prompt_chip_mode
 
 ### `test_bulk_loader.py` (247줄) — GarminBulkLoader 테스트.
 
@@ -1703,7 +1707,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 331개 파일
+총 332개 파일
 
 ## docstring 누락
 
