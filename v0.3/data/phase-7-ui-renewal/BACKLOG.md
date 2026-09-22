@@ -151,7 +151,7 @@ DONE으로 옮긴다.
   **범위 밖**: Library 홈의 시맨틱 그룹 탐색·Provider 연결 현황(3-A, `/library/metrics`
   등 7b API 필요), 랩·메트릭 탭(엔드포인트 없음), 스트림 전체 차트 시각화(이번엔 스트림
   존재 여부/포인트 수 정도만 표시), 고급 필터(정렬·거리 범위 — sport/날짜/페이지네이션만).
-  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/library/","frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage":"review","mode":"auto","attempts":1,"deps":[],"kind":"code", "scope":["frontend/src/routes/library/","frontend/src/lib/api/library.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-SVELTE-2B]** SvelteKit — Coach MVP 화면(`03e-coach.md` 5-A 홈 + 5-B
   대화 스레드, 컨텍스트 패널 제외 — 07 로드맵상 7d 몫). Today와 같은 패턴 재사용
@@ -166,7 +166,7 @@ DONE으로 옮긴다.
   컨텍스트 패널(7d), Coach 홈의 "진행 중 플랜"·"새 프로그램 만들기" 섹션(plan_service가
   아직 스텁), Coach 홈의 QuickInput(compact) 블록 — 이미 Today에 있으니 중복 배치는
   이번엔 생략, 필요하면 후속 판단.
-  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage":"review","mode":"auto","attempts":1,"deps":[],"kind":"code", "scope":["frontend/src/routes/coach/","frontend/src/lib/api/coach.ts", "frontend/src/lib/types/index.ts"], "verify":["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 

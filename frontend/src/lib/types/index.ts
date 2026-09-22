@@ -155,6 +155,50 @@ export interface ActivityDetailResponse {
 	activity: ActivityDetail;
 }
 
+// ── /api/v1/coach 실제 응답 (src/api/routes_coach.py, src/services/coach_service.py 기준) ──
+
+export interface ChatThread {
+	id: number;
+	title: string;
+	created_at: string;
+	updated_at: string;
+	last_message: string | null;
+	last_message_at: string | null;
+}
+
+export interface ChatMessage {
+	id: number;
+	role: 'user' | 'assistant';
+	content: string;
+	ai_model: string | null;
+	created_at?: string;
+}
+
+export interface ThreadsListResponse {
+	threads: ChatThread[];
+}
+
+export interface ThreadDetail {
+	id: number;
+	title: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ThreadDetailResponse {
+	thread: ThreadDetail;
+	messages: ChatMessage[];
+}
+
+export interface CreateThreadResponse {
+	thread: { id: number; title: string };
+	message: ChatMessage;
+}
+
+export interface AddMessageResponse {
+	message: ChatMessage;
+}
+
 // ── /api/v1/today 실제 응답 (src/api/routes_today.py, src/services/today_service.py 기준) ──
 
 export interface MetricEntry {
