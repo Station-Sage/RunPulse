@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 16  # v0.3.6: user_inputs/ai_feedback/chat_threads 신설 + chat_messages.thread_id 추가 (D3)
+SCHEMA_VERSION = 17  # v0.3.7: activity_groups 마스터 테이블 신설 (D2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -361,6 +361,18 @@ CREATE TABLE IF NOT EXISTS weather_cache (
 );
 """
 
+_DDL_ACTIVITY_GROUPS = """
+CREATE TABLE IF NOT EXISTS activity_groups (
+    group_id        TEXT PRIMARY KEY,
+    primary_source  TEXT NOT NULL,
+    activity_date   TEXT NOT NULL,
+    distance_m      REAL,
+    member_count    INTEGER DEFAULT 1,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+"""
+
 _DDL_SYNC_JOBS = """
 CREATE TABLE IF NOT EXISTS sync_jobs (
     id              TEXT PRIMARY KEY,
@@ -540,6 +552,7 @@ SELECT * FROM grouped WHERE rn = 1;
 PIPELINE_TABLES = [
     "source_payloads",
     "activity_summaries",
+    "activity_groups",
     "daily_wellness",
     "metric_store",
     "activity_streams",
@@ -625,6 +638,10 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
     _idx(conn, "sync_jobs", "source",
          "CREATE INDEX IF NOT EXISTS idx_sync_jobs_source ON sync_jobs(source, created_at)")
 
+    # activity_groups (D2)
+    _idx(conn, "activity_groups", "activity_date",
+         "CREATE INDEX IF NOT EXISTS idx_ag_date ON activity_groups(activity_date)")
+
     # chat_messages.thread_id (D3) — 기존 테이블에 추가되는 컬럼이라 컬럼 존재 확인 필요
     _idx(conn, "chat_messages", "thread_id",
          "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)")
@@ -645,10 +662,11 @@ def _create_index_if_column_exists(
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    """v0.3 스키마: 13 파이프라인 테이블 + 8 앱 테이블 + 1 뷰 생성."""
+    """v0.3 스키마: 14 파이프라인 테이블 + 8 앱 테이블 + 1 뷰 생성."""
     for ddl in [
         _DDL_SOURCE_PAYLOADS,
         _DDL_ACTIVITY_SUMMARIES,
+        _DDL_ACTIVITY_GROUPS,
         _DDL_DAILY_WELLNESS,
         _DDL_METRIC_STORE,
         _DDL_ACTIVITY_STREAMS,
@@ -713,6 +731,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v15: activity_summaries.workout_label TEXT 컬럼 추가.
     v16: chat_messages.thread_id 컬럼 추가 (D3 — user_inputs/ai_feedback/chat_threads는
          신규 테이블이라 create_tables()의 CREATE TABLE IF NOT EXISTS만으로 충분).
+    v17: activity_groups 마스터 테이블 신설 (D2 — CREATE TABLE IF NOT EXISTS만으로 충분).
     """
     current = _get_user_version(conn)
 
