@@ -180,18 +180,29 @@ UI 점수 3/10과 데이터 점수 8.5/10의 5.5점 갭이 RunPulse의 현 상�
 
 ### 5.1 분기점 A — 정보 구조 (IA)
 
-**결정: A2 — 사용자 의도 중심 IA**
+**결정: A2 갱신 — 관여 기반 관문 IA (REVIEW-03 최종안)**
 
-5+1 영역:
+**하단 3탭 + 상단 3선 메뉴** 구조:
 
-1. **Today (오늘)** — 일일 결정 지원. UTRS·CIRS·오늘 권장·빠른 입력·AI 브리핑이 한 화면. *"오늘 무엇을 할까"에 답하는 단일 화면.*
-2. **Story (이야기)** — 시간축 내러티브. "지난 N주의 이야기" 형태로 데이터를 스토리텔링. 내러티브 인사이트가 일급 시민. *"내 상태는 어떻게 변하고 있나"에 답함.*
-3. **Library (데이터·메트릭)** — 활동·메트릭·웰니스의 전수 조사 가능 영역. 메트릭 드릴다운, provider 비교, 원천 데이터 추적. *"왜 이 숫자가 이런가"에 답함.*
-4. **Plan (계획)** — 다중 경로 프로그램 생성·비교·실행·사후 분석. 적응형 실행이 일급. *"다음 레이스를 위해 무엇을 할 계획인가"에 답함.*
-5. **Coach (코치)** — AI 대화. Persistent Athlete Context 3계층 기반. Diagnostician/Analyst/Strategist/Guardian/Historian 5역할. *"내 코치와 대화"에 답함.*
-6. **Data (운영)** — 동기화·소스 연결·내 데이터 export·설정. *운영 영역, 일급 시민 아님.*
+**하단 3탭 (항상 노출)**:
 
-URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /library/activities`, `/training → /plan`, `/ai-coach → /coach`, `/sync, /settings → /data/*` 리다이렉트.
+1. **Today (오늘)** — 계층적 관여 모델(L0~L3)의 관문. 세로 스크롤 = 관여 깊이.
+   - **L0 즉시 브리핑**: 오늘 한 줄 판단/브리핑, Readiness, 동기화 상태. *"오늘 무엇을 할까"에 즉시 답함.*
+   - **L1 내 상태 요약**: 회복(HRV·수면·바디배터리), 어제/최근 활동 요약, 주간 누적 진행.
+   - **L2 흐름·훈련·성장**: 성장 내러티브(구 Story 흡수), 계획 준수율·다음 세션 현황(구 Plan 현황 흡수), AI 제안.
+   - **L3 데이터 드릴다운**: 지표 트리, provider 비교, 출처·공식·재계산, 원본 → Library 영역으로 연속.
+2. **Library (데이터·메트릭)** — 활동·메트릭·웰니스의 전수 조사 가능 영역. 메트릭 드릴다운, provider 비교, 원천 데이터 추적. *"왜 이 숫자가 이런가"에 답함.*
+3. **Coach (코치)** — 단순 Q&A가 아닌 작업 목적지(destination). 목표 셋업, 훈련 계획 수립·비교·수정(구 Plan 작업 흡수), 상태 기반 조정. Persistent Athlete Context 3계층 기반. Diagnostician/Analyst/Strategist/Guardian/Historian 5역할.
+
+**상단 3선 메뉴 (관리 서랍 — 자주 쓰지 않는 항목만)**:
+- 설정, 데이터 소스 연결, 내보내기/백업, 계정, 로그아웃. 핵심 기능은 절대 3선에 숨기지 않음.
+
+**구 영역의 분할·흡수**:
+- **Story** → 독립 탭 없음. 내러티브·성장 콘텐츠는 Today L2(내러티브 블록)로 흡수.
+- **Plan** → "보는 것"(준수율·다음 세션 현황)은 Today L2로, "만드는 것"(수립·수정 작업)은 Coach 탭으로 분할.
+- **Data(운영)** → 상단 3선 메뉴(관리 서랍)로 이동.
+
+URL 호환: `/dashboard → /today`, `/report → /today` (L2 앵커), `/activities → /library/activities`, `/training → /today` (L2) 또는 `/coach` (계획 수립), `/ai-coach → /coach`, `/sync, /settings → 3선 메뉴` 리다이렉트.
 
 ### 5.2 분기점 B — 기술 스택
 
@@ -220,7 +231,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 - **타이포그래피**: Inter Variable (본문) + JetBrains Mono (숫자). 정보 위계의 주된 도구.
 - **컬러**: 다크 모드 기본, 라이트 모드 동시 지원. 등급 색상 5단계 (excellent/good/moderate/poor/danger). Provider 컬러 4종.
 - **모션**: 절제. 데이터 변경 시 부드러운 트랜지션, UI 장식적 모션 없음.
-- **Story 영역 예외**: 에디토리얼 디자인 가미. 큰 타이포그래피, 여백, 차트가 문장 사이 인라인 등장.
+- **Today L2(내러티브 블록) 예외**: 에디토리얼 디자인 가미. 큰 타이포그래피, 여백, 차트가 문장 사이 인라인 등장. (Story 독립 영역 제거 후 Today L2로 흡수된 내러티브 블록에 적용)
 - **레퍼런스**: Linear, Stripe Dashboard, Vercel Analytics, Observable Notebook, Granola.
 - **글래스모피즘 폐기**: 현 다크 글래스모피즘은 정보 밀도가 높은 도구 UI에 부적합 — 폐기.
 
@@ -252,7 +263,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 5. **Quiet Data (조용한 UI, 시끄러운 데이터)** — UI 장식은 절제하고 데이터의 시각적 잉크가 가장 강하다. 정보 밀도와 위계는 타이포그래피·여백·분할선으로 만든다. *(분기점 C 결정)*
 6. **One Finger Reach for Input (입력은 한 손가락 거리)** — RPE·통증·노트 입력은 모든 핵심 영역에서 한 손가락 거리에 있다. 입력 마찰을 최소화한다. *(7장 KPI: 사용자 입력 도달 60%)*
 7. **State-Bound Plan (상태에 묶인 계획)** — 훈련 계획은 시간이 아니라 러너의 상태에 묶인다. 모든 계획 UI는 적응 가능성을 시각화한다. *(비전 A.6)*
-8. **Local-First Identity (로컬 퍼스트 정체성)** — UI 어디서도 클라우드 종속을 느끼게 하지 않는다. 데이터 소유권이 표현된다 (export·snapshot·원본 보존이 일급). *(8장 차별화)*
+8. **Data Ownership & Transparency (데이터 소유권·투명성)** — 데이터는 서버에서 가공되더라도 (1) 사용자별 격리 저장(`email@db`), (2) 언제든 export 가능, (3) 외부 LLM/ML 전송 범위 투명 고지, (4) 원본(`source_payloads`) 보존. = "클라우드에 있되 내 것이다." *(P8' — REVIEW-03 §8 재해석, 8장 차별화)*
 
 ---
 
@@ -266,7 +277,7 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 4. **`<ProviderComparison>`** — 동일 시맨틱 그룹의 다중 provider 값을 병렬 표시. 시맨틱 그룹 13개 × provider 4개 매트릭스의 셀 단위 컴포넌트. *(원칙 3, 9장 정체성)*
 5. **`<QuickInput>`** — RPE·통증·노트 빠른 입력. 모든 영역에서 한 손가락 거리에 배치. 키보드 단축키 지원. *(원칙 6, 7장 KPI)*
 6. **`<RecommendationCard>`** — 오늘의 권장 / Coach 응답. 결론 + 근거 인용(`<EvidenceQuote>` 2개 이상 의무) + 액션 + thumbs up/down 피드백. *(원칙 1, 7장 KPI)*
-7. **`<TimelineNarrative>`** — Story 영역의 핵심 컴포넌트. 시간축에 데이터·차트·인용을 인라인 배치. 에디토리얼 디자인. *(비전 5.2 내러티브 일급 시민화)*
+7. **`<TimelineNarrative>`** — Today L2(내러티브 블록)의 핵심 컴포넌트. 시간축에 데이터·차트·인용을 인라인 배치. 에디토리얼 디자인. *(비전 5.2 내러티브 일급 시민화)*
 
 ---
 
@@ -327,5 +338,6 @@ URL 호환: `/dashboard → /today`, `/report → /story`, `/activities → /lib
 ---
 
 **작성 이력**:
+- v0.5 (2026-09-22): REVIEW-03 최종안 반영 — §5.1 IA 결정을 3탭+3선 관여 기반 관문 구조로 갱신; §5.3 Story 영역 예외 → Today L2 내러티브 블록 예외; §6 P8 → P8'(Data Ownership & Transparency); §7 `<TimelineNarrative>` Story → Today L2 표현
 - v0.1 (2026-05-11): 초안 — 현 UI 진단 + 데이터 레이어 적합도 + 분기점 추천
 - v0.2 (2026-05-11): Phase 7 6~9장 재독 반영 — 마이그레이션 단계 순서 6장 정렬, 컴포넌트 카탈로그 1번에 `<EvidenceQuote>` 강제, 분기점 B에 단일 프로세스 배포 제약 추가, 9장에서 Library 정체성 표현 화면 도출, KPI 매핑 추가
