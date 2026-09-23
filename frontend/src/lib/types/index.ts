@@ -326,6 +326,20 @@ export interface TodayResponse {
 	checkin: CheckinRow | null;
 }
 
+// ── ActivityStreams (3-D — /api/v1/library/activities/:id/streams) ────────────
+
+export interface ActivityStreamPoint {
+	elapsed_sec: number;
+	distance_m: number | null;
+	heart_rate: number | null;
+	cadence: number | null;
+	power_watts: number | null;
+	altitude_m: number | null;
+	speed_ms: number | null;
+	grade_pct: number | null;
+	source: string;
+}
+
 // ── ProviderComparison (C4 — /api/v1/library/activities/:id/providers) ───────
 
 export interface ComparisonCell {
