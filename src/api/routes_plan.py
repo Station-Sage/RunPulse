@@ -75,6 +75,38 @@ def get_plan_templates():
     return api_ok(templates)
 
 
+@api_bp.get("/coach/plan/<int:goal_id>/session/<session_date>")
+def get_session_detail_route(goal_id: int, session_date: str):
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = plan_service.get_session_detail(conn, goal_id, session_date)
+    finally:
+        conn.close()
+    if result is None:
+        return api_error("NOT_FOUND", f"세션 {session_date} 없음", 404)
+    return api_ok(result)
+
+
+@api_bp.post("/coach/plan/session/<session_date>/note")
+def save_session_note_route(session_date: str):
+    body = request.get_json(silent=True) or {}
+    note = body.get("note", "")
+    if not isinstance(note, str) or not note.strip():
+        return api_error("BAD_REQUEST", "note는 빈 문자열일 수 없습니다", 400)
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        plan_service.save_session_note(conn, session_date, note)
+    finally:
+        conn.close()
+    return api_ok({"note": note})
+
+
 @api_bp.post("/coach/plan")
 def create_plan():
     body = request.get_json(silent=True) or {}
