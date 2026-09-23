@@ -279,3 +279,45 @@ def test_get_wellness_trend_invalid_days(metric_app):
     assert res.status_code == 400
     body = res.get_json()
     assert body["error"]["code"] == "INVALID_PARAM"
+
+
+# ── /library/providers/matrix 라우트 테스트 ─────────────────────────────────
+
+def test_get_providers_matrix_200(mini_app):
+    """GET /library/providers/matrix → 200, 필수 키 포함."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/providers/matrix")
+    assert res.status_code == 200
+    body = res.get_json()
+    comparison = body["data"]["comparison"]
+    assert comparison["mode"] == "period"
+    assert comparison["days"] == 28  # 기본값
+    assert "state" in comparison
+    assert isinstance(comparison["rows"], list)
+
+
+def test_get_providers_matrix_custom_days(mini_app):
+    """days 파라미터 → 반영."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/providers/matrix?days=90")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["data"]["comparison"]["days"] == 90
+
+
+def test_get_providers_matrix_invalid_days(mini_app):
+    """days가 정수가 아닌 경우 → 400, INVALID_PARAM."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/providers/matrix?days=abc")
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["error"]["code"] == "INVALID_PARAM"
+
+
+def test_get_providers_matrix_invalid_threshold(mini_app):
+    """discrepancy_threshold가 숫자가 아닌 경우 → 400, INVALID_PARAM."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/providers/matrix?discrepancy_threshold=xyz")
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["error"]["code"] == "INVALID_PARAM"

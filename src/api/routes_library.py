@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, wellness_service
+from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, wellness_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -182,6 +182,33 @@ def get_library_wellness():
         conn.close()
 
     return api_ok(result)
+
+
+@api_bp.get("/library/providers/matrix")
+def get_library_providers_matrix():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    try:
+        days = int(request.args.get("days", 28))
+    except ValueError:
+        return api_error("INVALID_PARAM", "days는 정수여야 합니다.", 400)
+
+    try:
+        threshold = float(request.args.get("discrepancy_threshold", 5.0))
+    except ValueError:
+        return api_error("INVALID_PARAM", "discrepancy_threshold는 숫자여야 합니다.", 400)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = provider_matrix_service.get_provider_comparison_period(
+            conn, days=days, discrepancy_threshold=threshold,
+        )
+    finally:
+        conn.close()
+
+    return api_ok({"comparison": result})
 
 
 @api_bp.get("/library/wellness/trend")

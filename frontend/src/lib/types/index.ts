@@ -379,9 +379,10 @@ export interface ComparisonRow {
 }
 
 export interface ProviderComparisonData {
-	mode: 'activity';
-	activity_id: number;
-	state: 'loaded' | 'single_provider';
+	mode: 'activity' | 'period';
+	activity_id?: number;
+	days?: number;
+	state: 'loaded' | 'single_provider' | 'no_data';
 	rows: ComparisonRow[];
 }
 

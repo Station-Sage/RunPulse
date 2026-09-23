@@ -112,12 +112,12 @@
 			>
 				계산 분해 보기
 			</button>
-			<button
-				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-muted opacity-40"
-				disabled
+			<a
+				href="{base}/library/providers"
+				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-center text-sm text-fg-secondary"
 			>
 				Provider 비교
-			</button>
+			</a>
 		</div>
 	</div>
 

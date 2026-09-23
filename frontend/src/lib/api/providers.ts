@@ -5,6 +5,19 @@ export interface ProviderComparisonApiResponse {
 	comparison: ProviderComparisonData;
 }
 
+export function getProviderMatrix(
+	days = 28,
+	discrepancyThreshold?: number
+): Promise<ProviderComparisonApiResponse> {
+	const params = new URLSearchParams();
+	params.set('days', String(days));
+	if (discrepancyThreshold != null)
+		params.set('discrepancy_threshold', String(discrepancyThreshold));
+	return apiFetch<ProviderComparisonApiResponse>(
+		`/library/providers/matrix?${params.toString()}`
+	);
+}
+
 export function getProviderComparison(
 	activityId: number,
 	discrepancyThreshold?: number

@@ -68,6 +68,10 @@
 
 - functions: get_provider_comparison
 
+### `provider_matrix_service.py` (141줄) — Provider 정체성 매트릭스 서비스 — 기간 집계 소스별 비교 (3-G-1).
+
+- functions: get_provider_comparison_period
+
 ### `today_service.py` (286줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
@@ -1131,9 +1135,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (281줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (323줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold
 
 ### `test_api_plan.py` (276줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -1556,6 +1560,10 @@
 
 - functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped
 
+### `test_provider_matrix_service.py` (192줄) — tests/test_provider_matrix_service.py — provider_matrix_service 단위 테스트.
+
+- functions: test_no_activities_in_period_returns_no_data, test_activity_outside_period_excluded, test_semantic_group_with_data_appears, test_group_without_any_data_excluded, test_each_provider_takes_its_own_latest_value, test_more_recent_activity_value_wins_over_older_same_provider, test_mode_primary_source_empty_returns_none, test_mode_primary_source_majority_vote, test_solo_activity_excluded_from_primary_source_vote
+
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
 - class **TestRateLimitPolicy**: test_four_sources_defined, test_garmin_conservative, test_strava_window
@@ -1810,7 +1818,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 353개 파일
+총 355개 파일
 
 ## docstring 누락
 
