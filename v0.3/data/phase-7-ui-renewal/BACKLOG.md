@@ -290,15 +290,85 @@ DONE으로 옮긴다.
   누락 400) 추가.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/metrics_service.py", "src/api/routes_library.py", "tests/test_metrics_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_metrics_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
+- **[P7-IMPL-PROVIDER-COMPARISON]** `provider_comparison_service.get_provider_comparison()`
+  + `GET /api/v1/library/activities/:id/providers` — `03c-library.md` §3-G-2(활동별
+  비교)만 구현, 3-G-1(정체성 매트릭스)은 LATER(스코프 축소 이유는 `DECISIONS.md`의
+  `[P7-DESIGN-7B-API]` 항목 참조, 이번 착수 전 필독). `activity_service.py`는 이미
+  283/300줄이라 새 파일 `src/services/provider_comparison_service.py`에 구현(300줄
+  캡, coding-rules.md).
+  **구현**: (1) `get_provider_comparison(conn: sqlite3.Connection, activity_id: int,
+  discrepancy_threshold: float = 5.0) -> dict | None`. `activity_summaries`에서
+  `id=activity_id` 행 조회 — 없으면 None(→ API 404). `matched_group_id`가 없으면
+  `{"mode": "activity", "activity_id": activity_id, "state": "single_provider",
+  "rows": []}` 즉시 반환(비교할 형제가 없음, 04-component-catalog.md C4의
+  `single_provider` 상태). (2) 있으면 `WHERE matched_group_id=?`로 형제 행 전체
+  조회, `activity_groups`(D2, `src/db_setup.py` `_DDL_ACTIVITY_GROUPS`)에서
+  `SELECT primary_source FROM activity_groups WHERE group_id=?`로 그룹 대표 소스
+  확보. (3) raw 메트릭 행: `src.utils.metric_registry.METRIC_REGISTRY`를 순회해
+  `storage=="activity_summary" and scope=="activity" and category!="meta"`인
+  항목만(위경도·이름·device_name 등 메타 컬럼 제외, distance_m/avg_hr/avg_cadence
+  등 33개 중 20개 정도가 해당) 각 형제의 `source` 컬럼을 키로 값을 모음 — 형제
+  전원이 None이면 그 행 자체를 스킵. (4) semantic 메트릭 행: `metric_store`는
+  provider마다 **자기 소스의 activity_summaries.id에 스코프**된다(그룹의 대표 id가
+  아님 — `src/sync/extractors/base.py`의 `_metric()`은 category만 정하고 scope_id는
+  sync 파이프라인이 그 provider 활동 행 id로 지정, 이미 확인함). 그래서 `WHERE
+  scope_type='activity' AND scope_id IN (형제 id 전체)`로 한 번에 조회해야 함 —
+  `activity_service._build_semantic_groups()`(단일 scope_id만 봄)를 그대로 재사용하면
+  안 되고, `src.utils.metric_groups.SEMANTIC_GROUPS`를 직접 순회해 그룹당 1개
+  `ComparisonRow`로 평탄화하는 새 로직 작성(`slug=group_name`,
+  `label=display_name`). (5) 각 행을 `ComparisonRow` 형태로 조립(04 C3
+  아님 C4 `MetricBreakdownData`와 혼동 금지 — 04-component-catalog.md C4 섹션의
+  `ComparisonRow`/`ComparisonCell` 참조): `values`는 이 활동 그룹에 등장하는 전체
+  provider 집합(형제들의 `source` 합집합 + semantic 행에 등장한 provider 문자열)을
+  키로 하는 dict — 값이 없는 provider는 `{"value": null, "available": false}`,
+  있으면 `{"value": ..., "available": true}`(프론트가 모든 행에서 같은 컬럼 순서로
+  렌더링할 수 있게). `unit`/`label`은 raw는 METRIC_REGISTRY, semantic은
+  `display_name`. (6) `discrepancy`: 해당 행에 `available=true`인 숫자값이 2개
+  이상일 때만 계산 — `maxDiff=max-min`, `maxDiffPct=maxDiff/min*100`(min이 0이면
+  `maxDiff/max*100`, 그마저 0이면 `maxDiffPct=0.0`), `severity="warning" if
+  maxDiffPct > discrepancy_threshold else "info"`, `detected = maxDiffPct >
+  discrepancy_threshold`. 텍스트값(text_value)만 있는 semantic 행은 discrepancy
+  생략. (7) `preferredProvider`/`primaryReason`: 이 행의 provider 중 정확히 1개뿐이고
+  그게 `"runpulse"`로 시작하면 `ruleType="runpulse_always"`,
+  `rule="RunPulse — 자체 산출"`. 아니면 `primary_source`가 이 행의 `available`
+  provider 중에 있으면 그걸 사용, 없으면 `src.utils.dedup._SOURCE_PRIORITY`로 이
+  행에 실제 등장한 provider 중 우선순위 최고를 골라 대체 — 어느 쪽이든
+  `ruleType="static_priority"`, `rule`은 `_SOURCE_PRIORITY` 순서대로 " > "로 이어
+  붙인 문자열(이 행에 실제 등장한 provider만, 예: "소스 우선순위 (garmin >
+  strava)"). 이 행에 non-runpulse provider가 하나도 없으면 `primaryReason=None`.
+  (8) 최종 반환: `{"mode": "activity", "activity_id": ..., "state": "loaded",
+  "rows": [...]}` (표 전체 discrepancy 강조는 프론트가 각 행의 `discrepancy.
+  severity`로 처리 — 04 C4의 `discrepancy` 상태값은 별도 top-level state로 만들지
+  않음, 이번 스코프 축소). (9) `src/api/routes_library.py`에 `GET /api/v1/library/
+  activities/<int:activity_id>/providers` 라우트 추가 — 기존 `get_library_
+  activity_streams` 패턴 그대로(`db_path()`, `sqlite3.connect`, `api_ok`/
+  `api_error`, 404 if None), 파일 최상단 docstring에도 새 라우트 경로 한 줄 추가.
+  쿼리 파라미터 `discrepancy_threshold`(선택, float, 기본 5.0). 테스트:
+  `tests/test_provider_comparison_service.py`(신규) — `tests/test_activity_
+  service.py`의 garmin+strava 동일 `matched_group_id` fixture 패턴 재사용+
+  `activity_groups` 행 직접 INSERT(D2 헬퍼 `_upsert_activity_group()` 또는 원시
+  INSERT 둘 다 가능). 케이스: raw 메트릭(avg_hr) 2-provider 비교 + discrepancy
+  계산, `primary_source` 기반 preferredProvider, 형제 없는 solo 활동 →
+  `single_provider`/`rows=[]`, 존재하지 않는 activity_id → None,
+  `SEMANTIC_GROUPS`의 한 그룹(예: `training_load` — training_load_score/intervals,
+  training_load/garmin, suffer_score/strava, hrss/runpulse:formula_v1 조합)을
+  형제별로 다른 id에 `metric_store` INSERT한 뒤 하나의 행으로 평탄화되는지, RunPulse
+  단독 값 행의 `ruleType=="runpulse_always"`. `tests/test_api_library.py`에 라우트
+  테스트(200/404) 추가.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/provider_comparison_service.py", "src/api/routes_library.py", "tests/test_provider_comparison_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_comparison_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
 ---
 
 ## LATER
 
 - **[P7-DATA-MENU-ENTRY]** 상단 3선 메뉴 실제 진입점(`/v2/data/settings` 등) — Phase 7d
   Data API(`GET /api/v1/data/sources` 등)가 있어야 채울 수 있음, 지금은 비활성 ☰ 버튼만
-  존재(`P7-IMPL-SVELTE` 1차 참조). D1의 utrs/cirs/race_readiness 자식 메트릭 연결(Phase
-  7b 몫, `06-data-layer-extensions.md` 참조)도 여기 대기 — AUTOPILOT QUEUE의
-  `P7-IMPL-D1`은 fitness(ctl/ramp_rate)만 다룬다.
+  존재(`P7-IMPL-SVELTE` 1차 참조).
+
+- **[P7-IMPL-PROVIDER-MATRIX]** `03c-library.md` §3-G-1(정체성 매트릭스) — 기간
+  집계 × SEMANTIC_GROUPS 13개 전체를 훑는 뷰, `P7-IMPL-PROVIDER-COMPARISON`(3-G-2,
+  활동별 비교)의 후속. 스코프 축소 이유·남은 설계 질문(그룹 `strategy`별
+  `primaryReason` 판정 방식)은 `DECISIONS.md`의 `[P7-DESIGN-7B-API]` 항목 참조.
 
 ---
 

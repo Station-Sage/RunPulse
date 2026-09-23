@@ -165,4 +165,39 @@ hrv_weekly_avg 등)과 이름이 겹치지 않는 RRI/UTRS/CIRS 각자의 파생
 `inputs` 목록으로 응답에 얹는 방식으로 해결(`04-component-catalog.md` C3
 `MetricBreakdownData.inputs`, `06-data-layer-extensions.md` D1 "2026-09-22 정정" 참조).
 사용자 확인 완료(2026-09-22, "맞네" — 대화로 확정, B/C는 기각). 실제 `get_metric_
-breakdown()` 구현은 `P7-DESIGN-7B-API`/`P7-IMPL-7B-TODAY-L2`(BACKLOG NEXT)에서.
+breakdown()` 구현은 완료(`P7-IMPL-METRIC-BREAKDOWN`, 2026-09-23 병합).
+
+---
+
+## [P7-DESIGN-7B-API] `get_provider_comparison()` — 03c §3-G MVP 스코프 축소
+
+`03c-library.md` §3-G는 두 모드를 정의: 3-G-1(정체성 매트릭스, 기간 집계 × 13개
+SEMANTIC_GROUPS) / 3-G-2(활동별 비교, 활동 1건 × Provider). 이번 유닛은 **3-G-2만
+구현**(2026-09-23) — 3-G-1은 기간 집계 로직이 새로 필요하고(현재 `_build_semantic_
+groups()`는 활동 1건 스코프), `primaryReason` 판정도 그룹별 `strategy`(prefer_
+runpulse/show_all)에 따라 메트릭마다 달라져야 해서(03c 예시의 TSS 행처럼 show_all
+그룹인데도 특정 provider가 대표로 뽑히는 근거가 문서상 불명확) 범위가 더 크다.
+LATER로 남김.
+
+**cross-provider 조회 방식 확인**: `metric_store`는 provider별로 각자의
+`activity_summaries.id`(자기 소스의 활동 행)에 스코프됨(`src/sync/extractors/base.py`
+`_metric()`은 category만 정하고, scope_id는 sync 파이프라인이 그 provider의 활동
+행 id로 지정) — 즉 그룹 내 형제 활동마다 metric_store 행이 따로 있다.
+`activity_service._build_semantic_groups()`는 활동 1건의 `scope_id`만 조회하므로
+그대로 재사용하면 형제 provider의 metric_store 값을 놓친다. `get_provider_
+comparison()`은 `activity_groups`(D2)로 형제 id를 모은 뒤 `WHERE scope_id IN (...)`로
+전체 조회해야 함 — 기존 헬퍼 재사용 대신 새로 작성.
+
+**primaryReason 단순화**: 03c 3-G-2 예시처럼 메트릭마다 다른 근거를 계산하지 않고,
+활동 그룹 전체에 `activity_groups.primary_source`(D2가 이미 계산해둔 정적 우선순위
+결과) 하나를 균일 적용. RunPulse만 값을 가진 메트릭(다른 provider 열이 전부 비어
+있는 행)만 예외로 `ruleType: "runpulse_always"`. 정체성 매트릭스(3-G-1) 구현 시
+메트릭별 판정이 필요해지면 그때 재검토.
+
+**파일 위치**: `activity_service.py`가 이미 283/300줄이라(coding-rules.md 300줄
+캡) 새 파일 `src/services/provider_comparison_service.py`로 분리 — BACKLOG NEXT
+원문의 `activity_service.get_provider_comparison()` 표기와 다르지만 캡 준수가 우선.
+
+**엔드포인트**: `GET /api/v1/library/activities/:id/providers` — 03c가 쓴 `/library/
+providers`(페이지 라우트, 3-G-1용 매트릭스 API 자리)는 이번엔 안 만듦, activity
+하위 라우트로 스코프.
