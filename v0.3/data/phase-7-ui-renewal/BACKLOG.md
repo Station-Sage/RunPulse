@@ -917,7 +917,7 @@ DONE으로 옮긴다.
   재사용) — 최소 `get_active_plan()`이 `goals`+`planned_workouts`에 실 데이터
   심고 정상 조립하는지, 목표 없을 때 None 반환하는지, `get_todays_adjustment()`
   가 `adjust_todays_plan()`을 그대로 위임하는지.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/plan_service.py", "src/api/routes_plan.py", "src/api/__init__.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/+page.ts", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/plan_service.py", "src/api/routes_plan.py", "src/api/__init__.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/+page.ts", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-COACH-PLAN-CREATE]** 03e-coach.md 5-C(플랜 없음)+5-D(새 프로그램
   생성)+5-E(프로그램 비교) — `P7-IMPL-COACH-PLAN-STATIC`(NEXT)의 두 번째
