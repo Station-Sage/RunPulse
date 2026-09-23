@@ -362,7 +362,3 @@ export interface ProviderComparisonData {
 	state: 'loaded' | 'single_provider';
 	rows: ComparisonRow[];
 }
-
-export interface ProviderComparisonResponse {
-	comparison: ProviderComparisonData;
-}
