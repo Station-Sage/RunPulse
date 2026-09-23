@@ -44,6 +44,10 @@
 
 - functions: get_metric_breakdown
 
+### `milestone_service.py` (247줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
+
+- functions: detect_and_store_milestones, get_recent_milestones
+
 ### `plan_service.py` (8줄) — Phase 7b~7c 서비스 레이어 - 훈련 플랜 조회·생성 (스텁).
 
 - (public API 없음)
@@ -946,7 +950,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (697줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (747줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -1262,7 +1266,7 @@
 
 ### `test_db_setup.py` (132줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_17, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_18, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
 - functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
 
 ### `test_dedup.py` (189줄) — Dedup 단위 테스트.
@@ -1446,6 +1450,13 @@
 - class **TestGetMetricBreakdownChildren**: test_ctl_has_ramp_rate_child, test_children_have_required_fields
 - class **TestGetMetricBreakdownInputs**: test_rri_inputs_include_cirs, test_metric_without_calculator_has_empty_inputs
 - class **TestGetMetricBreakdownStructure**: test_top_level_keys, test_utrs_children
+
+### `test_milestone_service.py` (271줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
+
+- class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
+- class **TestPB**: test_pb_created_when_faster, test_no_pb_when_slower, test_no_pb_for_first_race, test_pb_no_duplicate, test_pb_race_keyword_detection
+- class **TestMetricRecompute**: test_recompute_milestone_created_on_version_change, test_no_recompute_same_version, test_no_recompute_for_non_allowlist_metric
+- class **TestGetRecentMilestones**: test_returns_empty_when_no_milestones, test_returns_ordered_by_date_desc, test_limit_respected
 
 ### `test_mock_calcs.py` (127줄) — MockCalcContext를 활용한 calculator 단위 테스트 (보강 #5).
 
@@ -1760,7 +1771,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 342개 파일
+총 344개 파일
 
 ## docstring 누락
 
