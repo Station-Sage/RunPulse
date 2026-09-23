@@ -50,12 +50,28 @@ def detect_and_store_milestones(
 def get_recent_milestones(
     conn: sqlite3.Connection,
     limit: int = 10,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> list[dict]:
-    """최근 마일스톤 목록 — ORDER BY date DESC, id DESC."""
+    """최근 마일스톤 목록 — ORDER BY date DESC, id DESC.
+
+    date_from/date_to를 주면 그 범위로 제한(과거 달 조회 시 오늘 기준 "최근"이
+    아니라 그 달 기준으로 스코프하기 위함 — 둘 다 없으면 기존과 동일하게 전체
+    기간에서 최신순).
+    """
     conn.row_factory = sqlite3.Row
+    clauses = []
+    params: list = []
+    if date_from:
+        clauses.append("date >= ?")
+        params.append(date_from)
+    if date_to:
+        clauses.append("date <= ?")
+        params.append(date_to)
+    where = f"WHERE {' AND '.join(clauses)} " if clauses else ""
     rows = conn.execute(
-        "SELECT * FROM milestones ORDER BY date DESC, id DESC LIMIT ?",
-        (limit,),
+        f"SELECT * FROM milestones {where}ORDER BY date DESC, id DESC LIMIT ?",
+        (*params, limit),
     ).fetchall()
     return [dict(r) for r in rows]
 

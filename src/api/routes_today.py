@@ -62,10 +62,21 @@ def get_today_narrative():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
+    try:
+        year_raw = request.args.get("year")
+        month_raw = request.args.get("month")
+        year = int(year_raw) if year_raw else None
+        month = int(month_raw) if month_raw else None
+    except (ValueError, TypeError):
+        year, month = None, None
+    # 하나만 있으면 무시(today_service 정책과 동일)
+    if not (year and month):
+        year, month = None, None
+
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
-        result = today_service.get_today_narrative(conn, config=config)
+        result = today_service.get_today_narrative(conn, config=config, year=year, month=month)
     finally:
         conn.close()
 

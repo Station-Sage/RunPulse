@@ -84,3 +84,32 @@ def test_get_today_narrative_no_data(mini_app):
     assert len(data["text"]) > 0
     assert isinstance(data["evidence"], list)
     assert isinstance(data["milestones"], list)
+
+
+def test_get_today_narrative_highlights_field(mini_app):
+    """highlights 필드가 항상 응답에 포함된다."""
+    res = mini_app.get("/api/v1/today/narrative")
+    assert res.status_code == 200
+    data = res.get_json()["data"]
+    assert "highlights" in data
+    h = data["highlights"]
+    assert "total_distance_km" in h
+    assert "activity_count" in h
+    assert "longest_run_km" in h
+    assert "peak_ctl" in h
+
+
+def test_get_today_narrative_year_month_params(mini_app):
+    """?year=&month= 쿼리 파라미터가 정상 수락되고 200 반환."""
+    res = mini_app.get("/api/v1/today/narrative?year=2026&month=8")
+    assert res.status_code == 200
+    data = res.get_json()["data"]
+    assert isinstance(data["text"], str)
+    assert "highlights" in data
+
+
+def test_get_today_narrative_invalid_year_month(mini_app):
+    """잘못된 year/month → 무시하고 기본 동작(오늘 기준) 반환."""
+    res = mini_app.get("/api/v1/today/narrative?year=abc&month=xyz")
+    assert res.status_code == 200
+    assert res.get_json()["data"]["source"] == "rule"
