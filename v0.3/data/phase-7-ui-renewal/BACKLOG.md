@@ -636,7 +636,7 @@ DONE으로 옮긴다.
   /streams">`로 교체(disabled 제거는 스트림만, 랩·메트릭은 그대로 disabled
   유지). 테스트는 SVELTE-2A/2B·PROVIDER-UI와 동일하게 `npm run check`/`npm run
   build`만.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/components/Sparkline.svelte", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/streams.ts", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/components/Sparkline.svelte", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/streams.ts", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-7B-METRICS-BROWSER]** `P7-IMPL-7B-LIBRARY`(NEXT)에서 3-E+3-F만
   분리 — 03c-library.md 3-E(메트릭 브라우저)·3-F(메트릭 상세). 조사 결과 시계열
