@@ -1,11 +1,11 @@
-"""GET /api/v1/today, POST /api/v1/today/checkin — Phase 7a."""
+"""GET /api/v1/today, POST /api/v1/today/checkin, GET /api/v1/today/milestones — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import today_service
+from src.services import milestone_service, today_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -32,6 +32,26 @@ def get_today():
         "recent_activities": recent_activities,
         "checkin": checkin,
     })
+
+
+@api_bp.get("/today/milestones")
+def get_today_milestones():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    try:
+        limit = int(request.args.get("limit", 10))
+    except (ValueError, TypeError):
+        limit = 10
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        items = milestone_service.get_recent_milestones(conn, limit=limit)
+    finally:
+        conn.close()
+
+    return api_ok({"milestones": items})
 
 
 @api_bp.post("/today/checkin")
