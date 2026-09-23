@@ -590,7 +590,7 @@ DONE으로 옮긴다.
   (`{base}/library/{id}/providers`). 테스트는 이 저장소 프론트 관례상 별도
   단위 테스트 없음(`npm run check`/`npm run build`가 검증 전부, SVELTE-2A/2B와
   동일).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
