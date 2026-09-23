@@ -358,3 +358,57 @@ templates()`는 `target_time_sec`이 없는 "완주" 목표 케이스를 처리�
 하므로, VDOT 데이터가 있으면 현재 실력 기준 예상 완주 시간을 effective
 target으로 대신 쓰고, VDOT 데이터 자체가 없으면 달성 가능성 필드를 전부
 None으로 비워 반환한다(에러 raise 안 함 — coding-rules.md 원칙).
+
+---
+
+## [P7-IMPL-TIMELINE-NARRATIVE-FULL] `<TimelineNarrative>`(C7) 완전판 — AI 임베디드 마크업 제외, 기존 trend API 재사용
+
+`04-component-catalog.md` C7의 `NarrativeContent`는 `body: NarrativeSegment[]`
+(AI가 생성한 자유 텍스트 안에 `[chart:slug]`/`<EvidenceQuote>` 태그를 섞어
+넣고 프론트가 마크다운 서브셋으로 파싱)를 요구한다. **이 부분은 이번에도
+구현하지 않는다** — AI가 신뢰성 있게 구조화 태그를 텍스트에 섞어 emit하도록
+프롬프트를 설계하는 건 파싱 실패 시 규칙 기반 fallback으로 되돌리기 어렵고
+(coding-rules.md "AI 응답 파싱 실패: graceful fallback" 원칙과 정면 충돌 —
+현재 `_narrative.py`의 fallback은 완전한 대체 텍스트 생성이지, 부분 파싱
+복구가 아님), `P7-IMPL-7B-TODAY-L2`에서 이미 검증된 "text 평문 + evidence
+배열 + milestones 배열" 3분리 구조가 잘 작동한다. 대신 `highlights`/인라인
+차트/월 탐색은 **AI가 생성하지 않는 고정 UI 요소**로 프론트에서 조립한다.
+
+**핵심 발견 — 인라인 차트에 새 백엔드 불필요**: `P7-IMPL-7B-METRICS-BROWSER`
+때 만든 `GET /api/v1/library/metrics/<slug>/trend?period=`
+(`metrics_browser_service.get_metric_trend()`)가 이미 `ctl`/`atl` 등 임의
+메트릭의 기간별 시계열을 반환하고, 프론트 `getMetricTrend()`
+(`frontend/src/lib/api/metrics.ts`)와 `<Sparkline>`(`P7-IMPL-7B-STREAMS`)도
+이미 있다. 03a 1-C의 "인라인 차트 [CTL/ATL 추세]"와 "탭 시 확장 → CTL+ATL
+2단 스파크라인"(2단계 드릴다운)은 이 기존 API+컴포넌트를 그대로 두 번 호출
+(`getMetricTrend('ctl','4w')`, `getMetricTrend('atl','4w')`)하는 것만으로
+구현된다 — 새 trend 엔드포인트/쿼리 설계 불필요.
+
+**명시적 제외**: "ATL 급상승 원인"(1-C 확장 패널의 "6/7 Tempo Run TSS 98"
+같은 스파이크 원인 근거)은 "이 기간 중 어떤 활동이 급상승을 유발했는가"를
+판정하는 새 분석 로직이 필요해 범위 밖 — 스파크라인만 보여주고 원인 근거는
+LATER. `highlights`의 `bestPace`도 제외(어느 기간·거리 기준의 "최고 페이스"
+인지 정의가 불명확 — PB 판정은 `milestone_service`의 레이스 태그 활동
+기준인데 이건 임의 활동 포함 월간 통계라 다른 개념, 새로 정의하지 않음).
+
+**구현**:
+- `today_service.get_today_narrative(conn, date=None, config=None, year=None,
+  month=None)` — `year`/`month` 추가(둘 다 없으면 기존과 동일하게 오늘 기준).
+  값이 있으면 그 달 전체(`{year}-{month:02d}-01` ~ 그 달 말일, 단 이번 달이면
+  말일 대신 오늘까지 — 미래 데이터 없음)로 `month_start`/`date`를 계산해 기존
+  로직 그대로 재사용(변경 최소화). AI 프롬프트에도 "이번 달"이 아니라 실제
+  연월을 넣어 과거 달 조회 시 시제가 안 맞지 않게 한다.
+- `highlights` 필드 추가: `{"total_distance_km", "activity_count",
+  "longest_run_km", "peak_ctl"}` — `total_distance_km`/`activity_count`는
+  기존 월간 집계 쿼리에 `MAX(distance_m)` 컬럼만 추가해 `longest_run_km`까지
+  같이 뽑고, `peak_ctl`은 `db_helpers.get_metric_history(conn, 'ctl',
+  date_from=month_start, date_to=date)`의 `numeric_value` 최댓값.
+- API: `GET /api/v1/today/narrative`에 `?year=&month=` 옵셔널 쿼리 파라미터
+  추가(둘 다 있어야 적용, 하나만 오면 무시하고 기존 동작).
+- 프론트: 새 `MonthNarrative.svelte`(우측/하단 시트 패널, `MetricBreakdown.
+  svelte`의 `fixed inset-0` + `absolute inset-x-0 bottom-0 rounded-t-2xl`
+  오버레이/시트 패턴 그대로 재사용) — 헤더에 "← YYYY년 M월 →" 이전/다음 달
+  버튼(다음 달이 미래면 비활성화), 본문은 Today L2와 같은 텍스트+evidence+
+  milestones 렌더링 재사용, `highlights` 통계 행, CTL 스파크라인(탭하면 같은
+  패널 안에서 CTL+ATL 2단으로 확장 — 새 패널 마운트 아님, 로컬 `$state`
+  토글). Today L2에 "[이번 달 전체 이야기 보기 →]" 버튼 추가해 이 패널을 연다.

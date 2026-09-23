@@ -14,13 +14,20 @@
 `/library/activities`로 이동) + 웰니스 탭(`P7-IMPL-7B-WELLNESS` — 죽은 코드였던
 `wellness_service.py` 실제 버그 수정 후 연결) + Coach 플랜 상세(5-F+5-A,
 `P7-IMPL-COACH-PLAN-ACTIVE` — `src/training/` 기존 엔진 재사용, 리뷰 중
-goal_id 없는 `planned_workouts` 교차 오염 버그 발견·수정) 전부 완료
-(2026-09-23). Library는 3-B/3-D/3-E/3-F/3-A/웰니스 전부 완료 — 남은 건
-정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-MATRIX`/LATER)와 Provider 데이터
-현황 카드(Phase 7d `data_service.py` 몫으로 명시적 이연, `DECISIONS.md`
-참조)뿐. Coach는 5-F/5-A 완료, 5-C/5-D/5-E(`P7-IMPL-COACH-PLAN-CREATE`,
-큐 대기 중 — 라우트 프리픽스를 ACTIVE 구현(`/coach/plan/*`)에 맞춰 스펙
-반영 완료) 남음. 그 외 남은 건 D4, 상단 3선 메뉴 UI.**
+goal_id 없는 `planned_workouts` 교차 오염 버그 발견·수정) + Coach 새
+프로그램 생성(5-C+5-D+5-E, `P7-IMPL-COACH-PLAN-CREATE` — 1차 autopilot이
+5시간 한도로 중단돼 워크트리 리뷰로 직접 완료, race_date가 weeks를
+무시하던 버그 발견·수정) 전부 완료(2026-09-23). Library는 3-B/3-D/3-E/3-F/
+3-A/웰니스 전부 완료 — 남은 건 정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-
+MATRIX`/LATER, 기간 집계+메트릭별 primaryReason 판정 설계 필요)와 Provider
+데이터 현황 카드(Phase 7d `data_service.py` 몫으로 명시적 이연,
+`DECISIONS.md` 참조)뿐. Coach는 5-C~5-F 전부 완료 — 남은 건 5-G(일일 세션
+상세, `P7-IMPL-COACH-PLAN-SESSION-DETAIL`/LATER)와 조정 수락 영속화
+(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER), 둘 다 새 설계 필요.
+`P7-IMPL-TIMELINE-NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널 —
+월 탐색+highlights+CTL/ATL 스파크라인, AI 임베디드 마크업 제외)
+AUTOPILOT QUEUE 등록·실행 대기 중(2026-09-23, 설계 근거는 `DECISIONS.md`).
+그 외 남은 건 D4, 상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -113,18 +120,15 @@ cirs`로 검증됨) 모두 완료(2026-09-23, AUTOPILOT QUEUE 참조). "데이�
 5건" 중 D4만 미구현으로 남음(LATER 아님 — 아직 NEXT/NOW 어디에도 배정 안 됨, 07
 로드맵에서 재확인 필요).
 
-- **[P7-DESIGN-7B-API]** NEXT에서 승격(2026-09-23) — Phase 7b Flask API 4종의
-  서비스 함수 시그니처 확정. `metrics_service.get_metric_breakdown()`
-  (`P7-IMPL-METRIC-BREAKDOWN`), `provider_comparison_service.
-  get_provider_comparison()`(`P7-IMPL-PROVIDER-COMPARISON`, 03c §3-G-2 활동별
-  비교만 — §3-G-1 정체성 매트릭스는 `P7-IMPL-PROVIDER-MATRIX`로 LATER 분리),
-  `today_service.get_today_narrative()`(`P7-IMPL-TODAY-NARRATIVE`, milestones
-  테이블 신설 포함 — plan mode로 설계 승인) 셋 다 구현·병합 완료. 남은 1개:
-  `plan_service.get_static_plan_templates()`(콘텐츠 자체가 아직 없음 — 설계
-  필요, `P7-IMPL-COACH-PLAN-STATIC`과 겹치는 부분이라 그때 같이 설계할지
-  검토). 이전 세션들처럼 각 함수를 조사해 정밀한 AUTOPILOT QUEUE 코드 항목으로
-  직접 작성하는 방식(별도 "설계 전용" 오토파일럿 유닛 없이)으로 진행 —
-  `P7-IMPL-METRIC-BREAKDOWN`/`P7-IMPL-PROVIDER-COMPARISON` 때와 동일 패턴.
+P7-DESIGN-7B-API는 완료(2026-09-23) — Phase 7b Flask API 4종의 서비스 함수
+전부 구현·병합됨: `metrics_service.get_metric_breakdown()`
+(`P7-IMPL-METRIC-BREAKDOWN`), `provider_comparison_service.
+get_provider_comparison()`(`P7-IMPL-PROVIDER-COMPARISON`, 03c §3-G-2 활동별
+비교만 — §3-G-1 정체성 매트릭스는 `P7-IMPL-PROVIDER-MATRIX`로 LATER 분리),
+`today_service.get_today_narrative()`(`P7-IMPL-TODAY-NARRATIVE`), 그리고
+마지막 남았던 `plan_service.get_static_plan_templates()`도
+`P7-IMPL-COACH-PLAN-CREATE`에서 `plan_template_service.
+get_static_plan_templates()`로 구현·병합 완료(DONE 참조). NOW 항목 제거.
 
 P7-IMPL-7B-TODAY-L2는 NEXT에서 승격(2026-09-23, 사용자 지시 — "UI 설계/코딩
 계속하자, 아직 너무 조금 진행됐어"). 백엔드(get_metric_breakdown/get_today_
@@ -145,15 +149,10 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
 
-- **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜(`03e-coach.md` 5-C~5-G)
-  — 2026-09-23 조사 후 `P7-IMPL-COACH-PLAN-ACTIVE`(5-F+Coach 홈)/
-  `P7-IMPL-COACH-PLAN-CREATE`(5-C/D/E) 두 유닛으로 AUTOPILOT QUEUE 분리
-  완료. 핵심 발견: `src/training/`(planner.py/adjuster.py/readiness.py/
-  goals.py)에 이미 성숙한 규칙 기반 플랜 엔진이 있어 새 알고리즘 설계
-  없이 Phase 7b API/프론트에 연결만 하면 됨. 5-G(일일 세션 상세, 임의
-  과거/미래 날짜의 조정 근거 drill-down)와 "조정 수락" 영속화는 명시적으로
-  LATER 분리(설계 근거는 `DECISIONS.md` `[P7-IMPL-COACH-PLAN-ACTIVE]` 항목
-  참조). 이 항목 자체는 하위 유닛들이 전부 `done`이 되면 제거.
+(현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
+`P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
+2026-09-23 제거. `P7-IMPL-TIMELINE-NARRATIVE-FULL`은 조사 후 바로 AUTOPILOT
+QUEUE로 등록해 NEXT를 거치지 않음.)
 
 ---
 
@@ -1049,6 +1048,68 @@ DONE으로 옮긴다.
   오류) + `npm run check`/`build` 모두 통과 확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-PLAN-ACTIVE"], "kind": "code", "scope": ["src/services/plan_template_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/+page.ts", "frontend/src/routes/coach/plan/new/+page.svelte", "frontend/src/routes/coach/plan/new/+page.ts", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.ts", "tests/test_plan_template_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_template_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
+- **[P7-IMPL-TIMELINE-NARRATIVE-FULL]** `<TimelineNarrative>`(C7) 완전판 —
+  Today L2의 "[이번 달 전체 이야기 보기 →]" 우측/하단 시트 패널: 월 탐색 +
+  `highlights` 수치 카드 + CTL(탭 시 CTL+ATL 2단) 스파크라인. AI 임베디드
+  마크업(`[chart:slug]` 등 `body: NarrativeSegment[]`)과 "ATL 급상승 원인"
+  근거는 제외 — 설계 근거·스코프 축소 이유는 `DECISIONS.md`의
+  `[P7-IMPL-TIMELINE-NARRATIVE-FULL]` 항목 필독(착수 전 필수, 특히 기존
+  `GET /library/metrics/:slug/trend` 재사용 부분).
+  **구현**: (1) `src/services/today_service.py`의
+  `get_today_narrative(conn, date=None, config=None, year: int | None = None,
+  month: int | None = None)` — `year`/`month`가 둘 다 주어지면(하나만 오면
+  무시) `month_start = f"{year}-{month:02d}-01"`, 그 달 말일을 계산해(다음 달
+  1일 - 1일, `calendar.monthrange` 또는 직접 계산) `date`(조회 종료일)로 쓰되
+  그 달이 오늘이 속한 달이면 말일 대신 오늘로 clamp(미래 데이터 없음). 이
+  `month_start`/`date`를 기존 로직(월간 집계·AI 프롬프트·milestones 조회)에
+  그대로 흘려보낸다(로직 재작성 안 함 — 이미 "이번 달"을 하드코딩 안 하고
+  `date[:7]+'-01'`로 계산해뒀으므로 `date` 자체를 파라미터화하는 것만으로
+  충분). AI 프롬프트(`_narrative.build_narrative_prompt`)에 "이번 달"이라는
+  고정 문구가 있으면 실제 연월(`{year}년 {month}월`)로 바꿔 과거 달 조회 시
+  시제 오류 방지 — 있으면 `build_narrative_prompt`에 `year`/`month` 또는
+  `label` 파라미터 추가해 프롬프트 문자열에 반영. (2) 같은 함수에 `highlights`
+  필드 추가: 기존 월간 집계 쿼리(`SELECT COUNT(*), SUM(distance_m) FROM
+  v_canonical_activities WHERE...`)에 `MAX(distance_m)`도 같이 뽑아
+  `longest_run_km`, `db_helpers.get_metric_history(conn, 'ctl',
+  date_from=month_start, date_to=date)`의 `numeric_value` 최댓값을
+  `peak_ctl`(데이터 없으면 None)로 반환값에 추가:
+  `{"total_distance_km": month_dist_km, "activity_count": month_count,
+  "longest_run_km": ..., "peak_ctl": ...}`. 응답에 `"highlights": {...}` 키
+  추가. (3) `src/api/routes_today.py`의 `GET /today/narrative` —
+  `request.args.get('year', type=int)`/`request.args.get('month', type=int)`
+  읽어 `get_today_narrative()`에 전달(그대로 optional, 서비스 함수가 둘 다
+  없으면 기존 동작). (4) `frontend/src/lib/api/today.ts`의 `getTodayNarrative`
+  — `(year?: number, month?: number)` 파라미터 추가, 있으면 쿼리스트링에
+  포함. (5) `frontend/src/lib/types/index.ts`의 `NarrativeResponse`에
+  `highlights: {total_distance_km: number; activity_count: number;
+  longest_run_km: number | null; peak_ctl: number | null}` 필드 추가. (6)
+  신규 `frontend/src/lib/components/MonthNarrative.svelte` —
+  `MetricBreakdown.svelte`의 오버레이/바텀시트 마크업(`fixed inset-0` 배경
+  버튼 + `absolute inset-x-0 bottom-0 rounded-t-2xl` 패널) 그대로 재사용.
+  Props: `{year, month, onClose}`. 내부 `$state`로 현재 `year`/`month` 보관,
+  헤더에 "← YYYY년 M월 →" — 다음 달 버튼은 `{year,month}`가 이미 이번 달이면
+  `disabled`. 본문: `getTodayNarrative(year, month)` 호출 결과를 Today L2와
+  동일하게 텍스트 단락+`<EvidenceQuote>`+마일스톤 목록으로 렌더링(중복
+  코드지만 이번 유닛 범위에서 공용 컴포넌트로 뽑지 않음 — 두 곳뿐이라
+  과설계 방지), 그 아래 `highlights` 통계 행(총 거리/활동 수/최장거리/
+  최고 CTL, null이면 항목 숨김 — 기존 `{#if x != null}` 관례), 그 아래
+  `<Sparkline>` 1개(`getMetricTrend('ctl', '4w')` 호출, `points.map(p =>
+  p.value)`를 `data`로 전달) — 탭하면 로컬 `$state`(`expanded`) 토글해 같은
+  자리에 `getMetricTrend('atl', '4w')`도 추가 호출해 CTL/ATL 2개 스파크라인
+  나란히 표시(새 패널 마운트 아님). 로딩/에러 상태는 `MetricBreakdown.svelte`
+  패턴 그대로(loading 스피너/에러 메시지 텍스트). (7)
+  `frontend/src/routes/today/+page.svelte` — L2 끝에 "[이번 달 전체 이야기
+  보기 →]" 버튼 추가, 클릭 시 `showMonthNarrative = true`(로컬 상태, 초기
+  `year`/`month`는 오늘 기준) + 조건부 `<MonthNarrative>` 마운트(기존
+  `drillStack` MetricBreakdown 스택과는 별개 상태 — 동시에 두 패널이 뜨는
+  일은 없음, 서로 트리거가 다름). 테스트: `tests/test_today_service.py`에
+  `get_today_narrative(year=, month=)`가 과거 달을 올바른 범위로 조회하는지
+  (이번 달 clamp 포함), `highlights`의 `longest_run_km`/`peak_ctl`이 데이터
+  없으면 None인지. `tests/test_api_today.py`에 `?year=&month=` 쿼리
+  파라미터 라우트 테스트 1~2개. 프론트는 이 저장소 관례상 테스트 없음
+  (`npm run check`/`npm run build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "frontend/src/lib/api/today.ts", "frontend/src/lib/types/index.ts", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/routes/today/+page.svelte", "tests/test_today_service.py", "tests/test_api_today.py"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
 ---
 
 ## LATER
@@ -1076,14 +1137,6 @@ DONE으로 옮긴다.
   컬럼 추가 또는 `distance_km`를 직접 덮어쓰고 `source`에 조정 이력 태그) —
   스키마 변경 수반 가능성 있어 별도 설계 필요. `P7-IMPL-COACH-PLAN-ACTIVE`
   설계 근거는 `DECISIONS.md` 참조.
-
-- **[P7-IMPL-TIMELINE-NARRATIVE-FULL]** `<TimelineNarrative>`(C7) 완전판 — 마크다운
-  서브셋 파싱, `[chart:slug]` 인라인 SVG 스파크라인, `highlights` 수치 카드,
-  "이번 달 전체 이야기" 확장 패널(03a-today.md 1-C). `P7-IMPL-7B-TODAY-L2`가
-  구현한 단순 버전(텍스트+evidence+milestones 목록)의 후속 — 백엔드
-  `get_today_narrative()`에 `highlights`/구조화 `body` 필드가 먼저 추가돼야
-  착수 가능(현재는 `{date,text,source,evidence,milestones}` 평면 구조뿐).
-  스코프 축소 이유는 `DECISIONS.md`의 `[P7-IMPL-7B-TODAY-L2]` 항목 참조.
 
 ---
 
