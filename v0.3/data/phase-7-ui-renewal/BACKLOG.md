@@ -28,10 +28,14 @@ NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널)도 완료·병합
 2건 발견·수정). `P7-IMPL-COACH-PLAN-SESSION-DETAIL`(5-G 일일 세션 상세 —
 조정 비교는 타입만, 목업의 가짜 TSS/거리 수치는 안 만듦, URL도 week/day
 대신 date로 단순화)도 완료·병합(2026-09-23 — 이번 세션 리뷰 대상 유닛 중
-처음으로 수정 사항 0건, 스펙 그대로 구현됨). 남은 건 정체성 매트릭스,
-조정 수락 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, 새 설계
-필요), D4, 상단 3선 메뉴 UI(Phase 7d). 현재 AUTOPILOT QUEUE 비어 있음 —
-다음 유닛은 추가 설계 조사 필요.**
+처음으로 수정 사항 0건, 스펙 그대로 구현됨). `P7-IMPL-PROVIDER-MATRIX`(3-G-1
+정체성 매트릭스 — 목업 예시 행 대신 문서 서두 "시맨틱 그룹 13개" 근거로
+SEMANTIC_GROUPS 한정, 기간 집계는 "최신값" 단일 규칙, `P7-IMPL-
+COACH-PLAN-ADJUSTMENT-ACCEPT`는 `03e-coach.md` 196행이 Phase 7c로 명시
+배정해둔 걸 확인해 앞당기지 않기로 함)은 조사 후 AUTOPILOT QUEUE 등록·
+실행 대기 중(2026-09-23, 설계 근거는 `DECISIONS.md`). 남은 건 조정 수락
+영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, Phase 7c 예정), D4,
+상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -1254,6 +1258,148 @@ DONE으로 옮긴다.
   확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/training/adjuster.py", "src/services/plan_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "tests/test_adjuster.py", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
+- **[P7-IMPL-PROVIDER-MATRIX]** `03c-library.md` §3-G-1(정체성 매트릭스) — 조사
+  후 2026-09-23 큐 등록(설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-PROVIDER-MATRIX]` 항목 필독 — 목업 예시 행이 아니라 문서
+  서두의 "시맨틱 그룹 13개 × Provider 4개"를 근거로 `SEMANTIC_GROUPS` 13개
+  한정, raw 메트릭 행은 범위 밖, 기간 집계는 "최신값" 단일 규칙).
+  **구현 — 백엔드**: (1) `src/services/provider_matrix_service.py`(신규
+  파일 — `provider_comparison_service.py`가 이미 279줄이라 캡 300 넘지
+  않게 분리) — 상단에 `from src.services.provider_comparison_service
+  import _preferred_provider, _build_values, _calc_discrepancy,
+  _ordered_providers`(기존 helper 재사용, 새로 안 만듦),
+  `from src.utils.dedup import _SOURCE_PRIORITY`,
+  `from src.utils.metric_groups import SEMANTIC_GROUPS`,
+  `from datetime import date, timedelta`.
+  `get_provider_comparison_period(conn: sqlite3.Connection, days: int = 28,
+  discrepancy_threshold: float = 5.0) -> dict`:
+  ```
+  conn.row_factory = sqlite3.Row
+  end = date.today()
+  start = end - timedelta(days=days - 1)
+  start_s, end_excl_s = start.isoformat(), (end + timedelta(days=1)).isoformat()
+  canon_rows = conn.execute(
+      "SELECT id, matched_group_id FROM v_canonical_activities"
+      " WHERE start_time >= ? AND start_time < ? ORDER BY start_time DESC",
+      (start_s, end_excl_s),
+  ).fetchall()
+  if not canon_rows:
+      return {"mode": "period", "days": days, "state": "no_data", "rows": []}
+  group_ids = [r["matched_group_id"] for r in canon_rows if r["matched_group_id"]]
+  period_primary_source = _mode_primary_source(conn, group_ids)
+  sibling_map = {}
+  all_scope_ids = set()
+  for r in canon_rows:
+      cid, gid = r["id"], r["matched_group_id"]
+      if gid:
+          sibs = [s["id"] for s in conn.execute(
+              "SELECT id FROM activity_summaries WHERE matched_group_id = ?", (gid,)
+          ).fetchall()]
+      else:
+          sibs = [cid]
+      sibling_map[cid] = sibs
+      all_scope_ids.update(sibs)
+  placeholders = ",".join("?" * len(all_scope_ids))
+  metric_rows = conn.execute(
+      f"SELECT scope_id, metric_name, provider, numeric_value, text_value"
+      f" FROM metric_store WHERE scope_type='activity' AND scope_id IN ({placeholders})",
+      [str(i) for i in all_scope_ids],
+  ).fetchall()
+  metric_idx = {}
+  for mr in metric_rows:
+      d = dict(mr)
+      metric_idx[(int(d["scope_id"]), d["metric_name"], d["provider"])] = d
+  rows = []
+  for group_name, group_def in SEMANTIC_GROUPS.items():
+      cells = {}
+      for canon in canon_rows:  # start_time DESC = 최신부터
+          for metric_name, provider in group_def["members"]:
+              if provider in cells:
+                  continue
+              for sib_id in sibling_map[canon["id"]]:
+                  key = (sib_id, metric_name, provider)
+                  if key in metric_idx:
+                      d = metric_idx[key]
+                      val = d["numeric_value"] if d["numeric_value"] is not None else d["text_value"]
+                      cells[provider] = {"value": val, "available": val is not None}
+                      break
+      if not cells or not any(c["available"] for c in cells.values()):
+          continue
+      all_providers = _ordered_providers({p for (_, _, p) in metric_idx.keys()})
+      values_dict = _build_values(all_providers, cells)
+      numeric_avail = [c["value"] for c in values_dict.values()
+                        if c["available"] and isinstance(c["value"], (int, float))]
+      reason = _preferred_provider(
+          period_primary_source,
+          {k for k, v in values_dict.items() if v["available"]},
+      )
+      rows.append({
+          "slug": group_name, "label": group_def["display_name"], "unit": None,
+          "values": values_dict,
+          "discrepancy": _calc_discrepancy(numeric_avail, discrepancy_threshold),
+          "preferredProvider": reason["provider"] if reason else None,
+          "primaryReason": reason,
+      })
+  return {"mode": "period", "days": days,
+          "state": "loaded" if rows else "no_data", "rows": rows}
+  ```
+  `_mode_primary_source(conn, group_ids: list[str]) -> str | None` — `group_ids`
+  비었으면 None. 아니면 `SELECT primary_source, COUNT(*) c FROM
+  activity_groups WHERE group_id IN (...) GROUP BY primary_source ORDER BY c
+  DESC`로 최빈값 조회, 동률(최고 count 여러 개)이면 `_SOURCE_PRIORITY`
+  낮은 순으로 하나 선택. (2) `src/api/routes_library.py`(현재 204줄, 여유
+  있음) — `GET /library/providers/matrix` 라우트 추가, `?days=`(기본 28,
+  int 파싱 실패 시 400) `?discrepancy_threshold=`(기존 라우트와 동일 패턴)
+  파싱 후 `provider_matrix_service.get_provider_comparison_period()` 호출,
+  `api_ok({"comparison": result})` 반환(404 없음 — 항상 200, 데이터
+  없으면 `state: "no_data"`로 표현, 기존 라우트의 404 패턴과 다름 주의).
+  **구현 — 프론트**: (3) `frontend/src/lib/types/index.ts`의
+  `ProviderComparisonData` 수정 — `mode: 'activity' | 'period'`,
+  `activity_id?: number`, `days?: number`, `state: 'loaded' |
+  'single_provider' | 'no_data'`(기존 `'activity'`/`'loaded' |
+  'single_provider'` 하위 호환 유지, optional 필드 추가라 기존
+  `/library/[id]/providers` 페이지는 안 건드려도 계속 동작). (4)
+  `frontend/src/lib/api/providers.ts`(기존 파일)에 `getProviderMatrix(days
+  = 28): Promise<ProviderComparisonApiResponse>` 추가 —
+  `apiFetch('/library/providers/matrix?days=' + days)`. (5) 신규
+  `frontend/src/routes/library/providers/+page.svelte` +
+  `+page.ts` — `+page.ts`의 `load({url})`에서
+  `getProviderMatrix(Number(url.searchParams.get('days')) || 28)` 호출,
+  실패 시 `errorMessage` 패턴(기존 `[id]/providers/+page.ts`와 동일).
+  페이지: 헤더("Library / Provider 정체성 매트릭스"), 기간 버튼 3개(4주/
+  8주/12주 — 탭 시 `goto`로 `?days=` 쿼리 변경, `library/metrics/[slug]`
+  기간 버튼과 동일한 스타일), `<ProviderComparison data={data.comparison}
+  showPrimaryReason={true} discrepancyThreshold={5}/>`(기존 컴포넌트
+  그대로, 수정 없음 — `state === 'no_data'`일 때 컴포넌트가 어떻게
+  렌더링하는지 확인: 현재 컴포넌트는 `state === 'single_provider'`만
+  특별 처리하고 나머지는 `rows` 빈 배열이면 테이블 헤더만 뜨고 바디가
+  비어 보임 — `no_data` 전용 분기가 필요하면 `ProviderComparison.svelte`에
+  `{:else if data.state === 'no_data'}` 케이스 추가(기존 `single_provider`
+  분기와 나란히, "이 기간에 비교할 활동이 없습니다" 문구)). (6)
+  `frontend/src/routes/library/+page.svelte` — 37행 근처 `<span
+  class="... opacity-40" title="준비 중">Provider 비교</span>`를
+  `<a href="{base}/library/providers" class="...">Provider 비교</a>`로
+  교체(다른 탭 `<a>`와 동일한 클래스 패턴). (7)
+  `frontend/src/routes/library/metrics/[slug]/+page.svelte` — 115~120행
+  근처 `disabled` "Provider 비교" 버튼을 `<a href="{base}/library/
+  providers" class="flex-1 rounded-lg border border-border-subtle
+  bg-surface-2 py-2 text-center text-sm text-fg-secondary">Provider
+  비교</a>`로 교체(슬러그별 필터링 없이 매트릭스 전체로 이동 —
+  `DECISIONS.md` 참조).
+  **테스트**: `tests/test_provider_matrix_service.py`(신규,
+  `test_provider_comparison_service.py`의 `_insert_activity()` 픽스처
+  패턴 재사용/복사) — 기간 내 활동 없음 → `state: "no_data"`, 같은
+  그룹의 두 provider 값이 기간 내 서로 다른 날짜 활동에서 나와도 각각
+  "최신값"으로 잡히는지(예: garmin 활동이 1주 전, intervals 활동이 2주
+  전 — 둘 다 이번 기간엔 포함되지만 서로 다른 날짜), `matched_group_id`
+  없는 단독 활동은 `_mode_primary_source`의 `group_ids`에서 자연스럽게
+  빠지는지, primary_source 최빈값이 여러 활동 그룹 중 다수결로 정해지는지
+  (예: 3개 그룹 중 2개가 garmin, 1개가 strava → "garmin" 선택),
+  `SEMANTIC_GROUPS` 멤버 데이터가 전혀 없는 그룹은 `rows`에서 빠지는지.
+  `tests/test_api_library.py`에 `GET /library/providers/matrix` 200 +
+  `days` 파라미터 반영 + 잘못된 `days` 값 400 테스트.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/provider_matrix_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/providers/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte", "tests/test_provider_matrix_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_matrix_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
 ---
 
 ## LATER
@@ -1262,17 +1408,15 @@ DONE으로 옮긴다.
   Data API(`GET /api/v1/data/sources` 등)가 있어야 채울 수 있음, 지금은 비활성 ☰ 버튼만
   존재(`P7-IMPL-SVELTE` 1차 참조).
 
-- **[P7-IMPL-PROVIDER-MATRIX]** `03c-library.md` §3-G-1(정체성 매트릭스) — 기간
-  집계 × SEMANTIC_GROUPS 13개 전체를 훑는 뷰, `P7-IMPL-PROVIDER-COMPARISON`(3-G-2,
-  활동별 비교)의 후속. 스코프 축소 이유·남은 설계 질문(그룹 `strategy`별
-  `primaryReason` 판정 방식)은 `DECISIONS.md`의 `[P7-DESIGN-7B-API]` 항목 참조.
-
 - **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** 5-F/5-G의 "조정 수락" 영속화 —
   현재 `adjust_todays_plan()`은 완전 읽기 전용(매 로드마다 재계산, DB
   미기록)이라 "수락" 버튼을 눌러도 반영할 데이터가 없음. `planned_workouts`
   에 조정 결과를 반영하는 쓰기 경로 신설 필요(예: `adjusted_distance_km`
   컬럼 추가 또는 `distance_km`를 직접 덮어쓰고 `source`에 조정 이력 태그) —
-  스키마 변경 수반 가능성 있어 별도 설계 필요. `P7-IMPL-COACH-PLAN-ACTIVE`
+  스키마 변경 수반 가능성 있어 별도 설계 필요. **`03e-coach.md` 196행이
+  이 기능을 명시적으로 Phase 7c(세션 조정 승인 API `PUT .../accept-
+  adjustment`)로 배정해둠** — Phase 7b 범위인 지금 앞당겨 만들지 않음,
+  ML 개인화 플랜 생성(7c)과 묶어서 재검토. `P7-IMPL-COACH-PLAN-ACTIVE`
   설계 근거는 `DECISIONS.md` 참조.
 
 ---

@@ -461,3 +461,78 @@ target_date)`를 추가(내부적으로 `_plan_date_range()` 재사용, "오늘 
 
 **구현 순서**: 단일 유닛(백엔드 파라미터화 + 서비스 함수 1개 + API 2개 +
 프론트 페이지 1개로 충분히 작음, 분리 불필요).
+
+---
+
+## [P7-IMPL-PROVIDER-MATRIX] 정체성 매트릭스(3-G-1) — 기간 집계 설계 확정
+
+`P7-DESIGN-7B-API`(3-G-2 유닛) 때 LATER로 미뤄둔 두 가지 — 기간 집계 로직,
+그룹별 `strategy`에 따른 `primaryReason` 판정 — 조사 후 이번에 직접 설계
+확정(2026-09-23, 사용자가 "오토파일럿 진행" 승인한 조사 범위 안에서 판단).
+
+**그룹 정의 재확인**: 03c 3-G-1 목업은 예시 행으로 CTL/ATL/TSB(피트니스),
+평균 페이스/최대 속도, HR avg/max, HRV/Body Battery/Sleep Score, TSS/IF를
+보여주지만, 같은 섹션의 서두 문장(204행)은 "**시맨틱 그룹 13개** × Provider
+4개"라고 명시 — `src/utils/metric_groups.py`의 `SEMANTIC_GROUPS`가 정확히
+13개. 목업 예시 행(CTL/페이스/HR/수면)은 그 13개 그룹 멤버에 하나도 없다
+(수면·HRV·BodyBattery는애초 scope='daily' 웰니스라 활동 기반 그룹 개념과
+안 맞음, CTL/ATL/TSB는 일별 피트니스 단일값이라 Provider 비교 대상이
+아님 — RunPulse 자체 계산치뿐). **결정**: 문서 서두의 명시적 수치("13개")를
+근거로 목업 예시 행은 삽화로 간주, 3-G-1 = `SEMANTIC_GROUPS` 13개 ×
+기간 집계로만 구현. 3-G-2가 이미 포함하는 "Raw 메트릭 행"(activity_summaries
+컬럼) 섹션은 3-G-1에 포함 안 함 — 기간 집계 시 raw 컬럼(페이스/HR 등)까지
+포함하면 어느 걸 "이 기간의 대표 페이스"로 볼지에 대한 별도 집계 함수
+(평균? 최신?)가 필요해져 범위가 다시 커짐, 그리고 "13개"라는 문서 근거가
+없으므로 범위 밖으로 유지.
+
+**기간 집계 전략**: 그룹 내 각 (metric_name, provider) 조합마다 "기간 내
+가장 최근 활동에서 그 provider가 보고한 값" 하나를 대표값으로 사용(평균/
+합산 아님). 근거: `SEMANTIC_GROUPS` 멤버들은 성격이 다름(VO2Max/VDOT/
+threshold_power처럼 시점 스냅샷인 것 vs training_load/trimp처럼 세션당
+누적인 것) — 그룹마다 다른 집계 함수(평균 vs 합산 vs 최신)를 새로 설계·
+검증하는 대신, "최신값"이라는 단일 규칙을 전체에 균일 적용해 설계 표면을
+줄임(3-G-2의 활동 1건 비교와 동일한 해석 축 위에 있음 — "지금 이
+활동에서" → "최근 이 기간에서"). 활동 목록은 `v_canonical_activities`
+(matched_group_id 기준 소스 우선순위 1건만 남기는 기존 뷰) 재사용해
+`start_time` 기준 최신순 정렬, 각 canonical 활동의 형제(matched_group_id
+전체, 없으면 자기 자신)에서 `metric_store` 조회 — 3-G-2의 형제 조회
+로직과 동일 패턴, provider당 최초 발견(=최신) 값만 채택.
+
+**primaryReason(기간 대표 소스) 판정**: 활동 1건엔 `activity_groups.
+primary_source`가 하나뿐이지만 기간에는 여러 활동 그룹이 걸쳐 있음 —
+기간 내 모든 matched_group_id의 `primary_source` 최빈값(SQL GROUP BY
+COUNT, 동률 시 `_SOURCE_PRIORITY` 낮은 순)을 "기간 대표 소스"로 정하고,
+`provider_comparison_service._preferred_provider()`를 그대로 재사용(그룹마다
+같은 기간 대표 소스를 넘겨 호출 — 3-G-2가 활동 1건의 `primary_source`를
+전체 행에 균일 적용하던 것과 동일 패턴, 그룹별로 다르게 판정하지 않음
+— DESIGN-7B-API 때 "그룹별 strategy 문서상 불명확"이라 미뤘던 부분을
+이 균일 규칙으로 대체). discrepancy(불일치 감지)는 서로 다른 날짜의
+값끼리 비교하게 될 수 있음(provider마다 "최신"이 다른 활동일 수 있어서)
+— 이 한계는 인지하되 그대로 허용(3-G-2와 동일 계산 로직 재사용, 새
+경고 문구 불필요 — 프론트 `<ProviderComparison>`의 기존 "⚠ 소스 간 차이"
+범례가 그대로 의미 있음).
+
+**파일 분리**: `provider_comparison_service.py`가 이미 279줄이라(캡 300)
+새 함수를 넣으면 캡 초과 — `src/services/provider_matrix_service.py`
+신설, `provider_comparison_service.py`의 `_preferred_provider`/
+`_build_values`/`_calc_discrepancy`/`_ordered_providers`를 그대로 import
+재사용(중복 작성 안 함).
+
+**프론트 재사용**: `<ProviderComparison>` 컴포넌트는 03c 목업 자체가
+`<ProviderComparison showPrimaryReason=true>`로 3-G-1에 재사용을 명시해둔
+컴포넌트 — 수정 없이 그대로 사용(데이터 shape만 `mode: 'period'`로
+확장, "불일치 범례"·"대표값 ★" 렌더링 로직 전부 기존 그대로). 목업의
+"[정체성 매트릭스]/[활동별 비교]" 탭 전환 UI(한 페이지에서 모드 전환 +
+활동 선택 드롭다운)는 이번 스코프 밖 — 활동별 비교는 이미 활동 상세
+페이지(`/library/[id]/providers`)에서 별도 진입 가능하므로 굳이 통합 안 함,
+`/library/providers`는 매트릭스 전용 페이지로 신설. 기간 선택은 목업의
+"[최근 4주 ▾]" 드롭다운 대신 버튼 3개(4주/8주/12주)로 단순화(다른 화면의
+기간 선택 패턴과 일관 — `library/metrics/[slug]`의 기간 버튼 참조).
+
+**기존 비활성 버튼 연결**: `frontend/src/routes/library/+page.svelte`(홈
+탭바)와 `frontend/src/routes/library/metrics/[slug]/+page.svelte`(메트릭
+상세, "Provider 비교" 버튼) 둘 다 이 유닛을 기다리며 `disabled`로 남겨둔
+자리 — 이번에 `{base}/library/providers`로 연결. 메트릭 상세 쪽은 특정
+슬러그로 스크롤/필터링하지 않고 매트릭스 페이지 전체로 이동(해당 슬러그가
+13개 그룹 멤버가 아닐 수도 있음 — 앵커 연동은 범위 밖, 후속 필요 시
+별도 설계).
