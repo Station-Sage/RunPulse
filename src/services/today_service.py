@@ -1,4 +1,4 @@
-"""Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
+"""Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 읽기 전용 원칙(Phase 5) + save_checkin()만 쓰기 예외(D3, 07-migration-roadmap.md).
 첫 번째 인자는 sqlite3.Connection. 반환값은 dict/list (snake_case 키, 단위 변환 없음).
@@ -7,10 +7,11 @@ readiness/training_status 계산은 재구현하지 않고 dashboard_service.get
 그대로 재사용한다 — 임계값 테이블(_interpret_level)과 훈련 단계 판정(_get_training_phase)이
 이미 거기서 readiness/training_status에 반영돼 있음.
 
-get_today_briefing()은 규칙 기반(임계값)이다 — LLM 연동은 이번 범위 밖(계획 문서 참조).
-Today L2(내러티브)는 여기 포함하지 않는다 — Phase 7b 완성 대상(00-diagnostic-and-direction.md §4.1).
+get_today_briefing()은 규칙 기반(임계값)이다 — LLM 미사용.
+get_today_narrative()는 AI 우선 + 규칙 기반 fallback — chat_engine provider 체인 재사용.
 
 설계 문서: v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D3, D5)
+           v0.3/data/phase-7-ui-renewal/DECISIONS.md [P7-DESIGN-7B-API]
 """
 from __future__ import annotations
 
@@ -120,6 +121,116 @@ def get_todays_checkin(conn: sqlite3.Connection, date: str | None = None) -> dic
         (date,),
     ).fetchone()
     return dict(row) if row else None
+
+
+def get_today_milestones(conn: sqlite3.Connection, limit: int = 20) -> list[dict]:
+    """최근 마일스톤 목록 — Today 1-D 패널용 얇은 wrapper.
+
+    milestone_service.get_recent_milestones()를 그대로 노출한다.
+    03a-today.md가 Today L2 조회를 today_service 하나로 묶어서 기대하기 때문.
+    """
+    from src.services import milestone_service
+    return milestone_service.get_recent_milestones(conn, limit=limit)
+
+
+def get_today_narrative(
+    conn: sqlite3.Connection,
+    date: str | None = None,
+    config: dict | None = None,
+) -> dict:
+    """Today L2 성장 내러티브 — AI 우선, 전체 실패 시 규칙 기반 fallback.
+
+    컨텍스트: 이번 달 CTL 변화량, 월간 누적거리·활동수, 최근 7일 수면 추세,
+    최근 마일스톤 5개. 이 수치만 프롬프트에 올려 환각 방지.
+
+    반환: {date, text, source("ai"|"rule"), evidence([{type,metric,value,label},...]),
+           milestones([...])}
+    """
+    from src.services import milestone_service
+    from src.services._narrative import query_metric, sleep_trend
+    from src.ai.chat_engine import _build_chat_provider_chain, _call_provider, get_ai_provider
+
+    status = get_today_status(conn, date)
+    if date is None:
+        date = status["date"]
+
+    training = status["training_status"]
+    ctl_now = training.get("ctl")
+
+    # ── 월초 CTL ──────────────────────────────────────────────────────────
+    month_start = date[:7] + "-01"
+    ctl_start = query_metric(conn, "daily", month_start, "ctl")
+
+    # ── 이번 달 누적거리·활동수 ────────────────────────────────────────────
+    row = conn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(distance_m), 0)"
+        " FROM v_canonical_activities"
+        " WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?",
+        (month_start, date),
+    ).fetchone()
+    month_count = int(row[0]) if row else 0
+    month_dist_m = float(row[1]) if row else 0.0
+    month_dist_km = round(month_dist_m / 1000.0, 1)
+
+    # ── 수면 추세 (최근 7일 vs 이전 7일) ──────────────────────────────────
+    sleep_recent, sleep_prev = sleep_trend(conn, date)
+
+    # ── 최근 마일스톤 ──────────────────────────────────────────────────────
+    milestones = milestone_service.get_recent_milestones(conn, limit=5)
+
+    # ── evidence 조립 (데이터 있는 항목만) ────────────────────────────────
+    evidence: list[dict] = []
+    if ctl_now is not None:
+        ctl_label = f"CTL {ctl_now:.1f}"
+        if ctl_start is not None:
+            diff = ctl_now - ctl_start
+            ctl_label += f" (월초 {ctl_start:.1f}, {diff:+.1f})"
+        evidence.append({"type": "metric", "metric": "ctl", "value": ctl_now, "label": ctl_label})
+    if month_count > 0:
+        evidence.append({
+            "type": "metric",
+            "metric": "monthly_distance",
+            "value": month_dist_km,
+            "label": f"이번 달 {month_dist_km}km ({month_count}회)",
+        })
+    if sleep_recent is not None:
+        sleep_label = f"수면 점수 최근 7일 {sleep_recent:.0f}"
+        if sleep_prev is not None:
+            diff = sleep_recent - sleep_prev
+            sleep_label += f" (이전 7일 {sleep_prev:.0f}, {diff:+.0f})"
+        evidence.append({
+            "type": "metric", "metric": "sleep_score", "value": sleep_recent,
+            "label": sleep_label,
+        })
+
+    # ── AI 생성 시도 ───────────────────────────────────────────────────────
+    from src.services._narrative import build_narrative_prompt, rule_narrative
+    text = None
+    source = "rule"
+    provider = get_ai_provider(config)
+    chain = _build_chat_provider_chain(provider, config)
+    if chain:
+        prompt = build_narrative_prompt(
+            date, ctl_now, ctl_start, month_dist_km, month_count, sleep_recent, sleep_prev,
+        )
+        for prov in chain:
+            result = _call_provider(prov, prompt, config)
+            if result:
+                text = result
+                source = "ai"
+                break
+
+    # ── 규칙 기반 fallback ─────────────────────────────────────────────────
+    if text is None:
+        text = rule_narrative(ctl_now, ctl_start, month_dist_km, month_count, sleep_recent, sleep_prev)
+
+    return {
+        "date": date,
+        "text": text,
+        "source": source,
+        "evidence": evidence,
+        "milestones": milestones,
+    }
 
 
 def save_checkin(

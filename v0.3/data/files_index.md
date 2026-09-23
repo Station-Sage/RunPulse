@@ -44,6 +44,10 @@
 
 - functions: get_metric_breakdown
 
+### `_narrative.py` (111줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+
+- functions: query_metric, sleep_trend, build_narrative_prompt, rule_narrative
+
 ### `milestone_service.py` (247줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones

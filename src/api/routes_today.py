@@ -1,4 +1,5 @@
-"""GET /api/v1/today, POST /api/v1/today/checkin, GET /api/v1/today/milestones — Phase 7a/7b."""
+"""GET /api/v1/today, POST /api/v1/today/checkin, GET /api/v1/today/milestones,
+GET /api/v1/today/narrative — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
@@ -6,7 +7,8 @@ import sqlite3
 from flask import request
 
 from src.services import milestone_service, today_service
-from src.web.helpers import db_path
+from src.utils.config import load_config
+from src.web.helpers import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
 
@@ -52,6 +54,22 @@ def get_today_milestones():
         conn.close()
 
     return api_ok({"milestones": items})
+
+
+@api_bp.get("/today/narrative")
+def get_today_narrative():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    config = load_config(user_id=get_current_user_id())
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = today_service.get_today_narrative(conn, config=config)
+    finally:
+        conn.close()
+
+    return api_ok(result)
 
 
 @api_bp.post("/today/checkin")
