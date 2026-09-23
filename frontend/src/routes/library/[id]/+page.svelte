@@ -85,7 +85,11 @@
 		>
 			소스 비교
 		</a>
-		{#each ['스트림', '랩', '메트릭'] as label}
+		<a
+			href="{base}/library/{core.id}/streams"
+			class="flex-1 py-2.5 text-center text-sm text-fg-secondary hover:text-fg-primary"
+		>스트림</a>
+		{#each ['랩', '메트릭'] as label}
 			<button type="button" disabled class="flex-1 py-2.5 text-sm text-fg-muted">{label}</button>
 		{/each}
 	</div>
