@@ -40,9 +40,9 @@
 
 - (public API 없음)
 
-### `metrics_service.py` (7줄) — Phase 7b 서비스 레이어 - 메트릭 시맨틱 그룹·계산 분해 트리 (스텁).
+### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
-- (public API 없음)
+- functions: get_metric_breakdown
 
 ### `plan_service.py` (8줄) — Phase 7b~7c 서비스 레이어 - 훈련 플랜 조회·생성 (스텁).
 
@@ -93,7 +93,7 @@
 - class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
 
-### `cirs.py` (109줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
+### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
 
 - class **CIRSCalculator**: compute
 
@@ -210,7 +210,7 @@
 
 - class **TRIMPCalculator**: compute
 
-### `utrs.py` (93줄) — UTRS (Unified Training Readiness Score) — 설계서 4-4 기준.
+### `utrs.py` (109줄) — UTRS (Unified Training Readiness Score) — 설계서 4-4 기준.
 
 - class **UTRSCalculator**: compute
 
@@ -966,7 +966,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (500줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (509줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1107,9 +1107,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (92줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams) 테스트.
+### `test_api_library.py` (171줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type
 
 ### `test_api_today.py` (74줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
@@ -1157,9 +1157,9 @@
 
 - class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
 
-### `test_cirs.py` (64줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
+### `test_cirs.py` (78줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
-- class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data
+- class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
 ### `test_coach_service.py` (110줄) — coach_service 테스트 — Phase 7a D5.
 
@@ -1202,7 +1202,7 @@
 
 - class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_category
 
-### `test_daily2_calcs.py` (137줄) — Daily-Scope 2차 calculator 테스트.
+### `test_daily2_calcs.py` (139줄) — Daily-Scope 2차 calculator 테스트.
 
 - class **TestUTRS**: test_with_wellness_and_tsb, test_no_data
 - class **TestCIRS**: test_with_metrics, test_no_data
@@ -1274,11 +1274,11 @@
 
 - class **TestEFTP**: test_from_vdot, test_no_vdot, test_confidence
 
-### `test_engine.py` (142줄) — Metrics Engine 통합 테스트.
+### `test_engine.py` (194줄) — Metrics Engine 통합 테스트.
 
 - class **TestTopologicalSort**: test_trimp_before_hrss, test_pmc_before_acwr, test_acwr_before_cirs, test_all_calculators_included
 - class **TestRunActivityMetrics**: test_produces_metrics, test_metrics_in_store
-- class **TestRunDailyMetrics**: test_with_trimp, test_ramp_rate_parent_metric_id_links_to_ctl
+- class **TestRunDailyMetrics**: test_with_trimp, test_ramp_rate_parent_metric_id_links_to_ctl, test_utrs_child_parent_metric_id_links, test_cirs_child_parent_metric_id_links
 - class **TestRunForDate**: test_full_pipeline
 - class **TestClearRunpulse**: test_clears_only_runpulse
 
@@ -1436,6 +1436,13 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
+### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
+
+- class **TestGetMetricBreakdownNoneCase**: test_returns_none_for_unknown_slug, test_returns_none_for_no_data
+- class **TestGetMetricBreakdownChildren**: test_ctl_has_ramp_rate_child, test_children_have_required_fields
+- class **TestGetMetricBreakdownInputs**: test_rri_inputs_include_cirs, test_metric_without_calculator_has_empty_inputs
+- class **TestGetMetricBreakdownStructure**: test_top_level_keys, test_utrs_children
+
 ### `test_mock_calcs.py` (127줄) — MockCalcContext를 활용한 calculator 단위 테스트 (보강 #5).
 
 - class **TestTRIMPMock**: test_basic, test_no_hr, test_short_duration
@@ -1469,7 +1476,7 @@
 - class **TestRealDbDefault**: test_existing_tables, test_migrate_creates_new_tables, test_existing_data_preserved, test_schema_version_updated
 - class **TestRealDbUser**: test_has_real_data, test_migrate_preserves_data, test_migrate_adds_metric_store, test_source_payloads_exist, test_source_distribution, test_canonical_view_after_migrate, test_daily_wellness_has_data, test_db_summary
 
-### `test_phase4_dod.py` (322줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
+### `test_phase4_dod.py` (324줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
 
 - class **TestDoD1**: test_19_calculators, test_calculator_names
 - class **TestDoD2**: test_full_chain
@@ -1660,9 +1667,9 @@
 - class **TestAiFeedback**: test_insert_feedback, test_unique_per_thread_message
 - class **TestChatThreads**: test_chat_messages_thread_id_column_exists, test_thread_groups_messages
 
-### `test_utrs.py` (96줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
+### `test_utrs.py` (114줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 
-- class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs
+- class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
 
 ### `test_validator.py` (376줄) — DataValidator 테스트.
 
@@ -1745,7 +1752,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 339개 파일
+총 340개 파일
 
 ## docstring 누락
 

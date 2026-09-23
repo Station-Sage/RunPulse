@@ -18,13 +18,19 @@ def _metric_label(metric_name: str) -> str:
     return md.description if md and md.description else metric_name
 
 
+def _metric_unit(metric_name: str) -> str:
+    """METRIC_REGISTRY에서 표시 단위 — metric_store엔 unit 컬럼이 없다."""
+    md = METRIC_REGISTRY.get(metric_name)
+    return md.unit if md else ""
+
+
 def _metric_item(row: dict) -> dict:
     """metric_store 행 → breakdown item dict."""
     return {
         "name": row["metric_name"],
         "label": _metric_label(row["metric_name"]),
         "value": row.get("numeric_value"),
-        "unit": row.get("unit", ""),
+        "unit": _metric_unit(row["metric_name"]),
         "provider": row.get("provider"),
         "confidence": row.get("confidence"),
     }
@@ -74,7 +80,7 @@ def get_metric_breakdown(
         "slug": slug,
         "label": _metric_label(slug),
         "value": self_row.get("numeric_value"),
-        "unit": self_row.get("unit", ""),
+        "unit": _metric_unit(slug),
         "provider": self_row.get("provider"),
         "confidence": self_row.get("confidence"),
         "children": children,
