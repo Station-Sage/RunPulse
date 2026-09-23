@@ -290,7 +290,7 @@ DONE으로 옮긴다.
   (`run_daily_metrics`)으로 만든 뒤 `get_metric_breakdown()` 결과 검증. slug 없는 경우
   None 반환도 테스트. `tests/test_api_library.py`에 라우트 테스트(200/404/scope_id
   누락 400) 추가.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/metrics_service.py", "src/api/routes_library.py", "tests/test_metrics_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_metrics_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/metrics_service.py", "src/api/routes_library.py", "tests/test_metrics_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_metrics_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
