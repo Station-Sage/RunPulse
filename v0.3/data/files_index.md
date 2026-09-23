@@ -56,9 +56,9 @@
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
-### `plan_service.py` (8줄) — Phase 7b~7c 서비스 레이어 - 훈련 플랜 조회·생성 (스텁).
+### `plan_service.py` (110줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
-- (public API 없음)
+- functions: get_active_plan, get_todays_adjustment
 
 ### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
@@ -78,7 +78,7 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `wellness_service.py` (142줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
+### `wellness_service.py` (141줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
 
 - functions: get_wellness_detail, get_wellness_trend
 
@@ -1123,9 +1123,13 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (238줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (281줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days
+
+### `test_api_plan.py` (141줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+
+- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan
 
 ### `test_api_today.py` (86줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
@@ -1524,6 +1528,10 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
+### `test_plan_service.py` (139줄) — tests/test_plan_service.py — plan_service 단위 테스트.
+
+- functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan
+
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
 - class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data, test_ramp_rate_has_parent_metric_name_ctl
@@ -1735,9 +1743,9 @@
 - class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
 - functions: garmin_app
 
-### `test_wellness_service.py` (113줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
+### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
-- functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
+- functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
 
 ### `test_wlei.py` (105줄)
 
@@ -1785,7 +1793,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 347개 파일
+총 349개 파일
 
 ## docstring 누락
 

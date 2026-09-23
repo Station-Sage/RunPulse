@@ -26,4 +26,4 @@ def api_error(code: str, message: str, status: int = 400):
     return jsonify({"error": {"code": code, "message": message}}), status
 
 
-from . import routes_coach, routes_library, routes_today  # noqa: E402,F401
+from . import routes_coach, routes_library, routes_plan, routes_today  # noqa: E402,F401

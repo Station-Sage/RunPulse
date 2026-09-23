@@ -1,6 +1,5 @@
 <script lang="ts">
-	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작.
-	// 플랜 섹션(plan_service 스텁) · QuickInput(Today에 이미 있음) · 컨텍스트 패널(7d)은 범위 밖.
+	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션.
 	import type { CoachPageData } from './+page';
 	import { createThread } from '$lib/api/coach';
 	import { ApiError } from '$lib/api/client';
@@ -156,10 +155,32 @@
 			</div>
 		</div>
 
-		<!-- 플랜 섹션 (plan_service 스텁 — Phase 7b에서 완성) -->
+		<!-- 플랜 섹션 -->
 		<div class="border-t border-border-subtle px-4 py-3">
 			<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">플랜</p>
-			<p class="text-sm text-fg-muted">플랜 기능은 준비 중입니다.</p>
+			{#if data.activePlan}
+				<a
+					href="{base}/coach/plan/{data.activePlan.goal.id}"
+					class="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 hover:bg-surface-3"
+				>
+					<div class="min-w-0">
+						<p class="truncate text-sm font-medium">{data.activePlan.goal.name}</p>
+						<p class="text-xs text-fg-muted">
+							진행 중: {data.activePlan.week_index}주차{data.activePlan.goal.plan_weeks
+								? ` / ${data.activePlan.goal.plan_weeks}주`
+								: ''}
+						</p>
+					</div>
+					<span class="ml-2 shrink-0 text-fg-muted">›</span>
+				</a>
+			{:else}
+				<a
+					href="{base}/coach/plan/new"
+					class="text-sm text-semantic-amber hover:underline"
+				>
+					새 프로그램 만들기 →
+				</a>
+			{/if}
 		</div>
 	{/if}
 </div>
