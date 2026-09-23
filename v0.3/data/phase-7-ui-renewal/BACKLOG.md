@@ -1034,7 +1034,20 @@ DONE으로 옮긴다.
   케이스 전부 크래시 없이 반환하는지(가장 중요 — None 처리가 핵심 리스크),
   `create_plan_from_template`이 실제로 `goals`+`planned_workouts`를 채우는지.
   `tests/test_api_plan.py`(기존 파일에 라우트 2개 테스트 추가).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-PLAN-ACTIVE"], "kind": "code", "scope": ["src/services/plan_template_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/+page.ts", "frontend/src/routes/coach/plan/new/+page.svelte", "frontend/src/routes/coach/plan/new/+page.ts", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.ts", "tests/test_plan_template_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_template_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰 결과(2026-09-23)**: 1차 autopilot 실행이 5시간 사용량 한도에 걸려
+  커밋 없이 중단(ledger: outcome=error) — 워크트리에 남은 미커밋 변경분을
+  직접 리뷰해 완료. 버그 1건 발견 후 수정: `create_plan_from_template()`이
+  `race_date`가 있으면 `weeks` 파라미터를 무시하고 `race_date+7일`로 종료일을
+  계산(레거시 `views_training_wizard.py`의 단일 스텝 마법사 로직을 그대로
+  복사한 결과 — 거기선 `race_date`/`plan_weeks`가 같은 입력이지만, 이 5-E
+  비교 플로우에서는 `weeks`가 사용자가 3개 템플릿 중 직접 고른 값이라 항상
+  존중해야 함, 안 그러면 비교 화면에 보여준 달성가능성/위험도가 실제 생성된
+  플랜과 어긋남) — `weeks` 기준 루프로 수정, 회귀 테스트 추가. `/coach/plan`
+  (5-C)의 `ctlCurrent`가 항상 `null`로 하드코딩돼 CTL 표시가 죽어있던 것도
+  `getToday()`의 `training_status.ctl`로 연결해 수정. 전체 `pytest tests/`
+  (1401 passed) + `check_data_consistency.py`(0 오류) + `check_docs.py`(0
+  오류) + `npm run check`/`build` 모두 통과 확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-PLAN-ACTIVE"], "kind": "code", "scope": ["src/services/plan_template_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/+page.ts", "frontend/src/routes/coach/plan/new/+page.svelte", "frontend/src/routes/coach/plan/new/+page.ts", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.ts", "tests/test_plan_template_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_template_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
