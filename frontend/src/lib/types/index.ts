@@ -278,6 +278,47 @@ export interface CheckinRow {
 
 export type CheckinResult = CheckinRow & { saved_at: string };
 
+// ── MetricBreakdown (C3 축소판 — 실제 API 응답 기준) ────────────────────────
+
+export interface MetricBreakdownNode {
+	name: string;
+	label: string;
+	value: number | string | null;
+	unit: string;
+	provider: ProviderKey | null;
+	confidence: number | null;
+}
+
+export interface MetricBreakdownData {
+	slug: string;
+	label: string;
+	value: number | string | null;
+	unit: string;
+	provider: ProviderKey | null;
+	confidence: number | null;
+	children: MetricBreakdownNode[];
+	inputs: MetricBreakdownNode[];
+}
+
+// ── /api/v1/today/narrative 실제 응답 ─────────────────────────────────────
+
+export interface MilestoneEntry {
+	id: number;
+	type: 'distance_threshold' | 'pb' | 'metric_recompute';
+	date: string;
+	title: string;
+	detail: string | null;
+	activity_id: number | null;
+}
+
+export interface NarrativeResponse {
+	date: string;
+	text: string;
+	source: 'ai' | 'rule';
+	evidence: BriefingEvidence[];
+	milestones: MilestoneEntry[];
+}
+
 export interface TodayResponse {
 	status: TodayStatus;
 	briefing: TodayBriefing;

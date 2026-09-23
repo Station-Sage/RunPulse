@@ -1,10 +1,12 @@
 <script lang="ts">
-	// 03a-today.md 1-A' (Phase 7a 스텁 기준) — L0(QuickInput+RecommendationCard) + L1(MetricCell×3
-	// + 최근 활동) 완성, L2는 텍스트 스텁(Phase 7b에서 완성형 — 00-diagnostic-and-direction.md §4.1).
+	// 03a-today.md 1-A' — L0(QuickInput+RecommendationCard) + L1(MetricCell×3 + 최근 활동) + L2(내러티브).
+	// Phase 7b: MetricCell 드릴다운 → MetricBreakdown 패널, L2 실데이터 연결.
 	import type { TodayPageData } from './+page';
 	import MetricCell from '$lib/components/MetricCell.svelte';
+	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
+	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { readinessStatus, tsbStatus } from '$lib/status';
@@ -17,6 +19,24 @@
 	let checkin = $state(data.today?.checkin ?? null);
 	let savingCheckin = $state(false);
 	let checkinError = $state<string | null>(null);
+
+	// MetricBreakdown 드릴다운 스택 — slug 목록, 마지막 항목이 현재 표시 패널.
+	// onDrillInput으로 push, onClose로 전체 비움.
+	let drillStack = $state<string[]>([]);
+
+	const drillSlug = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+
+	function handleDrill(payload: { slug: string; provider: ProviderKey | null }) {
+		drillStack = [...drillStack, payload.slug];
+	}
+
+	function handleDrillInput(slug: string) {
+		drillStack = [...drillStack, slug];
+	}
+
+	function closeDrill() {
+		drillStack = [];
+	}
 
 	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
 		savingCheckin = true;
@@ -36,6 +56,13 @@
 	function adaptEvidence(ev: BriefingEvidence): EvidenceQuoteProps {
 		return { type: 'metric', label: ev.label, metric: { slug: ev.metric, value: ev.value } };
 	}
+
+	// 마일스톤 타입별 아이콘
+	const milestoneIcon: Record<string, string> = {
+		distance_threshold: '🎯',
+		pb: '🏃',
+		metric_recompute: '🔄'
+	};
 </script>
 
 {#if !data.today}
@@ -52,6 +79,7 @@
 {:else}
 	{@const status = data.today.status}
 	{@const briefing = data.today.briefing}
+	{@const narrative = data.narrative}
 
 	<div class="flex flex-col gap-6 px-4 py-4">
 		<!-- ══ L0 — 즉시 브리핑 ══ -->
@@ -91,7 +119,8 @@
 					provider={status.providers.utrs ?? null}
 					status={readinessStatus('utrs', status.readiness.utrs?.level)}
 					unavailable={!status.readiness.utrs}
-					drillable={false}
+					drillable={true}
+					onDrill={handleDrill}
 				/>
 				<MetricCell
 					slug="cirs"
@@ -100,7 +129,8 @@
 					provider={status.providers.cirs ?? null}
 					status={readinessStatus('cirs', status.readiness.cirs?.level)}
 					unavailable={!status.readiness.cirs}
-					drillable={false}
+					drillable={true}
+					onDrill={handleDrill}
 				/>
 				<MetricCell
 					slug="tsb"
@@ -109,7 +139,8 @@
 					provider={status.providers.tsb ?? null}
 					status={tsbStatus(status.training_status.tsb)}
 					unavailable={status.training_status.tsb === null}
-					drillable={false}
+					drillable={true}
+					onDrill={handleDrill}
 				/>
 			</div>
 
@@ -137,13 +168,59 @@
 			</div>
 		</section>
 
-		<!-- ══ L2 — 흐름·훈련·성장 (7a: 스텁, Phase 7b에서 완성) ══ -->
-		<section class="flex flex-col gap-1 border-t border-border-subtle pt-4">
+		<!-- ══ L2 — 흐름·훈련·성장 ══ -->
+		<section class="flex flex-col gap-3 border-t border-border-subtle pt-4">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
-			<p class="text-sm text-fg-secondary">
-				현재 CTL {status.training_status.ctl ?? '—'} ·
-				<span class="text-fg-muted">상세 이야기·계획 연동은 Phase 7b에서 제공됩니다</span>
-			</p>
+
+			{#if narrative}
+				<!-- 내러티브 텍스트 -->
+				{#each narrative.text.split('\n').filter((p) => p.trim()) as paragraph}
+					<p class="text-sm leading-relaxed text-fg-primary">{paragraph}</p>
+				{/each}
+
+				<!-- Evidence 칩 -->
+				{#if narrative.evidence.length > 0}
+					<div class="flex flex-wrap gap-2">
+						{#each narrative.evidence as ev}
+							<EvidenceQuote {...adaptEvidence(ev)} />
+						{/each}
+					</div>
+				{/if}
+
+				<!-- 마일스톤 목록 -->
+				{#if narrative.milestones.length > 0}
+					<div class="flex flex-col gap-1">
+						{#each narrative.milestones as m (m.id)}
+							<div class="flex items-start gap-2 text-sm">
+								<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+								<span class="text-fg-muted">{m.date}</span>
+								<span class="flex-1">{m.title}</span>
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				{#if narrative.source === 'rule'}
+					<p class="text-xs text-fg-muted">규칙 기반 요약</p>
+				{/if}
+			{:else}
+				<!-- 내러티브 로딩 실패 또는 미제공 시 fallback 스텁 -->
+				<p class="text-sm text-fg-secondary">
+					현재 CTL {status.training_status.ctl ?? '—'} ·
+					<span class="text-fg-muted">상세 이야기·계획 연동을 불러올 수 없습니다.</span>
+				</p>
+			{/if}
 		</section>
 	</div>
+
+	<!-- MetricBreakdown 드릴다운 패널 -->
+	{#if drillSlug}
+		<MetricBreakdown
+			slug={drillSlug}
+			scopeType="daily"
+			scopeId={status.date}
+			onClose={closeDrill}
+			onDrillInput={handleDrillInput}
+		/>
+	{/if}
 {/if}
