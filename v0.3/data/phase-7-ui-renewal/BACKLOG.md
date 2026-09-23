@@ -422,7 +422,7 @@ DONE으로 옮긴다.
   `algorithm_version`을 바꿔 재삽입하면 `metric_recompute` 마일스톤 생성·
   allow-list 밖 메트릭은 생성 안 됨. `tests/test_api_today.py`(또는 없으면
   적절한 기존 today API 테스트 파일)에 `/today/milestones` 라우트 테스트 추가.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/services/milestone_service.py", "src/utils/db_helpers.py", "src/api/routes_today.py", "src/sync.py", "tests/test_milestone_service.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_milestone_service.py tests/test_db_setup.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/services/milestone_service.py", "src/utils/db_helpers.py", "src/api/routes_today.py", "src/sync.py", "tests/test_milestone_service.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_milestone_service.py tests/test_db_setup.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 - **[P7-IMPL-TODAY-NARRATIVE]** `today_service.get_today_narrative()` +
   `GET /api/v1/today/narrative` — `P7-IMPL-MILESTONES` 선행 필요(`get_recent_
