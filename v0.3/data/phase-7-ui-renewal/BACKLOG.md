@@ -21,13 +21,16 @@ goal_id 없는 `planned_workouts` 교차 오염 버그 발견·수정) + Coach �
 3-A/웰니스 전부 완료 — 남은 건 정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-
 MATRIX`/LATER, 기간 집계+메트릭별 primaryReason 판정 설계 필요)와 Provider
 데이터 현황 카드(Phase 7d `data_service.py` 몫으로 명시적 이연,
-`DECISIONS.md` 참조)뿐. Coach는 5-C~5-F 전부 완료 — 남은 건 5-G(일일 세션
-상세, `P7-IMPL-COACH-PLAN-SESSION-DETAIL`/LATER)와 조정 수락 영속화
-(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER), 둘 다 새 설계 필요.
-`P7-IMPL-TIMELINE-NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널 —
-월 탐색+highlights+CTL/ATL 스파크라인, AI 임베디드 마크업 제외)
-AUTOPILOT QUEUE 등록·실행 대기 중(2026-09-23, 설계 근거는 `DECISIONS.md`).
-그 외 남은 건 D4, 상단 3선 메뉴 UI(Phase 7d).**
+`DECISIONS.md` 참조)뿐. Coach는 5-C~5-F 전부 완료. `P7-IMPL-TIMELINE-
+NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널)도 완료·병합
+(2026-09-23 — 다른 세션이 구현, 이 세션이 리뷰하며 과거 달 조회 시 CTL/
+마일스톤/규칙기반 텍스트가 오늘 기준으로 새던 버그 3건 + 프론트 스파크라인
+2건 발견·수정). `P7-IMPL-COACH-PLAN-SESSION-DETAIL`(5-G 일일 세션 상세 —
+조정 비교는 타입만, 목업의 가짜 TSS/거리 수치는 안 만듦, URL도 week/day
+대신 date로 단순화)은 조사 후 AUTOPILOT QUEUE 등록·실행 대기 중
+(2026-09-23, 설계 근거는 `DECISIONS.md`). 남은 건 정체성 매트릭스,
+조정 수락 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, 새 설계
+필요), D4, 상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -1130,6 +1133,111 @@ DONE으로 옮긴다.
   64개=기존과 동일) + `npm run check`/`build` 모두 통과 확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "frontend/src/lib/api/today.ts", "frontend/src/lib/types/index.ts", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/routes/today/+page.svelte", "tests/test_today_service.py", "tests/test_api_today.py"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
+- **[P7-IMPL-COACH-PLAN-SESSION-DETAIL]** `03e-coach.md` 5-G(일일 세션 상세)
+  — 조사 후 2026-09-23 바로 큐 등록(설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-COACH-PLAN-SESSION-DETAIL]` 항목 필독 — 목업의 "18km→16km"/
+  "TSS 105→92" 같은 구체적 수치 변화는 실제 `adjust_todays_plan()`이
+  워크아웃 타입만 바꾸고 거리/페이스/TSS는 재계산하지 않아 지어내지
+  않는다는 게 핵심 결정, URL도 `:week/:day` 대신 `:date`로 단순화, "조정
+  수락"/"원래 계획으로" 버튼은 문서가 Phase 7c로 명시한 대로 이번에도 안
+  만듦).
+
+  **구현 — 백엔드**: (1) `src/training/adjuster.py` — **주의**: 파일
+  최상단이 `from datetime import date`(클래스)인데 새로 추가할 파라미터
+  이름도 `date`(문자열)라 그대로 두면 함수 안에서 `date`가 파라미터로
+  섀도잉돼 `date.today()` 호출이 깨진다. 먼저 최상단 임포트를 `from
+  datetime import date as _date`로 바꾸고, 파일 안의 기존 `date.today()`
+  호출부(전부 이 파일 안)를 `_date.today()`로 함께 고칠 것. 그 다음
+  `adjust_todays_plan(conn, config=None, date: str | None = None)`(기본값
+  None=오늘, 하위 호환) 추가 — 내부에서 `today = date.today().isoformat()`
+  대신 `target = date or _date.today().isoformat()`으로 바꿔
+  `planned_workouts WHERE date=?`에 사용. `_get_todays_wellness(conn, date:
+  str | None = None)`도 같은 패턴으로 파라미터화(`daily_wellness WHERE
+  date=?`, 인자 없으면 `_date.today()`). `_get_latest_tsb(conn, date: str
+  | None = None)` — `date`가 있으면 SQL에 `AND scope_id <= ?` 조건 추가
+  (과거 조회 시 그 이후 TSB가 안 섞이게), 없으면 기존과 동일(전역 최신,
+  `today`용 기존 동작 유지). 세 함수 다 시그니처 변경 뿐 로직 흐름은
+  그대로 — 기존 호출부(`plan_service.get_todays_adjustment()`)는 인자
+  생략이라 그대로 동작. (2) `adjust_todays_plan()`의 반환에
+  `adjustment_reason_parts: list[str]`도 추가(현재 `_reason_parts()`가
+  만든 리스트를 `", ".join()`해서 문자열로만 반환하는데, 프론트에서
+  `<EvidenceQuote>` 칩 여러 개로 각각 보여주려면 분리된 리스트가 필요 —
+  `_reason_parts()` 결과를 `adjustment_reason`(합친 문자열, 기존 호환)과
+  `adjustment_reason_parts`(리스트) 둘 다 반환에 포함). (3)
+  `src/services/plan_service.py`(현재 ~130줄, 여유 있음, 이미 `from
+  datetime import date, timedelta` 임포트돼 있음 — 섀도잉 문제 없음) —
+  `_week_index_for_date(goal: dict, target_date: date) -> int`(`target_date`
+  는 `date` 객체, 기존 `_week_index_absolute()`와 같은 `_plan_date_range()`
+  재사용, "오늘 Monday" 대신 "target_date의 Monday" 기준으로 일반화 —
+  `_week_index_absolute()`는 내부적으로 이 함수를 `target_date=오늘`로
+  호출하도록 리팩터링해도 되고, 안 건드려도 무방 — 기존 동작 안 깨지면
+  됨). `get_session_detail(conn, goal_id: int, session_date: str) -> dict |
+  None` — `get_goal(conn, goal_id)` 없으면 None. `session_date`(문자열,
+  URL에서 옴)를 `sd = date.fromisoformat(session_date)`로 파싱, `week_start
+  = sd - timedelta(days=sd.weekday())`. `from src.training.planner import
+  get_planned_workouts`로 `get_planned_workouts(conn,
+  week_start=week_start)` 조회해 반환 리스트에서 `w["date"] ==
+  session_date`인 항목 찾기(없으면 None). `week_index =
+  _week_index_for_date(goal, sd)`(파싱된 `date` 객체 전달). `adjustment =
+  adjust_todays_plan(conn, date=session_date)`(해당 날짜에 계획이 없으면
+  None이 되니 위에서 이미 workout 존재 확인함). `note =` 아래 (4)의
+  `get_session_note()` 호출. 반환:
+  `{"goal": {...5-F와 동일 필드...}, "week_index", "workout": {...},
+  "adjustment": {...adjust_todays_plan() 반환 그대로...} | None, "note":
+  str | None}`. (4) 같은 파일에 세션 메모 — `get_session_note(conn,
+  session_date: str) -> str | None`: `SELECT note FROM user_inputs WHERE
+  input_date=? AND input_type='session_note'`. `save_session_note(conn,
+  session_date: str, note: str) -> None`: `INSERT INTO user_inputs
+  (input_date, input_type, note) VALUES (?, 'session_note', ?) ON
+  CONFLICT(input_date, input_type) DO UPDATE SET note=excluded.note`
+  (`today_service.save_checkin()`의 UPSERT와 동일 패턴, `src/services/
+  today_service.py`의 251번째 줄 부근 참조). (5) `src/api/routes_plan.py`
+  — `GET /coach/plan/<int:goal_id>/session/<session_date>` →
+  `get_session_detail`(없으면 404). `POST /coach/plan/session/<session_
+  date>/note`(JSON body `{"note": str}`, `note`가 빈 문자열/공백만이면
+  400) → `save_session_note` 후 `{"note": note}` 반환.
+
+  **구현 — 프론트**: (6) `frontend/src/lib/types/index.ts` —
+  `SessionAdjustment`(=`adjust_todays_plan()` 반환 형태, `adjustment_reason_
+  parts: string[]` 포함), `SessionDetail {goal: PlanGoal; week_index:
+  number; workout: PlannedWorkout; adjustment: SessionAdjustment | null;
+  note: string | null}`. (7) `frontend/src/lib/api/plan.ts`(기존 파일에
+  추가) — `getSessionDetail(goalId: number, date: string):
+  Promise<SessionDetail>`, `saveSessionNote(date: string, note: string):
+  Promise<void>`. (8) `frontend/src/routes/coach/plan/[id]/session/
+  [date]/+page.svelte` + `+page.ts`(신규) — `+page.ts`의
+  `load({params})`에서 `getSessionDetail(goalId, params.date)` 호출(실패
+  시 "세션을 찾을 수 없습니다" + 플랜 상세로 돌아가기 링크, 5-F 페이지의
+  에러 패턴 그대로). 헤더: "Coach / {goal.name} / {week_index}주차
+  {요일}"(요일 매핑은 `coach/plan/[id]/+page.svelte`의 `DAY_KO` 배열
+  재사용). 본문: "원래 계획"(workout_type 라벨 + distance_km + 페이스
+  범위 + description, 5-F 워크아웃 행과 동일 표시) — `adjustment`가
+  null이거나 `adjusted=false`면 "조정 없음 — 계획대로 진행"만 추가로
+  표시. `adjustment.adjusted`가 true면 그 아래 "상태 기반 조정" 섹션:
+  "{원래 타입 라벨} → {조정 타입 라벨}"(coach/plan/[id]/+page.svelte의
+  `WORKOUT_LABELS` 맵 재사용) + `adjustment_reason_parts` 각각을
+  `<EvidenceQuote>` 칩으로(가짜 수치 델타 없음 — 위 DECISIONS.md 결정
+  참조). 그 아래 "세션 메모" 섹션 — `<textarea>` + `[저장]` 버튼,
+  `note` 초기값 표시, 저장 시 `saveSessionNote()` 호출 후 로컬 상태
+  갱신(QuickInput의 저장 버튼 로딩/에러 상태 패턴 재사용). (9)
+  `frontend/src/routes/coach/plan/[id]/+page.svelte`(기존 파일) — 워크아웃
+  목록의 각 `<li>`를 `<a href="{base}/coach/plan/{goalId}/session/
+  {w.date}">`로 감싸(현재 텍스트만 있는 행 클릭 가능하게, 완료 체크
+  아이콘 등 내부 레이아웃은 그대로).
+
+  **테스트**: `tests/test_adjuster.py`(있으면 확장, 없으면 최소 기존
+  `adjust_todays_plan()` 관련 테스트 위치 확인 후 그 파일에) —
+  `date=` 파라미터로 과거 날짜 조회 시 그 날짜의 `daily_wellness`/TSB를
+  쓰는지(오늘 값과 다르게 시드해서 구분, 이번 세션에서 이미 쓴
+  `test_today_service.py`의 `test_past_month_ctl_now_reflects_that_
+  month_not_today` 패턴 참조), `adjustment_reason_parts`가 리스트로
+  반환되는지. `tests/test_plan_service.py`에 `get_session_detail()` —
+  존재하는 날짜/없는 날짜/goal_id 불일치 3케이스, `get_session_note`/
+  `save_session_note` upsert 동작(두 번 저장 시 갱신되는지). `tests/
+  test_api_plan.py`에 세션 상세 GET + 메모 POST 라우트 테스트(메모 빈
+  문자열 400 포함).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/training/adjuster.py", "src/services/plan_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "tests/test_adjuster.py", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
 ---
 
 ## LATER
@@ -1142,13 +1250,6 @@ DONE으로 옮긴다.
   집계 × SEMANTIC_GROUPS 13개 전체를 훑는 뷰, `P7-IMPL-PROVIDER-COMPARISON`(3-G-2,
   활동별 비교)의 후속. 스코프 축소 이유·남은 설계 질문(그룹 `strategy`별
   `primaryReason` 판정 방식)은 `DECISIONS.md`의 `[P7-DESIGN-7B-API]` 항목 참조.
-
-- **[P7-IMPL-COACH-PLAN-SESSION-DETAIL]** `03e-coach.md` 5-G(일일 세션 상세,
-  임의 과거/미래 날짜의 "원래 계획 vs 상태 기반 조정" 비교 + 조정 근거
-  EvidenceQuote + 세션 메모) — `P7-IMPL-COACH-PLAN-ACTIVE`의 후속.
-  `src.training.adjuster.adjust_todays_plan()`이 **오늘 날짜로 하드코딩**
-  돼 있어(오늘의 `daily_wellness`/최신 TSB만 조회) 임의 날짜를 지원하려면
-  날짜 파라미터화가 필요 — 새 설계 필요.
 
 - **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** 5-F/5-G의 "조정 수락" 영속화 —
   현재 `adjust_todays_plan()`은 완전 읽기 전용(매 로드마다 재계산, DB

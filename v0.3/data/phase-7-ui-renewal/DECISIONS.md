@@ -412,3 +412,52 @@ LATER. `highlights`의 `bestPace`도 제외(어느 기간·거리 기준의 "최
   milestones 렌더링 재사용, `highlights` 통계 행, CTL 스파크라인(탭하면 같은
   패널 안에서 CTL+ATL 2단으로 확장 — 새 패널 마운트 아님, 로컬 `$state`
   토글). Today L2에 "[이번 달 전체 이야기 보기 →]" 버튼 추가해 이 패널을 연다.
+
+---
+
+## [P7-IMPL-COACH-PLAN-SESSION-DETAIL] 5-G 일일 세션 상세 — 조정 비교는
+타입만, 수치는 있는 그대로(가짜 TSS/거리 델타 안 만듦)
+
+`03e-coach.md` 5-G 목업은 "Long Run 18km → 16km", "예상 TSS 105 → 92" 같은
+구체적 수치 변화를 보여준다. 실제로 확인해보니 `src.training.adjuster.
+adjust_todays_plan()`은 **워크아웃 타입만 하향**한다(`_DOWNGRADE_HIGH`/
+`_DOWNGRADE_MOD` — interval/tempo/long → easy/rest 매핑)뿐, `distance_km`/
+`target_pace_*`/TSS는 재계산하지 않고 원본 그대로 반환한다. 목업의 "16km"/
+"TSS 92"는 실제로 어디서도 계산되지 않는 수치다 — 지어내지 않고, **워크아웃
+타입 변경 + 근거만** 비교 화면에 보여준다(예: "Long Run → Easy Run로 조정,
+근거: HRV 58ms/체감 피로 7"). 거리·페이스는 조정 여부와 무관하게 계획된
+값 그대로 한 번만 표시.
+
+**"조정 수락"/"원래 계획으로" 버튼은 이번에도 안 만든다** — 03e-coach.md
+5-G 문서 자체가 "Phase 7c에서 세션 조정 승인 API(`PUT .../accept-
+adjustment`)와 연동"이라고 명시해뒀다(`P7-IMPL-COACH-PLAN-ADJUSTMENT-
+ACCEPT`/LATER와 동일 결정 — 이미 5-F에서 정한 "표시만" 원칙과 일관).
+**세션 메모는 이번에 포함**(문서가 Phase 7c로 미룬 건 승인 API뿐, 메모는
+아님) — 새 테이블 없이 기존 `user_inputs`(D3, `UNIQUE(input_date,
+input_type)`)에 `input_type='session_note'`로 upsert, `today_service.
+save_checkin()`/`get_todays_checkin()`과 완전히 동일한 패턴.
+
+**URL은 문서의 `/coach/plan/:id/session/:week/:day`가 아니라
+`/coach/plan/:id/session/:date`로 단순화** — `planned_workouts`가 애초에
+`date`(ISO)로 키가 잡혀 있고, 주차/요일은 화면에 라벨로 보여주면 되지
+URL 파라미터로 쓸 이유가 없다(주차→날짜 역산 로직을 새로 만들 필요도 없어짐).
+
+**날짜 파라미터화 범위**: `adjust_todays_plan()`이 `date.today()`를
+직접 참조하는 지점 3곳 — 본체의 `planned_workouts WHERE date=?`, 내부
+`_get_todays_wellness()`의 `daily_wellness WHERE date=?`, `_get_latest_tsb()`
+(이건 날짜 필터 자체가 없이 항상 전역 최신값). 셋 다 `date: str | None =
+None`(기본값 오늘, 하위 호환)로 파라미터화 — `_get_latest_tsb(conn,
+date=None)`는 `date`가 있으면 `scope_id <= date` 조건 추가(과거 조회 시
+미래 TSB가 안 섞이게, 없으면 기존과 동일 "전역 최신"). 미래 날짜 조회 시
+`daily_wellness`/TSB 둘 다 데이터가 없어 `_fatigue_level({}, None)` →
+`score=0` → `"low"`(조정 없음)로 자연스럽게 수렴 — 크래시 없음, 별도
+분기 불필요(이미 확인함).
+
+**week_index 계산**: `plan_service._week_index_absolute()`가 "오늘 기준"만
+계산하므로, 임의 날짜 기준으로 일반화한 `_week_index_for_date(goal,
+target_date)`를 추가(내부적으로 `_plan_date_range()` 재사용, "오늘 Monday"
+대신 "target_date의 Monday"로 주차 차이 계산 — `P7-IMPL-COACH-PLAN-ACTIVE`
+리뷰 때 고친 goal-scoping 로직과 동일 기반).
+
+**구현 순서**: 단일 유닛(백엔드 파라미터화 + 서비스 함수 1개 + API 2개 +
+프론트 페이지 1개로 충분히 작음, 분리 불필요).
