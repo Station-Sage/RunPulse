@@ -98,14 +98,16 @@ cirs`로 검증됨) 모두 완료(2026-09-23, AUTOPILOT QUEUE 참조). "데이�
 5건" 중 D4만 미구현으로 남음(LATER 아님 — 아직 NEXT/NOW 어디에도 배정 안 됨, 07
 로드맵에서 재확인 필요).
 
-- **[P7-DESIGN-7B-API]** NEXT에서 승격(2026-09-23) — Phase 7b Flask API 나머지
-  3종의 서비스 함수 시그니처 확정. `metrics_service.get_metric_breakdown()`
-  (`P7-IMPL-METRIC-BREAKDOWN`)와 `provider_comparison_service.
+- **[P7-DESIGN-7B-API]** NEXT에서 승격(2026-09-23) — Phase 7b Flask API 4종의
+  서비스 함수 시그니처 확정. `metrics_service.get_metric_breakdown()`
+  (`P7-IMPL-METRIC-BREAKDOWN`), `provider_comparison_service.
   get_provider_comparison()`(`P7-IMPL-PROVIDER-COMPARISON`, 03c §3-G-2 활동별
-  비교만 — §3-G-1 정체성 매트릭스는 `P7-IMPL-PROVIDER-MATRIX`로 LATER 분리)
-  둘 다 구현·병합 완료. 남은 2개: `today_service.get_today_narrative()`,
+  비교만 — §3-G-1 정체성 매트릭스는 `P7-IMPL-PROVIDER-MATRIX`로 LATER 분리),
+  `today_service.get_today_narrative()`(`P7-IMPL-TODAY-NARRATIVE`, milestones
+  테이블 신설 포함 — plan mode로 설계 승인) 셋 다 구현·병합 완료. 남은 1개:
   `plan_service.get_static_plan_templates()`(콘텐츠 자체가 아직 없음 — 설계
-  필요). 이전 세션들처럼 각 함수를 조사해 정밀한 AUTOPILOT QUEUE 코드 항목으로
+  필요, `P7-IMPL-COACH-PLAN-STATIC`과 겹치는 부분이라 그때 같이 설계할지
+  검토). 이전 세션들처럼 각 함수를 조사해 정밀한 AUTOPILOT QUEUE 코드 항목으로
   직접 작성하는 방식(별도 "설계 전용" 오토파일럿 유닛 없이)으로 진행 —
   `P7-IMPL-METRIC-BREAKDOWN`/`P7-IMPL-PROVIDER-COMPARISON` 때와 동일 패턴.
 
@@ -466,7 +468,7 @@ DONE으로 옮긴다.
   `_call_provider`를 monkeypatch로 목업), evidence에 데이터 없는 항목이
   안 섞여 들어가는지. `tests/test_api_today.py`에 `/today/narrative` 라우트
   테스트 추가.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-MILESTONES"], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "tests/test_today_service.py"], "verify": ["python3 -m pytest tests/test_today_service.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-MILESTONES"], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "tests/test_today_service.py"], "verify": ["python3 -m pytest tests/test_today_service.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
