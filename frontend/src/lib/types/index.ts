@@ -465,3 +465,55 @@ export interface WellnessTrendData {
 	weight_kg: (number | null)[];
 	utrs: (number | null)[];
 }
+
+// ── Coach Plan (5-F — /api/v1/coach/plan/:id) ────────────────────────────────
+
+export interface PlannedWorkout {
+	id: number;
+	date: string;
+	workout_type: string;
+	distance_km: number | null;
+	target_pace_min: number | null;
+	target_pace_max: number | null;
+	target_hr_zone: string | null;
+	description: string | null;
+	rationale: string | null;
+	completed: number; // 0 or 1
+	source: string | null;
+	ai_model: string | null;
+	interval_prescription: string | null;
+}
+
+export interface PlanGoal {
+	id: number;
+	name: string;
+	race_date: string | null;
+	distance_km: number;
+	target_time_sec: number | null;
+	plan_weeks: number | null;
+	status: string;
+}
+
+export interface ActivePlan {
+	goal: PlanGoal;
+	week_index: number;
+	workouts: PlannedWorkout[];
+	ctl_current: number | null;
+	compliance_pct: number | null;
+}
+
+export interface TodaysAdjustment {
+	id: number;
+	date: string;
+	workout_type: string;
+	distance_km: number | null;
+	target_pace_min: number | null;
+	target_pace_max: number | null;
+	description: string | null;
+	original_type: string;
+	adjusted_type: string;
+	adjusted: boolean;
+	adjustment_reason: string | null;
+	fatigue_level: string;
+	volume_boost: boolean;
+}
