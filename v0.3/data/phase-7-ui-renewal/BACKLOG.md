@@ -2,8 +2,10 @@
 
 ## 진행 현황
 
-**현재 상태**: **문서 재정렬 완료 + Phase 7a 구현 진행 중(D5·D3·Flask API·SvelteKit
-Today/Library/Coach 화면 완료. D1도 완료 — 남은 건 D2/D4, 상단 3선 메뉴 UI뿐).**
+**현재 상태**: **Phase 7a 완료(D5·D3·D1·D2·Flask API·SvelteKit Today/Library/Coach
+화면). Phase 7b 착수 — `metrics_service.get_metric_breakdown()`(children+inputs)
+완료. 남은 건 D4, 상단 3선 메뉴 UI, 그리고 Phase 7b 나머지(Today L2 내러티브,
+Library 전면화, Coach 정적 플랜).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -88,18 +90,22 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
   "재정렬"보다 범위가 큼, 착수 시점은 사용자 판단. 2026-09-22 D5/D3 착수 확정 시
   사용자가 이 항목은 보류.
 
-P7-IMPL-D2(`activity_groups` 마스터 테이블, Phase 7b 전제조건)는 06 §D2에 설계가
-이미 있어 "착수 전 설계" 없이 바로 큐 등록 가능함을 확인(2026-09-22) — NOW에 별도
-요약을 남기지 않고 AUTOPILOT QUEUE의 `P7-IMPL-D2` 항목(상세 스펙)이 유일한 소스
-(D1 때와 동일 패턴 — ID 중복은 `queue.update_item()`을 깨뜨린다).
+P7-IMPL-D2(`activity_groups` 마스터 테이블)·P7-IMPL-D1-REST(utrs/cirs 자식 메트릭,
+`P7-IMPL-D1-REST-UC`로 완료 — race_readiness는 별도 Calculator가 아니라 RRI 자신이고
+`produces=["rri"]`뿐이라 자체 자식이 없음, `requires`(vdot/ctl/di/cirs)는
+`P7-IMPL-METRIC-BREAKDOWN`의 inputs 조립으로 이미 커버됨, `test_rri_inputs_include_
+cirs`로 검증됨) 모두 완료(2026-09-23, AUTOPILOT QUEUE 참조). "데이터 레이어 확장
+5건" 중 D4만 미구현으로 남음(LATER 아님 — 아직 NEXT/NOW 어디에도 배정 안 됨, 07
+로드맵에서 재확인 필요).
 
-- **[P7-IMPL-D1-REST]** D1 나머지 — utrs/cirs/race_readiness Calculator의 자식 메트릭
-  저장(`P7-IMPL-D1`은 2026-09-22에 fitness/pmc의 ramp_rate→ctl만 완료, 07 로드맵
-  §D1 참조). 배선(`parent_metric_name`/`_save_results()`)은 이미 있으니 각
-  Calculator에서 부모-자식 관계를 정의하는 일만 남음 — **착수 전 확인 필요**:
-  utrs/cirs/race_readiness 각각 어떤 메트릭이 부모인지(`v0.2/.ai/metrics.md` 또는
-  해당 Calculator 소스에서 확인, PMC의 ctl↔ramp_rate처럼 명확한 부모-자식 쌍이
-  존재하는지부터 확인).
+- **[P7-DESIGN-7B-API]** NEXT에서 승격(2026-09-23) — Phase 7b Flask API 나머지
+  3종의 서비스 함수 시그니처 확정. `metrics_service.get_metric_breakdown()`는 이미
+  구현·병합 완료(`P7-IMPL-METRIC-BREAKDOWN`)라 이 항목에서 제외. 남은 3개:
+  `today_service.get_today_narrative()`, `activity_service.get_provider_comparison()`
+  (D2 완료로 착수 가능해짐), `plan_service.get_static_plan_templates()`(콘텐츠
+  자체가 아직 없음 — 설계 필요). 이전 세션들처럼 각 함수를 조사해 정밀한 AUTOPILOT
+  QUEUE 코드 항목으로 직접 작성하는 방식(별도 "설계 전용" 오토파일럿 유닛 없이)으로
+  진행 — `P7-IMPL-METRIC-BREAKDOWN` 때와 동일 패턴.
 
 ---
 
@@ -108,14 +114,6 @@ P7-IMPL-D2(`activity_groups` 마스터 테이블, Phase 7b 전제조건)는 06 �
 Phase 7b(07 로드맵) 본격 착수분 — NOW의 D2/D1-REST 완료 후 순서대로 진행. 사용자
 "UI Renewal 설계·개발·문서화를 할일 목록화" 지시로 2026-09-22 정리(07 로드맵
 §Phase 7b 산출물 목록 기준, 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
-
-- **[P7-DESIGN-7B-API]** Phase 7b Flask API 8종의 서비스 함수 시그니처·DB 쿼리 확정 —
-  `today_service.get_today_narrative()`, `metrics_service.get_metric_breakdown()`
-  (parent_metric_id 트리 조립, D1-REST 선행 필요), `activity_service.
-  get_provider_comparison()`(D2 선행 필요), `plan_service.get_static_plan_templates()`
-  (07 §Phase 7b — 정적 플랜 템플릿 3~5개, **콘텐츠 자체가 아직 없음, 설계 필요**).
-  06-data-layer-extensions.md 수준(테이블·필드명)은 있으나 함수 수준 스펙은 없음 —
-  이후 항목들(API 구현·UI 구현)의 선행 설계 패스.
 
 - **[P7-IMPL-7B-TODAY-L2]** Today L2 완성 — Flask API(`GET /api/v1/today/narrative`,
   `GET /api/v1/today/milestones`) + SvelteKit `<MetricBreakdown>`(C3)·
