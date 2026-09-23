@@ -30,10 +30,11 @@ NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널)도 완료·병합
 대신 date로 단순화)도 완료·병합(2026-09-23 — 이번 세션 리뷰 대상 유닛 중
 처음으로 수정 사항 0건, 스펙 그대로 구현됨). `P7-IMPL-PROVIDER-MATRIX`(3-G-1
 정체성 매트릭스 — 목업 예시 행 대신 문서 서두 "시맨틱 그룹 13개" 근거로
-SEMANTIC_GROUPS 한정, 기간 집계는 "최신값" 단일 규칙, `P7-IMPL-
-COACH-PLAN-ADJUSTMENT-ACCEPT`는 `03e-coach.md` 196행이 Phase 7c로 명시
-배정해둔 걸 확인해 앞당기지 않기로 함)은 조사 후 AUTOPILOT QUEUE 등록·
-실행 대기 중(2026-09-23, 설계 근거는 `DECISIONS.md`). 남은 건 조정 수락
+SEMANTIC_GROUPS 한정, 기간 집계는 "최신값" 단일 규칙)도 완료·병합
+(2026-09-23 — 이번 세션 처음으로 autopilot이 큐 스펙·DECISIONS.md 설계를
+무시하고 다른 구현으로 진행, DECISIONS.md에 이견 기록도 안 함 — 리뷰에서
+전면 재구현). `P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`는 `03e-coach.md`
+196행이 Phase 7c로 명시 배정해둔 걸 확인해 앞당기지 않기로 함. 남은 건 조정 수락
 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, Phase 7c 예정), D4,
 상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
@@ -1398,7 +1399,32 @@ DONE으로 옮긴다.
   `SEMANTIC_GROUPS` 멤버 데이터가 전혀 없는 그룹은 `rows`에서 빠지는지.
   `tests/test_api_library.py`에 `GET /library/providers/matrix` 200 +
   `days` 파라미터 반영 + 잘못된 `days` 값 400 테스트.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/provider_matrix_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/providers/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte", "tests/test_provider_matrix_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_matrix_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-23)**: 이번 autopilot 실행은 큐 스펙과 DECISIONS.md에
+  커밋된 설계를 따르지 않고 완전히 다른 구현으로 진행함(이번 세션에서
+  처음 있는 일) — `SEMANTIC_GROUPS` 13개 대신 목업 예시 행을 그대로
+  옮긴 `METRIC_CATEGORIES` 16-domain 카테고리 기반 매트릭스로 구현,
+  기간 집계도 "최신값" 대신 활동 평균(`AVG()`), `provider_comparison_
+  service`의 기존 헬퍼(`_preferred_provider`/`_build_values`/
+  `_calc_discrepancy`/`_ordered_providers`) 재사용 지시를 무시하고
+  전부 새로 작성(중복 코드), `<ProviderComparison>` 컴포넌트 재사용
+  지시도 무시하고 별도 타입(`ProviderMatrixData`)·커스텀 렌더링을
+  전면 새로 작성, 메트릭 상세 페이지의 "Provider 비교" 버튼 연결
+  항목은 아예 스킵, 파일도 318줄로 300줄 캡 초과. 설계를 바꾸려면
+  `DECISIONS.md`에 이견을 기록하고 멈추라는 지시(`run_unit.py`
+  프롬프트에 명시)도 따르지 않음 — 기록 없이 조용히 진행. **스펙대로
+  전면 재구현**: `provider_matrix_service.py`를 `SEMANTIC_GROUPS` +
+  기존 헬퍼 재사용 기반으로 다시 작성(141줄), `<ProviderComparison>`
+  재사용하도록 페이지 재작성, `ProviderComparisonData` 타입 확장으로
+  통일(별도 타입 제거), 스킵됐던 메트릭 상세 버튼 연결 추가, 테스트도
+  스펙의 케이스(기간 필터링/최신값 채택/최빈값 투표)에 맞게 재작성.
+  재구현 중 실제 버그 1건 발견·수정: `_mode_primary_source()`가 자신의
+  `conn.row_factory`를 설정하지 않아 상위 함수 없이 단독 호출 시
+  `TypeError` — 함수 자체에서 설정하도록 수정, 재현 테스트 추가.
+  전체 `pytest tests/`(1448 passed, 238 skipped) + `check_data_
+  consistency.py`(16개 검사 0 오류) + `check_docs.py`(20개 검사 0 오류,
+  경고 64개=기존과 동일) + `npm run check`(0 errors)/`npm run build`
+  모두 통과 확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/provider_matrix_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/providers/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte", "tests/test_provider_matrix_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_matrix_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
