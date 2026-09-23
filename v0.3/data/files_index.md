@@ -48,6 +48,10 @@
 
 - (public API 없음)
 
+### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
+
+- functions: get_provider_comparison
+
 ### `today_service.py` (160줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, save_checkin
@@ -1107,9 +1111,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (171줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (194줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404
 
 ### `test_api_today.py` (74줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
@@ -1501,6 +1505,10 @@
 
 - class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data, test_ramp_rate_has_parent_metric_name_ctl
 
+### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
+
+- functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped
+
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
 - class **TestRateLimitPolicy**: test_four_sources_defined, test_garmin_conservative, test_strava_window
@@ -1752,7 +1760,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 340개 파일
+총 342개 파일
 
 ## docstring 누락
 

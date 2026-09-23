@@ -112,16 +112,18 @@ def get_provider_comparison(
             c["value"] for c in values_dict.values()
             if c["available"] and isinstance(c["value"], (int, float))
         ]
+        reason = _preferred_provider(
+            primary_source,
+            {k for k, v in values_dict.items() if v["available"]},
+        )
         rows.append({
             "slug": col,
             "label": metric_def.description or col,
             "unit": metric_def.unit,
             "values": values_dict,
             "discrepancy": _calc_discrepancy(numeric_avail, discrepancy_threshold),
-            "preferredProvider": _preferred_provider(
-                primary_source,
-                {k for k, v in values_dict.items() if v["available"]},
-            ),
+            "preferredProvider": reason["provider"] if reason else None,
+            "primaryReason": reason,
         })
 
     # ── 2. Semantic 메트릭 행 ─────────────────────────────────────────────────
@@ -156,16 +158,18 @@ def get_provider_comparison(
             if has_numeric
             else []
         )
+        reason = _preferred_provider(
+            primary_source,
+            {k for k, v in values_dict.items() if v["available"]},
+        )
         rows.append({
             "slug": group_name,
             "label": group_def["display_name"],
             "unit": None,
             "values": values_dict,
             "discrepancy": _calc_discrepancy(numeric_avail, discrepancy_threshold) if has_numeric else None,
-            "preferredProvider": _preferred_provider(
-                primary_source,
-                {k for k, v in values_dict.items() if v["available"]},
-            ),
+            "preferredProvider": reason["provider"] if reason else None,
+            "primaryReason": reason,
         })
 
     return {

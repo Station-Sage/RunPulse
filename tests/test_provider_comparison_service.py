@@ -174,14 +174,15 @@ def test_discrepancy_warning_triggered(db_conn):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_preferred_provider_uses_primary_source(two_source_conn):
-    """primary_source=garmin → avg_hr 행의 preferredProvider.provider == 'garmin'."""
+    """primary_source=garmin → avg_hr 행의 preferredProvider=='garmin', primaryReason 동봉."""
     c, garmin_id, _ = two_source_conn
     result = get_provider_comparison(c, garmin_id)
     hr_row = next(r for r in result["rows"] if r["slug"] == "avg_hr")
-    pref = hr_row["preferredProvider"]
-    assert pref is not None
-    assert pref["provider"] == "garmin"
-    assert pref["ruleType"] == "static_priority"
+    assert hr_row["preferredProvider"] == "garmin"
+    reason = hr_row["primaryReason"]
+    assert reason is not None
+    assert reason["provider"] == "garmin"
+    assert reason["ruleType"] == "static_priority"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -202,10 +203,11 @@ def test_runpulse_only_metric_gets_runpulse_always(two_source_conn):
     )
     # trimp은 SEMANTIC_GROUPS에 있고 runpulse만 있음
     assert trimp_row is not None
-    pref = trimp_row["preferredProvider"]
-    assert pref is not None
-    assert pref["ruleType"] == "runpulse_always"
-    assert pref["rule"] == "RunPulse — 자체 산출"
+    assert trimp_row["preferredProvider"] == "runpulse:formula_v1"
+    reason = trimp_row["primaryReason"]
+    assert reason is not None
+    assert reason["ruleType"] == "runpulse_always"
+    assert reason["rule"] == "RunPulse — 자체 산출"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
