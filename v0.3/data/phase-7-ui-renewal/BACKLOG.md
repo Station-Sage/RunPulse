@@ -12,12 +12,15 @@
 상세(3-E/3-F, `P7-IMPL-7B-METRICS-BROWSER`) + Library 홈 재설계(3-A,
 `P7-IMPL-7B-LIBRARY-HUB` — `/library`가 활동 목록에서 홈 허브로, 목록은
 `/library/activities`로 이동) + 웰니스 탭(`P7-IMPL-7B-WELLNESS` — 죽은 코드였던
-`wellness_service.py` 실제 버그 수정 후 연결) 전부 완료(2026-09-23). Library는
-3-B/3-D/3-E/3-F/3-A/웰니스 전부 완료 — 남은 건 정체성 매트릭스(3-G-1,
-`P7-IMPL-PROVIDER-MATRIX`/LATER)와 Provider 데이터 현황 카드(Phase 7d
-`data_service.py` 몫으로 명시적 이연, `DECISIONS.md` 참조)뿐. 그 외 남은 건
-D4, 상단 3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
-Coach 정적 플랜(`P7-IMPL-COACH-PLAN-STATIC`).**
+`wellness_service.py` 실제 버그 수정 후 연결) + Coach 플랜 상세(5-F+5-A,
+`P7-IMPL-COACH-PLAN-ACTIVE` — `src/training/` 기존 엔진 재사용, 리뷰 중
+goal_id 없는 `planned_workouts` 교차 오염 버그 발견·수정) 전부 완료
+(2026-09-23). Library는 3-B/3-D/3-E/3-F/3-A/웰니스 전부 완료 — 남은 건
+정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-MATRIX`/LATER)와 Provider 데이터
+현황 카드(Phase 7d `data_service.py` 몫으로 명시적 이연, `DECISIONS.md`
+참조)뿐. Coach는 5-F/5-A 완료, 5-C/5-D/5-E(`P7-IMPL-COACH-PLAN-CREATE`,
+큐 대기 중 — 라우트 프리픽스를 ACTIVE 구현(`/coach/plan/*`)에 맞춰 스펙
+반영 완료) 남음. 그 외 남은 건 D4, 상단 3선 메뉴 UI.**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -917,7 +920,19 @@ DONE으로 옮긴다.
   재사용) — 최소 `get_active_plan()`이 `goals`+`planned_workouts`에 실 데이터
   심고 정상 조립하는지, 목표 없을 때 None 반환하는지, `get_todays_adjustment()`
   가 `adjust_todays_plan()`을 그대로 위임하는지.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/plan_service.py", "src/api/routes_plan.py", "src/api/__init__.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/+page.ts", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰 결과(2026-09-23)**: 라우트 프리픽스가 스펙(`/plan/*`)과 다르게
+  `/coach/plan/*`로 구현됨(합리적 — `P7-IMPL-COACH-PLAN-CREATE` 스펙도 맞춰
+  수정 완료) + `goal_id`별 조회용 `GET /coach/plan/<int:goal_id>` 라우트 추가
+  구현(스펙엔 없었지만 프론트 `/coach/plan/:id` URL과 맞음, 합리적 확장).
+  버그 2건 발견 후 수정: (1) `_week_index_absolute()`/`_compliance_pct()`가
+  `planned_workouts`를 `source='planner'`로만 필터링해 `goal_id` 컬럼이 없는
+  탓에 이전(완료/취소된) 목표의 leftover workout이 새 목표 집계에 섞일 수
+  있었음 — goal의 `created_at`(주 시작)~`race_date`로 날짜 범위를 좁혀 해결,
+  회귀 테스트 2건 추가. (2) Coach 홈 "새 프로그램 만들기" 링크가 존재하지
+  않는 `/coach/plan/active`를 가리킴 — `/coach/plan/new`로 수정. 전체
+  `pytest tests/`(1387 passed) + `check_data_consistency.py`(0 오류) +
+  `check_docs.py`(0 오류) + `npm run check`/`build` 모두 통과 확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/plan_service.py", "src/api/routes_plan.py", "src/api/__init__.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/+page.ts", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-COACH-PLAN-CREATE]** 03e-coach.md 5-C(플랜 없음)+5-D(새 프로그램
   생성)+5-E(프로그램 비교) — `P7-IMPL-COACH-PLAN-STATIC`(NEXT)의 두 번째
@@ -975,10 +990,14 @@ DONE으로 옮긴다.
   범위 밖), 이번 주 월요일부터 `weeks`주 반복해 `generate_weekly_plan(conn,
   goal_id=goal_id, week_start=w)` → `save_weekly_plan(conn, plan)`,
   `conn.commit()`, `goal_id` 반환(`views_training_wizard.py`의 기존 로직과
-  1:1 대응 — 새 로직 없음). (2) `src/api/routes_plan.py`(기존 파일에 추가)
-  — `GET /api/v1/plan/templates?distance_km=&target_time_sec=`(distance_km
-  필수, 없으면 400) → `get_static_plan_templates`, `POST /api/v1/plan`(JSON
-  body: distance_km, race_date, weeks, target_time_sec?, name?) →
+  1:1 대응 — 새 로직 없음). (2) `src/api/routes_plan.py`(기존 파일에 추가
+  — **주의**: `P7-IMPL-COACH-PLAN-ACTIVE`가 실제로 구현한 라우트 프리픽스는
+  스펙 초안의 `/plan/*`가 아니라 `/coach/plan/*`다, 아래 경로는 그 실제
+  구현에 맞춰 수정됨)
+  — `GET /api/v1/coach/plan/templates?distance_km=&target_time_sec=`
+  (distance_km 필수, 없으면 400) → `get_static_plan_templates`,
+  `POST /api/v1/coach/plan`(JSON body: distance_km, race_date, weeks,
+  target_time_sec?, name?) →
   `create_plan_from_template`, `{"goal_id": ...}` 반환. (3)
   `frontend/src/lib/types/index.ts`에 `PlanTemplate { weeks: number; label:
   string; weekly_km_target: number | null; achievability_pct: number | null;
@@ -987,8 +1006,9 @@ DONE으로 옮긴다.
   race_date: string | null; weeks: number; target_time_sec?: number; name?:
   string }`. (4) `frontend/src/lib/api/plan.ts`(기존 파일에 추가) —
   `getPlanTemplates(distanceKm: number, targetTimeSec?: number):
-  Promise<PlanTemplate[]>`, `createPlan(payload: CreatePlanPayload):
-  Promise<number>`(`apiFetch<{goal_id: number}>('/plan', {method: 'POST',
+  Promise<PlanTemplate[]>`(`/coach/plan/templates` 호출), `createPlan(payload:
+  CreatePlanPayload): Promise<number>`
+  (`apiFetch<{goal_id: number}>('/coach/plan', {method: 'POST',
   body: JSON.stringify(payload)}).then(r => r.goal_id)` — `apiFetch`의 POST
   옵션 시그니처는 `frontend/src/lib/api/coach.ts`의 `createThread()` 패턴
   그대로 참조). (5) `frontend/src/routes/coach/plan/+page.svelte` +
