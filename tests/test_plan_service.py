@@ -90,6 +90,38 @@ def test_compliance_pct_with_mixed_workouts(conn):
     assert result["compliance_pct"] == pytest.approx(66.7, abs=0.1)
 
 
+def test_compliance_pct_ignores_prior_goal_leftovers(conn):
+    """이전(완료/취소된) 목표의 workout이 현재 목표 집계에 섞이지 않아야 한다.
+
+    planned_workouts에는 goal_id 컬럼이 없어 날짜 범위로만 구분한다 — 이전 목표의
+    workout이 훨씬 과거 날짜에 있어도 새 목표 생성 이후 범위에는 포함되면 안 된다.
+    """
+    old_date = (date.today() - timedelta(days=365)).isoformat()
+    _seed_workout(conn, old_date, "easy", completed=0)  # 이전 목표의 미완료 워크아웃(오염원)
+
+    _seed_goal(conn)
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    _seed_workout(conn, week_start.isoformat(), "easy", completed=1)
+    _seed_workout(conn, (week_start + timedelta(1)).isoformat(), "long", completed=1)
+
+    result = plan_service.get_active_plan(conn)
+    # 이전 목표의 미완료 워크아웃이 섞였다면 2/3 = 66.7이 되어야 하지만,
+    # 날짜 범위로 걸러지면 2/2 = 100.0
+    assert result["compliance_pct"] == pytest.approx(100.0, abs=0.1)
+
+
+def test_week_index_ignores_prior_goal_leftovers(conn):
+    """week_index가 이전 목표의 오래된 workout 날짜가 아닌 현재 목표 생성 시점 기준이어야 한다."""
+    old_date = (date.today() - timedelta(days=365)).isoformat()
+    _seed_workout(conn, old_date, "easy", completed=0)
+
+    _seed_goal(conn)
+    result = plan_service.get_active_plan(conn)
+    # created_at이 오늘이므로 1주차여야 한다 (365일 전 기준이면 수십 주차가 됨)
+    assert result["week_index"] == 1
+
+
 # ── get_todays_adjustment ────────────────────────────────────────────────────
 
 def test_get_todays_adjustment_no_plan_returns_none(conn):

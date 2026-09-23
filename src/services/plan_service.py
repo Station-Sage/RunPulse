@@ -19,27 +19,52 @@ def _current_week_start() -> date:
     return today - timedelta(days=today.weekday())
 
 
-def _week_index_absolute(conn: sqlite3.Connection) -> int:
-    """1-based 절대 주 인덱스 (최초 planner 워크아웃 기준)."""
-    row = conn.execute(
-        "SELECT MIN(date) FROM planned_workouts WHERE source='planner'"
-    ).fetchone()
-    earliest = row[0] if row else None
-    if not earliest:
+def _plan_date_range(goal: dict) -> tuple[str | None, str | None]:
+    """이 목표의 planned_workouts 조회 범위: [created_at 주 월요일, race_date].
+
+    planned_workouts에 goal_id 컬럼이 없어 source='planner'만으로는 여러 목표의
+    워크아웃이 뒤섞인다 — created_at/race_date로 날짜 범위를 좁혀 다른 목표(완료/취소된
+    이전 목표 포함)의 데이터가 섞이지 않게 한다.
+    """
+    start = None
+    created_at = goal.get("created_at")
+    if created_at:
+        try:
+            created = date.fromisoformat(created_at[:10])
+            start = (created - timedelta(days=created.weekday())).isoformat()
+        except (ValueError, TypeError):
+            pass
+    return start, goal.get("race_date")
+
+
+def _week_index_absolute(conn: sqlite3.Connection, goal: dict) -> int:
+    """1-based 절대 주 인덱스 (목표 생성 주 기준)."""
+    start, _ = _plan_date_range(goal)
+    if not start:
         return 1
     try:
-        start = date.fromisoformat(earliest[:10])
+        start_date = date.fromisoformat(start)
         ws = _current_week_start()
-        weeks = max(0, (ws - start).days // 7)
+        weeks = max(0, (ws - start_date).days // 7)
         return weeks + 1
     except (ValueError, TypeError):
         return 1
 
 
-def _compliance_pct(conn: sqlite3.Connection) -> float | None:
-    """완료된 / 비-휴식 워크아웃 비율 (전체 기간)."""
+def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
+    """완료된 / 비-휴식 워크아웃 비율 (이 목표의 플랜 기간 내)."""
+    start, end = _plan_date_range(goal)
+    clauses = ["source='planner'"]
+    params: list[str] = []
+    if start:
+        clauses.append("date >= ?")
+        params.append(start)
+    if end:
+        clauses.append("date <= ?")
+        params.append(end)
     rows = conn.execute(
-        "SELECT workout_type, completed FROM planned_workouts WHERE source='planner'"
+        f"SELECT workout_type, completed FROM planned_workouts WHERE {' AND '.join(clauses)}",
+        params,
     ).fetchall()
     non_rest = [r for r in rows if r[0] != "rest"]
     if not non_rest:
@@ -61,8 +86,8 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
     workouts = get_planned_workouts(conn, week_start=week_start)
     fitness = get_latest_fitness(conn)
     ctl_current = fitness.get("ctl")
-    week_index = _week_index_absolute(conn)
-    compliance_pct = _compliance_pct(conn)
+    week_index = _week_index_absolute(conn, goal)
+    compliance_pct = _compliance_pct(conn, goal)
     return {
         "goal": {
             "id": goal["id"],

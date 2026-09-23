@@ -175,7 +175,7 @@
 				</a>
 			{:else}
 				<a
-					href="{base}/coach/plan/active"
+					href="{base}/coach/plan/new"
 					class="text-sm text-semantic-amber hover:underline"
 				>
 					새 프로그램 만들기 →
