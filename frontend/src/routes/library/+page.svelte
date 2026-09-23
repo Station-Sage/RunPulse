@@ -24,12 +24,12 @@
 	>
 		메트릭
 	</a>
-	<span
-		class="flex-1 py-3 text-center text-sm text-fg-muted opacity-40"
-		title="준비 중"
+	<a
+		href="{base}/library/wellness"
+		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
 	>
 		웰니스
-	</span>
+	</a>
 	<span
 		class="flex-1 py-3 text-center text-sm text-fg-muted opacity-40"
 		title="준비 중"

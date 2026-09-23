@@ -22,9 +22,13 @@ def conn(db_conn):
     """)
 
     wellness_metrics = [
-        ("daily", DATE, "utrs",  "readiness",    "runpulse:formula_v1", 72.3, None, None, 0.8, 1),
-        ("daily", DATE, "cirs",  "readiness",    "runpulse:formula_v1", 28.1, None, None, None, 1),
-        ("daily", DATE, "hrss",  "load",         "runpulse:formula_v1", 95.1, None, None, 0.9, 1),
+        ("daily", DATE, "utrs",             "readiness", "runpulse:formula_v1", 72.3, None, None, 0.8, 1),
+        ("daily", DATE, "cirs",             "readiness", "runpulse:formula_v1", 28.1, None, None, None, 1),
+        ("daily", DATE, "hrss",             "load",      "runpulse:formula_v1", 95.1, None, None, 0.9, 1),
+        ("daily", DATE, "sleep_rem_pct",    "sleep",     "garmin",              22.5, None, None, None, 1),
+        ("daily", DATE, "hrv_rmssd",        "hr",        "garmin",              42.0, None, None, 0.9, 1),
+        ("daily", DATE, "body_battery_end", "body",      "garmin",              35.0, None, None, None, 1),
+        ("daily", DATE, "stress_high_pct",  "stress",    "garmin",               8.0, None, None, None, 1),
     ]
     c.executemany(
         "INSERT INTO metric_store"
@@ -61,6 +65,42 @@ def test_get_wellness_detail_metrics_by_category(conn):
     names = [m["metric_name"] for m in mbc["readiness"]]
     assert "utrs" in names
     assert "cirs" in names
+
+
+def test_get_wellness_detail_sleep_category(conn):
+    """'sleep' 카테고리 메트릭이 metrics_by_category에 포함된다 (버그 회귀 방지)."""
+    result = get_wellness_detail(conn, DATE)
+    mbc = result["metrics_by_category"]
+    assert "sleep" in mbc
+    names = [m["metric_name"] for m in mbc["sleep"]]
+    assert "sleep_rem_pct" in names
+
+
+def test_get_wellness_detail_hr_category(conn):
+    """'hr' 카테고리 메트릭이 metrics_by_category에 포함된다 (버그 회귀 방지: 'hrv'가 아닌 'hr')."""
+    result = get_wellness_detail(conn, DATE)
+    mbc = result["metrics_by_category"]
+    assert "hr" in mbc
+    names = [m["metric_name"] for m in mbc["hr"]]
+    assert "hrv_rmssd" in names
+
+
+def test_get_wellness_detail_body_category(conn):
+    """'body' 카테고리 메트릭이 metrics_by_category에 포함된다."""
+    result = get_wellness_detail(conn, DATE)
+    mbc = result["metrics_by_category"]
+    assert "body" in mbc
+    names = [m["metric_name"] for m in mbc["body"]]
+    assert "body_battery_end" in names
+
+
+def test_get_wellness_detail_stress_category(conn):
+    """'stress' 카테고리 메트릭이 metrics_by_category에 포함된다."""
+    result = get_wellness_detail(conn, DATE)
+    mbc = result["metrics_by_category"]
+    assert "stress" in mbc
+    names = [m["metric_name"] for m in mbc["stress"]]
+    assert "stress_high_pct" in names
 
 
 def test_get_wellness_detail_readiness_summary(conn):

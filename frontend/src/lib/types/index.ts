@@ -416,3 +416,52 @@ export interface MetricTrendData {
 	change_pct: number | null;
 	points: MetricTrendPoint[];
 }
+
+// ── Wellness (3-G — /api/v1/library/wellness) ────────────────────────────────
+
+export interface WellnessCore {
+	date?: string;
+	sleep_score?: number | null;
+	sleep_duration_sec?: number | null;
+	hrv_last_night?: number | null;
+	hrv_weekly_avg?: number | null;
+	resting_hr?: number | null;
+	body_battery_high?: number | null;
+	body_battery_low?: number | null;
+	avg_stress?: number | null;
+	steps?: number | null;
+	weight_kg?: number | null;
+	[key: string]: unknown;
+}
+
+export interface WellnessMetricEntry {
+	metric_name: string;
+	numeric_value: number | null;
+	text_value: string | null;
+	json_value: string | null;
+	provider: string | null;
+	confidence: number | null;
+	unit: string;
+	description: string;
+}
+
+export interface WellnessDetailData {
+	date: string;
+	core: WellnessCore;
+	metrics_by_category: Record<string, WellnessMetricEntry[]>;
+	readiness_summary: {
+		utrs: { value: number | null; confidence: number | null } | null;
+		cirs: { value: number | null; confidence: number | null } | null;
+	};
+}
+
+export interface WellnessTrendData {
+	dates: string[];
+	sleep_score: (number | null)[];
+	hrv_last_night: (number | null)[];
+	resting_hr: (number | null)[];
+	body_battery_high: (number | null)[];
+	avg_stress: (number | null)[];
+	weight_kg: (number | null)[];
+	utrs: (number | null)[];
+}

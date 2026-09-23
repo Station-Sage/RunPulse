@@ -16,8 +16,7 @@ from src.utils import db_helpers
 from src.utils.metric_registry import get_metric
 
 _WELLNESS_CATEGORIES = (
-    "sleep", "stress", "hrv", "readiness", "wellness",
-    "rp_readiness", "rp_risk", "rp_recovery",
+    "sleep", "stress", "hr", "readiness", "body",
 )
 
 _TREND_WELLNESS_COLS = (

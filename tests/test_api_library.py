@@ -236,3 +236,46 @@ def test_get_metric_trend_404(metric_app):
     assert res.status_code == 404
     body = res.get_json()
     assert body["error"]["code"] == "NOT_FOUND"
+
+
+# ── /library/wellness 라우트 테스트 ─────────────────────────────────────────
+
+def test_get_wellness_200(metric_app):
+    """GET /library/wellness?date=2026-04-01 → 200, 필수 키 포함."""
+    res = metric_app.get("/api/v1/library/wellness?date=2026-04-01")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert data["date"] == "2026-04-01"
+    assert "core" in data
+    assert "metrics_by_category" in data
+    assert "readiness_summary" in data
+    assert data["core"]["sleep_score"] == 85
+
+
+def test_get_wellness_no_date(metric_app):
+    """date 없이 호출 → 200, date 키 포함."""
+    res = metric_app.get("/api/v1/library/wellness")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "date" in body["data"]
+
+
+def test_get_wellness_trend_200(metric_app):
+    """GET /library/wellness/trend → 200, 필수 시계열 키 포함."""
+    res = metric_app.get("/api/v1/library/wellness/trend?days=30")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert "dates" in data
+    assert "sleep_score" in data
+    assert "hrv_last_night" in data
+    assert "utrs" in data
+
+
+def test_get_wellness_trend_invalid_days(metric_app):
+    """days 파라미터가 정수가 아닌 경우 → 400, INVALID_PARAM."""
+    res = metric_app.get("/api/v1/library/wellness/trend?days=abc")
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["error"]["code"] == "INVALID_PARAM"
