@@ -391,7 +391,16 @@ _DEFINITIONS: list[MetricDef] = [
               aliases={"garmin": "recoveryFactorPercent"}),
     MetricDef("crs", "readiness", "metric", "", "CRS (복합 준비도 게이트)", scope="daily"),
     MetricDef("utrs", "readiness", "metric", "", "Unified Training Readiness Score", scope="daily"),
+    MetricDef("utrs_body_battery", "readiness", "metric", "", "UTRS 구성요소 - Body Battery 정규화값 (parent: utrs)", scope="daily"),
+    MetricDef("utrs_tsb", "readiness", "metric", "", "UTRS 구성요소 - TSB 정규화값 (parent: utrs)", scope="daily"),
+    MetricDef("utrs_sleep", "readiness", "metric", "", "UTRS 구성요소 - 수면 점수 정규화값 (parent: utrs)", scope="daily"),
+    MetricDef("utrs_hrv", "readiness", "metric", "", "UTRS 구성요소 - HRV 정규화값 (parent: utrs)", scope="daily"),
+    MetricDef("utrs_stress", "readiness", "metric", "", "UTRS 구성요소 - 스트레스 정규화값, 역산 (parent: utrs)", scope="daily"),
     MetricDef("cirs", "readiness", "metric", "", "Composite Injury Risk Score", scope="daily"),
+    MetricDef("cirs_acwr", "readiness", "metric", "", "CIRS 구성요소 - ACWR 위험도 (parent: cirs)", scope="daily"),
+    MetricDef("cirs_lsi", "readiness", "metric", "", "CIRS 구성요소 - LSI 위험도 (parent: cirs)", scope="daily"),
+    MetricDef("cirs_consecutive", "readiness", "metric", "", "CIRS 구성요소 - 연속훈련일 위험도 (parent: cirs)", scope="daily"),
+    MetricDef("cirs_fatigue", "readiness", "metric", "", "CIRS 구성요소 - 피로도(CTL-TSB) 위험도 (parent: cirs)", scope="daily"),
     MetricDef("rmr", "readiness", "metric", "json", "Runner Maturity Radar", scope="weekly"),
 
     # ── weather (metric_store) ──

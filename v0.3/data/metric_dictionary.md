@@ -305,7 +305,7 @@ Garmin/Strava/Intervals/Runalyze
 | 항목 | 값 |
 |------|-----|
 | Calculator ID | `utrs` |
-| 메트릭 이름 | `utrs` |
+| 메트릭 이름 | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress` |
 | 설명 | 수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도. |
 | 단위 | 점 |
 | 카테고리 | `readiness` |
@@ -329,7 +329,7 @@ Garmin/Strava/Intervals/Runalyze
 | 항목 | 값 |
 |------|-----|
 | Calculator ID | `cirs` |
-| 메트릭 이름 | `cirs` |
+| 메트릭 이름 | `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue` |
 | 설명 | ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도. |
 | 단위 | 점 |
 | 카테고리 | `readiness` |
@@ -843,8 +843,8 @@ Daily-scope:
   ctl + atl --> acwr
   trimp --> lsi
   trimp --> monotony, training_strain
-  tsb --> utrs
-  acwr + lsi + ctl + tsb --> cirs
+  tsb --> utrs, utrs_body_battery, utrs_tsb, utrs_sleep, utrs_hrv, utrs_stress
+  acwr + lsi + ctl + tsb --> cirs, cirs_acwr, cirs_lsi, cirs_consecutive, cirs_fatigue
   (소스 직접) --> di
   runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
   workout_type_classified --> tids
@@ -872,7 +872,7 @@ Daily-scope:
 | `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
 | `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
-| `readiness` | readiness | `utrs`, `cirs`, `rmr`, `crs` |
+| `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |
 
 ## 7. 소스별 원본 메트릭 (참고)
 

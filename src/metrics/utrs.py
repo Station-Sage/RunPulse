@@ -10,6 +10,7 @@ from src.metrics.base import CalcContext, CalcResult, MetricCalculator, Confiden
 
 class UTRSCalculator(MetricCalculator):
     name = "utrs"
+    produces = ["utrs", "utrs_body_battery", "utrs_tsb", "utrs_sleep", "utrs_hrv", "utrs_stress"]
     provider = "runpulse:formula_v1"
     version = "pdf_weights_v1"
     scope_type = "daily"

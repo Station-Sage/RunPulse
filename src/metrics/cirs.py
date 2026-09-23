@@ -12,6 +12,7 @@ from src.metrics.lsi import LSICalculator
 
 class CIRSCalculator(MetricCalculator):
     name = "cirs"
+    produces = ["cirs", "cirs_acwr", "cirs_lsi", "cirs_consecutive", "cirs_fatigue"]
     provider = "runpulse:formula_v1"
     version = "1.0"
     scope_type = "daily"
