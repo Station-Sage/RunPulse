@@ -139,11 +139,17 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 
 - **[P7-IMPL-7B-LIBRARY]** Library 전면화 나머지(2026-09-23 갱신 — 3-D/3-E/3-F는
   `P7-IMPL-7B-STREAMS`/`P7-IMPL-7B-METRICS-BROWSER`로 AUTOPILOT QUEUE 분리
-  완료, `/metrics/:slug`·`<ProviderComparison>`(C4)도 이미 병합됨). 남은 건:
-  3-A Library 홈 강화(시맨틱 그룹 빠른 접근, Provider 데이터 현황 카드 —
-  `GET /api/v1/library/providers/status` 신설 필요), 3-B 활동 목록 전용 페이지
-  (`GET /library/activities`는 이미 있음, 프론트만), "웰니스" 탭(3-A 목업엔
-  있으나 03c 본문에 화면 설계가 없음 — 착수 전 설계 필요).
+  완료, `/metrics/:slug`·`<ProviderComparison>`(C4)도 이미 병합됨). **3-B는
+  이미 완료 상태**(2026-09-23 재확인 — 직전 갱신 때 "프론트만 남음"으로 잘못
+  적었음: 현재 `/library` 자체가 필터+페이지네이션이 붙은 3-B 활동 목록
+  그대로, `P7-IMPL-SVELTE-2A`에서 이미 구현됨). 진짜 남은 건 IA 판단이 필요한
+  두 가지 — (1) 3-A Library 홈: 목업은 `/library`를 [활동][메트릭][웰니스]
+  [Provider 비교] 4-탭 허브로 그리는데 실제론 `/library`가 곧 활동 목록이라
+  탭 구조 자체가 없음(현재 상단 네비 Today/Library/Coach와 탭이 어떻게
+  공존할지 결정 필요) + Provider 데이터 현황 카드(`GET /api/v1/library/
+  providers/status` 신설 필요), (2) "웰니스" 탭 — 03c 본문에 화면 설계 자체가
+  없음(3-A 목업에만 라벨로 존재). 둘 다 기존 백엔드를 새 프론트에 얹는
+  수준을 넘어 제품 판단이 필요해 착수 전 plan mode 필요.
 
 - **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
   5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
