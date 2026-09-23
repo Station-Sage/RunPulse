@@ -82,40 +82,68 @@
 		</div>
 	</section>
 
-	<!-- 코어 메트릭 카드 -->
+	<!-- 코어 메트릭 카드 (값 없는 항목은 숨김 — library/[id]/+page.svelte 핵심 통계 바 패턴) -->
 	<section class="px-4 pb-3">
 		<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">오늘</h2>
 		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">수면 점수</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.sleep_score)}</p>
-			</div>
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">수면 시간</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">
-					{fmtDuration(core.sleep_duration_sec)}
-				</p>
-			</div>
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">HRV (야간)</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">
-					{fmt(core.hrv_last_night, 1)}<span class="ml-0.5 text-xs font-normal text-fg-muted">ms</span>
-				</p>
-			</div>
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">안정 심박</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">
-					{fmt(core.resting_hr)}<span class="ml-0.5 text-xs font-normal text-fg-muted">bpm</span>
-				</p>
-			</div>
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">Body Battery</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.body_battery_high)}</p>
-			</div>
-			<div class="rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">평균 스트레스</span>
-				<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.avg_stress)}</p>
-			</div>
+			{#if core.sleep_score != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">수면 점수</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.sleep_score)}</p>
+				</div>
+			{/if}
+			{#if core.sleep_duration_sec != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">수면 시간</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">
+						{fmtDuration(core.sleep_duration_sec)}
+					</p>
+				</div>
+			{/if}
+			{#if core.hrv_last_night != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">HRV (야간)</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">
+						{fmt(core.hrv_last_night, 1)}<span class="ml-0.5 text-xs font-normal text-fg-muted">ms</span>
+					</p>
+				</div>
+			{/if}
+			{#if core.resting_hr != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">안정 심박</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">
+						{fmt(core.resting_hr)}<span class="ml-0.5 text-xs font-normal text-fg-muted">bpm</span>
+					</p>
+				</div>
+			{/if}
+			{#if core.body_battery_high != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">Body Battery</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.body_battery_high)}</p>
+				</div>
+			{/if}
+			{#if core.avg_stress != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">평균 스트레스</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">{fmt(core.avg_stress)}</p>
+				</div>
+			{/if}
+			{#if core.steps != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">걸음수</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">
+						{(core.steps as number).toLocaleString('ko-KR')}
+					</p>
+				</div>
+			{/if}
+			{#if core.weight_kg != null}
+				<div class="rounded-xl bg-surface-2 p-3">
+					<span class="text-xs text-fg-muted">체중</span>
+					<p class="mt-1 font-mono text-lg font-semibold leading-none">
+						{fmt(core.weight_kg, 1)}<span class="ml-0.5 text-xs font-normal text-fg-muted">kg</span>
+					</p>
+				</div>
+			{/if}
 		</div>
 	</section>
 
