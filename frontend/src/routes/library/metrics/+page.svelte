@@ -9,8 +9,8 @@
 
 	const categories = $derived(data.browser?.categories ?? []);
 
-	// 카테고리 칩 필터 ('all' + 실제 등장 카테고리)
-	let selectedCategory = $state<string>('all');
+	// 카테고리 칩 필터 ('all' + 실제 등장 카테고리) — URL ?category= 로 초기 선택 가능
+	let selectedCategory = $state<string>(data.initialCategory);
 
 	const visibleCategories = $derived(
 		selectedCategory === 'all'

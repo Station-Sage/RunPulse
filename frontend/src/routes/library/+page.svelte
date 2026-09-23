@@ -7,11 +7,6 @@
 	import type { ProviderKey } from '$lib/types';
 
 	let { data }: { data: LibraryHomeData } = $props();
-
-	// 최근 활동에 등장하는 소스를 중복 없이 추출(Provider 현황 섹션용).
-	const activeProviders = $derived(
-		[...new Set(data.recentActivities.map((a) => a.source as ProviderKey))]
-	);
 </script>
 
 <!-- 섹션 탭 -->
@@ -129,21 +124,5 @@
 <!-- Provider 데이터 현황 -->
 <section class="px-4 pb-6">
 	<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Provider 현황</h2>
-
-	{#if activeProviders.length === 0}
-		<p class="text-sm text-fg-muted">연결된 Provider 없음</p>
-	{:else}
-		<ul class="flex flex-col gap-2">
-			{#each activeProviders as provider}
-				<li class="flex items-center gap-2">
-					<span
-						class="h-2 w-2 shrink-0 rounded-full {providerBadgeClass(provider)}"
-						aria-hidden="true"
-					></span>
-					<span class="text-sm text-fg-secondary">{providerLabel(provider)}</span>
-					<span class="ml-auto text-xs text-fg-muted">연결됨</span>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+	<p class="text-sm text-fg-muted">준비 중 — 연결 상태·마지막 동기화 정보는 후속 업데이트에서 제공됩니다.</p>
 </section>
