@@ -1,11 +1,11 @@
-"""GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /metrics/:slug — Phase 7a/7b."""
+"""GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /metrics/:slug + /wellness — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service
+from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, wellness_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -166,3 +166,39 @@ def get_library_activity_streams(activity_id: int):
         conn.close()
 
     return api_ok({"streams": streams})
+
+
+@api_bp.get("/library/wellness")
+def get_library_wellness():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    date_param = request.args.get("date") or None
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = wellness_service.get_wellness_detail(conn, date=date_param)
+    finally:
+        conn.close()
+
+    return api_ok(result)
+
+
+@api_bp.get("/library/wellness/trend")
+def get_library_wellness_trend():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    try:
+        days = int(request.args.get("days", 30))
+    except ValueError:
+        return api_error("INVALID_PARAM", "days는 정수여야 합니다.", 400)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = wellness_service.get_wellness_trend(conn, days=days)
+    finally:
+        conn.close()
+
+    return api_ok(result)
