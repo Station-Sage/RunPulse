@@ -60,6 +60,10 @@
 
 - functions: get_active_plan, get_todays_adjustment
 
+### `plan_template_service.py` (178줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+
+- functions: get_static_plan_templates, create_plan_from_template
+
 ### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
@@ -1127,9 +1131,9 @@
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days
 
-### `test_api_plan.py` (141줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+### `test_api_plan.py` (187줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
-- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan
+- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal
 
 ### `test_api_today.py` (86줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
@@ -1532,6 +1536,10 @@
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan
 
+### `test_plan_template_service.py` (145줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
+
+- functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date
+
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
 - class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data, test_ramp_rate_has_parent_metric_name_ctl
@@ -1793,7 +1801,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 349개 파일
+총 351개 파일
 
 ## docstring 누락
 

@@ -502,6 +502,26 @@ export interface ActivePlan {
 	compliance_pct: number | null;
 }
 
+// ── Coach Plan Templates (5-D/5-E — /api/v1/coach/plan/templates) ────────────
+
+export interface PlanTemplate {
+	weeks: number;
+	label: string;
+	weekly_km_target: number | null;
+	achievability_pct: number | null;
+	projected_time_end: number | null;
+	risk_level: '낮음' | '중간' | '높음' | null;
+	status_summary: string;
+}
+
+export interface CreatePlanPayload {
+	distance_km: number;
+	race_date: string | null;
+	weeks: number;
+	target_time_sec?: number;
+	name?: string;
+}
+
 export interface TodaysAdjustment {
 	id: number;
 	date: string;

@@ -139,3 +139,49 @@ def test_get_adjustment_200_with_plan(app_with_goal):
     assert res.status_code == 200
     body = res.get_json()
     assert "adjusted" in body["data"]
+
+
+# ── /coach/plan/templates ────────────────────────────────────────────────────
+
+def test_get_templates_400_no_distance(mini_app):
+    """distance_km 없으면 400."""
+    client, _ = mini_app
+    res = client.get("/api/v1/coach/plan/templates")
+    assert res.status_code == 400
+    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+
+
+def test_get_templates_200(mini_app):
+    """distance_km 있으면 200 + 템플릿 리스트 반환."""
+    client, _ = mini_app
+    res = client.get("/api/v1/coach/plan/templates?distance_km=42.195&target_time_sec=14400")
+    assert res.status_code == 200
+    data = res.get_json()["data"]
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert "weeks" in data[0]
+    assert "label" in data[0]
+
+
+# ── POST /coach/plan ─────────────────────────────────────────────────────────
+
+def test_post_plan_400_missing_fields(mini_app):
+    """distance_km 또는 weeks 없으면 400."""
+    client, _ = mini_app
+    res = client.post("/api/v1/coach/plan", json={"distance_km": 42.195})
+    assert res.status_code == 400
+    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+
+
+def test_post_plan_201_creates_goal(mini_app):
+    """정상 요청 시 200 + goal_id 반환."""
+    client, _ = mini_app
+    res = client.post("/api/v1/coach/plan", json={
+        "distance_km": 10.0,
+        "weeks": 8,
+        "target_time_sec": 2700
+    })
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "goal_id" in body["data"]
+    assert isinstance(body["data"]["goal_id"], int)
