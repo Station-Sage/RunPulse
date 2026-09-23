@@ -359,6 +359,115 @@ DONE으로 옮긴다.
   테스트(200/404) 추가.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/provider_comparison_service.py", "src/api/routes_library.py", "tests/test_provider_comparison_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_comparison_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
+- **[P7-IMPL-MILESTONES]** `milestones` 테이블 + `milestone_service.py` — 마일스톤
+  탐지·저장(03a-today.md 1-D). 설계 근거는 `DECISIONS.md`의 `[P7-DESIGN-7B-API]`
+  "get_today_narrative() + milestones 테이블" 항목 참조(착수 전 필독, plan mode로
+  승인받은 설계). **구현**: (1) `src/db_setup.py`에 `_DDL_MILESTONES` 추가 —
+  `id INTEGER PRIMARY KEY AUTOINCREMENT`, `type TEXT NOT NULL`
+  (`'distance_threshold'|'pb'|'metric_recompute'`), `date TEXT NOT NULL`,
+  `title TEXT NOT NULL`, `detail TEXT`, `activity_id INTEGER`,
+  `metric_name TEXT`, `old_value REAL`, `new_value REAL`,
+  `created_at TEXT DEFAULT (datetime('now'))`,
+  `UNIQUE(type, date, title)`(같은 마일스톤 중복 방지 — 매 sync마다 재탐지해도
+  `INSERT OR IGNORE`로 안전, D2 백필과 동일 발상). `PIPELINE_TABLES`(D2의
+  `activity_groups`처럼 파생 데이터 — `APP_TABLES` 아님)에 `"milestones"` 추가,
+  `SCHEMA_VERSION` 17→18(`# v0.3.8: milestones 테이블 신설` 주석), `migrate_db()`
+  docstring에 `v18: milestones 테이블 신설 — CREATE TABLE IF NOT EXISTS만으로
+  충분.`(D2의 `v17` 항목과 동일 패턴, 코드 마이그레이션 불필요). **D2 때 놓친
+  실수 반복 금지**: `tests/test_phase1_schema.py`에 `SCHEMA_VERSION`/`ver` 하드코딩
+  assert가 있으면 18로 갱신(grep으로 먼저 확인). (2)
+  `src/services/milestone_service.py`(신규) — 쓰기 함수(dedup.py D2와 같은 성격,
+  today_service.py의 읽기 전용 원칙과는 별개 모듈). `detect_and_store_milestones
+  (conn: sqlite3.Connection, start_date: str, end_date: str) -> list[dict]`(새로
+  삽입된 마일스톤만 반환): (a) **distance_threshold** — `v_canonical_activities`
+  (`src/db_setup.py` `_DDL_CANONICAL_VIEW`, dedup 완료 뷰)에서 `start_date` 미만
+  누적거리 합과 `end_date` 이하 누적거리 합을 각각 구해, 그 사이에 새로 넘은
+  100km(100000m) 배수마다 하나씩 — `title=f"누적 {n*100}km 돌파"`, `date`는
+  실제로 그 배수를 넘긴 활동의 `start_time` 날짜(범위 내 활동을 `start_time`
+  오름차순으로 순회하며 누적하다 넘는 시점 판정). (b) **pb** — 범위 내 활동 중
+  레이스로 태그된 것만: `metric_store`에 `metric_name='workout_type_classified'
+  AND text_value='race'`인 행이 있거나 `activity_summaries.name`에 "레이스"/
+  "대회"/"Race" 포함(이 판정 기준은 `src/ai/tool_exec_context.py`의
+  `_exec_get_race_history`와 동일 조건 — import는 안 함, ai/ 쪽 헬퍼를 services/
+  에서 끌어오지 않음, 조건만 동일하게 복사). 이 활동들을 `distance_m` 기준
+  버킷(5k: 4500~5500m, 10k: 9000~11000m, half: 20000~22500m, marathon:
+  40000~43000m)으로 분류, 각 활동의 `avg_pace_sec_km`가 같은 버킷의 그 이전
+  전체 활동(범위 밖 과거 포함, `start_time <` 해당 활동)보다 작으면(더 빠르면)
+  PB — `title=f"{버킷 한글명} PB"`(5k→"5K", 10k→"10K", half→"하프마라톤",
+  marathon→"풀마라톤"), `activity_id`에 연결, `detail`에 완주 시간. 버킷 내 이전
+  활동이 하나도 없으면(첫 완주) PB로 치지 않음(비교 대상 없음). 두 탐지 모두
+  `INSERT OR IGNORE INTO milestones (...)`로 저장. `get_recent_milestones(conn:
+  sqlite3.Connection, limit: int = 10) -> list[dict]` — `ORDER BY date DESC, id
+  DESC LIMIT ?`, 읽기 전용. (3) `src/utils/db_helpers.py`의 `upsert_metric()`
+  재계산 감지 — 함수 맨 앞, UPSERT 실행 전에 `metric_name`이
+  `_MILESTONE_TRACKED_METRICS = {"ctl", "runpulse_vdot", "race_pred_5k_sec",
+  "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec", "rri"}`에
+  있을 때만: 기존 행(`SELECT numeric_value, algorithm_version FROM metric_store
+  WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?`) 조회,
+  있고 `algorithm_version`이 새로 들어오는 값과 다르고 `numeric_value`도 상대
+  오차 1% 초과로 다르면 `milestones`에 `type='metric_recompute'` 행 INSERT OR
+  IGNORE(`title=f"{metric_name} 재계산"`, `detail=f"{old_version}→{new_version}
+  적용"`, `old_value`/`new_value` 채움, `date`=오늘). **allow-list 밖 메트릭은
+  이 SELECT 자체를 안 함**(전체 메트릭에 걸면 sync 성능 저하 — 이번 설계의 핵심
+  제약, 반드시 지킬 것). (4) `src/api/routes_today.py`에 `GET /api/v1/today/
+  milestones` 라우트 추가(쿼리 파라미터 `limit`, 기본 10) — 기존 `get_today`
+  패턴 그대로. (5) `src/sync.py`의 `main()` — `metrics_engine.run_for_date_range()`
+  호출 성공 직후, 같은 try/except 블록 안(로그만 남기고 sync 자체는 실패
+  처리 안 함, coding-rules.md "sync 중단 금지")에
+  `milestone_service.detect_and_store_milestones(conn, start_date, end_date)`
+  호출 추가. 테스트: `tests/test_milestone_service.py`(신규) — 100km 문턱을
+  넘는 활동 시퀀스에서 정확히 그 활동 날짜로 마일스톤 생성, 레이스 태그 활동이
+  이전 기록보다 빠르면 PB/느리면 미생성, 같은 범위로 두 번 호출해도 중복 삽입
+  안 됨(`INSERT OR IGNORE` 검증), `upsert_metric()`으로 allow-list 메트릭의
+  `algorithm_version`을 바꿔 재삽입하면 `metric_recompute` 마일스톤 생성·
+  allow-list 밖 메트릭은 생성 안 됨. `tests/test_api_today.py`(또는 없으면
+  적절한 기존 today API 테스트 파일)에 `/today/milestones` 라우트 테스트 추가.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/db_setup.py", "src/services/milestone_service.py", "src/utils/db_helpers.py", "src/api/routes_today.py", "src/sync.py", "tests/test_milestone_service.py", "tests/test_db_setup.py"], "verify": ["python3 -m pytest tests/test_milestone_service.py tests/test_db_setup.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
+- **[P7-IMPL-TODAY-NARRATIVE]** `today_service.get_today_narrative()` +
+  `GET /api/v1/today/narrative` — `P7-IMPL-MILESTONES` 선행 필요(`get_recent_
+  milestones()`를 컨텍스트에 씀). 설계 근거는 `DECISIONS.md`의
+  `[P7-DESIGN-7B-API]` "get_today_narrative() + milestones 테이블" 항목 참조.
+  **구현**: (1) `today_service.get_today_narrative(conn: sqlite3.Connection,
+  date: str | None = None, config: dict | None = None) -> dict`. 컨텍스트 조립:
+  `get_today_status(conn, date)`로 `training_status`(ctl 포함) 확보, 이번 달
+  1일의 ctl과 비교해 변화량 계산(월초 데이터 없으면 변화량 생략), `v_canonical_
+  activities`에서 이번 달 누적거리·활동수, `daily_wellness`에서 최근 7일
+  `sleep_score` 평균과 그 이전 7일 평균 비교(추세 문구용, 데이터 부족하면
+  생략), `milestone_service.get_recent_milestones(conn, limit=5)`. (2) AI
+  우선 생성: `from src.ai.chat_engine import _build_chat_provider_chain,
+  _call_provider` + `from src.ai.chat_engine import get_ai_provider`(이미
+  `chat_engine.py`에 있음) — `chain = _build_chat_provider_chain(get_ai_
+  provider(config), config)`로 순서 확보, 프롬프트는 위 컨텍스트 수치를 나열한
+  뒤 "위 데이터만 근거로 이번 달 훈련 흐름을 한국어 2~3문장으로 요약하라.
+  데이터에 없는 수치는 언급하지 마라." 같은 지시문(수치 환각 방지가 핵심 —
+  반드시 프롬프트에 명시). `for prov in chain: text = _call_provider(prov,
+  prompt, config); if text: break`(실패하면 다음 provider, `_call_provider`가
+  이미 실패 감지·None 반환 처리함, 재구현 불필요). (3) 전체 실패(text가 계속
+  None, chain이 비어 있거나 전부 실패) 시 규칙 기반 fallback — `today_service.py`
+  의 `_TSB_THRESHOLDS` 딕셔너리 리스트 패턴을 참고해 CTL 증감·이번 달 거리·수면
+  추세를 조건문으로 엮은 한국어 템플릿 문장 조립(예: "이번 달 { }km, CTL {a}→{b}
+  ({+-N}) { 수면 추세 문구 }." — 03a-today.md 1-A' 스텁 문구의 실데이터 확장판
+  수준, 새 디자인 불필요). (4) 반환: `{"date": ..., "text": ..., "source":
+  "ai"|"rule", "evidence": [{"type":"metric","metric":...,"value":...,
+  "label":...}, ...](`get_today_briefing()`과 동일 형태 재사용 — ctl/거리/수면
+  중 실제로 언급한 것만), "milestones": [...] }`. (5)
+  `today_service.get_today_milestones(conn: sqlite3.Connection, limit: int =
+  20) -> list[dict]` — `milestone_service.get_recent_milestones()` 그대로
+  노출하는 얇은 wrapper(1-D 패널용, `P7-IMPL-MILESTONES`가 만든 API와 별개로
+  서비스 레이어에도 한 번 더 노출 — 03a 문서가 Today L2 조회를 today_service
+  하나로 묶어서 기대함). (6) `src/api/routes_today.py`에 `GET /api/v1/today/
+  narrative` 라우트 — `config = load_config(user_id=get_current_user_id())`로
+  서버에서 로드(요청 인자로 API 키 등 안 받음 — 보안), `routes_coach.py`의
+  `load_config` 사용 패턴 그대로. 테스트: `tests/test_today_service.py`
+  확장 — **AI provider 미설정(config=None 또는 빈 dict) 상태에서도 규칙 기반
+  fallback으로 정상 응답**(반드시 테스트, 실서버에 AI 키 없을 수 있음),
+  `source` 필드가 상황에 맞게 "ai"/"rule"로 나뉘는지(AI 성공 케이스는
+  `_call_provider`를 monkeypatch로 목업), evidence에 데이터 없는 항목이
+  안 섞여 들어가는지. `tests/test_api_today.py`에 `/today/narrative` 라우트
+  테스트 추가.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-MILESTONES"], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "tests/test_today_service.py"], "verify": ["python3 -m pytest tests/test_today_service.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
 ---
 
 ## LATER

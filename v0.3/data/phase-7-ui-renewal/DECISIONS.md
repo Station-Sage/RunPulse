@@ -201,3 +201,26 @@ comparison()`은 `activity_groups`(D2)로 형제 id를 모은 뒤 `WHERE scope_i
 **엔드포인트**: `GET /api/v1/library/activities/:id/providers` — 03c가 쓴 `/library/
 providers`(페이지 라우트, 3-G-1용 매트릭스 API 자리)는 이번엔 안 만듦, activity
 하위 라우트로 스코프.
+
+---
+
+## [P7-DESIGN-7B-API] `get_today_narrative()` + `milestones` 테이블 — AI 생성 확정
+
+`03a-today.md` 1-A L2의 "성장 내러티브"(자연어 요약)와 1-D "전체 마일스톤"(🎯 누적
+거리·🏃 PB·🔄 재계산)은 `get_metric_breakdown`/`get_provider_comparison`과 달리
+기존 데이터 재조립만으로 안 되는 두 가지 새 결정이 필요했음 — 사용자에게 확인
+(2026-09-23):
+1. **내러티브 생성 방식**: AI 생성 채택(규칙 기반 대신) — 단, `src.ai.chat_engine`의
+   기존 provider 체인(`_build_chat_provider_chain`/`_call_provider`, Coach 기능이
+   이미 씀)을 그대로 재사용하고, 체인 전체 실패 시 규칙 기반 템플릿으로 fallback
+   (coding-rules.md 정책 그대로 — 완전히 새로운 AI 연동이 아니라 기존 패턴 재사용).
+2. **`milestones` 테이블**: 이번 스코프에 포함(LATER로 미루지 않음) — 새 테이블 + 탐지
+   로직(`distance_threshold`/`pb`/`metric_recompute` 3종)까지 같이 설계.
+
+상세 설계는 plan mode로 진행(2026-09-23, 사용자 승인) — 탐지는 `src/sync.py`의
+기존 "동기화 후 메트릭 계산" try/except 자리에 같은 패턴으로 추가해 `today_service`의
+읽기 전용 원칙을 유지. `metric_recompute` 감지는 `upsert_metric()`에 훅을 걸되
+헤드라인급 소수 메트릭(ctl/runpulse_vdot/race_pred_*/rri)으로 allow-list 제한(전체
+메트릭에 걸면 sync 성능 저하). PB 버킷은 `metric_groups.py`의 `race_prediction`
+그룹 명명(5k/10k/half/marathon)을 그대로 따름. 구현은 `P7-IMPL-MILESTONES` →
+`P7-IMPL-TODAY-NARRATIVE`(의존) 두 유닛으로 분리(AUTOPILOT QUEUE 참조).
