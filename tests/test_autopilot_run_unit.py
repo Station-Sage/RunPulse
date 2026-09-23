@@ -33,6 +33,11 @@ class TestBuildPrompt:
         assert "src/a.py" in prompt
         assert "true" in prompt
 
+    def test_code_kind_prompt_requires_following_embedded_spec(self):
+        prompt = run_unit._build_prompt(_code_item())
+        assert "구현 명세" in prompt
+        assert "재사용" in prompt
+
     def test_code_kind_missing_scope_warns_instead_of_empty(self):
         item = _code_item(scope=[])
         prompt = run_unit._build_prompt(item)
