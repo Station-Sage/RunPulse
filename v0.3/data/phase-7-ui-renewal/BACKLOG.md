@@ -5,11 +5,14 @@
 **현재 상태**: **Phase 7a 완료(D5·D3·D1·D2·Flask API·SvelteKit Today/Library/Coach
 화면). Phase 7b 진행 중 — 백엔드 API 3종(`get_metric_breakdown`/
 `get_provider_comparison`/`get_today_narrative`+milestones) 전부 완료·병합.
-프론트도 붙음: `<MetricBreakdown>`(C3, Today L1 드릴다운) + Today L2 내러티브
-(`P7-IMPL-7B-TODAY-L2`) + `<ProviderComparison>`(C4, Library 활동 상세 "소스
-비교" 탭, `P7-IMPL-7B-PROVIDER-UI`) 전부 완료(2026-09-23). 남은 건 D4, 상단
-3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
-Library 전면화(메트릭 브라우저 3-E/3-F, 홈 provider 동기화 상태 3-A).**
+프론트도 대부분 붙음: `<MetricBreakdown>`(C3, Today L1 드릴다운 + 메트릭 상세
+계산 분해) + Today L2 내러티브(`P7-IMPL-7B-TODAY-L2`) + `<ProviderComparison>`
+(C4, Library 활동 상세 "소스 비교" 탭, `P7-IMPL-7B-PROVIDER-UI`) + 활동
+스트림(3-D, `Sparkline.svelte` 신규, `P7-IMPL-7B-STREAMS`) + 메트릭 브라우저·
+상세(3-E/3-F, `P7-IMPL-7B-METRICS-BROWSER`) 전부 완료(2026-09-23). 남은 건 D4,
+상단 3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
+Library 나머지(홈 강화 3-A, 활동 목록 3-B, 웰니스 탭 설계 — `P7-IMPL-7B-LIBRARY`
+참조), 정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-MATRIX`/LATER).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -716,7 +719,7 @@ DONE으로 옮긴다.
   실용적 축소). "Provider 비교" 탭은 이번 스코프 밖(정체성 매트릭스,
   `P7-IMPL-PROVIDER-MATRIX`/LATER 참조) — 비활성 버튼으로만 표시.
   **의존성**: `Sparkline.svelte`를 쓰므로 `P7-IMPL-7B-STREAMS` 완료 후 착수.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-7B-STREAMS"], "kind": "code", "scope": ["src/services/metrics_browser_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.ts"], "verify": ["python3 -m pytest tests/test_metrics_browser_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-7B-STREAMS"], "kind": "code", "scope": ["src/services/metrics_browser_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.ts"], "verify": ["python3 -m pytest tests/test_metrics_browser_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
