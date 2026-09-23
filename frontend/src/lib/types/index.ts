@@ -474,6 +474,31 @@ export interface WellnessTrendData {
 	utrs: (number | null)[];
 }
 
+// ── ProviderMatrix (3-G-1 — /api/v1/library/providers/matrix) ────────────────
+
+export interface MatrixRow {
+	slug: string;
+	label: string;
+	unit: string | null;
+	values: Record<string, ComparisonCell>;
+	preferredProvider: ProviderKey | null;
+	primaryReason: ComparisonPrimaryReason | null;
+	discrepancy: ComparisonDiscrepancy | null;
+}
+
+export interface MatrixGroup {
+	key: string;
+	label: string;
+	rows: MatrixRow[];
+}
+
+export interface ProviderMatrixData {
+	period_days: number;
+	providers: string[];
+	groups: MatrixGroup[];
+	discrepancy_count: number;
+}
+
 // ── Coach Plan (5-F — /api/v1/coach/plan/:id) ────────────────────────────────
 
 export interface PlannedWorkout {
