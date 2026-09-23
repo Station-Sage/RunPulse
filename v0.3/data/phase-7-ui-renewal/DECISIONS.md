@@ -224,3 +224,36 @@ providers`(페이지 라우트, 3-G-1용 매트릭스 API 자리)는 이번엔 �
 메트릭에 걸면 sync 성능 저하). PB 버킷은 `metric_groups.py`의 `race_prediction`
 그룹 명명(5k/10k/half/marathon)을 그대로 따름. 구현은 `P7-IMPL-MILESTONES` →
 `P7-IMPL-TODAY-NARRATIVE`(의존) 두 유닛으로 분리(AUTOPILOT QUEUE 참조).
+
+---
+
+## [P7-IMPL-7B-TODAY-L2] `<TimelineNarrative>`(C7) 스펙과 실제 백엔드 응답 불일치 — 축소 구현
+
+`04-component-catalog.md` C7이 정의한 `NarrativeContent`(마크다운 서브셋 파싱,
+`[chart:slug]` 인라인 스파크라인, `body: NarrativeSegment[]`, `highlights` 수치
+카드)는 실제 `get_today_narrative()`(`P7-IMPL-TODAY-NARRATIVE`, 이미 병합) 응답
+(`{date, text, source, evidence, milestones}` — 순수 텍스트 + 평면 evidence 배열)
+보다 훨씬 크다. `Milestone.type`도 문서(`distance_milestone`/`pace_pb`/`ctl_peak`/
+`metric_recompute`/`custom`)와 실제 `milestones` 테이블(`distance_threshold`/`pb`/
+`metric_recompute`, `P7-IMPL-MILESTONES` 설계 시 확정)이 다르다 — DB 쪽이 이미
+테스트와 함께 병합돼 있으므로 문서 표기가 구식, DB를 기준으로 프론트에서 매핑.
+
+**결정**: 이번 유닛(`P7-IMPL-7B-TODAY-L2`)은 C7 전체 스펙을 구현하지 않는다 —
+`text`를 단락으로, `evidence`를 `<EvidenceQuote>` 칩으로, `milestones`를 아이콘+
+날짜 리스트로 보여주는 단순 버전만. 마크다운/인라인 태그 파싱, SVG 스파크라인
+차트, `highlights` 카드, "이번 달 전체 이야기" 확장 패널(03a-today.md 1-C)은
+전부 LATER(`P7-IMPL-TIMELINE-NARRATIVE-FULL`) — 백엔드에 `highlights`/구조화
+`body` 필드가 생기기 전까진 프론트만 먼저 만들어봐야 의미가 없음.
+
+**C3 `<MetricBreakdown>`도 문서 스펙보다 실제 API가 작다** — `metrics_service.
+get_metric_breakdown()`(`P7-IMPL-METRIC-BREAKDOWN` 설계 시 이미 축소 결정,
+DECISIONS.md 위쪽 항목 참조)는 `weight`/`formula`/`computedAt`/`version`/
+`prevValue`를 안 주고, children/inputs 각 항목 키도 문서의 `slug`가 아니라
+`name`이다(`_metric_item()` 참조). 그리고 `children`은 한 단계만 조회한다
+(`parent_metric_id`가 자기 id인 행만 — 조부모/손자 관계 없음, `metrics_
+service.py`에 재귀 없음) — 즉 children은 "펼침/접힘 가능한 트리"가 아니라
+**평평한 목록**이다(각 항목에 자기 children이 없으므로 인라인 펼침 UI
+자체가 불필요). `inputs`만 실제로 drillable(탭하면 그 slug로 API를 새로
+호출해 새 MetricBreakdown을 마운트, 04 스펙의 재귀 마운트 그대로 — 이 부분은
+스펙과 일치). 프론트 타입은 문서의 `MetricBreakdownNode`를 그대로 베끼지
+말고 실제 응답 키(`name`)로 새로 정의할 것.

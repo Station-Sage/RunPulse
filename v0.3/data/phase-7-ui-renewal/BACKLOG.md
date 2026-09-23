@@ -111,19 +111,24 @@ cirs`로 검증됨) 모두 완료(2026-09-23, AUTOPILOT QUEUE 참조). "데이�
   직접 작성하는 방식(별도 "설계 전용" 오토파일럿 유닛 없이)으로 진행 —
   `P7-IMPL-METRIC-BREAKDOWN`/`P7-IMPL-PROVIDER-COMPARISON` 때와 동일 패턴.
 
+P7-IMPL-7B-TODAY-L2는 NEXT에서 승격(2026-09-23, 사용자 지시 — "UI 설계/코딩
+계속하자, 아직 너무 조금 진행됐어"). 백엔드(get_metric_breakdown/get_today_
+narrative/get_today_milestones)는 이미 병합돼 있는데 프론트가 하나도 안 붙어
+있음 — 이번 유닛이 실제로 눈에 보이는 첫 진전. Flask API는 이미 완료라 이번엔
+SvelteKit만(`<MetricBreakdown>` C3 신규 컴포넌트 + Today L1 드릴다운 연결 +
+L2 텍스트 스텁을 실제 내러티브로 교체) — NOW에 별도 요약을 남기지 않고
+AUTOPILOT QUEUE의 `P7-IMPL-7B-TODAY-L2` 항목(상세 스펙)이 유일한 소스(D1/D2
+때와 동일 패턴 — ID 중복은 `queue.update_item()`을 깨뜨린다). 착수 전
+`DECISIONS.md`의 `[P7-IMPL-7B-TODAY-L2]` 항목 필독(C7 스펙이 실제 백엔드
+응답보다 훨씬 커서 축소 결정함).
+
 ---
 
 ## NEXT
 
-Phase 7b(07 로드맵) 본격 착수분 — NOW의 D2/D1-REST 완료 후 순서대로 진행. 사용자
-"UI Renewal 설계·개발·문서화를 할일 목록화" 지시로 2026-09-22 정리(07 로드맵
-§Phase 7b 산출물 목록 기준, 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
-
-- **[P7-IMPL-7B-TODAY-L2]** Today L2 완성 — Flask API(`GET /api/v1/today/narrative`,
-  `GET /api/v1/today/milestones`) + SvelteKit `<MetricBreakdown>`(C3)·
-  `<TimelineNarrative>`(C7) 구현 + Today L2 내러티브 블록(`03a-today.md` 1-A(L2)·
-  1-C)을 7a의 텍스트 스텁에서 실제 내러티브·트리 드릴다운으로 교체. `P7-DESIGN-7B-API`
-  완료 후 착수.
+Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·문서화를
+할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
+세부 설계는 각 항목 착수 시점에 plan mode로 확정).
 
 - **[P7-IMPL-7B-LIBRARY]** Library 전면화 — Flask API(`GET /api/v1/library/metrics`,
   `/metrics/:slug`, `/wellness`, `/providers`) + SvelteKit `<ProviderComparison>`(C4)
@@ -470,6 +475,71 @@ DONE으로 옮긴다.
   테스트 추가.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-MILESTONES"], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "tests/test_today_service.py"], "verify": ["python3 -m pytest tests/test_today_service.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
+- **[P7-IMPL-7B-TODAY-L2]** SvelteKit만 — Flask API는 전부 이미 구현·테스트·병합
+  완료(`P7-IMPL-METRIC-BREAKDOWN`/`P7-IMPL-MILESTONES`/`P7-IMPL-TODAY-NARRATIVE`).
+  **착수 전 필독**: `DECISIONS.md`의 `[P7-IMPL-7B-TODAY-L2]` 항목 — C7
+  `<TimelineNarrative>` 전체와 C3의 문서 스펙 그대로는 실제 API 응답보다 커서
+  둘 다 축소해서 구현한다, 아래 스펙이 축소된 버전임.
+  `frontend/`의 기존 패턴(`P7-IMPL-SVELTE`/`-2A`/`-2B`) 그대로 따를 것 —
+  `$lib/api/client.ts`의 `apiFetch()`(이미 `.data` unwrap함), `$lib/provider.ts`,
+  `$lib/format.ts`.
+  **구현**: (1) `frontend/src/lib/types/index.ts`에 타입 추가 —
+  `MetricBreakdownNode { name: string; label: string; value: number | string | null;
+  unit: string; provider: ProviderKey | null; confidence: number | null }`(문서의
+  `slug`/`weight`/`collapsible`은 없음 — 실제 API 응답 그대로), `MetricBreakdownData
+  { slug: string; label: string; value: number | string | null; unit: string;
+  provider: ProviderKey | null; confidence: number | null; children:
+  MetricBreakdownNode[]; inputs: MetricBreakdownNode[] }`,
+  `MilestoneEntry { id: number; type: 'distance_threshold' | 'pb' |
+  'metric_recompute'; date: string; title: string; detail: string | null;
+  activity_id: number | null }`, `NarrativeResponse { date: string; text: string;
+  source: 'ai' | 'rule'; evidence: BriefingEvidence[]; milestones:
+  MilestoneEntry[] }`(`BriefingEvidence`는 이미 존재하는 타입 재사용). (2)
+  `frontend/src/lib/api/metrics.ts`(신규) — `getMetricBreakdown(slug: string,
+  scopeType: string, scopeId: string): Promise<MetricBreakdownData>` →
+  `apiFetch<{metric: MetricBreakdownData}>(...).then(r => r.metric)` 형태(실제
+  응답이 `{"metric": {...}}`로 감싸져 있음, `GET /api/v1/library/metrics/<slug>
+  ?scope_type=<scopeType>&scope_id=<scopeId>`). (3) `frontend/src/lib/api/
+  today.ts`에 `getTodayNarrative(): Promise<NarrativeResponse>` 추가 —
+  `apiFetch<NarrativeResponse>('/today/narrative')`(이 엔드포인트는 `{data:
+  {...}}`만 감싸고 추가 래핑 없음 — `routes_today.py`의 `api_ok(result)` 그대로
+  확인). (4) `frontend/src/lib/components/MetricBreakdown.svelte`(신규, C3
+  축소판) — props: `slug: string`, `scopeType: string`, `scopeId: string`,
+  `onClose: () => void`, `onDrillInput?: (slug: string) => void`. 마운트 시
+  `getMetricBreakdown()` 호출(loading/error 상태 처리 — coding-rules.md
+  "데이터 없음 시 에러 대신 UI" 그대로, catch해서 "계산 데이터를 불러올 수
+  없습니다" 표시). 레이아웃: 헤더(`← [있으면] [label] [×닫기]` — `onClose` 호출),
+  본문에 현재값+unit+provider 배지+confidence(있으면), children이 있으면
+  "구성 요소" 섹션(평평한 목록, 각 항목 label/value/unit/provider만 — 펼침
+  불가, `collapsible` UI 없음), inputs가 있으면 "기반 데이터" 섹션(각 항목
+  탭하면 `onDrillInput?.(item.name)` 호출 — 부모가 스택에 push해서 재귀
+  마운트, 이 컴포넌트 자신은 재귀를 모름). 화면 너비 무관하게 이번엔 모바일
+  풀스크린 시트 하나만(데스크탑 우측 패널 분기는 범위 밖 — 04 스펙의
+  `mode` prop 자동판단 생략, 항상 시트). (5) `frontend/src/routes/today/
+  +page.svelte` 수정: `breakdownStack = $state<string[]>([])`(빈 배열=닫힘,
+  마지막 요소=현재 열린 slug) 추가. utrs/cirs/tsb `MetricCell` 3개
+  `drillable={false}` → `drillable={true}` + `onDrill={({slug}) =>
+  breakdownStack = [slug]}`로 변경(주석 "7a: MetricBreakdown 없어서 false"
+  삭제). `{#if breakdownStack.length > 0}` 블록에서 최상단 오버레이로
+  `<MetricBreakdown slug={breakdownStack.at(-1)} scopeType="daily"
+  scopeId={status.date} onClose={() => breakdownStack = []}
+  onDrillInput={(slug) => breakdownStack = [...breakdownStack, slug]} />`
+  렌더(뒤로가기는 이번엔 닫기만 지원 — 스택 pop으로 되돌아가는 "←" 버튼은
+  범위 밖, `onClose`가 스택 전체를 비움). (6) L2 섹션(140~147줄, "흐름·훈련·
+  성장" 스텁) 전체 교체 — `+page.ts`의 `load()`에서 `getTodayNarrative()`도
+  같이 호출(`Promise.all`로 기존 `getToday()`와 병렬, 실패해도 Today 전체가
+  깨지면 안 됨 — try/catch로 narrative만 null 처리 가능하게). 페이지에서
+  `text`를 단락으로 렌더, `evidence`를 `<EvidenceQuote>` 반복 렌더(기존
+  `adaptEvidence()` 재사용 가능 — `BriefingEvidence` 형태 동일), `milestones`를
+  타입별 아이콘(🎯 distance_threshold, 🏃 pb, 🔄 metric_recompute) + 날짜 +
+  title 목록으로. narrative 로딩 실패/null이면 기존 스텁 문구를 fallback으로
+  유지(완전 삭제 금지 — coding-rules.md 그레이스풀 처리). **범위 밖**(문서에
+  명시): `<TimelineNarrative>`(C7) 마크다운/차트 파싱, "이번 달 전체 이야기"
+  확장 패널(1-C), 전체 마일스톤 패널(1-D, `get_today_milestones()`는 이번엔
+  narrative 응답의 `milestones`로 충분 — 별도 API 호출 안 함), 데스크탑
+  우측 패널 분기, MetricBreakdown 뒤로가기(스택 pop UI).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/today/+page.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
 ---
 
 ## LATER
@@ -482,6 +552,14 @@ DONE으로 옮긴다.
   집계 × SEMANTIC_GROUPS 13개 전체를 훑는 뷰, `P7-IMPL-PROVIDER-COMPARISON`(3-G-2,
   활동별 비교)의 후속. 스코프 축소 이유·남은 설계 질문(그룹 `strategy`별
   `primaryReason` 판정 방식)은 `DECISIONS.md`의 `[P7-DESIGN-7B-API]` 항목 참조.
+
+- **[P7-IMPL-TIMELINE-NARRATIVE-FULL]** `<TimelineNarrative>`(C7) 완전판 — 마크다운
+  서브셋 파싱, `[chart:slug]` 인라인 SVG 스파크라인, `highlights` 수치 카드,
+  "이번 달 전체 이야기" 확장 패널(03a-today.md 1-C). `P7-IMPL-7B-TODAY-L2`가
+  구현한 단순 버전(텍스트+evidence+milestones 목록)의 후속 — 백엔드
+  `get_today_narrative()`에 `highlights`/구조화 `body` 필드가 먼저 추가돼야
+  착수 가능(현재는 `{date,text,source,evidence,milestones}` 평면 구조뿐).
+  스코프 축소 이유는 `DECISIONS.md`의 `[P7-IMPL-7B-TODAY-L2]` 항목 참조.
 
 ---
 
