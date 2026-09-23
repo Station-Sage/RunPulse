@@ -27,10 +27,11 @@ NARRATIVE-FULL`(Today L2 "이번 달 전체 이야기" 패널)도 완료·병합
 마일스톤/규칙기반 텍스트가 오늘 기준으로 새던 버그 3건 + 프론트 스파크라인
 2건 발견·수정). `P7-IMPL-COACH-PLAN-SESSION-DETAIL`(5-G 일일 세션 상세 —
 조정 비교는 타입만, 목업의 가짜 TSS/거리 수치는 안 만듦, URL도 week/day
-대신 date로 단순화)은 조사 후 AUTOPILOT QUEUE 등록·실행 대기 중
-(2026-09-23, 설계 근거는 `DECISIONS.md`). 남은 건 정체성 매트릭스,
+대신 date로 단순화)도 완료·병합(2026-09-23 — 이번 세션 리뷰 대상 유닛 중
+처음으로 수정 사항 0건, 스펙 그대로 구현됨). 남은 건 정체성 매트릭스,
 조정 수락 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, 새 설계
-필요), D4, 상단 3선 메뉴 UI(Phase 7d).**
+필요), D4, 상단 3선 메뉴 UI(Phase 7d). 현재 AUTOPILOT QUEUE 비어 있음 —
+다음 유닛은 추가 설계 조사 필요.**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -1233,7 +1234,25 @@ DONE으로 옮긴다.
   `save_session_note` upsert 동작(두 번 저장 시 갱신되는지). `tests/
   test_api_plan.py`에 세션 상세 GET + 메모 POST 라우트 테스트(메모 빈
   문자열 400 포함).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/training/adjuster.py", "src/services/plan_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "tests/test_adjuster.py", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-23)**: 스펙대로 정확히 구현됨 — 버그 없음(이번 세션
+  5번째 유닛 중 처음으로 리뷰에서 수정 사항 0건). `adjuster.py`의
+  `date as _date` 섀도잉 회피가 지시한 그대로 적용, 세 함수
+  (`adjust_todays_plan`/`_get_todays_wellness`/`_get_latest_tsb`) 전부
+  올바르게 파라미터화. `plan_service.get_session_detail()`/
+  `get_session_note()`/`save_session_note()` 스펙과 일치.
+  `coach/plan/[id]/+page.svelte`의 워크아웃 행이 세션 상세로 링크됨.
+  프론트 `adjustment_reason_parts`는 `<EvidenceQuote>` 대신 단순
+  `<span>` 칩으로 표시 — reason이 이미 완성된 문장(예: "Body Battery
+  45")이라 `<EvidenceQuote>`가 기대하는 metric/value 구조로 분해할
+  근거가 없어 합리적 선택으로 판단, 수정 안 함. 문서 정합성만 1건
+  수정: `test_adjuster.py` 신규 파일이 `files_index.md`에 미등록돼
+  `check_docs.py`가 FAIL — `gen_files_index.py` 재생성으로 해결.
+  전체 `pytest tests/`(1433 passed, 238 skipped) +
+  `check_data_consistency.py`(16개 검사 0 오류) + `check_docs.py`
+  (20개 검사 0 오류, 경고 64개=기존과 동일) + `npm run check`(0
+  errors, 기존과 동일한 패턴의 경고 11개)/`npm run build` 모두 통과
+  확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/training/adjuster.py", "src/services/plan_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "tests/test_adjuster.py", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
