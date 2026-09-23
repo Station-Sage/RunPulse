@@ -1108,7 +1108,27 @@ DONE으로 옮긴다.
   없으면 None인지. `tests/test_api_today.py`에 `?year=&month=` 쿼리
   파라미터 라우트 테스트 1~2개. 프론트는 이 저장소 관례상 테스트 없음
   (`npm run check`/`npm run build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "frontend/src/lib/api/today.ts", "frontend/src/lib/types/index.ts", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/routes/today/+page.svelte", "tests/test_today_service.py", "tests/test_api_today.py"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰 결과(2026-09-23)**: 다른 세션(같은 대화를 재개한 병렬 프로세스)이
+  이 유닛을 조사·큐 등록·autopilot 실행까지 먼저 완료 — 코드는 정상
+  커밋됐으나 리뷰/병합 전이라 이어서 진행. 버그 3건 발견 후 수정: (1)
+  `get_today_narrative()`가 연월 확정 전(=오늘 기준) `date`로 먼저
+  `get_today_status()`를 호출해, `highlights.peak_ctl`만 올바르게 그 달
+  기준이고 evidence/AI 프롬프트의 "현재 CTL"은 항상 오늘 값이었음 — 연월
+  확정을 `get_today_status()` 호출보다 앞으로 이동. (2) `rule_narrative()`
+  (AI 실패 fallback)가 `month_label`을 안 받아 과거 달 조회에도 "이번 달
+  142km..."처럼 시제가 틀린 텍스트를 냈음 — 파라미터 추가. (3)
+  `get_recent_milestones()`에 날짜 범위 필터가 없어 과거 달 패널에도 항상
+  오늘 기준 "최근" 마일스톤이 떴음 — `date_from`/`date_to` 옵션 추가.
+  프론트 `MonthNarrative.svelte`도 2건: CTL 스파크라인이 최초 탭 전까지 빈
+  채로 안 떠 있었던 것(mount 시 즉시 로드로 수정), `getMetricTrend()`가
+  "오늘 기준 최근 4주"만 지원해 과거 달 조회 시 그 달과 무관한 데이터가
+  뜨던 것(이번 달 조회 시에만 표시하도록 제한 — trend API의 임의 기간
+  지원은 범위 밖, 후속 필요 시 별도 설계). `today_service.py`가 304줄로
+  300줄 캡 초과해 evidence 조립을 `_narrative.build_evidence()`로 분리
+  (286줄). 회귀 테스트 6개 추가. 전체 `pytest tests/`(1415 passed) +
+  `check_data_consistency.py`(0 오류) + `check_docs.py`(0 오류, 경고
+  64개=기존과 동일) + `npm run check`/`build` 모두 통과 확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/today_service.py", "src/api/routes_today.py", "frontend/src/lib/api/today.ts", "frontend/src/lib/types/index.ts", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/routes/today/+page.svelte", "tests/test_today_service.py", "tests/test_api_today.py"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
