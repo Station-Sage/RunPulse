@@ -195,6 +195,18 @@ def get_activity_list(
 # metric_store (Layer 2)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# metric_recompute 마일스톤을 추적할 메트릭 이름 허용 목록 (sync 성능 보호)
+_MILESTONE_TRACKED_METRICS: frozenset[str] = frozenset({
+    "ctl",
+    "runpulse_vdot",
+    "race_pred_5k_sec",
+    "race_pred_10k_sec",
+    "race_pred_half_sec",
+    "race_pred_marathon_sec",
+    "rri",
+})
+
+
 def upsert_metric(
     conn: sqlite3.Connection,
     scope_type: str,
@@ -216,6 +228,44 @@ def upsert_metric(
     Returns: row id.
     """
     scope_id_str = str(scope_id)
+
+    # allow-list 메트릭만 재계산 감지 (전체에 걸면 sync 성능 저하)
+    if metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None:
+        existing = conn.execute(
+            "SELECT numeric_value, algorithm_version FROM metric_store "
+            "WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?",
+            (scope_type, scope_id_str, metric_name, provider),
+        ).fetchone()
+        if existing is not None:
+            old_val = existing[0]
+            old_ver = existing[1]
+            if (
+                old_ver is not None
+                and old_ver != algorithm_version
+                and old_val is not None
+                and abs(old_val) > 0
+                and abs(numeric_value - old_val) / abs(old_val) > 0.01
+            ):
+                try:
+                    from datetime import date as _date_cls
+                    conn.execute(
+                        """
+                        INSERT OR IGNORE INTO milestones
+                            (type, date, title, detail, metric_name, old_value, new_value)
+                        VALUES ('metric_recompute', ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            _date_cls.today().isoformat(),
+                            f"{metric_name} 재계산",
+                            f"{old_ver}→{algorithm_version} 적용",
+                            metric_name,
+                            float(old_val),
+                            float(numeric_value),
+                        ),
+                    )
+                except Exception:
+                    pass  # milestones 테이블 미존재 등 — 무시
+
     json_str = json.dumps(json_value, ensure_ascii=False) if json_value is not None else None
 
     sql = """

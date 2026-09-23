@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 17  # v0.3.7: activity_groups 마스터 테이블 신설 (D2)
+SCHEMA_VERSION = 18  # v0.3.8: milestones 테이블 신설
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -373,6 +373,22 @@ CREATE TABLE IF NOT EXISTS activity_groups (
 );
 """
 
+_DDL_MILESTONES = """
+CREATE TABLE IF NOT EXISTS milestones (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    type        TEXT NOT NULL,
+    date        TEXT NOT NULL,
+    title       TEXT NOT NULL,
+    detail      TEXT,
+    activity_id INTEGER,
+    metric_name TEXT,
+    old_value   REAL,
+    new_value   REAL,
+    created_at  TEXT DEFAULT (datetime('now')),
+    UNIQUE(type, date, title)
+);
+"""
+
 _DDL_SYNC_JOBS = """
 CREATE TABLE IF NOT EXISTS sync_jobs (
     id              TEXT PRIMARY KEY,
@@ -553,6 +569,7 @@ PIPELINE_TABLES = [
     "source_payloads",
     "activity_summaries",
     "activity_groups",
+    "milestones",
     "daily_wellness",
     "metric_store",
     "activity_streams",
@@ -642,6 +659,10 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
     _idx(conn, "activity_groups", "activity_date",
          "CREATE INDEX IF NOT EXISTS idx_ag_date ON activity_groups(activity_date)")
 
+    # milestones
+    _idx(conn, "milestones", "date",
+         "CREATE INDEX IF NOT EXISTS idx_milestones_date ON milestones(date DESC)")
+
     # chat_messages.thread_id (D3) — 기존 테이블에 추가되는 컬럼이라 컬럼 존재 확인 필요
     _idx(conn, "chat_messages", "thread_id",
          "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)")
@@ -667,6 +688,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         _DDL_SOURCE_PAYLOADS,
         _DDL_ACTIVITY_SUMMARIES,
         _DDL_ACTIVITY_GROUPS,
+        _DDL_MILESTONES,
         _DDL_DAILY_WELLNESS,
         _DDL_METRIC_STORE,
         _DDL_ACTIVITY_STREAMS,
@@ -732,6 +754,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v16: chat_messages.thread_id 컬럼 추가 (D3 — user_inputs/ai_feedback/chat_threads는
          신규 테이블이라 create_tables()의 CREATE TABLE IF NOT EXISTS만으로 충분).
     v17: activity_groups 마스터 테이블 신설 (D2 — CREATE TABLE IF NOT EXISTS만으로 충분).
+    v18: milestones 테이블 신설 — CREATE TABLE IF NOT EXISTS만으로 충분.
     """
     current = _get_user_version(conn)
 

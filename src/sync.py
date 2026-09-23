@@ -127,10 +127,19 @@ def main() -> None:
     log.info("메트릭 계산 시작...")
     try:
         from src.metrics import engine as metrics_engine
+        from src.services import milestone_service
         start_date = (date.today() - timedelta(days=args.days)).isoformat()
         end_date = date.today().isoformat()
         with sqlite3.connect(str(db_path)) as conn:
             metrics_engine.run_for_date_range(conn, start_date, end_date)
+            try:
+                new_milestones = milestone_service.detect_and_store_milestones(
+                    conn, start_date, end_date
+                )
+                if new_milestones:
+                    log.info("마일스톤 %d건 신규 등록", len(new_milestones))
+            except Exception as ms_exc:
+                log.error("마일스톤 탐지 실패 (sync는 정상 완료): %s", ms_exc)
         log.info("메트릭 계산 완료 (%s ~ %s)", start_date, end_date)
     except Exception as exc:
         log.error("메트릭 계산 실패 (sync는 정상 완료): %s", exc)

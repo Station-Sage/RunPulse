@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_17(self):
+    def test_schema_version_is_18(self):
         """조건 2"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 17
+        assert ver == 18
 
     def test_pipeline_tables_count(self):
         """조건 3: pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
@@ -102,7 +102,7 @@ class TestPhase1Schema:
             "source_payloads", "activity_summaries", "daily_wellness",
             "metric_store", "activity_streams",
             "activity_laps", "activity_best_efforts", "gear",
-            "weather_cache", "sync_jobs", "activity_groups",
+            "weather_cache", "sync_jobs", "activity_groups", "milestones",
         }
         assert pipeline.issubset(tables), f"누락: {pipeline - tables}"
         assert "daily_fitness" not in tables, "daily_fitness가 삭제되지 않음 (ADR-005)"
