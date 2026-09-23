@@ -1141,7 +1141,6 @@ DONE으로 옮긴다.
   않는다는 게 핵심 결정, URL도 `:week/:day` 대신 `:date`로 단순화, "조정
   수락"/"원래 계획으로" 버튼은 문서가 Phase 7c로 명시한 대로 이번에도 안
   만듦).
-
   **구현 — 백엔드**: (1) `src/training/adjuster.py` — **주의**: 파일
   최상단이 `from datetime import date`(클래스)인데 새로 추가할 파라미터
   이름도 `date`(문자열)라 그대로 두면 함수 안에서 `date`가 파라미터로
@@ -1196,7 +1195,6 @@ DONE으로 옮긴다.
   `get_session_detail`(없으면 404). `POST /coach/plan/session/<session_
   date>/note`(JSON body `{"note": str}`, `note`가 빈 문자열/공백만이면
   400) → `save_session_note` 후 `{"note": note}` 반환.
-
   **구현 — 프론트**: (6) `frontend/src/lib/types/index.ts` —
   `SessionAdjustment`(=`adjust_todays_plan()` 반환 형태, `adjustment_reason_
   parts: string[]` 포함), `SessionDetail {goal: PlanGoal; week_index:
@@ -1224,7 +1222,6 @@ DONE으로 옮긴다.
   목록의 각 `<li>`를 `<a href="{base}/coach/plan/{goalId}/session/
   {w.date}">`로 감싸(현재 텍스트만 있는 행 클릭 가능하게, 완료 체크
   아이콘 등 내부 레이아웃은 그대로).
-
   **테스트**: `tests/test_adjuster.py`(있으면 확장, 없으면 최소 기존
   `adjust_todays_plan()` 관련 테스트 위치 확인 후 그 파일에) —
   `date=` 파라미터로 과거 날짜 조회 시 그 날짜의 `daily_wellness`/TSB를
