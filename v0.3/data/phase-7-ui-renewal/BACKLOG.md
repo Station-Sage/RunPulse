@@ -257,7 +257,40 @@ DONE으로 옮긴다.
   검증, 저장된 자식 행의 `parent_metric_id`가 같은 날짜 utrs/cirs 행의 id와 같은지 확인.
   `tests/test_utrs.py`/`tests/test_cirs.py`에 단위 테스트(어떤 컴포넌트가 가용/불가용일
   때 자식 개수가 맞게 달라지는지)도 추가.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/metrics/utrs.py", "src/metrics/cirs.py", "tests/test_utrs.py", "tests/test_cirs.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_utrs.py tests/test_cirs.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/metrics/utrs.py", "src/metrics/cirs.py", "tests/test_utrs.py", "tests/test_cirs.py", "tests/test_engine.py"], "verify": ["python3 -m pytest tests/test_utrs.py tests/test_cirs.py tests/test_engine.py -q", "python3 scripts/check_data_consistency.py"]} -->
+
+- **[P7-IMPL-METRIC-BREAKDOWN]** `metrics_service.get_metric_breakdown()` + `GET
+  /api/v1/library/metrics/:slug` — `DECISIONS.md`의 `P7-IMPL-D1-REST-RRI` 결정(2026-09-22)
+  반영: children(소유 분해, `parent_metric_id`)과 inputs(입력 사용, Calculator의
+  `requires`) 둘 다 조립. `06-data-layer-extensions.md` D1 "2026-09-22 정정",
+  `04-component-catalog.md` C3 `MetricBreakdownData` 참조. 스텁 파일 이미 존재
+  (`src/services/metrics_service.py`, D5가 자리만 만들어둠).
+  **구현**: (1) `metrics_service.get_metric_breakdown(conn, scope_type: str, scope_id:
+  str, slug: str) -> dict | None`. slug의 자기 자신 행은
+  `db_helpers.get_primary_metric(conn, scope_type, scope_id, slug)`(이미 존재, 재사용)
+  로 조회 — 없으면 None 반환(→ API가 404). (2) children: `SELECT * FROM metric_store
+  WHERE scope_type=? AND scope_id=? AND parent_metric_id=? ORDER BY id`(자기 자신의
+  row id로 조회) — 각 항목 label은 `src.utils.metric_registry.METRIC_REGISTRY[name].
+  description`(없으면 metric_name 그대로), weight는 이번엔 생략(스키마상 optional,
+  `undefined`로 둠 — Calculator의 WEIGHTS dict가 컴포넌트 로컬 변수라 지금은 자식
+  이름으로 역매핑할 공개 경로가 없음, 후속 과제로 남김). (3) inputs: `src.metrics.
+  engine.ALL_CALCULATORS`에서 `calc.name == slug`인 Calculator를 찾아(없으면 빈 리스트
+  — 예: slug가 children처럼 소유 파생값이면 자기 자신의 requires가 없음) 그
+  `calc.requires`의 각 이름마다 `get_primary_metric(conn, scope_type, scope_id, name)`
+  조회(None이면 스킵 — 데이터 없음, coding-rules.md 그레이스풀 처리), label은 동일하게
+  METRIC_REGISTRY 조회, weight는 항상 None. (4) 응답 dict는 `MetricBreakdownData`
+  형태(`slug`,`label`,`value`,`unit`,`provider`,`confidence`,`children`,`inputs`) —
+  `formula`/`computedAt`/`version`/`prevValue`는 이번엔 생략(옵셔널 필드, 후속 과제).
+  (5) `src/api/routes_library.py`에 `GET /api/v1/library/metrics/<slug>` 라우트 추가
+  — 쿼리 파라미터 `scope_type`(기본 `"daily"`), `scope_id`(필수, 없으면
+  `api_error("INVALID_PARAM", ...)`) — 기존 `get_library_activity_detail` 패턴
+  그대로(`db_path()`, `sqlite3.connect`, `api_ok`/`api_error`). 테스트:
+  `tests/test_metrics_service.py`(신규) — CTL→ramp_rate(children, 이미 PMC로 연결돼
+  있음)와 RRI→cirs(inputs, 이번에 새로 조립)를 각각 실제 파이프라인
+  (`run_daily_metrics`)으로 만든 뒤 `get_metric_breakdown()` 결과 검증. slug 없는 경우
+  None 반환도 테스트. `tests/test_api_library.py`에 라우트 테스트(200/404/scope_id
+  누락 400) 추가.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/metrics_service.py", "src/api/routes_library.py", "tests/test_metrics_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_metrics_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
