@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import activity_service, metrics_service, provider_comparison_service
+from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -114,6 +114,41 @@ def get_library_activity_providers(activity_id: int):
         return api_error("NOT_FOUND", f"활동을 찾을 수 없습니다: {activity_id}", 404)
 
     return api_ok({"comparison": result})
+
+
+@api_bp.get("/library/metrics")
+def get_library_metrics_browser():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    date_param = request.args.get("date") or None
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = metrics_browser_service.get_metrics_browser(conn, date=date_param)
+    finally:
+        conn.close()
+
+    return api_ok(result)
+
+
+@api_bp.get("/library/metrics/<slug>/trend")
+def get_library_metric_trend(slug: str):
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    period = request.args.get("period", "3m")
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = metrics_browser_service.get_metric_trend(conn, slug, period=period)
+    finally:
+        conn.close()
+
+    if result is None:
+        return api_error("NOT_FOUND", f"메트릭 데이터를 찾을 수 없습니다: {slug}", 404)
+
+    return api_ok(result)
 
 
 @api_bp.get("/library/activities/<int:activity_id>/streams")

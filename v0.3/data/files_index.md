@@ -24,6 +24,10 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
+### `_narrative.py` (110줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+
+- functions: query_metric, sleep_trend, build_narrative_prompt, rule_narrative
+
 ### `activity_service.py` (283줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
@@ -40,13 +44,13 @@
 
 - (public API 없음)
 
+### `metrics_browser_service.py` (116줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+
+- functions: get_metrics_browser, get_metric_trend
+
 ### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
 - functions: get_metric_breakdown
-
-### `_narrative.py` (111줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
-
-- functions: query_metric, sleep_trend, build_narrative_prompt, rule_narrative
 
 ### `milestone_service.py` (247줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
@@ -60,9 +64,9 @@
 
 - functions: get_provider_comparison
 
-### `today_service.py` (160줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L1) 데이터 조회 + 체크인 저장.
+### `today_service.py` (271줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
-- functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, save_checkin
+- functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
 ### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
 
@@ -1119,13 +1123,13 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (194줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (238줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404
 
-### `test_api_today.py` (74줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (86줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_narrative_no_data
 
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -1448,6 +1452,10 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
+### `test_metrics_browser_service.py` (107줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_get_metric_trend_peak_and_change_pct
+
 ### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
 
 - class **TestGetMetricBreakdownNoneCase**: test_returns_none_for_unknown_slug, test_returns_none_for_no_data
@@ -1631,12 +1639,14 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
-### `test_today_service.py` (121줄) — today_service 테스트 — Phase 7a D5.
+### `test_today_service.py` (212줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
 - class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order
 - class **TestGetTodayBriefing**: test_no_data_fallback, test_low_tsb_recommends_rest, test_balanced_tsb
 - class **TestGetTodaysCheckin**: test_no_checkin_returns_none, test_returns_saved_checkin, test_defaults_to_today_date
+- class **TestGetTodayMilestones**: test_empty, test_returns_milestones
+- class **TestGetTodayNarrative**: test_no_data_rule_fallback, test_rule_fallback_no_data_text, test_with_ctl_and_distance, test_ctl_increase_in_rule_text, test_ai_success_source_is_ai, test_ai_failure_falls_back_to_rule, test_evidence_excludes_none_metrics, test_milestones_in_response
 - class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
 
 ### `test_tpdi.py` (117줄)
@@ -1775,7 +1785,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 344개 파일
+총 347개 파일
 
 ## docstring 누락
 
