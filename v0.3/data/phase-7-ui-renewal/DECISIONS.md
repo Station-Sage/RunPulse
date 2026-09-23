@@ -299,3 +299,62 @@ ADR급 판단이 필요해 Phase 7d 몫으로 명시적으로 남긴다.
 taxonomy와 안 맞아 `hr`/`sleep`/`body`/`stress` 카테고리 행을 전혀 못
 잡던 것)는 기존 테스트가 `readiness`만 커버해서 지금까지 안 걸렸던 죽은
 코드 버그 — 회귀 테스트를 새로 추가해 재발을 막는다.
+
+---
+
+## [P7-IMPL-COACH-PLAN-ACTIVE] Coach 플랜(5-C~5-G) — 기존 `src/training/`
+엔진 재사용, 신규 알고리즘 없음
+
+`03e-coach.md` 5-C~5-G(플랜 생성·비교·진행·조정)를 설계하려고 조사하다가
+(2026-09-23, Explore 서브에이전트 1개 + 직접 조사) `src/training/`에 이미
+성숙한 v0.1/v0.2 규칙 기반 훈련 계획 엔진이 있는 걸 발견했다 —
+`planner.py`(Seiler 80/20·Daniels VDOT·주기화, 테스트 있음),
+`adjuster.py`(HRV/수면/BB/TSB 기반 오늘 세션 강도 조정), `readiness.py`
+(거리별 추천 훈련 기간 + 기간별 목표 달성 가능성 예측, Daniels VDOT 성장
+모델), `goals.py`(목표 CRUD), `matcher.py`/`replanner.py`(실제 활동 매칭 +
+스킵 시 재조정) — 전부 논문 근거 주석과 함께 이미 구현·테스트돼 있고,
+레거시 Flask 뷰(`src/web/views_training*.py`)가 이미 실제로 쓰고 있다.
+Phase 7b Coach 작업은 **이 엔진을 새 API/SvelteKit에 연결하는 것**이지
+새로 설계하는 게 아니다.
+
+**핵심 재사용 매핑**:
+- 5-F "상태 기반 조정" = `adjuster.adjust_todays_plan(conn)` 거의 그대로.
+  단 **읽기 전용**(오늘 날짜만, DB에 안 씀) — "조정 수락" 버튼이 실제로
+  반영할 쓰기 경로가 코드 어디에도 없다(grep 확인). 이번 스코프는 표시만,
+  수락 영속화는 `P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`(LATER)로 분리 —
+  `planned_workouts`에 조정 결과를 반영할 컬럼/전략 설계가 필요해 스키마
+  변경을 수반할 수 있음.
+- 5-D/5-E "정적 템플릿 3~5개 비교" = 새 커리큘럼 설계 불필요.
+  `readiness.get_recommended_weeks(distance_km)`가 이미 거리별
+  min/optimal_min/optimal_max/taper 기간을 반환하고,
+  `readiness.analyze_readiness(conn, distance_km, target_time_sec,
+  target_weeks)`가 기간(주)을 입력받아 완전히 다른 달성 가능성·예상 기록을
+  계산하는 기존 함수라, 3개의 기간값에 대해 그대로 호출하면 목업이 요구하는
+  "기간별 비교"가 나온다. 목업의 "균형형/단기집중/장기빌드업"이라는 스타일
+  차이는 실제로는 순수 "기간 차이"로 근사한다(엔진 자체에 스타일/철학
+  파라미터가 없음 — `generate_weekly_plan()`은 완전히 결정론적, 목표당
+  플랜이 하나뿐).
+- "새 프로그램 생성" 실행 자체 = `views_training_wizard.py`의
+  `POST /training/wizard/complete`가 이미 하는 것(`add_goal()` → `UPDATE
+  goals SET plan_weeks=?` → 주차 루프 `generate_weekly_plan()`+
+  `save_weekly_plan()`)을 서비스 함수로 그대로 옮긴다.
+- 5-F "진행률"은 `session_outcomes.dist_ratio` 기반 진짜 컴플라이언스
+  지표가 어디에도 없어(레거시 화면들도 안 씀) — 레거시
+  `views_training_cards.py`/`views_training_fullplan.py`가 쓰는 단순
+  "완료 개수/비휴식일수" 비율을 그대로 재사용(새 지표 설계 안 함).
+
+**명시적 제외**: 5-G(일일 세션 상세 — 임의 과거/미래 날짜 조정 근거)는
+`adjust_todays_plan()`이 오늘 날짜로 하드코딩돼 있어 날짜 파라미터화가
+필요(`P7-IMPL-COACH-PLAN-SESSION-DETAIL`/LATER). "조정 수락" 영속화는 위
+설명대로 별도(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER). 커스텀 훈련
+prefs UI(휴식 요일 등)도 범위 밖 — `upsert_user_training_prefs()`를 기본값
+으로만 호출.
+
+구현은 `P7-IMPL-COACH-PLAN-ACTIVE`(5-F+Coach 홈, 의존성 없음) →
+`P7-IMPL-COACH-PLAN-CREATE`(5-C/D/E, ACTIVE의 `get_active_plan()`을 5-C
+진입 판단에 씀) 두 유닛으로 분리(AUTOPILOT QUEUE 참조). `get_static_plan_
+templates()`는 `target_time_sec`이 없는 "완주" 목표 케이스를 처리해야
+한다 — `analyze_readiness()`가 `goal_time_sec=None`이면 내부에서 크래시
+하므로, VDOT 데이터가 있으면 현재 실력 기준 예상 완주 시간을 effective
+target으로 대신 쓰고, VDOT 데이터 자체가 없으면 달성 가능성 필드를 전부
+None으로 비워 반환한다(에러 raise 안 함 — coding-rules.md 원칙).

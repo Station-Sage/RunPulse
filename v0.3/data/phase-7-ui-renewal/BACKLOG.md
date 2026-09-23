@@ -142,10 +142,15 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
 
-- **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
-  5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
-  콘텐츠 설계) + `GET /api/v1/plan/templates`·`/compare`·`POST /api/v1/plan` +
-  Coach 화면에 플랜 선택 UI 추가.
+- **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜(`03e-coach.md` 5-C~5-G)
+  — 2026-09-23 조사 후 `P7-IMPL-COACH-PLAN-ACTIVE`(5-F+Coach 홈)/
+  `P7-IMPL-COACH-PLAN-CREATE`(5-C/D/E) 두 유닛으로 AUTOPILOT QUEUE 분리
+  완료. 핵심 발견: `src/training/`(planner.py/adjuster.py/readiness.py/
+  goals.py)에 이미 성숙한 규칙 기반 플랜 엔진이 있어 새 알고리즘 설계
+  없이 Phase 7b API/프론트에 연결만 하면 됨. 5-G(일일 세션 상세, 임의
+  과거/미래 날짜의 조정 근거 drill-down)와 "조정 수락" 영속화는 명시적으로
+  LATER 분리(설계 근거는 `DECISIONS.md` `[P7-IMPL-COACH-PLAN-ACTIVE]` 항목
+  참조). 이 항목 자체는 하위 유닛들이 전부 `done`이 되면 제거.
 
 ---
 
@@ -832,6 +837,185 @@ DONE으로 옮긴다.
   가능).
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-7B-LIBRARY-HUB"], "kind": "code", "scope": ["src/services/wellness_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/wellness.ts", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/library/wellness/+page.ts", "frontend/src/routes/library/+page.svelte", "tests/test_wellness_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_wellness_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
+- **[P7-IMPL-COACH-PLAN-ACTIVE]** 03e-coach.md 5-F(플랜 상세 — 진행 중) +
+  5-A(Coach 홈 "플랜" 섹션) — `P7-IMPL-COACH-PLAN-STATIC`(NEXT)의 첫 조각으로
+  분리(2026-09-23 조사). **핵심 발견**: `src/training/`에 이미 성숙한
+  규칙 기반 훈련 계획 엔진이 있음(`planner.py`/`adjuster.py`/`goals.py`,
+  논문 근거 기반, 테스트 존재) — 이번 유닛은 이걸 Phase 7b API/프론트에
+  연결만 한다, 새 알고리즘 없음. `src.training.adjuster.adjust_todays_plan(conn,
+  config=None) -> dict | None`이 이미 5-F/5-G가 요구하는 "상태 기반 조정"
+  (HRV·수면·BB·TSB → 오늘 세션 강도 하향, 근거 텍스트 포함) 그대로 구현돼
+  있음 — 단 **읽기 전용**(오늘 날짜만 조회, DB에 쓰지 않음, 매 로드마다
+  재계산). "조정 수락" 버튼을 누르면 실제로 `planned_workouts`에 반영하는
+  쓰기 경로는 코드 어디에도 없음(`src/web/views_training_crud.py` 등 grep
+  확인) — **이번 유닛은 표시만 한다, "조정 수락" 버튼은 만들지 않음**
+  (수락 시 영속화하는 API는 범위 밖, LATER로 별도 분리). 컴플라이언스는
+  `session_outcomes.dist_ratio` 기반 계산이 어디에도 없어(레거시
+  `views_training_cards.py`/`views_training_fullplan.py`가 쓰는 단순
+  "완료 개수/비휴식일수" 비율 패턴을 그대로 재사용 — 새 지표 설계 안 함).
+  **구현**: (1) `src/services/plan_service.py`(현재 docstring뿐인 스텁,
+  함수 추가) — `get_active_plan(conn: sqlite3.Connection) -> dict | None`:
+  `from src.training.goals import get_active_goal`로 활성 목표 조회(없으면
+  None), `from src.training.planner import get_planned_workouts`로 이번 주
+  월요일 기준 `get_planned_workouts(conn, week_start=<이번주 월요일>)` 호출.
+  `week_index`는 `goal['created_at']`의 월요일부터 이번주 월요일까지 주
+  차이+1로 계산(레이스데이가 아니라 시작일 기준 — `plan_weeks`와 비교해
+  "N주차/전체M주" 표시용). `compliance_pct`는 이번 주 workouts 중
+  `workout_type != 'rest'`인 것들의 `completed` truthy 비율(%, 정수 반올림,
+  분모 0이면 None). 반환: `{"goal_id","name","distance_km","race_date",
+  "plan_weeks","week_index","week_start","workouts","compliance_pct"}`.
+  `get_todays_adjustment(conn) -> dict | None`: `from src.training.adjuster
+  import adjust_todays_plan; return adjust_todays_plan(conn)` 그대로
+  (서비스 레이어 경유 원칙 유지 — 라우트가 `src.training`을 직접 import
+  하지 않도록). (2) `src/api/routes_plan.py`(신규 파일) — `GET
+  /api/v1/plan/active`(`get_active_plan()` 호출, None이면 `api_ok({"plan":
+  None})`), `GET /api/v1/plan/today-adjustment`(`get_todays_adjustment()`,
+  None이면 `api_ok({"adjustment": None})`). 기존 라우트 파일들과 동일
+  패턴(db_path 503 체크 → `sqlite3.connect` → 서비스 호출 →
+  `finally: conn.close()`). `src/api/__init__.py`의 `from . import
+  routes_coach, routes_library, routes_today` 줄에 `routes_plan` 추가(알파벳
+  순서 유지: `routes_coach, routes_library, routes_plan, routes_today`).
+  (3) `frontend/src/lib/types/index.ts`에 `PlannedWorkout { id: number; date:
+  string; workout_type: string; distance_km: number | null; target_pace_min:
+  number | null; target_pace_max: number | null; target_hr_zone: number |
+  null; description: string | null; rationale: string | null; completed:
+  number; source: string; interval_prescription: string | null }`,
+  `ActivePlanData { goal_id: number; name: string; distance_km: number;
+  race_date: string | null; plan_weeks: number | null; week_index: number |
+  null; week_start: string; workouts: PlannedWorkout[]; compliance_pct:
+  number | null }`, `TodaysAdjustment { id: number; date: string;
+  workout_type: string; original_type: string; adjusted_type: string;
+  adjusted: boolean; adjustment_reason: string | null; fatigue_level: 'low' |
+  'moderate' | 'high'; volume_boost: boolean; distance_km: number | null;
+  description: string | null }`(나머지 필드는 `[key: string]: unknown`로
+  흡수). (4) `frontend/src/lib/api/plan.ts`(신규) — `getActivePlan():
+  Promise<ActivePlanData | null>`(`apiFetch<{plan: ActivePlanData | null}>
+  ('/plan/active').then(r => r.plan)`), `getTodaysAdjustment():
+  Promise<TodaysAdjustment | null>`(동일 패턴, `/plan/today-adjustment`).
+  (5) `frontend/src/routes/coach/plan/[id]/+page.svelte` +
+  `+page.ts`(신규, 5-F) — `+page.ts`의 `load({params})`에서
+  `Promise.all([getActivePlan(), getTodaysAdjustment()])` 호출(activePlan이
+  null이거나 `goal_id`가 `params.id`와 다르면 "플랜을 찾을 수 없습니다" +
+  `/coach`로 돌아가기 링크). 본문: 목표명 + "N주차/M주" + `race_date`,
+  `compliance_pct` 진행 바, 이번 주 7일 스케줄 목록(월~일, `workout_type`
+  한국어 라벨 매핑 — easy=이지/tempo=템포/interval=인터벌/long=롱런/
+  rest=휴식/recovery=리커버리/race=레이스 — 배지 스타일은 기존
+  `providerBadgeClass` 패턴처럼 간단한 색상 매핑 신규 작성, `completed`면
+  "완료" 배지 아니면 "예정"), `distance_km`/페이스 범위(`target_pace_min`~
+  `target_pace_max`, `formatPace` 재사용) 표시. 오늘 날짜 행 아래에
+  `todaysAdjustment.adjusted`가 true면 "⚠ 상태 조정: {adjustment_reason}"
+  카드(수락/거부 버튼 없음 — 표시만, 위 배경 설명 참조). (6)
+  `frontend/src/routes/coach/+page.svelte`(기존 파일) — "── 플랜 ──" 섹션
+  추가: `+page.ts`의 `load()`에 `getActivePlan()` 호출 추가(threads와
+  병렬), 있으면 "진행 중: {name} {week_index}주차/{plan_weeks}주 [플랜
+  상세→]"(`{base}/coach/plan/{goal_id}`), 없으면 "새 프로그램 만들기 →"
+  (`{base}/coach/plan/new` — `P7-IMPL-COACH-PLAN-CREATE`가 아직 없으면
+  일시적으로 404, 같은 세션에서 바로 이어 병합되므로 허용 — D1/D2 때와
+  동일한 "탭 먼저, 내용 나중" 순서). 테스트는 이 저장소 프론트 관례상 없음
+  (`npm run check`/`npm run build`), 백엔드는 `tests/test_plan_service.py`
+  (신규) + `tests/test_api_plan.py`(신규, 기존 `mini_app` 픽스처 패턴
+  재사용) — 최소 `get_active_plan()`이 `goals`+`planned_workouts`에 실 데이터
+  심고 정상 조립하는지, 목표 없을 때 None 반환하는지, `get_todays_adjustment()`
+  가 `adjust_todays_plan()`을 그대로 위임하는지.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/plan_service.py", "src/api/routes_plan.py", "src/api/__init__.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/+page.ts", "tests/test_plan_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-COACH-PLAN-CREATE]** 03e-coach.md 5-C(플랜 없음)+5-D(새 프로그램
+  생성)+5-E(프로그램 비교) — `P7-IMPL-COACH-PLAN-STATIC`(NEXT)의 두 번째
+  조각, `P7-IMPL-COACH-PLAN-ACTIVE` 완료 후 착수(5-C가 활성 플랜 여부를
+  `getActivePlan()`으로 확인해야 하고, 생성 완료 후 `/coach/plan/{id}`로
+  이동하므로). **핵심 발견**: "정적 템플릿 3~5개"는 새 커리큘럼을 설계할
+  필요가 없다 — `src/training/readiness.py`의 `get_recommended_weeks
+  (distance_km) -> {"min","optimal_min","optimal_max","taper"}`와
+  `analyze_readiness(conn, goal_distance_km, goal_time_sec, target_weeks)
+  -> {"achievability_pct","projected_time_end","status_summary","warnings",
+  "current_vdot",...}`가 이미 기간(주)을 입력으로 받아 완전히 다른 결과를
+  내는 기존 함수라, 3개의 `target_weeks` 값(= 3개 "템플릿")에 대해 그대로
+  호출하면 목업이 요구하는 "기간별 달성 가능성·위험도 비교"가 그대로
+  나온다(새 훈련 철학/알고리즘 발명 안 함 — 목업의 "균형형/단기집중/
+  장기빌드업"이라는 스타일 차이는 실제로는 "기간 차이"로 근사). 실제
+  플랜 생성도 이미 완성된 코드 재사용 —
+  `src/web/views_training_wizard.py`의 `POST /training/wizard/complete`가
+  하는 것(`add_goal()` → `UPDATE goals SET plan_weeks=?` → 주차 루프로
+  `generate_weekly_plan()`+`save_weekly_plan()`)을 그대로 복사해 서비스
+  함수로 옮긴다. **구현**: (1) `src/services/plan_template_service.py`
+  (신규 파일 — `plan_service.py`가 이미 `P7-IMPL-COACH-PLAN-ACTIVE`에서
+  100줄 넘게 채워져 300줄 캡 여유를 위해 분리, 관심사도 다름: 조회 vs
+  생성) — `get_static_plan_templates(conn, distance_km: float,
+  target_time_sec: int | None = None) -> list[dict]`: `from
+  src.training.readiness import get_recommended_weeks, analyze_readiness,
+  vdot_to_time` 임포트. `rec = get_recommended_weeks(distance_km)`.
+  `week_presets = sorted(set([rec["min"], rec["optimal_min"],
+  rec["optimal_max"]]))`(중복 제거 — 거리에 따라 min==optimal_min일 수
+  있음). `target_time_sec`이 None이면("완주" 목표) `db_helpers.
+  get_primary_metric(conn, 'daily', <오늘 또는 최신 날짜>, 'runpulse_vdot')`
+  로 현재 VDOT 조회 → 있으면 `vdot_to_time(vdot, distance_km*1000)`을
+  effective target으로 사용(달성 가능성이 자연히 ~100%에 수렴 — "완주"
+  목표의 올바른 근사), 없으면(VDOT 데이터 자체가 없음) 각 템플릿에
+  achievability 필드 전부 None으로 채우고 `analyze_readiness` 호출 자체를
+  생략(크래시 방지 — `goal_time_sec`가 None이면 내부에서 0 비교 에러).
+  각 `weeks`에 대해 `analysis = analyze_readiness(conn, distance_km,
+  effective_target_sec, weeks)`(또는 생략 시 빈 값), `label`은 `weeks ==
+  rec["min"] → "빠른 완성"`, `weeks == rec["optimal_max"] → "여유형"`,
+  그 외(대개 optimal_min) `"권장"`. `risk_level`은
+  `analysis["achievability_pct"]`가 없으면 None, 있으면 `>=70 → "낮음"`,
+  `>=40 → "중간"`, 그 외 `"높음"`(단순 3단 임계값 — 이미 세션에서 쓴
+  discrepancy severity 패턴과 동일한 간단한 threshold 매핑). 반환 리스트
+  각 항목: `{"weeks","label","weekly_km_target": <analysis["current_vdot"]
+  가 있으면 recommend_weekly_km(current_vdot, resolve 되는 distance_label,
+  'peak', week_index=weeks-taper-1, total_weeks=weeks) 호출, 없으면 None>,
+  "achievability_pct","projected_time_end","risk_level","status_summary"}`.
+  `create_plan_from_template(conn, distance_km: float, race_date: str |
+  None, weeks: int, target_time_sec: int | None = None, name: str | None =
+  None) -> int`: `from src.training.goals import add_goal; from
+  src.training.planner import upsert_user_training_prefs,
+  generate_weekly_plan, save_weekly_plan`. `goal_id = add_goal(conn, name or
+  f"{distance_km:.0f}km 목표", distance_km, race_date, target_time_sec)`,
+  `conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks,
+  goal_id))`, `upsert_user_training_prefs(conn)`(기본값 — 커스텀 prefs UI는
+  범위 밖), 이번 주 월요일부터 `weeks`주 반복해 `generate_weekly_plan(conn,
+  goal_id=goal_id, week_start=w)` → `save_weekly_plan(conn, plan)`,
+  `conn.commit()`, `goal_id` 반환(`views_training_wizard.py`의 기존 로직과
+  1:1 대응 — 새 로직 없음). (2) `src/api/routes_plan.py`(기존 파일에 추가)
+  — `GET /api/v1/plan/templates?distance_km=&target_time_sec=`(distance_km
+  필수, 없으면 400) → `get_static_plan_templates`, `POST /api/v1/plan`(JSON
+  body: distance_km, race_date, weeks, target_time_sec?, name?) →
+  `create_plan_from_template`, `{"goal_id": ...}` 반환. (3)
+  `frontend/src/lib/types/index.ts`에 `PlanTemplate { weeks: number; label:
+  string; weekly_km_target: number | null; achievability_pct: number | null;
+  projected_time_end: number | null; risk_level: '낮음' | '중간' | '높음' |
+  null; status_summary: string }`, `CreatePlanPayload { distance_km: number;
+  race_date: string | null; weeks: number; target_time_sec?: number; name?:
+  string }`. (4) `frontend/src/lib/api/plan.ts`(기존 파일에 추가) —
+  `getPlanTemplates(distanceKm: number, targetTimeSec?: number):
+  Promise<PlanTemplate[]>`, `createPlan(payload: CreatePlanPayload):
+  Promise<number>`(`apiFetch<{goal_id: number}>('/plan', {method: 'POST',
+  body: JSON.stringify(payload)}).then(r => r.goal_id)` — `apiFetch`의 POST
+  옵션 시그니처는 `frontend/src/lib/api/coach.ts`의 `createThread()` 패턴
+  그대로 참조). (5) `frontend/src/routes/coach/plan/+page.svelte` +
+  `+page.ts`(신규, 5-C) — `load()`에서 `getActivePlan()` 호출, 있으면
+  `{base}/coach/plan/{goal_id}`로 `redirect`(SvelteKit `redirect(302,...)`),
+  없으면 페이지 렌더(현재 CTL 표시 + "[새 프로그램 만들기 →]"
+  `{base}/coach/plan/new`). (6) `frontend/src/routes/coach/plan/new/
+  +page.svelte` + `+page.ts`(신규, 5-D) — 거리 버튼(5km/10km/하프/마라톤 —
+  `distance_km` 매핑: 5/10/21.097/42.195), 날짜 입력(`race_date`), 목표
+  시간 입력 또는 "완주" 토글(목표 시간 입력 시 `target_time_sec` 계산,
+  "완주" 선택 시 undefined로 전달), "[프로그램 생성 →]" 클릭 시
+  `getPlanTemplates()` 호출 결과를 `/coach/plan/compare`로 쿼리
+  스트링(distance_km/race_date/target_time_sec)과 함께 이동(`goto`).
+  (7) `frontend/src/routes/coach/plan/compare/+page.svelte` +
+  `+page.ts`(신규, 5-E) — `+page.ts`의 `load({url})`에서 쿼리 파라미터
+  읽어 `getPlanTemplates()` 재호출(새로고침 시에도 동작하도록 서버
+  재조회, 클라이언트 상태 전달에 의존 안 함). 템플릿 3개를 카드로 나열
+  (기간/주간최대거리/달성가능성%/위험도/상태 요약), "선택" 버튼 클릭 시
+  `createPlan({distance_km, race_date, weeks: t.weeks, target_time_sec})`
+  호출 → 성공 시 `goto('/coach/plan/' + goalId)`. 테스트:
+  `tests/test_plan_template_service.py`(신규) — `get_static_plan_templates`
+  가 target_time_sec 있을 때/없을 때(완주)/VDOT 데이터 자체가 없을 때 3
+  케이스 전부 크래시 없이 반환하는지(가장 중요 — None 처리가 핵심 리스크),
+  `create_plan_from_template`이 실제로 `goals`+`planned_workouts`를 채우는지.
+  `tests/test_api_plan.py`(기존 파일에 라우트 2개 테스트 추가).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-PLAN-ACTIVE"], "kind": "code", "scope": ["src/services/plan_template_service.py", "src/api/routes_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/+page.ts", "frontend/src/routes/coach/plan/new/+page.svelte", "frontend/src/routes/coach/plan/new/+page.ts", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.ts", "tests/test_plan_template_service.py", "tests/test_api_plan.py"], "verify": ["python3 -m pytest tests/test_plan_template_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
 ---
 
 ## LATER
@@ -844,6 +1028,21 @@ DONE으로 옮긴다.
   집계 × SEMANTIC_GROUPS 13개 전체를 훑는 뷰, `P7-IMPL-PROVIDER-COMPARISON`(3-G-2,
   활동별 비교)의 후속. 스코프 축소 이유·남은 설계 질문(그룹 `strategy`별
   `primaryReason` 판정 방식)은 `DECISIONS.md`의 `[P7-DESIGN-7B-API]` 항목 참조.
+
+- **[P7-IMPL-COACH-PLAN-SESSION-DETAIL]** `03e-coach.md` 5-G(일일 세션 상세,
+  임의 과거/미래 날짜의 "원래 계획 vs 상태 기반 조정" 비교 + 조정 근거
+  EvidenceQuote + 세션 메모) — `P7-IMPL-COACH-PLAN-ACTIVE`의 후속.
+  `src.training.adjuster.adjust_todays_plan()`이 **오늘 날짜로 하드코딩**
+  돼 있어(오늘의 `daily_wellness`/최신 TSB만 조회) 임의 날짜를 지원하려면
+  날짜 파라미터화가 필요 — 새 설계 필요.
+
+- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** 5-F/5-G의 "조정 수락" 영속화 —
+  현재 `adjust_todays_plan()`은 완전 읽기 전용(매 로드마다 재계산, DB
+  미기록)이라 "수락" 버튼을 눌러도 반영할 데이터가 없음. `planned_workouts`
+  에 조정 결과를 반영하는 쓰기 경로 신설 필요(예: `adjusted_distance_km`
+  컬럼 추가 또는 `distance_km`를 직접 덮어쓰고 `source`에 조정 이력 태그) —
+  스키마 변경 수반 가능성 있어 별도 설계 필요. `P7-IMPL-COACH-PLAN-ACTIVE`
+  설계 근거는 `DECISIONS.md` 참조.
 
 - **[P7-IMPL-TIMELINE-NARRATIVE-FULL]** `<TimelineNarrative>`(C7) 완전판 — 마크다운
   서브셋 파싱, `[chart:slug]` 인라인 SVG 스파크라인, `highlights` 수치 카드,
