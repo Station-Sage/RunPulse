@@ -106,31 +106,36 @@
 			{:else}
 				<ul class="divide-y divide-border-subtle">
 					{#each data.plan.workouts as w (w.id)}
-						<li class="flex items-start gap-3 py-2.5">
-							<span class="w-6 shrink-0 text-center text-xs text-fg-muted"
-								>{dayLabel(w.date)}</span
+						<li>
+							<a
+								href="{base}/coach/plan/{data.plan.goal.id}/session/{w.date}"
+								class="flex items-start gap-3 py-2.5 hover:bg-surface-2"
 							>
-							<div class="min-w-0 flex-1">
-								<div class="flex items-center gap-2">
-									<span class="text-sm font-medium">
-										{WORKOUT_LABELS[w.workout_type] ?? w.workout_type}
-									</span>
-									{#if w.distance_km}
-										<span class="text-xs text-fg-muted">{w.distance_km}km</span>
-									{/if}
-									{#if paceRange(w.target_pace_min, w.target_pace_max)}
-										<span class="text-xs text-fg-muted"
-											>{paceRange(w.target_pace_min, w.target_pace_max)}</span
-										>
+								<span class="w-6 shrink-0 text-center text-xs text-fg-muted"
+									>{dayLabel(w.date)}</span
+								>
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2">
+										<span class="text-sm font-medium">
+											{WORKOUT_LABELS[w.workout_type] ?? w.workout_type}
+										</span>
+										{#if w.distance_km}
+											<span class="text-xs text-fg-muted">{w.distance_km}km</span>
+										{/if}
+										{#if paceRange(w.target_pace_min, w.target_pace_max)}
+											<span class="text-xs text-fg-muted"
+												>{paceRange(w.target_pace_min, w.target_pace_max)}</span
+											>
+										{/if}
+									</div>
+									{#if w.description}
+										<p class="mt-0.5 text-xs text-fg-secondary">{w.description}</p>
 									{/if}
 								</div>
-								{#if w.description}
-									<p class="mt-0.5 text-xs text-fg-secondary">{w.description}</p>
+								{#if w.completed}
+									<span class="shrink-0 text-xs text-semantic-green">✓</span>
 								{/if}
-							</div>
-							{#if w.completed}
-								<span class="shrink-0 text-xs text-semantic-green">✓</span>
-							{/if}
+							</a>
 						</li>
 					{/each}
 				</ul>

@@ -137,3 +137,54 @@ def test_get_todays_adjustment_with_plan(conn):
     result = plan_service.get_todays_adjustment(conn)
     # Result should be dict or None — both acceptable
     assert result is None or isinstance(result, dict)
+
+
+# ── get_session_detail ────────────────────────────────────────────────────────
+
+def test_get_session_detail_existing_date(conn):
+    goal_id = _seed_goal(conn)
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    target = week_start.isoformat()
+    _seed_workout(conn, target, "easy")
+
+    result = plan_service.get_session_detail(conn, goal_id, target)
+    assert result is not None
+    assert result["goal"]["id"] == goal_id
+    assert result["workout"]["date"] == target
+    assert "week_index" in result
+    assert "adjustment" in result
+    assert "note" in result
+
+
+def test_get_session_detail_missing_date_returns_none(conn):
+    goal_id = _seed_goal(conn)
+    future = (date.today() + timedelta(days=100)).isoformat()
+    result = plan_service.get_session_detail(conn, goal_id, future)
+    assert result is None
+
+
+def test_get_session_detail_invalid_goal_id_returns_none(conn):
+    today = date.today().isoformat()
+    result = plan_service.get_session_detail(conn, 9999, today)
+    assert result is None
+
+
+# ── get_session_note / save_session_note ─────────────────────────────────────
+
+def test_get_session_note_empty(conn):
+    assert plan_service.get_session_note(conn, "2026-09-23") is None
+
+
+def test_save_session_note_and_retrieve(conn):
+    plan_service.save_session_note(conn, "2026-09-23", "첫 번째 메모")
+    note = plan_service.get_session_note(conn, "2026-09-23")
+    assert note == "첫 번째 메모"
+
+
+def test_save_session_note_upsert(conn):
+    """같은 날짜에 두 번 저장하면 마지막 값이 남아야 한다."""
+    plan_service.save_session_note(conn, "2026-09-23", "첫 번째")
+    plan_service.save_session_note(conn, "2026-09-23", "두 번째")
+    note = plan_service.get_session_note(conn, "2026-09-23")
+    assert note == "두 번째"

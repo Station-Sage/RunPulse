@@ -1,7 +1,7 @@
 """컨디션 기반 당일 훈련 계획 조정."""
 
 import sqlite3
-from datetime import date
+from datetime import date as _date
 
 
 # 피로도 높음: interval/tempo → rest, long → easy
@@ -17,13 +17,13 @@ _DOWNGRADE_MOD: dict[str, str] = {
 }
 
 
-def _get_todays_wellness(conn: sqlite3.Connection) -> dict:
-    """오늘 Garmin 웰니스 데이터 조회."""
-    today = date.today().isoformat()
+def _get_todays_wellness(conn: sqlite3.Connection, date: str | None = None) -> dict:
+    """지정 날짜(기본 오늘) Garmin 웰니스 데이터 조회."""
+    target = date or _date.today().isoformat()
     row = conn.execute(
         "SELECT body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, avg_stress "
         "FROM daily_wellness WHERE date = ?",
-        (today,),
+        (target,),
     ).fetchone()
     if row:
         sleep_hours = row[2] / 3600.0 if row[2] else None
@@ -34,13 +34,22 @@ def _get_todays_wellness(conn: sqlite3.Connection) -> dict:
     return {}
 
 
-def _get_latest_tsb(conn: sqlite3.Connection) -> float | None:
-    """최근 TSB 조회 (metric_store daily)."""
-    row = conn.execute(
-        "SELECT numeric_value FROM metric_store"
-        " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
-        " ORDER BY scope_id DESC LIMIT 1"
-    ).fetchone()
+def _get_latest_tsb(conn: sqlite3.Connection, date: str | None = None) -> float | None:
+    """최근 TSB 조회 (metric_store daily). date 지정 시 그 날짜 이전의 최신 값."""
+    if date is not None:
+        row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
+            " AND scope_id <= ?"
+            " ORDER BY scope_id DESC LIMIT 1",
+            (date,),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT numeric_value FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
+            " ORDER BY scope_id DESC LIMIT 1"
+        ).fetchone()
     return row[0] if row else None
 
 
@@ -86,27 +95,29 @@ def _fatigue_level(wellness: dict, tsb: float | None) -> str:
 def adjust_todays_plan(
     conn: sqlite3.Connection,
     config: dict | None = None,
+    date: str | None = None,
 ) -> dict | None:
-    """오늘 계획된 운동을 컨디션 기반으로 조정.
+    """지정 날짜(기본 오늘)의 계획된 운동을 컨디션 기반으로 조정.
 
     Args:
         conn: SQLite 연결.
         config: 설정 딕셔너리 (현재 미사용, 확장용).
+        date: 조회 날짜 (ISO 문자열). None이면 오늘.
 
     Returns:
         조정된 workout dict.
         추가 필드: original_type, adjusted_type, adjusted, adjustment_reason,
-                   fatigue_level, volume_boost, wellness, tsb.
-        오늘 계획 없으면 None.
+                   adjustment_reason_parts, fatigue_level, volume_boost, wellness, tsb.
+        해당 날짜 계획 없으면 None.
     """
-    today = date.today().isoformat()
+    target = date or _date.today().isoformat()
     row = conn.execute(
         """SELECT id, date, workout_type, distance_km, target_pace_min, target_pace_max,
                   target_hr_zone, description, rationale
            FROM planned_workouts
            WHERE date = ?
            ORDER BY id DESC LIMIT 1""",
-        (today,),
+        (target,),
     ).fetchone()
 
     if not row:
@@ -116,8 +127,8 @@ def adjust_todays_plan(
             "target_pace_max", "target_hr_zone", "description", "rationale"]
     workout = dict(zip(keys, row))
 
-    wellness = _get_todays_wellness(conn)
-    tsb = _get_latest_tsb(conn)
+    wellness = _get_todays_wellness(conn, date=date)
+    tsb = _get_latest_tsb(conn, date=date)
     fatigue = _fatigue_level(wellness, tsb)
 
     original_type = workout["workout_type"]
@@ -137,14 +148,15 @@ def adjust_todays_plan(
             parts.append(f"TSB {tsb:.1f}")
         return parts
 
+    reason_parts: list[str] = []
     if fatigue == "high":
         adjusted_type = _DOWNGRADE_HIGH.get(original_type, original_type)
-        parts = _reason_parts()
-        adjustment_reason = "피로도 높음" + (": " + ", ".join(parts) if parts else "")
+        reason_parts = _reason_parts()
+        adjustment_reason = "피로도 높음" + (": " + ", ".join(reason_parts) if reason_parts else "")
     elif fatigue == "moderate":
         adjusted_type = _DOWNGRADE_MOD.get(original_type, original_type)
-        parts = _reason_parts()
-        adjustment_reason = "중간 피로" + (": " + ", ".join(parts) if parts else "")
+        reason_parts = _reason_parts()
+        adjustment_reason = "중간 피로" + (": " + ", ".join(reason_parts) if reason_parts else "")
 
     if adjusted_type != original_type:
         adjusted = True
@@ -162,6 +174,7 @@ def adjust_todays_plan(
         "adjusted_type": adjusted_type,
         "adjusted": adjusted,
         "adjustment_reason": adjustment_reason,
+        "adjustment_reason_parts": reason_parts,
         "fatigue_level": fatigue,
         "volume_boost": volume_boost,
         "wellness": wellness,

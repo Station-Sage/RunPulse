@@ -545,3 +545,30 @@ export interface TodaysAdjustment {
 	fatigue_level: string;
 	volume_boost: boolean;
 }
+
+// ── Coach Plan Session Detail (5-G — /api/v1/coach/plan/:id/session/:date) ───
+
+export interface SessionAdjustment {
+	id: number;
+	date: string;
+	workout_type: string;
+	distance_km: number | null;
+	target_pace_min: number | null;
+	target_pace_max: number | null;
+	description: string | null;
+	original_type: string;
+	adjusted_type: string;
+	adjusted: boolean;
+	adjustment_reason: string | null;
+	adjustment_reason_parts: string[];
+	fatigue_level: string;
+	volume_boost: boolean;
+}
+
+export interface SessionDetail {
+	goal: PlanGoal;
+	week_index: number;
+	workout: PlannedWorkout;
+	adjustment: SessionAdjustment | null;
+	note: string | null;
+}

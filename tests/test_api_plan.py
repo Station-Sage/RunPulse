@@ -185,3 +185,92 @@ def test_post_plan_201_creates_goal(mini_app):
     body = res.get_json()
     assert "goal_id" in body["data"]
     assert isinstance(body["data"]["goal_id"], int)
+
+
+# ── /coach/plan/<goal_id>/session/<date> ─────────────────────────────────────
+
+@pytest.fixture
+def app_with_session(tmp_path):
+    from datetime import date as _date, timedelta
+    db_file = tmp_path / "running.db"
+    conn = sqlite3.connect(str(db_file))
+    create_tables(conn)
+    migrate_db(conn)
+    goal_id = _seed_goal(conn)
+    today = _date.today()
+    week_start = today - timedelta(days=today.weekday())
+    session_date = week_start.isoformat()
+    _seed_workout(conn, session_date, "long")
+    conn.commit()
+    conn.close()
+
+    import src.api.routes_plan as routes_plan
+    _orig = routes_plan.db_path
+    routes_plan.db_path = lambda: db_file
+
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    from src.api import api_bp
+    app.register_blueprint(api_bp)
+
+    with app.test_client() as client:
+        yield client, goal_id, session_date
+
+    routes_plan.db_path = _orig
+
+
+def test_get_session_detail_200(app_with_session):
+    client, goal_id, session_date = app_with_session
+    res = client.get(f"/api/v1/coach/plan/{goal_id}/session/{session_date}")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert data["goal"]["id"] == goal_id
+    assert data["workout"]["date"] == session_date
+    assert "week_index" in data
+    assert "adjustment" in data
+    assert "note" in data
+
+
+def test_get_session_detail_404_missing_date(app_with_session):
+    client, goal_id, _ = app_with_session
+    res = client.get(f"/api/v1/coach/plan/{goal_id}/session/1990-01-01")
+    assert res.status_code == 404
+
+
+def test_get_session_detail_404_invalid_goal(app_with_session):
+    client, _, session_date = app_with_session
+    res = client.get(f"/api/v1/coach/plan/9999/session/{session_date}")
+    assert res.status_code == 404
+
+
+# ── POST /coach/plan/session/<date>/note ─────────────────────────────────────
+
+def test_post_session_note_200(app_with_session):
+    client, _, session_date = app_with_session
+    res = client.post(
+        f"/api/v1/coach/plan/session/{session_date}/note",
+        json={"note": "훈련 잘 됐다"}
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["data"]["note"] == "훈련 잘 됐다"
+
+
+def test_post_session_note_400_empty_note(app_with_session):
+    client, _, session_date = app_with_session
+    res = client.post(
+        f"/api/v1/coach/plan/session/{session_date}/note",
+        json={"note": "  "}
+    )
+    assert res.status_code == 400
+    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+
+
+def test_post_session_note_400_missing_note(app_with_session):
+    client, _, session_date = app_with_session
+    res = client.post(
+        f"/api/v1/coach/plan/session/{session_date}/note",
+        json={}
+    )
+    assert res.status_code == 400
