@@ -769,7 +769,7 @@ DONE으로 옮긴다.
   +page.svelte`의 "← Library로" 링크는 `{base}/library`로(메트릭 브라우저
   상위는 홈이 맞음) — 각각 원래 `{base}/library`였던 걸 목적지에 맞게
   분리. 백엔드 변경 없음(순수 프론트).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/activities/+page.svelte", "frontend/src/routes/library/activities/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/+page.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/activities/+page.svelte", "frontend/src/routes/library/activities/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/+page.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-7B-WELLNESS]** 03c-library.md 3-A "웰니스" 탭 — 화면 설계 자체가
   문서에 없어(목업엔 탭 라벨만 존재) 이번에 새로 설계(2026-09-23 plan mode).
