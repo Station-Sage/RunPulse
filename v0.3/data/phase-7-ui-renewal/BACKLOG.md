@@ -355,7 +355,7 @@ DONE으로 옮긴다.
   형제별로 다른 id에 `metric_store` INSERT한 뒤 하나의 행으로 평탄화되는지, RunPulse
   단독 값 행의 `ruleType=="runpulse_always"`. `tests/test_api_library.py`에 라우트
   테스트(200/404) 추가.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/provider_comparison_service.py", "src/api/routes_library.py", "tests/test_provider_comparison_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_comparison_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/provider_comparison_service.py", "src/api/routes_library.py", "tests/test_provider_comparison_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_comparison_service.py tests/test_api_library.py -q", "python3 scripts/check_data_consistency.py"]} -->
 
 ---
 
