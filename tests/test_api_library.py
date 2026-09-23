@@ -192,3 +192,47 @@ def test_get_activity_providers_404(mini_app):
     assert res.status_code == 404
     body = res.get_json()
     assert body["error"]["code"] == "NOT_FOUND"
+
+
+# ── /library/metrics 브라우저 라우트 테스트 ─────────────────────────────────
+
+def test_get_metrics_browser_200(metric_app):
+    """GET /library/metrics → 200, categories 포함."""
+    res = metric_app.get("/api/v1/library/metrics?date=2026-04-01")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert "date" in data
+    assert "categories" in data
+    assert isinstance(data["categories"], list)
+    assert len(data["categories"]) > 0
+
+
+def test_get_metrics_browser_no_date(metric_app):
+    """date 없이 호출 → 자동 최신 날짜 사용."""
+    res = metric_app.get("/api/v1/library/metrics")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "date" in body["data"]
+
+
+# ── /library/metrics/:slug/trend 라우트 테스트 ──────────────────────────────
+
+def test_get_metric_trend_200(metric_app):
+    """GET /library/metrics/ctl/trend → 200, points 포함."""
+    res = metric_app.get("/api/v1/library/metrics/ctl/trend?period=1y")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert data["slug"] == "ctl"
+    assert "points" in data
+    assert "current" in data
+    assert "peak" in data
+
+
+def test_get_metric_trend_404(metric_app):
+    """존재하지 않는 메트릭 → 404, NOT_FOUND."""
+    res = metric_app.get("/api/v1/library/metrics/nonexistent_xyz/trend")
+    assert res.status_code == 404
+    body = res.get_json()
+    assert body["error"]["code"] == "NOT_FOUND"

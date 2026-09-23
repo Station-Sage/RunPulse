@@ -376,3 +376,43 @@ export interface ProviderComparisonData {
 	state: 'loaded' | 'single_provider';
 	rows: ComparisonRow[];
 }
+
+// ── MetricBrowser (3-E — /api/v1/library/metrics) ──────────────────────────
+
+export interface MetricBrowserEntry {
+	name: string;
+	label: string;
+	value: number | string | null;
+	unit: string;
+	provider: string | null;
+	confidence: number | null;
+	sparkline: number[];
+}
+
+export interface MetricBrowserCategory {
+	category: string;
+	label: string;
+	metrics: MetricBrowserEntry[];
+}
+
+export interface MetricBrowserData {
+	date: string;
+	categories: MetricBrowserCategory[];
+}
+
+// ── MetricTrend (3-F — /api/v1/library/metrics/:slug/trend) ─────────────────
+
+export interface MetricTrendPoint {
+	date: string;
+	value: number;
+}
+
+export interface MetricTrendData {
+	slug: string;
+	label: string;
+	unit: string;
+	current: number | null;
+	peak: { value: number; date: string } | null;
+	change_pct: number | null;
+	points: MetricTrendPoint[];
+}
