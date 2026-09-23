@@ -134,10 +134,13 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
 
-- **[P7-IMPL-7B-LIBRARY]** Library 전면화 — Flask API(`GET /api/v1/library/metrics`,
-  `/metrics/:slug`, `/wellness`, `/providers`) + SvelteKit `<ProviderComparison>`(C4)
-  + Library/metrics·wellness·providers·홈 화면(`03c-library.md`). D2 완료 필요
-  (providers는 activity_groups 조인).
+- **[P7-IMPL-7B-LIBRARY]** Library 전면화 나머지(2026-09-23 갱신 — 3-D/3-E/3-F는
+  `P7-IMPL-7B-STREAMS`/`P7-IMPL-7B-METRICS-BROWSER`로 AUTOPILOT QUEUE 분리
+  완료, `/metrics/:slug`·`<ProviderComparison>`(C4)도 이미 병합됨). 남은 건:
+  3-A Library 홈 강화(시맨틱 그룹 빠른 접근, Provider 데이터 현황 카드 —
+  `GET /api/v1/library/providers/status` 신설 필요), 3-B 활동 목록 전용 페이지
+  (`GET /library/activities`는 이미 있음, 프론트만), "웰니스" 탭(3-A 목업엔
+  있으나 03c 본문에 화면 설계가 없음 — 착수 전 설계 필요).
 
 - **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
   5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
@@ -595,6 +598,125 @@ DONE으로 옮긴다.
   단위 테스트 없음(`npm run check`/`npm run build`가 검증 전부, SVELTE-2A/2B와
   동일).
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-7B-STREAMS]** `P7-IMPL-7B-LIBRARY`(NEXT)에서 3-D만 분리 — 백엔드는
+  이미 완료(`GET /library/activities/:id/streams`,
+  `activity_service.get_activity_streams()`), SvelteKit만. 조사 결과
+  `activity_streams` 테이블 컬럼: `elapsed_sec, distance_m, heart_rate, cadence,
+  power_watts, altitude_m, speed_ms, latitude, longitude, grade_pct,
+  temperature_c, source`(`src/db_setup.py` `_DDL_ACTIVITY_STREAMS`) — `pace`
+  컬럼은 없어 `speed_ms`에서 클라이언트에서 변환(`pace_sec_km = speed_ms > 0 ?
+  1000/speed_ms : null`).
+  **구현**: (1) `frontend/src/lib/components/Sparkline.svelte`(신규, 재사용
+  컴포넌트) — props `{ data: (number | null)[]; width?: number = 600; height?:
+  number = 48; color?: string = 'currentColor' }`. `<svg viewBox="0 0 {width}
+  {height}" preserveAspectRatio="none">`에 `<polyline>` 하나: data를 min/max로
+  정규화해 좌표 계산, `null` 지점은 선을 끊음(여러 `<polyline>` 세그먼트로 분할).
+  호버/스크럽 인터랙션은 이번 스코프 밖(정적 렌더만) — 필요해지면 후속 유닛.
+  데이터가 전부 null/빈 배열이면 "데이터 없음" 텍스트만. (2)
+  `frontend/src/lib/types/index.ts`에 `ActivityStreamPoint { elapsed_sec:
+  number; distance_m: number | null; heart_rate: number | null; cadence: number
+  | null; power_watts: number | null; altitude_m: number | null; speed_ms:
+  number | null; grade_pct: number | null; source: string }` 추가. (3)
+  `frontend/src/lib/api/streams.ts`(신규) — `getActivityStreams(activityId:
+  number): Promise<ActivityStreamPoint[]>` → `apiFetch<{streams:
+  ActivityStreamPoint[]}>('/library/activities/' + activityId +
+  '/streams').then(r => r.streams)`. (4)
+  `frontend/src/routes/library/[id]/streams/+page.svelte` +
+  `+page.ts`(신규, `P7-IMPL-7B-PROVIDER-UI`의 `providers/+page.ts`와 동일
+  구조) — `load({params})`에서 `getActivityStreams(Number(params.id))` 호출
+  (빈 배열이면 "스트림 데이터 없음"). 페이지 본문: 체크박스로 표시할 스트림
+  토글(페이스·심박·고도·케이던스·파워 — 해당 컬럼이 전부 null인 스트림은
+  체크박스 자체를 숨김), 체크된 것만 `<Sparkline>` 한 줄씩(라벨 + provider
+  배지 + 최소/최대값 텍스트 + Sparkline). x축은 `elapsed_sec`(별도 렌더 없이
+  포인트 순서 그대로 전달 — 스트림은 항상 균등 간격이 아닐 수 있어 정밀한 시간
+  축은 후속 과제로 명시). (5)
+  `frontend/src/routes/library/[id]/+page.svelte`(기존) — 탭 바의 `스트림`
+  버튼을 `providers` 링크와 동일 패턴으로 `<a href="{base}/library/{core.id}
+  /streams">`로 교체(disabled 제거는 스트림만, 랩·메트릭은 그대로 disabled
+  유지). 테스트는 SVELTE-2A/2B·PROVIDER-UI와 동일하게 `npm run check`/`npm run
+  build`만.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/components/Sparkline.svelte", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/streams.ts", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-7B-METRICS-BROWSER]** `P7-IMPL-7B-LIBRARY`(NEXT)에서 3-E+3-F만
+  분리 — 03c-library.md 3-E(메트릭 브라우저)·3-F(메트릭 상세). 조사 결과 시계열
+  조회 함수 `db_helpers.get_metric_history(conn, metric_name, scope_type=
+  'daily', provider=None, date_from=None, date_to=None, primary_only=True)`가
+  이미 있어 새 쿼리 로직 불필요, 조립만 하면 됨. **스코프 축소**: 3-E/3-F는
+  `scope_type='daily'` 메트릭만 대상(CTL/ATL/TSB/HRV/Body Battery/Sleep Score
+  등 — 3-A/3-E/3-F 목업 예시 전부 daily-scope). `scope_type='activity'`
+  메트릭(페이스/파워/케이던스 등)은 이미 3-C 활동 상세의 "핵심 메트릭"
+  그리드에서 활동별로 노출되고 있어 별도 전역 브라우저가 필요 없음(하나의
+  "글로벌 활동 메트릭 현재값"이 의미가 모호함 — 어느 활동 기준인지). 카테고리는
+  `METRIC_REGISTRY`의 16-domain `category` 필드를 그대로 쓰되 한국어 표시 라벨은
+  신규 매핑(`_CATEGORY_LABELS`, 아래 명시) — `SEMANTIC_GROUPS`(`metric_groups.
+  py`)는 provider 간 동일 개념 비교용이라 이 용도에 안 맞음(재사용 안 함).
+  **구현**: (1) `src/services/metrics_browser_service.py`(신규 — 기존
+  `metrics_service.py`는 breakdown 트리 전용이라 관심사 분리, ADR 없이 진행
+  가능한 순수 조회 함수라 별도 설계 승인 불필요) — `_CATEGORY_LABELS: dict[str,
+  str] = {"load": "피트니스·피로", "pace": "페이스·속도", "hr": "심박", "sleep":
+  "수면·회복", "power": "파워", "running_dynamics": "러닝 다이나믹스",
+  "efficiency": "달리기 효율", "prediction": "레이스 준비도", "readiness": "컨디셔닝",
+  "body": "신체 지표", "stress": "스트레스", "capacity": "능력치", "volume": "훈련량",
+  "athlete": "프로필", "weather": "환경", "meta": "기타"}`(체크 #4/#10 기준 16개
+  전부 매핑, `check_data_consistency.py` 카테고리 목록과 어긋나면 안 됨 — 착수
+  전 `python3 scripts/check_data_consistency.py` 결과의 카테고리 집합과 대조).
+  `get_metrics_browser(conn, date=None) -> dict`: `date`가 None이면
+  `SELECT MAX(scope_id) FROM metric_store WHERE scope_type='daily' AND
+  numeric_value IS NOT NULL`로 최신 날짜 조회(D1/marker 패턴,
+  `src/ai/chat_context_builders.py`의 `scope_id<=? ORDER BY scope_id DESC`
+  스타일 참조). `METRIC_REGISTRY`에서 `scope=='daily'`인 항목을 category별로
+  순회, 각 metric에 대해 `db_helpers.get_primary_metric(conn, 'daily', date,
+  name)` 호출 — 값 없으면(None) 스킵. 있으면 `db_helpers.get_metric_history(conn,
+  name, scope_type='daily', date_to=date)`의 마지막 14개 `numeric_value`를
+  `sparkline`으로 포함. 결과 없는 category는 응답에서 제외(빈 섹션 노출 금지,
+  coding-rules.md "데이터 부족 시 빈 리스트"). 반환: `{"date": date, "categories":
+  [{"category": "load", "label": "피트니스·피로", "metrics": [{"name", "label",
+  "value", "unit", "provider", "confidence", "sparkline": [num, ...]}]}]}`.
+  `get_metric_trend(conn, slug, period='3m') -> dict | None`: `period` →
+  `{'4w':28,'3m':90,'6m':180,'1y':365}`(잘못된 값이면 '3m' 기본값), `date_from =
+  today - days`. `db_helpers.get_metric_history(conn, slug, scope_type='daily',
+  date_from=date_from)` 호출, 빈 리스트면 None 반환(404 처리는 라우트에서).
+  `points = [{"date": r['scope_id'], "value": r['numeric_value']} for r in
+  history]`, `current = points[-1]['value']`, `peak = max(points,
+  key=lambda p: p['value'])`, `change_pct = (current - points[0]['value']) /
+  points[0]['value'] * 100`(`points[0]['value']`가 0이거나 None이면 change_pct는
+  None). 반환: `{"slug", "label", "unit", "current", "peak": {"value", "date"},
+  "change_pct", "points": [...]}`. (2) `src/api/routes_library.py`에 라우트 2개
+  추가 — `GET /library/metrics?date=`(옵션) → `get_metrics_browser`,
+  `GET /library/metrics/<slug>/trend?period=`(기본 `3m`) → `get_metric_trend`
+  (None이면 404). (3) `frontend/src/lib/types/index.ts`에 `MetricBrowserEntry
+  { name: string; label: string; value: number | string | null; unit: string;
+  provider: string | null; confidence: number | null; sparkline: number[] }`,
+  `MetricBrowserCategory { category: string; label: string; metrics:
+  MetricBrowserEntry[] }`, `MetricBrowserData { date: string; categories:
+  MetricBrowserCategory[] }`, `MetricTrendPoint { date: string; value: number
+  }`, `MetricTrendData { slug: string; label: string; unit: string; current:
+  number | null; peak: { value: number; date: string } | null; change_pct:
+  number | null; points: MetricTrendPoint[] }` 추가. (4)
+  `frontend/src/lib/api/metrics.ts`(기존 파일에 추가) —
+  `getMetricsBrowser(date?: string): Promise<MetricBrowserData>`,
+  `getMetricTrend(slug: string, period?: string): Promise<MetricTrendData>`.
+  (5) `frontend/src/routes/library/metrics/+page.svelte` +
+  `+page.ts`(신규, 3-E) — 카테고리 칩 필터(전체 + `categories`에 실제로 있는
+  카테고리만), 카테고리별 섹션에 메트릭 카드 그리드(`MetricCell`류 재사용 —
+  카드 안에 값 + `<Sparkline data={m.sparkline} height={24}/>` + provider
+  배지), 카드 탭 시 `{base}/library/metrics/{m.name}`로 이동. (6)
+  `frontend/src/routes/library/metrics/[slug]/+page.svelte` +
+  `+page.ts`(신규, 3-F) — `+page.ts`의 `load({params, url})`에서
+  `getMetricTrend(params.slug, url.searchParams.get('period') ?? '3m')` 호출
+  (404 시 errorMessage 패턴, 기존 `[id]/+page.ts`와 동일). 상단에 현재값·
+  30일변화(`change_pct`)·피크(`peak`), 기간 선택 버튼 4개(선택 시
+  `goto`로 `?period=` 쿼리 변경), `<Sparkline data={points.map(p=>p.value)}
+  height={120}/>`(3-F 큰 차트용, 기존 것 그대로 재사용 — 별도 축 렌더링 없음,
+  스코프 축소). 하단에 "계산 분해 보기" 버튼 — 탭 시 기존
+  `<MetricBreakdown slug={slug} scopeType="daily" scopeId={points.at(-1)?.date}
+  onClose={...}/>`를 바텀시트로 오픈(이미 있는 컴포넌트 그대로 재사용, 3-F
+  목업의 인라인 배치 대신 기존 오버레이 패턴 유지 — Today L2 때와 동일한
+  실용적 축소). "Provider 비교" 탭은 이번 스코프 밖(정체성 매트릭스,
+  `P7-IMPL-PROVIDER-MATRIX`/LATER 참조) — 비활성 버튼으로만 표시.
+  **의존성**: `Sparkline.svelte`를 쓰므로 `P7-IMPL-7B-STREAMS` 완료 후 착수.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-7B-STREAMS"], "kind": "code", "scope": ["src/services/metrics_browser_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.ts"], "verify": ["python3 -m pytest tests/test_metrics_browser_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
