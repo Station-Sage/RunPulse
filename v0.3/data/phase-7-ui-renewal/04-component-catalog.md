@@ -265,7 +265,17 @@ interface MetricBreakdownData {
   prevValue?: number        // 직전 계산값 (diff 표시용)
   confidence?: number       // 신뢰도 0~1
 
-  children?: MetricBreakdownNode[]
+  children?: MetricBreakdownNode[]  // 소유 분해 — 이 메트릭 Calculator 자신의
+                                     // compute()가 만든, 독립적으로 존재하지 않는
+                                     // 파생값(PMC의 ramp_rate, UTRS/CIRS의 정규화
+                                     // 구성요소). parent_metric_id 트리 그대로.
+  inputs?: MetricBreakdownNode[]    // 입력 사용 — 이미 독립적으로 존재하는 다른
+                                     // 메트릭을 계산식 입력으로 읽은 것(RRI가 읽는
+                                     // CIRS/VDOT/CTL/DI 등). Calculator.requires
+                                     // 기반, weight 없음(2026-09-22 결정 — 06 D1
+                                     // "정정" 참조). 각 항목은 drillable=true로
+                                     // 그 메트릭 자신의 MetricBreakdown을 새로 연다
+                                     // (children처럼 인라인 펼침 아님, 재귀 마운트).
 }
 
 interface MetricBreakdownNode {
@@ -274,8 +284,12 @@ interface MetricBreakdownNode {
   value: number | string
   unit?: string
   provider: ProviderKey
-  weight?: string           // 가중치 e.g. "40%"
-  collapsible: boolean
+  weight?: string           // 가중치 e.g. "40%" — children(소유 분해)에서만 의미
+                            // 있음. inputs(입력 사용)는 항상 undefined — RRI처럼
+                            // 곱셈형 공식엔 "기여 비중 %"가 자연스럽지 않음.
+  collapsible: boolean      // children 항목: 인라인 펼침/접힘. inputs 항목: 항상
+                            // false — 탭하면 접히는 게 아니라 그 메트릭의
+                            // MetricBreakdown이 새로 마운트됨(drillable 취급).
   children?: MetricBreakdownNode[]
 }
 ```
@@ -301,12 +315,16 @@ interface MetricBreakdownNode {
 │  재계산: 2026-06-09 14:30 · formula_v1 · conf 0.82  │
 │  이전값: 66 → 68  (+2, +3%)        │  ← prevValue 있을 때
 │  ──────────────────────────────    │
-│  ▾ 하위 메트릭 A   0.84  [Prv]  40%│ ← D2, 탭으로 펼침
+│  ▾ 하위 메트릭 A   0.84  [Prv]  40%│ ← D2 children(소유 분해), 탭으로 펼침
 │    ▾ 하위 B        0.91  [Prv]    │  ← D3 (raw), 펼침 불가
 │    ── raw 데이터: API 값 표시      │
 │  ▾ 하위 메트릭 C   71    [Prv]  30%│
 │  ▸ 하위 메트릭 D (접힘)            │
-│  ──────────────────────────────    │
+│  ──────────────────────────────    │  ← inputs 있을 때만 이 구간 렌더링
+│  기반 데이터                       │
+│  · CIRS       42  [Prv] ›          │ ← inputs(입력 사용), weight 없음,
+│  · VDOT       52  [Prv] ›          │   탭하면 그 메트릭의 새 MetricBreakdown
+│  ──────────────────────────────    │   패널이 재귀 마운트(인라인 펼침 아님)
 │  [Library에서 전체 추세 →]         │  ← D3 진입점
 └────────────────────────────────────┘
 ```
@@ -314,7 +332,9 @@ interface MetricBreakdownNode {
 ### 인터랙션
 
 ```
-노드 탭 (collapsible=true) → 펼침/접힘 토글
+children 노드 탭 (collapsible=true) → 펼침/접힘 토글
+inputs 노드 탭 (drillable=true) → dispatch('drill', { slug }) →
+  부모가 그 메트릭용 MetricBreakdown을 새로 마운트 (재귀, 컴포넌트 의존 관계 참조)
 [Library 링크] → /library/metrics/:slug (Router.push)
 [×닫기] → dispatch('close')
 ```

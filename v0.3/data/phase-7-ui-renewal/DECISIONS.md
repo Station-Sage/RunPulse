@@ -140,14 +140,29 @@ utrs/cirs 쪽은 문제없음: 각 Calculator의 `compute()`가 이미 만드는
 hrv_weekly_avg 등)과 이름이 겹치지 않는 RRI/UTRS/CIRS 각자의 파생값이라 D1(PMC)과
 동일 패턴으로 충돌 없이 적용 가능.
 
-**선택지**:
+**선택지** (Telegram으로 최초 문의 시 제시):
 - A. RRI는 이번 유닛에서 제외 — utrs+cirs만 먼저 저장, RRI는 이 결정 이후 별도 유닛
 - B. RRI도 같은 패턴 적용 — "UTRS/CIRS를 자식으로" 원안을 버리고, RRI 자신의 계산
-  factor(`vdot_pct`, `ctl_pct`, `di_factor`, `safety`, 이미 `json_val`에 있는 값들)를
-  `rri_*` 이름의 신규 자식 행으로 저장(PMC/utrs/cirs와 동일 패턴, 원안과 다른 해석)
-- C. 원안 그대로 — utrs/cirs 행의 `parent_metric_id`를 RRI 저장 시점에 덮어써 RRI의
-  자식으로 재소속(utrs/cirs 자신의 트리는 포기) — 비권장(먼저 계산되는 utrs/cirs가
-  이미 자기 자식을 가진 상태에서 나중에 RRI가 그 부모 관계를 뺏는 순서 의존성 발생)
+  factor(`vdot_pct`, `ctl_pct`, `di_factor`, `safety`)를 `rri_*` 신규 자식 행으로 저장
+- C. 원안 그대로 — utrs/cirs 행의 `parent_metric_id`를 RRI 저장 시점에 덮어써 재소속
+  (비권장 — 순서 의존성 발생)
 
-**결정**: 미정 — 2026-09-22 Telegram으로 사용자에게 문의, 일단 A로 진행(utrs+cirs만
-큐 등록·실행, RRI는 보류). 사용자 답 오면 갱신.
+**추가 조사(2026-09-22, 사용자 지시 "메트릭들을 확인해봐")**: 위 분석 중 "1개 컬럼이라
+동시에 부모·자식 불가"라는 진단이 부정확했다는 게 드러남 — 진짜 제약은 (1)
+`_save_results()`의 `name_to_id`가 Calculator 호출마다 초기화돼 애초에 Calculator 간
+연결 자체가 안 됨(엔지니어링 이슈, 고치면 됨), (2) `parent_metric_id` 컬럼 하나엔 부모가
+하나뿐이라 **같은 메트릭을 2개 이상의 합성 지표가 동시에 "내 자식"이라 주장할 수 없음**
+(모델링 이슈). 32개 Calculator 전체의 `requires` 그래프를 조사한 결과 이 다중-소비가
+예외가 아니라 흔한 패턴임을 확인(`trimp`→6곳, `ctl`→6곳, `runpulse_vdot`→5곳, `tsb`→4곳,
+`cirs`→2곳 등). 즉 B/C 둘 다 "RRI가 CIRS를 소유"라는 잘못된 전제였다 — RRI는 CIRS를
+낳지 않는다, 이미 독립적으로 존재하는 CIRS 값을 **입력으로 읽을** 뿐이다. 이건 애초에
+`parent_metric_id`(소유 분해)가 아니라 Calculator의 기존 `requires` 속성(이미 정확성
+검증됨 — `_topological_sort()`가 실행 순서 결정에 씀)이 표현해야 할 관계.
+
+**결정**: D(신규, 채택) — `parent_metric_id`는 계속 소유 분해 전용(A 유지, utrs/cirs만
+저장·RRI는 자식 없음). RRI가 CIRS/VDOT/CTL/DI를 "입력으로 썼다"는 건 스키마·엔진 변경
+없이 `metrics_service.get_metric_breakdown()`이 Calculator의 `requires`를 조회해
+`inputs` 목록으로 응답에 얹는 방식으로 해결(`04-component-catalog.md` C3
+`MetricBreakdownData.inputs`, `06-data-layer-extensions.md` D1 "2026-09-22 정정" 참조).
+사용자 확인 완료(2026-09-22, "맞네" — 대화로 확정, B/C는 기각). 실제 `get_metric_
+breakdown()` 구현은 `P7-DESIGN-7B-API`/`P7-IMPL-7B-TODAY-L2`(BACKLOG NEXT)에서.

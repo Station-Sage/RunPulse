@@ -230,14 +230,49 @@ upsert_metric(conn, ..., metric_name='tss_42d_ema',
 
 ### 영향 범위
 
-변경이 필요한 Calculator 목록:
+변경이 필요한 Calculator 목록(실제 파일명 기준 — 아래 "2026-09-22 정정"의 이유로
+원안의 `fitness_calculator.py`/`race_readiness_calculator.py`는 실제 코드에 없음):
 
 | Calculator | 합성 메트릭 | 하위 저장 필요 |
 |-----------|-----------|--------------|
-| `fitness_calculator.py` | CTL, ATL, TSB | TSS, ramp_rate |
-| `utrs_calculator.py` | UTRS | HRV Index, Sleep Score, Body Battery, TSB |
-| `cirs_calculator.py` | CIRS | Recovery Score 하위 지표 |
-| `race_readiness_calculator.py` | Race Readiness | UTRS, CIRS, 훈련 완성도 |
+| `pmc.py`(`PMCCalculator`) | CTL, ATL, TSB | ramp_rate |
+| `utrs.py`(`UTRSCalculator`) | UTRS | body_battery, tsb, sleep, hrv, stress (정규화값) |
+| `cirs.py`(`CIRSCalculator`) | CIRS | acwr, lsi, consecutive, fatigue (정규화값) |
+| `rri.py`(`RRICalculator`, "race_readiness") | RRI | 없음 — 아래 "부모이자 자식" 참조 |
+
+### 2026-09-22 정정 — `parent_metric_id`는 "소유 분해"만, "입력 사용"은 `requires`로
+
+원안은 `race_readiness_calculator.py`(실제로는 `rri.py`)의 자식을 "UTRS, CIRS, 훈련
+완성도"라 적어뒀다. 이건 UTRS/CIRS 행 자체를 RRI의 자식으로 재소속시키라는 뜻인데,
+실제 구현 착수 시(D1-REST-UC, utrs/cirs 자식 저장) 이게 왜 틀렸는지 드러났다:
+
+- `parent_metric_id`는 컬럼 하나 — 한 행은 부모를 하나만 가질 수 있다.
+- 그런데 전체 Calculator `requires` 그래프를 조사해보니(2026-09-22, 32개 Calculator
+  전수 확인) 이런 다중-소비 관계가 흔하다: `trimp`은 6개(hrss/ctl/lsi/monotony/wlei/
+  teroi), `ctl`은 6개(acwr/cirs/adti/teroi/rtti/rri), `runpulse_vdot`은 5개, `tsb`는
+  4개(utrs/cirs/rmr/crs), `cirs`는 2개(rri/crs)가 동시에 `requires`한다. "누가 진짜
+  부모인가"에 답이 없는 케이스가 예외가 아니라 흔한 패턴이다.
+- 이 다중-소비 관계는 **"소유 분해"가 아니라 "입력 사용"**이다 — RRI는 CIRS 행을
+  "낳지" 않는다, 이미 독립적으로 존재하는 CIRS 값을 공식의 입력으로 읽을 뿐이다.
+  이건 `parent_metric_id` FK가 표현할 관계가 아니라, Calculator의 `requires`
+  클래스 속성(이미 존재 — `_topological_sort()`가 실행 순서 결정에 씀, 정확성이
+  이미 검증됨)이 정확히 표현하는 관계다.
+
+**결정**: `parent_metric_id`는 계속 "소유 분해"(그 Calculator 자신의 compute()
+안에서만 계산되는, 독립적으로 존재하지 않는 파생값 — PMC의 ramp_rate, UTRS/CIRS의
+정규화 구성요소)에만 쓴다. RRI처럼 "이미 독립적으로 존재하는 다른 메트릭을 입력으로
+쓰는" 관계는 `parent_metric_id`로 재소속시키지 않고, `metrics_service.
+get_metric_breakdown()`이 응답 조립 시 Calculator의 `requires`를 조회해 별도
+`inputs` 목록으로 얹는다(같은 scope_id의 각 입력 메트릭 현재값). UI 쪽 반영은
+`04-component-catalog.md` C3 `MetricBreakdownData.inputs` 참조 — 스키마·엔진
+변경 없음, 순수 서비스 레이어 조립 로직. 상세 논의는 `DECISIONS.md`의
+`P7-IMPL-D1-REST-RRI` 참조.
+
+이 정정으로 RRI는 "부모이자 자식"이 자연스럽게 성립한다 — CIRS의 `parent_metric_id`
+자식(acwr/lsi/consecutive/fatigue)은 그대로 CIRS 소유이고, RRI의 breakdown 패널에서
+CIRS는 `inputs`의 한 항목으로 나타나며 탭하면 CIRS 자신의 MetricBreakdown 패널이
+재귀적으로 열린다(`04-component-catalog.md`의 기존 "MetricBreakdown → MetricCell
+재귀 드릴다운" 패턴 그대로 재사용, 신규 컴포넌트 불필요).
 
 ### json_value 내부 스키마 문서화
 
@@ -246,12 +281,16 @@ MetricBreakdown에서 leaf 노드 표시 시 `json_value` 원본을 그대로 �
 
 ### 마이그레이션 전략
 
-1. `upsert_metric()` 헬퍼에 `parent_metric_id` 파라미터 추가 (기본 None)
-2. 위 4개 Calculator 수정 → 자식 메트릭 행 저장
-   - Phase 7a: fitness_calculator (CTL/ATL/TSB)
-   - Phase 7b: utrs / cirs / race_readiness
+1. `upsert_metric()` 헬퍼에 `parent_metric_id` 파라미터 추가 (기본 None) — ✅ 완료
+2. Calculator 수정 → 소유 자식 메트릭 행 저장(위 "2026-09-22 정정" 기준 — RRI는
+   자식 저장 없음, `requires` 기반 `inputs`로 별도 처리)
+   - Phase 7a: `pmc.py` (CTL→ramp_rate) — ✅ 완료(`P7-IMPL-D1`, 2026-09-22)
+   - Phase 7b: `utrs.py`/`cirs.py` — ✅ 완료(`P7-IMPL-D1-REST-UC`, 2026-09-22).
+     `rri.py`는 소유 자식 없음(위 정정 참조) — 별도 작업 불필요
 3. 기존 `parent_metric_id = NULL` 레코드는 유지 (leaf로 처리)
-4. `metrics_service.get_metric_breakdown()` 구현
+4. `metrics_service.get_metric_breakdown()` 구현 — 미착수(`P7-DESIGN-7B-API`/
+   `P7-IMPL-7B-TODAY-L2`, BACKLOG NEXT). `parent_metric_id` 트리 조립 + `requires`
+   기반 `inputs` 조립 둘 다 포함해야 함(위 정정 반영)
 
 **고아 행 정리 (중요)**: `recompute_runpulse_metrics()` 재처리 흐름에서 부모 메트릭을 덮어쓸 때 기존 자식 행이 고아로 남지 않도록, Calculator 수정 시 자식 저장 전 기존 자식 행 삭제 또는 `upsert_metric()`에서 `parent_metric_id` 기반 덮어쓰기(ON CONFLICT DO UPDATE)를 구현해야 한다.
 
