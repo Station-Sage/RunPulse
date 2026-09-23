@@ -62,6 +62,42 @@ def sleep_trend(conn: sqlite3.Connection, date: str) -> tuple[float | None, floa
     return recent, prev
 
 
+def build_evidence(
+    ctl_now: float | None,
+    ctl_start: float | None,
+    month_dist_km: float,
+    month_count: int,
+    sleep_recent: float | None,
+    sleep_prev: float | None,
+    period_label: str,
+) -> list[dict]:
+    """get_today_narrative() evidence 조립 — 데이터 있는 항목만."""
+    evidence: list[dict] = []
+    if ctl_now is not None:
+        ctl_label = f"CTL {ctl_now:.1f}"
+        if ctl_start is not None:
+            diff = ctl_now - ctl_start
+            ctl_label += f" (월초 {ctl_start:.1f}, {diff:+.1f})"
+        evidence.append({"type": "metric", "metric": "ctl", "value": ctl_now, "label": ctl_label})
+    if month_count > 0:
+        evidence.append({
+            "type": "metric",
+            "metric": "monthly_distance",
+            "value": month_dist_km,
+            "label": f"{period_label} {month_dist_km}km ({month_count}회)",
+        })
+    if sleep_recent is not None:
+        sleep_label = f"수면 점수 최근 7일 {sleep_recent:.0f}"
+        if sleep_prev is not None:
+            diff = sleep_recent - sleep_prev
+            sleep_label += f" (이전 7일 {sleep_prev:.0f}, {diff:+.0f})"
+        evidence.append({
+            "type": "metric", "metric": "sleep_score", "value": sleep_recent,
+            "label": sleep_label,
+        })
+    return evidence
+
+
 def build_narrative_prompt(
     date: str,
     ctl_now: float | None,
@@ -105,14 +141,16 @@ def rule_narrative(
     month_count: int,
     sleep_recent: float | None,
     sleep_prev: float | None,
+    month_label: str | None = None,
 ) -> str:
     """규칙 기반 한국어 내러티브 템플릿 — AI 실패 시 fallback."""
+    period = month_label or "이번 달"
     parts: list[str] = []
 
     if month_count > 0:
-        parts.append(f"이번 달 {month_dist_km}km를 {month_count}회 훈련했습니다.")
+        parts.append(f"{period} {month_dist_km}km를 {month_count}회 훈련했습니다.")
     else:
-        parts.append("이번 달 훈련 기록이 아직 없습니다.")
+        parts.append(f"{period} 훈련 기록이 아직 없습니다.")
 
     if ctl_now is not None and ctl_start is not None:
         diff = ctl_now - ctl_start

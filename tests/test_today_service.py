@@ -252,6 +252,56 @@ class TestGetTodayNarrativeYearMonth:
         result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
         assert result["highlights"]["peak_ctl"] == 72.0
 
+    def test_past_month_ctl_now_reflects_that_month_not_today(self, db_conn):
+        """과거 달 조회 시 evidence의 CTL이 오늘 값이 아니라 그 달 말일 값이어야 한다.
+
+        get_today_status()가 연/월 확정 이전의 원래 date(=오늘)로 호출되면
+        training_status.ctl이 항상 오늘 값으로 고정되는 버그 — 8월 말일 CTL과
+        오늘(9/22) CTL을 다르게 심어 구분한다.
+        """
+        _seed_metric(db_conn, "2026-08-31", "ctl", 50)
+        _seed_metric(db_conn, "2026-09-22", "ctl", 90)
+        db_conn.commit()
+
+        today_result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        today_ctl_ev = next(e for e in today_result["evidence"] if e["metric"] == "ctl")
+        assert today_ctl_ev["value"] == 90.0
+
+        past_result = today_service.get_today_narrative(
+            db_conn, date="2026-09-22", config=None, year=2026, month=8
+        )
+        past_ctl_ev = next(e for e in past_result["evidence"] if e["metric"] == "ctl")
+        assert past_ctl_ev["value"] == 50.0
+
+    def test_rule_fallback_uses_period_label_not_this_month(self, db_conn):
+        """AI 실패(config=None) + 과거 달 조회 시 규칙 기반 텍스트가 '이번 달'이
+        아니라 실제 연월을 말해야 한다."""
+        result = today_service.get_today_narrative(
+            db_conn, date="2026-09-22", config=None, year=2026, month=8
+        )
+        assert result["source"] == "rule"
+        assert "2026년 8월" in result["text"]
+        assert "이번 달" not in result["text"]
+
+    def test_milestones_scoped_to_queried_month(self, db_conn):
+        """과거 달 조회 시 그 달 마일스톤만 나오고 다른 달 마일스톤은 섞이지 않는다."""
+        db_conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES "
+            "('distance_threshold', '2026-08-10', '8월 마일스톤')"
+        )
+        db_conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES "
+            "('distance_threshold', '2026-09-01', '9월 마일스톤')"
+        )
+        db_conn.commit()
+
+        result = today_service.get_today_narrative(
+            db_conn, date="2026-09-22", config=None, year=2026, month=8
+        )
+        titles = [m["title"] for m in result["milestones"]]
+        assert "8월 마일스톤" in titles
+        assert "9월 마일스톤" not in titles
+
 
 class TestSaveCheckin:
     def test_save_and_return(self, db_conn):

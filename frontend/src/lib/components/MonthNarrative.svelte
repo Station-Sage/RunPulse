@@ -30,6 +30,13 @@
 			(displayYear === now.getFullYear() && displayMonth >= now.getMonth() + 1)
 	);
 
+	// getMetricTrend()는 "오늘 기준 최근 N일"만 지원(임의 과거 달 조회 불가) —
+	// 과거 달 조회 시 스파크라인이 그 달과 무관한 오늘 기준 데이터를 보여주는
+	// 걸 막기 위해 이번 달을 보고 있을 때만 표시한다.
+	const isViewingCurrentMonth = $derived(
+		displayYear === now.getFullYear() && displayMonth === now.getMonth() + 1
+	);
+
 	const monthLabel = $derived(`${displayYear}년 ${displayMonth}월`);
 
 	async function loadNarrative() {
@@ -63,9 +70,8 @@
 		}
 	}
 
-	async function toggleSparkline() {
+	function toggleSparkline() {
 		showDualSparkline = !showDualSparkline;
-		if (showDualSparkline) await loadSparklines();
 	}
 
 	function prevMonth() {
@@ -101,6 +107,7 @@
 
 	onMount(() => {
 		loadNarrative();
+		loadSparklines();
 	});
 </script>
 
@@ -188,35 +195,39 @@
 					</div>
 				{/if}
 
-				<!-- CTL 스파크라인 (탭 → CTL+ATL 2단 확장) -->
-				<div class="rounded-lg border border-border-subtle bg-surface-2 p-3">
-					<button
-						class="flex w-full items-center justify-between text-xs text-fg-muted hover:text-fg-secondary"
-						onclick={toggleSparkline}
-					>
-						<span>CTL 추세 (4주)</span>
-						<span aria-hidden="true">{showDualSparkline ? '▲' : '▼'}</span>
-					</button>
+				<!-- CTL 스파크라인 (탭 → CTL+ATL 2단 확장) — 이번 달 조회일 때만 표시.
+				     getMetricTrend()가 "오늘 기준 최근 4주"만 지원해 과거 달에는
+				     무관한 데이터가 되므로 숨긴다. -->
+				{#if isViewingCurrentMonth}
+					<div class="rounded-lg border border-border-subtle bg-surface-2 p-3">
+						<button
+							class="flex w-full items-center justify-between text-xs text-fg-muted hover:text-fg-secondary"
+							onclick={toggleSparkline}
+						>
+							<span>CTL 추세 (4주)</span>
+							<span aria-hidden="true">{showDualSparkline ? '▲' : '▼'}</span>
+						</button>
 
-					{#if sparklineLoading}
-						<p class="mt-2 text-xs text-fg-muted">불러오는 중…</p>
-					{:else if showDualSparkline}
-						<div class="mt-2 flex flex-col gap-3">
-							<div>
-								<p class="mb-1 text-[10px] text-fg-muted">CTL</p>
+						{#if sparklineLoading}
+							<p class="mt-2 text-xs text-fg-muted">불러오는 중…</p>
+						{:else if showDualSparkline}
+							<div class="mt-2 flex flex-col gap-3">
+								<div>
+									<p class="mb-1 text-[10px] text-fg-muted">CTL</p>
+									<Sparkline data={ctlPoints} height={40} color="var(--color-accent)" />
+								</div>
+								<div>
+									<p class="mb-1 text-[10px] text-fg-muted">ATL</p>
+									<Sparkline data={atlPoints} height={40} color="var(--color-semantic-yellow, #f59e0b)" />
+								</div>
+							</div>
+						{:else}
+							<div class="mt-2">
 								<Sparkline data={ctlPoints} height={40} color="var(--color-accent)" />
 							</div>
-							<div>
-								<p class="mb-1 text-[10px] text-fg-muted">ATL</p>
-								<Sparkline data={atlPoints} height={40} color="var(--color-semantic-yellow, #f59e0b)" />
-							</div>
-						</div>
-					{:else}
-						<div class="mt-2">
-							<Sparkline data={ctlPoints.length > 0 ? ctlPoints : []} height={40} color="var(--color-accent)" />
-						</div>
-					{/if}
-				</div>
+						{/if}
+					</div>
+				{/if}
 
 				{#if narrativeData.source === 'rule'}
 					<p class="text-xs text-fg-muted">규칙 기반 요약</p>

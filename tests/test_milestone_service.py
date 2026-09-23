@@ -269,3 +269,31 @@ class TestGetRecentMilestones:
 
         result = get_recent_milestones(conn, limit=3)
         assert len(result) == 3
+
+    def test_date_range_filters(self, tmp_path):
+        conn = _make_conn(tmp_path)
+        conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES ('pb', '2026-01-01', 'Jan')"
+        )
+        conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES ('pb', '2026-06-01', 'Jun')"
+        )
+        conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES ('pb', '2026-12-01', 'Dec')"
+        )
+        conn.commit()
+
+        result = get_recent_milestones(conn, date_from="2026-02-01", date_to="2026-11-01")
+        titles = [r["title"] for r in result]
+        assert titles == ["Jun"]
+
+    def test_no_date_range_returns_all(self, tmp_path):
+        """date_from/date_to 둘 다 없으면 기존과 동일하게 전체 기간."""
+        conn = _make_conn(tmp_path)
+        conn.execute(
+            "INSERT INTO milestones (type, date, title) VALUES ('pb', '2026-01-01', 'Jan')"
+        )
+        conn.commit()
+
+        result = get_recent_milestones(conn)
+        assert len(result) == 1
