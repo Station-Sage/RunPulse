@@ -1,199 +1,192 @@
-"""tests/test_provider_matrix_service.py — provider_matrix_service 단위 테스트."""
+"""tests/test_provider_matrix_service.py — provider_matrix_service 단위 테스트.
+
+인메모리 SQLite(db_conn 픽스처) 기반. 실 사용자 DB 사용 금지.
+_insert_activity/_insert_activity_group/_insert_metric은
+test_provider_comparison_service.py의 픽스처 패턴을 재사용.
+"""
 from __future__ import annotations
 
-import sqlite3
+from datetime import date, timedelta
 
-import pytest
-
-from src.db_setup import create_tables, migrate_db
 from src.services.provider_matrix_service import (
-    _calc_discrepancy,
-    _ordered_providers,
-    _preferred_provider,
-    get_provider_matrix,
+    _mode_primary_source,
+    get_provider_comparison_period,
 )
 
 
-@pytest.fixture
-def conn(tmp_path):
-    db_file = tmp_path / "running.db"
-    c = sqlite3.connect(str(db_file))
-    create_tables(c)
-    migrate_db(c)
-    return c
-
-
-# ─── _calc_discrepancy ────────────────────────────────────────────────────────
-
-def test_calc_discrepancy_none_when_single():
-    assert _calc_discrepancy([100.0], 5.0) is None
-
-
-def test_calc_discrepancy_none_when_empty():
-    assert _calc_discrepancy([], 5.0) is None
-
-
-def test_calc_discrepancy_not_detected():
-    result = _calc_discrepancy([100.0, 102.0], 5.0)
-    assert result is not None
-    assert result["detected"] is False
-    assert result["severity"] == "info"
-    assert result["maxDiff"] == pytest.approx(2.0, abs=0.01)
-
-
-def test_calc_discrepancy_detected():
-    result = _calc_discrepancy([100.0, 110.0], 5.0)
-    assert result is not None
-    assert result["detected"] is True
-    assert result["severity"] == "warning"
-    assert result["maxDiffPct"] == pytest.approx(10.0, abs=0.1)
-
-
-def test_calc_discrepancy_zero_baseline():
-    """min=0일 때 max 기준으로 pct 계산."""
-    result = _calc_discrepancy([0.0, 10.0], 5.0)
-    assert result is not None
-    assert result["detected"] is True
-
-
-def test_calc_discrepancy_both_zero():
-    result = _calc_discrepancy([0.0, 0.0], 5.0)
-    assert result is not None
-    assert result["detected"] is False
-    assert result["maxDiffPct"] == 0.0
-
-
-# ─── _ordered_providers ───────────────────────────────────────────────────────
-
-def test_ordered_providers_known_order():
-    result = _ordered_providers({"strava", "garmin", "intervals"})
-    assert result.index("garmin") < result.index("strava")
-    assert result.index("intervals") < result.index("strava")
-
-
-def test_ordered_providers_runpulse_after_known():
-    result = _ordered_providers({"runpulse:ctl", "garmin"})
-    assert result[0] == "garmin"
-    assert "runpulse:ctl" in result
-
-
-def test_ordered_providers_unknown_appended():
-    result = _ordered_providers({"unknown_src", "garmin"})
-    assert result[0] == "garmin"
-    assert "unknown_src" in result
-
-
-# ─── _preferred_provider ──────────────────────────────────────────────────────
-
-def test_preferred_provider_empty():
-    assert _preferred_provider(set()) is None
-
-
-def test_preferred_provider_runpulse_only():
-    result = _preferred_provider({"runpulse:ctl"})
-    assert result is not None
-    assert result["ruleType"] == "runpulse_always"
-    assert result["provider"] == "runpulse:ctl"
-
-
-def test_preferred_provider_static_priority():
-    result = _preferred_provider({"garmin", "strava"})
-    assert result is not None
-    assert result["ruleType"] == "static_priority"
-    # garmin should beat strava by _SOURCE_PRIORITY
-    assert result["provider"] == "garmin"
-
-
-def test_preferred_provider_mixed_runpulse_ignored_for_priority():
-    """runpulse가 있어도 non-runpulse 우선순위 규칙 적용."""
-    result = _preferred_provider({"garmin", "runpulse:ctl"})
-    assert result is not None
-    assert result["ruleType"] == "static_priority"
-    assert result["provider"] == "garmin"
-
-
-# ─── get_provider_matrix (통합) ───────────────────────────────────────────────
-
-def test_get_provider_matrix_empty_db(conn):
-    """데이터 없는 DB → 빈 그룹, 오류 없이 반환."""
-    result = get_provider_matrix(conn, period_days=28)
-    assert "period_days" in result
-    assert "providers" in result
-    assert "groups" in result
-    assert "discrepancy_count" in result
-    assert result["period_days"] == 28
-    assert isinstance(result["groups"], list)
-    assert result["discrepancy_count"] == 0
-
-
-def test_get_provider_matrix_with_activity_data(conn):
-    """activity_summaries 데이터 → groups에 행 포함."""
+def _insert_activity(conn, source, source_id, group_id=None, **kwargs):
+    defaults = {
+        "name": f"{source} run",
+        "activity_type": "running",
+        "start_time": "2026-04-03T18:00:00Z",
+        "distance_m": 10000,
+        "duration_sec": 3600,
+        "avg_hr": 155,
+    }
+    defaults.update(kwargs)
     conn.execute(
         "INSERT INTO activity_summaries"
-        " (source, source_id, name, activity_type, start_time, distance_m, duration_sec, avg_hr)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        ("garmin", "g1", "Morning Run", "running", "2026-09-01T08:00:00Z", 10000, 3600, 155),
+        " (source, source_id, matched_group_id, name, activity_type,"
+        "  start_time, distance_m, duration_sec, avg_hr)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            source, source_id, group_id,
+            defaults["name"], defaults["activity_type"],
+            defaults["start_time"], defaults["distance_m"],
+            defaults["duration_sec"], defaults["avg_hr"],
+        ),
     )
-    conn.commit()
+    return conn.execute(
+        "SELECT id FROM activity_summaries WHERE source=? AND source_id=?",
+        (source, source_id),
+    ).fetchone()[0]
 
-    result = get_provider_matrix(conn, period_days=365)
-    assert isinstance(result["groups"], list)
-    assert isinstance(result["providers"], list)
 
-
-def test_get_provider_matrix_with_wellness(conn):
-    """daily_wellness 데이터 → garmin provider 포함."""
+def _insert_activity_group(conn, group_id, primary_source, activity_date, distance_m=10000):
     conn.execute(
-        "INSERT INTO daily_wellness (date, sleep_score, resting_hr)"
-        " VALUES (?, ?, ?)",
-        ("2026-09-01", 80, 52),
+        "INSERT OR REPLACE INTO activity_groups"
+        " (group_id, primary_source, activity_date, distance_m, member_count)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (group_id, primary_source, activity_date, distance_m, 2),
     )
-    conn.commit()
-
-    result = get_provider_matrix(conn, period_days=365)
-    # wellness metrics attribute to 'garmin'
-    if result["providers"]:
-        assert "garmin" in result["providers"]
 
 
-def test_get_provider_matrix_structure(conn):
-    """groups 각 항목이 key/label/rows 구조를 가짐."""
+def _insert_metric(conn, scope_id, metric_name, provider, numeric_value=None):
     conn.execute(
-        "INSERT INTO activity_summaries"
-        " (source, source_id, name, activity_type, start_time, distance_m, duration_sec)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ("garmin", "g2", "Run", "running", "2026-09-15T08:00:00Z", 8000, 2800),
+        "INSERT INTO metric_store"
+        " (scope_type, scope_id, metric_name, category, provider,"
+        "  numeric_value, is_primary)"
+        " VALUES ('activity', ?, ?, 'load', ?, ?, 1)",
+        (str(scope_id), metric_name, provider, numeric_value),
     )
-    conn.commit()
-
-    result = get_provider_matrix(conn, period_days=365)
-    for group in result["groups"]:
-        assert "key" in group
-        assert "label" in group
-        assert "rows" in group
-        assert isinstance(group["rows"], list)
-        for row in group["rows"]:
-            assert "slug" in row
-            assert "label" in row
-            assert "values" in row
-            assert "preferredProvider" in row
-            assert "primaryReason" in row
-            assert "discrepancy" in row
 
 
-def test_get_provider_matrix_discrepancy_count(conn):
-    """두 provider에서 10% 이상 차이 → discrepancy_count >= 1."""
-    conn.executemany(
-        "INSERT INTO activity_summaries"
-        " (source, source_id, name, activity_type, start_time, distance_m, duration_sec)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [
-            ("garmin", "g3", "Run", "running", "2026-09-10T08:00:00Z", 10000, 3000),
-            ("strava", "s1", "Run", "running", "2026-09-10T09:00:00Z", 10000, 3300),
-        ],
+def _days_ago(n: int) -> str:
+    d = date.today() - timedelta(days=n)
+    return f"{d.isoformat()}T18:00:00Z"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 기본 케이스
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_no_activities_in_period_returns_no_data(db_conn):
+    result = get_provider_comparison_period(db_conn, days=28)
+    assert result["state"] == "no_data"
+    assert result["rows"] == []
+    assert result["mode"] == "period"
+    assert result["days"] == 28
+
+
+def test_activity_outside_period_excluded(db_conn):
+    """days=28보다 오래된 활동은 집계에서 빠져 no_data."""
+    gid = "grp-old"
+    a = _insert_activity(db_conn, "garmin", "g-old", gid, start_time=_days_ago(100))
+    _insert_activity_group(db_conn, gid, "garmin", _days_ago(100)[:10])
+    _insert_metric(db_conn, a, "trimp", "runpulse:formula_v1", numeric_value=90.0)
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    assert result["state"] == "no_data"
+
+
+def test_semantic_group_with_data_appears(db_conn):
+    gid = "grp-1"
+    a = _insert_activity(db_conn, "garmin", "g1", gid, start_time=_days_ago(2))
+    _insert_activity_group(db_conn, gid, "garmin", _days_ago(2)[:10])
+    _insert_metric(db_conn, a, "trimp", "runpulse:formula_v1", numeric_value=91.5)
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    assert result["state"] == "loaded"
+    trimp_row = next((r for r in result["rows"] if r["slug"] == "trimp"), None)
+    assert trimp_row is not None
+    assert trimp_row["values"]["runpulse:formula_v1"]["available"] is True
+    assert trimp_row["values"]["runpulse:formula_v1"]["value"] == 91.5
+
+
+def test_group_without_any_data_excluded(db_conn):
+    """어느 provider도 값이 없는 그룹은 rows에서 제외."""
+    gid = "grp-2"
+    a = _insert_activity(db_conn, "garmin", "g2", gid, start_time=_days_ago(1))
+    _insert_activity_group(db_conn, gid, "garmin", _days_ago(1)[:10])
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    assert result["state"] == "no_data"
+    assert result["rows"] == []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 기간 내 최신값 채택 — provider마다 서로 다른 활동에서 나와도 각자 최신값
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_each_provider_takes_its_own_latest_value(db_conn):
+    """garmin은 1주 전, intervals는 2주 전 활동 — 둘 다 기간 내지만 서로 다른 날짜."""
+    gid_old = "grp-old-intervals"
+    a_old = _insert_activity(
+        db_conn, "intervals", "i-old", gid_old, start_time=_days_ago(14),
     )
-    conn.commit()
+    _insert_activity_group(db_conn, gid_old, "intervals", _days_ago(14)[:10])
+    _insert_metric(db_conn, a_old, "training_load_score", "intervals", numeric_value=60.0)
 
-    result = get_provider_matrix(conn, period_days=365, discrepancy_threshold=5.0)
-    # With 10% duration difference, at least one discrepancy should be flagged
-    assert isinstance(result["discrepancy_count"], int)
+    gid_new = "grp-new-garmin"
+    a_new = _insert_activity(
+        db_conn, "garmin", "g-new", gid_new, start_time=_days_ago(7),
+    )
+    _insert_activity_group(db_conn, gid_new, "garmin", _days_ago(7)[:10])
+    _insert_metric(db_conn, a_new, "training_load", "garmin", numeric_value=85.0)
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    tl_row = next(r for r in result["rows"] if r["slug"] == "training_load")
+    assert tl_row["values"]["garmin"]["value"] == 85.0
+    assert tl_row["values"]["intervals"]["value"] == 60.0
+
+
+def test_more_recent_activity_value_wins_over_older_same_provider(db_conn):
+    """같은 provider가 여러 활동에 값을 남겼으면 가장 최근 활동 값을 채택."""
+    gid_new = "grp-recent"
+    a_new = _insert_activity(db_conn, "garmin", "g-recent", gid_new, start_time=_days_ago(1))
+    _insert_activity_group(db_conn, gid_new, "garmin", _days_ago(1)[:10])
+    _insert_metric(db_conn, a_new, "training_load", "garmin", numeric_value=99.0)
+
+    gid_older = "grp-older"
+    a_older = _insert_activity(db_conn, "garmin", "g-older", gid_older, start_time=_days_ago(10))
+    _insert_activity_group(db_conn, gid_older, "garmin", _days_ago(10)[:10])
+    _insert_metric(db_conn, a_older, "training_load", "garmin", numeric_value=50.0)
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    tl_row = next(r for r in result["rows"] if r["slug"] == "training_load")
+    assert tl_row["values"]["garmin"]["value"] == 99.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# _mode_primary_source — 최빈값
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_mode_primary_source_empty_returns_none(db_conn):
+    assert _mode_primary_source(db_conn, []) is None
+
+
+def test_mode_primary_source_majority_vote(db_conn):
+    """3개 그룹 중 2개가 garmin, 1개가 strava → garmin."""
+    _insert_activity_group(db_conn, "g1", "garmin", "2026-09-01")
+    _insert_activity_group(db_conn, "g2", "garmin", "2026-09-02")
+    _insert_activity_group(db_conn, "g3", "strava", "2026-09-03")
+    db_conn.commit()
+
+    result = _mode_primary_source(db_conn, ["g1", "g2", "g3"])
+    assert result == "garmin"
+
+
+def test_solo_activity_excluded_from_primary_source_vote(db_conn):
+    """matched_group_id 없는 단독 활동은 group_ids 계산에 애초에 포함되지 않음."""
+    _insert_activity(db_conn, "garmin", "g-solo", None, start_time=_days_ago(1))
+    db_conn.commit()
+
+    result = get_provider_comparison_period(db_conn, days=28)
+    # 단독 활동은 metric 없으니 no_data — group_ids가 빈 리스트였는지는
+    # _mode_primary_source(conn, [])가 None을 반환하는 것으로 간접 확인됨
+    assert result["state"] == "no_data"

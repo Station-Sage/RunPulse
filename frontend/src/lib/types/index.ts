@@ -379,9 +379,10 @@ export interface ComparisonRow {
 }
 
 export interface ProviderComparisonData {
-	mode: 'activity';
-	activity_id: number;
-	state: 'loaded' | 'single_provider';
+	mode: 'activity' | 'period';
+	activity_id?: number;
+	days?: number;
+	state: 'loaded' | 'single_provider' | 'no_data';
 	rows: ComparisonRow[];
 }
 
@@ -472,31 +473,6 @@ export interface WellnessTrendData {
 	avg_stress: (number | null)[];
 	weight_kg: (number | null)[];
 	utrs: (number | null)[];
-}
-
-// ── ProviderMatrix (3-G-1 — /api/v1/library/providers/matrix) ────────────────
-
-export interface MatrixRow {
-	slug: string;
-	label: string;
-	unit: string | null;
-	values: Record<string, ComparisonCell>;
-	preferredProvider: ProviderKey | null;
-	primaryReason: ComparisonPrimaryReason | null;
-	discrepancy: ComparisonDiscrepancy | null;
-}
-
-export interface MatrixGroup {
-	key: string;
-	label: string;
-	rows: MatrixRow[];
-}
-
-export interface ProviderMatrixData {
-	period_days: number;
-	providers: string[];
-	groups: MatrixGroup[];
-	discrepancy_count: number;
 }
 
 // ── Coach Plan (5-F — /api/v1/coach/plan/:id) ────────────────────────────────

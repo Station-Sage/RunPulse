@@ -289,29 +289,26 @@ def test_get_providers_matrix_200(mini_app):
     res = client.get("/api/v1/library/providers/matrix")
     assert res.status_code == 200
     body = res.get_json()
-    data = body["data"]
-    assert "period_days" in data
-    assert "providers" in data
-    assert "groups" in data
-    assert "discrepancy_count" in data
-    assert data["period_days"] == 28  # 기본값
-    assert isinstance(data["groups"], list)
-    assert isinstance(data["providers"], list)
+    comparison = body["data"]["comparison"]
+    assert comparison["mode"] == "period"
+    assert comparison["days"] == 28  # 기본값
+    assert "state" in comparison
+    assert isinstance(comparison["rows"], list)
 
 
-def test_get_providers_matrix_custom_period(mini_app):
-    """period_days 파라미터 → 반영."""
+def test_get_providers_matrix_custom_days(mini_app):
+    """days 파라미터 → 반영."""
     client, _ = mini_app
-    res = client.get("/api/v1/library/providers/matrix?period_days=90")
+    res = client.get("/api/v1/library/providers/matrix?days=90")
     assert res.status_code == 200
     body = res.get_json()
-    assert body["data"]["period_days"] == 90
+    assert body["data"]["comparison"]["days"] == 90
 
 
-def test_get_providers_matrix_invalid_period(mini_app):
-    """period_days가 정수가 아닌 경우 → 400, INVALID_PARAM."""
+def test_get_providers_matrix_invalid_days(mini_app):
+    """days가 정수가 아닌 경우 → 400, INVALID_PARAM."""
     client, _ = mini_app
-    res = client.get("/api/v1/library/providers/matrix?period_days=abc")
+    res = client.get("/api/v1/library/providers/matrix?days=abc")
     assert res.status_code == 400
     body = res.get_json()
     assert body["error"]["code"] == "INVALID_PARAM"
