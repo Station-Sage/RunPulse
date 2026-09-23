@@ -538,7 +538,7 @@ DONE으로 옮긴다.
   확장 패널(1-C), 전체 마일스톤 패널(1-D, `get_today_milestones()`는 이번엔
   narrative 응답의 `milestones`로 충분 — 별도 API 호출 안 함), 데스크탑
   우측 패널 분기, MetricBreakdown 뒤로가기(스택 pop UI).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/today/+page.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/today/+page.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-7B-PROVIDER-UI]** SvelteKit만 — `<ProviderComparison>`(C4) 신규
   컴포넌트, 백엔드(`get_provider_comparison()`, `P7-IMPL-PROVIDER-COMPARISON`)는
