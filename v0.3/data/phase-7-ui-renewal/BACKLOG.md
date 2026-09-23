@@ -9,10 +9,15 @@
 계산 분해) + Today L2 내러티브(`P7-IMPL-7B-TODAY-L2`) + `<ProviderComparison>`
 (C4, Library 활동 상세 "소스 비교" 탭, `P7-IMPL-7B-PROVIDER-UI`) + 활동
 스트림(3-D, `Sparkline.svelte` 신규, `P7-IMPL-7B-STREAMS`) + 메트릭 브라우저·
-상세(3-E/3-F, `P7-IMPL-7B-METRICS-BROWSER`) 전부 완료(2026-09-23). 남은 건 D4,
-상단 3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
-Library 나머지(홈 강화 3-A, 활동 목록 3-B, 웰니스 탭 설계 — `P7-IMPL-7B-LIBRARY`
-참조), 정체성 매트릭스(3-G-1, `P7-IMPL-PROVIDER-MATRIX`/LATER).**
+상세(3-E/3-F, `P7-IMPL-7B-METRICS-BROWSER`) + Library 홈 재설계(3-A,
+`P7-IMPL-7B-LIBRARY-HUB` — `/library`가 활동 목록에서 홈 허브로, 목록은
+`/library/activities`로 이동) + 웰니스 탭(`P7-IMPL-7B-WELLNESS` — 죽은 코드였던
+`wellness_service.py` 실제 버그 수정 후 연결) 전부 완료(2026-09-23). Library는
+3-B/3-D/3-E/3-F/3-A/웰니스 전부 완료 — 남은 건 정체성 매트릭스(3-G-1,
+`P7-IMPL-PROVIDER-MATRIX`/LATER)와 Provider 데이터 현황 카드(Phase 7d
+`data_service.py` 몫으로 명시적 이연, `DECISIONS.md` 참조)뿐. 그 외 남은 건
+D4, 상단 3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
+Coach 정적 플랜(`P7-IMPL-COACH-PLAN-STATIC`).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -136,16 +141,6 @@ AUTOPILOT QUEUE의 `P7-IMPL-7B-TODAY-L2` 항목(상세 스펙)이 유일한 소�
 Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·문서화를
 할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
-
-- **[P7-IMPL-7B-LIBRARY]** Library 전면화(2026-09-23 최종 갱신). 3-D/3-E/3-F는
-  `P7-IMPL-7B-STREAMS`/`P7-IMPL-7B-METRICS-BROWSER`로, 3-A 홈 재설계+웰니스
-  탭은 plan mode 설계 완료 후 `P7-IMPL-7B-LIBRARY-HUB`/`P7-IMPL-7B-WELLNESS`
-  로 AUTOPILOT QUEUE 전량 분리 완료(3-B는 이미 `P7-IMPL-SVELTE-2A`에서 완료
-  — 이전 갱신의 "프론트만 남음" 표기는 오기였음, 정정함). Provider 데이터
-  현황 카드·정체성 매트릭스(3-G-1)는 `data_service.py`(Phase 7d 스텁)
-  본연의 몫으로 명시적으로 남겨둠(설계 근거는 `DECISIONS.md`
-  `[P7-IMPL-7B-LIBRARY-HUB]` 항목 참조). 이 항목 자체는 하위 유닛들이 전부
-  `done`이 되면 제거.
 
 - **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
   5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
@@ -835,7 +830,7 @@ DONE으로 옮긴다.
   잡히는지), `tests/test_api_library.py`에 새 라우트 2개 테스트 추가(기존
   `metric_app` 픽스처가 이미 daily_wellness 시드 데이터를 갖고 있어 재사용
   가능).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-7B-LIBRARY-HUB"], "kind": "code", "scope": ["src/services/wellness_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/wellness.ts", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/library/wellness/+page.ts", "frontend/src/routes/library/+page.svelte", "tests/test_wellness_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_wellness_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-7B-LIBRARY-HUB"], "kind": "code", "scope": ["src/services/wellness_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/wellness.ts", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/library/wellness/+page.ts", "frontend/src/routes/library/+page.svelte", "tests/test_wellness_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_wellness_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
