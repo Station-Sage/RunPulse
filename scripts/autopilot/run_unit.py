@@ -212,9 +212,13 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
     return True, ""
 
 
-def run_once(*, dry_run: bool = False, ignore_night: bool = False, ignore_idle: bool = False) -> int:
+def run_once(
+    *, dry_run: bool = False, ignore_night: bool = False, ignore_idle: bool = False,
+    ignore_budget: bool = False,
+) -> int:
     """1건 실행 시도. 반환값: 0=실행함/스킵함(정상), 1=게이트 차단, 2=오류."""
-    gr = gate.check(ignore_night_window=ignore_night, ignore_idle=ignore_idle)
+    gr = gate.check(ignore_night_window=ignore_night, ignore_idle=ignore_idle,
+                     ignore_budget=ignore_budget)
     if not gr.allowed:
         print(f"[gate] 차단: {gr.reason}")
         return 1
@@ -285,9 +289,11 @@ def main() -> None:
                         help="시간대 게이트 무시 (수동 검증용)")
     parser.add_argument("--ignore-idle", action="store_true",
                         help="유휴 게이트 무시 (수동 검증용 — 스케줄 실행에서 쓰지 말 것)")
+    parser.add_argument("--ignore-budget", action="store_true",
+                        help="예산(일간/주간) 게이트 무시 (사람이 명시적으로 승인한 1회성 초과 실행용 — 스케줄 실행에서 쓰지 말 것)")
     args = parser.parse_args()
     sys.exit(run_once(dry_run=args.dry_run, ignore_night=args.ignore_night,
-                      ignore_idle=args.ignore_idle))
+                      ignore_idle=args.ignore_idle, ignore_budget=args.ignore_budget))
 
 
 if __name__ == "__main__":

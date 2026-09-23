@@ -88,13 +88,18 @@ _CHECKS = (_check_stop, _check_pause, _check_night_window, _check_idle,
            _check_circuit_breaker, _check_budget)
 
 
-def check(*, ignore_night_window: bool = False, ignore_idle: bool = False) -> GateResult:
+def check(
+    *, ignore_night_window: bool = False, ignore_idle: bool = False,
+    ignore_budget: bool = False,
+) -> GateResult:
     """ignore_* 는 사람이 지켜보며 하는 수동 검증 전용 — 스케줄 실행에서는 절대 쓰지 않는다."""
     skip = set()
     if ignore_night_window:
         skip.add(_check_night_window)
     if ignore_idle:
         skip.add(_check_idle)
+    if ignore_budget:
+        skip.add(_check_budget)
     for fn in _CHECKS:
         if fn in skip:
             continue

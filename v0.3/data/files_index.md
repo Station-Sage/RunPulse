@@ -1147,6 +1147,10 @@
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
 
+### `test_autopilot_gate.py` (32줄) — tests/test_autopilot_gate.py — gate.check()의 ignore_budget 옵션 테스트.
+
+- functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
+
 ### `test_autopilot_queue.py` (124줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
 - class **TestParseKindDefault**: test_missing_kind_defaults_to_docs
@@ -1806,7 +1810,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 352개 파일
+총 353개 파일
 
 ## docstring 누락
 
