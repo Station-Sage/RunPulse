@@ -72,3 +72,15 @@ def test_post_checkin_no_body(mini_app):
     assert res.status_code == 200
     body = res.get_json()
     assert body["data"]["fatigue"] is None
+
+
+def test_get_today_narrative_no_data(mini_app):
+    res = mini_app.get("/api/v1/today/narrative")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert data["source"] == "rule"
+    assert isinstance(data["text"], str)
+    assert len(data["text"]) > 0
+    assert isinstance(data["evidence"], list)
+    assert isinstance(data["milestones"], list)
