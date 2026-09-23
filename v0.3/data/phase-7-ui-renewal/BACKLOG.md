@@ -34,7 +34,10 @@ SEMANTIC_GROUPS 한정, 기간 집계는 "최신값" 단일 규칙)도 완료·�
 (2026-09-23 — 이번 세션 처음으로 autopilot이 큐 스펙·DECISIONS.md 설계를
 무시하고 다른 구현으로 진행, DECISIONS.md에 이견 기록도 안 함 — 리뷰에서
 전면 재구현). `P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`는 `03e-coach.md`
-196행이 Phase 7c로 명시 배정해둔 걸 확인해 앞당기지 않기로 함. 남은 건 조정 수락
+196행이 Phase 7c로 명시 배정해둔 걸 확인해 앞당기지 않기로 함. 2026-09-24
+Today 화면을 03a 1-A와 대조한 결과 L2의 "다음 세션 현황"(Plan "보기" 흡수)·L3 링크
+블록이 아직 없음을 발견 — `P7-IMPL-TODAY-NEXT-SESSION`(프론트 전용, 기존 API
+재사용)을 조사 후 AUTOPILOT QUEUE 등록·실행 대기 중. 남은 건 조정 수락
 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, Phase 7c 예정), D4,
 상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
@@ -1425,6 +1428,73 @@ DONE으로 옮긴다.
   경고 64개=기존과 동일) + `npm run check`(0 errors)/`npm run build`
   모두 통과 확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["src/services/provider_matrix_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/providers/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte", "tests/test_provider_matrix_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_provider_matrix_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-TODAY-NEXT-SESSION]** `03a-today.md` 1-A L2 "다음 세션 현황"(구 Plan
+  "보기" 흡수) + L3 링크 블록 — 프론트 전용, 백엔드/API 변경 없음(2026-09-24 조사 후
+  큐 등록, 설계 근거·목업 대비 축소 5건은 `DECISIONS.md`의
+  `[P7-IMPL-TODAY-NEXT-SESSION]` 항목 필독 — 목표 CTL 미저장이라 "CTL 68/80" 대신
+  현재 CTL만, 조정 표시는 세션이 오늘일 때만, 주간 준수율은 `workouts`에서 프론트
+  계산, "조정 수락/원래대로" 버튼은 7c라 이번에도 안 만듦).
+  **구현**: (1) `frontend/src/lib/format.ts`에 추가 — `export const WORKOUT_LABELS:
+  Record<string,string> = { rest:'휴식', recovery:'회복', easy:'쉬운 달리기',
+  long:'장거리', tempo:'템포', interval:'인터벌', race:'레이스' };` 와 `export
+  function workoutLabel(type: string): string { return WORKOUT_LABELS[type] ??
+  type; }`. (2) `frontend/src/routes/coach/plan/[id]/+page.svelte`와
+  `frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte` 두 파일의 로컬
+  `const WORKOUT_LABELS = {...}` 정의를 삭제하고 `import { workoutLabel } from
+  '$lib/format'`로 바꿔 `WORKOUT_LABELS[x] ?? x` 사용부를 `workoutLabel(x)`로 교체
+  (동작 동일, 중복 제거만). (3) 신규 `frontend/src/lib/components/
+  NextSessionCard.svelte` — props: `{ plan: ActivePlan | null; adjustment:
+  TodaysAdjustment | { adjusted: false; adjustment_reason: null } | null; today:
+  string }`(`$props()`, 타입은 `$lib/types`에서 import), `base`는 `$app/paths`.
+  `nextSession = $derived(plan?.workouts.filter(w => w.date >= today &&
+  w.workout_type !== 'rest').sort((a,b) => a.date.localeCompare(b.date))[0] ??
+  null)`. `weekWork = $derived(plan?.workouts.filter(w => w.workout_type !==
+  'rest') ?? [])`, `weekDone = $derived(weekWork.filter(w => w.completed === 1)
+  .length)`. `dayText(date)`: `diff = Math.round((new Date(date+'T00:00:00')
+  .getTime() - new Date(today+'T00:00:00').getTime()) / 86400000)`; diff 0이면
+  '오늘', 1이면 '내일', 아니면 `${date.slice(5)}(${['일','월','화','수','목','금','토']
+  [new Date(date+'T00:00:00').getDay()]})`. 렌더링 3분기: (a) `plan === null` —
+  `<div class="rounded-xl bg-surface-2 p-3">` 안에 "활성 훈련 플랜이 없습니다"
+  (text-sm text-fg-secondary) + `<a href="{base}/coach/plan">Coach에서 플랜 만들기
+  →</a>`; (b) plan 있고 `nextSession` 없음 — 헤더 줄만 + "이번 주 남은 세션이
+  없습니다"; (c) 정상 — 헤더 줄: `{plan.goal.name} · {plan.week_index}주차{plan.goal
+  .plan_weeks ? ' / ' + plan.goal.plan_weeks + '주' : ''}{plan.ctl_current != null ?
+  ' · CTL ' + Math.round(plan.ctl_current) : ''}`(text-xs text-fg-muted). 세션 카드
+  (`rounded-xl bg-surface-2 p-3`): `{dayText(nextSession.date)}` 뱃지 + `{workoutLabel(
+  nextSession.workout_type)}` + `{nextSession.distance_km}km`(있을 때만) +
+  `nextSession.description`(있을 때만, text-xs). 조정 배너: `nextSession.date ===
+  today && adjustment && 'original_type' in adjustment && adjustment.adjusted ===
+  true`일 때만 `⚠ 상태 조정: {workoutLabel(adjustment.original_type)} →
+  {workoutLabel(adjustment.adjusted_type)}` + `adjustment.adjustment_reason`(text-xs
+  text-semantic-amber). 링크 2개: `<a href="{base}/coach/plan/{plan.goal.id}/session/
+  {nextSession.date}">세션 상세 →</a>`, `<a href="{base}/coach/plan/{plan.goal.id}">
+  계획 수립·수정은 Coach에서 →</a>`. 준수율 줄(`weekWork.length > 0`일 때):
+  `이번 주 준수율 ` + `{#each weekWork as w}<span>{w.completed === 1 ? '●' : '○'}
+  </span>{/each}` + ` {weekDone}/{weekWork.length} 완료`. (4)
+  `frontend/src/routes/today/+page.ts` — `import { getActivePlan,
+  getTodaysAdjustment } from '$lib/api/plan'`, `TodayPageData`에 `plan: ActivePlan |
+  null; adjustment: TodaysAdjustment | { adjusted: false; adjustment_reason: null } |
+  null` 추가(타입 import 포함), 기존 `Promise.all`에 `getActivePlan().catch(() =>
+  null)`, `getTodaysAdjustment().catch(() => null)` 추가(404=플랜 없음도 null로
+  수렴), 에러 분기 return에도 `plan: null, adjustment: null` 추가. (5)
+  `frontend/src/routes/today/+page.svelte` — `NextSessionCard` import 후 L2
+  `<section>` 안, 기존 `{#if narrative}...{:else}...{/if}` 블록 **바깥 바로 뒤**(내러티브
+  로드 실패해도 플랜 카드는 나오게)에 `<div class="flex flex-col gap-2 border-t
+  border-border-subtle pt-3"><p class="text-xs uppercase tracking-wide
+  text-fg-muted">다음 세션</p><NextSessionCard plan={data.plan}
+  adjustment={data.adjustment} today={status.date} /></div>` 추가(`status`는 이
+  파일의 L1/L2가 이미 쓰는 그 변수 그대로). 내러티브 fallback 문구는 "상세
+  이야기·계획 연동을 불러올 수 없습니다."에서 "상세 이야기를 불러올 수 없습니다."로
+  수정(플랜은 이제 별도 카드). L2 `</section>` 뒤에 L3 블록 신설: `<section
+  class="flex flex-col gap-2 border-t border-border-subtle pt-4"><p class="text-xs
+  uppercase tracking-wide text-fg-muted">원본 데이터</p><p class="text-sm
+  text-fg-secondary">위 지표는 탭 한 번으로 계산 분해에 닿고, 거기서 다시 원본
+  데이터로 이어집니다.</p><a href="{base}/library" class="text-sm text-fg-secondary
+  hover:text-fg-primary">Library에서 전체 탐색 →</a></section>`. 백엔드·테스트 파일은
+  건드리지 않음(프론트 전용 유닛 — 검증은 `npm run check`/`build`, 이 저장소 프론트엔드
+  엔 테스트 러너 없음).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
