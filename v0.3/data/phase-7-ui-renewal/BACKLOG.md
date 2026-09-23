@@ -3,9 +3,13 @@
 ## 진행 현황
 
 **현재 상태**: **Phase 7a 완료(D5·D3·D1·D2·Flask API·SvelteKit Today/Library/Coach
-화면). Phase 7b 착수 — `metrics_service.get_metric_breakdown()`(children+inputs)
-완료. 남은 건 D4, 상단 3선 메뉴 UI, 그리고 Phase 7b 나머지(Today L2 내러티브,
-Library 전면화, Coach 정적 플랜).**
+화면). Phase 7b 진행 중 — 백엔드 API 3종(`get_metric_breakdown`/
+`get_provider_comparison`/`get_today_narrative`+milestones) 전부 완료·병합.
+프론트도 붙음: `<MetricBreakdown>`(C3, Today L1 드릴다운) + Today L2 내러티브
+(`P7-IMPL-7B-TODAY-L2`) + `<ProviderComparison>`(C4, Library 활동 상세 "소스
+비교" 탭, `P7-IMPL-7B-PROVIDER-UI`) 전부 완료(2026-09-23). 남은 건 D4, 상단
+3선 메뉴 UI, `plan_service.get_static_plan_templates()`(API+프론트),
+Library 전면화(메트릭 브라우저 3-E/3-F, 홈 provider 동기화 상태 3-A).**
 REVIEW-03(Today as Gateway·모바일 IA)을
 최종안으로 채택 확정(2026-09-22, 사용자 확인, `DECISIONS.md`). REVIEW-02는 이미 2026-06-10에
 01·03·04·06에 전부 반영되어 있었음(재확인 완료). REVIEW-03 반영: 무인 실행
@@ -590,7 +594,7 @@ DONE으로 옮긴다.
   (`{base}/library/{id}/providers`). 테스트는 이 저장소 프론트 관례상 별도
   단위 테스트 없음(`npm run check`/`npm run build`가 검증 전부, SVELTE-2A/2B와
   동일).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
