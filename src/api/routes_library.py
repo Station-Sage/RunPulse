@@ -1,11 +1,11 @@
-"""GET /api/v1/library/activities(+:id, +:id/streams) — Phase 7a."""
+"""GET /api/v1/library/activities(+:id, +:id/streams) + /metrics/:slug — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import activity_service
+from src.services import activity_service, metrics_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -65,6 +65,30 @@ def get_library_activity_detail(activity_id: int):
         return api_error("NOT_FOUND", f"활동을 찾을 수 없습니다: {activity_id}", 404)
 
     return api_ok({"activity": detail})
+
+
+@api_bp.get("/library/metrics/<slug>")
+def get_library_metric_breakdown(slug: str):
+    scope_id = request.args.get("scope_id")
+    if not scope_id:
+        return api_error("INVALID_PARAM", "scope_id 파라미터가 필요합니다.", 400)
+
+    scope_type = request.args.get("scope_type", "daily")
+
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = metrics_service.get_metric_breakdown(conn, scope_type, scope_id, slug)
+    finally:
+        conn.close()
+
+    if result is None:
+        return api_error("NOT_FOUND", f"메트릭을 찾을 수 없습니다: {slug}", 404)
+
+    return api_ok({"metric": result})
 
 
 @api_bp.get("/library/activities/<int:activity_id>/streams")

@@ -1,4 +1,4 @@
-"""tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams) 테스트."""
+"""tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트."""
 from __future__ import annotations
 
 import sqlite3
@@ -7,6 +7,7 @@ import pytest
 from flask import Flask
 
 from src.db_setup import create_tables, migrate_db
+from src.metrics.engine import run_activity_metrics, run_daily_metrics
 
 
 @pytest.fixture
@@ -90,3 +91,81 @@ def test_get_activity_streams(mini_app):
     body = res.get_json()
     assert len(body["data"]["streams"]) == 1
     assert body["data"]["streams"][0]["heart_rate"] == 120
+
+
+# ── /library/metrics/:slug 라우트 테스트 ─────────────────────────────────────
+
+@pytest.fixture
+def metric_app(tmp_path):
+    """ctl 메트릭이 계산된 상태의 앱 픽스처."""
+    db_file = tmp_path / "running.db"
+    conn = sqlite3.connect(str(db_file))
+    create_tables(conn)
+    migrate_db(conn)
+    conn.execute(
+        "INSERT INTO activity_summaries "
+        "(source, source_id, name, activity_type, start_time, "
+        "distance_m, moving_time_sec, avg_hr, max_hr, avg_speed_ms) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?)",
+        ["garmin", "1", "Morning Run", "running", "2026-04-01 08:00:00",
+         10000, 3000, 155, 185, 3.33],
+    )
+    conn.execute(
+        "INSERT INTO daily_wellness (date, resting_hr, body_battery_high, sleep_score) "
+        "VALUES (?, ?, ?, ?)", ["2026-04-01", 52, 80, 85],
+    )
+    conn.commit()
+    act_id = conn.execute("SELECT id FROM activity_summaries WHERE source_id='1'").fetchone()[0]
+    run_activity_metrics(conn, act_id)
+    conn.commit()
+    run_daily_metrics(conn, "2026-04-01")
+    conn.commit()
+    conn.close()
+
+    import src.api.routes_library as routes_library
+    _orig = routes_library.db_path
+    routes_library.db_path = lambda: db_file
+
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    from src.api import api_bp
+    app.register_blueprint(api_bp)
+
+    with app.test_client() as client:
+        yield client
+
+    routes_library.db_path = _orig
+
+
+def test_get_metric_breakdown_200(metric_app):
+    res = metric_app.get("/api/v1/library/metrics/ctl?scope_type=daily&scope_id=2026-04-01")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "metric" in body["data"]
+    metric = body["data"]["metric"]
+    assert metric["slug"] == "ctl"
+    assert metric["value"] is not None
+    assert "children" in metric
+    assert "inputs" in metric
+
+
+def test_get_metric_breakdown_404(metric_app):
+    res = metric_app.get("/api/v1/library/metrics/nonexistent?scope_type=daily&scope_id=2026-04-01")
+    assert res.status_code == 404
+    body = res.get_json()
+    assert body["error"]["code"] == "NOT_FOUND"
+
+
+def test_get_metric_breakdown_missing_scope_id(metric_app):
+    res = metric_app.get("/api/v1/library/metrics/ctl?scope_type=daily")
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["error"]["code"] == "INVALID_PARAM"
+
+
+def test_get_metric_breakdown_default_scope_type(metric_app):
+    """scope_type 생략 시 기본값 'daily' 적용."""
+    res = metric_app.get("/api/v1/library/metrics/ctl?scope_id=2026-04-01")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["data"]["metric"]["slug"] == "ctl"
