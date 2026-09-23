@@ -257,3 +257,45 @@ service.py`에 재귀 없음) — 즉 children은 "펼침/접힘 가능한 트�
 호출해 새 MetricBreakdown을 마운트, 04 스펙의 재귀 마운트 그대로 — 이 부분은
 스펙과 일치). 프론트 타입은 문서의 `MetricBreakdownNode`를 그대로 베끼지
 말고 실제 응답 키(`name`)로 새로 정의할 것.
+
+---
+
+## [P7-IMPL-7B-LIBRARY-HUB] `/library` 홈 재설계 — IA 결정 + Provider 현황 카드 제외
+
+`03c-library.md` 3-A는 `/library`를 `[활동][메트릭][웰니스][Provider 비교]`
+4-탭 허브로 그리는데, 실제 구현은 `/library` 자체가 3-B(필터+페이지네이션
+활동 목록)였다 — 문서 원문(3-B 제목)은 이미 `/library/activities`를 의도하고
+있었고, 이전 구현(`P7-IMPL-SVELTE-2A`)이 3-A가 없는 상태에서 3-B를 임시로
+`/library`에 얹어놓은 것이었다(2026-09-23 plan mode 조사로 확인, Explore
+서브에이전트 3개 병렬 투입).
+
+**IA 결정**: "활동" 탭 = `/library` 자체(홈/최근 활동 요약 뷰). 전체 필터
+목록은 별도 탭이 아니라 "최근 활동" 섹션의 "전체 보기" 링크로만 도달
+(`/library/activities`, 기존 3-B 내용 그대로 이동). 목업의 밑줄이 "활동"
+탭 아래 있는 것도 이 해석과 일치(활동 탭 = 홈 콘텐츠 자체).
+
+**Provider 데이터 현황 카드는 이번 스코프에서 제외**(정적 "준비 중" 표시만).
+근거: (1) provider 연결 여부를 판정하는 공용 헬퍼가 없음 — `src/web/
+auto_sync.py`의 비공개 `_connected_sources()`뿐이고, `check_*_connection()`
+4개 중 Intervals/Runalyze 2개는 매 호출마다 실제 네트워크 요청을 함(홈 화면
+로드마다 쓰기엔 부적합). (2) "마지막 동기화" 시각이 서로 다른 값을 가진
+3개 소스로 쪼개져 있음 — DDL상 `sync_jobs` 테이블은 존재하지만 비어있고
+실제로 쓰이지 않음, 실제 최신 상태는 별도 파일인 `sync_jobs.db`(
+`src/utils/sync_jobs.py`)가 갖고 있음, `sync_state.json`의 per-service
+`last_sync_at`은 활성 auto-sync 경로가 갱신하지 않아 stale. `src/utils/
+db_status.py::get_status()`의 `recent_sync` 계산도 존재하지 않는 컬럼
+(`started_at`)을 조회해 항상 빈 배열을 반환하는 버그가 있음(bare except로
+숨겨져 있었음 — 이번엔 안 건드림, 범위 밖). (3) 이 화면의 진짜 주인은
+`src/services/data_service.py`인데, 이 파일 자체가 이미 "Phase 7a에서는
+구현하지 않는다"는 docstring을 가진 명시적 스텁이다(상단 ☰ 메뉴 "Data"
+화면, `03f-data.md`, Phase 7d 몫, D5 참조) — 지금 얼기설기 만들면 그
+작업과 충돌·중복만 된다. 3개 disagreeing 소스를 정리하는 것 자체가
+ADR급 판단이 필요해 Phase 7d 몫으로 명시적으로 남긴다.
+
+구현은 `P7-IMPL-7B-LIBRARY-HUB`(순수 프론트, IA 이동 + 홈 화면) →
+`P7-IMPL-7B-WELLNESS`(백엔드: `wellness_service.py`의 `_WELLNESS_CATEGORIES`
+버그 수정 + 라우트 2개, 프론트: `/library/wellness`) 두 유닛으로 분리
+(AUTOPILOT QUEUE 참조). 웰니스 서비스 버그(카테고리명이 실제 16-domain
+taxonomy와 안 맞아 `hr`/`sleep`/`body`/`stress` 카테고리 행을 전혀 못
+잡던 것)는 기존 테스트가 `readiness`만 커버해서 지금까지 안 걸렸던 죽은
+코드 버그 — 회귀 테스트를 새로 추가해 재발을 막는다.

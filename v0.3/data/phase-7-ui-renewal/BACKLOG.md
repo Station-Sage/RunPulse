@@ -137,19 +137,15 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 할일 목록화" 지시로 2026-09-22 정리(07 로드맵 §Phase 7b 산출물 목록 기준,
 세부 설계는 각 항목 착수 시점에 plan mode로 확정).
 
-- **[P7-IMPL-7B-LIBRARY]** Library 전면화 나머지(2026-09-23 갱신 — 3-D/3-E/3-F는
-  `P7-IMPL-7B-STREAMS`/`P7-IMPL-7B-METRICS-BROWSER`로 AUTOPILOT QUEUE 분리
-  완료, `/metrics/:slug`·`<ProviderComparison>`(C4)도 이미 병합됨). **3-B는
-  이미 완료 상태**(2026-09-23 재확인 — 직전 갱신 때 "프론트만 남음"으로 잘못
-  적었음: 현재 `/library` 자체가 필터+페이지네이션이 붙은 3-B 활동 목록
-  그대로, `P7-IMPL-SVELTE-2A`에서 이미 구현됨). 진짜 남은 건 IA 판단이 필요한
-  두 가지 — (1) 3-A Library 홈: 목업은 `/library`를 [활동][메트릭][웰니스]
-  [Provider 비교] 4-탭 허브로 그리는데 실제론 `/library`가 곧 활동 목록이라
-  탭 구조 자체가 없음(현재 상단 네비 Today/Library/Coach와 탭이 어떻게
-  공존할지 결정 필요) + Provider 데이터 현황 카드(`GET /api/v1/library/
-  providers/status` 신설 필요), (2) "웰니스" 탭 — 03c 본문에 화면 설계 자체가
-  없음(3-A 목업에만 라벨로 존재). 둘 다 기존 백엔드를 새 프론트에 얹는
-  수준을 넘어 제품 판단이 필요해 착수 전 plan mode 필요.
+- **[P7-IMPL-7B-LIBRARY]** Library 전면화(2026-09-23 최종 갱신). 3-D/3-E/3-F는
+  `P7-IMPL-7B-STREAMS`/`P7-IMPL-7B-METRICS-BROWSER`로, 3-A 홈 재설계+웰니스
+  탭은 plan mode 설계 완료 후 `P7-IMPL-7B-LIBRARY-HUB`/`P7-IMPL-7B-WELLNESS`
+  로 AUTOPILOT QUEUE 전량 분리 완료(3-B는 이미 `P7-IMPL-SVELTE-2A`에서 완료
+  — 이전 갱신의 "프론트만 남음" 표기는 오기였음, 정정함). Provider 데이터
+  현황 카드·정체성 매트릭스(3-G-1)는 `data_service.py`(Phase 7d 스텁)
+  본연의 몫으로 명시적으로 남겨둠(설계 근거는 `DECISIONS.md`
+  `[P7-IMPL-7B-LIBRARY-HUB]` 항목 참조). 이 항목 자체는 하위 유닛들이 전부
+  `done`이 되면 제거.
 
 - **[P7-IMPL-COACH-PLAN-STATIC]** Coach 정적 플랜 비교 작업 흐름(`03e-coach.md`
   5-C~5-F 골격) — `plan_service.get_static_plan_templates()`(`P7-DESIGN-7B-API`에서
@@ -726,6 +722,120 @@ DONE으로 옮긴다.
   `P7-IMPL-PROVIDER-MATRIX`/LATER 참조) — 비활성 버튼으로만 표시.
   **의존성**: `Sparkline.svelte`를 쓰므로 `P7-IMPL-7B-STREAMS` 완료 후 착수.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-7B-STREAMS"], "kind": "code", "scope": ["src/services/metrics_browser_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.ts"], "verify": ["python3 -m pytest tests/test_metrics_browser_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-7B-LIBRARY-HUB]** 03c-library.md 3-A — `/library` 홈 재설계
+  (2026-09-23 plan mode 조사·설계, 사용자 승인). **배경**: 지금 `/library`는
+  실제론 3-B(활동 목록, 필터+페이지네이션)이고 문서가 의도한 3-B 전용 경로는
+  `/library/activities`다(문서 원문에 명시돼 있었음 — 이전 구현이 임시로
+  `/library`에 얹어놓은 것). **IA 결정**: 목업의 `[활동][메트릭][웰니스]
+  [Provider 비교]` 4-탭 중 "활동" 탭 = `/library` 자체(홈/최근 활동 요약 뷰,
+  목업이 활동 탭 아래 최근 활동+빠른 메트릭 접근+Provider 현황을 그리고
+  있음), 전체 필터 목록은 "활동" 탭의 하위가 아니라 "최근 활동" 섹션의
+  "전체 보기" 링크로만 도달(별도 탭 아님). **Provider 데이터 현황 카드는
+  이번 스코프에서 제외** — 조사 결과 연결상태 체크(`is_provider_enabled()`
+  같은 공용 헬퍼 없음, `check_*_connection()` 4개 중 2개는 실제 네트워크
+  호출), 마지막 동기화 시각(서로 다른 값을 가진 3개 소스: `sync_jobs`
+  테이블은 비어있고 미사용, `sync_jobs.db`가 실제 최신이지만 별도 파일,
+  `sync_state.json`은 stale)이 전부 정리 안 된 상태이고, 이 화면의 진짜
+  주인인 `src/services/data_service.py`가 이미 "Phase 7a에서는 구현하지
+  않는다"는 docstring을 가진 스텁(상단 ☰ 메뉴 "Data" 화면, `03f-data.md`,
+  Phase 7d 몫)이라 여기서 얼기설기 만들면 그 작업과 충돌·중복만 됨 —
+  대신 ☰ 버튼과 같은 "준비 중" 정적 placeholder만 표시.
+  **구현**: (1) 기존 `frontend/src/routes/library/+page.svelte` +
+  `+page.ts`(필터+페이지네이션 목록)를 `frontend/src/routes/library/
+  activities/+page.svelte` + `+page.ts`로 그대로 이동(로직 변경 없음, 파일
+  상단 주석의 "3-B" 경로 표기만 `/library/activities`로 정정). (2) 신규
+  `frontend/src/routes/library/+page.svelte`(홈) — 탭 바(`library/[id]/
+  +page.svelte`와 동일한 `border-b-2` 패턴 재사용): "활동"=현재 페이지라
+  비활성 `<span>`, "메트릭"=`<a href="{base}/library/metrics">`, "웰니스"=
+  아직 없으니 `disabled` 버튼(후속 `P7-IMPL-7B-WELLNESS`가 링크로 교체),
+  "Provider 비교"=`disabled` 버튼(`P7-IMPL-PROVIDER-MATRIX`/LATER). 본문:
+  "최근 활동" 섹션(`getActivities({page:1, per_page:5})` 호출, 활동 목록
+  페이지와 동일한 행 포맷 축약판 — 날짜+이름+거리+provider 배지, "전체
+  보기 →" 링크 `{base}/library/activities`), "빠른 메트릭 접근" 섹션(칩
+  버튼들 — `src/services/metrics_browser_service.py`의 `_CATEGORY_LABELS`와
+  정확히 같은 category slug·한국어 라벨을 그대로 옮겨써서 일치시킬 것,
+  칩 탭 시 `{base}/library/metrics?category={slug}`로 이동 — 데이터 유무는
+  목적지 페이지가 이미 처리하므로 홈에서 사전 체크 안 함), "Provider 데이터
+  현황" 섹션(정적 텍스트 "준비 중" + 1줄 설명, 실제 fetch 없음 — ☰ 메뉴
+  placeholder와 동일한 정직한 표시). (3) `frontend/src/routes/library/
+  metrics/+page.ts`(기존 파일 수정) — `load({url})`로 시그니처 변경,
+  `url.searchParams.get('category') ?? 'all'`를 `MetricsBrowserPageData`에
+  `initialCategory` 필드로 추가 반환. `+page.svelte`도 `let selectedCategory
+  = $state(data.initialCategory)`로 초기화만 변경(그 외 로직 동일). (4) 뒤로
+  가기 링크 정정 — `frontend/src/routes/library/[id]/+page.svelte`의
+  "← 목록으로"(활동 없음 상태) 링크는 `{base}/library/activities`로(원래
+  목록으로 돌아가는 게 맞음), `frontend/src/routes/library/metrics/
+  +page.svelte`의 "← Library로" 링크는 `{base}/library`로(메트릭 브라우저
+  상위는 홈이 맞음) — 각각 원래 `{base}/library`였던 걸 목적지에 맞게
+  분리. 백엔드 변경 없음(순수 프론트).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/routes/library/activities/+page.svelte", "frontend/src/routes/library/activities/+page.ts", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/+page.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-7B-WELLNESS]** 03c-library.md 3-A "웰니스" 탭 — 화면 설계 자체가
+  문서에 없어(목업엔 탭 라벨만 존재) 이번에 새로 설계(2026-09-23 plan mode).
+  **핵심 발견**: `src/services/wellness_service.py`(`get_wellness_detail`/
+  `get_wellness_trend`)가 이미 완성돼 있지만 어디서도 호출되지 않는 죽은
+  코드이고, **실제 버그**가 있음 — `_WELLNESS_CATEGORIES`가
+  `("sleep","stress","hrv","readiness","wellness","rp_readiness","rp_risk",
+  "rp_recovery")`인데 실제 16-domain 카테고리엔 `hrv`/`wellness`/`rp_*`가
+  존재하지 않음(진짜 이름은 `hr`) — `metrics_by_category`가 sleep detail·
+  HRV·body·stress 카테고리 행을 전혀 못 잡고 있었음(`tests/
+  test_wellness_service.py`가 `readiness`만 테스트해서 안 걸림). 또한
+  `daily_wellness`의 핵심 12개 컬럼(sleep_score/hrv_*/resting_hr/
+  body_battery_*/avg_stress/steps/active_calories/weight_kg)은 `metric_store`
+  에 전혀 없어(실 데이터로 확인) 기존 `get_metrics_browser()`로는 못 보여줌
+  — 반드시 `wellness_service.py`를 써야 함. **구현**: (1)
+  `src/services/wellness_service.py` — `_WELLNESS_CATEGORIES = ("sleep",
+  "stress", "hr", "readiness", "body")`로 수정(daily-scope `hr` 카테고리엔
+  HRV detail 메트릭만 있어 안전 — 확인됨). (2) `src/api/routes_library.py`에
+  라우트 2개 추가 — `GET /library/wellness?date=`(옵션) →
+  `wellness_service.get_wellness_detail(conn, date=date_param)`, `GET
+  /library/wellness/trend?days=`(기본 30) →
+  `wellness_service.get_wellness_trend(conn, days=days_param)`. 기존 라우트
+  패턴 그대로(db_path 503 체크 → `sqlite3.connect` → 서비스 호출 →
+  `api_ok(result)` → `finally: conn.close()`). (3)
+  `frontend/src/lib/types/index.ts`에 `WellnessCore { date: string;
+  sleep_score: number | null; sleep_duration_sec: number | null;
+  sleep_start_time: string | null; hrv_weekly_avg: number | null;
+  hrv_last_night: number | null; resting_hr: number | null;
+  body_battery_high: number | null; body_battery_low: number | null;
+  avg_stress: number | null; steps: number | null; active_calories: number
+  | null; weight_kg: number | null; [key: string]: unknown }`,
+  `WellnessMetricEntry { metric_name: string; numeric_value: number | null;
+  text_value: string | null; json_value: string | null; provider: string |
+  null; confidence: number | null; unit: string; description: string }`,
+  `WellnessDetailData { date: string; core: WellnessCore | Record<string,
+  never>; metrics_by_category: Record<string, WellnessMetricEntry[]>;
+  readiness_summary: { utrs: { value: number; confidence: number | null } |
+  null; cirs: { value: number; confidence: number | null } | null } }`,
+  `WellnessTrendData { dates: string[]; sleep_score: (number | null)[];
+  hrv_last_night: (number | null)[]; resting_hr: (number | null)[];
+  body_battery_high: (number | null)[]; avg_stress: (number | null)[];
+  weight_kg: (number | null)[]; utrs: (number | null)[] }`. (4)
+  `frontend/src/lib/api/wellness.ts`(신규) — `getWellnessDetail(date?:
+  string): Promise<WellnessDetailData>`, `getWellnessTrend(days?: number):
+  Promise<WellnessTrendData>`(`apiFetch`로 직접, 래핑 키 없음 — 백엔드가
+  `api_ok(result)`로 평평하게 반환). (5)
+  `frontend/src/routes/library/wellness/+page.svelte` +
+  `+page.ts`(신규) — `+page.ts`의 `load()`에서 `Promise.all([
+  getWellnessDetail(), getWellnessTrend()])` 호출(둘 다 실패해도 개별
+  `.catch(() => null)`로 부분 렌더 허용). 탭 바는 `P7-IMPL-7B-LIBRARY-HUB`와
+  동일 구조("웰니스"=활성 span, "활동"=`{base}/library` 링크, "메트릭"=
+  링크, "Provider 비교"=disabled). 본문: 오늘 핵심값 카드 그리드(수면 점수·
+  HRV 전날밤·안정시 심박·Body Battery·걸음수·체중·평균 스트레스 — `core`
+  필드 직접, `library/metrics/+page.svelte`의 카드 스타일 재사용, 값 없는
+  필드는 카드 자체를 숨김), readiness_summary가 있으면 UTRS/CIRS 카드 추가,
+  트렌드 섹션(6개 시계열 각각 라벨+`<Sparkline data={trend.series} height=
+  {32}/>` 한 줄씩 — `P7-IMPL-7B-STREAMS`의 스트림 목록 UI 패턴 재사용).
+  (6) `frontend/src/routes/library/+page.svelte`(P7-IMPL-7B-LIBRARY-HUB가
+  만든 파일) — "웰니스" 탭을 `disabled` 버튼에서 `<a href="{base}/library/
+  wellness">` 링크로 교체. **테스트**: `tests/test_wellness_service.py`에
+  sleep/hr/body/stress 카테고리 회귀 테스트 추가(버그 재발 방지 —
+  `metrics_by_category`에 해당 카테고리 metric_store 행을 심고 실제로
+  잡히는지), `tests/test_api_library.py`에 새 라우트 2개 테스트 추가(기존
+  `metric_app` 픽스처가 이미 daily_wellness 시드 데이터를 갖고 있어 재사용
+  가능).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-7B-LIBRARY-HUB"], "kind": "code", "scope": ["src/services/wellness_service.py", "src/api/routes_library.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/wellness.ts", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/library/wellness/+page.ts", "frontend/src/routes/library/+page.svelte", "tests/test_wellness_service.py", "tests/test_api_library.py"], "verify": ["python3 -m pytest tests/test_wellness_service.py tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
