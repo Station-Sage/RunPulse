@@ -53,12 +53,12 @@
 		{#if data.errorMessage}
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
 		{/if}
-		<a href="{base}/library" class="text-sm text-fg-secondary underline">← 목록으로</a>
+		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">← 목록으로</a>
 	</div>
 {:else}
 	<!-- 헤더: 이름 + 날짜 + 소스 배지 -->
 	<div class="flex items-start gap-2 border-b border-border-subtle px-4 py-3">
-		<a href="{base}/library" class="mt-0.5 shrink-0 text-fg-muted" aria-label="목록으로">←</a>
+		<a href="{base}/library/activities" class="mt-0.5 shrink-0 text-fg-muted" aria-label="목록으로">←</a>
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 			<div class="flex items-center gap-2">
 				<h1 class="truncate text-base font-semibold">{core.name}</h1>
