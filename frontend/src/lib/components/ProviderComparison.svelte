@@ -1,0 +1,166 @@
+<script lang="ts">
+	// C4 ProviderComparison — 04-component-catalog.md 기준.
+	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
+	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import type { ProviderComparisonData, ComparisonRow, ProviderKey } from '$lib/types';
+
+	let {
+		data,
+		loading = false,
+		error = null,
+		discrepancyThreshold = 5,
+		showPrimaryReason = false
+	}: {
+		data: ProviderComparisonData | null;
+		loading?: boolean;
+		error?: string | null;
+		discrepancyThreshold?: number;
+		showPrimaryReason?: boolean;
+		ondrill?: (slug: string) => void;
+	} = $props();
+
+	// 실제 데이터가 있는 provider 열만 추출 (순서 유지)
+	const providers = $derived((): string[] => {
+		if (!data || data.rows.length === 0) return [];
+		const seen = new Set<string>();
+		for (const row of data.rows) {
+			for (const [p, cell] of Object.entries(row.values)) {
+				if (cell.available) seen.add(p);
+			}
+		}
+		// 원래 순서(API가 정렬해서 내려줌)를 유지하기 위해 첫 행 키 순서 기준
+		const firstRowKeys = data.rows[0] ? Object.keys(data.rows[0].values) : [];
+		return firstRowKeys.filter((p) => seen.has(p));
+	});
+
+	// 불일치 행 여부
+	function hasDiscrepancy(row: ComparisonRow): boolean {
+		return row.discrepancy?.detected === true;
+	}
+
+	function cellDisplayValue(row: ComparisonRow, provider: string): string {
+		const cell = row.values[provider];
+		if (!cell || !cell.available) return '—';
+		const v = cell.value;
+		if (v == null) return '—';
+		if (typeof v === 'number') {
+			// 페이스(sec/km) 표시
+			if (row.unit === 'sec/km' || row.slug.includes('pace')) {
+				const total = Math.round(v);
+				const min = Math.floor(total / 60);
+				const sec = total % 60;
+				return `${min}:${String(sec).padStart(2, '0')}`;
+			}
+			return Number.isInteger(v) ? String(v) : v.toFixed(1);
+		}
+		return String(v);
+	}
+
+	function isPrimary(row: ComparisonRow, provider: string): boolean {
+		return row.preferredProvider === provider;
+	}
+</script>
+
+{#if loading}
+	<!-- 스켈레톤 -->
+	<div class="flex flex-col gap-2 px-4 py-4">
+		{#each Array(4) as _}
+			<div class="h-10 animate-pulse rounded-md bg-surface-2"></div>
+		{/each}
+	</div>
+{:else if error}
+	<div class="px-4 py-6 text-center text-sm text-fg-secondary">{error}</div>
+{:else if !data}
+	<div class="px-4 py-6 text-center text-sm text-fg-muted">데이터 없음</div>
+{:else if data.state === 'single_provider'}
+	<div class="px-4 py-8 text-center">
+		<p class="text-sm text-fg-secondary">비교할 추가 소스가 없습니다.</p>
+		<p class="mt-1 text-xs text-fg-muted">이 활동은 단일 소스에서만 기록되었습니다.</p>
+	</div>
+{:else}
+	<!-- 비교 테이블 -->
+	<div class="overflow-x-auto">
+		<table class="w-full min-w-[480px] text-sm">
+			<thead>
+				<tr class="border-b border-border-subtle">
+					<th class="py-2 pl-4 pr-2 text-left text-xs font-medium uppercase tracking-wide text-fg-muted">
+						메트릭
+					</th>
+					{#each providers() as provider}
+						<th class="px-2 py-2 text-center text-xs font-medium tracking-wide text-fg-muted">
+							<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider as ProviderKey)}">
+								{providerLabel(provider as ProviderKey)}
+							</span>
+						</th>
+					{/each}
+					<th class="py-2 pl-2 pr-4 text-right text-xs font-medium uppercase tracking-wide text-fg-muted">
+						대표값
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.rows as row (row.slug)}
+					<tr
+						class="border-b border-border-subtle last:border-0 {hasDiscrepancy(row)
+							? 'bg-amber-500/5'
+							: ''}"
+					>
+						<!-- 메트릭 이름 -->
+						<td class="py-2.5 pl-4 pr-2">
+							<div class="flex items-center gap-1.5">
+								<span class="text-sm">{row.label}</span>
+								{#if hasDiscrepancy(row)}
+									<span
+										class="text-xs text-amber-500"
+										title="불일치 {row.discrepancy?.maxDiffPct?.toFixed(1)}%"
+									>⚠</span>
+								{/if}
+							</div>
+							{#if row.unit && row.unit !== 'sec/km'}
+								<span class="text-[10px] text-fg-muted">{row.unit}</span>
+							{/if}
+						</td>
+
+						<!-- 각 provider 값 -->
+						{#each providers() as provider}
+							<td class="px-2 py-2.5 text-center">
+								<span
+									class="font-mono text-sm {row.values[provider]?.available
+										? 'text-fg-primary'
+										: 'text-fg-muted'}"
+								>
+									{cellDisplayValue(row, provider)}
+								</span>
+							</td>
+						{/each}
+
+						<!-- 대표값(preferred provider) -->
+						<td class="py-2.5 pl-2 pr-4 text-right">
+							{#if row.preferredProvider}
+								<span
+									class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+										row.preferredProvider as ProviderKey
+									)}"
+									title={showPrimaryReason && row.primaryReason
+										? row.primaryReason.rule
+										: undefined}
+								>
+									★ {providerLabel(row.preferredProvider as ProviderKey)}
+								</span>
+							{:else}
+								<span class="text-xs text-fg-muted">—</span>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- 불일치 범례 -->
+	{#if data.rows.some((r) => hasDiscrepancy(r))}
+		<div class="mt-2 px-4 pb-2 text-xs text-fg-muted">
+			<span class="text-amber-500">⚠</span> 소스 간 차이 {discrepancyThreshold}% 초과
+		</div>
+	{/if}
+{/if}

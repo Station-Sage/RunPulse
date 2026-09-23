@@ -74,18 +74,19 @@
 		</div>
 	</div>
 
-	<!-- 탭 — 요약만 활성, 나머지는 비활성 표시 (범위 밖) -->
+	<!-- 탭 — 요약(활성), 소스 비교(링크), 나머지는 비활성 표시 (범위 밖) -->
 	<div class="flex border-b border-border-subtle">
-		{#each [['요약', true], ['스트림', false], ['랩', false], ['메트릭', false]] as [label, active]}
-			<button
-				type="button"
-				disabled={!active}
-				class="flex-1 py-2.5 text-sm {active
-					? 'border-b-2 border-fg-primary font-medium text-fg-primary'
-					: 'text-fg-muted'}"
-			>
-				{label}
-			</button>
+		<span class="flex-1 border-b-2 border-fg-primary py-2.5 text-center text-sm font-medium text-fg-primary">
+			요약
+		</span>
+		<a
+			href="{base}/library/{core.id}/providers"
+			class="flex-1 py-2.5 text-center text-sm text-fg-secondary hover:text-fg-primary"
+		>
+			소스 비교
+		</a>
+		{#each ['스트림', '랩', '메트릭'] as label}
+			<button type="button" disabled class="flex-1 py-2.5 text-sm text-fg-muted">{label}</button>
 		{/each}
 	</div>
 

@@ -325,3 +325,40 @@ export interface TodayResponse {
 	recent_activities: RecentActivity[];
 	checkin: CheckinRow | null;
 }
+
+// ── ProviderComparison (C4 — /api/v1/library/activities/:id/providers) ───────
+
+export interface ComparisonCell {
+	value: number | string | null;
+	available: boolean;
+}
+
+export interface ComparisonDiscrepancy {
+	detected: boolean;
+	maxDiff: number;
+	maxDiffPct: number;
+	severity: 'info' | 'warning';
+}
+
+export interface ComparisonPrimaryReason {
+	provider: ProviderKey;
+	ruleType: 'static_priority' | 'runpulse_always';
+	rule: string;
+}
+
+export interface ComparisonRow {
+	slug: string;
+	label: string;
+	unit: string | null;
+	values: Record<string, ComparisonCell>;
+	discrepancy: ComparisonDiscrepancy | null;
+	preferredProvider: ProviderKey | null;
+	primaryReason: ComparisonPrimaryReason | null;
+}
+
+export interface ProviderComparisonData {
+	mode: 'activity';
+	activity_id: number;
+	state: 'loaded' | 'single_provider';
+	rows: ComparisonRow[];
+}
