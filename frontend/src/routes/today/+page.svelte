@@ -4,6 +4,7 @@
 	import type { TodayPageData } from './+page';
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
@@ -23,6 +24,7 @@
 	// MetricBreakdown 드릴다운 스택 — slug 목록, 마지막 항목이 현재 표시 패널.
 	// onDrillInput으로 push, onClose로 전체 비움.
 	let drillStack = $state<string[]>([]);
+	let showMonthNarrative = $state(false);
 
 	const drillSlug = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 
@@ -203,6 +205,12 @@
 				{#if narrative.source === 'rule'}
 					<p class="text-xs text-fg-muted">규칙 기반 요약</p>
 				{/if}
+
+				<!-- 월간 전체 이야기 패널 열기 -->
+				<button
+					class="self-start text-sm text-fg-secondary hover:text-fg-primary"
+					onclick={() => { showMonthNarrative = true; }}
+				>이번 달 전체 이야기 보기 →</button>
 			{:else}
 				<!-- 내러티브 로딩 실패 또는 미제공 시 fallback 스텁 -->
 				<p class="text-sm text-fg-secondary">
@@ -222,5 +230,10 @@
 			onClose={closeDrill}
 			onDrillInput={handleDrillInput}
 		/>
+	{/if}
+
+	<!-- MonthNarrative 월간 이야기 패널 -->
+	{#if showMonthNarrative}
+		<MonthNarrative onClose={() => { showMonthNarrative = false; }} />
 	{/if}
 {/if}

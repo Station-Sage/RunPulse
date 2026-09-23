@@ -188,6 +188,71 @@ class TestGetTodayNarrative:
         assert len(result["milestones"]) >= 1
 
 
+class TestGetTodayNarrativeYearMonth:
+    def test_highlights_field_present(self, db_conn):
+        """highlights 키가 항상 결과에 포함된다."""
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        h = result["highlights"]
+        assert "total_distance_km" in h
+        assert "activity_count" in h
+        assert "longest_run_km" in h
+        assert "peak_ctl" in h
+
+    def test_highlights_no_data_zeros(self, db_conn):
+        """활동 없을 때 거리·횟수·최장은 0, peak_ctl은 None."""
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        h = result["highlights"]
+        assert h["total_distance_km"] == 0.0
+        assert h["activity_count"] == 0
+        assert h["longest_run_km"] == 0.0
+        assert h["peak_ctl"] is None
+
+    def test_highlights_with_activities(self, db_conn):
+        """활동 있을 때 total_distance_km, activity_count, longest_run_km 집계."""
+        # distance_m: 10000 each (seeded by _seed_activity)
+        _seed_activity(db_conn, activity_id=20, start_time="2026-09-10T06:00:00")
+        _seed_activity(db_conn, activity_id=21, start_time="2026-09-15T06:00:00")
+        db_conn.commit()
+
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        h = result["highlights"]
+        assert h["activity_count"] == 2
+        assert h["total_distance_km"] == 20.0
+        assert h["longest_run_km"] == 10.0
+
+    def test_past_month_uses_last_day(self, db_conn):
+        """과거 달(year/month)은 말일까지 집계."""
+        _seed_activity(db_conn, activity_id=30, start_time="2026-08-31T06:00:00")
+        db_conn.commit()
+
+        result = today_service.get_today_narrative(
+            db_conn, date="2026-09-22", config=None, year=2026, month=8
+        )
+        assert result["highlights"]["activity_count"] == 1
+
+    def test_year_month_label_in_evidence(self, db_conn):
+        """year/month 지정 시 evidence label에 해당 연월 포함."""
+        _seed_activity(db_conn, activity_id=31, start_time="2026-08-15T06:00:00")
+        db_conn.commit()
+
+        result = today_service.get_today_narrative(
+            db_conn, date="2026-09-22", config=None, year=2026, month=8
+        )
+        monthly_ev = next((e for e in result["evidence"] if e["metric"] == "monthly_distance"), None)
+        assert monthly_ev is not None
+        assert "2026년 8월" in monthly_ev["label"]
+
+    def test_peak_ctl_in_highlights(self, db_conn):
+        """peak_ctl은 해당 기간 최대 CTL."""
+        _seed_metric(db_conn, "2026-09-05", "ctl", 65)
+        _seed_metric(db_conn, "2026-09-15", "ctl", 72)
+        _seed_metric(db_conn, "2026-09-22", "ctl", 70)
+        db_conn.commit()
+
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        assert result["highlights"]["peak_ctl"] == 72.0
+
+
 class TestSaveCheckin:
     def test_save_and_return(self, db_conn):
         result = today_service.save_checkin(

@@ -5,7 +5,30 @@
 """
 from __future__ import annotations
 
+import calendar
+import datetime
 import sqlite3
+
+
+def month_date_range(year: int, month: int) -> tuple[str, str]:
+    """(month_start, date_end) — 이번 달이면 오늘, 과거 달이면 말일."""
+    month_start = f"{year}-{month:02d}-01"
+    today = datetime.date.today()
+    if year == today.year and month == today.month:
+        return month_start, today.isoformat()
+    last_day = calendar.monthrange(year, month)[1]
+    return month_start, f"{year}-{month:02d}-{last_day:02d}"
+
+
+def peak_ctl_in_range(conn: sqlite3.Connection, month_start: str, date: str) -> float | None:
+    """지정 기간의 CTL 최댓값. 데이터 없으면 None."""
+    row = conn.execute(
+        "SELECT MAX(numeric_value) FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='ctl' AND is_primary=1"
+        " AND scope_id >= ? AND scope_id <= ?",
+        (month_start, date),
+    ).fetchone()
+    return float(row[0]) if row and row[0] is not None else None
 
 
 def query_metric(conn: sqlite3.Connection, scope_type: str, scope_id: str, name: str) -> float | None:
@@ -47,11 +70,13 @@ def build_narrative_prompt(
     month_count: int,
     sleep_recent: float | None,
     sleep_prev: float | None,
+    month_label: str | None = None,
 ) -> str:
     """AI 내러티브 생성 프롬프트 — 제공된 수치만 나열(환각 방지)."""
+    period = month_label or "이번 달"
     lines = [
         f"기준 날짜: {date}",
-        "아래 훈련 데이터를 기반으로 이번 달 훈련 흐름을 한국어 2~3문장으로 요약하라.",
+        f"아래 훈련 데이터를 기반으로 {period} 훈련 흐름을 한국어 2~3문장으로 요약하라.",
         "반드시 아래 제공된 수치만 사용하고, 데이터에 없는 수치는 절대 언급하지 마라.",
         "",
     ]

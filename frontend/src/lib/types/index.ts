@@ -311,12 +311,20 @@ export interface MilestoneEntry {
 	activity_id: number | null;
 }
 
+export interface NarrativeHighlights {
+	total_distance_km: number;
+	activity_count: number;
+	longest_run_km: number;
+	peak_ctl: number | null;
+}
+
 export interface NarrativeResponse {
 	date: string;
 	text: string;
 	source: 'ai' | 'rule';
 	evidence: BriefingEvidence[];
 	milestones: MilestoneEntry[];
+	highlights: NarrativeHighlights;
 }
 
 export interface TodayResponse {

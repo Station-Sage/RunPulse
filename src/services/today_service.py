@@ -137,14 +137,18 @@ def get_today_narrative(
     conn: sqlite3.Connection,
     date: str | None = None,
     config: dict | None = None,
+    year: int | None = None,
+    month: int | None = None,
 ) -> dict:
     """Today L2 성장 내러티브 — AI 우선, 전체 실패 시 규칙 기반 fallback.
 
-    컨텍스트: 이번 달 CTL 변화량, 월간 누적거리·활동수, 최근 7일 수면 추세,
-    최근 마일스톤 5개. 이 수치만 프롬프트에 올려 환각 방지.
+    컨텍스트: 이번 달(또는 year/month 지정 달) CTL 변화량, 월간 누적거리·활동수,
+    최근 7일 수면 추세, 최근 마일스톤 5개. 이 수치만 프롬프트에 올려 환각 방지.
 
-    반환: {date, text, source("ai"|"rule"), evidence([{type,metric,value,label},...]),
-           milestones([...])}
+    year/month 둘 다 있으면 그 달 전체, 이번 달이면 오늘까지, 과거 달이면 말일까지.
+    둘 중 하나만 있으면 무시하고 기존(오늘 기준) 동작.
+
+    반환: {date, text, source("ai"|"rule"), evidence, milestones, highlights}
     """
     from src.services import milestone_service
     from src.services._narrative import query_metric, sleep_trend
@@ -154,31 +158,43 @@ def get_today_narrative(
     if date is None:
         date = status["date"]
 
+    # ── 연월 범위 결정 ─────────────────────────────────────────────────────
+    from src.services._narrative import month_date_range, peak_ctl_in_range
+    if year is not None and month is not None:
+        month_start, date = month_date_range(year, month)
+        month_label: str | None = f"{year}년 {month}월"
+    else:
+        month_start = date[:7] + "-01"
+        month_label = None
+
     training = status["training_status"]
     ctl_now = training.get("ctl")
 
     # ── 월초 CTL ──────────────────────────────────────────────────────────
-    month_start = date[:7] + "-01"
     ctl_start = query_metric(conn, "daily", month_start, "ctl")
 
-    # ── 이번 달 누적거리·활동수 ────────────────────────────────────────────
+    # ── 해당 달 누적거리·활동수·최장 러닝 ─────────────────────────────────
     row = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_m), 0)"
+        "SELECT COUNT(*), COALESCE(SUM(distance_m), 0), COALESCE(MAX(distance_m), 0)"
         " FROM v_canonical_activities"
         " WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?",
         (month_start, date),
     ).fetchone()
     month_count = int(row[0]) if row else 0
-    month_dist_m = float(row[1]) if row else 0.0
-    month_dist_km = round(month_dist_m / 1000.0, 1)
+    month_dist_km = round(float(row[1]) / 1000.0, 1) if row else 0.0
+    longest_run_km = round(float(row[2]) / 1000.0, 1) if row and row[2] else 0.0
 
-    # ── 수면 추세 (최근 7일 vs 이전 7일) ──────────────────────────────────
+    # ── 해당 달 peak CTL ──────────────────────────────────────────────────
+    peak_ctl = peak_ctl_in_range(conn, month_start, date)
+
+    # ── 수면 추세 (해당 달 말일 기준 최근 7일 vs 이전 7일) ────────────────
     sleep_recent, sleep_prev = sleep_trend(conn, date)
 
     # ── 최근 마일스톤 ──────────────────────────────────────────────────────
     milestones = milestone_service.get_recent_milestones(conn, limit=5)
 
     # ── evidence 조립 (데이터 있는 항목만) ────────────────────────────────
+    period_label = month_label or "이번 달"
     evidence: list[dict] = []
     if ctl_now is not None:
         ctl_label = f"CTL {ctl_now:.1f}"
@@ -191,7 +207,7 @@ def get_today_narrative(
             "type": "metric",
             "metric": "monthly_distance",
             "value": month_dist_km,
-            "label": f"이번 달 {month_dist_km}km ({month_count}회)",
+            "label": f"{period_label} {month_dist_km}km ({month_count}회)",
         })
     if sleep_recent is not None:
         sleep_label = f"수면 점수 최근 7일 {sleep_recent:.0f}"
@@ -203,6 +219,14 @@ def get_today_narrative(
             "label": sleep_label,
         })
 
+    # ── highlights 조립 ───────────────────────────────────────────────────
+    highlights = {
+        "total_distance_km": month_dist_km,
+        "activity_count": month_count,
+        "longest_run_km": longest_run_km,
+        "peak_ctl": peak_ctl,
+    }
+
     # ── AI 생성 시도 ───────────────────────────────────────────────────────
     from src.services._narrative import build_narrative_prompt, rule_narrative
     text = None
@@ -211,7 +235,8 @@ def get_today_narrative(
     chain = _build_chat_provider_chain(provider, config)
     if chain:
         prompt = build_narrative_prompt(
-            date, ctl_now, ctl_start, month_dist_km, month_count, sleep_recent, sleep_prev,
+            date, ctl_now, ctl_start, month_dist_km, month_count,
+            sleep_recent, sleep_prev, month_label=month_label,
         )
         for prov in chain:
             result = _call_provider(prov, prompt, config)
@@ -230,6 +255,7 @@ def get_today_narrative(
         "source": source,
         "evidence": evidence,
         "milestones": milestones,
+        "highlights": highlights,
     }
 
 
