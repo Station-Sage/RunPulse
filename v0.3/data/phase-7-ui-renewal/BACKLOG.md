@@ -538,7 +538,59 @@ DONE으로 옮긴다.
   확장 패널(1-C), 전체 마일스톤 패널(1-D, `get_today_milestones()`는 이번엔
   narrative 응답의 `milestones`로 충분 — 별도 API 호출 안 함), 데스크탑
   우측 패널 분기, MetricBreakdown 뒤로가기(스택 pop UI).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/today/+page.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "in_progress", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/metrics.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/today/+page.ts"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-7B-PROVIDER-UI]** SvelteKit만 — `<ProviderComparison>`(C4) 신규
+  컴포넌트, 백엔드(`get_provider_comparison()`, `P7-IMPL-PROVIDER-COMPARISON`)는
+  이미 병합돼 있음(활동별 비교, 03c §3-G-2만 — §3-G-1 정체성 매트릭스는
+  `P7-IMPL-PROVIDER-MATRIX`로 LATER). 문서(03c §3-G)는 `/library/providers`를
+  자체 활동 피커가 있는 독립 화면으로 그리지만, 이번엔 그 피커를 새로 만들지
+  않고 **이미 activity_id가 URL에 있는 활동 상세 페이지의 하위 라우트**로
+  붙인다(`frontend/src/routes/library/[id]/providers/`) — 독립 `/library/
+  providers` 화면(+피커, 매트릭스 모드 토글)은 `P7-IMPL-7B-LIBRARY`(NEXT)에서.
+  **구현**: (1) `frontend/src/lib/types/index.ts`에 타입 추가 — `ComparisonCell
+  { value: number | string | null; available: boolean }`,
+  `PrimaryReason { provider: ProviderKey; rule: string; ruleType:
+  'static_priority' | 'runpulse_always' }`(`P7-IMPL-PROVIDER-COMPARISON` 리뷰
+  때 preferredProvider/primaryReason을 분리한 실제 응답 형태 그대로 —
+  `primaryReason`은 이 객체 자체이거나 null, `preferredProvider`는 별도
+  `ProviderKey | null` 필드), `ComparisonRow { slug: string; label: string;
+  unit: string | null; values: Record<string, ComparisonCell>; discrepancy:
+  { detected: boolean; maxDiff: number; maxDiffPct: number; severity: 'info' |
+  'warning' } | null; preferredProvider: ProviderKey | null; primaryReason:
+  PrimaryReason | null }`, `ProviderComparisonData { mode: 'activity';
+  activity_id: number; state: 'loaded' | 'single_provider'; rows:
+  ComparisonRow[] }`(문서의 `values: Record<ProviderKey,...>`가 아니라
+  `Record<string,...>`로 — raw 메트릭 행의 키는 활동의 `source` 컬럼값 그대로라
+  `ProviderKey` 유니온을 벗어날 수 있음, `provider_comparison_service.py`의
+  `_ordered_providers()` 참조). (2) `frontend/src/lib/api/providers.ts`(신규)
+  — `getProviderComparison(activityId: number, threshold?: number):
+  Promise<ProviderComparisonData>` → `apiFetch<{comparison:
+  ProviderComparisonData}>('/library/activities/' + activityId + '/providers'
+  + (threshold ? '?discrepancy_threshold=' + threshold : '')).then(r =>
+  r.comparison)`. (3) `frontend/src/lib/components/ProviderComparison.svelte`
+  (신규) — props: `data: ProviderComparisonData`. `state === 'single_provider'`
+  면 "비교할 추가 소스가 없습니다" 문구만(04 스펙 그대로). 아니면 테이블 렌더:
+  헤더 행 = `data.rows`에 등장하는 전체 provider 키 합집합(각 행의 `values`
+  키를 순회해 합집합 구성, `$lib/provider.ts`의 `providerLabel()`로 헤더 표시)
+  + "대표값" 컬럼. 각 행: `label`, provider별 셀(`available`이면 값+unit,
+  아니면 "—"), 대표값 컬럼엔 `preferredProvider`가 있으면 `★` +
+  `providerLabel(preferredProvider)`(탭/hover 시 `primaryReason.rule`을
+  타이틀 속성이나 작은 텍스트로 노출 — P3 투명성), `discrepancy?.detected`면
+  행 배경 amber 톤 + `⚠` 배지 + `maxDiffPct.toFixed(1)+'%'`. 값 포맷은
+  `unit`이 있으면 `value + unit` 그대로 표시(복잡한 단위 변환 없음 — `$lib/
+  format.ts`의 기존 포맷터는 특정 필드 전용이라 여기선 안 씀). (4)
+  `frontend/src/routes/library/[id]/providers/+page.svelte` +
+  `+page.ts`(신규) — `+page.ts`의 `load({params})`에서 `getProviderComparison
+  (Number(params.id))` 호출(실패 시 `errorMessage` 패턴은 기존
+  `library/[id]/+page.ts` 그대로 재사용). 페이지 상단에 "← 활동으로" 링크
+  (`{base}/library/{id}`), `<ProviderComparison data={...}>` 렌더. (5)
+  `frontend/src/routes/library/[id]/+page.svelte`(기존 파일, "핵심 메트릭"
+  섹션과 "스트림 데이터" 섹션 사이)에 링크 추가: "[Provider 비교 보기 →]"
+  (`{base}/library/{id}/providers`). 테스트는 이 저장소 프론트 관례상 별도
+  단위 테스트 없음(`npm run check`/`npm run build`가 검증 전부, SVELTE-2A/2B와
+  동일).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
