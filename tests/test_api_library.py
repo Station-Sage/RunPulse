@@ -169,3 +169,26 @@ def test_get_metric_breakdown_default_scope_type(metric_app):
     assert res.status_code == 200
     body = res.get_json()
     assert body["data"]["metric"]["slug"] == "ctl"
+
+
+# ── /library/activities/:id/providers 라우트 테스트 ──────────────────────────
+
+def test_get_activity_providers_200(mini_app):
+    """단독 활동(그룹 없음) → 200, state='single_provider'."""
+    client, act_id = mini_app
+    res = client.get(f"/api/v1/library/activities/{act_id}/providers")
+    assert res.status_code == 200
+    body = res.get_json()
+    comparison = body["data"]["comparison"]
+    assert comparison["state"] in ("single_provider", "loaded")
+    assert comparison["activity_id"] == act_id
+    assert "rows" in comparison
+
+
+def test_get_activity_providers_404(mini_app):
+    """존재하지 않는 활동 → 404, NOT_FOUND."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities/9999/providers")
+    assert res.status_code == 404
+    body = res.get_json()
+    assert body["error"]["code"] == "NOT_FOUND"
