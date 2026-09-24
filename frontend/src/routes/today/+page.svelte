@@ -201,6 +201,43 @@
 					<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>
 				{/if}
 
+				<!-- CTL/ATL 추세 인라인 차트 (1-A) — 탭하면 이번 달 전체 이야기 패널(1-C) -->
+				{#if (data.ctlTrend?.points.length ?? 0) > 1}
+					<button
+						type="button"
+						onclick={() => { showMonthNarrative = true; }}
+						class="flex w-full flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left hover:bg-surface-3"
+						aria-label="CTL·ATL 추세 — 이번 달 전체 이야기 열기"
+					>
+						<div class="flex items-center justify-between text-xs text-fg-muted">
+							<span>피트니스·피로 추세 · 최근 4주</span>
+							<span>이번 달 이야기 →</span>
+						</div>
+						{#if data.ctlTrend}
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center justify-between text-xs">
+									<span style="color:#3b82f6">● CTL</span>
+									{#if data.ctlTrend.current != null}
+										<span class="font-mono text-fg-secondary">{data.ctlTrend.current.toFixed(1)}</span>
+									{/if}
+								</div>
+								<Sparkline data={data.ctlTrend.points.map((p) => p.value)} height={40} color="#3b82f6" />
+							</div>
+						{/if}
+						{#if data.atlTrend && data.atlTrend.points.length > 1}
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center justify-between text-xs">
+									<span style="color:#f59e0b">● ATL</span>
+									{#if data.atlTrend.current != null}
+										<span class="font-mono text-fg-secondary">{data.atlTrend.current.toFixed(1)}</span>
+									{/if}
+								</div>
+								<Sparkline data={data.atlTrend.points.map((p) => p.value)} height={40} color="#f59e0b" />
+							</div>
+						{/if}
+					</button>
+				{/if}
+
 				<!-- 마일스톤 목록 -->
 				{#if narrative.milestones.length > 0}
 					<div class="flex flex-col gap-1">
@@ -232,46 +269,6 @@
 
 				{#if narrative.source === 'rule'}
 					<p class="text-xs text-fg-muted">규칙 기반 요약</p>
-				{/if}
-
-				<!-- CTL/ATL 인라인 추세 차트 — 탭하면 월간 이야기 패널(1-C) 열림 -->
-				{#if data.ctlTrend?.points.length || data.atlTrend?.points.length}
-					<button
-						class="flex w-full flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left"
-						onclick={() => { showMonthNarrative = true; }}
-						aria-label="CTL/ATL 추세 — 이번 달 전체 이야기 보기"
-					>
-						{#if data.ctlTrend && data.ctlTrend.points.length > 0}
-							<div class="flex flex-col gap-0.5">
-								<div class="flex items-baseline justify-between">
-									<span class="text-xs text-fg-muted">CTL</span>
-									{#if data.ctlTrend.current != null}
-										<span class="text-xs font-medium text-fg-primary">{data.ctlTrend.current.toFixed(1)}</span>
-									{/if}
-								</div>
-								<Sparkline
-									data={data.ctlTrend.points.map((p) => p.value)}
-									height={32}
-									color="var(--color-accent, #6366f1)"
-								/>
-							</div>
-						{/if}
-						{#if data.atlTrend && data.atlTrend.points.length > 0}
-							<div class="flex flex-col gap-0.5">
-								<div class="flex items-baseline justify-between">
-									<span class="text-xs text-fg-muted">ATL</span>
-									{#if data.atlTrend.current != null}
-										<span class="text-xs font-medium text-fg-primary">{data.atlTrend.current.toFixed(1)}</span>
-									{/if}
-								</div>
-								<Sparkline
-									data={data.atlTrend.points.map((p) => p.value)}
-									height={32}
-									color="var(--color-semantic-orange, #f97316)"
-								/>
-							</div>
-						{/if}
-					</button>
 				{/if}
 
 				<!-- 월간 전체 이야기 패널 열기 -->
