@@ -42,6 +42,36 @@ function nearestNonNull(arr: (number | null)[], start: number): number {
 }
 
 /**
+ * elapsed_sec 배열과 활동 총 시간(초)을 받아 시간 눈금에 쓸 elapsed 배열을 반환한다.
+ * 마지막 non-null elapsed_sec가 totalSec의 90% 미만이면 등간격 샘플로 보고
+ * totalSec에 비례해 재환산한다(Garmin downsample 시 elapsed_sec가 샘플 인덱스로
+ * 저장되는 경우 대응). 유효한 경우에는 원본 값을 그대로 반환한다.
+ * 반환값에 null은 포함되지 않는다(null → 0으로 대체).
+ */
+export function streamSeconds(elapsed: (number | null)[], totalSec: number): number[] {
+	const n = elapsed.length;
+	if (n === 0 || totalSec <= 0) return elapsed.map((v) => v ?? 0);
+	if (n === 1) return [0];
+
+	// 마지막 non-null elapsed_sec 찾기
+	let lastSec = 0;
+	for (let i = n - 1; i >= 0; i--) {
+		if (elapsed[i] != null) {
+			lastSec = elapsed[i]!;
+			break;
+		}
+	}
+
+	if (lastSec >= totalSec * 0.9) {
+		// 저장값이 신뢰할 만한 수준 — 그대로 사용
+		return elapsed.map((v) => v ?? 0);
+	}
+
+	// 등간격 재환산: i번째 샘플 → (i / (n-1)) * totalSec
+	return elapsed.map((_, i) => Math.round((i / (n - 1)) * totalSec));
+}
+
+/**
  * elapsed_sec 값을 "0" | "15m" | "1h 03m" 형식으로 포맷한다.
  */
 export function formatElapsed(sec: number | null | undefined): string {

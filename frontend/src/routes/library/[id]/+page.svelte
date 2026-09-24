@@ -12,6 +12,7 @@
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
+	import { clampOutliers } from '$lib/chartScale';
 
 	let { data }: { data: ActivityPageData } = $props();
 
@@ -23,7 +24,12 @@
 	const zoneData = $derived(hrZoneShares(metricsByCategory));
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
-	const paceSeries = $derived((streams ?? []).map((p) => (p.speed_ms != null && p.speed_ms > 0 ? 1000 / p.speed_ms : null)));
+	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
+	const paceClamp = $derived(
+		clampOutliers((streams ?? []).map((p) => (p.speed_ms != null && p.speed_ms > 0 ? 1000 / p.speed_ms : null)))
+	);
+	const paceSeries = $derived(paceClamp.values);
+	const paceSeriesClamped = $derived(paceClamp.clamped);
 	const hrSeries = $derived((streams ?? []).map((p) => p.heart_rate));
 	const streamSource = $derived(streams && streams.length > 0 ? streams[0].source : null);
 	let drillStack = $state<DrillTarget[]>([]);
@@ -132,7 +138,7 @@
 						<Sparkline data={hrSeries} height={40} color="#ef4444" />
 					</div>
 				{/if}
-				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}</p>
+				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}{#if paceSeriesClamped}{' · '}페이스 이상치 제거됨(상·하위 2% 클램프){/if}</p>
 			</section>
 		{:else}
 			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>

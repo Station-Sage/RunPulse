@@ -6,7 +6,8 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
-	import { indexAtFraction, axisTicks, formatElapsed } from '$lib/streamAxis';
+	import { indexAtFraction, axisTicks, formatElapsed, streamSeconds } from '$lib/streamAxis';
+	import { clampOutliers } from '$lib/chartScale';
 
 	let { data }: { data: StreamsPageData } = $props();
 
@@ -51,6 +52,39 @@
 		return sources.join(' / ');
 	});
 
+	// 시간축 보정: totalSec가 있으면 streamSeconds로 보정, 없으면 원본 elapsed_sec 사용
+	const correctedElapsed = $derived(
+		data.totalSec != null
+			? streamSeconds(data.streams.map((p) => p.elapsed_sec), data.totalSec)
+			: data.streams.map((p) => p.elapsed_sec)
+	);
+
+	// 시간축 보정 여부: lastSec < 90% totalSec인 경우 재환산됐음
+	const timeAxisRescaled = $derived((): boolean => {
+		if (data.totalSec == null || data.streams.length === 0) return false;
+		const rawElapsed = data.streams.map((p) => p.elapsed_sec);
+		let lastSec = 0;
+		for (let i = rawElapsed.length - 1; i >= 0; i--) {
+			if (rawElapsed[i] != null) { lastSec = rawElapsed[i] ?? 0; break; }
+		}
+		return lastSec < data.totalSec * 0.9;
+	});
+
+	// 스트림별 이상치 클램프 결과 (key → { values, clamped })
+	const clampedStreams = $derived(
+		Object.fromEntries(
+			STREAM_DEFS.map((def) => {
+				const raw = data.streams.map(def.extract);
+				return [def.key, clampOutliers(raw)];
+			})
+		)
+	);
+
+	// 이상치 클램프가 실제로 발생한 스트림 키 목록
+	const clampedKeys = $derived(
+		STREAM_DEFS.filter((def) => clampedStreams[def.key]?.clamped).map((def) => def.key)
+	);
+
 	function formatMinMax(vals: (number | null)[]): string {
 		const nums = vals.filter((v): v is number => v != null);
 		if (nums.length === 0) return '—';
@@ -74,8 +108,8 @@
 		return `${formatPaceSec(mn)} – ${formatPaceSec(mx)}`;
 	}
 
-	// 시간 눈금 (elapsed_sec 기준, 포인트 인덱스 등간격 위치에 실제 시간 라벨)
-	const ticks = $derived(axisTicks(data.streams.map((p) => p.elapsed_sec)));
+	// 시간 눈금 (보정된 elapsed 기준, 포인트 인덱스 등간격 위치에 실제 시간 라벨)
+	const ticks = $derived(axisTicks(correctedElapsed));
 
 	// 스크럽 상태: scrubFrac(0~1) → scrubIndex
 	let scrubFrac = $state<number | null>(null);
@@ -92,12 +126,18 @@
 		scrubFrac = null;
 	}
 
-	// 스크럽 판독 줄에 표시할 값 포맷
+	// 스크럽 판독 줄에 표시할 값 포맷 (원본 값 사용 — 판독은 실제 측정값)
 	function formatScrubValue(def: StreamDef, point: ActivityStreamPoint): string {
 		const v = def.extract(point);
 		if (v == null) return '—';
 		if (def.key === 'pace') return formatPaceSec(v) + def.unit;
 		return v.toFixed(0) + '\u00a0' + def.unit;
+	}
+
+	// 스크럽 시각 — 보정된 elapsed 기준
+	function scrubElapsed(): number | null {
+		if (scrubIndex == null) return null;
+		return correctedElapsed[scrubIndex] ?? null;
 	}
 </script>
 
@@ -156,7 +196,7 @@
 			onpointerleave={onPointerLeave}
 			onpointercancel={onPointerLeave}
 		>
-			<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 실제 elapsed_sec 라벨 -->
+			<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 보정된 elapsed 라벨 -->
 			<div class="relative mb-1 h-5 select-none">
 				{#each ticks as tick}
 					<span
@@ -170,7 +210,7 @@
 			<div class="mb-2 flex h-5 items-center gap-3 overflow-hidden text-xs">
 				{#if scrubIndex != null}
 					{@const point = data.streams[scrubIndex]}
-					<span class="text-fg-muted">{formatElapsed(point.elapsed_sec)}</span>
+					<span class="text-fg-muted">{formatElapsed(scrubElapsed())}</span>
 					{#each availableStreams as def}
 						{#if checked[def.key]}
 							<span style="color:{def.color}">{def.label} {formatScrubValue(def, point)}</span>
@@ -183,18 +223,18 @@
 			<div class="flex flex-col gap-5">
 				{#each availableStreams as def}
 					{#if checked[def.key]}
-						{@const values = data.streams.map(def.extract)}
+						{@const clamped = clampedStreams[def.key]}
 						<div class="flex flex-col gap-1">
 							<div class="flex items-center justify-between text-xs text-fg-secondary">
 								<span class="font-medium" style="color:{def.color}">{def.label}</span>
 								<span class="text-fg-muted">
-									{def.key === 'pace' ? formatMinMaxPace(values) : formatMinMax(values)}
+									{def.key === 'pace' ? formatMinMaxPace(clamped.values) : formatMinMax(clamped.values)}
 									{def.unit}
 								</span>
 							</div>
 							<!-- 스파크라인 + 스크럽 커서 라인 -->
 							<div class="relative">
-								<Sparkline data={values} height={48} color={def.color} />
+								<Sparkline data={clamped.values} height={48} color={def.color} />
 								{#if scrubFrac != null}
 									<div
 										class="pointer-events-none absolute inset-y-0 w-px opacity-50"
@@ -210,7 +250,14 @@
 
 		<p class="text-xs text-fg-muted">
 			{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·
-			시간 눈금은 포인트 인덱스 기준 위치에 실제 elapsed_sec를 표시
+			{#if timeAxisRescaled()}
+				시간축: 활동 총 시간 기준 등간격 환산(저장값이 샘플 인덱스로 확인됨)
+			{:else}
+				시간 눈금은 포인트 인덱스 기준 위치에 실제 elapsed_sec를 표시
+			{/if}
+			{#if clampedKeys.length > 0}
+				· 이상치 제거됨({clampedKeys.map((k) => STREAM_DEFS.find((d) => d.key === k)?.label ?? k).join(', ')}: 상·하위 2% 클램프)
+			{/if}
 		</p>
 	</div>
 {/if}
