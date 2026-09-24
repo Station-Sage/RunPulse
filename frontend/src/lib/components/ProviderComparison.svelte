@@ -151,6 +151,8 @@
 		</table>
 	</div>
 
+	<div class="mt-2 px-4 text-xs text-fg-muted"><span class="text-amber-500">★</span> 대표값(우선 소스)</div>
+
 	<!-- 불일치 범례 -->
 	{#if data.rows.some((r) => hasDiscrepancy(r))}
 		<div class="mt-2 px-4 pb-2 text-xs text-fg-muted">
