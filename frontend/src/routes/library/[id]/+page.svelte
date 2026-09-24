@@ -3,9 +3,13 @@
 	import type { ActivityPageData } from './+page';
 	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import MetricCell from '$lib/components/MetricCell.svelte';
+	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
+	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
+	import type { DrillTarget } from '$lib/evidence';
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
 
 	let { data }: { data: ActivityPageData } = $props();
@@ -14,36 +18,22 @@
 	const metricsByCategory = $derived(data.activity?.metrics_by_category ?? {});
 	const streams = $derived(data.activity?.streams ?? null);
 
-	// 모든 카테고리에서 numeric_value가 있는 메트릭을 모아 최대 8개 선택.
-	// 순서: performance → running → 나머지 카테고리 순.
-	const CATEGORY_ORDER = ['performance', 'running', 'fitness', 'wellness', 'power', 'environment'];
-
-	const keyMetrics = $derived((): ActivityMetric[] => {
-		const ordered: ActivityMetric[] = [];
-		const seen = new Set<string>();
-
-		for (const cat of [...CATEGORY_ORDER, ...Object.keys(metricsByCategory)]) {
-			const items = metricsByCategory[cat] ?? [];
-			for (const m of items) {
-				if (!seen.has(m.metric_name) && m.numeric_value != null) {
-					seen.add(m.metric_name);
-					ordered.push(m);
-					if (ordered.length >= 8) return ordered;
-				}
-			}
-		}
-		return ordered;
-	});
-
-	function metricDisplayValue(m: ActivityMetric): string {
-		if (m.numeric_value == null) return '—';
-		const v = m.numeric_value;
-		// 페이스 관련 메트릭(초/km)은 mm:ss 형식
-		if (m.metric_name.includes('pace') || m.unit === 'sec/km') {
-			return formatPace(v);
-		}
-		// 소수점 1자리까지만
-		return Number.isInteger(v) ? String(v) : v.toFixed(1);
+	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
+	const zoneData = $derived(hrZoneShares(metricsByCategory));
+	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
+	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
+	const paceSeries = $derived((streams ?? []).map((p) => (p.speed_ms != null && p.speed_ms > 0 ? 1000 / p.speed_ms : null)));
+	const hrSeries = $derived((streams ?? []).map((p) => p.heart_rate));
+	const streamSource = $derived(streams && streams.length > 0 ? streams[0].source : null);
+	let drillStack = $state<DrillTarget[]>([]);
+	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+	function openMetric(slug: string) {
+		if (!core) return;
+		drillStack = [...drillStack, { slug, scopeType: 'activity', scopeId: String(core.id) }];
+	}
+	function handleDrillInput(slug: string) {
+		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+		drillStack = [...drillStack, { slug, scopeType: top?.scopeType ?? 'activity', scopeId: top?.scopeId ?? String(core?.id ?? '') }];
 	}
 </script>
 
@@ -100,18 +90,19 @@
 		</div>
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
-		{#if keyMetrics().length > 0}
+		{#if keyMetrics.length > 0}
 			<section class="flex flex-col gap-2">
-				<p class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</p>
+				<div class="flex items-center justify-between"><p class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</p><a href="{base}/library/{core.id}/metrics" class="text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-					{#each keyMetrics() as m (m.metric_name)}
+					{#each keyMetrics as m (m.metric_name)}
 						<MetricCell
 							slug={m.metric_name}
 							label={m.description || m.metric_name}
-							value={metricDisplayValue(m)}
-							unit={m.unit && !m.metric_name.includes('pace') ? m.unit : undefined}
+							value={formatMetricValue(m)}
+							unit={metricUnit(m) || undefined}
 							provider={(m.provider as ProviderKey) ?? null}
-							drillable={false}
+							drillable={true}
+							onDrill={(p) => openMetric(p.slug)}
 							unavailable={m.numeric_value == null}
 						/>
 					{/each}
@@ -119,16 +110,49 @@
 			</section>
 		{/if}
 
-		<!-- 스트림 요약 (존재 여부 + 포인트 수) -->
-		<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">스트림 데이터</p>
-			{#if streams && streams.length > 0}
-				<p class="text-sm text-fg-secondary">{streams.length.toLocaleString('ko-KR')}개 포인트</p>
-				<p class="text-xs text-fg-muted">스트림 차트는 Phase 7b에서 제공됩니다.</p>
-			{:else}
-				<p class="text-sm text-fg-muted">스트림 데이터 없음</p>
-			{/if}
-		</section>
+		{#if paceSeries.some((v) => v != null) || hrSeries.some((v) => v != null)}
+			<section class="flex flex-col gap-2">
+				<div class="flex items-center justify-between">
+					<p class="text-xs uppercase tracking-wide text-fg-muted">페이스 · 심박 흐름</p>
+					<a href="{base}/library/{core.id}/streams" class="text-xs text-fg-secondary hover:text-fg-primary">스트림 탭에서 전체 보기 →</a>
+				</div>
+				{#if paceSeries.some((v) => v != null)}
+					<div>
+						<p class="mb-0.5 text-[10px] text-fg-muted">페이스</p>
+						<Sparkline data={paceSeries} height={40} color="#3b82f6" />
+					</div>
+				{/if}
+				{#if hrSeries.some((v) => v != null)}
+					<div>
+						<p class="mb-0.5 text-[10px] text-fg-muted">심박</p>
+						<Sparkline data={hrSeries} height={40} color="#ef4444" />
+					</div>
+				{/if}
+				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource} · 소스: {providerLabel(streamSource as ProviderKey)}{/if}</p>
+			</section>
+		{:else}
+			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
+		{/if}
+		{#if zoneData}
+			<section class="flex flex-col gap-2">
+				<div class="flex items-center justify-between">
+					<p class="text-xs uppercase tracking-wide text-fg-muted">HR 존 분포</p>
+					<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(zoneData.provider as ProviderKey | null)}">{providerLabel(zoneData.provider as ProviderKey | null)}</span>
+				</div>
+				<div class="flex flex-col gap-1.5">
+					{#each zoneData.zones as z (z.zone)}
+						<div class="flex items-center gap-2 text-xs">
+							<span class="w-5 font-mono text-fg-secondary">Z{z.zone}</span>
+							<div class="h-2 flex-1 rounded bg-surface-3">
+								<div class="h-2 rounded" style="width:{z.pct}%; background:{ZONE_COLORS[z.zone - 1]}"></div>
+							</div>
+							<span class="w-20 text-right font-mono text-fg-secondary">{z.pct}% · {formatDuration(z.sec)}</span>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
 	</div>
 {/if}
+{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}
