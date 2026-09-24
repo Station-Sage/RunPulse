@@ -36,6 +36,10 @@
 
 - functions: get_adaptation_status
 
+### `archive_service.py` (97줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
+
+- functions: get_archive
+
 ### `coach_service.py` (129줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
 - functions: list_threads, get_thread, create_thread, add_message
@@ -79,6 +83,14 @@
 ### `provider_status_service.py` (44줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
 - functions: get_provider_status
+
+### `race_hub_service.py` (130줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
+
+- functions: bucket_for_distance, get_race_hub
+
+### `race_projection_service.py` (93줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
+
+- functions: project_race_form
 
 ### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
@@ -1159,9 +1171,13 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_today.py` (130줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (148줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty
+
+### `test_archive_service.py` (63줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
+
+- functions: test_months_back_crosses_year, test_empty_db, test_totals_monthly_heatmap_longest, test_personal_bests_pick_min_and_skip_missing
 
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -1598,6 +1614,14 @@
 
 - functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
+### `test_race_hub_service.py` (230줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
+
+- functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key
+
+### `test_race_projection_service.py` (72줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
+
+- functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb
+
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
 - class **TestRateLimitPolicy**: test_four_sources_defined, test_garmin_conservative, test_strava_window
@@ -1857,7 +1881,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 364개 파일
+총 370개 파일
 
 ## docstring 누락
 
