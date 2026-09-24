@@ -217,3 +217,14 @@ def test_form_no_metrics_both_none(conn):
     conn.commit()
     result = get_race_hub(conn, DATE)
     assert result["form"] == {"ctl": None, "tsb": None}
+
+
+def test_hub_includes_projection_key(conn):
+    conn.execute(
+        "INSERT INTO goals (name, race_date, distance_km, status) VALUES ('R', '2026-10-25', 42.195, 'active')"
+    )
+    _seed_metric(conn, DATE, "ctl", 40)
+    _seed_metric(conn, DATE, "atl", 55)
+    hub = get_race_hub(conn, DATE)
+    assert hub["projection"]["days_left"] == 31
+    assert get_race_hub(conn, "2026-10-26")["projection"] is None

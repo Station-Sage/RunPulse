@@ -3,7 +3,7 @@
 	// DECISIONS.md [P7-IMPL-RACE-HUB-UI]: 목표 있으면 D-day, 없으면 등록 유도 카드.
 	import type { RaceHubData } from '$lib/types';
 	import TrendChart from './TrendChart.svelte';
-	import { countdownLabel, distanceLabel, gapVerdict } from '$lib/raceHub';
+	import { countdownLabel, distanceLabel, formBand, gapVerdict, signedTsb } from '$lib/raceHub';
 	import { formatDuration } from '$lib/format';
 	import { base } from '$app/paths';
 
@@ -18,6 +18,14 @@
 
 	const verdict = $derived(data?.prediction ? gapVerdict(data.prediction.gap_sec) : null);
 	const tsb = $derived(data?.form?.tsb ?? null);
+	const proj = $derived(data?.projection ?? null);
+	const FORM_TONE: Record<string, string> = {
+		good: 'text-semantic-green',
+		neutral: 'text-fg-secondary',
+		warn: 'text-semantic-amber',
+		bad: 'text-semantic-red'
+	};
+	const SCENARIO_COLOR: Record<string, string> = { taper: '#22c55e', keep: '#64748b' };
 </script>
 
 {#if !data?.goal}
@@ -80,7 +88,37 @@
 			</div>
 		{/if}
 
-		{#if tsb != null}
+		{#if proj}
+			<div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
+				<span class="text-xs text-fg-muted">레이스 아침 예상 폼 (TSB)</span>
+				<div class="grid grid-cols-2 gap-3">
+					{#each proj.scenarios as sc (sc.key)}
+						{@const band = formBand(sc.tsb)}
+						<div class="flex flex-col gap-0.5">
+							<span class="text-[11px] text-fg-muted">{sc.label}</span>
+							<span class="font-mono text-2xl font-bold {FORM_TONE[band.tone]}">{signedTsb(sc.tsb)}</span>
+							<span class="text-[11px] {FORM_TONE[band.tone]}">{band.label}</span>
+						</div>
+					{/each}
+				</div>
+				<TrendChart
+					series={proj.scenarios.map((sc) => ({
+						key: sc.key,
+						label: sc.label,
+						color: SCENARIO_COLOR[sc.key],
+						points: sc.series
+					}))}
+					height={88}
+					interactive={false}
+					formatValue={(v) => signedTsb(v)}
+				/>
+				<p class="text-[10px] leading-tight text-fg-muted">
+					{proj.assumptions} · 현재 폼 {signedTsb(proj.current.tsb)}
+				</p>
+			</div>
+		{/if}
+
+		{#if tsb != null && !proj}
 			<p class="text-xs text-fg-muted">현재 폼(TSB) {tsb > 0 ? '+' : ''}{Math.round(tsb)}</p>
 		{/if}
 	</section>

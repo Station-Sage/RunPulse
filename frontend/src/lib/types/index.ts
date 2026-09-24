@@ -641,10 +641,30 @@ export interface RaceHubForm {
 	tsb: number | null;
 }
 
+export interface RaceProjectionScenario {
+	key: 'taper' | 'keep';
+	label: string;
+	ctl: number;
+	atl: number;
+	tsb: number;
+	series: { date: string; value: number }[];
+}
+
+export interface RaceProjection {
+	as_of: string;
+	race_date: string;
+	days_left: number;
+	base_daily_load: number;
+	current: { ctl: number; atl: number; tsb: number };
+	assumptions: string;
+	scenarios: RaceProjectionScenario[];
+}
+
 export interface RaceHubData {
 	goal: RaceHubGoal | null;
 	prediction: RaceHubPrediction | null;
 	form: RaceHubForm | null;
+	projection: RaceProjection | null;
 }
 
 // ── ProviderStatus (3-A — /api/v1/library/providers/status) ──────────────────

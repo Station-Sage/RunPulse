@@ -31,3 +31,20 @@ export function distanceLabel(km: number): string {
 	if (Math.abs(km - 5) <= 1) return '5K';
 	return `${km.toFixed(1)}km`;
 }
+
+export type FormTone = 'bad' | 'warn' | 'neutral' | 'good';
+
+/** 레이스 아침 TSB 해석 — <-30 과부하, <-10 훈련 부하, <5 중립, ≤15 레이스 최적, 그 위는 회복 과다. */
+export function formBand(tsb: number): { label: string; tone: FormTone } {
+	if (tsb < -30) return { label: '과부하', tone: 'bad' };
+	if (tsb < -10) return { label: '훈련 부하 높음', tone: 'warn' };
+	if (tsb < 5) return { label: '중립', tone: 'neutral' };
+	if (tsb <= 15) return { label: '레이스 최적', tone: 'good' };
+	return { label: '회복 과다', tone: 'warn' };
+}
+
+/** TSB 부호 표기: +13 / −1 / 0 (정수 반올림). */
+export function signedTsb(tsb: number): string {
+	const r = Math.round(tsb);
+	return r > 0 ? `+${r}` : r < 0 ? `−${-r}` : '0';
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gapVerdict, countdownLabel, distanceLabel } from '../src/lib/raceHub.ts';
+import { gapVerdict, countdownLabel, distanceLabel, formBand, signedTsb } from '../src/lib/raceHub.ts';
 
 test('gapVerdict: null은 unknown, 60초 미만은 on', () => {
 	assert.equal(gapVerdict(null).tone, 'unknown');
@@ -29,4 +29,20 @@ test('distanceLabel: 표준 거리 근사와 그 외', () => {
 	assert.equal(distanceLabel(10), '10K');
 	assert.equal(distanceLabel(5), '5K');
 	assert.equal(distanceLabel(15), '15.0km');
+});
+
+test('formBand: 경계값', () => {
+	assert.equal(formBand(-31).label, '과부하');
+	assert.equal(formBand(-30).label, '훈련 부하 높음');
+	assert.equal(formBand(-10).label, '중립');
+	assert.equal(formBand(4.9).label, '중립');
+	assert.equal(formBand(5).label, '레이스 최적');
+	assert.equal(formBand(15).tone, 'good');
+	assert.equal(formBand(16).label, '회복 과다');
+});
+
+test('signedTsb: 부호 표기', () => {
+	assert.equal(signedTsb(12.7), '+13');
+	assert.equal(signedTsb(-0.6), '−1');
+	assert.equal(signedTsb(0.2), '0');
 });

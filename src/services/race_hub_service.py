@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import sqlite3
+
+from src.services.race_projection_service import project_race_form
 from datetime import date as _date, timedelta  # noqa: F401
 
 _BUCKETS = [
@@ -29,7 +31,7 @@ def bucket_for_distance(distance_km: float | None) -> str | None:
 def get_race_hub(conn: sqlite3.Connection, date: str | None = None) -> dict:
     """가장 가까운 다가오는 활성 목표와 준비 현황.
 
-    반환: {"goal": None | {...}, "prediction": None | {...}, "form": None | {...}}
+    반환: {"goal", "prediction", "form", "projection"} — 각 None 가능. projection은 레이스 아침 폼 예측(race_projection_service).
     """
     conn.row_factory = sqlite3.Row
 
@@ -46,7 +48,7 @@ def get_race_hub(conn: sqlite3.Connection, date: str | None = None) -> dict:
     ).fetchone()
 
     if goal_row is None:
-        return {"goal": None, "prediction": None, "form": None}
+        return {"goal": None, "prediction": None, "form": None, "projection": None}
 
     goal_dict = dict(goal_row)
     race_date_str: str = goal_dict["race_date"]
@@ -102,6 +104,7 @@ def get_race_hub(conn: sqlite3.Connection, date: str | None = None) -> dict:
         "goal":       goal_out,
         "prediction": prediction,
         "form":       _get_form(conn, date),
+        "projection": project_race_form(conn, race_date_str, date),
     }
 
 
