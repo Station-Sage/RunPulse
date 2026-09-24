@@ -1,5 +1,5 @@
-"""GET /api/v1/today, POST /api/v1/today/checkin, GET /api/v1/today/milestones,
-GET /api/v1/today/narrative — Phase 7a/7b."""
+"""GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+GET /api/v1/today/milestones, GET /api/v1/today/narrative — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
@@ -34,6 +34,19 @@ def get_today():
         "recent_activities": recent_activities,
         "checkin": checkin,
     })
+
+
+@api_bp.get("/today/checkin")
+def get_today_checkin():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        checkin = today_service.get_todays_checkin(conn)
+    finally:
+        conn.close()
+    return api_ok({"checkin": checkin})
 
 
 @api_bp.get("/today/milestones")

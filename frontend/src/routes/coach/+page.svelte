@@ -1,12 +1,14 @@
 <script lang="ts">
-	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션.
+	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
 	import { createThread } from '$lib/api/coach';
+	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
 	import { formatRelativeTime } from '$lib/format';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import type { ChatThread } from '$lib/types';
+	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
+	import QuickInput from '$lib/components/QuickInput.svelte';
 
 	let { data }: { data: CoachPageData } = $props();
 
@@ -19,6 +21,21 @@
 	let sending = $state(false);
 
 	const SUGGESTED_TOPICS = ['오늘 훈련 조언', '레이스 전략', '부상 위험 확인', '훈련 분석'];
+
+	let checkin = $state<CheckinRow | null>(data.checkin);
+	let savingCheckin = $state(false);
+	let checkinError = $state<string | null>(null);
+	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
+		savingCheckin = true;
+		checkinError = null;
+		try {
+			checkin = await postCheckin(value);
+		} catch (e) {
+			checkinError = e instanceof Error ? e.message : '저장에 실패했습니다.';
+		} finally {
+			savingCheckin = false;
+		}
+	}
 
 	function openNew(prefill = '') {
 		newInput = prefill;
@@ -180,6 +197,27 @@
 				>
 					새 프로그램 만들기 →
 				</a>
+			{/if}
+		</div>
+
+		<!-- QuickInput 체크인 섹션 -->
+		<div class="flex flex-col gap-1 border-t border-border-subtle px-4 py-3">
+			<QuickInput
+				compact
+				existing={checkin
+					? {
+							fatigue: checkin.fatigue ?? undefined,
+							pain: checkin.pain ?? undefined,
+							note: checkin.note ?? undefined,
+							timestamp: checkin.created_at
+						}
+					: undefined}
+				saving={savingCheckin}
+				onSave={handleSaveCheckin}
+			/>
+			<p class="text-xs text-fg-muted">입력한 컨디션은 Coach 답변에 자동으로 반영됩니다.</p>
+			{#if checkinError}
+				<p class="text-xs text-semantic-red">{checkinError}</p>
 			{/if}
 		</div>
 	{/if}
