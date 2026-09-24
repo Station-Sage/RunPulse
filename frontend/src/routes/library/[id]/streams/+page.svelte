@@ -200,7 +200,11 @@
 			<div class="relative mb-1 h-5 select-none">
 				{#each ticks as tick}
 					<span
-						class="absolute -translate-x-1/2 text-xs text-fg-muted"
+						class="absolute whitespace-nowrap text-xs text-fg-muted {tick.frac === 0
+							? ''
+							: tick.frac === 1
+								? '-translate-x-full'
+								: '-translate-x-1/2'}"
 						style="left:{tick.frac * 100}%"
 					>{tick.label}</span>
 				{/each}
