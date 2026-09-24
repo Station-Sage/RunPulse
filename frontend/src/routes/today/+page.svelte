@@ -10,7 +10,7 @@
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
-	import Sparkline from '$lib/components/Sparkline.svelte';
+	import TrendChart from '$lib/components/TrendChart.svelte';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { readinessStatus, tsbStatus } from '$lib/status';
@@ -66,6 +66,15 @@
 			savingCheckin = false;
 		}
 	}
+
+	// CTL/ATL 공통 스케일 차트용 derived 상태
+	const ctlAtlDates = $derived(data.ctlTrend?.points.map((p) => p.date) ?? []);
+	const ctlAtlSeries = $derived([
+		{ values: (data.ctlTrend?.points ?? []).map((p) => p.value), color: '#3b82f6', label: 'CTL' },
+		...(data.atlTrend && data.atlTrend.points.length > 1
+			? [{ values: data.atlTrend.points.map((p) => p.value), color: '#f59e0b', label: 'ATL' }]
+			: [])
+	]);
 
 	// 마일스톤 타입별 아이콘
 	const milestoneIcon: Record<string, string> = {
@@ -214,28 +223,22 @@
 							<span>피트니스·피로 추세 · 최근 4주</span>
 							<span>이번 달 이야기 →</span>
 						</div>
-						{#if data.ctlTrend}
-							<div class="flex flex-col gap-1">
-								<div class="flex items-center justify-between text-xs">
-									<span style="color:#3b82f6">● CTL</span>
-									{#if data.ctlTrend.current != null}
-										<span class="font-mono text-fg-secondary">{data.ctlTrend.current.toFixed(1)}</span>
-									{/if}
-								</div>
-								<Sparkline data={data.ctlTrend.points.map((p) => p.value)} height={40} color="#3b82f6" />
+						<!-- CTL·ATL 공통 y 스케일 차트 (interactive=false: 탭 전체가 버튼) -->
+					<div class="flex gap-4 text-xs">
+						<div class="flex items-center gap-1">
+							<span style="color:#3b82f6">● CTL</span>
+							{#if data.ctlTrend?.current != null}
+								<span class="font-mono text-fg-secondary">{data.ctlTrend.current.toFixed(1)}</span>
+							{/if}
+						</div>
+						{#if data.atlTrend?.current != null}
+							<div class="flex items-center gap-1">
+								<span style="color:#f59e0b">● ATL</span>
+								<span class="font-mono text-fg-secondary">{data.atlTrend.current.toFixed(1)}</span>
 							</div>
 						{/if}
-						{#if data.atlTrend && data.atlTrend.points.length > 1}
-							<div class="flex flex-col gap-1">
-								<div class="flex items-center justify-between text-xs">
-									<span style="color:#f59e0b">● ATL</span>
-									{#if data.atlTrend.current != null}
-										<span class="font-mono text-fg-secondary">{data.atlTrend.current.toFixed(1)}</span>
-									{/if}
-								</div>
-								<Sparkline data={data.atlTrend.points.map((p) => p.value)} height={40} color="#f59e0b" />
-							</div>
-						{/if}
+					</div>
+					<TrendChart series={ctlAtlSeries} dates={ctlAtlDates} height={60} interactive={false} />
 					</button>
 				{/if}
 
