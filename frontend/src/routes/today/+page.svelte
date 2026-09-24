@@ -2,7 +2,7 @@
 	// 03a-today.md 1-A' — L0(QuickInput+RecommendationCard) + L1(MetricCell×3 + 최근 활동) + L2(내러티브).
 	// Phase 7b: MetricCell 드릴다운 → MetricBreakdown 패널, L2 실데이터 연결.
 	import type { TodayPageData } from './+page';
-	import MetricCell from '$lib/components/MetricCell.svelte';
+	import ScoreRing from '$lib/components/ScoreRing.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
@@ -133,34 +133,40 @@
 		<!-- ══ L1 — 내 상태 요약 ══ -->
 		<section class="flex flex-col gap-3">
 			<div class="grid grid-cols-3 gap-2">
-				<MetricCell
+				<ScoreRing
 					slug="utrs"
 					label="UTRS"
 					value={status.readiness.utrs?.value ?? null}
+					min={0}
+					max={100}
+					decimals={0}
 					provider={status.providers.utrs ?? null}
 					status={readinessStatus('utrs', status.readiness.utrs?.level)}
 					unavailable={!status.readiness.utrs}
-					drillable={true}
 					onDrill={handleDrill}
 				/>
-				<MetricCell
+				<ScoreRing
 					slug="cirs"
 					label="CIRS"
 					value={status.readiness.cirs?.value ?? null}
+					min={0}
+					max={100}
+					decimals={0}
 					provider={status.providers.cirs ?? null}
 					status={readinessStatus('cirs', status.readiness.cirs?.level)}
 					unavailable={!status.readiness.cirs}
-					drillable={true}
 					onDrill={handleDrill}
 				/>
-				<MetricCell
+				<ScoreRing
 					slug="tsb"
 					label="TSB"
 					value={status.training_status.tsb ?? null}
+					min={-40}
+					max={40}
+					decimals={0}
 					provider={status.providers.tsb ?? null}
 					status={tsbStatus(status.training_status.tsb)}
 					unavailable={status.training_status.tsb === null}
-					drillable={true}
 					onDrill={handleDrill}
 				/>
 			</div>
