@@ -4,6 +4,8 @@
 1건씩 실행하고, 격리된 worktree(`autopilot/phase7` 브랜치)에 커밋한다. **자동 병합은
 하지 않는다** — 완료된 항목은 `stage: review`로 남고, 병합은 사람이 한다.
 
+> 유닛 병합 전 리뷰 절차·환경 함정은 [REVIEW.md](REVIEW.md), 화면 검증 하네스는 `scripts/synth_smoke/`.
+
 ## 종류 (`kind`)
 
 - **`kind:"docs"`(기본값)** — `v0.3/data/phase-7-ui-renewal/` 안 설계 문서 편집 전용.

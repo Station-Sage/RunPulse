@@ -1697,6 +1697,10 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
+### `test_synth_smoke.py` (55줄) — scripts/synth_smoke 합성 DB 시드 테스트 — 시드가 기능 기대치(서비스 입력)와 어긋나면 UI 스모크가 헛돈다.
+
+- functions: test_seed_creates_expected_rows, test_seed_feeds_provider_status_and_adaptation, test_seed_empty_has_schema_but_no_rows, test_seed_overwrites_existing_file_and_writes_only_there
+
 ### `test_template_helpers.py` (194줄) — tests/test_template_helpers.py — Phase 5-E 헬퍼 함수 테스트.
 
 - functions: test_format_distance_km, test_format_distance_decimals, test_format_distance_zero, test_format_distance_none, test_format_pace_normal, test_format_pace_exact, test_format_pace_zero, test_format_pace_none, test_format_duration_under_hour, test_format_duration_over_hour, test_format_duration_zero, test_format_duration_none, test_format_speed, test_format_speed_none, test_format_time_prediction, test_format_time_prediction_none, test_interpret_utrs_good, test_interpret_utrs_great, test_interpret_cirs_low, test_interpret_unknown_metric, test_interpret_none_value, test_metric_level_color_green, test_metric_level_color_yellow, test_metric_level_color_low_higher_is_better, test_metric_level_color_low_lower_is_better, test_confidence_badge_high, test_confidence_badge_medium, test_confidence_badge_low, test_confidence_badge_none, test_provider_badge_runpulse, test_provider_badge_garmin, test_provider_badge_unknown, test_provider_badge_none, test_metric_display_name_known, test_metric_display_name_unknown, test_metric_unit_known, test_metric_unit_unknown
@@ -1853,7 +1857,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 363개 파일
+총 364개 파일
 
 ## docstring 누락
 

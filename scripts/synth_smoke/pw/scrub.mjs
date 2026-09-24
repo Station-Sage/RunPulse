@@ -1,0 +1,21 @@
+// 스트림 화면 스크럽 판독(마우스 hover)·가로 넘침 확인. 환경: BASE
+import { chromium } from 'playwright';
+const BASE = process.env.BASE || 'http://127.0.0.1:18099';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: false });
+const page = await ctx.newPage();
+await page.goto(BASE + '/v2/library/100/streams', { waitUntil: 'networkidle' });
+await page.waitForTimeout(500);
+const sw = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+console.log('scrollW/vw', sw);
+const box = await page.locator('[role=group][aria-label*=스크럽]').boundingBox();
+console.log('box', box);
+await page.mouse.move(box.x + box.width * 0.5, box.y + 100);
+await page.waitForTimeout(200);
+console.log('mid:', (await page.locator('[role=group][aria-label*=스크럽]').innerText()).replace(/\n+/g, ' | ').slice(0, 300));
+await page.mouse.move(box.x + box.width * 0.99, box.y + 100);
+await page.waitForTimeout(200);
+console.log('end:', (await page.locator('[role=group][aria-label*=스크럽]').innerText()).replace(/\n+/g, ' | ').slice(0, 200));
+await page.mouse.move(5, 5); await page.waitForTimeout(200);
+console.log('left:', (await page.locator('[role=group][aria-label*=스크럽]').innerText()).replace(/\n+/g, ' | ').slice(0, 120));
+await b.close();

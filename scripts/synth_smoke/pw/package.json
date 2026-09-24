@@ -1,0 +1,10 @@
+{
+  "name": "synth-smoke",
+  "version": "1.0.0",
+  "description": "합성 DB UI 스모크(Playwright) — scripts/synth_smoke/__init__.py 참조",
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.63.0"
+  },
+  "private": true
+}

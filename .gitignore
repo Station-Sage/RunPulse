@@ -119,3 +119,8 @@ data/*.zip
 
 # autopilot 런타임 상태 (원장·잠금·실행 로그 — 운영 이력이지 코드가 아님)
 .claude/autopilot/
+
+# synth_smoke 하네스 산출물 (합성 DB·스크린샷·node_modules)
+scripts/synth_smoke/out/
+scripts/synth_smoke/pw/node_modules/
+scripts/synth_smoke/pw/shots/
