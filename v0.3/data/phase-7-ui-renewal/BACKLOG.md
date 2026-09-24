@@ -2568,8 +2568,135 @@ DONE으로 옮긴다.
   ```
   (캐시 키에 조회 달의 시작일과 기준일을 모두 넣는다 — 과거 달 조회(`year`/`month`)와 이번 달이 서로 캐시를 덮지 않고, 날짜가 바뀌면 자연히 새 키.) `text = None`/`source = "rule"` 초기화와 그 뒤 `if text is None:` 규칙 기반 fallback은 그대로 둔다.
   (3) 신규 `tests/test_narrative_cache.py`(`db_conn` 픽스처 + `unittest.mock.patch`; 기존 `tests/test_today_service.py`의 AI 테스트처럼 `patch("src.ai.chat_engine._call_provider", …)`와 `patch("src.ai.chat_engine._build_chat_provider_chain", return_value=["fake"])`, `patch("src.ai.chat_engine.get_ai_provider", return_value="gemini")` 사용, `today_service.get_today_narrative(db_conn, date="2026-09-22", config={})` 호출) — 케이스: (a) 같은 인자로 두 번 호출하면 `_call_provider` 호출 1회뿐이고 두 결과 모두 `source == "ai"`·같은 `text`, (b) 다른 `date`(예: "2026-09-21")면 다시 호출됨(호출 2회), (c) 모든 provider가 None이면 `source == "rule"`이고 캐시에 아무것도 저장되지 않아 다음 호출에 다시 provider를 시도함(호출 횟수가 늘어남), (d) 첫 호출 후 새 활동을 추가하면(`INSERT INTO activity_summaries …`로 MAX(id) 변경) 캐시가 무효화되어 다시 호출됨, (e) `generate_ai_narrative`를 직접 호출: 체인 첫 provider가 None·둘째가 텍스트면 둘째 텍스트를 반환하고 캐시에 저장됨(`ai_cache.get_cached(db_conn, "today_narrative", key)["text"]`).
-  리뷰 2026-09-24: 명세와 일치 — ai_cache 재사용(탭 today_narrative, 키 월시작:기준일), AI 성공만 캐시, 저장 실패 삼킴, 헬퍼는 _narrative.py로(today_service 299줄). 테스트 11개 통과(캐시 히트 시 AI 미호출, fallback 미캐시, 신규 활동 시 무효화). 워크트리 today/narrative 관련 59 통과.
+  리뷰 2026-09-24: 결정(DECISIONS)과 일치 — ai_cache 재사용(탭 today_narrative, 키 월시작:기준일), AI 성공만 캐시, 저장 실패 삼킴, 헬퍼는 _narrative.py로(today_service 299줄). **명세 이탈 1건(수용)**: 명세의 `generate_ai_narrative()`(텍스트만 캐시, evidence·milestones는 매번 재계산) 대신 `get/set_narrative_cache()`로 **결과 dict 전체**를 캐시하고 조회 최상단에서 조기 반환(DB 조회까지 생략) — 무효화가 ADR-011(신규 활동·웰니스·날짜·8h)에 위임돼 evidence 신선도 손실은 같은 조건에서만 생기고 응답이 더 빨라 그대로 둠. 테스트 11개 통과(캐시 히트 시 AI 미호출, fallback 미캐시, 신규 활동 시 무효화). 워크트리 today/narrative 관련 59 통과.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-PLAN-ADAPTATION-STATE"], "kind": "code", "scope": ["src/services/_narrative.py", "src/services/today_service.py", "tests/test_narrative_cache.py"], "verify": ["python3 -m pytest tests/test_narrative_cache.py tests/test_today_service.py tests/test_api_today.py -q"]} -->
+- **[P7-IMPL-PROVIDER-STATUS]** `03c-library.md` 3-A Library 홈의 "Provider 데이터 현황"(P3 Provider Transparency) — 백엔드(읽기 전용 서비스 + GET 1개) + 프론트, 2026-09-24 합성 데이터 스모크에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-PROVIDER-STATUS]` 항목 필독. 현황: `frontend/src/routes/library/+page.svelte` 의 "Provider 현황" 섹션이 "준비 중 — 연결 상태·마지막 동기화 정보는 후속 업데이트에서 제공됩니다."라는 문구뿐 — 3-A 목업은 Provider별 `[Garmin ●연결] 마지막 동기화 2시간 전 · 활동 312건` 행을 요구한다. 데이터는 이미 있다(`activity_summaries.source`, `source_payloads.fetched_at`). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `src/services/provider_status_service.py`:
+  ```python
+  """Provider 데이터 현황 서비스 — 03c-library.md 3-A "Provider 데이터 현황". 읽기 전용."""
+  from __future__ import annotations
+  import sqlite3
+  _PROVIDERS = ("garmin", "strava", "intervals", "runalyze")
+  def get_provider_status(conn: sqlite3.Connection) -> list[dict]:
+      """Provider 4종 각각의 저장된 데이터 현황 — 항상 4행, 고정 순서(_PROVIDERS).
+      반환: [{"provider", "activity_count", "last_activity_date", "last_synced_at", "has_data"}]
+      - activity_count: activity_summaries 원본 행 수(중복 그룹 통합 전 — 그 provider가 실제로 가진 데이터)
+      - last_activity_date: 그 provider 활동 중 가장 최근 start_time의 앞 10자(YYYY-MM-DD), 없으면 None
+      - last_synced_at: source_payloads.fetched_at 최댓값(UTC 'YYYY-MM-DD HH:MM:SS' 문자열), 없으면 None
+      - has_data: activity_count > 0 또는 last_synced_at 존재
+      '연결 여부'(자격증명 유무)는 판단하지 않는다 — 7d Data 화면(data_service)의 몫.
+      """
+      try:
+          acts = {
+              r[0]: (r[1], r[2])
+              for r in conn.execute(
+                  "SELECT source, COUNT(*), MAX(start_time) FROM activity_summaries GROUP BY source"
+              )
+          }
+          syncs = {
+              r[0]: r[1]
+              for r in conn.execute("SELECT source, MAX(fetched_at) FROM source_payloads GROUP BY source")
+          }
+      except sqlite3.OperationalError:
+          acts, syncs = {}, {}
+      out = []
+      for p in _PROVIDERS:
+          count, last_start = acts.get(p, (0, None))
+          last_sync = syncs.get(p)
+          out.append({
+              "provider": p,
+              "activity_count": int(count),
+              "last_activity_date": last_start[:10] if last_start else None,
+              "last_synced_at": last_sync,
+              "has_data": bool(count) or last_sync is not None,
+          })
+      return out
+  ```
+  (2) `src/api/routes_library.py` — import 줄(`from src.services import activity_service, metrics_browser_service, ...`)에 `provider_status_service`를 알파벳 순서에 맞게 추가하고, `get_library_providers_matrix()` 함수 바로 뒤에 추가:
+  ```python
+  @api_bp.get("/library/providers/status")
+  def get_library_providers_status():
+      dpath = db_path()
+      if not dpath.exists():
+          return api_error("NOT_FOUND", "running.db 없음", 503)
+      conn = sqlite3.connect(str(dpath))
+      try:
+          result = provider_status_service.get_provider_status(conn)
+      finally:
+          conn.close()
+      return api_ok({"providers": result})
+  ```
+  (3) 신규 `tests/test_provider_status.py` — `db_conn` 픽스처로 서비스 테스트 4개: (a) 빈 DB → 4행이며 `[r["provider"] for r in rows] == ["garmin","strava","intervals","runalyze"]`, 전부 `activity_count == 0`·`has_data is False`·`last_synced_at is None`·`last_activity_date is None`, (b) garmin 활동 2건(`INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time, distance_m, duration_sec) VALUES ('garmin','g1','a','running','2026-09-20T07:00:00Z',5000,1800)` 등, 두 번째는 `'2026-09-22T07:00:00Z'`) → garmin `activity_count == 2`, `last_activity_date == "2026-09-22"`, `has_data is True`, 나머지 provider는 `has_data is False`, (c) `INSERT INTO source_payloads (source, entity_type, entity_id, payload, fetched_at) VALUES ('strava','activity','s1','{}','2026-09-24 03:00:00')` 와 같은 source의 더 이른 행(`'2026-09-23 01:00:00'`, entity_id `s2`) → strava `last_synced_at == "2026-09-24 03:00:00"`, 활동 0건이어도 `has_data is True`, (d) `_PROVIDERS`에 없는 source(`'coros'`) 활동은 결과에 나타나지 않음(길이 4 유지). 그리고 API 테스트 2개 — 같은 파일 안에 `tests/test_api_library.py`의 `mini_app` 픽스처와 같은 방식(임시 DB 만들고 `routes_library.db_path`를 monkeypatch, Flask 앱에 `api_bp` 등록)으로 로컬 픽스처를 만들어 (e) `GET /api/v1/library/providers/status` → 200, `body["data"]["providers"]`가 길이 4, (f) garmin 활동 1건을 넣은 DB에서 garmin 행의 `activity_count == 1`.
+  (4) `frontend/src/lib/types/index.ts` — 파일 끝에 추가:
+  ```ts
+  // ── ProviderStatus (3-A — /api/v1/library/providers/status) ──────────────────
+  export interface ProviderStatus {
+  	provider: ProviderKey;
+  	activity_count: number;
+  	last_activity_date: string | null;
+  	last_synced_at: string | null;
+  	has_data: boolean;
+  }
+  ```
+  (5) `frontend/src/lib/api/providers.ts` — `import type { ProviderComparisonData } from '$lib/types';`를 `import type { ProviderComparisonData, ProviderStatus } from '$lib/types';`로 바꾸고 파일 끝에 추가:
+  ```ts
+  export function getProviderStatus(): Promise<ProviderStatus[]> {
+  	return apiFetch<{ providers: ProviderStatus[] }>('/library/providers/status').then((r) => r.providers);
+  }
+  ```
+  (6) `frontend/src/routes/library/+page.ts` — `getProviderStatus`를 `$lib/api/providers`에서, `ProviderStatus`를 `$lib/types`에서 import. `LibraryHomeData`에 `providerStatus: ProviderStatus[]; providerStatusError: string | null;` 추가. `Promise.allSettled([...])`에 세 번째 항목 `getProviderStatus()`를 추가해 `const [activitiesRes, metricsRes, statusRes] = await Promise.allSettled([...])`로 받고, 기존 패턴 그대로:
+  ```ts
+  	const providerStatus = statusRes.status === 'fulfilled' ? statusRes.value : [];
+  	const providerStatusError =
+  		statusRes.status === 'rejected'
+  			? (statusRes.reason as Error).message ?? 'Provider 현황을 불러올 수 없습니다.'
+  			: null;
+  ```
+  을 계산해 `return`에 두 필드를 포함한다.
+  (7) `frontend/src/routes/library/+page.svelte` — 스크립트 import: `import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';`에 `formatRelativeTime`을 추가. 마크업의 `<!-- Provider 데이터 현황 -->` 섹션 안 `<p class="text-sm text-fg-muted">준비 중 — …</p>` 한 줄을 아래로 교체(`<h2>`는 그대로):
+  ```svelte
+  	{#if data.providerStatusError}
+  		<p class="text-sm text-fg-muted">{data.providerStatusError}</p>
+  	{:else}
+  		<ul class="flex flex-col gap-2">
+  			{#each data.providerStatus as ps}
+  				<li class="flex items-center gap-2 text-sm">
+  					<span class="shrink-0 text-xs {ps.has_data ? 'text-semantic-green' : 'text-fg-muted'}" aria-hidden="true">{ps.has_data ? '●' : '○'}</span>
+  					<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(ps.provider)}">{providerLabel(ps.provider)}</span>
+  					{#if ps.has_data}
+  						<span class="min-w-0 flex-1 truncate text-xs text-fg-secondary">활동 {ps.activity_count}건{#if ps.last_synced_at}{' · '}마지막 동기화 {formatRelativeTime(ps.last_synced_at)}{/if}</span>
+  					{:else}
+  						<span class="text-xs text-fg-muted">데이터 없음</span>
+  					{/if}
+  				</li>
+  			{/each}
+  		</ul>
+  	{/if}
+  ```
+  (`{' · '}` 식은 Svelte가 블록 경계 공백을 잘라 "동기화" 앞뒤가 붙는 것을 막기 위한 것 — 그대로 둘 것.) 이 유닛은 "연결 여부"를 판단하지 않는다(문구는 "데이터 있음/없음" 기준 ●/○) — 자격증명 기반 연결 상태는 7d Data 화면 범위.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-NARRATIVE-CACHE"], "kind": "code", "scope": ["src/services/provider_status_service.py", "src/api/routes_library.py", "tests/test_provider_status.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/providers.ts", "frontend/src/routes/library/+page.ts", "frontend/src/routes/library/+page.svelte"], "verify": ["python3 -m pytest tests/test_provider_status.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-PAGE-TITLES]** 페이지별 브라우저 탭 제목 — 프론트 전용, 2026-09-24 합성 데이터 스모크에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-PAGE-TITLES]` 항목 필독. 현황: `frontend/src`에 `<title>`이 **하나도 없다**(`+layout.svelte`의 `<svelte:head>`엔 favicon `<link>`만, `app.html`에도 title 없음) — 탭·브라우저 기록·북마크에 URL만 보이고 20개 화면이 구분되지 않는다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현** — 아래 19개 `+page.svelte` 각각에서, 스크립트 블록의 닫는 `</script>` 바로 뒤(한 줄 띄우고)에 `<svelte:head><title>…</title></svelte:head>` 한 줄만 추가한다(파일의 다른 부분은 건드리지 않는다. `<script>` 블록이 없는 파일은 맨 위에 추가). 제목 형식은 항상 `<화면 이름> · RunPulse`. **`+layout.svelte`와 `app.html`에는 기본 `<title>`을 넣지 않는다**(같은 문서에 `<title>`이 둘이면 브라우저가 첫 번째를 쓰므로 페이지 제목이 가려진다). 화면별 제목(파일 → 제목):
+  `today/+page.svelte` → `Today · RunPulse`
+  `library/+page.svelte` → `Library · RunPulse`
+  `library/activities/+page.svelte` → `활동 목록 · RunPulse`
+  `library/[id]/+page.svelte` → `<title>{core?.name ?? '활동 상세'} · RunPulse</title>` (이 파일의 스크립트에 이미 있는 `const core = $derived(data.activity?.core ?? null)`를 그대로 사용 — 활동 이름이 탭에 뜬다)
+  `library/[id]/laps/+page.svelte` → `랩 · RunPulse`
+  `library/[id]/metrics/+page.svelte` → `활동 메트릭 · RunPulse`
+  `library/[id]/providers/+page.svelte` → `소스 비교 · RunPulse`
+  `library/[id]/streams/+page.svelte` → `스트림 · RunPulse`
+  `library/metrics/+page.svelte` → `메트릭 브라우저 · RunPulse`
+  `library/metrics/[slug]/+page.svelte` → `<title>{data.trend?.label ?? data.slug} · RunPulse</title>`
+  `library/providers/+page.svelte` → `Provider 비교 · RunPulse`
+  `library/wellness/+page.svelte` → `웰니스 · RunPulse`
+  `coach/+page.svelte` → `Coach · RunPulse`
+  `coach/[threadId]/+page.svelte` → `Coach 대화 · RunPulse`
+  `coach/plan/+page.svelte` → `훈련 플랜 · RunPulse`
+  `coach/plan/[id]/+page.svelte` → `플랜 상세 · RunPulse`
+  `coach/plan/[id]/session/[date]/+page.svelte` → `세션 상세 · RunPulse`
+  `coach/plan/compare/+page.svelte` → `플랜 비교 · RunPulse`
+  `coach/plan/new/+page.svelte` → `새 플랜 · RunPulse`
+  (루트 `routes/+page.svelte`는 항상 `/today`로 리다이렉트되므로 제외.) 정적 제목은 `<svelte:head><title>Today · RunPulse</title></svelte:head>`처럼 텍스트 그대로. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-PROVIDER-STATUS"], "kind": "code", "scope": ["frontend/src/routes/today/+page.svelte", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/activities/+page.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.svelte", "frontend/src/routes/library/[id]/metrics/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/[threadId]/+page.svelte", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/new/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
