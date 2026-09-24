@@ -1,6 +1,6 @@
 <script lang="ts">
 	// 03c-library.md 3-E — 메트릭 브라우저. daily-scope 메트릭 카테고리별 그리드.
-	// P3 Provider Transparency: 카드 Provider 배지 + [모든 Provider ▾] 드롭다운 필터.
+	// P3 Provider Transparency: 카드 Provider 배지 + [모든 Provider] 칩 필터.
 	import type { MetricsBrowserPageData } from './+page';
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
@@ -14,9 +14,8 @@
 	// 카테고리 칩 필터 ('all' + 실제 등장 카테고리) — URL ?category= 로 초기 선택 가능
 	let selectedCategory = $state<string>(data.initialCategory);
 
-	// Provider 드롭다운 필터 — P3 Provider Transparency
+	// Provider 칩 필터 — P3 Provider Transparency. 등장 provider가 2종 이상일 때만 행을 보인다.
 	let selectedProvider = $state<string>('all');
-	let providerDropdownOpen = $state(false);
 
 	// 데이터에 등장하는 고유 Provider 목록 (base 키 기준, 빈 문자열 제외)
 	const availableProviders = $derived(
@@ -46,22 +45,11 @@
 			.filter((cat) => cat.metrics.length > 0)
 	);
 
-	const selectedProviderLabel = $derived(
-		selectedProvider === 'all'
-			? '모든 Provider'
-			: providerLabel(selectedProvider as ProviderKey)
-	);
-
 	function formatValue(m: MetricBrowserEntry): string {
 		if (m.value == null) return '—';
 		const v = m.value;
 		if (typeof v === 'string') return v;
 		return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
-	}
-
-	function selectProvider(key: string) {
-		selectedProvider = key;
-		providerDropdownOpen = false;
 	}
 </script>
 
@@ -105,60 +93,25 @@
 		{/each}
 	</div>
 
-	<!-- Provider 드롭다운 필터 — P3 Provider Transparency -->
-	<div class="relative border-b border-border-subtle px-4 py-2">
-		<button
-			class="flex items-center gap-1 rounded-lg bg-surface-2 px-3 py-1.5 text-xs text-fg-secondary"
-			onclick={() => (providerDropdownOpen = !providerDropdownOpen)}
-			aria-expanded={providerDropdownOpen}
-			aria-haspopup="listbox"
-		>
-			<span>{selectedProviderLabel}</span>
-			<span aria-hidden="true">▾</span>
-		</button>
-		{#if providerDropdownOpen}
-			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-			<div
-				class="fixed inset-0 z-0"
-				onclick={() => (providerDropdownOpen = false)}
-				aria-hidden="true"
-			></div>
-			<ul
-				role="listbox"
-				aria-label="Provider 필터"
-				class="absolute left-4 top-full z-10 mt-1 min-w-[10rem] rounded-xl border border-border-subtle bg-surface-1 py-1 shadow-lg"
+	<!-- Provider 칩 필터 — P3 Provider Transparency (provider 1종뿐이면 숨김) -->
+	{#if availableProviders.length > 1}
+		<div class="flex gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
+			<button
+				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === 'all'
+					? 'bg-fg-primary text-surface-1'
+					: 'bg-surface-2 text-fg-secondary'}"
+				onclick={() => (selectedProvider = 'all')}>모든 Provider</button
 			>
-				<li role="option" aria-selected={selectedProvider === 'all'}>
-					<button
-						class="w-full px-4 py-2 text-left text-xs {selectedProvider === 'all'
-							? 'font-semibold text-fg-primary'
-							: 'text-fg-secondary'}"
-						onclick={() => selectProvider('all')}
-					>
-						모든 Provider
-					</button>
-				</li>
-				{#each availableProviders as key}
-					<li role="option" aria-selected={selectedProvider === key}>
-						<button
-							class="flex w-full items-center gap-2 px-4 py-2 text-left {selectedProvider === key
-								? 'font-semibold'
-								: ''}"
-							onclick={() => selectProvider(key)}
-						>
-							<span
-								class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-									key as ProviderKey
-								)}"
-							>
-								{providerLabel(key as ProviderKey)}
-							</span>
-						</button>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</div>
+			{#each availableProviders as key}
+				<button
+					class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === key
+						? 'bg-fg-primary text-surface-1'
+						: 'bg-surface-2 text-fg-secondary'}"
+					onclick={() => (selectedProvider = key)}>{providerLabel(key as ProviderKey)}</button
+				>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- 카테고리별 섹션 -->
 	<div class="flex flex-col gap-6 px-4 py-4">
