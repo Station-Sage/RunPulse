@@ -38,6 +38,8 @@
 					<EvidenceQuote {...ev} />
 				{/each}
 			</div>
+		{:else}
+			<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>
 		{/if}
 
 		{#if actions.length > 0}

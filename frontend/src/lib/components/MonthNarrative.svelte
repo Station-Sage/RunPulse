@@ -173,6 +173,8 @@
 							<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />
 						{/each}
 					</div>
+				{:else}
+					<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>
 				{/if}
 
 				<!-- highlights 통계 행 -->
