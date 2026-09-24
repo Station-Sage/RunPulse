@@ -8,6 +8,7 @@
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import RaceHub from '$lib/components/RaceHub.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import TrendChart from '$lib/components/TrendChart.svelte';
@@ -104,6 +105,9 @@
 	<div class="flex flex-col gap-6 px-4 py-4">
 		<!-- ══ L0 — 즉시 브리핑 ══ -->
 		<section class="flex flex-col gap-3">
+			<!-- 레이스 허브: 최상단 (DECISIONS.md [P7-IMPL-RACE-HUB-UI]) -->
+			<RaceHub data={data.raceHub} />
+
 			<RecommendationCard
 				recommendation={{
 					body: briefing.headline,
