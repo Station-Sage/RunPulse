@@ -7,7 +7,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EnvContextCard from '$lib/components/EnvContextCard.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
+	import { formatDistance, formatDuration, formatPace, formatDate, formatUnitValue } from '$lib/format';
 	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
@@ -88,7 +88,8 @@
 				<span class="text-sm">HR <span class="font-mono font-bold">{core.avg_hr}</span> <span class="text-fg-muted">bpm</span></span>
 			{/if}
 			{#if core.elevation_gain != null && (core.elevation_gain as number) > 0}
-				<span class="text-sm">↑<span class="font-mono font-bold">{core.elevation_gain}</span> <span class="text-fg-muted">m</span></span>
+				{@const elev = formatUnitValue(core.elevation_gain as number, 'm')}
+				<span class="text-sm">↑<span class="font-mono font-bold">{elev.display}</span> <span class="text-fg-muted">{elev.unit}</span></span>
 			{/if}
 		</div>
 

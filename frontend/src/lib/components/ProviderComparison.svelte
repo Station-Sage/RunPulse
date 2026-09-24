@@ -2,6 +2,7 @@
 	// C4 ProviderComparison — 04-component-catalog.md 기준.
 	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { formatUnitValue } from '$lib/format';
 	import type { ProviderComparisonData, ComparisonRow, ProviderKey } from '$lib/types';
 
 	let {
@@ -44,16 +45,25 @@
 		const v = cell.value;
 		if (v == null) return '—';
 		if (typeof v === 'number') {
-			// 페이스(sec/km) 표시
-			if (row.unit === 'sec/km' || row.slug.includes('pace')) {
-				const total = Math.round(v);
-				const min = Math.floor(total / 60);
-				const sec = total % 60;
-				return `${min}:${String(sec).padStart(2, '0')}`;
-			}
-			return Number.isInteger(v) ? String(v) : v.toFixed(1);
+			const effectiveUnit =
+				row.unit === 'sec/km' || row.slug.includes('pace') ? 'sec/km' : (row.unit ?? '');
+			return formatUnitValue(v, effectiveUnit).display;
 		}
 		return String(v);
+	}
+
+	// 변환 후 단위 — 첫 번째 사용 가능한 값으로 결정 (m→km 등)
+	function rowDisplayUnit(row: ComparisonRow): string {
+		if (!row.unit) return '';
+		if (row.unit === 'sec/km' || row.slug.includes('pace')) return '';
+		const firstVal = Object.values(row.values).find(
+			(c) => c.available && typeof c.value === 'number'
+		)?.value;
+		if (typeof firstVal === 'number') {
+			return formatUnitValue(firstVal, row.unit).unit;
+		}
+		if (row.unit === 'sec') return '';
+		return row.unit;
 	}
 
 	function isPrimary(row: ComparisonRow, provider: string): boolean {
@@ -116,8 +126,8 @@
 									>⚠</span>
 								{/if}
 							</div>
-							{#if row.unit && row.unit !== 'sec/km'}
-								<span class="text-[10px] text-fg-muted">{row.unit}</span>
+							{#if rowDisplayUnit(row)}
+								<span class="text-[10px] text-fg-muted">{rowDisplayUnit(row)}</span>
 							{/if}
 						</td>
 

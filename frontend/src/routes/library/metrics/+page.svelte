@@ -6,6 +6,7 @@
 	import { base } from '$app/paths';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { formatUnitValue } from '$lib/format';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
 
@@ -47,9 +48,12 @@
 
 	function formatValue(m: MetricBrowserEntry): string {
 		if (m.value == null) return '—';
-		const v = m.value;
-		if (typeof v === 'string') return v;
-		return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
+		if (typeof m.value === 'string') return m.value;
+		return formatUnitValue(Number(m.value), m.unit).display;
+	}
+	function valueUnit(m: MetricBrowserEntry): string {
+		if (m.value == null || typeof m.value === 'string') return m.unit;
+		return formatUnitValue(Number(m.value), m.unit).unit;
 	}
 </script>
 
@@ -139,8 +143,8 @@
 								{/if}
 							</div>
 							<span class="font-mono text-lg font-semibold leading-none">
-								{formatValue(m)}{#if m.unit}<span class="ml-0.5 text-xs font-normal text-fg-muted"
-										>{m.unit}</span
+								{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
+										>{valueUnit(m)}</span
 									>{/if}
 							</span>
 							{#if m.sparkline.length > 1}

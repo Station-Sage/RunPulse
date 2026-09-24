@@ -17,6 +17,27 @@ export function formatPace(secPerKm: number): string {
 	return `${min}:${String(sec).padStart(2, '0')}/km`;
 }
 
+/**
+ * 원시 단위 값을 러너가 읽을 수 있는 표현으로 변환.
+ * - sec   → h:mm:ss / m:ss 형식, unit ''
+ * - sec/km → m:ss/km 형식, unit ''
+ * - m (≥1000) → km 1자리, unit 'km'
+ * - 그 외: 100 이상은 정수, 미만은 소수 1자리, unit 그대로
+ */
+export function formatUnitValue(value: number, unit: string): { display: string; unit: string } {
+	if (unit === 'sec') {
+		return { display: formatDuration(value), unit: '' };
+	}
+	if (unit === 'sec/km') {
+		return { display: formatPace(value), unit: '' };
+	}
+	if (unit === 'm' && value >= 1000) {
+		return { display: (value / 1000).toFixed(1), unit: 'km' };
+	}
+	const display = value >= 100 ? String(Math.round(value)) : value.toFixed(1);
+	return { display, unit };
+}
+
 export function formatDate(isoStr: string): string {
 	return isoStr.slice(0, 10);
 }
