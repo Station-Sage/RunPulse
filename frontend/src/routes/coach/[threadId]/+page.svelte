@@ -7,6 +7,8 @@
 	import { ApiError } from '$lib/api/client';
 	import { base } from '$app/paths';
 	import type { ChatMessage } from '$lib/types';
+	import ChatBody from '$lib/components/ChatBody.svelte';
+	import { localizeSource } from '$lib/markdownLite';
 
 	let { data }: { data: ThreadPageData } = $props();
 
@@ -106,9 +108,9 @@
 					<div
 						class="max-w-[80%] rounded-2xl rounded-bl-sm border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary"
 					>
-						<p class="whitespace-pre-wrap">{msg.content}</p>
-						{#if msg.ai_model}
-							<p class="mt-1 text-[10px] text-fg-muted">{msg.ai_model}</p>
+						<ChatBody content={msg.content} />
+						{#if localizeSource(msg.ai_model)}
+							<p class="mt-1 text-[10px] text-fg-muted">{localizeSource(msg.ai_model)}</p>
 						{/if}
 					</div>
 				</div>
