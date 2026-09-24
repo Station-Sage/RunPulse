@@ -2179,7 +2179,10 @@ DONE으로 옮긴다.
           lines.append(checkin_line)
   ```
   (4) 신규 `tests/test_chat_context_checkin.py`(`db_conn` 픽스처 사용, `from src.services import today_service`로 `today_service.save_checkin(db_conn, fatigue=…, pain=…, note=…, input_date=…)` 로 시드) — 케이스: (a) 체크인 없음 → `build_checkin_context` None + `format_checkin_line(None)` None, (b) 당일 체크인(피로 6·pain 'mild'·메모) → dict 필드 일치 + 한 줄에 "피로도 6/10"·"통증 경미"·메모 포함, (c) 3일 전 체크인은 무시(None), (d) 하루 전(UTC 어긋남 대응) 체크인은 포함, (e) 피로·통증·메모가 전부 None/빈 체크인 → None, (f) 메모 200자 초과 시 잘림(`format_checkin_line` 결과의 메모 부분이 200자), (g) 통합: `save_checkin(db_conn, fatigue=7, pain='mild', input_date=date.today().isoformat())` 후 `from src.ai.chat_context import build_chat_context; build_chat_context(db_conn, "오늘 훈련 어때?", provider="rule")` 결과에 "피로도 7/10" 포함, (h) 체크인이 없을 때 위 통합 결과에 "러너 자기 보고"가 없음.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITY-ENV-CARD"], "kind": "code", "scope": ["src/ai/chat_context_checkin.py", "src/ai/chat_context.py", "src/ai/chat_context_format.py", "tests/test_chat_context_checkin.py"], "verify": ["python3 -m pytest tests/test_chat_context_checkin.py tests/test_chat_engine_threads.py -q"]} -->
+  **리뷰(2026-09-24)**: 스펙대로 구현됨 — 이탈 없음(비용 $0.55). 신규 `chat_context_checkin.py`·`chat_context.py`·`chat_context_format.py`가 명세 코드와 일치,
+  테스트 9개(체크인 없음/당일/3일 전 무시/하루 전 포함(UTC 어긋남)/빈 값/공백 메모/200자 절단/통합 2건). 워크트리 `pytest tests/` 1466 passed/238 skipped +
+  `check_data_consistency.py` 0 오류. `check_docs.py`는 신규 파일 2개의 `files_index.md` 미등록 오류가 나서 병합 후 `gen_files_index.py`로 재생성해 해소.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITY-ENV-CARD"], "kind": "code", "scope": ["src/ai/chat_context_checkin.py", "src/ai/chat_context.py", "src/ai/chat_context_format.py", "tests/test_chat_context_checkin.py"], "verify": ["python3 -m pytest tests/test_chat_context_checkin.py tests/test_chat_engine_threads.py -q"]} -->
 - **[P7-IMPL-COACH-HOME-QUICKINPUT]** `03e-coach.md` 5-A Coach 홈의 `<QuickInput compact=true>` 섹션 — 백엔드(체크인 전용 GET 1개) +
   프론트, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-COACH-HOME-QUICKINPUT]` 항목 필독. 캡션 "입력한
   컨디션은 Coach 답변에 자동 반영됩니다"는 직전 유닛(`COACH-CHECKIN-CONTEXT`)이 배선을 끝내 사실이다. **이 명세의 코드는
