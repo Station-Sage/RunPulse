@@ -246,7 +246,8 @@ def test_form_band_boundaries():
     assert form_band(-31) == "과부하"
     assert form_band(-10) == "중립"
     assert form_band(5) == "레이스 최적"
-    assert form_band(16) == "회복 과다"
+    assert form_band(25) == "레이스 최적"
+    assert form_band(26) == "회복 과다"
 
 
 def test_race_briefing_none_without_goal_or_tsb():

@@ -690,3 +690,48 @@ def recompute_all(conn: sqlite3.Connection, days: int = 90,
     today = date.today()
     dates = [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
     return _recompute_dates(conn, dates, on_progress=on_progress)
+
+
+_RUN_TYPES = ("running", "trail_running", "treadmill")
+
+
+def find_missing_load_dates(conn: sqlite3.Connection, since_days: int = 730,
+                            today: str | None = None) -> list[str]:
+    """avg_hr·duration이 있는데 primary TRIMP가 없는 러닝 활동의 날짜(오름차순, 중복 제거).
+
+    TRIMP가 없으면 PMC(CTL/ATL/TSB)가 그날 부하를 0으로 보고 실제보다 낮게 나온다.
+    """
+    end = date.fromisoformat(today) if today else date.today()
+    cutoff = (end - timedelta(days=since_days)).isoformat()
+    marks = ",".join("?" * len(_RUN_TYPES))
+    rows = conn.execute(
+        f"SELECT DISTINCT substr(a.start_time, 1, 10) FROM activity_summaries a"
+        f" WHERE a.activity_type IN ({marks}) AND a.avg_hr > 0 AND a.duration_sec > 0"
+        f"   AND substr(a.start_time, 1, 10) >= ? AND substr(a.start_time, 1, 10) <= ?"
+        f"   AND NOT EXISTS (SELECT 1 FROM metric_store m WHERE m.scope_type = 'activity'"
+        f"     AND m.scope_id = CAST(a.id AS TEXT) AND m.metric_name = 'trimp' AND m.is_primary = 1)"
+        f" ORDER BY 1",
+        [*_RUN_TYPES, cutoff, end.isoformat()],
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+def backfill_missing_loads(conn: sqlite3.Connection, since_days: int = 730,
+                           today: str | None = None) -> dict:
+    """부하(TRIMP)가 빠진 과거 활동을 계산하고, 그 이후 일별 지표(CTL/ATL/TSB 등)를 오늘까지 다시 계산한다.
+
+    CTL은 42일 EMA라 과거 한 날의 부하 변화가 이후 모든 날에 영향을 주므로,
+    가장 이른 누락일부터 오늘까지 연속 재계산한다. 누락이 없으면 {} 반환(아무 것도 하지 않음).
+    """
+    missing = find_missing_load_dates(conn, since_days, today)
+    if not missing:
+        return {}
+    end = date.fromisoformat(today) if today else date.today()
+    d = date.fromisoformat(missing[0])
+    dates = []
+    while d <= end:
+        dates.append(d.isoformat())
+        d += timedelta(days=1)
+    result = _recompute_dates(conn, dates)
+    conn.commit()
+    return result

@@ -138,7 +138,7 @@ def form_band(tsb: float) -> str:
         return "훈련 부하 높음"
     if tsb < 5:
         return "중립"
-    if tsb <= 15:
+    if tsb <= 25:
         return "레이스 최적"
     return "회복 과다"
 

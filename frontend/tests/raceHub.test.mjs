@@ -37,8 +37,8 @@ test('formBand: 경계값', () => {
 	assert.equal(formBand(-10).label, '중립');
 	assert.equal(formBand(4.9).label, '중립');
 	assert.equal(formBand(5).label, '레이스 최적');
-	assert.equal(formBand(15).tone, 'good');
-	assert.equal(formBand(16).label, '회복 과다');
+	assert.equal(formBand(25).tone, 'good');
+	assert.equal(formBand(26).label, '회복 과다');
 });
 
 test('signedTsb: 부호 표기', () => {

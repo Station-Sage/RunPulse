@@ -9,9 +9,10 @@
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RaceHub from '$lib/components/RaceHub.svelte';
+	import { loadCoverageNotice } from '$lib/healthNotice';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
-	import TrendChart from '$lib/components/TrendChart.svelte';
+	import FormChart from '$lib/components/FormChart.svelte';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { readinessStatus, tsbStatus } from '$lib/status';
@@ -68,14 +69,6 @@
 		}
 	}
 
-	// CTL/ATL 공통 스케일 차트용 시리즈 — 날짜는 시리즈별로 유지(xFraction이 같은 x축에 배치)
-	const ctlAtlSeries = $derived([
-		{ key: 'ctl', label: 'CTL', color: '#3b82f6', points: data.ctlTrend?.points ?? [] },
-		...(data.atlTrend && data.atlTrend.points.length > 1
-			? [{ key: 'atl', label: 'ATL', color: '#f59e0b', points: data.atlTrend.points }]
-			: [])
-	]);
-
 	// 마일스톤 타입별 아이콘
 	const milestoneIcon: Record<string, string> = {
 		distance_threshold: '🎯',
@@ -105,6 +98,9 @@
 	<div class="flex flex-col gap-6 px-4 py-4">
 		<!-- ══ L0 — 즉시 브리핑 ══ -->
 		<section class="flex flex-col gap-3">
+			{#if loadCoverageNotice(data.today?.data_health)}
+				<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today?.data_health)}</p>
+			{/if}
 			<!-- 레이스 허브: 최상단 (DECISIONS.md [P7-IMPL-RACE-HUB-UI]) -->
 			<RaceHub data={data.raceHub} />
 
@@ -214,21 +210,21 @@
 					<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>
 				{/if}
 
-				<!-- CTL/ATL 추세 인라인 차트 (1-A) — 탭하면 이번 달 전체 이야기 패널(1-C) -->
-				{#if (data.ctlTrend?.points.length ?? 0) > 1}
-					<button
-						type="button"
-						onclick={() => { showMonthNarrative = true; }}
-						class="flex w-full flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left hover:bg-surface-3"
-						aria-label="CTL·ATL 추세 — 이번 달 전체 이야기 열기"
-					>
+				<!-- 피트니스·폼 시그니처 차트 (1-A) — 이력 90일 + 레이스 아침까지 TSB 예측. 스크럽으로 값 확인, 헤더 링크로 이번 달 이야기(1-C) -->
+				{#if (data.ctlTrend?.points.length ?? 0) > 1 && (data.tsbTrend?.points.length ?? 0) > 1}
+					<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3" aria-label="피트니스·폼">
 						<div class="flex items-center justify-between text-xs text-fg-muted">
-							<span>피트니스·피로 추세 · 최근 4주</span>
-							<span>이번 달 이야기 →</span>
+							<span>체력·피로·폼 · 최근 3개월{data.raceHub?.projection ? ' + 레이스 예측' : ''}</span>
+							<button type="button" onclick={() => { showMonthNarrative = true; }} class="hover:text-fg-primary">이번 달 이야기 →</button>
 						</div>
-						<!-- CTL·ATL 공통 y 스케일 차트 (interactive=false: 탭 전체가 버튼) -->
-						<TrendChart series={ctlAtlSeries} height={120} interactive={false} />
-					</button>
+						<FormChart
+							ctl={data.ctlTrend?.points ?? []}
+							atl={data.atlTrend?.points ?? []}
+							tsb={data.tsbTrend?.points ?? []}
+							projection={data.raceHub?.projection ?? null}
+							raceDate={data.raceHub?.goal?.race_date ?? null}
+						/>
+					</section>
 				{/if}
 
 				<!-- 마일스톤 목록 -->

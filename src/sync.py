@@ -133,6 +133,12 @@ def main() -> None:
         with sqlite3.connect(str(db_path)) as conn:
             metrics_engine.run_for_date_range(conn, start_date, end_date)
             try:
+                filled = metrics_engine.backfill_missing_loads(conn)
+                if filled:
+                    log.info("부하 누락 보정: %d일 재계산", len(filled))
+            except Exception as bf_exc:
+                log.error("부하 누락 보정 실패 (sync는 정상 완료): %s", bf_exc)
+            try:
                 new_milestones = milestone_service.detect_and_store_milestones(
                     conn, start_date, end_date
                 )

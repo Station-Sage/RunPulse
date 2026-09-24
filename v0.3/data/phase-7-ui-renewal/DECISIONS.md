@@ -1023,7 +1023,7 @@ REVIEW-05 방향 1(목표 중심): D-day와 예측 기록만으로는 "그래서
 **결정**: (1) 현재 CTL/ATL에서 PMC와 같은 EMA(ATL 7일·CTL 42일, α=2/(N+1))로 레이스 전날까지 전방 투영해 "레이스 아침 TSB"를
 두 시나리오로 보인다 — 테이퍼 적용(15일 전까지 평소, 14~8일 전 75%→7~4일 전 55%→3~1일 전 35%)과 지금처럼 유지.
 (2) 하루 기준 부하는 최근 28일 평균 TRIMP(휴식일 포함, PMC와 같은 부하원) — 가정은 화면에 그대로 문구로 노출(투명성).
-(3) 해석 밴드: TSB <-30 과부하, <-10 훈련 부하 높음, <5 중립, ≤15 레이스 최적, 그 위 회복 과다. (4) 레이스가 없거나 당일
+(3) 해석 밴드: TSB <-30 과부하, <-10 훈련 부하 높음, <5 중립, ≤25 레이스 최적(TrainingPeaks의 Fresh +5~+25 관례), 그 위 회복 과다. (4) 레이스가 없거나 당일
 이전/120일 초과, CTL·ATL 없음이면 None. 서비스 `race_projection_service`(읽기 전용), `race_hub_service`가 `projection`으로 노출.
 실데이터 사본 검증: 현재 TSB −28 → 테이퍼 +13(레이스 최적)/유지 −1(중립).
 
@@ -1067,3 +1067,29 @@ REVIEW-05 E6 / P1(모든 AI 결론에 근거). **결정**: (조사 후 기록)
 ## [P7-REVIEW-DESIGN-VISION] 디자인 에이전트 재검토
 
 E1~E6 구현 후 실데이터 화면 스크린샷을 기준으로 product-architect가 비전 부합·UI/UX를 재검토하고 수정 방안을 수립한다(REVIEW-06).
+
+---
+
+## [P7-IMPL-FORM-CHART] 피트니스·폼 시그니처 차트 (구현 기록)
+
+Today의 CTL/ATL 2선 차트를 **위 패널 CTL·ATL(공통 스케일) + 아래 패널 TSB 면적(0선·레이스 최적 밴드) + 오늘/레이스 세로선 +
+레이스 아침까지의 TSB 예측(테이퍼/유지 점선)**으로 교체. 스크럽 판독(과거=CTL/ATL/TSB, 미래=예상 폼). 순수 계산은
+`formChart.ts`(테스트 5). 밴드는 TrainingPeaks 관례에 맞춰 TSB +5~+25("Fresh")로 정정 — 초안의 +5~+15는 테이퍼 시나리오를
+"회복 과다"로 과잉 판정했다.
+
+---
+
+## [P7-DATA-LOAD-BACKFILL] 부하(TRIMP) 누락 → CTL/TSB 과소 산출 (데이터 정합성 결함 발견·수정)
+
+**발견**: 실데이터(사본)에서 FormChart를 그리다 CTL이 5~8월에 0~4로 붕괴한 것을 확인 — 같은 기간 월 140~180km를 달렸는데도.
+원인은 러닝 활동 중 **361일치 활동에 primary TRIMP 메트릭이 없어** PMC가 그날 부하를 0으로 계산한 것(초기 적재/동기화가
+`--days 7` 창만 계산). 그 결과 앱이 "TSB −28 매우 높은 피로/CIRS 나쁨"이라고 말했지만 보정 후는 CTL 69.8·ATL 67.2·TSB +2.6·
+UTRS 82·CIRS 25 — **앱의 핵심 결론이 틀려 있었다**(P2 투명성·P3 맥락 있는 안내의 신뢰 문제).
+추가 결함: `python -m src.metrics.cli recompute*`가 **commit 없이 종료**해 실행해도 아무것도 저장되지 않았다.
+
+**결정/수정**: (1) `engine.backfill_missing_loads()` — avg_hr·duration이 있는데 primary TRIMP가 없는 러닝의 가장 이른 날부터
+오늘까지 연속 재계산(CTL이 42일 EMA라 이후 모든 날에 영향). 누락이 없으면 아무것도 하지 않음(멱등). (2) `sync.py`가 메트릭
+계산 직후 자동 실행(실패해도 sync 유지). (3) CLI `recompute-missing` 추가 + CLI commit 누락 수정. (4) `data_health_service.
+get_load_coverage()` → `/today`의 `data_health`, 누락 3건↑·20%↑면 Today 상단에 "지표가 실제보다 낮게 나올 수 있어요" 안내
+(투명성). (5) 사용자 DB는 **수정하지 않았다** — 검증은 사본에서(361일 누락 → 0, 1분 22초). 사용자 DB는 다음 sync 시 자동
+보정되거나 `python -m src.metrics.cli recompute-missing`(환경변수 `RUNPULSE_DB`로 DB 지정)로 즉시 보정.

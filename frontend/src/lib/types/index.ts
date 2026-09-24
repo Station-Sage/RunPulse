@@ -360,6 +360,14 @@ export interface TodayResponse {
 	briefing: TodayBriefing;
 	recent_activities: RecentActivity[];
 	checkin: CheckinRow | null;
+	data_health?: DataHealth;
+}
+
+export interface DataHealth {
+	window_days: number;
+	runs: number;
+	missing: number;
+	missing_ratio: number;
 }
 
 // ── ActivityStreams (3-D — /api/v1/library/activities/:id/streams) ────────────

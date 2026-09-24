@@ -146,3 +146,8 @@ def test_get_library_archive_empty(mini_app, monkeypatch):
     res = mini_app.get("/api/v1/library/archive")
     assert res.status_code == 200
     assert res.get_json()["data"]["totals"] is None
+
+
+def test_get_today_includes_data_health(mini_app):
+    body = mini_app.get("/api/v1/today").get_json()["data"]
+    assert body["data_health"]["runs"] == 0 and body["data_health"]["missing"] == 0

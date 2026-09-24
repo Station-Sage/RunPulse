@@ -67,6 +67,7 @@ def main(argv=None):
     p_recompute.add_argument("--days", type=int, default=7)
 
     sub.add_parser("recompute-all", help="전체 재계산 (90일)")
+    sub.add_parser("recompute-missing", help="부하(TRIMP) 누락 활동 보정 + CTL/ATL/TSB 재계산")
     sub.add_parser("clear", help="RunPulse 메트릭 삭제")
 
     p_single = sub.add_parser("recompute-single", help="특정 메트릭 재계산")
@@ -102,6 +103,13 @@ def main(argv=None):
         results = recompute_all(conn)
         print(f"완료: {len(results)}일 처리")
 
+    elif args.command == "recompute-missing":
+        from src.metrics.engine import backfill_missing_loads, find_missing_load_dates
+        n = len(find_missing_load_dates(conn))
+        print(f"부하 누락 날짜 {n}일 — 보정 중...")
+        results = backfill_missing_loads(conn)
+        print(f"완료: {len(results)}일 재계산")
+
     elif args.command == "clear":
         deleted = clear_runpulse_metrics(conn)
         print(f"삭제: {deleted}행")
@@ -115,6 +123,7 @@ def main(argv=None):
             print(f"오류: {e}")
             sys.exit(1)
 
+    conn.commit()  # 재계산 결과가 저장되도록(이전에는 commit 없이 닫혀 recompute가 무효였음)
     conn.close()
 
 
