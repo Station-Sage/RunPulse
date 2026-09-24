@@ -82,6 +82,66 @@ class TestCreateThread:
         assert all("스레드1" in m[0] or m == msgs_1[-1] for m in msgs_1)
 
 
+class TestEvidence:
+    """Coach 답변 근거(evidence) 저장·반환 테스트."""
+
+    @pytest.fixture(autouse=True)
+    def _seed_briefing(self, monkeypatch):
+        """get_today_briefing를 결정적 근거로 대체."""
+        _ev = [
+            {"type": "metric", "metric": "race_days_left", "value": 42, "label": "D-42", "drill": None},
+            {"type": "metric", "metric": "tsb", "value": -5.0, "label": "TSB -5.0", "drill": None},
+        ]
+        monkeypatch.setattr(
+            "src.services.today_service.get_today_briefing",
+            lambda conn, date=None: {"evidence": _ev},
+        )
+
+    def test_create_thread_evidence_is_list(self, db_conn):
+        result = coach_service.create_thread(db_conn, "레이스 전략 알려줘")
+        ev = result["message"]["evidence"]
+        assert isinstance(ev, list)
+
+    def test_create_thread_evidence_first_metric(self, db_conn):
+        result = coach_service.create_thread(db_conn, "레이스 전략 알려줘")
+        ev = result["message"]["evidence"]
+        assert len(ev) > 0
+        assert ev[0]["metric"] == "race_days_left"
+
+    def test_get_thread_assistant_has_evidence_list(self, db_conn):
+        created = coach_service.create_thread(db_conn, "오늘 컨디션")
+        thread_id = created["thread"]["id"]
+        detail = coach_service.get_thread(db_conn, thread_id)
+        assistant_msg = next(m for m in detail["messages"] if m["role"] == "assistant")
+        assert "evidence" in assistant_msg
+        assert isinstance(assistant_msg["evidence"], list)
+        assert len(assistant_msg["evidence"]) > 0
+
+    def test_get_thread_user_message_evidence_empty(self, db_conn):
+        created = coach_service.create_thread(db_conn, "오늘 컨디션")
+        thread_id = created["thread"]["id"]
+        detail = coach_service.get_thread(db_conn, thread_id)
+        user_msg = next(m for m in detail["messages"] if m["role"] == "user")
+        assert user_msg.get("evidence") == []
+        assert "evidence_json" not in user_msg
+
+    def test_get_thread_no_evidence_json_key(self, db_conn):
+        created = coach_service.create_thread(db_conn, "질문")
+        thread_id = created["thread"]["id"]
+        detail = coach_service.get_thread(db_conn, thread_id)
+        for msg in detail["messages"]:
+            assert "evidence_json" not in msg
+
+    def test_build_evidence_exception_returns_empty(self, monkeypatch):
+        """get_today_briefing가 예외를 발생시키면 build_evidence는 빈 리스트를 반환."""
+        monkeypatch.setattr(
+            "src.services.today_service.get_today_briefing",
+            lambda conn, date=None: (_ for _ in ()).throw(RuntimeError("fail")),
+        )
+        result = coach_service.build_evidence(None)  # type: ignore[arg-type]
+        assert result == []
+
+
 class TestAddMessage:
     def test_appends_to_existing_thread(self, db_conn):
         created = coach_service.create_thread(db_conn, "첫 질문")

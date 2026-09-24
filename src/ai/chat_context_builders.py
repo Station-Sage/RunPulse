@@ -131,6 +131,12 @@ def _add_race_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     except Exception:
         ctx["goal"] = None
 
+    try:
+        from src.services.race_hub_service import get_race_hub
+        ctx["race_hub"] = get_race_hub(conn, today)
+    except Exception:
+        ctx["race_hub"] = None
+
 
 def _add_compare_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """장기 비교 — 3/6/12개월 전 메트릭 스냅샷 + 레이스 이력."""

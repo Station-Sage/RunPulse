@@ -15,9 +15,22 @@ chat_messages.thread_id, D3)뿐 — chat_engine.chat()의 thread_id 파라미터
 """
 from __future__ import annotations
 
+import json
+import logging
 import sqlite3
 
+log = logging.getLogger(__name__)
+
 _TITLE_MAX_LEN = 30
+
+
+def build_evidence(conn: sqlite3.Connection) -> list[dict]:
+    """오늘 브리핑의 근거를 Coach 답변 근거로 재사용 — 실패하면 빈 리스트."""
+    try:
+        from src.services.today_service import get_today_briefing
+        return get_today_briefing(conn)["evidence"][:5]
+    except Exception:
+        return []
 
 
 def _derive_title(message: str) -> str:
@@ -56,11 +69,20 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
     if not thread:
         return None
     messages = conn.execute(
-        "SELECT id, role, content, ai_model, created_at FROM chat_messages"
+        "SELECT id, role, content, ai_model, evidence_json, created_at FROM chat_messages"
         " WHERE thread_id = ? ORDER BY id",
         (thread_id,),
     ).fetchall()
-    return {"thread": dict(thread), "messages": [dict(m) for m in messages]}
+    result_messages = []
+    for m in messages:
+        msg = dict(m)
+        raw = msg.pop("evidence_json", None)
+        try:
+            msg["evidence"] = json.loads(raw) if raw else []
+        except Exception:
+            msg["evidence"] = []
+        result_messages.append(msg)
+    return {"thread": dict(thread), "messages": result_messages}
 
 
 def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict | None = None) -> dict:
@@ -80,10 +102,12 @@ def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict |
 
     response_text, provider = ai_chat(conn, initial_message, config=config, thread_id=thread_id)
 
+    evidence = build_evidence(conn)
+    evidence_json = json.dumps(evidence, ensure_ascii=False) if evidence else None
     message_id = conn.execute(
-        "INSERT INTO chat_messages (role, content, thread_id, ai_model) "
-        "VALUES ('assistant', ?, ?, ?)",
-        (response_text, thread_id, provider),
+        "INSERT INTO chat_messages (role, content, thread_id, ai_model, evidence_json) "
+        "VALUES ('assistant', ?, ?, ?, ?)",
+        (response_text, thread_id, provider, evidence_json),
     ).lastrowid
     conn.execute(
         "UPDATE chat_threads SET updated_at = datetime('now') WHERE id = ?", (thread_id,)
@@ -95,6 +119,7 @@ def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict |
         "message": {
             "id": message_id, "role": "assistant", "content": response_text,
             "ai_model": provider, "thread_id": thread_id,
+            "evidence": evidence,
         },
     }
 
@@ -113,10 +138,12 @@ def add_message(
 
     response_text, provider = ai_chat(conn, content, config=config, thread_id=thread_id)
 
+    evidence = build_evidence(conn)
+    evidence_json = json.dumps(evidence, ensure_ascii=False) if evidence else None
     message_id = conn.execute(
-        "INSERT INTO chat_messages (role, content, thread_id, ai_model) "
-        "VALUES ('assistant', ?, ?, ?)",
-        (response_text, thread_id, provider),
+        "INSERT INTO chat_messages (role, content, thread_id, ai_model, evidence_json) "
+        "VALUES ('assistant', ?, ?, ?, ?)",
+        (response_text, thread_id, provider, evidence_json),
     ).lastrowid
     conn.execute(
         "UPDATE chat_threads SET updated_at = datetime('now') WHERE id = ?", (thread_id,)
@@ -126,4 +153,5 @@ def add_message(
     return {
         "id": message_id, "role": "assistant", "content": response_text,
         "ai_model": provider, "thread_id": thread_id,
+        "evidence": evidence,
     }

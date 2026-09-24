@@ -17,6 +17,7 @@
   source_payloads에 보존되어 있으므로 reprocess로 재구축 가능.
   v12: calories/normalized_power/suffer_score/training_effect_aerobic/
        training_effect_anaerobic/training_load → metric_store 이동.
+  v19: chat_messages.evidence_json — Coach 답변 근거 저장.
 """
 
 import logging
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 18  # v0.3.8: milestones 테이블 신설
+SCHEMA_VERSION = 19  # v0.3.9: chat_messages.evidence_json
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -418,6 +419,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     chip_id TEXT,
     ai_model TEXT,
     thread_id INTEGER,
+    evidence_json TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -786,6 +788,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
          신규 테이블이라 create_tables()의 CREATE TABLE IF NOT EXISTS만으로 충분).
     v17: activity_groups 마스터 테이블 신설 (D2 — CREATE TABLE IF NOT EXISTS만으로 충분).
     v18: milestones 테이블 신설 — CREATE TABLE IF NOT EXISTS만으로 충분.
+    v19: chat_messages.evidence_json 추가 (Coach 답변 근거).
     """
     current = _get_user_version(conn)
 
@@ -847,6 +850,12 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
         existing = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
         if existing and "thread_id" not in existing:
             conn.execute("ALTER TABLE chat_messages ADD COLUMN thread_id INTEGER")
+
+    # v19: chat_messages.evidence_json 추가 (Coach 답변 근거)
+    if current < 19:
+        existing = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
+        if existing and "evidence_json" not in existing:
+            conn.execute("ALTER TABLE chat_messages ADD COLUMN evidence_json TEXT")
 
     # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
     create_tables(conn)
