@@ -64,14 +64,14 @@
 	<div class="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-2 p-4">
 		<p class="text-sm text-fg-secondary">어떻게 느껴지나요?</p>
 
-		<div role="radiogroup" aria-label="피로도 (1~10)" class="flex flex-wrap gap-1">
+		<div role="radiogroup" aria-label="피로도 (1~10)" class="grid grid-cols-10 gap-1">
 			{#each FATIGUE_LEVELS as n (n)}
 				<button
 					type="button"
 					aria-pressed={fatigue === n}
 					aria-label={`피로도 ${n}`}
 					onclick={() => (fatigue = n)}
-					class="h-9 w-9 rounded border border-border-subtle text-sm {fatigue === n
+					class="h-11 w-full rounded border border-border-subtle text-sm {fatigue === n
 						? 'bg-semantic-teal text-white'
 						: 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}"
 				>

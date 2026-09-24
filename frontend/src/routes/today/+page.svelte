@@ -96,7 +96,16 @@
 	<div class="flex flex-col gap-6 px-4 py-4">
 		<!-- ══ L0 — 즉시 브리핑 ══ -->
 		<section class="flex flex-col gap-3">
+			<RecommendationCard
+				recommendation={{
+					body: briefing.headline,
+					evidence: briefing.evidence.map((ev) => adaptEvidence(ev, openEvidence))
+				}}
+				actions={[{ label: 'Coach에게 더 묻기 →', href: `${base}/coach`, variant: 'ghost' }]}
+			/>
+
 			<QuickInput
+				compact={true}
 				existing={checkin
 					? {
 							fatigue: checkin.fatigue ?? undefined,
@@ -111,14 +120,6 @@
 			{#if checkinError}
 				<p class="text-xs text-semantic-red">{checkinError}</p>
 			{/if}
-
-			<RecommendationCard
-				recommendation={{
-					body: briefing.headline,
-					evidence: briefing.evidence.map((ev) => adaptEvidence(ev, openEvidence))
-				}}
-				actions={[{ label: 'Coach에게 더 묻기 →', href: `${base}/coach`, variant: 'ghost' }]}
-			/>
 		</section>
 
 		<!-- ══ L1 — 내 상태 요약 ══ -->
