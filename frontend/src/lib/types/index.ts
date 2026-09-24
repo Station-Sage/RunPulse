@@ -372,6 +372,8 @@ export interface ActivityStreamPoint {
 	speed_ms: number | null;
 	grade_pct: number | null;
 	source: string;
+	latitude?: number | null;
+	longitude?: number | null;
 }
 
 // ── ProviderComparison (C4 — /api/v1/library/activities/:id/providers) ───────
