@@ -5,7 +5,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
-	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
@@ -130,23 +130,24 @@
 							href="{base}/library/metrics/{m.name}"
 							class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3"
 						>
-							<div class="flex items-start justify-between gap-1">
-								<span class="truncate text-xs text-fg-muted">{m.label}</span>
+							<span class="text-xs leading-snug text-fg-muted">{m.label}</span>
+							<div class="flex items-baseline justify-between gap-1">
+								<span class="font-mono text-lg font-semibold leading-none">
+									{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
+											>{valueUnit(m)}</span
+										>{/if}
+								</span>
 								{#if m.provider}
 									<span
 										class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
 											m.provider as ProviderKey
 										)}"
+										title={providerLabel(m.provider as ProviderKey)}
 									>
-										{providerLabel(m.provider as ProviderKey)}
+										{providerLabelCompact(m.provider as ProviderKey)}
 									</span>
 								{/if}
 							</div>
-							<span class="font-mono text-lg font-semibold leading-none">
-								{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
-										>{valueUnit(m)}</span
-									>{/if}
-							</span>
 							{#if m.sparkline.length > 1}
 								<Sparkline data={m.sparkline} height={24} color="#3b82f6" />
 							{/if}
