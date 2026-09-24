@@ -32,6 +32,10 @@
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
+### `adaptation_service.py` (70줄) — 플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용.
+
+- functions: get_adaptation_status
+
 ### `coach_service.py` (129줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
 - functions: list_threads, get_thread, create_thread, add_message
@@ -465,7 +469,7 @@
 
 - functions: build_chat_context
 
-### `chat_context_builders.py` (301줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
+### `chat_context_builders.py` (304줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
 
 - (public API 없음)
 
@@ -1083,6 +1087,10 @@
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants
 
+### `test_adaptation_service.py` (121줄) — tests/test_adaptation_service.py — adaptation_service.get_adaptation_status() 단위 테스트.
+
+- functions: test_acwr_zone_boundaries, test_hrv_zone_boundaries, test_get_adaptation_status_all_none, test_get_adaptation_status_acwr_latest_before_date, test_get_adaptation_status_hrv_zone, test_get_adaptation_status_hrv_null_baseline, test_get_adaptation_status_fatigue_avg
+
 ### `test_adjuster.py` (120줄) — tests/test_adjuster.py — adjuster 단위 테스트.
 
 - functions: conn, test_adjust_returns_none_no_plan, test_adjust_returns_dict_with_plan, test_adjustment_reason_parts_is_list, test_adjust_past_date_uses_that_dates_data, test_adjust_today_default_unchanged, test_adjust_past_date_no_plan_returns_none
@@ -1139,17 +1147,17 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (323줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (348줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold
 
-### `test_api_plan.py` (276줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
-- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note
+- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_today.py` (115줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (130줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month
 
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -1197,6 +1205,10 @@
 ### `test_chat_context_checkin.py` (131줄) — tests/test_chat_context_checkin.py — build_checkin_context / format_checkin_line 단위 + 통합.
 
 - functions: test_no_checkin_returns_none, test_today_checkin_fields, test_old_checkin_ignored, test_yesterday_checkin_included, test_empty_checkin_returns_none, test_empty_checkin_note_whitespace_returns_none, test_note_truncated_at_200, test_integration_checkin_in_chat_context, test_integration_no_checkin_not_in_context
+
+### `test_chat_context_intents.py` (69줄) — AI 채팅 의도별 컨텍스트 빌더 회귀 테스트 — 스키마 드리프트 방지.
+
+- functions: test_every_intent_builder_runs_on_current_schema, test_today_context_reads_todays_activity, test_today_context_without_activity_is_none, test_lookup_context_reads_target_date_activities
 
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
@@ -1828,7 +1840,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 357개 파일
+총 360개 파일
 
 ## docstring 누락
 
