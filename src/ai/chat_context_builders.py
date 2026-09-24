@@ -65,7 +65,7 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """오늘 활동 상세 — 메트릭, HR존, 분류, 컨디션."""
     act = conn.execute(
         "SELECT id, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
-        "elevation_gain, calories FROM v_canonical_activities "
+        "elevation_gain FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time DESC LIMIT 1", (today,),
     ).fetchone()
@@ -78,7 +78,7 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
         "distance_km": act[1], "duration_sec": act[2],
         "pace": seconds_to_pace(act[3]) if act[3] else None,
         "avg_hr": act[4], "max_hr": act[5],
-        "elevation": act[6], "calories": act[7],
+        "elevation": act[6],
     }
 
     metrics = conn.execute(
@@ -87,6 +87,8 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
         (aid,),
     ).fetchall()
     detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
+    # calories는 v12에서 activity_summaries 컬럼이 아니라 metric_store로 옮겨졌다.
+    detail["calories"] = detail["metrics"].get("calories")
 
     cls = conn.execute(
         "SELECT numeric_value, json_value FROM metric_store "
@@ -239,7 +241,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
 
     acts = conn.execute(
         "SELECT id, distance_m / 1000.0 AS distance_km, duration_sec, avg_pace_sec_km, avg_hr, max_hr, "
-        "elevation_gain, calories, name FROM v_canonical_activities "
+        "elevation_gain, name FROM v_canonical_activities "
         "WHERE activity_type='running' AND date(start_time)=? "
         "ORDER BY start_time", (target,),
     ).fetchall()
@@ -252,8 +254,8 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
             "distance_km": act[1], "duration_sec": act[2],
             "pace": seconds_to_pace(act[3]) if act[3] else None,
             "avg_hr": act[4], "max_hr": act[5],
-            "elevation": act[6], "calories": act[7],
-            "name": act[8],
+            "elevation": act[6],
+            "name": act[7],
         }
         metrics = conn.execute(
             "SELECT metric_name, numeric_value FROM metric_store "
@@ -261,6 +263,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
             (aid,),
         ).fetchall()
         detail["metrics"] = {r[0]: round(float(r[1]), 2) for r in metrics}
+        detail["calories"] = detail["metrics"].get("calories")  # v12: metric_store로 이동
 
         cls = conn.execute(
             "SELECT numeric_value FROM metric_store "

@@ -19,7 +19,8 @@
 	let fatigue = $state<number | undefined>(undefined);
 	let pain = $state<PainLevel | undefined>(undefined);
 	let note = $state('');
-	let editing = $state(true);
+	// compact는 접힌 한 줄로 시작한다(기존 값이 있으면 요약, 없으면 '오늘 컨디션 입력 →') — 탭하면 편집.
+	let editing = $state(!compact);
 
 	$effect(() => {
 		if (existing?.fatigue !== undefined || existing?.pain || existing?.note) {
