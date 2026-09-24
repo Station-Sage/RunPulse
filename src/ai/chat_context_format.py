@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from .chat_context_checkin import format_checkin_line
 from .chat_context_utils import _fmt_sec, seconds_to_pace
 
 
@@ -45,6 +46,11 @@ def _format_chat_context(ctx: dict, message: str,
             parts.append(f"안정심박={int(w['rhr'])}")
         if parts:
             lines.append("오늘 컨디션: " + " | ".join(parts))
+
+    # 러너 자기 보고 (QuickInput 체크인)
+    checkin_line = format_checkin_line(ctx.get("checkin"))
+    if checkin_line:
+        lines.append(checkin_line)
 
     # 러너 프로필
     rp = ctx.get("runner_profile", {})

@@ -6,6 +6,7 @@
   - chat_context_builders.py : 기본 + 의도별 빌더 5종 (today/race/compare/plan/recovery/lookup)
   - chat_context_rich.py     : Gemini 30d / Claude 14d 빌더 + runner_profile
   - chat_context_format.py   : 컨텍스트 dict → 프롬프트 텍스트
+  - chat_context_checkin.py  : 러너 자기 보고(QuickInput 체크인)
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ import sqlite3
 from datetime import date
 
 from .chat_context_builders import _build_base_context, INTENT_BUILDERS
+from .chat_context_checkin import build_checkin_context
 from .chat_context_format import _format_chat_context
 from .chat_context_intent import detect_intent
 from .chat_context_rich import (
@@ -54,6 +56,11 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
     ctx["intent"] = intent
     if target_date:
         ctx["_target_date"] = target_date
+
+    try:
+        ctx["checkin"] = build_checkin_context(conn, today)
+    except Exception:
+        log.warning("체크인 컨텍스트 빌드 실패", exc_info=True)
 
     if provider in RICH_PROVIDERS:
         try:
