@@ -50,3 +50,12 @@ test('unit 빈 문자열 → 일반 반올림 규칙, unit 빈 문자열 그대�
 	assert.equal(r.display, '3.1');
 	assert.equal(r.unit, '');
 });
+
+test('정수는 소수점 없이(48 ms → "48", 58 → "58")', () => {
+	assert.equal(formatUnitValue(48, 'ms').display, '48');
+	assert.equal(formatUnitValue(58, '').display, '58');
+});
+
+test('소수 끝 0은 제거(3.04 → "3")', () => {
+	assert.equal(formatUnitValue(3.04, '').display, '3');
+});

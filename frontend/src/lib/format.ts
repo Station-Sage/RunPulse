@@ -34,7 +34,12 @@ export function formatUnitValue(value: number, unit: string): { display: string;
 	if (unit === 'm' && value >= 1000) {
 		return { display: (value / 1000).toFixed(1), unit: 'km' };
 	}
-	const display = value >= 100 ? String(Math.round(value)) : value.toFixed(1);
+	// 정수는 그대로(58 → '58', '58.0' 아님), 100 이상은 정수, 그 외 소수 1자리(끝 0 제거) — 부동소수 잡음(26.0799…)도 여기서 정리
+	const display = Number.isInteger(value)
+		? String(value)
+		: Math.abs(value) >= 100
+			? String(Math.round(value))
+			: String(Number(value.toFixed(1)));
 	return { display, unit };
 }
 

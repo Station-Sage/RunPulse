@@ -2913,6 +2913,146 @@ DONE으로 옮긴다.
   ```
   (v) 표 아래 범례 영역(`<!-- 불일치 범례 -->` 위)에 항상 보이는 한 줄 `<div class="mt-2 px-4 text-xs text-fg-muted"><span class="text-amber-500">★</span> 대표값(우선 소스)</div>`를 추가한다(기존 `⚠ 소스 간 차이` 범례는 그대로).
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-VALUE-FORMAT"], "kind": "code", "scope": ["frontend/src/lib/provider.ts", "frontend/src/lib/components/MetricCell.svelte", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-STREAMS-TRUTH]** 스트림 화면의 거짓 시간축과 이상치로 납작해진 차트 교정 — 프론트 전용, 2026-09-24 실데이터(pansongit 복사본) 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-STREAMS-TRUTH]` 항목 필독. 현황(실데이터): (a) 2시간 19분짜리 장거리 러닝의 스트림 화면 시간 눈금이 `0 … 28m`으로 끝난다 — Garmin 상세 스트림이 downsample되면서 `elapsed_sec`가 시간이 아니라 **샘플 인덱스**(0..1691)로 저장돼 있기 때문(`garmin_extractor.py`가 `directElapsedDuration` 없으면 `i`를 씀 — 저장 데이터 정정은 별도 BACKLOG 항목). 방금 병합한 STREAMS-SCRUB의 눈금·스크럽 판독이 이 값을 그대로 믿어 틀린 시각을 보인다(P1 위반: 틀린 근거보다 없는 편이 낫다). (b) 페이스 스트림에 GPS 스파이크(`4:20 – 15:08 /km`)가 있어 스파이크 하나가 차트 범위를 잡아 나머지가 납작한 직선이 된다(활동 요약 탭의 페이스 스파크라인도 동일). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `frontend/src/lib/chartScale.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  /** 유효값(null 제외)의 백분위 p(0~1) — 선형 보간. 유효값이 없으면 null. */
+  export function percentile(values: (number | null)[], p: number): number | null {
+  	const nums = values.filter((v): v is number => v != null).sort((a, b) => a - b);
+  	if (nums.length === 0) return null;
+  	const idx = Math.min(1, Math.max(0, p)) * (nums.length - 1);
+  	const lo = Math.floor(idx);
+  	const hi = Math.ceil(idx);
+  	return nums[lo] + (nums[hi] - nums[lo]) * (idx - lo);
+  }
+  /** 이상치를 [lo, hi] 백분위 범위로 clamp한 새 배열 — 스파이크 하나가 차트 범위를 잡아 나머지를 납작하게 만드는 것을 막는다.
+   *  null은 그대로 두고, 유효값이 5개 미만이면 원본 그대로 돌려준다. */
+  export function clampOutliers(values: (number | null)[], lo = 0.02, hi = 0.98): (number | null)[] {
+  	const valid = values.filter((v) => v != null).length;
+  	if (valid < 5) return values;
+  	const min = percentile(values, lo) as number;
+  	const max = percentile(values, hi) as number;
+  	return values.map((v) => (v == null ? null : Math.min(max, Math.max(min, v))));
+  }
+  ```
+  (2) 신규 `frontend/tests/chartScale.test.mjs`(기존 `frontend/tests/streamAxis.test.mjs`와 같은 방식, `../src/lib/chartScale.ts` import): `percentile([1,2,3,4,5],0.5)===3`, `percentile([1,2,3,4],0.5)===2.5`, `percentile([],0.5)===null`, `percentile([null,10],0.5)===10`; `clampOutliers`: 값 99개가 5이고 하나가 1000인 배열(길이 100)에서 결과 최댓값이 5 근처(`<= 5.0001`)이고 길이·순서 유지, null 위치 보존(`[null,1,2,3,4,5,6]` 결과의 0번이 null), 유효값 4개 이하 배열은 입력과 `deepEqual`.
+  (3) `frontend/src/lib/streamAxis.ts` — 파일 끝에 추가:
+  ```ts
+  /** 각 포인트의 실제 경과 초. downsample된 Garmin 스트림은 elapsed_sec가 시간이 아니라 샘플 인덱스(예: 2h19m 활동의 마지막 값이 1691)로
+   *  저장돼 있다 — 마지막 elapsed_sec가 활동 총 시간의 90% 미만이면 등간격 샘플로 보고 총 시간에 비례해 환산한다.
+   *  총 시간을 모르거나 포인트가 2개 미만이면 elapsed 그대로. */
+  export function streamSeconds(elapsed: number[], durationSec: number | null | undefined): number[] {
+  	const n = elapsed.length;
+  	if (n < 2 || !durationSec || durationSec <= 0) return elapsed;
+  	if (elapsed[n - 1] >= durationSec * 0.9) return elapsed;
+  	return elapsed.map((_, i) => Math.round((i / (n - 1)) * durationSec));
+  }
+  ```
+  (4) `frontend/tests/streamAxis.test.mjs` — 기존 파일 끝에 `streamSeconds` 테스트 추가(import 목록에도 추가): (a) `Array.from({length:3600},(_,i)=>i)`와 `3600`(마지막 3599 ≥ 3240) → 입력과 `deepEqual`, (b) `Array.from({length:1692},(_,i)=>i)`와 `8357` → 첫 값 0, 마지막 값 8357, 가운데(인덱스 846) 값이 `4178±5`, (c) `durationSec`가 `null`/`0`이면 입력 그대로, (d) 포인트 1개면 입력 그대로.
+  (5) `frontend/src/routes/library/[id]/streams/+page.ts` — `import { getActivity } from '$lib/api/library';` 추가. `StreamsPageData`에 `durationSec: number | null;` 추가. 정상 경로를 `const [streams, activity] = await Promise.all([getActivityStreams(id), getActivity(id).catch(() => null)]);`로 바꾸고 `return { activityId: id, streams, durationSec: activity?.core?.duration_sec ?? null, errorMessage: null };`. 오류·잘못된 ID 분기 반환에도 `durationSec: null`을 넣는다.
+  (6) `frontend/src/routes/library/[id]/streams/+page.svelte`: 스크립트 import에 `streamSeconds`(`$lib/streamAxis`)와 `import { clampOutliers } from '$lib/chartScale';` 추가. 기존 `const ticks = $derived(axisTicks(data.streams.map((p) => p.elapsed_sec)));`를 아래 두 줄로 교체:
+  ```ts
+  	// 실제 경과 초 — 저장된 elapsed_sec가 샘플 인덱스인 활동은 총 시간에 비례해 환산(streamSeconds 참조)
+  	const secs = $derived(streamSeconds(data.streams.map((p) => p.elapsed_sec), data.durationSec));
+  	const ticks = $derived(axisTicks(secs));
+  ```
+  스크럽 판독 줄의 `formatElapsed(point.elapsed_sec)`를 `formatElapsed(secs[scrubIndex])`로 바꾼다(`{@const point = data.streams[scrubIndex]}`는 값 표시용으로 그대로). 스트림 목록의 `{@const values = data.streams.map(def.extract)}`를 `{@const values = clampOutliers(data.streams.map(def.extract))}`로 바꾼다(차트와 범위 라벨이 같은 값을 쓴다). 하단 안내 문구의 둘째 줄 `시간 눈금은 포인트 인덱스 기준 위치에 실제 elapsed_sec를 표시`를 `시간 눈금은 활동 총 시간 기준 · 상·하위 2% 이상치는 차트에서 제외`로 교체.
+  (7) `frontend/src/routes/library/[id]/+page.svelte` — `import { clampOutliers } from '$lib/chartScale';` 추가, 125·131번째 줄 부근의 `<Sparkline data={paceSeries} …>`·`<Sparkline data={hrSeries} …>`를 각각 `data={clampOutliers(paceSeries)}`·`data={clampOutliers(hrSeries)}`로 바꾼다(다른 부분은 그대로).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-PROVIDER-BADGE-LAYOUT"], "kind": "code", "scope": ["frontend/src/lib/chartScale.ts", "frontend/tests/chartScale.test.mjs", "frontend/src/lib/streamAxis.ts", "frontend/tests/streamAxis.test.mjs", "frontend/src/routes/library/[id]/streams/+page.ts", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-COACH-MARKDOWN]** Coach 답변의 마크다운 원문 노출 교정 — 프론트 전용, 2026-09-24 실데이터(pansongit 복사본) 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-COACH-MARKDOWN]` 항목 필독. 현황(실데이터 스크린샷): Coach 대화 화면의 어시스턴트 답변이 `**오늘의 훈련 추천**`, `- TSB -28.4 — 피로 축적. …`처럼 마크다운 기호 그대로 찍히고(`{msg.content}`를 `whitespace-pre-wrap`으로 출력), Coach 홈 대화 목록 미리보기도 `**"훈련 분석"에 대한 분석** - TSB(신선도): -16.5 - …`로 별표가 보인다. Coach는 앱의 핵심 AI 표면인데 첫인상이 깨진 텍스트다. 어시스턴트 답변 아래 `rule`이라는 내부 용어도 그대로 노출된다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**(XSS 방지: `{@html}`을 쓰지 않고 Svelte 텍스트 노드로만 렌더한다):
+  (1) 신규 `frontend/src/lib/markdownLite.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  // Coach 답변용 최소 마크다운 — **굵게**, 목록(-, *, •, 1.), 제목(#)만 해석한다. HTML은 만들지 않는다(텍스트 조각만 반환).
+  export type Inline = { text: string; bold: boolean };
+  export type Block =
+  	| { type: 'p'; inlines: Inline[] }
+  	| { type: 'ul' | 'ol'; items: Inline[][] };
+  /** `**굵게**`를 조각으로 나눈다. 짝이 없는 `**`는 글자 그대로 둔다. */
+  export function parseInline(s: string): Inline[] {
+  	const out: Inline[] = [];
+  	const re = /\*\*(.+?)\*\*/g;
+  	let last = 0;
+  	let m: RegExpExecArray | null;
+  	while ((m = re.exec(s)) !== null) {
+  		if (m.index > last) out.push({ text: s.slice(last, m.index), bold: false });
+  		out.push({ text: m[1], bold: true });
+  		last = m.index + m[0].length;
+  	}
+  	if (last < s.length) out.push({ text: s.slice(last), bold: false });
+  	return out;
+  }
+  const UL = /^\s*[-*•]\s+(.*)$/;
+  const OL = /^\s*\d+[.)]\s+(.*)$/;
+  const HEADING = /^\s*#{1,6}\s+(.*)$/;
+  /** 줄 단위로 문단·목록 블록을 만든다. 빈 줄은 건너뛰고, 연속된 같은 종류 목록 줄은 한 목록으로 묶는다. */
+  export function parseBlocks(text: string): Block[] {
+  	const blocks: Block[] = [];
+  	for (const line of text.split('\n')) {
+  		if (!line.trim()) continue;
+  		const ul = UL.exec(line);
+  		const ol = ul ? null : OL.exec(line);
+  		const heading = ul || ol ? null : HEADING.exec(line);
+  		if (ul || ol) {
+  			const type = ul ? 'ul' : 'ol';
+  			const item = parseInline((ul ?? ol)![1]);
+  			const prev = blocks[blocks.length - 1];
+  			if (prev && prev.type === type) prev.items.push(item);
+  			else blocks.push({ type, items: [item] });
+  		} else if (heading) {
+  			blocks.push({ type: 'p', inlines: parseInline(heading[1]).map((s) => ({ ...s, bold: true })) });
+  		} else {
+  			blocks.push({ type: 'p', inlines: parseInline(line) });
+  		}
+  	}
+  	return blocks;
+  }
+  /** 목록 미리보기용 — 마크다운 기호를 떼고 한 줄로 합친다. */
+  export function stripMarkdown(text: string): string {
+  	return text
+  		.split('\n')
+  		.map((l) => l.replace(HEADING, '$1').replace(UL, '$1').replace(OL, '$1').replace(/\*\*/g, '').trim())
+  		.filter(Boolean)
+  		.join(' ');
+  }
+  ```
+  (2) 신규 `frontend/tests/markdownLite.test.mjs`(기존 `frontend/tests/streamAxis.test.mjs`와 같은 방식, `../src/lib/markdownLite.ts` import): `parseInline('a **b** c')` → `[{text:'a ',bold:false},{text:'b',bold:true},{text:' c',bold:false}]`; 짝 없는 `parseInline('**x')` → `[{text:'**x',bold:false}]`; `parseBlocks('**제목**\n피로 회복이 필요합니다.\n- TSB -28.4\n- ACWR 1.3\n\n1. 첫째\n2. 둘째')` → 블록 타입 순서가 `['p','p','ul','ol']`이고 `ul.items.length===2`, `ol.items.length===2`, 첫 문단의 첫 조각이 `{text:'제목',bold:true}`; `## 제목`이 굵은 문단이 됨; 빈 문자열 → `[]`; `stripMarkdown('**오늘의 훈련 추천**\n피로 회복이 필요합니다.\n- TSB -28.4 — 피로 축적.')` → `'오늘의 훈련 추천 피로 회복이 필요합니다. TSB -28.4 — 피로 축적.'`.
+  (3) 신규 `frontend/src/lib/components/ChatBody.svelte`:
+  ```svelte
+  <script lang="ts">
+  	// Coach 답변 본문 — markdownLite 블록을 텍스트 노드로만 렌더한다({@html} 금지).
+  	import { parseBlocks } from '$lib/markdownLite';
+  	let { text }: { text: string } = $props();
+  	const blocks = $derived(parseBlocks(text));
+  </script>
+  <div class="flex flex-col gap-2">
+  	{#each blocks as b}
+  		{#if b.type === 'p'}
+  			<p>{#each b.inlines as s}{#if s.bold}<strong class="font-semibold">{s.text}</strong>{:else}{s.text}{/if}{/each}</p>
+  		{:else}
+  			<svelte:element this={b.type} class="flex flex-col gap-1 pl-5 {b.type === 'ul' ? 'list-disc' : 'list-decimal'}">
+  				{#each b.items as item}
+  					<li>{#each item as s}{#if s.bold}<strong class="font-semibold">{s.text}</strong>{:else}{s.text}{/if}{/each}</li>
+  				{/each}
+  			</svelte:element>
+  		{/if}
+  	{/each}
+  </div>
+  ```
+  (4) `frontend/src/routes/coach/[threadId]/+page.svelte` — `import ChatBody from '$lib/components/ChatBody.svelte';` 추가. 어시스턴트 메시지의 `<p class="whitespace-pre-wrap">{msg.content}</p>`를 `<ChatBody text={msg.content} />`로 바꾸고, 그 아래 `{msg.ai_model}` 표기를 `{msg.ai_model === 'rule' ? '규칙 기반 답변' : msg.ai_model}`로 바꾼다(사용자 메시지 버블은 그대로).
+  (5) `frontend/src/routes/coach/+page.svelte` — `import { stripMarkdown } from '$lib/markdownLite';` 추가, 대화 목록 미리보기 `<p class="truncate text-xs text-fg-muted">{t.last_message}</p>`를 `{stripMarkdown(t.last_message)}`로 바꾼다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-STREAMS-TRUTH"], "kind": "code", "scope": ["frontend/src/lib/markdownLite.ts", "frontend/tests/markdownLite.test.mjs", "frontend/src/lib/components/ChatBody.svelte", "frontend/src/routes/coach/[threadId]/+page.svelte", "frontend/src/routes/coach/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-TODAY-HERO]** Today 첫 화면의 위계 — "오늘 무엇을 할까"가 입력 폼 아래로 밀려 있다. 프론트 전용, 2026-09-24 실데이터·합성 데이터 화면 리뷰에서 발견, **설계 변경**(03a·03g 문서는 본 유닛 등록 시 이미 수정됨 — `DECISIONS.md`의 `[P7-IMPL-TODAY-HERO]` 항목 필독). 현황(스크린샷): 390×844 첫 화면의 45%를 QuickInput(피로도 버튼 8+2개로 두 줄 접힘 + 통증 4버튼 + 메모 textarea + 저장)이 차지하고, 정작 권고 카드("피로도가 높습니다 — 완전 휴식이나 회복 위주…")는 그 아래 스크롤 경계에 걸린다 — 03a의 의도("L0에서 오늘 무엇을 할까를 30초 안에 답한다")와 반대. 체크인은 하루 1회 10초 입력이라 매번 펼쳐 둘 이유가 없다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/routes/today/+page.svelte` — `<!-- ══ L0 — 즉시 브리핑 ══ -->` 섹션 안에서 순서를 바꾼다: `<RecommendationCard …/>` 블록을 섹션의 **첫 자식**으로 옮기고, 그 뒤에 `<QuickInput … />`와 `{#if checkinError}…{/if}`를 둔다. `<QuickInput`에는 `compact` 속성을 추가한다(`existing={…}`·`saving`·`onSave`는 그대로). 섹션 시작 `<section class="flex flex-col gap-3">`과 나머지 마크업은 그대로.
+  (2) `frontend/src/lib/components/QuickInput.svelte` — 피로도 1~10 버튼 묶음(`<div role="radiogroup" aria-label="피로도 (1~10)" class="flex flex-wrap gap-1">`)을 한 줄 눈금으로 바꾼다: 컨테이너 클래스를 `grid grid-cols-10 gap-1`로, 각 버튼 클래스의 `h-9 w-9`를 `h-11 min-w-0`로 바꾼다(나머지 `rounded border … text-sm` 조건 클래스는 그대로). 통증 묶음·메모·저장 마크업은 건드리지 않는다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-MARKDOWN"], "kind": "code", "scope": ["frontend/src/routes/today/+page.svelte", "frontend/src/lib/components/QuickInput.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-DATA-STREAM-ELAPSED]** `activity_streams.elapsed_sec`가 시간이 아니라 샘플 인덱스로 저장된 활동이 있다 —
+  2026-09-24 실데이터 화면 리뷰에서 발견(활동 15302: 실제 8357초인데 1692점·elapsed 0..1691). 원인: `garmin_extractor.
+  extract_activity_streams`가 `directElapsedDuration`이 없으면 `int(elapsed_raw) if … else i`(샘플 인덱스)를 쓴다 —
+  Garmin 상세 스트림은 `maxChartSize`로 downsample돼 오기 때문. 수정 방향(판단 필요): descriptor의 시간 키(`directTimestamp`
+  등) 차이로 실제 초를 계산하거나 총 시간에 비례 환산 + `source_payloads` raw로 **재처리(reprocess)해 기존 행 정정**.
+  UI는 `P7-IMPL-STREAMS-TRUTH`가 저장값을 맹신하지 않도록 이미 방어함. Strava 추출기(`elapsed_sec: t`)는 시간 스트림을
+  쓰므로 영향 없음 추정 — 확인 필요. **(판단 필요)** — 스키마·재처리(실데이터 갱신) 수반.
+
 ---
 
 ## LATER
