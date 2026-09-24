@@ -2357,6 +2357,174 @@ DONE으로 옮긴다.
   ```
   `categories`가 비었거나 필터 결과가 비었을 때 기존 빈 상태("데이터 수집 중")는 그대로 둔다. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITIES-LIST-MOBILE"], "kind": "code", "scope": ["frontend/src/routes/library/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-EVIDENCE-EMPTY-LABEL]** `03g-common-patterns.md` 7-3 — "원천 데이터가 없는 결론은 '(데이터 부족 — 추후 업데이트)' 레이블 표시". 프론트 전용, 2026-09-24
+  스펙 대조로 발견(`frontend/src`에 "데이터 부족" 문구 0건 — 근거 칩이 하나도 없는 AI 결론이 아무 표시 없이 나가서 사용자가 "근거가 있는데 안 보이는 건지 없는 건지" 구분할 수 없음),
+  설계 근거는 `DECISIONS.md`의 `[P7-IMPL-EVIDENCE-EMPTY-LABEL]` 항목 필독. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현** — 세 곳 모두 "근거 칩 목록이 비었을 때"의 else 분기만 추가하고 나머지는 건드리지 않는다:
+  (1) `frontend/src/lib/components/RecommendationCard.svelte` — `{#if recommendation.evidence.length > 0}<div class="flex flex-wrap gap-1.5">…</div>{/if}` 의 `{/if}` 앞에 `{:else}` 분기를 추가: `{:else}<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>`.
+  (2) `frontend/src/routes/today/+page.svelte` — L2 내러티브의 `<!-- Evidence 칩 -->` 블록 `{#if narrative.evidence.length > 0}<div class="flex flex-wrap gap-2">…</div>{/if}` 의 `{/if}` 앞에 `{:else}<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>` 추가.
+  (3) `frontend/src/lib/components/MonthNarrative.svelte` — `{#if narrativeData.evidence.length > 0}<div class="flex flex-wrap gap-2">…</div>{/if}` 의 `{/if}` 앞에 같은 `{:else}<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>` 추가.
+  백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-METRICS-BROWSER-PROVIDER"], "kind": "code", "scope": ["frontend/src/lib/components/RecommendationCard.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/lib/components/MonthNarrative.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-PLAN-ADAPTATION-STATE]** `03e-coach.md` 5-F 플랜 상세의 "적응 상태" 섹션(ACWR·HRV 기준 대비·주간 피로도 평균) — 백엔드(읽기 전용 서비스 +
+  GET 1개) + 프론트, 2026-09-24 스펙 대조로 발견(5-F 목업엔 있으나 `coach/plan/[id]` 화면엔 없음 — 플랜이 "내 상태에 묶인다"는 P7 State-Bound Plan의 근거
+  표시가 빠져 있음), 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-PLAN-ADAPTATION-STATE]` 항목 필독. 데이터는 전부 이미 있다(`acwr` 일별 메트릭, `daily_wellness`
+  HRV, `user_inputs` 체크인 피로도). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `src/services/adaptation_service.py`:
+  ```python
+  """플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용."""
+  from __future__ import annotations
+  import sqlite3
+  from datetime import date as _date
+  def _acwr_zone(v: float) -> str:
+      """Gabbett 구간 — 5-F 목업의 '적정 범위 (0.8~1.3)'."""
+      if v < 0.8:
+          return "저부하"
+      if v <= 1.3:
+          return "적정"
+      if v <= 1.5:
+          return "주의"
+      return "위험"
+  def _hrv_zone(delta_pct: float) -> str:
+      """기준(주간 평균) 대비 변화율 — 5-F 목업의 'HRV 58ms ●기준 −7% (경계)'."""
+      if delta_pct >= -5:
+          return "정상"
+      if delta_pct >= -10:
+          return "경계"
+      return "저하"
+  def get_adaptation_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
+      """date 기준 적응 상태. 없는 항목은 None(에러 아님).
+      반환: {"date", "acwr": {"value","zone","date"}|None,
+             "hrv": {"value","baseline","delta_pct","zone"}|None,
+             "fatigue_avg": {"value","n"}|None}
+      """
+      if date is None:
+          date = _date.today().isoformat()
+      acwr = None
+      row = conn.execute(
+          "SELECT scope_id, numeric_value FROM metric_store"
+          " WHERE scope_type = 'daily' AND metric_name = 'acwr' AND is_primary = 1"
+          "   AND scope_id <= ? AND numeric_value IS NOT NULL"
+          " ORDER BY scope_id DESC LIMIT 1",
+          (date,),
+      ).fetchone()
+      if row:
+          acwr = {"value": round(float(row[1]), 2), "zone": _acwr_zone(float(row[1])), "date": row[0]}
+      hrv = None
+      row = conn.execute(
+          "SELECT hrv_last_night, hrv_weekly_avg FROM daily_wellness"
+          " WHERE date <= ? AND hrv_last_night IS NOT NULL ORDER BY date DESC LIMIT 1",
+          (date,),
+      ).fetchone()
+      if row:
+          value, baseline = float(row[0]), row[1]
+          delta = round((value - baseline) / baseline * 100) if baseline else None
+          hrv = {
+              "value": value,
+              "baseline": baseline,
+              "delta_pct": delta,
+              "zone": _hrv_zone(delta) if delta is not None else None,
+          }
+      fatigue_avg = None
+      row = conn.execute(
+          "SELECT AVG(fatigue), COUNT(fatigue) FROM user_inputs"
+          " WHERE input_type = 'checkin' AND fatigue IS NOT NULL"
+          "   AND input_date BETWEEN date(?, '-6 day') AND ?",
+          (date, date),
+      ).fetchone()
+      if row and row[1]:
+          fatigue_avg = {"value": round(float(row[0]), 1), "n": int(row[1])}
+      return {"date": date, "acwr": acwr, "hrv": hrv, "fatigue_avg": fatigue_avg}
+  ```
+  (2) `src/api/routes_plan.py` — 모듈 docstring에 `GET /api/v1/coach/plan/adaptation` 언급 추가, `from src.services import plan_service, plan_template_service`를 `from src.services import adaptation_service, plan_service, plan_template_service`로 바꾸고, `get_plan_adjustment()` 뒤에 추가:
+  ```python
+  @api_bp.get("/coach/plan/adaptation")
+  def get_plan_adaptation():
+      dpath = db_path()
+      if not dpath.exists():
+          return api_error("NOT_FOUND", "running.db 없음", 503)
+      conn = sqlite3.connect(str(dpath))
+      try:
+          result = adaptation_service.get_adaptation_status(conn)
+      finally:
+          conn.close()
+      return api_ok({"adaptation": result})
+  ```
+  (3) 신규 `tests/test_adaptation_service.py`(`db_conn` 픽스처, 메트릭은 `INSERT INTO metric_store (scope_type, scope_id, metric_name, provider, numeric_value, is_primary) VALUES ('daily', ?, 'acwr', 'runpulse', ?, 1)`, 웰니스는 `INSERT INTO daily_wellness (date, hrv_last_night, hrv_weekly_avg) VALUES (?, ?, ?)`, 피로도는 `today_service.save_checkin(db_conn, fatigue=…, input_date=…)`) — 케이스: (a) 데이터 전무 → `acwr`/`hrv`/`fatigue_avg` 모두 None, (b) ACWR 구간 경계 `_acwr_zone`(0.7→"저부하", 0.8→"적정", 1.3→"적정", 1.4→"주의", 1.5→"주의", 1.6→"위험"), (c) `date` 이전 최신 ACWR 선택(미래 날짜 행은 무시)하고 `acwr["date"]`가 그 행의 scope_id, (d) HRV 기준 대비(value 58, baseline 62 → delta_pct −6, zone "경계"; value 61 baseline 62 → "정상"; value 50 baseline 62 → "저하"), (e) `hrv_weekly_avg`가 NULL이면 `delta_pct`·`zone` None이고 `value`는 있음, (f) 피로도 평균: 최근 7일 이내 체크인 3건(4,6,8) → `value == 6.0`, `n == 3`, 8일 전 체크인은 제외.
+  (4) `tests/test_api_plan.py` — 기존 `mini_app` 픽스처로 2개 추가: `test_get_plan_adaptation_empty`(200, `body["data"]["adaptation"]`의 `acwr`/`hrv`/`fatigue_avg`가 모두 None), `test_get_plan_adaptation_with_acwr`(픽스처가 만든 DB에 `metric_store` acwr 행을 오늘 날짜(`date.today().isoformat()`)로 삽입한 뒤 GET → `adaptation["acwr"]["zone"] == "적정"`(값 1.12) — 픽스처가 DB 경로를 안 돌려주면 `tmp_path`를 쓰는 별도 헬퍼로 처리).
+  (5) `frontend/src/lib/types/index.ts` — 파일 끝에 추가:
+  ```ts
+  // ── PlanAdaptation (5-F — /api/v1/coach/plan/adaptation) ─────────────────────
+  export interface PlanAdaptation {
+  	date: string;
+  	acwr: { value: number; zone: string; date: string } | null;
+  	hrv: { value: number; baseline: number | null; delta_pct: number | null; zone: string | null } | null;
+  	fatigue_avg: { value: number; n: number } | null;
+  }
+  ```
+  (6) `frontend/src/lib/api/plan.ts` — `import type` 목록에 `PlanAdaptation` 추가, 추가:
+  ```ts
+  export function getPlanAdaptation(): Promise<PlanAdaptation> {
+  	return apiFetch<{ adaptation: PlanAdaptation }>('/coach/plan/adaptation').then((r) => r.adaptation);
+  }
+  ```
+  (7) `frontend/src/routes/coach/plan/[id]/+page.ts` — `PlanDetailPageData`에 `adaptation: PlanAdaptation | null;` 추가(`PlanAdaptation`은 `$lib/types` import), `getPlanAdaptation`을 `$lib/api/plan`에서 import, `Promise.all`에 세 번째 항목 `getPlanAdaptation().catch(() => null)`을 추가해 `const [plan, adjustment, adaptation] = await Promise.all([...])`로 받고 두 `return`(ID 오류/정상) 모두에 `adaptation`을 포함(ID 오류 분기는 `adaptation: null`).
+  (8) `frontend/src/routes/coach/plan/[id]/+page.svelte` — `MetricBreakdown` import 추가, 스크립트에 추가:
+  ```ts
+  let drillAcwr = $state(false);
+  const ZONE_CLASS: Record<string, string> = {
+  	적정: 'text-semantic-green',
+  	정상: 'text-semantic-green',
+  	저부하: 'text-semantic-amber',
+  	주의: 'text-semantic-amber',
+  	경계: 'text-semantic-amber',
+  	위험: 'text-semantic-red',
+  	저하: 'text-semantic-red'
+  };
+  function zoneClass(z: string): string {
+  	return ZONE_CLASS[z] ?? 'text-fg-secondary';
+  }
+  ```
+  마크업 — "이번 주 워크아웃 목록" 블록(`<!-- 이번 주 워크아웃 목록 -->` `<div class="border-b …">…</div>`) 바로 뒤에 추가(P7 State-Bound Plan: 플랜이 어떤 상태 근거로 조정되는지 보여줌. ACWR 행만 `metric_store` 근거가 있어 탭하면 계산 분해가 열리고 HRV·피로도는 원천이 다른 테이블이라 비대화형):
+  ```svelte
+  {#if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
+  	<div class="border-b border-border-subtle px-4 py-3">
+  		<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</p>
+  		<ul class="flex flex-col gap-2 text-sm">
+  			{#if data.adaptation.acwr}
+  				{@const a = data.adaptation.acwr}
+  				<li>
+  					<button type="button" onclick={() => (drillAcwr = true)} class="flex w-full items-center gap-2 text-left hover:bg-surface-2">
+  						<span class="w-24 shrink-0 text-fg-secondary">ACWR</span>
+  						<span class="font-mono font-medium">{a.value.toFixed(2)}</span>
+  						<span class="text-xs {zoneClass(a.zone)}">● {a.zone}</span>
+  						<span class="ml-auto text-xs text-fg-muted">적정 0.8~1.3 ›</span>
+  					</button>
+  				</li>
+  			{/if}
+  			{#if data.adaptation.hrv}
+  				{@const h = data.adaptation.hrv}
+  				<li class="flex items-center gap-2">
+  					<span class="w-24 shrink-0 text-fg-secondary">HRV</span>
+  					<span class="font-mono font-medium">{Math.round(h.value)}ms</span>
+  					{#if h.delta_pct != null && h.zone}
+  						<span class="text-xs {zoneClass(h.zone)}">● 기준 {h.delta_pct > 0 ? '+' : ''}{h.delta_pct}% ({h.zone})</span>
+  					{/if}
+  				</li>
+  			{/if}
+  			{#if data.adaptation.fatigue_avg}
+  				{@const f = data.adaptation.fatigue_avg}
+  				<li class="flex items-center gap-2">
+  					<span class="w-24 shrink-0 text-fg-secondary">피로도 주간 평균</span>
+  					<span class="font-mono font-medium">{f.value.toFixed(1)} / 10</span>
+  					<span class="text-xs text-fg-muted">({f.n}회 입력)</span>
+  				</li>
+  			{/if}
+  		</ul>
+  	</div>
+  {/if}
+  ```
+  그리고 파일 맨 끝(최상위 `<div class="flex flex-col">…</div>` 뒤)에 추가: `{#if drillAcwr && data.adaptation?.acwr}<MetricBreakdown slug="acwr" scopeType="daily" scopeId={data.adaptation.acwr.date} onClose={() => { drillAcwr = false; }} />{/if}`. 파일이 300줄을 넘지 않게 주의.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-EVIDENCE-EMPTY-LABEL"], "kind": "code", "scope": ["src/services/adaptation_service.py", "src/api/routes_plan.py", "tests/test_adaptation_service.py", "tests/test_api_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte"], "verify": ["python3 -m pytest tests/test_adaptation_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER

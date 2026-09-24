@@ -755,3 +755,36 @@ builders.py`가 이미 301줄). (4) 메모는 200자로 자름(프롬프트 크�
 **결정**: (1) 배지는 공용 `providerLabel/providerBadgeClass` 재사용(표기 통일). (2) Provider 필터는 칩
 행 — 목업의 드롭다운 대신 이미 있는 카테고리 칩과 같은 컴포넌트 문법으로(모바일 한 손 조작, 새 위젯
 없음). 등장 provider가 1종뿐이면 필터가 의미 없어 숨김. (3) 필터 후 빈 카테고리는 섹션 자체를 숨김.
+
+---
+
+## [P7-IMPL-EVIDENCE-EMPTY-LABEL] 근거 없는 결론의 "(데이터 부족)" 표시
+
+`03g` 7-3(P1 Evidence-First): AI 결론엔 근거 칩이 필수이고, **원천 데이터가 없는 결론은
+"(데이터 부족 — 추후 업데이트)" 레이블을 표시**한다. 구현은 근거 목록이 비면 그냥 아무것도 안 그린다 —
+빈 데이터베이스 스모크(2026-09-24)에서 Today L0 권고("데이터 수집 중입니다")와 L2 내러티브("훈련
+기록이 아직 없습니다")가 근거 표시 없이 끝났다. 근거가 없다는 사실 자체가 투명성 정보이므로 명시한다.
+
+**범위**: RecommendationCard(Today L0 브리핑), Today L2 내러티브, MonthNarrative 세 곳.
+Coach 채팅 답변은 자유 텍스트 AI 응답이라 근거 칩을 구조화해 받는 설계가 없다(7-3의 "Coach 답변" 항목은
+별도 설계가 필요해 이번 범위 밖).
+
+---
+
+## [P7-IMPL-PLAN-ADAPTATION-STATE] 플랜 상세 "적응 상태" 섹션(ACWR·HRV·주간 피로도)
+
+`03e-coach.md` 5-F 목업엔 주간 세션 목록 아래 "적응 상태"(ACWR 1.12 ●적정 / HRV 58ms ●기준 −7% (경계) /
+피로도 주간 평균 5.2)가 있다. 구현(`coach/plan/[id]`)엔 세션 목록만 있고 이 섹션이 없어, 플랜이
+"내 상태에 묶여 조정된다"(P7 State-Bound Plan)는 근거를 사용자가 볼 수 없다(2026-09-24 스펙 대조).
+데이터는 모두 이미 존재: `acwr`(일별 primary 메트릭), `daily_wellness.hrv_last_night/hrv_weekly_avg`,
+`user_inputs.fatigue`(체크인).
+
+**결정**: (1) 새 서비스 `adaptation_service.get_adaptation_status()`(읽기 전용, `plan_service.py` 확장 대신
+분리 — 책임이 다르고 파일 크기 여유) + `GET /coach/plan/adaptation`. 항목이 없으면 None(빈 상태를 에러로
+만들지 않음). (2) 구간은 문서화된 관례로: ACWR 0.8~1.3 적정(목업 명시)·1.3~1.5 주의·1.5 초과 위험·0.8 미만
+저부하(Gabbett), HRV는 주간 평균 대비 −5% 이상 정상·−10% 이상 경계·그 미만 저하(목업 −7%가 경계인 것과
+일치). 임계값은 사람이 조정 가능한 상수로 서비스 상단에 둠. (3) **P2 정직성**: `metric_store` 행이 있는 ACWR만 탭
+→ `MetricBreakdown`(계산 분해), HRV·피로도는 원천이 다른 테이블이라 비대화형(EVIDENCE-DRILL의 "근거가 없는
+칩은 가짜 버튼으로 만들지 않는다"와 같은 원칙). (4) 날짜는 로컬 `date.today()`(다른 서비스와 동일).
+(5) 5-F 목업의 "CTL 진행 68/80 (+12 필요)"는 목표 CTL이 저장되지 않아(이전 결정 `TODAY-NEXT-SESSION`과
+동일 사유) 이번에도 범위 밖.
