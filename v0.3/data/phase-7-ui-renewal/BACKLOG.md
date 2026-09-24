@@ -2786,7 +2786,8 @@ DONE으로 옮긴다.
   		</div>
   ```
    (`touch-action: pan-y`는 세로 스크롤은 그대로 두고 가로 드래그만 스크럽으로 받기 위한 것 — 그대로 둘 것.) 하단 안내 `<p class="text-xs text-fg-muted">` 의 문구 두 줄 `{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·` / `x축은 포인트 순서(elapsed_sec 균등 간격 미보장 — 정밀 시간축은 후속 과제)` 중 둘째 줄을 `x축은 포인트 순서 — 눈금은 해당 지점의 실제 경과 시간`으로 교체한다. 백엔드·다른 화면은 건드리지 않음.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-PAGE-TITLES"], "kind": "code", "scope": ["frontend/src/lib/streamAxis.ts", "frontend/tests/streamAxis.test.mjs", "frontend/src/routes/library/[id]/streams/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+  리뷰 2026-09-24: 기능은 명세와 같음(시간 눈금·스크럽 판독·커서·고정 높이 판독 줄, npm check 0 errors/build OK, 단위 테스트 통과) — 다만 구조 이탈: `indexAtFraction(n, frac)` 인자 순서 반대, 라벨 포맷(`formatElapsed`)·null 이웃 대체를 streamAxis로 흡수, `axisTicks`가 sec 대신 label 반환, 커서를 차트별로 그림(정렬은 더 정확). 자체 일관적이라 수용, 단 `pointerdown`·`pointercancel` 핸들러 누락(탭만으로는 판독이 안 뜸)과 양끝 눈금 라벨 가로 오버플로 가능성은 main에서 보정.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-PAGE-TITLES"], "kind": "code", "scope": ["frontend/src/lib/streamAxis.ts", "frontend/tests/streamAxis.test.mjs", "frontend/src/routes/library/[id]/streams/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
