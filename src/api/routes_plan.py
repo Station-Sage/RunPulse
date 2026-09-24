@@ -1,11 +1,11 @@
-"""GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 — Phase 7b."""
+"""GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import plan_service, plan_template_service
+from src.services import adaptation_service, plan_service, plan_template_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -39,6 +39,19 @@ def get_plan_adjustment():
     if result is None:
         return api_ok({"adjusted": False, "adjustment_reason": None})
     return api_ok(result)
+
+
+@api_bp.get("/coach/plan/adaptation")
+def get_plan_adaptation():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = adaptation_service.get_adaptation_status(conn)
+    finally:
+        conn.close()
+    return api_ok({"adaptation": result})
 
 
 @api_bp.get("/coach/plan/<int:goal_id>")

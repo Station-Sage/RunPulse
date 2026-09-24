@@ -3,8 +3,23 @@
 	import type { PlanDetailPageData } from './+page';
 	import { formatDuration, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
+	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 
 	let { data }: { data: PlanDetailPageData } = $props();
+
+	let drillAcwr = $state(false);
+	const ZONE_CLASS: Record<string, string> = {
+		적정: 'text-semantic-green',
+		정상: 'text-semantic-green',
+		저부하: 'text-semantic-amber',
+		주의: 'text-semantic-amber',
+		경계: 'text-semantic-amber',
+		위험: 'text-semantic-red',
+		저하: 'text-semantic-red'
+	};
+	function zoneClass(z: string): string {
+		return ZONE_CLASS[z] ?? 'text-fg-secondary';
+	}
 
 	const DAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -132,5 +147,44 @@
 				</ul>
 			{/if}
 		</div>
+
+		{#if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
+			<div class="border-b border-border-subtle px-4 py-3">
+				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</p>
+				<ul class="flex flex-col gap-2 text-sm">
+					{#if data.adaptation.acwr}
+						{@const a = data.adaptation.acwr}
+						<li>
+							<button type="button" onclick={() => (drillAcwr = true)} class="flex w-full items-center gap-2 text-left hover:bg-surface-2">
+								<span class="w-24 shrink-0 text-fg-secondary">ACWR</span>
+								<span class="font-mono font-medium">{a.value.toFixed(2)}</span>
+								<span class="text-xs {zoneClass(a.zone)}">● {a.zone}</span>
+								<span class="ml-auto text-xs text-fg-muted">적정 0.8~1.3 ›</span>
+							</button>
+						</li>
+					{/if}
+					{#if data.adaptation.hrv}
+						{@const h = data.adaptation.hrv}
+						<li class="flex items-center gap-2">
+							<span class="w-24 shrink-0 text-fg-secondary">HRV</span>
+							<span class="font-mono font-medium">{Math.round(h.value)}ms</span>
+							{#if h.delta_pct != null && h.zone}
+								<span class="text-xs {zoneClass(h.zone)}">● 기준 {h.delta_pct > 0 ? '+' : ''}{h.delta_pct}% ({h.zone})</span>
+							{/if}
+						</li>
+					{/if}
+					{#if data.adaptation.fatigue_avg}
+						{@const f = data.adaptation.fatigue_avg}
+						<li class="flex items-center gap-2">
+							<span class="w-24 shrink-0 text-fg-secondary">피로도 주간 평균</span>
+							<span class="font-mono font-medium">{f.value.toFixed(1)} / 10</span>
+							<span class="text-xs text-fg-muted">({f.n}회 입력)</span>
+						</li>
+					{/if}
+				</ul>
+			</div>
+		{/if}
 	{/if}
 </div>
+
+{#if drillAcwr && data.adaptation?.acwr}<MetricBreakdown slug="acwr" scopeType="daily" scopeId={data.adaptation.acwr.date} onClose={() => { drillAcwr = false; }} />{/if}
