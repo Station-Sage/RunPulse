@@ -2248,7 +2248,10 @@ DONE으로 옮긴다.
   	{/if}
   </div>
   ```
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-CHECKIN-CONTEXT"], "kind": "code", "scope": ["src/api/routes_today.py", "tests/test_api_today.py", "frontend/src/lib/api/today.ts", "frontend/src/routes/coach/+page.ts", "frontend/src/routes/coach/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 스펙대로 구현됨 — 이탈 없음(비용 $0.92). 5개 파일 전부 명세 코드와 일치: `GET /today/checkin` 라우트(`get_todays_checkin` 재사용), 테스트 2개,
+  `getTodayCheckin()`, Coach 홈 로더에 체크인 병렬 조회(`.catch(() => null)`), Coach 홈 마지막 섹션에 compact QuickInput + "입력한 컨디션은 Coach 답변에 자동으로 반영됩니다"
+  캡션(직전 유닛 `COACH-CHECKIN-CONTEXT`가 배선을 끝내 사실). `pytest tests/test_api_today.py`·`npm run check`(0 errors)/`build` 통과.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-CHECKIN-CONTEXT"], "kind": "code", "scope": ["src/api/routes_today.py", "tests/test_api_today.py", "frontend/src/lib/api/today.ts", "frontend/src/routes/coach/+page.ts", "frontend/src/routes/coach/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-ACTIVITIES-LIST-MOBILE]** `03c-library.md` 3-B 활동 목록 — 모바일에서 페이스·심박이 안 보이는 문제 + 검색·거리 필터 누락 수정. 백엔드(쿼리
   파라미터 2개) + 프론트, 2026-09-24 합성 데이터 스모크(390px 뷰포트)로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITIES-LIST-MOBILE]` 항목 필독.
   현황: 목록 행이 한 줄 flex인데 페이스·심박 `<span>`에 `hidden … sm:inline`이 붙어 **폰(390px)에선 안 보임**(하단 3탭 모바일 우선 앱에서 3-B 목업의
