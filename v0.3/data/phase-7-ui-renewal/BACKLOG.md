@@ -3057,6 +3057,68 @@ DONE으로 옮긴다.
   UI는 `P7-IMPL-STREAMS-TRUTH`가 저장값을 맹신하지 않도록 이미 방어함. Strava 추출기(`elapsed_sec: t`)는 시간 스트림을
   쓰므로 영향 없음 추정 — 확인 필요. **(판단 필요)** — 스키마·재처리(실데이터 갱신) 수반.
 
+- **[P7-IMPL-TREND-CHART]** 추세 차트에 축·공통 스케일·스크럽 추가 + 무의미한 % 변화 교정 — 프론트 전용, 2026-09-24 실데이터 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-TREND-CHART]` 항목 필독. 현황(실데이터 스크린샷): (a) 메트릭 상세(`library/metrics/[slug]`)의 추세 차트는 선 하나뿐 — y축·값 눈금이 없고 어느 날 값이 얼마인지 볼 수 없다(P2 "데이터 포인트를 눌러 확인"이 불가). (b) 같은 화면의 "30일 변화"가 `+742.2%`(CTL이 4.5→37.9라 기준값이 작아 퍼센트가 무의미). (c) Today L2의 CTL·ATL 차트가 각자 자기 범위로 스케일돼 ATL이 실제보다 훨씬 출렁이는 것처럼 보이고(같은 축이 아님) 값을 읽을 수 없다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `frontend/src/lib/trendChart.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  export interface TrendPoint { date: string; value: number }
+  export interface TrendSeries { key: string; label: string; color: string; points: TrendPoint[] }
+  /** 모든 시리즈를 한 축에 그릴 공통 y 범위(위아래 5% 여백). 값이 하나도 없으면 null. 최댓값=최솟값이면 ±1. */
+  export function commonRange(series: TrendSeries[]): { min: number; max: number } | null {
+  	const vals = series.flatMap((s) => s.points.map((p) => p.value));
+  	if (vals.length === 0) return null;
+  	let min = Math.min(...vals);
+  	let max = Math.max(...vals);
+  	if (min === max) { min -= 1; max += 1; }
+  	const pad = (max - min) * 0.05;
+  	return { min: min - pad, max: max + pad };
+  }
+  /** 날짜(YYYY-MM-DD)의 [t0, t1] 구간 내 위치 0~1 — 시리즈마다 날짜가 달라도 같은 x축에 놓기 위함. 구간 길이가 0이면 0. */
+  export function xFraction(date: string, t0: string, t1: string): number {
+  	const a = Date.parse(t0);
+  	const b = Date.parse(t1);
+  	if (!(b > a)) return 0;
+  	return Math.min(1, Math.max(0, (Date.parse(date) - a) / (b - a)));
+  }
+  /** 위치 frac(0~1)에 가장 가까운 날짜의 점. 점이 없으면 null. */
+  export function nearestPoint(points: TrendPoint[], frac: number, t0: string, t1: string): TrendPoint | null {
+  	let best: TrendPoint | null = null;
+  	let bestD = Infinity;
+  	for (const p of points) {
+  		const d = Math.abs(xFraction(p.date, t0, t1) - frac);
+  		if (d < bestD) { bestD = d; best = p; }
+  	}
+  	return best;
+  }
+  /** "N일 변화" 라벨 — 기준값(N일 전 이하의 마지막 점, 없으면 첫 점)이 작으면(|기준|<10) 퍼센트가 무의미하므로 절대 변화(+33.4)로, 아니면 퍼센트(+13.0%)로. 점이 없으면 '—'. */
+  export function changeLabel(points: TrendPoint[], days = 30): string {
+  	if (points.length === 0) return '—';
+  	const last = points[points.length - 1];
+  	const cutoff = Date.parse(last.date) - days * 86_400_000;
+  	let base = points[0];
+  	for (const p of points) if (Date.parse(p.date) <= cutoff) base = p;
+  	const delta = last.value - base.value;
+  	const sign = delta >= 0 ? '+' : '';
+  	if (Math.abs(base.value) < 10) return `${sign}${delta.toFixed(1)}`;
+  	return `${sign}${((delta / base.value) * 100).toFixed(1)}%`;
+  }
+  ```
+  (2) 신규 `frontend/tests/trendChart.test.mjs`(기존 `frontend/tests/chartScale.test.mjs`와 같은 방식, `../src/lib/trendChart.ts` import): `commonRange` — 두 시리즈(값 0~10, 50~100)에서 min이 0보다 작고 max가 100보다 큼, 빈 시리즈 배열/점 없는 시리즈 → `null`, 값이 전부 같으면(5,5) `max-min > 0`; `xFraction('2026-09-15','2026-09-01','2026-09-29')===0.5`, 범위 밖은 0/1로 clamp, `t0===t1`이면 0; `nearestPoint` — 점 3개(9/1, 9/15, 9/29)에서 frac 0.55 → 9/15 점, 점 없으면 null; `changeLabel` — 기준값 4.5→37.9(30일 전 점 포함)이면 `'+33.4'`, 기준 50→60이면 `'+20.0%'`, 빈 배열이면 `'—'`, 하락(60→50)은 `'-16.7%'`.
+  (3) 신규 `frontend/src/lib/components/TrendChart.svelte` — props `{ series: TrendSeries[]; height?: number (기본 140); unit?: string; interactive?: boolean (기본 true) }`(`TrendSeries` 타입은 `$lib/trendChart`에서 import). 구현 요건: (i) 공통 y 범위(`commonRange`)와 날짜 x 위치(`xFraction`, t0/t1은 모든 시리즈 점의 최소·최대 날짜)로 시리즈마다 `<polyline>`을 한 `<svg viewBox="0 0 600 {height}" preserveAspectRatio="none" style="width:100%;height:{height}px">`에 그린다(선 두께 2, `vector-effect="non-scaling-stroke"`), 위·중간·아래 3줄의 가는 격자선(`stroke` 옅게); (ii) svg 위에 절대배치한 y축 라벨 두 개(최대·최소 값, `text-[10px] text-fg-muted font-mono`, 소수 1자리, 값 자체가 아니라 눈금이므로 단위는 붙이지 않는다)와 아래 x축 라벨 두 개(t0·t1 날짜); (iii) `interactive`이면 컨테이너에 Pointer Events(`pointerdown/pointermove` → frac = (clientX − rect.left)/rect.width, `pointerleave/pointercancel` → 해제, `style="touch-action: pan-y"`)로 스크럽: 세로 커서선(`pointer-events-none absolute inset-y-0 w-px bg-fg-muted`)과, 차트 위 높이 고정 판독 줄(`min-h-[1.25rem]`)에 `날짜 · {label} {값}{unit}`을 시리즈마다 `nearestPoint`로 표시(스크럽 안 할 때는 마지막 날짜와 마지막 값들을 표시); (iv) 시리즈 범례(색 ● + label + 현재값)는 차트 위 한 줄. `interactive`가 false면 포인터 핸들러·커서를 붙이지 않는다.
+  (4) `frontend/src/routes/library/metrics/[slug]/+page.svelte` — import에서 `Sparkline`을 `TrendChart`(`$lib/components/TrendChart.svelte`)로 바꾸고 `import { changeLabel } from '$lib/trendChart';` 추가. "30일 변화" 값 `{formatChangePct(data.trend.change_pct)}`를 `{changeLabel(points)}`로 바꾸고(`formatChangePct` 함수는 삭제), `<!-- 스파크라인 (큰 차트) -->` 블록 안의 `<Sparkline …/>`과 그 아래 시작·끝 날짜 `<div class="mt-1 flex justify-between …">…</div>`를 `<TrendChart series={[{ key: data.slug, label: data.trend.label, color: '#3b82f6', points }]} unit={data.trend.unit} />` 한 줄로 교체(`points`는 이 파일에 이미 있는 `$derived`).
+  (5) `frontend/src/routes/today/+page.svelte` — `import Sparkline …`을 `import TrendChart from '$lib/components/TrendChart.svelte';`로 바꾼다(다른 곳에서 Sparkline을 안 쓰면). `<!-- CTL/ATL 추세 인라인 차트 …` 블록의 `<button …>` 안에서 두 개의 `<div class="flex flex-col gap-1">` 시리즈 블록(CTL·ATL 각각의 라벨 줄 + `<Sparkline …/>`)을 아래 한 줄로 교체한다 — 헤더 줄 `피트니스·피로 추세 · 최근 4주 / 이번 달 이야기 →`은 그대로 두고, 차트는 한 축에 겹쳐 그리며 탭은 그대로 이번 달 이야기 패널을 연다(그래서 `interactive={false}`):
+  ```svelte
+  						<TrendChart
+  							interactive={false}
+  							height={120}
+  							series={[
+  								{ key: 'ctl', label: 'CTL', color: '#3b82f6', points: data.ctlTrend?.points ?? [] },
+  								...(data.atlTrend && data.atlTrend.points.length > 1
+  									? [{ key: 'atl', label: 'ATL', color: '#f59e0b', points: data.atlTrend.points }]
+  									: [])
+  							]}
+  						/>
+  ```
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
