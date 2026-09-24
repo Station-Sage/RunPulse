@@ -150,6 +150,21 @@ def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str
     return evidence
 
 
+def get_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str) -> dict | None:
+    """캐시된 AI 내러티브 조회. 유효하면 dict, 아니면 None."""
+    from src.ai import ai_cache
+    return ai_cache.get_cached(conn, "today_narrative", f"{month_start}:{date}")
+
+
+def set_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str, result: dict) -> None:
+    """AI 내러티브 결과 캐시 저장 (AI 성공 시에만 호출할 것). 실패는 삼킴."""
+    from src.ai import ai_cache
+    try:
+        ai_cache.set_cached(conn, "today_narrative", f"{month_start}:{date}", result)
+    except Exception:
+        pass
+
+
 def rule_narrative(
     ctl_now: float | None,
     ctl_start: float | None,
