@@ -3118,7 +3118,7 @@ DONE으로 옮긴다.
   							]}
   						/>
   ```
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
