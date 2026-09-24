@@ -1606,7 +1606,7 @@ DONE으로 옮긴다.
   마일스톤 →</button>`(목록이 비어 있지 않을 때만), 기존 `MonthNarrative` 패널 렌더링 옆에
   `{#if showMilestones}<MilestonesPanel onClose={() => { showMilestones = false; }} />{/if}`
   추가. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-EVIDENCE-DRILL"], "kind": "code", "scope": ["frontend/src/lib/api/today.ts", "frontend/src/lib/components/MilestonesPanel.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-EVIDENCE-DRILL"], "kind": "code", "scope": ["frontend/src/lib/api/today.ts", "frontend/src/lib/components/MilestonesPanel.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
