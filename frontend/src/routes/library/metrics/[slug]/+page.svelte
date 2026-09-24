@@ -1,8 +1,9 @@
 <script lang="ts">
 	// 03c-library.md 3-F — 메트릭 상세. 시계열 차트 + 계산 분해 바텀시트.
 	import type { MetricTrendPageData } from './+page';
-	import Sparkline from '$lib/components/Sparkline.svelte';
+	import TrendChart from '$lib/components/TrendChart.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import { changeLabel } from '$lib/trendChart';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 
@@ -22,12 +23,6 @@
 
 	function selectPeriod(key: string) {
 		goto(`?period=${key}`);
-	}
-
-	function formatChangePct(v: number | null): string {
-		if (v == null) return '—';
-		const sign = v >= 0 ? '+' : '';
-		return `${sign}${v.toFixed(1)}%`;
 	}
 
 	function formatPeak(trend: typeof data.trend): string {
@@ -82,7 +77,7 @@
 			</div>
 			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-muted">30일 변화</span>
-				<span class="font-mono text-xl font-bold">{formatChangePct(data.trend.change_pct)}</span>
+				<span class="font-mono text-xl font-bold">{changeLabel(data.trend.current, points[0]?.value ?? null)}</span>
 			</div>
 			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-muted">피크</span>
@@ -90,14 +85,15 @@
 			</div>
 		</div>
 
-		<!-- 스파크라인 (큰 차트) -->
+		<!-- 추세 차트 (y축·날짜 눈금·스크럽 포함) -->
 		{#if points.length > 1}
 			<div class="rounded-xl bg-surface-2 p-3">
-				<Sparkline data={points.map((p) => p.value)} height={120} color="#3b82f6" />
-				<div class="mt-1 flex justify-between text-[10px] text-fg-muted">
-					<span>{points[0]?.date ?? ''}</span>
-					<span>{points.at(-1)?.date ?? ''}</span>
-				</div>
+				<TrendChart
+					series={[{ values: points.map((p) => p.value), color: '#3b82f6' }]}
+					dates={points.map((p) => p.date)}
+					height={120}
+					interactive={true}
+				/>
 			</div>
 		{:else}
 			<div class="rounded-xl bg-surface-2 p-3 text-center text-sm text-fg-muted">
