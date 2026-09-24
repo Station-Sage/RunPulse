@@ -2832,7 +2832,8 @@ DONE으로 옮긴다.
   				{/if}
   ```
   (`showMonthNarrative`은 이 파일에 이미 있는 상태 변수 — 새로 만들지 않는다. 두 Sparkline은 각자 자기 값 범위로 자동 스케일되므로 겹치지 않고 위아래로 쌓는다.) 다른 부분·백엔드·테스트는 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  리뷰 2026-09-24: 이탈 다수 — main에서 명세대로 교정: (1) 차트 위치가 "규칙 기반 요약" 뒤·월간 패널 버튼 앞(명세: 근거 칩 바로 뒤·마일스톤 앞), (2) 표시 조건이 포인트 ≥1(명세: ≥2 — 1점 시리즈는 Sparkline이 못 그림), (3) 색을 `var(--color-…, #hex)`로 넘김 — SVG 프레젠테이션 속성의 var()는 브라우저별로 불안정하고 다른 Sparkline 사용처는 전부 hex, (4) 데이터 필드명 ctlTrend/atlTrend(명세: fitness — 기능 동일해 수용), (5) 범례 색 점 없음. npm check 0 errors / build OK.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
