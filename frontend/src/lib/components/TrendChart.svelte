@@ -7,8 +7,15 @@
 		series,
 		height = 140,
 		unit = '',
-		interactive = true
-	}: { series: TrendSeries[]; height?: number; unit?: string; interactive?: boolean } = $props();
+		interactive = true,
+		formatValue = (v: number) => v.toFixed(1)
+	}: {
+		series: TrendSeries[];
+		height?: number;
+		unit?: string;
+		interactive?: boolean;
+		formatValue?: (v: number) => string;
+	} = $props();
 
 	const W = 600;
 	const range = $derived(commonRange(series));
@@ -63,7 +70,7 @@
 					<span style="color:{r.s.color}">●</span>
 					<span class="text-fg-muted">{r.s.label}</span>
 					<span class="font-mono text-fg-secondary"
-						>{r.p ? r.p.value.toFixed(1) : '—'}{r.p && unit ? ` ${unit}` : ''}</span
+						>{r.p ? formatValue(r.p.value) : '—'}{r.p && unit ? ` ${unit}` : ''}</span
 					>
 				</span>
 			{/each}
@@ -112,10 +119,10 @@
 			</svg>
 
 			<span class="pointer-events-none absolute left-0 top-0 font-mono text-[10px] text-fg-muted"
-				>{range.max.toFixed(1)}</span
+				>{formatValue(range.max)}</span
 			>
 			<span class="pointer-events-none absolute bottom-0 left-0 font-mono text-[10px] text-fg-muted"
-				>{range.min.toFixed(1)}</span
+				>{formatValue(range.min)}</span
 			>
 
 			{#if interactive && cursorPct != null}

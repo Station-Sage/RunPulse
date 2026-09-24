@@ -608,6 +608,43 @@ export interface PlanAdaptation {
 	fatigue_avg: { value: number; n: number } | null;
 }
 
+// ── RaceHub (P7-IMPL-RACE-HUB-UI — /api/v1/today/race-hub) ──────────────────
+
+export interface RaceHubGoal {
+	id: number;
+	name: string;
+	race_date: string;
+	distance_km: number;
+	target_time_sec: number | null;
+	target_pace_sec_km: number | null;
+	days_left: number;
+	weeks_left: number;
+}
+
+export interface RaceHubPredictionPoint {
+	date: string;
+	value: number;
+}
+
+export interface RaceHubPrediction {
+	bucket: string;
+	value_sec: number;
+	as_of: string;
+	gap_sec: number | null;
+	history: RaceHubPredictionPoint[];
+}
+
+export interface RaceHubForm {
+	ctl: number | null;
+	tsb: number | null;
+}
+
+export interface RaceHubData {
+	goal: RaceHubGoal | null;
+	prediction: RaceHubPrediction | null;
+	form: RaceHubForm | null;
+}
+
 // ── ProviderStatus (3-A — /api/v1/library/providers/status) ──────────────────
 // DECISIONS.md [P7-IMPL-PROVIDER-STATUS]: 자격증명 확인 없음, 저장 데이터 유무만 표기.
 

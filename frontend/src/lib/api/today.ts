@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { CheckinPayload, CheckinResult, CheckinRow, MilestoneEntry, NarrativeResponse, TodayResponse } from '$lib/types';
+import type { CheckinPayload, CheckinResult, CheckinRow, MilestoneEntry, NarrativeResponse, RaceHubData, TodayResponse } from '$lib/types';
 
 export function getToday(): Promise<TodayResponse> {
 	return apiFetch<TodayResponse>('/today');
@@ -26,4 +26,8 @@ export function postCheckin(payload: CheckinPayload): Promise<CheckinResult> {
 		method: 'POST',
 		body: JSON.stringify(payload)
 	});
+}
+
+export function getRaceHub(): Promise<RaceHubData> {
+	return apiFetch<RaceHubData>('/today/race-hub');
 }
