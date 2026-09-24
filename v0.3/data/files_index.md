@@ -24,9 +24,9 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (189줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (204줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
-- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, rule_narrative
+- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
 ### `activity_service.py` (283줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
@@ -76,7 +76,7 @@
 
 - functions: get_provider_comparison_period
 
-### `today_service.py` (289줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1519,6 +1519,11 @@
 - class **TestVDOTMock**: test_10k, test_non_running
 - class **TestConfidenceBuilder**: test_all_available, test_partial_available, test_estimated_penalty, test_empty, test_mixed
 
+### `test_narrative_cache.py` (136줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
+
+- class **TestNarrativeCacheHelpers**: test_cache_miss_returns_none, test_set_then_get_roundtrip, test_different_keys_do_not_collide, test_set_cache_failure_is_swallowed
+- class **TestGetTodayNarrativeCache**: test_rule_fallback_not_cached, test_ai_result_is_cached, test_cache_hit_skips_ai_call, test_cache_hit_returns_cached_text, test_past_month_uses_correct_cache_key, test_stale_cache_on_new_activity_triggers_ai, test_cache_save_failure_does_not_raise
+
 ### `test_orchestrator.py` (115줄) — DoD #11: orchestrator.full_sync + sync_jobs 기록.
 
 - class **TestFullSync**: test_no_clients_all_skipped, test_garmin_sync_records_job, test_multi_source_sync, test_dedup_runs_after_sync, test_sync_jobs_have_dates
@@ -1840,7 +1845,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 360개 파일
+총 361개 파일
 
 ## docstring 누락
 
