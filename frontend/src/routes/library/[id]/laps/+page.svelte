@@ -49,7 +49,7 @@
 			{#if source}
 				<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
 			{/if}
-			<span>{data.laps.length}개 랩{#if Number.isFinite(fastest)} · 가장 빠른 랩 {formatPace(fastest)}{/if}</span>
+			<span>{data.laps.length}개 랩{#if Number.isFinite(fastest)}{' · '}가장 빠른 랩 {formatPace(fastest)}{/if}</span>
 		</div>
 		<ul class="divide-y divide-border-subtle">
 			{#each data.laps as lap, i (lap.id)}

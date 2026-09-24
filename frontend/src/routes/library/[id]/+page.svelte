@@ -129,7 +129,7 @@
 						<Sparkline data={hrSeries} height={40} color="#ef4444" />
 					</div>
 				{/if}
-				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource} · 소스: {providerLabel(streamSource as ProviderKey)}{/if}</p>
+				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}</p>
 			</section>
 		{:else}
 			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
