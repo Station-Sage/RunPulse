@@ -12,17 +12,17 @@ export type Token =
 	| { type: 'paragraph'; spans: Span[] }
 	| { type: 'blank' };
 
-/** Parse inline bold markers (**text** or *text*) into Span[]. */
+/** Parse inline bold markers (**text**) into Span[]. 별표 한 쌍(*x*)은 해석하지 않는다 — 'TSB * 0.5 … CTL * 2' 같은 산식 문장이 깨진다. */
 function parseInline(text: string): Span[] {
 	const spans: Span[] = [];
-	const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+	const re = /\*\*(.+?)\*\*/g;
 	let last = 0;
 	let m: RegExpExecArray | null;
 	while ((m = re.exec(text)) !== null) {
 		if (m.index > last) {
 			spans.push({ type: 'text', text: text.slice(last, m.index) });
 		}
-		spans.push({ type: 'bold', text: m[1] ?? m[2] });
+		spans.push({ type: 'bold', text: m[1] });
 		last = m.index + m[0].length;
 	}
 	if (last < text.length) {
@@ -64,7 +64,6 @@ export function stripMarkdown(text: string): string {
 	return text
 		.replace(/#{1,3}\s+/g, '')
 		.replace(/\*\*(.+?)\*\*/g, '$1')
-		.replace(/\*(.+?)\*/g, '$1')
 		.replace(/^[-*]\s+/gm, '')
 		.replace(/\n+/g, ' ')
 		.trim();

@@ -102,3 +102,9 @@ test('localizeSource: null → null', () => {
 test('localizeSource: 알 수 없는 값은 그대로 반환한다', () => {
 	assert.equal(localizeSource('gpt-4o'), 'gpt-4o');
 });
+
+test('산식 문장의 별표는 굵게로 오해하지 않는다', () => {
+	const tokens = parseMarkdown('TSB * 0.5 그리고 CTL * 2');
+	assert.equal(tokens.length, 1);
+	assert.deepEqual(tokens[0].spans, [{ type: 'text', text: 'TSB * 0.5 그리고 CTL * 2' }]);
+});
