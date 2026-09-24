@@ -4,6 +4,7 @@
 	import type { TodayPageData } from './+page';
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
@@ -27,6 +28,7 @@
 	// onDrillInput으로 push, onClose로 전체 비움.
 	let drillStack = $state<DrillTarget[]>([]);
 	let showMonthNarrative = $state(false);
+	let showMilestonesPanel = $state(false);
 
 	const todayDate = $derived(data.today?.status.date ?? '');
 	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
@@ -202,9 +204,19 @@
 								<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
 								<span class="text-fg-muted">{m.date}</span>
 								<span class="flex-1">{m.title}</span>
+								{#if m.type === 'pb' && m.activity_id != null}
+									<a
+										href="{base}/library/{m.activity_id}"
+										class="shrink-0 text-fg-secondary hover:text-fg-primary"
+									>→</a>
+								{/if}
 							</div>
 						{/each}
 					</div>
+					<button
+						class="self-start text-sm text-fg-secondary hover:text-fg-primary"
+						onclick={() => { showMilestonesPanel = true; }}
+					>전체 마일스톤 →</button>
 				{/if}
 
 				{#if narrative.source === 'rule'}
@@ -257,5 +269,10 @@
 	<!-- MonthNarrative 월간 이야기 패널 -->
 	{#if showMonthNarrative}
 		<MonthNarrative onClose={() => { showMonthNarrative = false; }} />
+	{/if}
+
+	<!-- MilestonesPanel 전체 마일스톤 패널 -->
+	{#if showMilestonesPanel}
+		<MilestonesPanel onClose={() => { showMilestonesPanel = false; }} />
 	{/if}
 {/if}
