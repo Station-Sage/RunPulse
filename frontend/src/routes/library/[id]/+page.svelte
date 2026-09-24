@@ -15,6 +15,8 @@
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
 	import { clampOutliers } from '$lib/chartScale';
 	import { computeSplits } from '$lib/splits';
+	import { buildRunStory } from '$lib/runStory';
+	import RunStory from '$lib/components/RunStory.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ElevationProfile from '$lib/components/ElevationProfile.svelte';
 
@@ -34,6 +36,7 @@
 			core?.distance_m ?? 0
 		)
 	);
+	const story = $derived(buildRunStory(splits));
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
 	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
@@ -110,6 +113,8 @@
 				<span class="text-sm">↑<span class="font-mono font-bold">{elev.display}</span> <span class="text-fg-muted">{elev.unit}</span></span>
 			{/if}
 		</div>
+
+		<RunStory {story} />
 
 		<RouteMap streams={streams ?? []} />
 
