@@ -77,7 +77,7 @@
 			</div>
 			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-muted">30일 변화</span>
-				<span class="font-mono text-xl font-bold">{changeLabel(data.trend.current, points[0]?.value ?? null)}</span>
+				<span class="font-mono text-xl font-bold">{changeLabel(points)}</span>
 			</div>
 			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-muted">피크</span>
@@ -89,10 +89,8 @@
 		{#if points.length > 1}
 			<div class="rounded-xl bg-surface-2 p-3">
 				<TrendChart
-					series={[{ values: points.map((p) => p.value), color: '#3b82f6' }]}
-					dates={points.map((p) => p.date)}
-					height={120}
-					interactive={true}
+					series={[{ key: data.slug, label: data.trend.label, color: '#3b82f6', points }]}
+					unit={data.trend.unit}
 				/>
 			</div>
 		{:else}

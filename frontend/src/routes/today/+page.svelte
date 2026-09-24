@@ -67,12 +67,11 @@
 		}
 	}
 
-	// CTL/ATL 공통 스케일 차트용 derived 상태
-	const ctlAtlDates = $derived(data.ctlTrend?.points.map((p) => p.date) ?? []);
+	// CTL/ATL 공통 스케일 차트용 시리즈 — 날짜는 시리즈별로 유지(xFraction이 같은 x축에 배치)
 	const ctlAtlSeries = $derived([
-		{ values: (data.ctlTrend?.points ?? []).map((p) => p.value), color: '#3b82f6', label: 'CTL' },
+		{ key: 'ctl', label: 'CTL', color: '#3b82f6', points: data.ctlTrend?.points ?? [] },
 		...(data.atlTrend && data.atlTrend.points.length > 1
-			? [{ values: data.atlTrend.points.map((p) => p.value), color: '#f59e0b', label: 'ATL' }]
+			? [{ key: 'atl', label: 'ATL', color: '#f59e0b', points: data.atlTrend.points }]
 			: [])
 	]);
 
@@ -224,21 +223,7 @@
 							<span>이번 달 이야기 →</span>
 						</div>
 						<!-- CTL·ATL 공통 y 스케일 차트 (interactive=false: 탭 전체가 버튼) -->
-					<div class="flex gap-4 text-xs">
-						<div class="flex items-center gap-1">
-							<span style="color:#3b82f6">● CTL</span>
-							{#if data.ctlTrend?.current != null}
-								<span class="font-mono text-fg-secondary">{data.ctlTrend.current.toFixed(1)}</span>
-							{/if}
-						</div>
-						{#if data.atlTrend?.current != null}
-							<div class="flex items-center gap-1">
-								<span style="color:#f59e0b">● ATL</span>
-								<span class="font-mono text-fg-secondary">{data.atlTrend.current.toFixed(1)}</span>
-							</div>
-						{/if}
-					</div>
-					<TrendChart series={ctlAtlSeries} dates={ctlAtlDates} height={60} interactive={false} />
+						<TrendChart series={ctlAtlSeries} height={120} interactive={false} />
 					</button>
 				{/if}
 
