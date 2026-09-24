@@ -69,7 +69,7 @@
 	onkeydown={interactive
 		? (e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && handleClick()
 		: undefined}
-	class="flex flex-col items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3 cursor-pointer"
+	class="flex flex-col items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-2 p-3 {interactive ? 'cursor-pointer hover:bg-surface-3' : ''}"
 >
 	<div class="relative">
 		<svg viewBox="0 0 64 64" class="h-16 w-16 -rotate-90">
