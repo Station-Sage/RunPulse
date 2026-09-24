@@ -2309,7 +2309,10 @@ DONE으로 옮긴다.
   </a>
   ```
   파일 상단 주석 `// 03c-library.md 3-B — 활동 목록. sport/날짜 필터 + 페이지네이션.`을 `// 03c-library.md 3-B — 활동 목록. 종목·날짜·거리 필터 + 이름 검색 + 더 불러오기.`로 교체.
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-HOME-QUICKINPUT"], "kind": "code", "scope": ["src/api/routes_library.py", "tests/test_api_library.py", "frontend/src/lib/api/library.ts", "frontend/src/routes/library/activities/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 대체로 스펙대로 — 비용 $0.81. 2줄 행(이름+배지+› / 날짜·거리·시간·페이스·심박, 폰에서도 페이스·심박 표시)·검색·거리 필터·백엔드 파라미터·테스트 3개가 동작.
+  편차 2건: (1) 파라미터 이름을 명세의 `q`/`min_km` 대신 `search`/`dist_min`으로 씀(백엔드·프론트·테스트가 일관돼 있어 수용), (2) 명세가 요구한 **요청 경합 방지**(늦게 온 이전
+  응답이 최신 결과를 덮지 않게 요청 번호로 무시)를 빠뜨림 → 병합 후 리뷰어가 `reqSeq` 가드를 직접 추가. `pytest tests/test_api_library.py`·`npm run check`(0 errors)/`build` 통과.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-HOME-QUICKINPUT"], "kind": "code", "scope": ["src/api/routes_library.py", "tests/test_api_library.py", "frontend/src/lib/api/library.ts", "frontend/src/routes/library/activities/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-METRICS-BROWSER-PROVIDER]** `03c-library.md` 3-E 메트릭 브라우저 — Provider 배지(P3) + `[모든 Provider ▾]` 필터. 프론트 전용, 2026-09-24
   합성 데이터 스모크로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-METRICS-BROWSER-PROVIDER]` 항목 필독. 현황: 카드가 provider를 `<span class="text-[10px]
   text-fg-muted">{m.provider}</span>`로 원문(`runpulse`, `garmin`) 텍스트만 찍어 다른 화면(MetricCell·활동 목록)의 색 배지·표기 규칙과 다르고, 3-E의
