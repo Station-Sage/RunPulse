@@ -128,3 +128,12 @@ def test_get_today_narrative_invalid_year_month(mini_app):
     res = mini_app.get("/api/v1/today/narrative?year=abc&month=xyz")
     assert res.status_code == 200
     assert res.get_json()["data"]["source"] == "rule"
+
+
+def test_get_race_hub_no_goal(mini_app):
+    """빈 DB → 200, data.goal is None."""
+    res = mini_app.get("/api/v1/today/race-hub")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "data" in body
+    assert body["data"]["goal"] is None

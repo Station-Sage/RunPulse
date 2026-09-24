@@ -1,12 +1,12 @@
 """GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
-GET /api/v1/today/milestones, GET /api/v1/today/narrative — Phase 7a/7b."""
+GET /api/v1/today/milestones, GET /api/v1/today/narrative, GET /api/v1/today/race-hub — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import milestone_service, today_service
+from src.services import milestone_service, race_hub_service, today_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -90,6 +90,21 @@ def get_today_narrative():
     conn = sqlite3.connect(str(dpath))
     try:
         result = today_service.get_today_narrative(conn, config=config, year=year, month=month)
+    finally:
+        conn.close()
+
+    return api_ok(result)
+
+
+@api_bp.get("/today/race-hub")
+def get_today_race_hub():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = race_hub_service.get_race_hub(conn)
     finally:
         conn.close()
 
