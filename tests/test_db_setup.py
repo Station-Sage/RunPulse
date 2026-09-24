@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_18(self):
-        """조건 2"""
+    def test_schema_version_is_19(self):
+        """조건 2 — v19: chat_messages.evidence_json 추가"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 18
+        assert ver == 19
 
     def test_pipeline_tables_count(self):
         """조건 3: pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
@@ -130,6 +130,38 @@ class TestPhase1Schema:
             "PRAGMA table_info(activity_summaries)"
         ).fetchall()
         assert len(cols) >= 38, f"컬럼 수: {len(cols)} (38개 이상 필요)"
+
+
+def test_migrate_v18_adds_evidence_json():
+    """구버전 chat_messages(evidence_json 없음)에서 migrate_db 후 컬럼이 생긴다."""
+    conn = sqlite3.connect(":memory:")
+    # v18 상태 시뮬레이션: 테이블 생성 후 user_version을 18로 고정
+    create_tables(conn)
+    conn.execute("PRAGMA user_version = 18")
+    # evidence_json 컬럼 제거 시뮬레이션 — SQLite는 DROP COLUMN이 3.35+ 필요;
+    # 대신 컬럼이 이미 없는 새 테이블로 재현: DROP + 구버전 스키마로 재생성
+    conn.execute("DROP TABLE IF EXISTS chat_messages")
+    conn.execute(
+        "CREATE TABLE chat_messages ("
+        "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  role TEXT NOT NULL,"
+        "  content TEXT NOT NULL,"
+        "  chip_id TEXT,"
+        "  ai_model TEXT,"
+        "  thread_id INTEGER,"
+        "  created_at TEXT NOT NULL DEFAULT (datetime('now'))"
+        ")"
+    )
+    conn.commit()
+    cols_before = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
+    assert "evidence_json" not in cols_before
+
+    migrate_db(conn)
+
+    cols_after = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
+    assert "evidence_json" in cols_after
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 19
+    conn.close()
 
 
 def test_canonical_view_untouched_when_definition_unchanged(db_conn):

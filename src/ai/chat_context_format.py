@@ -190,6 +190,21 @@ def _format_chat_context(ctx: dict, message: str,
             except ValueError:
                 pass
         lines.append(f"\n### 목표 레이스: {g.get('name', '-')} {g.get('distance_km', '')}km{days_left}")
+        hub = ctx.get("race_hub")
+        if hub:
+            projection = hub.get("projection")
+            if projection and projection.get("scenarios"):
+                scenarios_str = ", ".join(
+                    f"{s['label']} {s['tsb']:+.0f}" for s in projection["scenarios"]
+                )
+                lines.append(f"- 레이스 아침 예상 폼(TSB): {scenarios_str}")
+                lines.append(f"- 가정: {projection['assumptions']}")
+            prediction = hub.get("prediction")
+            if prediction and prediction.get("value_sec") is not None:
+                pred_str = f"- 목표 거리 예측 기록: {_fmt_sec(prediction['value_sec'])}"
+                if prediction.get("gap_sec") is not None:
+                    pred_str += f" (목표 대비 {prediction['gap_sec']:+d}초)"
+                lines.append(pred_str)
 
     # 장기 비교
     if ctx.get("past_snapshots"):
