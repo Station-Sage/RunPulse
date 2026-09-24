@@ -102,6 +102,8 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
             "label": f"UTRS {utrs['value']:.0f} ({utrs.get('level', '')})".strip(),
         })
 
+    from src.services._narrative import attach_drill
+    attach_drill(conn, evidence, status["date"])
     return {"date": status["date"], "headline": headline, "evidence": evidence}
 
 
@@ -152,7 +154,7 @@ def get_today_narrative(
     """
     from src.services import milestone_service
     from src.services._narrative import (
-        build_evidence, build_narrative_prompt, month_date_range,
+        attach_drill, build_evidence, build_narrative_prompt, month_date_range,
         peak_ctl_in_range, query_metric, rule_narrative, sleep_trend,
     )
     from src.ai.chat_engine import _build_chat_provider_chain, _call_provider, get_ai_provider
@@ -205,6 +207,7 @@ def get_today_narrative(
         ctl_now, ctl_start, month_dist_km, month_count,
         sleep_recent, sleep_prev, period_label,
     )
+    attach_drill(conn, evidence, status["date"])
 
     # ── highlights 조립 ───────────────────────────────────────────────────
     highlights = {

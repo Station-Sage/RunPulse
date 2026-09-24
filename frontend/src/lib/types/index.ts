@@ -236,11 +236,17 @@ export interface TodayStatus {
 	providers: TodayProviders;
 }
 
+export interface EvidenceDrill {
+	scope_type: string;
+	scope_id: string;
+}
+
 export interface BriefingEvidence {
 	type: 'metric';
 	metric: string;
 	value: number | string;
 	label: string;
+	drill?: EvidenceDrill | null;
 }
 
 export interface TodayBriefing {

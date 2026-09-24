@@ -303,6 +303,53 @@ class TestGetTodayNarrativeYearMonth:
         assert "9월 마일스톤" not in titles
 
 
+class TestAttachDrill:
+    def test_briefing_tsb_drill_when_metric_store_row_exists(self, db_conn):
+        """브리핑 evidence tsb가 metric_store daily 행 있을 때 drill dict 반환."""
+        _seed_metric(db_conn, "2026-09-22", "tsb", -4)
+        db_conn.commit()
+        briefing = today_service.get_today_briefing(db_conn, date="2026-09-22")
+        tsb_ev = next(e for e in briefing["evidence"] if e["metric"] == "tsb")
+        assert tsb_ev["drill"] == {"scope_type": "daily", "scope_id": "2026-09-22"}
+
+    def test_briefing_tsb_drill_none_when_no_metric_store_row(self, db_conn):
+        """metric_store 행이 없으면 drill이 None — 실제로는 tsb가 없으면 evidence에 안 들어가지만,
+        attach_drill 자체의 동작을 확인하기 위해 _narrative.attach_drill을 직접 호출."""
+        from src.services._narrative import attach_drill
+        evidence = [{"type": "metric", "metric": "tsb", "value": -4, "label": "TSB -4"}]
+        result = attach_drill(db_conn, evidence, "2026-09-22")
+        assert result[0]["drill"] is None
+
+    def test_narrative_ctl_drill_when_row_exists(self, db_conn):
+        """내러티브 evidence ctl이 daily ctl 행 있을 때 drill dict."""
+        _seed_metric(db_conn, "2026-09-22", "ctl", 70)
+        _seed_metric(db_conn, "2026-09-01", "ctl", 60)
+        _seed_activity(db_conn, activity_id=10, start_time="2026-09-15T06:00:00")
+        db_conn.commit()
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        ctl_ev = next(e for e in result["evidence"] if e["metric"] == "ctl")
+        assert ctl_ev["drill"] == {"scope_type": "daily", "scope_id": "2026-09-22"}
+
+    def test_narrative_ctl_drill_none_when_no_row(self, db_conn):
+        """ctl 행 없으면 evidence에 ctl 항목 자체가 없다 — monthly_distance는 drill None."""
+        _seed_activity(db_conn, activity_id=11, start_time="2026-09-15T06:00:00")
+        db_conn.commit()
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        monthly_ev = next((e for e in result["evidence"] if e["metric"] == "monthly_distance"), None)
+        assert monthly_ev is not None
+        assert monthly_ev["drill"] is None
+
+    def test_monthly_distance_always_drill_none(self, db_conn):
+        """monthly_distance는 metric_store 행이 없어 drill이 항상 None."""
+        _seed_metric(db_conn, "2026-09-22", "ctl", 70)
+        _seed_activity(db_conn, activity_id=12, start_time="2026-09-15T06:00:00")
+        db_conn.commit()
+        result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
+        monthly_ev = next((e for e in result["evidence"] if e["metric"] == "monthly_distance"), None)
+        assert monthly_ev is not None
+        assert monthly_ev["drill"] is None
+
+
 class TestSaveCheckin:
     def test_save_and_return(self, db_conn):
         result = today_service.save_checkin(

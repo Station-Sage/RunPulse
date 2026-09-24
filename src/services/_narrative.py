@@ -134,6 +134,22 @@ def build_narrative_prompt(
     return "\n".join(lines)
 
 
+def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str) -> list[dict]:
+    """각 evidence 항목에 drill 참조를 붙인다.
+
+    metric_store에 해당 날짜의 대표 행이 있는 항목만 드릴 가능(drill dict),
+    없으면 None — 프론트는 None인 칩을 비대화형 span으로 렌더링한다.
+    """
+    from src.utils.db_helpers import get_primary_metric
+    for ev in evidence:
+        drillable = (
+            ev.get("type") == "metric"
+            and get_primary_metric(conn, "daily", scope_date, ev["metric"]) is not None
+        )
+        ev["drill"] = {"scope_type": "daily", "scope_id": scope_date} if drillable else None
+    return evidence
+
+
 def rule_narrative(
     ctl_now: float | None,
     ctl_start: float | None,
