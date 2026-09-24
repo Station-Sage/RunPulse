@@ -155,7 +155,8 @@ def get_today_narrative(
     from src.services import milestone_service
     from src.services._narrative import (
         attach_drill, build_evidence, build_narrative_prompt, month_date_range,
-        peak_ctl_in_range, query_metric, rule_narrative, sleep_trend,
+        get_narrative_cache, peak_ctl_in_range, query_metric, rule_narrative,
+        set_narrative_cache, sleep_trend,
     )
     from src.ai.chat_engine import _build_chat_provider_chain, _call_provider, get_ai_provider
 
@@ -171,6 +172,11 @@ def get_today_narrative(
             date = status["date"]
         month_start = date[:7] + "-01"
         month_label = None
+
+    # ── 캐시 조회 (AI 성공 결과만 저장돼 있음) ────────────────────────────
+    cached = get_narrative_cache(conn, month_start, date)
+    if cached is not None:
+        return cached
 
     training = status["training_status"]
     ctl_now = training.get("ctl")
@@ -228,9 +234,9 @@ def get_today_narrative(
             sleep_recent, sleep_prev, month_label=month_label,
         )
         for prov in chain:
-            result = _call_provider(prov, prompt, config)
-            if result:
-                text = result
+            ai_result = _call_provider(prov, prompt, config)
+            if ai_result:
+                text = ai_result
                 source = "ai"
                 break
 
@@ -241,7 +247,7 @@ def get_today_narrative(
             sleep_recent, sleep_prev, month_label=month_label,
         )
 
-    return {
+    out = {
         "date": date,
         "text": text,
         "source": source,
@@ -249,6 +255,10 @@ def get_today_narrative(
         "milestones": milestones,
         "highlights": highlights,
     }
+    # ── AI 성공 시에만 캐시 저장 ───────────────────────────────────────────
+    if source == "ai":
+        set_narrative_cache(conn, month_start, date, out)
+    return out
 
 
 def save_checkin(
