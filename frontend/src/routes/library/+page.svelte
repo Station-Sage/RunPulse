@@ -2,10 +2,9 @@
 	// 03c-library.md 3-A — Library 홈. 섹션 탭 + 최근 활동 + 빠른 메트릭 접근 + Provider 현황.
 	import type { LibraryHomeData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
+	import { formatDistance, formatDuration, formatPace, formatDate, formatRelativeTime } from '$lib/format';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
-	import { formatRelativeTime } from '$lib/format';
 
 	let { data }: { data: LibraryHomeData } = $props();
 </script>

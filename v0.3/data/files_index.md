@@ -76,6 +76,10 @@
 
 - functions: get_provider_comparison_period
 
+### `provider_status_service.py` (44줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
+
+- functions: get_provider_status
+
 ### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
@@ -1590,6 +1594,10 @@
 
 - functions: test_no_activities_in_period_returns_no_data, test_activity_outside_period_excluded, test_semantic_group_with_data_appears, test_group_without_any_data_excluded, test_each_provider_takes_its_own_latest_value, test_more_recent_activity_value_wins_over_older_same_provider, test_mode_primary_source_empty_returns_none, test_mode_primary_source_majority_vote, test_solo_activity_excluded_from_primary_source_vote
 
+### `test_provider_status.py` (154줄) — provider_status_service.get_provider_status() 단위 테스트.
+
+- functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
+
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
 - class **TestRateLimitPolicy**: test_four_sources_defined, test_garmin_conservative, test_strava_window
@@ -1845,7 +1853,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 361개 파일
+총 363개 파일
 
 ## docstring 누락
 

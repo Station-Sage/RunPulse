@@ -98,3 +98,57 @@ def test_unknown_source_not_in_result(db_conn):
     result = get_provider_status(db_conn)
     assert len(result) == 4
     assert all(r["provider"] != "polar" for r in result)
+
+
+def test_payload_only_provider_has_data(db_conn):
+    """활동 없이 동기화 기록(웰니스 payload)만 있어도 has_data=True — 동기화 시각과 표시가 어긋나지 않는다."""
+    _insert_payload(db_conn, "intervals", "2024-05-01 09:00:00")
+    result = get_provider_status(db_conn)
+    intervals = next(r for r in result if r["provider"] == "intervals")
+    assert intervals["activity_count"] == 0
+    assert intervals["last_synced_at"] == "2024-05-01 09:00:00"
+    assert intervals["has_data"] is True
+
+
+# ── API ─────────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def api_client(tmp_path):
+    import sqlite3
+
+    from flask import Flask
+
+    from src.db_setup import create_tables, migrate_db
+
+    db_file = tmp_path / "running.db"
+    conn = sqlite3.connect(str(db_file))
+    create_tables(conn)
+    migrate_db(conn)
+    _insert_activity(conn, "garmin", "G1")
+    conn.commit()
+    conn.close()
+
+    import src.api.routes_library as routes_library
+    orig = routes_library.db_path
+    routes_library.db_path = lambda: db_file
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    from src.api import api_bp
+    app.register_blueprint(api_bp)
+    with app.test_client() as client:
+        yield client
+    routes_library.db_path = orig
+
+
+def test_api_providers_status_returns_four(api_client):
+    res = api_client.get("/api/v1/library/providers/status")
+    assert res.status_code == 200
+    providers = res.get_json()["data"]["providers"]
+    assert [p["provider"] for p in providers] == ["garmin", "strava", "intervals", "runalyze"]
+
+
+def test_api_providers_status_counts_activity(api_client):
+    providers = api_client.get("/api/v1/library/providers/status").get_json()["data"]["providers"]
+    garmin = next(p for p in providers if p["provider"] == "garmin")
+    assert garmin["activity_count"] == 1
+    assert garmin["has_data"] is True
