@@ -5,6 +5,7 @@
 	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
 	import { formatRelativeTime } from '$lib/format';
+	import { stripMarkdown } from '$lib/markdownLite';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
@@ -93,7 +94,7 @@
 						<div class="min-w-0 flex-1">
 							<p class="truncate text-sm font-medium">{t.title}</p>
 							{#if t.last_message}
-								<p class="truncate text-xs text-fg-muted">{t.last_message}</p>
+								<p class="truncate text-xs text-fg-muted">{stripMarkdown(t.last_message)}</p>
 							{/if}
 						</div>
 						{#if t.last_message_at}
