@@ -47,10 +47,10 @@ def conn(db_conn):
         ("daily", DATE, "tsb",       "load",       "runpulse:formula_v1", -6.9, None, None, None, 1),
         ("daily", DATE, "ramp_rate", "load",       "runpulse:formula_v1",  2.3, None, None, None, 1),
         ("daily", DATE, "acwr",      "load",       "runpulse:formula_v1",  1.05,None, None, None, 1),
-        ("daily", DATE, "darp_5k_sec",       "prediction", "runpulse:formula_v1", 1335,  None, None, None, 1),
-        ("daily", DATE, "darp_10k_sec",      "prediction", "runpulse:formula_v1", 2790,  None, None, None, 1),
-        ("daily", DATE, "darp_half_sec",     "prediction", "runpulse:formula_v1", 6130,  None, None, None, 1),
-        ("daily", DATE, "darp_marathon_sec", "prediction", "runpulse:formula_v1", 12900, None, None, None, 1),
+        ("daily", DATE, "race_pred_5k_sec",       "prediction", "runpulse:formula_v1", 1335,  None, None, None, 1),
+        ("daily", DATE, "race_pred_10k_sec",      "prediction", "runpulse:formula_v1", 2790,  None, None, None, 1),
+        ("daily", DATE, "race_pred_half_sec",     "prediction", "runpulse:formula_v1", 6130,  None, None, None, 1),
+        ("daily", DATE, "race_pred_marathon_sec", "prediction", "runpulse:formula_v1", 12900, None, None, None, 1),
     ]
     c.executemany(
         "INSERT INTO metric_store"

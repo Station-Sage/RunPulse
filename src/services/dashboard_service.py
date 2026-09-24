@@ -124,15 +124,15 @@ def get_dashboard_data(conn: sqlite3.Connection, date: str | None = None) -> dic
     ).fetchall()
     recent_activities = [dict(r) for r in recent_rows]
 
-    # race_predictions (daily scope, 실제 metric_name에 _sec 접미사)
-    pred_names = ["darp_5k_sec", "darp_10k_sec", "darp_half_sec", "darp_marathon_sec"]
+    # race_predictions (daily scope, 실제 metric_name은 darp.py produces 기준)
+    pred_names = ["race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec"]
     pred_rows = db_helpers.get_primary_metrics(conn, "daily", date, names=pred_names)
     pred_map = {r["metric_name"]: r.get("numeric_value") for r in pred_rows}
     race_predictions = {
-        "darp_5k":       pred_map.get("darp_5k_sec"),
-        "darp_10k":      pred_map.get("darp_10k_sec"),
-        "darp_half":     pred_map.get("darp_half_sec"),
-        "darp_marathon": pred_map.get("darp_marathon_sec"),
+        "darp_5k":       pred_map.get("race_pred_5k_sec"),
+        "darp_10k":      pred_map.get("race_pred_10k_sec"),
+        "darp_half":     pred_map.get("race_pred_half_sec"),
+        "darp_marathon": pred_map.get("race_pred_marathon_sec"),
     }
 
     # weekly_summary

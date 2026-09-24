@@ -42,8 +42,8 @@ def conn(db_conn):
         ("daily", DATE, "atl",          "load",       "runpulse:formula_v1", 52.1, None, None, None, 1),
         ("daily", DATE, "tsb",          "load",       "runpulse:formula_v1", -6.9, None, None, None, 1),
         ("daily", DATE, "ramp_rate",    "load",       "runpulse:formula_v1",  2.3, None, None, None, 1),
-        ("daily", DATE, "darp_5k_sec",  "prediction", "runpulse:formula_v1", 1335, None, None, None, 1),
-        ("daily", DATE, "darp_marathon_sec", "prediction", "runpulse:formula_v1", 12900, None, None, None, 1),
+        ("daily", DATE, "race_pred_5k_sec",       "prediction", "runpulse:formula_v1", 1335,  None, None, None, 1),
+        ("daily", DATE, "race_pred_marathon_sec", "prediction", "runpulse:formula_v1", 12900, None, None, None, 1),
     ]
     act_metrics = [
         ("activity", str(act_id), "trimp", "load", "runpulse:formula_v1", 91.2, None, None, 0.9, 1),
