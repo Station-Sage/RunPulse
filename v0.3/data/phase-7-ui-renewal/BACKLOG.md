@@ -2112,7 +2112,7 @@ DONE으로 옮긴다.
   {/if}
   ```
   (2) `frontend/src/routes/library/[id]/+page.svelte` — `EnvContextCard` import 추가, HR 존 분포 섹션(`{#if zoneData}…{/if}`) 바로 뒤에 `<EnvContextCard metrics={metricsByCategory.weather ?? []} />` 한 줄 추가(카드가 스스로 빈 상태를 숨김). 그 외는 건드리지 않음. 파일이 300줄을 넘지 않게 주의. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-SUMMARY-ENRICH"], "kind": "code", "scope": ["frontend/src/lib/components/EnvContextCard.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITY-SUMMARY-ENRICH"], "kind": "code", "scope": ["frontend/src/lib/components/EnvContextCard.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-COACH-CHECKIN-CONTEXT]** QuickInput 체크인(피로도·통증·메모)을 Coach 채팅 컨텍스트에 반영 — 백엔드,
   2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-COACH-CHECKIN-CONTEXT]` 항목 필독. 현황: 사용자가
   Today에서 체크인을 저장해도 `chat_engine`이 `user_inputs`를 전혀 읽지 않아(`src/ai/`에 `user_inputs` 참조 0건) Coach가
