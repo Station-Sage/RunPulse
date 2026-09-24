@@ -2048,7 +2048,7 @@ DONE으로 옮긴다.
   {/if}
   ```
   (6) 같은 파일 맨 끝(최상위 `{#if !core}…{:else}…{/if}` 블록 뒤)에 계산 분해 패널: `{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}`. 헤더·상단 통계 바·탭(`ActivityTabs`)은 그대로 둔다. 파일이 300줄을 넘지 않게 주의. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-METRICS-TAB"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/metrics.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITY-METRICS-TAB"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/metrics.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-ACTIVITY-ENV-CARD]** `03c-library.md` 3-C "환경 컨텍스트" 카드 — 프론트 전용(활동 스코프 `weather` 카테고리 메트릭이
   `metrics_by_category.weather`로 이미 내려옴), 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의
   `[P7-IMPL-ACTIVITY-ENV-CARD]` 항목 필독. 3-C 목업의 AQI·체감 WBGT·"훈련 가능" 판정은 저장된 데이터·계산이 없어 **표시하지
