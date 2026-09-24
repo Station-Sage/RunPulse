@@ -274,3 +274,38 @@ def test_post_session_note_400_missing_note(app_with_session):
         json={}
     )
     assert res.status_code == 400
+
+
+# ── GET /coach/plan/adaptation ───────────────────────────────────────────────
+
+def test_get_plan_adaptation_empty(mini_app):
+    """데이터 없으면 200 + acwr/hrv/fatigue_avg 모두 None."""
+    client, _ = mini_app
+    res = client.get("/api/v1/coach/plan/adaptation")
+    assert res.status_code == 200
+    body = res.get_json()
+    adaptation = body["data"]["adaptation"]
+    assert adaptation["acwr"] is None
+    assert adaptation["hrv"] is None
+    assert adaptation["fatigue_avg"] is None
+
+
+def test_get_plan_adaptation_with_acwr(mini_app):
+    """acwr 행 삽입 후 GET → zone == '적정'(값 1.12)."""
+    client, db_file = mini_app
+    conn = sqlite3.connect(str(db_file))
+    today = date.today().isoformat()
+    conn.execute(
+        "INSERT INTO metric_store (scope_type, scope_id, metric_name, provider, numeric_value, is_primary)"
+        " VALUES ('daily', ?, 'acwr', 'runpulse', 1.12, 1)",
+        (today,),
+    )
+    conn.commit()
+    conn.close()
+
+    res = client.get("/api/v1/coach/plan/adaptation")
+    assert res.status_code == 200
+    body = res.get_json()
+    adaptation = body["data"]["adaptation"]
+    assert adaptation["acwr"] is not None
+    assert adaptation["acwr"]["zone"] == "적정"

@@ -599,3 +599,11 @@ export interface SessionDetail {
 	adjustment: SessionAdjustment | null;
 	note: string | null;
 }
+
+// ── PlanAdaptation (5-F — /api/v1/coach/plan/adaptation) ─────────────────────
+export interface PlanAdaptation {
+	date: string;
+	acwr: { value: number; zone: string; date: string } | null;
+	hrv: { value: number; baseline: number | null; delta_pct: number | null; zone: string | null } | null;
+	fatigue_avg: { value: number; n: number } | null;
+}

@@ -5,7 +5,8 @@ import type {
 	TodaysAdjustment,
 	PlanTemplate,
 	CreatePlanPayload,
-	SessionDetail
+	SessionDetail,
+	PlanAdaptation
 } from '$lib/types';
 
 export function getActivePlan(goalId?: number): Promise<ActivePlan> {
@@ -44,4 +45,8 @@ export function saveSessionNote(date: string, note: string): Promise<void> {
 		method: 'POST',
 		body: JSON.stringify({ note })
 	}).then(() => undefined);
+}
+
+export function getPlanAdaptation(): Promise<PlanAdaptation> {
+	return apiFetch<{ adaptation: PlanAdaptation }>('/coach/plan/adaptation').then((r) => r.adaptation);
 }
