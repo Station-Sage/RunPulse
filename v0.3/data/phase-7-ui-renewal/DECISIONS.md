@@ -626,3 +626,104 @@ MonthNarrative/MetricBreakdown과 같은 하단 시트 오버레이 패턴). (2)
 수십 건을 넘기 어려움).
 (5) Today L2의 마일스톤 5개 목록에도 PB 활동 링크를 붙이고 "전체 마일스톤 →" 버튼을
 추가.
+
+---
+
+## [P7-IMPL-ACTIVITY-TABS-LAPS] 활동 상세 탭 바 공용화 + 랩 탭
+
+`03c-library.md` 3-C/3-D는 활동 상세 탭을 `[요약][스트림][랩][메트릭]`으로 정의한다. 구현은
+요약/스트림/소스 비교 3개 페이지가 각자 탭 마크업을 복붙해(2026-09-24 대조) 구성이 서로 다르고
+(요약엔 비활성 "랩"/"메트릭" 버튼, 스트림 페이지엔 "랩" 자체가 없음), 랩 데이터는 API가
+`activity.laps`로 이미 내려주는데 화면이 없다.
+
+**결정**: (1) 탭 바를 `ActivityTabs.svelte` 하나로 뽑아 세 페이지가 공유 — 탭 추가는 한 곳만
+고치면 된다(다음 유닛 `ACTIVITY-METRICS-TAB`이 "메트릭" 탭을 여기 추가). (2) 랩 화면은 03c에
+와이어프레임이 없어 스스로 설계: 인터벌·크루즈 세트 비교가 랩 화면의 핵심 용도라 랩별
+페이스를 **가장 빠른 랩 대비 막대**로 보여준다(수치만 나열하면 세트 간 차이가 안 보임). 랩
+번호는 소스마다 `lap_index`가 0/1 기반이 달라 배열 순서를 쓴다. (3) 소스 배지는 P3(Provider
+Transparency)에 따라 랩 소스(`activity_laps.source`)를 표기. (4) 목업의 "소스 비교"는 3-C
+탭 목록엔 없지만 7a에서 이미 만든 화면이라 탭에 유지한다(끝자리).
+(5) `ActivityDetail.laps`/`streams`가 `unknown[]`이라 랩 타입을 추가로 정의.
+
+---
+
+## [P7-IMPL-ACTIVITY-METRICS-TAB] 활동 상세 "메트릭" 탭
+
+`03c-library.md` 3-C 탭 목록에 "메트릭"이 있고 7a에선 비활성 버튼으로만 존재한다. 데이터는
+`activity.metrics_by_category`(is_primary=1 대표값, 단위·설명·provider 포함)로 이미 내려온다.
+요약 탭은 8개만 보여주므로 "이 활동의 모든 분석 수치를 보고 싶다"는 요구(앱 정체성: 분석의
+투명성)를 채우는 곳이 이 탭이다.
+
+**결정**: (1) 카테고리는 `metric_registry.METRIC_CATEGORIES`(16 도메인)의 한글 라벨·순서를
+`lib/metrics.ts`에 복제한다(백엔드가 라벨을 안 내려주고, 라벨 API를 새로 만들 사안은 아님).
+(2) 행 탭 → `MetricBreakdown`(`scopeType='activity'`, `scopeId=활동 id`): 백엔드
+`get_metric_breakdown`이 이미 scope_type을 받는다. 입력 메트릭 드릴-인은 Today와 같은
+스택 패턴(scope 이어받기). (3) 검색 입력을 둔 이유: 활동당 메트릭이 수십~백여 개라 카테고리
+접기만으로는 특정 수치를 찾기 어렵다. (4) 값 포맷 함수(`formatMetricValue`)는 요약 페이지의
+`metricDisplayValue`와 같은 규칙이라 `lib/metrics.ts`로 뽑고, 요약 페이지 전환은 다음 유닛
+(`ACTIVITY-SUMMARY-ENRICH`)이 같은 파일을 어차피 고치므로 거기서 한다.
+
+---
+
+## [P7-IMPL-ACTIVITY-SUMMARY-ENRICH] 활동 요약 탭 보강 (핵심 메트릭 정정·드릴·페이스 흐름·HR 존)
+
+`03c-library.md` 3-C 목업과 구현(`library/[id]/+page.svelte`)을 대조(2026-09-24)해 발견:
+1. **핵심 메트릭 선택 로직이 사실상 깨져 있음** — `CATEGORY_ORDER`가 `performance/running/fitness/
+   wellness/environment`인데 `metric_registry`의 실제 카테고리는 16 도메인(`hr/pace/load/
+   efficiency/capacity/…`)이라 `power` 외엔 매칭이 없고, 결국 dict 삽입 순서로 임의의 8개가 뜬다.
+   카테고리 기반 정렬을 버리고 3-C 목업이 명시한 항목(HR max·케이던스·TSS·VO2Max·효율지수·GCT…)의
+   **이름 우선순위 목록**으로 고른다. avg_pace/avg_hr는 상단 통계 바가 이미 보여줘 제외.
+2. **P2 위반**: `MetricCell drillable={false}` — 메트릭 탭(전 유닛)과 같은 패턴으로
+   `MetricBreakdown`(scope=activity)을 연다.
+3. **페이스 분포 차트·HR 존 분포 누락**: 스트림은 `activity.streams`로 이미 내려와 요약에서도
+   쓸 수 있다 → 페이스/심박 스파크라인(스트림 탭 링크). HR 존은 `hr_zone_N_sec`(Garmin/Intervals
+   추출)에서 비율을 계산 — `_pct` 메트릭은 어느 추출기도 안 채워서 초 단위에서 계산한다. 소스 배지
+   유지(P3).
+**차이(의도적)**: 목업의 "AI 코멘트"는 활동별 AI 생성 설계가 없어 제외, "환경 컨텍스트"는 다음
+유닛(`ACTIVITY-ENV-CARD`), "QuickInput compact"는 체크인이 하루 1건(`UNIQUE(input_date,
+input_type)`)이라 활동별 입력 모델이 없어 제외(스키마 설계 필요 — LATER).
+
+---
+
+## [P7-IMPL-ACTIVITY-ENV-CARD] 활동 상세 환경 컨텍스트 카드
+
+`03c-library.md` 3-C 목업은 기온·습도·풍속·AQI + 체감 WBGT + 훈련 가능 판정 카드를 그린다.
+확인 결과 활동 스코프 `metric_store`의 `weather` 카테고리에는 기온(`weather_temp_c`)·습도·풍속·
+이슬점·기압·날씨 상태가 있고(추출기가 채움), **AQI·WBGT는 저장·계산이 없다**. 목업을 채우려고
+값을 만들어내는 건 P1(근거 우선)·투명성 정체성에 어긋나므로 **있는 값만 카드로 보여주고 AQI/WBGT/
+판정은 제외**한다(데이터가 생기면 필드 목록에 한 줄 추가). 기기 온도(`avg_temperature`)는
+API 날씨 기온이 없을 때만 보조로 표시. 소스 배지는 첫 표시 항목의 provider(P3). 데이터가 없는
+활동에선 카드 자체를 숨긴다(빈 카드 금지).
+
+---
+
+## [P7-IMPL-COACH-CHECKIN-CONTEXT] QuickInput 체크인 → Coach 채팅 컨텍스트
+
+`03e-coach.md` 5-A는 QuickInput 캡션으로 "(Coach 질문에 자동 컨텍스트 활용)"을 명시하고, `03g` 7-5
+(P6 One Finger Reach)의 존재 이유가 "10초 입력이 분석에 쓰인다"이다. 그런데 2026-09-24 대조 결과
+`src/ai/`는 `user_inputs`를 **한 번도 읽지 않는다**(`chat_context_builders._build_base_context`는
+메트릭·웰니스·최근 활동만). 즉 사용자가 피로도·통증을 입력해도 Coach는 모른다 — "데이터 통합/
+소유" 정체성과 P6의 약속이 깨진 상태이고, 프론트에 캡션을 붙이기 전에 백엔드 배선이 먼저다.
+
+**결정**: (1) 기본 컨텍스트에 체크인 한 줄을 추가(모든 provider·의도 공통 — 자기 보고는 어떤
+질문에서도 유효). (2) 날짜 범위 [today-1, today+1]: `save_checkin()`은 SQLite `date('now')`(UTC)로
+날짜를 찍고 컨텍스트의 `today`는 서버 로컬(KST)이라 새벽(00~09시)엔 하루 어긋난다 — 정확히
+`today`만 조회하면 새벽에 체크인이 안 보이는 버그가 된다. (3) 새 모듈로 분리(`chat_context_
+builders.py`가 이미 301줄). (4) 메모는 200자로 자름(프롬프트 크기·주입 표면 제한). 통증 enum은
+한글 라벨로 변환. (5) 빌드 실패는 삼키고 채팅 계속(기존 빌더 패턴).
+**후속(같은 배치)**: `COACH-HOME-QUICKINPUT`이 Coach 홈에 QuickInput compact를 붙인다 — 캡션이
+사실이 된 뒤에.
+
+---
+
+## [P7-IMPL-COACH-HOME-QUICKINPUT] Coach 홈 QuickInput(compact) + 체크인 전용 GET
+
+`03e-coach.md` 5-A Coach 홈 마지막 섹션이 `<QuickInput compact=true>`(오늘 컨디션 입력 →, 입력됐으면
+"피로 6 · 통증 없음 ✓")인데 구현엔 없다. Today 화면에서만 체크인을 받으면 Coach 대화 직전에
+입력하려는 동선(P6 One Finger Reach)이 끊긴다.
+
+**결정**: (1) 체크인 조회용 `GET /api/v1/today/checkin` 신설 — 기존엔 `GET /today`가 체크인을
+같이 내려줬지만 Coach 홈이 그걸 쓰려면 상태·브리핑 계산까지 매번 태워야 한다(서비스
+`get_todays_checkin`은 이미 있어 라우트만 추가, 읽기 전용). (2) 저장은 기존 `POST /today/checkin`
+재사용(같은 날짜 UPSERT라 Today와 Coach 홈 어디서 입력해도 같은 행). (3) 캡션 "Coach 답변에
+자동으로 반영됩니다"는 `COACH-CHECKIN-CONTEXT`가 먼저 배선을 끝냈을 때만 사실 — 그래서 dep.

@@ -1606,8 +1606,633 @@ DONE으로 옮긴다.
   마일스톤 →</button>`(목록이 비어 있지 않을 때만), 기존 `MonthNarrative` 패널 렌더링 옆에
   `{#if showMilestones}<MilestonesPanel onClose={() => { showMilestones = false; }} />{/if}`
   추가. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-EVIDENCE-DRILL"], "kind": "code", "scope": ["frontend/src/lib/api/today.ts", "frontend/src/lib/components/MilestonesPanel.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 자동 구현이 명세에서 4곳 벗어나 리뷰에서 직접 바로잡음(`541926f`) — (1) `getTodayMilestones`
+  반환을 `MilestoneEntry[]`로(명세 시그니처), (2) 링크가 `pb` 한정 작은 `→`였던 것을 `activity_id`가 있는 모든 행 전체 `<a>`로,
+  (3) `detail`이 재계산 한정이던 것을 있는 모든 행의 아래 줄로(PB 상세 소실 방지), (4) 빈 상태·에러 문구를 명세대로. Today L2 목록도
+  같은 규칙. 비용 $0.96. `npm run check`(0 errors)/`build` 통과, 백엔드 변경 없음. 브라우저 육안 확인 못함(합성 데이터 서버 없음).
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-EVIDENCE-DRILL"], "kind": "code", "scope": ["frontend/src/lib/api/today.ts", "frontend/src/lib/components/MilestonesPanel.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
+- **[P7-IMPL-ACTIVITY-TABS-LAPS]** `03c-library.md` 3-C/3-D 활동 상세 탭 바 공용화 + "랩" 탭 신설 —
+  프론트 전용(`GET /library/activities/:id`가 `laps`(activity_laps, lap_index 순)를 이미 내려주는데 프론트가
+  안 씀, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITY-TABS-LAPS]` 항목 필독).
+  현황: 요약/스트림/소스 비교 3개 페이지가 탭 바를 각자 복붙해 구성이 제각각이다(요약: 소스 비교·스트림 링크 +
+  비활성 랩/메트릭 버튼, 스트림: 요약·소스 비교·스트림, 소스 비교: 요약·소스 비교). **이 명세의 코드는 그대로
+  구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/lib/types/index.ts` — `ActivityDetail` 인터페이스 바로 위에 신규 추가 후 `ActivityDetail.laps`를 `ActivityLap[] | null`로 교체(다른 필드는 그대로):
+  ```ts
+  // activity_laps 행 — activity_service.get_activity_detail()의 laps (lap_index 순).
+  export interface ActivityLap {
+  	id: number;
+  	activity_id: number;
+  	source: string;
+  	lap_index: number;
+  	start_time: string | null;
+  	duration_sec: number | null;
+  	distance_m: number | null;
+  	avg_hr: number | null;
+  	max_hr: number | null;
+  	avg_pace_sec_km: number | null;
+  	avg_cadence: number | null;
+  	avg_power: number | null;
+  	max_power: number | null;
+  	elevation_gain: number | null;
+  	calories: number | null;
+  	lap_trigger: string | null;
+  }
+  ```
+  (2) 신규 `frontend/src/lib/components/ActivityTabs.svelte`:
+  ```svelte
+  <script lang="ts">
+  	// 활동 상세 공용 탭 바 — 03c-library.md 3-C/3-D. 탭마다 별도 라우트라 현재 탭만 <span>, 나머지는 <a>.
+  	import { base } from '$app/paths';
+  	let {
+  		activityId,
+  		active
+  	}: { activityId: number; active: 'summary' | 'streams' | 'laps' | 'providers' } = $props();
+  	const TABS = [
+  		{ key: 'summary', label: '요약', path: '' },
+  		{ key: 'streams', label: '스트림', path: '/streams' },
+  		{ key: 'laps', label: '랩', path: '/laps' },
+  		{ key: 'providers', label: '소스 비교', path: '/providers' }
+  	] as const;
+  </script>
+  <div class="flex border-b border-border-subtle">
+  	{#each TABS as tab (tab.key)}
+  		{#if tab.key === active}
+  			<span
+  				aria-current="page"
+  				class="flex-1 whitespace-nowrap border-b-2 border-fg-primary py-2.5 text-center text-sm font-medium text-fg-primary"
+  			>{tab.label}</span>
+  		{:else}
+  			<a
+  				href="{base}/library/{activityId}{tab.path}"
+  				class="flex-1 whitespace-nowrap py-2.5 text-center text-sm text-fg-secondary hover:text-fg-primary"
+  			>{tab.label}</a>
+  		{/if}
+  	{/each}
+  </div>
+  ```
+  (3) `frontend/src/routes/library/[id]/+page.svelte` — `ActivityTabs` import 추가, 주석 `<!-- 탭 — 요약(활성), 소스 비교(링크), 나머지는 비활성 표시 (범위 밖) -->`부터 비활성 `{#each ['랩', '메트릭'] as label}…{/each}`가 든 탭 `<div class="flex border-b border-border-subtle">…</div>` 블록 전체를 `<!-- 탭 -->` 주석 + `<ActivityTabs activityId={core.id} active="summary" />` 한 줄로 교체, 파일 상단 주석 2줄(`// 03c-library.md 3-C — 활동 상세, 요약 탭만(Phase 7a).` / `// 스트림·랩·메트릭 탭은 …`)을 `// 03c-library.md 3-C — 활동 상세 요약 탭. 나머지 탭은 별도 라우트(ActivityTabs).` 한 줄로 교체. 그 외 마크업은 건드리지 않음.
+  (4) `frontend/src/routes/library/[id]/streams/+page.svelte` — `ActivityTabs` import, 주석 `<!-- 탭 표시 (스트림 탭만 활성) -->` 아래 `<div class="flex border-b …">…</div>` 블록 전체를 `<!-- 탭 -->` 주석 + `<ActivityTabs activityId={data.activityId} active="streams" />`로 교체.
+  (5) `frontend/src/routes/library/[id]/providers/+page.svelte` — 동일하게 주석 `<!-- 탭 표시 (소스 비교 탭만 활성) -->` 아래 탭 `<div>` 블록 전체를 `<!-- 탭 -->` 주석 + `<ActivityTabs activityId={data.activityId} active="providers" />`로 교체.
+  (6) 신규 `frontend/src/routes/library/[id]/laps/+page.ts`:
+  ```ts
+  import { getActivity } from '$lib/api/library';
+  import { ApiError } from '$lib/api/client';
+  import type { ActivityLap } from '$lib/types';
+  export interface LapsPageData {
+  	activityId: number;
+  	laps: ActivityLap[];
+  	errorMessage: string | null;
+  }
+  export async function load({ params }: { params: { id: string } }): Promise<LapsPageData> {
+  	const id = parseInt(params.id, 10);
+  	if (isNaN(id)) {
+  		return { activityId: NaN, laps: [], errorMessage: '잘못된 활동 ID입니다.' };
+  	}
+  	try {
+  		const res = await getActivity(id);
+  		return { activityId: id, laps: res.activity.laps ?? [], errorMessage: null };
+  	} catch (e) {
+  		const message = e instanceof ApiError ? e.message : '랩 데이터를 불러올 수 없습니다.';
+  		return { activityId: id, laps: [], errorMessage: message };
+  	}
+  }
+  ```
+  (7) 신규 `frontend/src/routes/library/[id]/laps/+page.svelte` — 인터벌·크루즈 세트를 한눈에 비교하도록 랩별 페이스를 가장 빠른 랩 대비 막대로 보여준다(막대가 길수록 빠름). 랩 번호는 `lap_index`가 소스마다 0/1 기반이 다를 수 있어 배열 순서 `i + 1`을 쓴다:
+  ```svelte
+  <script lang="ts">
+  	// 03c-library.md 3-C 랩 탭 — activity_laps(lap_index 순) 목록 + 랩별 페이스 막대.
+  	import type { LapsPageData } from './+page';
+  	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
+  	import { providerLabel, providerBadgeClass } from '$lib/provider';
+  	import { formatDistance, formatDuration, formatPace } from '$lib/format';
+  	import { base } from '$app/paths';
+  	import type { ActivityLap, ProviderKey } from '$lib/types';
+  	let { data }: { data: LapsPageData } = $props();
+  	function lapPace(l: ActivityLap): number | null {
+  		if (l.avg_pace_sec_km != null && l.avg_pace_sec_km > 0) return l.avg_pace_sec_km;
+  		if (l.distance_m && l.duration_sec && l.distance_m > 0) return l.duration_sec / (l.distance_m / 1000);
+  		return null;
+  	}
+  	const paces = $derived(data.laps.map(lapPace));
+  	const fastest = $derived(Math.min(...paces.filter((p): p is number => p != null)));
+  	const source = $derived(data.laps.length > 0 ? data.laps[0].source : null);
+  	// 가장 빠른 랩 = 100%. 너무 짧아 안 보이지 않게 최소 8%.
+  	function barPct(p: number | null): number {
+  		if (p == null || !Number.isFinite(fastest)) return 0;
+  		return Math.max(8, Math.round((fastest / p) * 100));
+  	}
+  </script>
+  <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
+  	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>
+  	<h1 class="text-base font-semibold">랩</h1>
+  </div>
+  <ActivityTabs activityId={data.activityId} active="laps" />
+  {#if data.errorMessage && data.laps.length === 0}
+  	<div class="px-4 py-8 text-center">
+  		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
+  		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
+  	</div>
+  {:else if data.laps.length === 0}
+  	<div class="px-4 py-8 text-center">
+  		<p class="text-sm text-fg-muted">랩 데이터 없음</p>
+  		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
+  	</div>
+  {:else}
+  	<div class="flex flex-col gap-3 px-4 py-4">
+  		<div class="flex items-center gap-2 text-xs text-fg-muted">
+  			{#if source}
+  				<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
+  			{/if}
+  			<span>{data.laps.length}개 랩{#if Number.isFinite(fastest)} · 가장 빠른 랩 {formatPace(fastest)}{/if}</span>
+  		</div>
+  		<ul class="divide-y divide-border-subtle">
+  			{#each data.laps as lap, i (lap.id)}
+  				<li class="flex flex-col gap-1 py-2.5">
+  					<div class="flex items-baseline gap-3 text-sm">
+  						<span class="w-6 shrink-0 font-mono text-xs text-fg-muted">{i + 1}</span>
+  						<span class="font-mono font-medium">{lap.distance_m != null ? formatDistance(lap.distance_m) : '—'}</span>
+  						<span class="font-mono text-fg-secondary">{lap.duration_sec != null ? formatDuration(lap.duration_sec) : '—'}</span>
+  						<span class="ml-auto font-mono font-medium">{paces[i] != null ? formatPace(paces[i] as number) : '—'}</span>
+  					</div>
+  					<div class="flex items-center gap-3 pl-9">
+  						<div class="h-1.5 flex-1 rounded bg-surface-3">
+  							<div class="h-1.5 rounded bg-fg-secondary" style="width:{barPct(paces[i])}%"></div>
+  						</div>
+  						<span class="flex shrink-0 gap-2 text-xs text-fg-muted">
+  							{#if lap.avg_hr != null}<span>HR {lap.avg_hr}{#if lap.max_hr != null}/{lap.max_hr}{/if}</span>{/if}
+  							{#if lap.avg_cadence != null}<span>{Math.round(lap.avg_cadence)}spm</span>{/if}
+  							{#if lap.avg_power != null}<span>{Math.round(lap.avg_power)}W</span>{/if}
+  							{#if lap.elevation_gain != null && lap.elevation_gain > 0}<span>↑{Math.round(lap.elevation_gain)}m</span>{/if}
+  						</span>
+  					</div>
+  				</li>
+  			{/each}
+  		</ul>
+  	</div>
+  {/if}
+  ```
+  백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-MILESTONES-PANEL"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.ts", "frontend/src/routes/library/[id]/laps/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITY-METRICS-TAB]** `03c-library.md` 3-C "메트릭" 탭 신설 — 프론트 전용(`activity.metrics_by_category`가
+  이미 카테고리별 전체 대표 메트릭 + 단위·설명·provider를 내려줌, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-ACTIVITY-METRICS-TAB]` 항목 필독). 각 행을 누르면 계산 분해(`MetricBreakdown`, `scopeType='activity'`)가 열려
+  P2(Drillable)·P3(소스 배지)를 지킨다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를
+  적고 중단.** **구현**:
+  (1) 신규 `frontend/src/lib/metrics.ts`:
+  ```ts
+  // 활동 메트릭 표시 공용 헬퍼 — 요약/메트릭 탭이 같이 쓴다.
+  import type { ActivityMetric } from '$lib/types';
+  import { formatPace } from '$lib/format';
+  // metric_registry.METRIC_CATEGORIES(16 도메인)의 한글 라벨 — 키 순서가 곧 메트릭 탭의 표시 순서.
+  export const METRIC_CATEGORY_LABELS: Record<string, string> = {
+  	hr: '심박',
+  	pace: '페이스',
+  	running_dynamics: '러닝 다이내믹스',
+  	power: '파워',
+  	load: '부하',
+  	efficiency: '효율성',
+  	capacity: '체력/역량',
+  	prediction: '예측',
+  	volume: '운동량',
+  	weather: '날씨/환경',
+  	body: '신체',
+  	sleep: '수면',
+  	stress: '스트레스',
+  	readiness: '준비도',
+  	meta: '메타/분류',
+  	athlete: '선수 설정',
+  	_unmapped: '미매핑 (개발용)'
+  };
+  export function categoryLabel(key: string): string {
+  	return METRIC_CATEGORY_LABELS[key] ?? key;
+  }
+  // 알려진 카테고리는 위 순서, 모르는 카테고리는 그 뒤에 이름순.
+  export function sortCategories(keys: string[]): string[] {
+  	const known = Object.keys(METRIC_CATEGORY_LABELS);
+  	const rank = (k: string) => {
+  		const i = known.indexOf(k);
+  		return i === -1 ? known.length : i;
+  	};
+  	return [...keys].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  }
+  // 페이스 계열(초/km)은 m:ss/km, 그 외 수치는 소수 1자리, 수치가 없으면 텍스트 값, 그것도 없으면 '—'.
+  export function formatMetricValue(m: ActivityMetric): string {
+  	if (m.numeric_value == null) return m.text_value ?? '—';
+  	const v = m.numeric_value;
+  	if (m.metric_name.includes('pace') || m.unit === 'sec/km') return formatPace(v);
+  	return Number.isInteger(v) ? String(v) : v.toFixed(1);
+  }
+  // formatMetricValue가 단위까지 붙이는 페이스 계열과 json 단위는 단위 표기 없음.
+  export function metricUnit(m: ActivityMetric): string {
+  	if (m.metric_name.includes('pace') || m.unit === 'sec/km' || m.unit === 'json') return '';
+  	return m.unit;
+  }
+  ```
+  (2) `frontend/src/lib/components/ActivityTabs.svelte` — `active` prop 유니언에 `'metrics'` 추가, `TABS`에서 `laps` 항목 바로 뒤에 `{ key: 'metrics', label: '메트릭', path: '/metrics' },` 추가(순서: 요약·스트림·랩·메트릭·소스 비교).
+  (3) 신규 `frontend/src/routes/library/[id]/metrics/+page.ts`:
+  ```ts
+  import { getActivity } from '$lib/api/library';
+  import { ApiError } from '$lib/api/client';
+  import type { ActivityMetric } from '$lib/types';
+  export interface MetricsTabPageData {
+  	activityId: number;
+  	metricsByCategory: Record<string, ActivityMetric[]>;
+  	errorMessage: string | null;
+  }
+  export async function load({ params }: { params: { id: string } }): Promise<MetricsTabPageData> {
+  	const id = parseInt(params.id, 10);
+  	if (isNaN(id)) {
+  		return { activityId: NaN, metricsByCategory: {}, errorMessage: '잘못된 활동 ID입니다.' };
+  	}
+  	try {
+  		const res = await getActivity(id);
+  		return { activityId: id, metricsByCategory: res.activity.metrics_by_category ?? {}, errorMessage: null };
+  	} catch (e) {
+  		const message = e instanceof ApiError ? e.message : '메트릭 데이터를 불러올 수 없습니다.';
+  		return { activityId: id, metricsByCategory: {}, errorMessage: message };
+  	}
+  }
+  ```
+  (4) 신규 `frontend/src/routes/library/[id]/metrics/+page.svelte` — 상단 헤더(`←` 링크 + `<h1 class="text-base font-semibold">메트릭</h1>`, 랩 페이지 `laps/+page.svelte`와 같은 마크업)·`<ActivityTabs activityId={data.activityId} active="metrics" />` 다음 본문. `errorMessage`가 있고 메트릭이 하나도 없으면 에러 문구 + "← 활동으로 돌아가기" 링크, 메트릭이 하나도 없으면(에러 없이) "메트릭 데이터 수집 중". 그 외 스크립트:
+  ```svelte
+  <script lang="ts">
+  	// 03c-library.md 3-C 메트릭 탭 — 이 활동의 대표(is_primary) 메트릭 전체를 카테고리별로.
+  	// 행을 누르면 계산 분해(MetricBreakdown, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
+  	import type { MetricsTabPageData } from './+page';
+  	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
+  	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+  	import { providerLabel, providerBadgeClass } from '$lib/provider';
+  	import { categoryLabel, formatMetricValue, metricUnit, sortCategories } from '$lib/metrics';
+  	import type { DrillTarget } from '$lib/evidence';
+  	import { base } from '$app/paths';
+  	import type { ActivityMetric, ProviderKey } from '$lib/types';
+  	let { data }: { data: MetricsTabPageData } = $props();
+  	let query = $state('');
+  	let drillStack = $state<DrillTarget[]>([]);
+  	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+  	function matches(m: ActivityMetric): boolean {
+  		const q = query.trim().toLowerCase();
+  		if (!q) return true;
+  		return m.metric_name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q);
+  	}
+  	const sections = $derived(
+  		sortCategories(Object.keys(data.metricsByCategory))
+  			.map((cat) => ({ cat, items: data.metricsByCategory[cat].filter(matches) }))
+  			.filter((s) => s.items.length > 0)
+  	);
+  	const total = $derived(
+  		Object.values(data.metricsByCategory).reduce((n, items) => n + items.length, 0)
+  	);
+  	function openDrill(slug: string) {
+  		drillStack = [...drillStack, { slug, scopeType: 'activity', scopeId: String(data.activityId) }];
+  	}
+  	function handleDrillInput(slug: string) {
+  		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+  		drillStack = [
+  			...drillStack,
+  			{
+  				slug,
+  				scopeType: top?.scopeType ?? 'activity',
+  				scopeId: top?.scopeId ?? String(data.activityId)
+  			}
+  		];
+  	}
+  </script>
+  ```
+  목록 마크업(메트릭이 있을 때): 바깥 `<div class="flex flex-col gap-3 px-4 py-4">` 안에 (a) 검색 입력 `<input type="search" bind:value={query} placeholder="메트릭 검색 (이름·설명)" class="w-full rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none" />`, (b) `<p class="text-xs text-fg-muted">{total}개 메트릭</p>`, (c) `sections`가 비어 있으면 `<p class="text-sm text-fg-muted">일치하는 메트릭이 없습니다.</p>`, (d) 아니면 `{#each sections as s (s.cat)}` 마다 `<details open class="rounded-lg border border-border-subtle">` — `<summary class="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-fg-muted">{categoryLabel(s.cat)} ({s.items.length})</summary>` + `<ul class="divide-y divide-border-subtle px-3">`, 각 `{#each s.items as m (m.metric_name)}`는 `<li>` 안에 행 버튼:
+  ```svelte
+  <button type="button" onclick={() => openDrill(m.metric_name)} class="flex w-full items-center gap-3 py-2.5 text-left hover:bg-surface-2">
+  	<span class="min-w-0 flex-1 truncate text-sm">{m.description || m.metric_name}</span>
+  	<span class="shrink-0 font-mono text-sm font-medium">{formatMetricValue(m)}{#if metricUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-secondary">{metricUnit(m)}</span>{/if}</span>
+  	<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(m.provider as ProviderKey | null)}">{providerLabel(m.provider as ProviderKey | null)}</span>
+  	<span class="shrink-0 text-fg-muted">›</span>
+  </button>
+  ```
+  파일 맨 끝(최상위 `{#if}`/`{:else}` 블록 뒤)에 계산 분해 패널: `{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}`.
+  요약 페이지(`[id]/+page.svelte`)는 이 유닛에서 건드리지 않음(다음 유닛이 `lib/metrics.ts`를 가져다 씀). 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-TABS-LAPS"], "kind": "code", "scope": ["frontend/src/lib/metrics.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/metrics/+page.ts", "frontend/src/routes/library/[id]/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITY-SUMMARY-ENRICH]** `03c-library.md` 3-C 활동 요약 탭 보강 — 프론트 전용, 2026-09-24 조사 후 큐 등록,
+  설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITY-SUMMARY-ENRICH]` 항목 필독. 3-C 목업 대비 빠진 것: (a) 핵심 메트릭이
+  `drillable={false}`라 P2 위반, (b) "핵심 메트릭"을 고르는 `CATEGORY_ORDER`가 실제 존재하지 않는 카테고리명(`performance`/
+  `running`/`fitness`/`wellness`/`environment` — 실제 카테고리는 `hr`/`pace`/`load`/`efficiency`/`capacity`… 16 도메인)이라
+  사실상 임의의 8개가 나옴, (c) 페이스 흐름 차트 없음(대신 "스트림 차트는 Phase 7b에서 제공됩니다" 낡은 문구), (d) HR 존
+  분포 없음. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/lib/types/index.ts` — `ActivityDetail.streams`를 `unknown[] | null`에서 `ActivityStreamPoint[] | null`로 교체(`ActivityStreamPoint`는 같은 파일 아래쪽에 이미 정의됨, 다른 필드 그대로).
+  (2) `frontend/src/lib/metrics.ts` 파일 끝에 추가(기존 export는 그대로):
+  ```ts
+  // 03c-library.md 3-C "핵심 메트릭" — 우선순위 이름 목록에서 값이 있는 것만 앞에서부터 고른다.
+  // avg_pace_sec_km/avg_hr는 요약 상단 통계 바가 이미 보여주므로 여기서는 제외(03c의 Pace·HR avg 칸을 통계 바가 대신함).
+  export const KEY_METRIC_NAMES = [
+  	'max_hr',
+  	'avg_cadence',
+  	'training_stress_score',
+  	'training_load',
+  	'training_effect_aerobic',
+  	'vo2max_activity',
+  	'efficiency_factor',
+  	'aerobic_decoupling',
+  	'avg_ground_contact_time_ms',
+  	'avg_stride_length_cm',
+  	'normalized_power',
+  	'relative_effort',
+  	'vdot'
+  ];
+  export function pickKeyMetrics(
+  	byCategory: Record<string, ActivityMetric[]>,
+  	limit = 8
+  ): ActivityMetric[] {
+  	const byName = new Map<string, ActivityMetric>();
+  	for (const items of Object.values(byCategory)) {
+  		for (const m of items) {
+  			if (m.numeric_value != null && !byName.has(m.metric_name)) byName.set(m.metric_name, m);
+  		}
+  	}
+  	return KEY_METRIC_NAMES.map((n) => byName.get(n))
+  		.filter((m): m is ActivityMetric => m != null)
+  		.slice(0, limit);
+  }
+  export interface HrZoneShare {
+  	zone: number;
+  	sec: number;
+  	pct: number;
+  }
+  // hr_zone_1..5_sec → 존별 체류 시간·비율. 존 메트릭이 없거나 합계가 0이면 null. provider는 첫 존 메트릭의 소스.
+  export function hrZoneShares(
+  	byCategory: Record<string, ActivityMetric[]>
+  ): { zones: HrZoneShare[]; provider: string | null } | null {
+  	const all = Object.values(byCategory).flat();
+  	const secs = [1, 2, 3, 4, 5].map((z) => all.find((m) => m.metric_name === `hr_zone_${z}_sec`));
+  	const total = secs.reduce((n, m) => n + (m?.numeric_value ?? 0), 0);
+  	if (total <= 0) return null;
+  	return {
+  		zones: secs.map((m, i) => {
+  			const sec = m?.numeric_value ?? 0;
+  			return { zone: i + 1, sec, pct: Math.round((sec / total) * 100) };
+  		}),
+  		provider: secs.find((m) => m != null)?.provider ?? null
+  	};
+  }
+  ```
+  (3) `frontend/src/routes/library/[id]/+page.svelte` 스크립트 — `MetricCell` import 옆에 `MetricBreakdown`, `Sparkline` import, `import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';`, `import type { DrillTarget } from '$lib/evidence';` 추가. `CATEGORY_ORDER`·`keyMetrics` 함수·`metricDisplayValue` 함수를 전부 삭제하고 아래로 교체(`core`/`metricsByCategory`/`streams` derived는 유지, `streams`는 이제 `ActivityStreamPoint[] | null`):
+  ```ts
+  const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
+  const zoneData = $derived(hrZoneShares(metricsByCategory));
+  const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
+  // streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
+  const paceSeries = $derived((streams ?? []).map((p) => (p.speed_ms != null && p.speed_ms > 0 ? 1000 / p.speed_ms : null)));
+  const hrSeries = $derived((streams ?? []).map((p) => p.heart_rate));
+  const streamSource = $derived(streams && streams.length > 0 ? streams[0].source : null);
+  let drillStack = $state<DrillTarget[]>([]);
+  const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+  function openMetric(slug: string) {
+  	if (!core) return;
+  	drillStack = [...drillStack, { slug, scopeType: 'activity', scopeId: String(core.id) }];
+  }
+  function handleDrillInput(slug: string) {
+  	const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+  	drillStack = [...drillStack, { slug, scopeType: top?.scopeType ?? 'activity', scopeId: top?.scopeId ?? String(core?.id ?? '') }];
+  }
+  ```
+  (4) 같은 파일 마크업 — 핵심 메트릭 섹션(`{#if keyMetrics().length > 0}`)을 `{#if keyMetrics.length > 0}`로 바꾸고 `{#each keyMetrics() as m …}`도 `keyMetrics`(호출 아님)로, `MetricCell`의 `value={metricDisplayValue(m)}`를 `value={formatMetricValue(m)}`, `unit={m.unit && !m.metric_name.includes('pace') ? m.unit : undefined}`를 `unit={metricUnit(m) || undefined}`, `drillable={false}`를 `drillable={true}` + `onDrill={(p) => openMetric(p.slug)}`로 교체. 섹션 헤더 줄(`<p class="text-xs uppercase …">핵심 메트릭</p>`)을 `<div class="flex items-center justify-between"><p class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</p><a href="{base}/library/{core.id}/metrics" class="text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>`로 교체.
+  (5) 같은 파일 마크업 — 기존 "스트림 요약" 섹션(`<!-- 스트림 요약 (존재 여부 + 포인트 수) -->` `<section …>…</section>`, 낡은 "스트림 차트는 Phase 7b에서 제공됩니다." 문구 포함)을 통째로 삭제하고 그 자리에 아래 두 블록을 이 순서로 넣는다:
+  ```svelte
+  {#if paceSeries.some((v) => v != null) || hrSeries.some((v) => v != null)}
+  	<section class="flex flex-col gap-2">
+  		<div class="flex items-center justify-between">
+  			<p class="text-xs uppercase tracking-wide text-fg-muted">페이스 · 심박 흐름</p>
+  			<a href="{base}/library/{core.id}/streams" class="text-xs text-fg-secondary hover:text-fg-primary">스트림 탭에서 전체 보기 →</a>
+  		</div>
+  		{#if paceSeries.some((v) => v != null)}
+  			<div>
+  				<p class="mb-0.5 text-[10px] text-fg-muted">페이스</p>
+  				<Sparkline data={paceSeries} height={40} color="#3b82f6" />
+  			</div>
+  		{/if}
+  		{#if hrSeries.some((v) => v != null)}
+  			<div>
+  				<p class="mb-0.5 text-[10px] text-fg-muted">심박</p>
+  				<Sparkline data={hrSeries} height={40} color="#ef4444" />
+  			</div>
+  		{/if}
+  		<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource} · 소스: {providerLabel(streamSource as ProviderKey)}{/if}</p>
+  	</section>
+  {:else}
+  	<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
+  {/if}
+  {#if zoneData}
+  	<section class="flex flex-col gap-2">
+  		<div class="flex items-center justify-between">
+  			<p class="text-xs uppercase tracking-wide text-fg-muted">HR 존 분포</p>
+  			<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(zoneData.provider as ProviderKey | null)}">{providerLabel(zoneData.provider as ProviderKey | null)}</span>
+  		</div>
+  		<div class="flex flex-col gap-1.5">
+  			{#each zoneData.zones as z (z.zone)}
+  				<div class="flex items-center gap-2 text-xs">
+  					<span class="w-5 font-mono text-fg-secondary">Z{z.zone}</span>
+  					<div class="h-2 flex-1 rounded bg-surface-3">
+  						<div class="h-2 rounded" style="width:{z.pct}%; background:{ZONE_COLORS[z.zone - 1]}"></div>
+  					</div>
+  					<span class="w-20 text-right font-mono text-fg-secondary">{z.pct}% · {formatDuration(z.sec)}</span>
+  				</div>
+  			{/each}
+  		</div>
+  	</section>
+  {/if}
+  ```
+  (6) 같은 파일 맨 끝(최상위 `{#if !core}…{:else}…{/if}` 블록 뒤)에 계산 분해 패널: `{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}`. 헤더·상단 통계 바·탭(`ActivityTabs`)은 그대로 둔다. 파일이 300줄을 넘지 않게 주의. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-METRICS-TAB"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/metrics.ts", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITY-ENV-CARD]** `03c-library.md` 3-C "환경 컨텍스트" 카드 — 프론트 전용(활동 스코프 `weather` 카테고리 메트릭이
+  `metrics_by_category.weather`로 이미 내려옴), 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-ACTIVITY-ENV-CARD]` 항목 필독. 3-C 목업의 AQI·체감 WBGT·"훈련 가능" 판정은 저장된 데이터·계산이 없어 **표시하지
+  않는다(지어내지 말 것)**. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.**
+  **구현**: (1) 신규 `frontend/src/lib/components/EnvContextCard.svelte`:
+  ```svelte
+  <script lang="ts">
+  	// 03c-library.md 3-C "환경 컨텍스트" — 활동 시점 날씨(metric_store weather 카테고리, 활동 스코프).
+  	// AQI·체감 WBGT는 저장된 데이터가 없어 표시하지 않는다(지어내지 않음).
+  	import { providerLabel, providerBadgeClass } from '$lib/provider';
+  	import type { ActivityMetric, ProviderKey } from '$lib/types';
+  	let { metrics }: { metrics: ActivityMetric[] } = $props();
+  	const FIELDS = [
+  		{ name: 'weather_temp_c', label: '기온', unit: '°C' },
+  		{ name: 'avg_temperature', label: '기온(기기)', unit: '°C' },
+  		{ name: 'weather_humidity_pct', label: '습도', unit: '%' },
+  		{ name: 'weather_wind_speed_ms', label: '풍속', unit: 'm/s' },
+  		{ name: 'weather_dew_point_c', label: '이슬점', unit: '°C' },
+  		{ name: 'weather_pressure_hpa', label: '기압', unit: 'hPa' },
+  		{ name: 'weather_condition', label: '날씨', unit: '' }
+  	];
+  	function display(m: ActivityMetric): string | null {
+  		if (m.numeric_value != null) {
+  			return Number.isInteger(m.numeric_value) ? String(m.numeric_value) : m.numeric_value.toFixed(1);
+  		}
+  		return m.text_value || null;
+  	}
+  	// 기기 온도는 API 날씨 기온이 없을 때만 보조로 쓴다.
+  	const hasApiTemp = $derived(
+  		metrics.some((m) => m.metric_name === 'weather_temp_c' && display(m) != null)
+  	);
+  	const cells = $derived(
+  		FIELDS.filter((f) => !(f.name === 'avg_temperature' && hasApiTemp))
+  			.map((f) => {
+  				const m = metrics.find((x) => x.metric_name === f.name);
+  				return { f, m, v: m ? display(m) : null };
+  			})
+  			.filter((c) => c.v != null)
+  	);
+  	const provider = $derived((cells[0]?.m?.provider ?? null) as ProviderKey | null);
+  </script>
+  {#if cells.length > 0}
+  	<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
+  		<div class="flex items-center justify-between">
+  			<p class="text-xs uppercase tracking-wide text-fg-muted">환경 컨텍스트</p>
+  			<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}">{providerLabel(provider)}</span>
+  		</div>
+  		<div class="grid grid-cols-3 gap-x-3 gap-y-2">
+  			{#each cells as c (c.f.name)}
+  				<div class="flex flex-col">
+  					<span class="text-[10px] text-fg-muted">{c.f.label}</span>
+  					<span class="font-mono text-sm font-medium">{c.v}{#if c.f.unit}<span class="ml-0.5 text-xs font-normal text-fg-secondary">{c.f.unit}</span>{/if}</span>
+  				</div>
+  			{/each}
+  		</div>
+  	</section>
+  {/if}
+  ```
+  (2) `frontend/src/routes/library/[id]/+page.svelte` — `EnvContextCard` import 추가, HR 존 분포 섹션(`{#if zoneData}…{/if}`) 바로 뒤에 `<EnvContextCard metrics={metricsByCategory.weather ?? []} />` 한 줄 추가(카드가 스스로 빈 상태를 숨김). 그 외는 건드리지 않음. 파일이 300줄을 넘지 않게 주의. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-SUMMARY-ENRICH"], "kind": "code", "scope": ["frontend/src/lib/components/EnvContextCard.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-COACH-CHECKIN-CONTEXT]** QuickInput 체크인(피로도·통증·메모)을 Coach 채팅 컨텍스트에 반영 — 백엔드,
+  2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-COACH-CHECKIN-CONTEXT]` 항목 필독. 현황: 사용자가
+  Today에서 체크인을 저장해도 `chat_engine`이 `user_inputs`를 전혀 읽지 않아(`src/ai/`에 `user_inputs` 참조 0건) Coach가
+  그 정보를 모른다 — `03e-coach.md` 5-A가 약속한 "(Coach 질문에 자동 컨텍스트 활용)"이 거짓인 상태. **이 명세의 코드는
+  그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `src/ai/chat_context_checkin.py`(`chat_context_builders.py`가 이미 301줄이라 새 모듈로 분리):
+  ```python
+  """AI 채팅 컨텍스트 — 러너 자기 보고(QuickInput 체크인)."""
+  from __future__ import annotations
+  import sqlite3
+  _PAIN_LABELS = {"none": "없음", "mild": "경미", "moderate": "중간", "severe": "심함"}
+  _NOTE_MAX = 200
+  def build_checkin_context(conn: sqlite3.Connection, today: str) -> dict | None:
+      """today 기준 최근 체크인(user_inputs) — 없거나 값이 전부 비었으면 None.
+      save_checkin()은 SQLite date('now')(UTC)로 날짜를 찍고 today는 서버 로컬 날짜라
+      KST 새벽엔 하루 어긋난다 — 그래서 today가 아니라 [today-1일, today+1일] 범위에서
+      가장 최근 1건을 쓴다.
+      """
+      row = conn.execute(
+          "SELECT input_date, fatigue, pain, note FROM user_inputs"
+          " WHERE input_type = 'checkin'"
+          "   AND input_date BETWEEN date(?, '-1 day') AND date(?, '+1 day')"
+          " ORDER BY input_date DESC LIMIT 1",
+          (today, today),
+      ).fetchone()
+      if row is None:
+          return None
+      date_, fatigue, pain, note = row[0], row[1], row[2], row[3]
+      if fatigue is None and not pain and not (note or "").strip():
+          return None
+      return {"date": date_, "fatigue": fatigue, "pain": pain, "note": note}
+  def format_checkin_line(checkin: dict | None) -> str | None:
+      """프롬프트용 한 줄 — 예: '러너 자기 보고(2026-09-24): 피로도 6/10 | 통증 경미 | 메모 "무릎 뻐근"'."""
+      if not checkin:
+          return None
+      parts: list[str] = []
+      if checkin.get("fatigue") is not None:
+          parts.append(f"피로도 {checkin['fatigue']}/10")
+      pain = checkin.get("pain")
+      if pain:
+          parts.append(f"통증 {_PAIN_LABELS.get(pain, pain)}")
+      note = (checkin.get("note") or "").strip()
+      if note:
+          parts.append(f'메모 "{note[:_NOTE_MAX]}"')
+      if not parts:
+          return None
+      return f"러너 자기 보고({checkin['date']}): " + " | ".join(parts)
+  ```
+  (2) `src/ai/chat_context.py` — 상단 docstring 모듈 목록에 `  - chat_context_checkin.py : 러너 자기 보고(QuickInput 체크인)` 한 줄 추가, `from .chat_context_checkin import build_checkin_context` import 추가, `build_chat_context()`에서 `ctx = _build_base_context(conn, today)` 바로 다음 줄들에 추가(실패해도 채팅은 계속 — 기존 빌더들과 같은 try/except 패턴):
+  ```python
+      try:
+          ctx["checkin"] = build_checkin_context(conn, today)
+      except Exception:
+          log.warning("체크인 컨텍스트 빌드 실패", exc_info=True)
+  ```
+  (3) `src/ai/chat_context_format.py` — `from .chat_context_checkin import format_checkin_line` import 추가, `_format_chat_context()`에서 웰니스 블록(`lines.append("오늘 컨디션: " + " | ".join(parts))`이 든 `if parts:` 블록) 바로 뒤에 추가:
+  ```python
+      # 러너 자기 보고 (QuickInput 체크인)
+      checkin_line = format_checkin_line(ctx.get("checkin"))
+      if checkin_line:
+          lines.append(checkin_line)
+  ```
+  (4) 신규 `tests/test_chat_context_checkin.py`(`db_conn` 픽스처 사용, `from src.services import today_service`로 `today_service.save_checkin(db_conn, fatigue=…, pain=…, note=…, input_date=…)` 로 시드) — 케이스: (a) 체크인 없음 → `build_checkin_context` None + `format_checkin_line(None)` None, (b) 당일 체크인(피로 6·pain 'mild'·메모) → dict 필드 일치 + 한 줄에 "피로도 6/10"·"통증 경미"·메모 포함, (c) 3일 전 체크인은 무시(None), (d) 하루 전(UTC 어긋남 대응) 체크인은 포함, (e) 피로·통증·메모가 전부 None/빈 체크인 → None, (f) 메모 200자 초과 시 잘림(`format_checkin_line` 결과의 메모 부분이 200자), (g) 통합: `save_checkin(db_conn, fatigue=7, pain='mild', input_date=date.today().isoformat())` 후 `from src.ai.chat_context import build_chat_context; build_chat_context(db_conn, "오늘 훈련 어때?", provider="rule")` 결과에 "피로도 7/10" 포함, (h) 체크인이 없을 때 위 통합 결과에 "러너 자기 보고"가 없음.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-ENV-CARD"], "kind": "code", "scope": ["src/ai/chat_context_checkin.py", "src/ai/chat_context.py", "src/ai/chat_context_format.py", "tests/test_chat_context_checkin.py"], "verify": ["python3 -m pytest tests/test_chat_context_checkin.py tests/test_chat_engine_threads.py -q"]} -->
+- **[P7-IMPL-COACH-HOME-QUICKINPUT]** `03e-coach.md` 5-A Coach 홈의 `<QuickInput compact=true>` 섹션 — 백엔드(체크인 전용 GET 1개) +
+  프론트, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-COACH-HOME-QUICKINPUT]` 항목 필독. 캡션 "입력한
+  컨디션은 Coach 답변에 자동 반영됩니다"는 직전 유닛(`COACH-CHECKIN-CONTEXT`)이 배선을 끝내 사실이다. **이 명세의 코드는
+  그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `src/api/routes_today.py` — 모듈 docstring 첫 줄에 `GET /api/v1/today/checkin`을 추가하고, `get_today()` 뒤에 추가(Coach 홈이 체크인 1건을 얻으려고 무거운 `GET /today`(상태·브리핑 계산)를 통째로 부르지 않게 함):
+  ```python
+  @api_bp.get("/today/checkin")
+  def get_today_checkin():
+      dpath = db_path()
+      if not dpath.exists():
+          return api_error("NOT_FOUND", "running.db 없음", 503)
+      conn = sqlite3.connect(str(dpath))
+      try:
+          checkin = today_service.get_todays_checkin(conn)
+      finally:
+          conn.close()
+      return api_ok({"checkin": checkin})
+  ```
+  (2) `tests/test_api_today.py` — 기존 `mini_app` 픽스처로 테스트 2개 추가: `test_get_today_checkin_none`(체크인 없을 때 200, `body["data"]["checkin"] is None`), `test_get_today_checkin_after_post`(`mini_app.post("/api/v1/today/checkin", json={"fatigue": 6, "pain": "none"})` 후 GET → `body["data"]["checkin"]["fatigue"] == 6`).
+  (3) `frontend/src/lib/api/today.ts` — `import type`에 `CheckinRow` 추가하고 추가:
+  ```ts
+  export function getTodayCheckin(): Promise<CheckinRow | null> {
+  	return apiFetch<{ checkin: CheckinRow | null }>('/today/checkin').then((r) => r.checkin);
+  }
+  ```
+  (4) `frontend/src/routes/coach/+page.ts` — `CoachPageData`에 `checkin: CheckinRow | null;` 추가(`CheckinRow`는 `$lib/types`에서 import), `getTodayCheckin`을 `$lib/api/today`에서 import, `Promise.all`에 세 번째 항목 `getTodayCheckin().catch(() => null)`을 추가해 `const [threadsResult, activePlan, checkin] = await Promise.all([...])`로 받고 두 `return`(에러/정상) 모두에 `checkin`을 포함.
+  (5) `frontend/src/routes/coach/+page.svelte` — `QuickInput` import, `import { postCheckin } from '$lib/api/today';`, 타입 import에 `PainLevel`·`CheckinRow` 추가, 스크립트에 추가:
+  ```ts
+  let checkin = $state<CheckinRow | null>(data.checkin);
+  let savingCheckin = $state(false);
+  let checkinError = $state<string | null>(null);
+  async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
+  	savingCheckin = true;
+  	checkinError = null;
+  	try {
+  		checkin = await postCheckin(value);
+  	} catch (e) {
+  		checkinError = e instanceof Error ? e.message : '저장에 실패했습니다.';
+  	} finally {
+  		savingCheckin = false;
+  	}
+  }
+  ```
+  마크업 — `{#if !isCreating}` 블록 안, 기존 "플랜 섹션"(`<!-- 플랜 섹션 -->` `<div class="border-t …">`) 바로 뒤(같은 `{#if}` 안)에 추가(03e 5-A 순서: 대화·새 대화·주제·플랜·QuickInput):
+  ```svelte
+  <div class="flex flex-col gap-1 border-t border-border-subtle px-4 py-3">
+  	<QuickInput
+  		compact
+  		existing={checkin
+  			? {
+  					fatigue: checkin.fatigue ?? undefined,
+  					pain: checkin.pain ?? undefined,
+  					note: checkin.note ?? undefined,
+  					timestamp: checkin.created_at
+  				}
+  			: undefined}
+  		saving={savingCheckin}
+  		onSave={handleSaveCheckin}
+  	/>
+  	<p class="text-xs text-fg-muted">입력한 컨디션은 Coach 답변에 자동으로 반영됩니다.</p>
+  	{#if checkinError}
+  		<p class="text-xs text-semantic-red">{checkinError}</p>
+  	{/if}
+  </div>
+  ```
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-CHECKIN-CONTEXT"], "kind": "code", "scope": ["src/api/routes_today.py", "tests/test_api_today.py", "frontend/src/lib/api/today.ts", "frontend/src/routes/coach/+page.ts", "frontend/src/routes/coach/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
