@@ -727,3 +727,31 @@ builders.py`가 이미 301줄). (4) 메모는 200자로 자름(프롬프트 크�
 `get_todays_checkin`은 이미 있어 라우트만 추가, 읽기 전용). (2) 저장은 기존 `POST /today/checkin`
 재사용(같은 날짜 UPSERT라 Today와 Coach 홈 어디서 입력해도 같은 행). (3) 캡션 "Coach 답변에
 자동으로 반영됩니다"는 `COACH-CHECKIN-CONTEXT`가 먼저 배선을 끝냈을 때만 사실 — 그래서 dep.
+
+---
+
+## [P7-IMPL-ACTIVITIES-LIST-MOBILE] 활동 목록 — 모바일 행 레이아웃 + 검색·거리 필터
+
+합성 데이터 서버 + 헤드리스 브라우저(390px 뷰포트) 스모크(2026-09-24, 이 세션 처음으로 실제 렌더링을
+확인)에서 발견: `library/activities`의 목록 행이 페이스·심박을 `hidden … sm:inline`으로 숨겨 **폰에선
+날짜·이름·거리·시간·배지만 보인다**. 앱이 하단 3탭 모바일 우선이고 `03c` 3-B 목업 행이 `5:27/km HR 138`을
+보여주는 것과 어긋난다 — 러닝 목록에서 페이스는 가장 먼저 보고 싶은 값.
+
+**결정**: (1) 한 줄 flex(이름이 좁은 폭에서 잘림) → **2줄 행**: 1줄 이름+소스 배지+›, 2줄 날짜·거리·시간·페이스·심박
+(공간이 좁으면 wrap). (2) 03c 3-B 필터 `[검색…]`·`[거리 ▾]` 추가 — 서비스 `get_activity_list()`가 이미 `search`·
+`min_distance_m`을 지원해 라우트에 `q`·`min_km`만 연결(`min_km` 비숫자는 400). (3) 검색은 300ms 디바운스 + 요청
+번호로 늦게 온 응답 무시(빠르게 타이핑할 때 이전 결과가 덮는 경합 방지). (4) 이름 LIKE의 `%`/`_`가 사용자 입력에서
+와일드카드로 동작하지만 단일 사용자 로컬 앱이라 이스케이프는 하지 않음(범위 밖).
+
+---
+
+## [P7-IMPL-METRICS-BROWSER-PROVIDER] 메트릭 브라우저 Provider 배지 + 필터
+
+`03c-library.md` 3-E 카드는 `[RunPulse]`/`[Garmin]` 배지를 그리고(★ P3 Provider Badge) 상단에
+`[모든 Provider ▾]` 필터를 둔다. 구현은 스파크라인·카테고리 칩은 있지만 provider를 소문자 원문
+텍스트(`runpulse`)로만 찍고 필터가 없다 — MetricCell·활동 목록·소스 비교가 모두 `providerLabel`/
+`providerBadgeClass`로 통일한 P3 표기와 이 화면만 다르다(2026-09-24 스모크 텍스트에서 발견).
+
+**결정**: (1) 배지는 공용 `providerLabel/providerBadgeClass` 재사용(표기 통일). (2) Provider 필터는 칩
+행 — 목업의 드롭다운 대신 이미 있는 카테고리 칩과 같은 컴포넌트 문법으로(모바일 한 손 조작, 새 위젯
+없음). 등장 provider가 1종뿐이면 필터가 의미 없어 숨김. (3) 필터 후 빈 카테고리는 섹션 자체를 숨김.

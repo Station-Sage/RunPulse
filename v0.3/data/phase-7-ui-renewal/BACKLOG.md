@@ -2246,6 +2246,111 @@ DONE으로 옮긴다.
   </div>
   ```
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-CHECKIN-CONTEXT"], "kind": "code", "scope": ["src/api/routes_today.py", "tests/test_api_today.py", "frontend/src/lib/api/today.ts", "frontend/src/routes/coach/+page.ts", "frontend/src/routes/coach/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITIES-LIST-MOBILE]** `03c-library.md` 3-B 활동 목록 — 모바일에서 페이스·심박이 안 보이는 문제 + 검색·거리 필터 누락 수정. 백엔드(쿼리
+  파라미터 2개) + 프론트, 2026-09-24 합성 데이터 스모크(390px 뷰포트)로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITIES-LIST-MOBILE]` 항목 필독.
+  현황: 목록 행이 한 줄 flex인데 페이스·심박 `<span>`에 `hidden … sm:inline`이 붙어 **폰(390px)에선 안 보임**(하단 3탭 모바일 우선 앱에서 3-B 목업의
+  `5:27/km HR 138`이 사라짐), 03c 3-B의 `[검색...]`·`[거리 ▾]` 필터가 없음. `activity_service.get_activity_list()`는 이미 `search`(이름 LIKE)·
+  `min_distance_m` 필터를 지원하는데 라우트가 안 받음. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `src/api/routes_library.py` `get_library_activities()` — `to` 처리 바로 뒤(`try: page = …` 앞)에 추가:
+  ```python
+      if request.args.get("q", "").strip():
+          filters["search"] = request.args["q"].strip()
+      if request.args.get("min_km"):
+          try:
+              filters["min_distance_m"] = float(request.args["min_km"]) * 1000
+          except ValueError:
+              return api_error("INVALID_PARAM", "min_km는 숫자여야 합니다.", 400)
+  ```
+  (2) `tests/test_api_library.py` — 기존 `mini_app` 픽스처(활동 2개: 아침 러닝 10km·자전거 20km)로 테스트 3개 추가: `test_list_activities_search_q`(`?q=아침` → 200, `total == 1`, 이름 "아침 러닝"), `test_list_activities_min_km`(`?min_km=15` → `total == 1`(자전거), `?min_km=5` → `total == 2`), `test_list_activities_min_km_invalid`(`?min_km=abc` → 400).
+  (3) `frontend/src/lib/api/library.ts` — `ActivitiesFilters`에 `q?: string; min_km?: number | string;` 추가, `getActivities()`에 `if (filters.q) params.set('q', filters.q); if (filters.min_km) params.set('min_km', String(filters.min_km));` 추가.
+  (4) `frontend/src/routes/library/activities/+page.svelte` 스크립트 — 필터 상태 옆에 추가하고 `loadPage`를 갱신(요청 경합 방지: 늦게 온 이전 응답이 최신 결과를 덮지 않게 요청 번호로 무시):
+  ```ts
+  let filterQuery = $state('');
+  let filterMinKm = $state('');
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  let reqSeq = 0;
+  function scheduleSearch() {
+  	clearTimeout(searchTimer);
+  	searchTimer = setTimeout(applyFilters, 300);
+  }
+  ```
+  `loadPage` 안에서 `loading = true;` 직후 `const seq = ++reqSeq;`, `getActivities({...})` 인자에 `q: filterQuery.trim() || undefined, min_km: filterMinKm || undefined` 추가, `await` 직후 `if (seq !== reqSeq) return;`(결과 반영 전), `finally`의 `loading = false`는 `if (seq === reqSeq) loading = false;`로 바꾼다.
+  (5) 같은 파일 필터 바(`<!-- 필터 바 -->` `<div class="flex flex-wrap items-center gap-2 …">`) 맨 앞에 검색 입력, 종목 `<select>` 뒤에 거리 선택 추가:
+  ```svelte
+  <input type="search" bind:value={filterQuery} oninput={scheduleSearch} placeholder="이름 검색" aria-label="이름 검색" class="min-w-0 flex-1 rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary placeholder:text-fg-muted" />
+  <select bind:value={filterMinKm} onchange={applyFilters} class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary" aria-label="최소 거리">
+  	<option value="">거리 전체</option>
+  	<option value="5">5km 이상</option>
+  	<option value="10">10km 이상</option>
+  	<option value="21">21km 이상</option>
+  </select>
+  ```
+  (6) 같은 파일 목록 행(`{#each activities as act (act.id)}` 안의 `<a …>…</a>` 전체)을 모바일에서도 페이스·심박이 보이는 2줄 행으로 교체:
+  ```svelte
+  <a href="{base}/library/{act.id}" class="flex flex-col gap-1 px-4 py-3 hover:bg-surface-2 active:bg-surface-3">
+  	<div class="flex items-center gap-2">
+  		<span class="min-w-0 flex-1 truncate text-sm font-medium">{act.name}</span>
+  		<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(act.source as ProviderKey)}">{providerLabel(act.source as ProviderKey)}</span>
+  		<span class="shrink-0 text-fg-muted">›</span>
+  	</div>
+  	<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-fg-secondary">
+  		<span class="text-fg-muted">{formatDate(act.start_time)}</span>
+  		{#if act.distance_m != null}<span class="font-mono">{formatDistance(act.distance_m)}</span>{/if}
+  		{#if act.duration_sec != null}<span class="font-mono">{formatDuration(act.duration_sec)}</span>{/if}
+  		{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
+  		{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
+  	</div>
+  </a>
+  ```
+  파일 상단 주석 `// 03c-library.md 3-B — 활동 목록. sport/날짜 필터 + 페이지네이션.`을 `// 03c-library.md 3-B — 활동 목록. 종목·날짜·거리 필터 + 이름 검색 + 더 불러오기.`로 교체.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-HOME-QUICKINPUT"], "kind": "code", "scope": ["src/api/routes_library.py", "tests/test_api_library.py", "frontend/src/lib/api/library.ts", "frontend/src/routes/library/activities/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-METRICS-BROWSER-PROVIDER]** `03c-library.md` 3-E 메트릭 브라우저 — Provider 배지(P3) + `[모든 Provider ▾]` 필터. 프론트 전용, 2026-09-24
+  합성 데이터 스모크로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-METRICS-BROWSER-PROVIDER]` 항목 필독. 현황: 카드가 provider를 `<span class="text-[10px]
+  text-fg-muted">{m.provider}</span>`로 원문(`runpulse`, `garmin`) 텍스트만 찍어 다른 화면(MetricCell·활동 목록)의 색 배지·표기 규칙과 다르고, 3-E의
+  `[모든 Provider ▾]` 필터가 없음(P3 위반). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  `frontend/src/routes/library/metrics/+page.svelte` 만 수정 —
+  (1) 스크립트: `import { providerLabel, providerBadgeClass } from '$lib/provider';` 추가, 타입 import에 `ProviderKey` 추가(`import type { MetricBrowserEntry, ProviderKey } from '$lib/types';`), 기존 `visibleCategories` 정의(`const visibleCategories = $derived(selectedCategory === 'all' ? categories : categories.filter(...))`)를 삭제하고 아래로 교체:
+  ```ts
+  // provider 필터 ('all' + 실제 등장 provider) — 등장 provider가 2종 이상일 때만 필터 행을 보인다.
+  let selectedProvider = $state<string>('all');
+  const providers = $derived([
+  	...new Set(categories.flatMap((c) => c.metrics.map((m) => m.provider).filter((p): p is string => !!p)))
+  ]);
+  const visibleCategories = $derived(
+  	categories
+  		.filter((c) => selectedCategory === 'all' || c.category === selectedCategory)
+  		.map((c) => ({
+  			...c,
+  			metrics: c.metrics.filter((m) => selectedProvider === 'all' || m.provider === selectedProvider)
+  		}))
+  		.filter((c) => c.metrics.length > 0)
+  );
+  ```
+  (2) 마크업 — 카테고리 칩 행(`<!-- 카테고리 칩 필터 -->` `<div class="flex gap-2 overflow-x-auto border-b …">…</div>`) 바로 뒤에 추가:
+  ```svelte
+  {#if providers.length > 1}
+  	<div class="flex gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
+  		<button
+  			class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === 'all' ? 'bg-fg-primary text-surface-1' : 'bg-surface-2 text-fg-secondary'}"
+  			onclick={() => (selectedProvider = 'all')}
+  		>모든 Provider</button>
+  		{#each providers as p}
+  			<button
+  				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === p ? 'bg-fg-primary text-surface-1' : 'bg-surface-2 text-fg-secondary'}"
+  				onclick={() => (selectedProvider = p)}
+  			>{providerLabel(p as ProviderKey)}</button>
+  		{/each}
+  	</div>
+  {/if}
+  ```
+  (3) 카드 안의 `{#if m.provider}<span class="text-[10px] text-fg-muted">{m.provider}</span>{/if}`를 아래로 교체:
+  ```svelte
+  {#if m.provider}
+  	<span class="self-start rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(m.provider as ProviderKey)}">{providerLabel(m.provider as ProviderKey)}</span>
+  {/if}
+  ```
+  `categories`가 비었거나 필터 결과가 비었을 때 기존 빈 상태("데이터 수집 중")는 그대로 둔다. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITIES-LIST-MOBILE"], "kind": "code", "scope": ["frontend/src/routes/library/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
