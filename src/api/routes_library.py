@@ -24,6 +24,13 @@ def get_library_activities():
         filters["date_from"] = request.args["from"]
     if request.args.get("to"):
         filters["date_to"] = request.args["to"]
+    if request.args.get("search"):
+        filters["search"] = request.args["search"]
+    if request.args.get("dist_min"):
+        try:
+            filters["min_distance_m"] = float(request.args["dist_min"]) * 1000
+        except ValueError:
+            return api_error("INVALID_PARAM", "dist_min은 숫자여야 합니다.", 400)
 
     try:
         page = int(request.args.get("page", 1))
