@@ -1,7 +1,7 @@
 <script lang="ts">
 	// C4 ProviderComparison — 04-component-catalog.md 기준.
 	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
-	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
 	import type { ProviderComparisonData, ComparisonRow, ProviderKey } from '$lib/types';
 
@@ -90,7 +90,7 @@
 {:else}
 	<!-- 비교 테이블 -->
 	<div class="overflow-x-auto">
-		<table class="w-full min-w-[480px] text-sm">
+		<table class="w-full text-sm">
 			<thead>
 				<tr class="border-b border-border-subtle">
 					<th class="py-2 pl-4 pr-2 text-left text-xs font-medium uppercase tracking-wide text-fg-muted">
@@ -99,13 +99,10 @@
 					{#each providers() as provider}
 						<th class="px-2 py-2 text-center text-xs font-medium tracking-wide text-fg-muted">
 							<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider as ProviderKey)}">
-								{providerLabel(provider as ProviderKey)}
+								{providerLabelCompact(provider as ProviderKey)}
 							</span>
 						</th>
 					{/each}
-					<th class="py-2 pl-2 pr-4 text-right text-xs font-medium uppercase tracking-wide text-fg-muted">
-						대표값
-					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -131,36 +128,23 @@
 							{/if}
 						</td>
 
-						<!-- 각 provider 값 -->
+						<!-- 각 provider 값 — 대표 소스 셀에 ★ 표시 + primaryReason을 title로 -->
 						{#each providers() as provider}
-							<td class="px-2 py-2.5 text-center">
+							<td
+								class="px-2 py-2.5 text-center"
+								title={isPrimary(row, provider) && showPrimaryReason && row.primaryReason
+									? row.primaryReason.rule
+									: undefined}
+							>
 								<span
 									class="font-mono text-sm {row.values[provider]?.available
 										? 'text-fg-primary'
 										: 'text-fg-muted'}"
 								>
-									{cellDisplayValue(row, provider)}
+									{#if isPrimary(row, provider)}★ {/if}{cellDisplayValue(row, provider)}
 								</span>
 							</td>
 						{/each}
-
-						<!-- 대표값(preferred provider) -->
-						<td class="py-2.5 pl-2 pr-4 text-right">
-							{#if row.preferredProvider}
-								<span
-									class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-										row.preferredProvider as ProviderKey
-									)}"
-									title={showPrimaryReason && row.primaryReason
-										? row.primaryReason.rule
-										: undefined}
-								>
-									★ {providerLabel(row.preferredProvider as ProviderKey)}
-								</span>
-							{:else}
-								<span class="text-xs text-fg-muted">—</span>
-							{/if}
-						</td>
 					</tr>
 				{/each}
 			</tbody>

@@ -3,7 +3,7 @@
 	// drillable=true라도 7a엔 열어줄 MetricBreakdown 패널이 없다(07 로드맵 7b 몫) —
 	// Today 화면에서는 항상 drillable=false로 사용한다.
 	import type { MetricCellProps } from '$lib/types';
-	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 
 	let {
 		slug,
@@ -59,18 +59,23 @@
 		? 'cursor-pointer hover:bg-surface-3'
 		: ''}"
 >
-	<div class="flex items-center justify-between gap-2">
-		<span class="text-xs text-fg-secondary">{label}</span>
-		<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}">
-			{providerLabel(provider)}
-		</span>
-	</div>
+	<span class="text-xs text-fg-secondary">{label}</span>
 
-	<div class="font-mono text-xl font-bold">
-		{#if unavailable || value === null}
-			<span class="text-fg-muted">—</span>
-		{:else}
-			{value}{#if unit}<span class="ml-0.5 text-sm font-normal text-fg-secondary">{unit}</span>{/if}
+	<div class="flex items-baseline justify-between gap-2">
+		<div class="font-mono text-xl font-bold">
+			{#if unavailable || value === null}
+				<span class="text-fg-muted">—</span>
+			{:else}
+				{value}{#if unit}<span class="ml-0.5 text-sm font-normal text-fg-secondary">{unit}</span>{/if}
+			{/if}
+		</div>
+		{#if provider}
+			<span
+				class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}"
+				title={providerLabel(provider)}
+			>
+				{providerLabelCompact(provider)}
+			</span>
 		{/if}
 	</div>
 
