@@ -5,6 +5,7 @@
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
+	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
@@ -215,9 +216,26 @@
 				<!-- 내러티브 로딩 실패 또는 미제공 시 fallback 스텁 -->
 				<p class="text-sm text-fg-secondary">
 					현재 CTL {status.training_status.ctl ?? '—'} ·
-					<span class="text-fg-muted">상세 이야기·계획 연동을 불러올 수 없습니다.</span>
+					<span class="text-fg-muted">상세 이야기를 불러올 수 없습니다.</span>
 				</p>
 			{/if}
+		</section>
+
+		<!-- 다음 세션 현황 (L2 — 구 Plan "보기" 흡수) -->
+		<div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
+			<p class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</p>
+			<NextSessionCard plan={data.plan} adjustment={data.adjustment} today={status.date} />
+		</div>
+
+		<!-- ══ L3 — 데이터 드릴다운 ══ -->
+		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4">
+			<p class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</p>
+			<p class="text-sm text-fg-secondary">
+				위 지표는 탭 한 번으로 계산 분해에 닿고, 거기서 다시 원본 데이터로 이어집니다.
+			</p>
+			<a href="{base}/library" class="text-sm text-fg-secondary hover:text-fg-primary">
+				Library에서 전체 탐색 →
+			</a>
 		</section>
 	</div>
 

@@ -36,6 +36,20 @@ export function formatRelativeTime(isoStr: string): string {
 	return `${months}개월 전`;
 }
 
+export const WORKOUT_LABELS: Record<string, string> = {
+	rest: '휴식',
+	recovery: '회복',
+	easy: '쉬운 달리기',
+	long: '장거리',
+	tempo: '템포',
+	interval: '인터벌',
+	race: '레이스'
+};
+
+export function workoutLabel(type: string): string {
+	return WORKOUT_LABELS[type] ?? type;
+}
+
 export function formatRelativeDay(isoDate: string): string {
 	const date = new Date(isoDate);
 	const today = new Date();

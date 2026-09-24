@@ -2,18 +2,10 @@
 	// 03e-coach.md 5-G — 일일 세션 상세.
 	import type { SessionDetailPageData } from './+page';
 	import { saveSessionNote } from '$lib/api/plan';
+	import { workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 
 	let { data }: { data: SessionDetailPageData } = $props();
-
-	const WORKOUT_LABELS: Record<string, string> = {
-		rest: '휴식',
-		recovery: '회복',
-		easy: '쉬운 달리기',
-		long: '장거리',
-		tempo: '템포',
-		interval: '인터벌'
-	};
 
 	const DAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -81,7 +73,7 @@
 		<div class="border-b border-border-subtle px-4 py-4">
 			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">원래 계획</p>
 			<p class="text-sm font-semibold">
-				{WORKOUT_LABELS[data.session.workout.workout_type] ?? data.session.workout.workout_type}
+				{workoutLabel(data.session.workout.workout_type)}
 			</p>
 			<div class="mt-1 flex flex-wrap gap-3 text-xs text-fg-secondary">
 				{#if data.session.workout.distance_km}
@@ -101,9 +93,9 @@
 			{#if data.session.adjustment?.adjusted}
 				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">오늘 상태 기반 조정</p>
 				<p class="text-sm font-semibold">
-					{WORKOUT_LABELS[data.session.adjustment.original_type] ?? data.session.adjustment.original_type}
+					{workoutLabel(data.session.adjustment.original_type)}
 					<span class="font-normal text-fg-muted">→</span>
-					{WORKOUT_LABELS[data.session.adjustment.adjusted_type] ?? data.session.adjustment.adjusted_type}
+					{workoutLabel(data.session.adjustment.adjusted_type)}
 				</p>
 				{#if data.session.adjustment.adjustment_reason_parts.length > 0}
 					<div class="mt-2 flex flex-wrap gap-1.5">

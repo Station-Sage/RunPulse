@@ -1,19 +1,10 @@
 <script lang="ts">
 	// 03e-coach.md 5-F — 플랜 상세: 진행 중인 훈련 플랜.
 	import type { PlanDetailPageData } from './+page';
-	import { formatDuration } from '$lib/format';
+	import { formatDuration, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 
 	let { data }: { data: PlanDetailPageData } = $props();
-
-	const WORKOUT_LABELS: Record<string, string> = {
-		rest: '휴식',
-		recovery: '회복',
-		easy: '쉬운 달리기',
-		long: '장거리',
-		tempo: '템포',
-		interval: '인터벌'
-	};
 
 	const DAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -92,8 +83,8 @@
 					<p class="mt-0.5 text-xs text-fg-secondary">{data.adjustment.adjustment_reason}</p>
 				{/if}
 				<p class="mt-0.5 text-xs text-fg-muted">
-					{WORKOUT_LABELS[data.adjustment.original_type] ?? data.adjustment.original_type} →
-					{WORKOUT_LABELS[data.adjustment.adjusted_type] ?? data.adjustment.adjusted_type}
+					{workoutLabel(data.adjustment.original_type)} →
+					{workoutLabel(data.adjustment.adjusted_type)}
 				</p>
 			</div>
 		{/if}
@@ -117,7 +108,7 @@
 								<div class="min-w-0 flex-1">
 									<div class="flex items-center gap-2">
 										<span class="text-sm font-medium">
-											{WORKOUT_LABELS[w.workout_type] ?? w.workout_type}
+											{workoutLabel(w.workout_type)}
 										</span>
 										{#if w.distance_km}
 											<span class="text-xs text-fg-muted">{w.distance_km}km</span>
