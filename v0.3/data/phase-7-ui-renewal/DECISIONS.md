@@ -1058,12 +1058,6 @@ REVIEW-05 E5. **결정**: 모든 상태 수치가 같은 사각 카드라 위계
 
 ---
 
-## [P7-IMPL-COACH-EVIDENCE] Coach 근거 칩
-
-REVIEW-05 E6 / P1(모든 AI 결론에 근거). **결정**: (조사 후 기록)
-
----
-
 ## [P7-REVIEW-DESIGN-VISION] 디자인 에이전트 재검토
 
 E1~E6 구현 후 실데이터 화면 스크린샷을 기준으로 product-architect가 비전 부합·UI/UX를 재검토하고 수정 방안을 수립한다(REVIEW-06).
@@ -1093,3 +1087,19 @@ UTRS 82·CIRS 25 — **앱의 핵심 결론이 틀려 있었다**(P2 투명성·
 get_load_coverage()` → `/today`의 `data_health`, 누락 3건↑·20%↑면 Today 상단에 "지표가 실제보다 낮게 나올 수 있어요" 안내
 (투명성). (5) 사용자 DB는 **수정하지 않았다** — 검증은 사본에서(361일 누락 → 0, 1분 22초). 사용자 DB는 다음 sync 시 자동
 보정되거나 `python -m src.metrics.cli recompute-missing`(환경변수 `RUNPULSE_DB`로 DB 지정)로 즉시 보정.
+
+---
+
+## [P7-IMPL-COACH-EVIDENCE-API] Coach 답변 근거·레이스 컨텍스트
+
+REVIEW-05 E6 / 원칙 P1(모든 AI 결론에 근거). Coach 답변에는 근거가 없었고 컨텍스트에 레이스 예측·폼 예측이 없었다.
+
+**결정**: (1) 근거는 Today 브리핑과 같은 소스(`get_today_briefing().evidence`, 앞 5개)를 재사용 — 화면 간 근거 일관성, 새 계산 없음. LLM이
+쓴 본문에서 근거를 추출하지 않는다(환각 위험): 근거는 답변 시점의 실제 지표 스냅샷이다. (2) 저장은 `chat_messages.evidence_json`(스키마 v19) — 대화를 다시 열어도 그
+시점의 근거가 보이도록. (3) 컨텍스트에 레이스 아침 예상 폼·목표 거리 예측 기록을 주입해 AI가 목표 맥락에서 답하게 한다. (4) 근거 생성 실패는 답변을 막지 않는다.
+
+---
+
+## [P7-IMPL-COACH-EVIDENCE-UI] Coach 근거 칩·입력창 도킹
+
+REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 Today와 같은 컴포넌트·드릴 패널을 재사용해 화면 간 언어를 통일한다.
