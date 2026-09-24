@@ -2834,6 +2834,84 @@ DONE으로 옮긴다.
   (`showMonthNarrative`은 이 파일에 이미 있는 상태 변수 — 새로 만들지 않는다. 두 Sparkline은 각자 자기 값 범위로 자동 스케일되므로 겹치지 않고 위아래로 쌓는다.) 다른 부분·백엔드·테스트는 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
   리뷰 2026-09-24: 이탈 다수 — main에서 명세대로 교정: (1) 차트 위치가 "규칙 기반 요약" 뒤·월간 패널 버튼 앞(명세: 근거 칩 바로 뒤·마일스톤 앞), (2) 표시 조건이 포인트 ≥1(명세: ≥2 — 1점 시리즈는 Sparkline이 못 그림), (3) 색을 `var(--color-…, #hex)`로 넘김 — SVG 프레젠테이션 속성의 var()는 브라우저별로 불안정하고 다른 Sparkline 사용처는 전부 hex, (4) 데이터 필드명 ctlTrend/atlTrend(명세: fitness — 기능 동일해 수용), (5) 범례 색 점 없음. npm check 0 errors / build OK.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-VALUE-FORMAT]** 메트릭 값의 단위 인지 표기 통일 — 프론트 전용, 2026-09-24 실데이터(pansongit 계정 DB 복사본) 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-VALUE-FORMAT]` 항목 필독. 현황(실데이터 스크린샷): 메트릭 브라우저 카드가 수면 시간을 `22440 sec`, 레이스 예측을 `15750 sec`로, 소스 비교 표가 총 시간을 `8357 sec`·거리를 `24207.9 m`로, 활동 요약 상단이 고도를 `↑26.07999999821186 m`로 원시값 그대로 찍는다 — 러너가 읽을 수 없는 값이고 화면마다 표기도 다르다(웰니스 화면은 `9h 5m`). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/lib/format.ts` — 파일 끝에 추가(이 파일은 다른 모듈을 import하지 않으므로 Node 테스트 러너가 그대로 읽는다. 기존 `formatDuration`/`formatPace`를 쓴다):
+  ```ts
+  /** 숫자를 소수 1자리로 정리(정수·100 이상은 정수) — 부동소수 잡음(26.07999…)을 없앤다. */
+  function roundNice(v: number): string {
+  	if (Number.isInteger(v)) return String(v);
+  	if (Math.abs(v) >= 100) return String(Math.round(v));
+  	return String(Number(v.toFixed(1)));
+  }
+  /** 단위 인지 값 표기 — 초(sec/s) 60 이상은 시:분:초, sec/km는 페이스, 1000m 이상은 km, 그 외는 roundNice. 반환 unit이 ''이면 text만 쓴다. */
+  export function formatUnitValue(v: number, unit: string | null | undefined): { text: string; unit: string } {
+  	const u = (unit ?? '').trim();
+  	if (u === 'sec' || u === 's') {
+  		return v >= 60 ? { text: formatDuration(Math.round(v)), unit: '' } : { text: roundNice(v), unit: '초' };
+  	}
+  	if (u === 'sec/km') return { text: formatPace(v), unit: '/km' };
+  	if (u === 'm' && Math.abs(v) >= 1000) return { text: (v / 1000).toFixed(2), unit: 'km' };
+  	return { text: roundNice(v), unit: u };
+  }
+  ```
+  (2) 신규 `frontend/tests/formatUnitValue.test.mjs`(기존 `frontend/tests/format.test.mjs`와 같은 방식 — `node:test`, `node:assert/strict`, `../src/lib/format.ts`에서 import) 케이스: `formatUnitValue(4500,'sec')` → `{text:'1:15:00',unit:''}`, `(8357,'sec')` → `'2:19:17'`, `(45,'sec')` → `{text:'45',unit:'초'}`, `(337,'sec/km')` → `{text:'5:37',unit:'/km'}`, `(24207.9,'m')` → `{text:'24.21',unit:'km'}`, `(26.07999999821186,'m')` → `{text:'26.1',unit:'m'}`, `(241,'ms')` → `{text:'241',unit:'ms'}`, `(277.83,'AU')` → `{text:'278',unit:'AU'}`, `(1.4234,null)` → `{text:'1.4',unit:''}`, `(3,'')` → `{text:'3',unit:''}`.
+  (3) `frontend/src/lib/metrics.ts` — `import { formatPace } from '$lib/format';`를 `import { formatPace, formatUnitValue } from '$lib/format';`로 바꾸고, `formatMetricValue`의 마지막 줄 `return Number.isInteger(v) ? String(v) : v.toFixed(1);`을 `return formatUnitValue(v, m.unit).text;`로, `metricUnit`의 마지막 줄 `return m.unit;`을 `return m.numeric_value == null ? m.unit : formatUnitValue(m.numeric_value, m.unit).unit;`로 교체(페이스·json 분기는 그대로).
+  (4) `frontend/src/routes/library/metrics/+page.svelte` — 스크립트 import에 `import { formatUnitValue } from '$lib/format';` 추가. 기존 `formatValue(m)` 함수(값이 null이면 '—', 문자열이면 그대로, 숫자면 정수/소수1자리)를 삭제하고 아래로 교체:
+  ```ts
+  	function displayValue(m: MetricBrowserEntry): { text: string; unit: string } {
+  		const v = m.value;
+  		if (v == null) return { text: '—', unit: '' };
+  		if (typeof v === 'string') return { text: v, unit: m.unit ?? '' };
+  		return formatUnitValue(Number(v), m.unit);
+  	}
+  ```
+  카드 마크업의 값 줄 `<span class="font-mono text-lg font-semibold leading-none">{formatValue(m)}{#if m.unit}<span …>{m.unit}</span>{/if}</span>`을 `{@const fv = displayValue(m)}`를 카드 `<a …>` 바로 안쪽 첫 줄에 두고 `{fv.text}{#if fv.unit}<span class="ml-0.5 text-xs font-normal text-fg-muted">{fv.unit}</span>{/if}`로 바꾼다(그 밖의 마크업은 건드리지 않는다).
+  (5) `frontend/src/lib/components/ProviderComparison.svelte` — `import { formatUnitValue } from '$lib/format';` 추가. `cellDisplayValue`의 숫자 분기에서 페이스(`sec/km`) 처리 뒤 마지막 `return Number.isInteger(v) ? String(v) : v.toFixed(1);`을 `return formatUnitValue(v, row.unit).text;`로 교체. 행 이름 아래 단위 줄 `{#if row.unit && row.unit !== 'sec/km'}<span class="text-[10px] text-fg-muted">{row.unit}</span>{/if}`은 아래 헬퍼로 바꾼다(스크립트에 추가):
+  ```ts
+  	// 행 단위 표기 — 셀 값이 이미 변환돼 있으므로(초→시:분:초, m→km) 첫 유효 숫자값 기준으로 변환된 단위를 보인다.
+  	function rowUnit(row: ComparisonRow): string {
+  		if (!row.unit || row.unit === 'sec/km') return '';
+  		for (const cell of Object.values(row.values)) {
+  			if (cell.available && typeof cell.value === 'number') return formatUnitValue(cell.value, row.unit).unit;
+  		}
+  		return row.unit;
+  	}
+  ```
+  마크업은 `{#if rowUnit(row)}<span class="text-[10px] text-fg-muted">{rowUnit(row)}</span>{/if}`.
+  (6) `frontend/src/routes/library/[id]/+page.svelte` 91번째 줄 부근의 고도 표시 `{core.elevation_gain}`을 `{Math.round(core.elevation_gain as number)}`로 바꾼다(다른 부분은 그대로).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-FITNESS-CHART"], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/tests/formatUnitValue.test.mjs", "frontend/src/lib/metrics.ts", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-PROVIDER-BADGE-LAYOUT]** Provider 배지 때문에 메트릭 이름이 잘리고 소스 비교 표의 대표값 열이 화면 밖으로 밀리는 문제 — 프론트 전용, 2026-09-24 실데이터 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-PROVIDER-BADGE-LAYOUT]` 항목 필독. 현황(실데이터 스크린샷): (a) 메트릭 브라우저 카드가 이름 옆에 `RunPulse · formula_v1` 배지(폭 100px+)를 붙여 이름이 `Ch…`, `Ac…`, `Tr…`처럼 2글자만 남는다 — 어떤 메트릭인지 알 수 없다. (b) Today `MetricCell` 3개도 같은 긴 배지가 2줄로 접혀 이름을 밀어낸다. (c) 소스 비교 표는 `min-w-[480px]` + 별도 "대표값" 열이라 390px 화면에서 대표값 열이 가로 스크롤 밖에 잘려 있다 — P3의 핵심 정보("왜 이 소스가 대표값인가")가 안 보인다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/lib/provider.ts` — `providerLabel`의 시그니처를 `providerLabel(p: ProviderKey | null | undefined, compact = false): string`로 바꾸고, 함수 첫 부분(`if (!p) return '—';`) 바로 뒤에 `if (compact && p.startsWith('runpulse:')) return 'RunPulse';`를 추가한다(기존 호출부는 인자 없이 그대로 동작 — 전체 표기 `RunPulse · formula_v1`은 MetricBreakdown 패널 등에서 계속 쓴다. P3의 "공식 버전 표기"는 카드가 아니라 계산 분해 패널이 담당).
+  (2) `frontend/src/lib/components/MetricCell.svelte` — 헤더의 배지 `<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}">{providerLabel(provider)}</span>`를 `<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}" title={providerLabel(provider)}>{providerLabel(provider, true)}</span>`로, 그 옆 라벨 `<span class="text-xs text-fg-secondary">{label}</span>`을 `<span class="min-w-0 text-xs leading-4 text-fg-secondary">{label}</span>`로 바꾼다.
+  (3) `frontend/src/routes/library/metrics/+page.svelte` — 카드(`<a href="{base}/library/metrics/{m.name}" …>`) 안의 헤더 행(`<div class="flex items-start justify-between gap-1">…</div>` — 라벨 `<span class="truncate …">`과 배지)을 삭제하고, 값 줄(`<span class="font-mono text-lg …">`)을 아래 구조로 감싼다(라벨이 카드 폭 전체를 쓰고 2줄까지 보이며, 배지는 값 줄 오른쪽 아래로 이동):
+  ```svelte
+  							<span class="line-clamp-2 min-h-[2rem] text-xs leading-4 text-fg-muted">{m.label}</span>
+  							<div class="flex items-end justify-between gap-1">
+  								(여기에 기존 값 `<span class="font-mono text-lg …">…</span>` 그대로)
+  								{#if m.provider}
+  									<span
+  										class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(m.provider as ProviderKey)}"
+  										title={providerLabel(m.provider as ProviderKey)}
+  									>
+  										{providerLabel(m.provider as ProviderKey, true)}
+  									</span>
+  								{/if}
+  							</div>
+  ```
+  스파크라인(`{#if m.sparkline.length > 1}…`)은 그 아래에 그대로 둔다.
+  (4) `frontend/src/lib/components/ProviderComparison.svelte` — (i) `<table class="w-full min-w-[480px] text-sm">`에서 `min-w-[480px]`을 제거한다. (ii) 헤더의 "대표값" `<th>`(마지막 `<th class="py-2 pl-2 pr-4 …">대표값</th>`)와 각 행의 마지막 `<td class="py-2.5 pl-2 pr-4 text-right">…</td>`(대표값 배지 셀) 전체를 삭제한다. (iii) provider 헤더 배지의 `{providerLabel(provider as ProviderKey)}`를 `{providerLabel(provider as ProviderKey, true)}`로 바꾼다. (iv) provider 값 셀의 `<span class="font-mono text-sm …">{cellDisplayValue(row, provider)}</span>`을 아래로 바꿔 대표값 소스를 셀 안에서 ★로 표시한다(이유 툴팁 유지):
+  ```svelte
+  								<span
+  									class="font-mono text-sm {row.values[provider]?.available
+  										? isPrimary(row, provider) ? 'font-semibold text-fg-primary' : 'text-fg-secondary'
+  										: 'text-fg-muted'}"
+  									title={isPrimary(row, provider) && showPrimaryReason && row.primaryReason ? row.primaryReason.rule : undefined}
+  								>
+  									{#if isPrimary(row, provider) && row.values[provider]?.available}<span class="text-amber-500" aria-label="대표값">★</span>{' '}{/if}{cellDisplayValue(row, provider)}
+  								</span>
+  ```
+  (v) 표 아래 범례 영역(`<!-- 불일치 범례 -->` 위)에 항상 보이는 한 줄 `<div class="mt-2 px-4 text-xs text-fg-muted"><span class="text-amber-500">★</span> 대표값(우선 소스)</div>`를 추가한다(기존 `⚠ 소스 간 차이` 범례는 그대로).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-VALUE-FORMAT"], "kind": "code", "scope": ["frontend/src/lib/provider.ts", "frontend/src/lib/components/MetricCell.svelte", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/lib/components/ProviderComparison.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
