@@ -37,17 +37,12 @@
 		STREAM_DEFS.filter((def) => data.streams.some((p) => def.extract(p) != null))
 	);
 
-	// 표시 토글 상태 (key → boolean)
-	let checked = $state<Record<string, boolean>>({});
-
-	// 초기화: availableStreams가 바뀔 때 새로 생긴 키는 true로 설정
-	$effect(() => {
-		for (const def of availableStreams) {
-			if (!(def.key in checked)) {
-				checked[def.key] = true;
-			}
-		}
-	});
+	// 표시 토글 상태 (key → boolean) — 3-D 목업 기본값: 페이스·심박·고도 표시, 케이던스·파워 숨김.
+	// 초기값을 선언 시점에 채운다: bind:checked가 마운트 때 undefined를 false로 덮어써서, 예전처럼
+	// $effect로 나중에 true를 채우는 방식은 항상 져서 차트가 하나도 안 그려졌다(합성 데이터 스모크에서 발견).
+	let checked = $state<Record<string, boolean>>(
+		Object.fromEntries(STREAM_DEFS.map((d) => [d.key, ['pace', 'heart_rate', 'altitude_m'].includes(d.key)]))
+	);
 
 	// provider 배지 (단일 source 또는 복합)
 	const providerLabel = $derived((): string => {
@@ -156,8 +151,10 @@
 			role="group"
 			aria-label="스트림 차트 스크럽 영역"
 			style="touch-action: pan-y"
+			onpointerdown={onPointerMove}
 			onpointermove={onPointerMove}
 			onpointerleave={onPointerLeave}
+			onpointercancel={onPointerLeave}
 		>
 			<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 실제 elapsed_sec 라벨 -->
 			<div class="relative mb-1 h-5 select-none">
