@@ -1,5 +1,6 @@
 <script lang="ts">
-	// 03c-library.md 3-B — 활동 목록. sport/날짜 필터 + 페이지네이션.
+	// 03c-library.md 3-B — 활동 목록. sport/날짜/거리/검색 필터 + 페이지네이션.
+	// 모바일: 2-row 레이아웃으로 페이스·심박 항상 표시.
 	import type { ActivitiesPageData } from './+page';
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
@@ -19,8 +20,12 @@
 	let filterSport = $state('');
 	let filterFrom = $state('');
 	let filterTo = $state('');
+	let filterSearch = $state('');
+	let filterDistMin = $state('');
 	let currentPage = $state(1);
 	let loading = $state(false);
+
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 	async function loadPage(page: number, append: boolean) {
 		loading = true;
@@ -30,6 +35,8 @@
 				sport: filterSport || undefined,
 				from: filterFrom || undefined,
 				to: filterTo || undefined,
+				search: filterSearch || undefined,
+				dist_min: filterDistMin ? Number(filterDistMin) : undefined,
 				page,
 				per_page: 20
 			});
@@ -50,6 +57,11 @@
 
 	function applyFilters() {
 		loadPage(1, false);
+	}
+
+	function onSearchInput() {
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => applyFilters(), 300);
 	}
 
 	function loadMore() {
@@ -97,6 +109,28 @@
 			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
 			aria-label="종료 날짜"
 		/>
+
+		<select
+			bind:value={filterDistMin}
+			onchange={applyFilters}
+			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
+			aria-label="거리 필터"
+		>
+			<option value="">모든 거리</option>
+			<option value="5">5km+</option>
+			<option value="10">10km+</option>
+			<option value="21.1">하프(21km+)</option>
+			<option value="42.2">마라톤(42km+)</option>
+		</select>
+
+		<input
+			type="search"
+			bind:value={filterSearch}
+			oninput={onSearchInput}
+			placeholder="검색..."
+			class="min-w-[8rem] flex-1 rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary placeholder:text-fg-muted"
+			aria-label="활동 검색"
+		/>
 	</div>
 
 	<!-- 목록 -->
@@ -116,30 +150,30 @@
 				<li>
 					<a
 						href="{base}/library/{act.id}"
-						class="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 active:bg-surface-3"
+						class="flex flex-col gap-0.5 px-4 py-3 hover:bg-surface-2 active:bg-surface-3"
 					>
-						<span class="w-24 shrink-0 text-xs text-fg-muted">{formatDate(act.start_time)}</span>
-						<span class="min-w-0 flex-1 truncate text-sm font-medium">{act.name}</span>
-						<span class="text-sm text-fg-secondary">
-							{act.distance_m != null ? formatDistance(act.distance_m) : '—'}
-						</span>
-						<span class="text-sm text-fg-secondary">
-							{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}
-						</span>
-						<span class="hidden text-sm text-fg-secondary sm:inline">
-							{act.avg_pace_sec_km != null ? formatPace(act.avg_pace_sec_km) : '—'}
-						</span>
-						<span class="hidden text-xs text-fg-muted sm:inline">
-							{act.avg_hr != null ? `HR ${act.avg_hr}` : ''}
-						</span>
-						<span
-							class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-								act.source as ProviderKey
-							)}"
-						>
-							{providerLabel(act.source as ProviderKey)}
-						</span>
-						<span class="text-fg-muted">›</span>
+						<!-- 이름 + 뱃지 + 화살표 -->
+						<div class="flex items-center gap-2">
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">{act.name}</span>
+							<span
+								class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+									act.source as ProviderKey
+								)}"
+							>
+								{providerLabel(act.source as ProviderKey)}
+							</span>
+							<span class="shrink-0 text-fg-muted">›</span>
+						</div>
+						<!-- 날짜 + 핵심 스탯 (모바일 포함 항상 표시) -->
+						<div class="flex flex-wrap items-center gap-x-3 gap-y-0 text-xs text-fg-secondary">
+							<span class="text-fg-muted">{formatDate(act.start_time)}</span>
+							<span>{act.distance_m != null ? formatDistance(act.distance_m) : '—'}</span>
+							<span>{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
+							<span>{act.avg_pace_sec_km != null ? formatPace(act.avg_pace_sec_km) : '—'}</span>
+							{#if act.avg_hr != null}
+								<span>HR {act.avg_hr}</span>
+							{/if}
+						</div>
 					</a>
 				</li>
 			{/each}

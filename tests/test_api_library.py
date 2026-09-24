@@ -68,6 +68,31 @@ def test_list_activities_sport_filter(mini_app):
     assert body["data"]["activities"][0]["activity_type"] == "running"
 
 
+def test_list_activities_search_filter(mini_app):
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities?search=아침")
+    body = res.get_json()
+    assert body["data"]["total"] == 1
+    assert "아침" in body["data"]["activities"][0]["name"]
+
+
+def test_list_activities_dist_min_filter(mini_app):
+    client, _ = mini_app
+    # dist_min=15km → 15000m: 아침 러닝(10km) 제외, 자전거(20km) 포함
+    res = client.get("/api/v1/library/activities?dist_min=15")
+    body = res.get_json()
+    assert body["data"]["total"] == 1
+    assert body["data"]["activities"][0]["activity_type"] == "cycling"
+
+
+def test_list_activities_dist_min_invalid(mini_app):
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities?dist_min=abc")
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["error"]["code"] == "INVALID_PARAM"
+
+
 def test_get_activity_detail(mini_app):
     client, act_id = mini_app
     res = client.get(f"/api/v1/library/activities/{act_id}")
