@@ -1567,7 +1567,17 @@ DONE으로 옮긴다.
   오는 형제가 위에 그려짐). (9) `frontend/src/lib/components/EvidenceQuote.svelte` 상단 주석의
   "7a엔 열어줄 MetricBreakdown 패널이 없어…" 문장을 "onOpen이 없으면(드릴 대상이 없는 근거 —
   metric_store 행이 없는 지표 등) 비대화형 span으로 렌더링한다"로 현행화(동작 변경 없음).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-NEXT-SESSION"], "kind": "code", "scope": ["src/services/_narrative.py", "src/services/today_service.py", "tests/test_today_service.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/evidence.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/lib/components/EvidenceQuote.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 스펙대로 구현됨 — 이탈·버그 없음(비용 $1.65, 54턴). scope 9개 파일을 전부 명세대로
+  수정. 확인한 것: `attach_drill()`이 `status["date"]`를 쓰는데 과거 달 조회 시에도 그 달 말일로
+  확정된 값이라(`get_today_status(conn, date)`) 칩 값과 드릴 대상 날짜가 일치, `sleep_score`/
+  `monthly_distance`는 metric_store 행이 없어 `drill=None`(비대화형 칩)이라 잘못된 패널이 뜨지 않음.
+  `MetricBreakdown`의 `$effect` 재조회로 "입력 메트릭" 드릴-인 시 내용이 안 바뀌던 기존 버그 해결.
+  사소한 흠 2건(수정 안 함): 테스트 이름 `test_narrative_ctl_drill_none_when_no_row`가 실제로는
+  monthly_distance를 검증해 `test_monthly_distance_always_drill_none`과 중복, `get_today_briefing`의
+  `attach_drill` import가 함수 내부(파일 나머지 관례와는 일치). 워크트리 `pytest tests/` 1454 passed/
+  238 skipped + `check_data_consistency.py` 0 오류 + `check_docs.py` 0 오류 + `npm run check`(0 errors)/
+  `build` 통과. 브라우저 육안 확인 못함(합성 데이터 서버 없음).
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-NEXT-SESSION"], "kind": "code", "scope": ["src/services/_narrative.py", "src/services/today_service.py", "tests/test_today_service.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/evidence.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/lib/components/EvidenceQuote.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 
 - **[P7-IMPL-TODAY-MILESTONES-PANEL]** `03a-today.md` 1-D — Today L2 "전체 마일스톤" 패널 + PB
   활동 링크. 프론트 전용(`GET /api/v1/today/milestones`는 이미 병합돼 있으나 프론트에서 미사용),
