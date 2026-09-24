@@ -14,7 +14,8 @@
 	import { readinessStatus, tsbStatus } from '$lib/status';
 	import { formatDistance, formatDuration, formatRelativeDay } from '$lib/format';
 	import { base } from '$app/paths';
-	import type { BriefingEvidence, EvidenceQuoteProps, PainLevel, ProviderKey } from '$lib/types';
+	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import type { PainLevel, ProviderKey } from '$lib/types';
 
 	let { data }: { data: TodayPageData } = $props();
 
@@ -22,23 +23,33 @@
 	let savingCheckin = $state(false);
 	let checkinError = $state<string | null>(null);
 
-	// MetricBreakdown 드릴다운 스택 — slug 목록, 마지막 항목이 현재 표시 패널.
+	// MetricBreakdown 드릴다운 스택 — DrillTarget 목록, 마지막 항목이 현재 표시 패널.
 	// onDrillInput으로 push, onClose로 전체 비움.
-	let drillStack = $state<string[]>([]);
+	let drillStack = $state<DrillTarget[]>([]);
 	let showMonthNarrative = $state(false);
 
-	const drillSlug = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+	const todayDate = $derived(data.today?.status.date ?? '');
+	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 
 	function handleDrill(payload: { slug: string; provider: ProviderKey | null }) {
-		drillStack = [...drillStack, payload.slug];
+		drillStack = [...drillStack, { slug: payload.slug, scopeType: 'daily', scopeId: todayDate }];
 	}
 
 	function handleDrillInput(slug: string) {
-		drillStack = [...drillStack, slug];
+		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+		drillStack = [...drillStack, {
+			slug,
+			scopeType: top?.scopeType ?? 'daily',
+			scopeId: top?.scopeId ?? todayDate
+		}];
 	}
 
 	function closeDrill() {
 		drillStack = [];
+	}
+
+	function openEvidence(t: DrillTarget) {
+		drillStack = [...drillStack, t];
 	}
 
 	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
@@ -51,13 +62,6 @@
 		} finally {
 			savingCheckin = false;
 		}
-	}
-
-	// today_service.get_today_briefing()의 evidence 형태({type,metric,value,label})를
-	// EvidenceQuoteProps({type, metric:{slug,value}, label})로 변환 — 04 컴포넌트 스펙과
-	// 실제 서비스 응답 형태가 달라서 필요한 프론트 전용 매핑(백엔드는 안 건드림).
-	function adaptEvidence(ev: BriefingEvidence): EvidenceQuoteProps {
-		return { type: 'metric', label: ev.label, metric: { slug: ev.metric, value: ev.value } };
 	}
 
 	// 마일스톤 타입별 아이콘
@@ -106,7 +110,7 @@
 			<RecommendationCard
 				recommendation={{
 					body: briefing.headline,
-					evidence: briefing.evidence.map(adaptEvidence)
+					evidence: briefing.evidence.map((ev) => adaptEvidence(ev, openEvidence))
 				}}
 				actions={[{ label: 'Coach에게 더 묻기 →', href: `${base}/coach`, variant: 'ghost' }]}
 			/>
@@ -185,7 +189,7 @@
 				{#if narrative.evidence.length > 0}
 					<div class="flex flex-wrap gap-2">
 						{#each narrative.evidence as ev}
-							<EvidenceQuote {...adaptEvidence(ev)} />
+							<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />
 						{/each}
 					</div>
 				{/if}
@@ -240,11 +244,11 @@
 	</div>
 
 	<!-- MetricBreakdown 드릴다운 패널 -->
-	{#if drillSlug}
+	{#if drillTop}
 		<MetricBreakdown
-			slug={drillSlug}
-			scopeType="daily"
-			scopeId={status.date}
+			slug={drillTop.slug}
+			scopeType={drillTop.scopeType}
+			scopeId={drillTop.scopeId}
 			onClose={closeDrill}
 			onDrillInput={handleDrillInput}
 		/>

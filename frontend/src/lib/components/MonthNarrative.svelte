@@ -8,7 +8,9 @@
 	import { getMetricTrend } from '$lib/api/metrics';
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
-	import type { BriefingEvidence, EvidenceQuoteProps, NarrativeResponse } from '$lib/types';
+	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import type { NarrativeResponse } from '$lib/types';
 
 	let { onClose }: { onClose: () => void } = $props();
 
@@ -19,6 +21,22 @@
 	let narrativeData = $state<NarrativeResponse | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+
+	let drillStack = $state<DrillTarget[]>([]);
+	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+
+	function openEvidence(t: DrillTarget) {
+		drillStack = [...drillStack, t];
+	}
+
+	function handleDrillInput(slug: string) {
+		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+		drillStack = [...drillStack, {
+			slug,
+			scopeType: top?.scopeType ?? 'daily',
+			scopeId: top?.scopeId ?? ''
+		}];
+	}
 
 	let showDualSparkline = $state(false);
 	let ctlPoints = $state<(number | null)[]>([]);
@@ -95,10 +113,6 @@
 		loadNarrative();
 	}
 
-	function adaptEvidence(ev: BriefingEvidence): EvidenceQuoteProps {
-		return { type: 'metric', label: ev.label, metric: { slug: ev.metric, value: ev.value } };
-	}
-
 	const milestoneIcon: Record<string, string> = {
 		distance_threshold: '🎯',
 		pb: '🏃',
@@ -156,7 +170,7 @@
 				{#if narrativeData.evidence.length > 0}
 					<div class="flex flex-wrap gap-2">
 						{#each narrativeData.evidence as ev}
-							<EvidenceQuote {...adaptEvidence(ev)} />
+							<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />
 						{/each}
 					</div>
 				{/if}
@@ -236,3 +250,13 @@
 		</div>
 	</div>
 </div>
+
+{#if drillTop}
+	<MetricBreakdown
+		slug={drillTop.slug}
+		scopeType={drillTop.scopeType}
+		scopeId={drillTop.scopeId}
+		onClose={() => { drillStack = []; }}
+		onDrillInput={handleDrillInput}
+	/>
+{/if}

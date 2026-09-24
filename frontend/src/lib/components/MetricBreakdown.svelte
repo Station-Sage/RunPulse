@@ -1,7 +1,6 @@
 <script lang="ts">
 	// C3 축소판 — 04-component-catalog.md 기준이나 실제 API 응답에 맞춰 축소.
 	// children: 평평한 목록(재귀 없음), inputs: 드릴다운 가능(onDrillInput 콜백).
-	import { onMount } from 'svelte';
 	import { getMetricBreakdown } from '$lib/api/metrics';
 	import { providerLabel } from '$lib/provider';
 	import type { MetricBreakdownData } from '$lib/types';
@@ -24,14 +23,20 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	onMount(async () => {
-		try {
-			data = await getMetricBreakdown(slug, scopeType, scopeId);
-		} catch (e) {
-			error = e instanceof Error ? e.message : '계산 데이터를 불러올 수 없습니다.';
-		} finally {
-			loading = false;
-		}
+	$effect(() => {
+		const s = slug, t = scopeType, i = scopeId;
+		let cancelled = false;
+		loading = true;
+		error = null;
+		data = null;
+		getMetricBreakdown(s, t, i).then((d) => {
+			if (!cancelled) data = d;
+		}).catch((e) => {
+			if (!cancelled) error = e instanceof Error ? e.message : '계산 데이터를 불러올 수 없습니다.';
+		}).finally(() => {
+			if (!cancelled) loading = false;
+		});
+		return () => { cancelled = true; };
 	});
 </script>
 

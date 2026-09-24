@@ -1,6 +1,6 @@
 <script lang="ts">
 	// C1 — 04-component-catalog.md. AI 결론에 인라인으로 삽입되는 근거 칩.
-	// 7a엔 열어줄 MetricBreakdown 패널이 없어(07 로드맵 7b 몫) onOpen이 없으면
+	// onOpen이 없으면(드릴 대상이 없는 근거 — metric_store 행이 없는 지표 등)
 	// 비대화형 span으로 렌더링한다 — 누르면 아무 일도 안 일어나는 가짜 버튼을 피한다.
 	import type { EvidenceQuoteProps } from '$lib/types';
 
