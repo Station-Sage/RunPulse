@@ -11,7 +11,7 @@
 		value,
 		unit,
 		provider,
-		status = 'neutral',
+		status,
 		trend,
 		size = 'md',
 		drillable = true,
@@ -19,18 +19,23 @@
 		onDrill
 	}: MetricCellProps = $props();
 
+	// status가 없으면(계산된 해석이 없는 메트릭) 상태 줄을 그리지 않는다 — 근거 없이 "보통"을 찍지 않는다(P1).
 	const statusClass = $derived(
-		{
-			excellent: 'text-semantic-green',
-			good: 'text-semantic-teal',
-			neutral: 'text-fg-primary',
-			caution: 'text-semantic-amber',
-			poor: 'text-semantic-red'
-		}[status]
+		status
+			? {
+					excellent: 'text-semantic-green',
+					good: 'text-semantic-teal',
+					neutral: 'text-fg-primary',
+					caution: 'text-semantic-amber',
+					poor: 'text-semantic-red'
+				}[status]
+			: ''
 	);
 
 	const statusLabel = $derived(
-		{ excellent: '매우 좋음', good: '양호', neutral: '보통', caution: '주의', poor: '나쁨' }[status]
+		status
+			? { excellent: '매우 좋음', good: '양호', neutral: '보통', caution: '주의', poor: '나쁨' }[status]
+			: ''
 	);
 
 	const sizeClass = $derived({ sm: 'p-2 text-sm', md: 'p-3', lg: 'p-4 text-lg' }[size]);
@@ -69,9 +74,9 @@
 		{/if}
 	</div>
 
-	{#if !unavailable}
+	{#if !unavailable && (status || trend)}
 		<div class="flex items-center gap-2 text-xs {statusClass}">
-			<span aria-hidden="true">●</span>{statusLabel}
+			{#if status}<span aria-hidden="true">●</span>{statusLabel}{/if}
 			{#if trend}
 				<span class="text-fg-secondary">
 					{trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'}
