@@ -37,7 +37,11 @@ SEMANTIC_GROUPS 한정, 기간 집계는 "최신값" 단일 규칙)도 완료·�
 196행이 Phase 7c로 명시 배정해둔 걸 확인해 앞당기지 않기로 함. 2026-09-24
 Today 화면을 03a 1-A와 대조한 결과 L2의 "다음 세션 현황"(Plan "보기" 흡수)·L3 링크
 블록이 아직 없음을 발견 — `P7-IMPL-TODAY-NEXT-SESSION`(프론트 전용, 기존 API
-재사용)을 조사 후 AUTOPILOT QUEUE 등록·실행 대기 중. 남은 건 조정 수락
+재사용)을 구현·병합(2026-09-24, 리뷰 수정 0건). 이어서 같은 대조에서 (a) 모든 근거 칩이 죽어
+있음(`onOpen` 미연결) + `MetricBreakdown`이 slug 변경에 재조회 안 하는 실버그(입력 메트릭
+드릴-인이 사실상 무동작), (b) 1-D 전체 마일스톤 패널 미구현을 발견 —
+`P7-IMPL-EVIDENCE-DRILL`·`P7-IMPL-TODAY-MILESTONES-PANEL`을 AUTOPILOT QUEUE에 등록
+(둘 다 `DECISIONS.md`에 설계 근거, 실행 대기 중). 남은 건 조정 수락
 영속화(`P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT`/LATER, Phase 7c 예정), D4,
 상단 3선 메뉴 UI(Phase 7d).**
 REVIEW-03(Today as Gateway·모바일 IA)을
@@ -1494,7 +1498,105 @@ DONE으로 옮긴다.
   hover:text-fg-primary">Library에서 전체 탐색 →</a></section>`. 백엔드·테스트 파일은
   건드리지 않음(프론트 전용 유닛 — 검증은 `npm run check`/`build`, 이 저장소 프론트엔드
   엔 테스트 러너 없음).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 스펙대로 구현됨 — 버그 없음. 큐 프롬프트에 "명세 그대로 구현" 상시
+  규칙을 넣은 뒤 첫 유닛이었고 scope 6개 파일을 전부 명세대로 수정(비용 $1.07, 지난 유닛의
+  스펙 이탈 재발 없음). 사소한 편차 1건: 명세는 카드를 L2 `<section>` 안에 두라고 했는데
+  `</section>` 바로 뒤 형제 `<div>`로 배치됨(구분선이 하나 더 생겨 별도 섹션처럼 보일 뿐
+  기능 영향 없음, 수정 안 함). `WORKOUT_LABELS` 중복 제거 리팩터는 잔존 사용처 없음 확인.
+  전체 `pytest tests/`(1449 passed, 238 skipped) + `check_data_consistency.py`(0 오류) +
+  `check_docs.py`(0 오류, 경고 64개=기존과 동일) + `npm run check`(0 errors)/`build` 통과.
+  브라우저 렌더링 육안 확인은 못함(실 DB 접근 불가·합성 데이터 서버 미기동).
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-EVIDENCE-DRILL]** `03g-common-patterns.md` 7-3 — 근거 칩(EvidenceQuote) 탭 → 계산 분해
+  패널(현재 앱의 모든 근거 칩이 비대화형 span으로 죽어 있음) + MetricBreakdown이 slug 변경 시
+  재조회하지 않는 실버그 수정. 2026-09-24 코드 대조로 발견, 설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-EVIDENCE-DRILL]` 항목 필독(백엔드가 근거마다 `drill` 참조를 붙여 실제로 드릴 가능한
+  칩만 탭 가능하게 함 — `monthly_distance`·`sleep_score`는 `metric_store` 행이 없어 비대화형 유지).
+  **구현 — 백엔드**: (1) `src/services/_narrative.py`에 추가: `def attach_drill(conn, evidence:
+  list[dict], scope_date: str) -> list[dict]` — 함수 안에서 `from src.utils.db_helpers import
+  get_primary_metric`, 각 `ev`에 대해 `drillable = ev.get("type") == "metric" and
+  get_primary_metric(conn, "daily", scope_date, ev["metric"]) is not None`, `ev["drill"] =
+  {"scope_type": "daily", "scope_id": scope_date} if drillable else None`, 마지막에 `return
+  evidence`(같은 리스트를 제자리 수정 후 반환). (2) `src/services/today_service.py`(현재 286줄 —
+  300줄 캡 때문에 헬퍼를 `_narrative.py`에 둔 것, 이 파일엔 아래 3줄 안팎만 추가):
+  `get_today_briefing()` 안에서 `return` 직전 `from src.services._narrative import attach_drill`
+  후 `attach_drill(conn, evidence, status["date"])`, `get_today_narrative()`의 기존
+  `from src.services._narrative import (build_evidence, ...)` 튜플에 `attach_drill`을 추가하고
+  `evidence = build_evidence(...)` 바로 다음 줄에 `attach_drill(conn, evidence, status["date"])`.
+  (scope_date를 `date`가 아니라 `status["date"]`로 쓰는 이유: 근거 수치가 `get_today_status()`가 그
+  날짜 행에서 읽은 값이라서.) (3) `tests/test_today_service.py`에 추가(기존 픽스처·시딩 패턴 재사용,
+  특히 과거 달 CTL을 시딩하는 기존 테스트 참조): 브리핑 evidence의 `tsb` 항목이 `metric_store` daily
+  `tsb` 대표 행이 있을 때 `drill == {"scope_type": "daily", "scope_id": <그 날짜>}`인지,
+  내러티브 evidence의 `ctl`은 daily `ctl` 행이 있으면 drill dict / 없으면 `None`, `monthly_distance`
+  는 항상 `drill is None`인지.
+  **구현 — 프론트**: (4) `frontend/src/lib/types/index.ts` — `export interface EvidenceDrill {
+  scope_type: string; scope_id: string }` 추가하고 `BriefingEvidence`에 `drill?: EvidenceDrill |
+  null` 필드 추가. (5) 신규 `frontend/src/lib/evidence.ts`: `export interface DrillTarget { slug:
+  string; scopeType: string; scopeId: string }` 와 `export function adaptEvidence(ev:
+  BriefingEvidence, onDrill?: (t: DrillTarget) => void): EvidenceQuoteProps` — 기본 `{ type:
+  'metric', label: ev.label, metric: { slug: ev.metric, value: ev.value } }`, `ev.drill && onDrill`
+  이면 `onOpen: () => onDrill({ slug: ev.metric, scopeType: ev.drill.scope_type, scopeId:
+  ev.drill.scope_id })`를 붙여 반환(drill 없으면 onOpen을 붙이지 않아 칩은 비대화형 유지).
+  (6) `frontend/src/lib/components/MetricBreakdown.svelte` — `onMount` 한 번 조회를 `$effect`로
+  교체: `$effect(() => { const s = slug, t = scopeType, i = scopeId; let cancelled = false;
+  loading = true; error = null; data = null; getMetricBreakdown(s, t, i).then((d) => { if
+  (!cancelled) data = d; }).catch((e) => { if (!cancelled) error = e instanceof Error ? e.message :
+  '계산 데이터를 불러올 수 없습니다.'; }).finally(() => { if (!cancelled) loading = false; }); return
+  () => { cancelled = true; }; });` — 쓰이지 않게 된 `onMount` import 제거. (7)
+  `frontend/src/routes/today/+page.svelte` — 로컬 `adaptEvidence` 함수 삭제 후 `import {
+  adaptEvidence, type DrillTarget } from '$lib/evidence'`; `drillStack`을 `$state<DrillTarget[]>
+  ([])`로 바꾸고 `const todayDate = $derived(data.today?.status.date ?? '')`, `const drillTop =
+  $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null)`(기존 `drillSlug`
+  대체); `handleDrill(payload)`는 `drillStack = [...drillStack, { slug: payload.slug, scopeType:
+  'daily', scopeId: todayDate }]`; `handleDrillInput(slug)`는 현재 top이 있으면 그 scopeType/
+  scopeId를 이어받아 push(없으면 daily/todayDate); 신규 `function openEvidence(t: DrillTarget)
+  { drillStack = [...drillStack, t]; }`; 호출부 2곳을 `briefing.evidence.map((ev) =>
+  adaptEvidence(ev, openEvidence))`, `<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />`로
+  교체; 파일 하단 `{#if drillSlug}<MetricBreakdown slug={drillSlug} scopeType="daily"
+  scopeId={status.date} .../>{/if}`를 `{#if drillTop}<MetricBreakdown slug={drillTop.slug}
+  scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={closeDrill}
+  onDrillInput={handleDrillInput} />{/if}`로 교체; 쓰이지 않게 된 `BriefingEvidence`,
+  `EvidenceQuoteProps` 타입 import 정리. (8) `frontend/src/lib/components/MonthNarrative.svelte` —
+  로컬 `adaptEvidence` 삭제 후 `$lib/evidence`에서 import, `MetricBreakdown` import, 로컬
+  `let drillStack = $state<DrillTarget[]>([])`, `drillTop` derived, `openEvidence`(push),
+  `handleDrillInput`(top의 scope 이어받아 push), 칩 렌더링을 `adaptEvidence(ev, openEvidence)`로
+  교체, 컴포넌트 루트 `<div>` 뒤 형제 노드로 `{#if drillTop}<MetricBreakdown slug={drillTop.slug}
+  scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }}
+  onDrillInput={handleDrillInput} />{/if}` 추가(MetricBreakdown 자체가 `fixed inset-0 z-50`라 뒤에
+  오는 형제가 위에 그려짐). (9) `frontend/src/lib/components/EvidenceQuote.svelte` 상단 주석의
+  "7a엔 열어줄 MetricBreakdown 패널이 없어…" 문장을 "onOpen이 없으면(드릴 대상이 없는 근거 —
+  metric_store 행이 없는 지표 등) 비대화형 span으로 렌더링한다"로 현행화(동작 변경 없음).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-NEXT-SESSION"], "kind": "code", "scope": ["src/services/_narrative.py", "src/services/today_service.py", "tests/test_today_service.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/evidence.ts", "frontend/src/lib/components/MetricBreakdown.svelte", "frontend/src/lib/components/MonthNarrative.svelte", "frontend/src/lib/components/EvidenceQuote.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["python3 -m pytest tests/test_today_service.py tests/test_api_today.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+
+- **[P7-IMPL-TODAY-MILESTONES-PANEL]** `03a-today.md` 1-D — Today L2 "전체 마일스톤" 패널 + PB
+  활동 링크. 프론트 전용(`GET /api/v1/today/milestones`는 이미 병합돼 있으나 프론트에서 미사용),
+  2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-TODAY-MILESTONES-PANEL]` 항목
+  필독. **구현**: (1) `frontend/src/lib/api/today.ts`에 추가 — `import type`에 `MilestoneEntry`
+  포함, `export function getTodayMilestones(limit = 50): Promise<MilestoneEntry[]> { return
+  apiFetch<{ milestones: MilestoneEntry[] }>(`/today/milestones?limit=${limit}`).then((r) =>
+  r.milestones); }`. (2) 신규 `frontend/src/lib/components/MilestonesPanel.svelte` — props
+  `{ onClose }: { onClose: () => void }`, `onMount`에서 `getTodayMilestones()` 호출(상태
+  `loading`/`error`/`items`), 오버레이 마크업은 `MonthNarrative.svelte`와 동일 패턴(루트
+  `<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true">`, 배경
+  `<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기">`, 시트
+  `<div class="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-surface-1
+  shadow-lg">`), 헤더는 `<h2 class="font-medium">전체 마일스톤</h2>` + `✕` 닫기 버튼(MonthNarrative의
+  닫기 버튼과 같은 클래스), 본문 `overflow-y-auto p-4 flex flex-col gap-3`: 로딩 "불러오는 중…",
+  에러 "마일스톤을 불러올 수 없습니다.", 빈 목록 "아직 마일스톤이 없습니다.". 각 항목은 아이콘
+  (`distance_threshold`→🎯, `pb`→🏃, `metric_recompute`→🔄, 그 외 🔖) + `m.date` + `m.title`, 그
+  아래 `m.detail`이 있으면 `text-xs text-fg-muted`로 표시(재계산의 "formula_v2 적용 — CTL 66→68"
+  같은 문구는 백엔드가 이미 `detail`에 채움 — 프론트에서 old/new 값으로 조립하지 말 것),
+  `m.activity_id`가 있으면 항목 전체를 `<a href="{base}/library/{m.activity_id}">`로 감싸고
+  오른쪽에 `›`(`base`는 `$app/paths`). (3) `frontend/src/routes/today/+page.svelte` —
+  `MilestonesPanel` import, `let showMilestones = $state(false)`, L2 마일스톤 목록(`narrative
+  .milestones`)의 각 행을 `m.activity_id`가 있으면 `<a href="{base}/library/{m.activity_id}">`로
+  감싸고(없으면 기존 `<div>` 그대로), 목록 바로 아래에 `<button class="self-start text-sm
+  text-fg-secondary hover:text-fg-primary" onclick={() => { showMilestones = true; }}>전체
+  마일스톤 →</button>`(목록이 비어 있지 않을 때만), 기존 `MonthNarrative` 패널 렌더링 옆에
+  `{#if showMilestones}<MilestonesPanel onClose={() => { showMilestones = false; }} />{/if}`
+  추가. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-EVIDENCE-DRILL"], "kind": "code", "scope": ["frontend/src/lib/api/today.ts", "frontend/src/lib/components/MilestonesPanel.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 
