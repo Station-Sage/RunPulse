@@ -2,7 +2,7 @@
 // streamAxis.ts 순수 함수 단위 테스트 — 실행: npm run test:unit (Node 내장 test runner)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { indexAtFraction, axisTicks, formatElapsed } from '../src/lib/streamAxis.ts';
+import { indexAtFraction, axisTicks, formatElapsed, streamSeconds } from '../src/lib/streamAxis.ts';
 
 // ── indexAtFraction ──────────────────────────────────────────────────────────
 
@@ -98,4 +98,64 @@ test('axisTicks: null elapsed_sec는 이웃 non-null 값으로 대체', () => {
 	const elapsed = [null, null, 300, null, null];
 	const ticks = axisTicks(elapsed, 3);
 	assert.equal(ticks[0].label, '5m');
+});
+
+// ── streamSeconds ─────────────────────────────────────────────────────────────
+
+test('streamSeconds: 빈 배열 → []', () => {
+	assert.deepEqual(streamSeconds([], 3600), []);
+});
+
+test('streamSeconds: totalSec=0 → null을 0으로 대체', () => {
+	assert.deepEqual(streamSeconds([0, 60, null], 0), [0, 60, 0]);
+});
+
+test('streamSeconds: n=1 → [0]', () => {
+	assert.deepEqual(streamSeconds([500], 3600), [0]);
+});
+
+test('streamSeconds: 유효한 elapsed_sec(lastSec >= 90% totalSec) → 원본 반환', () => {
+	// totalSec=3600, lastSec=3300 → 3300/3600 = 91.7% ≥ 90%
+	const elapsed = [0, 1000, 2000, 3300];
+	const result = streamSeconds(elapsed, 3600);
+	assert.deepEqual(result, [0, 1000, 2000, 3300]);
+});
+
+test('streamSeconds: lastSec 정확히 90% → 원본 반환', () => {
+	const elapsed = [0, 1800, 3240]; // 3240/3600 = 90%
+	const result = streamSeconds(elapsed, 3600);
+	assert.deepEqual(result, [0, 1800, 3240]);
+});
+
+test('streamSeconds: lastSec < 90% → 등간격 환산', () => {
+	// Garmin downsample 케이스: elapsed=[0,1,2,...,1691], totalSec=8357
+	// 1691/8357 ≈ 20.2% < 90% → 등간격 재환산
+	const n = 1692;
+	const elapsed = Array.from({ length: n }, (_, i) => i); // 0..1691
+	const totalSec = 8357;
+	const result = streamSeconds(elapsed, totalSec);
+	assert.equal(result.length, n);
+	assert.equal(result[0], 0);
+	assert.equal(result[n - 1], totalSec);
+	// 중간 값이 선형 보간인지 확인
+	const mid = result[Math.round((n - 1) / 2)];
+	assert.ok(mid > totalSec * 0.4 && mid < totalSec * 0.6, `중간값 ${mid}이 전체의 40~60%여야 함`);
+});
+
+test('streamSeconds: lastSec < 90% → null은 0으로 대체 후 환산', () => {
+	// null이 섞인 짧은 배열
+	const elapsed = [null, null, 2]; // lastSec=2, totalSec=100 → 재환산
+	const result = streamSeconds(elapsed, 100);
+	assert.equal(result.length, 3);
+	assert.equal(result[0], 0);
+	assert.equal(result[2], 100);
+});
+
+test('streamSeconds: 재환산 결과는 단조증가', () => {
+	const n = 100;
+	const elapsed = Array.from({ length: n }, (_, i) => i); // lastSec=99, totalSec=3600 → 재환산
+	const result = streamSeconds(elapsed, 3600);
+	for (let i = 1; i < result.length; i++) {
+		assert.ok(result[i] >= result[i - 1], `단조증가 위반: [${i-1}]=${result[i-1]}, [${i}]=${result[i]}`);
+	}
 });
