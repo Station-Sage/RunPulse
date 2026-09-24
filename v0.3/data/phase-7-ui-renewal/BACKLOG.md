@@ -1774,7 +1774,7 @@ DONE으로 옮긴다.
   {/if}
   ```
   백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-TODAY-MILESTONES-PANEL"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.ts", "frontend/src/routes/library/[id]/laps/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-MILESTONES-PANEL"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.ts", "frontend/src/routes/library/[id]/laps/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-ACTIVITY-METRICS-TAB]** `03c-library.md` 3-C "메트릭" 탭 신설 — 프론트 전용(`activity.metrics_by_category`가
   이미 카테고리별 전체 대표 메트릭 + 단위·설명·provider를 내려줌, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의
   `[P7-IMPL-ACTIVITY-METRICS-TAB]` 항목 필독). 각 행을 누르면 계산 분해(`MetricBreakdown`, `scopeType='activity'`)가 열려
