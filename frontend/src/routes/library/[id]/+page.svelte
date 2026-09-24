@@ -23,8 +23,6 @@
 
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
 	const zoneData = $derived(hrZoneShares(metricsByCategory));
-	const hasGps = $derived((streams ?? []).some((p) => p.latitude != null && Number.isFinite(p.latitude as number)));
-	let mapMode = $state<'pace' | 'hr'>('pace');
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
 	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
@@ -102,6 +100,8 @@
 			{/if}
 		</div>
 
+		<RouteMap streams={streams ?? []} />
+
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}
 			<section class="flex flex-col gap-2">
@@ -120,25 +120,6 @@
 						/>
 					{/each}
 				</div>
-			</section>
-		{/if}
-
-		{#if hasGps}
-			<section class="flex flex-col gap-2">
-				<div class="flex items-center justify-between">
-					<p class="text-xs uppercase tracking-wide text-fg-muted">경로 지도</p>
-					<div class="flex gap-1">
-						<button
-							class="rounded px-2 py-0.5 text-[10px] {mapMode === 'pace' ? 'bg-surface-3 text-fg-primary' : 'text-fg-secondary'}"
-							onclick={() => (mapMode = 'pace')}
-						>페이스</button>
-						<button
-							class="rounded px-2 py-0.5 text-[10px] {mapMode === 'hr' ? 'bg-surface-3 text-fg-primary' : 'text-fg-secondary'}"
-							onclick={() => (mapMode = 'hr')}
-						>심박</button>
-					</div>
-				</div>
-				<RouteMap {streams} mode={mapMode} />
 			</section>
 		{/if}
 
