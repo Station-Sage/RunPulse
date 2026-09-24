@@ -11,8 +11,10 @@ export function getTodayNarrative(year?: number, month?: number): Promise<Narrat
 	return apiFetch<NarrativeResponse>(`/today/narrative${params}`);
 }
 
-export function getTodayMilestones(limit = 50): Promise<{ milestones: MilestoneEntry[] }> {
-	return apiFetch<{ milestones: MilestoneEntry[] }>(`/today/milestones?limit=${limit}`);
+export function getTodayMilestones(limit = 50): Promise<MilestoneEntry[]> {
+	return apiFetch<{ milestones: MilestoneEntry[] }>(`/today/milestones?limit=${limit}`).then(
+		(r) => r.milestones
+	);
 }
 
 export function postCheckin(payload: CheckinPayload): Promise<CheckinResult> {

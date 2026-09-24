@@ -20,8 +20,7 @@
 
 	onMount(async () => {
 		try {
-			const res = await getTodayMilestones(50);
-			milestones = res.milestones;
+			milestones = await getTodayMilestones(50);
 		} catch (e) {
 			error = e instanceof Error ? e.message : '마일스톤을 불러올 수 없습니다.';
 		} finally {
@@ -29,6 +28,22 @@
 		}
 	});
 </script>
+
+{#snippet row(m: MilestoneEntry)}
+	<span aria-hidden="true" class="shrink-0">{milestoneIcon[m.type] ?? '🔖'}</span>
+	<div class="min-w-0 flex-1">
+		<div class="flex items-baseline gap-2 text-sm">
+			<span class="shrink-0 text-fg-muted">{m.date}</span>
+			<span class="flex-1">{m.title}</span>
+		</div>
+		{#if m.detail}
+			<p class="text-xs text-fg-muted">{m.detail}</p>
+		{/if}
+	</div>
+	{#if m.activity_id != null}
+		<span class="shrink-0 text-fg-muted">›</span>
+	{/if}
+{/snippet}
 
 <div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true">
 	<!-- 배경 오버레이 -->
@@ -47,28 +62,23 @@
 		</div>
 
 		<!-- 본문 -->
-		<div class="overflow-y-auto p-4 flex flex-col gap-2">
+		<div class="flex flex-col gap-3 overflow-y-auto p-4">
 			{#if loading}
 				<p class="text-sm text-fg-muted">불러오는 중…</p>
 			{:else if error}
-				<p class="text-sm text-fg-secondary">{error}</p>
+				<p class="text-sm text-fg-secondary">마일스톤을 불러올 수 없습니다.</p>
 			{:else if milestones.length === 0}
-				<p class="text-sm text-fg-muted">마일스톤이 없습니다.</p>
+				<p class="text-sm text-fg-muted">아직 마일스톤이 없습니다.</p>
 			{:else}
 				{#each milestones as m (m.id)}
-					<div class="flex items-start gap-2 py-1.5 text-sm">
-						<span aria-hidden="true" class="shrink-0">{milestoneIcon[m.type] ?? '🔖'}</span>
-						<span class="shrink-0 text-fg-muted">{m.date}</span>
-						<span class="flex-1">{m.title}</span>
-						{#if m.type === 'pb' && m.activity_id != null}
-							<a
-								href="{base}/library/{m.activity_id}"
-								class="shrink-0 text-fg-secondary hover:text-fg-primary"
-							>→</a>
-						{:else if m.type === 'metric_recompute' && m.detail}
-							<span class="shrink-0 text-xs text-fg-muted">{m.detail}</span>
-						{/if}
-					</div>
+					{#if m.activity_id != null}
+						<a
+							href="{base}/library/{m.activity_id}"
+							class="flex items-start gap-2 rounded-lg py-1.5 hover:bg-surface-2"
+						>{@render row(m)}</a>
+					{:else}
+						<div class="flex items-start gap-2 py-1.5">{@render row(m)}</div>
+					{/if}
 				{/each}
 			{/if}
 		</div>

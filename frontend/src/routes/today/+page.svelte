@@ -200,17 +200,23 @@
 				{#if narrative.milestones.length > 0}
 					<div class="flex flex-col gap-1">
 						{#each narrative.milestones as m (m.id)}
-							<div class="flex items-start gap-2 text-sm">
-								<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
-								<span class="text-fg-muted">{m.date}</span>
-								<span class="flex-1">{m.title}</span>
-								{#if m.type === 'pb' && m.activity_id != null}
-									<a
-										href="{base}/library/{m.activity_id}"
-										class="shrink-0 text-fg-secondary hover:text-fg-primary"
-									>→</a>
-								{/if}
-							</div>
+							{#if m.activity_id != null}
+								<a
+									href="{base}/library/{m.activity_id}"
+									class="flex items-start gap-2 text-sm hover:text-fg-primary"
+								>
+									<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+									<span class="text-fg-muted">{m.date}</span>
+									<span class="flex-1">{m.title}</span>
+									<span class="shrink-0 text-fg-muted">›</span>
+								</a>
+							{:else}
+								<div class="flex items-start gap-2 text-sm">
+									<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+									<span class="text-fg-muted">{m.date}</span>
+									<span class="flex-1">{m.title}</span>
+								</div>
+							{/if}
 						{/each}
 					</div>
 					<button
