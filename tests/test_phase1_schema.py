@@ -96,7 +96,7 @@ class TestSchemaCreation:
     def test_schema_version(self, db_conn):
         ver = _get_user_version(db_conn)
         assert ver == SCHEMA_VERSION
-        assert ver == 18  # v0.3.8: milestones 테이블 신설 (Phase 7b)
+        assert ver == 19  # v0.3.9: chat_messages.evidence_json (Coach 근거)
 
     def test_activity_summaries_column_count(self, db_conn):
         cols = db_conn.execute("PRAGMA table_info(activity_summaries)").fetchall()

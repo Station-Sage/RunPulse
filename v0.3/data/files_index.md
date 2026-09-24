@@ -40,13 +40,17 @@
 
 - functions: get_archive
 
-### `coach_service.py` (129줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (157줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
-- functions: list_threads, get_thread, create_thread, add_message
+- functions: build_evidence, list_threads, get_thread, create_thread, add_message
 
 ### `dashboard_service.py` (224줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
+
+### `data_health_service.py` (32줄) — 데이터 건강 — 부하(TRIMP) 커버리지 등, 지표를 믿어도 되는지 알려주는 읽기 전용 진단.
+
+- functions: get_load_coverage
 
 ### `data_service.py` (7줄) — Phase 7d 서비스 레이어 - 데이터 소스 연결 상태·동기화 트리거 (스텁).
 
@@ -145,7 +149,7 @@
 
 - class **WorkoutClassifier**: compute
 
-### `cli.py` (122줄) — Metrics CLI 인터페이스 (보강 #10).
+### `cli.py` (131줄) — Metrics CLI 인터페이스 (보강 #10).
 
 - functions: show_metric_status, main
 
@@ -177,10 +181,10 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (692줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (737줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
-- functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all
+- functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
 
 ### `fearp.py` (73줄) — FEARP (Fitness & Environment Adjusted Running Pace) — 설계서 4-4 기준.
 
@@ -485,7 +489,7 @@
 
 - functions: build_chat_context
 
-### `chat_context_builders.py` (304줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
+### `chat_context_builders.py` (310줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
 
 - (public API 없음)
 
@@ -493,7 +497,7 @@
 
 - functions: build_checkin_context, format_checkin_line
 
-### `chat_context_format.py` (272줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
+### `chat_context_format.py` (287줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
 
 - (public API 없음)
 
@@ -1171,9 +1175,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_today.py` (148줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (153줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health
 
 ### `test_archive_service.py` (63줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
@@ -1230,6 +1234,12 @@
 
 - functions: test_every_intent_builder_runs_on_current_schema, test_today_context_reads_todays_activity, test_today_context_without_activity_is_none, test_lookup_context_reads_target_date_activities
 
+### `test_chat_context_race.py` (87줄) — test_chat_context_race.py — _add_race_context + _format_chat_context 통합 테스트.
+
+- class **TestRaceContextWithGoal**: test_race_hub_in_context, test_formatted_text_contains_form_prediction, test_formatted_text_contains_target_prediction, test_formatted_text_contains_tsb_values
+- class **TestRaceContextNoGoal**: test_race_hub_is_none_or_no_goal, test_formatted_text_no_form_prediction, test_formatted_text_no_target_prediction
+- functions: ctx_with_goal, ctx_no_goal
+
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
 - class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
@@ -1238,11 +1248,12 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
-### `test_coach_service.py` (110줄) — coach_service 테스트 — Phase 7a D5.
+### `test_coach_service.py` (170줄) — coach_service 테스트 — Phase 7a D5.
 
 - class **TestListThreads**: test_empty, test_lists_with_last_message_preview
 - class **TestGetThread**: test_not_found, test_returns_thread_and_messages
 - class **TestCreateThread**: test_creates_thread_and_stores_both_messages, test_title_truncated_for_long_message, test_does_not_leak_into_other_threads
+- class **TestEvidence**: test_create_thread_evidence_is_list, test_create_thread_evidence_first_metric, test_get_thread_assistant_has_evidence_list, test_get_thread_user_message_evidence_empty, test_get_thread_no_evidence_json_key, test_build_evidence_exception_returns_empty
 - class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
 
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
@@ -1305,6 +1316,10 @@
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
 
+### `test_data_health_service.py` (36줄) — tests/test_data_health_service.py — 부하 커버리지.
+
+- functions: test_empty, test_counts_missing_within_window_only
+
 ### `test_data_quality.py` (481줄) — 분석 파이프라인 데이터 품질 검증 테스트.
 
 - class **TestTrendsRanges**: test_weekly_distances_in_km, test_weekly_pace_range, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_exist, test_fitness_ctl_present
@@ -1333,10 +1348,10 @@
 - class **TestStreamsBatch**: test_insert_streams, test_replace_on_reinsert
 - class **TestBestEffortsBatch**: test_insert_efforts, test_upsert_effort, test_skip_no_effort_name
 
-### `test_db_setup.py` (203줄) — db_setup 테스트.
+### `test_db_setup.py` (235줄) — db_setup 테스트.
 
-- class **TestPhase1Schema**: setup_db, test_schema_version_is_18, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
-- functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert, test_canonical_view_untouched_when_definition_unchanged, test_canonical_view_recreated_when_definition_differs, test_canonical_view_survives_concurrent_create_tables
+- class **TestPhase1Schema**: setup_db, test_schema_version_is_19, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
+- functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert, test_migrate_v18_adds_evidence_json, test_canonical_view_untouched_when_definition_unchanged, test_canonical_view_recreated_when_definition_differs, test_canonical_view_survives_concurrent_create_tables
 
 ### `test_dedup.py` (189줄) — Dedup 단위 테스트.
 
@@ -1358,6 +1373,10 @@
 - class **TestRunDailyMetrics**: test_with_trimp, test_ramp_rate_parent_metric_id_links_to_ctl, test_utrs_child_parent_metric_id_links, test_cirs_child_parent_metric_id_links
 - class **TestRunForDate**: test_full_pipeline
 - class **TestClearRunpulse**: test_clears_only_runpulse
+
+### `test_engine_backfill.py` (45줄) — tests/test_engine_backfill.py — 부하(TRIMP) 누락 보정 백필.
+
+- functions: test_find_missing_only_running_with_hr_and_duration, test_backfill_computes_trimp_and_ctl_then_is_idempotent, test_nothing_to_do_returns_empty
 
 ### `test_extractor_base.py` (76줄) — BaseExtractor와 MetricRecord 단위 테스트.
 
@@ -1614,7 +1633,7 @@
 
 - functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
-### `test_race_hub_service.py` (281줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
+### `test_race_hub_service.py` (282줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
 
 - functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context
 
@@ -1881,7 +1900,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 370개 파일
+총 374개 파일
 
 ## docstring 누락
 
