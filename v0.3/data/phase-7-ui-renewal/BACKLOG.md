@@ -2788,6 +2788,51 @@ DONE으로 옮긴다.
    (`touch-action: pan-y`는 세로 스크롤은 그대로 두고 가로 드래그만 스크럽으로 받기 위한 것 — 그대로 둘 것.) 하단 안내 `<p class="text-xs text-fg-muted">` 의 문구 두 줄 `{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·` / `x축은 포인트 순서(elapsed_sec 균등 간격 미보장 — 정밀 시간축은 후속 과제)` 중 둘째 줄을 `x축은 포인트 순서 — 눈금은 해당 지점의 실제 경과 시간`으로 교체한다. 백엔드·다른 화면은 건드리지 않음.
   리뷰 2026-09-24: 기능은 명세와 같음(시간 눈금·스크럽 판독·커서·고정 높이 판독 줄, npm check 0 errors/build OK, 단위 테스트 통과) — 다만 구조 이탈: `indexAtFraction(n, frac)` 인자 순서 반대, 라벨 포맷(`formatElapsed`)·null 이웃 대체를 streamAxis로 흡수, `axisTicks`가 sec 대신 label 반환, 커서를 차트별로 그림(정렬은 더 정확). 자체 일관적이라 수용, 단 `pointerdown`·`pointercancel` 핸들러 누락(탭만으로는 판독이 안 뜸)과 양끝 눈금 라벨 가로 오버플로 가능성은 main에서 보정.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-PAGE-TITLES"], "kind": "code", "scope": ["frontend/src/lib/streamAxis.ts", "frontend/tests/streamAxis.test.mjs", "frontend/src/routes/library/[id]/streams/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-TODAY-FITNESS-CHART]** `03a-today.md` 1-A L2 "성장 내러티브"의 인라인 CTL/ATL 추세 차트 — 프론트 전용, 2026-09-24 스펙 대조로 발견(브라우저 스모크에서 `/today`에 `<svg>`가 0개), 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-TODAY-FITNESS-CHART]` 항목 필독. 현황: 1-A 목업은 내러티브 문단 아래에 `인라인 차트: [CTL/ATL 추세 ─────▲──] → 우측 패널(1-C)`를 두는데 `frontend/src/routes/today/+page.svelte`의 L2엔 텍스트·근거 칩·마일스톤뿐 차트가 없다. 데이터는 이미 있다(`GET /library/metrics/:slug/trend` → `getMetricTrend(slug, period)`, `MetricTrendData.points: {date, value}[]`). **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `frontend/src/routes/today/+page.ts` — `import { getMetricTrend } from '$lib/api/metrics';`, 타입 import에 `MetricTrendPoint` 추가. `TodayPageData`에 `fitness: { ctl: MetricTrendPoint[]; atl: MetricTrendPoint[] } | null;` 추가. `load()`의 `Promise.all`에 두 항목을 추가해 `const [today, narrative, plan, adjustment, ctlTrend, atlTrend] = await Promise.all([..., getMetricTrend('ctl', '4w').catch(() => null), getMetricTrend('atl', '4w').catch(() => null)]);`로 받고, 정상 반환에 아래를 포함(포인트가 2개 미만이면 추세가 아니므로 null):
+  ```ts
+  		const fitness =
+  			ctlTrend && ctlTrend.points.length > 1
+  				? { ctl: ctlTrend.points, atl: atlTrend?.points ?? [] }
+  				: null;
+  ```
+  `return { today, errorMessage: null, narrative, plan, adjustment, fitness };`, `catch` 분기 반환에도 `fitness: null`을 추가한다.
+  (2) `frontend/src/routes/today/+page.svelte` — 스크립트 import에 `import Sparkline from '$lib/components/Sparkline.svelte';` 추가. 마크업의 `<!-- Evidence 칩 -->` 블록(`{#if narrative.evidence.length > 0}…{:else}…{/if}`) 바로 뒤, `<!-- 마일스톤 목록 -->` 바로 앞에 추가:
+  ```svelte
+  				<!-- CTL/ATL 추세 인라인 차트 (1-A) — 탭하면 이번 달 전체 이야기 패널(1-C) -->
+  				{#if data.fitness}
+  					{@const ctlNow = data.fitness.ctl[data.fitness.ctl.length - 1].value}
+  					<button
+  						type="button"
+  						onclick={() => { showMonthNarrative = true; }}
+  						class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left hover:bg-surface-3"
+  						aria-label="CTL·ATL 추세 — 이번 달 전체 이야기 열기"
+  					>
+  						<div class="flex items-center justify-between text-xs text-fg-muted">
+  							<span>피트니스·피로 추세 · 최근 4주</span>
+  							<span>이번 달 이야기 →</span>
+  						</div>
+  						<div class="flex flex-col gap-1">
+  							<div class="flex items-center justify-between text-xs">
+  								<span style="color:#3b82f6">● CTL</span>
+  								<span class="font-mono text-fg-secondary">{ctlNow.toFixed(1)}</span>
+  							</div>
+  							<Sparkline data={data.fitness.ctl.map((p) => p.value)} height={40} color="#3b82f6" />
+  						</div>
+  						{#if data.fitness.atl.length > 1}
+  							<div class="flex flex-col gap-1">
+  								<div class="flex items-center justify-between text-xs">
+  									<span style="color:#f59e0b">● ATL</span>
+  									<span class="font-mono text-fg-secondary">{data.fitness.atl[data.fitness.atl.length - 1].value.toFixed(1)}</span>
+  								</div>
+  								<Sparkline data={data.fitness.atl.map((p) => p.value)} height={40} color="#f59e0b" />
+  							</div>
+  						{/if}
+  					</button>
+  				{/if}
+  ```
+  (`showMonthNarrative`은 이 파일에 이미 있는 상태 변수 — 새로 만들지 않는다. 두 Sparkline은 각자 자기 값 범위로 자동 스케일되므로 겹치지 않고 위아래로 쌓는다.) 다른 부분·백엔드·테스트는 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
