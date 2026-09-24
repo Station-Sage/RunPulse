@@ -8,7 +8,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EnvContextCard from '$lib/components/EnvContextCard.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDistance, formatDuration, formatPace, formatDate, formatUnitValue } from '$lib/format';
+	import { formatDuration, formatPace, formatDate, formatUnitValue } from '$lib/format';
 	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
@@ -94,25 +94,33 @@
 	<!-- 요약 탭 본문 -->
 	<div class="flex flex-col gap-5 px-4 py-4">
 
-		<!-- 핵심 통계 바 -->
-		<div class="flex flex-wrap gap-x-5 gap-y-1 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
+		<!-- 히어로 통계 -->
+		<section class="flex flex-col gap-3" aria-label="활동 요약">
 			{#if core.distance_m != null}
-				<span class="text-sm"><span class="font-mono font-bold">{formatDistance(core.distance_m)}</span></span>
+				<div class="flex items-end gap-2">
+					<span class="font-mono text-5xl font-bold leading-none">{(core.distance_m / 1000).toFixed(2)}</span>
+					<span class="pb-1 text-lg text-fg-muted">km</span>
+				</div>
 			{/if}
-			{#if core.duration_sec != null}
-				<span class="text-sm"><span class="font-mono font-bold">{formatDuration(core.duration_sec)}</span></span>
-			{/if}
-			{#if core.avg_pace_sec_km != null}
-				<span class="text-sm"><span class="font-mono font-bold">{formatPace(core.avg_pace_sec_km)}</span></span>
-			{/if}
-			{#if core.avg_hr != null}
-				<span class="text-sm">HR <span class="font-mono font-bold">{core.avg_hr}</span> <span class="text-fg-muted">bpm</span></span>
-			{/if}
+			<div class="grid grid-cols-3 gap-3 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
+				<div class="flex flex-col gap-0.5">
+					<span class="text-[11px] text-fg-muted">시간</span>
+					<span class="font-mono text-xl font-bold">{core.duration_sec != null ? formatDuration(core.duration_sec) : '—'}</span>
+				</div>
+				<div class="flex flex-col gap-0.5">
+					<span class="text-[11px] text-fg-muted">평균 페이스</span>
+					<span class="font-mono text-xl font-bold">{core.avg_pace_sec_km != null ? formatPace(core.avg_pace_sec_km).replace('/km', '') : '—'}<span class="text-xs font-normal text-fg-muted"> /km</span></span>
+				</div>
+				<div class="flex flex-col gap-0.5">
+					<span class="text-[11px] text-fg-muted">평균 심박</span>
+					<span class="font-mono text-xl font-bold">{core.avg_hr ?? '—'}<span class="text-xs font-normal text-fg-muted"> bpm</span></span>
+				</div>
+			</div>
 			{#if core.elevation_gain != null && (core.elevation_gain as number) > 0}
 				{@const elev = formatUnitValue(core.elevation_gain as number, 'm')}
-				<span class="text-sm">↑<span class="font-mono font-bold">{elev.display}</span> <span class="text-fg-muted">{elev.unit}</span></span>
+				<p class="text-xs text-fg-muted">누적 상승 <span class="font-mono font-bold text-fg-secondary">{elev.display}</span> {elev.unit}</p>
 			{/if}
-		</div>
+		</section>
 
 		<RunStory {story} />
 

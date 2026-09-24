@@ -3349,7 +3349,8 @@ DONE으로 옮긴다.
   ```
   `formatDistance` import가 더 이상 쓰이지 않으면 import 목록에서 제거한다(`npm run check` 경고 없이). 이 유닛의 앞 유닛이 넣은 `<RouteMap>`·`<SplitBars>`·`<ElevationProfile>`은 그대로 히어로 다음에 남긴다.
   (2) `frontend/src/lib/components/Sparkline.svelte` — `<polyline>`(또는 선을 그리는 요소)에 `vector-effect="non-scaling-stroke"`를 추가해 SVG가 가로로 늘어나도 선 굵기가 일정하게 한다. 그 외 로직·props는 바꾸지 않는다. 파일을 먼저 읽어 선 요소가 여러 개면(면적 채움 제외) 모두 적용.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-SPLITS"], "kind": "code", "scope": ["frontend/src/routes/library/[id]/+page.svelte", "frontend/src/lib/components/Sparkline.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+  리뷰: 자동 실행 없이 main에서 명세의 마크업 그대로 직접 구현(자동 구현이 명세 이탈을 반복해 재작업이 더 커서). 히어로 거리 5xl·3열 그리드·누적 상승, `Sparkline` `vector-effect="non-scaling-stroke"` 적용, 실데이터 사본 브라우저 확인. 이탈 없음.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-SPLITS"], "kind": "code", "scope": ["frontend/src/routes/library/[id]/+page.svelte", "frontend/src/lib/components/Sparkline.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER

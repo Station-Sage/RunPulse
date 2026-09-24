@@ -102,6 +102,13 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
             "label": f"UTRS {utrs['value']:.0f} ({utrs.get('level', '')})".strip(),
         })
 
+    # 목표 레이스가 있으면 헤드라인을 레이스 국면에 맞추고 근거를 앞에 붙인다(맥락 있는 안내)
+    from src.services.race_hub_service import get_race_hub, race_briefing
+    race = race_briefing(get_race_hub(conn, status["date"]), tsb)
+    if race is not None:
+        headline, race_evidence = race
+        evidence = race_evidence + evidence
+
     from src.services._narrative import attach_drill
     attach_drill(conn, evidence, status["date"])
     return {"date": status["date"], "headline": headline, "evidence": evidence}

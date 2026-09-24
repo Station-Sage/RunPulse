@@ -228,3 +228,54 @@ def test_hub_includes_projection_key(conn):
     hub = get_race_hub(conn, DATE)
     assert hub["projection"]["days_left"] == 31
     assert get_race_hub(conn, "2026-10-26")["projection"] is None
+
+
+# ── race_briefing ─────────────────────────────────────────────────────────
+
+from src.services.race_hub_service import form_band, race_briefing  # noqa: E402
+
+
+def _hub(days_left, taper_tsb=None):
+    proj = None
+    if taper_tsb is not None:
+        proj = {"scenarios": [{"key": "taper", "tsb": taper_tsb}, {"key": "keep", "tsb": 0}]}
+    return {"goal": {"name": "춘천", "days_left": days_left}, "projection": proj}
+
+
+def test_form_band_boundaries():
+    assert form_band(-31) == "과부하"
+    assert form_band(-10) == "중립"
+    assert form_band(5) == "레이스 최적"
+    assert form_band(16) == "회복 과다"
+
+
+def test_race_briefing_none_without_goal_or_tsb():
+    assert race_briefing({"goal": None}, -5) is None
+    assert race_briefing(_hub(20), None) is None
+
+
+def test_race_briefing_phases():
+    assert "오늘이 레이스" in race_briefing(_hub(0), 0)[0]
+    assert "레이스 주간" in race_briefing(_hub(5), 0)[0]
+    assert "테이퍼 구간" in race_briefing(_hub(15, 12.7), -5)[0]
+    build_tired, ev = race_briefing(_hub(31, 12.7), -28)
+    assert "레이스까지 31일" in build_tired and "회복 위주" in build_tired
+    assert "+13(레이스 최적)" in build_tired
+    assert ev[0]["label"] == "춘천 D-31"
+    assert ev[1]["label"] == "레이스 아침 TSB +13 (테이퍼 시)"
+    assert "가볍게" in race_briefing(_hub(31), -15)[0]
+    assert "핵심 세션" in race_briefing(_hub(31), -3)[0]
+
+
+def test_today_briefing_uses_race_context(db_conn):
+    from src.services.today_service import get_today_briefing
+    db_conn.execute(
+        "INSERT INTO goals (name, race_date, distance_km, status) VALUES ('R', '2026-10-25', 42.195, 'active')"
+    )
+    _seed_metric(db_conn, DATE, "tsb", -28)
+    _seed_metric(db_conn, DATE, "ctl", 38)
+    _seed_metric(db_conn, DATE, "atl", 66)
+    b = get_today_briefing(db_conn, DATE)
+    assert "레이스까지 31일" in b["headline"]
+    assert b["evidence"][0]["metric"] == "race_days_left"
+    assert b["evidence"][0]["drill"] is None
