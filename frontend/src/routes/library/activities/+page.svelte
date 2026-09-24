@@ -26,10 +26,13 @@
 	let loading = $state(false);
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+	// 요청 번호 — 검색을 빠르게 타이핑할 때 늦게 도착한 이전 응답이 최신 결과를 덮지 않게 무시한다.
+	let reqSeq = 0;
 
 	async function loadPage(page: number, append: boolean) {
 		loading = true;
 		errorMessage = null;
+		const seq = ++reqSeq;
 		try {
 			const res = await getActivities({
 				sport: filterSport || undefined,
@@ -40,6 +43,7 @@
 				page,
 				per_page: 20
 			});
+			if (seq !== reqSeq) return;
 			if (append) {
 				activities = [...activities, ...res.activities];
 			} else {
@@ -49,9 +53,10 @@
 			hasMore = res.has_more;
 			currentPage = page;
 		} catch (e) {
+			if (seq !== reqSeq) return;
 			errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
 		} finally {
-			loading = false;
+			if (seq === reqSeq) loading = false;
 		}
 	}
 
