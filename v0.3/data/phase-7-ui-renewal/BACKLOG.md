@@ -2368,7 +2368,8 @@ DONE으로 옮긴다.
   (2) `frontend/src/routes/today/+page.svelte` — L2 내러티브의 `<!-- Evidence 칩 -->` 블록 `{#if narrative.evidence.length > 0}<div class="flex flex-wrap gap-2">…</div>{/if}` 의 `{/if}` 앞에 `{:else}<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>` 추가.
   (3) `frontend/src/lib/components/MonthNarrative.svelte` — `{#if narrativeData.evidence.length > 0}<div class="flex flex-wrap gap-2">…</div>{/if}` 의 `{/if}` 앞에 같은 `{:else}<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>` 추가.
   백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-METRICS-BROWSER-PROVIDER"], "kind": "code", "scope": ["frontend/src/lib/components/RecommendationCard.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/lib/components/MonthNarrative.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  리뷰 2026-09-24: 3곳(RecommendationCard·Today L2·MonthNarrative) else 분기만 추가 — 명세와 일치, 이탈 없음. npm check 0 errors / build OK. 합성 빈 DB에서 레이블 노출 확인 예정(병합 후 스모크).
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-METRICS-BROWSER-PROVIDER"], "kind": "code", "scope": ["frontend/src/lib/components/RecommendationCard.svelte", "frontend/src/routes/today/+page.svelte", "frontend/src/lib/components/MonthNarrative.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-PLAN-ADAPTATION-STATE]** `03e-coach.md` 5-F 플랜 상세의 "적응 상태" 섹션(ACWR·HRV 기준 대비·주간 피로도 평균) — 백엔드(읽기 전용 서비스 +
   GET 1개) + 프론트, 2026-09-24 스펙 대조로 발견(5-F 목업엔 있으나 `coach/plan/[id]` 화면엔 없음 — 플랜이 "내 상태에 묶인다"는 P7 State-Bound Plan의 근거
   표시가 빠져 있음), 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-PLAN-ADAPTATION-STATE]` 항목 필독. 데이터는 전부 이미 있다(`acwr` 일별 메트릭, `daily_wellness`
