@@ -10,6 +10,7 @@
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
+	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { readinessStatus, tsbStatus } from '$lib/status';
@@ -231,6 +232,46 @@
 
 				{#if narrative.source === 'rule'}
 					<p class="text-xs text-fg-muted">규칙 기반 요약</p>
+				{/if}
+
+				<!-- CTL/ATL 인라인 추세 차트 — 탭하면 월간 이야기 패널(1-C) 열림 -->
+				{#if data.ctlTrend?.points.length || data.atlTrend?.points.length}
+					<button
+						class="flex w-full flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left"
+						onclick={() => { showMonthNarrative = true; }}
+						aria-label="CTL/ATL 추세 — 이번 달 전체 이야기 보기"
+					>
+						{#if data.ctlTrend && data.ctlTrend.points.length > 0}
+							<div class="flex flex-col gap-0.5">
+								<div class="flex items-baseline justify-between">
+									<span class="text-xs text-fg-muted">CTL</span>
+									{#if data.ctlTrend.current != null}
+										<span class="text-xs font-medium text-fg-primary">{data.ctlTrend.current.toFixed(1)}</span>
+									{/if}
+								</div>
+								<Sparkline
+									data={data.ctlTrend.points.map((p) => p.value)}
+									height={32}
+									color="var(--color-accent, #6366f1)"
+								/>
+							</div>
+						{/if}
+						{#if data.atlTrend && data.atlTrend.points.length > 0}
+							<div class="flex flex-col gap-0.5">
+								<div class="flex items-baseline justify-between">
+									<span class="text-xs text-fg-muted">ATL</span>
+									{#if data.atlTrend.current != null}
+										<span class="text-xs font-medium text-fg-primary">{data.atlTrend.current.toFixed(1)}</span>
+									{/if}
+								</div>
+								<Sparkline
+									data={data.atlTrend.points.map((p) => p.value)}
+									height={32}
+									color="var(--color-semantic-orange, #f97316)"
+								/>
+							</div>
+						{/if}
+					</button>
 				{/if}
 
 				<!-- 월간 전체 이야기 패널 열기 -->
