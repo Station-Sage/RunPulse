@@ -82,5 +82,5 @@ CODE_ALLOWED_TOOLS = ALLOWED_TOOLS + [
     "Bash(python3 scripts/check_docs.py:*)",
     "Bash(cd:*)",
     "Bash(npm install:*)", "Bash(npm ci:*)",
-    "Bash(npm run build:*)", "Bash(npm run check:*)",
+    "Bash(npm run build:*)", "Bash(npm run check:*)", "Bash(npm run test:unit:*)",
 ]

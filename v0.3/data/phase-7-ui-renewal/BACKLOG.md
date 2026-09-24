@@ -2699,6 +2699,94 @@ DONE으로 옮긴다.
   (루트 `routes/+page.svelte`는 항상 `/today`로 리다이렉트되므로 제외.) 정적 제목은 `<svelte:head><title>Today · RunPulse</title></svelte:head>`처럼 텍스트 그대로. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
   리뷰 2026-09-24: 19개 파일 각 2줄(`<svelte:head><title>…`) 추가만 — 명세의 제목 표와 일치, layout/app.html 무변경, 동적 두 곳(활동 이름·메트릭 라벨) 반영. npm check 0 errors / build OK. 병합 후 합성 데이터 브라우저에서 page.title() 확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-PROVIDER-STATUS"], "kind": "code", "scope": ["frontend/src/routes/today/+page.svelte", "frontend/src/routes/library/+page.svelte", "frontend/src/routes/library/activities/+page.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.svelte", "frontend/src/routes/library/[id]/metrics/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/metrics/+page.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/library/providers/+page.svelte", "frontend/src/routes/library/wellness/+page.svelte", "frontend/src/routes/coach/+page.svelte", "frontend/src/routes/coach/[threadId]/+page.svelte", "frontend/src/routes/coach/plan/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/src/routes/coach/plan/compare/+page.svelte", "frontend/src/routes/coach/plan/new/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-STREAMS-SCRUB]** `03c-library.md` 3-D 활동 스트림 — 시간 눈금 + 터치 스크럽. 프론트 전용, 2026-09-24 스펙 대조로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-STREAMS-SCRUB]` 항목 필독. 현황: `frontend/src/routes/library/[id]/streams/+page.svelte`는 스트림별 스파크라인만 세로로 나열하고 시간 눈금이 없으며(3-D 목업: `시간 → 0  15m  30m  45m  55m`) 하단에 "x축은 포인트 순서(… 정밀 시간축은 후속 과제)"라고 적혀 있다. 목업의 "마우스 호버 / 터치 스크럽 → 해당 시각 수치 표시"도 없다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) 신규 `frontend/src/lib/streamAxis.ts`(순수 함수 — 다른 모듈을 import하지 않는다: Node 테스트 러너가 확장자 없는 상대 import를 못 푼다):
+  ```ts
+  // 스트림 x축 보조 — 스파크라인은 포인트 순서(인덱스) 축이라, 눈금 라벨은 그 인덱스 지점의 실제 elapsed_sec로 붙인다.
+  /** 0~1 비율을 [0, n-1] 인덱스로 (범위 밖은 clamp). n<=0이면 0. */
+  export function indexAtFraction(frac: number, n: number): number {
+  	if (n <= 0) return 0;
+  	const f = Math.min(1, Math.max(0, frac));
+  	return Math.round(f * (n - 1));
+  }
+  /** count개 균등 눈금 — 각 눈금의 sec는 그 인덱스 지점의 elapsed_sec. 포인트가 2개 미만이거나 count<2면 []. */
+  export function axisTicks(elapsed: number[], count = 5): { frac: number; sec: number }[] {
+  	const n = elapsed.length;
+  	if (n < 2 || count < 2) return [];
+  	return Array.from({ length: count }, (_, k) => {
+  		const frac = k / (count - 1);
+  		return { frac, sec: elapsed[indexAtFraction(frac, n)] };
+  	});
+  }
+  ```
+  (2) 신규 `frontend/tests/streamAxis.test.mjs`(기존 `frontend/tests/format.test.mjs`와 같은 방식 — `node:test`, `node:assert/strict`, 소스는 `../src/lib/streamAxis.ts`에서 import, 케이스: (a) `indexAtFraction(0,101)===0`, `(0.5,101)===50`, `(1,101)===100`, 범위 밖 `(-1,101)===0`·`(2,101)===100`, `n=0`이면 `0`, (b) `axisTicks(Array.from({length:101},(_,i)=>i*10))`의 `sec` 배열이 `[0,250,500,750,1000]`이고 `frac`이 `[0,0.25,0.5,0.75,1]`, (c) 포인트 1개 → `[]`, 빈 배열 → `[]`, `count=1` → `[]`, (d) 일시정지가 있는 불균등 elapsed(`[0,10,20,300,310]`, count 3)에서 가운데 눈금 `sec===20`(인덱스 2 지점의 실제 경과 시간)).
+  (3) `frontend/src/routes/library/[id]/streams/+page.svelte`:
+   - 스크립트 import에 추가: `import { formatDuration } from '$lib/format';`, `import { axisTicks, indexAtFraction } from '$lib/streamAxis';`.
+   - 스크립트 끝(`formatMinMaxPace` 함수 뒤)에 추가:
+  ```ts
+  	// 시간 눈금 — 포인트 인덱스 축 위의 5개 지점(0/25/50/75/100%)에 실제 경과 시간을 붙인다
+  	const ticks = $derived(axisTicks(data.streams.map((p) => p.elapsed_sec), 5));
+  	// 스크럽 — 마우스 호버·터치 드래그로 가리킨 포인트 인덱스(null이면 미표시)
+  	let scrubIdx = $state<number | null>(null);
+  	function scrub(e: PointerEvent) {
+  		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  		if (rect.width <= 0) return;
+  		scrubIdx = indexAtFraction((e.clientX - rect.left) / rect.width, data.streams.length);
+  	}
+  	function endScrub() {
+  		scrubIdx = null;
+  	}
+  	function formatPoint(def: StreamDef, v: number | null): string {
+  		if (v == null) return '—';
+  		if (def.key === 'pace') return `${formatPaceSec(v)}${def.unit}`;
+  		return def.key === 'altitude_m' ? `${v.toFixed(1)}${def.unit}` : `${Math.round(v)}${def.unit}`;
+  	}
+  ```
+   - 마크업: `<!-- 스트림 목록 -->` 블록(`<div class="flex flex-col gap-5">…{/each}</div>`)을 아래 구조로 감싼다 — 판독 줄 + 시간 눈금 줄 + 스크럽 영역(기존 `{#each availableStreams as def}…{/each}` 내용은 한 글자도 바꾸지 않고 스크럽 영역 `<div>` 안에 그대로 둔다):
+  ```svelte
+  		<!-- 스크럽 판독 — 높이 고정(레이아웃 흔들림 방지) -->
+  		<div class="min-h-[2.5rem] text-xs text-fg-secondary">
+  			{#if scrubIdx !== null}
+  				{@const pt = data.streams[scrubIdx]}
+  				<span class="font-mono font-medium text-fg-primary">{formatDuration(pt.elapsed_sec)}</span>
+  				{#each availableStreams as def}
+  					{#if checked[def.key]}
+  						<span class="ml-2 whitespace-nowrap"><span style="color:{def.color}">{def.label}</span> {formatPoint(def, def.extract(pt))}</span>
+  					{/if}
+  				{/each}
+  			{:else}
+  				<span class="text-fg-muted">그래프를 터치·드래그하면 해당 시점의 수치가 보입니다.</span>
+  			{/if}
+  		</div>
+  		<!-- 시간 눈금 (3-D: 시간 → 0 15m 30m …) -->
+  		{#if ticks.length > 0}
+  			<div class="flex justify-between font-mono text-[10px] text-fg-muted" aria-hidden="true">
+  				{#each ticks as t}
+  					<span>{formatDuration(t.sec)}</span>
+  				{/each}
+  			</div>
+  		{/if}
+  		<!-- svelte-ignore a11y_no_static_element_interactions -->
+  		<div
+  			class="relative flex flex-col gap-5"
+  			style="touch-action: pan-y;"
+  			onpointermove={scrub}
+  			onpointerdown={scrub}
+  			onpointerleave={endScrub}
+  			onpointercancel={endScrub}
+  		>
+  			{#if scrubIdx !== null && data.streams.length > 1}
+  				<div
+  					class="pointer-events-none absolute inset-y-0 w-px bg-fg-muted"
+  					style="left:{(scrubIdx / (data.streams.length - 1)) * 100}%"
+  					aria-hidden="true"
+  				></div>
+  			{/if}
+  			(여기에 기존 `{#each availableStreams as def}…{/each}` 블록을 그대로)
+  		</div>
+  ```
+   (`touch-action: pan-y`는 세로 스크롤은 그대로 두고 가로 드래그만 스크럽으로 받기 위한 것 — 그대로 둘 것.) 하단 안내 `<p class="text-xs text-fg-muted">` 의 문구 두 줄 `{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·` / `x축은 포인트 순서(elapsed_sec 균등 간격 미보장 — 정밀 시간축은 후속 과제)` 중 둘째 줄을 `x축은 포인트 순서 — 눈금은 해당 지점의 실제 경과 시간`으로 교체한다. 백엔드·다른 화면은 건드리지 않음.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-PAGE-TITLES"], "kind": "code", "scope": ["frontend/src/lib/streamAxis.ts", "frontend/tests/streamAxis.test.mjs", "frontend/src/routes/library/[id]/streams/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
