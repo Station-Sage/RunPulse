@@ -5,6 +5,7 @@
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import Sparkline from '$lib/components/Sparkline.svelte';
+	import EnvContextCard from '$lib/components/EnvContextCard.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
 	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
@@ -152,6 +153,7 @@
 				</div>
 			</section>
 		{/if}
+		<EnvContextCard metrics={metricsByCategory.weather ?? []} />
 
 	</div>
 {/if}
