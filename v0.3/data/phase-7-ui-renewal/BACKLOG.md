@@ -2528,6 +2528,44 @@ DONE으로 옮긴다.
   ```
   그리고 파일 맨 끝(최상위 `<div class="flex flex-col">…</div>` 뒤)에 추가: `{#if drillAcwr && data.adaptation?.acwr}<MetricBreakdown slug="acwr" scopeType="daily" scopeId={data.adaptation.acwr.date} onClose={() => { drillAcwr = false; }} />{/if}`. 파일이 300줄을 넘지 않게 주의.
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-EVIDENCE-EMPTY-LABEL"], "kind": "code", "scope": ["src/services/adaptation_service.py", "src/api/routes_plan.py", "tests/test_adaptation_service.py", "tests/test_api_plan.py", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/plan.ts", "frontend/src/routes/coach/plan/[id]/+page.ts", "frontend/src/routes/coach/plan/[id]/+page.svelte"], "verify": ["python3 -m pytest tests/test_adaptation_service.py tests/test_api_plan.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+- **[P7-IMPL-NARRATIVE-CACHE]** Today L2 성장 내러티브의 LLM 호출을 `ai_cache`로 캐시 — 백엔드, 2026-09-24 합성 데이터 서버 점검 중 발견, 설계 근거는 `DECISIONS.md`의
+  `[P7-IMPL-NARRATIVE-CACHE]` 항목 필독. 현황: `today_service.get_today_narrative()`가 **호출될 때마다** AI provider 체인(Gemini→Groq 등)을 순서대로 호출하고, Today 프론트
+  로더(`Promise.all`)가 그 응답을 기다린다 → AI 키가 유효한 실사용에선 Today를 열 때마다 LLM 호출 1회(지연 수 초 + 토큰 비용). 같은 저장소에 이미 `src/ai/ai_cache.py`(ADR-011:
+  신규 활동·웰니스·날짜 변경 시 무효화 + 8시간 TTL)가 있는데 내러티브는 안 씀. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
+  (1) `src/services/_narrative.py` — 파일 끝에 추가(`today_service.py`가 289/300줄이라 헬퍼는 여기에 둔다):
+  ```python
+  _CACHE_TAB = "today_narrative"
+  def generate_ai_narrative(conn, chain: list, prompt: str, config: dict | None, cache_key: str) -> str | None:
+      """AI 내러티브 텍스트 — ai_cache(ADR-011: 신규 활동·웰니스·날짜 변경 시 무효화, 8h TTL)에 있으면 재사용,
+      없으면 provider 체인을 순서대로 호출하고 성공 시 저장한다. 전부 실패하면 None(호출부가 규칙 기반 fallback).
+      규칙 기반 fallback 결과는 캐시하지 않는다(싸고, AI가 복구되면 바로 AI 결과로 바뀌어야 함).
+      """
+      import logging
+      from src.ai import ai_cache
+      from src.ai.chat_engine import _call_provider
+      cached = ai_cache.get_cached(conn, _CACHE_TAB, cache_key)
+      if cached and cached.get("text"):
+          return cached["text"]
+      for prov in chain:
+          text = _call_provider(prov, prompt, config)
+          if text:
+              try:
+                  ai_cache.set_cached(conn, _CACHE_TAB, cache_key, {"text": text})
+              except Exception:
+                  logging.getLogger(__name__).warning("내러티브 캐시 저장 실패", exc_info=True)
+              return text
+      return None
+  ```
+  (`_call_provider`는 반드시 함수 안에서 import — 기존 테스트가 `patch("src.ai.chat_engine._call_provider", ...)`로 목업하므로 호출 시점에 모듈 속성을 읽어야 한다.)
+  (2) `src/services/today_service.py` `get_today_narrative()` — 상단 지역 import에 `generate_ai_narrative`를 추가(`from src.services._narrative import (attach_drill, build_evidence, …)` 목록에 넣고, 이제 안 쓰는 `_call_provider` import는 `from src.ai.chat_engine import _build_chat_provider_chain, get_ai_provider`로 정리), 그리고 AI 생성 블록(`if chain:` 안 `prompt = build_narrative_prompt(...)` 다음의 `for prov in chain: result = _call_provider(prov, prompt, config) … break` 루프)을 아래로 교체 — `prompt` 생성 코드는 그대로 두고 루프만 교체:
+  ```python
+          text = generate_ai_narrative(conn, chain, prompt, config, cache_key=f"{month_start}:{date}")
+          if text:
+              source = "ai"
+  ```
+  (캐시 키에 조회 달의 시작일과 기준일을 모두 넣는다 — 과거 달 조회(`year`/`month`)와 이번 달이 서로 캐시를 덮지 않고, 날짜가 바뀌면 자연히 새 키.) `text = None`/`source = "rule"` 초기화와 그 뒤 `if text is None:` 규칙 기반 fallback은 그대로 둔다.
+  (3) 신규 `tests/test_narrative_cache.py`(`db_conn` 픽스처 + `unittest.mock.patch`; 기존 `tests/test_today_service.py`의 AI 테스트처럼 `patch("src.ai.chat_engine._call_provider", …)`와 `patch("src.ai.chat_engine._build_chat_provider_chain", return_value=["fake"])`, `patch("src.ai.chat_engine.get_ai_provider", return_value="gemini")` 사용, `today_service.get_today_narrative(db_conn, date="2026-09-22", config={})` 호출) — 케이스: (a) 같은 인자로 두 번 호출하면 `_call_provider` 호출 1회뿐이고 두 결과 모두 `source == "ai"`·같은 `text`, (b) 다른 `date`(예: "2026-09-21")면 다시 호출됨(호출 2회), (c) 모든 provider가 None이면 `source == "rule"`이고 캐시에 아무것도 저장되지 않아 다음 호출에 다시 provider를 시도함(호출 횟수가 늘어남), (d) 첫 호출 후 새 활동을 추가하면(`INSERT INTO activity_summaries …`로 MAX(id) 변경) 캐시가 무효화되어 다시 호출됨, (e) `generate_ai_narrative`를 직접 호출: 체인 첫 provider가 None·둘째가 텍스트면 둘째 텍스트를 반환하고 캐시에 저장됨(`ai_cache.get_cached(db_conn, "today_narrative", key)["text"]`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-PLAN-ADAPTATION-STATE"], "kind": "code", "scope": ["src/services/_narrative.py", "src/services/today_service.py", "tests/test_narrative_cache.py"], "verify": ["python3 -m pytest tests/test_narrative_cache.py tests/test_today_service.py tests/test_api_today.py -q"]} -->
 ---
 
 ## LATER
