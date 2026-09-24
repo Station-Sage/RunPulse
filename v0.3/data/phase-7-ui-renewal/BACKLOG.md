@@ -1916,7 +1916,7 @@ DONE으로 옮긴다.
   ```
   파일 맨 끝(최상위 `{#if}`/`{:else}` 블록 뒤)에 계산 분해 패널: `{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}`.
   요약 페이지(`[id]/+page.svelte`)는 이 유닛에서 건드리지 않음(다음 유닛이 `lib/metrics.ts`를 가져다 씀). 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-TABS-LAPS"], "kind": "code", "scope": ["frontend/src/lib/metrics.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/metrics/+page.ts", "frontend/src/routes/library/[id]/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITY-TABS-LAPS"], "kind": "code", "scope": ["frontend/src/lib/metrics.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/metrics/+page.ts", "frontend/src/routes/library/[id]/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-ACTIVITY-SUMMARY-ENRICH]** `03c-library.md` 3-C 활동 요약 탭 보강 — 프론트 전용, 2026-09-24 조사 후 큐 등록,
   설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITY-SUMMARY-ENRICH]` 항목 필독. 3-C 목업 대비 빠진 것: (a) 핵심 메트릭이
   `drillable={false}`라 P2 위반, (b) "핵심 메트릭"을 고르는 `CATEGORY_ORDER`가 실제 존재하지 않는 카테고리명(`performance`/
