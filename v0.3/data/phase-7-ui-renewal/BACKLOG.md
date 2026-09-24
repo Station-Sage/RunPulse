@@ -3118,7 +3118,8 @@ DONE으로 옮긴다.
   							]}
   						/>
   ```
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+  리뷰: 워크트리 diff를 명세와 대조 → 명세 불일치 다수(이탈): (1) `trendChart.ts` API를 명세(TrendSeries/points, commonRange, xFraction, nearestPoint, changeLabel(points))와 다르게 구현(ChartSeries/values+dates 인덱스 매핑, sharedYRange, changeLabel(current, prev)) — CTL·ATL 날짜가 다르면 x축이 어긋남; (2) SVG `preserveAspectRatio="none"` 안에 `<text>`·`<circle>`을 그려 글자·마커가 가로로 찌그러짐(명세는 HTML 오버레이); (3) y 눈금 `toFixed(0)`(0.8 같은 소수 메트릭에서 무의미; 명세 1자리); (4) 범례·판독 줄·pointerdown/touch-action 누락; (5) "30일 변화"가 기간 첫 점 기준(명세는 30일 전 점). 정정: main에서 명세대로 재작성(`fix(frontend): TrendChart 명세 정합`) 후 실데이터·합성 브라우저 확인.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
