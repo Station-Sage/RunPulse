@@ -151,3 +151,13 @@ def test_get_library_archive_empty(mini_app, monkeypatch):
 def test_get_today_includes_data_health(mini_app):
     body = mini_app.get("/api/v1/today").get_json()["data"]
     assert body["data_health"]["runs"] == 0 and body["data_health"]["missing"] == 0
+
+
+def test_get_today_status_date_is_local(mini_app):
+    """status.date는 서버 로컬 날짜여야 한다 (UTC와 다른 시각에도)."""
+    from datetime import date
+
+    res = mini_app.get("/api/v1/today")
+    assert res.status_code == 200
+    status_date = res.get_json()["data"]["status"]["date"]
+    assert status_date == date.today().isoformat()

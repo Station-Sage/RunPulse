@@ -68,7 +68,7 @@ def get_dashboard_data(conn: sqlite3.Connection, date: str | None = None) -> dic
     conn.row_factory = sqlite3.Row
 
     if date is None:
-        date_row = conn.execute("SELECT date('now')").fetchone()
+        date_row = conn.execute("SELECT date('now','localtime')").fetchone()
         date = date_row[0]
 
     # wellness
@@ -188,7 +188,7 @@ def get_pmc_chart_data(conn: sqlite3.Connection, days: int = 90) -> list[dict]:
         " WHERE scope_type = 'daily'"
         "   AND metric_name IN ('ctl', 'atl', 'tsb')"
         "   AND is_primary = 1"
-        "   AND scope_id >= date('now', ?)"
+        "   AND scope_id >= date('now','localtime', ?)"
         " ORDER BY scope_id",
         (date_expr,),
     ).fetchall()
@@ -217,7 +217,7 @@ def get_daily_metric_chart(
         " WHERE scope_type = 'daily'"
         "   AND metric_name = ?"
         "   AND is_primary = 1"
-        "   AND scope_id >= date('now', ?)"
+        "   AND scope_id >= date('now','localtime', ?)"
         " ORDER BY scope_id",
         (metric_name, date_expr),
     ).fetchall()

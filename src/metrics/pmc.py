@@ -1,12 +1,25 @@
 """PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
 
 ATL = 7일 EMA, CTL = 42일 EMA, TSB = CTL - ATL.
+
+달력 "오늘"은 아직 끝나지 않은 날이라 하루 전체를 휴식으로 가정하지 않는다 —
+오늘까지 실제 발생한 부하는 전부 반영하되, 휴식에 의한 감쇠(1-α)는 하루 중 경과한
+비율만큼만 적용한다(자정 직후 ≈ 어제 값, 하루가 끝나면 기존 일별 EMA와 동일).
 """
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+
+
+def elapsed_day_fraction(date_str: str, now: datetime | None = None) -> float:
+    """date_str이 서버 로컬 "오늘"이면 하루 중 경과 비율(0~1), 과거 날짜는 1.0."""
+    now = now or datetime.now()
+    if date_str != now.strftime("%Y-%m-%d"):
+        return 1.0
+    seconds = now.hour * 3600 + now.minute * 60 + now.second
+    return min(1.0, max(0.0, seconds / 86400))
 
 
 class PMCCalculator(MetricCalculator):
@@ -47,9 +60,10 @@ class PMCCalculator(MetricCalculator):
         while current <= target:
             ds = current.strftime("%Y-%m-%d")
             load = daily_loads.get(ds, 0)
-            atl = atl * (1 - atl_decay) + load * atl_decay
+            frac = elapsed_day_fraction(ds) if current == target else 1.0
+            atl = atl * (1 - atl_decay * frac) + load * atl_decay
             prev_ctl = ctl
-            ctl = ctl * (1 - ctl_decay) + load * ctl_decay
+            ctl = ctl * (1 - ctl_decay * frac) + load * ctl_decay
             current += timedelta(days=1)
 
         tsb = ctl - atl
