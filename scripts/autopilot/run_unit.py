@@ -21,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import gate, ledger, notify, queue, settings, worktree
+from . import gate, ledger, leftovers, notify, queue, settings, worktree
 
 _PROMPT_TEMPLATE_DOCS = """\
 당신은 RunPulse 프로젝트의 Phase 7 UI 재설계 설계 문서 작업을 무인(사람 없이)으로 수행합니다.
@@ -87,6 +87,9 @@ _PROMPT_TEMPLATE_CODE = """\
   파일은 전혀 수정하지 않는 것이 완료 조건입니다.
 - 작업을 마치면 (부분 완료라도) 반드시 git commit 하나 이상으로 마무리합니다. 커밋
   메시지는 conventional commits(feat:/fix:/test: 등), 무엇을 끝냈고 무엇이 남았는지 명시.
+- git은 현재 작업 디렉터리(워크트리)에서 `git add <파일>` / `git commit -m …`처럼 **`-C`
+  옵션 없이** 실행하세요. `git -C <경로> …`는 허용 규칙(`git add:*` 등)과 매칭되지 않아
+  승인 대기로 막히고 커밋이 안 됩니다(2026-09-24 ACTIVITY-ENV-CARD 실행이 이렇게 미커밋으로 끝남).
 - push는 하지 않습니다. 이 브랜치({branch})는 검토 후 사람이 병합합니다.
 
 이번 작업 [{item_id}]:
@@ -268,6 +271,8 @@ def run_once(
             else:
                 verified, verify_note = _post_verify(item)
                 new_stage = "review" if verified else "blocked"
+                if verified and item.kind == "code":
+                    verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
         elif item.attempts + 1 >= 2:
             new_stage = "blocked"
         else:
@@ -279,11 +284,11 @@ def run_once(
         notify.send(
             f"[autopilot] {item.item_id} → {outcome['outcome']} (stage={new_stage}, "
             f"cost={cost_str}, {outcome['duration_s']:.0f}s)"
-            + (f"\n검증 실패: {verify_note[:500]}" if verify_note else "")
+            + (f"\n{'검증 실패' if new_stage == 'blocked' else '노트'}: {verify_note[:500]}" if verify_note else "")
         )
         print(f"[done] {item.item_id}: outcome={outcome['outcome']} stage={new_stage} cost={cost_str}")
         if verify_note:
-            print(f"[verify] {verify_note[:1000]}")
+            print(f"[{'verify' if new_stage == 'blocked' else 'note'}] {verify_note[:1000]}")
         return 0
     finally:
         settings.LOCK_PATH.unlink(missing_ok=True)

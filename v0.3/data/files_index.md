@@ -24,9 +24,9 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (173줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (189줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
-- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, rule_narrative
+- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, rule_narrative
 
 ### `activity_service.py` (283줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
@@ -72,7 +72,7 @@
 
 - functions: get_provider_comparison_period
 
-### `today_service.py` (286줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (289줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1163,11 +1163,12 @@
 - class **TestFindMalformedMeta**: test_wrapped_meta_flagged, test_wellformed_meta_not_flagged, test_wrapped_meta_item_silently_becomes_manual
 - class **TestNextRunnableIgnoresKind**: test_code_and_docs_both_runnable
 
-### `test_autopilot_run_unit.py` (87줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (134줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
-- class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_missing_scope_warns_instead_of_empty
+- class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
+- class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
 
 ### `test_backfill_activity_groups.py` (84줄) — activity_groups 백필 스크립트 테스트.
 
@@ -1292,10 +1293,10 @@
 - class **TestStreamsBatch**: test_insert_streams, test_replace_on_reinsert
 - class **TestBestEffortsBatch**: test_insert_efforts, test_upsert_effort, test_skip_no_effort_name
 
-### `test_db_setup.py` (132줄) — db_setup 테스트.
+### `test_db_setup.py` (203줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_18, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
-- functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert
+- functions: test_get_db_path, test_create_tables, test_planned_workouts_new_columns, test_migrate_db_idempotent, test_activities_unique_index, test_activities_insert, test_canonical_view_untouched_when_definition_unchanged, test_canonical_view_recreated_when_definition_differs, test_canonical_view_survives_concurrent_create_tables
 
 ### `test_dedup.py` (189줄) — Dedup 단위 테스트.
 
@@ -1671,7 +1672,7 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
-### `test_today_service.py` (327줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
+### `test_today_service.py` (374줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
 - class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order
@@ -1680,6 +1681,7 @@
 - class **TestGetTodayMilestones**: test_empty, test_returns_milestones
 - class **TestGetTodayNarrative**: test_no_data_rule_fallback, test_rule_fallback_no_data_text, test_with_ctl_and_distance, test_ctl_increase_in_rule_text, test_ai_success_source_is_ai, test_ai_failure_falls_back_to_rule, test_evidence_excludes_none_metrics, test_milestones_in_response
 - class **TestGetTodayNarrativeYearMonth**: test_highlights_field_present, test_highlights_no_data_zeros, test_highlights_with_activities, test_past_month_uses_last_day, test_year_month_label_in_evidence, test_peak_ctl_in_highlights, test_past_month_ctl_now_reflects_that_month_not_today, test_rule_fallback_uses_period_label_not_this_month, test_milestones_scoped_to_queried_month
+- class **TestAttachDrill**: test_briefing_tsb_drill_when_metric_store_row_exists, test_briefing_tsb_drill_none_when_no_metric_store_row, test_narrative_ctl_drill_when_row_exists, test_narrative_ctl_drill_none_when_no_row, test_monthly_distance_always_drill_none
 - class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
 
 ### `test_tpdi.py` (117줄)
