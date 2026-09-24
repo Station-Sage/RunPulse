@@ -4,11 +4,12 @@
 	let {
 		activityId,
 		active
-	}: { activityId: number; active: 'summary' | 'streams' | 'laps' | 'providers' } = $props();
+	}: { activityId: number; active: 'summary' | 'streams' | 'laps' | 'metrics' | 'providers' } = $props();
 	const TABS = [
 		{ key: 'summary', label: '요약', path: '' },
 		{ key: 'streams', label: '스트림', path: '/streams' },
 		{ key: 'laps', label: '랩', path: '/laps' },
+		{ key: 'metrics', label: '메트릭', path: '/metrics' },
 		{ key: 'providers', label: '소스 비교', path: '/providers' }
 	] as const;
 </script>
