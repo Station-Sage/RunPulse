@@ -245,3 +245,33 @@ def test_get_activity_trend(conn):
 def test_get_activity_trend_empty(db_conn):
     trend = get_activity_trend(db_conn, "nonexistent_metric", days=90)
     assert trend == []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 경로 미리보기 (목록 썸네일)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_list_route_preview_downsampled_and_none_without_gps(conn):
+    c, act1_id, act2_id = conn
+    rows = [(act1_id, "garmin", 1000 + i, 37.5 + i * 0.0001, 127.0 + i * 0.0001) for i in range(100)]
+    c.executemany(
+        "INSERT INTO activity_streams (activity_id, source, elapsed_sec, latitude, longitude)"
+        " VALUES (?,?,?,?,?)",
+        rows,
+    )
+    c.commit()
+    res = get_activity_list(c)
+    by_id = {a["id"]: a for a in res["activities"]}
+    assert act1_id in by_id  # 동일 그룹에서 garmin(대표 소스)이 캐노니컬로 남는다
+    route = by_id[act1_id]["route"]
+    assert route is not None and len(route) == 32
+    assert route[0] == [37.5, 127.0]
+    assert route[-1] == [round(37.5 + 99 * 0.0001, 5), round(127.0 + 99 * 0.0001, 5)]
+    assert all(a["route"] is None for a in res["activities"] if a["id"] != act1_id)
+
+
+def test_route_previews_skips_when_too_many(conn):
+    from src.services.activity_service import _route_previews
+    c, act1_id, _ = conn
+    assert _route_previews(c, list(range(1, 60))) == {}
+    assert _route_previews(c, []) == {}

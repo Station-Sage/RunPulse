@@ -5,7 +5,9 @@
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
+	import { formatDuration, formatPace } from '$lib/format';
+	import { weekGroups, dayLabel } from '$lib/activityList';
+	import RouteThumb from '$lib/components/RouteThumb.svelte';
 	import { base } from '$app/paths';
 	import type { ActivitySummary, ProviderKey } from '$lib/types';
 
@@ -16,14 +18,35 @@
 	let hasMore = $state(data.result?.has_more ?? false);
 	let errorMessage = $state(data.errorMessage);
 
-	// 필터 상태
+	// 필터 상태 (기간 필터는 후속 — 네이티브 date input 제거)
 	let filterSport = $state('');
-	let filterFrom = $state('');
-	let filterTo = $state('');
 	let filterSearch = $state('');
 	let filterDistMin = $state('');
 	let currentPage = $state(1);
 	let loading = $state(false);
+
+	const SPORTS = [
+		['', '전체'],
+		['running', '러닝'],
+		['swimming', '수영'],
+		['strength_training', '근력']
+	] as const;
+	const DISTS = [
+		['', '전 거리'],
+		['5', '5km+'],
+		['10', '10km+'],
+		['21.1', '하프+'],
+		['42.2', '풀']
+	] as const;
+
+	function pick(kind: 'sport' | 'dist', value: string) {
+		if (kind === 'sport') filterSport = value;
+		else filterDistMin = value;
+		applyFilters();
+	}
+
+	const groups = $derived(weekGroups(activities));
+	const maxKm = $derived(Math.max(1, ...groups.map((g) => g.km)));
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 	// 요청 번호 — 검색을 빠르게 타이핑할 때 늦게 도착한 이전 응답이 최신 결과를 덮지 않게 무시한다.
@@ -36,8 +59,6 @@
 		try {
 			const res = await getActivities({
 				sport: filterSport || undefined,
-				from: filterFrom || undefined,
-				to: filterTo || undefined,
 				search: filterSearch || undefined,
 				dist_min: filterDistMin ? Number(filterDistMin) : undefined,
 				page,
@@ -86,56 +107,38 @@
 </div>
 
 <div class="flex flex-col gap-0">
-	<!-- 필터 바 -->
-	<div class="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-3">
-		<select
-			bind:value={filterSport}
-			onchange={applyFilters}
-			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
-			aria-label="종목 필터"
-		>
-			<option value="">모든 종목</option>
-			<option value="running">러닝</option>
-			<option value="cycling">사이클</option>
-			<option value="swimming">수영</option>
-			<option value="strength_training">근력</option>
-		</select>
-
-		<input
-			type="date"
-			bind:value={filterFrom}
-			onchange={applyFilters}
-			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
-			aria-label="시작 날짜"
-		/>
-		<span class="text-xs text-fg-muted">~</span>
-		<input
-			type="date"
-			bind:value={filterTo}
-			onchange={applyFilters}
-			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
-			aria-label="종료 날짜"
-		/>
-
-		<select
-			bind:value={filterDistMin}
-			onchange={applyFilters}
-			class="rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary"
-			aria-label="거리 필터"
-		>
-			<option value="">모든 거리</option>
-			<option value="5">5km+</option>
-			<option value="10">10km+</option>
-			<option value="21.1">하프(21km+)</option>
-			<option value="42.2">마라톤(42km+)</option>
-		</select>
-
+	<!-- 필터: 종목·거리 칩 + 검색 -->
+	<div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3">
+		<div class="flex flex-wrap gap-1.5" role="group" aria-label="종목">
+			{#each SPORTS as [v, label] (v)}
+				<button
+					type="button"
+					aria-pressed={filterSport === v}
+					onclick={() => pick('sport', v)}
+					class="rounded-full border px-3 py-1 text-xs {filterSport === v
+						? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
+						: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
+				>
+			{/each}
+		</div>
+		<div class="flex flex-wrap gap-1.5" role="group" aria-label="거리">
+			{#each DISTS as [v, label] (v)}
+				<button
+					type="button"
+					aria-pressed={filterDistMin === v}
+					onclick={() => pick('dist', v)}
+					class="rounded-full border px-3 py-1 text-xs {filterDistMin === v
+						? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
+						: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
+				>
+			{/each}
+		</div>
 		<input
 			type="search"
 			bind:value={filterSearch}
 			oninput={onSearchInput}
-			placeholder="검색..."
-			class="min-w-[8rem] flex-1 rounded border border-border-subtle bg-surface-2 px-2 py-1 text-sm text-fg-primary placeholder:text-fg-muted"
+			placeholder="활동 이름 검색"
+			class="rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 			aria-label="활동 검색"
 		/>
 	</div>
@@ -152,39 +155,54 @@
 			<p class="text-sm text-fg-muted">필터를 조정하거나 데이터를 동기화해 주세요.</p>
 		</div>
 	{:else}
-		<ul class="divide-y divide-border-subtle">
-			{#each activities as act (act.id)}
-				<li>
-					<a
-						href="{base}/library/{act.id}"
-						class="flex flex-col gap-0.5 px-4 py-3 hover:bg-surface-2 active:bg-surface-3"
-					>
-						<!-- 이름 + 뱃지 + 화살표 -->
-						<div class="flex items-center gap-2">
-							<span class="min-w-0 flex-1 truncate text-sm font-medium">{act.name}</span>
-							<span
-								class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-									act.source as ProviderKey
-								)}"
+		{#each groups as g, gi (g.key)}
+			{#if gi === 0 || groups[gi - 1].year !== g.year}
+				<p class="px-4 pt-4 text-xs font-medium text-fg-muted">{g.year}</p>
+			{/if}
+			<section aria-label="{g.label} 주">
+				<div class="flex flex-col gap-1 bg-surface-1 px-4 pb-1 pt-4">
+					<div class="flex items-baseline justify-between">
+						<span class="text-xs font-medium text-fg-secondary">{g.label}</span>
+						<span class="font-mono text-xs text-fg-muted"
+							>{g.runs}회 · {g.km.toFixed(1)}km{g.seconds > 0 ? ` · ${formatDuration(g.seconds)}` : ''}</span
+						>
+					</div>
+					<div class="h-1 rounded bg-surface-3">
+						<div class="h-1 rounded bg-semantic-teal" style="width:{Math.max(g.km > 0 ? 3 : 0, (g.km / maxKm) * 100)}%"></div>
+					</div>
+				</div>
+				<ul class="divide-y divide-border-subtle">
+					{#each g.items as act (act.id)}
+						<li>
+							<a
+								href="{base}/library/{act.id}"
+								class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-2 active:bg-surface-3"
 							>
-								{providerLabel(act.source as ProviderKey)}
-							</span>
-							<span class="shrink-0 text-fg-muted">›</span>
-						</div>
-						<!-- 날짜 + 핵심 스탯 (모바일 포함 항상 표시) -->
-						<div class="flex flex-wrap items-center gap-x-3 gap-y-0 text-xs text-fg-secondary">
-							<span class="text-fg-muted">{formatDate(act.start_time)}</span>
-							<span>{act.distance_m != null ? formatDistance(act.distance_m) : '—'}</span>
-							<span>{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
-							<span>{act.avg_pace_sec_km != null ? formatPace(act.avg_pace_sec_km) : '—'}</span>
-							{#if act.avg_hr != null}
-								<span>HR {act.avg_hr}</span>
-							{/if}
-						</div>
-					</a>
-				</li>
-			{/each}
-		</ul>
+								<RouteThumb route={act.route} />
+								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+									<span class="truncate text-sm font-medium">{act.name}</span>
+									<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
+										<span>{dayLabel(act.start_time)}</span>
+										{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
+										{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
+										<span
+											class="rounded px-1 py-px text-[9px] text-white {providerBadgeClass(act.source as ProviderKey)}"
+											>{providerLabel(act.source as ProviderKey)}</span
+										>
+									</div>
+								</div>
+								<div class="flex shrink-0 flex-col items-end">
+									<span class="font-mono text-lg font-bold leading-tight"
+										>{act.distance_m != null ? (act.distance_m / 1000).toFixed(1) : '—'}<span class="text-[10px] font-normal text-fg-muted"> km</span></span
+									>
+									<span class="font-mono text-xs text-fg-muted">{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
+								</div>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/each}
 
 		{#if hasMore}
 			<div class="flex justify-center px-4 py-4">

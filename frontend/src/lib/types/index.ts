@@ -106,6 +106,8 @@ export interface ActivitySummary {
 	avg_pace_sec_km: number | null;
 	elevation_gain: number | null;
 	source: string;
+	/** 목록 썸네일용 GPS 미리보기(≤32점 [lat,lng]) — GPS 없으면 null/없음 */
+	route?: [number, number][] | null;
 }
 
 export interface ActivitiesListResponse {

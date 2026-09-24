@@ -82,13 +82,49 @@ def get_activity_list(
         params + [per_page, offset],
     ).fetchall()
 
+    activities = [dict(r) for r in rows]
+    previews = _route_previews(conn, [a["id"] for a in activities])
+    for a in activities:
+        a["route"] = previews.get(a["id"])
+
     return {
-        "activities": [dict(r) for r in rows],
+        "activities": activities,
         "total": total,
         "page": page,
         "per_page": per_page,
         "total_pages": max(1, (total + per_page - 1) // per_page),
     }
+
+
+_ROUTE_PREVIEW_POINTS = 32
+_ROUTE_PREVIEW_MAX_ACTIVITIES = 50
+
+
+def _route_previews(conn: sqlite3.Connection, ids: list[int]) -> dict[int, list[list[float]]]:
+    """활동별 GPS 경로 미리보기 — 균등 간격 ≤32점의 [lat, lng]. GPS 없는 활동은 결과에서 빠진다.
+
+    목록 썸네일용이라 활동당 전체 스트림을 내려주지 않는다. 한 번에 50개 초과 활동은 건너뛴다.
+    """
+    if not ids or len(ids) > _ROUTE_PREVIEW_MAX_ACTIVITIES:
+        return {}
+    marks = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"SELECT activity_id, latitude, longitude FROM activity_streams"
+        f" WHERE activity_id IN ({marks}) AND latitude IS NOT NULL AND longitude IS NOT NULL"
+        f" ORDER BY activity_id, elapsed_sec",
+        ids,
+    ).fetchall()
+    by_act: dict[int, list[list[float]]] = {}
+    for r in rows:
+        by_act.setdefault(r[0], []).append([r[1], r[2]])
+    out: dict[int, list[list[float]]] = {}
+    for aid, pts in by_act.items():
+        if len(pts) < 2:
+            continue
+        n = _ROUTE_PREVIEW_POINTS
+        picked = pts if len(pts) <= n else [pts[round(i * (len(pts) - 1) / (n - 1))] for i in range(n)]
+        out[aid] = [[round(la, 5), round(lo, 5)] for la, lo in picked]
+    return out
 
 
 def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
