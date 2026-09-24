@@ -20,6 +20,7 @@
 	import { base } from '$app/paths';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 	import type { PainLevel, ProviderKey } from '$lib/types';
+	import { asOfLabel, localDateString } from '$lib/asOf';
 
 	let { data }: { data: TodayPageData } = $props();
 
@@ -132,6 +133,7 @@
 
 		<!-- ══ L1 — 내 상태 요약 ══ -->
 		<section class="flex flex-col gap-3">
+			<p class="text-[11px] text-fg-muted">{asOfLabel(status.date, localDateString())}</p>
 			<div class="grid grid-cols-3 gap-2">
 				<ScoreRing
 					slug="utrs"
