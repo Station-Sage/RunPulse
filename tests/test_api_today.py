@@ -137,3 +137,12 @@ def test_get_race_hub_no_goal(mini_app):
     body = res.get_json()
     assert "data" in body
     assert body["data"]["goal"] is None
+
+
+def test_get_library_archive_empty(mini_app, monkeypatch):
+    import src.api.routes_library as routes_library
+    import src.web.helpers as helpers
+    monkeypatch.setattr(routes_library, "db_path", helpers.db_path)  # mini_app이 패치한 경로
+    res = mini_app.get("/api/v1/library/archive")
+    assert res.status_code == 200
+    assert res.get_json()["data"]["totals"] is None

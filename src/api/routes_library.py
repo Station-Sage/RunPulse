@@ -1,11 +1,11 @@
-"""GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /metrics/:slug + /wellness — Phase 7a/7b."""
+"""GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
 
 from flask import request
 
-from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
+from src.services import activity_service, archive_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -247,6 +247,21 @@ def get_library_wellness_trend():
     conn = sqlite3.connect(str(dpath))
     try:
         result = wellness_service.get_wellness_trend(conn, days=days)
+    finally:
+        conn.close()
+
+    return api_ok(result)
+
+
+@api_bp.get("/library/archive")
+def get_library_archive():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = archive_service.get_archive(conn)
     finally:
         conn.close()
 

@@ -1,10 +1,11 @@
 // 03c-library.md 3-A — Library 홈. 최근 활동(5건) + 메트릭 카테고리 칩 + Provider 현황.
-import { getActivities } from '$lib/api/library';
+import { getActivities, getArchive } from '$lib/api/library';
 import { getMetricsBrowser } from '$lib/api/metrics';
 import { getProviderStatus } from '$lib/api/providers';
-import type { ActivitySummary, MetricBrowserCategory, ProviderStatusItem } from '$lib/types';
+import type { ArchiveData, ActivitySummary, MetricBrowserCategory, ProviderStatusItem } from '$lib/types';
 
 export interface LibraryHomeData {
+	archive: ArchiveData | null;
 	recentActivities: ActivitySummary[];
 	categories: MetricBrowserCategory[];
 	providerStatus: ProviderStatusItem[];
@@ -14,11 +15,13 @@ export interface LibraryHomeData {
 }
 
 export async function load(): Promise<LibraryHomeData> {
-	const [activitiesRes, metricsRes, providerRes] = await Promise.allSettled([
+	const [activitiesRes, metricsRes, providerRes, archiveRes] = await Promise.allSettled([
 		getActivities({ per_page: 5 }),
 		getMetricsBrowser(),
-		getProviderStatus()
+		getProviderStatus(),
+		getArchive()
 	]);
+	const archive = archiveRes.status === 'fulfilled' ? archiveRes.value : null;
 
 	const recentActivities =
 		activitiesRes.status === 'fulfilled' ? activitiesRes.value.activities : [];
@@ -41,5 +44,5 @@ export async function load(): Promise<LibraryHomeData> {
 			? (providerRes.reason as Error).message ?? 'Provider 현황을 불러올 수 없습니다.'
 			: null;
 
-	return { recentActivities, categories, providerStatus, activitiesError, metricsError, providerStatusError };
+	return { archive, recentActivities, categories, providerStatus, activitiesError, metricsError, providerStatusError };
 }

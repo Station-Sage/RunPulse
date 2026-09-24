@@ -680,3 +680,27 @@ export interface ProviderStatusItem {
 export interface ProviderStatusResponse {
 	providers: ProviderStatusItem[];
 }
+
+// ── Archive (Library 홈 — /api/v1/library/archive) ───────────────────────────
+export interface ArchiveTotals {
+	runs: number;
+	distance_km: number;
+	hours: number;
+	since: string;
+	active_days_365: number;
+}
+export interface ArchivePb {
+	key: string;
+	label: string;
+	time_sec: number;
+	date: string;
+	activity_id: number;
+}
+export interface ArchiveData {
+	as_of: string;
+	totals: ArchiveTotals | null;
+	longest: { id: number; name: string; date: string; distance_km: number } | null;
+	monthly: { month: string; km: number; runs: number }[];
+	heatmap: { date: string; km: number }[];
+	personal_bests: ArchivePb[];
+}

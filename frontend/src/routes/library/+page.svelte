@@ -5,6 +5,7 @@
 	import { formatDistance, formatDuration, formatPace, formatDate, formatRelativeTime } from '$lib/format';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
+	import ArchiveHero from '$lib/components/ArchiveHero.svelte';
 
 	let { data }: { data: LibraryHomeData } = $props();
 </script>
@@ -39,6 +40,8 @@
 		Provider 비교
 	</a>
 </nav>
+
+<ArchiveHero archive={data.archive} />
 
 <!-- 최근 활동 -->
 <section class="px-4 py-4">

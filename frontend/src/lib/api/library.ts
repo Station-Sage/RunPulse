@@ -1,5 +1,6 @@
 import { apiFetch } from './client';
 import type {
+	ArchiveData,
 	ActivitiesListResponse,
 	ActivityDetailResponse
 } from '$lib/types';
@@ -29,4 +30,8 @@ export function getActivities(filters: ActivitiesFilters = {}): Promise<Activiti
 
 export function getActivity(id: number): Promise<ActivityDetailResponse> {
 	return apiFetch<ActivityDetailResponse>(`/library/activities/${id}`);
+}
+
+export function getArchive(): Promise<ArchiveData> {
+	return apiFetch<ArchiveData>('/library/archive');
 }
