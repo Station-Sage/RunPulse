@@ -46,9 +46,12 @@
 	>
 		웰니스
 	</a>
-	<span class="flex-1 py-3 text-center text-sm text-fg-muted opacity-40" title="준비 중">
+	<a
+		href="{base}/library/providers"
+		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
+	>
 		Provider 비교
-	</span>
+	</a>
 </nav>
 
 {#if data.errorMessage && !data.detail}
