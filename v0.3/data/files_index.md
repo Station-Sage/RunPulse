@@ -461,7 +461,7 @@
 
 - functions: build_briefing_prompt, build_chip_prompt, get_clipboard_prompt
 
-### `chat_context.py` (81줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
+### `chat_context.py` (88줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
 
 - functions: build_chat_context
 
@@ -469,7 +469,11 @@
 
 - (public API 없음)
 
-### `chat_context_format.py` (266줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
+### `chat_context_checkin.py` (46줄) — AI 채팅 컨텍스트 — 러너 자기 보고(QuickInput 체크인).
+
+- functions: build_checkin_context, format_checkin_line
+
+### `chat_context_format.py` (272줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
 
 - (public API 없음)
 
@@ -1190,6 +1194,10 @@
 - class **TestSummaryAndDetail**: test_detail_metrics_saved, test_detail_without_summary_is_skipped
 - class **TestNonJsonFilesIgnored**: test_fit_and_gpx_ignored
 
+### `test_chat_context_checkin.py` (131줄) — tests/test_chat_context_checkin.py — build_checkin_context / format_checkin_line 단위 + 통합.
+
+- functions: test_no_checkin_returns_none, test_today_checkin_fields, test_old_checkin_ignored, test_yesterday_checkin_included, test_empty_checkin_returns_none, test_empty_checkin_note_whitespace_returns_none, test_note_truncated_at_200, test_integration_checkin_in_chat_context, test_integration_no_checkin_not_in_context
+
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
 - class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
@@ -1820,7 +1828,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 355개 파일
+총 357개 파일
 
 ## docstring 누락
 
