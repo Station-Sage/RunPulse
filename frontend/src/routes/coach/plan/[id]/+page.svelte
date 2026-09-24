@@ -41,6 +41,8 @@
 	}
 </script>
 
+<svelte:head><title>플랜 상세 · RunPulse</title></svelte:head>
+
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.plan}
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">

@@ -47,6 +47,8 @@
 	}
 </script>
 
+<svelte:head><title>세션 상세 · RunPulse</title></svelte:head>
+
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.session}
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">

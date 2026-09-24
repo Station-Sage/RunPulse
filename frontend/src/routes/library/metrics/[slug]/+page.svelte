@@ -37,6 +37,8 @@
 	}
 </script>
 
+<svelte:head><title>{data.trend?.label ?? data.slug} · RunPulse</title></svelte:head>
+
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a href="{base}/library/metrics" class="shrink-0 text-fg-muted" aria-label="메트릭 브라우저로">←</a>

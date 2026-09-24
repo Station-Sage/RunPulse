@@ -23,6 +23,8 @@
 	}
 </script>
 
+<svelte:head><title>웰니스 · RunPulse</title></svelte:head>
+
 <!-- 헤더 탭 바 -->
 <nav class="flex border-b border-border-subtle">
 	<a

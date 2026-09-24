@@ -8,6 +8,8 @@
 	let { data }: { data: ProvidersPageData } = $props();
 </script>
 
+<svelte:head><title>소스 비교 · RunPulse</title></svelte:head>
+
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a

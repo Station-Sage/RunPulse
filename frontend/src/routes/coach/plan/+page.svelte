@@ -6,6 +6,8 @@
 	let { data }: { data: PlanGatewayData } = $props();
 </script>
 
+<svelte:head><title>훈련 플랜 · RunPulse</title></svelte:head>
+
 <div class="flex flex-col items-center justify-center gap-6 px-4 py-16 text-center">
 	<div>
 		<p class="text-base text-fg-secondary">

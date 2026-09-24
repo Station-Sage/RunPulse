@@ -64,6 +64,8 @@
 	}
 </script>
 
+<svelte:head><title>Coach · RunPulse</title></svelte:head>
+
 <div class="flex flex-col">
 	<!-- 최근 대화 섹션 -->
 	<div class="border-b border-border-subtle px-4 py-3">
