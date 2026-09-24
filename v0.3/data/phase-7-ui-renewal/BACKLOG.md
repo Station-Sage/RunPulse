@@ -2359,7 +2359,7 @@ DONE으로 옮긴다.
   {/if}
   ```
   `categories`가 비었거나 필터 결과가 비었을 때 기존 빈 상태("데이터 수집 중")는 그대로 둔다. 백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITIES-LIST-MOBILE"], "kind": "code", "scope": ["frontend/src/routes/library/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-ACTIVITIES-LIST-MOBILE"], "kind": "code", "scope": ["frontend/src/routes/library/metrics/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-EVIDENCE-EMPTY-LABEL]** `03g-common-patterns.md` 7-3 — "원천 데이터가 없는 결론은 '(데이터 부족 — 추후 업데이트)' 레이블 표시". 프론트 전용, 2026-09-24
   스펙 대조로 발견(`frontend/src`에 "데이터 부족" 문구 0건 — 근거 칩이 하나도 없는 AI 결론이 아무 표시 없이 나가서 사용자가 "근거가 있는데 안 보이는 건지 없는 건지" 구분할 수 없음),
   설계 근거는 `DECISIONS.md`의 `[P7-IMPL-EVIDENCE-EMPTY-LABEL]` 항목 필독. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현** — 세 곳 모두 "근거 칩 목록이 비었을 때"의 else 분기만 추가하고 나머지는 건드리지 않는다:
