@@ -6,6 +6,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
+	import { indexAtFraction, axisTicks, formatElapsed } from '$lib/streamAxis';
 
 	let { data }: { data: StreamsPageData } = $props();
 
@@ -77,6 +78,32 @@
 		// 빠른 페이스가 min(낮은 값) → 빠른 페이스 먼저 표시
 		return `${formatPaceSec(mn)} – ${formatPaceSec(mx)}`;
 	}
+
+	// 시간 눈금 (elapsed_sec 기준, 포인트 인덱스 등간격 위치에 실제 시간 라벨)
+	const ticks = $derived(axisTicks(data.streams.map((p) => p.elapsed_sec)));
+
+	// 스크럽 상태: scrubFrac(0~1) → scrubIndex
+	let scrubFrac = $state<number | null>(null);
+	const scrubIndex = $derived(
+		scrubFrac != null ? indexAtFraction(data.streams.length, scrubFrac) : null
+	);
+
+	function onPointerMove(e: PointerEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		scrubFrac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+	}
+
+	function onPointerLeave() {
+		scrubFrac = null;
+	}
+
+	// 스크럽 판독 줄에 표시할 값 포맷
+	function formatScrubValue(def: StreamDef, point: ActivityStreamPoint): string {
+		const v = def.extract(point);
+		if (v == null) return '—';
+		if (def.key === 'pace') return formatPaceSec(v) + def.unit;
+		return v.toFixed(0) + '\u00a0' + def.unit;
+	}
 </script>
 
 <svelte:head><title>스트림 · RunPulse</title></svelte:head>
@@ -123,28 +150,70 @@
 			<p class="text-xs text-fg-muted">소스: {providerLabel()}</p>
 		{/if}
 
-		<!-- 스트림 목록 -->
-		<div class="flex flex-col gap-5">
-			{#each availableStreams as def}
-				{#if checked[def.key]}
-					{@const values = data.streams.map(def.extract)}
-					<div class="flex flex-col gap-1">
-						<div class="flex items-center justify-between text-xs text-fg-secondary">
-							<span class="font-medium" style="color:{def.color}">{def.label}</span>
-							<span class="text-fg-muted">
-								{def.key === 'pace' ? formatMinMaxPace(values) : formatMinMax(values)}
-								{def.unit}
-							</span>
-						</div>
-						<Sparkline data={values} height={48} color={def.color} />
-					</div>
+		<!-- 시간 눈금 + 스크럽 영역 -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			role="group"
+			aria-label="스트림 차트 스크럽 영역"
+			style="touch-action: pan-y"
+			onpointermove={onPointerMove}
+			onpointerleave={onPointerLeave}
+		>
+			<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 실제 elapsed_sec 라벨 -->
+			<div class="relative mb-1 h-5 select-none">
+				{#each ticks as tick}
+					<span
+						class="absolute -translate-x-1/2 text-xs text-fg-muted"
+						style="left:{tick.frac * 100}%"
+					>{tick.label}</span>
+				{/each}
+			</div>
+
+			<!-- 판독 줄 (높이 고정 — 스크럽 여부와 무관하게 레이아웃 유지) -->
+			<div class="mb-2 flex h-5 items-center gap-3 overflow-hidden text-xs">
+				{#if scrubIndex != null}
+					{@const point = data.streams[scrubIndex]}
+					<span class="text-fg-muted">{formatElapsed(point.elapsed_sec)}</span>
+					{#each availableStreams as def}
+						{#if checked[def.key]}
+							<span style="color:{def.color}">{def.label} {formatScrubValue(def, point)}</span>
+						{/if}
+					{/each}
 				{/if}
-			{/each}
+			</div>
+
+			<!-- 스트림 차트 목록 -->
+			<div class="flex flex-col gap-5">
+				{#each availableStreams as def}
+					{#if checked[def.key]}
+						{@const values = data.streams.map(def.extract)}
+						<div class="flex flex-col gap-1">
+							<div class="flex items-center justify-between text-xs text-fg-secondary">
+								<span class="font-medium" style="color:{def.color}">{def.label}</span>
+								<span class="text-fg-muted">
+									{def.key === 'pace' ? formatMinMaxPace(values) : formatMinMax(values)}
+									{def.unit}
+								</span>
+							</div>
+							<!-- 스파크라인 + 스크럽 커서 라인 -->
+							<div class="relative">
+								<Sparkline data={values} height={48} color={def.color} />
+								{#if scrubFrac != null}
+									<div
+										class="pointer-events-none absolute inset-y-0 w-px opacity-50"
+										style="left:{scrubFrac * 100}%; background-color:{def.color}"
+									></div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</div>
 
 		<p class="text-xs text-fg-muted">
 			{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·
-			x축은 포인트 순서(elapsed_sec 균등 간격 미보장 — 정밀 시간축은 후속 과제)
+			시간 눈금은 포인트 인덱스 기준 위치에 실제 elapsed_sec를 표시
 		</p>
 	</div>
 {/if}
