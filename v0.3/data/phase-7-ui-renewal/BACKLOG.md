@@ -3120,6 +3120,232 @@ DONE으로 옮긴다.
   ```
   리뷰: 워크트리 diff를 명세와 대조 → 명세 불일치 다수(이탈): (1) `trendChart.ts` API를 명세(TrendSeries/points, commonRange, xFraction, nearestPoint, changeLabel(points))와 다르게 구현(ChartSeries/values+dates 인덱스 매핑, sharedYRange, changeLabel(current, prev)) — CTL·ATL 날짜가 다르면 x축이 어긋남; (2) SVG `preserveAspectRatio="none"` 안에 `<text>`·`<circle>`을 그려 글자·마커가 가로로 찌그러짐(명세는 HTML 오버레이); (3) y 눈금 `toFixed(0)`(0.8 같은 소수 메트릭에서 무의미; 명세 1자리); (4) 범례·판독 줄·pointerdown/touch-action 누락; (5) "30일 변화"가 기간 첫 점 기준(명세는 30일 전 점). 정정: main에서 명세대로 재작성(`fix(frontend): TrendChart 명세 정합`) 후 실데이터·합성 브라우저 확인.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-HERO"], "kind": "code", "scope": ["frontend/src/lib/trendChart.ts", "frontend/tests/trendChart.test.mjs", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/library/metrics/[slug]/+page.svelte", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-RACE-HUB-API]** Today 목표 레이스 허브용 백엔드 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이 + 현재 폼. 백엔드 전용, `REVIEW-05-vision-gap.md` E1 참조, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-RACE-HUB-API]` 항목 필독. **이 명세의 시그니처·반환 키는 그대로 구현할 것 — 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** 배경: 실데이터에 `race_pred_*_sec`(5k/10k/half/marathon, provider `runpulse:formula_v1`, 429일 이력)가 있는데 화면 어디에도 나오지 않고, `dashboard_service.get_dashboard_data()`는 존재하지 않는 메트릭명 `darp_*_sec`를 읽어 `race_predictions`가 항상 null이다(실제 메트릭명은 `src/metrics/darp.py`의 produces와 같은 `race_pred_{5k,10k,half,marathon}_sec`).
+  (1) `src/services/dashboard_service.py` 버그 수정 — `pred_names = ["darp_5k_sec", ...]`를 `["race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec"]`로, `pred_map.get(...)`의 키도 같은 이름으로 바꾼다. 반환 딕셔너리의 키(`darp_5k`, `darp_10k`, `darp_half`, `darp_marathon`)는 소비자(`ai_context.py` 등)가 쓰므로 그대로 둔다. `tests/test_dashboard_service.py`(50~53행 시드)와 `tests/test_ai_context.py`(45~46행 시드)가 잘못된 이름 `darp_*_sec`을 시드하고 있으므로 시드의 메트릭명만 `race_pred_*_sec`로 바꾸고 기대값은 그대로 둔다(버그를 테스트가 감추고 있었음).
+  (2) 신규 `src/services/race_hub_service.py` — 모듈 docstring 첫 줄 `"""Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이."""`. 읽기 전용, raw SQL 허용(서비스 레이어). `from __future__ import annotations`, `import sqlite3`, `from datetime import date as _date, datetime, timedelta`. 구현:
+  ```python
+  _BUCKETS = [("5k", 5.0, 1.0), ("10k", 10.0, 1.5), ("half", 21.0975, 2.0), ("marathon", 42.195, 2.5)]
+  def bucket_for_distance(distance_km: float | None) -> str | None:
+      """목표 거리(km)에 대응하는 예측 버킷. 중심에서 허용오차 이내이고 가장 가까운 버킷, 없으면 None."""
+  def get_race_hub(conn: sqlite3.Connection, date: str | None = None) -> dict:
+      """가장 가까운 다가오는 활성 목표와 준비 현황.
+      반환: {"goal": None | {...}, "prediction": None | {...}, "form": None | {...}}
+      """
+  ```
+  `date` 기본은 오늘(`_date.today().isoformat()`). 목표 선택: `SELECT id, name, race_date, distance_km, target_time_sec, target_pace_sec_km FROM goals WHERE status = 'active' AND race_date IS NOT NULL AND race_date >= ? ORDER BY race_date ASC, id DESC LIMIT 1`. 없으면 `{"goal": None, "prediction": None, "form": None}`. 있으면 `goal` = `{"id","name","race_date","distance_km","target_time_sec","target_pace_sec_km","days_left","weeks_left"}` (`days_left` = `(race_date − date).days` 정수, `weeks_left` = `days_left // 7`). `prediction`: `bucket_for_distance(distance_km)`가 None이면 None. 아니면 메트릭 `race_pred_{bucket}_sec`에서 `SELECT scope_id, numeric_value FROM metric_store WHERE metric_name = ? AND scope_type = 'daily' AND is_primary = 1 AND numeric_value IS NOT NULL AND scope_id <= ? ORDER BY scope_id DESC LIMIT 1`로 최신 1건(없으면 `prediction` = None). `prediction` = `{"bucket": bucket, "value_sec": 최신값(int), "as_of": scope_id, "gap_sec": value_sec − target_time_sec (target_time_sec가 None이면 None), "history": [{"date": scope_id, "value": 값(int)}, …]}` — history는 같은 쿼리로 `scope_id >= date − 90일` 범위를 날짜 오름차순. `form`: `ctl`, `tsb` 각각 `metric_name = ? AND scope_type = 'daily' AND is_primary = 1 AND scope_id <= ?`의 최신 값 → `{"ctl": float | None, "tsb": float | None}`(둘 다 None이어도 dict 반환).
+  (3) `src/api/routes_today.py` — 모듈 docstring 첫 줄에 `GET /api/v1/today/race-hub` 추가, 기존 라우트와 같은 패턴(db 없으면 503 NOT_FOUND, `sqlite3.connect`/finally close)으로 `@api_bp.get("/today/race-hub")` 추가, `race_hub_service.get_race_hub(conn)` 결과를 `api_ok`로 반환(`from src.services import milestone_service, today_service` 줄에 `race_hub_service` 추가).
+  (4) 테스트 `tests/test_race_hub_service.py`(신규, 인메모리 `sqlite3.connect(":memory:")` + `create_tables` + `migrate_db`, 기존 `tests/test_milestone_service.py`의 픽스처 방식 참고): `bucket_for_distance` — 42.195→"marathon", 42.0→"marathon", 21.1→"half", 10→"10k", 5→"5k", 15→None, None→None. `get_race_hub` — (a) 목표 없음 → 세 키 모두 None; (b) 지난 날짜 목표만 있음 → goal None; (c) 미래 목표 2개(가까운 것 선택), `date="2026-09-24"`, race_date `2026-10-25` → `days_left==31`, `weeks_left==4`; (d) 마라톤 목표(target 14400) + `race_pred_marathon_sec` 3일치(예: 15750, 15692, 15692, provider `runpulse:formula_v1`, is_primary=1) → `value_sec` 최신값, `gap_sec == 최신값 − 14400`, history 3건 오름차순; (e) 목표 거리 15km → prediction None이지만 goal 있음; (f) target_time_sec None → `gap_sec` None; (g) ctl·tsb 시드 시 form에 반영, 없으면 둘 다 None. `tests/test_api_today.py`에 `test_get_race_hub_no_goal`(빈 DB → 200, `data.goal is None`) 추가. `tests/test_dashboard_service.py`의 기존 `rp["darp_marathon"] == 12900` 단언이 수정된 시드로 통과해야 한다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/race_hub_service.py", "src/api/routes_today.py", "src/services/dashboard_service.py", "tests/test_race_hub_service.py", "tests/test_api_today.py", "tests/test_dashboard_service.py", "tests/test_ai_context.py"], "verify": ["python3 -m pytest tests/test_race_hub_service.py tests/test_api_today.py tests/test_dashboard_service.py tests/test_ai_context.py -q", "python3 scripts/check_data_consistency.py"]} -->
+- **[P7-IMPL-RACE-HUB-UI]** Today 최상단 "목표 레이스 허브" — D-day·예측 기록 vs 목표·예측 추이. 프론트 전용, `REVIEW-05-vision-gap.md` E1 참조, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-RACE-HUB-UI]` 항목 필독. 앞 유닛 `P7-IMPL-RACE-HUB-API`의 `GET /api/v1/today/race-hub`(`apiFetch`가 `{data}`를 벗겨 `{goal, prediction, form}` 반환)를 쓴다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** 현황: Today 첫 화면이 문장 하나와 숫자 카드뿐이라 러너가 앱을 여는 이유("내가 레이스에 얼마나 가까운가")에 답하지 못한다.
+  (1) `frontend/src/lib/types/index.ts` 끝에 추가:
+  ```ts
+  export interface RaceHubGoal {
+  	id: number;
+  	name: string | null;
+  	race_date: string;
+  	distance_km: number;
+  	target_time_sec: number | null;
+  	target_pace_sec_km: number | null;
+  	days_left: number;
+  	weeks_left: number;
+  }
+  export interface RaceHubPrediction {
+  	bucket: string;
+  	value_sec: number;
+  	as_of: string;
+  	gap_sec: number | null;
+  	history: { date: string; value: number }[];
+  }
+  export interface RaceHub {
+  	goal: RaceHubGoal | null;
+  	prediction: RaceHubPrediction | null;
+  	form: { ctl: number | null; tsb: number | null } | null;
+  }
+  ```
+  `frontend/src/lib/api/today.ts`에 `getTodayRaceHub(): Promise<RaceHub>` 추가(`apiFetch<RaceHub>('/today/race-hub')`, `RaceHub`를 type import에 추가).
+  (2) 신규 `frontend/src/lib/raceHub.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  export type GapTone = 'ahead' | 'on' | 'behind' | 'unknown';
+  /** 예측−목표 격차(초, 양수=목표보다 느림)를 톤과 문구로. |격차|<60초는 '목표 페이스권'. null이면 unknown. */
+  export function gapVerdict(gapSec: number | null): { tone: GapTone; label: string } {
+  	if (gapSec == null) return { tone: 'unknown', label: '목표 시간을 설정하면 격차를 보여줘요' };
+  	if (Math.abs(gapSec) < 60) return { tone: 'on', label: '목표 페이스권' };
+  	const abs = Math.abs(gapSec);
+  	const h = Math.floor(abs / 3600);
+  	const m = Math.floor((abs % 3600) / 60);
+  	const s = Math.round(abs % 60);
+  	const text = h > 0 ? `${h}시간 ${m}분` : `${m}분 ${s}초`;
+  	return gapSec < 0
+  		? { tone: 'ahead', label: `목표보다 ${text} 빠름` }
+  		: { tone: 'behind', label: `목표보다 ${text} 느림` };
+  }
+  /** D-day 문구: 0이면 'D-DAY', 양수 'D-31', 음수 'D+3'. */
+  export function countdownLabel(daysLeft: number): string {
+  	if (daysLeft === 0) return 'D-DAY';
+  	return daysLeft > 0 ? `D-${daysLeft}` : `D+${-daysLeft}`;
+  }
+  /** 목표 거리(km) 표기: 풀/하프/10K/5K 근사(±허용) 아니면 소수 1자리 km. */
+  export function distanceLabel(km: number): string {
+  	if (Math.abs(km - 42.195) <= 2.5) return '풀 마라톤';
+  	if (Math.abs(km - 21.0975) <= 2) return '하프';
+  	if (Math.abs(km - 10) <= 1.5) return '10K';
+  	if (Math.abs(km - 5) <= 1) return '5K';
+  	return `${km.toFixed(1)}km`;
+  }
+  ```
+  (3) 신규 `frontend/tests/raceHub.test.mjs`(기존 `frontend/tests/chartScale.test.mjs`와 같은 방식, `../src/lib/raceHub.ts` import): `gapVerdict(null)` tone unknown; `gapVerdict(30)`/`gapVerdict(-59)` tone on; `gapVerdict(252)` → tone behind, label `목표보다 4분 12초 느림`; `gapVerdict(-3700)` → ahead, `목표보다 1시간 1분 빠름`; `countdownLabel(31)==='D-31'`, `(0)==='D-DAY'`, `(-3)==='D+3'`; `distanceLabel(42.195)==='풀 마라톤'`, `(21.1)==='하프'`, `(10)==='10K'`, `(5)==='5K'`, `(15)==='15.0km'`.
+  (4) `frontend/src/lib/components/TrendChart.svelte` — props에 `formatValue?: (v: number) => string`(기본 `(v) => v.toFixed(1)`)을 추가하고, y축 최대·최소 라벨과 판독 값(`r.p.value.toFixed(1)` 부분)에서 `toFixed(1)` 대신 이 함수를 쓴다. 기존 호출부(메트릭 상세·Today CTL/ATL)는 prop을 안 넘기므로 동작 불변이어야 한다.
+  (5) 신규 `frontend/src/lib/components/RaceHub.svelte` — props `{ hub: RaceHub }`. import: `base` from `$app/paths`, `formatDuration` from `$lib/format`, `gapVerdict, countdownLabel, distanceLabel` from `$lib/raceHub`, `TrendChart` from `./TrendChart.svelte`, 타입 `RaceHub`. 두 상태:
+   - `hub.goal`이 null: `<a href="{base}/coach/plan/new" class="flex flex-col gap-1 rounded-lg border border-dashed border-border-subtle bg-surface-2 p-4 hover:bg-surface-3">`에 굵은 `목표 레이스를 등록해 보세요`와 `text-xs text-fg-muted`로 `D-day, 예측 기록, 목표까지의 격차와 준비도 추이를 여기서 계속 볼 수 있어요 →`.
+   - 목표 있음: `<section aria-label="목표 레이스" class="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-2 p-4">`. 위 줄: 왼쪽 `text-4xl font-bold font-mono leading-none`으로 `countdownLabel(goal.days_left)`, 오른쪽(`min-w-0 flex-1`)에 `truncate text-sm font-medium`으로 `goal.name ?? distanceLabel(goal.distance_km)`와 `text-xs text-fg-muted`로 `{goal.race_date} · {distanceLabel(goal.distance_km)}{goal.weeks_left > 0 ? ` · ${goal.weeks_left}주 남음` : ''}`. 중간 줄(`grid grid-cols-2 gap-3`): 두 칸 각각 `text-xs text-fg-muted` 라벨(`예측 기록`, `목표`)과 `font-mono text-2xl font-bold` 값 — 예측은 `prediction ? formatDuration(prediction.value_sec) : '—'`, 목표는 `goal.target_time_sec != null ? formatDuration(goal.target_time_sec) : '미설정'`(미설정이면 `text-fg-muted`, 크기는 `text-lg`). 격차 칩: `prediction`이 있으면 `gapVerdict(prediction.gap_sec)`로 `<p class="text-sm font-medium {tone 색}">`(ahead `text-semantic-green`, on `text-semantic-teal`, behind `text-semantic-amber`, unknown `text-fg-muted font-normal text-xs`)에 label. 예측 추이: `prediction && prediction.history.length > 1`이면 `text-xs text-fg-muted`로 `예측 기록 추이 · 최근 90일`과 `<TrendChart series={[{ key: 'pred', label: '예측', color: '#14b8a6', points: prediction.history }]} height={72} interactive={false} formatValue={formatDuration} />` — formatDuration은 초→`h:mm:ss`이므로 y 눈금·판독에 그대로 쓴다(값 실수는 `Math.round`로 넘길 것: `formatValue={(v) => formatDuration(Math.round(v))}`). `hub.form`이 있고 `tsb`가 null이 아니면 맨 아래 `text-xs text-fg-muted` 한 줄 `현재 폼(TSB) {tsb 부호 포함 정수}`.
+  (6) `frontend/src/routes/today/+page.ts` — `TodayPageData`에 `raceHub: RaceHub | null` 추가, `Promise.all`에 `getTodayRaceHub().catch(() => null)`(반환 구조분해 이름 `raceHub`), 성공/에러 두 return 모두에 `raceHub`(에러 쪽은 null) 포함, import 정리. `frontend/src/routes/today/+page.svelte` — `import RaceHub from '$lib/components/RaceHub.svelte';` 추가하고 L0 `<section class="flex flex-col gap-3">`의 첫 자식(현재 `<RecommendationCard …/>` 앞)으로 `{#if data.raceHub}<RaceHub hub={data.raceHub} />{/if}` 삽입. 다른 순서·레이아웃은 건드리지 않는다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-RACE-HUB-API"], "kind": "code", "scope": ["frontend/src/lib/raceHub.ts", "frontend/tests/raceHub.test.mjs", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/today.ts", "frontend/src/lib/components/RaceHub.svelte", "frontend/src/lib/components/TrendChart.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-ROUTE-MAP]** 활동 상세에 타일 없는 SVG 경로 지도(페이스/심박 색상) — 프론트 전용, `REVIEW-05-vision-gap.md` E2 참조, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ROUTE-MAP]` 항목 필독. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** 현황: 활동 스트림에 GPS(`latitude`/`longitude`)가 있는데(실데이터 활동 107개, 20만 점) 화면에 지도가 없다. 로컬 퍼스트 원칙상 외부 타일 요청 없이 좌표를 직접 SVG로 그린다. 데이터는 이미 `data.activity.streams`(활동 상세 응답)에 있어 API 변경이 없다.
+  (1) `frontend/src/lib/types/index.ts`의 `ActivityStreamPoint`에 `latitude?: number | null;`과 `longitude?: number | null;` 추가.
+  (2) 신규 `frontend/src/lib/routeGeometry.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  export interface StreamLike {
+  	latitude?: number | null;
+  	longitude?: number | null;
+  	speed_ms?: number | null;
+  	heart_rate?: number | null;
+  }
+  export interface RoutePoint { lat: number; lng: number; pace: number | null; hr: number | null }
+  export interface ProjectedPoint { x: number; y: number; pace: number | null; hr: number | null }
+  export interface ProjectedRoute { width: number; height: number; points: ProjectedPoint[] }
+  /** GPS가 유효한 스트림 점만 RoutePoint로. 유효: 유한수, |lat|≤90, |lng|≤180, (0,0) 제외. pace는 speed_ms>0일 때 1000/speed_ms(초/km), 아니면 null. */
+  export function routePoints(streams: StreamLike[]): RoutePoint[] {
+  	const out: RoutePoint[] = [];
+  	for (const s of streams) {
+  		const lat = s.latitude;
+  		const lng = s.longitude;
+  		if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+  		if (Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) continue;
+  		out.push({
+  			lat,
+  			lng,
+  			pace: s.speed_ms != null && s.speed_ms > 0 ? 1000 / s.speed_ms : null,
+  			hr: s.heart_rate ?? null
+  		});
+  	}
+  	return out;
+  }
+  /** 균등 간격으로 최대 max개로 줄인다(첫·끝 점 항상 포함). items.length ≤ max면 그대로. */
+  export function downsample<T>(items: T[], max: number): T[] {
+  	if (items.length <= max || max < 2) return items;
+  	const out: T[] = [];
+  	for (let i = 0; i < max; i++) out.push(items[Math.round((i * (items.length - 1)) / (max - 1))]);
+  	return out;
+  }
+  /** 위경도를 등장방형(위도 중앙 cos 보정) 투영해 긴 변이 maxSize−2·pad가 되게 SVG 좌표로. 북쪽이 위(y 반전). 점이 2개 미만이거나 범위가 0이면 null. */
+  export function projectRoute(points: RoutePoint[], maxSize: number, pad: number): ProjectedRoute | null {
+  	if (points.length < 2) return null;
+  	let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  	for (const p of points) {
+  		if (p.lat < minLat) minLat = p.lat;
+  		if (p.lat > maxLat) maxLat = p.lat;
+  		if (p.lng < minLng) minLng = p.lng;
+  		if (p.lng > maxLng) maxLng = p.lng;
+  	}
+  	const k = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
+  	const spanX = (maxLng - minLng) * k;
+  	const spanY = maxLat - minLat;
+  	const span = Math.max(spanX, spanY);
+  	if (!(span > 0)) return null;
+  	const scale = (maxSize - 2 * pad) / span;
+  	return {
+  		width: spanX * scale + 2 * pad,
+  		height: spanY * scale + 2 * pad,
+  		points: points.map((p) => ({
+  			x: (p.lng - minLng) * k * scale + pad,
+  			y: (maxLat - p.lat) * scale + pad,
+  			pace: p.pace,
+  			hr: p.hr
+  		}))
+  	};
+  }
+  /** 유효 값의 5~95퍼센타일 범위(이상치 제외). 유효 값 2개 미만이면 null, lo===hi면 hi=lo+1. */
+  export function robustRange(values: (number | null)[]): { lo: number; hi: number } | null {
+  	const v = values.filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b);
+  	if (v.length < 2) return null;
+  	const at = (q: number) => v[Math.min(v.length - 1, Math.max(0, Math.round(q * (v.length - 1))))];
+  	const lo = at(0.05);
+  	let hi = at(0.95);
+  	if (hi === lo) hi = lo + 1;
+  	return { lo, hi };
+  }
+  /** '#rrggbb' 두 색 사이 선형 보간(t는 0~1로 clamp). */
+  export function lerpColor(a: string, b: string, t: number): string {
+  	const c = Math.min(1, Math.max(0, t));
+  	const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  	const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  	return '#' + pa.map((x, i) => Math.round(x + (pb[i] - x) * c).toString(16).padStart(2, '0')).join('');
+  }
+  /** 값→색. pace: 빠름(작은 값) 파랑 #3b82f6 → 느림 주황 #f97316. hr: 낮음 청록 #14b8a6 → 높음 빨강 #ef4444. 값 또는 범위가 없으면 회색 #64748b. */
+  export function segmentColor(value: number | null, range: { lo: number; hi: number } | null, mode: 'pace' | 'hr'): string {
+  	if (value == null || !range) return '#64748b';
+  	const t = (value - range.lo) / (range.hi - range.lo);
+  	return mode === 'pace' ? lerpColor('#3b82f6', '#f97316', t) : lerpColor('#14b8a6', '#ef4444', t);
+  }
+  ```
+  (3) 신규 `frontend/tests/routeGeometry.test.mjs`(기존 `frontend/tests/chartScale.test.mjs`와 같은 방식, `../src/lib/routeGeometry.ts` import): `routePoints` — 유효 점만 남김(null·NaN·(0,0)·lat 91 제외), `speed_ms=2.5`→pace 400, `speed_ms=0`→pace null; `downsample` — 10개→4개는 길이 4·첫 끝 포함, 3개 max 10은 그대로; `projectRoute` — 정사각 위경도 범위(적도 근처)에서 `width≈height`, 위도만 변하는 점 3개(경도 동일)면 `width===2*pad`이고 북쪽(위도 큰) 점의 y가 더 작음, 점 1개 → null, 모든 점 동일 → null; `robustRange` — `[1..100]`에서 lo≈6, hi≈95, null 무시, 값 1개 → null, 전부 같으면 hi=lo+1; `lerpColor('#000000','#ffffff',0.5)==='#808080'`, t 범위 밖 clamp; `segmentColor(null,…)==='#64748b'`, `segmentColor(lo, range,'pace')==='#3b82f6'`, `segmentColor(hi, range,'pace')==='#f97316'`.
+  (4) 신규 `frontend/src/lib/components/RouteMap.svelte` — props `{ streams: ActivityStreamPoint[] }`(타입 import `$lib/types`). `routePoints` → `downsample(…, 300)` → `projectRoute(points, 320, 12)` 를 `$derived`로. `route`가 null이면 아무것도 렌더링하지 않는다(`{#if route}`). 모드 `let mode = $state<'pace' | 'hr'>('pace')`; 심박 값이 유효한 점이 2개 미만(`robustRange(hr들)`이 null)이면 모드 토글 숨기고 pace 고정. 렌더: `<section class="flex flex-col gap-2" aria-label="경로">` — 머리줄 `flex items-center justify-between`: 왼쪽 `<p class="text-xs uppercase tracking-wide text-fg-muted">경로</p>`, 오른쪽(토글 표시 조건 충족 시) 두 버튼 `페이스`/`심박`(`type="button"`, `aria-pressed={mode === '…'}`, 활성은 `text-fg-primary underline`, 비활성 `text-fg-muted`, `text-xs`). 본문: `<div class="flex justify-center rounded-lg border border-border-subtle bg-surface-2 p-3">` 안에 `<svg viewBox="0 0 {route.width} {route.height}" class="w-full" style="max-height:280px;aspect-ratio:{route.width}/{route.height}" role="img" aria-label="활동 경로 지도(타일 없음)">`; 연속한 점쌍마다 `<line x1 y1 x2 y2 stroke={segmentColor(두 점 값 평균(null이면 있는 쪽, 둘 다 null이면 null), range, mode)} stroke-width="3" stroke-linecap="round" />`(range는 모드별 `robustRange` 를 `$derived`); 시작점 `<circle r="5" fill="#22c55e" stroke="#0b1220" stroke-width="2">`, 끝점 `<circle r="5" fill="#f8fafc" stroke="#0b1220" stroke-width="2">`(마지막 점). 아래 범례 한 줄 `flex items-center gap-2 text-[10px] text-fg-muted`: 모드 pace면 `빠름`, 그라데이션 막대(`h-1.5 flex-1 rounded`, `style="background: linear-gradient(to right, #3b82f6, #f97316)"`), `느림`; hr면 `낮음`, `linear-gradient(to right, #14b8a6, #ef4444)`, `높음`. 범례 아래 `text-[10px] text-fg-muted`로 `지도 타일 없이 GPS 좌표만으로 그린 경로 · 북쪽이 위`.
+  (5) `frontend/src/routes/library/[id]/+page.svelte` — `import RouteMap from '$lib/components/RouteMap.svelte';` 추가하고, 핵심 통계 바(`<!-- 핵심 통계 바 -->` 블록)와 `<!-- 핵심 메트릭 그리드` 사이에 `<RouteMap streams={streams ?? []} />` 삽입. 다른 곳은 건드리지 않는다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-RACE-HUB-UI"], "kind": "code", "scope": ["frontend/src/lib/routeGeometry.ts", "frontend/tests/routeGeometry.test.mjs", "frontend/src/lib/types/index.ts", "frontend/src/lib/components/RouteMap.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITY-SPLITS]** 활동 상세에 km 스플릿 막대와 고도 프로필 — 프론트 전용, `REVIEW-05-vision-gap.md` E2 참조, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITY-SPLITS]` 항목 필독. **이 명세의 알고리즘·시그니처는 그대로 구현할 것 — 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** 현황: 활동 상세에 구간(km)별 페이스와 고도 정보가 없다. 실데이터의 Garmin 스트림은 `distance_m`이 null이고 `elapsed_sec`가 샘플 인덱스로 저장된 경우가 있어(P7-DATA-STREAM-ELAPSED) 저장값을 믿을 수 없으므로 활동 총 시간·거리에 맞춰 재구성한다.
+  (1) 신규 `frontend/src/lib/splits.ts`(순수 함수, 다른 모듈 import 금지):
+  ```ts
+  export interface SplitStream {
+  	elapsed_sec: number;
+  	distance_m: number | null;
+  	speed_ms: number | null;
+  	heart_rate: number | null;
+  	altitude_m: number | null;
+  }
+  export interface Split { km: number; distanceM: number; sec: number; paceSecKm: number; avgHr: number | null; elevDelta: number | null }
+  ```
+  `export function sampleTimes(streams: SplitStream[], totalSec: number): number[]` — 샘플별 경과 초. n<2 또는 totalSec≤0이면 `streams.map((s) => s.elapsed_sec)`. 마지막 `elapsed_sec`가 `totalSec × 0.9` 이상이면 `elapsed_sec` 그대로, 아니면 `i × totalSec / (n − 1)`(등간격 재환산).
+  `export function cumulativeDistance(streams: SplitStream[], totalSec: number, totalDistM: number): number[]` — 샘플별 누적 거리(m). 모든 샘플의 `distance_m`이 non-null이고 마지막 값이 0보다 크면 그 값을 사용, 아니면 `t = sampleTimes(...)`로 `d[0]=0`, `d[i] = d[i-1] + max(0, speed_ms ?? 직전 유효 속도 ?? 0) × (t[i] − t[i-1])`로 적분한다. 마지막 누적값이 0보다 크고 `totalDistM > 0`이면 전체를 `totalDistM / d[last]`배 해 총 거리를 활동 거리에 맞춘다(0이면 그대로 반환).
+  `export function computeSplits(streams: SplitStream[], totalSec: number, totalDistM: number): Split[]` — `streams.length < 2 || totalSec <= 0 || totalDistM < 1000`이면 `[]`. `t = sampleTimes`, `d = cumulativeDistance`로 경계 `k×1000`m(k=1,2,…, `≤ d[last]`)마다 인접 두 샘플 사이를 선형보간해 통과 시각을 구하고, 구간 k의 `sec` = 통과 시각(k) − 통과 시각(k−1)(시작은 `t[0]`), `distanceM`=1000, `paceSecKm = sec`. 마지막 경계 이후 잔여 거리가 200m 이상이면 마지막 구간을 추가(`distanceM`=잔여, `sec` = `t[last]` − 마지막 경계 시각, `paceSecKm = sec / (distanceM/1000)`, `km`=번호). 각 구간의 `avgHr`은 그 구간 안(시작 시각 ≤ t < 끝 시각) 샘플의 non-null 심박 평균(반올림 정수, 없으면 null), `elevDelta`는 구간 끝·시작 시각에 가장 가까운 샘플의 `altitude_m` 차(둘 중 하나가 null이면 null, 소수 1자리로 반올림).
+  (2) 신규 `frontend/tests/splits.test.mjs`(기존 `frontend/tests/streamAxis.test.mjs`와 같은 방식, `../src/lib/splits.ts` import): 헬퍼로 1초 간격 등속 스트림 생성. (a) 1001샘플, `speed_ms`=4, `distance_m` null, `elapsed_sec`=0..1000, `totalSec=1000`, `totalDistM=4000` → 4구간, 각 `sec≈250`(±1), `paceSecKm≈250`, `km` 1..4; (b) `distance_m`가 0..4000 선형으로 채워진 경우 같은 결과; (c) `elapsed_sec`가 인덱스(0..500, 501샘플)인데 `totalSec=1000`이면 재환산되어 (a)와 같은 구간 시간; (d) `totalDistM=2500`(속도 적분 후 총 거리 스케일링)이면 3구간이고 마지막 `distanceM≈500`, 마지막 `paceSecKm≈`(`sec/0.5`); (e) `totalDistM=800` → `[]`, 샘플 1개 → `[]`; (f) 심박 150 일정이면 모든 구간 `avgHr===150`, 심박 전부 null이면 null; (g) 고도가 0→80 선형(1000샘플 구간)이면 각 `elevDelta`가 20(±0.1) — 4km 활동; (h) 점차 빨라지는 속도(2→4 m/s)에서 `paceSecKm`이 구간마다 단조 감소.
+  (3) 신규 `frontend/src/lib/components/SplitBars.svelte` — props `{ splits: Split[] }`. `splits.length === 0`이면 렌더 안 함. `<section class="flex flex-col gap-2" aria-label="구간별 페이스">`, 머리줄 `<p class="text-xs uppercase tracking-wide text-fg-muted">구간별 페이스</p>` + 오른쪽 `text-[10px] text-fg-muted` `스트림 기반 추정`. 가장 빠른 페이스 `best`, 평균 `avg`(구간 sec 합 / 거리 합 ×1000)를 계산. 행마다 `flex items-center gap-2 text-xs`: `<span class="w-6 text-right font-mono text-fg-muted">{km}</span>`(마지막 부분 구간은 `{km}`가 아닌 `{(distanceM/1000).toFixed(1)}`km 표기), 막대 트랙 `h-3 flex-1 rounded bg-surface-3` 안의 채움 `h-3 rounded` 너비 `{Math.max(8, (best / paceSecKm) * 100)}%`(빠를수록 김), 색은 최고 구간 `#22c55e`, 평균보다 빠르면 `#3b82f6`, 아니면 `#f59e0b`; 오른쪽 `w-14 text-right font-mono text-fg-secondary`에 `formatPace(paceSecKm)`에서 `/km` 뺀 `m:ss`(=`formatPace(...).replace('/km','')`), 그 옆 `w-10 text-right font-mono text-fg-muted`에 `avgHr ?? '—'`. 맨 위 열 머리는 두지 않는다. 최고 구간 행에는 이름표 대신 막대 색만 다르게(별도 텍스트 없음). `formatPace` import는 `$lib/format`.
+  (4) 신규 `frontend/src/lib/components/ElevationProfile.svelte` — props `{ streams: ActivityStreamPoint[]; totalSec: number; totalDistM: number }`. `cumulativeDistance`로 x(km) 계산, 고도가 유효한 샘플(`altitude_m != null`)이 10개 미만이거나 (최대−최소)고도가 3m 미만이면 렌더 안 함. 최대 200점으로 균등 다운샘플. `<section class="flex flex-col gap-2" aria-label="고도 프로필">` 머리줄: `고도 프로필` + 오른쪽 `text-[10px] text-fg-muted` `{Math.round(min)}~{Math.round(max)} m`. 차트: `<div class="relative rounded-lg border border-border-subtle bg-surface-2 p-2">` 안 `<svg viewBox="0 0 600 80" preserveAspectRatio="none" style="width:100%;height:80px;display:block" aria-hidden="true">`에 면적 `<polygon fill="#38bdf8" fill-opacity="0.18">`(좌하단·곡선·우하단)과 선 `<polyline fill="none" stroke="#38bdf8" stroke-width="2" vector-effect="non-scaling-stroke">`. y는 (max−min)에 5% 여백. 아래 `flex justify-between font-mono text-[10px] text-fg-muted`로 `0`과 `{(총거리/1000).toFixed(1)}km`.
+  (5) `frontend/src/routes/library/[id]/+page.svelte` — `import SplitBars …`, `import ElevationProfile …`, `import { computeSplits } from '$lib/splits';` 추가. script에 `const splits = $derived(streams && core?.duration_sec && core.distance_m ? computeSplits(streams, core.duration_sec, core.distance_m) : []);` 추가. `<RouteMap …/>` 바로 다음에 `<SplitBars {splits} />`와 `{#if streams && core.duration_sec && core.distance_m}<ElevationProfile {streams} totalSec={core.duration_sec} totalDistM={core.distance_m} />{/if}` 삽입. 다른 곳은 건드리지 않는다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ROUTE-MAP"], "kind": "code", "scope": ["frontend/src/lib/splits.ts", "frontend/tests/splits.test.mjs", "frontend/src/lib/components/SplitBars.svelte", "frontend/src/lib/components/ElevationProfile.svelte", "frontend/src/routes/library/[id]/+page.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
+- **[P7-IMPL-ACTIVITY-HERO]** 활동 상세 요약 상단을 히어로 수치로 — 위계 부여 + 차트 선 굵기 왜곡 수정. 프론트 전용, `REVIEW-05-vision-gap.md` E2·E5 참조, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-ACTIVITY-HERO]` 항목 필독. **이 명세의 마크업·클래스는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** 현황: 활동 상세 최상단이 한 줄짜리 작은 통계 바(모든 값이 같은 크기)라 "이 러닝이 어땠나"가 한눈에 안 읽힌다. 또 `Sparkline`이 `preserveAspectRatio="none"`으로 가로로 늘어날 때 선 굵기가 왜곡된다(데스크톱 폭에서 눈에 띔).
+  (1) `frontend/src/routes/library/[id]/+page.svelte`의 `<!-- 핵심 통계 바 -->` 블록(`<div class="flex flex-wrap gap-x-5 …">…</div>` 전체)을 아래로 교체한다(`core.distance_m`이 null이면 거리 히어로 줄만 생략하고 나머지는 유지):
+  ```svelte
+  		<!-- 히어로 통계 -->
+  		<section class="flex flex-col gap-3" aria-label="활동 요약">
+  			{#if core.distance_m != null}
+  				<div class="flex items-end gap-2">
+  					<span class="font-mono text-5xl font-bold leading-none">{(core.distance_m / 1000).toFixed(2)}</span>
+  					<span class="pb-1 text-lg text-fg-muted">km</span>
+  				</div>
+  			{/if}
+  			<div class="grid grid-cols-3 gap-3 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
+  				<div class="flex flex-col gap-0.5">
+  					<span class="text-[11px] text-fg-muted">시간</span>
+  					<span class="font-mono text-xl font-bold">{core.duration_sec != null ? formatDuration(core.duration_sec) : '—'}</span>
+  				</div>
+  				<div class="flex flex-col gap-0.5">
+  					<span class="text-[11px] text-fg-muted">평균 페이스</span>
+  					<span class="font-mono text-xl font-bold">{core.avg_pace_sec_km != null ? formatPace(core.avg_pace_sec_km).replace('/km', '') : '—'}<span class="text-xs font-normal text-fg-muted"> /km</span></span>
+  				</div>
+  				<div class="flex flex-col gap-0.5">
+  					<span class="text-[11px] text-fg-muted">평균 심박</span>
+  					<span class="font-mono text-xl font-bold">{core.avg_hr ?? '—'}<span class="text-xs font-normal text-fg-muted"> bpm</span></span>
+  				</div>
+  			</div>
+  			{#if core.elevation_gain != null && (core.elevation_gain as number) > 0}
+  				{@const elev = formatUnitValue(core.elevation_gain as number, 'm')}
+  				<p class="text-xs text-fg-muted">누적 상승 <span class="font-mono font-bold text-fg-secondary">{elev.display}</span> {elev.unit}</p>
+  			{/if}
+  		</section>
+  ```
+  `formatDistance` import가 더 이상 쓰이지 않으면 import 목록에서 제거한다(`npm run check` 경고 없이). 이 유닛의 앞 유닛이 넣은 `<RouteMap>`·`<SplitBars>`·`<ElevationProfile>`은 그대로 히어로 다음에 남긴다.
+  (2) `frontend/src/lib/components/Sparkline.svelte` — `<polyline>`(또는 선을 그리는 요소)에 `vector-effect="non-scaling-stroke"`를 추가해 SVG가 가로로 늘어나도 선 굵기가 일정하게 한다. 그 외 로직·props는 바꾸지 않는다. 파일을 먼저 읽어 선 요소가 여러 개면(면적 채움 제외) 모두 적용.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-ACTIVITY-SPLITS"], "kind": "code", "scope": ["frontend/src/routes/library/[id]/+page.svelte", "frontend/src/lib/components/Sparkline.svelte"], "verify": ["cd frontend && npm install && npm run test:unit && npm run check && npm run build"]} -->
 ---
 
 ## LATER
