@@ -2309,7 +2309,7 @@ DONE으로 옮긴다.
   </a>
   ```
   파일 상단 주석 `// 03c-library.md 3-B — 활동 목록. sport/날짜 필터 + 페이지네이션.`을 `// 03c-library.md 3-B — 활동 목록. 종목·날짜·거리 필터 + 이름 검색 + 더 불러오기.`로 교체.
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-HOME-QUICKINPUT"], "kind": "code", "scope": ["src/api/routes_library.py", "tests/test_api_library.py", "frontend/src/lib/api/library.ts", "frontend/src/routes/library/activities/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-HOME-QUICKINPUT"], "kind": "code", "scope": ["src/api/routes_library.py", "tests/test_api_library.py", "frontend/src/lib/api/library.ts", "frontend/src/routes/library/activities/+page.svelte"], "verify": ["python3 -m pytest tests/test_api_library.py -q", "cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-METRICS-BROWSER-PROVIDER]** `03c-library.md` 3-E 메트릭 브라우저 — Provider 배지(P3) + `[모든 Provider ▾]` 필터. 프론트 전용, 2026-09-24
   합성 데이터 스모크로 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-METRICS-BROWSER-PROVIDER]` 항목 필독. 현황: 카드가 provider를 `<span class="text-[10px]
   text-fg-muted">{m.provider}</span>`로 원문(`runpulse`, `garmin`) 텍스트만 찍어 다른 화면(MetricCell·활동 목록)의 색 배지·표기 규칙과 다르고, 3-E의
