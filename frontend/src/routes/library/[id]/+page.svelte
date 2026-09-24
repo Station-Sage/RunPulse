@@ -14,6 +14,9 @@
 	import type { DrillTarget } from '$lib/evidence';
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
 	import { clampOutliers } from '$lib/chartScale';
+	import { computeSplits } from '$lib/splits';
+	import SplitBars from '$lib/components/SplitBars.svelte';
+	import ElevationProfile from '$lib/components/ElevationProfile.svelte';
 
 	let { data }: { data: ActivityPageData } = $props();
 
@@ -23,6 +26,15 @@
 
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
 	const zoneData = $derived(hrZoneShares(metricsByCategory));
+	// km 스플릿 — streams를 SplitStream 호환 타입으로 전달(필드 일치)
+	const splits = $derived(
+		computeSplits(
+			streams ?? [],
+			core?.duration_sec ?? 0,
+			core?.distance_m ?? 0
+		)
+	);
+	const hasAltitude = $derived((streams ?? []).some((p) => p.altitude_m != null));
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
 	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
@@ -101,6 +113,14 @@
 		</div>
 
 		<RouteMap streams={streams ?? []} />
+
+		{#if splits.length > 0}
+			<SplitBars {splits} avgPaceSecKm={core.avg_pace_sec_km} />
+		{/if}
+
+		{#if hasAltitude}
+			<ElevationProfile streams={streams ?? []} />
+		{/if}
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}
