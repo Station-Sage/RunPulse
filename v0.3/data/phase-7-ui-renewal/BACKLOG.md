@@ -2832,7 +2832,7 @@ DONE으로 옮긴다.
   				{/if}
   ```
   (`showMonthNarrative`은 이 파일에 이미 있는 상태 변수 — 새로 만들지 않는다. 두 Sparkline은 각자 자기 값 범위로 자동 스케일되므로 겹치지 않고 위아래로 쌓는다.) 다른 부분·백엔드·테스트는 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-STREAMS-SCRUB"], "kind": "code", "scope": ["frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 ---
 
 ## LATER
