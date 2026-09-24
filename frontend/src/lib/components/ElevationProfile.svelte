@@ -1,75 +1,81 @@
 <script lang="ts">
-	// 고도 프로필 — 스트림의 altitude_m를 순수 SVG 면적 차트로 그린다.
-	// 외부 라이브러리 없음. DECISIONS.md [P7-IMPL-ACTIVITY-SPLITS] (4)
-	import type { SplitStream } from '$lib/splits';
+	// 고도 프로필 — 거리(km) 축의 순수 SVG 면적 차트. 외부 라이브러리 없음.
+	// DECISIONS.md [P7-IMPL-ACTIVITY-SPLITS] (4)
+	import type { ActivityStreamPoint } from '$lib/types';
+	import { cumulativeDistance } from '$lib/splits';
 
 	let {
 		streams,
-		height = 64
+		totalSec,
+		totalDistM,
+		height = 80
 	}: {
-		streams: Pick<SplitStream, 'altitude_m'>[];
+		streams: ActivityStreamPoint[];
+		totalSec: number;
+		totalDistM: number;
 		height?: number;
 	} = $props();
 
 	const VW = 600;
-	const PAD = 4;
 
-	// null을 걸러낸 (인덱스, 고도) 쌍
-	const pts = $derived(
+	const dist = $derived(cumulativeDistance(streams, totalSec, totalDistM));
+	const valid = $derived(
 		streams
-			.map((s, i) => ({ i, alt: s.altitude_m }))
-			.filter((x): x is { i: number; alt: number } => x.alt != null)
+			.map((s, i) => ({ d: dist[i] ?? 0, alt: s.altitude_m }))
+			.filter((x): x is { d: number; alt: number } => x.alt != null)
 	);
+	const minAlt = $derived(valid.length ? Math.min(...valid.map((v) => v.alt)) : 0);
+	const maxAlt = $derived(valid.length ? Math.max(...valid.map((v) => v.alt)) : 0);
+	const show = $derived(valid.length >= 10 && maxAlt - minAlt >= 3);
+	const endD = $derived(dist.length ? dist[dist.length - 1] : 0);
 
-	const hasData = $derived(pts.length >= 2);
-	const n = $derived(streams.length);
-	const minAlt = $derived(hasData ? Math.min(...pts.map((x) => x.alt)) : 0);
-	const maxAlt = $derived(hasData ? Math.max(...pts.map((x) => x.alt)) : 0);
-	const altRange = $derived(maxAlt - minAlt);
-
-	function toX(idx: number): number {
-		return n <= 1 ? 0 : (idx / (n - 1)) * VW;
-	}
-
-	function toY(alt: number): number {
-		const inner = height - PAD * 2;
-		if (altRange === 0) return PAD + inner / 2;
-		return PAD + inner - ((alt - minAlt) / altRange) * inner;
-	}
-
-	// 닫힌 면적 SVG 경로 (M ... L ... Z)
-	const areaPath = $derived((): string => {
-		if (!hasData) return '';
-		const coords = pts.map((x) => `${toX(x.i).toFixed(1)},${toY(x.alt).toFixed(1)}`);
-		const x0 = toX(pts[0].i).toFixed(1);
-		const x1 = toX(pts[pts.length - 1].i).toFixed(1);
-		const yBottom = height.toFixed(1);
-		return `M ${x0},${yBottom} L ${coords.join(' L ')} L ${x1},${yBottom} Z`;
+	// 최대 200점으로 균등 다운샘플, y는 (max-min)에 5% 여백
+	const pts = $derived.by(() => {
+		if (!show || endD <= 0) return [] as { x: number; y: number }[];
+		const step = Math.max(1, Math.ceil(valid.length / 200));
+		const pad = (maxAlt - minAlt) * 0.05;
+		const lo = minAlt - pad;
+		const span = maxAlt + pad - lo;
+		const out: { x: number; y: number }[] = [];
+		for (let i = 0; i < valid.length; i += step) {
+			out.push({ x: (valid[i].d / endD) * VW, y: (1 - (valid[i].alt - lo) / span) * height });
+		}
+		const last = valid[valid.length - 1];
+		out.push({ x: (last.d / endD) * VW, y: (1 - (last.alt - lo) / span) * height });
+		return out;
 	});
+	const line = $derived(pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+	const area = $derived(
+		pts.length ? `0,${height} ${line} ${pts[pts.length - 1].x.toFixed(1)},${height}` : ''
+	);
 </script>
 
-{#if hasData}
-	<section class="flex flex-col gap-1.5">
+{#if pts.length > 1}
+	<section class="flex flex-col gap-2" aria-label="고도 프로필">
 		<div class="flex items-center justify-between">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">고도 프로필</p>
-			<span class="text-[10px] text-fg-muted"
-				>↑{Math.round(maxAlt)}m &nbsp; ↓{Math.round(minAlt)}m</span
-			>
+			<span class="text-[10px] text-fg-muted">{Math.round(minAlt)}~{Math.round(maxAlt)} m</span>
 		</div>
-		<svg
-			viewBox="0 0 {VW} {height}"
-			preserveAspectRatio="none"
-			style="display:block; width:100%; height:{height}px;"
-			aria-hidden="true"
-		>
-			<path
-				d={areaPath()}
-				fill="#6366f1"
-				fill-opacity="0.25"
-				stroke="#6366f1"
-				stroke-width="1.5"
-				vector-effect="non-scaling-stroke"
-			/>
-		</svg>
+		<div class="rounded-lg border border-border-subtle bg-surface-2 p-2">
+			<svg
+				viewBox="0 0 {VW} {height}"
+				preserveAspectRatio="none"
+				style="width:100%;height:{height}px;display:block"
+				aria-hidden="true"
+			>
+				<polygon points={area} fill="#38bdf8" fill-opacity="0.18" />
+				<polyline
+					points={line}
+					fill="none"
+					stroke="#38bdf8"
+					stroke-width="2"
+					vector-effect="non-scaling-stroke"
+				/>
+			</svg>
+			<div class="flex justify-between font-mono text-[10px] text-fg-muted">
+				<span>0</span>
+				<span>{(endD / 1000).toFixed(1)}km</span>
+			</div>
+		</div>
 	</section>
 {/if}

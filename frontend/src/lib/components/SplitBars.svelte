@@ -56,7 +56,7 @@
 			{#each splits as s, i (s.km)}
 				<div class="flex items-center gap-2 text-xs">
 					<!-- km 번호 -->
-					<span class="w-5 shrink-0 text-right font-mono text-fg-muted">{s.km}</span>
+					<span class="w-7 shrink-0 text-right font-mono text-fg-muted">{s.distanceM < 1000 ? `${(s.distanceM / 1000).toFixed(1)}` : s.km}</span>
 					<!-- 막대 + 페이스 레이블 -->
 					<div class="min-w-0 flex-1">
 						<div

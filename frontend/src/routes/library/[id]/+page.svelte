@@ -34,7 +34,6 @@
 			core?.distance_m ?? 0
 		)
 	);
-	const hasAltitude = $derived((streams ?? []).some((p) => p.altitude_m != null));
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
 	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
@@ -118,8 +117,8 @@
 			<SplitBars {splits} avgPaceSecKm={core.avg_pace_sec_km} />
 		{/if}
 
-		{#if hasAltitude}
-			<ElevationProfile streams={streams ?? []} />
+		{#if streams && core.duration_sec && core.distance_m}
+			<ElevationProfile {streams} totalSec={core.duration_sec} totalDistM={core.distance_m} />
 		{/if}
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
