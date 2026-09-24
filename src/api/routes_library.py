@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, wellness_service
+from src.services import activity_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -189,6 +189,21 @@ def get_library_wellness():
         conn.close()
 
     return api_ok(result)
+
+
+@api_bp.get("/library/providers/status")
+def get_library_providers_status():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = provider_status_service.get_provider_status(conn)
+    finally:
+        conn.close()
+
+    return api_ok({"providers": result})
 
 
 @api_bp.get("/library/providers/matrix")

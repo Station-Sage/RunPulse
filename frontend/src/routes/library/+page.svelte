@@ -5,6 +5,7 @@
 	import { formatDistance, formatDuration, formatPace, formatDate } from '$lib/format';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
+	import { formatRelativeTime } from '$lib/format';
 
 	let { data }: { data: LibraryHomeData } = $props();
 </script>
@@ -124,5 +125,33 @@
 <!-- Provider 데이터 현황 -->
 <section class="px-4 pb-6">
 	<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Provider 현황</h2>
-	<p class="text-sm text-fg-muted">준비 중 — 연결 상태·마지막 동기화 정보는 후속 업데이트에서 제공됩니다.</p>
+
+	{#if data.providerStatusError && data.providerStatus.length === 0}
+		<p class="text-sm text-fg-muted">{data.providerStatusError}</p>
+	{:else}
+		<ul class="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-2">
+			{#each data.providerStatus as item (item.provider)}
+				<li class="flex items-center gap-2 px-3 py-2.5">
+					<span
+						class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+							item.provider as ProviderKey
+						)}"
+					>
+						{providerLabel(item.provider as ProviderKey)}
+					</span>
+					{#if item.has_data}
+						<span class="text-xs text-fg-primary">●데이터 있음</span>
+					{:else}
+						<span class="text-xs text-fg-muted">○데이터 없음</span>
+					{/if}
+					<span class="ml-auto text-xs text-fg-muted">
+						{#if item.last_synced_at}
+							마지막 동기화 {formatRelativeTime(item.last_synced_at)} ·
+						{/if}
+						활동 {item.activity_count}건
+					</span>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 </section>

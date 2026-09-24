@@ -607,3 +607,17 @@ export interface PlanAdaptation {
 	hrv: { value: number; baseline: number | null; delta_pct: number | null; zone: string | null } | null;
 	fatigue_avg: { value: number; n: number } | null;
 }
+
+// ── ProviderStatus (3-A — /api/v1/library/providers/status) ──────────────────
+// DECISIONS.md [P7-IMPL-PROVIDER-STATUS]: 자격증명 확인 없음, 저장 데이터 유무만 표기.
+
+export interface ProviderStatusItem {
+	provider: ProviderKey;
+	has_data: boolean;
+	last_synced_at: string | null;
+	activity_count: number;
+}
+
+export interface ProviderStatusResponse {
+	providers: ProviderStatusItem[];
+}
