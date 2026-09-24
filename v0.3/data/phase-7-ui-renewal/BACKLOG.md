@@ -1774,7 +1774,11 @@ DONE으로 옮긴다.
   {/if}
   ```
   백엔드·테스트 파일은 건드리지 않음(프론트 전용 — 검증은 `npm run check`/`build`).
-  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-MILESTONES-PANEL"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.ts", "frontend/src/routes/library/[id]/laps/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  **리뷰(2026-09-24)**: 스펙대로 구현됨 — 이탈 없음(비용 $1.40, 57턴). 7개 파일 전부 명세 코드와 일치
+  (명세의 코드 블록 안 빈 줄만 큐 파싱 제약으로 제거돼 있음). `ActivityTabs`가 요약/스트림/소스 비교 3페이지의
+  복붙 탭 바를 대체하고 비활성 랩/메트릭 버튼이 사라짐. `npm run check`(0 errors)/`build` 통과(워크트리),
+  백엔드 변경 없음이라 pytest 생략. 랩 화면의 육안 확인은 합성 데이터 서버 스모크로 별도 수행.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-TODAY-MILESTONES-PANEL"], "kind": "code", "scope": ["frontend/src/lib/types/index.ts", "frontend/src/lib/components/ActivityTabs.svelte", "frontend/src/routes/library/[id]/+page.svelte", "frontend/src/routes/library/[id]/streams/+page.svelte", "frontend/src/routes/library/[id]/providers/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.ts", "frontend/src/routes/library/[id]/laps/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 - **[P7-IMPL-ACTIVITY-METRICS-TAB]** `03c-library.md` 3-C "메트릭" 탭 신설 — 프론트 전용(`activity.metrics_by_category`가
   이미 카테고리별 전체 대표 메트릭 + 단위·설명·provider를 내려줌, 2026-09-24 조사 후 큐 등록, 설계 근거는 `DECISIONS.md`의
   `[P7-IMPL-ACTIVITY-METRICS-TAB]` 항목 필독). 각 행을 누르면 계산 분해(`MetricBreakdown`, `scopeType='activity'`)가 열려
