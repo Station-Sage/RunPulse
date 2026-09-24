@@ -297,7 +297,7 @@ def get_activity_trend(
         "m.scope_type = 'activity'",
         "m.metric_name = ?",
         "m.is_primary = 1",
-        "a.start_time >= date('now', ?)",
+        "a.start_time >= date('now','localtime', ?)",
     ]
     params: list[Any] = [metric_name, date_expr]
 

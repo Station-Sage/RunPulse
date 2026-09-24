@@ -254,6 +254,10 @@
 
 - class **TPDICalculator**: compute
 
+### `today_refresh.py` (38줄) — 달력 오늘의 일별 메트릭을 "현 시각 기준"으로 유지하는 지연 갱신.
+
+- functions: refresh_today_if_stale
+
 ### `trimp.py` (85줄) — TRIMP Calculator — 설계서 4-2 기준.
 
 - class **TRIMPCalculator**: compute
@@ -1616,6 +1620,10 @@
 ### `test_plan_template_service.py` (145줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
 
 - functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date
+
+### `test_pmc_intraday.py` (67줄) — PMC 오늘 부분일 처리 + 오늘 메트릭 지연 갱신 테스트.
+
+- functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
 
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 

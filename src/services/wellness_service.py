@@ -33,7 +33,7 @@ def get_wellness_detail(conn: sqlite3.Connection, date: str | None = None) -> di
     conn.row_factory = sqlite3.Row
 
     if date is None:
-        date = conn.execute("SELECT date('now')").fetchone()[0]
+        date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
 
     # core
     core_row = conn.execute(
@@ -104,7 +104,7 @@ def get_wellness_trend(conn: sqlite3.Connection, days: int = 30) -> dict:
         "SELECT date, sleep_score, hrv_last_night, resting_hr,"
         "       body_battery_high, avg_stress, weight_kg"
         " FROM daily_wellness"
-        " WHERE date >= date('now', ?)"
+        " WHERE date >= date('now','localtime', ?)"
         " ORDER BY date",
         (date_expr,),
     ).fetchall()
@@ -116,7 +116,7 @@ def get_wellness_trend(conn: sqlite3.Connection, days: int = 30) -> dict:
         " WHERE scope_type = 'daily'"
         "   AND metric_name = 'utrs'"
         "   AND is_primary = 1"
-        "   AND scope_id >= date('now', ?)"
+        "   AND scope_id >= date('now','localtime', ?)"
         " ORDER BY scope_id",
         (date_expr,),
     ).fetchall()

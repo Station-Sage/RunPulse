@@ -9,8 +9,7 @@ _NOTE_MAX = 200
 def build_checkin_context(conn: sqlite3.Connection, today: str) -> dict | None:
     """today 기준 최근 체크인(user_inputs) — 없거나 값이 전부 비었으면 None.
 
-    save_checkin()은 SQLite date('now')(UTC)로 날짜를 찍고 today는 서버 로컬 날짜라
-    KST 새벽엔 하루 어긋난다 — 그래서 today가 아니라 [today-1일, today+1일] 범위에서
+    과거(UTC 기준 저장) 체크인 행은 KST 새벽엔 서버 로컬 날짜와 하루 어긋날 수 있다 — 그래서 today가 아니라 [today-1일, today+1일] 범위에서
     가장 최근 1건을 쓴다.
     """
     row = conn.execute(

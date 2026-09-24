@@ -121,7 +121,7 @@ def get_todays_checkin(conn: sqlite3.Connection, date: str | None = None) -> dic
     (03g-common-patterns.md 7-5) 판단에 쓰인다.
     """
     if date is None:
-        date = conn.execute("SELECT date('now')").fetchone()[0]
+        date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
 
     conn.row_factory = sqlite3.Row
     row = conn.execute(
@@ -281,7 +281,7 @@ def save_checkin(
     같은 날짜에 이미 체크인이 있으면 갱신한다(UNIQUE(input_date, input_type)).
     """
     if input_date is None:
-        input_date = conn.execute("SELECT date('now')").fetchone()[0]
+        input_date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
 
     conn.execute(
         """
