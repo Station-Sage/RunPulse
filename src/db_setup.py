@@ -20,6 +20,7 @@
 """
 
 import logging
+import re
 import sqlite3
 from pathlib import Path
 
@@ -705,13 +706,43 @@ def create_tables(conn: sqlite3.Connection) -> None:
         conn.executescript(ddl)
 
     # View
-    conn.execute("DROP VIEW IF EXISTS v_canonical_activities")
-    conn.executescript(_DDL_CANONICAL_VIEW)
+    _ensure_canonical_view(conn)
 
     # Indexes (컬럼 존재 확인 후 안전 생성)
     _safe_create_indexes(conn)
 
     conn.commit()
+
+
+def _view_body(sql: str) -> str:
+    """CREATE VIEW 문에서 첫 `AS` 뒤 SELECT 본문만 공백 정규화해 반환 (정의 비교용).
+
+    sqlite_master.sql은 `IF NOT EXISTS`가 빠진 채 저장돼 DDL 원문과 직접 비교할 수 없다.
+    """
+    m = re.search(r"\bAS\b", sql, re.IGNORECASE)
+    body = sql[m.end():] if m else sql
+    return re.sub(r"\s+", " ", body).strip().rstrip(";").strip()
+
+
+def _ensure_canonical_view(conn: sqlite3.Connection) -> None:
+    """v_canonical_activities를 정의가 바뀐 경우에만 DROP+CREATE 한다 (원자적).
+
+    app.py의 before_request가 매 요청마다 migrate_db → create_tables를 부르는데, 그때마다
+    뷰를 DROP하면 병렬 요청(SPA는 화면 하나에 API를 4~5개 동시에 부른다)이 뷰가 없는
+    찰나에 `no such table: v_canonical_activities`로 500이 났다 — 2026-09-24 합성 데이터
+    부하 테스트로 재현(동시 400건 중 73건). 정의가 같으면 아무 DDL도 실행하지 않고,
+    바뀐 경우엔 DROP·CREATE를 한 트랜잭션에 묶어 다른 연결이 중간 상태를 보지 못하게 한다.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'view' AND name = 'v_canonical_activities'"
+    ).fetchone()
+    if row and row[0] and _view_body(row[0]) == _view_body(_DDL_CANONICAL_VIEW):
+        return
+    conn.executescript(
+        "BEGIN IMMEDIATE;\nDROP VIEW IF EXISTS v_canonical_activities;\n"
+        + _DDL_CANONICAL_VIEW
+        + "\nCOMMIT;"
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Schema Version Management

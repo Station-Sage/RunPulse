@@ -130,3 +130,74 @@ class TestPhase1Schema:
             "PRAGMA table_info(activity_summaries)"
         ).fetchall()
         assert len(cols) >= 38, f"컬럼 수: {len(cols)} (38개 이상 필요)"
+
+
+def test_canonical_view_untouched_when_definition_unchanged(db_conn):
+    """create_tables 재호출 시 정의가 같으면 뷰 DDL을 실행하지 않는다(schema_version 불변).
+
+    before_request가 매 요청 migrate_db를 부르는데 그때마다 DROP VIEW하면 병렬 요청이 500.
+    """
+    before = db_conn.execute("PRAGMA schema_version").fetchone()[0]
+    create_tables(db_conn)
+    create_tables(db_conn)
+    after = db_conn.execute("PRAGMA schema_version").fetchone()[0]
+    assert after == before
+
+
+def test_canonical_view_recreated_when_definition_differs(db_conn):
+    """뷰 정의가 어긋나 있으면(구버전 등) 최신 정의로 복구한다."""
+    db_conn.execute("DROP VIEW v_canonical_activities")
+    db_conn.execute("CREATE VIEW v_canonical_activities AS SELECT 1 AS id")
+    create_tables(db_conn)
+    sql = db_conn.execute(
+        "SELECT sql FROM sqlite_master WHERE name = 'v_canonical_activities'"
+    ).fetchone()[0]
+    assert "activity_summaries" in sql
+    db_conn.execute("SELECT * FROM v_canonical_activities LIMIT 1")  # 조회 가능
+
+
+def test_canonical_view_survives_concurrent_create_tables(tmp_path):
+    """create_tables를 반복 호출하는 동안 다른 연결이 뷰를 계속 조회할 수 있다(회귀).
+
+    앱은 WAL 모드라 리더가 라이터를 기다리지 않는다 — 옛 구현(매번 DROP VIEW→CREATE VIEW)은
+    이 테스트에서 수 ms 안에 `no such table: v_canonical_activities`로 실패한다.
+    """
+    import threading
+    import time
+
+    db_file = tmp_path / "race.db"
+    setup = sqlite3.connect(str(db_file))
+    setup.execute("PRAGMA journal_mode=WAL")
+    create_tables(setup)
+    setup.close()
+
+    errors: list[Exception] = []
+    stop = threading.Event()
+
+    def writer():
+        conn = sqlite3.connect(str(db_file), timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        while not stop.is_set():
+            try:
+                create_tables(conn)
+            except Exception as exc:  # 락 등 — 리더 검증과 무관
+                errors.append(exc)
+                break
+        conn.close()
+
+    t = threading.Thread(target=writer)
+    t.start()
+    try:
+        reader = sqlite3.connect(str(db_file), timeout=10)
+        deadline = time.monotonic() + 1.0
+        while time.monotonic() < deadline:
+            try:
+                reader.execute("SELECT COUNT(*) FROM v_canonical_activities").fetchone()
+            except sqlite3.OperationalError as exc:
+                errors.append(exc)
+                break
+        reader.close()
+    finally:
+        stop.set()
+        t.join()
+    assert not errors, errors
