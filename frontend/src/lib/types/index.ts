@@ -141,13 +141,33 @@ export interface ActivityCore {
 	[key: string]: unknown;
 }
 
+// activity_laps 행 — activity_service.get_activity_detail()의 laps (lap_index 순).
+export interface ActivityLap {
+	id: number;
+	activity_id: number;
+	source: string;
+	lap_index: number;
+	start_time: string | null;
+	duration_sec: number | null;
+	distance_m: number | null;
+	avg_hr: number | null;
+	max_hr: number | null;
+	avg_pace_sec_km: number | null;
+	avg_cadence: number | null;
+	avg_power: number | null;
+	max_power: number | null;
+	elevation_gain: number | null;
+	calories: number | null;
+	lap_trigger: string | null;
+}
+
 export interface ActivityDetail {
 	core: ActivityCore;
 	metrics_by_category: Record<string, ActivityMetric[]>;
 	source_comparison: Record<string, unknown>;
 	semantic_groups: Record<string, unknown>;
 	streams: unknown[] | null;
-	laps: unknown[] | null;
+	laps: ActivityLap[] | null;
 	best_efforts: unknown[] | null;
 }
 

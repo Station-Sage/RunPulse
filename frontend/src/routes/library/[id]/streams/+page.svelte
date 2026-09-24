@@ -2,6 +2,7 @@
 	// 03c-library.md 3-D — 활동 스트림 시각화 페이지.
 	// 체크박스로 표시할 스트림 토글; 해당 컬럼이 전부 null이면 체크박스 숨김.
 	import type { StreamsPageData } from './+page';
+	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
@@ -84,14 +85,8 @@
 	<h1 class="text-base font-semibold">스트림</h1>
 </div>
 
-<!-- 탭 표시 (스트림 탭만 활성) -->
-<div class="flex border-b border-border-subtle">
-	<a href="{base}/library/{data.activityId}" class="flex-1 py-2.5 text-center text-sm text-fg-muted">요약</a>
-	<a href="{base}/library/{data.activityId}/providers" class="flex-1 py-2.5 text-center text-sm text-fg-muted">소스 비교</a>
-	<span class="flex-1 border-b-2 border-fg-primary py-2.5 text-center text-sm font-medium text-fg-primary">
-		스트림
-	</span>
-</div>
+<!-- 탭 -->
+<ActivityTabs activityId={data.activityId} active="streams" />
 
 <!-- 본문 -->
 {#if data.errorMessage && data.streams.length === 0}
