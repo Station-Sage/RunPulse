@@ -1,14 +1,16 @@
 <script lang="ts">
 	// 03e-coach.md 5-B — 대화 스레드: 메시지 목록 + 입력 바.
-	// 컨텍스트 패널은 범위 밖(7d). EvidenceQuote는 현재 API가 구조화된 근거를
-	// 별도로 반환하지 않아 텍스트 렌더링만 사용(Phase 7b API 확장 시 개선 가능).
+	// P7-IMPL-COACH-EVIDENCE-UI: 근거 칩(EvidenceQuote) + MetricBreakdown 드릴다운 + 입력창 하단 도킹.
 	import type { ThreadPageData } from './+page';
 	import { addMessage } from '$lib/api/coach';
 	import { ApiError } from '$lib/api/client';
 	import { base } from '$app/paths';
 	import type { ChatMessage } from '$lib/types';
 	import ChatBody from '$lib/components/ChatBody.svelte';
+	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
+	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import { localizeSource } from '$lib/markdownLite';
+	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 
 	let { data }: { data: ThreadPageData } = $props();
 
@@ -20,8 +22,32 @@
 	let sending = $state(false);
 	let messagesEnd: HTMLDivElement | undefined = $state();
 
+	// MetricBreakdown 드릴다운 스택
+	let drillStack = $state<DrillTarget[]>([]);
+	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
+
+	function openEvidence(t: DrillTarget) {
+		drillStack = [...drillStack, t];
+	}
+
+	function closeDrill() {
+		drillStack = [];
+	}
+
+	function handleDrillInput(slug: string) {
+		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
+		drillStack = [
+			...drillStack,
+			{
+				slug,
+				scopeType: top?.scopeType ?? 'daily',
+				scopeId: top?.scopeId ?? ''
+			}
+		];
+	}
+
 	function scrollToBottom() {
-		messagesEnd?.scrollIntoView({ behavior: 'smooth' });
+		messagesEnd?.scrollIntoView({ block: 'end' });
 	}
 
 	async function send() {
@@ -87,7 +113,7 @@
 	</div>
 
 	<!-- 메시지 목록 -->
-	<div class="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 pb-2">
+	<div class="flex flex-col gap-3 px-4 py-4 pb-36">
 		{#if messages.length === 0}
 			<p class="text-center text-sm text-fg-muted">대화를 시작해 보세요.</p>
 		{/if}
@@ -112,6 +138,13 @@
 						{#if localizeSource(msg.ai_model)}
 							<p class="mt-1 text-[10px] text-fg-muted">{localizeSource(msg.ai_model)}</p>
 						{/if}
+						{#if msg.evidence && msg.evidence.length > 0}
+							<div class="mt-2 flex flex-wrap gap-2">
+								{#each msg.evidence as ev}
+									<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />
+								{/each}
+							</div>
+						{/if}
 					</div>
 				</div>
 			{/if}
@@ -134,8 +167,8 @@
 		<div bind:this={messagesEnd}></div>
 	</div>
 
-	<!-- 입력 바 -->
-	<div class="border-t border-border-subtle px-4 py-3">
+	<!-- 입력 바 (하단 탭바 바로 위 고정) -->
+	<div class="sticky bottom-14 z-10 border-t border-border-subtle bg-surface-1 px-4 py-3">
 		<div class="flex items-end gap-2">
 			<textarea
 				bind:value={inputText}
@@ -157,4 +190,15 @@
 			</button>
 		</div>
 	</div>
+
+	<!-- MetricBreakdown 드릴다운 패널 -->
+	{#if drillTop}
+		<MetricBreakdown
+			slug={drillTop.slug}
+			scopeType={drillTop.scopeType}
+			scopeId={drillTop.scopeId}
+			onClose={closeDrill}
+			onDrillInput={handleDrillInput}
+		/>
+	{/if}
 {/if}

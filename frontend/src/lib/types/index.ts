@@ -194,6 +194,7 @@ export interface ChatMessage {
 	content: string;
 	ai_model: string | null;
 	created_at?: string;
+	evidence?: BriefingEvidence[];
 }
 
 export interface ThreadsListResponse {
