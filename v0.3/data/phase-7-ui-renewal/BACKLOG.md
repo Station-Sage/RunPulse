@@ -1494,7 +1494,7 @@ DONE으로 옮긴다.
   hover:text-fg-primary">Library에서 전체 탐색 →</a></section>`. 백엔드·테스트 파일은
   건드리지 않음(프론트 전용 유닛 — 검증은 `npm run check`/`build`, 이 저장소 프론트엔드
   엔 테스트 러너 없음).
-  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
+  <!-- autopilot: {"stage": "review", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/format.ts", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/src/routes/today/+page.ts", "frontend/src/routes/today/+page.svelte", "frontend/src/routes/coach/plan/[id]/+page.svelte", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
 
 ---
 

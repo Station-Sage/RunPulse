@@ -571,3 +571,58 @@ goal.plan_weeks), `GET /coach/plan/adjustment`(오늘 조정) — 새 API 불필
 **부수 정리**: `WORKOUT_LABELS`가 coach 플랜 상세·세션 상세 두 페이지에 중복
 정의돼 있음 — 이 유닛이 세 번째 사용처가 되므로 `$lib/format.ts`로 이동
 (`race` 라벨 추가: DB CHECK 제약에 있는데 두 사본 모두 누락).
+
+---
+
+## [P7-IMPL-EVIDENCE-DRILL] 근거 칩(EvidenceQuote) 탭 → 계산 분해 패널 — 죽은 칩 연결
+
+`03g-common-patterns.md` 7-3(P1 Evidence-First): "칩 탭 → 원천 데이터 표시". 현재
+`<EvidenceQuote>`는 `onOpen`이 없으면 비대화형 `<span>`으로 그려지는데(컴포넌트 주석:
+"7a엔 열어줄 MetricBreakdown 패널이 없어서"), 패널이 7b에 생긴 뒤에도 사용처 3곳
+(Today L0 RecommendationCard, Today L2 내러티브, MonthNarrative 패널) 어디서도
+`onOpen`을 넘기지 않아 **모든 근거 칩이 죽어 있다**(2026-09-24 코드 대조로 발견).
+07 로드맵 7b 검증 기준 "드릴다운 3레벨: Summary → Breakdown → Library"의 첫 고리가
+빠진 상태.
+
+**칩마다 드릴 가능 여부가 다르다**: 브리핑/내러티브 근거 슬러그는 `tsb`·`utrs`·`ctl`
+(RunPulse 일별 메트릭 — `metric_store` 대표 행 있음)과 `monthly_distance`·
+`sleep_score`(활동 집계·웰니스 컬럼 — `metric_store` 행 없음, `get_metric_breakdown`
+이 None→404). 전부 탭 가능하게 하면 일부 칩이 "불러올 수 없습니다"로 끝나는 가짜
+버튼이 된다. 프론트에 허용 슬러그 목록을 하드코딩하면 백엔드 변경과 어긋나므로,
+**백엔드가 근거 항목마다 `drill` 참조를 붙인다**: `{"scope_type": "daily",
+"scope_id": <그 근거가 기준한 날짜>}` — 그 날짜에 `metric_store` 대표 행(`get_primary_
+metric`)이 실제로 있을 때만, 없으면 `null`. 프론트는 `drill != null`인 칩만
+`onOpen`을 넘긴다(나머지는 기존처럼 비대화형 span — 정직한 표시).
+`scope_id`를 근거별로 들고 가는 이유: MonthNarrative의 과거 달은 근거 기준일이
+말일이라 Today가 쓰는 `status.date`(오늘)와 다르다.
+
+**같이 발견된 실버그 — `MetricBreakdown`이 slug 변경에 재조회하지 않음**: 컴포넌트가
+데이터를 `onMount`에서 한 번만 가져온다. Today는 "입력 메트릭" 탭(`onDrillInput`) 시
+`drillStack`에 slug를 push해 **같은 인스턴스의 `slug` prop만 바꾸는데** 재조회가
+없어 패널이 첫 메트릭 내용 그대로 남는다 — 드릴-인이 사실상 동작하지 않음. 칩
+드릴을 붙이면 더 자주 밟게 되므로 같은 유닛에서 `$effect`로 slug/scopeType/scopeId
+변경 시 재조회(경합 방지용 취소 플래그 포함)하도록 고친다.
+
+**코드 정리**: `adaptEvidence()`가 Today 페이지와 MonthNarrative에 중복 정의돼 있고
+이 유닛이 둘 다 바꿔야 하므로 `$lib/evidence.ts`로 합친다. `today_service.py`가
+286/300줄이라 드릴 부착 헬퍼는 `_narrative.py`에 둔다.
+
+---
+
+## [P7-IMPL-TODAY-MILESTONES-PANEL] Today "전체 마일스톤" 패널(1-D) + PB 활동 링크
+
+`03a-today.md` 1-D: L2 "[전체 마일스톤 →]" → 우측 패널에 전체 마일스톤 목록(PB는
+활동 상세로 링크, 재계산은 상세 문구). 백엔드는 이미 있다 — `GET /api/v1/today/
+milestones?limit=`(`get_today_milestones`, 병합 완료). 프론트엔 API 함수도 버튼도
+패널도 없어 API가 미사용 상태(2026-09-24 대조로 발견). 프론트 전용.
+
+**결정**: (1) `getTodayMilestones(limit)` 추가, 신규 `MilestonesPanel.svelte`(기존
+MonthNarrative/MetricBreakdown과 같은 하단 시트 오버레이 패턴). (2) 목업의 링크 대상
+`/library/activities/4821`은 실제 라우트가 `/library/[id]`라 그쪽으로(마일스톤
+`activity_id`는 `activity_summaries.id`). (3) 재계산(`metric_recompute`)은 `detail`
+컬럼 문구를 그대로 표시(백엔드가 이미 "formula_v2 적용 — CTL 66→68" 형태로 채움 —
+프론트가 old/new 값으로 문구를 조립하지 않음). (4) 페이지네이션은 없이 `limit=50`
+단일 조회(목업에도 페이지네이션 없음, 마일스톤은 누적 100km 단위·PB·재계산이라
+수십 건을 넘기 어려움).
+(5) Today L2의 마일스톤 5개 목록에도 PB 활동 링크를 붙이고 "전체 마일스톤 →" 버튼을
+추가.
