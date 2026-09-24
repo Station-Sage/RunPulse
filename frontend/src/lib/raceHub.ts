@@ -1,35 +1,33 @@
 // frontend/src/lib/raceHub.ts
-// 레이스 허브 순수 함수 — 격차 톤, 격차 포맷, 예측 시리즈 변환. 테스트: frontend/tests/raceHub.test.mjs
+// 레이스 허브 순수 함수 — 격차 판정·D-day·거리 표기. 테스트: frontend/tests/raceHub.test.mjs
 
-import type { TrendSeries } from './trendChart';
+export type GapTone = 'ahead' | 'on' | 'behind' | 'unknown';
 
-/** 격차 톤: 음수(예측이 빠름)=green, null·0=teal(권장), 양수(느림)=amber */
-export type GapTone = 'green' | 'teal' | 'amber';
-
-export function gapTone(gapSec: number | null): GapTone {
-	if (gapSec === null || gapSec === 0) return 'teal';
-	return gapSec < 0 ? 'green' : 'amber';
-}
-
-/** gap_sec를 "+2:23" / "-1:45" 형식으로. 0이면 "±0:00". */
-export function formatGap(gapSec: number): string {
-	if (gapSec === 0) return '±0:00';
+/** 예측−목표 격차(초, 양수=목표보다 느림)를 톤과 문구로. |격차|<60초는 '목표 페이스권'. null이면 unknown. */
+export function gapVerdict(gapSec: number | null): { tone: GapTone; label: string } {
+	if (gapSec == null) return { tone: 'unknown', label: '목표 시간을 설정하면 격차를 보여줘요' };
+	if (Math.abs(gapSec) < 60) return { tone: 'on', label: '목표 페이스권' };
 	const abs = Math.abs(gapSec);
-	const sign = gapSec > 0 ? '+' : '-';
-	const min = Math.floor(abs / 60);
-	const sec = abs % 60;
-	return `${sign}${min}:${String(sec).padStart(2, '0')}`;
+	const h = Math.floor(abs / 3600);
+	const m = Math.floor((abs % 3600) / 60);
+	const s = Math.round(abs % 60);
+	const text = h > 0 ? `${h}시간 ${m}분` : `${m}분 ${s}초`;
+	return gapSec < 0
+		? { tone: 'ahead', label: `목표보다 ${text} 빠름` }
+		: { tone: 'behind', label: `목표보다 ${text} 느림` };
 }
 
-/** 예측 이력 배열을 TrendChart용 TrendSeries로 변환. color는 호출자가 tone에 따라 지정. */
-export function predictionToSeries(
-	history: { date: string; value: number }[],
-	color: string
-): TrendSeries {
-	return {
-		key: 'pred',
-		label: '예측',
-		color,
-		points: history.map((h) => ({ date: h.date, value: h.value }))
-	};
+/** D-day 문구: 0이면 'D-DAY', 양수 'D-31', 음수 'D+3'. */
+export function countdownLabel(daysLeft: number): string {
+	if (daysLeft === 0) return 'D-DAY';
+	return daysLeft > 0 ? `D-${daysLeft}` : `D+${-daysLeft}`;
+}
+
+/** 목표 거리(km) 표기: 풀/하프/10K/5K 근사(±허용) 아니면 소수 1자리 km. */
+export function distanceLabel(km: number): string {
+	if (Math.abs(km - 42.195) <= 2.5) return '풀 마라톤';
+	if (Math.abs(km - 21.0975) <= 2) return '하프';
+	if (Math.abs(km - 10) <= 1.5) return '10K';
+	if (Math.abs(km - 5) <= 1) return '5K';
+	return `${km.toFixed(1)}km`;
 }

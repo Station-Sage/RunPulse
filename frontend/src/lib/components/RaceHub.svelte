@@ -1,95 +1,87 @@
 <script lang="ts">
-	// 오늘 화면 최상단 레이스 허브 — D-day 히어로, 예측 vs 목표, 예측 추이.
+	// 오늘 화면 최상단 레이스 허브 — D-day 히어로, 예측 vs 목표, 예측 추이, 현재 폼.
 	// DECISIONS.md [P7-IMPL-RACE-HUB-UI]: 목표 있으면 D-day, 없으면 등록 유도 카드.
 	import type { RaceHubData } from '$lib/types';
 	import TrendChart from './TrendChart.svelte';
-	import { gapTone, formatGap, predictionToSeries } from '$lib/raceHub';
+	import { countdownLabel, distanceLabel, gapVerdict } from '$lib/raceHub';
 	import { formatDuration } from '$lib/format';
 	import { base } from '$app/paths';
 
 	let { data }: { data: RaceHubData | null } = $props();
 
-	const TONE_COLOR: Record<string, string> = {
-		green: '#22c55e',
-		teal: '#14b8a6',
-		amber: '#f59e0b'
-	};
 	const TONE_CLASS: Record<string, string> = {
-		green: 'text-semantic-green',
-		teal: 'text-semantic-teal',
-		amber: 'text-semantic-amber'
+		ahead: 'text-semantic-green',
+		on: 'text-semantic-teal',
+		behind: 'text-semantic-amber',
+		unknown: 'text-fg-muted font-normal text-xs'
 	};
 
-	const tone = $derived(data?.prediction != null ? gapTone(data.prediction.gap_sec) : 'teal');
-	const predSeries = $derived(
-		data?.prediction && data.prediction.history.length > 1
-			? [predictionToSeries(data.prediction.history, TONE_COLOR[tone])]
-			: []
-	);
+	const verdict = $derived(data?.prediction ? gapVerdict(data.prediction.gap_sec) : null);
+	const tsb = $derived(data?.form?.tsb ?? null);
 </script>
 
 {#if !data?.goal}
 	<a
 		href="{base}/coach/plan/new"
-		class="flex items-center justify-between rounded-lg border border-dashed border-border-subtle px-4 py-3 text-sm text-fg-secondary hover:border-fg-muted hover:text-fg-primary"
+		class="flex flex-col gap-1 rounded-lg border border-dashed border-border-subtle bg-surface-2 p-4 hover:bg-surface-3"
 	>
-		<span>목표 레이스를 등록하면 D-day와 예측 기록을 볼 수 있어요.</span>
-		<span class="ml-2 shrink-0">→</span>
+		<span class="text-sm font-semibold">목표 레이스를 등록해 보세요</span>
+		<span class="text-xs text-fg-muted"
+			>D-day, 예측 기록, 목표까지의 격차와 준비도 추이를 여기서 계속 볼 수 있어요 →</span
+		>
 	</a>
 {:else}
 	{@const goal = data.goal}
 	{@const pred = data.prediction}
-	<div class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-4">
-		<!-- 헤더: 레이스 이름 + D-day 히어로 -->
-		<div class="flex items-baseline justify-between gap-2">
-			<span class="truncate text-sm font-medium text-fg-primary">{goal.name}</span>
-			<span class="shrink-0 font-mono text-4xl font-bold tabular-nums text-fg-primary"
-				>D-{goal.days_left}</span
-			>
+	<section
+		aria-label="목표 레이스"
+		class="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-2 p-4"
+	>
+		<div class="flex items-center gap-3">
+			<span class="font-mono text-4xl font-bold leading-none">{countdownLabel(goal.days_left)}</span>
+			<div class="flex min-w-0 flex-1 flex-col">
+				<span class="truncate text-sm font-medium">{goal.name ?? distanceLabel(goal.distance_km)}</span>
+				<span class="text-xs text-fg-muted"
+					>{goal.race_date} · {distanceLabel(goal.distance_km)}{goal.weeks_left > 0
+						? ` · ${goal.weeks_left}주 남음`
+						: ''}</span
+				>
+			</div>
 		</div>
-		<span class="text-xs text-fg-muted">{goal.race_date} · {goal.distance_km}km</span>
 
-		{#if pred}
-			<!-- 예측 vs 목표 vs 격차 -->
-			<div class="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-				<div class="flex flex-col">
-					<span class="text-[10px] uppercase tracking-wide text-fg-muted">예측</span>
-					<span class="font-mono text-xl font-semibold text-fg-primary"
-						>{formatDuration(pred.value_sec)}</span
-					>
-				</div>
+		<div class="grid grid-cols-2 gap-3">
+			<div class="flex flex-col gap-0.5">
+				<span class="text-xs text-fg-muted">예측 기록</span>
+				<span class="font-mono text-2xl font-bold">{pred ? formatDuration(pred.value_sec) : '—'}</span>
+			</div>
+			<div class="flex flex-col gap-0.5">
+				<span class="text-xs text-fg-muted">목표</span>
 				{#if goal.target_time_sec != null}
-					<div class="flex flex-col">
-						<span class="text-[10px] uppercase tracking-wide text-fg-muted">목표</span>
-						<span class="font-mono text-xl font-semibold text-fg-secondary"
-							>{formatDuration(goal.target_time_sec)}</span
-						>
-					</div>
-					{#if pred.gap_sec != null}
-						<div class="flex flex-col">
-							<span class="text-[10px] uppercase tracking-wide text-fg-muted">격차</span>
-							<span class="font-mono text-xl font-semibold {TONE_CLASS[tone]}"
-								>{formatGap(pred.gap_sec)}</span
-							>
-						</div>
-					{/if}
+					<span class="font-mono text-2xl font-bold">{formatDuration(goal.target_time_sec)}</span>
+				{:else}
+					<span class="font-mono text-lg text-fg-muted">미설정</span>
 				{/if}
 			</div>
+		</div>
 
-			<!-- 예측 추이 차트 (90일, 비인터랙티브) -->
-			{#if predSeries.length > 0}
-				<div class="mt-1">
-					<p class="mb-1 text-[10px] uppercase tracking-wide text-fg-muted">90일 예측 추이</p>
-					<TrendChart
-						series={predSeries}
-						height={64}
-						interactive={false}
-						formatValue={(v) => formatDuration(v)}
-					/>
-				</div>
-			{/if}
-		{:else}
-			<p class="text-xs text-fg-muted">데이터 수집 중</p>
+		{#if verdict}
+			<p class="text-sm font-medium {TONE_CLASS[verdict.tone]}">{verdict.label}</p>
 		{/if}
-	</div>
+
+		{#if pred && pred.history.length > 1}
+			<div class="flex flex-col gap-1">
+				<span class="text-xs text-fg-muted">예측 기록 추이 · 최근 90일</span>
+				<TrendChart
+					series={[{ key: 'pred', label: '예측', color: '#14b8a6', points: pred.history }]}
+					height={72}
+					interactive={false}
+					formatValue={(v) => formatDuration(Math.round(v))}
+				/>
+			</div>
+		{/if}
+
+		{#if tsb != null}
+			<p class="text-xs text-fg-muted">현재 폼(TSB) {tsb > 0 ? '+' : ''}{Math.round(tsb)}</p>
+		{/if}
+	</section>
 {/if}

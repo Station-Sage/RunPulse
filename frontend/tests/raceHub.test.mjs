@@ -1,42 +1,32 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gapTone, formatGap, predictionToSeries } from '../src/lib/raceHub.ts';
+import { gapVerdict, countdownLabel, distanceLabel } from '../src/lib/raceHub.ts';
 
-test('gapTone: 음수=green, null·0=teal, 양수=amber', () => {
-	assert.equal(gapTone(-60), 'green');
-	assert.equal(gapTone(null), 'teal');
-	assert.equal(gapTone(0), 'teal');
-	assert.equal(gapTone(120), 'amber');
-	assert.equal(gapTone(1), 'amber');
-	assert.equal(gapTone(-1), 'green');
+test('gapVerdict: null은 unknown, 60초 미만은 on', () => {
+	assert.equal(gapVerdict(null).tone, 'unknown');
+	assert.equal(gapVerdict(30).tone, 'on');
+	assert.equal(gapVerdict(-59).tone, 'on');
 });
 
-test('formatGap: 분:초 형식 반환', () => {
-	assert.equal(formatGap(143), '+2:23');
-	assert.equal(formatGap(-105), '-1:45');
-	assert.equal(formatGap(60), '+1:00');
-	assert.equal(formatGap(0), '±0:00');
-	assert.equal(formatGap(-3600), '-60:00');
-	assert.equal(formatGap(3661), '+61:01');
+test('gapVerdict: 느림/빠름 문구', () => {
+	const slow = gapVerdict(252);
+	assert.equal(slow.tone, 'behind');
+	assert.equal(slow.label, '목표보다 4분 12초 느림');
+	const fast = gapVerdict(-3700);
+	assert.equal(fast.tone, 'ahead');
+	assert.equal(fast.label, '목표보다 1시간 1분 빠름');
 });
 
-test('predictionToSeries: 이력 배열을 TrendSeries로 변환', () => {
-	const history = [
-		{ date: '2026-09-01', value: 10000 },
-		{ date: '2026-09-15', value: 9800 }
-	];
-	const series = predictionToSeries(history, '#22c55e');
-	assert.equal(series.key, 'pred');
-	assert.equal(series.label, '예측');
-	assert.equal(series.color, '#22c55e');
-	assert.equal(series.points.length, 2);
-	assert.equal(series.points[0].date, '2026-09-01');
-	assert.equal(series.points[0].value, 10000);
-	assert.equal(series.points[1].date, '2026-09-15');
-	assert.equal(series.points[1].value, 9800);
+test('countdownLabel: D-day 경계', () => {
+	assert.equal(countdownLabel(31), 'D-31');
+	assert.equal(countdownLabel(0), 'D-DAY');
+	assert.equal(countdownLabel(-3), 'D+3');
 });
 
-test('predictionToSeries: 빈 이력은 빈 points', () => {
-	const series = predictionToSeries([], '#14b8a6');
-	assert.equal(series.points.length, 0);
+test('distanceLabel: 표준 거리 근사와 그 외', () => {
+	assert.equal(distanceLabel(42.195), '풀 마라톤');
+	assert.equal(distanceLabel(21.1), '하프');
+	assert.equal(distanceLabel(10), '10K');
+	assert.equal(distanceLabel(5), '5K');
+	assert.equal(distanceLabel(15), '15.0km');
 });
