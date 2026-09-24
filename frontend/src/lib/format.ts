@@ -21,8 +21,15 @@ export function formatDate(isoStr: string): string {
 	return isoStr.slice(0, 10);
 }
 
+// SQLite datetime('now')는 UTC인데 'YYYY-MM-DD HH:MM:SS'로 시간대 표기가 없어 JS가 로컬 시각으로
+// 잘못 해석한다(KST면 9시간 어긋남). 시간대 표기가 없으면 UTC로 간주해 파싱한다.
+export function parseDbTimestamp(s: string): Date {
+	const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(s);
+	return new Date(hasZone ? s : s.replace(' ', 'T') + 'Z');
+}
+
 export function formatRelativeTime(isoStr: string): string {
-	const diff = Date.now() - new Date(isoStr).getTime();
+	const diff = Date.now() - parseDbTimestamp(isoStr).getTime();
 	const minutes = Math.floor(diff / 60_000);
 	if (minutes < 2) return '방금 전';
 	if (minutes < 60) return `${minutes}분 전`;
