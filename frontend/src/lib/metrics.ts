@@ -45,3 +45,56 @@ export function metricUnit(m: ActivityMetric): string {
 	if (m.metric_name.includes('pace') || m.unit === 'sec/km' || m.unit === 'json') return '';
 	return m.unit;
 }
+
+// 03c-library.md 3-C "핵심 메트릭" — 우선순위 이름 목록에서 값이 있는 것만 앞에서부터 고른다.
+// avg_pace_sec_km/avg_hr는 요약 상단 통계 바가 이미 보여주므로 여기서는 제외(03c의 Pace·HR avg 칸을 통계 바가 대신함).
+export const KEY_METRIC_NAMES = [
+	'max_hr',
+	'avg_cadence',
+	'training_stress_score',
+	'training_load',
+	'training_effect_aerobic',
+	'vo2max_activity',
+	'efficiency_factor',
+	'aerobic_decoupling',
+	'avg_ground_contact_time_ms',
+	'avg_stride_length_cm',
+	'normalized_power',
+	'relative_effort',
+	'vdot'
+];
+export function pickKeyMetrics(
+	byCategory: Record<string, ActivityMetric[]>,
+	limit = 8
+): ActivityMetric[] {
+	const byName = new Map<string, ActivityMetric>();
+	for (const items of Object.values(byCategory)) {
+		for (const m of items) {
+			if (m.numeric_value != null && !byName.has(m.metric_name)) byName.set(m.metric_name, m);
+		}
+	}
+	return KEY_METRIC_NAMES.map((n) => byName.get(n))
+		.filter((m): m is ActivityMetric => m != null)
+		.slice(0, limit);
+}
+export interface HrZoneShare {
+	zone: number;
+	sec: number;
+	pct: number;
+}
+// hr_zone_1..5_sec → 존별 체류 시간·비율. 존 메트릭이 없거나 합계가 0이면 null. provider는 첫 존 메트릭의 소스.
+export function hrZoneShares(
+	byCategory: Record<string, ActivityMetric[]>
+): { zones: HrZoneShare[]; provider: string | null } | null {
+	const all = Object.values(byCategory).flat();
+	const secs = [1, 2, 3, 4, 5].map((z) => all.find((m) => m.metric_name === `hr_zone_${z}_sec`));
+	const total = secs.reduce((n, m) => n + (m?.numeric_value ?? 0), 0);
+	if (total <= 0) return null;
+	return {
+		zones: secs.map((m, i) => {
+			const sec = m?.numeric_value ?? 0;
+			return { zone: i + 1, sec, pct: Math.round((sec / total) * 100) };
+		}),
+		provider: secs.find((m) => m != null)?.provider ?? null
+	};
+}

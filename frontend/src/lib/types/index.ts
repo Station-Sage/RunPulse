@@ -166,7 +166,7 @@ export interface ActivityDetail {
 	metrics_by_category: Record<string, ActivityMetric[]>;
 	source_comparison: Record<string, unknown>;
 	semantic_groups: Record<string, unknown>;
-	streams: unknown[] | null;
+	streams: ActivityStreamPoint[] | null;
 	laps: ActivityLap[] | null;
 	best_efforts: unknown[] | null;
 }
