@@ -9,6 +9,8 @@
 	let { data }: { data: LibraryHomeData } = $props();
 </script>
 
+<svelte:head><title>Library · RunPulse</title></svelte:head>
+
 <!-- 섹션 탭 -->
 <nav class="flex border-b border-border-subtle">
 	<a

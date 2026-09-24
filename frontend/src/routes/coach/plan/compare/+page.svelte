@@ -45,6 +45,8 @@
 	}
 </script>
 
+<svelte:head><title>플랜 비교 · RunPulse</title></svelte:head>
+
 <div class="flex flex-col">
 	<div class="border-b border-border-subtle px-4 py-3">
 		<div class="mb-1">

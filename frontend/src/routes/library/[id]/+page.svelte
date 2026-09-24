@@ -38,6 +38,8 @@
 	}
 </script>
 
+<svelte:head><title>{core?.name ?? '활동 상세'} · RunPulse</title></svelte:head>
+
 {#if !core}
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">
 		<p class="text-lg text-fg-secondary">활동을 찾을 수 없습니다</p>

@@ -42,6 +42,8 @@
 	}
 </script>
 
+<svelte:head><title>활동 메트릭 · RunPulse</title></svelte:head>
+
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>
 	<h1 class="text-base font-semibold">메트릭</h1>

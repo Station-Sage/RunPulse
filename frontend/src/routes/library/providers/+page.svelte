@@ -18,6 +18,8 @@
 	}
 </script>
 
+<svelte:head><title>Provider 비교 · RunPulse</title></svelte:head>
+
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library로">←</a>

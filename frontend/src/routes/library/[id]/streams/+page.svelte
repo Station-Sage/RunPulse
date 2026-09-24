@@ -79,6 +79,8 @@
 	}
 </script>
 
+<svelte:head><title>스트림 · RunPulse</title></svelte:head>
+
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>

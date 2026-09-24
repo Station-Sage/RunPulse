@@ -74,6 +74,8 @@
 	};
 </script>
 
+<svelte:head><title>Today · RunPulse</title></svelte:head>
+
 {#if !data.today}
 	<!-- 1-E: 데이터 없음 상태 -->
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">
