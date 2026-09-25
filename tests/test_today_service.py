@@ -50,6 +50,16 @@ class TestGetTodayStatus:
         assert status["providers"] == {"utrs": "runpulse", "cirs": "runpulse", "tsb": "runpulse"}
 
 
+def _seed_stream(conn, activity_id, points):
+    """GPS 스트림 포인트 시드 (points: [(lat, lng), ...])."""
+    for i, (lat, lng) in enumerate(points):
+        conn.execute(
+            "INSERT INTO activity_streams (activity_id, source, elapsed_sec, latitude, longitude)"
+            " VALUES (?, 'garmin', ?, ?, ?)",
+            (activity_id, i * 10, lat, lng),
+        )
+
+
 class TestGetRecentActivities:
     def test_empty(self, db_conn):
         assert today_service.get_recent_activities(db_conn) == []
@@ -62,6 +72,26 @@ class TestGetRecentActivities:
 
         result = today_service.get_recent_activities(db_conn, limit=2)
         assert [r["id"] for r in result] == [3, 2]
+
+    def test_route_is_list_when_stream_exists(self, db_conn):
+        """GPS 스트림(위도·경도 2점 이상)이 있는 활동은 route가 리스트."""
+        _seed_activity(db_conn, activity_id=10, start_time="2026-09-22T06:00:00")
+        _seed_stream(db_conn, 10, [(37.5, 127.0), (37.51, 127.01), (37.52, 127.02)])
+        db_conn.commit()
+
+        result = today_service.get_recent_activities(db_conn, limit=1)
+        assert len(result) == 1
+        assert isinstance(result[0]["route"], list)
+        assert len(result[0]["route"]) >= 2
+
+    def test_route_is_none_when_no_stream(self, db_conn):
+        """GPS 스트림이 없는 활동은 route가 None."""
+        _seed_activity(db_conn, activity_id=11, start_time="2026-09-22T06:00:00")
+        db_conn.commit()
+
+        result = today_service.get_recent_activities(db_conn, limit=1)
+        assert len(result) == 1
+        assert result[0]["route"] is None
 
 
 class TestGetTodayBriefing:

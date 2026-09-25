@@ -12,6 +12,7 @@ import sqlite3
 from collections import defaultdict
 from typing import Any
 
+from src.services.activity_impact_service import get_activity_impact
 from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
@@ -188,6 +189,11 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     ).fetchall()
     best_efforts = [dict(r) for r in effort_rows] or None
 
+    try:
+        impact = get_activity_impact(conn, activity_id)
+    except Exception:
+        impact = None
+
     return {
         "core": core,
         "metrics_by_category": metrics_by_category,
@@ -196,6 +202,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
         "streams": streams,
         "laps": laps,
         "best_efforts": best_efforts,
+        "impact": impact,
     }
 
 

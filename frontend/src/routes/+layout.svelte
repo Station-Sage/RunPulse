@@ -22,7 +22,7 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary">
+<div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
 	<header class="border-b border-border-subtle">
 		<div class="mx-auto flex max-w-3xl lg:max-w-6xl items-center justify-between px-4 py-3">
 			<span class="font-medium">RunPulse</span>
@@ -37,22 +37,20 @@
 		</div>
 	</header>
 
-	<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20">
+	<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20 lg:pb-6">
 		{@render children()}
 	</main>
 
 	<nav
 		aria-label="주 메뉴"
-		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2"
+		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2 lg:inset-y-0 lg:right-auto lg:w-52 lg:border-r lg:border-t-0 lg:pt-16"
 	>
-		<div class="mx-auto flex w-full max-w-3xl lg:max-w-6xl">
+		<div class="mx-auto flex w-full max-w-3xl lg:max-w-none lg:flex-col lg:gap-1 lg:px-2">
 			{#each tabs as tab (tab.href)}
 				<a
 					href={tab.href}
 					aria-current={isActive(tab.match) ? 'page' : undefined}
-					class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] {isActive(tab.match)
-						? 'text-fg-primary'
-						: 'text-fg-muted'}"
+					class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-sm {isActive(tab.match) ? 'text-fg-primary lg:bg-surface-3' : 'text-fg-muted lg:hover:bg-surface-3'}"
 				>
 					<Icon name={tab.icon} />
 					{tab.label}

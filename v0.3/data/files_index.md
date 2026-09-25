@@ -28,7 +28,11 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_service.py` (319줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_impact_service.py` (131줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
+
+- functions: get_activity_impact
+
+### `activity_service.py` (326줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
@@ -1102,6 +1106,10 @@
 - class **TestMergeEndpoint**: test_merge_two_activities, test_merge_requires_two, test_merge_missing_ids, test_merge_invalid_ids
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
+
+### `test_activity_impact_service.py` (167줄) — activity_impact_service 단위 테스트.
+
+- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running
 
 ### `test_activity_service.py` (277줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 

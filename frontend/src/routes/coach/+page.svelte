@@ -11,6 +11,7 @@
 	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import { homeTopics } from '$lib/coachSuggestions';
+	import { staleLabel } from '$lib/threadAge';
 
 	let { data }: { data: CoachPageData } = $props();
 
@@ -96,6 +97,9 @@
 							<p class="truncate text-sm font-medium">{t.title}</p>
 							{#if t.last_message}
 								<p class="truncate text-xs text-fg-muted">{stripMarkdown(t.last_message)}</p>
+							{/if}
+							{#if staleLabel(t.last_message_at, Date.now())}
+								<p class="text-[10px] text-semantic-amber">{staleLabel(t.last_message_at, Date.now())}</p>
 							{/if}
 						</div>
 						{#if t.last_message_at}

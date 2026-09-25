@@ -56,7 +56,7 @@ def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
 
 
 def get_recent_activities(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
-    """최근 활동 N개 (v_canonical_activities 기준, 중복 제거됨)."""
+    """최근 활동 N개 (v_canonical_activities 기준, 중복 제거됨). 각 항목에 route 미리보기 포함."""
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
         "SELECT id, name, activity_type, start_time, distance_m, duration_sec, source"
@@ -64,7 +64,12 @@ def get_recent_activities(conn: sqlite3.Connection, limit: int = 3) -> list[dict
         " ORDER BY start_time DESC LIMIT ?",
         (limit,),
     ).fetchall()
-    return [dict(r) for r in rows]
+    activities = [dict(r) for r in rows]
+    from src.services.activity_service import _route_previews
+    previews = _route_previews(conn, [a["id"] for a in activities])
+    for a in activities:
+        a["route"] = previews.get(a["id"])
+    return activities
 
 
 def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dict:
