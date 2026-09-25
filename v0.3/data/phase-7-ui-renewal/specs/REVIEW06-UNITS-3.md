@@ -178,3 +178,15 @@ export function impactLines(i: ImpactLite): string[] {
 1. **먼저 확인**: `v_canonical_activities` 뷰(`src/db_setup.py`)가 `matched_group_id`를 노출하는지, 활동 목록 쿼리가 무엇을 SELECT하는지 읽는다. 뷰가 컬럼을 노출하지 않으면 `activity_summaries` 조인으로 대체. 어느 쪽이든 그룹 개념이 이 설명과 다르면 DECISIONS.md에 사유를 적고 중단.
 2. 활동 목록 각 항목에 `source_count: int`를 추가 — 같은 `matched_group_id`(NULL이 아님)를 가진 `activity_summaries` 행 수(서로 다른 `source` 개수, 최소 1). 테스트: 같은 그룹 2소스 → `source_count == 2`, 그룹 없음 → `1`.
 3. 프론트: `ActivitySummary` 타입에 `source_count?: number;`. `activities/+page.svelte`의 소스 배지 자리(유닛 D의 `showBadge` 조건 안팎 무관): `{#if (act.source_count ?? 1) > 1}<span class="rounded border border-semantic-teal/50 px-1 py-px text-[9px] text-semantic-teal">{act.source_count}소스 병합</span>{/if}`를 행 메타 줄에 추가.
+
+## 유닛 K — P7-IMPL-DESKTOP-SIDENAV (데스크톱 ≥1024px 좌측 내비; 사용자 승인 2026-09-25)
+
+모바일(<1024px)은 지금 그대로(하단 3탭). 데스크톱에서만 하단 탭바를 좌측 고정 사이드바로 바꾼다. 프론트 전용. 파일: `frontend/src/routes/+layout.svelte`, `frontend/src/routes/coach/[threadId]/+page.svelte`.
+1. `+layout.svelte`:
+   - 루트 `<div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary">`에 `lg:pl-52`를 추가(사이드바 폭만큼 콘텐츠 밀기).
+   - `<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20">`의 `pb-20`을 `pb-20 lg:pb-6`으로.
+   - `<nav aria-label="주 메뉴" class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2">`를 `<nav aria-label="주 메뉴" class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2 lg:inset-y-0 lg:right-auto lg:w-52 lg:border-r lg:border-t-0 lg:pt-16">`로.
+   - nav 안쪽 `<div class="mx-auto flex w-full max-w-3xl lg:max-w-6xl">`를 `<div class="mx-auto flex w-full max-w-3xl lg:max-w-none lg:flex-col lg:gap-1 lg:px-2">`로.
+   - 탭 링크 클래스를 `class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-sm {isActive(tab.match) ? 'text-fg-primary lg:bg-surface-3' : 'text-fg-muted lg:hover:bg-surface-3'}"`로(기존 활성/비활성 삼항을 이 문자열로 교체).
+2. `coach/[threadId]/+page.svelte`: 입력 바 `sticky bottom-14 z-10 …`에 `lg:bottom-0`을 추가하고, 메시지 목록 컨테이너의 `min-h-[calc(100dvh-15.5rem)]`에 `lg:min-h-[calc(100dvh-11rem)]`를 추가.
+3. 검증: `cd frontend && npm install && npm run test:unit && npm run check && npm run build`.
