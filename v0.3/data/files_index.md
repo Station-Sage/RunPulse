@@ -1253,6 +1253,12 @@
 - class **TestRaceContextNoGoal**: test_race_hub_is_none_or_no_goal, test_formatted_text_no_form_prediction, test_formatted_text_no_target_prediction
 - functions: ctx_with_goal, ctx_no_goal
 
+### `test_chat_context_workout_type.py` (105줄) — workout_type_classified 컬럼 버그 수정 회귀 테스트 (BUG-WORKOUT-TYPE-COLUMN).
+
+- class **TestRaceHistoryFromTextValue**: test_race_included_without_name_keyword, test_race_not_included_when_only_numeric_value
+- class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
+- class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
+
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
 - class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
