@@ -5,6 +5,7 @@
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { showSourceBadge } from '$lib/providerHint';
 	import { formatDuration, formatPace } from '$lib/format';
 	import { weekGroups, dayLabel } from '$lib/activityList';
 	import RouteThumb from '$lib/components/RouteThumb.svelte';
@@ -46,6 +47,7 @@
 	}
 
 	const groups = $derived(weekGroups(activities));
+	const showBadge = $derived(showSourceBadge(activities.map((a) => a.source)));
 	const maxKm = $derived(Math.max(1, ...groups.map((g) => g.km)));
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -185,10 +187,10 @@
 										<span>{dayLabel(act.start_time)}</span>
 										{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
 										{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
-										<span
+										{#if showBadge}<span
 											class="rounded px-1 py-px text-[9px] text-white {providerBadgeClass(act.source as ProviderKey)}"
 											>{providerLabel(act.source as ProviderKey)}</span
-										>
+										>{/if}
 									</div>
 								</div>
 								<div class="flex shrink-0 flex-col items-end">

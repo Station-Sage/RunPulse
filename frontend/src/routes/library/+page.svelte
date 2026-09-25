@@ -2,6 +2,7 @@
 	// 03c-library.md 3-A — Library 홈. 섹션 탭 + 최근 활동 + 빠른 메트릭 접근 + Provider 현황.
 	import type { LibraryHomeData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
+	import { providerHint } from '$lib/providerHint';
 	import { formatDistance, formatDuration, formatPace, formatDate, formatRelativeTime } from '$lib/format';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
@@ -135,7 +136,8 @@
 	{:else}
 		<ul class="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-2">
 			{#each data.providerStatus as item (item.provider)}
-				<li class="flex items-center gap-2 px-3 py-2.5">
+				{@const hint = providerHint(item, Date.now())}
+				<li class="flex flex-wrap items-center gap-2 px-3 py-2.5">
 					<span
 						class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
 							item.provider as ProviderKey
@@ -154,6 +156,7 @@
 						{/if}
 						활동 {item.activity_count}건
 					</span>
+					{#if hint}<p class="w-full text-[11px] text-semantic-amber">{hint}</p>{/if}
 				</li>
 			{/each}
 		</ul>
