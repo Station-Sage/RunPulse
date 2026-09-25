@@ -20,6 +20,7 @@
 	import RunStory from '$lib/components/RunStory.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ElevationProfile from '$lib/components/ElevationProfile.svelte';
+	import { impactLines } from '$lib/activityImpact';
 
 	let { data }: { data: ActivityPageData } = $props();
 
@@ -38,6 +39,7 @@
 		)
 	);
 	const story = $derived(buildRunStory(splits));
+	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
 	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
@@ -134,6 +136,9 @@
 		{#if streams && core.duration_sec && core.distance_m}
 			<ElevationProfile {streams} totalSec={core.duration_sec} totalDistM={core.distance_m} />
 		{/if}
+
+		<!-- 이 러닝의 의미 -->
+		{#if impactList.length > 0}<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3"><p class="text-xs uppercase tracking-wide text-fg-muted">이 러닝의 의미</p>{#each impactList as line}<p class="text-sm text-fg-primary">{line}</p>{/each}</section>{/if}
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}

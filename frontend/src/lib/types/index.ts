@@ -164,6 +164,13 @@ export interface ActivityLap {
 	lap_trigger: string | null;
 }
 
+export interface ActivityImpact {
+	ctl_delta: number | null;
+	tsb: number | null;
+	similar: { n: number; pace_rank: number; avg_pace_sec_km: number; pace_diff_sec: number } | null;
+	race: { name: string; days_left: number } | null;
+}
+
 export interface ActivityDetail {
 	core: ActivityCore;
 	metrics_by_category: Record<string, ActivityMetric[]>;
@@ -172,6 +179,7 @@ export interface ActivityDetail {
 	streams: ActivityStreamPoint[] | null;
 	laps: ActivityLap[] | null;
 	best_efforts: unknown[] | null;
+	impact?: ActivityImpact | null;
 }
 
 export interface ActivityDetailResponse {
