@@ -2,6 +2,8 @@
 	// 03e-coach.md 5-D — 새 프로그램 생성: 거리/날짜/목표 입력.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
+	import { parsePrefill } from '$lib/planPrefill';
 
 	const DISTANCES: { label: string; km: number }[] = [
 		{ label: '5km', km: 5 },
@@ -10,12 +12,14 @@
 		{ label: '마라톤', km: 42.195 }
 	];
 
-	let selectedKm = $state<number | null>(null);
-	let raceDate = $state('');
+	const pre = parsePrefill(page.url.searchParams);
+
+	let selectedKm = $state<number | null>(pre.km);
+	let raceDate = $state(pre.raceDate);
 	let isCompletion = $state(false);
-	let goalHH = $state('');
-	let goalMM = $state('');
-	let goalSS = $state('');
+	let goalHH = $state(pre.hh);
+	let goalMM = $state(pre.mm);
+	let goalSS = $state(pre.ss);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
