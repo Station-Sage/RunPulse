@@ -702,6 +702,10 @@ export interface ProviderStatusResponse {
 	providers: ProviderStatusItem[];
 }
 
+// ── ProviderCoverage (N2 — /api/v1/library/providers/coverage) ───────────────
+export interface ProviderCoverageItem { provider: ProviderKey; counts: number[]; total: number }
+export interface ProviderCoverage { months: string[]; providers: ProviderCoverageItem[] }
+
 // ── Archive (Library 홈 — /api/v1/library/archive) ───────────────────────────
 export interface ArchiveTotals {
 	runs: number;

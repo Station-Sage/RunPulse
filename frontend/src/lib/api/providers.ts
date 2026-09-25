@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { ProviderComparisonData, ProviderStatusResponse } from '$lib/types';
+import type { ProviderComparisonData, ProviderCoverage, ProviderStatusResponse } from '$lib/types';
 
 export interface ProviderComparisonApiResponse {
 	comparison: ProviderComparisonData;
@@ -20,6 +20,10 @@ export function getProviderMatrix(
 
 export function getProviderStatus(): Promise<ProviderStatusResponse> {
 	return apiFetch<ProviderStatusResponse>('/library/providers/status');
+}
+
+export function getProviderCoverage(): Promise<ProviderCoverage> {
+	return apiFetch<ProviderCoverage>('/library/providers/coverage');
 }
 
 export function getProviderComparison(
