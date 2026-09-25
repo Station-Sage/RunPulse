@@ -42,3 +42,37 @@ def get_provider_status(conn: sqlite3.Connection) -> list[dict]:
         }
         for p in _PROVIDERS
     ]
+
+
+def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10", today: str | None = None) -> dict:
+    """소스별 월 단위 활동 커버리지 — Library 홈 타임라인용.
+
+    반환: {"months": ["2023-10", ..., 이번 달], "providers": [{"provider", "counts": [월별 활동 수], "total"}]}
+    months는 start_month부터 today가 속한 달까지(오름차순). 활동이 없어도 4개 provider 모두 포함(counts 전부 0).
+    """
+    from datetime import date as _date
+
+    end = _date.fromisoformat(today) if today else _date.today()
+    y, m = int(start_month[:4]), int(start_month[5:7])
+    months: list[str] = []
+    while (y, m) <= (end.year, end.month):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    idx = {mo: i for i, mo in enumerate(months)}
+    by_src: dict[str, list[int]] = {p: [0] * len(months) for p in _PROVIDERS}
+    try:
+        rows = conn.execute(
+            "SELECT source, substr(start_time, 1, 7) AS mo, COUNT(*) FROM activity_summaries"
+            " WHERE start_time IS NOT NULL GROUP BY source, mo"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    for src, mo, n in rows:
+        if src in by_src and mo in idx:
+            by_src[src][idx[mo]] = n
+    return {
+        "months": months,
+        "providers": [{"provider": p, "counts": by_src[p], "total": sum(by_src[p])} for p in _PROVIDERS],
+    }

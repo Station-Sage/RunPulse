@@ -1,5 +1,5 @@
 <script lang="ts">
-	// 03c-library.md 3-A — Library 홈. 섹션 탭 + 최근 활동 + 빠른 메트릭 접근 + Provider 현황.
+	// 03c-library.md 3-A — Library 홈. 섹션 탭 + 최근 활동 + 빠른 메트릭 접근 + 소스 커버리지.
 	import type { LibraryHomeData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { providerHint } from '$lib/providerHint';
@@ -7,6 +7,7 @@
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
 	import ArchiveHero from '$lib/components/ArchiveHero.svelte';
+	import SourceCoverage from '$lib/components/SourceCoverage.svelte';
 
 	let { data }: { data: LibraryHomeData } = $props();
 </script>
@@ -127,38 +128,42 @@
 	{/if}
 </section>
 
-<!-- Provider 데이터 현황 -->
+<!-- 소스 커버리지 -->
 <section class="px-4 pb-6">
-	<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">Provider 현황</h2>
+	<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">소스 커버리지</h2>
 
-	{#if data.providerStatusError && data.providerStatus.length === 0}
-		<p class="text-sm text-fg-muted">{data.providerStatusError}</p>
+	{#if data.coverage}
+		<SourceCoverage coverage={data.coverage} status={data.providerStatus} />
 	{:else}
-		<ul class="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-2">
-			{#each data.providerStatus as item (item.provider)}
-				{@const hint = providerHint(item, Date.now())}
-				<li class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-					<span
-						class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-							item.provider as ProviderKey
-						)}"
-					>
-						{providerLabel(item.provider as ProviderKey)}
-					</span>
-					{#if item.has_data}
-						<span class="text-xs text-fg-primary">●데이터 있음</span>
-					{:else}
-						<span class="text-xs text-fg-muted">○데이터 없음</span>
-					{/if}
-					<span class="ml-auto text-xs text-fg-muted">
-						{#if item.last_synced_at}
-							마지막 동기화 {formatRelativeTime(item.last_synced_at)} ·
+		{#if data.providerStatusError && data.providerStatus.length === 0}
+			<p class="text-sm text-fg-muted">{data.providerStatusError}</p>
+		{:else}
+			<ul class="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-2">
+				{#each data.providerStatus as item (item.provider)}
+					{@const hint = providerHint(item, Date.now())}
+					<li class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+						<span
+							class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+								item.provider as ProviderKey
+							)}"
+						>
+							{providerLabel(item.provider as ProviderKey)}
+						</span>
+						{#if item.has_data}
+							<span class="text-xs text-fg-primary">●데이터 있음</span>
+						{:else}
+							<span class="text-xs text-fg-muted">○데이터 없음</span>
 						{/if}
-						활동 {item.activity_count}건
-					</span>
-					{#if hint}<p class="w-full text-[11px] text-semantic-amber">{hint}</p>{/if}
-				</li>
-			{/each}
-		</ul>
+						<span class="ml-auto text-xs text-fg-muted">
+							{#if item.last_synced_at}
+								마지막 동기화 {formatRelativeTime(item.last_synced_at)} ·
+							{/if}
+							활동 {item.activity_count}건
+						</span>
+						{#if hint}<p class="w-full text-[11px] text-semantic-amber">{hint}</p>{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	{/if}
 </section>

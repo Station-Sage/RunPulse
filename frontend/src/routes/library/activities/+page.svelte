@@ -4,13 +4,12 @@
 	import type { ActivitiesPageData } from './+page';
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
-	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { showSourceBadge } from '$lib/providerHint';
 	import { formatDuration, formatPace } from '$lib/format';
 	import { weekGroups, dayLabel } from '$lib/activityList';
+	import { activityFlag, medianPace } from '$lib/activityFlags';
 	import RouteThumb from '$lib/components/RouteThumb.svelte';
 	import { base } from '$app/paths';
-	import type { ActivitySummary, ProviderKey } from '$lib/types';
+	import type { ActivitySummary } from '$lib/types';
 
 	let { data }: { data: ActivitiesPageData } = $props();
 
@@ -48,7 +47,7 @@
 	}
 
 	const groups = $derived(weekGroups(activities));
-	const showBadge = $derived(showSourceBadge(activities.map((a) => a.source)));
+	const median = $derived(medianPace(activities));
 	const maxKm = $derived(Math.max(1, ...groups.map((g) => g.km)));
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -180,6 +179,7 @@
 				</div>
 				<ul class="divide-y divide-border-subtle">
 					{#each g.items as act (act.id)}
+						{@const flag = activityFlag(act, median)}
 						<li>
 							<a
 								href="{base}/library/{act.id}"
@@ -192,10 +192,7 @@
 										<span>{dayLabel(act.start_time)}</span>
 										{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
 										{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
-										{#if showBadge}<span
-											class="rounded px-1 py-px text-[9px] text-white {providerBadgeClass(act.source as ProviderKey)}"
-											>{providerLabel(act.source as ProviderKey)}</span
-										>{/if}
+										{#if flag}<span class="text-[10px] text-semantic-amber" title={flag.title}>⚠ {flag.label}</span>{/if}
 									</div>
 								</div>
 								<div class="flex shrink-0 flex-col items-end">
