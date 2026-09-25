@@ -8,6 +8,7 @@ from __future__ import annotations
 _RUNNING_TYPES = {
     "running", "run", "trail_running", "trail_run", "treadmill_running",
     "treadmill", "track_running", "virtual_run", "race", "road_running",
+    "indoor_running",
 }
 
 _CYCLING_TYPES = {
