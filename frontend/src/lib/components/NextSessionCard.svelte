@@ -3,15 +3,18 @@
 	import type { ActivePlan, TodaysAdjustment } from '$lib/types';
 	import { workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
+	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
 
 	let {
 		plan,
 		adjustment,
-		today
+		today,
+		raceGoal = null
 	}: {
 		plan: ActivePlan | null;
 		adjustment: TodaysAdjustment | { adjusted: false; adjustment_reason: null } | null;
 		today: string;
+		raceGoal?: { name: string; days_left: number; distance_km: number; race_date: string; target_time_sec: number | null } | null;
 	} = $props();
 
 	const DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -46,10 +49,17 @@
 
 {#if plan === null}
 	<div class="rounded-xl bg-surface-2 p-3">
-		<p class="text-sm text-fg-secondary">활성 훈련 플랜이 없습니다</p>
-		<a href="{base}/coach/plan" class="mt-1 block text-sm text-semantic-amber hover:underline"
-			>Coach에서 플랜 만들기 →</a
-		>
+		{#if raceGoal}
+			<a href={planNewHref(base, raceGoal)} class="flex flex-col gap-1 rounded-xl border border-semantic-amber/40 bg-semantic-amber/10 p-3 hover:bg-semantic-amber/20">
+				<span class="text-sm font-semibold">{raceGoal.name} D-{raceGoal.days_left} — {roadmapLabel(raceGoal.days_left)}</span>
+				<span class="text-xs text-fg-secondary">목표 레이스 정보가 미리 채워집니다 →</span>
+			</a>
+		{:else}
+			<p class="text-sm text-fg-secondary">활성 훈련 플랜이 없습니다</p>
+			<a href="{base}/coach/plan" class="mt-1 block text-sm text-semantic-amber hover:underline"
+				>Coach에서 플랜 만들기 →</a
+			>
+		{/if}
 	</div>
 {:else if nextSession === null}
 	<div class="rounded-xl bg-surface-2 p-3">

@@ -285,7 +285,7 @@
 		<!-- 다음 세션 현황 (L2 — 구 Plan "보기" 흡수) -->
 		<div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</p>
-			<NextSessionCard plan={data.plan} adjustment={data.adjustment} today={status.date} />
+			<NextSessionCard plan={data.plan} adjustment={data.adjustment} today={status.date} raceGoal={data.raceHub?.goal ?? null} />
 		</div>
 
 		<!-- ══ L3 — 데이터 드릴다운 ══ -->
