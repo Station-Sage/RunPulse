@@ -206,6 +206,21 @@ def get_library_providers_status():
     return api_ok({"providers": result})
 
 
+@api_bp.get("/library/providers/coverage")
+def get_library_providers_coverage():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = provider_status_service.get_provider_coverage(conn)
+    finally:
+        conn.close()
+
+    return api_ok(result)
+
+
 @api_bp.get("/library/providers/matrix")
 def get_library_providers_matrix():
     dpath = db_path()

@@ -346,3 +346,17 @@ def test_get_providers_matrix_invalid_threshold(mini_app):
     assert res.status_code == 400
     body = res.get_json()
     assert body["error"]["code"] == "INVALID_PARAM"
+
+
+# ── /library/providers/coverage 라우트 테스트 ────────────────────────────────
+
+def test_get_providers_coverage_200(mini_app):
+    """GET /library/providers/coverage → 200, providers 4개 포함."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/providers/coverage")
+    assert res.status_code == 200
+    body = res.get_json()
+    data = body["data"]
+    assert "months" in data
+    assert "providers" in data
+    assert len(data["providers"]) == 4
