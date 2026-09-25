@@ -45,8 +45,7 @@ def get_activity_impact(
     similar = _similar_activities(
         conn, act_start_time, act_type, act["distance_m"], act["avg_pace_sec_km"]
     )
-    _today = today or _date.today()
-    race = _nearest_race(conn, _today.isoformat())
+    race = _nearest_race(conn, act_date)
 
     return {
         "ctl_delta": ctl_delta,
@@ -134,17 +133,25 @@ def _similar_activities(
     }
 
 
-def _nearest_race(conn: sqlite3.Connection, today: str) -> dict | None:
-    """오늘 이후 가장 가까운 활성 목표. 없으면 None."""
+_RACE_CONTEXT_DAYS = 120
+
+
+def _nearest_race(conn: sqlite3.Connection, act_date: str) -> dict | None:
+    """활동일 이후 가장 가까운 활성 목표 — 활동일 기준 D-day. 120일 넘게 남았으면 맥락으로 보지 않는다.
+
+    (명세는 '오늘' 기준이라 과거 활동에도 현재 레이스 D-day가 붙는 결함이 있어 활동일 기준으로 교정.)
+    """
     row = conn.execute(
         "SELECT name, race_date FROM goals"
         " WHERE status = 'active' AND race_date IS NOT NULL AND race_date >= ?"
         " ORDER BY race_date ASC, id DESC LIMIT 1",
-        (today,),
+        (act_date,),
     ).fetchone()
 
     if row is None:
         return None
 
-    days_left = (_date.fromisoformat(row["race_date"]) - _date.fromisoformat(today)).days
+    days_left = (_date.fromisoformat(row["race_date"]) - _date.fromisoformat(act_date)).days
+    if days_left > _RACE_CONTEXT_DAYS:
+        return None
     return {"name": row["name"], "days_left": days_left}

@@ -28,7 +28,7 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_impact_service.py` (131줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
+### `activity_impact_service.py` (157줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
 - functions: get_activity_impact
 
@@ -100,7 +100,7 @@
 
 - functions: project_race_form
 
-### `today_service.py` (306줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (311줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -214,9 +214,10 @@
 
 - class **MonotonyStrainCalculator**: compute
 
-### `pmc.py` (75줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
+### `pmc.py` (89줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
 
 - class **PMCCalculator**: compute
+- functions: elapsed_day_fraction
 
 ### `rec.py` (64줄) — REC (Running Efficiency Composite) — 통합 러닝 효율성 지수.
 
@@ -254,13 +255,13 @@
 
 - class **TIDSCalculator**: compute
 
+### `today_refresh.py` (40줄) — 달력 오늘의 일별 메트릭을 "현 시각 기준"으로 유지하는 지연 갱신.
+
+- functions: refresh_today_if_stale
+
 ### `tpdi.py` (64줄) — TPDI (Trainer Physical Disparity Index) — 실내/실외 FEARP 격차 지수.
 
 - class **TPDICalculator**: compute
-
-### `today_refresh.py` (38줄) — 달력 오늘의 일별 메트릭을 "현 시각 기준"으로 유지하는 지연 갱신.
-
-- functions: refresh_today_if_stale
 
 ### `trimp.py` (85줄) — TRIMP Calculator — 설계서 4-2 기준.
 
@@ -501,7 +502,7 @@
 
 - (public API 없음)
 
-### `chat_context_checkin.py` (46줄) — AI 채팅 컨텍스트 — 러너 자기 보고(QuickInput 체크인).
+### `chat_context_checkin.py` (45줄) — AI 채팅 컨텍스트 — 러너 자기 보고(QuickInput 체크인).
 
 - functions: build_checkin_context, format_checkin_line
 
@@ -1101,15 +1102,15 @@
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
 - class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_extreme_ratio_is_capped, test_zero_ctl_returns_empty
 
+### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
+
+- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today
+
 ### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
 
 - class **TestMergeEndpoint**: test_merge_two_activities, test_merge_requires_two, test_merge_missing_ids, test_merge_invalid_ids
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
-
-### `test_activity_impact_service.py` (167줄) — activity_impact_service 단위 테스트.
-
-- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running
 
 ### `test_activity_service.py` (277줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
@@ -1187,9 +1188,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_today.py` (153줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (163줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local
 
 ### `test_archive_service.py` (63줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
@@ -1629,13 +1630,13 @@
 
 - functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date
 
-### `test_pmc_intraday.py` (67줄) — PMC 오늘 부분일 처리 + 오늘 메트릭 지연 갱신 테스트.
-
-- functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
-
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
 - class **TestPMC**: test_produces_four_metrics, test_ctl_increases_with_training, test_tsb_negative_after_hard_training, test_no_data, test_ramp_rate_has_parent_metric_name_ctl
+
+### `test_pmc_intraday.py` (90줄) — PMC 오늘 부분일 처리 + 오늘 메트릭 지연 갱신 테스트.
+
+- functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
 
 ### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
@@ -1768,10 +1769,10 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
-### `test_today_service.py` (374줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
+### `test_today_service.py` (404줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
-- class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order
+- class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order, test_route_is_list_when_stream_exists, test_route_is_none_when_no_stream
 - class **TestGetTodayBriefing**: test_no_data_fallback, test_low_tsb_recommends_rest, test_balanced_tsb
 - class **TestGetTodaysCheckin**: test_no_checkin_returns_none, test_returns_saved_checkin, test_defaults_to_today_date
 - class **TestGetTodayMilestones**: test_empty, test_returns_milestones
@@ -1916,7 +1917,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 374개 파일
+총 378개 파일
 
 ## docstring 누락
 

@@ -239,3 +239,14 @@ def test_get_activity_detail_impact_none_for_non_running(db_conn):
 
     detail = get_activity_detail(db_conn, aid)
     assert detail["impact"] is None
+
+
+def test_race_uses_activity_date_not_today(db_conn):
+    """과거 활동엔 그 시점의 D-day만 붙고, 120일 넘게 남은 목표는 맥락에서 제외한다."""
+    old = _insert_activity(db_conn, "garmin", "r13", "running", "2024-03-01T10:00:00Z", 10000, 300.0)
+    near = _insert_activity(db_conn, "garmin", "r14", "running", "2026-09-10T10:00:00Z", 10000, 300.0)
+    _insert_goal(db_conn, "서울 마라톤", "2026-11-08")
+    db_conn.commit()
+
+    assert get_activity_impact(db_conn, old, today=date(2026, 9, 25))["race"] is None
+    assert get_activity_impact(db_conn, near, today=date(2026, 9, 25))["race"]["days_left"] == 59
