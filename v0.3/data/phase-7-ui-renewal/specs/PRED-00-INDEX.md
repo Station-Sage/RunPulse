@@ -28,15 +28,16 @@
 | 20 | P7-PRED-41 | 훈련 반응 r4(세트 기반 구간별 주간 시간, 세트 VDOT 추세, 기기 불필요) | 변경 | 미작성 |
 | 21 | P7-PRED-42 | 계획 구조 + 세그먼트 비교 | 동일 | r3 절 유효 |
 | 22 | P7-PRED-43 | 매처 세그먼트 이행 저장 | 동일 | r3 절 유효 |
-| 23 | P7-PRED-51 | DARP r4 (b)(c) — 칼만 결합·거리별 외삽·Tanda·롱런 외삽·품질 배율 | 변경 | 미작성 |
+| 23 | P7-PRED-51 | DARP: **r3 (b)(c) 기본 유지** + r4 섀도 계산기(`darp_r4.py`, provider `runpulse:formula_r4`, is_primary=0, 변형 base/asym_maint) — 칼만 결합·거리별 외삽·Tanda·롱런 외삽·품질 배율 | 변경(피드백 4차: r4는 후보) | 미작성 |
 | 24 | P7-PRED-52 | 일별 VDOT 의존 메트릭 복구 + marathon_shape v2(볼륨·롱런 구조) | 변경 | 미작성 |
 | 25 | P7-PRED-89 | acwr·lsi·adti·rtti·hrss·di 재정의 | **판단→자동** | 미작성 |
 | 26 | P7-PRED-53 | 대회 확인 서비스 | 동일 | r3 절 유효 |
-| 27 | P7-PRED-62 | 수용 백테스트(대회 D-0/D-28 + 사본 롤링 U-7) | 변경 | 미작성 |
+| 27 | P7-PRED-62 | 수용 백테스트(대회 D-0/D-28 + 사본 롤링 U-7, r3·r4 변형 나란히, retro 스냅샷 기록) | 변경 | 미작성 |
+| 27a | P7-PRED-63 | 예측 스냅샷 `prediction_snapshots`(live/retro) + 대회 확인 시 전향 평가 채움 + 기본 provider 설정 키 | **신규, 사용자 확인 필요**(REVIEW-07 §R4-8(4)) | 미작성 |
 | 28 | P7-PRED-71 | 비교·근거 API(기여도 키 race/T/I/R/M/H/tanda) | 변경 | 미작성 |
 | 29 | P7-PRED-72 | 레이스 허브 UI((b)(c) 모두 표시, 접기 없음) | 변경 | 미작성 |
 | 30 | P7-PRED-85 | 내장 Daniels 표 → 공식, import 경로 수정 | **신규, 사용자 확인 필요** | 미작성 |
-| – | P7-PRED-61 | 실DB 백필 런북 | 수동 | r3 절 + 87 반영 필요 |
+| – | P7-PRED-61 | 실DB 백필 런북 | 수동 | r3 절 + 4b·5b(재계산 전후 예측 비교) 추가됨, 87 반영 필요 |
 | – | P7-PRED-44 | 외부 계획 인제스트 | 수동 | r3 절 유효 |
 
 폐기: r3 P7-PRED-31(`src/weather/openmeteo.py` 신설 → 86 통합으로 대체), r3 86 "삭제" 정의.
