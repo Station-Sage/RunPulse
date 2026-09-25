@@ -287,6 +287,7 @@ export interface RecentActivity {
 	distance_m: number;
 	duration_sec: number;
 	source: string;
+	route?: [number, number][] | null;
 }
 
 export interface CheckinPayload {

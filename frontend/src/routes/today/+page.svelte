@@ -8,6 +8,7 @@
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import RouteThumb from '$lib/components/RouteThumb.svelte';
 	import RaceHub from '$lib/components/RaceHub.svelte';
 	import { loadCoverageNotice } from '$lib/healthNotice';
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
@@ -180,6 +181,7 @@
 				{:else}
 					{#each data.today.recent_activities as act (act.id)}
 						<div class="flex items-center gap-2 py-1.5 text-sm">
+							<RouteThumb route={act.route} size={32} />
 							<span class="w-14 shrink-0 text-fg-secondary">{formatRelativeDay(act.start_time)}</span>
 							<span class="flex-1 truncate">{act.name}</span>
 							<span class="text-fg-secondary">{formatDistance(act.distance_m)}</span>
