@@ -96,9 +96,9 @@
 	{@const briefing = data.today.briefing}
 	{@const narrative = data.narrative}
 
-	<div class="flex flex-col gap-6 px-4 py-4">
+	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8 lg:gap-y-6">
 		<!-- ══ L0 — 즉시 브리핑 ══ -->
-		<section class="flex flex-col gap-3">
+		<section class="flex flex-col gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-1">
 			{#if loadCoverageNotice(data.today?.data_health)}
 				<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today?.data_health)}</p>
 			{/if}
@@ -132,7 +132,7 @@
 		</section>
 
 		<!-- ══ L1 — 내 상태 요약 ══ -->
-		<section class="flex flex-col gap-3">
+		<section class="flex flex-col gap-3 lg:col-start-2 lg:row-start-1">
 			<p class="text-[11px] text-fg-muted">{asOfLabel(status.date, localDateString())}</p>
 			<div class="grid grid-cols-3 gap-2">
 				<ScoreRing
@@ -198,7 +198,7 @@
 		</section>
 
 		<!-- ══ L2 — 흐름·훈련·성장 ══ -->
-		<section class="flex flex-col gap-3 border-t border-border-subtle pt-4">
+		<section class="flex flex-col gap-3 border-t border-border-subtle pt-4 lg:col-start-2 lg:row-start-2">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
 
 			{#if narrative}
@@ -283,13 +283,13 @@
 		</section>
 
 		<!-- 다음 세션 현황 (L2 — 구 Plan "보기" 흡수) -->
-		<div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
+		<div class="flex flex-col gap-2 border-t border-border-subtle pt-3 lg:col-start-1 lg:row-start-3">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</p>
 			<NextSessionCard plan={data.plan} adjustment={data.adjustment} today={status.date} raceGoal={data.raceHub?.goal ?? null} />
 		</div>
 
 		<!-- ══ L3 — 데이터 드릴다운 ══ -->
-		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4">
+		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2 lg:row-start-4">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</p>
 			<p class="text-sm text-fg-secondary">
 				위 지표는 탭 한 번으로 계산 분해에 닿고, 거기서 다시 원본 데이터로 이어집니다.
