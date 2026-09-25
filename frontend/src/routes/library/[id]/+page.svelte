@@ -10,6 +10,7 @@
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatDuration, formatPace, formatDate, formatUnitValue } from '$lib/format';
 	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
+	import { meaningFor } from '$lib/metricMeaning';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
@@ -149,6 +150,8 @@
 							drillable={true}
 							onDrill={(p) => openMetric(p.slug)}
 							unavailable={m.numeric_value == null}
+							status={meaningFor(m.metric_name, m.numeric_value)?.status}
+							note={meaningFor(m.metric_name, m.numeric_value)?.note}
 						/>
 					{/each}
 				</div>
