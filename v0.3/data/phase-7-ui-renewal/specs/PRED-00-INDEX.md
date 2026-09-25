@@ -38,6 +38,8 @@
 
 단계 구분: ① 무결성·보존 P7-PRED-11·12·13·14·84·81 → ② 세그먼트·HR P7-PRED-21·22·23·24·25 → ③ 날씨 P7-PRED-31·32·33·83 → ④ 훈련 반응·계획 P7-PRED-41·42·43 → ⑤ 예측 P7-PRED-51·52·53·62 → ⑥ 백필 P7-PRED-61(사람) → ⑦ UI P7-PRED-71·72 → (별도) P7-PRED-44(사람). P7-PRED-81은 P7-PRED-82를, P7-PRED-72는 P7-PRED-73·74를 포함한다(같은 파일을 건드리므로 한 유닛).
 
+**판단 필요(사용자 결정 전 등록·진행 금지)**: P7-PRED-86 `weather/provider.py` 삭제, P7-PRED-87 `recompute-all` 기본 기간, P7-PRED-88 TIDS 시간 기준 재정의, P7-PRED-89 acwr·lsi·adti·rtti·hrss·di 재정의, P7-PRED-90 vdot_adj 폐기·fearp 외기 재정의 — 근거 `PRED-8x-metric-fixes.md` 우선순위 표, REVIEW-08 r3 §R3.
+
 ## 의존 그래프
 
 ```

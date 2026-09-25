@@ -1,6 +1,7 @@
 # REVIEW-08 — 메트릭 감사 (의미·정합성·예측 입력 적합성)
 
 - 작성: 2026-09-25, running-data-coach (Claude). REVIEW-07(예측 리뉴얼)의 부록이다.
+- 개정: **r3 (2026-09-25)** — 실행 검증 중 새로 찾은 결함 §R3를 추가하고, 수정 유닛(`specs/PRED-8x-metric-fixes.md`, 우선순위 표 포함)과 각 결함의 해결 유닛을 연결했다. 수치는 실DB를 `mode=ro`로 복제한 `/tmp` 사본에서 명세 코드를 실행한 결과다.
 - 데이터: `data/users/pansongit@gmail.com/running.db` 읽기 전용. 코드는 `src/metrics/*.py`, `src/metrics/engine.py::ALL_CALCULATORS`(32개 calculator)를 읽었다.
 - 재현: `python3 /tmp/coach_analysis/20_metric_inventory.py`, `21_metric_consistency.py`, `16_weather_fields.py`, `garmin_laps.py`
 - 정적 정합성(`scripts/check_data_consistency.py`, 16개 검사)은 **오류 0**이다. 이 검사는 registry·DDL·extractor의 구조만 보고 **값의 의미는 검증하지 않는다**. 아래 결함은 모두 그 검사를 통과한 상태에서 나온 것이다.
@@ -22,6 +23,42 @@
 | 8 | `workout_type_classified` | 품질 세션 재현율 27%. 결과적으로 `tids`는 1,000일 중 945일이 "mixed"로 포화된다 | **예측**(세션 신호)·화면 | 랩 구조 v2(재현율 79%, REVIEW-07 §2-3) |
 | 9 | `eftp` | 최대 1,079초/km(2024-01, 표본 1). 1차 경로가 죽어서(#2와 같은 원인) 추정 경로만 돈다 | **예측**·화면 | 입력을 `perf_vdot`의 T 페이스로 교체. 표본 3개 미만이면 미산출 |
 | 10 | `fearp` | 환경 보정에 기기 온도(손목)를 쓴다. 습도 메트릭 `weather_humidity_pct`는 **0행**이다. `sapi`·`tpdi`(fearp 입력)는 0행이다(원인 미조사) | 화면 | 날씨 인제스트(REVIEW-07 U-W) 후 재정의 |
+
+**r3 해결 유닛**: #1 → P7-PRED-51, #2 → P7-PRED-52(사본 재계산에서 marathon_shape·rri·vdot_adj 0 → 약 400일), #3 → P7-PRED-14·81(teroi 28일 TRIMP 4,537 → 2,233), #4 → P7-PRED-84, #5 → P7-PRED-12·13(랩 GAP 2,786개, 활동 `gap` 261개, 스트림 실제 초), #6 → P7-PRED-82(rec 100 → 55.2, 개인 백분위), #7 → 판단 필요(P7-PRED-89), #8 → P7-PRED-23, #9 → P7-PRED-52, #10 → P7-PRED-32·83(sapi 0 → 392일).
+
+---
+
+## R3. r3에서 새로 찾은 결함 [사실 — 사본에서 실행 확인]
+
+| # | 위치 | 결함 | 영향 | 해결 |
+|---|---|---|---|---|
+| R3-1 | `src/sync/reprocess.py::reprocess_all` | (a) `activity_summaries`를 지우고 다시 넣어 **활동 id가 전부 바뀐다**(1,423개 중 유지 0) → race_results·planned_workouts·session_outcomes·활동 metric·채팅 근거 참조 파손. (b) summary payload 없는 활동(Strava 102개) **영구 삭제**. (c) detail/splits/streams payload의 옛 `activity_id`를 먼저 써서 **랩 3,360개·스트림 전부 고아**. (d) `_clear_derived_data(source)`가 요약 삭제 후 id를 모아 랩·스트림을 못 지움 | **데이터 파손**(실행 시) | P7-PRED-13: 제자리 재추출 모듈 + (c)(d) 수정 + payload 없는 활동이 있으면 `force` 없이 거부 |
+| R3-2 | Garmin 스트림 extractor | `directElapsedDuration`만 찾아 **샘플 번호를 초로 저장**, `sumDistance`·`directGradeAdjustedSpeed` 유실(최대 경과 2,013 → 실제 13,334초) | GAP·디커플링·스트림 세그먼트 | P7-PRED-12 → 13 재추출 |
+| R3-3 | `sapi.py` | fearp json에 기온이 없고, 폴백이 존재하지 않는 `weather_cache.temperature`를 조회(테이블도 0행) → 항상 빈 결과, 0행. Calculator 내부 raw SQL(ADR-009 위반) | 화면 | P7-PRED-83 |
+| R3-4 | `session_outcomes` DDL | `planned_id` 유일 제약이 없는데 매처는 `ON CONFLICT(planned_id)` → **저장이 항상 OperationalError** | 계획 이행 데이터 0 | P7-PRED-11(유일 인덱스) |
+| R3-5 | registry `gap` | garmin 별칭 `avgGradeAdjustedSpeed`(m/s)인데 단위 sec/km, extractor가 추출하지 않아 0행 | GAP 표시·입력 | P7-PRED-12(1000/속도 변환, 261개) |
+| R3-6 | `garmin_daily_extensions.py` LT | `lactateThresholdHeartRate.heartRate`를 찾지만 실제 키는 `speed_and_heart_rate.heartRate`, FTP는 `power.functionalThresholdPower` → `garmin_lthr`·`garmin_ftp` 0건. 레이스 예측은 스냅샷 2개 | 기기 참조 (b)·(a) | P7-PRED-25 |
+| R3-7 | `metrics.cli recompute-all` | runpulse 메트릭을 **전부 지우고 90일만** 재계산 | 과거 메트릭 소실 | 판단 필요(P7-PRED-87). 런북은 `recompute --days` 사용 |
+| R3-8 | `src/weather/provider.py` | 없는 `weather_data` 테이블 사용, `_v02_backup/fearp.py`만 참조 | 죽은 코드 | 판단 필요(P7-PRED-86) |
+| R3-9 | `tids.py` | 세션 **수** 기준 비율이라 분류기 v2 뒤에도 2025-09 이후 mixed 306일·pyramidal 79·polarized 5(현재 분포 저 60.6 / 중 15.2 / 고 24.2%) | 화면 | 판단 필요(P7-PRED-88: 세그먼트 시간 기준) |
+| R3-10 | `metric_store` 테스트 시드 | marathon_shape·rri·eftp·vdot_adj 테스트가 존재하지 않는 일별 `runpulse_vdot`을 시드해 통과 → 실DB 0행을 테스트가 못 잡음 | 검증 공백 | P7-PRED-52에서 `race_pred_vdot`으로 교체 |
+| R3-11 | 활동 시작 시각 | Garmin은 현지 시각, Strava 행은 `Z` 접미사(현지로 보임) 혼재 | 기상 보간 시각 | 현지로 취급 [가정] |
+
+## R3-표. 수정 번들 우선순위 (Q12) — 상세는 `specs/PRED-8x-metric-fixes.md`
+
+| 우선 | 유닛 | 결함 | 상태 |
+|---|---|---|---|
+| P0 | P7-PRED-13 | R3-1 | 명세 완료 |
+| P0 | P7-PRED-11 | R3-4 | 명세 완료 |
+| P1 | P7-PRED-12 | #5, R3-2, R3-5 | 명세 완료 |
+| P1 | P7-PRED-25 | R3-6 | 명세 완료 |
+| P1 | P7-PRED-52 | #2, R3-10 | 명세 완료 |
+| P1 | P7-PRED-81 | #3 | 명세 완료 |
+| P1 | P7-PRED-84 | #4 | 명세 완료 |
+| P2 | P7-PRED-82 | #6 | 명세 완료 |
+| P2 | P7-PRED-83 | #10, R3-3 | 명세 완료 |
+| P2 | P7-PRED-23 | #8 | 명세 완료 |
+| P3 판단 필요 | P7-PRED-86~90 | R3-7·8·9, #7, acwr·lsi·adti·rtti·hrss, vdot_adj·fearp | 사용자 결정 |
 
 ---
 
@@ -119,11 +156,13 @@
 | marathon_shape | 사용(v2, 설명·범위) | #2 |
 | vdot_adj | 폐기 | – |
 | critical_power | 쓰지 않음 | – |
-| Garmin race_pred | 교차 검증 표시만 | 동기화 안정화 |
+| Garmin race_pred | 교차 검증 표시만 — r3: 예측 3종 중 (a)로 병기, 중앙값에는 안 넣음(보정 후 20% 혼합이 대회에서 악화) | P7-PRED-25 스냅샷·이력 |
 
 ---
 
 ## 5. 후속 백로그 후보 (예측과 직접 관계없음)
+
+> r3: 1·2는 P7-PRED-81·82로 명세화했다. 6(sapi 0행)은 원인이 R3-3으로 확인되어 P7-PRED-83. 3·4·5·7은 판단 필요(P7-PRED-89)로 남는다.
 
 | 우선 | 항목 | 심각도 |
 |---|---|---|
