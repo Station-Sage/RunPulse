@@ -10,6 +10,7 @@
 	import { base } from '$app/paths';
 	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import { homeTopics } from '$lib/coachSuggestions';
 
 	let { data }: { data: CoachPageData } = $props();
 
@@ -21,7 +22,7 @@
 	let newInput = $state('');
 	let sending = $state(false);
 
-	const SUGGESTED_TOPICS = ['오늘 훈련 조언', '레이스 전략', '부상 위험 확인', '훈련 분석'];
+	const topics = $derived(homeTopics(data.goal));
 
 	let checkin = $state<CheckinRow | null>(data.checkin);
 	let savingCheckin = $state(false);
@@ -163,7 +164,7 @@
 		<div class="border-t border-border-subtle px-4 py-3">
 			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">자주 묻는 주제</p>
 			<div class="flex flex-wrap gap-2">
-				{#each SUGGESTED_TOPICS as topic}
+				{#each topics as topic}
 					<button
 						type="button"
 						onclick={() => openNew(topic)}
