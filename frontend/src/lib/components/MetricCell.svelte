@@ -12,6 +12,7 @@
 		unit,
 		provider,
 		status,
+		note,
 		trend,
 		size = 'md',
 		drillable = true,
@@ -81,7 +82,7 @@
 
 	{#if !unavailable && (status || trend)}
 		<div class="flex items-center gap-2 text-xs {statusClass}">
-			{#if status}<span aria-hidden="true">●</span>{statusLabel}{/if}
+			{#if status}<span aria-hidden="true">●</span>{note ?? statusLabel}{/if}
 			{#if trend}
 				<span class="text-fg-secondary">
 					{trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'}
