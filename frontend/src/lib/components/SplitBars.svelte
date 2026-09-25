@@ -52,6 +52,7 @@
 		<p class="text-xs uppercase tracking-wide text-fg-muted">
 			km 스플릿 <span class="normal-case opacity-60">· 스트림 기반 추정</span>
 		</p>
+		<div class="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-fg-muted"><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#10b981"></i>최고 구간</span><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#3b82f6"></i>평균보다 빠름</span><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#f59e0b"></i>평균보다 느림</span>{#if hasHr}<span>· 우측: 평균 심박</span>{/if}{#if hasElev}<span>· 고도 변화</span>{/if}</div>
 		<div class="flex flex-col gap-1">
 			{#each splits as s, i (s.km)}
 				<div class="flex items-center gap-2 text-xs">

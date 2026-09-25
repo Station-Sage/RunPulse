@@ -7,6 +7,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import { meaningFor, displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
 
@@ -36,12 +37,13 @@
 		)
 			.map((cat) => ({
 				...cat,
-				metrics:
+				metrics: (
 					selectedProvider === 'all'
 						? cat.metrics
 						: cat.metrics.filter(
 								(m) => (m.provider ?? '').split(':')[0] === selectedProvider
 							)
+				).filter((m) => !isComponentMetric(m.label))
 			}))
 			.filter((cat) => cat.metrics.length > 0)
 	);
@@ -126,18 +128,19 @@
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">{cat.label}</h2>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 					{#each cat.metrics as m}
+						{@const mean = typeof m.value === 'number' ? meaningFor(m.name, m.value) : null}
 						<a
 							href="{base}/library/metrics/{m.name}"
 							class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3"
 						>
-							<span class="text-xs leading-snug text-fg-muted">{m.label}</span>
+							<span class="text-xs leading-snug text-fg-muted">{displayLabel(m.name, m.label)}</span>
 							<div class="flex items-baseline justify-between gap-1">
 								<span class="font-mono text-lg font-semibold leading-none">
 									{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
 											>{valueUnit(m)}</span
 										>{/if}
 								</span>
-								{#if m.provider}
+								{#if m.provider && availableProviders.length > 1}
 									<span
 										class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
 											m.provider as ProviderKey
@@ -148,9 +151,8 @@
 									</span>
 								{/if}
 							</div>
-							{#if m.sparkline.length > 1}
-								<Sparkline data={m.sparkline} height={24} color="#3b82f6" />
-							{/if}
+							{#if mean}<span class="text-[11px] {STATUS_TEXT_CLASS[mean.status]}">● {mean.note}</span>{/if}
+							{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={24} color="#3b82f6" />{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
 						</a>
 					{/each}
 				</div>

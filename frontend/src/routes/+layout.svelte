@@ -24,7 +24,7 @@
 
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary">
 	<header class="border-b border-border-subtle">
-		<div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+		<div class="mx-auto flex max-w-3xl lg:max-w-6xl items-center justify-between px-4 py-3">
 			<span class="font-medium">RunPulse</span>
 			<button
 				type="button"
@@ -37,7 +37,7 @@
 		</div>
 	</header>
 
-	<main class="mx-auto w-full max-w-3xl flex-1 pb-20">
+	<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20">
 		{@render children()}
 	</main>
 
@@ -45,7 +45,7 @@
 		aria-label="주 메뉴"
 		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2"
 	>
-		<div class="mx-auto flex w-full max-w-3xl">
+		<div class="mx-auto flex w-full max-w-3xl lg:max-w-6xl">
 			{#each tabs as tab (tab.href)}
 				<a
 					href={tab.href}

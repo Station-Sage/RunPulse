@@ -48,6 +48,7 @@ export interface MetricCellProps {
 	unit?: string;
 	provider: ProviderKey | null;
 	status?: SemanticStatus;
+	note?: string;
 	trend?: MetricCellTrend;
 	size?: 'sm' | 'md' | 'lg';
 	// 7a엔 MetricBreakdown 패널이 없어 항상 false로 렌더링한다(07-migration-roadmap.md 7a 체크리스트).

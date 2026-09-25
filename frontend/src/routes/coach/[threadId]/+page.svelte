@@ -11,6 +11,7 @@
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import { localizeSource } from '$lib/markdownLite';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import { followUps } from '$lib/coachSuggestions';
 
 	let { data }: { data: ThreadPageData } = $props();
 
@@ -21,6 +22,8 @@
 	let inputText = $state('');
 	let sending = $state(false);
 	let messagesEnd: HTMLDivElement | undefined = $state();
+
+	const lastMsg = $derived(messages[messages.length - 1] ?? null);
 
 	// MetricBreakdown 드릴다운 스택
 	let drillStack = $state<DrillTarget[]>([]);
@@ -136,7 +139,7 @@
 					>
 						<ChatBody content={msg.content} />
 						{#if localizeSource(msg.ai_model)}
-							<p class="mt-1 text-[10px] text-fg-muted">{localizeSource(msg.ai_model)}</p>
+							<p class="mt-1 text-[11px] font-medium text-fg-secondary">{localizeSource(msg.ai_model)}</p>
 						{/if}
 						{#if msg.evidence && msg.evidence.length > 0}
 							<div class="mt-2 flex flex-wrap gap-2">
@@ -149,6 +152,21 @@
 				</div>
 			{/if}
 		{/each}
+
+		{#if lastMsg?.role === 'assistant' && !sending}
+			<div class="flex flex-wrap gap-2">
+				{#each followUps((lastMsg.evidence ?? []).map((e) => e.metric)) as q}
+					<button
+						type="button"
+						onclick={() => {
+							inputText = q;
+							send();
+						}}
+						class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-fg-secondary hover:bg-surface-3"
+					>{q}</button>
+				{/each}
+			</div>
+		{/if}
 
 		{#if sending}
 			<div class="flex justify-start">
