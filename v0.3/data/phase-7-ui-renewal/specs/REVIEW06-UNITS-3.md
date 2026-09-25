@@ -190,3 +190,141 @@ export function impactLines(i: ImpactLite): string[] {
    - 탭 링크 클래스를 `class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-sm {isActive(tab.match) ? 'text-fg-primary lg:bg-surface-3' : 'text-fg-muted lg:hover:bg-surface-3'}"`로(기존 활성/비활성 삼항을 이 문자열로 교체).
 2. `coach/[threadId]/+page.svelte`: 입력 바 `sticky bottom-14 z-10 …`에 `lg:bottom-0`을 추가하고, 메시지 목록 컨테이너의 `min-h-[calc(100dvh-15.5rem)]`에 `lg:min-h-[calc(100dvh-11rem)]`를 추가.
 3. 검증: `cd frontend && npm install && npm run test:unit && npm run check && npm run build`.
+
+## 소스 배지 재설계 (사용자 승인 2026-09-25) — 행 배지 폐기, "예외만 말한다" + "소스 커버리지 타임라인"
+
+원칙: 활동 목록의 질문은 "어느 앱에서 왔나"가 아니라 "이 기록을 믿어도 되나"다. 정상 행에는 아무 표시도 없다. 통합의 증거는 행이 아니라 Library 홈의 커버리지 타임라인이 준다.
+
+### 유닛 M — P7-IMPL-ACTIVITY-FLAGS (프론트 전용; 활동 목록 행의 예외 표시)
+
+파일: `frontend/src/lib/activityFlags.ts`(신규), `frontend/tests/activityFlags.test.mjs`(신규), `frontend/src/routes/library/activities/+page.svelte`.
+1. `activityFlags.ts`(순수, 런타임 import 없음). 판정 규칙은 여기 한 곳에만 둔다(이상치 기준은 예측 리뉴얼의 이상치 제외 규칙과 맞춰 나중에 이 파일의 상수만 조정):
+
+```ts
+export interface FlagInput {
+	activity_type: string;
+	distance_m: number | null;
+	avg_hr: number | null;
+	avg_pace_sec_km: number | null;
+	route?: unknown[] | null;
+}
+
+export interface ActivityFlag {
+	key: 'slow_pace' | 'no_hr' | 'no_gps';
+	label: string;
+	title: string;
+}
+
+const OUTDOOR_RUN = new Set(['running', 'trail_running']);
+const SLOW_FACTOR = 1.5; // 목록 러닝 페이스 중앙값의 1.5배보다 느리면 의심
+const MIN_RUNS_FOR_MEDIAN = 5;
+const MIN_SLOW_DISTANCE_M = 3000;
+
+export function medianPace(items: FlagInput[]): number | null {
+	const v = items
+		.filter((a) => OUTDOOR_RUN.has(a.activity_type) && a.avg_pace_sec_km != null && a.avg_pace_sec_km > 0)
+		.map((a) => a.avg_pace_sec_km as number)
+		.sort((x, y) => x - y);
+	if (v.length < MIN_RUNS_FOR_MEDIAN) return null;
+	const mid = Math.floor(v.length / 2);
+	return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
+// 행마다 최대 1개(우선순위 slow_pace > no_hr > no_gps). 정상이면 null. 트레드밀·실내는 GPS 없음이 정상이라 제외.
+export function activityFlag(a: FlagInput, median: number | null): ActivityFlag | null {
+	if (!OUTDOOR_RUN.has(a.activity_type)) return null;
+	if (
+		median != null &&
+		a.avg_pace_sec_km != null &&
+		(a.distance_m ?? 0) >= MIN_SLOW_DISTANCE_M &&
+		a.avg_pace_sec_km > median * SLOW_FACTOR
+	) {
+		return { key: 'slow_pace', label: '평소보다 많이 느림', title: '걷기·휴식이 포함됐거나 페이스 데이터 오류일 수 있어요. 예측·통계에서는 제외해서 봐야 할 수 있어요.' };
+	}
+	if (a.avg_hr == null || a.avg_hr <= 0) {
+		return { key: 'no_hr', label: '심박 없음', title: '심박 데이터가 없어 강도·부하 계산이 부정확할 수 있어요.' };
+	}
+	if (!a.route || a.route.length < 2) {
+		return { key: 'no_gps', label: '경로 없음', title: '경로(GPS) 데이터가 없어 지도를 그릴 수 없어요.' };
+	}
+	return null;
+}
+```
+
+   `frontend/tests/activityFlags.test.mjs`(신규): 러닝 6건(페이스 340·345·350·355·360·365, `activity_type:'running'`)의 `medianPace` === 352.5; 5건 미만이면 `null`; `activityFlag({activity_type:'running',distance_m:12000,avg_hr:135,avg_pace_sec_km:677,route:[[1,1],[2,2]]}, 352.5)?.key === 'slow_pace'`(677 > 528.75); 같은 입력에서 거리 2000m면 슬로우 아님(다음 규칙으로 → route 있고 hr 있으니 `null`); `avg_hr:null`이면 `'no_hr'`; hr 있고 `route:null`이면 `'no_gps'`; `activity_type:'treadmill_running'`은 `null`; `activity_type:'swimming'`은 `null`; 정상 행은 `null`.
+2. `activities/+page.svelte`: `import { activityFlag, medianPace } from '$lib/activityFlags';`, `const median = $derived(medianPace(activities));`. 행 메타 줄(`<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">`) 안, 기존 `{#if showBadge}…{/if}` 바로 앞에 `{@const flag = activityFlag(act, median)}{#if flag}<span class="text-[10px] text-semantic-amber" title={flag.title}>⚠ {flag.label}</span>{/if}`를 추가한다. **소스 배지 블록(`showBadge`, `providerLabel`, `providerBadgeClass` 사용)은 이 유닛에서 삭제한다** — 관련 import(`providerLabel`, `providerBadgeClass`, `showSourceBadge`, `ProviderKey` 타입 중 더 이상 안 쓰는 것)도 정리. `providerHint.ts`의 `showSourceBadge` 함수와 테스트는 그대로 둔다.
+
+### 유닛 N1 — P7-IMPL-SOURCE-COVERAGE-API (백엔드)
+
+파일: `src/services/provider_status_service.py`, `src/api/routes_library.py`, `tests/test_provider_status_service.py`(기존 파일이 있으면 확장, 없으면 신규), `tests/test_api_library.py` 또는 기존 라이브러리 API 테스트 파일에 라우트 케이스 1개.
+1. `provider_status_service.py`에 추가(기존 `_PROVIDERS`·`get_provider_status` 유지, 파일 300줄 이하):
+
+```python
+def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10", today: str | None = None) -> dict:
+    """소스별 월 단위 활동 커버리지 — Library 홈 타임라인용.
+
+    반환: {"months": ["2023-10", ..., 이번 달], "providers": [{"provider", "counts": [월별 활동 수], "total"}]}
+    months는 start_month부터 today가 속한 달까지(오름차순). 활동이 없어도 4개 provider 모두 포함(counts 전부 0).
+    """
+    from datetime import date as _date
+
+    end = _date.fromisoformat(today) if today else _date.today()
+    y, m = int(start_month[:4]), int(start_month[5:7])
+    months: list[str] = []
+    while (y, m) <= (end.year, end.month):
+        months.append(f"{y:04d}-{m:02d}")
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+    idx = {mo: i for i, mo in enumerate(months)}
+    by_src: dict[str, list[int]] = {p: [0] * len(months) for p in _PROVIDERS}
+    try:
+        rows = conn.execute(
+            "SELECT source, substr(start_time, 1, 7) AS mo, COUNT(*) FROM activity_summaries"
+            " WHERE start_time IS NOT NULL GROUP BY source, mo"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    for src, mo, n in rows:
+        if src in by_src and mo in idx:
+            by_src[src][idx[mo]] = n
+    return {
+        "months": months,
+        "providers": [{"provider": p, "counts": by_src[p], "total": sum(by_src[p])} for p in _PROVIDERS],
+    }
+```
+
+2. `routes_library.py`에 `GET /api/v1/library/providers/coverage` 추가(`get_library_providers_status`와 같은 패턴: db 없으면 503, `api_ok(provider_status_service.get_provider_coverage(conn))`).
+3. 테스트: 임시 DB에 garmin 2023-10·2023-12 활동 각 1·2건, strava 2024-01 1건 → `months[0] == '2023-10'`, `today='2024-01-15'`일 때 `months == ['2023-10','2023-11','2023-12','2024-01']`, garmin counts `[1,0,2,0]`, strava `[0,0,0,1]`, intervals·runalyze 전부 0이고 total 0; 라우트는 200과 `data.providers` 길이 4.
+
+### 유닛 N2 — P7-IMPL-SOURCE-COVERAGE-UI (프론트, N1 이후)
+
+파일: `frontend/src/lib/coverage.ts`(신규), `frontend/tests/coverage.test.mjs`(신규), `frontend/src/lib/api/providers.ts`, `frontend/src/lib/types/index.ts`, `frontend/src/lib/components/SourceCoverage.svelte`(신규), `frontend/src/routes/library/+page.ts`, `frontend/src/routes/library/+page.svelte`.
+1. `coverage.ts`(순수):
+
+```ts
+// 월별 활동 수 → 0~3 농도. 소스 자신의 최대치 대비(소스 간 규모 차이를 지운다).
+export function coverageLevels(counts: number[]): (0 | 1 | 2 | 3)[] {
+	const max = Math.max(0, ...counts);
+	return counts.map((n) => (n <= 0 || max <= 0 ? 0 : n <= max * 0.25 ? 1 : n <= max * 0.6 ? 2 : 3));
+}
+
+// 마지막 활동 이후 연속으로 빈 달 수(데이터가 전혀 없으면 null). 이번 달은 아직 진행 중이라 세지 않는다.
+export function trailingGap(counts: number[]): number | null {
+	const lastIdx = counts.map((n, i) => (n > 0 ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
+	if (lastIdx < 0) return null;
+	return Math.max(0, counts.length - 2 - lastIdx);
+}
+
+// 타임라인 아래 안내 문장. 정상이면 null.
+export function coverageNote(counts: number[]): string | null {
+	const gap = trailingGap(counts);
+	if (gap === null) return null;
+	return gap >= 2 ? `최근 ${gap}개월 동안 활동이 없어요 — 동기화가 끊겼을 수 있어요.` : null;
+}
+```
+
+   `frontend/tests/coverage.test.mjs`(신규): `coverageLevels([0,2,10,5,1])` → `[0,1,3,2,1]`(max 10: 2→1, 10→3, 5→2(≤6), 1→1); `coverageLevels([0,0])` → `[0,0]`; `trailingGap([3,0,0,0,0])` → `3`(길이 5, 마지막 활동 idx0 → 5−2−0=3), `trailingGap([3,2,0,0])` → `1`(길이 4, 마지막 활동 idx1 → 4−2−1), `trailingGap([0,0,0])` → `null`, `trailingGap([1,1,1])` → `0`; `coverageNote([3,0,0,0,0])`은 `'최근 3개월'`로 시작, `coverageNote([3,2,0,0])`은 `null`.
+2. 타입(`frontend/src/lib/types/index.ts`): `export interface ProviderCoverageItem { provider: ProviderKey; counts: number[]; total: number }`, `export interface ProviderCoverage { months: string[]; providers: ProviderCoverageItem[] }`. `frontend/src/lib/api/providers.ts`에 `export function getProviderCoverage(): Promise<ProviderCoverage> { return apiFetch<ProviderCoverage>('/library/providers/coverage'); }`(파일의 기존 import 스타일 유지).
+3. `frontend/src/lib/components/SourceCoverage.svelte`(신규): props `{ coverage: ProviderCoverage; status: ProviderStatusItem[] }`. 소스별 한 블록 — 헤더 줄(`providerLabel` 배지 + 우측 `활동 {total}건`), 그 아래 월 셀 띠(`<div class="flex h-3 gap-px" role="img" aria-label="{label} 월별 활동 커버리지">` 안에 월마다 `<div class="flex-1 rounded-[2px]" style="background:{LEVEL_COLOR[level]}" title="{month} · {n}건"></div>`, `LEVEL_COLOR = ['#1f2937', '#0f766e', '#14b8a6', '#5eead4']`), 띠 양끝 라벨(`months[0]`, `months[months.length-1]`, `font-mono text-[10px] text-fg-muted`), 그 아래 안내: `coverageNote(counts)`가 있으면 `text-[11px] text-semantic-amber`로, `status`에서 같은 provider의 `providerHint(item, Date.now())`도 있으면(중복이면 coverageNote 우선) 같은 스타일로 한 줄. total 0이면 띠 대신 `<p class="text-xs text-fg-muted">연동 없음 또는 아직 가져온 활동이 없어요.</p>`.
+4. `library/+page.ts`: `getProviderCoverage`를 `Promise.allSettled`에 추가해 `LibraryHomeData`에 `coverage: ProviderCoverage | null` 추가(실패 시 null). `library/+page.svelte`: 기존 "Provider 현황" `<section>`의 `<ul>…</ul>` 목록을 `{#if data.coverage}<SourceCoverage coverage={data.coverage} status={data.providerStatus} />{:else}(기존 <ul> 그대로){/if}`로 감싼다(섹션 제목 "Provider 현황"은 "소스 커버리지"로 변경).
