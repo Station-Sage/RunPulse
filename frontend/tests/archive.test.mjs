@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { heatLevel, buildHeatmap, monthHeights } from '../src/lib/archive.ts';
+import { heatLevel, buildHeatmap, monthHeights, monthRange } from '../src/lib/archive.ts';
 
 test('heatLevel 경계', () => {
 	assert.equal(heatLevel(0), 0);
@@ -39,4 +39,10 @@ test('buildHeatmap: 데이터 없는 날은 level 0, 월 라벨은 달이 바뀔
 test('monthHeights: 최댓값 기준 정규화', () => {
 	assert.deepEqual(monthHeights([{ km: 50 }, { km: 100 }, { km: 0 }]), [0.5, 1, 0]);
 	assert.deepEqual(monthHeights([{ km: 0 }]), [0]);
+});
+
+test('monthRange: 달 범위', () => {
+	assert.deepEqual(monthRange('2026-09'), { from: '2026-09-01', to: '2026-09-30' });
+	assert.equal(monthRange('2024-02').to, '2024-02-29');
+	assert.equal(monthRange('2026-12').to, '2026-12-31');
 });

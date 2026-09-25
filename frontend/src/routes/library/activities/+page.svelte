@@ -18,6 +18,7 @@
 	let total = $state(data.result?.total ?? 0);
 	let hasMore = $state(data.result?.has_more ?? false);
 	let errorMessage = $state(data.errorMessage);
+	let period = $state({ from: data.from, to: data.to });
 
 	// 필터 상태 (기간 필터는 후속 — 네이티브 date input 제거)
 	let filterSport = $state('');
@@ -63,6 +64,8 @@
 				sport: filterSport || undefined,
 				search: filterSearch || undefined,
 				dist_min: filterDistMin ? Number(filterDistMin) : undefined,
+				from: period.from,
+				to: period.to ? `${period.to} 23:59:59` : undefined,
 				page,
 				per_page: 20
 			});
@@ -109,6 +112,8 @@
 </div>
 
 <div class="flex flex-col gap-0">
+	{#if period.from}<div class="flex items-center gap-2 px-4 pt-3"><span class="rounded-full bg-surface-3 px-3 py-1 text-xs text-fg-primary">{period.from} ~ {period.to}</span><button type="button" class="text-xs text-fg-muted hover:text-fg-primary" onclick={() => { period = { from: undefined, to: undefined }; applyFilters(); }}>기간 해제 ✕</button></div>{/if}
+
 	<!-- 필터: 종목·거리 칩 + 검색 -->
 	<div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3">
 		<div class="flex flex-wrap gap-1.5" role="group" aria-label="종목">

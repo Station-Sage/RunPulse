@@ -2,7 +2,7 @@
 	// Library 홈 최상단 — "내 러닝 아카이브": 누적 거리 히어로 + 월별 거리 + 1년 캘린더 + PB.
 	// DECISIONS.md [P7-IMPL-ARCHIVE]: 데이터 소유감(비전 원칙 1)을 화면의 첫 장면으로.
 	import type { ArchiveData } from '$lib/types';
-	import { monthHeights } from '$lib/archive';
+	import { monthHeights, monthRange } from '$lib/archive';
 	import ActivityHeatmap from './ActivityHeatmap.svelte';
 	import PersonalBests from './PersonalBests.svelte';
 	import { base } from '$app/paths';
@@ -45,12 +45,12 @@
 			<p class="text-xs uppercase tracking-wide text-fg-muted">최근 12개월 월별 거리</p>
 			<div class="flex h-20 items-end gap-1.5" role="img" aria-label="월별 거리 막대">
 				{#each archive.monthly as m, i (m.month)}
-					<div class="flex h-full flex-1 flex-col items-center justify-end gap-1" title="{m.month} · {m.km}km · {m.runs}회">
+					<a href="{base}/library/activities?from={monthRange(m.month).from}&to={monthRange(m.month).to}" class="flex h-full flex-1 flex-col items-center justify-end gap-1" title="{m.month} · {m.km}km · {m.runs}회">
 						<div
 							class="w-full rounded-t"
 							style="height:{Math.max(2, heights[i] * 100)}%; background:{i === archive.monthly.length - 1 ? '#5eead4' : '#12897f'}"
 						></div>
-					</div>
+					</a>
 				{/each}
 			</div>
 			<div class="flex justify-between font-mono text-[10px] text-fg-muted">

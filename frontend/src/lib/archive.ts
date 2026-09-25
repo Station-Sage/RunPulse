@@ -60,3 +60,11 @@ export function monthHeights(monthly: { km: number }[]): number[] {
 	const max = Math.max(0, ...monthly.map((m) => m.km));
 	return monthly.map((m) => (max > 0 ? m.km / max : 0));
 }
+
+// 'YYYY-MM' → 그 달의 [from, to] (YYYY-MM-DD). 윤년 포함.
+export function monthRange(month: string): { from: string; to: string } {
+	const [y, m] = month.split('-').map(Number);
+	const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+	const mm = String(m).padStart(2, '0');
+	return { from: `${y}-${mm}-01`, to: `${y}-${mm}-${String(last).padStart(2, '0')}` };
+}
