@@ -1,4 +1,49 @@
-# P7-PRED-00 — 예측 리뉴얼 r3 유닛 색인 (autopilot 실행 순서)
+# P7-PRED-00 — 예측 리뉴얼 유닛 색인 (autopilot 실행 순서)
+
+## r4 유닛 구성 (2026-09-26) — **등록 보류: r4 코드 명세 미완**
+
+근거: `../REVIEW-07-prediction-renewal.md` §R4, `../REVIEW-09-signal-design-r4.md`, `PRED-99-TODO-UNVERIFIED.md`. 아래 표가 r4 실행 순서다. "r4 명세"가 "미작성"인 유닛은 이 파일 하단의 r3 메타·절을 **그대로 쓰면 안 된다**(r3 설계 기준). BACKLOG 등록 시 deps는 `[]`, 순서 = 이 표 순서.
+
+| 순서 | 유닛 | 이름 | r3 대비 | r4 명세 |
+|---|---|---|---|---|
+| 1 | P7-PRED-11 | 스키마 v20 | 동일 | r3 절 유효 |
+| 2 | P7-PRED-12 | Garmin 추출 보존(랩·스트림·활동 GAP) | 동일 | r3 절 유효 |
+| 3 | P7-PRED-13 | 제자리 재추출 + reprocess 파손 수정 | 동일 | r3 절 유효 |
+| 4 | P7-PRED-14 | CalcContext 러닝 이력 API | 동일 | r3 절 유효 |
+| 5 | P7-PRED-84 | runpulse_vdot 상한 가드 | 동일 | r3 절 유효 |
+| 6 | P7-PRED-81 | 시리즈 canonical + rec 백분위(82 포함) | 동일 | r3 절 유효 |
+| 7 | P7-PRED-87 | recompute-all 기본 기간·삭제 범위 = 재계산 범위 | **판단→자동** | 미작성 |
+| 8 | P7-PRED-20 | Daniels 공식·강도 구간 모듈(`prediction/daniels.py`) + 칼만(`prediction/kalman.py`) | **신규** | 미작성(샌드박스 초안 있음) |
+| 9 | P7-PRED-21 | 세그먼트 분해 r4(스트라이드 병합, 플로트, `work_set`, 구조 기반 구간·세션형) | 변경 | 미작성(초안 있음) |
+| 10 | P7-PRED-22 | 예측 라이브러리 r4(core: k 겹치지 않는 쌍·외삽 분산·신뢰도 erf / signals: 세트 관측·H·Tanda·롱런) | 변경 | 미작성 |
+| 11 | P7-PRED-23 | 분류기 v2(race_pred_vdot 의존 제거) — TIDS는 88로 분리 | 변경 | 미작성 |
+| 12 | P7-PRED-88 | TIDS 세그먼트 시간 기준(Daniels M·T 경계) | **판단→자동** | 미작성 |
+| 13 | P7-PRED-24 | HR 프로필 | 동일 | r3 절 유효(diff 문맥은 재생성 필요) |
+| 14 | P7-PRED-25 | Garmin 참조값(LTHR·FTP 키 경로 수정 포함) | 동일 | r3 절 유효 |
+| 15 | P7-PRED-86 | **날씨 모듈 통합**(provider.py를 단일 Open-Meteo 클라이언트로, openmeteo.py 신설 안 함) — r3 31 대체 | **재정의** | 미작성 |
+| 16 | P7-PRED-32 | 활동 외기 기상 인제스트(86 모듈 사용) | 변경(import) | 미작성 |
+| 17 | P7-PRED-33 | 개인 기온 모델 | 동일 | r3 절 유효 |
+| 18 | P7-PRED-83 | sapi 외기 기온 | 동일 | r3 절 유효 |
+| 19 | P7-PRED-90 | vdot_adj 폐기 + fearp 외기 재정의 | **판단→자동** | 미작성 |
+| 20 | P7-PRED-41 | 훈련 반응 r4(세트 기반 구간별 주간 시간, 세트 VDOT 추세, 기기 불필요) | 변경 | 미작성 |
+| 21 | P7-PRED-42 | 계획 구조 + 세그먼트 비교 | 동일 | r3 절 유효 |
+| 22 | P7-PRED-43 | 매처 세그먼트 이행 저장 | 동일 | r3 절 유효 |
+| 23 | P7-PRED-51 | DARP r4 (b)(c) — 칼만 결합·거리별 외삽·Tanda·롱런 외삽·품질 배율 | 변경 | 미작성 |
+| 24 | P7-PRED-52 | 일별 VDOT 의존 메트릭 복구 + marathon_shape v2(볼륨·롱런 구조) | 변경 | 미작성 |
+| 25 | P7-PRED-89 | acwr·lsi·adti·rtti·hrss·di 재정의 | **판단→자동** | 미작성 |
+| 26 | P7-PRED-53 | 대회 확인 서비스 | 동일 | r3 절 유효 |
+| 27 | P7-PRED-62 | 수용 백테스트(대회 D-0/D-28 + 사본 롤링 U-7) | 변경 | 미작성 |
+| 28 | P7-PRED-71 | 비교·근거 API(기여도 키 race/T/I/R/M/H/tanda) | 변경 | 미작성 |
+| 29 | P7-PRED-72 | 레이스 허브 UI((b)(c) 모두 표시, 접기 없음) | 변경 | 미작성 |
+| 30 | P7-PRED-85 | 내장 Daniels 표 → 공식, import 경로 수정 | **신규, 사용자 확인 필요** | 미작성 |
+| – | P7-PRED-61 | 실DB 백필 런북 | 수동 | r3 절 + 87 반영 필요 |
+| – | P7-PRED-44 | 외부 계획 인제스트 | 수동 | r3 절 유효 |
+
+폐기: r3 P7-PRED-31(`src/weather/openmeteo.py` 신설 → 86 통합으로 대체), r3 86 "삭제" 정의.
+
+---
+
+# (이하 r3 기록)
 
 - 작성: 2026-09-25, running-data-coach. 근거 문서: `../REVIEW-07-prediction-renewal.md`(r3), `../REVIEW-08-metric-audit.md`(r3).
 - 모든 코드는 저장소 사본(`/tmp/rp_sandbox`)에서 구현·검증했다: 전체 `pytest` **1,703 통과**(실패 3건은 샌드박스에 autopilot 워크트리가 없어서 나는 `test_autopilot_run_unit.py` — 저장소에서는 해당 없음), `check_docs` 필수 오류 0, `check_data_consistency` 오류 0. 프론트는 사본에서 `svelte-check` 0 errors·`node --test` 통과·`build` 성공.

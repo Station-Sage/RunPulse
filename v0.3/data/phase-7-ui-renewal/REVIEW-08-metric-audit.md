@@ -44,6 +44,16 @@
 | R3-10 | `metric_store` 테스트 시드 | marathon_shape·rri·eftp·vdot_adj 테스트가 존재하지 않는 일별 `runpulse_vdot`을 시드해 통과 → 실DB 0행을 테스트가 못 잡음 | 검증 공백 | P7-PRED-52에서 `race_pred_vdot`으로 교체 |
 | R3-11 | 활동 시작 시각 | Garmin은 현지 시각, Strava 행은 `Z` 접미사(현지로 보임) 혼재 | 기상 보간 시각 | 현지로 취급 [가정] |
 
+## R4. r4 추가 결함과 판단 유닛 처리 (2026-09-26)
+
+| # | 위치 | 결함 [사실] | 해결 |
+|---|---|---|---|
+| R4-1 | `src/utils/daniels_table.py` | `VDOT_PACE_TABLE`이 Daniels 식과 불일치(표 T의 함의 %VO2max 0.997→0.861로 VDOT 따라 변동, 식은 0.888 고정). `VDOT_RACE_TABLE` VDOT 50 마라톤 2:40:14(식 3:10:40). R 열 해석 불가 | P7-PRED-85: 표를 식 기반 함수로 교체(사용자 확인 필요 — 플래너 페이스 변경) |
+| R4-2 | `training/planner_rules.py`, `training/interval_calc.py`, `ai/tool_exec_context.py` | 없는 `src.metrics.daniels_table` import → 플래너는 조용히 config 폴백, `prescribe_from_vdot`은 ImportError | P7-PRED-85 |
+| R4-3 | r3 설계 W | 연속 블록을 실제 지속시간 레이스로 환산 → −2.47 VDOT 편향 | r4 세트 환산(REVIEW-09 §3) |
+
+판단 유닛(사용자 승인 → 자동): 87 recompute-all(기본 = 데이터 있는 전 기간, 삭제는 재계산 범위만), 88 TIDS(세그먼트 시간 기준 — Seiler 3구간을 기기 없이 Daniels M·T 속도 경계로, HR 있으면 교차 확인. 세션 수 기준은 한 세션의 70%가 이지여도 "고강도 1회"로 세어 포화), 89(acwr: 28일 미만·CTL 하한 미만이면 "데이터 부족", 5.0 절단 제거 / lsi: 분모 하한 / adti·rtti: 포화 대신 연속 스케일 / hrss = 100×TRIMP ÷ LTHR 60분 TRIMP — 1시간 역치 = 100이라는 hrTSS 정의에 맞춤, 개인 LTHR 반영 / di: 랩 기반 후반 25% 효율(GAP/HR) ÷ 워밍업 뒤 전반 25%, 상한 없음), 90(vdot_adj 폐기, fearp 외기 기온·이슬점). **86은 삭제가 아니라 날씨 모듈 통합**(REVIEW-07 §R4-5). 명세 코드는 미작성(INDEX r4 표).
+
 ## R3-표. 수정 번들 우선순위 (Q12) — 상세는 `specs/PRED-8x-metric-fixes.md`
 
 | 우선 | 유닛 | 결함 | 상태 |
