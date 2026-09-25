@@ -116,7 +116,7 @@
 	</div>
 
 	<!-- 메시지 목록 -->
-	<div class="flex min-h-[calc(100dvh-15.5rem)] flex-col gap-3 px-4 py-4">
+	<div class="flex min-h-[calc(100dvh-15.5rem)] lg:min-h-[calc(100dvh-11rem)] flex-col gap-3 px-4 py-4">
 		{#if messages.length === 0}
 			<p class="text-center text-sm text-fg-muted">대화를 시작해 보세요.</p>
 		{/if}
@@ -186,7 +186,7 @@
 	</div>
 
 	<!-- 입력 바 (하단 탭바 바로 위 고정) -->
-	<div class="sticky bottom-14 z-10 border-t border-border-subtle bg-surface-1 px-4 py-3">
+	<div class="sticky bottom-14 lg:bottom-0 z-10 border-t border-border-subtle bg-surface-1 px-4 py-3">
 		<div class="flex items-end gap-2">
 			<textarea
 				bind:value={inputText}
