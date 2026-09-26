@@ -3,6 +3,10 @@
 	// DECISIONS.md [P7-IMPL-RACE-HUB-UI]: 목표 있으면 D-day, 없으면 등록 유도 카드.
 	import type { RaceHubData } from '$lib/types';
 	import TrendChart from './TrendChart.svelte';
+	import PredictionCompare from './PredictionCompare.svelte';
+	import PredictionBasis from './PredictionBasis.svelte';
+	import RaceConfirmList from './RaceConfirmList.svelte';
+	import { rangeLabel, confidenceLabel } from '$lib/predictionCompare';
 	import { countdownLabel, distanceLabel, formBand, gapVerdict, signedTsb } from '$lib/raceHub';
 	import { formatDuration } from '$lib/format';
 	import { base } from '$app/paths';
@@ -17,6 +21,7 @@
 	};
 
 	const verdict = $derived(data?.prediction ? gapVerdict(data.prediction.gap_sec) : null);
+	const selfRow = $derived(data?.prediction?.compare?.rows.find((r) => r.key === 'self') ?? null);
 	const tsb = $derived(data?.form?.tsb ?? null);
 	const proj = $derived(data?.projection ?? null);
 	const FORM_TONE: Record<string, string> = {
@@ -76,9 +81,25 @@
 			<p class="text-sm font-medium {TONE_CLASS[verdict.tone]}">{verdict.label}</p>
 		{/if}
 
-		{#if (pred && pred.history.length > 1) || proj}
+		{#if selfRow && (rangeLabel(selfRow) || confidenceLabel(selfRow.confidence))}
+			<p class="text-xs text-fg-muted">
+				{rangeLabel(selfRow) ? `80% 범위 ${rangeLabel(selfRow)}` : ''}{rangeLabel(selfRow) && confidenceLabel(selfRow.confidence)
+					? ' · '
+					: ''}{confidenceLabel(selfRow.confidence) ? `신뢰도 ${confidenceLabel(selfRow.confidence)}` : ''} · 15℃ 기준
+			</p>
+		{/if}
+
+		{#if pred?.compare}
+			<PredictionCompare compare={pred.compare} />
+		{/if}
+
+		{#if pred || proj}
 			<details class="group border-t border-border-subtle pt-3">
-				<summary class="cursor-pointer list-none text-xs text-fg-muted hover:text-fg-primary">예측 추이 · 레이스 아침 폼 보기 ▾</summary>
+				<summary class="cursor-pointer list-none text-xs text-fg-muted hover:text-fg-primary">예측 추이 · 근거 · 레이스 아침 폼 보기 ▾</summary>
+				<div class="flex flex-col gap-4 pt-3">
+					<PredictionBasis />
+					<RaceConfirmList />
+				</div>
 				{#if pred && pred.history.length > 1}
 					<div class="flex flex-col gap-1">
 						<span class="text-xs text-fg-muted">예측 기록 추이 · 최근 90일</span>
