@@ -440,9 +440,13 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (673줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (686줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
+
+### `garmin_lap_fields.py` (36줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
+
+- functions: lap_extras, pick
 
 ### `intervals_extractor.py` (197줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
@@ -1451,6 +1455,8 @@
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
 ### `test_garmin_extractor.py` (323줄) — Garmin Extractor 단위 테스트.
+
+### `test_garmin_lap_fields.py` (72줄) — P7-PRED-12: Garmin 랩 확장 필드·스트림 키 선택.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates

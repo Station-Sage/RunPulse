@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timezone
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
+from src.sync.extractors.garmin_lap_fields import STREAM_KEY_ALIASES, lap_extras, pick
 
 
 class GarminExtractor(BaseExtractor):
@@ -105,6 +106,9 @@ class GarminExtractor(BaseExtractor):
             # activity_summaries → metric_store 이동 (Phase 5-G)
             self._metric("calories", raw.get("calories"),
                          raw_name="calories"),
+            # 활동 GAP: Garmin 은 속도(m/s)로 주고 registry 단위는 sec/km (P7-PRED-12)
+            self._metric("gap", _pace_from_speed(raw.get("avgGradeAdjustedSpeed")),
+                         raw_name="avgGradeAdjustedSpeed"),
             self._metric("normalized_power", raw.get("normPower"),
                          raw_name="normPower"),
             self._metric("training_effect_aerobic",
@@ -270,6 +274,7 @@ class GarminExtractor(BaseExtractor):
             }
             if avg_speed and avg_speed > 0:
                 lap_dict["avg_pace_sec_km"] = round(1000.0 / avg_speed, 2)
+            lap_dict.update(lap_extras(lap))
             laps.append({k: v for k, v in lap_dict.items() if v is not None})
         return laps
 
@@ -314,7 +319,6 @@ class GarminExtractor(BaseExtractor):
             if k is not None and idx is not None:
                 idx_map[str(k)] = int(idx)
 
-        has_elapsed = "directElapsedDuration" in idx_map
         rows: list[dict] = []
 
         for i, point in enumerate(detail_metrics):
@@ -332,8 +336,8 @@ class GarminExtractor(BaseExtractor):
                     return _m.get(garmin_key)
                 return None
 
-            elapsed_raw = _get("directElapsedDuration") if has_elapsed else None
-            elapsed = int(elapsed_raw) if elapsed_raw is not None else i
+            elapsed_raw = pick(metrics, idx_map, STREAM_KEY_ALIASES["elapsed_sec"])
+            elapsed = int(round(elapsed_raw)) if elapsed_raw is not None else i
 
             # directAirTemperature 우선, 없으면 directTemperature
             temp = _get("directAirTemperature")
@@ -346,13 +350,14 @@ class GarminExtractor(BaseExtractor):
                 "latitude":    _get("directLatitude"),
                 "longitude":   _get("directLongitude"),
                 "altitude_m":  _get("directElevation"),
-                "distance_m":  _get("directDistance"),
+                "distance_m":  pick(metrics, idx_map, STREAM_KEY_ALIASES["distance_m"]),
                 "speed_ms":    _get("directSpeed"),
                 "heart_rate":  _positive_int(_get("directHeartRate")),
                 "cadence":     _int(_get("directDoubleCadence")),
                 "power_watts": _get("directPower"),
                 "temperature_c": temp,
                 "grade_pct":   _get("directGrade"),
+                "gap_speed_ms": pick(metrics, idx_map, STREAM_KEY_ALIASES["gap_speed_ms"]),
             }
             # elapsed_sec, source는 항상 포함; 나머지 None 제거
             rows.append(
@@ -615,6 +620,14 @@ def _seconds(value) -> int | None:
     if value > 86400:
         return int(value / 1000)
     return int(value)
+
+
+def _pace_from_speed(v) -> float | None:
+    """m/s → sec/km (0·None·비정상은 None)."""
+    try:
+        return round(1000.0 / float(v), 1) if v and float(v) > 0.5 else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _int(value) -> int | None:
