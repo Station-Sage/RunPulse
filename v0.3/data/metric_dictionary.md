@@ -353,7 +353,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `di` |
 | 메트릭 이름 | `di` |
-| 설명 | 장거리 달리기에서 후반 페이스 유지 능력. 0~100. |
+| 설명 | 90분 이상 러닝에서 워밍업 뒤 앞 25% 대비 뒤 25%의 효율(GAP 속도/HR) 유지율. 100 = 유지, 상한 없음. |
 | 단위 | 점 |
 | 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
@@ -509,9 +509,9 @@ Garmin/Strava/Intervals/Runalyze
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| declining | -100 ~ -10 | 하락 |
-| stable | -10 ~ 10 | 안정 |
-| building | 10 ~ 100 | 상승 중 |
+| declining | -100 ~ -2 | 하락 |
+| stable | -2 ~ 2 | 안정 |
+| building | 2 ~ 100 | 상승 중 |
 
 ---
 
@@ -658,7 +658,7 @@ Garmin/Strava/Intervals/Runalyze
 | 설명 | VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100) |
 | 단위 | 무차원 |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot`, `ctl`, `di`, `cirs` |
+| 의존성 | `race_pred_vdot`, `ctl`, `di`, `cirs` |
 | 해석 | 높을수록 좋음 |
 
 **범위 해석:**
@@ -681,7 +681,7 @@ Garmin/Strava/Intervals/Runalyze
 | 설명 | 기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름. |
 | 단위 | sec/km |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `race_pred_vdot` |
 | 해석 | 낮을수록 좋음 |
 
 **범위 해석:**
@@ -701,21 +701,20 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `marathon_shape` |
 | 메트릭 이름 | `marathon_shape` |
-| 설명 | 마라톤 훈련 완성도 (%). 주간볼륨+장거리런 기반. |
+| 설명 | 마라톤 볼륨 충족률(%) = 8주 주평균 km ÷ Tanda 역산 필요 km. json 에 롱런·MP·품질 세션 구조. |
 | 단위 | % |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `race_pred_vdot` |
 | 해석 | 높을수록 좋음 |
 
 **범위 해석:**
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| insufficient | 0 ~ 30 | 부족 |
-| base | 30 ~ 50 | 기초 |
-| building | 50 ~ 70 | 상승 중 |
-| ready | 70 ~ 85 | 준비됨 |
-| peak | 85 ~ 100 | 피크 |
+| low | 0 ~ 60 | 낮음 |
+| building | 60 ~ 85 | 상승 중 |
+| adequate | 85 ~ 110 | adequate |
+| high | 110 ~ 300 | 높음 |
 
 ---
 
@@ -920,9 +919,9 @@ Daily-scope:
   ctl + atl --> rtti
   power_curve --> critical_power
   fearp --> sapi
-  runpulse_vdot + ctl + di + cirs --> rri
-  runpulse_vdot --> eftp
-  runpulse_vdot --> marathon_shape
+  race_pred_vdot + ctl + di + cirs --> rri
+  race_pred_vdot --> eftp
+  race_pred_vdot --> marathon_shape
   acwr + tsb + cirs + utrs --> crs
 ```
 
