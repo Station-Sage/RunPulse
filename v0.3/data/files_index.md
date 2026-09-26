@@ -1109,6 +1109,10 @@
 
 - functions: mem_conn, seed_run, seed_laps
 
+### `test_vdot_guard.py` (17줄) — P7-PRED-84: runpulse_vdot moving_time 붕괴 가드 테스트.
+
+- functions: _vd, test_normal_value, test_collapsed_moving_time_rejected
+
 ### `test_activity_calcs.py` (146줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
 - class **TestDecoupling**: test_with_streams, test_too_short, test_no_streams
