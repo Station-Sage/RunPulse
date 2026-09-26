@@ -292,7 +292,7 @@
 
 - class **TEROICalculator**: compute
 
-### `tids.py` (74줄) — TIDS (Training Intensity Distribution Score) — 8주 러닝 시간의 3구간 분포(P7-PRED-88, REVIEW-08 §R4).
+### `tids.py` (75줄) — TIDS (Training Intensity Distribution Score) — 8주 러닝 시간의 3구간 분포(P7-PRED-88, REVIEW-08 §R4).
 
 - class **TIDSCalculator**: compute
 - functions: distribution, pattern
@@ -390,11 +390,11 @@
 
 - (public API 없음)
 
-### `garmin_ref_parsers.py` (52줄) — Garmin 참조값 파서(순수) — 젖산역치(LTHR·역치속도·FTP)와 레이스 예측 payload → 날짜별 값(P7-PRED-25).
+### `garmin_ref_parsers.py` (70줄) — Garmin 참조값 파서(순수) — 젖산역치(LTHR·역치속도·FTP)와 레이스 예측 payload → 날짜별 값(P7-PRED-25).
 
 - functions: parse_lactate_threshold, parse_race_predictions
 
-### `garmin_ref_sync.py` (85줄) — Garmin 참조값 동기화(P7-PRED-25) — 젖산역치(LTHR·역치속도) 일별 스냅샷, 레이스 예측 일별 스냅샷 + 이력 백필.
+### `garmin_ref_sync.py` (99줄) — Garmin 참조값 동기화(P7-PRED-25) — 젖산역치(LTHR·역치속도) 일별 스냅샷, 레이스 예측 일별 스냅샷 + 이력 백필.
 
 - functions: sync_lactate_threshold, sync_race_predictions, backfill_history
 
@@ -430,6 +430,10 @@
 ### `orchestrator.py` (114줄) — 통합 sync 진입점.
 
 - functions: full_sync
+
+### `plan_ingest.py` (261줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 저장 워크아웃·적응형 계획, Intervals 계획 이벤트 → planned_workouts.
+
+- functions: parse_garmin_workout, parse_garmin_adaptive_task, parse_intervals_event, store_planned, ingest_garmin_executed, ingest_garmin_adaptive, ingest_intervals_events, main
 
 ### `rate_limiter.py` (137줄) — 소스별 API Rate-Limit 관리.
 
@@ -1571,14 +1575,15 @@
 - class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
 - class **TestTokenOnlyMode**: test_saves_token_locally
 
-### `test_garmin_ref_parsers.py` (25줄) — P7-PRED-25: Garmin 참조값 파서.
+### `test_garmin_ref_parsers.py` (43줄) — P7-PRED-25: Garmin 참조값 파서.
 
-- functions: test_lt_latest_shape, test_lt_history_list_and_garbage, test_race_predictions_latest_and_history
+- functions: test_lt_latest_shape, test_lt_history_list_and_garbage, test_race_predictions_latest_and_history, test_lt_history_dict_shape
 
-### `test_garmin_ref_sync.py` (41줄) — P7-PRED-25: Garmin 참조값 동기화(가짜 클라이언트).
+### `test_garmin_ref_sync.py` (69줄) — P7-PRED-25: Garmin 참조값 동기화(가짜 클라이언트).
 
 - class **FakeClient**: get_lactate_threshold, get_race_predictions
-- functions: test_snapshots, test_history_and_failure
+- class **WindowClient**: get_race_predictions, get_lactate_threshold
+- functions: test_snapshots, test_history_and_failure, test_history_is_split_into_windows
 
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
@@ -1756,6 +1761,11 @@
 - class **TestUTRSPartialInputs**: test_partial_inputs_confidence_below_1
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
+
+### `test_plan_ingest.py` (94줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 실측 응답 형태(2026-09-26) 기반 파서·저장·이행률.
+
+- class **FakeClient**: get_workout_by_id
+- functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_minimal, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
 ### `test_plan_service.py` (190줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
@@ -1961,9 +1971,9 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
-### `test_tids_time.py` (18줄) — P7-PRED-88: TIDS 시간 기준.
+### `test_tids_time.py` (25줄) — P7-PRED-88: TIDS 시간 기준.
 
-- functions: test_time_based_distribution_and_patterns
+- functions: test_time_based_distribution_and_patterns, test_pattern_zero_zone1_has_no_polarization_index
 
 ### `test_today_service.py` (404줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
@@ -2130,7 +2140,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 427개 파일
+총 429개 파일
 
 ## docstring 누락
 
