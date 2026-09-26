@@ -421,6 +421,7 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("weather_feels_like_c", "weather", "metric", "°C", "체감 기온"),
     MetricDef("weather_wbgt_c", "weather", "metric", "°C", "WBGT 근사(그늘, BoM 식)"),
     MetricDef("weather_source", "weather", "metric", "", "기상값 출처(open_meteo/device_corrected/device_raw)"),
+    MetricDef("heat_model", "weather", "metric", "%/℃", "개인 기온 영향 계수(더위·추위)", scope="daily"),
 
     # ── body (metric_store) ──
     MetricDef("body_battery_diff", "body", "metric", "", "활동 중 Body Battery 변화",

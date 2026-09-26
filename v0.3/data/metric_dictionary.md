@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 33 calculators | 13 semantic groups
+> 자동 생성 | 34 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (23개)
+## 3. Daily-Scope 메트릭 (24개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -370,6 +370,19 @@ Garmin/Strava/Intervals/Runalyze
 | 설명 | 최대심박·젖산역치심박(LTHR)·안정심박과 두 존 체계(HRR·LTHR). 자체 추정과 기기 참조값을 함께 제공. |
 | 단위 | bpm |
 | 카테고리 | `hr` |
+| 의존성 | 소스 데이터 직접 사용 |
+
+---
+
+### 기온 영향 계수
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `heat_model` |
+| 메트릭 이름 | `heat_model` |
+| 설명 | 15℃ 대비 기온 1℃당 속도 변화(%). 더위(15℃ 초과)·추위(5℃ 미만) 각각, 개인 데이터로 기본값을 보정. |
+| 단위 | %/℃ |
+| 카테고리 | `weather` |
 | 의존성 | 소스 데이터 직접 사용 |
 
 ---
@@ -860,6 +873,7 @@ Daily-scope:
   acwr + lsi + ctl + tsb --> cirs, cirs_acwr, cirs_lsi, cirs_consecutive, cirs_fatigue
   (소스 직접) --> di
   (소스 직접) --> hr_profile, hrmax_self, lthr_self
+  (소스 직접) --> heat_model
   runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
   race_pred_vdot --> tids
   tsb --> rmr
@@ -888,6 +902,7 @@ Daily-scope:
 | `meta` | meta | `workout_type_classified` |
 | `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |
+| `weather` | weather | `heat_model` |
 
 ## 7. 소스별 원본 메트릭 (참고)
 

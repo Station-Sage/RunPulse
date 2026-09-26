@@ -190,7 +190,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (754줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (756줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -202,6 +202,11 @@
 ### `gap.py` (71줄) — GAP (Grade Adjusted Pace) Calculator — 설계서 4-2 기준.
 
 - class **GAPCalculator**: compute
+
+### `heat_model.py` (70줄) — 개인 기온 영향 모델(일별) — 정상 주행 랩의 HR·속도·외기 기온 회귀로 더위/추위 계수(%/℃)를 추정해 기본값으로 수축(P7-PRED-33).
+
+- class **HeatModelCalculator**: compute
+- functions: ols, fit_heat
 
 ### `hr_profile.py` (97줄) — HR 프로필(일별) — RunPulse 자체 추정(HRmax·LTHR·RHR)과 소스 참조값(Garmin 등)을 나란히 산출(P7-PRED-24).
 
@@ -1058,7 +1063,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (519줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (520줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1532,6 +1537,10 @@
 ### `test_goals.py` (116줄) — goals.py 테스트.
 
 - functions: test_add_goal_returns_id, test_get_goal, test_get_goal_not_found, test_list_goals_active_default, test_list_goals_all, test_get_active_goal_returns_latest, test_get_active_goal_none_when_empty, test_update_goal, test_update_goal_invalid_field, test_complete_goal, test_cancel_goal, test_complete_nonexistent_goal, test_cancel_nonexistent_goal, test_list_goals_empty, test_add_goal_minimal
+
+### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
+
+- functions: test_ols_exact, test_few_points_returns_default, test_shrinkage_toward_truth
 
 ### `test_hr_profile.py` (45줄) — P7-PRED-24: HR 프로필 자체 추정 + 참조값.
 
@@ -2042,7 +2051,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 407개 파일
+총 409개 파일
 
 ## docstring 누락
 
