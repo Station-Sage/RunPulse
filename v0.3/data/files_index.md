@@ -138,12 +138,17 @@
 
 - class **ADTICalculator**: compute
 
-### `base.py` (497줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (503줄) — MetricCalculator 기본 클래스 + CalcContext(RunHistoryMixin 포함) + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
 - class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
+
+### `context_runs.py` (152줄) — CalcContext 러닝 이력 API(RunHistoryMixin) — canonical 러닝 + 트윈 HR 병합 + 랩(경사보정 속도) + 대회 판정(P7-PRED-14).
+
+- functions: nominal_distance, lap_block, _row_factory
+- class **RunHistoryMixin**: get_runs, get_activity_metric_json, get_active_goal, get_latest_daily_metric, get_best_efforts, get_race_results
 
 ### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
 
@@ -1312,6 +1317,10 @@
 - class **TestIntervalsExtractor**: test_extract_core_distance_m
 - class **TestViewsExportCSV**: test_csv_distance_km_conversion
 - functions: conn
+
+### `test_context_runs.py` (66줄) — P7-PRED-14: RunHistoryMixin.get_runs / get_active_goal / get_race_results / canonical 시리즈.
+
+- functions: test_get_runs_twin_hr_and_race, test_get_runs_excludes_end_day_and_laps, test_tempo_name_not_race, test_perf_time_uses_elapsed_when_close, test_active_goal_and_race_results, test_metric_series_canonical_only
 
 ### `test_credential_store.py` (195줄) — credential_store.py 테스트 — Fernet 암호화/복호화 라운드트립.
 

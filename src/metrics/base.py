@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from src.metrics.context_runs import RunHistoryMixin
+
 log = logging.getLogger(__name__)
 
 
@@ -81,7 +83,7 @@ class MetricCalculator(ABC):
 
 
 @dataclass
-class CalcContext:
+class CalcContext(RunHistoryMixin):
     """Calculator에 전달되는 컨텍스트. prefetch + cache-first, fallback DB."""
     conn: object
     scope_type: str
@@ -363,6 +365,8 @@ class CalcContext:
     def get_activity_metric_series(self, metric_name: str, days: int,
                                     activity_type: str = None,
                                     include_json: bool = False,
+                                    canonical_only: bool = False,
+                                    primary_only: bool = False,
                                     ) -> list[dict]:
         """activity-scope metric을 날짜 범위로 조회.
 
@@ -384,10 +388,12 @@ class CalcContext:
 
         sql = (
             f"SELECT {cols} FROM metric_store ms "
-            "JOIN activity_summaries a ON CAST(ms.scope_id AS INTEGER) = a.id "
+            f"JOIN {'v_canonical_activities' if canonical_only else 'activity_summaries'} a "
+            "ON CAST(ms.scope_id AS INTEGER) = a.id "
             "WHERE ms.metric_name=? AND ms.scope_type='activity' "
             "AND ms.numeric_value IS NOT NULL "
             "AND DATE(a.start_time) BETWEEN ? AND ?"
+            + (" AND ms.is_primary = 1" if primary_only else "")
         )
         params: list = [metric_name, start_date, end_date]
         if activity_type:
