@@ -66,7 +66,8 @@ def main(argv=None):
     p_recompute = sub.add_parser("recompute", help="최근 N일 재계산")
     p_recompute.add_argument("--days", type=int, default=7)
 
-    sub.add_parser("recompute-all", help="전체 재계산 (90일)")
+    p_all = sub.add_parser("recompute-all", help="재계산(기본: 전 기간, 범위 밖 이력은 보존)")
+    p_all.add_argument("--days", type=int, default=None)
     sub.add_parser("recompute-missing", help="부하(TRIMP) 누락 활동 보정 + CTL/ATL/TSB 재계산")
     sub.add_parser("clear", help="RunPulse 메트릭 삭제")
 
@@ -99,8 +100,8 @@ def main(argv=None):
         print(f"완료: {len(results)}일 처리")
 
     elif args.command == "recompute-all":
-        print("전체 재계산 중 (90일)...")
-        results = recompute_all(conn)
+        print("재계산 중 (" + (f"최근 {args.days}일" if args.days else "전 기간") + ", 범위 밖 이력 보존)...")
+        results = recompute_all(conn, days=args.days)
         print(f"완료: {len(results)}일 처리")
 
     elif args.command == "recompute-missing":

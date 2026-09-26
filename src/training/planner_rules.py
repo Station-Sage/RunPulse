@@ -140,7 +140,7 @@ def get_paces_from_vdot(vdot: float | None,
     """
     if vdot and vdot > 20:
         try:
-            from src.metrics.daniels_table import get_training_paces
+            from src.utils.daniels_table import get_training_paces
             return get_training_paces(vdot)
         except Exception:
             pass

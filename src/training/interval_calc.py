@@ -215,7 +215,7 @@ def prescribe_from_vdot(
         vdot: VDOT_ADJ 값.
         eftp_sec_km: eFTP (검증용).
     """
-    from src.metrics.daniels_table import get_training_paces
+    from src.utils.daniels_table import get_training_paces
     paces = get_training_paces(vdot)
     i_pace = paces.get("I", 240)  # fallback 4:00/km
     return prescribe_interval(rep_m, int(i_pace), eftp_sec_km)

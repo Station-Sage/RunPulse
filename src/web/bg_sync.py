@@ -201,6 +201,12 @@ class BgSyncThread(threading.Thread):
                 # 오늘 날짜를 항상 포함하여 메트릭 계산
                 end = max(job.to_date, _date.today().isoformat())
                 metrics_engine.run_for_date_range(conn, job.from_date, end)
+                # 오늘 예측 스냅샷(전향 평가용, P7-PRED-63) — 실패해도 동기화는 계속
+                try:
+                    from src.services.prediction_snapshot_service import record_snapshots
+                    record_snapshots(conn, _date.today().isoformat())
+                except Exception as snap_exc:  # noqa: BLE001
+                    update_job(self.job_id, last_error=f"예측 스냅샷 실패: {str(snap_exc)[:150]}")
                 # 스키마 마이그레이션 후 재동기화 플래그 해제
                 from src.db_setup import clear_needs_resync
                 clear_needs_resync(conn)

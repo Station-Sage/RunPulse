@@ -74,8 +74,12 @@ export const WORKOUT_LABELS: Record<string, string> = {
 	recovery: '회복',
 	easy: '쉬운 달리기',
 	long: '장거리',
+	long_run: '장거리',
+	steady: '스테디',
 	tempo: '템포',
 	interval: '인터벌',
+	repetition: '레피티션',
+	sprint: '스프린트',
 	race: '레이스'
 };
 

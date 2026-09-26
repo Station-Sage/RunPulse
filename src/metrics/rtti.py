@@ -2,6 +2,7 @@
 
 ATL / (CTL × wellness_factor) × 100
 100 = 적정, >100 과부하, <70 여유.
+P7-PRED-89: CTL 이 형성되기 전(ACWR 과 같은 기준)엔 산출하지 않고, 200 절단을 없앴다(이전 15%가 0 또는 200에 포화).
 
 v0.3 포팅: _v02_backup/rtti.py → MetricCalculator 형식
 """
@@ -37,7 +38,8 @@ class RTTICalculator(MetricCalculator):
         atl = float(atl) if atl is not None else 0.0
         ctl = float(ctl) if ctl is not None else 0.0
 
-        if ctl <= 0 and atl <= 0:
+        from src.metrics.acwr import MIN_CTL, has_history
+        if ctl < MIN_CTL or not has_history(ctx):
             return []
 
         # 웰니스 보정
@@ -60,13 +62,8 @@ class RTTICalculator(MetricCalculator):
                     wf *= 0.92
 
         # CTL 기반 용량
-        if ctl <= 0:
-            capacity = max(atl * 0.5, 10.0)
-        else:
-            capacity = ctl * wf
-
-        rtti = round(atl / capacity * 100, 1) if capacity > 0 else 0.0
-        rtti = min(rtti, 200.0)
+        capacity = ctl * wf
+        rtti = round(atl / capacity * 100, 1)
 
         return [self._result(
             value=rtti,

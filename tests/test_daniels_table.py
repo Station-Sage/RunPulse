@@ -4,18 +4,14 @@ from src.utils.daniels_table import (
     get_training_paces, get_race_predictions,
     get_marathon_volume_targets, get_race_volume_targets,
     vdot_to_t_pace, t_pace_to_vdot,
-    VDOT_PACE_TABLE,
 )
 
 
 class TestTrainingPaces:
     def test_vdot_50_paces(self):
+        """P7-PRED-85: Daniels–Gilbert 공식 값(원서 VDOT 50: M 4:31/km·T 4:15/km·R 400m 88초와 ±5초 이내)."""
         p = get_training_paces(50)
-        assert p["E"] == 303
-        assert p["M"] == 259
-        assert p["T"] == 239
-        assert p["I"] == 222
-        assert p["R_400m"] == 50
+        assert p == {"E": 320, "M": 271, "T": 253, "I": 230, "R_400m": 87}
 
     def test_interpolation(self):
         """중간 VDOT에서 보간 작동"""
@@ -23,10 +19,11 @@ class TestTrainingPaces:
         assert p["E"] > 0
         # 47과 48 사이
         assert get_training_paces(47)["E"] >= p["E"] >= get_training_paces(48)["E"]
+        assert p["E"] > p["M"] > p["T"] > p["I"]
 
     def test_boundary_low(self):
-        p = get_training_paces(20)  # 테이블 최소 30 미만
-        assert "E" in p  # 최소값 반환
+        p = get_training_paces(20)  # 공식은 범위 제한 없음
+        assert "E" in p
 
     def test_boundary_high(self):
         p = get_training_paces(90)  # 테이블 최대 85 초과
@@ -64,13 +61,13 @@ class TestVolume:
 class TestTpaceConversion:
     def test_vdot_to_t_pace(self):
         t = vdot_to_t_pace(50)
-        assert t == 239
+        assert t == 253.3
 
     def test_t_pace_to_vdot_roundtrip(self):
         """VDOT → T-pace → VDOT 왕복"""
         t = vdot_to_t_pace(50)
         v = t_pace_to_vdot(t)
-        assert abs(v - 50) < 1.0
+        assert abs(v - 50) < 0.1
 
     def test_t_pace_to_vdot_interpolated(self):
         v = t_pace_to_vdot(250)  # 테이블 사이값

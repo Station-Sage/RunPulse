@@ -655,6 +655,67 @@ export interface RaceHubPrediction {
 	as_of: string;
 	gap_sec: number | null;
 	history: RaceHubPredictionPoint[];
+	compare?: PredictionCompare | null;
+}
+
+/** P7-PRED-71 레이스 예측 3경로 비교 — (a) garmin, (b) ref(기기 심박 기준), (c) self(자체 추정)
+ * + 값이 있으면 r4 섀도 후보(candidate=true, P7-PRED-72 r4 추가). */
+export interface PredictionCompareRow {
+	key: 'garmin' | 'ref' | 'self' | 'r4' | 'r4_asym';
+	label: string;
+	provider: string;
+	value_sec: number | null;
+	as_of?: string;
+	stale_days?: number;
+	low_sec?: number | null;
+	high_sec?: number | null;
+	confidence?: number | null;
+	reasons?: string[];
+	contributions?: Record<string, number> | null;
+	candidate?: boolean;
+}
+
+export interface PredictionCompare {
+	bucket: string;
+	as_of: string;
+	rows: PredictionCompareRow[];
+	hr_basis: { self_lthr: number | null; ref_lthr: number | null; lthr_gap: number | null };
+	notes: string[];
+}
+
+export type ZoneBounds = [number, number][];
+
+/** P7-PRED-74 예측 근거 — hr_profile·heat_model·training_response 최신 json(없으면 null). */
+export interface PredictionProfile {
+	as_of: string;
+	hr_profile: {
+		date: string;
+		self: { hrmax: number | null; lthr: number; lthr_source: 'races' | 'hrmax_ratio'; rhr: number | null };
+		ref: { source: string; lthr: number | null; hrmax: number | null } | null;
+		zones: { self: { hrr: ZoneBounds | null; lthr: ZoneBounds }; ref?: { hrr: ZoneBounds | null; lthr: ZoneBounds | null } };
+		lthr_gap: number | null;
+	} | null;
+	heat_model: { date: string; heat: number; cold: number; n: number; weight: number } | null;
+	training_response: {
+		date: string;
+		weekly_zone_min: { R: number[]; I: number[]; T: number[]; M: number[]; sessions: number[] };
+		quality_min_avg_8w: number;
+		quality_min_avg_prev_8w: number | null;
+		quality_sessions_avg_8w: number;
+		long_mp_km_8w?: number;
+		trend: { n: number; slope_4w: number | null };
+	} | null;
+}
+
+export type RaceEffort = 'allout' | 'paced' | 'fun' | 'dnf';
+
+export interface RaceCandidate {
+	activity_id: number;
+	date: string;
+	name: string | null;
+	distance_m: number;
+	time_sec: number | null;
+	confirmed_effort: RaceEffort | null;
 }
 
 export interface RaceHubForm {

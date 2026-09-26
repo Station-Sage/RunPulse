@@ -46,38 +46,48 @@ def _seed_daily_metrics(conn, d, **metrics):
                       numeric_value=val, category="rp_load")
 
 
+def _seed_block(conn, weeks=8, km=12.0, pace=330, long_km=None):
+    from datetime import datetime, timedelta
+    n = 0
+    for i in range(1, weeks * 7 + 1, 2):                   # 이틀에 한 번
+        d = (datetime(2026, 4, 1) - timedelta(days=i)).strftime("%Y-%m-%d")
+        dist = (long_km if (long_km and i % 14 == 1) else km) * 1000
+        _seed_activity(conn, d, source_id=f"b{i}", distance_m=dist, moving_time_sec=int(dist / 1000 * pace))
+        n += 1
+    return n
+
+
 class TestMarathonShape:
+    """P7-PRED-52: v2 — Tanda 역산 필요 km 대비 볼륨 충족률, 롱런 구조 json."""
+
     def test_with_data(self):
         conn = _conn()
-        _seed_daily_metrics(conn, "2026-04-01", runpulse_vdot=50.0)
-        from datetime import datetime, timedelta
-        for i in range(28):
-            d = (datetime(2026, 4, 1) - timedelta(days=i)).strftime("%Y-%m-%d")
-            _seed_activity(conn, d, source_id=f"ms{i}",
-                           distance_m=8500, moving_time_sec=2800)
-        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
-        results = MarathonShapeCalculator().compute(ctx)
-        assert len(results) == 1
-        assert 0 < results[0].numeric_value <= 100
-        jv = json.loads(results[0].json_value) if isinstance(results[0].json_value, str) else results[0].json_value
-        assert jv["label"] in ["insufficient", "base", "building", "ready", "peak"]
+        _seed_daily_metrics(conn, "2026-04-01", race_pred_vdot=50.0)
+        _seed_block(conn, long_km=24)
+        r = MarathonShapeCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))
+        jv = json.loads(r[0].json_value)
+        assert r[0].numeric_value > 0 and jv["label"] in MarathonShapeCalculator.ranges
+        assert jv["basis"] == "current_vdot" and jv["long_runs_12w"]["ge_21km"] >= 4 and jv["longest_12w_km"] == 24.0
+        assert abs(r[0].numeric_value - jv["weekly_km_8w"] / jv["tanda_required_km"] * 100) < 0.2
 
     def test_no_vdot(self):
         conn = _conn()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
-        results = MarathonShapeCalculator().compute(ctx)
-        assert len(results) == 0
+        assert MarathonShapeCalculator().compute(ctx) == []
 
-    def test_json_structure(self):
+    def test_goal_basis_and_unreachable(self):
         conn = _conn()
-        _seed_daily_metrics(conn, "2026-04-01", runpulse_vdot=50.0)
-        from datetime import datetime, timedelta
-        for i in range(28):
-            d = (datetime(2026, 4, 1) - timedelta(days=i)).strftime("%Y-%m-%d")
-            _seed_activity(conn, d, source_id=f"mj{i}",
-                           distance_m=8500, moving_time_sec=2800)
-        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
-        results = MarathonShapeCalculator().compute(ctx)
-        jv = json.loads(results[0].json_value) if isinstance(results[0].json_value, str) else results[0].json_value
-        assert "label" in jv
-        assert "weekly_km_avg" in jv or "target_weekly_km" in jv
+        _seed_daily_metrics(conn, "2026-04-01", race_pred_vdot=45.0)
+        _seed_block(conn, pace=420)
+        conn.execute("INSERT INTO goals (name, race_date, distance_km, target_time_sec, status) "
+                     "VALUES ('풀', '2026-11-22', 42.195, 9000, 'active')")      # 2:30 — 볼륨으로 도달 불가
+        r = MarathonShapeCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))
+        jv = json.loads(r[0].json_value)
+        assert jv["basis"] == "goal" and jv["tanda_required_km"] is None and r[0].numeric_value is None
+
+
+def test_tanda_required_roundtrip():
+    from src.metrics.marathon_shape import tanda_required_km
+    from src.metrics.prediction.core_r4 import tanda_marathon
+    k = tanda_required_km(300.0, 330.0)
+    assert k and abs(tanda_marathon(k, 330.0) / 42.195 - 300.0) < 0.5

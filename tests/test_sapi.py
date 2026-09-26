@@ -64,6 +64,7 @@ class TestSAPI:
                           "runpulse:formula_v1", numeric_value=300.0,
                           category="rp_performance",
                           json_value={"temp_c": 12.0})
+            upsert_metric(conn, "activity", str(aid), "weather_temp_c", "open_meteo", numeric_value=12.0)
         # 최근 7일 데이터
         for i in range(3):
             conn.execute(
@@ -78,6 +79,7 @@ class TestSAPI:
                           "runpulse:formula_v1", numeric_value=295.0,
                           category="rp_performance",
                           json_value={"temp_c": 12.0})
+            upsert_metric(conn, "activity", str(aid), "weather_temp_c", "open_meteo", numeric_value=12.0)
         conn.commit()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = SAPICalculator().compute(ctx)

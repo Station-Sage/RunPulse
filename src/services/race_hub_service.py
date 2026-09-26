@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from src.services import prediction_compare_service
 from src.services.race_projection_service import project_race_form
 from datetime import date as _date, timedelta  # noqa: F401
 
@@ -98,6 +99,7 @@ def get_race_hub(conn: sqlite3.Connection, date: str | None = None) -> dict:
                 "as_of":     as_of,
                 "gap_sec":   gap_sec,
                 "history":   [{"date": r["date"], "value": int(r["value"])} for r in history_rows],
+                "compare":   prediction_compare_service.compare(conn, bucket, date),   # P7-PRED-71 3경로 비교
             }
 
     return {

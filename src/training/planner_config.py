@@ -129,10 +129,10 @@ def get_latest_fitness(conn: sqlite3.Connection) -> dict:
 
 
 def get_vdot_adj(conn: sqlite3.Connection) -> float | None:
-    """VDOT_ADJ 조회 (최근)."""
+    """현재 VDOT 조회 (최근) — vdot_adj 폐기(P7-PRED-90) 후 레이스 예측 결합 VDOT(race_pred_vdot, 대표 provider)."""
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='vdot_adj' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='race_pred_vdot' AND scope_type='daily' AND is_primary=1"
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
     ).fetchone()
     return float(row[0]) if row else None

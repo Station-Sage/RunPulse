@@ -18,6 +18,8 @@ import logging
 import sqlite3
 from datetime import date, timedelta
 
+from src.training.outcome_store import update_outcome_v2
+
 log = logging.getLogger(__name__)
 
 _RUN_TYPES = (
@@ -87,6 +89,7 @@ def match_week_activities(
                 plan_dist=plan_dist, plan_pace=pace_min, plan_hr_zone=hr_zone,
                 act_row=best,
             )
+            update_outcome_v2(conn, plan_id, best[0])      # 구조화된 계획이면 세그먼트 이행률(P7-PRED-43)
             matched += 1
 
     if matched:

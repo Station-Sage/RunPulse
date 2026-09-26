@@ -290,7 +290,7 @@ def analyze_readiness(
     required_vdot = _vdot_from_race(distance_m, goal_time_sec)
 
     # ── 2. 현재 VDOT_ADJ 로드 ──────────────────────────────────────────
-    current_vdot = _get_recent_metric(conn, "VDOT_ADJ", days_back=30)
+    current_vdot = _get_recent_metric(conn, "race_pred_vdot", days_back=30)   # vdot_adj 폐기(P7-PRED-90)
 
     # ── 3. 보조 메트릭 로드 ────────────────────────────────────────────
     di_val   = _get_recent_metric(conn, "DI",   days_back=14)

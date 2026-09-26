@@ -94,7 +94,7 @@ def _load_fitness_data(conn: sqlite3.Connection, end: str) -> tuple[float | None
     """VDOT + Marathon Shape 최신값 (metric_store daily)."""
     vdot_row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE scope_type='daily' AND metric_name IN ('vdot_adj','runpulse_vdot')"
+        " WHERE scope_type='daily' AND metric_name='race_pred_vdot' AND is_primary=1"   # vdot_adj 폐기(P7-PRED-90)
         "   AND numeric_value IS NOT NULL AND scope_id<=?"
         " ORDER BY scope_id DESC LIMIT 1",
         (end,),

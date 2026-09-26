@@ -30,6 +30,19 @@ def _seed_full(conn):
     conn.commit()
 
 
+def _seed_load_history(conn, days: int = 42, trimp: float = 60.0):
+    """기준일(2026-04-01) 이전 매일 러닝 1개 + trimp — CTL ≥ MIN_CTL 과 28일 전 이력을 만든다(P7-PRED-89)."""
+    from datetime import date, timedelta
+    for i in range(1, days + 1):
+        d = (date(2026, 4, 1) - timedelta(days=i)).isoformat()
+        cur = conn.execute(
+            "INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time, distance_m, "
+            "moving_time_sec, avg_hr, max_hr, avg_speed_ms) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ["garmin", f"h{i}", "Run", "running", f"{d} 07:00:00", 8000, 2700, 145, 170, 2.96])
+        upsert_metric(conn, "activity", str(cur.lastrowid), "trimp", "runpulse:formula_v1", numeric_value=trimp)
+    conn.commit()
+
+
 class TestTopologicalSort:
     def test_trimp_before_hrss(self):
         sorted_calcs = _topological_sort(ALL_CALCULATORS)
@@ -137,6 +150,8 @@ class TestRunDailyMetrics:
         """cirs_acwr 행의 parent_metric_id가 cirs 행의 id와 일치해야 한다."""
         conn = _conn()
         _seed_full(conn)
+        upsert_metric(conn, "daily", "2026-03-04", "ctl", "runpulse:formula_v1", numeric_value=40.0)   # 28일 전 CTL(P7-PRED-89)
+        _seed_load_history(conn)   # 활동 1개로는 CTL < MIN_CTL 이라 acwr 가 보류된다(P7-PRED-89)
         run_activity_metrics(conn, 1)
         conn.commit()
         run_daily_metrics(conn, "2026-04-01")

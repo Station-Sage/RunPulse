@@ -1,6 +1,7 @@
 """HRSS Calculator — 설계서 4-2 기준.
 
 HRSS = TRIMP / TRIMP_ref × 100 (1hr LTHR = 100).
+P7-PRED-89: LTHR 을 hr_profile 자체 추정(lthr_self)에서 읽는다. 이전엔 항상 0.85·HRmax 로 추정해 TRIMP 의 상수배(1.54)였다.
 """
 from __future__ import annotations
 
@@ -31,7 +32,9 @@ class HRSSCalculator(MetricCalculator):
         if trimp is None:
             return []
 
-        lthr = ctx.get_metric("lactate_threshold_hr") or self._estimate_lthr(ctx)
+        day = ((ctx.activity or {}).get("start_time") or "")[:10] if getattr(ctx, "conn", None) is not None else ""
+        lthr = (ctx.get_metric("lactate_threshold_hr")
+                or (ctx.get_latest_daily_metric("lthr_self", day) if day else None) or self._estimate_lthr(ctx))
         if not lthr:
             return []
 
@@ -50,4 +53,4 @@ class HRSSCalculator(MetricCalculator):
 
     def _estimate_lthr(self, ctx):
         max_hr = TRIMPCalculator()._get_max_hr(ctx)
-        return int(max_hr * 0.85) if max_hr else None
+        return round(max_hr * 0.917, 1) if max_hr else None      # hr_profile 폴백과 같은 비율

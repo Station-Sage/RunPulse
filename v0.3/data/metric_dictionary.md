@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 32 calculators | 13 semantic groups
+> 자동 생성 | 37 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -116,7 +116,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `workout_type_classified` |
 | 메트릭 이름 | `workout_type_classified` |
-| 설명 | 거리, 심박, 존 분포 기반 규칙 분류. |
+| 설명 | 랩·스트림 세그먼트(작업/휴식/세트) 기반 세션 유형. |
 | 단위 | 무차원 |
 | 카테고리 | `meta` |
 | 의존성 | 소스 데이터 직접 사용 |
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (22개)
+## 3. Daily-Scope 메트릭 (27개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -353,11 +353,79 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `di` |
 | 메트릭 이름 | `di` |
-| 설명 | 장거리 달리기에서 후반 페이스 유지 능력. 0~100. |
+| 설명 | 90분 이상 러닝에서 워밍업 뒤 앞 25% 대비 뒤 25%의 효율(GAP 속도/HR) 유지율. 100 = 유지, 상한 없음. |
 | 단위 | 점 |
 | 카테고리 | `capacity` |
 | 의존성 | 소스 데이터 직접 사용 |
 | 해석 | 높을수록 좋음 |
+
+---
+
+### 심박 프로필
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `hr_profile` |
+| 메트릭 이름 | `hr_profile`, `hrmax_self`, `lthr_self` |
+| 설명 | 최대심박·젖산역치심박(LTHR)·안정심박과 두 존 체계(HRR·LTHR). 자체 추정과 기기 참조값을 함께 제공. |
+| 단위 | bpm |
+| 카테고리 | `hr` |
+| 의존성 | 소스 데이터 직접 사용 |
+
+---
+
+### 기온 영향 계수
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `heat_model` |
+| 메트릭 이름 | `heat_model` |
+| 설명 | 15℃ 대비 기온 1℃당 속도 변화(%). 더위(15℃ 초과)·추위(5℃ 미만) 각각, 개인 데이터로 기본값을 보정. |
+| 단위 | %/℃ |
+| 카테고리 | `weather` |
+| 의존성 | 소스 데이터 직접 사용 |
+
+---
+
+### 레이스 예측 r4 (섀도)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_r4` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | 전력 대회·품질 세트(휴식 보정 Daniels 강도)·심박-속도 관계를 정밀도 가중으로 결합한 레이스 예측(15℃, 80% 범위·신뢰도). |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model` |
+| 해석 | 낮을수록 좋음 |
+
+---
+
+### 레이스 예측 r4 비대칭 (섀도)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_r4_asym` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | r4 섀도에 대회 상한·세트 하한 비대칭과 훈련 유지(CTL) 조건부 대회 앵커 감쇠를 더한 후보 변형. |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model`, `ctl` |
+| 해석 | 낮을수록 좋음 |
+
+---
+
+### 레이스 예측 (기기 심박 기준)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_ref` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | DARP 와 같은 로직에 기기(Garmin 등)가 제공한 최대심박·LTHR 을 넣은 비교용 예측. |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model` |
+| 해석 | 낮을수록 좋음 |
 
 ---
 
@@ -366,12 +434,25 @@ Garmin/Strava/Intervals/Runalyze
 | 항목 | 값 |
 |------|-----|
 | Calculator ID | `darp` |
-| 메트릭 이름 | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
-| 설명 | VDOT과 내구성 지수 기반 레이스 시간 예측. |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | 최근 전력 대회·작업 구간·심박-속도 관계를 결합한 레이스 시간 예측(15℃ 기준, 80% 범위·신뢰도 포함). |
 | 단위 | sec |
 | 카테고리 | `prediction` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `hr_profile`, `heat_model` |
 | 해석 | 낮을수록 좋음 |
+
+---
+
+### 훈련 반응
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `training_response` |
+| 메트릭 이름 | `training_response` |
+| 설명 | 최근 8주 품질 세트(R/I/T/M) 주간 작업 시간과 이전 8주 비교, 품질 세션 수, 롱런 속 마라톤 페이스 구간, 세트 VDOT 추세. |
+| 단위 | min/wk |
+| 카테고리 | `load` |
+| 의존성 | `race_pred_vdot` |
 
 ---
 
@@ -381,10 +462,10 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `tids` |
 | 메트릭 이름 | `tids` |
-| 설명 | 8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed. |
+| 설명 | 8주 러닝 시간의 3구간(마라톤 페이스 미만·마라톤~역치·역치 이상) 분포와 패턴(polarized/threshold/pyramidal/mixed). |
 | 단위 | 무차원 |
 | 카테고리 | `load` |
-| 의존성 | `workout_type_classified` |
+| 의존성 | `race_pred_vdot` |
 
 ---
 
@@ -428,9 +509,9 @@ Garmin/Strava/Intervals/Runalyze
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| declining | -100 ~ -10 | 하락 |
-| stable | -10 ~ 10 | 안정 |
-| building | 10 ~ 100 | 상승 중 |
+| declining | -100 ~ -2 | 하락 |
+| stable | -2 ~ 2 | 안정 |
+| building | 2 ~ 100 | 상승 중 |
 
 ---
 
@@ -577,7 +658,7 @@ Garmin/Strava/Intervals/Runalyze
 | 설명 | VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100) |
 | 단위 | 무차원 |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot`, `ctl`, `di`, `cirs` |
+| 의존성 | `race_pred_vdot`, `ctl`, `di`, `cirs` |
 | 해석 | 높을수록 좋음 |
 
 **범위 해석:**
@@ -600,7 +681,7 @@ Garmin/Strava/Intervals/Runalyze
 | 설명 | 기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름. |
 | 단위 | sec/km |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `race_pred_vdot` |
 | 해석 | 낮을수록 좋음 |
 
 **범위 해석:**
@@ -614,50 +695,26 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-### VDOT 보정
-
-| 항목 | 값 |
-|------|-----|
-| Calculator ID | `vdot_adj` |
-| 메트릭 이름 | `vdot_adj` |
-| 설명 | 역치 페이스 기반 현재 체력 VDOT 보정값 |
-| 단위 | 무차원 |
-| 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
-| 해석 | 높을수록 좋음 |
-
-**범위 해석:**
-
-| 등급 | 범위 | 의미 |
-|------|------|------|
-| beginner | 20 ~ 35 | 초보 |
-| intermediate | 35 ~ 45 | 중급 |
-| advanced | 45 ~ 55 | 상급 |
-| elite | 55 ~ 85 | 엘리트 |
-
----
-
 ### Marathon Shape
 
 | 항목 | 값 |
 |------|-----|
 | Calculator ID | `marathon_shape` |
 | 메트릭 이름 | `marathon_shape` |
-| 설명 | 마라톤 훈련 완성도 (%). 주간볼륨+장거리런 기반. |
+| 설명 | 마라톤 볼륨 충족률(%) = 8주 주평균 km ÷ Tanda 역산 필요 km. json 에 롱런·MP·품질 세션 구조. |
 | 단위 | % |
 | 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `race_pred_vdot` |
 | 해석 | 높을수록 좋음 |
 
 **범위 해석:**
 
 | 등급 | 범위 | 의미 |
 |------|------|------|
-| insufficient | 0 ~ 30 | 부족 |
-| base | 30 ~ 50 | 기초 |
-| building | 50 ~ 70 | 상승 중 |
-| ready | 70 ~ 85 | 준비됨 |
-| peak | 85 ~ 100 | 피크 |
+| low | 0 ~ 60 | 낮음 |
+| building | 60 ~ 85 | 상승 중 |
+| adequate | 85 ~ 110 | adequate |
+| high | 110 ~ 300 | 높음 |
 
 ---
 
@@ -846,8 +903,14 @@ Daily-scope:
   tsb --> utrs, utrs_body_battery, utrs_tsb, utrs_sleep, utrs_hrv, utrs_stress
   acwr + lsi + ctl + tsb --> cirs, cirs_acwr, cirs_lsi, cirs_consecutive, cirs_fatigue
   (소스 직접) --> di
-  runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
-  workout_type_classified --> tids
+  (소스 직접) --> hr_profile, hrmax_self, lthr_self
+  (소스 직접) --> heat_model
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model + ctl --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  race_pred_vdot --> training_response
+  race_pred_vdot --> tids
   tsb --> rmr
   ctl --> adti
   ctl + trimp --> teroi
@@ -856,10 +919,9 @@ Daily-scope:
   ctl + atl --> rtti
   power_curve --> critical_power
   fearp --> sapi
-  runpulse_vdot + ctl + di + cirs --> rri
-  runpulse_vdot --> eftp
-  runpulse_vdot --> vdot_adj
-  runpulse_vdot --> marathon_shape
+  race_pred_vdot + ctl + di + cirs --> rri
+  race_pred_vdot --> eftp
+  race_pred_vdot --> marathon_shape
   acwr + tsb + cirs + utrs --> crs
 ```
 
@@ -867,12 +929,14 @@ Daily-scope:
 
 | 카테고리 | 한글명 | 포함 메트릭 |
 |----------|--------|------------|
-| `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `vdot_adj`, `marathon_shape` |
+| `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `marathon_shape` |
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
-| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
+| `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
+| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `training_response`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
-| `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| `prediction` | prediction | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |
+| `weather` | weather | `heat_model` |
 
 ## 7. 소스별 원본 메트릭 (참고)
 

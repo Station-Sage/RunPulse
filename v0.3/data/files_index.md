@@ -80,6 +80,14 @@
 
 - functions: get_static_plan_templates, create_plan_from_template
 
+### `prediction_compare_service.py` (88줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
+
+- functions: compare, profile
+
+### `prediction_snapshot_service.py` (115줄) — 예측 스냅샷·전향 평가(P7-PRED-63) — 모델별(r3 기본·기기·r4 섀도·Garmin) 예측을 그날 값 그대로 보존하고,
+
+- functions: record_snapshots, evaluate_race, summary
+
 ### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
@@ -92,13 +100,17 @@
 
 - functions: get_provider_status, get_provider_coverage
 
-### `race_hub_service.py` (186줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
+### `race_hub_service.py` (188줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
 
 ### `race_projection_service.py` (93줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
 
 - functions: project_race_form
+
+### `race_result_service.py` (64줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+
+- functions: confirm, remove, get, candidates
 
 ### `today_service.py` (311줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
@@ -130,11 +142,12 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/utils/metric_groups.py
 > 주의: category는 calculator의 self.category가 DB 저장값 (registry 아님)
 
-### `acwr.py` (39줄) — ACWR Calculator — 설계서 4-3 기준.
+### `acwr.py` (49줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
 
 - class **ACWRCalculator**: compute
+- functions: has_history
 
-### `adti.py` (48줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
+### `adti.py` (47줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
 
 - class **ADTICalculator**: compute
 
@@ -149,11 +162,11 @@
 
 - class **CIRSCalculator**: compute
 
-### `classifier.py` (120줄) — Workout Classifier — 설계서 4-2 기준.
+### `classifier.py` (107줄) — Workout Classifier v2 — 세그먼트(랩 구조) 기반 세션 유형 판정(REVIEW-07 r4, REVIEW-09 §3, P7-PRED-23).
 
 - class **WorkoutClassifier**: compute
 
-### `cli.py` (131줄) — Metrics CLI 인터페이스 (보강 #10).
+### `cli.py` (132줄) — Metrics CLI 인터페이스 (보강 #10).
 
 - functions: show_metric_status, main
 
@@ -170,15 +183,22 @@
 
 - class **CRSCalculator**: compute
 
-### `darp.py` (69줄) — DARP (Dynamic Adjusted Race Prediction) — 설계서 4-4 기준.
+### `darp.py` (140줄) — DARP v2 레이스 예측 — 앵커 대회(15℃ 정규화·감쇠) + 작업 블록 + HR@LTHR 결합, 개인 내구성 지수, 마라톤 Daniels·Tanda.
 
-- class **DARPCalculator**: compute
+- class **DARPCalculator**: hr_refs, compute
+- class **DARPRefCalculator**: hr_refs, compute
+- functions: sg_pairs
+
+### `darp_r4.py` (180줄) — DARP r4 섀도 예측 — 전력 대회·품질 세트(Daniels 등가 강도)·심박-속도 H 를 칼만 필터로 정밀도 가중 결합.
+
+- class **DARPShadowCalculator**: ctl_at, hr_refs, compute
+- class **DARPShadowAsymCalculator**: ctl_at
 
 ### `decoupling.py` (64줄) — Aerobic Decoupling Calculator — 설계서 4-2 기준.
 
 - class **AerobicDecouplingCalculator**: compute
 
-### `di.py` (59줄) — DI (Durability Index) — 설계서 4-4 기준.
+### `di.py` (71줄) — DI (Durability Index) v2 — 90분 이상 러닝에서 후반 효율 유지율(P7-PRED-89).
 
 - class **DICalculator**: compute
 
@@ -190,30 +210,42 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (737줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (760줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
 
-### `fearp.py` (73줄) — FEARP (Fitness & Environment Adjusted Running Pace) — 설계서 4-4 기준.
+### `fearp.py` (76줄) — FEARP (Fitness & Environment Adjusted Running Pace) v2 — 외기 기온·이슬점·고도로 보정한 환경 보정 페이스(P7-PRED-90).
 
 - class **FEARPCalculator**: compute
+- functions: heat_penalty
 
 ### `gap.py` (71줄) — GAP (Grade Adjusted Pace) Calculator — 설계서 4-2 기준.
 
 - class **GAPCalculator**: compute
 
-### `hrss.py` (53줄) — HRSS Calculator — 설계서 4-2 기준.
+### `heat_model.py` (70줄) — 개인 기온 영향 모델(일별) — 정상 주행 랩의 HR·속도·외기 기온 회귀로 더위/추위 계수(%/℃)를 추정해 기본값으로 수축(P7-PRED-33).
+
+- class **HeatModelCalculator**: compute
+- functions: ols, fit_heat
+
+### `hr_profile.py` (97줄) — HR 프로필(일별) — RunPulse 자체 추정(HRmax·LTHR·RHR)과 소스 참조값(Garmin 등)을 나란히 산출(P7-PRED-24).
+
+- class **HRProfileCalculator**: compute
+- functions: race_second_part_hr
+
+### `hrss.py` (56줄) — HRSS Calculator — 설계서 4-2 기준.
 
 - class **HRSSCalculator**: compute
 
-### `lsi.py` (55줄) — LSI (Load Spike Index) Calculator — 설계서 4-3 기준.
+### `lsi.py` (57줄) — LSI (Load Spike Index) Calculator — 설계서 4-3 기준.
 
 - class **LSICalculator**: compute
 
-### `marathon_shape.py` (96줄) — Marathon Shape — 마라톤 훈련 완성도.
+### `marathon_shape.py` (80줄) — Marathon Shape v2 — 마라톤 볼륨·롱런 구조(P7-PRED-52, REVIEW-09 §7). 기기 불필요(GPS·시간).
 
 - class **MarathonShapeCalculator**: compute
+- functions: tanda_required_km
 
 ### `monotony.py` (61줄) — Monotony & Strain Calculator — 설계서 4-3 기준.
 
@@ -244,21 +276,26 @@
 
 - class **RRICalculator**: compute
 
-### `rtti.py` (81줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
+### `rtti.py` (78줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
 
 - class **RTTICalculator**: compute
 
-### `sapi.py` (126줄) — SAPI (Seasonal-Adjusted Performance Index) — 계절·날씨 성과 비교.
+### `sapi.py` (104줄) — SAPI (Seasonal-Adjusted Performance Index) — 계절·날씨 성과 비교.
 
 - class **SAPICalculator**: compute
+
+### `segments.py` (219줄) — 세그먼트 분해 — 랩/스트림 블록을 워밍업·작업·휴식·쿨다운으로 나누고 세트·세션 유형을 판정한다(순수 함수).
+
+- functions: label_blocks, build_bouts, work_set, session_type, set_summary, stream_to_blocks, repair_time_axis, cumulative_distance
 
 ### `teroi.py` (65줄) — TEROI (Training Effect Return On Investment) — 훈련 효과 투자 수익률.
 
 - class **TEROICalculator**: compute
 
-### `tids.py` (54줄) — TIDS (Training Intensity Distribution Score) — 설계서 4-4 기준.
+### `tids.py` (74줄) — TIDS (Training Intensity Distribution Score) — 8주 러닝 시간의 3구간 분포(P7-PRED-88, REVIEW-08 §R4).
 
 - class **TIDSCalculator**: compute
+- functions: distribution, pattern
 
 ### `today_refresh.py` (40줄) — 달력 오늘의 일별 메트릭을 "현 시각 기준"으로 유지하는 지연 갱신.
 
@@ -267,6 +304,10 @@
 ### `tpdi.py` (64줄) — TPDI (Trainer Physical Disparity Index) — 실내/실외 FEARP 격차 지수.
 
 - class **TPDICalculator**: compute
+
+### `training_response.py` (36줄) — 훈련 반응(일별) — 품질 세트 구간별 주간 시간·품질 세션 수·롱런 MP 거리·세트 VDOT 추세(P7-PRED-41, r4).
+
+- class **TrainingResponseCalculator**: compute
 
 ### `trimp.py` (85줄) — TRIMP Calculator — 설계서 4-2 기준.
 
@@ -279,10 +320,6 @@
 ### `vdot.py` (69줄) — VDOT Calculator — 설계서 4-2 기준.
 
 - class **VDOTCalculator**: compute
-
-### `vdot_adj.py` (148줄) — VDOT_ADJ — 현재 체력 기반 VDOT 보정.
-
-- class **VDOTAdjCalculator**: compute
 
 ### `wlei.py` (80줄) — WLEI (Weather-Loaded Effort Index) — 날씨 가중 노력 지수.
 
@@ -345,13 +382,21 @@
 
 - class **GarminBulkLoader**: load
 
-### `garmin_daily_extensions.py` (466줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
+### `garmin_daily_extensions.py` (428줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
 ### `garmin_helpers.py` (104줄) — Garmin 동기화 공통 헬퍼.
 
 - (public API 없음)
+
+### `garmin_ref_parsers.py` (52줄) — Garmin 참조값 파서(순수) — 젖산역치(LTHR·역치속도·FTP)와 레이스 예측 payload → 날짜별 값(P7-PRED-25).
+
+- functions: parse_lactate_threshold, parse_race_predictions
+
+### `garmin_ref_sync.py` (85줄) — Garmin 참조값 동기화(P7-PRED-25) — 젖산역치(LTHR·역치속도) 일별 스냅샷, 레이스 예측 일별 스냅샷 + 이력 백필.
+
+- functions: sync_lactate_threshold, sync_race_predictions, backfill_history
 
 ### `garmin_v2_mappings.py` (283줄) — Garmin → activity_summaries v2.5 필드 매핑 정의.
 
@@ -620,7 +665,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (488줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (494줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
@@ -955,9 +1000,17 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
-### `matcher.py` (365줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `matcher.py` (368줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
+
+### `outcome_store.py` (46줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
+
+- functions: update_outcome_v2
+
+### `outcome_v2.py` (81줄) — 계획↔실행 세그먼트 비교(순수, P7-PRED-42) — 계획 단계 구조(structure_json)와 실행 bout(classifier v2 json)를 맞춰 이행률 산출.
+
+- functions: expand_work, compare, prediction_note
 
 ### `planner.py` (304줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
@@ -1012,7 +1065,7 @@
 
 - functions: encrypt_config_credentials, decrypt_config_credentials, generate_key
 
-### `daniels_table.py` (242줄) — Jack Daniels VDOT 룩업 테이블 — Running Formula 3rd Edition 기반.
+### `daniels_table.py` (146줄) — Jack Daniels VDOT 유틸 — 훈련 페이스·레이스 시간은 Daniels–Gilbert 공식(`metrics/prediction/daniels.py`)으로 계산,
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
@@ -1036,11 +1089,11 @@
 
 - functions: get_group_for_metric, get_group_members
 
-### `metric_priority.py` (138줄) — RunPulse 메트릭 우선순위 해소 (Provider Priority Resolution) v0.3
+### `metric_priority.py` (139줄) — RunPulse 메트릭 우선순위 해소 (Provider Priority Resolution) v0.3
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (509줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (522줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1105,19 +1158,20 @@
 
 - functions: mem_conn, seed_run, seed_laps
 
-### `test_activity_calcs.py` (146줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
+### `test_activity_calcs.py` (172줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
 - class **TestDecoupling**: test_with_streams, test_too_short, test_no_streams
 - class **TestGAP**: test_with_streams, test_no_streams
 - class **TestClassifier**: test_easy_run, test_long_run, test_non_running
 - class **TestVDOT**: test_compute, test_too_short, test_non_running
 - class **TestEF**: test_compute, test_no_hr
+- class **TestClassifierV2Segments**: test_interval_from_laps, test_continuous_tempo_auto_laps
 
-### `test_activity_core_sanitize.py` (89줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
+### `test_activity_core_sanitize.py` (96줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
 
 - class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
-- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_extreme_ratio_is_capped, test_zero_ctl_returns_empty
+- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
 
 ### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
@@ -1204,6 +1258,10 @@
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
+
+### `test_api_prediction.py` (55줄) — P7-PRED-53·71: 예측 비교·대회 확인 API.
+
+- functions: client, test_compare, test_profile, test_confirm_flow
 
 ### `test_api_today.py` (163줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
@@ -1338,19 +1396,31 @@
 - class **TestRMR**: test_with_wellness, test_no_data
 - class **TestADTI**: test_with_ctl_series, test_insufficient_data
 
-### `test_daily_calcs.py` (110줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
+### `test_daily_calcs.py` (111줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
 
 - class **TestPMC**: test_compute, test_no_data
 - class **TestACWR**: test_compute, test_no_ctl
 - class **TestLSI**: test_compute, test_no_today
 - class **TestMonotony**: test_compute, test_no_data
 
-### `test_daniels_table.py` (78줄) — daniels_table 유틸리티 테스트.
+### `test_daniels_kalman.py` (33줄) — P7-PRED-20: Daniels–Gilbert 공식·강도 구간·세트 등가 지속시간, 로컬 레벨 칼만(순수).
+
+- functions: test_formula_anchors, test_zone_order, test_equivalent_minutes_rest_ratio, test_kalman_weights_and_decay
+
+### `test_daniels_table.py` (75줄) — daniels_table 유틸리티 테스트.
 
 - class **TestTrainingPaces**: test_vdot_50_paces, test_interpolation, test_boundary_low, test_boundary_high
 - class **TestRacePredictions**: test_vdot_50_predictions, test_sub3_marathon
 - class **TestVolume**: test_marathon_volume, test_race_volume_half, test_race_volume_10k
 - class **TestTpaceConversion**: test_vdot_to_t_pace, test_t_pace_to_vdot_roundtrip, test_t_pace_to_vdot_interpolated
+
+### `test_darp_r4.py` (114줄) — P7-PRED-51: DARP r4 섀도 — 칼만 결합, 비대칭·유지 앵커 변형, T0 동작, 섀도는 primary 가 아님.
+
+- functions: test_path_c_kalman_combination, test_shadow_providers_never_primary, test_asym_maint_variant, test_maint_loss_only_when_ctl_drops, test_t0_without_heart_rate, test_no_data_returns_empty, test_paced_race_is_lower_bound_not_anchor, test_auto_effort_by_duration
+
+### `test_darp_v2.py` (77줄) — P7-PRED-51: DARP v2 (c)/(b) 경로.
+
+- functions: test_path_c_values, test_path_b_needs_ref, test_pairs_same_distance_skipped, test_5k_best_effort_signal
 
 ### `test_dashboard_service.py` (200줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
 
@@ -1398,6 +1468,10 @@
 - class **TestDedup**: test_same_activity_different_sources, test_different_activities_not_grouped, test_same_source_not_grouped, test_distance_threshold_exceeded, test_three_sources_same_activity, test_no_distance_falls_back_to_time, test_one_sided_zero_distance_not_grouped, test_preserves_existing_groups_on_rerun, test_third_source_joins_existing_group
 - class **TestActivityGroupsUpsert**: test_assign_group_id_creates_activity_group, test_auto_group_all_creates_activity_groups, test_primary_source_priority, test_activity_groups_updated_on_rerun
 
+### `test_di_v2.py` (28줄) — P7-PRED-89: DI v2 — 랩 기반 후반 효율 유지율, 상한 없음.
+
+- functions: test_drift_lowers_di_and_no_cap, test_short_runs_empty
+
 ### `test_doc_sync.py` (97줄) — 문서 동기화 검증 테스트.
 
 - class **TestMetricDictionarySync**: setup, test_dictionary_exists, test_calculator_count_matches, test_group_count_matches, test_all_calculators_documented, test_all_groups_documented, test_no_outdated_table_count
@@ -1406,7 +1480,7 @@
 
 - class **TestEFTP**: test_from_vdot, test_no_vdot, test_confidence
 
-### `test_engine.py` (194줄) — Metrics Engine 통합 테스트.
+### `test_engine.py` (209줄) — Metrics Engine 통합 테스트.
 
 - class **TestTopologicalSort**: test_trimp_before_hrss, test_pmc_before_acwr, test_acwr_before_cirs, test_all_calculators_included
 - class **TestRunActivityMetrics**: test_produces_metrics, test_metrics_in_store
@@ -1433,6 +1507,10 @@
 - class **TestDistanceUnit**: test_distance_key_is_meters
 - class **TestSecondsHelper**: test_already_seconds, test_milliseconds_conversion, test_none_returns_none, test_boundary_86400, test_exactly_86400, test_float_input
 - class **TestCrossExtractorConsistency**: test_all_extractors_registered, test_all_have_unique_source, test_source_field_matches_class_source, test_activity_type_is_normalized, test_source_url_contains_source_id, test_all_extractors_inherit_base, test_pace_sec_km_reasonable, test_duration_sec_reasonable
+
+### `test_fearp_v2.py` (10줄) — P7-PRED-90: fearp v2 — 외기·이슬점 보정, 기기 온도 미사용.
+
+- functions: test_heat_penalty_table
 
 ### `test_fixture_loader.py` (17줄)
 
@@ -1493,6 +1571,15 @@
 - class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
 - class **TestTokenOnlyMode**: test_saves_token_locally
 
+### `test_garmin_ref_parsers.py` (25줄) — P7-PRED-25: Garmin 참조값 파서.
+
+- functions: test_lt_latest_shape, test_lt_history_list_and_garbage, test_race_predictions_latest_and_history
+
+### `test_garmin_ref_sync.py` (41줄) — P7-PRED-25: Garmin 참조값 동기화(가짜 클라이언트).
+
+- class **FakeClient**: get_lactate_threshold, get_race_predictions
+- functions: test_snapshots, test_history_and_failure
+
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
 - class **TestGarminWellnessSync**: test_sync_one_day, test_resync_updates_partial_day_values, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
@@ -1500,6 +1587,14 @@
 ### `test_goals.py` (116줄) — goals.py 테스트.
 
 - functions: test_add_goal_returns_id, test_get_goal, test_get_goal_not_found, test_list_goals_active_default, test_list_goals_all, test_get_active_goal_returns_latest, test_get_active_goal_none_when_empty, test_update_goal, test_update_goal_invalid_field, test_complete_goal, test_cancel_goal, test_complete_nonexistent_goal, test_cancel_nonexistent_goal, test_list_goals_empty, test_add_goal_minimal
+
+### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
+
+- functions: test_ols_exact, test_few_points_returns_default, test_shrinkage_toward_truth
+
+### `test_hr_profile.py` (45줄) — P7-PRED-24: HR 프로필 자체 추정 + 참조값.
+
+- functions: test_second_part_hr, test_self_profile_from_race, test_fallback_and_ref
 
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
@@ -1549,9 +1644,10 @@
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
 
-### `test_marathon_shape.py` (83줄)
+### `test_marathon_shape.py` (93줄)
 
-- class **TestMarathonShape**: test_with_data, test_no_vdot, test_json_structure
+- class **TestMarathonShape**: test_with_data, test_no_vdot, test_goal_basis_and_unreachable
+- functions: test_tanda_required_roundtrip
 
 ### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
 
@@ -1561,7 +1657,7 @@
 - class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
 - functions: db_path
 
-### `test_metric_naming.py` (51줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
+### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 
@@ -1611,6 +1707,14 @@
 
 - class **TestFullSync**: test_no_clients_all_skipped, test_garmin_sync_records_job, test_multi_source_sync, test_dedup_runs_after_sync, test_sync_jobs_have_dates
 
+### `test_outcome_store.py` (38줄) — P7-PRED-43: 매칭 → 세그먼트 이행률 저장.
+
+- functions: test_structured_plan_gets_compliance, test_unstructured_plan_keeps_legacy_label
+
+### `test_outcome_v2.py` (45줄) — P7-PRED-42: 계획↔실행 세그먼트 비교.
+
+- functions: test_expand, test_full_on_target, test_five_of_six_sets, test_slow_and_short, test_fast, test_skipped_and_note
+
 ### `test_pace.py` (74줄) — pace 유틸리티 테스트.
 
 - class **TestSecondsToPace**: test_even_minutes, test_with_seconds, test_single_digit_seconds, test_fast_pace
@@ -1632,7 +1736,7 @@
 - class **TestRealDbDefault**: test_existing_tables, test_migrate_creates_new_tables, test_existing_data_preserved, test_schema_version_updated
 - class **TestRealDbUser**: test_has_real_data, test_migrate_preserves_data, test_migrate_adds_metric_store, test_source_payloads_exist, test_source_distribution, test_canonical_view_after_migrate, test_daily_wellness_has_data, test_db_summary
 
-### `test_phase4_dod.py` (324줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
+### `test_phase4_dod.py` (326줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
 
 - class **TestDoD1**: test_19_calculators, test_calculator_names
 - class **TestDoD2**: test_full_chain
@@ -1669,9 +1773,37 @@
 
 - functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
 
+### `test_pred_backtest.py` (19줄) — P7-PRED-62: 수용 백테스트 스크립트 — 대회 없음이면 n=0.
+
+- functions: test_no_races
+
 ### `test_pred_schema_v20.py` (46줄) — P7-PRED-11: 스키마 v20 컬럼·race_results·session_outcomes 유일 제약.
 
 - functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
+
+### `test_prediction_compare.py` (68줄) — P7-PRED-71: 3경로 비교 서비스.
+
+- functions: test_three_rows_and_notes, test_missing_paths, test_race_hub_includes_compare, test_profile_reads_latest, test_shadow_candidates_only_when_present
+
+### `test_prediction_core.py` (72줄)
+
+- functions: test_vdot_roundtrip, test_temp, test_anchor_decay, test_best_block, test_combine, test_k_personal, test_convert_equals_daniels_at_k0, test_marathon, test_confidence_and_range, test_hr_profile, test_weather
+
+### `test_prediction_core_r4.py` (84줄) — P7-PRED-20·22: Daniels 공식·강도 역산, 칼만 결합, 예측 코어(r4).
+
+- functions: test_daniels_formula_and_zones, test_set_zone_and_equivalent_minutes, test_temp, test_k_personal_disjoint_pairs, test_distance_extrapolation, test_quality_multiplier, test_kalman_weights_and_add, test_summary_and_marathon, test_hr_profile_and_weather_helpers, test_kalman_low_mult_weakens_low_observations
+
+### `test_prediction_signals.py` (36줄) — P7-PRED-22: 예측 신호(순수).
+
+- functions: test_allout_rules, test_tanda_inputs, test_spread_pct
+
+### `test_prediction_signals_r4.py` (55줄) — P7-PRED-22: 예측 관측 생성(순수, r4).
+
+- functions: test_allout_rules, test_set_observation_device_free, test_observations_and_inputs
+
+### `test_prediction_snapshot.py` (64줄) — P7-PRED-63: 예측 스냅샷 기록·중복 억제·대회 전향 평가·요약.
+
+- functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
 ### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
@@ -1689,6 +1821,10 @@
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros
 
+### `test_race_effort.py` (39줄) — P7-PRED-22(r4 보강): 거리·지속시간별 전력 판정 — 이 러너 대회 값으로 검증(REVIEW-09 §10).
+
+- functions: test_runner_races, test_expected_ratio_monotone_and_t0, test_point_in_time_hrmax_and_proxy
+
 ### `test_race_hub_service.py` (282줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
 
 - functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context
@@ -1696,6 +1832,10 @@
 ### `test_race_projection_service.py` (72줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
 
 - functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb
+
+### `test_race_result_service.py` (35줄) — P7-PRED-53: 대회 확인 서비스.
+
+- functions: test_confirm_update_remove, test_validation, test_candidates
 
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
@@ -1726,6 +1866,10 @@
 
 - class **TestREC**: test_with_data, test_no_ef, test_category
 - class **TestRECPercentile**: test_recent_best_is_high
+
+### `test_recompute_all_range.py` (31줄) — P7-PRED-87: recompute_all 이 재계산 범위 밖 이력을 지우지 않는다.
+
+- functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history
 
 ### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
 
@@ -1766,7 +1910,7 @@
 - class **TestRRI**: test_with_all_inputs, test_high_cirs_lowers_rri, test_no_vdot, test_category
 - class **TestRRIMock**: test_with_all_inputs_mock, test_no_vdot_mock
 
-### `test_rtti.py` (102줄)
+### `test_rtti.py` (103줄)
 
 - class **TestRTTI**: test_optimal, test_overload, test_no_data, test_category
 - class **TestRTTIMock**: test_optimal_mock, test_no_data_mock
@@ -1781,9 +1925,13 @@
 
 - class **TestRunalyzeSync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_token, test_sync_dict_response, test_metrics_stored
 
-### `test_sapi.py` (112줄)
+### `test_sapi.py` (114줄)
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
+
+### `test_segments.py` (99줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
+
+- functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair
 
 ### `test_strava_extractor.py` (98줄) — Strava Extractor 단위 테스트.
 
@@ -1812,6 +1960,10 @@
 ### `test_teroi.py` (85줄)
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
+
+### `test_tids_time.py` (18줄) — P7-PRED-88: TIDS 시간 기준.
+
+- functions: test_time_based_distribution_and_patterns
 
 ### `test_today_service.py` (404줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
@@ -1849,6 +2001,10 @@
 ### `test_training_phase_g.py` (218줄) — Phase G: 목표 관리 개선 테스트 (G-1 ~ G-4).
 
 - functions: initialize_db, conn, test_load_goals_with_stats_empty, test_load_goals_with_stats_counts, test_load_goals_with_stats_status_all, test_render_goals_panel_empty, test_render_goals_panel_with_goals, test_render_goals_panel_d_day, test_load_goal_weeks, test_render_goal_detail_html, test_render_goal_detail_no_delete_for_cancelled, test_goal_date_range_with_race_date, test_goal_date_range_with_plan_weeks, test_import_all
+
+### `test_training_response.py` (35줄) — P7-PRED-41: 훈련 반응 r4(세트 기반, 기기 불필요).
+
+- functions: test_weekly_zone_minutes_and_summary, test_set_trend_needs_4, test_long_mp_km
 
 ### `test_training_workout_edit.py` (204줄) — Phase D: 워크아웃 편집 AJAX 라우트 테스트.
 
@@ -1897,10 +2053,6 @@
 - class **TestRunAll**: test_returns_12_results, test_all_have_valid_status, test_check_result_fields
 - functions: empty_conn, populated_conn
 
-### `test_vdot_adj.py` (71줄)
-
-- class **TestVDOTAdj**: test_passthrough, test_no_vdot, test_confidence
-
 ### `test_vdot_guard.py` (19줄) — P7-PRED-84: runpulse_vdot moving_time 붕괴 가드.
 
 - functions: test_normal_value, test_collapsed_moving_time_rejected
@@ -1914,6 +2066,15 @@
 - class **TestMFA**: test_expired_session_returns_error, test_mfa_submit_calls_resume_login, test_empty_mfa_code_redirects_back, test_mfa_resume_exception_returns_error
 - class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
 - functions: garmin_app
+
+### `test_weather_ingest.py` (57줄) — P7-PRED-32: 활동 기상 인제스트·캐시·폴백·충돌.
+
+- class **FakeGet**: 없음
+- functions: test_ingest_open_meteo_then_cache_hit, test_offline_falls_back_to_device_and_retries_later, test_no_coords_no_device, test_conflict_flag
+
+### `test_weather_provider.py` (25줄) — P7-PRED-86: Open-Meteo 단일 클라이언트(provider.py) — 요청 파라미터·보간·WBGT.
+
+- functions: test_request_params_archive_vs_forecast, test_at_time_interpolates_and_wbgt
 
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
@@ -1964,8 +2125,12 @@
 
 - functions: generate, get_structural_fingerprint
 
+### `pred_backtest.py` (102줄) — 예측 v2 수용 백테스트(P7-PRED-62) — 실DB 를 읽기 전용으로 열어 메모리에 복제한 뒤, 전력 대회마다 D-0/D-28 시점
+
+- functions: backtest, backtest_all, main
+
 ---
-총 389개 파일
+총 427개 파일
 
 ## docstring 누락
 
@@ -1976,6 +2141,7 @@
 - `tests/test_fixture_loader.py`
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
+- `tests/test_prediction_core.py`
 - `tests/test_rec.py`
 - `tests/test_relative_effort.py`
 - `tests/test_rri.py`
@@ -1983,5 +2149,4 @@
 - `tests/test_sapi.py`
 - `tests/test_teroi.py`
 - `tests/test_tpdi.py`
-- `tests/test_vdot_adj.py`
 - `tests/test_wlei.py`

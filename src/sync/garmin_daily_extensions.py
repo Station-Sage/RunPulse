@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from src.utils.db_helpers import upsert_metric
 from src.sync.garmin_helpers import _store_raw_payload, _upsert_daily_detail_metric
+from src.sync.garmin_ref_sync import sync_lactate_threshold, sync_race_predictions
 
 if TYPE_CHECKING:
     from garminconnect import Garmin
@@ -18,31 +19,8 @@ def sync_daily_race_predictions(
     client: "Garmin",
     date_str: str,
 ) -> None:
-    """Garmin 레이스 예측 시간 → daily_detail_metrics."""
-    try:
-        data = client.get_race_predictions()
-    except Exception as e:
-        print(f"[garmin] race_predictions 실패 {date_str}: {e}")
-        return
-
-    if not data:
-        return
-
-    _store_raw_payload(conn, "race_predictions", date_str, data)
-
-    predictions = data if isinstance(data, dict) else {}
-    metrics = {
-        "race_pred_5k_sec": predictions.get("time5K"),
-        "race_pred_10k_sec": predictions.get("time10K"),
-        "race_pred_half_sec": predictions.get("timeHalfMarathon"),
-        "race_pred_marathon_sec": predictions.get("timeMarathon"),
-    }
-    for k, v in metrics.items():
-        if v is not None:
-            try:
-                _upsert_daily_detail_metric(conn, date_str, k, metric_value=float(v))
-            except (TypeError, ValueError):
-                pass
+    """Garmin 레이스 예측 스냅샷 → metric_store daily(provider garmin). 파싱은 garmin_ref_sync(P7-PRED-25)."""
+    sync_race_predictions(conn, client, date_str)
 
 
 def sync_daily_training_status(
@@ -159,24 +137,8 @@ def sync_daily_fitness_metrics(
     except Exception:
         pass
 
-    # Lactate Threshold (글로벌 값 — 날짜별 API 없음, 당일 date_str로 저장)
-    try:
-        lt = client.get_lactate_threshold()
-        if lt:
-            _store_raw_payload(conn, "lactate_threshold_day", date_str, lt)
-            ftp = lt.get("functionalThresholdPower")
-            lthr_dto = lt.get("lactateThresholdHeartRate") or {}
-            lthr = lthr_dto.get("heartRate") or lt.get("heartRate")
-            if ftp is not None:
-                _upsert_daily_detail_metric(
-                    conn, date_str, "garmin_ftp", metric_value=float(ftp)
-                )
-            if lthr is not None:
-                _upsert_daily_detail_metric(
-                    conn, date_str, "garmin_lthr", metric_value=float(lthr)
-                )
-    except Exception:
-        pass
+    # Lactate Threshold — 측정일 기준 lthr_ref·lt_speed_ref·garmin_ftp (P7-PRED-25; 기존 파싱은 키 경로 오류로 0건)
+    sync_lactate_threshold(conn, client, date_str)
 
 
 def sync_daily_user_summary(

@@ -11,6 +11,7 @@ def _conn():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     create_tables(conn)
+    upsert_metric(conn, "daily", "2026-03-04", "ctl", "runpulse:formula_v1", numeric_value=40.0)   # 28일 전 CTL(P7-PRED-89)
     return conn
 
 

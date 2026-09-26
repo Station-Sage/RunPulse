@@ -181,10 +181,10 @@ def empty_conn():
 
 @pytest.fixture
 def populated_conn(empty_conn):
-    """VDOT_ADJ=45, DI=60, RTTI=85 데이터가 있는 DB."""
+    """race_pred_vdot=45, DI=60, RTTI=85 데이터가 있는 DB."""
     today = date.today().isoformat()
     rows = [
-        ("daily", today, "VDOT_ADJ", 45.0),
+        ("daily", today, "race_pred_vdot", 45.0),
         ("daily", today, "DI",       60.0),
         ("daily", today, "RTTI",     85.0),
     ]

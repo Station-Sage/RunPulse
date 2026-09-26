@@ -144,3 +144,29 @@ class TestEF:
         aid = _seed_activity(conn, avg_hr=None)
         ctx = CalcContext(conn=conn, scope_type="activity", scope_id=str(aid))
         assert EfficiencyFactorCalculator().compute(ctx) == []
+
+
+class TestClassifierV2Segments:
+    """P7-PRED-23: 랩 구조 기반 v2."""
+
+    def _laps(self, conn, aid, laps):
+        for i, (d, s, hr, it) in enumerate(laps):
+            conn.execute("INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, duration_sec, avg_hr, max_hr, lap_trigger)"
+                         " VALUES (?,?,?,?,?,?,?,?)", (aid, "garmin", i, d, s, hr, hr + 5, it))
+        conn.commit()
+
+    def test_interval_from_laps(self):
+        conn = _conn()
+        aid = _seed_activity(conn, distance_m=11300, moving_time_sec=4500)
+        laps = [(2000, 720, 130, "WARMUP")] + [(1000, 250, 165, "ACTIVE"), (300, 120, 140, "RECOVERY")] * 6 + [(1500, 540, 135, "COOLDOWN")]
+        self._laps(conn, aid, laps)
+        res = WorkoutClassifier().compute(CalcContext(conn=conn, scope_type="activity", scope_id=str(aid)))
+        data = json.loads(res[0].json_value)
+        assert res[0].text_value == "interval" and data["sets"]["n_sets"] == 6 and data["source"] == "laps"
+
+    def test_continuous_tempo_auto_laps(self):
+        conn = _conn()
+        aid = _seed_activity(conn, distance_m=7000, moving_time_sec=2350)
+        self._laps(conn, aid, [(1000, 360, 135, None), (1000, 355, 138, None)] + [(1000, 262, 170, None)] * 4 + [(1000, 370, 150, None)])
+        res = WorkoutClassifier().compute(CalcContext(conn=conn, scope_type="activity", scope_id=str(aid)))
+        assert res[0].text_value == "tempo"

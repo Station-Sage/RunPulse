@@ -218,7 +218,7 @@ def _exec_get_runner_profile(conn: sqlite3.Connection, args: dict) -> dict:
         "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
     ).fetchone()
     if vdot_row and vdot_row[0]:
-        from src.metrics.daniels_table import get_training_paces
+        from src.utils.daniels_table import get_training_paces
         paces = get_training_paces(float(vdot_row[0]))
         profile["training_paces"] = {
             k: f"{v // 60}:{v % 60:02d}/km" for k, v in paces.items()
