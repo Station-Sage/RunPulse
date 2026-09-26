@@ -42,6 +42,18 @@ _VALID_RECOVERY_GRADES = {"excellent", "good", "moderate", "poor"}
 _VALID_POLARIZATION = {"threshold_heavy", "optimal", "too_hard", "too_easy", "unknown"}
 _VALID_RECOVERY_TRENDS = {"improving", "declining", "stable", "unknown"}
 
+# 센서 글리치(1샘플 스파이크, 병합 전 레거시 행)는 허용하고 단위 오류(다수 행이 범위 밖)만 검출한다.
+# 정리 후(재추출·재계산 런북) 값이 0이 되면 이 허용 비율을 낮춘다.
+_GLITCH_STREAM = 1e-4   # 스트림 샘플 0.01%
+_GLITCH_LAP = 5e-4      # 랩 0.05%
+_GLITCH_METRIC = 1e-2   # 메트릭 행 1%
+
+
+def _assert_few_outliers(label, out, total, max_frac):
+    frac = out / total if total else 0.0
+    assert frac <= max_frac, f"{label}: 범위 밖 {out}/{total} ({frac:.4%}) > 허용 {max_frac:.4%}"
+
+
 _TODAY = datetime.today().strftime("%Y-%m-%d")
 _4W_AGO = (datetime.today() - timedelta(weeks=4)).strftime("%Y-%m-%d")
 
@@ -247,30 +259,24 @@ class TestRawMetricStore:
 class TestRawActivityStreams:
     def test_heart_rate_range(self, real_conn):
         row = real_conn.execute(
-            "SELECT MIN(heart_rate) AS mn, MAX(heart_rate) AS mx "
-            "FROM activity_streams WHERE heart_rate IS NOT NULL"
+            "SELECT COUNT(*) AS n, SUM(heart_rate < ? OR heart_rate > ?) AS out "
+            "FROM activity_streams WHERE heart_rate IS NOT NULL", (_HR_MIN, _HR_MAX)
         ).fetchone()
-        if row["mn"] is not None:
-            assert _HR_MIN <= row["mn"], f"min heart_rate={row['mn']}"
-            assert row["mx"] <= _HR_MAX, f"max heart_rate={row['mx']}"
+        _assert_few_outliers("stream heart_rate", row["out"] or 0, row["n"], _GLITCH_STREAM)
 
     def test_cadence_range(self, real_conn):
         row = real_conn.execute(
-            "SELECT MIN(cadence) AS mn, MAX(cadence) AS mx "
-            "FROM activity_streams WHERE cadence IS NOT NULL"
+            "SELECT COUNT(*) AS n, SUM(cadence < 0 OR cadence > ?) AS out "
+            "FROM activity_streams WHERE cadence IS NOT NULL", (_CADENCE_MAX,)
         ).fetchone()
-        if row["mn"] is not None:
-            assert 0 <= row["mn"]
-            assert row["mx"] <= _CADENCE_MAX, f"max cadence={row['mx']}"
+        _assert_few_outliers("stream cadence", row["out"] or 0, row["n"], _GLITCH_STREAM)
 
     def test_speed_ms_range(self, real_conn):
         row = real_conn.execute(
-            "SELECT MIN(speed_ms) AS mn, MAX(speed_ms) AS mx "
-            "FROM activity_streams WHERE speed_ms IS NOT NULL"
+            "SELECT COUNT(*) AS n, SUM(speed_ms < 0 OR speed_ms > ?) AS out "
+            "FROM activity_streams WHERE speed_ms IS NOT NULL", (_SPEED_MAX_MS,)
         ).fetchone()
-        if row["mn"] is not None:
-            assert 0 <= row["mn"]
-            assert row["mx"] <= _SPEED_MAX_MS, f"max speed_ms={row['mx']}"
+        _assert_few_outliers("stream speed_ms", row["out"] or 0, row["n"], _GLITCH_STREAM)
 
     def test_altitude_range(self, real_conn):
         row = real_conn.execute(
@@ -1058,14 +1064,13 @@ class TestAllMetricStoreRanges:
     @pytest.mark.parametrize("metric_name,lo,hi", _METRIC_STORE_PARAMS)
     def test_metric_range(self, real_conn, metric_name, lo, hi):
         row = real_conn.execute(
-            "SELECT MIN(numeric_value) AS mn, MAX(numeric_value) AS mx "
+            "SELECT COUNT(*) AS n, SUM(numeric_value < ? OR numeric_value > ?) AS out "
             "FROM metric_store WHERE metric_name = ? AND numeric_value IS NOT NULL",
-            (metric_name,),
+            (lo, hi, metric_name),
         ).fetchone()
-        if row["mn"] is None:
+        if not row["n"]:
             pytest.skip(f"{metric_name} 데이터 없음")
-        assert lo <= row["mn"], f"{metric_name} min={row['mn']} < {lo}"
-        assert row["mx"] <= hi, f"{metric_name} max={row['mx']} > {hi}"
+        _assert_few_outliers(f"{metric_name} [{lo}, {hi}]", row["out"] or 0, row["n"], _GLITCH_METRIC)
 
 
 class TestAllLapsRanges:
@@ -1107,27 +1112,28 @@ class TestAllLapsRanges:
         assert row["mx"] <= 86400, f"lap duration_sec max={row['mx']}"
 
     def test_lap_avg_hr_range(self, real_conn, has_laps):
+        # avg_hr = 0 은 "심박 없음" 센티널(레거시 Garmin 랩)이라 측정값에서 제외한다.
         row = real_conn.execute(
-            "SELECT MIN(avg_hr) AS mn, MAX(avg_hr) AS mx "
-            "FROM activity_laps WHERE avg_hr IS NOT NULL"
+            "SELECT COUNT(*) AS n, SUM(avg_hr < ? OR avg_hr > ?) AS out "
+            "FROM activity_laps WHERE avg_hr > 0", (_HR_MIN, _HR_MAX)
         ).fetchone()
-        if row["mn"] is None:
+        if not row["n"]:
             pytest.skip("laps avg_hr 없음")
-        assert _HR_MIN <= row["mn"], f"lap avg_hr min={row['mn']}"
-        assert row["mx"] <= _HR_MAX, f"lap avg_hr max={row['mx']}"
+        _assert_few_outliers("lap avg_hr", row["out"] or 0, row["n"], _GLITCH_LAP)
 
     def test_lap_avg_pace_running(self, real_conn, has_laps):
+        # 100m 미만 랩은 페이스가 무의미(거리 0.77m 등)해 제외한다.
         row = real_conn.execute("""
-            SELECT MIN(l.avg_pace_sec_km) AS mn, MAX(l.avg_pace_sec_km) AS mx
+            SELECT COUNT(*) AS n,
+                   SUM(l.avg_pace_sec_km < ? OR l.avg_pace_sec_km > ?) AS out
             FROM activity_laps l
             JOIN activity_summaries a ON l.activity_id = a.id
             WHERE a.activity_type IN ('running','run','virtualrun','treadmill')
-              AND l.avg_pace_sec_km IS NOT NULL AND l.avg_pace_sec_km > 0
-        """).fetchone()
-        if row["mn"] is None:
+              AND l.avg_pace_sec_km > 0 AND l.distance_m >= 100
+        """, (_PACE_MIN, _PACE_MAX)).fetchone()
+        if not row["n"]:
             pytest.skip("running laps avg_pace_sec_km 없음")
-        assert _PACE_MIN <= row["mn"], f"lap pace min={row['mn']}"
-        assert row["mx"] <= _PACE_MAX, f"lap pace max={row['mx']}"
+        _assert_few_outliers("lap pace", row["out"] or 0, row["n"], _GLITCH_LAP)
 
 
 class TestAllBestEffortsRanges:

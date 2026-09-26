@@ -42,8 +42,8 @@ def db_conn():
 
 def _copy_real_db(user_id: str):
     """실 DB를 temp로 복사하여 Connection 반환. 원본 없으면 None."""
-    db_path = get_db_path(user_id)
-    if not db_path.exists():
+    db_path = get_db_path(user_id, create=False)  # 조회만 — 없는 유저 디렉터리를 만들지 않는다
+    if not db_path.exists() or db_path.stat().st_size == 0:  # 0바이트 = 외부 도구가 만든 빈 파일
         return None
 
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
