@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 34 calculators | 13 semantic groups
+> 자동 생성 | 33 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (24개)
+## 3. Daily-Scope 메트릭 (23개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -640,29 +640,6 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-### VDOT 보정
-
-| 항목 | 값 |
-|------|-----|
-| Calculator ID | `vdot_adj` |
-| 메트릭 이름 | `vdot_adj` |
-| 설명 | 역치 페이스 기반 현재 체력 VDOT 보정값 |
-| 단위 | 무차원 |
-| 카테고리 | `capacity` |
-| 의존성 | `runpulse_vdot` |
-| 해석 | 높을수록 좋음 |
-
-**범위 해석:**
-
-| 등급 | 범위 | 의미 |
-|------|------|------|
-| beginner | 20 ~ 35 | 초보 |
-| intermediate | 35 ~ 45 | 중급 |
-| advanced | 45 ~ 55 | 상급 |
-| elite | 55 ~ 85 | 엘리트 |
-
----
-
 ### Marathon Shape
 
 | 항목 | 값 |
@@ -886,7 +863,6 @@ Daily-scope:
   fearp --> sapi
   runpulse_vdot + ctl + di + cirs --> rri
   runpulse_vdot --> eftp
-  runpulse_vdot --> vdot_adj
   runpulse_vdot --> marathon_shape
   acwr + tsb + cirs + utrs --> crs
 ```
@@ -895,7 +871,7 @@ Daily-scope:
 
 | 카테고리 | 한글명 | 포함 메트릭 |
 |----------|--------|------------|
-| `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `vdot_adj`, `marathon_shape` |
+| `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `marathon_shape` |
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
 | `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
 | `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |

@@ -190,14 +190,15 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (756줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (754줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
 
-### `fearp.py` (73줄) — FEARP (Fitness & Environment Adjusted Running Pace) — 설계서 4-4 기준.
+### `fearp.py` (76줄) — FEARP (Fitness & Environment Adjusted Running Pace) v2 — 외기 기온·이슬점·고도로 보정한 환경 보정 페이스(P7-PRED-90).
 
 - class **FEARPCalculator**: compute
+- functions: heat_penalty
 
 ### `gap.py` (71줄) — GAP (Grade Adjusted Pace) Calculator — 설계서 4-2 기준.
 
@@ -258,7 +259,7 @@
 
 - class **RTTICalculator**: compute
 
-### `sapi.py` (126줄) — SAPI (Seasonal-Adjusted Performance Index) — 계절·날씨 성과 비교.
+### `sapi.py` (104줄) — SAPI (Seasonal-Adjusted Performance Index) — 계절·날씨 성과 비교.
 
 - class **SAPICalculator**: compute
 
@@ -294,10 +295,6 @@
 ### `vdot.py` (69줄) — VDOT Calculator — 설계서 4-2 기준.
 
 - class **VDOTCalculator**: compute
-
-### `vdot_adj.py` (148줄) — VDOT_ADJ — 현재 체력 기반 VDOT 보정.
-
-- class **VDOTAdjCalculator**: compute
 
 ### `wlei.py` (80줄) — WLEI (Weather-Loaded Effort Index) — 날씨 가중 노력 지수.
 
@@ -1462,6 +1459,10 @@
 - class **TestSecondsHelper**: test_already_seconds, test_milliseconds_conversion, test_none_returns_none, test_boundary_86400, test_exactly_86400, test_float_input
 - class **TestCrossExtractorConsistency**: test_all_extractors_registered, test_all_have_unique_source, test_source_field_matches_class_source, test_activity_type_is_normalized, test_source_url_contains_source_id, test_all_extractors_inherit_base, test_pace_sec_km_reasonable, test_duration_sec_reasonable
 
+### `test_fearp_v2.py` (10줄) — P7-PRED-90: fearp v2 — 외기·이슬점 보정, 기기 온도 미사용.
+
+- functions: test_heat_penalty_table
+
 ### `test_fixture_loader.py` (17줄)
 
 - functions: test_fixture_root_exists, test_fixture_path_resolves_readme, test_read_text_fixture_reads_readme
@@ -1850,7 +1851,7 @@
 
 - class **TestRunalyzeSync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_token, test_sync_dict_response, test_metrics_stored
 
-### `test_sapi.py` (112줄)
+### `test_sapi.py` (114줄)
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
 
@@ -1974,10 +1975,6 @@
 - class **TestRunAll**: test_returns_12_results, test_all_have_valid_status, test_check_result_fields
 - functions: empty_conn, populated_conn
 
-### `test_vdot_adj.py` (71줄)
-
-- class **TestVDOTAdj**: test_passthrough, test_no_vdot, test_confidence
-
 ### `test_vdot_guard.py` (19줄) — P7-PRED-84: runpulse_vdot moving_time 붕괴 가드.
 
 - functions: test_normal_value, test_collapsed_moving_time_rejected
@@ -2051,7 +2048,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 409개 파일
+총 408개 파일
 
 ## docstring 누락
 
@@ -2070,5 +2067,4 @@
 - `tests/test_sapi.py`
 - `tests/test_teroi.py`
 - `tests/test_tpdi.py`
-- `tests/test_vdot_adj.py`
 - `tests/test_wlei.py`

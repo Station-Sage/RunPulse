@@ -40,12 +40,12 @@ def _km_to_label(distance_km: float) -> str:
 
 
 def _get_current_vdot(conn: sqlite3.Connection) -> float | None:
-    """metric_store에서 최근 30일 이내 가장 최근 VDOT_ADJ 조회."""
+    """metric_store에서 최근 30일 이내 가장 최근 VDOT 조회(race_pred_vdot — vdot_adj 폐기, P7-PRED-90)."""
     since = (date.today() - timedelta(days=30)).isoformat()
     today = date.today().isoformat()
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='VDOT_ADJ' AND scope_type='daily' AND is_primary=1"
+        " WHERE metric_name='race_pred_vdot' AND scope_type='daily' AND is_primary=1"
         "   AND scope_id<=? AND scope_id>=? AND numeric_value IS NOT NULL"
         " ORDER BY scope_id DESC LIMIT 1",
         (today, since),

@@ -48,7 +48,6 @@ from src.metrics.critical_power import CriticalPowerCalculator
 from src.metrics.sapi import SAPICalculator
 from src.metrics.rri import RRICalculator
 from src.metrics.eftp import EFTPCalculator
-from src.metrics.vdot_adj import VDOTAdjCalculator
 from src.metrics.marathon_shape import MarathonShapeCalculator
 from src.metrics.crs import CRSCalculator
 
@@ -107,7 +106,6 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     SAPICalculator(),
     RRICalculator(),
     EFTPCalculator(),
-    VDOTAdjCalculator(),
     MarathonShapeCalculator(),
     CRSCalculator(),
 ]

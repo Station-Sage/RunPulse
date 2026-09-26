@@ -25,7 +25,7 @@ def _insert_vdot(conn, vdot: float, days_ago: int = 0):
     conn.execute(
         "INSERT INTO metric_store "
         "(metric_name, scope_type, scope_id, numeric_value, is_primary, provider) "
-        "VALUES ('VDOT_ADJ', 'daily', ?, ?, 1, 'test')",
+        "VALUES ('race_pred_vdot', 'daily', ?, ?, 1, 'test')",
         (day, vdot),
     )
     conn.commit()
