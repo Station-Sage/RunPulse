@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 32 calculators | 13 semantic groups
+> 자동 생성 | 33 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -116,7 +116,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `workout_type_classified` |
 | 메트릭 이름 | `workout_type_classified` |
-| 설명 | 거리, 심박, 존 분포 기반 규칙 분류. |
+| 설명 | 랩·스트림 세그먼트(작업/휴식/세트) 기반 세션 유형. |
 | 단위 | 무차원 |
 | 카테고리 | `meta` |
 | 의존성 | 소스 데이터 직접 사용 |
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (22개)
+## 3. Daily-Scope 메트릭 (23개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -361,6 +361,19 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
+### 심박 프로필
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `hr_profile` |
+| 메트릭 이름 | `hr_profile`, `hrmax_self`, `lthr_self` |
+| 설명 | 최대심박·젖산역치심박(LTHR)·안정심박과 두 존 체계(HRR·LTHR). 자체 추정과 기기 참조값을 함께 제공. |
+| 단위 | bpm |
+| 카테고리 | `hr` |
+| 의존성 | 소스 데이터 직접 사용 |
+
+---
+
 ### 레이스 예측 (DARP)
 
 | 항목 | 값 |
@@ -381,10 +394,10 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `tids` |
 | 메트릭 이름 | `tids` |
-| 설명 | 8주간 훈련 강도 분포. polarized/threshold/pyramidal/mixed. |
+| 설명 | 8주 러닝 시간의 3구간(마라톤 페이스 미만·마라톤~역치·역치 이상) 분포와 패턴(polarized/threshold/pyramidal/mixed). |
 | 단위 | 무차원 |
 | 카테고리 | `load` |
-| 의존성 | `workout_type_classified` |
+| 의존성 | `race_pred_vdot` |
 
 ---
 
@@ -846,8 +859,9 @@ Daily-scope:
   tsb --> utrs, utrs_body_battery, utrs_tsb, utrs_sleep, utrs_hrv, utrs_stress
   acwr + lsi + ctl + tsb --> cirs, cirs_acwr, cirs_lsi, cirs_consecutive, cirs_fatigue
   (소스 직접) --> di
+  (소스 직접) --> hr_profile, hrmax_self, lthr_self
   runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
-  workout_type_classified --> tids
+  race_pred_vdot --> tids
   tsb --> rmr
   ctl --> adti
   ctl + trimp --> teroi
@@ -869,6 +883,7 @@ Daily-scope:
 |----------|--------|------------|
 | `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `vdot_adj`, `marathon_shape` |
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
+| `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
 | `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
 | `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
