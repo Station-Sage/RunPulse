@@ -100,6 +100,10 @@
 
 - functions: project_race_form
 
+### `race_result_service.py` (62줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+
+- functions: confirm, remove, get, candidates
+
 ### `today_service.py` (311줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
@@ -1805,6 +1809,10 @@
 
 - functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb
 
+### `test_race_result_service.py` (35줄) — P7-PRED-53: 대회 확인 서비스.
+
+- functions: test_confirm_update_remove, test_validation, test_candidates
+
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
 - class **TestRateLimitPolicy**: test_four_sources_defined, test_garmin_conservative, test_strava_window
@@ -2094,7 +2102,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 418개 파일
+총 420개 파일
 
 ## docstring 누락
 
