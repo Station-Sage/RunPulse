@@ -149,7 +149,7 @@
 
 - class **CIRSCalculator**: compute
 
-### `classifier.py` (120줄) — Workout Classifier — 설계서 4-2 기준.
+### `classifier.py` (107줄) — Workout Classifier v2 — 세그먼트(랩 구조) 기반 세션 유형 판정(REVIEW-07 r4, REVIEW-09 §3, P7-PRED-23).
 
 - class **WorkoutClassifier**: compute
 
@@ -1109,13 +1109,14 @@
 
 - functions: mem_conn, seed_run, seed_laps
 
-### `test_activity_calcs.py` (146줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
+### `test_activity_calcs.py` (172줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
 - class **TestDecoupling**: test_with_streams, test_too_short, test_no_streams
 - class **TestGAP**: test_with_streams, test_no_streams
 - class **TestClassifier**: test_easy_run, test_long_run, test_non_running
 - class **TestVDOT**: test_compute, test_too_short, test_non_running
 - class **TestEF**: test_compute, test_no_hr
+- class **TestClassifierV2Segments**: test_interval_from_laps, test_continuous_tempo_auto_laps
 
 ### `test_activity_core_sanitize.py` (89줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
 
