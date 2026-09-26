@@ -80,6 +80,10 @@
 
 - functions: get_static_plan_templates, create_plan_from_template
 
+### `prediction_compare_service.py` (88줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
+
+- functions: compare, profile
+
 ### `prediction_snapshot_service.py` (115줄) — 예측 스냅샷·전향 평가(P7-PRED-63) — 모델별(r3 기본·기기·r4 섀도·Garmin) 예측을 그날 값 그대로 보존하고,
 
 - functions: record_snapshots, evaluate_race, summary
@@ -96,7 +100,7 @@
 
 - functions: get_provider_status, get_provider_coverage
 
-### `race_hub_service.py` (186줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
+### `race_hub_service.py` (188줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
 
@@ -1255,6 +1259,10 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
+### `test_api_prediction.py` (55줄) — P7-PRED-53·71: 예측 비교·대회 확인 API.
+
+- functions: client, test_compare, test_profile, test_confirm_flow
+
 ### `test_api_today.py` (163줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
 - functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local
@@ -1773,6 +1781,10 @@
 
 - functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
 
+### `test_prediction_compare.py` (68줄) — P7-PRED-71: 3경로 비교 서비스.
+
+- functions: test_three_rows_and_notes, test_missing_paths, test_race_hub_includes_compare, test_profile_reads_latest, test_shadow_candidates_only_when_present
+
 ### `test_prediction_core.py` (72줄)
 
 - functions: test_vdot_roundtrip, test_temp, test_anchor_decay, test_best_block, test_combine, test_k_personal, test_convert_equals_daniels_at_k0, test_marathon, test_confidence_and_range, test_hr_profile, test_weather
@@ -2118,7 +2130,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 424개 파일
+총 427개 파일
 
 ## docstring 누락
 
