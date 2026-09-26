@@ -39,3 +39,31 @@ def test_history_and_failure():
     assert _val(c, "race_pred_10k_sec", "2026-05-10") == 2585.0
     assert sync_race_predictions(c, FakeClient(fail=True), "2026-05-11") == 0
     assert backfill_history(c, FakeClient(fail=True), "2026-05-01", "2026-05-11") == {"race_parsed": 0, "lt_parsed": 0}
+
+
+class WindowClient:
+    """Garmin 이력 API 는 조회 기간이 366일을 넘으면 400 — 창 분할 검증."""
+
+    def __init__(self):
+        self.calls = []
+
+    def _check(self, s, e):
+        from datetime import date
+        assert (date.fromisoformat(e) - date.fromisoformat(s)).days <= 366, (s, e)
+        self.calls.append((s, e))
+
+    def get_race_predictions(self, startdate=None, enddate=None, _type=None):
+        self._check(startdate, enddate)
+        return [dict(RP, calendarDate=enddate)]
+
+    def get_lactate_threshold(self, latest=True, start_date=None, end_date=None, aggregation="daily"):
+        self._check(start_date, end_date)
+        return {"heart_rate": [{"from": end_date, "series": "running", "value": 170.0}], "speed": [], "power": []}
+
+
+def test_history_is_split_into_windows():
+    c = mem_conn()
+    cl = WindowClient()
+    out = backfill_history(c, cl, "2025-01-01", "2026-09-26")
+    assert len(cl.calls) == 4 and cl.calls[0][0] == "2025-01-01" and cl.calls[-1][1] == "2026-09-26"
+    assert out == {"race_parsed": 8, "lt_parsed": 2}  # 창 2개 × (레이스 4값, LT 심박 1값)

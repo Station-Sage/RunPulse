@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from datetime import date, timedelta
 
 from src.sync.garmin_helpers import _store_raw_payload
 from src.sync.garmin_ref_parsers import parse_lactate_threshold, parse_race_predictions
@@ -63,23 +64,36 @@ def sync_race_predictions(conn: sqlite3.Connection, client, date_str: str) -> in
     return _store_rp(conn, parse_race_predictions(raw, date_str))
 
 
+_MAX_WINDOW_DAYS = 360  # Garmin 이력 API 는 조회 기간이 366일을 넘으면 400(실측 2026-09-26)
+
+
+def _windows(start: str, end: str):
+    s, e = date.fromisoformat(start), date.fromisoformat(end)
+    while s <= e:
+        w_end = min(s + timedelta(days=_MAX_WINDOW_DAYS - 1), e)
+        yield s.isoformat(), w_end.isoformat()
+        s = w_end + timedelta(days=1)
+
+
 def backfill_history(conn: sqlite3.Connection, client, start: str, end: str) -> dict:
     """이력 백필: get_race_predictions(start, end, 'daily'), get_lactate_threshold(latest=False, ...).
-    응답 형태는 리스트라고 가정(가정) — 파싱 0건이면 raw 만 남기고 {"*_parsed": 0} 로 보고한다."""
+    조회 기간 제한(366일) 때문에 360일 창으로 나눠 호출한다. 창 하나가 실패해도 나머지는 계속한다.
+    파싱 0건이면 raw 만 남기고 {"*_parsed": 0} 로 보고한다."""
     out = {"race_parsed": 0, "lt_parsed": 0}
-    try:
-        raw = client.get_race_predictions(start, end, "daily")
-        if raw:
-            _store_raw_payload(conn, "race_predictions_range", f"{start}_{end}", raw)
-            out["race_parsed"] = _store_rp(conn, parse_race_predictions(raw, end))
-    except Exception as e:
-        log.warning("garmin race_predictions 이력 실패: %s", e)
-    try:
-        raw = client.get_lactate_threshold(latest=False, start_date=start, end_date=end)
-        if raw:
-            _store_raw_payload(conn, "lactate_threshold_range", f"{start}_{end}", raw)
-            out["lt_parsed"] = _store_lt(conn, parse_lactate_threshold(raw, end))
-    except Exception as e:
-        log.warning("garmin lactate_threshold 이력 실패: %s", e)
+    for ws, we in _windows(start, end):
+        try:
+            raw = client.get_race_predictions(ws, we, "daily")
+            if raw:
+                _store_raw_payload(conn, "race_predictions_range", f"{ws}_{we}", raw)
+                out["race_parsed"] += _store_rp(conn, parse_race_predictions(raw, we))
+        except Exception as e:
+            log.warning("garmin race_predictions 이력 실패 %s~%s: %s", ws, we, e)
+        try:
+            raw = client.get_lactate_threshold(latest=False, start_date=ws, end_date=we)
+            if raw:
+                _store_raw_payload(conn, "lactate_threshold_range", f"{ws}_{we}", raw)
+                out["lt_parsed"] += _store_lt(conn, parse_lactate_threshold(raw, we))
+        except Exception as e:
+            log.warning("garmin lactate_threshold 이력 실패 %s~%s: %s", ws, we, e)
     conn.commit()
     return out

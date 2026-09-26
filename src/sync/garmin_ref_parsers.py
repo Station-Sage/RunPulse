@@ -5,11 +5,13 @@
                       "speed": 0.38055}, "power": {"calendarDate": ..., "functionalThresholdPower": 313}}
   race_predictions : {"calendarDate": "2026-05-11", "time5K": 1201, "time10K": 2585, "timeHalfMarathon": 5847,
                       "timeMarathon": 12849}
-이력 조회(latest=False / startdate~enddate) 응답은 위 dict 의 리스트라고 가정한다(가정 — 첫 실동기화에서 raw 로 확인).
+레이스 예측 이력(startdate~enddate, 'daily') 응답은 위 dict 의 리스트다(실측 2026-09-26, 최대 366일).
+젖산역치 이력(latest=False)은 리스트가 아니라 {"speed": [...], "heart_rate": [...], "power": [...]} 이고 각 항목이
+{"from", "until", "series": "running", "value", "updatedDate"}(측정이 갱신된 날짜만 있음, 최대 366일)이다(실측 2026-09-26).
 """
 from __future__ import annotations
 
-LT_SPEED_SCALE = 10.0   # 가정: Garmin speed 0.38055 → 3.8055 m/s (4:23/km). 첫 실데이터에서 역치 페이스와 대조 확인
+LT_SPEED_SCALE = 10.0   # Garmin speed 0.38055 → 3.8055 m/s (4:23/km). 10K 대회 페이스(4:25/km)와 정합(2026-09-26 대조)
 RACE_KEYS = {"time5K": "race_pred_5k_sec", "time10K": "race_pred_10k_sec",
              "timeHalfMarathon": "race_pred_half_sec", "timeMarathon": "race_pred_marathon_sec"}
 
@@ -18,8 +20,24 @@ def _day(v) -> str | None:
     return str(v)[:10] if v else None
 
 
+def _parse_lt_history(payload: dict) -> list[dict]:
+    """이력 응답 {"speed"|"heart_rate"|"power": [{"from", "value", "series"}]} → 날짜별 병합. running 시리즈만."""
+    by_day: dict[str, dict] = {}
+    for key, field, scale in (("heart_rate", "lthr_ref", 1.0), ("speed", "lt_speed_ref", LT_SPEED_SCALE), ("power", "ftp", 1.0)):
+        for e in payload.get(key) or []:
+            if not isinstance(e, dict) or e.get("value") is None or e.get("series", "running") != "running":
+                continue
+            day = _day(e.get("from") or e.get("updatedDate"))
+            if day:
+                by_day.setdefault(day, {"date": day, "lthr_ref": None, "lt_speed_ref": None, "ftp": None})[field] = \
+                    round(float(e["value"]) * scale, 4)
+    return [by_day[d] for d in sorted(by_day)]
+
+
 def parse_lactate_threshold(payload, fallback_date: str) -> list[dict]:
     """→ [{"date", "lthr_ref", "lt_speed_ref", "ftp"}] (값 없는 키는 None). 알 수 없는 형태면 []."""
+    if isinstance(payload, dict) and ("heart_rate" in payload or "speed" in payload) and "speed_and_heart_rate" not in payload:
+        return _parse_lt_history(payload)
     items = payload if isinstance(payload, list) else [payload] if isinstance(payload, dict) else []
     out = []
     for it in items:
