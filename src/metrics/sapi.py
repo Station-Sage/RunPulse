@@ -8,7 +8,6 @@ v0.3 포팅: _v02_backup/sapi.py → MetricCalculator 형식
 """
 from __future__ import annotations
 
-import json
 from datetime import date, timedelta
 from src.metrics.base import MetricCalculator, CalcResult, CalcContext
 
@@ -46,15 +45,15 @@ class SAPICalculator(MetricCalculator):
         start = (td - timedelta(days=90)).isoformat()
 
         # FEARP + json (기온 정보 포함) — CalcContext API
-        all_fearp = ctx.get_activity_metric_series("fearp", days=90, include_json=True)
+        all_fearp = ctx.get_activity_metric_series("fearp", days=90, include_json=True, canonical_only=True, primary_only=True)
         if len(all_fearp) < 3:
             return []
-        rows = [(d["numeric"], d.get("json"), d["date"]) for d in all_fearp]
+        rows = [(d["numeric"], d["activity_id"]) for d in all_fearp]
 
         # 기온 구간별 집계
         bin_data: dict[str, list[float]] = {b[0]: [] for b in _TEMP_BINS}
-        for fearp_val, mj_raw, dt in rows:
-            temp = self._extract_temp(mj_raw, ctx.conn, dt)
+        for fearp_val, aid in rows:
+            temp = ctx.get_activity_metric(aid, "weather_temp_c")      # 외기(P7-PRED-32), 없으면 구간 집계에서 제외
             if temp is None:
                 continue
             for label, lo, hi in _TEMP_BINS:
@@ -76,7 +75,7 @@ class SAPICalculator(MetricCalculator):
             return []
 
         # 최근 7일 평균 FEARP
-        recent_fearp = ctx.get_activity_metric_series("fearp", days=7)
+        recent_fearp = ctx.get_activity_metric_series("fearp", days=7, canonical_only=True, primary_only=True)
         if not recent_fearp:
             return []
         current_avg = sum(d["numeric"] for d in recent_fearp) / len(recent_fearp)
@@ -103,24 +102,3 @@ class SAPICalculator(MetricCalculator):
         
             confidence=1.0,
         )]
-
-    @staticmethod
-    def _extract_temp(mj_raw, conn, dt) -> float | None:
-        if mj_raw:
-            try:
-                mj = json.loads(mj_raw) if isinstance(mj_raw, str) else mj_raw
-                temp = mj.get("temperature") or mj.get("temp_c")
-                if temp is not None:
-                    return float(temp)
-            except (json.JSONDecodeError, TypeError):
-                pass
-        try:
-            row = conn.execute(
-                "SELECT temperature FROM weather_cache "
-                "WHERE date=? LIMIT 1", (dt,),
-            ).fetchone()
-            if row and row[0] is not None:
-                return float(row[0])
-        except Exception:
-            pass
-        return None
