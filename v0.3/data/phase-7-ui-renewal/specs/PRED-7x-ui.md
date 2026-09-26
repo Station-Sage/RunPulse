@@ -15,10 +15,13 @@
   - `GET /api/v1/races/candidates[?since=]`, `PUT /api/v1/races/<activity_id>/confirm` body `{effort, official_time_sec?, race_name?, distance_m?, note?}`(400: effort·시간 범위, 404: 활동 없음), `DELETE` 같은 경로.
 - 차이의 이유(규칙, LLM 없음): Garmin 대 자체 %와 방법 차이(VO2max 추정 vs 최근 대회·작업 구간·심박), Garmin 값이 14일 넘게 묵었으면 표시, 기기 기준 대 자체 차이 < 1%면 "영향 작음", 아니면 LTHR 차이 bpm이 작업 구간 자격·심박 신호를 바꿨다고 표시, 경로가 없으면 이유(동기화 필요·기기 LTHR 미수집).
 
-**`src/services/prediction_compare_service.py`** — 신규, 전문 그대로(82줄)
+- r4 추가(REVIEW-07 §R4-8(4)): r4 섀도(`runpulse:shadow_r4`, `runpulse:shadow_r4_asym`) 값이 있으면 `candidate: true` 행(key `r4`, `r4_asym`)을 **뒤에** 붙인다. 없으면 행을 두지 않는다. 기본 행 `self`는 r3 (c) 그대로다. 기여도 키는 r3(race·work·hr·best_effort)와 r4(race·paced·T·I·R·M·H)를 모두 지원한다.
+
+**`src/services/prediction_compare_service.py`** — 신규, 전문 그대로(88줄)
 
 ````python
-"""레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정.
+"""레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
++ 값이 있으면 r4 섀도 후보 2개(candidate=True, 기본 표시 아님 — REVIEW-07 §R4-8(4)).
 
 같은 metric_name(race_pred_{bucket}_sec)을 provider 로 구분해 읽고, 차이의 이유를 규칙으로 만든다(LLM 없음).
 """
@@ -31,6 +34,8 @@ from datetime import date as _date
 PATHS = (("garmin", "garmin", "Garmin 예측"),
          ("ref", "runpulse:ref_garmin", "RunPulse · 기기 심박 기준"),
          ("self", "runpulse:formula_v1", "RunPulse · 자체 추정"))
+CANDIDATES = (("r4", "runpulse:shadow_r4", "후보 r4 · 섀도"),
+              ("r4_asym", "runpulse:shadow_r4_asym", "후보 r4 비대칭 · 섀도"))
 STALE_DAYS = 14
 SMALL_PCT = 1.0
 
@@ -50,16 +55,19 @@ def compare(conn: sqlite3.Connection, bucket: str, as_of: str | None = None) -> 
     as_of = as_of or _date.today().isoformat()
     metric = f"race_pred_{bucket}_sec"
     rows = []
-    for key, prov, label in PATHS:
+    for key, prov, label in PATHS + CANDIDATES:
         r = _latest(conn, metric, prov, as_of)
+        cand = (key, prov, label) in CANDIDATES
         if r is None:
-            rows.append({"key": key, "label": label, "provider": prov, "value_sec": None})
+            if not cand:                      # 섀도 값이 없으면 행 자체를 두지 않는다
+                rows.append({"key": key, "label": label, "provider": prov, "value_sec": None})
             continue
         j = json.loads(r[2]) if r[2] else {}
         rows.append({"key": key, "label": label, "provider": prov, "value_sec": int(round(r[1])), "as_of": r[0],
                      "stale_days": (_date.fromisoformat(as_of) - _date.fromisoformat(r[0])).days,
                      "low_sec": j.get("low_s"), "high_sec": j.get("high_s"), "confidence": j.get("confidence"),
-                     "reasons": j.get("reasons", []), "contributions": j.get("contributions")})
+                     "reasons": j.get("reasons", []), "contributions": j.get("contributions"),
+                     **({"candidate": True} if cand else {})})
     by = {r["key"]: r for r in rows}
     hp = _latest(conn, "hr_profile", "runpulse:formula_v1", as_of)
     hj = json.loads(hp[2]) if hp and hp[2] else {}
@@ -74,7 +82,7 @@ def _notes(by: dict, hb: dict) -> list[str]:
     if g and s:
         d = _pct(g, s)
         out.append(f"Garmin 예측이 자체 추정보다 {abs(d)}% {'느림' if d > 0 else '빠름'} — Garmin은 VO2max 추정 기반, "
-                   "RunPulse는 최근 전력 대회·작업 구간·심박-속도 관계 기반")
+                   "RunPulse는 최근 전력 대회·품질 세트(휴식 보정 Daniels 강도)·심박-속도 관계 기반")
         if by["garmin"]["stale_days"] > STALE_DAYS:
             out.append(f"Garmin 값은 {by['garmin']['stale_days']}일 전 스냅샷")
     elif not g:
@@ -86,7 +94,7 @@ def _notes(by: dict, hb: dict) -> list[str]:
             out.append(f"심박 기준(자체 LTHR {hb.get('self_lthr')} vs 기기 {hb.get('ref_lthr')})에 따른 차이 {abs(d)}% — 영향 작음")
         else:
             out.append(f"기기 심박 기준 예측이 {abs(d)}% {'느림' if d > 0 else '빠름'} — LTHR 차이 {gap} bpm 이 "
-                       "작업 구간 자격·심박 신호를 바꿈")
+                       "심박 신호(H)·세트 품질 가중을 바꿈")
     elif not r:
         out.append("기기 심박 기준값 없음 — 기기 LTHR 미수집")
     return out
@@ -228,7 +236,7 @@ def delete_race_confirm(activity_id: int):
      return {
 ````
 
-**`tests/test_prediction_compare.py`** — 신규, 전문 그대로(52줄)
+**`tests/test_prediction_compare.py`** — 신규, 전문 그대로(68줄)
 
 ````python
 """P7-PRED-71: 3경로 비교 서비스."""
@@ -283,6 +291,22 @@ def test_profile_reads_latest():
     _seed(c)
     p = profile(c, "2026-09-30")
     assert p["hr_profile"]["date"] == "2026-09-26" and p["hr_profile"]["lthr_gap"] == 0.4 and p["heat_model"] is None
+
+
+def test_shadow_candidates_only_when_present():
+    """P7-PRED-71: r4 섀도는 값이 있을 때만 candidate 행으로 붙는다(기본 'self' 는 r3)."""
+    import sqlite3
+    from src.db_setup import create_tables
+    from src.services.prediction_compare_service import compare
+    from src.utils.db_helpers import upsert_metric
+    c = sqlite3.connect(":memory:")
+    create_tables(c)
+    upsert_metric(c, "daily", "2026-09-26", "race_pred_10k_sec", "runpulse:formula_v1", numeric_value=2739)
+    assert [r["key"] for r in compare(c, "10k", "2026-09-26")["rows"]] == ["garmin", "ref", "self"]
+    upsert_metric(c, "daily", "2026-09-26", "race_pred_10k_sec", "runpulse:shadow_r4", numeric_value=2775,
+                  json_value={"contributions": {"T": 0.4}})
+    rows = compare(c, "10k", "2026-09-26")["rows"]
+    assert rows[-1]["key"] == "r4" and rows[-1]["candidate"] is True and rows[-1]["value_sec"] == 2775
 ````
 
 **`tests/test_api_prediction.py`** — 신규, 전문 그대로(55줄)
@@ -358,14 +382,19 @@ python3 scripts/check_docs.py
 - RaceHub diff는 세 컴포넌트를 한 번에 import 하므로 P7-PRED-72·73·74는 **한 유닛으로 구현**한다(아래 P7-PRED-73·74 절은 화면 설명). 문구·클래스는 그대로.
 - 표시 규칙: 신뢰도 ≥0.7 높음 / ≥0.45 보통 / 그 외 낮음. 자체 대비 차이는 부호 있는 % 소수 1자리(0.05% 미만 "같음"). 기여도 0인 항목은 숨김. Garmin 값이 14일 넘으면 "N일 전 값"(amber).
 
-**`frontend/src/lib/predictionCompare.ts`** — 신규, 전문 그대로(58줄)
+- r4 추가:
+  - `CompareRow.key`에 `r4`·`r4_asym`, `candidate?`를 추가한다. 후보 행은 흐린 이탤릭 라벨로 표시한다.
+  - 기여도 라벨: r3 키(`work` 작업 블록, `hr` 심박, `best_effort` 5K 구간 기록)와 r4 키(`paced` 최대 이하 대회, T/I/R/M/H)를 모두 표시한다.
+  - 훈련 반응 문구는 세트 기반(`quality_*`)이다.
+
+**`frontend/src/lib/predictionCompare.ts`** — 신규, 전문 그대로(70줄)
 
 ````ts
 // frontend/src/lib/predictionCompare.ts
 // 레이스 예측 3경로 비교 표시용 순수 함수(P7-PRED-72). 테스트: frontend/tests/predictionCompare.test.mjs
 
 export interface CompareRow {
-	key: 'garmin' | 'ref' | 'self';
+	key: 'garmin' | 'ref' | 'self' | 'r4' | 'r4_asym';
 	label: string;
 	provider: string;
 	value_sec: number | null;
@@ -375,7 +404,8 @@ export interface CompareRow {
 	high_sec?: number | null;
 	confidence?: number | null;
 	reasons?: string[];
-	contributions?: { race: number; work: number; hr: number } | null;
+	contributions?: Record<string, number> | null;
+	candidate?: boolean; // r4 섀도 후보(기본 표시 아님)
 }
 
 /** 초 → 'h:mm:ss' 또는 'm:ss'. */
@@ -410,18 +440,29 @@ export function diffVsSelf(row: CompareRow, self: CompareRow | undefined): strin
 	return `${pct > 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`;
 }
 
-/** 기여도 → '대회 60 · 작업 20 · 심박 20' (0은 생략). */
+/** 기여도 키(칼만 이득 분해, REVIEW-09 §5) → 표시 이름. 순서 = 표시 순서. */
+export const CONTRIBUTION_LABELS: [string, string][] = [
+	['race', '대회'],
+	['paced', '최대 이하 대회'],
+	['work', '작업 블록'],
+	['hr', '심박'],
+	['best_effort', '5K 구간 기록'],
+	['T', '역치 세트'],
+	['I', '인터벌 세트'],
+	['R', '반복 세트'],
+	['M', '마라톤 구간'],
+	['H', '심박']
+];
+
+/** 기여도 → '대회 28 · 역치 세트 32 · 인터벌 세트 19 · 심박 21' (1% 미만 생략). */
 export function contributionLabel(c: CompareRow['contributions']): string | null {
 	if (!c) return null;
-	const parts: string[] = [];
-	if (c.race > 0) parts.push(`대회 ${Math.round(c.race * 100)}`);
-	if (c.work > 0) parts.push(`작업 ${Math.round(c.work * 100)}`);
-	if (c.hr > 0) parts.push(`심박 ${Math.round(c.hr * 100)}`);
+	const parts = CONTRIBUTION_LABELS.filter(([k]) => (c[k] ?? 0) >= 0.005).map(([k, l]) => `${l} ${Math.round((c[k] ?? 0) * 100)}`);
 	return parts.length ? parts.join(' · ') : null;
 }
 ````
 
-**`frontend/tests/predictionCompare.test.mjs`** — 신규, 전문 그대로(33줄)
+**`frontend/tests/predictionCompare.test.mjs`** — 신규, 전문 그대로(35줄)
 
 ````js
 import { test } from 'node:test';
@@ -453,8 +494,10 @@ test('diffVsSelf', () => {
 });
 
 test('contributionLabel', () => {
-	assert.equal(contributionLabel({ race: 0.6, work: 0.2, hr: 0.2 }), '대회 60 · 작업 20 · 심박 20');
-	assert.equal(contributionLabel({ race: 0, work: 0.6, hr: 0.4 }), '작업 60 · 심박 40');
+	assert.equal(contributionLabel({ race: 0.277, T: 0.324, I: 0.188, R: 0.0, H: 0.21 }), '대회 28 · 역치 세트 32 · 인터벌 세트 19 · 심박 21');
+	assert.equal(contributionLabel({ race: 0.6, work: 0.2, hr: 0.2 }), '대회 60 · 작업 블록 20 · 심박 20'); // r3 기본 키
+	assert.equal(contributionLabel({ race: 0.05, paced: 0.09, T: 0.86 }), '대회 5 · 최대 이하 대회 9 · 역치 세트 86');
+	assert.equal(contributionLabel({ T: 0.6, H: 0.4 }), '역치 세트 60 · 심박 40');
 	assert.equal(contributionLabel(null), null);
 });
 ````
@@ -509,10 +552,10 @@ test('contributionLabel', () => {
 +	heat_model: { date: string; heat: number; cold: number; n: number; weight: number } | null;
 +	training_response: {
 +		date: string;
-+		basis: 'hr' | 'pace';
-+		weekly_thr_min: number[];
-+		thr_min_avg_8w: number;
-+		thr_min_avg_prev_8w: number | null;
++		weekly_zone_min: { R: number[]; I: number[]; T: number[]; M: number[]; sessions: number[] };
++		quality_min_avg_8w: number;
++		quality_min_avg_prev_8w: number | null;
++		quality_sessions_avg_8w: number;
 +		long_mp_km_8w?: number;
 +		trend: { n: number; slope_4w: number | null };
 +	} | null;
@@ -579,7 +622,7 @@ export function deleteRaceConfirm(activityId: number): Promise<unknown> {
 			{@const conf = confidenceLabel(row.confidence)}
 			<li class="flex items-baseline justify-between gap-3 px-3 py-2">
 				<div class="flex min-w-0 flex-col">
-					<span class="text-xs {row.key === 'self' ? 'font-semibold' : 'text-fg-secondary'}">{row.label}</span>
+					<span class="text-xs {row.key === 'self' ? 'font-semibold' : row.candidate ? 'text-fg-muted italic' : 'text-fg-secondary'}">{row.label}</span>
 					{#if row.value_sec != null && (range || conf)}
 						<span class="text-[11px] text-fg-muted"
 							>{range ? `80% ${range}` : ''}{range && conf ? ' · ' : ''}{conf ? `신뢰도 ${conf}` : ''}</span
@@ -822,7 +865,7 @@ cd frontend && npm run check && node --test tests/predictionCompare.test.mjs tes
 		{#if profile.training_response}
 			{@const tr = profile.training_response}
 			<p class="text-[11px] text-fg-muted">
-				역치 이상 훈련 · 최근 8주 주평균 {tr.thr_min_avg_8w}분{tr.thr_min_avg_prev_8w != null ? ` (이전 8주 ${tr.thr_min_avg_prev_8w}분)` : ''}{tr.long_mp_km_8w != null ? ` · 롱런 속 마라톤 페이스 ${tr.long_mp_km_8w}km` : ''}
+				품질 세트 · 최근 8주 주평균 {tr.quality_min_avg_8w}분 · 주 {tr.quality_sessions_avg_8w}회{tr.quality_min_avg_prev_8w != null ? ` (이전 8주 ${tr.quality_min_avg_prev_8w}분)` : ''}{tr.long_mp_km_8w != null ? ` · 롱런 속 마라톤 페이스 ${tr.long_mp_km_8w}km` : ''}
 			</p>
 		{/if}
 	{/if}

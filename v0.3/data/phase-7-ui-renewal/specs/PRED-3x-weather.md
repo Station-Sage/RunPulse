@@ -1,20 +1,28 @@
-# PRED-3x — 날씨(외기) 인제스트와 기온 모델 (예측 리뉴얼 r3, Q10)
+# PRED-3x — 날씨(외기) 인제스트와 기온 모델 (예측 리뉴얼 r4 — 날씨 모듈 통합 P7-PRED-86 포함)
 
 근거: `REVIEW-07-prediction-renewal.md` r3 §2-9·4-7·4-8. 우선순위는 사용자 확정(1순위 Open-Meteo, 2순위 기기 온도).
 
 > **실행 규칙(모든 PRED 유닛 공통)** — 이 명세의 코드·시그니처·상수·문구는 그대로 구현한다. "전문" 블록은 파일 내용 그대로 붙여 넣고, "diff" 블록은 그대로 적용한다(줄 위치가 조금 달라도 문맥이 같으면 같은 자리). 명세와 다르게 하고 싶으면 `v0.3/data/phase-7-ui-renewal/DECISIONS.md`에 사유를 적고 **중단**한다. 실DB(`data/users/*/running.db`)는 열지 않는다 — 테스트는 모두 `:memory:`다. 모든 코드는 `/tmp` 샌드박스(저장소 사본)에서 전체 테스트·`check_docs`·`check_data_consistency` 통과를 확인한 것이다. `pytest`가 없다는 오류가 나면 `/usr/bin/python3 -m pytest`로 같은 명령을 실행한다.
 
-## P7-PRED-31 — Open-Meteo 클라이언트(순수 파싱 + 주입형 HTTP)
+## P7-PRED-86 — 날씨 모듈 통합: `src/weather/provider.py`를 단일 Open-Meteo 클라이언트로 (r3 P7-PRED-31 대체)
 
 - 의존: P7-PRED-22(physio) · UI 노출: 없음
-- 파일: `src/weather/openmeteo.py`(신규), `tests/test_openmeteo.py`(신규)
-- 규칙: archive(5일 이상 지난 날) / forecast(`past_days=7`) 자동 선택. 요청 변수 `temperature_2m, relative_humidity_2m, dew_point_2m, apparent_temperature, wind_speed_10m, shortwave_radiation`, `timezone=auto`, `wind_speed_unit=ms`. 좌표는 **소수 2자리(≈1km)** 로만 보낸다. 요청 간 최소 0.2초(무료 한도 10,000건/일 대비 여유). HTTP 는 `src.utils.api.get`(1회 재시도 내장)을 주입받고, 실패·오프라인이면 예외 없이 None.
-- 실측: 2025-04 이후 러닝 313개 중 290개(좌표 있음 93%)를 287회 요청으로 채웠다. 샌드박스에서 실제 API 3회 호출 → 시간별 72행 저장 확인.
+- 파일: `src/weather/provider.py`(**전문 교체**), `tests/test_weather_provider.py`(신규). `src/weather/openmeteo.py`는 만들지 않는다.
+- 왜(REVIEW-07 §R4-5, 사용자 결정 "삭제가 아니라 통합"): 기존 `provider.py`는 없는 `weather_data` 테이블에 쓰고 `_v02_backup/fearp.py`만 참조하는 죽은 코드다. 하지만 동작하는 Open-Meteo URL과 시간별 변수 목록을 갖고 있다. r3는 새 `openmeteo.py`를 만들어 모듈이 둘이 될 뻔했다. 한 파일로 수렴한다. 저장은 호출자(`activity_weather`, P7-PRED-32)가 `weather_cache`에 한다.
+- 규칙(r3 P7-PRED-31과 같음):
+  - archive(5일 이상 지난 날) / forecast(`past_days=7`)를 자동으로 고른다.
+  - 변수: `temperature_2m, relative_humidity_2m, dew_point_2m, apparent_temperature, wind_speed_10m, shortwave_radiation`.
+  - 좌표는 소수 2자리(≈1km)로만 보낸다. 요청 간 최소 0.2초.
+  - HTTP는 주입받는다. 실패·오프라인이면 예외 없이 None을 돌려준다.
+- `_v02_backup/fearp.py`의 `provider` import는 백업 코드라 실행 경로가 아니다. 손대지 않는다.
 
-**`src/weather/openmeteo.py`** — 신규, 전문 그대로(82줄)
+**`src/weather/provider.py`** — 신규(기존 파일이면 전문 교체), 전문 그대로(85줄)
 
 ````python
-"""Open-Meteo 시간별 기상 조회(순수 파싱 + 주입 가능한 HTTP) — 활동 중간 시각 보간, WBGT 근사(P7-PRED-31).
+"""Open-Meteo 시간별 기상 클라이언트(단일 모듈) — 순수 파싱 + 주입 가능한 HTTP, 활동 중간 시각 보간, WBGT 근사(P7-PRED-86).
+
+이전 provider.py(v0.2)는 없는 `weather_data` 테이블에 쓰고 백업 코드만 참조했다. URL·시간별 변수 목록을 이어받아
+이 파일 하나로 수렴했다(별도 openmeteo.py 없음). 저장은 호출자(activity_weather)가 weather_cache 에 한다.
 
 archive(5일 이상 지난 날) / forecast(past_days=7) 자동 선택. 좌표는 소수 2자리(약 1km)로 낮춰 보낸다(개인정보·캐시 적중).
 """
@@ -98,13 +106,13 @@ def at_time(rows: list[dict], hour_frac: float) -> dict | None:
     return out
 ````
 
-**`tests/test_openmeteo.py`** — 신규, 전문 그대로(25줄)
+**`tests/test_weather_provider.py`** — 신규, 전문 그대로(25줄)
 
 ````python
-"""P7-PRED-31: Open-Meteo 요청 파라미터·보간·WBGT."""
+"""P7-PRED-86: Open-Meteo 단일 클라이언트(provider.py) — 요청 파라미터·보간·WBGT."""
 from datetime import date
 
-from src.weather import openmeteo as om
+from src.weather import provider as om
 
 
 def _hourly(day="2026-07-01"):
@@ -130,12 +138,12 @@ def test_at_time_interpolates_and_wbgt():
 
 검증:
 ```
-python3 -m pytest tests/test_openmeteo.py -q
+python3 -m pytest tests/test_weather_provider.py -q
 ```
 
 ## P7-PRED-32 — 활동 외기 기상 인제스트(1순위 Open-Meteo, 2순위 손목 온도 보정) + 우선순위 + 동기화 훅
 
-- 의존: P7-PRED-11, P7-PRED-31 · UI 노출: 활동 상세 날씨 칩(기존 `weather_*` 표시 경로가 있으면 자동 노출), P7-PRED-72 기온별 표 · **실DB: P7-PRED-61 3단계(백필, API 약 300회)**
+- 의존: P7-PRED-11, P7-PRED-86 · UI 노출: 활동 상세 날씨 칩(기존 `weather_*` 표시 경로가 있으면 자동 노출), P7-PRED-72 기온별 표 · **실DB: P7-PRED-61 3단계(백필, API 약 300회)**
 - 파일: `src/weather/activity_weather.py`(신규), `src/utils/metric_priority.py`, `src/sync.py`, `tests/test_weather_ingest.py`(신규), `src/utils/metric_registry.py`
 - 규칙:
   - 대상: `v_canonical_activities` 중 running·trail_running, open_meteo `weather_temp_c` 가 아직 없는 활동(재실행 시 실패분만 재시도).
@@ -145,7 +153,7 @@ python3 -m pytest tests/test_openmeteo.py -q
   - 충돌: 두 값 차이 > 6℃ 면 open_meteo `weather_temp_c` json 에 `{"conflict": true, "device_corrected": x}`(실내·좌표 오류 의심).
   - 좌표 없음: 기기 온도 보정값만, 둘 다 없으면 저장 안 함(예측은 기온 보정 없이 15℃ 기준값을 쓴다).
   - 손목 편향 근거: 외기 대비 손목 +3.5℃(중앙), 5℃ 미만 +11℃, 27℃ 초과 +1℃ → 선형 `기기 ≈ 11.0 + 0.65·외기`(261개 활동 적합).
-- 기존 `src/weather/provider.py`는 존재하지 않는 `weather_data` 테이블을 쓰는 죽은 코드다 — 삭제는 P7-PRED-86.
+- Open-Meteo 호출은 P7-PRED-86의 `src.weather.provider`(단일 클라이언트)를 쓴다.
 
 **`src/weather/activity_weather.py`** — 신규, 전문 그대로(105줄)
 
@@ -167,7 +175,7 @@ from typing import Any, Callable
 
 from src.metrics.prediction.physio import ambient_from_device, round_coord
 from src.utils.db_helpers import upsert_metric
-from src.weather import openmeteo as om
+from src.weather import provider as om
 
 CONFLICT_C = 6.0
 METRICS = {"temp_c": "weather_temp_c", "humidity_pct": "weather_humidity_pct", "dew_point_c": "weather_dew_point_c",
@@ -299,10 +307,10 @@ if __name__ == "__main__":        # python3 -m src.weather.activity_weather --db
 from datetime import date
 
 from src.metrics.base import CalcContext
-from src.weather import openmeteo as om
+from src.weather import provider as om
 from src.weather.activity_weather import ingest_activity_weather
 from tests.helpers_pred import mem_conn, seed_run
-from tests.test_openmeteo import _hourly
+from tests.test_weather_provider import _hourly
 
 om.MIN_INTERVAL_S = 0.0
 
@@ -371,7 +379,7 @@ def test_conflict_flag():
 
 검증:
 ```
-python3 -m pytest tests/test_openmeteo.py tests/test_weather_ingest.py tests/test_doc_sync.py -q
+python3 -m pytest tests/test_weather_provider.py tests/test_weather_ingest.py tests/test_doc_sync.py -q
 python3 scripts/gen_metric_dictionary.py
 python3 scripts/check_data_consistency.py
 ```

@@ -4,83 +4,79 @@
 
 > **실행 규칙(모든 PRED 유닛 공통)** — 이 명세의 코드·시그니처·상수·문구는 그대로 구현한다. "전문" 블록은 파일 내용 그대로 붙여 넣고, "diff" 블록은 그대로 적용한다(줄 위치가 조금 달라도 문맥이 같으면 같은 자리). 명세와 다르게 하고 싶으면 `v0.3/data/phase-7-ui-renewal/DECISIONS.md`에 사유를 적고 **중단**한다. 실DB(`data/users/*/running.db`)는 열지 않는다 — 테스트는 모두 `:memory:`다. 모든 코드는 `/tmp` 샌드박스(저장소 사본)에서 전체 테스트·`check_docs`·`check_data_consistency` 통과를 확인한 것이다. `pytest`가 없다는 오류가 나면 `/usr/bin/python3 -m pytest`로 같은 명령을 실행한다.
 
-## P7-PRED-41 — 훈련 반응(일별 `training_response`): 세그먼트 단위 역치 이상 시간·롱런 MP 구간·작업 블록 추세
+## P7-PRED-41 — 훈련 반응 r4(일별 `training_response`): 세트 기반 구간별 주간 시간·세트 VDOT 추세·롱런 MP (기기·PB 불필요)
 
-- 의존: P7-PRED-14, P7-PRED-22, P7-PRED-24, P7-PRED-33 · UI 노출: P7-PRED-74(훈련 반응 카드) · 실DB: 재계산 시 생성
+- 의존: P7-PRED-14, P7-PRED-20, P7-PRED-22, P7-PRED-24, P7-PRED-33 · UI 노출: P7-PRED-74(훈련 반응 카드) · 실DB: 재계산 시 생성
 - 파일: `src/metrics/prediction/response.py`, `src/metrics/training_response.py`(신규), `tests/test_training_response.py`(신규), `src/metrics/engine.py`, `src/utils/metric_registry.py`, `scripts/check_docs.py`
-- 정의(활동 평균이 아니라 **랩 단위**):
-  - 주간 역치 이상 분: LTHR 있으면 랩 평균 HR ≥ 0.92·LTHR, 없으면(T0) 랩 속도(GAP) ≥ 0.90·v_t 인 랩 시간 합. 최근 16주, as_of 당일 제외.
-  - `thr_min_avg_8w` / `thr_min_avg_prev_8w`: 최근 8주·그 이전 8주 주평균.
-  - 롱런 MP 근접 거리: 최근 56일, 16km 이상 비대회 러닝에서 마라톤 페이스(현재 `race_pred_vdot` 기준) ±4% 랩 거리 합.
-  - 작업 블록 추세: 최근 56일 비대회·실외 세션별 최고 연속 블록 VDOT(랩 속도 ÷ 기온 배율로 15℃ 등가)의 선형 기울기(VDOT/4주), 세션 4개 미만이면 None. **진단용 — 예측 가중에 쓰지 않는다**(롤링 백테스트에서 개선 없음, REVIEW-07 r3 §3-4).
-- 실측(사본 DB, 2026-09-26): 8주 주평균 27.0분(직전 8주 13.8분), 롱런 MP 구간 2.0km, 추세 n=12.
+- r3 대비(사용자 피드백 3차): 훈련 반응이 PB·기기(HR)에 의존하지 않는다. 품질 세트 판정은 예측과 같다(`signals_r4.set_obs`: 작업 속도 ≥ 1.18×이지 속도, Daniels 구간 R/I/T/M).
+  - `weekly_zone_min`: 최근 16주 주별 구간(R·I·T·M) 작업 분과 품질 세션 수.
+  - `quality_min_avg_8w` / `quality_min_avg_prev_8w` / `quality_sessions_avg_8w`: 최근 8주·이전 8주 주평균.
+  - `long_mp_km_8w`: 최근 56일 16km 이상 비대회 러닝에서 Daniels M 페이스(현재 `race_pred_vdot`) ±4% 랩 거리 합.
+  - 세트 VDOT 추세: 최근 56일 세트 관측 VDOT의 선형 기울기(VDOT/4주)다. 진단용이며 예측 가중에 쓰지 않는다(예측은 세트를 관측으로 직접 쓴다).
 
 **`src/metrics/prediction/response.py`** — 신규, 전문 그대로(76줄)
 
 ````python
-"""훈련 반응(순수) — 주간 역치 이상 시간, 롱런 내 마라톤 페이스 근접 거리, 작업 블록 성과 추세(P7-PRED-41).
+"""훈련 반응(순수) — 품질 세트(구간 R/I/T/M)의 주간 작업 시간, 롱런 속 마라톤 페이스 거리, 세트 VDOT 추세(P7-PRED-41).
 
-runs: get_runs(with_laps=True) 형식. 강도 판정: LTHR 있으면 랩 HR ≥ 0.92·LTHR, 없으면(T0) 랩 속도(GAP) ≥ 0.90·v_t.
+기기 없이(GPS·시간) 계산한다. PB·대회 기록에 의존하지 않는다. 세트 판정은 prediction.signals.set_obs 와 같다.
 """
 from __future__ import annotations
 
 from datetime import date
 
-from src.metrics.prediction.core import best_block, temp_factor
+from src.metrics import segments as seg
+from src.metrics.prediction.signals_r4 import EXCLUDE_TYPES, easy_speeds, set_obs
 
-THR_HR_FRAC = 0.92
-THR_SPEED_FRAC = 0.90
 MP_TOL = 0.04          # 마라톤 페이스 ±4%
 LONG_M = 16000.0
-EXCLUDE_TYPES = ("treadmill", "indoor_running", "virtual_running", "trail_running")   # 추세에서 제외(속도 신뢰 불가)
+ZONES = ("R", "I", "T", "M")
 
 
 def _days(d_from: str, d_to: str) -> int:
     return (date.fromisoformat(d_to) - date.fromisoformat(d_from)).days
 
 
-def _hard(lap: dict, lthr: float | None, v_t: float | None) -> bool:
-    if lthr:
-        return bool(lap.get("hr")) and lap["hr"] >= THR_HR_FRAC * lthr
-    return bool(v_t) and lap["speed_ms"] >= THR_SPEED_FRAC * v_t
-
-
-def weekly_threshold_minutes(runs: list[dict], as_of: str, lthr: float | None, v_t: float | None,
-                             weeks: int = 16) -> list[float]:
-    """[이번 주(as_of 이전 7일), 1주 전, ...] 역치 이상 랩 시간(분)."""
-    out = [0.0] * weeks
+def weekly_zone_minutes(runs: list[dict], as_of: str, weeks: int = 16) -> dict[str, list]:
+    """{"R": [이번 주(as_of 이전 7일), 1주 전, …], "I", "T", "M", "sessions"} 품질 세트 작업 시간(분)·세션 수."""
+    out: dict[str, list] = {z: [0.0] * weeks for z in ZONES}
+    out["sessions"] = [0] * weeks
+    ve = easy_speeds(runs)
     for r in runs:
         d = _days(r["date"], as_of)
         if d <= 0 or d > weeks * 7:
             continue
+        o = set_obs(r, ve[r["id"]], None)
+        if not o:
+            continue
         w = (d - 1) // 7
-        out[w] += sum(b["dur_s"] for b in (r.get("laps") or []) if _hard(b, lthr, v_t)) / 60.0
-    return [round(x, 1) for x in out]
+        laps = r.get("laps") or []
+        ws = seg.work_set(seg.build_bouts(laps, seg.label_blocks(laps, ve[r["id"]])))
+        out[o["kind"]][w] += ws["work_s"] / 60.0
+        out["sessions"][w] += 1
+    return {k: [round(x, 1) for x in v] for k, v in out.items()}
 
 
 def long_mp_km(runs: list[dict], as_of: str, v_mp: float, days: int = 56) -> float:
-    """최근 56일 롱런(≥16km)에서 마라톤 페이스 ±4% 랩 거리 합(km)."""
+    """최근 56일 롱런(≥16km, 비대회)에서 마라톤 페이스 ±4% 랩 거리 합(km)."""
     km = 0.0
     for r in runs:
         d = _days(r["date"], as_of)
-        if 0 < d <= days and r["distance_m"] >= LONG_M and not r["is_race"]:
+        if 0 < d <= days and r["distance_m"] >= LONG_M and not r["is_race"] and r["activity_type"] not in EXCLUDE_TYPES:
             km += sum(b["dist_m"] for b in (r.get("laps") or []) if abs(b["speed_ms"] / v_mp - 1) <= MP_TOL) / 1000.0
     return round(km, 1)
 
 
-def work_trend(runs: list[dict], as_of: str, lthr: float | None, v_t: float | None, days: int = 56,
-               heat: float = -0.62, cold: float = -0.84) -> dict:
-    """세션별 최고 작업 블록 VDOT(15℃ 등가: 랩 속도 ÷ temp_factor(run["ambient_c"]))의 선형 추세(VDOT/4주).
-    세션 4개 미만이면 slope None."""
+def set_trend(runs: list[dict], as_of: str, days: int = 56) -> dict:
+    """최근 56일 세트 VDOT(휴식 보정 Daniels 환산)의 선형 추세(VDOT/4주). 세트 4개 미만이면 slope None."""
+    ve = easy_speeds(runs)
     pts = []
     for r in runs:
         d = _days(r["date"], as_of)
-        if 0 < d <= days and not r["is_race"] and r["activity_type"] not in EXCLUDE_TYPES:
-            f = temp_factor(r.get("ambient_c"), heat, cold)
-            laps = [dict(b, speed_ms=b["speed_ms"] / f) for b in (r.get("laps") or [])]
-            v = best_block(laps, lthr, None if lthr else v_t, False)
-            if v:
-                pts.append((-d, v))
+        if 0 < d <= days:
+            o = set_obs(r, ve[r["id"]], None)
+            if o:
+                pts.append((-d, o["y"]))
     if len(pts) < 4:
         return {"n": len(pts), "slope_4w": None}
     mx = sum(x for x, _ in pts) / len(pts)
@@ -90,106 +86,94 @@ def work_trend(runs: list[dict], as_of: str, lthr: float | None, v_t: float | No
     return {"n": len(pts), "slope_4w": round(slope * 28, 2), "mean": round(my, 2)}
 
 
-def summarize(weekly: list[float]) -> dict:
-    a = weekly[:8]
-    b = weekly[8:16]
-    return {"thr_min_avg_8w": round(sum(a) / 8, 1), "thr_min_avg_prev_8w": round(sum(b) / 8, 1) if len(b) == 8 else None}
+def summarize(weekly: dict[str, list]) -> dict:
+    """최근 8주·이전 8주 주평균 품질 분(R+I+T+M)과 주평균 품질 세션 수."""
+    tot = [sum(weekly[z][i] for z in ZONES) for i in range(len(weekly["T"]))]
+    a, b = tot[:8], tot[8:16]
+    return {"quality_min_avg_8w": round(sum(a) / 8, 1),
+            "quality_min_avg_prev_8w": round(sum(b) / 8, 1) if len(b) == 8 else None,
+            "quality_sessions_avg_8w": round(sum(weekly["sessions"][:8]) / 8, 2)}
 ````
 
-**`src/metrics/training_response.py`** — 신규, 전문 그대로(46줄)
+**`src/metrics/training_response.py`** — 신규, 전문 그대로(36줄)
 
 ````python
-"""훈련 반응(일별) — 역치 이상 주간 시간·롱런 MP 근접 거리·작업 블록 추세(P7-PRED-41). 예측에는 설명·신뢰도로만 쓴다.
+"""훈련 반응(일별) — 품질 세트 구간별 주간 시간·품질 세션 수·롱런 MP 거리·세트 VDOT 추세(P7-PRED-41, r4).
 
-produces training_response: numeric = 최근 8주 주평균 역치 이상 분, json = 주별 값·이전 8주·MP 거리·추세·판정 기준.
+기기(HR) 없이 동작하고 PB 에 의존하지 않는다. 예측 중앙값에는 세트가 관측으로 직접 들어가므로(DARP) 이 메트릭은 설명용이다.
+produces training_response: numeric = 최근 8주 주평균 품질 작업 분, json = 구간별 주간 값·이전 8주·세션 수·MP 거리·추세.
 """
 from __future__ import annotations
 
-import json
-
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 from src.metrics.prediction import response as rs
-from src.metrics.prediction.core import threshold_speed, time_for_vdot
+from src.metrics.prediction.daniels import time_for_vdot
 
 
 class TrainingResponseCalculator(MetricCalculator):
     name = "training_response"
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "2.0"
     scope_type = "daily"
     category = "load"
     display_name = "훈련 반응"
-    description = "최근 8주 역치 이상 훈련 시간(주평균)과 이전 8주 비교, 롱런 속 마라톤 페이스 구간, 작업 구간 성과 추세."
+    description = "최근 8주 품질 세트(R/I/T/M) 주간 작업 시간과 이전 8주 비교, 품질 세션 수, 롱런 속 마라톤 페이스 구간, 세트 VDOT 추세."
     unit = "min/wk"
     format_type = "number"
-    requires = ["hr_profile", "heat_model", "race_pred_vdot"]
+    requires = ["race_pred_vdot"]
     produces = ["training_response"]
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         day = ctx.scope_id
-        _, js = ctx.get_latest_daily_metric("hr_profile", day, provider="runpulse:formula_v1", include_json=True)
-        lthr = json.loads(js)["self"].get("lthr") if js else None
-        vd = ctx.get_latest_daily_metric("race_pred_vdot", day, provider="runpulse:formula_v1")
-        v_t = threshold_speed(vd) if vd else None
-        if not lthr and not v_t:
+        runs = ctx.get_runs(16 * 7 + 90, with_laps=True, include_end=False)
+        if not runs:
             return []
-        runs = ctx.get_runs(16 * 7, with_laps=True, include_end=False)
-        for r in runs:
-            r["ambient_c"] = ctx.get_activity_metric(r["id"], "weather_temp_c")
-        _, hj = ctx.get_latest_daily_metric("heat_model", day, include_json=True)
-        hm = json.loads(hj) if hj else {}
-        weekly = rs.weekly_threshold_minutes(runs, day, lthr, v_t)
-        out = {"basis": "hr" if lthr else "pace", "lthr": lthr, "v_t": v_t and round(v_t, 3),
-               "weekly_thr_min": weekly, **rs.summarize(weekly),
-               "trend": rs.work_trend(runs, day, lthr, v_t, heat=hm.get("heat", -0.62), cold=hm.get("cold", -0.84))}
+        weekly = rs.weekly_zone_minutes(runs, day)
+        out = {"weekly_zone_min": weekly, **rs.summarize(weekly), "trend": rs.set_trend(runs, day)}
+        vd = ctx.get_latest_daily_metric("race_pred_vdot", day, provider="runpulse:formula_v1")
         if vd:
             out["long_mp_km_8w"] = rs.long_mp_km(runs, day, 42195.0 / time_for_vdot(vd, 42195.0))
-        return [self._result(value=out["thr_min_avg_8w"], json_val=out, confidence=0.7 if lthr else 0.5)]
+        return [self._result(value=out["quality_min_avg_8w"], json_val=out, confidence=0.7)]
 ````
 
-**`tests/test_training_response.py`** — 신규, 전문 그대로(40줄)
+**`tests/test_training_response.py`** — 신규, 전문 그대로(35줄)
 
 ````python
-"""P7-PRED-41: 훈련 반응 순수 함수."""
+"""P7-PRED-41: 훈련 반응 r4(세트 기반, 기기 불필요)."""
 from src.metrics.prediction import response as rs
 
 
-def _run(date, laps, dist=10000.0, race=False, atype="running", amb=None):
-    return {"date": date, "distance_m": dist, "is_race": race, "activity_type": atype, "ambient_c": amb,
-            "laps": [{"dist_m": d, "dur_s": t, "speed_ms": d / t, "hr": h} for d, t, h in laps]}
+def _lap(d, s, it=None):
+    return {"dist_m": d, "dur_s": s, "speed_ms": d / s, "hr": None, "max_hr": None, "itype": it}
 
 
-def test_weekly_threshold_minutes_hr_basis():
-    runs = [_run("2026-09-25", [(1000, 240, 170), (1000, 300, 150)]),     # 1일 전 → 0주차, 4분
-            _run("2026-09-18", [(2000, 480, 175)]),                       # 8일 전 → 1주차, 8분
-            _run("2026-09-26", [(1000, 240, 170)])]                       # 당일 → 제외
-    w = rs.weekly_threshold_minutes(runs, "2026-09-26", lthr=180.0, v_t=None, weeks=2)
-    assert w == [4.0, 8.0]
+def _run(i, date, laps, dist=8000.0, atype="running"):
+    return {"id": i, "date": date, "is_race": False, "activity_type": atype, "distance_m": dist, "moving_s": 2400, "laps": laps}
 
 
-def test_weekly_threshold_minutes_pace_basis():
-    runs = [_run("2026-09-25", [(1000, 250, None), (1000, 330, None)])]   # 4.0 m/s ≥ 0.9×4.0
-    assert rs.weekly_threshold_minutes(runs, "2026-09-26", None, 4.0, weeks=1) == [4.2]
+TEMPO = [_lap(1000, 360), _lap(1000, 360)] + [_lap(1000, 270)] * 4 + [_lap(1000, 370)]
+INTER = [_lap(2000, 720, "WARMUP")] + [_lap(1000, 250, "ACTIVE"), _lap(300, 150, "RECOVERY")] * 5 + [_lap(1500, 540, "COOLDOWN")]
+
+
+def test_weekly_zone_minutes_and_summary():
+    runs = [_run(1, "2026-09-24", TEMPO), _run(2, "2026-09-16", INTER), _run(3, "2026-09-15", TEMPO, atype="treadmill")]
+    w = rs.weekly_zone_minutes(runs, "2026-09-26")
+    assert w["T"][0] == 18.0 and w["I"][1] == 20.8 and w["sessions"][:2] == [1, 1]
+    s = rs.summarize(w)
+    assert s["quality_min_avg_8w"] == 4.8 and s["quality_sessions_avg_8w"] == 0.25 and s["quality_min_avg_prev_8w"] == 0.0
+
+
+def test_set_trend_needs_4():
+    runs = [_run(i, f"2026-09-{10 + i:02d}", TEMPO) for i in range(3)]
+    assert rs.set_trend(runs, "2026-09-26")["slope_4w"] is None
+    runs.append(_run(9, "2026-09-20", [_lap(1000, 360)] * 2 + [_lap(1000, 260)] * 4 + [_lap(1000, 370)]))
+    t = rs.set_trend(runs, "2026-09-26")
+    assert t["n"] == 4 and t["slope_4w"] > 0
 
 
 def test_long_mp_km():
-    v_mp = 3.2
-    laps = [(1000, 1000 / 3.2, 150)] * 5 + [(1000, 360, 140)] * 12
-    assert rs.long_mp_km([_run("2026-09-20", laps, dist=17000.0)], "2026-09-26", v_mp) == 5.0
-    assert rs.long_mp_km([_run("2026-09-20", laps, dist=12000.0)], "2026-09-26", v_mp) == 0.0
-
-
-def test_work_trend_excludes_treadmill_and_needs_4():
-    blk = [(3000, 780, 172)]
-    runs = [_run(f"2026-09-{d:02d}", blk) for d in (1, 8, 15)] + [_run("2026-09-20", blk, atype="treadmill")]
-    assert rs.work_trend(runs, "2026-09-26", 180.0, None) == {"n": 3, "slope_4w": None}
-    runs.append(_run("2026-09-22", blk))
-    t = rs.work_trend(runs, "2026-09-26", 180.0, None)
-    assert t["n"] == 4 and t["slope_4w"] == 0.0
-
-
-def test_summarize():
-    assert rs.summarize([10.0] * 8 + [5.0] * 8) == {"thr_min_avg_8w": 10.0, "thr_min_avg_prev_8w": 5.0}
+    long = _run(5, "2026-09-20", [_lap(1000, 300)] * 10 + [_lap(1000, 360)] * 10, dist=20000.0)
+    assert rs.long_mp_km([long], "2026-09-26", 1000 / 300) == 10.0
 ````
 
 **`src/metrics/engine.py`** — 수정, 아래 diff 그대로
@@ -203,7 +187,7 @@ def test_summarize():
 +from src.metrics.training_response import TrainingResponseCalculator
  from src.metrics.tids import TIDSCalculator
  from src.metrics.rmr import RMRCalculator
-@@ -95,4 +96,5 @@
+@@ -94,4 +95,5 @@
      HeatModelCalculator(),
      DARPCalculator(),
 +    TrainingResponseCalculator(),
@@ -224,7 +208,7 @@ def test_summarize():
      MetricDef("critical_power", "capacity", "metric", "W", "Critical Power (CP)", scope="daily"),
 ````
 
-**`scripts/check_docs.py`** — 수정, 아래 diff 그대로 — calculator 수 34 → 35
+**`scripts/check_docs.py`** — 수정, 아래 diff 그대로 — calculator 수 33 → 34 (P7-PRED-90에서 vdot_adj 제거 뒤)
 
 ````diff
 --- a/scripts/check_docs.py
@@ -232,17 +216,17 @@ def test_summarize():
 @@ -816,11 +816,11 @@
          else:
              ok(f"engine.py: 실행 함수 {required_fns} 전부 존재")
--        # ALL_CALCULATORS 수 검증 (설계: 34개)
-+        # ALL_CALCULATORS 수 검증 (설계: 35개)
+-        # ALL_CALCULATORS 수 검증 (설계: 33개)
++        # ALL_CALCULATORS 수 검증 (설계: 34개)
          try:
              from src.metrics.engine import ALL_CALCULATORS
--            if len(ALL_CALCULATORS) != 34:
--                error(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계: 34개)")
-+            if len(ALL_CALCULATORS) != 35:
-+                error(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계: 35개)")
+-            if len(ALL_CALCULATORS) != 33:
+-                error(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계: 33개)")
++            if len(ALL_CALCULATORS) != 34:
++                error(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계: 34개)")
              else:
--                ok(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계 34개 일치)")
-+                ok(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계 35개 일치)")
+-                ok(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계 33개 일치)")
++                ok(f"ALL_CALCULATORS 수: {len(ALL_CALCULATORS)}개 (설계 34개 일치)")
          except Exception:
              warn("ALL_CALCULATORS import 실패 — 수 검증 건너뜀")
 ````
