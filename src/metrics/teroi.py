@@ -44,7 +44,7 @@ class TEROICalculator(MetricCalculator):
         ctl_start = series[0][1] if series else 0.0
 
         # 28일간 총 TRIMP
-        trimp_series = ctx.get_activity_metric_series("trimp", days=28)
+        trimp_series = ctx.get_activity_metric_series("trimp", days=28, canonical_only=True, primary_only=True)
         total_trimp = sum(d["numeric"] for d in trimp_series) if trimp_series else 0.0
 
         if total_trimp <= 0:

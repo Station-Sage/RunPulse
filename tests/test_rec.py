@@ -79,3 +79,16 @@ class TestREC:
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RECCalculator().compute(ctx)
         assert results[0].category == "efficiency"
+
+
+class TestRECPercentile:
+    def test_recent_best_is_high(self):
+        conn = _conn()
+        for i in range(10):                                  # 과거 EF 18, 최근 7일 EF 21
+            d = f"2026-03-{10 + i:02d}"
+            aid = _seed_activity(conn, d, source_id=f"p{i}")
+            upsert_metric(conn, "activity", str(aid), "efficiency_factor_rp", "runpulse:formula_v1", numeric_value=18.0)
+        aid = _seed_activity(conn, "2026-03-30", source_id="pn")
+        upsert_metric(conn, "activity", str(aid), "efficiency_factor_rp", "runpulse:formula_v1", numeric_value=21.0)
+        r = RECCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))
+        assert r[0].numeric_value == round(100 * (10 + 0.5) / 11, 1)     # 95.5

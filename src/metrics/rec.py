@@ -1,11 +1,12 @@
 """REC (Running Efficiency Composite) — 통합 러닝 효율성 지수.
 
-최근 7일 EF/Decoupling 평균으로 0~100 정규화.
+최근 7일 EF(디커플링 보정)가 본인 최근 180일 분포에서 어디쯤인지(백분위, 0~100).
 
-공식:
-    dec_factor = max(0.5, 1.0 - decoupling/100)
-    raw = ef * dec_factor * form_factor
-    REC = clamp((raw - 0.8) / 1.2 * 100, 0, 100)
+공식 (v2, P7-PRED-82):
+    raw_i = ef_i * max(0.5, 1 - decoupling_i/100)   (활동별, 디커플링 없으면 5%)
+    current = 최근 7일 raw 평균
+    REC = 100 * (#{raw_j < current} + 0.5 * #{raw_j == current}) / n   (j: 최근 180일, n >= 5)
+v1 은 EF 를 m/min/bpm(≈1.2) 로 가정했으나 저장값은 m/s/bpm×1000(≈19) 이라 958일 모두 100 으로 포화됐다.
 
 v0.3 포팅: _v02_backup/rec.py → MetricCalculator 형식
 """
@@ -32,33 +33,22 @@ class RECCalculator(MetricCalculator):
     format_type = "number"
     decimal_places = 1
 
+    MIN_REF = 5
+
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
-        # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
-        target = ctx.scope_id
-        td = date.fromisoformat(target)
-        start = (td - timedelta(days=7)).isoformat()
-
-        # 최근 7일 EF — CalcContext API
-        ef_data = ctx.get_activity_metric_series("efficiency_factor_rp", days=7)
-        if not ef_data:
+        ef = ctx.get_activity_metric_series("efficiency_factor_rp", days=180, canonical_only=True, primary_only=True)
+        dec = {d["activity_id"]: d["numeric"] for d in
+               ctx.get_activity_metric_series("aerobic_decoupling_rp", days=180, canonical_only=True, primary_only=True)}
+        if len(ef) < self.MIN_REF:
             return []
-        ef_avg = sum(d["numeric"] for d in ef_data) / len(ef_data)
-
-        # 최근 7일 Decoupling
-        dec_data = ctx.get_activity_metric_series("aerobic_decoupling_rp", days=7)
-        dec_avg = sum(d["numeric"] for d in dec_data) / len(dec_data) if dec_data else 5.0
-
-        dec_factor = max(0.5, 1.0 - dec_avg / 100)
-        raw = ef_avg * dec_factor
-        rec = min(100, max(0, (raw - 0.8) / 1.2 * 100))
-
-        return [self._result(
-            value=round(rec, 1),
-            json_val={
-                "ef_avg": round(ef_avg, 4),
-                "dec_avg": round(dec_avg, 1),
-                "ef_count": len(ef_data),
-            },
-        
-            confidence=1.0,
-        )]
+        raws = [(d["date"], d["numeric"] * max(0.5, 1.0 - dec.get(d["activity_id"], 5.0) / 100)) for d in ef]
+        cut = (date.fromisoformat(ctx.scope_id) - timedelta(days=7)).isoformat()
+        recent = [r for dt, r in raws if dt > cut]
+        if not recent:
+            return []
+        cur = sum(recent) / len(recent)
+        vals = [r for _, r in raws]
+        rank = (sum(1 for v in vals if v < cur) + 0.5 * sum(1 for v in vals if v == cur)) / len(vals)
+        return [self._result(value=round(100 * rank, 1),
+                             json_val={"current_raw": round(cur, 3), "n_ref": len(vals), "n_recent": len(recent)},
+                             confidence=min(1.0, len(vals) / 30))]
