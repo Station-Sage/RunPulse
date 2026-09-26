@@ -1681,6 +1681,22 @@
 
 - functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
 
+### `test_prediction_core.py` (72줄)
+
+- functions: test_vdot_roundtrip, test_temp, test_anchor_decay, test_best_block, test_combine, test_k_personal, test_convert_equals_daniels_at_k0, test_marathon, test_confidence_and_range, test_hr_profile, test_weather
+
+### `test_prediction_core_r4.py` (84줄) — P7-PRED-20·22: Daniels 공식·강도 역산, 칼만 결합, 예측 코어(r4).
+
+- functions: test_daniels_formula_and_zones, test_set_zone_and_equivalent_minutes, test_temp, test_k_personal_disjoint_pairs, test_distance_extrapolation, test_quality_multiplier, test_kalman_weights_and_add, test_summary_and_marathon, test_hr_profile_and_weather_helpers, test_kalman_low_mult_weakens_low_observations
+
+### `test_prediction_signals.py` (36줄) — P7-PRED-22: 예측 신호(순수).
+
+- functions: test_allout_rules, test_tanda_inputs, test_spread_pct
+
+### `test_prediction_signals_r4.py` (55줄) — P7-PRED-22: 예측 관측 생성(순수, r4).
+
+- functions: test_allout_rules, test_set_observation_device_free, test_observations_and_inputs
+
 ### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
 - functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped
@@ -1696,6 +1712,10 @@
 ### `test_provider_status_service.py` (82줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros
+
+### `test_race_effort.py` (39줄) — P7-PRED-22(r4 보강): 거리·지속시간별 전력 판정 — 이 러너 대회 값으로 검증(REVIEW-09 §10).
+
+- functions: test_runner_races, test_expected_ratio_monotone_and_t0, test_point_in_time_hrmax_and_proxy
 
 ### `test_race_hub_service.py` (282줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
 
@@ -1981,7 +2001,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 393개 파일
+총 398개 파일
 
 ## docstring 누락
 
@@ -1992,6 +2012,7 @@
 - `tests/test_fixture_loader.py`
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
+- `tests/test_prediction_core.py`
 - `tests/test_rec.py`
 - `tests/test_relative_effort.py`
 - `tests/test_rri.py`
