@@ -1,6 +1,7 @@
 """ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
 
-4주간 CTL 변화율 + 부하 패턴 → 훈련 적응 방향 (-100 ~ +100).
+4주간 CTL 변화율(%) → 훈련 적응 방향. P7-PRED-89: 이전엔 ×5 후 ±100 절단이라 26%가 포화 →
+변화율(%)을 그대로 저장(상·하한 없음). 해석 밴드 ±2%(이전 ±10 스케일과 같은 경계).
 """
 from __future__ import annotations
 
@@ -16,13 +17,13 @@ class ADTICalculator(MetricCalculator):
     display_name = "훈련 추세 (ADTI)"
     description = "28일간 CTL 변화율. 양수=상승, 음수=하락."
     unit = ""
-    ranges = {"declining": [-100, -10], "stable": [-10, 10], "building": [10, 100]}
+    ranges = {"declining": [-100, -2], "stable": [-2, 2], "building": [2, 100]}
     higher_is_better = True
     decimal_places = 1
     display_name = "훈련 추세 (ADTI)"
     description = "28일간 CTL 변화율. 양수=상승, 음수=하락."
     unit = ""
-    ranges = {"declining": [-100, -10], "stable": [-10, 10], "building": [10, 100]}
+    ranges = {"declining": [-100, -2], "stable": [-2, 2], "building": [2, 100]}
     higher_is_better = True
     decimal_places = 1
     requires = ["ctl"]
@@ -43,6 +44,4 @@ class ADTICalculator(MetricCalculator):
             return []
 
         change_pct = ((avg_second - avg_first) / avg_first) * 100
-        adti = max(-100, min(100, change_pct * 5))
-
-        return [self._result(value=round(adti, 1))]
+        return [self._result(value=round(change_pct, 2))]

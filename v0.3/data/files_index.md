@@ -130,11 +130,12 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/utils/metric_groups.py
 > 주의: category는 calculator의 self.category가 DB 저장값 (registry 아님)
 
-### `acwr.py` (39줄) — ACWR Calculator — 설계서 4-3 기준.
+### `acwr.py` (49줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
 
 - class **ACWRCalculator**: compute
+- functions: has_history
 
-### `adti.py` (48줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
+### `adti.py` (47줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
 
 - class **ADTICalculator**: compute
 
@@ -185,7 +186,7 @@
 
 - class **AerobicDecouplingCalculator**: compute
 
-### `di.py` (59줄) — DI (Durability Index) — 설계서 4-4 기준.
+### `di.py` (71줄) — DI (Durability Index) v2 — 90분 이상 러닝에서 후반 효율 유지율(P7-PRED-89).
 
 - class **DICalculator**: compute
 
@@ -221,17 +222,18 @@
 - class **HRProfileCalculator**: compute
 - functions: race_second_part_hr
 
-### `hrss.py` (53줄) — HRSS Calculator — 설계서 4-2 기준.
+### `hrss.py` (56줄) — HRSS Calculator — 설계서 4-2 기준.
 
 - class **HRSSCalculator**: compute
 
-### `lsi.py` (55줄) — LSI (Load Spike Index) Calculator — 설계서 4-3 기준.
+### `lsi.py` (57줄) — LSI (Load Spike Index) Calculator — 설계서 4-3 기준.
 
 - class **LSICalculator**: compute
 
-### `marathon_shape.py` (96줄) — Marathon Shape — 마라톤 훈련 완성도.
+### `marathon_shape.py` (80줄) — Marathon Shape v2 — 마라톤 볼륨·롱런 구조(P7-PRED-52, REVIEW-09 §7). 기기 불필요(GPS·시간).
 
 - class **MarathonShapeCalculator**: compute
+- functions: tanda_required_km
 
 ### `monotony.py` (61줄) — Monotony & Strain Calculator — 설계서 4-3 기준.
 
@@ -262,7 +264,7 @@
 
 - class **RRICalculator**: compute
 
-### `rtti.py` (81줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
+### `rtti.py` (78줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
 
 - class **RTTICalculator**: compute
 
@@ -1153,11 +1155,11 @@
 - class **TestEF**: test_compute, test_no_hr
 - class **TestClassifierV2Segments**: test_interval_from_laps, test_continuous_tempo_auto_laps
 
-### `test_activity_core_sanitize.py` (89줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
+### `test_activity_core_sanitize.py` (96줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
 
 - class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
-- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_extreme_ratio_is_capped, test_zero_ctl_returns_empty
+- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
 
 ### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
@@ -1378,7 +1380,7 @@
 - class **TestRMR**: test_with_wellness, test_no_data
 - class **TestADTI**: test_with_ctl_series, test_insufficient_data
 
-### `test_daily_calcs.py` (110줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
+### `test_daily_calcs.py` (111줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
 
 - class **TestPMC**: test_compute, test_no_data
 - class **TestACWR**: test_compute, test_no_ctl
@@ -1450,6 +1452,10 @@
 - class **TestDedup**: test_same_activity_different_sources, test_different_activities_not_grouped, test_same_source_not_grouped, test_distance_threshold_exceeded, test_three_sources_same_activity, test_no_distance_falls_back_to_time, test_one_sided_zero_distance_not_grouped, test_preserves_existing_groups_on_rerun, test_third_source_joins_existing_group
 - class **TestActivityGroupsUpsert**: test_assign_group_id_creates_activity_group, test_auto_group_all_creates_activity_groups, test_primary_source_priority, test_activity_groups_updated_on_rerun
 
+### `test_di_v2.py` (28줄) — P7-PRED-89: DI v2 — 랩 기반 후반 효율 유지율, 상한 없음.
+
+- functions: test_drift_lowers_di_and_no_cap, test_short_runs_empty
+
 ### `test_doc_sync.py` (97줄) — 문서 동기화 검증 테스트.
 
 - class **TestMetricDictionarySync**: setup, test_dictionary_exists, test_calculator_count_matches, test_group_count_matches, test_all_calculators_documented, test_all_groups_documented, test_no_outdated_table_count
@@ -1458,7 +1464,7 @@
 
 - class **TestEFTP**: test_from_vdot, test_no_vdot, test_confidence
 
-### `test_engine.py` (194줄) — Metrics Engine 통합 테스트.
+### `test_engine.py` (209줄) — Metrics Engine 통합 테스트.
 
 - class **TestTopologicalSort**: test_trimp_before_hrss, test_pmc_before_acwr, test_acwr_before_cirs, test_all_calculators_included
 - class **TestRunActivityMetrics**: test_produces_metrics, test_metrics_in_store
@@ -1622,9 +1628,10 @@
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
 
-### `test_marathon_shape.py` (83줄)
+### `test_marathon_shape.py` (93줄)
 
-- class **TestMarathonShape**: test_with_data, test_no_vdot, test_json_structure
+- class **TestMarathonShape**: test_with_data, test_no_vdot, test_goal_basis_and_unreachable
+- functions: test_tanda_required_roundtrip
 
 ### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
 
@@ -1871,7 +1878,7 @@
 - class **TestRRI**: test_with_all_inputs, test_high_cirs_lowers_rri, test_no_vdot, test_category
 - class **TestRRIMock**: test_with_all_inputs_mock, test_no_vdot_mock
 
-### `test_rtti.py` (102줄)
+### `test_rtti.py` (103줄)
 
 - class **TestRTTI**: test_optimal, test_overload, test_no_data, test_category
 - class **TestRTTIMock**: test_optimal_mock, test_no_data_mock
@@ -2087,7 +2094,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 417개 파일
+총 418개 파일
 
 ## docstring 누락
 

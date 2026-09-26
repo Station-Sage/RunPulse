@@ -75,6 +75,7 @@ class TestACWRCap:
         for name, val in (("atl", atl), ("ctl", ctl)):
             upsert_metric(conn, "daily", "2026-04-01", name, "runpulse:formula_v1",
                           numeric_value=val, category="rp_load")
+        upsert_metric(conn, "daily", "2026-03-04", "ctl", "runpulse:formula_v1", numeric_value=40.0, category="rp_load")  # 28일 전 CTL(P7-PRED-89)
         conn.commit()
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         return ACWRCalculator().compute(ctx)
@@ -82,8 +83,14 @@ class TestACWRCap:
     def test_ratio_below_cap_is_unchanged(self):
         assert self._compute(atl=60.0, ctl=50.0)[0].numeric_value == 1.2
 
-    def test_extreme_ratio_is_capped(self):
-        assert self._compute(atl=17.8, ctl=3.3)[0].numeric_value == 5.0
+    def test_low_chronic_load_returns_empty(self):
+        assert self._compute(atl=17.8, ctl=3.3) == []          # P7-PRED-89: 5.0 절단 대신 "데이터 수집 중"
+
+    def test_no_history_returns_empty(self):
+        conn = _conn()
+        for name, val in (("atl", 60.0), ("ctl", 50.0)):
+            upsert_metric(conn, "daily", "2026-04-01", name, "runpulse:formula_v1", numeric_value=val, category="rp_load")
+        assert ACWRCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")) == []
 
     def test_zero_ctl_returns_empty(self):
         assert self._compute(atl=10.0, ctl=0.0) == []
