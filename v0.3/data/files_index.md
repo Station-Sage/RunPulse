@@ -1983,6 +1983,10 @@
 - class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
 - functions: garmin_app
 
+### `test_weather_provider.py` (25줄) — P7-PRED-86: Open-Meteo 단일 클라이언트(provider.py) — 요청 파라미터·보간·WBGT.
+
+- functions: test_request_params_archive_vs_forecast, test_at_time_interpolates_and_wbgt
+
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -2033,7 +2037,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 405개 파일
+총 406개 파일
 
 ## docstring 누락
 
