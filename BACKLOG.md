@@ -7,8 +7,7 @@
 ## BUGS
 
 - **[DATA-CTL-WARMUP]** 2025-09-01 이전 활동 대부분이 TRIMP 없음(2025-08 러닝 28건 중 2건) → 2025-09-01 백필 경계에서 CTL이 83.0→4.7로 급락하고 이후 약 6주(≈10월 중순까지)는 EMA 워밍업 구간이라 과소값. 2025-05-04~08-31의 CTL 값(≈72~83)은 출처 불명의 잔존값. 2026-09 현재 값은 영향 없음(경계로부터 12개월). 수정안: 백업 후 `recompute_all`을 첫 활동일부터 재실행(DB 변경이므로 승인 필요).
-- **[BUG-WORKOUT-TYPE-COLUMN]** `chat_context_builders.py:91,265`, `chat_context_rich.py:78-104`가 `workout_type_classified`를 `numeric_value`에서 읽는다(실제 저장은 `text_value`). 앱 내 AI 코치 컨텍스트에 세션 분류가 항상 빠지고 대회 판별이 이름 키워드에만 의존. MCP 도구 쪽은 ADR-016에서 수정 완료.
-- **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 `treadmill`로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. 최근 데이터에는 영향 없음.
+- **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 러닝으로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. **코드 수정 완료(2026-09-26, `_RUNNING_TYPES`에 추가)** — 기존 DB 16건(`activity_type='indoor_running'`) 정정·재계산은 실 DB 작업(백필 런북과 함께)으로 남음.
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 일부 뷰에서 `v_canonical_activities` 대신 `activity_summaries` 직접 쿼리 → 중복 활동 포함 위험. **(판단 필요)** UI 재설계 범위와 함께 결정.
 
@@ -20,7 +19,6 @@
 
 - **[MCP-REMOTE]** 원격 MCP(Genspark 등 VPS 외부 클라이언트 연결). 현재 MCP는 stdio 전용이라 외부 접속 불가 → HTTP 전송 + 토큰 인증 + 외부 노출 범위(읽기 전용, 유저 스코프) 설계 필요. **선행: MCP-TOKEN-OPT 완료.** 노출/인증은 설계 변경이므로 착수 전 plan 승인 필수. 그 전까지 Genspark로 로그를 넘기는 임시 방식(zip 업로드 vs 복붙)과 로그의 원본 위치는 미결정.
 - **[MCP-CLIENT-VERIFY]** 실제 MCP 클라이언트(Claude Code) 연결 검증 — ADR-016의 stdio 프레임 수정은 서브프로세스 왕복으로만 확인했고 실클라이언트로는 미검증. 로컬 `.mcp.json`에 `runpulse` 등록은 완료(다음 세션에서 `/mcp`로 확인). 같은 파일의 기존 `sqlite` 항목은 활동 0건인 `default` DB를 가리킴 → 경로 정정 또는 제거 필요(로컬 설정이라 커밋 대상 아님).
-- **[AI-CHAT-TOOL-PROMPT]** `chat_engine_providers._TOOL_SYSTEM_TEXT`의 도구 라우팅 목록에 `get_activity_laps`·`compare_workout_sets`·`get_training_summary`가 없음. 선언은 공유되어 LLM에 노출되지만 "반드시 호출" 규칙에는 빠져 있음. `tool_guide.USAGE_GUIDE`와 SSOT 통합 여부 검토.
 - **[MARATHON-LOG-LAPS]** 훈련 로그(`data/2026_marathon_plan/`, gitignore 대상)에 세트별 랩 반영. 2026-09-10(ACTIVE 2세트)·09-17(4세트)은 랩이 이미 적재됨, 09-04 크루즈는 아직 랩 없음(date-range 동기화 필요). 반영 후 W13·W14 주간 로그와 일일 로그 갱신. 팩트 위주·`60_TEMPLATES` 양식 유지.
 
 ## DONE (recent)

@@ -34,7 +34,8 @@ def distribution(runs: list[dict], v_m: float, v_t: float) -> dict | None:
 
 def pattern(d: dict) -> tuple[str, float | None]:
     z1, z2, z3 = d["z1"], d["z2"], d["z3"]
-    pi = round(math.log10(z1 / 100 / max(z2 / 100, 1e-3) * z3 / 100 * 100), 2) if z3 > 0 else None
+    # 양극화 지수 log10(f1/f2*f3*100): 존1 또는 존3 시간이 0이면 정의되지 않는다(log10(0)) → None
+    pi = round(math.log10(z1 / 100 / max(z2 / 100, 1e-3) * z3 / 100 * 100), 2) if z1 > 0 and z3 > 0 else None
     if z2 >= z1 and z2 >= z3:
         return "threshold", pi
     if z1 > z3 > z2 and pi is not None and pi > 2.0:

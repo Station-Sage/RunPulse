@@ -16,3 +16,10 @@ def test_time_based_distribution_and_patterns():
     assert pattern({"z1": 60.0, "z2": 10.0, "z3": 30.0}) == ("polarized", 2.26)
     assert pattern({"z1": 40.0, "z2": 25.0, "z3": 35.0})[0] == "mixed"
     assert distribution([], v_m, v_t) is None
+
+
+def test_pattern_zero_zone1_has_no_polarization_index():
+    """존1 시간이 0 이고 존3 이 있는 주(예: 이지 없이 고강도만) — log10(0) 로 계산이 죽지 않는다."""
+    from src.metrics.tids import pattern
+    name, pi = pattern({"z1": 0.0, "z2": 40.0, "z3": 60.0})
+    assert pi is None and isinstance(name, str)
