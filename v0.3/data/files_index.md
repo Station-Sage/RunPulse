@@ -355,13 +355,21 @@
 
 - class **GarminBulkLoader**: load
 
-### `garmin_daily_extensions.py` (466줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
+### `garmin_daily_extensions.py` (428줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
 ### `garmin_helpers.py` (104줄) — Garmin 동기화 공통 헬퍼.
 
 - (public API 없음)
+
+### `garmin_ref_parsers.py` (52줄) — Garmin 참조값 파서(순수) — 젖산역치(LTHR·역치속도·FTP)와 레이스 예측 payload → 날짜별 값(P7-PRED-25).
+
+- functions: parse_lactate_threshold, parse_race_predictions
+
+### `garmin_ref_sync.py` (85줄) — Garmin 참조값 동기화(P7-PRED-25) — 젖산역치(LTHR·역치속도) 일별 스냅샷, 레이스 예측 일별 스냅샷 + 이력 백필.
+
+- functions: sync_lactate_threshold, sync_race_predictions, backfill_history
 
 ### `garmin_v2_mappings.py` (283줄) — Garmin → activity_summaries v2.5 필드 매핑 정의.
 
@@ -1050,7 +1058,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (512줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (516줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1507,6 +1515,15 @@
 - class **TestGarminLogin**: test_returns_token_dict_on_success, test_fresh_login_creates_token_file, test_exits_on_too_many_requests
 - class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
 - class **TestTokenOnlyMode**: test_saves_token_locally
+
+### `test_garmin_ref_parsers.py` (25줄) — P7-PRED-25: Garmin 참조값 파서.
+
+- functions: test_lt_latest_shape, test_lt_history_list_and_garbage, test_race_predictions_latest_and_history
+
+### `test_garmin_ref_sync.py` (41줄) — P7-PRED-25: Garmin 참조값 동기화(가짜 클라이언트).
+
+- class **FakeClient**: get_lactate_threshold, get_race_predictions
+- functions: test_snapshots, test_history_and_failure
 
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
@@ -2016,7 +2033,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 401개 파일
+총 405개 파일
 
 ## docstring 누락
 
