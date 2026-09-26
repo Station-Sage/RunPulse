@@ -1345,6 +1345,10 @@
 - class **TestLSI**: test_compute, test_no_today
 - class **TestMonotony**: test_compute, test_no_data
 
+### `test_daniels_kalman.py` (33줄) — P7-PRED-20: Daniels–Gilbert 공식·강도 구간·세트 등가 지속시간, 로컬 레벨 칼만(순수).
+
+- functions: test_formula_anchors, test_zone_order, test_equivalent_minutes_rest_ratio, test_kalman_weights_and_decay
+
 ### `test_daniels_table.py` (78줄) — daniels_table 유틸리티 테스트.
 
 - class **TestTrainingPaces**: test_vdot_50_paces, test_interpolation, test_boundary_low, test_boundary_high
@@ -1969,7 +1973,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 390개 파일
+총 391개 파일
 
 ## docstring 누락
 
