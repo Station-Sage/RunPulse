@@ -252,6 +252,10 @@
 
 - class **SAPICalculator**: compute
 
+### `segments.py` (219줄) — 세그먼트 분해 — 랩/스트림 블록을 워밍업·작업·휴식·쿨다운으로 나누고 세트·세션 유형을 판정한다(순수 함수).
+
+- functions: label_blocks, build_bouts, work_set, session_type, set_summary, stream_to_blocks, repair_time_axis, cumulative_distance
+
 ### `teroi.py` (65줄) — TEROI (Training Effect Return On Investment) — 훈련 효과 투자 수익률.
 
 - class **TEROICalculator**: compute
@@ -1793,6 +1797,10 @@
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
 
+### `test_segments.py` (99줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
+
+- functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair
+
 ### `test_strava_extractor.py` (98줄) — Strava Extractor 단위 테스트.
 
 - class **TestStravaActivityCore**: test_required_fields, test_distance_time, test_suffer_score_in_metrics, test_latlng, test_source_url, test_no_none_values
@@ -1973,7 +1981,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 391개 파일
+총 393개 파일
 
 ## docstring 누락
 
