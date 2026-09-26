@@ -390,7 +390,11 @@
 
 - functions: upsert_raw_payload, update_raw_activity_id
 
-### `reprocess.py` (299줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reextract.py` (77줄) — 제자리 재추출 — 기존 activity_summaries id 를 유지한 채 랩·스트림·활동 메트릭을 다시 뽑는다(P7-PRED-13).
+
+- functions: orphan_activity_count, reextract_laps_streams
+
+### `reprocess.py` (302줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -1723,6 +1727,10 @@
 ### `test_replanner.py` (220줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
 
 - functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error
+
+### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
+
+- functions: test_reextract_keeps_ids_and_fills_fields, test_activity_metrics_reextracted, test_dry_run_writes_nothing, test_orphan_guard_blocks_destructive_reprocess
 
 ### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
