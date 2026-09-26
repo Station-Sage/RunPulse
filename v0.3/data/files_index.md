@@ -260,9 +260,10 @@
 
 - class **TEROICalculator**: compute
 
-### `tids.py` (54줄) — TIDS (Training Intensity Distribution Score) — 설계서 4-4 기준.
+### `tids.py` (74줄) — TIDS (Training Intensity Distribution Score) — 8주 러닝 시간의 3구간 분포(P7-PRED-88, REVIEW-08 §R4).
 
 - class **TIDSCalculator**: compute
+- functions: distribution, pattern
 
 ### `today_refresh.py` (40줄) — 달력 오늘의 일별 메트릭을 "현 시각 기준"으로 유지하는 지연 갱신.
 
@@ -1641,7 +1642,7 @@
 - class **TestRealDbDefault**: test_existing_tables, test_migrate_creates_new_tables, test_existing_data_preserved, test_schema_version_updated
 - class **TestRealDbUser**: test_has_real_data, test_migrate_preserves_data, test_migrate_adds_metric_store, test_source_payloads_exist, test_source_distribution, test_canonical_view_after_migrate, test_daily_wellness_has_data, test_db_summary
 
-### `test_phase4_dod.py` (325줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
+### `test_phase4_dod.py` (326줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
 
 - class **TestDoD1**: test_19_calculators, test_calculator_names
 - class **TestDoD2**: test_full_chain
@@ -1850,6 +1851,10 @@
 
 - class **TestTEROI**: test_with_data, test_no_trimp, test_category
 
+### `test_tids_time.py` (18줄) — P7-PRED-88: TIDS 시간 기준.
+
+- functions: test_time_based_distribution_and_patterns
+
 ### `test_today_service.py` (404줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
@@ -2002,7 +2007,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 398개 파일
+총 399개 파일
 
 ## docstring 누락
 

@@ -314,6 +314,7 @@ class TestDoD10:
                                    category=r.category)
         conn.commit()
         from src.metrics.tids import TIDSCalculator
+        upsert_metric(conn, "daily", "2026-03-31", "race_pred_vdot", "runpulse:formula_v1", numeric_value=45.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = TIDSCalculator().compute(ctx)
         assert len(results) == 1
