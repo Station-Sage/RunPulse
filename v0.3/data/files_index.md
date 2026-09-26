@@ -153,7 +153,7 @@
 
 - class **WorkoutClassifier**: compute
 
-### `cli.py` (131줄) — Metrics CLI 인터페이스 (보강 #10).
+### `cli.py` (132줄) — Metrics CLI 인터페이스 (보강 #10).
 
 - functions: show_metric_status, main
 
@@ -190,7 +190,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (737줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (752줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -1632,7 +1632,7 @@
 - class **TestRealDbDefault**: test_existing_tables, test_migrate_creates_new_tables, test_existing_data_preserved, test_schema_version_updated
 - class **TestRealDbUser**: test_has_real_data, test_migrate_preserves_data, test_migrate_adds_metric_store, test_source_payloads_exist, test_source_distribution, test_canonical_view_after_migrate, test_daily_wellness_has_data, test_db_summary
 
-### `test_phase4_dod.py` (324줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
+### `test_phase4_dod.py` (325줄) — Phase 4 DoD (Definition of Done) 검증 테스트 — 설계서 4-8 기준.
 
 - class **TestDoD1**: test_19_calculators, test_calculator_names
 - class **TestDoD2**: test_full_chain
@@ -1726,6 +1726,10 @@
 
 - class **TestREC**: test_with_data, test_no_ef, test_category
 - class **TestRECPercentile**: test_recent_best_is_high
+
+### `test_recompute_all_range.py` (31줄) — P7-PRED-87: recompute_all 이 재계산 범위 밖 이력을 지우지 않는다.
+
+- functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history
 
 ### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
 
@@ -1965,7 +1969,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 389개 파일
+총 390개 파일
 
 ## docstring 누락
 

@@ -151,7 +151,8 @@ class TestDoD7:
     def test_idempotent_recompute(self):
         conn = _conn()
         _seed_full(conn, days=10)
-        # 첫 번째 계산
+        # 첫 번째 계산 — recompute_all 은 범위 밖 행을 지우지 않으므로(P7-PRED-87) 시드 행을 먼저 비운다
+        clear_runpulse_metrics(conn)
         first = recompute_all(conn, days=7)
         first_count = conn.execute(
             "SELECT COUNT(*) FROM metric_store WHERE provider LIKE 'runpulse%'"

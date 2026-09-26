@@ -636,11 +636,18 @@ def recompute_recent(conn: sqlite3.Connection, days: int = 7) -> dict:
     return _recompute_dates(conn, dates)
 
 
-def clear_runpulse_metrics(conn: sqlite3.Connection) -> int:
-    """RunPulse 계산 메트릭만 삭제 (소스 메트릭 보존)."""
-    cur = conn.execute(
-        "DELETE FROM metric_store WHERE provider LIKE 'runpulse%'"
-    )
+def clear_runpulse_metrics(conn: sqlite3.Connection, start: str | None = None, end: str | None = None) -> int:
+    """RunPulse 계산 메트릭만 삭제 (소스 메트릭 보존). start~end(YYYY-MM-DD)를 주면 그 기간의 일별 행과
+    그 기간 활동의 활동 행만 삭제한다(P7-PRED-87 — 재계산하지 않는 과거 이력을 지우지 않는다)."""
+    if start is None and end is None:
+        cur = conn.execute("DELETE FROM metric_store WHERE provider LIKE 'runpulse%'")
+    else:
+        lo, hi = start or "0000-00-00", end or "9999-12-31"
+        cur = conn.execute(
+            "DELETE FROM metric_store WHERE provider LIKE 'runpulse%' AND ("
+            " (scope_type = 'daily' AND scope_id BETWEEN ? AND ?) OR"
+            " (scope_type = 'activity' AND scope_id IN (SELECT CAST(id AS TEXT) FROM activity_summaries"
+            "   WHERE substr(start_time, 1, 10) BETWEEN ? AND ?)))", (lo, hi, lo, hi))
     deleted = cur.rowcount
     conn.commit()
     log.info("clear_runpulse_metrics: %d행 삭제", deleted)
@@ -683,12 +690,20 @@ def _recompute_dates(conn: sqlite3.Connection, dates: list[str],
     return all_results
 
 
-def recompute_all(conn: sqlite3.Connection, days: int = 90,
+def recompute_all(conn: sqlite3.Connection, days: int | None = None,
                   on_progress=None) -> dict:
-    """전체 재계산: RunPulse 메트릭 삭제 → 활동 → 일별 순서로 재실행."""
-    clear_runpulse_metrics(conn)
+    """재계산 범위의 RunPulse 메트릭만 삭제 → 활동 → 일별 순서로 재실행(P7-PRED-87).
+
+    days=None(기본)이면 가장 이른 활동일부터 오늘까지 전 기간. days 를 주면 최근 days 일(가장 이른 활동일 이전은 자르고),
+    그 범위 밖 이력은 삭제하지 않는다(이전 동작: 전부 삭제 후 90일만 재계산 → 과거 메트릭 소실, REVIEW-08 R3-7).
+    """
     today = date.today()
-    dates = [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
+    first = conn.execute("SELECT min(substr(start_time, 1, 10)) FROM activity_summaries").fetchone()[0]
+    start = date.fromisoformat(first) if first else today
+    if days is not None:
+        start = max(start, today - timedelta(days=days - 1))
+    dates = [(start + timedelta(days=i)).isoformat() for i in range((today - start).days + 1)]
+    clear_runpulse_metrics(conn, dates[0], dates[-1])
     return _recompute_dates(conn, dates, on_progress=on_progress)
 
 
