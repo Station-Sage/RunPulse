@@ -1,7 +1,7 @@
 """P7-PRED-11: 스키마 v20 컬럼·race_results·session_outcomes 유일 제약."""
 import sqlite3
 
-from src.db_setup import create_tables, migrate_db
+from src.db_setup import SCHEMA_VERSION, create_tables, migrate_db
 from src.db_schema_v20 import V20_COLUMNS, ensure_v20
 
 
@@ -32,7 +32,7 @@ def test_migrate_from_19_adds_columns():
     create_tables(c)
     c.execute("PRAGMA user_version = 19")
     migrate_db(c)
-    assert c.execute("PRAGMA user_version").fetchone()[0] == 20
+    assert c.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION  # v20 이후 버전(P7-PRED-63 v21)까지
 
 
 def test_session_outcomes_unique_planned_id():
