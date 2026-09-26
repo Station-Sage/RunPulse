@@ -80,6 +80,10 @@
 
 - functions: get_static_plan_templates, create_plan_from_template
 
+### `prediction_snapshot_service.py` (115줄) — 예측 스냅샷·전향 평가(P7-PRED-63) — 모델별(r3 기본·기기·r4 섀도·Garmin) 예측을 그날 값 그대로 보존하고,
+
+- functions: record_snapshots, evaluate_race, summary
+
 ### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
@@ -100,7 +104,7 @@
 
 - functions: project_race_form
 
-### `race_result_service.py` (62줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+### `race_result_service.py` (64줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
 
 - functions: confirm, remove, get, candidates
 
@@ -657,7 +661,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (488줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (494줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
@@ -1785,6 +1789,10 @@
 
 - functions: test_allout_rules, test_set_observation_device_free, test_observations_and_inputs
 
+### `test_prediction_snapshot.py` (64줄) — P7-PRED-63: 예측 스냅샷 기록·중복 억제·대회 전향 평가·요약.
+
+- functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
+
 ### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
 - functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped
@@ -2110,7 +2118,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 422개 파일
+총 424개 파일
 
 ## docstring 누락
 

@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 20  # v0.3.10: 예측 리뉴얼 컬럼·race_results (db_schema_v20)
+SCHEMA_VERSION = 21  # v0.3.11: 예측 스냅샷 (db_schema_v21) — v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -716,6 +716,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
     # v20: 예측 리뉴얼 컬럼·race_results (멱등)
     from src.db_schema_v20 import ensure_v20
     ensure_v20(conn)
+    # v21: 예측 스냅샷(P7-PRED-63)
+    from src.db_schema_v21 import ensure_v21
+    ensure_v21(conn)
 
     conn.commit()
 

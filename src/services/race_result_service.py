@@ -30,6 +30,8 @@ def confirm(conn: sqlite3.Connection, activity_id: int, effort: str, official_ti
         "note=excluded.note, confirmed_at=excluded.confirmed_at",
         (activity_id, race_name, distance_m, official_time_sec, effort, note))
     conn.commit()
+    from src.services.prediction_snapshot_service import evaluate_race   # 대회 전 스냅샷 전향 평가(P7-PRED-63)
+    evaluate_race(conn, activity_id)
     return get(conn, activity_id)
 
 

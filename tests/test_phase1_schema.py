@@ -96,7 +96,7 @@ class TestSchemaCreation:
     def test_schema_version(self, db_conn):
         ver = _get_user_version(db_conn)
         assert ver == SCHEMA_VERSION
-        assert ver == 20  # v0.3.10: 예측 v2 (laps GAP·race_results 등, P7-PRED-11)
+        assert ver == 21  # v0.3.11: 예측 스냅샷(P7-PRED-63) — v20: laps GAP·race_results 등(P7-PRED-11)
 
     def test_activity_summaries_column_count(self, db_conn):
         cols = db_conn.execute("PRAGMA table_info(activity_summaries)").fetchall()
