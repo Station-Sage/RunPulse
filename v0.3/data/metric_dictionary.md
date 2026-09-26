@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 33 calculators | 13 semantic groups
+> 자동 생성 | 34 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (23개)
+## 3. Daily-Scope 메트릭 (24개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -398,6 +398,19 @@ Garmin/Strava/Intervals/Runalyze
 | 카테고리 | `prediction` |
 | 의존성 | `runpulse_vdot` |
 | 해석 | 낮을수록 좋음 |
+
+---
+
+### 훈련 반응
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `training_response` |
+| 메트릭 이름 | `training_response` |
+| 설명 | 최근 8주 품질 세트(R/I/T/M) 주간 작업 시간과 이전 8주 비교, 품질 세션 수, 롱런 속 마라톤 페이스 구간, 세트 VDOT 추세. |
+| 단위 | min/wk |
+| 카테고리 | `load` |
+| 의존성 | `race_pred_vdot` |
 
 ---
 
@@ -852,6 +865,7 @@ Daily-scope:
   (소스 직접) --> hr_profile, hrmax_self, lthr_self
   (소스 직접) --> heat_model
   runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  race_pred_vdot --> training_response
   race_pred_vdot --> tids
   tsb --> rmr
   ctl --> adti
@@ -874,7 +888,7 @@ Daily-scope:
 | `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `marathon_shape` |
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
 | `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
-| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
+| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `training_response`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
 | `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |

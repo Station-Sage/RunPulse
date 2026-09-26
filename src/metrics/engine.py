@@ -35,6 +35,7 @@ from src.metrics.di import DICalculator
 from src.metrics.darp import DARPCalculator
 from src.metrics.hr_profile import HRProfileCalculator
 from src.metrics.heat_model import HeatModelCalculator
+from src.metrics.training_response import TrainingResponseCalculator
 from src.metrics.tids import TIDSCalculator
 from src.metrics.rmr import RMRCalculator
 from src.metrics.adti import ADTICalculator
@@ -93,6 +94,7 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     HRProfileCalculator(),
     HeatModelCalculator(),
     DARPCalculator(),
+    TrainingResponseCalculator(),
     TIDSCalculator(),
     RMRCalculator(),
     ADTICalculator(),
