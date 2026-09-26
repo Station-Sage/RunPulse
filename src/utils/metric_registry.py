@@ -418,6 +418,9 @@ _DEFINITIONS: list[MetricDef] = [
     MetricDef("weather_wind_direction_deg", "weather", "metric", "°", "풍향"),
     MetricDef("weather_pressure_hpa", "weather", "metric", "hPa", "기압"),
     MetricDef("weather_condition", "weather", "metric", "", "날씨 상태 텍스트"),
+    MetricDef("weather_feels_like_c", "weather", "metric", "°C", "체감 기온"),
+    MetricDef("weather_wbgt_c", "weather", "metric", "°C", "WBGT 근사(그늘, BoM 식)"),
+    MetricDef("weather_source", "weather", "metric", "", "기상값 출처(open_meteo/device_corrected/device_raw)"),
 
     # ── body (metric_store) ──
     MetricDef("body_battery_diff", "body", "metric", "", "활동 중 Body Battery 변화",

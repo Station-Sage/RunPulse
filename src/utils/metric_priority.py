@@ -29,6 +29,7 @@ PROVIDER_PRIORITY: list[tuple[str, int]] = [
     ("runpulse:ml", 10),
     ("runpulse:formula", 20),
     ("runpulse:rule", 30),
+    ("open_meteo", 90),        # 외기 기상(P7-PRED-32) — 기기 온도 보정값(device_corrected, 999)보다 우선
     ("garmin", 100),
     ("intervals", 110),
     ("strava", 120),

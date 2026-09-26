@@ -131,6 +131,12 @@ def main() -> None:
         start_date = (date.today() - timedelta(days=args.days)).isoformat()
         end_date = date.today().isoformat()
         with sqlite3.connect(str(db_path)) as conn:
+            try:  # 외기 기상(P7-PRED-32) — 예측·기온 보정 입력이므로 메트릭 계산 전에
+                from src.utils.api import get as api_get
+                from src.weather.activity_weather import ingest_activity_weather
+                log.info("기상 인제스트: %s", ingest_activity_weather(conn, api_get, since=start_date, max_requests=200))
+            except Exception as w_exc:
+                log.error("기상 인제스트 실패 (sync는 정상 완료): %s", w_exc)
             metrics_engine.run_for_date_range(conn, start_date, end_date)
             try:
                 filled = metrics_engine.backfill_missing_loads(conn)

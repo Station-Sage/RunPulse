@@ -1054,11 +1054,11 @@
 
 - functions: get_group_for_metric, get_group_members
 
-### `metric_priority.py` (138줄) — RunPulse 메트릭 우선순위 해소 (Provider Priority Resolution) v0.3
+### `metric_priority.py` (139줄) — RunPulse 메트릭 우선순위 해소 (Provider Priority Resolution) v0.3
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (516줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (519줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1983,6 +1983,11 @@
 - class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
 - functions: garmin_app
 
+### `test_weather_ingest.py` (57줄) — P7-PRED-32: 활동 기상 인제스트·캐시·폴백·충돌.
+
+- class **FakeGet**: 없음
+- functions: test_ingest_open_meteo_then_cache_hit, test_offline_falls_back_to_device_and_retries_later, test_no_coords_no_device, test_conflict_flag
+
 ### `test_weather_provider.py` (25줄) — P7-PRED-86: Open-Meteo 단일 클라이언트(provider.py) — 요청 파라미터·보간·WBGT.
 
 - functions: test_request_params_archive_vs_forecast, test_at_time_interpolates_and_wbgt
@@ -2037,7 +2042,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 406개 파일
+총 407개 파일
 
 ## docstring 누락
 
