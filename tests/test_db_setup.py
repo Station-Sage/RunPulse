@@ -86,11 +86,11 @@ class TestPhase1Schema:
         yield
         self.conn.close()
 
-    def test_schema_version_is_19(self):
-        """조건 2 — v19: chat_messages.evidence_json 추가"""
+    def test_schema_version_is_20(self):
+        """v20: 예측 리뉴얼 컬럼·race_results (db_schema_v20)"""
         ver = self.conn.execute("PRAGMA user_version").fetchone()[0]
         assert ver == SCHEMA_VERSION
-        assert ver == 19
+        assert ver == 20
 
     def test_pipeline_tables_count(self):
         """조건 3: pipeline 테이블 (daily_fitness 제거됨, ADR-005)"""
@@ -160,7 +160,7 @@ def test_migrate_v18_adds_evidence_json():
 
     cols_after = {r[1] for r in conn.execute("PRAGMA table_info(chat_messages)").fetchall()}
     assert "evidence_json" in cols_after
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 19
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 20
     conn.close()
 
 

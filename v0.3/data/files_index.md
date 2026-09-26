@@ -1003,6 +1003,10 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
+### `db_schema_v20.py` (66줄) — 스키마 v20 — 예측 리뉴얼(REVIEW-07 r3) 데이터 보존용 컬럼·테이블 추가.
+
+- functions: ensure_v20
+
 ### `db_helpers.py` (747줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
@@ -1087,6 +1091,10 @@
 ### `conftest.py` (138줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: db_conn, db_conn_default, db_conn_user, sample_config
+
+### `helpers_pred.py` (29줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
+
+- functions: mem_conn, seed_run, seed_laps
 
 ### `test_activity_calcs.py` (146줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
@@ -1593,6 +1601,10 @@
 - class **TestKmhToPace**: test_12kmh, test_10kmh, test_zero_raises
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
+
+### `test_pred_schema_v20.py` (46줄) — P7-PRED-11: 스키마 v20 컬럼·race_results·session_outcomes 유일 제약.
+
+- functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
 
 ### `test_phase1_schema.py` (757줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
