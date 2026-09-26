@@ -3561,6 +3561,13 @@ DONE으로 옮긴다.
   리뷰(2026-09-26): 명세 대조 이탈 1건 — types/index.ts 의 PredictionCompareRow 에 candidate·key r4/r4_asym·contributions Record 를 명세 본문 밖에서 추가. 수용: 유닛 71 API 가 실제로 candidate 행(r4·r4_asym)과 기여도 키 H/I/R/T/race 를 내보내므로 타입 보완이 필요했다(API 응답 대조 확인). 실데이터 사본(재추출·날씨·Garmin 이력·재계산 적용)에서 브라우저 스모크: 390·1280px 가로 넘침 없음, 콘솔/HTTP 에러 0, 3-way 비교(Garmin·기기 심박·자체 + 후보 r4·r4 비대칭 섀도)·예측 근거·대회 확인 표시, 대회 확인 클릭(페이스→API confirmed_effort=paced→재클릭 시 null) 확인. svelte-check 에러 0(경고 15), build·test:unit 204 통과.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": [], "kind": "code", "scope": ["frontend/src/lib/predictionCompare.ts", "frontend/tests/predictionCompare.test.mjs", "frontend/src/lib/types/index.ts", "frontend/src/lib/api/prediction.ts", "frontend/src/lib/components/PredictionCompare.svelte", "frontend/src/lib/components/PredictionBasis.svelte", "frontend/src/lib/components/RaceConfirmList.svelte", "frontend/src/lib/components/RaceHub.svelte", "frontend/src/lib/format.ts"], "verify": ["cd frontend && npm run check", "cd frontend && node --test tests/predictionCompare.test.mjs tests/raceHub.test.mjs tests/format.test.mjs", "cd frontend && npm run build"]} -->
 
+- **[P7-PRED-61]** 실DB 백필 런북 — `v0.3/data/phase-7-ui-renewal/specs/PRED-6x-backfill.md`(사람 실행).
+  실행(2026-09-26, 백업 `running.db.bak-pred-20260926` 무결성 확인 후): 재추출(활동 586·랩 3,360·오류 0) → 외기 날씨(428건, 실패 0) → Garmin 참조 이력(레이스 예측 1,956·LT 103) → 재계산 전 스냅샷 → `recompute --days 1100`(약 25분, 실패 0) → 계획 인제스트. 사본 리허설과 동일 결과. 백테스트 PASS(r3 1.39/2.16, r4 1.39/1.77, r4_asym 1.26/1.46, n=7). 현재 15℃ 마라톤: r3 3:40:39 · r4 3:42:11 · r4 비대칭 3:40:19 · Garmin 3:44:22. indoor_running 16건 DB 정정은 미실행(별도 지시 시).
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 1, "deps": [], "kind": "code", "scope": [], "verify": []} -->
+- **[P7-PRED-44]** 외부 계획 인제스트 — `PRED-4x-*.md`(사람 확인 후 구현).
+  Garmin 구현·실DB 적용(2026-09-26, `src/sync/plan_ingest.py`): 실행된 계획 39건(세그먼트 이행률 산출)·적응형 계획 6건. Intervals 이벤트는 API 키 401로 실응답 미확인(최소 파서, PRED-99 U-21).
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 1, "deps": [], "kind": "code", "scope": [], "verify": []} -->
+
 ---
 
 ## LATER
