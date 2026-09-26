@@ -598,6 +598,8 @@ def upsert_laps_batch(
         "distance_m", "avg_hr", "max_hr", "avg_pace_sec_km",
         "avg_cadence", "avg_power", "max_power",
         "elevation_gain", "calories", "lap_trigger",
+        "gap_speed_ms", "elevation_loss", "avg_temperature_c",
+        "elapsed_duration_sec", "moving_duration_sec", "compliance_score", "wkt_step_index",
     ]
     count = 0
     for lap in laps:
@@ -646,6 +648,7 @@ def upsert_streams_batch(
         "activity_id", "source", "elapsed_sec", "distance_m",
         "heart_rate", "cadence", "power_watts", "altitude_m",
         "speed_ms", "latitude", "longitude", "grade_pct", "temperature_c",
+        "gap_speed_ms",
     ]
 
     sources = {r.get("source", "") for r in rows}

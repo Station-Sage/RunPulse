@@ -30,6 +30,7 @@ class VDOTCalculator(MetricCalculator):
     MINIMUM_DISTANCE_M = 1500
     MINIMUM_DURATION_SEC = 300
     MAXIMUM_DURATION_SEC = 14400
+    MAXIMUM_VDOT = 85.0      # 인간 기록(≈85) 초과는 시간 데이터 오류(P7-PRED-84)
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         act = ctx.activity
@@ -56,6 +57,8 @@ class VDOTCalculator(MetricCalculator):
             return []
 
         vdot = vo2 / pct_max
+        if vdot > self.MAXIMUM_VDOT:          # moving_time 붕괴(예: 287.9, 397.4) — 기록으로 쓸 수 없는 값
+            return []
 
         confidence = 0.9
         if act.get("activity_type") == "treadmill":

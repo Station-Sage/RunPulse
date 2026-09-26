@@ -57,7 +57,7 @@ class CriticalPowerCalculator(MetricCalculator):
         powers, durations = [], []
 
         # 1. power_curve JSON에서 — CalcContext API
-        pc_data = ctx.get_activity_metric_series("power_curve", days=84, include_json=True)
+        pc_data = ctx.get_activity_metric_series("power_curve", days=84, include_json=True, canonical_only=True, primary_only=True)
         for entry in pc_data:
             try:
                 raw_json = entry.get("json")

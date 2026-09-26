@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 19  # v0.3.9: chat_messages.evidence_json
+SCHEMA_VERSION = 20  # v0.3.10: 예측 리뉴얼 컬럼·race_results (db_schema_v20)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -713,6 +713,10 @@ def create_tables(conn: sqlite3.Connection) -> None:
     # Indexes (컬럼 존재 확인 후 안전 생성)
     _safe_create_indexes(conn)
 
+    # v20: 예측 리뉴얼 컬럼·race_results (멱등)
+    from src.db_schema_v20 import ensure_v20
+    ensure_v20(conn)
+
     conn.commit()
 
 
@@ -857,7 +861,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
         if existing and "evidence_json" not in existing:
             conn.execute("ALTER TABLE chat_messages ADD COLUMN evidence_json TEXT")
 
-    # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시)
+    # 새 테이블 생성 (IF NOT EXISTS이므로 기존 테이블 무시) — v20 컬럼은 create_tables 안에서 보장
     create_tables(conn)
 
     _set_user_version(conn, SCHEMA_VERSION)

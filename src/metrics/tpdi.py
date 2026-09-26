@@ -35,10 +35,10 @@ class TPDICalculator(MetricCalculator):
         start = (td - timedelta(weeks=8)).isoformat()
 
         # 실외/실내 FEARP — CalcContext API
-        outdoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="running")
-        trail_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="trail_running")
+        outdoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="running", canonical_only=True, primary_only=True)
+        trail_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="trail_running", canonical_only=True, primary_only=True)
         outdoor_data = outdoor_data + trail_data
-        indoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="treadmill")
+        indoor_data = ctx.get_activity_metric_series("fearp", days=56, activity_type="treadmill", canonical_only=True, primary_only=True)
 
         if not outdoor_data or not indoor_data:
             return []

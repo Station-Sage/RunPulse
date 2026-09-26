@@ -12,6 +12,7 @@ import sqlite3
 from collections import defaultdict
 
 from src.sync.extractors import get_extractor
+from src.sync.reextract import orphan_activity_count
 from src.sync.dedup import run as run_dedup
 from src.sync._helpers import (
     save_activity_core,
@@ -31,18 +32,16 @@ def reprocess_all(
     conn: sqlite3.Connection,
     source: str | None = None,
     clear_first: bool = True,
+    force: bool = False,
 ) -> dict:
-    """Layer 0 → Layer 1 + Layer 2 전체 재구축.
+    """Layer 0 → Layer 1 + Layer 2 전체 재구축. source=None 이면 전체, clear_first 면 Layer 1/2 먼저 삭제.
 
-    Args:
-        conn: SQLite connection
-        source: 특정 소스만 재처리 (None이면 전체)
-        clear_first: True면 Layer 1/2 해당 데이터를 먼저 삭제
-
-    Returns:
-        {"activities": int, "metrics": int, "wellness": int, "errors": int}
+    clear_first 는 활동 id 를 새로 매긴다(참조 테이블 주의). payload 없는 활동이 있으면 force 없이는 거부.
+    Returns: {"activities": int, "metrics": int, "wellness": int, "errors": int}
     """
     stats = {"activities": 0, "metrics": 0, "wellness": 0, "errors": 0}
+    if clear_first and not force and (lost := orphan_activity_count(conn, source)):
+        raise RuntimeError(f"payload 없는 활동 {lost}건 삭제 위험 — reextract_laps_streams 사용 또는 force=True")
 
     log.info("Starting reprocess: source=%s, clear_first=%s", source or "all", clear_first)
 
@@ -85,12 +84,11 @@ def reprocess_all(
 def _clear_derived_data(conn: sqlite3.Connection, source: str | None):
     """Layer 1/2 데이터 삭제 (source_payloads는 유지)."""
     if source:
-        conn.execute("DELETE FROM activity_summaries WHERE source = ?", (source,))
-        conn.execute("DELETE FROM metric_store WHERE provider = ?", (source,))
-        # laps/streams는 activity_id 기준이라 cascade 안 되므로 별도 처리
         aids = [r[0] for r in conn.execute(
             "SELECT id FROM activity_summaries WHERE source = ?", (source,)
-        ).fetchall()]
+        ).fetchall()]  # 요약 삭제 전에 id 수집(laps/streams 는 cascade 안 됨)
+        conn.execute("DELETE FROM activity_summaries WHERE source = ?", (source,))
+        conn.execute("DELETE FROM metric_store WHERE provider = ?", (source,))
         if aids:
             ph = ",".join("?" * len(aids))
             conn.execute(f"DELETE FROM activity_laps WHERE activity_id IN ({ph})", aids)
@@ -129,9 +127,10 @@ def _reprocess_activity_summaries(conn, source, stats) -> dict:
             activity_id = save_activity_core(conn, core)
             activity_id_map[(src, eid)] = activity_id
 
-            conn.execute(
-                "UPDATE source_payloads SET activity_id = ? WHERE id = ?",
-                (activity_id, sp_id),
+            conn.execute(  # 같은 활동의 detail/splits/streams payload 도 새 id 로(옛 id 부착 버그)
+                "UPDATE source_payloads SET activity_id = ? WHERE source = ? AND entity_id = ? "
+                "AND entity_type IN ('activity_summary', 'activity_detail', 'activity_splits', 'activity_streams')",
+                (activity_id, src, eid),
             )
             stats["activities"] += 1
         except Exception as e:
@@ -156,7 +155,7 @@ def _reprocess_activity_details(conn, source, activity_id_map, stats):
         try:
             detail = json.loads(payload_json)
             extractor = get_extractor(src)
-            activity_id = existing_aid or activity_id_map.get((src, eid))
+            activity_id = activity_id_map.get((src, eid)) or existing_aid
             if not activity_id:
                 continue
 
@@ -232,7 +231,7 @@ def _reprocess_best_efforts(conn, source, activity_id_map, stats):
         try:
             detail = json.loads(payload_json)
             extractor = get_extractor(src)
-            activity_id = existing_aid or activity_id_map.get((src, eid))
+            activity_id = activity_id_map.get((src, eid)) or existing_aid
             if not activity_id:
                 continue
 

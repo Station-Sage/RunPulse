@@ -138,12 +138,17 @@
 
 - class **ADTICalculator**: compute
 
-### `base.py` (497줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (503줄) — MetricCalculator 기본 클래스 + CalcContext(RunHistoryMixin 포함) + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
 - class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
+
+### `context_runs.py` (152줄) — CalcContext 러닝 이력 API(RunHistoryMixin) — canonical 러닝 + 트윈 HR 병합 + 랩(경사보정 속도) + 대회 판정(P7-PRED-14).
+
+- functions: nominal_distance, lap_block, _row_factory
+- class **RunHistoryMixin**: get_runs, get_activity_metric_json, get_active_goal, get_latest_daily_metric, get_best_efforts, get_race_results
 
 ### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
 
@@ -390,7 +395,11 @@
 
 - functions: upsert_raw_payload, update_raw_activity_id
 
-### `reprocess.py` (299줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reextract.py` (77줄) — 제자리 재추출 — 기존 activity_summaries id 를 유지한 채 랩·스트림·활동 메트릭을 다시 뽑는다(P7-PRED-13).
+
+- functions: orphan_activity_count, reextract_laps_streams
+
+### `reprocess.py` (302줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -440,9 +449,13 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (673줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (686줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
+
+### `garmin_lap_fields.py` (36줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
+
+- functions: lap_extras, pick
 
 ### `intervals_extractor.py` (197줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
@@ -1003,6 +1016,10 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
+### `db_schema_v20.py` (66줄) — 스키마 v20 — 예측 리뉴얼(REVIEW-07 r3) 데이터 보존용 컬럼·테이블 추가.
+
+- functions: ensure_v20
+
 ### `db_helpers.py` (747줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
@@ -1087,6 +1104,14 @@
 ### `conftest.py` (138줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: db_conn, db_conn_default, db_conn_user, sample_config
+
+### `helpers_pred.py` (29줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
+
+- functions: mem_conn, seed_run, seed_laps
+
+### `test_vdot_guard.py` (17줄) — P7-PRED-84: runpulse_vdot moving_time 붕괴 가드 테스트.
+
+- functions: _vd, test_normal_value, test_collapsed_moving_time_rejected
 
 ### `test_activity_calcs.py` (146줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
@@ -1297,6 +1322,10 @@
 - class **TestViewsExportCSV**: test_csv_distance_km_conversion
 - functions: conn
 
+### `test_context_runs.py` (66줄) — P7-PRED-14: RunHistoryMixin.get_runs / get_active_goal / get_race_results / canonical 시리즈.
+
+- functions: test_get_runs_twin_hr_and_race, test_get_runs_excludes_end_day_and_laps, test_tempo_name_not_race, test_perf_time_uses_elapsed_when_close, test_active_goal_and_race_results, test_metric_series_canonical_only
+
 ### `test_credential_store.py` (195줄) — credential_store.py 테스트 — Fernet 암호화/복호화 라운드트립.
 
 - functions: fernet_key, with_key, without_key, production_without_key, test_roundtrip, test_non_sensitive_fields_unchanged, test_encrypted_values_have_prefix, test_no_double_encryption, test_empty_values_not_encrypted, test_plaintext_passthrough_on_decrypt, test_no_key_development_passthrough, test_no_key_production_raises, test_generate_key_is_valid_fernet_key, test_original_config_not_mutated
@@ -1443,6 +1472,8 @@
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
 ### `test_garmin_extractor.py` (323줄) — Garmin Extractor 단위 테스트.
+
+### `test_garmin_lap_fields.py` (72줄) — P7-PRED-12: Garmin 랩 확장 필드·스트림 키 선택.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates
@@ -1594,6 +1625,10 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
+### `test_pred_schema_v20.py` (46줄) — P7-PRED-11: 스키마 v20 컬럼·race_results·session_outcomes 유일 제약.
+
+- functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
+
 ### `test_phase1_schema.py` (757줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
 - class **TestSchemaCreation**: test_all_pipeline_tables_exist, test_all_app_tables_exist, test_canonical_view_exists, test_schema_version, test_activity_summaries_column_count, test_distance_is_meters_not_km, test_metric_store_columns, test_daily_wellness_no_source_column
@@ -1705,6 +1740,10 @@
 ### `test_replanner.py` (220줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
 
 - functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error
+
+### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
+
+- functions: test_reextract_keeps_ids_and_fills_fields, test_activity_metrics_reextracted, test_dry_run_writes_nothing, test_orphan_guard_blocks_destructive_reprocess
 
 ### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
