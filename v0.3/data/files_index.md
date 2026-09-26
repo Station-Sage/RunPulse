@@ -190,7 +190,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (754줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (756줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -283,6 +283,10 @@
 ### `tpdi.py` (64줄) — TPDI (Trainer Physical Disparity Index) — 실내/실외 FEARP 격차 지수.
 
 - class **TPDICalculator**: compute
+
+### `training_response.py` (36줄) — 훈련 반응(일별) — 품질 세트 구간별 주간 시간·품질 세션 수·롱런 MP 거리·세트 VDOT 추세(P7-PRED-41, r4).
+
+- class **TrainingResponseCalculator**: compute
 
 ### `trimp.py` (85줄) — TRIMP Calculator — 설계서 4-2 기준.
 
@@ -975,9 +979,17 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
-### `matcher.py` (365줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `matcher.py` (368줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
+
+### `outcome_store.py` (46줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
+
+- functions: update_outcome_v2
+
+### `outcome_v2.py` (81줄) — 계획↔실행 세그먼트 비교(순수, P7-PRED-42) — 계획 단계 구조(structure_json)와 실행 bout(classifier v2 json)를 맞춰 이행률 산출.
+
+- functions: expand_work, compare, prediction_note
 
 ### `planner.py` (304줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
@@ -1060,7 +1072,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (520줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (521줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1657,6 +1669,14 @@
 
 - class **TestFullSync**: test_no_clients_all_skipped, test_garmin_sync_records_job, test_multi_source_sync, test_dedup_runs_after_sync, test_sync_jobs_have_dates
 
+### `test_outcome_store.py` (38줄) — P7-PRED-43: 매칭 → 세그먼트 이행률 저장.
+
+- functions: test_structured_plan_gets_compliance, test_unstructured_plan_keeps_legacy_label
+
+### `test_outcome_v2.py` (45줄) — P7-PRED-42: 계획↔실행 세그먼트 비교.
+
+- functions: test_expand, test_full_on_target, test_five_of_six_sets, test_slow_and_short, test_fast, test_skipped_and_note
+
 ### `test_pace.py` (74줄) — pace 유틸리티 테스트.
 
 - class **TestSecondsToPace**: test_even_minutes, test_with_seconds, test_single_digit_seconds, test_fast_pace
@@ -1928,6 +1948,10 @@
 
 - functions: initialize_db, conn, test_load_goals_with_stats_empty, test_load_goals_with_stats_counts, test_load_goals_with_stats_status_all, test_render_goals_panel_empty, test_render_goals_panel_with_goals, test_render_goals_panel_d_day, test_load_goal_weeks, test_render_goal_detail_html, test_render_goal_detail_no_delete_for_cancelled, test_goal_date_range_with_race_date, test_goal_date_range_with_plan_weeks, test_import_all
 
+### `test_training_response.py` (35줄) — P7-PRED-41: 훈련 반응 r4(세트 기반, 기기 불필요).
+
+- functions: test_weekly_zone_minutes_and_summary, test_set_trend_needs_4, test_long_mp_km
+
 ### `test_training_workout_edit.py` (204줄) — Phase D: 워크아웃 편집 AJAX 라우트 테스트.
 
 - class **TestWorkoutPatch**: test_patch_type_and_distance, test_patch_pace, test_patch_interval_saves_description, test_patch_empty_body_returns_400, test_patch_nonexistent_db, test_patch_persists_to_db
@@ -2048,7 +2072,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 408개 파일
+총 414개 파일
 
 ## docstring 누락
 
