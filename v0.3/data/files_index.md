@@ -1761,6 +1761,10 @@
 
 - functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
 
+### `test_pred_backtest.py` (19줄) — P7-PRED-62: 수용 백테스트 스크립트 — 대회 없음이면 n=0.
+
+- functions: test_no_races
+
 ### `test_pred_schema_v20.py` (46줄) — P7-PRED-11: 스키마 v20 컬럼·race_results·session_outcomes 유일 제약.
 
 - functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
@@ -2101,8 +2105,12 @@
 
 - functions: generate, get_structural_fingerprint
 
+### `pred_backtest.py` (102줄) — 예측 v2 수용 백테스트(P7-PRED-62) — 실DB 를 읽기 전용으로 열어 메모리에 복제한 뒤, 전력 대회마다 D-0/D-28 시점
+
+- functions: backtest, backtest_all, main
+
 ---
-총 420개 파일
+총 422개 파일
 
 ## docstring 누락
 
