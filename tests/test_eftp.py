@@ -49,7 +49,7 @@ def _seed_daily_metrics(conn, d, **metrics):
 class TestEFTP:
     def test_from_vdot(self):
         conn = _conn()
-        _seed_daily_metrics(conn, "2026-04-01", runpulse_vdot=50.0)
+        _seed_daily_metrics(conn, "2026-04-01", race_pred_vdot=50.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = EFTPCalculator().compute(ctx)
         assert len(results) == 1
@@ -64,7 +64,7 @@ class TestEFTP:
 
     def test_confidence(self):
         conn = _conn()
-        _seed_daily_metrics(conn, "2026-04-01", runpulse_vdot=50.0)
+        _seed_daily_metrics(conn, "2026-04-01", race_pred_vdot=50.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = EFTPCalculator().compute(ctx)
         assert results[0].confidence == 0.85

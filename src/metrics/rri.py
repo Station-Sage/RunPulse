@@ -18,7 +18,7 @@ class RRICalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "capacity"
-    requires = ["runpulse_vdot", "ctl", "di", "cirs"]
+    requires = ["race_pred_vdot", "ctl", "di", "cirs"]
     produces = ["rri"]
 
     display_name = "RRI (레이스 준비도)"
@@ -30,7 +30,7 @@ class RRICalculator(MetricCalculator):
     decimal_places = 1
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
-        vdot = ctx.get_metric("runpulse_vdot", provider="runpulse:formula_v1")
+        vdot = ctx.get_metric("race_pred_vdot", provider="runpulse:formula_v1")
         ctl = ctx.get_metric("ctl", provider="runpulse:formula_v1")
         if vdot is None or ctl is None:
             return []

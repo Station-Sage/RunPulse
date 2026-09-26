@@ -19,7 +19,7 @@ class EFTPCalculator(MetricCalculator):
     version = "1.0"
     scope_type = "daily"
     category = "capacity"
-    requires = ["runpulse_vdot"]
+    requires = ["race_pred_vdot"]
     produces = ["eftp"]
 
     display_name = "eFTP (역치 페이스)"
@@ -33,7 +33,7 @@ class EFTPCalculator(MetricCalculator):
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         # NOTE: raw SQL 사용 — CalcContext API가 activity_type별 metric JOIN을 미지원
         # 1차: VDOT → Daniels T-pace
-        vdot = ctx.get_metric("runpulse_vdot", provider="runpulse:formula_v1")
+        vdot = ctx.get_metric("race_pred_vdot", provider="runpulse:formula_v1")
         if vdot is not None:
             from src.utils.daniels_table import vdot_to_t_pace
             t_pace = vdot_to_t_pace(float(vdot))

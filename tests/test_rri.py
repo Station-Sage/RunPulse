@@ -50,7 +50,7 @@ class TestRRI:
     def test_with_all_inputs(self):
         conn = _conn()
         _seed_daily_metrics(conn, "2026-04-01",
-                            runpulse_vdot=50.0, ctl=45.0, di=75.0, cirs=25.0)
+                            race_pred_vdot=50.0, ctl=45.0, di=75.0, cirs=25.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RRICalculator().compute(ctx)
         assert len(results) == 1
@@ -59,7 +59,7 @@ class TestRRI:
     def test_high_cirs_lowers_rri(self):
         conn = _conn()
         _seed_daily_metrics(conn, "2026-04-01",
-                            runpulse_vdot=50.0, ctl=45.0, di=75.0, cirs=80.0)
+                            race_pred_vdot=50.0, ctl=45.0, di=75.0, cirs=80.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RRICalculator().compute(ctx)
         assert results[0].numeric_value < 50
@@ -74,7 +74,7 @@ class TestRRI:
     def test_category(self):
         conn = _conn()
         _seed_daily_metrics(conn, "2026-04-01",
-                            runpulse_vdot=50.0, ctl=45.0, di=75.0, cirs=25.0)
+                            race_pred_vdot=50.0, ctl=45.0, di=75.0, cirs=25.0)
         ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
         results = RRICalculator().compute(ctx)
         assert results[0].category == "capacity"
@@ -90,7 +90,7 @@ class TestRRIMock:
         ctx = MockCalcContext(
             scope_type="daily", scope_id="2026-04-01",
             metrics={
-                "runpulse_vdot": {"numeric": 50.0, "text": None, "json": None},
+                "race_pred_vdot": {"numeric": 50.0, "text": None, "json": None},
                 "ctl": {"numeric": 45.0, "text": None, "json": None},
                 "di": {"numeric": 75.0, "text": None, "json": None},
                 "cirs": {"numeric": 25.0, "text": None, "json": None},
