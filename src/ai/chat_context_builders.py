@@ -91,7 +91,7 @@ def _add_today_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     detail["calories"] = detail["metrics"].get("calories")
 
     cls = conn.execute(
-        "SELECT numeric_value, json_value FROM metric_store "
+        "SELECT text_value, json_value FROM metric_store "
         "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
         (aid,),
     ).fetchone()
@@ -272,7 +272,7 @@ def _add_lookup_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None
         detail["calories"] = detail["metrics"].get("calories")  # v12: metric_store로 이동
 
         cls = conn.execute(
-            "SELECT numeric_value FROM metric_store "
+            "SELECT text_value FROM metric_store "
             "WHERE metric_name='workout_type_classified' AND scope_type='activity' AND scope_id=CAST(? AS TEXT)",
             (aid,),
         ).fetchone()

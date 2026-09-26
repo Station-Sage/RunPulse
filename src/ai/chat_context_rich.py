@@ -76,7 +76,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         "FROM v_canonical_activities a "
         "LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
         "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
-        "WHERE a.activity_type='running' AND (c.numeric_value='race' OR a.name LIKE '%레이스%' "
+        "WHERE a.activity_type='running' AND (c.text_value='race' OR a.name LIKE '%레이스%' "
         "OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') "
         "ORDER BY a.start_time DESC LIMIT 10",
     ).fetchall()
@@ -89,7 +89,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
         ]
 
     today_type = conn.execute(
-        "SELECT c.numeric_value FROM v_canonical_activities a "
+        "SELECT c.text_value FROM v_canonical_activities a "
         "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
         "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
         "WHERE a.activity_type='running' AND date(a.start_time)=? "
@@ -102,7 +102,7 @@ def _add_rich_30d_context(conn: sqlite3.Connection, ctx: dict, today: str) -> No
             "FROM v_canonical_activities a "
             "JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
             "    AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
-            "WHERE c.numeric_value=? AND a.activity_type='running' AND date(a.start_time)<? "
+            "WHERE c.text_value=? AND a.activity_type='running' AND date(a.start_time)<? "
             "ORDER BY a.start_time DESC LIMIT 5", (wtype, today),
         ).fetchall()
         if similar:

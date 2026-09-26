@@ -35,3 +35,9 @@ class TestNormalizeActivityType:
     def test_cycling_variants(self):
         assert normalize_activity_type("cycling", None) == "cycling"
         assert normalize_activity_type("road_cycling", None) == "cycling"
+
+    def test_garmin_indoor_running(self):
+        assert normalize_activity_type("indoor_running", "garmin") == "running"
+
+    def test_indoor_running_case_whitespace(self):
+        assert normalize_activity_type(" Indoor_Running ", "garmin") == "running"

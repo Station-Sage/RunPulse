@@ -36,3 +36,9 @@ def test_skill_mentions_every_tool():
 def test_declaration_fixed_cost_budget():
     size = len(json.dumps(TOOL_DECLARATIONS, ensure_ascii=False, separators=(",", ":")))
     assert size <= _MAX_DECLARATION_CHARS, f"{size} chars"
+
+
+def test_tool_system_text_mentions_every_tool():
+    from src.ai.chat_engine_providers import _TOOL_SYSTEM_TEXT
+    missing = [n for n in sorted(_TOOL_NAMES) if n not in _TOOL_SYSTEM_TEXT]
+    assert missing == [], f"_TOOL_SYSTEM_TEXT에 누락된 도구: {missing}"
