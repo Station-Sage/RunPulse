@@ -330,13 +330,13 @@ class TestEngineCoverage:
     def test_pass_all_produces_present(self, empty_conn):
         """모든 produces 메트릭이 metric_store에 존재하면 PASS."""
         from src.metrics.engine import ALL_CALCULATORS
-        for calc in ALL_CALCULATORS:
-            for metric in calc.produces:
-                empty_conn.execute(
-                    "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, numeric_value) "
-                    "VALUES ('daily', '2025-01-01', ?, 'fitness', 'runpulse:formula', 1.0)",
-                    (metric,),
-                )
+        names = sorted({m for calc in ALL_CALCULATORS for m in calc.produces})   # darp/darp_ref 동명 produces
+        for metric in names:
+            empty_conn.execute(
+                "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, numeric_value) "
+                "VALUES ('daily', '2025-01-01', ?, 'fitness', 'runpulse:formula', 1.0)",
+                (metric,),
+            )
         empty_conn.commit()
         r = DataValidator(empty_conn).run_all()
         assert _find(r, "engine_coverage").status == "PASS"

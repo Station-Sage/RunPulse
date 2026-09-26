@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 34 calculators | 13 semantic groups
+> 자동 생성 | 37 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -218,7 +218,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 3. Daily-Scope 메트릭 (24개)
+## 3. Daily-Scope 메트릭 (27개)
 
 매일 최근 활동과 웰니스 데이터를 종합하여 계산됩니다.
 
@@ -387,16 +387,58 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
+### 레이스 예측 r4 (섀도)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_r4` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | 전력 대회·품질 세트(휴식 보정 Daniels 강도)·심박-속도 관계를 정밀도 가중으로 결합한 레이스 예측(15℃, 80% 범위·신뢰도). |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model` |
+| 해석 | 낮을수록 좋음 |
+
+---
+
+### 레이스 예측 r4 비대칭 (섀도)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_r4_asym` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | r4 섀도에 대회 상한·세트 하한 비대칭과 훈련 유지(CTL) 조건부 대회 앵커 감쇠를 더한 후보 변형. |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model`, `ctl` |
+| 해석 | 낮을수록 좋음 |
+
+---
+
+### 레이스 예측 (기기 심박 기준)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `darp_ref` |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | DARP 와 같은 로직에 기기(Garmin 등)가 제공한 최대심박·LTHR 을 넣은 비교용 예측. |
+| 단위 | sec |
+| 카테고리 | `prediction` |
+| 의존성 | `hr_profile`, `heat_model` |
+| 해석 | 낮을수록 좋음 |
+
+---
+
 ### 레이스 예측 (DARP)
 
 | 항목 | 값 |
 |------|-----|
 | Calculator ID | `darp` |
-| 메트릭 이름 | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
-| 설명 | VDOT과 내구성 지수 기반 레이스 시간 예측. |
+| 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 설명 | 최근 전력 대회·작업 구간·심박-속도 관계를 결합한 레이스 시간 예측(15℃ 기준, 80% 범위·신뢰도 포함). |
 | 단위 | sec |
 | 카테고리 | `prediction` |
-| 의존성 | `runpulse_vdot` |
+| 의존성 | `hr_profile`, `heat_model` |
 | 해석 | 낮을수록 좋음 |
 
 ---
@@ -864,7 +906,10 @@ Daily-scope:
   (소스 직접) --> di
   (소스 직접) --> hr_profile, hrmax_self, lthr_self
   (소스 직접) --> heat_model
-  runpulse_vdot --> race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model + ctl --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
+  hr_profile + heat_model --> race_pred_vdot, race_pred_5k_sec, race_pred_10k_sec, race_pred_half_sec, race_pred_marathon_sec
   race_pred_vdot --> training_response
   race_pred_vdot --> tids
   tsb --> rmr
@@ -890,7 +935,7 @@ Daily-scope:
 | `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
 | `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `training_response`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
-| `prediction` | prediction | `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| `prediction` | prediction | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |
 | `weather` | weather | `heat_model` |
 

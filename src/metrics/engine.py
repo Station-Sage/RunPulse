@@ -32,7 +32,8 @@ from src.metrics.monotony import MonotonyStrainCalculator
 from src.metrics.utrs import UTRSCalculator
 from src.metrics.cirs import CIRSCalculator
 from src.metrics.di import DICalculator
-from src.metrics.darp import DARPCalculator
+from src.metrics.darp import DARPCalculator, DARPRefCalculator
+from src.metrics.darp_r4 import DARPShadowAsymCalculator, DARPShadowCalculator
 from src.metrics.hr_profile import HRProfileCalculator
 from src.metrics.heat_model import HeatModelCalculator
 from src.metrics.training_response import TrainingResponseCalculator
@@ -93,6 +94,9 @@ ALL_CALCULATORS: list[MetricCalculator] = [
     DICalculator(),
     HRProfileCalculator(),
     HeatModelCalculator(),
+    DARPShadowCalculator(),       # r4 섀도(P7-PRED-51) — 기본 표시 아님, 스냅샷·전향 평가용
+    DARPShadowAsymCalculator(),
+    DARPRefCalculator(),   # (b) — DARP 보다 먼저: producer_map 에서 race_pred_* 생산자가 (c) DARP 로 남도록
     DARPCalculator(),
     TrainingResponseCalculator(),
     TIDSCalculator(),

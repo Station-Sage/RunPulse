@@ -170,9 +170,16 @@
 
 - class **CRSCalculator**: compute
 
-### `darp.py` (69줄) — DARP (Dynamic Adjusted Race Prediction) — 설계서 4-4 기준.
+### `darp.py` (140줄) — DARP v2 레이스 예측 — 앵커 대회(15℃ 정규화·감쇠) + 작업 블록 + HR@LTHR 결합, 개인 내구성 지수, 마라톤 Daniels·Tanda.
 
-- class **DARPCalculator**: compute
+- class **DARPCalculator**: hr_refs, compute
+- class **DARPRefCalculator**: hr_refs, compute
+- functions: sg_pairs
+
+### `darp_r4.py` (180줄) — DARP r4 섀도 예측 — 전력 대회·품질 세트(Daniels 등가 강도)·심박-속도 H 를 칼만 필터로 정밀도 가중 결합.
+
+- class **DARPShadowCalculator**: ctl_at, hr_refs, compute
+- class **DARPShadowAsymCalculator**: ctl_at
 
 ### `decoupling.py` (64줄) — Aerobic Decoupling Calculator — 설계서 4-2 기준.
 
@@ -190,7 +197,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (756줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (760줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -1072,7 +1079,7 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (521줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (522줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
 - class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
@@ -1389,6 +1396,14 @@
 - class **TestVolume**: test_marathon_volume, test_race_volume_half, test_race_volume_10k
 - class **TestTpaceConversion**: test_vdot_to_t_pace, test_t_pace_to_vdot_roundtrip, test_t_pace_to_vdot_interpolated
 
+### `test_darp_r4.py` (114줄) — P7-PRED-51: DARP r4 섀도 — 칼만 결합, 비대칭·유지 앵커 변형, T0 동작, 섀도는 primary 가 아님.
+
+- functions: test_path_c_kalman_combination, test_shadow_providers_never_primary, test_asym_maint_variant, test_maint_loss_only_when_ctl_drops, test_t0_without_heart_rate, test_no_data_returns_empty, test_paced_race_is_lower_bound_not_anchor, test_auto_effort_by_duration
+
+### `test_darp_v2.py` (77줄) — P7-PRED-51: DARP v2 (c)/(b) 경로.
+
+- functions: test_path_c_values, test_path_b_needs_ref, test_pairs_same_distance_skipped, test_5k_best_effort_signal
+
 ### `test_dashboard_service.py` (200줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
@@ -1619,7 +1634,7 @@
 - class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
 - functions: db_path
 
-### `test_metric_naming.py` (51줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
+### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 
@@ -2072,7 +2087,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 414개 파일
+총 417개 파일
 
 ## docstring 누락
 

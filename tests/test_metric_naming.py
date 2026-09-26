@@ -28,12 +28,19 @@ class TestMetricNaming:
     def test_no_duplicate_produces_across_calculators(self):
         """서로 다른 calculator가 같은 metric_name을 produces하면 안 됨
         (같은 이름은 provider로 구분하므로 허용하되, produces 선언 중복은 의도 확인 필요)."""
+        # 의도된 provider 분리(같은 이름, 다른 provider): darp(runpulse:formula_v1) ↔ darp_ref(runpulse:ref_garmin)
+        # ↔ r4 섀도 darp_r4(runpulse:shadow_r4)·darp_r4_asym(runpulse:shadow_r4_asym) — P7-PRED-51
+        family = {"darp", "darp_ref", "darp_r4", "darp_r4_asym"}
+        provider_split = {frozenset({a, b}) for a in family for b in family if a != b}
         seen = {}
         for calc in ALL_CALCULATORS:
             for produced in calc.produces:
                 if produced in seen:
                     # 같은 scope_type이면 충돌
                     other = seen[produced]
+                    if frozenset({calc.name, other.name}) in provider_split:
+                        assert calc.provider != other.provider
+                        continue
                     assert calc.scope_type != other.scope_type or calc.name == other.name, (
                         f"'{produced}' is produced by both "
                         f"'{other.name}' and '{calc.name}' in same scope"

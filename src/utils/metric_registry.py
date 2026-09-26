@@ -320,6 +320,7 @@ _DEFINITIONS: list[MetricDef] = [
               aliases={"garmin": "lactateThresholdSpeed"}),
     MetricDef("gap_rp", "capacity", "metric", "sec/km", "RunPulse GAP (경사 보정 페이스)"),
     MetricDef("runpulse_vdot", "capacity", "metric", "", "RunPulse VDOT (Daniels)"),
+    MetricDef("race_pred_vdot", "prediction", "metric", "", "예측 결합 VDOT(15℃ 등가)", scope="daily"),
     MetricDef("hr_profile", "hr", "metric", "bpm", "HR 프로필(자체·참조 HRmax/LTHR, HRR·LTHR 존)", scope="daily"),
     MetricDef("hrmax_self", "hr", "metric", "bpm", "RunPulse 추정 최대심박", scope="daily"),
     MetricDef("lthr_self", "hr", "metric", "bpm", "RunPulse 추정 LTHR", scope="daily"),
