@@ -1065,7 +1065,7 @@
 
 - functions: encrypt_config_credentials, decrypt_config_credentials, generate_key
 
-### `daniels_table.py` (242줄) — Jack Daniels VDOT 룩업 테이블 — Running Formula 3rd Edition 기반.
+### `daniels_table.py` (146줄) — Jack Daniels VDOT 유틸 — 훈련 페이스·레이스 시간은 Daniels–Gilbert 공식(`metrics/prediction/daniels.py`)으로 계산,
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
@@ -1407,7 +1407,7 @@
 
 - functions: test_formula_anchors, test_zone_order, test_equivalent_minutes_rest_ratio, test_kalman_weights_and_decay
 
-### `test_daniels_table.py` (78줄) — daniels_table 유틸리티 테스트.
+### `test_daniels_table.py` (75줄) — daniels_table 유틸리티 테스트.
 
 - class **TestTrainingPaces**: test_vdot_50_paces, test_interpolation, test_boundary_low, test_boundary_high
 - class **TestRacePredictions**: test_vdot_50_predictions, test_sub3_marathon
