@@ -88,9 +88,9 @@
 
 - functions: get_provider_comparison_period
 
-### `provider_status_service.py` (44줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
+### `provider_status_service.py` (78줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
-- functions: get_provider_status
+- functions: get_provider_status, get_provider_coverage
 
 ### `race_hub_service.py` (186줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
@@ -526,7 +526,7 @@
 
 - functions: get_ai_provider, chat
 
-### `chat_engine_providers.py` (380줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (383줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - class **RateLimitError**: 없음
 - functions: call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
@@ -978,7 +978,7 @@
 > 주의: db_helpers의 upsert 함수는 Phase 3 sync에서만 호출.
 >       서비스 레이어는 read 함수만 사용.
 
-### `activity_types.py` (84줄) — 활동 유형 정규화.
+### `activity_types.py` (85줄) — 활동 유형 정규화.
 
 - functions: normalize_activity_type
 
@@ -1116,9 +1116,9 @@
 
 - functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
 
-### `test_activity_types.py` (37줄) — activity_types.py 단위 테스트.
+### `test_activity_types.py` (43줄) — activity_types.py 단위 테스트.
 
-- class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants
+- class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants, test_garmin_indoor_running, test_indoor_running_case_whitespace
 
 ### `test_adaptation_service.py` (121줄) — tests/test_adaptation_service.py — adaptation_service.get_adaptation_status() 단위 테스트.
 
@@ -1149,9 +1149,9 @@
 - class **TestWeeklyActivity**: test_totals_pace_and_long_run, test_pace_is_time_over_distance_not_mean_of_paces, test_hr_is_time_weighted, test_gap_weeks_are_filled_within_span, test_no_span_keeps_only_active_weeks
 - class **TestWeeklyAggregates**: test_mean_skips_nulls_and_counts_days, test_last_takes_final_non_null_per_column
 
-### `test_ai_tool_guide.py` (38줄) — 호출 가이드 — 도구 목록과 어긋나지 않는지, 세션 고정 비용이 상한을 넘지 않는지.
+### `test_ai_tool_guide.py` (44줄) — 호출 가이드 — 도구 목록과 어긋나지 않는지, 세션 고정 비용이 상한을 넘지 않는지.
 
-- functions: test_guide_within_length_budget, test_guide_mentions_every_tool, test_guide_and_skill_reference_only_real_tools, test_skill_mentions_every_tool, test_declaration_fixed_cost_budget
+- functions: test_guide_within_length_budget, test_guide_mentions_every_tool, test_guide_and_skill_reference_only_real_tools, test_skill_mentions_every_tool, test_declaration_fixed_cost_budget, test_tool_system_text_mentions_every_tool
 
 ### `test_ai_tools_compact.py` (276줄) — 토큰 최적화 도구 — 압축 응답(fields+rows), 주별 롤업, get_training_summary.
 
@@ -1180,9 +1180,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (348줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (362줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -1253,7 +1253,7 @@
 - class **TestRaceContextNoGoal**: test_race_hub_is_none_or_no_goal, test_formatted_text_no_form_prediction, test_formatted_text_no_target_prediction
 - functions: ctx_with_goal, ctx_no_goal
 
-### `test_chat_context_workout_type.py` (105줄) — workout_type_classified 컬럼 버그 수정 회귀 테스트 (BUG-WORKOUT-TYPE-COLUMN).
+### `test_chat_context_workout_type.py` (122줄) — workout_type_classified 컬럼 버그 수정 회귀 테스트 (BUG-WORKOUT-TYPE-COLUMN).
 
 - class **TestRaceHistoryFromTextValue**: test_race_included_without_name_keyword, test_race_not_included_when_only_numeric_value
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
@@ -1656,7 +1656,7 @@
 
 - functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
-### `test_provider_status_service.py` (82줄) — tests/test_provider_status_service.py — provider_status_service.get_provider_coverage() 단위 테스트.
+### `test_provider_status_service.py` (82줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros
 
@@ -1927,7 +1927,7 @@
 - functions: generate, get_structural_fingerprint
 
 ---
-총 378개 파일
+총 380개 파일
 
 ## docstring 누락
 
