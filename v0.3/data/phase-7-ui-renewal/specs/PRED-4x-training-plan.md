@@ -531,3 +531,10 @@ python3 -m pytest tests/test_outcome_store.py tests/test_outcome_v2.py -q
   4. 활동의 `workoutId`/`paired_event_id`가 있으면 날짜 매칭보다 그것을 우선해 매칭.
 - 첫 단계(사람): Garmin `get_workouts()`/`get_scheduled_workout_by_id()`(또는 캘린더), Intervals `GET /api/v1/athlete/{id}/events?oldest=&newest=&category=WORKOUT` 응답 각 1건을 저장하고 이 절에 실제 필드를 기록 → 그다음 autopilot 유닛으로 파서·테스트 명세를 확정한다.
 
+- **실측 결과(2026-09-26, 구현: `src/sync/plan_ingest.py`, `python3 -m src.sync.plan_ingest --db <db> --user <id>`)**:
+  - Garmin `get_workouts()` 19개(저장 워크아웃 정의: running 14·hiit 3·strength 2), `get_workout_by_id` 는 `workoutSegments[].workoutSteps[]` — `ExecutableStepDTO`(stepType warmup/interval/recovery/rest/cooldown, endCondition `lap.button|time|distance`+`endConditionValue`, targetType `no.target|pace.zone|heart.rate.zone`+`targetValueOne/Two`(pace 는 m/s)), `RepeatGroupDTO`(`numberOfIterations`, `workoutSteps`).
+  - 활동 payload 의 `workoutId`(135개 활동, 고유 16개) 중 14개가 조회되고 2개는 삭제(404, 72개 활동) — 실행 이력이 곧 "실행된 계획"이라 활동 날짜마다 `external_id="<workoutId>@<날짜>"` 행을 만들고 `matched_activity_id` 를 바로 채운다(workoutId 우선 연결). 세그먼트 이행률(`update_outcome_v2`)은 39건 산출.
+  - 예정 워크아웃: `get_scheduled_workouts(y,m)` 의 `calendarItems` 중 `itemType='fbtAdaptiveWorkout'`(가민 코치 적응형, `trainingPlanId`) — 상세는 `get_adaptive_training_plan_by_id(planId).taskList[].taskWorkout`(`workoutName`, `workoutDescription`="5:50/km", `scheduledDate`, `estimatedDurationInSecs`, `workoutPhrase`, `restDay`)이며 단계 구조는 없다 → 지속시간+페이스 단일 work 구조. `get_scheduled_workout_by_id` 는 이 id 로 404.
+  - 대회 일정은 `itemType='event'`(`isRace`, `date`, `title`)로 옴(미수집).
+  - Intervals 이벤트는 저장된 API 키가 401 이라 응답 미확인 — 문서 기준 최소 파서(PRED-99 U-21).
+
