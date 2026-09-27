@@ -12,16 +12,20 @@
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 일부 뷰에서 `v_canonical_activities` 대신 `activity_summaries` 직접 쿼리 → 중복 활동 포함 위험. **(판단 필요)** UI 재설계 범위와 함께 결정.
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
-- [중간] curl_cffi ARM64 wheel 존재 여부 (AWS Graviton) — Dockerfile 빌드
+- ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
 - [낮음] test_flask_routes.py garmin 라우트 포함 여부 — 테스트 커버리지
 
 ## NEXT
+
+- **[SYNC-SOURCE-TOGGLE]** 자동 동기화(`src/web/auto_sync._connected_sources`)가 소스별 사용 여부 설정을 보지 않고 자격증명 존재만으로 대상을 정함 → 화면에서 소스를 끌 방법이 없음. 소스별 on/off 설정(예: `config.<source>.enabled` 또는 동기화 탭 체크박스)을 자동 동기화에도 적용. 현재 Strava는 `config.json`의 `strava` 키를 `strava_disabled`로 바꿔 임시로 제외함(2026-09-27, Strava API 구독자 전용 전환 → 403 `Application Status: Inactive`).
+- **[SYNC-ERROR-SURFACE]** 외부 API 오류가 동기화 결과에 드러나지 않음 — Strava 403이 `배치 완료: count=0`·job `completed`로 기록돼 몇 주간 실패를 알 수 없었음. 4xx/5xx·인증 실패는 job `last_error`/status에 남기고 동기화 탭에 표시.
 
 - **[MCP-REMOTE]** 원격 MCP(Genspark 등 VPS 외부 클라이언트 연결). 현재 MCP는 stdio 전용이라 외부 접속 불가 → HTTP 전송 + 토큰 인증 + 외부 노출 범위(읽기 전용, 유저 스코프) 설계 필요. **선행: MCP-TOKEN-OPT 완료.** 노출/인증은 설계 변경이므로 착수 전 plan 승인 필수. 그 전까지 Genspark로 로그를 넘기는 임시 방식(zip 업로드 vs 복붙)과 로그의 원본 위치는 미결정.
 - **[MCP-CLIENT-VERIFY]** 실제 MCP 클라이언트(Claude Code) 연결 검증 — ADR-016의 stdio 프레임 수정은 서브프로세스 왕복으로만 확인했고 실클라이언트로는 미검증. 로컬 `.mcp.json`에 `runpulse` 등록은 완료(다음 세션에서 `/mcp`로 확인). 같은 파일의 기존 `sqlite` 항목은 활동 0건인 `default` DB를 가리킴 → 경로 정정 또는 제거 필요(로컬 설정이라 커밋 대상 아님).
 - **[MARATHON-LOG-LAPS]** 훈련 로그(`data/2026_marathon_plan/`, gitignore 대상)에 세트별 랩 반영. 2026-09-10(ACTIVE 2세트)·09-17(4세트)은 랩이 이미 적재됨, 09-04 크루즈는 아직 랩 없음(date-range 동기화 필요). 반영 후 W13·W14 주간 로그와 일일 로그 갱신. 팩트 위주·`60_TEMPLATES` 양식 유지.
 
 ## DONE (recent)
+- **[OPS-OCI-MIGRATION]** 서버를 AWS Lightsail(x86_64) → OCI 춘천 A1(aarch64, 4 OCPU/24GB)로 이전(2026-09-27 01:39 KST 전환, 다운타임 약 2분). DB 4개 integrity_check·테이블별 행 수 일치 확인. 컨테이너 포트는 127.0.0.1 바인딩(`docker-compose.override.yml`, git 제외), cloudflared는 token-file 방식. 같은 날 AI 기본 모델 종료(404) 대응으로 `config.json`의 `ai.gemini_model=gemini-flash-latest`, `ai.groq_model=openai/gpt-oss-120b` 설정(코드 기본값 `gemini-2.0-flash`/`llama-3.3-70b-versatile`은 둘 다 서비스 종료 — 코드 기본값 갱신은 미수행).
 - **[BUG-CHAT-RULE-FALLBACK]** `chat_engine_rules.rule_based_response()`와 `briefing.py`의 클립보드 프롬프트 조립 함수(`build_briefing_prompt`/`build_chip_prompt`) 3곳이 전부 Phase 5 리라이트 때 고아가 된 `ai_context.build_context`/`format_context_text`/`format_activity_context`를 import — AI provider 미설정 시 마지막 안전망인 rule fallback이 ImportError로 죽고 있었음. 3개 함수를 현재 스키마 기준으로 재작성해 복원: `activity_summaries.distance_km`→`distance_m`(변환), 삭제된 `daily_fitness` 테이블→`metric_store`(`db_helpers.get_primary_metrics`), `calculate_weekly_score()`의 `data` 중첩 dict→top-level로 평탄화, `get_planned_workouts()`의 `week_start` 인자화 대응, `deep_analyze()`가 이제 `avg_pace`를 포맷된 문자열로 반환하는 것에 맞춰 `format_activity_context` 조정. 신규 테스트 21+7건(`test_ai_context.py`/`test_briefing.py`, `rule_based_response()` 실호출 회귀 테스트 포함). 1421 passed.
 - **[MCP-TOKEN-OPT]** AI/MCP 도구 토큰 최적화(ADR-016). (1) 목록 응답을 `fields`+`rows` columnar로 통일·반올림·전NULL 컬럼 제거·compact JSON, (2) 62일 초과 구간 주별 롤업(180일 상한, 일요일 시작, 공백 주 `runs=0` 채움) + `get_training_summary` 신설(주별 볼륨·CTL/TSB·대회/퀄리티 세션 1회), (3) 호출 레시피 `tool_guide.USAGE_GUIDE`(MCP instructions) + `.claude/skills/runpulse-data`. 실측: 활동 목록 1년 ≈7,300→780 tok, 웰니스 30일 ≈1,300→380. MCP 서버 결함 3건 동봉 수정 — `default`(활동 0건) DB 하드코딩 → `RUNPULSE_USER_ID` 필수, 쓰기 가능 연결 → `mode=ro`, LSP식 Content-Length 프레임 → MCP 사양(줄바꿈 JSON). `workout_type_classified`를 `numeric_value`에서 읽어 `workout_type`이 한 번도 안 나오던 도구 버그 수정. `tools` 모듈 분리 유지(전부 300줄 이하). 1376 passed. **실제 MCP 클라이언트(Claude Code 등) 연결 검증은 미수행** — 서브프로세스 프로토콜 왕복만 확인.
 - **[AI-TOOLS-LAPS]** 랩 기반 AI/MCP 도구 추가. `get_activity_laps`(랩별 페이스·심박·케이던스·파워·구간 유형), `compare_workout_sets`(세션 간 세트 페이스 비교 + 후반 드리프트) 신규. 출력은 키 반복 대신 `fields` 헤더 + 값 배열, 전부 NULL인 컬럼은 헤더에서 제거해 토큰 절감. `get_activity`/`get_activities_range` 응답에 `activity_id` 추가 — 없으면 상세·랩 도구를 호출할 방법이 없었음. 전체 14개 도구를 실 DB로 점검해 3건 확인: `get_activity`가 존재하지 않는 `calories` 컬럼 조회(활동 칼로리는 이미 `metric_store`에 1,374건 있어 `detail["metrics"]`로 반환됨 → 컬럼 제거), `get_weather`가 v0.2 테이블 `weather_data` 조회(→ `weather_cache` + 실제 컬럼명). `compare_periods`는 점검 스크립트의 인자 이름 오류였고 정상. 스트림 복구로 새로 들어온 심박 0(미측정) 행은 `_positive_int`로 NULL 처리(요약에 적용한 `sanitize_activity_core`와 동일 원칙). `tools.py` 705줄 → 선언/활동·랩 실행기/일별·기간 실행기 3개 모듈로 분리(전부 300줄 이하, 로직 변경 없음). 1306 passed.
