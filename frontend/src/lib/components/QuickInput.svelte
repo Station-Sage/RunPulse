@@ -64,7 +64,8 @@
 	<div class="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-2 p-4">
 		<p class="text-sm text-fg-secondary">어떻게 느껴지나요?</p>
 
-		<div role="radiogroup" aria-label="피로도 (1~10)" class="grid grid-cols-10 gap-1">
+		<p class="text-xs text-fg-muted">피로도</p>
+		<div role="radiogroup" aria-label="피로도 (1 가뿐함 ~ 10 매우 피곤)" class="grid grid-cols-10 gap-1">
 			{#each FATIGUE_LEVELS as n (n)}
 				<button
 					type="button"
@@ -78,6 +79,10 @@
 					{n}
 				</button>
 			{/each}
+		</div>
+		<div class="-mt-2 flex justify-between text-xs text-fg-muted" aria-hidden="true">
+			<span>1 가뿐함</span>
+			<span>10 매우 피곤</span>
 		</div>
 
 		<div role="radiogroup" aria-label="통증 수준" class="flex flex-wrap gap-1">

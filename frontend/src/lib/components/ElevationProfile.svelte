@@ -18,6 +18,7 @@
 
 	const VW = 600;
 
+	const MIN_SPAN_M = 30;
 	const dist = $derived(cumulativeDistance(streams, totalSec, totalDistM));
 	const valid = $derived(
 		streams
@@ -29,13 +30,12 @@
 	const show = $derived(valid.length >= 10 && maxAlt - minAlt >= 3);
 	const endD = $derived(dist.length ? dist[dist.length - 1] : 0);
 
-	// 최대 200점으로 균등 다운샘플, y는 (max-min)에 5% 여백
+	// 최대 200점으로 균등 다운샘플. y 도메인은 최소 30m 폭(중앙 정렬) — 5m 기복이 산처럼 보이지 않게.
 	const pts = $derived.by(() => {
 		if (!show || endD <= 0) return [] as { x: number; y: number }[];
 		const step = Math.max(1, Math.ceil(valid.length / 200));
-		const pad = (maxAlt - minAlt) * 0.05;
-		const lo = minAlt - pad;
-		const span = maxAlt + pad - lo;
+		const span = Math.max((maxAlt - minAlt) * 1.1, MIN_SPAN_M);
+		const lo = (minAlt + maxAlt) / 2 - span / 2;
 		const out: { x: number; y: number }[] = [];
 		for (let i = 0; i < valid.length; i += step) {
 			out.push({ x: (valid[i].d / endD) * VW, y: (1 - (valid[i].alt - lo) / span) * height });

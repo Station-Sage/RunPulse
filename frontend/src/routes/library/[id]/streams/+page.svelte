@@ -238,7 +238,7 @@
 							</div>
 							<!-- 스파크라인 + 스크럽 커서 라인 -->
 							<div class="relative">
-								<Sparkline data={clamped.values} height={48} color={def.color} />
+								<Sparkline data={clamped.values} height={48} color={def.color} invert={def.key === 'pace'} />
 								{#if scrubFrac != null}
 									<div
 										class="pointer-events-none absolute inset-y-0 w-px opacity-50"

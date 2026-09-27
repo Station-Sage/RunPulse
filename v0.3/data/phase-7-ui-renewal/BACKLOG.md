@@ -176,6 +176,12 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   LLM 보조 조정은 근거 표시·규칙 폴백 유지. 관련: `DECISIONS.md [P7-UI-REVIEW-0927]` 1번(남은 한계), `plan_structure.py`,
   `periodization.py`.
 
+- **[P7-UXR-ROADMAP]** v2 UI/UX 심층 리뷰(2026-09-27~28) 통합 로드맵 — `ux-review-2026-09/99-summary.md §7`이
+  유일한 소스(Phase 0 핫픽스 → 1 수치 교정 → 2 공통 규격 §C → 3 탭별 트랙 A/B/C → 4 미구현·기본 진입 전환 G0~G6).
+  결정은 `DECISIONS.md [P7-UX-REVIEW-0928]`. Phase 0은 완료(DONE 참조). 다음 착수 후보는 Phase 1-1 부하 모델
+  재기준화(D1·D2, 전 기간 재계산 = 실 DB 변경이라 백업·사용자 확인 후). 각 Phase 착수 시 해당 탭 `design.md §9`로
+  plan mode 확정.
+
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
 2026-09-23 제거. `P7-IMPL-TIMELINE-NARRATIVE-FULL`은 조사 후 바로 AUTOPILOT
@@ -3601,6 +3607,15 @@ DONE으로 옮긴다.
 ---
 
 ## DONE
+
+- **[P7-UXR-P0]** UX 리뷰 Phase 0 핫픽스(2026-09-28): Coach 규칙 답변의 회복 등급 코드 불일치(`A/B/C` vs
+  `excellent/good/moderate/poor`) 수정 + 상수화·회귀 테스트(항상 "피로 회복 필요"가 나오던 결함), 규칙 답변 페이스
+  `초/km`→`m:ss/km`, 없는 목적지 문구("훈련 탭", "설정 > AI") 교체, gunicorn gthread 8스레드(워커 1 유지 — auto_sync·
+  진행 상태가 프로세스 메모리), Today 최근 활동 행 링크화, 사실과 다른 문구 정정("원본 데이터로 이어집니다",
+  "자동으로 반영", "계획 수립·수정은 Coach에서"), Coach 입력 IME 조합 Enter 가드, 피로도 척도 앵커 라벨,
+  `formatPace` 반올림("5:60" → "6:00"), 분해 시트 원시 부동소수 포맷, 페이스 스파크라인 반전(빠름=위), 고도 최소
+  도메인 30m, 스플릿 부분 구간 스케일·최고 구간 제외, 근력 칩 `strength`. 남은 Phase 0: 틀린 Coach 답변 3건 배너
+  (msg 8·12·14, 실 DB 대상이라 보류).
 
 - **[P7-UI-REVIEW-0927]** 실계정 UI 점검 → 계획 기간·단계, 매칭·결과 라벨, 이행률, 예측 카드 정리,
   마일스톤 표시, 동기화 소스 토글(`sync_sources`) 정정(2026-09-27, 사용자 승인). 결정·근거는

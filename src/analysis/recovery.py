@@ -67,16 +67,35 @@ def _get_daily_detail_metrics(conn: sqlite3.Connection, date_str: str, source: s
         result[name] = js if val is None else val
     return result
 
+# 회복 등급 코드 — 소비자(규칙 코치 등)는 문자열 리터럴 대신 이 상수를 쓴다.
+GRADE_EXCELLENT = "excellent"
+GRADE_GOOD = "good"
+GRADE_MODERATE = "moderate"
+GRADE_POOR = "poor"
+
+GRADE_LABEL_KO = {
+    GRADE_EXCELLENT: "매우 좋음",
+    GRADE_GOOD: "좋음",
+    GRADE_MODERATE: "보통",
+    GRADE_POOR: "나쁨",
+}
+
+
+def grade_label(grade: str | None) -> str:
+    """회복 등급 코드 → 한국어 라벨. 없거나 모르는 코드면 '정보 없음'."""
+    return GRADE_LABEL_KO.get(grade or "", "정보 없음")
+
+
 def _recovery_grade(score: float) -> str:
     """점수로 회복 등급 판정."""
     if score >= 80:
-        return "excellent"
+        return GRADE_EXCELLENT
     elif score >= 60:
-        return "good"
+        return GRADE_GOOD
     elif score >= 40:
-        return "moderate"
+        return GRADE_MODERATE
     else:
-        return "poor"
+        return GRADE_POOR
 
 
 def get_recovery_status(

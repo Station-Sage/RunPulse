@@ -91,6 +91,8 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// 한글 IME 조합 중 Enter는 글자 확정용 — 전송하면 마지막 글자가 중복·누락된다.
+		if (e.isComposing || e.keyCode === 229) return;
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			send();

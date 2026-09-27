@@ -40,3 +40,11 @@ test('weekProgressLabel — 진행 중·시작 전', () => {
 	assert.equal(weekProgressLabel(0, 6), '시작 전 (1주 뒤)');
 	assert.equal(weekProgressLabel(-2, 6), '시작 전 (3주 뒤)');
 });
+
+import { formatPace } from '../src/lib/format.ts';
+
+test('formatPace — 초를 먼저 반올림해 "5:60" 같은 표기가 나오지 않는다', () => {
+	assert.equal(formatPace(359.6), '6:00/km');
+	assert.equal(formatPace(356.8), '5:57/km');
+	assert.equal(formatPaceRange(359.6, 419.7), '6:00–7:00/km');
+});

@@ -601,7 +601,7 @@
 - class **RateLimitError**: 없음
 - functions: call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_rules.py` (264줄) — AI 채팅 — 규칙 기반 fallback 응답.
+### `chat_engine_rules.py` (279줄) — AI 채팅 — 규칙 기반 fallback 응답.
 
 - functions: rule_based_response
 
@@ -1374,6 +1374,10 @@
 - class **TestRaceHistoryFromTextValue**: test_race_included_without_name_keyword, test_race_not_included_when_only_numeric_value
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
 - class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
+
+### `test_chat_engine_rules_grade.py` (54줄) — tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
+
+- functions: test_training_recommendation_follows_grade, test_grade_codes_match_recovery_output, test_grade_label_korean, test_today_deep_formats_pace
 
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
@@ -2190,7 +2194,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 441개 파일
+총 442개 파일
 
 ## docstring 누락
 

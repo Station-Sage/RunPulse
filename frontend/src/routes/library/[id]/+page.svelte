@@ -172,7 +172,7 @@
 				{#if paceSeries.some((v) => v != null)}
 					<div>
 						<p class="mb-0.5 text-[10px] text-fg-muted">페이스</p>
-						<Sparkline data={paceSeries} height={40} color="#3b82f6" />
+						<Sparkline data={paceSeries} height={40} color="#3b82f6" invert />
 					</div>
 				{/if}
 				{#if hrSeries.some((v) => v != null)}

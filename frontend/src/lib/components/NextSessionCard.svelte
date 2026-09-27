@@ -119,7 +119,7 @@
 					href="{base}/coach/plan/{plan.goal.id}"
 					class="text-xs text-fg-secondary hover:text-fg-primary"
 				>
-					계획 수립·수정은 Coach에서 →
+					전체 계획 보기 →
 				</a>
 			</div>
 		</div>

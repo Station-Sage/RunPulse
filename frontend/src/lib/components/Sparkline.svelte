@@ -6,12 +6,15 @@
 		data,
 		width = 600,
 		height = 48,
-		color = 'currentColor'
+		color = 'currentColor',
+		invert = false
 	}: {
 		data: (number | null)[];
 		width?: number;
 		height?: number;
 		color?: string;
+		/** 낮을수록 좋은 값(페이스 초/km 등)은 true — 좋아지는 방향이 위로 그려진다. */
+		invert?: boolean;
 	} = $props();
 
 	const validData = $derived(data.filter((v): v is number => v != null));
@@ -27,8 +30,11 @@
 		const n = data.length;
 
 		const toX = (i: number): number => (n <= 1 ? 0 : (i / (n - 1)) * width);
-		const toY = (v: number): number =>
-			range === 0 ? height / 2 : height - ((v - minVal) / range) * height;
+		const toY = (v: number): number => {
+			if (range === 0) return height / 2;
+			const frac = (v - minVal) / range;
+			return invert ? frac * height : height - frac * height;
+		};
 
 		const segs: string[] = [];
 		let current: string[] = [];

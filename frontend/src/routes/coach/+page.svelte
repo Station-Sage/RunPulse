@@ -61,6 +61,8 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// 한글 IME 조합 중 Enter는 글자 확정용 — 전송하면 마지막 글자가 중복·누락된다.
+		if (e.isComposing || e.keyCode === 229) return;
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			submitNew();
@@ -222,7 +224,7 @@
 				saving={savingCheckin}
 				onSave={handleSaveCheckin}
 			/>
-			<p class="text-xs text-fg-muted">입력한 컨디션은 Coach 답변에 자동으로 반영됩니다.</p>
+			<p class="text-xs text-fg-muted">입력한 컨디션은 AI가 연결되어 있을 때 Coach 답변에 참고됩니다.</p>
 			{#if checkinError}
 				<p class="text-xs text-semantic-red">{checkinError}</p>
 			{/if}

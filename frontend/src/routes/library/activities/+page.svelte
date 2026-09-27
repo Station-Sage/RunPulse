@@ -30,7 +30,7 @@
 		['', '전체'],
 		['running', '러닝'],
 		['swimming', '수영'],
-		['strength_training', '근력']
+		['strength', '근력']
 	] as const;
 	const DISTS = [
 		['', '전 거리'],

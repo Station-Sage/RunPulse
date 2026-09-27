@@ -11,10 +11,14 @@ export function formatDuration(sec: number): string {
 	return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+// 초를 먼저 반올림해야 359.6 → "5:60"이 아니라 "6:00"이 된다.
+function paceMmSs(secPerKm: number): string {
+	const total = Math.round(secPerKm);
+	return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 export function formatPace(secPerKm: number): string {
-	const min = Math.floor(secPerKm / 60);
-	const sec = Math.round(secPerKm % 60);
-	return `${min}:${String(sec).padStart(2, '0')}/km`;
+	return `${paceMmSs(secPerKm)}/km`;
 }
 
 /**
@@ -27,7 +31,7 @@ export function formatPace(secPerKm: number): string {
 /** 계획 페이스 범위(초/km, min=빠른 쪽) → '6:05–6:45/km'. 한쪽만 있으면 '>6:05/km'·'<6:45/km', 둘 다 없으면 ''. */
 export function formatPaceRange(min: number | null, max: number | null): string {
 	if (min == null && max == null) return '';
-	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+	const fmt = paceMmSs;
 	if (min != null && max != null) return `${fmt(min)}–${fmt(max)}/km`;
 	return min != null ? `>${fmt(min)}/km` : `<${fmt(max!)}/km`;
 }

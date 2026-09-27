@@ -1133,3 +1133,22 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
 6. **동기화 소스는 config `sync_sources`** (없으면 전부). Strava(유료 API)·Runalyze 는 끄고, 끈 소스는 끊김 경고 없이 "동기화 안 함"으로 표시(과거 데이터 없으면 숨김). 수동 단일 소스 동기화는 이 목록과 무관.
 
 기존 데이터 정정 도구: `python3 -m src.training.rematch --db <db> [--replan]` (자동 매칭만 초기화 후 재계산, 수동 완료는 보존; `--replan` 은 다음 주부터 대회 주까지 재생성·대회 이후 삭제). 실 DB 적용은 백업 후 사용자 지시로만.
+
+## [P7-UX-REVIEW-0928] v2 UI/UX 심층 리뷰 결정 D1~D11 (2026-09-28, 사용자 "오케이 진행" — 권장안 채택)
+
+**배경**: `ux-review-2026-09/99-summary.md` §8. 6개 탭 평가(data/ui/ux)와 설계(design.md)에서 나온 결정 항목. 사용자가 권장안 요약을 보고 진행을 승인했다.
+
+**결정:**
+- **D1 PMC α = `1/τ`** (CTL 1/42, ATL 1/7). 현행 `2/(N+1)`(실효 τ≈21/4일) 폐기. `20-library-activities/design.md §7-2 ⑧`의 `1−e^(−1/τ)`는 이 결정으로 대체. 재검토 조건: 재계산 후 Intervals CTL 병행 비교에서 ATL 편차가 체계적이면 `1−e^(−1/τ)` 검토. 전 이력 재계산은 DB 변경 → 백업 후 착수 시 별도 확인.
+- **D1a~D1e §C 정합**: 차이 색 `--delta-better/worse` §C7 추가 / 활동 히어로·랩 표 거리 소수 2자리는 §C4 예외 / 활동 scope 토큰 `@a{id}` §C3.3 추가 / `★` 아이콘 `source-primary` §C8 추가.
+- **D2 TRIMP 계수 교정**(`0.64·e^(1.92x)`, 성별 프로필) — D1과 같은 재계산에 묶어 1회 공지.
+- **D3 활동 피드백 저장소 = 신규 테이블 `activity_feedback`**(안 A).
+- **D4 P7-PLAN-ENGINE 승인, 2단계**: 백테스트 후 새 계획에만 적용. 진행 중인 11/22 계획은 재생성하지 않음.
+- **D5 동기화 원장 = `sync_jobs` 확장**(SYNC-ERROR-SURFACE·SYNC-SOURCE-TOGGLE 흡수).
+- **D6 v2 기본 진입 = 계정 설정 `ui_default` + 전역값 롤백**, 게이트 G0~G6.
+- **D7 UTRS**: 1차 HRV z-score·아침 스냅샷만, 가중치 유지. BB 제외안은 백테스트 후.
+- **D8 외부 LLM 전송**: 첫 전송 전 동의 + 입력창 위 상시 고지.
+- **D9 조정 휴식은 이행률 분모에서 제외.**
+- **D10 CalcContext `get_group_metric`·`get_group_streams` 확장**(ADR-009 확장, system-architect 확정).
+- **D11 활동 파생 계산 ADR 한 묶음** + `check_data_consistency` `_unmapped > 0` 경고.
+- **보류**: 워치 푸시(외부 계정 쓰기) — ICS 구독(읽기)만.

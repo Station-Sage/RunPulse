@@ -3,7 +3,14 @@
 	// children: 평평한 목록(재귀 없음), inputs: 드릴다운 가능(onDrillInput 콜백).
 	import { getMetricBreakdown } from '$lib/api/metrics';
 	import { providerLabel } from '$lib/provider';
+	import { formatUnitValue } from '$lib/format';
 	import type { MetricBreakdownData } from '$lib/types';
+
+	// 원시 부동소수(26.0799…)·초 단위를 그대로 노출하지 않는다.
+	function fmt(value: number | string | null | undefined, unit: string | null | undefined) {
+		if (typeof value !== 'number') return { display: value ?? '—', unit: unit ?? '' };
+		return formatUnitValue(value, unit ?? '');
+	}
 
 	let {
 		slug,
@@ -69,11 +76,12 @@
 			{:else if error || !data}
 				<p class="text-sm text-fg-secondary">계산 데이터를 불러올 수 없습니다.</p>
 			{:else}
+				{@const main = fmt(data.value, data.unit)}
 				<!-- 주값 -->
 				<div class="mb-4 flex items-baseline gap-2">
-					<span class="font-mono text-3xl font-bold">{data.value ?? '—'}</span>
-					{#if data.unit}
-						<span class="text-sm text-fg-muted">{data.unit}</span>
+					<span class="font-mono text-3xl font-bold">{main.display}</span>
+					{#if main.unit}
+						<span class="text-sm text-fg-muted">{main.unit}</span>
 					{/if}
 					{#if data.provider}
 						<span class="text-xs text-fg-muted">{providerLabel(data.provider)}</span>
@@ -89,7 +97,7 @@
 								<div class="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
 									<span class="text-sm">{child.label}</span>
 									<span class="text-sm text-fg-secondary">
-										{child.value ?? '—'}{#if child.unit}<span class="ml-0.5 text-xs text-fg-muted">{child.unit}</span>{/if}
+										{fmt(child.value, child.unit).display}{#if fmt(child.value, child.unit).unit}<span class="ml-0.5 text-xs text-fg-muted">{fmt(child.value, child.unit).unit}</span>{/if}
 									</span>
 								</div>
 							{/each}
@@ -112,7 +120,7 @@
 								>
 									<span class="text-sm">{input.label}</span>
 									<span class="flex items-center gap-1 text-sm text-fg-secondary">
-										{input.value ?? '—'}{#if input.unit}<span class="ml-0.5 text-xs text-fg-muted">{input.unit}</span>{/if}
+										{fmt(input.value, input.unit).display}{#if fmt(input.value, input.unit).unit}<span class="ml-0.5 text-xs text-fg-muted">{fmt(input.value, input.unit).unit}</span>{/if}
 										{#if onDrillInput}<span class="ml-1 text-fg-muted">›</span>{/if}
 									</span>
 								</button>

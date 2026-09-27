@@ -22,18 +22,27 @@
 				: null)
 	);
 
-	const minPace = $derived(splits.length > 0 ? Math.min(...splits.map((s) => s.paceSecKm)) : 0);
-	const maxPace = $derived(splits.length > 0 ? Math.max(...splits.map((s) => s.paceSecKm)) : 0);
+	// 1km 미만 부분 구간은 스케일·최고 구간 판정에서 뺀다(0.3km 잔여 구간이 최댓값·최고 구간을 가져가던 문제).
+	const isPartial = (s: { distanceM: number }) => s.distanceM < 1000;
+	const full = $derived(splits.filter((s) => !isPartial(s)));
+	const basis = $derived(full.length > 0 ? full : splits);
+	const minPace = $derived(basis.length > 0 ? Math.min(...basis.map((s) => s.paceSecKm)) : 0);
+	const maxPace = $derived(basis.length > 0 ? Math.max(...basis.map((s) => s.paceSecKm)) : 0);
 
-	// 가장 빠른 구간의 인덱스
+	// 가장 빠른 온전한 구간의 인덱스(부분 구간 제외)
 	const fastestIdx = $derived(
-		splits.reduce((best, s, i) => (s.paceSecKm < splits[best].paceSecKm ? i : best), 0)
+		splits.reduce(
+			(best, s, i) =>
+				!isPartial(s) && (best < 0 || s.paceSecKm < splits[best].paceSecKm) ? i : best,
+			-1
+		)
 	);
 
 	// 빠를수록 넓게: 최소 25%, 최대 100%
 	function barWidth(pace: number): string {
 		if (maxPace === minPace) return '80%';
-		return `${(25 + 75 * (1 - (pace - minPace) / (maxPace - minPace))).toFixed(1)}%`;
+		const frac = Math.min(1, Math.max(0, (pace - minPace) / (maxPace - minPace)));
+		return `${(25 + 75 * (1 - frac)).toFixed(1)}%`;
 	}
 
 	// green=#10b981 / blue=#3b82f6 / amber=#f59e0b
@@ -61,7 +70,7 @@
 					<!-- 막대 + 페이스 레이블 -->
 					<div class="min-w-0 flex-1">
 						<div
-							class="flex h-5 items-center overflow-hidden rounded px-1.5"
+							class="flex h-5 items-center overflow-hidden rounded px-1.5 {isPartial(s) ? 'opacity-60' : ''}"
 							style="width:{barWidth(s.paceSecKm)}; background:{barColor(s.paceSecKm, i)}"
 						>
 							<span class="shrink-0 font-mono text-[10px] text-white"

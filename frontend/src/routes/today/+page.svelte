@@ -190,7 +190,10 @@
 					<p class="text-sm text-fg-muted">아직 활동이 없습니다.</p>
 				{:else}
 					{#each data.today.recent_activities as act (act.id)}
-						<div class="flex items-center gap-2 py-1.5 text-sm">
+						<a
+							href="{base}/library/{act.id}"
+							class="-mx-1 flex min-h-11 items-center gap-2 rounded px-1 py-1.5 text-sm hover:bg-surface-3 active:bg-surface-3"
+						>
 							<RouteThumb route={act.route} size={32} />
 							<span class="w-14 shrink-0 text-fg-secondary">{formatRelativeDay(act.start_time)}</span>
 							<span class="flex-1 truncate">{act.name}</span>
@@ -203,8 +206,12 @@
 							>
 								{providerLabel(act.source as ProviderKey)}
 							</span>
-						</div>
+							<span class="text-fg-muted" aria-hidden="true">›</span>
+						</a>
 					{/each}
+					<a href="{base}/library/activities" class="mt-1 text-xs text-fg-secondary hover:text-fg-primary">
+						활동 전체 →
+					</a>
 				{/if}
 			</div>
 		</section>
@@ -299,9 +306,6 @@
 		<!-- ══ L3 — 데이터 드릴다운 ══ -->
 		<section class="order-5 flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</p>
-			<p class="text-sm text-fg-secondary">
-				위 지표는 탭 한 번으로 계산 분해에 닿고, 거기서 다시 원본 데이터로 이어집니다.
-			</p>
 			<a href="{base}/library" class="text-sm text-fg-secondary hover:text-fg-primary">
 				Library에서 전체 탐색 →
 			</a>
