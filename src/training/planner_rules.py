@@ -4,7 +4,7 @@ planner.py에서 분리. 순수 규칙/계산 함수만 포함 (DB 직접 접근
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from .planner_config import (
     LONG_RUN_BASE,
@@ -16,30 +16,64 @@ from .planner_config import (
 
 # ── 훈련 단계 결정 ────────────────────────────────────────────────────────
 
-def weeks_to_race(race_date_str: str | None) -> int | None:
+def weeks_to_race(race_date_str: str | None, as_of: date | None = None) -> int | None:
+    """as_of(기본 오늘) 기준 대회까지 남은 주. 미래 주차 계획은 그 주 시작일을 as_of로 넘긴다."""
     if not race_date_str:
         return None
     try:
-        delta = (date.fromisoformat(race_date_str) - date.today()).days
+        delta = (date.fromisoformat(race_date_str) - (as_of or date.today())).days
         return max(0, delta // 7)
     except ValueError:
         return None
 
 
+def plan_weeks_until_race(race_date_str: str | None, today: date | None = None) -> int | None:
+    """이번 주(월요일)부터 대회가 있는 주까지의 주 수(양 끝 포함). 대회일이 없거나 지났으면 None."""
+    if not race_date_str:
+        return None
+    try:
+        race = date.fromisoformat(race_date_str)
+    except ValueError:
+        return None
+    today = today or date.today()
+    if race < today:
+        return None
+    this_monday = today - timedelta(days=today.weekday())
+    race_monday = race - timedelta(days=race.weekday())
+    return (race_monday - this_monday).days // 7 + 1
+
+
+def apply_race_week(plan: list[dict], race_date_str: str | None, distance_km: float) -> list[dict]:
+    """대회일이 이 주에 있으면 대회일=race 세션, 그 이후 요일은 휴식으로 바꾼다(제자리 수정 후 반환)."""
+    if not race_date_str:
+        return plan
+    for w in plan:
+        if w["date"] == race_date_str:
+            w.update(workout_type="race", distance_km=round(distance_km, 1), target_pace_min=None,
+                     target_pace_max=None, target_hr_zone=None, interval_prescription=None,
+                     description=f"대회 {distance_km:.1f}km", rationale="대회일")
+        elif w["date"] > race_date_str:
+            w.update(workout_type="rest", distance_km=None, target_pace_min=None, target_pace_max=None,
+                     target_hr_zone=None, interval_prescription=None,
+                     description=description("rest", None, date.fromisoformat(w["date"])), rationale="")
+    return plan
+
+
 def training_phase(weeks_left: int | None, week_idx: int) -> str:
     """훈련 단계 결정.
 
-    3:1 회복주(week_idx==3)이면 단계와 무관하게 'recovery_week' 표시.
+    3:1 회복주(week_idx==3)이면 단계와 무관하게 'recovery_week' 표시 — 단, 대회 직전 taper 구간은 제외
+    (taper 자체가 감량이라 회복주로 덮으면 오히려 볼륨·롱런이 되살아난다).
     """
+    if weeks_left is not None and weeks_left <= 3:
+        return "taper"
     if week_idx == 3:
         return "recovery_week"  # Foster 1998 3:1 사이클
     if weeks_left is None or weeks_left > 16:
         return "base"
     if weeks_left > 8:
         return "build"
-    if weeks_left > 3:
-        return "peak"
-    return "taper"
+    return "peak"
 
 
 # ── 주간 볼륨 계산 ────────────────────────────────────────────────────────

@@ -22,10 +22,12 @@ export function getTodaysAdjustment(): Promise<
 
 export function getPlanTemplates(
 	distanceKm: number,
-	targetTimeSec?: number
+	targetTimeSec?: number,
+	raceDate?: string
 ): Promise<PlanTemplate[]> {
 	const params = new URLSearchParams({ distance_km: String(distanceKm) });
 	if (targetTimeSec != null) params.set('target_time_sec', String(targetTimeSec));
+	if (raceDate) params.set('race_date', raceDate);
 	return apiFetch<PlanTemplate[]>(`/coach/plan/templates?${params}`);
 }
 

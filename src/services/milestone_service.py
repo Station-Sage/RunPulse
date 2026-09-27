@@ -71,9 +71,10 @@ def get_recent_milestones(
     where = f"WHERE {' AND '.join(clauses)} " if clauses else ""
     rows = conn.execute(
         f"SELECT * FROM milestones {where}ORDER BY date DESC, id DESC LIMIT ?",
-        (*params, limit),
+        (*params, limit * 5),          # 같은 날 예측 재계산이 한 줄로 합쳐지므로 넉넉히 읽고 자른다
     ).fetchall()
-    return [dict(r) for r in rows]
+    from src.services.milestone_present import present_milestones
+    return present_milestones([dict(r) for r in rows])[:limit]
 
 
 # ── 내부 헬퍼 ─────────────────────────────────────────────────────

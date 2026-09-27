@@ -14,6 +14,7 @@ from src.training.planner import (
     save_weekly_plan,
     upsert_user_training_prefs,
 )
+from src.training.planner_rules import plan_weeks_until_race
 from src.training.readiness import (
     analyze_readiness,
     get_recommended_weeks,
@@ -57,8 +58,9 @@ def get_static_plan_templates(
     conn: sqlite3.Connection,
     distance_km: float,
     target_time_sec: int | None = None,
+    race_date: str | None = None,
 ) -> list[dict]:
-    """거리 + 목표 시간 기반 플랜 템플릿 3개 반환.
+    """거리 + 목표 시간 기반 플랜 템플릿 3개 반환(race_date가 있으면 대회 주까지로 기간을 줄인다).
 
     Args:
         conn: SQLite 연결.
@@ -71,6 +73,9 @@ def get_static_plan_templates(
     """
     rec = get_recommended_weeks(distance_km)
     week_presets = sorted(set([rec["min"], rec["optimal_min"], rec["optimal_max"]]))
+    avail = plan_weeks_until_race(race_date)
+    if avail is not None:
+        week_presets = sorted({min(w, avail) for w in week_presets})   # 남은 기간보다 긴 안은 남은 기간으로 통합
     taper = rec["taper"]
     dist_label = _km_to_label(distance_km)
 
@@ -86,6 +91,8 @@ def get_static_plan_templates(
         rec["min"]: "빠른 완성",
         rec["optimal_max"]: "여유형",
     }
+    if avail is not None and avail < rec["min"]:
+        week_labels[avail] = "압축 일정"      # 권장 최소 기간보다 짧음
 
     templates = []
     for weeks in week_presets:
@@ -153,13 +160,16 @@ def create_plan_from_template(
         conn: SQLite 연결.
         distance_km: 목표 레이스 거리 (km).
         race_date: 레이스 날짜 (YYYY-MM-DD) 또는 None.
-        weeks: 훈련 기간 (주).
+        weeks: 훈련 기간 (주). race_date가 있으면 이번 주~대회 주 사이로 줄인다.
         target_time_sec: 목표 완주 시간(초). None이면 "완주" 목표.
         name: 목표 이름. None이면 "{distance_km}km 목표" 자동 생성.
 
     Returns:
         새로 생성된 goal_id.
     """
+    avail = plan_weeks_until_race(race_date)
+    if avail is not None:
+        weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
     goal_name = name or f"{distance_km:.0f}km 목표"
     goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec)
     conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))

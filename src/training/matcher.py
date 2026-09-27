@@ -18,6 +18,8 @@ import logging
 import sqlite3
 from datetime import date, timedelta
 
+from src.training.matcher_context import _get_condition_snapshot, _get_hr_zone_dist, canonical_activity_id
+from src.training.match_select import classify_outcome, is_done, pick_activity
 from src.training.outcome_store import update_outcome_v2
 
 log = logging.getLogger(__name__)
@@ -45,7 +47,8 @@ def match_week_activities(
     plans = conn.execute(
         "SELECT id, date, workout_type, distance_km, target_pace_min, target_pace_max, "
         "target_hr_zone FROM planned_workouts "
-        "WHERE date BETWEEN ? AND ? AND workout_type != 'rest' AND completed != 1",
+        "WHERE date BETWEEN ? AND ? AND workout_type != 'rest' AND completed != 1 "
+        "ORDER BY (COALESCE(source_system, source) IN ('planner', 'runpulse')), date",
         (week_start.isoformat(), week_end.isoformat()),
     ).fetchall()
 
@@ -72,16 +75,21 @@ def match_week_activities(
         if not day_acts:
             continue
 
-        best = (
-            min(day_acts, key=lambda a: abs((a[2] or 0) - plan_dist))
-            if plan_dist else day_acts[0]
-        )
+        # 다른 계획(명시 연결 포함)이 이미 가져간 활동은 제외
+        claimed = {canonical_activity_id(conn, r[0]) for r in conn.execute(
+            "SELECT matched_activity_id FROM planned_workouts WHERE id != ? AND date = ? "
+            "AND matched_activity_id IS NOT NULL", (plan_id, plan_date))}
+        claimed |= {canonical_activity_id(conn, r[0]) for r in conn.execute(
+            "SELECT activity_id FROM session_outcomes WHERE planned_id != ? AND date = ? "
+            "AND activity_id IS NOT NULL", (plan_id, plan_date))}
+        best = pick_activity(plan_dist, day_acts, claimed)
 
         if best:
+            done = is_done(plan_dist, best[2])
             conn.execute(
-                "UPDATE planned_workouts SET completed=1, matched_activity_id=?, "
+                "UPDATE planned_workouts SET completed=?, matched_activity_id=?, "
                 "updated_at=datetime('now') WHERE id=? AND completed != 1",
-                (best[0], plan_id),
+                (1 if done else 0, best[0], plan_id),
             )
             # session_outcomes 저장
             _save_session_outcome(
@@ -153,7 +161,7 @@ def _save_session_outcome(
     )
 
     # outcome_label 분류
-    label = _classify_outcome(dist_ratio, pace_delta_pct)
+    label = classify_outcome(dist_ratio, pace_delta_pct)
 
     # 기존 레코드 있으면 업데이트, 없으면 삽입
     conn.execute(
@@ -193,127 +201,6 @@ def _save_session_outcome(
             label,
         ),
     )
-
-
-def _get_hr_zone_dist(
-    conn: sqlite3.Connection,
-    activity_id: int,
-    avg_hr: int | None,
-    plan_hr_zone: int | None,
-) -> tuple[float | None, float | None, float | None, int | None]:
-    """HR zone 분포 + hr_delta 계산.
-
-    Seiler 2010 3존 기준:
-    - Z1 (저강도): < VT1
-    - Z2 (중간): VT1~VT2
-    - Z3 (고강도): > VT2
-
-    HR zone 경계는 computed_metrics 또는 maxHR 기반 추정.
-    """
-    hr_delta = None
-    # plan HR zone → 대표 HR 역산 (zone * 10 + 기준 근사)
-    zone_hr_approx = {1: 120, 2: 140, 3: 155, 4: 168, 5: 180}
-    if plan_hr_zone and avg_hr:
-        target_hr = zone_hr_approx.get(plan_hr_zone, 140)
-        hr_delta = int(avg_hr) - target_hr
-
-    # activity_streams에서 HR 데이터 조회 (있을 경우만)
-    try:
-        rows = conn.execute(
-            "SELECT heart_rate FROM activity_streams "
-            "WHERE activity_id=? AND source='garmin' AND heart_rate IS NOT NULL",
-            (activity_id,),
-        ).fetchall()
-        if not rows:
-            return None, None, None, hr_delta
-
-        # maxHR 조회 (Zone 경계 계산용)
-        max_hr_row = conn.execute(
-            "SELECT numeric_value FROM metric_store"
-            " WHERE metric_name='maxHR' AND scope_type='daily' AND is_primary=1"
-            "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
-        ).fetchone()
-        max_hr = float(max_hr_row[0]) if max_hr_row else 185.0
-
-        # Seiler 2010: VT1 ≈ 77% HRmax, VT2 ≈ 92% HRmax
-        vt1 = max_hr * 0.77
-        vt2 = max_hr * 0.92
-
-        hrs = [r[0] for r in rows if r[0]]
-        total = len(hrs)
-        if total == 0:
-            return None, None, None, hr_delta
-
-        z1 = sum(1 for h in hrs if h < vt1) / total * 100
-        z2 = sum(1 for h in hrs if vt1 <= h < vt2) / total * 100
-        z3 = sum(1 for h in hrs if h >= vt2) / total * 100
-        return round(z1, 1), round(z2, 1), round(z3, 1), hr_delta
-    except Exception:
-        return None, None, None, hr_delta
-
-
-def _get_condition_snapshot(
-    conn: sqlite3.Connection,
-    target_date: str,
-) -> tuple[float | None, float | None, float | None, int | None, float | None]:
-    """훈련 당일 컨디션 스냅샷 (CRS, TSB, HRV, BB, ACWR)."""
-    # CRS
-    try:
-        from src.metrics.crs import evaluate as crs_eval
-        crs_result = crs_eval(conn, target_date)
-        crs = crs_result.get("crs")
-    except Exception:
-        crs = None
-
-    # TSB
-    tsb_row = conn.execute(
-        "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='tsb' AND scope_type='daily' AND is_primary=1"
-        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
-        (target_date,)
-    ).fetchone()
-    tsb = float(tsb_row[0]) if tsb_row else None
-
-    # HRV
-    hrv_row = conn.execute(
-        "SELECT hrv_last_night FROM daily_wellness WHERE date=? AND hrv_last_night IS NOT NULL "
-        "LIMIT 1", (target_date,)
-    ).fetchone()
-    hrv = float(hrv_row[0]) if hrv_row else None
-
-    # Body Battery
-    bb_row = conn.execute(
-        "SELECT body_battery_high FROM daily_wellness WHERE date=? AND body_battery_high IS NOT NULL "
-        "LIMIT 1", (target_date,)
-    ).fetchone()
-    bb = int(bb_row[0]) if bb_row else None
-
-    # ACWR
-    acwr_row = conn.execute(
-        "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='acwr' AND scope_type='daily' AND is_primary=1"
-        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
-        (target_date,)
-    ).fetchone()
-    acwr = float(acwr_row[0]) if acwr_row else None
-
-    return crs, tsb, hrv, bb, acwr
-
-
-def _classify_outcome(
-    dist_ratio: float | None,
-    pace_delta_pct: float | None,
-) -> str:
-    """outcome_label 자동 분류."""
-    if dist_ratio is None:
-        return "modified"
-    if dist_ratio < 0.50:
-        return "skipped"
-    if dist_ratio > 1.10 or (pace_delta_pct is not None and pace_delta_pct < -5.0):
-        return "overperformed"
-    if dist_ratio < 0.85 or (pace_delta_pct is not None and pace_delta_pct > 5.0):
-        return "underperformed"
-    return "on_target"
 
 
 def save_skipped_outcome(

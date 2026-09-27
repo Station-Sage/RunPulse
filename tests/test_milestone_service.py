@@ -297,3 +297,35 @@ class TestGetRecentMilestones:
 
         result = get_recent_milestones(conn)
         assert len(result) == 1
+
+
+def test_present_merges_prediction_recompute_and_humanizes():
+    from src.services.milestone_present import present_milestones
+    rows = [
+        {"id": 4, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_marathon_sec 재계산",
+         "detail": "1.0→2.0 적용", "metric_name": "race_pred_marathon_sec", "old_value": 16737.0, "new_value": 13491.0},
+        {"id": 3, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_5k_sec 재계산",
+         "detail": "1.0→2.0 적용", "metric_name": "race_pred_5k_sec", "old_value": 1983.0, "new_value": 1330.0},
+        {"id": 2, "type": "metric_recompute", "date": "2026-09-26", "title": "ctl 재계산",
+         "detail": "1.0→2.0 적용", "metric_name": "ctl", "old_value": 60.0, "new_value": 74.2},
+        {"id": 1, "type": "pb", "date": "2026-05-09", "title": "10K PB", "detail": None, "metric_name": None},
+    ]
+    out = present_milestones(rows)
+    assert [r["title"] for r in out] == ["예측 기록 재계산", "체력(CTL) 재계산", "10K PB"]
+    assert out[0]["detail"] == "5K 33:03→22:10 · 마라톤 4:38:57→3:44:51 · 알고리즘 1.0→2.0"
+    assert out[1]["detail"] == "60.0→74.2 · 알고리즘 1.0→2.0"
+
+
+def test_shadow_provider_recompute_creates_no_milestone():
+    import sqlite3
+    from src.db_setup import create_tables
+    from src.utils.db_helpers import upsert_metric
+    c = sqlite3.connect(":memory:")
+    create_tables(c)
+    for prov in ("runpulse:shadow_r4", "runpulse:ref_garmin"):
+        upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", prov, numeric_value=16000.0, algorithm_version="1.0")
+        upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", prov, numeric_value=13000.0, algorithm_version="2.0")
+    assert c.execute("SELECT COUNT(*) FROM milestones").fetchone()[0] == 0
+    upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", "runpulse:formula_v1", numeric_value=16000.0, algorithm_version="1.0")
+    upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", "runpulse:formula_v1", numeric_value=13000.0, algorithm_version="2.0")
+    assert c.execute("SELECT COUNT(*) FROM milestones").fetchone()[0] == 1

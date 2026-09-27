@@ -540,6 +540,11 @@ export interface PlannedWorkout {
 	source: string | null;
 	ai_model: string | null;
 	interval_prescription: string | null;
+	matched_activity_id?: number | null;
+	outcome_label?: string | null;
+	dist_ratio?: number | null;
+	actual_dist_km?: number | null;
+	superseded?: boolean; // 같은 날 다른 계획(Garmin 저장 워크아웃 등)이 실제 활동을 가져감
 }
 
 export interface PlanGoal {
@@ -556,6 +561,7 @@ export interface ActivePlan {
 	goal: PlanGoal;
 	week_index: number;
 	workouts: PlannedWorkout[];
+	next_session?: PlannedWorkout | null; // 오늘 이후 첫 미완료 세션(다음 주 포함)
 	ctl_current: number | null;
 	compliance_pct: number | null;
 }
@@ -764,7 +770,7 @@ export interface ProviderStatusResponse {
 }
 
 // ── ProviderCoverage (N2 — /api/v1/library/providers/coverage) ───────────────
-export interface ProviderCoverageItem { provider: ProviderKey; counts: number[]; total: number }
+export interface ProviderCoverageItem { provider: ProviderKey; counts: number[]; total: number; sync_enabled?: boolean }
 export interface ProviderCoverage { months: string[]; providers: ProviderCoverageItem[] }
 
 // ── Archive (Library 홈 — /api/v1/library/archive) ───────────────────────────

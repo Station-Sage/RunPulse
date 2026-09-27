@@ -19,13 +19,17 @@
 
 	const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
+	// 서버가 준 다음 세션(다음 주 포함) 우선, 없으면 이번 주 목록에서 찾는다
 	const nextSession = $derived(
-		plan?.workouts
-			.filter((w) => w.date >= today && w.workout_type !== 'rest')
-			.sort((a, b) => a.date.localeCompare(b.date))[0] ?? null
+		plan?.next_session ??
+			plan?.workouts
+				.filter((w) => w.date >= today && w.workout_type !== 'rest' && !w.superseded && !w.completed)
+				.sort((a, b) => a.date.localeCompare(b.date))[0] ??
+			null
 	);
 
-	const weekWork = $derived(plan?.workouts.filter((w) => w.workout_type !== 'rest') ?? []);
+	// 대체된 추천안(같은 날 다른 계획이 실제 활동을 가져감)은 세지 않는다
+	const weekWork = $derived(plan?.workouts.filter((w) => w.workout_type !== 'rest' && !w.superseded) ?? []);
 	const weekDone = $derived(weekWork.filter((w) => w.completed === 1).length);
 
 	function dayText(date: string): string {

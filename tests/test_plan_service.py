@@ -188,3 +188,22 @@ def test_save_session_note_upsert(conn):
     plan_service.save_session_note(conn, "2026-09-23", "두 번째")
     note = plan_service.get_session_note(conn, "2026-09-23")
     assert note == "두 번째"
+
+
+def test_active_plan_next_session_skips_done_and_superseded(tmp_path):
+    from datetime import date, timedelta
+    import sqlite3
+    from src.db_setup import create_tables
+    from src.services import plan_service
+    c = sqlite3.connect(str(tmp_path / "r.db"))
+    create_tables(c)
+    today = date.today()
+    nxt = today + timedelta(days=1)
+    c.execute("INSERT INTO goals (name, distance_km, status) VALUES ('g', 10, 'active')")
+    for d, t, done in ((today, "long", 0), (nxt, "easy", 0)):
+        c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed) VALUES (?,?,?,?,?)",
+                  (d.isoformat(), t, 10.0, "planner", done))
+    c.execute("INSERT INTO planned_workouts (date, workout_type, source, source_system, completed, matched_activity_id) "
+              "VALUES (?, 'easy', 'garmin', 'garmin', 1, 99)", (today.isoformat(),))
+    plan = plan_service.get_active_plan(c)
+    assert plan["next_session"]["date"] == nxt.isoformat()      # 오늘 추천안은 대체됨 → 내일

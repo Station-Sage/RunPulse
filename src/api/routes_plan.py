@@ -75,13 +75,14 @@ def get_plan_templates():
     if distance_km is None:
         return api_error("BAD_REQUEST", "distance_km 필수", 400)
     target_time_sec = request.args.get("target_time_sec", type=int)
+    race_date = request.args.get("race_date") or None
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     conn = sqlite3.connect(str(dpath))
     try:
         templates = plan_template_service.get_static_plan_templates(
-            conn, distance_km, target_time_sec
+            conn, distance_km, target_time_sec, race_date
         )
     finally:
         conn.close()
@@ -140,6 +141,7 @@ def create_plan():
         goal_id = plan_template_service.create_plan_from_template(
             conn, float(distance_km), race_date, int(weeks), target_time_sec, name
         )
+        plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
     finally:
         conn.close()
-    return api_ok({"goal_id": goal_id})
+    return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks})

@@ -59,10 +59,10 @@ def _week_index_absolute(conn: sqlite3.Connection, goal: dict) -> int:
 
 
 def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
-    """완료된 / 비-휴식 워크아웃 비율 (이 목표의 플랜 기간 내)."""
+    """이행률 = 완료 / 비-휴식 워크아웃 (이 목표의 플랜 기간 중 이미 지난 날 + 오늘 완료분). 미래 계획은 분모에 넣지 않는다."""
     start, end = _plan_date_range(goal)
-    clauses = ["source='planner'"]
-    params: list[str] = []
+    clauses = ["source='planner'", "(date < ? OR completed = 1)"]
+    params: list[str] = [date.today().isoformat()]
     if start:
         clauses.append("date >= ?")
         params.append(start)
@@ -80,11 +80,23 @@ def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
     return round(completed / len(non_rest) * 100, 1)
 
 
+def _next_session(conn: sqlite3.Connection) -> dict | None:
+    """오늘 이후 첫 미완료 세션(이번 주 → 다음 주). 휴식·완료·대체된 추천안은 건너뛴다."""
+    ws = _current_week_start()
+    today = date.today().isoformat()
+    for w in (ws, ws + timedelta(weeks=1)):
+        for row in get_planned_workouts(conn, week_start=w):
+            if (row["date"] >= today and row["workout_type"] != "rest"
+                    and not row["completed"] and not row["superseded"]):
+                return row
+    return None
+
+
 def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dict | None:
     """활성 플랜 조합 반환.
 
     Returns:
-        {goal, week_index, workouts, ctl_current, compliance_pct} or None.
+        {goal, week_index, workouts, ctl_current, compliance_pct, next_session} or None.
     """
     goal = get_goal(conn, goal_id) if goal_id is not None else get_active_goal(conn)
     if goal is None:
@@ -109,6 +121,7 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
         "workouts": workouts,
         "ctl_current": ctl_current,
         "compliance_pct": compliance_pct,
+        "next_session": _next_session(conn),
     }
 
 

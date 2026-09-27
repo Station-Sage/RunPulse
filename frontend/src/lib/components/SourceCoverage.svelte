@@ -14,7 +14,9 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	{#each coverage.providers as item (item.provider)}
+	<!-- 동기화를 끈 소스는 과거 데이터가 없으면 숨기고, 있으면 "동기화 안 함"으로 표시(끊김 경고 없음) -->
+	{#each coverage.providers.filter((p) => p.sync_enabled !== false || p.total > 0) as item (item.provider)}
+		{@const off = item.sync_enabled === false}
 		{@const levels = coverageLevels(item.counts)}
 		{@const note = coverageNote(item.counts)}
 		{@const statusItem = statusFor(item.provider)}
@@ -29,6 +31,7 @@
 				>
 					{providerLabel(item.provider as ProviderKey)}
 				</span>
+				{#if off}<span class="text-[10px] text-fg-muted">동기화 안 함</span>{/if}
 				<span class="ml-auto text-xs text-fg-muted">활동 {item.total}건</span>
 			</div>
 
@@ -59,7 +62,9 @@
 				</div>
 
 				<!-- 안내 문구 -->
-				{#if note}
+				{#if off}
+					<!-- 동기화 안 함: 끊김·연동 경고 생략 -->
+				{:else if note}
 					<p class="text-[11px] text-semantic-amber">{note}</p>
 				{:else if hint}
 					<p class="text-[11px] text-semantic-amber">{hint}</p>

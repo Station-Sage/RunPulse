@@ -80,3 +80,25 @@ def test_empty_db_returns_all_zeros(tmp_path):
         assert p["total"] == 0
         assert all(c == 0 for c in p["counts"])
     conn.close()
+
+
+def test_enabled_sources_default_and_filter():
+    from src.utils.config import enabled_sources
+    assert enabled_sources({}) == ["garmin", "strava", "intervals", "runalyze"]
+    assert enabled_sources({"sync_sources": ["intervals", "garmin"]}) == ["garmin", "intervals"]
+
+
+def test_coverage_marks_disabled_sources(coverage_conn):
+    r = get_provider_coverage(coverage_conn, start_month="2023-10", today="2024-01-15",
+                              config={"sync_sources": ["garmin", "intervals"]})
+    on = {p["provider"]: p["sync_enabled"] for p in r["providers"]}
+    assert on == {"garmin": True, "strava": False, "intervals": True, "runalyze": False}
+
+
+def test_start_basic_sync_skips_disabled(monkeypatch):
+    from src.web import bg_sync
+    started = []
+    monkeypatch.setattr(bg_sync, "start_job", lambda svc, *a, **k: started.append(svc) or f"job-{svc}")
+    out = bg_sync.start_basic_sync(["garmin", "strava", "runalyze"], {}, "2026-09-27",
+                                   {"sync_sources": ["garmin"]}, "u")
+    assert started == ["garmin"] and list(out) == ["garmin"]

@@ -39,6 +39,7 @@ from .planner_config import (
 )
 from .planner_rules import (
     RATIONALE,
+    apply_race_week,
     assign_long_run_slot,
     assign_qday_slots,
     description,
@@ -50,6 +51,8 @@ from .planner_rules import (
     weekly_volume_km,
     weeks_to_race,
 )
+
+from .planned_query import get_planned_workouts  # noqa: F401  (하위 호환 re-export)
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +104,7 @@ def generate_weekly_plan(
     shape_pct = get_marathon_shape_pct(conn)
 
     # 훈련 단계
-    weeks_left = weeks_to_race(race_date)
+    weeks_left = weeks_to_race(race_date, as_of=week_start)   # 미래 주차는 그 주 기준 단계
     week_idx = get_week_index(week_start, conn)
     phase = training_phase(weeks_left, week_idx)
 
@@ -199,7 +202,7 @@ def generate_weekly_plan(
             "_vdot": vdot,
         })
 
-    return plan
+    return apply_race_week(plan, race_date, goal_distance)
 
 
 # ── 저장/조회/설정 ─────────────────────────────────────────────────────────
@@ -240,32 +243,6 @@ def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict]) -> int:
 
     conn.commit()
     return count
-
-
-def get_planned_workouts(
-    conn: sqlite3.Connection,
-    week_start: date | None = None,
-) -> list[dict]:
-    """이번 주 (또는 지정 주) planned_workouts 조회."""
-    if week_start is None:
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=7)
-
-    rows = conn.execute(
-        """SELECT id, date, workout_type, distance_km, target_pace_min, target_pace_max,
-                  target_hr_zone, description, rationale, completed, source, ai_model,
-                  interval_prescription
-           FROM planned_workouts
-           WHERE date >= ? AND date < ?
-           ORDER BY date""",
-        (week_start.isoformat(), week_end.isoformat()),
-    ).fetchall()
-
-    keys = ["id", "date", "workout_type", "distance_km", "target_pace_min",
-            "target_pace_max", "target_hr_zone", "description", "rationale",
-            "completed", "source", "ai_model", "interval_prescription"]
-    return [dict(zip(keys, r)) for r in rows]
 
 
 def upsert_user_training_prefs(

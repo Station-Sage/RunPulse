@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 from src.db_setup import get_db_path, init_db
-from src.utils.config import load_config
+from src.utils.config import enabled_sources, load_config
 from src.utils.sync_state import set_current_user
 
 log = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def main() -> None:
     config = load_config(user_id=args.user)
     init_db(args.user)
     db_path = get_db_path(args.user)
-    sources = _ALL_SOURCES if args.source == "all" else [args.source]
+    sources = enabled_sources(config) if args.source == "all" else [args.source]
 
     total_activities = 0
     total_wellness = 0

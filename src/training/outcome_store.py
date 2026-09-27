@@ -8,7 +8,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from src.training.outcome_v2 import compare
+from src.training.matcher_context import canonical_activity_id
+from src.training.outcome_v2 import compare, compare_continuous, is_continuous
 
 
 def _classifier_bouts(conn, activity_id: int) -> list[dict] | None:
@@ -36,10 +37,18 @@ def update_outcome_v2(conn: sqlite3.Connection, planned_id: int, activity_id: in
             conn.execute("UPDATE session_outcomes SET source_compliance=?, source_system='garmin' WHERE planned_id=?",
                          (src_c, planned_id))
         return None
-    bouts = _classifier_bouts(conn, activity_id)
-    if bouts is None:
-        return None
-    res = compare(json.loads(p[0]), bouts)
+    structure = json.loads(p[0])
+    if is_continuous(structure):
+        a = conn.execute("SELECT duration_sec, distance_m FROM v_canonical_activities WHERE id=?",
+                         (canonical_activity_id(conn, activity_id),)).fetchone()
+        res = compare_continuous(structure, a[0], a[1]) if a else None
+        if res is None:
+            return None
+    else:
+        bouts = _classifier_bouts(conn, activity_id)
+        if bouts is None:
+            return None
+        res = compare(structure, bouts)
     conn.execute("UPDATE session_outcomes SET compliance_pct=?, segment_match_json=?, source_compliance=?, "
                  "source_system=?, outcome_label=? WHERE planned_id=?",
                  (res["compliance_pct"], json.dumps(res, ensure_ascii=False), src_c, p[1], res["label"], planned_id))

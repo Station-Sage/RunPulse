@@ -230,7 +230,9 @@ def upsert_metric(
     scope_id_str = str(scope_id)
 
     # allow-list 메트릭만 재계산 감지 (전체에 걸면 sync 성능 저하)
-    if metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None:
+    # 섀도(검토 중 알고리즘)·참조(Garmin) provider 의 재계산은 사용자 마일스톤이 아니다
+    if (metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None
+            and ":shadow" not in provider and ":ref_" not in provider):
         existing = conn.execute(
             "SELECT numeric_value, algorithm_version FROM metric_store "
             "WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?",

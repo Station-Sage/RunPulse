@@ -21,7 +21,8 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 
 	const templates = await getPlanTemplates(
 		distanceKm,
-		targetTimeSec ?? undefined
+		targetTimeSec ?? undefined,
+		raceDateParam ?? undefined
 	);
 
 	return {

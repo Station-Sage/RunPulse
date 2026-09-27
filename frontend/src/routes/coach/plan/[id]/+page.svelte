@@ -4,6 +4,7 @@
 	import { formatDuration, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import type { PlannedWorkout } from '$lib/types';
 
 	let { data }: { data: PlanDetailPageData } = $props();
 
@@ -26,6 +27,18 @@
 	function dayLabel(dateStr: string): string {
 		const d = new Date(dateStr + 'T00:00:00');
 		return DAY_KO[d.getDay() === 0 ? 6 : d.getDay() - 1];
+	}
+
+	const TODAY = new Date().toISOString().slice(0, 10);
+
+	// 계획 행 상태: 완료 ✓ / 대체됨 / 부분 이행 / 미이행(지난 날) — 없으면 예정
+	function statusOf(w: PlannedWorkout): { text: string; cls: string } | null {
+		if (w.completed) return { text: '✓', cls: 'text-semantic-green' };
+		if (w.superseded) return { text: '대체됨', cls: 'text-fg-muted' };
+		if (w.matched_activity_id && w.dist_ratio != null)
+			return { text: `부분 ${Math.round(w.dist_ratio * 100)}%`, cls: 'text-semantic-amber' };
+		if (w.date < TODAY && w.workout_type !== 'rest') return { text: '미이행', cls: 'text-fg-muted' };
+		return null;
 	}
 
 	function paceRange(min: number | null, max: number | null): string {
@@ -87,7 +100,7 @@
 
 			{#if data.plan.compliance_pct != null}
 				<p class="mt-2 text-xs text-fg-muted">
-					달성률 <span class="font-medium text-fg-secondary">{data.plan.compliance_pct}%</span>
+					지금까지 이행률 <span class="font-medium text-fg-secondary">{data.plan.compliance_pct}%</span>
 				</p>
 			{/if}
 		</div>
@@ -114,7 +127,8 @@
 			{:else}
 				<ul class="divide-y divide-border-subtle">
 					{#each data.plan.workouts as w (w.id)}
-						<li>
+						{@const st = statusOf(w)}
+						<li class:opacity-50={w.superseded}>
 							<a
 								href="{base}/coach/plan/{data.plan.goal.id}/session/{w.date}"
 								class="flex items-start gap-3 py-2.5 hover:bg-surface-2"
@@ -140,8 +154,8 @@
 										<p class="mt-0.5 text-xs text-fg-secondary">{w.description}</p>
 									{/if}
 								</div>
-								{#if w.completed}
-									<span class="shrink-0 text-xs text-semantic-green">✓</span>
+								{#if st}
+									<span class="shrink-0 text-xs {st.cls}">{st.text}</span>
 								{/if}
 							</a>
 						</li>

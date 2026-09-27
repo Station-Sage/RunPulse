@@ -68,15 +68,19 @@
 
 - functions: get_metric_breakdown
 
-### `milestone_service.py` (263줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
+### `milestone_present.py` (49줄) — 마일스톤 표시용 가공(순수) — 재계산 항목의 내부 메트릭 키를 사람이 읽는 이름으로 바꾸고, 같은 날 예측 재계산은 한 줄로 묶는다.
+
+- functions: present_milestones
+
+### `milestone_service.py` (264줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
-### `plan_service.py` (186줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (199줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (178줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (188줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - functions: get_static_plan_templates, create_plan_from_template
 
@@ -96,7 +100,7 @@
 
 - functions: get_provider_comparison_period
 
-### `provider_status_service.py` (78줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
+### `provider_status_service.py` (83줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
 - functions: get_provider_status, get_provider_coverage
 
@@ -112,7 +116,7 @@
 
 - functions: confirm, remove, get, candidates
 
-### `today_service.py` (311줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (313줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -673,7 +677,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (494줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (498줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
@@ -1008,33 +1012,49 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
-### `matcher.py` (368줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `match_select.py` (43줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
+
+- functions: pick_activity, is_done, classify_outcome
+
+### `matcher.py` (255줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
-### `outcome_store.py` (46줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
+### `matcher_context.py` (118줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
+
+- functions: canonical_activity_id
+
+### `outcome_store.py` (55줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
 
 - functions: update_outcome_v2
 
-### `outcome_v2.py` (81줄) — 계획↔실행 세그먼트 비교(순수, P7-PRED-42) — 계획 단계 구조(structure_json)와 실행 bout(classifier v2 json)를 맞춰 이행률 산출.
+### `outcome_v2.py` (104줄) — 계획↔실행 세그먼트 비교(순수, P7-PRED-42) — 계획 단계 구조(structure_json)와 실행 bout(classifier v2 json)를 맞춰 이행률 산출.
 
-- functions: expand_work, compare, prediction_note
+- functions: expand_work, is_continuous, compare_continuous, compare, prediction_note
 
-### `planner.py` (304줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planned_query.py` (38줄) — 주간 planned_workouts 조회(결과·대체됨 플래그 포함) — planner.py 에서 분리.
 
-- functions: generate_weekly_plan, save_weekly_plan, get_planned_workouts, upsert_user_training_prefs
+- functions: get_planned_workouts
+
+### `planner.py` (281줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+
+- functions: generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs
 
 ### `planner_config.py` (177줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
 - functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
-### `planner_rules.py` (278줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
+### `planner_rules.py` (312줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
 
-- functions: weeks_to_race, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
+- functions: weeks_to_race, plan_weeks_until_race, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
 ### `readiness.py` (458줄) — 훈련 준비도 분석 + 목표 달성 가능성 예측.
 
 - functions: vdot_to_time, get_taper_weeks, get_recommended_weeks, recommend_weekly_km, get_phase_for_week, analyze_readiness
+
+### `rematch.py` (85줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
+
+- functions: rematch, replan_future, main
 
 ### `replanner.py` (286줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
 
@@ -1065,9 +1085,9 @@
 
 - functions: copy_to_clipboard, handle_clipboard_option
 
-### `config.py` (166줄) — 설정 파일(config.json) 로드/저장 유틸리티.
+### `config.py` (180줄) — 설정 파일(config.json) 로드/저장 유틸리티.
 
-- functions: get_config_path, load_config, save_config, update_service_config, redact_config_for_display
+- functions: get_config_path, enabled_sources, load_config, save_config, update_service_config, redact_config_for_display
 
 ### `credential_store.py` (165줄) — 자격증명 암호화/복호화 유틸리티 (Fernet AES-128-CBC + HMAC-SHA256).
 
@@ -1077,7 +1097,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (750줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (752줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -1692,12 +1712,13 @@
 - class **TestGetMetricBreakdownInputs**: test_rri_inputs_include_cirs, test_metric_without_calculator_has_empty_inputs
 - class **TestGetMetricBreakdownStructure**: test_top_level_keys, test_utrs_children
 
-### `test_milestone_service.py` (299줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
+### `test_milestone_service.py` (331줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
 
 - class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
 - class **TestPB**: test_pb_created_when_faster, test_no_pb_when_slower, test_no_pb_for_first_race, test_pb_no_duplicate, test_pb_race_keyword_detection
 - class **TestMetricRecompute**: test_recompute_milestone_created_on_version_change, test_no_recompute_same_version, test_no_recompute_for_non_allowlist_metric
 - class **TestGetRecentMilestones**: test_returns_empty_when_no_milestones, test_returns_ordered_by_date_desc, test_limit_respected, test_date_range_filters, test_no_date_range_returns_all
+- functions: test_present_merges_prediction_recompute_and_humanizes, test_shadow_provider_recompute_creates_no_milestone
 
 ### `test_mock_calcs.py` (127줄) — MockCalcContext를 활용한 calculator 단위 테스트 (보강 #5).
 
@@ -1771,9 +1792,13 @@
 - class **FakeClient**: get_workout_by_id
 - functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_real_shapes, test_ingest_intervals_links_paired_activity, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
-### `test_plan_service.py` (190줄) — tests/test_plan_service.py — plan_service 단위 테스트.
+### `test_plan_match_rules.py` (147줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
 
-- functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert
+- functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week
+
+### `test_plan_service.py` (209줄) — tests/test_plan_service.py — plan_service 단위 테스트.
+
+- functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
 
 ### `test_plan_template_service.py` (145줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
 
@@ -1831,9 +1856,9 @@
 
 - functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
-### `test_provider_status_service.py` (82줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
+### `test_provider_status_service.py` (104줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
 
-- functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros
+- functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled
 
 ### `test_race_effort.py` (39줄) — P7-PRED-22(r4 보강): 거리·지속시간별 전력 판정 — 이 러너 대회 값으로 검증(REVIEW-09 §10).
 
@@ -2144,7 +2169,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 430개 파일
+총 436개 파일
 
 ## docstring 누락
 

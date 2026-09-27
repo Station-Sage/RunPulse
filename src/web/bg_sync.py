@@ -452,8 +452,12 @@ def start_basic_sync(
     user_id: str = "default",
 ) -> dict[str, str]:
     """여러 서비스 기본 동기화를 백그라운드로 시작. {service: job_id} 반환."""
+    from src.utils.config import enabled_sources
+    on = enabled_sources(config)
     result = {}
     for service in sources:
+        if service not in on:
+            continue          # 동기화 끈 소스(config.sync_sources)
         from_date = from_dates.get(service, to_date)
         job_id = start_job(service, from_date, to_date, config, user_id)
         if job_id:

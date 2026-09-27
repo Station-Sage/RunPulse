@@ -40,6 +40,20 @@ def _default_config() -> dict:
     }
 
 
+ALL_SOURCES = ("garmin", "strava", "intervals", "runalyze")
+
+
+def enabled_sources(config: dict) -> list[str]:
+    """자동·일괄 동기화 대상 소스. config["sync_sources"] 목록이 있으면 그것만, 없으면 전부(하위 호환).
+
+    끈 소스의 과거 데이터는 그대로 남는다. 단일 소스를 직접 지정한 수동 동기화는 이 목록과 무관하다.
+    """
+    listed = config.get("sync_sources")
+    if not isinstance(listed, list):
+        return list(ALL_SOURCES)
+    return [s for s in ALL_SOURCES if s in listed]
+
+
 def _resolve_path(path: Path | str | None) -> Path:
     """설정 파일 경로 결정. None이면 기본 경로 반환."""
     if path is None:

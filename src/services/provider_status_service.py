@@ -44,10 +44,12 @@ def get_provider_status(conn: sqlite3.Connection) -> list[dict]:
     ]
 
 
-def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10", today: str | None = None) -> dict:
+def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10", today: str | None = None,
+                          config: dict | None = None) -> dict:
     """소스별 월 단위 활동 커버리지 — Library 홈 타임라인용.
 
-    반환: {"months": ["2023-10", ..., 이번 달], "providers": [{"provider", "counts": [월별 활동 수], "total"}]}
+    반환: {"months": ["2023-10", ..., 이번 달], "providers": [{"provider", "counts": [월별 활동 수], "total", "sync_enabled"}]}
+    sync_enabled 는 config.sync_sources 기준(config 없으면 전부 True) — 끈 소스는 화면에서 끊김 경고를 내지 않는다.
     months는 start_month부터 today가 속한 달까지(오름차순). 활동이 없어도 4개 provider 모두 포함(counts 전부 0).
     """
     from datetime import date as _date
@@ -61,6 +63,8 @@ def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10"
         if m == 13:
             y, m = y + 1, 1
     idx = {mo: i for i, mo in enumerate(months)}
+    from src.utils.config import enabled_sources
+    on = enabled_sources(config or {})
     by_src: dict[str, list[int]] = {p: [0] * len(months) for p in _PROVIDERS}
     try:
         rows = conn.execute(
@@ -74,5 +78,6 @@ def get_provider_coverage(conn: sqlite3.Connection, start_month: str = "2023-10"
             by_src[src][idx[mo]] = n
     return {
         "months": months,
-        "providers": [{"provider": p, "counts": by_src[p], "total": sum(by_src[p])} for p in _PROVIDERS],
+        "providers": [{"provider": p, "counts": by_src[p], "total": sum(by_src[p]), "sync_enabled": p in on}
+                      for p in _PROVIDERS],
     }

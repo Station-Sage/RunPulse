@@ -25,6 +25,29 @@ def expand_work(steps: list[dict]) -> list[dict]:
     return out
 
 
+def is_continuous(structure: dict) -> bool:
+    """단일 work 단계(반복·휴식 없음) — 이지·롱런 같은 연속 러닝 계획. 세트 비교 대상이 아니다."""
+    steps = structure.get("steps", [])
+    return len(expand_work(steps)) == 1 and not any(s.get("type") in ("repeat", "rest") for s in steps)
+
+
+def compare_continuous(structure: dict, act_dur_s: float | None, act_dist_m: float | None) -> dict | None:
+    """연속 러닝 계획 이행률 — 계획 시간(없으면 거리) 대비 실행 비율. 비교 기준이 없으면 None."""
+    steps = structure.get("steps", [])
+    p_dur = sum(s.get("dur_s") or 0 for s in steps)
+    p_dist = sum(s.get("dist_m") or 0 for s in steps)
+    if p_dur and act_dur_s:
+        ratio = act_dur_s / p_dur
+    elif p_dist and act_dist_m:
+        ratio = act_dist_m / p_dist
+    else:
+        return None
+    label = "skipped" if ratio < 0.5 else "underperformed" if ratio < 0.85 else "overperformed" if ratio > 1.1 else "on_target"
+    return {"sets_planned": 1, "sets_done": 1 if ratio >= 0.5 else 0, "volume_ratio": round(ratio, 2),
+            "target_hit_pct": None, "compliance_pct": round(100 * min(ratio, 1.0), 1), "label": label,
+            "continuous": True, "pairs": []}
+
+
 def _in_target(step: dict, bout: dict) -> bool | None:
     if step.get("speed_lo") and step.get("speed_hi"):
         v = bout["speed_ms"]

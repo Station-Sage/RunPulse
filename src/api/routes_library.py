@@ -214,7 +214,8 @@ def get_library_providers_coverage():
 
     conn = sqlite3.connect(str(dpath))
     try:
-        result = provider_status_service.get_provider_coverage(conn)
+        from src.utils.config import load_config
+        result = provider_status_service.get_provider_coverage(conn, config=load_config())
     finally:
         conn.close()
 
