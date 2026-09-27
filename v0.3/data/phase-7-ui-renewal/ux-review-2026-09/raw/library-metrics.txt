@@ -1,0 +1,106 @@
+RunPulse
+☰
+←
+메트릭 브라우저
+2026-09-27
+전체
+심박
+피트니스·피로
+달리기 효율
+레이스 준비도
+능력치
+수면·회복
+컨디셔닝
+환경
+모든 Provider
+Garmin
+RunPulse
+핵심 지표
+마라톤 예측 기록
+3:40:23
+RunPulse
+하프마라톤 예측 기록
+1:41:12
+RunPulse
+10K 예측 기록
+45:39
+RunPulse
+5K 예측 기록
+22:01
+RunPulse
+체력 (CTL)
+73.9
+RunPulse
+폼 (TSB)
+-14.7
+RunPulse
+● 피로 누적
+훈련 준비도 (UTRS)
+59.2
+RunPulse
+● 보통
+부상 위험도 (CIRS)
+36.6
+RunPulse
+● 보통
+심박 (7) — 세부 지표
+피트니스·피로
+피로 (ATL)
+88.6
+RunPulse
+CTL 증가율
+2.8
+RunPulse
+급성/만성 부하비 (ACWR)
+1.2
+RunPulse
+● 적정
+Load Spike Index
+1.2
+RunPulse
+훈련 단조로움
+1.1
+RunPulse
+훈련 스트레인
+427
+RunPulse
+달리기 내성 지수 (RTTI)
+130%
+RunPulse
+훈련 반응(역치 이상 주간 분·추세)
+19.8min/wk
+RunPulse
+달리기 효율
+러닝 효율 (REC)
+78.4
+RunPulse
+레이스 준비도
+예측 결합 VDOT(15℃ 등가)
+44.5
+RunPulse
+능력치
+Critical Power (CP)
+206W
+RunPulse
+eFTP (역치 페이스)
+4:38/km
+RunPulse
+Marathon Shape (훈련 완성도)
+30.3%
+RunPulse
+SAPI (계절 성과 비교)
+105
+RunPulse
+RRI (레이스 준비도)
+60.4
+RunPulse
+수면·회복 (11) — 세부 지표
+컨디셔닝
+복합 준비도 (CRS)
+64.2
+RunPulse
+● 좋음
+환경 (1) — 세부 지표
+Today
+Library
+Coach

@@ -1,0 +1,5864 @@
+[
+ {
+  "key": "v1-root",
+  "path": "/",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/dashboard",
+  "tLoad": 2157,
+  "tIdle": 2657,
+  "ttfb": 890,
+  "domContentLoaded": 2120,
+  "load": 2141,
+  "fcp": 2172,
+  "lcp": 2172,
+  "docH": 1967,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.106.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-root-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "✨ AI 분석 업데이트",
+    "href": "/dashboard?refresh_ai=1"
+   },
+   {
+    "text": "⚙️",
+    "href": "/settings"
+   },
+   {
+    "text": "",
+    "href": "/guide#UTRS"
+   },
+   {
+    "text": "",
+    "href": "/guide#CIRS"
+   },
+   {
+    "text": "",
+    "href": "/guide#ACWR"
+   },
+   {
+    "text": "",
+    "href": "/guide#RTTI"
+   },
+   {
+    "text": "",
+    "href": "/guide#VDOT"
+   },
+   {
+    "text": "",
+    "href": "/guide#ACWR"
+   },
+   {
+    "text": "",
+    "href": "/guide#LSI"
+   },
+   {
+    "text": "",
+    "href": "/guide#Strain"
+   },
+   {
+    "text": "",
+    "href": "/guide#TSB"
+   },
+   {
+    "text": "러닝 2026-09-27 · 9.3 km · 55m 18s · 5'56\"/km · ♥ 137 bpm ›",
+    "href": "/activity/deep?id=17414"
+   },
+   {
+    "text": "기초체력 양성 2026-09-26 · 7.1 km · 40m 22s · 5'41\"/km · ♥ 137 bpm",
+    "href": "/activity/deep?id=17323"
+   },
+   {
+    "text": "기초체력 양성 2026-09-25 · 8.3 km · 44m 1s · 5'17\"/km · ♥ 150 bpm ",
+    "href": "/activity/deep?id=17035"
+   },
+   {
+    "text": "기초체력 양성 2026-09-24 · 10.0 km · 57m 38s · 5'44\"/km · ♥ 143 bp",
+    "href": "/activity/deep?id=15574"
+   },
+   {
+    "text": "장거리 달리기 2026-09-20 · 24.2 km · 2h 19m 17s · 5'45\"/km · ♥ 142",
+    "href": "/activity/deep?id=15302"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "🔄 동기화",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "대시보드 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-activities",
+  "path": "/activities",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/activities",
+  "tLoad": 1151,
+  "tIdle": 1502,
+  "ttfb": 18,
+  "domContentLoaded": 1140,
+  "load": 1140,
+  "fcp": 880,
+  "lcp": 880,
+  "docH": 1331,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.98.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request hea",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.99.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request hea",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-activities-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "초기화",
+    "href": "/activities"
+   },
+   {
+    "text": "날짜 ▼",
+    "href": "/activities?from=2026-06-29&sort=date&dir=asc"
+   },
+   {
+    "text": "거리",
+    "href": "/activities?from=2026-06-29&sort=distance&dir=desc"
+   },
+   {
+    "text": "시간",
+    "href": "/activities?from=2026-06-29&sort=duration&dir=desc"
+   },
+   {
+    "text": "페이스",
+    "href": "/activities?from=2026-06-29&sort=pace&dir=desc"
+   },
+   {
+    "text": "심박",
+    "href": "/activities?from=2026-06-29&sort=hr&dir=desc"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=17414"
+   },
+   {
+    "text": "기초체력 양성",
+    "href": "/activity/deep?id=17323"
+   },
+   {
+    "text": "기초체력 양성",
+    "href": "/activity/deep?id=17035"
+   },
+   {
+    "text": "기초체력 양성",
+    "href": "/activity/deep?id=15574"
+   },
+   {
+    "text": "장거리 달리기",
+    "href": "/activity/deep?id=15302"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=14973"
+   },
+   {
+    "text": "2-1. 크루즈 (1k, 2분, 4회)",
+    "href": "/activity/deep?id=14597"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=14223"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=14004"
+   },
+   {
+    "text": "트레일 러닝",
+    "href": "/activity/deep?id=13647"
+   },
+   {
+    "text": "Forest run",
+    "href": "/activity/deep?id=13420"
+   },
+   {
+    "text": "1. 1000m * 2, 템포 감각",
+    "href": "/activity/deep?id=13126"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=12712"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=12339"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=12038"
+   },
+   {
+    "text": "2. 크루즈 (3×2k, 1k)",
+    "href": "/activity/deep?id=11957"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=11672"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=10849"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=10340"
+   },
+   {
+    "text": "러닝",
+    "href": "/activity/deep?id=10081"
+   },
+   {
+    "text": "다음 »",
+    "href": "/activities?from=2026-06-29&page=2"
+   },
+   {
+    "text": "🔄 동기화 관리 →",
+    "href": "/sync"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "조회",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "🔍 상세 필터",
+    "disabled": false
+   },
+   {
+    "tag": "select",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "2026-06-29",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "동일 활동 묶기 ▾",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "📊 운동 분류 기준",
+    "disabled": false
+   }
+  ],
+  "pseudo": [
+   "th:날짜 ▼",
+   "th:거리",
+   "th:시간",
+   "th:페이스",
+   "th:심박",
+   "span:G\ni\n▶",
+   "span:G",
+   "svg:",
+   "path:",
+   "text:",
+   "span:i",
+   "svg:",
+   "circle:",
+   "text:",
+   "span:▶",
+   "span:G\ni\n▶",
+   "span:G",
+   "svg:",
+   "path:",
+   "text:",
+   "span:i",
+   "svg:",
+   "circle:",
+   "text:",
+   "span:▶",
+   "span:G\ni\n▶",
+   "span:G",
+   "svg:",
+   "path:",
+   "text:"
+  ],
+  "svgs": 0,
+  "title": "활동 목록 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-report",
+  "path": "/report",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/report",
+  "tLoad": 2487,
+  "tIdle": 2487,
+  "ttfb": 1283,
+  "domContentLoaded": 2482,
+  "load": 2482,
+  "fcp": 1996,
+  "lcp": 1996,
+  "docH": 4316,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "v1-report-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🏁 레이스 예측",
+    "href": "/race"
+   },
+   {
+    "text": "💚 웰니스",
+    "href": "/wellness"
+   },
+   {
+    "text": "오늘",
+    "href": "/report?period=today"
+   },
+   {
+    "text": "7일",
+    "href": "/report?period=week"
+   },
+   {
+    "text": "30일",
+    "href": "/report?period=month"
+   },
+   {
+    "text": "3개월",
+    "href": "/report?period=quarter"
+   },
+   {
+    "text": "올해",
+    "href": "/report?period=year"
+   },
+   {
+    "text": "최근 1년",
+    "href": "/report?period=1year"
+   },
+   {
+    "text": "기간 선택",
+    "href": "#"
+   },
+   {
+    "text": "",
+    "href": "/guide#TEROI"
+   },
+   {
+    "text": "",
+    "href": "/guide#SAPI"
+   },
+   {
+    "text": "",
+    "href": "/guide#VDOT"
+   },
+   {
+    "text": "",
+    "href": "/guide#DI"
+   },
+   {
+    "text": "AI 코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "📋 요약 복사",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "레포트 — 30일 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-training",
+  "path": "/training",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/training",
+  "tLoad": 1909,
+  "tIdle": 2398,
+  "ttfb": 914,
+  "domContentLoaded": 1901,
+  "load": 1901,
+  "fcp": 1804,
+  "lcp": 1804,
+  "docH": 1450,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.49.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request hea",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.107.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.103.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-training-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "📋 전체 일정",
+    "href": "/training/fullplan"
+   },
+   {
+    "text": "✏️ 목표 수정",
+    "href": "/training/wizard?mode=edit&goal_id=1"
+   },
+   {
+    "text": "",
+    "href": "/training/wizard?mode=edit&goal_id=1"
+   },
+   {
+    "text": "",
+    "href": "/training/wizard"
+   },
+   {
+    "text": "←",
+    "href": "/training?week=-1"
+   },
+   {
+    "text": "→",
+    "href": "/training?week=1"
+   },
+   {
+    "text": "주간",
+    "href": "/training?week=0"
+   },
+   {
+    "text": "월간",
+    "href": "/training?view=month&week=0"
+   },
+   {
+    "text": "전체",
+    "href": "/training/fullplan"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "📤 내보내기 ▾",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "🗓️ 재생성",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✓ 완료",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕ 건너뜀",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "🎯 목표 관리",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✅ 완료했어요",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "❌ 건너뜀",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✓",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✓",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✓",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✓",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "↩️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "↩️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "↩️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "⚙️",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "✕",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "⚙️ 훈련 환경 설정 휴식일: 없음 · 롱런: 자동 · 인터벌: 1000m",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "2",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "4",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "8",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "16",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "32",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "64",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "2",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "4",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "8",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "16",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "32",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "64",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "select",
+    "text": "1000",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "0",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   }
+  ],
+  "pseudo": [
+   "div:",
+   "div:",
+   "div:",
+   "span:",
+   "span:",
+   "div:",
+   "div:",
+   "div:",
+   "span:",
+   "div:",
+   "span:",
+   "span:",
+   "div:🟢 이지런\n11.5km\n6'05\"~6'45\"\n✓\n⚙️\n✕",
+   "div:🟢 이지런",
+   "div:11.5km",
+   "div:6'05\"~6'45\"",
+   "div:✓\n⚙️\n✕",
+   "form:✓",
+   "form:✕",
+   "div:🔴 인터벌\n5.7km\n4'25\"~4'40\"\n✓\n⚙️\n✕",
+   "div:🔴 인터벌",
+   "div:5.7km",
+   "div:4'25\"~4'40\"",
+   "div:✓\n⚙️\n✕",
+   "form:✓",
+   "form:✕",
+   "div:🔵 회복조깅\n6.9km\n7'05\"~7'45\"\n✓\n⚙️\n✕",
+   "div:🔵 회복조깅",
+   "div:6.9km",
+   "div:7'05\"~7'45\""
+  ],
+  "svgs": 0,
+  "title": "훈련 계획 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-ai-coach",
+  "path": "/ai-coach",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/ai-coach",
+  "tLoad": 1910,
+  "tIdle": 2501,
+  "ttfb": 995,
+  "domContentLoaded": 1897,
+  "load": 1897,
+  "fcp": 1868,
+  "lcp": 1868,
+  "docH": 1720,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.107.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.111.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-ai-coach-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "",
+    "href": "https://www.genspark.ai/agents?type=ai_chat"
+   },
+   {
+    "text": "",
+    "href": "https://chatgpt.com"
+   },
+   {
+    "text": "",
+    "href": "https://claude.ai"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "⛶ 전체화면",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "➤",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "오늘 훈련 상세 분석",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이번 주 훈련 리뷰",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "다음 주 훈련 계획 만들어줘",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "컨디션/회복 조언",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "레이스 준비도 / 예상 기록",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "🔗 외부 AI 연동 (프롬프트 복사 → 붙여넣기)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "🖥️ 고급 연동 (ngrok / MCP)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "AI 코칭 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-sync",
+  "path": "/sync",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/sync",
+  "tLoad": 1832,
+  "tIdle": 2370,
+  "ttfb": 784,
+  "domContentLoaded": 1731,
+  "load": 1826,
+  "fcp": 1904,
+  "lcp": 1904,
+  "docH": 1807,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.111.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-sync-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "연결",
+    "href": "/connect/runalyze"
+   },
+   {
+    "text": "재연동",
+    "href": "/connect/garmin"
+   },
+   {
+    "text": "재연동",
+    "href": "/connect/strava"
+   },
+   {
+    "text": "재연동",
+    "href": "/connect/intervals"
+   },
+   {
+    "text": "연동하기",
+    "href": "/connect/runalyze"
+   },
+   {
+    "text": "아카이브 임포트",
+    "href": "/import/strava-archive"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "기본 동기화",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "기간 동기화",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "▶ 동기화",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "1",
+    "disabled": false
+   },
+   {
+    "tag": "select",
+    "text": "1시간마다 2시간마다 4시간마다 6시간마다 12시간마다 24시간마다",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "14",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "재연동",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "연동 해제",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "재연동",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "연동 해제",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "재연동",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "연동 해제",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "연동하기",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "아카이브 임포트",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "90",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "재계산 시작",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전체 기간",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "동기화 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-settings",
+  "path": "/settings",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/settings",
+  "tLoad": 1468,
+  "tIdle": 1975,
+  "ttfb": 737,
+  "domContentLoaded": 1389,
+  "load": 1458,
+  "fcp": 1588,
+  "lcp": 1588,
+  "docH": 2367,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "v1-settings-desktop.png",
+  "links": [
+   {
+    "text": "RunPulse",
+    "href": "/"
+   },
+   {
+    "text": "🔄 동기화 탭",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 훈련 환경 설정 바로가기",
+    "href": "/training#training-prefs-details"
+   },
+   {
+    "text": "앱 비밀번호 발급",
+    "href": "https://myaccount.google.com/apppasswords"
+   },
+   {
+    "text": "앱 비밀번호",
+    "href": "https://nid.naver.com/user2/help/myInfoV2?m=viewSecurity"
+   },
+   {
+    "text": "🏠 홈",
+    "href": "/dashboard"
+   },
+   {
+    "text": "🏃 활동",
+    "href": "/activities"
+   },
+   {
+    "text": "📊 레포트",
+    "href": "/report"
+   },
+   {
+    "text": "🗓️ 훈련",
+    "href": "/training"
+   },
+   {
+    "text": "🤖 AI코치",
+    "href": "/ai-coach"
+   },
+   {
+    "text": "🔄 동기화",
+    "href": "/sync"
+   },
+   {
+    "text": "⚙️ 설정",
+    "href": "/settings"
+   },
+   {
+    "text": "🛠️ 개발자",
+    "href": "/dev"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "input",
+    "text": "189",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "45.0",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "4",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "23",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": false
+   },
+   {
+    "tag": "select",
+    "text": "규칙 기반 (API 불필요) Google Gemini (무료) Groq (무료, Llama 3.3) Gens",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "🔧 AI 프롬프트 관리",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "연결 테스트",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "90",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "재계산 시작",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전체 기간",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "서비스 연동 설정 — RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "v2-root",
+  "path": "/v2/",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/today",
+  "tLoad": 131,
+  "tIdle": 1699,
+  "ttfb": 12,
+  "domContentLoaded": 116,
+  "load": 127,
+  "fcp": 1240,
+  "lcp": 1240,
+  "docH": 1262,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/today",
+    "status": 200,
+    "ms": 106,
+    "bytes": 4809
+   },
+   {
+    "url": "http://localhost/api/v1/today/narrative",
+    "status": 200,
+    "ms": 555,
+    "bytes": 1423
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 572,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 585,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/ctl/trend?period=3m",
+    "status": 200,
+    "ms": 591,
+    "bytes": 3350
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/atl/trend?period=3m",
+    "status": 200,
+    "ms": 634,
+    "bytes": 3359
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/tsb/trend?period=3m",
+    "status": 200,
+    "ms": 638,
+    "bytes": 3372
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 667,
+    "bytes": 10678
+   },
+   {
+    "url": "http://localhost/api/v1/prediction/profile",
+    "status": 200,
+    "ms": 15,
+    "bytes": 1167
+   },
+   {
+    "url": "http://localhost/api/v1/races/candidates",
+    "status": 200,
+    "ms": 15,
+    "bytes": 2018
+   }
+  ],
+  "errors": [],
+  "shot": "v2-root-desktop.png",
+  "links": [
+   {
+    "text": "Coach에게 더 묻기 →",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "세션 상세 →",
+    "href": "/v2/coach/plan/1/session/2026-09-28"
+   },
+   {
+    "text": "계획 수립·수정은 Coach에서 →",
+    "href": "/v2/coach/plan/1"
+   },
+   {
+    "text": "Library에서 전체 탐색 →",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "summary",
+    "text": "자체 추정 근거 · 불확실성",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "검토 중 알고리즘 2건 (기본값 아님)",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "예측 추이 · 근거 · 레이스 아침 폼 보기 ▾",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 TSB -15 (피로 누적)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 UTRS 59 (보통)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "오늘 컨디션 입력 →",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "59 UTRS 보통 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "37 CIRS 주의 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "-15 TSB 주의 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 CTL 73.9 (월초 68.3, +5.6)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이번 달 이야기 →",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전체 마일스톤 →",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이번 달 전체 이야기 보기 →",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 4,
+  "title": "Today · RunPulse",
+  "chartProbe": [
+   {
+    "w": 470,
+    "h": 72,
+    "label": "",
+    "hoverChangesDom": false
+   },
+   {
+    "w": 470,
+    "h": 88,
+    "label": "",
+    "hoverChangesDom": false
+   },
+   {
+    "w": 478,
+    "h": 110,
+    "label": "",
+    "hoverChangesDom": true
+   },
+   {
+    "w": 478,
+    "h": 84,
+    "label": "",
+    "hoverChangesDom": false
+   }
+  ]
+ },
+ {
+  "key": "today",
+  "path": "/v2/today",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/today",
+  "tLoad": 111,
+  "tIdle": 1712,
+  "ttfb": 8,
+  "domContentLoaded": 102,
+  "load": 103,
+  "fcp": 1252,
+  "lcp": 1252,
+  "docH": 1262,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/today",
+    "status": 200,
+    "ms": 85,
+    "bytes": 4809
+   },
+   {
+    "url": "http://localhost/api/v1/today/narrative",
+    "status": 200,
+    "ms": 513,
+    "bytes": 1423
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 525,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 530,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/ctl/trend?period=3m",
+    "status": 200,
+    "ms": 544,
+    "bytes": 3350
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/atl/trend?period=3m",
+    "status": 200,
+    "ms": 548,
+    "bytes": 3359
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/tsb/trend?period=3m",
+    "status": 200,
+    "ms": 559,
+    "bytes": 3372
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 581,
+    "bytes": 10678
+   },
+   {
+    "url": "http://localhost/api/v1/prediction/profile",
+    "status": 200,
+    "ms": 11,
+    "bytes": 1167
+   },
+   {
+    "url": "http://localhost/api/v1/races/candidates",
+    "status": 200,
+    "ms": 14,
+    "bytes": 2018
+   }
+  ],
+  "errors": [],
+  "shot": "today-desktop.png",
+  "links": [
+   {
+    "text": "Coach에게 더 묻기 →",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "세션 상세 →",
+    "href": "/v2/coach/plan/1/session/2026-09-28"
+   },
+   {
+    "text": "계획 수립·수정은 Coach에서 →",
+    "href": "/v2/coach/plan/1"
+   },
+   {
+    "text": "Library에서 전체 탐색 →",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "summary",
+    "text": "자체 추정 근거 · 불확실성",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "검토 중 알고리즘 2건 (기본값 아님)",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "예측 추이 · 근거 · 레이스 아침 폼 보기 ▾",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 TSB -15 (피로 누적)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 UTRS 59 (보통)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "오늘 컨디션 입력 →",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "59 UTRS 보통 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "37 CIRS 주의 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "-15 TSB 주의 RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 CTL 73.9 (월초 68.3, +5.6)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이번 달 이야기 →",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전체 마일스톤 →",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이번 달 전체 이야기 보기 →",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 4,
+  "title": "Today · RunPulse",
+  "chartProbe": [
+   {
+    "w": 470,
+    "h": 72,
+    "label": "",
+    "hoverChangesDom": false
+   },
+   {
+    "w": 470,
+    "h": 88,
+    "label": "",
+    "hoverChangesDom": false
+   },
+   {
+    "w": 478,
+    "h": 110,
+    "label": "",
+    "hoverChangesDom": true
+   },
+   {
+    "w": 478,
+    "h": 84,
+    "label": "",
+    "hoverChangesDom": false
+   }
+  ]
+ },
+ {
+  "key": "library",
+  "path": "/v2/library",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library",
+  "tLoad": 127,
+  "tIdle": 1846,
+  "ttfb": 9,
+  "domContentLoaded": 122,
+  "load": 122,
+  "fcp": 1668,
+  "lcp": 1668,
+  "docH": 1514,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities?per_page=5",
+    "status": 200,
+    "ms": 44,
+    "bytes": 8947
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics",
+    "status": 200,
+    "ms": 854,
+    "bytes": 13435
+   },
+   {
+    "url": "http://localhost/api/v1/library/providers/status",
+    "status": 200,
+    "ms": 1042,
+    "bytes": 404
+   },
+   {
+    "url": "http://localhost/api/v1/library/archive",
+    "status": 200,
+    "ms": 1082,
+    "bytes": 7306
+   },
+   {
+    "url": "http://localhost/api/v1/library/providers/coverage",
+    "status": 200,
+    "ms": 1099,
+    "bytes": 1014
+   }
+  ],
+  "errors": [],
+  "shot": "library-desktop.png",
+  "links": [
+   {
+    "text": "활동",
+    "href": "/v2/library"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/metrics"
+   },
+   {
+    "text": "웰니스",
+    "href": "/v2/library/wellness"
+   },
+   {
+    "text": "Provider 비교",
+    "href": "/v2/library/providers"
+   },
+   {
+    "text": "가장 멀리 달린 날 · Gyeongju Marathon 42.4km (2025-10-18) →",
+    "href": "/v2/library/910"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2025-10-01&to=2025-10-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2025-11-01&to=2025-11-30"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2025-12-01&to=2025-12-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-01-01&to=2026-01-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-02-01&to=2026-02-28"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-03-01&to=2026-03-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-04-01&to=2026-04-30"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-05-01&to=2026-05-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-06-01&to=2026-06-30"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-07-01&to=2026-07-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-08-01&to=2026-08-31"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/activities?from=2026-09-01&to=2026-09-30"
+   },
+   {
+    "text": "1K 4:09 2026-05-06· 구간 기록",
+    "href": "/v2/library/434"
+   },
+   {
+    "text": "1마일 6:45 2026-05-06· 구간 기록",
+    "href": "/v2/library/434"
+   },
+   {
+    "text": "5K 21:56 2026-05-09· 구간 기록",
+    "href": "/v2/library/503"
+   },
+   {
+    "text": "10K 44:10 2026-05-09· 대회",
+    "href": "/v2/library/1010"
+   },
+   {
+    "text": "하프 1:42:38 2026-03-22· 대회",
+    "href": "/v2/library/492"
+   },
+   {
+    "text": "풀 3:41:09 2025-10-18· 대회",
+    "href": "/v2/library/910"
+   },
+   {
+    "text": "전체 보기 →",
+    "href": "/v2/library/activities"
+   },
+   {
+    "text": "2026-09-27 러닝 9.3km 55:18 5:57/km Garmin ›",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "2026-09-26 기초체력 양성 7.1km 40:22 5:42/km Garmin ›",
+    "href": "/v2/library/17323"
+   },
+   {
+    "text": "2026-09-25 기초체력 양성 8.3km 44:01 5:18/km Garmin ›",
+    "href": "/v2/library/17035"
+   },
+   {
+    "text": "2026-09-24 기초체력 양성 10.0km 57:38 5:45/km Garmin ›",
+    "href": "/v2/library/15574"
+   },
+   {
+    "text": "2026-09-20 장거리 달리기 24.2km 2:19:17 5:45/km Garmin ›",
+    "href": "/v2/library/15302"
+   },
+   {
+    "text": "활동 전체 보기 →",
+    "href": "/v2/library/activities"
+   },
+   {
+    "text": "심박",
+    "href": "/v2/library/metrics?category=hr"
+   },
+   {
+    "text": "피트니스·피로",
+    "href": "/v2/library/metrics?category=load"
+   },
+   {
+    "text": "달리기 효율",
+    "href": "/v2/library/metrics?category=efficiency"
+   },
+   {
+    "text": "레이스 준비도",
+    "href": "/v2/library/metrics?category=prediction"
+   },
+   {
+    "text": "능력치",
+    "href": "/v2/library/metrics?category=capacity"
+   },
+   {
+    "text": "수면·회복",
+    "href": "/v2/library/metrics?category=sleep"
+   },
+   {
+    "text": "컨디셔닝",
+    "href": "/v2/library/metrics?category=readiness"
+   },
+   {
+    "text": "환경",
+    "href": "/v2/library/metrics?category=weather"
+   },
+   {
+    "text": "전체 →",
+    "href": "/v2/library/metrics"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 1,
+  "title": "Library · RunPulse",
+  "chartProbe": [
+   {
+    "w": 1040,
+    "h": 167,
+    "label": "2025-09-22 · 4.2km",
+    "hoverChangesDom": false
+   }
+  ]
+ },
+ {
+  "key": "library-activities",
+  "path": "/v2/library/activities",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/activities",
+  "tLoad": 116,
+  "tIdle": 830,
+  "ttfb": 9,
+  "domContentLoaded": 106,
+  "load": 106,
+  "fcp": 636,
+  "lcp": 636,
+  "docH": 1878,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities?per_page=20",
+    "status": 200,
+    "ms": 98,
+    "bytes": 35347
+   }
+  ],
+  "errors": [],
+  "shot": "library-activities-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library"
+   },
+   {
+    "text": "러닝 9/27 (일) 5:57/km HR 137 9.3km 55:18",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "기초체력 양성 9/26 (토) 5:42/km HR 137 7.1km 40:22",
+    "href": "/v2/library/17323"
+   },
+   {
+    "text": "기초체력 양성 9/25 (금) 5:18/km HR 150 8.3km 44:01",
+    "href": "/v2/library/17035"
+   },
+   {
+    "text": "기초체력 양성 9/24 (목) 5:45/km HR 143 10.0km 57:38",
+    "href": "/v2/library/15574"
+   },
+   {
+    "text": "장거리 달리기 9/20 (일) 5:45/km HR 142 24.2km 2:19:17",
+    "href": "/v2/library/15302"
+   },
+   {
+    "text": "러닝 9/19 (토) 6:03/km HR 150 9.5km 57:13",
+    "href": "/v2/library/14973"
+   },
+   {
+    "text": "2-1. 크루즈 (1k, 2분, 4회) 9/17 (목) 5:35/km HR 153 8.5km 47:43",
+    "href": "/v2/library/14597"
+   },
+   {
+    "text": "러닝 9/16 (수) 5:28/km HR 143 6.8km 36:59",
+    "href": "/v2/library/14223"
+   },
+   {
+    "text": "러닝 9/15 (화) 6:07/km HR 122 3.0km 18:26",
+    "href": "/v2/library/14004"
+   },
+   {
+    "text": "트레일 러닝 9/13 (일) 11:17/km HR 135 ⚠ 평소보다 많이 느림 12.0km 2:15:55",
+    "href": "/v2/library/13647"
+   },
+   {
+    "text": "Forest run 9/12 (토) 4:41/km HR 163 10.0km 46:58",
+    "href": "/v2/library/13420"
+   },
+   {
+    "text": "1. 1000m * 2, 템포 감각 9/10 (목) 5:26/km HR 149 6.7km 36:09",
+    "href": "/v2/library/13126"
+   },
+   {
+    "text": "러닝 9/8 (화) 6:08/km HR 139 5.2km 32:12",
+    "href": "/v2/library/12712"
+   },
+   {
+    "text": "러닝 9/6 (일) 5:44/km HR 150 23.1km 2:12:44",
+    "href": "/v2/library/12339"
+   },
+   {
+    "text": "러닝 9/5 (토) 5:47/km HR 147 12.0km 1:09:36",
+    "href": "/v2/library/12038"
+   },
+   {
+    "text": "2. 크루즈 (3×2k, 1k) 9/4 (금) 5:25/km HR 158 10.2km 55:14",
+    "href": "/v2/library/11957"
+   },
+   {
+    "text": "러닝 9/3 (목) 5:55/km HR 136 5.0km 29:36",
+    "href": "/v2/library/11672"
+   },
+   {
+    "text": "러닝 8/30 (일) 6:26/km HR 147 20.2km 2:09:52",
+    "href": "/v2/library/10849"
+   },
+   {
+    "text": "러닝 8/28 (금) 6:19/km HR 137 6.0km 37:51",
+    "href": "/v2/library/10340"
+   },
+   {
+    "text": "러닝 8/27 (목) 6:15/km HR 135 9.0km 56:17",
+    "href": "/v2/library/10081"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "전체",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "러닝",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "수영",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "근력",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전 거리",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "5km+",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "10km+",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "하프+",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "풀",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "활동 검색",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "더 불러오기",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "활동 목록 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "activity",
+  "path": "/v2/library/17414",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414",
+  "tLoad": 121,
+  "tIdle": 881,
+  "ttfb": 13,
+  "domContentLoaded": 110,
+  "load": 117,
+  "fcp": 812,
+  "lcp": 812,
+  "docH": 2033,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 51,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/activities"
+   },
+   {
+    "text": "스트림",
+    "href": "/v2/library/17414/streams"
+   },
+   {
+    "text": "랩",
+    "href": "/v2/library/17414/laps"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/17414/metrics"
+   },
+   {
+    "text": "소스 비교",
+    "href": "/v2/library/17414/providers"
+   },
+   {
+    "text": "전체 메트릭 보기 →",
+    "href": "/v2/library/17414/metrics"
+   },
+   {
+    "text": "스트림 탭에서 전체 보기 →",
+    "href": "/v2/library/17414/streams"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "페이스",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "심박",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "훈련 부하 (소스별) 110score Garmin",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "유산소 훈련 효과 3.2 Garmin ● 큰 개선",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "활동별 VO2Max 추정치 53ml/kg/min Garmin",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "정규화 파워 (NP) 236W Garmin",
+    "disabled": false
+   },
+   {
+    "tag": "div",
+    "text": "Relative Effort (심박존 기반) 302AU RunPulse",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 2,
+  "title": "러닝 · RunPulse",
+  "chartProbe": [
+   {
+    "w": 1014,
+    "h": 280,
+    "label": "활동 경로 지도(타일 없음)",
+    "hoverChangesDom": false
+   },
+   {
+    "w": 1022,
+    "h": 80,
+    "label": "",
+    "hoverChangesDom": false
+   }
+  ]
+ },
+ {
+  "key": "activity-laps",
+  "path": "/v2/library/17414/laps",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/laps",
+  "tLoad": 153,
+  "tIdle": 828,
+  "ttfb": 12,
+  "domContentLoaded": 150,
+  "load": 150,
+  "fcp": 560,
+  "lcp": 560,
+  "docH": 843,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 55,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-laps-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "요약",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "스트림",
+    "href": "/v2/library/17414/streams"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/17414/metrics"
+   },
+   {
+    "text": "소스 비교",
+    "href": "/v2/library/17414/providers"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "랩 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "activity-metrics",
+  "path": "/v2/library/17414/metrics",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/metrics",
+  "tLoad": 141,
+  "tIdle": 829,
+  "ttfb": 14,
+  "domContentLoaded": 135,
+  "load": 135,
+  "fcp": 612,
+  "lcp": 612,
+  "docH": 1531,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 48,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-metrics-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "요약",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "스트림",
+    "href": "/v2/library/17414/streams"
+   },
+   {
+    "text": "랩",
+    "href": "/v2/library/17414/laps"
+   },
+   {
+    "text": "소스 비교",
+    "href": "/v2/library/17414/providers"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "파워 (1)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "정규화 파워 (NP) 236W Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "부하 (7)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "유산소 훈련 효과 3.2 Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "무산소 훈련 효과 0 Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "훈련 부하 (소스별) 110score Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "TRIMP (Banister) 97.3score RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "Relative Effort (심박존 기반) 302AU RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "HR Stress Score 53.8score RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "WLEI (날씨 가중 노력 지수) 99.7AU RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "효율성 (2)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse 유산소 분리 4.4% RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse 효율 계수 (EF) 20.4 RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "체력/역량 (5)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "Grade Adjusted Pace 5:56/km Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "활동별 VO2Max 추정치 53ml/kg/min Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse GAP (경사 보정 페이스) 6:02/km RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse VDOT (Daniels) 32.7 RunPulse · formula_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "Field-Equivalent Adjusted Running Pace 5:57/km RunPulse · fo",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "운동량 (2)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "소모 칼로리 (활동) 553kcal Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "활동 중 걸음수 9590count Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "신체 (1)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "활동 중 Body Battery 변화 -14 Garmin ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "메타/분류 (1)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse 워크아웃 분류 easy RunPulse · rule_v1 ›",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "미매핑 (개발용) (1)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "splits_metric — Garmin ›",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "활동 메트릭 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "activity-providers",
+  "path": "/v2/library/17414/providers",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/providers",
+  "tLoad": 142,
+  "tIdle": 760,
+  "ttfb": 10,
+  "domContentLoaded": 137,
+  "load": 137,
+  "fcp": 472,
+  "lcp": 472,
+  "docH": 1770,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414/providers",
+    "status": 200,
+    "ms": 10,
+    "bytes": 14833
+   }
+  ],
+  "errors": [],
+  "shot": "activity-providers-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "요약",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "스트림",
+    "href": "/v2/library/17414/streams"
+   },
+   {
+    "text": "랩",
+    "href": "/v2/library/17414/laps"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/17414/metrics"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "소스 비교 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "activity-streams",
+  "path": "/v2/library/17414/streams",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/streams",
+  "tLoad": 130,
+  "tIdle": 832,
+  "ttfb": 9,
+  "domContentLoaded": 109,
+  "load": 122,
+  "fcp": 612,
+  "lcp": 612,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414/streams",
+    "status": 200,
+    "ms": 45,
+    "bytes": 630855
+   },
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 107,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-streams-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "요약",
+    "href": "/v2/library/17414"
+   },
+   {
+    "text": "랩",
+    "href": "/v2/library/17414/laps"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/17414/metrics"
+   },
+   {
+    "text": "소스 비교",
+    "href": "/v2/library/17414/providers"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "input",
+    "text": "on",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "on",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "on",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "on",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "on",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "스트림 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "library-metrics",
+  "path": "/v2/library/metrics",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/metrics",
+  "tLoad": 176,
+  "tIdle": 1565,
+  "ttfb": 7,
+  "domContentLoaded": 152,
+  "load": 160,
+  "fcp": 1404,
+  "lcp": 1404,
+  "docH": 1699,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/metrics",
+    "status": 200,
+    "ms": 738,
+    "bytes": 13435
+   }
+  ],
+  "errors": [],
+  "shot": "library-metrics-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library"
+   },
+   {
+    "text": "마라톤 예측 기록 3:40:23 RunPulse",
+    "href": "/v2/library/metrics/race_pred_marathon_sec"
+   },
+   {
+    "text": "하프마라톤 예측 기록 1:41:12 RunPulse",
+    "href": "/v2/library/metrics/race_pred_half_sec"
+   },
+   {
+    "text": "10K 예측 기록 45:39 RunPulse",
+    "href": "/v2/library/metrics/race_pred_10k_sec"
+   },
+   {
+    "text": "5K 예측 기록 22:01 RunPulse",
+    "href": "/v2/library/metrics/race_pred_5k_sec"
+   },
+   {
+    "text": "체력 (CTL) 73.9 RunPulse",
+    "href": "/v2/library/metrics/ctl"
+   },
+   {
+    "text": "폼 (TSB) -14.7 RunPulse ● 피로 누적",
+    "href": "/v2/library/metrics/tsb"
+   },
+   {
+    "text": "훈련 준비도 (UTRS) 59.2 RunPulse ● 보통",
+    "href": "/v2/library/metrics/utrs"
+   },
+   {
+    "text": "부상 위험도 (CIRS) 36.6 RunPulse ● 보통",
+    "href": "/v2/library/metrics/cirs"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hrv_5min_high"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hrv_baseline_low"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hrv_baseline_balanced_low"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hrv_baseline_balanced_upper"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hr_profile"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/hrmax_self"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/lthr_self"
+   },
+   {
+    "text": "피로 (ATL) 88.6 RunPulse",
+    "href": "/v2/library/metrics/atl"
+   },
+   {
+    "text": "CTL 증가율 2.8 RunPulse",
+    "href": "/v2/library/metrics/ramp_rate"
+   },
+   {
+    "text": "급성/만성 부하비 (ACWR) 1.2 RunPulse ● 적정",
+    "href": "/v2/library/metrics/acwr"
+   },
+   {
+    "text": "Load Spike Index 1.2 RunPulse",
+    "href": "/v2/library/metrics/lsi"
+   },
+   {
+    "text": "훈련 단조로움 1.1 RunPulse",
+    "href": "/v2/library/metrics/monotony"
+   },
+   {
+    "text": "훈련 스트레인 427 RunPulse",
+    "href": "/v2/library/metrics/training_strain"
+   },
+   {
+    "text": "달리기 내성 지수 (RTTI) 130% RunPulse",
+    "href": "/v2/library/metrics/rtti"
+   },
+   {
+    "text": "훈련 반응(역치 이상 주간 분·추세) 19.8min/wk RunPulse",
+    "href": "/v2/library/metrics/training_response"
+   },
+   {
+    "text": "러닝 효율 (REC) 78.4 RunPulse",
+    "href": "/v2/library/metrics/rec"
+   },
+   {
+    "text": "예측 결합 VDOT(15℃ 등가) 44.5 RunPulse",
+    "href": "/v2/library/metrics/race_pred_vdot"
+   },
+   {
+    "text": "Critical Power (CP) 206W RunPulse",
+    "href": "/v2/library/metrics/critical_power"
+   },
+   {
+    "text": "eFTP (역치 페이스) 4:38/km RunPulse",
+    "href": "/v2/library/metrics/eftp"
+   },
+   {
+    "text": "Marathon Shape (훈련 완성도) 30.3% RunPulse",
+    "href": "/v2/library/metrics/marathon_shape"
+   },
+   {
+    "text": "SAPI (계절 성과 비교) 105 RunPulse",
+    "href": "/v2/library/metrics/sapi"
+   },
+   {
+    "text": "RRI (레이스 준비도) 60.4 RunPulse",
+    "href": "/v2/library/metrics/rri"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_deep_sec"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_light_sec"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_rem_sec"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_awake_sec"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/avg_spo2"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/min_spo2"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/avg_respiration_sleep"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/min_respiration_sleep"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_avg_hr"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/sleep_body_battery_change"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/skin_temp_deviation"
+   },
+   {
+    "text": "복합 준비도 (CRS) 64.2 RunPulse ● 좋음",
+    "href": "/v2/library/metrics/crs"
+   },
+   {
+    "text": "",
+    "href": "/v2/library/metrics/heat_model"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "전체",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "심박",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "피트니스·피로",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "달리기 효율",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "레이스 준비도",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "능력치",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "수면·회복",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "컨디셔닝",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "환경",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "모든 Provider",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "Garmin",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "RunPulse",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "심박 (7) — 세부 지표",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "수면·회복 (11) — 세부 지표",
+    "disabled": false
+   },
+   {
+    "tag": "summary",
+    "text": "환경 (1) — 세부 지표",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "메트릭 브라우저 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "metric-detail",
+  "path": "/v2/library/metrics/utrs",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/metrics/utrs",
+  "tLoad": 148,
+  "tIdle": 739,
+  "ttfb": 8,
+  "domContentLoaded": 142,
+  "load": 143,
+  "fcp": 308,
+  "lcp": 308,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/metrics/utrs/trend?period=3m",
+    "status": 200,
+    "ms": 11,
+    "bytes": 3363
+   }
+  ],
+  "errors": [],
+  "shot": "metric-detail-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library/metrics"
+   },
+   {
+    "text": "Provider 비교",
+    "href": "/v2/library/providers"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "4주",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "3개월",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "6개월",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "1년",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "계산 분해 보기",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 1,
+  "title": "Unified Training Readiness Score · RunPulse",
+  "chartProbe": [
+   {
+    "w": 1016,
+    "h": 140,
+    "label": "",
+    "hoverChangesDom": true
+   }
+  ]
+ },
+ {
+  "key": "library-wellness",
+  "path": "/v2/library/wellness",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/wellness",
+  "tLoad": 138,
+  "tIdle": 731,
+  "ttfb": 9,
+  "domContentLoaded": 125,
+  "load": 126,
+  "fcp": 388,
+  "lcp": 388,
+  "docH": 880,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/wellness",
+    "status": 200,
+    "ms": 17,
+    "bytes": 9350
+   },
+   {
+    "url": "http://localhost/api/v1/library/wellness/trend?days=30",
+    "status": 200,
+    "ms": 25,
+    "bytes": 1379
+   }
+  ],
+  "errors": [],
+  "shot": "library-wellness-desktop.png",
+  "links": [
+   {
+    "text": "활동",
+    "href": "/v2/library"
+   },
+   {
+    "text": "메트릭",
+    "href": "/v2/library/metrics"
+   },
+   {
+    "text": "웰니스",
+    "href": "/v2/library/wellness"
+   },
+   {
+    "text": "Provider 비교",
+    "href": "/v2/library/providers"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "웰니스 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "library-providers",
+  "path": "/v2/library/providers",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/providers",
+  "tLoad": 104,
+  "tIdle": 759,
+  "ttfb": 7,
+  "domContentLoaded": 101,
+  "load": 101,
+  "fcp": 480,
+  "lcp": 480,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/providers/matrix?days=28",
+    "status": 200,
+    "ms": 27,
+    "bytes": 5369
+   }
+  ],
+  "errors": [],
+  "shot": "library-providers-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "4주",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "8주",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "12주",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "Provider 비교 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach",
+  "path": "/v2/coach",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach",
+  "tLoad": 157,
+  "tIdle": 835,
+  "ttfb": 7,
+  "domContentLoaded": 143,
+  "load": 143,
+  "fcp": 472,
+  "lcp": 472,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/threads",
+    "status": 200,
+    "ms": 19,
+    "bytes": 1853
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 34,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/today/checkin",
+    "status": 200,
+    "ms": 39,
+    "bytes": 26
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 71,
+    "bytes": 10678
+   }
+  ],
+  "errors": [],
+  "shot": "coach-desktop.png",
+  "links": [
+   {
+    "text": "오늘 훈련 조언 · 9/25 오늘의 훈련 추천 피로 회복이 필요합니다. 가벼운 조깅이나 휴식을 권장합니다. ",
+    "href": "/v2/coach/4"
+   },
+   {
+    "text": "훈련 분석 오늘의 훈련 추천 피로 회복이 필요합니다. 가벼운 조깅이나 휴식을 권장합니다. TSB +2.6 —",
+    "href": "/v2/coach/2"
+   },
+   {
+    "text": "오늘 훈련 조언 · 9/24 오늘의 훈련 추천 피로 회복이 필요합니다. 가벼운 조깅이나 휴식을 권장합니다. ",
+    "href": "/v2/coach/3"
+   },
+   {
+    "text": "안녕 레이스 준비도 설정된 목표 레이스가 없습니다. 훈련 탭에서 목표를 추가하세요. 3일 전 ›",
+    "href": "/v2/coach/1"
+   },
+   {
+    "text": "42km 목표 진행 중: 1주차 / 9주 ›",
+    "href": "/v2/coach/plan/1"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "+ 새 대화 시작",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "오늘 훈련 조언",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "레이스까지 어떻게 훈련을 쌓을까?",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "목표 기록 가능할까?",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "부상 위험 확인",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "오늘 컨디션 입력 →",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "Coach · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-thread",
+  "path": "/v2/coach/4",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/4",
+  "tLoad": 139,
+  "tIdle": 795,
+  "ttfb": 7,
+  "domContentLoaded": 134,
+  "load": 134,
+  "fcp": 500,
+  "lcp": 500,
+  "docH": 817,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/threads/4",
+    "status": 200,
+    "ms": 15,
+    "bytes": 1303
+   }
+  ],
+  "errors": [],
+  "shot": "coach-thread-desktop.png",
+  "links": [
+   {
+    "text": "←",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "📊 TSB -11 (피로 누적)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "📊 UTRS 75 (양호)",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "왜 테이퍼하면 폼이 올라가?",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "이 폼이면 이번 주엔 뭘 하면 돼?",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "남은 기간 주차별로 어떻게 준비할까?",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "전송",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "Coach 대화 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan",
+  "path": "/v2/coach/plan",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1",
+  "tLoad": 124,
+  "tIdle": 862,
+  "ttfb": 8,
+  "domContentLoaded": 117,
+  "load": 117,
+  "fcp": 524,
+  "lcp": 524,
+  "docH": 916,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 10,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/1",
+    "status": 200,
+    "ms": 7,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 18,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adaptation",
+    "status": 200,
+    "ms": 28,
+    "bytes": 203
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-desktop.png",
+  "links": [
+   {
+    "text": "← 코치",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "월 쉬운 달리기 11.5km 6:05–6:45/km 월요일 11.5km 이지런 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-21"
+   },
+   {
+    "text": "화 인터벌 5.7km 4:25–4:40/km 화요일 5.7km 인터벌 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-22"
+   },
+   {
+    "text": "수 회복 6.9km 7:05–7:45/km 수요일 6.9km 회복조깅 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-23"
+   },
+   {
+    "text": "목 인터벌 5.7km 4:25–4:40/km 목요일 5.7km 인터벌 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-24"
+   },
+   {
+    "text": "금 회복 6.9km 7:05–7:45/km 금요일 6.9km 회복조깅 ✓ 페이스 상이",
+    "href": "/v2/coach/plan/1/session/2026-09-25"
+   },
+   {
+    "text": "토 쉬운 달리기 11.5km 6:05–6:45/km 토요일 11.5km 이지런 대체됨",
+    "href": "/v2/coach/plan/1/session/2026-09-26"
+   },
+   {
+    "text": "토 장거리 장거리 달리기 ✓ 46%",
+    "href": "/v2/coach/plan/1/session/2026-09-26"
+   },
+   {
+    "text": "일 장거리 22.4km 6:01–6:41/km 일요일 22.4km 장거리런 대체됨",
+    "href": "/v2/coach/plan/1/session/2026-09-27"
+   },
+   {
+    "text": "일 쉬운 달리기 기초체력 양성 ✓",
+    "href": "/v2/coach/plan/1/session/2026-09-27"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "ACWR 1.20 ● 적정 적정 0.8~1.3 ›",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "플랜 상세 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan-detail",
+  "path": "/v2/coach/plan/1",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1",
+  "tLoad": 103,
+  "tIdle": 709,
+  "ttfb": 33,
+  "domContentLoaded": 98,
+  "load": 98,
+  "fcp": 456,
+  "lcp": 456,
+  "docH": 916,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1",
+    "status": 200,
+    "ms": 9,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 28,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adaptation",
+    "status": 200,
+    "ms": 30,
+    "bytes": 203
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-detail-desktop.png",
+  "links": [
+   {
+    "text": "← 코치",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "월 쉬운 달리기 11.5km 6:05–6:45/km 월요일 11.5km 이지런 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-21"
+   },
+   {
+    "text": "화 인터벌 5.7km 4:25–4:40/km 화요일 5.7km 인터벌 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-22"
+   },
+   {
+    "text": "수 회복 6.9km 7:05–7:45/km 수요일 6.9km 회복조깅 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-23"
+   },
+   {
+    "text": "목 인터벌 5.7km 4:25–4:40/km 목요일 5.7km 인터벌 미이행",
+    "href": "/v2/coach/plan/1/session/2026-09-24"
+   },
+   {
+    "text": "금 회복 6.9km 7:05–7:45/km 금요일 6.9km 회복조깅 ✓ 페이스 상이",
+    "href": "/v2/coach/plan/1/session/2026-09-25"
+   },
+   {
+    "text": "토 쉬운 달리기 11.5km 6:05–6:45/km 토요일 11.5km 이지런 대체됨",
+    "href": "/v2/coach/plan/1/session/2026-09-26"
+   },
+   {
+    "text": "토 장거리 장거리 달리기 ✓ 46%",
+    "href": "/v2/coach/plan/1/session/2026-09-26"
+   },
+   {
+    "text": "일 장거리 22.4km 6:01–6:41/km 일요일 22.4km 장거리런 대체됨",
+    "href": "/v2/coach/plan/1/session/2026-09-27"
+   },
+   {
+    "text": "일 쉬운 달리기 기초체력 양성 ✓",
+    "href": "/v2/coach/plan/1/session/2026-09-27"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "ACWR 1.20 ● 적정 적정 0.8~1.3 ›",
+    "disabled": false
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "플랜 상세 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan-session-done",
+  "path": "/v2/coach/plan/1/session/2026-09-26",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1/session/2026-09-26",
+  "tLoad": 119,
+  "tIdle": 713,
+  "ttfb": 11,
+  "domContentLoaded": 111,
+  "load": 112,
+  "fcp": 324,
+  "lcp": 324,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1/session/2026-09-26",
+    "status": 200,
+    "ms": 10,
+    "bytes": 753
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-session-done-desktop.png",
+  "links": [
+   {
+    "text": "코치",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "42km 목표",
+    "href": "/v2/coach/plan/1"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "세션 상세 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan-session-next",
+  "path": "/v2/coach/plan/1/session/2026-09-28",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1/session/2026-09-28",
+  "tLoad": 131,
+  "tIdle": 728,
+  "ttfb": 9,
+  "domContentLoaded": 117,
+  "load": 118,
+  "fcp": 360,
+  "lcp": 360,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1/session/2026-09-28",
+    "status": 200,
+    "ms": 17,
+    "bytes": 1270
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-session-next-desktop.png",
+  "links": [
+   {
+    "text": "코치",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "42km 목표",
+    "href": "/v2/coach/plan/1"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "저장",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "세션 상세 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan-new",
+  "path": "/v2/coach/plan/new",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/new",
+  "tLoad": 145,
+  "tIdle": 704,
+  "ttfb": 7,
+  "domContentLoaded": 141,
+  "load": 141,
+  "fcp": 344,
+  "lcp": 344,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "coach-plan-new-desktop.png",
+  "links": [
+   {
+    "text": "← 코치",
+    "href": "/v2/coach"
+   },
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   },
+   {
+    "tag": "button",
+    "text": "5km",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "10km",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "하프",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "마라톤",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "false",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "true",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "disabled": false
+   },
+   {
+    "tag": "button",
+    "text": "프로그램 생성 →",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "새 플랜 · RunPulse",
+  "chartProbe": []
+ },
+ {
+  "key": "coach-plan-compare",
+  "path": "/v2/coach/plan/compare",
+  "vp": "desktop",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/compare",
+  "tLoad": 133,
+  "tIdle": 727,
+  "ttfb": 9,
+  "domContentLoaded": 124,
+  "load": 124,
+  "fcp": 316,
+  "lcp": 316,
+  "docH": 800,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "coach-plan-compare-desktop.png",
+  "links": [
+   {
+    "text": "Today",
+    "href": "/v2/today"
+   },
+   {
+    "text": "Library",
+    "href": "/v2/library"
+   },
+   {
+    "text": "Coach",
+    "href": "/v2/coach"
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "button",
+    "text": "☰",
+    "disabled": true
+   }
+  ],
+  "pseudo": [],
+  "svgs": 0,
+  "title": "",
+  "chartProbe": []
+ },
+ {
+  "key": "v1-root",
+  "path": "/",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/dashboard",
+  "tLoad": 1939,
+  "tIdle": 2443,
+  "ttfb": 1018,
+  "domContentLoaded": 1817,
+  "load": 1933,
+  "fcp": 1792,
+  "lcp": 1792,
+  "docH": 2473,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.106.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-root-mobile.png"
+ },
+ {
+  "key": "v1-activities",
+  "path": "/activities",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/activities",
+  "tLoad": 1008,
+  "tIdle": 1507,
+  "ttfb": 17,
+  "domContentLoaded": 799,
+  "load": 1006,
+  "fcp": 676,
+  "lcp": 676,
+  "docH": 1208,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-activities-mobile.png"
+ },
+ {
+  "key": "v1-report",
+  "path": "/report",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/report",
+  "tLoad": 2216,
+  "tIdle": 2217,
+  "ttfb": 1251,
+  "domContentLoaded": 2199,
+  "load": 2199,
+  "fcp": 1960,
+  "lcp": 1960,
+  "docH": 8462,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "v1-report-mobile.png"
+ },
+ {
+  "key": "v1-training",
+  "path": "/training",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/training",
+  "tLoad": 1851,
+  "tIdle": 2351,
+  "ttfb": 912,
+  "domContentLoaded": 1709,
+  "load": 1844,
+  "fcp": 1792,
+  "lcp": 1792,
+  "docH": 1594,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.49.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request hea",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.107.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.103.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-training-mobile.png"
+ },
+ {
+  "key": "v1-ai-coach",
+  "path": "/ai-coach",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/ai-coach",
+  "tLoad": 1867,
+  "tIdle": 2366,
+  "ttfb": 993,
+  "domContentLoaded": 1858,
+  "load": 1858,
+  "fcp": 1844,
+  "lcp": 1844,
+  "docH": 1961,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.108.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.111.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.107.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-ai-coach-mobile.png"
+ },
+ {
+  "key": "v1-sync",
+  "path": "/sync",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/sync",
+  "tLoad": 1464,
+  "tIdle": 1992,
+  "ttfb": 735,
+  "domContentLoaded": 1356,
+  "load": 1458,
+  "fcp": 1448,
+  "lcp": 1448,
+  "docH": 2655,
+  "overflowX": false,
+  "apis": [],
+  "errors": [
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.116.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5CgmG0X7t.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-authent",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.119.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.115.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.111.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.118.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.117.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.112.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.114.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.113.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.110.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/notosanskr/v39/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.109.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request he",
+   "console Failed to load resource: net::ERR_FAILED",
+   "console Access to font at 'https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2' from origin 'http://localhost' has been blocked by CORS policy: Request header field cf-access-auth",
+   "console Failed to load resource: net::ERR_FAILED"
+  ],
+  "shot": "v1-sync-mobile.png"
+ },
+ {
+  "key": "v1-settings",
+  "path": "/settings",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/settings",
+  "tLoad": 990,
+  "tIdle": 1509,
+  "ttfb": 296,
+  "domContentLoaded": 987,
+  "load": 987,
+  "fcp": 1128,
+  "lcp": 1128,
+  "docH": 2652,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "v1-settings-mobile.png"
+ },
+ {
+  "key": "v2-root",
+  "path": "/v2/",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/today",
+  "tLoad": 157,
+  "tIdle": 4411,
+  "ttfb": 14,
+  "domContentLoaded": 148,
+  "load": 152,
+  "fcp": 3916,
+  "lcp": 3916,
+  "docH": 2536,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/today",
+    "status": 200,
+    "ms": 2702,
+    "bytes": 4809
+   },
+   {
+    "url": "http://localhost/api/v1/today/narrative",
+    "status": 200,
+    "ms": 3120,
+    "bytes": 1423
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 3127,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 3140,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/ctl/trend?period=3m",
+    "status": 200,
+    "ms": 3155,
+    "bytes": 3350
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/atl/trend?period=3m",
+    "status": 200,
+    "ms": 3166,
+    "bytes": 3360
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/tsb/trend?period=3m",
+    "status": 200,
+    "ms": 3181,
+    "bytes": 3371
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 3206,
+    "bytes": 10700
+   },
+   {
+    "url": "http://localhost/api/v1/prediction/profile",
+    "status": 200,
+    "ms": 12,
+    "bytes": 1167
+   },
+   {
+    "url": "http://localhost/api/v1/races/candidates",
+    "status": 200,
+    "ms": 11,
+    "bytes": 2018
+   }
+  ],
+  "errors": [],
+  "shot": "v2-root-mobile.png"
+ },
+ {
+  "key": "today",
+  "path": "/v2/today",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/today",
+  "tLoad": 102,
+  "tIdle": 1735,
+  "ttfb": 8,
+  "domContentLoaded": 98,
+  "load": 98,
+  "fcp": 1252,
+  "lcp": 1252,
+  "docH": 2536,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/today",
+    "status": 200,
+    "ms": 126,
+    "bytes": 4809
+   },
+   {
+    "url": "http://localhost/api/v1/today/narrative",
+    "status": 200,
+    "ms": 540,
+    "bytes": 1423
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 546,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 556,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/ctl/trend?period=3m",
+    "status": 200,
+    "ms": 572,
+    "bytes": 3350
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/atl/trend?period=3m",
+    "status": 200,
+    "ms": 586,
+    "bytes": 3360
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics/tsb/trend?period=3m",
+    "status": 200,
+    "ms": 590,
+    "bytes": 3371
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 615,
+    "bytes": 10700
+   },
+   {
+    "url": "http://localhost/api/v1/prediction/profile",
+    "status": 200,
+    "ms": 7,
+    "bytes": 1167
+   },
+   {
+    "url": "http://localhost/api/v1/races/candidates",
+    "status": 200,
+    "ms": 8,
+    "bytes": 2018
+   }
+  ],
+  "errors": [],
+  "shot": "today-mobile.png"
+ },
+ {
+  "key": "library",
+  "path": "/v2/library",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library",
+  "tLoad": 123,
+  "tIdle": 1824,
+  "ttfb": 7,
+  "domContentLoaded": 115,
+  "load": 118,
+  "fcp": 1440,
+  "lcp": 1440,
+  "docH": 1530,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities?per_page=5",
+    "status": 200,
+    "ms": 44,
+    "bytes": 8947
+   },
+   {
+    "url": "http://localhost/api/v1/library/metrics",
+    "status": 200,
+    "ms": 825,
+    "bytes": 13435
+   },
+   {
+    "url": "http://localhost/api/v1/library/providers/status",
+    "status": 200,
+    "ms": 1025,
+    "bytes": 404
+   },
+   {
+    "url": "http://localhost/api/v1/library/archive",
+    "status": 200,
+    "ms": 1056,
+    "bytes": 7306
+   },
+   {
+    "url": "http://localhost/api/v1/library/providers/coverage",
+    "status": 200,
+    "ms": 1066,
+    "bytes": 1014
+   }
+  ],
+  "errors": [],
+  "shot": "library-mobile.png"
+ },
+ {
+  "key": "library-activities",
+  "path": "/v2/library/activities",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/activities",
+  "tLoad": 151,
+  "tIdle": 853,
+  "ttfb": 10,
+  "domContentLoaded": 148,
+  "load": 148,
+  "fcp": 484,
+  "lcp": 484,
+  "docH": 1941,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities?per_page=20",
+    "status": 200,
+    "ms": 123,
+    "bytes": 35347
+   }
+  ],
+  "errors": [],
+  "shot": "library-activities-mobile.png"
+ },
+ {
+  "key": "activity",
+  "path": "/v2/library/17414",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414",
+  "tLoad": 129,
+  "tIdle": 859,
+  "ttfb": 10,
+  "domContentLoaded": 117,
+  "load": 117,
+  "fcp": 688,
+  "lcp": 688,
+  "docH": 2270,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 57,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-mobile.png"
+ },
+ {
+  "key": "activity-laps",
+  "path": "/v2/library/17414/laps",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/laps",
+  "tLoad": 130,
+  "tIdle": 796,
+  "ttfb": 8,
+  "domContentLoaded": 123,
+  "load": 124,
+  "fcp": 504,
+  "lcp": 504,
+  "docH": 899,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 51,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-laps-mobile.png"
+ },
+ {
+  "key": "activity-metrics",
+  "path": "/v2/library/17414/metrics",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/metrics",
+  "tLoad": 146,
+  "tIdle": 850,
+  "ttfb": 12,
+  "domContentLoaded": 132,
+  "load": 139,
+  "fcp": 520,
+  "lcp": 520,
+  "docH": 1587,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 51,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-metrics-mobile.png"
+ },
+ {
+  "key": "activity-providers",
+  "path": "/v2/library/17414/providers",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/providers",
+  "tLoad": 135,
+  "tIdle": 783,
+  "ttfb": 9,
+  "domContentLoaded": 132,
+  "load": 133,
+  "fcp": 520,
+  "lcp": 520,
+  "docH": 1826,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414/providers",
+    "status": 200,
+    "ms": 12,
+    "bytes": 14833
+   }
+  ],
+  "errors": [],
+  "shot": "activity-providers-mobile.png"
+ },
+ {
+  "key": "activity-streams",
+  "path": "/v2/library/17414/streams",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/17414/streams",
+  "tLoad": 124,
+  "tIdle": 869,
+  "ttfb": 12,
+  "domContentLoaded": 113,
+  "load": 114,
+  "fcp": 568,
+  "lcp": 568,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/activities/17414/streams",
+    "status": 200,
+    "ms": 44,
+    "bytes": 630855
+   },
+   {
+    "url": "http://localhost/api/v1/library/activities/17414",
+    "status": 200,
+    "ms": 100,
+    "bytes": 650302
+   }
+  ],
+  "errors": [],
+  "shot": "activity-streams-mobile.png"
+ },
+ {
+  "key": "library-metrics",
+  "path": "/v2/library/metrics",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/metrics",
+  "tLoad": 133,
+  "tIdle": 1546,
+  "ttfb": 8,
+  "domContentLoaded": 128,
+  "load": 129,
+  "fcp": 1312,
+  "lcp": 1312,
+  "docH": 2260,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/metrics",
+    "status": 200,
+    "ms": 799,
+    "bytes": 13435
+   }
+  ],
+  "errors": [],
+  "shot": "library-metrics-mobile.png"
+ },
+ {
+  "key": "metric-detail",
+  "path": "/v2/library/metrics/utrs",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/metrics/utrs",
+  "tLoad": 138,
+  "tIdle": 751,
+  "ttfb": 13,
+  "domContentLoaded": 135,
+  "load": 136,
+  "fcp": 380,
+  "lcp": 380,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/metrics/utrs/trend?period=3m",
+    "status": 200,
+    "ms": 15,
+    "bytes": 3364
+   }
+  ],
+  "errors": [],
+  "shot": "metric-detail-mobile.png"
+ },
+ {
+  "key": "library-wellness",
+  "path": "/v2/library/wellness",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/wellness",
+  "tLoad": 149,
+  "tIdle": 758,
+  "ttfb": 7,
+  "domContentLoaded": 143,
+  "load": 143,
+  "fcp": 560,
+  "lcp": 560,
+  "docH": 1012,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/wellness",
+    "status": 200,
+    "ms": 13,
+    "bytes": 9350
+   },
+   {
+    "url": "http://localhost/api/v1/library/wellness/trend?days=30",
+    "status": 200,
+    "ms": 29,
+    "bytes": 1379
+   }
+  ],
+  "errors": [],
+  "shot": "library-wellness-mobile.png"
+ },
+ {
+  "key": "library-providers",
+  "path": "/v2/library/providers",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/library/providers",
+  "tLoad": 131,
+  "tIdle": 779,
+  "ttfb": 8,
+  "domContentLoaded": 118,
+  "load": 118,
+  "fcp": 444,
+  "lcp": 444,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/library/providers/matrix?days=28",
+    "status": 200,
+    "ms": 28,
+    "bytes": 5369
+   }
+  ],
+  "errors": [],
+  "shot": "library-providers-mobile.png"
+ },
+ {
+  "key": "coach",
+  "path": "/v2/coach",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach",
+  "tLoad": 146,
+  "tIdle": 826,
+  "ttfb": 12,
+  "domContentLoaded": 141,
+  "load": 143,
+  "fcp": 440,
+  "lcp": 440,
+  "docH": 856,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/threads",
+    "status": 200,
+    "ms": 16,
+    "bytes": 1853
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 22,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/today/checkin",
+    "status": 200,
+    "ms": 28,
+    "bytes": 26
+   },
+   {
+    "url": "http://localhost/api/v1/today/race-hub",
+    "status": 200,
+    "ms": 59,
+    "bytes": 10700
+   }
+  ],
+  "errors": [],
+  "shot": "coach-mobile.png"
+ },
+ {
+  "key": "coach-thread",
+  "path": "/v2/coach/4",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/4",
+  "tLoad": 119,
+  "tIdle": 735,
+  "ttfb": 10,
+  "domContentLoaded": 115,
+  "load": 115,
+  "fcp": 448,
+  "lcp": 448,
+  "docH": 845,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/threads/4",
+    "status": 200,
+    "ms": 6,
+    "bytes": 1303
+   }
+  ],
+  "errors": [],
+  "shot": "coach-thread-mobile.png"
+ },
+ {
+  "key": "coach-plan",
+  "path": "/v2/coach/plan",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1",
+  "tLoad": 162,
+  "tIdle": 847,
+  "ttfb": 14,
+  "domContentLoaded": 143,
+  "load": 143,
+  "fcp": 568,
+  "lcp": 568,
+  "docH": 972,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/active",
+    "status": 200,
+    "ms": 11,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/1",
+    "status": 200,
+    "ms": 18,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 22,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adaptation",
+    "status": 200,
+    "ms": 25,
+    "bytes": 203
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-mobile.png"
+ },
+ {
+  "key": "coach-plan-detail",
+  "path": "/v2/coach/plan/1",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1",
+  "tLoad": 120,
+  "tIdle": 767,
+  "ttfb": 7,
+  "domContentLoaded": 105,
+  "load": 108,
+  "fcp": 476,
+  "lcp": 476,
+  "docH": 972,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1",
+    "status": 200,
+    "ms": 12,
+    "bytes": 5544
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adjustment",
+    "status": 200,
+    "ms": 27,
+    "bytes": 53
+   },
+   {
+    "url": "http://localhost/api/v1/coach/plan/adaptation",
+    "status": 200,
+    "ms": 37,
+    "bytes": 203
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-detail-mobile.png"
+ },
+ {
+  "key": "coach-plan-session-done",
+  "path": "/v2/coach/plan/1/session/2026-09-26",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1/session/2026-09-26",
+  "tLoad": 123,
+  "tIdle": 712,
+  "ttfb": 10,
+  "domContentLoaded": 116,
+  "load": 117,
+  "fcp": 324,
+  "lcp": 324,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1/session/2026-09-26",
+    "status": 200,
+    "ms": 7,
+    "bytes": 753
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-session-done-mobile.png"
+ },
+ {
+  "key": "coach-plan-session-next",
+  "path": "/v2/coach/plan/1/session/2026-09-28",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/1/session/2026-09-28",
+  "tLoad": 116,
+  "tIdle": 725,
+  "ttfb": 8,
+  "domContentLoaded": 107,
+  "load": 108,
+  "fcp": 272,
+  "lcp": 272,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [
+   {
+    "url": "http://localhost/api/v1/coach/plan/1/session/2026-09-28",
+    "status": 200,
+    "ms": 7,
+    "bytes": 1270
+   }
+  ],
+  "errors": [],
+  "shot": "coach-plan-session-next-mobile.png"
+ },
+ {
+  "key": "coach-plan-new",
+  "path": "/v2/coach/plan/new",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/new",
+  "tLoad": 145,
+  "tIdle": 722,
+  "ttfb": 8,
+  "domContentLoaded": 142,
+  "load": 142,
+  "fcp": 376,
+  "lcp": 376,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "coach-plan-new-mobile.png"
+ },
+ {
+  "key": "coach-plan-compare",
+  "path": "/v2/coach/plan/compare",
+  "vp": "mobile",
+  "status": 200,
+  "finalUrl": "http://localhost/v2/coach/plan/compare",
+  "tLoad": 143,
+  "tIdle": 731,
+  "ttfb": 7,
+  "domContentLoaded": 141,
+  "load": 141,
+  "fcp": 340,
+  "lcp": 340,
+  "docH": 844,
+  "overflowX": false,
+  "apis": [],
+  "errors": [],
+  "shot": "coach-plan-compare-mobile.png"
+ }
+]

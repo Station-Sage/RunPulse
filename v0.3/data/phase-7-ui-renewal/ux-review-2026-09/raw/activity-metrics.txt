@@ -1,0 +1,103 @@
+RunPulse
+☰
+←
+메트릭
+요약
+스트림
+랩
+메트릭
+소스 비교
+
+20개 메트릭
+
+파워 (1)
+정규화 파워 (NP)
+236W
+Garmin
+›
+부하 (7)
+유산소 훈련 효과
+3.2
+Garmin
+›
+무산소 훈련 효과
+0
+Garmin
+›
+훈련 부하 (소스별)
+110score
+Garmin
+›
+TRIMP (Banister)
+97.3score
+RunPulse · formula_v1
+›
+Relative Effort (심박존 기반)
+302AU
+RunPulse · formula_v1
+›
+HR Stress Score
+53.8score
+RunPulse · formula_v1
+›
+WLEI (날씨 가중 노력 지수)
+99.7AU
+RunPulse · formula_v1
+›
+효율성 (2)
+RunPulse 유산소 분리
+4.4%
+RunPulse · formula_v1
+›
+RunPulse 효율 계수 (EF)
+20.4
+RunPulse · formula_v1
+›
+체력/역량 (5)
+Grade Adjusted Pace
+5:56/km
+Garmin
+›
+활동별 VO2Max 추정치
+53ml/kg/min
+Garmin
+›
+RunPulse GAP (경사 보정 페이스)
+6:02/km
+RunPulse · formula_v1
+›
+RunPulse VDOT (Daniels)
+32.7
+RunPulse · formula_v1
+›
+Field-Equivalent Adjusted Running Pace
+5:57/km
+RunPulse · formula_v1
+›
+운동량 (2)
+소모 칼로리 (활동)
+553kcal
+Garmin
+›
+활동 중 걸음수
+9590count
+Garmin
+›
+신체 (1)
+활동 중 Body Battery 변화
+-14
+Garmin
+›
+메타/분류 (1)
+RunPulse 워크아웃 분류
+easy
+RunPulse · rule_v1
+›
+미매핑 (개발용) (1)
+splits_metric
+—
+Garmin
+›
+Today
+Library
+Coach

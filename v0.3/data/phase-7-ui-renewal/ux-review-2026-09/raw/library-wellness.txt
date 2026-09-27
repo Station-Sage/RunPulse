@@ -1,0 +1,52 @@
+RunPulse
+☰
+활동
+메트릭
+웰니스
+Provider 비교
+2026-09-27
+준비도
+UTRS
+
+59
+
+CIRS
+
+37
+
+오늘
+수면 점수
+
+52
+
+수면 시간
+
+4h 14m
+
+HRV (야간)
+
+107ms
+
+안정 심박
+
+45bpm
+
+Body Battery
+
+76
+
+평균 스트레스
+
+16
+
+걸음수
+
+12,743
+
+30일 트렌드
+수면 점수
+HRV (야간)
+UTRS
+Today
+Library
+Coach

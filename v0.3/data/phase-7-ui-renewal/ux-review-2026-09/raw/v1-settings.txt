@@ -1,0 +1,95 @@
+RunPulse
+서비스 연동 설정
+동기화 · 서비스 연결
+
+데이터 동기화, 서비스 연동, 임포트는 동기화 탭에서 관리합니다.
+
+🔄 동기화 탭
+사용자 프로필
+최대 심박수 (bpm)
+주간 목표 거리 (km)
+역치 페이스 (분)
+역치 페이스 (초)
+저장
+훈련 환경 설정
+
+휴식 요일, 롱런 요일, 인터벌 거리 등 훈련 설정은 훈련 탭으로 이동했습니다.
+
+⚙️ 훈련 환경 설정 바로가기
+지도 설정
+
+✓ Leaflet + OpenStreetMap 사용 중
+
+활동 상세 페이지에서 GPS 경로 지도를 표시합니다. API 키 없이 무료로 동작합니다.
+
+AI 코치 설정
+
+AI 코치, 브리핑, 훈련 추천, 메트릭 해석에 사용할 AI를 선택합니다.
+
+💡 Gemini (무료, 일 1,500회) · Groq (무료, 일 14,400회) 추천
+Claude/ChatGPT는 유료. 규칙 기반은 API 없이 동작.
+AI 제공자
+규칙 기반 (API 불필요)
+Google Gemini (무료)
+Groq (무료, Llama 3.3)
+Genspark (수동 복사/붙여넣기)
+Claude (Anthropic)
+ChatGPT (OpenAI)
+Gemini API 키 (****AufJMA)
+Groq API 키 (****9ZFhvS)
+Claude API 키 (미설정)
+OpenAI API 키 (미설정)
+저장
+🔧 AI 프롬프트 관리
+캘린더 연동 (CalDAV)
+
+훈련 계획을 Google/네이버/Apple 캘린더에 자동 등록합니다.
+
+상태: 미설정
+
+CalDAV URL
+사용자명
+비밀번호 (앱 비밀번호) (미설정)
+저장
+연결 테스트
+
+Google: 앱 비밀번호 발급 · 네이버: 앱 비밀번호
+
+메트릭 재계산
+
+기존 DB 데이터를 기반으로 2차 메트릭(UTRS, CIRS, FEARP, RTTI, WLEI, TPDI 등)을 재계산합니다.
+동기화 후 자동으로 실행되지만, 수동으로 강제 재계산할 때 사용합니다.
+
+최근  일간 재계산
+재계산 시작
+전체 기간
+시스템 정보
+RunPulse 버전
+v0.2
+메트릭 공식
+v0.2 (PDF 원본 기준)
+AI 모델
+genspark (기본)
+DB 경로
+/app/data/users/pansongit@gmail.com/running.db
+DB 크기
+788.0 MB
+
+연동 정보는 config.json에 저장됩니다. Garmin 토큰은 로컬 tokenstore에 별도 저장됩니다.
+
+🏠
+홈
+🏃
+활동
+📊
+레포트
+🗓️
+훈련
+🤖
+AI코치
+🔄
+동기화
+⚙️
+설정
+🛠️
+개발자
