@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 21  # v0.3.11: 예측 스냅샷 (db_schema_v21) — v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 22  # v0.3.12: 마일스톤 재계산 종류 분리 (db_schema_v22) — v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -719,6 +719,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
     # v21: 예측 스냅샷(P7-PRED-63)
     from src.db_schema_v21 import ensure_v21
     ensure_v21(conn)
+    # v22: 마일스톤 provider·재계산 종류(A/B)
+    from src.db_schema_v22 import ensure_v22
+    ensure_v22(conn)
 
     conn.commit()
 
@@ -796,6 +799,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v17: activity_groups 마스터 테이블 신설 (D2 — CREATE TABLE IF NOT EXISTS만으로 충분).
     v18: milestones 테이블 신설 — CREATE TABLE IF NOT EXISTS만으로 충분.
     v19: chat_messages.evidence_json 추가 (Coach 답변 근거).
+    v22: milestones.provider 추가 + 재계산 종류 분리(create_tables 안의 ensure_v22 가 멱등 처리).
     """
     current = _get_user_version(conn)
 

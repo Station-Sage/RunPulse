@@ -61,3 +61,29 @@ def test_personal_bests_pick_min_and_skip_missing(db_conn):
     assert [p["key"] for p in r["personal_bests"]] == ["5K"]
     pb = r["personal_bests"][0]
     assert pb["time_sec"] == 1316 and pb["activity_id"] == 1 and pb["date"] == "2026-05-09"
+
+
+def _race(c, aid, dist, sec, effort="allout"):
+    c.execute("UPDATE activity_summaries SET moving_time_sec=? WHERE id=?", (sec, aid))
+    c.execute("INSERT INTO race_results (activity_id, distance_m, official_time_sec, effort) VALUES (?,?,?,?)",
+              (aid, dist, sec, effort))
+
+
+def test_personal_bests_merge_race_results_with_source_labels(db_conn):
+    _act(db_conn, 1, "2026-05-03", 10095.3)
+    _act(db_conn, 2, "2026-05-09", 10000.0)
+    _act(db_conn, 3, "2026-03-22", 21047.5)
+    _act(db_conn, 4, "2026-09-12", 10017.2)
+    _act(db_conn, 5, "2025-10-18", 42369.8)
+    _effort(db_conn, 1, "10K", 2734)          # Strava 구간 기록(옛)
+    _race(db_conn, 1, 10095.3, 2755)          # 환산 10K = 2729
+    _race(db_conn, 2, 10000.0, 2650)          # 44:10 — 이 PB
+    _race(db_conn, 3, 21047.5, 6143)
+    _race(db_conn, 4, 10017.2, 2817, effort="paced")      # 전력 아님 → 제외
+    _race(db_conn, 5, 42369.8, 13324)
+    r = get_archive(db_conn, TODAY)
+    pbs = {p["key"]: p for p in r["personal_bests"]}
+    assert pbs["10K"]["time_sec"] == 2650 and pbs["10K"]["source"] == "대회" and pbs["10K"]["date"] == "2026-05-09"
+    assert pbs["half"]["source"] == "대회" and 6130 < pbs["half"]["time_sec"] < 6160        # 21097.5 로 환산
+    assert pbs["full"]["activity_id"] == 5
+    assert [p["key"] for p in r["personal_bests"]] == ["10K", "half", "full"]

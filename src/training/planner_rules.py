@@ -43,6 +43,17 @@ def plan_weeks_until_race(race_date_str: str | None, today: date | None = None) 
     return (race_monday - this_monday).days // 7 + 1
 
 
+def plan_start_monday(race_date_str: str | None, plan_weeks: int | None) -> date | None:
+    """대회 주에서 plan_weeks 주 거슬러 올라간 계획 시작 월요일. 대회일·기간이 없으면 None."""
+    if not race_date_str or not plan_weeks:
+        return None
+    try:
+        race = date.fromisoformat(race_date_str)
+    except ValueError:
+        return None
+    return race - timedelta(days=race.weekday()) - timedelta(weeks=int(plan_weeks) - 1)
+
+
 def apply_race_week(plan: list[dict], race_date_str: str | None, distance_km: float) -> list[dict]:
     """대회일이 이 주에 있으면 대회일=race 세션, 그 이후 요일은 휴식으로 바꾼다(제자리 수정 후 반환)."""
     if not race_date_str:

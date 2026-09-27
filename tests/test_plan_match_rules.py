@@ -106,7 +106,7 @@ def test_continuous_plan_outcome_uses_duration():
     assert is_continuous(st)
     assert not is_continuous({"steps": [{"type": "repeat", "count": 2, "steps": [{"type": "work", "dur_s": 60}]}]})
     r = compare_continuous(st, 2422.0, 7100.0)
-    assert r["label"] == "underperformed" and r["compliance_pct"] == 53.8
+    assert r["label"] == "underperformed" and r["compliance_pct"] == 72.3      # 볼륨 54% + 페이스 적중
     assert compare_continuous(st, 4500.0, 13000.0)["label"] == "on_target"
     assert compare_continuous({"steps": [{"type": "work"}]}, 100.0, 100.0) is None
 
@@ -145,3 +145,56 @@ def test_taper_wins_over_recovery_week():
     assert training_phase(1, 3) == "taper"
     assert training_phase(6, 3) == "recovery_week"
     assert training_phase(6, 0) == "peak" and training_phase(12, 0) == "build" and training_phase(None, 0) == "base"
+
+
+def test_plan_structure_for_each_workout_type():
+    from src.training.plan_structure import structure_for_plan
+    rx = json.dumps({"sets": 5, "rep_m": 1000, "rest_sec": 120, "interval_pace": 265})
+    iv = structure_for_plan("interval", 8.0, 265, 280, rx)
+    assert iv["steps"][1]["count"] == 5 and iv["steps"][1]["steps"][0]["dist_m"] == 1000.0
+    assert 3.6 < iv["steps"][1]["steps"][0]["speed_lo"] < 3.9
+    easy = structure_for_plan("easy", 10.0, 365, 405)
+    assert easy["steps"][0]["dist_m"] == 10000.0 and easy["steps"][0]["max_only"] is True
+    assert "max_only" not in structure_for_plan("tempo", 8.0, 300, 320)["steps"][0]
+    assert structure_for_plan("rest", None, None, None) is None and structure_for_plan("race", 42.2, None, None) is None
+    assert structure_for_plan("interval", 8.0, 265, 280, None) is None
+
+
+def test_easy_run_too_fast_is_modified_not_on_target():
+    st = {"steps": [{"type": "work", "dist_m": 10000.0, "speed_lo": 2.47, "speed_hi": 2.74, "max_only": True, "min_share": 0.8}]}
+    fast = compare_continuous(st, 2700.0, 10000.0, [(1000.0, 270.0)] * 10)      # 4:30/km — 이지 상한(6:05)보다 훨씬 빠름
+    ok = compare_continuous(st, 3800.0, 10000.0, [(1000.0, 380.0)] * 10)        # 6:20/km
+    assert fast["label"] == "modified" and fast["target_hit_pct"] == 0.0
+    assert ok["label"] == "on_target" and ok["target_hit_pct"] == 100.0 and ok["compliance_pct"] > fast["compliance_pct"]
+
+
+def test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis():
+    from src.utils.db_helpers import upsert_metric
+    c = mem_conn()
+    a = seed_run(c, sid="1", date="2026-09-22", dist=8000.0, moving=2400)
+    upsert_metric(c, "activity", str(a), "workout_type_classified", "runpulse:rule_v2", text_value="interval",
+                  json_value={"type": "interval", "bouts": []})
+    _plan(c, "2026-09-22", "easy", 8.0)                                           # 이지 계획에 인터벌 활동 — 다른 세션
+    assert match_week_activities(c, MON) == 0
+    b = seed_run(c, sid="2", date="2026-09-23", dist=8000.0, moving=2700)
+    bouts = [{"dist_m": 1000.0, "dur_s": 250.0, "speed_ms": 4.0, "hr": 170}] * 3         # 5세트 계획을 3세트만
+    upsert_metric(c, "activity", str(b), "workout_type_classified", "runpulse:rule_v2", text_value="interval",
+                  json_value={"type": "interval", "bouts": bouts})
+    st = json.dumps({"steps": [{"type": "repeat", "count": 5, "steps": [
+        {"type": "work", "dist_m": 1000.0, "speed_lo": 3.8, "speed_hi": 4.1}, {"type": "rest", "dur_s": 90}]}]})
+    _plan(c, "2026-09-23", "interval", 8.0, structure=st)
+    match_week_activities(c, MON)
+    done, label, sets = c.execute("SELECT p.completed, o.outcome_label, json_extract(o.segment_match_json,'$.sets_done') "
+                                  "FROM planned_workouts p JOIN session_outcomes o ON o.planned_id=p.id "
+                                  "WHERE p.date='2026-09-23'").fetchone()
+    assert sets == 3 and label in ("underperformed", "modified") and done == 0       # 3/5세트 → 볼륨 미달로 미이행
+
+
+def test_adjustment_skips_day_already_executed():
+    from src.training.adjuster import adjust_todays_plan
+    c = mem_conn()
+    a = seed_run(c, sid="1", date="2026-09-27", dist=9300.0, moving=3300)
+    _plan(c, "2026-09-27", "long", 26.0)
+    assert adjust_todays_plan(c, date="2026-09-27") is not None
+    _plan(c, "2026-09-27", "easy", None, source="garmin", ssys="garmin", act_id=a, done=1)
+    assert adjust_todays_plan(c, date="2026-09-27") is None

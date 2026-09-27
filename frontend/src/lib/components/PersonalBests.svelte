@@ -1,5 +1,5 @@
 <script lang="ts">
-	// 개인 최고 기록(Strava best efforts 기준) — 눌러서 해당 활동으로.
+	// 개인 최고 기록 — 대회 기록과 활동 안 구간 기록 중 빠른 쪽, 출처 표시. 눌러서 해당 활동으로.
 	import type { ArchivePb } from '$lib/types';
 	import { formatDuration } from '$lib/format';
 	import { base } from '$app/paths';
@@ -18,7 +18,7 @@
 				>
 					<span class="text-[11px] text-fg-muted">{p.label}</span>
 					<span class="font-mono text-lg font-bold">{formatDuration(p.time_sec)}</span>
-					<span class="text-[10px] text-fg-muted">{p.date}</span>
+					<span class="text-[10px] text-fg-muted">{p.date}{#if p.source} · {p.source}{/if}</span>
 				</a>
 			{/each}
 		</div>

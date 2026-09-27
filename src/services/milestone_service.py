@@ -60,7 +60,9 @@ def get_recent_milestones(
     기간에서 최신순).
     """
     conn.row_factory = sqlite3.Row
-    clauses = []
+    # 알고리즘 변경으로 인한 재계산·검토 중/참조 provider 값은 저장만 하고(A/B 기록) 보여 주지 않는다
+    clauses = ["type != 'algo_recompute'",
+               "(provider IS NULL OR (provider NOT LIKE '%:shadow%' AND provider NOT LIKE '%:ref\\_%' ESCAPE '\\'))"]
     params: list = []
     if date_from:
         clauses.append("date >= ?")

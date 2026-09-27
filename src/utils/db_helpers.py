@@ -229,40 +229,42 @@ def upsert_metric(
     """
     scope_id_str = str(scope_id)
 
-    # allow-list 메트릭만 재계산 감지 (전체에 걸면 sync 성능 저하)
-    # 섀도(검토 중 알고리즘)·참조(Garmin) provider 의 재계산은 사용자 마일스톤이 아니다
-    if (metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None
-            and ":shadow" not in provider and ":ref_" not in provider):
+    # allow-list 메트릭만 재계산 감지 (전체에 걸면 sync 성능 저하). provider 무관 — 검토 중 알고리즘·참조값도
+    # 저장해 A/B 비교에 쓰고, 표시는 milestone_present 가 골라낸다.
+    if metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None:
         existing = conn.execute(
             "SELECT numeric_value, algorithm_version FROM metric_store "
             "WHERE scope_type=? AND scope_id=? AND metric_name=? AND provider=?",
             (scope_type, scope_id_str, metric_name, provider),
         ).fetchone()
         if existing is not None:
-            old_val = existing[0]
-            old_ver = existing[1]
+            old_val, old_ver = existing
             if (
                 old_ver is not None
-                and old_ver != algorithm_version
                 and old_val is not None
                 and abs(old_val) > 0
                 and abs(numeric_value - old_val) / abs(old_val) > 0.01
             ):
+                # 버전이 다르면 알고리즘 변경(algo_recompute, 저장만), 같으면 데이터 변화(metric_recompute, 표시)
+                kind = "algo_recompute" if old_ver != algorithm_version else "metric_recompute"
+                suffix = "" if provider.endswith(":formula_v1") or ":" not in provider else f" · {provider}"
                 try:
                     from datetime import date as _date_cls
                     conn.execute(
                         """
                         INSERT OR IGNORE INTO milestones
-                            (type, date, title, detail, metric_name, old_value, new_value)
-                        VALUES ('metric_recompute', ?, ?, ?, ?, ?, ?)
+                            (type, date, title, detail, metric_name, old_value, new_value, provider)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
+                            kind,
                             _date_cls.today().isoformat(),
-                            f"{metric_name} 재계산",
+                            f"{metric_name} 재계산{suffix}",
                             f"{old_ver}→{algorithm_version} 적용",
                             metric_name,
                             float(old_val),
                             float(numeric_value),
+                            provider,
                         ),
                     )
                 except Exception:

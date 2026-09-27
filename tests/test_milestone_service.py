@@ -192,7 +192,7 @@ class TestPB:
 
 class TestMetricRecompute:
     def test_recompute_milestone_created_on_version_change(self, tmp_path):
-        """allow-list 메트릭의 algorithm_version이 바뀌면 metric_recompute 마일스톤 생성."""
+        """allow-list 메트릭의 algorithm_version이 바뀌면 algo_recompute(A/B 기록, 비표시) 마일스톤 생성."""
         conn = _make_conn(tmp_path)
         upsert_metric(conn, "daily", "2026-01-01", "ctl", "runpulse:formula_v1",
                       numeric_value=70.0, algorithm_version="1.0")
@@ -203,14 +203,14 @@ class TestMetricRecompute:
         conn.commit()
 
         row = conn.execute(
-            "SELECT * FROM milestones WHERE type='metric_recompute' AND metric_name='ctl'"
+            "SELECT * FROM milestones WHERE type='algo_recompute' AND metric_name='ctl'"
         ).fetchone()
         assert row is not None
         assert dict(row)["old_value"] == pytest.approx(70.0)
         assert dict(row)["new_value"] == pytest.approx(72.0)
 
-    def test_no_recompute_same_version(self, tmp_path):
-        """같은 algorithm_version이면 마일스톤 안 생성."""
+    def test_no_recompute_below_threshold(self, tmp_path):
+        """같은 버전에서 값 변화가 1% 이하면 마일스톤 안 생성."""
         conn = _make_conn(tmp_path)
         upsert_metric(conn, "daily", "2026-01-01", "ctl", "runpulse:formula_v1",
                       numeric_value=70.0, algorithm_version="1.0")
@@ -299,33 +299,57 @@ class TestGetRecentMilestones:
         assert len(result) == 1
 
 
-def test_present_merges_prediction_recompute_and_humanizes():
+def test_present_merges_prediction_updates_and_humanizes():
     from src.services.milestone_present import present_milestones
     rows = [
         {"id": 4, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_marathon_sec 재계산",
-         "detail": "1.0→2.0 적용", "metric_name": "race_pred_marathon_sec", "old_value": 16737.0, "new_value": 13491.0},
+         "detail": "2.0→2.0 적용", "metric_name": "race_pred_marathon_sec", "old_value": 13491.0, "new_value": 13300.0},
         {"id": 3, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_5k_sec 재계산",
-         "detail": "1.0→2.0 적용", "metric_name": "race_pred_5k_sec", "old_value": 1983.0, "new_value": 1330.0},
+         "detail": "2.0→2.0 적용", "metric_name": "race_pred_5k_sec", "old_value": 1400.0, "new_value": 1330.0},
         {"id": 2, "type": "metric_recompute", "date": "2026-09-26", "title": "ctl 재계산",
-         "detail": "1.0→2.0 적용", "metric_name": "ctl", "old_value": 60.0, "new_value": 74.2},
+         "detail": "2.0→2.0 적용", "metric_name": "ctl", "old_value": 60.0, "new_value": 74.2},
         {"id": 1, "type": "pb", "date": "2026-05-09", "title": "10K PB", "detail": None, "metric_name": None},
     ]
     out = present_milestones(rows)
-    assert [r["title"] for r in out] == ["예측 기록 재계산", "체력(CTL) 재계산", "10K PB"]
-    assert out[0]["detail"] == "5K 33:03→22:10 · 마라톤 4:38:57→3:44:51 · 알고리즘 1.0→2.0"
-    assert out[1]["detail"] == "60.0→74.2 · 알고리즘 1.0→2.0"
+    assert [r["title"] for r in out] == ["예측 기록 갱신", "체력(CTL) 갱신", "10K PB"]
+    assert out[0]["detail"] == "5K 23:20→22:10 · 마라톤 3:44:51→3:41:40"
+    assert out[1]["detail"] == "60.0→74.2"
 
 
-def test_shadow_provider_recompute_creates_no_milestone():
+def _conn_with_milestones():
     import sqlite3
     from src.db_setup import create_tables
-    from src.utils.db_helpers import upsert_metric
     c = sqlite3.connect(":memory:")
     create_tables(c)
-    for prov in ("runpulse:shadow_r4", "runpulse:ref_garmin"):
-        upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", prov, numeric_value=16000.0, algorithm_version="1.0")
-        upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", prov, numeric_value=13000.0, algorithm_version="2.0")
-    assert c.execute("SELECT COUNT(*) FROM milestones").fetchone()[0] == 0
-    upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", "runpulse:formula_v1", numeric_value=16000.0, algorithm_version="1.0")
-    upsert_metric(c, "daily", "2026-09-26", "race_pred_marathon_sec", "runpulse:formula_v1", numeric_value=13000.0, algorithm_version="2.0")
-    assert c.execute("SELECT COUNT(*) FROM milestones").fetchone()[0] == 1
+    return c
+
+
+def _upsert_twice(c, prov, v1, v2, ver1, ver2, name="race_pred_marathon_sec"):
+    from src.utils.db_helpers import upsert_metric
+    upsert_metric(c, "daily", "2026-09-26", name, prov, numeric_value=v1, algorithm_version=ver1)
+    upsert_metric(c, "daily", "2026-09-26", name, prov, numeric_value=v2, algorithm_version=ver2)
+
+
+def test_recompute_kinds_are_stored_for_ab_but_only_data_changes_are_shown():
+    from src.services.milestone_service import get_recent_milestones
+    c = _conn_with_milestones()
+    _upsert_twice(c, "runpulse:formula_v1", 16000.0, 13000.0, "1.0", "2.0")          # 알고리즘 변경 — 저장만
+    _upsert_twice(c, "runpulse:shadow_r4", 16000.0, 13000.0, "1.0", "1.0")           # 검토 중 provider 데이터 변화 — 저장만
+    _upsert_twice(c, "runpulse:formula_v1", 13000.0, 12500.0, "2.0", "2.0", "race_pred_5k_sec")   # 같은 알고리즘 — 표시
+    stored = {(r[0], r[1]) for r in c.execute("SELECT type, provider FROM milestones")}
+    assert stored == {("algo_recompute", "runpulse:formula_v1"), ("metric_recompute", "runpulse:shadow_r4"),
+                      ("metric_recompute", "runpulse:formula_v1")}
+    shown = get_recent_milestones(c, limit=10)
+    assert [m["title"] for m in shown] == ["예측 기록 갱신"]
+
+
+def test_v22_reclassifies_old_version_change_rows():
+    import sqlite3
+    from src.db_schema_v22 import ensure_v22
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE milestones (id INTEGER PRIMARY KEY, type TEXT, date TEXT, title TEXT, detail TEXT)")
+    c.executemany("INSERT INTO milestones (type, date, title, detail) VALUES ('metric_recompute', 'd', ?, ?)",
+                  [("a", "1.0→2.0 적용"), ("b", "2.0→2.0 적용")])
+    ensure_v22(c)
+    ensure_v22(c)      # 멱등
+    assert dict(c.execute("SELECT title, type FROM milestones")) == {"a": "algo_recompute", "b": "metric_recompute"}

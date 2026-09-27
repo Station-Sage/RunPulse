@@ -30,6 +30,18 @@
 		].sort()
 	);
 
+	// 핵심 지표 — 전체 보기에서 맨 위에 크게. 나머지는 카테고리별, 보조 카테고리(수면·심박 세부·환경)는 접어 둔다.
+	const CORE = ['race_pred_marathon_sec', 'race_pred_half_sec', 'race_pred_10k_sec', 'race_pred_5k_sec', 'ctl', 'tsb', 'utrs', 'cirs'];
+	const COLLAPSED = new Set(['sleep', 'hr', 'weather']);
+	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all');
+	const coreMetrics = $derived(
+		showCore
+			? CORE.map((n) => categories.flatMap((c) => c.metrics).find((m) => m.name === n)).filter(
+					(m): m is MetricBrowserEntry => m != null
+				)
+			: []
+	);
+
 	const visibleCategories = $derived(
 		(selectedCategory === 'all'
 			? categories
@@ -43,7 +55,7 @@
 						: cat.metrics.filter(
 								(m) => (m.provider ?? '').split(':')[0] === selectedProvider
 							)
-				).filter((m) => !isComponentMetric(m.label))
+				).filter((m) => !isComponentMetric(m.label) && !(showCore && CORE.includes(m.name)))
 			}))
 			.filter((cat) => cat.metrics.length > 0)
 	);
@@ -58,6 +70,35 @@
 		return formatUnitValue(Number(m.value), m.unit).unit;
 	}
 </script>
+
+{#snippet card(m: MetricBrowserEntry, big: boolean)}
+	{@const mean = typeof m.value === 'number' ? meaningFor(m.name, m.value) : null}
+	<a
+		href="{base}/library/metrics/{m.name}"
+		class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
+	>
+		<span class="text-xs leading-snug text-fg-muted">{displayLabel(m.name, m.label)}</span>
+		<div class="flex items-baseline justify-between gap-1">
+			<span class="font-mono {big ? 'text-2xl' : 'text-lg'} font-semibold leading-none">
+				{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
+						>{valueUnit(m)}</span
+					>{/if}
+			</span>
+			{#if m.provider && availableProviders.length > 1}
+				<span
+					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+						m.provider as ProviderKey
+					)}"
+					title={providerLabel(m.provider as ProviderKey)}
+				>
+					{providerLabelCompact(m.provider as ProviderKey)}
+				</span>
+			{/if}
+		</div>
+		{#if mean}<span class="text-[11px] {STATUS_TEXT_CLASS[mean.status]}">● {mean.note}</span>{/if}
+		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="#3b82f6" />{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
+	</a>
+{/snippet}
 
 <svelte:head><title>메트릭 브라우저 · RunPulse</title></svelte:head>
 
@@ -123,40 +164,38 @@
 
 	<!-- 카테고리별 섹션 -->
 	<div class="flex flex-col gap-6 px-4 py-4">
-		{#each visibleCategories as cat}
+		{#if coreMetrics.length}
 			<section>
-				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">{cat.label}</h2>
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-					{#each cat.metrics as m}
-						{@const mean = typeof m.value === 'number' ? meaningFor(m.name, m.value) : null}
-						<a
-							href="{base}/library/metrics/{m.name}"
-							class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3"
-						>
-							<span class="text-xs leading-snug text-fg-muted">{displayLabel(m.name, m.label)}</span>
-							<div class="flex items-baseline justify-between gap-1">
-								<span class="font-mono text-lg font-semibold leading-none">
-									{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
-											>{valueUnit(m)}</span
-										>{/if}
-								</span>
-								{#if m.provider && availableProviders.length > 1}
-									<span
-										class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-											m.provider as ProviderKey
-										)}"
-										title={providerLabel(m.provider as ProviderKey)}
-									>
-										{providerLabelCompact(m.provider as ProviderKey)}
-									</span>
-								{/if}
-							</div>
-							{#if mean}<span class="text-[11px] {STATUS_TEXT_CLASS[mean.status]}">● {mean.note}</span>{/if}
-							{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={24} color="#3b82f6" />{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
-						</a>
+				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">핵심 지표</h2>
+				<div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+					{#each coreMetrics as m}
+						{@render card(m, true)}
 					{/each}
 				</div>
 			</section>
+		{/if}
+		{#each visibleCategories as cat}
+			{#if showCore && COLLAPSED.has(cat.category)}
+				<details>
+					<summary class="cursor-pointer text-xs font-medium uppercase tracking-wide text-fg-muted hover:text-fg-secondary"
+						>{cat.label} ({cat.metrics.length}) — 세부 지표</summary
+					>
+					<div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+						{#each cat.metrics as m}
+							{@render card(m, false)}
+						{/each}
+					</div>
+				</details>
+			{:else}
+				<section>
+					<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">{cat.label}</h2>
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+						{#each cat.metrics as m}
+							{@render card(m, false)}
+						{/each}
+					</div>
+				</section>
+			{/if}
 		{/each}
 	</div>
 {/if}

@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from src.training.adjuster import adjust_todays_plan
 from src.training.goals import get_active_goal, get_goal
 from src.training.planner import get_planned_workouts
+from src.training.planner_rules import plan_start_monday
 from src.training.planner_config import get_latest_fitness
 
 
@@ -29,6 +30,9 @@ def _plan_date_range(goal: dict) -> tuple[str | None, str | None]:
     이전 목표 포함)의 데이터가 섞이지 않게 한다.
     """
     start = None
+    planned = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks"))
+    if planned is not None:                      # 대회 역산 계획: 시작 = 대회 주 - (plan_weeks-1)주
+        return planned.isoformat(), goal.get("race_date")
     created_at = goal.get("created_at")
     if created_at:
         try:
@@ -47,8 +51,7 @@ def _week_index_for_date(goal: dict, target_date: date) -> int:
     try:
         start_date = date.fromisoformat(start)
         ws = target_date - timedelta(days=target_date.weekday())
-        weeks = max(0, (ws - start_date).days // 7)
-        return weeks + 1
+        return (ws - start_date).days // 7 + 1      # 시작 전이면 0 이하
     except (ValueError, TypeError):
         return 1
 

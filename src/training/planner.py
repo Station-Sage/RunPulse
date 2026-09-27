@@ -53,6 +53,8 @@ from .planner_rules import (
 )
 
 from .planned_query import get_planned_workouts  # noqa: F401  (하위 호환 re-export)
+from .plan_structure import structure_for_plan
+from .planner_schedule import week_target
 
 log = logging.getLogger(__name__)
 
@@ -103,17 +105,19 @@ def generate_weekly_plan(
     eftp = get_eftp(conn)
     shape_pct = get_marathon_shape_pct(conn)
 
-    # 훈련 단계
-    weeks_left = weeks_to_race(race_date, as_of=week_start)   # 미래 주차는 그 주 기준 단계
-    week_idx = get_week_index(week_start, conn)
-    phase = training_phase(weeks_left, week_idx)
-
-    # 주간 볼륨
-    total_km = weekly_volume_km(ctl, phase, tsb, shape_pct)
-    long_km = LONG_RUN_BASE.get(dlabel, 14.0) * LONG_RUN_PHASE_FACTOR.get(
-        phase if phase != "recovery_week" else "base", 1.0
-    )
-    long_km = min(long_km, total_km * 0.35)
+    # 훈련 단계·주간 볼륨: 목표 대회가 있으면 대회 역산 주기화(periodization), 없으면 CTL 기반 기존 규칙
+    target = week_target(conn, goal, week_start, dlabel, vdot) if goal else None
+    if target:
+        phase, total_km, long_km = target.phase, target.weekly_km, target.long_km
+    else:
+        weeks_left = weeks_to_race(race_date, as_of=week_start)   # 미래 주차는 그 주 기준 단계
+        week_idx = get_week_index(week_start, conn)
+        phase = training_phase(weeks_left, week_idx)
+        total_km = weekly_volume_km(ctl, phase, tsb, shape_pct)
+        long_km = LONG_RUN_BASE.get(dlabel, 14.0) * LONG_RUN_PHASE_FACTOR.get(
+            phase if phase != "recovery_week" else "base", 1.0
+        )
+        long_km = min(long_km, total_km * 0.35)
 
     # 사용자 설정 (휴식 요일/날짜)
     prefs = load_prefs(conn)
@@ -135,7 +139,7 @@ def generate_weekly_plan(
     q_slots = assign_qday_slots(available, n_q, dlabel, phase)
 
     # Long run 슬롯
-    has_long = dlabel not in ("1.5k", "3k") and phase != "taper"
+    has_long = dlabel not in ("1.5k", "3k") and (long_km > 0 if target else phase != "taper")
     long_slot = assign_long_run_slot(available, q_slots) if has_long else None
 
     # Q-day 타입: phase 기반 순수 결정 (CRS 게이트 없음 — 일일 추천카드에서 적용)
@@ -198,6 +202,7 @@ def generate_weekly_plan(
             "rationale": RATIONALE.get(wtype, ""),
             "source": "planner",
             "interval_prescription": interval_json,
+            "structure": structure_for_plan(wtype, dist, pace_min, pace_max, interval_json),
             "_phase": phase,
             "_vdot": vdot,
         })
@@ -229,14 +234,15 @@ def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict]) -> int:
         conn.execute(
             """INSERT INTO planned_workouts
                (date, workout_type, distance_km, target_pace_min, target_pace_max,
-                target_hr_zone, description, rationale, source, interval_prescription)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                target_hr_zone, description, rationale, source, interval_prescription, structure_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 w["date"], w["workout_type"], w.get("distance_km"),
                 w.get("target_pace_min"), w.get("target_pace_max"),
                 w.get("target_hr_zone"), w.get("description"),
                 w.get("rationale"), w.get("source", "planner"),
                 w.get("interval_prescription"),
+                json.dumps(w["structure"]) if w.get("structure") else None,
             ),
         )
         count += 1

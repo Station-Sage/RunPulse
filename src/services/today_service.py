@@ -188,8 +188,9 @@ def get_today_narrative(
     # ── 캐시 조회 (AI 성공 결과만 저장돼 있음) ────────────────────────────
     cached = get_narrative_cache(conn, month_start, date)
     if cached is not None:
-        from src.services.milestone_present import present_milestones
-        cached["milestones"] = present_milestones(cached.get("milestones") or [])   # 캐시된 옛 원시 행도 표시용으로 가공
+        # 마일스톤은 캐시(내러티브 문장)와 별개로 항상 최신 규칙으로 다시 조회한다
+        cached["milestones"] = milestone_service.get_recent_milestones(
+            conn, limit=5, date_from=month_start, date_to=date)
         return cached
 
     training = status["training_status"]

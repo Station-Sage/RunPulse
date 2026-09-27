@@ -54,6 +54,14 @@ def enabled_sources(config: dict) -> list[str]:
     return [s for s in ALL_SOURCES if s in listed]
 
 
+def set_sync_source(config: dict, source: str, enabled: bool) -> list[str]:
+    """config["sync_sources"] 에 소스를 켜고 끈다(제자리 수정). 반환: 새 목록. 끈 소스의 과거 데이터는 그대로."""
+    cur = set(enabled_sources(config))
+    (cur.add if enabled else cur.discard)(source)
+    config["sync_sources"] = [s for s in ALL_SOURCES if s in cur]
+    return config["sync_sources"]
+
+
 def _resolve_path(path: Path | str | None) -> Path:
     """설정 파일 경로 결정. None이면 기본 경로 반환."""
     if path is None:

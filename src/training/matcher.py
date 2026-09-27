@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from datetime import date, timedelta
 
-from src.training.matcher_context import _get_condition_snapshot, _get_hr_zone_dist, canonical_activity_id
+from src.training.matcher_context import _classified_kinds, _get_condition_snapshot, _get_hr_zone_dist, canonical_activity_id
 from src.training.match_select import classify_outcome, is_done, pick_activity
 from src.training.outcome_store import update_outcome_v2
 
@@ -82,22 +82,26 @@ def match_week_activities(
         claimed |= {canonical_activity_id(conn, r[0]) for r in conn.execute(
             "SELECT activity_id FROM session_outcomes WHERE planned_id != ? AND date = ? "
             "AND activity_id IS NOT NULL", (plan_id, plan_date))}
-        best = pick_activity(plan_dist, day_acts, claimed)
+        kinds = _classified_kinds(conn, [a[0] for a in day_acts])
+        best = pick_activity(plan_dist, day_acts, claimed, plan_type, kinds)
 
         if best:
-            done = is_done(plan_dist, best[2])
-            conn.execute(
-                "UPDATE planned_workouts SET completed=?, matched_activity_id=?, "
-                "updated_at=datetime('now') WHERE id=? AND completed != 1",
-                (1 if done else 0, best[0], plan_id),
-            )
-            # session_outcomes 저장
+            # session_outcomes 저장(거리·페이스 기본 → 구조가 있으면 세트·구간 페이스까지 v2 로 덧씀)
             _save_session_outcome(
                 conn, plan_id=plan_id, activity_id=best[0], plan_date=plan_date,
                 plan_dist=plan_dist, plan_pace=pace_min, plan_hr_zone=hr_zone,
                 act_row=best,
             )
-            update_outcome_v2(conn, plan_id, best[0])      # 구조화된 계획이면 세그먼트 이행률(P7-PRED-43)
+            res = update_outcome_v2(conn, plan_id, best[0])      # 구조화된 계획이면 세트·구간 페이스 이행률(P7-PRED-43)
+            # 완료 = 처방한 볼륨(거리/시간)과 세트 수의 75% 이상을 했다. 구조 분석이 없으면 거리로만 본다.
+            done = (res["label"] != "skipped" and (res.get("volume_ratio") or 0) >= 0.75
+                    and (not res.get("sets_planned") or res["sets_done"] / res["sets_planned"] >= 0.75)) if res \
+                else is_done(plan_dist, best[2])
+            conn.execute(
+                "UPDATE planned_workouts SET completed=?, matched_activity_id=?, "
+                "updated_at=datetime('now') WHERE id=? AND completed != 1",
+                (1 if done else 0, best[0], plan_id),
+            )
             matched += 1
 
     if matched:

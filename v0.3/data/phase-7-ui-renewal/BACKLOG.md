@@ -3593,9 +3593,9 @@ DONE으로 옮긴다.
 
 - **[P7-UI-REVIEW-0927]** 실계정 UI 점검 → 계획 기간·단계, 매칭·결과 라벨, 이행률, 예측 카드 정리,
   마일스톤 표시, 동기화 소스 토글(`sync_sources`) 정정(2026-09-27, 사용자 승인). 결정·근거는
-  `DECISIONS.md [P7-UI-REVIEW-0927]`. 실 DB 정정은 `src.training.rematch` 로 백업 후 사용자 지시 시. 남은 것:
-  Today 좌측 열 빈 공간, Coach 대화 제목·미리보기, 메트릭 브라우저 위계, PB 출처 라벨(대회 기반/구간 기반),
-  롱런 상한(마라톤 피크 22km — planner 설계, 별도 검토), 미래 주차 볼륨이 현재 CTL 고정.
+  `DECISIONS.md [P7-UI-REVIEW-0927]`. 실 DB 정정은 `src.training.rematch` 로 백업 후 사용자 지시 시. 2차 정정(같은 날): 대회 역산 주기화·구조 기반 매칭 분석·마일스톤 A/B 저장·동기화 대상 토글·남은 UI 4건 완료.
+  남은 것: 휴식 요일 미지정 시 기본 훈련 빈도, 롱런 상한 개인화, test_integration_realdb rtti/marathon_shape 범위 2건.
+  다음: 사용자 주도 UI/UX 상세 재검토.
 - **[P7-IMPL-D5, P7-IMPL-D3]** Phase 7a 서비스 레이어 + 신규 테이블 구현(2026-09-22, plan
   mode로 조사 후 승인받아 진행). D5: `today_service.py`(get_today_status/briefing,
   get_recent_activities, save_checkin)·`coach_service.py`(list_threads/create_thread/

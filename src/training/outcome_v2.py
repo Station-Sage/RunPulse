@@ -31,9 +31,22 @@ def is_continuous(structure: dict) -> bool:
     return len(expand_work(steps)) == 1 and not any(s.get("type") in ("repeat", "rest") for s in steps)
 
 
-def compare_continuous(structure: dict, act_dur_s: float | None, act_dist_m: float | None) -> dict | None:
-    """연속 러닝 계획 이행률 — 계획 시간(없으면 거리) 대비 실행 비율. 비교 기준이 없으면 None."""
+def _step_ok(step: dict, v: float) -> bool:
+    """속도 v(m/s)가 work 단계 목표에 드는가. max_only 는 상한 속도(speed_hi)만 본다."""
+    if step.get("max_only"):
+        return v <= step["speed_hi"] * (1 + PACE_TOL)
+    return step["speed_lo"] * (1 - PACE_TOL) <= v <= step["speed_hi"] * (1 + PACE_TOL)
+
+
+def compare_continuous(structure: dict, act_dur_s: float | None, act_dist_m: float | None,
+                       laps: list[tuple[float, float]] | None = None) -> dict | None:
+    """연속 러닝 계획 이행 — 볼륨(시간, 없으면 거리) 이행률 + 목표 페이스 구간 비중(랩별 거리 가중, 없으면 평균 속도).
+
+    laps = [(distance_m, duration_sec)]. 비교 기준이 없으면 None.
+    compliance = 볼륨 60% + 페이스 40%(목표 페이스가 있을 때). 볼륨은 맞는데 페이스가 크게 어긋나면 'modified'.
+    """
     steps = structure.get("steps", [])
+    work = next((s for s in steps if s.get("type") == "work"), {})
     p_dur = sum(s.get("dur_s") or 0 for s in steps)
     p_dist = sum(s.get("dist_m") or 0 for s in steps)
     if p_dur and act_dur_s:
@@ -42,10 +55,23 @@ def compare_continuous(structure: dict, act_dur_s: float | None, act_dist_m: flo
         ratio = act_dist_m / p_dist
     else:
         return None
+    hit = share = None
+    if work.get("speed_lo") and work.get("speed_hi"):
+        good = [(d, d / t) for d, t in (laps or []) if d and t and d >= 100]
+        if good:
+            share = sum(d for d, v in good if _step_ok(work, v)) / sum(d for d, _ in good)
+        elif act_dist_m and act_dur_s:
+            share = 1.0 if _step_ok(work, act_dist_m / act_dur_s) else 0.0
+        if share is not None:
+            hit = min(1.0, share / work.get("min_share", 0.8))
     label = "skipped" if ratio < 0.5 else "underperformed" if ratio < 0.85 else "overperformed" if ratio > 1.1 else "on_target"
+    if hit is not None and hit < 0.6 and label in ("on_target", "overperformed"):
+        label = "modified"                       # 볼륨은 했지만 처방한 페이스가 아니었다
+    vol = min(ratio, 1.0)
+    comp = 100 * (0.6 * vol + 0.4 * hit) if hit is not None else 100 * vol
     return {"sets_planned": 1, "sets_done": 1 if ratio >= 0.5 else 0, "volume_ratio": round(ratio, 2),
-            "target_hit_pct": None, "compliance_pct": round(100 * min(ratio, 1.0), 1), "label": label,
-            "continuous": True, "pairs": []}
+            "target_hit_pct": None if hit is None else round(100 * hit, 1), "pace_share_pct": None if share is None else round(100 * share, 1),
+            "compliance_pct": round(comp, 1), "label": label, "continuous": True, "pairs": []}
 
 
 def _in_target(step: dict, bout: dict) -> bool | None:

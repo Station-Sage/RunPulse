@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 03a-today.md 1-A L2 "다음 세션 현황" — 구 Plan "보기" 흡수.
 	import type { ActivePlan, TodaysAdjustment } from '$lib/types';
-	import { workoutLabel } from '$lib/format';
+	import { weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
 
@@ -68,18 +68,14 @@
 {:else if nextSession === null}
 	<div class="rounded-xl bg-surface-2 p-3">
 		<p class="mb-1 text-xs text-fg-muted">
-			{plan.goal.name} · {plan.week_index}주차{plan.goal.plan_weeks
-				? ' / ' + plan.goal.plan_weeks + '주'
-				: ''}{plan.ctl_current != null ? ' · CTL ' + Math.round(plan.ctl_current) : ''}
+			{plan.goal.name} · {weekProgressLabel(plan.week_index, plan.goal.plan_weeks)}{plan.ctl_current != null ? ' · CTL ' + Math.round(plan.ctl_current) : ''}
 		</p>
 		<p class="text-sm text-fg-secondary">이번 주 남은 세션이 없습니다</p>
 	</div>
 {:else}
 	<div class="flex flex-col gap-2">
 		<p class="text-xs text-fg-muted">
-			{plan.goal.name} · {plan.week_index}주차{plan.goal.plan_weeks
-				? ' / ' + plan.goal.plan_weeks + '주'
-				: ''}{plan.ctl_current != null ? ' · CTL ' + Math.round(plan.ctl_current) : ''}
+			{plan.goal.name} · {weekProgressLabel(plan.week_index, plan.goal.plan_weeks)}{plan.ctl_current != null ? ' · CTL ' + Math.round(plan.ctl_current) : ''}
 		</p>
 
 		<div class="rounded-xl bg-surface-2 p-3">

@@ -21,3 +21,16 @@ describe('staleLabel', () => {
 		assert.equal(staleLabel('not-a-date', nowMs), null);
 	});
 });
+
+import { threadTitles } from '../src/lib/threadAge.ts';
+
+describe('threadTitles', () => { it('같은 제목만 날짜로 구분', () => {
+	const m = threadTitles([
+		{ id: 1, title: '오늘 훈련 조언', created_at: '2026-09-26T05:00:00Z' },
+		{ id: 2, title: '오늘 훈련 조언', created_at: '2026-09-24T05:00:00Z' },
+		{ id: 3, title: '훈련 분석', created_at: '2026-09-25T05:00:00Z' }
+	]);
+	assert.match(m.get(1), /^오늘 훈련 조언 · \d+\/\d+$/);
+	assert.notEqual(m.get(1), m.get(2));
+	assert.equal(m.get(3), '훈련 분석');
+}); });

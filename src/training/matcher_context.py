@@ -13,6 +13,17 @@ def canonical_activity_id(conn: sqlite3.Connection, activity_id: int) -> int:
     return row[0] if row else activity_id
 
 
+def _classified_kinds(conn: sqlite3.Connection, activity_ids: list[int]) -> dict[int, str]:
+    """활동 id → 세션 분류(workout_type_classified). 분류 없는 활동은 빠진다."""
+    if not activity_ids:
+        return {}
+    q = ",".join("?" for _ in activity_ids)
+    rows = conn.execute(
+        "SELECT scope_id, text_value FROM metric_store WHERE scope_type='activity' AND metric_name='workout_type_classified' "
+        f"AND is_primary=1 AND scope_id IN ({q})", [str(i) for i in activity_ids]).fetchall()
+    return {int(r[0]): r[1] for r in rows if r[1]}
+
+
 def _get_hr_zone_dist(
     conn: sqlite3.Connection,
     activity_id: int,

@@ -14,7 +14,7 @@ from src.training.planner import (
     save_weekly_plan,
     upsert_user_training_prefs,
 )
-from src.training.planner_rules import plan_weeks_until_race
+from src.training.planner_rules import plan_start_monday, plan_weeks_until_race
 from src.training.readiness import (
     analyze_readiness,
     get_recommended_weeks,
@@ -176,9 +176,9 @@ def create_plan_from_template(
     upsert_user_training_prefs(conn)
 
     today = date.today()
-    current_week = today - timedelta(days=today.weekday())
-
-    ws = current_week
+    # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)
+    ws = (plan_start_monday(race_date, weeks) if race_date and avail is not None else None) \
+        or today - timedelta(days=today.weekday())
     for _ in range(weeks):
         plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
         save_weekly_plan(conn, plan)

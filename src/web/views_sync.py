@@ -58,7 +58,10 @@ def sync_page():
 
     # 동기화 실행 카드 (기본/기간 2탭)
     connected = {k for k, v in statuses.items() if v.get("ok")}
-    sync_card = sync_card_html(last_sync=sync, connected=connected)
+    from src.utils.config import ALL_SOURCES, enabled_sources
+    on = set(enabled_sources(config))
+    sync_card = sync_card_html(last_sync=sync, connected=connected, sync_off=set(ALL_SOURCES) - on)
+    sources_section = _sync_sources_html(on, connected)
 
     # 서비스 연결 카드
     service_cards = (
@@ -127,12 +130,45 @@ def sync_page():
         msg_html
         + sync_overview
         + sync_card
+        + sources_section
         + auto_sync_section
         + service_cards
         + import_section
         + recompute_section
     )
     return html_page("동기화", body, active_tab="sync")
+
+
+def _sync_sources_html(on: set[str], connected: set[str]) -> str:
+    """동기화 대상 카드 — 체크 해제하면 자동·기본 동기화에서 빠지고, 다시 체크하면 포함(즉시 저장)."""
+    from src.utils.config import ALL_SOURCES
+    names = {"garmin": "Garmin", "strava": "Strava", "intervals": "Intervals", "runalyze": "Runalyze"}
+    unlinked = " <small class='muted'>(미연결)</small>"
+    boxes = "".join(
+        f"<label style='display:inline-flex;align-items:center;gap:6px;margin-right:1.2rem;font-size:0.9rem;'>"
+        f"<input type='checkbox' name='src_{k}' value='1' {'checked' if k in on else ''}"
+        f" onchange='this.form.submit()'> {names[k]}{'' if k in connected else unlinked}</label>"
+        for k in ALL_SOURCES
+    )
+    return (
+        "<div class='card'><h2 style='margin-bottom:0.4rem;'>동기화 대상</h2>"
+        "<p class='muted' style='font-size:0.82rem;margin:0 0 0.6rem;'>"
+        "체크 해제한 소스는 자동·기본 동기화에서 제외됩니다(기존 데이터는 유지). 다시 체크하면 곧바로 포함됩니다. "
+        "기간 동기화는 직접 고른 소스로 실행할 수 있습니다.</p>"
+        f"<form method='post' action='/sync/sources'>{boxes}</form></div>"
+    )
+
+
+@sync_bp.post("/sync/sources")
+def sync_sources_post():
+    """동기화 대상 소스 저장(config.sync_sources). 체크된 것만 포함."""
+    from .helpers import get_current_user_id
+    from src.utils.config import ALL_SOURCES
+
+    config = load_config(user_id=get_current_user_id())
+    config["sync_sources"] = [k for k in ALL_SOURCES if request.form.get(f"src_{k}") == "1"]
+    save_config(config)
+    return redirect("/sync?msg=동기화 대상이 저장되었습니다")
 
 
 def _auto_sync_settings_html(config: dict) -> str:

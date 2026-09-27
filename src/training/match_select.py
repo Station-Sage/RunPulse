@@ -11,9 +11,25 @@ MIN_RATIO, MAX_RATIO = 0.5, 1.6
 DONE_RATIO = 0.75
 
 
-def pick_activity(plan_dist: float | None, day_acts: list[tuple], claimed: set[int]) -> tuple | None:
-    """day_acts 행 = (id, date, distance_km, ...). 거리 기준 가장 가까운 미점유·호환 활동 하나."""
-    free = [a for a in day_acts if a[0] not in claimed]
+# 계획 유형 → 실행 활동의 세션 분류(classifier)가 이것이면 다른 세션으로 본다(분류가 없으면 통과)
+_INCOMPATIBLE = {
+    "interval": {"easy", "recovery", "long_run"},
+    "tempo": {"easy", "recovery"},
+    "easy": {"interval", "repetition", "sprint", "race", "tempo"},
+    "recovery": {"interval", "repetition", "sprint", "race", "tempo", "long_run"},
+    "long": {"interval", "repetition", "sprint", "tempo", "race"},
+}
+
+
+def compatible(plan_type: str | None, kind: str | None) -> bool:
+    return not (plan_type and kind and kind in _INCOMPATIBLE.get(plan_type, ()))
+
+
+def pick_activity(plan_dist: float | None, day_acts: list[tuple], claimed: set[int],
+                  plan_type: str | None = None, kinds: dict[int, str] | None = None) -> tuple | None:
+    """day_acts 행 = (id, date, distance_km, ...). 미점유·세션 유형 호환·거리 호환 활동 중 거리가 가장 가까운 하나."""
+    kinds = kinds or {}
+    free = [a for a in day_acts if a[0] not in claimed and compatible(plan_type, kinds.get(a[0]))]
     if not free:
         return None
     if not plan_dist:

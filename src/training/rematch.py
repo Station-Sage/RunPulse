@@ -4,12 +4,13 @@
 
 - 재매칭: 자동 매칭된 planner 행(matched_activity_id 있음)만 초기화 후 새 규칙(match_select)으로 다시 매칭.
   수동 완료(matched_activity_id 없음)는 건드리지 않는다. 외부 계획 행은 결과 라벨만 다시 계산한다.
-- --replan: goal.plan_weeks 를 대회 주까지로 맞추고, 대회 이후 planner 행 삭제, 다음 주부터 대회 주까지 재생성.
-  이번 주까지의 행(매칭·결과 보존)은 재생성하지 않는다.
+- --replan: 대회 역산 주기화로 계획을 다시 짠다 — plan_weeks 를 대회 주까지로 정정, 대회 이후 행 삭제,
+  이번 주 남은 날부터 대회 주까지 재생성(지난 날·완료·연결된 행은 보존).
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 from datetime import date, timedelta
 
@@ -17,11 +18,27 @@ from src.training.goals import get_active_goal
 from src.training.matcher import match_week_activities
 from src.training.matcher_context import canonical_activity_id
 from src.training.outcome_store import update_outcome_v2
+from src.training.plan_structure import structure_for_plan
 from src.training.planner import generate_weekly_plan, save_weekly_plan
+
+
+def _backfill_structure(conn: sqlite3.Connection, start: date, end: date) -> int:
+    """structure_json 이 없는 planner 행에 세그먼트 구조를 채운다(세트·구간 페이스 분석의 기준)."""
+    n = 0
+    for pid, wt, km, pmin, pmax, rx in conn.execute(
+            "SELECT id, workout_type, distance_km, target_pace_min, target_pace_max, interval_prescription "
+            "FROM planned_workouts WHERE source='planner' AND structure_json IS NULL AND date BETWEEN ? AND ?",
+            (start.isoformat(), end.isoformat())).fetchall():
+        st = structure_for_plan(wt, km, pmin, pmax, rx)
+        if st:
+            conn.execute("UPDATE planned_workouts SET structure_json=? WHERE id=?", (json.dumps(st), pid))
+            n += 1
+    return n
 
 
 def rematch(conn: sqlite3.Connection, start: date, end: date) -> dict:
     """[start, end] 의 자동 매칭을 새 규칙으로 다시 계산. 반환: {"reset", "matched", "external"}."""
+    _backfill_structure(conn, start, end)
     rows = conn.execute(
         "SELECT id FROM planned_workouts WHERE source='planner' AND matched_activity_id IS NOT NULL "
         "AND date BETWEEN ? AND ?", (start.isoformat(), end.isoformat())).fetchall()
@@ -45,7 +62,8 @@ def rematch(conn: sqlite3.Connection, start: date, end: date) -> dict:
 
 
 def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = None) -> dict:
-    """대회 주까지로 plan_weeks 정정 + 대회 이후 planner 행 삭제 + 다음 주~대회 주 재생성."""
+    """대회 역산으로 계획을 다시 짠다: plan_weeks 를 만든 주~대회 주로 정정, 대회 이후 planner 행 삭제,
+    이번 주 남은 날(오늘 이후·미완료)과 다음 주~대회 주를 재생성. 이미 지난 날·완료·연결된 행은 그대로 둔다."""
     today = today or date.today()
     g = conn.execute("SELECT race_date, created_at FROM goals WHERE id=?", (goal_id,)).fetchone()
     if not g or not g[0]:
@@ -54,16 +72,23 @@ def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = N
     race_mon = race - timedelta(days=race.weekday())
     created = date.fromisoformat(g[1][:10])
     start_mon = created - timedelta(days=created.weekday())
-    conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", ((race_mon - start_mon).days // 7 + 1, goal_id))
+    weeks = (race_mon - start_mon).days // 7 + 1
+    conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
     deleted = conn.execute("DELETE FROM planned_workouts WHERE source='planner' AND date > ?",
                            (race.isoformat(),)).rowcount
-    ws, n = today - timedelta(days=today.weekday()) + timedelta(weeks=1), 0
+    this_mon = today - timedelta(days=today.weekday())
+    ws, n = this_mon, 0
     while ws <= race_mon:
-        save_weekly_plan(conn, generate_weekly_plan(conn, goal_id=goal_id, week_start=ws))
+        plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+        if ws == this_mon:
+            done = {r[0] for r in conn.execute(
+                "SELECT date FROM planned_workouts WHERE source='planner' AND (completed=1 OR matched_activity_id IS NOT NULL)")}
+            plan = [w for w in plan if w["date"] >= today.isoformat() and w["date"] not in done]
+        save_weekly_plan(conn, plan)
         ws += timedelta(weeks=1)
         n += 1
     conn.commit()
-    return {"weeks": (race_mon - start_mon).days // 7 + 1, "regenerated": n, "deleted": deleted}
+    return {"weeks": weeks, "regenerated": n, "deleted": deleted}
 
 
 def main() -> None:

@@ -39,9 +39,11 @@ def update_outcome_v2(conn: sqlite3.Connection, planned_id: int, activity_id: in
         return None
     structure = json.loads(p[0])
     if is_continuous(structure):
-        a = conn.execute("SELECT duration_sec, distance_m FROM v_canonical_activities WHERE id=?",
-                         (canonical_activity_id(conn, activity_id),)).fetchone()
-        res = compare_continuous(structure, a[0], a[1]) if a else None
+        cid = canonical_activity_id(conn, activity_id)
+        a = conn.execute("SELECT duration_sec, distance_m FROM v_canonical_activities WHERE id=?", (cid,)).fetchone()
+        laps = [(r[0], r[1]) for r in conn.execute(
+            "SELECT distance_m, duration_sec FROM activity_laps WHERE activity_id=? AND distance_m > 0", (cid,))]
+        res = compare_continuous(structure, a[0], a[1], laps) if a else None
         if res is None:
             return None
     else:

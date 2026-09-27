@@ -4,18 +4,19 @@
 	import { createThread } from '$lib/api/coach';
 	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
-	import { formatRelativeTime } from '$lib/format';
+	import { formatRelativeTime, weekProgressLabel } from '$lib/format';
 	import { stripMarkdown } from '$lib/markdownLite';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import { homeTopics } from '$lib/coachSuggestions';
-	import { staleLabel } from '$lib/threadAge';
+	import { staleLabel, threadTitles } from '$lib/threadAge';
 
 	let { data }: { data: CoachPageData } = $props();
 
 	let threads = $state<ChatThread[]>(data.result?.threads ?? []);
+	const titles = $derived(threadTitles(threads));
 	let errorMessage = $state(data.errorMessage);
 
 	// 새 대화 입력 상태
@@ -94,9 +95,9 @@
 						class="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 active:bg-surface-3"
 					>
 						<div class="min-w-0 flex-1">
-							<p class="truncate text-sm font-medium">{t.title}</p>
+							<p class="truncate text-sm font-medium">{titles.get(t.id) ?? t.title}</p>
 							{#if t.last_message}
-								<p class="truncate text-xs text-fg-muted">{stripMarkdown(t.last_message)}</p>
+								<p class="line-clamp-2 text-xs text-fg-muted">{stripMarkdown(t.last_message)}</p>
 							{/if}
 							{#if staleLabel(t.last_message_at, Date.now())}
 								<p class="text-[10px] text-semantic-amber">{staleLabel(t.last_message_at, Date.now())}</p>
@@ -191,9 +192,7 @@
 					<div class="min-w-0">
 						<p class="truncate text-sm font-medium">{data.activePlan.goal.name}</p>
 						<p class="text-xs text-fg-muted">
-							진행 중: {data.activePlan.week_index}주차{data.activePlan.goal.plan_weeks
-								? ` / ${data.activePlan.goal.plan_weeks}주`
-								: ''}
+							진행 중: {weekProgressLabel(data.activePlan.week_index, data.activePlan.goal.plan_weeks)}
 						</p>
 					</div>
 					<span class="ml-2 shrink-0 text-fg-muted">›</span>

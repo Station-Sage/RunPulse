@@ -16,18 +16,29 @@ _SERVICE_LABELS = [
 ]
 
 
-def _source_checkboxes(panel: str, connected: set[str] | None = None) -> str:
+def _source_checkboxes(panel: str, connected: set[str] | None = None, off: set[str] | None = None) -> str:
     """서비스 멀티 선택 체크박스 pill 그룹 HTML.
 
     Args:
         panel: 'basic' 또는 'hist' — id prefix 구분용.
         connected: 연결된 서비스 이름 집합. None이면 모두 활성.
+        off: 동기화 대상에서 끈 서비스(config.sync_sources) — 체크 해제·비활성 표시. 설정은 아래 "동기화 대상" 카드.
     """
     pills = []
+    off = off or set()
     for src, label, color in _SERVICE_LABELS:
         cid = f"{panel}-chk-{src}"
         is_connected = connected is None or src in connected
-        if is_connected:
+        if is_connected and src in off:
+            pills.append(
+                f"<label style='display:inline-flex; align-items:center; gap:4px;"
+                f"padding:0.3rem 0.7rem; border-radius:20px; font-size:0.82rem; font-weight:600;"
+                f"border:2px dashed #ccc; background:transparent; color:#999; cursor:not-allowed;' "
+                f"title='{label} 동기화 꺼짐 — 아래 동기화 대상에서 켜세요'>"
+                f"<input type='checkbox' id='{cid}' data-panel='{panel}' data-src='{src}'"
+                f" disabled style='display:none;'><span>—</span> {label} (꺼짐)</label>"
+            )
+        elif is_connected:
             pills.append(
                 f"<label id='{cid}-label' for='{cid}' style='"
                 f"display:inline-flex; align-items:center; gap:4px; cursor:pointer;"
@@ -130,8 +141,9 @@ def sync_card_html(
     last_sync: dict[str, str | None] | None = None,
     sync_states: dict | None = None,
     connected: set[str] | None = None,
+    sync_off: set[str] | None = None,
 ) -> str:
-    """기본 동기화 + 기간 동기화 2탭 카드 HTML (AJAX 제출).
+    """기본 동기화 + 기간 동기화 2탭 카드 HTML (AJAX 제출). sync_off 는 기본 동기화에서만 비활성(기간 동기화는 수동 지정).
 
     Args:
         last_sync: last_sync_info() 반환값.
@@ -140,7 +152,7 @@ def sync_card_html(
     """
     last_sync_html = _last_sync_line(last_sync)
     state_banner = _sync_state_banner(sync_states)
-    basic_src = _source_checkboxes("basic", connected)
+    basic_src = _source_checkboxes("basic", connected, sync_off)
     hist_src = _source_checkboxes("hist", connected)
     return f"""
 <div class="card" id="sync-card" style="border-color:#b3d9ff;">

@@ -544,6 +544,7 @@ export interface PlannedWorkout {
 	outcome_label?: string | null;
 	dist_ratio?: number | null;
 	actual_dist_km?: number | null;
+	compliance_pct?: number | null; // 세트·구간 페이스까지 본 이행률(0~100)
 	superseded?: boolean; // 같은 날 다른 계획(Garmin 저장 워크아웃 등)이 실제 활동을 가져감
 }
 
@@ -787,6 +788,7 @@ export interface ArchivePb {
 	time_sec: number;
 	date: string;
 	activity_id: number;
+	source?: string; // '대회' | '구간 기록'(활동 안 최고 구간)
 }
 export interface ArchiveData {
 	as_of: string;

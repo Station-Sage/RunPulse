@@ -5,7 +5,10 @@ import sqlite3
 from datetime import date as _date, timedelta
 
 _RUN = "activity_type LIKE '%running%'"
-_PB_EFFORTS = [("1K", "1K"), ("1 mile", "1마일"), ("5K", "5K"), ("10K", "10K"), ("15K", "15K"), ("10 mile", "10마일")]
+_PB_EFFORTS = [("1K", "1K"), ("1 mile", "1마일"), ("5K", "5K"), ("10K", "10K")]
+# 대회 기록(전력 allout)으로도 뽑는 표준 거리 — 대회 거리가 이 값의 ±1.5% 안이면 그 거리 기록으로 본다(시간은 거리 비로 환산)
+_PB_RACES = [("5K", "5K", 5000.0), ("10K", "10K", 10000.0), ("half", "하프", 21097.5), ("full", "풀", 42195.0)]
+_RACE_TOL = 0.015
 HEATMAP_DAYS = 371  # 53주
 
 
@@ -69,7 +72,9 @@ def get_archive(conn: sqlite3.Connection, today: str | None = None) -> dict:
         if lg else None
     )
 
-    pbs = []
+    # 개인 최고 기록 — 활동 안 구간 기록(Strava best efforts)과 전력 대회 기록을 함께 본다. Strava 는 더 이상 동기화하지
+    # 않아 구간 기록이 옛 시점에서 멈춰 있으므로 대회 기록(Garmin·Intervals 활동)이 최근 PB 를 채운다. 항목마다 출처를 표시.
+    cand: dict[str, dict] = {}
     for key, label in _PB_EFFORTS:
         row = conn.execute(
             "SELECT b.activity_id AS aid, b.elapsed_sec AS sec, substr(a.start_time, 1, 10) AS d"
@@ -79,7 +84,26 @@ def get_archive(conn: sqlite3.Connection, today: str | None = None) -> dict:
             (key,),
         ).fetchone()
         if row:
-            pbs.append({"key": key, "label": label, "time_sec": int(row["sec"]), "date": row["d"], "activity_id": row["aid"]})
+            cand[key] = {"key": key, "label": label, "time_sec": int(row["sec"]), "date": row["d"],
+                         "activity_id": row["aid"], "source": "구간 기록"}
+    try:
+        races = conn.execute(
+            "SELECT r.activity_id AS aid, r.distance_m AS dist, COALESCE(r.official_time_sec, a.moving_time_sec) AS sec,"
+            " substr(a.start_time, 1, 10) AS d FROM race_results r JOIN activity_summaries a ON a.id = r.activity_id"
+            " WHERE r.effort = 'allout' AND COALESCE(r.official_time_sec, a.moving_time_sec) > 0"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        races = []
+    for key, label, target in _PB_RACES:
+        for r in races:
+            if abs(r["dist"] - target) / target > _RACE_TOL:
+                continue
+            sec = int(round(r["sec"] * target / r["dist"]))
+            if key not in cand or sec < cand[key]["time_sec"]:
+                cand[key] = {"key": key, "label": label, "time_sec": sec, "date": r["d"], "activity_id": r["aid"],
+                             "source": "대회"}
+    order = [k for k, _ in _PB_EFFORTS] + [k for k, _, _ in _PB_RACES if k not in dict(_PB_EFFORTS)]
+    pbs = [cand[k] for k in order if k in cand]
 
     return {
         "as_of": now.isoformat(),

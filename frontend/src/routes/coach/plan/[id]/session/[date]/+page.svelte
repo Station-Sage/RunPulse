@@ -2,7 +2,7 @@
 	// 03e-coach.md 5-G — 일일 세션 상세.
 	import type { SessionDetailPageData } from './+page';
 	import { saveSessionNote } from '$lib/api/plan';
-	import { workoutLabel } from '$lib/format';
+	import { formatPaceRange, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 
 	let { data }: { data: SessionDetailPageData } = $props();
@@ -12,18 +12,6 @@
 	function dayLabel(dateStr: string): string {
 		const d = new Date(dateStr + 'T00:00:00');
 		return DAY_KO[d.getDay() === 0 ? 6 : d.getDay() - 1];
-	}
-
-	function paceRange(min: number | null, max: number | null): string {
-		if (min == null && max == null) return '';
-		const fmt = (s: number) => {
-			const m = Math.floor(s);
-			const sec = Math.round((s - m) * 60);
-			return `${m}:${String(sec).padStart(2, '0')}`;
-		};
-		if (min != null && max != null) return `${fmt(min)}–${fmt(max)}/km`;
-		if (min != null) return `>${fmt(min)}/km`;
-		return `<${fmt(max!)}/km`;
 	}
 
 	let noteText = $state(data.session?.note ?? '');
@@ -81,8 +69,8 @@
 				{#if data.session.workout.distance_km}
 					<span>{data.session.workout.distance_km}km</span>
 				{/if}
-				{#if paceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}
-					<span>{paceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}</span>
+				{#if formatPaceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}
+					<span>{formatPaceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}</span>
 				{/if}
 			</div>
 			{#if data.session.workout.description}

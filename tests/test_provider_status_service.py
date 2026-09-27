@@ -102,3 +102,34 @@ def test_start_basic_sync_skips_disabled(monkeypatch):
     out = bg_sync.start_basic_sync(["garmin", "strava", "runalyze"], {}, "2026-09-27",
                                    {"sync_sources": ["garmin"]}, "u")
     assert started == ["garmin"] and list(out) == ["garmin"]
+
+
+def test_set_sync_source_toggles_and_keeps_order():
+    from src.utils.config import set_sync_source
+    cfg = {"sync_sources": ["garmin", "intervals"]}
+    assert set_sync_source(cfg, "strava", True) == ["garmin", "strava", "intervals"]
+    assert set_sync_source(cfg, "garmin", False) == ["strava", "intervals"]
+    assert set_sync_source({}, "runalyze", False) == ["garmin", "strava", "intervals"]     # 키 없으면 전부 켜짐에서 시작
+
+
+def test_sync_page_widgets_reflect_sources():
+    from src.web.sync_ui import _source_checkboxes
+    from src.web.views_sync import _sync_sources_html
+    html = _source_checkboxes("basic", {"garmin", "strava"}, off={"strava"})
+    assert "Strava (꺼짐)" in html and "id='basic-chk-strava'" in html and "disabled" in html
+    card = _sync_sources_html({"garmin"}, {"garmin", "strava"})
+    assert "name='src_garmin' value='1' checked" in card and "name='src_strava' value='1' " in card
+    assert card.count("checked") == 1 and "(미연결)" in card
+
+
+def test_sync_sources_post_saves_checked_only(monkeypatch):
+    from flask import Flask
+    import src.web.views_sync as vs
+    saved = {}
+    monkeypatch.setattr(vs, "load_config", lambda **k: {"garmin": {}})
+    monkeypatch.setattr(vs, "save_config", lambda c: saved.update(c))
+    monkeypatch.setattr("src.web.helpers.get_current_user_id", lambda: "u")
+    app = Flask(__name__)
+    app.register_blueprint(vs.sync_bp)
+    r = app.test_client().post("/sync/sources", data={"src_garmin": "1", "src_runalyze": "1"})
+    assert r.status_code == 302 and saved["sync_sources"] == ["garmin", "runalyze"]

@@ -1,4 +1,5 @@
-"""마일스톤 표시용 가공(순수) — 재계산 항목의 내부 메트릭 키를 사람이 읽는 이름으로 바꾸고, 같은 날 예측 재계산은 한 줄로 묶는다.
+"""마일스톤 표시용 가공(순수) — 갱신(같은 알고리즘 안의 값 변화) 항목의 내부 메트릭 키를 사람이 읽는 이름으로 바꾸고, 같은 날 예측 갱신은 한 줄로 묶는다.
+알고리즘 변경·검토 중 provider 행은 조회 단계(milestone_service)에서 이미 걸러진다.
 
 저장은 메트릭별 1행(metric_recompute)이라 예측 4종을 재계산하면 같은 날 4줄이 쌓인다 — 조회 시점에 합친다.
 """
@@ -16,9 +17,10 @@ def _clock(sec: float) -> str:
     return f"{h}:{m:02d}:{r:02d}" if h else f"{m}:{r:02d}"
 
 
-def _versions(detail: str | None) -> str:
-    """저장된 detail('1.0→2.0 적용')에서 버전 구간만 뽑는다."""
-    return (detail or "").replace(" 적용", "").strip()
+def _ver_note(detail: str | None) -> str:
+    """detail('1.0→2.0 적용')의 버전이 다르면 ' · 알고리즘 1.0→2.0', 같으면(데이터 변화) 빈 문자열."""
+    old, _, new = (detail or "").replace(" 적용", "").strip().partition("→")
+    return f" · 알고리즘 {old}→{new}" if new and old != new else ""
 
 
 def present_milestones(rows: list[dict]) -> list[dict]:
@@ -34,16 +36,16 @@ def present_milestones(rows: list[dict]) -> list[dict]:
             g = merged.get(r["date"])
             part = f"{_PRED_KEYS[name]} {_clock(r['old_value'])}→{_clock(r['new_value'])}"
             if g is None:
-                g = merged[r["date"]] = {**r, "title": "예측 기록 재계산", "_parts": {}, "_ver": _versions(r.get("detail"))}
+                g = merged[r["date"]] = {**r, "title": "예측 기록 갱신", "_parts": {}, "_ver": _ver_note(r.get("detail"))}
                 out.append(g)
             g["_parts"][name] = part
         else:
             label = _OTHER.get(name, name)
-            out.append({**r, "title": f"{label} 재계산",
-                        "detail": f"{r['old_value']:.1f}→{r['new_value']:.1f} · 알고리즘 {_versions(r.get('detail'))}"})
+            out.append({**r, "title": f"{label} 갱신",
+                        "detail": f"{r['old_value']:.1f}→{r['new_value']:.1f}{_ver_note(r.get('detail'))}"})
     for g in merged.values():
         parts = [g["_parts"][k] for k, _ in _PRED if k in g["_parts"]]
-        g["detail"] = f"{' · '.join(parts)} · 알고리즘 {g.pop('_ver')}"
+        g["detail"] = f"{' · '.join(parts)}{g.pop('_ver')}"
         g.pop("_parts")
         g["metric_name"], g["old_value"], g["new_value"] = None, None, None
     return out

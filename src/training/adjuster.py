@@ -108,17 +108,19 @@ def adjust_todays_plan(
         조정된 workout dict.
         추가 필드: original_type, adjusted_type, adjusted, adjustment_reason,
                    adjustment_reason_parts, fatigue_level, volume_boost, wellness, tsb.
-        해당 날짜 계획 없으면 None.
+        해당 날짜 계획이 없거나 이미 실행 완료면 None.
     """
     target = date or _date.today().isoformat()
     row = conn.execute(
         """SELECT id, date, workout_type, distance_km, target_pace_min, target_pace_max,
                   target_hr_zone, description, rationale
-           FROM planned_workouts
-           WHERE date = ?
-           ORDER BY id DESC LIMIT 1""",
+           FROM planned_workouts p
+           WHERE p.date = ? AND p.completed = 0
+             AND NOT EXISTS (SELECT 1 FROM planned_workouts o WHERE o.date = p.date
+                             AND o.completed = 1 AND o.matched_activity_id IS NOT NULL)
+           ORDER BY p.id DESC LIMIT 1""",
         (target,),
-    ).fetchone()
+    ).fetchone()      # 이미 실행한(다른 계획이 활동을 가져간) 날은 조정 대상이 아니다
 
     if not row:
         return None

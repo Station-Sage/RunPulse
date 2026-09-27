@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 03e-coach.md 5-F — 플랜 상세: 진행 중인 훈련 플랜.
 	import type { PlanDetailPageData } from './+page';
-	import { formatDuration, workoutLabel } from '$lib/format';
+	import { formatDuration, formatPaceRange, weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import type { PlannedWorkout } from '$lib/types';
@@ -33,25 +33,20 @@
 
 	// 계획 행 상태: 완료 ✓ / 대체됨 / 부분 이행 / 미이행(지난 날) — 없으면 예정
 	function statusOf(w: PlannedWorkout): { text: string; cls: string } | null {
-		if (w.completed) return { text: '✓', cls: 'text-semantic-green' };
+		const pct = w.compliance_pct != null ? Math.round(w.compliance_pct) : null;
+		if (w.completed) {
+			if (w.outcome_label === 'modified') return { text: '✓ 페이스 상이', cls: 'text-semantic-amber' };
+			return { text: pct != null && pct < 85 ? `✓ ${pct}%` : '✓', cls: 'text-semantic-green' };
+		}
 		if (w.superseded) return { text: '대체됨', cls: 'text-fg-muted' };
-		if (w.matched_activity_id && w.dist_ratio != null)
-			return { text: `부분 ${Math.round(w.dist_ratio * 100)}%`, cls: 'text-semantic-amber' };
+		if (w.matched_activity_id) {
+			const p = pct ?? (w.dist_ratio != null ? Math.round(w.dist_ratio * 100) : null);
+			if (p != null) return { text: `부분 ${p}%`, cls: 'text-semantic-amber' };
+		}
 		if (w.date < TODAY && w.workout_type !== 'rest') return { text: '미이행', cls: 'text-fg-muted' };
 		return null;
 	}
 
-	function paceRange(min: number | null, max: number | null): string {
-		if (min == null && max == null) return '';
-		const fmt = (s: number) => {
-			const m = Math.floor(s);
-			const sec = Math.round((s - m) * 60);
-			return `${m}:${String(sec).padStart(2, '0')}`;
-		};
-		if (min != null && max != null) return `${fmt(min)}–${fmt(max)}/km`;
-		if (min != null) return `>${fmt(min)}/km`;
-		return `<${fmt(max!)}/km`;
-	}
 </script>
 
 <svelte:head><title>플랜 상세 · RunPulse</title></svelte:head>
@@ -71,9 +66,7 @@
 			</div>
 			<h1 class="text-base font-semibold">{data.plan.goal.name}</h1>
 			<p class="text-sm text-fg-secondary">
-				{data.plan.week_index}주차{data.plan.goal.plan_weeks
-					? ` / ${data.plan.goal.plan_weeks}주`
-					: ''}
+				{weekProgressLabel(data.plan.week_index, data.plan.goal.plan_weeks)}
 				{#if data.plan.goal.race_date}
 					· 레이스 {data.plan.goal.race_date}
 				{/if}
@@ -144,9 +137,9 @@
 										{#if w.distance_km}
 											<span class="text-xs text-fg-muted">{w.distance_km}km</span>
 										{/if}
-										{#if paceRange(w.target_pace_min, w.target_pace_max)}
+										{#if formatPaceRange(w.target_pace_min, w.target_pace_max)}
 											<span class="text-xs text-fg-muted"
-												>{paceRange(w.target_pace_min, w.target_pace_max)}</span
+												>{formatPaceRange(w.target_pace_min, w.target_pace_max)}</span
 											>
 										{/if}
 									</div>

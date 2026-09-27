@@ -22,3 +22,21 @@ test('formatRelativeTime — 3시간 전·2일 전', () => {
 	assert.equal(formatRelativeTime(dbTs(3 * 3600_000 + 5000)), '3시간 전');
 	assert.equal(formatRelativeTime(dbTs(2 * 86400_000 + 5000)), '2일 전');
 });
+
+import { formatPaceRange } from '../src/lib/format.ts';
+
+test('formatPaceRange — 초/km 범위를 m:ss 로(분으로 오인하지 않는다)', () => {
+	assert.equal(formatPaceRange(365, 405), '6:05–6:45/km');
+	assert.equal(formatPaceRange(265, null), '>4:25/km');
+	assert.equal(formatPaceRange(null, 280), '<4:40/km');
+	assert.equal(formatPaceRange(null, null), '');
+});
+
+import { weekProgressLabel } from '../src/lib/format.ts';
+
+test('weekProgressLabel — 진행 중·시작 전', () => {
+	assert.equal(weekProgressLabel(3, 9), '3주차 / 9주');
+	assert.equal(weekProgressLabel(3, null), '3주차');
+	assert.equal(weekProgressLabel(0, 6), '시작 전 (1주 뒤)');
+	assert.equal(weekProgressLabel(-2, 6), '시작 전 (3주 뒤)');
+});

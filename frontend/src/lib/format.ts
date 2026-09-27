@@ -24,6 +24,20 @@ export function formatPace(secPerKm: number): string {
  * - m (≥1000) → km 1자리, unit 'km'
  * - 그 외: 100 이상은 정수, 미만은 소수 1자리, unit 그대로
  */
+/** 계획 페이스 범위(초/km, min=빠른 쪽) → '6:05–6:45/km'. 한쪽만 있으면 '>6:05/km'·'<6:45/km', 둘 다 없으면 ''. */
+export function formatPaceRange(min: number | null, max: number | null): string {
+	if (min == null && max == null) return '';
+	const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+	if (min != null && max != null) return `${fmt(min)}–${fmt(max)}/km`;
+	return min != null ? `>${fmt(min)}/km` : `<${fmt(max!)}/km`;
+}
+
+/** 계획 진행 라벨: '3주차 / 9주', 시작 전이면 '시작 전 (2주 뒤)'. planWeeks 없으면 '3주차'. */
+export function weekProgressLabel(weekIndex: number, planWeeks?: number | null): string {
+	if (weekIndex < 1) return `시작 전 (${1 - weekIndex}주 뒤)`;
+	return planWeeks ? `${weekIndex}주차 / ${planWeeks}주` : `${weekIndex}주차`;
+}
+
 export function formatUnitValue(value: number, unit: string): { display: string; unit: string } {
 	if (unit === 'sec') {
 		return { display: formatDuration(value), unit: '' };
