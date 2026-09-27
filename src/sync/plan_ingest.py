@@ -10,8 +10,7 @@
   get_adaptive_training_plan_by_id: {"trainingPlanId", "name", "taskList": [{"taskWorkout": {"workoutName",
       "workoutDescription": "5:50/km", "scheduledDate", "estimatedDurationInSecs", "workoutPhrase", "restDay"}}]}
   활동 payload 의 workoutId 로 저장 워크아웃과 실행을 잇는다(135건/16개 id, 2개는 삭제되어 404).
-Intervals 이벤트(GET /events?category=WORKOUT)는 이 환경에서 401(키 무효)이라 응답을 직접 확인하지 못했다 —
-공개 문서의 필드(start_date_local·name·type·moving_time·distance·workout_doc)만 최소 파싱하고 원문을 저장한다(PRED-99 U-21).
+Intervals 이벤트 인제스트는 plan_ingest_intervals.py (같은 store_planned·연결 로직 사용).
 """
 from __future__ import annotations
 
@@ -107,17 +106,6 @@ def parse_garmin_adaptive_task(task: dict) -> dict | None:
             "structure": {"steps": [step]}, "distance_km": None, "workout_type": wtype}
 
 
-def parse_intervals_event(payload: dict) -> dict | None:
-    """Intervals 이벤트(문서 기준, 실응답 미확인) → 날짜·이름·거리·유형. 구조(workout_doc)는 파싱하지 않는다."""
-    day = str(payload.get("start_date_local") or "")[:10]
-    if not day or (payload.get("category") not in (None, "WORKOUT")):
-        return None
-    dist = payload.get("distance")
-    name = payload.get("name") or ""
-    return {"name": name, "sport": payload.get("type"), "date": day, "structure": None,
-            "distance_km": round(dist / 1000, 2) if dist else None, "workout_type": _guess_type(name, [])}
-
-
 def store_planned(conn: sqlite3.Connection, *, source_system: str, external_id: str, date: str, parsed: dict,
                   garmin_workout_id: str | None = None, matched_activity_id: int | None = None) -> int:
     """(source_system, external_id) 로 UPSERT 한다. 같은 날짜의 앱 계획(runpulse)은 건드리지 않는다. 반환: planned_workouts.id"""
@@ -138,13 +126,13 @@ def store_planned(conn: sqlite3.Connection, *, source_system: str, external_id: 
     return cur.lastrowid
 
 
-def _canonical_id(conn: sqlite3.Connection, garmin_activity_id: str) -> tuple | None:
-    """Garmin 활동 id(source_id) → 같은 그룹의 canonical 활동 행(matcher 가 쓰는 형태)."""
+def _canonical_id(conn: sqlite3.Connection, source_activity_id: str, source: str = "garmin") -> tuple | None:
+    """소스 활동 id(source_id) → 같은 그룹의 canonical 활동 행(matcher 가 쓰는 형태)."""
     return conn.execute(
         "SELECT c.id, DATE(c.start_time), c.distance_m/1000.0, c.avg_pace_sec_km, c.avg_hr, c.duration_sec, c.activity_type "
         "FROM activity_summaries a JOIN v_canonical_activities c "
         "  ON COALESCE(c.matched_group_id, 'solo_'||c.id) = COALESCE(a.matched_group_id, 'solo_'||a.id) "
-        "WHERE a.source='garmin' AND a.source_id=? LIMIT 1", (str(garmin_activity_id),)).fetchone()
+        "WHERE a.source=? AND a.source_id=? LIMIT 1", (source, str(source_activity_id))).fetchone()
 
 
 def ingest_garmin_executed(conn: sqlite3.Connection, client, pause_s: float = 0.4) -> dict:
@@ -221,21 +209,6 @@ def ingest_garmin_adaptive(conn: sqlite3.Connection, client, today: str) -> dict
     return stats
 
 
-def ingest_intervals_events(conn: sqlite3.Connection, events: list[dict]) -> int:
-    """Intervals 계획 이벤트 목록 → planned_workouts. 원문 먼저 저장, 파싱 실패 항목은 건너뛴다."""
-    n = 0
-    for ev in events or []:
-        if not isinstance(ev, dict) or ev.get("id") is None:
-            continue
-        upsert_payload(conn, "intervals", "planned_workout", str(ev["id"]), ev)
-        parsed = parse_intervals_event(ev)
-        if parsed:
-            store_planned(conn, source_system="intervals", external_id=str(ev["id"]), date=parsed["date"], parsed=parsed)
-            n += 1
-    conn.commit()
-    return n
-
-
 def main(argv: list[str] | None = None) -> None:
     """사람 실행용: python3 -m src.sync.plan_ingest --db <db> --user <id> — Garmin 로그인 후 실행 계획·적응형 계획 인제스트."""
     import argparse
@@ -255,6 +228,16 @@ def main(argv: list[str] | None = None) -> None:
     client = _login(config)
     print("executed:", ingest_garmin_executed(conn, client))
     print("adaptive:", ingest_garmin_adaptive(conn, client, date.today().isoformat()))
+    try:  # Intervals 는 API 키가 암호화 저장 — CREDENTIAL_ENCRYPTION_KEY 가 있는 환경(컨테이너)에서만 동작
+        import httpx
+        from src.sync.intervals_auth import auth, base_url
+        r = httpx.get(base_url(config) + "/events", params={"oldest": "2023-10-01", "newest": date.today().replace(year=date.today().year + 1).isoformat()},
+                      auth=auth(config), timeout=30)
+        r.raise_for_status()
+        from src.sync.plan_ingest_intervals import ingest_intervals_events
+        print("intervals:", ingest_intervals_events(conn, r.json()))
+    except Exception as e:
+        log.warning("intervals 이벤트 인제스트 실패: %s", e)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@
   ↳ 확인: 최신 LT 속도 3.56 m/s(4:41/km), 10K 대회 페이스(4:25/km)와 정합 — ×10 확정.
 | U-5 | Strava `Z` 시작 시각의 현지 해석 | Strava·Garmin 트윈의 시작 시각 차 분포(사본) | 자동 | 32(기상 보간 시각) | 현지로 취급. 오류여도 기온 오차는 시간당 ~1℃ 이내 |
 | U-6 | ~~외부 계획 API(Garmin 예정 워크아웃·Intervals 이벤트)~~ **확인됨(2026-09-26)** | 실제 응답 원문 저장 후 파서 작성 | 수동 | P7-PRED-44 | 앱 자체 계획만 매칭 |
-  ↳ Garmin 확인·구현(2026-09-26, P7-PRED-44 절 참조). Intervals 이벤트는 API 키 401(무효)이라 실응답 미확인 → U-21.
+  ↳ Garmin 확인·구현(2026-09-26, P7-PRED-44 절 참조). Intervals 이벤트도 확인·구현(2026-09-27) — 처음 401 은 키가 무효한 게 아니라 config.json 의 키가 Fernet("enc:") 암호화라 CREDENTIAL_ENCRYPTION_KEY 없는 셸에서 호출한 탓(컨테이너에선 정상). U-21 참조.
 | U-7 | 롤링 대리 타깃 백테스트 r4 재계산(r3 스크립트가 원본 DB를 직접 열어 이번엔 미실행) | 사본 기반으로 `scripts/pred_backtest.py --rolling` 추가 | 자동 | 62 | 대회 D-0/D-28 수용 기준만 사용 |
 | U-8 | 인터벌 위주 시기(2026-08) r3 대비 예측 변화 | 계산기 구현 후 사본에서 2026-08-01~09-12 일별 (c) r3/r4 비교 | 자동 | 없음(보고용) | – |
 | U-9 | 5K·마라톤 정확도 | 해당 거리 전력 대회 발생 시 수용 스크립트 | 수동(대회) | 없음 | 신뢰도·범위가 외삽 분산으로 자동 확대 |
@@ -43,6 +43,6 @@
 
 **결정 대기 질문**: 노력 등급 선택지를 4~5단계로 늘릴 것인가, 아니면 allout / paced 이분법을 유지하고 paced는 하한 증거로 둘 것인가. (지금은 후자로 진행.)
 
-| U-21 | Intervals 계획 이벤트(GET /events?category=WORKOUT) 실응답 — 저장된 API 키가 401(무효) | 키 재발급 후 이벤트 원문 1건 저장 → `parse_intervals_event`(문서 기준 최소 파서, 구조 미파싱) 대조·`workout_doc.steps` 구조 파싱 추가 | 수동 | P7-PRED-44 Intervals 부분 | Garmin 만 인제스트 |
+| U-21 | ~~Intervals 계획 이벤트 실응답~~ **확인됨(2026-09-27)**: WORKOUT 30건(2025-02~04, 자동 생성 계획), `workout_doc.steps`(warmup/cooldown 플래그·`pace` %pace 범위·`reps` 그룹)·`paired_activity_id`. 30건 저장, 24건 활동 연결, 이행률 10건. 남은 것: %pace 를 m/s 로 바꿀 기준(Intervals 역치 페이스 설정) 없어 목표 속도는 구조에 미포함 | Intervals athlete 설정의 threshold pace 를 읽어 speed_lo/hi 변환 | 수동 | – | 지속시간·거리만 비교 |
 | U-22 | Garmin 저장 워크아웃 중 삭제된 2개(workoutId 3604321050 등 72개 활동)의 구조 — 404 | 해당 활동은 계획 구조 없이 Garmin compliance 만 사용 | 없음 | – | 이행률은 구조 있는 39건만 |
 | U-23 | 세그먼트 이행률 v2 가 "롱 런 (30분×3)" 같은 지속 블록 세트를 못 잡음(RunPulse 0% vs Garmin 99.9%) | classifier v2 가 30분 블록 3개 세트를 bout 로 잡는지 사본에서 확인 | 자동 | 없음 | Garmin compliance 병기 |

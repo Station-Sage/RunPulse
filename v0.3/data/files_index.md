@@ -431,9 +431,13 @@
 
 - functions: full_sync
 
-### `plan_ingest.py` (261줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 저장 워크아웃·적응형 계획, Intervals 계획 이벤트 → planned_workouts.
+### `plan_ingest.py` (244줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 저장 워크아웃·적응형 계획, Intervals 계획 이벤트 → planned_workouts.
 
-- functions: parse_garmin_workout, parse_garmin_adaptive_task, parse_intervals_event, store_planned, ingest_garmin_executed, ingest_garmin_adaptive, ingest_intervals_events, main
+- functions: parse_garmin_workout, parse_garmin_adaptive_task, store_planned, ingest_garmin_executed, ingest_garmin_adaptive, main
+
+### `plan_ingest_intervals.py` (84줄) — Intervals 계획 이벤트 인제스트(P7-PRED-44) — planned_workouts 저장, paired_activity_id 로 실행 활동 연결.
+
+- functions: parse_intervals_event, ingest_intervals_events
 
 ### `rate_limiter.py` (137줄) — 소스별 API Rate-Limit 관리.
 
@@ -1762,10 +1766,10 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_ingest.py` (94줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 실측 응답 형태(2026-09-26) 기반 파서·저장·이행률.
+### `test_plan_ingest.py` (127줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 실측 응답 형태(2026-09-26) 기반 파서·저장·이행률.
 
 - class **FakeClient**: get_workout_by_id
-- functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_minimal, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
+- functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_real_shapes, test_ingest_intervals_links_paired_activity, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
 ### `test_plan_service.py` (190줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
@@ -2140,7 +2144,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 429개 파일
+총 430개 파일
 
 ## docstring 누락
 

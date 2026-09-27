@@ -2,6 +2,7 @@
 import json
 
 from src.sync import plan_ingest as pi
+from src.sync import plan_ingest_intervals as pii
 from tests.helpers_pred import mem_conn, seed_run
 
 # 실측 get_workout_by_id 응답 축약: 1000m×2 + 회복 180초 + 웜업/쿨다운(lap.button)
@@ -48,11 +49,43 @@ def test_parse_adaptive_task_and_rest_day():
     assert pi.parse_garmin_adaptive_task({"taskWorkout": {"restDay": True, "scheduledDate": "2026-09-27T00:00:00.0"}}) is None
 
 
-def test_parse_intervals_event_minimal():
-    assert pi.parse_intervals_event({"id": 1, "start_date_local": "2026-10-01T00:00:00", "name": "Tempo", "type": "Run",
-                                     "category": "WORKOUT", "distance": 10000}) == {
-        "name": "Tempo", "sport": "Run", "date": "2026-10-01", "structure": None, "distance_km": 10.0, "workout_type": "tempo"}
-    assert pi.parse_intervals_event({"id": 2, "start_date_local": "2026-10-01", "category": "NOTE"}) is None
+# 실측 Intervals 이벤트(2026-09-27) 축약: Cruise Intervals — 웜업 + 6×(800m 102~105%pace / 60초 회복) + 쿨다운
+IV_EVENT = {"id": 55790880, "start_date_local": "2025-03-04T00:00:00", "name": "Cruise Intervals", "type": "Run", "category": "WORKOUT",
+            "distance": 9500.0, "paired_activity_id": "i70000001",
+            "workout_doc": {"steps": [
+                {"warmup": True, "duration": 600},
+                {"reps": 6, "text": "Main set 6x", "steps": [
+                    {"pace": {"end": 105, "start": 102, "units": "%pace"}, "distance": 800, "duration": 237},
+                    {"pace": {"end": 82, "start": 76, "units": "%pace"}, "duration": 60}]},
+                {"cooldown": True, "duration": 300}]}}
+IV_EASY = {"id": 55790875, "start_date_local": "2025-02-18T00:00:00", "name": "Easy Run", "type": "Run", "category": "WORKOUT",
+           "distance": 7676.47, "paired_activity_id": None,
+           "workout_doc": {"steps": [{"warmup": True, "duration": 600},
+                                     {"pace": {"end": 92, "start": 82, "units": "%pace"}, "duration": 2700},
+                                     {"cooldown": True, "duration": 300}]}}
+
+
+def test_parse_intervals_event_real_shapes():
+    p = pii.parse_intervals_event(IV_EVENT)
+    assert p["date"] == "2025-03-04" and p["workout_type"] == "interval" and p["distance_km"] == 9.5
+    assert p["structure"]["steps"] == [
+        {"type": "warmup", "dur_s": 600.0},
+        {"type": "repeat", "count": 6, "steps": [{"type": "work", "dist_m": 800.0}, {"type": "rest", "dur_s": 60.0}]},
+        {"type": "cooldown", "dur_s": 300.0}]
+    easy = pii.parse_intervals_event(IV_EASY)
+    assert easy["structure"] is None and easy["workout_type"] == "easy"        # 느린 본 구간만 있으면 품질 구조 없음
+    assert pii.parse_intervals_event({"id": 2, "start_date_local": "2026-10-01", "category": "NOTE"}) is None
+
+
+def test_ingest_intervals_links_paired_activity():
+    c = mem_conn()
+    aid = seed_run(c, source="intervals", sid="i70000001", date="2025-03-04", dist=9500.0, moving=3300)
+    st = pii.ingest_intervals_events(c, [IV_EVENT, IV_EASY, {"id": 9, "category": "NOTE", "start_date_local": "2025-03-05"}])
+    assert st["planned"] == 2 and st["linked"] == 1
+    row = c.execute("SELECT completed, matched_activity_id, source_system FROM planned_workouts WHERE external_id='55790880'").fetchone()
+    assert row == (1, aid, "intervals")
+    assert c.execute("SELECT count(*) FROM session_outcomes").fetchone()[0] == 1
+    assert pii.ingest_intervals_events(c, [IV_EVENT])["planned"] == 1 and c.execute("SELECT count(*) FROM planned_workouts").fetchone()[0] == 2
 
 
 def test_store_planned_upsert_keeps_runpulse_rows():

@@ -3565,7 +3565,7 @@ DONE으로 옮긴다.
   실행(2026-09-26, 백업 `running.db.bak-pred-20260926` 무결성 확인 후): 재추출(활동 586·랩 3,360·오류 0) → 외기 날씨(428건, 실패 0) → Garmin 참조 이력(레이스 예측 1,956·LT 103) → 재계산 전 스냅샷 → `recompute --days 1100`(약 25분, 실패 0) → 계획 인제스트. 사본 리허설과 동일 결과. 백테스트 PASS(r3 1.39/2.16, r4 1.39/1.77, r4_asym 1.26/1.46, n=7). 현재 15℃ 마라톤: r3 3:40:39 · r4 3:42:11 · r4 비대칭 3:40:19 · Garmin 3:44:22. indoor_running 16건 DB 정정은 미실행(별도 지시 시).
   <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 1, "deps": [], "kind": "code", "scope": [], "verify": []} -->
 - **[P7-PRED-44]** 외부 계획 인제스트 — `PRED-4x-*.md`(사람 확인 후 구현).
-  Garmin 구현·실DB 적용(2026-09-26, `src/sync/plan_ingest.py`): 실행된 계획 39건(세그먼트 이행률 산출)·적응형 계획 6건. Intervals 이벤트는 API 키 401로 실응답 미확인(최소 파서, PRED-99 U-21).
+  Garmin 구현·실DB 적용(2026-09-26, `src/sync/plan_ingest.py`): 실행된 계획 39건(세그먼트 이행률 산출)·적응형 계획 6건. Intervals 이벤트도 구현·적용(2026-09-27, `plan_ingest_intervals.py`): 30건 저장·24건 활동 연결·이행률 10건. (처음 401 은 키 무효가 아니라 Fernet 암호화 키를 셸에서 복호화하지 못한 탓 — 컨테이너에서 정상.)
   <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 1, "deps": [], "kind": "code", "scope": [], "verify": []} -->
 
 ---
