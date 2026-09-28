@@ -13,30 +13,17 @@ import sqlite3
 from collections import defaultdict
 from typing import Any
 
+from src.metrics.bands import grade
 from src.utils import db_helpers
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 내부 헬퍼
 # ─────────────────────────────────────────────────────────────────────────────
 
-_LEVEL_THRESHOLDS: dict[str, list[tuple[float, str]]] = {
-    # (최소값, 레이블) — 내림차순으로 첫 번째 매칭 사용
-    "utrs":  [(80, "매우 좋음"), (65, "양호"), (50, "보통"), (35, "낮음")],
-    "crs":   [(80, "매우 좋음"), (65, "양호"), (50, "보통"), (35, "낮음")],
-    "cirs":  [(50, "매우 높음"), (35, "높음"), (20, "보통"), (10, "낮음")],
-}
-_DEFAULT_LEVEL = "매우 낮음"
-
-
 def _interpret_level(metric_name: str, value: float | None) -> str | None:
-    """메트릭 값을 레이블로 변환."""
-    if value is None:
-        return None
-    thresholds = _LEVEL_THRESHOLDS.get(metric_name, [])
-    for min_val, label in thresholds:
-        if value >= min_val:
-            return label
-    return _DEFAULT_LEVEL
+    """메트릭 값을 등급 레이블로 변환 — 경계는 src/metrics/bands.py 단일 정의."""
+    g = grade(metric_name, value)
+    return g["label"] if g else None
 
 
 def _get_training_phase(tsb: float | None, ramp_rate: float | None) -> str:
@@ -83,9 +70,11 @@ def get_dashboard_data(conn: sqlite3.Connection, date: str | None = None) -> dic
         row = db_helpers.get_primary_metric(conn, "daily", date, metric_name)
         if row:
             value = row.get("numeric_value")
+            g = grade(metric_name, value)
             entry: dict[str, Any] = {
                 "value": value,
-                "level": _interpret_level(metric_name, value),
+                "level": g["label"] if g else None,
+                "status": g["status"] if g else None,
             }
             if row.get("json_value"):
                 try:
@@ -114,6 +103,7 @@ def get_dashboard_data(conn: sqlite3.Connection, date: str | None = None) -> dic
         "ramp_rate": ramp_rate,
         "acwr": pmc_map.get("acwr"),
         "training_phase": _get_training_phase(tsb, ramp_rate),
+        "grades": {k: grade(k, pmc_map.get(k)) for k in ("tsb", "acwr")},
     }
 
     # recent_activities (최근 5개)

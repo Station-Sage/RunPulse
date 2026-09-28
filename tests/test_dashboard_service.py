@@ -89,12 +89,14 @@ def test_get_dashboard_data_readiness_values(conn):
     utrs = result["readiness"]["utrs"]
     assert utrs is not None
     assert utrs["value"] == 72.3
-    assert utrs["level"] == "양호"
+    assert utrs["level"] == "좋음"  # bands.py utrs 70~85
+    assert utrs["status"] == "good"
     assert "components" in utrs
 
     cirs = result["readiness"]["cirs"]
     assert cirs["value"] == 28.1
-    assert cirs["level"] == "보통"
+    assert cirs["level"] == "낮음"  # bands.py cirs < 30 = 부상 위험 낮음
+    assert cirs["status"] == "good"
 
 
 def test_get_dashboard_data_training_status(conn):

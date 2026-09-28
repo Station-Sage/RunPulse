@@ -133,16 +133,9 @@ def _get_form(conn: sqlite3.Connection, date: str) -> dict:
 
 
 def form_band(tsb: float) -> str:
-    """레이스 아침 TSB 해석 라벨 — 프론트 `formBand`(raceHub.ts)와 같은 경계."""
-    if tsb < -30:
-        return "과부하"
-    if tsb < -10:
-        return "훈련 부하 높음"
-    if tsb < 5:
-        return "중립"
-    if tsb <= 25:
-        return "레이스 최적"
-    return "회복 과다"
+    """레이스 아침 TSB 해석 라벨 — 경계는 src/metrics/bands.py(레이스 국면)."""
+    from src.metrics.bands import grade
+    return grade("tsb", tsb, phase="race")["label"]
 
 
 def _signed(v: float) -> str:

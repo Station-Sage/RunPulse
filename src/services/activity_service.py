@@ -16,6 +16,7 @@ from src.services.activity_impact_service import get_activity_impact
 from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
+from src.metrics.bands import with_grade
 
 SERVICE_PRIORITY = ["garmin", "strava", "intervals", "runalyze"]
 
@@ -223,6 +224,7 @@ def _build_metrics_by_category(primary_metrics: list[dict]) -> dict[str, list[di
             "unit": meta.unit if meta else "",
             "description": meta.description if meta else "",
         }
+        with_grade(entry, metric_name, row.get("numeric_value"))
         grouped[category].append(entry)
     return dict(grouped)
 

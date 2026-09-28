@@ -101,7 +101,7 @@ class TestGetTodayBriefing:
         assert briefing["evidence"] == []
 
     def test_low_tsb_recommends_rest(self, db_conn):
-        _seed_metric(db_conn, "2026-09-22", "tsb", -25)
+        _seed_metric(db_conn, "2026-09-22", "tsb", -35)  # bands.py: < -30 과부하
         db_conn.commit()
         briefing = today_service.get_today_briefing(db_conn, date="2026-09-22")
         assert "휴식" in briefing["headline"] or "회복" in briefing["headline"]
@@ -111,7 +111,8 @@ class TestGetTodayBriefing:
         _seed_metric(db_conn, "2026-09-22", "tsb", -4)
         db_conn.commit()
         briefing = today_service.get_today_briefing(db_conn, date="2026-09-22")
-        assert "균형" in briefing["evidence"][0]["label"]
+        assert "유지" in briefing["evidence"][0]["label"]
+        assert briefing["evidence"][0]["status"] == "neutral"
 
 
 class TestGetTodaysCheckin:
@@ -402,3 +403,13 @@ class TestSaveCheckin:
     def test_defaults_to_today_date(self, db_conn):
         result = today_service.save_checkin(db_conn, fatigue=5, pain="none")
         assert result["input_date"]  # 'YYYY-MM-DD' — SQLite date('now') 반환
+
+
+def test_productive_load_tsb_is_not_rest(db_conn):
+    """TSB −25는 관행상 생산적 부하 구간 — 휴식이 아니라 계획대로(bands.py)."""
+    from src.services.today_service import get_today_briefing
+    _seed_metric(db_conn, "2026-09-22", "tsb", -25)
+    db_conn.commit()
+    briefing = get_today_briefing(db_conn, date="2026-09-22")
+    assert briefing["evidence"][0]["status"] == "good"
+    assert "계획대로" in briefing["headline"]

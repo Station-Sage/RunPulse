@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date as _date, timedelta
 
+from src.metrics.bands import with_grade
 from src.metrics.pmc import ATL_DAYS, CTL_DAYS
 LOOKBACK_DAYS = 28
 MAX_HORIZON_DAYS = 120
@@ -87,7 +88,12 @@ def project_race_form(conn: sqlite3.Connection, race_date: str, date: str | None
         "current": {"ctl": round(ctl0, 1), "atl": round(atl0, 1), "tsb": round(ctl0 - atl0, 1)},
         "assumptions": "최근 28일 하루 평균 부하 기준 · 테이퍼: 14~8일 전 75% → 7~4일 전 55% → 3~1일 전 35%",
         "scenarios": [
-            {"key": "taper", "label": "테이퍼 적용", **_run(ctl0, atl0, base, today, race, True)},
-            {"key": "keep", "label": "지금처럼 유지", **_run(ctl0, atl0, base, today, race, False)},
+            _graded({"key": "taper", "label": "테이퍼 적용", **_run(ctl0, atl0, base, today, race, True)}),
+            _graded({"key": "keep", "label": "지금처럼 유지", **_run(ctl0, atl0, base, today, race, False)}),
         ],
     }
+
+
+def _graded(scenario: dict) -> dict:
+    """레이스 아침 TSB 등급(bands.py, 레이스 국면)을 status·status_label로 붙인다."""
+    return with_grade(scenario, "tsb", scenario.get("tsb"), phase="race")

@@ -243,11 +243,13 @@ def _hub(days_left, taper_tsb=None):
 
 
 def test_form_band_boundaries():
+    # 경계는 src/metrics/bands.py(레이스 국면): 상한 미만 기준
     assert form_band(-31) == "과부하"
-    assert form_band(-10) == "중립"
+    assert form_band(-20) == "피로 누적"
+    assert form_band(-10) == "유지"
     assert form_band(5) == "레이스 최적"
-    assert form_band(25) == "레이스 최적"
-    assert form_band(26) == "회복 과다"
+    assert form_band(24.9) == "레이스 최적"
+    assert form_band(26) == "휴식 과다"
 
 
 def test_race_briefing_none_without_goal_or_tsb():

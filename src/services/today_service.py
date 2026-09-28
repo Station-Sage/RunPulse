@@ -17,15 +17,16 @@ from __future__ import annotations
 
 import sqlite3
 
-_TSB_THRESHOLDS: list[tuple[float, str, str]] = [
-    # (최소 TSB, 헤드라인, 근거 레이블 서식)
-    (15.0, "충분히 회복됐습니다 — 강도 높은 세션도 소화 가능합니다.", "TSB {tsb:+.0f} (테이퍼 구간)"),
-    (5.0, "컨디션이 좋습니다 — 계획된 세션을 그대로 진행해도 좋습니다.", "TSB {tsb:+.0f} (양호)"),
-    (-10.0, "정상적인 훈련 부하 구간입니다 — 평소대로 진행하세요.", "TSB {tsb:+.0f} (균형)"),
-    (-20.0, "피로가 쌓이고 있습니다 — 오늘은 가볍게 진행하는 걸 권합니다.", "TSB {tsb:+.0f} (피로 누적)"),
-]
-_TSB_FALLBACK_HEADLINE = "피로도가 높습니다 — 완전 휴식이나 회복 위주 세션을 권합니다."
-_TSB_FALLBACK_LABEL = "TSB {tsb:+.0f} (매우 높은 피로)"
+from src.metrics.bands import grade
+
+# TSB 등급(src/metrics/bands.py) → 헤드라인. 등급 경계는 bands.py 한 곳에만 둔다.
+_TSB_HEADLINES: dict[str, str] = {
+    "caution": "충분히 쉬었습니다 — 계획된 세션을 진행해 감각을 유지하세요.",
+    "excellent": "컨디션이 좋습니다 — 계획된 세션을 그대로 진행해도 좋습니다.",
+    "neutral": "정상적인 훈련 부하 구간입니다 — 평소대로 진행하세요.",
+    "good": "훈련 부하가 쌓이는 구간입니다 — 계획대로 하되 회복을 챙기세요.",
+    "poor": "피로가 과도합니다 — 완전 휴식이나 회복 위주 세션을 권합니다.",
+}
 
 
 def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
@@ -89,14 +90,11 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
     if tsb is None:
         headline = "아직 훈련 부하 데이터가 충분하지 않습니다 — 데이터 수집 중입니다."
     else:
-        headline = _TSB_FALLBACK_HEADLINE
-        label = _TSB_FALLBACK_LABEL.format(tsb=tsb)
-        for threshold, text, label_fmt in _TSB_THRESHOLDS:
-            if tsb >= threshold:
-                headline = text
-                label = label_fmt.format(tsb=tsb)
-                break
-        evidence.append({"type": "metric", "metric": "tsb", "value": tsb, "label": label})
+        g = grade("tsb", tsb)
+        headline = _TSB_HEADLINES[g["status"]]
+        evidence.append({"type": "metric", "metric": "tsb", "value": tsb,
+                         "label": f"TSB {tsb:+.0f} ({g['label']})",
+                         "status": g["status"], "status_label": g["label"]})
 
     utrs = readiness.get("utrs")
     if utrs and utrs.get("value") is not None:

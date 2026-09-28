@@ -7,6 +7,7 @@ from typing import Any
 
 from src.utils.db_helpers import get_metric_history, get_primary_metric
 from src.utils.metric_registry import METRIC_REGISTRY
+from src.metrics.bands import with_grade
 
 _CATEGORY_LABELS: dict[str, str] = {
     "load": "피트니스·피로",
@@ -64,6 +65,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "confidence": row_data.get("confidence"),
             "sparkline": sparkline,
         }
+        with_grade(entry, name, row_data["numeric_value"])
         cat_map.setdefault(mdef.category, []).append(entry)
 
     categories = []
