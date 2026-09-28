@@ -23,7 +23,7 @@
 | 1-4 그룹당 1회 계산 | 완료·운영 반영(같은 재계산) | edd2d52. 운영: 사본 RunPulse 행 0, RE 폴백 341→2, 17414 RE 302→27.7 | `src/utils/canonical.py`, CalcContext `get_group_metric`·`get_group_streams`, 엔진 캐노니컬만 계산·`prune_noncanonical_runpulse`, 상세·소스 비교 캐노니컬 RunPulse 값, consistency 18·19. 남음: 재매칭 시 그룹 재계산 트리거(현재는 다음 재계산 창에서 정리), C4 매트릭스 쌍 비교(3-8) |
 | 1-7 GAP v2 | 완료·운영 반영(같은 재계산) | 8d2b9ad. Garmin GAP 대비 중앙 오차 평지 0.6초/km·언덕 4초/km(n=258) → Minetti 유지 | 고도 30m 창 경사, 곱셈 보정, 정지 제외, 경사 없으면 미산출. **설계 예시 4:25(5%)는 Minetti가 아니라 경험 모델 값** — Garmin GAP 대비 오차로 모델 판단 필요. 남음: Garmin gap_speed_ms 소스 GAP 저장(④) |
 | 2-1 공통 규격(1차) | 진행 중·브랜치에만 있음(운영 미반영) | 아래 "2-1 세부" 참조. D1a~D1e 중 D1b(델타 토큰)·D1c(거리 소수 2자리 예외)·D1e(★ 아이콘) 반영, D1d(활동 scope `@a{id}`)는 §C3.3 드릴다운 URL 작업(2-5)과 함께 할 예정이라 보류 |
-| 2-5 분해 v2(API+프론트) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "오케이" 반복) — 아래 "2-5 세부" 참조. `library/metrics`에 통합, Today/Coach 등 나머지 진입점은 별도 |
+| 2-5 분해 v2(API+프론트) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "오케이" 반복) — 아래 "2-5 세부" 참조. `library/metrics`·Today에 통합, Coach 등 나머지 진입점은 별도 |
 
 ### 2-1 세부 (커밋 예정)
 - **폰트 self-host**: `static/fonts/{inter-variable,jetbrains-mono}.woff2`(jsdelivr fontsource 라틴 서브셋 — 한글 글리프 없음, 시스템 폰트 폴백), `layout.css`에 `@font-face`+`--font-sans`, `body`에 적용.
@@ -104,7 +104,14 @@
 - **로직 분리**: `drillStackCore.ts`(순수 함수 `parseDrillStack`·`tokenSlug`, SvelteKit 의존 없음 — 테스트용) / `drillStack.ts`(`pushState`·`page` 등 SvelteKit API, `pushDrill`·`popDrill`·`closeDrill`). `statusColor.ts`(서버 status 어휘 poor/caution/neutral/good/excellent → `--color-status-*` 토큰 매핑, 이번이 그 토큰의 첫 실제 소비처).
 - **실제 브라우저 확인**: 워크트리 로컬(`data/users/default/running.db`, 커밋 안 함)에 90일 합성 데이터 시드 → Flask(`src/serve.py`)+`vite dev` 기동 → Playwright(임시 설치, headless Chromium)로 실제 클릭 스모크: 데스크톱 패널 열기/CTL로 드릴다운(브레드크럼 "TSB › CTL")/뒤로가기(URL이 `?drill=m.tsb,m.ctl` → `?drill=m.tsb`로 정확히 줄어듦)/모바일 슬라이드업/RRI(곱셈형) 화면까지 스크린샷 확인, 콘솔·페이지 에러 0건. 시드 스크립트·DB는 확인 후 삭제(커밋 안 함).
 - **검증**: `npm run check`(0 errors) · `npm run test:unit`(217 pass, 드릴스택 순수 함수 6건 신규) · `npm run build`(성공) · 위 브라우저 스모크.
-- **남음**: Today/Coach 등 나머지 화면에 DrillPanel 연결(진입점마다 트리거 배선 필요, 이번 범위 밖), 모바일 끌어 닫기 제스처, `@a{id}` 활동 scope, VDOT 등 나머지 메트릭 확장 시의 카피 작성 부담은 여전.
+- **남음**: Coach 등 나머지 화면에 DrillPanel 연결(진입점마다 트리거 배선 필요, 이번 범위 밖), 모바일 끌어 닫기 제스처, `@a{id}` 활동 scope, VDOT 등 나머지 메트릭 확장 시의 카피 작성 부담은 여전.
+
+### 2-5 세부 (5차 — Today 연결, "오케이"로 이어서 진행 + 실제 클릭으로 발견한 버그 수정)
+- Today `+page.svelte`의 L1 ScoreRing 3개(UTRS·CIRS·TSB — `04-component-catalog.md` 1-A' L1)가 정확히 explain 지원 6개 슬러그 중 3개와 일치해 자연스러운 다음 연결점이었음. `<DrillPanel scopeType="daily" scopeId={todayDate}>`로 전체를 감싸고, `handleDrill`을 슬러그가 지원 목록에 있으면 새 패널로, 아니면(EvidenceQuote 칩·`onDrillInput` 캐스케이드처럼 scope가 다르거나 임의 슬러그인 경우) 기존 `drillStack`/`MetricBreakdown`으로 분기.
+- **실제 클릭에서만 드러난 버그 2건**(둘 다 헤드리스 브라우저로 직접 눌러보다가 발견 — 코드만 봤으면 못 잡았을 것들):
+  1. **워크트리 오염 위험**: 서버 기동 명령을 여러 줄로 나눠 쓰면서 `cd frontend`가 이전 줄의 `cd .../RunPulse-p0 &&`와 분리된 백그라운드 job 안에서만 유효해, 실제로는 툴이 리셋한 기본 디렉터리(`/home/ubuntu/projects/RunPulse`, **운영 컨테이너가 마운트하는 메인 폴더**)에서 `vite dev`가 떴다. 그 상태로 스모크를 돌렸더니 내 변경 사항이 전혀 없는 코드가 렌더링돼 "패널이 안 열린다"는 잘못된 결론을 낼 뻔했다. 파일은 안 건드렸지만(읽기 전용 `vite dev` 프로세스) 즉시 process 확인(`readlink /proc/<pid>/cwd`)으로 잡아 죽이고, 이후로는 서버 기동을 `cd <절대경로> && nohup ... &` 한 줄짜리 자기완결 명령으로만 실행. 여러 줄 백그라운드 명령에서 `cd`를 분리하면 안 된다는 교훈.
+  2. **스택 대체 vs 쌓기 혼동**: UTRS 패널이 열려 있을 때 TSB ScoreRing을 누르면 `pushDrill`이 그대로 append돼 `?drill=m.utrs,m.tsb`(브레드크럼 "UTRS › TSB")가 됐다 — 완전히 다른 독립 진입점을 누른 건데 TSB가 UTRS "안"에 있는 것처럼 보이는 오표시. `drillStack.ts`에 `openDrill(slug)`(스택을 이 슬러그 하나로 교체 — 패널 밖 독립 진입점용)을 추가하고 `pushDrill`(패널 안 `drill` 탭 전용, 기존 스택 위에 쌓기)과 분리해서 고침. `library/metrics` 페이지의 "계산 분해 보기" 버튼도 같은 이유로 `openDrill`로 교체(그 페이지는 항상 닫힌 상태에서 열어서 동작은 그대로지만 의도가 더 명확해짐).
+- **검증**: `npm run check`(0 errors) · `npm run test:unit`(217 pass, 회귀 없음) · `npm run build`(성공) · 브라우저 스모크 재실행 — UTRS 클릭 → `?drill=m.utrs`, 이어서 TSB 클릭 → `?drill=m.tsb`(스택 교체 확인, 이전엔 `m.utrs,m.tsb`였음), 콘솔 에러는 무관한 기존 404(`/coach/plan/active`, 활성 계획 없을 때 정상) 1건만.
 
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드 TSB/CTL/ATL/UTRS/CIRS/RRI + 프론트 DrillPanel/BreakdownView, `library/metrics` 통합) 완료. 다음 후보: Today/Coach 등 나머지 진입점에 DrillPanel 연결, 2-6(성능). VDOT 등 더 있는 메트릭 확장 시엔 매번 "meaning.what/so_what" 카피를 직접 써야 하는 제약은 여전함. RRI 등급 SSOT 미등재(발견한 기존 갭)는 별도 판단 필요 항목으로 기록. 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드 TSB/CTL/ATL/UTRS/CIRS/RRI + 프론트 DrillPanel/BreakdownView, `library/metrics`·Today L1 ScoreRing 통합) 완료. 다음 후보: Coach 등 나머지 진입점에 DrillPanel 연결, 2-6(성능). VDOT 등 더 있는 메트릭 확장 시엔 매번 "meaning.what/so_what" 카피를 직접 써야 하는 제약은 여전함. RRI 등급 SSOT 미등재(발견한 기존 갭)는 별도 판단 필요 항목으로 기록. 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.

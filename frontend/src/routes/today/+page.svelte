@@ -4,6 +4,9 @@
 	import type { TodayPageData } from './+page';
 	import ScoreRing from '$lib/components/ScoreRing.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import DrillPanel from '$lib/components/DrillPanel.svelte';
+	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
+	import { openDrill } from '$lib/drillStack';
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
@@ -39,7 +42,13 @@
 	const todayDate = $derived(data.today?.status.date ?? '');
 	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 
+	// ScoreRing 3개(UTRS/CIRS/TSB)는 explain=1 지원 슬러그라 새 DrillPanel(§C3, URL 스택)로.
+	// EvidenceQuote 칩·onDrillInput 캐스케이드는 임의 슬러그·scope라 기존 MetricBreakdown 유지.
 	function handleDrill(payload: { slug: string; provider: ProviderKey | null }) {
+		if (EXPLAIN_SUPPORTED_SLUGS.has(payload.slug)) {
+			openDrill(payload.slug);
+			return;
+		}
 		drillStack = [...drillStack, { slug: payload.slug, scopeType: 'daily', scopeId: todayDate }];
 	}
 
@@ -91,6 +100,8 @@
 	{@const status = data.today.status}
 	{@const briefing = data.today.briefing}
 	{@const narrative = data.narrative}
+
+<DrillPanel scopeType="daily" scopeId={todayDate}>
 
 	<!-- 데스크톱은 좌·우 독립 열(행 정렬로 생기던 빈 공간 제거), 모바일은 wrapper 를 풀고 order 로 L0→L1→L2→다음 세션→L3 -->
 	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
@@ -330,4 +341,5 @@
 	{#if showMilestonesPanel}
 		<MilestonesPanel onClose={() => { showMilestonesPanel = false; }} />
 	{/if}
+</DrillPanel>
 {/if}

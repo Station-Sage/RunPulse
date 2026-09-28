@@ -8,7 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
-	import { pushDrill } from '$lib/drillStack';
+	import { openDrill } from '$lib/drillStack';
 
 	let { data }: { data: MetricTrendPageData } = $props();
 
@@ -111,7 +111,7 @@
 		<div class="flex gap-2">
 			<button
 				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
-				onclick={() => (explainSupported ? pushDrill(data.slug) : (breakdownOpen = true))}
+				onclick={() => (explainSupported ? openDrill(data.slug) : (breakdownOpen = true))}
 				disabled={!latestDate}
 			>
 				계산 분해 보기

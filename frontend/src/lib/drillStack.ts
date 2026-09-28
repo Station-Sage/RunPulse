@@ -15,6 +15,17 @@ export function currentDrillStack(): string[] {
 	return page.state.drill ?? parseDrillStack(page.url);
 }
 
+// 패널 밖의 독립된 진입점(ScoreRing 등)이 부른다 — 스택을 이 슬러그 하나로 새로 연다.
+// 이미 다른 지표가 열려 있어도 "그 안"으로 들어가는 게 아니라 새 조회이므로 스택을 비우고 시작한다.
+export function openDrill(slug: string) {
+	const token = `m.${slug}`;
+	if (currentDrillStack().length === 1 && currentDrillStack()[0] === token) return;
+	const url = new URL(page.url);
+	url.searchParams.set('drill', token);
+	pushState(url, { drill: [token] });
+}
+
+// 패널 안(BreakdownView 행)의 `drill` 탭이 부른다 — 지금 스택 위에 한 단계 쌓는다(§C3.1 최대 3단).
 export function pushDrill(slug: string) {
 	const stack = currentDrillStack();
 	const token = `m.${slug}`;
