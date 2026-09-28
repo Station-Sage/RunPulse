@@ -36,22 +36,22 @@ class RelativeEffortCalculator(MetricCalculator):
         if not act:
             return []
 
-        # 1차: metric_store에서 HR zone 시간 데이터
+        # 1차: metric_store HR 존 시간(대표 사본에 없으면 같은 그룹 사본 값)
         zone_secs = []
         for z in range(1, 6):
             for pattern in [f"hr_zone_{z}_sec", f"heartrate_zone_{z}_sec"]:
-                val = ctx.get_metric(pattern)
+                val = ctx.get_group_metric(pattern)
                 if val is not None:
                     zone_secs.append(float(val))
                     break
             else:
                 zone_secs.append(0.0)
 
-        conf = 0.9
+        conf, method = 0.9, "zone_time"
         # 2차: 스트림 심박으로 존 체류 시간 적분(선수 최대심박 기준, 정지 제외)
         if sum(zone_secs) <= 0:
             zone_secs = self._zones_from_streams(ctx, act)
-            conf = 0.85
+            conf, method = 0.85, "stream_zones"
         # 3차: 평균 심박 근사 — 분모는 **선수** 최대심박(활동 자신의 최대심박이면 이지런이 Z5가 된다)
         if sum(zone_secs) <= 0:
             avg_hr = act.get("avg_hr")
@@ -60,17 +60,17 @@ class RelativeEffortCalculator(MetricCalculator):
                 return []
             zone_secs = [0.0] * 5
             zone_secs[_zone_index(float(avg_hr) / athlete_max_hr(ctx))] = float(duration)
-            conf = 0.6
+            conf, method = 0.6, "avg_hr_fallback"
 
         if sum(zone_secs) <= 0:
             return []
 
         re = sum(sec / 60.0 * coeff
                  for sec, coeff in zip(zone_secs, _ZONE_COEFFICIENTS))
-        return [self._result(value=round(re, 1), confidence=conf)]
+        return [self._result(value=round(re, 1), confidence=conf, json_val={"method": method})]
 
     def _zones_from_streams(self, ctx: CalcContext, act: dict) -> list[float]:
-        streams = ctx.get_streams()
+        streams = ctx.get_group_streams()
         if not streams:
             return [0.0] * 5
         max_hr = athlete_max_hr(ctx)

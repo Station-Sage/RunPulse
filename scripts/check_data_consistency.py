@@ -366,7 +366,38 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
     else:
         results.append(("✅", "등급 경계: 프론트 등급표 없음(bands.py 단일 정의)"))
 
+    # ── Check 18·19: activity 계산 그룹당 1회(21 design §7.3 C3) · SEMANTIC_GROUPS 멤버 실재 ──
+    if db_path:
+        results += _check_group_once(db_path)
+
     return results
+
+
+def _check_group_once(db_path: str) -> list[tuple[str, str]]:
+    import sqlite3
+    from src.utils.metric_groups import SEMANTIC_GROUPS
+    out: list[tuple[str, str]] = []
+    conn = sqlite3.connect(db_path)
+    try:
+        stray = conn.execute(
+            "SELECT COUNT(DISTINCT scope_id) FROM metric_store WHERE scope_type='activity'"
+            " AND provider LIKE 'runpulse%'"
+            " AND CAST(scope_id AS INTEGER) NOT IN (SELECT id FROM v_canonical_activities)").fetchone()[0]
+        if stray:
+            out.append(("🟠", f"RunPulse activity 행이 캐노니컬이 아닌 사본 {stray}개에 있음 — engine.prune_noncanonical_runpulse"))
+        else:
+            out.append(("✅", "RunPulse activity 계산: 그룹당 1개(캐노니컬만)"))
+        present = {(m, p) for m, p in conn.execute(
+            "SELECT DISTINCT metric_name, provider FROM metric_store")}
+        missing = sorted(f"{g}:{m}@{p}" for g, d in SEMANTIC_GROUPS.items() for m, p in d["members"]
+                         if (m, p) not in present)
+        if missing:
+            out.append(("🟡", f"SEMANTIC_GROUPS 멤버가 metric_store에 없음 {len(missing)}개 — {', '.join(missing[:12])}"))
+        else:
+            out.append(("✅", "SEMANTIC_GROUPS 멤버 전부 metric_store에 실재"))
+    finally:
+        conn.close()
+    return out
 
 
 # ─────────────────────────────────────────────
@@ -389,7 +420,7 @@ def main():
     print(f"{'='*60}")
     print(f"  MetricDefs: {len(METRIC_REGISTRY)}")
     print(f"  Categories: {len(METRIC_CATEGORIES) - 1}")
-    print(f"  검증 항목: 16")
+    print(f"  검증 항목: 19")
     print(f"{'='*60}")
     print(f"  🔴 오류:  {len(red)}")
     print(f"  🟠 경고:  {len(orange)}")

@@ -67,6 +67,12 @@ class MockCalcContext(CalcContext):
     def get_streams(self, activity_id: int = None) -> list[dict]:
         return self._stream_cache
 
+    def get_group_metric(self, metric_name: str) -> Optional[float]:
+        return self.get_metric(metric_name)
+
+    def get_group_streams(self) -> list[dict]:
+        return self._stream_cache or []
+
     def get_activities_in_range(self, days: int, activity_type: str = None) -> list[dict]:
         return self._mock_activities_range
 

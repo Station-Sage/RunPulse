@@ -11,6 +11,7 @@ import sqlite3
 from typing import Any
 
 from src.services.provider_diff import diff, legacy_discrepancy, normalize
+from src.utils.canonical import canonical_activity_id
 from src.utils.dedup import _SOURCE_PRIORITY
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import METRIC_REGISTRY
@@ -66,7 +67,7 @@ def get_provider_comparison(
         else _fallback_primary(sibling_sources)
     )
 
-    canonical_id = sibling_by_source.get(primary_source, act)["id"]
+    canonical_id = canonical_activity_id(conn, activity_id)  # RunPulse 계산이 저장되는 사본(엔진과 같은 기준)
 
     # semantic metric_store 행 조회 (형제 전체)
     placeholders = ",".join("?" * len(sibling_ids))

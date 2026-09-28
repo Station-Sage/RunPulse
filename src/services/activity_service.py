@@ -18,6 +18,7 @@ from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
 from src.metrics.bands import with_grade
 from src.metrics.display_rules import visible_activity_metrics
+from src.utils.canonical import canonical_activity_id
 
 SERVICE_PRIORITY = ["garmin", "strava", "intervals", "runalyze"]
 
@@ -143,7 +144,14 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     core = dict(core_row) if core_row else {}
 
     # metrics_by_category (is_primary=1)
-    primary_metrics = visible_activity_metrics(db_helpers.get_primary_metrics(conn, "activity", activity_id))
+    # RunPulse 계산값은 캐노니컬 사본에만 있다(그룹당 1회, 21 design §7.3 C3) — 사본을 열어도 같은 값을 보인다
+    canonical_id = canonical_activity_id(conn, activity_id)
+    primary_metrics = db_helpers.get_primary_metrics(conn, "activity", activity_id)
+    if canonical_id != activity_id:
+        own = {r["metric_name"] for r in primary_metrics}
+        primary_metrics += [r for r in db_helpers.get_primary_metrics(conn, "activity", canonical_id)
+                            if (r.get("provider") or "").startswith("runpulse") and r["metric_name"] not in own]
+    primary_metrics = visible_activity_metrics(primary_metrics)
     metrics_by_category = _build_metrics_by_category(primary_metrics)
 
     # source_comparison (같은 matched_group의 다른 소스)
@@ -163,9 +171,10 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     all_metrics_rows = conn.execute(
         "SELECT metric_name, provider, numeric_value, text_value, json_value, confidence"
         " FROM metric_store"
-        " WHERE scope_type = 'activity' AND scope_id = CAST(? AS TEXT)"
+        " WHERE scope_type = 'activity' AND (scope_id = CAST(? AS TEXT)"
+        "   OR (scope_id = CAST(? AS TEXT) AND provider LIKE 'runpulse%' AND ? != ?))"
         " ORDER BY metric_name, provider",
-        (activity_id,),
+        (activity_id, canonical_id, canonical_id, activity_id),
     ).fetchall()
     all_metrics = visible_activity_metrics([dict(r) for r in all_metrics_rows])
     semantic_groups = _build_semantic_groups(all_metrics, core)

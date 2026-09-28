@@ -10,9 +10,9 @@ import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
 
-from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.base import CalcContext, CalcResult, MetricCalculator, load_group_streams
 from src.utils.db_helpers import upsert_metric
-from src.utils.metric_priority import resolve_for_scope
+from src.utils.canonical import canonical_activity_id
 from src.utils.metric_priority import resolve_all_primaries, resolve_for_scope
 
 # ── Calculator 임포트 ──
@@ -242,6 +242,24 @@ def _prefetch_daily_metrics(conn: sqlite3.Connection,
     return result
 
 
+def _drop_runpulse_activity_rows(conn: sqlite3.Connection, activity_ids: list[int]) -> None:
+    """사본 활동의 RunPulse 계산 행 삭제 후 primary 재결정(소스 값이 primary로 올라온다)."""
+    for aid in activity_ids:
+        conn.execute("DELETE FROM metric_store WHERE scope_type='activity' AND scope_id=?"
+                     " AND provider LIKE 'runpulse%'", (str(aid),))
+        resolve_for_scope(conn, "activity", str(aid))
+
+
+def prune_noncanonical_runpulse(conn: sqlite3.Connection) -> int:
+    """캐노니컬이 아닌 사본에 남은 RunPulse activity 행 정리(그룹 재편·옛 규칙 잔재). 정리한 활동 수."""
+    ids = [int(r[0]) for r in conn.execute(
+        "SELECT DISTINCT m.scope_id FROM metric_store m WHERE m.scope_type='activity'"
+        " AND m.provider LIKE 'runpulse%'"
+        " AND CAST(m.scope_id AS INTEGER) NOT IN (SELECT id FROM v_canonical_activities)").fetchall()]
+    _drop_runpulse_activity_rows(conn, ids)
+    return len(ids)
+
+
 def _load_streams(conn: sqlite3.Connection, activity_id: int) -> list[dict]:
     """활동의 stream 데이터를 로드."""
     rows = conn.execute(
@@ -298,7 +316,15 @@ def _save_results(conn: sqlite3.Connection, calc: MetricCalculator,
 # ═══════════════════════════════════════════
 
 def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
-    """단일 활동에 대한 모든 activity-scope calculator 실행 (prefetch 포함)."""
+    """단일 활동에 대한 모든 activity-scope calculator 실행 (prefetch 포함).
+
+    RunPulse activity 계산은 그룹당 1회 — 캐노니컬 사본에서만 돈다(21 design §7.3 C3). 사본 id가 오면
+    그 사본의 RunPulse 행을 지우고 캐노니컬로 돌린다.
+    """
+    cid = canonical_activity_id(conn, activity_id)
+    if cid != activity_id:
+        _drop_runpulse_activity_rows(conn, [activity_id])
+        activity_id = cid
     sorted_calcs = _topological_sort(
         [c for c in ALL_CALCULATORS if c.scope_type == "activity"]
     )
@@ -322,7 +348,7 @@ def run_activity_metrics(conn: sqlite3.Connection, activity_id: int) -> dict:
     # prefetch: streams (only if any calculator needs them)
     stream_cache = None
     if any(c.needs_streams for c in sorted_calcs):
-        stream_cache = _load_streams(conn, activity_id)
+        stream_cache = load_group_streams(conn, activity_id)  # 대표에 없으면 같은 그룹 사본 스트림
 
     ctx = CalcContext(
         conn=conn,
@@ -424,7 +450,7 @@ def run_for_date(conn: sqlite3.Connection, target_date: str,
                  prefetched_daily_metrics: dict = None) -> dict:
     """특정 날짜의 전체 메트릭 계산 (활동별 → 일별)."""
     activities = conn.execute(
-        "SELECT id FROM activity_summaries "
+        "SELECT id FROM v_canonical_activities "
         "WHERE substr(start_time, 1, 10) = ? AND activity_type IN "
         "('running','trail_running','treadmill')",
         (target_date,),
@@ -465,7 +491,14 @@ def compute_for_activities(conn: sqlite3.Connection,
         [c for c in ALL_CALCULATORS if c.scope_type == "activity"]
     )
 
-    for activity_id in activity_ids:
+    canonical: list[int] = []
+    for aid in activity_ids:
+        cid = canonical_activity_id(conn, aid)
+        if cid != aid:
+            _drop_runpulse_activity_rows(conn, [aid])
+        if cid not in canonical:
+            canonical.append(cid)
+    for activity_id in canonical:
         result.total_scopes += 1
         metrics = run_activity_metrics(conn, activity_id)
         for k, v in metrics.items():
@@ -496,11 +529,12 @@ def _compute_activity_metrics_for_dates(conn: sqlite3.Connection,
         return {}
     placeholders = ",".join("?" * len(dates))
     rows = conn.execute(
-        f"SELECT id, substr(start_time, 1, 10) FROM activity_summaries "
+        f"SELECT id, substr(start_time, 1, 10) FROM v_canonical_activities "
         f"WHERE substr(start_time, 1, 10) IN ({placeholders}) "
         f"AND activity_type IN ('running','trail_running','treadmill')",
         list(dates),
     ).fetchall()
+    prune_noncanonical_runpulse(conn)
 
     by_date: dict = {d: {} for d in dates}
     for act_id, act_date in rows:
@@ -584,7 +618,7 @@ def recompute_single_metric(conn: sqlite3.Connection,
     if calc.scope_type == "activity":
         start_date = (today - timedelta(days=days)).isoformat()
         activities = conn.execute(
-            "SELECT id FROM activity_summaries "
+            "SELECT id FROM v_canonical_activities "
             "WHERE substr(start_time,1,10) >= ? AND activity_type IN "
             "('running','trail_running','treadmill')",
             (start_date,),

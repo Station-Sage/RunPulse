@@ -3,14 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-
-def canonical_activity_id(conn: sqlite3.Connection, activity_id: int) -> int:
-    """활동 id → 같은 그룹의 현재 canonical 활동 id. 그룹이 재편돼 저장된 id 가 낡아도 같은 활동으로 취급한다."""
-    row = conn.execute(
-        "SELECT c.id FROM activity_summaries a JOIN v_canonical_activities c "
-        "  ON COALESCE(c.matched_group_id, 'solo_'||c.id) = COALESCE(a.matched_group_id, 'solo_'||a.id) "
-        "WHERE a.id=? LIMIT 1", (activity_id,)).fetchone()
-    return row[0] if row else activity_id
+from src.utils.canonical import canonical_activity_id  # noqa: F401  (재export — 기존 import 경로 유지)
 
 
 def _classified_kinds(conn: sqlite3.Connection, activity_ids: list[int]) -> dict[int, str]:

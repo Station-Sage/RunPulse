@@ -12,8 +12,24 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from src.metrics.context_runs import RunHistoryMixin
+from src.utils.canonical import group_activity_ids
 
 log = logging.getLogger(__name__)
+
+
+
+def load_group_streams(conn, activity_id: int) -> list[dict]:
+    """같은 그룹 사본 중 스트림 샘플이 가장 많은 것(자기 자신 우선). 없으면 []."""
+    ids = group_activity_ids(conn, activity_id)
+    marks = ",".join("?" * len(ids))
+    best = conn.execute(
+        f"SELECT activity_id FROM activity_streams WHERE activity_id IN ({marks})"
+        " GROUP BY activity_id ORDER BY activity_id != ?, COUNT(*) DESC LIMIT 1", [*ids, activity_id]).fetchone()
+    if not best:
+        return []
+    cur = conn.execute("SELECT * FROM activity_streams WHERE activity_id = ? ORDER BY elapsed_sec", [best[0]])
+    cols = [d[0] for d in cur.description]
+    return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
 @dataclass
@@ -309,6 +325,28 @@ class CalcContext(RunHistoryMixin):
         if activity_id is None or (self.scope_type == "activity" and str(aid) == self.scope_id):
             self._stream_cache = result
         return result
+
+    # ── 그룹 입력 병합 (같은 활동의 소스 사본) — 21 design §7.3 C3, DECISIONS D10 ──
+    # RunPulse activity 계산은 캐노니컬 사본에서만 돈다. 대표 사본에 없는 입력(HR 존 시간·스트림)은
+    # 같은 그룹의 다른 사본에서 채운다.
+
+    def get_group_metric(self, metric_name: str) -> Optional[float]:
+        """현재 활동 값 → 없으면 같은 그룹 다른 사본의 primary 값."""
+        own = self.get_metric(metric_name)
+        if own is not None or self.scope_type != "activity":
+            return own
+        for sib in group_activity_ids(self.conn, int(self.scope_id))[1:]:
+            v = self.get_activity_metric(sib, metric_name)
+            if v is not None:
+                return v
+        return None
+
+    def get_group_streams(self) -> list[dict]:
+        """현재 활동 스트림 → 없으면 같은 그룹에서 샘플이 가장 많은 사본의 스트림."""
+        own = self.get_streams()
+        if own or self.scope_type != "activity":
+            return own
+        return load_group_streams(self.conn, int(self.scope_id))
 
     def get_laps(self, activity_id: int = None) -> list[dict]:
         aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)

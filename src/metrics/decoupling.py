@@ -42,7 +42,7 @@ class AerobicDecouplingCalculator(MetricCalculator):
         if not duration or duration < self.MINIMUM_DURATION_SEC:
             return []
 
-        streams = ctx.get_streams()
+        streams = ctx.get_group_streams()
         if not streams or len(streams) < 120:
             return []
 
