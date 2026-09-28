@@ -570,6 +570,34 @@ export interface PlanGoal {
 	status: string;
 }
 
+// 이행 수치(src/training/week_compliance.py) — 한 숫자로 합치지 않는다
+export interface PlanCompliance {
+	sessions: { done: number; total: number };
+	volume: { actual_km: number; planned_km: number; pct: number | null; days_without_target: number };
+	quality: { done: number; total: number };
+}
+
+export type PlanDayState = 'done' | 'partial' | 'missed' | 'upcoming' | 'rest' | 'pre_plan';
+
+export interface PlanDay {
+	date: string;
+	state: PlanDayState;
+	effective?: { id: number; source: string; workout_type: string; distance_km: number | null };
+	planned_km?: number | null;
+	alternatives?: number[];
+	substituted?: boolean;
+	label?: string;
+	status?: SemanticStatus;
+	status_label?: string;
+	today?: boolean;
+}
+
+export interface PlanWeek {
+	days: PlanDay[];
+	unplanned_runs: { date: string; activity_id: number; distance_km: number }[];
+	compliance: PlanCompliance;
+}
+
 export interface ActivePlan {
 	goal: PlanGoal;
 	week_index: number;
@@ -577,6 +605,8 @@ export interface ActivePlan {
 	next_session?: PlannedWorkout | null; // 오늘 이후 첫 미완료 세션(다음 주 포함)
 	ctl_current: number | null;
 	compliance_pct: number | null;
+	compliance?: PlanCompliance | null;
+	week?: PlanWeek;
 }
 
 // ── Coach Plan Templates (5-D/5-E — /api/v1/coach/plan/templates) ────────────

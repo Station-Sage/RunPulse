@@ -76,7 +76,7 @@
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
-### `plan_service.py` (202줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
@@ -1077,6 +1077,10 @@
 
 - functions: replan_remaining_week
 
+### `week_compliance.py` (188줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
+
+- functions: outcome_label, compute
+
 ## `src/utils/`
 
 > 공유 유틸리티.
@@ -1829,7 +1833,7 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed
 
-### `test_plan_service.py` (209줄) — tests/test_plan_service.py — plan_service 단위 테스트.
+### `test_plan_service.py` (211줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
 
@@ -2153,6 +2157,10 @@
 
 - functions: test_request_params_archive_vs_forecast, test_at_time_interpolates_and_wbgt
 
+### `test_week_compliance.py` (103줄) — tests/test_week_compliance.py — 날짜별 유효 계획·이행 수치(31-coach-plan design R1·R2·R3·R5).
+
+- functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
+
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -2207,7 +2215,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 445개 파일
+총 447개 파일
 
 ## docstring 누락
 

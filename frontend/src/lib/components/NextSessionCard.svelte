@@ -28,9 +28,10 @@
 			null
 	);
 
-	// 대체된 추천안(같은 날 다른 계획이 실제 활동을 가져감)은 세지 않는다
-	const weekWork = $derived(plan?.workouts.filter((w) => w.workout_type !== 'rest' && !w.superseded) ?? []);
-	const weekDone = $derived(weekWork.filter((w) => w.completed === 1).length);
+	// 날짜별 유효 계획 상태(서버 week_compliance) — 휴식·계획 전 날은 세지 않는다
+	const weekDays = $derived(plan?.week?.days.filter((d) => d.state !== 'rest' && d.state !== 'pre_plan') ?? []);
+	const weekSessions = $derived(plan?.week?.compliance.sessions);
+	const DAY_MARK: Record<string, string> = { done: '●', partial: '◐', missed: '○', upcoming: '◌' };
 
 	function dayText(date: string): string {
 		const diff = Math.round(
@@ -124,13 +125,13 @@
 			</div>
 		</div>
 
-		{#if weekWork.length > 0}
-			<p class="text-xs text-fg-muted">
-				이번 주 준수율
-				{#each weekWork as w}
-					<span>{w.completed === 1 ? '●' : '○'}</span>
+		{#if weekDays.length > 0}
+			<p class="text-xs text-fg-muted" title="● 이행 · ◐ 부족 · ○ 놓침 · ◌ 예정">
+				이번 주
+				{#each weekDays as d (d.date)}
+					<span class:font-bold={d.today}>{DAY_MARK[d.state] ?? '◌'}</span>
 				{/each}
-				{weekDone}/{weekWork.length} 완료
+				{#if weekSessions && weekSessions.total > 0}{weekSessions.done}/{weekSessions.total}일 이행{/if}
 			</p>
 		{/if}
 	</div>

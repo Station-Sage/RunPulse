@@ -29,22 +29,29 @@
 		return DAY_KO[d.getDay() === 0 ? 6 : d.getDay() - 1];
 	}
 
-	const TODAY = new Date().toISOString().slice(0, 10);
 
-	// 계획 행 상태: 완료 ✓ / 대체됨 / 부분 이행 / 미이행(지난 날) — 없으면 예정
+	// 행 상태는 서버(week_compliance)의 날짜별 유효 계획·결과 라벨만 렌더한다 — 프론트에 판정 규칙 없음
+	const STATUS_CLS: Record<string, string> = {
+		excellent: 'text-semantic-green',
+		good: 'text-semantic-teal',
+		neutral: 'text-fg-secondary',
+		caution: 'text-semantic-amber',
+		poor: 'text-semantic-red'
+	};
+	const dayByDate = $derived(new Map((data.plan?.week?.days ?? []).map((d) => [d.date, d])));
+
 	function statusOf(w: PlannedWorkout): { text: string; cls: string } | null {
-		const pct = w.compliance_pct != null ? Math.round(w.compliance_pct) : null;
-		if (w.completed) {
-			if (w.outcome_label === 'modified') return { text: '✓ 페이스 상이', cls: 'text-semantic-amber' };
-			return { text: pct != null && pct < 85 ? `✓ ${pct}%` : '✓', cls: 'text-semantic-green' };
-		}
-		if (w.superseded) return { text: '대체됨', cls: 'text-fg-muted' };
-		if (w.matched_activity_id) {
-			const p = pct ?? (w.dist_ratio != null ? Math.round(w.dist_ratio * 100) : null);
-			if (p != null) return { text: `부분 ${p}%`, cls: 'text-semantic-amber' };
-		}
-		if (w.date < TODAY && w.workout_type !== 'rest') return { text: '미이행', cls: 'text-fg-muted' };
-		return null;
+		const d = dayByDate.get(w.date);
+		if (!d?.effective) return null;
+		if (d.effective.id !== w.id) return { text: '대체됨', cls: 'text-fg-muted' };
+		if (d.state === 'pre_plan') return { text: '계획 전', cls: 'text-fg-muted' };
+		if (!d.status_label) return null;
+		return { text: (d.label === 'on_target' ? '✓ ' : '') + d.status_label, cls: STATUS_CLS[d.status ?? 'neutral'] };
+	}
+
+	function isAlternative(w: PlannedWorkout): boolean {
+		const d = dayByDate.get(w.date);
+		return !!d?.effective && d.effective.id !== w.id;
 	}
 
 </script>
@@ -91,9 +98,16 @@
 				</div>
 			{/if}
 
-			{#if data.plan.compliance_pct != null}
-				<p class="mt-2 text-xs text-fg-muted">
-					지금까지 이행률 <span class="font-medium text-fg-secondary">{data.plan.compliance_pct}%</span>
+			{#if data.plan.compliance && data.plan.compliance.sessions.total > 0}
+				{@const c = data.plan.compliance}
+				<p class="mt-2 flex flex-wrap gap-x-3 text-xs text-fg-muted">
+					<span>세션 <span class="font-mono font-medium text-fg-secondary">{c.sessions.done}/{c.sessions.total}일</span></span>
+					{#if c.volume.pct != null}
+						<span>볼륨 <span class="font-mono font-medium text-fg-secondary">{c.volume.actual_km}/{c.volume.planned_km}km {c.volume.pct}%</span></span>
+					{/if}
+					{#if c.quality.total > 0}
+						<span>품질 세션 <span class="font-mono font-medium text-fg-secondary">{c.quality.done}/{c.quality.total}</span></span>
+					{/if}
 				</p>
 			{/if}
 		</div>
@@ -121,7 +135,7 @@
 				<ul class="divide-y divide-border-subtle">
 					{#each data.plan.workouts as w (w.id)}
 						{@const st = statusOf(w)}
-						<li class:opacity-50={w.superseded}>
+						<li class:opacity-50={isAlternative(w)}>
 							<a
 								href="{base}/coach/plan/{data.plan.goal.id}/session/{w.date}"
 								class="flex items-start gap-3 py-2.5 hover:bg-surface-2"
