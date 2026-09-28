@@ -16,7 +16,7 @@
 |---|---|---|
 | Phase 0 핫픽스 | 완료·운영 반영(2026-09-28 08:40) | d31511b |
 | 1-1 부하 모델 재기준화(PMC α=1/τ, TRIMP 계수, 재계산) | 완료·운영 반영(2026-09-28 12:45, 백업 `running.db.bak-20260928-pre-pmc-v2`) | d43dedf. 남음: Today 1회성 변경 알림(10 S0 명세) — 2-1 공통 규격 때 함께 |
-| 1-2 등급 SSOT | 완료(코드). 운영 반영 진행 | `src/metrics/bands.py`, API status·status_label, 프론트 등급표 4벌 제거, consistency 검사 17. 남음: formChart 레이스 최적 음영 [5,25] 상수(시각 밴드) |
-| 1-5 이행 재정의 | 대기 | |
+| 1-2 등급 SSOT | 완료·운영 반영(2026-09-28 13:30, bbb66de) | `src/metrics/bands.py`, API status·status_label, 프론트 등급표 4벌 제거, consistency 검사 17. 남음: formChart 레이스 최적 음영 [5,25] 상수(시각 밴드) |
+| 1-5 이행 재정의 | 진행 중 | 31 design §4.1 R1~R5·R9·R11 |
 | 1-6 동기화 원장 | 대기 | |
 | 1-3, 1-4, 1-7 | 대기 | |
