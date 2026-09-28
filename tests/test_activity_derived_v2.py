@@ -99,3 +99,26 @@ def test_te_bands_follow_garmin_scale():
     assert grade("training_effect_aerobic", 2.5)["label"] == "유지"
     assert grade("training_effect_aerobic", 3.4)["status"] == "good"
     assert grade("training_effect_aerobic", 5.0)["status"] == "caution"
+
+
+def test_gap_uphill_is_faster_than_actual_pace():
+    """5% 오르막 1km를 5:00에 → Minetti 비용 배수 1.30 → GAP 약 3:50(v1은 나눠서 5:00보다 느려졌다).
+    설계서 예시 4:25는 경험 모델(Strava식) 값 — 모델 선택은 실데이터 Garmin GAP 비교로 별도 판단."""
+    from src.metrics.gap import GAPCalculator
+    conn = _conn()
+    aid = _act(conn, distance_m=1000, moving_time_sec=300, duration_sec=300, elapsed_time_sec=300)
+    v = 1000 / 300
+    _streams_alt = [(aid, t, t * v, v, 150, t * v * 0.05) for t in range(301)]
+    conn.executemany(
+        "INSERT INTO activity_streams (activity_id, source, elapsed_sec, distance_m, speed_ms, heart_rate, altitude_m)"
+        " VALUES (?, 'garmin', ?, ?, ?, ?, ?)", _streams_alt)
+    r = GAPCalculator().compute(CalcContext(conn=conn, scope_type="activity", scope_id=str(aid)))
+    assert abs(r[0].numeric_value - 230.5) <= 3, r[0].numeric_value
+
+
+def test_gap_without_elevation_is_empty():
+    from src.metrics.gap import GAPCalculator
+    conn = _conn()
+    aid = _act(conn)
+    _streams(conn, aid, [(t, t * 3.0, 3.0, 150) for t in range(3001)])
+    assert GAPCalculator().compute(CalcContext(conn=conn, scope_type="activity", scope_id=str(aid))) == []

@@ -22,7 +22,7 @@ def sample_times(streams: list[dict], total_sec: float | None) -> list[float]:
 
 
 def moving_segments(streams: list[dict], total_sec: float | None) -> list[dict]:
-    """연속 샘플 쌍 → 이동 구간 목록 [{dt, dd, speed, hr}] (정지 구간 제외)."""
+    """연속 샘플 쌍 → 이동 구간 목록 [{i(끝 샘플 인덱스), dt, dd, speed, hr}] (정지 구간 제외)."""
     t = sample_times(streams, total_sec)
     out = []
     for i in range(1, len(streams)):
@@ -39,7 +39,7 @@ def moving_segments(streams: list[dict], total_sec: float | None) -> list[dict]:
         if dt > GAP_SEC and dd is not None and dd < GAP_DIST_M:
             continue
         hr = streams[i].get("heart_rate")
-        out.append({"dt": dt, "dd": dd, "speed": speed, "hr": hr if hr and hr > 0 else None})
+        out.append({"i": i, "dt": dt, "dd": dd, "speed": speed, "hr": hr if hr and hr > 0 else None})
     return out
 
 
