@@ -159,15 +159,15 @@
 			<div class="flex flex-col gap-4">
 				<div class="rounded-xl bg-surface-2 p-3">
 					<span class="text-xs text-fg-muted">수면 점수</span>
-					<Sparkline data={trend.sleep_score} height={32} color="#3b82f6" />
+					<Sparkline data={trend.sleep_score} height={32} color="#3b82f6" interactive dates={trend.dates} />
 				</div>
 				<div class="rounded-xl bg-surface-2 p-3">
 					<span class="text-xs text-fg-muted">HRV (야간)</span>
-					<Sparkline data={trend.hrv_last_night} height={32} color="#10b981" />
+					<Sparkline data={trend.hrv_last_night} height={32} color="#10b981" interactive dates={trend.dates} />
 				</div>
 				<div class="rounded-xl bg-surface-2 p-3">
 					<span class="text-xs text-fg-muted">UTRS</span>
-					<Sparkline data={trend.utrs} height={32} color="#f59e0b" />
+					<Sparkline data={trend.utrs} height={32} color="#f59e0b" interactive dates={trend.dates} />
 				</div>
 			</div>
 		</section>

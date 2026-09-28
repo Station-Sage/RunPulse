@@ -51,8 +51,15 @@
 
 ### 2-4 세부 (1차 — 순수 함수만)
 - `lib/chart/scrub.ts` 신규: `niceTicks`(§C1 "1·2·2.5·5×10ⁿ", 3~5개), `clamp01`, `nearestIndexByFraction`, `axisDateLabel`(기간별 x축 라벨 규칙). 테스트 `tests/chart-scrub.test.mjs`(5건).
-- **아직 하지 않음(위험도 높아 다음 라운드로 분리)**: `ChartScrub.svelte` 인터랙션 레이어(포인터 pin/hover, 모바일 드래그 스크럽+손 떼도 유지, 키보드, 판독줄, 툴팁) + 기존 3곳(FormChart/TrendChart/Sparkline, 각자 `formChart.ts`/`trendChart.ts`/`streamAxis.ts`에 비슷한 xFrac·nearest 로직이 따로 있음)을 이 코어로 옮기는 마이그레이션. y축 nice tick도 지금 세 차트 모두 렌더링 안 하고 있어(0건 확인) 이번에 처음 붙이는 것 — 레이아웃에 영향을 주는 변경이라 화면 하나씩 검증하며 진행 예정.
 - 검증: `npm run test:unit`(211 pass) · `npm run check`(0 errors) · `npm run build`(성공).
 
+### 2-4 세부 (2차 — ChartScrub.svelte + Sparkline 첫 적용)
+- 사용자 확인(2026-09-28 "오케이"): 목록형 화면(`library/metrics`)의 스파크라인은 지금은 비인터랙티브로 유지, 상세 화면 5곳만 인터랙티브로 전환. 그 목록 화면 재구성(로드맵 3-7)에서 재검토.
+- `ChartScrub.svelte` 신규: 포인터(hover 미리보기/click 고정/같은 점 재탭 해제/drag 스크럽 — pointerup에서 해제하지 않아 "손을 떼도 유지" 충족), 키보드(←/→ 1점, Shift+←/→ 7점, Home/End, Esc). 렌더링은 호출부 snippet에 위임(`children(index, pinned)`).
+- `Sparkline.svelte`에 `interactive`·`dates`·`formatValue` prop 추가(기본 `interactive=false`로 기존 동작 100% 보존) — true면 ChartScrub로 감싸고 세로선+작은 툴팁(값+선택 시 날짜)을 그린다.
+- 적용 5곳: 웰니스 30일 트렌드(수면 점수·HRV·UTRS, `library/wellness/+page.svelte`), 활동 상세 페이스·심박(`library/[id]/+page.svelte`, `formatPace`/`formatHeartRate`로 툴팁 포맷), Today L2 월간 CTL·ATL(`MonthNarrative.svelte`, `formatLoad`로 포맷 + 날짜 추가 수집). 색상도 이 김에 미정의 CSS 변수(`var(--color-accent)`, `var(--color-semantic-yellow, ...)`  — §C8이 금지하는 미정의 토큰)를 `--color-series-1`/`--color-semantic-amber`로 교체.
+- **의도적으로 안 한 것**: (1) 활동 스트림 탭(`library/[id]/streams/+page.svelte`)은 이미 자체 스크럽(포인터 기반, 여러 차트 동기화)이 있는데 `pointerleave`에서 해제해 "손을 떼도 유지" 위반 + 키보드 없음 — 이번 범위(단일 Sparkline 래핑)로는 못 옮기고 별도 작업으로 남김. (2) FormChart·TrendChart(날짜 기반 다계열)는 `formChart.ts`/`trendChart.ts`의 기존 xFrac·nearest 로직을 걷어내는 게 이 코어 마이그레이션의 본 목표인데, 축이 다계열·날짜형이라 Sparkline보다 복잡해 별도 단계로 분리. (3) 판독줄 `aria-live` 낭독(§C1)은 `aria-valuenow`로 근사만 함 — 스크린리더 실기기 확인 못 함.
+- 검증: `npm run check`(0 errors, 기존 경고 15건 그대로) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음). **주의**: 이 컴포넌트는 포인터/드래그 제스처가 핵심인데 이 환경엔 헤드리스 빌드 검증만 있고 실제 터치 기기 확인은 못 했음 — 다음에 화면을 열어볼 때 스크럽이 실제로 부드럽게 동작하는지 확인 필요.
+
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행" 지시로 Phase 2 착수. 2-1 대부분 완료, 2-2(셸 기반) 완료(위 세부의 스코프 판단 1건 확인 필요) — 2-3(전환 스위치 G0)으로 이동 전에 사용자 확인 대기.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4(1·2차) 완료. 남은 후보: 2-4 나머지(FormChart/TrendChart/스트림 탭 마이그레이션), 2-5(드릴다운 API, 스키마 안 건드림), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.

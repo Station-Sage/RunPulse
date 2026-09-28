@@ -8,7 +8,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EnvContextCard from '$lib/components/EnvContextCard.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDuration, formatPace, formatDate, formatUnitValue } from '$lib/format';
+	import { formatDuration, formatPace, formatDate, formatUnitValue, formatHeartRate } from '$lib/format';
 	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
@@ -176,13 +176,26 @@
 				{#if paceSeries.some((v) => v != null)}
 					<div>
 						<p class="mb-0.5 text-[10px] text-fg-muted">페이스</p>
-						<Sparkline data={paceSeries} height={40} color="#3b82f6" invert />
+						<Sparkline
+							data={paceSeries}
+							height={40}
+							color="#3b82f6"
+							invert
+							interactive
+							formatValue={(v) => formatPace(v)}
+						/>
 					</div>
 				{/if}
 				{#if hrSeries.some((v) => v != null)}
 					<div>
 						<p class="mb-0.5 text-[10px] text-fg-muted">심박</p>
-						<Sparkline data={hrSeries} height={40} color="#ef4444" />
+						<Sparkline
+							data={hrSeries}
+							height={40}
+							color="#ef4444"
+							interactive
+							formatValue={(v) => formatHeartRate(v)}
+						/>
 					</div>
 				{/if}
 				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}{#if paceSeriesClamped}{' · '}페이스 이상치 제거됨(상·하위 2% 클램프){/if}</p>

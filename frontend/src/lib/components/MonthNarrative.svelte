@@ -12,6 +12,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import { formatLoad } from '$lib/format';
 	import type { NarrativeResponse } from '$lib/types';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -43,6 +44,7 @@
 	let showDualSparkline = $state(false);
 	let ctlPoints = $state<(number | null)[]>([]);
 	let atlPoints = $state<(number | null)[]>([]);
+	let ctlDates = $state<string[]>([]);
 	let sparklineLoading = $state(false);
 
 	const isCurrentOrFuture = $derived(
@@ -83,6 +85,7 @@
 			]);
 			ctlPoints = ctl.points.map((p) => p.value);
 			atlPoints = atl.points.map((p) => p.value);
+			ctlDates = ctl.points.map((p) => p.date);
 		} catch {
 			// 스파크라인 실패는 조용히 무시
 		} finally {
@@ -226,16 +229,37 @@
 							<div class="mt-2 flex flex-col gap-3">
 								<div>
 									<p class="mb-1 text-[10px] text-fg-muted">CTL</p>
-									<Sparkline data={ctlPoints} height={40} color="var(--color-accent)" />
+									<Sparkline
+										data={ctlPoints}
+										height={40}
+										color="var(--color-series-1)"
+										interactive
+										dates={ctlDates}
+										formatValue={formatLoad}
+									/>
 								</div>
 								<div>
 									<p class="mb-1 text-[10px] text-fg-muted">ATL</p>
-									<Sparkline data={atlPoints} height={40} color="var(--color-semantic-yellow, #f59e0b)" />
+									<Sparkline
+										data={atlPoints}
+										height={40}
+										color="var(--color-semantic-amber)"
+										interactive
+										dates={ctlDates}
+										formatValue={formatLoad}
+									/>
 								</div>
 							</div>
 						{:else}
 							<div class="mt-2">
-								<Sparkline data={ctlPoints} height={40} color="var(--color-accent)" />
+								<Sparkline
+									data={ctlPoints}
+									height={40}
+									color="var(--color-series-1)"
+									interactive
+									dates={ctlDates}
+									formatValue={formatLoad}
+								/>
 							</div>
 						{/if}
 					</div>
