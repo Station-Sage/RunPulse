@@ -47,5 +47,12 @@
 - 검증: `npm run check`(0 errors) · `npm run build`(성공) · `npm run test:unit`(206 pass, 회귀 없음).
 - 남음: `ui_default` 전환 스위치(S1, 계정 설정 스키마 필요 → D6과 함께), MenuDrawer를 실제 SyncStatusPill로 교체(Phase 4-1), ErrorState/EmptyState를 각 라우트 로딩 실패 지점에 실제로 배선.
 
+| 2-4 ChartScrub 코어(1차) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "권장안으로 하고") — 2-3(계정 설정 스키마 필요)은 보류, 스키마 안 건드리는 2-4부터 진행 |
+
+### 2-4 세부 (1차 — 순수 함수만)
+- `lib/chart/scrub.ts` 신규: `niceTicks`(§C1 "1·2·2.5·5×10ⁿ", 3~5개), `clamp01`, `nearestIndexByFraction`, `axisDateLabel`(기간별 x축 라벨 규칙). 테스트 `tests/chart-scrub.test.mjs`(5건).
+- **아직 하지 않음(위험도 높아 다음 라운드로 분리)**: `ChartScrub.svelte` 인터랙션 레이어(포인터 pin/hover, 모바일 드래그 스크럽+손 떼도 유지, 키보드, 판독줄, 툴팁) + 기존 3곳(FormChart/TrendChart/Sparkline, 각자 `formChart.ts`/`trendChart.ts`/`streamAxis.ts`에 비슷한 xFrac·nearest 로직이 따로 있음)을 이 코어로 옮기는 마이그레이션. y축 nice tick도 지금 세 차트 모두 렌더링 안 하고 있어(0건 확인) 이번에 처음 붙이는 것 — 레이아웃에 영향을 주는 변경이라 화면 하나씩 검증하며 진행 예정.
+- 검증: `npm run test:unit`(211 pass) · `npm run check`(0 errors) · `npm run build`(성공).
+
 ## 다음
 Phase 1 완료. 2026-09-28 "오케이 이어서 진행" 지시로 Phase 2 착수. 2-1 대부분 완료, 2-2(셸 기반) 완료(위 세부의 스코프 판단 1건 확인 필요) — 2-3(전환 스위치 G0)으로 이동 전에 사용자 확인 대기.
