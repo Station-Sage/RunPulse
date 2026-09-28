@@ -8,6 +8,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
+	import ProgressBar from '$lib/components/ProgressBar.svelte';
 
 	let { children } = $props();
 
@@ -21,6 +22,8 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+
+<ProgressBar />
 
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
 	<header class="border-b border-border-subtle">
