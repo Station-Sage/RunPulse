@@ -76,18 +76,20 @@ def test_get_active_plan_by_invalid_goal_id_returns_none(conn):
 
 
 def test_compliance_pct_with_mixed_workouts(conn):
+    """지난 날 수동 완료 2 + 미이행 1 + 휴식 1 → 세션 이행 2/3(휴식 제외). 오늘 요일과 무관하게 과거 날짜로 고정."""
     _seed_goal(conn)
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())
-    # 2 completed, 1 not, 1 rest
-    _seed_workout(conn, week_start.isoformat(), "easy", completed=1)
-    _seed_workout(conn, (week_start + timedelta(1)).isoformat(), "long", completed=1)
-    _seed_workout(conn, (week_start + timedelta(2)).isoformat(), "tempo", completed=0)
-    _seed_workout(conn, (week_start + timedelta(3)).isoformat(), "rest", completed=0)
+    conn.execute("UPDATE goals SET created_at = ?", ((today - timedelta(days=10)).isoformat(),))
+    conn.execute("UPDATE goals SET plan_weeks = NULL, race_date = NULL")
+    _seed_workout(conn, (today - timedelta(days=5)).isoformat(), "easy", completed=1)
+    _seed_workout(conn, (today - timedelta(days=4)).isoformat(), "long", completed=1)
+    _seed_workout(conn, (today - timedelta(days=3)).isoformat(), "tempo", completed=0)
+    _seed_workout(conn, (today - timedelta(days=2)).isoformat(), "rest", completed=0)
 
     result = plan_service.get_active_plan(conn)
-    # 2/3 non-rest = 66.7
     assert result["compliance_pct"] == pytest.approx(66.7, abs=0.1)
+    assert result["compliance"]["sessions"] == {"done": 2, "total": 3}
+    assert result["compliance"]["quality"] == {"done": 0, "total": 1}
 
 
 def test_compliance_pct_ignores_prior_goal_leftovers(conn):

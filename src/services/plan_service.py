@@ -10,6 +10,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
+from src.training import week_compliance
 from src.training.adjuster import adjust_todays_plan
 from src.training.goals import get_active_goal, get_goal
 from src.training.planner import get_planned_workouts
@@ -61,26 +62,33 @@ def _week_index_absolute(conn: sqlite3.Connection, goal: dict) -> int:
     return _week_index_for_date(goal, date.today())
 
 
-def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
-    """이행률 = 완료 / 비-휴식 워크아웃 (이 목표의 플랜 기간 중 이미 지난 날 + 오늘 완료분). 미래 계획은 분모에 넣지 않는다."""
-    start, end = _plan_date_range(goal)
-    clauses = ["source='planner'", "(date < ? OR completed = 1)"]
-    params: list[str] = [date.today().isoformat()]
-    if start:
-        clauses.append("date >= ?")
-        params.append(start)
-    if end:
-        clauses.append("date <= ?")
-        params.append(end)
-    rows = conn.execute(
-        f"SELECT workout_type, completed FROM planned_workouts WHERE {' AND '.join(clauses)}",
-        params,
-    ).fetchall()
-    non_rest = [r for r in rows if r[0] != "rest"]
-    if not non_rest:
+def _effective_start(goal: dict) -> date | None:
+    """이행 집계 시작일 = max(계획 시작일, 목표 생성일) — 계획이 생기기 전 날짜는 분모에 넣지 않는다(R2)."""
+    start, _ = _plan_date_range(goal)
+    cands = []
+    for v in (start, (goal.get("created_at") or "")[:10]):
+        try:
+            cands.append(date.fromisoformat(v))
+        except (ValueError, TypeError):
+            pass
+    return max(cands) if cands else None
+
+
+def _plan_compliance(conn: sqlite3.Connection, goal: dict, today: date | None = None) -> dict | None:
+    """계획 시작부터 오늘까지 이행 수치(세션·볼륨·품질) — src/training/week_compliance.py R1~R3."""
+    today = today or date.today()
+    eff_start = _effective_start(goal)
+    if eff_start is None or eff_start > today:
         return None
-    completed = sum(1 for r in non_rest if r[1])
-    return round(completed / len(non_rest) * 100, 1)
+    return week_compliance.compute(conn, eff_start, today, eff_start, today)["compliance"]
+
+
+def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
+    """세션 이행률(%) — 기존 필드 호환용. 표시는 compliance{sessions, volume, quality}를 쓴다."""
+    c = _plan_compliance(conn, goal)
+    if not c or not c["sessions"]["total"]:
+        return None
+    return round(c["sessions"]["done"] / c["sessions"]["total"] * 100, 1)
 
 
 def _next_session(conn: sqlite3.Connection) -> dict | None:
@@ -110,6 +118,8 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
     ctl_current = fitness.get("ctl")
     week_index = _week_index_absolute(conn, goal)
     compliance_pct = _compliance_pct(conn, goal)
+    week = week_compliance.compute(conn, week_start, week_start + timedelta(days=6),
+                                   _effective_start(goal))
     return {
         "goal": {
             "id": goal["id"],
@@ -124,6 +134,8 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
         "workouts": workouts,
         "ctl_current": ctl_current,
         "compliance_pct": compliance_pct,
+        "compliance": _plan_compliance(conn, goal),
+        "week": week,
         "next_session": _next_session(conn),
     }
 
