@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import activity_service, archive_service, metrics_browser_service, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
+from src.services import activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -88,7 +88,13 @@ def get_library_metric_breakdown(slug: str):
 
     conn = sqlite3.connect(str(dpath))
     try:
-        result = metrics_service.get_metric_breakdown(conn, scope_type, scope_id, slug)
+        result = None
+        # explain=1: 분해 v2(§C3.2) — TSB/CTL/ATL/UTRS만 지원(2-5, 2026-09-28).
+        # 그 외 슬러그·explainer 실패 시 기존 v1(children/inputs)로 폴백.
+        if request.args.get("explain") == "1":
+            result = metrics_explain.get_metric_explain(conn, scope_type, scope_id, slug)
+        if result is None:
+            result = metrics_service.get_metric_breakdown(conn, scope_type, scope_id, slug)
     finally:
         conn.close()
 

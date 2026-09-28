@@ -23,6 +23,7 @@
 | 1-4 그룹당 1회 계산 | 완료·운영 반영(같은 재계산) | edd2d52. 운영: 사본 RunPulse 행 0, RE 폴백 341→2, 17414 RE 302→27.7 | `src/utils/canonical.py`, CalcContext `get_group_metric`·`get_group_streams`, 엔진 캐노니컬만 계산·`prune_noncanonical_runpulse`, 상세·소스 비교 캐노니컬 RunPulse 값, consistency 18·19. 남음: 재매칭 시 그룹 재계산 트리거(현재는 다음 재계산 창에서 정리), C4 매트릭스 쌍 비교(3-8) |
 | 1-7 GAP v2 | 완료·운영 반영(같은 재계산) | 8d2b9ad. Garmin GAP 대비 중앙 오차 평지 0.6초/km·언덕 4초/km(n=258) → Minetti 유지 | 고도 30m 창 경사, 곱셈 보정, 정지 제외, 경사 없으면 미산출. **설계 예시 4:25(5%)는 Minetti가 아니라 경험 모델 값** — Garmin GAP 대비 오차로 모델 판단 필요. 남음: Garmin gap_speed_ms 소스 GAP 저장(④) |
 | 2-1 공통 규격(1차) | 진행 중·브랜치에만 있음(운영 미반영) | 아래 "2-1 세부" 참조. D1a~D1e 중 D1b(델타 토큰)·D1c(거리 소수 2자리 예외)·D1e(★ 아이콘) 반영, D1d(활동 scope `@a{id}`)는 §C3.3 드릴다운 URL 작업(2-5)과 함께 할 예정이라 보류 |
+| 2-5 분해 v2 API(백엔드만) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "오케이") — 아래 "2-5 세부" 참조. 프론트 DrillPanel/BreakdownView 재작성은 별도 라운드 |
 
 ### 2-1 세부 (커밋 예정)
 - **폰트 self-host**: `static/fonts/{inter-variable,jetbrains-mono}.woff2`(jsdelivr fontsource 라틴 서브셋 — 한글 글리프 없음, 시스템 폰트 폴백), `layout.css`에 `@font-face`+`--font-sans`, `body`에 적용.
@@ -71,5 +72,14 @@
 - 이것으로 2-4(ChartScrub 코어+마이그레이션)는 Sparkline·스트림 탭·FormChart·TrendChart 전부 완료. 남은 건 y축 nice tick 실제 렌더(지금은 `scrub.ts`의 `niceTicks`가 어디서도 호출 안 됨 — 각 차트의 기존 "min/max 텍스트만" 방식을 §C1의 "3~5개 nice tick" 방식으로 바꾸는 건 레이아웃 변경 폭이 커서 별도 판단 필요) + `axisDateLabel` 실사용(현재 x축은 t0/t1 두 끝만 표시, §C1 "≤14일 요일/일, ≤6개월 월경계, >6개월 분기" 세분화 눈금 미적용).
 - 검증: `npm run check`(0 errors, 기존 경고 15건 그대로) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음). **주의**: 이 컴포넌트는 포인터/드래그 제스처가 핵심인데 이 환경엔 헤드리스 빌드 검증만 있고 실제 터치 기기 확인은 못 했음 — 다음에 화면을 열어볼 때 스크럽이 실제로 부드럽게 동작하는지 확인 필요.
 
+### 2-5 세부 (백엔드 — `explain=1` API, 프론트는 다음 라운드)
+- 사용자 확인(2026-09-28 "그래" → 구체 계획 제시 후 "오케이"): 설계 문서(`10-today/design.md §7`)가 값 채우기를 명시한 4개 메트릭(TSB·CTL·ATL·UTRS)만 지원, 나머지는 v1 폴백, DB 스키마 변경 없음, 이번 라운드는 백엔드+테스트만(프론트 `DrillPanel`/`BreakdownView` 재작성은 별도 판단 필요한 규모라 분리).
+- `src/services/metrics_explain.py` 신규(235줄): `get_metric_explain(conn, scope_type, scope_id, slug)` — TSB(`ctl−atl` 부호 있는 항), CTL/ATL(전일값×(1−α) + 오늘 부하×α, `pmc.py` EMA 그대로), UTRS(`utrs.py` `WEIGHTS`로 가용 항목만 재정규화, 항목별 `loss`=100점 대비 손실 기여로 정렬) 4종 explainer. `bands.py` `BANDS`를 API 계약 `bands[{max,status,label}]`(마지막 구간 `max=null`)로 변환하는 `_bands_v2`, 최근 7일 평균/전일 대비 `_baseline` 공통 헬퍼. `sources`(원천 활동)는 최근 14일 내 TRIMP 상위 3개 활동으로 근사 — CTL은 252일 창 EMA라 정확한 기여 배분은 의도적으로 안 함(과설계 방지, 코드 주석에 명시).
+- `metrics_service.py`의 `_metric_label`/`_metric_unit`을 그대로 import해 재사용(ADR-009는 Calculator 클래스 대상이라 서비스 레이어 raw SQL은 기존 관례대로 허용).
+- `src/api/routes_library.py`: `GET /library/metrics/<slug>?explain=1` 쿼리 파라미터로 분기 — explainer가 `None`(미지원 슬러그 또는 해당 scope 데이터 없음) 반환 시 기존 v1(`metrics_service.get_metric_breakdown`)로 자동 폴백, 계약 깨짐 없음.
+- `tests/test_metrics_explain.py` 신규(9건) — 인메모리 sqlite + `run_activity_metrics`/`run_daily_metrics`로 실제 엔진 계산 후 4개 슬러그 각각 검증: 미지원 슬러그·데이터 없음 → `None`, TSB 항 부호(CTL `+`/ATL `-`), CTL/ATL 항에 전일값·오늘 부하 포함(ATL α=1/7 가중치 확인), UTRS 항에 `contribution`·`loss` 필드 및 기여 합계가 총점에 근사, `sources`가 웰니스 소스로 채워짐. API 계약의 "terms·sources 둘 다 비면 위반" 요건을 4개 슬러그 모두에서 명시적으로 검증.
+- **검증**: `pytest tests/test_metrics_explain.py tests/test_metrics_service.py -v` 17 pass. 전체 `pytest tests/` 1865 pass·247 skip·기존에도 실패하던 무관 3건(`test_autopilot_run_unit.py` — 이 환경에 없는 worktree 경로 참조, 이번 변경과 무관)만 남음, 회귀 없음. `python3 -c "import ast; ast.parse(...)"`로 두 파일 구문 확인, `wc -l`로 300줄 이하 확인(290·235).
+- **남음**: 프론트 `DrillPanel.svelte`/`BreakdownView.svelte`(§C3.1~C3.3 4블록 레이아웃, `?drill=` URL 스택)가 신규 API를 실제로 소비하도록 재작성 — 자체로 규모가 커서 별도 라운드로 분리, 사용자 확인 필요.
+
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4 완료(y축 nice tick·세분화 x축 눈금은 별도 판단 필요 항목으로 남음). 다음 후보: 2-5(드릴다운 API, 스키마 안 건드림), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드) 완료. 다음 후보: 2-5 프론트(DrillPanel/BreakdownView 재작성), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
