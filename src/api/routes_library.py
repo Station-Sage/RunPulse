@@ -89,7 +89,7 @@ def get_library_metric_breakdown(slug: str):
     conn = sqlite3.connect(str(dpath))
     try:
         result = None
-        # explain=1: 분해 v2(§C3.2) — TSB/CTL/ATL/UTRS만 지원(2-5, 2026-09-28).
+        # explain=1: 분해 v2(§C3.2) — TSB/CTL/ATL/UTRS/CIRS만 지원(2-5, 2026-09-28).
         # 그 외 슬러그·explainer 실패 시 기존 v1(children/inputs)로 폴백.
         if request.args.get("explain") == "1":
             result = metrics_explain.get_metric_explain(conn, scope_type, scope_id, slug)

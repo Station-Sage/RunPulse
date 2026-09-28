@@ -81,5 +81,12 @@
 - **검증**: `pytest tests/test_metrics_explain.py tests/test_metrics_service.py -v` 17 pass. 전체 `pytest tests/` 1865 pass·247 skip·기존에도 실패하던 무관 3건(`test_autopilot_run_unit.py` — 이 환경에 없는 worktree 경로 참조, 이번 변경과 무관)만 남음, 회귀 없음. `python3 -c "import ast; ast.parse(...)"`로 두 파일 구문 확인, `wc -l`로 300줄 이하 확인(290·235).
 - **남음**: 프론트 `DrillPanel.svelte`/`BreakdownView.svelte`(§C3.1~C3.3 4블록 레이아웃, `?drill=` URL 스택)가 신규 API를 실제로 소비하도록 재작성 — 자체로 규모가 커서 별도 라운드로 분리, 사용자 확인 필요.
 
+### 2-5 세부 (2차 — CIRS 추가, 사용자 피드백 "다른 지표들도"·"너무 최소한만 하는데" 반영)
+- 사용자 확인 없이 즉시 확장(2026-09-28 "너무 최소한만 하는데" — 판단 가능한 범위는 바로 진행): CIRS는 UTRS와 동일한 가중 합성 구조(`parent_metric_id` 자식 행 + `WEIGHTS` dict)라 기계적으로 확장 가능해 바로 추가. `_explain_cirs`는 UTRS 패턴을 재사용하되 위험 점수 특성상 `loss` 없이 `contribution` 자체가 위험 기여분(내림차순 정렬 = 가장 큰 위험 요인이 먼저).
+- **다른 메트릭은 왜 이번에 안 넣었는지(기계적 확장이 아니라 판단이 필요한 이유, 코드에도 주석으로 남김)**: RRI·VDOT 등은 곱셈형 공식(요인들이 `metric_store` 자식 행이 아니라 `json_value`에만 있음)이라 UTRS/CIRS식 가중치 분해 코드가 그대로 안 맞음 — 별도 표현 방식 설계가 필요. 또한 모든 신규 메트릭의 "meaning.what/so_what" 카피는 `metric_registry.py`에 영문 약어 설명만 있고 사용자向 문구가 없어 매번 직접 작성해야 함(TSB/UTRS/CIRS도 이번 세션에서 새로 씀) — 이건 등록부에 없는 순수 UX 카피 작성이라 값 추출과 달리 계속 판단이 필요한 부분. 이 두 가지가 "왜 4개 → 5개까지만 기계적으로 늘었는지"의 근거.
+- CIRS는 S7에서 개인 기준선 기반으로 재설계될 예정(`10-today/design.md` F-DATA-12) — 이 explainer는 현재 v1 공식 기준이며 S7 착수 시 갱신 필요(코드 주석에 명시).
+- 테스트 3건 추가(`TestCIRSExplain`) — contribution 필드 존재·loss 없음, `higher_is_better=False`, 위험 기여도 내림차순 정렬.
+- **검증**: `pytest tests/test_metrics_explain.py -v` 12 pass. 전체 `pytest tests/` 1868 pass·247 skip·무관 기존 실패 3건만 그대로. `wc -l` 288줄(300줄 이하 유지).
+
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드) 완료. 다음 후보: 2-5 프론트(DrillPanel/BreakdownView 재작성), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드, TSB/CTL/ATL/UTRS/CIRS) 완료. 다음 후보: 2-5 프론트(DrillPanel/BreakdownView 재작성), 2-6(성능). RRI/VDOT 등 곱셈형 메트릭의 explain 확장은 표현 방식 설계가 별도로 필요해 보류. 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.

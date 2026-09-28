@@ -112,3 +112,27 @@ class TestUTRSExplain:
         _seed_and_compute(conn)
         r = get_metric_explain(conn, "daily", "2026-04-01", "utrs")
         assert r["sources"][0]["type"] == "wellness_day"
+
+
+class TestCIRSExplain:
+    def test_terms_have_contribution_no_loss(self):
+        conn = _conn()
+        _seed_and_compute(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "cirs")
+        assert r is not None
+        assert r["formula"]["terms"] and r["sources"]
+        for t in r["formula"]["terms"]:
+            assert "contribution" in t and "loss" not in t
+
+    def test_higher_is_better_false(self):
+        conn = _conn()
+        _seed_and_compute(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "cirs")
+        assert r["higher_is_better"] is False
+
+    def test_terms_sorted_by_contribution_desc(self):
+        conn = _conn()
+        _seed_and_compute(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "cirs")
+        contribs = [t["contribution"] for t in r["formula"]["terms"]]
+        assert contribs == sorted(contribs, reverse=True)

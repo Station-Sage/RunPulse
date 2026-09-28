@@ -1,9 +1,17 @@
 """Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 99-summary.md §7 로드맵 2-5, 10-today/design.md §7(API 계약)·§9 S2 참조.
-설계가 값 채우기를 못박은 4개(TSB·CTL·ATL·UTRS)만 지원한다 — 그 외 슬러그는
-None을 반환하고 라우트가 기존 v1(`metrics_service.get_metric_breakdown`)로
-폴백한다(2026-09-28 사용자 확인, 프론트 DrillPanel 재작성은 다음 라운드).
+설계가 값 채우기를 못박은 4개(TSB·CTL·ATL·UTRS)에 더해, 같은 가중 합성
+구조(`parent_metric_id` 자식 행 + WEIGHTS)를 가진 CIRS도 지원한다(2026-09-28
+사용자 확인 "다른 지표들도"). 그 외 슬러그는 None을 반환하고 라우트가 기존
+v1(`metrics_service.get_metric_breakdown`)로 폴백한다.
+
+**확장 시 주의**: RRI·VDOT 등은 곱셈형 공식이라 UTRS/CIRS식 가중치 분해가
+맞지 않고(요인이 metric_store 자식 행이 아니라 json_value에만 있음),
+"meaning.what/so_what" 카피는 registry(`metric_registry.py`)에 영문
+약어 설명만 있어 실제 사용자向 문구는 직접 작성이 필요하다 — 추가할 때마다
+이 트레이드오프를 확인할 것. CIRS는 S7에서 개인 기준선 재설계 예정이라
+이 explainer는 현재 v1 공식 기준이고 S7 착수 시 갱신 필요.
 
 sources(원천 활동)는 최근 14일 내 TRIMP 상위 3개 활동으로 근사한다 — CTL은
 252일 창 EMA라 정확한 기여도 배분은 하지 않는다(과설계 방지, 코멘트로 명시).
@@ -14,19 +22,21 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.metrics.bands import BANDS, grade
+from src.metrics.cirs import CIRSCalculator
 from src.metrics.utrs import UTRSCalculator
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
 
 _PMC_ALPHA = {"ctl": 1.0 / 42, "atl": 1.0 / 7}
 _PMC_LABEL = {"ctl": "체력", "atl": "피로"}
-_HIGHER_IS_BETTER = {"tsb": True, "ctl": None, "atl": None, "utrs": True}
+_HIGHER_IS_BETTER = {"tsb": True, "ctl": None, "atl": None, "utrs": True, "cirs": False}
 
 _WHAT = {
     "tsb": "폼(TSB)은 최근 체력(CTL)과 피로(ATL)의 차이로, 지금 몸이 훈련을 받아들일 준비가 됐는지를 보여줍니다.",
     "ctl": "체력(CTL)은 최근 42일간 훈련 부하가 누적된 값입니다.",
     "atl": "피로(ATL)는 최근 7일간 훈련 부하를 반영한 값입니다.",
     "utrs": "훈련 준비도(UTRS)는 바디 배터리·폼·수면·심박변이·스트레스를 종합한 점수입니다.",
+    "cirs": "부상 위험 지수(CIRS)는 급성:만성 부하비·부하 급증·연속 훈련일·피로를 종합한 위험 추정치입니다.",
 }
 _SO_WHAT = {
     "tsb": {
@@ -42,6 +52,12 @@ _SO_WHAT = {
         "neutral": "계획대로 진행해도 좋아요.",
         "good": "컨디션이 좋아요 — 계획된 훈련을 소화하세요.",
         "excellent": "컨디션이 훌륭해요 — 강도 높은 세션도 가능해요.",
+    },
+    "cirs": {
+        "poor": "부상 위험이 매우 높아요 — 강도·볼륨을 줄이고 회복에 집중하세요.",
+        "caution": "부상 위험이 높은 편이에요 — 급격한 부하 증가는 피하세요.",
+        "neutral": "부상 위험이 보통이에요 — 평소 관리대로 진행하세요.",
+        "good": "부상 위험이 낮아요.",
     },
 }
 
@@ -180,11 +196,48 @@ def _explain_utrs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> t
     return terms, sources, "준비도 = Σ(정규화값 × 가중치) / Σ가중치(가용 항목만)"
 
 
+_CIRS_CHILD_LABEL = {
+    "cirs_acwr": ("ACWR 편차", "acwr"),
+    "cirs_lsi": ("부하 스파이크(LSI)", "lsi"),
+    "cirs_consecutive": ("연속 훈련일", "consecutive"),
+    "cirs_fatigue": ("피로(CTL−ATL)", "fatigue"),
+}
+
+
+def _explain_cirs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
+    """CIRS는 UTRS와 동일한 가중 합성 구조지만 위험 점수라 `loss` 없이 `contribution` 자체가 위험 기여분이다.
+
+    현재 v1 공식(ACWR·LSI·연속일·피로) 기준 — S7 CIRS v2(개인 기준선 재설계) 시 이 explainer도 갱신 필요.
+    """
+    self_row = get_primary_metric(conn, scope_type, scope_id, "cirs")
+    self_id = self_row["id"] if self_row else None
+    conn.row_factory = sqlite3.Row
+    child_rows = conn.execute(
+        "SELECT metric_name, numeric_value FROM metric_store "
+        "WHERE scope_type=? AND scope_id=? AND parent_metric_id=? ORDER BY id",
+        (scope_type, str(scope_id), self_id),
+    ).fetchall()
+    weights = CIRSCalculator.WEIGHTS
+    present = [(r["metric_name"], r["numeric_value"]) for r in child_rows if r["metric_name"] in _CIRS_CHILD_LABEL]
+    total_weight = sum(weights[_CIRS_CHILD_LABEL[name][1]] for name, _ in present) or 1.0
+    terms = []
+    for name, value in present:
+        label, key = _CIRS_CHILD_LABEL[name]
+        w = weights[key] / total_weight
+        terms.append({
+            "slug": name, "label": label, "raw": value, "normalized": value,
+            "weight": round(w, 4), "contribution": round(w * value, 1),
+        })
+    terms.sort(key=lambda t: t["contribution"], reverse=True)
+    return terms, _top_activity_sources(conn, scope_id), "부상 위험 = Σ(위험 점수 × 가중치) / Σ가중치(가용 항목만)"
+
+
 _EXPLAINERS = {
     "tsb": lambda conn, st, sid: _explain_tsb(conn, st, sid),
     "ctl": lambda conn, st, sid: _explain_pmc(conn, st, sid, "ctl"),
     "atl": lambda conn, st, sid: _explain_pmc(conn, st, sid, "atl"),
     "utrs": lambda conn, st, sid: _explain_utrs(conn, st, sid),
+    "cirs": lambda conn, st, sid: _explain_cirs(conn, st, sid),
 }
 
 
