@@ -13,7 +13,7 @@ from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 class TRIMPCalculator(MetricCalculator):
     name = "trimp"
     provider = "runpulse:formula_v1"
-    version = "banister_1991"
+    version = "banister_1991_v2"
     scope_type = "activity"
     category = "load"
     display_name = "TRIMP (Banister)"
@@ -30,10 +30,9 @@ class TRIMPCalculator(MetricCalculator):
     decimal_places = 0
     requires = []
 
-    MALE_A = 1.92
-    MALE_B = 0.64
-    # TODO: config에서 성별 가져와 FEMALE_A=1.67, FEMALE_B=1.92 분기
-    # TODO: config에서 성별 가져와 FEMALE_A=1.67, FEMALE_B=1.92 분기
+    # Banister TRIMPexp = 시간(분) × x × k × e^(b·x). 남 k=0.64, b=1.92 / 여 k=0.86, b=1.67.
+    # v1은 k와 b가 뒤바뀌어 1.92·e^(0.64x)로 계산했다(고강도 가중이 약해짐, DECISIONS D2).
+    COEFFS = {"male": (0.64, 1.92), "female": (0.86, 1.67)}
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         act = ctx.activity
@@ -51,14 +50,19 @@ class TRIMPCalculator(MetricCalculator):
         hr_reserve_frac = (avg_hr - rest_hr) / (max_hr - rest_hr)
         hr_reserve_frac = max(0.0, min(1.0, hr_reserve_frac))
 
-        a, b = self.MALE_A, self.MALE_B
-        trimp = duration_min * hr_reserve_frac * a * math.exp(b * hr_reserve_frac)
+        k, b = self.COEFFS[self._get_sex(ctx)]
+        trimp = duration_min * hr_reserve_frac * k * math.exp(b * hr_reserve_frac)
 
         confidence = 1.0
         if not self._has_measured_max_hr(ctx):
             confidence -= 0.2
 
         return [self._result(value=round(trimp, 1), confidence=confidence)]
+
+    def _get_sex(self, ctx: CalcContext) -> str:
+        getter = getattr(ctx, "get_athlete_sex", None)
+        sex = getter() if getter else "male"
+        return sex if sex in self.COEFFS else "male"
 
     def _get_max_hr(self, ctx: CalcContext) -> int | None:
         stored = ctx.get_metric("max_hr_measured", scope_type="athlete", scope_id="me")

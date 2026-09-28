@@ -25,7 +25,7 @@ from src.metrics.vdot import VDOTCalculator
 from src.metrics.efficiency import EfficiencyFactorCalculator
 from src.metrics.fearp import FEARPCalculator
 
-from src.metrics.pmc import PMCCalculator
+from src.metrics.pmc import LOAD_LOOKBACK_DAYS, PMCCalculator
 from src.metrics.acwr import ACWRCalculator
 from src.metrics.lsi import LSICalculator
 from src.metrics.monotony import MonotonyStrainCalculator
@@ -528,7 +528,8 @@ def compute_for_dates(conn: sqlite3.Connection,
         latest = max(dates)
         # CTL은 42일 이전 데이터 필요
         prefetch_start = (_date.fromisoformat(earliest) - _td(days=49)).isoformat()
-        daily_loads = _prefetch_daily_trimp_sums(conn, prefetch_start, latest)
+        load_start = (_date.fromisoformat(earliest) - _td(days=LOAD_LOOKBACK_DAYS)).isoformat()
+        daily_loads = _prefetch_daily_trimp_sums(conn, load_start, latest)
         wellness_map = _prefetch_all_wellness(conn, prefetch_start, latest)
         daily_metrics = _prefetch_daily_metrics(conn, prefetch_start, latest)
     else:
@@ -676,7 +677,8 @@ def _recompute_dates(conn: sqlite3.Connection, dates: list[str],
 
     start_date = (date.fromisoformat(min(dates)) - timedelta(days=49)).isoformat()
     end_date = max(dates)
-    daily_loads = _prefetch_daily_trimp_sums(conn, start_date, end_date)
+    load_start = (date.fromisoformat(min(dates)) - timedelta(days=LOAD_LOOKBACK_DAYS)).isoformat()
+    daily_loads = _prefetch_daily_trimp_sums(conn, load_start, end_date)
     wellness_map = _prefetch_all_wellness(conn, start_date, end_date)
     daily_metrics = _prefetch_daily_metrics(conn, start_date, end_date)
 

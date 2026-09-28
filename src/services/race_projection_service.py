@@ -4,8 +4,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date as _date, timedelta
 
-ATL_DAYS = 7
-CTL_DAYS = 42
+from src.metrics.pmc import ATL_DAYS, CTL_DAYS
 LOOKBACK_DAYS = 28
 MAX_HORIZON_DAYS = 120
 
@@ -48,8 +47,9 @@ def _avg_daily_load(conn: sqlite3.Connection, date: str) -> float:
 
 
 def _run(ctl: float, atl: float, base: float, start: _date, race: _date, taper: bool) -> dict:
-    a_atl = 2.0 / (ATL_DAYS + 1)
-    a_ctl = 2.0 / (CTL_DAYS + 1)
+    # PMC와 같은 α = 1/τ(DECISIONS D1) — 투영이 현재 CTL/TSB와 같은 척도여야 한다.
+    a_atl = 1.0 / ATL_DAYS
+    a_ctl = 1.0 / CTL_DAYS
     series = []
     day = start + timedelta(days=1)
     while day < race:  # 레이스 당일 훈련 부하는 반영하지 않음 = 레이스 아침 상태

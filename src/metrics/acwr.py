@@ -2,10 +2,15 @@
 산출하지 않는다("데이터 수집 중") — 이전엔 5.0으로 잘라 저장해 공백기 복귀일이 "위험"으로 보였다.
 
 ACWR = ATL / CTL. 최적 범위: 0.8~1.3.
+PMC가 α = 1/τ(D1)로 바뀐 뒤에도 ACWR은 기존 EWMA α = 2/(N+1)(7/42일, 49일 창)을 유지한다 —
+ACWR 구간(0.8~1.3)은 이 정의로 맞춰져 있어 PMC와 분리해 자체 계산한다(DECISIONS D1f, 10-today design §7.2).
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.pmc import ATL_DAYS, CTL_DAYS, ewma_loads, get_daily_loads
 
 
 MIN_CTL = 10.0          # (c) 만성 부하 하한(TRIMP/일). 이 러너 CTL 중앙 ~50
@@ -31,11 +36,17 @@ class ACWRCalculator(MetricCalculator):
     higher_is_better = None
     decimal_places = 2
     requires = ["ctl", "atl"]
+    WINDOW_DAYS = CTL_DAYS + 7
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
-        atl = ctx.get_metric("atl", provider="runpulse:formula_v1")
-        ctl = ctx.get_metric("ctl", provider="runpulse:formula_v1")
-        if atl is None or ctl is None or ctl < MIN_CTL or not has_history(ctx):
+        daily_loads = get_daily_loads(ctx, days=self.WINDOW_DAYS)
+        if not daily_loads:
+            return []
+        atl, ctl, _ = ewma_loads(
+            daily_loads, datetime.strptime(ctx.scope_id, "%Y-%m-%d"), self.WINDOW_DAYS,
+            atl_alpha=2.0 / (ATL_DAYS + 1), ctl_alpha=2.0 / (CTL_DAYS + 1),
+        )
+        if ctl < MIN_CTL or not has_history(ctx):
             return []
         return [self._result(value=round(atl / ctl, 2))]
 

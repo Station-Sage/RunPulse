@@ -146,7 +146,7 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/utils/metric_groups.py
 > 주의: category는 calculator의 self.category가 DB 저장값 (registry 아님)
 
-### `acwr.py` (49줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
+### `acwr.py` (60줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
 
 - class **ACWRCalculator**: compute
 - functions: has_history
@@ -155,11 +155,11 @@
 
 - class **ADTICalculator**: compute
 
-### `base.py` (503줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (513줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
-- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
+- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_athlete_sex, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
 
 ### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
@@ -214,7 +214,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (760줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (762줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -255,10 +255,10 @@
 
 - class **MonotonyStrainCalculator**: compute
 
-### `pmc.py` (89줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
+### `pmc.py` (99줄) — PMC (ATL/CTL/TSB/Ramp Rate) Calculator — 설계서 4-3 기준.
 
 - class **PMCCalculator**: compute
-- functions: elapsed_day_fraction
+- functions: elapsed_day_fraction, ewma_loads, get_daily_loads
 
 ### `rec.py` (54줄) — REC (Running Efficiency Composite) — 통합 러닝 효율성 지수.
 
@@ -313,7 +313,7 @@
 
 - class **TrainingResponseCalculator**: compute
 
-### `trimp.py` (85줄) — TRIMP Calculator — 설계서 4-2 기준.
+### `trimp.py` (89줄) — TRIMP Calculator — 설계서 4-2 기준.
 
 - class **TRIMPCalculator**: compute
 
@@ -1208,11 +1208,11 @@
 - class **TestEF**: test_compute, test_no_hr
 - class **TestClassifierV2Segments**: test_interval_from_laps, test_continuous_tempo_auto_laps
 
-### `test_activity_core_sanitize.py` (96줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
+### `test_activity_core_sanitize.py` (97줄) — 센서 미측정/GPS 글리치 값 정리 — sanitize_activity_core, ACWR 캡.
 
 - class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
-- class **TestACWRCap**: test_ratio_below_cap_is_unchanged, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
+- class **TestACWRCap**: test_steady_load_ratio, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
 
 ### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
@@ -1441,7 +1441,7 @@
 - class **TestRMR**: test_with_wellness, test_no_data
 - class **TestADTI**: test_with_ctl_series, test_insufficient_data
 
-### `test_daily_calcs.py` (111줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
+### `test_daily_calcs.py` (108줄) — Daily-Scope 1차 calculator 테스트 (PMC, ACWR, LSI, Monotony).
 
 - class **TestPMC**: test_compute, test_no_data
 - class **TestACWR**: test_compute, test_no_ctl
@@ -1837,6 +1837,10 @@
 
 - functions: test_elapsed_day_fraction, test_today_rest_decay_is_prorated, test_today_actual_load_counts_fully, test_refresh_today_if_stale
 
+### `test_pmc_trimp_v2.py` (62줄) — tests/test_pmc_trimp_v2.py — 부하 모델 재기준화(DECISIONS [P7-UX-REVIEW-0928] D1·D2) 회귀 테스트.
+
+- functions: test_rest_day_decays_ctl_by_one_over_tau, test_long_window_reaches_steady_state, test_no_load_returns_empty, test_trimp_banister_coefficients
+
 ### `test_pred_backtest.py` (19줄) — P7-PRED-62: 수용 백테스트 스크립트 — 대회 없음이면 n=0.
 
 - functions: test_no_races
@@ -2194,7 +2198,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 442개 파일
+총 443개 파일
 
 ## docstring 누락
 

@@ -343,6 +343,16 @@ class CalcContext(RunHistoryMixin):
             return dict(zip(cols, row))
         return {}
 
+    def get_athlete_sex(self) -> str:
+        """소스 프로필(athlete_profile.sex) 기반 성별 'male'|'female'. 없거나 모르면 'male'(TRIMP 계수용)."""
+        if getattr(self, "conn", None) is None:
+            return "male"
+        rows = self.conn.execute(
+            "SELECT UPPER(sex) FROM athlete_profile WHERE sex IS NOT NULL AND sex != ''"
+        ).fetchall()
+        values = {r[0] for r in rows}
+        return "female" if values and values <= {"F", "FEMALE"} else "male"
+
     # ── Daily Load 접근 (prefetch-first, PMC/LSI/Monotony용) ──
 
     def get_daily_load(self, date_str: str) -> float:

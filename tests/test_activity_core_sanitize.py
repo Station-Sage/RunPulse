@@ -70,27 +70,28 @@ class TestStreamHeartRate:
 
 
 class TestACWRCap:
-    def _compute(self, atl, ctl):
+    """ACWR은 일별 부하에서 자체 EWMA(α = 2/(N+1))로 계산한다(PMC α 변경과 분리, DECISIONS D1f)."""
+
+    def _compute(self, load, history=True):
+        from datetime import date, timedelta
         conn = _conn()
-        for name, val in (("atl", atl), ("ctl", ctl)):
-            upsert_metric(conn, "daily", "2026-04-01", name, "runpulse:formula_v1",
-                          numeric_value=val, category="rp_load")
-        upsert_metric(conn, "daily", "2026-03-04", "ctl", "runpulse:formula_v1", numeric_value=40.0, category="rp_load")  # 28일 전 CTL(P7-PRED-89)
-        conn.commit()
-        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
+        if history:
+            upsert_metric(conn, "daily", "2026-03-04", "ctl", "runpulse:formula_v1", numeric_value=40.0, category="rp_load")  # 28일 전 CTL(P7-PRED-89)
+            conn.commit()
+        loads = {(date(2026, 4, 1) - timedelta(days=i)).isoformat(): load for i in range(60)} if load else {}
+        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01", _prefetched_daily_loads=loads)
         return ACWRCalculator().compute(ctx)
 
-    def test_ratio_below_cap_is_unchanged(self):
-        assert self._compute(atl=60.0, ctl=50.0)[0].numeric_value == 1.2
+    def test_steady_load_ratio(self):
+        # 49일 창 일정 부하: ATL ≈ 부하, CTL ≈ 부하 × (1 − (41/43)^50) → 약 1.10
+        r = self._compute(load=80.0)
+        assert len(r) == 1 and 1.05 < r[0].numeric_value < 1.15
 
     def test_low_chronic_load_returns_empty(self):
-        assert self._compute(atl=17.8, ctl=3.3) == []          # P7-PRED-89: 5.0 절단 대신 "데이터 수집 중"
+        assert self._compute(load=2.0) == []          # P7-PRED-89: 5.0 절단 대신 "데이터 수집 중"
 
     def test_no_history_returns_empty(self):
-        conn = _conn()
-        for name, val in (("atl", 60.0), ("ctl", 50.0)):
-            upsert_metric(conn, "daily", "2026-04-01", name, "runpulse:formula_v1", numeric_value=val, category="rp_load")
-        assert ACWRCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")) == []
+        assert self._compute(load=80.0, history=False) == []
 
     def test_zero_ctl_returns_empty(self):
-        assert self._compute(atl=10.0, ctl=0.0) == []
+        assert self._compute(load=0) == []
