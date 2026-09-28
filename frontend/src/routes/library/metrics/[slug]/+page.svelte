@@ -3,11 +3,17 @@
 	import type { MetricTrendPageData } from './+page';
 	import TrendChart from '$lib/components/TrendChart.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel } from '$lib/trendChart';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
+	import { pushDrill } from '$lib/drillStack';
 
 	let { data }: { data: MetricTrendPageData } = $props();
+
+	// 분해 v2(explain=1, §C3) 지원 슬러그는 DrillPanel(URL 스택), 그 외는 기존 MetricBreakdown 바텀시트.
+	const explainSupported = $derived(EXPLAIN_SUPPORTED_SLUGS.has(data.slug));
 
 	const PERIODS = [
 		{ key: '4w', label: '4주' },
@@ -33,6 +39,8 @@
 </script>
 
 <svelte:head><title>{data.trend?.label ?? data.slug} · RunPulse</title></svelte:head>
+
+<DrillPanel scopeType="daily" scopeId={latestDate}>
 
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
@@ -103,7 +111,7 @@
 		<div class="flex gap-2">
 			<button
 				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
-				onclick={() => (breakdownOpen = true)}
+				onclick={() => (explainSupported ? pushDrill(data.slug) : (breakdownOpen = true))}
 				disabled={!latestDate}
 			>
 				계산 분해 보기
@@ -117,8 +125,8 @@
 		</div>
 	</div>
 
-	<!-- 계산 분해 바텀시트 -->
-	{#if breakdownOpen && latestDate}
+	<!-- 계산 분해 바텀시트(v1 — explain=1 미지원 슬러그만) -->
+	{#if breakdownOpen && latestDate && !explainSupported}
 		<MetricBreakdown
 			slug={data.slug}
 			scopeType="daily"
@@ -131,3 +139,5 @@
 		<p class="text-sm text-fg-muted">데이터 수집 중</p>
 	</div>
 {/if}
+
+</DrillPanel>

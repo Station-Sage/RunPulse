@@ -349,6 +349,71 @@ export interface MetricBreakdownData {
 	inputs: MetricBreakdownNode[];
 }
 
+// ── 분해 v2 (§C3.2, explain=1) — TSB/CTL/ATL/UTRS/CIRS/RRI만 지원 ──────────
+// term 형태는 메트릭 종류마다 다르다: TSB/CTL/ATL은 sign+contribution(합),
+// UTRS/CIRS는 weight+contribution+loss(가중 평균), RRI는 ratio+role="factor"(곱).
+
+export interface MetricExplainBand {
+	max: number | null; // null = 마지막 구간(상한 없음)
+	status: SemanticStatus;
+	label: string;
+}
+
+export interface MetricExplainTerm {
+	slug: string;
+	label: string;
+	raw: number | string | null;
+	normalized?: number | null;
+	weight?: number | null;
+	contribution?: number | null;
+	loss?: number | null;
+	sign?: '+' | '-';
+	ratio?: number | null;
+	role?: 'factor';
+	target?: number | null;
+	drill?: string; // 있으면 행 탭으로 스택 push 가능(§C3.3 토큰, 예: "m.ctl")
+}
+
+export interface MetricExplainSource {
+	type: 'activity' | 'wellness_day' | 'metric';
+	id?: number;
+	date?: string;
+	slug?: string;
+	label: string;
+	value: number | string | null;
+	unit: string;
+	effect: string;
+}
+
+export interface MetricExplainData {
+	slug: string;
+	name_ko: string;
+	abbr: string;
+	scope: { type: string; id: string; basis: string };
+	value: number | null;
+	display: number | null;
+	unit: string;
+	status: SemanticStatus | null;
+	status_label: string | null;
+	higher_is_better: boolean | null;
+	meaning: {
+		what: string;
+		bands: MetricExplainBand[];
+		baseline: { avg_7d: number | null; delta_1d: number | null };
+		so_what: string;
+	};
+	formula: {
+		text: string;
+		version: string;
+		computed_at: string;
+		terms: MetricExplainTerm[];
+	};
+	sources: MetricExplainSource[];
+	provider: { kind: string; version: string; computed_at: string };
+	compare: unknown[];
+	links: { trend: string };
+}
+
 // ── /api/v1/today/narrative 실제 응답 ─────────────────────────────────────
 
 export interface MilestoneEntry {
