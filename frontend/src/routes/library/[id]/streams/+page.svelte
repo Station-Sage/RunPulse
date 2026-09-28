@@ -6,8 +6,9 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
-	import { indexAtFraction, axisTicks, formatElapsed, streamSeconds } from '$lib/streamAxis';
+	import { axisTicks, formatElapsed, streamSeconds } from '$lib/streamAxis';
 	import { clampOutliers } from '$lib/chartScale';
+	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let { data }: { data: StreamsPageData } = $props();
 
@@ -111,21 +112,6 @@
 	// 시간 눈금 (보정된 elapsed 기준, 포인트 인덱스 등간격 위치에 실제 시간 라벨)
 	const ticks = $derived(axisTicks(correctedElapsed));
 
-	// 스크럽 상태: scrubFrac(0~1) → scrubIndex
-	let scrubFrac = $state<number | null>(null);
-	const scrubIndex = $derived(
-		scrubFrac != null ? indexAtFraction(data.streams.length, scrubFrac) : null
-	);
-
-	function onPointerMove(e: PointerEvent) {
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		scrubFrac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-	}
-
-	function onPointerLeave() {
-		scrubFrac = null;
-	}
-
 	// 스크럽 판독 줄에 표시할 값 포맷 (원본 값 사용 — 판독은 실제 측정값)
 	function formatScrubValue(def: StreamDef, point: ActivityStreamPoint): string {
 		const v = def.extract(point);
@@ -135,9 +121,9 @@
 	}
 
 	// 스크럽 시각 — 보정된 elapsed 기준
-	function scrubElapsed(): number | null {
-		if (scrubIndex == null) return null;
-		return correctedElapsed[scrubIndex] ?? null;
+	function scrubElapsed(index: number | null): number | null {
+		if (index == null) return null;
+		return correctedElapsed[index] ?? null;
 	}
 </script>
 
@@ -185,72 +171,66 @@
 			<p class="text-xs text-fg-muted">소스: {providerLabel()}</p>
 		{/if}
 
-		<!-- 시간 눈금 + 스크럽 영역 -->
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<div
-			role="group"
-			aria-label="스트림 차트 스크럽 영역"
-			style="touch-action: pan-y"
-			onpointerdown={onPointerMove}
-			onpointermove={onPointerMove}
-			onpointerleave={onPointerLeave}
-			onpointercancel={onPointerLeave}
-		>
-			<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 보정된 elapsed 라벨 -->
-			<div class="relative mb-1 h-5 select-none">
-				{#each ticks as tick}
-					<span
-						class="absolute whitespace-nowrap text-xs text-fg-muted {tick.frac === 0
-							? ''
-							: tick.frac === 1
-								? '-translate-x-full'
-								: '-translate-x-1/2'}"
-						style="left:{tick.frac * 100}%"
-					>{tick.label}</span>
-				{/each}
-			</div>
+		<!-- 시간 눈금 + 스크럽 영역 — §C1 ChartScrub(포인터+키보드+"손을 떼도 유지") -->
+		<ChartScrub pointCount={data.streams.length}>
+			{#snippet children(scrubIndex, pinned)}
+				{@const scrubFrac = scrubIndex != null && data.streams.length > 1 ? scrubIndex / (data.streams.length - 1) : null}
+				<!-- 시간 눈금: 포인트 인덱스 등간격 위치에 보정된 elapsed 라벨 -->
+				<div class="relative mb-1 h-5 select-none">
+					{#each ticks as tick}
+						<span
+							class="absolute whitespace-nowrap text-xs text-fg-muted {tick.frac === 0
+								? ''
+								: tick.frac === 1
+									? '-translate-x-full'
+									: '-translate-x-1/2'}"
+							style="left:{tick.frac * 100}%"
+						>{tick.label}</span>
+					{/each}
+				</div>
 
-			<!-- 판독 줄 (높이 고정 — 스크럽 여부와 무관하게 레이아웃 유지) -->
-			<div class="mb-2 flex h-5 items-center gap-3 overflow-hidden text-xs">
-				{#if scrubIndex != null}
-					{@const point = data.streams[scrubIndex]}
-					<span class="text-fg-muted">{formatElapsed(scrubElapsed())}</span>
+				<!-- 판독 줄 (높이 고정 — 스크럽 여부와 무관하게 레이아웃 유지) -->
+				<div class="mb-2 flex h-5 items-center gap-3 overflow-hidden text-xs">
+					{#if pinned && scrubIndex != null}
+						{@const point = data.streams[scrubIndex]}
+						<span class="text-fg-muted">{formatElapsed(scrubElapsed(scrubIndex))}</span>
+						{#each availableStreams as def}
+							{#if checked[def.key]}
+								<span style="color:{def.color}">{def.label} {formatScrubValue(def, point)}</span>
+							{/if}
+						{/each}
+					{/if}
+				</div>
+
+				<!-- 스트림 차트 목록 -->
+				<div class="flex flex-col gap-5">
 					{#each availableStreams as def}
 						{#if checked[def.key]}
-							<span style="color:{def.color}">{def.label} {formatScrubValue(def, point)}</span>
-						{/if}
-					{/each}
-				{/if}
-			</div>
-
-			<!-- 스트림 차트 목록 -->
-			<div class="flex flex-col gap-5">
-				{#each availableStreams as def}
-					{#if checked[def.key]}
-						{@const clamped = clampedStreams[def.key]}
-						<div class="flex flex-col gap-1">
-							<div class="flex items-center justify-between text-xs text-fg-secondary">
-								<span class="font-medium" style="color:{def.color}">{def.label}</span>
-								<span class="text-fg-muted">
-									{def.key === 'pace' ? formatMinMaxPace(clamped.values) : formatMinMax(clamped.values)}
-									{def.unit}
-								</span>
+							{@const clamped = clampedStreams[def.key]}
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center justify-between text-xs text-fg-secondary">
+									<span class="font-medium" style="color:{def.color}">{def.label}</span>
+									<span class="text-fg-muted">
+										{def.key === 'pace' ? formatMinMaxPace(clamped.values) : formatMinMax(clamped.values)}
+										{def.unit}
+									</span>
+								</div>
+								<!-- 스파크라인 + 스크럽 커서 라인 -->
+								<div class="relative">
+									<Sparkline data={clamped.values} height={48} color={def.color} invert={def.key === 'pace'} />
+									{#if pinned && scrubFrac != null}
+										<div
+											class="pointer-events-none absolute inset-y-0 w-px opacity-50"
+											style="left:{scrubFrac * 100}%; background-color:{def.color}"
+										></div>
+									{/if}
+								</div>
 							</div>
-							<!-- 스파크라인 + 스크럽 커서 라인 -->
-							<div class="relative">
-								<Sparkline data={clamped.values} height={48} color={def.color} invert={def.key === 'pace'} />
-								{#if scrubFrac != null}
-									<div
-										class="pointer-events-none absolute inset-y-0 w-px opacity-50"
-										style="left:{scrubFrac * 100}%; background-color:{def.color}"
-									></div>
-								{/if}
-							</div>
-						</div>
 					{/if}
 				{/each}
 			</div>
-		</div>
+			{/snippet}
+		</ChartScrub>
 
 		<p class="text-xs text-fg-muted">
 			{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·

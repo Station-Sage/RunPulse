@@ -58,7 +58,12 @@
 - `ChartScrub.svelte` 신규: 포인터(hover 미리보기/click 고정/같은 점 재탭 해제/drag 스크럽 — pointerup에서 해제하지 않아 "손을 떼도 유지" 충족), 키보드(←/→ 1점, Shift+←/→ 7점, Home/End, Esc). 렌더링은 호출부 snippet에 위임(`children(index, pinned)`).
 - `Sparkline.svelte`에 `interactive`·`dates`·`formatValue` prop 추가(기본 `interactive=false`로 기존 동작 100% 보존) — true면 ChartScrub로 감싸고 세로선+작은 툴팁(값+선택 시 날짜)을 그린다.
 - 적용 5곳: 웰니스 30일 트렌드(수면 점수·HRV·UTRS, `library/wellness/+page.svelte`), 활동 상세 페이스·심박(`library/[id]/+page.svelte`, `formatPace`/`formatHeartRate`로 툴팁 포맷), Today L2 월간 CTL·ATL(`MonthNarrative.svelte`, `formatLoad`로 포맷 + 날짜 추가 수집). 색상도 이 김에 미정의 CSS 변수(`var(--color-accent)`, `var(--color-semantic-yellow, ...)`  — §C8이 금지하는 미정의 토큰)를 `--color-series-1`/`--color-semantic-amber`로 교체.
-- **의도적으로 안 한 것**: (1) 활동 스트림 탭(`library/[id]/streams/+page.svelte`)은 이미 자체 스크럽(포인터 기반, 여러 차트 동기화)이 있는데 `pointerleave`에서 해제해 "손을 떼도 유지" 위반 + 키보드 없음 — 이번 범위(단일 Sparkline 래핑)로는 못 옮기고 별도 작업으로 남김. (2) FormChart·TrendChart(날짜 기반 다계열)는 `formChart.ts`/`trendChart.ts`의 기존 xFrac·nearest 로직을 걷어내는 게 이 코어 마이그레이션의 본 목표인데, 축이 다계열·날짜형이라 Sparkline보다 복잡해 별도 단계로 분리. (3) 판독줄 `aria-live` 낭독(§C1)은 `aria-valuenow`로 근사만 함 — 스크린리더 실기기 확인 못 함.
+- **의도적으로 안 한 것**: (1) FormChart·TrendChart(날짜 기반 다계열)는 `formChart.ts`/`trendChart.ts`의 기존 xFrac·nearest 로직을 걷어내는 게 이 코어 마이그레이션의 본 목표인데, 축이 다계열·날짜형이라 Sparkline보다 복잡해 별도 단계로 분리. (2) 판독줄 `aria-live` 낭독(§C1)은 `aria-valuenow`로 근사만 함 — 스크린리더 실기기 확인 못 함.
+
+### 2-4 세부 (3차 — 스트림 탭 마이그레이션 + 사용자 피드백 2건 기록)
+- `library/[id]/streams/+page.svelte`: 자체 구현이던 스크럽(포인터 기반, 5개 스택 차트 동기화)을 `ChartScrub`로 교체. 기존 버그였던 "`pointerleave`에서 해제 → 모바일에서 손 떼면(=leave) 사라짐"이 해소됨(이제 pinned면 유지) + 키보드 내비게이션이 새로 생김(이전엔 전혀 없었음). 판독줄·커서 라인 렌더링은 그대로, `scrubIndex`/`scrubFrac` 로컬 상태와 `onPointerMove`/`onPointerLeave` 핸들러는 전부 제거(→ `streamAxis.ts`의 `indexAtFraction` import도 제거, 이 파일의 마지막 사용처였음).
+- **사용자 피드백 2026-09-28 09:50** — "목록 화면이 의미 없는 나열이 되지 않을지" 지적(`library/metrics`, 스파크라인을 목록에서만 비활성화하기로 한 직후 나온 질문). 검토 결과: 이미 "핵심 지표" 히어로 섹션(예측 4종+CTL/TSB/UTRS/CIRS)과 카테고리 접기가 있어 완전한 무차별 나열은 아니지만, 히어로 밖 ~40여 개 카드는 정렬이 registry 순서 고정이라 그날 의미 있게 움직인 지표가 위치상 묻힐 수 있음 — 타당한 지적. **지금 구현하지 않고 사용자 지시대로 설계 보완 항목으로 기록**: `99-summary.md §8.5`(보류 항목 표에 신규 행) + `21-library-metrics/design.md §11`(해당 절에 3b 항목 추가, 3-7 착수 시 여기서 정렬 알고리즘 설계). 21-library-metrics §11 항목 3(카드 스크럽 충돌)도 이번 사용자 확인으로 "해소"로 갱신.
+- 검증: `npm run check`(0 errors) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음).
 - 검증: `npm run check`(0 errors, 기존 경고 15건 그대로) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음). **주의**: 이 컴포넌트는 포인터/드래그 제스처가 핵심인데 이 환경엔 헤드리스 빌드 검증만 있고 실제 터치 기기 확인은 못 했음 — 다음에 화면을 열어볼 때 스크럽이 실제로 부드럽게 동작하는지 확인 필요.
 
 ## 다음
