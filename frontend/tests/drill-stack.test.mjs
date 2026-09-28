@@ -1,7 +1,13 @@
 // §C3.3 드릴다운 URL 스택(lib/drillStackCore.ts) 순수 함수 테스트.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDrillStack, tokenSlug, DRILL_MAX_DEPTH } from '../src/lib/drillStackCore.ts';
+import {
+	parseDrillStack,
+	parseDrillToken,
+	formatDrillToken,
+	tokenSlug,
+	DRILL_MAX_DEPTH
+} from '../src/lib/drillStackCore.ts';
 
 test('parseDrillStack — drill 파라미터 없으면 빈 배열', () => {
 	assert.deepEqual(parseDrillStack(new URL('https://x/y')), []);
@@ -28,4 +34,31 @@ test('tokenSlug — 접두어 없으면 그대로', () => {
 
 test('DRILL_MAX_DEPTH — 스택 최대 3단(§C3.1)', () => {
 	assert.equal(DRILL_MAX_DEPTH, 3);
+});
+
+test('parseDrillToken — scope 없으면 slug만', () => {
+	assert.deepEqual(parseDrillToken('m.tsb'), { slug: 'tsb' });
+});
+
+test('parseDrillToken — D1d @scope 토큰 파싱', () => {
+	assert.deepEqual(parseDrillToken('m.tsb@2026-09-12'), { slug: 'tsb', scope: '2026-09-12' });
+});
+
+test('parseDrillToken — m. 접두어 없어도 동작', () => {
+	assert.deepEqual(parseDrillToken('ctl@2026-01-01'), { slug: 'ctl', scope: '2026-01-01' });
+});
+
+test('formatDrillToken — scope 없으면 m.slug만', () => {
+	assert.equal(formatDrillToken('tsb'), 'm.tsb');
+});
+
+test('formatDrillToken — scope 있으면 @ 붙인다', () => {
+	assert.equal(formatDrillToken('tsb', '2026-09-12'), 'm.tsb@2026-09-12');
+});
+
+test('formatDrillToken ↔ parseDrillToken 왕복', () => {
+	assert.deepEqual(parseDrillToken(formatDrillToken('utrs', '2026-01-05')), {
+		slug: 'utrs',
+		scope: '2026-01-05'
+	});
 });

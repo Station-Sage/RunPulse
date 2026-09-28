@@ -4,7 +4,7 @@
 	// 끌어 닫기 제스처(C3.1 "최상위에서만 아래로 끌어 닫기")는 이번 라운드에 구현하지 않음(탭/Esc/뒤로가기로 닫기는 됨) — 별도 판단 필요.
 	import type { Snippet } from 'svelte';
 	import { base } from '$app/paths';
-	import { currentDrillStack, tokenSlug, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
+	import { currentDrillStack, parseDrillToken, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
 	import { EXPLAIN_SUPPORTED_SLUGS, getMetricExplain } from '$lib/api/metrics';
 	import type { MetricExplainData } from '$lib/types';
 	import BreakdownView from './BreakdownView.svelte';
@@ -23,8 +23,11 @@
 	// 스택 라벨은 드릴다운 이동 시마다 채워진다(딥링크로 바로 들어온 조상 단계는 슬러그로 폴백).
 	const labelCache = new Map<string, string>();
 
-	const slugs = $derived(currentDrillStack().map(tokenSlug));
-	const currentSlug = $derived(slugs.at(-1) ?? null);
+	// D1d: 토큰마다 `@scope`가 있을 수 있다(예: Coach 근거 칩이 연 과거 날짜) — 없으면 페이지 기본 scopeId.
+	const parsedStack = $derived(currentDrillStack().map(parseDrillToken));
+	const slugs = $derived(parsedStack.map((p) => p.slug));
+	const currentSlug = $derived(parsedStack.at(-1)?.slug ?? null);
+	const currentScopeId = $derived(parsedStack.at(-1)?.scope ?? scopeId);
 	const isOpen = $derived(slugs.length > 0);
 
 	let data = $state<MetricExplainData | null>(null);
@@ -35,7 +38,7 @@
 	$effect(() => {
 		const slug = currentSlug;
 		const st = scopeType;
-		const si = scopeId;
+		const si = currentScopeId;
 		if (!slug) return;
 		let cancelled = false;
 		loading = true;
@@ -120,7 +123,7 @@
 			<h2 tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
 				{slugs.map(breadcrumbLabel).join(' › ')}
 			</h2>
-			<p class="text-[11px] text-fg-muted">{scopeId} 아침 기준</p>
+			<p class="text-[11px] text-fg-muted">{currentScopeId} 아침 기준</p>
 		</div>
 		<button onclick={closeDrill} aria-label="닫기" class="shrink-0 text-fg-secondary hover:text-fg-primary">
 			<Icon name="close" class="h-4 w-4" />
@@ -134,12 +137,12 @@
 	{:else if loading}
 		<p class="p-4 text-sm text-fg-muted">불러오는 중…</p>
 	{:else if notFound || !data}
-		<p class="p-4 text-sm text-fg-secondary">{scopeId} 데이터가 아직 없어요 · 데이터 수집 중</p>
+		<p class="p-4 text-sm text-fg-secondary">{currentScopeId} 데이터가 아직 없어요 · 데이터 수집 중</p>
 	{:else}
 		<BreakdownView
 			{data}
 			trendHref="{base}/library/metrics/{currentSlug}"
-			onDrillTerm={(token) => pushDrill(tokenSlug(token))}
+			onDrillTerm={(token) => pushDrill(parseDrillToken(token).slug, currentScopeId)}
 		/>
 	{/if}
 {/snippet}

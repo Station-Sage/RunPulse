@@ -66,6 +66,10 @@
 	}
 
 	function openEvidence(t: DrillTarget) {
+		if (t.scopeType === 'daily' && EXPLAIN_SUPPORTED_SLUGS.has(t.slug)) {
+			openDrill(t.slug, t.scopeId);
+			return;
+		}
 		drillStack = [...drillStack, t];
 	}
 

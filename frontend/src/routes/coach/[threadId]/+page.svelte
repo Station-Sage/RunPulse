@@ -9,9 +9,13 @@
 	import ChatBody from '$lib/components/ChatBody.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { localizeSource } from '$lib/markdownLite';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 	import { followUps } from '$lib/coachSuggestions';
+	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
+	import { openDrill } from '$lib/drillStack';
+	import { localDateString } from '$lib/asOf';
 
 	let { data }: { data: ThreadPageData } = $props();
 
@@ -29,7 +33,13 @@
 	let drillStack = $state<DrillTarget[]>([]);
 	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 
+	// 근거 칩 scope는 대화에서 인용한 날짜라 화면 기준일과 다를 수 있다(D1d) — 지원 슬러그면
+	// 그 scope 그대로 새 DrillPanel로, 아니면(임의 슬러그) 기존 MetricBreakdown 유지.
 	function openEvidence(t: DrillTarget) {
+		if (t.scopeType === 'daily' && EXPLAIN_SUPPORTED_SLUGS.has(t.slug)) {
+			openDrill(t.slug, t.scopeId);
+			return;
+		}
 		drillStack = [...drillStack, t];
 	}
 
@@ -111,6 +121,7 @@
 		<a href="{base}/coach" class="text-sm text-fg-secondary underline">← Coach로</a>
 	</div>
 {:else}
+<DrillPanel scopeType="daily" scopeId={localDateString()}>
 	<!-- 헤더 -->
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 		<a href="{base}/coach" class="shrink-0 text-fg-muted" aria-label="Coach로">←</a>
@@ -221,4 +232,5 @@
 			onDrillInput={handleDrillInput}
 		/>
 	{/if}
+</DrillPanel>
 {/if}
