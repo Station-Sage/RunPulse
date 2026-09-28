@@ -20,6 +20,7 @@ SSOT (metric_registry.py) ↔ DDL (db_setup.py) ↔ 실제 DB ↔ 설계문서 �
  14. Calculator category 속성 16-domain 준수 (rp_* 등 구버전 방지)
  15. Calculator produces ↔ METRIC_REGISTRY 등록 일치
  16. DataValidator _check_* 메서드 수 (설계: 12개) 및 CheckResult 필드 정합성
+ 17. 등급 경계 단일 정의 — 프론트에 등급 판정 함수가 없어야 함(src/metrics/bands.py)
 
 사용법:
     python scripts/check_data_consistency.py [--db PATH]
@@ -355,6 +356,15 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
         for table in ("source_payloads", "metric_store", "activity_summaries"):
             if table not in v_text:
                 results.append(("🟠", f"DataValidator: '{table}' 테이블 미참조 (체크 누락 가능성)"))
+
+    # ── Check 17: 등급 경계 단일 정의(src/metrics/bands.py) — 프론트 등급표 재발 방지 ──
+    grade_fn = re.compile(r"export function (meaningFor|tsbStatus|readinessStatus|formBand)\b")
+    fe_hits = [str(f.relative_to(ROOT)) for f in (ROOT / "frontend" / "src").rglob("*.ts")
+               if grade_fn.search(f.read_text(encoding="utf-8"))]
+    if fe_hits:
+        results.append(("🔴", f"프론트에 등급 경계 함수 — 서버 bands.py status를 쓸 것: {', '.join(fe_hits)}"))
+    else:
+        results.append(("✅", "등급 경계: 프론트 등급표 없음(bands.py 단일 정의)"))
 
     return results
 

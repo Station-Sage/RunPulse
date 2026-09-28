@@ -7,7 +7,7 @@
 	import PredictionBasis from './PredictionBasis.svelte';
 	import RaceConfirmList from './RaceConfirmList.svelte';
 	import { rangeLabel, confidenceLabel } from '$lib/predictionCompare';
-	import { countdownLabel, distanceLabel, formBand, gapVerdict, signedTsb } from '$lib/raceHub';
+	import { countdownLabel, distanceLabel, gapVerdict, signedTsb } from '$lib/raceHub';
 	import { formatDuration } from '$lib/format';
 	import { base } from '$app/paths';
 
@@ -24,11 +24,13 @@
 	const selfRow = $derived(data?.prediction?.compare?.rows.find((r) => r.key === 'self') ?? null);
 	const tsb = $derived(data?.form?.tsb ?? null);
 	const proj = $derived(data?.projection ?? null);
+	// 서버 등급 status(bands.py) → 색
 	const FORM_TONE: Record<string, string> = {
-		good: 'text-semantic-green',
+		excellent: 'text-semantic-green',
+		good: 'text-semantic-teal',
 		neutral: 'text-fg-secondary',
-		warn: 'text-semantic-amber',
-		bad: 'text-semantic-red'
+		caution: 'text-semantic-amber',
+		poor: 'text-semantic-red'
 	};
 	const SCENARIO_COLOR: Record<string, string> = { taper: '#22c55e', keep: '#64748b' };
 </script>
@@ -117,11 +119,10 @@
 						<span class="text-xs text-fg-muted">레이스 아침 예상 폼 (TSB)</span>
 						<div class="grid grid-cols-2 gap-3">
 							{#each proj.scenarios as sc (sc.key)}
-								{@const band = formBand(sc.tsb)}
 								<div class="flex flex-col gap-0.5">
 									<span class="text-[11px] text-fg-muted">{sc.label}</span>
-									<span class="font-mono text-2xl font-bold {FORM_TONE[band.tone]}">{signedTsb(sc.tsb)}</span>
-									<span class="text-[11px] {FORM_TONE[band.tone]}">{band.label}</span>
+									<span class="font-mono text-2xl font-bold {FORM_TONE[sc.status ?? 'neutral']}">{signedTsb(sc.tsb)}</span>
+									<span class="text-[11px] {FORM_TONE[sc.status ?? 'neutral']}">{sc.status_label ?? ''}</span>
 								</div>
 							{/each}
 						</div>

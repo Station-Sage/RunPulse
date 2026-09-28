@@ -14,6 +14,7 @@
 		decimals = 0,
 		provider,
 		status,
+		statusText,
 		unavailable = false,
 		onDrill
 	}: {
@@ -25,6 +26,8 @@
 		decimals?: number;
 		provider: ProviderKey | null;
 		status?: SemanticStatus;
+		/** 서버 등급 라벨(bands.py). 있으면 status 기본 문구 대신 표시한다. */
+		statusText?: string;
 		unavailable?: boolean;
 		onDrill?: (p: { slug: string; provider: ProviderKey | null }) => void;
 	} = $props();
@@ -97,7 +100,7 @@
 	</div>
 	<span class="text-xs font-medium">{label}</span>
 	{#if !unavailable && status}
-		<span class="text-[11px]" style="color:{ringColor}">{statusLabel}</span>
+		<span class="text-[11px]" style="color:{ringColor}">{statusText ?? statusLabel}</span>
 	{/if}
 	{#if provider}
 		<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}"

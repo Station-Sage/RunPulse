@@ -32,7 +32,7 @@
 
 - functions: get_activity_impact
 
-### `activity_service.py` (326줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (328줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
@@ -48,7 +48,7 @@
 
 - functions: build_evidence, list_threads, get_thread, create_thread, add_message
 
-### `dashboard_service.py` (224줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
+### `dashboard_service.py` (214줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
 
@@ -60,7 +60,7 @@
 
 - (public API 없음)
 
-### `metrics_browser_service.py` (116줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (118줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: get_metrics_browser, get_metric_trend
 
@@ -104,11 +104,11 @@
 
 - functions: get_provider_status, get_provider_coverage
 
-### `race_hub_service.py` (188줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
+### `race_hub_service.py` (181줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
 
-### `race_projection_service.py` (93줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
+### `race_projection_service.py` (99줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
 
 - functions: project_race_form
 
@@ -116,7 +116,7 @@
 
 - functions: confirm, remove, get, candidates
 
-### `today_service.py` (314줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (312줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -154,6 +154,10 @@
 ### `adti.py` (47줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
 
 - class **ADTICalculator**: compute
+
+### `bands.py` (73줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
+
+- functions: grade, with_grade
 
 ### `base.py` (513줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
@@ -1467,7 +1471,7 @@
 
 - functions: test_path_c_values, test_path_b_needs_ref, test_pairs_same_distance_skipped, test_5k_best_effort_signal
 
-### `test_dashboard_service.py` (200줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
+### `test_dashboard_service.py` (202줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
 
@@ -1703,6 +1707,10 @@
 - class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
 - functions: db_path
 
+### `test_metric_bands.py` (39줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
+
+- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges
+
 ### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
@@ -1893,7 +1901,7 @@
 
 - functions: test_runner_races, test_expected_ratio_monotone_and_t0, test_point_in_time_hrmax_and_proxy
 
-### `test_race_hub_service.py` (282줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
+### `test_race_hub_service.py` (284줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
 
 - functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context
 
@@ -2033,7 +2041,7 @@
 
 - functions: test_time_based_distribution_and_patterns, test_pattern_zero_zone1_has_no_polarization_index
 
-### `test_today_service.py` (404줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
+### `test_today_service.py` (415줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
 - class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order, test_route_is_list_when_stream_exists, test_route_is_none_when_no_stream
@@ -2044,6 +2052,7 @@
 - class **TestGetTodayNarrativeYearMonth**: test_highlights_field_present, test_highlights_no_data_zeros, test_highlights_with_activities, test_past_month_uses_last_day, test_year_month_label_in_evidence, test_peak_ctl_in_highlights, test_past_month_ctl_now_reflects_that_month_not_today, test_rule_fallback_uses_period_label_not_this_month, test_milestones_scoped_to_queried_month
 - class **TestAttachDrill**: test_briefing_tsb_drill_when_metric_store_row_exists, test_briefing_tsb_drill_none_when_no_metric_store_row, test_narrative_ctl_drill_when_row_exists, test_narrative_ctl_drill_none_when_no_row, test_monthly_distance_always_drill_none
 - class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
+- functions: test_productive_load_tsb_is_not_rest
 
 ### `test_tpdi.py` (117줄)
 
@@ -2165,7 +2174,7 @@
 
 - functions: backfill, main
 
-### `check_data_consistency.py` (408줄) — RunPulse 데이터 정합성 검증 v1.5
+### `check_data_consistency.py` (418줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
@@ -2198,7 +2207,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 443개 파일
+총 445개 파일
 
 ## docstring 누락
 

@@ -127,6 +127,8 @@ export interface ActivityMetric {
 	confidence: number | null;
 	unit: string;
 	description: string;
+	status?: SemanticStatus;
+	status_label?: string;
 }
 
 // activity_summaries 행 (공통 필드 + 인덱스 시그니처).
@@ -233,9 +235,16 @@ export interface AddMessageResponse {
 
 // ── /api/v1/today 실제 응답 (src/api/routes_today.py, src/services/today_service.py 기준) ──
 
+// 서버 등급(src/metrics/bands.py) — 프론트는 경계값 없이 렌더만 한다.
+export interface Grade {
+	status: SemanticStatus;
+	label: string;
+}
+
 export interface MetricEntry {
 	value: number | null;
 	level?: string;
+	status?: SemanticStatus | null;
 	components?: Record<string, unknown>;
 	confidence?: number;
 }
@@ -253,6 +262,7 @@ export interface TodayTrainingStatus {
 	ramp_rate: number | null;
 	acwr: number | null;
 	training_phase?: string;
+	grades?: { tsb?: Grade | null; acwr?: Grade | null };
 }
 
 export interface TodayProviders {
@@ -445,6 +455,8 @@ export interface MetricBrowserEntry {
 	provider: string | null;
 	confidence: number | null;
 	sparkline: number[];
+	status?: SemanticStatus;
+	status_label?: string;
 }
 
 export interface MetricBrowserCategory {
@@ -737,6 +749,8 @@ export interface RaceProjectionScenario {
 	atl: number;
 	tsb: number;
 	series: { date: string; value: number }[];
+	status?: SemanticStatus;
+	status_label?: string;
 }
 
 export interface RaceProjection {

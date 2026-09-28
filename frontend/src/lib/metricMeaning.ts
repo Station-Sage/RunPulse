@@ -12,35 +12,7 @@ export const STATUS_TEXT_CLASS: Record<MeaningStatus, string> = {
 	poor: 'text-semantic-red'
 };
 
-// cuts: [상한(미만), 상태, 문구] 순서대로 검사, 모두 넘으면 last
-function band(v: number, cuts: [number, MeaningStatus, string][], last: [MeaningStatus, string]): Meaning {
-	for (const [max, status, note] of cuts) if (v < max) return { status, note };
-	return { status: last[0], note: last[1] };
-}
-
-// 개인 기준선 없이 말할 수 있는 것만 해석한다 — 근거 없는 라벨을 붙이지 않는다(원칙 1).
-export function meaningFor(name: string, value: number | null | undefined): Meaning | null {
-	if (value == null || !Number.isFinite(value)) return null;
-	switch (name) {
-		case 'tsb':
-			return band(value, [[-20, 'poor', '과부하'], [-10, 'caution', '피로 누적'], [5, 'neutral', '균형'], [25, 'excellent', '레이스 최적']], ['caution', '휴식 과다']);
-		case 'utrs':
-		case 'crs':
-			return band(value, [[40, 'poor', '낮음'], [60, 'neutral', '보통'], [80, 'good', '좋음']], ['excellent', '매우 좋음']);
-		case 'cirs':
-			return band(value, [[30, 'good', '낮음'], [50, 'neutral', '보통'], [70, 'caution', '주의']], ['poor', '높음']);
-		case 'acwr':
-			return band(value, [[0.8, 'caution', '저부하'], [1.3, 'good', '적정'], [1.5, 'caution', '주의']], ['poor', '위험']);
-		case 'training_effect_aerobic':
-		case 'training_effect_anaerobic':
-			return band(value, [[1, 'neutral', '효과 미미'], [2, 'neutral', '체력 유지'], [3, 'good', '체력 개선'], [4, 'excellent', '큰 개선'], [5, 'caution', '매우 높은 자극']], ['poor', '과도한 자극']);
-		case 'aerobic_decoupling':
-		case 'aerobic_decoupling_rp':
-			return band(Math.abs(value), [[5, 'excellent', '유산소 안정'], [8, 'good', '양호'], [10, 'neutral', '보통']], ['caution', '심박 드리프트']);
-		default:
-			return null;
-	}
-}
+// 등급 판정(경계값)은 서버 src/metrics/bands.py 단일 정의 — API의 status·status_label을 렌더한다.
 
 const LABELS: Record<string, string> = {
 	ctl: '체력 (CTL)',

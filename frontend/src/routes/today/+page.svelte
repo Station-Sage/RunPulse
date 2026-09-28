@@ -16,7 +16,6 @@
 	import FormChart from '$lib/components/FormChart.svelte';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { readinessStatus, tsbStatus } from '$lib/status';
 	import { formatDistance, formatDuration, formatRelativeDay } from '$lib/format';
 	import { base } from '$app/paths';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
@@ -154,7 +153,8 @@
 					max={100}
 					decimals={0}
 					provider={status.providers.utrs ?? null}
-					status={readinessStatus('utrs', status.readiness.utrs?.level)}
+					status={status.readiness.utrs?.status ?? undefined}
+					statusText={status.readiness.utrs?.level ?? undefined}
 					unavailable={!status.readiness.utrs}
 					onDrill={handleDrill}
 				/>
@@ -166,7 +166,8 @@
 					max={100}
 					decimals={0}
 					provider={status.providers.cirs ?? null}
-					status={readinessStatus('cirs', status.readiness.cirs?.level)}
+					status={status.readiness.cirs?.status ?? undefined}
+					statusText={status.readiness.cirs?.level ?? undefined}
 					unavailable={!status.readiness.cirs}
 					onDrill={handleDrill}
 				/>
@@ -178,7 +179,8 @@
 					max={40}
 					decimals={0}
 					provider={status.providers.tsb ?? null}
-					status={tsbStatus(status.training_status.tsb)}
+					status={status.training_status.grades?.tsb?.status}
+					statusText={status.training_status.grades?.tsb?.label}
 					unavailable={status.training_status.tsb === null}
 					onDrill={handleDrill}
 				/>

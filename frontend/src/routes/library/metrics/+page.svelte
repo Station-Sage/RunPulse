@@ -7,7 +7,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
-	import { meaningFor, displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS } from '$lib/metricMeaning';
+	import { displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
 
@@ -72,7 +72,6 @@
 </script>
 
 {#snippet card(m: MetricBrowserEntry, big: boolean)}
-	{@const mean = typeof m.value === 'number' ? meaningFor(m.name, m.value) : null}
 	<a
 		href="{base}/library/metrics/{m.name}"
 		class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
@@ -95,7 +94,7 @@
 				</span>
 			{/if}
 		</div>
-		{#if mean}<span class="text-[11px] {STATUS_TEXT_CLASS[mean.status]}">● {mean.note}</span>{/if}
+		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
 		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="#3b82f6" />{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
 	</a>
 {/snippet}
