@@ -1,7 +1,8 @@
 <script lang="ts">
 	// 공통 셸 — 하단 3탭(Today/Library/Coach) + 상단 ☰ 메뉴.
-	// 03-screen-catalog.md 전 화면 공통. ☰ 메뉴의 실제 내용(/data/*)은 Phase 7d 몫이라
-	// 지금은 자리만 있고 비활성 상태다.
+	// 03-screen-catalog.md 전 화면 공통. ☰는 40:S0 과도기 드로어(v1 링크)로 활성화 —
+	// 동기화 패널(SyncStatusPill 등, Phase 4-1)이 붙기 전까지는 이 드로어가 v1↔v2 상호 링크
+	// 역할만 한다. 좌측 ☰·우측 Pill은 40-v2-unimplemented/design.md §2.1 결정.
 	// E5: 탭바 SVG 아이콘, max-w-3xl 중앙 정렬.
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -9,8 +10,10 @@
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
+	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
 
 	let { children } = $props();
+	let menuOpen = $state(false);
 
 	const tabs = [
 		{ href: `${base}/today`, label: 'Today', match: '/today', icon: 'today' as const },
@@ -26,19 +29,21 @@
 <ProgressBar />
 
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
-	<header class="border-b border-border-subtle">
-		<div class="mx-auto flex max-w-3xl lg:max-w-6xl items-center justify-between px-4 py-3">
-			<span class="font-medium">RunPulse</span>
+	<header class="border-b border-border-subtle pt-[env(safe-area-inset-top)]">
+		<div class="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 lg:max-w-6xl">
 			<button
 				type="button"
-				disabled
-				aria-label="메뉴 (준비 중)"
-				class="rounded px-2 py-1 text-fg-muted"
+				onclick={() => (menuOpen = true)}
+				aria-label="메뉴"
+				class="-ml-1.5 rounded p-1.5 text-fg-secondary hover:text-fg-primary"
 			>
 				<Icon name="menu" class="h-5 w-5" />
 			</button>
+			<span class="font-medium">RunPulse</span>
 		</div>
 	</header>
+
+	<MenuDrawer open={menuOpen} onClose={() => (menuOpen = false)} />
 
 	<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20 lg:pb-6">
 		{@render children()}
@@ -46,7 +51,7 @@
 
 	<nav
 		aria-label="주 메뉴"
-		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2 lg:inset-y-0 lg:right-auto lg:w-52 lg:border-r lg:border-t-0 lg:pt-16"
+		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2 pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-52 lg:border-r lg:border-t-0 lg:pb-0 lg:pt-16"
 	>
 		<div class="mx-auto flex w-full max-w-3xl lg:max-w-none lg:flex-col lg:gap-1 lg:px-2">
 			{#each tabs as tab (tab.href)}
