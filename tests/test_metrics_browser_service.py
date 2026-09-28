@@ -97,6 +97,44 @@ def test_get_metric_trend_invalid_period_falls_back(conn):
     assert result is None or result["slug"] == "ctl"
 
 
+def test_sparkline_matches_batched_history_over_multiple_days(conn):
+    """2-6 성능 — 메트릭당 개별 쿼리를 배치로 합친 뒤에도 스파크라인이 실제 히스토리와 같은지.
+
+    최근 14개(오름차순)여야 한다.
+    """
+    for i in range(2, 21):
+        d = f"2026-04-{i:02d}"
+        conn.execute(
+            "INSERT INTO activity_summaries "
+            "(source, source_id, name, activity_type, start_time, "
+            "distance_m, moving_time_sec, avg_hr, max_hr, avg_speed_ms) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ["garmin", str(i), f"Run {i}", "running", f"{d} 08:00:00",
+             8_000, 2_400, 150, 180, 3.33],
+        )
+        conn.commit()
+        act_id = conn.execute(
+            "SELECT id FROM activity_summaries WHERE source_id=?", [str(i)]
+        ).fetchone()[0]
+        run_activity_metrics(conn, act_id)
+        conn.commit()
+        run_daily_metrics(conn, d)
+        conn.commit()
+
+    latest = "2026-04-20"
+    result = get_metrics_browser(conn, date=latest)
+    ctl_entry = next(m for m in (mm for cat in result["categories"] for mm in cat["metrics"]) if m["name"] == "ctl")
+
+    expected_full = [
+        r[0] for r in conn.execute(
+            "SELECT numeric_value FROM metric_store WHERE scope_type='daily' "
+            "AND metric_name='ctl' AND is_primary=1 ORDER BY scope_id"
+        ).fetchall()
+    ]
+    assert ctl_entry["sparkline"] == expected_full[-14:]
+    assert ctl_entry["value"] == expected_full[-1]
+
+
 def test_get_metric_trend_peak_and_change_pct(conn):
     result = get_metric_trend(conn, "ctl", period="1y")
     assert result is not None
