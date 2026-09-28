@@ -64,7 +64,12 @@
 - `library/[id]/streams/+page.svelte`: 자체 구현이던 스크럽(포인터 기반, 5개 스택 차트 동기화)을 `ChartScrub`로 교체. 기존 버그였던 "`pointerleave`에서 해제 → 모바일에서 손 떼면(=leave) 사라짐"이 해소됨(이제 pinned면 유지) + 키보드 내비게이션이 새로 생김(이전엔 전혀 없었음). 판독줄·커서 라인 렌더링은 그대로, `scrubIndex`/`scrubFrac` 로컬 상태와 `onPointerMove`/`onPointerLeave` 핸들러는 전부 제거(→ `streamAxis.ts`의 `indexAtFraction` import도 제거, 이 파일의 마지막 사용처였음).
 - **사용자 피드백 2026-09-28 09:50** — "목록 화면이 의미 없는 나열이 되지 않을지" 지적(`library/metrics`, 스파크라인을 목록에서만 비활성화하기로 한 직후 나온 질문). 검토 결과: 이미 "핵심 지표" 히어로 섹션(예측 4종+CTL/TSB/UTRS/CIRS)과 카테고리 접기가 있어 완전한 무차별 나열은 아니지만, 히어로 밖 ~40여 개 카드는 정렬이 registry 순서 고정이라 그날 의미 있게 움직인 지표가 위치상 묻힐 수 있음 — 타당한 지적. **지금 구현하지 않고 사용자 지시대로 설계 보완 항목으로 기록**: `99-summary.md §8.5`(보류 항목 표에 신규 행) + `21-library-metrics/design.md §11`(해당 절에 3b 항목 추가, 3-7 착수 시 여기서 정렬 알고리즘 설계). 21-library-metrics §11 항목 3(카드 스크럽 충돌)도 이번 사용자 확인으로 "해소"로 갱신.
 - 검증: `npm run check`(0 errors) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음).
+
+### 2-4 세부 (4차 — FormChart·TrendChart 마이그레이션, 2-4 사실상 완료)
+- `FormChart.svelte`(피트니스·폼 시그니처 차트): 자체 포인터 핸들러 제거, `ChartScrub` 도입. t0~t1 사이 일수를 `pointCount`로 근사해 키보드 ←/→가 하루씩 움직이게 함 — 값 조회(`nearestByFrac`)는 그대로 frac 기반이라 `formChart.ts`는 안 건드림. 모바일에서 손 떼면 판독줄이 "오늘"로 되돌아가던 문제 해소(이제 pinned 유지).
+- `TrendChart.svelte`: 동일 패턴(day-count → pointCount). 기존 `interactive` prop은 유지하되(내부적으로 `interactive=false`면 ChartScrub 자체를 안 씌움 — 완전 정적 렌더가 필요할 상황 대비), **실사용처의 `interactive={false}` 2건은 제거**(`RaceHub.svelte`의 예측 추이·레이스 아침 폼 미니 차트 — §C1 "interactive={false} 금지" 위반이었음, `<details>` 안 평범한 div라 탭-내비게이션 충돌 없음 확인 후 반영). 커서 위치는 기존처럼 최근접 데이터 포인트 날짜에 스냅(원래 동작 보존).
+- 이것으로 2-4(ChartScrub 코어+마이그레이션)는 Sparkline·스트림 탭·FormChart·TrendChart 전부 완료. 남은 건 y축 nice tick 실제 렌더(지금은 `scrub.ts`의 `niceTicks`가 어디서도 호출 안 됨 — 각 차트의 기존 "min/max 텍스트만" 방식을 §C1의 "3~5개 nice tick" 방식으로 바꾸는 건 레이아웃 변경 폭이 커서 별도 판단 필요) + `axisDateLabel` 실사용(현재 x축은 t0/t1 두 끝만 표시, §C1 "≤14일 요일/일, ≤6개월 월경계, >6개월 분기" 세분화 눈금 미적용).
 - 검증: `npm run check`(0 errors, 기존 경고 15건 그대로) · `npm run build`(성공) · `npm run test:unit`(211 pass, 회귀 없음). **주의**: 이 컴포넌트는 포인터/드래그 제스처가 핵심인데 이 환경엔 헤드리스 빌드 검증만 있고 실제 터치 기기 확인은 못 했음 — 다음에 화면을 열어볼 때 스크럽이 실제로 부드럽게 동작하는지 확인 필요.
 
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4(1·2차) 완료. 남은 후보: 2-4 나머지(FormChart/TrendChart/스트림 탭 마이그레이션), 2-5(드릴다운 API, 스키마 안 건드림), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4 완료(y축 nice tick·세분화 x축 눈금은 별도 판단 필요 항목으로 남음). 다음 후보: 2-5(드릴다운 API, 스키마 안 건드림), 2-6(성능). 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.

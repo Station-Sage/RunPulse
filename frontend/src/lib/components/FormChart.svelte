@@ -3,6 +3,7 @@
 	// 오늘 이후는 레이스 아침까지의 TSB 예측(테이퍼/유지 점선). 스크럽으로 날짜별 값 확인.
 	// 순수 계산: $lib/formChart. DECISIONS.md [P7-IMPL-FORM-CHART]
 	import type { RaceProjection } from '$lib/types';
+	import ChartScrub from '$lib/components/ChartScrub.svelte';
 	import {
 		OPTIMAL_BAND,
 		buildFormLayout,
@@ -51,11 +52,16 @@
 	const todayPct = $derived(layout ? xFrac(layout.today, layout.t0, layout.t1) * 100 : 0);
 	const racePct = $derived(layout && raceDate ? xFrac(raceDate, layout.t0, layout.t1) * 100 : null);
 
-	// 스크럽
+	// §C1 ChartScrub — t0~t1을 일 단위 "포인트"로 취급해 키보드 ←/→가 하루씩 움직이게 한다.
+	// pointCount는 날짜 수 기반 근사치이고, 실제 값 조회는 그대로 frac 기반(nearestByFrac)이라
+	// formChart.ts의 날짜 수학은 손대지 않는다.
+	const totalDays = $derived(
+		layout ? Math.max(1, Math.round((Date.parse(layout.t1) - Date.parse(layout.t0)) / 86_400_000)) : 1
+	);
+	const pointCount = $derived(totalDays + 1);
 	let frac = $state<number | null>(null);
-	function scrub(e: PointerEvent) {
-		const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		if (r.width > 0) frac = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+	function onScrubChange(index: number | null) {
+		frac = index == null ? null : index / totalDays;
 	}
 	const inFuture = $derived(layout != null && frac != null && frac * 100 > todayPct + 0.5);
 	const readout = $derived.by(() => {
@@ -104,16 +110,9 @@
 			{/each}
 		</div>
 
-		<div
-			class="relative"
-			style="touch-action: pan-y"
-			role="img"
-			aria-label="체력·피로·폼 추세 — 눌러서 날짜별 값 확인"
-			onpointerdown={scrub}
-			onpointermove={scrub}
-			onpointerleave={() => (frac = null)}
-			onpointercancel={() => (frac = null)}
-		>
+		<ChartScrub {pointCount} ariaLabel="체력·피로·폼 추세 — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
+			{#snippet children()}
+				<div class="relative" style="touch-action: pan-y">
 			<!-- 위 패널: CTL·ATL -->
 			<svg viewBox="0 0 {W} {TOP_H}" preserveAspectRatio="none" style="width:100%;height:{TOP_H}px;display:block" aria-hidden="true">
 				{#each [0, TOP_H / 2, TOP_H] as y (y)}
@@ -153,7 +152,9 @@
 			{#if cursorPct != null}
 				<div class="pointer-events-none absolute inset-y-0 w-px bg-fg-muted" style="left:{cursorPct}%"></div>
 			{/if}
-		</div>
+			</div>
+			{/snippet}
+		</ChartScrub>
 
 		<div class="flex justify-between font-mono text-[10px] text-fg-muted">
 			<span>{layout.t0}</span>

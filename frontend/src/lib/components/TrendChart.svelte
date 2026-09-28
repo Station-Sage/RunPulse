@@ -2,6 +2,7 @@
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
 	import { commonRange, nearestPoint, xFraction } from '$lib/trendChart';
+	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let {
 		series,
@@ -34,12 +35,15 @@
 		return s.points.map((p) => `${px(p.date).toFixed(1)},${py(p.value).toFixed(1)}`).join(' ');
 	}
 
+	// §C1 ChartScrub — t0~t1을 일 단위 "포인트"로 근사(키보드 ←/→가 하루씩 움직임). 값 조회는
+	// 그대로 frac 기반(nearestPoint)이라 trendChart.ts의 날짜 수학은 손대지 않는다.
+	const totalDays = $derived(
+		t0 && t1 ? Math.max(1, Math.round((Date.parse(t1) - Date.parse(t0)) / 86_400_000)) : 1
+	);
+	const pointCount = $derived(totalDays + 1);
 	let frac = $state<number | null>(null);
-
-	function scrub(e: PointerEvent) {
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		if (rect.width <= 0) return;
-		frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+	function onScrubChange(index: number | null) {
+		frac = index == null ? null : index / totalDays;
 	}
 
 	// 판독: 스크럽 중이면 커서 위치의 최근접 점, 아니면 각 시리즈의 마지막 점
@@ -77,61 +81,64 @@
 		</div>
 
 		<!-- 차트 -->
-		<div
-			class="relative"
-			style="height:{height}px; {interactive ? 'touch-action: pan-y;' : ''}"
-			role={interactive ? 'img' : undefined}
-			aria-label={interactive ? '추세 차트 — 눌러서 날짜별 값 확인' : undefined}
-			onpointerdown={interactive ? scrub : undefined}
-			onpointermove={interactive ? scrub : undefined}
-			onpointerleave={interactive ? () => (frac = null) : undefined}
-			onpointercancel={interactive ? () => (frac = null) : undefined}
-		>
-			<svg
-				viewBox="0 0 {W} {height}"
-				preserveAspectRatio="none"
-				style="width:100%;height:{height}px;display:block"
-				aria-hidden="true"
-			>
-				{#each [0, height / 2, height] as y (y)}
-					<line
-						x1="0"
-						x2={W}
-						y1={y}
-						y2={y}
-						stroke="currentColor"
-						stroke-opacity="0.12"
-						stroke-width="1"
-						vector-effect="non-scaling-stroke"
-					/>
-				{/each}
-				{#each series as s (s.key)}
-					<polyline
-						points={polyline(s)}
-						fill="none"
-						stroke={s.color}
-						stroke-width="2"
-						stroke-linejoin="round"
-						stroke-linecap="round"
-						vector-effect="non-scaling-stroke"
-					/>
-				{/each}
-			</svg>
+		{#snippet chartBody(cursorFrac: number | null)}
+			<div class="relative" style="height:{height}px; {interactive ? 'touch-action: pan-y;' : ''}">
+				<svg
+					viewBox="0 0 {W} {height}"
+					preserveAspectRatio="none"
+					style="width:100%;height:{height}px;display:block"
+					aria-hidden="true"
+				>
+					{#each [0, height / 2, height] as y (y)}
+						<line
+							x1="0"
+							x2={W}
+							y1={y}
+							y2={y}
+							stroke="currentColor"
+							stroke-opacity="0.12"
+							stroke-width="1"
+							vector-effect="non-scaling-stroke"
+						/>
+					{/each}
+					{#each series as s (s.key)}
+						<polyline
+							points={polyline(s)}
+							fill="none"
+							stroke={s.color}
+							stroke-width="2"
+							stroke-linejoin="round"
+							stroke-linecap="round"
+							vector-effect="non-scaling-stroke"
+						/>
+					{/each}
+				</svg>
 
-			<span class="pointer-events-none absolute left-0 top-0 font-mono text-[10px] text-fg-muted"
-				>{formatValue(range.max)}</span
-			>
-			<span class="pointer-events-none absolute bottom-0 left-0 font-mono text-[10px] text-fg-muted"
-				>{formatValue(range.min)}</span
-			>
+				<span class="pointer-events-none absolute left-0 top-0 font-mono text-[10px] text-fg-muted"
+					>{formatValue(range.max)}</span
+				>
+				<span class="pointer-events-none absolute bottom-0 left-0 font-mono text-[10px] text-fg-muted"
+					>{formatValue(range.min)}</span
+				>
 
-			{#if interactive && cursorPct != null}
-				<div
-					class="pointer-events-none absolute inset-y-0 w-px bg-fg-muted"
-					style="left:{cursorPct}%"
-				></div>
-			{/if}
-		</div>
+				{#if cursorFrac != null}
+					<div
+						class="pointer-events-none absolute inset-y-0 w-px bg-fg-muted"
+						style="left:{cursorFrac * 100}%"
+					></div>
+				{/if}
+			</div>
+		{/snippet}
+
+		{#if interactive}
+			<ChartScrub {pointCount} ariaLabel="추세 차트 — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
+				{#snippet children()}
+					{@render chartBody(cursorPct == null ? null : cursorPct / 100)}
+				{/snippet}
+			</ChartScrub>
+		{:else}
+			{@render chartBody(null)}
+		{/if}
 
 		<!-- x축 -->
 		<div class="flex justify-between font-mono text-[10px] text-fg-muted">

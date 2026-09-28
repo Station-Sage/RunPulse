@@ -108,7 +108,6 @@
 						<TrendChart
 							series={[{ key: 'pred', label: '예측', color: '#14b8a6', points: pred.history }]}
 							height={72}
-							interactive={false}
 							formatValue={(v) => formatDuration(Math.round(v))}
 						/>
 					</div>
@@ -134,7 +133,6 @@
 								points: sc.series
 							}))}
 							height={88}
-							interactive={false}
 							formatValue={(v) => signedTsb(v)}
 						/>
 						<p class="text-[10px] leading-tight text-fg-muted">

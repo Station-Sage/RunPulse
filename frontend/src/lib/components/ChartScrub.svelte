@@ -8,10 +8,12 @@
 
 	let {
 		pointCount,
+		ariaLabel = '차트 스크럽',
 		onChange,
 		children
 	}: {
 		pointCount: number;
+		ariaLabel?: string;
 		onChange?: (index: number | null, pinned: boolean) => void;
 		children?: Snippet<[number | null, boolean]>;
 	} = $props();
@@ -82,7 +84,7 @@
 	style="touch-action: pan-y"
 	tabindex="0"
 	role="slider"
-	aria-label="차트 스크럽"
+	aria-label={ariaLabel}
 	aria-valuemin={0}
 	aria-valuemax={Math.max(0, pointCount - 1)}
 	aria-valuenow={index ?? undefined}
