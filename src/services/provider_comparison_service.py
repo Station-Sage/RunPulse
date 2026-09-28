@@ -10,6 +10,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
+from src.services.provider_diff import diff, legacy_discrepancy, normalize
 from src.utils.dedup import _SOURCE_PRIORITY
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import METRIC_REGISTRY
@@ -65,6 +66,8 @@ def get_provider_comparison(
         else _fallback_primary(sibling_sources)
     )
 
+    canonical_id = sibling_by_source.get(primary_source, act)["id"]
+
     # semantic metric_store 행 조회 (형제 전체)
     placeholders = ",".join("?" * len(sibling_ids))
     metric_rows = conn.execute(
@@ -98,7 +101,7 @@ def get_provider_comparison(
 
         col = metric_def.name
         cell_map: dict[str, Any] = {
-            src: sib.get(col) for src, sib in sibling_by_source.items()
+            src: normalize(col, sib.get(col)) for src, sib in sibling_by_source.items()
         }
         if all(v is None for v in cell_map.values()):
             continue
@@ -116,12 +119,16 @@ def get_provider_comparison(
             primary_source,
             {k for k, v in values_dict.items() if v["available"]},
         )
+        d = diff(numeric_avail, col, discrepancy_threshold)
         rows.append({
             "slug": col,
             "label": metric_def.description or col,
             "unit": metric_def.unit,
+            "quantity": col,
+            "section": "record",
             "values": values_dict,
-            "discrepancy": _calc_discrepancy(numeric_avail, discrepancy_threshold),
+            "diff": d,
+            "discrepancy": legacy_discrepancy(d),
             "preferredProvider": reason["provider"] if reason else None,
             "primaryReason": reason,
         })
@@ -134,7 +141,9 @@ def get_provider_comparison(
         for metric_name, provider in group_def["members"]:
             if provider in group_cells:
                 continue  # 같은 provider의 첫 번째 값만 사용
-            for sib_id in sibling_ids:
+            # RunPulse 계산값은 캐노니컬(대표 소스) 행 것만 — 형제 행 값 혼입 금지(F-DATA-03)
+            candidate_ids = [canonical_id] if provider.startswith("runpulse") else sibling_ids
+            for sib_id in candidate_ids:
                 key = (sib_id, metric_name, provider)
                 if key in metric_idx:
                     d = metric_idx[key]
@@ -150,6 +159,7 @@ def get_provider_comparison(
             continue
 
         values_dict = _build_values(all_providers, group_cells)
+        comparable = group_def.get("comparable", False)
         numeric_avail = (
             [
                 c["value"] for c in values_dict.values()
@@ -162,12 +172,17 @@ def get_provider_comparison(
             primary_source,
             {k for k, v in values_dict.items() if v["available"]},
         )
+        # 정의가 다른 양을 묶은 그룹은 차이를 판정하지 않고 "관련 지표"로 둔다
+        d = diff(numeric_avail, group_name, discrepancy_threshold) if has_numeric and comparable else None
         rows.append({
             "slug": group_name,
             "label": group_def["display_name"],
-            "unit": None,
+            "unit": group_def.get("unit"),
+            "quantity": group_name if comparable else None,
+            "section": "computed" if comparable else "related",
             "values": values_dict,
-            "discrepancy": _calc_discrepancy(numeric_avail, discrepancy_threshold) if has_numeric else None,
+            "diff": d,
+            "discrepancy": legacy_discrepancy(d),
             "preferredProvider": reason["provider"] if reason else None,
             "primaryReason": reason,
         })

@@ -15,6 +15,8 @@ export interface Split {
 	distanceM: number;
 	sec: number;
 	paceSecKm: number;
+	/** 구간 안의 정지 시간(초) — sec·paceSecKm에서 빠졌다. 0이면 정지 없음 */
+	stoppedSec: number;
 	avgHr: number | null;
 	elevDelta: number | null;
 }
@@ -55,6 +57,38 @@ export function cumulativeDistance(
 	return d;
 }
 
+// 정지 기준(백엔드 src/metrics/stream_utils.py와 같은 값, UX 리뷰 20 design §4-5)
+const STOP_SPEED_MS = 0.5;
+const GAP_SEC = 10;
+const GAP_DIST_M = 5;
+
+/** 샘플 i(≥1)가 직전 샘플 이후 정지 상태였는지. */
+export function stoppedFlags(streams: SplitStream[], t: number[], d: number[]): boolean[] {
+	return streams.map((s, i) => {
+		if (i === 0) return false;
+		const dt = t[i] - t[i - 1];
+		if (dt <= 0) return false;
+		const dd = d[i] - d[i - 1];
+		const speed = s.speed_ms ?? dd / dt;
+		return speed < STOP_SPEED_MS || (dt > GAP_SEC && dd < GAP_DIST_M);
+	});
+}
+
+/** 누적 정지 시간 배열 → time 시점의 누적 정지 초(선형보간). */
+function stoppedAt(t: number[], cum: number[], time: number): number {
+	let lo = 0;
+	let hi = t.length - 1;
+	if (time <= t[0]) return 0;
+	if (time >= t[hi]) return cum[hi];
+	while (hi - lo > 1) {
+		const mid = (lo + hi) >> 1;
+		if (t[mid] <= time) lo = mid;
+		else hi = mid;
+	}
+	const span = t[hi] - t[lo];
+	return span > 0 ? cum[lo] + ((time - t[lo]) / span) * (cum[hi] - cum[lo]) : cum[lo];
+}
+
 function nearestIndex(t: number[], time: number): number {
 	let lo = 0;
 	let hi = t.length - 1;
@@ -67,7 +101,8 @@ function nearestIndex(t: number[], time: number): number {
 	return lo;
 }
 
-/** 1km 단위 구간(마지막은 200m 이상 남을 때만 부분 구간). 재구성 불가(샘플<2, 총시간≤0, 총거리<1km)면 []. */
+/** 1km 단위 구간(마지막은 200m 이상 남을 때만 부분 구간). 재구성 불가(샘플<2, 총시간≤0, 총거리<1km)면 [].
+ *  sec·페이스는 **이동 시간** 기준(정지 제외), 평균 심박도 이동 샘플만. */
 export function computeSplits(
 	streams: SplitStream[],
 	totalSec: number,
@@ -77,6 +112,9 @@ export function computeSplits(
 	if (n < 2 || totalSec <= 0 || totalDistM < 1000) return [];
 	const t = sampleTimes(streams, totalSec);
 	const d = cumulativeDistance(streams, totalSec, totalDistM);
+	const stopped = stoppedFlags(streams, t, d);
+	const cumStop: number[] = [0];
+	for (let i = 1; i < n; i++) cumStop.push(cumStop[i - 1] + (stopped[i] ? t[i] - t[i - 1] : 0));
 	const dEnd = d[n - 1];
 	const fullKm = Math.floor(dEnd / 1000);
 
@@ -101,13 +139,14 @@ export function computeSplits(
 	}
 
 	return ranges.map((r, i) => {
-		const sec = r.end - r.start;
+		const stoppedSec = stoppedAt(t, cumStop, r.end) - stoppedAt(t, cumStop, r.start);
+		const sec = r.end - r.start - stoppedSec;
 		let hrSum = 0;
 		let hrCount = 0;
 		for (let s = 0; s < n; s++) {
 			const inside = t[s] >= r.start && (t[s] < r.end || (r.last && t[s] <= r.end));
 			const hr = streams[s].heart_rate;
-			if (inside && hr != null) {
+			if (inside && !stopped[s] && hr != null) {
 				hrSum += hr;
 				hrCount++;
 			}
@@ -119,6 +158,7 @@ export function computeSplits(
 			distanceM: r.distanceM,
 			sec,
 			paceSecKm: sec / (r.distanceM / 1000),
+			stoppedSec: Math.round(stoppedSec),
 			avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null,
 			elevDelta: a0 != null && a1 != null ? Math.round((a1 - a0) * 10) / 10 : null
 		};

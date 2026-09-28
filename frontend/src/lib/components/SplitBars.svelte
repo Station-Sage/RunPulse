@@ -59,7 +59,7 @@
 {#if splits.length > 0}
 	<section class="flex flex-col gap-2">
 		<p class="text-xs uppercase tracking-wide text-fg-muted">
-			km 스플릿 <span class="normal-case opacity-60">· 스트림 기반 추정</span>
+			km 스플릿 <span class="normal-case opacity-60">· 이동 시간 기준(정지 제외)</span>
 		</p>
 		<div class="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-fg-muted"><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#10b981"></i>최고 구간</span><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#3b82f6"></i>평균보다 빠름</span><span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm" style="background:#f59e0b"></i>평균보다 느림</span>{#if hasHr}<span>· 우측: 평균 심박</span>{/if}{#if hasElev}<span>· 고도 변화</span>{/if}</div>
 		<div class="flex flex-col gap-1">
@@ -78,6 +78,11 @@
 							>
 						</div>
 					</div>
+					{#if s.stoppedSec >= 5}
+						<span class="shrink-0 font-mono text-[10px] text-fg-muted" title="이 구간의 정지 시간(페이스에서 제외)"
+							>⏸ {Math.floor(s.stoppedSec / 60)}:{String(s.stoppedSec % 60).padStart(2, '0')}</span
+						>
+					{/if}
 					<!-- 심박 -->
 					{#if hasHr}
 						<span class="w-14 shrink-0 text-right font-mono text-fg-secondary">

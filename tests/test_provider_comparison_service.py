@@ -265,3 +265,24 @@ def test_all_none_raw_column_skipped(two_source_conn):
     result = get_provider_comparison(c, garmin_id)
     # avg_power는 fixture에서 NULL — avg_power 행이 없어야 함
     assert not any(r["slug"] == "avg_power" for r in result["rows"])
+
+
+def test_runpulse_value_only_from_canonical_row(two_source_conn):
+    """형제(비대표) 행에서 계산된 RunPulse 값은 소스 비교에 섞이지 않는다(F-DATA-03)."""
+    c, garmin_id, strava_id = two_source_conn
+    _insert_metric(c, strava_id, "trimp", "runpulse:formula_v1", numeric_value=101.0)
+    _insert_metric(c, garmin_id, "trimp", "runpulse:formula_v1", numeric_value=97.3)
+    c.commit()
+    rows = {r["slug"]: r for r in get_provider_comparison(c, strava_id)["rows"]}
+    assert rows["trimp"]["values"]["runpulse:formula_v1"]["value"] == 97.3
+    assert rows["trimp"]["section"] == "computed"
+
+
+def test_related_group_has_no_discrepancy(two_source_conn):
+    c, garmin_id, strava_id = two_source_conn
+    _insert_metric(c, garmin_id, "training_load", "garmin", numeric_value=110.0)
+    _insert_metric(c, garmin_id, "hrss", "runpulse:formula_v1", numeric_value=55.7)
+    c.commit()
+    rows = {r["slug"]: r for r in get_provider_comparison(c, garmin_id)["rows"]}
+    assert rows["training_load"]["section"] == "related"
+    assert rows["training_load"]["discrepancy"] is None

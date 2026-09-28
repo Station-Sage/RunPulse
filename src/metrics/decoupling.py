@@ -7,12 +7,13 @@ EF = avg_speed / avg_hr
 from __future__ import annotations
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.stream_utils import moving_segments
 
 
 class AerobicDecouplingCalculator(MetricCalculator):
     name = "aerobic_decoupling_rp"
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "2.0"
     scope_type = "activity"
     category = "efficiency"
     display_name = "유산소 분리"
@@ -32,7 +33,10 @@ class AerobicDecouplingCalculator(MetricCalculator):
 
     MINIMUM_DURATION_SEC = 1200  # 20분
 
+    WARMUP_SEC = 600  # Friel 관행: 첫 10분 제외
+
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
+        """Friel 방식: 워밍업 10분 제외, 정지 제외한 **이동 시간** 기준 전·후반 EF(속도/심박) 비교."""
         act = ctx.activity
         duration = act.get("moving_time_sec") or act.get("duration_sec")
         if not duration or duration < self.MINIMUM_DURATION_SEC:
@@ -42,23 +46,32 @@ class AerobicDecouplingCalculator(MetricCalculator):
         if not streams or len(streams) < 120:
             return []
 
-        mid = len(streams) // 2
-        ef_first = self._calc_ef(streams[:mid])
-        ef_second = self._calc_ef(streams[mid:])
-
-        if ef_first is None or ef_second is None or ef_first == 0:
+        segs = [s for s in moving_segments(streams, act.get("elapsed_time_sec") or duration) if s["hr"]]
+        t, body = 0.0, []
+        for seg in segs:
+            t += seg["dt"]
+            if t > self.WARMUP_SEC:
+                body.append(seg)
+        total = sum(s["dt"] for s in body)
+        if total < self.MINIMUM_DURATION_SEC - self.WARMUP_SEC:
             return []
 
+        half, acc, first, second = total / 2, 0.0, [], []
+        for seg in body:
+            (first if acc < half else second).append(seg)
+            acc += seg["dt"]
+        ef_first, ef_second = _ef(first), _ef(second)
+        if not ef_first or ef_second is None:
+            return []
         decoupling = (ef_first - ef_second) / ef_first * 100
         return [self._result(value=round(decoupling, 2))]
 
-    def _calc_ef(self, segment: list[dict]) -> float | None:
-        speeds = [s["speed_ms"] for s in segment
-                  if s.get("speed_ms") and s["speed_ms"] > 0]
-        hrs = [s["heart_rate"] for s in segment
-               if s.get("heart_rate") and s["heart_rate"] > 60]
-        if not speeds or not hrs:
-            return None
-        avg_speed = sum(speeds) / len(speeds)
-        avg_hr = sum(hrs) / len(hrs)
-        return avg_speed / avg_hr if avg_hr > 0 else None
+
+def _ef(segs: list[dict]) -> float | None:
+    """시간 가중 평균 속도 / 평균 심박."""
+    dt = sum(s["dt"] for s in segs)
+    if dt <= 0:
+        return None
+    speed = sum(s["speed"] * s["dt"] for s in segs) / dt
+    hr = sum(s["hr"] * s["dt"] for s in segs) / dt
+    return speed / hr if hr > 0 else None

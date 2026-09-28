@@ -1,6 +1,8 @@
 """메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 UI에서 같은 개념의 여러 provider 값을 나란히 표시할 때 사용.
+`comparable: True`인 그룹만 같은 양(quantity)이라 소스 간 차이를 판정한다. 나머지는 정의가 다른
+양을 묶은 "관련 지표"라 차이 ⚠를 내지 않는다(UX 리뷰 20 F-DATA-03).
 """
 from __future__ import annotations
 
@@ -14,6 +16,7 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "primary_strategy": "prefer_runpulse",
     },
     "trimp": {
+        "comparable": True,
         "display_name": "TRIMP",
         "members": [
             ("trimp", "runpulse:formula_v1"),
@@ -34,9 +37,9 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "primary_strategy": "show_all",
     },
     "vo2max": {
+        "comparable": True,
         "display_name": "VO2Max",
         "members": [
-            ("runpulse_vdot", "runpulse:formula_v1"),
             ("vo2max_activity", "garmin"),
             ("effective_vo2max", "runalyze"),
         ],
@@ -73,11 +76,11 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "primary_strategy": "show_all",
     },
     "relative_effort": {
+        "comparable": True,
         "display_name": "상대적 노력도",
         "members": [
             ("relative_effort", "runpulse:formula_v1"),
             ("suffer_score", "strava"),
-            ("training_load_score", "intervals"),
         ],
         "primary_strategy": "show_all",
     },
@@ -100,12 +103,11 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "primary_strategy": "prefer_runpulse",
     },
     "vdot": {
+        "comparable": True,
         "display_name": "VDOT",
         "members": [
             ("runpulse_vdot", "runpulse:formula_v1"),
             ("vdot_adj", "runpulse:formula_v1"),
-            ("vo2max_activity", "garmin"),
-            ("effective_vo2max", "runalyze"),
         ],
         "primary_strategy": "prefer_runpulse",
     },

@@ -72,3 +72,13 @@ test('cumulativeDistance: 속도 적분 후 총 거리로 스케일', () => {
 	const d = cumulativeDistance(make(101, () => 3), 100, 600);
 	assert.ok(Math.abs(d[100] - 600) < 1e-6);
 });
+
+test('정지 구간은 이동 시간에서 빠지고 stoppedSec로 표시', () => {
+	// 0~250초 4 m/s, 250~350초 정지, 이후 4 m/s → 1100초 4000m
+	const st = make(1101, (i) => (i > 250 && i <= 350 ? 0 : 4));
+	const s = computeSplits(st, 1100, 4000);
+	assert.equal(s.length, 4);
+	assert.ok(Math.abs(s[0].sec - 250) <= 1, `sec ${s[0].sec}`);
+	assert.ok(s[0].stoppedSec + s[1].stoppedSec >= 99);
+	assert.ok(Math.abs(s[1].paceSecKm - 250) <= 2);
+});

@@ -24,7 +24,7 @@ function mmss(sec: number): string {
 const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
 
 /** 완전한 1km 구간이 4개 미만이면 null. 전반/후반은 구간 수의 앞·뒤 절반(홀수면 가운데 제외). */
-export function buildRunStory(splits: Split[]): RunStory | null {
+export function buildRunStory(splits: Split[], decouplingPct: number | null = null): RunStory | null {
 	const full = splits.filter((s) => s.distanceM >= 1000);
 	if (full.length < 4) return null;
 	const half = Math.floor(full.length / 2);
@@ -67,16 +67,16 @@ export function buildRunStory(splits: Split[]): RunStory | null {
 			tone: 'neutral',
 			hint: '구간 평균 심박(전·후반)'
 		});
-		// 유산소 디커플링: 효율 EF = 속도/심박, 전반 대비 후반 감소율(%)
-		const ef1 = 1000 / p1 / h1;
-		const ef2 = 1000 / p2 / h2;
-		const dec = ((ef1 - ef2) / ef1) * 100;
+	}
+	// 유산소 디커플링은 백엔드 aerobic_decoupling_rp 한 곳에서만 계산한다(Friel: 첫 10분 제외·이동 시간 절반, 재계산 금지)
+	if (decouplingPct != null && Number.isFinite(decouplingPct)) {
+		const dec = decouplingPct;
 		facts.push({
 			key: 'decoupling',
 			label: '유산소 디커플링',
 			value: `${dec >= 0 ? '' : '−'}${Math.abs(dec).toFixed(1)}%`,
-			tone: dec < 5 ? 'good' : dec < 8 ? 'neutral' : 'warn',
-			hint: '심박당 속도(효율)가 전반 대비 얼마나 줄었는지 — 5% 미만이면 유산소 안정'
+			tone: Math.abs(dec) < 5 ? 'good' : Math.abs(dec) < 8 ? 'neutral' : 'warn',
+			hint: '첫 10분을 뺀 이동 시간 전·후반의 심박당 속도 변화 — 5% 미만이면 유산소 안정'
 		});
 	}
 

@@ -28,9 +28,10 @@ BANDS: dict[str, _Band] = {
     # acwr.py ranges
     "acwr": ([(0.8, "caution", "저부하"), (1.3, "good", "적정"), (1.5, "caution", "주의")],
              ("poor", "위험")),
-    "training_effect_aerobic": ([(1, "neutral", "효과 미미"), (2, "neutral", "체력 유지"),
-                                 (3, "good", "체력 개선"), (4, "excellent", "큰 개선"),
-                                 (5, "caution", "매우 높은 자극")], ("poor", "과도한 자극")),
+    # Garmin TE 척도: 0~0.9 없음 / 1~1.9 미미 / 2~2.9 유지 / 3~3.9 향상 / 4~4.9 크게 향상 / 5.0 과도
+    "training_effect_aerobic": ([(1, "neutral", "효과 없음"), (2, "neutral", "효과 미미"),
+                                 (3, "neutral", "유지"), (4, "good", "향상"),
+                                 (5, "excellent", "크게 향상")], ("caution", "과도")),
     # 디커플링은 절댓값(%)으로 판정
     "aerobic_decoupling": ([(5, "excellent", "유산소 안정"), (8, "good", "양호"),
                             (10, "neutral", "보통")], ("caution", "심박 드리프트")),

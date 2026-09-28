@@ -17,6 +17,7 @@ from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
 from src.metrics.bands import with_grade
+from src.metrics.display_rules import visible_activity_metrics
 
 SERVICE_PRIORITY = ["garmin", "strava", "intervals", "runalyze"]
 
@@ -142,7 +143,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     core = dict(core_row) if core_row else {}
 
     # metrics_by_category (is_primary=1)
-    primary_metrics = db_helpers.get_primary_metrics(conn, "activity", activity_id)
+    primary_metrics = visible_activity_metrics(db_helpers.get_primary_metrics(conn, "activity", activity_id))
     metrics_by_category = _build_metrics_by_category(primary_metrics)
 
     # source_comparison (같은 matched_group의 다른 소스)
@@ -160,13 +161,13 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
 
     # semantic_groups (모든 provider)
     all_metrics_rows = conn.execute(
-        "SELECT metric_name, provider, numeric_value, text_value, json_value"
+        "SELECT metric_name, provider, numeric_value, text_value, json_value, confidence"
         " FROM metric_store"
         " WHERE scope_type = 'activity' AND scope_id = CAST(? AS TEXT)"
         " ORDER BY metric_name, provider",
         (activity_id,),
     ).fetchall()
-    all_metrics = [dict(r) for r in all_metrics_rows]
+    all_metrics = visible_activity_metrics([dict(r) for r in all_metrics_rows])
     semantic_groups = _build_semantic_groups(all_metrics, core)
 
     # streams

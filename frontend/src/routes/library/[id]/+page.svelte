@@ -37,7 +37,12 @@
 			core?.distance_m ?? 0
 		)
 	);
-	const story = $derived(buildRunStory(splits));
+	const decouplingPct = $derived(
+		Object.values(metricsByCategory)
+			.flat()
+			.find((m) => m.metric_name === 'aerobic_decoupling_rp')?.numeric_value ?? null
+	);
+	const story = $derived(buildRunStory(splits, decouplingPct));
 	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
 	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
 	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.

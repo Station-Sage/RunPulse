@@ -8,6 +8,7 @@ from __future__ import annotations
 import math
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.stream_utils import athlete_max_hr
 
 
 class TRIMPCalculator(MetricCalculator):
@@ -65,14 +66,7 @@ class TRIMPCalculator(MetricCalculator):
         return sex if sex in self.COEFFS else "male"
 
     def _get_max_hr(self, ctx: CalcContext) -> int | None:
-        stored = ctx.get_metric("max_hr_measured", scope_type="athlete", scope_id="me")
-        if stored:
-            return int(stored)
-        activities = ctx.get_activities_in_range(days=180)
-        max_hrs = [a["max_hr"] for a in activities if a.get("max_hr")]
-        if max_hrs:
-            return max(max_hrs)
-        return 190
+        return athlete_max_hr(ctx)
 
     def _get_rest_hr(self, ctx: CalcContext) -> int | None:
         act = ctx.activity

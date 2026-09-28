@@ -156,7 +156,7 @@
 	<!-- 불일치 범례 -->
 	{#if data.rows.some((r) => hasDiscrepancy(r))}
 		<div class="mt-2 px-4 pb-2 text-xs text-fg-muted">
-			<span class="text-amber-500">⚠</span> 소스 간 차이 {discrepancyThreshold}% 초과
+			<span class="text-amber-500">⚠</span> 소스 간 실제 측정 차이(고도 10m·기온 2°C·시간·거리 1%·기타 {discrepancyThreshold}% 초과)
 		</div>
 	{/if}
 {/if}

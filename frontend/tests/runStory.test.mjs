@@ -28,14 +28,16 @@ test('후반이 느리면 positive, 2% 이내면 even', () => {
 	assert.equal(buildRunStory(sp([300, 301, 300, 301])).kind, 'even');
 });
 
-test('디커플링: 같은 페이스에서 심박만 올라가면 양수', () => {
-	const s = buildRunStory(sp([300, 300, 300, 300], [140, 140, 154, 154]));
+test('디커플링은 백엔드 값만 표시(프론트 재계산 금지)', () => {
+	const s = buildRunStory(sp([300, 300, 300, 300], [140, 140, 154, 154]), 9.1);
 	const d = s.facts.find((f) => f.key === 'decoupling');
-	assert.equal(d.value, '9.1%'); // 1 − 140/154
+	assert.equal(d.value, '9.1%');
 	assert.equal(d.tone, 'warn');
+	const none = buildRunStory(sp([300, 300, 300, 300], [140, 140, 154, 154]));
+	assert.ok(!none.facts.some((f) => f.key === 'decoupling'));
 });
 
-test('심박이 없으면 hr·decoupling fact 생략', () => {
+test('심박이 없으면 hr fact 생략', () => {
 	const keys = buildRunStory(sp([300, 300, 300, 300])).facts.map((f) => f.key);
 	assert.deepEqual(keys, ['pace', 'fastest']);
 });
