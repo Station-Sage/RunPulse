@@ -116,6 +116,10 @@
 
 - functions: confirm, remove, get, candidates
 
+### `sync_state_service.py` (163줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+
+- functions: classify_error, get_sync_state
+
 ### `today_service.py` (312줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
@@ -1166,7 +1170,7 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (255줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
+### `sync_state.py` (266줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
 - functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
 
@@ -2029,6 +2033,10 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
+### `test_sync_state_service.py` (80줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
+
+- functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc
+
 ### `test_synth_smoke.py` (55줄) — scripts/synth_smoke 합성 DB 시드 테스트 — 시드가 기능 기대치(서비스 입력)와 어긋나면 UI 스모크가 헛돈다.
 
 - functions: test_seed_creates_expected_rows, test_seed_feeds_provider_status_and_adaptation, test_seed_empty_has_schema_but_no_rows, test_seed_overwrites_existing_file_and_writes_only_there
@@ -2215,7 +2223,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 447개 파일
+총 449개 파일
 
 ## docstring 누락
 

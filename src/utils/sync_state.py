@@ -110,14 +110,25 @@ def is_running(service: str, user_id: str | None = None) -> bool:
 
 
 def get_last_sync_at(service: str, user_id: str | None = None) -> datetime | None:
-    """마지막 동기화 완료 시각 반환."""
+    """마지막 동기화 완료 시각 — 작업 원장(sync_jobs.db)의 최근 완료와 이 파일 값 중 늦은 쪽.
+
+    bg·자동 동기화는 이 파일을 갱신하지 않아 값이 몇 달 전에 멈춰 있었다(UX 리뷰 40 F-DATA-01).
+    """
+    candidates = []
     val = _load(user_id).get(service, {}).get("last_sync_at")
-    if not val:
-        return None
+    if val:
+        try:
+            candidates.append(datetime.fromisoformat(val))
+        except ValueError:
+            pass
     try:
-        return datetime.fromisoformat(val)
-    except ValueError:
-        return None
+        from src.utils.sync_jobs import list_recent_jobs
+        done = next((j for j in list_recent_jobs(service, limit=20) if j.status == "completed"), None)
+        if done:
+            candidates.append(datetime.fromisoformat(done.updated_at))
+    except Exception:
+        pass
+    return max(candidates) if candidates else None
 
 
 def get_retry_after_sec(service: str, user_id: str | None = None) -> int | None:

@@ -52,4 +52,4 @@ def _refresh_today_metrics():
     return None
 
 
-from . import routes_coach, routes_library, routes_plan, routes_prediction, routes_today  # noqa: E402,F401
+from . import routes_coach, routes_data, routes_library, routes_plan, routes_prediction, routes_today  # noqa: E402,F401
