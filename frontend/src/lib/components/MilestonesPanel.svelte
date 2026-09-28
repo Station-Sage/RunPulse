@@ -4,6 +4,8 @@
 	import { onMount } from 'svelte';
 	import { getTodayMilestones } from '$lib/api/today';
 	import { base } from '$app/paths';
+	import Icon from '$lib/components/Icon.svelte';
+	import { milestoneIconName } from '$lib/milestoneIcon';
 	import type { MilestoneEntry } from '$lib/types';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -11,12 +13,6 @@
 	let milestones = $state<MilestoneEntry[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-
-	const milestoneIcon: Record<string, string> = {
-		distance_threshold: '🎯',
-		pb: '🏃',
-		metric_recompute: '🔄'
-	};
 
 	onMount(async () => {
 		try {
@@ -30,7 +26,7 @@
 </script>
 
 {#snippet row(m: MilestoneEntry)}
-	<span aria-hidden="true" class="shrink-0">{milestoneIcon[m.type] ?? '🔖'}</span>
+	<Icon name={milestoneIconName(m.type)} class="h-4 w-4 shrink-0 text-fg-muted" />
 	<div class="min-w-0 flex-1">
 		<div class="flex items-baseline gap-2 text-sm">
 			<span class="shrink-0 text-fg-muted">{m.date}</span>
@@ -58,7 +54,7 @@
 				onclick={onClose}
 				class="rounded p-1 text-fg-secondary hover:text-fg-primary"
 				aria-label="닫기"
-			>✕</button>
+			><Icon name="close" class="h-4 w-4" /></button>
 		</div>
 
 		<!-- 본문 -->

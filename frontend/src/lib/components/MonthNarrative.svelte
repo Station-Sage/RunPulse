@@ -9,6 +9,8 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 	import type { NarrativeResponse } from '$lib/types';
 
@@ -113,12 +115,6 @@
 		loadNarrative();
 	}
 
-	const milestoneIcon: Record<string, string> = {
-		distance_threshold: '🎯',
-		pb: '🏃',
-		metric_recompute: '🔄'
-	};
-
 	onMount(() => {
 		loadNarrative();
 		loadSparklines();
@@ -150,7 +146,7 @@
 					onclick={onClose}
 					class="ml-1 rounded p-1 text-fg-secondary hover:text-fg-primary"
 					aria-label="닫기"
-				>✕</button>
+				><Icon name="close" class="h-4 w-4" /></button>
 			</div>
 		</div>
 
@@ -203,7 +199,7 @@
 					<div class="flex flex-col gap-1">
 						{#each narrativeData.milestones as m (m.id)}
 							<div class="flex items-start gap-2 text-sm">
-								<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+								<Icon name={milestoneIconName(m.type)} class="h-4 w-4 shrink-0 text-fg-muted" />
 								<span class="text-fg-muted">{m.date}</span>
 								<span class="flex-1">{m.title}</span>
 							</div>

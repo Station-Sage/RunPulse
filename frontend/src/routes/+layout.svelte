@@ -32,7 +32,7 @@
 				aria-label="메뉴 (준비 중)"
 				class="rounded px-2 py-1 text-fg-muted"
 			>
-				☰
+				<Icon name="menu" class="h-5 w-5" />
 			</button>
 		</div>
 	</header>

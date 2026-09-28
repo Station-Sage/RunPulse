@@ -4,6 +4,7 @@
 	import { formatDuration, formatPaceRange, weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import type { PlannedWorkout } from '$lib/types';
 
 	let { data }: { data: PlanDetailPageData } = $props();
@@ -115,7 +116,9 @@
 		<!-- 오늘 조정 경고 -->
 		{#if data.adjustment?.adjusted}
 			<div class="border-b border-border-subtle bg-surface-2 px-4 py-3">
-				<p class="text-xs font-medium text-semantic-amber">⚠ 오늘 조정됨</p>
+				<p class="flex items-center gap-1 text-xs font-medium text-semantic-amber">
+					<Icon name="warning" class="h-3.5 w-3.5 shrink-0" /> 오늘 조정됨
+				</p>
 				{#if data.adjustment.adjustment_reason}
 					<p class="mt-0.5 text-xs text-fg-secondary">{data.adjustment.adjustment_reason}</p>
 				{/if}

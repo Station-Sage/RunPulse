@@ -1,5 +1,7 @@
-export function formatDistance(m: number): string {
-	return `${(m / 1000).toFixed(1)}km`;
+// D1c(§C4 예외): 활동 히어로·랩 표는 소수 2자리, 그 외(목록·요약·Today)는 1자리.
+export function formatDistance(m: number, decimals: 1 | 2 = 1): string {
+	if (m < 1000) return `${Math.round(m)}m`;
+	return `${(m / 1000).toFixed(decimals)}km`;
 }
 
 export function formatDuration(sec: number): string {
@@ -61,6 +63,85 @@ export function formatUnitValue(value: number, unit: string): { display: string;
 	return { display, unit };
 }
 
+// §C4 — 음수는 하이픈이 아니라 U+2212(수학 마이너스)를 쓴다.
+export const MINUS = '−';
+
+/** 부하(CTL/ATL) — 소수 1자리, 부호 없음. */
+export function formatLoad(value: number): string {
+	return value.toFixed(1);
+}
+
+/** 폼(TSB) 요약·칩·게이지 — 부호 있는 정수. */
+export function formatForm(value: number): string {
+	const rounded = Math.round(value);
+	if (rounded === 0) return '0';
+	return rounded > 0 ? `+${rounded}` : `${MINUS}${Math.abs(rounded)}`;
+}
+
+/** 폼(TSB) 분해 공식 — 소수 1자리, 부호 있음. */
+export function formatFormDetail(value: number): string {
+	const rounded = Math.round(value * 10) / 10;
+	if (rounded === 0) return '0';
+	return rounded > 0 ? `+${rounded.toFixed(1)}` : `${MINUS}${Math.abs(rounded).toFixed(1)}`;
+}
+
+/** 비율(ACWR 등) — 소수 2자리, 부호 없음. */
+export function formatRatio(value: number): string {
+	return value.toFixed(2);
+}
+
+/** 백분율 — 정수 %. */
+export function formatPercent(value: number): string {
+	return `${Math.round(value)}%`;
+}
+
+/** 백분위 — 'p78'. */
+export function formatPercentile(value: number): string {
+	return `p${Math.round(value)}`;
+}
+
+/** 점수(0–100) — 정수. */
+export function formatScore(value: number): string {
+	return String(Math.round(value));
+}
+
+/** 심박 — 정수 bpm. */
+export function formatHeartRate(value: number): string {
+	return `${Math.round(value)} bpm`;
+}
+
+/** 변화량 — 항상 부호(화살표·색·좋고 나쁨 판정은 호출부 몫). decimals=0이면 정수(층·걸음 등), >0이면 소수. */
+export function formatChange(value: number, decimals = 0): string {
+	const rounded = Number(value.toFixed(decimals));
+	if (rounded === 0) return decimals > 0 ? `0` : '0';
+	const abs = Math.abs(rounded).toFixed(decimals);
+	return rounded > 0 ? `+${abs}` : `${MINUS}${abs}`;
+}
+
+/** 시간 차 — 1분 미만은 반올림돼 '0분', 그 외 'n분'(±). 초 단위 정밀도는 D2 전용. */
+export function formatTimeDiff(sec: number): string {
+	const minutes = Math.round(sec / 60);
+	if (minutes === 0) return '0분';
+	return minutes > 0 ? `+${minutes}분` : `${MINUS}${Math.abs(minutes)}분`;
+}
+
+/**
+ * 예측 기록 — 신뢰도 <0.5면 'h:mm (h:mm–h:mm)', ≥0.5면 'h:mm:ss'(§C4).
+ * rangeSec: [최속, 최느림] 초.
+ */
+export function formatPrediction(
+	sec: number,
+	confidence: number,
+	rangeSec?: readonly [number, number] | null
+): string {
+	if (confidence >= 0.5 || !rangeSec) return formatDuration(sec);
+	const shortHm = (s: number) => {
+		const total = Math.round(s / 60);
+		return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+	};
+	return `${shortHm(sec)} (${shortHm(rangeSec[0])}–${shortHm(rangeSec[1])})`;
+}
+
 export function formatDate(isoStr: string): string {
 	return isoStr.slice(0, 10);
 }
@@ -103,6 +184,20 @@ export const WORKOUT_LABELS: Record<string, string> = {
 
 export function workoutLabel(type: string): string {
 	return WORKOUT_LABELS[type] ?? type;
+}
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** 날짜(본문) — '9월 27일 (일)'. */
+export function formatDateLong(isoDate: string): string {
+	const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+	return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${WEEKDAY_KO[d.getUTCDay()]})`;
+}
+
+/** 날짜(짧게) — '9/27(일)'. */
+export function formatDateShort(isoDate: string): string {
+	const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+	return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAY_KO[d.getUTCDay()]})`;
 }
 
 export function formatRelativeDay(isoDate: string): string {

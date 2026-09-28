@@ -4,6 +4,7 @@
 	import { getMetricBreakdown } from '$lib/api/metrics';
 	import { providerLabel } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import Icon from '$lib/components/Icon.svelte';
 	import type { MetricBreakdownData } from '$lib/types';
 
 	// 원시 부동소수(26.0799…)·초 단위를 그대로 노출하지 않는다.
@@ -66,7 +67,7 @@
 				onclick={onClose}
 				class="rounded p-1 text-fg-secondary hover:text-fg-primary"
 				aria-label="닫기"
-			>✕</button>
+			><Icon name="close" class="h-4 w-4" /></button>
 		</div>
 
 		<!-- 본문 -->

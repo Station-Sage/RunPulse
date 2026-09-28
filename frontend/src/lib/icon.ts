@@ -1,0 +1,22 @@
+// §C8 아이콘 이름 — Icon.svelte와 아이콘을 고르는 로직(milestoneIcon.ts 등)이 공유하는 타입.
+export type IconName =
+	| 'today'
+	| 'library'
+	| 'coach'
+	| 'metric'
+	| 'activity'
+	| 'note'
+	| 'target'
+	| 'trophy'
+	| 'refresh'
+	| 'warning'
+	| 'close'
+	| 'menu'
+	| 'chevron'
+	| 'check'
+	| 'arrow-up'
+	| 'arrow-down'
+	| 'more'
+	| 'info'
+	| 'search'
+	| 'source-primary';

@@ -1,6 +1,24 @@
 @import 'tailwindcss';
 
-/* 04-component-catalog.md 공유 디자인 토큰 — Quiet Data 팔레트 (다크 기준) */
+/* self-host — ux-review-2026-09/10-today/design.md §C8. 서브셋: 라틴+숫자만
+   (한글은 시스템 폰트 폴백, Inter/JetBrains Mono 둘 다 한글 글리프 없음). */
+@font-face {
+	font-family: 'InterVariable';
+	src: url('/v2/fonts/inter-variable.woff2') format('woff2-variations'), url('/v2/fonts/inter-variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('/v2/fonts/jetbrains-mono.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* 04-component-catalog.md·§C7·§C8 공유 디자인 토큰 — Quiet Data 팔레트 (다크 기준) */
 @theme {
 	--color-surface-1: #0f172a;
 	--color-surface-2: #1e293b;
@@ -15,17 +33,44 @@
 	--color-semantic-teal: #14b8a6;
 	--color-semantic-amber: #f59e0b;
 	--color-semantic-red: #ef4444;
+	--color-semantic-neutral: #94a3b8;
+
+	/* status enum(danger/caution/neutral/good/great) → §C7 의미색. 프론트는 경계값을 두지 않고
+	   서버 status만 이 토큰에 매핑한다. */
+	--color-status-danger: var(--color-semantic-red);
+	--color-status-caution: var(--color-semantic-amber);
+	--color-status-neutral: var(--color-semantic-neutral);
+	--color-status-good: var(--color-semantic-teal);
+	--color-status-great: var(--color-semantic-green);
+
+	/* 차이(delta) 2색 — D1b: 시리즈색·의미색과 분리. 부호·라벨을 항상 병기하고 색만으로 구분하지 않는다. */
+	--color-delta-better: #38bdf8;
+	--color-delta-worse: #fb923c;
+
+	/* 차트 시리즈색 — 의미색·provider색과 분리(§C7) */
+	--color-series-1: #7dd3fc;
+	--color-series-2: #cbd5e1;
+	--color-series-3: #475569;
 
 	--color-provider-garmin: #0056b3;
 	--color-provider-strava: #fc4c02;
 	--color-provider-intervals: #7c3aed;
 	--color-provider-runalyze: #16a34a;
 	--color-provider-runpulse: #6b7280;
+	--color-provider-primary: #fbbf24;
 
+	--font-sans:
+		'InterVariable', -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 body {
 	background-color: var(--color-surface-1);
 	color: var(--color-fg-primary);
+	font-family: var(--font-sans);
+}
+
+/* §C8 — 숫자는 어디서나 tabular-nums(자릿수 흔들림 방지) */
+.num {
+	font-variant-numeric: tabular-nums;
 }

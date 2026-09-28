@@ -8,6 +8,7 @@
 	import { weekGroups, dayLabel } from '$lib/activityList';
 	import { activityFlag, medianPace } from '$lib/activityFlags';
 	import RouteThumb from '$lib/components/RouteThumb.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import { base } from '$app/paths';
 	import type { ActivitySummary } from '$lib/types';
 
@@ -111,7 +112,7 @@
 </div>
 
 <div class="flex flex-col gap-0">
-	{#if period.from}<div class="flex items-center gap-2 px-4 pt-3"><span class="rounded-full bg-surface-3 px-3 py-1 text-xs text-fg-primary">{period.from} ~ {period.to}</span><button type="button" class="text-xs text-fg-muted hover:text-fg-primary" onclick={() => { period = { from: undefined, to: undefined }; applyFilters(); }}>기간 해제 ✕</button></div>{/if}
+	{#if period.from}<div class="flex items-center gap-2 px-4 pt-3"><span class="rounded-full bg-surface-3 px-3 py-1 text-xs text-fg-primary">{period.from} ~ {period.to}</span><button type="button" class="flex items-center gap-1 text-xs text-fg-muted hover:text-fg-primary" onclick={() => { period = { from: undefined, to: undefined }; applyFilters(); }}>기간 해제 <Icon name="close" class="h-3 w-3" /></button></div>{/if}
 
 	<!-- 필터: 종목·거리 칩 + 검색 -->
 	<div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3">
@@ -192,7 +193,7 @@
 										<span>{dayLabel(act.start_time)}</span>
 										{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
 										{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
-										{#if flag}<span class="text-[10px] text-semantic-amber" title={flag.title}>⚠ {flag.label}</span>{/if}
+										{#if flag}<span class="flex items-center gap-0.5 text-[10px] text-semantic-amber" title={flag.title}><Icon name="warning" class="h-3 w-3" /> {flag.label}</span>{/if}
 									</div>
 								</div>
 								<div class="flex shrink-0 flex-col items-end">

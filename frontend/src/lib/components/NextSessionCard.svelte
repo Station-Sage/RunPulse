@@ -4,6 +4,7 @@
 	import { weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let {
 		plan,
@@ -99,8 +100,10 @@
 
 			{#if showAdjustment && adjustment && 'original_type' in adjustment}
 				<div class="mt-2 rounded-md bg-semantic-amber/10 px-2 py-1.5">
-					<p class="text-xs font-medium text-semantic-amber">
-						⚠ 상태 조정: {workoutLabel(adjustment.original_type)} →
+					<p class="flex items-center gap-1 text-xs font-medium text-semantic-amber">
+						<Icon name="warning" class="h-3.5 w-3.5 shrink-0" /> 상태 조정: {workoutLabel(
+							adjustment.original_type
+						)} →
 						{workoutLabel(adjustment.adjusted_type)}
 					</p>
 					{#if adjustment.adjustment_reason}

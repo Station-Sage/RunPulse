@@ -14,6 +14,8 @@
 	import RecommendationCard from '$lib/components/RecommendationCard.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import FormChart from '$lib/components/FormChart.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { postCheckin } from '$lib/api/today';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatDistance, formatDuration, formatRelativeDay } from '$lib/format';
@@ -70,12 +72,6 @@
 		}
 	}
 
-	// 마일스톤 타입별 아이콘
-	const milestoneIcon: Record<string, string> = {
-		distance_threshold: '🎯',
-		pb: '🏃',
-		metric_recompute: '🔄'
-	};
 </script>
 
 <svelte:head><title>Today · RunPulse</title></svelte:head>
@@ -265,14 +261,14 @@
 									href="{base}/library/{m.activity_id}"
 									class="flex items-start gap-2 text-sm hover:text-fg-primary"
 								>
-									<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+									<Icon name={milestoneIconName(m.type)} class="h-4 w-4 shrink-0 text-fg-muted" />
 									<span class="text-fg-muted">{m.date}</span>
 									<span class="flex-1">{m.title}</span>
 									<span class="shrink-0 text-fg-muted">›</span>
 								</a>
 							{:else}
 								<div class="flex items-start gap-2 text-sm">
-									<span aria-hidden="true">{milestoneIcon[m.type] ?? '🔖'}</span>
+									<Icon name={milestoneIconName(m.type)} class="h-4 w-4 shrink-0 text-fg-muted" />
 									<span class="text-fg-muted">{m.date}</span>
 									<span class="flex-1">{m.title}</span>
 								</div>

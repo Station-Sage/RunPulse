@@ -3,6 +3,7 @@
 	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import Icon from '$lib/components/Icon.svelte';
 	import type { ProviderComparisonData, ComparisonRow, ProviderKey } from '$lib/types';
 
 	let {
@@ -118,9 +119,9 @@
 								<span class="text-sm">{row.label}</span>
 								{#if hasDiscrepancy(row)}
 									<span
-										class="text-xs text-amber-500"
+										class="text-semantic-amber"
 										title="불일치 {row.discrepancy?.maxDiffPct?.toFixed(1)}%"
-									>⚠</span>
+									><Icon name="warning" class="h-3.5 w-3.5" /></span>
 								{/if}
 							</div>
 							{#if rowDisplayUnit(row)}
@@ -141,7 +142,7 @@
 										? 'text-fg-primary'
 										: 'text-fg-muted'}"
 								>
-									{#if isPrimary(row, provider)}★ {/if}{cellDisplayValue(row, provider)}
+									{#if isPrimary(row, provider)}<Icon name="source-primary" class="inline h-3 w-3 text-amber-500 align-baseline" /> {/if}{cellDisplayValue(row, provider)}
 								</span>
 							</td>
 						{/each}
@@ -151,12 +152,12 @@
 		</table>
 	</div>
 
-	<div class="mt-2 px-4 text-xs text-fg-muted"><span class="text-amber-500">★</span> 대표값(우선 소스)</div>
+	<div class="mt-2 px-4 text-xs text-fg-muted"><Icon name="source-primary" class="inline h-3 w-3 text-amber-500 align-baseline" /> 대표값(우선 소스)</div>
 
 	<!-- 불일치 범례 -->
 	{#if data.rows.some((r) => hasDiscrepancy(r))}
 		<div class="mt-2 px-4 pb-2 text-xs text-fg-muted">
-			<span class="text-amber-500">⚠</span> 소스 간 실제 측정 차이(고도 10m·기온 2°C·시간·거리 1%·기타 {discrepancyThreshold}% 초과)
+			<Icon name="warning" class="inline h-3.5 w-3.5 text-semantic-amber align-baseline" /> 소스 간 실제 측정 차이(고도 10m·기온 2°C·시간·거리 1%·기타 {discrepancyThreshold}% 초과)
 		</div>
 	{/if}
 {/if}

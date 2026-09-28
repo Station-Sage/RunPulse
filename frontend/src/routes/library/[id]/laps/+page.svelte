@@ -58,7 +58,7 @@
 				<li class="flex flex-col gap-1 py-2.5">
 					<div class="flex items-baseline gap-3 text-sm">
 						<span class="w-6 shrink-0 font-mono text-xs text-fg-muted">{i + 1}</span>
-						<span class="font-mono font-medium">{lap.distance_m != null ? formatDistance(lap.distance_m) : '—'}</span>
+						<span class="font-mono font-medium">{lap.distance_m != null ? formatDistance(lap.distance_m, 2) : '—'}</span>
 						<span class="font-mono text-fg-secondary">{lap.duration_sec != null ? formatDuration(lap.duration_sec) : '—'}</span>
 						<span class="ml-auto font-mono font-medium">{paces[i] != null ? formatPace(paces[i] as number) : '—'}</span>
 					</div>
