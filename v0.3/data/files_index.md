@@ -32,7 +32,7 @@
 
 - functions: get_activity_impact
 
-### `activity_service.py` (328줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (338줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
 
@@ -64,6 +64,18 @@
 
 - functions: get_metrics_browser, get_metric_trend
 
+### `metrics_explain.py` (186줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+
+- functions: get_metric_explain
+
+### `metrics_explain_composite.py` (131줄) — 분해 v2 — 합성형(UTRS·CIRS) + 곱셈형(RRI) explainer.
+
+- functions: explain_utrs, explain_cirs, explain_rri
+
+### `metrics_explain_shared.py` (44줄) — 분해 v2(`metrics_explain.py`/`metrics_explain_composite.py`) 공유 헬퍼.
+
+- functions: daily_trimp_sum, top_activity_sources
+
 ### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
 - functions: get_metric_breakdown
@@ -92,9 +104,13 @@
 
 - functions: record_snapshots, evaluate_race, summary
 
-### `provider_comparison_service.py` (279줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
+### `provider_comparison_service.py` (295줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
+
+### `provider_diff.py` (50줄) — 소스 비교 차이 판정 — 항목별 임계·정규화(UX 리뷰 20 design §7-2 ③, F-DATA-03).
+
+- functions: normalize, diff, legacy_discrepancy
 
 ### `provider_matrix_service.py` (141줄) — Provider 정체성 매트릭스 서비스 — 기간 집계 소스별 비교 (3-G-1).
 
@@ -159,16 +175,17 @@
 
 - class **ADTICalculator**: compute
 
-### `bands.py` (73줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
+### `bands.py` (74줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
 
 - functions: grade, with_grade
 
-### `base.py` (513줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (551줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
-- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_laps, get_wellness, get_athlete_sex, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
+- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_group_metric, get_group_streams, get_laps, get_wellness, get_athlete_sex, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
+- functions: load_group_streams
 
 ### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
 
@@ -206,13 +223,17 @@
 - class **DARPShadowCalculator**: ctl_at, hr_refs, compute
 - class **DARPShadowAsymCalculator**: ctl_at
 
-### `decoupling.py` (64줄) — Aerobic Decoupling Calculator — 설계서 4-2 기준.
+### `decoupling.py` (77줄) — Aerobic Decoupling Calculator — 설계서 4-2 기준.
 
 - class **AerobicDecouplingCalculator**: compute
 
 ### `di.py` (71줄) — DI (Durability Index) v2 — 90분 이상 러닝에서 후반 효율 유지율(P7-PRED-89).
 
 - class **DICalculator**: compute
+
+### `display_rules.py` (24줄) — 활동 메트릭 표시 규칙 — UX 리뷰 20 design §4-5 (계산은 그대로 두고 화면에 낼지만 정한다).
+
+- functions: visible_activity_metrics
 
 ### `efficiency.py` (35줄) — Efficiency Factor Calculator — 설계서 4-2 기준.
 
@@ -222,19 +243,20 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (762줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (796줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
-- functions: run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
+- functions: prune_noncanonical_runpulse, run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
 
 ### `fearp.py` (76줄) — FEARP (Fitness & Environment Adjusted Running Pace) v2 — 외기 기온·이슬점·고도로 보정한 환경 보정 페이스(P7-PRED-90).
 
 - class **FEARPCalculator**: compute
 - functions: heat_penalty
 
-### `gap.py` (71줄) — GAP (Grade Adjusted Pace) Calculator — 설계서 4-2 기준.
+### `gap.py` (86줄) — GAP (Grade Adjusted Pace) Calculator — Minetti (2002) 에너지 비용 모델.
 
 - class **GAPCalculator**: compute
+- functions: effort_factor, stream_grades
 
 ### `heat_model.py` (70줄) — 개인 기온 영향 모델(일별) — 정상 주행 랩의 HR·속도·외기 기온 회귀로 더위/추위 계수(%/℃)를 추정해 기본값으로 수축(P7-PRED-33).
 
@@ -272,7 +294,7 @@
 
 - class **RECCalculator**: compute
 
-### `relative_effort.py` (76줄) — Relative Effort (Strava 방식) — 심박존 기반 노력도 점수.
+### `relative_effort.py` (90줄) — Relative Effort (Strava 방식) — 심박존 기반 노력도 점수.
 
 - class **RelativeEffortCalculator**: compute
 
@@ -300,6 +322,10 @@
 
 - functions: label_blocks, build_bouts, work_set, session_type, set_summary, stream_to_blocks, repair_time_axis, cumulative_distance
 
+### `stream_utils.py` (52줄) — 스트림·심박 공용 헬퍼 — 정지 제외 이동 샘플, 선수 최대심박.
+
+- functions: sample_times, moving_segments, athlete_max_hr
+
 ### `teroi.py` (65줄) — TEROI (Training Effect Return On Investment) — 훈련 효과 투자 수익률.
 
 - class **TEROICalculator**: compute
@@ -321,7 +347,7 @@
 
 - class **TrainingResponseCalculator**: compute
 
-### `trimp.py` (89줄) — TRIMP Calculator — 설계서 4-2 기준.
+### `trimp.py` (83줄) — TRIMP Calculator — 설계서 4-2 기준.
 
 - class **TRIMPCalculator**: compute
 
@@ -1028,9 +1054,9 @@
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
-### `matcher_context.py` (129줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
+### `matcher_context.py` (122줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
 
-- functions: canonical_activity_id
+- (public API 없음)
 
 ### `outcome_store.py` (57줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
 
@@ -1106,6 +1132,10 @@
 - class **ApiError**: 없음
 - functions: get, get_with_headers, post
 
+### `canonical.py` (25줄) — 캐노니컬 활동 — 같은 활동의 소스 사본(Garmin·Intervals·Strava·Runalyze) 중 대표 1개(`v_canonical_activities`).
+
+- functions: canonical_activity_id, group_activity_ids
+
 ### `clipboard.py` (44줄) — termux-clipboard-set 래퍼 유틸리티.
 
 - functions: copy_to_clipboard, handle_clipboard_option
@@ -1138,7 +1168,7 @@
 
 - functions: setup_logging
 
-### `metric_groups.py` (147줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
+### `metric_groups.py` (149줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
 
@@ -1225,6 +1255,10 @@
 - class **TestSanitizeActivityCore**: test_zero_hr_becomes_none, test_valid_hr_is_kept, test_impossible_max_speed_becomes_none, test_plausible_max_speed_is_kept, test_input_is_not_mutated, test_save_activity_core_stores_null
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
 - class **TestACWRCap**: test_steady_load_ratio, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
+
+### `test_activity_derived_v2.py` (124줄) — tests/test_activity_derived_v2.py — 1-3 활동 파생 수치(UX 리뷰 20 design S1): RE·디커플링·스트림 헬퍼.
+
+- functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty
 
 ### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
@@ -1646,6 +1680,10 @@
 
 - functions: test_add_goal_returns_id, test_get_goal, test_get_goal_not_found, test_list_goals_active_default, test_list_goals_all, test_get_active_goal_returns_latest, test_get_active_goal_none_when_empty, test_update_goal, test_update_goal_invalid_field, test_complete_goal, test_cancel_goal, test_complete_nonexistent_goal, test_cancel_nonexistent_goal, test_list_goals_empty, test_add_goal_minimal
 
+### `test_group_once.py` (62줄) — tests/test_group_once.py — activity 계산 그룹당 1회·그룹 입력 병합(21 design §7.3 C3, DECISIONS D10).
+
+- functions: test_copy_id_is_computed_on_canonical_only, test_stale_copy_rows_pruned, test_group_streams_and_metric_filled_from_sibling
+
 ### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
 
 - functions: test_ols_exact, test_few_points_returns_default, test_shrinkage_toward_truth
@@ -1737,6 +1775,15 @@
 ### `test_metrics_browser_service.py` (107줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_get_metric_trend_peak_and_change_pct
+
+### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
+
+- class **TestUnsupportedSlug**: test_returns_none_for_slug_without_explainer, test_returns_none_for_no_data
+- class **TestTSBExplain**: test_terms_have_ctl_and_atl_with_opposite_signs, test_formula_text_and_bands_present
+- class **TestPMCExplain**: test_ctl_terms_have_prev_and_today_load, test_atl_alpha_is_one_seventh
+- class **TestUTRSExplain**: test_terms_have_contribution_and_loss, test_contributions_sum_to_score, test_sources_is_wellness_day
+- class **TestCIRSExplain**: test_terms_have_contribution_no_loss, test_higher_is_better_false, test_terms_sorted_by_contribution_desc
+- class **TestRRIExplain**: test_terms_use_factor_role_and_ratio, test_higher_is_better_true, test_sources_reference_component_metrics
 
 ### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
 
@@ -1889,9 +1936,13 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
-### `test_provider_comparison_service.py` (267줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
+### `test_provider_comparison_service.py` (288줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
-- functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped
+- functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped, test_runpulse_value_only_from_canonical_row, test_related_group_has_no_discrepancy
+
+### `test_provider_diff.py` (30줄) — tests/test_provider_diff.py — 소스 비교 항목별 임계·정규화(UX 리뷰 20 F-DATA-03).
+
+- functions: test_small_elevation_gap_is_not_significant, test_temperature_uses_absolute_threshold, test_duration_one_percent, test_single_leg_cadence_normalized, test_different_quantities_not_compared
 
 ### `test_provider_matrix_service.py` (192줄) — tests/test_provider_matrix_service.py — provider_matrix_service 단위 테스트.
 
@@ -2190,7 +2241,7 @@
 
 - functions: backfill, main
 
-### `check_data_consistency.py` (418줄) — RunPulse 데이터 정합성 검증 v1.5
+### `check_data_consistency.py` (449줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
@@ -2223,7 +2274,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 449개 파일
+총 460개 파일
 
 ## docstring 누락
 

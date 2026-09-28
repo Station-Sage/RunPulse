@@ -2,16 +2,22 @@
 
 99-summary.md §7 로드맵 2-5, 10-today/design.md §7(API 계약)·§9 S2 참조.
 설계가 값 채우기를 못박은 4개(TSB·CTL·ATL·UTRS)에 더해, 같은 가중 합성
-구조(`parent_metric_id` 자식 행 + WEIGHTS)를 가진 CIRS도 지원한다(2026-09-28
-사용자 확인 "다른 지표들도"). 그 외 슬러그는 None을 반환하고 라우트가 기존
-v1(`metrics_service.get_metric_breakdown`)로 폴백한다.
+구조(`parent_metric_id` 자식 행 + WEIGHTS)를 가진 CIRS와, 곱셈형 공식이라
+별도 표현(`role="factor"`)이 필요한 RRI도 지원한다(2026-09-28 사용자 확인
+"다른 지표들도"·"너무 최소한만"). UTRS/CIRS/RRI explainer는 파일당 300줄
+규칙 때문에 `metrics_explain_composite.py`로 분리했다. 그 외 슬러그는
+None을 반환하고 라우트가 기존 v1(`metrics_service.get_metric_breakdown`)로
+폴백한다.
 
-**확장 시 주의**: RRI·VDOT 등은 곱셈형 공식이라 UTRS/CIRS식 가중치 분해가
-맞지 않고(요인이 metric_store 자식 행이 아니라 json_value에만 있음),
-"meaning.what/so_what" 카피는 registry(`metric_registry.py`)에 영문
-약어 설명만 있어 실제 사용자向 문구는 직접 작성이 필요하다 — 추가할 때마다
-이 트레이드오프를 확인할 것. CIRS는 S7에서 개인 기준선 재설계 예정이라
-이 explainer는 현재 v1 공식 기준이고 S7 착수 시 갱신 필요.
+**terms 형태가 메트릭 종류마다 다르다**: TSB/CTL/ATL은 `sign`+`contribution`
+(합), UTRS/CIRS는 `weight`+`contribution`(가중 평균), RRI는 `ratio`+`role`
+(곱). 프론트 DrillPanel이 아직 이 API를 안 쓰므로 지금은 백엔드 표현만
+확정 — 실제 렌더 규격은 프론트 재작성 라운드에서 좁혀야 한다.
+
+**추가 확장 시 주의**: VDOT 등 더 있는 메트릭도, "meaning.what/so_what"
+카피는 registry(`metric_registry.py`)에 영문 약어 설명만 있어 실제
+사용자向 문구는 매번 직접 작성이 필요하다. CIRS는 S7에서 개인 기준선
+재설계 예정이라 이 explainer는 현재 v1 공식 기준이고 S7 착수 시 갱신 필요.
 
 sources(원천 활동)는 최근 14일 내 TRIMP 상위 3개 활동으로 근사한다 — CTL은
 252일 창 EMA라 정확한 기여도 배분은 하지 않는다(과설계 방지, 코멘트로 명시).
@@ -22,14 +28,14 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.metrics.bands import BANDS, grade
-from src.metrics.cirs import CIRSCalculator
-from src.metrics.utrs import UTRSCalculator
+from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
+from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
 
 _PMC_ALPHA = {"ctl": 1.0 / 42, "atl": 1.0 / 7}
 _PMC_LABEL = {"ctl": "체력", "atl": "피로"}
-_HIGHER_IS_BETTER = {"tsb": True, "ctl": None, "atl": None, "utrs": True, "cirs": False}
+_HIGHER_IS_BETTER = {"tsb": True, "ctl": None, "atl": None, "utrs": True, "cirs": False, "rri": True}
 
 _WHAT = {
     "tsb": "폼(TSB)은 최근 체력(CTL)과 피로(ATL)의 차이로, 지금 몸이 훈련을 받아들일 준비가 됐는지를 보여줍니다.",
@@ -37,6 +43,7 @@ _WHAT = {
     "atl": "피로(ATL)는 최근 7일간 훈련 부하를 반영한 값입니다.",
     "utrs": "훈련 준비도(UTRS)는 바디 배터리·폼·수면·심박변이·스트레스를 종합한 점수입니다.",
     "cirs": "부상 위험 지수(CIRS)는 급성:만성 부하비·부하 급증·연속 훈련일·피로를 종합한 위험 추정치입니다.",
+    "rri": "레이스 준비도(RRI)는 예측 기록 진행률·체력(CTL) 충족률·훈련 강도 분포·부상 위험을 곱해 레이스 준비 정도를 나타냅니다.",
 }
 _SO_WHAT = {
     "tsb": {
@@ -88,42 +95,6 @@ def _baseline(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_n
     return {"avg_7d": round(sum(vals) / len(vals), 2), "delta_1d": delta}
 
 
-def _daily_trimp_sum(conn: sqlite3.Connection, date_str: str) -> float:
-    """그날 활동들의 TRIMP 합 — `CalcContext.get_daily_load()` 폴백 쿼리와 동일 패턴."""
-    rows = conn.execute(
-        "SELECT m.numeric_value FROM metric_store m "
-        "JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER)=a.id "
-        "WHERE m.scope_type='activity' AND m.metric_name='trimp' AND m.is_primary=1 "
-        "AND substr(a.start_time,1,10)=?",
-        (date_str,),
-    ).fetchall()
-    return sum(r[0] or 0 for r in rows)
-
-
-def _top_activity_sources(conn: sqlite3.Connection, scope_id: str, window_days: int = 14, limit: int = 3) -> list[dict]:
-    """최근 window_days 내 TRIMP 상위 활동(근사 — 정확한 EMA 기여 배분 아님)."""
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        "SELECT a.id, a.name, m.numeric_value AS trimp FROM metric_store m "
-        "JOIN v_canonical_activities a ON CAST(m.scope_id AS INTEGER)=a.id "
-        "WHERE m.scope_type='activity' AND m.metric_name='trimp' AND m.is_primary=1 "
-        "AND substr(a.start_time,1,10)<=? AND substr(a.start_time,1,10)>date(?, ?) "
-        "ORDER BY m.numeric_value DESC LIMIT ?",
-        (scope_id, scope_id, f"-{window_days} days", limit),
-    ).fetchall()
-    return [
-        {
-            "type": "activity",
-            "id": r["id"],
-            "label": r["name"] or "활동",
-            "value": round(r["trimp"], 1) if r["trimp"] is not None else None,
-            "unit": "TRIMP",
-            "effect": f"부하 +{round(r['trimp'], 1)}" if r["trimp"] is not None else "",
-        }
-        for r in rows
-    ]
-
-
 def _explain_tsb(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
     ctl_row = get_primary_metric(conn, scope_type, scope_id, "ctl")
     atl_row = get_primary_metric(conn, scope_type, scope_id, "atl")
@@ -134,7 +105,7 @@ def _explain_tsb(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tu
     if atl_row and atl_row.get("numeric_value") is not None:
         v = atl_row["numeric_value"]
         terms.append({"slug": "atl", "label": "피로", "raw": v, "sign": "-", "contribution": -v, "drill": "m.atl"})
-    return terms, _top_activity_sources(conn, scope_id), "폼 = 체력(CTL) − 피로(ATL)"
+    return terms, top_activity_sources(conn, scope_id), "폼 = 체력(CTL) − 피로(ATL)"
 
 
 def _explain_pmc(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str) -> tuple[list[dict], list[dict], str]:
@@ -142,7 +113,7 @@ def _explain_pmc(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug:
     yesterday = (datetime.strptime(scope_id, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     prev_row = get_primary_metric(conn, scope_type, yesterday, slug)
     prev_value = prev_row["numeric_value"] if prev_row and prev_row.get("numeric_value") is not None else 0.0
-    today_load = _daily_trimp_sum(conn, scope_id)
+    today_load = daily_trimp_sum(conn, scope_id)
     terms = [
         {
             "slug": f"{slug}_prev", "label": f"어제 {_PMC_LABEL[slug]}", "raw": round(prev_value, 1),
@@ -155,94 +126,21 @@ def _explain_pmc(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug:
     ]
     days = round(1 / alpha)
     text = f"{_PMC_LABEL[slug]} = 어제 {_PMC_LABEL[slug]} × (1 − 1/{days}) + 오늘 부하 × (1/{days})"
-    return terms, _top_activity_sources(conn, scope_id), text
-
-
-_UTRS_CHILD_LABEL = {
-    "utrs_body_battery": ("바디 배터리", "body_battery"),
-    "utrs_tsb": ("폼", "tsb"),
-    "utrs_sleep": ("수면", "sleep"),
-    "utrs_hrv": ("심박변이(HRV)", "hrv"),
-    "utrs_stress": ("스트레스", "stress"),
-}
-
-
-def _explain_utrs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
-    self_row = get_primary_metric(conn, scope_type, scope_id, "utrs")
-    self_id = self_row["id"] if self_row else None
-    conn.row_factory = sqlite3.Row
-    child_rows = conn.execute(
-        "SELECT metric_name, numeric_value FROM metric_store "
-        "WHERE scope_type=? AND scope_id=? AND parent_metric_id=? ORDER BY id",
-        (scope_type, str(scope_id), self_id),
-    ).fetchall()
-    weights = UTRSCalculator.WEIGHTS
-    present = [(r["metric_name"], r["numeric_value"]) for r in child_rows if r["metric_name"] in _UTRS_CHILD_LABEL]
-    total_weight = sum(weights[_UTRS_CHILD_LABEL[name][1]] for name, _ in present) or 1.0
-    terms = []
-    for name, value in present:
-        label, key = _UTRS_CHILD_LABEL[name]
-        w = weights[key] / total_weight
-        terms.append({
-            "slug": name, "label": label, "raw": value, "normalized": value,
-            "weight": round(w, 4), "contribution": round(w * value, 1),
-            "loss": round(w * (100 - value), 1),
-        })
-    terms.sort(key=lambda t: t["loss"], reverse=True)
-    sources = [{
-        "type": "wellness_day", "date": scope_id, "label": "웰니스 기록",
-        "value": None, "unit": "", "effect": f"입력 {len(present)}개 반영",
-    }]
-    return terms, sources, "준비도 = Σ(정규화값 × 가중치) / Σ가중치(가용 항목만)"
-
-
-_CIRS_CHILD_LABEL = {
-    "cirs_acwr": ("ACWR 편차", "acwr"),
-    "cirs_lsi": ("부하 스파이크(LSI)", "lsi"),
-    "cirs_consecutive": ("연속 훈련일", "consecutive"),
-    "cirs_fatigue": ("피로(CTL−ATL)", "fatigue"),
-}
-
-
-def _explain_cirs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
-    """CIRS는 UTRS와 동일한 가중 합성 구조지만 위험 점수라 `loss` 없이 `contribution` 자체가 위험 기여분이다.
-
-    현재 v1 공식(ACWR·LSI·연속일·피로) 기준 — S7 CIRS v2(개인 기준선 재설계) 시 이 explainer도 갱신 필요.
-    """
-    self_row = get_primary_metric(conn, scope_type, scope_id, "cirs")
-    self_id = self_row["id"] if self_row else None
-    conn.row_factory = sqlite3.Row
-    child_rows = conn.execute(
-        "SELECT metric_name, numeric_value FROM metric_store "
-        "WHERE scope_type=? AND scope_id=? AND parent_metric_id=? ORDER BY id",
-        (scope_type, str(scope_id), self_id),
-    ).fetchall()
-    weights = CIRSCalculator.WEIGHTS
-    present = [(r["metric_name"], r["numeric_value"]) for r in child_rows if r["metric_name"] in _CIRS_CHILD_LABEL]
-    total_weight = sum(weights[_CIRS_CHILD_LABEL[name][1]] for name, _ in present) or 1.0
-    terms = []
-    for name, value in present:
-        label, key = _CIRS_CHILD_LABEL[name]
-        w = weights[key] / total_weight
-        terms.append({
-            "slug": name, "label": label, "raw": value, "normalized": value,
-            "weight": round(w, 4), "contribution": round(w * value, 1),
-        })
-    terms.sort(key=lambda t: t["contribution"], reverse=True)
-    return terms, _top_activity_sources(conn, scope_id), "부상 위험 = Σ(위험 점수 × 가중치) / Σ가중치(가용 항목만)"
+    return terms, top_activity_sources(conn, scope_id), text
 
 
 _EXPLAINERS = {
     "tsb": lambda conn, st, sid: _explain_tsb(conn, st, sid),
     "ctl": lambda conn, st, sid: _explain_pmc(conn, st, sid, "ctl"),
     "atl": lambda conn, st, sid: _explain_pmc(conn, st, sid, "atl"),
-    "utrs": lambda conn, st, sid: _explain_utrs(conn, st, sid),
-    "cirs": lambda conn, st, sid: _explain_cirs(conn, st, sid),
+    "utrs": lambda conn, st, sid: explain_utrs(conn, st, sid),
+    "cirs": lambda conn, st, sid: explain_cirs(conn, st, sid),
+    "rri": lambda conn, st, sid: explain_rri(conn, st, sid),
 }
 
 
 def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str) -> dict | None:
-    """분해 v2(§C3.2) — TSB/CTL/ATL/UTRS만 지원, 그 외는 None(라우트가 v1로 폴백)."""
+    """분해 v2(§C3.2) — TSB/CTL/ATL/UTRS/CIRS/RRI만 지원, 그 외는 None(라우트가 v1로 폴백)."""
     builder = _EXPLAINERS.get(slug)
     if builder is None:
         return None

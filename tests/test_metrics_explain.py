@@ -10,6 +10,7 @@ import sqlite3
 from src.db_setup import create_tables
 from src.metrics.engine import run_activity_metrics, run_daily_metrics
 from src.services.metrics_explain import get_metric_explain
+from src.utils.db_helpers import upsert_metric
 
 
 def _conn():
@@ -136,3 +137,36 @@ class TestCIRSExplain:
         r = get_metric_explain(conn, "daily", "2026-04-01", "cirs")
         contribs = [t["contribution"] for t in r["formula"]["terms"]]
         assert contribs == sorted(contribs, reverse=True)
+
+
+def _seed_rri(conn, date="2026-04-01"):
+    upsert_metric(
+        conn, "daily", date, "rri", "runpulse:formula_v1",
+        numeric_value=62.5, confidence=1.0,
+        json_value={"vdot": 50.0, "vdot_target": 52.5, "ctl": 45.0, "target_ctl": 45, "di": 75.0, "cirs": 25.0},
+    )
+
+
+class TestRRIExplain:
+    def test_terms_use_factor_role_and_ratio(self):
+        conn = _conn()
+        _seed_rri(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "rri")
+        assert r is not None
+        assert r["formula"]["terms"] and r["sources"]
+        for t in r["formula"]["terms"]:
+            assert t["role"] == "factor"
+            assert 0 <= t["ratio"] <= 1
+
+    def test_higher_is_better_true(self):
+        conn = _conn()
+        _seed_rri(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "rri")
+        assert r["higher_is_better"] is True
+
+    def test_sources_reference_component_metrics(self):
+        conn = _conn()
+        _seed_rri(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "rri")
+        source_slugs = {s["slug"] for s in r["sources"]}
+        assert {"race_pred_vdot", "ctl", "di", "cirs"} == source_slugs

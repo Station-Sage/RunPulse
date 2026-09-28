@@ -88,5 +88,13 @@
 - 테스트 3건 추가(`TestCIRSExplain`) — contribution 필드 존재·loss 없음, `higher_is_better=False`, 위험 기여도 내림차순 정렬.
 - **검증**: `pytest tests/test_metrics_explain.py -v` 12 pass. 전체 `pytest tests/` 1868 pass·247 skip·무관 기존 실패 3건만 그대로. `wc -l` 288줄(300줄 이하 유지).
 
+### 2-5 세부 (3차 — RRI 추가 + 파일 분리, 사용자 "오케이"로 계속 확장)
+- 사용자가 앞선 "다른 지표들도 넣을지/RRI 등도 새 표현으로 설계할지" 질문에 "오케이"로 응답 — 둘 다 진행: 곱셈형 공식(RRI)도 새 표현으로 추가.
+- **RRI**: `RRICalculator`가 곱셈 인수(`vdot`, `vdot_target`, `ctl`, `target_ctl`, `di`, `cirs`)를 이미 `json_value`에 저장해두고 있어(재계산 없이) 그대로 읽어 표현만 바꿈. UTRS/CIRS의 `weight`+`contribution`(가중 합) 대신 `ratio`(0~1)+`role="factor"`(곱) 형태의 새 term 종류를 도입 — 공식 자체가 합이 아니라 곱이라 가중치 분해가 의미 없음. `sources`도 활동이 아니라 구성 메트릭(`race_pred_vdot`/`ctl`/`di`/`cirs`) 자체를 가리키도록(`type: "metric"`) 다르게 설계 — RRI는 특정 활동이 아니라 다른 지표들의 조합이라 활동 근사가 안 맞음.
+- **RRI는 registry(`bands.py`)에 등급 구간이 없다는 것도 이번에 발견**: `RRICalculator.ranges`(insufficient/building/ready/peak)가 1-2 "등급 SSOT" 작업(`bands.py`) 이관 대상에서 빠져 있어, 지금 앱 전체에서 RRI는 status/label 없이 값만 보여주고 있음 — 이건 이번 explain 작업 범위 밖의 기존 갭이라 고치지 않고 기록만 함(SSOT 파일 변경은 check_docs.py 영향 범위가 커서 별도 판단 필요, `21-library-metrics/design.md` 등에 후속 항목으로 남길 만함).
+- **파일 300줄 규칙 위반 해소**: `metrics_explain.py`가 CIRS+RRI 추가로 336줄이 되어 3개로 분리 — `metrics_explain.py`(TSB/CTL/ATL + 진입점 `get_metric_explain`, 186줄), `metrics_explain_composite.py`(UTRS/CIRS/RRI explainer, 131줄), `metrics_explain_shared.py`(양쪽이 쓰는 `top_activity_sources`/`daily_trimp_sum`, 순환 import 방지용, 44줄).
+- 테스트 3건 추가(`TestRRIExplain`) — `role="factor"`·`ratio∈[0,1]`, `higher_is_better=True`, sources가 정확히 4개 구성 메트릭을 가리킴. seeding은 기존 `tests/test_rri.py` 패턴처럼 `upsert_metric`으로 `json_value` 직접 주입(RRI는 VDOT 등 선행 데이터가 많이 필요해 단일 활동 엔진 계산으로는 잘 안 나옴 — `test_metrics_service.py`의 기존 RRI 테스트도 데이터 없으면 skip하는 이유와 동일).
+- **검증**: `pytest tests/test_metrics_explain.py -v` 15 pass. 전체 `pytest tests/` 1871 pass·247 skip·무관 기존 실패 3건만 그대로. `wc -l` 3개 파일 모두 300줄 이하. `python3 scripts/check_docs.py` 신규 파일 4개(`metrics_explain_composite.py`·`metrics_explain_shared.py`·`test_metrics_explain.py` 등) files_index.md 미등록 에러 발견 → `python3 scripts/gen_files_index.py` 재생성으로 해소(이 참에 이전 세션에서 남아있던 미등록 파일 7개도 같이 정리됨), 재실행 결과 Errors 0.
+
 ## 다음
-Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드, TSB/CTL/ATL/UTRS/CIRS) 완료. 다음 후보: 2-5 프론트(DrillPanel/BreakdownView 재작성), 2-6(성능). RRI/VDOT 등 곱셈형 메트릭의 explain 확장은 표현 방식 설계가 별도로 필요해 보류. 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
+Phase 1 완료. 2026-09-28 "오케이 이어서 진행"으로 Phase 2 착수, 2-1 대부분·2-2·2-4·2-5(백엔드, TSB/CTL/ATL/UTRS/CIRS/RRI) 완료. 다음 후보: 2-5 프론트(DrillPanel/BreakdownView 재작성), 2-6(성능). VDOT 등 더 있는 메트릭 확장 시엔 매번 "meaning.what/so_what" 카피를 직접 써야 하는 제약은 여전함. RRI 등급 SSOT 미등재(발견한 기존 갭)는 별도 판단 필요 항목으로 기록. 2-3(전환 스위치)은 계정 설정 스키마 필요해 보류 중.
