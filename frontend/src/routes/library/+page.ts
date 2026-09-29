@@ -2,6 +2,8 @@
 import { getActivities, getArchive } from '$lib/api/library';
 import { getMetricsBrowser } from '$lib/api/metrics';
 import { getProviderStatus, getProviderCoverage } from '$lib/api/providers';
+import { invalidate } from '$app/navigation';
+import { swrLoad } from '$lib/loadCache';
 import type { ArchiveData, ActivitySummary, MetricBrowserCategory, ProviderCoverage, ProviderStatusItem } from '$lib/types';
 
 export interface LibraryHomeData {
@@ -15,7 +17,7 @@ export interface LibraryHomeData {
 	providerStatusError: string | null;
 }
 
-export async function load(): Promise<LibraryHomeData> {
+async function fetchLibraryHome(): Promise<LibraryHomeData> {
 	const [activitiesRes, metricsRes, providerRes, archiveRes, coverageRes] = await Promise.allSettled([
 		getActivities({ per_page: 5 }),
 		getMetricsBrowser(),
@@ -49,4 +51,10 @@ export async function load(): Promise<LibraryHomeData> {
 	const coverage = coverageRes.status === 'fulfilled' ? coverageRes.value : null;
 
 	return { archive, recentActivities, categories, providerStatus, coverage, activitiesError, metricsError, providerStatusError };
+}
+
+// 탭 재방문 시 즉시 이전 값을 보여주고 조용히 갱신(02-performance.md P-5) — depends()가 있어야 invalidate가 먹는다.
+export async function load({ depends }: { depends: (key: string) => void }): Promise<LibraryHomeData> {
+	depends('app:library-home');
+	return swrLoad('app:library-home', fetchLibraryHome, invalidate);
 }
