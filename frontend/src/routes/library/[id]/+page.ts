@@ -1,22 +1,4 @@
-import { getActivity } from '$lib/api/library';
-import { ApiError } from '$lib/api/client';
-import type { ActivityDetail } from '$lib/types';
+export type { ActivityLayoutData as ActivityPageData } from './+layout';
 
-export interface ActivityPageData {
-	activity: ActivityDetail | null;
-	errorMessage: string | null;
-}
-
-export async function load({ params }: { params: { id: string } }): Promise<ActivityPageData> {
-	const id = parseInt(params.id, 10);
-	if (isNaN(id)) {
-		return { activity: null, errorMessage: '잘못된 활동 ID입니다.' };
-	}
-	try {
-		const res = await getActivity(id);
-		return { activity: res.activity, errorMessage: null };
-	} catch (e) {
-		const message = e instanceof ApiError ? e.message : '활동 데이터를 불러올 수 없습니다.';
-		return { activity: null, errorMessage: message };
-	}
-}
+// 로드 없음 — +layout.ts가 1회 가져온 활동 상세를 그대로 상속한다(02-performance.md P-4,
+// 서브탭 전환마다 650KB를 재요청하던 걸 제거).

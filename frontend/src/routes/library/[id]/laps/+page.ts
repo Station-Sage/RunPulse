@@ -1,6 +1,5 @@
-import { getActivity } from '$lib/api/library';
-import { ApiError } from '$lib/api/client';
 import type { ActivityLap } from '$lib/types';
+import type { ActivityLayoutData } from '../+layout';
 
 export interface LapsPageData {
 	activityId: number;
@@ -8,16 +7,18 @@ export interface LapsPageData {
 	errorMessage: string | null;
 }
 
-export async function load({ params }: { params: { id: string } }): Promise<LapsPageData> {
+// +layout.ts가 이미 가져온 활동 상세를 재사용 — 서브탭 전환마다 650KB 재요청하지 않는다(P-4).
+export async function load({
+	params,
+	parent
+}: {
+	params: { id: string };
+	parent: () => Promise<ActivityLayoutData>;
+}): Promise<LapsPageData> {
 	const id = parseInt(params.id, 10);
 	if (isNaN(id)) {
 		return { activityId: NaN, laps: [], errorMessage: '잘못된 활동 ID입니다.' };
 	}
-	try {
-		const res = await getActivity(id);
-		return { activityId: id, laps: res.activity.laps ?? [], errorMessage: null };
-	} catch (e) {
-		const message = e instanceof ApiError ? e.message : '랩 데이터를 불러올 수 없습니다.';
-		return { activityId: id, laps: [], errorMessage: message };
-	}
+	const { activity, errorMessage } = await parent();
+	return { activityId: id, laps: activity?.laps ?? [], errorMessage };
 }
