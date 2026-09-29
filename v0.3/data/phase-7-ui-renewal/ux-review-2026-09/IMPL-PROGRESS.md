@@ -4,6 +4,7 @@
 
 ## 작업 규칙
 - 작업 위치: worktree `/home/ubuntu/projects/RunPulse-p0` (브랜치 `claude/project-thread-vgunp6`).
+- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 이후 커밋은 다시 "운영 반영" 지시 시에만.
   메인 폴더 `/home/ubuntu/projects/RunPulse`는 운영 컨테이너가 `--reload`로 마운트 → 직접 편집 금지.
 - 운영 반영: 메인 폴더 `renew/data-architecture`에 ff 병합 → `frontend`에서 `npm run build` → (Dockerfile 변경 시) `docker compose build && up -d`.
 - 테스트: `$V -m pytest tests/`(venv: 스크래치 `venv`, 없으면 `python3 -m venv` + `pip install -r requirements.txt pytest`), `cd frontend && npm run test:unit && npm run check`.
@@ -22,8 +23,8 @@
 | 1-3 활동 파생 수치 | 완료·운영 반영(2026-09-28 18:07, 백업 `running.db.bak-20260928-pre-group-once`, 전체 재계산 426초) | 68e7635 | RE 선수 최대심박+스트림 존(conf 0.85/폴백 0.6 숨김), Friel 디커플링(백엔드 단일), TE Garmin 구간, 이동시간 스플릿·⏸, 활동 VDOT 대회·템포만 표시, 소스 비교 캐노니컬·comparable·항목별 임계·케이던스 정규화. 보류: 날씨 category 백필·형제 고유 메트릭 병합·PB 공식 기록(S1 나머지), providers `unit` 세부 |
 | 1-4 그룹당 1회 계산 | 완료·운영 반영(같은 재계산) | edd2d52. 운영: 사본 RunPulse 행 0, RE 폴백 341→2, 17414 RE 302→27.7 | `src/utils/canonical.py`, CalcContext `get_group_metric`·`get_group_streams`, 엔진 캐노니컬만 계산·`prune_noncanonical_runpulse`, 상세·소스 비교 캐노니컬 RunPulse 값, consistency 18·19. 남음: 재매칭 시 그룹 재계산 트리거(현재는 다음 재계산 창에서 정리), C4 매트릭스 쌍 비교(3-8) |
 | 1-7 GAP v2 | 완료·운영 반영(같은 재계산) | 8d2b9ad. Garmin GAP 대비 중앙 오차 평지 0.6초/km·언덕 4초/km(n=258) → Minetti 유지 | 고도 30m 창 경사, 곱셈 보정, 정지 제외, 경사 없으면 미산출. **설계 예시 4:25(5%)는 Minetti가 아니라 경험 모델 값** — Garmin GAP 대비 오차로 모델 판단 필요. 남음: Garmin gap_speed_ms 소스 GAP 저장(④) |
-| 2-1 공통 규격(1차) | 진행 중·브랜치에만 있음(운영 미반영) | 아래 "2-1 세부" 참조. D1a~D1e 중 D1b(델타 토큰)·D1c(거리 소수 2자리 예외)·D1e(★ 아이콘) 반영, D1d(활동 scope `@a{id}`)는 §C3.3 드릴다운 URL 작업(2-5)과 함께 할 예정이라 보류 |
-| 2-5 분해 v2(API+프론트) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "오케이" 반복) — 아래 "2-5 세부" 참조. `library/metrics`·Today에 통합, Coach 등 나머지 진입점은 별도 |
+| 2-1 공통 규격(1차) | 진행 중·운영 반영(2026-09-30 06:50, 6982aa6) | 아래 "2-1 세부" 참조. D1a~D1e 중 D1b(델타 토큰)·D1c(거리 소수 2자리 예외)·D1e(★ 아이콘) 반영, D1d(활동 scope `@a{id}`)는 §C3.3 드릴다운 URL 작업(2-5)과 함께 할 예정이라 보류 |
+| 2-5 분해 v2(API+프론트) | 진행 중·운영 반영(2026-09-30 06:50, 6982aa6) | 사용자 확인(2026-09-28 "오케이" 반복) — 아래 "2-5 세부" 참조. `library/metrics`·Today에 통합, Coach 등 나머지 진입점은 별도 |
 
 ### 2-1 세부 (커밋 예정)
 - **폰트 self-host**: `static/fonts/{inter-variable,jetbrains-mono}.woff2`(jsdelivr fontsource 라틴 서브셋 — 한글 글리프 없음, 시스템 폰트 폴백), `layout.css`에 `@font-face`+`--font-sans`, `body`에 적용.
@@ -37,7 +38,7 @@
 - **§C6 출처 배지**(2차 커밋): `SourceBadge.svelte` 신규(`계산`/`직접 입력` 중립 배지). **provider(기기) 배지는 그대로 둠** — 기존 `providerBadgeClass`(14개 소비처)가 배경 채움+흰 글자라 §C6·F-UI-05가 지적한 대비 문제(예: `runpulse` 회색 위 흰 글자 ~3.9:1, 4.5:1 미달)가 실재하지만, 색을 바꾸려면 dataviz 팔레트 검증(대비·색각 시뮬레이션)이 먼저 필요해서 이번엔 손대지 않음 — 별도 항목으로 남김.
 - **남음(2-1 나머지)**: D1d 활동 scope 토큰(§C3.3, 2-5와 함께), provider 배지 대비 재검토(dataviz 팔레트 검증 필요), Stylelint(`value-no-unknown-custom-properties`) — 이 리포에 Stylelint 자체가 아직 없어 신규 도입 필요.
 
-| 2-2 셸 기반(40:S0) | 진행 중·브랜치에만 있음(운영 미반영) | 아래 "2-2 세부" 참조. S1(전환 스위치 `ui_default`)은 범위 밖(D6 계정 설정 필요, 별도) |
+| 2-2 셸 기반(40:S0) | 진행 중·운영 반영(2026-09-30 06:50, 6982aa6) | 아래 "2-2 세부" 참조. S1(전환 스위치 `ui_default`)은 범위 밖(D6 계정 설정 필요, 별도) |
 
 ### 2-2 세부
 - `app.html`: `lang="ko"`, `viewport-fit=cover`.
@@ -48,7 +49,7 @@
 - 검증: `npm run check`(0 errors) · `npm run build`(성공) · `npm run test:unit`(206 pass, 회귀 없음).
 - 남음: `ui_default` 전환 스위치(S1, 계정 설정 스키마 필요 → D6과 함께), MenuDrawer를 실제 SyncStatusPill로 교체(Phase 4-1), ErrorState/EmptyState를 각 라우트 로딩 실패 지점에 실제로 배선.
 
-| 2-4 ChartScrub 코어(1차) | 진행 중·브랜치에만 있음(운영 미반영) | 사용자 확인(2026-09-28 "권장안으로 하고") — 2-3(계정 설정 스키마 필요)은 보류, 스키마 안 건드리는 2-4부터 진행 |
+| 2-4 ChartScrub 코어(1차) | 진행 중·운영 반영(2026-09-30 06:50, 6982aa6) | 사용자 확인(2026-09-28 "권장안으로 하고") — 2-3(계정 설정 스키마 필요)은 보류, 스키마 안 건드리는 2-4부터 진행 |
 
 ### 2-4 세부 (1차 — 순수 함수만)
 - `lib/chart/scrub.ts` 신규: `niceTicks`(§C1 "1·2·2.5·5×10ⁿ", 3~5개), `clamp01`, `nearestIndexByFraction`, `axisDateLabel`(기간별 x축 라벨 규칙). 테스트 `tests/chart-scrub.test.mjs`(5건).
@@ -221,7 +222,7 @@
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치
-- 브랜치 `claude/project-thread-vgunp6`(OCI 워크트리 `/home/ubuntu/projects/RunPulse-p0`), 최신 커밋 f760456(Coach·계획 조정 판정 통합) + 이 문서 커밋. 푸시 완료, **운영 미반영**(소유자의 "운영 반영 진행" 지시 전까지 배포 금지).
+- 브랜치 `claude/project-thread-vgunp6`(OCI 워크트리 `/home/ubuntu/projects/RunPulse-p0`), 최신 커밋 f760456(Coach·계획 조정 판정 통합) + 이 문서 커밋. 푸시 완료, **운영 반영 완료(2026-09-30 06:50, 6982aa6 ff 병합 + `npm run build`, Dockerfile·의존성·DB 값 변경 없음 → 백업·재계산 불필요, 컨테이너 내부 스모크 통과)**. Phase 2 + 3-1 + Coach 판정 통합이 운영에 들어감.
 - Phase 1·2 완료(2-3 전환 스위치는 백로그 유지). **3-1 Today IA 완료** — ①`readiness_decision()` ②TodayHero·ReadinessGauge ③레이스 허브 `/v2/today/race`(=3-17) ④주간 스트립·스트리밍·빠른 입력 ⑤Coach 채팅·adjuster 판정 통합. 상세는 위 "3-1 세부" 1~5차.
 - 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
 
