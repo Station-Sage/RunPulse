@@ -235,5 +235,5 @@ def _respond_general(parts: list[str], ctx: dict, conn, user_message: str) -> No
         parts.append(f"- 목표: {goal.get('name', '-')}")
 
     parts.append("\n💡 더 정확한 답변을 원하시면:")
-    parts.append("- 설정 화면(/settings)의 AI 항목에서 AI 제공자 API 키를 확인하세요")
+    parts.append("- ☰ 설정 → AI 코치에서 AI 제공자 API 키를 확인하세요")
     parts.append("- 또는 구체적으로 질문해주세요 (예: '오늘 훈련 강도는?', '마라톤 준비도 확인')")

@@ -12,7 +12,11 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from datetime import date
 
+from .chat_engine_result import (
+    ChatResult, build_chain, engine_for_ok, engine_for_rule, run_chain,
+)
 from .chat_engine_rules import rule_based_response
 
 from .chat_engine_providers import (
@@ -21,7 +25,6 @@ from .chat_engine_providers import (
     call_gemini,
     call_groq,
     call_openai,
-    call_with_tools,  
 )
 
 log = logging.getLogger(__name__)
@@ -40,6 +43,49 @@ def get_ai_provider(config: dict | None = None) -> str:
     return config.get("ai", {}).get("provider", "rule")
 
 
+def chat_result(
+    conn: sqlite3.Connection,
+    user_message: str,
+    config: dict | None = None,
+    chip_id: str | None = None,
+    thread_id: int | None = None,
+    consent: dict | None = None,
+    require_consent: bool = False,
+) -> ChatResult:
+    """응답 + 엔진 상태(design §4.1). 동의된 provider만 호출하고, 실패하면 규칙 답변으로 끝낸다.
+
+    consent: coach_consent 행 dict(provider/exclude_notes/tools_enabled/fallback_enabled).
+    require_consent=True(Coach v2)면 동의가 없을 때 외부 호출을 하지 않는다.
+    """
+    provider = get_ai_provider(config)
+    consent_on = require_consent
+    exclude_notes = bool(consent and consent.get("exclude_notes")) if consent_on else False
+    tools_on = bool(consent.get("tools_enabled")) if consent_on and consent else True
+    chain, empty_reason = build_chain(provider, config, consent, consent_on)
+
+    chat_history = _load_recent_chat(conn, limit=6, thread_id=thread_id)
+    sent_scope: list | None = None
+    text: str | None = None
+    used: str | None = None
+    attempts: list = []
+    if chain:
+        if chip_id:
+            from .briefing import build_chip_prompt
+            prompt = build_chip_prompt(conn, chip_id)
+        else:
+            from .chat_context import build_chat_context_scoped
+            ctx_text, sent_scope = build_chat_context_scoped(
+                conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
+            prompt = _build_system_prompt(ctx_text, user_message, chat_history)
+        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and not chip_id)
+
+    as_of = date.today().isoformat()
+    if text and used:
+        return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope)
+    rule_text = rule_based_response(conn, user_message, chip_id)
+    return ChatResult(rule_text, engine_for_rule(provider, config, empty_reason, attempts), as_of=as_of)
+
+
 def chat(
     conn: sqlite3.Connection,
     user_message: str,
@@ -47,54 +93,12 @@ def chat(
     chip_id: str | None = None,
     thread_id: int | None = None,
 ) -> tuple[str, str]:
-    """사용자 메시지에 대한 AI 응답 생성 — provider chain fallback 지원.
+    """v1 /ai-coach 호환 래퍼 — (응답 텍스트, 응답한 provider 이름 또는 "rule").
 
-    Args:
-        conn: DB 연결 (컨텍스트 빌드용).
-        user_message: 사용자 입력 텍스트.
-        config: 설정 dict.
-        chip_id: 추천 칩 ID (칩 클릭 시).
-        thread_id: 지정하면 해당 스레드의 대화 이력만 컨텍스트로 사용한다(Phase 7
-            Coach 다중 스레드용, D3). None(기본값)이면 기존 v1 /ai-coach 동작과 동일 —
-            thread_id 구분 없이 최근 메시지 전체를 사용한다.
-
-    Returns:
-        (AI 응답 텍스트, 실제 응답한 provider 이름) 튜플.
+    thread_id를 주면 그 스레드의 이력만, None이면 기존처럼 전체 최근 메시지를 컨텍스트로 쓴다.
     """
-    provider = get_ai_provider(config)
-
-    # 최근 대화 이력 (맥락 유지)
-    chat_history = _load_recent_chat(conn, limit=6, thread_id=thread_id)
-
-    # 프롬프트 빌드
-    if chip_id:
-        from .briefing import build_chip_prompt
-        prompt = build_chip_prompt(conn, chip_id)
-    else:
-        from .chat_context import build_chat_context
-        ctx_text = build_chat_context(conn, user_message, chat_history, provider=provider)
-        prompt = _build_system_prompt(ctx_text, user_message, chat_history)
-
-    # provider chain: 선택 → gemini → groq → rule
-    chain = _build_chat_provider_chain(provider, config)
-    for prov in chain:
-        try:
-            if not chip_id:
-                result = call_with_tools(conn, prompt, config, prov)
-                if result:
-                    return result, prov
-                continue
-            result = _call_provider(prov, prompt, config)
-            if result:
-                return result, prov
-        except RateLimitError:
-            log.warning("%s 429 → 다음 provider로 전환", prov)
-            continue
-        except Exception:
-            log.warning("provider '%s' 실패, 다음으로", prov, exc_info=True)
-            continue
-
-    return rule_based_response(conn, user_message, chip_id), "rule"
+    result = chat_result(conn, user_message, config, chip_id, thread_id)
+    return result.text, result.engine.provider
 
 
 def _build_chat_provider_chain(selected: str, config: dict | None) -> list[str]:

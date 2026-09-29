@@ -101,3 +101,17 @@ def test_tool_loop_executes_tool_then_answers(monkeypatch):
     import src.ai.tools as tools
     monkeypatch.setattr(tools, "execute_tool", lambda conn, n, a: "{}")
     assert prov.call_with_tools(object(), "hi", CFG, "gemini") == "최종"
+
+
+def test_complete_counts_tool_calls_in_stats(monkeypatch):
+    calls = iter([
+        _Resp(200, {"choices": [{"message": {"content": None, "tool_calls": [
+            {"id": "1", "function": {"name": "get_fitness", "arguments": "{}"}}]}}]}),
+        _ok("최종"),
+    ])
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: next(calls))
+    import src.ai.tools as tools
+    monkeypatch.setattr(tools, "execute_tool", lambda conn, n, a: "{}")
+    stats = {}
+    assert prov.complete("gemini", "hi", CFG, conn=object(), tools=True, stats=stats) == "최종"
+    assert stats["tool_calls"] == 1
