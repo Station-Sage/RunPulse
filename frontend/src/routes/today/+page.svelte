@@ -103,7 +103,6 @@
 {:else}
 	{@const status = data.today.status}
 	{@const briefing = data.today.briefing}
-	{@const narrative = data.narrative}
 
 <DrillPanel scopeType="daily" scopeId={todayDate}>
 
@@ -233,6 +232,30 @@
 		<section class="order-3 flex flex-col gap-3 border-t border-border-subtle pt-4">
 			<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
 
+			<!-- 피트니스·폼 시그니처 차트 (1-A) — narrative와 무관한 데이터라 지연 로드 대상에서 분리해 먼저 렌더(02-performance.md P-3) -->
+			{#if (data.ctlTrend?.points.length ?? 0) > 1 && (data.tsbTrend?.points.length ?? 0) > 1}
+				<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3" aria-label="피트니스·폼">
+					<div class="flex items-center justify-between text-xs text-fg-muted">
+						<span>체력·피로·폼 · 최근 3개월{data.raceHub?.projection ? ' + 레이스 예측' : ''}</span>
+						<button type="button" onclick={() => { showMonthNarrative = true; }} class="hover:text-fg-primary">이번 달 이야기 →</button>
+					</div>
+					<FormChart
+						ctl={data.ctlTrend?.points ?? []}
+						atl={data.atlTrend?.points ?? []}
+						tsb={data.tsbTrend?.points ?? []}
+						projection={data.raceHub?.projection ?? null}
+						raceDate={data.raceHub?.goal?.race_date ?? null}
+					/>
+				</section>
+			{/if}
+
+			{#await data.narrative}
+				<!-- 내러티브 지연 로드 중(02-performance.md P-3) — 핵심 브리핑(L0)은 이미 렌더된 상태, 여기만 대기 표시 -->
+				<div class="flex flex-col gap-2 animate-pulse" aria-label="이야기 불러오는 중">
+					<div class="h-3 w-3/4 rounded bg-surface-2"></div>
+					<div class="h-3 w-1/2 rounded bg-surface-2"></div>
+				</div>
+			{:then narrative}
 			{#if narrative}
 				<!-- 내러티브 텍스트 -->
 				{#each narrative.text.split('\n').filter((p) => p.trim()) as paragraph}
@@ -248,23 +271,6 @@
 					</div>
 				{:else}
 					<p class="text-xs text-fg-muted">(데이터 부족 — 추후 업데이트)</p>
-				{/if}
-
-				<!-- 피트니스·폼 시그니처 차트 (1-A) — 이력 90일 + 레이스 아침까지 TSB 예측. 스크럽으로 값 확인, 헤더 링크로 이번 달 이야기(1-C) -->
-				{#if (data.ctlTrend?.points.length ?? 0) > 1 && (data.tsbTrend?.points.length ?? 0) > 1}
-					<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3" aria-label="피트니스·폼">
-						<div class="flex items-center justify-between text-xs text-fg-muted">
-							<span>체력·피로·폼 · 최근 3개월{data.raceHub?.projection ? ' + 레이스 예측' : ''}</span>
-							<button type="button" onclick={() => { showMonthNarrative = true; }} class="hover:text-fg-primary">이번 달 이야기 →</button>
-						</div>
-						<FormChart
-							ctl={data.ctlTrend?.points ?? []}
-							atl={data.atlTrend?.points ?? []}
-							tsb={data.tsbTrend?.points ?? []}
-							projection={data.raceHub?.projection ?? null}
-							raceDate={data.raceHub?.goal?.race_date ?? null}
-						/>
-					</section>
 				{/if}
 
 				<!-- 마일스톤 목록 -->
@@ -312,6 +318,7 @@
 					<span class="text-fg-muted">상세 이야기를 불러올 수 없습니다.</span>
 				</p>
 			{/if}
+			{/await}
 		</section>
 
 		</div>
