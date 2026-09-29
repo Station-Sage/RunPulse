@@ -70,6 +70,8 @@ export interface QuickInputProps {
 	existing?: QuickInputExisting;
 	compact?: boolean;
 	saving?: boolean;
+	/** 지정하면 `✕ 나중에`가 나타나고, 해당 날짜에는 입력 카드를 다시 올리지 않는다(B2). */
+	dismissDate?: string;
 	onSave?: (value: { fatigue?: number; pain?: PainLevel; note?: string }) => void;
 }
 

@@ -17,6 +17,7 @@
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
+	import { swrEvict } from '$lib/loadCache';
 	import { loadCoverageNotice } from '$lib/healthNotice';
 	import { postCheckin } from '$lib/api/today';
 	import { morningAsOf } from '$lib/todayHero';
@@ -51,13 +52,16 @@
 		drillStack = [...drillStack, t];
 	}
 
-	const retry = () => invalidate('app:today');
+	const retry = () => { swrEvict('app:today'); return invalidate('app:today'); };
 
 	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
 		savingCheckin = true;
 		checkinError = null;
 		try {
 			checkin = await postCheckin(value);
+			// 피로 입력은 히어로 판정에 반영된다 — 캐시를 비우고 다시 불러온다(design §3 B2 "저장 후 invalidate").
+			swrEvict('app:today');
+			void invalidate('app:today');
 		} catch (e) {
 			checkinError = e instanceof Error ? e.message : '저장에 실패했습니다.';
 		} finally {
@@ -93,9 +97,9 @@
 					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 				{/if}
 				{#await data.raceHub}
-					<TodayHero {briefing} goal={null} onEvidence={openEvidence} />
+					<TodayHero {briefing} goal={null} onEvidence={openEvidence} onRetry={retry} />
 				{:then hub}
-					<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} />
+					<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} onRetry={retry} />
 				{/await}
 				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
 				<QuickInput
@@ -104,6 +108,7 @@
 						? { fatigue: checkin.fatigue ?? undefined, pain: checkin.pain ?? undefined, note: checkin.note ?? undefined, timestamp: checkin.created_at }
 						: undefined}
 					saving={savingCheckin}
+					dismissDate={todayDate}
 					onSave={handleSaveCheckin}
 				/>
 				{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}

@@ -3,15 +3,17 @@
 	import { base } from '$app/paths';
 	import type { TodayBriefing, BriefingStateFields, RaceHubGoal, ProviderKey } from '$lib/types';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
+	import ErrorState from '$lib/components/ErrorState.svelte';
 	import { heroView, caveatText } from '$lib/todayHero';
 	import { providerLabel } from '$lib/provider';
 	import { planNewHref } from '$lib/planPrefill';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 
-	let { briefing, goal = null, onEvidence }: {
+	let { briefing, goal = null, onEvidence, onRetry }: {
 		briefing: TodayBriefing & Partial<BriefingStateFields>;
 		goal?: RaceHubGoal | null;
 		onEvidence: (t: DrillTarget) => void;
+		onRetry?: () => void;
 	} = $props();
 
 	const view = $derived(
@@ -19,13 +21,18 @@
 			? heroView(briefing as BriefingStateFields)
 			: null
 	);
+	// 판정(state)도 서술(headline)도 없으면 서버가 권고를 못 만든 것 — 빈 카드 대신 오류+재시도(design §6).
+	const broken = $derived(!briefing.state && !briefing.headline);
 	const planHref = $derived(goal ? planNewHref(base, goal) : `${base}/coach/plan/new`);
 	const toneClass = $derived(
 		view?.tone === 'caution' ? 'border-semantic-amber/50' : view?.tone === 'done' ? 'border-semantic-green/40' : 'border-border-subtle'
 	);
 </script>
 
-<section class="flex min-h-[220px] flex-col gap-3 rounded-xl border bg-surface-2 p-4 {toneClass}" aria-label="오늘의 권고">
+<section class="flex min-h-[260px] flex-col gap-3 rounded-xl border bg-surface-2 p-4 {toneClass}" aria-label="오늘의 권고">
+	{#if broken}
+		<ErrorState message="오늘 권고를 불러오지 못했어요" {onRetry} />
+	{/if}
 	{#if view}
 		<h1 class="text-xl font-semibold leading-snug">{view.headline}</h1>
 		{#if view.sub}<p class="text-sm text-fg-secondary">{view.sub}</p>{/if}
