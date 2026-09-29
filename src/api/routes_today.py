@@ -36,6 +36,7 @@ def get_today():
         "as_of": extras["as_of"],
         "readiness": extras["readiness"],
         "week_compliance": extras["week_compliance"],
+        "race_summary": extras["race_summary"],
         "status": status,
         "briefing": briefing,
         "recent_activities": recent_activities,

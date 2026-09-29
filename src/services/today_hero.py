@@ -155,9 +155,36 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
     return out
 
 
+def build_race_summary(conn: sqlite3.Connection, day: str, hub: dict | None = None) -> dict | None:
+    """B4 한 줄용 레이스 요약 — 목표 없으면 None.
+
+    {days_left, name, pred_sec, low_sec, high_sec, range_kind, confidence, target_sec}.
+    예측이 없으면 pred_sec 이하는 None(화면은 "예측 수집 중"). 범위는 자체 추정 행의 모델 범위(검증 전이라
+    range_kind='model_envelope' — 보정된 80% 구간이 되면 'calibrated80', design 10-today §2.6).
+    """
+    from src.services.race_hub_service import get_race_hub
+    hub = hub if hub is not None else get_race_hub(conn, day)
+    goal = hub.get("goal")
+    if not goal:
+        return None
+    pred = hub.get("prediction") or {}
+    rows = (pred.get("compare") or {}).get("rows") or []
+    own = next((r for r in rows if r.get("key") == "self"), {})
+    has_range = own.get("low_sec") is not None and own.get("high_sec") is not None
+    return {
+        "days_left": goal["days_left"], "name": goal.get("name"), "distance_km": goal.get("distance_km"),
+        "pred_sec": pred.get("value_sec"),
+        "low_sec": own.get("low_sec") if has_range else None,
+        "high_sec": own.get("high_sec") if has_range else None,
+        "range_kind": "model_envelope" if has_range else None,
+        "confidence": own.get("confidence"),
+        "target_sec": goal.get("target_time_sec"),
+    }
+
+
 def build_today_extras(conn: sqlite3.Connection, config: dict | None = None,
                        day: str | None = None) -> dict:
-    """`/today` 응답의 v2 확장 필드: as_of / briefing_state / readiness / week_compliance."""
+    """`/today` 응답의 v2 확장 필드: as_of / briefing_state / readiness / week_compliance / race_summary."""
     from datetime import datetime
 
     from src.services.today_readiness import build_readiness
@@ -168,4 +195,5 @@ def build_today_extras(conn: sqlite3.Connection, config: dict | None = None,
         "briefing_state": build_briefing_state(conn, day, week, config),
         "readiness": build_readiness(conn, day),
         "week_compliance": week,
+        "race_summary": build_race_summary(conn, day),
     }

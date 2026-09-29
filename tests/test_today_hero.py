@@ -113,3 +113,27 @@ def test_readiness_delta_and_missing(conn):
     r = build_readiness(conn, DAY)
     assert r["utrs"]["value"] == 70 and r["utrs"]["delta_1d"] == 6.0
     assert r["utrs"]["status_label"] and r["cirs"] is None and r["tsb"] is None
+
+
+def test_race_summary_none_without_goal(conn):
+    assert today_hero.build_race_summary(conn, DAY) is None
+
+
+def test_race_summary_without_prediction(conn):
+    _goal(conn)
+    s = today_hero.build_race_summary(conn, DAY)
+    assert s["days_left"] == 68 and s["pred_sec"] is None and s["range_kind"] is None
+
+
+def test_race_summary_uses_self_row_range():
+    hub = {"goal": {"days_left": 56, "name": "M", "distance_km": 42.195, "target_time_sec": 11940},
+           "prediction": {"value_sec": 13200, "compare": {"rows": [
+               {"key": "garmin", "low_sec": 1, "high_sec": 2},
+               {"key": "self", "low_sec": 12360, "high_sec": 14580, "confidence": 0.3}]}}}
+    s = today_hero.build_race_summary(None, DAY, hub)
+    assert (s["pred_sec"], s["low_sec"], s["high_sec"], s["target_sec"]) == (13200, 12360, 14580, 11940)
+    assert s["range_kind"] == "model_envelope" and s["confidence"] == 0.3
+
+
+def test_extras_include_race_summary(conn):
+    assert today_hero.build_today_extras(conn, None, DAY)["race_summary"] is None
