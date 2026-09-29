@@ -140,6 +140,14 @@
 
 - functions: classify_error, get_sync_state
 
+### `today_hero.py` (171줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
+
+- functions: race_days_left, build_week, build_briefing_state, build_today_extras
+
+### `today_readiness.py` (47줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
+
+- functions: build_readiness
+
 ### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
@@ -1358,9 +1366,9 @@
 
 - functions: client, test_compare, test_profile, test_confirm_flow
 
-### `test_api_today.py` (163줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (173줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields
 
 ### `test_archive_service.py` (89줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
@@ -2116,6 +2124,10 @@
 
 - functions: test_time_based_distribution_and_patterns, test_pattern_zero_zone1_has_no_polarization_index
 
+### `test_today_hero.py` (115줄) — tests/test_today_hero.py — Today 히어로 state 판정·주간 스트립·게이지(10-today design §2.4·§7.3).
+
+- functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing
+
 ### `test_today_service.py` (415줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
@@ -2286,7 +2298,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 463개 파일
+총 466개 파일
 
 ## docstring 누락
 

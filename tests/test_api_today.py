@@ -161,3 +161,13 @@ def test_get_today_status_date_is_local(mini_app):
     assert res.status_code == 200
     status_date = res.get_json()["data"]["status"]["date"]
     assert status_date == date.today().isoformat()
+
+
+def test_today_response_has_v2_fields(mini_app):
+    """히어로 state·게이지·주간 스트립이 기존 필드를 유지한 채 추가된다."""
+    body = mini_app.get("/api/v1/today").get_json()["data"]
+    assert {"status", "briefing", "recent_activities", "checkin", "data_health"} <= body.keys()
+    assert body["as_of"]["basis"] == "morning"
+    assert body["briefing"]["state"] == "no_plan" and "headline" in body["briefing"]
+    assert set(body["readiness"]) == {"utrs", "cirs", "tsb"}
+    assert len(body["week_compliance"]["days"]) == 7

@@ -6,7 +6,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import data_health_service, milestone_service, race_hub_service, today_service
+from src.services import data_health_service, milestone_service, race_hub_service, today_hero, today_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -26,10 +26,16 @@ def get_today():
         recent_activities = today_service.get_recent_activities(conn, limit=3)
         checkin = today_service.get_todays_checkin(conn)
         data_health = data_health_service.get_load_coverage(conn)
+        extras = today_hero.build_today_extras(conn, load_config(user_id=get_current_user_id()))
     finally:
         conn.close()
 
+    # briefing은 기존 필드(headline/evidence)를 유지하고 state 계열을 얹는다(additive).
+    briefing = {**briefing, **extras["briefing_state"]}
     return api_ok({
+        "as_of": extras["as_of"],
+        "readiness": extras["readiness"],
+        "week_compliance": extras["week_compliance"],
         "status": status,
         "briefing": briefing,
         "recent_activities": recent_activities,
