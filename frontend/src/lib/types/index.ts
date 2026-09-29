@@ -444,12 +444,83 @@ export interface NarrativeResponse {
 	highlights: NarrativeHighlights;
 }
 
+// ── Today v2 확장 (src/services/today_hero.py · today_readiness.py) ──
+
+export type BriefingState = 'pre' | 'done' | 'extra' | 'rest' | 'no_plan' | 'race_week' | 'race_day';
+
+export interface BriefingSession {
+	id: number | null;
+	date: string | null;
+	workout_type: string | null;
+	title: string | null;
+	distance_m: number | null;
+	pace_min: number | null;
+	pace_max: number | null;
+	zone: string | number | null;
+}
+
+export interface BriefingCaveat {
+	code: string;
+	provider?: string;
+	days?: number;
+}
+
+export interface BriefingStateFields {
+	state: BriefingState;
+	target_date: string;
+	verdict: 'as_planned' | 'down' | 'up';
+	today_result: { activity_id: number; distance_m: number; outcome_label: string | null; plan_ratio_pct: number | null } | null;
+	session: BriefingSession | null;
+	adjustment: { reason: string | null; from: string; to: string } | null;
+	caveats: BriefingCaveat[];
+}
+
+export interface GaugeEntry {
+	value: number;
+	delta_1d: number | null;
+	status: SemanticStatus | null;
+	status_label: string | null;
+	provider: ProviderKey | null;
+	version: string;
+}
+
+export interface TodayReadinessV2 {
+	utrs: GaugeEntry | null;
+	cirs: GaugeEntry | null;
+	tsb: GaugeEntry | null;
+}
+
+export type WeekDayState = 'pre_plan' | 'rest' | 'done' | 'partial' | 'missed' | 'upcoming';
+
+export interface WeekDay {
+	date: string;
+	state: WeekDayState;
+	workout_type: string | null;
+	title: string | null;
+	planned_km: number | null;
+	session_id: number | null;
+	activity_id: number | null;
+	substituted: boolean;
+	today: boolean;
+}
+
+export interface WeekCompliance {
+	done_km: number;
+	plan_km: number;
+	key_done: number;
+	key_total: number;
+	days: WeekDay[];
+}
+
 export interface TodayResponse {
 	status: TodayStatus;
-	briefing: TodayBriefing;
+	briefing: TodayBriefing & Partial<BriefingStateFields>;
 	recent_activities: RecentActivity[];
 	checkin: CheckinRow | null;
 	data_health?: DataHealth;
+	as_of?: { basis: 'morning'; date: string; computed_at: string };
+	readiness?: TodayReadinessV2;
+	week_compliance?: WeekCompliance;
 }
 
 export interface DataHealth {
