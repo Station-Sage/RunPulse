@@ -39,3 +39,13 @@ def describe_scope(ctx: dict) -> list[dict]:
         if (checkin.get("note") or "").strip():
             out.append({"item": _NOTE[1], "period": _NOTE[2], "optional": _NOTE[3]})
     return out
+
+
+def scope_catalog() -> list[dict]:
+    """전송 가능 항목 전체 목록(동의 화면용) — 같은 항목은 가장 긴 기간 하나로 합친다."""
+    merged: dict[str, dict] = {}
+    for _key, item, period, optional in _SCOPE_ITEMS:
+        merged[item] = {"item": item, "period": period, "optional": optional}
+    merged[_CHECKIN[1]] = {"item": _CHECKIN[1], "period": _CHECKIN[2], "optional": _CHECKIN[3]}
+    merged[_NOTE[1]] = {"item": _NOTE[1], "period": _NOTE[2], "optional": _NOTE[3]}
+    return list(merged.values())

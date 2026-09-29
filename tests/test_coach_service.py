@@ -1,6 +1,6 @@
 """coach_service 테스트 — Phase 7a D5.
 
-chat_engine.chat()은 monkeypatch로 결정적 응답으로 대체한다 — coach_service 자체의
+chat_engine.chat_result()는 monkeypatch로 결정적 응답으로 대체한다 — coach_service 자체의
 스레드/메시지 저장 로직만 검증하는 게 목적이고, 실제 AI provider 체인/rule 기반
 fallback(BUG-CHAT-RULE-FALLBACK, 수정 완료 — tests/test_ai_context.py 참조)은
 별도로 검증한다.
@@ -14,11 +14,15 @@ from src.services import coach_service
 
 @pytest.fixture(autouse=True)
 def _fake_ai_chat(monkeypatch):
-    """chat_engine.chat()을 결정적 응답으로 대체 — coach_service 로직만 검증."""
-    def _fake(conn, user_message, config=None, chip_id=None, thread_id=None):
-        return f"[fake] {user_message}에 대한 응답", "fake"
+    """chat_engine.chat_result()를 결정적 응답으로 대체 — coach_service 로직만 검증."""
+    from src.ai.chat_engine_result import ChatResult, EngineInfo
 
-    monkeypatch.setattr("src.ai.chat_engine.chat", _fake)
+    def _fake(conn, user_message, config=None, chip_id=None, thread_id=None, consent=None,
+              require_consent=False):
+        return ChatResult(f"[fake] {user_message}에 대한 응답", EngineInfo("ok", "fake", "fake-model"),
+                          as_of="2026-09-30")
+
+    monkeypatch.setattr("src.ai.chat_engine.chat_result", _fake)
 
 
 class TestListThreads:
@@ -168,3 +172,58 @@ class TestAddMessage:
             "SELECT updated_at FROM chat_threads WHERE id = ?", (thread_id,)
         ).fetchone()[0]
         assert after >= before
+
+
+class TestEngineState:
+    def test_message_carries_engine_view_and_as_of(self, db_conn):
+        msg = coach_service.create_thread(db_conn, "안녕")["message"]
+        assert msg["engine"]["status"] == "ok"
+        assert msg["engine"]["label"]
+        assert msg["as_of"] == "2026-09-30"
+        assert msg["status"] == "done"
+
+    def test_get_thread_exposes_engine(self, db_conn):
+        tid = coach_service.create_thread(db_conn, "안녕")["thread"]["id"]
+        msgs = coach_service.get_thread(db_conn, tid)["messages"]
+        assert "engine" not in msgs[0]
+        assert msgs[1]["engine"]["provider"] == "fake"
+
+    def test_legacy_message_without_engine_json(self, db_conn):
+        tid = db_conn.execute("INSERT INTO chat_threads (title) VALUES ('옛')").lastrowid
+        db_conn.execute("INSERT INTO chat_messages (role, content, thread_id) VALUES ('assistant', '옛 답변', ?)", (tid,))
+        db_conn.commit()
+        msg = coach_service.get_thread(db_conn, tid)["messages"][0]
+        assert msg["engine"]["status"] == "legacy_rule"
+
+    def test_engine_called_with_stored_consent_and_require_consent(self, db_conn, monkeypatch):
+        from src.services.coach_consent import save_consent
+        seen = {}
+        orig = __import__("src.ai.chat_engine", fromlist=["x"]).chat_result
+
+        def _spy(conn, msg, **kw):
+            seen.update(kw)
+            return orig(conn, msg, **kw)
+
+        monkeypatch.setattr("src.ai.chat_engine.chat_result", _spy)
+        save_consent(db_conn, "gemini", exclude_notes=True)
+        coach_service.create_thread(db_conn, "안녕")
+        assert seen["require_consent"] is True
+        assert seen["consent"]["exclude_notes"] is True
+
+
+class TestRegenerate:
+    def test_overwrites_assistant_message_in_place(self, db_conn):
+        created = coach_service.create_thread(db_conn, "안녕")
+        tid, mid = created["thread"]["id"], created["message"]["id"]
+        db_conn.execute("UPDATE chat_messages SET content='stale' WHERE id=?", (mid,))
+        db_conn.commit()
+        msg = coach_service.regenerate(db_conn, tid, mid)
+        assert msg["id"] == mid and msg["content"].startswith("[fake] 안녕")
+        assert len(coach_service.get_thread(db_conn, tid)["messages"]) == 2
+
+    def test_unknown_or_user_message_returns_none(self, db_conn):
+        created = coach_service.create_thread(db_conn, "안녕")
+        tid = created["thread"]["id"]
+        assert coach_service.regenerate(db_conn, tid, 99999) is None
+        user_id = coach_service.get_thread(db_conn, tid)["messages"][0]["id"]
+        assert coach_service.regenerate(db_conn, tid, user_id) is None
