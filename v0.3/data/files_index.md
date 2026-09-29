@@ -140,7 +140,7 @@
 
 - functions: classify_error, get_sync_state
 
-### `today_service.py` (312줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1030,13 +1030,17 @@
 > 
 > 설계 문서: v0.3/data/phase-7(preview).md
 
-### `adjuster.py` (185줄) — 컨디션 기반 당일 훈련 계획 조정.
+### `adjuster.py` (118줄) — 컨디션 기반 당일 훈련 계획 조정.
 
 - functions: adjust_todays_plan
 
 ### `caldav_push.py` (176줄) — CalDAV 캘린더 연동 — 훈련 계획을 외부 캘린더에 등록.
 
 - functions: push_workout_to_caldav, push_weekly_plan_to_caldav, test_connection
+
+### `fatigue.py` (159줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
+
+- functions: get_todays_wellness, get_latest_tsb, fatigue_level, readiness_decision
 
 ### `garmin_push.py` (197줄) — Garmin Connect 워크아웃 전송 — 훈련 계획을 워치 + 캘린더에 등록.
 
@@ -1342,9 +1346,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
 
-### `test_api_library.py` (362줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (389줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -1602,6 +1606,10 @@
 - class **TestDistanceUnit**: test_distance_key_is_meters
 - class **TestSecondsHelper**: test_already_seconds, test_milliseconds_conversion, test_none_returns_none, test_boundary_86400, test_exactly_86400, test_float_input
 - class **TestCrossExtractorConsistency**: test_all_extractors_registered, test_all_have_unique_source, test_source_field_matches_class_source, test_activity_type_is_normalized, test_source_url_contains_source_id, test_all_extractors_inherit_base, test_pace_sec_km_reasonable, test_duration_sec_reasonable
+
+### `test_fatigue.py` (85줄) — tests/test_fatigue.py — src.training.fatigue.readiness_decision 단위 테스트.
+
+- functions: conn, test_no_data_returns_data_pending_headline, test_high_fatigue_overrides_good_tsb_headline, test_low_fatigue_falls_back_to_tsb_headline, test_explicit_tsb_overrides_lookup
 
 ### `test_fearp_v2.py` (10줄) — P7-PRED-90: fearp v2 — 외기·이슬점 보정, 기기 온도 미사용.
 
@@ -2278,7 +2286,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 461개 파일
+총 463개 파일
 
 ## docstring 누락
 

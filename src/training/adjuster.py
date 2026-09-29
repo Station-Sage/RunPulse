@@ -1,8 +1,16 @@
-"""컨디션 기반 당일 훈련 계획 조정."""
+"""컨디션 기반 당일 훈련 계획 조정.
+
+wellness·TSB 조회, 피로도 판정은 src.training.fatigue로 통합됐다(같은 날 Today
+브리핑과 다른 판정을 내리던 문제 제거, [[readiness_decision]]). 이 모듈은 그 판정을
+가져다 실제 계획(운동 종류) 다운그레이드에만 쓴다 — 동작은 통합 전과 동일.
+"""
 
 import sqlite3
 from datetime import date as _date
 
+from src.training.fatigue import fatigue_level as _fatigue_level
+from src.training.fatigue import get_latest_tsb as _get_latest_tsb
+from src.training.fatigue import get_todays_wellness as _get_todays_wellness
 
 # 피로도 높음: interval/tempo → rest, long → easy
 _DOWNGRADE_HIGH: dict[str, str] = {
@@ -15,81 +23,6 @@ _DOWNGRADE_MOD: dict[str, str] = {
     "interval": "easy", "tempo": "easy", "long": "easy",
     "easy": "easy", "rest": "rest",
 }
-
-
-def _get_todays_wellness(conn: sqlite3.Connection, date: str | None = None) -> dict:
-    """지정 날짜(기본 오늘) Garmin 웰니스 데이터 조회."""
-    target = date or _date.today().isoformat()
-    row = conn.execute(
-        "SELECT body_battery_high, sleep_score, sleep_duration_sec, hrv_last_night, avg_stress "
-        "FROM daily_wellness WHERE date = ?",
-        (target,),
-    ).fetchone()
-    if row:
-        sleep_hours = row[2] / 3600.0 if row[2] else None
-        return {
-            "body_battery": row[0], "sleep_score": row[1],
-            "sleep_hours": sleep_hours, "hrv_value": row[3], "stress_avg": row[4],
-        }
-    return {}
-
-
-def _get_latest_tsb(conn: sqlite3.Connection, date: str | None = None) -> float | None:
-    """최근 TSB 조회 (metric_store daily). date 지정 시 그 날짜 이전의 최신 값."""
-    if date is not None:
-        row = conn.execute(
-            "SELECT numeric_value FROM metric_store"
-            " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
-            " AND scope_id <= ?"
-            " ORDER BY scope_id DESC LIMIT 1",
-            (date,),
-        ).fetchone()
-    else:
-        row = conn.execute(
-            "SELECT numeric_value FROM metric_store"
-            " WHERE scope_type='daily' AND metric_name='tsb' AND is_primary=1"
-            " ORDER BY scope_id DESC LIMIT 1"
-        ).fetchone()
-    return row[0] if row else None
-
-
-def _fatigue_level(wellness: dict, tsb: float | None) -> str:
-    """피로도 수준 판정.
-
-    Returns:
-        'high' | 'moderate' | 'low'
-    """
-    score = 0
-
-    bb = wellness.get("body_battery")
-    if bb is not None:
-        if bb < 30:
-            score += 2
-        elif bb < 50:
-            score += 1
-
-    ss = wellness.get("sleep_score")
-    if ss is not None:
-        if ss < 40:
-            score += 2
-        elif ss < 60:
-            score += 1
-
-    stress = wellness.get("stress_avg")
-    if stress is not None and stress > 75:
-        score += 1
-
-    if tsb is not None:
-        if tsb < -25:
-            score += 2
-        elif tsb < -15:
-            score += 1
-
-    if score >= 4:
-        return "high"
-    if score >= 2:
-        return "moderate"
-    return "low"
 
 
 def adjust_todays_plan(

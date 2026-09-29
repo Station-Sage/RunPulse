@@ -17,17 +17,6 @@ from __future__ import annotations
 
 import sqlite3
 
-from src.metrics.bands import grade
-
-# TSB 등급(src/metrics/bands.py) → 헤드라인. 등급 경계는 bands.py 한 곳에만 둔다.
-_TSB_HEADLINES: dict[str, str] = {
-    "caution": "충분히 쉬었습니다 — 계획된 세션을 진행해 감각을 유지하세요.",
-    "excellent": "컨디션이 좋습니다 — 계획된 세션을 그대로 진행해도 좋습니다.",
-    "neutral": "정상적인 훈련 부하 구간입니다 — 평소대로 진행하세요.",
-    "good": "훈련 부하가 쌓이는 구간입니다 — 계획대로 하되 회복을 챙기세요.",
-    "poor": "피로가 과도합니다 — 완전 휴식이나 회복 위주 세션을 권합니다.",
-}
-
 
 def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
     """오늘 상태 지표 — readiness(utrs/cirs/crs) + training_status(ctl/atl/tsb/acwr).
@@ -79,22 +68,20 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
     LLM 미사용 — coding-rules.md의 "AI 응답 파싱 실패: graceful fallback(규칙 기반)"과
     같은 패턴을 브리핑 자체의 1차 구현으로 사용한다. AI 생성 브리핑으로 업그레이드하는
     건 별도 판단(범위 밖).
+
+    헤드라인·근거는 src.training.fatigue.readiness_decision()로 판정한다(TSB만 보던
+    이전 로직 대신 wellness도 함께 본다 — adjuster.py의 당일 계획 조정과 같은 판정
+    기준을 공유해 "Today는 핵심 세션, Coach는 항상 휴식" 같은 모순을 없앤다).
     """
+    from src.training.fatigue import readiness_decision
+
     status = get_today_status(conn, date)
     training = status["training_status"]
     readiness = status["readiness"]
 
-    tsb = training.get("tsb")
-    evidence: list[dict] = []
-
-    if tsb is None:
-        headline = "아직 훈련 부하 데이터가 충분하지 않습니다 — 데이터 수집 중입니다."
-    else:
-        g = grade("tsb", tsb)
-        headline = _TSB_HEADLINES[g["status"]]
-        evidence.append({"type": "metric", "metric": "tsb", "value": tsb,
-                         "label": f"TSB {tsb:+.0f} ({g['label']})",
-                         "status": g["status"], "status_label": g["label"]})
+    decision = readiness_decision(conn, date=status["date"], tsb=training.get("tsb"))
+    headline = decision["headline"]
+    evidence: list[dict] = list(decision["evidence"])
 
     utrs = readiness.get("utrs")
     if utrs and utrs.get("value") is not None:
@@ -107,7 +94,7 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
 
     # 목표 레이스가 있으면 헤드라인을 레이스 국면에 맞추고 근거를 앞에 붙인다(맥락 있는 안내)
     from src.services.race_hub_service import get_race_hub, race_briefing
-    race = race_briefing(get_race_hub(conn, status["date"]), tsb)
+    race = race_briefing(get_race_hub(conn, status["date"]), training.get("tsb"))
     if race is not None:
         headline, race_evidence = race
         evidence = race_evidence + evidence
