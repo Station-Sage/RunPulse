@@ -18,6 +18,7 @@ from .chat_context_builders import _build_base_context, INTENT_BUILDERS
 from .chat_context_checkin import build_checkin_context
 from .chat_context_format import _format_chat_context
 from .chat_context_intent import detect_intent
+from .chat_context_scope import describe_scope
 from .chat_context_rich import (
     _add_mid_14d_context,
     _add_rich_30d_context,
@@ -34,20 +35,30 @@ log = logging.getLogger(__name__)
 
 __all__ = [
     "build_chat_context",
+    "build_chat_context_scoped",
     "detect_intent",
 ]
 
 
 def build_chat_context(conn: sqlite3.Connection, message: str,
                        chat_history: list[dict] | None = None,
-                       provider: str = "rule") -> str:
-    """Provider 컨텍스트 용량에 맞는 채팅 컨텍스트 생성.
+                       provider: str = "rule", exclude_notes: bool = False) -> str:
+    """Provider 컨텍스트 용량에 맞는 채팅 컨텍스트 텍스트 (전송 범위 목록이 필요하면 build_chat_context_scoped)."""
+    return build_chat_context_scoped(conn, message, chat_history, provider, exclude_notes)[0]
+
+
+def build_chat_context_scoped(conn: sqlite3.Connection, message: str,
+                              chat_history: list[dict] | None = None,
+                              provider: str = "rule", exclude_notes: bool = False,
+                              ) -> tuple[str, list[dict]]:
+    """(프롬프트 컨텍스트 텍스트, 보낸 항목 목록 [{item, period, optional}]).
 
     Args:
         conn: DB 연결.
         message: 사용자 메시지.
         chat_history: 최근 대화 이력 (맥락 유지용).
         provider: AI provider 이름 (gemini/groq/claude/openai/rule).
+        exclude_notes: True면 체크인 메모(자유 텍스트)를 컨텍스트에서 뺀다.
     """
     today = date.today().isoformat()
     intent, target_date = detect_intent(message)
@@ -59,6 +70,8 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
 
     try:
         ctx["checkin"] = build_checkin_context(conn, today)
+        if exclude_notes and ctx["checkin"]:
+            ctx["checkin"] = {**ctx["checkin"], "note": None}
     except Exception:
         log.warning("체크인 컨텍스트 빌드 실패", exc_info=True)
 
@@ -85,4 +98,4 @@ def build_chat_context(conn: sqlite3.Connection, message: str,
         except Exception:
             log.warning("의도별 컨텍스트 빌드 실패 (%s)", intent, exc_info=True)
 
-    return _format_chat_context(ctx, message, chat_history)
+    return _format_chat_context(ctx, message, chat_history), describe_scope(ctx)

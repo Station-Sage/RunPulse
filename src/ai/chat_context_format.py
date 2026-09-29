@@ -51,6 +51,8 @@ def _format_chat_context(ctx: dict, message: str,
     checkin_line = format_checkin_line(ctx.get("checkin"))
     if checkin_line:
         lines.append(checkin_line)
+        if (ctx.get("checkin") or {}).get("fatigue") is not None:
+            lines.append("(피로도 척도: 1 가뿐함 ~ 10 매우 피곤)")
 
     # 러너 프로필
     rp = ctx.get("runner_profile", {})
