@@ -37,3 +37,47 @@ export function signedTsb(tsb: number): string {
 	const r = Math.round(tsb);
 	return r > 0 ? `+${r}` : r < 0 ? `−${-r}` : '0';
 }
+
+export interface RaceSummaryInput {
+	days_left: number;
+	pred_sec: number | null;
+	low_sec: number | null;
+	high_sec: number | null;
+	range_kind: 'model_envelope' | 'calibrated80' | null;
+	target_sec: number | null;
+}
+
+function clockOf(sec: number): string {
+	const s = Math.round(sec);
+	const h = Math.floor(s / 3600);
+	const m = Math.floor((s % 3600) / 60);
+	return `${h}:${String(m).padStart(2, '0')}`;
+}
+
+/** B4 한 줄 조각 — [D-56, 예측 3:40 (모델 범위 3:26–4:03), 목표 3:19]. 예측 없으면 '예측 수집 중'. */
+export function raceSummaryParts(s: RaceSummaryInput): string[] {
+	const parts = [countdownLabel(s.days_left)];
+	if (s.pred_sec == null) {
+		parts.push('예측 수집 중');
+	} else {
+		let pred = `예측 ${clockOf(s.pred_sec)}`;
+		if (s.low_sec != null && s.high_sec != null) {
+			const kind = s.range_kind === 'model_envelope' ? '모델 범위 ' : '';
+			pred += ` (${kind}${clockOf(s.low_sec)}–${clockOf(s.high_sec)})`;
+		}
+		parts.push(pred);
+	}
+	if (s.target_sec != null) parts.push(`목표 ${clockOf(s.target_sec)}`);
+	return parts;
+}
+
+/** 예측 추이(최근 90일) 첫·마지막 값 차이 — {deltaSec(음수=빨라짐), label}. 점이 2개 미만이면 null. */
+export function trendDelta(history: { date: string; value: number }[]): { deltaSec: number; label: string } | null {
+	if (history.length < 2) return null;
+	const delta = history[history.length - 1].value - history[0].value;
+	if (Math.abs(delta) < 30) return { deltaSec: delta, label: '90일간 거의 변화 없음' };
+	const abs = Math.abs(delta);
+	const m = Math.floor(abs / 60);
+	const s = Math.round(abs % 60);
+	return { deltaSec: delta, label: `90일간 ${m}분 ${s}초 ${delta < 0 ? '빨라짐' : '느려짐'}` };
+}

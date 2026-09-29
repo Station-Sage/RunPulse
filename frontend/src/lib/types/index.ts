@@ -521,6 +521,20 @@ export interface TodayResponse {
 	as_of?: { basis: 'morning'; date: string; computed_at: string };
 	readiness?: TodayReadinessV2;
 	week_compliance?: WeekCompliance;
+	race_summary?: RaceSummary | null;
+}
+
+/** B4 한 줄용 레이스 요약(src/services/today_hero.py build_race_summary). 목표 없으면 null. */
+export interface RaceSummary {
+	days_left: number;
+	name: string | null;
+	distance_km: number | null;
+	pred_sec: number | null;
+	low_sec: number | null;
+	high_sec: number | null;
+	range_kind: 'model_envelope' | 'calibrated80' | null;
+	confidence: number | null;
+	target_sec: number | null;
 }
 
 export interface DataHealth {

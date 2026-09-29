@@ -5,7 +5,7 @@
 	import { clock, confidenceLabel, contributionLabel, diffVsSelf, rangeLabel } from '$lib/predictionCompare';
 	import type { CompareRow } from '$lib/predictionCompare';
 
-	let { compare }: { compare: PredictionCompare } = $props();
+	let { compare, showCandidates = false }: { compare: PredictionCompare; showCandidates?: boolean } = $props();
 	const self = $derived(compare.rows.find((r) => r.key === 'self'));
 	const main = $derived(compare.rows.filter((r) => !r.candidate));
 	const candidates = $derived(compare.rows.filter((r) => r.candidate));
@@ -57,7 +57,7 @@
 			</div>
 		</details>
 	{/if}
-	{#if candidates.length}
+	{#if showCandidates && candidates.length}
 		<details class="text-[11px] text-fg-muted">
 			<summary class="cursor-pointer hover:text-fg-secondary">검토 중 알고리즘 {candidates.length}건 (기본값 아님)</summary>
 			<ul class="mt-1 flex flex-col divide-y divide-border-subtle rounded-md border border-border-subtle">

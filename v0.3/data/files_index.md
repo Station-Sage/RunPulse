@@ -140,9 +140,9 @@
 
 - functions: classify_error, get_sync_state
 
-### `today_hero.py` (171줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
+### `today_hero.py` (199줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
-- functions: race_days_left, build_week, build_briefing_state, build_today_extras
+- functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
 ### `today_readiness.py` (47줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
 
@@ -2124,9 +2124,9 @@
 
 - functions: test_time_based_distribution_and_patterns, test_pattern_zero_zone1_has_no_polarization_index
 
-### `test_today_hero.py` (115줄) — tests/test_today_hero.py — Today 히어로 state 판정·주간 스트립·게이지(10-today design §2.4·§7.3).
+### `test_today_hero.py` (139줄) — tests/test_today_hero.py — Today 히어로 state 판정·주간 스트립·게이지(10-today design §2.4·§7.3).
 
-- functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing
+- functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing, test_race_summary_none_without_goal, test_race_summary_without_prediction, test_race_summary_uses_self_row_range, test_extras_include_race_summary
 
 ### `test_today_service.py` (415줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 

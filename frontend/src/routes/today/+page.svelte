@@ -13,7 +13,7 @@
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
-	import RaceHub from '$lib/components/RaceHub.svelte';
+	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
 	import FormChart from '$lib/components/FormChart.svelte';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
@@ -91,7 +91,7 @@
 					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 				{/if}
 				<TodayHero {briefing} goal={data.raceHub?.goal ?? null} onEvidence={openEvidence} />
-				<RaceHub data={data.raceHub} />
+				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
 				<QuickInput
 					compact={true}
 					existing={checkin
