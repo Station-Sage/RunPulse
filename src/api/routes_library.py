@@ -8,7 +8,7 @@ from flask import request
 from src.services import activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
 from src.web.helpers import db_path
 
-from . import api_bp, api_error, api_ok
+from . import api_bp, api_error, api_ok, api_ok_cacheable
 
 
 @api_bp.get("/library/activities")
@@ -71,7 +71,8 @@ def get_library_activity_detail(activity_id: int):
     if not detail["core"]:
         return api_error("NOT_FOUND", f"활동을 찾을 수 없습니다: {activity_id}", 404)
 
-    return api_ok({"activity": detail})
+    # 동기화 후엔 거의 안 바뀌는 무거운 페이로드(요약 탭 다운샘플 스트림 포함) — ETag로 조건부 GET.
+    return api_ok_cacheable({"activity": detail})
 
 
 @api_bp.get("/library/metrics/<slug>")
@@ -178,7 +179,8 @@ def get_library_activity_streams(activity_id: int):
     finally:
         conn.close()
 
-    return api_ok({"streams": streams})
+    # 전체 해상도 스트림(가장 무거운 페이로드) — ETag로 조건부 GET.
+    return api_ok_cacheable({"streams": streams})
 
 
 @api_bp.get("/library/wellness")

@@ -118,6 +118,33 @@ def test_get_activity_streams(mini_app):
     assert body["data"]["streams"][0]["heart_rate"] == 120
 
 
+def test_get_activity_detail_etag_304_on_revalidate(mini_app):
+    """무거운 페이로드(활동 상세) 재요청 시 ETag가 같으면 본문 없이 304(02-performance.md, 사용자 증가 대비 캐싱)."""
+    client, act_id = mini_app
+    first = client.get(f"/api/v1/library/activities/{act_id}")
+    assert first.status_code == 200
+    etag = first.headers.get("ETag")
+    assert etag
+
+    second = client.get(
+        f"/api/v1/library/activities/{act_id}", headers={"If-None-Match": etag}
+    )
+    assert second.status_code == 304
+    assert second.get_data() == b""
+
+
+def test_get_activity_streams_etag_304_on_revalidate(mini_app):
+    client, act_id = mini_app
+    first = client.get(f"/api/v1/library/activities/{act_id}/streams")
+    etag = first.headers.get("ETag")
+    assert etag
+
+    second = client.get(
+        f"/api/v1/library/activities/{act_id}/streams", headers={"If-None-Match": etag}
+    )
+    assert second.status_code == 304
+
+
 # ── /library/metrics/:slug 라우트 테스트 ─────────────────────────────────────
 
 @pytest.fixture

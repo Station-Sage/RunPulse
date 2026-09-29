@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
@@ -20,6 +20,24 @@ def api_ok(data, status: int = 200, meta: dict | None = None):
     if meta:
         body["meta"] = meta
     return jsonify(body), status
+
+
+def api_ok_cacheable(data, status: int = 200, meta: dict | None = None):
+    """api_ok와 같은 포맷이지만 ETag(응답 본문 해시)를 붙여 조건부 GET을 지원한다.
+
+    활동 상세·스트림처럼 동기화 후엔 거의 안 바뀌는 무거운 페이로드용 — 사용자가 늘어날수록
+    같은 활동을 반복 조회할 때마다 매번 전체를 다시 보내는 게 낭비라 추가함. 브라우저가
+    If-None-Match로 재검증하면 내용이 같을 때 본문 없이 304만 응답(Werkzeug 표준 동작).
+    내용이 바뀌면(재동기화 등) 해시도 달라져 자동으로 새로 내려감 — max-age 캐시처럼 기간을
+    임의로 정할 필요가 없다.
+    """
+    body = {"data": data}
+    if meta:
+        body["meta"] = meta
+    response = jsonify(body)
+    response.status_code = status
+    response.add_etag()
+    return response.make_conditional(request)
 
 
 def api_error(code: str, message: str, status: int = 400):
