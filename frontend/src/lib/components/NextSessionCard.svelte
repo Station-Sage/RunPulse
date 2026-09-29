@@ -29,11 +29,6 @@
 			null
 	);
 
-	// 날짜별 유효 계획 상태(서버 week_compliance) — 휴식·계획 전 날은 세지 않는다
-	const weekDays = $derived(plan?.week?.days.filter((d) => d.state !== 'rest' && d.state !== 'pre_plan') ?? []);
-	const weekSessions = $derived(plan?.week?.compliance.sessions);
-	const DAY_MARK: Record<string, string> = { done: '●', partial: '◐', missed: '○', upcoming: '◌' };
-
 	function dayText(date: string): string {
 		const diff = Math.round(
 			(new Date(date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) /
@@ -127,15 +122,5 @@
 				</a>
 			</div>
 		</div>
-
-		{#if weekDays.length > 0}
-			<p class="text-xs text-fg-muted" title="● 이행 · ◐ 부족 · ○ 놓침 · ◌ 예정">
-				이번 주
-				{#each weekDays as d (d.date)}
-					<span class:font-bold={d.today}>{DAY_MARK[d.state] ?? '◌'}</span>
-				{/each}
-				{#if weekSessions && weekSessions.total > 0}{weekSessions.done}/{weekSessions.total}일 이행{/if}
-			</p>
-		{/if}
 	</div>
 {/if}

@@ -40,6 +40,11 @@ export async function swrLoad<T>(
 	return data;
 }
 
+/** 스트리밍 블록이 실패했을 때 캐시를 비워 "다시 시도"가 실제로 재요청하게 한다. */
+export function swrEvict(key: string): void {
+	cache.delete(key);
+}
+
 /** 테스트 전용 — 모듈 스코프 캐시를 비운다. */
 export function _clearSwrCacheForTest(): void {
 	cache.clear();

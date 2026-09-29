@@ -11,10 +11,10 @@
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
 	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
-	import NextSessionCard from '$lib/components/NextSessionCard.svelte';
+	import TodayNextSession from '$lib/components/TodayNextSession.svelte';
+	import TodayFormChart from '$lib/components/TodayFormChart.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
-	import FormChart from '$lib/components/FormChart.svelte';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
 	import { loadCoverageNotice } from '$lib/healthNotice';
@@ -50,6 +50,8 @@
 		}
 		drillStack = [...drillStack, t];
 	}
+
+	const retry = () => invalidate('app:today');
 
 	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
 		savingCheckin = true;
@@ -90,7 +92,11 @@
 				{#if loadCoverageNotice(data.today.data_health)}
 					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 				{/if}
-				<TodayHero {briefing} goal={data.raceHub?.goal ?? null} onEvidence={openEvidence} />
+				{#await data.raceHub}
+					<TodayHero {briefing} goal={null} onEvidence={openEvidence} />
+				{:then hub}
+					<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} />
+				{/await}
 				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
 				<QuickInput
 					compact={true}
@@ -103,9 +109,8 @@
 				{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}
 			</section>
 
-			<div class="order-4 flex flex-col gap-2 border-t border-border-subtle pt-3">
-				<p class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</p>
-				<NextSessionCard plan={data.plan} adjustment={data.adjustment} today={status.date} raceGoal={data.raceHub?.goal ?? null} />
+			<div class="order-4 flex flex-col gap-3 border-t border-border-subtle pt-3">
+				<TodayNextSession nextSession={data.nextSession} raceHub={data.raceHub} week={data.today.week_compliance} today={status.date} onRetry={retry} />
 			</div>
 		</div>
 
@@ -125,21 +130,7 @@
 
 			<section class="order-3 flex flex-col gap-3 border-t border-border-subtle pt-4">
 				<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
-				{#if (data.ctlTrend?.points.length ?? 0) > 1 && (data.tsbTrend?.points.length ?? 0) > 1}
-					<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3" aria-label="피트니스·폼">
-						<div class="flex items-center justify-between text-xs text-fg-muted">
-							<span>체력·피로·폼 · 최근 3개월{data.raceHub?.projection ? ' + 레이스 예측' : ''}</span>
-							<button type="button" onclick={() => { showMonthNarrative = true; }} class="hover:text-fg-primary">이번 달 이야기 →</button>
-						</div>
-						<FormChart
-							ctl={data.ctlTrend?.points ?? []}
-							atl={data.atlTrend?.points ?? []}
-							tsb={data.tsbTrend?.points ?? []}
-							projection={data.raceHub?.projection ?? null}
-							raceDate={data.raceHub?.goal?.race_date ?? null}
-						/>
-					</section>
-				{/if}
+				<TodayFormChart chart={data.formChart} raceHub={data.raceHub} onMonth={() => { showMonthNarrative = true; }} onRetry={retry} />
 				<TodayNarrative
 					narrative={data.narrative}
 					ctl={status.training_status.ctl ?? null}
