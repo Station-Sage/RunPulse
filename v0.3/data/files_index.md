@@ -586,7 +586,7 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate
 
-### `ai_context.py` (457줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
+### `ai_context.py` (462줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
 
 - functions: build_daily_briefing, build_activity_analysis, build_ai_context, build_context, format_context_text, format_activity_context
 
@@ -647,9 +647,13 @@
 - class **RateLimitError**: 없음
 - functions: call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_rules.py` (279줄) — AI 채팅 — 규칙 기반 fallback 응답.
+### `chat_engine_rules.py` (239줄) — AI 채팅 — 규칙 기반 fallback 응답.
 
 - functions: rule_based_response
+
+### `chat_readiness.py` (47줄) — Coach 채팅용 컨디션 판정 — Today 브리핑·계획 다운그레이드와 같은 `readiness_decision`을 쓴다.
+
+- functions: attach_readiness, decision_lines, plan_line
 
 ### `context_builders.py` (437줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
 
@@ -1038,7 +1042,7 @@
 > 
 > 설계 문서: v0.3/data/phase-7(preview).md
 
-### `adjuster.py` (118줄) — 컨디션 기반 당일 훈련 계획 조정.
+### `adjuster.py` (114줄) — 컨디션 기반 당일 훈련 계획 조정.
 
 - functions: adjust_todays_plan
 
@@ -1046,7 +1050,7 @@
 
 - functions: push_workout_to_caldav, push_weekly_plan_to_caldav, test_connection
 
-### `fatigue.py` (159줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
+### `fatigue.py` (158줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
 
 - functions: get_todays_wellness, get_latest_tsb, fatigue_level, readiness_decision
 
@@ -1437,13 +1441,17 @@
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
 - class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
 
-### `test_chat_engine_rules_grade.py` (54줄) — tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
+### `test_chat_engine_rules_grade.py` (51줄) — tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
 
-- functions: test_training_recommendation_follows_grade, test_grade_codes_match_recovery_output, test_grade_label_korean, test_today_deep_formats_pace
+- functions: test_training_recommendation_uses_readiness_decision, test_training_recommendation_without_decision, test_grade_codes_match_recovery_output, test_grade_label_korean, test_today_deep_formats_pace
 
 ### `test_chat_engine_threads.py` (42줄) — chat_engine._load_recent_chat()의 thread_id 필터링 — Phase 7 Coach 다중 스레드(D3).
 
 - class **TestLoadRecentChat**: test_default_thread_id_none_ignores_thread, test_thread_id_filters_to_that_thread_only, test_empty_thread_returns_empty
+
+### `test_chat_readiness.py` (81줄) — tests/test_chat_readiness.py — Coach 채팅이 Today·adjuster와 같은 readiness_decision을 쓰는지 검증.
+
+- functions: conn, test_adjuster_fatigue_matches_readiness_decision, test_build_context_has_decision_and_adjustment, test_plan_line_shows_original_and_adjusted, test_chat_verdict_equals_today_headline, test_rested_runner_keeps_planned_session, test_no_data_graceful
 
 ### `test_cirs.py` (78줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
@@ -2298,7 +2306,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 466개 파일
+총 468개 파일
 
 ## docstring 누락
 

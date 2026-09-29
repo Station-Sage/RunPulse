@@ -4,8 +4,7 @@ adjuster.py(당일 계획 조정)와 today_service.py(Today 브리핑)가 서로
 쓰던 문제(10-today/design.md §4, "Today는 핵심 세션, Coach는 항상 휴식" 모순)를 없애기
 위해 wellness+TSB 판정을 이 모듈 하나로 통합한다.
 
-adjuster.py는 이 모듈의 wellness/TSB/피로도 헬퍼를 그대로 가져다 쓴다(동작 변경 없음).
-chat_engine_rules.py(Coach 채팅 응답)는 이번 변경 범위 밖 — 별도 후속 작업에서 통합한다.
+adjuster.py(계획 다운그레이드)와 ai/chat_readiness.py(Coach 채팅)도 `readiness_decision`을 그대로 호출한다.
 """
 from __future__ import annotations
 

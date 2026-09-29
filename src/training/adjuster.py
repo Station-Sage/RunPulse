@@ -1,16 +1,13 @@
 """컨디션 기반 당일 훈련 계획 조정.
 
-wellness·TSB 조회, 피로도 판정은 src.training.fatigue로 통합됐다(같은 날 Today
-브리핑과 다른 판정을 내리던 문제 제거, [[readiness_decision]]). 이 모듈은 그 판정을
-가져다 실제 계획(운동 종류) 다운그레이드에만 쓴다 — 동작은 통합 전과 동일.
+판정은 `readiness_decision`(src.training.fatigue) 하나를 호출해 Today 브리핑·Coach 채팅과 같은
+결과를 쓴다. 이 모듈은 그 판정을 실제 계획(운동 종류) 다운그레이드에만 쓴다.
 """
 
 import sqlite3
 from datetime import date as _date
 
-from src.training.fatigue import fatigue_level as _fatigue_level
-from src.training.fatigue import get_latest_tsb as _get_latest_tsb
-from src.training.fatigue import get_todays_wellness as _get_todays_wellness
+from src.training.fatigue import readiness_decision
 
 # 피로도 높음: interval/tempo → rest, long → easy
 _DOWNGRADE_HIGH: dict[str, str] = {
@@ -62,9 +59,8 @@ def adjust_todays_plan(
             "target_pace_max", "target_hr_zone", "description", "rationale"]
     workout = dict(zip(keys, row))
 
-    wellness = _get_todays_wellness(conn, date=date)
-    tsb = _get_latest_tsb(conn, date=date)
-    fatigue = _fatigue_level(wellness, tsb)
+    decision = readiness_decision(conn, date=date)
+    wellness, tsb, fatigue = decision["wellness"], decision["tsb"], decision["fatigue_level"]
 
     original_type = workout["workout_type"]
     adjusted_type = original_type

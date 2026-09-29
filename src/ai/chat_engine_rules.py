@@ -6,13 +6,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from src.analysis.recovery import (
-    GRADE_EXCELLENT,
-    GRADE_GOOD,
-    GRADE_MODERATE,
-    GRADE_POOR,
-    grade_label,
-)
+from src.analysis.recovery import grade_label
 from .chat_context_utils import seconds_to_pace
 
 
@@ -48,10 +42,7 @@ def rule_based_response(
                      f"- 거리: {wk.get('total_distance_km', '-')}km\n"
                      f"- 횟수: {wk.get('run_count', '-')}회")
     elif chip_id == "recovery_advice":
-        rec = ctx.get("recovery") or {}
-        parts.append(f"**회복 상태**: {grade_label(rec.get('grade'))}\n\n"
-                     "충분한 수면과 수분 섭취를 유지하세요. "
-                     "바디 배터리가 50 이하라면 저강도 훈련을 권장합니다.")
+        _respond_recovery(parts, ctx)
     elif chip_id == "injury_risk":
         acwr = ctx.get("acwr") or {}
         avg = (acwr.get("average") or {}) if acwr else {}
@@ -81,35 +72,15 @@ def rule_based_response(
 
 
 def _respond_training_recommendation(parts: list[str], ctx: dict) -> None:
-    """훈련 강도 추천."""
-    rec = ctx.get("recovery") or {}
-    fit = ctx.get("fitness") or {}
-    tsb = fit.get("tsb")
-    grade = rec.get("grade", "")
+    """훈련 강도 추천 — Today·계획 조정과 같은 readiness_decision 기준."""
+    from .chat_readiness import decision_lines, plan_line
 
     parts.append("**오늘의 훈련 추천**")
-    if grade in (GRADE_EXCELLENT, GRADE_GOOD):
-        parts.append("컨디션 양호! 고강도 훈련(인터벌/템포) 가능합니다.")
-    elif grade == GRADE_MODERATE:
-        parts.append("보통 컨디션. 중강도(이지런/템포) 권장합니다.")
-    elif grade == GRADE_POOR:
-        parts.append("피로 회복이 필요합니다. 가벼운 조깅이나 휴식을 권장합니다.")
-    else:
-        parts.append("회복 데이터가 없어 부하 지표로만 판단합니다.")
-
-    if tsb is not None:
-        if tsb > 5:
-            parts.append(f"- TSB {tsb:+.1f} — 신선한 상태. 강도 높여도 됩니다.")
-        elif tsb > -10:
-            parts.append(f"- TSB {tsb:+.1f} — 적정 훈련 상태.")
-        else:
-            parts.append(f"- TSB {tsb:+.1f} — 피로 축적. 볼륨 줄이세요.")
-
-    plan = ctx.get("plan_today")
-    if plan:
-        wtype = plan.get("workout_type", "")
-        dist = plan.get("distance_km")
-        parts.append(f"\n📋 오늘 계획: **{wtype}**" + (f" {dist}km" if dist else ""))
+    lines = decision_lines(ctx)
+    parts.extend(lines if lines else ["회복·부하 데이터가 없어 판정할 수 없습니다. 동기화 후 다시 시도해주세요."])
+    line = plan_line(ctx)
+    if line:
+        parts.append(f"\n📋 {line}")
 
 
 def _respond_race_readiness(parts: list[str], ctx: dict, conn) -> None:
@@ -142,24 +113,13 @@ def _respond_race_readiness(parts: list[str], ctx: dict, conn) -> None:
 
 
 def _respond_recovery(parts: list[str], ctx: dict) -> None:
-    """회복 조언."""
+    """회복 조언 — 판정 문장은 readiness_decision(Today와 동일), 개별 수치는 참고용."""
+    from .chat_readiness import decision_lines
+
     rec = ctx.get("recovery") or {}
     raw = rec.get("raw") or {}
     parts.append("**회복 상태 분석**")
-    parts.append(f"- 회복 등급: {grade_label(rec.get('grade'))}")
-
-    bb = raw.get("body_battery")
-    if bb is not None:
-        if bb >= 60:
-            parts.append(f"- 바디배터리: {bb} — 양호. 일상 훈련 가능.")
-        elif bb >= 30:
-            parts.append(f"- 바디배터리: {bb} — 보통. 중강도까지 권장.")
-        else:
-            parts.append(f"- 바디배터리: {bb} — 낮음. 충분한 휴식 필요.")
-
-    sleep = raw.get("sleep_score")
-    if sleep is not None:
-        parts.append(f"- 수면 점수: {sleep}" + (" — 수면 부족. 일찍 취침하세요." if sleep < 60 else ""))
+    parts.extend(decision_lines(ctx) or [f"- 회복 등급: {grade_label(rec.get('grade'))}"])
 
     hrv = raw.get("hrv_value")
     if hrv is not None:

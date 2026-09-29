@@ -276,6 +276,8 @@ def build_context(conn: sqlite3.Connection, date_str: str | None = None) -> dict
     except Exception:
         ctx["plan_today"] = None
 
+    from src.ai.chat_readiness import attach_readiness
+    attach_readiness(conn, ctx, date_str)
     return ctx
 
 
@@ -388,12 +390,15 @@ def format_context_text(ctx: dict) -> str:
             m, s = divmod(r, 60)
             lines.append(f"- 목표 기록: {h}:{m:02d}:{s:02d}")
 
+    from src.ai.chat_readiness import decision_lines, plan_line
+    verdict = decision_lines(ctx)
+    if verdict:
+        lines += ["\n### 오늘 컨디션 판정 (Today·계획 조정과 동일 기준)"] + verdict
     plan = ctx.get("plan_today")
     if plan:
-        dist_str = f"{plan.get('distance_km')} km" if plan.get("distance_km") else ""
         lines += [
             "\n### 오늘 계획",
-            f"- 훈련: {plan.get('workout_type', '-')} {dist_str}",
+            f"- {plan_line(ctx)}",
             f"- 설명: {plan.get('description', '-')}",
             f"- 근거: {plan.get('rationale', '-')}",
         ]

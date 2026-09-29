@@ -1,11 +1,9 @@
 """tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
 
-회복 등급 코드(excellent/good/moderate/poor)와 규칙 코치의 비교값이 어긋나
-컨디션과 무관하게 항상 "피로 회복 필요"를 내던 버그(2026-09-27 UX 리뷰 F-DATA-01)를 막는다.
+회복 등급 코드 산출값·라벨과, 훈련 추천이 등급이 아닌 readiness_decision을 쓰는지 검증한다
+(2026-09-27 UX 리뷰 F-DATA-01 재발 방지).
 """
 from unittest.mock import patch
-
-import pytest
 
 from src.ai import chat_engine_rules as rules
 from src.analysis.recovery import (
@@ -18,20 +16,19 @@ from src.analysis.recovery import (
 )
 
 
-@pytest.mark.parametrize(
-    "grade, expected",
-    [
-        (GRADE_EXCELLENT, "고강도 훈련"),
-        (GRADE_GOOD, "고강도 훈련"),
-        (GRADE_MODERATE, "중강도"),
-        (GRADE_POOR, "피로 회복이 필요"),
-        (None, "회복 데이터가 없어"),
-    ],
-)
-def test_training_recommendation_follows_grade(grade, expected):
+def test_training_recommendation_uses_readiness_decision():
+    """회복 등급이 아니라 readiness_decision 판정(Today와 동일)을 그대로 쓴다 — 등급 매핑 버그 재발 방지."""
+    ctx = {"recovery": {"grade": GRADE_POOR},
+           "readiness_decision": {"headline": "HEADLINE", "evidence": [{"label": "TSB -30"}]}}
     parts: list[str] = []
-    rules._respond_training_recommendation(parts, {"recovery": {"grade": grade}})
-    assert expected in parts[1]
+    rules._respond_training_recommendation(parts, ctx)
+    assert parts[1:3] == ["HEADLINE", "- TSB -30"]
+
+
+def test_training_recommendation_without_decision():
+    parts: list[str] = []
+    rules._respond_training_recommendation(parts, {"recovery": {"grade": None}})
+    assert "판정할 수 없" in parts[1]
 
 
 def test_grade_codes_match_recovery_output():
