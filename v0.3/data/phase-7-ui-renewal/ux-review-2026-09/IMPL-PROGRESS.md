@@ -218,5 +218,29 @@
 - **제거**: `chat_engine_rules`의 회복 등급 임계값 기반 문구(Today와 모순되던 별도 판정). 판정 데이터 없으면 "회복·부하 데이터가 없어 판정할 수 없습니다" 안내.
 - **검증**: `pytest tests/` 1894 passed · 4 failed(기존 `test_autopilot_run_unit` 3 + 날짜 의존 `test_plan_creation` 1, 이번 변경 무관) · `check_docs.py` Errors 0. 합성 DB 복사본에서 정상(BB 높음: 채팅 "컨디션이 좋습니다", 인터벌 9.0km 유지)·고피로(BB 20, 수면 30: Today verdict=down 인터벌→휴식, 채팅 "피로가 과도합니다… → 조정: rest")가 일치함을 확인. 실 DB는 건드리지 않음(읽기 전용 판정).
 
-## 다음
-Phase 1·2 완료(2-6 성능까지). 2-3(전환 스위치)은 사용자 지시로 백로그 유지. 2026-09-29 "진단 및 설계에 따른 우선순위에 따라 해야지" 지시에 따라 로드맵 순서상 다음인 **3-1 Today IA**(design.md §9 S3) 착수, 4단계로 쪼갠 것 중 **①판정 함수 통합(`readiness_decision()`) 완료** — Today/Coach/plan 조정이 서로 다른 컨디션 판정을 내리던 근본 모순 제거(단, Today 브리핑에만 적용, Coach·adjuster 실제 호출부는 후속 작업으로 분리). **②`TodayHero`+`ReadinessGauge`+Today 재구성 완료**(3-1 2차 참조). **③레이스 허브 `/v2/today/race` 분리 완료**(3-1 3차 참조). **④주간 스트립·스트리밍 확장·빠른 입력 완료**(3-1 4차 참조) — 3-1 프론트 4단계 종료. **Coach 채팅·계획 조정 `readiness_decision()` 통합 완료**(3-1 5차 참조). 다음: 로드맵 다음 항목(3-2 이후). 사용자 지시 없이 계속 진행(반복 질문 금지). 그 외 이월 항목: narrative 백엔드 캐시 워밍(설계 결정 필요), `MonthNarrative` 레이어링 검증, D1d 활동 scope, RRI 등급 SSOT 미등재. P-1(gunicorn)·P-6(루트 라우팅)은 운영 인프라 변경이라 범위 밖으로 계속 제외.
+## 다음 (2026-09-29 인수인계)
+
+### 현재 위치
+- 브랜치 `claude/project-thread-vgunp6`(OCI 워크트리 `/home/ubuntu/projects/RunPulse-p0`), 최신 커밋 f760456(Coach·계획 조정 판정 통합) + 이 문서 커밋. 푸시 완료, **운영 미반영**(소유자의 "운영 반영 진행" 지시 전까지 배포 금지).
+- Phase 1·2 완료(2-3 전환 스위치는 백로그 유지). **3-1 Today IA 완료** — ①`readiness_decision()` ②TodayHero·ReadinessGauge ③레이스 허브 `/v2/today/race`(=3-17) ④주간 스트립·스트리밍·빠른 입력 ⑤Coach 채팅·adjuster 판정 통합. 상세는 위 "3-1 세부" 1~5차.
+- 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
+
+### 다음 착수 순서(99-summary §7, 설계서 있는 항목은 바로 구현·재확인 금지)
+1. **3-2 Coach 엔진 투명성·P8** (`30-coach-chat/design.md` S1) — `ChatResult`·`attempts`·`engine_json` 저장, 타임아웃 45초, 모델 ID config 일원화, 엔진 라벨 4상태·폴백 띠·원인 시트, `/coach/engine`. 404 원인(모델 ID)은 운영 확인 필요(추정).
+2. **3-3 Coach 근거 v2**(S2, 입력 스냅샷) → **3-4**(S3): 판정 통합은 이번에 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
+3. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
+
+### 이월(설계서 P2 이하 / 후속 정리)
+- narrative 백엔드 캐시 워밍(설계 결정 필요), `MonthNarrative` 레이어링 검증, D1d 활동 scope, RRI 등급 SSOT 미등재.
+- 미사용 후보 삭제 전 grep 확인: `lib/status.ts`·`metricMeaning.ts`·`raceHub.ts formBand`, `RecommendationCard`/`ScoreRing`.
+- `today_result.outcome_label`(현재 None), `/today/form-chart` 통합(S4)과 Today 로더 `getRaceHub()` 중복 호출 제거, `emptyTrend` 단위 테스트(+page.ts), B1 히어로 260px 스켈레톤·내부 오류 상태.
+- 목표 달성 가능성(필요 개선 %)·대안 목표, 볼륨 민감도, 당일 예상 기온 환산, 직전 마라톤 기준선, explain API `race_pred_marathon_sec`·`x.taper` 드릴.
+- 3-1 ① 이후 `ai_context.py`는 300줄 초과 상태(기존) — 손댈 때 분리.
+- P-1(gunicorn)·P-6(루트 라우팅)은 운영 인프라 변경이라 범위 밖으로 계속 제외.
+
+### 세션 시작 절차·도구
+- 워크트리에서 `git log --oneline -8`로 상태 확인 후 이 섹션부터 진행. `/home/ubuntu/projects/RunPulse`(운영 마운트)에는 쓰지 않는다.
+- pytest: `<scratchpad>/venv/bin/python -m pytest tests/`(워크트리에서) · 프론트: `frontend/`에서 `npm run test:unit && npm run check && npm run build` · 문서: `python3 scripts/check_docs.py`, `python3 scripts/gen_files_index.py`.
+- 화면 작업은 합성 DB 복사본으로 Flask+vite를 띄워 Playwright로 클릭 검증. 실 DB 수치 변경은 백업+복사본 검증 후에만.
+- 커밋에 넣지 말 것: `config.json*`(`.bak-*` 포함), `.mcp.json`, `running.db`, 실데이터, `screenshots/`. 파일 이름으로 스테이징.
+- 이번 세션 MCP 상태: Google Drive·Notion·Strava·Tredict는 claude.ai 커넥터 설정에서 인증해야 사용 가능, `pytest` MCP는 CONNECTION_CLOSED(작업에 영향 없음).
