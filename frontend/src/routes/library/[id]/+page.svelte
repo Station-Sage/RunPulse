@@ -198,7 +198,7 @@
 						/>
 					</div>
 				{/if}
-				<p class="text-xs text-fg-muted">{(streams ?? []).length.toLocaleString('ko-KR')}개 포인트{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}{#if paceSeriesClamped}{' · '}페이스 이상치 제거됨(상·하위 2% 클램프){/if}</p>
+				<p class="text-xs text-fg-muted">{(data.activity?.stream_point_count ?? (streams ?? []).length).toLocaleString('ko-KR')}개 포인트{#if (data.activity?.stream_point_count ?? 0) > (streams ?? []).length}{' '}(차트는 {(streams ?? []).length.toLocaleString('ko-KR')}개로 다운샘플){/if}{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}{#if paceSeriesClamped}{' · '}페이스 이상치 제거됨(상·하위 2% 클램프){/if}</p>
 			</section>
 		{:else}
 			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>

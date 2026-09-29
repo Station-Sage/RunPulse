@@ -28,13 +28,17 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
+### `activity_detail_service.py` (187줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+
+- functions: get_activity_detail
+
 ### `activity_impact_service.py` (157줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
 - functions: get_activity_impact
 
-### `activity_service.py` (338줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (182줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
-- functions: get_activity_list, get_activity_detail, get_activity_streams, get_activity_trend
+- functions: get_activity_list, get_activity_streams, get_activity_trend
 
 ### `adaptation_service.py` (70줄) — 플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용.
 
@@ -60,7 +64,7 @@
 
 - (public API 없음)
 
-### `metrics_browser_service.py` (118줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (141줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: get_metrics_browser, get_metric_trend
 
@@ -1270,9 +1274,9 @@
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
 
-### `test_activity_service.py` (277줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
+### `test_activity_service.py` (301줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
-- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
+- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
 
 ### `test_activity_types.py` (43줄) — activity_types.py 단위 테스트.
 
@@ -1772,9 +1776,9 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
-### `test_metrics_browser_service.py` (107줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (145줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_get_metric_trend_peak_and_change_pct
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct
 
 ### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -2274,7 +2278,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 460개 파일
+총 461개 파일
 
 ## docstring 누락
 

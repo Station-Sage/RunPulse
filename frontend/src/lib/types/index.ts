@@ -178,7 +178,10 @@ export interface ActivityDetail {
 	metrics_by_category: Record<string, ActivityMetric[]>;
 	source_comparison: Record<string, unknown>;
 	semantic_groups: Record<string, unknown>;
+	/** 요약 탭 차트용 — 최대 500포인트로 다운샘플됨(02-performance.md P-4). 전체 해상도는 streams 탭의 getActivityStreams. */
 	streams: ActivityStreamPoint[] | null;
+	/** streams 다운샘플 전 원본 포인트 수 — 화면에 실제 기록 밀도를 보여줄 때 사용. */
+	stream_point_count: number;
 	laps: ActivityLap[] | null;
 	best_efforts: unknown[] | null;
 	impact?: ActivityImpact | null;

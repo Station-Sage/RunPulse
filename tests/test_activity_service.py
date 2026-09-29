@@ -192,7 +192,31 @@ def test_get_activity_detail_streams(conn):
     detail = get_activity_detail(c, act1_id)
     assert detail["streams"] is not None
     assert len(detail["streams"]) == 3
+    assert detail["stream_point_count"] == 3
     elapsed = [s["elapsed_sec"] for s in detail["streams"]]
+    assert elapsed == sorted(elapsed)
+
+
+def test_get_activity_detail_streams_downsampled_over_500_points(db_conn):
+    """요약 탭 차트용 streams는 500포인트 초과 시 다운샘플되지만 stream_point_count는 원본 개수를 유지한다(02-performance.md P-4)."""
+    c = db_conn
+    c.execute(
+        "INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time)"
+        " VALUES ('garmin', 'long1', '롱런', 'running', '2026-04-03T06:00:00Z')"
+    )
+    act_id = c.execute("SELECT id FROM activity_summaries WHERE source_id='long1'").fetchone()[0]
+    c.executemany(
+        "INSERT INTO activity_streams (activity_id, source, elapsed_sec, heart_rate) VALUES (?, 'garmin', ?, ?)",
+        [(act_id, i, 140 + i % 20) for i in range(1200)],
+    )
+    c.commit()
+
+    detail = get_activity_detail(c, act_id)
+    assert detail["stream_point_count"] == 1200
+    assert len(detail["streams"]) == 500
+    elapsed = [s["elapsed_sec"] for s in detail["streams"]]
+    assert elapsed[0] == 0
+    assert elapsed[-1] == 1199
     assert elapsed == sorted(elapsed)
 
 
