@@ -116,7 +116,7 @@ class TestViewEvidence:
         assert msg["evidence_legacy"] is False
         assert tsb["drifted"] is True
         assert tsb["current"]["value"] == -3.3
-        assert tsb["current"]["display"] == "-3.3"
+        assert tsb["current"]["display"] == "\u22123.3"
         assert tsb["snapshot"]["value"] == -20.0
 
     def test_no_drift_when_unchanged(self, db_conn):

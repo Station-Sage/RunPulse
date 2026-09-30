@@ -9,6 +9,7 @@ import sqlite3
 
 from src.training.adjuster import adjust_todays_plan
 from src.training.fatigue import readiness_decision
+from src.utils.format_ko import fmt_distance, workout_ko
 
 
 def attach_readiness(conn: sqlite3.Connection, ctx: dict, date_str: str) -> None:
@@ -38,10 +39,10 @@ def plan_line(ctx: dict) -> str | None:
     adj = ctx.get("plan_adjustment")
     plan = ctx.get("plan_today")
     if adj and adj.get("adjusted"):
-        dist = f" {adj['distance_km']}km" if adj.get("distance_km") else ""
-        return (f"오늘 계획: {adj['original_type']}{dist} → 조정: **{adj['adjusted_type']}** "
+        dist = f" {fmt_distance(adj['distance_km'])}" if adj.get("distance_km") else ""
+        return (f"오늘 계획: {workout_ko(adj['original_type'])}{dist} → 조정: {workout_ko(adj['adjusted_type'])} "
                 f"({adj.get('adjustment_reason')})")
     if plan:
-        dist = f" {plan['distance_km']}km" if plan.get("distance_km") else ""
-        return f"오늘 계획: **{plan.get('workout_type', '')}**{dist}"
+        dist = f" {fmt_distance(plan['distance_km'])}" if plan.get("distance_km") else ""
+        return f"오늘 계획: {workout_ko(plan.get('workout_type', ''))}{dist}"
     return None

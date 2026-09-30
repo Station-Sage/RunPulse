@@ -55,7 +55,7 @@ def test_plan_line_shows_original_and_adjusted(conn):
     _seed(conn, bb=20, tsb=-30)
     ctx = build_context(conn, TODAY)
     line = plan_line(ctx)
-    assert "interval" in line and "rest" in line and "조정" in line
+    assert "인터벌" in line and "휴식" in line and "조정" in line
 
 
 def test_chat_verdict_equals_today_headline(conn):
@@ -70,7 +70,7 @@ def test_chat_verdict_equals_today_headline(conn):
 def test_rested_runner_keeps_planned_session(conn):
     _seed(conn, bb=85, tsb=8, workout="tempo", sleep=80)
     text = rule_based_response(conn, "오늘 훈련 뭐 해?")
-    assert "→ 조정" not in text and "tempo" in text
+    assert "→ 조정" not in text and "템포" in text
 
 
 def test_no_data_graceful(conn):

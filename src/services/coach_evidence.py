@@ -11,6 +11,8 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 
+from src.utils.format_ko import fmt_distance, fmt_signed, workout_ko
+
 MAX_ITEMS = 8
 DRIFT_ABS = 5.0
 DRIFT_REL = 0.25
@@ -70,12 +72,6 @@ def _read_current(conn: sqlite3.Connection, item: dict) -> dict | None:
     return None
 
 
-def _fmt(value) -> str:
-    if not isinstance(value, (int, float)):
-        return str(value)
-    return f"{value:+.0f}" if abs(value) >= 10 else f"{value:+.1f}"
-
-
 def is_drifted(then, now) -> bool:
     """|now−then| ≥ max(5, |then|×0.25) 이거나 부호가 뒤집힌 경우."""
     if not isinstance(then, (int, float)) or not isinstance(now, (int, float)):
@@ -101,7 +97,7 @@ def with_current(conn: sqlite3.Connection, item: dict) -> dict:
     out["current"] = None
     out["drifted"] = False
     if cur:
-        out["current"] = {**cur, "display": _fmt(cur["value"])}
+        out["current"] = {**cur, "display": fmt_signed(cur["value"])}
         then = item["snapshot"].get("value")
         status_changed = bool(item.get("status")) and _status_of(item["metric"], cur["value"]) not in (None, item["status"])
         out["drifted"] = is_drifted(then, cur["value"]) or status_changed
@@ -136,10 +132,11 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     except Exception:
         plan_adj = None
     if plan_adj:
-        dist = f" {plan_adj['distance_km']}km" if plan_adj.get("distance_km") else ""
+        dist = f" {fmt_distance(plan_adj['distance_km'])}" if plan_adj.get("distance_km") else ""
         adjusted = bool(plan_adj.get("adjusted"))
-        label = (f"오늘 계획: {plan_adj['original_type']}{dist} → {plan_adj['adjusted_type']}" if adjusted
-                 else f"오늘 계획: {plan_adj.get('workout_type', plan_adj.get('original_type', ''))}{dist}")
+        label = (f"오늘 계획: {workout_ko(plan_adj['original_type'])}{dist} → {workout_ko(plan_adj['adjusted_type'])}"
+                 if adjusted else
+                 f"오늘 계획: {workout_ko(plan_adj.get('workout_type', plan_adj.get('original_type', '')))}{dist}")
         items.append({"type": "plan", "metric": "plan_session", "value": None, "label": label,
                       "_rest": adjusted})
     ci = get_todays_checkin(conn, date)
@@ -147,8 +144,8 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
         f = ci.get("fatigue")
         rest = bool(ci.get("pain")) or (f is not None and f >= 7)
         go = not rest and f is not None and f <= 4
-        parts = ([f"피로 {f}/10"] if f is not None else []) + (["통증 있음"] if ci.get("pain") else [])
-        items.append({"type": "user_input", "metric": "checkin", "value": f, "label": "체크인: " + " · ".join(parts),
+        parts = ([f"피로 {f}"] if f is not None else []) + (["통증 있음"] if ci.get("pain") else [])
+        items.append({"type": "user_input", "metric": "checkin", "value": f, "label": " · ".join(parts) + " (직접 입력)",
                       "pinned": True, "_rest": True if rest else (False if go else None)})
     for it in items:
         sig = it.pop("_rest") if "_rest" in it else _rest_signal(it["metric"], it.get("value"))
