@@ -8,7 +8,7 @@ import time
 
 DEFAULT_MODELS = {
     "gemini": "gemini-2.5-flash",
-    "groq": "llama-3.3-70b-versatile",
+    "groq": "openai/gpt-oss-120b",
     "openai": "gpt-4o-mini",
     "claude": "claude-sonnet-4-5",
 }

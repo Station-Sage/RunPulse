@@ -71,7 +71,8 @@ def test_success_uses_config_model_only(monkeypatch):
     assert seen["model"] == DEFAULT_MODELS["gemini"] == "gemini-2.5-flash"
     prov.complete("gemini", "hi", {"ai": {"gemini_api_key": "k", "gemini_model": "my-model"}})
     assert seen["model"] == "my-model"
-    assert model_for("groq", None) == DEFAULT_MODELS["groq"]
+    assert model_for("groq", None) == DEFAULT_MODELS["groq"] == "openai/gpt-oss-120b"
+    assert model_for("groq", {"ai": {"groq_model": "x"}}) == "x"
 
 
 def test_deadline_exhausted_raises_timeout():

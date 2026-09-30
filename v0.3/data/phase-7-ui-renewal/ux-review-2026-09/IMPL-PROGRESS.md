@@ -4,7 +4,7 @@
 
 ## 작업 규칙
 - 작업 위치: worktree `/home/ubuntu/projects/RunPulse-p0` (브랜치 `claude/project-thread-vgunp6`).
-- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 이후 커밋은 다시 "운영 반영" 지시 시에만.
+- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 2026-09-30 12:11 — 266ebee까지(3-2·3-3) ff 병합·`npm run build`·`docker restart`(스키마 v23 자동 마이그레이션). 이후 커밋은 다시 "운영 반영" 지시 시에만.
   메인 폴더 `/home/ubuntu/projects/RunPulse`는 운영 컨테이너가 `--reload`로 마운트 → 직접 편집 금지.
 - 운영 반영: 메인 폴더 `renew/data-architecture`에 ff 병합 → `frontend`에서 `npm run build` → (Dockerfile 변경 시) `docker compose build && up -d`.
 - 테스트: `$V -m pytest tests/`(venv: 스크래치 `venv`, 없으면 `python3 -m venv` + `pip install -r requirements.txt pytest`), `cd frontend && npm run test:unit && npm run check`.
@@ -231,7 +231,9 @@
 - **설계 편차**: 투영 칩의 도착지 D2 `x.taper` 패널이 아직 없어 `/v2/today/race`(레이스 허브의 "레이스 아침 폼" 시나리오)로 연결. `x.taper` 드릴 신설 시 `chipTarget`만 바꾸면 된다.
 - **실제 브라우저 확인**(Playwright, 합성 DB Flask + 빌드 산출물, 모바일 390, Coach API는 `page.route()`로 근거 시나리오 주입): 근거 행 2개, 체크인 pinned 노출·"반대 신호" 라벨, "+n 근거" 토글, 접힘 시 투영 칩 숨김/펼침 시 완곡 문구, legacy 안내, drift 배너, 칩 클릭 → `?drill=m.tsb@…` + 스냅샷 줄·변경 안내, 투영 칩 → `/today/race`, 페이지 에러 0건(11/11 통과). 스크린샷 3장(접힘·펼침·드릴)은 스크래치패드에만 두고 커밋하지 않음.
 - **검증**: `pytest tests/` 1953 passed · 247 skipped · 4 failed(기존: `test_autopilot_run_unit` 3 + `test_compliance_pct_ignores_prior_goal_leftovers` 1) · 프론트 unit 257 · `npm run check` 0 errors · build OK.
-- **운영 반영 대기**: 3-2와 함께 다음 "운영 반영" 지시 때 나간다. 저장 형식이 바뀌어(스냅샷 추가) 기존 메시지는 legacy로 표시되며 DB 마이그레이션은 없음.
+- **운영 반영 완료**(2026-09-30 12:11, 266ebee): 저장 형식이 바뀌어(스냅샷 추가) 기존 메시지는 legacy로 표시. **정정**: 3-2의 스키마 v23(`chat_messages` 4컬럼 + `coach_consent`)이 이번 배포에서 처음 적용됐다(추가형·멱등). 사전 백업 `data/users/<user>/running.db.bak-20260930-pre-v23`(integrity ok). 배포 후 pansongit DB v23·컬럼 확인, 컨테이너 기동·트레이스백 0.
+- **알려진 경고(기존)**: `pansong.us@gmail.com` DB는 테이블 없는 빈 파일(root 소유, user_version 0)이라 기동 시 "no such table: activity_summaries" 경고가 9/28부터 매번 뜬다. 이번 배포와 무관, 데이터 영향 없음.
+- **Groq 404 원인·수정**: Groq `/models` 목록에서 기본 모델 `llama-3.3-70b-versatile`이 사라져 404. 기본값을 `openai/gpt-oss-120b`로 교체(`provider_common.DEFAULT_MODELS`, 테스트 추가). 운영 반영은 다음 "운영 반영" 지시 때.
 
 ## 다음 (2026-09-29 인수인계)
 
