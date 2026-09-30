@@ -1,51 +1,54 @@
-"""tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
+"""Coach 규칙 답변 — 회복 등급 → 강도 매핑과 오늘 판정 일치 (design 30-coach-chat §7.2, §8).
 
-회복 등급 코드 산출값·라벨과, 훈련 추천이 등급이 아닌 readiness_decision을 쓰는지 검증한다
-(2026-09-27 UX 리뷰 F-DATA-01 재발 방지).
+5단계 등급 parametrize, 체크인 하향, 코드에 A/B/C 문자열이 없음을 검증한다.
 """
-from unittest.mock import patch
+import re
+from pathlib import Path
 
-from src.ai import chat_engine_rules as rules
-from src.analysis.recovery import (
-    GRADE_EXCELLENT,
-    GRADE_GOOD,
-    GRADE_MODERATE,
-    GRADE_POOR,
-    _recovery_grade,
-    grade_label,
+import pytest
+
+from src.ai.coach_rule_grade import (
+    NO_RECOVERY_DATA, RecoveryGrade, checkin_drop, intensity_label, intensity_step,
 )
+from src.analysis.recovery import _recovery_grade
 
 
-def test_training_recommendation_uses_readiness_decision():
-    """회복 등급이 아니라 readiness_decision 판정(Today와 동일)을 그대로 쓴다 — 등급 매핑 버그 재발 방지."""
-    ctx = {"recovery": {"grade": GRADE_POOR},
-           "readiness_decision": {"headline": "HEADLINE", "evidence": [{"label": "TSB -30"}]}}
-    parts: list[str] = []
-    rules._respond_training_recommendation(parts, ctx)
-    assert parts[1:3] == ["HEADLINE", "- TSB -30"]
+@pytest.mark.parametrize("raw,label", [
+    ("excellent", "고강도 가능"), ("good", "고강도 가능"), ("moderate", "중강도"), ("poor", "회복"),
+])
+def test_grade_to_intensity(raw, label):
+    assert intensity_label(intensity_step(RecoveryGrade.parse(raw), "low")) == label
 
 
-def test_training_recommendation_without_decision():
-    parts: list[str] = []
-    rules._respond_training_recommendation(parts, {"recovery": {"grade": None}})
-    assert "판정할 수 없" in parts[1]
+def test_no_grade_uses_fatigue_level():
+    assert RecoveryGrade.parse(None) is None
+    assert intensity_label(intensity_step(None, "low")) == "고강도 가능"
+    assert intensity_label(intensity_step(None, "high")) == "회복"
+    assert "회복 데이터 없음" in NO_RECOVERY_DATA
 
 
 def test_grade_codes_match_recovery_output():
-    """규칙 코치가 비교하는 코드 집합이 실제 등급 산출값과 같아야 한다."""
+    """등급 enum이 recovery 모듈이 실제로 산출하는 코드와 같아야 한다."""
     produced = {_recovery_grade(s) for s in (95, 70, 50, 10)}
-    assert produced == {GRADE_EXCELLENT, GRADE_GOOD, GRADE_MODERATE, GRADE_POOR}
+    assert produced == {g.value for g in RecoveryGrade}
 
 
-def test_grade_label_korean():
-    assert grade_label(GRADE_GOOD) == "좋음"
-    assert grade_label(None) == "정보 없음"
-    assert grade_label("A") == "정보 없음"
+def test_fatigue_level_caps_good_grade():
+    assert intensity_step(RecoveryGrade.EXCELLENT, "moderate") == 1
+    assert intensity_step(RecoveryGrade.EXCELLENT, "high") == 0
 
 
-def test_today_deep_formats_pace():
-    ctx = {"today_activity": {"distance_km": 9.3, "avg_pace_sec_km": 356.8, "avg_hr": 142}}
-    with patch("src.ai.ai_context.build_context", return_value=ctx):
-        out = rules.rule_based_response(None, "", chip_id="today_deep")
-    assert "5:56/km" in out
-    assert "초/km" not in out
+def test_checkin_steps_down_at_least_one_level():
+    base = intensity_step(RecoveryGrade.GOOD, "low")
+    assert intensity_step(RecoveryGrade.GOOD, "low", {"fatigue": 8, "pain": 0}) == base - 1
+    assert intensity_step(RecoveryGrade.GOOD, "low", {"fatigue": 9}) == base - 2
+    assert intensity_step(RecoveryGrade.GOOD, "low", {"fatigue": 3}) == base
+    assert checkin_drop({"pain": 1, "fatigue": None}) == 1
+    assert checkin_drop(None) == 0
+    assert intensity_step(RecoveryGrade.POOR, "high", {"fatigue": 9}) == 0
+
+
+def test_no_abc_grade_strings_in_rule_modules():
+    for name in ("coach_rule_grade", "coach_rule_handlers", "coach_rule_plan_handlers", "chat_engine_rules"):
+        src = Path(f"src/ai/{name}.py").read_text(encoding="utf-8")
+        assert not re.search(r"""['"][ABC]['"]""", src), name

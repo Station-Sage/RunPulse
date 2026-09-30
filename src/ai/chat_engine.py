@@ -5,7 +5,7 @@ config.json의 ai.provider 설정에 따라 다른 AI API 호출.
 
 모듈 분리:
   - chat_engine_providers.py: 외부 API provider 호출 (Claude/OpenAI/Gemini/Groq/Genspark)
-  - chat_engine_rules.py:    규칙 기반 fallback 응답 (키워드 매칭)
+  - chat_engine_rules.py:    규칙 기반 fallback 응답 (chip_id 핸들러 디스패치)
   - chat_engine.py (이 파일): 코어 chat 함수 + 시스템 프롬프트 + re-export
 """
 from __future__ import annotations
@@ -82,8 +82,9 @@ def chat_result(
     as_of = date.today().isoformat()
     if text and used:
         return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope)
-    rule_text = rule_based_response(conn, user_message, chip_id)
-    return ChatResult(rule_text, engine_for_rule(provider, config, empty_reason, attempts), as_of=as_of)
+    answer = rule_based_response(conn, user_message, chip_id)
+    return ChatResult(answer.text, engine_for_rule(provider, config, empty_reason, attempts),
+                      evidence=answer.evidence, followups=list(answer.followups), as_of=as_of)
 
 
 def chat(

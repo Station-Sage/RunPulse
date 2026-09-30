@@ -2,7 +2,7 @@
 
 build_daily_briefing()/build_activity_analysis()/build_ai_context()는 서비스 레이어만
 호출(직접 SQL 없음). build_context()/format_context_text()/format_activity_context()는
-Phase 5 이전부터 chat_engine_rules.py(규칙 기반 fallback)·briefing.py(클립보드 프롬프트)가
+Phase 5 이전부터 chat_engine_rules.py(규칙 기반 fallback, 현재는 coach_rule_handlers로 대체)·briefing.py(클립보드 프롬프트)가
 쓰던 dict 기반 컨텍스트로, analysis/training 모듈을 직접 호출하는 별도 경로다(레거시,
 서비스 레이어 정책 예외 — 두 소비처 모두 서비스 레이어 도입 이전에 작성됨).
 
@@ -193,8 +193,8 @@ _RUN_TYPES = (
 def build_context(conn: sqlite3.Connection, date_str: str | None = None) -> dict:
     """규칙 기반 fallback·클립보드 프롬프트용 dict 컨텍스트.
 
-    chat_engine_rules.rule_based_response()와 briefing.py의 프롬프트 조립 함수가
-    이 dict 키를 그대로 읽는다 — 키 이름을 바꾸면 두 소비처가 동시에 깨진다.
+    briefing.py의 프롬프트 조립 함수와 format_context_text()가 이 dict 키를 그대로 읽는다 —
+    키 이름을 바꾸면 소비처가 함께 깨진다.
     """
     from src.analysis.recovery import get_recovery_status
     from src.analysis.trends import calculate_acwr, weekly_trends

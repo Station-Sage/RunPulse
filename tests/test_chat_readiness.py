@@ -62,15 +62,15 @@ def test_chat_verdict_equals_today_headline(conn):
     _seed(conn, bb=20, tsb=-30)
     headline = readiness_decision(conn, date=TODAY)["headline"]
     for msg in ("오늘 훈련 뭐 해?", "회복 상태 어때?"):
-        assert headline in rule_based_response(conn, msg)
-    assert headline in rule_based_response(conn, "x", chip_id="recovery_advice")
+        assert headline in rule_based_response(conn, msg).text
+    assert rule_based_response(conn, "x", chip_id="today_advice").text.startswith(headline)
     assert headline in format_context_text(build_context(conn, TODAY))
 
 
 def test_rested_runner_keeps_planned_session(conn):
     _seed(conn, bb=85, tsb=8, workout="tempo", sleep=80)
-    text = rule_based_response(conn, "오늘 훈련 뭐 해?")
-    assert "→ 조정" not in text and "템포" in text
+    text = rule_based_response(conn, "", chip_id="today_advice").text
+    assert "낮추는 게 좋아요" not in text and "템포" in text
 
 
 def test_no_data_graceful(conn):
@@ -78,4 +78,4 @@ def test_no_data_graceful(conn):
     attach_readiness(conn, ctx, TODAY)
     assert decision_lines({"readiness_decision": None}) == []
     assert plan_line({}) is None
-    assert isinstance(rule_based_response(conn, "오늘 훈련 뭐 해?"), str)
+    assert isinstance(rule_based_response(conn, "오늘 훈련 뭐 해?").text, str)

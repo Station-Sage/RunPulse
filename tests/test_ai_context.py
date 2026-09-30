@@ -218,12 +218,12 @@ def test_rule_based_response_does_not_raise(conn):
 
     c, _ = conn
     result = rule_based_response(c, "오늘 훈련 강도는 어느 정도가 좋을까?")
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert isinstance(result.text, str)
+    assert len(result.text) > 0
 
 
 def test_rule_based_response_no_data_graceful(db_conn):
     from src.ai.chat_engine_rules import rule_based_response
 
     result = rule_based_response(db_conn, "이번주 어때?")
-    assert isinstance(result, str)
+    assert isinstance(result.text, str)

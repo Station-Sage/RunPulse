@@ -11,7 +11,7 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 
-from src.utils.format_ko import fmt_distance, fmt_signed, workout_ko
+from src.utils.format_ko import fmt_distance, fmt_int, fmt_signed, workout_ko
 
 MAX_ITEMS = 8
 DRIFT_ABS = 5.0
@@ -119,13 +119,25 @@ def _cited(text: str, item: dict) -> bool:
     return False
 
 
+def _relabel(item: dict) -> dict:
+    """판정 근거 라벨을 §4.5 표기(한국어 라벨·부호 있는 정수/소수 1자리)로 바꾼다."""
+    v, m = item.get("value"), item.get("metric")
+    if m == "tsb":
+        item["label"] = f"폼(TSB) {fmt_signed(v)} ({item.get('status_label') or '-'})"
+    elif m == "body_battery":
+        item["label"] = f"바디 배터리 {fmt_int(v)}"
+    elif m == "sleep_score":
+        item["label"] = f"수면 점수 {fmt_int(v)}"
+    return item
+
+
 def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     """규칙 경로가 쓰는 입력 — 판정 근거 → 계획 세션 → 체크인 (role은 판정 방향과 비교해 부여)."""
     from src.services.today_service import get_todays_checkin
     from src.training.fatigue import readiness_decision
     d = readiness_decision(conn, date=date)
     rest_dir = d["fatigue_level"] in ("moderate", "high")
-    items = [dict(e) for e in d["evidence"]]
+    items = [_relabel(dict(e)) for e in d["evidence"]]
     try:
         from src.training.adjuster import adjust_todays_plan
         plan_adj = adjust_todays_plan(conn, date=date)
