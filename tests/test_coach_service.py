@@ -86,6 +86,12 @@ class TestCreateThread:
         assert all("스레드1" in m[0] or m == msgs_1[-1] for m in msgs_1)
 
 
+def _seed_tsb(conn):
+    conn.execute(
+        "INSERT INTO metric_store (scope_type, scope_id, metric_name, provider, numeric_value, is_primary)"
+        " VALUES ('daily', '2026-09-30', 'tsb', 'runpulse', -20, 1)")
+
+
 class TestEvidence:
     """Coach 답변 근거(evidence) 저장·반환 테스트."""
 
@@ -106,14 +112,21 @@ class TestEvidence:
         ev = result["message"]["evidence"]
         assert isinstance(ev, list)
 
-    def test_create_thread_evidence_first_metric(self, db_conn):
-        result = coach_service.create_thread(db_conn, "레이스 전략 알려줘")
+    def test_create_thread_evidence_has_snapshot_and_role(self, db_conn):
+        _seed_tsb(db_conn)
+        result = coach_service.create_thread(db_conn, "TSB -20 기준으로 알려줘")
         ev = result["message"]["evidence"]
-        assert len(ev) > 0
-        assert ev[0]["metric"] == "race_days_left"
+        assert ev and ev[0]["metric"] == "tsb"
+        assert ev[0]["role"] in ("supports", "caveat")
+        assert "snapshot" in ev[0] and "drifted" in ev[0]
+
+    def test_create_thread_empty_db_has_no_evidence(self, db_conn):
+        result = coach_service.create_thread(db_conn, "레이스 전략 알려줘")
+        assert result["message"]["evidence"] == []
 
     def test_get_thread_assistant_has_evidence_list(self, db_conn):
-        created = coach_service.create_thread(db_conn, "오늘 컨디션")
+        _seed_tsb(db_conn)
+        created = coach_service.create_thread(db_conn, "TSB -20 컨디션")
         thread_id = created["thread"]["id"]
         detail = coach_service.get_thread(db_conn, thread_id)
         assistant_msg = next(m for m in detail["messages"] if m["role"] == "assistant")
@@ -135,15 +148,6 @@ class TestEvidence:
         detail = coach_service.get_thread(db_conn, thread_id)
         for msg in detail["messages"]:
             assert "evidence_json" not in msg
-
-    def test_build_evidence_exception_returns_empty(self, monkeypatch):
-        """get_today_briefing가 예외를 발생시키면 build_evidence는 빈 리스트를 반환."""
-        monkeypatch.setattr(
-            "src.services.today_service.get_today_briefing",
-            lambda conn, date=None: (_ for _ in ()).throw(RuntimeError("fail")),
-        )
-        result = coach_service.build_evidence(None)  # type: ignore[arg-type]
-        assert result == []
 
 
 class TestAddMessage:

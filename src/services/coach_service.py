@@ -17,19 +17,11 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from datetime import date
 
 log = logging.getLogger(__name__)
 
 _TITLE_MAX_LEN = 30
-
-
-def build_evidence(conn: sqlite3.Connection) -> list[dict]:
-    """오늘 브리핑의 근거를 Coach 답변 근거로 재사용 — 실패하면 빈 리스트."""
-    try:
-        from src.services.today_service import get_today_briefing
-        return get_today_briefing(conn)["evidence"][:5]
-    except Exception:
-        return []
 
 
 def _derive_title(message: str) -> str:
@@ -58,9 +50,10 @@ def list_threads(conn: sqlite3.Connection) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def _message_view(row: sqlite3.Row) -> dict:
+def _message_view(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
     """chat_messages 행 → API 메시지 dict(evidence·engine·sent_scope 파싱)."""
     from src.services.coach_engine_health import message_engine_view
+    from src.services.coach_evidence import view_evidence
     msg = dict(row)
     raw = msg.pop("evidence_json", None)
     try:
@@ -75,6 +68,7 @@ def _message_view(row: sqlite3.Row) -> dict:
         msg["sent_scope"] = None
     if msg["role"] == "assistant":
         msg["engine"] = message_engine_view(engine_json, msg.get("ai_model"))
+        view_evidence(conn, msg)
     return msg
 
 
@@ -95,7 +89,7 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
         f"SELECT {_MESSAGE_COLUMNS} FROM chat_messages WHERE thread_id = ? ORDER BY id",
         (thread_id,),
     ).fetchall()
-    return {"thread": dict(thread), "messages": [_message_view(m) for m in messages]}
+    return {"thread": dict(thread), "messages": [_message_view(conn, m) for m in messages]}
 
 
 def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: dict | None):
@@ -108,7 +102,9 @@ def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: 
 
 def _store_reply(conn: sqlite3.Connection, thread_id: int, result, message_id: int | None = None) -> dict:
     """assistant 메시지 저장(message_id가 있으면 그 행을 덮어씀 = 다시 생성) 후 API 뷰 반환."""
-    evidence = build_evidence(conn)
+    from src.services.coach_evidence import build_answer_evidence
+    evidence = build_answer_evidence(conn, result.text, llm=result.engine.status == "ok",
+                                     as_of=result.as_of or date.today().isoformat())
     values = (
         result.text, result.engine.provider, json.dumps(evidence, ensure_ascii=False) if evidence else None,
         "done", json.dumps(result.engine_dict(), ensure_ascii=False), result.as_of,
@@ -130,7 +126,7 @@ def _store_reply(conn: sqlite3.Connection, thread_id: int, result, message_id: i
     conn.commit()
     conn.row_factory = sqlite3.Row
     row = conn.execute(f"SELECT {_MESSAGE_COLUMNS} FROM chat_messages WHERE id = ?", (message_id,)).fetchone()
-    return _message_view(row)
+    return _message_view(conn, row)
 
 
 def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict | None = None) -> dict:

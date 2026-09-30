@@ -62,7 +62,7 @@ def message_engine_view(engine_json: str | None, ai_model: str | None) -> dict:
         if ai_model and ai_model != "rule":
             return {"status": "ok", "label": model_label(ai_model, None), "provider": ai_model,
                     "model": None, "reason": None}
-        return {"status": "legacy_rule", "label": "규칙 답변", "provider": "rule", "model": None, "reason": None}
+        return {"status": "legacy_rule", "label": "규칙 답변(이전 방식)", "provider": "rule", "model": None, "reason": None}
     status = data.get("status", "ok")
     reason = data.get("fallback_reason")
     return {
