@@ -1,15 +1,19 @@
 <script lang="ts">
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
-	import { createThread } from '$lib/api/coach';
+	import { createThread, putConsent, type ConsentInput } from '$lib/api/coach';
 	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
 	import { formatRelativeTime, weekProgressLabel } from '$lib/format';
 	import { stripMarkdown } from '$lib/markdownLite';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import type { ChatThread, PainLevel, CheckinRow } from '$lib/types';
+	import type { ChatThread, PainLevel, CheckinRow, CoachEngine } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import DegradedBanner from '$lib/components/coach/DegradedBanner.svelte';
+	import EngineLine from '$lib/components/coach/EngineLine.svelte';
+	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
+	import { needsConsent } from '$lib/coachEngine';
 	import { homeTopics } from '$lib/coachSuggestions';
 	import { staleLabel, threadTitles } from '$lib/threadAge';
 
@@ -23,6 +27,24 @@
 	let isCreating = $state(false);
 	let newInput = $state('');
 	let sending = $state(false);
+	let engine = $state<CoachEngine | null>(data.engine);
+	let scopeOpen = $state(false);
+	let consentPending = $state(false);
+
+	async function saveConsent(input: ConsentInput) {
+		const consent = await putConsent(input);
+		if (engine) engine = { ...engine, consent };
+		scopeOpen = false;
+		if (consentPending) {
+			consentPending = false;
+			submitNew();
+		}
+	}
+
+	function closeScope() {
+		scopeOpen = false;
+		consentPending = false;
+	}
 
 	const topics = $derived(homeTopics(data.goal));
 
@@ -49,6 +71,11 @@
 	async function submitNew() {
 		const msg = newInput.trim();
 		if (!msg || sending) return;
+		if (needsConsent(engine)) {
+			consentPending = true;
+			scopeOpen = true;
+			return;
+		}
 		sending = true;
 		errorMessage = null;
 		try {
@@ -73,6 +100,7 @@
 <svelte:head><title>Coach · RunPulse</title></svelte:head>
 
 <div class="flex flex-col">
+	<DegradedBanner {engine} />
 	<!-- 최근 대화 섹션 -->
 	<div class="border-b border-border-subtle px-4 py-3">
 		<p class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</p>
@@ -128,6 +156,9 @@
 				disabled={sending}
 				class="w-full resize-none rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50"
 			></textarea>
+			<div class="mt-1">
+				<EngineLine {engine} onOpenScope={() => (scopeOpen = true)} />
+			</div>
 			<div class="mt-2 flex justify-end gap-2">
 				<button
 					type="button"
@@ -231,3 +262,7 @@
 		</div>
 	{/if}
 </div>
+
+{#if scopeOpen && engine}
+	<ScopeSheet {engine} requireConsent={needsConsent(engine)} onSave={saveConsent} onClose={closeScope} />
+{/if}

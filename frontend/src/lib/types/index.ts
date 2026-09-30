@@ -211,6 +211,56 @@ export interface ChatMessage {
 	ai_model: string | null;
 	created_at?: string;
 	evidence?: BriefingEvidence[];
+	status?: string;
+	/** assistant 메시지만 — 답변을 만든 엔진(30-coach-chat design §4.1). */
+	engine?: EngineView;
+	as_of?: string | null;
+	sent_scope?: ScopeItem[] | null;
+}
+
+export type EngineStatus =
+	| 'ok' | 'fallback' | 'rule_only' | 'rule_by_choice' | 'error' | 'cancelled' | 'legacy_rule';
+
+export interface EngineView {
+	status: EngineStatus;
+	label: string;
+	provider: string | null;
+	model: string | null;
+	reason: string | null;
+}
+
+export interface ScopeItem {
+	item: string;
+	period: string;
+	optional: boolean;
+}
+
+export interface CoachConsent {
+	provider: string;
+	accepted_at: string | null;
+	exclude_notes: boolean;
+	tools_enabled: boolean;
+	fallback_enabled: boolean;
+}
+
+export interface EngineHealth {
+	consecutive_failures: number;
+	last_ok_at: string | null;
+	last_error: { provider: string | null; model: string | null; status: number | null; reason: string | null; at: string } | null;
+	degraded: boolean;
+}
+
+export interface CoachEngine {
+	mode: 'llm' | 'rule_only' | 'rule_by_choice';
+	selected: { provider: string; model: string | null };
+	chain: { provider: string; model: string }[];
+	health: EngineHealth;
+	consent: CoachConsent | null;
+	scope: ScopeItem[];
+}
+
+export interface RegenerateResponse {
+	message: ChatMessage;
 }
 
 export interface ThreadsListResponse {

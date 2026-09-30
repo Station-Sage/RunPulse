@@ -219,6 +219,12 @@
 - **제거**: `chat_engine_rules`의 회복 등급 임계값 기반 문구(Today와 모순되던 별도 판정). 판정 데이터 없으면 "회복·부하 데이터가 없어 판정할 수 없습니다" 안내.
 - **검증**: `pytest tests/` 1894 passed · 4 failed(기존 `test_autopilot_run_unit` 3 + 날짜 의존 `test_plan_creation` 1, 이번 변경 무관) · `check_docs.py` Errors 0. 합성 DB 복사본에서 정상(BB 높음: 채팅 "컨디션이 좋습니다", 인터벌 9.0km 유지)·고피로(BB 20, 수면 30: Today verdict=down 인터벌→휴식, 채팅 "피로가 과도합니다… → 조정: rest")가 일치함을 확인. 실 DB는 건드리지 않음(읽기 전용 판정).
 
+### 3-2 세부 (Coach 엔진 투명성·P8, `30-coach-chat/design.md` S1 — 설계서 있는 항목은 바로 구현하라는 지시로 진행)
+- **백엔드**(8b4fe1b·b84ce66·7fe38af·b9d9e3e): `ChatResult`/`EngineInfo`/`Attempt`(`chat_engine_result.py`), 체인은 동의한 provider만(+`fallback_enabled` 시 폴백), 전체 예산 45초, 모델 ID를 config로 일원화(기본 `gemini-2.5-flash` — 운영 404 원인이던 `gemini-2.0-flash` 폐기), `engine_json` 저장, `GET /coach/engine`·`PUT /coach/consent`·`POST /coach/threads/<tid>/messages/<mid>/regenerate`. 동의 없으면 `rule_only`(reason `no_consent`). v1 `provider="rule"`은 더 이상 gemini/groq를 부르지 않음(`rule_by_choice`).
+- **프론트**: `lib/coachEngine.ts`(reasonText·needsConsent·engineLineText·bannerFor·visibleScope, 단위 테스트 5), `components/coach/`(EngineLine·DegradedBanner·ScopeSheet·EngineSheet·MessageBlock). 홈·스레드·새 채팅 입력창 위 엔진 한 줄, 첫 LLM 전송 전 동의 시트(provider 변경 시 재동의), 범위 시트 토글 3종(메모 제외·도구·폴백), 폴백 메시지 앰버 배너 + `[AI로 다시 생성]`·`[원인 보기 ›]`, 연속 3회 폴백 시 H0 배너.
+- **검증**: 백엔드 `pytest tests/` 1939 passed · 247 skipped · 4 failed(기존). 프론트 unit 252 · `npm run check` 0 errors · build OK · `check_docs.py` 통과. 합성 DB 서버 + Playwright로 홈 플로우 5·스레드 플로우 11 항목 통과(동의 시트→동의 PUT→전송 재개, 폴백 라벨·배너·원인 시트·재생성, degraded 배너, `rule_by_choice`/`rule_only` 라인, 스레드 전송 동의 게이트 0 send).
+- **운영 반영 대기**: 모델 404 수정이 백엔드에 있으므로 다음 "운영 반영" 지시 때 함께 나간다(Dockerfile·의존성·DB 값 변경 없음).
+
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치
@@ -227,9 +233,8 @@
 - 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
 
 ### 다음 착수 순서(99-summary §7, 설계서 있는 항목은 바로 구현·재확인 금지)
-1. **3-2 Coach 엔진 투명성·P8** (`30-coach-chat/design.md` S1) — `ChatResult`·`attempts`·`engine_json` 저장, 타임아웃 45초, 모델 ID config 일원화, 엔진 라벨 4상태·폴백 띠·원인 시트, `/coach/engine`. 404 원인(모델 ID)은 운영 확인 필요(추정).
-2. **3-3 Coach 근거 v2**(S2, 입력 스냅샷) → **3-4**(S3): 판정 통합은 이번에 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
-3. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
+1. **3-3 Coach 근거 v2**(S2, 입력 스냅샷) → **3-4**(S3): 판정 통합은 이번에 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
+2. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
 
 ### 이월(설계서 P2 이하 / 후속 정리)
 - narrative 백엔드 캐시 워밍(설계 결정 필요), `MonthNarrative` 레이어링 검증, D1d 활동 scope, RRI 등급 SSOT 미등재.

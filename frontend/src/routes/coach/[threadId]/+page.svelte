@@ -2,16 +2,18 @@
 	// 03e-coach.md 5-B — 대화 스레드: 메시지 목록 + 입력 바.
 	// P7-IMPL-COACH-EVIDENCE-UI: 근거 칩(EvidenceQuote) + MetricBreakdown 드릴다운 + 입력창 하단 도킹.
 	import type { ThreadPageData } from './+page';
-	import { addMessage } from '$lib/api/coach';
+	import { addMessage, putConsent, regenerateMessage, type ConsentInput } from '$lib/api/coach';
 	import { ApiError } from '$lib/api/client';
 	import { base } from '$app/paths';
-	import type { ChatMessage } from '$lib/types';
-	import ChatBody from '$lib/components/ChatBody.svelte';
-	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
+	import type { ChatMessage, CoachEngine } from '$lib/types';
+	import MessageBlock from '$lib/components/coach/MessageBlock.svelte';
+	import EngineLine from '$lib/components/coach/EngineLine.svelte';
+	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
+	import EngineSheet from '$lib/components/coach/EngineSheet.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
-	import { localizeSource } from '$lib/markdownLite';
-	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import { needsConsent } from '$lib/coachEngine';
+	import type { DrillTarget } from '$lib/evidence';
 	import { followUps } from '$lib/coachSuggestions';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
@@ -22,6 +24,46 @@
 	const thread = $derived(data.detail?.thread ?? null);
 	let messages = $state<ChatMessage[]>(data.detail?.messages ?? []);
 	let errorMessage = $state(data.errorMessage);
+	let engine = $state<CoachEngine | null>(data.engine);
+
+	// 첫 LLM 전송 동의 게이트 — 동의 전에는 send를 보류하고 시트를 띄운다.
+	let scopeOpen = $state(false);
+	let afterConsent = $state<(() => void) | null>(null);
+	let reasonMsg = $state<ChatMessage | null>(null);
+	let regeneratingId = $state<number | null>(null);
+
+	async function saveConsent(input: ConsentInput) {
+		const consent = await putConsent(input);
+		if (engine) engine = { ...engine, consent };
+		scopeOpen = false;
+		const next = afterConsent;
+		afterConsent = null;
+		next?.();
+	}
+
+	function closeScope() {
+		scopeOpen = false;
+		afterConsent = null;
+	}
+
+	async function regenerate(messageId: number) {
+		if (!thread || regeneratingId !== null) return;
+		if (needsConsent(engine)) {
+			afterConsent = () => regenerate(messageId);
+			scopeOpen = true;
+			return;
+		}
+		regeneratingId = messageId;
+		errorMessage = null;
+		try {
+			const res = await regenerateMessage(thread.id, messageId);
+			messages = messages.map((m) => (m.id === messageId ? { ...m, ...res.message } : m));
+		} catch (e) {
+			errorMessage = e instanceof ApiError ? e.message : '다시 생성에 실패했습니다.';
+		} finally {
+			regeneratingId = null;
+		}
+	}
 
 	let inputText = $state('');
 	let sending = $state(false);
@@ -66,6 +108,11 @@
 	async function send() {
 		const content = inputText.trim();
 		if (!content || sending || !thread) return;
+		if (needsConsent(engine)) {
+			afterConsent = send;
+			scopeOpen = true;
+			return;
+		}
 
 		// 낙관적 사용자 메시지 추가
 		const tempUserMsg: ChatMessage = {
@@ -145,24 +192,13 @@
 					</div>
 				</div>
 			{:else}
-				<!-- Coach 말풍선 (왼쪽) -->
-				<div class="flex justify-start">
-					<div
-						class="max-w-[80%] rounded-2xl rounded-bl-sm border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary"
-					>
-						<ChatBody content={msg.content} />
-						{#if localizeSource(msg.ai_model)}
-							<p class="mt-1 text-[11px] font-medium text-fg-secondary">{localizeSource(msg.ai_model)}</p>
-						{/if}
-						{#if msg.evidence && msg.evidence.length > 0}
-							<div class="mt-2 flex flex-wrap gap-2">
-								{#each msg.evidence as ev}
-									<EvidenceQuote {...adaptEvidence(ev, openEvidence)} />
-								{/each}
-							</div>
-						{/if}
-					</div>
-				</div>
+				<MessageBlock
+					{msg}
+					regenerating={regeneratingId === msg.id}
+					onEvidence={openEvidence}
+					onRegenerate={regenerate}
+					onShowReason={(m) => (reasonMsg = m)}
+				/>
 			{/if}
 		{/each}
 
@@ -199,7 +235,8 @@
 	</div>
 
 	<!-- 입력 바 (하단 탭바 바로 위 고정) -->
-	<div class="sticky bottom-14 lg:bottom-0 z-10 border-t border-border-subtle bg-surface-1 px-4 py-3">
+	<div class="sticky bottom-14 lg:bottom-0 z-10 flex flex-col gap-1 border-t border-border-subtle bg-surface-1 px-4 py-3">
+		<EngineLine {engine} onOpenScope={() => (scopeOpen = true)} />
 		<div class="flex items-end gap-2">
 			<textarea
 				bind:value={inputText}
@@ -221,6 +258,13 @@
 			</button>
 		</div>
 	</div>
+
+	{#if scopeOpen && engine}
+		<ScopeSheet {engine} requireConsent={needsConsent(engine)} onSave={saveConsent} onClose={closeScope} />
+	{/if}
+	{#if reasonMsg?.engine}
+		<EngineSheet engine={reasonMsg.engine} attempted={engine?.selected ?? null} onClose={() => (reasonMsg = null)} />
+	{/if}
 
 	<!-- MetricBreakdown 드릴다운 패널 -->
 	{#if drillTop}

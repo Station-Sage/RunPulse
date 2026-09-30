@@ -48,9 +48,17 @@
 
 - functions: get_archive
 
-### `coach_service.py` (157줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_consent.py` (41줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
 
-- functions: build_evidence, list_threads, get_thread, create_thread, add_message
+- functions: get_consent, save_consent
+
+### `coach_engine_health.py` (120줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+
+- functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
+
+### `coach_service.py` (176줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+
+- functions: build_evidence, list_threads, get_thread, create_thread, add_message, regenerate
 
 ### `dashboard_service.py` (214줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
@@ -610,9 +618,9 @@
 
 - functions: build_briefing_prompt, build_chip_prompt, get_clipboard_prompt
 
-### `chat_context.py` (88줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
+### `chat_context.py` (101줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
 
-- functions: build_chat_context
+- functions: build_chat_context, build_chat_context_scoped
 
 ### `chat_context_builders.py` (310줄) — AI 채팅 컨텍스트 — 기본 + 의도별 빌더.
 
@@ -622,7 +630,7 @@
 
 - functions: build_checkin_context, format_checkin_line
 
-### `chat_context_format.py` (287줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
+### `chat_context_format.py` (289줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
 
 - (public API 없음)
 
@@ -634,18 +642,28 @@
 
 - (public API 없음)
 
+### `chat_context_scope.py` (51줄) — AI 채팅 컨텍스트 — 외부 LLM으로 나가는 항목 목록(sent_scope, 30-coach-chat design §4.3).
+
+- functions: describe_scope, scope_catalog
+
 ### `chat_context_utils.py` (32줄) — AI 채팅 컨텍스트 — 공통 유틸리티.
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (225줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (229줄) — AI 채팅 엔진 — 교체 가능 구조.
 
-- functions: get_ai_provider, chat
+- functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (383줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (257줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
-- class **RateLimitError**: 없음
-- functions: call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
+- functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
+
+### `chat_engine_result.py` (128줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+
+- class **Attempt**: 없음
+- class **EngineInfo**: 없음
+- class **ChatResult**: engine_dict
+- functions: build_chain, run_chain, engine_for_rule, engine_for_ok
 
 ### `chat_engine_rules.py` (239줄) — AI 채팅 — 규칙 기반 fallback 응답.
 
@@ -666,6 +684,12 @@
 ### `prompt_config.py` (244줄) — 프롬프트 템플릿 관리 — 카드별 AI 프롬프트 정의 + 사용자 커스터마이즈.
 
 - functions: get_prompt, get_all_prompts, get_tab_prompt
+
+### `provider_common.py` (94줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+
+- class **ProviderError**: 없음
+- class **RateLimitError**: 없음
+- functions: model_for, api_key_for, reason_for_status, check_response, timeout_for, wrap_transport_error
 
 ### `suggestions.py` (174줄) — 추천 칩 생성 — 규칙 기반 + AI 응답 파싱 하이브리드.
 
@@ -1354,9 +1378,9 @@
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
 - class **TestPost**: test_post_json
 
-### `test_api_coach.py` (104줄) — tests/test_api_coach.py — /api/v1/coach/threads(+:id, +:id/messages) 테스트.
+### `test_api_coach.py` (143줄) — tests/test_api_coach.py — /api/v1/coach/threads(+:id, +:id/messages) 테스트.
 
-- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content
+- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_regenerate_route
 
 ### `test_api_library.py` (389줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
@@ -1435,11 +1459,20 @@
 - class **TestRaceContextNoGoal**: test_race_hub_is_none_or_no_goal, test_formatted_text_no_form_prediction, test_formatted_text_no_target_prediction
 - functions: ctx_with_goal, ctx_no_goal
 
+### `test_chat_context_scope.py` (30줄) — chat_context_scope·exclude_notes — 전송 범위 목록과 메모 제외 (design §4.3).
+
+- functions: test_describe_scope_marks_note_optional, test_describe_scope_no_note_when_blank, test_exclude_notes_drops_memo_from_prompt
+
 ### `test_chat_context_workout_type.py` (122줄) — workout_type_classified 컬럼 버그 수정 회귀 테스트 (BUG-WORKOUT-TYPE-COLUMN).
 
 - class **TestRaceHistoryFromTextValue**: test_race_included_without_name_keyword, test_race_not_included_when_only_numeric_value
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
 - class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
+
+### `test_chat_engine_result.py` (107줄) — chat_result — 엔진 상태·동의 게이트·체인 구성·예산 (30-coach-chat design §4.1·§4.3·§8).
+
+- class **_Resp**: json
+- functions: calls, test_404_on_selected_falls_to_second_provider, test_all_fail_gives_rule_fallback_with_reason, test_no_external_call_before_consent, test_consent_for_other_provider_requires_reconsent, test_fallback_disabled_uses_single_provider, test_rule_only_without_keys_and_rule_by_choice, test_exclude_notes_keeps_memo_out_of_prompt, test_budget_exhausted_stops_chain, test_legacy_chat_returns_tuple, test_rule_text_has_no_ai_coach_self_reference
 
 ### `test_chat_engine_rules_grade.py` (51줄) — tests/test_chat_engine_rules_grade.py — 규칙 코치 회복 등급 매핑 회귀 테스트.
 
@@ -1457,13 +1490,19 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
-### `test_coach_service.py` (170줄) — coach_service 테스트 — Phase 7a D5.
+### `test_coach_engine_health.py` (65줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
+
+- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys
+
+### `test_coach_service.py` (229줄) — coach_service 테스트 — Phase 7a D5.
 
 - class **TestListThreads**: test_empty, test_lists_with_last_message_preview
 - class **TestGetThread**: test_not_found, test_returns_thread_and_messages
 - class **TestCreateThread**: test_creates_thread_and_stores_both_messages, test_title_truncated_for_long_message, test_does_not_leak_into_other_threads
 - class **TestEvidence**: test_create_thread_evidence_is_list, test_create_thread_evidence_first_metric, test_get_thread_assistant_has_evidence_list, test_get_thread_user_message_evidence_empty, test_get_thread_no_evidence_json_key, test_build_evidence_exception_returns_empty
 - class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
+- class **TestEngineState**: test_message_carries_engine_view_and_as_of, test_get_thread_exposes_engine, test_legacy_message_without_engine_json, test_engine_called_with_stored_consent_and_require_consent
+- class **TestRegenerate**: test_overwrites_assistant_message_in_place, test_unknown_or_user_message_returns_none
 
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
 
@@ -1964,6 +2003,11 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
+### `test_provider_common.py` (117줄) — provider 오류 구조화(30-coach-chat design §6.2) — HTTP 상태→reason 매핑, 모델 ID 설정화, 타임아웃.
+
+- class **_Resp**: json
+- functions: test_status_maps_to_reason, test_429_is_rate_limit_error, test_timeout_maps_to_timeout, test_no_key_and_empty_response, test_success_uses_config_model_only, test_deadline_exhausted_raises_timeout, test_legacy_call_keeps_string_contract, test_tool_loop_executes_tool_then_answers, test_complete_counts_tool_calls_in_stats
+
 ### `test_provider_comparison_service.py` (288줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
 - functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped, test_runpulse_value_only_from_canonical_row, test_related_group_has_no_discrepancy
@@ -2091,6 +2135,10 @@
 ### `test_sapi.py` (114줄)
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
+
+### `test_schema_v23.py` (43줄) — 스키마 v23 — chat_messages 엔진 컬럼·coach_consent (30-coach-chat design §4.3·§6.2).
+
+- functions: test_create_tables_has_v23_columns_and_consent, test_ensure_v23_idempotent, test_migrate_from_22, test_consent_single_row_only
 
 ### `test_segments.py` (99줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
 
@@ -2306,7 +2354,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 468개 파일
+총 478개 파일
 
 ## docstring 누락
 
