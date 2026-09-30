@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 23  # v0.3.13: Coach 엔진 투명성 컬럼·coach_consent (db_schema_v23) — v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 24  # v0.3.14: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -725,6 +725,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
     # v23: chat_messages 엔진 컬럼 + coach_consent
     from src.db_schema_v23 import ensure_v23
     ensure_v23(conn)
+    # v24: chat_messages.client_msg_id 등 + chat_threads 컬럼
+    from src.db_schema_v24 import ensure_v24
+    ensure_v24(conn)
 
     conn.commit()
 
@@ -804,6 +807,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v19: chat_messages.evidence_json 추가 (Coach 답변 근거).
     v22: milestones.provider 추가 + 재계산 종류 분리(create_tables 안의 ensure_v22 가 멱등 처리).
     v23: chat_messages.status/engine_json/as_of/sent_scope_json + coach_consent(ensure_v23 가 멱등 처리).
+    v24: chat_messages.client_msg_id/parent_message_id/followups_json + chat_threads 컬럼(ensure_v24 가 멱등 처리).
     """
     current = _get_user_version(conn)
 
