@@ -225,6 +225,14 @@
 - **검증**: 백엔드 `pytest tests/` 1939 passed · 247 skipped · 4 failed(기존). 프론트 unit 252 · `npm run check` 0 errors · build OK · `check_docs.py` 통과. 합성 DB 서버 + Playwright로 홈 플로우 5·스레드 플로우 11 항목 통과(동의 시트→동의 PUT→전송 재개, 폴백 라벨·배너·원인 시트·재생성, degraded 배너, `rule_by_choice`/`rule_only` 라인, 스레드 전송 동의 게이트 0 send).
 - **운영 반영 대기**: 모델 404 수정이 백엔드에 있으므로 다음 "운영 반영" 지시 때 함께 나간다(Dockerfile·의존성·DB 값 변경 없음).
 
+### 3-3 세부 (Coach 답변 근거 v2·S2, `30-coach-chat/design.md` §4.4·§7.1~7.4·§9)
+- **백엔드**(e984458): `services/coach_evidence.py` — 규칙 경로는 판정 근거+오늘 계획+체크인, LLM 경로는 본문이 인용한 값(지표 키워드+반올림 오차 내 숫자 일치)만 남기고 체크인은 항상(`pinned`). 항목마다 `role`(supports|caveat, 판정 방향과 비교)·`snapshot{value,computed_at,version,as_of}`·`drill`. 조회 시 같은 as_of의 현재값을 다시 읽어 `current`·`drifted`(|Δ| ≥ max(5, |then|×0.25) / 부호 반전 / 등급 변화). 스냅샷 없는 옛 메시지는 `role:"legacy"`·`drill:null`·`evidence_legacy:true`.
+- **프론트**: `lib/answerEvidence.ts`(순수 헬퍼, 노드 테스트 5건), `EvidenceRow.svelte`(칩 2~3개 + "+n 근거"/접기, 체크인 칩은 항상 노출, caveat는 "반대 신호" 라벨+점선 테두리로 뒤에 배치, legacy 안내 "당시 Today 근거 — 이 답변의 입력과 다를 수 있어요"), `MessageBlock`의 drift 배너("답변 이후 데이터가 바뀌었어요 · TSB −10.7 → +6.2"), `DrillPanel`의 답변 칩 스냅샷 줄("답변 당시 −10.7 (9/25 10:51 계산 · formula_v1) → 현재 +6.2 (…재계산 · …)" + 값이 다르면 앰버 점과 "이후 데이터 동기화·재계산으로 값이 바뀌었어요"; 답변 칩에서 연 단일 slug·scope 일치 때만). 투영 칩(`race_form_projection`)은 "계획대로 가면 레이스 아침 폼 약 +N" 완곡 문구, 접힘 상태에서는 숨김.
+- **설계 편차**: 투영 칩의 도착지 D2 `x.taper` 패널이 아직 없어 `/v2/today/race`(레이스 허브의 "레이스 아침 폼" 시나리오)로 연결. `x.taper` 드릴 신설 시 `chipTarget`만 바꾸면 된다.
+- **실제 브라우저 확인**(Playwright, 합성 DB Flask + 빌드 산출물, 모바일 390, Coach API는 `page.route()`로 근거 시나리오 주입): 근거 행 2개, 체크인 pinned 노출·"반대 신호" 라벨, "+n 근거" 토글, 접힘 시 투영 칩 숨김/펼침 시 완곡 문구, legacy 안내, drift 배너, 칩 클릭 → `?drill=m.tsb@…` + 스냅샷 줄·변경 안내, 투영 칩 → `/today/race`, 페이지 에러 0건(11/11 통과). 스크린샷 3장(접힘·펼침·드릴)은 스크래치패드에만 두고 커밋하지 않음.
+- **검증**: `pytest tests/` 1953 passed · 247 skipped · 4 failed(기존: `test_autopilot_run_unit` 3 + `test_compliance_pct_ignores_prior_goal_leftovers` 1) · 프론트 unit 257 · `npm run check` 0 errors · build OK.
+- **운영 반영 대기**: 3-2와 함께 다음 "운영 반영" 지시 때 나간다. 저장 형식이 바뀌어(스냅샷 추가) 기존 메시지는 legacy로 표시되며 DB 마이그레이션은 없음.
+
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치
@@ -233,7 +241,7 @@
 - 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
 
 ### 다음 착수 순서(99-summary §7, 설계서 있는 항목은 바로 구현·재확인 금지)
-1. **3-3 Coach 근거 v2**(S2, 입력 스냅샷) → **3-4**(S3): 판정 통합은 이번에 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
+1. (3-3 Coach 근거 v2 완료) **3-4**(S3): 판정 통합은 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
 2. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
 
 ### 이월(설계서 P2 이하 / 후속 정리)

@@ -56,9 +56,13 @@
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
-### `coach_service.py` (176줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_evidence.py` (208줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
-- functions: build_evidence, list_threads, get_thread, create_thread, add_message, regenerate
+- functions: is_drifted, with_current, build_answer_evidence, view_evidence
+
+### `coach_service.py` (172줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+
+- functions: list_threads, get_thread, create_thread, add_message, regenerate
 
 ### `dashboard_service.py` (214줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
@@ -1494,12 +1498,18 @@
 
 - functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys
 
-### `test_coach_service.py` (229줄) — coach_service 테스트 — Phase 7a D5.
+### `test_coach_evidence.py` (141줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
+
+- class **TestPureHelpers**: test_rest_signal, test_is_drifted_threshold_and_sign, test_cited_needs_keyword_and_number, test_cited_rounding_tolerance
+- class **TestBuildAnswerEvidence**: test_rule_path_roles_and_snapshot, test_llm_path_keeps_only_cited_and_pinned, test_exception_returns_empty, test_dedupes_by_metric
+- class **TestViewEvidence**: test_legacy_without_snapshot, test_user_message_and_empty, test_drift_detected_after_recalc, test_no_drift_when_unchanged, test_wellness_current, test_kst_date_invalid
+
+### `test_coach_service.py` (233줄) — coach_service 테스트 — Phase 7a D5.
 
 - class **TestListThreads**: test_empty, test_lists_with_last_message_preview
 - class **TestGetThread**: test_not_found, test_returns_thread_and_messages
 - class **TestCreateThread**: test_creates_thread_and_stores_both_messages, test_title_truncated_for_long_message, test_does_not_leak_into_other_threads
-- class **TestEvidence**: test_create_thread_evidence_is_list, test_create_thread_evidence_first_metric, test_get_thread_assistant_has_evidence_list, test_get_thread_user_message_evidence_empty, test_get_thread_no_evidence_json_key, test_build_evidence_exception_returns_empty
+- class **TestEvidence**: test_create_thread_evidence_is_list, test_create_thread_evidence_has_snapshot_and_role, test_create_thread_empty_db_has_no_evidence, test_get_thread_assistant_has_evidence_list, test_get_thread_user_message_evidence_empty, test_get_thread_no_evidence_json_key
 - class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
 - class **TestEngineState**: test_message_carries_engine_view_and_as_of, test_get_thread_exposes_engine, test_legacy_message_without_engine_json, test_engine_called_with_stored_consent_and_require_consent
 - class **TestRegenerate**: test_overwrites_assistant_message_in_place, test_unknown_or_user_message_returns_none
@@ -2354,7 +2364,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 478개 파일
+총 480개 파일
 
 ## docstring 누락
 

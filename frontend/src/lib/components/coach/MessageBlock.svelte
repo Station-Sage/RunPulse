@@ -1,10 +1,10 @@
 <script lang="ts">
 	// Coach 답변 말풍선 — 엔진 라벨, 폴백/AI 미설정/오류 배너, 근거 칩 (30-coach-chat design §7.2).
 	import { base } from '$app/paths';
-	import type { ChatMessage } from '$lib/types';
+	import type { AnswerEvidence, ChatMessage } from '$lib/types';
 	import ChatBody from '$lib/components/ChatBody.svelte';
-	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
-	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import EvidenceRow from './EvidenceRow.svelte';
+	import { driftText } from '$lib/answerEvidence';
 	import { bannerFor, reasonText } from '$lib/coachEngine';
 
 	let {
@@ -16,7 +16,7 @@
 	}: {
 		msg: ChatMessage;
 		regenerating?: boolean;
-		onEvidence: (t: DrillTarget) => void;
+		onEvidence: (ev: AnswerEvidence) => void;
 		onRegenerate: (id: number) => void;
 		onShowReason: (msg: ChatMessage) => void;
 	} = $props();
@@ -24,6 +24,7 @@
 	const engine = $derived(msg.engine);
 	const banner = $derived(bannerFor(engine));
 	const label = $derived(engine?.label ?? '');
+	const drift = $derived(driftText(msg.evidence));
 </script>
 
 <div class="flex justify-start">
@@ -59,11 +60,13 @@
 		{/if}
 
 		{#if msg.evidence && msg.evidence.length > 0}
-			<div class="mt-2 flex flex-wrap gap-2">
-				{#each msg.evidence as ev}
-					<EvidenceQuote {...adaptEvidence(ev, onEvidence)} />
-				{/each}
-			</div>
+			<EvidenceRow items={msg.evidence} legacy={msg.evidence_legacy} onOpen={onEvidence} />
+		{/if}
+		{#if drift}
+			<p
+				class="mt-2 rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-1.5 text-xs text-fg-secondary"
+				data-testid="drift-banner"
+			>{drift}</p>
 		{/if}
 	</div>
 </div>

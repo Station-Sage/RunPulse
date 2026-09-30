@@ -6,17 +6,21 @@
 	import { base } from '$app/paths';
 	import { currentDrillStack, parseDrillToken, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
 	import { EXPLAIN_SUPPORTED_SLUGS, getMetricExplain } from '$lib/api/metrics';
-	import type { MetricExplainData } from '$lib/types';
+	import type { AnswerEvidence, MetricExplainData } from '$lib/types';
+	import { snapshotLine } from '$lib/answerEvidence';
 	import BreakdownView from './BreakdownView.svelte';
 	import Icon from './Icon.svelte';
 
 	let {
 		scopeType,
 		scopeId,
+		answerChip = null,
 		children
 	}: {
 		scopeType: string;
 		scopeId: string;
+		/** Coach 답변 칩에서 연 근거 — 최상위 패널이 그 칩과 같을 때만 답변 당시 스냅샷 줄을 보인다. */
+		answerChip?: AnswerEvidence | null;
 		children: Snippet;
 	} = $props();
 
@@ -29,6 +33,11 @@
 	const currentSlug = $derived(parsedStack.at(-1)?.slug ?? null);
 	const currentScopeId = $derived(parsedStack.at(-1)?.scope ?? scopeId);
 	const isOpen = $derived(slugs.length > 0);
+	const snap = $derived(
+		answerChip && slugs.length === 1 && answerChip.metric === currentSlug && answerChip.drill?.scope_id === currentScopeId
+			? snapshotLine(answerChip)
+			: null
+	);
 
 	let data = $state<MetricExplainData | null>(null);
 	let loading = $state(true);
@@ -139,6 +148,15 @@
 	{:else if notFound || !data}
 		<p class="p-4 text-sm text-fg-secondary">{currentScopeId} 데이터가 아직 없어요 · 데이터 수집 중</p>
 	{:else}
+		{#if snap}
+			<p class="flex items-start gap-1.5 border-b border-border-subtle px-4 py-2 text-xs text-fg-secondary" data-testid="snapshot-line">
+				{#if snap.changed}<span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-semantic-amber" aria-hidden="true"></span>{/if}
+				<span>
+					{snap.text}
+					{#if snap.changed}<span class="block text-fg-muted">이후 데이터 동기화·재계산으로 값이 바뀌었어요</span>{/if}
+				</span>
+			</p>
+		{/if}
 		<BreakdownView
 			{data}
 			trendHref="{base}/library/metrics/{currentSlug}"

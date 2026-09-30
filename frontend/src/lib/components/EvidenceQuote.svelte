@@ -6,7 +6,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import type { IconName } from '$lib/icon';
 
-	let { type, label, metric, activity, user_input, unavailable, onOpen }: EvidenceQuoteProps =
+	let { type, label, metric, activity, user_input, unavailable, caveat, onOpen }: EvidenceQuoteProps =
 		$props();
 
 	const icon: IconName | null = $derived(
@@ -32,9 +32,10 @@
 	<button
 		type="button"
 		onclick={handleOpen}
-		class="inline-flex min-h-[32px] items-center gap-1 rounded-full border border-fg-secondary/40 bg-surface-2 px-2.5 py-1.5 text-xs text-fg-secondary transition-transform hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg-secondary active:scale-[.97]"
+		class="inline-flex min-h-[32px] items-center gap-1 rounded-full border {caveat ? 'border-dotted' : ''} border-fg-secondary/40 bg-surface-2 px-2.5 py-1.5 text-xs text-fg-secondary transition-transform hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg-secondary active:scale-[.97]"
 	>
 		{#if icon}<Icon name={icon} class="h-3 w-3 shrink-0 text-fg-muted" />{/if}
+		{#if caveat}<span class="text-[10px] text-semantic-amber" data-testid="caveat-label">반대 신호</span>{/if}
 		<span class="num font-semibold">{text}</span>
 		<Icon name="chevron" class="h-3 w-3 shrink-0" />
 	</button>
@@ -46,6 +47,7 @@
 		class:text-fg-secondary={!unavailable}
 		class:text-fg-muted={unavailable}
 	>
-		{#if icon}<Icon name={icon} class="h-3 w-3 shrink-0 text-fg-muted" />{/if}{text}
+		{#if icon}<Icon name={icon} class="h-3 w-3 shrink-0 text-fg-muted" />{/if}
+		{#if caveat}<span class="text-[10px] text-semantic-amber" data-testid="caveat-label">반대 신호</span>{/if}{text}
 	</span>
 {/if}

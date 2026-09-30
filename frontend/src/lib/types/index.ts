@@ -28,6 +28,8 @@ export interface EvidenceQuoteProps {
 	activity?: { id: number; field: string; value: number | string; unit?: string };
 	user_input?: { field: string; value: number | string; date: string };
 	unavailable?: boolean;
+	/** 답변 결론과 반대 방향인 근거(점선 테두리 + "반대 신호" 라벨). */
+	caveat?: boolean;
 	// 클릭 시 원천 데이터 패널을 여는 콜백. 7a엔 MetricBreakdown 패널이 없어 보통 생략된다 —
 	// 생략되면 칩은 비대화형(span)으로 렌더링된다.
 	onOpen?: (payload: EvidenceQuoteProps) => void;
@@ -210,7 +212,9 @@ export interface ChatMessage {
 	content: string;
 	ai_model: string | null;
 	created_at?: string;
-	evidence?: BriefingEvidence[];
+	evidence?: AnswerEvidence[];
+	/** 스냅샷 없는 옛 답변 — 근거가 "당시 Today 근거"(design §7.4). */
+	evidence_legacy?: boolean;
 	status?: string;
 	/** assistant 메시지만 — 답변을 만든 엔진(30-coach-chat design §4.1). */
 	engine?: EngineView;
@@ -336,6 +340,22 @@ export interface TodayStatus {
 export interface EvidenceDrill {
 	scope_type: string;
 	scope_id: string;
+}
+
+/** Coach 답변 근거 v2 — 저장 시점 스냅샷과 조회 시점 현재값(design §4.4). */
+export interface AnswerEvidence {
+	type: 'metric' | 'wellness' | 'plan' | 'user_input';
+	metric: string;
+	value: number | string | null;
+	label: string;
+	status?: string;
+	status_label?: string;
+	pinned?: boolean;
+	role: 'supports' | 'caveat' | 'legacy';
+	drill?: EvidenceDrill | null;
+	snapshot?: { value: number | string | null; computed_at: string | null; version: string | null; as_of: string | null };
+	current?: { value: number | string; display: string; computed_at: string | null; version: string | null } | null;
+	drifted?: boolean;
 }
 
 export interface BriefingEvidence {

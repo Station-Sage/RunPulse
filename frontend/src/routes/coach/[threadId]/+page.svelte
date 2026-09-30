@@ -5,7 +5,8 @@
 	import { addMessage, putConsent, regenerateMessage, type ConsentInput } from '$lib/api/coach';
 	import { ApiError } from '$lib/api/client';
 	import { base } from '$app/paths';
-	import type { ChatMessage, CoachEngine } from '$lib/types';
+	import type { AnswerEvidence, ChatMessage, CoachEngine } from '$lib/types';
+	import { goto } from '$app/navigation';
 	import MessageBlock from '$lib/components/coach/MessageBlock.svelte';
 	import EngineLine from '$lib/components/coach/EngineLine.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
@@ -14,6 +15,7 @@
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { needsConsent } from '$lib/coachEngine';
 	import type { DrillTarget } from '$lib/evidence';
+	import { chipTarget } from '$lib/answerEvidence';
 	import { followUps } from '$lib/coachSuggestions';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
@@ -77,7 +79,16 @@
 
 	// 근거 칩 scope는 대화에서 인용한 날짜라 화면 기준일과 다를 수 있다(D1d) — 지원 슬러그면
 	// 그 scope 그대로 새 DrillPanel로, 아니면(임의 슬러그) 기존 MetricBreakdown 유지.
-	function openEvidence(t: DrillTarget) {
+	let answerChip = $state<AnswerEvidence | null>(null);
+
+	function openEvidence(ev: AnswerEvidence) {
+		if (chipTarget(ev) === 'race') {
+			goto(`${base}/today/race`);
+			return;
+		}
+		if (!ev.drill) return;
+		answerChip = ev;
+		const t: DrillTarget = { slug: ev.metric, scopeType: ev.drill.scope_type, scopeId: ev.drill.scope_id };
 		if (t.scopeType === 'daily' && EXPLAIN_SUPPORTED_SLUGS.has(t.slug)) {
 			openDrill(t.slug, t.scopeId);
 			return;
@@ -168,7 +179,7 @@
 		<a href="{base}/coach" class="text-sm text-fg-secondary underline">← Coach로</a>
 	</div>
 {:else}
-<DrillPanel scopeType="daily" scopeId={localDateString()}>
+<DrillPanel scopeType="daily" scopeId={localDateString()} {answerChip}>
 	<!-- 헤더 -->
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 		<a href="{base}/coach" class="shrink-0 text-fg-muted" aria-label="Coach로">←</a>
