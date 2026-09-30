@@ -231,3 +231,48 @@ class TestRegenerate:
         assert coach_service.regenerate(db_conn, tid, 99999) is None
         user_id = coach_service.get_thread(db_conn, tid)["messages"][0]["id"]
         assert coach_service.regenerate(db_conn, tid, user_id) is None
+
+
+class TestChipAndFollowups:
+    """3-4: chip_id 저장·전달, 서버 제공 후속 칩(이미 물은 것 제외)."""
+
+    @pytest.fixture
+    def seen(self, monkeypatch):
+        from src.ai.chat_engine_result import ChatResult, EngineInfo
+        calls = []
+
+        def _fake(conn, user_message, config=None, chip_id=None, thread_id=None, consent=None,
+                  require_consent=False):
+            calls.append((user_message, chip_id))
+            return ChatResult("규칙 답변", EngineInfo("rule", "rule", None), followups=["week_plan", "injury_check"],
+                              evidence=[{"kind": "metric", "label": "TSB"}], as_of="2026-09-30")
+
+        monkeypatch.setattr("src.ai.chat_engine.chat_result", _fake)
+        return calls
+
+    def test_chip_only_thread_uses_chip_text(self, db_conn, seen):
+        result = coach_service.create_thread(db_conn, None, chip_id="today_advice")
+        assert seen == [("오늘 훈련 어떻게 할까요?", "today_advice")]
+        assert result["thread"]["title"].startswith("오늘 훈련")
+        detail = coach_service.get_thread(db_conn, result["thread"]["id"])
+        user, assistant = detail["messages"]
+        assert user["chip_id"] == "today_advice" and user["content"] == "오늘 훈련 어떻게 할까요?"
+        assert assistant["evidence"] == [{"kind": "metric", "label": "TSB"}] or assistant["evidence"]
+
+    def test_followups_exclude_asked_chips(self, db_conn, seen):
+        tid = coach_service.create_thread(db_conn, None, chip_id="today_advice")["thread"]["id"]
+        ids = [f["chip_id"] for f in coach_service.get_thread(db_conn, tid)["messages"][-1]["followups"]]
+        assert ids == ["week_plan", "injury_check"]
+        coach_service.add_message(db_conn, tid, None, chip_id="week_plan")
+        last = coach_service.get_thread(db_conn, tid)["messages"][-1]
+        assert [f["chip_id"] for f in last["followups"]] == ["injury_check"]
+        assert last["followups"][0]["text"] == "부상 위험은 없나요?"
+
+    def test_regenerate_keeps_chip_id(self, db_conn, seen):
+        created = coach_service.create_thread(db_conn, None, chip_id="injury_check")
+        coach_service.regenerate(db_conn, created["thread"]["id"], created["message"]["id"])
+        assert seen[-1] == ("부상 위험은 없나요?", "injury_check")
+
+    def test_user_messages_have_no_followups(self, db_conn, seen):
+        tid = coach_service.create_thread(db_conn, "자유 질문")["thread"]["id"]
+        assert coach_service.get_thread(db_conn, tid)["messages"][0]["followups"] == []

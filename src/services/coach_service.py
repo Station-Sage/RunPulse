@@ -50,8 +50,22 @@ def list_threads(conn: sqlite3.Connection) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def _message_view(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
-    """chat_messages 행 → API 메시지 dict(evidence·engine·sent_scope 파싱)."""
+def _asked_chips(conn: sqlite3.Connection, thread_id: int) -> set[str]:
+    return {r[0] for r in conn.execute(
+        "SELECT chip_id FROM chat_messages WHERE thread_id = ? AND role = 'user' AND chip_id IS NOT NULL",
+        (thread_id,))}
+
+
+def _followup_views(raw_engine: str | None, asked: set[str]) -> list[dict]:
+    """서버가 제공한 후속 칩(chip_id) 중 이미 물어본 것을 뺀 최대 3개 — 프런트는 이 목록만 그린다."""
+    from src.ai.coach_rule_types import chip_view
+    from src.services.coach_engine_health import parse_engine
+    ids = (parse_engine(raw_engine) or {}).get("followups") or []
+    return [chip_view(c) for c in ids if c not in asked][:3]
+
+
+def _message_view(conn: sqlite3.Connection, row: sqlite3.Row, asked: set[str] | None = None) -> dict:
+    """chat_messages 행 → API 메시지 dict(evidence·engine·sent_scope·followups 파싱)."""
     from src.services.coach_engine_health import message_engine_view
     from src.services.coach_evidence import view_evidence
     msg = dict(row)
@@ -61,6 +75,8 @@ def _message_view(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
     except Exception:
         msg["evidence"] = []
     engine_json = msg.pop("engine_json", None)
+    msg["followups"] = (_followup_views(engine_json, asked if asked is not None else _asked_chips(
+        conn, msg["thread_id"])) if msg["role"] == "assistant" else [])
     scope_raw = msg.pop("sent_scope_json", None)
     try:
         msg["sent_scope"] = json.loads(scope_raw) if scope_raw else None
@@ -73,7 +89,7 @@ def _message_view(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
 
 
 _MESSAGE_COLUMNS = ("id, role, content, ai_model, evidence_json, created_at, status,"
-                    " engine_json, as_of, sent_scope_json, thread_id")
+                    " engine_json, as_of, sent_scope_json, thread_id, chip_id")
 
 
 def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
@@ -89,25 +105,28 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
         f"SELECT {_MESSAGE_COLUMNS} FROM chat_messages WHERE thread_id = ? ORDER BY id",
         (thread_id,),
     ).fetchall()
-    return {"thread": dict(thread), "messages": [_message_view(conn, m) for m in messages]}
+    asked = _asked_chips(conn, thread_id)
+    return {"thread": dict(thread), "messages": [_message_view(conn, m, asked) for m in messages]}
 
 
-def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: dict | None):
+def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: dict | None,
+              chip_id: str | None = None):
     """동의 저장소의 설정으로 엔진을 호출한다 — 동의가 없으면 외부 호출 0회(design §4.3)."""
     from src.ai import chat_engine
     from src.services.coach_consent import get_consent
-    return chat_engine.chat_result(conn, user_text, config=config, thread_id=thread_id,
+    return chat_engine.chat_result(conn, user_text, config=config, chip_id=chip_id, thread_id=thread_id,
                                    consent=get_consent(conn), require_consent=True)
 
 
 def _store_reply(conn: sqlite3.Connection, thread_id: int, result, message_id: int | None = None) -> dict:
     """assistant 메시지 저장(message_id가 있으면 그 행을 덮어씀 = 다시 생성) 후 API 뷰 반환."""
     from src.services.coach_evidence import build_answer_evidence
-    evidence = build_answer_evidence(conn, result.text, llm=result.engine.status == "ok",
-                                     as_of=result.as_of or date.today().isoformat())
+    evidence = result.evidence or build_answer_evidence(
+        conn, result.text, llm=result.engine.status == "ok", as_of=result.as_of or date.today().isoformat())
+    engine = {**result.engine_dict(), "followups": list(result.followups)}
     values = (
         result.text, result.engine.provider, json.dumps(evidence, ensure_ascii=False) if evidence else None,
-        "done", json.dumps(result.engine_dict(), ensure_ascii=False), result.as_of,
+        "done", json.dumps(engine, ensure_ascii=False), result.as_of,
         json.dumps(result.sent_scope, ensure_ascii=False) if result.sent_scope is not None else None,
     )
     if message_id is None:
@@ -129,29 +148,37 @@ def _store_reply(conn: sqlite3.Connection, thread_id: int, result, message_id: i
     return _message_view(conn, row)
 
 
-def create_thread(conn: sqlite3.Connection, initial_message: str, config: dict | None = None) -> dict:
-    """새 스레드 생성 — 첫 메시지 저장 → AI 응답 생성·저장 → 스레드+메시지 반환."""
-    title = _derive_title(initial_message)
-    thread_id = conn.execute("INSERT INTO chat_threads (title) VALUES (?)", (title,)).lastrowid
-    conn.execute(
-        "INSERT INTO chat_messages (role, content, thread_id) VALUES ('user', ?, ?)",
-        (initial_message, thread_id),
-    )
+def _resolve_text(message: str | None, chip_id: str | None) -> str:
+    """칩을 누르면 본문이 없어도 칩 문구가 사용자 말풍선이 된다."""
+    from src.ai.coach_rule_types import CHIP_TEXT
+    return (message or "").strip() or CHIP_TEXT.get(chip_id or "", "")
+
+
+def _insert_user(conn: sqlite3.Connection, thread_id: int, text: str, chip_id: str | None) -> None:
+    conn.execute("INSERT INTO chat_messages (role, content, thread_id, chip_id) VALUES ('user', ?, ?, ?)",
+                 (text, thread_id, chip_id))
     conn.commit()
-    message = _store_reply(conn, thread_id, _generate(conn, thread_id, initial_message, config))
+
+
+def create_thread(conn: sqlite3.Connection, initial_message: str | None, config: dict | None = None,
+                  chip_id: str | None = None) -> dict:
+    """새 스레드 생성 — 첫 메시지(또는 칩) 저장 → AI 응답 생성·저장 → 스레드+메시지 반환."""
+    text = _resolve_text(initial_message, chip_id)
+    title = _derive_title(text)
+    thread_id = conn.execute("INSERT INTO chat_threads (title) VALUES (?)", (title,)).lastrowid
+    _insert_user(conn, thread_id, text, chip_id)
+    message = _store_reply(conn, thread_id, _generate(conn, thread_id, text, config, chip_id))
     return {"thread": {"id": thread_id, "title": title}, "message": message}
 
 
 def add_message(
-    conn: sqlite3.Connection, thread_id: int, content: str, config: dict | None = None,
+    conn: sqlite3.Connection, thread_id: int, content: str | None, config: dict | None = None,
+    chip_id: str | None = None,
 ) -> dict:
     """기존 스레드에 메시지 추가 — AI 응답 생성·저장 → 응답 메시지 반환."""
-    conn.execute(
-        "INSERT INTO chat_messages (role, content, thread_id) VALUES ('user', ?, ?)",
-        (content, thread_id),
-    )
-    conn.commit()
-    return _store_reply(conn, thread_id, _generate(conn, thread_id, content, config))
+    text = _resolve_text(content, chip_id)
+    _insert_user(conn, thread_id, text, chip_id)
+    return _store_reply(conn, thread_id, _generate(conn, thread_id, text, config, chip_id))
 
 
 def regenerate(conn: sqlite3.Connection, thread_id: int, message_id: int,
@@ -164,9 +191,9 @@ def regenerate(conn: sqlite3.Connection, thread_id: int, message_id: int,
     if not row:
         return None
     prev = conn.execute(
-        "SELECT content FROM chat_messages WHERE thread_id = ? AND id < ? AND role = 'user'"
+        "SELECT content, chip_id FROM chat_messages WHERE thread_id = ? AND id < ? AND role = 'user'"
         " ORDER BY id DESC LIMIT 1", (thread_id, message_id),
     ).fetchone()
     if not prev:
         return None
-    return _store_reply(conn, thread_id, _generate(conn, thread_id, prev[0], config), message_id)
+    return _store_reply(conn, thread_id, _generate(conn, thread_id, prev[0], config, prev[1]), message_id)

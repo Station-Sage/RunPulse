@@ -141,3 +141,28 @@ def test_regenerate_route(mini_app):
     assert res.status_code == 200
     assert res.get_json()["data"]["message"]["engine"]["status"] == "ok"
     assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages/9999/regenerate").status_code == 404
+
+
+def test_suggestions_are_handler_backed(mini_app):
+    res = mini_app.get("/api/v1/coach/suggestions?at=home")
+    assert res.status_code == 200
+    sug = res.get_json()["data"]["suggestions"]
+    assert sug[0] == {"chip_id": "today_advice", "text": "오늘 훈련 어떻게 할까요?"}
+    assert all({"chip_id", "text"} == set(s) for s in sug)
+
+
+def test_create_thread_by_chip_id(mini_app):
+    res = mini_app.post("/api/v1/coach/threads", json={"chip_id": "injury_check"})
+    assert res.status_code == 201
+    tid = res.get_json()["data"]["thread"]["id"]
+    msgs = mini_app.get(f"/api/v1/coach/threads/{tid}").get_json()["data"]["messages"]
+    assert msgs[0]["chip_id"] == "injury_check" and msgs[0]["content"] == "부상 위험은 없나요?"
+    assert "followups" in msgs[1]
+
+
+def test_unknown_chip_or_empty_body_rejected(mini_app):
+    assert mini_app.post("/api/v1/coach/threads", json={"chip_id": "nope"}).status_code == 400
+    assert mini_app.post("/api/v1/coach/threads", json={}).status_code == 400
+    tid = mini_app.post("/api/v1/coach/threads", json={"initial_message": "안녕"}).get_json()["data"]["thread"]["id"]
+    assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={}).status_code == 400
+    assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={"chip_id": "week_plan"}).status_code == 201

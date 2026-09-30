@@ -1,4 +1,4 @@
-"""GET/POST /api/v1/coach/threads(+:id, +:id/messages, regenerate) + GET /coach/engine + PUT /coach/consent."""
+"""GET/POST /api/v1/coach/threads(+:id, +:id/messages, regenerate) + GET /coach/suggestions · /coach/engine + PUT /coach/consent."""
 from __future__ import annotations
 
 import sqlite3
@@ -10,6 +10,34 @@ from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
+
+
+def _message_input(body: dict, text_key: str):
+    """(text, chip_id, error_response) — 본문 또는 알려진 chip_id 중 하나는 있어야 한다."""
+    from src.ai.coach_rule_types import CHIP_TEXT
+    text = (body.get(text_key) or "").strip() or None
+    chip_id = body.get("chip_id") or None
+    if chip_id is not None and chip_id not in CHIP_TEXT:
+        return None, None, api_error("INVALID_PARAM", f"알 수 없는 chip_id: {chip_id}", 400)
+    if not text and not chip_id:
+        return None, None, api_error("INVALID_PARAM", f"{text_key} 또는 chip_id가 필요합니다.", 400)
+    return text, chip_id, None
+
+
+@api_bp.get("/coach/suggestions")
+def get_coach_suggestions():
+    """지금 규칙 핸들러로 답할 수 있는 추천 칩만 — at=home(기본)."""
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    from src.ai.coach_rule_handlers import suggestion_chips
+    conn = sqlite3.connect(str(dpath))
+    try:
+        suggestions = suggestion_chips(conn)
+    finally:
+        conn.close()
+    return api_ok({"suggestions": suggestions})
 
 
 @api_bp.get("/coach/threads")
@@ -34,14 +62,14 @@ def post_coach_threads():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
     body = request.get_json(silent=True) or {}
-    initial_message = body.get("initial_message")
-    if not initial_message:
-        return api_error("INVALID_PARAM", "initial_message가 필요합니다.", 400)
+    initial_message, chip_id, err = _message_input(body, "initial_message")
+    if err:
+        return err
 
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
-        result = coach_service.create_thread(conn, initial_message, config=config)
+        result = coach_service.create_thread(conn, initial_message, config=config, chip_id=chip_id)
     finally:
         conn.close()
 
@@ -73,9 +101,9 @@ def post_coach_thread_messages(thread_id: int):
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
     body = request.get_json(silent=True) or {}
-    content = body.get("content")
-    if not content:
-        return api_error("INVALID_PARAM", "content가 필요합니다.", 400)
+    content, chip_id, err = _message_input(body, "content")
+    if err:
+        return err
 
     conn = sqlite3.connect(str(dpath))
     try:
@@ -83,7 +111,7 @@ def post_coach_thread_messages(thread_id: int):
             return api_error("NOT_FOUND", f"스레드를 찾을 수 없습니다: {thread_id}", 404)
 
         config = load_config(user_id=get_current_user_id())
-        message = coach_service.add_message(conn, thread_id, content, config=config)
+        message = coach_service.add_message(conn, thread_id, content, config=config, chip_id=chip_id)
     finally:
         conn.close()
 

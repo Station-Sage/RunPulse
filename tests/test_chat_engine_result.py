@@ -105,3 +105,17 @@ def test_legacy_chat_returns_tuple(db_conn, calls):
 def test_rule_text_has_no_ai_coach_self_reference(db_conn):
     r = chat_result(db_conn, "안녕", {}, require_consent=True)
     assert "/settings" not in r.text and chat_engine is not None
+
+
+def test_v2_chip_with_ai_uses_free_text_path_with_tools(db_conn, monkeypatch):
+    seen = {}
+
+    def _run(conn, prompt, config, chain, tools=False):
+        seen["prompt"], seen["tools"] = prompt, tools
+        return "AI 답", "gemini", [cer.Attempt("gemini", "m", True)]
+
+    monkeypatch.setattr(chat_engine, "run_chain", _run)
+    cfg = {"ai": {"provider": "gemini", "gemini_api_key": "k"}}
+    r = chat_result(db_conn, "오늘 훈련 어떻게 할까요?", cfg, chip_id="today_advice")
+    assert r.text == "AI 답" and seen["tools"] is True
+    assert "오늘 훈련 어떻게 할까요?" in seen["prompt"]

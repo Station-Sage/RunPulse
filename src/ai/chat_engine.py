@@ -69,7 +69,9 @@ def chat_result(
     used: str | None = None
     attempts: list = []
     if chain:
-        if chip_id:
+        from .suggestions import CHIP_REGISTRY
+        prompt_is_free = not (chip_id and chip_id in CHIP_REGISTRY)
+        if not prompt_is_free:
             from .briefing import build_chip_prompt
             prompt = build_chip_prompt(conn, chip_id)
         else:
@@ -77,7 +79,7 @@ def chat_result(
             ctx_text, sent_scope = build_chat_context_scoped(
                 conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
             prompt = _build_system_prompt(ctx_text, user_message, chat_history)
-        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and not chip_id)
+        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and prompt_is_free)
 
     as_of = date.today().isoformat()
     if text and used:
