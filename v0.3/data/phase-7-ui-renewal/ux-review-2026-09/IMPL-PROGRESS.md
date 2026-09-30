@@ -235,6 +235,15 @@
 - **알려진 경고(기존)**: `pansong.us@gmail.com` DB는 테이블 없는 빈 파일(root 소유, user_version 0)이라 기동 시 "no such table: activity_summaries" 경고가 9/28부터 매번 뜬다. 이번 배포와 무관, 데이터 영향 없음.
 - **Groq 404 원인·수정**: Groq `/models` 목록에서 기본 모델 `llama-3.3-70b-versatile`이 사라져 404. 기본값을 `openai/gpt-oss-120b`로 교체(`provider_common.DEFAULT_MODELS`, 테스트 추가). 운영 반영은 다음 "운영 반영" 지시 때.
 
+### 3-4 세부 (Coach 규칙 핸들러·칩 플로우·S3, `30-coach-chat/design.md` §7.2~7.3·H3)
+- **백엔드**(3cf3ab1·334abe8): `ai/coach_rule_handlers.py`(chip_id → 핸들러 12종 레지스트리, 데이터 있는 칩만 노출 `answerable_chips`), `coach_rule_plan_handlers.py`(목표 가능성·레이스 준비·이번 주 계획·테이퍼), `coach_rule_grade.py`(회복 등급 → 강도 5단계 + 체크인 하향), `coach_rule_types.py`(`CHIP_TEXT`·`RuleAnswer`). 오늘 판정은 `readiness_decision` 헤드라인을 첫 문장으로 써 Today와 어긋나지 않음. 자유 텍스트는 "AI가 연결되지 않아 답할 수 없어요" + 칩 3개(`free_text_answer`). 규칙 답변은 "AI 코치"라 부르지 않음.
+- **API**: `GET /coach/suggestions`(최대 6), `POST /coach/threads`·`/messages`가 `chip_id` 입력 지원(미지 id·빈 본문 400), 어시스턴트 메시지에 `followups:[{chip_id,text}]`(최대 3, 스레드에서 이미 물은 칩 제외).
+- **프론트**: 하드코딩 주제·후속 질문 제거. `lib/coachSuggestions.ts`(`CoachInput = string | CoachChip`, `messageBody`), Coach 홈 "바로 물어보기" 칩 = 즉시 전송(H3, 동의 게이트 통과 후 재개), 스레드 끝 followup 칩(마지막이 어시스턴트 메시지일 때만).
+- **실제 브라우저 확인**(Playwright, 합성 DB 사본 + Flask + 빌드 산출물): 홈 칩 탭 → 스레드 생성·답변·근거 칩·후속 칩 3개, 후속 칩 탭 시 이미 물은 칩 제외, 자유 텍스트 폴백 안내, 9/9 통과.
+- **검증**: `pytest tests/` 1982 passed · 247 skipped · 4 failed(기존 동일 4건) · 프론트 unit·`npm run check` 0 errors·build OK.
+- **남음**: 체크인 입력 연결은 홈의 빠른 입력(QuickInput)이 이미 있어 별도 링크 미추가. LLM 성공 답변은 followups가 비어 있음(수용). `?from=coach`는 URL에만 붙고 스레드 페이지 전용 처리 없음.
+- **운영 반영 대기**: Groq 404 수정(9e858f7) + 3-4 전체. 다음 "운영 반영" 지시 때.
+
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치
@@ -243,7 +252,7 @@
 - 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
 
 ### 다음 착수 순서(99-summary §7, 설계서 있는 항목은 바로 구현·재확인 금지)
-1. (3-3 Coach 근거 v2 완료) **3-4**(S3): 판정 통합은 끝났으므로 남은 것은 `chip_id` 핸들러 7종, 자유 텍스트 정직 응답, `/coach/suggestions`, 체크인 입력 연결·칩. 설계서의 "자동 반영" 문구는 이제 사용 가능.
+1. (3-3·3-4 완료) **3-5**(S4): SSE 스트리밍·`client_msg_id`·오류 상태 기계(스키마 v24 예상, 현재 `SCHEMA_VERSION = 23`). 설계서 `30-coach-chat/design.md` 확인 후 구현.
 2. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
 
 ### 이월(설계서 P2 이하 / 후속 정리)

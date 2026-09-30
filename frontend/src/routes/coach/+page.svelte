@@ -8,13 +8,13 @@
 	import { stripMarkdown } from '$lib/markdownLite';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import type { ChatThread, PainLevel, CheckinRow, CoachEngine } from '$lib/types';
+	import type { ChatThread, PainLevel, CheckinRow, CoachEngine, CoachChip } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import DegradedBanner from '$lib/components/coach/DegradedBanner.svelte';
 	import EngineLine from '$lib/components/coach/EngineLine.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
 	import { needsConsent } from '$lib/coachEngine';
-	import { homeTopics } from '$lib/coachSuggestions';
+	import type { CoachInput } from '$lib/coachSuggestions';
 	import { staleLabel, threadTitles } from '$lib/threadAge';
 
 	let { data }: { data: CoachPageData } = $props();
@@ -29,24 +29,25 @@
 	let sending = $state(false);
 	let engine = $state<CoachEngine | null>(data.engine);
 	let scopeOpen = $state(false);
-	let consentPending = $state(false);
+	let pendingInput = $state<CoachInput | null>(null);
 
 	async function saveConsent(input: ConsentInput) {
 		const consent = await putConsent(input);
 		if (engine) engine = { ...engine, consent };
 		scopeOpen = false;
-		if (consentPending) {
-			consentPending = false;
-			submitNew();
+		if (pendingInput) {
+			const input = pendingInput;
+			pendingInput = null;
+			start(input);
 		}
 	}
 
 	function closeScope() {
 		scopeOpen = false;
-		consentPending = false;
+		pendingInput = null;
 	}
 
-	const topics = $derived(homeTopics(data.goal));
+	const chips: CoachChip[] = data.suggestions;
 
 	let checkin = $state<CheckinRow | null>(data.checkin);
 	let savingCheckin = $state(false);
@@ -63,24 +64,29 @@
 		}
 	}
 
-	function openNew(prefill = '') {
-		newInput = prefill;
+	function openNew() {
+		newInput = '';
 		isCreating = true;
 	}
 
-	async function submitNew() {
+	function submitNew() {
 		const msg = newInput.trim();
-		if (!msg || sending) return;
+		if (msg) start(msg);
+	}
+
+	// 칩 탭·자유 입력 모두 한 번에 스레드를 만들고 대화 화면으로 이동한다(design H3).
+	async function start(input: CoachInput) {
+		if (sending) return;
 		if (needsConsent(engine)) {
-			consentPending = true;
+			pendingInput = input;
 			scopeOpen = true;
 			return;
 		}
 		sending = true;
 		errorMessage = null;
 		try {
-			const res = await createThread(msg);
-			await goto(`${base}/coach/${res.thread.id}`);
+			const res = await createThread(input);
+			await goto(`${base}/coach/${res.thread.id}?from=coach`);
 		} catch (e) {
 			errorMessage = e instanceof ApiError ? e.message : '대화를 시작할 수 없습니다.';
 			sending = false;
@@ -197,22 +203,31 @@
 		</div>
 	{/if}
 
-	<!-- 자주 묻는 주제 -->
+	<!-- 지금 답할 수 있는 질문 (서버가 데이터 있는 칩만 제공) -->
 	{#if !isCreating}
-		<div class="border-t border-border-subtle px-4 py-3">
-			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">자주 묻는 주제</p>
-			<div class="flex flex-wrap gap-2">
-				{#each topics as topic}
-					<button
-						type="button"
-						onclick={() => openNew(topic)}
-						class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3"
-					>
-						{topic}
-					</button>
-				{/each}
+		{#if chips.length > 0}
+			<div class="border-t border-border-subtle px-4 py-3">
+				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">바로 물어보기</p>
+				<div class="flex flex-wrap gap-2">
+					{#each chips as chip (chip.chip_id)}
+						<button
+							type="button"
+							data-testid="home-chip"
+							onclick={() => start(chip)}
+							disabled={sending}
+							class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50"
+						>
+							{chip.text}
+						</button>
+					{/each}
+				</div>
+				{#if sending}
+					<p class="mt-2 text-xs text-fg-muted">답변을 준비하고 있어요…</p>
+				{:else if errorMessage}
+					<p class="mt-2 text-xs text-semantic-red">{errorMessage}</p>
+				{/if}
 			</div>
-		</div>
+		{/if}
 
 		<!-- 플랜 섹션 -->
 		<div class="border-t border-border-subtle px-4 py-3">
@@ -255,7 +270,7 @@
 				saving={savingCheckin}
 				onSave={handleSaveCheckin}
 			/>
-			<p class="text-xs text-fg-muted">입력한 컨디션은 AI가 연결되어 있을 때 Coach 답변에 참고됩니다.</p>
+			<p class="text-xs text-fg-muted">입력한 컨디션은 오늘 훈련 답변에 반영됩니다.</p>
 			{#if checkinError}
 				<p class="text-xs text-semantic-red">{checkinError}</p>
 			{/if}

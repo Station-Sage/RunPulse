@@ -16,7 +16,7 @@
 	import { needsConsent } from '$lib/coachEngine';
 	import type { DrillTarget } from '$lib/evidence';
 	import { chipTarget } from '$lib/answerEvidence';
-	import { followUps } from '$lib/coachSuggestions';
+	import { inputText as chipLabel, type CoachInput } from '$lib/coachSuggestions';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
 	import { localDateString } from '$lib/asOf';
@@ -116,11 +116,15 @@
 		messagesEnd?.scrollIntoView({ block: 'end' });
 	}
 
-	async function send() {
-		const content = inputText.trim();
+	function sendTyped() {
+		send(inputText);
+	}
+
+	async function send(input: CoachInput) {
+		const content = chipLabel(input).trim();
 		if (!content || sending || !thread) return;
 		if (needsConsent(engine)) {
-			afterConsent = send;
+			afterConsent = () => send(input);
 			scopeOpen = true;
 			return;
 		}
@@ -134,7 +138,7 @@
 			created_at: new Date().toISOString()
 		};
 		messages = [...messages, tempUserMsg];
-		inputText = '';
+		if (typeof input === 'string') inputText = '';
 		sending = true;
 		errorMessage = null;
 
@@ -142,7 +146,7 @@
 		setTimeout(scrollToBottom, 50);
 
 		try {
-			const res = await addMessage(thread.id, content);
+			const res = await addMessage(thread.id, input);
 			messages = [
 				...messages,
 				{
@@ -163,7 +167,7 @@
 		if (e.isComposing || e.keyCode === 229) return;
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
-			send();
+			sendTyped();
 		}
 	}
 </script>
@@ -213,17 +217,15 @@
 			{/if}
 		{/each}
 
-		{#if lastMsg?.role === 'assistant' && !sending}
+		{#if lastMsg?.role === 'assistant' && !sending && lastMsg.followups?.length}
 			<div class="flex flex-wrap gap-2">
-				{#each followUps((lastMsg.evidence ?? []).map((e) => e.metric)) as q}
+				{#each lastMsg.followups as chip (chip.chip_id)}
 					<button
 						type="button"
-						onclick={() => {
-							inputText = q;
-							send();
-						}}
+						data-testid="followup-chip"
+						onclick={() => send(chip)}
 						class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-fg-secondary hover:bg-surface-3"
-					>{q}</button>
+					>{chip.text}</button>
 				{/each}
 			</div>
 		{/if}
@@ -260,7 +262,7 @@
 			></textarea>
 			<button
 				type="button"
-				onclick={send}
+				onclick={sendTyped}
 				disabled={sending || !inputText.trim()}
 				class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
 				aria-label="전송"

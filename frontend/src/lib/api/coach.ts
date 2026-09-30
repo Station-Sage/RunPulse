@@ -7,17 +7,23 @@ import type {
 	AddMessageResponse,
 	CoachEngine,
 	CoachConsent,
-	RegenerateResponse
+	RegenerateResponse,
+	SuggestionsResponse
 } from '$lib/types';
+import { messageBody, type CoachInput } from '$lib/coachSuggestions';
 
 export function getThreads(): Promise<ThreadsListResponse> {
 	return apiFetch<ThreadsListResponse>('/coach/threads');
 }
 
-export function createThread(initialMessage: string): Promise<CreateThreadResponse> {
+export function getSuggestions(): Promise<SuggestionsResponse> {
+	return apiFetch<SuggestionsResponse>('/coach/suggestions');
+}
+
+export function createThread(input: CoachInput): Promise<CreateThreadResponse> {
 	return apiFetch<CreateThreadResponse>('/coach/threads', {
 		method: 'POST',
-		body: JSON.stringify({ initial_message: initialMessage })
+		body: JSON.stringify(messageBody(input, 'initial_message'))
 	});
 }
 
@@ -25,10 +31,10 @@ export function getThread(id: number): Promise<ThreadDetailResponse> {
 	return apiFetch<ThreadDetailResponse>(`/coach/threads/${id}`);
 }
 
-export function addMessage(threadId: number, content: string): Promise<AddMessageResponse> {
+export function addMessage(threadId: number, input: CoachInput): Promise<AddMessageResponse> {
 	return apiFetch<AddMessageResponse>(`/coach/threads/${threadId}/messages`, {
 		method: 'POST',
-		body: JSON.stringify({ content })
+		body: JSON.stringify(messageBody(input, 'content'))
 	});
 }
 

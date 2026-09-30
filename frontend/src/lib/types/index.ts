@@ -220,6 +220,18 @@ export interface ChatMessage {
 	engine?: EngineView;
 	as_of?: string | null;
 	sent_scope?: ScopeItem[] | null;
+	/** assistant 메시지만 — 서버가 고른 다음 질문 칩(최대 3, 이미 물은 칩 제외). */
+	followups?: CoachChip[];
+}
+
+/** 서버가 답할 수 있는 질문 칩 — 탭하면 chip_id 로 전송한다(30-coach-chat design §7.3). */
+export interface CoachChip {
+	chip_id: string;
+	text: string;
+}
+
+export interface SuggestionsResponse {
+	suggestions: CoachChip[];
 }
 
 export type EngineStatus =
