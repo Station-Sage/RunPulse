@@ -6,19 +6,29 @@
 	import EvidenceRow from './EvidenceRow.svelte';
 	import { driftText } from '$lib/answerEvidence';
 	import { bannerFor, reasonText } from '$lib/coachEngine';
+	import type { LiveEntry } from '$lib/coachLive.svelte';
+	import StreamStatus from './StreamStatus.svelte';
 
 	let {
 		msg,
 		regenerating = false,
+		live,
 		onEvidence,
 		onRegenerate,
-		onShowReason
+		onShowReason,
+		onCancel,
+		onKeepWaiting,
+		onRuleAnswer
 	}: {
 		msg: ChatMessage;
 		regenerating?: boolean;
+		live?: LiveEntry;
 		onEvidence: (ev: AnswerEvidence) => void;
 		onRegenerate: (id: number) => void;
 		onShowReason: (msg: ChatMessage) => void;
+		onCancel?: (id: number) => void;
+		onKeepWaiting?: (id: number) => void;
+		onRuleAnswer?: (id: number) => void;
 	} = $props();
 
 	const engine = $derived(msg.engine);
@@ -29,6 +39,17 @@
 
 <div class="flex justify-start">
 	<div class="max-w-[80%] rounded-2xl rounded-bl-sm border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary">
+		{#if live}
+			{#if live.stream.text}
+				<ChatBody content={live.stream.text} />
+			{/if}
+			<StreamStatus
+				{live}
+				onCancel={() => onCancel?.(msg.id)}
+				onKeepWaiting={() => onKeepWaiting?.(msg.id)}
+				onRuleAnswer={() => onRuleAnswer?.(msg.id)}
+			/>
+		{:else}
 		<ChatBody content={msg.content} />
 		{#if label}
 			<p class="mt-1 text-[11px] font-medium text-fg-secondary" data-testid="engine-label">{label}</p>
@@ -52,7 +73,12 @@
 		{:else if banner === 'error'}
 			<p class="mt-1 text-[11px] text-semantic-red">
 				답변을 만들지 못했어요 ({reasonText(engine?.reason)}) ·
-				<button type="button" class="underline" disabled={regenerating} onclick={() => onRegenerate(msg.id)}>↻ 다시 생성</button>
+				<button type="button" class="underline" data-testid="regenerate" disabled={regenerating} onclick={() => onRegenerate(msg.id)}>↻ 다시 생성</button>
+			</p>
+		{:else if banner === 'cancelled'}
+			<p class="mt-1 text-[11px] text-fg-secondary" data-testid="cancelled-note">
+				중단됨 ·
+				<button type="button" class="underline" data-testid="regenerate" disabled={regenerating} onclick={() => onRegenerate(msg.id)}>↻ 다시 생성</button>
 			</p>
 		{/if}
 		{#if msg.as_of}
@@ -67,6 +93,7 @@
 				class="mt-2 rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-1.5 text-xs text-fg-secondary"
 				data-testid="drift-banner"
 			>{drift}</p>
+		{/if}
 		{/if}
 	</div>
 </div>

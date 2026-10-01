@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
-	import { createThread, putConsent, type ConsentInput } from '$lib/api/coach';
+	import { createThread, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
 	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
 	import { formatRelativeTime, weekProgressLabel } from '$lib/format';
@@ -14,7 +14,7 @@
 	import EngineLine from '$lib/components/coach/EngineLine.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
 	import { needsConsent } from '$lib/coachEngine';
-	import type { CoachInput } from '$lib/coachSuggestions';
+	import { inputText as chipLabel, type CoachInput } from '$lib/coachSuggestions';
 	import { staleLabel, threadTitles } from '$lib/threadAge';
 
 	let { data }: { data: CoachPageData } = $props();
@@ -75,6 +75,8 @@
 	}
 
 	// 칩 탭·자유 입력 모두 한 번에 스레드를 만들고 대화 화면으로 이동한다(design H3).
+	let retry: { key: string; id: string } | null = null;
+
 	async function start(input: CoachInput) {
 		if (sending) return;
 		if (needsConsent(engine)) {
@@ -84,8 +86,11 @@
 		}
 		sending = true;
 		errorMessage = null;
+		// 실패 후 재시도해도 같은 id — 서버가 중복 생성을 막는다.
+		const key = chipLabel(input);
+		if (retry?.key !== key) retry = { key, id: newClientMsgId() };
 		try {
-			const res = await createThread(input);
+			const res = await createThread(input, retry.id);
 			await goto(`${base}/coach/${res.thread.id}?from=coach`);
 		} catch (e) {
 			errorMessage = e instanceof ApiError ? e.message : '대화를 시작할 수 없습니다.';

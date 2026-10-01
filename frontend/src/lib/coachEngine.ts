@@ -35,7 +35,7 @@ export function engineLineText(engine: CoachEngine | null): string {
 	return `답변 엔진: ${name}`;
 }
 
-export type MessageBanner = 'fallback' | 'rule_only' | 'error' | null;
+export type MessageBanner = 'fallback' | 'rule_only' | 'error' | 'cancelled' | null;
 
 /** 메시지 아래 배너 종류 — fallback은 "AI로 다시 생성", rule_only는 "AI 설정" 링크를 단다. */
 export function bannerFor(engine: EngineView | undefined): MessageBanner {
@@ -43,6 +43,7 @@ export function bannerFor(engine: EngineView | undefined): MessageBanner {
 	if (engine.status === 'fallback') return 'fallback';
 	if (engine.status === 'rule_only') return 'rule_only';
 	if (engine.status === 'error') return 'error';
+	if (engine.status === 'cancelled') return 'cancelled';
 	return null;
 }
 

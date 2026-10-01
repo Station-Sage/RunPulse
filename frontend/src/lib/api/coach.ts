@@ -7,6 +7,7 @@ import type {
 	AddMessageResponse,
 	CoachEngine,
 	CoachConsent,
+	ChatMessage,
 	RegenerateResponse,
 	SuggestionsResponse
 } from '$lib/types';
@@ -20,10 +21,15 @@ export function getSuggestions(): Promise<SuggestionsResponse> {
 	return apiFetch<SuggestionsResponse>('/coach/suggestions');
 }
 
-export function createThread(input: CoachInput): Promise<CreateThreadResponse> {
+/** 같은 clientMsgId로 다시 보내도 서버가 한 번만 만든다(재전송 멱등). */
+export function newClientMsgId(): string {
+	return globalThis.crypto?.randomUUID?.() ?? `c-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function createThread(input: CoachInput, clientMsgId?: string): Promise<CreateThreadResponse> {
 	return apiFetch<CreateThreadResponse>('/coach/threads', {
 		method: 'POST',
-		body: JSON.stringify(messageBody(input, 'initial_message'))
+		body: JSON.stringify({ ...messageBody(input, 'initial_message'), client_msg_id: clientMsgId })
 	});
 }
 
@@ -31,11 +37,21 @@ export function getThread(id: number): Promise<ThreadDetailResponse> {
 	return apiFetch<ThreadDetailResponse>(`/coach/threads/${id}`);
 }
 
-export function addMessage(threadId: number, input: CoachInput): Promise<AddMessageResponse> {
+export function addMessage(threadId: number, input: CoachInput, clientMsgId?: string): Promise<AddMessageResponse> {
 	return apiFetch<AddMessageResponse>(`/coach/threads/${threadId}/messages`, {
 		method: 'POST',
-		body: JSON.stringify(messageBody(input, 'content'))
+		body: JSON.stringify({ ...messageBody(input, 'content'), client_msg_id: clientMsgId })
 	});
+}
+
+/** 폴링용 — 스트림을 잇지 못할 때 최종 상태를 확인한다. */
+export async function getMessage(messageId: number): Promise<ChatMessage> {
+	const res = await apiFetch<{ message: ChatMessage }>(`/coach/messages/${messageId}`);
+	return res.message;
+}
+
+export function cancelMessage(messageId: number): Promise<{ status: string }> {
+	return apiFetch<{ status: string }>(`/coach/messages/${messageId}/cancel`, { method: 'POST' });
 }
 
 export function getEngine(): Promise<CoachEngine> {
@@ -52,8 +68,10 @@ export async function putConsent(input: ConsentInput): Promise<CoachConsent> {
 	return res.consent;
 }
 
-export function regenerateMessage(threadId: number, messageId: number): Promise<RegenerateResponse> {
-	return apiFetch<RegenerateResponse>(`/coach/threads/${threadId}/messages/${messageId}/regenerate`, {
-		method: 'POST'
+/** mode 'ai'(기본) = 같은 엔진으로 다시, 'rule' = 기본(규칙) 답변. 새 pending 메시지를 돌려준다. */
+export function regenerateMessage(messageId: number, mode: 'ai' | 'rule' = 'ai'): Promise<RegenerateResponse> {
+	return apiFetch<RegenerateResponse>(`/coach/messages/${messageId}/regenerate`, {
+		method: 'POST',
+		body: JSON.stringify({ mode })
 	});
 }

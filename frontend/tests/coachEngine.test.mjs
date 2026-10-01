@@ -32,10 +32,11 @@ test('engineLineText: 모드별 문구', () => {
 	assert.match(engineLineText(llm(null)), /동의 필요/);
 });
 
-test('bannerFor: fallback/rule_only/error만 배너', () => {
+test('bannerFor: fallback/rule_only/error/cancelled만 배너', () => {
 	assert.equal(bannerFor({ status: 'fallback' }), 'fallback');
 	assert.equal(bannerFor({ status: 'rule_only' }), 'rule_only');
 	assert.equal(bannerFor({ status: 'error' }), 'error');
+	assert.equal(bannerFor({ status: 'cancelled' }), 'cancelled');
 	assert.equal(bannerFor({ status: 'ok' }), null);
 	assert.equal(bannerFor(undefined), null);
 });

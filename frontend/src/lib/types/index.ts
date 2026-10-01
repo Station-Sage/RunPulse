@@ -222,6 +222,10 @@ export interface ChatMessage {
 	sent_scope?: ScopeItem[] | null;
 	/** assistant 메시지만 — 서버가 고른 다음 질문 칩(최대 3, 이미 물은 칩 제외). */
 	followups?: CoachChip[];
+	/** pending/working 메시지만 — SSE 엔드포인트(S4 상태 기계). */
+	stream_url?: string;
+	client_msg_id?: string | null;
+	parent_message_id?: number | null;
 }
 
 /** 서버가 답할 수 있는 질문 칩 — 탭하면 chip_id 로 전송한다(30-coach-chat design §7.3). */
@@ -295,14 +299,17 @@ export interface ThreadDetailResponse {
 	messages: ChatMessage[];
 }
 
-export interface CreateThreadResponse {
-	thread: { id: number; title: string };
-	message: ChatMessage;
+/** 전송 계열 응답 — 사용자 메시지와 pending 답변을 즉시 돌려준다(design §6.2). */
+export interface SentMessages {
+	user_message: ChatMessage;
+	assistant_message: ChatMessage;
 }
 
-export interface AddMessageResponse {
-	message: ChatMessage;
+export interface CreateThreadResponse extends SentMessages {
+	thread: { id: number; title: string };
 }
+
+export type AddMessageResponse = SentMessages;
 
 // ── /api/v1/today 실제 응답 (src/api/routes_today.py, src/services/today_service.py 기준) ──
 
