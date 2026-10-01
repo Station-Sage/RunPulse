@@ -47,16 +47,16 @@ export function openMessageStream(messageId: number, handlers: StreamHandlers, l
 
 	const connect = () => {
 		source = new EventSource(`/api/v1/coach/messages/${messageId}/stream?last_event_id=${lastId}`);
-		source.onopen = () => {
-			failures = 0;
-			handlers.onReconnecting(false);
-		};
+		// 열렸다고 끊김 횟수를 지우지 않는다 — 열리자마자 닫히는 연결이 폴링 전환을 막지 않도록, 새 이벤트가 올 때만 센다.
+		source.onopen = () => handlers.onReconnecting(false);
 		for (const name of EVENTS) {
 			source.addEventListener(name, (ev) => {
+				// 'error'는 연결 오류(Event)로도 발생한다 — 서버가 보낸 MessageEvent만 이벤트로 취급한다.
+				if (!(ev instanceof MessageEvent)) return;
 				const me = ev as MessageEvent<string>;
 				const id = Number(me.lastEventId) || lastId + 1;
-				lastId = id;
-				failures = 0;
+				if (id > lastId) failures = 0;
+				lastId = Math.max(lastId, id);
 				handlers.onReconnecting(false);
 				let data: unknown = null;
 				try {
