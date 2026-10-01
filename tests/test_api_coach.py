@@ -1,10 +1,11 @@
-"""tests/test_api_coach.py — /api/v1/coach/threads(+:id, +:id/messages) 테스트.
+"""tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
 
 chat_engine.chat_result()는 monkeypatch로 결정적 응답 대체 — test_coach_service.py의
 _fake_ai_chat 패턴 재사용, AI provider 체인 의존성 제거가 목적.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 
 import pytest
@@ -18,11 +19,16 @@ def _fake_ai_chat(monkeypatch):
     from src.ai.chat_engine_result import ChatResult, EngineInfo
 
     def _fake(conn, user_message, config=None, chip_id=None, thread_id=None, consent=None,
-              require_consent=False):
+              require_consent=False, on_event=None, cancelled=None):
+        if on_event:
+            on_event("stage", {"key": "model", "label": "답변 작성 중"})
         return ChatResult(f"[fake] {user_message}에 대한 응답", EngineInfo("ok", "fake", "fake-model"),
                           as_of="2026-09-30")
 
     monkeypatch.setattr("src.ai.chat_engine.chat_result", _fake)
+    from src.services import coach_async
+    monkeypatch.setattr(coach_async, "INLINE", True)
+    coach_async._RUNS.clear()
 
 
 @pytest.fixture
@@ -59,7 +65,9 @@ def test_create_thread(mini_app):
     assert res.status_code == 201
     body = res.get_json()
     assert body["data"]["thread"]["id"]
-    assert body["data"]["message"]["role"] == "assistant"
+    assert body["data"]["user_message"]["content"] == "오늘 뭐 할까?"
+    assert body["data"]["assistant_message"]["status"] == "pending"
+    assert body["data"]["assistant_message"]["stream_url"].endswith("/stream")
 
 
 def test_create_thread_missing_message(mini_app):
@@ -91,8 +99,8 @@ def test_add_message(mini_app):
     res = mini_app.post(f"/api/v1/coach/threads/{thread_id}/messages", json={"content": "추가 질문"})
     assert res.status_code == 201
     body = res.get_json()
-    assert body["data"]["message"]["role"] == "assistant"
-    assert body["data"]["message"]["thread_id"] == thread_id
+    assert body["data"]["user_message"]["content"] == "추가 질문"
+    assert body["data"]["assistant_message"]["thread_id"] == thread_id
 
 
 def test_add_message_thread_not_found(mini_app):
@@ -134,15 +142,6 @@ def test_consent_rejects_bad_provider(mini_app):
     assert mini_app.put("/api/v1/coach/consent", json={}).status_code == 400
 
 
-def test_regenerate_route(mini_app):
-    created = mini_app.post("/api/v1/coach/threads", json={"initial_message": "안녕"}).get_json()["data"]
-    tid, mid = created["thread"]["id"], created["message"]["id"]
-    res = mini_app.post(f"/api/v1/coach/threads/{tid}/messages/{mid}/regenerate")
-    assert res.status_code == 200
-    assert res.get_json()["data"]["message"]["engine"]["status"] == "ok"
-    assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages/9999/regenerate").status_code == 404
-
-
 def test_suggestions_are_handler_backed(mini_app):
     res = mini_app.get("/api/v1/coach/suggestions?at=home")
     assert res.status_code == 200
@@ -166,3 +165,83 @@ def test_unknown_chip_or_empty_body_rejected(mini_app):
     tid = mini_app.post("/api/v1/coach/threads", json={"initial_message": "안녕"}).get_json()["data"]["thread"]["id"]
     assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={}).status_code == 400
     assert mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={"chip_id": "week_plan"}).status_code == 201
+
+
+def _events(res):
+    out = []
+    for block in res.get_data(as_text=True).split("\n\n"):
+        if not block.strip() or block.startswith(":"):
+            continue
+        lines = dict(line.split(": ", 1) for line in block.split("\n"))
+        out.append((int(lines["id"]), lines["event"], json.loads(lines["data"])))
+    return out
+
+
+def _new(mini_app, text="안녕", **extra):
+    return mini_app.post("/api/v1/coach/threads", json={"initial_message": text, **extra})
+
+
+def test_stream_returns_sse_events_and_headers(mini_app):
+    mid = _new(mini_app).get_json()["data"]["assistant_message"]["id"]
+    res = mini_app.get(f"/api/v1/coach/messages/{mid}/stream")
+    assert res.mimetype == "text/event-stream"
+    assert res.headers["Cache-Control"] == "no-cache" and res.headers["X-Accel-Buffering"] == "no"
+    events = _events(res)
+    assert events[0][1] == "stage" and events[-1][1] == "done"
+    assert "[fake]" in "".join(e[2]["text"] for e in events if e[1] == "delta")
+
+
+def test_stream_resumes_with_last_event_id(mini_app):
+    mid = _new(mini_app).get_json()["data"]["assistant_message"]["id"]
+    res = mini_app.get(f"/api/v1/coach/messages/{mid}/stream", headers={"Last-Event-ID": "1"})
+    assert _events(res)[0][0] == 2
+    res = mini_app.get(f"/api/v1/coach/messages/{mid}/stream?last_event_id=2")
+    assert _events(res)[0][0] == 3
+
+
+def test_get_message_poll(mini_app):
+    mid = _new(mini_app).get_json()["data"]["assistant_message"]["id"]
+    msg = mini_app.get(f"/api/v1/coach/messages/{mid}").get_json()["data"]["message"]
+    assert msg["status"] == "done" and "[fake]" in msg["content"]
+    assert mini_app.get("/api/v1/coach/messages/9999").status_code == 404
+
+
+def test_client_msg_id_makes_resend_idempotent(mini_app):
+    first = _new(mini_app, client_msg_id="c-1")
+    again = _new(mini_app, client_msg_id="c-1")
+    assert first.status_code == 201 and again.status_code == 200
+    assert first.get_json()["data"]["thread"]["id"] == again.get_json()["data"]["thread"]["id"]
+    tid = first.get_json()["data"]["thread"]["id"]
+    a = mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={"content": "또", "client_msg_id": "c-2"})
+    b = mini_app.post(f"/api/v1/coach/threads/{tid}/messages", json={"content": "또", "client_msg_id": "c-2"})
+    assert (a.status_code, b.status_code) == (201, 200)
+    assert a.get_json()["data"]["user_message"]["id"] == b.get_json()["data"]["user_message"]["id"]
+
+
+def test_cancel_route(mini_app):
+    from src.services import coach_async
+    mid = _new(mini_app).get_json()["data"]["assistant_message"]["id"]
+    run = coach_async._RUNS[mid] = coach_async._Run()
+    res = mini_app.post(f"/api/v1/coach/messages/{mid}/cancel")
+    assert res.status_code == 200 and res.get_json()["data"]["status"] == "cancelled"
+    assert run.cancel.is_set()
+    assert mini_app.post("/api/v1/coach/messages/9999/cancel").status_code == 404
+
+
+def test_regenerate_ai_and_rule_modes(mini_app, monkeypatch):
+    seen = []
+    from src.ai.chat_engine_result import ChatResult, EngineInfo
+
+    def _spy(conn, user_message, config=None, **kw):
+        seen.append((config or {}).get("ai", {}).get("provider"))
+        return ChatResult("답", EngineInfo("ok", "fake", "m"))
+
+    monkeypatch.setattr("src.ai.chat_engine.chat_result", _spy)
+    mid = _new(mini_app).get_json()["data"]["assistant_message"]["id"]
+    res = mini_app.post(f"/api/v1/coach/messages/{mid}/regenerate", json={"mode": "rule"})
+    assert res.status_code == 200
+    child = res.get_json()["data"]["message"]
+    assert child["id"] != mid and seen[-1] == "rule"
+    assert mini_app.post(f"/api/v1/coach/messages/{child['id']}/regenerate").status_code == 200
+    assert mini_app.post(f"/api/v1/coach/messages/{mid}/regenerate", json={"mode": "x"}).status_code == 400
+    assert mini_app.post("/api/v1/coach/messages/9999/regenerate").status_code == 404

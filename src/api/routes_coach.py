@@ -1,11 +1,14 @@
-"""GET/POST /api/v1/coach/threads(+:id, +:id/messages, regenerate) + GET /coach/suggestions · /coach/engine + PUT /coach/consent."""
+"""/api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · engine · consent.
+
+전송 계열은 pending 행을 즉시 돌려주고 coach_async 워커가 답변을 만든다(design §6.2).
+"""
 from __future__ import annotations
 
 import sqlite3
 
-from flask import request
+from flask import Response, request, stream_with_context
 
-from src.services import coach_consent, coach_engine_health, coach_service
+from src.services import coach_async, coach_consent, coach_engine_health, coach_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -57,6 +60,7 @@ def get_coach_threads():
 
 @api_bp.post("/coach/threads")
 def post_coach_threads():
+    """새 대화 — 스레드·사용자 메시지·pending 답변을 즉시 돌려주고 답변 생성은 백그라운드에서 시작한다."""
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
@@ -69,11 +73,16 @@ def post_coach_threads():
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
-        result = coach_service.create_thread(conn, initial_message, config=config, chip_id=chip_id)
+        sent = coach_service.create_thread(conn, initial_message, config=config, chip_id=chip_id,
+                                           client_msg_id=body.get("client_msg_id") or None,
+                                           context=body.get("context"))
     finally:
         conn.close()
 
-    return api_ok(result, status=201)
+    created = sent.pop("created")
+    if created:
+        coach_async.start(dpath, config, sent["assistant_message"]["id"])
+    return api_ok(sent, status=201 if created else 200)
 
 
 @api_bp.get("/coach/threads/<int:thread_id>")
@@ -96,6 +105,7 @@ def get_coach_thread_detail(thread_id: int):
 
 @api_bp.post("/coach/threads/<int:thread_id>/messages")
 def post_coach_thread_messages(thread_id: int):
+    """메시지 전송 — 사용자 메시지·pending 답변을 즉시 돌려주고 답변 생성은 백그라운드에서 시작한다."""
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
@@ -105,34 +115,88 @@ def post_coach_thread_messages(thread_id: int):
     if err:
         return err
 
+    config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
         if coach_service.get_thread(conn, thread_id) is None:
             return api_error("NOT_FOUND", f"스레드를 찾을 수 없습니다: {thread_id}", 404)
-
-        config = load_config(user_id=get_current_user_id())
-        message = coach_service.add_message(conn, thread_id, content, config=config, chip_id=chip_id)
+        sent = coach_service.add_message(conn, thread_id, content, config=config, chip_id=chip_id,
+                                         client_msg_id=body.get("client_msg_id") or None)
     finally:
         conn.close()
 
-    return api_ok({"message": message}, status=201)
+    created = sent.pop("created")
+    if created:
+        coach_async.start(dpath, config, sent["assistant_message"]["id"])
+    return api_ok(sent, status=201 if created else 200)
 
 
-@api_bp.post("/coach/threads/<int:thread_id>/messages/<int:message_id>/regenerate")
-def post_coach_regenerate(thread_id: int, message_id: int):
+@api_bp.get("/coach/messages/<int:message_id>")
+def get_coach_message(message_id: int):
+    """폴링용 — 스트림이 끊긴 클라이언트가 최종 상태를 확인한다."""
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
+    conn = sqlite3.connect(str(dpath))
+    try:
+        message = coach_service.get_message(conn, message_id)
+    finally:
+        conn.close()
+    if message is None:
+        return api_error("NOT_FOUND", f"메시지를 찾을 수 없습니다: {message_id}", 404)
+    return api_ok({"message": message})
+
+
+@api_bp.get("/coach/messages/<int:message_id>/stream")
+def get_coach_message_stream(message_id: int):
+    """SSE — stage · delta · evidence · done · error. Last-Event-ID로 이어받는다."""
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    raw = request.headers.get("Last-Event-ID") or request.args.get("last_event_id") or "0"
+    last_id = int(raw) if raw.isdigit() else 0
+    return Response(stream_with_context(coach_async.stream(dpath, message_id, last_id)),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@api_bp.post("/coach/messages/<int:message_id>/cancel")
+def post_coach_cancel(message_id: int):
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    status = coach_async.cancel(dpath, message_id)
+    if status is None:
+        return api_error("NOT_FOUND", f"메시지를 찾을 수 없습니다: {message_id}", 404)
+    return api_ok({"status": status})
+
+
+@api_bp.post("/coach/messages/<int:message_id>/regenerate")
+def post_coach_regenerate(message_id: int):
+    """다시 생성 — mode: 'ai'(기본) | 'rule'(기본 답변). 새 pending 메시지를 돌려주고 생성을 시작한다."""
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    mode = (request.get_json(silent=True) or {}).get("mode") or "ai"
+    if mode not in ("ai", "rule"):
+        return api_error("INVALID_PARAM", "mode는 ai 또는 rule이어야 합니다.", 400)
+
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
-        message = coach_service.regenerate(conn, thread_id, message_id, config=config)
+        row = conn.execute("SELECT thread_id FROM chat_messages WHERE id = ? AND role = 'assistant'",
+                           (message_id,)).fetchone()
+        message = coach_service.regenerate(conn, row[0], message_id, config=config) if row else None
     finally:
         conn.close()
 
     if message is None:
         return api_error("NOT_FOUND", "다시 생성할 메시지를 찾을 수 없습니다.", 404)
+    coach_async.start(dpath, config, message["id"], mode=mode)
     return api_ok({"message": message})
 
 
