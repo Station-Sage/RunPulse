@@ -268,6 +268,13 @@ def generate_reply(conn: sqlite3.Connection, thread_id: int, assistant_id: int, 
     return _store_reply(conn, thread_id, result, assistant_id, status)
 
 
+def get_message(conn: sqlite3.Connection, message_id: int) -> dict | None:
+    """메시지 한 건의 API 뷰(폴링·스트림 복원용). 없으면 None."""
+    if conn.execute("SELECT 1 FROM chat_messages WHERE id = ?", (message_id,)).fetchone() is None:
+        return None
+    return _row_view(conn, message_id)
+
+
 def regenerate(conn: sqlite3.Connection, thread_id: int, message_id: int,
                config: dict | None = None) -> dict | None:
     """assistant 메시지를 다시 생성한다 — 새 pending 행(parent=기존 답변)을 만들어 돌려준다(design §7.2).
