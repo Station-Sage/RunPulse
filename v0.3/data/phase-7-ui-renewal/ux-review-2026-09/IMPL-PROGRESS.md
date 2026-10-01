@@ -4,7 +4,7 @@
 
 ## 작업 규칙
 - 작업 위치: worktree `/home/ubuntu/projects/RunPulse-p0` (브랜치 `claude/project-thread-vgunp6`).
-- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 2026-09-30 12:11 — 266ebee까지(3-2·3-3) ff 병합·`npm run build`·`docker restart`(스키마 v23 자동 마이그레이션). 이후 커밋은 다시 "운영 반영" 지시 시에만.
+- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 2026-09-30 12:11 — 266ebee까지(3-2·3-3) ff 병합·`npm run build`·`docker restart`(스키마 v23 자동 마이그레이션). 이후 커밋은 다시 "운영 반영" 지시 시에만. 2026-10-01 23:42 — 98123e3까지(Groq 404 수정·format_ko·3-4·3-5) ff 병합·`npm run build`(gunicorn --reload로 코드 반영, 스키마 v24 자동 마이그레이션·백업 `running.db.bak-20261001-pre-v24`, 컨테이너 내부 서비스 스모크 통과).
   메인 폴더 `/home/ubuntu/projects/RunPulse`는 운영 컨테이너가 `--reload`로 마운트 → 직접 편집 금지.
 - 운영 반영: 메인 폴더 `renew/data-architecture`에 ff 병합 → `frontend`에서 `npm run build` → (Dockerfile 변경 시) `docker compose build && up -d`.
 - 테스트: `$V -m pytest tests/`(venv: 스크래치 `venv`, 없으면 `python3 -m venv` + `pip install -r requirements.txt pytest`), `cd frontend && npm run test:unit && npm run check`.
@@ -223,7 +223,7 @@
 - **백엔드**(8b4fe1b·b84ce66·7fe38af·b9d9e3e): `ChatResult`/`EngineInfo`/`Attempt`(`chat_engine_result.py`), 체인은 동의한 provider만(+`fallback_enabled` 시 폴백), 전체 예산 45초, 모델 ID를 config로 일원화(기본 `gemini-2.5-flash` — 운영 404 원인이던 `gemini-2.0-flash` 폐기), `engine_json` 저장, `GET /coach/engine`·`PUT /coach/consent`·`POST /coach/threads/<tid>/messages/<mid>/regenerate`. 동의 없으면 `rule_only`(reason `no_consent`). v1 `provider="rule"`은 더 이상 gemini/groq를 부르지 않음(`rule_by_choice`).
 - **프론트**: `lib/coachEngine.ts`(reasonText·needsConsent·engineLineText·bannerFor·visibleScope, 단위 테스트 5), `components/coach/`(EngineLine·DegradedBanner·ScopeSheet·EngineSheet·MessageBlock). 홈·스레드·새 채팅 입력창 위 엔진 한 줄, 첫 LLM 전송 전 동의 시트(provider 변경 시 재동의), 범위 시트 토글 3종(메모 제외·도구·폴백), 폴백 메시지 앰버 배너 + `[AI로 다시 생성]`·`[원인 보기 ›]`, 연속 3회 폴백 시 H0 배너.
 - **검증**: 백엔드 `pytest tests/` 1939 passed · 247 skipped · 4 failed(기존). 프론트 unit 252 · `npm run check` 0 errors · build OK · `check_docs.py` 통과. 합성 DB 서버 + Playwright로 홈 플로우 5·스레드 플로우 11 항목 통과(동의 시트→동의 PUT→전송 재개, 폴백 라벨·배너·원인 시트·재생성, degraded 배너, `rule_by_choice`/`rule_only` 라인, 스레드 전송 동의 게이트 0 send).
-- **운영 반영 대기**: 모델 404 수정이 백엔드에 있으므로 다음 "운영 반영" 지시 때 함께 나간다(Dockerfile·의존성·DB 값 변경 없음).
+- **운영 반영 완료**(2026-10-01 23:42, 98123e3): 모델 404 수정 포함.
 
 ### 3-3 세부 (Coach 답변 근거 v2·S2, `30-coach-chat/design.md` §4.4·§7.1~7.4·§9)
 - **백엔드**(e984458): `services/coach_evidence.py` — 규칙 경로는 판정 근거+오늘 계획+체크인, LLM 경로는 본문이 인용한 값(지표 키워드+반올림 오차 내 숫자 일치)만 남기고 체크인은 항상(`pinned`). 항목마다 `role`(supports|caveat, 판정 방향과 비교)·`snapshot{value,computed_at,version,as_of}`·`drill`. 조회 시 같은 as_of의 현재값을 다시 읽어 `current`·`drifted`(|Δ| ≥ max(5, |then|×0.25) / 부호 반전 / 등급 변화). 스냅샷 없는 옛 메시지는 `role:"legacy"`·`drill:null`·`evidence_legacy:true`.
@@ -242,7 +242,7 @@
 - **실제 브라우저 확인**(Playwright, 합성 DB 사본 + Flask + 빌드 산출물): 홈 칩 탭 → 스레드 생성·답변·근거 칩·후속 칩 3개, 후속 칩 탭 시 이미 물은 칩 제외, 자유 텍스트 폴백 안내, 9/9 통과.
 - **검증**: `pytest tests/` 1982 passed · 247 skipped · 4 failed(기존 동일 4건) · 프론트 unit·`npm run check` 0 errors·build OK.
 - **남음**: 체크인 입력 연결은 홈의 빠른 입력(QuickInput)이 이미 있어 별도 링크 미추가. LLM 성공 답변은 followups가 비어 있음(수용). `?from=coach`는 URL에만 붙고 스레드 페이지 전용 처리 없음.
-- **운영 반영 대기**: Groq 404 수정(9e858f7) + 3-4 전체. 다음 "운영 반영" 지시 때.
+- **운영 반영 완료**(2026-10-01 23:42, 98123e3): Groq 404 수정(9e858f7) + 3-4 전체.
 
 ### 3-5 세부 (Coach 비동기·스트리밍·오류 상태 기계·S4, `30-coach-chat/design.md` §6.2·§7.1~7.3)
 - **스키마 v24**(bb5d593): `chat_messages`에 status·client_msg_id·스트림 이벤트 저장 컬럼 추가(중복 전송 멱등, DB 재생).
@@ -250,7 +250,7 @@
 - **프론트**(62c6ee0·8648485): `coachStream.ts`(순수 리듀서: sending→pending→working→streaming→done + send_failed·slow·reconnecting·fallback·error·cancelled), `coachLive.svelte.ts`(메시지별 스트림 핸들·1초 슬로우 체크), `api/coachSse.ts`(EventSource, 연결 3회 실패 시 2초 `getMessage` 폴링), `StreamStatus.svelte`(단계 줄·[중단]·20초 침묵 시 "계속 기다리기 / 기본 답변 받기"·재연결 안내), `MessageBlock`(폴백 띠·[AI로 다시 생성]·취소 표시), `ChatComposer`(전송 실패 → 같은 `client_msg_id`로 재시도).
 - **실제 브라우저 확인**(Playwright, 합성 DB 사본 + Flask + 빌드 산출물): 실서버 e2e(홈 → 스레드 생성·답변, 후속 질문) 2/2, 모킹 상태별 화면(단계 줄·재연결 안내·폴링 정착·스트리밍 정착·20초 슬로우 → 규칙 재생성·폴백·오류·취소·취소 POST·전송 실패/재시도) 17/17, 페이지 오류 0. 이 과정에서 결함 발견·수정: `'error'`가 서버 이벤트명이자 EventSource 연결 오류 이벤트라 연결이 끊길 때마다 실패 횟수가 0으로 초기화돼 폴링으로 내려가지 않았음 → MessageEvent만 이벤트로 취급(8648485).
 - **알려진 한계**: 공급자가 비스트리밍이라 `delta`는 완성 답변의 청크 재생(실제 `stream=True`는 후속). SSE 연결이 gunicorn 스레드(8개)를 점유. LLM 성공 답변의 followups는 비어 있음. `?from=coach`는 스레드 페이지 전용 처리 없음. `engine_label("legacy_rule", …)`은 아직 "규칙 답변".
-- **운영 반영 대기**: Groq 404 수정(9e858f7)·`format_ko`(496981a)·3-4·3-5 전체. 다음 "운영 반영" 지시 때.
+- **운영 반영 완료**(2026-10-01 23:42, 98123e3): Groq 404 수정(9e858f7)·`format_ko`(496981a)·3-4·3-5 전체. 스키마 v24(`pansongit` DB) 적용 확인, `pansong.us` 빈 DB(v0)의 마이그레이션 경고는 기존부터 있던 것.
 
 ## 다음 (2026-09-29 인수인계)
 
