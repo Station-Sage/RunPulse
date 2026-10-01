@@ -80,16 +80,27 @@ def build_chain(selected: str, config: dict | None, consent: dict | None,
 
 
 def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain: list[str],
-              *, tools: bool) -> tuple[str | None, str | None, list[Attempt]]:
-    """체인을 순서대로 호출. (텍스트, 응답한 provider, attempts). 전부 실패하면 (None, None, attempts)."""
+              *, tools: bool, on_event=None,
+              cancelled=None) -> tuple[str | None, str | None, list[Attempt]]:
+    """체인을 순서대로 호출. (텍스트, 응답한 provider, attempts). 전부 실패하면 (None, None, attempts).
+
+    on_event("stage", {...})를 provider 호출 전·조회 도구마다 보낸다. cancelled()가 True면 다음 호출 전에 멈춘다.
+    """
     deadline = time.monotonic() + TOTAL_BUDGET
     attempts: list[Attempt] = []
     for prov in chain:
+        if cancelled is not None and cancelled():
+            break
         stats: dict = {}
+        if on_event is not None:
+            on_event("stage", {"key": "model", "label": "답변 작성 중", "tool": None, "provider": prov})
         started = time.monotonic()
         attempt = Attempt(provider=prov, model=model_for(prov, config), ok=False)
         try:
-            text = complete(prov, prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats)
+            text = complete(prov, prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats,
+                            on_tool=(lambda name: on_event("stage", {
+                                "key": "tool", "label": f"데이터 확인 중: {name}", "tool": name}))
+                            if on_event is not None else None)
             attempt.ok = bool(text)
             if not text:
                 attempt.reason = "parse_error"

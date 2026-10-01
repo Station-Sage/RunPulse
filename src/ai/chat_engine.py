@@ -51,11 +51,14 @@ def chat_result(
     thread_id: int | None = None,
     consent: dict | None = None,
     require_consent: bool = False,
+    on_event=None,
+    cancelled=None,
 ) -> ChatResult:
     """응답 + 엔진 상태(design §4.1). 동의된 provider만 호출하고, 실패하면 규칙 답변으로 끝낸다.
 
     consent: coach_consent 행 dict(provider/exclude_notes/tools_enabled/fallback_enabled).
     require_consent=True(Coach v2)면 동의가 없을 때 외부 호출을 하지 않는다.
+    on_event("stage", payload)·cancelled()는 비동기 답변 상태 기계(design §6.2)용 훅이다(delta·done은 호출자가 결과로 만든다).
     """
     provider = get_ai_provider(config)
     consent_on = require_consent
@@ -79,11 +82,14 @@ def chat_result(
             ctx_text, sent_scope = build_chat_context_scoped(
                 conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
             prompt = _build_system_prompt(ctx_text, user_message, chat_history)
-        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and prompt_is_free)
+        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and prompt_is_free,
+                                         on_event=on_event, cancelled=cancelled)
 
     as_of = date.today().isoformat()
     if text and used:
         return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope)
+    if on_event is not None:
+        on_event("stage", {"key": "rule", "label": "기본 답변 준비 중", "tool": None})
     answer = rule_based_response(conn, user_message, chip_id)
     return ChatResult(answer.text, engine_for_rule(provider, config, empty_reason, attempts),
                       evidence=answer.evidence, followups=list(answer.followups), as_of=as_of)

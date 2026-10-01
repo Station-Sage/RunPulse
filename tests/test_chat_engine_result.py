@@ -110,7 +110,7 @@ def test_rule_text_has_no_ai_coach_self_reference(db_conn):
 def test_v2_chip_with_ai_uses_free_text_path_with_tools(db_conn, monkeypatch):
     seen = {}
 
-    def _run(conn, prompt, config, chain, tools=False):
+    def _run(conn, prompt, config, chain, tools=False, **_hooks):
         seen["prompt"], seen["tools"] = prompt, tools
         return "AI 답", "gemini", [cer.Attempt("gemini", "m", True)]
 

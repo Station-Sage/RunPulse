@@ -82,8 +82,12 @@ def _non_empty(text, provider: str) -> str:
 
 
 def complete(provider: str, prompt: str, config: dict | None, *, conn: sqlite3.Connection | None = None,
-             tools: bool = False, deadline: float | None = None, stats: dict | None = None) -> str:
-    """provider 1곳 호출. tools=True면 함수 호출 루프(conn 필요). 실패는 ProviderError. stats['tool_calls']에 조회 횟수를 센다."""
+             tools: bool = False, deadline: float | None = None, stats: dict | None = None,
+             on_tool=None) -> str:
+    """provider 1곳 호출. tools=True면 함수 호출 루프(conn 필요). 실패는 ProviderError.
+
+    stats['tool_calls']에 조회 횟수를 세고, on_tool(tool_name)을 조회마다 부른다(진행 단계 표시용).
+    """
     key = api_key_for(provider, config)
     if provider not in ENDPOINTS or not key:
         raise ProviderError("no_key")
@@ -96,6 +100,8 @@ def complete(provider: str, prompt: str, config: dict | None, *, conn: sqlite3.C
 
         def execute_tool(*args, **kwargs):
             stats["tool_calls"] = stats.get("tool_calls", 0) + 1
+            if on_tool is not None and len(args) > 1:
+                on_tool(args[1])
             return _execute(*args, **kwargs)
         if provider == "claude":
             return _call_claude_with_tools(conn, prompt, ENDPOINTS[provider], key, model,
