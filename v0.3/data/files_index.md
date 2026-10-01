@@ -48,6 +48,11 @@
 
 - functions: get_archive
 
+### `coach_async.py` (229줄) — Coach 비동기 답변 실행기 — 워커 스레드·메시지별 이벤트 로그·취소 플래그·SSE 직렬화 (design §6.2, §7.1).
+
+- class **_Run**: emit, finish
+- functions: source_text, replay_events, start, cancel, sse, stream
+
 ### `coach_consent.py` (41줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
 
 - functions: get_consent, save_consent
@@ -60,9 +65,9 @@
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
-### `coach_service.py` (199줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (297줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
-- functions: list_threads, get_thread, create_thread, add_message, regenerate
+- functions: list_threads, get_thread, create_thread, add_message, generate_reply, get_message, regenerate
 
 ### `dashboard_service.py` (214줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
@@ -654,15 +659,15 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (232줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (238줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (257줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (263줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_result.py` (128줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+### `chat_engine_result.py` (139줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
 
 - class **Attempt**: 없음
 - class **EngineInfo**: 없음
@@ -1404,9 +1409,9 @@
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
 - class **TestPost**: test_post_json
 
-### `test_api_coach.py` (168줄) — tests/test_api_coach.py — /api/v1/coach/threads(+:id, +:id/messages) 테스트.
+### `test_api_coach.py` (247줄) — tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
 
-- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_regenerate_route, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected
+- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes
 
 ### `test_api_library.py` (389줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
@@ -1495,6 +1500,11 @@
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
 - class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
 
+### `test_chat_engine_events.py` (52줄) — chat_result on_event/cancelled 훅 — 비동기 답변 단계 이벤트(30-coach-chat design §6.2).
+
+- class **_Resp**: json
+- functions: test_stage_events_per_provider_and_rule, test_cancelled_stops_chain_before_next_provider, test_tool_stage_emitted
+
 ### `test_chat_engine_result.py` (121줄) — chat_result — 엔진 상태·동의 게이트·체인 구성·예산 (30-coach-chat design §4.1·§4.3·§8).
 
 - class **_Resp**: json
@@ -1516,6 +1526,10 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
+### `test_coach_async.py` (153줄) — coach_async 테스트 — 워커 실행·이벤트 로그·SSE 복원·취소 (INLINE 모드로 결정적 실행).
+
+- functions: db_file, test_start_runs_and_streams_events, test_stream_honors_last_event_id, test_stream_restores_from_db_when_log_is_gone, test_duplicate_start_while_running_is_rejected, test_start_unknown_message_returns_false, test_rule_mode_skips_ai, test_worker_exception_emits_error, test_cancel_running_sets_flag, test_cancel_orphan_pending_marks_row, test_orphan_pending_stream_becomes_error, test_source_text_follows_regenerate_chain
+
 ### `test_coach_engine_health.py` (65줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
 - functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys
@@ -1530,7 +1544,7 @@
 
 - functions: conn, test_registry_and_chip_text_match, test_today_advice_first_sentence_is_today_headline, test_today_advice_no_recovery_row, test_today_advice_checkin_fatigue_steps_down, test_unknown_chip_and_free_text_are_honest, test_chips_hide_unanswerable, test_every_answerable_chip_answers_without_raw_numbers, test_no_goal_answers_point_to_registering, test_goal_without_prediction, test_goal_answer_has_goal_prediction_and_gap, test_taper_date, test_week_plan_lists_remaining, test_free_text_answer_without_data
 
-### `test_coach_service.py` (278줄) — coach_service 테스트 — Phase 7a D5.
+### `test_coach_service.py` (370줄) — coach_service 테스트 — Phase 7a D5.
 
 - class **TestListThreads**: test_empty, test_lists_with_last_message_preview
 - class **TestGetThread**: test_not_found, test_returns_thread_and_messages
@@ -1538,8 +1552,10 @@
 - class **TestEvidence**: test_create_thread_evidence_is_list, test_create_thread_evidence_has_snapshot_and_role, test_create_thread_empty_db_has_no_evidence, test_get_thread_assistant_has_evidence_list, test_get_thread_user_message_evidence_empty, test_get_thread_no_evidence_json_key
 - class **TestAddMessage**: test_appends_to_existing_thread, test_updates_thread_timestamp
 - class **TestEngineState**: test_message_carries_engine_view_and_as_of, test_get_thread_exposes_engine, test_legacy_message_without_engine_json, test_engine_called_with_stored_consent_and_require_consent
-- class **TestRegenerate**: test_overwrites_assistant_message_in_place, test_unknown_or_user_message_returns_none
+- class **TestRegenerate**: test_creates_pending_child_and_hides_parent_after_success, test_failed_child_keeps_parent_visible, test_unknown_or_user_message_returns_none
+- class **TestAsyncContract**: test_create_returns_pending_and_user_message_immediately, test_create_thread_is_idempotent_by_client_msg_id, test_add_message_is_idempotent_by_client_msg_id, test_status_mapping, test_followups_json_preferred_over_engine_json
 - class **TestChipAndFollowups**: seen, test_chip_only_thread_uses_chip_text, test_followups_exclude_asked_chips, test_regenerate_keeps_chip_id, test_user_messages_have_no_followups
+- functions: create_thread, add_message
 
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
 
@@ -2181,6 +2197,10 @@
 
 - functions: test_create_tables_has_v23_columns_and_consent, test_ensure_v23_idempotent, test_migrate_from_22, test_consent_single_row_only
 
+### `test_schema_v24.py` (46줄) — 스키마 v24 — chat_messages.client_msg_id·chat_threads 컬럼 (30-coach-chat design §6.2).
+
+- functions: test_create_tables_has_v24_columns, test_ensure_v24_idempotent, test_migrate_from_23, test_client_msg_id_unique_per_thread
+
 ### `test_segments.py` (99줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair
@@ -2395,7 +2415,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 487개 파일
+총 491개 파일
 
 ## docstring 누락
 

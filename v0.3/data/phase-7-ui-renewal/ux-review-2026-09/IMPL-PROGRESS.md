@@ -244,6 +244,14 @@
 - **남음**: 체크인 입력 연결은 홈의 빠른 입력(QuickInput)이 이미 있어 별도 링크 미추가. LLM 성공 답변은 followups가 비어 있음(수용). `?from=coach`는 URL에만 붙고 스레드 페이지 전용 처리 없음.
 - **운영 반영 대기**: Groq 404 수정(9e858f7) + 3-4 전체. 다음 "운영 반영" 지시 때.
 
+### 3-5 세부 (Coach 비동기·스트리밍·오류 상태 기계·S4, `30-coach-chat/design.md` §6.2·§7.1~7.3)
+- **스키마 v24**(bb5d593): `chat_messages`에 status·client_msg_id·스트림 이벤트 저장 컬럼 추가(중복 전송 멱등, DB 재생).
+- **백엔드**(6c84641·75fc3a3·aee960e·968e967): `services/coach_async.py`(`_RUNS`·데몬 워커·`INLINE` 테스트 플래그·DB 재생), 전송 API가 pending 행을 즉시 반환(201, 중복 `client_msg_id`는 200), `GET /coach/messages/:id`(폴링)·`/stream`(SSE, `Last-Event-ID`/`?last_event_id=`, 15초 `: ping`, `X-Accel-Buffering: no`)·`POST /cancel`·`/regenerate {mode: ai|rule}`. 이벤트 `stage`·`delta`(40자 청크)·`evidence`·`done`·`error{fallback|error}`, 공급자 체인 45초 예산.
+- **프론트**(62c6ee0·8648485): `coachStream.ts`(순수 리듀서: sending→pending→working→streaming→done + send_failed·slow·reconnecting·fallback·error·cancelled), `coachLive.svelte.ts`(메시지별 스트림 핸들·1초 슬로우 체크), `api/coachSse.ts`(EventSource, 연결 3회 실패 시 2초 `getMessage` 폴링), `StreamStatus.svelte`(단계 줄·[중단]·20초 침묵 시 "계속 기다리기 / 기본 답변 받기"·재연결 안내), `MessageBlock`(폴백 띠·[AI로 다시 생성]·취소 표시), `ChatComposer`(전송 실패 → 같은 `client_msg_id`로 재시도).
+- **실제 브라우저 확인**(Playwright, 합성 DB 사본 + Flask + 빌드 산출물): 실서버 e2e(홈 → 스레드 생성·답변, 후속 질문) 2/2, 모킹 상태별 화면(단계 줄·재연결 안내·폴링 정착·스트리밍 정착·20초 슬로우 → 규칙 재생성·폴백·오류·취소·취소 POST·전송 실패/재시도) 17/17, 페이지 오류 0. 이 과정에서 결함 발견·수정: `'error'`가 서버 이벤트명이자 EventSource 연결 오류 이벤트라 연결이 끊길 때마다 실패 횟수가 0으로 초기화돼 폴링으로 내려가지 않았음 → MessageEvent만 이벤트로 취급(8648485).
+- **알려진 한계**: 공급자가 비스트리밍이라 `delta`는 완성 답변의 청크 재생(실제 `stream=True`는 후속). SSE 연결이 gunicorn 스레드(8개)를 점유. LLM 성공 답변의 followups는 비어 있음. `?from=coach`는 스레드 페이지 전용 처리 없음. `engine_label("legacy_rule", …)`은 아직 "규칙 답변".
+- **운영 반영 대기**: Groq 404 수정(9e858f7)·`format_ko`(496981a)·3-4·3-5 전체. 다음 "운영 반영" 지시 때.
+
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치
@@ -252,8 +260,7 @@
 - 알려진 기존 실패(무관): `test_autopilot_run_unit` 3건, 날짜 의존 `test_plan_creation` 1건.
 
 ### 다음 착수 순서(99-summary §7, 설계서 있는 항목은 바로 구현·재확인 금지)
-1. (3-3·3-4 완료) **3-5**(S4): SSE 스트리밍·`client_msg_id`·오류 상태 기계(스키마 v24 예상, 현재 `SCHEMA_VERSION = 23`). 설계서 `30-coach-chat/design.md` 확인 후 구현.
-2. 이후 3-5(SSE·오류 상태 기계) → 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
+1. (3-2~3-5 완료) 3-6~3-10(Library) → 3-11~3-16(Plan) → 3-18(UTRS/CIRS v2). **3-16은 (판단 필요)** — D4 사용자 지시 없이 진행 금지.
 
 ### 이월(설계서 P2 이하 / 후속 정리)
 - narrative 백엔드 캐시 워밍(설계 결정 필요), `MonthNarrative` 레이어링 검증, D1d 활동 scope, RRI 등급 SSOT 미등재.
