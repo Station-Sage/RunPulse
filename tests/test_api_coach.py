@@ -245,3 +245,15 @@ def test_regenerate_ai_and_rule_modes(mini_app, monkeypatch):
     assert mini_app.post(f"/api/v1/coach/messages/{child['id']}/regenerate").status_code == 200
     assert mini_app.post(f"/api/v1/coach/messages/{mid}/regenerate", json={"mode": "x"}).status_code == 400
     assert mini_app.post("/api/v1/coach/messages/9999/regenerate").status_code == 404
+
+
+def test_activity_context_endpoint(mini_app):
+    assert mini_app.get("/api/v1/coach/activity-context").status_code == 400
+    assert mini_app.get("/api/v1/coach/activity-context?activity=999").status_code == 404
+
+
+def test_create_thread_with_activity_context(mini_app):
+    res = mini_app.post("/api/v1/coach/threads", json={
+        "initial_message": "후반 심박이 걱정돼요", "context": {"kind": "activity", "ref": "7"}})
+    assert res.status_code == 201
+    assert res.get_json()["data"]["thread"]["context"] == {"kind": "activity", "ref": "7"}

@@ -43,6 +43,19 @@ def get_ai_provider(config: dict | None = None) -> str:
     return config.get("ai", {}).get("provider", "rule")
 
 
+def _with_activity_context(conn: sqlite3.Connection, thread_id: int | None, ctx_text: str) -> str:
+    """활동 스레드(context_kind='activity')면 대상 활동 한 줄 요약을 컨텍스트 앞에 붙인다."""
+    if thread_id is None:
+        return ctx_text
+    row = conn.execute("SELECT context_kind, context_ref FROM chat_threads WHERE id = ?",
+                       (thread_id,)).fetchone()
+    if not row or row[0] != "activity" or not str(row[1] or "").isdigit():
+        return ctx_text
+    from src.services.coach_activity_context import activity_prompt_summary
+    summary = activity_prompt_summary(conn, int(row[1]))
+    return f"{summary}\n\n{ctx_text}" if summary else ctx_text
+
+
 def chat_result(
     conn: sqlite3.Connection,
     user_message: str,
@@ -81,6 +94,7 @@ def chat_result(
             from .chat_context import build_chat_context_scoped
             ctx_text, sent_scope = build_chat_context_scoped(
                 conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
+            ctx_text = _with_activity_context(conn, thread_id, ctx_text)
             prompt = _build_system_prompt(ctx_text, user_message, chat_history)
         text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and prompt_is_free,
                                          on_event=on_event, cancelled=cancelled)

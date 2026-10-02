@@ -1,4 +1,4 @@
-"""/api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · engine · consent.
+"""/api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
 
 전송 계열은 pending 행을 즉시 돌려주고 coach_async 워커가 답변을 만든다(design §6.2).
 """
@@ -41,6 +41,27 @@ def get_coach_suggestions():
     finally:
         conn.close()
     return api_ok({"suggestions": suggestions})
+
+
+@api_bp.get("/coach/activity-context")
+def get_coach_activity_context():
+    """활동 근거 카드 + 추천 질문 3개 — ?activity={id}."""
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    activity_id = request.args.get("activity", type=int)
+    if not activity_id:
+        return api_error("INVALID_PARAM", "activity 쿼리가 필요합니다.", 400)
+
+    from src.services.coach_activity_context import get_activity_context
+    conn = sqlite3.connect(str(dpath))
+    try:
+        ctx = get_activity_context(conn, activity_id)
+    finally:
+        conn.close()
+    if ctx is None:
+        return api_error("NOT_FOUND", "활동을 찾을 수 없습니다.", 404)
+    return api_ok({"activity": ctx})
 
 
 @api_bp.get("/coach/threads")
