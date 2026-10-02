@@ -1,7 +1,6 @@
 <script lang="ts">
 	// 03c-library.md 3-C 랩 탭 — activity_laps(lap_index 순) 목록 + 랩별 페이스 막대.
 	import type { LapsPageData } from './+page';
-	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatDistance, formatDuration, formatPace } from '$lib/format';
 	import { base } from '$app/paths';
@@ -27,13 +26,6 @@
 </script>
 
 <svelte:head><title>랩 · RunPulse</title></svelte:head>
-
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>
-	<h1 class="text-base font-semibold">랩</h1>
-</div>
-
-<ActivityTabs activityId={data.activityId} active="laps" />
 
 {#if data.errorMessage && data.laps.length === 0}
 	<div class="px-4 py-8 text-center">

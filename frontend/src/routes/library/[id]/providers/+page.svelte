@@ -1,7 +1,6 @@
 <script lang="ts">
 	// 활동 소스 비교 페이지 — C4 ProviderComparison 를 전체화면으로 렌더링.
 	import type { ProvidersPageData } from './+page';
-	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import ProviderComparison from '$lib/components/ProviderComparison.svelte';
 	import { base } from '$app/paths';
 
@@ -9,19 +8,6 @@
 </script>
 
 <svelte:head><title>소스 비교 · RunPulse</title></svelte:head>
-
-<!-- 헤더 -->
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a
-		href="{base}/library/{data.activityId}"
-		class="shrink-0 text-fg-muted"
-		aria-label="활동 상세로"
-	>←</a>
-	<h1 class="text-base font-semibold">소스 비교</h1>
-</div>
-
-<!-- 탭 -->
-<ActivityTabs activityId={data.activityId} active="providers" />
 
 <!-- 본문 -->
 {#if data.errorMessage && !data.comparison}

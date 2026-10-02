@@ -2,7 +2,6 @@
 	// 03c-library.md 3-D — 활동 스트림 시각화 페이지.
 	// 체크박스로 표시할 스트림 토글; 해당 컬럼이 전부 null이면 체크박스 숨김.
 	import type { StreamsPageData } from './+page';
-	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
@@ -128,15 +127,6 @@
 </script>
 
 <svelte:head><title>스트림 · RunPulse</title></svelte:head>
-
-<!-- 헤더 -->
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>
-	<h1 class="text-base font-semibold">스트림</h1>
-</div>
-
-<!-- 탭 -->
-<ActivityTabs activityId={data.activityId} active="streams" />
 
 <!-- 본문 -->
 {#if data.errorMessage && data.streams.length === 0}

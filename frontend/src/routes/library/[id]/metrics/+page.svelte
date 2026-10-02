@@ -2,7 +2,6 @@
 	// 03c-library.md 3-C 메트릭 탭 — 이 활동의 대표(is_primary) 메트릭 전체를 카테고리별로.
 	// 행을 누르면 계산 분해(MetricBreakdown, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
 	import type { MetricsTabPageData } from './+page';
-	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { categoryLabel, formatMetricValue, metricUnit, sortCategories } from '$lib/metrics';
@@ -43,12 +42,6 @@
 </script>
 
 <svelte:head><title>활동 메트릭 · RunPulse</title></svelte:head>
-
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library/{data.activityId}" class="shrink-0 text-fg-muted" aria-label="활동 상세로">←</a>
-	<h1 class="text-base font-semibold">메트릭</h1>
-</div>
-<ActivityTabs activityId={data.activityId} active="metrics" />
 
 {#if data.errorMessage && total === 0}
 	<div class="px-4 py-8 text-center">

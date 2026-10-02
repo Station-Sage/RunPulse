@@ -177,6 +177,72 @@ export interface ActivityImpact {
 	race: { name: string; days_left: number } | null;
 }
 
+// ── 활동 상세 3-6: 서버 계산 스플릿·시계열·환경·존·소스 차이·판정 ──
+
+export interface ActivitySplit {
+	idx: number;
+	dist_m: number;
+	moving_sec: number;
+	elapsed_sec: number;
+	stop_sec: number;
+	pace_sec_km: number | null;
+	avg_hr: number | null;
+	elev_gain_m: number | null;
+	partial: boolean;
+}
+
+/** 거리 기준 등간격(step_m) 재표본 — 모든 배열 길이 동일(≤600). 타임라인·지도 공유. */
+export interface ActivitySeries {
+	step_m: number;
+	dist_m: number[];
+	pace_sec_km: (number | null)[];
+	hr: (number | null)[];
+	alt_m: (number | null)[];
+	lat: (number | null)[];
+	lon: (number | null)[];
+}
+
+export interface ActivityEnvironment {
+	temp_c: number | null;
+	dew_point_c: number | null;
+	fearp_sec_km: number | null;
+	pace_effect_sec_km: number | null;
+}
+
+export interface ActivityHrZones {
+	provider: string;
+	basis: 'intervals_zones' | 'device_zones';
+	sec: number[];
+}
+
+export interface SourceDiff {
+	row: string;
+	quantity: string;
+	unit: string;
+	values: Record<string, number>;
+	abs: number;
+	pct: number | null;
+	significant: boolean;
+	threshold: { kind: string; value: number };
+	reason: string | null;
+}
+
+export interface VerdictEvidence {
+	kind: 'info' | 'drill';
+	label: string;
+	target?: string;
+}
+
+export interface ActivityVerdict {
+	text: string;
+	evidence: VerdictEvidence[];
+}
+
+export interface ActivityWorkoutClassBasis {
+	hr_pct_max: number | null;
+	pace_cv: number | null;
+}
+
 export interface ActivityDetail {
 	core: ActivityCore;
 	metrics_by_category: Record<string, ActivityMetric[]>;
@@ -189,6 +255,16 @@ export interface ActivityDetail {
 	laps: ActivityLap[] | null;
 	best_efforts: unknown[] | null;
 	impact?: ActivityImpact | null;
+	splits?: ActivitySplit[];
+	series?: ActivitySeries | null;
+	siblings?: { id: number; provider: string; is_canonical: boolean }[];
+	workout_class?: string | null;
+	workout_class_label?: string | null;
+	workout_class_basis?: ActivityWorkoutClassBasis | null;
+	environment?: ActivityEnvironment | null;
+	hr_zones?: ActivityHrZones | null;
+	source_diffs?: SourceDiff[];
+	verdict?: ActivityVerdict | null;
 }
 
 export interface ActivityDetailResponse {

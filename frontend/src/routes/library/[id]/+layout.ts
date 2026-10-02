@@ -8,7 +8,7 @@ export interface ActivityLayoutData {
 }
 
 /**
- * 활동 상세(650KB, streams 포함)를 서브탭(요약/랩/메트릭/스트림)당 1회만 가져와 공유한다.
+ * 활동 상세(상세 응답(series·splits 포함), streams 포함)를 서브탭(요약/랩/메트릭/스트림)당 1회만 가져와 공유한다.
  * 이전엔 각 +page.ts가 개별적으로 getActivity를 호출해 서브탭 전환마다 전량 재요청됐다(02-performance.md P-4).
  */
 export async function load({ params }: { params: { id: string } }): Promise<ActivityLayoutData> {

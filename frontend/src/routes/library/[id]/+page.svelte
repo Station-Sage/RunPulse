@@ -1,7 +1,6 @@
 <script lang="ts">
 	// 03c-library.md 3-C — 활동 상세 요약 탭. 나머지 탭은 별도 라우트(ActivityTabs).
 	import type { ActivityPageData } from './+page';
-	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import RouteMap from '$lib/components/RouteMap.svelte';
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
@@ -77,27 +76,6 @@
 		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">← 목록으로</a>
 	</div>
 {:else}
-	<!-- 헤더: 이름 + 날짜 + 소스 배지 -->
-	<div class="flex items-start gap-2 border-b border-border-subtle px-4 py-3">
-		<a href="{base}/library/activities" class="mt-0.5 shrink-0 text-fg-muted" aria-label="목록으로">←</a>
-		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-			<div class="flex items-center gap-2">
-				<h1 class="truncate text-base font-semibold">{core.name}</h1>
-				<span
-					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-						core.source as ProviderKey
-					)}"
-				>
-					{providerLabel(core.source as ProviderKey)}
-				</span>
-			</div>
-			<p class="text-xs text-fg-muted">{formatDate(core.start_time)}</p>
-		</div>
-	</div>
-
-	<!-- 탭 -->
-	<ActivityTabs activityId={core.id} active="summary" />
-
 	<!-- 요약 탭 본문 -->
 	<div class="flex flex-col gap-5 px-4 py-4">
 
