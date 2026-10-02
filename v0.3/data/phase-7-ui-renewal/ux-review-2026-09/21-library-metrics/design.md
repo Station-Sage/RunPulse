@@ -13,7 +13,7 @@
 **설계 목표**
 1. **숫자를 먼저 바로잡는다.** PMC 시간상수, 사본별 RunPulse 값, Provider 비교 단위, UTRS HRV 척도를 고친 뒤 화면을 고친다. 틀린 수치에 좋은 UI를 입히면 오판만 설득력 있게 전달된다.
 2. **값 → 분해 → 원천을 2탭으로 연결한다(P2 D1→D3).** 메트릭 상세의 차트 점을 탭하면 그 날짜의 분해가 인라인으로 열리고, 거기서 원천 활동·웰니스 일자로 한 번 더 이동한다.
-3. **표시는 한 곳에서 정한다.** 포맷터 1개(`formatMetric`), 등급 밴드 1벌(서버 레지스트리), 표시 이름 1벌(registry `display_name_ko` → API `name_ko`). 목록·상세·차트·분해·Today가 모두 이 셋을 쓴다.
+3. **표시는 한 곳에서 정한다.** 포맷터 1개(`formatMetric`), 등급 밴드 1벌(서버 레지스트리), 표시 이름 1벌(`metric_labels.py` `MetricLabel` → API `name_ko`·`abbr`, §4.2). 목록·상세·차트·분해·Today가 모두 이 셋을 쓴다.
 4. **분해는 결론부터 보여 준다(U6).** "59점 — TSB가 −16점 깎음"을 먼저 쓰고, 그 아래 기여 막대(원시 입력·정규화·가중치·손실)와 공식·버전을 둔다.
 5. **Provider 비교는 같은 활동끼리만 비교한다(P3).** 쌍 차이의 중앙값과 n을 보여 주고, 셀을 탭하면 쌍 목록으로 드릴한다.
 
@@ -217,7 +217,14 @@ VO2max·VDOT    53         —           44.5       정의 다름 · 비교 안 
 - 단위 표기: 값 크기의 0.6배, 최소 12px(§C8), fg-secondary.
 
 ### 4.2 표시 이름
-registry `display_name_ko`(API `name_ko`, 한국어 의미어) + `abbr`. 표기는 §C3.1과 같이 한국어 이름 + 약어(작게): `훈련 준비도 UTRS`. 용어는 10 §4를 따른다(`체력(CTL)`, `피로(ATL)`, `폼(TSB)`). 상세 제목은 `훈련 준비도`, 부제는 `UTRS · Unified Training Readiness Score · utrs_v2`. 분해 라벨도 같은 이름을 쓴다(`(parent: utrs)` 등 내부 ID 노출 금지). 소스: 레지스트리 → API. 프론트 `LABELS` 하드코딩은 삭제한다(F-UX-12, F-UI-11).
+API `name_ko`(한국어 의미어) + `abbr`(약어, 없으면 null). 표기는 §C3.1과 같이 한국어 이름 + 약어(작게): `훈련 준비도 UTRS`. 용어는 10 §4를 따른다(`체력(CTL)`, `피로(ATL)`, `폼(TSB)`). 상세 제목은 `훈련 준비도`, 부제는 `UTRS · Unified Training Readiness Score · utrs_v2`. 분해 라벨도 같은 이름을 쓴다(`(parent: utrs)` 등 내부 ID 노출 금지). 프론트 `LABELS` 하드코딩은 삭제한다(F-UX-12, F-UI-11).
+
+**출처(SSOT, 2026-10-03 개정)**: `src/utils/metric_labels.py`의 `METRIC_LABELS: dict[str, MetricLabel]`(키 = registry 정규 이름, `MetricLabel(name_ko, abbr=None)`). `metric_registry.py`(수집·정규화 SSOT)와 `bands.py`(등급 SSOT)처럼 표시 문구만 따로 둔다. 서비스 `metric_display.display_meta()`가 이 표를 읽어 `name_ko`·`abbr`를 내려주고, 임시 `_NAMES` 8개 표는 삭제한다. `scripts/gen_metric_dictionary.py`는 이 표를 읽어 사전에 "표시 이름" 열을 만든다(사전은 파생 문서). 계산기 `display_name`(예: `PMC (ATL/CTL/TSB)`)은 계산기(알고리즘) 이름으로 남고 화면 표시에는 쓰지 않는다.
+- 범위·순서: 일별(daily) 84개 전부를 먼저 명시 등록한다(카드·Today 노출 대상). activity·weekly 지표는 폴백을 허용하고 20 활동 상세 작업 때 채운다.
+- 폴백: 표에 없으면 `name_ko` = registry `description`에서 `(parent: …)`를 지운 값, 그것도 비면 정규 이름. `abbr` = null.
+- 확장: `description_short`·`action_hint`(문구)는 같은 `MetricLabel`에 선택 필드로 얹는다. `format`·`decimal_places`는 `metric_display.py`의 단위 규칙 + 이름별 예외, `bands`는 `bands.py`에 둔다(문구·숫자 규칙·등급을 분리). 항목이 늘어 300줄을 넘으면 `metric_labels/` 패키지(scope별 파일)로 나누고 공개 API는 유지한다.
+- 일관성 테스트(`tests/test_metric_labels.py`): 키 ⊆ registry, daily 84개 전부 등록, `name_ko` 비어 있지 않음·`(parent:` 없음·약어 괄호 미포함, 같은 카테고리 안 `name_ko` 중복 없음, `abbr`는 공백 없는 ASCII ≤8자(`VO2max`·`eFTP` 허용), 10 §4 용어 고정(`ctl`→`체력`/`CTL`, `atl`→`피로`/`ATL`, `tsb`→`폼`/`TSB`).
+- 검토했으나 채택하지 않음: (c) 계산기 `display_name` — 일별 84개 중 계산기 산출은 37개뿐(수면·HRV·안정시 심박·Body Battery 등 외부 원천은 계산기 없음)이고, 계산기 1개가 여러 지표를 내거나(PMC→ctl·atl·tsb·ramp_rate) 여러 계산기가 같은 지표를 낸다(`race_pred_*` 4개). (a) `MetricDef`에 필드 추가 — 레지스트리가 이미 522줄(300줄 규칙 초과)이고, 문구 수정이 수집 정규화 SSOT를 건드리게 된다. DB 테이블 — 코드와 함께 버전 관리되는 정적 문구라 마이그레이션 비용만 생긴다.
 
 ### 4.3 설명 4요소 (U5, F-UX-04)
 상세 "이 지표는" 블록과 `MetricTerm` 팝오버가 같은 데이터를 쓴다.
@@ -291,7 +298,7 @@ registry `display_name_ko`(API `name_ko`, 한국어 의미어) + `abbr`. 표기�
 | `routes/library/providers/+page.svelte` | 단위·오른쪽 정렬·차이 칩·행 링크, `max-w-[760px]` |
 | `routes/library/providers/[group]/+page.*` | **신규** 쌍 목록·겹친 시계열 |
 | `lib/format.ts` | `formatMetric(meta, v)` 추가(registry `format` → §C4 함수 디스패치, 10 §7.1 함수 재사용). `formatUnitValue`는 내부 사용 |
-| `lib/metricMeaning.ts` | 밴드·LABELS 삭제(10 §7.1과 같음). `displayLabel` 대신 API `name_ko`(registry `display_name_ko`) |
+| `lib/metricMeaning.ts` | 밴드·LABELS 삭제(10 §7.1과 같음). `displayLabel` 대신 API `name_ko`·`abbr`(백엔드 출처 `src/utils/metric_labels.py`, §4.2. 백엔드 영향: `src/services/metric_display.py` `_NAMES` 삭제, `scripts/gen_metric_dictionary.py` 표시 이름 열) |
 | `lib/components/TrendChart.svelte`·`lib/trendChart.ts` | §C1 `ChartScrub` 코어(10 S4) 위로 이관. 이 탭 추가분: bands·refLines·events·이동평균·selectedDate/onSelect(`?date=` 연동) |
 | `lib/components/Sparkline.svelte` | §C1 코어 사용 + `minSpan`, 끝점 |
 | `lib/components/MetricBreakdown.svelte` | 10 §C3의 `DrillHost`·`DrillPanel`·`BreakdownView`로 대체. 이 탭은 `BreakdownView`를 감싼 인라인 컨테이너 `BreakdownPanel.svelte`(신규, §C3 확장)만 추가한다 |
@@ -312,7 +319,7 @@ registry `display_name_ko`(API `name_ko`, 한국어 의미어) + `abbr`. 표기�
  "sparkline":[...],"spark_min_span":0.02,"change":{"abs":-360,"pct":-2.7,"days":14},
  "provider":"runpulse:formula_v1","is_default_provider":true,"last_value_date":"2026-09-27"}
 ```
-필드 이름은 10 §7.3 계약과 같다: `name_ko`, 평평한 `status`·`status_label`(§C7 5단 키, 등급이 없는 메트릭은 null). 예측의 신뢰 수준은 등급이 아니므로 `status`에 넣지 않고 `confidence`·`confidence_label`로 따로 준다.
+필드 이름은 10 §7.3 계약과 같다: `name_ko`, 평평한 `status`·`status_label`(§C7 5단 키, 등급이 없는 메트릭은 null). 예측의 신뢰 수준은 등급이 아니므로 `status`에 넣지 않고 `confidence`·`confidence_label`로 따로 준다. `name_ko`·`abbr`의 출처와 폴백은 §4.2(`metric_labels.py`)이고, 목록·추세 `meta`·분해 v2가 같은 값을 쓴다.
 
 **(b) `GET /library/metrics/:slug/trend?period=`** — `meta`(위와 동일), `bands:[{max,status,label}]`(10 §7.3 `meaning.bands`와 같은 모양, 오름차순), `baseline:{mean,p25,p75,days:90}`, `events:[{date,type:"race"|"algo_change",label}]`를 추가한다. `peak`는 `best`(방향 반영)와 `worst`로 바꾼다. `change`는 선택 기간 기준으로 계산한다.
 
@@ -501,7 +508,7 @@ registry `display_name_ko`(API `name_ko`, 한국어 의미어) + `abbr`. 표기�
 | 단계 | 내용 | 의존 | 규모 |
 |---|---|---|---|
 | **S0** | 계산 교정 C1·C1-b·C2·C3·C6 + 단위 테스트 + 스테이징 재계산(R0~R3) | 10-today F-DATA-02(TRIMP)와 한 묶음 | L |
-| **S1** | 레지스트리 메타 확장(display_name_ko·abbr·format·bands·description_short·action_hint·min_span) + API (a)(b) + `formatMetric` + 프론트 밴드 제거 | S0(TSB 밴드가 PMC v2 전제), 10 S1(§C4 포맷 함수·§C7·§C8 토큰) | M |
+| **S1** | 표시 메타 확장 — 문구(`metric_labels.py`: name_ko·abbr, 이후 description_short·action_hint, daily 84개 우선)·숫자 규칙(`metric_display.py`: format·decimal_places·min_span)·등급(`bands.py`) + 일관성 테스트 + API (a)(b) + `formatMetric` + 프론트 밴드 제거 | S0(TSB 밴드가 PMC v2 전제), 10 S1(§C4 포맷 함수·§C7·§C8 토큰) | M |
 | **S2** | `TrendChart`·`Sparkline`을 §C1 ChartScrub 코어로 이관 + 이 탭 확장(§5) | S1, 10 S4(ChartScrub 코어) | M |
 | **S3** | explainer(UTRS·CIRS·예측·PMC) + 인라인 `BreakdownPanel`·`ContributionBars`·`PredictionEvidence` + 상세 8/4 레이아웃·`?date=`·"이 지표는" | S1, S2, 10 S2(분해 v2 API·`BreakdownView`). 분해 API는 10 S2와 한 구현이다 | L |
 | **S4** | Library `+layout`(서브탭·브레드크럼), 브라우저 검색·URL 필터·내 지표·카테고리 재편·배지·그리드, 기간 replace | S1 | M |
@@ -598,3 +605,4 @@ S0이 끝나기 전에는 S1의 등급 밴드를 배포하지 않는다(τ가 �
 5. **포맷 함수 이름**: 10 §7.1은 `formatSigned`·`formatPrediction`·`formatDateKo`·`formatByUnit`, 이 문서는 진입점 `formatMetric(meta, v)`다. 이 문서는 `formatMetric`을 registry `format`으로 10의 함수를 고르는 디스패처로 정했다. 10 §7.1에 `formatMetric`을 공용 진입점으로 추가해야 한다.
 6. **와이어프레임 기호**: `🔍 ☆ ★ ⓘ ▸ ▾`는 §C8 아이콘 자리 표시다. `search`·`star`(고정)·`source-primary`(★, 99-summary D1e)·`info`는 §C8 아이콘 목록에 없어 추가가 필요하다.
 7. **RRI 등급 SSOT 미등재** (신규, 2026-09-28 — 2-5 분해 v2에 RRI explainer 추가하며 발견): `RRICalculator.ranges`(insufficient/building/ready/peak)가 1-2 "등급 SSOT" 작업(`bands.py`) 이관 대상에서 빠져 있어, RRI는 지금 앱 전체에서 status/label 없이 값만 표시된다(다른 메트릭은 전부 `bands.py` 경유). `bands.py`에 `rri` 항목 추가 + `ranges` 제거는 SSOT 파일 변경이라 `check_docs.py` 영향 범위 확인이 먼저 필요 — 이번 작업 범위 밖이라 고치지 않고 기록만 함.
+8. **표시 이름 출처 변경** (신규, 2026-10-03): §4.2가 출처를 registry `display_name_ko`에서 `metric_labels.py`로 바꿨다. 10 §4 "용어"(사전은 registry `display_name_ko`)와 10 §7.2 등급 SSOT 행(`metric_registry`에 `display_name_ko`)은 아직 옛 표기다. 10 문서 갱신과 DECISIONS ADR 기록은 사용자 승인 후 한다.
