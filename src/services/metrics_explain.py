@@ -28,7 +28,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.metrics.bands import BANDS, grade
-from src.services.metric_display import HIGHER_IS_BETTER
+from src.services.metric_display import HIGHER_IS_BETTER, display_name
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
@@ -152,11 +152,12 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
     terms, sources, formula_text = builder(conn, scope_type, scope_id)
     value = self_row.get("numeric_value")
     band = grade(slug, value)
+    name_ko, abbr = display_name(slug, _metric_label(slug))
 
     return {
         "slug": slug,
-        "name_ko": _metric_label(slug),
-        "abbr": slug.upper(),
+        "name_ko": name_ko,
+        "abbr": abbr,
         "scope": {"type": scope_type, "id": scope_id, "basis": "morning"},
         "value": value,
         "display": value,

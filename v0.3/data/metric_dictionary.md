@@ -228,6 +228,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `ctl` |
 | 메트릭 이름 | `ctl`, `atl`, `tsb`, `ramp_rate` |
+| 화면 표시명 | 체력 (CTL), 피로 (ATL), 폼 (TSB), 체력 증가율 |
 | 설명 | Performance Management Chart. 42일 만성부하(CTL), 7일 급성부하(ATL), 훈련균형(TSB). |
 | 단위 | AU |
 | 카테고리 | `load` |
@@ -241,6 +242,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `acwr` |
 | 메트릭 이름 | `acwr` |
+| 화면 표시명 | 급성/만성 부하비 (ACWR) |
 | 설명 | 급성:만성 부하 비율. 최적 범위 0.8~1.3. |
 | 단위 | 무차원 |
 | 카테고리 | `load` |
@@ -263,6 +265,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `lsi` |
 | 메트릭 이름 | `lsi` |
+| 화면 표시명 | 부하 급증 지수 (LSI) |
 | 설명 | 당일 부하 / 21일 평균. >1.5면 급격한 부하 증가. |
 | 단위 | 무차원 |
 | 카테고리 | `load` |
@@ -284,6 +287,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `monotony` |
 | 메트릭 이름 | `monotony`, `training_strain` |
+| 화면 표시명 | 훈련 단조로움, 훈련 스트레인 |
 | 설명 | 7일 훈련 부하의 변동성 지표. >2.0은 과훈련 위험. |
 | 단위 | 무차원 |
 | 카테고리 | `load` |
@@ -306,6 +310,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `utrs` |
 | 메트릭 이름 | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress` |
+| 화면 표시명 | 훈련 준비도 (UTRS), 바디 배터리 요소 (BB), 폼 요소 (TSB), 수면 요소, 심박변이도 요소 (HRV), 스트레스 요소 |
 | 설명 | 수면, HRV, 체력 상태, 스트레스를 종합한 훈련 준비도. |
 | 단위 | 점 |
 | 카테고리 | `readiness` |
@@ -330,6 +335,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `cirs` |
 | 메트릭 이름 | `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue` |
+| 화면 표시명 | 부상 위험 (CIRS), 부하비 위험 요소 (ACWR), 부하 급증 위험 요소 (LSI), 연속 훈련일 위험 요소, 피로 누적 위험 요소 |
 | 설명 | ACWR, LSI, 연속훈련일, 피로도를 종합한 부상 위험도. |
 | 단위 | 점 |
 | 카테고리 | `readiness` |
@@ -367,6 +373,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `hr_profile` |
 | 메트릭 이름 | `hr_profile`, `hrmax_self`, `lthr_self` |
+| 화면 표시명 | 심박 프로필, 최대 심박 추정 (HRmax), 젖산역치 심박 추정 (LTHR) |
 | 설명 | 최대심박·젖산역치심박(LTHR)·안정심박과 두 존 체계(HRR·LTHR). 자체 추정과 기기 참조값을 함께 제공. |
 | 단위 | bpm |
 | 카테고리 | `hr` |
@@ -380,6 +387,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `heat_model` |
 | 메트릭 이름 | `heat_model` |
+| 화면 표시명 | 기온 영향 계수 |
 | 설명 | 15℃ 대비 기온 1℃당 속도 변화(%). 더위(15℃ 초과)·추위(5℃ 미만) 각각, 개인 데이터로 기본값을 보정. |
 | 단위 | %/℃ |
 | 카테고리 | `weather` |
@@ -393,6 +401,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `darp_r4` |
 | 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 화면 표시명 | 예측 VDOT, 5K 예측 기록, 10K 예측 기록, 하프 예측 기록, 마라톤 예측 기록 |
 | 설명 | 전력 대회·품질 세트(휴식 보정 Daniels 강도)·심박-속도 관계를 정밀도 가중으로 결합한 레이스 예측(15℃, 80% 범위·신뢰도). |
 | 단위 | sec |
 | 카테고리 | `prediction` |
@@ -407,6 +416,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `darp_r4_asym` |
 | 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 화면 표시명 | 예측 VDOT, 5K 예측 기록, 10K 예측 기록, 하프 예측 기록, 마라톤 예측 기록 |
 | 설명 | r4 섀도에 대회 상한·세트 하한 비대칭과 훈련 유지(CTL) 조건부 대회 앵커 감쇠를 더한 후보 변형. |
 | 단위 | sec |
 | 카테고리 | `prediction` |
@@ -421,6 +431,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `darp_ref` |
 | 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 화면 표시명 | 예측 VDOT, 5K 예측 기록, 10K 예측 기록, 하프 예측 기록, 마라톤 예측 기록 |
 | 설명 | DARP 와 같은 로직에 기기(Garmin 등)가 제공한 최대심박·LTHR 을 넣은 비교용 예측. |
 | 단위 | sec |
 | 카테고리 | `prediction` |
@@ -435,6 +446,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `darp` |
 | 메트릭 이름 | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
+| 화면 표시명 | 예측 VDOT, 5K 예측 기록, 10K 예측 기록, 하프 예측 기록, 마라톤 예측 기록 |
 | 설명 | 최근 전력 대회·작업 구간·심박-속도 관계를 결합한 레이스 시간 예측(15℃ 기준, 80% 범위·신뢰도 포함). |
 | 단위 | sec |
 | 카테고리 | `prediction` |
@@ -449,6 +461,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `training_response` |
 | 메트릭 이름 | `training_response` |
+| 화면 표시명 | 훈련 반응 |
 | 설명 | 최근 8주 품질 세트(R/I/T/M) 주간 작업 시간과 이전 8주 비교, 품질 세션 수, 롱런 속 마라톤 페이스 구간, 세트 VDOT 추세. |
 | 단위 | min/wk |
 | 카테고리 | `load` |
@@ -566,6 +579,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `rec` |
 | 메트릭 이름 | `rec` |
+| 화면 표시명 | 러닝 효율 (REC) |
 | 설명 | EF와 Decoupling 기반 통합 러닝 효율성 (0~100) |
 | 단위 | 무차원 |
 | 카테고리 | `efficiency` |
@@ -589,6 +603,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `rtti` |
 | 메트릭 이름 | `rtti` |
+| 화면 표시명 | 달리기 내성 지수 (RTTI) |
 | 설명 | ATL/CTL 기반 훈련 내성. 100=적정, >100 과부하, <70 여유. |
 | 단위 | % |
 | 카테고리 | `load` |
@@ -611,6 +626,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `critical_power` |
 | 메트릭 이름 | `critical_power` |
+| 화면 표시명 | 임계 파워 (CP) |
 | 설명 | 임계 파워 (W). 2파라미터 선형 회귀 모델. |
 | 단위 | W |
 | 카테고리 | `capacity` |
@@ -633,6 +649,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `sapi` |
 | 메트릭 이름 | `sapi` |
+| 화면 표시명 | 계절 성과 지수 (SAPI) |
 | 설명 | 기온 구간별 FEARP 비교. 100=기준 동일, >100 더 빠름. |
 | 단위 | 무차원 |
 | 카테고리 | `capacity` |
@@ -655,6 +672,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `rri` |
 | 메트릭 이름 | `rri` |
+| 화면 표시명 | 레이스 준비도 (RRI) |
 | 설명 | VDOT/CTL/DI/CIRS 기반 레이스 준비도 종합 지수 (0~100) |
 | 단위 | 무차원 |
 | 카테고리 | `capacity` |
@@ -678,6 +696,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `eftp` |
 | 메트릭 이름 | `eftp` |
+| 화면 표시명 | 역치 페이스 추정 (eFTP) |
 | 설명 | 기능적 역치 페이스 추정 (sec/km). 낮을수록 빠름. |
 | 단위 | sec/km |
 | 카테고리 | `capacity` |
@@ -701,6 +720,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `marathon_shape` |
 | 메트릭 이름 | `marathon_shape` |
+| 화면 표시명 | 마라톤 완성도 |
 | 설명 | 마라톤 볼륨 충족률(%) = 8주 주평균 km ÷ Tanda 역산 필요 km. json 에 롱런·MP·품질 세션 구조. |
 | 단위 | % |
 | 카테고리 | `capacity` |
@@ -724,6 +744,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `crs` |
 | 메트릭 이름 | `crs` |
+| 화면 표시명 | 복합 준비도 (CRS) |
 | 설명 | 게이트 기반 복합 준비도. level 0~4 + CRS 참고 점수 0~100. |
 | 단위 | 무차원 |
 | 카테고리 | `readiness` |
@@ -783,7 +804,6 @@ Garmin/Strava/Intervals/Runalyze
 
 | 메트릭 | 제공자 |
 |--------|--------|
-| `runpulse_vdot` | runpulse:formula_v1 |
 | `vo2max_activity` | garmin |
 | `effective_vo2max` | runalyze |
 
@@ -828,7 +848,6 @@ Garmin/Strava/Intervals/Runalyze
 |--------|--------|
 | `relative_effort` | runpulse:formula_v1 |
 | `suffer_score` | strava |
-| `training_load_score` | intervals |
 
 ### 임계 파워/페이스 (`threshold_power`)
 
@@ -858,8 +877,6 @@ Garmin/Strava/Intervals/Runalyze
 |--------|--------|
 | `runpulse_vdot` | runpulse:formula_v1 |
 | `vdot_adj` | runpulse:formula_v1 |
-| `vo2max_activity` | garmin |
-| `effective_vo2max` | runalyze |
 
 ### 훈련 트렌드 (`training_trend`)
 

@@ -93,15 +93,15 @@
 
 - (public API 없음)
 
-### `metric_display.py` (25줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (36줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
-- functions: display_meta
+- functions: display_name, display_meta
 
-### `metrics_browser_service.py` (202줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (200줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
-### `metrics_explain.py` (187줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_explain.py` (188줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: get_metric_explain
 
@@ -1263,6 +1263,11 @@
 
 - functions: get_group_for_metric, get_group_members
 
+### `metric_labels.py` (113줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
+
+- class **MetricLabel**: 없음
+- functions: label_for
+
 ### `metric_priority.py` (139줄) — RunPulse 메트릭 우선순위 해소 (Provider Priority Resolution) v0.3
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
@@ -1909,6 +1914,10 @@
 
 - functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges
 
+### `test_metric_labels.py` (49줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
+
+- functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name
+
 ### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
@@ -1924,9 +1933,9 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
-### `test_metrics_browser_service.py` (177줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (194줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed
 
 ### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -2434,7 +2443,7 @@
 
 - functions: get_docstring, get_docstring_first_line, get_public_api, main
 
-### `gen_metric_dictionary.py` (251줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
+### `gen_metric_dictionary.py` (256줄) — 메트릭 사전 (metric_dictionary.md) 자동 생성.
 
 - functions: generate, get_structural_fingerprint
 
@@ -2443,7 +2452,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 498개 파일
+총 500개 파일
 
 ## docstring 누락
 

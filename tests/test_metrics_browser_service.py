@@ -180,4 +180,15 @@ def test_display_meta_dispatch():
 def test_display_name_strips_parent_and_maps_core():
     from src.services.metric_display import display_name
     assert display_name("tsb", "x") == ("폼", "TSB")
-    assert display_name("utrs_tsb", "UTRS 구성요소 (parent: utrs)") == ("UTRS 구성요소", None)
+    assert display_name("unregistered_x", "UTRS 구성요소 (parent: utrs)") == ("UTRS 구성요소", None)
+
+
+def test_label_registry_does_not_affect_which_metrics_are_listed(conn, monkeypatch):
+    """한글명(METRIC_LABELS)은 노출 필터가 아니다 — 비워도 같은 지표 집합이 나온다 (ADR-018)."""
+    def slugs():
+        return {m["name"] for c in get_metrics_browser(conn, date="2026-04-01")["categories"] for m in c["metrics"]}
+
+    with_labels = slugs()
+    monkeypatch.setattr("src.utils.metric_labels.METRIC_LABELS", {})
+    assert slugs() == with_labels
+    assert with_labels

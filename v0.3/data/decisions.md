@@ -137,3 +137,9 @@
 - **결정**: (1) `chat_threads.context_kind/ref`(기존 컬럼)에 `activity/{id}`를 저장하고 `get_thread`가 노출한다. (2) 근거 값·추천 질문은 `/coach/activity-context`가 서버에서 계산한다(프론트 계산 금지). (3) LLM 자유 입력 프롬프트에만 활동 한 줄 요약을 prepend하고 칩 프롬프트·규칙 폴백은 변경하지 않는다. (4) 새 route `/coach/new?activity=`, 스레드 ← 는 활동으로 복귀.
 - **검증**: `tests/test_coach_activity_context.py`, `tests/test_api_coach.py`, `frontend/tests/activityEvidence.test.mjs`.
 
+
+## ADR-018: 메트릭 표시 이름 SSOT — src/utils/metric_labels.py (2026-10-03)
+- **맥락**: Library 메트릭 브라우저가 한글명을 프론트 하드코딩(`LABELS`)과 registry `description` 폴백으로 얻어 영문 제목·"(parent: …)" 노출·화면별 불일치가 있었다. "한글명이 없는 지표가 사라지는가?"를 검토한 결과 이름은 노출 필터가 아니며(필터는 scope=daily·기준일 값 존재·`(parent:` 구성요소 숨김뿐), 지표가 안 보이는 실제 원인은 기준일 `MAX(scope_id)` 선택과 wellness 저장 12개 지표 미노출이다(별도 BUG 후보, 사용자 지시 필요).
+- **결정**: (1) `METRIC_LABELS: dict[slug, MetricLabel(name_ko, abbr)]`를 registry canonical name 키로 둔다. API(list/trend/explain)와 사전 문서는 여기서 파생한다. (2) 일별 84개는 명시 등록을 테스트로 강제하고, 그 외 scope는 `label_for` 폴백(description에서 `(parent:)` 제거 → canonical name)을 쓴다. 폴백은 노출 필터로 쓰지 않는다. (3) 계산기 `display_name`은 알고리즘 이름일 뿐 화면 표시에 쓰지 않는다. (4) CIRS는 "부상 위험", CRS는 "복합 준비도"(UTRS "훈련 준비도"와 충돌 회피).
+- **기각**: `MetricDef` 필드 추가(registry 522줄 비대), 계산기 `display_name`(daily 84개 중 37개만 커버, 계산기 1:다 지표), DB 테이블.
+- **검증**: `tests/test_metric_labels.py`, `tests/test_metrics_browser_service.py::test_label_registry_does_not_affect_which_metrics_are_listed`

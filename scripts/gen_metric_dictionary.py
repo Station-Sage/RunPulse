@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.metrics.engine import ALL_CALCULATORS
 from src.utils.metric_groups import SEMANTIC_GROUPS
+from src.utils.metric_labels import METRIC_LABELS
 
 OUTPUT = ROOT / "v0.3" / "data" / "metric_dictionary.md"
 
@@ -102,6 +103,10 @@ def generate() -> str:
         lines.append("|------|-----|")
         lines.append(f"| Calculator ID | `{calc.name}` |")
         lines.append(f"| 메트릭 이름 | {produces} |")
+        shown = [f"{METRIC_LABELS[p].name_ko}" + (f" ({METRIC_LABELS[p].abbr})" if METRIC_LABELS[p].abbr else "")
+                 for p in calc.produces if p in METRIC_LABELS]
+        if shown:
+            lines.append(f"| 화면 표시명 | {', '.join(shown)} |")
         lines.append(f"| 설명 | {desc} |")
         lines.append(f"| 단위 | {unit if unit else '무차원'} |")
         lines.append(f"| 카테고리 | `{calc.category}` |")
