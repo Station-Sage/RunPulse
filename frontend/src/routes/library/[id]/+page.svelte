@@ -18,7 +18,7 @@
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import RunStory from '$lib/components/RunStory.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
-	import ElevationProfile from '$lib/components/ElevationProfile.svelte';
+	import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
 	import { impactLines } from '$lib/activityImpact';
 
 	let { data }: { data: ActivityPageData } = $props();
@@ -118,8 +118,8 @@
 			<SplitBars {splits} avgPaceSecKm={core.avg_pace_sec_km} />
 		{/if}
 
-		{#if streams && core.duration_sec && core.distance_m}
-			<ElevationProfile {streams} totalSec={core.duration_sec} totalDistM={core.distance_m} />
+		{#if data.activity?.series}
+			<ActivityTimeline series={data.activity.series} elevGainM={(core.elevation_gain as number | null) ?? null} />
 		{/if}
 
 		<!-- 이 러닝의 의미 -->
