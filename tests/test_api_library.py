@@ -387,3 +387,12 @@ def test_get_providers_coverage_200(mini_app):
     assert "months" in data
     assert "providers" in data
     assert len(data["providers"]) == 4
+
+
+def test_get_activity_detail_streams_opt_in(mini_app):
+    """streams는 기본 응답에서 빠지고 ?include=streams 일 때만 내려온다."""
+    client, act_id = mini_app
+    base = client.get(f"/api/v1/library/activities/{act_id}").get_json()["data"]["activity"]
+    assert base["streams"] is None
+    full = client.get(f"/api/v1/library/activities/{act_id}?include=streams").get_json()["data"]["activity"]
+    assert len(full["streams"]) == 1

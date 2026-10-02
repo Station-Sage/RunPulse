@@ -1,5 +1,5 @@
 export interface ImpactLite {
-	ctl_delta: number | null;
+	ctl_contribution: number | null;
 	tsb: number | null;
 	similar: { n: number; pace_rank: number; avg_pace_sec_km: number; pace_diff_sec: number } | null;
 	race: { name: string; days_left: number } | null;
@@ -8,7 +8,7 @@ export interface ImpactLite {
 // 화면에 줄 문장 목록 — 값이 없는 항목은 만들지 않는다(근거 없는 문장 금지).
 export function impactLines(i: ImpactLite): string[] {
 	const out: string[] = [];
-	if (i.ctl_delta != null) out.push(`이 날 체력(CTL) ${i.ctl_delta >= 0 ? '+' : ''}${i.ctl_delta.toFixed(1)}${i.tsb != null ? ` · 폼(TSB) ${i.tsb >= 0 ? '+' : ''}${Math.round(i.tsb)}` : ''}`);
+	if (i.ctl_contribution != null) out.push(`이 날 체력(CTL) ${i.ctl_contribution >= 0 ? '+' : ''}${i.ctl_contribution.toFixed(1)}${i.tsb != null ? ` · 폼(TSB) ${i.tsb >= 0 ? '+' : ''}${Math.round(i.tsb)}` : ''}`);
 	if (i.similar) {
 		const s = i.similar;
 		const d = Math.abs(Math.round(s.pace_diff_sec));

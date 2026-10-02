@@ -67,7 +67,7 @@ def test_missing_activity_returns_none(db_conn):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_ctl_delta_computed(db_conn):
-    """전날 CTL과 당일 CTL 차이가 ctl_delta로 반환된다."""
+    """전날 CTL과 당일 CTL 차이가 ctl_contribution으로 반환된다."""
     aid = _insert_activity(db_conn, "garmin", "r1", "running", "2026-09-10T18:00:00Z", 10000, 300.0)
     _insert_daily_metric(db_conn, "2026-09-09", "ctl", 70.0)
     _insert_daily_metric(db_conn, "2026-09-10", "ctl", 72.3)
@@ -76,19 +76,20 @@ def test_ctl_delta_computed(db_conn):
 
     result = get_activity_impact(db_conn, aid, today=date(2026, 9, 10))
     assert result is not None
-    assert result["ctl_delta"] == 2.3
+    assert result["ctl_contribution"] == 2.3
     assert result["tsb"] == -5.5
+    assert result["tsb_as_of"] == "2026-09-10"
 
 
 def test_ctl_delta_none_when_no_prev_day(db_conn):
-    """전날 CTL 없으면 ctl_delta는 None."""
+    """전날 CTL 없으면 ctl_contribution은 None."""
     aid = _insert_activity(db_conn, "garmin", "r2", "running", "2026-09-10T18:00:00Z", 10000, 300.0)
     _insert_daily_metric(db_conn, "2026-09-10", "ctl", 72.0)
     db_conn.commit()
 
     result = get_activity_impact(db_conn, aid, today=date(2026, 9, 10))
     assert result is not None
-    assert result["ctl_delta"] is None
+    assert result["ctl_contribution"] is None
 
 
 def test_tsb_none_when_missing(db_conn):
@@ -127,6 +128,7 @@ def test_similar_with_4_activities(db_conn):
     s = result["similar"]
     assert s is not None
     assert s["n"] == 4
+    assert s["basis"] == "distance"
     # 300보다 빠른(pace <300) 것: 290, 295 → 2개, pace_rank=3
     assert s["pace_rank"] == 3
     assert s["avg_pace_sec_km"] == round((290.0 + 295.0 + 305.0 + 310.0) / 4, 1)
@@ -250,3 +252,17 @@ def test_race_uses_activity_date_not_today(db_conn):
 
     assert get_activity_impact(db_conn, old, today=date(2026, 9, 25))["race"] is None
     assert get_activity_impact(db_conn, near, today=date(2026, 9, 25))["race"]["days_left"] == 59
+
+
+def test_load_is_activity_trimp(db_conn):
+    """load는 해당 활동의 primary TRIMP, 없으면 None."""
+    aid = _insert_activity(db_conn, "garmin", "l1", "running", "2026-09-10T18:00:00Z", 10000, 300.0)
+    other = _insert_activity(db_conn, "garmin", "l2", "running", "2026-09-11T18:00:00Z", 10000, 300.0)
+    db_conn.execute(
+        "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, numeric_value, is_primary)"
+        " VALUES ('activity', ?, 'trimp', 'load', 'runpulse:formula_v1', 97.34, 1)", (str(aid),),
+    )
+    db_conn.commit()
+    assert get_activity_impact(db_conn, aid)["load"] == 97.3
+    assert get_activity_impact(db_conn, other)["load"] is None
+    assert get_activity_impact(db_conn, other)["tsb_as_of"] is None

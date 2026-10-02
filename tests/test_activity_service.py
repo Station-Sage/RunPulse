@@ -189,7 +189,8 @@ def test_get_activity_detail_semantic_groups(conn):
 
 def test_get_activity_detail_streams(conn):
     c, act1_id, _ = conn
-    detail = get_activity_detail(c, act1_id)
+    assert get_activity_detail(c, act1_id)["streams"] is None  # 기본은 미포함
+    detail = get_activity_detail(c, act1_id, include_streams=True)
     assert detail["streams"] is not None
     assert len(detail["streams"]) == 3
     assert detail["stream_point_count"] == 3
@@ -211,7 +212,7 @@ def test_get_activity_detail_streams_downsampled_over_500_points(db_conn):
     )
     c.commit()
 
-    detail = get_activity_detail(c, act_id)
+    detail = get_activity_detail(c, act_id, include_streams=True)
     assert detail["stream_point_count"] == 1200
     assert len(detail["streams"]) == 500
     elapsed = [s["elapsed_sec"] for s in detail["streams"]]

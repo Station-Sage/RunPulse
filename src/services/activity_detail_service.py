@@ -35,9 +35,9 @@ def _downsample_streams(rows: list[dict]) -> list[dict]:
     return [rows[round(i * (len(rows) - 1) / (n - 1))] for i in range(n)]
 
 
-def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
+def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_streams: bool = False) -> dict:
     """활동 상세: core + metrics_by_category + source_comparison + semantic_groups
-    + streams(요약 탭용, 최대 500포인트 다운샘플 — 전체는 get_activity_streams) + laps + best_efforts.
+    + streams(include_streams=True 일 때만 최대 500포인트 다운샘플, 기본 None — 전체는 get_activity_streams) + laps + best_efforts.
     """
     conn.row_factory = sqlite3.Row
 
@@ -91,7 +91,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     ).fetchall()
     full_streams = [dict(r) for r in stream_rows]
     stream_point_count = len(full_streams)
-    streams = _downsample_streams(full_streams) or None
+    streams = (_downsample_streams(full_streams) or None) if include_streams else None
     total_sec = core.get("elapsed_time_sec") or core.get("duration_sec") or 0
     total_dist = core.get("distance_m") or 0
     splits = compute_splits(full_streams, total_sec, total_dist)

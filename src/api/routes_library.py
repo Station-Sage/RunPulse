@@ -64,7 +64,8 @@ def get_library_activity_detail(activity_id: int):
 
     conn = sqlite3.connect(str(dpath))
     try:
-        detail = activity_service.get_activity_detail(conn, activity_id)
+        include = {x.strip() for x in request.args.get("include", "").split(",")}
+        detail = activity_service.get_activity_detail(conn, activity_id, include_streams="streams" in include)
     finally:
         conn.close()
 

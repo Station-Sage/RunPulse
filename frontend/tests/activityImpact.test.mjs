@@ -4,7 +4,7 @@ import { impactLines } from '../src/lib/activityImpact.ts';
 
 describe('impactLines', () => {
 	const fullInput = {
-		ctl_delta: 2.3,
+		ctl_contribution: 2.3,
 		tsb: 5.2,
 		similar: { n: 6, pace_rank: 2, avg_pace_sec_km: 340, pace_diff_sec: -12.4 },
 		race: { name: '서울마라톤', days_left: 30 },
@@ -35,7 +35,7 @@ describe('impactLines', () => {
 	});
 
 	it('전부 null → 빈 배열', () => {
-		const lines = impactLines({ ctl_delta: null, tsb: null, similar: null, race: null });
+		const lines = impactLines({ ctl_contribution: null, tsb: null, similar: null, race: null });
 		assert.deepEqual(lines, []);
 	});
 });

@@ -18,7 +18,8 @@ def get_activity_impact(
     """활동이 훈련 부하·동류 활동·레이스 맥락에서 어디에 위치하는지 반환.
 
     러닝 계열(activity_type LIKE '%running%')이 아니거나 거리가 없으면 None.
-    반환: {"ctl_delta", "tsb", "similar", "race"}.
+    반환: {"load", "ctl_contribution", "tsb", "tsb_as_of", "similar", "race"}.
+    load는 이 활동의 TRIMP, ctl_contribution은 활동일 CTL의 전일 대비 변화(그날 다른 활동 포함).
     """
     conn.row_factory = sqlite3.Row
 
@@ -42,17 +43,33 @@ def get_activity_impact(
     act_start_time = str(act["start_time"])
 
     ctl_delta, tsb = _load_metrics(conn, act_date)
+    load = _activity_load(conn, activity_id)
     similar = _similar_activities(
         conn, act_start_time, act_type, act["distance_m"], act["avg_pace_sec_km"]
     )
     race = _nearest_race(conn, act_date)
 
     return {
-        "ctl_delta": ctl_delta,
+        "load": load,
+        "ctl_contribution": ctl_delta,
         "tsb": tsb,
+        "tsb_as_of": act_date if tsb is not None else None,
         "similar": similar,
         "race": race,
     }
+
+
+def _activity_load(conn: sqlite3.Connection, activity_id: int) -> float | None:
+    """활동 TRIMP(primary). 없으면 None."""
+    row = conn.execute(
+        "SELECT numeric_value FROM metric_store"
+        " WHERE scope_type = 'activity' AND metric_name = 'trimp'"
+        "   AND is_primary = 1 AND scope_id = CAST(? AS TEXT) LIMIT 1",
+        (activity_id,),
+    ).fetchone()
+    if row is None or row["numeric_value"] is None:
+        return None
+    return round(float(row["numeric_value"]), 1)
 
 
 def _load_metrics(
@@ -126,6 +143,7 @@ def _similar_activities(
     pace_diff = round(float(act_pace) - avg_pace, 1)
 
     return {
+        "basis": "distance",
         "n": n,
         "pace_rank": pace_rank,
         "avg_pace_sec_km": avg_pace,
