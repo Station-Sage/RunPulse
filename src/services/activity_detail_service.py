@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from src.services.activity_impact_service import get_activity_impact
 from src.services.activity_splits import build_series, compute_splits
+from src.services import activity_summary_extras as extras
 from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
@@ -98,6 +99,13 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     siblings = [{"id": r["id"], "provider": r["source"], "is_canonical": r["id"] == canonical_id}
                 for r in (source_comparison.values() if source_comparison else [])]
 
+    ids = sorted({activity_id, canonical_id})
+    wc = extras.build_workout_class(conn, ids, core, splits)
+    environment = extras.build_environment(conn, ids, core)
+    hr_zones = extras.build_hr_zones(conn, ids)
+    source_diffs = extras.build_source_diffs(source_comparison)
+    verdict = extras.build_verdict(core, wc, splits, environment)
+
     # laps
     lap_rows = conn.execute(
         "SELECT * FROM activity_laps WHERE activity_id = ? ORDER BY lap_index",
@@ -126,6 +134,13 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
         "splits": splits,
         "series": series,
         "siblings": siblings,
+        "workout_class": wc["workout_class"],
+        "workout_class_label": wc["label"],
+        "workout_class_basis": wc["workout_class_basis"],
+        "environment": environment,
+        "hr_zones": hr_zones,
+        "source_diffs": source_diffs,
+        "verdict": verdict,
         "stream_point_count": stream_point_count,
         "laps": laps,
         "best_efforts": best_efforts,

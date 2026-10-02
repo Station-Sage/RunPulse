@@ -28,7 +28,7 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_detail_service.py` (197줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (212줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
 
@@ -43,6 +43,10 @@
 ### `activity_splits.py` (155줄) — 활동 상세 S1 — km 스플릿·요약 시계열(series) 서버 계산.
 
 - functions: cumulative_distance, stopped_flags, compute_splits, series_step_m, build_series
+
+### `activity_summary_extras.py` (132줄) — 활동 상세 S1 부가 필드 — workout_class·environment·hr_zones·source_diffs·verdict.
+
+- functions: pace_cv, build_workout_class, build_environment, build_hr_zones, build_source_diffs, build_verdict
 
 ### `adaptation_service.py` (70줄) — 플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용.
 
@@ -1357,6 +1361,10 @@
 
 - functions: test_splits_even_pace, test_splits_stop_excluded_from_pace, test_splits_partial_and_short, test_cumulative_distance_integrates_speed_when_missing, test_series_bounded_and_aligned, test_series_none_without_distance, test_detail_includes_splits_series_siblings
 
+### `test_activity_summary_extras.py` (64줄) — activity_summary_extras 단위 테스트.
+
+- functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none
+
 ### `test_activity_types.py` (43줄) — activity_types.py 단위 테스트.
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants, test_garmin_indoor_running, test_indoor_running_case_whitespace
@@ -2423,7 +2431,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 493개 파일
+총 495개 파일
 
 ## docstring 누락
 
