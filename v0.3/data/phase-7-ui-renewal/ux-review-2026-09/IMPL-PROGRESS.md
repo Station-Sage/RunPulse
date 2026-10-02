@@ -289,3 +289,7 @@
 - 판정 근거 칩 drill은 explain v2가 daily 범위만 지원해 기존 MetricBreakdown 유지(D1d 이월).
 - 백엔드(2026-10-02): impact를 설계 형태로 재구성 — `{load(TRIMP), ctl_contribution(구 ctl_delta), tsb, tsb_as_of, similar{basis,n,pace_rank,…}, race}`. `streams`는 기본 응답에서 제외(`?include=streams`일 때만 500포인트), 프론트는 `detail.streams`를 쓰지 않아 영향 없음. 서브탭 parent()(g)는 이미 충족.
 - 남음: `similar.basis`는 현재 `distance`만(설계의 `same_class`는 후보별 훈련 유형 조회 필요), ⑦ 피드백 저장(ADR·승인 필요), S1b 보류.
+
+## 3-7 메트릭 목록 재구성 (진행 중)
+- S1a 완료: `/library/metrics` 항목에 `name_ko`·`confidence_label`·`last_value_date`·`change{abs,pct,days}` 추가, `/trend`에 `best`/`worst`(higher_is_better 반영)·`baseline{mean,p25,p75,days}` 추가(peak 유지). 프론트 타입 반영.
+- 남음: S1b registry 메타(abbr·format·decimal_places), S2 ChartScrub, S3 설명·분해 인라인, S4 서브탭·검색·정렬("오늘 주목할 지표"), 운영 반영 2026-10-03 기록.

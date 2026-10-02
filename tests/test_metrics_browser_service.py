@@ -143,3 +143,26 @@ def test_get_metric_trend_peak_and_change_pct(conn):
     # 포인트 1개일 경우 change_pct는 None(0으로 나누기 방지)
     if len(result["points"]) == 1:
         assert result["change_pct"] is None or result["change_pct"] == 0.0
+
+
+def test_confidence_label_thresholds():
+    from src.services.metrics_browser_service import confidence_label
+    assert confidence_label(None) is None
+    assert [confidence_label(x) for x in (0.9, 0.5, 0.1)] == ["높음", "보통", "낮음"]
+
+
+def test_change_and_baseline_helpers():
+    from src.services.metrics_browser_service import _baseline, _change
+    assert _change([10.0, None, 12.0], ["2026-04-01", "2026-04-02", "2026-04-08"]) == {
+        "abs": 2.0, "pct": 20.0, "days": 7}
+    assert _change([1.0], ["2026-04-01"]) is None
+    b = _baseline([{"value": v} for v in (1.0, 2.0, 3.0, 4.0, 5.0)])
+    assert b["mean"] == 3.0 and b["p25"] == 2.0 and b["p75"] == 4.0
+    assert _baseline([{"value": 1.0}]) is None
+
+
+def test_browser_entries_have_meta(conn):
+    entries = [m for c in get_metrics_browser(conn)["categories"] for m in c["metrics"]]
+    assert entries
+    e = entries[0]
+    assert e["name_ko"] and e["last_value_date"] == "2026-04-01" and "change" in e

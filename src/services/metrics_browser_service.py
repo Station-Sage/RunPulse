@@ -8,6 +8,7 @@ from typing import Any
 from src.utils.db_helpers import get_metric_history, get_primary_metrics
 from src.utils.metric_registry import METRIC_REGISTRY
 from src.metrics.bands import with_grade
+from src.services.metrics_explain import _HIGHER_IS_BETTER
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
 # (get_primary_metric + 무제한 get_metric_history) 돌던 게 /library/metrics 776ms의
@@ -38,6 +39,29 @@ _CATEGORY_LABELS: dict[str, str] = {
 _PERIOD_DAYS: dict[str, int] = {"4w": 28, "3m": 90, "6m": 180, "1y": 365}
 
 
+def confidence_label(conf: float | None) -> str | None:
+    """신뢰도(0~1) → 높음/보통/낮음. 값 없으면 None."""
+    if conf is None:
+        return None
+    return "높음" if conf >= 0.7 else "보통" if conf >= 0.4 else "낮음"
+
+
+def _change(values: list[float | None], dates: list[str]) -> dict[str, Any] | None:
+    """스파크라인 창의 첫 유효값 대비 마지막 값 변화(abs·pct·days). 비교 불가면 None."""
+    pairs = [(d, v) for d, v in zip(dates, values) if v is not None]
+    if len(pairs) < 2:
+        return None
+    (d0, v0), (d1, v1) = pairs[0], pairs[-1]
+    days = (date.fromisoformat(d1) - date.fromisoformat(d0)).days
+    if days <= 0:
+        return None
+    return {
+        "abs": round(v1 - v0, 4),
+        "pct": round((v1 - v0) / abs(v0) * 100, 2) if v0 else None,
+        "days": days,
+    }
+
+
 def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> dict[str, Any]:
     """카테고리별 daily-scope 메트릭 현재값 + 14일 스파크라인 반환.
 
@@ -58,19 +82,21 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
     have_value = [n for n in daily_names if primaries.get(n, {}).get("numeric_value") is not None]
 
     sparkline_map: dict[str, list[float | None]] = {n: [] for n in have_value}
+    spark_dates: dict[str, list[str]] = {n: [] for n in have_value}
     if have_value:
         from datetime import date as _date_cls  # 매개변수 `date`(str)가 모듈의 date 클래스를 가려서 로컬 임포트
         lookback_from = str(_date_cls.fromisoformat(date) - timedelta(days=_SPARKLINE_LOOKBACK_DAYS))
         conn.row_factory = sqlite3.Row
         placeholders = ",".join("?" * len(have_value))
         hist_rows = conn.execute(
-            "SELECT metric_name, numeric_value FROM metric_store "
+            "SELECT metric_name, scope_id, numeric_value FROM metric_store "
             "WHERE scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ? "
             f"AND metric_name IN ({placeholders}) ORDER BY metric_name, scope_id",
             [lookback_from, date, *have_value],
         ).fetchall()
         for r in hist_rows:
             sparkline_map[r["metric_name"]].append(r["numeric_value"])
+            spark_dates[r["metric_name"]].append(r["scope_id"])
 
     # daily-scope 메트릭을 category별로 수집
     cat_map: dict[str, list[dict[str, Any]]] = {}
@@ -87,6 +113,10 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "provider": row_data.get("provider"),
             "confidence": row_data.get("confidence"),
             "sparkline": sparkline,
+            "name_ko": mdef.description,
+            "confidence_label": confidence_label(row_data.get("confidence")),
+            "last_value_date": date,
+            "change": _change(sparkline, spark_dates[name][-14:]),
         }
         with_grade(entry, name, row_data["numeric_value"])
         cat_map.setdefault(mdef.category, []).append(entry)
@@ -115,6 +145,16 @@ def get_metric_trend(
     current = points[-1]["value"]
     peak_entry = max(points, key=lambda p: (p["value"] is not None, p["value"] or 0))
     peak = {"value": peak_entry["value"], "date": peak_entry["date"]}
+    valued = [p for p in points if p["value"] is not None]
+    best = worst = None
+    if valued:
+        hi = max(valued, key=lambda p: p["value"])
+        lo = min(valued, key=lambda p: p["value"])
+        if _HIGHER_IS_BETTER.get(slug) is False:
+            best, worst = lo, hi
+        else:
+            best, worst = hi, lo
+    baseline = _baseline(valued)
 
     first_val = points[0]["value"]
     if first_val and current is not None:
@@ -132,9 +172,27 @@ def get_metric_trend(
         "unit": unit,
         "current": current,
         "peak": peak,
+        "best": best,
+        "worst": worst,
+        "baseline": baseline,
         "change_pct": change_pct,
         "points": points,
     }
+
+
+def _baseline(valued: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """조회 구간 값의 평균·P25·P75. 3점 미만이면 None."""
+    vals = sorted(p["value"] for p in valued)
+    if len(vals) < 3:
+        return None
+
+    def q(f: float) -> float:
+        i = (len(vals) - 1) * f
+        lo = int(i)
+        hi = min(lo + 1, len(vals) - 1)
+        return round(vals[lo] + (vals[hi] - vals[lo]) * (i - lo), 4)
+
+    return {"mean": round(sum(vals) / len(vals), 4), "p25": q(0.25), "p75": q(0.75), "days": len(vals)}
 
 
 def _today() -> date:

@@ -811,6 +811,10 @@ export interface MetricBrowserEntry {
 	sparkline: number[];
 	status?: SemanticStatus;
 	status_label?: string;
+	name_ko?: string;
+	confidence_label?: string | null;
+	last_value_date?: string;
+	change?: { abs: number; pct: number | null; days: number } | null;
 }
 
 export interface MetricBrowserCategory {
@@ -837,6 +841,9 @@ export interface MetricTrendData {
 	unit: string;
 	current: number | null;
 	peak: { value: number; date: string } | null;
+	best?: { value: number; date: string } | null;
+	worst?: { value: number; date: string } | null;
+	baseline?: { mean: number; p25: number; p75: number; days: number } | null;
 	change_pct: number | null;
 	points: MetricTrendPoint[];
 }
