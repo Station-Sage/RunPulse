@@ -765,6 +765,13 @@ export interface ComparisonDiscrepancy {
 	severity: 'info' | 'warning';
 }
 
+export interface ComparisonDiff {
+	abs: number;
+	pct: number;
+	significant: boolean;
+	threshold: { mode: 'abs' | 'pct'; value: number };
+}
+
 export interface ComparisonPrimaryReason {
 	provider: ProviderKey;
 	ruleType: 'static_priority' | 'runpulse_always';
@@ -775,7 +782,10 @@ export interface ComparisonRow {
 	slug: string;
 	label: string;
 	unit: string | null;
+	quantity?: string | null;
+	section?: 'record' | 'computed' | 'related';
 	values: Record<string, ComparisonCell>;
+	diff?: ComparisonDiff | null;
 	discrepancy: ComparisonDiscrepancy | null;
 	preferredProvider: ProviderKey | null;
 	primaryReason: ComparisonPrimaryReason | null;

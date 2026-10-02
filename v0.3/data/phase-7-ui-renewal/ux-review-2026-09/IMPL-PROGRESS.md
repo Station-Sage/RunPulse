@@ -288,4 +288,4 @@
 - 브라우저 검증(합성 DB): 지도·스플릿 클릭 선택/해제, 데스크톱·모바일 가로 넘침 없음. HR 존은 합성 시드에 데이터 없어 미확인.
 - 판정 근거 칩 drill은 explain v2가 daily 범위만 지원해 기존 MetricBreakdown 유지(D1d 이월).
 - 백엔드(2026-10-02): impact를 설계 형태로 재구성 — `{load(TRIMP), ctl_contribution(구 ctl_delta), tsb, tsb_as_of, similar{basis,n,pace_rank,…}, race}`. `streams`는 기본 응답에서 제외(`?include=streams`일 때만 500포인트), 프론트는 `detail.streams`를 쓰지 않아 영향 없음. 서브탭 parent()(g)는 이미 충족.
-- 남음: `similar.basis`는 현재 `distance`만(설계의 `same_class`는 후보별 훈련 유형 조회 필요), /providers 행 필드(③), ⑦ 피드백 저장(ADR·승인 필요), S1b 보류.
+- 남음: `similar.basis`는 현재 `distance`만(설계의 `same_class`는 후보별 훈련 유형 조회 필요), ⑦ 피드백 저장(ADR·승인 필요), S1b 보류.
