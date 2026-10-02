@@ -276,3 +276,9 @@
 - 화면 작업은 합성 DB 복사본으로 Flask+vite를 띄워 Playwright로 클릭 검증. 실 DB 수치 변경은 백업+복사본 검증 후에만.
 - 커밋에 넣지 말 것: `config.json*`(`.bak-*` 포함), `.mcp.json`, `running.db`, 실데이터, `screenshots/`. 파일 이름으로 스테이징.
 - 이번 세션 MCP 상태: Google Drive·Notion·Strava·Tredict는 claude.ai 커넥터 설정에서 인증해야 사용 가능, `pytest` MCP는 CONNECTION_CLOSED(작업에 영향 없음).
+
+## 3-6 세부 (활동 상세 요약) — 프론트 완료 (2026-10-02)
+- 완료: 공통 레이아웃·탭, 판정(ActivityVerdict), 타임라인, SplitBars(발산형)·RouteMap(구간색·km 마커·커서) 연동, 요약 페이지 재작성(서버 splits/series/hr_zones/environment/source_diffs 사용). 클라이언트 splits.ts·runStory 계산 삭제.
+- 브라우저 검증(합성 DB): 지도·스플릿 클릭 선택/해제, 데스크톱·모바일 가로 넘침 없음. HR 존은 합성 시드에 데이터 없어 미확인.
+- 판정 근거 칩 drill은 explain v2가 daily 범위만 지원해 기존 MetricBreakdown 유지(D1d 이월).
+- 남음: impact 재구성, /providers 행 필드(③), ?include=streams, ⑦ 피드백 저장(ADR·승인 필요), S1b 보류, 서브탭 parent()(g).
