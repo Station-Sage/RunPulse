@@ -252,6 +252,12 @@
 - **알려진 한계**: 공급자가 비스트리밍이라 `delta`는 완성 답변의 청크 재생(실제 `stream=True`는 후속). SSE 연결이 gunicorn 스레드(8개)를 점유. LLM 성공 답변의 followups는 비어 있음. `?from=coach`는 스레드 페이지 전용 처리 없음. `engine_label("legacy_rule", …)`은 아직 "규칙 답변".
 - **운영 반영 완료**(2026-10-01 23:42, 98123e3): Groq 404 수정(9e858f7)·`format_ko`(496981a)·3-4·3-5 전체. 스키마 v24(`pansongit` DB) 적용 확인, `pansong.us` 빈 DB(v0)의 마이그레이션 경고는 기존부터 있던 것.
 
+## 3-10(일부) 코치에게 묻기 — 활동 컨텍스트 Coach (2026-10-02)
+- **백엔드**(3618ff1 외): `coach_activity_context.py`(근거 카드 값 + 훈련 유형별 추천 질문 3개), `GET /coach/activity-context?activity=`, `chat_engine`이 활동 스레드의 자유 입력 프롬프트 앞에 활동 요약을 붙임(칩 프롬프트·규칙 폴백은 제외), `get_thread`가 `context` 반환.
+- **프론트**: `/coach/new?activity={id}`(근거 칩 카드·추천 질문 3개·자유 입력·동의 게이트), 스레드 생성 시 `context={kind:'activity', ref}`, 활동 스레드의 ← 는 `/library/{id}`. 활동 요약 페이지는 모바일 하단 고정 56px CTA(탭바 위), md 이상은 인라인 링크. 순수 로직 `lib/activityEvidence.ts`(단위 테스트).
+- **검증**: Playwright(합성 DB, 390px) — CTA → 근거 카드 → 추천 질문 탭 → 스레드 생성·`?from=activity`, 뒤로가기 `/v2/library/100`. 백엔드 2029 pass, 프론트 unit 268 pass·check 0 errors·build 성공.
+- **남음**: 3-10의 RPE 입력(⑦ ADR·사용자 승인 필요)·`⋯` 메뉴. 활동 scope drill(`@a{id}`)은 이월.
+
 ## 다음 (2026-09-29 인수인계)
 
 ### 현재 위치

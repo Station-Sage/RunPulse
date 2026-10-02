@@ -131,3 +131,9 @@
 - **부수 수정**: `workout_type_classified`는 `text_value`에 저장되는데 도구가 `numeric_value`를 읽어 `get_activity.workout_type`이 한 번도 나오지 않았고 `get_race_history`는 이름 키워드로만 매칭됐다.
 - **결과**: 활동 목록 1년 ≈7,300→780 tok, 웰니스 30일 ≈1,300→380, 피트니스 30일 ≈830→330. 도구 선언은 ≈1,470→1,580 tok(도구 1개 추가, 기간 도구 4개에 `granularity` 추가 후 설명 축약). 응답 형태가 바뀌었으므로 소비자는 `fields` 헤더를 읽어야 한다 — 앱 내 AI 채팅(`chat_engine_providers`)은 LLM이 직접 읽으므로 코드 변경 없음.
 - **검증**: `tests/test_ai_tool_format.py`, `test_ai_tools_compact.py`, `test_ai_tool_guide.py`(선언 5,000자·가이드 1,400자 상한, 스킬/가이드가 실제 도구명과 일치), `test_mcp_server.py`
+
+## ADR-017: 활동 컨텍스트 Coach — 스레드 context + 활동 요약 프롬프트 주입 (2026-10-02)
+- **맥락**: Library 활동 상세의 "코치에게 묻기"가 일반 `/coach` 링크였다. 설계(20-library-activities)는 활동 근거 카드와 유형별 추천 질문이 붙은 새 대화를 요구한다.
+- **결정**: (1) `chat_threads.context_kind/ref`(기존 컬럼)에 `activity/{id}`를 저장하고 `get_thread`가 노출한다. (2) 근거 값·추천 질문은 `/coach/activity-context`가 서버에서 계산한다(프론트 계산 금지). (3) LLM 자유 입력 프롬프트에만 활동 한 줄 요약을 prepend하고 칩 프롬프트·규칙 폴백은 변경하지 않는다. (4) 새 route `/coach/new?activity=`, 스레드 ← 는 활동으로 복귀.
+- **검증**: `tests/test_coach_activity_context.py`, `tests/test_api_coach.py`, `frontend/tests/activityEvidence.test.mjs`.
+

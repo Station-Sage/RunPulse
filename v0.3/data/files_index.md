@@ -56,6 +56,10 @@
 
 - functions: get_archive
 
+### `coach_activity_context.py` (83줄) — Coach 활동 컨텍스트 — `/coach/new?activity={id}` 근거 카드·추천 질문·프롬프트 요약.
+
+- functions: suggested_questions, get_activity_context, activity_prompt_summary
+
 ### `coach_async.py` (229줄) — Coach 비동기 답변 실행기 — 워커 스레드·메시지별 이벤트 로그·취소 플래그·SSE 직렬화 (design §6.2, §7.1).
 
 - class **_Run**: emit, finish
@@ -73,7 +77,7 @@
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
-### `coach_service.py` (297줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (300줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
 - functions: list_threads, get_thread, create_thread, add_message, generate_reply, get_message, regenerate
 
@@ -667,7 +671,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (238줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (252줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
@@ -1425,9 +1429,9 @@
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
 - class **TestPost**: test_post_json
 
-### `test_api_coach.py` (247줄) — tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
+### `test_api_coach.py` (272줄) — tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
 
-- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes
+- functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
 ### `test_api_library.py` (389줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
@@ -1541,6 +1545,10 @@
 ### `test_cirs.py` (78줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
+
+### `test_coach_activity_context.py` (49줄) — tests/test_coach_activity_context.py — Coach 활동 컨텍스트(근거 카드·추천 질문·프롬프트 요약).
+
+- functions: test_suggested_questions_by_class, test_activity_context_card, test_activity_context_missing, test_prompt_summary_and_thread_injection
 
 ### `test_coach_async.py` (153줄) — coach_async 테스트 — 워커 실행·이벤트 로그·SSE 복원·취소 (INLINE 모드로 결정적 실행).
 
@@ -2431,7 +2439,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 495개 파일
+총 497개 파일
 
 ## docstring 누락
 
