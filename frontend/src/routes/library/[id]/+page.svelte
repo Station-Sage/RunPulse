@@ -4,56 +4,34 @@
 	import RouteMap from '$lib/components/RouteMap.svelte';
 	import MetricCell from '$lib/components/MetricCell.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
-	import Sparkline from '$lib/components/Sparkline.svelte';
-	import EnvContextCard from '$lib/components/EnvContextCard.svelte';
-	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDuration, formatPace, formatDate, formatUnitValue, formatHeartRate } from '$lib/format';
-	import { formatMetricValue, hrZoneShares, metricUnit, pickKeyMetrics } from '$lib/metrics';
+	import { providerLabel } from '$lib/provider';
+	import { formatDuration, formatPace, formatUnitValue } from '$lib/format';
+	import { formatMetricValue, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
-	import type { ActivityMetric, ProviderKey } from '$lib/types';
-	import { clampOutliers } from '$lib/chartScale';
-	import { computeSplits } from '$lib/splits';
-	import { buildRunStory } from '$lib/runStory';
+	import type { ProviderKey } from '$lib/types';
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
-	import RunStory from '$lib/components/RunStory.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
 	import { impactLines } from '$lib/activityImpact';
+	import { createActivitySelection } from '$lib/stores/activitySelection';
 
 	let { data }: { data: ActivityPageData } = $props();
 
 	const core = $derived(data.activity?.core ?? null);
 	const metricsByCategory = $derived(data.activity?.metrics_by_category ?? {});
-	const streams = $derived(data.activity?.streams ?? null);
-
+	const splits = $derived(data.activity?.splits ?? []);
+	const series = $derived(data.activity?.series ?? null);
+	const env = $derived(data.activity?.environment ?? null);
+	const zones = $derived(data.activity?.hr_zones ?? null);
+	const sourceDiffs = $derived((data.activity?.source_diffs ?? []).filter((d) => d.significant));
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
-	const zoneData = $derived(hrZoneShares(metricsByCategory));
-	// km 스플릿 — streams를 SplitStream 호환 타입으로 전달(필드 일치)
-	const splits = $derived(
-		computeSplits(
-			streams ?? [],
-			core?.duration_sec ?? 0,
-			core?.distance_m ?? 0
-		)
-	);
-	const decouplingPct = $derived(
-		Object.values(metricsByCategory)
-			.flat()
-			.find((m) => m.metric_name === 'aerobic_decoupling_rp')?.numeric_value ?? null
-	);
-	const story = $derived(buildRunStory(splits, decouplingPct));
 	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
-	const ZONE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#f97316', '#ef4444'];
-	// streams 행은 elapsed_sec 순 — 페이스(초/km)는 speed_ms에서 환산, null은 선을 끊는다.
-	// GPS 스파이크 등 이상치를 상·하위 2% 클램프해 스파크라인이 납작해지는 것을 방지한다.
-	const paceClamp = $derived(
-		clampOutliers((streams ?? []).map((p) => (p.speed_ms != null && p.speed_ms > 0 ? 1000 / p.speed_ms : null)))
-	);
-	const paceSeries = $derived(paceClamp.values);
-	const paceSeriesClamped = $derived(paceClamp.clamped);
-	const hrSeries = $derived((streams ?? []).map((p) => p.heart_rate));
-	const streamSource = $derived(streams && streams.length > 0 ? streams[0].source : null);
+
+	const selection = createActivitySelection();
+	const zoneTotal = $derived(zones ? zones.sec.reduce((a, b) => a + b, 0) : 0);
+	const ZONE_OPACITY = ['opacity-30', 'opacity-45', 'opacity-60', 'opacity-80', 'opacity-100'];
+
 	let drillStack = $state<DrillTarget[]>([]);
 	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 	function openMetric(slug: string) {
@@ -110,16 +88,28 @@
 
 		<ActivityVerdict verdict={data.activity?.verdict} onDrill={openMetric} />
 
-		<RunStory {story} />
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+			{#if series}
+				<RouteMap {series} selectedSeg={$selection.seg} cursorDist={$selection.cursorDist} onSelect={(seg) => selection.update((s) => ({ ...s, seg }))} />
+			{/if}
+			{#if splits.length > 0}
+				<SplitBars {splits} selectedSeg={$selection.seg} onSelect={(seg) => selection.update((s) => ({ ...s, seg }))} />
+			{/if}
+		</div>
 
-		<RouteMap streams={streams ?? []} />
-
-		{#if splits.length > 0}
-			<SplitBars {splits} avgPaceSecKm={core.avg_pace_sec_km} />
+		{#if series}
+			<ActivityTimeline {series} elevGainM={(core.elevation_gain as number | null) ?? null} onCursor={(d) => selection.update((s) => ({ ...s, cursorDist: d }))} />
+		{:else}
+			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
 		{/if}
 
-		{#if data.activity?.series}
-			<ActivityTimeline series={data.activity.series} elevGainM={(core.elevation_gain as number | null) ?? null} />
+		{#if env && (env.temp_c != null || env.fearp_sec_km != null)}
+			<section class="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm" data-testid="env-line" aria-label="환경">
+				<span class="text-xs uppercase tracking-wide text-fg-muted">환경</span>
+				{#if env.temp_c != null}<span>기온 <span class="font-mono">{Math.round(env.temp_c)}°C</span></span>{/if}
+				{#if env.dew_point_c != null}<span>이슬점 <span class="font-mono">{Math.round(env.dew_point_c)}°C</span></span>{/if}
+				{#if env.pace_effect_sec_km != null && env.pace_effect_sec_km !== 0}<span>페이스 영향 <span class="font-mono">{env.pace_effect_sec_km > 0 ? '+' : ''}{Math.round(env.pace_effect_sec_km)}초/km</span></span>{/if}
+			</section>
 		{/if}
 
 		<!-- 이 러닝의 의미 -->
@@ -148,62 +138,33 @@
 			</section>
 		{/if}
 
-		{#if paceSeries.some((v) => v != null) || hrSeries.some((v) => v != null)}
-			<section class="flex flex-col gap-2">
-				<div class="flex items-center justify-between">
-					<p class="text-xs uppercase tracking-wide text-fg-muted">페이스 · 심박 흐름</p>
-					<a href="{base}/library/{core.id}/streams" class="text-xs text-fg-secondary hover:text-fg-primary">스트림 탭에서 전체 보기 →</a>
-				</div>
-				{#if paceSeries.some((v) => v != null)}
-					<div>
-						<p class="mb-0.5 text-[10px] text-fg-muted">페이스</p>
-						<Sparkline
-							data={paceSeries}
-							height={40}
-							color="#3b82f6"
-							invert
-							interactive
-							formatValue={(v) => formatPace(v)}
-						/>
-					</div>
-				{/if}
-				{#if hrSeries.some((v) => v != null)}
-					<div>
-						<p class="mb-0.5 text-[10px] text-fg-muted">심박</p>
-						<Sparkline
-							data={hrSeries}
-							height={40}
-							color="#ef4444"
-							interactive
-							formatValue={(v) => formatHeartRate(v)}
-						/>
-					</div>
-				{/if}
-				<p class="text-xs text-fg-muted">{(data.activity?.stream_point_count ?? (streams ?? []).length).toLocaleString('ko-KR')}개 포인트{#if (data.activity?.stream_point_count ?? 0) > (streams ?? []).length}{' '}(차트는 {(streams ?? []).length.toLocaleString('ko-KR')}개로 다운샘플){/if}{#if streamSource}{' · '}소스: {providerLabel(streamSource as ProviderKey)}{/if}{#if paceSeriesClamped}{' · '}페이스 이상치 제거됨(상·하위 2% 클램프){/if}</p>
-			</section>
-		{:else}
-			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
-		{/if}
-		{#if zoneData}
-			<section class="flex flex-col gap-2">
+		{#if zones && zoneTotal > 0}
+			<section class="flex flex-col gap-2" data-testid="hr-zones">
 				<div class="flex items-center justify-between">
 					<p class="text-xs uppercase tracking-wide text-fg-muted">HR 존 분포</p>
-					<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(zoneData.provider as ProviderKey | null)}">{providerLabel(zoneData.provider as ProviderKey | null)}</span>
+					<span class="text-xs text-fg-muted">{providerLabel(zones.provider as ProviderKey)} · {zones.basis === 'intervals_zones' ? '개인 존' : '기기 존'}</span>
 				</div>
 				<div class="flex flex-col gap-1.5">
-					{#each zoneData.zones as z (z.zone)}
+					{#each zones.sec as sec, i (i)}
+						{@const pct = Math.round((sec / zoneTotal) * 100)}
 						<div class="flex items-center gap-2 text-xs">
-							<span class="w-5 font-mono text-fg-secondary">Z{z.zone}</span>
+							<span class="w-5 font-mono text-fg-secondary">Z{i + 1}</span>
 							<div class="h-2 flex-1 rounded bg-surface-3">
-								<div class="h-2 rounded" style="width:{z.pct}%; background:{ZONE_COLORS[z.zone - 1]}"></div>
+								<div class="h-2 rounded bg-series-1 {ZONE_OPACITY[i] ?? 'opacity-100'}" style="width:{pct}%"></div>
 							</div>
-							<span class="w-20 text-right font-mono text-fg-secondary">{z.pct}% · {formatDuration(z.sec)}</span>
+							<span class="w-24 text-right font-mono text-fg-secondary">{pct}% · {formatDuration(sec)}</span>
 						</div>
 					{/each}
 				</div>
 			</section>
 		{/if}
-		<EnvContextCard metrics={metricsByCategory.weather ?? []} />
+
+		<div class="flex flex-wrap items-center gap-3 text-xs">
+			{#if sourceDiffs.length > 0}
+				<a href="{base}/library/{core.id}/providers" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="source-diff-chip">소스 차이 {sourceDiffs.length}건</a>
+			{/if}
+			<a href="{base}/coach" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="ask-coach">코치에게 물어보기</a>
+		</div>
 
 	</div>
 {/if}
