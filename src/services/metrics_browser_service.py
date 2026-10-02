@@ -8,7 +8,7 @@ from typing import Any
 from src.utils.db_helpers import get_metric_history, get_primary_metrics
 from src.utils.metric_registry import METRIC_REGISTRY
 from src.metrics.bands import with_grade
-from src.services.metrics_explain import _HIGHER_IS_BETTER
+from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, display_meta
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
 # (get_primary_metric + 무제한 get_metric_history) 돌던 게 /library/metrics 776ms의
@@ -115,6 +115,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "sparkline": sparkline,
             "name_ko": mdef.description,
             "confidence_label": confidence_label(row_data.get("confidence")),
+            **display_meta(name, mdef.unit),
             "last_value_date": date,
             "change": _change(sparkline, spark_dates[name][-14:]),
         }
@@ -168,6 +169,8 @@ def get_metric_trend(
 
     return {
         "slug": slug,
+        "name_ko": label,
+        **display_meta(slug, unit),
         "label": label,
         "unit": unit,
         "current": current,

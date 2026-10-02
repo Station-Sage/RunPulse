@@ -28,6 +28,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from src.metrics.bands import BANDS, grade
+from src.services.metric_display import HIGHER_IS_BETTER
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
@@ -35,7 +36,7 @@ from src.utils.db_helpers import get_primary_metric
 
 _PMC_ALPHA = {"ctl": 1.0 / 42, "atl": 1.0 / 7}
 _PMC_LABEL = {"ctl": "체력", "atl": "피로"}
-_HIGHER_IS_BETTER = {"tsb": True, "ctl": None, "atl": None, "utrs": True, "cirs": False, "rri": True}
+_HIGHER_IS_BETTER = HIGHER_IS_BETTER
 
 _WHAT = {
     "tsb": "폼(TSB)은 최근 체력(CTL)과 피로(ATL)의 차이로, 지금 몸이 훈련을 받아들일 준비가 됐는지를 보여줍니다.",

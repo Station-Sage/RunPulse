@@ -32,7 +32,7 @@
 
 - functions: get_activity_detail
 
-### `activity_impact_service.py` (157줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
+### `activity_impact_service.py` (175줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
 - functions: get_activity_impact
 
@@ -93,11 +93,15 @@
 
 - (public API 없음)
 
-### `metrics_browser_service.py` (141줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metric_display.py` (25줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
-- functions: get_metrics_browser, get_metric_trend
+- functions: display_meta
 
-### `metrics_explain.py` (186줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_browser_service.py` (202줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+
+- functions: confidence_label, get_metrics_browser, get_metric_trend
+
+### `metrics_explain.py` (187줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: get_metric_explain
 
@@ -1347,9 +1351,9 @@
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty
 
-### `test_activity_impact_service.py` (252줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
+### `test_activity_impact_service.py` (268줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
-- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today
+- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today, test_load_is_activity_trimp
 
 ### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
 
@@ -1357,7 +1361,7 @@
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
 
-### `test_activity_service.py` (301줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
+### `test_activity_service.py` (302줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
 - functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
 
@@ -1433,9 +1437,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_library.py` (389줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (398줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -1920,9 +1924,9 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
-### `test_metrics_browser_service.py` (145줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (177줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch
 
 ### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -2439,7 +2443,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 497개 파일
+총 498개 파일
 
 ## docstring 누락
 

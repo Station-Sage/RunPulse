@@ -814,6 +814,9 @@ export interface MetricBrowserEntry {
 	name_ko?: string;
 	confidence_label?: string | null;
 	last_value_date?: string;
+	format?: string;
+	decimal_places?: number;
+	higher_is_better?: boolean | null;
 	change?: { abs: number; pct: number | null; days: number } | null;
 }
 
@@ -837,6 +840,10 @@ export interface MetricTrendPoint {
 
 export interface MetricTrendData {
 	slug: string;
+	name_ko?: string;
+	format?: string;
+	decimal_places?: number;
+	higher_is_better?: boolean | null;
 	label: string;
 	unit: string;
 	current: number | null;

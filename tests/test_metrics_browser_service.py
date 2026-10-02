@@ -166,3 +166,12 @@ def test_browser_entries_have_meta(conn):
     assert entries
     e = entries[0]
     assert e["name_ko"] and e["last_value_date"] == "2026-04-01" and "change" in e
+
+
+def test_display_meta_dispatch():
+    from src.services.metric_display import display_meta
+    assert display_meta("race_pred_marathon_sec", "sec")["format"] == "race_time"
+    assert display_meta("tsb", "")["format"] == "signed"
+    assert display_meta("cirs", "score")["higher_is_better"] is False
+    assert display_meta("x", "sec/km")["format"] == "pace"
+    assert display_meta("x", "")["decimal_places"] == 1

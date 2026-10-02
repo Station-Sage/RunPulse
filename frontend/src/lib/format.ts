@@ -213,3 +213,32 @@ export function formatRelativeDay(isoDate: string): string {
 	if (diffDays > 1) return `${diffDays}일 전`;
 	return date.toLocaleDateString('ko-KR');
 }
+
+export interface MetricFormatMeta {
+	format?: string;
+	unit?: string;
+	decimal_places?: number;
+}
+
+/** registry `format` → §C4 포맷 함수 디스패치(목록·상세·차트 공용). 값 없으면 '—'. */
+export function formatMetric(meta: MetricFormatMeta, value: number | null | undefined): string {
+	if (value == null || !Number.isFinite(value)) return '—';
+	switch (meta.format) {
+		case 'race_time':
+		case 'duration':
+			return formatDuration(value);
+		case 'pace':
+			return formatPace(value);
+		case 'signed':
+			return formatForm(value);
+		case 'percent':
+			return formatPercent(value);
+		case 'score':
+			return formatScore(value);
+		default: {
+			const dp = meta.decimal_places;
+			if (dp == null) return formatUnitValue(value, meta.unit ?? '').display;
+			return dp === 0 ? String(Math.round(value)) : value.toFixed(dp);
+		}
+	}
+}
