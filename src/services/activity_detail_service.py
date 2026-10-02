@@ -9,6 +9,7 @@ import sqlite3
 from collections import defaultdict
 
 from src.services.activity_impact_service import get_activity_impact
+from src.services.activity_splits import build_series, compute_splits
 from src.utils import db_helpers
 from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
@@ -90,6 +91,12 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
     full_streams = [dict(r) for r in stream_rows]
     stream_point_count = len(full_streams)
     streams = _downsample_streams(full_streams) or None
+    total_sec = core.get("elapsed_time_sec") or core.get("duration_sec") or 0
+    total_dist = core.get("distance_m") or 0
+    splits = compute_splits(full_streams, total_sec, total_dist)
+    series = build_series(full_streams, total_sec, total_dist)
+    siblings = [{"id": r["id"], "provider": r["source"], "is_canonical": r["id"] == canonical_id}
+                for r in (source_comparison.values() if source_comparison else [])]
 
     # laps
     lap_rows = conn.execute(
@@ -116,6 +123,9 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int) -> dict:
         "source_comparison": source_comparison,
         "semantic_groups": semantic_groups,
         "streams": streams,
+        "splits": splits,
+        "series": series,
+        "siblings": siblings,
         "stream_point_count": stream_point_count,
         "laps": laps,
         "best_efforts": best_efforts,
