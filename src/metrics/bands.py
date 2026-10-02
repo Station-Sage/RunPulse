@@ -65,6 +65,23 @@ def grade(metric_name: str, value: float | None, phase: str | None = None) -> di
     return {"status": status, "label": label}
 
 
+def band_ranges(metric_name: str) -> list[dict]:
+    """차트 배경용 구간 목록 [{from, to, status, label}] — 하한/상한이 없는 끝은 None. 밴드 없으면 [].
+
+    절댓값 판정 메트릭(디커플링)은 |값| 기준 구간이라 차트 구간으로 쓸 수 없어 제외한다.
+    """
+    band = BANDS.get(metric_name)
+    if band is None or metric_name in _ABS_METRICS:
+        return []
+    cuts, (last_status, last_label) = band
+    out, lo = [], None
+    for upper, status, label in cuts:
+        out.append({"from": lo, "to": upper, "status": status, "label": label})
+        lo = upper
+    out.append({"from": lo, "to": None, "status": last_status, "label": last_label})
+    return out
+
+
 def with_grade(item: dict, metric_name: str, value: float | None, phase: str | None = None) -> dict:
     """item에 status·status_label을 붙여 반환(밴드 없으면 그대로)."""
     g = grade(metric_name, value, phase)

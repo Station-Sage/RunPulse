@@ -99,6 +99,11 @@
 				<TrendChart
 					series={[{ key: data.slug, label: data.trend.label, color: '#3b82f6', points }]}
 					unit={data.trend.unit}
+					bands={data.trend.bands ?? []}
+					baseline={data.trend.baseline ?? null}
+					smooth={data.period === '3m' || data.period === '6m' || data.period === '1y'}
+					name={data.trend.name_ko ?? data.trend.label}
+					periodLabel={PERIODS.find((x) => x.key === data.period)?.label ?? ''}
 				/>
 			</div>
 		{:else}

@@ -73,3 +73,38 @@ test('changeLabel: 30일보다 최근 점만 있으면 첫 점 기준', () => {
 	];
 	assert.equal(changeLabel(pts), '+10.0%');
 });
+
+import { movingAverage, splitOnGaps, spanRange, trendAriaLabel } from '../src/lib/trendChart.ts';
+
+test('movingAverage: 7일 창 평균, 창 밖 점은 제외', () => {
+	const pts = [
+		{ date: '2026-09-01', value: 10 },
+		{ date: '2026-09-02', value: 20 },
+		{ date: '2026-09-20', value: 30 }
+	];
+	const ma = movingAverage(pts);
+	assert.equal(ma[1].value, 15);
+	assert.equal(ma[2].value, 30);
+});
+
+test('splitOnGaps: 2일 초과 공백에서 끊는다', () => {
+	const mk = (d) => ({ date: d, value: 1 });
+	const parts = splitOnGaps([mk('2026-09-01'), mk('2026-09-03'), mk('2026-09-07')]);
+	assert.deepEqual(parts.map((p) => p.length), [2, 1]);
+	assert.deepEqual(splitOnGaps([]), []);
+});
+
+test('spanRange: 최소 폭 미만이면 중심 기준 확장, 이상이면 그대로', () => {
+	assert.deepEqual(spanRange(60, 62, 10), { min: 56, max: 66 });
+	assert.deepEqual(spanRange(0, 20, 10), { min: 0, max: 20 });
+});
+
+test('trendAriaLabel: 현재·최고·최저 요약과 빈 데이터', () => {
+	const pts = [
+		{ date: '2026-08-08', value: 89 },
+		{ date: '2026-09-01', value: 37 },
+		{ date: '2026-10-01', value: 60 }
+	];
+	assert.equal(trendAriaLabel('UTRS', '3개월', pts), 'UTRS 3개월: 현재 60, 최고 89(8월 8일), 최저 37(9월 1일)');
+	assert.match(trendAriaLabel('UTRS', '3개월', []), /데이터 없음/);
+});

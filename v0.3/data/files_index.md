@@ -97,7 +97,7 @@
 
 - functions: display_name, display_meta
 
-### `metrics_browser_service.py` (200줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (234줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
@@ -220,9 +220,9 @@
 
 - class **ADTICalculator**: compute
 
-### `bands.py` (74줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
+### `bands.py` (91줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
 
-- functions: grade, with_grade
+- functions: grade, band_ranges, with_grade
 
 ### `base.py` (551줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
@@ -1933,9 +1933,9 @@
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 
-### `test_metrics_browser_service.py` (194줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (237줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps
 
 ### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 

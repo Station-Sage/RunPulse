@@ -7,7 +7,7 @@ from typing import Any
 
 from src.utils.db_helpers import get_metric_history
 from src.utils.metric_registry import METRIC_REGISTRY
-from src.metrics.bands import with_grade
+from src.metrics.bands import band_ranges, with_grade
 from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, display_meta
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
@@ -209,6 +209,7 @@ def get_metric_trend(
         "best": best,
         "worst": worst,
         "baseline": baseline,
+        "bands": band_ranges(slug),
         "change_pct": change_pct,
         "points": points,
     }

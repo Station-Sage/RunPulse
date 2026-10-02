@@ -4,7 +4,7 @@
 
 ## 작업 규칙
 - 작업 위치: worktree `/home/ubuntu/projects/RunPulse-p0` (브랜치 `claude/project-thread-vgunp6`).
-- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 2026-09-30 12:11 — 266ebee까지(3-2·3-3) ff 병합·`npm run build`·`docker restart`(스키마 v23 자동 마이그레이션). 이후 커밋은 다시 "운영 반영" 지시 시에만. 2026-10-01 23:42 — 98123e3까지(Groq 404 수정·format_ko·3-4·3-5) ff 병합·`npm run build`(gunicorn --reload로 코드 반영, 스키마 v24 자동 마이그레이션·백업 `running.db.bak-20261001-pre-v24`, 컨테이너 내부 서비스 스모크 통과).
+- 운영 반영 이력: 2026-09-30 06:50 — 6982aa6까지(Phase 2·3-1·Coach 판정 통합) ff 병합·프론트 빌드. 2026-09-30 12:11 — 266ebee까지(3-2·3-3) ff 병합·`npm run build`·`docker restart`(스키마 v23 자동 마이그레이션). 이후 커밋은 다시 "운영 반영" 지시 시에만. 2026-10-01 23:42 — 98123e3까지(Groq 404 수정·format_ko·3-4·3-5) ff 병합·`npm run build`(gunicorn --reload로 코드 반영, 스키마 v24 자동 마이그레이션·백업 `running.db.bak-20261001-pre-v24`, 컨테이너 내부 서비스 스모크 통과). 2026-10-03 — fd49825까지(3-6·3-7 S1a·표시명 SSOT·wellness 버그 수정) ff 병합·`npm run build`.
   메인 폴더 `/home/ubuntu/projects/RunPulse`는 운영 컨테이너가 `--reload`로 마운트 → 직접 편집 금지.
 - 운영 반영: 메인 폴더 `renew/data-architecture`에 ff 병합 → `frontend`에서 `npm run build` → (Dockerfile 변경 시) `docker compose build && up -d`.
 - 테스트: `$V -m pytest tests/`(venv: 스크래치 `venv`, 없으면 `python3 -m venv` + `pip install -r requirements.txt pytest`), `cd frontend && npm run test:unit && npm run check`.
@@ -294,4 +294,5 @@
 - S1a 완료: `/library/metrics` 항목에 `name_ko`·`confidence_label`·`last_value_date`·`change{abs,pct,days}` 추가, `/trend`에 `best`/`worst`(higher_is_better 반영)·`baseline{mean,p25,p75,days}` 추가(peak 유지). 프론트 타입 반영.
 - 표시명 SSOT 완료(ADR-018): `src/utils/metric_labels.py`(daily 84개 name_ko·abbr), explain API도 동일 SSOT 사용. 이름은 노출 필터가 아님(없어도 폴백으로 표시) — 목록 누락의 실제 원인은 기준일=MAX(scope_id)와 wellness 저장 12개 미노출.
 - BUG 2건 수정 완료: ① 목록이 지표별 최신값(90일 창)+`last_value_date` 사용, 카드에 "MM-DD 기준" 표시 ② daily_wellness 저장 숫자 11개(취침 시각 제외) 목록·추세에 노출.
-- 남음: S1b PMC decay·GAP(보류), S2 ChartScrub, S3 설명·분해 인라인, S4 서브탭·검색·정렬("오늘 주목할 지표"), 운영 반영 2026-10-03 기록.
+- S2 1차 완료: `/trend`에 `bands`(bands.band_ranges), TrendChart에 등급 밴드·기준선(p25~p75·평균)·7일 이동평균·결측 끊김·동적 aria-label(`trendChart.ts` movingAverage/splitOnGaps/spanRange). Playwright(`pw/s2_trend.mjs`) 검증. 남음(S2 나머지): 좌측 y축 거터·주 경계 x틱·이벤트 마커·마지막 점·Sparkline min_span·`?date=` selectedDate.
+- 남음: S1b PMC decay·GAP(보류), S3 설명·분해 인라인, S4 서브탭·검색·정렬("오늘 주목할 지표"), 운영 반영 2026-10-03 기록.

@@ -4,7 +4,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:18099';
 const b = await chromium.launch();
 const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
 await page.goto(`${BASE}/v2/library/metrics/${process.env.SLUG || 'ctl'}`, { waitUntil: 'networkidle' });
-const chart = page.locator('[role=img][aria-label*=추세]');
+const chart = page.locator('[role=slider][aria-label*="눌러서"]');
 const box = await chart.boundingBox();
 const readout = () => chart.locator('xpath=preceding-sibling::div[1]').innerText();
 console.log('default:', (await readout()).replace(/\n+/g, ' '));

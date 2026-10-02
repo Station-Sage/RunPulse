@@ -853,6 +853,7 @@ export interface MetricTrendData {
 	best?: { value: number; date: string } | null;
 	worst?: { value: number; date: string } | null;
 	baseline?: { mean: number; p25: number; p75: number; days: number } | null;
+	bands?: { from: number | null; to: number | null; status: string; label: string }[];
 	change_pct: number | null;
 	points: MetricTrendPoint[];
 }

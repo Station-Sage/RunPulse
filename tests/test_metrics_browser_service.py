@@ -225,3 +225,13 @@ def test_trend_reads_wellness_column(conn):
     trend = get_metric_trend(conn, "resting_hr", period="1y")
     assert trend is not None
     assert trend["points"][0]["value"] == 52
+
+
+def test_band_ranges_cover_axis_without_gaps():
+    from src.metrics.bands import band_ranges
+
+    rs = band_ranges("utrs")
+    assert rs[0]["from"] is None and rs[-1]["to"] is None
+    assert all(a["to"] == b["from"] for a, b in zip(rs, rs[1:]))
+    assert band_ranges("aerobic_decoupling") == []
+    assert band_ranges("no_such_metric") == []

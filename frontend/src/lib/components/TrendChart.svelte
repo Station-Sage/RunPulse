@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, nearestPoint, xFraction } from '$lib/trendChart';
+	import { commonRange, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, xFraction } from '$lib/trendChart';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let {
@@ -9,14 +9,32 @@
 		height = 140,
 		unit = '',
 		interactive = true,
-		formatValue = (v: number) => v.toFixed(1)
+		formatValue = (v: number) => v.toFixed(1),
+		bands = [],
+		baseline = null,
+		smooth = false,
+		name = '',
+		periodLabel = ''
 	}: {
 		series: TrendSeries[];
 		height?: number;
 		unit?: string;
 		interactive?: boolean;
 		formatValue?: (v: number) => string;
+		bands?: { from: number | null; to: number | null; status: string; label: string }[];
+		baseline?: { mean: number; p25: number; p75: number } | null;
+		smooth?: boolean;
+		name?: string;
+		periodLabel?: string;
 	} = $props();
+
+	const STATUS_COLOR: Record<string, string> = {
+		excellent: 'var(--color-status-great)',
+		good: 'var(--color-status-good)',
+		neutral: 'var(--color-status-neutral)',
+		caution: 'var(--color-status-caution)',
+		poor: 'var(--color-status-danger)'
+	};
 
 	const W = 600;
 	const range = $derived(commonRange(series));
@@ -31,9 +49,29 @@
 		if (!range) return 0;
 		return (1 - (v - range.min) / (range.max - range.min)) * height;
 	}
-	function polyline(s: TrendSeries): string {
-		return s.points.map((p) => `${px(p.date).toFixed(1)},${py(p.value).toFixed(1)}`).join(' ');
+	function polylineOf(pts: { date: string; value: number }[]): string {
+		return pts.map((p) => `${px(p.date).toFixed(1)},${py(p.value).toFixed(1)}`).join(' ');
 	}
+	// 단일 시리즈 + smooth(≥3개월): 일별은 옅게, 7일 이동평균을 굵게
+	const useMA = $derived(smooth && series.length === 1);
+	// 범위 밖 밴드는 그리지 않고, 하한/상한 없는 끝은 차트 경계까지 확장
+	const bandRects = $derived(
+		!range
+			? []
+			: bands
+					.map((b) => {
+						const lo = b.from ?? range.min;
+						const hi = b.to ?? range.max;
+						if (hi <= range.min || lo >= range.max) return null;
+						const y1 = py(Math.min(hi, range.max));
+						const y2 = py(Math.max(lo, range.min));
+						return { y: y1, h: y2 - y1, color: STATUS_COLOR[b.status] ?? STATUS_COLOR.neutral, label: b.label };
+					})
+					.filter((b) => b !== null)
+	);
+	const ariaLabel = $derived(
+		series.length === 1 && name ? trendAriaLabel(name, periodLabel, series[0].points, formatValue) : '추세 차트'
+	);
 
 	// §C1 ChartScrub — t0~t1을 일 단위 "포인트"로 근사(키보드 ←/→가 하루씩 움직임). 값 조회는
 	// 그대로 frac 기반(nearestPoint)이라 trendChart.ts의 날짜 수학은 손대지 않는다.
@@ -101,16 +139,37 @@
 							vector-effect="non-scaling-stroke"
 						/>
 					{/each}
+					{#each bandRects as b, i (i)}
+						<rect x="0" y={b.y} width={W} height={b.h} fill={b.color} fill-opacity="0.08" />
+					{/each}
+					{#if baseline}
+						<rect x="0" y={py(baseline.p75)} width={W} height={py(baseline.p25) - py(baseline.p75)} fill="currentColor" fill-opacity="0.06" />
+						<line x1="0" x2={W} y1={py(baseline.mean)} y2={py(baseline.mean)} stroke="currentColor" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+					{/if}
 					{#each series as s (s.key)}
-						<polyline
-							points={polyline(s)}
-							fill="none"
-							stroke={s.color}
-							stroke-width="2"
-							stroke-linejoin="round"
-							stroke-linecap="round"
-							vector-effect="non-scaling-stroke"
-						/>
+						{#each splitOnGaps(s.points) as seg, i (i)}
+							<polyline
+								points={polylineOf(seg)}
+								fill="none"
+								stroke={s.color}
+								stroke-width={useMA ? 1 : 2}
+								stroke-opacity={useMA ? 0.35 : 1}
+								stroke-linejoin="round"
+								stroke-linecap="round"
+								vector-effect="non-scaling-stroke"
+							/>
+						{/each}
+						{#if useMA}
+							<polyline
+								points={polylineOf(movingAverage(s.points))}
+								fill="none"
+								stroke={s.color}
+								stroke-width="2.5"
+								stroke-linejoin="round"
+								stroke-linecap="round"
+								vector-effect="non-scaling-stroke"
+							/>
+						{/if}
 					{/each}
 				</svg>
 
@@ -131,7 +190,7 @@
 		{/snippet}
 
 		{#if interactive}
-			<ChartScrub {pointCount} ariaLabel="추세 차트 — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
+			<ChartScrub {pointCount} ariaLabel="{ariaLabel} — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
 				{#snippet children()}
 					{@render chartBody(cursorPct == null ? null : cursorPct / 100)}
 				{/snippet}

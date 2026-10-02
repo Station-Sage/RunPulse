@@ -67,3 +67,56 @@ export function changeLabel(points: TrendPoint[], days = 30): string {
 	if (Math.abs(base.value) < 10) return `${sign}${delta.toFixed(1)}`;
 	return `${sign}${((delta / base.value) * 100).toFixed(1)}%`;
 }
+
+/** 7일 이동평균(해당 날짜 포함 직전 7일 창, 창 안 점이 하나라도 있으면 평균). 입력은 날짜 오름차순. */
+export function movingAverage(points: TrendPoint[], windowDays = 7): TrendPoint[] {
+	const span = (windowDays - 1) * 86_400_000;
+	return points.map((p, i) => {
+		const t = Date.parse(p.date);
+		let sum = 0;
+		let n = 0;
+		for (let j = i; j >= 0 && t - Date.parse(points[j].date) <= span; j--) {
+			sum += points[j].value;
+			n++;
+		}
+		return { date: p.date, value: sum / n };
+	});
+}
+
+/** 점 사이가 maxGapDays 초과로 벌어지면 선을 끊어 여러 구간으로 나눈다(결측을 이어 그리지 않기 위함). */
+export function splitOnGaps(points: TrendPoint[], maxGapDays = 2): TrendPoint[][] {
+	const out: TrendPoint[][] = [];
+	let cur: TrendPoint[] = [];
+	for (const p of points) {
+		const prev = cur[cur.length - 1];
+		if (prev && Date.parse(p.date) - Date.parse(prev.date) > maxGapDays * 86_400_000) {
+			out.push(cur);
+			cur = [];
+		}
+		cur.push(p);
+	}
+	if (cur.length) out.push(cur);
+	return out;
+}
+
+/** y 범위를 최소 폭(minSpan) 이상으로 보장 — 값 변동이 작은 스파크라인이 과장돼 보이지 않게 중심 기준으로 넓힌다. */
+export function spanRange(min: number, max: number, minSpan: number): { min: number; max: number } {
+	if (max - min >= minSpan) return { min, max };
+	const mid = (min + max) / 2;
+	return { min: mid - minSpan / 2, max: mid + minSpan / 2 };
+}
+
+/** 스크린리더용 요약: "UTRS 3개월: 현재 60, 최고 89(8월 8일), 최저 37". 점이 없으면 데이터 없음 문구. */
+export function trendAriaLabel(
+	name: string,
+	periodLabel: string,
+	points: TrendPoint[],
+	fmt: (v: number) => string = (v) => String(Math.round(v * 10) / 10)
+): string {
+	if (points.length === 0) return `${name} ${periodLabel}: 데이터 없음`;
+	const hi = points.reduce((a, b) => (b.value > a.value ? b : a));
+	const lo = points.reduce((a, b) => (b.value < a.value ? b : a));
+	const md = (d: string) => `${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일`;
+	const last = points[points.length - 1];
+	return `${name} ${periodLabel}: 현재 ${fmt(last.value)}, 최고 ${fmt(hi.value)}(${md(hi.date)}), 최저 ${fmt(lo.value)}(${md(lo.date)})`;
+}
