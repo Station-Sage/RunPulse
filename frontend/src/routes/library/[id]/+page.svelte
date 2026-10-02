@@ -15,6 +15,7 @@
 	import { clampOutliers } from '$lib/chartScale';
 	import { computeSplits } from '$lib/splits';
 	import { buildRunStory } from '$lib/runStory';
+	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import RunStory from '$lib/components/RunStory.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ElevationProfile from '$lib/components/ElevationProfile.svelte';
@@ -106,6 +107,8 @@
 				<p class="text-xs text-fg-muted">누적 상승 <span class="font-mono font-bold text-fg-secondary">{elev.display}</span> {elev.unit}</p>
 			{/if}
 		</section>
+
+		<ActivityVerdict verdict={data.activity?.verdict} onDrill={openMetric} />
 
 		<RunStory {story} />
 
