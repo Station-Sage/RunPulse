@@ -257,3 +257,16 @@ def test_create_thread_with_activity_context(mini_app):
         "initial_message": "후반 심박이 걱정돼요", "context": {"kind": "activity", "ref": "7"}})
     assert res.status_code == 201
     assert res.get_json()["data"]["thread"]["context"] == {"kind": "activity", "ref": "7"}
+
+
+def test_get_thread_returns_context():
+    from src.services import coach_service
+    import sqlite3
+    conn = sqlite3.connect(":memory:")
+    from src.db_setup import create_tables
+    create_tables(conn)
+    tid = conn.execute("INSERT INTO chat_threads (title, context_kind, context_ref) VALUES ('t','activity','7')").lastrowid
+    conn.execute("INSERT INTO chat_threads (title) VALUES ('plain')")
+    conn.commit()
+    assert coach_service.get_thread(conn, tid)["thread"]["context"] == {"kind": "activity", "ref": "7"}
+    assert coach_service.get_thread(conn, tid + 1)["thread"]["context"] is None

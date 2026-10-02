@@ -109,11 +109,14 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
     """스레드 상세 + 전체 메시지 목록. 스레드 없으면 None."""
     conn.row_factory = sqlite3.Row
     thread = conn.execute(
-        "SELECT id, title, created_at, updated_at FROM chat_threads WHERE id = ?",
+        "SELECT id, title, created_at, updated_at, context_kind, context_ref FROM chat_threads WHERE id = ?",
         (thread_id,),
     ).fetchone()
     if not thread:
         return None
+    view = dict(thread)
+    kind, ref = view.pop("context_kind"), view.pop("context_ref")
+    view["context"] = {"kind": kind, "ref": ref} if kind else None
     messages = conn.execute(
         f"SELECT {_MESSAGE_COLUMNS} FROM chat_messages m WHERE thread_id = ? AND NOT ("
         " role = 'assistant' AND EXISTS (SELECT 1 FROM chat_messages c WHERE c.parent_message_id = m.id"
@@ -121,7 +124,7 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
         (thread_id,),
     ).fetchall()
     asked = _asked_chips(conn, thread_id)
-    return {"thread": dict(thread), "messages": [_message_view(conn, m, asked) for m in messages]}
+    return {"thread": view, "messages": [_message_view(conn, m, asked) for m in messages]}
 
 
 def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: dict | None,
