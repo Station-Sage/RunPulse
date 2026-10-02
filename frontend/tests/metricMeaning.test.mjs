@@ -3,15 +3,12 @@ import assert from 'node:assert/strict';
 import { displayLabel, isComponentMetric, isFlat } from '../src/lib/metricMeaning.ts';
 // meaningFor 등급 판정은 서버 src/metrics/bands.py로 이동 — tests/test_metric_bands.py
 
-test('displayLabel: 알려진 메트릭 한국어 라벨', () => {
-	assert.equal(displayLabel('tsb', 'Training Stress Balance'), '폼 (TSB)');
+test('displayLabel: abbr 있으면 괄호로 병기', () => {
+	assert.equal(displayLabel({ name_ko: '폼', abbr: 'TSB' }), '폼 (TSB)');
 });
 
-test('displayLabel: (parent: xxx) 제거', () => {
-	assert.equal(
-		displayLabel('utrs_tsb', 'UTRS 구성요소 - TSB 정규화값 (parent: utrs)'),
-		'UTRS 구성요소 - TSB 정규화값'
-	);
+test('displayLabel: abbr 없으면 name_ko만', () => {
+	assert.equal(displayLabel({ name_ko: '수면 점수', abbr: null }), '수면 점수');
 });
 
 test('isComponentMetric: parent 있으면 true', () => {

@@ -175,3 +175,9 @@ def test_display_meta_dispatch():
     assert display_meta("cirs", "score")["higher_is_better"] is False
     assert display_meta("x", "sec/km")["format"] == "pace"
     assert display_meta("x", "")["decimal_places"] == 1
+
+
+def test_display_name_strips_parent_and_maps_core():
+    from src.services.metric_display import display_name
+    assert display_name("tsb", "x") == ("폼", "TSB")
+    assert display_name("utrs_tsb", "UTRS 구성요소 (parent: utrs)") == ("UTRS 구성요소", None)

@@ -812,6 +812,7 @@ export interface MetricBrowserEntry {
 	status?: SemanticStatus;
 	status_label?: string;
 	name_ko?: string;
+	abbr?: string | null;
 	confidence_label?: string | null;
 	last_value_date?: string;
 	format?: string;
@@ -841,6 +842,7 @@ export interface MetricTrendPoint {
 export interface MetricTrendData {
 	slug: string;
 	name_ko?: string;
+	abbr?: string | null;
 	format?: string;
 	decimal_places?: number;
 	higher_is_better?: boolean | null;

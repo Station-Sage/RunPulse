@@ -14,20 +14,9 @@ export const STATUS_TEXT_CLASS: Record<MeaningStatus, string> = {
 
 // 등급 판정(경계값)은 서버 src/metrics/bands.py 단일 정의 — API의 status·status_label을 렌더한다.
 
-const LABELS: Record<string, string> = {
-	ctl: '체력 (CTL)',
-	atl: '피로 (ATL)',
-	tsb: '폼 (TSB)',
-	acwr: '급성/만성 부하비 (ACWR)',
-	utrs: '훈련 준비도 (UTRS)',
-	cirs: '부상 위험도 (CIRS)',
-	crs: '복합 준비도 (CRS)',
-	rec: '러닝 효율 (REC)'
-};
-
-// 내부 식별자 "(parent: xxx)"는 사용자 화면에 노출하지 않는다.
-export function displayLabel(name: string, label: string): string {
-	return LABELS[name] ?? label.replace(/\s*\(parent:[^)]*\)/g, '').trim();
+// 서버가 내려준 name_ko·abbr로 표시명을 만든다(하드코딩 없음).
+export function displayLabel(m: { name_ko: string; abbr?: string | null }): string {
+	return m.abbr ? `${m.name_ko} (${m.abbr})` : m.name_ko;
 }
 
 // UTRS/CIRS 구성요소 같은 하위 메트릭 — 그리드에서는 숨기고 상위 메트릭의 분해 시트에서 본다.

@@ -113,9 +113,8 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "provider": row_data.get("provider"),
             "confidence": row_data.get("confidence"),
             "sparkline": sparkline,
-            "name_ko": mdef.description,
             "confidence_label": confidence_label(row_data.get("confidence")),
-            **display_meta(name, mdef.unit),
+            **display_meta(name, mdef.unit, mdef.description),
             "last_value_date": date,
             "change": _change(sparkline, spark_dates[name][-14:]),
         }
@@ -169,8 +168,7 @@ def get_metric_trend(
 
     return {
         "slug": slug,
-        "name_ko": label,
-        **display_meta(slug, unit),
+        **display_meta(slug, unit, label),
         "label": label,
         "unit": unit,
         "current": current,

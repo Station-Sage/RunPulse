@@ -76,7 +76,7 @@
 		href="{base}/library/metrics/{m.name}"
 		class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
 	>
-		<span class="text-xs leading-snug text-fg-muted">{displayLabel(m.name, m.label)}</span>
+		<span class="text-xs leading-snug text-fg-muted">{displayLabel({ name_ko: m.name_ko ?? m.label, abbr: m.abbr })}</span>
 		<div class="flex items-baseline justify-between gap-1">
 			<span class="font-mono {big ? 'text-2xl' : 'text-lg'} font-semibold leading-none">
 				{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
