@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { threadBackHref } from '$lib/activityEvidence';
 	// 03e-coach.md 5-B — 대화 스레드: 메시지 목록 + 입력 바.
 	// P7-IMPL-COACH-EVIDENCE-UI: 근거 칩(EvidenceQuote) + MetricBreakdown 드릴다운 + 입력창 하단 도킹.
 	import type { ThreadPageData } from './+page';
@@ -29,6 +30,7 @@
 	let { data }: { data: ThreadPageData } = $props();
 
 	const thread = $derived(data.detail?.thread ?? null);
+	const back = $derived(threadBackHref(thread?.context, base));
 	let messages = $state<ChatMessage[]>(data.detail?.messages ?? []);
 	let errorMessage = $state(data.errorMessage);
 	let engine = $state<CoachEngine | null>(data.engine);
@@ -200,7 +202,7 @@
 <DrillPanel scopeType="daily" scopeId={localDateString()} {answerChip}>
 	<!-- 헤더 -->
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-		<a href="{base}/coach" class="shrink-0 text-fg-muted" aria-label="Coach로">←</a>
+		<a href={back.href} class="shrink-0 text-fg-muted" aria-label={back.label} data-testid="thread-back">←</a>
 		<h1 class="min-w-0 flex-1 truncate text-base font-semibold">{thread.title}</h1>
 	</div>
 

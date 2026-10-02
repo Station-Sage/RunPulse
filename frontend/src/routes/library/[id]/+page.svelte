@@ -163,9 +163,12 @@
 			{#if sourceDiffs.length > 0}
 				<a href="{base}/library/{core.id}/providers" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="source-diff-chip">소스 차이 {sourceDiffs.length}건</a>
 			{/if}
-			<a href="{base}/coach" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="ask-coach">코치에게 물어보기</a>
+			<a href="{base}/coach/new?activity={core.id}" class="hidden rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary md:inline" data-testid="ask-coach">코치에게 묻기</a>
 		</div>
 
 	</div>
+{/if}
+{#if core}
+	<a href="{base}/coach/new?activity={core.id}" class="fixed inset-x-4 bottom-[4.5rem] z-20 flex h-14 items-center justify-center rounded-xl bg-fg-primary text-sm font-medium text-surface-1 shadow-lg md:hidden" data-testid="ask-coach-cta">코치에게 묻기</a>
 {/if}
 {#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}

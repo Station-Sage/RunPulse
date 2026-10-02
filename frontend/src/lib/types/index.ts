@@ -368,6 +368,7 @@ export interface ThreadDetail {
 	title: string;
 	created_at: string;
 	updated_at: string;
+	context?: CoachThreadContext | null;
 }
 
 export interface ThreadDetailResponse {
@@ -379,6 +380,25 @@ export interface ThreadDetailResponse {
 export interface SentMessages {
 	user_message: ChatMessage;
 	assistant_message: ChatMessage;
+}
+
+/** `/coach/activity-context` — 활동 근거 카드 + 훈련 유형별 추천 질문 3개. */
+export interface CoachActivityContext {
+	id: number;
+	name: string | null;
+	date: string | null;
+	workout_class: string | null;
+	workout_class_label: string | null;
+	distance_km: number | null;
+	pace: string | null;
+	decoupling_pct: number | null;
+	tsb: number | null;
+	suggestions: string[];
+}
+
+export interface CoachThreadContext {
+	kind: string;
+	ref: string;
 }
 
 export interface CreateThreadResponse extends SentMessages {

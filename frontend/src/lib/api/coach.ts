@@ -9,6 +9,8 @@ import type {
 	CoachConsent,
 	ChatMessage,
 	RegenerateResponse,
+	CoachActivityContext,
+	CoachThreadContext,
 	SuggestionsResponse
 } from '$lib/types';
 import { messageBody, type CoachInput } from '$lib/coachSuggestions';
@@ -26,11 +28,20 @@ export function newClientMsgId(): string {
 	return globalThis.crypto?.randomUUID?.() ?? `c-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function createThread(input: CoachInput, clientMsgId?: string): Promise<CreateThreadResponse> {
+export function createThread(
+	input: CoachInput,
+	clientMsgId?: string,
+	context?: CoachThreadContext
+): Promise<CreateThreadResponse> {
 	return apiFetch<CreateThreadResponse>('/coach/threads', {
 		method: 'POST',
-		body: JSON.stringify({ ...messageBody(input, 'initial_message'), client_msg_id: clientMsgId })
+		body: JSON.stringify({ ...messageBody(input, 'initial_message'), client_msg_id: clientMsgId, context })
 	});
+}
+
+export async function getActivityContext(activityId: number): Promise<CoachActivityContext> {
+	const res = await apiFetch<{ activity: CoachActivityContext }>(`/coach/activity-context?activity=${activityId}`);
+	return res.activity;
 }
 
 export function getThread(id: number): Promise<ThreadDetailResponse> {
