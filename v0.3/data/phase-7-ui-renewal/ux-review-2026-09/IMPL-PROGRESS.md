@@ -293,5 +293,5 @@
 ## 3-7 메트릭 목록 재구성 (진행 중)
 - S1a 완료: `/library/metrics` 항목에 `name_ko`·`confidence_label`·`last_value_date`·`change{abs,pct,days}` 추가, `/trend`에 `best`/`worst`(higher_is_better 반영)·`baseline{mean,p25,p75,days}` 추가(peak 유지). 프론트 타입 반영.
 - 표시명 SSOT 완료(ADR-018): `src/utils/metric_labels.py`(daily 84개 name_ko·abbr), explain API도 동일 SSOT 사용. 이름은 노출 필터가 아님(없어도 폴백으로 표시) — 목록 누락의 실제 원인은 기준일=MAX(scope_id)와 wellness 저장 12개 미노출.
-- BUG 후보(지시 대기): ① 기준일을 지표별 최신값+last_value_date로 변경 ② wellness 저장 12개 지표 브라우저 노출.
+- BUG 2건 수정 완료: ① 목록이 지표별 최신값(90일 창)+`last_value_date` 사용, 카드에 "MM-DD 기준" 표시 ② daily_wellness 저장 숫자 11개(취침 시각 제외) 목록·추세에 노출.
 - 남음: S1b PMC decay·GAP(보류), S2 ChartScrub, S3 설명·분해 인라인, S4 서브탭·검색·정렬("오늘 주목할 지표"), 운영 반영 2026-10-03 기록.

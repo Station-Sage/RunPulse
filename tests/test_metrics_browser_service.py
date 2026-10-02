@@ -192,3 +192,36 @@ def test_label_registry_does_not_affect_which_metrics_are_listed(conn, monkeypat
     monkeypatch.setattr("src.utils.metric_labels.METRIC_LABELS", {})
     assert slugs() == with_labels
     assert with_labels
+
+
+def _flat(result):
+    return {m["name"]: m for c in result["categories"] for m in c["metrics"]}
+
+
+def test_wellness_stored_metrics_are_listed(conn):
+    metrics = _flat(get_metrics_browser(conn, date="2026-04-01"))
+    assert metrics["resting_hr"]["value"] == 52
+    assert metrics["sleep_score"]["last_value_date"] == "2026-04-01"
+    assert "sleep_start_time" not in metrics
+
+
+def test_metric_without_value_on_base_date_uses_latest_in_window(conn):
+    conn.execute("INSERT INTO daily_wellness (date, resting_hr) VALUES ('2026-04-03', 50)")
+    conn.commit()
+    result = get_metrics_browser(conn, date=None)
+    assert result["date"] == "2026-04-03"
+    metrics = _flat(result)
+    assert metrics["resting_hr"]["last_value_date"] == "2026-04-03"
+    assert metrics["sleep_score"]["value"] == 85
+    assert metrics["sleep_score"]["last_value_date"] == "2026-04-01"
+
+
+def test_metric_older_than_window_is_dropped(conn):
+    result = get_metrics_browser(conn, date="2026-09-01")
+    assert "sleep_score" not in _flat(result)
+
+
+def test_trend_reads_wellness_column(conn):
+    trend = get_metric_trend(conn, "resting_hr", period="1y")
+    assert trend is not None
+    assert trend["points"][0]["value"] == 52

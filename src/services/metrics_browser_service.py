@@ -5,7 +5,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from src.utils.db_helpers import get_metric_history, get_primary_metrics
+from src.utils.db_helpers import get_metric_history
 from src.utils.metric_registry import METRIC_REGISTRY
 from src.metrics.bands import with_grade
 from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, display_meta
@@ -36,6 +36,8 @@ _CATEGORY_LABELS: dict[str, str] = {
     "meta": "기타",
 }
 
+_WELLNESS_TEXT = frozenset({"sleep_start_time"})
+
 _PERIOD_DAYS: dict[str, int] = {"4w": 28, "3m": 90, "6m": 180, "1y": 365}
 
 
@@ -62,6 +64,50 @@ def _change(values: list[float | None], dates: list[str]) -> dict[str, Any] | No
     }
 
 
+def _latest_daily_date(conn: sqlite3.Connection) -> str:
+    """metric_store·daily_wellness 중 가장 최근 일자. 데이터 없으면 오늘."""
+    row = conn.execute(
+        "SELECT MAX(scope_id) FROM metric_store WHERE scope_type = 'daily' AND numeric_value IS NOT NULL"
+    ).fetchone()
+    latest = row[0] if row and row[0] else None
+    wrow = conn.execute("SELECT MAX(date) FROM daily_wellness").fetchone()
+    if wrow and wrow[0] and (latest is None or wrow[0] > latest):
+        latest = wrow[0]
+    return latest or str(_today())
+
+
+def _daily_history(
+    conn: sqlite3.Connection, names: list[str], date: str
+) -> dict[str, list[tuple[str, float, str | None, float | None]]]:
+    """메트릭별 [(일자, 값, provider, confidence)] — 기준일 이전 90일 창, 값 있는 날만, 일자 오름차순."""
+    from datetime import date as _d  # 매개변수 `date`(str)가 모듈의 date 클래스를 가려서 로컬 임포트
+    lookback_from = str(_d.fromisoformat(date) - timedelta(days=_SPARKLINE_LOOKBACK_DAYS))
+    out: dict[str, list[tuple[str, float, str | None, float | None]]] = {}
+    store_names = [n for n in names if METRIC_REGISTRY[n].storage != "wellness"]
+    if store_names:
+        conn.row_factory = sqlite3.Row
+        marks = ",".join("?" * len(store_names))
+        for r in conn.execute(
+            "SELECT metric_name, scope_id, numeric_value, provider, confidence FROM metric_store "
+            "WHERE scope_type='daily' AND is_primary=1 AND numeric_value IS NOT NULL "
+            f"AND scope_id BETWEEN ? AND ? AND metric_name IN ({marks}) ORDER BY scope_id",
+            [lookback_from, date, *store_names],
+        ).fetchall():
+            out.setdefault(r["metric_name"], []).append(
+                (r["scope_id"], r["numeric_value"], r["provider"], r["confidence"]))
+    cols = [n for n in names if METRIC_REGISTRY[n].storage == "wellness" and n not in _WELLNESS_TEXT]
+    if cols:
+        conn.row_factory = sqlite3.Row
+        for r in conn.execute(
+            f"SELECT date, {', '.join(cols)} FROM daily_wellness WHERE date BETWEEN ? AND ? ORDER BY date",
+            [lookback_from, date],
+        ).fetchall():
+            for c in cols:
+                if r[c] is not None:
+                    out.setdefault(c, []).append((r["date"], r[c], None, None))
+    return out
+
+
 def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> dict[str, Any]:
     """카테고리별 daily-scope 메트릭 현재값 + 14일 스파크라인 반환.
 
@@ -69,56 +115,35 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
     값이 없는 메트릭 및 비어 있는 카테고리는 응답에서 제외.
     """
     if date is None:
-        row = conn.execute(
-            "SELECT MAX(scope_id) FROM metric_store"
-            " WHERE scope_type = 'daily' AND numeric_value IS NOT NULL"
-        ).fetchone()
-        date = row[0] if row and row[0] else str(_today())
+        date = _latest_daily_date(conn)
 
     daily_names = [name for name, mdef in METRIC_REGISTRY.items() if mdef.scope == "daily"]
+    history = _daily_history(conn, daily_names, date)
 
-    # 1회 배치 조회 — 메트릭마다 따로 묻던 걸 IN 절 하나로(위 _SPARKLINE_LOOKBACK_DAYS 주석).
-    primaries = {r["metric_name"]: r for r in get_primary_metrics(conn, "daily", date, names=daily_names)}
-    have_value = [n for n in daily_names if primaries.get(n, {}).get("numeric_value") is not None]
-
-    sparkline_map: dict[str, list[float | None]] = {n: [] for n in have_value}
-    spark_dates: dict[str, list[str]] = {n: [] for n in have_value}
-    if have_value:
-        from datetime import date as _date_cls  # 매개변수 `date`(str)가 모듈의 date 클래스를 가려서 로컬 임포트
-        lookback_from = str(_date_cls.fromisoformat(date) - timedelta(days=_SPARKLINE_LOOKBACK_DAYS))
-        conn.row_factory = sqlite3.Row
-        placeholders = ",".join("?" * len(have_value))
-        hist_rows = conn.execute(
-            "SELECT metric_name, scope_id, numeric_value FROM metric_store "
-            "WHERE scope_type='daily' AND is_primary=1 AND scope_id BETWEEN ? AND ? "
-            f"AND metric_name IN ({placeholders}) ORDER BY metric_name, scope_id",
-            [lookback_from, date, *have_value],
-        ).fetchall()
-        for r in hist_rows:
-            sparkline_map[r["metric_name"]].append(r["numeric_value"])
-            spark_dates[r["metric_name"]].append(r["scope_id"])
-
-    # daily-scope 메트릭을 category별로 수집
+    # daily-scope 메트릭을 category별로 수집 — 기준일에 값이 없으면 창 안의 최신값을 쓰고 last_value_date로 알린다
     cat_map: dict[str, list[dict[str, Any]]] = {}
-    for name in have_value:
+    for name in daily_names:
+        rows = history.get(name)
+        if not rows:
+            continue
         mdef = METRIC_REGISTRY[name]
-        row_data = primaries[name]
-        sparkline = sparkline_map[name][-14:]
+        last_date, value, provider, confidence = rows[-1]
+        sparkline = [r[1] for r in rows[-14:]]
 
         entry: dict[str, Any] = {
             "name": name,
             "label": mdef.description,
-            "value": row_data["numeric_value"],
+            "value": value,
             "unit": mdef.unit,
-            "provider": row_data.get("provider"),
-            "confidence": row_data.get("confidence"),
+            "provider": provider,
+            "confidence": confidence,
             "sparkline": sparkline,
-            "confidence_label": confidence_label(row_data.get("confidence")),
+            "confidence_label": confidence_label(confidence),
             **display_meta(name, mdef.unit, mdef.description),
-            "last_value_date": date,
-            "change": _change(sparkline, spark_dates[name][-14:]),
+            "last_value_date": last_date,
+            "change": _change(sparkline, [r[0] for r in rows[-14:]]),
         }
-        with_grade(entry, name, row_data["numeric_value"])
+        with_grade(entry, name, value)
         cat_map.setdefault(mdef.category, []).append(entry)
 
     categories = []
@@ -136,11 +161,19 @@ def get_metric_trend(
     days = _PERIOD_DAYS.get(period, _PERIOD_DAYS["3m"])
     date_from = str(_today() - timedelta(days=days))
 
-    history = get_metric_history(conn, slug, scope_type="daily", date_from=date_from)
-    if not history:
+    mdef0 = METRIC_REGISTRY.get(slug)
+    if mdef0 is not None and mdef0.storage == "wellness" and slug not in _WELLNESS_TEXT:
+        conn.row_factory = sqlite3.Row
+        wrows = conn.execute(
+            f"SELECT date, {slug} AS v FROM daily_wellness WHERE date >= ? AND {slug} IS NOT NULL ORDER BY date",
+            (date_from,),
+        ).fetchall()
+        points = [{"date": r["date"], "value": r["v"]} for r in wrows]
+    else:
+        history = get_metric_history(conn, slug, scope_type="daily", date_from=date_from)
+        points = [{"date": r["scope_id"], "value": r["numeric_value"]} for r in history]
+    if not points:
         return None
-
-    points = [{"date": r["scope_id"], "value": r["numeric_value"]} for r in history]
 
     current = points[-1]["value"]
     peak_entry = max(points, key=lambda p: (p["value"] is not None, p["value"] or 0))
