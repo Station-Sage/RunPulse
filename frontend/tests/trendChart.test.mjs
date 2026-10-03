@@ -108,3 +108,9 @@ test('trendAriaLabel: 현재·최고·최저 요약과 빈 데이터', () => {
 	assert.equal(trendAriaLabel('UTRS', '3개월', pts), 'UTRS 3개월: 현재 60, 최고 89(8월 8일), 최저 37(9월 1일)');
 	assert.match(trendAriaLabel('UTRS', '3개월', []), /데이터 없음/);
 });
+
+test('weekTicks: 구간 내 월요일만', async () => {
+	const { weekTicks } = await import('../src/lib/trendChart.ts');
+	assert.deepEqual(weekTicks('2026-09-04', '2026-10-03'), ['2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28']);
+	assert.deepEqual(weekTicks('', ''), []);
+});

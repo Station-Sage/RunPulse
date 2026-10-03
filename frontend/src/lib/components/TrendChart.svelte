@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, xFraction } from '$lib/trendChart';
+	import { commonRange, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let {
@@ -69,6 +69,11 @@
 					})
 					.filter((b) => b !== null)
 	);
+	const lastPt = $derived.by(() => {
+		if (series.length !== 1 || !range) return null;
+		const p = series[0].points[series[0].points.length - 1];
+		return p ? { x: xFraction(p.date, t0, t1) * 100, y: py(p.value), color: series[0].color } : null;
+	});
 	const ariaLabel = $derived(
 		series.length === 1 && name ? trendAriaLabel(name, periodLabel, series[0].points, formatValue) : '추세 차트'
 	);
@@ -79,6 +84,7 @@
 		t0 && t1 ? Math.max(1, Math.round((Date.parse(t1) - Date.parse(t0)) / 86_400_000)) : 1
 	);
 	const pointCount = $derived(totalDays + 1);
+	const ticks = $derived(totalDays <= 35 ? weekTicks(t0, t1) : []);
 	let frac = $state<number | null>(null);
 	function onScrubChange(index: number | null) {
 		frac = index == null ? null : index / totalDays;
@@ -173,12 +179,12 @@
 					{/each}
 				</svg>
 
-				<span class="pointer-events-none absolute left-0 top-0 font-mono text-[10px] text-fg-muted"
-					>{formatValue(range.max)}</span
-				>
-				<span class="pointer-events-none absolute bottom-0 left-0 font-mono text-[10px] text-fg-muted"
-					>{formatValue(range.min)}</span
-				>
+				{#if lastPt}
+					<span
+						class="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+						style="left:{lastPt.x}%; top:{lastPt.y}px; background:{lastPt.color}"
+					></span>
+				{/if}
 
 				{#if cursorFrac != null}
 					<div
@@ -189,6 +195,13 @@
 			</div>
 		{/snippet}
 
+		<div class="flex gap-1">
+			<div class="relative w-8 shrink-0 font-mono text-[10px] text-fg-muted sm:w-11" style="height:{height}px" aria-hidden="true">
+				<span class="absolute right-0 top-0">{formatValue(range.max)}</span>
+				<span class="absolute right-0 top-1/2 -translate-y-1/2">{formatValue((range.max + range.min) / 2)}</span>
+				<span class="absolute bottom-0 right-0">{formatValue(range.min)}</span>
+			</div>
+			<div class="min-w-0 flex-1">
 		{#if interactive}
 			<ChartScrub {pointCount} ariaLabel="{ariaLabel} — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
 				{#snippet children()}
@@ -199,10 +212,20 @@
 			{@render chartBody(null)}
 		{/if}
 
+			</div>
+		</div>
+
 		<!-- x축 -->
-		<div class="flex justify-between font-mono text-[10px] text-fg-muted">
+		<div class="ml-9 flex justify-between font-mono text-[10px] text-fg-muted sm:ml-12">
 			<span>{t0}</span>
 			<span>{t1}</span>
 		</div>
+		{#if ticks.length}
+			<div class="relative ml-9 h-3 font-mono text-[9px] text-fg-muted sm:ml-12" aria-hidden="true">
+				{#each ticks as d (d)}
+					<span class="absolute -translate-x-1/2" style="left:{xFraction(d, t0, t1) * 100}%">{d.slice(5)}</span>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}

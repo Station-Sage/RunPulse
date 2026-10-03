@@ -120,3 +120,16 @@ export function trendAriaLabel(
 	const last = points[points.length - 1];
 	return `${name} ${periodLabel}: 현재 ${fmt(last.value)}, 최고 ${fmt(hi.value)}(${md(hi.date)}), 최저 ${fmt(lo.value)}(${md(lo.date)})`;
 }
+
+/** [t0, t1] 안의 월요일 날짜 목록(YYYY-MM-DD) — 4주 보기의 주 경계 x 눈금용. */
+export function weekTicks(t0: string, t1: string): string[] {
+	if (!t0 || !t1) return [];
+	const out: string[] = [];
+	const end = Date.parse(t1);
+	const d = new Date(Date.parse(t0));
+	while (d.getTime() <= end) {
+		if (d.getUTCDay() === 1) out.push(d.toISOString().slice(0, 10));
+		d.setUTCDate(d.getUTCDate() + 1);
+	}
+	return out;
+}
