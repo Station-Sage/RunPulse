@@ -114,3 +114,9 @@ test('weekTicks: 구간 내 월요일만', async () => {
 	assert.deepEqual(weekTicks('2026-09-04', '2026-10-03'), ['2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28']);
 	assert.deepEqual(weekTicks('', ''), []);
 });
+
+test('dateAtOffset: 월 경계를 넘는 일 단위 오프셋', async () => {
+	const { dateAtOffset } = await import('../src/lib/trendChart.ts');
+	assert.equal(dateAtOffset('2026-09-28', 0), '2026-09-28');
+	assert.equal(dateAtOffset('2026-09-28', 5), '2026-10-03');
+});

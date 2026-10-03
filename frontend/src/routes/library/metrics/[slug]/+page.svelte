@@ -2,10 +2,12 @@
 	// 03c-library.md 3-F — 메트릭 상세. 시계열 차트 + 계산 분해 바텀시트.
 	import type { MetricTrendPageData } from './+page';
 	import TrendChart from '$lib/components/TrendChart.svelte';
+	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel } from '$lib/trendChart';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
@@ -27,8 +29,29 @@
 	const points = $derived(data.trend?.points ?? []);
 	const latestDate = $derived(points.at(-1)?.date ?? '');
 
+	// 선택일 = 차트 pin = 분해 기준일. `?date=`는 히스토리를 쌓지 않고 교체한다.
+	let pinned = $state<string | null>(data.date);
+	$effect(() => {
+		pinned = data.date;
+	});
+	const panelDate = $derived(pinned ?? latestDate);
+
+	function setPinned(d: string | null) {
+		pinned = d;
+		const u = new URL(page.url);
+		if (d) u.searchParams.set('date', d);
+		else u.searchParams.delete('date');
+		replaceState(u, page.state);
+	}
+
 	function selectPeriod(key: string) {
-		goto(`?period=${key}`);
+		goto(`?period=${key}${pinned ? `&date=${pinned}` : ''}`);
+	}
+
+	// 입력 지표 행 → 같은 날짜·기간으로 그 지표 상세
+	function drillTerm(token: string) {
+		const slug = token.replace(/^m\./, '').split('@')[0];
+		goto(`${base}/library/metrics/${slug}?period=${data.period}${panelDate ? `&date=${panelDate}` : ''}`);
 	}
 
 	function formatPeak(trend: typeof data.trend): string {
@@ -104,6 +127,8 @@
 					smooth={data.period === '3m' || data.period === '6m' || data.period === '1y'}
 					name={data.trend.name_ko ?? data.trend.label}
 					periodLabel={PERIODS.find((x) => x.key === data.period)?.label ?? ''}
+					selectedDate={pinned}
+					onSelect={setPinned}
 				/>
 			</div>
 		{:else}
@@ -112,9 +137,14 @@
 			</div>
 		{/if}
 
+		{#if explainSupported && panelDate}
+			<BreakdownPanel slug={data.slug} date={panelDate} onDrillTerm={drillTerm} onClear={pinned ? () => setPinned(null) : undefined} />
+		{/if}
+
 		<!-- 계산 분해 / Provider 비교 버튼 -->
 		<div class="flex gap-2">
 			<button
+				class:hidden={explainSupported}
 				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
 				onclick={() => (explainSupported ? openDrill(data.slug) : (breakdownOpen = true))}
 				disabled={!latestDate}

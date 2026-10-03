@@ -133,3 +133,10 @@ export function weekTicks(t0: string, t1: string): string[] {
 	}
 	return out;
 }
+
+/** t0에서 offset일 뒤 날짜(YYYY-MM-DD). 차트 스크럽 인덱스 → 선택일 변환용. */
+export function dateAtOffset(t0: string, offset: number): string {
+	const d = new Date(Date.parse(t0));
+	d.setUTCDate(d.getUTCDate() + offset);
+	return d.toISOString().slice(0, 10);
+}

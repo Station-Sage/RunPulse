@@ -1,0 +1,28 @@
+// 메트릭 상세 S3 검증 — 차트 pin → ?date= 교체 → 인라인 분해 패널 갱신. 환경: BASE, API, SLUG
+import { chromium } from 'playwright';
+const BASE = process.env.BASE || 'http://127.0.0.1:5199';
+const API = process.env.API || 'http://127.0.0.1:18098';
+const slug = process.env.SLUG || 'utrs';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 900 } });
+await ctx.route('**/api/v1/**', (r) => r.continue({ url: r.request().url().replace(/^https?:\/\/[^/]+/, API) }));
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+await page.goto(`${BASE}/v2/library/metrics/${slug}?period=4w`, { waitUntil: 'networkidle' });
+const panel = page.locator('[data-testid=breakdown-panel]');
+await panel.waitFor();
+console.log('initial panel:', (await panel.locator('h2').innerText()));
+const chart = page.locator('[role=slider][aria-label*="눌러서"]');
+const box = await chart.boundingBox();
+const before = page.url();
+await page.mouse.click(box.x + box.width * 0.5, box.y + box.height / 2);
+await page.waitForTimeout(800);
+console.log('url after pin:', page.url(), 'changed:', page.url() !== before);
+console.log('panel after pin:', (await panel.locator('h2').innerText()));
+await page.screenshot({ path: new URL(`./shots/s3_${slug}.png`, import.meta.url).pathname, fullPage: true });
+await page.getByRole('button', { name: '선택 해제' }).click();
+await page.waitForTimeout(500);
+console.log('url after clear:', page.url());
+console.log('errors:', errs);
+await b.close();

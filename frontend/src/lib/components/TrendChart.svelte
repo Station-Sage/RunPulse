@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { commonRange, dateAtOffset, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let {
@@ -14,7 +14,9 @@
 		baseline = null,
 		smooth = false,
 		name = '',
-		periodLabel = ''
+		periodLabel = '',
+		selectedDate = null,
+		onSelect
 	}: {
 		series: TrendSeries[];
 		height?: number;
@@ -26,6 +28,9 @@
 		smooth?: boolean;
 		name?: string;
 		periodLabel?: string;
+		/** 고정(pin)된 선택일 — 차트 커서와 분해 패널 기준일을 공유한다. */
+		selectedDate?: string | null;
+		onSelect?: (date: string | null) => void;
 	} = $props();
 
 	const STATUS_COLOR: Record<string, string> = {
@@ -86,21 +91,28 @@
 	const pointCount = $derived(totalDays + 1);
 	const ticks = $derived(totalDays <= 35 ? weekTicks(t0, t1) : []);
 	let frac = $state<number | null>(null);
-	function onScrubChange(index: number | null) {
+	let wasPinned = false;
+	function onScrubChange(index: number | null, pinned = false) {
 		frac = index == null ? null : index / totalDays;
+		if (pinned && index != null) onSelect?.(dateAtOffset(t0, index));
+		else if (index == null && wasPinned) onSelect?.(null);
+		wasPinned = pinned;
 	}
+	const effFrac = $derived(
+		frac ?? (selectedDate && t0 && selectedDate >= t0 && selectedDate <= t1 ? xFraction(selectedDate, t0, t1) : null)
+	);
 
 	// 판독: 스크럽 중이면 커서 위치의 최근접 점, 아니면 각 시리즈의 마지막 점
 	const readout = $derived(
 		series.map((s) => ({
 			s,
-			p: frac == null ? (s.points[s.points.length - 1] ?? null) : nearestPoint(s.points, frac, t0, t1)
+			p: effFrac == null ? (s.points[s.points.length - 1] ?? null) : nearestPoint(s.points, effFrac, t0, t1)
 		}))
 	);
 	const readoutDate = $derived(readout.find((r) => r.p)?.p?.date ?? '');
 	// 커서 x: 판독에 쓰인 첫 점의 실제 날짜 위치에 붙인다
 	const cursorPct = $derived(
-		frac == null || !readoutDate ? null : xFraction(readoutDate, t0, t1) * 100
+		effFrac == null || !readoutDate ? null : xFraction(readoutDate, t0, t1) * 100
 	);
 </script>
 
