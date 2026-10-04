@@ -11,10 +11,12 @@
 	let {
 		data,
 		trendHref,
+		compareGroup,
 		onDrillTerm
 	}: {
 		data: MetricExplainData;
 		trendHref?: string;
+		compareGroup?: { key: string; label: string; provider: string } | null;
 		onDrillTerm?: (token: string) => void;
 	} = $props();
 
@@ -70,6 +72,9 @@
 <div class="flex flex-col gap-5 p-4">
 	<!-- ①의미 -->
 	<section class="flex flex-col gap-2">
+		{#if data.conclusion}
+			<p class="text-sm font-medium" data-testid="breakdown-conclusion">{data.conclusion.text}</p>
+		{/if}
 		<p class="text-sm text-fg-secondary">{data.meaning.what}</p>
 
 		{#if data.meaning.bands.length > 0}
@@ -99,6 +104,10 @@
 						? `${data.meaning.baseline.delta_1d > 0 ? '+' : data.meaning.baseline.delta_1d < 0 ? '−' : ''}${formatUnitValue(Math.abs(data.meaning.baseline.delta_1d), data.unit).display}`
 						: formatChange(data.meaning.baseline.delta_1d, 1)}{/if}
 			</p>
+		{/if}
+
+		{#if data.meaning.personal}
+			<p class="text-sm text-fg-secondary" data-testid="breakdown-personal">{data.meaning.personal}</p>
 		{/if}
 
 		{#if data.meaning.so_what}
@@ -178,5 +187,11 @@
 		{#if trendHref}
 			<a href={trendHref} class="text-fg-secondary underline">추세·과거 보기 →</a>
 		{/if}
+		{#if compareGroup}
+			<a href="{base}/library/providers/{compareGroup.key}?days=28" class="text-fg-secondary underline" data-testid="footer-compare">{compareGroup.provider === 'runpulse' ? 'Garmin 값과 비교' : `${compareGroup.label} 소스 비교`} →</a>
+		{:else}
+			<span data-testid="footer-compare-none">RunPulse 단독 산출</span>
+		{/if}
+		<a href="{base}/coach/new" class="text-fg-secondary underline" data-testid="footer-coach">Coach에게 묻기 →</a>
 	</section>
 </div>

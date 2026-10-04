@@ -573,7 +573,8 @@ export interface MetricExplainData {
 	meaning: {
 		what: string;
 		bands: MetricExplainBand[];
-		baseline: { avg_7d: number | null; delta_1d: number | null };
+		baseline: { avg_7d: number | null; delta_1d: number | null; avg_90d?: number | null };
+		personal?: string | null;
 		so_what: string;
 	};
 	formula: {
@@ -587,6 +588,7 @@ export interface MetricExplainData {
 	compare: unknown[];
 	links: { trend: string };
 	evidence?: PredictionEvidence;
+	conclusion?: { top_loss: string; text: string };
 }
 
 export interface PredictionEvidence {

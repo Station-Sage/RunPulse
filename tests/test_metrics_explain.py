@@ -226,3 +226,43 @@ def test_prediction_explain_omits_missing_fields():
     conn.commit()
     r = get_metric_explain(conn, "daily", "2026-04-01", "race_pred_5k_sec")
     assert r is not None and set(r["evidence"]) == {"distance"}
+
+
+class TestConclusion:
+    def test_utrs_top_loss(self):
+        from src.services.metrics_explain_conclusion import build_conclusion
+        terms = [{"slug": "sleep", "label": "수면", "loss": 12.4}, {"slug": "form", "label": "폼", "loss": 3}]
+        c = build_conclusion("utrs", terms)
+        assert c["top_loss"] == "sleep" and "수면" in c["text"] and "12" in c["text"]
+
+    def test_cirs_top_contribution(self):
+        from src.services.metrics_explain_conclusion import build_conclusion
+        c = build_conclusion("cirs", [{"slug": "a", "label": "ACWR 편차", "contribution": 5}, {"slug": "b", "label": "연속 훈련일", "contribution": 9}])
+        assert c["top_loss"] == "b"
+
+    def test_rri_lowest_ratio(self):
+        from src.services.metrics_explain_conclusion import build_conclusion
+        terms = [{"slug": "vdot_pct", "label": "VDOT", "role": "factor", "ratio": 0.95},
+                 {"slug": "ctl_pct", "label": "CTL", "role": "factor", "ratio": 0.6}]
+        assert build_conclusion("rri", terms)["top_loss"] == "ctl_pct"
+
+    def test_none_cases(self):
+        from src.services.metrics_explain_conclusion import build_conclusion
+        assert build_conclusion("utrs", []) is None
+        assert build_conclusion("tsb", [{"slug": "x"}]) is None
+        assert build_conclusion("utrs", [{"slug": "s", "label": "수면", "loss": 0}]) is None
+
+    def test_explain_includes_conclusion_for_utrs(self):
+        conn = _conn()
+        _seed_and_compute(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "utrs")
+        assert "conclusion" in r or all((t.get("loss") or 0) <= 0 for t in r["formula"]["terms"])
+
+
+class TestPersonalText:
+    def test_higher_lower_and_none(self):
+        from src.services.metrics_explain import personal_text
+        assert "높아요" in personal_text(70, "좋음", 60)
+        assert "낮아요" in personal_text(50, None, 60)
+        assert personal_text(None, "좋음", 60) is None
+        assert personal_text(60, "좋음", None) is None

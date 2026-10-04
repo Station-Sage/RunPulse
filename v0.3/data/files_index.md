@@ -105,9 +105,9 @@
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
-### `metrics_explain.py` (203줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_explain.py` (228줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
-- functions: get_metric_explain
+- functions: personal_text, get_metric_explain
 
 ### `metrics_explain_activity.py` (68줄) — 분해 v2 활동 scope(`@a{id}`, DESIGN-PENDING-12 §3) — 활동 단위 지표 explainer.
 
@@ -116,6 +116,10 @@
 ### `metrics_explain_composite.py` (140줄) — 분해 v2 — 합성형(UTRS·CIRS) + 곱셈형(RRI) explainer.
 
 - functions: explain_utrs, explain_cirs, explain_rri
+
+### `metrics_explain_conclusion.py` (32줄) — 분해 v2 결론 한 줄(`conclusion{top_loss,text}`, 21 §7.2(c)) — UTRS·CIRS·RRI만.
+
+- functions: build_conclusion
 
 ### `metrics_explain_prediction.py` (60줄) — 레이스 예측(race_pred_*_sec) 분해 v2 — 신호별 환산 기록·가중치·범위·신뢰 제한 요인을 evidence로 제공.
 
@@ -1990,7 +1994,7 @@
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort
 
-### `test_metrics_explain.py` (228줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
+### `test_metrics_explain.py` (268줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
 - class **TestUnsupportedSlug**: test_returns_none_for_slug_without_explainer, test_returns_none_for_no_data
 - class **TestTSBExplain**: test_terms_have_ctl_and_atl_with_opposite_signs, test_formula_text_and_bands_present
@@ -1998,6 +2002,8 @@
 - class **TestUTRSExplain**: test_terms_have_contribution_and_loss, test_contributions_sum_to_score, test_terms_have_trend_drill, test_sources_is_wellness_day
 - class **TestCIRSExplain**: test_terms_have_contribution_no_loss, test_higher_is_better_false, test_terms_sorted_by_contribution_desc
 - class **TestRRIExplain**: test_terms_use_factor_role_and_ratio, test_higher_is_better_true, test_sources_reference_component_metrics
+- class **TestConclusion**: test_utrs_top_loss, test_cirs_top_contribution, test_rri_lowest_ratio, test_none_cases, test_explain_includes_conclusion_for_utrs
+- class **TestPersonalText**: test_higher_lower_and_none
 - functions: test_activity_scope_trimp_explain, test_activity_scope_unsupported_slug_and_missing_activity, test_prediction_explain_evidence_and_sources, test_prediction_explain_omits_missing_fields
 
 ### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
@@ -2510,7 +2516,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 514개 파일
+총 515개 파일
 
 ## docstring 누락
 

@@ -8,11 +8,13 @@
 	let {
 		slug,
 		date,
+		compareGroup,
 		onDrillTerm,
 		onClear
 	}: {
 		slug: string;
 		date: string;
+		compareGroup?: { key: string; label: string; provider: string } | null;
 		onDrillTerm?: (token: string) => void;
 		onClear?: () => void;
 	} = $props();
@@ -40,7 +42,7 @@
 	});
 </script>
 
-<section class="rounded-xl bg-surface-2" aria-label="{date} 분해" data-testid="breakdown-panel">
+<section class="min-h-[22rem] rounded-xl bg-surface-2" aria-label="{date} 분해" data-testid="breakdown-panel">
 	<div class="flex items-center justify-between border-b border-border-subtle px-4 py-2">
 		<h2 class="text-sm font-semibold">{Number(date.slice(5, 7))}월 {Number(date.slice(8, 10))}일 분해</h2>
 		{#if onClear}
@@ -52,7 +54,7 @@
 	{#if status === 'loading'}
 		<p class="p-4 text-sm text-fg-muted">불러오는 중…</p>
 	{:else if status === 'ok' && data}
-		<BreakdownView {data} {onDrillTerm} />
+		<BreakdownView {data} {compareGroup} {onDrillTerm} />
 	{:else}
 		<p class="p-4 text-sm text-fg-muted">이 날은 분해할 계산 값이 없어요.</p>
 	{/if}

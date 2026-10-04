@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 from src.metrics.bands import BANDS, grade
 from src.services.metric_display import HIGHER_IS_BETTER, display_name
 from src.services.metrics_explain_activity import explain_trimp_activity
+from src.services.metrics_explain_conclusion import build_conclusion
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
 from src.services.metrics_explain_prediction import explain_prediction
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
@@ -100,7 +101,27 @@ def _baseline(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_n
     if not vals:
         return {"avg_7d": None, "delta_1d": None}
     delta = round(vals[-1] - vals[-2], 2) if len(vals) >= 2 else None
-    return {"avg_7d": round(sum(vals) / len(vals), 2), "delta_1d": delta}
+    return {"avg_7d": round(sum(vals) / len(vals), 2), "delta_1d": delta, "avg_90d": _avg_90d(conn, scope_type, scope_id, metric_name)}
+
+
+def _avg_90d(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_name: str) -> float | None:
+    """최근 90일 평균. 표본 14개 미만이면 None."""
+    row = conn.execute(
+        "SELECT AVG(numeric_value), COUNT(numeric_value) FROM metric_store "
+        "WHERE scope_type=? AND metric_name=? AND is_primary=1 "
+        "AND scope_id<=? AND scope_id>date(?, '-90 days')",
+        (scope_type, metric_name, scope_id, scope_id),
+    ).fetchone()
+    return round(row[0], 2) if row and row[1] >= 14 else None
+
+
+def personal_text(value: float | None, status_label: str | None, avg_90d: float | None) -> str | None:
+    """'지금 {값} — {등급}. 90일 평균 {mean}보다 {높음/낮음}' (A-7)."""
+    if value is None or avg_90d is None:
+        return None
+    rel = "높아요" if value > avg_90d else "낮아요" if value < avg_90d else "같아요"
+    head = f"지금 {value:g}" + (f" — {status_label}" if status_label else "")
+    return f"{head}. 90일 평균 {avg_90d:g}보다 {rel}" if rel != "같아요" else f"{head}. 90일 평균 {avg_90d:g}과 같아요"
 
 
 def _explain_tsb(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
@@ -164,6 +185,8 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
     evidence = built[3] if len(built) > 3 else None
     if scope_type == "activity" and not terms:
         return None
+    base = _baseline(conn, scope_type, scope_id, slug) if scope_type != "activity" else None
+    conclusion = build_conclusion(slug, terms) if scope_type != "activity" else None
     value = self_row.get("numeric_value")
     band = grade(slug, value)
     name_ko, abbr = display_name(slug, _metric_label(slug))
@@ -182,7 +205,8 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "meaning": {
             "what": _WHAT.get(slug, ""),
             "bands": _bands_v2(slug),
-            "baseline": _baseline(conn, scope_type, scope_id, slug) if scope_type != "activity" else {"avg_7d": None, "delta_1d": None},
+            "baseline": base or {"avg_7d": None, "delta_1d": None},
+            "personal": personal_text(value, band["label"] if band else None, base["avg_90d"]) if base else None,
             "so_what": _SO_WHAT.get(slug, {}).get(band["status"] if band else "", ""),
         },
         "formula": {
@@ -200,4 +224,5 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "compare": [],
         "links": {"trend": f"/library/metrics/{slug}"},
         **({"evidence": evidence} if evidence else {}),
+        **({"conclusion": conclusion} if conclusion else {}),
     }

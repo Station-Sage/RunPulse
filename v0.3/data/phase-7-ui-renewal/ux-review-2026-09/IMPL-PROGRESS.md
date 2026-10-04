@@ -311,3 +311,10 @@
 - S5(2026-10-04): 웰니스 `/library/wellness/:date` 구현(ADR-020) — 백엔드 `wellness_day.build_day`(헤드라인·근거 칩·준비도·수면 단계·BB·기준선·7일 점·nav), 프론트 `[date]` 라우트 + `WellnessDateBar/Sleep/Cores/Trends`, 스와이프·replace 이동·400/미래 보정/빈 상태(가까운 기록 버튼). 실 DB 사본 Playwright(`pw/s5_wellness.mjs`) 에러 0, 단위 310·check 0 오류. 남음: S6(C4 매트릭스), S7, S1b(PMC decay·GAP 보류).
 - S6(2026-10-05): 소스 비교 `/library/providers`(매트릭스: 같은 러닝 비교·기준값/프로필·정의가 다른 지표)·`/library/providers/:group`(쌍 점도표+목록)·메트릭 상세 "소스 비교" 링크 구현(ADR-021). 서버: `provider_matrix_rows/collect/service`, `provider_pairs_service`. 프론트: `ProviderMatrix/PairChart/PairList`, `providerMatrix.ts`. 검증: 실 DB 사본 Playwright(`pw/s6_providers.mjs`) 전 항목 OK, 단위 316·check 0 오류·build OK. 모바일(390px)에서 "차이" 열은 표 가로 스크롤 안쪽(후속 개선 후보). 보류: §8-1~4(ADR-021 참조, 사용자 확인 대기). 남음: S7(접근성·스켈레톤·R4 재계산·문서), S1~S4 잔여, 3-9 잔여.
 - S1~S4 잔여 A-1~A-3(2026-10-05): `backTarget` from 11종(today·coach·plan·metric·library·list·home·pb·heatmap·month·providers) + 상세 ← history.back 우선(앱 내 이동일 때만), PB·마일스톤·Today·홈 진입점 from 부착, Coach 스레드 근거 활동 `?from=coach`, 메트릭 분해 웰니스 원천 행 → `/library/wellness/:date`. 단위 318·pytest 2089·check 0 오류, Playwright `pw/a123.mjs`(실DB 사본) 에러 0. 커밋 0d15f38. **운영 반영 2026-10-05**: 0d15f38까지 ff 병합·`npm run build`(Dockerfile 변경 없음, S5·S6 포함). 인증 게이트로 외부 curl은 401만 확인. 남음: A-4~A-20·B-1~B-6(DESIGN-S1S4-REMAIN §3 U3~), 열린 결정 D-1~D-8은 사용자 대기.
+
+### U3 A-4~A-7 완료 (2026-10-05)
+- A-4: 서버 `conclusion{top_loss,text}`(UTRS/CIRS/RRI, `metrics_explain_conclusion.py`) + 패널 상단 한 줄.
+- A-5: 패널 푸터 `Garmin 값과 비교 →`/`RunPulse 단독 산출`/`Coach에게 묻기 →`, 중복 "Provider 비교" 버튼 제거. Coach 링크는 `/coach/new`(메트릭 프리필은 coach/new가 `activity`만 지원해 미구현).
+- A-6: 패널 높이 예약(min-h 22rem). 차트 pointerdown 프리페치는 미구현(핀 시점 fetch로 충분, 필요 시 재검토).
+- A-7: 서버 `meaning.personal`("지금 N — 등급. 90일 평균 M보다 높아요/낮아요", 표본 14 미만이면 생략) + 패널 표시.
+- 실 DB 스모크(utrs/cirs/rri) 통과, pytest 2095 통과.

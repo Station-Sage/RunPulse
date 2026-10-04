@@ -176,7 +176,7 @@
 		{/if}
 
 		{#if explainSupported && panelDate}
-			<BreakdownPanel slug={data.slug} date={panelDate} onDrillTerm={drillTerm} onClear={pinned ? () => setPinned(null) : undefined} />
+			<BreakdownPanel slug={data.slug} date={panelDate} compareGroup={data.trend?.compare_group ?? null} onDrillTerm={drillTerm} onClear={pinned ? () => setPinned(null) : undefined} />
 		{/if}
 
 		</div>
@@ -194,12 +194,6 @@
 			>
 				계산 분해 보기
 			</button>
-			<a
-				href="{base}/library/providers"
-				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-center text-sm text-fg-secondary"
-			>
-				Provider 비교
-			</a>
 		</div>
 		</div>
 	</div>
