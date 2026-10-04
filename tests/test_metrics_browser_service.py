@@ -258,3 +258,20 @@ def test_race_events_filters_by_window(conn):
     ev = _race_events(conn, "2026-03-01", "2026-04-30")
     assert [e["kind"] for e in ev] == ["race"] and ev[0]["date"] == "2026-04-01"
     assert _race_events(conn, "2026-04-02", "2026-04-30") == []
+
+
+def test_browser_groups_hide_components_and_sort(conn):
+    from src.services.metric_browse_groups import GROUPS, SLUG_GROUP
+
+    res = get_metrics_browser(conn, date="2026-04-01")
+    keys = [c["category"] for c in res["categories"]]
+    order = [k for k, _ in GROUPS]
+    assert keys == sorted(keys, key=order.index)
+    for cat in res["categories"]:
+        assert cat["total"] == len(cat["metrics"]) > 0
+        assert [m["salience"]["rank"] for m in cat["metrics"]] == list(range(cat["total"]))
+        for m in cat["metrics"]:
+            assert m["group"] == cat["category"]
+            assert SLUG_GROUP[m["name"]][1] != "hidden"
+            assert m["tier"] in ("primary", "detail")
+            assert "source_category" in m

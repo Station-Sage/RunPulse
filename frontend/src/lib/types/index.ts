@@ -811,11 +811,16 @@ export interface MetricBrowserEntry {
 	higher_is_better?: boolean | null;
 	min_span?: number | null;
 	change?: { abs: number; pct: number | null; days: number } | null;
+	group?: string;
+	tier?: 'primary' | 'detail';
+	source_category?: string;
+	salience?: { z: number | null; fresh: boolean; rank: number };
 }
 
 export interface MetricBrowserCategory {
 	category: string;
 	label: string;
+	total?: number;
 	metrics: MetricBrowserEntry[];
 }
 

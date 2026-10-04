@@ -1,0 +1,16 @@
+import { chromium } from 'playwright';
+const BASE='http://localhost:5199', API='http://localhost:18098';
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:390,height:800}});
+await ctx.route('**/api/v1/**', r=>r.continue({url:r.request().url().replace(/^https?:\/\/[^/]+/,API)}));
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(`${BASE}/v2/library/metrics`,{waitUntil:'networkidle'});
+const heads=await p.locator('h2').allInnerTexts(); console.log('섹션',heads.join(' | '));
+console.log('칩',(await p.locator('div.overflow-x-auto').first().innerText()).replace(/\n/g,' '));
+console.log('scrollHeight',await p.evaluate(()=>document.documentElement.scrollHeight));
+const more=p.getByRole('button',{name:/모두 보기/}); console.log('모두 보기 수',await more.count());
+await more.first().click(); await p.waitForTimeout(300);
+console.log('url',p.url().replace(BASE,''), '카드',await p.locator('main a[href*="/library/metrics/"]').count());
+await p.goto(`${BASE}/v2/library/metrics?category=body`,{waitUntil:'networkidle'});
+await p.waitForTimeout(300); console.log('legacy→',p.url().replace(BASE,''));
+await p.screenshot({path:'shots/metric_groups.png'});
+console.log('errors',errs.length,errs[0]??''); await b.close();

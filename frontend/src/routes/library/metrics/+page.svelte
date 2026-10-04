@@ -11,9 +11,10 @@
 	import { loadPins, savePins, togglePin } from '$lib/pinnedMetrics';
 	import { saveMetricsSearch } from '$lib/libraryNav';
 	import { matchesMetric } from '$lib/metricSearch';
-	import { replaceState } from '$app/navigation';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import { page as pageState } from '$app/state';
-	import { displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS, STATUS_DOT_COLOR, sparkCaption } from '$lib/metricMeaning';
+	import { limitCards } from '$lib/metricGroups';
+	import { displayLabel, isFlat, STATUS_TEXT_CLASS, STATUS_DOT_COLOR, sparkCaption } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
 
@@ -40,6 +41,7 @@
 	function pickCategory(c: string) {
 		selectedCategory = c;
 		syncQuery();
+		if (c !== 'all') window.scrollTo({ top: 0 });
 	}
 	function pickProvider(p: string) {
 		selectedProvider = p;
@@ -55,6 +57,10 @@
 
 	// Provider 칩 필터 — P3 Provider Transparency. 등장 provider가 2종 이상일 때만 행을 보인다.
 	let selectedProvider = $state<string>(data.initialProvider);
+	afterNavigate(() => {
+		const raw = pageState.url.searchParams.get('category');
+		if (raw && raw !== selectedCategory) syncQuery();
+	});
 
 	// 데이터에 등장하는 고유 Provider 목록 (base 키 기준, 빈 문자열 제외)
 	const availableProviders = $derived(
@@ -81,7 +87,6 @@
 		pins = togglePin(pins, toast.name);
 		savePins(pins);
 	}
-	const COLLAPSED = new Set(['sleep', 'hr', 'weather']);
 	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all' && !searching);
 	const coreMetrics = $derived(
 		showCore
@@ -104,7 +109,7 @@
 						: cat.metrics.filter(
 								(m) => (m.provider ?? '').split(':')[0] === selectedProvider
 							)
-				).filter((m) => !isComponentMetric(m.label) && !(showCore && CORE.includes(m.name)) && matchesMetric(m, query))
+				).filter((m) => !(showCore && CORE.includes(m.name)) && matchesMetric(m, query))
 			}))
 			.filter((cat) => cat.metrics.length > 0)
 	);
@@ -124,7 +129,7 @@
 	<div class="relative">
 	<a
 		href="{base}/library/metrics/{m.name}"
-		class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
+		class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-2.5 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
 	>
 		<span class="text-xs leading-snug text-fg-muted">{displayLabel({ name_ko: m.name_ko ?? m.label, abbr: m.abbr })}</span>
 		<div class="flex items-baseline justify-between gap-1">
@@ -146,7 +151,7 @@
 		</div>
 		{#if m.last_value_date && data.browser?.date && m.last_value_date < data.browser.date}<span class="text-[10px] text-fg-muted">{m.last_value_date.slice(5)} 기준</span>{/if}
 		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
-		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="text-[10px] text-fg-muted">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
+		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 32 : 20} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="hidden text-[10px] text-fg-muted lg:block">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
 	</a>
 	<button
 		type="button"
@@ -250,27 +255,25 @@
 			</section>
 		{/if}
 		{#each visibleCategories as cat}
-			{#if showCore && !searching && COLLAPSED.has(cat.category)}
-				<details>
-					<summary class="cursor-pointer text-xs font-medium uppercase tracking-wide text-fg-muted hover:text-fg-secondary"
-						>{cat.label} ({cat.metrics.length}) — 세부 지표</summary
+			{@const lim = limitCards(cat.metrics, cat.category, !showCore)}
+			<section aria-label={cat.label}>
+				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">
+					{cat.label}{#if showCore && cat.total} <span class="font-normal">({cat.total})</span>{/if}
+				</h2>
+				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+					{#each lim.shown as m (m.name)}
+						{@render card(m, false)}
+					{/each}
+				</div>
+				{#if lim.hidden > 0}
+					<button
+						type="button"
+						class="mt-2 flex min-h-11 items-center text-xs text-semantic-teal"
+						aria-label="{cat.label} {cat.total ?? cat.metrics.length}개 모두 보기"
+						onclick={() => pickCategory(cat.category)}>모두 보기 ›</button
 					>
-					<div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-						{#each cat.metrics as m}
-							{@render card(m, false)}
-						{/each}
-					</div>
-				</details>
-			{:else}
-				<section>
-					<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">{cat.label}</h2>
-					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-						{#each cat.metrics as m}
-							{@render card(m, false)}
-						{/each}
-					</div>
-				</section>
-			{/if}
+				{/if}
+			</section>
 		{/each}
 	</div>
 {/if}

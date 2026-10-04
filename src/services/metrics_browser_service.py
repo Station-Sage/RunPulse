@@ -9,6 +9,7 @@ from src.utils.db_helpers import get_metric_history
 from src.utils.metric_registry import METRIC_REGISTRY
 from src.metrics.bands import band_ranges, with_grade
 from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, display_meta
+from src.services.metric_browse_groups import GROUPS, baseline_z, classify, salience_key
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
 # (get_primary_metric + 무제한 get_metric_history) 돌던 게 /library/metrics 776ms의
@@ -16,25 +17,6 @@ from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, d
 # "최근 14개" 슬라이스를 위해 넉넉히 90일치만 가져온다 — 그보다 드문드문 기록되는
 # 메트릭은 스파크라인이 14개보다 짧게 나올 수 있음(에러 대신 짧은 리스트, 코딩 규칙).
 _SPARKLINE_LOOKBACK_DAYS = 90
-
-_CATEGORY_LABELS: dict[str, str] = {
-    "load": "피트니스·피로",
-    "pace": "페이스·속도",
-    "hr": "심박",
-    "sleep": "수면·회복",
-    "power": "파워",
-    "running_dynamics": "러닝 다이나믹스",
-    "efficiency": "달리기 효율",
-    "prediction": "레이스 준비도",
-    "readiness": "컨디셔닝",
-    "body": "신체 지표",
-    "stress": "스트레스",
-    "capacity": "능력치",
-    "volume": "훈련량",
-    "athlete": "프로필",
-    "weather": "환경",
-    "meta": "기타",
-}
 
 _WELLNESS_TEXT = frozenset({"sleep_start_time"})
 
@@ -120,15 +102,21 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
     daily_names = [name for name, mdef in METRIC_REGISTRY.items() if mdef.scope == "daily"]
     history = _daily_history(conn, daily_names, date)
 
-    # daily-scope 메트릭을 category별로 수집 — 기준일에 값이 없으면 창 안의 최신값을 쓰고 last_value_date로 알린다
-    cat_map: dict[str, list[dict[str, Any]]] = {}
-    for name in daily_names:
+    # 표시 그룹(8의도)별 수집 — 기준일에 값이 없으면 창 안의 최신값을 쓰고 last_value_date로 알린다.
+    # 구성요소(tier hidden)는 목록에서 제외하고, 그룹 안 정렬은 salience(당일·경고·평소 대비 편차·대표) 순.
+    group_map: dict[str, list[tuple[tuple, dict[str, Any]]]] = {}
+    for idx, name in enumerate(daily_names):
         rows = history.get(name)
         if not rows:
+            continue
+        group, tier = classify(name)
+        if tier == "hidden":
             continue
         mdef = METRIC_REGISTRY[name]
         last_date, value, provider, confidence = rows[-1]
         sparkline = [r[1] for r in rows[-14:]]
+        meta = display_meta(name, mdef.unit, mdef.description, value)
+        z = baseline_z([(r[0], r[1]) for r in rows], date, (meta.get("min_span") or 0) / 4)
 
         entry: dict[str, Any] = {
             "name": name,
@@ -139,17 +127,26 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "confidence": confidence,
             "sparkline": sparkline,
             "confidence_label": confidence_label(confidence),
-            **display_meta(name, mdef.unit, mdef.description, value),
+            **meta,
             "last_value_date": last_date,
             "change": _change(sparkline, [r[0] for r in rows[-14:]]),
+            "group": group,
+            "tier": tier,
+            "source_category": mdef.category,
+            "salience": {"fresh": last_date == date, "z": None if z is None else round(z, 2)},
         }
         with_grade(entry, name, value)
-        cat_map.setdefault(mdef.category, []).append(entry)
+        group_map.setdefault(group, []).append((salience_key(entry, idx), entry))
 
     categories = []
-    for category, metrics in cat_map.items():
-        label = _CATEGORY_LABELS.get(category, category)
-        categories.append({"category": category, "label": label, "metrics": metrics})
+    for key, label in GROUPS:
+        items = sorted(group_map.get(key, []), key=lambda t: t[0])
+        if not items:
+            continue
+        metrics = [e for _, e in items]
+        for rank, e in enumerate(metrics):
+            e["salience"]["rank"] = rank
+        categories.append({"category": key, "label": label, "total": len(metrics), "metrics": metrics})
 
     return {"date": date, "categories": categories}
 

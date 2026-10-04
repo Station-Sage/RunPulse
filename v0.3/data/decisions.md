@@ -143,3 +143,8 @@
 - **결정**: (1) `METRIC_LABELS: dict[slug, MetricLabel(name_ko, abbr)]`를 registry canonical name 키로 둔다. API(list/trend/explain)와 사전 문서는 여기서 파생한다. (2) 일별 84개는 명시 등록을 테스트로 강제하고, 그 외 scope는 `label_for` 폴백(description에서 `(parent:)` 제거 → canonical name)을 쓴다. 폴백은 노출 필터로 쓰지 않는다. (3) 계산기 `display_name`은 알고리즘 이름일 뿐 화면 표시에 쓰지 않는다. (4) CIRS는 "부상 위험", CRS는 "복합 준비도"(UTRS "훈련 준비도"와 충돌 회피).
 - **기각**: `MetricDef` 필드 추가(registry 522줄 비대), 계산기 `display_name`(daily 84개 중 37개만 커버, 계산기 1:다 지표), DB 테이블.
 - **검증**: `tests/test_metric_labels.py`, `tests/test_metrics_browser_service.py::test_label_registry_does_not_affect_which_metrics_are_listed`
+
+## ADR-019: 메트릭 브라우저 8분류(의도 기준) — src/services/metric_browse_groups.py (2026-10-04)
+- **맥락**: 백엔드 `_CATEGORY_LABELS` 16개(레지스트리 category)는 사용자의 "무엇을 보러 왔나"와 맞지 않고 구성요소 지표가 섞여 노출됐다. 설계 `DESIGN-S4S5-IMPL.md` §3.
+- **결정**: (1) slug→(group, tier) 매핑을 `metric_browse_groups._SPEC`에 둔다(today/load/race/ability/sleep/vitals/hr_ref/env). 레지스트리 category와 별개 개념이며 `SEMANTIC_GROUPS`와도 다르다. (2) tier hidden(구성요소)은 목록에서 제외, 미등록 slug는 (other, detail). (3) 그룹 내 정렬은 salience: 최신 → 경고 등급(poor/caution) → |z|(d−28..d−1, n<7이면 null) → primary → registry 순. (4) 전체 보기는 섹션당 4카드(환경·심박 기준값 2), "모두 보기 ›"로 카테고리 필터 전환. 모바일 카드 높이 축소로 390px 스크롤 ≈2,560px. (5) 레거시 `?category=`는 `normalizeCategory`로 매핑. 열린 결정 기본값: 체중·걸음·칼로리는 vitals, BB는 "최고" 라벨, headline 추가.
+- **검증**: `tests/test_metric_browse_groups.py`, `tests/test_metrics_browser_service.py`, `frontend/tests/metricGroups.test.mjs`, Playwright `pw/metric_groups.mjs`(실DB 사본).

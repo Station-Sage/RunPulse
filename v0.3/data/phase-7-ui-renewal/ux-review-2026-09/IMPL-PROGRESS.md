@@ -306,3 +306,4 @@
 - S4 3차(2026-10-04): ☆ 고정·해제 토스트+되돌리기(기존 Toast 재사용), metric_pin.mjs에 검증 추가.
 - 3-9 1차(2026-10-04): 공용 `ActivityRow`(2줄 행·`?from=home|list|today`·hover/active·›, `activityRow.ts`)를 활동 목록·Library 홈 최근 활동·Today 최근 활동에 적용(Library 홈의 모바일 정보 손실 해소). Playwright(`pw/activity_row.mjs`, 실DB 사본) 검증. 남음(3-9/S8): 계획·Coach·마일스톤·PB 링크에 from 적용, 상세 화면의 from 기반 뒤로가기, 무한 스크롤·월 헤더·스크러버.
 - S4/S5 설계 완료: `DESIGN-S4S5-IMPL.md`(8분류 slug 매핑·4카드·정렬·S5 웰니스 `/:date`, 열린 결정 4건). 다음: 8분류 백엔드 매핑 구현.
+- S4 4차(2026-10-04): 8분류 재편 구현(ADR-019) — `metric_browse_groups.py`·서비스 정렬(salience)·프론트 `metricGroups.ts`(4카드/"모두 보기 ›"/레거시 category 매핑)·모바일 카드 축소(390px 2,563px). pytest 2075·단위 304·check 0 오류, Playwright `pw/metric_groups.mjs` 에러 0. 남음: 기간 chip replace, Today `from=today` 링크, 상세 `?from=` 소비, S5 웰니스 `/:date`, S6, S7.

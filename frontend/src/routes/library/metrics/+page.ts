@@ -1,5 +1,6 @@
 import { getMetricsBrowser } from '$lib/api/metrics';
 import { ApiError } from '$lib/api/client';
+import { normalizeCategory } from '$lib/metricGroups';
 import type { MetricBrowserData } from '$lib/types';
 
 export interface MetricsBrowserPageData {
@@ -11,7 +12,7 @@ export interface MetricsBrowserPageData {
 }
 
 export async function load({ url }: { url: URL }): Promise<MetricsBrowserPageData> {
-	const initialCategory = url.searchParams.get('category') ?? 'all';
+	const initialCategory = normalizeCategory(url.searchParams.get('category'));
 	const initialQuery = url.searchParams.get('q') ?? '';
 	const initialProvider = url.searchParams.get('provider') ?? 'all';
 	try {
