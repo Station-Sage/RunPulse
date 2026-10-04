@@ -207,6 +207,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   **보류(사용자 결정)**: ① `ai_context.py`의 미사용 3함수(`build_daily_briefing`·`build_activity_analysis`·`build_ai_context`, 운영 호출처 없음,
   `check_docs.py` 검사 19가 `def build_ai_context` 존재 확인) 삭제 여부 — 삭제 시 검사 19와 phase-5 문서도 정정.
   ② `HIGHER_IS_BETTER` 이동은 현 위치 유지(레이어 다름), `template_helpers.py` 28키 사본은 Jinja 폐기 시 정리.
+  ③ ◆ 알고리즘 버전 마커(TrendChart): `metric_store`는 지표당 단일 algorithm_version(전 기간 재계산)이라 데이터로 파생 불가 — 버전 변경 이력(changelog) 소스 설계 후 구현. `x.taper` drill 패널은 Today 드릴 설계 필요(현재 `chipTarget`은 `/today/race`).
 
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
