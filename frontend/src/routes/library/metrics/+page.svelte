@@ -7,7 +7,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
-	import { displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS } from '$lib/metricMeaning';
+	import { displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS, STATUS_DOT_COLOR, sparkCaption } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
 
@@ -96,7 +96,7 @@
 		</div>
 		{#if m.last_value_date && data.browser?.date && m.last_value_date < data.browser.date}<span class="text-[10px] text-fg-muted">{m.last_value_date.slice(5)} 기준</span>{/if}
 		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
-		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="var(--color-series-1)" />{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
+		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="text-[10px] text-fg-muted">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
 	</a>
 {/snippet}
 

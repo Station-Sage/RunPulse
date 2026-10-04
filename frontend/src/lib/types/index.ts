@@ -798,6 +798,7 @@ export interface MetricBrowserEntry {
 	format?: string;
 	decimal_places?: number;
 	higher_is_better?: boolean | null;
+	min_span?: number | null;
 	change?: { abs: number; pct: number | null; days: number } | null;
 }
 

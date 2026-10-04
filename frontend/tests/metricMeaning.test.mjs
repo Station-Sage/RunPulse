@@ -30,3 +30,12 @@ test('isFlat: null 포함 다른 값', () => {
 test('isFlat: 단일 값은 false', () => {
 	assert.equal(isFlat([100]), false);
 });
+
+import { sparkCaption } from '../src/lib/metricMeaning.ts';
+test('sparkCaption: 방향·변화율·변동 없음', () => {
+	assert.equal(sparkCaption(null), null);
+	assert.equal(sparkCaption({ abs: -3, pct: -6.2, days: 14 }), '14일 · ▼6.2%');
+	assert.equal(sparkCaption({ abs: 12, pct: 24, days: 7 }), '7일 · ▲24%');
+	assert.equal(sparkCaption({ abs: 0.01, pct: 0.1, days: 14 }), '14일 · 변동 없음');
+	assert.equal(sparkCaption({ abs: 2.5, pct: null, days: 14 }), '14일 · ▲2.5');
+});

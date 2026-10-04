@@ -5,6 +5,7 @@
 	// 수십 개가 나열되는 곳(예: library/metrics)은 지금은 interactive를 켜지 않는다(성능·터치
 	// 혼선 우려, 2026-09-28 사용자 확인 — 그 화면 재구성 때 재검토).
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
+	import { spanRange } from '$lib/trendChart';
 
 	let {
 		data,
@@ -13,6 +14,8 @@
 		color = 'currentColor',
 		invert = false,
 		interactive = false,
+		minSpan = 0,
+		endColor,
 		dates,
 		formatValue = (v: number) => String(Math.round(v * 10) / 10)
 	}: {
@@ -24,6 +27,10 @@
 		invert?: boolean;
 		/** true면 ChartScrub로 탭/드래그 스크럽을 붙인다(§C1). */
 		interactive?: boolean;
+		/** y 범위 최소 폭 — 변동이 작은 값이 과장돼 보이지 않게 가운데 정렬로 넓힌다(§5 스파크라인). */
+		minSpan?: number;
+		/** 지정하면 마지막 유효 지점에 이 색의 끝점 원을 그린다(서버 status 색). */
+		endColor?: string;
 		/** 각 데이터 포인트의 날짜 라벨(툴팁용, data와 같은 길이). */
 		dates?: string[];
 		/** 툴팁에 값을 표시할 때 쓸 포맷터. */
@@ -33,9 +40,15 @@
 	const validData = $derived(data.filter((v): v is number => v != null));
 	const isEmpty = $derived(validData.length === 0);
 	const n = $derived(data.length);
-	const minVal = $derived(isEmpty ? 0 : Math.min(...validData));
-	const maxVal = $derived(isEmpty ? 0 : Math.max(...validData));
-	const range = $derived(maxVal - minVal);
+	const ext = $derived(
+		isEmpty ? { min: 0, max: 0 } : spanRange(Math.min(...validData), Math.max(...validData), minSpan)
+	);
+	const minVal = $derived(ext.min);
+	const range = $derived(ext.max - ext.min);
+	const lastIdx = $derived.by(() => {
+		for (let i = data.length - 1; i >= 0; i--) if (data[i] != null) return i;
+		return -1;
+	});
 
 	function toX(i: number): number {
 		return n <= 1 ? 0 : (i / (n - 1)) * width;
@@ -74,6 +87,7 @@
 	<span class="text-xs text-fg-muted">데이터 없음</span>
 {:else}
 	{#snippet chart()}
+		<div class="relative">
 		<svg
 			viewBox="0 0 {width} {height}"
 			preserveAspectRatio="none"
@@ -92,6 +106,14 @@
 				/>
 			{/each}
 		</svg>
+		{#if endColor && lastIdx >= 0}
+			<span
+				class="pointer-events-none absolute h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+				style="left:{(toX(lastIdx) / width) * 100}%; top:{(toY(data[lastIdx] as number) / height) * 100}%; background:{endColor}"
+				data-testid="spark-end"
+			></span>
+		{/if}
+		</div>
 	{/snippet}
 
 	{#if interactive}

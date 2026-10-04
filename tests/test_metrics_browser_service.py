@@ -235,3 +235,13 @@ def test_band_ranges_cover_axis_without_gaps():
     assert all(a["to"] == b["from"] for a, b in zip(rs, rs[1:]))
     assert band_ranges("aerobic_decoupling") == []
     assert band_ranges("no_such_metric") == []
+
+
+def test_display_meta_min_span():
+    from src.services.metric_display import display_meta
+    assert display_meta("x", "bpm")["min_span"] == 5.0
+    assert display_meta("x", "sec/km")["min_span"] == 10.0
+    assert display_meta("x", "score")["min_span"] == 10.0
+    assert display_meta("race_pred_5k_sec", "sec", "", 1200.0)["min_span"] == 24.0
+    assert display_meta("race_pred_5k_sec", "sec")["min_span"] is None
+    assert display_meta("x", "")["min_span"] is None

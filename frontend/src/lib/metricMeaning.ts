@@ -8,6 +8,25 @@ export const STATUS_TEXT_CLASS: Record<MeaningStatus, string> = {
 	poor: 'text-semantic-red'
 };
 
+export const STATUS_DOT_COLOR: Record<MeaningStatus, string> = {
+	excellent: 'var(--color-semantic-green)',
+	good: 'var(--color-semantic-teal)',
+	neutral: 'var(--color-fg-secondary)',
+	caution: 'var(--color-semantic-amber)',
+	poor: 'var(--color-semantic-red)'
+};
+
+/** 스파크라인 캡션 `14일 · ▼6.2%` — 변화 없음(|%|<0.5)은 `14일 · 변동 없음`, 비교 불가면 null. */
+export function sparkCaption(change: { abs: number; pct: number | null; days: number } | null | undefined): string | null {
+	if (!change) return null;
+	const { abs, pct, days } = change;
+	const mag = pct != null ? Math.abs(pct) : null;
+	if (mag != null ? mag < 0.5 : abs === 0) return `${days}일 · 변동 없음`;
+	const arrow = abs > 0 ? '▲' : '▼';
+	const text = mag != null ? `${mag.toFixed(mag < 10 ? 1 : 0)}%` : String(Math.round(Math.abs(abs) * 10) / 10);
+	return `${days}일 · ${arrow}${text}`;
+}
+
 // 등급 판정(경계값)은 서버 src/metrics/bands.py 단일 정의 — API의 status·status_label을 렌더한다.
 
 // 서버가 내려준 name_ko·abbr로 표시명을 만든다(하드코딩 없음).

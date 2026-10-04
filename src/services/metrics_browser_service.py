@@ -139,7 +139,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "confidence": confidence,
             "sparkline": sparkline,
             "confidence_label": confidence_label(confidence),
-            **display_meta(name, mdef.unit, mdef.description),
+            **display_meta(name, mdef.unit, mdef.description, value),
             "last_value_date": last_date,
             "change": _change(sparkline, [r[0] for r in rows[-14:]]),
         }

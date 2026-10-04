@@ -12,6 +12,8 @@ _NAME_FORMAT = {
     "race_pred_marathon_sec": "race_time",
 }
 _INT_UNITS = {"bpm", "ms", "W", "count", "kcal", "score", "brpm", "min/wk", "%"}
+_UNIT_MIN_SPAN = {"bpm": 5.0, "sec/km": 10.0, "score": 10.0, "ratio": 0.2}
+_RACE_TIME_MIN_SPAN_PCT = 0.02  # 예측 기록은 값의 2%
 HIGHER_IS_BETTER: dict[str, bool | None] = {
     "tsb": True, "ctl": None, "atl": None, "utrs": True, "cirs": False, "rri": True,
 }
@@ -23,8 +25,15 @@ def display_name(name: str, description: str) -> tuple[str, str | None]:
     return label.name_ko, label.abbr
 
 
-def display_meta(name: str, unit: str, description: str = "") -> dict:
-    """name_ko·abbr + format(race_time/duration/pace/signed/percent/score/number)·decimal_places·higher_is_better."""
+def min_span(fmt: str, unit: str, value: float | None) -> float | None:
+    """스파크라인 y 범위 최소 폭(21 design §5). 기준이 없는 단위는 None."""
+    if fmt == "race_time":
+        return round(abs(value) * _RACE_TIME_MIN_SPAN_PCT, 1) if value else None
+    return _UNIT_MIN_SPAN.get(unit)
+
+
+def display_meta(name: str, unit: str, description: str = "", value: float | None = None) -> dict:
+    """name_ko·abbr + format·decimal_places·higher_is_better·min_span(스파크라인 최소 y 폭)."""
     name_ko, abbr = display_name(name, description or name)
     fmt = _NAME_FORMAT.get(name) or _UNIT_FORMAT.get(unit, "number")
     return {
@@ -33,4 +42,5 @@ def display_meta(name: str, unit: str, description: str = "") -> dict:
         "format": fmt,
         "decimal_places": 0 if fmt in ("race_time", "duration", "pace", "signed") or unit in _INT_UNITS else 1,
         "higher_is_better": HIGHER_IS_BETTER.get(name),
+        "min_span": min_span(fmt, unit, value),
     }
