@@ -4,8 +4,8 @@
 	// 끌어 닫기 제스처(C3.1 "최상위에서만 아래로 끌어 닫기")는 이번 라운드에 구현하지 않음(탭/Esc/뒤로가기로 닫기는 됨) — 별도 판단 필요.
 	import type { Snippet } from 'svelte';
 	import { base } from '$app/paths';
-	import { currentDrillStack, parseDrillToken, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
-	import { EXPLAIN_SUPPORTED_SLUGS, getMetricExplain, getMetricTrend } from '$lib/api/metrics';
+	import { currentDrillStack, parseDrillToken, resolveDrillScope, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
+	import { isExplainSupported, getMetricExplain, getMetricTrend } from '$lib/api/metrics';
 	import type { AnswerEvidence, MetricExplainData } from '$lib/types';
 	import { snapshotLine } from '$lib/answerEvidence';
 	import BreakdownView from './BreakdownView.svelte';
@@ -31,7 +31,9 @@
 	const parsedStack = $derived(currentDrillStack().map(parseDrillToken));
 	const slugs = $derived(parsedStack.map((p) => p.slug));
 	const currentSlug = $derived(parsedStack.at(-1)?.slug ?? null);
-	const currentScopeId = $derived(parsedStack.at(-1)?.scope ?? scopeId);
+	const resolved = $derived(resolveDrillScope(parsedStack.at(-1)?.scope, scopeType, scopeId));
+	const currentScopeType = $derived(resolved.scopeType);
+	const currentScopeId = $derived(resolved.scopeId);
 	const isOpen = $derived(slugs.length > 0);
 	const snap = $derived(
 		answerChip && slugs.length === 1 && answerChip.metric === currentSlug && answerChip.drill?.scope_id === currentScopeId
@@ -47,11 +49,11 @@
 
 	$effect(() => {
 		const slug = currentSlug;
-		const st = scopeType;
+		const st = currentScopeType;
 		const si = currentScopeId;
 		if (!slug) return;
 		let cancelled = false;
-		if (!EXPLAIN_SUPPORTED_SLUGS.has(slug)) {
+		if (!isExplainSupported(slug, st)) {
 			// 분해 미지원 지표 — 한글 이름만 받아 간이 카드 라벨로 쓴다
 			if (!labelCache.has(slug)) {
 				getMetricTrend(slug, '1m')
@@ -150,7 +152,7 @@
 			<h2 tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
 				{slugs.map(breadcrumbLabel).join(' › ')}
 			</h2>
-			<p class="text-[11px] text-fg-muted">{currentScopeId} 아침 기준</p>
+			<p class="text-[11px] text-fg-muted">{currentScopeType === 'activity' ? '이 활동 기준' : `${currentScopeId} 아침 기준`}</p>
 		</div>
 		<button onclick={closeDrill} aria-label="닫기" class="shrink-0 text-fg-secondary hover:text-fg-primary">
 			<Icon name="close" class="h-4 w-4" />
@@ -159,7 +161,7 @@
 {/snippet}
 
 {#snippet body()}
-	{#if !currentSlug || !EXPLAIN_SUPPORTED_SLUGS.has(currentSlug)}
+	{#if !currentSlug || !isExplainSupported(currentSlug, currentScopeType)}
 		<div class="flex flex-col gap-3 p-4" data-testid="drill-light">
 			<p class="text-sm text-fg-secondary">
 				{currentSlug ? breadcrumbLabel(currentSlug) : '이 지표'}은(는) 분해 대신 추세로 볼 수 있어요.
@@ -188,7 +190,10 @@
 		<BreakdownView
 			{data}
 			trendHref="{base}/library/metrics/{currentSlug}"
-			onDrillTerm={(token) => pushDrill(parseDrillToken(token).slug, currentScopeId)}
+			onDrillTerm={(token) => {
+				const t = parseDrillToken(token);
+				pushDrill(t.slug, t.scope ?? (currentScopeType === 'activity' ? `a${currentScopeId}` : currentScopeId));
+			}}
 		/>
 	{/if}
 {/snippet}

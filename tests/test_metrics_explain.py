@@ -179,3 +179,22 @@ class TestRRIExplain:
         r = get_metric_explain(conn, "daily", "2026-04-01", "rri")
         source_slugs = {s["slug"] for s in r["sources"]}
         assert {"race_pred_vdot", "ctl", "di", "cirs"} == source_slugs
+
+
+def test_activity_scope_trimp_explain():
+    conn = _conn()
+    _seed_and_compute(conn)
+    r = get_metric_explain(conn, "activity", "1", "trimp")
+    assert r is not None
+    assert r["scope"]["type"] == "activity"
+    slugs = {t["slug"] for t in r["formula"]["terms"]}
+    assert {"duration_min", "avg_hr", "hr_reserve"} <= slugs
+    assert r["sources"][0]["id"] == 1
+    assert r["meaning"]["baseline"]["avg_7d"] is None
+
+
+def test_activity_scope_unsupported_slug_and_missing_activity():
+    conn = _conn()
+    _seed_and_compute(conn)
+    assert get_metric_explain(conn, "activity", "1", "tsb") is None
+    assert get_metric_explain(conn, "activity", "999", "trimp") is None

@@ -6,6 +6,7 @@ import {
 	parseDrillToken,
 	formatDrillToken,
 	tokenSlug,
+	resolveDrillScope,
 	DRILL_MAX_DEPTH
 } from '../src/lib/drillStackCore.ts';
 
@@ -61,4 +62,11 @@ test('formatDrillToken ↔ parseDrillToken 왕복', () => {
 		slug: 'utrs',
 		scope: '2026-01-05'
 	});
+});
+
+test('resolveDrillScope — @a{id}는 activity scope, 날짜는 기본 종류 유지', () => {
+	assert.deepEqual(resolveDrillScope('a17414', 'daily', '2026-09-12'), { scopeType: 'activity', scopeId: '17414' });
+	assert.deepEqual(resolveDrillScope('2026-09-01', 'daily', '2026-09-12'), { scopeType: 'daily', scopeId: '2026-09-01' });
+	assert.deepEqual(resolveDrillScope(undefined, 'daily', '2026-09-12'), { scopeType: 'daily', scopeId: '2026-09-12' });
+	assert.equal(parseDrillToken('m.trimp@a17414').scope, 'a17414');
 });

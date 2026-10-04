@@ -7,7 +7,8 @@
 "다른 지표들도"·"너무 최소한만"). UTRS/CIRS/RRI explainer는 파일당 300줄
 규칙 때문에 `metrics_explain_composite.py`로 분리했다. 그 외 슬러그는
 None을 반환하고 라우트가 기존 v1(`metrics_service.get_metric_breakdown`)로
-폴백한다.
+폴백한다. 활동 범위(`scope_type=activity`, 드릴 토큰 `@a{id}`)는
+`metrics_explain_activity.py`의 TRIMP만 지원한다.
 
 **terms 형태가 메트릭 종류마다 다르다**: TSB/CTL/ATL은 `sign`+`contribution`
 (합), UTRS/CIRS는 `weight`+`contribution`(가중 평균), RRI는 `ratio`+`role`
@@ -29,6 +30,7 @@ from datetime import datetime, timedelta
 
 from src.metrics.bands import BANDS, grade
 from src.services.metric_display import HIGHER_IS_BETTER, display_name
+from src.services.metrics_explain_activity import explain_trimp_activity
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
@@ -44,6 +46,7 @@ _WHAT = {
     "atl": "피로(ATL)는 최근 7일간 훈련 부하를 반영한 값입니다.",
     "utrs": "훈련 준비도(UTRS)는 바디 배터리·폼·수면·심박변이·스트레스를 종합한 점수입니다.",
     "cirs": "부상 위험 지수(CIRS)는 급성:만성 부하비·부하 급증·연속 훈련일·피로를 종합한 위험 추정치입니다.",
+    "trimp": "TRIMP는 운동 시간과 심박 강도를 합쳐 이 활동이 몸에 준 부하를 한 숫자로 나타낸 값입니다.",
     "rri": "레이스 준비도(RRI)는 예측 기록 진행률·체력(CTL) 충족률·훈련 강도 분포·부상 위험을 곱해 레이스 준비 정도를 나타냅니다.",
 }
 _SO_WHAT = {
@@ -138,11 +141,12 @@ _EXPLAINERS = {
     "cirs": lambda conn, st, sid: explain_cirs(conn, st, sid),
     "rri": lambda conn, st, sid: explain_rri(conn, st, sid),
 }
+_ACTIVITY_EXPLAINERS = {"trimp": explain_trimp_activity}
 
 
 def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str) -> dict | None:
     """분해 v2(§C3.2) — TSB/CTL/ATL/UTRS/CIRS/RRI만 지원, 그 외는 None(라우트가 v1로 폴백)."""
-    builder = _EXPLAINERS.get(slug)
+    builder = (_ACTIVITY_EXPLAINERS if scope_type == "activity" else _EXPLAINERS).get(slug)
     if builder is None:
         return None
     self_row = get_primary_metric(conn, scope_type, scope_id, slug)
@@ -150,6 +154,8 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         return None
 
     terms, sources, formula_text = builder(conn, scope_type, scope_id)
+    if scope_type == "activity" and not terms:
+        return None
     value = self_row.get("numeric_value")
     band = grade(slug, value)
     name_ko, abbr = display_name(slug, _metric_label(slug))
@@ -158,7 +164,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "slug": slug,
         "name_ko": name_ko,
         "abbr": abbr,
-        "scope": {"type": scope_type, "id": scope_id, "basis": "morning"},
+        "scope": {"type": scope_type, "id": scope_id, "basis": "activity" if scope_type == "activity" else "morning"},
         "value": value,
         "display": value,
         "unit": _metric_unit(slug),
@@ -168,7 +174,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "meaning": {
             "what": _WHAT.get(slug, ""),
             "bands": _bands_v2(slug),
-            "baseline": _baseline(conn, scope_type, scope_id, slug),
+            "baseline": _baseline(conn, scope_type, scope_id, slug) if scope_type != "activity" else {"avg_7d": None, "delta_1d": None},
             "so_what": _SO_WHAT.get(slug, {}).get(band["status"] if band else "", ""),
         },
         "formula": {

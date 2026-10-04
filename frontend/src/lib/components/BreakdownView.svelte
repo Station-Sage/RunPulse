@@ -137,7 +137,11 @@
 			{#each data.sources as src, i (i)}
 				<div class="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
 					<div class="flex flex-col">
-						<span>{src.label}</span>
+						{#if src.type === 'activity' && src.id != null && onDrillTerm && src.unit === 'TRIMP'}
+							<button type="button" class="text-left text-semantic-teal hover:underline" data-testid="source-activity" onclick={() => onDrillTerm(`m.trimp@a${src.id}`)}>{src.label} ›</button>
+						{:else}
+							<span>{src.label}</span>
+						{/if}
 						{#if src.date}<span class="text-[11px] text-fg-muted">{src.date}</span>{/if}
 					</div>
 					<div class="flex flex-col items-end">

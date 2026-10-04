@@ -93,19 +93,23 @@
 
 - (public API 없음)
 
-### `metric_display.py` (36줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (46줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
-- functions: display_name, display_meta
+- functions: display_name, min_span, display_meta
 
 ### `metrics_browser_service.py` (234줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
-### `metrics_explain.py` (188줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_explain.py` (194줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: get_metric_explain
 
-### `metrics_explain_composite.py` (131줄) — 분해 v2 — 합성형(UTRS·CIRS) + 곱셈형(RRI) explainer.
+### `metrics_explain_activity.py` (68줄) — 분해 v2 활동 scope(`@a{id}`, DESIGN-PENDING-12 §3) — 활동 단위 지표 explainer.
+
+- functions: explain_trimp_activity
+
+### `metrics_explain_composite.py` (140줄) — 분해 v2 — 합성형(UTRS·CIRS) + 곱셈형(RRI) explainer.
 
 - functions: explain_utrs, explain_cirs, explain_rri
 
@@ -220,7 +224,7 @@
 
 - class **ADTICalculator**: compute
 
-### `bands.py` (91줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
+### `bands.py` (94줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
 
 - functions: grade, band_ranges, with_grade
 
@@ -1929,9 +1933,9 @@
 - class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
 - functions: db_path
 
-### `test_metric_bands.py` (39줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
+### `test_metric_bands.py` (46줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
-- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges
+- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands
 
 ### `test_metric_labels.py` (49줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
 
@@ -1953,18 +1957,19 @@
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 - functions: test_definitions_split_modules_cover_registry_in_order
 
-### `test_metrics_browser_service.py` (237줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (247줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span
 
-### `test_metrics_explain.py` (172줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
+### `test_metrics_explain.py` (200줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
 - class **TestUnsupportedSlug**: test_returns_none_for_slug_without_explainer, test_returns_none_for_no_data
 - class **TestTSBExplain**: test_terms_have_ctl_and_atl_with_opposite_signs, test_formula_text_and_bands_present
 - class **TestPMCExplain**: test_ctl_terms_have_prev_and_today_load, test_atl_alpha_is_one_seventh
-- class **TestUTRSExplain**: test_terms_have_contribution_and_loss, test_contributions_sum_to_score, test_sources_is_wellness_day
+- class **TestUTRSExplain**: test_terms_have_contribution_and_loss, test_contributions_sum_to_score, test_terms_have_trend_drill, test_sources_is_wellness_day
 - class **TestCIRSExplain**: test_terms_have_contribution_no_loss, test_higher_is_better_false, test_terms_sorted_by_contribution_desc
 - class **TestRRIExplain**: test_terms_use_factor_role_and_ratio, test_higher_is_better_true, test_sources_reference_component_metrics
+- functions: test_activity_scope_trimp_explain, test_activity_scope_unsupported_slug_and_missing_activity
 
 ### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
 
@@ -2472,7 +2477,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 505개 파일
+총 506개 파일
 
 ## docstring 누락
 
