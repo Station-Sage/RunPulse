@@ -4,6 +4,7 @@
 	import type { MetricExplainData, MetricExplainTerm } from '$lib/types';
 	import { statusColorVar } from '$lib/statusColor';
 	import { formatChange } from '$lib/format';
+	import PredictionEvidence from '$lib/components/PredictionEvidence.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let {
@@ -102,7 +103,10 @@
 	</section>
 
 	<!-- ②공식·기여 -->
-	{#if terms.length > 0}
+	{#if data.evidence}
+		<p class="font-mono text-xs text-fg-muted">{data.formula.text}</p>
+		<PredictionEvidence evidence={data.evidence} {terms} />
+	{:else if terms.length > 0}
 		<section class="flex flex-col gap-2">
 			<p class="font-mono text-xs text-fg-muted">{data.formula.text}</p>
 			<p class="text-[11px] text-fg-muted">

@@ -32,6 +32,7 @@ from src.metrics.bands import BANDS, grade
 from src.services.metric_display import HIGHER_IS_BETTER, display_name
 from src.services.metrics_explain_activity import explain_trimp_activity
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
+from src.services.metrics_explain_prediction import explain_prediction
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
@@ -48,6 +49,9 @@ _WHAT = {
     "cirs": "부상 위험 지수(CIRS)는 급성:만성 부하비·부하 급증·연속 훈련일·피로를 종합한 위험 추정치입니다.",
     "trimp": "TRIMP는 운동 시간과 심박 강도를 합쳐 이 활동이 몸에 준 부하를 한 숫자로 나타낸 값입니다.",
     "rri": "레이스 준비도(RRI)는 예측 기록 진행률·체력(CTL) 충족률·훈련 강도 분포·부상 위험을 곱해 레이스 준비 정도를 나타냅니다.",
+    **{k: f"{d} 예측 기록은 대회 기록·훈련 강도·심박-페이스 신호를 가중 결합해 기온 15°C 기준으로 환산한 값입니다."
+       for k, d in (("race_pred_5k_sec", "5K"), ("race_pred_10k_sec", "10K"), ("race_pred_half_sec", "하프"),
+                    ("race_pred_marathon_sec", "마라톤"))},
 }
 _SO_WHAT = {
     "tsb": {
@@ -140,6 +144,8 @@ _EXPLAINERS = {
     "utrs": lambda conn, st, sid: explain_utrs(conn, st, sid),
     "cirs": lambda conn, st, sid: explain_cirs(conn, st, sid),
     "rri": lambda conn, st, sid: explain_rri(conn, st, sid),
+    **{s: (lambda conn, st, sid, _s=s: explain_prediction(conn, st, sid, _s))
+       for s in ("race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec")},
 }
 _ACTIVITY_EXPLAINERS = {"trimp": explain_trimp_activity}
 
@@ -153,7 +159,9 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
     if self_row is None:
         return None
 
-    terms, sources, formula_text = builder(conn, scope_type, scope_id)
+    built = builder(conn, scope_type, scope_id)
+    terms, sources, formula_text = built[:3]
+    evidence = built[3] if len(built) > 3 else None
     if scope_type == "activity" and not terms:
         return None
     value = self_row.get("numeric_value")
@@ -191,4 +199,5 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         },
         "compare": [],
         "links": {"trend": f"/library/metrics/{slug}"},
+        **({"evidence": evidence} if evidence else {}),
     }

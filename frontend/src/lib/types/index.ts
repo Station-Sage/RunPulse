@@ -586,6 +586,17 @@ export interface MetricExplainData {
 	provider: { kind: string; version: string; computed_at: string };
 	compare: unknown[];
 	links: { trend: string };
+	evidence?: PredictionEvidence;
+}
+
+export interface PredictionEvidence {
+	distance: string;
+	range?: { low: number; high: number };
+	confidence?: number;
+	limiting?: string[];
+	models?: { name: string; sec: number }[];
+	by_temp?: Record<string, number>;
+	weights?: Record<string, number>;
 }
 
 // ── /api/v1/today/narrative 실제 응답 ─────────────────────────────────────

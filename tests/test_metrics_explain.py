@@ -198,3 +198,31 @@ def test_activity_scope_unsupported_slug_and_missing_activity():
     _seed_and_compute(conn)
     assert get_metric_explain(conn, "activity", "1", "tsb") is None
     assert get_metric_explain(conn, "activity", "999", "trimp") is None
+
+
+def test_prediction_explain_evidence_and_sources():
+    conn = _conn()
+    day = "2026-04-01"
+    upsert_metric(conn, "daily", day, "race_pred_vdot", "runpulse:formula_v1", numeric_value=50.0,
+                  json_value={"anchor": {"activity_id": 7, "date": "2026-03-01", "vdot15": 50.1},
+                              "work": {"vdot": 49.0, "activity_id": 9}})
+    upsert_metric(conn, "daily", day, "race_pred_marathon_sec", "runpulse:formula_v1", numeric_value=11000,
+                  json_value={"low_s": 10800, "high_s": 11300, "confidence": 0.62, "reasons": ["기준 대회가 12주 전"],
+                              "contributions": {"race": 0.6, "work": 0.4}, "signals_s": {"race": 10900, "work": 11100},
+                              "daniels_s": 10950, "tanda_s": 11050, "by_temp": {"15": 11000}})
+    conn.commit()
+    r = get_metric_explain(conn, "daily", day, "race_pred_marathon_sec")
+    assert r is not None
+    ev = r["evidence"]
+    assert ev["range"] == {"low": 10800, "high": 11300} and ev["confidence"] == 0.62
+    assert ev["limiting"] == ["기준 대회가 12주 전"] and len(ev["models"]) == 2
+    assert [s["id"] for s in r["sources"]] == [7, 9]
+    assert {t["slug"] for t in r["formula"]["terms"]} == {"race", "work"}
+
+
+def test_prediction_explain_omits_missing_fields():
+    conn = _conn()
+    upsert_metric(conn, "daily", "2026-04-01", "race_pred_5k_sec", "runpulse:formula_v1", numeric_value=1300)
+    conn.commit()
+    r = get_metric_explain(conn, "daily", "2026-04-01", "race_pred_5k_sec")
+    assert r is not None and set(r["evidence"]) == {"distance"}
