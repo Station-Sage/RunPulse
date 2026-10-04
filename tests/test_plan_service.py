@@ -101,9 +101,12 @@ def test_compliance_pct_ignores_prior_goal_leftovers(conn):
     old_date = (date.today() - timedelta(days=365)).isoformat()
     _seed_workout(conn, old_date, "easy", completed=0)  # 이전 목표의 미완료 워크아웃(오염원)
 
-    _seed_goal(conn)
+    gid = _seed_goal(conn)
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
+    # 집계 시작일 = 목표 생성일 — 요일에 따라 결과가 달라지지 않도록 이번 주 월요일로 고정
+    conn.execute("UPDATE goals SET created_at=? WHERE id=?", (week_start.isoformat(), gid))
+    conn.commit()
     _seed_workout(conn, week_start.isoformat(), "easy", completed=1)
     _seed_workout(conn, (week_start + timedelta(1)).isoformat(), "long", completed=1)
 

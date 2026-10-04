@@ -6,6 +6,8 @@ claude -p 서브프로세스 자체(_run_claude)는 실제 LLM 호출이라 여�
 """
 from __future__ import annotations
 
+import pytest
+
 from scripts.autopilot import leftovers, queue, run_unit, settings
 
 
@@ -64,6 +66,11 @@ class TestBuildCmd:
 
 
 class TestPostVerify:
+    @pytest.fixture(autouse=True)
+    def _worktree(self, monkeypatch, tmp_path):
+        # 실제 autopilot 워크트리 유무와 무관하게 동작하도록 임시 디렉토리로 대체
+        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+
     def test_docs_kind_skips_verification(self, monkeypatch, tmp_path):
         ok, note = run_unit._post_verify(_docs_item())
         assert ok is True
