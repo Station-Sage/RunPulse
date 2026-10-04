@@ -211,6 +211,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
 
 - **S5 완료(2026-10-04)**: 웰니스 `/:date` 페이지·API(ADR-020). 다음 S6/S7.
 - **S6 완료(2026-10-05)**: 소스 비교 매트릭스·쌍 상세·메트릭 링크(ADR-021, 실 DB 사본 Playwright OK). 다음 S7.
+- **S1~S4 잔여 A-1~A-3 완료·운영 반영(2026-10-05, 0d15f38)**: 활동 상세 from 11종·history.back·웰니스 원천 링크. 다음 A-4(분해 conclusion)~A-20, B-1~B-6(`DESIGN-S1S4-REMAIN.md` §3 U3~). 열린 결정 D-1~D-8은 사용자 대기(임의 확정 금지).
   **보류(사용자 확인 대기)**: §8-1 훈련 부하를 scale ×r·경고 없음으로 표시 / §8-2 EF를 definition 행으로 / §8-3 단일 소스 행을 접힘 목록으로 /
   §8-4 U9 `SEMANTIC_GROUPS` `("training_load_score","intervals")`→`("training_load","intervals")` 수정. 후속 후보: 모바일 매트릭스 "차이" 열 가로 스크롤 개선.
 
