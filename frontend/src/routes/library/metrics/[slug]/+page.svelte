@@ -48,7 +48,8 @@
 	}
 
 	function selectPeriod(key: string) {
-		goto(`?period=${key}${pinned ? `&date=${pinned}` : ''}`);
+		const from = page.url.searchParams.get('from');
+		goto(`?period=${key}${pinned ? `&date=${pinned}` : ''}${from ? `&from=${from}` : ''}`, { replaceState: true, keepFocus: true });
 	}
 
 	// 입력 지표 행 → 같은 날짜·기간으로 그 지표 상세

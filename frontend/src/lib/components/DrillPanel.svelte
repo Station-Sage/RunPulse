@@ -15,12 +15,15 @@
 		scopeType,
 		scopeId,
 		answerChip = null,
+		fromTag = null,
 		children
 	}: {
 		scopeType: string;
 		scopeId: string;
 		/** Coach 답변 칩에서 연 근거 — 최상위 패널이 그 칩과 같을 때만 답변 당시 스냅샷 줄을 보인다. */
 		answerChip?: AnswerEvidence | null;
+		/** 추세 링크에 붙일 진입 출처(`?from=today`) — 상세 브레드크럼이 "‹ Today로" 칩을 보인다. */
+		fromTag?: 'today' | null;
 		children: Snippet;
 	} = $props();
 
@@ -34,6 +37,7 @@
 	const resolved = $derived(resolveDrillScope(parsedStack.at(-1)?.scope, scopeType, scopeId));
 	const currentScopeType = $derived(resolved.scopeType);
 	const currentScopeId = $derived(resolved.scopeId);
+	const fromQuery = $derived(fromTag ? `?from=${fromTag}` : '');
 	const isOpen = $derived(slugs.length > 0);
 	const snap = $derived(
 		answerChip && slugs.length === 1 && answerChip.metric === currentSlug && answerChip.drill?.scope_id === currentScopeId
@@ -168,7 +172,7 @@
 			</p>
 			{#if currentSlug}
 				<a
-					href="{base}/library/metrics/{currentSlug}"
+					href="{base}/library/metrics/{currentSlug}{fromQuery}"
 					class="self-start text-sm font-medium text-semantic-teal hover:underline">추세 보기 ›</a
 				>
 			{/if}
@@ -189,7 +193,7 @@
 		{/if}
 		<BreakdownView
 			{data}
-			trendHref="{base}/library/metrics/{currentSlug}"
+			trendHref="{base}/library/metrics/{currentSlug}{fromQuery}"
 			onDrillTerm={(token) => {
 				const t = parseDrillToken(token);
 				pushDrill(t.slug, t.scope ?? (currentScopeType === 'activity' ? `a${currentScopeId}` : currentScopeId));
