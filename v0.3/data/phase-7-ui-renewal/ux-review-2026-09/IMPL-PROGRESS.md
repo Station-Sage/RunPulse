@@ -329,3 +329,9 @@
 - A-11: 랩 탭(그룹 묶음 `lapGroups.ts`·`LapTable`), 소스 탭(3섹션·요약 한 줄·sticky 첫 열·`차이` 열·행 펼침, `providerSections.ts`), 메트릭 탭(섹션 4종+결론 한 줄·2줄 행·추정 태그·`?dev=1`에서만 `_unmapped`, `metricSections.ts`), 스트림 탭(트랙 칩 36px·시간|거리 축·크로스헤어 점·ⓘ 구현 노트).
 - 검증: 단위 331·check 0 오류·build OK·pytest 2095 통과, 실DB 사본 Playwright `pw/u6.mjs` 15/15. 커밋 f88311d, **운영 반영 2026-10-05**(ff 병합·`npm run build`, Dockerfile 변경 없음).
 - 다음: U7 A-12/A-13/A-14. U5(B-2)·U8(B-1)은 D-1~D-3 사용자 결정 대기.
+
+### U7 A-12~A-14 완료 (2026-10-05)
+- A-12: 빈 검색 결과 안내+`검색 지우기`, 고정값 카드는 서버 `flat_kind`(fixed/uncomputed; 최근 14일 값 있는 날 비율 <50%면 "계산 안 됨")로 문구 분리.
+- A-13: `monthTicks`(3m/6m 월 1일, 1y 분기) + `axisDateLabel`로 추세 x축 라벨(4w는 주 눈금 유지).
+- A-14: load 카테고리 헤드라인은 서버 `readiness_decision().headline`(프론트 임계값 없음).
+- 검증: pytest·unit 332·check·build·check_docs 통과, 실DB 사본 Playwright(`pw/u7.mjs`) 통과. 운영 반영 완료(39c4dd1).
