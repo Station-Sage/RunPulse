@@ -1,7 +1,10 @@
 <script lang="ts">
-	// 03c-library.md 3-B — 활동 목록. sport/날짜/거리/검색 필터 + 페이지네이션.
+	// 03c-library.md 3-B — 활동 목록. 기간(프리셋·월)/종목/거리/검색 필터(URL 동기화) + 페이지네이션.
 	// 모바일: 2-row 레이아웃으로 페이스·심박 항상 표시.
 	import type { ActivitiesPageData } from './+page';
+	import { replaceState } from '$app/navigation';
+	import { page as pageState } from '$app/state';
+	import { PRESETS, presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
 	import { formatDuration, formatPace } from '$lib/format';
@@ -13,17 +16,22 @@
 	import type { ActivitySummary } from '$lib/types';
 
 	let { data }: { data: ActivitiesPageData } = $props();
+	// 초기값만 쓰는 상태 시드 — 이후는 필터 조작이 소유(탐색 시 페이지가 새로 마운트됨)
+	const seed = () => data.filters;
 
 	let activities = $state<ActivitySummary[]>(data.result?.activities ?? []);
 	let total = $state(data.result?.total ?? 0);
 	let hasMore = $state(data.result?.has_more ?? false);
 	let errorMessage = $state(data.errorMessage);
-	let period = $state({ from: data.from, to: data.to });
+	let period = $state<{ from?: string; to?: string }>({ from: seed().from, to: seed().to });
+	let preset = $state<PeriodPreset | null>(seed().preset);
+	let month = $state(seed().month);
 
-	// 필터 상태 (기간 필터는 후속 — 네이티브 date input 제거)
-	let filterSport = $state('');
-	let filterSearch = $state('');
-	let filterDistMin = $state('');
+	let filterSport = $state(seed().sport);
+	let filterSearch = $state(seed().q);
+	let filterDistMin = $state(seed().distMin);
+	const months = recentMonths(data.today, 12);
+	const monthLabel = (m: string) => `${m.slice(0, 4)}년 ${Number(m.slice(5))}월`;
 	let currentPage = $state(1);
 	let loading = $state(false);
 
@@ -40,6 +48,30 @@
 		['21.1', '하프+'],
 		['42.2', '풀']
 	] as const;
+
+	function syncUrl() {
+		const qs = serializeFilters({
+			preset, month, from: period.from, to: period.to, sport: filterSport, distMin: filterDistMin, q: filterSearch
+		});
+		const u = new URL(pageState.url);
+		u.search = qs;
+		replaceState(u, pageState.state);
+	}
+
+	function pickPreset(p: PeriodPreset) {
+		preset = p;
+		month = '';
+		period = presetRange(p, data.today);
+		applyFilters();
+	}
+
+	function pickMonth(m: string) {
+		if (!m) return pickPreset('all');
+		preset = null;
+		month = m;
+		period = monthRange(m);
+		applyFilters();
+	}
 
 	function pick(kind: 'sport' | 'dist', value: string) {
 		if (kind === 'sport') filterSport = value;
@@ -87,6 +119,7 @@
 	}
 
 	function applyFilters() {
+		syncUrl();
 		loadPage(1, false);
 	}
 
@@ -112,7 +145,33 @@
 </div>
 
 <div class="flex flex-col gap-0">
-	{#if period.from}<div class="flex items-center gap-2 px-4 pt-3"><span class="rounded-full bg-surface-3 px-3 py-1 text-xs text-fg-primary">{period.from} ~ {period.to}</span><button type="button" class="flex items-center gap-1 text-xs text-fg-muted hover:text-fg-primary" onclick={() => { period = { from: undefined, to: undefined }; applyFilters(); }}>기간 해제 <Icon name="close" class="h-3 w-3" /></button></div>{/if}
+	<!-- 기간: 프리셋 + 월 선택 -->
+	<div class="flex flex-wrap items-center gap-1.5 px-4 pt-3" role="group" aria-label="기간">
+		{#each PRESETS as [v, label] (v)}
+			<button
+				type="button"
+				aria-pressed={preset === v}
+				onclick={() => pickPreset(v)}
+				class="rounded-full border px-3 py-1 text-xs {preset === v
+					? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
+					: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
+			>
+		{/each}
+		<select
+			aria-label="월 선택"
+			value={month}
+			onchange={(e) => pickMonth(e.currentTarget.value)}
+			class="rounded-full border px-3 py-1 text-xs {month
+				? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
+				: 'border-border-subtle bg-transparent text-fg-muted'}"
+		>
+			<option value="">월 선택</option>
+			{#each months as m (m)}<option value={m}>{monthLabel(m)}</option>{/each}
+		</select>
+		{#if preset === null && !month && period.from}
+			<span class="text-xs text-fg-muted">{period.from} ~ {period.to ?? ''}</span>
+		{/if}
+	</div>
 
 	<!-- 필터: 종목·거리 칩 + 검색 -->
 	<div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3">
