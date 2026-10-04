@@ -198,10 +198,12 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   10. **계정 설정 스키마(2-3)**·`sync_jobs` 열 확장(error_code 등)·4경로 오류 표면화.
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).
-  **구조·정리(설계 불요, 별도 소규모 작업)**: `metric_registry.py` 522줄·`ai_context.py` 300줄 초과 분리,
-  `engine_label("legacy_rule")` "규칙 답변" 문구, `HIGHER_IS_BETTER`(`metric_display.py`)의 `bands.py` 이동 여부,
-  미사용 코드(`lib/status.ts`·`metricMeaning.ts`·`raceHub.ts formBand`·`RecommendationCard`·`ScoreRing`) grep 확인 후 삭제,
-  10-docs §4·§7.2 `display_name_ko` 표기 → `name_ko`/`abbr`, 상세 페이지 하드코딩 `#3b82f6` 토큰화.
+  **구조·정리 — 2026-10-04 완료**: `metric_registry.py` → `metric_def.py`+`metric_defs_{layer1,load,misc}.py` 분리(파사드 유지),
+  `ai_context.py` → `ai_context_legacy.py` 분리, `engine_label("legacy_rule")` 단일화 + 오류·중단 행 엔진 뷰를 행 status 기준으로,
+  미사용 `RecommendationCard`·`ScoreRing`·`Meaning` 제거, 10-docs `display_name_ko` 정정, `#3b82f6` 토큰화.
+  **보류(사용자 결정)**: ① `ai_context.py`의 미사용 3함수(`build_daily_briefing`·`build_activity_analysis`·`build_ai_context`, 운영 호출처 없음,
+  `check_docs.py` 검사 19가 `def build_ai_context` 존재 확인) 삭제 여부 — 삭제 시 검사 19와 phase-5 문서도 정정.
+  ② `HIGHER_IS_BETTER` 이동은 현 위치 유지(레이어 다름), `template_helpers.py` 28키 사본은 Jinja 폐기 시 정리.
 
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어

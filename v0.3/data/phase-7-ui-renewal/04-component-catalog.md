@@ -531,6 +531,8 @@ type PainLevel = 'none' | 'mild' | 'moderate' | 'severe'
 
 ## C6. RecommendationCard
 
+> 2026-10-04: 컴포넌트 구현은 미사용으로 제거했다(`frontend`에 없음). 아래는 설계 기록이다.
+
 ### 역할
 
 AI가 생성한 권고를 구조화해 표시한다.  

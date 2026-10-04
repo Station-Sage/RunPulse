@@ -173,7 +173,7 @@ URL 표기는 §C3.3(`?drill=` 토큰 스택). "Today 복원" = 스크롤·펼�
 
 **권고 문장 규칙(F-DATA-06)**: 형식은 `{계획대로|하향 조정|상향 가능}: {세션} · {결정 근거 신호 1~2개}`이다. 입력은 CRS 게이트 5종(ACWR·HRV·BB·TSB·CIRS) + 체크인(피로 ≥7 또는 통증 ≥중간이면 1순위) + 계획 세션이다. Today·Coach·Plan 조정은 **같은 판정 함수** `readiness_decision(date)`를 쓴다(30 F-DATA-01의 "Today는 핵심 세션, Coach는 항상 휴식" 모순 제거). 근거 칩은 판정에 영향을 준 신호 2~3개만 쓴다. 투영값(레이스 아침 폼)은 조건부 문장으로만 쓴다(`계획대로 가면 약 +18 예상`).
 
-**용어(F-DATA-15)**: 화면 전체에서 `체력(CTL)`, `피로(ATL)`, `폼(TSB)`로 통일한다. 사전은 registry `display_name_ko`에 둔다. 분해 라벨의 `(parent: utrs)` 같은 내부 표기는 API 단계에서 제거한다.
+**용어(F-DATA-15)**: 화면 전체에서 `체력(CTL)`, `피로(ATL)`, `폼(TSB)`로 통일한다. 사전은 `src/utils/metric_labels.py`(`name_ko`+선택 `abbr`, API 필드명 동일)에 둔다. 분해 라벨의 `(parent: utrs)` 같은 내부 표기는 API 단계에서 제거한다.
 
 ---
 
@@ -239,7 +239,7 @@ D2: 트리거 pointerdown에서 분해를 선요청하고, 열리는 즉시 ①~
 | `src/metrics/pmc.py` | α = 원문 `1/τ`(DECISIONS 확정), 전일 값 이어받는 연속 재귀(창 절단 제거), `pmc_v2`로 전 기간 재계산. ACWR은 EWMA `2/(N+1)` 유지 | T·DATA-01, 21·DATA-01, 20·DATA-04 |
 | `src/metrics/trimp.py` | 남 `0.64·e^(1.92x)`, 여 `0.86·e^(1.67x)`, 성별은 프로필 | T·DATA-02 |
 | 아침 폼 | `tsb_morning`(D−1 종료)을 판정·게이지·UTRS 입력으로. 당일 `frac` 감쇠값은 `tsb_live`로 차트 잠정 점에만 | T·DATA-03, 21·DATA-07 |
-| 등급 SSOT | `metric_registry`에 `bands`·`higher_is_better`·`display_name_ko`·`unit`·`decimal_places`. API 값마다 `status`·`status_label`·`unit`. `check_data_consistency.py`에 "프론트 등급표 존재 시 실패" | T·DATA-04·15, 21·DATA-02·10·13 |
+| 등급 SSOT | `bands.py`(등급)·`metric_display.py`(`higher_is_better`·`unit`·`decimal_places`)·`metric_labels.py`(`name_ko`·`abbr`). API 값마다 `status`·`status_label`·`unit`. `check_data_consistency.py`에 "프론트 등급표 존재 시 실패" | T·DATA-04·15, 21·DATA-02·10·13 |
 | `readiness_decision()` | `today_service`·`race_hub_service`·`chat_engine_rules`·계획 조정이 공용 사용, 등급 키 enum | T·DATA-06, 30·DATA-01 |
 | UTRS v2 / CIRS v2 | HRV·RHR 개인 60일 기준선, BB 제외 또는 대체 입력 / ACWR 비대칭 위험, 피로 항 ATL/CTL, 연속일은 러닝만 | T·DATA-11·12, 21·DATA-07·08 |
 | 주간 이행 | `week_compliance`(날짜별 유효 계획 기준, 31 설계와 한 함수) | T·DATA-05, 31·DATA-01 |
