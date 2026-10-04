@@ -6,7 +6,8 @@
 	import MetricAbout from '$lib/components/MetricAbout.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
-	import { changeLabel } from '$lib/trendChart';
+	import { changeLabel, periodChange } from '$lib/trendChart';
+	import { formatMetric } from '$lib/format';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -55,11 +56,27 @@
 		goto(`${base}/library/metrics/${slug}?period=${data.period}${panelDate ? `&date=${panelDate}` : ''}`);
 	}
 
-	function formatPeak(trend: typeof data.trend): string {
-		if (!trend?.peak) return '—';
-		const v = typeof trend.peak.value === 'number' ? trend.peak.value.toFixed(1) : '—';
-		return `${v}${trend.unit ? ' ' + trend.unit : ''} (${trend.peak.date})`;
-	}
+	const change = $derived(periodChange(points));
+	const changeMain = $derived(
+		change ? (change.pct != null ? `${change.delta >= 0 ? '+' : '−'}${Math.abs(change.pct).toFixed(1)}%` : changeLabel(points)) : '—'
+	);
+	const changeSub = $derived.by(() => {
+		if (!change || !data.trend) return '';
+		const signed = data.trend.format === 'signed';
+		const v = formatMetric(data.trend, signed ? change.delta : Math.abs(change.delta));
+		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${data.trend.unit ?? ''}`.trim();
+	});
+	const changeTone = $derived.by(() => {
+		const hib = data.trend?.higher_is_better;
+		if (!change || hib == null || change.delta === 0) return '';
+		return change.delta > 0 === hib ? 'text-delta-better' : 'text-delta-worse';
+	});
+	const peakDate = $derived.by(() => {
+		const d = data.trend?.peak?.date;
+		if (!d) return '';
+		const [, m, day] = d.split('-');
+		return `${Number(m)}월 ${Number(day)}일`;
+	});
 </script>
 
 <svelte:head><title>{data.trend?.label ?? data.slug} · RunPulse</title></svelte:head>
@@ -99,22 +116,20 @@
 	<div class="flex flex-col gap-4 lg:col-span-8">
 		<!-- 현재값·변화율·피크 요약 -->
 		<div class="grid grid-cols-3 gap-2">
-			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">현재</span>
-				<span class="font-mono text-xl font-bold">
-					{data.trend.current != null ? data.trend.current.toFixed(1) : '—'}
-				</span>
-				{#if data.trend.unit}
-					<span class="text-xs text-fg-muted">{data.trend.unit}</span>
-				{/if}
+			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
+				<span class="text-xs text-fg-secondary">현재</span>
+				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, data.trend.current)}</span>
+				<span class="text-xs text-fg-muted">{data.trend.unit || '\u00a0'}</span>
 			</div>
-			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">30일 변화</span>
-				<span class="font-mono text-xl font-bold">{changeLabel(points)}</span>
+			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
+				<span class="text-xs text-fg-secondary">선택 기간 변화</span>
+				<span class="font-mono text-xl font-bold tabular-nums {changeTone}">{changeMain}</span>
+				<span class="text-xs text-fg-muted">{changeSub || '\u00a0'}</span>
 			</div>
-			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-muted">피크</span>
-				<span class="text-xs font-medium">{formatPeak(data.trend)}</span>
+			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
+				<span class="text-xs text-fg-secondary">피크</span>
+				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, data.trend.peak?.value)}</span>
+				<span class="text-xs text-fg-muted">{peakDate || '\u00a0'}</span>
 			</div>
 		</div>
 

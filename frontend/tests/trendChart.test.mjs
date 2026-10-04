@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { commonRange, xFraction, nearestPoint, changeLabel } from '../src/lib/trendChart.ts';
+import { commonRange, xFraction, nearestPoint, changeLabel, periodChange } from '../src/lib/trendChart.ts';
 
 const S = (key, values) => ({
 	key,
@@ -119,4 +119,13 @@ test('dateAtOffset: 월 경계를 넘는 일 단위 오프셋', async () => {
 	const { dateAtOffset } = await import('../src/lib/trendChart.ts');
 	assert.equal(dateAtOffset('2026-09-28', 0), '2026-09-28');
 	assert.equal(dateAtOffset('2026-09-28', 5), '2026-10-03');
+});
+
+test('periodChange: 첫 점→끝 점 변화와 퍼센트, 점 부족·0 기준 처리', () => {
+	const pts = S('a', [50, 55, 44]).points;
+	const r = periodChange(pts);
+	assert.equal(r.delta, -6);
+	assert.ok(Math.abs(r.pct - -12) < 1e-9);
+	assert.equal(periodChange(pts.slice(0, 1)), null);
+	assert.equal(periodChange(S('a', [0, 3]).points).pct, null);
 });

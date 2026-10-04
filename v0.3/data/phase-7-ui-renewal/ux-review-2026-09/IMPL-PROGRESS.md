@@ -297,3 +297,4 @@
 - S2 1차 완료: `/trend`에 `bands`(bands.band_ranges), TrendChart에 등급 밴드·기준선(p25~p75·평균)·7일 이동평균·결측 끊김·동적 aria-label(`trendChart.ts` movingAverage/splitOnGaps/spanRange). Playwright(`pw/s2_trend.mjs`) 검증. 좌측 y축 거터(최대·중간·최소)·주 경계 x틱(≤35일)·마지막 점 추가(`weekTicks`, 브라우저 검증). 남음(S2 나머지): 이벤트 마커(▲대회·◆버전)·Sparkline min_span(`spanRange`)·`?date=` selectedDate(S3와 함께).
 - 남음: S1b PMC decay·GAP(보류), S3 설명·분해 인라인, S4 서브탭·검색·정렬("오늘 주목할 지표"), 운영 반영 2026-10-03 기록.
 - S3 진행(2026-10-04): `?date=` 선택일 인라인 분해 패널(`BreakdownPanel`)·입력 지표 행 drillTerm(같은 기간·날짜로 이동)·데스크톱 8/4 열 + `MetricAbout`("이 지표는", 모바일 접힘) 완료, Playwright(`pw/s3_breakdown|s3_drillterm|s3_layout.mjs`) 검증. 남음: 요약 카드 문법 통일(현재/피크/3개월 변화), 예측계열 `ContributionBars`·`PredictionEvidence`, `#3b82f6` 토큰 교체.
+- S3 추가(2026-10-04): 요약 카드 문법 통일(현재/선택 기간 변화(%·절대값·의미색)/피크(M월 D일)) + 하드코딩 #3b82f6→series 토큰. 남음: ContributionBars·PredictionEvidence(예측군), Today 시트 링크.

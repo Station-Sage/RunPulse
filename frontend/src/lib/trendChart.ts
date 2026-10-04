@@ -140,3 +140,11 @@ export function dateAtOffset(t0: string, offset: number): string {
 	d.setUTCDate(d.getUTCDate() + offset);
 	return d.toISOString().slice(0, 10);
 }
+
+/** 선택 기간 전체(첫 점→마지막 점)의 변화. 점이 2개 미만이면 null. pct는 첫 값이 0이면 null. */
+export function periodChange(points: TrendPoint[]): { delta: number; pct: number | null } | null {
+	if (points.length < 2) return null;
+	const first = points[0].value;
+	const delta = points[points.length - 1].value - first;
+	return { delta, pct: first !== 0 ? (delta / Math.abs(first)) * 100 : null };
+}
