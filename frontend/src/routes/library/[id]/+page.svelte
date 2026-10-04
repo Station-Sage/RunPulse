@@ -14,6 +14,9 @@
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
 	import { impactLines } from '$lib/activityImpact';
+	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
+	import { parseSeg } from '$lib/activityUrlState';
 	import { createActivitySelection } from '$lib/stores/activitySelection';
 
 	let { data }: { data: ActivityPageData } = $props();
@@ -29,6 +32,20 @@
 	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
 
 	const selection = createActivitySelection();
+	// 지도·스플릿 구간·경로 색 선택은 새로고침·공유 후에도 복원된다(`?seg=`·`?map=hr`, replaceState).
+	const initialSeg = parseSeg(page.url.searchParams.get('seg'));
+	if (initialSeg != null) selection.update((s) => ({ ...s, seg: initialSeg }));
+	const initialMap = page.url.searchParams.get('map') === 'hr' ? 'hr' : 'pace';
+	function syncUrl(key: string, value: string | null) {
+		const u = new URL(page.url);
+		if (value) u.searchParams.set(key, value);
+		else u.searchParams.delete(key);
+		replaceState(u, page.state);
+	}
+	function selectSeg(seg: number | null) {
+		selection.update((s) => ({ ...s, seg }));
+		syncUrl('seg', seg == null ? null : String(seg));
+	}
 	const zoneTotal = $derived(zones ? zones.sec.reduce((a, b) => a + b, 0) : 0);
 	const ZONE_OPACITY = ['opacity-30', 'opacity-45', 'opacity-60', 'opacity-80', 'opacity-100'];
 
@@ -85,10 +102,10 @@
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			{#if series}
-				<RouteMap {series} selectedSeg={$selection.seg} cursorDist={$selection.cursorDist} onSelect={(seg) => selection.update((s) => ({ ...s, seg }))} />
+				<RouteMap {series} selectedSeg={$selection.seg} cursorDist={$selection.cursorDist} onSelect={selectSeg} initialMode={initialMap} onModeChange={(m) => syncUrl('map', m === 'hr' ? 'hr' : null)} />
 			{/if}
 			{#if splits.length > 0}
-				<SplitBars {splits} selectedSeg={$selection.seg} onSelect={(seg) => selection.update((s) => ({ ...s, seg }))} />
+				<SplitBars {splits} selectedSeg={$selection.seg} onSelect={selectSeg} />
 			{/if}
 		</div>
 

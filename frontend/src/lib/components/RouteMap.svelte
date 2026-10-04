@@ -16,15 +16,20 @@
 		series,
 		selectedSeg = null,
 		cursorDist = null,
-		onSelect
+		onSelect,
+		initialMode = 'pace',
+		onModeChange
 	}: {
 		series: ActivitySeries | null | undefined;
 		selectedSeg?: number | null;
 		cursorDist?: number | null;
 		onSelect?: (seg: number | null) => void;
+		initialMode?: 'pace' | 'hr';
+		onModeChange?: (mode: 'pace' | 'hr') => void;
 	} = $props();
 
-	let mode = $state<'pace' | 'hr'>('pace');
+	// svelte-ignore state_referenced_locally
+	let mode = $state<'pace' | 'hr'>(initialMode);
 
 	const sr = $derived(routeFromSeries(series));
 	const ranges = $derived(sr ? rangesOf(sr) : null);
@@ -71,7 +76,10 @@
 						<button
 							type="button"
 							aria-pressed={mode === key}
-							onclick={() => (mode = key as 'pace' | 'hr')}
+							onclick={() => {
+							mode = key as 'pace' | 'hr';
+							onModeChange?.(mode);
+						}}
 							class="min-h-7 text-xs {mode === key ? 'text-fg-primary underline' : 'text-fg-muted'}"
 							>{label}</button
 						>
