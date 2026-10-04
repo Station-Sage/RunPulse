@@ -323,3 +323,9 @@
 - A-8: 메트릭 상세의 v1 MetricBreakdown 바텀시트 제거 — 미지원 슬러그도 `openDrill`로 DrillPanel 간이 카드(추세 링크)를 연다.
 - A-9: 활동 상세 요약·메트릭 탭이 자체 drillStack + MetricBreakdown 대신 `DrillPanel scopeType=activity`(URL `?drill=` 스택, Esc/←/딥링크)를 쓴다.
 - 검증: 단위 318·check 0 오류·build OK, 실DB 사본 Playwright `pw/u4.mjs` 4항목 통과(딥링크 복원·미지원 간이 카드·행→URL 스택·Esc 닫기). 2단 스택 ← 팝은 DrillPanel 기존 동작에 의존(미개별검증).
+
+### U6 A-10/A-11 완료 (2026-10-05)
+- A-10(34ffcde): 활동 상세 헤더·요약 재구성.
+- A-11: 랩 탭(그룹 묶음 `lapGroups.ts`·`LapTable`), 소스 탭(3섹션·요약 한 줄·sticky 첫 열·`차이` 열·행 펼침, `providerSections.ts`), 메트릭 탭(섹션 4종+결론 한 줄·2줄 행·추정 태그·`?dev=1`에서만 `_unmapped`, `metricSections.ts`), 스트림 탭(트랙 칩 36px·시간|거리 축·크로스헤어 점·ⓘ 구현 노트).
+- 검증: 단위 331·check 0 오류·build OK·pytest 2095 통과, 실DB 사본 Playwright `pw/u6.mjs` 15/15. 커밋 f88311d, **운영 반영 2026-10-05**(ff 병합·`npm run build`, Dockerfile 변경 없음).
+- 다음: U7 A-12/A-13/A-14. U5(B-2)·U8(B-1)은 D-1~D-3 사용자 결정 대기.
