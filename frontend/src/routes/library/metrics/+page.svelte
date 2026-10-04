@@ -3,6 +3,7 @@
 	// P3 Provider Transparency: 카드 Provider 배지 + [모든 Provider] 칩 필터.
 	import type { MetricsBrowserPageData } from './+page';
 	import Sparkline from '$lib/components/Sparkline.svelte';
+	import Toast from '$lib/components/Toast.svelte';
 	import { base } from '$app/paths';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
@@ -69,8 +70,15 @@
 	// 핵심 지표 — 전체 보기에서 맨 위에 크게. 나머지는 카테고리별, 보조 카테고리(수면·심박 세부·환경)는 접어 둔다.
 	let pins = $state<string[]>(loadPins());
 	const CORE = $derived(pins);
+	let toast = $state<{ name: string; pinned: boolean } | null>(null);
 	function pin(name: string) {
 		pins = togglePin(pins, name);
+		savePins(pins);
+		toast = { name, pinned: pins.includes(name) };
+	}
+	function undoPin() {
+		if (!toast) return;
+		pins = togglePin(pins, toast.name);
 		savePins(pins);
 	}
 	const COLLAPSED = new Set(['sleep', 'hr', 'weather']);
@@ -266,3 +274,10 @@
 		{/each}
 	</div>
 {/if}
+
+<Toast
+	open={toast !== null}
+	message={toast?.pinned ? '내 지표에 고정했어요' : '내 지표에서 해제했어요'}
+	onUndo={undoPin}
+	onDismiss={() => (toast = null)}
+/>
