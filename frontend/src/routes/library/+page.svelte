@@ -3,9 +3,10 @@
 	import type { LibraryHomeData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { providerHint } from '$lib/providerHint';
-	import { formatDistance, formatDuration, formatPace, formatDate, formatRelativeTime } from '$lib/format';
+	import { formatRelativeTime } from '$lib/format';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
+	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import ArchiveHero from '$lib/components/ArchiveHero.svelte';
 	import SourceCoverage from '$lib/components/SourceCoverage.svelte';
 
@@ -32,32 +33,7 @@
 	{:else}
 		<ul class="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface-2">
 			{#each data.recentActivities as act (act.id)}
-				<li>
-					<a
-						href="{base}/library/{act.id}"
-						class="flex items-center gap-2 px-3 py-2.5 hover:bg-surface-3 active:bg-surface-3"
-					>
-						<span class="w-20 shrink-0 text-xs text-fg-muted">{formatDate(act.start_time)}</span>
-						<span class="min-w-0 flex-1 truncate text-sm font-medium">{act.name}</span>
-						<span class="hidden text-sm text-fg-secondary sm:inline">
-							{act.distance_m != null ? formatDistance(act.distance_m) : '—'}
-						</span>
-						<span class="hidden text-sm text-fg-secondary sm:inline">
-							{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}
-						</span>
-						<span class="hidden text-xs text-fg-secondary sm:inline">
-							{act.avg_pace_sec_km != null ? formatPace(act.avg_pace_sec_km) : ''}
-						</span>
-						<span
-							class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
-								act.source as ProviderKey
-							)}"
-						>
-							{providerLabel(act.source as ProviderKey)}
-						</span>
-						<span class="text-fg-muted">›</span>
-					</a>
-				</li>
+				<li><ActivityRow {act} from="home" showProvider /></li>
 			{/each}
 		</ul>
 		<div class="mt-2 flex justify-end">

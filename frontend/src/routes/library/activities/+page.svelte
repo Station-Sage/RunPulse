@@ -7,12 +7,10 @@
 	import { PRESETS, presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
 	import { getActivities } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
-	import { formatDuration, formatPace } from '$lib/format';
-	import { weekGroups, dayLabel } from '$lib/activityList';
+	import { formatDuration } from '$lib/format';
+	import { weekGroups } from '$lib/activityList';
 	import { activityFlag, medianPace } from '$lib/activityFlags';
-	import RouteThumb from '$lib/components/RouteThumb.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import { base } from '$app/paths';
+	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import type { ActivitySummary } from '$lib/types';
 
 	let { data }: { data: ActivitiesPageData } = $props();
@@ -239,29 +237,7 @@
 				<ul class="divide-y divide-border-subtle">
 					{#each g.items as act (act.id)}
 						{@const flag = activityFlag(act, median)}
-						<li>
-							<a
-								href="{base}/library/{act.id}"
-								class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-2 active:bg-surface-3"
-							>
-								<RouteThumb route={act.route} />
-								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span class="truncate text-sm font-medium">{act.name}</span>
-									<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
-										<span>{dayLabel(act.start_time)}</span>
-										{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
-										{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
-										{#if flag}<span class="flex items-center gap-0.5 text-[10px] text-semantic-amber" title={flag.title}><Icon name="warning" class="h-3 w-3" /> {flag.label}</span>{/if}
-									</div>
-								</div>
-								<div class="flex shrink-0 flex-col items-end">
-									<span class="font-mono text-lg font-bold leading-tight"
-										>{act.distance_m != null ? (act.distance_m / 1000).toFixed(1) : '—'}<span class="text-[10px] font-normal text-fg-muted"> km</span></span
-									>
-									<span class="font-mono text-xs text-fg-muted">{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
-								</div>
-							</a>
-						</li>
+							<li><ActivityRow {act} from="list" {flag} /></li>
 					{/each}
 				</ul>
 			</section>
