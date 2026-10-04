@@ -14,35 +14,6 @@
 
 <svelte:head><title>Library · RunPulse</title></svelte:head>
 
-<!-- 섹션 탭 -->
-<nav class="flex border-b border-border-subtle">
-	<a
-		href="{base}/library"
-		class="flex-1 border-b-2 border-fg-primary py-3 text-center text-sm font-medium text-fg-primary"
-		aria-current="page"
-	>
-		활동
-	</a>
-	<a
-		href="{base}/library/metrics"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		메트릭
-	</a>
-	<a
-		href="{base}/library/wellness"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		웰니스
-	</a>
-	<a
-		href="{base}/library/providers"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		Provider 비교
-	</a>
-</nav>
-
 <ArchiveHero archive={data.archive} />
 
 <!-- 최근 활동 -->

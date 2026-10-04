@@ -104,7 +104,6 @@
 
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library로">←</a>
 	<h1 class="text-base font-semibold">메트릭 브라우저</h1>
 	{#if data.browser?.date}
 		<span class="ml-auto text-xs text-fg-muted">{data.browser.date}</span>

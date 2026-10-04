@@ -137,7 +137,6 @@
 
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library 홈으로">←</a>
 	<h1 class="text-base font-semibold">활동 목록</h1>
 	{#if total > 0}
 		<span class="ml-auto text-xs text-fg-muted">{total}건</span>

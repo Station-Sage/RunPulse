@@ -2,7 +2,6 @@
 	// 03c-library.md 3-G — 웰니스 탭. 코어 카드 + Readiness 요약 + 트렌드 스파크라인.
 	import type { WellnessPageData } from './+page';
 	import Sparkline from '$lib/components/Sparkline.svelte';
-	import { base } from '$app/paths';
 
 	let { data }: { data: WellnessPageData } = $props();
 
@@ -24,35 +23,6 @@
 </script>
 
 <svelte:head><title>웰니스 · RunPulse</title></svelte:head>
-
-<!-- 헤더 탭 바 -->
-<nav class="flex border-b border-border-subtle">
-	<a
-		href="{base}/library"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		활동
-	</a>
-	<a
-		href="{base}/library/metrics"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		메트릭
-	</a>
-	<a
-		href="{base}/library/wellness"
-		class="flex-1 border-b-2 border-fg-primary py-3 text-center text-sm font-medium text-fg-primary"
-		aria-current="page"
-	>
-		웰니스
-	</a>
-	<a
-		href="{base}/library/providers"
-		class="flex-1 py-3 text-center text-sm text-fg-muted hover:text-fg-secondary"
-	>
-		Provider 비교
-	</a>
-</nav>
 
 {#if data.errorMessage && !data.detail}
 	<div class="px-4 py-8 text-center">

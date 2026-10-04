@@ -3,7 +3,6 @@
 	import type { ProvidersMatrixPageData } from './+page';
 	import ProviderComparison from '$lib/components/ProviderComparison.svelte';
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 
 	let { data }: { data: ProvidersMatrixPageData } = $props();
 
@@ -22,7 +21,6 @@
 
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library로">←</a>
 	<h1 class="text-base font-semibold">Provider 정체성 매트릭스</h1>
 </div>
 
