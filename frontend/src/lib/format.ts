@@ -44,6 +44,12 @@ export function weekProgressLabel(weekIndex: number, planWeeks?: number | null):
 	return planWeeks ? `${weekIndex}주차 / ${planWeeks}주` : `${weekIndex}주차`;
 }
 
+/** 값 자체가 시간/페이스 표기(h:mm:ss, m:ss)로 단위가 내장된 경우 단위 라벨을 숨긴다. */
+export function displayUnit(unit: string | null | undefined): string {
+	if (!unit || unit === 'sec' || unit === 'sec/km') return '';
+	return unit;
+}
+
 export function formatUnitValue(value: number, unit: string): { display: string; unit: string } {
 	if (unit === 'sec') {
 		return { display: formatDuration(value), unit: '' };

@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const BASE='http://localhost:5199', API='http://localhost:18098';
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1100,height:900}});
+await ctx.route('**/api/v1/**', r=>r.continue({url:r.request().url().replace(/^https?:\/\/[^/]+/,API)}));
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(`${BASE}/v2/library/metrics/race_pred_marathon_sec?period=3m`,{waitUntil:'networkidle'});
+const t=await p.locator('main').innerText().catch(()=>p.innerText('body'));
+console.log(/\bsec\b/.test(t)?'FAIL sec shown':'ok no sec', /\d{4,}\.\d/.test(t)?'FAIL raw secs':'ok');
+console.log(t.slice(0,400).replace(/\n+/g,' | '));
+await p.screenshot({path:'shots/metric_time_fmt.png'});
+console.log('errors',errs.length); await b.close();

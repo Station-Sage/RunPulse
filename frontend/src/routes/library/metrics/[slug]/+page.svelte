@@ -7,7 +7,7 @@
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
-	import { formatMetric } from '$lib/format';
+	import { displayUnit, formatMetric } from '$lib/format';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -64,7 +64,7 @@
 		if (!change || !data.trend) return '';
 		const signed = data.trend.format === 'signed';
 		const v = formatMetric(data.trend, signed ? change.delta : Math.abs(change.delta));
-		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${data.trend.unit ?? ''}`.trim();
+		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${displayUnit(data.trend.unit)}`.trim();
 	});
 	const changeTone = $derived.by(() => {
 		const hib = data.trend?.higher_is_better;
@@ -87,8 +87,8 @@
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<a href="{base}/library/metrics" class="shrink-0 text-fg-muted" aria-label="메트릭 브라우저로">←</a>
 	<h1 class="text-base font-semibold">{data.trend?.label ?? data.slug}</h1>
-	{#if data.trend?.unit}
-		<span class="text-xs text-fg-muted">({data.trend.unit})</span>
+	{#if displayUnit(data.trend?.unit)}
+		<span class="text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>
 	{/if}
 </div>
 
@@ -119,7 +119,7 @@
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-secondary">현재</span>
 				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, data.trend.current)}</span>
-				<span class="text-xs text-fg-muted">{data.trend.unit || '\u00a0'}</span>
+				<span class="text-xs text-fg-muted">{displayUnit(data.trend.unit) || '\u00a0'}</span>
 			</div>
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
 				<span class="text-xs text-fg-secondary">선택 기간 변화</span>
@@ -138,7 +138,8 @@
 			<div class="rounded-xl bg-surface-2 p-3">
 				<TrendChart
 					series={[{ key: data.slug, label: data.trend.label, color: 'var(--color-series-1)', points }]}
-					unit={data.trend.unit}
+					unit={displayUnit(data.trend.unit)}
+					formatValue={(v) => formatMetric(data.trend!, v)}
 					bands={data.trend.bands ?? []}
 					baseline={data.trend.baseline ?? null}
 					smooth={data.period === '3m' || data.period === '6m' || data.period === '1y'}

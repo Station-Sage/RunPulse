@@ -59,3 +59,11 @@ test('정수는 소수점 없이(48 ms → "48", 58 → "58")', () => {
 test('소수 끝 0은 제거(3.04 → "3")', () => {
 	assert.equal(formatUnitValue(3.04, '').display, '3');
 });
+
+test('displayUnit: 시간·페이스 단위는 숨김', async () => {
+	const { displayUnit } = await import('../src/lib/format.ts');
+	assert.equal(displayUnit('sec'), '');
+	assert.equal(displayUnit('sec/km'), '');
+	assert.equal(displayUnit(null), '');
+	assert.equal(displayUnit('bpm'), 'bpm');
+});
