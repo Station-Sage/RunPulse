@@ -318,3 +318,8 @@
 - A-6: 패널 높이 예약(min-h 22rem). 차트 pointerdown 프리페치는 미구현(핀 시점 fetch로 충분, 필요 시 재검토).
 - A-7: 서버 `meaning.personal`("지금 N — 등급. 90일 평균 M보다 높아요/낮아요", 표본 14 미만이면 생략) + 패널 표시.
 - 실 DB 스모크(utrs/cirs/rri) 통과, pytest 2095 통과.
+
+### U4 A-8/A-9 완료 (2026-10-05)
+- A-8: 메트릭 상세의 v1 MetricBreakdown 바텀시트 제거 — 미지원 슬러그도 `openDrill`로 DrillPanel 간이 카드(추세 링크)를 연다.
+- A-9: 활동 상세 요약·메트릭 탭이 자체 drillStack + MetricBreakdown 대신 `DrillPanel scopeType=activity`(URL `?drill=` 스택, Esc/←/딥링크)를 쓴다.
+- 검증: 단위 318·check 0 오류·build OK, 실DB 사본 Playwright `pw/u4.mjs` 4항목 통과(딥링크 복원·미지원 간이 카드·행→URL 스택·Esc 닫기). 2단 스택 ← 팝은 DrillPanel 기존 동작에 의존(미개별검증).

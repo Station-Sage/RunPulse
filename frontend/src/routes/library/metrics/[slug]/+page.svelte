@@ -4,7 +4,6 @@
 	import TrendChart from '$lib/components/TrendChart.svelte';
 	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
 	import MetricAbout from '$lib/components/MetricAbout.svelte';
-	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
 	import { displayUnit, formatMetric } from '$lib/format';
@@ -26,8 +25,6 @@
 		{ key: '6m', label: '6개월' },
 		{ key: '1y', label: '1년' }
 	];
-
-	let breakdownOpen = $state(false);
 
 	const points = $derived(data.trend?.points ?? []);
 	const latestDate = $derived(points.at(-1)?.date ?? '');
@@ -187,9 +184,8 @@
 		<!-- 계산 분해 / Provider 비교 버튼 -->
 		<div class="flex gap-2">
 			<button
-				class:hidden={explainSupported}
 				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
-				onclick={() => (explainSupported ? openDrill(data.slug) : (breakdownOpen = true))}
+				onclick={() => openDrill(data.slug)}
 				disabled={!latestDate}
 			>
 				계산 분해 보기
@@ -198,15 +194,6 @@
 		</div>
 	</div>
 
-	<!-- 계산 분해 바텀시트(v1 — explain=1 미지원 슬러그만) -->
-	{#if breakdownOpen && latestDate && !explainSupported}
-		<MetricBreakdown
-			slug={data.slug}
-			scopeType="daily"
-			scopeId={latestDate}
-			onClose={() => (breakdownOpen = false)}
-		/>
-	{/if}
 {:else}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">데이터 수집 중</p>

@@ -1,17 +1,15 @@
 <script lang="ts">
 	// 03c-library.md 3-C 메트릭 탭 — 이 활동의 대표(is_primary) 메트릭 전체를 카테고리별로.
-	// 행을 누르면 계산 분해(MetricBreakdown, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
+	// 행을 누르면 계산 분해(DrillPanel, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
 	import type { MetricsTabPageData } from './+page';
-	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import DrillPanel from '$lib/components/DrillPanel.svelte';
+	import { openDrill } from '$lib/drillStack';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { categoryLabel, formatMetricValue, metricUnit, sortCategories } from '$lib/metrics';
-	import type { DrillTarget } from '$lib/evidence';
 	import { base } from '$app/paths';
 	import type { ActivityMetric, ProviderKey } from '$lib/types';
 	let { data }: { data: MetricsTabPageData } = $props();
 	let query = $state('');
-	let drillStack = $state<DrillTarget[]>([]);
-	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 	function matches(m: ActivityMetric): boolean {
 		const q = query.trim().toLowerCase();
 		if (!q) return true;
@@ -25,23 +23,11 @@
 	const total = $derived(
 		Object.values(data.metricsByCategory).reduce((n, items) => n + items.length, 0)
 	);
-	function openDrill(slug: string) {
-		drillStack = [...drillStack, { slug, scopeType: 'activity', scopeId: String(data.activityId) }];
-	}
-	function handleDrillInput(slug: string) {
-		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
-		drillStack = [
-			...drillStack,
-			{
-				slug,
-				scopeType: top?.scopeType ?? 'activity',
-				scopeId: top?.scopeId ?? String(data.activityId)
-			}
-		];
-	}
 </script>
 
 <svelte:head><title>활동 메트릭 · RunPulse</title></svelte:head>
+
+<DrillPanel scopeType="activity" scopeId={String(data.activityId)}>
 
 {#if data.errorMessage && total === 0}
 	<div class="px-4 py-8 text-center">
@@ -79,4 +65,4 @@
 		{/if}
 	</div>
 {/if}
-{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}
+</DrillPanel>

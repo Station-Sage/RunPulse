@@ -3,12 +3,12 @@
 	import type { ActivityPageData } from './+page';
 	import RouteMap from '$lib/components/RouteMap.svelte';
 	import MetricCell from '$lib/components/MetricCell.svelte';
-	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import DrillPanel from '$lib/components/DrillPanel.svelte';
+	import { openDrill } from '$lib/drillStack';
 	import { providerLabel } from '$lib/provider';
 	import { formatDuration, formatPace, formatUnitValue } from '$lib/format';
 	import { formatMetricValue, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
-	import type { DrillTarget } from '$lib/evidence';
 	import type { ProviderKey } from '$lib/types';
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
@@ -32,19 +32,14 @@
 	const zoneTotal = $derived(zones ? zones.sec.reduce((a, b) => a + b, 0) : 0);
 	const ZONE_OPACITY = ['opacity-30', 'opacity-45', 'opacity-60', 'opacity-80', 'opacity-100'];
 
-	let drillStack = $state<DrillTarget[]>([]);
-	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
 	function openMetric(slug: string) {
-		if (!core) return;
-		drillStack = [...drillStack, { slug, scopeType: 'activity', scopeId: String(core.id) }];
-	}
-	function handleDrillInput(slug: string) {
-		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
-		drillStack = [...drillStack, { slug, scopeType: top?.scopeType ?? 'activity', scopeId: top?.scopeId ?? String(core?.id ?? '') }];
+		openDrill(slug);
 	}
 </script>
 
 <svelte:head><title>{core?.name ?? '활동 상세'} · RunPulse</title></svelte:head>
+
+<DrillPanel scopeType="activity" scopeId={String(core?.id ?? '')}>
 
 {#if !core}
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">
@@ -171,4 +166,4 @@
 {#if core}
 	<a href="{base}/coach/new?activity={core.id}" class="fixed inset-x-4 bottom-[4.5rem] z-20 flex h-14 items-center justify-center rounded-xl bg-fg-primary text-sm font-medium text-surface-1 shadow-lg md:hidden" data-testid="ask-coach-cta">코치에게 묻기</a>
 {/if}
-{#if drillTop}<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />{/if}
+</DrillPanel>
