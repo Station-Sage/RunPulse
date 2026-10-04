@@ -17,6 +17,21 @@ export function gapVerdict(gapSec: number | null): { tone: GapTone; label: strin
 		: { tone: 'behind', label: `목표보다 ${text} 느림` };
 }
 
+/**
+ * 목표 달성 가능성 — 필요 개선율 = (예측−목표)/예측 %. 신뢰도 <0.5면 % 대신 null(범위 표기로 대체).
+ * 목표보다 이미 빠르면 null(개선 필요 없음).
+ */
+export function requiredImprovement(
+	gapSec: number | null,
+	valueSec: number,
+	confidence: number | null | undefined
+): { pct: number; label: string } | null {
+	if (gapSec == null || gapSec <= 0 || valueSec <= 0) return null;
+	if (confidence != null && confidence < 0.5) return null;
+	const pct = Math.round((gapSec / valueSec) * 1000) / 10;
+	return { pct, label: `목표까지 약 ${pct}% 단축 필요` };
+}
+
 /** D-day 문구: 0이면 'D-DAY', 양수 'D-31', 음수 'D+3'. */
 export function countdownLabel(daysLeft: number): string {
 	if (daysLeft === 0) return 'D-DAY';

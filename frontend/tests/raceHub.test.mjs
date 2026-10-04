@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gapVerdict, countdownLabel, distanceLabel, signedTsb, raceSummaryParts, trendDelta } from '../src/lib/raceHub.ts';
+import { requiredImprovement, gapVerdict, countdownLabel, distanceLabel, signedTsb, raceSummaryParts, trendDelta } from '../src/lib/raceHub.ts';
 // formBand 등급 판정은 서버 src/metrics/bands.py로 이동 — tests/test_metric_bands.py
 
 test('gapVerdict: null은 unknown, 60초 미만은 on', () => {
@@ -55,4 +55,12 @@ test('trendDelta: 빨라짐·느려짐·변화 없음·점 부족', () => {
 	assert.equal(trendDelta(h(13200, 13290)).label, '90일간 1분 30초 느려짐');
 	assert.equal(trendDelta(h(13200, 13210)).label, '90일간 거의 변화 없음');
 	assert.equal(trendDelta([{ date: 'a', value: 1 }]), null);
+});
+
+test('requiredImprovement: 개선율·신뢰도 가드', () => {
+	assert.equal(requiredImprovement(null, 12000, 0.8), null);
+	assert.equal(requiredImprovement(-30, 12000, 0.8), null);
+	assert.equal(requiredImprovement(600, 12000, 0.4), null);
+	assert.deepEqual(requiredImprovement(600, 12000, 0.8), { pct: 5, label: '목표까지 약 5% 단축 필요' });
+	assert.equal(requiredImprovement(600, 12000, null)?.pct, 5);
 });

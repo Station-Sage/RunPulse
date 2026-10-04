@@ -3,7 +3,7 @@
 	import type { RaceHubGoal, RaceHubPrediction } from '$lib/types';
 	import TrendChart from './TrendChart.svelte';
 	import { rangeLabel, confidenceLabel } from '$lib/predictionCompare';
-	import { countdownLabel, distanceLabel, gapVerdict, trendDelta } from '$lib/raceHub';
+	import { countdownLabel, distanceLabel, gapVerdict, requiredImprovement, trendDelta } from '$lib/raceHub';
 	import { formatDuration } from '$lib/format';
 
 	let { goal, pred }: { goal: RaceHubGoal; pred: RaceHubPrediction | null } = $props();
@@ -16,6 +16,7 @@
 	};
 	const verdict = $derived(pred ? gapVerdict(pred.gap_sec) : null);
 	const selfRow = $derived(pred?.compare?.rows.find((r) => r.key === 'self') ?? null);
+	const need = $derived(pred ? requiredImprovement(pred.gap_sec, pred.value_sec, selfRow?.confidence) : null);
 	const delta = $derived(pred ? trendDelta(pred.history) : null);
 </script>
 
@@ -47,6 +48,7 @@
 
 	{#if verdict}
 		<p class="text-sm font-medium {TONE_CLASS[verdict.tone]}">{verdict.label}</p>
+		{#if need}<p class="text-xs text-fg-muted" data-testid="required-improvement">{need.label}</p>{/if}
 	{/if}
 
 	{#if selfRow && (rangeLabel(selfRow) || confidenceLabel(selfRow.confidence))}
