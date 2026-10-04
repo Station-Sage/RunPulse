@@ -6,7 +6,8 @@
 	let { children } = $props();
 
 	const TABS = [
-		{ href: '/library/activities', label: '활동', also: '/library' },
+		{ href: '/library', label: '홈' },
+		{ href: '/library/activities', label: '활동' },
 		{ href: '/library/metrics', label: '메트릭' },
 		{ href: '/library/wellness', label: '웰니스' },
 		{ href: '/library/providers', label: '소스 비교' }

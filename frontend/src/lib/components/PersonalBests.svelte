@@ -9,7 +9,10 @@
 
 {#if pbs.length > 0}
 	<section class="flex flex-col gap-2" aria-label="개인 최고 기록">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">개인 최고 기록</p>
+		<div class="flex items-center justify-between">
+			<p class="text-xs uppercase tracking-wide text-fg-muted">개인 최고 기록</p>
+			<a href="{base}/library/activities?type=race" class="text-xs text-fg-muted hover:text-fg-secondary">전체 ›</a>
+		</div>
 		<div class="grid grid-cols-3 gap-2">
 			{#each pbs as p (p.key)}
 				<a
