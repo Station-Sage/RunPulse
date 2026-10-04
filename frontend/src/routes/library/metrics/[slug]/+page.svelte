@@ -13,6 +13,7 @@
 	import { base } from '$app/paths';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill, tokenSlug } from '$lib/drillStack';
+	import { metricsBackHref, fromToday } from '$lib/libraryNav';
 
 	let { data }: { data: MetricTrendPageData } = $props();
 
@@ -83,12 +84,21 @@
 
 <DrillPanel scopeType="daily" scopeId={latestDate}>
 
-<!-- 헤더 -->
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<a href="{base}/library/metrics" class="shrink-0 text-fg-muted" aria-label="메트릭 브라우저로">←</a>
-	<h1 class="text-base font-semibold">{data.trend?.label ?? data.slug}</h1>
+<!-- 헤더: 2단 브레드크럼(48px) -->
+<div class="flex h-12 items-center gap-2 border-b border-border-subtle px-4">
+	<a href="{metricsBackHref(base)}" class="shrink-0 text-fg-muted" aria-label="메트릭 브라우저로">‹</a>
+	<nav aria-label="경로" class="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+		<a href="{base}/library" class="hover:text-fg-secondary">Library</a>
+		<span aria-hidden="true">›</span>
+		<a href="{metricsBackHref(base)}" class="hover:text-fg-secondary">메트릭</a>
+		<span aria-hidden="true">›</span>
+		<h1 class="truncate text-sm font-semibold text-fg-primary">{data.trend?.label ?? data.slug}</h1>
+	</nav>
 	{#if displayUnit(data.trend?.unit)}
-		<span class="text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>
+		<span class="shrink-0 text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>
+	{/if}
+	{#if fromToday(page.url.search)}
+		<a href="{base}/today" class="ml-auto shrink-0 rounded-full border border-border-subtle px-2.5 py-1 text-xs text-fg-secondary">‹ Today로</a>
 	{/if}
 </div>
 

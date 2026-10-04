@@ -7,6 +7,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import { saveMetricsSearch } from '$lib/libraryNav';
 	import { matchesMetric } from '$lib/metricSearch';
 	import { replaceState } from '$app/navigation';
 	import { page as pageState } from '$app/state';
@@ -26,9 +27,21 @@
 
 	function syncQuery() {
 		const u = new URL(pageState.url);
-		if (query.trim()) u.searchParams.set('q', query.trim());
-		else u.searchParams.delete('q');
+		const set = (k: string, v: string, empty: string) => (v && v !== empty ? u.searchParams.set(k, v) : u.searchParams.delete(k));
+		set('q', query.trim(), '');
+		set('category', selectedCategory, 'all');
+		set('provider', selectedProvider, 'all');
 		replaceState(u, pageState.state);
+		saveMetricsSearch(u.search);
+	}
+	saveMetricsSearch(pageState.url.search);
+	function pickCategory(c: string) {
+		selectedCategory = c;
+		syncQuery();
+	}
+	function pickProvider(p: string) {
+		selectedProvider = p;
+		syncQuery();
 	}
 	function onKey(e: KeyboardEvent) {
 		const t = e.target as HTMLElement | null;
@@ -39,7 +52,7 @@
 	}
 
 	// Provider 칩 필터 — P3 Provider Transparency. 등장 provider가 2종 이상일 때만 행을 보인다.
-	let selectedProvider = $state<string>('all');
+	let selectedProvider = $state<string>(data.initialProvider);
 
 	// 데이터에 등장하는 고유 Provider 목록 (base 키 기준, 빈 문자열 제외)
 	const availableProviders = $derived(
@@ -161,7 +174,7 @@
 			class="shrink-0 rounded-full px-3 py-1 text-xs {selectedCategory === 'all'
 				? 'bg-fg-primary text-surface-1'
 				: 'bg-surface-2 text-fg-secondary'}"
-			onclick={() => (selectedCategory = 'all')}
+			onclick={() => pickCategory('all')}
 		>
 			전체
 		</button>
@@ -170,7 +183,7 @@
 				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedCategory === cat.category
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
-				onclick={() => (selectedCategory = cat.category)}
+				onclick={() => pickCategory(cat.category)}
 			>
 				{cat.label}
 			</button>
@@ -184,14 +197,14 @@
 				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === 'all'
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
-				onclick={() => (selectedProvider = 'all')}>모든 Provider</button
+				onclick={() => pickProvider('all')}>모든 Provider</button
 			>
 			{#each availableProviders as key}
 				<button
 					class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === key
 						? 'bg-fg-primary text-surface-1'
 						: 'bg-surface-2 text-fg-secondary'}"
-					onclick={() => (selectedProvider = key)}>{providerLabel(key as ProviderKey)}</button
+					onclick={() => pickProvider(key)}>{providerLabel(key as ProviderKey)}</button
 				>
 			{/each}
 		</div>

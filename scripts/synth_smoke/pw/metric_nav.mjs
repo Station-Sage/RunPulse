@@ -1,0 +1,18 @@
+import { chromium } from 'playwright';
+const BASE='http://localhost:5199', API='http://localhost:18098';
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:420,height:800}});
+await ctx.route('**/api/v1/**', r=>r.continue({url:r.request().url().replace(/^https?:\/\/[^/]+/,API)}));
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(`${BASE}/v2/library/metrics`,{waitUntil:'networkidle'});
+const chips=p.locator('button').filter({hasText:/^(훈련|수면|예측|부하)/});
+console.log('chips',await chips.count());
+await chips.first().click(); await p.waitForTimeout(200);
+const url1=p.url(); console.log('url',url1, url1.includes('category=')?'ok':'FAIL');
+await p.locator('a[href*="/library/metrics/"]').first().click(); await p.waitForLoadState('networkidle');
+const back=await p.locator('a[aria-label="메트릭 브라우저로"]').getAttribute('href');
+console.log('back',back, back.includes('category=')?'ok':'FAIL');
+console.log('crumb', await p.locator('nav[aria-label="경로"]').innerText());
+console.log('today chip', await p.getByText('Today로').count()); 
+await p.goto(p.url()+'?from=today',{waitUntil:'networkidle'});
+console.log('today chip(from)', await p.getByText('Today로').count());
+console.log('errors',errs.length); await b.close();
