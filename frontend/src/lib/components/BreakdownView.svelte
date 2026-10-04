@@ -3,7 +3,7 @@
 	// ③원천 행 탭(D3, 경로 이동)은 아직 없어 비인터랙티브로 둔다(2-5 범위 밖, 별도 판단 필요).
 	import type { MetricExplainData, MetricExplainTerm } from '$lib/types';
 	import { statusColorVar } from '$lib/statusColor';
-	import { formatChange } from '$lib/format';
+	import { formatChange, formatUnitValue } from '$lib/format';
 	import PredictionEvidence from '$lib/components/PredictionEvidence.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
@@ -17,6 +17,7 @@
 		onDrillTerm?: (token: string) => void;
 	} = $props();
 
+	const timeLike = $derived(data.unit === 'sec' || data.unit === 'sec/km');
 	const pinIndex = $derived(data.meaning.bands.findIndex((b) => b.status === data.status));
 
 	// UTRS/CIRS는 loss로 이미 내림차순 정렬돼 온다 — 여기선 순서를 보존만 한다.
@@ -92,8 +93,10 @@
 
 		{#if data.meaning.baseline.avg_7d != null}
 			<p class="text-xs text-fg-muted">
-				7일 평균 {data.meaning.baseline.avg_7d}{#if data.meaning.baseline.delta_1d != null}
-					· 어제 대비 {formatChange(data.meaning.baseline.delta_1d, 1)}{/if}
+				7일 평균 {timeLike ? formatUnitValue(data.meaning.baseline.avg_7d, data.unit).display : data.meaning.baseline.avg_7d}{#if data.meaning.baseline.delta_1d != null}
+					· 어제 대비 {timeLike
+						? `${data.meaning.baseline.delta_1d > 0 ? '+' : data.meaning.baseline.delta_1d < 0 ? '−' : ''}${formatUnitValue(Math.abs(data.meaning.baseline.delta_1d), data.unit).display}`
+						: formatChange(data.meaning.baseline.delta_1d, 1)}{/if}
 			</p>
 		{/if}
 
