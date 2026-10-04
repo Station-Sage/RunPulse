@@ -335,3 +335,8 @@
 - A-13: `monthTicks`(3m/6m 월 1일, 1y 분기) + `axisDateLabel`로 추세 x축 라벨(4w는 주 눈금 유지).
 - A-14: load 카테고리 헤드라인은 서버 `readiness_decision().headline`(프론트 임계값 없음).
 - 검증: pytest·unit 332·check·build·check_docs 통과, 실DB 사본 Playwright(`pw/u7.mjs`) 통과. 운영 반영 완료(39c4dd1).
+
+### U10 A-17/A-18/B-3 백엔드 완료 (2026-10-05)
+- `GET /library/activities/facets`(종목·유형·월 칩 건수), `/summary`(주간 막대·12주 평균·월 요약+전월 대비), 목록에 `sport_group`·`type`·`month`·`dist_min`·`q`·`sort=load` 필터와 행 필드(`workout_label`·`display_title`·`load`·`is_race`).
+- 러닝 칩 건수는 현재 DB 기준 492(러닝 476+실내 16). 설계서의 488은 이전 스냅샷 값이라 정합 기준을 DB 실값으로 둔다.
+- 검증: pytest 2109 통과·check_docs 0 오류·실DB 사본 API 스모크(type=race+sort=load 21건, bad type 400). 프론트 연결은 U11(A-16/A-19).

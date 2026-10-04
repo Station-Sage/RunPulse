@@ -36,7 +36,19 @@
 
 - functions: get_activity_impact
 
-### `activity_service.py` (182줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_list_filters.py` (91줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
+
+- functions: parse_args, sport_types, build_where, order_clause
+
+### `activity_list_rows.py` (58줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
+
+- functions: is_generic_name, display_title, enrich_rows
+
+### `activity_list_summary.py` (124줄) — 활동 목록 facets·주간 요약 (UX 리뷰 20 §7-2 ⑤, B-3).
+
+- functions: get_facets, get_summary
+
+### `activity_service.py` (166줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_streams, get_activity_trend
 
@@ -101,7 +113,7 @@
 
 - functions: display_name, min_span, display_meta
 
-### `metrics_browser_service.py` (246줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (270줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
@@ -1412,6 +1424,10 @@
 
 - functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today, test_load_is_activity_trimp
 
+### `test_activity_list_summary.py` (118줄) — 활동 목록 facets·summary·확장 필터/정렬/행 필드 테스트 (U10, A-17/A-18/B-3).
+
+- functions: conn, test_facets_running_group_counts_indoor, test_facets_types_respect_sport_group, test_list_type_filter_maps_long_run, test_list_sport_group_month_and_row_fields, test_list_sort_load_and_q, test_parse_args_rejects_bad_values, test_display_title_keeps_user_names, test_summary_boundary_week_in_range_only, test_summary_month_block_prev_month_pct, test_summary_prev_month_empty_is_null_and_no_month_without_param, test_summary_avg_12w_ignores_filters_and_needs_history, test_summary_shares_type_filter
+
 ### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
 
 - class **TestMergeEndpoint**: test_merge_two_activities, test_merge_requires_two, test_merge_missing_ids, test_merge_invalid_ids
@@ -1990,9 +2006,9 @@
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 - functions: test_definitions_split_modules_cover_registry_in_order
 
-### `test_metrics_browser_service.py` (277줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (294줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db
 
 ### `test_metrics_explain.py` (268줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -2516,7 +2532,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 515개 파일
+총 519개 파일
 
 ## docstring 누락
 

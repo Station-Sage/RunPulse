@@ -13,6 +13,8 @@ from typing import Any
 
 # get_activity_detail은 300줄 규칙 위반으로 activity_detail_service.py로 분리(re-export shim).
 from src.services.activity_detail_service import get_activity_detail  # noqa: F401
+from src.services.activity_list_filters import build_where, order_clause
+from src.services.activity_list_rows import enrich_rows
 
 SERVICE_PRIORITY = ["garmin", "strava", "intervals", "runalyze"]
 
@@ -39,33 +41,14 @@ def get_activity_list(
 ) -> dict:
     """v_canonical_activities에서 필터/정렬/페이징.
 
-    filters 키: activity_type, date_from, date_to, min_distance_m, search
+    filters 키: activity_type, date_from, date_to, min_distance_m, search, q, type, month, sport_group, sort
     """
     if sort_by not in _ALLOWED_SORT:
         sort_by = "start_time"
     sort_dir = "DESC" if sort_dir.upper() != "ASC" else "ASC"
 
     filters = filters or {}
-    clauses: list[str] = []
-    params: list[Any] = []
-
-    if filters.get("activity_type"):
-        clauses.append("activity_type = ?")
-        params.append(filters["activity_type"])
-    if filters.get("date_from"):
-        clauses.append("start_time >= ?")
-        params.append(filters["date_from"])
-    if filters.get("date_to"):
-        clauses.append("start_time <= ?")
-        params.append(filters["date_to"])
-    if filters.get("min_distance_m") is not None:
-        clauses.append("distance_m >= ?")
-        params.append(filters["min_distance_m"])
-    if filters.get("search"):
-        clauses.append("name LIKE ?")
-        params.append(f"%{filters['search']}%")
-
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    where, params = build_where(conn, filters)
 
     conn.row_factory = sqlite3.Row
     total_row = conn.execute(
@@ -76,7 +59,7 @@ def get_activity_list(
     offset = (page - 1) * per_page
     rows = conn.execute(
         f"SELECT * FROM v_canonical_activities{where}"
-        f" ORDER BY {sort_by} {sort_dir} LIMIT ? OFFSET ?",
+        f"{order_clause(filters.get('sort'), sort_by, sort_dir)} LIMIT ? OFFSET ?",
         params + [per_page, offset],
     ).fetchall()
 
@@ -84,6 +67,7 @@ def get_activity_list(
     previews = _route_previews(conn, [a["id"] for a in activities])
     for a in activities:
         a["route"] = previews.get(a["id"])
+    enrich_rows(conn, activities)
 
     return {
         "activities": activities,

@@ -6,7 +6,7 @@ from datetime import date
 
 from flask import request
 
-from src.services import activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
+from src.services import activity_list_filters, activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
 from src.utils.provider_matrix_rows import compare_group_for_slug
 from src.web.helpers import db_path
 
@@ -19,20 +19,12 @@ def get_library_activities():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    filters: dict = {}
-    if request.args.get("sport"):
-        filters["activity_type"] = request.args["sport"]
-    if request.args.get("from"):
-        filters["date_from"] = request.args["from"]
-    if request.args.get("to"):
-        filters["date_to"] = request.args["to"]
-    if request.args.get("search"):
-        filters["search"] = request.args["search"]
-    if request.args.get("dist_min"):
-        try:
-            filters["min_distance_m"] = float(request.args["dist_min"]) * 1000
-        except ValueError:
-            return api_error("INVALID_PARAM", "dist_min은 숫자여야 합니다.", 400)
+    try:
+        filters = activity_list_filters.parse_args(request.args)
+    except ValueError as e:
+        return api_error("INVALID_PARAM", f"잘못된 파라미터: {e}", 400)
+    if request.args.get("sort"):
+        filters["sort"] = request.args["sort"]
 
     try:
         page = int(request.args.get("page", 1))
