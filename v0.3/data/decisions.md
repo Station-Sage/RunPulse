@@ -153,3 +153,9 @@
 - **맥락**: 웰니스 화면이 날짜별 URL이 없고, 프론트가 임계값을 들고 "좋음/나쁨"을 판단할 위험이 있었다.
 - **결정**: (1) `/library/wellness/:date`가 정본이고 `/library/wellness`·`?date=`는 redirect. 잘못된 형식은 400, 미래는 오늘로 보정. (2) 등급은 `metrics.bands.grade` SSOT, 프론트 임계값 상수 없음. (3) 기준선 창은 당일 제외(HRV·안정 심박 p25/p75=28일, 평균=7일, 수면 평균=30일), 표본 n<7이면 키 생략("기준선 수집 중 n/7"). (4) 헤드라인 근거는 28일 평균·표준편차 z 기준 |z|≥0.5 중 상위 2개(`wellness_day.Z_MIN`). (5) 날짜 이동은 history replace. (6) 30일 추세는 비동기 스트리밍.
 - **검증**: `tests/test_wellness_day.py`, `tests/test_api_library.py`, `frontend/tests/wellnessDay.test.mjs`, Playwright `pw/s5_wellness.mjs`(실 DB 사본).
+
+## ADR-021: 소스 비교 매트릭스 — 서버 행 정의·쌍 요약, 척도 비교(scale) 분리 (2026-10-05)
+- **맥락**: `/library/providers`가 "같은 의미의 지표를 소스끼리 비교"한다는 기준 없이 값을 나열했고, 정의가 다른 지표(훈련 부하 AU·VO2max/VDOT)를 %로 비교해 오해를 만들 수 있었다.
+- **결정**: (1) 행 정의 SSOT는 `src/utils/provider_matrix_rows.py`(8행; kind=pair_activity|pair_daily|profile|definition, compare=same|scale). 활동 상세 탭의 `SEMANTIC_GROUPS`와 분리한다. (2) 임계값(차이 15%, 표본 n<3 "표본 부족", 30일 stale, IQR×1.5 이상치)은 서버에만 둔다(`provider_matrix_collect.py`). (3) `same`은 중앙값 % 차이, `scale`은 비율 ×r로 보여 주고 경고하지 않는다. (4) 쌍 상세 `/library/providers/:group`(`group`=행 key)은 점도표+활동 목록, 이상치는 속 빈 점. (5) 메트릭 상세는 `compare_group`이 있으면 "소스 비교" 링크를 노출한다. (6) 기간은 `?days=`(4주 기본은 생략), chip은 history replace.
+- **보류(사용자 확인 대기)**: §8-1 훈련 부하 scale ×r·경고 없음, §8-2 EF definition 행, §8-3 단일 소스 행 접힘 목록, §8-4 U9 `SEMANTIC_GROUPS`의 `("training_load_score","intervals")`→`("training_load","intervals")`.
+- **검증**: `tests/test_provider_matrix_service.py`, `tests/test_api_library.py`, `frontend/tests/providerMatrix.test.mjs`, Playwright `pw/s6_providers.mjs`(실 DB 사본, 에러 없음).

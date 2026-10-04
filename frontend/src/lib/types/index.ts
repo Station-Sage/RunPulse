@@ -838,6 +838,7 @@ export interface MetricTrendPoint {
 
 export interface MetricTrendData {
 	slug: string;
+	compare_group?: { key: string; label: string; provider: string } | null;
 	name_ko?: string;
 	abbr?: string | null;
 	format?: string;
@@ -1263,4 +1264,90 @@ export interface ArchiveData {
 	monthly: { month: string; km: number; runs: number }[];
 	heatmap: { date: string; km: number }[];
 	personal_bests: ArchivePb[];
+}
+
+// ── 소스 비교 매트릭스 (S6, ADR-021 — /api/v1/library/providers/matrix, /pairs/:group) ──
+export interface ProviderCell {
+	median: number | null;
+	latest: number;
+	last_date: string;
+	stale: boolean;
+	estimated: boolean;
+	n: number;
+}
+
+export type PairStatus = 'insufficient' | 'scale' | 'differs' | 'similar';
+
+export interface ProviderPairDiff {
+	a: string;
+	b: string;
+	label: string;
+	mode: 'same' | 'scale';
+	n: number;
+	median: number | null;
+	q1: number | null;
+	q3: number | null;
+	status: PairStatus;
+	status_label: string;
+	explain_text: string;
+}
+
+export interface ProviderMatrixRow {
+	key: string;
+	label: string;
+	unit: string | null;
+	format: string;
+	kind: 'pair_activity' | 'pair_daily' | 'profile' | 'definition';
+	compare: 'same' | 'scale';
+	cells: Record<string, ProviderCell>;
+	providers: string[];
+	definitions: Record<string, string | null>;
+	pairs_n: number;
+	diff: ProviderPairDiff | null;
+	diffs: ProviderPairDiff[];
+	preferred: { provider: string; reason_text: string } | null;
+	href_group: string | null;
+}
+
+export interface ProviderSingleSource {
+	key: string;
+	label: string;
+	provider: string;
+	provider_label: string;
+	cell: ProviderCell;
+	unit: string | null;
+	format: string;
+}
+
+export interface ProviderMatrixData {
+	days: number;
+	sport: string;
+	sample_n: number;
+	header_text: string;
+	caption: string;
+	providers: string[];
+	sections: { key: string; label: string; rows: ProviderMatrixRow[] }[];
+	single_source: ProviderSingleSource[];
+	state: 'ok' | 'no_data';
+}
+
+export interface ProviderPairItem {
+	date: string;
+	canonical_id: number | null;
+	name: string | null;
+	distance_m: number | null;
+	values: Record<string, number>;
+	diff_pct?: number;
+	ratio?: number;
+	outlier: boolean;
+}
+
+export interface ProviderPairsData {
+	row: { key: string; label: string; unit: string | null; format: string; compare: 'same' | 'scale'; kind: string };
+	definitions: Record<string, string | null>;
+	days: number;
+	pairs: ProviderPairItem[];
+	diff: ProviderPairDiff | null;
+	summary_text: string;
+	state: 'ok' | 'insufficient' | 'no_data' | 'not_comparable';
 }

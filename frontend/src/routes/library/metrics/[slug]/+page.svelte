@@ -98,6 +98,9 @@
 	{#if displayUnit(data.trend?.unit)}
 		<span class="shrink-0 text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>
 	{/if}
+	{#if data.trend?.compare_group}
+		<a href="{base}/library/providers/{data.trend.compare_group.key}" class="ml-auto shrink-0 rounded-full border border-border-subtle px-2.5 py-1 text-xs text-fg-secondary">소스 비교</a>
+	{/if}
 	{#if fromToday(page.url.search)}
 		<a href="{base}/today" class="ml-auto shrink-0 rounded-full border border-border-subtle px-2.5 py-1 text-xs text-fg-secondary">‹ Today로</a>
 	{/if}

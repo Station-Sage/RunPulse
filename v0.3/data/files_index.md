@@ -161,9 +161,17 @@
 
 - functions: normalize, diff, legacy_discrepancy
 
-### `provider_matrix_service.py` (141줄) — Provider 정체성 매트릭스 서비스 — 기간 집계 소스별 비교 (3-G-1).
+### `provider_matrix_collect.py` (202줄) — Provider 매트릭스 수집·통계 헬퍼 (S6, ADR-021).
 
-- functions: get_provider_comparison_period
+- functions: plabel, quantile, median, iqr_bounds, running_groups, collect_activity_values, collect_daily_values, cell_summary, pair_points, summarize_pairs, severity_key, provider_pair_order
+
+### `provider_matrix_service.py` (97줄) — 소스 비교 매트릭스 서비스 (S6, ADR-021) — 같은 러닝을 소스별로 어떻게 계산하는지 한눈에.
+
+- functions: window, diffs_for, representative, get_matrix
+
+### `provider_pairs_service.py` (43줄) — 소스 비교 쌍 목록 서비스 (S6, ADR-021) — 한 행의 같은 러닝(또는 같은 날) 값 쌍과 이상치.
+
+- functions: get_pairs
 
 ### `provider_status_service.py` (83줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
@@ -1316,6 +1324,11 @@
 
 - functions: seconds_to_pace, pace_to_seconds, kmh_to_pace, pace_to_kmh, format_duration
 
+### `provider_matrix_rows.py` (116줄) — Provider 매트릭스 행 정의 SSOT (S6, ADR-021).
+
+- class **MatrixRow**: providers
+- functions: get_row, compare_group_for_slug, normalize_provider
+
 ### `raw_payload.py` (117줄) — source_payloads 저장/병합 유틸리티.
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
@@ -1477,9 +1490,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_library.py` (417줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (407줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -2151,9 +2164,9 @@
 
 - functions: test_small_elevation_gap_is_not_significant, test_temperature_uses_absolute_threshold, test_duration_one_percent, test_single_leg_cadence_normalized, test_different_quantities_not_compared
 
-### `test_provider_matrix_service.py` (192줄) — tests/test_provider_matrix_service.py — provider_matrix_service 단위 테스트.
+### `test_provider_matrix_service.py` (146줄) — tests/test_provider_matrix_service.py — S6 소스 비교 매트릭스/쌍 서비스 단위 테스트.
 
-- functions: test_no_activities_in_period_returns_no_data, test_activity_outside_period_excluded, test_semantic_group_with_data_appears, test_group_without_any_data_excluded, test_each_provider_takes_its_own_latest_value, test_more_recent_activity_value_wins_over_older_same_provider, test_mode_primary_source_empty_returns_none, test_mode_primary_source_majority_vote, test_solo_activity_excluded_from_primary_source_vote
+- functions: test_empty_db_no_data, test_scale_row_has_ratio_and_no_warning, test_fewer_than_three_pairs_insufficient, test_non_running_excluded, test_summarize_same_threshold, test_cell_summary_stale, test_pairs_outlier_and_unknown_group, test_row_definitions_sane
 
 ### `test_provider_status.py` (154줄) — provider_status_service.get_provider_status() 단위 테스트.
 
@@ -2497,7 +2510,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 511개 파일
+총 514개 파일
 
 ## docstring 누락
 

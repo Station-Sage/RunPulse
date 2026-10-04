@@ -1,20 +1,23 @@
 import { apiFetch } from './client';
-import type { ProviderComparisonData, ProviderCoverage, ProviderStatusResponse } from '$lib/types';
+import type {
+	ProviderComparisonData,
+	ProviderCoverage,
+	ProviderMatrixData,
+	ProviderPairsData,
+	ProviderStatusResponse
+} from '$lib/types';
 
 export interface ProviderComparisonApiResponse {
 	comparison: ProviderComparisonData;
 }
 
-export function getProviderMatrix(
-	days = 28,
-	discrepancyThreshold?: number
-): Promise<ProviderComparisonApiResponse> {
-	const params = new URLSearchParams();
-	params.set('days', String(days));
-	if (discrepancyThreshold != null)
-		params.set('discrepancy_threshold', String(discrepancyThreshold));
-	return apiFetch<ProviderComparisonApiResponse>(
-		`/library/providers/matrix?${params.toString()}`
+export function getProviderMatrix(days = 28): Promise<ProviderMatrixData> {
+	return apiFetch<ProviderMatrixData>(`/library/providers/matrix?days=${days}`);
+}
+
+export function getProviderPairs(group: string, days = 28): Promise<ProviderPairsData> {
+	return apiFetch<ProviderPairsData>(
+		`/library/providers/pairs/${encodeURIComponent(group)}?days=${days}`
 	);
 }
 

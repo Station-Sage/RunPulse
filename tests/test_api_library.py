@@ -199,6 +199,7 @@ def test_get_metric_breakdown_200(metric_app):
     assert metric["value"] is not None
     assert "children" in metric
     assert "inputs" in metric
+    assert body["data"]["compare_group"]["key"] == "ctl"
 
 
 def test_get_metric_breakdown_404(metric_app):
@@ -280,6 +281,7 @@ def test_get_metric_trend_200(metric_app):
     assert "points" in data
     assert "current" in data
     assert "peak" in data
+    assert data["compare_group"]["key"] == "ctl"
 
 
 def test_get_metric_trend_404(metric_app):
@@ -355,43 +357,31 @@ def test_get_wellness_trend_invalid_days(metric_app):
 # ── /library/providers/matrix 라우트 테스트 ─────────────────────────────────
 
 def test_get_providers_matrix_200(mini_app):
-    """GET /library/providers/matrix → 200, 필수 키 포함."""
+    """GET /library/providers/matrix → 200, S6 응답 구조."""
     client, _ = mini_app
     res = client.get("/api/v1/library/providers/matrix")
     assert res.status_code == 200
-    body = res.get_json()
-    comparison = body["data"]["comparison"]
-    assert comparison["mode"] == "period"
-    assert comparison["days"] == 28  # 기본값
-    assert "state" in comparison
-    assert isinstance(comparison["rows"], list)
-
-
-def test_get_providers_matrix_custom_days(mini_app):
-    """days 파라미터 → 반영."""
-    client, _ = mini_app
-    res = client.get("/api/v1/library/providers/matrix?days=90")
-    assert res.status_code == 200
-    body = res.get_json()
-    assert body["data"]["comparison"]["days"] == 90
+    data = res.get_json()["data"]
+    assert data["days"] == 28 and data["sport"] == "running"
+    assert "state" in data and isinstance(data["sections"], list)
 
 
 def test_get_providers_matrix_invalid_days(mini_app):
-    """days가 정수가 아닌 경우 → 400, INVALID_PARAM."""
+    """days가 28/56/84가 아니면 400."""
     client, _ = mini_app
-    res = client.get("/api/v1/library/providers/matrix?days=abc")
-    assert res.status_code == 400
-    body = res.get_json()
-    assert body["error"]["code"] == "INVALID_PARAM"
+    for q in ("abc", "90"):
+        res = client.get(f"/api/v1/library/providers/matrix?days={q}")
+        assert res.status_code == 400
+        assert res.get_json()["error"]["code"] == "INVALID_PARAM"
 
 
-def test_get_providers_matrix_invalid_threshold(mini_app):
-    """discrepancy_threshold가 숫자가 아닌 경우 → 400, INVALID_PARAM."""
+def test_get_providers_pairs_route(mini_app):
+    """pairs: 알 수 없는 그룹 404, 정의 행은 not_comparable."""
     client, _ = mini_app
-    res = client.get("/api/v1/library/providers/matrix?discrepancy_threshold=xyz")
-    assert res.status_code == 400
-    body = res.get_json()
-    assert body["error"]["code"] == "INVALID_PARAM"
+    assert client.get("/api/v1/library/providers/pairs/nope").status_code == 404
+    res = client.get("/api/v1/library/providers/pairs/vo2max_vdot")
+    assert res.status_code == 200 and res.get_json()["data"]["state"] == "not_comparable"
+    assert client.get("/api/v1/library/providers/pairs/ctl?days=7").status_code == 400
 
 
 # ── /library/providers/coverage 라우트 테스트 ────────────────────────────────

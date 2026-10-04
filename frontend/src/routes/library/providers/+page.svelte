@@ -1,51 +1,49 @@
 <script lang="ts">
-	// 03c-library.md 3-G-1 — Provider 정체성 매트릭스 (기간 집계).
+	// S6 소스 비교 — 같은 러닝을 소스마다 어떻게 계산하는지.
 	import type { ProvidersMatrixPageData } from './+page';
-	import ProviderComparison from '$lib/components/ProviderComparison.svelte';
+	import ProviderMatrix from '$lib/components/ProviderMatrix.svelte';
+	import { PERIOD_DAYS, periodHref } from '$lib/providerMatrix';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { base } from '$app/paths';
 
 	let { data }: { data: ProvidersMatrixPageData } = $props();
 
-	const PERIODS = [
-		{ key: 28, label: '4주' },
-		{ key: 56, label: '8주' },
-		{ key: 84, label: '12주' }
-	];
-
 	function selectPeriod(days: number) {
-		goto(`?days=${days}`);
+		goto(periodHref(page.url.search, days), { replaceState: true, keepFocus: true, noScroll: true });
 	}
 </script>
 
-<svelte:head><title>Provider 비교 · RunPulse</title></svelte:head>
+<svelte:head><title>소스 비교 · RunPulse</title></svelte:head>
 
-<!-- 헤더 -->
-<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-	<h1 class="text-base font-semibold">Provider 정체성 매트릭스</h1>
+<div class="flex h-12 items-center gap-2 border-b border-border-subtle px-4">
+	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library로">‹</a>
+	<nav aria-label="경로" class="flex items-center gap-1.5 text-xs text-fg-muted">
+		<a href="{base}/library" class="hover:text-fg-secondary">Library</a>
+		<span aria-hidden="true">›</span>
+		<h1 class="text-sm font-semibold text-fg-primary">소스 비교</h1>
+	</nav>
 </div>
 
-<!-- 기간 선택 버튼 -->
-<div class="flex gap-2 border-b border-border-subtle px-4 py-2">
-	{#each PERIODS as p}
+<div role="group" aria-label="기간" class="flex gap-2 border-b border-border-subtle px-4 py-2">
+	{#each PERIOD_DAYS as p}
 		<button
-			class="rounded-full px-3 py-1 text-xs {data.days === p.key
-				? 'bg-fg-primary text-surface-1'
-				: 'bg-surface-2 text-fg-secondary'}"
-			onclick={() => selectPeriod(p.key)}
+			type="button"
+			aria-pressed={data.days === p.days}
+			class="rounded-full border px-3 py-1 text-xs {data.days === p.days
+				? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
+				: 'border-border-subtle text-fg-secondary'}"
+			onclick={() => selectPeriod(p.days)}
 		>
 			{p.label}
 		</button>
 	{/each}
 </div>
 
-{#if data.errorMessage && !data.comparison}
-	<div class="px-4 py-8 text-center">
-		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
-	</div>
-{:else if data.comparison?.state === 'no_data'}
-	<div class="px-4 py-8 text-center">
-		<p class="text-sm text-fg-secondary">이 기간에 비교할 활동이 없습니다.</p>
-	</div>
+{#if data.errorMessage && !data.matrix}
+	<div class="px-4 py-8 text-center"><p class="text-sm text-fg-secondary">{data.errorMessage}</p></div>
+{:else if !data.matrix || data.matrix.state === 'no_data'}
+	<div class="px-4 py-8 text-center"><p class="text-sm text-fg-secondary">이 기간에 비교할 러닝이 없어요.</p></div>
 {:else}
-	<ProviderComparison data={data.comparison} showPrimaryReason={true} discrepancyThreshold={5} />
+	<ProviderMatrix data={data.matrix} />
 {/if}

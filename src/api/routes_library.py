@@ -6,7 +6,8 @@ from datetime import date
 
 from flask import request
 
-from src.services import activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_status_service, wellness_service
+from src.services import activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
+from src.utils.provider_matrix_rows import compare_group_for_slug
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok, api_ok_cacheable
@@ -104,7 +105,7 @@ def get_library_metric_breakdown(slug: str):
     if result is None:
         return api_error("NOT_FOUND", f"메트릭을 찾을 수 없습니다: {slug}", 404)
 
-    return api_ok({"metric": result})
+    return api_ok({"metric": result, "compare_group": compare_group_for_slug(slug)})
 
 
 @api_bp.get("/library/activities/<int:activity_id>/providers")
@@ -164,7 +165,7 @@ def get_library_metric_trend(slug: str):
     if result is None:
         return api_error("NOT_FOUND", f"메트릭 데이터를 찾을 수 없습니다: {slug}", 404)
 
-    return api_ok(result)
+    return api_ok({**result, "compare_group": compare_group_for_slug(slug)})
 
 
 @api_bp.get("/library/activities/<int:activity_id>/streams")
@@ -239,31 +240,46 @@ def get_library_providers_coverage():
     return api_ok(result)
 
 
+def _matrix_params():
+    try:
+        days = int(request.args.get("days", 28))
+    except ValueError:
+        days = -1
+    return days if days in provider_matrix_service.VALID_DAYS else None
+
+
 @api_bp.get("/library/providers/matrix")
 def get_library_providers_matrix():
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
-
-    try:
-        days = int(request.args.get("days", 28))
-    except ValueError:
-        return api_error("INVALID_PARAM", "days는 정수여야 합니다.", 400)
-
-    try:
-        threshold = float(request.args.get("discrepancy_threshold", 5.0))
-    except ValueError:
-        return api_error("INVALID_PARAM", "discrepancy_threshold는 숫자여야 합니다.", 400)
-
+    days = _matrix_params()
+    if days is None:
+        return api_error("INVALID_PARAM", "days는 28/56/84 중 하나여야 합니다.", 400)
     conn = sqlite3.connect(str(dpath))
     try:
-        result = provider_matrix_service.get_provider_comparison_period(
-            conn, days=days, discrepancy_threshold=threshold,
-        )
+        result = provider_matrix_service.get_matrix(conn, days, date.today().isoformat())
     finally:
         conn.close()
+    return api_ok(result)
 
-    return api_ok({"comparison": result})
+
+@api_bp.get("/library/providers/pairs/<group>")
+def get_library_providers_pairs(group: str):
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    days = _matrix_params()
+    if days is None:
+        return api_error("INVALID_PARAM", "days는 28/56/84 중 하나여야 합니다.", 400)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = provider_pairs_service.get_pairs(conn, group, days, date.today().isoformat())
+    finally:
+        conn.close()
+    if result is None:
+        return api_error("NOT_FOUND", f"알 수 없는 비교 그룹: {group}", 404)
+    return api_ok(result)
 
 
 @api_bp.get("/library/wellness/trend")

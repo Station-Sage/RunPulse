@@ -210,6 +210,9 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   ③ ◆ 알고리즘 버전 마커(TrendChart): `metric_store`는 지표당 단일 algorithm_version(전 기간 재계산)이라 데이터로 파생 불가 — 버전 변경 이력(changelog) 소스 설계 후 구현. `x.taper` drill 패널은 Today 드릴 설계 필요(현재 `chipTarget`은 `/today/race`).
 
 - **S5 완료(2026-10-04)**: 웰니스 `/:date` 페이지·API(ADR-020). 다음 S6/S7.
+- **S6 완료(2026-10-05)**: 소스 비교 매트릭스·쌍 상세·메트릭 링크(ADR-021, 실 DB 사본 Playwright OK). 다음 S7.
+  **보류(사용자 확인 대기)**: §8-1 훈련 부하를 scale ×r·경고 없음으로 표시 / §8-2 EF를 definition 행으로 / §8-3 단일 소스 행을 접힘 목록으로 /
+  §8-4 U9 `SEMANTIC_GROUPS` `("training_load_score","intervals")`→`("training_load","intervals")` 수정. 후속 후보: 모바일 매트릭스 "차이" 열 가로 스크롤 개선.
 
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
