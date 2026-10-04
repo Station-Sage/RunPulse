@@ -7,6 +7,9 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import { matchesMetric } from '$lib/metricSearch';
+	import { replaceState } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import { displayLabel, isComponentMetric, isFlat, STATUS_TEXT_CLASS, STATUS_DOT_COLOR, sparkCaption } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
@@ -15,6 +18,25 @@
 
 	// 카테고리 칩 필터 ('all' + 실제 등장 카테고리) — URL ?category= 로 초기 선택 가능
 	let selectedCategory = $state<string>(data.initialCategory);
+
+	// 검색어 — URL ?q= 와 동기화, `/` 키로 포커스. 검색 중에는 핵심/접힘 구성을 풀고 일치 항목만 평면 표시.
+	let query = $state(data.initialQuery);
+	let searchEl = $state<HTMLInputElement | null>(null);
+	const searching = $derived(query.trim().length > 0);
+
+	function syncQuery() {
+		const u = new URL(pageState.url);
+		if (query.trim()) u.searchParams.set('q', query.trim());
+		else u.searchParams.delete('q');
+		replaceState(u, pageState.state);
+	}
+	function onKey(e: KeyboardEvent) {
+		const t = e.target as HTMLElement | null;
+		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+		if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+		e.preventDefault();
+		searchEl?.focus();
+	}
 
 	// Provider 칩 필터 — P3 Provider Transparency. 등장 provider가 2종 이상일 때만 행을 보인다.
 	let selectedProvider = $state<string>('all');
@@ -33,7 +55,7 @@
 	// 핵심 지표 — 전체 보기에서 맨 위에 크게. 나머지는 카테고리별, 보조 카테고리(수면·심박 세부·환경)는 접어 둔다.
 	const CORE = ['race_pred_marathon_sec', 'race_pred_half_sec', 'race_pred_10k_sec', 'race_pred_5k_sec', 'ctl', 'tsb', 'utrs', 'cirs'];
 	const COLLAPSED = new Set(['sleep', 'hr', 'weather']);
-	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all');
+	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all' && !searching);
 	const coreMetrics = $derived(
 		showCore
 			? CORE.map((n) => categories.flatMap((c) => c.metrics).find((m) => m.name === n)).filter(
@@ -55,7 +77,7 @@
 						: cat.metrics.filter(
 								(m) => (m.provider ?? '').split(':')[0] === selectedProvider
 							)
-				).filter((m) => !isComponentMetric(m.label) && !(showCore && CORE.includes(m.name)))
+				).filter((m) => !isComponentMetric(m.label) && !(showCore && CORE.includes(m.name)) && matchesMetric(m, query))
 			}))
 			.filter((cat) => cat.metrics.length > 0)
 	);
@@ -110,6 +132,8 @@
 	{/if}
 </div>
 
+<svelte:window onkeydown={onKey} />
+
 {#if data.errorMessage}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
@@ -119,6 +143,18 @@
 		<p class="text-sm text-fg-muted">데이터 수집 중</p>
 	</div>
 {:else}
+	<div class="border-b border-border-subtle px-4 py-2">
+		<input
+			bind:this={searchEl}
+			type="search"
+			bind:value={query}
+			oninput={syncQuery}
+			placeholder="지표 검색 ( / )"
+			aria-label="지표 검색"
+			class="w-full rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
+		/>
+	</div>
+
 	<!-- 카테고리 칩 필터 -->
 	<div class="flex gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
 		<button
@@ -163,6 +199,9 @@
 
 	<!-- 카테고리별 섹션 -->
 	<div class="flex flex-col gap-6 px-4 py-4">
+		{#if searching && visibleCategories.length === 0}
+			<p class="py-8 text-center text-sm text-fg-muted">‘{query.trim()}’에 맞는 지표가 없습니다.</p>
+		{/if}
 		{#if coreMetrics.length}
 			<section>
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">핵심 지표</h2>
@@ -174,7 +213,7 @@
 			</section>
 		{/if}
 		{#each visibleCategories as cat}
-			{#if showCore && COLLAPSED.has(cat.category)}
+			{#if showCore && !searching && COLLAPSED.has(cat.category)}
 				<details>
 					<summary class="cursor-pointer text-xs font-medium uppercase tracking-wide text-fg-muted hover:text-fg-secondary"
 						>{cat.label} ({cat.metrics.length}) — 세부 지표</summary

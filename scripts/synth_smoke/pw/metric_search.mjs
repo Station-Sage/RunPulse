@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+const BASE='http://localhost:5199', API='http://localhost:18098';
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:420,height:800}});
+await ctx.route('**/api/v1/**', r=>r.continue({url:r.request().url().replace(/^https?:\/\/[^/]+/,API)}));
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(`${BASE}/v2/library/metrics`,{waitUntil:'networkidle'});
+const all=await p.locator('a[href*="/library/metrics/"]').count();
+await p.keyboard.press('/');
+console.log('focus', await p.evaluate(()=>document.activeElement?.getAttribute('aria-label')));
+await p.keyboard.type('마라톤');
+await p.waitForTimeout(300);
+const hit=await p.locator('a[href*="/library/metrics/"]').count();
+console.log('all',all,'hit',hit, hit>0&&hit<all?'ok':'FAIL', 'url', p.url().includes('q=')?'ok':'FAIL');
+await p.screenshot({path:'shots/metric_search.png'});
+await p.goto(`${BASE}/v2/library/metrics?q=zzzz`,{waitUntil:'networkidle'});
+console.log((await p.locator('main').innerText()).includes('맞는 지표가 없습니다')?'empty ok':'FAIL empty');
+console.log('errors',errs.length); await b.close();
