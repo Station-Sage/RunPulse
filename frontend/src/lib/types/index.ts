@@ -848,6 +848,7 @@ export interface MetricTrendData {
 	bands?: { from: number | null; to: number | null; status: string; label: string }[];
 	change_pct: number | null;
 	points: MetricTrendPoint[];
+	events?: { date: string; kind: 'race'; label: string; activity_id?: number }[];
 }
 
 // ── Wellness (3-G — /api/v1/library/wellness) ────────────────────────────────

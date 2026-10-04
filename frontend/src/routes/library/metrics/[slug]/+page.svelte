@@ -140,6 +140,7 @@
 					series={[{ key: data.slug, label: data.trend.label, color: 'var(--color-series-1)', points }]}
 					unit={displayUnit(data.trend.unit)}
 					formatValue={(v) => formatMetric(data.trend!, v)}
+					events={data.trend.events ?? []}
 					bands={data.trend.bands ?? []}
 					baseline={data.trend.baseline ?? null}
 					smooth={data.period === '3m' || data.period === '6m' || data.period === '1y'}

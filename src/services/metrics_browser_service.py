@@ -212,7 +212,22 @@ def get_metric_trend(
         "bands": band_ranges(slug),
         "change_pct": change_pct,
         "points": points,
+        "events": _race_events(conn, points[0]["date"], points[-1]["date"]),
     }
+
+
+def _race_events(conn: sqlite3.Connection, d0: str, d1: str) -> list[dict[str, Any]]:
+    """차트 기간 내 대회(▲) — race_result_service.candidates 기준. 실패해도 차트는 계속."""
+    try:
+        from src.services import race_result_service
+
+        rows = race_result_service.candidates(conn, d0)
+    except sqlite3.Error:
+        return []
+    return [
+        {"date": r["date"], "kind": "race", "label": r["name"] or "대회", "activity_id": r["activity_id"]}
+        for r in reversed(rows) if d0 <= r["date"] <= d1
+    ]
 
 
 def _baseline(valued: list[dict[str, Any]]) -> dict[str, Any] | None:

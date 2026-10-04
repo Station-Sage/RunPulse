@@ -245,3 +245,16 @@ def test_display_meta_min_span():
     assert display_meta("race_pred_5k_sec", "sec", "", 1200.0)["min_span"] == 24.0
     assert display_meta("race_pred_5k_sec", "sec")["min_span"] is None
     assert display_meta("x", "")["min_span"] is None
+
+
+def test_race_events_filters_by_window(conn):
+    from src.services.metrics_browser_service import _race_events
+
+    conn.execute(
+        "INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time, distance_m, moving_time_sec) "
+        "VALUES ('garmin','9','서울 마라톤 대회','running','2026-04-01 07:00:00',42195,12000)"
+    )
+    conn.commit()
+    ev = _race_events(conn, "2026-03-01", "2026-04-30")
+    assert [e["kind"] for e in ev] == ["race"] and ev[0]["date"] == "2026-04-01"
+    assert _race_events(conn, "2026-04-02", "2026-04-30") == []
