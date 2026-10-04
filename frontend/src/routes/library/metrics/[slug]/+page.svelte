@@ -3,6 +3,7 @@
 	import type { MetricTrendPageData } from './+page';
 	import TrendChart from '$lib/components/TrendChart.svelte';
 	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
+	import MetricAbout from '$lib/components/MetricAbout.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel } from '$lib/trendChart';
@@ -94,7 +95,8 @@
 		{/each}
 	</div>
 
-	<div class="flex flex-col gap-4 px-4 py-4">
+	<div class="grid grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-12">
+	<div class="flex flex-col gap-4 lg:col-span-8">
 		<!-- 현재값·변화율·피크 요약 -->
 		<div class="grid grid-cols-3 gap-2">
 			<div class="flex flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
@@ -141,6 +143,11 @@
 			<BreakdownPanel slug={data.slug} date={panelDate} onDrillTerm={drillTerm} onClear={pinned ? () => setPinned(null) : undefined} />
 		{/if}
 
+		</div>
+		<div class="flex flex-col gap-4 lg:col-span-4">
+			<MetricAbout slug={data.slug} trend={data.trend} date={panelDate} {explainSupported} />
+		</div>
+		<div class="flex flex-col gap-4 lg:col-span-12">
 		<!-- 계산 분해 / Provider 비교 버튼 -->
 		<div class="flex gap-2">
 			<button
@@ -157,6 +164,7 @@
 			>
 				Provider 비교
 			</a>
+		</div>
 		</div>
 	</div>
 
