@@ -2,7 +2,7 @@
 // streamAxis.ts 순수 함수 단위 테스트 — 실행: npm run test:unit (Node 내장 test runner)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { indexAtFraction, axisTicks, formatElapsed, streamSeconds } from '../src/lib/streamAxis.ts';
+import { indexAtFraction, axisTicks, formatElapsed, streamSeconds, distanceTicks, dotTopPct } from '../src/lib/streamAxis.ts';
 
 // ── indexAtFraction ──────────────────────────────────────────────────────────
 
@@ -158,4 +158,19 @@ test('streamSeconds: 재환산 결과는 단조증가', () => {
 	for (let i = 1; i < result.length; i++) {
 		assert.ok(result[i] >= result[i - 1], `단조증가 위반: [${i-1}]=${result[i-1]}, [${i}]=${result[i]}`);
 	}
+});
+
+test('distanceTicks: 등간격 위치에 km 라벨', () => {
+	const t = distanceTicks([0, 2500, 5000, 7500, 10000], 5);
+	assert.deepEqual(t.map((x) => x.label), ['0.0km', '2.5km', '5.0km', '7.5km', '10km']);
+	assert.equal(t[4].frac, 1);
+	assert.deepEqual(distanceTicks([]), []);
+});
+
+test('dotTopPct: min–max 선형, invert 시 위아래 반전', () => {
+	assert.equal(dotTopPct([0, 10], 10, false), 0);
+	assert.equal(dotTopPct([0, 10], 10, true), 100);
+	assert.equal(dotTopPct([5, 5], 5, false), 50);
+	assert.equal(dotTopPct([null], 1, false), null);
+	assert.equal(dotTopPct([0, 10], null, false), null);
 });

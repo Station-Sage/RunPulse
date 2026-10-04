@@ -5,7 +5,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
-	import { axisTicks, formatElapsed, streamSeconds } from '$lib/streamAxis';
+	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, streamSeconds } from '$lib/streamAxis';
 	import { clampOutliers } from '$lib/chartScale';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
@@ -109,7 +109,13 @@
 	}
 
 	// 시간 눈금 (보정된 elapsed 기준, 포인트 인덱스 등간격 위치에 실제 시간 라벨)
-	const ticks = $derived(axisTicks(correctedElapsed));
+	let xAxis = $state<'time' | 'distance'>('time');
+	const hasDistance = $derived(data.streams.some((p) => p.distance_m != null));
+	const ticks = $derived(
+		xAxis === 'distance' && hasDistance
+			? distanceTicks(data.streams.map((p) => p.distance_m))
+			: axisTicks(correctedElapsed)
+	);
 
 	// 스크럽 판독 줄에 표시할 값 포맷 (원본 값 사용 — 판독은 실제 측정값)
 	function formatScrubValue(def: StreamDef, point: ActivityStreamPoint): string {
@@ -142,24 +148,41 @@
 {:else}
 	<div class="flex flex-col gap-4 px-4 py-4">
 
-		<!-- 토글 체크박스 -->
-		<div class="flex flex-wrap gap-3">
-			{#each availableStreams as def}
-				<label class="flex cursor-pointer items-center gap-1.5 text-sm">
-					<input
-						type="checkbox"
-						bind:checked={checked[def.key]}
-						class="h-3.5 w-3.5 rounded"
-					/>
-					<span style="color:{def.color}">{def.label}</span>
-				</label>
+		<div class="flex flex-wrap items-center gap-2">
+			{#each availableStreams as def (def.key)}
+				<button
+					type="button"
+					aria-pressed={checked[def.key]}
+					data-testid="stream-chip"
+					onclick={() => (checked[def.key] = !checked[def.key])}
+					class="h-9 rounded-full border px-3 text-sm {checked[def.key] ? 'border-fg-secondary font-medium' : 'border-border-subtle text-fg-muted'}"
+				><span style="color:{def.color}">●</span> {def.label}</button>
 			{/each}
+			{#if hasDistance}
+				<div class="ml-auto inline-flex overflow-hidden rounded-full border border-border-subtle text-xs" role="group" aria-label="가로축">
+					{#each [['time', '시간'], ['distance', '거리']] as [k, l] (k)}
+						<button type="button" data-testid="stream-xaxis-{k}" aria-pressed={xAxis === k} onclick={() => (xAxis = k as 'time' | 'distance')} class="h-9 px-3 {xAxis === k ? 'bg-surface-2 font-medium' : 'text-fg-muted'}">{l}</button>
+					{/each}
+				</div>
+			{/if}
 		</div>
 
-		<!-- provider 배지 -->
-		{#if providerLabel()}
-			<p class="text-xs text-fg-muted">소스: {providerLabel()}</p>
-		{/if}
+		<div class="text-xs text-fg-muted">
+			{providerLabel()} {data.streams.length.toLocaleString('ko-KR')}개 기록점
+			<details class="inline align-baseline">
+				<summary class="inline cursor-pointer" aria-label="구현 메모">ⓘ</summary>
+				<span class="mt-1 block">
+					{#if timeAxisRescaled()}
+						시간축: 활동 총 시간 기준 등간격 환산(저장값이 샘플 인덱스로 확인됨).
+					{:else}
+						눈금은 포인트 인덱스 기준 위치에 실제 값을 표시.
+					{/if}
+					{#if clampedKeys.length > 0}
+						이상치 제거됨({clampedKeys.map((k) => STREAM_DEFS.find((d) => d.key === k)?.label ?? k).join(', ')}: 상·하위 2% 클램프).
+					{/if}
+				</span>
+			</details>
+		</div>
 
 		<!-- 시간 눈금 + 스크럽 영역 — §C1 ChartScrub(포인터+키보드+"손을 떼도 유지") -->
 		<ChartScrub pointCount={data.streams.length}>
@@ -214,6 +237,12 @@
 											style="left:{scrubFrac * 100}%; background-color:{def.color}"
 										></div>
 									{/if}
+									{#if pinned && scrubFrac != null && scrubIndex != null}
+										{@const top = dotTopPct(clamped.values, clamped.values[scrubIndex] ?? null, def.key === 'pace')}
+										{#if top != null}
+											<div class="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface-1" data-testid="stream-dot" style="left:{scrubFrac * 100}%; top:{top}%; background-color:{def.color}"></div>
+										{/if}
+									{/if}
 								</div>
 							</div>
 					{/if}
@@ -222,16 +251,5 @@
 			{/snippet}
 		</ChartScrub>
 
-		<p class="text-xs text-fg-muted">
-			{data.streams.length.toLocaleString('ko-KR')}개 포인트 ·
-			{#if timeAxisRescaled()}
-				시간축: 활동 총 시간 기준 등간격 환산(저장값이 샘플 인덱스로 확인됨)
-			{:else}
-				시간 눈금은 포인트 인덱스 기준 위치에 실제 elapsed_sec를 표시
-			{/if}
-			{#if clampedKeys.length > 0}
-				· 이상치 제거됨({clampedKeys.map((k) => STREAM_DEFS.find((d) => d.key === k)?.label ?? k).join(', ')}: 상·하위 2% 클램프)
-			{/if}
-		</p>
 	</div>
 {/if}

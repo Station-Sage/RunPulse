@@ -83,3 +83,29 @@ export function formatElapsed(sec: number | null | undefined): string {
 	if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`;
 	return `${m}m`;
 }
+
+/** 거리 기준 x축 눈금 — 포인트 등간격 위치에 해당 포인트의 누적 거리(km) 라벨. */
+export function distanceTicks(
+	distM: (number | null)[],
+	count: number = 5
+): { label: string; frac: number }[] {
+	const n = distM.length;
+	if (n === 0 || count < 2) return [];
+	return Array.from({ length: count }, (_, t) => {
+		const frac = t / (count - 1);
+		const d = distM[indexAtFraction(n, frac)] ?? nearestNonNull(distM, indexAtFraction(n, frac));
+		return { frac, label: `${(d / 1000).toFixed(d >= 10000 ? 0 : 1)}km` };
+	});
+}
+
+/** 크로스헤어 점의 세로 위치(%, 위=0). Sparkline의 min–max 선형 매핑과 동일. */
+export function dotTopPct(values: (number | null)[], v: number | null, invert: boolean): number | null {
+	if (v == null) return null;
+	const nums = values.filter((x): x is number => x != null);
+	if (nums.length === 0) return null;
+	const mn = Math.min(...nums);
+	const mx = Math.max(...nums);
+	if (mx === mn) return 50;
+	const frac = (v - mn) / (mx - mn);
+	return (invert ? frac : 1 - frac) * 100;
+}

@@ -19,4 +19,22 @@ await p.goto(`${BASE}/v2/library/${ID}/laps`); await p.waitForTimeout(2500);
 ok('lap rows render', (await p.locator('[data-testid=lap-row]').count()) > 0);
 ok('lap interval groups', (await p.locator('[data-testid=lap-group]').count()) >= 2);
 ok('lap interval head', (await p.locator('[data-testid=lap-interval-head]').count()) === 1);
+await p.goto(`${BASE}/v2/library/${ID}/providers`); await p.waitForTimeout(2500);
+const secs = await p.locator('[data-testid=provider-section]').count();
+console.log('source sections', secs);
+ok('source summary', (await p.locator('[data-testid=provider-summary]').count()) === 1 || secs === 0);
+if (await p.locator('[data-testid=provider-row]').count()) {
+  await p.locator('[data-testid=provider-row]').first().click(); await p.waitForTimeout(300);
+  ok('source row detail toggles', (await p.locator('[data-testid=provider-row-detail]').count()) === 1);
+}
+await p.goto(`${BASE}/v2/library/${ID}/metrics`); await p.waitForTimeout(2500);
+ok('metric sections', (await p.locator('[data-testid=metric-section]').count()) >= 1);
+ok('metric section conclusion', (await p.locator('[data-testid=metric-section-conclusion]').count()) >= 1);
+ok('no _unmapped by default', (await p.getByText('미매핑').count()) === 0);
+await p.goto(`${BASE}/v2/library/${ID}/streams`); await p.waitForTimeout(2500);
+ok('stream chips', (await p.locator('[data-testid=stream-chip]').count()) >= 2);
+if (await p.locator('[data-testid=stream-xaxis-distance]').count()) {
+  await p.locator('[data-testid=stream-xaxis-distance]').click(); await p.waitForTimeout(300);
+  ok('distance axis km labels', (await p.getByText(/\d+(\.\d)?km/).count()) >= 1);
+}
 await b.close(); process.exit(fail ? 1 : 0);
