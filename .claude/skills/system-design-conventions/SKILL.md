@@ -31,7 +31,7 @@ grep -A15 "CREATE TABLE IF NOT EXISTS metric_store" src/db_setup.py
 python3 -c "from src.utils.metric_groups import SEMANTIC_GROUPS; print(list(SEMANTIC_GROUPS.keys()))"
 
 # MetricDef 등록 수
-grep -c "MetricDef(" src/utils/metric_registry.py
+cat src/utils/metric_defs_*.py | grep -c "MetricDef("
 ```
 
 ## 데이터 모델 원칙
@@ -83,6 +83,6 @@ chat_messages, goals, planned_workouts, user_training_prefs, session_outcomes
 새 Calculator 추가 시:
 - src/metrics/ 에 파일 생성
 - engine.py ALL_CALCULATORS에 등록
-- metric_registry.py에 MetricDef 추가
+- metric_defs_*.py(layer1/load/misc)에 MetricDef 추가
 - gen_metric_dictionary.py 실행
 - test 파일 생성

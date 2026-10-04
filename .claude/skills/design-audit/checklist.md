@@ -7,7 +7,7 @@
 - [ ] CREATE INDEX 수 일치 (현재 20)
 - [ ] SCHEMA_VERSION == 10
 - [ ] 5개 앱 테이블 DDL이 문서에 포함되어 있는가
-- [ ] metric_registry.py의 MetricDef 수가 문서와 일치
+- [ ] metric_defs_*.py의 MetricDef 수가 문서와 일치
 
 ## Phase 2: Extractor
 

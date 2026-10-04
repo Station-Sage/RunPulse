@@ -69,7 +69,7 @@
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (120줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (130줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
@@ -619,9 +619,13 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate
 
-### `ai_context.py` (462줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
+### `ai_context.py` (185줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
 
-- functions: build_daily_briefing, build_activity_analysis, build_ai_context, build_context, format_context_text, format_activity_context
+- functions: build_daily_briefing, build_activity_analysis, build_ai_context
+
+### `ai_context_legacy.py` (290줄) — 레거시 dict 기반 AI 컨텍스트 — build_context/format_context_text/format_activity_context.
+
+- functions: build_context, format_context_text, format_activity_context
 
 ### `ai_message.py` (311줄) — AI 우선 메시지 생성기 — API 있으면 AI, 없으면 규칙 기반.
 
@@ -1259,6 +1263,22 @@
 
 - functions: setup_logging
 
+### `metric_def.py` (24줄) — MetricDef — 메트릭/컬럼 정의 dataclass (metric_registry·metric_defs_* 공용, 순환 import 방지).
+
+- class **MetricDef**: 없음
+
+### `metric_defs_layer1.py` (89줄) — 메트릭 정의 — Layer 1 (activity_summaries·daily_wellness 컬럼). metric_registry가 합쳐서 사용.
+
+- (public API 없음)
+
+### `metric_defs_load.py` (144줄) — 메트릭 정의 — Layer 2 hr~load 도메인. metric_registry가 합쳐서 사용.
+
+- (public API 없음)
+
+### `metric_defs_misc.py` (175줄) — 메트릭 정의 — Layer 2 efficiency~meta/athlete 도메인. metric_registry가 합쳐서 사용.
+
+- (public API 없음)
+
 ### `metric_groups.py` (149줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
@@ -1272,9 +1292,8 @@
 
 - functions: get_provider_priority, resolve_primary, resolve_for_scope, resolve_all_primaries
 
-### `metric_registry.py` (522줄) — RunPulse 메트릭 레지스트리 v0.3.1
+### `metric_registry.py` (111줄) — RunPulse 메트릭 레지스트리 v0.3.1
 
-- class **MetricDef**: 없음
 - functions: canonicalize, get_metric, list_by_category, list_by_scope, list_by_storage
 
 ### `pace.py` (73줄) — 페이스 변환 유틸리티 (초 ↔ 분:초, km/h ↔ min/km).
@@ -1390,9 +1409,9 @@
 
 - functions: conn, test_adjust_returns_none_no_plan, test_adjust_returns_dict_with_plan, test_adjustment_reason_parts_is_list, test_adjust_past_date_uses_that_dates_data, test_adjust_today_default_unchanged, test_adjust_past_date_no_plan_returns_none
 
-### `test_ai_context.py` (229줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
+### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
-- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful
+- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
 
 ### `test_ai_parser.py` (154줄) — ai_parser 모듈 테스트.
 
@@ -1563,9 +1582,9 @@
 
 - functions: db_file, test_start_runs_and_streams_events, test_stream_honors_last_event_id, test_stream_restores_from_db_when_log_is_gone, test_duplicate_start_while_running_is_rejected, test_start_unknown_message_returns_false, test_rule_mode_skips_ai, test_worker_exception_emits_error, test_cancel_running_sets_flag, test_cancel_orphan_pending_marks_row, test_orphan_pending_stream_becomes_error, test_source_text_follows_regenerate_chain
 
-### `test_coach_engine_health.py` (65줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
+### `test_coach_engine_health.py` (79줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
-- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys
+- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json
 
 ### `test_coach_evidence.py` (141줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
@@ -1928,10 +1947,11 @@
 - class **TestResolvePrimary**: test_single_provider, test_multi_provider_garmin_wins, test_user_override_wins, test_resolve_for_scope
 - functions: db
 
-### `test_metric_registry.py` (64줄) — metric_registry.py 단위 테스트 — Phase 1 조건 5, 6
+### `test_metric_registry.py` (74줄) — metric_registry.py 단위 테스트 — Phase 1 조건 5, 6
 
 - class **TestMetricDefinitions**: test_metric_count_minimum, test_no_alias_collision, test_all_metrics_have_category, test_all_metrics_have_unit, test_categories_non_empty
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
+- functions: test_definitions_split_modules_cover_registry_in_order
 
 ### `test_metrics_browser_service.py` (237줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
@@ -2452,7 +2472,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 500개 파일
+총 505개 파일
 
 ## docstring 누락
 

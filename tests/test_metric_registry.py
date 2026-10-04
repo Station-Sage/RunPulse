@@ -62,3 +62,13 @@ class TestCanonicalize:
         assert mdef is not None
         assert mdef.name == name                         # canonical_name → name
 
+
+
+def test_definitions_split_modules_cover_registry_in_order():
+    from src.utils import metric_registry as r
+    from src.utils.metric_defs_layer1 import LAYER1_DEFS
+    from src.utils.metric_defs_load import LOAD_DEFS
+    from src.utils.metric_defs_misc import MISC_DEFS
+    names = [d.name for d in [*LAYER1_DEFS, *LOAD_DEFS, *MISC_DEFS]]
+    assert names == [d.name for d in r._DEFINITIONS]
+    assert len(names) == len(set(names)) == len(r.METRIC_REGISTRY)
