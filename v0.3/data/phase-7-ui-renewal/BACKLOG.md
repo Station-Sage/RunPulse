@@ -198,6 +198,9 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   10. **계정 설정 스키마(2-3)**·`sync_jobs` 열 확장(error_code 등)·4경로 오류 표면화.
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).
+  **DESIGN-PENDING 진행 — 2026-10-04**: 12(기간 필터)·2(RRI)·1(UTRS 입력)·9단계1(Sparkline)·3(활동 `@a{id}` 드릴)·11 완료,
+  8은 1단계(`race_pred_*_sec` explain + `PredictionEvidence`: 범위·신뢰·제한 요인·모델 비교) 완료 — **남음**: `x.taper`(TSB 투영)·목표 달성 가능성.
+  9 단계2(`/trend` events: ▲대회·◆알고리즘 버전), 4(문서 정리), 7(캐시 워밍; D8 동의·일일 호출 상한 확인 선행), 10(스키마; 백업·승인) 미착수, 5·6 보류.
   **구조·정리 — 2026-10-04 완료**: `metric_registry.py` → `metric_def.py`+`metric_defs_{layer1,load,misc}.py` 분리(파사드 유지),
   `ai_context.py` → `ai_context_legacy.py` 분리, `engine_label("legacy_rule")` 단일화 + 오류·중단 행 엔진 뷰를 행 status 기준으로,
   미사용 `RecommendationCard`·`ScoreRing`·`Meaning` 제거, 10-docs `display_name_ko` 정정, `#3b82f6` 토큰화.
