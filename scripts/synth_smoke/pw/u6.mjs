@@ -15,4 +15,8 @@ if (await hrBtn.count()) {
   await p.reload(); await p.waitForTimeout(2500);
   ok('map=hr survives refresh', p.url().includes('map=hr'));
 } else console.log('SKIP map toggle (no hr range)');
+await p.goto(`${BASE}/v2/library/${ID}/laps`); await p.waitForTimeout(2500);
+ok('lap rows render', (await p.locator('[data-testid=lap-row]').count()) > 0);
+ok('lap interval groups', (await p.locator('[data-testid=lap-group]').count()) >= 2);
+ok('lap interval head', (await p.locator('[data-testid=lap-interval-head]').count()) === 1);
 await b.close(); process.exit(fail ? 1 : 0);
