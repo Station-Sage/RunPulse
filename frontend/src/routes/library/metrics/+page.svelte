@@ -7,6 +7,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import { loadPins, savePins, togglePin } from '$lib/pinnedMetrics';
 	import { saveMetricsSearch } from '$lib/libraryNav';
 	import { matchesMetric } from '$lib/metricSearch';
 	import { replaceState } from '$app/navigation';
@@ -66,7 +67,12 @@
 	);
 
 	// 핵심 지표 — 전체 보기에서 맨 위에 크게. 나머지는 카테고리별, 보조 카테고리(수면·심박 세부·환경)는 접어 둔다.
-	const CORE = ['race_pred_marathon_sec', 'race_pred_half_sec', 'race_pred_10k_sec', 'race_pred_5k_sec', 'ctl', 'tsb', 'utrs', 'cirs'];
+	let pins = $state<string[]>(loadPins());
+	const CORE = $derived(pins);
+	function pin(name: string) {
+		pins = togglePin(pins, name);
+		savePins(pins);
+	}
 	const COLLAPSED = new Set(['sleep', 'hr', 'weather']);
 	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all' && !searching);
 	const coreMetrics = $derived(
@@ -107,6 +113,7 @@
 </script>
 
 {#snippet card(m: MetricBrowserEntry, big: boolean)}
+	<div class="relative">
 	<a
 		href="{base}/library/metrics/{m.name}"
 		class="flex flex-col gap-1 rounded-xl bg-surface-2 p-3 active:bg-surface-3 {big ? 'ring-1 ring-border-subtle' : ''}"
@@ -133,6 +140,15 @@
 		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
 		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 40 : 24} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="text-[10px] text-fg-muted">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
 	</a>
+	<button
+		type="button"
+		aria-pressed={pins.includes(m.name)}
+		aria-label="{pins.includes(m.name) ? '내 지표에서 해제' : '내 지표에 고정'}"
+		onclick={() => pin(m.name)}
+		class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center text-sm {pins.includes(m.name) ? 'text-semantic-amber' : 'text-fg-muted'}"
+		>{pins.includes(m.name) ? '★' : '☆'}</button
+	>
+	</div>
 {/snippet}
 
 <svelte:head><title>메트릭 브라우저 · RunPulse</title></svelte:head>
@@ -217,7 +233,7 @@
 		{/if}
 		{#if coreMetrics.length}
 			<section>
-				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">핵심 지표</h2>
+				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">내 지표</h2>
 				<div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
 					{#each coreMetrics as m}
 						{@render card(m, true)}

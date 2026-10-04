@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const BASE='http://localhost:5199', API='http://localhost:18098';
+const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:420,height:800}});
+await ctx.route('**/api/v1/**', r=>r.continue({url:r.request().url().replace(/^https?:\/\/[^/]+/,API)}));
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto(`${BASE}/v2/library/metrics`,{waitUntil:'networkidle'});
+const my=async()=>p.locator('section:has(h2:text-is("내 지표")) a').count();
+const n0=await my(); console.log('내 지표 기본',n0);
+await p.locator('section:has(h2:text-is("내 지표")) button[aria-pressed="true"]').first().click();
+console.log('해제 후',await my(), (await my())===n0-1?'ok':'FAIL');
+await p.reload({waitUntil:'networkidle'});
+console.log('새로고침 유지',await my(), (await my())===n0-1?'ok':'FAIL');
+await p.screenshot({path:'shots/metric_pin.png'});
+console.log('errors',errs.length); await b.close();
