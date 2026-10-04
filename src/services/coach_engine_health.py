@@ -44,7 +44,9 @@ def engine_label(status: str, provider: str | None, model: str | None, tool_call
         return f"답변을 만들지 못했어요 ({reason_label(reason)})"
     if status == "cancelled":
         return "중단됨"
-    return "규칙 답변"
+    if status == "legacy_rule":
+        return "규칙 답변(이전 방식)"
+    return "답변 엔진 정보 없음"
 
 
 def parse_engine(engine_json: str | None) -> dict | None:
@@ -55,14 +57,22 @@ def parse_engine(engine_json: str | None) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def message_engine_view(engine_json: str | None, ai_model: str | None) -> dict:
-    """저장된 메시지 → {status, label, provider, model, reason}. engine_json이 없는 옛 메시지는 ai_model로 추정."""
+def message_engine_view(engine_json: str | None, ai_model: str | None, row_status: str | None = None) -> dict:
+    """저장된 메시지 → {status, label, provider, model, reason}. engine_json이 없는 옛 메시지는 ai_model로 추정.
+
+    행 status가 error/cancelled면 engine_json보다 우선한다(오류 행은 engine_json이 NULL이라 재로딩 시 배너가 사라지던 문제).
+    """
     data = parse_engine(engine_json)
+    if row_status in ("error", "cancelled"):
+        reason = (data or {}).get("fallback_reason")
+        return {"status": row_status, "provider": (data or {}).get("provider"), "model": (data or {}).get("model"),
+                "reason": reason, "label": engine_label(row_status, None, None, 0, reason)}
     if data is None:
         if ai_model and ai_model != "rule":
             return {"status": "ok", "label": model_label(ai_model, None), "provider": ai_model,
                     "model": None, "reason": None}
-        return {"status": "legacy_rule", "label": "규칙 답변(이전 방식)", "provider": "rule", "model": None, "reason": None}
+        return {"status": "legacy_rule", "label": engine_label("legacy_rule", "rule", None, 0, None),
+                "provider": "rule", "model": None, "reason": None}
     status = data.get("status", "ok")
     reason = data.get("fallback_reason")
     return {

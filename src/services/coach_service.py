@@ -93,7 +93,7 @@ def _message_view(conn: sqlite3.Connection, row: sqlite3.Row, asked: set[str] | 
     except Exception:
         msg["sent_scope"] = None
     if msg["role"] == "assistant":
-        msg["engine"] = message_engine_view(engine_json, msg.get("ai_model"))
+        msg["engine"] = message_engine_view(engine_json, msg.get("ai_model"), msg.get("status"))
         view_evidence(conn, msg)
         if msg.get("status") in PENDING_STATUSES:
             msg["stream_url"] = f"/api/v1/coach/messages/{msg['id']}/stream"

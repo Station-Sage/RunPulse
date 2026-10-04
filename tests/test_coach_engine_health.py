@@ -63,3 +63,17 @@ def test_save_consent_rejects_non_llm(db_conn):
 def test_get_engine_rule_only_when_no_keys(db_conn):
     e = h.get_engine(db_conn, {"ai": {"provider": "gemini"}})
     assert e["mode"] == "rule_only" and e["chain"] == []
+
+
+def test_legacy_rule_label_single_source():
+    assert h.engine_label("legacy_rule", "rule", None, 0, None) == "규칙 답변(이전 방식)"
+    assert h.engine_label("???", None, None, 0, None) == "답변 엔진 정보 없음"
+    assert h.message_engine_view(None, None)["label"] == "규칙 답변(이전 방식)"
+
+
+def test_row_status_overrides_engine_json():
+    v = h.message_engine_view(None, None, "error")
+    assert v["status"] == "error" and "답변을 만들지 못했어요" in v["label"]
+    ok_json = '{"status": "ok", "provider": "gemini", "model": "gemini-2.5-flash"}'
+    assert h.message_engine_view(ok_json, "gemini", "cancelled")["label"] == "중단됨"
+    assert h.message_engine_view(ok_json, "gemini", "done")["status"] == "ok"
