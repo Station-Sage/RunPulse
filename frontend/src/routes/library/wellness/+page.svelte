@@ -159,7 +159,7 @@
 			<div class="flex flex-col gap-4">
 				<div class="rounded-xl bg-surface-2 p-3">
 					<span class="text-xs text-fg-muted">수면 점수</span>
-					<Sparkline data={trend.sleep_score} height={32} color="#3b82f6" interactive dates={trend.dates} />
+					<Sparkline data={trend.sleep_score} height={32} color="var(--color-series-1)" interactive dates={trend.dates} />
 				</div>
 				<div class="rounded-xl bg-surface-2 p-3">
 					<span class="text-xs text-fg-muted">HRV (야간)</span>

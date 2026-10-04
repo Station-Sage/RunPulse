@@ -26,7 +26,7 @@
 	};
 
 	const STREAM_DEFS: StreamDef[] = [
-		{ key: 'pace', label: '페이스', color: '#3b82f6', extract: (p) => toPace(p.speed_ms), unit: '/km' },
+		{ key: 'pace', label: '페이스', color: 'var(--color-series-1)', extract: (p) => toPace(p.speed_ms), unit: '/km' },
 		{ key: 'heart_rate', label: '심박수', color: '#ef4444', extract: (p) => p.heart_rate, unit: 'bpm' },
 		{ key: 'altitude_m', label: '고도', color: '#10b981', extract: (p) => p.altitude_m, unit: 'm' },
 		{ key: 'cadence', label: '케이던스', color: '#f59e0b', extract: (p) => p.cadence, unit: 'spm' },

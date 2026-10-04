@@ -122,7 +122,7 @@
 		{#if points.length > 1}
 			<div class="rounded-xl bg-surface-2 p-3">
 				<TrendChart
-					series={[{ key: data.slug, label: data.trend.label, color: '#3b82f6', points }]}
+					series={[{ key: data.slug, label: data.trend.label, color: 'var(--color-series-1)', points }]}
 					unit={data.trend.unit}
 					bands={data.trend.bands ?? []}
 					baseline={data.trend.baseline ?? null}
