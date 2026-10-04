@@ -340,3 +340,9 @@
 - `GET /library/activities/facets`(종목·유형·월 칩 건수), `/summary`(주간 막대·12주 평균·월 요약+전월 대비), 목록에 `sport_group`·`type`·`month`·`dist_min`·`q`·`sort=load` 필터와 행 필드(`workout_label`·`display_title`·`load`·`is_race`).
 - 러닝 칩 건수는 현재 DB 기준 492(러닝 476+실내 16). 설계서의 488은 이전 스냅샷 값이라 정합 기준을 DB 실값으로 둔다.
 - 검증: pytest 2109 통과·check_docs 0 오류·실DB 사본 API 스모크(type=race+sort=load 21건, bad type 400). 프론트 연결은 U11(A-16/A-19).
+
+### U11 A-16/A-19 완료 (2026-10-05)
+- 활동 목록 프론트 연결: 필터(기간·월·종목·유형·거리·검색·정렬, facets 건수)·월 헤더(‹ ›·요약·전월 대비)·주 헤더(서버 summary 합계, 월 경계 "(N월분만)", 12주 평균 눈금)·연도 sticky 헤더·IntersectionObserver 무한 스크롤(40건, "표시 N / total")·연-월 스크러버(점프 시 40의 배수로 한 번에 로드 후 스크롤)·snapshot 복원.
+- 설계서 대비 변경: 월 화살표·`at=` 동기화는 pushState 대신 replaceState(popstate 처리 회피). 정렬이 최신순이 아니면 주 그룹 없이 평면 목록.
+- ArchiveHero 월 막대 링크는 `?month=YYYY-MM`.
+- 검증: unit 338·check 0 오류·build 통과, 실DB 사본 Playwright(`pw/u11.mjs`: 무한 스크롤 40→80, 월 헤더 18회·183.4km·+31%, 스크롤 점프 at=2025-01, 콘솔 오류 0).

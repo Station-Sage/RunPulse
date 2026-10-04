@@ -1,10 +1,13 @@
-import { getActivities } from '$lib/api/library';
+import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
 import { ApiError } from '$lib/api/client';
 import { parseFilters, type ActivityFilterState } from '$lib/activityFilters';
-import type { ActivitiesListResponse } from '$lib/types';
+import { toApiFilters, PER_PAGE } from '$lib/activityListQuery';
+import type { ActivitiesListResponse, ActivityFacets, ActivityListSummary } from '$lib/types';
 
 export interface ActivitiesPageData {
 	result: ActivitiesListResponse | null;
+	facets: ActivityFacets | null;
+	summary: ActivityListSummary | null;
 	errorMessage: string | null;
 	filters: ActivityFilterState;
 	today: string;
@@ -18,18 +21,17 @@ const localToday = () => {
 export async function load({ url }: { url: URL }): Promise<ActivitiesPageData> {
 	const today = localToday();
 	const filters = parseFilters(url.searchParams, today);
+	const api = toApiFilters(filters);
+	const soft = <T>(p: Promise<T>) => p.catch(() => null);
 	try {
-		const result = await getActivities({
-			per_page: 20,
-			sport: filters.sport || undefined,
-			search: filters.q || undefined,
-			dist_min: filters.distMin ? Number(filters.distMin) : undefined,
-			from: filters.from,
-			to: filters.to ? `${filters.to} 23:59:59` : undefined
-		});
-		return { result, errorMessage: null, filters, today };
+		const [result, facets, summary] = await Promise.all([
+			getActivities({ ...api, page: 1, per_page: PER_PAGE }),
+			soft(getActivityFacets(api)),
+			soft(getActivitySummary(api))
+		]);
+		return { result, facets, summary, errorMessage: null, filters, today };
 	} catch (e) {
 		const message = e instanceof ApiError ? e.message : '활동 목록을 불러올 수 없습니다.';
-		return { result: null, errorMessage: message, filters, today };
+		return { result: null, facets: null, summary: null, errorMessage: message, filters, today };
 	}
 }

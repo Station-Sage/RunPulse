@@ -45,7 +45,7 @@
 			<p class="text-xs uppercase tracking-wide text-fg-muted">최근 12개월 월별 거리</p>
 			<div class="flex h-20 items-end gap-1.5" role="img" aria-label="월별 거리 막대">
 				{#each archive.monthly as m, i (m.month)}
-					<a href="{base}/library/activities?from={monthRange(m.month).from}&to={monthRange(m.month).to}" class="flex h-full flex-1 flex-col items-center justify-end gap-1" title="{m.month} · {m.km}km · {m.runs}회">
+					<a href="{base}/library/activities?month={m.month}" class="flex h-full flex-1 flex-col items-center justify-end gap-1" title="{m.month} · {m.km}km · {m.runs}회">
 						<div
 							class="w-full rounded-t"
 							style="height:{Math.max(2, heights[i] * 100)}%; background:{i === archive.monthly.length - 1 ? '#5eead4' : '#12897f'}"

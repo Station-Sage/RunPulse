@@ -8,7 +8,9 @@ export interface ActivityFilterState {
 	month: string; // YYYY-MM, 없으면 ''
 	from: string | undefined; // YYYY-MM-DD
 	to: string | undefined;
-	sport: string;
+	sport: string; // sport_group (running 등)
+	type: string; // race|interval|tempo|long|easy|recovery
+	sort: string; // date(기본)|distance|pace|load
 	distMin: string;
 	q: string;
 }
@@ -19,6 +21,8 @@ export const PRESETS: ReadonlyArray<readonly [PeriodPreset, string]> = [
 	['month', '이번 달'],
 	['year', '올해']
 ];
+
+export const SORTS = ['date', 'distance', 'pace', 'load'];
 
 const DAY = 86_400_000;
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -77,6 +81,8 @@ export function parseFilters(params: URLSearchParams, today: string): ActivityFi
 		from,
 		to,
 		sport: params.get('sport') ?? '',
+		type: params.get('type') ?? '',
+		sort: SORTS.includes(params.get('sort') ?? '') ? (params.get('sort') as string) : '',
 		distMin: params.get('dist_min') ?? '',
 		q: params.get('q') ?? ''
 	};
@@ -92,6 +98,8 @@ export function serializeFilters(s: ActivityFilterState): string {
 		if (s.to) p.set('to', s.to);
 	}
 	if (s.sport) p.set('sport', s.sport);
+	if (s.type) p.set('type', s.type);
+	if (s.sort && s.sort !== 'date') p.set('sort', s.sort);
 	if (s.distMin) p.set('dist_min', s.distMin);
 	if (s.q) p.set('q', s.q);
 	const qs = p.toString();

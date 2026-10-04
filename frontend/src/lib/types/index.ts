@@ -93,6 +93,37 @@ export interface ActivitySummary {
 	source: string;
 	/** 목록 썸네일용 GPS 미리보기(≤32점 [lat,lng]) — GPS 없으면 null/없음 */
 	route?: [number, number][] | null;
+	workout_class?: string | null;
+	workout_label?: string | null;
+	display_title?: string;
+	load?: number | null;
+	is_race?: boolean;
+}
+
+export interface ActivityFacets {
+	sports: { key: string; label: string; n: number }[];
+	types: { key: string; label: string; n: number }[];
+	months: { month: string; n: number }[];
+}
+
+export interface ActivityWeekSummary {
+	start: string;
+	n: number;
+	km: number;
+	sec: number;
+	in_range_only: boolean;
+}
+
+export interface ActivityListSummary {
+	weeks: ActivityWeekSummary[];
+	avg_week_km_12w: number | null;
+	month?: {
+		month: string;
+		n: number;
+		km: number;
+		by_class: { key: string; label: string; n: number }[];
+		prev_month_pct: number | null;
+	};
 }
 
 export interface ActivitiesListResponse {

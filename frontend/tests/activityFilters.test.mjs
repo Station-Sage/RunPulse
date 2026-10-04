@@ -61,3 +61,12 @@ test('serializeFilters: 기본값 생략·왕복 일치', () => {
 	}
 	assert.equal(serializeFilters(parse('period=year&sport=running')), '?period=year&sport=running');
 });
+
+test('type/sort 왕복 — sort=date 는 생략', () => {
+	const s = parse('type=long&sort=load&sport=running');
+	assert.equal(s.type, 'long');
+	assert.equal(s.sort, 'load');
+	assert.equal(serializeFilters(s), '?sport=running&type=long&sort=load');
+	assert.equal(serializeFilters(parse('sort=date')), '');
+	assert.equal(parse('sort=bogus').sort, '');
+});

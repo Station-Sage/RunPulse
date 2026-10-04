@@ -1,65 +1,125 @@
 <script lang="ts">
-	// 03c-library.md 3-B — 활동 목록. 기간(프리셋·월)/종목/거리/검색 필터(URL 동기화) + 페이지네이션.
-	// 모바일: 2-row 레이아웃으로 페이스·심박 항상 표시.
+	// 03c-library.md 3-B / 20-library-activities §2-3 — 활동 목록. 필터(URL 동기화)·월 헤더·주 헤더(12주 평균 눈금)·
+	// 연-월 스크러버·무한 스크롤. 정렬이 최신순이 아니면 주 그룹 없이 평면 목록.
 	import type { ActivitiesPageData } from './+page';
 	import { replaceState } from '$app/navigation';
 	import { page as pageState } from '$app/state';
-	import { PRESETS, presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
-	import { getActivities } from '$lib/api/library';
+	import { tick, untrack } from 'svelte';
+	import { presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
+	import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
 	import { ApiError } from '$lib/api/client';
 	import { formatDuration } from '$lib/format';
 	import { weekGroups } from '$lib/activityList';
+	import { toApiFilters, jumpLoadCount, weekMap, shiftMonth, PER_PAGE } from '$lib/activityListQuery';
 	import { activityFlag, medianPace } from '$lib/activityFlags';
 	import ActivityRow from '$lib/components/ActivityRow.svelte';
-	import type { ActivitySummary } from '$lib/types';
+	import ActivityFilters from '$lib/components/activities/ActivityFilters.svelte';
+	import MonthHeader from '$lib/components/activities/MonthHeader.svelte';
+	import YearMonthScrubber from '$lib/components/activities/YearMonthScrubber.svelte';
+	import type { ActivitySummary, ActivityFacets, ActivityListSummary } from '$lib/types';
 
 	let { data }: { data: ActivitiesPageData } = $props();
-	// 초기값만 쓰는 상태 시드 — 이후는 필터 조작이 소유(탐색 시 페이지가 새로 마운트됨)
-	const seed = () => data.filters;
+	const seed = untrack(() => data);
 
-	let activities = $state<ActivitySummary[]>(data.result?.activities ?? []);
-	let total = $state(data.result?.total ?? 0);
-	let hasMore = $state(data.result?.has_more ?? false);
-	let errorMessage = $state(data.errorMessage);
-	let period = $state<{ from?: string; to?: string }>({ from: seed().from, to: seed().to });
-	let preset = $state<PeriodPreset | null>(seed().preset);
-	let month = $state(seed().month);
-
-	let filterSport = $state(seed().sport);
-	let filterSearch = $state(seed().q);
-	let filterDistMin = $state(seed().distMin);
-	const months = recentMonths(data.today, 12);
-	const monthLabel = (m: string) => `${m.slice(0, 4)}년 ${Number(m.slice(5))}월`;
-	let currentPage = $state(1);
+	let activities = $state<ActivitySummary[]>(seed.result?.activities ?? []);
+	let total = $state(seed.result?.total ?? 0);
+	let hasMore = $state(seed.result?.has_more ?? false);
+	let facets = $state<ActivityFacets | null>(seed.facets);
+	let summary = $state<ActivityListSummary | null>(seed.summary);
+	let errorMessage = $state(seed.errorMessage);
+	let period = $state<{ from?: string; to?: string }>({ from: seed.filters.from, to: seed.filters.to });
+	let preset = $state<PeriodPreset | null>(seed.filters.preset);
+	let month = $state(seed.filters.month);
+	let sport = $state(seed.filters.sport);
+	let type = $state(seed.filters.type);
+	let sort = $state(seed.filters.sort);
+	let distMin = $state(seed.filters.distMin);
+	let q = $state(seed.filters.q);
+	let at = $state('');
 	let loading = $state(false);
+	let sentinel: HTMLElement | undefined = $state();
 
-	const SPORTS = [
-		['', '전체'],
-		['running', '러닝'],
-		['swimming', '수영'],
-		['strength', '근력']
-	] as const;
-	const DISTS = [
-		['', '전 거리'],
-		['5', '5km+'],
-		['10', '10km+'],
-		['21.1', '하프+'],
-		['42.2', '풀']
-	] as const;
+	const months = recentMonths(seed.today, 12);
+	const cur = () => ({ preset, month, from: period.from, to: period.to, sport, type, sort, distMin, q });
+	const chronological = $derived(!sort || sort === 'date');
+	const groups = $derived(weekGroups(activities));
+	const weeks = $derived(weekMap(summary?.weeks));
+	const median = $derived(medianPace(activities));
+	const avg = $derived(summary?.avg_week_km_12w ?? null);
+	const maxKm = $derived(Math.max(1, avg ?? 0, ...groups.map((g) => weeks.get(g.key)?.km ?? g.km)));
+	const lastMonth = $derived(facets?.months[0]?.month ?? '');
 
 	function syncUrl() {
-		const qs = serializeFilters({
-			preset, month, from: period.from, to: period.to, sport: filterSport, distMin: filterDistMin, q: filterSearch
-		});
 		const u = new URL(pageState.url);
-		u.search = qs;
+		const qs = serializeFilters(cur());
+		u.search = at ? `${qs}${qs ? '&' : '?'}at=${at}` : qs;
 		replaceState(u, pageState.state);
 	}
+
+	// 요청 번호 — 늦게 도착한 이전 응답이 최신 결과를 덮지 않게 무시한다.
+	let reqSeq = 0;
+
+	async function reload(perPage = PER_PAGE) {
+		const seq = ++reqSeq;
+		loading = true;
+		errorMessage = null;
+		const api = toApiFilters(cur());
+		try {
+			const [res, f, s] = await Promise.all([
+				getActivities({ ...api, page: 1, per_page: perPage }),
+				getActivityFacets(api).catch(() => null),
+				getActivitySummary(api).catch(() => null)
+			]);
+			if (seq !== reqSeq) return false;
+			activities = res.activities;
+			total = res.total;
+			hasMore = res.has_more;
+			facets = f;
+			summary = s;
+			return true;
+		} catch (e) {
+			if (seq === reqSeq) errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
+			return false;
+		} finally {
+			if (seq === reqSeq) loading = false;
+		}
+	}
+
+	async function applyFilters() {
+		at = '';
+		syncUrl();
+		window.scrollTo({ top: 0 });
+		await reload();
+	}
+
+	async function loadMore() {
+		if (loading || !hasMore) return;
+		const seq = ++reqSeq;
+		loading = true;
+		try {
+			const res = await getActivities({ ...toApiFilters(cur()), page: Math.floor(activities.length / PER_PAGE) + 1, per_page: PER_PAGE });
+			if (seq !== reqSeq) return;
+			activities = [...activities, ...res.activities];
+			total = res.total;
+			hasMore = res.has_more;
+		} catch (e) {
+			if (seq === reqSeq) errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
+		} finally {
+			if (seq === reqSeq) loading = false;
+		}
+	}
+
+	$effect(() => {
+		if (!sentinel) return;
+		const io = new IntersectionObserver((e) => e[0].isIntersecting && loadMore(), { rootMargin: '600px' });
+		io.observe(sentinel);
+		return () => io.disconnect();
+	});
 
 	function pickPreset(p: PeriodPreset) {
 		preset = p;
 		month = '';
-		period = presetRange(p, data.today);
+		period = presetRange(p, seed.today);
 		applyFilters();
 	}
 
@@ -71,142 +131,72 @@
 		applyFilters();
 	}
 
-	function pick(kind: 'sport' | 'dist', value: string) {
-		if (kind === 'sport') filterSport = value;
-		else filterDistMin = value;
+	function pick(kind: 'sport' | 'type' | 'dist' | 'sort', value: string) {
+		if (kind === 'sport') {
+			sport = value;
+			type = '';
+		} else if (kind === 'type') type = value;
+		else if (kind === 'dist') distMin = value;
+		else sort = value;
 		applyFilters();
 	}
 
-	const groups = $derived(weekGroups(activities));
-	const median = $derived(medianPace(activities));
-	const maxKm = $derived(Math.max(1, ...groups.map((g) => g.km)));
-
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
-	// 요청 번호 — 검색을 빠르게 타이핑할 때 늦게 도착한 이전 응답이 최신 결과를 덮지 않게 무시한다.
-	let reqSeq = 0;
-
-	async function loadPage(page: number, append: boolean) {
-		loading = true;
-		errorMessage = null;
-		const seq = ++reqSeq;
-		try {
-			const res = await getActivities({
-				sport: filterSport || undefined,
-				search: filterSearch || undefined,
-				dist_min: filterDistMin ? Number(filterDistMin) : undefined,
-				from: period.from,
-				to: period.to ? `${period.to} 23:59:59` : undefined,
-				page,
-				per_page: 20
-			});
-			if (seq !== reqSeq) return;
-			if (append) {
-				activities = [...activities, ...res.activities];
-			} else {
-				activities = res.activities;
-			}
-			total = res.total;
-			hasMore = res.has_more;
-			currentPage = page;
-		} catch (e) {
-			if (seq !== reqSeq) return;
-			errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
-		} finally {
-			if (seq === reqSeq) loading = false;
-		}
-	}
-
-	function applyFilters() {
-		syncUrl();
-		loadPage(1, false);
-	}
-
-	function onSearchInput() {
+	const onSearch = () => {
 		clearTimeout(searchTimer);
-		searchTimer = setTimeout(() => applyFilters(), 300);
+		searchTimer = setTimeout(applyFilters, 300);
+	};
+
+	async function jumpTo(target: string) {
+		const need = jumpLoadCount(facets?.months ?? [], target);
+		if (need > activities.length && !(await reload(need))) return;
+		await tick();
+		const el = [...document.querySelectorAll<HTMLElement>('[data-date]')].find((n) => (n.dataset.date ?? '').slice(0, 7) <= target);
+		el?.scrollIntoView({ block: 'start' });
+		at = target;
+		syncUrl();
 	}
 
-	function loadMore() {
-		loadPage(currentPage + 1, true);
+	let raf = 0;
+	function onScroll() {
+		cancelAnimationFrame(raf);
+		raf = requestAnimationFrame(() => {
+			const el = [...document.querySelectorAll<HTMLElement>('[data-date]')].find((n) => n.getBoundingClientRect().bottom > 120);
+			const m = el?.dataset.date?.slice(0, 7);
+			if (m && m !== at) at = m;
+		});
 	}
+
+	export const snapshot = {
+		capture: () => ({ activities, total, hasMore, facets, summary, y: window.scrollY }),
+		restore: async (v: { activities: ActivitySummary[]; total: number; hasMore: boolean; facets: ActivityFacets | null; summary: ActivityListSummary | null; y: number }) => {
+			({ activities, total, hasMore, facets, summary } = v);
+			await tick();
+			window.scrollTo({ top: v.y });
+		}
+	};
 </script>
 
 <svelte:head><title>활동 목록 · RunPulse</title></svelte:head>
+<svelte:window onscroll={onScroll} />
 
-<!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 	<h1 class="text-base font-semibold">활동 목록</h1>
 	{#if total > 0}
-		<span class="ml-auto text-xs text-fg-muted">{total}건</span>
+		<span class="ml-auto text-xs text-fg-muted" data-testid="shown-count">표시 {activities.length} / {total}</span>
 	{/if}
 </div>
 
 <div class="flex flex-col gap-0">
-	<!-- 기간: 프리셋 + 월 선택 -->
-	<div class="flex flex-wrap items-center gap-1.5 px-4 pt-3" role="group" aria-label="기간">
-		{#each PRESETS as [v, label] (v)}
-			<button
-				type="button"
-				aria-pressed={preset === v}
-				onclick={() => pickPreset(v)}
-				class="rounded-full border px-3 py-1 text-xs {preset === v
-					? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
-					: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
-			>
-		{/each}
-		<select
-			aria-label="월 선택"
-			value={month}
-			onchange={(e) => pickMonth(e.currentTarget.value)}
-			class="rounded-full border px-3 py-1 text-xs {month
-				? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
-				: 'border-border-subtle bg-transparent text-fg-muted'}"
-		>
-			<option value="">월 선택</option>
-			{#each months as m (m)}<option value={m}>{monthLabel(m)}</option>{/each}
-		</select>
-		{#if preset === null && !month && period.from}
-			<span class="text-xs text-fg-muted">{period.from} ~ {period.to ?? ''}</span>
-		{/if}
-	</div>
+	<ActivityFilters {facets} {preset} {month} {months} {sport} {type} {distMin} {sort} bind:q onpreset={pickPreset} onmonth={pickMonth} onpick={pick} onsearch={onSearch} />
+	{#if preset === null && !month && period.from}
+		<p class="px-4 pt-2 text-xs text-fg-muted">{period.from} ~ {period.to ?? ''}</p>
+	{/if}
 
-	<!-- 필터: 종목·거리 칩 + 검색 -->
-	<div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3">
-		<div class="flex flex-wrap gap-1.5" role="group" aria-label="종목">
-			{#each SPORTS as [v, label] (v)}
-				<button
-					type="button"
-					aria-pressed={filterSport === v}
-					onclick={() => pick('sport', v)}
-					class="rounded-full border px-3 py-1 text-xs {filterSport === v
-						? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
-						: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
-				>
-			{/each}
-		</div>
-		<div class="flex flex-wrap gap-1.5" role="group" aria-label="거리">
-			{#each DISTS as [v, label] (v)}
-				<button
-					type="button"
-					aria-pressed={filterDistMin === v}
-					onclick={() => pick('dist', v)}
-					class="rounded-full border px-3 py-1 text-xs {filterDistMin === v
-						? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
-						: 'border-border-subtle text-fg-muted hover:text-fg-secondary'}">{label}</button
-				>
-			{/each}
-		</div>
-		<input
-			type="search"
-			bind:value={filterSearch}
-			oninput={onSearchInput}
-			placeholder="활동 이름 검색"
-			class="rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
-			aria-label="활동 검색"
-		/>
-	</div>
+	{#if month}
+		<MonthHeader {month} summary={summary?.month} canNext={!!lastMonth && month < lastMonth} onshift={(d) => pickMonth(shiftMonth(month, d))} onclear={() => pickPreset('all')} />
+	{/if}
 
-	<!-- 목록 -->
 	{#if errorMessage && activities.length === 0}
 		<div class="flex flex-col items-center gap-2 px-4 py-16 text-center">
 			<p class="text-lg text-fg-secondary">활동을 불러올 수 없습니다</p>
@@ -217,53 +207,52 @@
 			<p class="text-lg text-fg-secondary">활동이 없습니다</p>
 			<p class="text-sm text-fg-muted">필터를 조정하거나 데이터를 동기화해 주세요.</p>
 		</div>
-	{:else}
+	{:else if chronological}
 		{#each groups as g, gi (g.key)}
+			{@const w = weeks.get(g.key)}
+			{@const km = w?.km ?? g.km}
 			{#if gi === 0 || groups[gi - 1].year !== g.year}
-				<p class="px-4 pt-4 text-xs font-medium text-fg-muted">{g.year}</p>
+				<p class="sticky top-0 z-10 bg-surface-1 px-4 pt-4 text-xs font-medium text-fg-muted">{g.year}</p>
 			{/if}
 			<section aria-label="{g.label} 주">
-				<div class="flex flex-col gap-1 bg-surface-1 px-4 pb-1 pt-4">
+				<div class="flex flex-col gap-1 bg-surface-1 px-4 pb-1 pt-4" data-testid="week-header">
 					<div class="flex items-baseline justify-between">
-						<span class="text-xs font-medium text-fg-secondary">{g.label}</span>
-						<span class="font-mono text-xs text-fg-muted"
-							>{g.runs}회 · {g.km.toFixed(1)}km{g.seconds > 0 ? ` · ${formatDuration(g.seconds)}` : ''}</span
-						>
+						<span class="text-xs font-medium text-fg-secondary">{g.label}{#if w?.inRangeOnly} <span class="text-fg-muted">({g.items[0].start_time.slice(5, 7).replace(/^0/, '')}월분만)</span>{/if}</span>
+						<span class="font-mono text-xs text-fg-muted">{w?.n ?? g.runs}회 · {km.toFixed(1)}km{(w?.sec ?? g.seconds) > 0 ? ` · ${formatDuration(w?.sec ?? g.seconds)}` : ''}</span>
 					</div>
-					<div class="h-1 rounded bg-surface-3">
-						<div class="h-1 rounded bg-semantic-teal" style="width:{Math.max(g.km > 0 ? 3 : 0, (g.km / maxKm) * 100)}%"></div>
+					<div class="relative h-1 rounded bg-surface-3">
+						<div class="h-1 rounded bg-semantic-teal" style="width:{Math.max(km > 0 ? 3 : 0, (km / maxKm) * 100)}%"></div>
+						{#if avg}<div class="absolute -top-0.5 h-2 w-px bg-fg-muted" style="left:{(avg / maxKm) * 100}%" title="최근 12주 평균 {avg}km"></div>{/if}
 					</div>
 				</div>
 				<ul class="divide-y divide-border-subtle">
 					{#each g.items as act (act.id)}
-						{@const flag = activityFlag(act, median)}
-							<li><ActivityRow {act} from="list" {flag} /></li>
+						<li data-date={act.start_time}><ActivityRow {act} from="list" flag={activityFlag(act, median)} /></li>
 					{/each}
 				</ul>
 			</section>
 		{/each}
-
-		{#if hasMore}
-			<div class="flex justify-center px-4 py-4">
-				<button
-					type="button"
-					onclick={loadMore}
-					disabled={loading}
-					class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2 text-sm text-fg-secondary disabled:opacity-50"
-				>
-					{loading ? '불러오는 중…' : '더 불러오기'}
-				</button>
-			</div>
-		{/if}
-
-		{#if errorMessage}
-			<p class="px-4 py-2 text-xs text-semantic-red">{errorMessage}</p>
-		{/if}
+	{:else}
+		<ul class="divide-y divide-border-subtle">
+			{#each activities as act (act.id)}
+				<li data-date={act.start_time}><ActivityRow {act} from="list" flag={activityFlag(act, median)} /></li>
+			{/each}
+		</ul>
 	{/if}
 
-	{#if loading && activities.length === 0}
-		<div class="flex justify-center py-16">
-			<p class="text-sm text-fg-muted">불러오는 중…</p>
+	{#if hasMore}
+		<div bind:this={sentinel} class="flex justify-center px-4 py-6">
+			<button type="button" onclick={loadMore} disabled={loading} class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2 text-sm text-fg-secondary disabled:opacity-50">
+				{loading ? '불러오는 중…' : '더 불러오기'}
+			</button>
 		</div>
+	{:else if activities.length > 0}
+		<p class="px-4 py-6 text-center text-xs text-fg-muted">전체 {total}건을 모두 불러왔어요</p>
 	{/if}
+	{#if errorMessage && activities.length > 0}<p class="px-4 py-2 text-xs text-semantic-red">{errorMessage}</p>{/if}
+	{#if loading && activities.length === 0}<div class="flex justify-center py-16"><p class="text-sm text-fg-muted">불러오는 중…</p></div>{/if}
 </div>
+
+{#if chronological && !month}
+	<YearMonthScrubber months={facets?.months ?? []} current={at} onjump={jumpTo} />
+{/if}

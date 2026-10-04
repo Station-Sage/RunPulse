@@ -13,6 +13,9 @@
 	interface RowActivity {
 		id: number;
 		name: string;
+		display_title?: string;
+		workout_label?: string | null;
+		is_race?: boolean;
 		start_time: string;
 		distance_m?: number | null;
 		duration_sec?: number | null;
@@ -44,7 +47,10 @@
 >
 	<RouteThumb route={act.route} size={thumbSize} />
 	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-		<span class="truncate text-sm font-medium">{act.name}</span>
+		<div class="flex min-w-0 items-center gap-1.5">
+			<span class="truncate text-sm font-medium">{act.display_title ?? act.name}</span>
+			{#if act.workout_label}<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {act.is_race ? 'bg-semantic-amber/20 text-semantic-amber' : 'bg-surface-3 text-fg-secondary'}">{act.workout_label}</span>{/if}
+		</div>
 		<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
 			<span>{dayLabel(act.start_time)}</span>
 			{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
