@@ -34,7 +34,7 @@
 			</p>
 			{#if archive.longest}
 				<a
-					href="{base}/library/{archive.longest.id}"
+					href="{base}/library/{archive.longest.id}?from=home"
 					class="text-xs text-fg-muted hover:text-fg-secondary"
 					>가장 멀리 달린 날 · {archive.longest.name} {archive.longest.distance_km}km ({archive.longest.date}) →</a
 				>

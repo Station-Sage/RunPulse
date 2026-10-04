@@ -24,6 +24,12 @@ describe('backTarget', () => {
 		assert.equal(backTarget('zzz').path, '/library/activities');
 		assert.equal(backTarget(null).path, '/library/activities');
 	});
+	it('home·list·pb·providers 출처', () => {
+		assert.equal(backTarget('home').path, '/library');
+		assert.equal(backTarget('pb').path, '/library');
+		assert.equal(backTarget('list').path, '/library/activities');
+		assert.equal(backTarget('providers').path, '/library/providers');
+	});
 	it('metric → 메트릭 목록', () => {
 		assert.equal(backTarget('metric').path, '/library/metrics');
 	});

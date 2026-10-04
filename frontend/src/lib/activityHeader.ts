@@ -23,7 +23,13 @@ const FROM_LABELS: Record<string, { label: string; path: string }> = {
 	coach: { label: '코치', path: '/coach' },
 	plan: { label: '계획', path: '/plan' },
 	metric: { label: '메트릭', path: '/library/metrics' },
-	library: { label: '활동', path: '/library/activities' }
+	library: { label: '활동', path: '/library/activities' },
+	list: { label: '활동', path: '/library/activities' },
+	home: { label: 'Library', path: '/library' },
+	pb: { label: 'Library', path: '/library' },
+	heatmap: { label: 'Library', path: '/library' },
+	month: { label: '월별 활동', path: '/library/activities' },
+	providers: { label: '소스 비교', path: '/library/providers' }
 };
 
 /** ?from= 값 → 뒤로가기 링크. 알 수 없으면 활동 목록. */

@@ -44,7 +44,7 @@
 		{:else if view.cta === 'session'}
 			<a href="{base}/coach/plan" class="self-start text-sm text-fg-secondary hover:text-fg-primary">세션 상세 ›</a>
 		{:else if view.cta === 'activity' && briefing.today_result}
-			<a href="{base}/library/{briefing.today_result.activity_id}" class="self-start text-sm text-fg-secondary hover:text-fg-primary">활동 보기 ›</a>
+			<a href="{base}/library/{briefing.today_result.activity_id}?from=today" class="self-start text-sm text-fg-secondary hover:text-fg-primary">활동 보기 ›</a>
 		{/if}
 		{#if (briefing.state === 'done' || briefing.state === 'extra' || briefing.state === 'rest') && briefing.session?.date}
 			<p class="text-xs text-fg-muted" data-testid="hero-next">

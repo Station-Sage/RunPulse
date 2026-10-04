@@ -69,7 +69,7 @@
 				{#each milestones as m (m.id)}
 					{#if m.activity_id != null}
 						<a
-							href="{base}/library/{m.activity_id}"
+							href="{base}/library/{m.activity_id}?from=today"
 							class="flex items-start gap-2 rounded-lg py-1.5 hover:bg-surface-2"
 						>{@render row(m)}</a>
 					{:else}

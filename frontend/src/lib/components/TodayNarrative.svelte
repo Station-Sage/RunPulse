@@ -39,7 +39,7 @@
 			<div class="flex flex-col gap-1">
 				{#each n.milestones as m (m.id)}
 					{#if m.activity_id != null}
-						<a href="{base}/library/{m.activity_id}" class="flex items-start gap-2 text-sm hover:text-fg-primary">
+						<a href="{base}/library/{m.activity_id}?from=today" class="flex items-start gap-2 text-sm hover:text-fg-primary">
 							<Icon name={milestoneIconName(m.type)} class="h-4 w-4 shrink-0 text-fg-muted" />
 							<span class="text-fg-muted">{m.date}</span>
 							<span class="flex-1">{m.title}</span>
