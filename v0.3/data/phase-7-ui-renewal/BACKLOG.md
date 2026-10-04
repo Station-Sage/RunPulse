@@ -182,6 +182,27 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   재기준화(D1·D2, 전 기간 재계산 = 실 DB 변경이라 백업·사용자 확인 후). 각 Phase 착수 시 해당 탭 `design.md §9`로
   plan mode 확정.
 
+- **[P7-UXR-DESIGN-PENDING]** Phase 3 구현 중 "설계·사용자 판단이 필요해 손대지 않은" 항목 모음(2026-10-04 등록).
+  착수 전 plan 승인 필수 — 각 항목은 해당 화면 작업 시 함께 꺼낸다. 출처는 `ux-review-2026-09/IMPL-PROGRESS.md`.
+  **(판단 필요)**
+  1. **UTRS 입력 항목 드릴**: explain API terms 중 `utrs_hrv`·`utrs_sleep`은 `drill`이 null이라 분해 패널에서 행 이동 불가
+     (TSB의 ctl/atl만 이동). 입력 지표를 별도 메트릭 슬러그로 노출할지, wellness 상세로 보낼지 결정 필요(3-7 S3).
+  2. **RRI 등급 SSOT**: `bands.py`에 RRI 구간 없음(`RRICalculator.ranges` 별도) → explain·trend `bands` 미지원. 곱셈형 공식이라 분해 형태도 별도(S3 `PredictionEvidence`와 함께).
+  3. **D1d 활동 scope(`@a{id}`) drill**: 지금 explain은 daily만 지원. 활동 단위 분해가 필요한 화면(3-8·3-9) 착수 시 결정.
+  4. **S1b**: PMC 감쇠·GAP 보강 — 사용자 지시로 보류 중.
+  5. **3-10 RPE 입력·`⋯` 메뉴**: ⑦ ADR + 사용자 승인 필요.
+  6. **3-16(D4)**: 사용자 지시 없이 진행 금지.
+  7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
+  8. **목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**(3-1 이월, 설계서 P2 이하).
+  9. **S2 이월**: 이벤트 마커(데이터 소스 미정), Sparkline min_span·끝점 점·캡션.
+  10. **계정 설정 스키마(2-3)**·`sync_jobs` 열 확장(error_code 등)·4경로 오류 표면화.
+  11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
+  12. **활동 목록 기간 필터**(20:S8/S9 이월).
+  **구조·정리(설계 불요, 별도 소규모 작업)**: `metric_registry.py` 522줄·`ai_context.py` 300줄 초과 분리,
+  `engine_label("legacy_rule")` "규칙 답변" 문구, `HIGHER_IS_BETTER`(`metric_display.py`)의 `bands.py` 이동 여부,
+  미사용 코드(`lib/status.ts`·`metricMeaning.ts`·`raceHub.ts formBand`·`RecommendationCard`·`ScoreRing`) grep 확인 후 삭제,
+  10-docs §4·§7.2 `display_name_ko` 표기 → `name_ko`/`abbr`, 상세 페이지 하드코딩 `#3b82f6` 토큰화.
+
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
 2026-09-23 제거. `P7-IMPL-TIMELINE-NARRATIVE-FULL`은 조사 후 바로 AUTOPILOT
