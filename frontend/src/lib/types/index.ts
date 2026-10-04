@@ -884,6 +884,33 @@ export interface WellnessMetricEntry {
 	description: string;
 }
 
+export type WellnessStatus = 'excellent' | 'good' | 'neutral' | 'caution' | 'poor';
+
+export interface WellnessReadinessItem {
+	value: number;
+	status: WellnessStatus;
+	status_label: string;
+}
+
+export interface WellnessReason {
+	slug: string;
+	value: number;
+	baseline: number;
+	delta: number;
+	direction: 'up' | 'down';
+	good: boolean;
+	chip: string;
+}
+
+export interface WellnessBaseline {
+	mean7?: number | null;
+	mean30?: number;
+	p25?: number;
+	p75?: number;
+	n: number;
+	garmin_band?: [number, number];
+}
+
 export interface WellnessDetailData {
 	date: string;
 	core: WellnessCore;
@@ -892,6 +919,31 @@ export interface WellnessDetailData {
 		utrs: { value: number | null; confidence: number | null } | null;
 		cirs: { value: number | null; confidence: number | null } | null;
 	};
+	has_record: boolean;
+	is_today: boolean;
+	nav: { prev: string | null; next: string | null };
+	week: { date: string; status: WellnessStatus | 'none' }[];
+	headline: {
+		status: WellnessStatus;
+		status_label: string;
+		text: string;
+		reasons: WellnessReason[];
+	} | null;
+	readiness: { utrs: WellnessReadinessItem | null; cirs: WellnessReadinessItem | null };
+	sleep: {
+		score: number | null;
+		duration_sec: number | null;
+		mean30_sec: number | null;
+		stages: { deep: number | null; light: number | null; rem: number | null; awake: number | null } | null;
+	} | null;
+	body_battery: { high: number | null; low: number | null; charged: number | null } | null;
+	baselines: Record<string, WellnessBaseline>;
+	as_of: { avg_stress: string; steps: string } | null;
+}
+
+export interface WellnessBand {
+	p25: number;
+	p75: number;
 }
 
 export interface WellnessTrendData {
@@ -903,6 +955,7 @@ export interface WellnessTrendData {
 	avg_stress: (number | null)[];
 	weight_kg: (number | null)[];
 	utrs: (number | null)[];
+	band?: Record<string, WellnessBand>;
 }
 
 // ── Coach Plan (5-F — /api/v1/coach/plan/:id) ────────────────────────────────

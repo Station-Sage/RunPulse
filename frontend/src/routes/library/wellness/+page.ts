@@ -1,29 +1,17 @@
-import { getWellnessDetail, getWellnessTrend } from '$lib/api/wellness';
-import { ApiError } from '$lib/api/client';
-import type { WellnessDetailData, WellnessTrendData } from '$lib/types';
+import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
+import { getWellnessDetail } from '$lib/api/wellness';
+import { isValidDate } from '$lib/wellnessDay';
 
-export interface WellnessPageData {
-	detail: WellnessDetailData | null;
-	trend: WellnessTrendData | null;
-	errorMessage: string | null;
-}
-
-export async function load(): Promise<WellnessPageData> {
-	const [detailResult, trendResult] = await Promise.allSettled([
-		getWellnessDetail(),
-		getWellnessTrend(30),
-	]);
-
-	const detail =
-		detailResult.status === 'fulfilled' ? detailResult.value : null;
-	const trend =
-		trendResult.status === 'fulfilled' ? trendResult.value : null;
-
-	let errorMessage: string | null = null;
-	if (detailResult.status === 'rejected') {
-		const e = detailResult.reason;
-		errorMessage = e instanceof ApiError ? e.message : '웰니스 데이터를 불러올 수 없습니다.';
+// /library/wellness(?date=) → /library/wellness/:date 로 정규화(서버가 오늘/미래를 오늘로 보정).
+export async function load({ url }: { url: URL }) {
+	const q = url.searchParams.get('date');
+	const target = q && isValidDate(q) ? q : undefined;
+	let date: string;
+	try {
+		date = (await getWellnessDetail(target)).date;
+	} catch {
+		date = target ?? new Date().toLocaleDateString('sv-SE');
 	}
-
-	return { detail, trend, errorMessage };
+	redirect(307, `${base}/library/wellness/${date}`);
 }

@@ -313,6 +313,25 @@ def test_get_wellness_no_date(metric_app):
     assert "date" in body["data"]
 
 
+def test_get_wellness_bad_date_400(metric_app):
+    """date 형식 오류 → 400 INVALID_PARAM."""
+    res = metric_app.get("/api/v1/library/wellness?date=2026-13-45")
+    assert res.status_code == 400
+    assert res.get_json()["error"]["code"] == "INVALID_PARAM"
+
+
+def test_get_wellness_future_date_clamped_to_today(metric_app):
+    """미래 날짜 → 오늘로 대체(has_record 키 포함)."""
+    res = metric_app.get("/api/v1/library/wellness?date=2999-01-01")
+    data = res.get_json()["data"]
+    assert res.status_code == 200 and data["date"] != "2999-01-01" and "has_record" in data
+
+
+def test_get_wellness_trend_bad_end_400(metric_app):
+    res = metric_app.get("/api/v1/library/wellness/trend?end=nope")
+    assert res.status_code == 400
+
+
 def test_get_wellness_trend_200(metric_app):
     """GET /library/wellness/trend → 200, 필수 시계열 키 포함."""
     res = metric_app.get("/api/v1/library/wellness/trend?days=30")

@@ -148,3 +148,8 @@
 - **맥락**: 백엔드 `_CATEGORY_LABELS` 16개(레지스트리 category)는 사용자의 "무엇을 보러 왔나"와 맞지 않고 구성요소 지표가 섞여 노출됐다. 설계 `DESIGN-S4S5-IMPL.md` §3.
 - **결정**: (1) slug→(group, tier) 매핑을 `metric_browse_groups._SPEC`에 둔다(today/load/race/ability/sleep/vitals/hr_ref/env). 레지스트리 category와 별개 개념이며 `SEMANTIC_GROUPS`와도 다르다. (2) tier hidden(구성요소)은 목록에서 제외, 미등록 slug는 (other, detail). (3) 그룹 내 정렬은 salience: 최신 → 경고 등급(poor/caution) → |z|(d−28..d−1, n<7이면 null) → primary → registry 순. (4) 전체 보기는 섹션당 4카드(환경·심박 기준값 2), "모두 보기 ›"로 카테고리 필터 전환. 모바일 카드 높이 축소로 390px 스크롤 ≈2,560px. (5) 레거시 `?category=`는 `normalizeCategory`로 매핑. 열린 결정 기본값: 체중·걸음·칼로리는 vitals, BB는 "최고" 라벨, headline 추가.
 - **검증**: `tests/test_metric_browse_groups.py`, `tests/test_metrics_browser_service.py`, `frontend/tests/metricGroups.test.mjs`, Playwright `pw/metric_groups.mjs`(실DB 사본).
+
+## ADR-020: 웰니스 일 상세 /:date — 서버 등급·z 근거 규칙 (2026-10-04)
+- **맥락**: 웰니스 화면이 날짜별 URL이 없고, 프론트가 임계값을 들고 "좋음/나쁨"을 판단할 위험이 있었다.
+- **결정**: (1) `/library/wellness/:date`가 정본이고 `/library/wellness`·`?date=`는 redirect. 잘못된 형식은 400, 미래는 오늘로 보정. (2) 등급은 `metrics.bands.grade` SSOT, 프론트 임계값 상수 없음. (3) 기준선 창은 당일 제외(HRV·안정 심박 p25/p75=28일, 평균=7일, 수면 평균=30일), 표본 n<7이면 키 생략("기준선 수집 중 n/7"). (4) 헤드라인 근거는 28일 평균·표준편차 z 기준 |z|≥0.5 중 상위 2개(`wellness_day.Z_MIN`). (5) 날짜 이동은 history replace. (6) 30일 추세는 비동기 스트리밍.
+- **검증**: `tests/test_wellness_day.py`, `tests/test_api_library.py`, `frontend/tests/wellnessDay.test.mjs`, Playwright `pw/s5_wellness.mjs`(실 DB 사본).

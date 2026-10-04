@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from flask import request
 
@@ -191,6 +192,13 @@ def get_library_wellness():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
     date_param = request.args.get("date") or None
+    if date_param is not None:
+        try:
+            date.fromisoformat(date_param)
+        except ValueError:
+            return api_error("INVALID_PARAM", "date는 YYYY-MM-DD 형식이어야 합니다.", 400)
+        if date_param > date.today().isoformat():
+            date_param = None  # 미래 날짜는 오늘로
     conn = sqlite3.connect(str(dpath))
     try:
         result = wellness_service.get_wellness_detail(conn, date=date_param)
@@ -269,9 +277,15 @@ def get_library_wellness_trend():
     except ValueError:
         return api_error("INVALID_PARAM", "days는 정수여야 합니다.", 400)
 
+    end = request.args.get("end") or None
+    if end is not None:
+        try:
+            date.fromisoformat(end)
+        except ValueError:
+            return api_error("INVALID_PARAM", "end는 YYYY-MM-DD 형식이어야 합니다.", 400)
     conn = sqlite3.connect(str(dpath))
     try:
-        result = wellness_service.get_wellness_trend(conn, days=days)
+        result = wellness_service.get_wellness_trend(conn, days=days, end=end)
     finally:
         conn.close()
 

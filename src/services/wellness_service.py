@@ -12,6 +12,7 @@ import sqlite3
 from collections import defaultdict
 from typing import Any
 
+from src.services.wellness_day import build_day, percentile_band
 from src.utils import db_helpers
 from src.utils.metric_registry import get_metric
 
@@ -82,47 +83,50 @@ def get_wellness_detail(conn: sqlite3.Connection, date: str | None = None) -> di
         else:
             readiness_summary[metric_name] = None
 
+    today = conn.execute("SELECT date('now','localtime')").fetchone()[0]
+    conn.row_factory = sqlite3.Row
     return {
         "date": date,
         "core": core,
         "metrics_by_category": metrics_by_category,
         "readiness_summary": readiness_summary,
+        **build_day(conn, date, today),
     }
 
 
-def get_wellness_trend(conn: sqlite3.Connection, days: int = 30) -> dict:
+def get_wellness_trend(conn: sqlite3.Connection, days: int = 30, end: str | None = None) -> dict:
     """웰니스 시계열.
 
-    반환: {"dates": [...], "sleep_score": [...], "hrv_last_night": [...], ...}
-    날짜 기준 정렬. 데이터 없는 날짜는 null.
+    반환: {"dates": [...], "sleep_score": [...], ..., "band": {col: {p25, p75}}}
+    end(YYYY-MM-DD, 기본 오늘)까지 days일. 날짜 기준 정렬. 데이터 없는 날짜는 null.
+    band는 구간 내 값이 7개 이상인 시리즈만(작은 배수 차트의 "평소 범위" 띠).
     """
     conn.row_factory = sqlite3.Row
-    date_expr = f"-{days} days"
+    if end is None:
+        end = conn.execute("SELECT date('now','localtime')").fetchone()[0]
+    start = conn.execute("SELECT date(?, ?)", (end, f"-{days} days")).fetchone()[0]
 
-    # daily_wellness 행 조회
     wellness_rows = conn.execute(
         "SELECT date, sleep_score, hrv_last_night, resting_hr,"
         "       body_battery_high, avg_stress, weight_kg"
         " FROM daily_wellness"
-        " WHERE date >= date('now','localtime', ?)"
+        " WHERE date >= ? AND date <= ?"
         " ORDER BY date",
-        (date_expr,),
+        (start, end),
     ).fetchall()
 
-    # utrs 시계열 (metric_store)
     utrs_rows = conn.execute(
         "SELECT scope_id AS date, numeric_value"
         " FROM metric_store"
         " WHERE scope_type = 'daily'"
         "   AND metric_name = 'utrs'"
         "   AND is_primary = 1"
-        "   AND scope_id >= date('now','localtime', ?)"
+        "   AND scope_id >= ? AND scope_id <= ?"
         " ORDER BY scope_id",
-        (date_expr,),
+        (start, end),
     ).fetchall()
     utrs_map = {r["date"]: r["numeric_value"] for r in utrs_rows}
 
-    # 날짜 유니온
     dates_set: set[str] = set()
     wellness_map: dict[str, dict] = {}
     for row in wellness_rows:
@@ -133,9 +137,12 @@ def get_wellness_trend(conn: sqlite3.Connection, days: int = 30) -> dict:
 
     dates = sorted(dates_set)
 
-    result: dict[str, list] = {"dates": dates}
+    result: dict[str, Any] = {"dates": dates}
     for col in _TREND_WELLNESS_COLS:
         result[col] = [wellness_map.get(d, {}).get(col) for d in dates]
     result["utrs"] = [utrs_map.get(d) for d in dates]
-
+    result["band"] = {
+        col: b for col in (*_TREND_WELLNESS_COLS, "utrs")
+        if (b := percentile_band(result[col])) is not None
+    }
     return result

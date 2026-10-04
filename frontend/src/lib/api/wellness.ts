@@ -6,6 +6,7 @@ export async function getWellnessDetail(date?: string): Promise<WellnessDetailDa
 	return apiFetch<WellnessDetailData>(`/library/wellness${params}`);
 }
 
-export async function getWellnessTrend(days = 30): Promise<WellnessTrendData> {
-	return apiFetch<WellnessTrendData>(`/library/wellness/trend?days=${days}`);
+export async function getWellnessTrend(days = 30, end?: string): Promise<WellnessTrendData> {
+	const q = end ? `&end=${encodeURIComponent(end)}` : '';
+	return apiFetch<WellnessTrendData>(`/library/wellness/trend?days=${days}${q}`);
 }

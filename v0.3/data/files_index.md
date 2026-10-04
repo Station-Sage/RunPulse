@@ -207,7 +207,11 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `wellness_service.py` (141줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
+### `wellness_day.py` (202줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
+
+- functions: percentile_band, build_day
+
+### `wellness_service.py` (148줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
 
 - functions: get_wellness_detail, get_wellness_trend
 
@@ -1473,9 +1477,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_library.py` (398줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (417줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_custom_days, test_get_providers_matrix_invalid_days, test_get_providers_matrix_invalid_threshold, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -1509,7 +1513,7 @@
 - class **TestFindMalformedMeta**: test_wrapped_meta_flagged, test_wellformed_meta_not_flagged, test_wrapped_meta_item_silently_becomes_manual
 - class **TestNextRunnableIgnoresKind**: test_code_and_docs_both_runnable
 
-### `test_autopilot_run_unit.py` (134줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (141줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
@@ -2082,7 +2086,7 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed
 
-### `test_plan_service.py` (211줄) — tests/test_plan_service.py — plan_service 단위 테스트.
+### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
 
@@ -2435,6 +2439,10 @@
 
 - functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
 
+### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
+
+- functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
+
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -2489,7 +2497,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 509개 파일
+총 511개 파일
 
 ## docstring 누락
 

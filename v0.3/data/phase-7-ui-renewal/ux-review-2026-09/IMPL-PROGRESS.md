@@ -308,3 +308,4 @@
 - S4/S5 설계 완료: `DESIGN-S4S5-IMPL.md`(8분류 slug 매핑·4카드·정렬·S5 웰니스 `/:date`, 열린 결정 4건). 다음: 8분류 백엔드 매핑 구현.
 - S4 4차(2026-10-04): 8분류 재편 구현(ADR-019) — `metric_browse_groups.py`·서비스 정렬(salience)·프론트 `metricGroups.ts`(4카드/"모두 보기 ›"/레거시 category 매핑)·모바일 카드 축소(390px 2,563px). pytest 2075·단위 304·check 0 오류, Playwright `pw/metric_groups.mjs` 에러 0. 남음: 기간 chip replace, Today `from=today` 링크, 상세 `?from=` 소비, S5 웰니스 `/:date`, S6, S7.
 - S4 5차(2026-10-04): 상세 기간 chip을 history replace + `from` 유지, Today 드릴 시트의 추세 링크에 `?from=today`(DrillPanel `fromTag`). Playwright 확인(히스토리 증가 없음, "‹ Today로" 유지). S4 완료. 다음: S5 웰니스 `/:date` 페이지·API.
+- S5(2026-10-04): 웰니스 `/library/wellness/:date` 구현(ADR-020) — 백엔드 `wellness_day.build_day`(헤드라인·근거 칩·준비도·수면 단계·BB·기준선·7일 점·nav), 프론트 `[date]` 라우트 + `WellnessDateBar/Sleep/Cores/Trends`, 스와이프·replace 이동·400/미래 보정/빈 상태(가까운 기록 버튼). 실 DB 사본 Playwright(`pw/s5_wellness.mjs`) 에러 0, 단위 310·check 0 오류. 남음: S6(C4 매트릭스), S7, S1b(PMC decay·GAP 보류).
