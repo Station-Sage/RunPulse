@@ -134,6 +134,19 @@ export function weekTicks(t0: string, t1: string): string[] {
 	return out;
 }
 
+/** 구간 내 매월 1일(quarterly면 1·4·7·10월 1일). 3개월 이상 추세 x축 눈금용. */
+export function monthTicks(t0: string, t1: string, quarterly = false): string[] {
+	if (!t0 || !t1) return [];
+	const out: string[] = [];
+	const end = Date.parse(t1);
+	const d = new Date(Date.parse(t0));
+	while (d.getTime() <= end) {
+		if (d.getUTCDate() === 1 && (!quarterly || d.getUTCMonth() % 3 === 0)) out.push(d.toISOString().slice(0, 10));
+		d.setUTCDate(d.getUTCDate() + 1);
+	}
+	return out;
+}
+
 /** t0에서 offset일 뒤 날짜(YYYY-MM-DD). 차트 스크럽 인덱스 → 선택일 변환용. */
 export function dateAtOffset(t0: string, offset: number): string {
 	const d = new Date(Date.parse(t0));

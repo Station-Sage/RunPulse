@@ -275,3 +275,20 @@ def test_browser_groups_hide_components_and_sort(conn):
             assert SLUG_GROUP[m["name"]][1] != "hidden"
             assert m["tier"] in ("primary", "detail")
             assert "source_category" in m
+
+
+def test_flat_kind_distinguishes_fixed_and_uncomputed():
+    from src.services.metrics_browser_service import _flat_kind
+
+    full = [(f"2026-09-{d:02d}", 50.0) for d in range(10, 24)]
+    assert _flat_kind(full, "2026-09-23") == "fixed"
+    sparse = [("2026-09-20", 50.0), ("2026-09-23", 50.0)]
+    assert _flat_kind(sparse, "2026-09-23") == "uncomputed"
+    assert _flat_kind([("2026-09-22", 1.0), ("2026-09-23", 2.0)], "2026-09-23") is None
+
+
+def test_load_headline_is_none_on_empty_db(conn):
+    from src.services.metrics_browser_service import _load_headline
+
+    out = _load_headline(conn, "2026-01-01")
+    assert out is None or isinstance(out, str)

@@ -802,6 +802,7 @@ export interface MetricBrowserEntry {
 	provider: string | null;
 	confidence: number | null;
 	sparkline: number[];
+	flat_kind?: "fixed" | "uncomputed" | null;
 	status?: SemanticStatus;
 	status_label?: string;
 	name_ko?: string;
@@ -823,6 +824,7 @@ export interface MetricBrowserCategory {
 	category: string;
 	label: string;
 	total?: number;
+	headline?: string | null;
 	metrics: MetricBrowserEntry[];
 }
 

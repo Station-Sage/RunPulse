@@ -13,5 +13,5 @@ const hit=await p.locator('a[href*="/library/metrics/"]').count();
 console.log('all',all,'hit',hit, hit>0&&hit<all?'ok':'FAIL', 'url', p.url().includes('q=')?'ok':'FAIL');
 await p.screenshot({path:'shots/metric_search.png'});
 await p.goto(`${BASE}/v2/library/metrics?q=zzzz`,{waitUntil:'networkidle'});
-console.log((await p.locator('main').innerText()).includes('맞는 지표가 없습니다')?'empty ok':'FAIL empty');
+console.log((await p.locator('main').innerText()).includes('맞는 지표가 없어요')?'empty ok':'FAIL empty');
 console.log('errors',errs.length); await b.close();

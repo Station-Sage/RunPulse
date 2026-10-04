@@ -151,7 +151,7 @@
 		</div>
 		{#if m.last_value_date && data.browser?.date && m.last_value_date < data.browser.date}<span class="text-[10px] text-fg-muted">{m.last_value_date.slice(5)} 기준</span>{/if}
 		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
-		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 32 : 20} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="hidden text-[10px] text-fg-muted lg:block">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted">변동 없음</span>{/if}
+		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 32 : 20} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="hidden text-[10px] text-fg-muted lg:block">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted" data-testid="flat-note">{m.flat_kind === 'uncomputed' ? '계산 안 됨' : '고정값(프로필)'}</span>{/if}
 	</a>
 	<button
 		type="button"
@@ -242,7 +242,10 @@
 	<!-- 카테고리별 섹션 -->
 	<div class="flex flex-col gap-6 px-4 py-4">
 		{#if searching && visibleCategories.length === 0}
-			<p class="py-8 text-center text-sm text-fg-muted">‘{query.trim()}’에 맞는 지표가 없습니다.</p>
+			<div class="flex flex-col items-center gap-2 py-8 text-sm text-fg-muted" data-testid="search-empty">
+				<p>'{query.trim()}'와 맞는 지표가 없어요</p>
+				<button type="button" class="rounded-full bg-surface-2 px-3 py-1 text-xs text-fg-secondary" onclick={() => (query = '')}>검색 지우기</button>
+			</div>
 		{/if}
 		{#if coreMetrics.length}
 			<section>
@@ -260,6 +263,7 @@
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">
 					{cat.label}{#if showCore && cat.total} <span class="font-normal">({cat.total})</span>{/if}
 				</h2>
+				{#if cat.headline}<p class="mb-2 text-sm text-fg-secondary" data-testid="load-headline">{cat.headline}</p>{/if}
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 					{#each lim.shown as m (m.name)}
 						{@render card(m, false)}

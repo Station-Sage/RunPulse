@@ -58,6 +58,25 @@ def _latest_daily_date(conn: sqlite3.Connection) -> str:
     return latest or str(_today())
 
 
+def _load_headline(conn: sqlite3.Connection, date: str) -> str | None:
+    """부하 섹션 머리 한 줄 — readiness_decision 헤드라인을 그대로 쓴다(판정은 서버 SSOT). 실패 시 None."""
+    try:
+        from src.training.fatigue import readiness_decision
+        return readiness_decision(conn, date=date).get("headline") or None
+    except Exception:
+        return None
+
+
+def _flat_kind(rows: list[tuple], date: str) -> str | None:
+    """최근 14일 값이 모두 같으면 'fixed'(고정값·프로필) 또는 'uncomputed'(값 있는 날 <50%, 계산 안 됨). 아니면 None."""
+    from datetime import date as _d
+    cut = str(_d.fromisoformat(date) - timedelta(days=13))
+    vals = [r[1] for r in rows if r[0] >= cut]
+    if len(vals) < 2 or any(v != vals[0] for v in vals):
+        return None
+    return "uncomputed" if len(vals) / 14 < 0.5 else "fixed"
+
+
 def _daily_history(
     conn: sqlite3.Connection, names: list[str], date: str
 ) -> dict[str, list[tuple[str, float, str | None, float | None]]]:
@@ -115,6 +134,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
         mdef = METRIC_REGISTRY[name]
         last_date, value, provider, confidence = rows[-1]
         sparkline = [r[1] for r in rows[-14:]]
+        flat_kind = _flat_kind(rows, date)
         meta = display_meta(name, mdef.unit, mdef.description, value)
         z = baseline_z([(r[0], r[1]) for r in rows], date, (meta.get("min_span") or 0) / 4)
 
@@ -126,6 +146,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "provider": provider,
             "confidence": confidence,
             "sparkline": sparkline,
+            "flat_kind": flat_kind,
             "confidence_label": confidence_label(confidence),
             **meta,
             "last_value_date": last_date,
@@ -146,7 +167,10 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
         metrics = [e for _, e in items]
         for rank, e in enumerate(metrics):
             e["salience"]["rank"] = rank
-        categories.append({"category": key, "label": label, "total": len(metrics), "metrics": metrics})
+        cat = {"category": key, "label": label, "total": len(metrics), "metrics": metrics}
+        if key == "load":
+            cat["headline"] = _load_headline(conn, date)
+        categories.append(cat)
 
     return {"date": date, "categories": categories}
 

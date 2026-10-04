@@ -1,7 +1,8 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, dateAtOffset, movingAverage, nearestPoint, splitOnGaps, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { commonRange, dateAtOffset, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { axisDateLabel } from '$lib/chart/scrub';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
 	let {
@@ -92,7 +93,8 @@
 		t0 && t1 ? Math.max(1, Math.round((Date.parse(t1) - Date.parse(t0)) / 86_400_000)) : 1
 	);
 	const pointCount = $derived(totalDays + 1);
-	const ticks = $derived(totalDays <= 35 ? weekTicks(t0, t1) : []);
+	const ticks = $derived(totalDays <= 35 ? weekTicks(t0, t1) : monthTicks(t0, t1, totalDays > 180));
+	const tickLabel = (d: string) => (totalDays <= 35 ? d.slice(5) : axisDateLabel(d, totalDays, true));
 	let frac = $state<number | null>(null);
 	let wasPinned = false;
 	function onScrubChange(index: number | null, pinned = false) {
@@ -247,7 +249,7 @@
 		{#if ticks.length}
 			<div class="relative ml-9 h-3 font-mono text-[9px] text-fg-muted sm:ml-12" aria-hidden="true">
 				{#each ticks as d (d)}
-					<span class="absolute -translate-x-1/2" style="left:{xFraction(d, t0, t1) * 100}%">{d.slice(5)}</span>
+					<span class="absolute -translate-x-1/2" style="left:{xFraction(d, t0, t1) * 100}%">{tickLabel(d)}</span>
 				{/each}
 			</div>
 		{/if}
