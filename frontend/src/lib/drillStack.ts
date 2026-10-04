@@ -16,7 +16,7 @@ export function currentDrillStack(): string[] {
 	return page.state.drill ?? parseDrillStack(page.url);
 }
 
-// 패널 밖의 독립된 진입점(ScoreRing·EvidenceQuote 등)이 부른다 — 스택을 이 슬러그
+// 패널 밖의 독립된 진입점(EvidenceQuote 등)이 부른다 — 스택을 이 슬러그
 // 하나로 새로 연다. 이미 다른 지표가 열려 있어도 "그 안"으로 들어가는 게 아니라
 // 새 조회이므로 스택을 비우고 시작한다.
 export function openDrill(slug: string, scope?: string) {

@@ -77,26 +77,6 @@ export interface QuickInputProps {
 	onSave?: (value: { fatigue?: number; pain?: PainLevel; note?: string }) => void;
 }
 
-// ── C6: RecommendationCard ───────────────────────────────────────────────
-
-export interface RecommendationAction {
-	label: string;
-	href?: string;
-	variant: 'primary' | 'ghost';
-	onClick?: () => void;
-}
-
-export interface RecommendationCardProps {
-	recommendation: {
-		title?: string;
-		body: string;
-		evidence: EvidenceQuoteProps[];
-	};
-	actions?: RecommendationAction[];
-	variant?: 'default' | 'warning' | 'positive';
-	loading?: boolean;
-}
-
 // ── /api/v1/library 실제 응답 (src/api/routes_library.py, src/services/activity_service.py) ──
 
 // v_canonical_activities의 행 — activity_service.get_activity_list() 기준.

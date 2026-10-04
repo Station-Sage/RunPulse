@@ -1,8 +1,4 @@
 export type MeaningStatus = 'excellent' | 'good' | 'neutral' | 'caution' | 'poor';
-export interface Meaning {
-	status: MeaningStatus;
-	note: string;
-}
 
 export const STATUS_TEXT_CLASS: Record<MeaningStatus, string> = {
 	excellent: 'text-semantic-green',
