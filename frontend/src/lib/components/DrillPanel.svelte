@@ -5,7 +5,7 @@
 	import type { Snippet } from 'svelte';
 	import { base } from '$app/paths';
 	import { currentDrillStack, parseDrillToken, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
-	import { EXPLAIN_SUPPORTED_SLUGS, getMetricExplain } from '$lib/api/metrics';
+	import { EXPLAIN_SUPPORTED_SLUGS, getMetricExplain, getMetricTrend } from '$lib/api/metrics';
 	import type { AnswerEvidence, MetricExplainData } from '$lib/types';
 	import { snapshotLine } from '$lib/answerEvidence';
 	import BreakdownView from './BreakdownView.svelte';
@@ -43,6 +43,7 @@
 	let loading = $state(true);
 	let notFound = $state(false);
 	let headingEl = $state<HTMLElement | null>(null);
+	let labelTick = $state(0);
 
 	$effect(() => {
 		const slug = currentSlug;
@@ -50,6 +51,22 @@
 		const si = currentScopeId;
 		if (!slug) return;
 		let cancelled = false;
+		if (!EXPLAIN_SUPPORTED_SLUGS.has(slug)) {
+			// 분해 미지원 지표 — 한글 이름만 받아 간이 카드 라벨로 쓴다
+			if (!labelCache.has(slug)) {
+				getMetricTrend(slug, '1m')
+					.then((t) => {
+						if (!cancelled && t.name_ko) {
+							labelCache.set(slug, t.name_ko);
+							labelTick++;
+						}
+					})
+					.catch(() => {});
+			}
+			return () => {
+				cancelled = true;
+			};
+		}
 		loading = true;
 		notFound = false;
 		data = null;
@@ -86,6 +103,7 @@
 	}
 
 	function breadcrumbLabel(slug: string): string {
+		void labelTick;
 		return labelCache.get(slug) ?? slug.toUpperCase();
 	}
 </script>
@@ -142,7 +160,17 @@
 
 {#snippet body()}
 	{#if !currentSlug || !EXPLAIN_SUPPORTED_SLUGS.has(currentSlug)}
-		<p class="p-4 text-sm text-fg-secondary">이 지표는 아직 분해 보기를 지원하지 않아요.</p>
+		<div class="flex flex-col gap-3 p-4" data-testid="drill-light">
+			<p class="text-sm text-fg-secondary">
+				{currentSlug ? breadcrumbLabel(currentSlug) : '이 지표'}은(는) 분해 대신 추세로 볼 수 있어요.
+			</p>
+			{#if currentSlug}
+				<a
+					href="{base}/library/metrics/{currentSlug}"
+					class="self-start text-sm font-medium text-semantic-teal hover:underline">추세 보기 ›</a
+				>
+			{/if}
+		</div>
 	{:else if loading}
 		<p class="p-4 text-sm text-fg-muted">불러오는 중…</p>
 	{:else if notFound || !data}

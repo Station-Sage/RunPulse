@@ -108,6 +108,15 @@ class TestUTRSExplain:
         total = sum(t["contribution"] for t in r["formula"]["terms"])
         assert abs(total - r["value"]) < 1.0  # round() 누적 오차 허용
 
+    def test_terms_have_trend_drill(self):
+        conn = _conn()
+        _seed_and_compute(conn)
+        r = get_metric_explain(conn, "daily", "2026-04-01", "utrs")
+        drills = {t["slug"]: t["drill"] for t in r["formula"]["terms"]}
+        assert all(d.startswith("m.") for d in drills.values())
+        if "utrs_hrv" in drills:
+            assert drills["utrs_hrv"] == "m.hrv_weekly_avg"
+
     def test_sources_is_wellness_day(self):
         conn = _conn()
         _seed_and_compute(conn)

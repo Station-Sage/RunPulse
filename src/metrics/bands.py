@@ -25,6 +25,9 @@ BANDS: dict[str, _Band] = {
     # 관행 밴드(10-today design §4): −30 과부하 / −10 생산적 부하 / +5 유지 / +25 신선
     "tsb": ([(-30, "poor", "과부하"), (-10, "good", "생산적 부하"), (5, "neutral", "유지"),
              (25, "excellent", "신선")], ("caution", "휴식 과다")),
+    # rri.py ranges(insufficient/building/ready/peak) — 높을수록 좋음
+    "rri": ([(40, "poor", "부족"), (60, "caution", "준비 중"), (80, "good", "준비됨")],
+            ("excellent", "최적")),
     # acwr.py ranges
     "acwr": ([(0.8, "caution", "저부하"), (1.3, "good", "적정"), (1.5, "caution", "주의")],
              ("poor", "위험")),

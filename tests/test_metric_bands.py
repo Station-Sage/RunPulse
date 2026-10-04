@@ -37,3 +37,10 @@ def test_utrs_bands_match_calculator_ranges():
     from src.metrics.utrs import UTRSCalculator
     uppers = [hi for _, (lo, hi) in sorted(UTRSCalculator.ranges.items(), key=lambda kv: kv[1][0])][:-1]
     assert [c[0] for c in BANDS["utrs"][0]] == uppers
+
+
+@pytest.mark.parametrize("value, status, label", [
+    (20, "poor", "부족"), (50, "caution", "준비 중"), (70, "good", "준비됨"), (90, "excellent", "최적"),
+])
+def test_rri_bands(value, status, label):
+    assert grade("rri", value) == {"status": status, "label": label}

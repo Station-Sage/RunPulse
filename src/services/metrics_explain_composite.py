@@ -24,6 +24,15 @@ _UTRS_CHILD_LABEL = {
     "utrs_stress": ("스트레스", "stress"),
 }
 
+# 입력 항목 → 추세 보기용 원천 지표(웰니스 컬럼 또는 daily 메트릭). 없으면 drill 생략
+_UTRS_CHILD_DRILL = {
+    "utrs_body_battery": "m.body_battery_high",
+    "utrs_tsb": "m.tsb",
+    "utrs_sleep": "m.sleep_score",
+    "utrs_hrv": "m.hrv_weekly_avg",
+    "utrs_stress": "m.avg_stress",
+}
+
 
 def explain_utrs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
     self_row = get_primary_metric(conn, scope_type, scope_id, "utrs")
@@ -44,7 +53,7 @@ def explain_utrs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tu
         terms.append({
             "slug": name, "label": label, "raw": value, "normalized": value,
             "weight": round(w, 4), "contribution": round(w * value, 1),
-            "loss": round(w * (100 - value), 1),
+            "loss": round(w * (100 - value), 1), "drill": _UTRS_CHILD_DRILL[name],
         })
     terms.sort(key=lambda t: t["loss"], reverse=True)
     sources = [{
