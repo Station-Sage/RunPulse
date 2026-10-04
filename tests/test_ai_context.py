@@ -227,3 +227,10 @@ def test_rule_based_response_no_data_graceful(db_conn):
 
     result = rule_based_response(db_conn, "이번주 어때?")
     assert isinstance(result.text, str)
+
+
+def test_legacy_reexport_paths_identical():
+    from src.ai import ai_context, ai_context_legacy
+    assert ai_context.build_context is ai_context_legacy.build_context
+    assert ai_context.format_context_text is ai_context_legacy.format_context_text
+    assert ai_context.format_activity_context is ai_context_legacy.format_activity_context
