@@ -1,0 +1,24 @@
+// 메트릭 상세 S3 — 입력 지표 행 클릭 → 같은 날짜·기간으로 그 지표 상세 이동. 환경: BASE, API, SLUG
+import { chromium } from 'playwright';
+const BASE = process.env.BASE || 'http://127.0.0.1:5199';
+const API = process.env.API || 'http://127.0.0.1:18098';
+const slug = process.env.SLUG || 'tsb';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 900 } });
+await ctx.route('**/api/v1/**', (r) => r.continue({ url: r.request().url().replace(/^https?:\/\/[^/]+/, API) }));
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+await page.goto(`${BASE}/v2/library/metrics/${slug}?period=4w&date=2026-09-19`, { waitUntil: 'networkidle' });
+const panel = page.locator('[data-testid=breakdown-panel]');
+await panel.waitFor();
+const rows = panel.locator('button:not([aria-label])');
+console.log(await rows.allInnerTexts());
+console.log('drill rows:', await rows.count());
+await rows.first().click();
+await page.waitForTimeout(1000);
+console.log('url:', page.url());
+console.log('h1:', await page.locator('h1').first().innerText().catch(() => '-'));
+console.log('panel:', await panel.locator('h2').innerText());
+console.log('errors:', errs);
+await b.close();
