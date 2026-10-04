@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 활동 상세 공용 레이아웃 — sticky 헤더(56px)와 탭 바(44px), 탭 전환 진행 표시(F-UX-10).
 	import { page } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
@@ -11,6 +12,19 @@
 	import type { ProviderKey } from '$lib/types';
 
 	let { data, children }: { data: ActivityLayoutData; children: Snippet } = $props();
+
+	// 앱 내부에서 들어온 경우만 history.back() — 탭 이동(같은 활동)은 제외하기 위해 최초 진입 시점만 기록.
+	let cameFromApp = $state(false);
+	afterNavigate((nav) => {
+		if (nav.type === 'enter') cameFromApp = false;
+		else if (nav.from) cameFromApp = !nav.from.url.pathname.startsWith(`${base}/library/${page.params.id}`);
+	});
+	function onBack(e: MouseEvent) {
+		if (cameFromApp && history.length > 1) {
+			e.preventDefault();
+			history.back();
+		}
+	}
 
 	const core = $derived(data.activity?.core ?? null);
 	const from = $derived(page.url.searchParams.get('from'));
@@ -30,6 +44,7 @@
 		<a
 			href="{base}{back.path}"
 			class="shrink-0 text-sm text-fg-muted"
+			onclick={onBack}
 			aria-label="{back.label}(으)로 돌아가기"
 			data-testid="activity-back">← {back.label}</a
 		>

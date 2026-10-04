@@ -1,6 +1,7 @@
 <script lang="ts">
 	// §C3.2 분해 v2 본문 4블록 — explain=1(TSB/CTL/ATL/UTRS/CIRS/RRI)만 이 형태로 온다.
 	// ③원천 행 탭(D3, 경로 이동)은 아직 없어 비인터랙티브로 둔다(2-5 범위 밖, 별도 판단 필요).
+	import { base } from '$app/paths';
 	import type { MetricExplainData, MetricExplainTerm } from '$lib/types';
 	import { statusColorVar } from '$lib/statusColor';
 	import { formatChange, formatUnitValue } from '$lib/format';
@@ -146,6 +147,8 @@
 					<div class="flex flex-col">
 						{#if src.type === 'activity' && src.id != null && onDrillTerm && src.unit === 'TRIMP'}
 							<button type="button" class="text-left text-semantic-teal hover:underline" data-testid="source-activity" onclick={() => onDrillTerm(`m.trimp@a${src.id}`)}>{src.label} ›</button>
+						{:else if src.type === 'wellness_day' && src.date}
+							<a href="{base}/library/wellness/{src.date}" class="text-left text-semantic-teal hover:underline" data-testid="source-wellness">{src.label} ›</a>
 						{:else}
 							<span>{src.label}</span>
 						{/if}

@@ -23,7 +23,7 @@ export function threadBackHref(
 	base: string
 ): { href: string; label: string } {
 	if (context?.kind === 'activity' && /^\d+$/.test(context.ref)) {
-		return { href: `${base}/library/${context.ref}`, label: '← 활동' };
+		return { href: `${base}/library/${context.ref}?from=coach`, label: '← 활동' };
 	}
 	return { href: `${base}/coach`, label: '← Coach' };
 }

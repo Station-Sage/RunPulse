@@ -12,7 +12,7 @@ test('evidenceChips: 값 있는 항목만', () => {
 });
 
 test('threadBackHref: 활동 스레드는 활동으로', () => {
-	assert.equal(threadBackHref({ kind: 'activity', ref: '12' }, '').href, '/library/12');
+	assert.equal(threadBackHref({ kind: 'activity', ref: '12' }, '').href, '/library/12?from=coach');
 	assert.equal(threadBackHref({ kind: 'activity', ref: 'x' }, '').href, '/coach');
 	assert.equal(threadBackHref(null, '/b').href, '/b/coach');
 });
