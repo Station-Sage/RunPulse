@@ -22,6 +22,7 @@ const FROM_LABELS: Record<string, { label: string; path: string }> = {
 	today: { label: '오늘', path: '/' },
 	coach: { label: '코치', path: '/coach' },
 	plan: { label: '계획', path: '/plan' },
+	metric: { label: '메트릭', path: '/library/metrics' },
 	library: { label: '활동', path: '/library/activities' }
 };
 

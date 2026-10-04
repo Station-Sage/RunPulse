@@ -12,7 +12,7 @@
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
-	import { openDrill, tokenSlug } from '$lib/drillStack';
+	import { openDrill, parseDrillToken } from '$lib/drillStack';
 	import { metricsBackHref, fromToday } from '$lib/libraryNav';
 
 	let { data }: { data: MetricTrendPageData } = $props();
@@ -54,7 +54,12 @@
 
 	// 입력 지표 행 → 같은 날짜·기간으로 그 지표 상세
 	function drillTerm(token: string) {
-		const slug = tokenSlug(token);
+		const { slug, scope } = parseDrillToken(token);
+		const act = scope ? /^a(\d+)$/.exec(scope) : null;
+		if (act) {
+			goto(`${base}/library/${act[1]}?from=metric`);
+			return;
+		}
 		goto(`${base}/library/metrics/${slug}?period=${data.period}${panelDate ? `&date=${panelDate}` : ''}`);
 	}
 

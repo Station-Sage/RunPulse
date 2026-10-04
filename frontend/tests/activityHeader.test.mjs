@@ -24,4 +24,7 @@ describe('backTarget', () => {
 		assert.equal(backTarget('zzz').path, '/library/activities');
 		assert.equal(backTarget(null).path, '/library/activities');
 	});
+	it('metric → 메트릭 목록', () => {
+		assert.equal(backTarget('metric').path, '/library/metrics');
+	});
 });
