@@ -352,3 +352,9 @@
 - 캘린더: 11px 고정 셀·가로 스크롤(최신 주부터)·탭/호버 팝오버·방향키·Enter·Esc. 월 막대는 km 라벨·진행 중 월 빗금.
 - 설계서 대비 변경: 근거 팝오버는 정적 문구(실외/실내 데이터 없음), 캘린더 팝오버는 항상 기간 목록 링크, 인터벌·템포 칩 분리, 탭에 "홈" 추가.
 - 검증: unit 344·check 0 오류, 실DB 사본 Playwright(`pw/library_home.mjs`: 히어로 460ms, 팝오버, 월 막대 12, 검색 이동, 활동 API 차단 시 나머지 블록 정상+재시도, 오류 0).
+
+### U5 B-2 same_class 완료 (2026-10-05)
+- 결정(D-1~D-8): D-1 A(`x.taper`는 레이스 허브 응답 재사용), D-2 A(표+미니차트, 모바일 높이 확인), D-3(전체 이력·N=5·같은 코스·같은 유형 기준), D-4 A(~28개 지표 문구, 사용자 검수 후 커밋), D-5 A(오늘 휴식만 — **TODO: 수면 점수 환산 설계 필요**), D-6 ◇ 마커, D-7·D-8 진행.
+- 구현: `src/services/activity_similar.py` 신설 — 기준 순서 same_course(시작 300m 이내·거리 ±10%) → same_class(`workout_type_classified`) → distance(±15%), 각 N≥5, 모두 부족하면 None. 응답에 `basis/class_label/load_median/load_pct_vs_median` 추가. 프론트 `impactLines`가 기준별 문구와 "기준 부족" 안내를 낸다.
+- 검증: pytest 2111 통과, 프론트 단위 346, svelte-check 0 오류, 실 DB 사본 API 확인(same_course n=45/21, same_class 이지런 n=148).
+- 다음: U13(B-4+A-15) → U14(B-5) → U8(B-1) → U9(B-6).

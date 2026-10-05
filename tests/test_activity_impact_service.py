@@ -108,75 +108,78 @@ def test_tsb_none_when_missing(db_conn):
 # similar 활동 비교
 # ─────────────────────────────────────────────────────────────────────────────
 
-def test_similar_with_4_activities(db_conn):
-    """유사 활동 4건 → similar.n == 4, pace_rank 계산."""
-    # 이전 활동 4개 (페이스: 290, 295, 305, 310)
-    for i, (pace, dist) in enumerate([(290.0, 10000), (295.0, 10200), (305.0, 9800), (310.0, 10100)]):
-        _insert_activity(
-            db_conn, "garmin", f"prev{i}", "running",
-            f"2026-09-0{i+1}T10:00:00Z", dist, pace
-        )
+def _prev(db_conn, tag, n, dist=10000, paces=None, lat=None, lon=None, month="08"):
+    ids = []
+    for i in range(n):
+        pace = (paces or [300.0 + i * 5] * n)[i]
+        aid = _insert_activity(db_conn, "garmin", f"{tag}{i}", "running", f"2026-{month}-{i+1:02d}T10:00:00Z", dist, pace)
+        if lat is not None:
+            db_conn.execute("UPDATE activity_summaries SET start_lat=?, start_lon=? WHERE id=?", (lat, lon, aid))
+        ids.append(aid)
+    return ids
 
-    # 대상 활동: 페이스 300, 거리 10000
-    aid = _insert_activity(
-        db_conn, "garmin", "main", "running", "2026-09-20T10:00:00Z", 10000, 300.0
-    )
+
+def _classify(db_conn, aid, cls, hrss=None):
+    db_conn.execute(
+        "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, text_value, is_primary)"
+        " VALUES ('activity', ?, 'workout_type_classified', 'classification', 'runpulse:rule_v1', ?, 1)",
+        (str(aid), cls))
+    if hrss is not None:
+        db_conn.execute(
+            "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, numeric_value, is_primary)"
+            " VALUES ('activity', ?, 'hrss', 'load', 'runpulse:formula_v1', ?, 1)", (str(aid), hrss))
+
+
+def test_similar_distance_basis_n5(db_conn):
+    """거리 기준 5건 → basis distance, pace_rank 계산."""
+    _prev(db_conn, "p", 5, paces=[290.0, 295.0, 305.0, 310.0, 320.0])
+    aid = _insert_activity(db_conn, "garmin", "main", "running", "2026-09-20T10:00:00Z", 10000, 300.0)
     db_conn.commit()
-
-    result = get_activity_impact(db_conn, aid, today=date(2026, 9, 20))
-    assert result is not None
-    s = result["similar"]
-    assert s is not None
-    assert s["n"] == 4
-    assert s["basis"] == "distance"
-    # 300보다 빠른(pace <300) 것: 290, 295 → 2개, pace_rank=3
-    assert s["pace_rank"] == 3
-    assert s["avg_pace_sec_km"] == round((290.0 + 295.0 + 305.0 + 310.0) / 4, 1)
-    assert s["pace_diff_sec"] == round(300.0 - s["avg_pace_sec_km"], 1)
+    s = get_activity_impact(db_conn, aid, today=date(2026, 9, 20))["similar"]
+    assert s["basis"] == "distance" and s["n"] == 5 and s["pace_rank"] == 3
+    assert s["avg_pace_sec_km"] == 304.0 and s["pace_diff_sec"] == -4.0
 
 
-def test_similar_with_2_activities_returns_none(db_conn):
-    """유사 활동 2건 → similar is None."""
-    for i, pace in enumerate([290.0, 300.0]):
-        _insert_activity(
-            db_conn, "garmin", f"s{i}", "running",
-            f"2026-09-0{i+1}T10:00:00Z", 10000, pace
-        )
-
-    aid = _insert_activity(
-        db_conn, "garmin", "main2", "running", "2026-09-20T10:00:00Z", 10000, 295.0
-    )
+def test_similar_under_min_returns_none(db_conn):
+    """거리·유형 모두 4건 → None."""
+    _prev(db_conn, "s", 4)
+    aid = _insert_activity(db_conn, "garmin", "main2", "running", "2026-09-20T10:00:00Z", 10000, 295.0)
     db_conn.commit()
-
-    result = get_activity_impact(db_conn, aid, today=date(2026, 9, 20))
-    assert result is not None
-    assert result["similar"] is None
+    assert get_activity_impact(db_conn, aid, today=date(2026, 9, 20))["similar"] is None
 
 
-def test_similar_excludes_future_activities(db_conn):
-    """이후 활동은 similar 계산에서 제외된다."""
-    # 이전 2개
-    for i, pace in enumerate([290.0, 295.0]):
-        _insert_activity(
-            db_conn, "garmin", f"past{i}", "running",
-            f"2026-09-0{i+1}T10:00:00Z", 10000, pace
-        )
-    # 이후 3개
-    for i, pace in enumerate([280.0, 285.0, 288.0]):
-        _insert_activity(
-            db_conn, "garmin", f"future{i}", "running",
-            f"2026-09-2{i+1}T10:00:00Z", 10000, pace
-        )
-
-    aid = _insert_activity(
-        db_conn, "garmin", "main3", "running", "2026-09-10T10:00:00Z", 10000, 300.0
-    )
+def test_similar_same_class_preferred_over_distance(db_conn):
+    """유형이 같은 5건이 있으면 거리가 달라도 same_class, 부하 중앙값 대비 %."""
+    ids = _prev(db_conn, "c", 5, dist=5000)
+    for i, aid in enumerate(ids):
+        _classify(db_conn, aid, "easy", hrss=60 + i * 5)
+    me = _insert_activity(db_conn, "garmin", "mainc", "running", "2026-09-20T10:00:00Z", 12000, 300.0)
+    _classify(db_conn, me, "easy", hrss=96)
     db_conn.commit()
+    s = get_activity_impact(db_conn, me, today=date(2026, 9, 20))["similar"]
+    assert s["basis"] == "same_class" and s["workout_class"] == "easy" and s["class_label"] == "이지런"
+    assert s["n"] == 5 and s["load_median"] == 70.0 and s["load_pct_vs_median"] == 37.1
 
-    result = get_activity_impact(db_conn, aid, today=date(2026, 9, 10))
-    assert result is not None
-    # 이전 2개만 → similar is None (3건 미만)
-    assert result["similar"] is None
+
+def test_similar_same_course_preferred(db_conn):
+    """시작 좌표 300m 이내·거리 ±10%인 5건 → same_course (유형 무관)."""
+    _prev(db_conn, "k", 5, lat=37.5, lon=127.0)
+    _prev(db_conn, "f", 5, lat=35.0, lon=129.0, month="07")
+    me = _insert_activity(db_conn, "garmin", "mainK", "running", "2026-09-20T10:00:00Z", 10200, 300.0)
+    db_conn.execute("UPDATE activity_summaries SET start_lat=37.5005, start_lon=127.0 WHERE id=?", (me,))
+    db_conn.commit()
+    s = get_activity_impact(db_conn, me, today=date(2026, 9, 20))["similar"]
+    assert s["basis"] == "same_course" and s["n"] == 5
+
+
+def test_similar_excludes_self_and_future(db_conn):
+    """이후 활동·자기 자신은 표본에서 제외."""
+    _prev(db_conn, "past", 4)
+    for i in range(3):
+        _insert_activity(db_conn, "garmin", f"fut{i}", "running", f"2026-09-2{i+1}T10:00:00Z", 10000, 280.0)
+    aid = _insert_activity(db_conn, "garmin", "main3", "running", "2026-09-10T10:00:00Z", 10000, 300.0)
+    db_conn.commit()
+    assert get_activity_impact(db_conn, aid, today=date(2026, 9, 10))["similar"] is None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

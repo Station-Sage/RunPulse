@@ -9,6 +9,8 @@ from __future__ import annotations
 import sqlite3
 from datetime import date as _date
 
+from src.services.activity_similar import find_similar
+
 
 def get_activity_impact(
     conn: sqlite3.Connection,
@@ -24,7 +26,7 @@ def get_activity_impact(
     conn.row_factory = sqlite3.Row
 
     act = conn.execute(
-        "SELECT id, activity_type, start_time, distance_m, avg_pace_sec_km, avg_hr"
+        "SELECT id, activity_type, start_time, distance_m, avg_pace_sec_km, avg_hr, start_lat, start_lon"
         " FROM activity_summaries WHERE id = ?",
         (activity_id,),
     ).fetchone()
@@ -44,8 +46,9 @@ def get_activity_impact(
 
     ctl_delta, tsb = _load_metrics(conn, act_date)
     load = _activity_load(conn, activity_id)
-    similar = _similar_activities(
-        conn, act_start_time, act_type, act["distance_m"], act["avg_pace_sec_km"]
+    similar = find_similar(
+        conn, activity_id, act_start_time, act["distance_m"], act["avg_pace_sec_km"],
+        act["start_lat"], act["start_lon"],
     )
     race = _nearest_race(conn, act_date)
 
@@ -108,47 +111,6 @@ def _load_metrics(
         tsb = round(float(tsb_row["numeric_value"]), 1)
 
     return ctl_delta, tsb
-
-
-def _similar_activities(
-    conn: sqlite3.Connection,
-    act_start_time: str,
-    act_type: str,
-    distance_m: float,
-    act_pace: float | None,
-) -> dict | None:
-    """이전 유사 활동 비교. 3건 미만이면 None."""
-    if act_pace is None:
-        return None
-
-    lo = distance_m * 0.85
-    hi = distance_m * 1.15
-
-    rows = conn.execute(
-        "SELECT avg_pace_sec_km FROM v_canonical_activities"
-        " WHERE activity_type = ? AND distance_m >= ? AND distance_m <= ?"
-        "   AND start_time < ? AND avg_pace_sec_km IS NOT NULL"
-        " ORDER BY start_time DESC LIMIT 10",
-        (act_type, lo, hi, act_start_time),
-    ).fetchall()
-
-    if len(rows) < 3:
-        return None
-
-    paces = [float(r["avg_pace_sec_km"]) for r in rows]
-    n = len(paces)
-    avg_pace = round(sum(paces) / n, 1)
-    faster = sum(1 for p in paces if p < act_pace)
-    pace_rank = faster + 1
-    pace_diff = round(float(act_pace) - avg_pace, 1)
-
-    return {
-        "basis": "distance",
-        "n": n,
-        "pace_rank": pace_rank,
-        "avg_pace_sec_km": avg_pace,
-        "pace_diff_sec": pace_diff,
-    }
 
 
 _RACE_CONTEXT_DAYS = 120

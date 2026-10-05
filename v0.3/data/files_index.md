@@ -32,7 +32,7 @@
 
 - functions: get_activity_detail
 
-### `activity_impact_service.py` (175줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
+### `activity_impact_service.py` (137줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
 - functions: get_activity_impact
 
@@ -51,6 +51,10 @@
 ### `activity_service.py` (166줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
 - functions: get_activity_list, get_activity_streams, get_activity_trend
+
+### `activity_similar.py` (95줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
+
+- functions: find_similar
 
 ### `activity_splits.py` (155줄) — 활동 상세 S1 — km 스플릿·요약 시계열(series) 서버 계산.
 
@@ -1420,9 +1424,9 @@
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty
 
-### `test_activity_impact_service.py` (268줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
+### `test_activity_impact_service.py` (271줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
-- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_with_4_activities, test_similar_with_2_activities_returns_none, test_similar_excludes_future_activities, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today, test_load_is_activity_trimp
+- functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_distance_basis_n5, test_similar_under_min_returns_none, test_similar_same_class_preferred_over_distance, test_similar_same_course_preferred, test_similar_excludes_self_and_future, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today, test_load_is_activity_trimp
 
 ### `test_activity_list_summary.py` (118줄) — 활동 목록 facets·summary·확장 필터/정렬/행 필드 테스트 (U10, A-17/A-18/B-3).
 
@@ -2532,7 +2536,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 519개 파일
+총 520개 파일
 
 ## docstring 누락
 

@@ -34,8 +34,24 @@ describe('impactLines', () => {
 		assert.ok(lines[1].includes('평균과 같음'), `got: ${lines[1]}`);
 	});
 
-	it('전부 null → 빈 배열', () => {
+	it('similar 없음 → 기준 부족 안내 한 줄', () => {
 		const lines = impactLines({ ctl_contribution: null, tsb: null, similar: null, race: null });
-		assert.deepEqual(lines, []);
+		assert.equal(lines.length, 1);
+		assert.ok(lines[0].includes('기준이 아직 부족'));
+	});
+
+	it('same_class → 유형명·부하 중앙값 대비 줄', () => {
+		const lines = impactLines({
+			...fullInput,
+			similar: { basis: 'same_class', class_label: '이지런', n: 8, pace_rank: 3, avg_pace_sec_km: 340,
+				pace_diff_sec: 5, load_median: 72, load_pct_vs_median: 35.2 },
+		});
+		assert.ok(lines[1].startsWith('같은 이지런 이전 8회'), lines[1]);
+		assert.equal(lines[2], '부하 대비: 같은 이지런 중앙값 72 대비 +35%');
+	});
+
+	it('same_course → 같은 코스 문구', () => {
+		const lines = impactLines({ ...fullInput, similar: { ...fullInput.similar, basis: 'same_course' } });
+		assert.ok(lines[1].startsWith('같은 코스 이전'));
 	});
 });

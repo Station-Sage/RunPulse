@@ -188,7 +188,17 @@ export interface ActivityImpact {
 	ctl_contribution: number | null;
 	tsb: number | null;
 	tsb_as_of: string | null;
-	similar: { basis: string; n: number; pace_rank: number; avg_pace_sec_km: number; pace_diff_sec: number } | null;
+	similar: {
+		basis: 'same_course' | 'same_class' | 'distance';
+		n: number;
+		pace_rank: number;
+		avg_pace_sec_km: number;
+		pace_diff_sec: number;
+		workout_class?: string;
+		class_label?: string;
+		load_median: number | null;
+		load_pct_vs_median: number | null;
+	} | null;
 	race: { name: string; days_left: number } | null;
 }
 
