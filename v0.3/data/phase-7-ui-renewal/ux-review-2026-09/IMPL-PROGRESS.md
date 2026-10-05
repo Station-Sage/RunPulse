@@ -393,10 +393,14 @@
 - 전문가 검수(REVIEW-U13-METRIC-TEXTS.md) S1~S7 반영: CRS 힌트를 게이트 level(level_0~4) 기준으로 전환, acwr/ramp/rri/rtti/marathon_shape 정의 정정, tsb.caution 레이스 국면 겸용 문구, `_SO_WHAT`·`_WHAT["rri"]` 동기화, race_pred_vdot 설명 추가.
 - 후속(문구 밖, 계산기 재보정 필요): LSI 임계 1.5, 대시보드 ramp ±3 일/주 혼동, marathon_shape Tanda 외삽 경고, aerobic_decoupling bands↔ranges SSOT 정리 후 설명·힌트 추가, EF 설명, acwr.caution 저부하/주의 구분(status_label별 힌트), 힌트 SSOT(`_SO_WHAT`↔TEXTS) 통합.
 
-## U15 피드백·동기화 오류 표면화 (2026-10-05, 운영 반영 대기)
+## U15 피드백·동기화 오류 표면화 (2026-10-05, 운영 반영 완료)
 - U15a~c: v25 스키마(`activity_feedback`, `user_settings`), 피드백 서비스·API. U15d~e: 피드백 시트·더보기 메뉴·상세 페이지 연결, 코치 컨텍스트 RPE/통증/메모, 목록 RPE 배지.
 - U15f~g: `sync_errors.py`(코드 SSOT)·원장 v2(`error_code`·`http_status`·`source_path`, 상태 `failed`), 4경로 기록(`ledger.py`).
 - U15h: `classify_error`가 `error_code` 우선, 과거 행은 문자열 폴백(403→subscription_required). 상태명 error-auth/access/upstream. `db_status`·`load_sync_status`는 원장 리더로 통일.
 - U15i: `user_settings_service`, `GET/PATCH /api/v1/me/preferences`, `config.json.example`에 `ui_default_global`.
 - U15j: ADR-022·023, architecture 표, files_index 재생성, check_docs 0 error.
 - 남음: 실DB 사본 브라우저 검증, 운영 반영(백업 → 사본 마이그레이션 검증 → 재시작 → 스모크). 이후 U16·U17·U18.
+- 운영 반영(2026-10-05 18:12 백업 후): 실DB v24→v25, 원장 v2 ensure_ledger 멱등 확인, 컨테이너 재시작 정상. 반영 후 스모크: 피드백 PUT/GET/DELETE(중복 그룹 정규 id로 저장 확인, 테스트 행 삭제), `get_sync_state` 정상(원장 신규라 'never').
+- 모바일 하단 고정 CTA가 ⋯ 메뉴를 가리던 문제 수정(활동 상세 하단 여백 `h-20 md:hidden`), `scripts/synth_smoke/pw/u15.mjs` 스모크 추가.
+- 미실시: Strava 실제 403 수동 동기화(설정상 Strava 비활성이라 단위 테스트로 대체).
+- 다음: U16a.
