@@ -420,3 +420,7 @@
 
 ### U16g (2026-10-05)
 - `src/training/marathon_rules.py`(R6, 순수): `prescribed_mp`(2.5초/주, 12초 절단, 목표 없음 처리), `long_run_pace`(×1.10~1.20), `long_mp_km`(build 20~30%·peak 40~50%), `taper_week1_mp_km`(10~13km), `race_week_session`(MP 3~5km, 총 6km 이상). 테스트 7개. 다음: U16h(유형 배선).
+
+### U16h (2026-10-05)
+- 신규 유형 marathon·long_mp·threshold 배선: planned_workouts CHECK 확장(스키마 v27 `db_schema_v27.py` 테이블 재생성, 멱등), plan_structure(_SHARE·max_only), garmin/caldav 푸시 이름, match_select 비호환표, 한글 라벨(format_ko·today_hero·format.ts). 테스트 5개.
+- U16l의 `plan_progression` 테이블은 v27→v28로 번호 변경. 운영은 v25 → 다음 배포 시 v26·v27 마이그레이션(planned_workouts 재생성 포함, 사전 백업 권장). 다음: U16i(테이퍼 v2).

@@ -58,7 +58,7 @@ def push_workout_to_caldav(
     _LABELS = {
         "easy": "이지런", "tempo": "템포런", "threshold": "역치런",
         "interval": "인터벌", "long": "장거리런", "recovery": "회복조깅",
-        "race": "레이스",
+        "race": "레이스", "marathon": "마라톤 페이스런", "long_mp": "롱런(MP 포함)",
     }
     summary = f"🏃 RunPulse: {_LABELS.get(wtype, wtype)}"
     if dist:

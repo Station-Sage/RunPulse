@@ -2,14 +2,14 @@
 
 형식은 outcome_v2 docstring 참고. 추가 키(연속 러닝 work 단계):
   max_only  True 면 "이보다 빠르면 안 됨"만 본다(이지·회복·롱런 — Daniels E 는 상한 속도).
-  min_share 목표 페이스에 들어와야 하는 거리 비중(이지·롱 0.8, 템포 0.4 — 워밍업·쿨다운 포함 거리 대비).
+  min_share 목표 페이스에 들어와야 하는 거리 비중(이지·롱 0.8, 템포 0.4, 마라톤 0.6, long_mp 0.8 — 워밍업·쿨다운 포함 거리 대비).
 """
 from __future__ import annotations
 
 import json
 
 WU_S = CD_S = 600.0
-_SHARE = {"easy": 0.8, "recovery": 0.8, "long": 0.8, "tempo": 0.4}
+_SHARE = {"easy": 0.8, "recovery": 0.8, "long": 0.8, "tempo": 0.4, "marathon": 0.6, "long_mp": 0.8}
 
 
 def _speeds(pace_min: float | None, pace_max: float | None) -> dict:
@@ -38,6 +38,6 @@ def structure_for_plan(workout_type: str, distance_km: float | None, pace_min: f
         return None
     step = {"type": "work", "dist_m": round(distance_km * 1000.0, 1), **_speeds(pace_min, pace_max),
             "min_share": _SHARE.get(workout_type, 0.8)}
-    if workout_type != "tempo":
+    if workout_type not in ("tempo", "marathon"):
         step["max_only"] = True          # 이지·회복·롱런: 느린 쪽은 허용, 빠른 쪽만 위반
     return {"steps": [step]}

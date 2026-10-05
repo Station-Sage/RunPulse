@@ -1220,7 +1220,7 @@
 
 - functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session
 
-### `match_select.py` (59줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
+### `match_select.py` (61줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
 
 - functions: compatible, pick_activity, is_done, classify_outcome
 
@@ -2061,6 +2061,10 @@
 - class **TestMarathonShape**: test_with_data, test_no_vdot, test_goal_basis_and_unreachable
 - functions: test_tanda_required_roundtrip
 
+### `test_marathon_types_wiring.py` (56줄) — U16h: marathon·long_mp 유형 배선(스키마 CHECK·구조·판정·매처·라벨·푸시).
+
+- functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
+
 ### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
 
 - class **TestResolveDbPath**: test_requires_user_id, test_blank_user_id_is_rejected, test_path_traversal_is_rejected, test_unknown_user_raises_and_creates_no_directory, test_env_var_is_used
@@ -2675,7 +2679,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 553개 파일
+총 554개 파일
 
 ## docstring 누락
 

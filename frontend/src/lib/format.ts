@@ -183,6 +183,9 @@ export const WORKOUT_LABELS: Record<string, string> = {
 	steady: '스테디',
 	tempo: '템포',
 	interval: '인터벌',
+	marathon: '마라톤 페이스',
+	long_mp: '롱런(MP)',
+	threshold: '역치',
 	repetition: '레피티션',
 	sprint: '스프린트',
 	race: '레이스'

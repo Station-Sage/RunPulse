@@ -126,7 +126,7 @@ def _build_running_workout(
     _NAMES = {
         "easy": "이지런", "tempo": "템포런", "threshold": "역치런",
         "interval": "인터벌", "long": "장거리런", "recovery": "회복조깅",
-        "race": "레이스",
+        "race": "레이스", "marathon": "마라톤 페이스런", "long_mp": "롱런(MP 포함)",
     }
     name = f"RunPulse: {_NAMES.get(wtype, wtype)}"
     if dist_km:
@@ -150,7 +150,7 @@ def _build_running_workout(
         }
 
     # 워크아웃 구조
-    if wtype in ("easy", "recovery", "long"):
+    if wtype in ("easy", "recovery", "long", "long_mp"):
         # 단순 구조: 워밍업 5분 + 메인 + 쿨다운 5분
         main_sec = max(300, est_sec - 600)
         steps = [
@@ -158,7 +158,7 @@ def _build_running_workout(
             create_interval_step(float(main_sec), step_order=2, target_type=target),
             create_cooldown_step(300.0, step_order=3),
         ]
-    elif wtype in ("tempo", "threshold"):
+    elif wtype in ("tempo", "threshold", "marathon"):
         # 워밍업 10분 + 메인 + 쿨다운 10분
         main_sec = max(600, est_sec - 1200)
         steps = [

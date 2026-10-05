@@ -14,7 +14,7 @@ from src.training.adjuster import adjust_todays_plan
 
 WORKOUT_LABELS = {
     "easy": "이지런", "tempo": "템포", "interval": "인터벌", "long": "롱런",
-    "recovery": "회복런", "race": "레이스", "rest": "휴식",
+    "recovery": "회복런", "race": "레이스", "rest": "휴식", "marathon": "마라톤 페이스", "long_mp": "롱런(MP)", "threshold": "역치",
 }
 _KEY_TYPES = wc.QUALITY_TYPES | {"long"}
 

@@ -18,6 +18,8 @@ _INCOMPATIBLE = {
     "easy": {"interval", "repetition", "sprint", "race", "tempo"},
     "recovery": {"interval", "repetition", "sprint", "race", "tempo", "long_run"},
     "long": {"interval", "repetition", "sprint", "tempo", "race"},
+    "long_mp": {"interval", "repetition", "sprint", "tempo", "race"},
+    "marathon": {"easy", "recovery", "interval", "repetition", "sprint", "race"},
 }
 
 

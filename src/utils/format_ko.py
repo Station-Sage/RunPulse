@@ -10,7 +10,7 @@ MINUS = "−"
 
 WORKOUT_TYPE_KO = {
     "easy": "이지런", "tempo": "템포", "interval": "인터벌", "long": "롱런",
-    "recovery": "회복 달리기", "race": "레이스", "rest": "휴식",
+    "recovery": "회복 달리기", "race": "레이스", "rest": "휴식", "marathon": "마라톤 페이스", "long_mp": "롱런(MP)", "threshold": "역치",
 }
 GRADE_KO = {"excellent": "매우 좋음", "good": "좋음", "moderate": "보통", "poor": "나쁨"}
 
