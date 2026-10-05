@@ -42,7 +42,7 @@ export function chipLabel(ev: AnswerEvidence): string {
 
 export type ChipTarget = 'drill' | 'race' | 'none';
 
-/** legacy·drill 없는 근거는 InfoTag(none), 투영은 레이스 허브(x.taper D2 도입 전 목적지). */
+/** legacy·drill 없는 근거는 InfoTag(none), 투영은 x.taper 시트('race'). */
 export function chipTarget(ev: AnswerEvidence): ChipTarget {
 	if (ev.role === 'legacy') return 'none';
 	if (ev.metric === PROJECTION_METRIC) return 'race';

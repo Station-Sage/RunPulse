@@ -8,9 +8,9 @@
 // `page.url`의 `drill` 쿼리에서 읽는다(`currentDrillStack` 참조).
 import { pushState } from '$app/navigation';
 import { page } from '$app/state';
-import { DRILL_MAX_DEPTH, formatDrillToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug } from './drillStackCore';
+import { DRILL_MAX_DEPTH, formatDrillToken, isSpecialToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug } from './drillStackCore';
 
-export { parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug };
+export { isSpecialToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug };
 
 export function currentDrillStack(): string[] {
 	return page.state.drill ?? parseDrillStack(page.url);

@@ -88,12 +88,13 @@ def project_race_form(conn: sqlite3.Connection, race_date: str, date: str | None
         "current": {"ctl": round(ctl0, 1), "atl": round(atl0, 1), "tsb": round(ctl0 - atl0, 1)},
         "assumptions": "최근 28일 하루 평균 부하 기준 · 테이퍼: 14~8일 전 75% → 7~4일 전 55% → 3~1일 전 35%",
         "scenarios": [
-            _graded({"key": "taper", "label": "테이퍼 적용", **_run(ctl0, atl0, base, today, race, True)}),
-            _graded({"key": "keep", "label": "지금처럼 유지", **_run(ctl0, atl0, base, today, race, False)}),
+            _graded({"key": "taper", "label": "테이퍼 적용", **_run(ctl0, atl0, base, today, race, True)}, ctl0),
+            _graded({"key": "keep", "label": "지금처럼 유지", **_run(ctl0, atl0, base, today, race, False)}, ctl0),
         ],
     }
 
 
-def _graded(scenario: dict) -> dict:
-    """레이스 아침 TSB 등급(bands.py, 레이스 국면)을 status·status_label로 붙인다."""
+def _graded(scenario: dict, ctl0: float) -> dict:
+    """레이스 아침 TSB 등급(bands.py, 레이스 국면)을 status·status_label로, 현재 대비 CTL 변화율(%)을 ctl_change_pct로 붙인다."""
+    scenario["ctl_change_pct"] = round((scenario["ctl"] - ctl0) / ctl0 * 100, 1) if ctl0 else None
     return with_grade(scenario, "tsb", scenario.get("tsb"), phase="race")

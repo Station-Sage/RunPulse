@@ -205,7 +205,7 @@
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
 
-### `race_projection_service.py` (99줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
+### `race_projection_service.py` (100줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
 
 - functions: project_race_form
 
@@ -2222,9 +2222,9 @@
 
 - functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context
 
-### `test_race_projection_service.py` (72줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
+### `test_race_projection_service.py` (81줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
 
-- functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb
+- functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb, test_scenarios_have_ctl_change_pct
 
 ### `test_race_result_service.py` (35줄) — P7-PRED-53: 대회 확인 서비스.
 

@@ -24,7 +24,13 @@ export function parseDrillToken(token: string): DrillTokenParts {
 	return { slug: body.slice(0, at), scope: body.slice(at + 1) || undefined };
 }
 
+// 특수 시트 토큰(`x.taper`) — 지표 분해가 아닌 전용 시트. 스택·URL 규칙은 지표 토큰과 같다.
+export function isSpecialToken(token: string): boolean {
+	return token.startsWith('x.');
+}
+
 export function formatDrillToken(slug: string, scope?: string): string {
+	if (isSpecialToken(slug)) return slug;
 	return scope ? `m.${slug}@${scope}` : `m.${slug}`;
 }
 

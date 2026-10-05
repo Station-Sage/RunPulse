@@ -1260,6 +1260,7 @@ export interface RaceProjectionScenario {
 	ctl: number;
 	atl: number;
 	tsb: number;
+	ctl_change_pct?: number | null;
 	series: { date: string; value: number }[];
 	status?: SemanticStatus;
 	status_label?: string;

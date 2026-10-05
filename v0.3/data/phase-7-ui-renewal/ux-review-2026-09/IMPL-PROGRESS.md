@@ -373,3 +373,11 @@
 - 프론트: `BreakdownView` ③원천 아래 "무엇을 바꾸면" 줄 + 추정 배지 + 가정 문구(가정은 ⓘ 대신 상시 표시).
 - 검증: 실DB 사본 브라우저 — 오늘 UTRS 상세에 표시, 어제는 없음. 테스트 3개 추가.
 - 다음: U8(B-1 x.taper) → U9(B-6 ◇).
+
+### U8 B-1 완료 (2026-10-05)
+- 설계 조정: `race_morning` 신설 대신 레이스 허브 `projection`(taper·keep 2 시나리오) 재사용. 계획(plan) 시나리오는 없음. 서버 `race_projection_service`가 시나리오에 `ctl_change_pct`·등급(`with_grade`) 부여.
+- 프론트: `x.` 특수 토큰(`isSpecialToken`, 스택·URL 규칙 동일), `drillSpecial.ts` 레지스트리, `drill/TaperSheet.svelte`(표+TSB 투영 미니 차트, 시나리오 선택은 `scn` 파라미터 replaceState → 히스토리 증가 없음). `DrillPanel`이 `x.` 토큰이면 설명 fetch 생략·전용 시트 렌더. Coach 투영 근거 칩 → `?drill=x.taper`.
+- 레이스 허브 페이지는 DrillPanel 미사용이라 기존 링크 유지.
+- 검증: 단위 349, 실DB 사본 Playwright(390px) — 시트 표시·시나리오 전환·가로 넘침 없음.
+- 다음: U9(B-6 ◇).
+

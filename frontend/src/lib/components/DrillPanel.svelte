@@ -8,6 +8,9 @@
 	import { isExplainSupported, getMetricExplain, getMetricTrend } from '$lib/api/metrics';
 	import type { AnswerEvidence, MetricExplainData } from '$lib/types';
 	import { snapshotLine } from '$lib/answerEvidence';
+	import { isSpecialToken } from '$lib/drillStackCore';
+	import { TAPER_TOKEN, specialTitle, UNSUPPORTED_SPECIAL } from '$lib/drillSpecial';
+	import TaperSheet from './drill/TaperSheet.svelte';
 	import BreakdownView from './BreakdownView.svelte';
 	import Icon from './Icon.svelte';
 
@@ -38,6 +41,7 @@
 	const currentScopeType = $derived(resolved.scopeType);
 	const currentScopeId = $derived(resolved.scopeId);
 	const fromQuery = $derived(fromTag ? `?from=${fromTag}` : '');
+	const special = $derived(currentSlug && isSpecialToken(currentSlug) ? currentSlug : null);
 	const isOpen = $derived(slugs.length > 0);
 	const snap = $derived(
 		answerChip && slugs.length === 1 && answerChip.metric === currentSlug && answerChip.drill?.scope_id === currentScopeId
@@ -110,6 +114,7 @@
 
 	function breadcrumbLabel(slug: string): string {
 		void labelTick;
+		if (isSpecialToken(slug)) return specialTitle(slug) ?? slug;
 		return labelCache.get(slug) ?? slug.toUpperCase();
 	}
 </script>
@@ -156,7 +161,7 @@
 			<h2 tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
 				{slugs.map(breadcrumbLabel).join(' › ')}
 			</h2>
-			<p class="text-[11px] text-fg-muted">{currentScopeType === 'activity' ? '이 활동 기준' : `${currentScopeId} 아침 기준`}</p>
+			<p class="text-[11px] text-fg-muted">{special ? '레이스 아침 기준' : currentScopeType === 'activity' ? '이 활동 기준' : `${currentScopeId} 아침 기준`}</p>
 		</div>
 		<button onclick={closeDrill} aria-label="닫기" class="shrink-0 text-fg-secondary hover:text-fg-primary">
 			<Icon name="close" class="h-4 w-4" />
@@ -165,7 +170,13 @@
 {/snippet}
 
 {#snippet body()}
-	{#if !currentSlug || !isExplainSupported(currentSlug, currentScopeType)}
+	{#if special}
+		{#if special === TAPER_TOKEN}
+			<TaperSheet />
+		{:else}
+			<p class="p-4 text-sm text-fg-secondary">{UNSUPPORTED_SPECIAL}</p>
+		{/if}
+	{:else if !currentSlug || !isExplainSupported(currentSlug, currentScopeType)}
 		<div class="flex flex-col gap-3 p-4" data-testid="drill-light">
 			<p class="text-sm text-fg-secondary">
 				{currentSlug ? breadcrumbLabel(currentSlug) : '이 지표'}은(는) 분해 대신 추세로 볼 수 있어요.

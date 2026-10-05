@@ -9,7 +9,6 @@
 	import { ApiError } from '$lib/api/client';
 	import { base } from '$app/paths';
 	import type { AnswerEvidence, ChatMessage, CoachEngine } from '$lib/types';
-	import { goto } from '$app/navigation';
 	import MessageBlock from '$lib/components/coach/MessageBlock.svelte';
 	import ChatComposer from '$lib/components/coach/ChatComposer.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
@@ -25,6 +24,7 @@
 	import { inputText as chipLabel, type CoachInput } from '$lib/coachSuggestions';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
+	import { TAPER_TOKEN } from '$lib/drillSpecial';
 	import { localDateString } from '$lib/asOf';
 
 	let { data }: { data: ThreadPageData } = $props();
@@ -106,7 +106,7 @@
 
 	function openEvidence(ev: AnswerEvidence) {
 		if (chipTarget(ev) === 'race') {
-			goto(`${base}/today/race`);
+			openDrill(TAPER_TOKEN);
 			return;
 		}
 		if (!ev.drill) return;

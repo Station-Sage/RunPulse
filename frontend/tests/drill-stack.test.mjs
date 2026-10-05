@@ -7,7 +7,8 @@ import {
 	formatDrillToken,
 	tokenSlug,
 	resolveDrillScope,
-	DRILL_MAX_DEPTH
+	DRILL_MAX_DEPTH,
+	isSpecialToken
 } from '../src/lib/drillStackCore.ts';
 
 test('parseDrillStack — drill 파라미터 없으면 빈 배열', () => {
@@ -69,4 +70,11 @@ test('resolveDrillScope — @a{id}는 activity scope, 날짜는 기본 종류 �
 	assert.deepEqual(resolveDrillScope('2026-09-01', 'daily', '2026-09-12'), { scopeType: 'daily', scopeId: '2026-09-01' });
 	assert.deepEqual(resolveDrillScope(undefined, 'daily', '2026-09-12'), { scopeType: 'daily', scopeId: '2026-09-12' });
 	assert.equal(parseDrillToken('m.trimp@a17414').scope, 'a17414');
+});
+
+test('x. 특수 토큰: isSpecialToken · 포맷/파싱 왕복', () => {
+	assert.equal(isSpecialToken('x.taper'), true);
+	assert.equal(isSpecialToken('m.utrs'), false);
+	assert.equal(formatDrillToken('x.taper'), 'x.taper');
+	assert.equal(parseDrillToken('x.taper').slug, 'x.taper');
 });

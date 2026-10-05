@@ -70,3 +70,12 @@ def test_zero_load_decays_toward_positive_tsb(db_conn):
     assert r["base_daily_load"] == 0
     # 부하 0: ATL이 CTL보다 빨리 감쇠 → TSB 상승
     assert r["scenarios"][0]["tsb"] > r["current"]["tsb"]
+
+
+def test_scenarios_have_ctl_change_pct(db_conn):
+    _metric(db_conn, "daily", DATE, "ctl", 40)
+    _metric(db_conn, "daily", DATE, "atl", 50)
+    out = project_race_form(db_conn, "2026-10-25", DATE)
+    for sc in out["scenarios"]:
+        assert sc["ctl_change_pct"] == round((sc["ctl"] - 40) / 40 * 100, 1)
+        assert sc["status"]
