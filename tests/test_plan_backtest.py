@@ -41,3 +41,21 @@ def test_history_scenarios_from_seeded_db():
     assert scns and all(s.kind == "history" and s.distance == "half" for s in scns)
     r = B.run_scenario(scns[0], c)
     assert r["inputs"]["start_km"] >= 0 and len(r["weeks"]) == scns[0].plan_weeks
+
+
+def _v1_signature(scn):
+    from tests.helpers_pred import mem_conn
+    c = mem_conn()
+    B.seed_grid_history(c, scn)
+    c.commit()
+    weeks, _ = B.engine_v1(scn, c)
+    return [[(s.type, round(s.km, 1)) for s in w.days] for w in weeks]
+
+
+def test_v1_output_snapshot_protects_existing_goals(monkeypatch):
+    monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
+    s = _grid(distance="half", plan_weeks=8, days=4, start_km=40, long_start=10)
+    sig = _v1_signature(s)
+    assert len(sig) == 8 and _v1_signature(s) == sig
+    import hashlib
+    assert hashlib.sha1(repr(sig).encode()).hexdigest() == "16589b82f0b756e09bbccbb07bd673427138e1c5"

@@ -407,4 +407,9 @@
 
 ### U16a~d (2026-10-05)
 - U16a as_of(planner_config), U16b plan_gates(순수 게이트 8+5), U16c 백테스트 하네스(`src/training/plan_backtest.py`, `scripts/plan_backtest.py`, planner `as_of`), U16d v1 기준선(DESIGN-U16 §2.6).
-- 다음: U16e(plan_rules_version 고정·플래그·v1 회귀 테스트).
+- 다음: U16f.
+
+### U16e (2026-10-05)
+- 스키마 v26 `goals.plan_rules_version`(기본 1, `db_schema_v26.py`), `goals.add_goal(rules_version=None)`: 플래그 `PLAN_RULES_V2_ENABLED`(환경변수, 기본 off) on이면 새 목표만 2. `get_rules_version`·`set_rules_version`(v2 목표를 1로 내리는 롤백 함수) 추가.
+- v1 출력 스냅샷 테스트(`test_v1_output_snapshot_protects_existing_goals`)로 11/22 목표(id=1) 보호. 전체 pytest 2212 passed.
+- planner·periodization의 실제 v2 분기는 U16f~i가 규칙을 만들 때 추가(규칙이 없는 지금은 분기할 대상이 없음).

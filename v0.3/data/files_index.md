@@ -1208,9 +1208,9 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (119줄) — 훈련 목표 CRUD.
+### `goals.py` (149줄) — 훈련 목표 CRUD.
 
-- functions: add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
+- functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
 ### `interval_calc.py` (221줄) — 인터벌 트레이닝 처방 계산.
 
@@ -1976,6 +1976,10 @@
 
 - class **TestGarminWellnessSync**: test_sync_one_day, test_resync_updates_partial_day_values, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
 
+### `test_goal_rules_version.py` (57줄) — U16e: 목표별 계획 규칙 버전 고정·플래그·마이그레이션.
+
+- functions: test_schema_version_and_default_one, test_flag_on_new_goal_is_v2_and_existing_stays_v1, test_explicit_version_and_downgrade, test_migration_adds_column_to_legacy_goals_idempotent, test_get_rules_version_missing_goal_is_one
+
 ### `test_goals.py` (116줄) — goals.py 테스트.
 
 - functions: test_add_goal_returns_id, test_get_goal, test_get_goal_not_found, test_list_goals_active_default, test_list_goals_all, test_get_active_goal_returns_latest, test_get_active_goal_none_when_empty, test_update_goal, test_update_goal_invalid_field, test_complete_goal, test_cancel_goal, test_complete_nonexistent_goal, test_cancel_nonexistent_goal, test_list_goals_empty, test_add_goal_minimal
@@ -2191,9 +2195,9 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_backtest.py` (43줄)
+### `test_plan_backtest.py` (61줄)
 
-- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db
+- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals
 
 ### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
@@ -2655,7 +2659,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 548개 파일
+총 549개 파일
 
 ## docstring 누락
 

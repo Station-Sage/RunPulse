@@ -1,5 +1,6 @@
 """훈련 목표 CRUD."""
 
+import os
 import sqlite3
 
 _COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at, plan_weeks"
@@ -12,6 +13,30 @@ def _row_to_dict(row: tuple) -> dict:
     return dict(zip(keys, row))
 
 
+def plan_rules_v2_enabled() -> bool:
+    """새 목표를 계획 규칙 v2로 만들지 여부(환경변수 PLAN_RULES_V2_ENABLED, 기본 off)."""
+    return os.environ.get("PLAN_RULES_V2_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def get_rules_version(conn: sqlite3.Connection, goal_id: int) -> int:
+    """목표에 고정된 계획 규칙 버전. 목표가 없거나 컬럼이 없으면 1."""
+    try:
+        row = conn.execute(
+            "SELECT plan_rules_version FROM goals WHERE id = ?", (goal_id,)
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return 1
+    return int(row[0]) if row and row[0] else 1
+
+
+def set_rules_version(conn: sqlite3.Connection, goal_id: int, version: int) -> None:
+    """목표의 규칙 버전을 지정(롤백용으로 v2 목표를 1로 내릴 때 사용)."""
+    if version not in (1, 2):
+        raise ValueError(f"unsupported plan_rules_version: {version}")
+    conn.execute("UPDATE goals SET plan_rules_version = ? WHERE id = ?", (version, goal_id))
+    conn.commit()
+
+
 def add_goal(
     conn: sqlite3.Connection,
     name: str,
@@ -19,6 +44,7 @@ def add_goal(
     race_date: str | None = None,
     target_time_sec: int | None = None,
     target_pace_sec_km: int | None = None,
+    rules_version: int | None = None,
 ) -> int:
     """목표 추가.
 
@@ -29,15 +55,19 @@ def add_goal(
         race_date: 레이스 날짜 (YYYY-MM-DD).
         target_time_sec: 목표 완주 시간 (초).
         target_pace_sec_km: 목표 페이스 (초/km).
+        rules_version: 계획 규칙 버전. None이면 플래그에 따라 2(on) 또는 1(off).
 
     Returns:
         새로 생성된 goal id.
     """
+    if rules_version is None:
+        rules_version = 2 if plan_rules_v2_enabled() else 1
     cursor = conn.execute(
         """INSERT INTO goals
-           (name, race_date, distance_km, target_time_sec, target_pace_sec_km, status)
-           VALUES (?, ?, ?, ?, ?, 'active')""",
-        (name, race_date, distance_km, target_time_sec, target_pace_sec_km),
+           (name, race_date, distance_km, target_time_sec, target_pace_sec_km, status,
+            plan_rules_version)
+           VALUES (?, ?, ?, ?, ?, 'active', ?)""",
+        (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version),
     )
     conn.commit()
     return cursor.lastrowid
