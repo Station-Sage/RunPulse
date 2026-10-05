@@ -51,7 +51,7 @@ class UTRSCalculator(MetricCalculator):
         if tsb is None:
             tsb = ctx.get_metric("tsb")
         if tsb is not None:
-            components["tsb"] = self._norm(tsb + 30, 0, 60)
+            components["tsb"] = self.tsb_component(tsb)
             total_weight += self.WEIGHTS["tsb"]
 
         sleep = wellness.get("sleep_score")
@@ -101,6 +101,11 @@ class UTRSCalculator(MetricCalculator):
                     parent_metric_name="utrs",
                 ))
         return results
+
+    @classmethod
+    def tsb_component(cls, tsb: float) -> float:
+        """TSB(-30~+30)를 0~100 항목 점수로 정규화."""
+        return cls._norm(tsb + 30, 0, 60)
 
     @staticmethod
     def _norm(val, lo, hi) -> float:

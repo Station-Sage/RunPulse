@@ -174,6 +174,23 @@
 		</section>
 	{/if}
 
+	{#if data.what_if?.length}
+		<section class="flex flex-col gap-1.5" data-testid="breakdown-whatif">
+			{#each data.what_if as w (w.key)}
+				<div class="rounded-md bg-surface-2 px-3 py-2 text-sm">
+					<div class="flex items-center justify-between gap-2">
+						<span>무엇을 바꾸면 · {w.label} → {w.target}</span>
+						<span class="flex items-center gap-1.5">
+							<span class="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-fg-muted">추정</span>
+							<span class="num font-medium" style={w.status ? `color: ${statusColorVar(w.status)}` : ''}>약 {w.value_est}</span>
+						</span>
+					</div>
+					<p class="mt-1 text-[11px] text-fg-muted">{w.assumption}</p>
+				</div>
+			{/each}
+		</section>
+	{/if}
+
 	{#if terms.length === 0 && data.sources.length === 0}
 		<p class="text-sm text-fg-secondary">
 			이 지표는 {data.provider.kind === 'runpulse_calc' ? 'RunPulse 계산' : data.provider.kind}에서

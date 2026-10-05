@@ -34,6 +34,7 @@ from src.services.metrics_explain_activity import explain_trimp_activity
 from src.services.metrics_explain_conclusion import build_conclusion
 from src.services.metrics_explain_composite import explain_cirs, explain_rri, explain_utrs
 from src.services.metrics_explain_prediction import explain_prediction
+from src.services.metrics_explain_whatif import build_what_if
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
@@ -172,6 +173,16 @@ _EXPLAINERS = {
 _ACTIVITY_EXPLAINERS = {"trimp": explain_trimp_activity}
 
 
+def _what_if(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str, terms: list[dict]) -> list[dict]:
+    if scope_type == "activity" or slug not in ("tsb", "utrs"):
+        return []
+    vals = []
+    for name in ("ctl", "atl"):
+        row = get_primary_metric(conn, scope_type, scope_id, name)
+        vals.append(row.get("numeric_value") if row else None)
+    return build_what_if(slug, scope_id, ctl=vals[0], atl=vals[1], terms=terms)
+
+
 def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str) -> dict | None:
     """분해 v2(§C3.2) — TSB/CTL/ATL/UTRS/CIRS/RRI만 지원, 그 외는 None(라우트가 v1로 폴백)."""
     builder = (_ACTIVITY_EXPLAINERS if scope_type == "activity" else _EXPLAINERS).get(slug)
@@ -191,6 +202,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
     value = self_row.get("numeric_value")
     band = grade(slug, value)
     name_ko, abbr = display_name(slug, _metric_label(slug))
+    what_if = _what_if(conn, scope_type, scope_id, slug, terms)
 
     return {
         "slug": slug,
@@ -226,4 +238,5 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "links": {"trend": f"/library/metrics/{slug}"},
         **({"evidence": evidence} if evidence else {}),
         **({"conclusion": conclusion} if conclusion else {}),
+        **({"what_if": what_if} if what_if else {}),
     }

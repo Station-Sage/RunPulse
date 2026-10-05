@@ -367,3 +367,9 @@
 - 검증: pytest 전체·프론트 unit 347·svelte-check 0 오류·build, 실DB 사본(카드 2행 20개, ⓘ 팝오버 문구 확인).
 - 다음: U14(B-5) → U8(B-1) → U9(B-6).
 
+### U14 B-5 완료 (2026-10-05)
+- `src/services/metrics_explain_whatif.py`(순수 함수): TSB = CTL×(1−1/42) − ATL×(1−1/7)로 오늘 부하 0 가정 1스텝. UTRS는 TSB 항목만 교체(`UTRSCalculator.tsb_component` 신설, 나머지 항목 유지·가중치 재정규화).
+- `get_metric_explain`이 tsb/utrs에서 오늘 날짜일 때만 `what_if` 반환(과거 날짜 생략). 수면 시나리오는 TODO "수면 점수 환산 설계 필요"(D-5).
+- 프론트: `BreakdownView` ③원천 아래 "무엇을 바꾸면" 줄 + 추정 배지 + 가정 문구(가정은 ⓘ 대신 상시 표시).
+- 검증: 실DB 사본 브라우저 — 오늘 UTRS 상세에 표시, 어제는 없음. 테스트 3개 추가.
+- 다음: U8(B-1 x.taper) → U9(B-6 ◇).

@@ -630,6 +630,16 @@ export interface MetricExplainData {
 	links: { trend: string };
 	evidence?: PredictionEvidence;
 	conclusion?: { top_loss: string; text: string };
+	what_if?: MetricWhatIf[];
+}
+
+export interface MetricWhatIf {
+	key: string;
+	label: string;
+	target: string;
+	value_est: number;
+	status: string | null;
+	assumption: string;
 }
 
 export interface PredictionEvidence {

@@ -121,7 +121,7 @@
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
-### `metrics_explain.py` (229줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_explain.py` (242줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: personal_text, get_metric_explain
 
@@ -144,6 +144,10 @@
 ### `metrics_explain_shared.py` (44줄) — 분해 v2(`metrics_explain.py`/`metrics_explain_composite.py`) 공유 헬퍼.
 
 - functions: daily_trimp_sum, top_activity_sources
+
+### `metrics_explain_whatif.py` (66줄) — 분해 v2 what-if(B-5) — "오늘 쉬면 내일 아침 값" 추정. 순수 함수 + 얇은 조립.
+
+- functions: tomorrow_tsb_if_rest, utrs_with_tsb, build_what_if
 
 ### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
@@ -440,9 +444,9 @@
 
 - class **TRIMPCalculator**: compute
 
-### `utrs.py` (109줄) — UTRS (Unified Training Readiness Score) — 설계서 4-4 기준.
+### `utrs.py` (114줄) — UTRS (Unified Training Readiness Score) — 설계서 4-4 기준.
 
-- class **UTRSCalculator**: compute
+- class **UTRSCalculator**: compute, tsb_component
 
 ### `vdot.py` (69줄) — VDOT Calculator — 설계서 4-2 기준.
 
@@ -2030,6 +2034,10 @@
 - class **TestPersonalText**: test_higher_lower_and_none
 - functions: test_activity_scope_trimp_explain, test_activity_scope_unsupported_slug_and_missing_activity, test_prediction_explain_evidence_and_sources, test_prediction_explain_omits_missing_fields
 
+### `test_metrics_explain_whatif.py` (33줄) — what-if(B-5) 순수 함수 테스트.
+
+- functions: test_tsb_one_step_formula, test_utrs_only_tsb_term_changes, test_past_date_omitted
+
 ### `test_metrics_service.py` (145줄) — tests/test_metrics_service.py — get_metric_breakdown() 통합 테스트.
 
 - class **TestGetMetricBreakdownNoneCase**: test_returns_none_for_unknown_slug, test_returns_none_for_no_data
@@ -2540,7 +2548,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 521개 파일
+총 523개 파일
 
 ## docstring 누락
 
