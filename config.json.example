@@ -50,5 +50,6 @@
     "enabled": true,
     "interval_hours": 4,
     "days": 2
-  }
+  },
+  "ui_default_global": "v1"
 }
