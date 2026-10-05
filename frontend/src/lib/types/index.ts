@@ -268,7 +268,29 @@ export interface ActivityWorkoutClassBasis {
 	pace_cv: number | null;
 }
 
+export interface ActivityFeedback {
+	rpe: number | null;
+	pain: PainLevel | null;
+	pain_sites: string[];
+	note: string | null;
+	updated_at?: string;
+}
+
+export type ActivityFeedbackInput = {
+	rpe?: number | null;
+	pain?: PainLevel | null;
+	pain_sites?: string[];
+	note?: string | null;
+};
+
+export interface ActivityMenuInfo {
+	has_gps: boolean;
+	source_links: { provider: string; url: string; label_ko: string }[];
+}
+
 export interface ActivityDetail {
+	feedback?: ActivityFeedback | null;
+	menu?: ActivityMenuInfo;
 	core: ActivityCore;
 	metrics_by_category: Record<string, ActivityMetric[]>;
 	source_comparison: Record<string, unknown>;

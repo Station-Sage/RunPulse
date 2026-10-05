@@ -10,6 +10,9 @@
 	import { formatMetricValue, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
+	import ActivityMoreMenu from '$lib/components/ActivityMoreMenu.svelte';
+	import ActivityFeedbackSheet from '$lib/components/ActivityFeedbackSheet.svelte';
+	import type { ActivityFeedback } from '$lib/types';
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
@@ -30,6 +33,10 @@
 	const sourceDiffs = $derived((data.activity?.source_diffs ?? []).filter((d) => d.significant));
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
 	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
+
+	let feedback = $state<ActivityFeedback | null>(data.activity?.feedback ?? null);
+	let sheetOpen = $state(false);
+	$effect(() => { feedback = data.activity?.feedback ?? null; });
 
 	const selection = createActivitySelection();
 	// 지도·스플릿 구간·경로 색 선택은 새로고침·공유 후에도 복원된다(`?seg=`·`?map=hr`, replaceState).
@@ -171,7 +178,17 @@
 			</section>
 		{/if}
 
+		{#if sheetOpen}
+			<ActivityFeedbackSheet activityId={core.id} existing={feedback} onSaved={(fb) => (feedback = fb)} onClose={() => (sheetOpen = false)} />
+		{:else if feedback}
+			<button type="button" onclick={() => (sheetOpen = true)} data-testid="feedback-summary"
+				class="self-start rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3">
+				{feedback.rpe ? `RPE ${feedback.rpe}` : ''}{feedback.pain && feedback.pain !== 'none' ? ` · 통증 ${feedback.pain}` : ''}{feedback.note ? ` · ${feedback.note}` : ''}
+			</button>
+		{/if}
+
 		<div class="flex flex-wrap items-center gap-3 text-xs">
+			<ActivityMoreMenu activityId={core.id} menu={data.activity?.menu} onFeedback={() => (sheetOpen = true)} />
 			{#if sourceDiffs.length > 0}
 				<a href="{base}/library/{core.id}/providers" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="source-diff-chip">소스 차이 {sourceDiffs.length}건</a>
 			{/if}
