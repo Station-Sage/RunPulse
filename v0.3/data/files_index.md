@@ -1216,6 +1216,10 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
+### `marathon_rules.py` (51줄) — 마라톤 페이스(MP) 규칙 R6(순수) — 처방 MP, 롱런 페이스, long_mp 비중, 테이퍼 MP 세션 (DESIGN-U16 §2.3).
+
+- functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session
+
 ### `match_select.py` (59줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
 
 - functions: compatible, pick_activity, is_done, classify_outcome
@@ -2048,6 +2052,10 @@
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
 
+### `test_marathon_rules.py` (43줄) — U16g: R6 MP 규칙(순수 함수).
+
+- functions: test_prescribed_mp_without_goal_and_data, test_prescribed_mp_weekly_progress, test_prescribed_mp_capped_by_12s_and_goal, test_long_run_pace_clamped, test_long_mp_share_by_phase, test_taper_week1_mp_range, test_race_week_session
+
 ### `test_marathon_shape.py` (93줄)
 
 - class **TestMarathonShape**: test_with_data, test_no_vdot, test_goal_basis_and_unreachable
@@ -2667,7 +2675,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 551개 파일
+총 553개 파일
 
 ## docstring 누락
 

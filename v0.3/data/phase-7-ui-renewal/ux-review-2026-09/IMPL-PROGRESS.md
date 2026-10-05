@@ -417,3 +417,6 @@
 ### U16f (2026-10-05)
 - `src/training/week_structure.py`(R7, 순수 함수): `default_run_days`(8주 중앙값 3~6), `long_ratio`/`long_cap_km`(min(r×주km, 150분÷페이스, 32km), r=0.35/0.45), `apply_week_structure`(롱런 상한 절단·최소 세션 병합→이지 재분배·러닝 일수 초과 병합, 레이스 전날 ≤5km 셰이크아웃 예외). 테스트 9개.
 - planner v2 분기 연결은 U16g(마라톤 MP)·U16h(타입 배선) 이후. 다음: U16g.
+
+### U16g (2026-10-05)
+- `src/training/marathon_rules.py`(R6, 순수): `prescribed_mp`(2.5초/주, 12초 절단, 목표 없음 처리), `long_run_pace`(×1.10~1.20), `long_mp_km`(build 20~30%·peak 40~50%), `taper_week1_mp_km`(10~13km), `race_week_session`(MP 3~5km, 총 6km 이상). 테스트 7개. 다음: U16h(유형 배선).
