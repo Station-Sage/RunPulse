@@ -4,6 +4,7 @@ import json
 import sqlite3
 from datetime import datetime, timedelta
 
+from src.sync.sync_errors import SyncSourceError, classify_exception
 from src.utils import api
 from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
@@ -106,7 +107,8 @@ def sync_activities(
             mark_finished("runalyze", count=0, error="403 Forbidden — 토큰 오류/만료. 토큰을 재발급하세요.")
         else:
             print(f"[runalyze] API 오류 {e.status_code}: {e}")
-        return 0
+        code, status = classify_exception(e)
+        raise SyncSourceError(code, f"Runalyze {status}: {e}", status) from e
     count = 0
 
     for act in activity_summaries:

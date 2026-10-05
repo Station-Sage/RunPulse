@@ -26,6 +26,8 @@ class SyncResult:
 
     last_error: Optional[str] = None
     retry_after: Optional[str] = None            # ISO datetime
+    error_code: Optional[str] = None             # sync_errors.ERROR_CODES
+    http_status: Optional[int] = None
 
     def is_rate_limited(self) -> bool:
         return self.retry_after is not None
@@ -42,6 +44,9 @@ class SyncResult:
             self.last_error = other.last_error
         if other.retry_after:
             self.retry_after = other.retry_after
+        if other.error_code:
+            self.error_code = other.error_code
+            self.http_status = other.http_status
         if other.status == "failed" and self.synced_count > 0:
             self.status = "partial"
         return self
@@ -62,4 +67,6 @@ class SyncResult:
             "error_count": self.error_count,
             "last_error": self.last_error,
             "retry_after": self.retry_after,
+            "error_code": self.error_code,
+            "http_status": self.http_status,
         }

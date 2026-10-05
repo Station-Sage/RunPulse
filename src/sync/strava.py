@@ -22,6 +22,7 @@ from .strava_athlete_sync import (  # noqa: F401
     sync_athlete_and_gear,
 )
 import src.sync.strava_activity_sync as _act_sync
+from .sync_errors import from_result
 
 from src.utils.sync_state import mark_finished
 
@@ -36,6 +37,9 @@ def sync_activities(
 ) -> int:
     """Strava 활동 동기화 wrapper."""
     result = _act_sync.sync(conn, days, config=config, from_date=from_date, to_date=to_date)
+    err = from_result(result)
+    if err:
+        raise err
     return result.synced_count
 
 

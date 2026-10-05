@@ -10,6 +10,7 @@ from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
 from src.sync.sync_result import SyncResult
+from src.sync.sync_errors import classify_exception
 from src.sync._helpers import (
     save_activity_core, save_metrics, save_laps,
     save_daily_wellness, save_daily_fitness, resolve_primaries,
@@ -59,6 +60,7 @@ def sync(
         result.api_calls += 1
     except Exception as e:
         result.status = "failed"
+        result.error_code, result.http_status = classify_exception(e)
         result.last_error = str(e)
         return result
 

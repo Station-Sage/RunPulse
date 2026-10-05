@@ -50,6 +50,7 @@ from src.sync.garmin_athlete_extensions import (
     sync_athlete_personal_records,
 )
 import src.sync.garmin_activity_sync as _act_sync
+from src.sync.sync_errors import from_result
 import src.sync.garmin_wellness_sync as _well_sync
 
 
@@ -78,6 +79,9 @@ def sync_activities(
         conn, client, days, start_date=from_date, end_date=to_date,
         include_streams=include_streams,
     )
+    err = from_result(result)
+    if err:
+        raise err
     return result.synced_count
 
 

@@ -78,6 +78,7 @@ def sync(
             log.warning("[garmin/activity] 활동 목록 조회 중 429: %s", e)
             result.status = "failed"
             result.last_error = "Rate limited on activity list fetch"
+            result.error_code, result.http_status = "rate_limited", 429
             result.retry_after = _retry_after(limiter)
             return result
         log.error("[garmin/activity] 활동 목록 조회 실패: %s", e, exc_info=True)

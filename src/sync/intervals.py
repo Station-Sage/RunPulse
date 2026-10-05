@@ -22,6 +22,7 @@ from .intervals_athlete_sync import (  # noqa: F401
     sync_athlete_stats_snapshot,
 )
 import src.sync.intervals_activity_sync as _act_sync
+from .sync_errors import from_result
 import src.sync.intervals_wellness_sync as _well_sync
 
 
@@ -34,6 +35,9 @@ def sync_activities(
 ) -> int:
     """Intervals.icu 활동 동기화 wrapper."""
     result = _act_sync.sync(conn, days, config=config, from_date=from_date, to_date=to_date)
+    err = from_result(result)
+    if err:
+        raise err
     return result.synced_count
 
 

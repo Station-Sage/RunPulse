@@ -10,6 +10,7 @@ from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
 from src.sync.sync_result import SyncResult
+from src.sync.sync_errors import classify_exception
 from src.sync._helpers import (
     save_activity_core, save_metrics,
     save_streams, save_best_efforts, resolve_primaries,
@@ -64,9 +65,10 @@ def sync(
             batch = resp.json()
             limiter.post_request(True)
             result.api_calls += 1
-        except requests.HTTPError:
+        except requests.HTTPError as e:
             result.status = "failed"
-            result.last_error = "Strava activity list fetch failed"
+            result.error_code, result.http_status = classify_exception(e)
+            result.last_error = f"Strava {result.http_status}: activity list fetch failed"
             return result
         if not batch:
             break
