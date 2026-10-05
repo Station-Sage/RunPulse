@@ -136,3 +136,11 @@ def sample_config():
             "weight_kg": 70,
         },
     }
+
+
+@pytest.fixture(autouse=True)
+def _isolated_sync_ledger(tmp_path, monkeypatch):
+    """원장(sync_jobs.db)을 테스트별 임시 경로로 격리 — 실 DB 오염 방지."""
+    import src.utils.sync_jobs as sj
+    monkeypatch.setattr(sj, "_jobs_db_path", lambda uid=None: str(tmp_path / "sync_jobs.db"))
+    yield

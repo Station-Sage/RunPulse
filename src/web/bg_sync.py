@@ -29,6 +29,7 @@ from src.utils.sync_jobs import (
     update_job,
     windows,
 )
+from src.sync.sync_errors import SyncSourceError
 from src.utils.sync_state import get_retry_after_sec
 
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
@@ -162,6 +163,15 @@ class BgSyncThread(threading.Thread):
             )
             total_synced += count
             total_req += req_added
+
+            err = getattr(self, "_source_error", None)
+            if err is not None:
+                update_job(
+                    self.job_id, status="failed", error_code=err.code,
+                    http_status=err.http_status, last_error=str(err)[:300],
+                    synced_count=total_synced, req_count=total_req,
+                )
+                return
 
             # 4-1) rate limit 발생 시 즉시 중단
             if rate_limited:
@@ -332,6 +342,13 @@ class BgSyncThread(threading.Thread):
             log.warning("[bg_sync] 429 발생 — 배치 중단: %s", exc)
             update_job(self.job_id, last_error=f"429 발생: {str(exc)[:150]}")
             return count, req_added, True  # rate_limited = True
+        except SyncSourceError as exc:
+            log.warning("[bg_sync] 소스 실패 %s: %s", exc.code, exc)
+            if exc.code == "rate_limited":
+                update_job(self.job_id, last_error=str(exc)[:200])
+                return count, req_added, True
+            self._source_error = exc
+            return count, req_added, False
         except Exception as exc:
             log.error("[bg_sync] 배치 오류: %s", exc, exc_info=True)
             update_job(self.job_id, last_error=str(exc)[:200])
@@ -384,6 +401,7 @@ def start_job(
     to_date: str,
     config: dict,
     user_id: str = "default",
+    source_path: str = "bg",
 ) -> str:
     """새 백그라운드 동기화 시작. job_id 반환.
 
@@ -395,7 +413,7 @@ def start_job(
             existing = get_active_job(service)
             return existing.id if existing else ""
 
-    job = create_job(service, from_date, to_date)
+    job = create_job(service, from_date, to_date, source_path=source_path)
     thread = BgSyncThread(job.id, config, user_id=user_id)
     with _lock:
         _threads[service] = thread
@@ -450,6 +468,7 @@ def start_basic_sync(
     to_date: str,
     config: dict,
     user_id: str = "default",
+    source_path: str = "bg",
 ) -> dict[str, str]:
     """여러 서비스 기본 동기화를 백그라운드로 시작. {service: job_id} 반환."""
     from src.utils.config import enabled_sources
@@ -459,7 +478,7 @@ def start_basic_sync(
         if service not in on:
             continue          # 동기화 끈 소스(config.sync_sources)
         from_date = from_dates.get(service, to_date)
-        job_id = start_job(service, from_date, to_date, config, user_id)
+        job_id = start_job(service, from_date, to_date, config, user_id, source_path)
         if job_id:
             result[service] = job_id
     return result

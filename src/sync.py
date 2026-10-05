@@ -25,9 +25,19 @@ log = logging.getLogger(__name__)
 _ALL_SOURCES = ["garmin", "strava", "intervals", "runalyze"]
 
 
-def _sync_source(source: str, config: dict, db_path, days: int, user_id: str = "default") -> dict:
-    """단일 소스 동기화. {"activities": int, "wellness": int, "errors": list} 반환."""
+def _sync_source(
+    source: str, config: dict, db_path, days: int, user_id: str = "default",
+    job_id: str | None = None, trigger: str = "cli",
+) -> dict:
+    """단일 소스 동기화. {"activities": int, "wellness": int, "errors": list} 반환. 원장(sync_jobs.db)에도 기록."""
     from src.utils.sync_state import mark_finished
+    from src.sync.ledger import start_run, finish_run
+    from src.sync.sync_errors import SyncSourceError, classify_exception
+    try:
+        job_id = start_run(source, source_path=trigger, job_id=job_id, days=days)
+    except Exception as led_exc:
+        log.warning("[%s] 원장 기록 시작 실패: %s", source, led_exc)
+        job_id = None
     activities = 0
     wellness = 0
     errors = []
@@ -59,6 +69,22 @@ def _sync_source(source: str, config: dict, db_path, days: int, user_id: str = "
             mark_finished(source, count=0, error=err_msg, user_id=user_id)
         except Exception:
             pass
+        if job_id:
+            try:
+                if isinstance(e, SyncSourceError):
+                    sse = e
+                else:
+                    code, http = classify_exception(e)
+                    sse = SyncSourceError(code, err_msg, http)
+                finish_run(job_id, synced=activities, error=sse)
+            except Exception as led_exc:
+                log.warning("[%s] 원장 기록 실패: %s", source, led_exc)
+    else:
+        if job_id:
+            try:
+                finish_run(job_id, synced=activities)
+            except Exception as led_exc:
+                log.warning("[%s] 원장 기록 실패: %s", source, led_exc)
     return {"activities": activities, "wellness": wellness, "errors": errors}
 
 
@@ -82,6 +108,11 @@ def main() -> None:
         default="default",
         help="사용자 ID (기본: default)",
     )
+    parser.add_argument("--job-id", default=None, help="원장 job id (단일 소스 수동 실행용)")
+    parser.add_argument(
+        "--trigger", default="cli", choices=["manual", "auto", "cli", "bg"],
+        help="실행 경로 (원장 source_path, 기본: cli)",
+    )
     args = parser.parse_args()
 
     set_current_user(args.user)
@@ -97,7 +128,8 @@ def main() -> None:
     if len(sources) == 1:
         source = sources[0]
         log.info("--- %s 동기화 시작 ---", source.upper())
-        res = _sync_source(source, config, db_path, args.days, user_id=args.user)
+        res = _sync_source(source, config, db_path, args.days, user_id=args.user,
+                           job_id=args.job_id, trigger=args.trigger)
         total_activities += res["activities"]
         total_wellness += res["wellness"]
         log.info("[%s] 활동 %d개, 웰니스 %d개 동기화 완료", source, res["activities"], res["wellness"])
@@ -108,7 +140,8 @@ def main() -> None:
         futures = {}
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:
             for source in sources:
-                future = executor.submit(_sync_source, source, config, db_path, args.days, args.user)
+                future = executor.submit(_sync_source, source, config, db_path, args.days, args.user,
+                                         None, args.trigger)
                 futures[future] = source
 
         for future, source in futures.items():

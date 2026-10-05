@@ -64,10 +64,11 @@ class TestFullSync:
             )
 
         assert "garmin" in results
-        jobs = conn.execute("SELECT source, job_type, status FROM sync_jobs").fetchall()
+        from src.utils.sync_jobs import list_recent_jobs
+        jobs = list_recent_jobs()
         assert len(jobs) >= 1
-        sources = {j[0] for j in jobs}
-        assert "garmin" in sources
+        assert "garmin" in {j.service for j in jobs}
+        assert all(j.source_path == "cli" for j in jobs)
 
     def test_multi_source_sync(self):
         """여러 소스 sync → 각각 결과 반환."""
@@ -109,7 +110,6 @@ class TestFullSync:
         conn = _conn()
         full_sync(conn, sources=["garmin"], api_clients={})
 
-        job = conn.execute("SELECT from_date, to_date FROM sync_jobs").fetchone()
-        if job:
-            assert job[0] is not None
-            assert job[1] is not None
+        from src.utils.sync_jobs import list_recent_jobs
+        for job in list_recent_jobs():
+            assert job.from_date and job.to_date

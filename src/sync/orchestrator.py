@@ -7,7 +7,8 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from src.sync.sync_result import SyncResult
-from src.sync._helpers import record_sync_job
+from src.sync.ledger import start_run, finish_run
+from src.sync.sync_errors import SyncSourceError
 from src.sync import dedup
 
 log = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ def full_sync(
     include_streams: bool = False,
     api_clients: dict = None,
     configs: dict = None,
+    source_path: str = "cli",
 ) -> dict[str, list[SyncResult]]:
     """모든 소스를 순차적으로 sync.
 
@@ -95,11 +97,15 @@ def full_sync(
                 source=source, job_type="activity", status="failed", last_error=str(e),
             ))
 
-        # sync_jobs 기록
+        # 원장(sync_jobs.db) 기록
         for sr in source_results:
             try:
-                record_sync_job(conn, sr.to_sync_job_dict(from_date, to_date))
-                conn.commit()
+                jid = start_run(sr.source, from_date, to_date, source_path=source_path)
+                if sr.status == "failed":
+                    err = SyncSourceError(sr.error_code or "unknown", sr.last_error or "", sr.http_status)
+                    finish_run(jid, synced=sr.synced_count, error=err)
+                else:
+                    finish_run(jid, synced=sr.synced_count, partial_code=sr.error_code)
             except Exception as e:
                 log.warning("[orchestrator] Failed to record sync job: %s", e)
 

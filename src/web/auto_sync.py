@@ -46,7 +46,7 @@ def _trigger(config: dict, user_id: str, days: int) -> None:
 
     log.info("[auto_sync] 트리거: sources=%s, %s ~ %s", sources, from_date, to_date)
     try:
-        result = start_basic_sync(sources, from_dates, to_date, config, user_id)
+        result = start_basic_sync(sources, from_dates, to_date, config, user_id, source_path="auto")
         mark_auto_sync_ran(user_id)
         log.info("[auto_sync] 완료: jobs=%s", result)
     except Exception as exc:

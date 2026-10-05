@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 from src.db_setup import get_db_path
+from src.utils.sync_jobs_schema import ensure_ledger
 
 
 # ── 서비스별 배치 설정 ────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ class SyncJob:
     to_date: str             # YYYY-MM-DD
     window_days: int
     current_from: Optional[str]
-    status: str              # pending / running / paused / stopped / completed / rate_limited
+    status: str              # pending/running/paused/stopped/completed/rate_limited/auth_required/failed
     completed_days: int
     total_days: int
     synced_count: int
@@ -58,6 +59,9 @@ class SyncJob:
     updated_at: str
     retry_after: Optional[str]   # ISO datetime
     last_error: Optional[str]
+    error_code: Optional[str] = None
+    http_status: Optional[int] = None
+    source_path: Optional[str] = None   # manual / bg / auto / cli
 
     @property
     def progress_pct(self) -> float:
@@ -107,7 +111,8 @@ def windows(from_date: str, to_date: str, window_days: int) -> list[tuple[str, s
 _COLS = (
     "id, service, from_date, to_date, window_days, current_from, "
     "status, completed_days, total_days, synced_count, req_count, "
-    "created_at, updated_at, retry_after, last_error"
+    "created_at, updated_at, retry_after, last_error, "
+    "error_code, http_status, source_path"
 )
 
 
@@ -125,28 +130,10 @@ def _conn() -> sqlite3.Connection:
         uid = _resolve_user_id(None)
     except Exception:
         uid = None
-    conn = sqlite3.connect(_jobs_db_path(uid), timeout=10)
+    path = _jobs_db_path(uid)
+    conn = sqlite3.connect(path, timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("""CREATE TABLE IF NOT EXISTS sync_jobs (
-        id TEXT PRIMARY KEY,
-        service TEXT NOT NULL,
-        from_date TEXT NOT NULL,
-        to_date TEXT NOT NULL,
-        window_days INTEGER NOT NULL DEFAULT 14,
-        current_from TEXT,
-        status TEXT NOT NULL DEFAULT 'pending',
-        completed_days INTEGER NOT NULL DEFAULT 0,
-        total_days INTEGER NOT NULL DEFAULT 0,
-        synced_count INTEGER NOT NULL DEFAULT 0,
-        req_count INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        retry_after TEXT,
-        last_error TEXT
-    )""")
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_sync_jobs_service ON sync_jobs(service, created_at)"
-    )
+    ensure_ledger(conn, path)
     return conn
 
 
@@ -172,9 +159,12 @@ def cleanup_stale_running_jobs() -> int:
 
 # ── CRUD ─────────────────────────────────────────────────────────────────
 
-def create_job(service: str, from_date: str, to_date: str) -> SyncJob:
+def create_job(
+    service: str, from_date: str, to_date: str,
+    *, source_path: str | None = None, job_id: str | None = None,
+) -> SyncJob:
     """새 동기화 작업 생성 후 반환."""
-    job_id = str(uuid.uuid4())
+    job_id = job_id or str(uuid.uuid4())
     now = datetime.now().isoformat(timespec="seconds")
     wdays = WINDOW_DAYS.get(service, 14)
     start = date.fromisoformat(from_date)
@@ -189,10 +179,11 @@ def create_job(service: str, from_date: str, to_date: str) -> SyncJob:
             (now, service),
         )
         conn.execute(
-            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job_id, service, from_date, to_date, wdays, from_date,
                 "pending", 0, total, 0, 0, now, now, None, None,
+                None, None, source_path,
             ),
         )
     job = get_job(job_id)
@@ -213,7 +204,7 @@ def get_active_job(service: str) -> SyncJob | None:
     with _conn() as conn:
         row = conn.execute(
             f"SELECT {_COLS} FROM sync_jobs "
-            "WHERE service = ? AND status NOT IN ('completed', 'stopped') "
+            "WHERE service = ? AND status NOT IN ('completed', 'stopped', 'failed') "
             "ORDER BY created_at DESC LIMIT 1",
             (service,),
         ).fetchone()

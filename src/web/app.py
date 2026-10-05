@@ -103,6 +103,21 @@ def _html_page(title: str, body: str) -> str:
     return _hp(title, body)
 
 
+def _ledger_job_id() -> str:
+    """수동 동기화 subprocess에 넘길 원장 job id."""
+    import uuid
+    return str(uuid.uuid4())
+
+
+def _ledger_fail(job_id: str, src: str, code: str, message: str, user_id: str = "default") -> None:
+    """subprocess가 원장에 쓰지 못한 실패(타임아웃·비정상 종료)를 기록. 실패해도 sync 흐름은 계속."""
+    try:
+        from src.sync.ledger import fail_run
+        fail_run(job_id, code, message[:300], service=src, source_path="manual")
+    except Exception:
+        log.warning("[ledger] fail_run 기록 실패", exc_info=True)
+
+
 def _already_finished(stdout: str) -> bool:
     """sync.py 내부에서 mark_finished를 이미 호출했는지 stdout으로 추정."""
     # strava/garmin sync 함수가 rate limit 발생 시 직접 mark_finished 호출
@@ -609,8 +624,10 @@ def create_app() -> Flask:
             log.info("[trigger_sync] subprocess 시작: src=%s, days=%d, user=%s",
                      src, days_for_src, user_id)
             try:
+                ledger_id = _ledger_job_id()
                 proc = subprocess.run(
-                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id],
+                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id,
+                     "--job-id", ledger_id, "--trigger", "manual"],
                     capture_output=True, text=True, timeout=300,
                     cwd=str(_project_root()),
                 )
@@ -633,6 +650,7 @@ def create_app() -> Flask:
                 # subprocess 바깥에서도 실패 시 상태 복구
                 if proc.returncode != 0:
                     mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
+                    _ledger_fail(ledger_id, src, "unknown", stderr_tail, user_id)
                     results.append({
                         "source": src, "ok": False, "skipped": False,
                         "count": 0, "error": stderr_tail,
@@ -652,6 +670,7 @@ def create_app() -> Flask:
                     })
             except subprocess.TimeoutExpired:
                 log.error("[trigger_sync] %s 타임아웃 (300초)", src)
+                _ledger_fail(ledger_id, src, "timeout", "타임아웃 (300초)", user_id)
                 mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
                 results.append({
                     "source": src, "ok": False, "skipped": False,
@@ -785,9 +804,11 @@ def create_app() -> Flask:
                 mark_running(src, mode, user_id)
                 log.info("[trigger_sync_stream] subprocess: src=%s, days=%d", src, days_for_src)
                 try:
+                    ledger_id = _ledger_job_id()
                     proc = subprocess.run(
                         [sys.executable, "src/sync.py", "--source", src,
-                         "--days", str(days_for_src), "--user", user_id],
+                         "--days", str(days_for_src), "--user", user_id,
+                         "--job-id", ledger_id, "--trigger", "manual"],
                         capture_output=True, text=True, timeout=300,
                         cwd=str(_project_root()),
                     )
@@ -808,6 +829,7 @@ def create_app() -> Flask:
                     if proc.returncode != 0:
                         stderr_tail = (proc.stderr or "")[-400:]
                         mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
+                        _ledger_fail(ledger_id, src, "unknown", stderr_tail, user_id)
                         r = {"source": src, "ok": False, "skipped": False,
                              "count": 0, "error": stderr_tail}
                     else:
@@ -822,6 +844,7 @@ def create_app() -> Flask:
 
                 except subprocess.TimeoutExpired:
                     mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
+                    _ledger_fail(ledger_id, src, "timeout", "타임아웃 (300초)", user_id)
                     r = {"source": src, "ok": False, "skipped": False,
                          "count": 0, "error": "동기화 타임아웃 (300초 초과)"}
                     results.append(r)

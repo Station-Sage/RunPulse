@@ -127,35 +127,3 @@ def resolve_primaries(
     conn: sqlite3.Connection, scope_type: str, scope_id: str | int
 ) -> int:
     return resolve_for_scope(conn, scope_type, str(scope_id))
-
-
-def record_sync_job(conn: sqlite3.Connection, job_dict: dict):
-    """SyncResult.to_sync_job_dict() 결과를 sync_jobs 테이블에 기록."""
-    conn.execute(
-        """
-        INSERT INTO sync_jobs
-            (id, source, job_type, from_date, to_date, status,
-             total_items, completed_items, error_count, last_error, retry_after)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-            status = excluded.status,
-            completed_items = excluded.completed_items,
-            error_count = excluded.error_count,
-            last_error = excluded.last_error,
-            retry_after = excluded.retry_after,
-            updated_at = datetime('now')
-        """,
-        (
-            job_dict["id"],
-            job_dict["source"],
-            job_dict["job_type"],
-            job_dict.get("from_date"),
-            job_dict.get("to_date"),
-            job_dict["status"],
-            job_dict.get("total_items"),
-            job_dict.get("completed_items"),
-            job_dict.get("error_count"),
-            job_dict.get("last_error"),
-            job_dict.get("retry_after"),
-        ),
-    )
