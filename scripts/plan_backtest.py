@@ -27,6 +27,8 @@ def main() -> int:
         src.backup(base)
         src.close()
         base.row_factory = sqlite3.Row
+        from src.db_setup import migrate_db
+        migrate_db(base)       # 사본을 최신 스키마로(운영 DB는 건드리지 않음)
         scenarios += B.history_scenarios(base)
     grid = [g for g in B.grid_scenarios() if not a.distance or g.distance == a.distance]
     scenarios += grid[: a.grid_limit] if a.grid_limit else grid
