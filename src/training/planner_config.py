@@ -114,13 +114,19 @@ def get_available_days(week_start: date, prefs: dict) -> list[int]:
 
 # ── 메트릭 조회 ───────────────────────────────────────────────────────────
 
-def get_latest_fitness(conn: sqlite3.Connection) -> dict:
-    """최근 CTL/ATL/TSB 조회."""
+def _as_of_clause(as_of: date | None) -> tuple[str, tuple]:
+    """as_of(포함) 이후 일별 값을 잘라 내는 조건. None이면 최신 값(기존 동작)."""
+    return (" AND scope_id <= ?", (as_of.isoformat(),)) if as_of else ("", ())
+
+
+def get_latest_fitness(conn: sqlite3.Connection, as_of: date | None = None) -> dict:
+    """최근 CTL/ATL/TSB 조회. as_of를 주면 그 날(포함)까지의 값만 쓴다."""
+    cl, args = _as_of_clause(as_of)
     rows = conn.execute(
         "SELECT metric_name, numeric_value FROM metric_store"
         " WHERE scope_type='daily' AND is_primary=1"
-        "   AND metric_name IN ('ctl','atl','tsb') AND numeric_value IS NOT NULL"
-        " ORDER BY scope_id DESC LIMIT 3"
+        "   AND metric_name IN ('ctl','atl','tsb') AND numeric_value IS NOT NULL" + cl +
+        " ORDER BY scope_id DESC LIMIT 3", args
     ).fetchall()
     data = {r[0]: r[1] for r in rows}
     if data:
@@ -128,12 +134,13 @@ def get_latest_fitness(conn: sqlite3.Connection) -> dict:
     return {"ctl": 0.0, "atl": 0.0, "tsb": 0.0}
 
 
-def get_vdot_adj(conn: sqlite3.Connection) -> float | None:
+def get_vdot_adj(conn: sqlite3.Connection, as_of: date | None = None) -> float | None:
     """현재 VDOT 조회 (최근) — vdot_adj 폐기(P7-PRED-90) 후 레이스 예측 결합 VDOT(race_pred_vdot, 대표 provider)."""
+    cl, args = _as_of_clause(as_of)
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
         " WHERE metric_name='race_pred_vdot' AND scope_type='daily' AND is_primary=1"
-        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
+        "   AND numeric_value IS NOT NULL" + cl + " ORDER BY scope_id DESC LIMIT 1", args
     ).fetchone()
     return float(row[0]) if row else None
 
@@ -148,12 +155,13 @@ def get_eftp(conn: sqlite3.Connection) -> int | None:
     return int(row[0]) if row else None
 
 
-def get_marathon_shape_pct(conn: sqlite3.Connection) -> float | None:
+def get_marathon_shape_pct(conn: sqlite3.Connection, as_of: date | None = None) -> float | None:
     """MarathonShape 점수 (0~100) 조회."""
+    cl, args = _as_of_clause(as_of)
     row = conn.execute(
         "SELECT numeric_value FROM metric_store"
         " WHERE metric_name='marathon_shape' AND scope_type='daily' AND is_primary=1"
-        "   AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1"
+        "   AND numeric_value IS NOT NULL" + cl + " ORDER BY scope_id DESC LIMIT 1", args
     ).fetchone()
     return float(row[0]) if row else None
 
