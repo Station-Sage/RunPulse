@@ -38,6 +38,21 @@ def test_shakeout_sets_eve_row():
     assert P._shakeout(rows, None) is None
 
 
+def test_shakeout_fits_low_volume_race_week():
+    rows = _week([("marathon", 6), ("easy", 8)])
+    assert P._shakeout(rows, "2026-03-04", 8.7) == "2026-03-03" and rows[1]["distance_km"] == 2.7
+    rows = _week([("marathon", 6), ("easy", 8)])
+    assert P._shakeout(rows, "2026-03-04", 6.5) is None and rows[1]["workout_type"] == "rest"
+
+
+def test_note_cold_start_adds_source_to_rationale():
+    rows = _week([("easy", 6), ("rest", 0)])
+    P._note_cold_start(rows, "default", 16.0)
+    assert "거리별 기본값" in rows[0]["rationale"] and "rationale" not in rows[1]
+    P._note_cold_start(rows, "history", 16.0)
+    assert rows[0]["rationale"].count("기본값") == 1
+
+
 def test_mp_session_retypes_longest_quality():
     rows = _week([("easy", 8), ("tempo", 9)])
     assert P._mp_session(rows, 300.0, 8.0)

@@ -5,6 +5,7 @@ generate_weekly_plan 이 rules_version>=2 인 목표에서 호출한다. 순수 
 """
 from __future__ import annotations
 
+import math
 from dataclasses import asdict
 from datetime import date, timedelta
 
@@ -18,6 +19,7 @@ _Q = ("tempo", "interval")
 _NAMES = {"marathon": "마라톤 페이스런", "long_mp": "롱런(MP 구간)"}
 _DAYS = "월화수목금토일"
 SHAKEOUT_KM = 4.0         # 대회 전날 조깅(G3 면제, week_structure.SHAKEOUT_MAX_KM 이하)
+SHAKEOUT_MIN_KM = 1.0     # 이 미만이면 전날 조깅 없음
 MP_SESSION_KM = 8.0       # G4 하한. 워밍업·쿨다운 포함 총거리는 +3km
 
 
@@ -51,16 +53,30 @@ def _race_week(rows: list[dict], mp: float, race_date: str) -> None:
         _retype(r, "marathon", sess["distance_km"], sess["mp_km"], mp)
 
 
-def _shakeout(rows: list[dict], race_date: str | None) -> str | None:
-    """대회 전날 러닝 행이 있으면 SHAKEOUT_KM 로 줄인다. 그 날짜를 돌려준다."""
+def _shakeout(rows: list[dict], race_date: str | None, week_km: float | None = None) -> str | None:
+    """대회 전날 러닝 행이 있으면 SHAKEOUT_KM 로 줄인다. 그 날짜를 돌려준다.
+
+    week_km 가 주어지면 다른 세션 최소(6km×n)를 뺀 남은 예산까지만 둔다(저볼륨 대회 주 총량 보존). 1km 미만이면 휴식.
+    """
     if not race_date:
         return None
     eve = (date.fromisoformat(race_date) - timedelta(days=1)).isoformat()
     for r in rows:
         if r["date"] == eve and r["workout_type"] in ("easy", "recovery"):
-            r["distance_km"] = SHAKEOUT_KM
+            km = SHAKEOUT_KM
+            if week_km is not None:
+                n_other = sum(1 for x in rows if x["workout_type"] not in ("rest", "race") and x["date"] != eve)
+                km = min(SHAKEOUT_KM, _down1(week_km - n_other * MIN_SESSION_KM))
+            if km < SHAKEOUT_MIN_KM:
+                r.update(workout_type="rest", distance_km=0.0)
+                return None
+            r["distance_km"] = km
             return eve
     return None
+
+
+def _down1(x: float) -> float:
+    return math.floor(x * 10 + 1e-6) / 10
 
 
 def apply_v2(rows: list[dict], *, dlabel: str, phase: str, weeks_to_race: int, taper_first: bool, mp_now: float | None,
@@ -104,7 +120,7 @@ def apply_v2(rows: list[dict], *, dlabel: str, phase: str, weeks_to_race: int, t
             r["target_pace_min"], r["target_pace_max"] = round(lp - LR.LONG_PACE_BAND), round(lp + LR.LONG_PACE_BAND)
     if mp is not None and dlabel == "full":
         _place_mp(out, mp, phase, weeks_to_race, taper_first, week_km, race_date, mp_in_long)
-    eve = _shakeout(out, race_date) if race_week else None
+    eve = _shakeout(out, race_date, week_km) if race_week else None
     cap = LR.long_cap_km(ctx) if ctx else None
     fill = long_fill_km(ctx) if ctx else None
     floor = LR.budget_floor_km(ctx) if ctx else MIN_SESSION_KM + 1.0
@@ -145,7 +161,7 @@ def _place_mp(out: list[dict], mp: float, phase: str, weeks_to_race: int, taper_
 def apply_for_goal(conn, goal: dict, rows: list[dict], target, dlabel: str, paces: dict, week_start: date,
                    n_run_days: int, vdot: float | None = None, as_of: date | None = None) -> list[dict]:
     """DB 문맥(목표·주기화 일정·최근 롱런)을 모아 apply_v2 를 호출한다. target 이 없으면 rows 그대로."""
-    from .planner_schedule import recent_load, recent_long_max, schedule_for_goal
+    from .planner_schedule import plan_start_source, recent_load, recent_long_max, schedule_for_goal
     if target is None:
         return rows
     sched = schedule_for_goal(conn, goal, dlabel, vdot, as_of)
@@ -155,8 +171,22 @@ def apply_for_goal(conn, goal: dict, rows: list[dict], target, dlabel: str, pace
     mp_goal = goal.get("target_pace_sec_km") or (secs / 42.195 if secs and dlabel == "full" else None)
     ref = min(week_start, as_of) if as_of else week_start
     _, long6 = recent_load(conn, ref)
-    return apply_v2(rows, dlabel=dlabel, phase=target.phase, weeks_to_race=target.weeks_to_race,
+    out = apply_v2(rows, dlabel=dlabel, phase=target.phase, weeks_to_race=target.weeks_to_race,
                     taper_first=taper_first, mp_now=paces.get("M"), mp_goal=mp_goal,
                     weeks_since_build=max(0, 16 - target.weeks_to_race), run_days=n_run_days,
                     week_km=target.weekly_km, long_max_12w=recent_long_max(conn, ref, 12), race_date=goal.get("race_date"),
                     long_max_6w=long6)
+    if target.index == 0:
+        _note_cold_start(out, plan_start_source(conn, goal, dlabel, as_of), target.weekly_km)
+    return out
+
+
+def _note_cold_start(rows: list[dict], source: str, week_km: float) -> None:
+    """콜드스타트 1주차 근거 문자열에 시작 부하 출처를 남긴다(§5.2-1)."""
+    from .planner_schedule import COLD_SOURCE_TEXT
+    if source not in COLD_SOURCE_TEXT:
+        return
+    note = f"최근 4주 기록이 적어 {COLD_SOURCE_TEXT[source]} 기준 주 {week_km:.1f}km로 시작."
+    for r in rows:
+        if r["workout_type"] not in ("rest", "race"):
+            r["rationale"] = f"{r.get('rationale') or ''} {note}".strip()

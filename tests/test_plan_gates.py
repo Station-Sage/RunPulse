@@ -118,6 +118,12 @@ def test_g6_boundary():
     assert g6_ramp([wk(0, 40), wk(1, 46)], 40, comeback_ceiling=50).ok
 
 
+def test_g6_week1_cold_exception():          # §5.2-3: 1주차 ≤ max(1.10×prev4, 12km)
+    assert g6_ramp([wk(0, 12.0)], 7.4).ok
+    assert not g6_ramp([wk(0, 12.1)], 7.4).ok
+    assert g6_ramp([wk(0, 13.2)], 12.0).ok and not g6_ramp([wk(0, 13.3)], 12.0).ok
+
+
 def test_g7():
     assert g7_mp_not_faster([wk(0, 40, mp_sec=300)], lambda w: 312).ok
     assert not g7_mp_not_faster([wk(0, 40, mp_sec=299)], lambda w: 312).ok

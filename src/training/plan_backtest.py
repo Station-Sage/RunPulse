@@ -25,8 +25,9 @@ from .planner_schedule import recent_load, recent_long_max
 
 DAY_ORDER = (1, 3, 5, 6, 2, 0, 4)       # 러닝 일수 n 이면 앞의 n 개 요일만 가능
 GRID = {"start_km": (25, 40, 55, 70, 90), "long_start": (10, 18, 26), "weeks": (8, 12, 16, 20),
-        "days": (3, 4, 5, 6), "distance": ("half", "full")}
-DIST_KM = {"half": 21.0975, "full": 42.195}
+        "days": (3, 4, 5, 6), "distance": ("half", "full", "10k")}
+COLD_GRID = {"start_km": (0, 8, 12), "long_start": (0, 6)}      # 콜드스타트(DESIGN-U16-LONGRUN §5.2-7)
+DIST_KM = {"10k": 10.0, "half": 21.0975, "full": 42.195}
 
 
 @dataclass
@@ -80,15 +81,21 @@ def engine_v2(scn: Scenario, conn: sqlite3.Connection) -> tuple[list[G.WeekPlan]
 
 def grid_scenarios() -> list[Scenario]:
     race0 = date(2030, 11, 24)       # 일요일. 합성 격자의 기준 대회일
-    return [Scenario("grid", d, w, race0.isoformat(), n, start_km=s, long_start=ls)
-            for d in GRID["distance"] for w in GRID["weeks"] for n in GRID["days"]
-            for s in GRID["start_km"] for ls in GRID["long_start"]]
+
+    def grid(loads: dict) -> list[Scenario]:
+        return [Scenario("grid", d, w, race0.isoformat(), n, start_km=s, long_start=ls)
+                for d in GRID["distance"] for w in GRID["weeks"] for n in GRID["days"]
+                for s in loads["start_km"] for ls in loads["long_start"]]
+    return grid(GRID) + grid(COLD_GRID)
 
 
 def seed_grid_history(conn: sqlite3.Connection, scn: Scenario) -> None:
     """계획 시작 직전 6주에 주 start_km(4회, 최장 long_eff)를 시드해 recent_load 가 (start_km, long_eff)가 되게 한다."""
     long_eff = min(scn.long_start, scn.start_km * 0.6)
-    n_rest = min(6, max(3, math.ceil((scn.start_km - long_eff) / long_eff)))
+    scn.aux["long_eff"] = long_eff
+    if scn.start_km <= 0:       # 콜드: 기록 없음
+        return
+    n_rest = min(6, max(3, math.ceil((scn.start_km - long_eff) / long_eff))) if long_eff > 0 else 3
     long_eff = max(long_eff, scn.start_km / (n_rest + 1))
     scn.aux["long_eff"] = long_eff
     rest = (scn.start_km - long_eff) / n_rest

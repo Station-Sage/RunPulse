@@ -15,6 +15,7 @@ LONG_TOL_KM = 0.5
 RAMP_MAX = 0.10
 MP_FASTEST_GAP = 12.0       # 처방 MP는 현재 MP보다 12초/km보다 빠르면 안 됨
 MP_MIN_SESSION_KM = 8.0
+COLD_WEEK1_KM = 12.0        # G6 1주차 콜드 예외(DESIGN-U16-LONGRUN §5.2-3, D2 승인)
 
 
 @dataclass
@@ -114,11 +115,12 @@ def g5_taper(weeks: list[WeekPlan], distance: str, peak_km: float, total_weeks: 
 
 
 def g6_ramp(weeks: list[WeekPlan], prev4_avg: float, comeback_ceiling: float = 0.0, comeback_ramp: float = 0.15) -> GateResult:
-    """부하주 간 증가율 ≤ 10%(복귀 구간은 직전 16주 평균 comeback_ceiling까지 15%), 1주차 ≤ 1.10 × prev4_avg."""
+    """부하주 간 증가율 ≤ 10%(복귀 구간은 직전 16주 평균 comeback_ceiling까지 15%), 1주차 ≤ max(1.10 × prev4_avg, 12km)."""
     bad = []
     load = [w for w in weeks if w.phase not in ("recovery_week", "taper")]
-    if load and prev4_avg > 0 and load[0].km > prev4_avg * 1.10 + 0.05:
-        bad.append(f"w{load[0].index}: 1주차 {load[0].km:.1f} > 1.10×{prev4_avg:.1f}")
+    week1_lim = max(prev4_avg * 1.10, COLD_WEEK1_KM)
+    if load and prev4_avg > 0 and load[0].km > week1_lim + 0.05:
+        bad.append(f"w{load[0].index}: 1주차 {load[0].km:.1f} > max(1.10×{prev4_avg:.1f}, {COLD_WEEK1_KM:.0f})")
     for a, b in zip(load, load[1:]):
         if a.km <= 0:
             continue

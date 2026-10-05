@@ -1251,12 +1251,12 @@
 - class **WeekTarget**: 없음
 - functions: build_schedule
 
-### `plan_backtest.py` (216줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+### `plan_backtest.py` (223줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
 - functions: rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
 
-### `plan_gates.py` (180줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
+### `plan_gates.py` (182줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
 
 - class **Session**: 없음
 - class **WeekPlan**: km, run_days, long_km, mp_session_km
@@ -1287,11 +1287,11 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (99줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (147줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
-- functions: recent_load, recent_long_max, schedule_for_goal, week_target
+- functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, plan_start_source, week_target
 
-### `planner_v2.py` (162줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
+### `planner_v2.py` (192줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
 - functions: apply_v2, apply_for_goal
 
@@ -2233,17 +2233,17 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_backtest.py` (92줄)
+### `test_plan_backtest.py` (102줄)
 
-- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
+- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
 
 ### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
 
-### `test_plan_gates.py` (139줄)
+### `test_plan_gates.py` (145줄)
 
-- functions: wk, test_g1, test_g2a_boundary_uses_recorded_ctx, test_g2a_flags_ctx_mismatch, test_g2b_envelope_boundary, test_g9_floor_boundary, test_g9_no_long_week_and_taper_exempt, test_f6_long_step, test_g3, test_g4, test_g5, test_g6_boundary, test_g7, test_g8, test_soft_gates
+- functions: wk, test_g1, test_g2a_boundary_uses_recorded_ctx, test_g2a_flags_ctx_mismatch, test_g2b_envelope_boundary, test_g9_floor_boundary, test_g9_no_long_week_and_taper_exempt, test_f6_long_step, test_g3, test_g4, test_g5, test_g6_boundary, test_g6_week1_cold_exception, test_g7, test_g8, test_soft_gates
 
 ### `test_plan_ingest.py` (127줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 실측 응답 형태(2026-09-26) 기반 파서·저장·이행률.
 
@@ -2270,9 +2270,13 @@
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
 
-### `test_planner_v2.py` (111줄) — planner_v2 후처리 단위 테스트(순수 함수).
+### `test_planner_schedule_cold.py` (51줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
 
-- functions: test_rebalance_trims_easy_then_long, test_rebalance_grow_never_drops_km, test_rebalance_grows_easy, test_shakeout_sets_eve_row, test_mp_session_retypes_longest_quality, test_race_week_adds_mp_session, test_apply_v2_full_build_has_mp_and_no_input_mutation, test_apply_v2_half_has_no_mp, test_apply_v2_low_volume_week_has_no_long, test_apply_v2_full_build_low_budget_mp_inside_long, test_apply_v2_preserves_weekly_total, test_apply_for_goal_without_target_returns_rows
+- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty
+
+### `test_planner_v2.py` (126줄) — planner_v2 후처리 단위 테스트(순수 함수).
+
+- functions: test_rebalance_trims_easy_then_long, test_rebalance_grow_never_drops_km, test_rebalance_grows_easy, test_shakeout_sets_eve_row, test_shakeout_fits_low_volume_race_week, test_note_cold_start_adds_source_to_rationale, test_mp_session_retypes_longest_quality, test_race_week_adds_mp_session, test_apply_v2_full_build_has_mp_and_no_input_mutation, test_apply_v2_half_has_no_mp, test_apply_v2_low_volume_week_has_no_long, test_apply_v2_full_build_low_budget_mp_inside_long, test_apply_v2_preserves_weekly_total, test_apply_for_goal_without_target_returns_rows
 
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
@@ -2705,7 +2709,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 560개 파일
+총 561개 파일
 
 ## docstring 누락
 

@@ -1,9 +1,11 @@
 """목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 계획 시작 직전 4주의 주평균 거리와 최근 6주 최장 러닝이 출발점이라, 같은 계획을 언제 다시 만들어도 같은 결과가 나온다.
+v2 콜드스타트(직전 4주 평균 < 12km 또는 기록 없음)는 DESIGN-U16-LONGRUN §5.2 출처로 시작 부하를 정한다(v1은 기존대로 빈 일정).
 """
 from __future__ import annotations
 
+import math
 import sqlite3
 from datetime import date, timedelta
 
@@ -18,6 +20,9 @@ from .readiness import get_taper_weeks, recommend_weekly_km
 
 _RUN = "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
 _LONG_CAP = {"full": 0.50, "half": 0.50}      # 그 외 0.40
+COLD_WEEK_KM = 12.0                           # 이 미만이면 콜드스타트(6km 세션 2회 미만)
+W_COLD = {"5k": 12.0, "10k": 12.0, "half": 16.0, "full": 20.0}   # 기록 없음 기본 시작 부하
+DETRAIN_FACTOR = 0.6                          # 직전 16주 평균 할인(가정)
 
 
 def recent_load(conn: sqlite3.Connection, as_of: date) -> tuple[float, float]:
@@ -38,6 +43,41 @@ def recent_long_max(conn: sqlite3.Connection, as_of: date, weeks: int = 12) -> f
         "AND DATE(start_time) >= ? AND DATE(start_time) < ?",
         ((as_of - timedelta(weeks=weeks)).isoformat(), as_of.isoformat())).fetchone()
     return round(float(r[0] or 0.0) / 1000.0, 1)
+
+
+def recent_avg_km(conn: sqlite3.Connection, as_of: date, weeks: int = 16) -> float:
+    """as_of 직전 weeks 주 주평균 러닝 km. 없으면 0."""
+    r = conn.execute(
+        f"SELECT SUM(distance_m) FROM v_canonical_activities WHERE activity_type IN {_RUN} "
+        "AND DATE(start_time) >= ? AND DATE(start_time) < ?",
+        ((as_of - timedelta(weeks=weeks)).isoformat(), as_of.isoformat())).fetchone()
+    return round(float(r[0] or 0.0) / 1000.0 / weeks, 1)
+
+
+def cold_start_km(dlabel: str, prev4: float, avg16: float, user_km: float | None = None) -> tuple[float, str]:
+    """§5.2 콜드 시작 부하와 출처. 사용자 입력 → 16주 평균×0.6 → 거리별 기본. 12km 이상, 1주차 ≤ max(1.10×prev4, 12)."""
+    if user_km and user_km > 0:
+        km, src = user_km, "user"
+    elif avg16 > 0:
+        km, src = avg16 * DETRAIN_FACTOR, "avg16"
+    else:
+        km, src = W_COLD.get(dlabel, COLD_WEEK_KM), "default"
+    km = max(km, prev4, COLD_WEEK_KM)
+    if prev4 > 0:       # G6 1주차 예외와 같은 기준(기록이 있으면 그 이상 뛰지 않는다)
+        km = min(km, max(1.10 * prev4, COLD_WEEK_KM))
+    return math.floor(km * 10 + 1e-6) / 10, src      # 내림(1주차 상한을 넘지 않게)
+
+
+def start_load(conn: sqlite3.Connection, dlabel: str, as_of: date, rules_version: int) -> tuple[float, float, str]:
+    """(시작 주간 km, 시작 최장 km, 출처). 출처 history 는 직전 4주 그대로, v1 은 콜드 처리 없음."""
+    km4, long6 = recent_load(conn, as_of)
+    if rules_version < 2 or km4 >= COLD_WEEK_KM:
+        return km4, long6, "history"
+    km, src = cold_start_km(dlabel, km4, recent_avg_km(conn, as_of, 16))
+    return km, max(long6, LR.abs_min_km(dlabel)), src     # 롱런은 절대 최소에서 시작(§5.2-4)
+
+
+COLD_SOURCE_TEXT = {"user": "입력한 최근 주간 거리", "avg16": "직전 16주 평균의 60%", "default": "거리별 기본값"}
 
 
 def _rules_version(conn: sqlite3.Connection, goal: dict) -> int:
@@ -71,11 +111,11 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     if start is None:
         return []
     today = today or date.today()
-    start_km, start_long = recent_load(conn, min(start, today))
-    if start_km <= 0:
+    rv = _rules_version(conn, goal)
+    start_km, start_long, _ = start_load(conn, dlabel, min(start, today), rv)
+    if start_km <= 0:       # v1 기록 없음(v2 는 콜드 출처로 항상 > 0)
         return []
     peak = recommend_weekly_km(vdot, dlabel, "peak", 0, goal["plan_weeks"]) if vdot else start_km * 1.3
-    rv = _rules_version(conn, goal)
     cap, long_cap = None, None
     if rv >= 2:
         n_days = 7 - bin(load_prefs(conn).get("rest_weekdays_mask", 0) & 0x7F).count("1")
@@ -86,6 +126,14 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
                           LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
                           get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
                           rv, cap, long_cap)
+
+
+def plan_start_source(conn: sqlite3.Connection, goal: dict, dlabel: str, today: date | None = None) -> str:
+    """schedule_for_goal 이 쓴 시작 부하 출처(history | user | avg16 | default)."""
+    start = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks"))
+    if start is None:
+        return "history"
+    return start_load(conn, dlabel, min(start, today or date.today()), _rules_version(conn, goal))[2]
 
 
 def week_target(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: str, vdot: float | None,

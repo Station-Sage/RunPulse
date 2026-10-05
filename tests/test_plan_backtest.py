@@ -10,7 +10,17 @@ def test_rest_mask_leaves_requested_days():
 
 
 def test_grid_size():
-    assert len(B.grid_scenarios()) == 5 * 3 * 4 * 4 * 2
+    assert len(B.grid_scenarios()) == (5 * 3 + 3 * 2) * 4 * 4 * 3      # 기본 + 콜드, 거리 half/full/10k
+
+
+def test_cold_grid_scenario_passes_gates():         # §5.2: 기록 없음 v2 도 v1 로 빠지지 않는다
+    from tests.helpers_pred import mem_conn
+    s = _grid(distance="half", plan_weeks=12, days=4, start_km=0, long_start=0)
+    c = mem_conn()
+    B.seed_grid_history(c, s)
+    assert c.execute("SELECT COUNT(*) FROM activity_summaries").fetchone()[0] == 0
+    r = B.run_scenario(s, None, engine=B.engine_v2)
+    assert r["pass"] and r["weeks"][0]["km"] == 16.0 and r["weeks"][0]["run_days"] >= 2
 
 
 def test_v1_full_plan_fails_marathon_gates():
