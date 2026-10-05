@@ -25,10 +25,13 @@ def display_name(name: str, description: str) -> tuple[str, str | None]:
     return label.name_ko, label.abbr
 
 
-def action_hint(name: str, status: str | None) -> str | None:
-    """현재 status에 맞는 행동 힌트 1문장. 문구가 없으면 None."""
+def action_hint(name: str, status: str | None, level: int | None = None) -> str | None:
+    """현재 status(crs는 게이트 level)에 맞는 행동 힌트 1문장. 문구가 없으면 None."""
     hints = label_for(name).action_hint
-    return hints.get(status) if hints and status else None
+    if not hints:
+        return None
+    key = f"level_{level}" if name == "crs" else status
+    return hints.get(key) if key and not (name == "crs" and level is None) else None
 
 
 def min_span(fmt: str, unit: str, value: float | None) -> float | None:

@@ -110,6 +110,22 @@ def _daily_history(
     return out
 
 
+def _crs_level(conn: sqlite3.Connection, date: str) -> int | None:
+    """CRS 게이트 level(0~4) — 힌트는 점수 밴드가 아닌 level로 고른다. 없으면 None."""
+    import json
+
+    row = conn.execute(
+        "SELECT json_value FROM metric_store WHERE scope_type='daily' AND scope_id=? AND metric_name='crs' "
+        "AND is_primary=1 AND json_value IS NOT NULL",
+        (date,),
+    ).fetchone()
+    try:
+        level = json.loads(row[0]).get("level") if row else None
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return level if isinstance(level, int) and 0 <= level <= 4 else None
+
+
 def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> dict[str, Any]:
     """카테고리별 daily-scope 메트릭 현재값 + 14일 스파크라인 반환.
 
@@ -158,7 +174,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "salience": {"fresh": last_date == date, "z": None if z is None else round(z, 2)},
         }
         with_grade(entry, name, value)
-        entry["action_hint"] = action_hint(name, entry.get("status"))
+        entry["action_hint"] = action_hint(name, entry.get("status"), _crs_level(conn, date) if name == "crs" else None)
         group_map.setdefault(group, []).append((salience_key(entry, idx), entry))
 
     categories = []
@@ -227,7 +243,9 @@ def get_metric_trend(
         **display_meta(slug, unit, label),
         "label": label,
         "unit": unit,
-        "action_hint": action_hint(slug, (grade(slug, current) or {}).get("status")),
+        "action_hint": action_hint(
+            slug, (grade(slug, current) or {}).get("status"), _crs_level(conn, points[-1]["date"]) if slug == "crs" else None
+        ),
         "current": current,
         "peak": peak,
         "best": best,

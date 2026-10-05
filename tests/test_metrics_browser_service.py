@@ -302,3 +302,9 @@ def test_display_meta_description_and_action_hint():
     assert meta["description_short"]
     assert display_meta("x_unknown", "")["description_short"] is None
     assert svc.action_hint("utrs", "good")
+
+
+def test_crs_level_reads_gate_level(conn):
+    from src.services.metrics_browser_service import _crs_level
+
+    assert _crs_level(conn, "2026-01-01") is None

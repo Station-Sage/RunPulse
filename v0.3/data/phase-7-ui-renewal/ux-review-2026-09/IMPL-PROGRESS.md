@@ -388,3 +388,7 @@
 - 프론트: `TrendChart` ◇ 마커(▲와 색 구분) + 선택일이 변경일이면 판독줄에 라벨.
 - 검증: 단위 349, pytest 신규 3, 실DB 사본 Playwright(마라톤 1y, date=2026-05-10) — ◇ 마커·판독 문구 확인.
 - 다음: Phase 3 잔여 없음(보류 항목은 사용자 지시 대기).
+
+## U13 문구 검수 반영 (2026-10-05)
+- 전문가 검수(REVIEW-U13-METRIC-TEXTS.md) S1~S7 반영: CRS 힌트를 게이트 level(level_0~4) 기준으로 전환, acwr/ramp/rri/rtti/marathon_shape 정의 정정, tsb.caution 레이스 국면 겸용 문구, `_SO_WHAT`·`_WHAT["rri"]` 동기화, race_pred_vdot 설명 추가.
+- 후속(문구 밖, 계산기 재보정 필요): LSI 임계 1.5, 대시보드 ramp ±3 일/주 혼동, marathon_shape Tanda 외삽 경고, aerobic_decoupling bands↔ranges SSOT 정리 후 설명·힌트 추가, EF 설명, acwr.caution 저부하/주의 구분(status_label별 힌트), 힌트 SSOT(`_SO_WHAT`↔TEXTS) 통합.

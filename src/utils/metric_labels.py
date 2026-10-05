@@ -61,7 +61,7 @@ METRIC_LABELS: dict[str, MetricLabel] = {
     "critical_power": MetricLabel("임계 파워", "CP"),
     "eftp": MetricLabel("역치 페이스 추정", "eFTP"),
     "vdot_adj": MetricLabel("보정 VDOT"),
-    "marathon_shape": MetricLabel("마라톤 완성도"),
+    "marathon_shape": MetricLabel("마라톤 볼륨 충족률"),
     "sapi": MetricLabel("계절 성과 지수", "SAPI"),
     "rri": MetricLabel("레이스 준비도", "RRI"),
     "vo2max": MetricLabel("최대 산소섭취량", "VO2max"),

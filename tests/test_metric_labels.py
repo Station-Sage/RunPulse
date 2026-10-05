@@ -74,14 +74,27 @@ def test_action_hint_keys_are_five_level_status():
     allowed = {"excellent", "good", "neutral", "caution", "poor"}
     for name, lab in METRIC_LABELS.items():
         if lab.action_hint:
-            assert set(lab.action_hint) <= allowed, name
+            assert set(lab.action_hint) <= (allowed if name != "crs" else {f"level_{i}" for i in range(5)}), name
             assert name in BANDS, name
 
 
 def test_action_hint_picks_current_status_only():
     from src.services.metric_display import action_hint
 
-    assert action_hint("utrs", "poor") == "오늘은 쉬는 게 좋아요."
+    assert action_hint("utrs", "poor") == "오늘은 쉬거나 아주 가볍게만 움직이세요."
     assert action_hint("utrs", None) is None
     assert action_hint("ctl", "good") is None
     assert action_hint("acwr", "excellent") is None
+
+
+def test_crs_hint_uses_gate_level_not_score_status():
+    from src.services.metric_display import action_hint
+
+    assert action_hint("crs", "excellent", 1) == "이지런만 하세요."
+    assert action_hint("crs", "excellent", None) is None
+    assert action_hint("crs", "poor", 4).startswith("계획대로")
+
+
+def test_marathon_shape_label_and_new_texts():
+    assert METRIC_LABELS["marathon_shape"].name_ko == "마라톤 볼륨 충족률"
+    assert METRIC_LABELS["race_pred_vdot"].description_short
