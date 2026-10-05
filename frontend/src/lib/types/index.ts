@@ -98,6 +98,7 @@ export interface ActivitySummary {
 	display_title?: string;
 	load?: number | null;
 	is_race?: boolean;
+	rpe?: number | null;
 }
 
 export interface ActivityFacets {

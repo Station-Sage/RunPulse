@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import sqlite3
 
+from src.services.activity_feedback_service import get_feedback
 from src.services.activity_impact_service import _load_metrics
+from src.services.coach_consent import get_consent
 from src.services.activity_summary_extras import _fmt_pace, _metric
 from src.metrics.workout_classifier import TAG_LABELS
 from src.utils.canonical import canonical_activity_id
@@ -63,6 +65,7 @@ def get_activity_context(conn: sqlite3.Connection, activity_id: int) -> dict | N
         "decoupling_pct": round(dec["numeric"], 1) if dec and dec["numeric"] is not None else None,
         "tsb": tsb,
         "suggestions": suggested_questions(tag),
+        "feedback": get_feedback(conn, activity_id),
     }
 
 
@@ -80,4 +83,14 @@ def activity_prompt_summary(conn: sqlite3.Connection, activity_id: int) -> str |
         parts.append(f"유산소 디커플링 {ctx['decoupling_pct']}%")
     if ctx["tsb"] is not None:
         parts.append(f"당일 TSB {ctx['tsb']}")
+    fb = ctx["feedback"]
+    if fb:
+        if fb["rpe"]:
+            parts.append(f"체감 강도 RPE {fb['rpe']}")
+        if fb["pain"] and fb["pain"] != "none":
+            sites = f"({', '.join(fb['pain_sites'])})" if fb["pain_sites"] else ""
+            parts.append(f"통증 {fb['pain']}{sites}")
+        consent = get_consent(conn)
+        if fb["note"] and consent and not consent["exclude_notes"]:
+            parts.append(f"메모 \"{fb['note']}\"")
     return "[대화 대상 활동] " + " · ".join(parts)

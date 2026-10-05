@@ -8,6 +8,7 @@ import re
 import sqlite3
 
 from src.metrics.workout_classifier import TAG_LABELS
+from src.services.activity_feedback_service import feedback_for_activities
 from src.services.activity_list_filters import TYPE_CLASSES
 
 _CLASS_TO_KEY = {v: k for k, vals in TYPE_CLASSES.items() for v in vals}
@@ -41,13 +42,16 @@ def _fetch(conn: sqlite3.Connection, ids: list[int], metric: str, col: str, prov
 
 
 def enrich_rows(conn: sqlite3.Connection, activities: list[dict]) -> None:
-    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race를 추가(제자리)."""
+    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race, rpe를 추가(제자리)."""
     if not activities:
         return
     ids = [a["id"] for a in activities]
     classes = _fetch(conn, ids, "workout_type_classified", "text_value", "runpulse%")
     loads = _fetch(conn, ids, "hrss", "numeric_value", "runpulse%")
+    feedbacks = feedback_for_activities(conn, ids)
     for a in activities:
+        fb = feedbacks.get(a["id"])
+        a["rpe"] = fb["rpe"] if fb else None
         key = _CLASS_TO_KEY.get(classes.get(a["id"]))
         label = TAG_LABELS.get(key) if key else None
         load = loads.get(a["id"])

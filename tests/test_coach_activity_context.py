@@ -47,3 +47,26 @@ def test_prompt_summary_and_thread_injection(db_conn):
     assert _with_activity_context(db_conn, 1, "CTX").startswith("[대화 대상 활동]")
     assert _with_activity_context(db_conn, 2, "CTX") == "CTX"
     assert _with_activity_context(db_conn, None, "CTX") == "CTX"
+
+
+def test_prompt_summary_includes_feedback_and_respects_note_consent(db_conn):
+    from src.services.activity_feedback_service import put_feedback
+    from src.services.coach_consent import save_consent
+    _seed(db_conn)
+    put_feedback(db_conn, 7, {"rpe": 8, "pain": "mild", "pain_sites": ["knee"], "note": "무릎 뻐근"})
+    save_consent(db_conn, "claude", exclude_notes=False)
+    s = cac.activity_prompt_summary(db_conn, 7)
+    assert "RPE 8" in s and "통증 mild(knee)" in s and "무릎 뻐근" in s
+    save_consent(db_conn, "claude", exclude_notes=True)
+    s = cac.activity_prompt_summary(db_conn, 7)
+    assert "RPE 8" in s and "무릎 뻐근" not in s
+
+
+def test_list_rows_carry_rpe(db_conn):
+    from src.services.activity_feedback_service import put_feedback
+    from src.services.activity_list_rows import enrich_rows
+    _seed(db_conn)
+    put_feedback(db_conn, 7, {"rpe": 6})
+    rows = [{"id": 7, "name": "롱런", "distance_m": 21100}]
+    enrich_rows(db_conn, rows)
+    assert rows[0]["rpe"] == 6

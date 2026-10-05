@@ -16,6 +16,7 @@
 		display_title?: string;
 		workout_label?: string | null;
 		is_race?: boolean;
+		rpe?: number | null;
 		start_time: string;
 		distance_m?: number | null;
 		duration_sec?: number | null;
@@ -50,6 +51,7 @@
 		<div class="flex min-w-0 items-center gap-1.5">
 			<span class="truncate text-sm font-medium">{act.display_title ?? act.name}</span>
 			{#if act.workout_label}<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {act.is_race ? 'bg-semantic-amber/20 text-semantic-amber' : 'bg-surface-3 text-fg-secondary'}">{act.workout_label}</span>{/if}
+			{#if act.rpe}<span class="shrink-0 rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-fg-secondary" data-testid="rpe-badge">RPE {act.rpe}</span>{/if}
 		</div>
 		<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
 			<span>{dayLabel(act.start_time)}</span>
