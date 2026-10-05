@@ -16,7 +16,8 @@ from src.utils.metric_groups import SEMANTIC_GROUPS
 from src.utils.metric_registry import get_metric
 from src.metrics.bands import with_grade
 from src.metrics.display_rules import visible_activity_metrics
-from src.utils.canonical import canonical_activity_id
+from src.services import activity_feedback_service, activity_gpx, activity_source_links
+from src.utils.canonical import canonical_activity_id, group_activity_ids
 
 _SUMMARY_STREAM_POINTS = 500
 
@@ -100,6 +101,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
                 for r in (source_comparison.values() if source_comparison else [])]
 
     ids = sorted({activity_id, canonical_id})
+    group_ids = group_activity_ids(conn, activity_id)
     wc = extras.build_workout_class(conn, ids, core, splits)
     environment = extras.build_environment(conn, ids, core)
     hr_zones = extras.build_hr_zones(conn, ids)
@@ -125,7 +127,14 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
     except Exception:
         impact = None
 
+    has_gps = conn.execute(
+        f"SELECT COUNT(*) FROM activity_streams WHERE latitude IS NOT NULL AND activity_id IN "
+        f"({','.join('?' * len(group_ids))}) GROUP BY activity_id ORDER BY 1 DESC LIMIT 1",
+        group_ids).fetchone()
     return {
+        "feedback": activity_feedback_service.get_feedback(conn, activity_id),
+        "menu": {"has_gps": bool(has_gps and has_gps[0] >= activity_gpx.MIN_POINTS),
+                 "source_links": activity_source_links.source_links(conn, activity_id)},
         "core": core,
         "metrics_by_category": metrics_by_category,
         "source_comparison": source_comparison,
