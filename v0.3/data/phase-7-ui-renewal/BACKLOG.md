@@ -3753,3 +3753,5 @@ DONE으로 옮긴다.
 - **[P7-01]** `01-design-principles.md` v0.1 완료 — 원칙 8개 상세 정의(적용/위반/준수 예시 포함), 우선순위, 충돌 해결 예시, 설계 완료 체크리스트
 - **[P7-00]** `00-diagnostic-and-direction.md` v0.2 완료 — 현 UI 진단(3/10), 데이터 레이어 적합도(8.5/10), 분기점 A/B/C/D 확정, KPI 매핑 8개
 - U9 B-6 `basis_change` ◇ 이벤트 완료(2026-10-05): /trend events + TrendChart 마커·판독. Phase 3 잔여 없음.
+
+- U15 완료(2026-10-05, 운영 반영 대기): 활동 피드백(RPE·통증·메모)·동기화 원장 v2·오류 상태 error-auth/access/upstream·사용자 설정 API. 다음은 U16(계획 엔진 v2).

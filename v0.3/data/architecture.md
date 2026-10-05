@@ -48,7 +48,7 @@ RunPulse는 단순한 러닝 로그 앱이 아닙니다. 여러 플랫폼에 흩
 | 3 | activity_streams, activity_laps, activity_best_efforts | 시계열/구조화 데이터 |
 | 4 | gear, weather_cache, sync_jobs, 앱 테이블들 | 참조/캐시/운영/앱 기능 |
 
-### 테이블 목록 (15 테이블 + 1 뷰)
+### 테이블 목록 (15 테이블 + 1 뷰, v25 추가 2개는 아래 별도 행)
 
 | Layer | 테이블 | 역할 | 컬럼 | 예상 행 |
 |-------|--------|------|------|---------|
@@ -67,6 +67,8 @@ RunPulse는 단순한 러닝 로그 앱이 아닙니다. 여러 플랫폼에 흩
 | 4 | planned_workouts | 훈련 계획 | — | ~100 |
 | 4 | user_training_prefs | 훈련 설정 | — | ~5 |
 | 4 | session_outcomes | 세션 결과 | — | ~300 |
+| 4 | activity_feedback | 활동 피드백 RPE·통증·메모 (v25, ADR-022) | 7 | ~600 |
+| 4 | user_settings | 사용자 UI 설정 key-value (v25, ADR-023) | 3 | ~5 |
 | — | v_canonical_activities | 대표 활동 뷰 | — | (view) |
 
 > 컬럼 상세, 제약조건 → `phase-1.md` / 컬럼·메트릭 전체 배정표 → `data_master.md` (자동 생성)

@@ -28,9 +28,19 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_detail_service.py` (212줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (221줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
+
+### `activity_feedback_service.py` (106줄) — 활동별 주관 입력(RPE·통증·메모) 저장 서비스 — activity_feedback(ADR-022).
+
+- class **FeedbackError**: 없음
+- functions: validate, get_feedback, put_feedback, delete_feedback, feedback_for_activities
+
+### `activity_gpx.py` (67줄) — 단일 활동 GPX 1.1 생성 — activity_streams 의 위치 점이 가장 많은 그룹 구성원을 사용(ADR-022). DB 쓰기 없음.
+
+- class **NoGpsError**: 없음
+- functions: build_gpx
 
 ### `activity_impact_service.py` (137줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
@@ -40,7 +50,7 @@
 
 - functions: parse_args, sport_types, build_where, order_clause
 
-### `activity_list_rows.py` (58줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
+### `activity_list_rows.py` (62줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
 
 - functions: is_generic_name, display_title, enrich_rows
 
@@ -55,6 +65,10 @@
 ### `activity_similar.py` (95줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
 
 - functions: find_similar
+
+### `activity_source_links.py` (29줄) — 활동의 원본 서비스 페이지 링크 — 그룹 구성원마다 (source, source_id)로 URL 구성. 외부 호출 없음(ADR-022).
+
+- functions: source_links
 
 ### `activity_splits.py` (155줄) — 활동 상세 S1 — km 스플릿·요약 시계열(series) 서버 계산.
 
@@ -72,7 +86,7 @@
 
 - functions: get_archive
 
-### `coach_activity_context.py` (83줄) — Coach 활동 컨텍스트 — `/coach/new?activity={id}` 근거 카드·추천 질문·프롬프트 요약.
+### `coach_activity_context.py` (96줄) — Coach 활동 컨텍스트 — `/coach/new?activity={id}` 근거 카드·추천 질문·프롬프트 요약.
 
 - functions: suggested_questions, get_activity_context, activity_prompt_summary
 
@@ -113,7 +127,7 @@
 
 - functions: classify, baseline_z, salience_key
 
-### `metric_display.py` (53줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (56줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
 - functions: display_name, action_hint, min_span, display_meta
 
@@ -121,7 +135,7 @@
 
 - functions: load_json, basis_change_events
 
-### `metrics_browser_service.py` (277줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (295줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
@@ -217,7 +231,7 @@
 
 - functions: confirm, remove, get, candidates
 
-### `sync_state_service.py` (163줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+### `sync_state_service.py` (175줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
 - functions: classify_error, get_sync_state
 
@@ -242,6 +256,10 @@
 - class **UnifiedField**: 없음
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
+
+### `user_settings_service.py` (42줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
+
+- functions: get_setting, set_setting, global_ui_default, resolve_ui_default
 
 ### `wellness_day.py` (202줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
 
@@ -479,19 +497,19 @@
 > 의존: src/sync/extractors/, src/utils/db_helpers.py, src/utils/rate_limiter.py
 > 주의: Garmin은 rate-limit 감지 후 동적 대기 필요
 
-### `_helpers.py` (161줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
+### `_helpers.py` (129줄) — Orchestrator 내부 어댑터 — Extractor 출력을 db_helpers 인터페이스에 연결.
 
-- functions: sanitize_activity_core, save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries, record_sync_job
+- functions: sanitize_activity_core, save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries
 
 ### `dedup.py` (119줄) — 활동 중복 감지 — 7분 / 15% 규칙.
 
 - functions: run
 
-### `garmin.py` (241줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
+### `garmin.py` (245줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (285줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_sync.py` (286줄) — Garmin 활동 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -542,11 +560,11 @@
 - class **_RateLimitStop**: 없음
 - functions: sync
 
-### `intervals.py` (78줄) — Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
+### `intervals.py` (82줄) — Intervals.icu 데이터 동기화 (Basic Auth) — 하위 모듈 wrapper.
 
 - functions: sync_activities, sync_wellness, sync_intervals
 
-### `intervals_activity_sync.py` (173줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
+### `intervals_activity_sync.py` (175줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
 
 - functions: sync, sync_wellness
 
@@ -562,7 +580,11 @@
 
 - functions: sync_wellness
 
-### `orchestrator.py` (114줄) — 통합 sync 진입점.
+### `ledger.py` (58줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
+
+- functions: start_run, finish_run, fail_run
+
+### `orchestrator.py` (120줄) — 통합 sync 진입점.
 
 - functions: full_sync
 
@@ -591,19 +613,19 @@
 
 - functions: reprocess_all
 
-### `runalyze.py` (259줄) — Runalyze 데이터 동기화 (API Token).
+### `runalyze.py` (261줄) — Runalyze 데이터 동기화 (API Token).
 
 - functions: sync_activities, check_runalyze_connection
 
-### `runalyze_activity_sync.py` (86줄) — Runalyze 활동 동기화 Orchestrator.
+### `runalyze_activity_sync.py` (88줄) — Runalyze 활동 동기화 Orchestrator.
 
 - functions: sync
 
-### `strava.py` (81줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
+### `strava.py` (85줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
 
 - functions: sync_activities, sync_strava
 
-### `strava_activity_sync.py` (183줄) — Strava 활동 동기화 Orchestrator.
+### `strava_activity_sync.py` (185줄) — Strava 활동 동기화 Orchestrator.
 
 - functions: sync
 
@@ -615,7 +637,12 @@
 
 - functions: refresh_token, check_strava_connection
 
-### `sync_result.py` (65줄) — Sync 작업 결과 데이터 구조.
+### `sync_errors.py` (71줄) — 동기화 오류 분류 — 예외/결과를 error_code로 정규화하고 한국어 안내 문구를 제공한다.
+
+- class **SyncSourceError**: 없음
+- functions: classify_exception, from_result
+
+### `sync_result.py` (72줄) — Sync 작업 결과 데이터 구조.
 
 - class **SyncResult**: is_rate_limited, merge, to_sync_job_dict
 
@@ -838,7 +865,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1384줄) — RunPulse integration workbench web app.
+### `app.py` (1407줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -850,7 +877,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (498줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (517줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
@@ -1115,7 +1142,7 @@
 
 - functions: render_goals_panel, render_goal_detail_html
 
-### `views_training_loaders.py` (350줄) — 훈련 계획 뷰 — 데이터 로더.
+### `views_training_loaders.py` (347줄) — 훈련 계획 뷰 — 데이터 로더.
 
 - functions: load_goal, load_workouts, load_adjustment, load_training_metrics, load_yesterday_pending, load_actual_activities, load_month_workouts, load_full_plan_weeks, load_goals_with_stats, load_goal_weeks, load_sync_status
 
@@ -1299,7 +1326,7 @@
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
-### `db_status.py` (148줄) — DB 상태 대시보드 — 빠른 현황 확인.
+### `db_status.py` (147줄) — DB 상태 대시보드 — 빠른 현황 확인.
 
 - functions: get_status, print_status, main
 
@@ -1335,7 +1362,7 @@
 
 - functions: get_group_for_metric, get_group_members
 
-### `metric_label_texts.py` (69줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
+### `metric_label_texts.py` (70줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
 
 - (public API 없음)
 
@@ -1365,10 +1392,14 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `sync_jobs.py` (257줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (248줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
 - functions: windows, cleanup_stale_running_jobs, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
+
+### `sync_jobs_schema.py` (41줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path) 멱등 보장.
+
+- functions: ensure_ledger
 
 ### `sync_policy.py` (176줄) — 동기화 정책 — 서비스별 rate limit / cooldown / 기간 제한 정책 정의 및 검사.
 
@@ -1409,7 +1440,7 @@
 
 ## `tests/`
 
-### `conftest.py` (138줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (146줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -1435,6 +1466,14 @@
 ### `test_activity_derived_v2.py` (124줄) — tests/test_activity_derived_v2.py — 1-3 활동 파생 수치(UX 리뷰 20 design S1): RE·디커플링·스트림 헬퍼.
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty
+
+### `test_activity_export.py` (70줄) — 원본 링크·GPX 내보내기 테스트.
+
+- functions: conn_ids, test_source_links_skip_unsafe_id, test_gpx_no_gps, test_gpx_ok_and_missing, test_export_routes
+
+### `test_activity_feedback_service.py` (90줄) — activity_feedback_service 테스트.
+
+- functions: conn, test_upsert_and_get, test_two_activities_same_day_independent, test_all_empty_deletes, test_invalid_rejected, test_pain_none_clears_sites, test_group_member_lookup_and_canonical_cleanup, test_missing_activity_raises, test_feedback_for_activities_bulk, test_delete
 
 ### `test_activity_impact_service.py` (271줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
@@ -1521,6 +1560,10 @@
 
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
 - class **TestPost**: test_post_json
+
+### `test_api_activity_feedback.py` (56줄) — 활동 피드백 API 테스트.
+
+- functions: client, test_get_empty_null, test_unknown_activity_404, test_put_get_delete, test_put_invalid_400_code
 
 ### `test_api_coach.py` (272줄) — tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
 
@@ -1639,9 +1682,9 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
-### `test_coach_activity_context.py` (49줄) — tests/test_coach_activity_context.py — Coach 활동 컨텍스트(근거 카드·추천 질문·프롬프트 요약).
+### `test_coach_activity_context.py` (72줄) — tests/test_coach_activity_context.py — Coach 활동 컨텍스트(근거 카드·추천 질문·프롬프트 요약).
 
-- functions: test_suggested_questions_by_class, test_activity_context_card, test_activity_context_missing, test_prompt_summary_and_thread_injection
+- functions: test_suggested_questions_by_class, test_activity_context_card, test_activity_context_missing, test_prompt_summary_and_thread_injection, test_prompt_summary_includes_feedback_and_respects_note_consent, test_list_rows_carry_rpe
 
 ### `test_coach_async.py` (153줄) — coach_async 테스트 — 워커 실행·이벤트 로그·SSE 복원·취소 (INLINE 모드로 결정적 실행).
 
@@ -1781,6 +1824,10 @@
 - class **TestLapsBatch**: test_insert_laps, test_upsert_laps_update, test_skip_no_lap_index
 - class **TestStreamsBatch**: test_insert_streams, test_replace_on_reinsert
 - class **TestBestEffortsBatch**: test_insert_efforts, test_upsert_effort, test_skip_no_effort_name
+
+### `test_db_schema_v25.py` (41줄) — v25 스키마(activity_feedback·user_settings) 테스트.
+
+- functions: test_tables_created_and_idempotent, test_rpe_check_rejects_out_of_range, test_note_length_check, test_create_tables_wires_v25_and_version
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -2002,9 +2049,9 @@
 
 - functions: test_every_daily_slug_is_mapped, test_no_mapping_key_outside_daily, test_groups_are_known, test_unknown_slug_goes_to_other_detail, test_baseline_z_null_under_7_days, test_baseline_z_null_when_not_fresh, test_baseline_z_sd_zero_uses_floor, test_fresh_before_stale, test_caution_before_big_z_neutral, test_z_null_goes_last_among_same_status, test_tie_then_tier_then_registry
 
-### `test_metric_labels.py` (87줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
+### `test_metric_labels.py` (100줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
 
-- functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name, test_first_batch_has_description_short, test_texts_within_40_chars, test_action_hint_keys_are_five_level_status, test_action_hint_picks_current_status_only
+- functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name, test_first_batch_has_description_short, test_texts_within_40_chars, test_action_hint_keys_are_five_level_status, test_action_hint_picks_current_status_only, test_crs_hint_uses_gate_level_not_score_status, test_marathon_shape_label_and_new_texts
 
 ### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
@@ -2026,9 +2073,9 @@
 
 - functions: test_id_change_gives_one_event, test_no_change_and_missing_key_and_other_slug, test_load_json_tolerates_bad_input
 
-### `test_metrics_browser_service.py` (304줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (310줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level
 
 ### `test_metrics_explain.py` (268줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -2342,6 +2389,10 @@
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair
 
+### `test_strava_403_ledger.py` (49줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
+
+- functions: test_wrapper_raises_subscription_required, test_sync_source_records_failed_ledger_row, test_classify_403_code
+
 ### `test_strava_extractor.py` (98줄) — Strava Extractor 단위 테스트.
 
 - class **TestStravaActivityCore**: test_required_fields, test_distance_time, test_suffer_score_in_metrics, test_latlng, test_source_url, test_no_none_values
@@ -2354,13 +2405,25 @@
 
 - class **TestStravaActivitySync**: test_sync_one_activity, test_sync_with_best_efforts, test_sync_empty_list, test_sync_skip_unchanged, test_sync_no_token
 
+### `test_sync_errors.py` (61줄) — sync_errors 분류·SyncResult 전파 테스트.
+
+- functions: test_classify_http, test_classify_non_http, test_messages_cover_all_codes, test_from_result_only_for_total_failure, test_merge_and_job_dict_carry_error_code, test_strava_wrapper_raises_on_403
+
+### `test_sync_jobs_schema.py` (41줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
+
+- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_18_fields
+
+### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
+
+- functions: test_cli_run_completed, test_manual_failed_with_code, test_fail_run_creates_missing_row_for_timeout, test_fail_run_does_not_overwrite_child_failure, test_auto_and_bg_source_path_persist
+
 ### `test_sync_result.py` (39줄) — SyncResult 단위 테스트.
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
-### `test_sync_state_service.py` (80줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
+### `test_sync_state_service.py` (102줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
 
-- functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc
+- functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream
 
 ### `test_synth_smoke.py` (55줄) — scripts/synth_smoke 합성 DB 시드 테스트 — 시드가 기능 기대치(서비스 입력)와 어긋나면 UI 스모크가 헛돈다.
 
@@ -2449,6 +2512,10 @@
 - class **TestUserInputs**: test_save_checkin, test_checkin_unique_per_day, test_checkin_raw_insert_conflict_without_upsert_raises, test_activity_id_no_fk_enforcement
 - class **TestAiFeedback**: test_insert_feedback, test_unique_per_thread_message
 - class **TestChatThreads**: test_chat_messages_thread_id_column_exists, test_thread_groups_messages
+
+### `test_user_settings_service.py` (71줄) — 사용자 설정 서비스·API 테스트.
+
+- functions: conn, test_whitelist_and_invalid_value, test_resolve_priority, test_set_overwrites, test_invalid_global_falls_back, client, test_api_get_patch, test_api_patch_invalid_400, test_api_state_persists
 
 ### `test_utrs.py` (114줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 
@@ -2556,7 +2623,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 525개 파일
+총 541개 파일
 
 ## docstring 누락
 

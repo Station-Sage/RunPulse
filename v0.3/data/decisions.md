@@ -159,3 +159,13 @@
 - **결정**: (1) 행 정의 SSOT는 `src/utils/provider_matrix_rows.py`(8행; kind=pair_activity|pair_daily|profile|definition, compare=same|scale). 활동 상세 탭의 `SEMANTIC_GROUPS`와 분리한다. (2) 임계값(차이 15%, 표본 n<3 "표본 부족", 30일 stale, IQR×1.5 이상치)은 서버에만 둔다(`provider_matrix_collect.py`). (3) `same`은 중앙값 % 차이, `scale`은 비율 ×r로 보여 주고 경고하지 않는다. (4) 쌍 상세 `/library/providers/:group`(`group`=행 key)은 점도표+활동 목록, 이상치는 속 빈 점. (5) 메트릭 상세는 `compare_group`이 있으면 "소스 비교" 링크를 노출한다. (6) 기간은 `?days=`(4주 기본은 생략), chip은 history replace.
 - **보류(사용자 확인 대기)**: §8-1 훈련 부하 scale ×r·경고 없음, §8-2 EF definition 행, §8-3 단일 소스 행 접힘 목록, §8-4 U9 `SEMANTIC_GROUPS`의 `("training_load_score","intervals")`→`("training_load","intervals")`.
 - **검증**: `tests/test_provider_matrix_service.py`, `tests/test_api_library.py`, `frontend/tests/providerMatrix.test.mjs`, Playwright `pw/s6_providers.mjs`(실 DB 사본, 에러 없음).
+
+## ADR-022: 활동 피드백(RPE·통증·메모)과 동기화 작업 원장 v2 (2026-10-05)
+- **맥락**: 활동 주관 데이터 저장소가 없었고, 소스 403/401이 원장에 `completed`로 남아 사용자에게 오류가 보이지 않았다.
+- **결정**: (1) running.db v25에 `activity_feedback(activity_id PK, rpe, pain_sites, note …)` 추가, 통증 부위 슬러그는 서비스 상수 `PAIN_SITES`. (2) 원장 SSOT는 `sync_jobs.db`, running.db `sync_jobs`는 동결. `error_code`·`http_status`·`source_path(manual|bg|auto|cli)` 열을 연결 시 멱등 추가하고 상태 `failed`를 신설. (3) 오류 코드 SSOT는 `src/sync/sync_errors.py`, 소스 전체 실패는 `SyncSourceError`로 올려 모든 경로가 `failed`로 기록. (4) 원장 쓰기는 `src/sync/ledger.py`와 bg_sync만 한다. (5) 과거 행은 소급 수정하지 않고 문자열 규칙을 폴백으로 둔다. (6) 상태명은 error-auth / error-access / error-upstream.
+- **검증**: `tests/test_activity_feedback_service.py`, `tests/test_api_activity_feedback.py`, `tests/test_sync_errors.py`, `tests/test_strava_403_ledger.py`, `tests/test_sync_ledger_paths.py`, `tests/test_sync_jobs_schema.py`, `tests/test_sync_state_service.py`.
+
+## ADR-023: 사용자 UI 설정 저장소 — DB(사용자) / config(운영자) 분리 (2026-10-05)
+- **맥락**: v1/v2 UI 기본값 선택을 기기·사용자 단위로 저장하고, 운영자가 재배포 없이 전역 롤백할 수단이 필요하다.
+- **결정**: running.db v25 `user_settings(key PK, value_json, updated_at)`에 화이트리스트 키(`ui_default`: v1|v2)만 저장한다. 해석 순서는 사용자 값 → `config.json`의 `ui_default_global` → `v1`. API는 `GET/PATCH /api/v1/me/preferences`. `/` 분기 연결은 G0 작업.
+- **검증**: `tests/test_user_settings_service.py`.
