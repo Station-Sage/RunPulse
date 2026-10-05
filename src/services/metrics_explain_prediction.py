@@ -1,21 +1,13 @@
 """레이스 예측(race_pred_*_sec) 분해 v2 — 신호별 환산 기록·가중치·범위·신뢰 제한 요인을 evidence로 제공."""
 from __future__ import annotations
 
-import json
 import sqlite3
 
+from src.services.metrics_basis_events import load_json as _js
 from src.utils.db_helpers import get_primary_metric
 
 _SIGNAL_LABEL = {"race": "대회 기록", "work": "훈련 강도 환산", "hr": "심박-페이스 환산", "best_effort": "5K 최고 구간"}
 _DIST_LABEL = {"race_pred_5k_sec": "5K", "race_pred_10k_sec": "10K", "race_pred_half_sec": "하프", "race_pred_marathon_sec": "마라톤"}
-
-
-def _js(row: dict | None) -> dict:
-    raw = (row or {}).get("json_value")
-    try:
-        return json.loads(raw) if raw else {}
-    except (TypeError, ValueError):
-        return {}
 
 
 def explain_prediction(conn: sqlite3.Connection, scope_type: str, scope_id: str, slug: str):

@@ -32,7 +32,7 @@
 		periodLabel?: string;
 		/** 고정(pin)된 선택일 — 차트 커서와 분해 패널 기준일을 공유한다. */
 		selectedDate?: string | null;
-		/** 차트 위 이벤트 마커(▲ 대회). 날짜가 x 범위 밖이면 그리지 않는다. */
+		/** 차트 위 이벤트 마커(▲ 대회, ◇ 예측 기준 대회 변경). 날짜가 x 범위 밖이면 그리지 않는다. */
 		events?: { date: string; kind: string; label: string }[];
 		onSelect?: (date: string | null) => void;
 	} = $props();
@@ -139,6 +139,9 @@
 					>
 				</span>
 			{/each}
+			{#each events.filter((e) => e.kind === 'basis_change' && e.date === readoutDate) as e (e.date + e.label)}
+				<span class="text-fg-secondary" data-testid="trend-event-readout">◇ {e.label}</span>
+			{/each}
 		</div>
 
 		<!-- 차트 -->
@@ -205,10 +208,12 @@
 
 				{#each events.filter((e) => e.date >= t0 && e.date <= t1) as e (e.date + e.label)}
 					<span
-						class="pointer-events-none absolute bottom-0 -translate-x-1/2 text-[10px] leading-none text-semantic-amber"
+						class="pointer-events-none absolute bottom-0 -translate-x-1/2 text-[10px] leading-none {e.kind === 'basis_change'
+							? 'text-fg-secondary'
+							: 'text-semantic-amber'}"
 						style="left:{xFraction(e.date, t0, t1) * 100}%"
 						title="{e.date} {e.label}"
-						data-testid="trend-event">▲</span
+						data-testid="trend-event">{e.kind === 'basis_change' ? '◇' : '▲'}</span
 					>
 				{/each}
 

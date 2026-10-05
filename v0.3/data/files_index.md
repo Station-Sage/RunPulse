@@ -117,7 +117,11 @@
 
 - functions: display_name, action_hint, min_span, display_meta
 
-### `metrics_browser_service.py` (272줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_basis_events.py` (68줄) — 예측 추세의 기준 대회 교체 이벤트(◇) — race_pred_vdot json 의 anchor.activity_id 가 전날과 달라진 첫 날.
+
+- functions: load_json, basis_change_events
+
+### `metrics_browser_service.py` (277줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
@@ -137,7 +141,7 @@
 
 - functions: build_conclusion
 
-### `metrics_explain_prediction.py` (60줄) — 레이스 예측(race_pred_*_sec) 분해 v2 — 신호별 환산 기록·가중치·범위·신뢰 제한 요인을 evidence로 제공.
+### `metrics_explain_prediction.py` (52줄) — 레이스 예측(race_pred_*_sec) 분해 v2 — 신호별 환산 기록·가중치·범위·신뢰 제한 요인을 evidence로 제공.
 
 - functions: explain_prediction
 
@@ -2018,6 +2022,10 @@
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 - functions: test_definitions_split_modules_cover_registry_in_order
 
+### `test_metrics_basis_events.py` (43줄)
+
+- functions: test_id_change_gives_one_event, test_no_change_and_missing_key_and_other_slug, test_load_json_tolerates_bad_input
+
 ### `test_metrics_browser_service.py` (304줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint
@@ -2548,7 +2556,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 523개 파일
+총 525개 파일
 
 ## docstring 누락
 
@@ -2559,6 +2567,7 @@
 - `tests/test_fixture_loader.py`
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
+- `tests/test_metrics_basis_events.py`
 - `tests/test_prediction_core.py`
 - `tests/test_rec.py`
 - `tests/test_relative_effort.py`

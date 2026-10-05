@@ -381,3 +381,10 @@
 - 검증: 단위 349, 실DB 사본 Playwright(390px) — 시트 표시·시나리오 전환·가로 넘침 없음.
 - 다음: U9(B-6 ◇).
 
+
+### U9 B-6 완료 (2026-10-05)
+- `src/services/metrics_basis_events.py`: `basis_change_events`(race_pred_vdot json `anchor.activity_id`가 전날과 달라진 첫 날, 일괄 1쿼리 + 거리 라벨 1쿼리), `load_json`은 `metrics_explain_prediction`과 공유. anchor 키 없으면 이벤트 생략.
+- `/trend` events에 `kind:'basis_change'` 병합(날짜순). 라벨 "기준 대회 변경: 10K 2026-05-09".
+- 프론트: `TrendChart` ◇ 마커(▲와 색 구분) + 선택일이 변경일이면 판독줄에 라벨.
+- 검증: 단위 349, pytest 신규 3, 실DB 사본 Playwright(마라톤 1y, date=2026-05-10) — ◇ 마커·판독 문구 확인.
+- 다음: Phase 3 잔여 없음(보류 항목은 사용자 지시 대기).
