@@ -78,3 +78,9 @@ def test_schedule_for_goal_uses_goal_rules_version(tmp_path):
     set_rules_version(conn, gid, 2)
     assert _rules_version(conn, {"id": gid}) == 2
     assert _rules_version(conn, {}) == 1
+
+
+def test_build_schedule_max_week_km_caps_volume():
+    from src.training.periodization import build_schedule
+    s = build_schedule(12, 60, 18, 90, 32, 0.35, 2, max_week_km=45.0)
+    assert s and max(w.weekly_km for w in s) <= 45.0 + 0.01

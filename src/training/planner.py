@@ -84,7 +84,7 @@ def generate_weekly_plan(
     Returns:
         7개 planned_workout dict 리스트 (월~일).
     """
-    from src.training.goals import get_active_goal, get_goal
+    from src.training.goals import get_active_goal, get_goal, get_rules_version
 
     if week_start is None:
         today = date.today()
@@ -108,7 +108,7 @@ def generate_weekly_plan(
     shape_pct = get_marathon_shape_pct(conn, as_of)
 
     # 훈련 단계·주간 볼륨: 목표 대회가 있으면 대회 역산 주기화(periodization), 없으면 CTL 기반 기존 규칙
-    target = week_target(conn, goal, week_start, dlabel, vdot) if goal else None
+    target = week_target(conn, goal, week_start, dlabel, vdot, as_of) if goal else None
     if target:
         phase, total_km, long_km = target.phase, target.weekly_km, target.long_km
     else:
@@ -209,6 +209,9 @@ def generate_weekly_plan(
             "_vdot": vdot,
         })
 
+    if goal and target and get_rules_version(conn, goal["id"]) >= 2:
+        from .planner_v2 import apply_for_goal
+        plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start, len(available), vdot, as_of)
     return apply_race_week(plan, race_date, goal_distance)
 
 

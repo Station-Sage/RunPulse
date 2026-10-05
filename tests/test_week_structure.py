@@ -45,9 +45,20 @@ def test_shakeout_before_race_kept():
 
 
 def test_long_run_capped_and_excess_to_easy():
+    rows = [_row("2026-01-05", "easy", 8.0), _row("2026-01-07", "easy", 8.0), _row("2026-01-11", "long", 24.0)]
+    out = W.apply_week_structure(rows, 3, 50, 360, long_max_12w=0)
+    assert out[2]["distance_km"] == 17.5 and out[0]["distance_km"] == 12.0 and out[1]["distance_km"] == 10.5
+
+
+def test_recap_long_when_pool_left_over():
     rows = [_row("2026-01-05", "easy", 8.0), _row("2026-01-11", "long", 24.0)]
     out = W.apply_week_structure(rows, 2, 50, 360, long_max_12w=0)
-    assert out[1]["distance_km"] == 17.5 and out[0]["distance_km"] == 12.0
+    total = sum(r["distance_km"] for r in out)
+    assert out[1]["distance_km"] <= 0.35 * total + 0.1
+
+
+def test_feasible_week_km_grows_with_days():
+    assert W.feasible_week_km(3) < W.feasible_week_km(4) < W.feasible_week_km(6)
 
 
 def test_run_days_surplus_trims_smallest_easy():

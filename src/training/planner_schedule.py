@@ -9,8 +9,9 @@ from datetime import date, timedelta
 
 from .goals import get_rules_version
 from .periodization import WeekTarget, build_schedule
-from .planner_config import DISTANCE_LABEL_KM, LONG_RUN_BASE
+from .planner_config import DISTANCE_LABEL_KM, LONG_RUN_BASE, load_prefs
 from .planner_rules import plan_start_monday
+from .week_structure import feasible_week_km
 from .readiness import get_taper_weeks, recommend_weekly_km
 
 _RUN = "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
@@ -43,17 +44,23 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     if start_km <= 0:
         return []
     peak = recommend_weekly_km(vdot, dlabel, "peak", 0, goal["plan_weeks"]) if vdot else start_km * 1.3
+    rv = _rules_version(conn, goal)
+    cap = None
+    if rv >= 2:
+        n_days = 7 - bin(load_prefs(conn).get("rest_weekdays_mask", 0) & 0x7F).count("1")
+        cap = feasible_week_km(n_days)
     return build_schedule(int(goal["plan_weeks"]), start_km, start_long, max(peak, start_km),
                           LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
                           get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
-                          _rules_version(conn, goal))
+                          rv, cap)
 
 
-def week_target(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: str, vdot: float | None) -> WeekTarget | None:
-    """week_start 가 계획 범위 안이면 그 주 목표, 밖이면 None."""
+def week_target(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: str, vdot: float | None,
+                as_of: date | None = None) -> WeekTarget | None:
+    """week_start 가 계획 범위 안이면 그 주 목표, 밖이면 None. as_of 는 시작 부하를 읽는 기준일(백테스트용)."""
     start = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks"))
     if start is None:
         return None
     idx = (week_start - start).days // 7
-    sched = schedule_for_goal(conn, goal, dlabel, vdot)
+    sched = schedule_for_goal(conn, goal, dlabel, vdot, as_of)
     return sched[idx] if 0 <= idx < len(sched) else None

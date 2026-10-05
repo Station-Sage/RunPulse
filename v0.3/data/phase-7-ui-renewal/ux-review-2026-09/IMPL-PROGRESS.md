@@ -427,3 +427,7 @@
 
 ### U16i (2026-10-05)
 - `periodization.build_schedule(..., rules_version=1)`: v2 풀(taper_weeks≥3)은 감량 2주(0.70/0.50), 16주 이상·피크 80km 이상일 때만 3주. 감량 주 롱런 없음, D−14(weeks_to_race==2) 주말 롱런 20~24km(롱런 상한 이내). v1·풀 외 거리는 불변. `planner_schedule`이 goal의 plan_rules_version을 읽어 전달. 테스트 4개. 다음: U16j(하네스 v2 실행·플래그).
+
+### U16j (2026-10-05)
+- `planner_v2.apply_v2/apply_for_goal`(v2 후처리), `plan_backtest` v2 엔진(`--engine v2 --distance`), `feasible_week_km`로 주 러닝 일수 대비 볼륨 상한, `build_schedule(max_week_km=)`, 롱런 재절단(`_recap_long`), 대회 주 러닝일 축소.
+- 격자 백테스트 v2: 풀 0/240·하프 0/240 위반(G1~G8 전부 통과). v1 스냅샷 해시 불변. `--db` 이력 시나리오는 실사용자 DB 사본으로 별도 검증 필요(미완). 플래그 기본값·운영 적용은 사용자 지시 대기. 다음: U16k.

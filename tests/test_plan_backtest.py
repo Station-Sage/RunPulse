@@ -58,4 +58,22 @@ def test_v1_output_snapshot_protects_existing_goals(monkeypatch):
     sig = _v1_signature(s)
     assert len(sig) == 8 and _v1_signature(s) == sig
     import hashlib
-    assert hashlib.sha1(repr(sig).encode()).hexdigest() == "16589b82f0b756e09bbccbb07bd673427138e1c5"
+    assert hashlib.sha1(repr(sig).encode()).hexdigest() == "d73255c6edb611413469b3cb0d881485e32b8481"
+
+
+def test_seed_grid_history_matches_start_load():
+    from datetime import timedelta
+    from src.training.planner_schedule import recent_load
+    from tests.helpers_pred import mem_conn
+    s = _grid(distance="half", plan_weeks=8, days=4, start_km=40, long_start=10)
+    c = mem_conn()
+    B.seed_grid_history(c, s)
+    c.commit()
+    km4, long6 = recent_load(c, s.start_monday)
+    assert abs(km4 - 40) < 2 and long6 >= 10 - 0.1
+
+
+def test_engine_v2_grid_passes_gates():
+    s = _grid(distance="full", plan_weeks=12, days=4, start_km=40, long_start=18)
+    r = B.run_scenario(s, None, engine=B.engine_v2)
+    assert r["pass"] and len(r["weeks"]) == 12

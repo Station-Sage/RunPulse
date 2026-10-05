@@ -37,14 +37,18 @@ def _phase(i: int, n_train: int) -> str:
 
 
 def build_schedule(total_weeks: int, start_km: float, start_long_km: float, peak_km: float, long_max_km: float,
-                   long_cap_ratio: float, taper_weeks: int, rules_version: int = 1) -> list[WeekTarget]:
+                   long_cap_ratio: float, taper_weeks: int, rules_version: int = 1,
+                   max_week_km: float | None = None) -> list[WeekTarget]:
     """total_weeks 주 계획(마지막 주 = 대회 주)의 주별 목표. 입력이 비정상이면 빈 리스트.
 
+    max_week_km: 주 러닝 일수로 소화 가능한 상한 — 시작·피크 볼륨을 이 값으로 자른다.
     rules_version 2: taper_weeks>=3(풀)이면 2주(0.70/0.50)로 줄이고, 16주 이상·피크 80km 이상일 때만 3주.
     감량 주에는 롱런을 두지 않고(MP 세션은 marathon_rules), 대회 2주 전 주말에 20~24km 롱런(상한 이내)을 둔다.
     """
     if total_weeks < 1 or start_km <= 0:
         return []
+    if max_week_km:       # 러닝 일수로 소화 가능한 주간 상한(week_structure.feasible_week_km)
+        start_km, peak_km = min(start_km, max_week_km), min(peak_km, max_week_km)
     v2_full = rules_version >= 2 and taper_weeks >= 3
     if v2_full and not (total_weeks >= FULL_TAPER3_MIN_WEEKS and peak_km >= FULL_TAPER3_MIN_PEAK_KM):
         taper_weeks = 2

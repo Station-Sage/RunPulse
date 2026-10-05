@@ -1240,15 +1240,15 @@
 
 - functions: expand_work, is_continuous, compare_continuous, compare, prediction_note
 
-### `periodization.py` (80줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
+### `periodization.py` (84줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
 
 - class **WeekTarget**: 없음
 - functions: build_schedule
 
-### `plan_backtest.py` (208줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+### `plan_backtest.py` (218줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
-- functions: rest_mask, long_cap, engine_v1, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
+- functions: rest_mask, long_cap, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
 
 ### `plan_gates.py` (184줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G8)과 실행 가능성(F1~F5)을 지키는지 판정한다.
 
@@ -1265,7 +1265,7 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (289줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (292줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs
 
@@ -1277,9 +1277,13 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (59줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (66줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, schedule_for_goal, week_target
+
+### `planner_v2.py` (165줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
+
+- functions: apply_v2, apply_for_goal
 
 ### `readiness.py` (458줄) — 훈련 준비도 분석 + 목표 달성 가능성 예측.
 
@@ -1297,9 +1301,9 @@
 
 - functions: outcome_label, compute
 
-### `week_structure.py` (94줄) — 주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
+### `week_structure.py` (125줄) — 주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
 
-- functions: default_run_days, long_ratio, long_cap_km, apply_week_structure
+- functions: default_run_days, long_ratio, long_cap_km, feasible_week_km, apply_week_structure
 
 ## `src/utils/`
 
@@ -2173,9 +2177,9 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
-### `test_periodization.py` (80줄) — 목표 대회 역산 주기화.
+### `test_periodization.py` (86줄) — 목표 대회 역산 주기화.
 
-- functions: test_last_week_is_race_week_and_taper_comes_last, test_ramp_is_capped_and_peak_week_is_not_recovery, test_long_run_progresses_then_tapers_off, test_taper_volume_falls_below_peak, test_short_or_invalid_inputs, test_v2_full_taper_is_two_weeks_with_d14_long, test_v2_three_week_taper_only_for_long_high_volume_plans, test_v1_and_non_full_unchanged_by_rules_version, test_schedule_for_goal_uses_goal_rules_version
+- functions: test_last_week_is_race_week_and_taper_comes_last, test_ramp_is_capped_and_peak_week_is_not_recovery, test_long_run_progresses_then_tapers_off, test_taper_volume_falls_below_peak, test_short_or_invalid_inputs, test_v2_full_taper_is_two_weeks_with_d14_long, test_v2_three_week_taper_only_for_long_high_volume_plans, test_v1_and_non_full_unchanged_by_rules_version, test_schedule_for_goal_uses_goal_rules_version, test_build_schedule_max_week_km_caps_volume
 
 ### `test_phase1_schema.py` (756줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
@@ -2211,9 +2215,9 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_backtest.py` (61줄)
+### `test_plan_backtest.py` (79줄)
 
-- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals
+- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
 
 ### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
@@ -2247,6 +2251,10 @@
 ### `test_planner_config_as_of.py` (37줄) — planner_config 조회 헬퍼의 as_of 시점 고정(U16a).
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
+
+### `test_planner_v2.py` (64줄) — planner_v2 후처리 단위 테스트(순수 함수).
+
+- functions: test_rebalance_trims_easy_then_long, test_rebalance_grows_easy, test_shakeout_sets_eve_row, test_mp_session_retypes_longest_quality, test_race_week_adds_mp_session, test_apply_v2_full_build_has_mp_and_no_input_mutation, test_apply_v2_half_has_no_mp, test_apply_for_goal_without_target_returns_rows
 
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
@@ -2613,9 +2621,9 @@
 
 - functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
 
-### `test_week_structure.py` (64줄) — U16f: R7 주간 구조(순수 함수).
+### `test_week_structure.py` (75줄) — U16f: R7 주간 구조(순수 함수).
 
-- functions: test_default_run_days_median_and_clamp, test_long_ratio_branches, test_long_cap_design_example, test_long_cap_by_time, test_short_session_merged_to_rest_and_redistributed_to_easy, test_shakeout_before_race_kept, test_long_run_capped_and_excess_to_easy, test_run_days_surplus_trims_smallest_easy, test_min_pass_by_minutes
+- functions: test_default_run_days_median_and_clamp, test_long_ratio_branches, test_long_cap_design_example, test_long_cap_by_time, test_short_session_merged_to_rest_and_redistributed_to_easy, test_shakeout_before_race_kept, test_long_run_capped_and_excess_to_easy, test_recap_long_when_pool_left_over, test_feasible_week_km_grows_with_days, test_run_days_surplus_trims_smallest_easy, test_min_pass_by_minutes
 
 ### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
 
@@ -2670,7 +2678,7 @@
 
 - functions: generate, get_structural_fingerprint
 
-### `plan_backtest.py` (40줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
+### `plan_backtest.py` (41줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
 
@@ -2679,7 +2687,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 554개 파일
+총 556개 파일
 
 ## docstring 누락
 

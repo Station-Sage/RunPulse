@@ -6,6 +6,7 @@ DESIGN-U16 §2.2. 시나리오 두 종류: 역사(실DB 사본의 과거 하프 
 """
 from __future__ import annotations
 
+import math
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -17,6 +18,7 @@ from . import plan_gates as G
 from .goals import add_goal
 from .planner import generate_weekly_plan, upsert_user_training_prefs
 from .planner_rules import plan_start_monday
+from .week_structure import _is_shakeout
 from .planner_schedule import recent_load
 
 DAY_ORDER = (1, 3, 5, 6, 2, 0, 4)       # 러닝 일수 n 이면 앞의 n 개 요일만 가능
@@ -56,13 +58,15 @@ def long_cap(wk: G.WeekPlan, long_max_12w: float = 0.0) -> float:
 
 
 def _plan_from_rows(k: int, to_race: int, rows: list[dict]) -> G.WeekPlan:
-    days = [G.Session(r["workout_type"], float(r.get("distance_km") or 0.0), mp_km=float(r.get("mp_km") or 0.0),
+    race = next((r["date"] for r in rows if r["workout_type"] == "race"), None)
+    days = [G.Session("shakeout" if r["workout_type"] != "rest" and _is_shakeout(r, race) else r["workout_type"], 0.0 if r["workout_type"] == "race" else float(r.get("distance_km") or 0.0), mp_km=float(r.get("mp_km") or 0.0),
                       pace_sec=r.get("target_pace_min")) for r in rows]
     return G.WeekPlan(k, to_race, rows[0].get("_phase", ""), days, rows[0].get("_mp_sec"))
 
 
-def engine_v1(scn: Scenario, conn: sqlite3.Connection) -> tuple[list[G.WeekPlan], dict]:
-    gid = add_goal(conn, f"bt-{scn.race_date}", DIST_KM[scn.distance], scn.race_date, scn.goal_sec)
+def engine_v1(scn: Scenario, conn: sqlite3.Connection, rules_version: int | None = None) -> tuple[list[G.WeekPlan], dict]:
+    gid = add_goal(conn, f"bt-{scn.race_date}", DIST_KM[scn.distance], scn.race_date, scn.goal_sec,
+                   rules_version=rules_version)
     conn.execute("UPDATE goals SET plan_weeks=?, distance_label=? WHERE id=?", (scn.plan_weeks, scn.distance, gid))
     upsert_user_training_prefs(conn, rest_weekdays_mask=rest_mask(scn.days))
     start = scn.start_monday
@@ -72,6 +76,10 @@ def engine_v1(scn: Scenario, conn: sqlite3.Connection) -> tuple[list[G.WeekPlan]
         weeks.append(_plan_from_rows(k, scn.plan_weeks - 1 - k, rows))
     conn.execute("DELETE FROM goals WHERE id=?", (gid,))
     return weeks, {}
+
+
+def engine_v2(scn: Scenario, conn: sqlite3.Connection) -> tuple[list[G.WeekPlan], dict]:
+    return engine_v1(scn, conn, rules_version=2)
 
 
 def grid_scenarios() -> list[Scenario]:
@@ -84,12 +92,14 @@ def grid_scenarios() -> list[Scenario]:
 def seed_grid_history(conn: sqlite3.Connection, scn: Scenario) -> None:
     """계획 시작 직전 6주에 주 start_km(4회, 최장 long_eff)를 시드해 recent_load 가 (start_km, long_eff)가 되게 한다."""
     long_eff = min(scn.long_start, scn.start_km * 0.6)
+    n_rest = min(6, max(3, math.ceil((scn.start_km - long_eff) / long_eff)))
+    long_eff = max(long_eff, scn.start_km / (n_rest + 1))
     scn.aux["long_eff"] = long_eff
-    rest = (scn.start_km - long_eff) / 3
+    rest = (scn.start_km - long_eff) / n_rest
     n = 0
     for w in range(1, 7):
         mon = scn.start_monday - timedelta(weeks=w)
-        for d, km in ((0, rest), (2, rest), (4, rest), (6, long_eff)):
+        for d, km in [(i, rest) for i in range(n_rest)] + [(6, long_eff)]:
             conn.execute(
                 "INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time, distance_m,"
                 " moving_time_sec, duration_sec) VALUES ('garmin', ?, 'r', 'running', ?, ?, ?, ?)",

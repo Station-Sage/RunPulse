@@ -12,6 +12,7 @@ MIN_SESSION_KM, MIN_SESSION_MIN = 6.0, 35.0
 LONG_MAX_MIN, LONG_MAX_KM = 150.0, 32.0
 R_DEFAULT, R_HIGH, R_HIGH_WEEK_KM = 0.35, 0.45, 60.0
 EASY_FILL_MAX_KM = 12.0
+QUALITY_TYPICAL_KM = 6.0
 SHAKEOUT_MAX_KM = 5.0
 _LONG = ("long", "long_mp")
 _FILL = ("easy", "recovery")
@@ -37,6 +38,15 @@ def long_cap_km(week_km: float, long_pace_sec: float, long_max_12w: float = 0.0)
     """롱런 상한 = min(r×주간 km, 150분÷롱런 페이스, 32km)."""
     by_time = LONG_MAX_MIN * 60.0 / long_pace_sec if long_pace_sec > 0 else LONG_MAX_KM
     return min(long_ratio(week_km, long_max_12w) * week_km, by_time, LONG_MAX_KM)
+
+
+def feasible_week_km(run_days: int, long_pace_sec: float = 360.0) -> float:
+    """러닝 일수로 소화 가능한 주간 최대 km — 롱런 1회(r×주간) + 퀄리티 1회(약 9km) + 나머지 이지 12km."""
+    n = max(1, run_days)
+    others = (n - 2) * EASY_FILL_MAX_KM + QUALITY_TYPICAL_KM if n >= 2 else 0.0
+    by_time = min(LONG_MAX_MIN * 60.0 / long_pace_sec, LONG_MAX_KM)
+    w = others / (1 - R_DEFAULT) if n >= 2 else by_time
+    return round(w if R_DEFAULT * w <= by_time else by_time + others, 1)
 
 
 def _too_short(r: dict) -> bool:
@@ -80,6 +90,14 @@ def apply_week_structure(rows: list[dict], run_days: int, week_km: float, long_p
         if r["workout_type"] in _LONG and float(r.get("distance_km") or 0.0) > cap:
             pool += float(r["distance_km"]) - cap
             r["distance_km"] = round(cap, 1)
+    while True:     # 가장 짧은 미달 세션부터 하나씩 휴식으로 합치고 재분배 — 남은 세션이 최소 길이를 채울 수 있게
+        short = [r for r in out if r["workout_type"] in _FILL and _too_short(r) and not _is_shakeout(r, race_date)]
+        if not short:
+            break
+        r = min(short, key=lambda x: float(x.get("distance_km") or 0.0))
+        pool += float(r.get("distance_km") or 0.0)
+        out[out.index(r)] = _to_rest(r)
+        pool = _distribute(out, pool, cap)
     for i, r in enumerate(out):
         if r["workout_type"] not in _SKIP and _too_short(r) and not _is_shakeout(r, race_date):
             pool += float(r.get("distance_km") or 0.0)
@@ -90,5 +108,18 @@ def apply_week_structure(rows: list[dict], run_days: int, week_km: float, long_p
                     key=lambda x: float(x.get("distance_km") or 0.0))[:max(0, surplus)]:
         pool += float(r.get("distance_km") or 0.0)
         out[out.index(r)] = _to_rest(r)
-    _distribute(out, pool, cap)
+    pool = _distribute(out, pool, cap)
+    return _recap_long(out, long_pace_sec, long_max_12w) if pool > 0 else out
+
+
+def _recap_long(out: list[dict], long_pace_sec: float, long_max_12w: float) -> list[dict]:
+    """재분배하고도 남은 km가 있으면 실제 주간 합계가 목표보다 작다 — 롱런을 실제 합계 기준 상한으로 다시 자른다."""
+    for _ in range(5):
+        total = sum(float(r.get("distance_km") or 0.0) for r in out if r["workout_type"] != "race")
+        cap = long_cap_km(total, long_pace_sec, long_max_12w)
+        longs = [r for r in out if r["workout_type"] in _LONG and float(r.get("distance_km") or 0.0) > cap + 0.05]
+        if not longs:
+            break
+        for r in longs:
+            r["distance_km"] = round(cap, 1)
     return out
