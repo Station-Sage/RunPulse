@@ -1241,6 +1241,18 @@
 - class **WeekTarget**: 없음
 - functions: build_schedule
 
+### `plan_backtest.py` (208줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+
+- class **Scenario**: start_monday
+- functions: rest_mask, long_cap, engine_v1, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
+
+### `plan_gates.py` (184줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G8)과 실행 가능성(F1~F5)을 지키는지 판정한다.
+
+- class **Session**: 없음
+- class **WeekPlan**: km, run_days, long_km, mp_session_km
+- class **GateResult**: ok
+- functions: g1_rest_days, g2_long_cap, g3_min_session, g4_mp_sessions, g5_taper, g6_ramp, g7_mp_not_faster, serialize, g8_deterministic, f1_start_fit, f2_peak_long, f3_peak_week, f4_total_ratio, f5_race_pace
+
 ### `plan_structure.py` (43줄) — 계획 행 → 세그먼트 구조(structure_json, 순수) — 거리뿐 아니라 세트 수·반복 거리·구간 페이스로 이행을 판정하기 위한 기준.
 
 - functions: structure_for_plan
@@ -1249,11 +1261,11 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (287줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (289줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs
 
-### `planner_config.py` (177줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
+### `planner_config.py` (185줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
 - functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
@@ -2179,9 +2191,17 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
+### `test_plan_backtest.py` (43줄)
+
+- functions: test_rest_mask_leaves_requested_days, test_grid_size, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db
+
 ### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
+
+### `test_plan_gates.py` (76줄)
+
+- functions: wk, test_g1, test_g2_boundary, test_g3, test_g4, test_g5, test_g6_boundary, test_g7, test_g8, test_soft_gates
 
 ### `test_plan_ingest.py` (127줄) — 외부 계획 인제스트(P7-PRED-44) — Garmin 실측 응답 형태(2026-09-26) 기반 파서·저장·이행률.
 
@@ -2199,6 +2219,14 @@
 ### `test_plan_template_service.py` (145줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
 
 - functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date
+
+### `test_planner_as_of.py` (20줄)
+
+- functions: test_as_of_passthrough_and_default
+
+### `test_planner_config_as_of.py` (37줄) — planner_config 조회 헬퍼의 as_of 시점 고정(U16a).
+
+- functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
 
 ### `test_pmc.py` (82줄) — PMC (Performance Management Chart) 단위 테스트 — 설계서 4-6.
 
@@ -2618,12 +2646,16 @@
 
 - functions: generate, get_structural_fingerprint
 
+### `plan_backtest.py` (40줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
+
+- functions: main
+
 ### `pred_backtest.py` (102줄) — 예측 v2 수용 백테스트(P7-PRED-62) — 실DB 를 읽기 전용으로 열어 메모리에 복제한 뒤, 전력 대회마다 D-0/D-28 시점
 
 - functions: backtest, backtest_all, main
 
 ---
-총 541개 파일
+총 548개 파일
 
 ## docstring 누락
 
@@ -2635,6 +2667,9 @@
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
 - `tests/test_metrics_basis_events.py`
+- `tests/test_plan_backtest.py`
+- `tests/test_plan_gates.py`
+- `tests/test_planner_as_of.py`
 - `tests/test_prediction_core.py`
 - `tests/test_rec.py`
 - `tests/test_relative_effort.py`
