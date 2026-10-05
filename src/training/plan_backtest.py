@@ -15,17 +15,18 @@ from statistics import median
 from src.db_setup import create_tables
 
 from . import plan_gates as G
+from . import plan_gates_long as GL
 from .goals import add_goal
+from .long_run_rules import LongCtx
 from .planner import generate_weekly_plan, upsert_user_training_prefs
 from .planner_rules import plan_start_monday
 from .week_structure import _is_shakeout
-from .planner_schedule import recent_load
+from .planner_schedule import recent_load, recent_long_max
 
 DAY_ORDER = (1, 3, 5, 6, 2, 0, 4)       # 러닝 일수 n 이면 앞의 n 개 요일만 가능
 GRID = {"start_km": (25, 40, 55, 70, 90), "long_start": (10, 18, 26), "weeks": (8, 12, 16, 20),
         "days": (3, 4, 5, 6), "distance": ("half", "full")}
 DIST_KM = {"half": 21.0975, "full": 42.195}
-LONG_MAX_KM, LONG_PACE_SEC, LONG_MAX_MIN = 32.0, 360.0, 150.0
 
 
 @dataclass
@@ -51,17 +52,12 @@ def rest_mask(days: int) -> int:
     return sum(1 << i for i in range(7) if i not in avail)
 
 
-def long_cap(wk: G.WeekPlan, long_max_12w: float = 0.0) -> float:
-    """§2.3 롱런 상한 = min(r×주간 km, 150분÷롱런 페이스, 32km). r 은 0.35, 조건부 0.45."""
-    r = 0.45 if wk.km < 60 and long_max_12w >= 0.45 * wk.km else 0.35
-    return min(r * wk.km, LONG_MAX_MIN * 60 / LONG_PACE_SEC, LONG_MAX_KM)
-
-
 def _plan_from_rows(k: int, to_race: int, rows: list[dict]) -> G.WeekPlan:
     race = next((r["date"] for r in rows if r["workout_type"] == "race"), None)
     days = [G.Session("shakeout" if r["workout_type"] != "rest" and _is_shakeout(r, race) else r["workout_type"], 0.0 if r["workout_type"] == "race" else float(r.get("distance_km") or 0.0), mp_km=float(r.get("mp_km") or 0.0),
                       pace_sec=r.get("target_pace_min")) for r in rows]
-    return G.WeekPlan(k, to_race, rows[0].get("_phase", ""), days, rows[0].get("_mp_sec"))
+    ctx = rows[0].get("_long_ctx")
+    return G.WeekPlan(k, to_race, rows[0].get("_phase", ""), days, rows[0].get("_mp_sec"), LongCtx(**ctx) if ctx else None)
 
 
 def engine_v1(scn: Scenario, conn: sqlite3.Connection, rules_version: int | None = None) -> tuple[list[G.WeekPlan], dict]:
@@ -118,9 +114,7 @@ def history_inputs(conn: sqlite3.Connection, start: date) -> dict:
     for d, km in rows:
         wk.setdefault((start - date.fromisoformat(d)).days // 7, []).append(km)
     per_week_days = [len(wk.get(i, [])) for i in range(1, 9)]
-    long12 = conn.execute(
-        "SELECT MAX(distance_m)/1000.0 FROM v_canonical_activities WHERE DATE(start_time) >= ? AND DATE(start_time) < ?",
-        ((start - timedelta(weeks=12)).isoformat(), start.isoformat())).fetchone()[0] or 0.0
+    long12 = recent_long_max(conn, start, 12)       # 엔진과 같은 정의(러닝만)
     return {"start_km": km4, "start_long": long6, "days_median_8w": median(per_week_days) if per_week_days else 0,
             "long_max_12w": round(long12, 1), "peak_week_16w": round(max((sum(v) for v in wk.values()), default=0.0), 1)}
 
@@ -152,21 +146,24 @@ def judge(scn: Scenario, v: list[G.WeekPlan], inputs: dict, run, v1: list[G.Week
           mp_now=None) -> dict[str, G.GateResult]:
     """한 엔진의 한 시나리오 결과를 게이트로 판정. run 은 같은 입력으로 다시 계산하는 콜러블(G8)."""
     start_km = inputs["start_km"]
-    long12 = inputs.get("long_max_12w", 0.0)
+    long12, long6 = inputs.get("long_max_12w", 0.0), inputs.get("start_long", 0.0)
     peak = max((w.km for w in v), default=0.0)
     res = {
         "G1": G.g1_rest_days(v, scn.days or int(inputs.get("days_median_8w") or 4)),
-        "G2": G.g2_long_cap(v, lambda w: long_cap(w, long12)),
+        "G2a": GL.g2a_long_cap(v, scn.distance, long6, long12),
+        "G2b": GL.g2b_long_envelope(v),
         "G3": G.g3_min_session(v),
         "G4": G.g4_mp_sessions(v, scn.distance),
         "G5": G.g5_taper(v, scn.distance, peak, scn.plan_weeks),
         "G6": G.g6_ramp(v, start_km),
         "G7": G.g7_mp_not_faster(v, mp_now or (lambda w: None)),
         "G8": G.g8_deterministic(run),
+        "G9": GL.g9_long_floor(v, scn.distance, long6, long12),
+        "F6": GL.f6_long_step(v, long12),
     }
     if scn.kind == "history":
         res["F1"] = G.f1_start_fit(v, start_km)
-        res["F2"] = G.f2_peak_long(v, long12)
+        res["F2ref"] = G.f2_peak_long(v, long12)      # 참고 출력(F6로 대체, DESIGN-U16-LONGRUN §4.4)
         res["F3"] = G.f3_peak_week(v, inputs.get("peak_week_16w", 0.0))
         if v1:
             res["F4"] = G.f4_total_ratio(v, v1)
@@ -187,7 +184,8 @@ def run_scenario(scn: Scenario, base_conn: sqlite3.Connection | None, engine=eng
             scn.days = min(6, max(3, round(inp["days_median_8w"])))
             return mem, inp
         seed_grid_history(mem, scn)
-        return mem, {"start_km": scn.start_km, "long_max_12w": scn.aux["long_eff"], "peak_week_16w": scn.start_km}
+        le = scn.aux["long_eff"]
+        return mem, {"start_km": scn.start_km, "start_long": le, "long_max_12w": le, "peak_week_16w": scn.start_km}
 
     def once() -> tuple[list[G.WeekPlan], dict]:
         conn, inp = build()

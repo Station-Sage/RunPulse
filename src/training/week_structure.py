@@ -1,21 +1,22 @@
 """주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
 
 DB를 읽지 않는다. 입력은 주간 행 리스트(dict: date, workout_type, distance_km, target_pace_min …)이고
-규칙 적용 결과로 새 리스트를 돌려준다(입력 불변).
+규칙 적용 결과로 새 리스트를 돌려준다(입력 불변). 롱런 상한은 long_run_rules 의 얇은 래퍼이고,
+재분배는 주간 합계를 보존한다(남는 km를 버리지 않음, DESIGN-U16-LONGRUN D-LR-4).
 """
 from __future__ import annotations
 
 import statistics
 from datetime import date, timedelta
 
+from . import long_run_rules as LR
+
 MIN_SESSION_KM, MIN_SESSION_MIN = 6.0, 35.0
-LONG_MAX_MIN, LONG_MAX_KM = 150.0, 32.0
-R_DEFAULT, R_HIGH, R_HIGH_WEEK_KM = 0.35, 0.45, 60.0
 EASY_FILL_MAX_KM = 12.0
-QUALITY_TYPICAL_KM = 6.0
 SHAKEOUT_MAX_KM = 5.0
 _LONG = ("long", "long_mp")
 _FILL = ("easy", "recovery")
+_QUAL = ("marathon", "tempo", "interval")
 _SKIP = ("rest", "race")
 
 
@@ -27,26 +28,25 @@ def default_run_days(per_week_days: list[int]) -> int:
     return max(3, min(6, round(statistics.median(vals))))
 
 
-def long_ratio(week_km: float, long_max_12w: float) -> float:
-    """롱런 상한 비율 r. 주 60km 미만이면서 최근 12주 최장이 0.45×주간 km 이상이면 0.45."""
-    if week_km < R_HIGH_WEEK_KM and long_max_12w >= R_HIGH * week_km:
-        return R_HIGH
-    return R_DEFAULT
+def default_ctx(week_km: float, long_pace_sec: float, long_max_12w: float = 0.0, run_days: int = 0,
+                sched_long_km: float = 0.0, dlabel: str = "full", phase: str = "base") -> LR.LongCtx:
+    """문맥 없이 부르는 호출(단위 테스트·래퍼)의 기본 문맥 — 풀 base, 일수 미지정이면 일수 항 없음."""
+    return LR.LongCtx(dlabel, phase, 8, week_km, run_days, long_pace_sec, sched_long_km, 0.0, long_max_12w)
 
 
-def long_cap_km(week_km: float, long_pace_sec: float, long_max_12w: float = 0.0) -> float:
-    """롱런 상한 = min(r×주간 km, 150분÷롱런 페이스, 32km)."""
-    by_time = LONG_MAX_MIN * 60.0 / long_pace_sec if long_pace_sec > 0 else LONG_MAX_KM
-    return min(long_ratio(week_km, long_max_12w) * week_km, by_time, LONG_MAX_KM)
+def long_ratio(week_km: float, long_max_12w: float, **kw) -> float:
+    """롱런 비중 r(long_run_rules.share_ratio 래퍼). 기본 문맥에서는 0.35, 주 60km 미만·12주 최장 ≥ 0.45×주간이면 0.45."""
+    return LR.share_ratio(default_ctx(week_km, 360.0, long_max_12w, **kw))
 
 
-def feasible_week_km(run_days: int, long_pace_sec: float = 360.0) -> float:
-    """러닝 일수로 소화 가능한 주간 최대 km — 롱런 1회(r×주간) + 퀄리티 1회(약 9km) + 나머지 이지 12km."""
-    n = max(1, run_days)
-    others = (n - 2) * EASY_FILL_MAX_KM + QUALITY_TYPICAL_KM if n >= 2 else 0.0
-    by_time = min(LONG_MAX_MIN * 60.0 / long_pace_sec, LONG_MAX_KM)
-    w = others / (1 - R_DEFAULT) if n >= 2 else by_time
-    return round(w if R_DEFAULT * w <= by_time else by_time + others, 1)
+def long_cap_km(week_km: float, long_pace_sec: float, long_max_12w: float = 0.0, **kw) -> float:
+    """롱런 상한(long_run_rules.long_cap_km 래퍼). kw: run_days, sched_long_km, dlabel, phase."""
+    return LR.long_cap_km(default_ctx(week_km, long_pace_sec, long_max_12w, **kw))
+
+
+def feasible_week_km(run_days: int, long_pace_sec: float = 360.0, dlabel: str = "full") -> float:
+    """러닝 일수로 소화 가능한 주간 최대 km(long_run_rules.feasible_week_km 래퍼, D-LR-8 B)."""
+    return LR.feasible_week_km(dlabel, run_days, long_pace_sec)
 
 
 def _too_short(r: dict) -> bool:
@@ -68,7 +68,12 @@ def _to_rest(r: dict) -> dict:
 
 def _distribute(rows: list[dict], pool: float, cap_long: float) -> float:
     """pool(km)을 이지/회복 → 롱런 순으로 채운다(이지는 세션당 12km까지). 남은 양을 돌려준다."""
-    for kinds, limit in ((_FILL, EASY_FILL_MAX_KM), (_LONG, cap_long)):
+    return _fill(rows, pool, ((_FILL, EASY_FILL_MAX_KM), (_LONG, cap_long)))
+
+
+def _fill(rows: list[dict], pool: float, steps) -> float:
+    """steps = ((유형들, 세션 상한), …) 순서로 짧은 세션부터 pool 을 채운다. 남은 양을 돌려준다."""
+    for kinds, limit in steps:
         for r in sorted((x for x in rows if x["workout_type"] in kinds),
                         key=lambda x: float(x.get("distance_km") or 0.0)):
             if pool <= 0:
@@ -81,10 +86,18 @@ def _distribute(rows: list[dict], pool: float, cap_long: float) -> float:
 
 
 def apply_week_structure(rows: list[dict], run_days: int, week_km: float, long_pace_sec: float,
-                         long_max_12w: float = 0.0, race_date: str | None = None) -> list[dict]:
-    """R7 적용: 러닝 일수 초과 병합, 롱런 상한 절단, 최소 세션 미달을 휴식으로 합쳐 이지일에 재분배한다."""
+                         long_max_12w: float = 0.0, race_date: str | None = None, ctx: LR.LongCtx | None = None,
+                         long_fill_km: float | None = None) -> list[dict]:
+    """R7 적용: 러닝 일수 초과 병합, 롱런 상한 절단, 최소 세션 미달을 휴식으로 합쳐 재분배한다(합계 보존).
+
+    ctx: 엔진 문맥(없으면 default_ctx). long_fill_km: 남는 km를 롱런에 채울 때의 천장(기본 = 상한).
+    """
     out = [dict(r) for r in rows]
-    cap = long_cap_km(week_km, long_pace_sec, long_max_12w)
+    if ctx is None:
+        sched = max((float(r.get("distance_km") or 0.0) for r in out if r["workout_type"] in _LONG), default=0.0)
+        ctx = default_ctx(week_km, long_pace_sec, long_max_12w, run_days, sched)
+    cap = LR.long_cap_km(ctx)
+    fill = cap if long_fill_km is None else min(cap, long_fill_km)
     pool = 0.0
     for r in out:
         if r["workout_type"] in _LONG and float(r.get("distance_km") or 0.0) > cap:
@@ -97,7 +110,7 @@ def apply_week_structure(rows: list[dict], run_days: int, week_km: float, long_p
         r = min(short, key=lambda x: float(x.get("distance_km") or 0.0))
         pool += float(r.get("distance_km") or 0.0)
         out[out.index(r)] = _to_rest(r)
-        pool = _distribute(out, pool, cap)
+        pool = _distribute(out, pool, fill)
     for i, r in enumerate(out):
         if r["workout_type"] not in _SKIP and _too_short(r) and not _is_shakeout(r, race_date):
             pool += float(r.get("distance_km") or 0.0)
@@ -108,18 +121,12 @@ def apply_week_structure(rows: list[dict], run_days: int, week_km: float, long_p
                     key=lambda x: float(x.get("distance_km") or 0.0))[:max(0, surplus)]:
         pool += float(r.get("distance_km") or 0.0)
         out[out.index(r)] = _to_rest(r)
-    pool = _distribute(out, pool, cap)
-    return _recap_long(out, long_pace_sec, long_max_12w) if pool > 0 else out
-
-
-def _recap_long(out: list[dict], long_pace_sec: float, long_max_12w: float) -> list[dict]:
-    """재분배하고도 남은 km가 있으면 실제 주간 합계가 목표보다 작다 — 롱런을 실제 합계 기준 상한으로 다시 자른다."""
-    for _ in range(5):
-        total = sum(float(r.get("distance_km") or 0.0) for r in out if r["workout_type"] != "race")
-        cap = long_cap_km(total, long_pace_sec, long_max_12w)
-        longs = [r for r in out if r["workout_type"] in _LONG and float(r.get("distance_km") or 0.0) > cap + 0.05]
-        if not longs:
-            break
-        for r in longs:
-            r["distance_km"] = round(cap, 1)
+    pool = _distribute(out, pool, fill)
+    spill(out, pool, cap)
     return out
+
+
+def spill(rows: list[dict], pool: float, cap_long: float) -> float:
+    """이지·롱런 천장을 채우고도 남은 km: 퀄리티/MP → 롱런(상한까지) → 이지(상한 없이) 순으로 담는다. 버리지 않는다."""
+    big = 1e9
+    return _fill(rows, pool, ((_QUAL, big), (_LONG, cap_long), (_FILL, big)))

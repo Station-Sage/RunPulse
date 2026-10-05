@@ -1,12 +1,14 @@
-"""계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G8)과 실행 가능성(F1~F5)을 지키는지 판정한다.
+"""계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
 
-DESIGN-U16 §2.4. 입력은 엔진 중립 구조(WeekPlan/Session)이고 DB를 읽지 않는다. 각 게이트는 GateResult(통과 여부,
+DESIGN-U16 §2.4, 롱런 게이트 G2a·G2b·G9·F6는 DESIGN-U16-LONGRUN §4.4. 입력은 엔진 중립 구조(WeekPlan/Session)이고 DB를 읽지 않는다. 각 게이트는 GateResult(통과 여부,
 위반 수, 최악 사례 문자열)를 돌려준다. 수치는 설계서로 고정이라 임의로 완화하지 않는다.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
+
+from .long_run_rules import LongCtx
 
 MIN_SESSION_KM, MIN_SESSION_MIN = 6.0, 35.0
 LONG_TOL_KM = 0.5
@@ -31,6 +33,7 @@ class WeekPlan:
     phase: str
     days: list[Session] = field(default_factory=list)
     mp_sec: float | None = None   # 그 주 처방 MP(sec/km)
+    long_ctx: LongCtx | None = None   # 엔진이 기록한 롱런 문맥(G2a·G9 재계산용)
 
     @property
     def km(self) -> float:
@@ -68,13 +71,6 @@ def g1_rest_days(weeks: list[WeekPlan], run_days: int) -> GateResult:
     bad = [f"w{w.index}: 휴식 {7 - w.run_days}일 < {7 - run_days}" for w in weeks
            if w.weeks_to_race > 0 and 7 - w.run_days < 7 - run_days]
     return _result("G1", bad)
-
-
-def g2_long_cap(weeks: list[WeekPlan], cap_km) -> GateResult:
-    """cap_km(week) → 그 주 롱런 상한(km)."""
-    bad = [f"w{w.index}: 롱런 {w.long_km:.1f} > {cap_km(w):.1f}+{LONG_TOL_KM}" for w in weeks
-           if w.long_km > cap_km(w) + LONG_TOL_KM]
-    return _result("G2", bad)
 
 
 def g3_min_session(weeks: list[WeekPlan]) -> GateResult:

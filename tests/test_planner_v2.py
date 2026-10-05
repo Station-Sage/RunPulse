@@ -12,8 +12,17 @@ def _week(types_km):
 
 def test_rebalance_trims_easy_then_long():
     rows = _week([("easy", 8), ("easy", 8), ("long", 20)])
-    P._rebalance(rows, 24.0)
-    assert abs(P._total(rows) - 24.0) < 0.2
+    P._rebalance(rows, 24.0, long_floor=12.0)          # 이지 6·6 → 롱런은 하한 12까지
+    assert abs(P._total(rows) - 24.0) < 0.05 and rows[2]["distance_km"] == 12.0
+    rows = _week([("easy", 8), ("easy", 8), ("long", 20)])
+    P._rebalance(rows, 24.0, long_floor=14.0)          # 하한 아래로는 깎지 않는다(일수 감소는 예산 단계 몫)
+    assert rows[2]["distance_km"] == 14.0 and P._total(rows) == 26.0
+
+
+def test_rebalance_grow_never_drops_km():
+    rows = _week([("easy", 11), ("tempo", 8), ("long", 16)])
+    P._rebalance(rows, 45.0, long_fill=18.0, long_cap=20.0)    # 이지 12 → 롱런 18 → 나머지 퀄리티
+    assert P._total(rows) == 45.0 and rows[2]["distance_km"] == 18.0 and rows[1]["distance_km"] == 15.0
 
 
 def test_rebalance_grows_easy():
@@ -57,6 +66,44 @@ def test_apply_v2_half_has_no_mp():
     out = P.apply_v2(rows, dlabel="half", phase="build", weeks_to_race=8, taper_first=False, mp_now=300.0,
                      mp_goal=None, weeks_since_build=4, run_days=4, week_km=42.0, long_max_12w=0.0, race_date=None)
     assert not any(r["workout_type"] in ("marathon", "long_mp") for r in out)
+
+
+def _v2(rows, **kw):
+    base = dict(dlabel="half", phase="base", weeks_to_race=8, taper_first=False, mp_now=300.0, mp_goal=None,
+                weeks_since_build=0, run_days=3, week_km=13.2, long_max_12w=0.0, race_date=None)
+    return P.apply_v2(rows, **{**base, **kw})
+
+
+def _run(out):
+    return [r for r in out if r["workout_type"] not in ("rest", "race")]
+
+
+def test_apply_v2_low_volume_week_has_no_long():                      # §8.1 #18
+    out = _v2(_week([("easy", 4.0), ("tempo", 2.6), ("long", 6.6)]), long_max_6w=16.2)
+    assert not any(r["workout_type"] in ("long", "long_mp") for r in out)
+    assert abs(P._total(out) - 13.2) <= 0.05 and len(_run(out)) == 2
+    assert all(r["distance_km"] >= 6.0 for r in _run(out)) and "_long_ctx" not in out[0]
+
+
+def test_apply_v2_full_build_low_budget_mp_inside_long():             # §8.1 #19
+    rows = _week([("easy", 4.0), ("tempo", 4.0), ("rest", 0), ("rest", 0), ("rest", 0), ("long", 20.0)])
+    out = _v2(rows, dlabel="full", phase="build", run_days=3, week_km=26.0, long_max_6w=18.0, mp_goal=290.0)
+    run = _run(out)
+    lg = next(r for r in run if r["workout_type"] == "long_mp")
+    assert len(run) == 2 and lg["distance_km"] >= 18.0 and lg["mp_km"] == 8.0
+    assert not any(r["workout_type"] == "marathon" for r in out) and abs(P._total(out) - 26.0) <= 0.05
+    assert out[0]["_long_ctx"]["run_days"] == 2
+
+
+def test_apply_v2_preserves_weekly_total():                           # §8.1 #20
+    cases = [("half", "build", 26.6, 3, [("easy", 8), ("tempo", 7), ("long", 11.6)]),
+             ("full", "peak", 46.0, 4, [("easy", 8), ("interval", 8), ("easy", 8), ("long", 22)]),
+             ("full", "peak", 73.5, 6, [("easy", 10), ("tempo", 10), ("easy", 10), ("easy", 10), ("easy", 8.5), ("long", 25)]),
+             ("half", "recovery_week", 18.0, 4, [("easy", 4), ("tempo", 4), ("easy", 4), ("long", 6)])]
+    for d, ph, w, n, spec in cases:
+        out = _v2(_week(spec), dlabel=d, phase=ph, run_days=n, week_km=w, long_max_6w=16.0, long_max_12w=18.0)
+        assert abs(P._total(out) - w) <= 0.05, (d, ph, w)
+        assert all(r["distance_km"] >= 6.0 for r in _run(out)), (d, ph, w)
 
 
 def test_apply_for_goal_without_target_returns_rows():

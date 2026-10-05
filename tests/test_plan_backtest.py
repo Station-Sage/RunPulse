@@ -43,10 +43,11 @@ def test_history_scenarios_from_seeded_db():
     assert r["inputs"]["start_km"] >= 0 and len(r["weeks"]) == scns[0].plan_weeks
 
 
-def _v1_signature(scn):
+def _v1_signature(scn, seed=True):
     from tests.helpers_pred import mem_conn
     c = mem_conn()
-    B.seed_grid_history(c, scn)
+    if seed:
+        B.seed_grid_history(c, scn)
     c.commit()
     weeks, _ = B.engine_v1(scn, c)
     return [[(s.type, round(s.km, 1)) for s in w.days] for w in weeks]
@@ -59,6 +60,18 @@ def test_v1_output_snapshot_protects_existing_goals(monkeypatch):
     assert len(sig) == 8 and _v1_signature(s) == sig
     import hashlib
     assert hashlib.sha1(repr(sig).encode()).hexdigest() == "d73255c6edb611413469b3cb0d881485e32b8481"
+
+
+def test_v1_output_snapshot_full_and_cold(monkeypatch):
+    """U16-LR §7.1: 롱런 재설계 전에 고정한 v1 풀·콜드(start_km=0) 해시 — v1 경로 불변."""
+    import hashlib
+    monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
+    full = _grid(distance="full", plan_weeks=12, days=5, start_km=55, long_start=18)
+    cold = B.Scenario("grid", "half", 12, "2030-11-24", 4, start_km=0, long_start=0)
+    h_full = hashlib.sha1(repr(_v1_signature(full)).encode()).hexdigest()
+    h_cold = hashlib.sha1(repr(_v1_signature(cold, seed=False)).encode()).hexdigest()
+    assert h_full == "6a87c42a512750d44acb9a5cdb46b01b8373fac8"
+    assert h_cold == "7aa64a818cca14fa0f6a9d32a958128be3b3469d"
 
 
 def test_seed_grid_history_matches_start_load():

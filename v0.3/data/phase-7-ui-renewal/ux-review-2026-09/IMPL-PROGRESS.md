@@ -431,3 +431,22 @@
 ### U16j (2026-10-05)
 - `planner_v2.apply_v2/apply_for_goal`(v2 후처리), `plan_backtest` v2 엔진(`--engine v2 --distance`), `feasible_week_km`로 주 러닝 일수 대비 볼륨 상한, `build_schedule(max_week_km=)`, 롱런 재절단(`_recap_long`), 대회 주 러닝일 축소.
 - 격자 백테스트 v2: 풀 0/240·하프 0/240 위반(G1~G8 전부 통과). v1 스냅샷 해시 불변. `--db` 이력 시나리오는 실사용자 DB 사본으로 별도 검증 필요(미완). 플래그 기본값·운영 적용은 사용자 지시 대기. 다음: U16k.
+
+### U16-LR L1~L4·L6 — 롱런 하한·상한 재설계 (2026-10-06, 설계서 `DESIGN-U16-LONGRUN.md`, 열린 결정 5개 승인)
+- 구현 전 v1 스냅샷 추가(풀 12주·5일·55km·18, 콜드 start_km=0 하프): `test_v1_output_snapshot_full_and_cold`. 기존 하프 해시 포함 3건 불변.
+- L1 `long_run_rules.py`(순수): `LongCtx`, `long_floor_km`·`long_cap_km`·`share_ratio`·`time_cap_km`·`abs_cap_km`·`prog_cap_km`·`min_viable_week_km`·`budget_floor_km`·`plan_long_budget`(§5.1)·`feasible_week_km`(B). 경계값 테스트 `tests/test_long_run_rules.py`.
+- L2 `plan_gates_long.py`: G2a(기록 문맥 + 관찰 일치 확인)·G2b(독립 외피)·G9(하한·롱런 없는 주)·F6(소프트). `WeekPlan.long_ctx`, F2는 `F2ref`(참고). 이력 12주 최장을 러닝만으로(`planner_schedule.recent_long_max`, 기존 하네스는 전 종목 MAX였음).
+- L3 `planner_v2_long.py`: 예산 적용(`plan_long_week`), 합계 보존 `rebalance`, `trim_run_days`. `planner_v2.apply_v2`가 문맥을 `_long_ctx`로 기록, MP-in-long, `+0.5` 허용 제거. `week_structure`는 공유 함수 래퍼, `_recap_long` 삭제·`spill`(남는 km 퀄리티→롱런 상한→이지).
+- L4 `periodization`(v2): 반올림 내림(R7), `long_cap` 콜백으로 매주 공유 상한(진행 상한 포함)에서 진행, D−14·하프 테이퍼 롱런도 공유 상한. `planner_schedule._long_cap_fn`.
+- L6(B) `feasible_week_km`이 피크 롱런 공유 상한과 결합.
+
+| 단계 | 격자 480 | 이력 66 | 하드 실패(이력) | 소프트(이력 / 격자 F6) |
+|---|---|---|---|---|
+| 기준선(구 게이트) | 480 | 43 | G3 16, G2 1, G6 20 | F1 20, F2 4, F3 8 |
+| L2(새 게이트, 엔진 불변) | 168 | 22 | G3 16, G6 20, G9 44(격자 G9 312) | F6 격자 5 |
+| L3 | 480 | 60 | G6 6, G9 6(1일 주 판정 → G9 2일 기준으로 수정) | F6 격자 54 |
+| L4 | 480 | **66** | 0 | F3 8, F6 2 / 격자 F6 8 |
+| L6 | 480 | **66** | 0 | F3 10, F2ref 8, F6 2 / 격자 F6 8 |
+
+- 풀 피크 롱런(격자, 중앙/최대): 기준선 3일 12.5/12.5·4일 16.5/20.8·5일 22.6/24.5 → L6 3일 21.6·4~6일 26.0/29.3. 이력 2025-10-18 풀 16주: 16.2km/주 46 → 30.0km/주 60. 이력 비테이퍼 롱런 없는 주 12 → 80(하프 저볼륨).
+- 남은 이슈: (1) 격자 F6 8건(+3.0km > 2.8) — build 주 별도 MP 세션 예산 때문에 후처리가 롱런을 스케줄보다 깎고, peak에서 long_mp로 MP를 담으면서 스케줄 값으로 돌아간다. 주기화는 무상태 후처리 결과를 모른다. (2) 이력 F6 2건 — 절대 하한(하프 10km)이 직전 최장+2km보다 큼(설계상 하한 우선). (3) F3 +2(B 대가, 설계 예측 +4). (4) MP 없음 폴백 360초/km 유지(실경로는 M 페이스가 항상 있어 E 상단 대체는 미적용). (5) G2b 롱런 시간은 처방 하단 페이스(롱런 페이스−10초) 기준. (6) L5(콜드스타트·G6 1주차 예외·격자 확장) 미착수. 운영 반영 전 운영 DB `plan_rules_version=2` 0건 확인 필요(D-LR-7).

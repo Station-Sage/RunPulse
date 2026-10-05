@@ -59,10 +59,54 @@ def test_v2_three_week_taper_only_for_long_high_volume_plans():
     assert [w.phase for w in s2].count("taper") == 2
 
 
-def test_v1_and_non_full_unchanged_by_rules_version():
+def test_v1_unchanged_by_rules_version():
+    """v1 불변만 단언한다 — 하프 v2는 반올림 내림·진행 상한으로 v1과 달라진다(DESIGN-U16-LONGRUN §7.3)."""
     assert build_schedule(9, **KW) == build_schedule(9, **KW, rules_version=1)
     half = {**KW, "taper_weeks": 2}
-    assert build_schedule(9, **half) == build_schedule(9, **half, rules_version=2)
+    v1 = build_schedule(9, **half)
+    assert v1 == build_schedule(9, **half, rules_version=1, long_cap=lambda *a: 0.0)   # v1은 long_cap 무시
+    v2 = build_schedule(9, **half, rules_version=2)
+    assert [w.phase for w in v1] == [w.phase for w in v2]
+    assert all(b.weekly_km <= a.weekly_km + 1e-9 for a, b in zip(v1, v2))      # 내림이라 v1 이하
+
+
+def _load_ratios(s):
+    loads = [w.weekly_km for w in s if w.phase not in ("recovery_week", "taper")]
+    return [b / a for a, b in zip(loads, loads[1:])]
+
+
+def test_v2_low_volume_ramp_never_exceeds_ten_percent():              # §8.1 #21
+    s = build_schedule(12, 7.4, 6.0, 30.0, 22.0, 0.5, 2, rules_version=2)
+    assert s[0].weekly_km == 7.4 and max(_load_ratios(s)) <= 1.10 + 1e-9
+    v1 = build_schedule(12, 7.4, 6.0, 30.0, 22.0, 0.5, 2)
+    assert max(_load_ratios(v1)) > 1.10 + 0.005                          # v1 반올림은 10%를 넘는다(R7)
+
+
+def _shared_cap(n_days=4, lp=352.0, long6=18.0, long12=18.0):
+    from src.training import long_run_rules as LR
+    def cap(phase, w2r, week_km, sched, prev):
+        return LR.long_cap_km(LR.LongCtx("full", phase, w2r, week_km, n_days, lp, sched, long6, long12,
+                                         prev_long_km=prev))
+    return cap
+
+
+def test_v2_long_progresses_from_capped_value():                     # §8.1 #22 150→180분 전환
+    s = build_schedule(16, 70.0, 24.0, 80.0, 32.0, 0.5, 3, rules_version=2, long_cap=_shared_cap(6, 380.0, 24, 24))
+    longs = [w.long_km for w in s if w.phase != "taper" and w.long_km > 0]
+    base_last = max(w.long_km for w in s if w.phase == "base")
+    assert base_last <= 150 * 60 / 380 + 0.05                            # base는 150분 상한(23.7)에 눌린다
+    prev = 0.0
+    for k in longs:
+        assert prev == 0.0 or k <= prev + max(2.0, 0.1 * prev) + 0.05    # 전환 주에도 +2km/10% 이내
+        prev = max(prev, k)
+    assert max(longs) > base_last                                         # 180분으로 풀리면 진행한다
+
+
+def test_v2_d14_long_respects_shared_cap():
+    s = build_schedule(12, 40.0, 14.0, 46.0, 32.0, 0.5, 3, rules_version=2, long_cap=_shared_cap(4, 352.0, 14, 14))
+    d14 = next(w for w in s if w.weeks_to_race == 2)
+    prev = max(w.long_km for w in s if w.index < d14.index)
+    assert d14.long_km <= prev + max(2.0, 0.1 * prev) + 0.05 and d14.long_km >= min(20.0, prev)
 
 
 def test_schedule_for_goal_uses_goal_rules_version(tmp_path):

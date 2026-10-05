@@ -20,13 +20,19 @@ def test_long_ratio_branches():
 
 
 def test_long_cap_design_example():
+    # 기본 문맥(풀 base, 일수 미지정)은 기존 값과 같다
     assert W.long_cap_km(50, 360, 0) == 17.5
     assert W.long_cap_km(50, 360, 23) == 22.5          # min(22.5, 25.0, 32)
     assert W.long_cap_km(100, 360, 0) == 25.0
+    # 문맥 반영: 4일 r=0.45, 풀 peak r=0.50·180분
+    assert W.long_cap_km(50, 360, 0, run_days=4) == 22.5
+    assert W.long_cap_km(60, 352, 0, run_days=4, phase="peak") == 30.0
 
 
 def test_long_cap_by_time():
     assert W.long_cap_km(100, 420, 0) == 150 * 60 / 420
+    assert W.long_cap_km(100, 420, 0, phase="peak") == 180 * 60 / 420      # 풀 build/peak 180분
+    assert W.long_cap_km(100, 420, 0, dlabel="half") == 150 * 60 / 420
 
 
 def test_short_session_merged_to_rest_and_redistributed_to_easy():
@@ -47,18 +53,24 @@ def test_shakeout_before_race_kept():
 def test_long_run_capped_and_excess_to_easy():
     rows = [_row("2026-01-05", "easy", 8.0), _row("2026-01-07", "easy", 8.0), _row("2026-01-11", "long", 24.0)]
     out = W.apply_week_structure(rows, 3, 50, 360, long_max_12w=0)
-    assert out[2]["distance_km"] == 17.5 and out[0]["distance_km"] == 12.0 and out[1]["distance_km"] == 10.5
+    assert out[2]["distance_km"] == 24.0                          # 3일 r=0.50 → 상한 25.0
+    out = W.apply_week_structure(rows, 3, 40, 360, long_max_12w=0)
+    assert out[2]["distance_km"] == 20.0 and out[0]["distance_km"] == 12.0 and out[1]["distance_km"] == 8.0
 
 
-def test_recap_long_when_pool_left_over():
-    rows = [_row("2026-01-05", "easy", 8.0), _row("2026-01-11", "long", 24.0)]
-    out = W.apply_week_structure(rows, 2, 50, 360, long_max_12w=0)
-    total = sum(r["distance_km"] for r in out)
-    assert out[1]["distance_km"] <= 0.35 * total + 0.1
+def test_total_preserved_when_pool_left_over():
+    """_recap_long 제거: 이지 12km·롱런 천장을 넘는 남는 km도 버리지 않는다(D-LR-4)."""
+    rows = [_row("2026-01-05", "easy", 4.0), _row("2026-01-06", "tempo", 10.0), _row("2026-01-11", "long", 24.0)]
+    out = W.apply_week_structure(rows, 2, 30, 360, long_fill_km=16.0)
+    assert sum(r["distance_km"] for r in out) == 38.0
+    assert out[2]["distance_km"] <= W.long_cap_km(30, 360, run_days=2, sched_long_km=24.0) + 1e-9
+    assert out[0]["workout_type"] == "rest" and out[1]["distance_km"] > 10.0
 
 
 def test_feasible_week_km_grows_with_days():
     assert W.feasible_week_km(3) < W.feasible_week_km(4) < W.feasible_week_km(6)
+    assert W.feasible_week_km(4, 352) == 60.0              # B: 풀 peak 0.5W + 퀄리티 6 + 이지 12×2 ≥ W
+    assert W.feasible_week_km(4, 360, "half") < W.feasible_week_km(4, 360)
 
 
 def test_run_days_surplus_trims_smallest_easy():
