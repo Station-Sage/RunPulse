@@ -28,3 +28,16 @@ def test_summarize_counts():
     out = B.summarize([{"gates": {"G1": {"violations": 2, "worst": "x"}}, "pass": False},
                        {"gates": {"G1": {"violations": 0, "worst": ""}}, "pass": True}])
     assert out["total"] == 2 and out["passed"] == 1 and out["gates"]["G1"]["scenarios_failed"] == 1
+
+
+def test_history_scenarios_from_seeded_db():
+    from tests.helpers_pred import mem_conn, seed_run
+    c = mem_conn()
+    for i in range(30):
+        seed_run(c, sid=f"a{i}", date=f"2025-0{1 + i // 10}-{1 + (i % 10) * 2:02d}", name="easy", dist=8000.0)
+    seed_run(c, sid="race", date="2025-06-01", name="서울 하프 레이스", dist=21100.0, moving=6000)
+    c.commit()
+    scns = B.history_scenarios(c)
+    assert scns and all(s.kind == "history" and s.distance == "half" for s in scns)
+    r = B.run_scenario(scns[0], c)
+    assert r["inputs"]["start_km"] >= 0 and len(r["weeks"]) == scns[0].plan_weeks

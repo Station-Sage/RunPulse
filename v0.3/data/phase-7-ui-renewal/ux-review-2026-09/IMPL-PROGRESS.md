@@ -403,4 +403,8 @@
 - 운영 반영(2026-10-05 18:12 백업 후): 실DB v24→v25, 원장 v2 ensure_ledger 멱등 확인, 컨테이너 재시작 정상. 반영 후 스모크: 피드백 PUT/GET/DELETE(중복 그룹 정규 id로 저장 확인, 테스트 행 삭제), `get_sync_state` 정상(원장 신규라 'never').
 - 모바일 하단 고정 CTA가 ⋯ 메뉴를 가리던 문제 수정(활동 상세 하단 여백 `h-20 md:hidden`), `scripts/synth_smoke/pw/u15.mjs` 스모크 추가.
 - 미실시: Strava 실제 403 수동 동기화(설정상 Strava 비활성이라 단위 테스트로 대체).
-- 다음: U16a.
+- 다음: U16e.
+
+### U16a~d (2026-10-05)
+- U16a as_of(planner_config), U16b plan_gates(순수 게이트 8+5), U16c 백테스트 하네스(`src/training/plan_backtest.py`, `scripts/plan_backtest.py`, planner `as_of`), U16d v1 기준선(DESIGN-U16 §2.6).
+- 다음: U16e(plan_rules_version 고정·플래그·v1 회귀 테스트).

@@ -116,12 +116,15 @@ def history_inputs(conn: sqlite3.Connection, start: date) -> dict:
 
 
 def history_scenarios(conn: sqlite3.Connection, factors=(None, 0.97)) -> list[Scenario]:
-    """하프 이상 대회(is_race) × plan_weeks {9,12,16} × 목표(없음/기록×0.97). 데이터 시작보다 앞서는 시작일은 생략."""
+    """하프 이상 대회(레이스 판정은 get_race_history 와 동일) × plan_weeks {9,12,16} × 목표(없음/기록×0.97). 데이터 시작보다 앞서는 시작일은 생략."""
     first = conn.execute("SELECT MIN(DATE(start_time)) FROM activity_summaries").fetchone()[0]
     out: list[Scenario] = []
     races = conn.execute(
-        "SELECT DATE(start_time), distance_m, COALESCE(moving_time_sec, duration_sec) FROM v_canonical_activities "
-        "WHERE is_race = 1 AND distance_m >= 20500 ORDER BY 1").fetchall() if _has_is_race(conn) else []
+        "SELECT DATE(a.start_time), a.distance_m, COALESCE(a.moving_time_sec, a.duration_sec) "
+        "FROM v_canonical_activities a LEFT JOIN metric_store c ON c.scope_id=CAST(a.id AS TEXT)"
+        " AND c.scope_type='activity' AND c.metric_name='workout_type_classified' "
+        "WHERE a.activity_type='running' AND a.distance_m >= 20500 AND (c.text_value='race' OR a.name LIKE '%레이스%'"
+        " OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') ORDER BY 1").fetchall()
     for day, dist, sec in races:
         for w in (9, 12, 16):
             scn = Scenario("history", "full" if dist >= 41000 else "half", w, day, 0, race_sec=int(sec))
@@ -133,10 +136,6 @@ def history_scenarios(conn: sqlite3.Connection, factors=(None, 0.97)) -> list[Sc
                 s.aux["goal_assumed"] = bool(f)
                 out.append(s)
     return out
-
-
-def _has_is_race(conn: sqlite3.Connection) -> bool:
-    return any(r[1] == "is_race" for r in conn.execute("PRAGMA table_info(v_canonical_activities)"))
 
 
 def judge(scn: Scenario, v: list[G.WeekPlan], inputs: dict, run, v1: list[G.WeekPlan] | None = None,
@@ -174,7 +173,9 @@ def run_scenario(scn: Scenario, base_conn: sqlite3.Connection | None, engine=eng
         create_tables(mem)
         if scn.kind == "history" and base_conn is not None:
             base_conn.backup(mem)
-            return mem, history_inputs(mem, scn.start_monday)
+            inp = history_inputs(mem, scn.start_monday)
+            scn.days = min(6, max(3, round(inp["days_median_8w"])))
+            return mem, inp
         seed_grid_history(mem, scn)
         return mem, {"start_km": scn.start_km, "long_max_12w": scn.aux["long_eff"], "peak_week_16w": scn.start_km}
 
