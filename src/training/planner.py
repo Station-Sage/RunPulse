@@ -70,6 +70,7 @@ def generate_weekly_plan(
     goal_id: int | None = None,
     config: dict | None = None,
     week_start: date | None = None,
+    as_of: date | None = None,
 ) -> list[dict]:
     """규칙 기반 주간 훈련 계획 생성 (v2).
 
@@ -78,6 +79,7 @@ def generate_weekly_plan(
         goal_id: 목표 id. None이면 active 목표 자동 선택.
         config: 설정 딕셔너리.
         week_start: 주 시작일 (월요일). None이면 이번 주 월요일.
+        as_of: 백테스트용 — 이 날(포함)까지의 지표만 쓴다. None이면 최신 값(기존 동작).
 
     Returns:
         7개 planned_workout dict 리스트 (월~일).
@@ -99,11 +101,11 @@ def generate_weekly_plan(
     dlabel = resolve_distance_label(goal_distance, distance_label)
 
     # 피트니스 데이터
-    fitness = get_latest_fitness(conn)
+    fitness = get_latest_fitness(conn, as_of)
     ctl, tsb = fitness["ctl"], fitness["tsb"]
-    vdot = get_vdot_adj(conn)
+    vdot = get_vdot_adj(conn, as_of)
     eftp = get_eftp(conn)
-    shape_pct = get_marathon_shape_pct(conn)
+    shape_pct = get_marathon_shape_pct(conn, as_of)
 
     # 훈련 단계·주간 볼륨: 목표 대회가 있으면 대회 역산 주기화(periodization), 없으면 CTL 기반 기존 규칙
     target = week_target(conn, goal, week_start, dlabel, vdot) if goal else None
