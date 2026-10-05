@@ -1293,6 +1293,10 @@
 
 - functions: outcome_label, compute
 
+### `week_structure.py` (94줄) — 주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
+
+- functions: default_run_days, long_ratio, long_cap_km, apply_week_structure
+
 ## `src/utils/`
 
 > 공유 유틸리티.
@@ -2597,6 +2601,10 @@
 
 - functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
 
+### `test_week_structure.py` (64줄) — U16f: R7 주간 구조(순수 함수).
+
+- functions: test_default_run_days_median_and_clamp, test_long_ratio_branches, test_long_cap_design_example, test_long_cap_by_time, test_short_session_merged_to_rest_and_redistributed_to_easy, test_shakeout_before_race_kept, test_long_run_capped_and_excess_to_easy, test_run_days_surplus_trims_smallest_easy, test_min_pass_by_minutes
+
 ### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
 
 - functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
@@ -2659,7 +2667,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 549개 파일
+총 551개 파일
 
 ## docstring 누락
 
