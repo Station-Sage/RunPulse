@@ -11,6 +11,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, datetime, timezone
 
+from src.sync.sync_errors import MESSAGES_KO
 from src.utils.config import enabled_sources
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
 
@@ -19,14 +20,24 @@ STALE_HOURS = 12
 
 _CREDENTIAL_KEYS = {"garmin": "email", "strava": "refresh_token", "intervals": "api_key", "runalyze": "token"}
 
-# 원장 상태·오류 문구 → (code, 한국어 설명, 권장 행동)
+# 과거 행(error_code 없음)용 폴백: 상태·오류 문구 → code
 _ERROR_RULES = [
-    ("auth_required", None, ("auth_expired", "로그인이 만료됐어요", "reconnect")),
-    ("rate_limited", None, ("rate_limited", "요청 한도에 걸렸어요 — 잠시 후 다시 시도해요", "wait")),
-    (None, "403", ("forbidden", "소스가 API 접근을 막았어요", "disable")),
-    (None, "401", ("auth_expired", "인증이 거부됐어요", "reconnect")),
-    (None, "429", ("rate_limited", "요청 한도에 걸렸어요 — 잠시 후 다시 시도해요", "wait")),
+    ("auth_required", None, "auth_expired"),
+    ("rate_limited", None, "rate_limited"),
+    (None, "403", "subscription_required"),
+    (None, "401", "auth_expired"),
+    (None, "429", "rate_limited"),
 ]
+_STATE_GROUP = {"auth_expired": "auth", "subscription_required": "access"}
+
+
+def _error_dict(code: str, job: SyncJob, detail: str | None = None) -> dict:
+    msg, action = MESSAGES_KO.get(code, MESSAGES_KO["unknown"])
+    out = {"code": code, "message_ko": msg, "action": action, "http_status": job.http_status,
+           "source_path": job.source_path, "at": _local_iso(job.updated_at)}
+    if detail:
+        out["detail"] = detail
+    return out
 
 
 def _local_iso(naive_local: str | None) -> str | None:
@@ -59,11 +70,12 @@ def classify_error(job: SyncJob | None) -> dict | None:
         return None
     if job.status == "completed" and not any(code in text for code in ("401", "403")):
         return None
-    for status, needle, (code, msg, action) in _ERROR_RULES:
+    if job.error_code:
+        return _error_dict(job.error_code, job)
+    for status, needle, code in _ERROR_RULES:
         if (status and job.status == status) or (needle and needle in text):
-            return {"code": code, "message_ko": msg, "action": action, "at": _local_iso(job.updated_at)}
-    return {"code": "unknown", "message_ko": "동기화에 실패했어요", "action": "retry",
-            "at": _local_iso(job.updated_at), "detail": text[:200]}
+            return _error_dict(code, job)
+    return _error_dict("unknown", job, text[:200])
 
 
 def _source_state(provider: str, config: dict, on: set[str], jobs: list[SyncJob],
@@ -82,7 +94,7 @@ def _source_state(provider: str, config: dict, on: set[str], jobs: list[SyncJob]
     elif running:
         state = "running"
     elif error:
-        state = f"error-{error['code']}"
+        state = f"error-{_STATE_GROUP.get(error['code'], 'upstream')}"
     elif last_success_at is None:
         state = "never"
     elif (now - datetime.fromisoformat(last_success_at)).total_seconds() > STALE_HOURS * 3600:

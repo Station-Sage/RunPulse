@@ -60,7 +60,7 @@ def test_auth_error_and_caveat(conn, monkeypatch):
                                               _job("garmin", "completed", 50)],
                                    "intervals": [_job("intervals", "completed", 1)]})
     g = next(x for x in s["sources"] if x["provider"] == "garmin")
-    assert g["state"] == "error-auth_expired" and g["last_error"]["action"] == "reconnect"
+    assert g["state"] == "error-auth" and g["last_error"]["action"] == "reconnect"
     assert s["overall"]["level"] == "error"
     assert {"code": "source_missing", "provider": "garmin", "days": 2} in s["caveats"]
 
@@ -78,3 +78,25 @@ def test_payload_time_converted_from_utc(conn, monkeypatch):
     g = next(x for x in s["sources"] if x["provider"] == "garmin")
     assert datetime.fromisoformat(g["last_new_data_at"]) == datetime(2026, 9, 28, 2, 56, 47).replace(
         tzinfo=__import__("datetime").timezone.utc)
+
+
+def test_error_code_takes_priority_and_state_groups(conn, monkeypatch):
+    j = _job("strava", "failed", 1, "403 forbidden")
+    j.error_code, j.http_status, j.source_path = "subscription_required", 403, "manual"
+    s = _state(conn, monkeypatch, {"strava": [j], "intervals": [_job("intervals", "completed", 1)]})
+    st = next(x for x in s["sources"] if x["provider"] == "strava")
+    assert st["last_error"]["code"] == "subscription_required"
+    assert st["last_error"]["http_status"] == 403 and st["last_error"]["source_path"] == "manual"
+    if st["state"] != "disabled":
+        assert st["state"] == "error-access"
+
+
+def test_legacy_row_403_maps_to_subscription_required():
+    from src.services.sync_state_service import classify_error
+    e = classify_error(_job("strava", "failed", 1, "HTTP 403"))
+    assert e["code"] == "subscription_required" and e["action"] == "disable"
+
+
+def test_upstream_codes_group_to_error_upstream():
+    from src.services.sync_state_service import _STATE_GROUP
+    assert _STATE_GROUP.get("timeout", "upstream") == "upstream"

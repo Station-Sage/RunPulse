@@ -336,15 +336,12 @@ def load_sync_status(conn: sqlite3.Connection) -> list[dict]:
     Returns:
         [{"source": "garmin", "last_sync": "2026-03-25 10:30", "status": "completed"}, ...]
     """
-    rows = conn.execute(
-        """SELECT source,
-                  MAX(created_at) AS last_sync,
-                  status
-           FROM sync_jobs
-           GROUP BY source
-           ORDER BY source""",
-    ).fetchall()
+    from src.utils.sync_jobs import list_recent_jobs
+
+    latest: dict[str, object] = {}
+    for job in list_recent_jobs(limit=200):
+        latest.setdefault(job.service, job)
     return [
-        {"source": r[0], "last_sync": r[1], "status": r[2]}
-        for r in rows
+        {"source": svc, "last_sync": j.created_at, "status": j.status}
+        for svc, j in sorted(latest.items())
     ]

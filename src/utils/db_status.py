@@ -56,12 +56,11 @@ def get_status(conn: sqlite3.Connection) -> dict:
 
     # 최근 sync_jobs
     try:
-        rows = conn.execute(
-            "SELECT source, job_type, started_at, status FROM sync_jobs ORDER BY started_at DESC LIMIT 5"
-        ).fetchall()
+        from src.utils.sync_jobs import list_recent_jobs
+
         status["recent_sync"] = [
-            {"source": r[0], "job_type": r[1], "started_at": r[2], "status": r[3]}
-            for r in rows
+            {"source": j.service, "job_type": j.source_path, "started_at": j.created_at, "status": j.status}
+            for j in list_recent_jobs(limit=5)
         ]
     except Exception:
         status["recent_sync"] = []
