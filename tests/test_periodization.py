@@ -40,3 +40,41 @@ def test_short_or_invalid_inputs():
     assert build_schedule(0, **KW) == [] and build_schedule(5, **{**KW, "start_km": 0}) == []
     s = build_schedule(2, **KW)                       # 계획이 감량 기간보다 짧으면 전부 감량
     assert [w.phase for w in s] == ["taper", "taper"]
+
+
+def test_v2_full_taper_is_two_weeks_with_d14_long():
+    s = build_schedule(12, **KW, rules_version=2)
+    assert [w.phase for w in s[-2:]] == ["taper"] * 2 and s[-3].phase != "taper"
+    peak = s[-3].weekly_km if s[-3].phase != "recovery_week" else s[-4].weekly_km
+    assert abs(s[-2].weekly_km - peak * 0.70) < 1.0 and abs(s[-1].weekly_km - peak * 0.50) < 1.0
+    assert s[-2].long_km == 0 and s[-1].long_km == 0
+    assert 20.0 <= s[-3].long_km <= 24.0 and s[-3].weeks_to_race == 2
+
+
+def test_v2_three_week_taper_only_for_long_high_volume_plans():
+    s = build_schedule(18, **{**KW, "peak_km": 90.0, "start_km": 70.0}, rules_version=2)
+    assert [w.phase for w in s[-3:]] == ["taper"] * 3 and s[-3].weeks_to_race == 2
+    assert 20.0 <= s[-3].long_km <= 24.0
+    s2 = build_schedule(18, **KW, rules_version=2)          # 피크 80km 미만 → 2주
+    assert [w.phase for w in s2].count("taper") == 2
+
+
+def test_v1_and_non_full_unchanged_by_rules_version():
+    assert build_schedule(9, **KW) == build_schedule(9, **KW, rules_version=1)
+    half = {**KW, "taper_weeks": 2}
+    assert build_schedule(9, **half) == build_schedule(9, **half, rules_version=2)
+
+
+def test_schedule_for_goal_uses_goal_rules_version(tmp_path):
+    import sqlite3
+    from datetime import date
+    from src.db_setup import create_tables
+    from src.training.goals import add_goal, set_rules_version
+    from src.training.planner_schedule import _rules_version
+    conn = sqlite3.connect(tmp_path / "t.db")
+    create_tables(conn)
+    gid = add_goal(conn, "m", 42.195, date(2027, 3, 7).isoformat(), rules_version=1)
+    assert _rules_version(conn, {"id": gid}) == 1
+    set_rules_version(conn, gid, 2)
+    assert _rules_version(conn, {"id": gid}) == 2
+    assert _rules_version(conn, {}) == 1

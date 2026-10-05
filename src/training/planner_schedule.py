@@ -7,6 +7,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
+from .goals import get_rules_version
 from .periodization import WeekTarget, build_schedule
 from .planner_config import DISTANCE_LABEL_KM, LONG_RUN_BASE
 from .planner_rules import plan_start_monday
@@ -27,6 +28,10 @@ def recent_load(conn: sqlite3.Connection, as_of: date) -> tuple[float, float]:
     return round(_sum(28, "SUM") / 4, 1), round(_sum(42, "MAX"), 1)
 
 
+def _rules_version(conn: sqlite3.Connection, goal: dict) -> int:
+    return get_rules_version(conn, goal["id"]) if goal.get("id") is not None else 1
+
+
 def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None,
                       today: date | None = None) -> list[WeekTarget]:
     """goal(race_date·plan_weeks 필요)의 주별 목표. 계획 정보가 부족하면 빈 리스트(호출부가 기존 규칙으로 폴백)."""
@@ -40,7 +45,8 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     peak = recommend_weekly_km(vdot, dlabel, "peak", 0, goal["plan_weeks"]) if vdot else start_km * 1.3
     return build_schedule(int(goal["plan_weeks"]), start_km, start_long, max(peak, start_km),
                           LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
-                          get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])))
+                          get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
+                          _rules_version(conn, goal))
 
 
 def week_target(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: str, vdot: float | None) -> WeekTarget | None:

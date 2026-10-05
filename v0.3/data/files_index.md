@@ -1240,7 +1240,7 @@
 
 - functions: expand_work, is_continuous, compare_continuous, compare, prediction_note
 
-### `periodization.py` (63줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
+### `periodization.py` (80줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
 
 - class **WeekTarget**: 없음
 - functions: build_schedule
@@ -1277,7 +1277,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (53줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (59줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, schedule_for_goal, week_target
 
@@ -2173,9 +2173,9 @@
 - class **TestPaceToKmh**: test_300sec, test_360sec, test_zero_raises
 - class **TestFormatDuration**: test_under_hour, test_over_hour, test_zero, test_exact_hour
 
-### `test_periodization.py` (42줄) — 목표 대회 역산 주기화.
+### `test_periodization.py` (80줄) — 목표 대회 역산 주기화.
 
-- functions: test_last_week_is_race_week_and_taper_comes_last, test_ramp_is_capped_and_peak_week_is_not_recovery, test_long_run_progresses_then_tapers_off, test_taper_volume_falls_below_peak, test_short_or_invalid_inputs
+- functions: test_last_week_is_race_week_and_taper_comes_last, test_ramp_is_capped_and_peak_week_is_not_recovery, test_long_run_progresses_then_tapers_off, test_taper_volume_falls_below_peak, test_short_or_invalid_inputs, test_v2_full_taper_is_two_weeks_with_d14_long, test_v2_three_week_taper_only_for_long_high_volume_plans, test_v1_and_non_full_unchanged_by_rules_version, test_schedule_for_goal_uses_goal_rules_version
 
 ### `test_phase1_schema.py` (756줄) — Phase 1 스키마 & 기반 인프라 테스트.
 

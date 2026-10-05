@@ -424,3 +424,6 @@
 ### U16h (2026-10-05)
 - 신규 유형 marathon·long_mp·threshold 배선: planned_workouts CHECK 확장(스키마 v27 `db_schema_v27.py` 테이블 재생성, 멱등), plan_structure(_SHARE·max_only), garmin/caldav 푸시 이름, match_select 비호환표, 한글 라벨(format_ko·today_hero·format.ts). 테스트 5개.
 - U16l의 `plan_progression` 테이블은 v27→v28로 번호 변경. 운영은 v25 → 다음 배포 시 v26·v27 마이그레이션(planned_workouts 재생성 포함, 사전 백업 권장). 다음: U16i(테이퍼 v2).
+
+### U16i (2026-10-05)
+- `periodization.build_schedule(..., rules_version=1)`: v2 풀(taper_weeks≥3)은 감량 2주(0.70/0.50), 16주 이상·피크 80km 이상일 때만 3주. 감량 주 롱런 없음, D−14(weeks_to_race==2) 주말 롱런 20~24km(롱런 상한 이내). v1·풀 외 거리는 불변. `planner_schedule`이 goal의 plan_rules_version을 읽어 전달. 테스트 4개. 다음: U16j(하네스 v2 실행·플래그).
