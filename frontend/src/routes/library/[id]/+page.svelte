@@ -195,6 +195,7 @@
 			<a href="{base}/coach/new?activity={core.id}" class="hidden rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary md:inline" data-testid="ask-coach">코치에게 묻기</a>
 		</div>
 
+		<div class="h-20 md:hidden" aria-hidden="true"></div>
 	</div>
 {/if}
 {#if core}
