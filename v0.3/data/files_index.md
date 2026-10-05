@@ -183,7 +183,7 @@
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (188줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (193줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - functions: get_static_plan_templates, create_plan_from_template
 
@@ -1208,9 +1208,9 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (149줄) — 훈련 목표 CRUD.
+### `goals.py` (167줄) — 훈련 목표 CRUD.
 
-- functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
+- functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
 ### `interval_calc.py` (221줄) — 인터벌 트레이닝 처방 계산.
 
@@ -1267,6 +1267,10 @@
 
 - functions: week_ctx, g2a_long_cap, g2b_long_envelope, g9_long_floor, f6_long_step
 
+### `plan_readiness.py` (65줄) — 계획 준비 볼륨·경고 — 피크 롱런 하한을 담을 주간 거리에 대회 전까지 닿는지 판정한다 (DESIGN-U16-LONGRUN §5.2-5).
+
+- functions: ready_week_km, cold_peak_km, readiness_warning, plan_warnings
+
 ### `plan_structure.py` (43줄) — 계획 행 → 세그먼트 구조(structure_json, 순수) — 거리뿐 아니라 세트 수·반복 거리·구간 페이스로 이행을 판정하기 위한 기준.
 
 - functions: structure_for_plan
@@ -1287,9 +1291,9 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (147줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (171줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
-- functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, plan_start_source, week_target
+- functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
 ### `planner_v2.py` (192줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
@@ -1614,6 +1618,10 @@
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
+
+### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
+
+- functions: mini_app, test_post_plan_reported_load_saved_and_warnings, test_post_plan_400_bad_reported_load
 
 ### `test_api_prediction.py` (55줄) — P7-PRED-53·71: 예측 비교·대회 확인 API.
 
@@ -2002,6 +2010,10 @@
 
 - class **TestGarminWellnessSync**: test_sync_one_day, test_resync_updates_partial_day_values, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
 
+### `test_goal_reported_load.py` (27줄) — v28: 목표 생성 시 사용자 입력 시작 부하(최근 주간 km·최장 롱런 km).
+
+- functions: test_reported_load_roundtrip_and_default_none, test_v28_migration_idempotent_and_missing_column_safe
+
 ### `test_goal_rules_version.py` (57줄) — U16e: 목표별 계획 규칙 버전 고정·플래그·마이그레이션.
 
 - functions: test_schema_version_and_default_one, test_flag_on_new_goal_is_v2_and_existing_stays_v1, test_explicit_version_and_downgrade, test_migration_adds_column_to_legacy_goals_idempotent, test_get_rules_version_missing_goal_is_one
@@ -2254,6 +2266,10 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed
 
+### `test_plan_readiness.py` (69줄) — 준비 볼륨·경고(DESIGN-U16-LONGRUN §5.2-5)와 콜드 피크 목표(§5.2 L5 후속).
+
+- functions: test_ready_and_cold_peak_km_by_distance, test_readiness_warning_ramp_message, test_readiness_warning_none_when_reached_or_empty, test_readiness_warning_days_cap_message, test_cold_v2_peak_aims_at_ready_volume_with_ramp_kept, test_plan_warnings_cold_full_short_plan, test_plan_warnings_uses_reported_load
+
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
@@ -2270,9 +2286,9 @@
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
 
-### `test_planner_schedule_cold.py` (51줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
+### `test_planner_schedule_cold.py` (65줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
 
-- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty
+- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty, test_start_load_uses_reported_load_only_when_cold, test_week_cap_km_v2_only
 
 ### `test_planner_v2.py` (126줄) — planner_v2 후처리 단위 테스트(순수 함수).
 
@@ -2709,7 +2725,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 561개 파일
+총 565개 파일
 
 ## docstring 누락
 

@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { parsePrefill } from '$lib/planPrefill';
+	import { parsePrefill, parseReportedLoad, REPORTED_MAX_KM, reportedLoadEntries } from '$lib/planPrefill';
 
 	const DISTANCES: { label: string; km: number }[] = [
 		{ label: '5km', km: 5 },
@@ -20,6 +20,9 @@
 	let goalHH = $state(pre.hh);
 	let goalMM = $state(pre.mm);
 	let goalSS = $state(pre.ss);
+	const reported = parseReportedLoad(page.url.searchParams);
+	let recentWeekly = $state(reported.weeklyKm != null ? String(reported.weeklyKm) : '');
+	let recentLong = $state(reported.longKm != null ? String(reported.longKm) : '');
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
@@ -46,6 +49,7 @@
 			const params = new URLSearchParams({ distance_km: String(selectedKm) });
 			if (raceDate) params.set('race_date', raceDate);
 			if (tts != null) params.set('target_time_sec', String(tts));
+			for (const [k, v] of reportedLoadEntries(String(recentWeekly ?? ''), String(recentLong ?? ''))) params.set(k, v);
 			await goto(`${base}/coach/plan/compare?${params}`);
 		} catch {
 			error = '템플릿을 불러올 수 없습니다. 다시 시도해주세요.';
@@ -142,6 +146,42 @@
 					/>
 				</div>
 			{/if}
+		</div>
+
+		<!-- 최근 훈련량(선택) — 기록이 적을 때 시작 볼륨으로 사용 -->
+		<div>
+			<p class="mb-1 text-sm font-medium text-fg-primary">최근 훈련량 (선택)</p>
+			<p class="mb-2 text-xs text-fg-muted">최근 4주 기록이 적을 때 시작 볼륨으로 사용합니다.</p>
+			<div class="flex flex-wrap items-center gap-3">
+				<label class="flex items-center gap-1.5 text-sm text-fg-secondary" for="recent-weekly">
+					주간
+					<input
+						id="recent-weekly"
+						type="number"
+						bind:value={recentWeekly}
+						placeholder="km"
+						min="0"
+						max={REPORTED_MAX_KM.weekly}
+						step="0.1"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+					/>
+					km
+				</label>
+				<label class="flex items-center gap-1.5 text-sm text-fg-secondary" for="recent-long">
+					최장
+					<input
+						id="recent-long"
+						type="number"
+						bind:value={recentLong}
+						placeholder="km"
+						min="0"
+						max={REPORTED_MAX_KM.long}
+						step="0.1"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+					/>
+					km
+				</label>
+			</div>
 		</div>
 
 		{#if error}

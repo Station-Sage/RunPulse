@@ -9,6 +9,8 @@
 
 	let loading = $state<number | null>(null);
 	let error = $state<string | null>(null);
+	// 생성 후 경고가 있으면 이동 전에 보여 준다(설계 §5.2-5 준비도 경고)
+	let created = $state<{ goalId: number; warnings: string[] } | null>(null);
 
 	function fmtTime(sec: number | null): string {
 		if (sec == null) return '—';
@@ -30,13 +32,19 @@
 		loading = weeks;
 		error = null;
 		try {
-			const goalId = await createPlan({
+			const res = await createPlan({
 				distance_km: data.distanceKm,
 				race_date: data.raceDate,
 				weeks,
-				...(data.targetTimeSec != null ? { target_time_sec: data.targetTimeSec } : {})
+				...(data.targetTimeSec != null ? { target_time_sec: data.targetTimeSec } : {}),
+				...(data.recentWeeklyKm != null ? { recent_weekly_km: data.recentWeeklyKm } : {}),
+				...(data.recentLongKm != null ? { recent_long_km: data.recentLongKm } : {})
 			});
-			await goto(`${base}/coach/plan/${goalId}`);
+			if (res.warnings.length > 0) {
+				created = { goalId: res.goal_id, warnings: res.warnings };
+				return;
+			}
+			await goto(`${base}/coach/plan/${res.goal_id}`);
 		} catch {
 			error = '플랜 생성에 실패했습니다. 다시 시도해주세요.';
 		} finally {
@@ -57,6 +65,22 @@
 	</div>
 
 	<div class="flex flex-col gap-4 px-4 py-5">
+		{#if created}
+			<div class="rounded-xl border border-semantic-yellow bg-surface-2 p-4" role="alert" data-testid="plan-warnings">
+				<p class="mb-2 text-sm font-semibold text-fg-primary">프로그램을 만들었어요. 확인할 점이 있어요</p>
+				<ul class="mb-3 list-disc pl-4 text-xs text-fg-secondary">
+					{#each created.warnings as w}
+						<li>{w}</li>
+					{/each}
+				</ul>
+				<a
+					href="{base}/coach/plan/{created.goalId}"
+					class="inline-block rounded-lg bg-fg-primary px-4 py-2 text-sm font-medium text-surface-1"
+				>
+					계획 보기 →
+				</a>
+			</div>
+		{/if}
 		{#each data.templates as t}
 			<div class="rounded-xl border border-border-subtle bg-surface-2 p-4">
 				<div class="mb-3 flex items-start justify-between">
@@ -97,7 +121,7 @@
 				<button
 					type="button"
 					onclick={() => handleSelect(t.weeks)}
-					disabled={loading != null}
+					disabled={loading != null || created != null}
 					class="w-full rounded-lg bg-fg-primary py-2 text-sm font-medium text-surface-1 disabled:opacity-40"
 				>
 					{loading === t.weeks ? '생성 중…' : '이 프로그램 선택'}

@@ -6,6 +6,7 @@ import sqlite3
 from flask import request
 
 from src.services import adaptation_service, plan_service, plan_template_service
+from src.training import plan_readiness
 from src.web.helpers import db_path
 
 from . import api_bp, api_error, api_ok
@@ -121,6 +122,23 @@ def save_session_note_route(session_date: str):
     return api_ok({"note": note})
 
 
+_REPORTED_MAX_KM = {"recent_weekly_km": 300.0, "recent_long_km": 60.0}
+
+
+def _reported_km(body: dict, key: str) -> tuple[float | None, str | None]:
+    """선택 입력(최근 주간 km·최장 롱런 km) 검증. 비어 있으면 None, 범위 밖이면 오류 문구."""
+    raw = body.get(key)
+    if raw is None or raw == "":
+        return None, None
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return None, f"{key} 는 숫자여야 합니다"
+    if not 0 < val <= _REPORTED_MAX_KM[key]:
+        return None, f"{key} 는 0 초과 {_REPORTED_MAX_KM[key]:.0f} 이하"
+    return round(val, 1), None
+
+
 @api_bp.post("/coach/plan")
 def create_plan():
     body = request.get_json(silent=True) or {}
@@ -133,15 +151,21 @@ def create_plan():
     race_date = body.get("race_date") or None
     target_time_sec = body.get("target_time_sec") or None
     name = body.get("name") or None
+    weekly_km, err_w = _reported_km(body, "recent_weekly_km")
+    long_km, err_l = _reported_km(body, "recent_long_km")
+    if err_w or err_l:
+        return api_error("BAD_REQUEST", err_w or err_l, 400)
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     conn = sqlite3.connect(str(dpath))
     try:
         goal_id = plan_template_service.create_plan_from_template(
-            conn, float(distance_km), race_date, int(weeks), target_time_sec, name
+            conn, float(distance_km), race_date, int(weeks), target_time_sec, name,
+            recent_weekly_km=weekly_km, recent_long_km=long_km,
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
+        warnings = plan_readiness.plan_warnings(conn, goal_id)
     finally:
         conn.close()
-    return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks})
+    return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks, "warnings": warnings})

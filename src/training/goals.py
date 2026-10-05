@@ -37,6 +37,24 @@ def set_rules_version(conn: sqlite3.Connection, goal_id: int, version: int) -> N
     conn.commit()
 
 
+def set_reported_load(conn: sqlite3.Connection, goal_id: int, weekly_km: float | None,
+                      long_km: float | None) -> None:
+    """목표 생성 시 사용자가 입력한 최근 주간 km·최장 롱런 km 저장(v2 콜드스타트 출처 (a))."""
+    conn.execute("UPDATE goals SET reported_weekly_km = ?, reported_long_km = ? WHERE id = ?",
+                 (weekly_km, long_km, goal_id))
+
+
+def get_reported_load(conn: sqlite3.Connection, goal_id: int) -> tuple[float | None, float | None]:
+    """(입력 주간 km, 입력 최장 km). 목표·컬럼이 없거나 미입력이면 None."""
+    try:
+        row = conn.execute(
+            "SELECT reported_weekly_km, reported_long_km FROM goals WHERE id = ?", (goal_id,)
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None, None
+    return (row[0], row[1]) if row else (None, None)
+
+
 def add_goal(
     conn: sqlite3.Connection,
     name: str,

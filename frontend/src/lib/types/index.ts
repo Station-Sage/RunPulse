@@ -1132,6 +1132,14 @@ export interface CreatePlanPayload {
 	weeks: number;
 	target_time_sec?: number;
 	name?: string;
+	recent_weekly_km?: number;
+	recent_long_km?: number;
+}
+
+export interface CreatePlanResult {
+	goal_id: number;
+	plan_weeks: number;
+	warnings: string[];
 }
 
 export interface TodaysAdjustment {

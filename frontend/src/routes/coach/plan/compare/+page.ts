@@ -1,6 +1,7 @@
 // 03e-coach.md 5-E — 프로그램 비교: 쿼리 파라미터로 템플릿 재조회.
 import { error } from '@sveltejs/kit';
 import { getPlanTemplates } from '$lib/api/plan';
+import { parseReportedLoad } from '$lib/planPrefill';
 import type { PlanTemplate } from '$lib/types';
 
 export interface ComparePlanData {
@@ -8,6 +9,8 @@ export interface ComparePlanData {
 	distanceKm: number;
 	raceDate: string | null;
 	targetTimeSec: number | null;
+	recentWeeklyKm: number | null;
+	recentLongKm: number | null;
 }
 
 export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
@@ -18,6 +21,7 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 	const raceDateParam = url.searchParams.get('race_date');
 	const targetTimeParam = url.searchParams.get('target_time_sec');
 	const targetTimeSec = targetTimeParam ? Number(targetTimeParam) : null;
+	const reported = parseReportedLoad(url.searchParams);
 
 	const templates = await getPlanTemplates(
 		distanceKm,
@@ -29,6 +33,8 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 		templates,
 		distanceKm,
 		raceDate: raceDateParam || null,
-		targetTimeSec
+		targetTimeSec,
+		recentWeeklyKm: reported.weeklyKm,
+		recentLongKm: reported.longKm
 	};
 }

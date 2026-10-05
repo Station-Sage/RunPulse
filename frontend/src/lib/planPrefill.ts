@@ -30,3 +30,32 @@ export function roadmapLabel(daysLeft: number): string {
 	const weeks = Math.max(1, Math.ceil(daysLeft / 7));
 	return daysLeft <= 28 ? `남은 ${weeks}주 로드맵 만들기` : `${weeks}주 로드맵 만들기`;
 }
+
+// 목표 생성 선택 입력(최근 주간 km·최장 km) — 기록이 적은 러너의 시작 볼륨 출처(설계 §5.2-1(a)).
+export const REPORTED_MAX_KM = { weekly: 300, long: 60 };
+
+// 문자열 → km(0 초과 max 이하, 0.1 단위). 비었거나 범위 밖이면 null.
+export function parseKm(raw: string | null | undefined, max: number): number | null {
+	if (raw == null || String(raw).trim() === '') return null;
+	const v = Number(raw);
+	if (!Number.isFinite(v) || v <= 0 || v > max) return null;
+	return Math.round(v * 10) / 10;
+}
+
+// 쿼리 → 선택 입력. 잘못된 값은 버린다.
+export function parseReportedLoad(search: URLSearchParams): { weeklyKm: number | null; longKm: number | null } {
+	return {
+		weeklyKm: parseKm(search.get('recent_weekly_km'), REPORTED_MAX_KM.weekly),
+		longKm: parseKm(search.get('recent_long_km'), REPORTED_MAX_KM.long)
+	};
+}
+
+// 폼 입력 → 쿼리에 넣을 [키, 값] 목록(유효한 것만).
+export function reportedLoadEntries(weekly: string, long: string): [string, string][] {
+	const out: [string, string][] = [];
+	const w = parseKm(weekly, REPORTED_MAX_KM.weekly);
+	const l = parseKm(long, REPORTED_MAX_KM.long);
+	if (w != null) out.push(['recent_weekly_km', String(w)]);
+	if (l != null) out.push(['recent_long_km', String(l)]);
+	return out;
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planNewHref, parsePrefill, roadmapLabel } from '../src/lib/planPrefill.ts';
+import { planNewHref, parsePrefill, roadmapLabel, parseKm, parseReportedLoad, reportedLoadEntries } from '../src/lib/planPrefill.ts';
 
 test('planNewHref: target_time_sec 포함', () => {
 	assert.equal(
@@ -43,4 +43,20 @@ test('roadmapLabel: 30일 N주 로드맵', () => {
 
 test('roadmapLabel: 3일 이하 최소 1주', () => {
 	assert.equal(roadmapLabel(3), '남은 1주 로드맵 만들기');
+});
+
+test('parseKm: 빈 값·범위 밖은 null, 0.1 단위 반올림', () => {
+	assert.equal(parseKm('', 300), null);
+	assert.equal(parseKm(null, 300), null);
+	assert.equal(parseKm('0', 300), null);
+	assert.equal(parseKm('301', 300), null);
+	assert.equal(parseKm('abc', 300), null);
+	assert.equal(parseKm('12.34', 300), 12.3);
+});
+
+test('parseReportedLoad / reportedLoadEntries: 유효한 값만', () => {
+	const r = parseReportedLoad(new URLSearchParams('recent_weekly_km=15&recent_long_km=99'));
+	assert.deepEqual(r, { weeklyKm: 15, longKm: null });
+	assert.deepEqual(reportedLoadEntries('15', '8.5'), [['recent_weekly_km', '15'], ['recent_long_km', '8.5']]);
+	assert.deepEqual(reportedLoadEntries('', '-1'), []);
 });

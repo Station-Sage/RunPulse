@@ -8,7 +8,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
-from src.training.goals import add_goal
+from src.training.goals import add_goal, set_reported_load
 from src.training.planner import (
     generate_weekly_plan,
     save_weekly_plan,
@@ -153,6 +153,8 @@ def create_plan_from_template(
     weeks: int,
     target_time_sec: int | None = None,
     name: str | None = None,
+    recent_weekly_km: float | None = None,
+    recent_long_km: float | None = None,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -163,6 +165,7 @@ def create_plan_from_template(
         weeks: 훈련 기간 (주). race_date가 있으면 이번 주~대회 주 사이로 줄인다.
         target_time_sec: 목표 완주 시간(초). None이면 "완주" 목표.
         name: 목표 이름. None이면 "{distance_km}km 목표" 자동 생성.
+        recent_weekly_km / recent_long_km: 사용자가 입력한 최근 주간 km·최장 롱런 km(선택, v2 콜드스타트 출처).
 
     Returns:
         새로 생성된 goal_id.
@@ -173,6 +176,8 @@ def create_plan_from_template(
     goal_name = name or f"{distance_km:.0f}km 목표"
     goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec)
     conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
+    if recent_weekly_km is not None or recent_long_km is not None:
+        set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
     upsert_user_training_prefs(conn)
 
     today = date.today()

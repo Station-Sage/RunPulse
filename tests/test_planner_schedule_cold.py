@@ -49,3 +49,17 @@ def test_schedule_for_goal_cold_v2_not_empty_v1_empty():
     assert len(sched) == 12 and sched[0].weekly_km == 16.0
     assert S.plan_start_source(c, v2, "half", date(2030, 1, 1)) == "default"
     assert S.plan_start_source(c, v1, "half", date(2030, 1, 1)) == "history"
+
+
+def test_start_load_uses_reported_load_only_when_cold():
+    c = mem_conn()
+    assert S.start_load(c, "full", date(2030, 6, 2), 2, 30.0, 18.0) == (30.0, 18.0, "user")
+    assert S.start_load(c, "full", date(2030, 6, 2), 2, None, 18.0) == (20.0, 12.0, "default")   # 최장만으로는 출처 아님
+    assert S.start_load(c, "full", date(2030, 6, 2), 1, 30.0, 18.0) == (0.0, 0.0, "history")      # v1 불변
+
+
+def test_week_cap_km_v2_only():
+    c = mem_conn()
+    v1, v2 = _goal(c, 1), _goal(c, 2)
+    assert S.week_cap_km(c, v1, "half", None) is None
+    assert S.week_cap_km(c, v2, "half", None) > 0

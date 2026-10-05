@@ -5,6 +5,7 @@ import type {
 	TodaysAdjustment,
 	PlanTemplate,
 	CreatePlanPayload,
+	CreatePlanResult,
 	SessionDetail,
 	PlanAdaptation
 } from '$lib/types';
@@ -31,11 +32,11 @@ export function getPlanTemplates(
 	return apiFetch<PlanTemplate[]>(`/coach/plan/templates?${params}`);
 }
 
-export function createPlan(payload: CreatePlanPayload): Promise<number> {
-	return apiFetch<{ goal_id: number }>('/coach/plan', {
+export function createPlan(payload: CreatePlanPayload): Promise<CreatePlanResult> {
+	return apiFetch<CreatePlanResult>('/coach/plan', {
 		method: 'POST',
 		body: JSON.stringify(payload)
-	}).then((r) => r.goal_id);
+	}).then((r) => ({ ...r, warnings: r.warnings ?? [] }));
 }
 
 export function getSessionDetail(goalId: number, date: string): Promise<SessionDetail> {
