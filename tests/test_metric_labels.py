@@ -39,11 +39,49 @@ def test_core_terms_pinned():
 
 
 def test_fallback_strips_parent_and_uses_name_last():
-    assert label_for("x_unknown", "무언가 (parent: utrs)") == ("무언가", None)
-    assert label_for("x_unknown", "") == ("x_unknown", None)
+    assert label_for("x_unknown", "무언가 (parent: utrs)")[:2] == ("무언가", None)
+    assert label_for("x_unknown", "")[:2] == ("x_unknown", None)
 
 
 def test_every_registry_metric_has_displayable_name():
     for name, d in METRIC_REGISTRY.items():
         name_ko, _ = display_name(name, d.description)
         assert name_ko and "(parent:" not in name_ko, name
+
+
+_FIRST_BATCH = [
+    "race_pred_marathon_sec", "race_pred_half_sec", "race_pred_10k_sec", "race_pred_5k_sec", "ctl", "tsb", "utrs",
+    "cirs", "atl", "rri", "acwr", "lsi", "monotony", "training_strain", "rtti", "vo2max", "resting_hr",
+    "hrv_last_night", "hrv_weekly_avg", "sleep_score", "sleep_duration_sec", "body_battery_high",
+    "body_battery_low", "avg_stress", "training_readiness_score", "crs", "ramp_rate", "marathon_shape",
+]
+
+
+def test_first_batch_has_description_short():
+    assert [n for n in _FIRST_BATCH if not METRIC_LABELS[n].description_short] == []
+
+
+def test_texts_within_40_chars():
+    for name, lab in METRIC_LABELS.items():
+        for text in [lab.description_short, *(lab.action_hint or {}).values()]:
+            if text:
+                assert len(text) <= 40, (name, text)
+
+
+def test_action_hint_keys_are_five_level_status():
+    from src.metrics.bands import BANDS
+
+    allowed = {"excellent", "good", "neutral", "caution", "poor"}
+    for name, lab in METRIC_LABELS.items():
+        if lab.action_hint:
+            assert set(lab.action_hint) <= allowed, name
+            assert name in BANDS, name
+
+
+def test_action_hint_picks_current_status_only():
+    from src.services.metric_display import action_hint
+
+    assert action_hint("utrs", "poor") == "오늘은 쉬는 게 좋아요."
+    assert action_hint("utrs", None) is None
+    assert action_hint("ctl", "good") is None
+    assert action_hint("acwr", "excellent") is None

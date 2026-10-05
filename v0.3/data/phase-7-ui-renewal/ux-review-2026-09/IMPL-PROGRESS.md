@@ -358,3 +358,12 @@
 - 구현: `src/services/activity_similar.py` 신설 — 기준 순서 same_course(시작 300m 이내·거리 ±10%) → same_class(`workout_type_classified`) → distance(±15%), 각 N≥5, 모두 부족하면 None. 응답에 `basis/class_label/load_median/load_pct_vs_median` 추가. 프론트 `impactLines`가 기준별 문구와 "기준 부족" 안내를 낸다.
 - 검증: pytest 2111 통과, 프론트 단위 346, svelte-check 0 오류, 실 DB 사본 API 확인(same_course n=45/21, same_class 이지런 n=148).
 - 다음: U13(B-4+A-15) → U14(B-5) → U8(B-1) → U9(B-6).
+
+### U13 B-4 + A-15 완료 (2026-10-05)
+- 지표 한 줄 설명·행동 힌트: `src/utils/metric_label_texts.py` 신설(28개 지표, 각 ≤40자, action_hint는 BANDS 있는 tsb·utrs·cirs·rri·acwr·crs만). `MetricLabel`에 `description_short/action_hint` 추가, `metric_display.action_hint(name, status)`가 현재 등급 문구만 고른다. 브라우저·트렌드 API에 `description_short/action_hint` 노출, explain `meaning.what`은 `_WHAT` 없으면 description_short로 폴백.
+- 프론트: 지표 카드 2행(`cardSubline`: 힌트 우선→설명→없으면 미렌더), 상세 헤더 `MetricTerm` ⓘ 팝오버(explain what, 폴백 description_short).
+- **문구는 초안 — D-4에 따라 사용자 검수 필요**(`metric_label_texts.py`). 검수 후 수정 요청 시 해당 파일만 고치면 된다.
+- 설계서 대비: 카드가 링크라 카드 안 ⓘ는 두지 않고 상세 헤더에만 배치.
+- 검증: pytest 전체·프론트 unit 347·svelte-check 0 오류·build, 실DB 사본(카드 2행 20개, ⓘ 팝오버 문구 확인).
+- 다음: U14(B-5) → U8(B-1) → U9(B-6).
+

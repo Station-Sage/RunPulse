@@ -13,6 +13,8 @@ from typing import NamedTuple
 class MetricLabel(NamedTuple):
     name_ko: str
     abbr: str | None = None
+    description_short: str | None = None
+    action_hint: dict[str, str] | None = None
 
 
 METRIC_LABELS: dict[str, MetricLabel] = {
@@ -101,6 +103,15 @@ METRIC_LABELS: dict[str, MetricLabel] = {
     "cirs_fatigue": MetricLabel("피로 누적 위험 요소"),
     "heat_model": MetricLabel("기온 영향 계수"),
 }
+
+def _merge_texts() -> None:
+    from src.utils.metric_label_texts import TEXTS
+
+    for key, (short, hints) in TEXTS.items():
+        METRIC_LABELS[key] = METRIC_LABELS[key]._replace(description_short=short, action_hint=hints or None)
+
+
+_merge_texts()
 
 _PARENT_RE = re.compile(r"\s*\(parent:[^)]*\)")
 

@@ -44,3 +44,8 @@ export function isFlat(series: (number | null)[]): boolean {
 	const v = series.filter((x): x is number => x != null);
 	return v.length >= 2 && v.every((x) => x === v[0]);
 }
+
+/** 카드 2행: 상태가 있고 행동 힌트가 있으면 힌트, 아니면 한 줄 설명. 둘 다 없으면 null(빈 줄 렌더 금지). */
+export function cardSubline(m: { description_short?: string | null; action_hint?: string | null }): string | null {
+	return m.action_hint || m.description_short || null;
+}

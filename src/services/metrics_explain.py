@@ -37,6 +37,7 @@ from src.services.metrics_explain_prediction import explain_prediction
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
+from src.utils.metric_labels import label_for
 
 _PMC_ALPHA = {"ctl": 1.0 / 42, "atl": 1.0 / 7}
 _PMC_LABEL = {"ctl": "체력", "atl": "피로"}
@@ -203,7 +204,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         "status_label": band["label"] if band else None,
         "higher_is_better": _HIGHER_IS_BETTER.get(slug),
         "meaning": {
-            "what": _WHAT.get(slug, ""),
+            "what": _WHAT.get(slug) or label_for(slug).description_short or "",
             "bands": _bands_v2(slug),
             "baseline": base or {"avg_7d": None, "delta_1d": None},
             "personal": personal_text(value, band["label"] if band else None, base["avg_90d"]) if base else None,

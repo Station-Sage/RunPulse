@@ -292,3 +292,13 @@ def test_load_headline_is_none_on_empty_db(conn):
 
     out = _load_headline(conn, "2026-01-01")
     assert out is None or isinstance(out, str)
+
+
+def test_display_meta_description_and_action_hint():
+    from src.services import metrics_browser_service as svc
+    from src.services.metric_display import display_meta
+
+    meta = display_meta("utrs", "score")
+    assert meta["description_short"]
+    assert display_meta("x_unknown", "")["description_short"] is None
+    assert svc.action_hint("utrs", "good")

@@ -848,6 +848,8 @@ export interface MetricBrowserEntry {
 	status_label?: string;
 	name_ko?: string;
 	abbr?: string | null;
+	description_short?: string | null;
+	action_hint?: string | null;
 	confidence_label?: string | null;
 	last_value_date?: string;
 	format?: string;
@@ -886,6 +888,8 @@ export interface MetricTrendData {
 	compare_group?: { key: string; label: string; provider: string } | null;
 	name_ko?: string;
 	abbr?: string | null;
+	description_short?: string | null;
+	action_hint?: string | null;
 	format?: string;
 	decimal_places?: number;
 	higher_is_better?: boolean | null;

@@ -25,6 +25,12 @@ def display_name(name: str, description: str) -> tuple[str, str | None]:
     return label.name_ko, label.abbr
 
 
+def action_hint(name: str, status: str | None) -> str | None:
+    """현재 status에 맞는 행동 힌트 1문장. 문구가 없으면 None."""
+    hints = label_for(name).action_hint
+    return hints.get(status) if hints and status else None
+
+
 def min_span(fmt: str, unit: str, value: float | None) -> float | None:
     """스파크라인 y 범위 최소 폭(21 design §5). 기준이 없는 단위는 None."""
     if fmt == "race_time":
@@ -39,6 +45,7 @@ def display_meta(name: str, unit: str, description: str = "", value: float | Non
     return {
         "name_ko": name_ko,
         "abbr": abbr,
+        "description_short": label_for(name).description_short,
         "format": fmt,
         "decimal_places": 0 if fmt in ("race_time", "duration", "pace", "signed") or unit in _INT_UNITS else 1,
         "higher_is_better": HIGHER_IS_BETTER.get(name),

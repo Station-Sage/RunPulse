@@ -3,6 +3,7 @@
 	import type { MetricTrendPageData } from './+page';
 	import TrendChart from '$lib/components/TrendChart.svelte';
 	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
+	import MetricTerm from '$lib/components/MetricTerm.svelte';
 	import MetricAbout from '$lib/components/MetricAbout.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
@@ -96,6 +97,7 @@
 		<a href="{metricsBackHref(base)}" class="hover:text-fg-secondary">메트릭</a>
 		<span aria-hidden="true">›</span>
 		<h1 class="truncate text-sm font-semibold text-fg-primary">{data.trend?.label ?? data.slug}</h1>
+		{#if data.trend?.description_short}<MetricTerm slug={data.slug} label={data.trend.label} fallback={data.trend.description_short} date={panelDate} />{/if}
 	</nav>
 	{#if displayUnit(data.trend?.unit)}
 		<span class="shrink-0 text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>

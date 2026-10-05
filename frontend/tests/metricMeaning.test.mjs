@@ -39,3 +39,10 @@ test('sparkCaption: 방향·변화율·변동 없음', () => {
 	assert.equal(sparkCaption({ abs: 0.01, pct: 0.1, days: 14 }), '14일 · 변동 없음');
 	assert.equal(sparkCaption({ abs: 2.5, pct: null, days: 14 }), '14일 · ▲2.5');
 });
+
+test('cardSubline: 힌트 우선, 설명 폴백, 둘 다 없으면 null', async () => {
+	const { cardSubline } = await import('../src/lib/metricMeaning.ts');
+	assert.equal(cardSubline({ description_short: 'd', action_hint: 'h' }), 'h');
+	assert.equal(cardSubline({ description_short: 'd', action_hint: null }), 'd');
+	assert.equal(cardSubline({}), null);
+});
