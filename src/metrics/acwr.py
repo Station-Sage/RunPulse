@@ -29,12 +29,6 @@ class ACWRCalculator(MetricCalculator):
     ranges = {"low": [0, 0.8], "optimal": [0.8, 1.3], "caution": [1.3, 1.5], "danger": [1.5, 5]}
     higher_is_better = None
     decimal_places = 2
-    display_name = "ACWR"
-    description = "급성:만성 부하 비율. 최적 범위 0.8~1.3."
-    unit = ""
-    ranges = {"low": [0, 0.8], "optimal": [0.8, 1.3], "caution": [1.3, 1.5], "danger": [1.5, 5]}
-    higher_is_better = None
-    decimal_places = 2
     requires = ["ctl", "atl"]
     WINDOW_DAYS = CTL_DAYS + 7
 
