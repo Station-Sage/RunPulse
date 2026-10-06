@@ -16,7 +16,7 @@ _SLOWEST_PACE = 900  # 15:00/km 초과는 정지로 보고 페이스 표시 안 
 _ELEV_NOISE_M = 1.0
 
 
-def cumulative_distance(streams: list[dict], total_sec: float, total_dist_m: float) -> list[float]:
+def cumulative_distance(streams: list[dict], total_sec: float, total_dist_m: float, meta: dict | None = None) -> list[float]:
     """샘플별 누적 거리(m). distance_m가 전부 있으면 그대로, 없으면 속도 적분 후 총 거리에 맞춰 스케일."""
     n = len(streams)
     if n == 0:
@@ -24,7 +24,7 @@ def cumulative_distance(streams: list[dict], total_sec: float, total_dist_m: flo
     dists = [s.get("distance_m") for s in streams]
     if all(d is not None for d in dists) and dists[-1] and dists[-1] > 0:
         return [float(d) for d in dists]
-    t = sample_times(streams, total_sec)
+    t = sample_times(streams, total_sec, meta)
     out, last_speed = [0.0], 0.0
     for i in range(1, n):
         sp = streams[i].get("speed_ms")
@@ -77,13 +77,13 @@ def _elev_gain(alts: list[float]) -> float | None:
     return round(gain, 1)
 
 
-def compute_splits(streams: list[dict], total_sec: float, total_dist_m: float) -> list[dict]:
+def compute_splits(streams: list[dict], total_sec: float, total_dist_m: float, meta: dict | None = None) -> list[dict]:
     """1km 단위 구간(마지막은 200m 이상 남을 때만 partial). 재구성 불가면 []."""
     n = len(streams)
     if n < 2 or not total_sec or total_sec <= 0 or not total_dist_m or total_dist_m < 1000:
         return []
-    t = sample_times(streams, total_sec)
-    d = cumulative_distance(streams, total_sec, total_dist_m)
+    t = sample_times(streams, total_sec, meta)
+    d = cumulative_distance(streams, total_sec, total_dist_m, meta)
     stopped = stopped_flags(streams, t, d)
     cum_stop = [0.0]
     for i in range(1, n):
@@ -120,13 +120,13 @@ def series_step_m(total_dist_m: float) -> int:
     return max(10, int(math.ceil(total_dist_m / SERIES_MAX_POINTS / 5.0) * 5))
 
 
-def build_series(streams: list[dict], total_sec: float, total_dist_m: float) -> dict | None:
+def build_series(streams: list[dict], total_sec: float, total_dist_m: float, meta: dict | None = None) -> dict | None:
     """공유 거리축 시계열 — 타임라인·지도용. 거리 기준 등간격(step_m) 재표본, 페이스는 ±1칸 이동 구간."""
     n = len(streams)
     if n < 2 or not total_dist_m or total_dist_m <= 0:
         return None
-    t = sample_times(streams, total_sec)
-    d = cumulative_distance(streams, total_sec, total_dist_m)
+    t = sample_times(streams, total_sec, meta)
+    d = cumulative_distance(streams, total_sec, total_dist_m, meta)
     if d[-1] <= 0:
         return None
     step = series_step_m(d[-1])

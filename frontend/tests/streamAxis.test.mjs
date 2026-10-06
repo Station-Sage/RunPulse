@@ -2,7 +2,7 @@
 // streamAxis.ts 순수 함수 단위 테스트 — 실행: npm run test:unit (Node 내장 test runner)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { indexAtFraction, axisTicks, formatElapsed, streamSeconds, distanceTicks, dotTopPct } from '../src/lib/streamAxis.ts';
+import { indexAtFraction, axisTicks, formatElapsed, streamSeconds, isTrustedBasis, distanceTicks, dotTopPct } from '../src/lib/streamAxis.ts';
 
 // ── indexAtFraction ──────────────────────────────────────────────────────────
 
@@ -173,4 +173,21 @@ test('dotTopPct: min–max 선형, invert 시 위아래 반전', () => {
 	assert.equal(dotTopPct([5, 5], 5, false), 50);
 	assert.equal(dotTopPct([null], 1, false), null);
 	assert.equal(dotTopPct([0, 10], null, false), null);
+});
+
+// ── streamSeconds: 서버 time_basis (U18d) ────────────────────────────────────
+
+test('streamSeconds: measured basis → 짧은 마지막 값도 재환산하지 않는다', () => {
+	assert.deepEqual(streamSeconds([0, 100, 200], 1000, 'measured'), [0, 100, 200]);
+});
+
+test('streamSeconds: unknown/미지정 basis → 기존 휴리스틱 유지', () => {
+	assert.deepEqual(streamSeconds([0, 1, 2], 1000, 'unknown'), [0, 500, 1000]);
+	assert.deepEqual(streamSeconds([0, 1, 2], 1000), [0, 500, 1000]);
+});
+
+test('streamSeconds: trusted basis 는 null 을 0 으로 대체', () => {
+	assert.deepEqual(streamSeconds([null, 5], 1000, 'scaled'), [0, 5]);
+	assert.equal(isTrustedBasis('derived'), true);
+	assert.equal(isTrustedBasis('unknown'), false);
 });

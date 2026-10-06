@@ -1,8 +1,6 @@
 import { apiFetch } from './client';
-import type { ActivityStreamPoint } from '$lib/types';
+import type { ActivityStreamsResponse } from '$lib/types';
 
-export function getActivityStreams(activityId: number): Promise<ActivityStreamPoint[]> {
-	return apiFetch<{ streams: ActivityStreamPoint[] }>(
-		`/library/activities/${activityId}/streams`
-	).then((r) => r.streams);
+export function getActivityStreams(activityId: number): Promise<ActivityStreamsResponse> {
+	return apiFetch<ActivityStreamsResponse>(`/library/activities/${activityId}/streams`);
 }

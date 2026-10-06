@@ -95,8 +95,10 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
     streams = (_downsample_streams(full_streams) or None) if include_streams else None
     total_sec = core.get("elapsed_time_sec") or core.get("duration_sec") or 0
     total_dist = core.get("distance_m") or 0
-    splits = compute_splits(full_streams, total_sec, total_dist)
-    series = build_series(full_streams, total_sec, total_dist)
+    from src.metrics.stream_meta_access import load_stream_meta
+    smeta = load_stream_meta(conn, activity_id)
+    splits = compute_splits(full_streams, total_sec, total_dist, smeta)
+    series = build_series(full_streams, total_sec, total_dist, smeta)
     siblings = [{"id": r["id"], "provider": r["source"], "is_canonical": r["id"] == canonical_id}
                 for r in (source_comparison.values() if source_comparison else [])]
 
@@ -140,6 +142,8 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         "source_comparison": source_comparison,
         "semantic_groups": semantic_groups,
         "streams": streams,
+        "streams_meta": {"time_basis": (smeta or {}).get("time_basis") or "unknown",
+                         "median_dt_sec": (smeta or {}).get("median_dt_sec")},
         "splits": splits,
         "series": series,
         "siblings": siblings,

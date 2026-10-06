@@ -97,3 +97,10 @@ def test_time_axis_repair():
     assert repair_time_axis([0, 1, 2, 3], 30) == [0.0, 10.0, 20.0, 30.0]
     assert repair_time_axis([0, 10, 20, 29], 30) == [0, 10, 20, 29]
     assert cumulative_distance([0, 10, 20], [None, 3.0, 3.0]) == [0.0, 30.0, 60.0]
+
+
+def test_time_axis_repair_basis():
+    from src.metrics.segments import repair_time_axis
+    idx = [float(i) for i in range(10)]
+    assert repair_time_axis(idx, 100, "measured") == idx       # 확정 basis 는 그대로(수영 등 짧은 실측)
+    assert repair_time_axis(idx, 100)[-1] == 100               # basis 없으면 옛 휴리스틱

@@ -122,3 +122,38 @@ def test_gap_without_elevation_is_empty():
     aid = _act(conn)
     _streams(conn, aid, [(t, t * 3.0, 3.0, 150) for t in range(3001)])
     assert GAPCalculator().compute(CalcContext(conn=conn, scope_type="activity", scope_id=str(aid))) == []
+
+
+# ── U18c: meta 기반 시간축 ──
+def _rows692(n=20, last=3215):
+    return [{"elapsed_sec": round(i * last / (n - 1)), "distance_m": i * 10.0, "speed_ms": 3.0, "heart_rate": 150}
+            for i in range(n)]
+
+
+def test_u18c_measured_meta_skips_rescale():
+    rows = _rows692()
+    meta = {"time_basis": "measured"}
+    assert sample_times(rows, 4508, meta)[-1] == 3215          # 692형: 요약 4508 vs 실측 3215 — 환산 금지
+    assert sample_times(rows, 4508)[-1] == 4508                # meta 없으면 옛 휴리스틱 유지
+
+
+def test_u18c_dwell_sum_matches_measured_moving_time():
+    rows = _rows692()
+    with_meta = sum(s["dt"] for s in moving_segments(rows, 4508, {"time_basis": "measured"}))
+    assert abs(with_meta - 3215) < 1
+    assert sum(s["dt"] for s in moving_segments(rows, 4508)) > 4400
+
+
+def test_u18c_ctx_get_stream_meta(tmp_path):
+    import sqlite3
+    from src.db_setup import create_tables
+    from src.metrics.base import CalcContext
+    conn = sqlite3.connect(":memory:")
+    create_tables(conn)
+    ctx = CalcContext(conn, "activity", "5")
+    assert ctx.get_stream_meta() is None
+    conn.execute("INSERT INTO activity_stream_meta (activity_id, source, time_basis, sample_count, stored_count)"
+                 " VALUES (5, 'garmin', 'measured', 10, 10)")
+    assert ctx.get_stream_meta()["time_basis"] == "measured"
+    conn.execute("DROP TABLE activity_stream_meta")
+    assert ctx.get_stream_meta() is None

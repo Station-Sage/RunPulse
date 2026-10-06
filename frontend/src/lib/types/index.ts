@@ -298,6 +298,8 @@ export interface ActivityDetail {
 	semantic_groups: Record<string, unknown>;
 	/** 기본 응답에서는 null — `?include=streams`일 때만 최대 500포인트 다운샘플. 전체 해상도는 streams 탭의 getActivityStreams. */
 	streams: ActivityStreamPoint[] | null;
+	/** 스트림 시간축 출처(U18). */
+	streams_meta?: ActivityStreamsMeta;
 	/** streams 다운샘플 전 원본 포인트 수 — 화면에 실제 기록 밀도를 보여줄 때 사용. */
 	stream_point_count: number;
 	laps: ActivityLap[] | null;
@@ -821,6 +823,18 @@ export interface DataHealth {
 }
 
 // ── ActivityStreams (3-D — /api/v1/library/activities/:id/streams) ────────────
+
+/** 스트림 시간축 출처(U18). unknown = meta 없음(옛 데이터) → 화면 휴리스틱 대상. */
+export type StreamTimeBasis = 'measured' | 'derived' | 'scaled' | 'unknown';
+
+export interface ActivityStreamsMeta {
+	time_basis: StreamTimeBasis;
+	median_dt_sec: number | null;
+}
+
+export interface ActivityStreamsResponse extends ActivityStreamsMeta {
+	streams: ActivityStreamPoint[];
+}
 
 export interface ActivityStreamPoint {
 	elapsed_sec: number;

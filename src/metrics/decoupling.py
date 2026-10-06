@@ -46,7 +46,7 @@ class AerobicDecouplingCalculator(MetricCalculator):
         if not streams or len(streams) < 120:
             return []
 
-        segs = [s for s in moving_segments(streams, act.get("elapsed_time_sec") or duration) if s["hr"]]
+        segs = [s for s in moving_segments(streams, act.get("elapsed_time_sec") or duration, ctx.get_stream_meta()) if s["hr"]]
         t, body = 0.0, []
         for seg in segs:
             t += seg["dt"]

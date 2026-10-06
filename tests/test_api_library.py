@@ -116,6 +116,19 @@ def test_get_activity_streams(mini_app):
     body = res.get_json()
     assert len(body["data"]["streams"]) == 1
     assert body["data"]["streams"][0]["heart_rate"] == 120
+    assert body["data"]["time_basis"] == "unknown"
+
+
+def test_get_activity_streams_returns_meta(mini_app, tmp_path):
+    client, act_id = mini_app
+    import sqlite3 as _s, src.api.routes_library as rl
+    c = _s.connect(str(rl.db_path()))
+    c.execute("INSERT INTO activity_stream_meta (activity_id, source, time_basis, time_key, sample_count,"
+              " stored_count, median_dt_sec) VALUES (?, 'garmin', 'measured', 'sumElapsedDuration', 1, 1, 2.0)",
+              (act_id,))
+    c.commit(); c.close()
+    data = client.get(f"/api/v1/library/activities/{act_id}/streams").get_json()["data"]
+    assert data["time_basis"] == "measured" and data["median_dt_sec"] == 2.0
 
 
 def test_get_activity_detail_etag_304_on_revalidate(mini_app):

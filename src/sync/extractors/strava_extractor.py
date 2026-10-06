@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from src.sync.extractors.base import BaseExtractor, MetricRecord
+from src.sync.extractors.stream_time import StreamRows, stream_meta
 from src.utils.activity_types import normalize_activity_type
 
 
@@ -132,7 +133,7 @@ class StravaExtractor(BaseExtractor):
             return []
 
         latlng_data = stream_map.get("latlng", [])
-        rows = []
+        rows = StreamRows()
         for i, t in enumerate(time_data):
             row = {
                 "source": self.SOURCE,
@@ -159,6 +160,7 @@ class StravaExtractor(BaseExtractor):
                 "temperature_c": _safe_idx(stream_map.get("temp"), i),
             }
             rows.append({k: v for k, v in row.items() if v is not None})
+        rows.meta = stream_meta(rows, "measured", "time", len(time_data))
         return rows
 
     def extract_best_efforts(self, raw: dict) -> list[dict]:

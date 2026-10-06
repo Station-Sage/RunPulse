@@ -41,6 +41,10 @@ function nearestNonNull(arr: (number | null)[], start: number): number {
 	return 0;
 }
 
+export function isTrustedBasis(basis?: string | null): boolean {
+	return basis === 'measured' || basis === 'derived' || basis === 'scaled';
+}
+
 /**
  * elapsed_sec 배열과 활동 총 시간(초)을 받아 시간 눈금에 쓸 elapsed 배열을 반환한다.
  * 마지막 non-null elapsed_sec가 totalSec의 90% 미만이면 등간격 샘플로 보고
@@ -48,8 +52,14 @@ function nearestNonNull(arr: (number | null)[], start: number): number {
  * 저장되는 경우 대응). 유효한 경우에는 원본 값을 그대로 반환한다.
  * 반환값에 null은 포함되지 않는다(null → 0으로 대체).
  */
-export function streamSeconds(elapsed: (number | null)[], totalSec: number): number[] {
+export function streamSeconds(
+	elapsed: (number | null)[],
+	totalSec: number,
+	basis?: string | null
+): number[] {
 	const n = elapsed.length;
+	// 서버가 시간축 출처를 확정한 경우(measured/derived/scaled) 저장값을 그대로 쓴다. 휴리스틱은 meta 없는 행 전용.
+	if (isTrustedBasis(basis)) return elapsed.map((v) => v ?? 0);
 	if (n === 0 || totalSec <= 0) return elapsed.map((v) => v ?? 0);
 	if (n === 1) return [0];
 

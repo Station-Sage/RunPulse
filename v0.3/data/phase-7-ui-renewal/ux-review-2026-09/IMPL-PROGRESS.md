@@ -526,3 +526,13 @@
 - `_narrative.build_narrative_prompt(weeks=)` W 블록 + "(W2 롱런 28km)" 인용 지시. 응답에 `weeks` 추가(캐시 히트 때도 최신으로 재계산).
 - 월간 뷰 L2: `WeekDigestList.svelte` 접힘 목록. `weeks_cited`/주 칩 스크롤은 미구현(AI가 W 인용만 하고 칩은 기존 유지).
 - 검증: pytest 2348 passed, 프런트 check 0 errors, month_route 스모크 OK(주 행 2).
+
+## U18a–d — 스트림 시간키 정정 (완료, U18e 대기)
+
+설계: `DESIGN-U18-STREAM-TIMEKEY.md`. 스키마는 설계의 v26 대신 **v30**으로 재번호(`activity_stream_meta`).
+- a: `stream_time.py` 시간키 결정(sumElapsed→directElapsed→directTimestamp, 보간 한도 5%), Garmin/Strava 추출기 연결. 시간키 없으면 인덱스를 초로 저장하지 않음(`elapsed_sec` None, basis `scaled`).
+- b: `db_schema_v30.py`, `stream_meta_store.py`(저장 시 meta UPSERT, stored_count는 실제 행 수).
+- c: `stream_meta_access.py` + `CalcContext.get_stream_meta()`; sample_times/moving_segments/repair_time_axis가 meta를 신뢰(휴리스틱은 meta 없는 행 폴백). RE·GAP·decoupling·classifier 연결.
+- d: `GET /library/activities/:id/streams` → `{streams, time_basis, median_dt_sec}`(meta 없으면 unknown), 상세 번들 `streams_meta`, splits/series에 meta 전달, 프론트 `streamSeconds(..., basis)`.
+- 검증: pytest 전체 통과(기존 index 저장 테스트 1건은 새 계약으로 수정), 프론트 check 0 오류·node 테스트·빌드.
+- **U18e(운영 DB 백필·재계산)는 사용자 승인 대기.** 운영 반영 시 v30 마이그레이션 전 sqlite3 API 백업 필요.

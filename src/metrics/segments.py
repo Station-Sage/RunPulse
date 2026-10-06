@@ -200,11 +200,12 @@ def stream_to_blocks(t: list[float], dist: list[float], hr: list, win_s: float =
     return merged
 
 
-def repair_time_axis(elapsed: list[float], duration_s: float) -> list[float]:
-    """시간축이 샘플 번호(마지막 값 < 활동시간의 90%)면 활동시간을 균등 분배한 초로 바꾼다."""
+def repair_time_axis(elapsed: list[float], duration_s: float, basis: str | None = None) -> list[float]:
+    """basis 가 확정(measured/derived/scaled)이면 그대로. 없으면 시간축이 샘플 번호
+    (마지막 값 < 활동시간의 90%)인지 휴리스틱으로 보고 활동시간을 균등 분배한 초로 바꾼다."""
     if not elapsed:
         return []
-    if elapsed[-1] >= duration_s * 0.9:
+    if basis in ("measured", "derived", "scaled") or elapsed[-1] >= duration_s * 0.9:
         return list(elapsed)
     n = len(elapsed)
     dt = duration_s / max(1, n - 1)

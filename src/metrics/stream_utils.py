@@ -6,24 +6,26 @@
 from __future__ import annotations
 
 from src.metrics.base import CalcContext
+from src.metrics.stream_meta_access import is_trusted
 
 STOP_SPEED_MS = 0.5
 GAP_SEC, GAP_DIST_M = 10, 5
 
 
-def sample_times(streams: list[dict], total_sec: float | None) -> list[float]:
-    """샘플별 경과 초. 마지막 elapsed가 총 시간의 90% 미만이면 인덱스 저장으로 보고 총 시간에 비례 환산
-    (P7-DATA-STREAM-ELAPSED, 프론트 splits.ts sampleTimes와 같은 규칙)."""
+def sample_times(streams: list[dict], total_sec: float | None, meta: dict | None = None) -> list[float]:
+    """샘플별 경과 초. meta 의 time_basis 가 확정(measured/derived/scaled)이면 저장값 그대로(U18).
+    meta 가 없으면 마지막 elapsed가 총 시간의 90% 미만일 때 인덱스 저장으로 보고 총 시간에 비례 환산
+    (P7-DATA-STREAM-ELAPSED, 프론트 splits.ts sampleTimes와 같은 규칙) — meta 없는 옛 행 폴백."""
     n = len(streams)
     raw = [float(s.get("elapsed_sec") or 0) for s in streams]
-    if n < 2 or not total_sec or raw[-1] >= total_sec * 0.9:
+    if n < 2 or not total_sec or is_trusted(meta) or raw[-1] >= total_sec * 0.9:
         return raw
     return [i * total_sec / (n - 1) for i in range(n)]
 
 
-def moving_segments(streams: list[dict], total_sec: float | None) -> list[dict]:
+def moving_segments(streams: list[dict], total_sec: float | None, meta: dict | None = None) -> list[dict]:
     """연속 샘플 쌍 → 이동 구간 목록 [{i(끝 샘플 인덱스), dt, dd, speed, hr}] (정지 구간 제외)."""
-    t = sample_times(streams, total_sec)
+    t = sample_times(streams, total_sec, meta)
     out = []
     for i in range(1, len(streams)):
         dt = t[i] - t[i - 1]

@@ -10,6 +10,7 @@ from src.services.activity_service import (
     get_activity_detail,
     get_activity_list,
     get_activity_streams,
+    get_activity_streams_meta,
     get_activity_trend,
 )
 
@@ -245,6 +246,11 @@ def test_get_activity_streams_source_filter(conn):
 
     streams_none = get_activity_streams(c, act1_id, source="strava")
     assert streams_none == []
+
+
+def test_get_activity_streams_meta_unknown_without_row(conn):
+    c, act1_id, _ = conn
+    assert get_activity_streams_meta(c, act1_id)["time_basis"] == "unknown"
 
 
 def test_get_activity_streams_empty(db_conn):

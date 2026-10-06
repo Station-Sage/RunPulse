@@ -76,7 +76,7 @@ class RelativeEffortCalculator(MetricCalculator):
         max_hr = athlete_max_hr(ctx)
         total = act.get("elapsed_time_sec") or act.get("duration_sec")
         zones = [0.0] * 5
-        for seg in moving_segments(streams, total):
+        for seg in moving_segments(streams, total, ctx.get_stream_meta()):
             if seg["hr"]:
                 zones[_zone_index(seg["hr"] / max_hr)] += seg["dt"]
         return zones

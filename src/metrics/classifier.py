@@ -100,7 +100,8 @@ class WorkoutClassifier(MetricCalculator):
         if len(streams) < 60:
             return WorkoutClassifier._summary_block(act), "summary"
         dur = act.get("elapsed_time_sec") or act.get("duration_sec") or act.get("moving_time_sec") or 0
-        t = seg.repair_time_axis([s.get("elapsed_sec") or 0 for s in streams], dur)
+        t = seg.repair_time_axis([s.get("elapsed_sec") or 0 for s in streams], dur,
+                                (ctx.get_stream_meta() or {}).get("time_basis"))
         dist = [s.get("distance_m") for s in streams]
         if any(x is None for x in dist):
             dist = seg.cumulative_distance(t, [s.get("gap_speed_ms") or s.get("speed_ms") for s in streams])

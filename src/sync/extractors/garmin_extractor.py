@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
 from src.sync.extractors.garmin_lap_fields import STREAM_KEY_ALIASES, lap_extras, pick
+from src.sync.extractors.stream_time import StreamRows, resolve_time_axis, stream_meta
 
 
 class GarminExtractor(BaseExtractor):
@@ -319,12 +320,12 @@ class GarminExtractor(BaseExtractor):
             if k is not None and idx is not None:
                 idx_map[str(k)] = int(idx)
 
-        rows: list[dict] = []
+        rows = StreamRows()
+        points = [p.get("metrics", []) for p in detail_metrics]
+        points = [m for m in points if m]
+        times, basis, time_key = resolve_time_axis(points, idx_map)
 
-        for i, point in enumerate(detail_metrics):
-            metrics = point.get("metrics", [])
-            if not metrics:
-                continue
+        for i, metrics in enumerate(points):
 
             def _get(garmin_key, _m=metrics):
                 pos = idx_map.get(garmin_key)
@@ -336,8 +337,7 @@ class GarminExtractor(BaseExtractor):
                     return _m.get(garmin_key)
                 return None
 
-            elapsed_raw = pick(metrics, idx_map, STREAM_KEY_ALIASES["elapsed_sec"])
-            elapsed = int(round(elapsed_raw)) if elapsed_raw is not None else i
+            elapsed = int(round(times[i])) if times[i] is not None else None
 
             # directAirTemperature 우선, 없으면 directTemperature
             temp = _get("directAirTemperature")
@@ -365,6 +365,7 @@ class GarminExtractor(BaseExtractor):
                  if v is not None or k in ("elapsed_sec", "source")}
             )
 
+        rows.meta = stream_meta(rows, basis, time_key, len(points))
         return rows
 
     # ── Wellness ──

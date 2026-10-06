@@ -28,7 +28,7 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_detail_service.py` (221줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (225줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
 
@@ -58,9 +58,9 @@
 
 - functions: get_facets, get_summary
 
-### `activity_service.py` (166줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (173줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
-- functions: get_activity_list, get_activity_streams, get_activity_trend
+- functions: get_activity_list, get_activity_streams, get_activity_streams_meta, get_activity_trend
 
 ### `activity_similar.py` (95줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
 
@@ -314,11 +314,11 @@
 
 - functions: grade, band_ranges, with_grade
 
-### `base.py` (551줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
+### `base.py` (557줄) — MetricCalculator 기본 클래스 + CalcContext + CalcResult.
 
 - class **CalcResult**: is_empty
 - class **MetricCalculator**: compute
-- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_group_metric, get_group_streams, get_laps, get_wellness, get_athlete_sex, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
+- class **CalcContext**: activity, get_metric, get_metric_json, get_metric_text, get_daily_metric_series, get_activities_in_range, get_activity_metric, get_activity_metric_text, get_streams, get_group_metric, get_stream_meta, get_group_streams, get_laps, get_wellness, get_athlete_sex, get_daily_load, get_activity_metric_series, get_wellness_series, update_metric_cache
 - class **ConfidenceBuilder**: add_input, compute
 - functions: load_group_streams
 
@@ -326,7 +326,7 @@
 
 - class **CIRSCalculator**: compute
 
-### `classifier.py` (107줄) — Workout Classifier v2 — 세그먼트(랩 구조) 기반 세션 유형 판정(REVIEW-07 r4, REVIEW-09 §3, P7-PRED-23).
+### `classifier.py` (108줄) — Workout Classifier v2 — 세그먼트(랩 구조) 기반 세션 유형 판정(REVIEW-07 r4, REVIEW-09 §3, P7-PRED-23).
 
 - class **WorkoutClassifier**: compute
 
@@ -453,11 +453,15 @@
 
 - class **SAPICalculator**: compute
 
-### `segments.py` (219줄) — 세그먼트 분해 — 랩/스트림 블록을 워밍업·작업·휴식·쿨다운으로 나누고 세트·세션 유형을 판정한다(순수 함수).
+### `segments.py` (220줄) — 세그먼트 분해 — 랩/스트림 블록을 워밍업·작업·휴식·쿨다운으로 나누고 세트·세션 유형을 판정한다(순수 함수).
 
 - functions: label_blocks, build_bouts, work_set, session_type, set_summary, stream_to_blocks, repair_time_axis, cumulative_distance
 
-### `stream_utils.py` (52줄) — 스트림·심박 공용 헬퍼 — 정지 제외 이동 샘플, 선수 최대심박.
+### `stream_meta_access.py` (28줄) — 스트림 시간축 meta 조회(U18c) — CalcContext.get_stream_meta 의 구현. meta 테이블이 없거나 행이 없으면 None.
+
+- functions: load_stream_meta, is_trusted
+
+### `stream_utils.py` (54줄) — 스트림·심박 공용 헬퍼 — 정지 제외 이동 샘플, 선수 최대심박.
 
 - functions: sample_times, moving_segments, athlete_max_hr
 
@@ -657,6 +661,10 @@
 
 - functions: refresh_token, check_strava_connection
 
+### `stream_meta_store.py` (70줄) — 스트림 저장 + 시간축 meta 기록(U18b) — scaled 환산, stored_count(동일 초 중복 탈락 반영), UPSERT.
+
+- functions: summary_total_sec, save_stream_meta, store_streams
+
 ### `sync_errors.py` (71줄) — 동기화 오류 분류 — 예외/결과를 error_code로 정규화하고 한국어 안내 문구를 제공한다.
 
 - class **SyncSourceError**: 없음
@@ -684,7 +692,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (686줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (687줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -700,9 +708,14 @@
 
 - class **RunalyzeExtractor**: extract_activity_core, extract_activity_metrics
 
-### `strava_extractor.py` (214줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
+### `strava_extractor.py` (216줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
 
 - class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_streams, extract_best_efforts
+
+### `stream_time.py` (95줄) — 스트림 시간축 결정(U18a) — 경과시간 키 선택·보간·출처(time_basis) 판정과 meta 요약 (순수 함수).
+
+- class **StreamRows**: 없음
+- functions: resolve_time_axis, stream_meta
 
 ## `src/ai/`
 
@@ -1543,9 +1556,9 @@
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
 - class **TestACWRCap**: test_steady_load_ratio, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
 
-### `test_activity_derived_v2.py` (124줄) — tests/test_activity_derived_v2.py — 1-3 활동 파생 수치(UX 리뷰 20 design S1): RE·디커플링·스트림 헬퍼.
+### `test_activity_derived_v2.py` (159줄) — tests/test_activity_derived_v2.py — 1-3 활동 파생 수치(UX 리뷰 20 design S1): RE·디커플링·스트림 헬퍼.
 
-- functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty
+- functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty, test_u18c_measured_meta_skips_rescale, test_u18c_dwell_sum_matches_measured_moving_time, test_u18c_ctx_get_stream_meta
 
 ### `test_activity_export.py` (70줄) — 원본 링크·GPX 내보내기 테스트.
 
@@ -1569,9 +1582,9 @@
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
 
-### `test_activity_service.py` (302줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
+### `test_activity_service.py` (308줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
-- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
+- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_meta_unknown_without_row, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
 
 ### `test_activity_splits.py` (84줄) — activity_splits — 서버 스플릿·series 계산 테스트.
 
@@ -1649,9 +1662,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_library.py` (407줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
 ### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -2538,9 +2551,9 @@
 
 - functions: test_create_tables_has_v24_columns, test_ensure_v24_idempotent, test_migrate_from_23, test_client_msg_id_unique_per_thread
 
-### `test_segments.py` (99줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
+### `test_segments.py` (106줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
 
-- functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair
+- functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair, test_time_axis_repair_basis
 
 ### `test_strava_403_ledger.py` (49줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
@@ -2557,6 +2570,14 @@
 ### `test_strava_sync.py` (140줄) — DoD #8: Strava sync — OAuth + detail + streams mock 기반.
 
 - class **TestStravaActivitySync**: test_sync_one_activity, test_sync_with_best_efforts, test_sync_empty_list, test_sync_skip_unchanged, test_sync_no_token
+
+### `test_stream_meta_store.py` (63줄) — U18b — 스트림 meta 저장 경로(stream_meta_store) 테스트.
+
+- functions: conn, test_ensure_v30_idempotent, test_upsert_overwrites, test_stored_count_reflects_duplicate_seconds, test_scaled_uses_summary_time, test_scaled_without_summary_skips, test_plain_list_and_missing_table_fall_back
+
+### `test_stream_time.py` (71줄) — U18a — 스트림 시간축 결정(stream_time) + 추출기 연결 테스트.
+
+- functions: test_sum_elapsed_preferred, test_direct_elapsed_fallback, test_timestamp_only_is_derived, test_no_key_scaled_times_none, test_partial_none_interpolated_small_ratio_keeps_basis, test_many_none_lowers_basis, test_non_monotonic_lowers_without_sorting, test_garmin_extractor_meta_and_no_index_fallback, test_strava_time_is_measured, test_stream_meta_empty
 
 ### `test_sync_errors.py` (61줄) — sync_errors 분류·SyncResult 전파 테스트.
 
@@ -2792,7 +2813,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 581개 파일
+총 586개 파일
 
 ## docstring 누락
 

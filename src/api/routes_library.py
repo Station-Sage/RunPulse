@@ -171,11 +171,12 @@ def get_library_activity_streams(activity_id: int):
         streams = activity_service.get_activity_streams(
             conn, activity_id, source=request.args.get("source"),
         )
+        meta = activity_service.get_activity_streams_meta(conn, activity_id)
     finally:
         conn.close()
 
     # 전체 해상도 스트림(가장 무거운 페이로드) — ETag로 조건부 GET.
-    return api_ok_cacheable({"streams": streams})
+    return api_ok_cacheable({"streams": streams, **meta})
 
 
 @api_bp.get("/library/wellness")

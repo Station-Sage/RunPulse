@@ -5,7 +5,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
-	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, streamSeconds } from '$lib/streamAxis';
+	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, isTrustedBasis, streamSeconds } from '$lib/streamAxis';
 	import { clampOutliers } from '$lib/chartScale';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
@@ -55,13 +55,13 @@
 	// 시간축 보정: totalSec가 있으면 streamSeconds로 보정, 없으면 원본 elapsed_sec 사용
 	const correctedElapsed = $derived(
 		data.totalSec != null
-			? streamSeconds(data.streams.map((p) => p.elapsed_sec), data.totalSec)
+			? streamSeconds(data.streams.map((p) => p.elapsed_sec), data.totalSec, data.timeBasis)
 			: data.streams.map((p) => p.elapsed_sec)
 	);
 
 	// 시간축 보정 여부: lastSec < 90% totalSec인 경우 재환산됐음
 	const timeAxisRescaled = $derived((): boolean => {
-		if (data.totalSec == null || data.streams.length === 0) return false;
+		if (data.totalSec == null || data.streams.length === 0 || isTrustedBasis(data.timeBasis)) return false;
 		const rawElapsed = data.streams.map((p) => p.elapsed_sec);
 		let lastSec = 0;
 		for (let i = rawElapsed.length - 1; i >= 0; i--) {

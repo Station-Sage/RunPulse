@@ -11,11 +11,11 @@ from src.utils.db_helpers import (
     upsert_metric,
     upsert_metrics_batch,
     upsert_laps_batch,
-    upsert_streams_batch,
     upsert_best_efforts_batch,
     upsert_daily_wellness,
 )
 from src.utils.metric_priority import resolve_for_scope
+from src.sync.stream_meta_store import store_streams
 
 log = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def save_laps(conn: sqlite3.Connection, activity_id: int, laps: list[dict]) -> i
 def save_streams(
     conn: sqlite3.Connection, activity_id: int, rows: list[dict]
 ) -> int:
-    return upsert_streams_batch(conn, activity_id, rows)
+    return store_streams(conn, activity_id, rows)
 
 
 def save_best_efforts(

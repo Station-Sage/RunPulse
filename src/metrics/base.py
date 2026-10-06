@@ -341,6 +341,12 @@ class CalcContext(RunHistoryMixin):
                 return v
         return None
 
+    def get_stream_meta(self, activity_id: int = None) -> Optional[dict]:
+        """스트림 시간축 출처 meta(time_basis 등). 없으면 None — 호출자는 옛 휴리스틱으로 폴백."""
+        from src.metrics.stream_meta_access import load_stream_meta
+        aid = activity_id or (int(self.scope_id) if self.scope_type == "activity" else None)
+        return load_stream_meta(self.conn, aid) if aid else None
+
     def get_group_streams(self) -> list[dict]:
         """현재 활동 스트림 → 없으면 같은 그룹에서 샘플이 가장 많은 사본의 스트림."""
         own = self.get_streams()

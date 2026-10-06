@@ -287,7 +287,7 @@ class TestGarminExtractorStreams:
         assert "cadence" not in rows[2]
 
     def test_elapsed_sec_fallback_to_index(self, ext):
-        """directElapsedDuration 없으면 row index 사용."""
+        """시간키가 없으면 인덱스를 초로 저장하지 않는다(U18) — elapsed_sec None, basis='scaled'."""
         raw = {
             "metricDescriptors": [
                 {"key": "directHeartRate", "metricsIndex": 0},
@@ -298,8 +298,8 @@ class TestGarminExtractorStreams:
             ],
         }
         rows = ext.extract_activity_streams(raw)
-        assert rows[0]["elapsed_sec"] == 0
-        assert rows[1]["elapsed_sec"] == 1
+        assert rows[0]["elapsed_sec"] is None and rows[1]["elapsed_sec"] is None
+        assert rows.meta["time_basis"] == "scaled"
 
     def test_empty_descriptors_returns_empty(self, ext):
         assert ext.extract_activity_streams({"metricDescriptors": [], "activityDetailMetrics": []}) == []

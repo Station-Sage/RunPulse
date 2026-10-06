@@ -131,6 +131,13 @@ def get_activity_streams(
     return [dict(r) for r in rows]
 
 
+def get_activity_streams_meta(conn: sqlite3.Connection, activity_id: int) -> dict:
+    """스트림 시간축 출처 {time_basis, median_dt_sec}. meta 행이 없으면 time_basis='unknown'."""
+    from src.metrics.stream_meta_access import load_stream_meta
+    meta = load_stream_meta(conn, activity_id) or {}
+    return {"time_basis": meta.get("time_basis") or "unknown", "median_dt_sec": meta.get("median_dt_sec")}
+
+
 def get_activity_trend(
     conn: sqlite3.Connection,
     metric_name: str,

@@ -37,7 +37,7 @@ class GAPCalculator(MetricCalculator):
         if grades is None:
             return []
         act = ctx.activity or {}
-        segs = moving_segments(streams, act.get("elapsed_time_sec") or act.get("duration_sec"))
+        segs = moving_segments(streams, act.get("elapsed_time_sec") or act.get("duration_sec"), ctx.get_stream_meta())
 
         adj_dist = total_time = 0.0
         for seg in segs:
