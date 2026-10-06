@@ -189,7 +189,10 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
      (TSB의 ctl/atl만 이동). 입력 지표를 별도 메트릭 슬러그로 노출할지, wellness 상세로 보낼지 결정 필요(3-7 S3).
   2. **RRI 등급 SSOT**: `bands.py`에 RRI 구간 없음(`RRICalculator.ranges` 별도) → explain·trend `bands` 미지원. 곱셈형 공식이라 분해 형태도 별도(S3 `PredictionEvidence`와 함께).
   3. **D1d 활동 scope(`@a{id}`) drill**: 지금 explain은 daily만 지원. 활동 단위 분해가 필요한 화면(3-8·3-9) 착수 시 결정.
-  4. **S1b**: PMC 감쇠·GAP 보강 — 사용자 지시로 보류 중.
+  4. **S1b 종료(2026-10-07)**: 본체(PMC α=1/τ·v2.0, GAP v2 Minetti)는 1-1·1-7에서 운영 반영 완료. 잔여 3건은 아래로 분리(각각 별도 판단):
+     - ① 심박 결측 TRIMP 대체 부하(페이스·RPE 기반 새 Calculator) — 2025-09 이전 CTL 과소, 현재 값 영향 없음. 루트 BACKLOG `DATA-CTL-WARMUP` 참조. **(판단 필요)** 실행 시 재계산·백업.
+     - ② Garmin `gap_speed_ms` 소스 GAP 저장 — Extractor 추가 + 재동기화(실 DB 변경, 백업 필수). **(판단 필요)**
+     - ③ ACWR 정의 통일(D1f, `99-summary` 283행) — 현행 코드 정의 미확인. 3-18 착수 전 결정.
   5. **3-10 RPE 입력·`⋯` 메뉴**: ⑦ ADR + 사용자 승인 필요.
   6. **3-16(D4)**: 사용자 지시 없이 진행 금지.
   7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
