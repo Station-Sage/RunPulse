@@ -527,7 +527,7 @@
 - 월간 뷰 L2: `WeekDigestList.svelte` 접힘 목록. `weeks_cited`/주 칩 스크롤은 미구현(AI가 W 인용만 하고 칩은 기존 유지).
 - 검증: pytest 2348 passed, 프런트 check 0 errors, month_route 스모크 OK(주 행 2).
 
-## U18a–d — 스트림 시간키 정정 (완료, U18e 대기)
+## U18a–e — 스트림 시간키 정정 (완료·운영 반영)
 
 설계: `DESIGN-U18-STREAM-TIMEKEY.md`. 스키마는 설계의 v26 대신 **v30**으로 재번호(`activity_stream_meta`).
 - a: `stream_time.py` 시간키 결정(sumElapsed→directElapsed→directTimestamp, 보간 한도 5%), Garmin/Strava 추출기 연결. 시간키 없으면 인덱스를 초로 저장하지 않음(`elapsed_sec` None, basis `scaled`).
@@ -535,4 +535,5 @@
 - c: `stream_meta_access.py` + `CalcContext.get_stream_meta()`; sample_times/moving_segments/repair_time_axis가 meta를 신뢰(휴리스틱은 meta 없는 행 폴백). RE·GAP·decoupling·classifier 연결.
 - d: `GET /library/activities/:id/streams` → `{streams, time_basis, median_dt_sec}`(meta 없으면 unknown), 상세 번들 `streams_meta`, splits/series에 meta 전달, 프론트 `streamSeconds(..., basis)`.
 - 검증: pytest 전체 통과(기존 index 저장 테스트 1건은 새 계약으로 수정), 프론트 check 0 오류·node 테스트·빌드.
-- **U18e(운영 DB 백필·재계산)는 사용자 승인 대기.** 운영 반영 시 v30 마이그레이션 전 sqlite3 API 백업 필요.
+- U18e 완료(2026-10-06, pansongit DB): v30 배포, 백필 measured 692건(garmin 594·strava 98, unknown 0), `recompute_all` 전 기간 재계산(활동 3997행·일별 42830행). 백업 `running.db.bak-20261006-pre-u18e`.
+- 주의: `recompute_all`은 호출자가 마지막에 `conn.commit()` 해야 결과가 남는다(삭제만 커밋되므로 누락 시 지표 소실). 692·15302는 이미 스트림 시간축이 정상이라 RE 불변, 692 디커플링만 -0.43→2.07.
