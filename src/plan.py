@@ -9,6 +9,7 @@ if PROJECT_ROOT not in sys.path:
 
 import argparse
 import sqlite3
+from datetime import date
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
@@ -136,9 +137,22 @@ def cmd_today(conn: sqlite3.Connection, config: dict) -> None:
         print("\n✅ 컨디션 양호: 볼륨 5~10% 추가 가능")
 
 
+def _adapt(conn: sqlite3.Connection, plan: list[dict], goal_id: int | None) -> list[dict]:
+    """v2 목표면 지난주 이행도로 이번 주 계획을 조정한다(weekly_adapt, U16m)."""
+    from src.services.weekly_adapt_service import adapt_plan
+    from src.training.goals import get_active_goal, get_goal
+    from src.training.planner import get_vdot_adj, resolve_distance_label
+    goal = get_goal(conn, goal_id) if goal_id is not None else get_active_goal(conn)
+    if not goal or not plan:
+        return plan
+    dlabel = resolve_distance_label(goal["distance_km"], goal.get("distance_label"))
+    return adapt_plan(conn, goal, plan, date.fromisoformat(plan[0]["date"]), dlabel, get_vdot_adj(conn))
+
+
 def cmd_generate(conn: sqlite3.Connection, args, config: dict) -> None:
     goal_id = getattr(args, "goal_id", None)
     plan = generate_weekly_plan(conn, goal_id=goal_id, config=config)
+    plan = _adapt(conn, plan, goal_id)
     count = save_weekly_plan(conn, plan)
     print(f"주간 훈련 계획 {count}개 생성/저장 완료.\n")
     for w in plan:

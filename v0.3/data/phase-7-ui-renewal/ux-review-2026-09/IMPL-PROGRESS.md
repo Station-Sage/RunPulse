@@ -492,3 +492,9 @@
 - `progression.py`(순수): long_mp 6→16km, tempo 3×1.6→연속 25분, interval 5×1000→4×1600. `next_step`: on_target/over +1, under/missed 유지, 연속 2회 under −1. `prescription` 은 단계 → 구조.
 - 스키마 v29(구 계획의 v28 은 L5b 가 사용): `plan_progression(goal_id, qtype, step, updated_at, reason)`, `db_schema_v29.ensure_v29` 멱등. `progression_service.get_step/advance`.
 - 아직 일정 생성에는 연결하지 않음(U16m 적응형 재계획에서 사용). 테스트 3건, 전체 2319 통과.
+
+## U16m — 주간 적응 (DESIGN-U16 §3.4)
+
+- `src/training/weekly_adapt.py`(순수): 부상/CRS 적색≥2일 → 지난주 실제×0.9·퀄리티≤1·사다리 동결 / 이행<70% → 지난주 실제량(보충 없음) / 70~90%·퀄리티<50%·ACWR>1.3 → 이번 주 목표 반복 / 그 외 일정표대로. 반복 시 taper·race 단계는 일정표 값으로 상한(테이퍼 시작일 불변 = 피크 감축).
+- `src/services/weekly_adapt_service.py`: 지난주 `week_compliance`·CRS(<20 = 적색)·ACWR 로 입력을 읽고, v2 목표만 행을 조정(축소만, 적용 규칙은 `rationale` 에 기록). `plan.py generate` 에서 호출. `replan_remaining_week` 는 그대로.
+- 한계: 부상 표시 입력원(UI·prefs)은 아직 없어 `injury_flag` 는 호출 인자. 사다리는 일정 생성에 아직 연결되지 않아 "동결"은 rationale 표기만(U17 이후 연결). 사용자 수정 행은 `source != planner` 라 저장 시 건드리지 않음.

@@ -265,6 +265,10 @@
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default
 
+### `weekly_adapt_service.py` (57줄) — 주간 적응 서비스 — 지난주 이행도·CRS·ACWR를 읽어 weekly_adapt 규칙으로 이번 주 계획 행을 조정한다(v2 목표만).
+
+- functions: load_input, adapt_plan
+
 ### `wellness_day.py` (202줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
 
 - functions: percentile_band, build_day
@@ -1334,6 +1338,12 @@
 ### `week_structure.py` (132줄) — 주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
 
 - functions: default_run_days, default_ctx, long_ratio, long_cap_km, feasible_week_km, apply_week_structure, spill
+
+### `weekly_adapt.py` (78줄) — 주간 적응 규칙(순수, DESIGN-U16 §3.4) — 지난주 이행도로 다음 주 목표 km·퀄리티 수·사다리 동결을 정한다.
+
+- class **AdaptInput**: 없음
+- class **AdaptDecision**: 없음
+- functions: decide, apply_to_rows
 
 ## `src/utils/`
 
@@ -2683,6 +2693,10 @@
 
 - functions: test_default_run_days_median_and_clamp, test_long_ratio_branches, test_long_cap_design_example, test_long_cap_by_time, test_short_session_merged_to_rest_and_redistributed_to_easy, test_shakeout_before_race_kept, test_long_run_capped_and_excess_to_easy, test_total_preserved_when_pool_left_over, test_feasible_week_km_grows_with_days, test_run_days_surplus_trims_smallest_easy, test_min_pass_by_minutes
 
+### `test_weekly_adapt.py` (61줄) — 주간 적응 규칙(§3.4) — 표의 행마다 1건 + 경계값, 행 조정, 서비스 가드.
+
+- functions: test_decide_table_rows, test_decide_boundaries_and_gates, test_taper_start_not_pushed_by_repeat, test_apply_to_rows_scales_and_limits_quality, test_adapt_plan_noop_for_v1_or_no_goal
+
 ### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
 
 - functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
@@ -2745,7 +2759,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 570개 파일
+총 573개 파일
 
 ## docstring 누락
 
