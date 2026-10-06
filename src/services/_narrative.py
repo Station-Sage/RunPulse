@@ -107,6 +107,7 @@ def build_narrative_prompt(
     sleep_recent: float | None,
     sleep_prev: float | None,
     month_label: str | None = None,
+    weeks: list[dict] | None = None,
 ) -> str:
     """AI 내러티브 생성 프롬프트 — 제공된 수치만 나열(환각 방지)."""
     period = month_label or "이번 달"
@@ -129,6 +130,10 @@ def build_narrative_prompt(
             lines.append(f"- 수면 점수: 최근 7일 평균 {sleep_recent:.0f} (이전 7일 {sleep_prev:.0f})")
         else:
             lines.append(f"- 수면 점수: 최근 7일 평균 {sleep_recent:.0f}")
+    if weeks:
+        from src.services.week_digest import digest_prompt_lines
+        lines.append("주별 요약(근거를 인용할 때는 \"(W2 롱런 28km)\" 형식으로 주 번호와 함께 쓴다):")
+        lines.extend(digest_prompt_lines(weeks))
     if not any(ln.startswith("- ") for ln in lines):
         lines.append("- (데이터 없음)")
     return "\n".join(lines)

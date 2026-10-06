@@ -19,6 +19,10 @@ console.log('modals', await page.locator('[aria-modal=true]').count());
 const chip = page.locator('button').filter({ hasText: /CTL|km|TSB/ }).first();
 if (await chip.count()) { await chip.click(); await page.waitForTimeout(600); }
 console.log('modals after chip', await page.locator('[aria-modal=true]').count());
+await page.goBack().catch(() => {});
+await page.waitForTimeout(500);
+await page.locator('[data-testid=week-digest] button').click();
+console.log('week rows', await page.locator('[data-testid=week-row]').count());
 await page.goto(BASE + '/v2/today', { waitUntil: 'networkidle' });
 await page.locator('button', { hasText: /월간|이번 달|한 달/ }).first().click().catch(() => console.log('no month btn'));
 await page.waitForTimeout(500);

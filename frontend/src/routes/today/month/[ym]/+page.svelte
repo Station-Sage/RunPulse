@@ -13,6 +13,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
+	import WeekDigestList from '$lib/components/WeekDigestList.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
@@ -215,6 +216,10 @@
 					</div>
 				{/each}
 			</div>
+		{/if}
+
+		{#if narrativeData.weeks && narrativeData.weeks.length > 0}
+			<WeekDigestList weeks={narrativeData.weeks} />
 		{/if}
 
 		<!-- CTL 스파크라인 (탭 → CTL+ATL 2단 확장) — 이번 달 조회일 때만 표시.

@@ -76,6 +76,7 @@ class TestGetTodayNarrativeCache:
         with patch("src.ai.chat_engine._call_provider") as mock_ai:
             result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
         mock_ai.assert_not_called()
+        assert result.pop("weeks")
         assert result == payload
 
     def test_cache_hit_returns_cached_text(self, db_conn):

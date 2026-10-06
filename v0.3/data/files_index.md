@@ -24,7 +24,7 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (204줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (209줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
@@ -255,7 +255,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (299줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (300줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -272,6 +272,10 @@
 ### `user_settings_service.py` (42줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default
+
+### `week_digest.py` (109줄) — 주간 다이제스트 — 월간 내러티브의 주(週) 단위 근거 (DESIGN-U17 U17g).
+
+- functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
 ### `weekly_adapt_service.py` (57줄) — 주간 적응 서비스 — 지난주 이행도·CRS·ACWR를 읽어 weekly_adapt 규칙으로 이번 주 계획 행을 조정한다(v2 목표만).
 
@@ -2224,7 +2228,7 @@
 - class **TestVDOTMock**: test_10k, test_non_running
 - class **TestConfidenceBuilder**: test_all_available, test_partial_available, test_estimated_penalty, test_empty, test_mixed
 
-### `test_narrative_cache.py` (152줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
+### `test_narrative_cache.py` (153줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
 
 - class **TestNarrativeCacheHelpers**: test_cache_miss_returns_none, test_set_then_get_roundtrip, test_different_keys_do_not_collide, test_set_cache_failure_is_swallowed
 - class **TestGetTodayNarrativeCache**: test_rule_fallback_not_cached, test_ai_result_is_cached, test_cache_hit_skips_ai_call, test_cache_hit_returns_cached_text, test_past_month_uses_correct_cache_key, test_stale_cache_on_new_activity_triggers_ai, test_cache_save_failure_does_not_raise
@@ -2714,6 +2718,10 @@
 
 - functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
 
+### `test_week_digest.py` (52줄) — week_digest / 월간 프롬프트 W 블록 테스트 (U17g).
+
+- functions: test_weeks_overlapping_monday_start, test_empty_week_has_none_values, test_week_with_run_and_plan, test_in_progress_week_is_partial, test_prompt_contains_week_block, test_prompt_lines_empty_week
+
 ### `test_week_structure.py` (87줄) — U16f: R7 주간 구조(순수 함수).
 
 - functions: test_default_run_days_median_and_clamp, test_long_ratio_branches, test_long_cap_design_example, test_long_cap_by_time, test_short_session_merged_to_rest_and_redistributed_to_easy, test_shakeout_before_race_kept, test_long_run_capped_and_excess_to_easy, test_total_preserved_when_pool_left_over, test_feasible_week_km_grows_with_days, test_run_days_surplus_trims_smallest_easy, test_min_pass_by_minutes
@@ -2784,7 +2792,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 579개 파일
+총 581개 파일
 
 ## docstring 누락
 

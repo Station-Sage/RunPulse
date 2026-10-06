@@ -700,6 +700,24 @@ export interface NarrativeResponse {
 	evidence: BriefingEvidence[];
 	milestones: MilestoneEntry[];
 	highlights: NarrativeHighlights;
+	weeks?: WeekDigest[];
+}
+
+export interface WeekDigest {
+	week_start: string;
+	week_end: string;
+	run_count: number;
+	distance_km: number | null;
+	long_run_km: number | null;
+	quality_count: number;
+	ctl_start: number | null;
+	ctl_end: number | null;
+	tsb_min: number | null;
+	sleep_avg: number | null;
+	plan_done: number;
+	plan_total: number;
+	flags: string[];
+	partial: boolean;
 }
 
 // ── Today v2 확장 (src/services/today_hero.py · today_readiness.py) ──

@@ -520,3 +520,9 @@
 ## U17f — 월간 내러티브 라우트
 - `/today/month/[ym]` 신설(`MonthNarrative.svelte` 오버레이 삭제). Today 진입 2곳은 `goto`, ‹ › 는 `replaceState`(히스토리 불변), 닫기는 뒤로가기. 칩은 DrillPanel 하나만 연다.
 - 스모크: `scripts/synth_smoke/pw/month_route.mjs`.
+
+## U17g — 주별 다이제스트 + 월간 프롬프트 계층 (완료)
+- `src/services/week_digest.py`: `week_digest`/`week_digests`/`weeks_overlapping`/`digest_prompt_lines` (월요일 시작, 캐시 안 함, 데이터 없으면 None·flags=[]).
+- `_narrative.build_narrative_prompt(weeks=)` W 블록 + "(W2 롱런 28km)" 인용 지시. 응답에 `weeks` 추가(캐시 히트 때도 최신으로 재계산).
+- 월간 뷰 L2: `WeekDigestList.svelte` 접힘 목록. `weeks_cited`/주 칩 스크롤은 미구현(AI가 W 인용만 하고 칩은 기존 유지).
+- 검증: pytest 2348 passed, 프런트 check 0 errors, month_route 스모크 OK(주 행 2).

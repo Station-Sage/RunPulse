@@ -150,6 +150,7 @@ def get_today_narrative(
     반환: {date, text, source("ai"|"rule"), evidence, milestones, highlights}
     """
     from src.services import milestone_service
+    from src.services.week_digest import week_digests
     from src.services._narrative import (
         attach_drill, build_evidence, build_narrative_prompt, month_date_range,
         get_narrative_cache, peak_ctl_in_range, query_metric, rule_narrative,
@@ -174,6 +175,7 @@ def get_today_narrative(
     cached = get_narrative_cache(conn, month_start, date)
     if cached is not None:
         # 마일스톤은 캐시(내러티브 문장)와 별개로 항상 최신 규칙으로 다시 조회한다
+        cached["weeks"] = week_digests(conn, month_start, date)
         cached["milestones"] = milestone_service.get_recent_milestones(
             conn, limit=5, date_from=month_start, date_to=date)
         return cached
@@ -181,7 +183,6 @@ def get_today_narrative(
     training = status["training_status"]
     ctl_now = training.get("ctl")
 
-    # ── 월초 CTL ──────────────────────────────────────────────────────────
     ctl_start = query_metric(conn, "daily", month_start, "ctl")
 
     # ── 해당 달 누적거리·활동수·최장 러닝 ─────────────────────────────────
@@ -195,7 +196,6 @@ def get_today_narrative(
     month_dist_km = round(float(row[1]) / 1000.0, 1) if row else 0.0
     longest_run_km = round(float(row[2]) / 1000.0, 1) if row and row[2] else 0.0
 
-    # ── 해당 달 peak CTL ──────────────────────────────────────────────────
     peak_ctl = peak_ctl_in_range(conn, month_start, date)
 
     # ── 수면 추세 (해당 달 말일 기준 최근 7일 vs 이전 7일) ────────────────
@@ -223,6 +223,7 @@ def get_today_narrative(
         "peak_ctl": peak_ctl,
     }
 
+    weeks = week_digests(conn, month_start, date)
     # ── AI 생성 시도 ───────────────────────────────────────────────────────
     text = None
     source = "rule"
@@ -231,7 +232,7 @@ def get_today_narrative(
     if chain:
         prompt = build_narrative_prompt(
             date, ctl_now, ctl_start, month_dist_km, month_count,
-            sleep_recent, sleep_prev, month_label=month_label,
+            sleep_recent, sleep_prev, month_label=month_label, weeks=weeks,
         )
         for prov in chain:
             ai_result = _call_provider(prov, prompt, config)
@@ -240,7 +241,6 @@ def get_today_narrative(
                 source = "ai"
                 break
 
-    # ── 규칙 기반 fallback ─────────────────────────────────────────────────
     if text is None:
         text = rule_narrative(
             ctl_now, ctl_start, month_dist_km, month_count,
@@ -254,6 +254,7 @@ def get_today_narrative(
         "evidence": evidence,
         "milestones": milestones,
         "highlights": highlights,
+        "weeks": weeks,
     }
     # ── AI 성공 시에만 캐시 저장 ───────────────────────────────────────────
     if source == "ai":
