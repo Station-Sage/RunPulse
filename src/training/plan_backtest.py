@@ -15,13 +15,14 @@ from statistics import median
 from src.db_setup import create_tables
 
 from . import plan_gates as G
+from . import personalize as PZ
 from . import plan_gates_long as GL
 from .goals import add_goal
 from .long_run_rules import LongCtx
 from .planner import generate_weekly_plan, upsert_user_training_prefs
 from .planner_rules import plan_start_monday
 from .week_structure import _is_shakeout
-from .planner_schedule import recent_load, recent_long_max
+from .planner_schedule import recent_avg_km, recent_load, recent_long_max
 
 DAY_ORDER = (1, 3, 5, 6, 2, 0, 4)       # 러닝 일수 n 이면 앞의 n 개 요일만 가능
 GRID = {"start_km": (25, 40, 55, 70, 90), "long_start": (10, 18, 26), "weeks": (8, 12, 16, 20),
@@ -123,7 +124,7 @@ def history_inputs(conn: sqlite3.Connection, start: date) -> dict:
     per_week_days = [len(wk.get(i, [])) for i in range(1, 9)]
     long12 = recent_long_max(conn, start, 12)       # 엔진과 같은 정의(러닝만)
     return {"start_km": km4, "start_long": long6, "days_median_8w": median(per_week_days) if per_week_days else 0,
-            "long_max_12w": round(long12, 1), "peak_week_16w": round(max((sum(v) for v in wk.values()), default=0.0), 1)}
+            "long_max_12w": round(long12, 1), "avg16": recent_avg_km(conn, start, 16), "peak_week_16w": round(max((sum(v) for v in wk.values()), default=0.0), 1)}
 
 
 def history_scenarios(conn: sqlite3.Connection, factors=(None, 0.97)) -> list[Scenario]:
@@ -162,7 +163,7 @@ def judge(scn: Scenario, v: list[G.WeekPlan], inputs: dict, run, v1: list[G.Week
         "G3": G.g3_min_session(v),
         "G4": G.g4_mp_sessions(v, scn.distance),
         "G5": G.g5_taper(v, scn.distance, peak, scn.plan_weeks),
-        "G6": G.g6_ramp(v, start_km),
+        "G6": G.g6_ramp(v, start_km, PZ.comeback_ceiling(start_km, inputs.get("avg16", 0.0))),
         "G7": G.g7_mp_not_faster(v, mp_now or (lambda w: None)),
         "G8": G.g8_deterministic(run),
         "G9": GL.g9_long_floor(v, scn.distance, long6, long12),

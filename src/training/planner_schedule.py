@@ -11,6 +11,7 @@ from datetime import date, timedelta
 
 from . import long_run_rules as LR
 from . import marathon_rules as MR
+from . import personalize as P
 from .goals import get_reported_load, get_rules_version
 from .periodization import WeekTarget, build_schedule
 from .plan_readiness import cold_peak_km
@@ -75,6 +76,8 @@ def start_load(conn: sqlite3.Connection, dlabel: str, as_of: date, rules_version
 
     user_km·user_long: 목표 생성 시 입력값(콜드일 때만 쓴다. 최장은 출처가 user 일 때 시작 롱런 후보)."""
     km4, long6 = recent_load(conn, as_of)
+    if rules_version >= 2:
+        long6 = P.start_long_km(long6, recent_long_max(conn, as_of, 12))
     if rules_version < 2 or km4 >= COLD_WEEK_KM:
         return km4, long6, "history"
     km, src = cold_start_km(dlabel, km4, recent_avg_km(conn, as_of, 16), user_km)
@@ -138,7 +141,14 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     return build_schedule(int(goal["plan_weeks"]), start_km, start_long, max(peak, start_km),
                           LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
                           get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
-                          rv, cap, long_cap)
+                          rv, cap, long_cap, _comeback_ceiling(conn, rv, min(start, today)))
+
+
+def _comeback_ceiling(conn: sqlite3.Connection, rv: int, as_of: date) -> float:
+    """v2 복귀 구간이면 0.15 램프 상한(직전 16주 평균 km), 아니면 0."""
+    if rv < 2:
+        return 0.0
+    return P.comeback_ceiling(recent_load(conn, as_of)[0], recent_avg_km(conn, as_of, 16))
 
 
 def _run_days(conn: sqlite3.Connection) -> int:

@@ -1246,12 +1246,16 @@
 
 - functions: expand_work, is_continuous, compare_continuous, compare, prediction_note
 
-### `periodization.py` (113줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
+### `periodization.py` (117줄) — 목표 대회 역산 주기화(순수) — 대회 주에서 거꾸로 감량·피크·빌드 구간을 배치하고 주간 거리·롱런을 점진 증가시킨다.
 
 - class **WeekTarget**: 없음
 - functions: build_schedule
 
-### `plan_backtest.py` (223줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+### `personalize.py` (35줄) — 개인화 규칙(순수) — 복귀 구간 램프율과 시작 롱런 (DESIGN-U16-PLAN-ENGINE §3.2, v2 전용).
+
+- functions: is_comeback, comeback_ceiling, next_level, start_long_km
+
+### `plan_backtest.py` (224줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
 - functions: rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
@@ -1291,7 +1295,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (171줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (181줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
@@ -2211,6 +2215,10 @@
 
 - functions: test_last_week_is_race_week_and_taper_comes_last, test_ramp_is_capped_and_peak_week_is_not_recovery, test_long_run_progresses_then_tapers_off, test_taper_volume_falls_below_peak, test_short_or_invalid_inputs, test_v2_full_taper_is_two_weeks_with_d14_long, test_v2_three_week_taper_only_for_long_high_volume_plans, test_v1_unchanged_by_rules_version, test_v2_low_volume_ramp_never_exceeds_ten_percent, test_v2_long_progresses_from_capped_value, test_v2_d14_long_respects_shared_cap, test_schedule_for_goal_uses_goal_rules_version, test_build_schedule_max_week_km_caps_volume
 
+### `test_personalize.py` (37줄)
+
+- functions: test_is_comeback_boundaries, test_comeback_ceiling, test_next_level_ramp, test_start_long_km, test_schedule_comeback_ramps_faster_and_v1_unchanged
+
 ### `test_phase1_schema.py` (756줄) — Phase 1 스키마 & 기반 인프라 테스트.
 
 - class **TestSchemaCreation**: test_all_pipeline_tables_exist, test_all_app_tables_exist, test_canonical_view_exists, test_schema_version, test_activity_summaries_column_count, test_distance_is_meters_not_km, test_metric_store_columns, test_daily_wellness_no_source_column
@@ -2725,7 +2733,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 565개 파일
+총 567개 파일
 
 ## docstring 누락
 
@@ -2737,6 +2745,7 @@
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
 - `tests/test_metrics_basis_events.py`
+- `tests/test_personalize.py`
 - `tests/test_plan_backtest.py`
 - `tests/test_plan_gates.py`
 - `tests/test_planner_as_of.py`

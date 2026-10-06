@@ -13,6 +13,8 @@ import math
 from dataclasses import dataclass, replace
 from typing import Callable
 
+from . import personalize as P
+
 # long_cap(phase, weeks_to_race, week_km, sched_long_km, prev_long_km) → 그 주 롱런 상한(long_run_rules.long_cap_km)
 LongCapFn = Callable[[str, int, float, float, float], float]
 
@@ -47,7 +49,8 @@ def _down(x: float) -> float:
 
 def build_schedule(total_weeks: int, start_km: float, start_long_km: float, peak_km: float, long_max_km: float,
                    long_cap_ratio: float, taper_weeks: int, rules_version: int = 1,
-                   max_week_km: float | None = None, long_cap: LongCapFn | None = None) -> list[WeekTarget]:
+                   max_week_km: float | None = None, long_cap: LongCapFn | None = None,
+                   comeback_ceiling: float = 0.0) -> list[WeekTarget]:
     """total_weeks 주 계획(마지막 주 = 대회 주)의 주별 목표. 입력이 비정상이면 빈 리스트.
 
     max_week_km: 주 러닝 일수로 소화 가능한 상한 — 시작·피크 볼륨을 이 값으로 자른다.
@@ -55,6 +58,7 @@ def build_schedule(total_weeks: int, start_km: float, start_long_km: float, peak
     감량 주에는 롱런을 두지 않고(MP 세션은 marathon_rules), 대회 2주 전 주말에 20~24km 롱런(상한 이내)을 둔다.
     v2 볼륨은 반올림된 직전 주 값 × 1.10을 0.1km 내림(R7). long_cap(v2)이 있으면 롱런은 매주 공유 상한
     (진행 상한 포함)으로 자른 값에서 다음 주 +2km 진행한다(DESIGN-U16-LONGRUN §6.3).
+    comeback_ceiling(v2, personalize): 이 km 에 닿을 때까지 부하주 증가율 15%(복귀 구간), 넘는 부분은 10%.
     """
     if total_weeks < 1 or start_km <= 0:
         return []
@@ -75,7 +79,7 @@ def build_schedule(total_weeks: int, start_km: float, start_long_km: float, peak
         recovery = (i + 1) % 4 == 0 and i < n_train - 1
         phase, to_race = "recovery_week" if recovery else _phase(i, n_train), total_weeks - 1 - i
         if i > 0 and not recovery:
-            level = _down(min(peak_km, level * (1 + RAMP))) if v2 else min(peak_km, level * (1 + RAMP))
+            level = _down(P.next_level(level, peak_km, comeback_ceiling)) if v2 else min(peak_km, level * (1 + RAMP))
             long_level = long_level + LONG_STEP if cap_fn else min(long_max_km, long_level + LONG_STEP)
         vol = level * (RECOVERY_FACTOR if recovery else 1.0)
         lng = long_level * (LONG_RECOVERY_FACTOR if recovery else 1.0)
