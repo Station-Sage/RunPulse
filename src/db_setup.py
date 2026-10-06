@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 28  # v0.3.17: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 29  # v0.3.18: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -740,6 +740,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
     # v28: goals.reported_weekly_km·reported_long_km
     from src.db_schema_v28 import ensure_v28
     ensure_v28(conn)
+    from src.db_schema_v29 import ensure_v29
+    ensure_v29(conn)
 
     conn.commit()
 
@@ -824,6 +826,7 @@ def migrate_db(conn: sqlite3.Connection) -> bool:
     v26: goals.plan_rules_version 추가(ensure_v26 가 멱등 처리).
     v27: planned_workouts.workout_type CHECK 에 marathon·long_mp·threshold 추가(ensure_v27 이 재생성, 멱등).
     v28: goals.reported_weekly_km·reported_long_km 추가(ensure_v28 이 멱등 처리).
+    v29: plan_progression 테이블(ensure_v29 가 멱등 처리).
     """
     current = _get_user_version(conn)
 

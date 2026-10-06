@@ -487,3 +487,8 @@
 - `periodization.build_schedule(comeback_ceiling)`, `planner_schedule._comeback_ceiling`·`start_load` 연결. 백테스트 G6 는 복귀 예외 포함(`history_inputs.avg16`).
 - 백테스트(격자 1008 + 이력 66): 하드 G1~G9 실패 0, F6 114(기준선 112+2 동일), F1 6·F2ref 8·F3 12·F5 23(소프트).
 - 테스트: `tests/test_personalize.py` 5건. 전체 2316 통과.
+
+### U16l — 품질 세션 사다리 (2026-10-06, 설계서 §3.3)
+- `progression.py`(순수): long_mp 6→16km, tempo 3×1.6→연속 25분, interval 5×1000→4×1600. `next_step`: on_target/over +1, under/missed 유지, 연속 2회 under −1. `prescription` 은 단계 → 구조.
+- 스키마 v29(구 계획의 v28 은 L5b 가 사용): `plan_progression(goal_id, qtype, step, updated_at, reason)`, `db_schema_v29.ensure_v29` 멱등. `progression_service.get_step/advance`.
+- 아직 일정 생성에는 연결하지 않음(U16m 적응형 재계획에서 사용). 테스트 3건, 전체 2319 통과.

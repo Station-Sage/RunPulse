@@ -195,6 +195,10 @@
 
 - functions: record_snapshots, evaluate_race, summary
 
+### `progression_service.py` (25줄) — 품질 세션 사다리 단계 저장·갱신 서비스(U16l) — progression.py 순수 함수와 plan_progression 테이블을 잇는다.
+
+- functions: get_step, advance
+
 ### `provider_comparison_service.py` (295줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
@@ -1307,6 +1311,10 @@
 
 - functions: total, rebalance, trim_run_days, plan_long_week, long_fill_km
 
+### `progression.py` (46줄) — 품질 세션 진행 사다리(순수) — 유형별 단계 정수와 R5 라벨 기반 승급·유지·강등 (DESIGN-U16 §3.3).
+
+- functions: max_step, next_step, prescription
+
 ### `readiness.py` (458줄) — 훈련 준비도 분석 + 목표 달성 가능성 예측.
 
 - functions: vdot_to_time, get_taper_weeks, get_recommended_weeks, recommend_weekly_km, get_phase_for_week, analyze_readiness
@@ -2346,6 +2354,10 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
+### `test_progression.py` (37줄) — U16l: 품질 사다리 순수 함수·v29 테이블·저장 서비스.
+
+- functions: test_next_step_up_hold_down_and_clamp, test_prescription_shapes, test_service_persists_and_migration_idempotent
+
 ### `test_provider_common.py` (118줄) — provider 오류 구조화(30-coach-chat design §6.2) — HTTP 상태→reason 매핑, 모델 ID 설정화, 타임아웃.
 
 - class **_Resp**: json
@@ -2733,7 +2745,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 567개 파일
+총 570개 파일
 
 ## docstring 누락
 
