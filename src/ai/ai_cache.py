@@ -5,6 +5,7 @@ ai_cache 테이블에 탭별 AI 해석을 저장한다.
 캐시 무효화 조건 (ADR-011):
   1. 신규 활동 추가   — activity_summaries.MAX(id) 변경
   2. 신규 웰니스 레코드 — daily_wellness.MAX(date) 변경
+  2b. 메트릭 재계산  — 주 CTL 행 MAX(updated_at) 변경
   3. 날짜 변경       — 새로운 날 = 코칭 컨텍스트 갱신
   4. TTL 초과        — 8시간 safety net
   5. 명시적 refresh  — invalidate() 직접 호출 (사용자 요청)
@@ -116,7 +117,11 @@ def _compute_fingerprint(conn: sqlite3.Connection) -> str:
         well_max = conn.execute(
             "SELECT COALESCE(MAX(date), '') FROM daily_wellness"
         ).fetchone()[0]
-        return f"{today}|{act_max}|{well_max}"
+        ctl_upd = conn.execute(
+            "SELECT COALESCE(MAX(updated_at), '') FROM metric_store"
+            " WHERE scope_type='daily' AND metric_name='ctl' AND is_primary=1"
+        ).fetchone()[0]
+        return f"{today}|{act_max}|{well_max}|{ctl_upd}"
     except Exception:
         return today
 

@@ -223,6 +223,9 @@ class BgSyncThread(threading.Thread):
                 conn.commit()
         except Exception as exc:
             update_job(self.job_id, last_error=f"메트릭 계산 실패: {str(exc)[:150]}")
+        else:
+            from src.services.narrative_warm import warm_in_background
+            warm_in_background(str(get_db_path(self.user_id)), date.today().isoformat(), self.config)
 
         # 동기화 완료 후 최근 4주 계획↔활동 자동 매칭
         try:

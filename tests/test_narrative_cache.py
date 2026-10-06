@@ -134,3 +134,19 @@ class TestGetTodayNarrativeCache:
             result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
         assert result["source"] == "ai"
         assert result["text"] == "AI 텍스트"
+
+
+class TestFingerprintRecompute:
+    def test_fingerprint_changes_on_ctl_recompute(self, db_conn):
+        _seed_metric(db_conn, "2026-09-22", "ctl", 40.0)
+        db_conn.commit()
+        fp1 = ai_cache._compute_fingerprint(db_conn)
+        db_conn.execute("UPDATE metric_store SET updated_at='2099-01-01 00:00:00' WHERE metric_name='ctl'")
+        assert ai_cache._compute_fingerprint(db_conn) != fp1
+
+    def test_fingerprint_ignores_other_metrics(self, db_conn):
+        _seed_metric(db_conn, "2026-09-22", "ctl", 40.0)
+        fp1 = ai_cache._compute_fingerprint(db_conn)
+        db_conn.execute("UPDATE metric_store SET updated_at='2099-01-01 00:00:00' WHERE metric_name!='ctl'")
+        _seed_metric(db_conn, "2026-09-22", "atl", 50.0)
+        assert ai_cache._compute_fingerprint(db_conn) == fp1
