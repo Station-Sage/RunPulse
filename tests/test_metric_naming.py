@@ -32,6 +32,7 @@ class TestMetricNaming:
         # ↔ r4 섀도 darp_r4(runpulse:shadow_r4)·darp_r4_asym(runpulse:shadow_r4_asym) — P7-PRED-51
         family = {"darp", "darp_ref", "darp_r4", "darp_r4_asym"}
         provider_split = {frozenset({a, b}) for a in family for b in family if a != b}
+        provider_split.add(frozenset({"trimp", "trimp_est"}))  # 측정 vs 추정 TRIMP (ADR-024)
         seen = {}
         for calc in ALL_CALCULATORS:
             for produced in calc.produces:

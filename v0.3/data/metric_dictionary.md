@@ -1,6 +1,6 @@
 # RunPulse Metric Dictionary
 
-> 자동 생성 | 37 calculators | 13 semantic groups
+> 자동 생성 | 38 calculators | 13 semantic groups
 >
 > 이 문서는 RunPulse가 계산하는 모든 메트릭의 정의, 해석, 범위를 정리한 공식 사전입니다.
 > UI 툴팁, AI 코칭 프롬프트, 사용자 도움말의 원본(single source of truth)으로 사용됩니다.
@@ -33,7 +33,7 @@ Garmin/Strava/Intervals/Runalyze
 
 ---
 
-## 2. Activity-Scope 메트릭 (10개)
+## 2. Activity-Scope 메트릭 (11개)
 
 운동이 기록될 때마다 계산되는 메트릭입니다.
 
@@ -57,6 +57,19 @@ Garmin/Strava/Intervals/Runalyze
 | moderate | 100 ~ 200 | 보통 |
 | hard | 200 ~ 350 | 높은 강도 |
 | very_hard | 350 ~ 999 | 매우 높은 강도 |
+
+---
+
+### TRIMP (추정)
+
+| 항목 | 값 |
+|------|-----|
+| Calculator ID | `trimp_est` |
+| 메트릭 이름 | `trimp` |
+| 설명 | 심박 결측 러닝의 훈련 부하를 근접 시기 페이스-심박 관계로 추정한 값. |
+| 단위 | AU |
+| 카테고리 | `load` |
+| 의존성 | 소스 데이터 직접 사용 |
 
 ---
 
@@ -720,7 +733,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `marathon_shape` |
 | 메트릭 이름 | `marathon_shape` |
-| 화면 표시명 | 마라톤 완성도 |
+| 화면 표시명 | 마라톤 볼륨 충족률 |
 | 설명 | 마라톤 볼륨 충족률(%) = 8주 주평균 km ÷ Tanda 역산 필요 km. json 에 롱런·MP·품질 세션 구조. |
 | 단위 | % |
 | 카테고리 | `capacity` |
@@ -791,7 +804,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 메트릭 | 제공자 |
 |--------|--------|
-| `training_load_score` | intervals |
+| `training_load` | intervals |
 | `training_load` | garmin |
 | `suffer_score` | strava |
 | `hrss` | runpulse:formula_v1 |
@@ -902,6 +915,7 @@ Garmin/Strava/Intervals/Runalyze
 ```
 Activity-scope:
   (소스 직접) --> trimp
+  (소스 직접) --> trimp
   trimp --> hrss
   (소스 직접) --> aerobic_decoupling_rp
   (소스 직접) --> gap_rp
@@ -949,7 +963,7 @@ Daily-scope:
 | `capacity` | capacity | `gap_rp`, `runpulse_vdot`, `fearp`, `di`, `critical_power`, `sapi`, `rri`, `eftp`, `marathon_shape` |
 | `efficiency` | efficiency | `aerobic_decoupling_rp`, `efficiency_factor_rp`, `teroi`, `tpdi`, `rec` |
 | `hr` | hr | `hr_profile`, `hrmax_self`, `lthr_self` |
-| `load` | load | `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `training_response`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
+| `load` | load | `trimp`, `trimp`, `hrss`, `ctl`, `atl`, `tsb`, `ramp_rate`, `acwr`, `lsi`, `monotony`, `training_strain`, `training_response`, `tids`, `adti`, `relative_effort`, `wlei`, `rtti` |
 | `meta` | meta | `workout_type_classified` |
 | `prediction` | prediction | `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec`, `race_pred_vdot`, `race_pred_5k_sec`, `race_pred_10k_sec`, `race_pred_half_sec`, `race_pred_marathon_sec` |
 | `readiness` | readiness | `utrs`, `utrs_body_battery`, `utrs_tsb`, `utrs_sleep`, `utrs_hrv`, `utrs_stress`, `cirs`, `cirs_acwr`, `cirs_lsi`, `cirs_consecutive`, `cirs_fatigue`, `rmr`, `crs` |

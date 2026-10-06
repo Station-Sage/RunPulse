@@ -17,6 +17,7 @@ from src.utils.metric_priority import resolve_all_primaries, resolve_for_scope
 
 # ── Calculator 임포트 ──
 from src.metrics.trimp import TRIMPCalculator
+from src.metrics.trimp_est import TRIMPEstCalculator
 from src.metrics.hrss import HRSSCalculator
 from src.metrics.decoupling import AerobicDecouplingCalculator
 from src.metrics.gap import GAPCalculator
@@ -78,6 +79,7 @@ class ComputeResult:
 # ── Calculator 레지스트리 ──
 ALL_CALCULATORS: list[MetricCalculator] = [
     TRIMPCalculator(),
+    TRIMPEstCalculator(),
     HRSSCalculator(),
     AerobicDecouplingCalculator(),
     GAPCalculator(),

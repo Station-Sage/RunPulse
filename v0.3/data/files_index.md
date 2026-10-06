@@ -378,7 +378,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (797줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (799줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: prune_noncanonical_runpulse, run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -489,6 +489,11 @@
 ### `trimp.py` (83줄) — TRIMP Calculator — 설계서 4-2 기준.
 
 - class **TRIMPCalculator**: compute
+
+### `trimp_est.py` (101줄) — TRIMP 추정 Calculator — 심박 결측 활동의 부하를 페이스로 추정(DATA-CTL-WARMUP).
+
+- class **TRIMPEstCalculator**: compute
+- functions: fit_hr_from_speed
 
 ### `utrs.py` (114줄) — UTRS (Unified Training Readiness Score) — 설계서 4-4 기준.
 
@@ -2684,6 +2689,10 @@
 - class **TestTRIMPCalculator**: test_compute, test_no_hr, test_uses_wellness_rest_hr, test_confidence_without_measured_max
 - class **TestHRSSCalculator**: test_compute, test_no_trimp
 
+### `test_trimp_est.py` (97줄) — TRIMP 추정 Calculator 테스트 — 심박 결측 러닝의 페이스 기반 부하 추정.
+
+- functions: test_fit_recovers_line, test_fit_rejects_flat_or_negative, test_estimates_missing_hr_with_low_confidence, test_faster_pace_gives_higher_estimate, test_skips_when_hr_measured, test_empty_when_not_enough_history, test_measured_provider_outranks_estimate, test_store_primary_prefers_measured
+
 ### `test_unified_activities.py` (338줄) — unified_activities 서비스 테스트.
 
 - class **TestPickValue**: test_garmin_first, test_fallback_when_garmin_missing, test_none_when_all_missing, test_all_values_populated, test_service_priority_order
@@ -2829,7 +2838,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 590개 파일
+총 592개 파일
 
 ## docstring 누락
 

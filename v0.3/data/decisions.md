@@ -169,3 +169,10 @@
 - **맥락**: v1/v2 UI 기본값 선택을 기기·사용자 단위로 저장하고, 운영자가 재배포 없이 전역 롤백할 수단이 필요하다.
 - **결정**: running.db v25 `user_settings(key PK, value_json, updated_at)`에 화이트리스트 키(`ui_default`: v1|v2)만 저장한다. 해석 순서는 사용자 값 → `config.json`의 `ui_default_global` → `v1`. API는 `GET/PATCH /api/v1/me/preferences`. `/` 분기 연결은 G0 작업.
 - **검증**: `tests/test_user_settings_service.py`.
+
+## ADR-024: 심박 결측 러닝의 TRIMP 추정 (2026-10-07)
+- 배경: 2023-10~2025-02는 러닝 대부분에 avg_hr가 없어 TRIMP가 비고 CTL이 과소 계산됨(DATA-CTL-WARMUP).
+- 결정: `TRIMPEstCalculator`(name=`trimp_est`, produces=`trimp`, provider=`runpulse:rule_trimp_est`, 우선순위 30). 시기가 가까운 심박 보유 러닝 ≤60건(≥8건)으로 `avg_hr = a + b·speed` 회귀 → 추정 심박을 측정 TRIMP와 같은 Banister 식에 투입. 기울기 ≤0이면 평균 심박, 표본 부족이면 결과 없음. confidence 0.4/0.25.
+- 이중 계산 방지: 측정 TRIMP(formula_v1, 우선순위 20)가 있으면 항상 그쪽이 primary. PMC·합산 소비자는 `trimp is_primary=1`만 보므로 변경 없음.
+- 엔진은 이름 키(`name_to_calc`)로 정렬하므로 calculator `name`은 고유하게 두고 `produces`로 trimp를 지정.
+- 한계: 심박 없이 페이스만으로 추정하므로 인터벌·언덕 활동은 과소 추정 가능(낮은 confidence로 표시). 실 DB 재계산은 별도 승인 후 수행.
