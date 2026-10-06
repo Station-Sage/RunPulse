@@ -65,21 +65,6 @@ def weekly_trends(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
     return results
 
 
-def _load_sum(conn: sqlite3.Connection, start: str, end: str,
-              source: str, metric_name: str) -> float:
-    """기간 내 특정 부하 지표 합계 (없으면 0)."""
-    row = conn.execute("""
-        SELECT COALESCE(SUM(sm.numeric_value), 0)
-        FROM metric_store sm
-        JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
-        WHERE sm.scope_type='activity'
-          AND a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
-          AND sm.provider = ? AND sm.metric_name = ?
-    """, (start, end, source, metric_name)).fetchone()
-    return row[0] or 0.0
-
-
 def _acwr_status(acwr: float) -> str:
     """ACWR 값으로 위험도 판정."""
     if acwr < 0.8:
@@ -92,62 +77,24 @@ def _acwr_status(acwr: float) -> str:
         return "danger"
 
 
-def calculate_acwr(
-    conn: sqlite3.Connection,
-    acute_days: int = 7,
-    chronic_days: int = 28,
-) -> dict | None:
-    """4개 소스 부하 지표로 ACWR 계산 (교차 검증).
-
-    각 지표별 ACWR = acute 합 / (chronic 합 / chronic_days * acute_days).
-
-    Args:
-        conn: SQLite 연결.
-        acute_days: 급성 기간 (일, 기본 7).
-        chronic_days: 만성 기간 (일, 기본 28).
+def calculate_acwr(conn: sqlite3.Connection) -> dict | None:
+    """정식 ACWR(metric_store 'acwr', EWMA 7/42, D1f)의 최신 일별 값.
 
     Returns:
-        {"garmin_tl": {"acwr": 1.2, "status": "safe"}, ..., "average": {...}}
-        사용 가능한 지표가 없으면 None.
+        {"average": {"acwr": 1.1, "status": "safe", "date": "YYYY-MM-DD"}}. 값이 없으면 None.
+        (소비처 호환을 위해 "average" 키 형태 유지)
     """
-    today = date.today()
-    end = (today + timedelta(days=1)).isoformat()
-    acute_start = (today - timedelta(days=acute_days)).isoformat()
-    chronic_start = (today - timedelta(days=chronic_days)).isoformat()
-
-    indicators = [
-        ("garmin_tl",       "garmin",    "training_load"),
-        ("strava_re",       "strava",    "relative_effort"),
-        ("intervals_hrss",  "intervals", "icu_hrss"),
-        ("runalyze_trimp",  "runalyze",  "trimp"),
-    ]
-
-    results: dict = {}
-    acwr_values: list[float] = []
-
-    for key, source, metric in indicators:
-        acute = _load_sum(conn, acute_start, end, source, metric)
-        chronic = _load_sum(conn, chronic_start, end, source, metric)
-
-        if acute == 0 and chronic == 0:
-            continue
-
-        if chronic == 0:
-            acwr_val = None
-        else:
-            chronic_in_acute = (chronic / chronic_days) * acute_days
-            acwr_val = round(acute / chronic_in_acute, 3) if chronic_in_acute > 0 else None
-
-        if acwr_val is not None:
-            results[key] = {"acwr": acwr_val, "status": _acwr_status(acwr_val)}
-            acwr_values.append(acwr_val)
-
-    if not results:
+    row = conn.execute(
+        "SELECT scope_id, numeric_value FROM metric_store"
+        " WHERE scope_type='daily' AND metric_name='acwr' AND is_primary=1"
+        " AND numeric_value IS NOT NULL AND scope_id <= ?"
+        " ORDER BY scope_id DESC LIMIT 1",
+        (date.today().isoformat(),),
+    ).fetchone()
+    if not row:
         return None
-
-    avg_acwr = round(sum(acwr_values) / len(acwr_values), 3)
-    results["average"] = {"acwr": avg_acwr, "status": _acwr_status(avg_acwr)}
-    return results
+    val = round(float(row[1]), 3)
+    return {"average": {"acwr": val, "status": _acwr_status(val), "date": row[0]}}
 
 
 def _fitness_last_from_daily_metrics(

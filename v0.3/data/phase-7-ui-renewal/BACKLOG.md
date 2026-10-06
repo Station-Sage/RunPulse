@@ -191,8 +191,8 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   3. **D1d 활동 scope(`@a{id}`) drill**: 지금 explain은 daily만 지원. 활동 단위 분해가 필요한 화면(3-8·3-9) 착수 시 결정.
   4. **S1b 종료(2026-10-07)**: 본체(PMC α=1/τ·v2.0, GAP v2 Minetti)는 1-1·1-7에서 운영 반영 완료. 잔여 3건은 아래로 분리(각각 별도 판단):
      - ① 심박 결측 TRIMP 대체 부하(페이스·RPE 기반 새 Calculator) — 2025-09 이전 CTL 과소, 현재 값 영향 없음. 루트 BACKLOG `DATA-CTL-WARMUP` 참조. **(판단 필요)** 실행 시 재계산·백업.
-     - ② Garmin `gap_speed_ms` 소스 GAP 저장 — Extractor 추가 + 재동기화(실 DB 변경, 백업 필수). **(판단 필요)**
-     - ③ ACWR 정의 통일(D1f) — 2026-10-07 조사: 정의가 **2종 공존**. (a) metric_store `acwr`(`src/metrics/acwr.py`): EWMA α=2/(N+1) 7/42일 ATL/CTL, PMC(α=1/τ)와 분리 — 정본. (b) 레거시 `src/analysis/trends.calculate_acwr`: 소스별 급성합/만성합 롤링 비율 — `weekly_score`·`race_readiness`·`ai/suggestions`·`ai_context_legacy`가 사용. 통일하려면 (b)를 (a)로 대체(주간 점수·레디니스 값 변동). **(판단 필요)** 설계 변경 승인 후 진행.
+     - ② **종료(2026-10-07)**: 이미 구현됨(활동 `gap` 메트릭·랩 83%·스트림 41% 저장). 빈 구간은 GPS·고도 없는 활동으로 원본 부재 — 추가 개발 없음.
+     - ③ **완료(2026-10-07)**: 레거시 `trends.calculate_acwr`가 정본(metric_store `acwr`, EWMA 7/42) 최신 값을 읽도록 교체(반환 형태 유지). weekly_score·race_readiness·suggestions·ai_context_legacy 값이 정본 기준으로 바뀜.
   5. **3-10 RPE 입력·`⋯` 메뉴**: ⑦ ADR + 사용자 승인 필요.
   6. **3-16(D4)**: 사용자 지시 없이 진행 금지.
   7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
