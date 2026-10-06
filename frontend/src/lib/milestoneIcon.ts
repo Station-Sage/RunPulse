@@ -1,4 +1,4 @@
-// 마일스톤 타입 → §C8 아이콘 이름. 이모지 금지(§C8) — Today/MonthNarrative/MilestonesPanel 공유.
+// 마일스톤 타입 → §C8 아이콘 이름. 이모지 금지(§C8) — Today/월간 라우트/MilestonesPanel 공유.
 import type { IconName } from '$lib/icon';
 
 const MILESTONE_ICON: Record<string, IconName> = {

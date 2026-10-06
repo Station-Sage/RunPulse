@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
 	import type { TodayPageData } from './+page';
-	import { invalidate } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import ReadinessGauge from '$lib/components/ReadinessGauge.svelte';
 	import TodayHero from '$lib/components/TodayHero.svelte';
 	import TodayRecent from '$lib/components/TodayRecent.svelte';
@@ -10,7 +10,6 @@
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
-	import MonthNarrative from '$lib/components/MonthNarrative.svelte';
 	import TodayNextSession from '$lib/components/TodayNextSession.svelte';
 	import TodayFormChart from '$lib/components/TodayFormChart.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
@@ -33,7 +32,6 @@
 
 	// 임의 슬러그·scope 드릴(EvidenceQuote 칩)은 기존 MetricBreakdown 스택, 게이지 3종은 DrillPanel(URL 스택).
 	let drillStack = $state<DrillTarget[]>([]);
-	let showMonthNarrative = $state(false);
 	let showMilestonesPanel = $state(false);
 
 	const todayDate = $derived(data.today?.status.date ?? '');
@@ -50,6 +48,11 @@
 			return;
 		}
 		drillStack = [...drillStack, t];
+	}
+
+	function openMonth() {
+		const d = new Date();
+		void goto(`${base}/today/month/${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
 	}
 
 	const retry = () => { swrEvict('app:today'); return invalidate('app:today'); };
@@ -135,12 +138,12 @@
 
 			<section class="order-3 flex flex-col gap-3 border-t border-border-subtle pt-4">
 				<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
-				<TodayFormChart chart={data.formChart} raceHub={data.raceHub} onMonth={() => { showMonthNarrative = true; }} onRetry={retry} />
+				<TodayFormChart chart={data.formChart} raceHub={data.raceHub} onMonth={openMonth} onRetry={retry} />
 				<TodayNarrative
 					narrative={data.narrative}
 					ctl={status.training_status.ctl ?? null}
 					onEvidence={openEvidence}
-					onMonth={() => { showMonthNarrative = true; }}
+					onMonth={openMonth}
 					onMilestones={() => { showMilestonesPanel = true; }}
 				/>
 			</section>
@@ -155,7 +158,6 @@
 	{#if drillTop}
 		<MetricBreakdown slug={drillTop.slug} scopeType={drillTop.scopeType} scopeId={drillTop.scopeId} onClose={() => { drillStack = []; }} onDrillInput={handleDrillInput} />
 	{/if}
-	{#if showMonthNarrative}<MonthNarrative onClose={() => { showMonthNarrative = false; }} />{/if}
 	{#if showMilestonesPanel}<MilestonesPanel onClose={() => { showMilestonesPanel = false; }} />{/if}
 </DrillPanel>
 {/if}

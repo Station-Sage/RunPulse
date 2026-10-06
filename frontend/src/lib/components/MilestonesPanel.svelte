@@ -1,6 +1,6 @@
 <script lang="ts">
 	// 03a-today.md 1-D — Today "전체 마일스톤" 우측/하단 시트 패널.
-	// MonthNarrative.svelte과 동일한 fixed inset-0 오버레이 + 하단 시트 패턴.
+	// 월간 라우트와 달리 fixed inset-0 오버레이 + 하단 시트 패턴.
 	import { onMount } from 'svelte';
 	import { getTodayMilestones } from '$lib/api/today';
 	import { base } from '$app/paths';

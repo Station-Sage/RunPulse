@@ -512,3 +512,11 @@
 ## U17b/c — 계산 버전 변경 ◆ (DESIGN-U17 §5)
 - 백엔드 `metrics_version_events.py`: 주 시계열의 (출처, 알고리즘 버전) 전환점을 `version_change` 이벤트로, 불연속이 없을 때 `recompute_note`(재계산 캡션)를 돌려준다. `get_metric_trend`에 연결.
 - 프런트: `trendChart.ts` `eventSymbol`/`markerEvents`(같은 날 ◆>◇>▲), TrendChart에 ◆(amber) 표시·리드아웃 확장, 지표 상세 차트 아래 재계산 캡션.
+
+## U17d/e — 재계산 후 내러티브 캐시 무효화·사전 생성
+- `ai_cache._compute_fingerprint`에 일별 CTL(primary) `MAX(updated_at)` 성분 추가 → 메트릭 재계산 시 내러티브 캐시가 낡은 것으로 판정된다(다른 메트릭 무관).
+- `src/services/narrative_warm.py`: 동기화·메트릭 계산 성공 뒤 백그라운드 스레드로 월간 내러티브를 미리 생성. `coach_consent` 동의 있을 때만, 하루 3회 상한(`ai_cache` 카운터 행), 신선 캐시면 건너뜀, 실패는 삼킴. `bg_sync`에 3줄 배선.
+
+## U17f — 월간 내러티브 라우트
+- `/today/month/[ym]` 신설(`MonthNarrative.svelte` 오버레이 삭제). Today 진입 2곳은 `goto`, ‹ › 는 `replaceState`(히스토리 불변), 닫기는 뒤로가기. 칩은 DrillPanel 하나만 연다.
+- 스모크: `scripts/synth_smoke/pw/month_route.mjs`.

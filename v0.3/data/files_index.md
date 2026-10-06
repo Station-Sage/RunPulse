@@ -183,6 +183,10 @@
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
+### `narrative_warm.py` (82줄) — 이번 달 Today 내러티브 사전 생성(워밍) — 동기화 직후 AI 문장을 캐시에 미리 채운다 (DESIGN-U17 §3).
+
+- functions: warm_month_narrative, warm_in_background
+
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
@@ -706,7 +710,7 @@
 > 설계 문서: v0.3/data/phase-5-impl/02-ai-context.md
 > 의존: src/services/, src/web/template_helpers.py
 
-### `ai_cache.py` (162줄) — AI 캐시 관리 — DB 기반 AI 해석 결과 저장/조회/갱신.
+### `ai_cache.py` (167줄) — AI 캐시 관리 — DB 기반 AI 해석 결과 저장/조회/갱신.
 
 - functions: get_cached, set_cached, get_cache_age, invalidate
 
@@ -889,7 +893,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (517줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (520줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
@@ -2220,10 +2224,15 @@
 - class **TestVDOTMock**: test_10k, test_non_running
 - class **TestConfidenceBuilder**: test_all_available, test_partial_available, test_estimated_penalty, test_empty, test_mixed
 
-### `test_narrative_cache.py` (136줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
+### `test_narrative_cache.py` (152줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
 
 - class **TestNarrativeCacheHelpers**: test_cache_miss_returns_none, test_set_then_get_roundtrip, test_different_keys_do_not_collide, test_set_cache_failure_is_swallowed
 - class **TestGetTodayNarrativeCache**: test_rule_fallback_not_cached, test_ai_result_is_cached, test_cache_hit_skips_ai_call, test_cache_hit_returns_cached_text, test_past_month_uses_correct_cache_key, test_stale_cache_on_new_activity_triggers_ai, test_cache_save_failure_does_not_raise
+- class **TestFingerprintRecompute**: test_fingerprint_changes_on_ctl_recompute, test_fingerprint_ignores_other_metrics
+
+### `test_narrative_warm.py` (47줄) — tests/test_narrative_warm.py — 내러티브 워밍 가드·반환값 검증.
+
+- functions: test_no_consent_skips_llm, test_warmed_and_counts_call, test_rule_fallback_is_failed, test_exception_is_failed_and_no_cache_row, test_capped_after_daily_limit, test_fresh_cache_skips
 
 ### `test_orchestrator.py` (115줄) — DoD #11: orchestrator.full_sync + sync_jobs 기록.
 
@@ -2775,7 +2784,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 577개 파일
+총 579개 파일
 
 ## docstring 누락
 
