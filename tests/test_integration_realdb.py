@@ -995,8 +995,9 @@ def _build_metric_store_params() -> list[tuple]:
 
 # 단위 기반 범위가 맞지 않는 지표의 개별 범위 (계산기 ranges/캡 기준)
 _METRIC_BOUND_OVERRIDES: dict[str, tuple] = {
-    "rtti": (0, 200),                    # ATL/CTL 비율 지수, 계산기가 200으로 캡
+    "rtti": (0, 400),                    # ATL/CTL 비율 지수. P7-PRED-89에서 200 캡 제거 — 휴식 후 복귀 급증 시 300대 정상
     "aerobic_decoupling_rp": (-50, 100), # 후반부 효율이 좋아지면 음수
+    "marathon_shape": (0, 3000),         # 볼륨 충족률 — v2 상한 없음, 필요 km가 0에 가까우면(목표 페이스가 느릴 때) 수백~수천 %
 }
 
 
