@@ -1,6 +1,7 @@
 <script lang="ts">
 	// C4 ProviderComparison — 04-component-catalog.md 기준.
 	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
+	import { base } from '$app/paths';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
 	import Icon from '$lib/components/Icon.svelte';
@@ -130,6 +131,9 @@
 							<td class="sticky left-0 z-10 bg-surface-1 py-2.5 pl-4 pr-2">
 								<div class="flex items-center gap-1.5">
 									<span class="text-sm">{row.label}</span>
+									{#if row.compare === 'scale'}
+										<a href="{base}/library/providers/{row.slug}" class="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-fg-secondary" onclick={(e) => e.stopPropagation()} data-testid="scale-chip">척도 다름 ›</a>
+									{/if}
 									{#if hasDiscrepancy(row)}
 										<span class="text-semantic-amber" title="불일치 {row.discrepancy?.maxDiffPct?.toFixed(1)}%"><Icon name="warning" class="h-3.5 w-3.5" /></span>
 									{/if}

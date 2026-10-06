@@ -242,7 +242,7 @@ def test_missing_provider_cell_available_false(two_source_conn):
     """한 provider에 값 없으면 해당 셀 available=False."""
     c, garmin_id, strava_id = two_source_conn
     # intervals 값만 삽입
-    _insert_metric(c, garmin_id, "training_load_score", "intervals", numeric_value=70.0)
+    _insert_metric(c, garmin_id, "training_load", "intervals", numeric_value=70.0)
     c.commit()
 
     result = get_provider_comparison(c, garmin_id)
@@ -286,3 +286,16 @@ def test_related_group_has_no_discrepancy(two_source_conn):
     rows = {r["slug"]: r for r in get_provider_comparison(c, garmin_id)["rows"]}
     assert rows["training_load"]["section"] == "related"
     assert rows["training_load"]["discrepancy"] is None
+
+
+def test_training_load_row_marked_scale_and_includes_intervals(two_source_conn):
+    """훈련 부하 행은 compare=scale(비교 불가·% 차이 없음)이고 intervals 값이 그룹에 들어온다(ADR-021 §8)."""
+    c, garmin_id, _ = two_source_conn
+    _insert_metric(c, garmin_id, "training_load", "intervals", numeric_value=70.0)
+    _insert_metric(c, garmin_id, "hrss", "runpulse:formula_v1", numeric_value=55.0)
+    c.commit()
+
+    row = next(r for r in get_provider_comparison(c, garmin_id)["rows"] if r["slug"] == "training_load")
+    assert row["compare"] == "scale"
+    assert row["section"] == "related" and row["diff"] is None
+    assert row["values"]["intervals"]["available"] is True

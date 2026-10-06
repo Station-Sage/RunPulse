@@ -27,7 +27,7 @@ SEMANTIC_GROUPS: dict[str, dict] = {
     "training_load": {
         "display_name": "훈련 부하",
         "members": [
-            ("training_load_score", "intervals"),
+            ("training_load", "intervals"),
             ("training_load", "garmin"),
             ("suffer_score", "strava"),
             ("hrss", "runpulse:formula_v1"),
@@ -35,6 +35,7 @@ SEMANTIC_GROUPS: dict[str, dict] = {
             ("rtti", "runpulse:formula_v1"),
         ],
         "primary_strategy": "show_all",
+        "compare": "scale",
     },
     "vo2max": {
         "comparable": True,

@@ -181,6 +181,7 @@ def get_provider_comparison(
             "unit": group_def.get("unit"),
             "quantity": group_name if comparable else None,
             "section": "computed" if comparable else "related",
+            "compare": group_def.get("compare"),
             "values": values_dict,
             "diff": d,
             "discrepancy": legacy_discrepancy(d),

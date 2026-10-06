@@ -199,7 +199,7 @@
 
 - functions: get_step, advance
 
-### `provider_comparison_service.py` (295줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
+### `provider_comparison_service.py` (296줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
 - functions: get_provider_comparison
 
@@ -1426,7 +1426,7 @@
 
 - (public API 없음)
 
-### `metric_groups.py` (149줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
+### `metric_groups.py` (150줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
 
@@ -2381,9 +2381,9 @@
 - class **_Resp**: json
 - functions: test_status_maps_to_reason, test_429_is_rate_limit_error, test_timeout_maps_to_timeout, test_no_key_and_empty_response, test_success_uses_config_model_only, test_deadline_exhausted_raises_timeout, test_legacy_call_keeps_string_contract, test_tool_loop_executes_tool_then_answers, test_complete_counts_tool_calls_in_stats
 
-### `test_provider_comparison_service.py` (288줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
+### `test_provider_comparison_service.py` (301줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 
-- functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped, test_runpulse_value_only_from_canonical_row, test_related_group_has_no_discrepancy
+- functions: two_source_conn, solo_conn, test_unknown_activity_returns_none, test_solo_activity_returns_single_provider, test_two_source_returns_loaded, test_avg_hr_raw_metric_present, test_avg_hr_no_discrepancy, test_discrepancy_warning_triggered, test_preferred_provider_uses_primary_source, test_runpulse_only_metric_gets_runpulse_always, test_semantic_training_load_flattened_to_one_row, test_missing_provider_cell_available_false, test_all_none_raw_column_skipped, test_runpulse_value_only_from_canonical_row, test_related_group_has_no_discrepancy, test_training_load_row_marked_scale_and_includes_intervals
 
 ### `test_provider_diff.py` (30줄) — tests/test_provider_diff.py — 소스 비교 항목별 임계·정규화(UX 리뷰 20 F-DATA-03).
 

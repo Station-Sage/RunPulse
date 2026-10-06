@@ -851,6 +851,7 @@ export interface ComparisonRow {
 	unit: string | null;
 	quantity?: string | null;
 	section?: 'record' | 'computed' | 'related';
+	compare?: 'same' | 'scale' | null;
 	values: Record<string, ComparisonCell>;
 	diff?: ComparisonDiff | null;
 	discrepancy: ComparisonDiscrepancy | null;

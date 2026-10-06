@@ -503,3 +503,8 @@
 - `src/training/constraints.py`(순수): `heat_adjust`(보정>2%면 거리 유지·페이스만 완화, 퀄리티는 가장 선선한 이지일과 맞교환), `redistribute_blocked`(이지 12km 상한, 초과 버림), `b_race_week`(0.8배·직전 2일 이지·롱런→레이스), `cross_substituted`(분모 제외 날짜 집합).
 - 연결: CLI `generate` 에서 prefs 차단일 재분배만(`plan._constrain`). 
 - 미연결(한계): 폭염 예보 입력 소스, B 레이스 목표 탐색, 교차훈련 날짜의 `week_compliance` 분모 제외는 함수만 제공.
+
+## U17a — 소스 비교 §8 확정 (ADR-021)
+- §8-4 교정: `metric_groups.training_load`의 intervals 멤버를 `training_load`로 수정(기존 `training_load_score`는 존재하지 않는 slug).
+- 서버가 비교 행에 `compare: "scale"`을 내려주고(그룹 정의 키), 프론트는 "척도 다름 ›" 칩으로 `/library/providers/training_load`에 연결. 판정은 서버, 프론트 하드코딩 없음.
+- 매트릭스 접힘 문구: "비교 상대가 없는 지표 n개 ›". 테스트: `test_training_load_row_marked_scale_and_includes_intervals`.

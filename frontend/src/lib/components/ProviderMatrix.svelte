@@ -68,7 +68,7 @@
 
 {#if data.single_source.length}
 	<details class="px-4 pb-6">
-		<summary class="cursor-pointer text-xs text-fg-secondary">한 소스에만 있는 지표 {data.single_source.length}개</summary>
+		<summary class="cursor-pointer text-xs text-fg-secondary">비교 상대가 없는 지표 {data.single_source.length}개 ›</summary>
 		<ul class="mt-2 space-y-1 text-xs text-fg-muted">
 			{#each data.single_source as s (s.key)}
 				{@const t = cellText(s, s.cell)}
