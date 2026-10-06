@@ -136,3 +136,25 @@ test('monthTicks: 매월 1일, quarterly는 분기 첫 달만', async () => {
 	assert.deepEqual(monthTicks('2025-10-05', '2026-10-05', true), ['2026-01-01', '2026-04-01', '2026-07-01', '2026-10-01']);
 	assert.deepEqual(monthTicks('', ''), []);
 });
+
+import { eventSymbol, markerEvents } from '../src/lib/trendChart.ts';
+import test2 from 'node:test';
+import assert2 from 'node:assert/strict';
+
+test2('eventSymbol: 종류별 기호', () => {
+	assert2.equal(eventSymbol('version_change'), '◆');
+	assert2.equal(eventSymbol('basis_change'), '◇');
+	assert2.equal(eventSymbol('race'), '▲');
+});
+
+test2('markerEvents: 같은 날 ◆ > ◇ > ▲ 우선, 범위 밖 제외', () => {
+	const ev = [
+		{ date: '2026-09-26', kind: 'race', label: 'r' },
+		{ date: '2026-09-26', kind: 'version_change', label: 'v' },
+		{ date: '2026-09-26', kind: 'basis_change', label: 'b' },
+		{ date: '2026-08-01', kind: 'race', label: 'old' },
+	];
+	const m = markerEvents(ev, '2026-09-01', '2026-10-01');
+	assert2.equal(m.length, 1);
+	assert2.equal(m[0].kind, 'version_change');
+});

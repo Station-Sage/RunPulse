@@ -135,7 +135,7 @@
 
 - functions: load_json, basis_change_events
 
-### `metrics_browser_service.py` (295줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (298줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
@@ -170,6 +170,10 @@
 ### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
 - functions: get_metric_breakdown
+
+### `metrics_version_events.py` (60줄) — 추세 차트의 계산 버전 마커(◆) — 대표 시계열에서 (provider, algorithm_version)이 바뀐 첫 날 + 전 기간 재계산 캡션.
+
+- functions: version_change_events, recompute_note
 
 ### `milestone_present.py` (51줄) — 마일스톤 표시용 가공(순수) — 갱신(같은 알고리즘 안의 값 변화) 항목의 내부 메트릭 키를 사람이 읽는 이름으로 바꾸고, 같은 날 예측 갱신은 한 줄로 묶는다.
 
@@ -2196,6 +2200,10 @@
 - class **TestGetMetricBreakdownInputs**: test_rri_inputs_include_cirs, test_metric_without_calculator_has_empty_inputs
 - class **TestGetMetricBreakdownStructure**: test_top_level_keys, test_utrs_children
 
+### `test_metrics_version_events.py` (47줄)
+
+- functions: test_mixed_versions_give_one_event, test_provider_switch_gives_one_event, test_single_version_and_no_data, test_recompute_note_present_and_absent
+
 ### `test_milestone_service.py` (355줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
 
 - class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
@@ -2767,7 +2775,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 575개 파일
+총 577개 파일
 
 ## docstring 누락
 
@@ -2780,6 +2788,7 @@
 - `tests/test_fixtures_layout.py`
 - `tests/test_marathon_shape.py`
 - `tests/test_metrics_basis_events.py`
+- `tests/test_metrics_version_events.py`
 - `tests/test_personalize.py`
 - `tests/test_plan_backtest.py`
 - `tests/test_plan_gates.py`

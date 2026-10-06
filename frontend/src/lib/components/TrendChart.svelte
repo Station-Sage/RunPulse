@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, dateAtOffset, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { commonRange, dateAtOffset, eventSymbol, markerEvents, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
 	import { axisDateLabel } from '$lib/chart/scrub';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
@@ -32,7 +32,7 @@
 		periodLabel?: string;
 		/** 고정(pin)된 선택일 — 차트 커서와 분해 패널 기준일을 공유한다. */
 		selectedDate?: string | null;
-		/** 차트 위 이벤트 마커(▲ 대회, ◇ 예측 기준 대회 변경). 날짜가 x 범위 밖이면 그리지 않는다. */
+		/** 차트 위 이벤트 마커(▲ 대회, ◇ 예측 기준 대회 변경, ◆ 계산 버전·출처 변경). 날짜가 x 범위 밖이면 그리지 않는다. */
 		events?: { date: string; kind: string; label: string }[];
 		onSelect?: (date: string | null) => void;
 	} = $props();
@@ -139,8 +139,8 @@
 					>
 				</span>
 			{/each}
-			{#each events.filter((e) => e.kind === 'basis_change' && e.date === readoutDate) as e (e.date + e.label)}
-				<span class="text-fg-secondary" data-testid="trend-event-readout">◇ {e.label}</span>
+			{#each events.filter((e) => e.kind !== 'race' && e.date === readoutDate) as e (e.date + e.label)}
+				<span class={e.kind === 'version_change' ? 'text-semantic-amber' : 'text-fg-secondary'} data-testid="trend-event-readout">{eventSymbol(e.kind)} {e.label}</span>
 			{/each}
 		</div>
 
@@ -206,14 +206,14 @@
 					></span>
 				{/if}
 
-				{#each events.filter((e) => e.date >= t0 && e.date <= t1) as e (e.date + e.label)}
+				{#each markerEvents(events, t0, t1) as e (e.date + e.label)}
 					<span
 						class="pointer-events-none absolute bottom-0 -translate-x-1/2 text-[10px] leading-none {e.kind === 'basis_change'
 							? 'text-fg-secondary'
 							: 'text-semantic-amber'}"
 						style="left:{xFraction(e.date, t0, t1) * 100}%"
 						title="{e.date} {e.label}"
-						data-testid="trend-event">{e.kind === 'basis_change' ? '◇' : '▲'}</span
+						data-testid="trend-event">{eventSymbol(e.kind)}</span
 					>
 				{/each}
 

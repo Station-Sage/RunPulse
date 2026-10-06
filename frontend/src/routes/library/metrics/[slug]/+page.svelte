@@ -167,6 +167,9 @@
 					selectedDate={pinned}
 					onSelect={setPinned}
 				/>
+				{#if data.trend.recompute_note}
+					<p class="mt-2 text-xs text-fg-muted" data-testid="recompute-note">{data.trend.recompute_note.text}</p>
+				{/if}
 			</div>
 		{:else}
 			<div class="rounded-xl bg-surface-2 p-3 text-center text-sm text-fg-muted">

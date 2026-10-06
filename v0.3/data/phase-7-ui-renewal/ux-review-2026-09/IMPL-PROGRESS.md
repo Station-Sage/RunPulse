@@ -508,3 +508,7 @@
 - §8-4 교정: `metric_groups.training_load`의 intervals 멤버를 `training_load`로 수정(기존 `training_load_score`는 존재하지 않는 slug).
 - 서버가 비교 행에 `compare: "scale"`을 내려주고(그룹 정의 키), 프론트는 "척도 다름 ›" 칩으로 `/library/providers/training_load`에 연결. 판정은 서버, 프론트 하드코딩 없음.
 - 매트릭스 접힘 문구: "비교 상대가 없는 지표 n개 ›". 테스트: `test_training_load_row_marked_scale_and_includes_intervals`.
+
+## U17b/c — 계산 버전 변경 ◆ (DESIGN-U17 §5)
+- 백엔드 `metrics_version_events.py`: 주 시계열의 (출처, 알고리즘 버전) 전환점을 `version_change` 이벤트로, 불연속이 없을 때 `recompute_note`(재계산 캡션)를 돌려준다. `get_metric_trend`에 연결.
+- 프런트: `trendChart.ts` `eventSymbol`/`markerEvents`(같은 날 ◆>◇>▲), TrendChart에 ◆(amber) 표시·리드아웃 확장, 지표 상세 차트 아래 재계산 캡션.

@@ -11,6 +11,7 @@ from src.metrics.bands import band_ranges, grade, with_grade
 from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, action_hint, display_meta
 from src.services.metric_browse_groups import GROUPS, baseline_z, classify, salience_key
 from src.services.metrics_basis_events import basis_change_events
+from src.services.metrics_version_events import recompute_note, version_change_events
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
 # (get_primary_metric + 무제한 get_metric_history) 돌던 게 /library/metrics 776ms의
@@ -256,9 +257,11 @@ def get_metric_trend(
         "points": points,
         "events": sorted(
             _race_events(conn, points[0]["date"], points[-1]["date"])
-            + basis_change_events(conn, slug, points[0]["date"], points[-1]["date"]),
+            + basis_change_events(conn, slug, points[0]["date"], points[-1]["date"])
+            + version_change_events(conn, slug, points[0]["date"], points[-1]["date"]),
             key=lambda e: e["date"],
         ),
+        "recompute_note": recompute_note(conn, slug, points[0]["date"], points[-1]["date"]),
     }
 
 

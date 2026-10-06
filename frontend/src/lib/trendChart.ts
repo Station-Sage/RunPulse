@@ -161,3 +161,23 @@ export function periodChange(points: TrendPoint[]): { delta: number; pct: number
 	const delta = points[points.length - 1].value - first;
 	return { delta, pct: first !== 0 ? (delta / Math.abs(first)) * 100 : null };
 }
+
+const EVENT_SYMBOL: Record<string, string> = { version_change: '◆', basis_change: '◇', race: '▲' };
+const EVENT_RANK = ['version_change', 'basis_change', 'race'];
+
+/** 이벤트 종류별 기호(◆ 계산 버전 · ◇ 기준 대회 · ▲ 대회). 모르는 종류는 ▲. */
+export function eventSymbol(kind: string): string {
+	return EVENT_SYMBOL[kind] ?? '▲';
+}
+
+/** 같은 날 이벤트가 겹치면 ◆ > ◇ > ▲ 순으로 1개만 남겨 축 아래 기호로 쓴다. 날짜 오름차순. */
+export function markerEvents<T extends { date: string; kind: string }>(events: T[], t0: string, t1: string): T[] {
+	const rank = (k: string) => (EVENT_RANK.includes(k) ? EVENT_RANK.indexOf(k) : EVENT_RANK.length);
+	const byDate = new Map<string, T>();
+	for (const e of events) {
+		if (e.date < t0 || e.date > t1) continue;
+		const cur = byDate.get(e.date);
+		if (!cur || rank(e.kind) < rank(cur.kind)) byDate.set(e.date, e);
+	}
+	return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
