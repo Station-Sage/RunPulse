@@ -301,7 +301,7 @@
 > 의존: src/utils/db_helpers.py, src/utils/metric_registry.py, src/utils/metric_groups.py
 > 주의: category는 calculator의 self.category가 DB 저장값 (registry 아님)
 
-### `acwr.py` (60줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
+### `acwr.py` (54줄) — ACWR Calculator — 설계서 4-3 기준. P7-PRED-89: 만성 부하가 형성되기 전(CTL < 10 또는 28일 전 CTL 없음)엔
 
 - class **ACWRCalculator**: compute
 - functions: has_history
@@ -378,7 +378,7 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (796줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (797줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: prune_noncanonical_runpulse, run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
@@ -1733,6 +1733,10 @@
 - class **TestSummaryAndDetail**: test_detail_metrics_saved, test_detail_without_summary_is_skipped
 - class **TestNonJsonFilesIgnored**: test_fit_and_gpx_ignored
 
+### `test_calculate_acwr_canonical.py` (32줄) — calculate_acwr 는 metric_store 의 정식 acwr(EWMA 7/42)를 읽는다 (D1f 통일).
+
+- functions: test_none_when_no_metric, test_latest_primary_value_and_status
+
 ### `test_chat_context_checkin.py` (131줄) — tests/test_chat_context_checkin.py — build_checkin_context / format_checkin_line 단위 + 통합.
 
 - functions: test_no_checkin_returns_none, test_today_checkin_fields, test_old_checkin_ignored, test_yesterday_checkin_included, test_empty_checkin_returns_none, test_empty_checkin_note_whitespace_returns_none, test_note_truncated_at_200, test_integration_checkin_in_chat_context, test_integration_no_checkin_not_in_context
@@ -2100,7 +2104,7 @@
 - class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
 - class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
 
-### `test_integration_realdb.py` (1193줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+### `test_integration_realdb.py` (1194줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
 - class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
 - class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
@@ -2485,9 +2489,9 @@
 - class **TestREC**: test_with_data, test_no_ef, test_category
 - class **TestRECPercentile**: test_recent_best_is_high
 
-### `test_recompute_all_range.py` (31줄) — P7-PRED-87: recompute_all 이 재계산 범위 밖 이력을 지우지 않는다.
+### `test_recompute_all_range.py` (38줄) — P7-PRED-87: recompute_all 이 재계산 범위 밖 이력을 지우지 않는다.
 
-- functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history
+- functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history, test_recompute_all_commits_results
 
 ### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
 
@@ -2825,7 +2829,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 589개 파일
+총 590개 파일
 
 ## docstring 누락
 
