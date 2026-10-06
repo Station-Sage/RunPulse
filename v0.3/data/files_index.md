@@ -1208,6 +1208,10 @@
 
 - functions: push_workout_to_caldav, push_weekly_plan_to_caldav, test_connection
 
+### `constraints.py` (81줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
+
+- functions: heat_adjust, redistribute_blocked, b_race_week, cross_substituted
+
 ### `fatigue.py` (158줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
 
 - functions: get_todays_wellness, get_latest_tsb, fatigue_level, readiness_decision
@@ -1792,6 +1796,10 @@
 ### `test_config_utils.py` (99줄) — config.py 헬퍼 함수 테스트 — save_config, update_service_config, redact.
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
+
+### `test_constraints.py` (42줄)
+
+- functions: test_heat_moves_quality_and_keeps_km, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted
 
 ### `test_consumer_migration.py` (270줄) — Phase 5-J consumer migration 검증 테스트.
 
@@ -2759,11 +2767,12 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 573개 파일
+총 575개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
+- `tests/test_constraints.py`
 - `tests/test_critical_power.py`
 - `tests/test_crs.py`
 - `tests/test_eftp.py`

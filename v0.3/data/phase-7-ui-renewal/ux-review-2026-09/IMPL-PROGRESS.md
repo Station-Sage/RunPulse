@@ -498,3 +498,8 @@
 - `src/training/weekly_adapt.py`(순수): 부상/CRS 적색≥2일 → 지난주 실제×0.9·퀄리티≤1·사다리 동결 / 이행<70% → 지난주 실제량(보충 없음) / 70~90%·퀄리티<50%·ACWR>1.3 → 이번 주 목표 반복 / 그 외 일정표대로. 반복 시 taper·race 단계는 일정표 값으로 상한(테이퍼 시작일 불변 = 피크 감축).
 - `src/services/weekly_adapt_service.py`: 지난주 `week_compliance`·CRS(<20 = 적색)·ACWR 로 입력을 읽고, v2 목표만 행을 조정(축소만, 적용 규칙은 `rationale` 에 기록). `plan.py generate` 에서 호출. `replan_remaining_week` 는 그대로.
 - 한계: 부상 표시 입력원(UI·prefs)은 아직 없어 `injury_flag` 는 호출 인자. 사다리는 일정 생성에 아직 연결되지 않아 "동결"은 rationale 표기만(U17 이후 연결). 사용자 수정 행은 `source != planner` 라 저장 시 건드리지 않음.
+
+## U16n — 제약 규칙 (constraints.py, DESIGN-U16 §3.5)
+- `src/training/constraints.py`(순수): `heat_adjust`(보정>2%면 거리 유지·페이스만 완화, 퀄리티는 가장 선선한 이지일과 맞교환), `redistribute_blocked`(이지 12km 상한, 초과 버림), `b_race_week`(0.8배·직전 2일 이지·롱런→레이스), `cross_substituted`(분모 제외 날짜 집합).
+- 연결: CLI `generate` 에서 prefs 차단일 재분배만(`plan._constrain`). 
+- 미연결(한계): 폭염 예보 입력 소스, B 레이스 목표 탐색, 교차훈련 날짜의 `week_compliance` 분모 제외는 함수만 제공.

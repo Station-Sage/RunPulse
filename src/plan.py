@@ -149,10 +149,19 @@ def _adapt(conn: sqlite3.Connection, plan: list[dict], goal_id: int | None) -> l
     return adapt_plan(conn, goal, plan, date.fromisoformat(plan[0]["date"]), dlabel, get_vdot_adj(conn))
 
 
+def _constrain(conn: sqlite3.Connection, plan: list[dict]) -> list[dict]:
+    """차단일(prefs)에 걸린 러닝을 남은 이지 세션으로 재분배한다(constraints, U16n)."""
+    from src.training.constraints import redistribute_blocked
+    from src.training.planner_config import load_prefs
+    blocked = set(load_prefs(conn).get("blocked_dates") or [])
+    return redistribute_blocked(plan, blocked) if blocked else plan
+
+
 def cmd_generate(conn: sqlite3.Connection, args, config: dict) -> None:
     goal_id = getattr(args, "goal_id", None)
     plan = generate_weekly_plan(conn, goal_id=goal_id, config=config)
     plan = _adapt(conn, plan, goal_id)
+    plan = _constrain(conn, plan)
     count = save_weekly_plan(conn, plan)
     print(f"주간 훈련 계획 {count}개 생성/저장 완료.\n")
     for w in plan:
