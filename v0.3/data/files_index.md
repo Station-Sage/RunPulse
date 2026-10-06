@@ -661,6 +661,10 @@
 
 - functions: refresh_token, check_strava_connection
 
+### `stream_meta_backfill.py` (31줄) — 스트림 meta 백필(U18e) — Garmin 은 payload 재추출로 meta 생성, 나머지는 기존 행 기준으로 meta 기록(없으면 unknown).
+
+- functions: backfill_stream_meta
+
 ### `stream_meta_store.py` (70줄) — 스트림 저장 + 시간축 meta 기록(U18b) — scaled 환산, stored_count(동일 초 중복 탈락 반영), UPSERT.
 
 - functions: summary_total_sec, save_stream_meta, store_streams
@@ -2571,6 +2575,10 @@
 
 - class **TestStravaActivitySync**: test_sync_one_activity, test_sync_with_best_efforts, test_sync_empty_list, test_sync_skip_unchanged, test_sync_no_token
 
+### `test_stream_meta_backfill.py` (37줄) — U18e: 스트림 meta 백필.
+
+- functions: test_backfill_garmin_writes_measured_meta, test_backfill_dry_run_writes_nothing_and_unknown_for_other_sources
+
 ### `test_stream_meta_store.py` (63줄) — U18b — 스트림 meta 저장 경로(stream_meta_store) 테스트.
 
 - functions: conn, test_ensure_v30_idempotent, test_upsert_overwrites, test_stored_count_reflects_duplicate_seconds, test_scaled_uses_summary_time, test_scaled_without_summary_skips, test_plain_list_and_missing_table_fall_back
@@ -2776,6 +2784,10 @@
 
 - functions: backfill, main
 
+### `backfill_stream_meta.py` (17줄) — activity_stream_meta 백필(U18e). 사용: PYTHONPATH=. python3 scripts/backfill_stream_meta.py --db <path> [--dry-run]
+
+- (public API 없음)
+
 ### `check_data_consistency.py` (449줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
@@ -2813,7 +2825,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 586개 파일
+총 589개 파일
 
 ## docstring 누락
 
