@@ -731,6 +731,7 @@ def _recompute_dates(conn: sqlite3.Connection, dates: list[str],
             on_progress(d, i, len(dates))
 
     resolve_all_primaries(conn)
+    conn.commit()
     return all_results
 
 

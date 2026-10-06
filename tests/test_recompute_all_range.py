@@ -29,3 +29,10 @@ def test_recompute_all_default_spans_all_history():
     assert len(res) == 41
     assert c.execute("SELECT count(*) FROM metric_store WHERE scope_id='2000-01-01'").fetchone()[0] == 1
     assert len(recompute_all(c, days=5)) == 5
+
+
+def test_recompute_all_commits_results():
+    c = mem_conn()
+    seed_run(c, sid="a", date=(date.today() - timedelta(days=3)).isoformat())
+    recompute_all(c, days=5)
+    assert not c.in_transaction
