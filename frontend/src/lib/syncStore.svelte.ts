@@ -1,7 +1,9 @@
 // 동기화 상태 공유 스토어 — Pill·드로어·패널이 한 번의 폴링을 공유하고, 수동 트리거도 여기서 처리한다.
+import { invalidate } from '$app/navigation';
 import { ApiError } from '$lib/api/client';
 import { getSyncState, triggerSync } from '$lib/api/data';
 import {
+	completionSummary,
 	outcomeFromError,
 	outcomeFromResponse,
 	pollIntervalMs,
@@ -21,6 +23,7 @@ export const syncStore = $state<{
 	cooldownUntil: number | null;
 	notice: string | null;
 	skipped: TriggerSkip[];
+	summary: string | null;
 }>({
 	data: null,
 	failed: false,
@@ -29,13 +32,34 @@ export const syncStore = $state<{
 	triggeredAt: null,
 	cooldownUntil: null,
 	notice: null,
-	skipped: []
+	skipped: [],
+	summary: null
 });
+
+// 완료 직후엔 지표 재계산이 아직 안 끝났을 수 있어 한 번 더 갱신한다(40 design §4)
+const REFETCH_DELAY_MS = 10000;
+const REFRESH_KEYS = ['app:today', 'app:library-home', 'app:race-hub'];
+let refetchTimer: ReturnType<typeof setTimeout> | undefined;
+
+function refreshData() {
+	for (const k of REFRESH_KEYS) invalidate(k);
+}
+
+function onFinished(summary: string) {
+	syncStore.summary = summary;
+	syncStore.triggeredAt = null;
+	refreshData();
+	clearTimeout(refetchTimer);
+	refetchTimer = setTimeout(refreshData, REFETCH_DELAY_MS);
+}
 
 export async function loadSyncState(): Promise<void> {
 	try {
-		syncStore.data = await getSyncState();
+		const next = await getSyncState();
+		const summary = completionSummary(syncStore.data, next);
+		syncStore.data = next;
 		syncStore.failed = false;
+		if (summary) onFinished(summary);
 	} catch {
 		syncStore.failed = true;
 	}
@@ -76,6 +100,7 @@ export async function runTrigger(sources?: string[]): Promise<void> {
 	if (syncStore.triggering) return;
 	syncStore.triggering = true;
 	syncStore.notice = null;
+	syncStore.summary = null;
 	syncStore.skipped = [];
 	let outcome: TriggerOutcome;
 	try {

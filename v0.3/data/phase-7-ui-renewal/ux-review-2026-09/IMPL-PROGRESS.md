@@ -560,3 +560,8 @@
 - 실 DB 사본 브라우저(390px): 버튼 클릭 → 202 후 소스 상태 반영, 재클릭 429 → "3분 후 가능" 카운트다운·disabled·Intervals 쿨다운 안내 줄 확인. 미연결·꺼짐 skip은 안내 줄에서 제외.
 - V5 결과(읽기 전용): Garmin 원장에 10/4~10/7 `running` 좀비 5건(finalize 안 됨). 최근 20건 밖이라 현재 상태엔 영향 없으나, 창 안에 들면 sync-state가 영구 running으로 보일 수 있음 → 좀비 정리는 별도 설계 항목(판단 필요)으로 제안. D7은 잠정안 유지("원장 기록 없음 · 마지막 수신").
 - 남음: S3(완료 전환 감지 → Today/Library 무효화 + 10초 뒤 재조회 + 패널 상단 결과 한 줄).
+
+## Phase 4-1 S3 — 완료 감지·화면 갱신 (2026-10-07)
+- `syncState.ts`: `justFinished`/`completionSummary`(running→비실행 전이만, 소스 상태 변화로 "n개 소스 갱신 · X 확인 필요" — D2, 원장 확장 없음).
+- `syncStore`: 전이 시 `app:today`·`app:library-home`·`app:race-hub`만 `invalidate`(+10초 뒤 1회 재갱신, 지표 재계산 지연 대응), `summary`를 패널에 표시.
+- 검증: 단위 369 통과, check 0 error, build OK. 브라우저 스모크는 전이 로직이 순수 함수 테스트로 커버돼 생략(실 동기화 POST 위험 회피).

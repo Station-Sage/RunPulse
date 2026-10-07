@@ -103,3 +103,27 @@ test('outcomeFromResponse: 미연결·꺼짐 skip은 안내 줄에서 제외', (
 		{ provider: 'intervals', code: 'cooldown', message_ko: 'c', retry_after_sec: 60 }] });
 	assert.deepEqual(o.skipped.map((x) => x.provider), ['intervals']);
 });
+
+import { justFinished, completionSummary } from '../src/lib/syncState.ts';
+
+const mk = (...pairs) => ({
+	sources: pairs.map(([provider, state]) => ({ provider, state }))
+});
+
+test('justFinished: running → 비실행일 때만 true', () => {
+	assert.equal(justFinished(mk(['garmin', 'running']), mk(['garmin', 'idle-ok'])), true);
+	assert.equal(justFinished(mk(['garmin', 'idle-ok']), mk(['garmin', 'idle-ok'])), false);
+	assert.equal(justFinished(mk(['garmin', 'running']), mk(['garmin', 'running'])), false);
+	assert.equal(justFinished(null, mk(['garmin', 'idle-ok'])), false);
+});
+
+test('completionSummary: 갱신·확인 필요 집계, 전이 아니면 null', () => {
+	const prev = mk(['garmin', 'running'], ['strava', 'running'], ['intervals', 'idle-ok']);
+	const next = mk(['garmin', 'error-auth'], ['strava', 'idle-ok'], ['intervals', 'idle-ok']);
+	assert.equal(completionSummary(prev, next), '동기화 완료 · 1개 소스 갱신 · Garmin 확인 필요');
+	assert.equal(completionSummary(next, next), null);
+	assert.equal(
+		completionSummary(mk(['garmin', 'running']), mk(['garmin', 'idle-ok'])),
+		'동기화 완료 · 1개 소스 갱신'
+	);
+});

@@ -194,3 +194,24 @@ export function triggerButtonView(
 		return { label: waitLabel((ctx.cooldownUntil - ctx.now) / 1000), disabled: true };
 	return { label: '지금 동기화', disabled: false };
 }
+
+/** running → 비실행 전이 감지 — 이전엔 어느 소스든 running이었고 지금은 모두 아닐 때만 true */
+export function justFinished(prev: SyncState | null, next: SyncState | null): boolean {
+	if (!prev || !next) return false;
+	const was = prev.sources.some((s) => s.state === 'running');
+	const now = next.sources.some((s) => s.state === 'running');
+	return was && !now;
+}
+
+/** 완료 한 줄 요약 — 전이가 아니면 null. 소스별 건수는 계약에 없어 상태 변화만 센다(D2). */
+export function completionSummary(prev: SyncState | null, next: SyncState | null): string | null {
+	if (!prev || !next || !justFinished(prev, next)) return null;
+	const wasRunning = new Set(prev.sources.filter((s) => s.state === 'running').map((s) => s.provider));
+	const after = next.sources.filter((s) => wasRunning.has(s.provider));
+	const ok = after.filter((s) => s.state === 'idle-ok').length;
+	const bad = after.filter((s) => s.state.startsWith('error-'));
+	const parts = ['동기화 완료'];
+	if (ok > 0) parts.push(`${ok}개 소스 갱신`);
+	if (bad.length > 0) parts.push(`${bad.map((s) => syncProviderName(s.provider)).join('·')} 확인 필요`);
+	return parts.join(' · ');
+}
