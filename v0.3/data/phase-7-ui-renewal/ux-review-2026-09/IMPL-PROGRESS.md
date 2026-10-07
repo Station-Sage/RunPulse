@@ -608,3 +608,10 @@
 - UI: 소스 상세 `ConnectPanel`(키 폼·Strava 버튼·연결 테스트·해제 확인 대화상자), 카드의 미연결 라벨 '연결'.
 - 검증: pytest 2637 통과, node:test 374, svelte-check 0 오류·build, 사본 DB 브라우저 스모크(POST 모킹).
 - 남음: 데이터 삭제 해제(cascade 헬퍼 필요), `?connected=1`/`?connect_error=1` 안내·실패 동기화 자동 재시도, `last_synced_at`→`last_new_data_at`, /data/export·settings 대체.
+
+## Phase 4-6 — 필드 개명·OAuth 복귀 안내·임시 페이지 대체 (2026-10-08)
+- `provider_status.last_synced_at` → `last_new_data_at`(오프셋 ISO, `_to_iso_utc`). `providerHint`·타입·테스트 동반 수정. 문구는 "새 데이터" 기준.
+- `ConnectPanel`: `?connected=1`이면 성공 안내 + 해당 소스 동기화 트리거 + 갱신, `?connect_error=1`이면 실패 안내, 이후 쿼리 제거.
+- `/data/export`: 활동 CSV·계획 `.ics` 기존 엔드포인트 링크(설계 §2.4 "초기 링크"). `/data/settings`: 소스 연결 화면 + 기존 `/settings` 링크.
+- 검증: pytest 2637 통과, node:test 374, svelte-check 0 오류·build.
+- 남음(설계 있는 별도 슬라이스): 웰니스·부하 CSV·아카이브 zip(S9), 기준값 페이지·profile_service(S8), AI 설정, 데이터 삭제 해제.

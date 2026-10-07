@@ -1354,7 +1354,7 @@ export interface RaceHubData {
 export interface ProviderStatusItem {
 	provider: ProviderKey;
 	has_data: boolean;
-	last_synced_at: string | null;
+	last_new_data_at: string | null;
 	activity_count: number;
 }
 

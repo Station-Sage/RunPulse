@@ -38,7 +38,7 @@ def test_empty_db_has_data_false(db_conn):
     for item in result:
         assert item["has_data"] is False
         assert item["activity_count"] == 0
-        assert item["last_synced_at"] is None
+        assert item["last_new_data_at"] is None
 
 
 def test_garmin_activity_sets_has_data(db_conn):
@@ -63,8 +63,8 @@ def test_activity_count_aggregates_correctly(db_conn):
     assert strava["activity_count"] == 3
 
 
-def test_last_synced_at_from_source_payloads(db_conn):
-    """last_synced_at은 source_payloads.fetched_at 최댓값이다."""
+def test_last_new_data_at_from_source_payloads(db_conn):
+    """last_new_data_at은 source_payloads.fetched_at 최댓값이다."""
     for eid, ts in [("g1", "2024-03-01 10:00:00"), ("g2", "2024-06-15 08:30:00"), ("g3", "2024-01-01 00:00:00")]:
         db_conn.execute(
             "INSERT INTO source_payloads (source, entity_type, entity_id, payload, fetched_at)"
@@ -73,15 +73,15 @@ def test_last_synced_at_from_source_payloads(db_conn):
         )
     result = get_provider_status(db_conn)
     garmin = next(r for r in result if r["provider"] == "garmin")
-    assert garmin["last_synced_at"] == "2024-06-15 08:30:00"
+    assert garmin["last_new_data_at"] == "2024-06-15T08:30:00+00:00"
 
 
-def test_last_synced_at_none_when_no_payload(db_conn):
-    """source_payloads 행이 없으면 last_synced_at=None."""
+def test_last_new_data_at_none_when_no_payload(db_conn):
+    """source_payloads 행이 없으면 last_new_data_at=None."""
     _insert_activity(db_conn, "intervals", "I1")
     result = get_provider_status(db_conn)
     intervals = next(r for r in result if r["provider"] == "intervals")
-    assert intervals["last_synced_at"] is None
+    assert intervals["last_new_data_at"] is None
 
 
 def test_provider_order_fixed(db_conn):
@@ -106,7 +106,7 @@ def test_payload_only_provider_has_data(db_conn):
     result = get_provider_status(db_conn)
     intervals = next(r for r in result if r["provider"] == "intervals")
     assert intervals["activity_count"] == 0
-    assert intervals["last_synced_at"] == "2024-05-01 09:00:00"
+    assert intervals["last_new_data_at"] == "2024-05-01T09:00:00+00:00"
     assert intervals["has_data"] is True
 
 

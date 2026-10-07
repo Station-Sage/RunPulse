@@ -235,7 +235,7 @@
 
 - functions: get_pairs
 
-### `provider_status_service.py` (83줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
+### `provider_status_service.py` (91줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
 - functions: get_provider_status, get_provider_coverage
 
@@ -2487,7 +2487,7 @@
 
 ### `test_provider_status.py` (154줄) — provider_status_service.get_provider_status() 단위 테스트.
 
-- functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_synced_at_from_source_payloads, test_last_synced_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
+- functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_new_data_at_from_source_payloads, test_last_new_data_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
 ### `test_provider_status_service.py` (135줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
 

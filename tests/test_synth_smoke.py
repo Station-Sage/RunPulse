@@ -29,7 +29,7 @@ def test_seed_feeds_provider_status_and_adaptation(tmp_path):
     seed(out)
     conn = sqlite3.connect(out)
     garmin = next(r for r in provider_status_service.get_provider_status(conn) if r["provider"] == "garmin")
-    assert garmin["has_data"] is True and garmin["activity_count"] == 14 and garmin["last_synced_at"]
+    assert garmin["has_data"] is True and garmin["activity_count"] == 14 and garmin["last_new_data_at"]
     adaptation = adaptation_service.get_adaptation_status(conn)
     assert adaptation["acwr"] is not None
     assert adaptation["hrv"]["delta_pct"] is not None

@@ -1,10 +1,12 @@
 <script lang="ts">
 	// 소스 연결·재연결·연결 테스트·해제 — 키 입력(Intervals·Runalyze), Strava는 OAuth 이동, Garmin은 안내만.
+	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { ApiError } from '$lib/api/client';
 	import { connectSource, disconnectSource, testSource } from '$lib/api/data';
-	import { kick } from '$lib/syncStore.svelte';
+	import { kick, runTrigger } from '$lib/syncStore.svelte';
 
 	let { provider, connected, activityCount }: { provider: string; connected: boolean; activityCount: number } =
 		$props();
@@ -13,6 +15,22 @@
 	let busy = $state(false);
 	let msg = $state<{ ok: boolean; text: string } | null>(null);
 	let confirming = $state(false);
+
+	// Strava OAuth에서 돌아온 직후: 결과를 알리고, 성공이면 막혔던 동기화를 한 번 다시 시작한다
+	onMount(() => {
+		const q = page.url.searchParams;
+		const ok = q.get('connected') === '1';
+		const err = q.get('connect_error') === '1';
+		if (!ok && !err) return;
+		if (ok) {
+			msg = { ok: true, text: '연결됐어요. 동기화를 시작할게요' };
+			runTrigger([provider]);
+			invalidateAll();
+		} else {
+			msg = { ok: false, text: '연결하지 못했어요. 다시 시도해 주세요' };
+		}
+		goto(page.url.pathname, { replaceState: true, noScroll: true, keepFocus: true });
+	});
 
 	const needsKey = $derived(provider === 'intervals' || provider === 'runalyze');
 

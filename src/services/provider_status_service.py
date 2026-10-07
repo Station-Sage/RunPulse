@@ -11,13 +11,21 @@ import sqlite3
 _PROVIDERS = ("garmin", "strava", "intervals", "runalyze")
 
 
+def _to_iso_utc(value: str | None) -> str | None:
+    """SQLite UTC 'YYYY-MM-DD HH:MM:SS' → 오프셋 ISO. 이미 오프셋이 있으면 그대로."""
+    if not value:
+        return None
+    iso = value.replace(" ", "T", 1)
+    return iso if ("+" in iso[10:] or iso.endswith("Z")) else iso + "+00:00"
+
+
 def get_provider_status(conn: sqlite3.Connection) -> list[dict]:
     """4개 provider별 데이터 현황.
 
     Returns list(4 items) in fixed order:
         provider      : str
         has_data      : bool  (활동 수 > 0 또는 동기화 기록 존재)
-        last_synced_at: str | None  (SQLite UTC datetime 문자열)
+        last_new_data_at: str | None  (마지막으로 새 payload가 들어온 시각, 오프셋 ISO `...+00:00`)
         activity_count: int
     """
     try:
@@ -37,7 +45,7 @@ def get_provider_status(conn: sqlite3.Connection) -> list[dict]:
             "provider": p,
             # 웰니스 payload만 있는 provider도 "데이터 있음" — 동기화 기록과 표시가 어긋나지 않게
             "has_data": counts.get(p, 0) > 0 or last_synced.get(p) is not None,
-            "last_synced_at": last_synced.get(p),
+            "last_new_data_at": _to_iso_utc(last_synced.get(p)),
             "activity_count": counts.get(p, 0),
         }
         for p in _PROVIDERS
