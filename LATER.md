@@ -21,3 +21,9 @@
 - [ ] 다국어 지원
 - [ ] 다중 사용자
 - [ ] Strava segment 분석
+
+## 콜드 스타트 구현 시 재설계 (2026-10-08 사용자 결정)
+Phase 4-5에서 보류한 항목은 현재 설계를 확장하지 않고, 콜드 스타트(첫 사용자 온보딩·신규 계정) 구현 때 다시 설계해서 진행한다.
+- **DATA-DISCONNECT-DELETE**: 데이터 삭제 해제(`keep_data:false`) — cascade 인지 소스별 삭제 헬퍼 필요(활동·파생 지표·source_payloads·FK)
+- **DATA-GARMIN-CONNECT-V2**: Garmin v2 연결(이메일/비밀번호·토큰 저장·2단계 인증 인증 흐름 재작성). 현재는 기존 `/connect/garmin` 링크
+- 관련: ADR-026(v0.3/data/decisions.md), IMPL-PROGRESS Phase 4-5/4-6

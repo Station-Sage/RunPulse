@@ -615,3 +615,4 @@
 - `/data/export`: 활동 CSV·계획 `.ics` 기존 엔드포인트 링크(설계 §2.4 "초기 링크"). `/data/settings`: 소스 연결 화면 + 기존 `/settings` 링크.
 - 검증: pytest 2637 통과, node:test 374, svelte-check 0 오류·build.
 - 남음(설계 있는 별도 슬라이스): 웰니스·부하 CSV·아카이브 zip(S9), 기준값 페이지·profile_service(S8), AI 설정, 데이터 삭제 해제.
+- 결정(2026-10-08): 4-5 보류 항목(데이터 삭제 해제, Garmin v2 연결)은 콜드 스타트 구현 때 재설계 후 진행. `LATER.md`에 기록.
