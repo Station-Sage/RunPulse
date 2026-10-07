@@ -247,6 +247,10 @@
 
 - functions: confirm, remove, get, candidates
 
+### `sync_range_service.py` (95줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
+
+- functions: parse_range, estimate, trigger_range
+
 ### `sync_state_service.py` (175줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
 - functions: classify_error, get_sync_state
@@ -925,7 +929,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (121줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (122줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -2641,6 +2645,10 @@
 
 - functions: test_cli_run_completed, test_manual_failed_with_code, test_fail_run_creates_missing_row_for_timeout, test_fail_run_does_not_overwrite_child_failure, test_auto_and_bg_source_path_persist
 
+### `test_sync_range.py` (118줄) — 기간 동기화 — parse_range·estimate·trigger_range·POST/GET API.
+
+- functions: test_parse_range_errors, test_estimate_counts_and_limits, test_trigger_range_skips_and_starts, test_trigger_range_too_large_and_running, client, test_api_range_validation, test_api_range_202_and_too_large, test_api_estimate, test_auto_sync_connected_sources_respects_enabled
+
 ### `test_sync_result.py` (39줄) — SyncResult 단위 테스트.
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
@@ -2879,7 +2887,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 601개 파일
+총 603개 파일
 
 ## docstring 누락
 

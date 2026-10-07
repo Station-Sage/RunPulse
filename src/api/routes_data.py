@@ -28,26 +28,7 @@ def get_sync_state():
 _VALID_SOURCES = ("garmin", "strava", "intervals", "runalyze")
 
 
-@api_bp.post("/data/sync")
-def post_data_sync():
-    """증분 동기화 시작. 진행 상황은 GET /data/sync-state로 확인."""
-    from src.services.sync_trigger_service import trigger_incremental
-
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        body = {}
-    if body.get("mode", "incremental") != "incremental":
-        return api_error("INVALID_PARAM", "mode는 incremental만 지원해요")
-    sources = body.get("sources")
-    if sources is not None:
-        if not isinstance(sources, list) or not sources or any(s not in _VALID_SOURCES for s in sources):
-            return api_error("INVALID_PARAM", "sources가 올바르지 않아요")
-    if not db_path().exists():
-        return api_error("NOT_FOUND", "running.db 없음", 503)
-
-    user_id = get_current_user_id()
-    config = load_config(user_id=user_id)
-    res = trigger_incremental(config, user_id, sources, source_path="v2")
+def _trigger_response(res):
     skipped = [s.to_dict() for s in res.skipped]
     if res.runs:
         return api_ok({"runs": res.runs, "skipped": skipped}, 202)
@@ -56,6 +37,8 @@ def post_data_sync():
         return api_error("NO_SOURCES", "동기화할 수 있는 소스가 없어요", 422, {"skipped": skipped})
     if codes == {"running"}:
         return api_error("SYNC_RUNNING", "이미 동기화 중이에요", 409, {"runs": skipped})
+    if codes == {"range_too_large"}:
+        return api_error("INVALID_PARAM", skipped[0]["message_ko"], 400, {"skipped": skipped})
     waits = [s.retry_after_sec or 0 for s in res.skipped if s.code in ("cooldown", "rate_limited")]
     if waits:
         wait = max(1, min((w for w in waits if w), default=1))
@@ -64,6 +47,52 @@ def post_data_sync():
         resp.headers["Retry-After"] = str(wait)
         return resp, status
     return api_error("SYNC_START_FAILED", "동기화를 시작하지 못했어요", 500, {"skipped": skipped})
+
+
+@api_bp.post("/data/sync")
+def post_data_sync():
+    """증분/기간 동기화 시작. 진행 상황은 GET /data/sync-state로 확인."""
+    from src.services.sync_range_service import parse_range, trigger_range
+    from src.services.sync_trigger_service import trigger_incremental
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        body = {}
+    mode = body.get("mode", "incremental")
+    if mode not in ("incremental", "range"):
+        return api_error("INVALID_PARAM", "mode는 incremental 또는 range예요")
+    sources = body.get("sources")
+    if sources is not None:
+        if not isinstance(sources, list) or not sources or any(s not in _VALID_SOURCES for s in sources):
+            return api_error("INVALID_PARAM", "sources가 올바르지 않아요")
+    frm = to = ""
+    if mode == "range":
+        if not sources:
+            return api_error("INVALID_PARAM", "기간 동기화는 sources가 필요해요")
+        frm, to, err = parse_range(body.get("from"), body.get("to"))
+        if err:
+            return api_error("INVALID_PARAM", err)
+    if not db_path().exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+
+    user_id = get_current_user_id()
+    config = load_config(user_id=user_id)
+    if mode == "range":
+        return _trigger_response(trigger_range(config, user_id, sources, frm, to))
+    return _trigger_response(trigger_incremental(config, user_id, sources, source_path="v2"))
+
+
+@api_bp.get("/data/sync/estimate")
+def get_sync_estimate():
+    from src.services.sync_range_service import estimate, parse_range
+
+    provider = request.args.get("provider")
+    if provider not in _VALID_SOURCES:
+        return api_error("INVALID_PARAM", "provider가 올바르지 않아요")
+    frm, to, err = parse_range(request.args.get("from"), request.args.get("to"))
+    if err:
+        return api_error("INVALID_PARAM", err)
+    return api_ok(estimate(provider, frm, to))
 
 
 _TERMINAL = ("completed", "stopped", "failed")

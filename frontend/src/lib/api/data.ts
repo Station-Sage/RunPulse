@@ -81,3 +81,25 @@ export const patchSourceEnabled = (provider: string, syncEnabled: boolean) =>
 		method: 'PATCH',
 		body: JSON.stringify({ sync_enabled: syncEnabled })
 	});
+
+// --- 기간 동기화 (40 design §7.3) ---
+export interface SyncEstimate {
+	provider: string;
+	days: number;
+	batches: number;
+	requests: number;
+	rate_limit: { window_15m_left: number; daily_left: number };
+	allowed: boolean;
+	message_ko: string | null;
+}
+
+export const estimateSync = (provider: string, from: string, to: string) =>
+	apiFetch<SyncEstimate>(
+		`/data/sync/estimate?provider=${encodeURIComponent(provider)}&from=${from}&to=${to}`
+	);
+
+export const triggerRangeSync = (sources: string[], from: string, to: string) =>
+	apiFetch<TriggerResponse>('/data/sync', {
+		method: 'POST',
+		body: JSON.stringify({ mode: 'range', sources, from, to })
+	});

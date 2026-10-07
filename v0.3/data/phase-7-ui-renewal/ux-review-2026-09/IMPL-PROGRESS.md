@@ -595,3 +595,10 @@
 - UI: `/data/sync` 자동 동기화 행(AutoSyncRow), 소스 상세 "동기화에 포함" 토글 + 5초 되돌리기.
 - 검증: pytest 2615 통과, 프런트 check 0 오류·build 통과, 사본 DB 브라우저 스모크(PATCH는 모킹 — 합성 서버가 실제 config.json을 쓰므로).
 - 남음: sync/estimate·range 모드, connect/test/disconnect, last_synced_at→last_new_data_at, /data/export·settings 대체.
+
+## Phase 4-4 — 기간 지정 동기화 (2026-10-07)
+- API: `GET /data/sync/estimate?provider&from&to`(요청 수 = 일수 + 배치 수, 15분·일일 남은 한도는 원장 `req_count` 기준, 기간 정책 판정), `POST /data/sync {mode:"range", sources, from, to}`. 증분 cooldown은 적용하지 않고 소스별 기간 정책(`hard_max_days`)만 본다. 상태코드 매핑은 증분과 `_trigger_response`로 공유(기간 초과만 걸리면 400 INVALID_PARAM).
+- UI: `/data/sync`의 접이식 `RangeSyncForm`(소스·기간 선택 → 요청 수 확인 → 시작). 결과 처리는 `syncStore.runRangeTrigger`가 증분과 같은 경로 사용.
+- 부수 수정: `auto_sync._connected_sources`의 `enabled_sources` 임포트 누락(4-3 잠복 NameError).
+- 검증: pytest 2623 통과, node:test 374, svelte-check 0 오류·build, 사본 DB 브라우저 스모크(POST 모킹).
+- 남음: connect/test/disconnect(OAuth return_to 허용목록), `last_synced_at`→`last_new_data_at`, /data/export·settings 대체.

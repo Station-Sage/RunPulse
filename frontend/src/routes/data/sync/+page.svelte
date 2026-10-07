@@ -2,6 +2,7 @@
 	import type { DataSyncPageData } from './+page';
 	import { invalidate } from '$app/navigation';
 	import { base } from '$app/paths';
+	import RangeSyncForm from '$lib/components/data/RangeSyncForm.svelte';
 	import AutoSyncRow from '$lib/components/data/AutoSyncRow.svelte';
 	import SyncRunRow from '$lib/components/data/SyncRunRow.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
@@ -57,6 +58,8 @@
 		</button>
 		{#if syncStore.notice}<p class="mt-2 text-xs text-fg-secondary" role="status">{syncStore.notice}</p>{/if}
 	</div>
+
+	{#if connected.length > 0}<RangeSyncForm providers={connected.map((x) => x.provider)} />{/if}
 
 	{#if data.auto}<AutoSyncRow settings={data.auto} />{/if}
 

@@ -27,6 +27,7 @@ def _connected_sources(config: dict) -> list[str]:
         sources.append("intervals")
     if config.get("runalyze", {}).get("token"):
         sources.append("runalyze")
+    from src.utils.config import enabled_sources
     enabled = enabled_sources(config)
     return [s for s in sources if s in enabled]
 

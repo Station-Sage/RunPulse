@@ -1,7 +1,7 @@
 // 동기화 상태 공유 스토어 — Pill·드로어·패널이 한 번의 폴링을 공유하고, 수동 트리거도 여기서 처리한다.
 import { invalidate } from '$app/navigation';
 import { ApiError } from '$lib/api/client';
-import { cancelSyncRun, getSyncState, triggerSync } from '$lib/api/data';
+import { cancelSyncRun, getSyncState, triggerRangeSync, triggerSync } from '$lib/api/data';
 import {
 	completionSummary,
 	outcomeFromError,
@@ -9,6 +9,7 @@ import {
 	pollIntervalMs,
 	type SyncState,
 	type TriggerOutcome,
+	type TriggerResponse,
 	type TriggerSkip
 } from '$lib/syncState';
 
@@ -97,8 +98,7 @@ function apply(o: TriggerOutcome) {
 	if (o.cooldownSec !== null) syncStore.cooldownUntil = Date.now() + o.cooldownSec * 1000;
 }
 
-/** "지금 동기화" — POST는 자동 재시도하지 않는다(누르면 한 번만 보낸다) */
-export async function runTrigger(sources?: string[]): Promise<void> {
+async function runWith(send: () => Promise<TriggerResponse>): Promise<void> {
 	if (syncStore.triggering) return;
 	syncStore.triggering = true;
 	syncStore.notice = null;
@@ -106,7 +106,7 @@ export async function runTrigger(sources?: string[]): Promise<void> {
 	syncStore.skipped = [];
 	let outcome: TriggerOutcome;
 	try {
-		outcome = outcomeFromResponse(await triggerSync(sources));
+		outcome = outcomeFromResponse(await send());
 	} catch (e) {
 		outcome = e instanceof ApiError ? outcomeFromError(e.status, e.details) : outcomeFromError(0, null);
 	}
@@ -117,6 +117,13 @@ export async function runTrigger(sources?: string[]): Promise<void> {
 		await kick();
 	}
 }
+
+/** "지금 동기화" — POST는 자동 재시도하지 않는다(누르면 한 번만 보낸다) */
+export const runTrigger = (sources?: string[]) => runWith(() => triggerSync(sources));
+
+/** 기간 동기화 — 같은 결과 처리, 요청만 다르다 */
+export const runRangeTrigger = (source: string, from: string, to: string) =>
+	runWith(() => triggerRangeSync([source], from, to));
 
 /** 진행 중인 소스 동기화 중지 요청 — 반영은 다음 폴링에서 확인한다 */
 export async function cancelRun(provider: string, jobId: string | number): Promise<void> {
