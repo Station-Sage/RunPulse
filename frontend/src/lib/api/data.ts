@@ -17,3 +17,50 @@ export const cancelSyncRun = (id: string | number) =>
 		`/data/sync/runs/${encodeURIComponent(String(id))}/cancel`,
 		{ method: 'POST' }
 	);
+
+// --- Data 영역 읽기 API (40 design §7.3) ---
+import type { SyncSource } from '$lib/syncState';
+
+export interface DataRun {
+	id: string | number;
+	provider: string;
+	status: string;
+	from_date: string | null;
+	to_date: string | null;
+	trigger: string | null;
+	started_at: string | null;
+	finished_at: string | null;
+	synced_count: number;
+	counts: Record<string, number> | null;
+	error_code: string | null;
+	last_error: string | null;
+}
+
+export interface DataSummary {
+	activities: number;
+	wellness_days: number;
+	period: { first: string | null; last: string | null };
+	storage_bytes: number;
+	recent_runs: DataRun[];
+}
+
+export type DataSourceCard = SyncSource & { activity_count: number };
+
+export interface DataSourceDetail extends DataSourceCard {
+	counts: { activities: number; wellness_days: number; streams: number; laps: number };
+	coverage: { first: string | null; last: string | null; months: { month: string; count: number }[] };
+	recent_runs: DataRun[];
+}
+
+export const getDataSummary = () => apiFetch<DataSummary>('/data/summary');
+export const getDataSources = () => apiFetch<{ sources: DataSourceCard[] }>('/data/sources');
+export const getDataSource = (provider: string) =>
+	apiFetch<DataSourceDetail>(`/data/sources/${encodeURIComponent(provider)}`);
+export const getDataRuns = (opts: { provider?: string; errorsOnly?: boolean; limit?: number } = {}) => {
+	const q = new URLSearchParams();
+	if (opts.provider) q.set('provider', opts.provider);
+	if (opts.errorsOnly) q.set('errors_only', '1');
+	if (opts.limit) q.set('limit', String(opts.limit));
+	const s = q.toString();
+	return apiFetch<{ runs: DataRun[] }>(`/data/runs${s ? `?${s}` : ''}`);
+};

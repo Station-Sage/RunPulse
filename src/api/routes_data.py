@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import sync_state_service
+from src.services import data_service, sync_state_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -82,3 +82,47 @@ def cancel_sync_run(run_id: str):
         return api_ok({"id": job.id, "provider": job.service, "state": job.status, "requested": False})
     stop_job(job.service, get_current_user_id())
     return api_ok({"id": job.id, "provider": job.service, "state": "stopping", "requested": True}, 202)
+
+
+def _with_conn(fn):
+    """running.db 읽기 커넥션 + 설정을 넘겨 호출. DB가 없으면 503."""
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    config = load_config(user_id=get_current_user_id())
+    conn = sqlite3.connect(str(dpath))
+    try:
+        return fn(conn, config)
+    finally:
+        conn.close()
+
+
+@api_bp.get("/data/summary")
+def get_data_summary():
+    return _with_conn(lambda c, cfg: api_ok(data_service.summary(c, cfg)))
+
+
+@api_bp.get("/data/sources")
+def get_data_sources():
+    return _with_conn(lambda c, cfg: api_ok({"sources": data_service.sources(c, cfg)}))
+
+
+@api_bp.get("/data/sources/<provider>")
+def get_data_source(provider: str):
+    def run(c, cfg):
+        detail = data_service.source_detail(c, cfg, provider)
+        return api_ok(detail) if detail else api_error("NOT_FOUND", "알 수 없는 소스예요", 404)
+    return _with_conn(run)
+
+
+@api_bp.get("/data/runs")
+def get_data_runs():
+    provider = request.args.get("provider") or None
+    if provider is not None and provider not in _VALID_SOURCES:
+        return api_error("INVALID_PARAM", "provider가 올바르지 않아요")
+    try:
+        limit = int(request.args.get("limit", 20))
+    except ValueError:
+        return api_error("INVALID_PARAM", "limit이 올바르지 않아요")
+    errors_only = request.args.get("errors_only") in ("1", "true")
+    return api_ok({"runs": data_service.runs(provider, errors_only, limit)})

@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
+	import { base } from '$app/paths';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
 
@@ -30,7 +31,6 @@
 	];
 
 	const dataLinks = [
-		{ href: '/sync', label: '동기화' },
 		{ href: '/settings', label: '설정' },
 		{ href: '/guide', label: '지표 가이드' },
 		{ href: '/activities/export.csv', label: 'CSV 내보내기' }
@@ -81,6 +81,13 @@
 
 			<div class="flex flex-col gap-1 border-t border-border-subtle px-2 py-3">
 				<p class="px-2 py-1 text-xs text-fg-muted">데이터·설정</p>
+				<a
+					href="{base}/data"
+					onclick={onClose}
+					class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+				>
+					데이터 (동기화·소스)
+				</a>
 				{#each dataLinks as link (link.href)}
 					<a
 						href={link.href}

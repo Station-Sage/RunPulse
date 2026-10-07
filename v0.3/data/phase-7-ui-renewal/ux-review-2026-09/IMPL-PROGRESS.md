@@ -582,3 +582,9 @@
 ## SYNC-ERROR-SURFACE + D7/V5 종결 (2026-10-07)
 - `bg_sync._run_one_batch` 일반 예외를 `classify_exception`으로 분류해 보관, 모든 배치가 0건이면 job을 `failed`(error_code·http_status·last_error)로 마감. 일부 성공이면 `completed` 유지. 테스트 `test_bg_sync_batch_error.py` 3건, 전체 pytest 2598 통과, 운영 반영.
 - D7/V5(Garmin `never`) 종결: 원인은 좀비 `running` 5건(10/4~10/7)이었고 S4 정리·`cleanup_stale_running_jobs_all_users`로 해소. 운영 원장 Garmin 312건 중 299 completed, 최근 행 completed/stopped + 실행 중 1건 — `never` 재현 안 됨. D7 임시 문구("원장 기록 없음 · 마지막 수신") 유지.
+
+## Phase 4-2 — Data 영역 읽기 화면 (2026-10-07)
+- 백엔드: `GET /data/summary`, `/data/sources`, `/data/sources/<p>`(미지 404), `/data/runs?provider=&errors_only=&limit=` — `data_service` 7 테스트.
+- 프론트: `/v2/data` 개요(타일 4·소스 카드 4·최근 기록·갱신 필요 알림), `/data/sync`(지금 동기화·중지·기록), `/data/sources`·`/data/sources/[provider]`(보유 수·12개월 커버리지·소스별 기록), `/data/export`·`/data/settings`는 v1 링크 임시 화면. 드로어에 "데이터" 진입 링크 추가.
+- 검증: pytest 전체·node:test 372·svelte-check 0 오류·build, 실DB 사본 브라우저 스모크(6개 경로, 모바일 390px).
+- 남음(후속 슬라이스): 소스 토글 PATCH, 자동 동기화 설정, 범위 지정·예상 소요, 연결/해제(OAuth return_to 허용목록), `last_synced_at`→`last_new_data_at`.

@@ -119,9 +119,9 @@
 
 - functions: get_load_coverage
 
-### `data_service.py` (7줄) — Phase 7d 서비스 레이어 - 데이터 소스 연결 상태·동기화 트리거 (스텁).
+### `data_service.py` (109줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
 
-- (public API 없음)
+- functions: run_dict, runs, sources, source_detail, summary
 
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
@@ -1944,6 +1944,10 @@
 - class **TestWellnessRanges**: test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length, test_wellness_detail_has_core
 - functions: rich_conn
 
+### `test_data_service.py` (102줄) — data_service·GET /data/{summary,sources,runs} — 소스 카드·상세·개요·기록.
+
+- functions: conn, test_sources_cards_have_two_axes_and_counts, test_source_detail_counts_and_coverage, test_source_detail_unknown_is_none, test_runs_parse_counts_and_filter_errors, test_summary_tiles, test_summary_empty_db_does_not_raise, client, test_endpoints
+
 ### `test_db_helpers.py` (238줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
 - class **TestUpsertActivitySummary**: test_insert_new, test_upsert_updates, test_no_duplicate_rows
@@ -2867,7 +2871,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 598개 파일
+총 599개 파일
 
 ## docstring 누락
 
