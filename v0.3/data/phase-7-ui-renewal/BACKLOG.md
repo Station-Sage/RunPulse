@@ -220,6 +220,21 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   **보류(사용자 확인 대기)**: §8-1 훈련 부하를 scale ×r·경고 없음으로 표시 / §8-2 EF를 definition 행으로 / §8-3 단일 소스 행을 접힘 목록으로 /
   §8-4 U9 `SEMANTIC_GROUPS` `("training_load_score","intervals")`→`("training_load","intervals")` 수정. 후속 후보: 모바일 매트릭스 "차이" 열 가로 스크롤 개선.
 
+- **[P7-LLM-AGENT-CANDIDATES]** 규칙 기반으로 만든 기능 중 LLM 에이전트가 전문적으로 맡아야 할 후보(2026-10-07 식별, **설계·승인 전 구현 금지**).
+  공통 설계 제약: ① 규칙 폴백 유지(키 없음·실패·검증 불합격 시) ② 모든 출력에 근거(입력 지표·날짜) 표시 ③ `ai_validator` 수치 정합성 검증
+  ④ D8 외부 전송 동의 ⑤ 캐시 키·일일 호출 상한(`P7-IMPL-NARRATIVE-CACHE` 결정 승계) ⑥ 지표 계산은 LLM에 맡기지 않고 서버 값만 해석.
+  **(판단 필요)** — 각 항목 착수 시 plan mode로 설계서부터(running-data-coach·product-architect 에이전트 검수 권장):
+  1. **계획 엔진 적응형 조정**(`src/training/planner.py`, `periodization.py`): 규칙 플래너가 만든 초안을 주간 결과(이행률·부상 신호·CTL/TSB 반응)로
+     코치가 조정 제안 → 규칙 제약(램프율·감량 상한) 검증 통과분만 반영. `[P7-PLAN-ENGINE]` (2)(3)과 통합 설계.
+  2. **Today 브리핑·내러티브**(`today_service`, `_narrative.py`): 현재 템플릿 문장 조합 → 컨디션·일정·최근 반응을 종합한 오늘의 판단 서술. 캐시 워밍(DESIGN-PENDING 7)과 한 설계.
+  3. **Coach 대화 규칙 디스패처**(`chat_engine_rules.py`, `coach_service`): 질문 의도 키워드 분기 → 도구 호출(MCP runpulse 계열 조회) 기반 에이전트 루프. 규칙 답변은 폴백.
+  4. **추천 칩·AI 메시지**(`suggestions.py`, `ai_message.py`): 규칙 칩 + 응답 파싱 하이브리드를 대화 맥락 기반 후속 질문 생성으로 격상.
+  5. **활동 요약 verdict·소스 차이 해설**(`activity_summary_extras.py`): 훈련 유형 대비 수행 평가·소스 간 불일치 원인 설명(임계값 규칙 → 서술).
+  6. **주·월 리포트 서술**(`MonthNarrative`, 주간 점수/레이스 준비도 문구): 숫자 카드 옆 해석 문단.
+  7. **지표 설명 개인화**(`metric_label_texts.py` `action_hint`, B-5 "무엇을 바꾸면"): 정적 문구 → 개인 이력 기반 해석(정적 문구는 폴백·사용자 검수 유지).
+  8. **레이스 전략·테이퍼 코멘트**(`x.taper` 시트, 레이스 허브): 시나리오 표 위에 코스·날씨·훈련 반응 기반 전략 서술.
+  우선순위 제안: 3 → 2 → 1(가치·위험 균형). 선행 결정: 모델·비용 상한, 평가 방법(오프라인 골든 세트·사실 정합 검증), 개인 데이터 전송 범위.
+
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
 2026-09-23 제거. `P7-IMPL-TIMELINE-NARRATIVE-FULL`은 조사 후 바로 AUTOPILOT

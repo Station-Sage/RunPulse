@@ -387,7 +387,7 @@
 - `/trend` events에 `kind:'basis_change'` 병합(날짜순). 라벨 "기준 대회 변경: 10K 2026-05-09".
 - 프론트: `TrendChart` ◇ 마커(▲와 색 구분) + 선택일이 변경일이면 판독줄에 라벨.
 - 검증: 단위 349, pytest 신규 3, 실DB 사본 Playwright(마라톤 1y, date=2026-05-10) — ◇ 마커·판독 문구 확인.
-- 다음: Phase 3 잔여 없음(보류 항목은 사용자 지시 대기).
+- 다음: Phase 3 A-리스트 전부 완료(A-1~A-20·B-1~B-6). 잔여는 DESIGN-S1S4-REMAIN §1(C) 사용자 결정 항목과 BACKLOG `P7-LLM-AGENT-CANDIDATES`(설계 대기).
 
 ## U13 문구 검수 반영 (2026-10-05)
 - 전문가 검수(REVIEW-U13-METRIC-TEXTS.md) S1~S7 반영: CRS 힌트를 게이트 level(level_0~4) 기준으로 전환, acwr/ramp/rri/rtti/marathon_shape 정의 정정, tsb.caution 레이스 국면 겸용 문구, `_SO_WHAT`·`_WHAT["rri"]` 동기화, race_pred_vdot 설명 추가.
