@@ -588,3 +588,10 @@
 - 프론트: `/v2/data` 개요(타일 4·소스 카드 4·최근 기록·갱신 필요 알림), `/data/sync`(지금 동기화·중지·기록), `/data/sources`·`/data/sources/[provider]`(보유 수·12개월 커버리지·소스별 기록), `/data/export`·`/data/settings`는 v1 링크 임시 화면. 드로어에 "데이터" 진입 링크 추가.
 - 검증: pytest 전체·node:test 372·svelte-check 0 오류·build, 실DB 사본 브라우저 스모크(6개 경로, 모바일 390px).
 - 남음(후속 슬라이스): 소스 토글 PATCH, 자동 동기화 설정, 범위 지정·예상 소요, 연결/해제(OAuth return_to 허용목록), `last_synced_at`→`last_new_data_at`.
+
+## Phase 4-3 — 소스 on/off·자동 동기화 설정 쓰기 (2026-10-07)
+- API: `PATCH /data/sources/:p {sync_enabled}`, `GET|PATCH /data/sync/auto {enabled, interval_h∈[1,2,4,6,12,24], window_days 1..30}` → `next_run_at`(마지막 실행+간격). 서비스 `data_settings_service`.
+- 끈 소스: 진행/대기 작업은 `stopped`로 전이(원장에 `cancelled` 상태가 없어 기존 중지 경로 재사용), `auto_sync._connected_sources`가 `enabled_sources`를 따르도록 수정.
+- UI: `/data/sync` 자동 동기화 행(AutoSyncRow), 소스 상세 "동기화에 포함" 토글 + 5초 되돌리기.
+- 검증: pytest 2615 통과, 프런트 check 0 오류·build 통과, 사본 DB 브라우저 스모크(PATCH는 모킹 — 합성 서버가 실제 config.json을 쓰므로).
+- 남음: sync/estimate·range 모드, connect/test/disconnect, last_synced_at→last_new_data_at, /data/export·settings 대체.

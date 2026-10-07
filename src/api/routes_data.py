@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import data_service, sync_state_service
+from src.services import data_service, data_settings_service, sync_state_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -126,3 +126,37 @@ def get_data_runs():
         return api_error("INVALID_PARAM", "limit이 올바르지 않아요")
     errors_only = request.args.get("errors_only") in ("1", "true")
     return api_ok({"runs": data_service.runs(provider, errors_only, limit)})
+
+
+@api_bp.patch("/data/sources/<provider>")
+def patch_data_source(provider: str):
+    if provider not in _VALID_SOURCES:
+        return api_error("NOT_FOUND", "알 수 없는 소스예요", 404)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get("sync_enabled"), bool):
+        return api_error("INVALID_PARAM", "sync_enabled(true/false)가 필요해요")
+    user_id = get_current_user_id()
+    config = load_config(user_id=user_id)
+    return api_ok(data_settings_service.set_source_enabled(config, user_id, provider, body["sync_enabled"]))
+
+
+@api_bp.get("/data/sync/auto")
+def get_sync_auto():
+    from src.utils.sync_state import get_last_auto_sync
+
+    user_id = get_current_user_id()
+    config = load_config(user_id=user_id)
+    return api_ok(data_settings_service.auto_settings(config, get_last_auto_sync(user_id)))
+
+
+@api_bp.patch("/data/sync/auto")
+def patch_sync_auto():
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
+    changes, err = data_settings_service.validate_auto_patch(body)
+    if err:
+        return api_error("INVALID_PARAM", err)
+    user_id = get_current_user_id()
+    config = load_config(user_id=user_id)
+    return api_ok(data_settings_service.patch_auto(config, user_id, changes))

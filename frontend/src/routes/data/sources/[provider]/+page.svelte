@@ -7,11 +7,34 @@
 	import ErrorState from '$lib/components/ErrorState.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import { sourceLine, syncProviderName } from '$lib/syncState';
-	import { runTrigger, syncStore } from '$lib/syncStore.svelte';
+	import { patchSourceEnabled } from '$lib/api/data';
+	import { kick, runTrigger, syncStore } from '$lib/syncStore.svelte';
 
 	let { data }: { data: DataSourcePageData } = $props();
 	const d = $derived(data.detail);
 	const line = $derived(d ? sourceLine(d) : null);
+	let enabledNow = $state<boolean | null>(null);
+	let undoVisible = $state(false);
+	let toggleError = $state<string | null>(null);
+	let undoTimer: ReturnType<typeof setTimeout> | undefined;
+	const enabled = $derived(enabledNow ?? d?.enabled ?? false);
+
+	async function setEnabled(next: boolean, fromUndo = false) {
+		if (!d) return;
+		toggleError = null;
+		clearTimeout(undoTimer);
+		try {
+			await patchSourceEnabled(d.provider, next);
+			enabledNow = next;
+			undoVisible = !next && !fromUndo;
+			if (undoVisible) undoTimer = setTimeout(() => (undoVisible = false), 5000);
+			await Promise.all([kick(), invalidateAll()]);
+			enabledNow = null;
+		} catch {
+			toggleError = '변경하지 못했어요. 잠시 후 다시 시도해 주세요';
+		}
+	}
+
 	const maxCount = $derived(d ? Math.max(1, ...d.coverage.months.map((m) => m.count)) : 1);
 </script>
 
@@ -40,6 +63,22 @@
 			>
 				{d.running ? '동기화 중…' : '이 소스 동기화'}
 			</button>
+		{/if}
+
+		{#if d.connection === 'connected'}
+			<section aria-label="동기화 포함" class="flex items-center justify-between rounded-lg border border-border-subtle bg-surface-2 p-3">
+				<span class="text-sm text-fg-primary">동기화에 포함</span>
+				<label class="flex items-center gap-2 text-xs text-fg-secondary">
+					<input type="checkbox" checked={enabled} onchange={(e) => setEnabled(e.currentTarget.checked)} />
+					{enabled ? '켜짐' : '꺼짐'}
+				</label>
+			</section>
+			{#if undoVisible}
+				<p class="text-xs text-fg-secondary" role="status">
+					동기화에서 제외했어요 <button type="button" class="underline" onclick={() => setEnabled(true, true)}>되돌리기</button>
+				</p>
+			{/if}
+			{#if toggleError}<p class="text-xs text-semantic-red" role="status">{toggleError}</p>{/if}
 		{/if}
 
 		<section aria-label="보유 데이터" class="grid grid-cols-2 gap-2">

@@ -123,6 +123,10 @@
 
 - functions: run_dict, runs, sources, source_detail, summary
 
+### `data_settings_service.py` (79줄) — Data 설정 쓰기 — 소스 동기화 on/off, 자동 동기화 설정 (design 40 §7.3).
+
+- functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
+
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -921,7 +925,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (120줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (121줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -1948,6 +1952,10 @@
 
 - functions: conn, test_sources_cards_have_two_axes_and_counts, test_source_detail_counts_and_coverage, test_source_detail_unknown_is_none, test_runs_parse_counts_and_filter_errors, test_summary_tiles, test_summary_empty_db_does_not_raise, client, test_endpoints
 
+### `test_data_settings.py` (72줄) — PATCH /data/sources/<p>, /data/sync/auto — 소스 on/off·자동 동기화 설정.
+
+- functions: env, test_disable_source_stops_pending, test_enable_source_does_not_stop, test_source_validation, test_auto_patch_saves_and_restarts, test_auto_patch_rejects, test_auto_settings_next_run
+
 ### `test_db_helpers.py` (238줄) — db_helpers.py 단위 테스트 — Phase 1 조건 8, 9
 
 - class **TestUpsertActivitySummary**: test_insert_new, test_upsert_updates, test_no_duplicate_rows
@@ -2871,7 +2879,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 599개 파일
+총 601개 파일
 
 ## docstring 누락
 

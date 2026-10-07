@@ -27,7 +27,8 @@ def _connected_sources(config: dict) -> list[str]:
         sources.append("intervals")
     if config.get("runalyze", {}).get("token"):
         sources.append("runalyze")
-    return sources
+    enabled = enabled_sources(config)
+    return [s for s in sources if s in enabled]
 
 
 def _trigger(config: dict, user_id: str, days: int) -> None:

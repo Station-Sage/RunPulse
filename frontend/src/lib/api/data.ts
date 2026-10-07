@@ -1,6 +1,6 @@
 // 데이터 영역 API — SyncState 계약(40 design §7.3).
 import { apiFetch } from './client';
-import type { SyncState, TriggerResponse } from '$lib/syncState';
+import type { SyncSource, SyncState, TriggerResponse } from '$lib/syncState';
 
 export const getSyncState = () => apiFetch<SyncState>('/data/sync-state');
 
@@ -19,7 +19,6 @@ export const cancelSyncRun = (id: string | number) =>
 	);
 
 // --- Data 영역 읽기 API (40 design §7.3) ---
-import type { SyncSource } from '$lib/syncState';
 
 export interface DataRun {
 	id: string | number;
@@ -64,3 +63,21 @@ export const getDataRuns = (opts: { provider?: string; errorsOnly?: boolean; lim
 	const s = q.toString();
 	return apiFetch<{ runs: DataRun[] }>(`/data/runs${s ? `?${s}` : ''}`);
 };
+
+export interface AutoSyncSettings {
+	enabled: boolean;
+	interval_h: number;
+	window_days: number;
+	last_run_at: string | null;
+	next_run_at: string | null;
+}
+
+export const getAutoSync = () => apiFetch<AutoSyncSettings>('/data/sync/auto');
+export const patchAutoSync = (
+	body: Partial<Pick<AutoSyncSettings, 'enabled' | 'interval_h' | 'window_days'>>
+) => apiFetch<AutoSyncSettings>('/data/sync/auto', { method: 'PATCH', body: JSON.stringify(body) });
+export const patchSourceEnabled = (provider: string, syncEnabled: boolean) =>
+	apiFetch<{ provider: string; sync_enabled: boolean }>(`/data/sources/${encodeURIComponent(provider)}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ sync_enabled: syncEnabled })
+	});
