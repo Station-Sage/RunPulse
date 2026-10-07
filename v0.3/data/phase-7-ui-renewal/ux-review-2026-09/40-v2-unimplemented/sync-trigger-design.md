@@ -256,7 +256,7 @@ def trigger_incremental(config: dict, user_id: str, sources: list[str] | None,
 | # | 결정 | 사유 |
 |---|------|------|
 | D1 | 중지 버튼 **포함, 단 S4로 분리**(S1–S3 후) | `stop_job`이 이미 있어 비용 낮고, 실수로 시작한 동기화를 되돌릴 수단이 없으면 429/쿨다운 정책과 맞물려 사용자가 갇힘. 다만 S1–S3 범위를 키우지 않기 위해 후속 슬라이스 |
-| D2 | 원장 확장 **보류(최소안)**. 결과 요약은 "새 데이터 N건" | `create_job` INSERT 18자리·`SyncJob` 필드 순서 동시 수정 위험 대비 이득이 작음. 상세 카운트는 요구가 생기면 S5 |
+| D2 | 원장 확장 **채택(S5, 2026-10-07)** — `counts_json`·`trigger`·`started_at`·`finished_at` | 사용자 요청으로 S5 진행. `update_job`이 running 최초 전이에 started_at, 종료 상태에 finished_at을 자동 기록. 완료 시 `counts_json={"activities": n}`(웰니스 등 상세 카운트는 소스별 결과 노출 시 확장) |
 | D3 | `_threads` 키 `(user_id, service)` **채택(코드 반영)** | 서로 다른 사용자가 같은 서비스를 동시에 돌리면 단일 키는 서로를 "실행 중"으로 오판·덮어씀. 기본값 호환으로 v1 호출부 변경 없음 |
 | D4 | `/data/sync/status`·SSE **폐기, sync-state 폴링 일원화** | 내용이 중복되고 진실 소스가 둘이 되면 불일치가 생김. 적응형 폴링으로 충분 |
 | D5 | 비로그인 default 쓰기 **v1과 동일 유지** | 인증은 앱 `before_request`/`auth_cf` 훅 책임. 이 엔드포인트만 따로 막으면 정책이 갈라짐. 차단은 전역 보안 과제로 분리 |

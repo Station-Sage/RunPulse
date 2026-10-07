@@ -925,7 +925,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (565줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (569줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, run
@@ -1501,12 +1501,12 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `sync_jobs.py` (278줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (292줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
 - functions: windows, cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
 
-### `sync_jobs_schema.py` (41줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path) 멱등 보장.
+### `sync_jobs_schema.py` (44줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at) 멱등 보장.
 
 - functions: ensure_ledger
 
@@ -2616,9 +2616,9 @@
 
 - functions: test_classify_http, test_classify_non_http, test_messages_cover_all_codes, test_from_result_only_for_total_failure, test_merge_and_job_dict_carry_error_code, test_strava_wrapper_raises_on_403
 
-### `test_sync_jobs_schema.py` (63줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
+### `test_sync_jobs_schema.py` (77줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
 
-- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_18_fields, test_cleanup_all_users_closes_only_stale
+- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_22_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
 
 ### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
 

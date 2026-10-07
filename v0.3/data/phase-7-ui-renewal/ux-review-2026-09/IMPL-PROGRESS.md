@@ -572,3 +572,9 @@
 - API: `POST /api/v1/data/sync/runs/<id>/cancel` — 404 / 종료 상태는 멱등(`requested:false`, 200) / 진행 중은 `stop_job` 후 202 `stopping`.
 - 프론트: `cancelSyncRun`, `syncStore.cancelRun`(`cancelling` 중복 방지, 실패 시 notice), SyncPanel 실행 중 행에 "중지"(중지 중 비활성).
 - 검증: 전체 pytest 2590 통과(이전), 관련 21 통과, 단위·check·build OK, 브라우저 스모크(응답 mock — 버튼 노출·cancel 1회 POST·상태 전환 후 사라짐).
+
+## Phase 4-1 S5 — 원장 확장 (2026-10-07)
+- `LEDGER_COLUMNS`에 `counts_json`·`trigger`·`started_at`·`finished_at` 추가(멱등 ALTER, running.db 마이그레이션 불필요). `SyncJob` 22필드, `_COLS`·`create_job` INSERT 22자리 동시 변경.
+- `update_job`이 running 최초 전이에 `started_at`, 종료 상태(completed/stopped/failed/rate_limited/auth_required)에 `finished_at` 자동 기록. 완료 시 `counts_json={"activities": n}`.
+- D3(`_threads` 키 `(user_id, service)`)는 이미 코드에 반영돼 있어 추가 작업 없음. 설계서 D2를 "채택"으로 갱신.
+- 검증: 전체 pytest 2595 통과. 배포 전 운영 `sync_jobs.db` 백업.

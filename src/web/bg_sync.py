@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 import threading
@@ -221,7 +222,10 @@ class BgSyncThread(threading.Thread):
             # 6) 배치 간 대기
             self._interruptible_sleep(INTER_BATCH_SLEEP.get(job.service, 3.0))
 
-        update_job(self.job_id, status="completed")
+        update_job(
+            self.job_id, status="completed",
+            counts_json=json.dumps({"activities": total_synced}),
+        )
 
         # 동기화 완료 후 메트릭 자동 재계산 + 재동기화 플래그 해제
         try:

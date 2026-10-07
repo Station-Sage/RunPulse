@@ -62,6 +62,10 @@ class SyncJob:
     error_code: Optional[str] = None
     http_status: Optional[int] = None
     source_path: Optional[str] = None   # manual / bg / auto / cli
+    counts_json: Optional[str] = None   # {"activities": n} 결과 카운트
+    trigger: Optional[str] = None       # 시작 경로(source_path와 동일 값)
+    started_at: Optional[str] = None    # running 최초 전이 시각
+    finished_at: Optional[str] = None   # 종료 상태 전이 시각
 
     @property
     def progress_pct(self) -> float:
@@ -106,13 +110,16 @@ def windows(from_date: str, to_date: str, window_days: int) -> list[tuple[str, s
     return result
 
 
+_TERMINAL_STATUSES = ("completed", "stopped", "failed", "rate_limited", "auth_required")
+
+
 # ── DB 헬퍼 ─────────────────────────────────────────────────────────────
 
 _COLS = (
     "id, service, from_date, to_date, window_days, current_from, "
     "status, completed_days, total_days, synced_count, req_count, "
     "created_at, updated_at, retry_after, last_error, "
-    "error_code, http_status, source_path"
+    "error_code, http_status, source_path, counts_json, trigger, started_at, finished_at"
 )
 
 
@@ -209,11 +216,11 @@ def create_job(
             (now, service),
         )
         conn.execute(
-            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job_id, service, from_date, to_date, wdays, from_date,
                 "pending", 0, total, 0, 0, now, now, None, None,
-                None, None, source_path,
+                None, None, source_path, None, source_path, None, None,
             ),
         )
     job = get_job(job_id)
@@ -257,11 +264,18 @@ def update_job(job_id: str, **kwargs) -> None:
     """지정 필드 업데이트."""
     if not kwargs:
         return
-    kwargs["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    now = kwargs["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    status = kwargs.get("status")
+    if status in _TERMINAL_STATUSES:
+        kwargs.setdefault("finished_at", now)
     set_clause = ", ".join(f"{k} = ?" for k in kwargs)
     values = list(kwargs.values()) + [job_id]
     with _conn() as conn:
         conn.execute(f"UPDATE sync_jobs SET {set_clause} WHERE id = ?", values)
+        if status == "running":
+            conn.execute(
+                "UPDATE sync_jobs SET started_at = ? WHERE id = ? AND started_at IS NULL", (now, job_id)
+            )
 
 
 def list_recent_jobs(service: str | None = None, limit: int = 10) -> list[SyncJob]:

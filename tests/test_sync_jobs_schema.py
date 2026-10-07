@@ -34,11 +34,11 @@ def test_old_15_column_db_upgraded(tmp_path):
     row = c.execute("SELECT id, error_code, source_path FROM sync_jobs").fetchone()
     c.close()
     assert row == ("a", None, None)
-    assert len(_cols(p)) == 18
+    assert len(_cols(p)) == 22
 
 
-def test_syncjob_has_18_fields():
-    assert len(dataclasses.fields(SyncJob)) == 18
+def test_syncjob_has_22_fields():
+    assert len(dataclasses.fields(SyncJob)) == 22
 
 
 def test_cleanup_all_users_closes_only_stale(tmp_path, monkeypatch):
@@ -61,3 +61,17 @@ def test_cleanup_all_users_closes_only_stale(tmp_path, monkeypatch):
         assert c.execute("select status from sync_jobs").fetchone()[0] == "stopped"
     with sj._conn("b@x") as c:
         assert c.execute("select status from sync_jobs").fetchone()[0] == "running"
+
+
+def test_update_job_stamps_started_and_finished(tmp_path):
+    from src.utils import sync_jobs as sj
+    job = sj.create_job("strava", "2026-01-01", "2026-01-02", source_path="manual")
+    assert job.trigger == "manual" and job.started_at is None
+    sj.update_job(job.id, status="running")
+    first = sj.get_job(job.id).started_at
+    assert first
+    sj.update_job(job.id, status="running")
+    assert sj.get_job(job.id).started_at == first
+    sj.update_job(job.id, status="completed", counts_json='{"activities": 2}')
+    done = sj.get_job(job.id)
+    assert done.finished_at and done.counts_json == '{"activities": 2}'

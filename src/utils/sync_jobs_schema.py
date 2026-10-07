@@ -1,4 +1,4 @@
-"""sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path) 멱등 보장."""
+"""sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at) 멱등 보장."""
 from __future__ import annotations
 
 import sqlite3
@@ -21,7 +21,10 @@ CREATE_SQL = """CREATE TABLE IF NOT EXISTS sync_jobs (
     last_error TEXT
 )"""
 
-LEDGER_COLUMNS = {"error_code": "TEXT", "http_status": "INTEGER", "source_path": "TEXT"}
+LEDGER_COLUMNS = {
+    "error_code": "TEXT", "http_status": "INTEGER", "source_path": "TEXT",
+    "counts_json": "TEXT", "trigger": "TEXT", "started_at": "TEXT", "finished_at": "TEXT",
+}
 
 _ensured: set[str] = set()
 
