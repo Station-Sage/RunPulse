@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import data_service, data_settings_service, sync_state_service
+from src.services import data_service, data_settings_service, profile_service, sync_state_service
 from src.utils.config import load_config
 from src.web.helpers import db_path, get_current_user_id
 
@@ -189,6 +189,24 @@ def patch_sync_auto():
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)
     return api_ok(data_settings_service.patch_auto(config, user_id, changes))
+
+
+@api_bp.get("/data/profile")
+def get_data_profile():
+    return _with_conn(lambda c, cfg: api_ok({"rows": profile_service.profile_rows(c, cfg)}))
+
+
+@api_bp.patch("/data/profile")
+def patch_data_profile():
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
+    changes, err = profile_service.validate_changes(body)
+    if err:
+        return api_error("INVALID_PARAM", err)
+    user_id = get_current_user_id()
+    config = profile_service.apply_changes(load_config(user_id=user_id), user_id, changes)
+    return _with_conn(lambda c, _cfg: api_ok({"rows": profile_service.profile_rows(c, config)}))
 
 
 def _writable_provider(provider: str):

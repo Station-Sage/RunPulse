@@ -211,6 +211,10 @@
 
 - functions: record_snapshots, evaluate_race, summary
 
+### `profile_service.py` (152줄) — 러너 기준값(HRmax·LTHR·역치 페이스·안정심박·주간 목표) — 자체 추정/기기/직접 입력 병합과 사용값 결정.
+
+- functions: profile_rows, effective_value, validate_changes, apply_changes
+
 ### `progression_service.py` (25줄) — 품질 세션 사다리 단계 저장·갱신 서비스(U16l) — progression.py 순수 함수와 plan_progression 테이블을 잇는다.
 
 - functions: get_step, advance
@@ -1356,7 +1360,7 @@
 
 - functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
-### `planner_rules.py` (323줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
+### `planner_rules.py` (324줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
@@ -2464,6 +2468,10 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
+### `test_profile_service.py` (100줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
+
+- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip
+
 ### `test_progression.py` (37줄) — U16l: 품질 사다리 순수 함수·v29 테이블·저장 서비스.
 
 - functions: test_next_step_up_hold_down_and_clamp, test_prescription_shapes, test_service_persists_and_migration_idempotent
@@ -2895,7 +2903,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 605개 파일
+총 607개 파일
 
 ## docstring 누락
 

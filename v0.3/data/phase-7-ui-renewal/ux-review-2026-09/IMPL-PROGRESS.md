@@ -616,3 +616,10 @@
 - 검증: pytest 2637 통과, node:test 374, svelte-check 0 오류·build.
 - 남음(설계 있는 별도 슬라이스): 웰니스·부하 CSV·아카이브 zip(S9), 기준값 페이지·profile_service(S8), AI 설정, 데이터 삭제 해제.
 - 결정(2026-10-08): 4-5 보류 항목(데이터 삭제 해제, Garmin v2 연결)은 콜드 스타트 구현 때 재설계 후 진행. `LATER.md`에 기록.
+
+## S8a — 러너 기준값 페이지·profile_service (2026-10-08)
+- 서비스 `profile_service`: 항목 5개(hrmax·lthr·threshold_pace·resting_hr·weekly_km)별로 자체 추정(`*_self`, 안정심박은 웰니스 30일 중앙값, 역치 페이스는 VDOT→Daniels T)·기기 값(`*_ref`, garmin→intervals)·직접 입력을 병합하고 사용값(`using`)을 정한다. 저장은 `config.profile.overrides` / `config.profile.source_choice`.
+- API: `GET|PATCH /data/profile` (범위 검증, null=직접 입력 해제). 존 분석·플랜 페이스 폴백은 `effective_value()`를 읽음(옛 `user.max_hr`·`threshold_pace*`·`weekly_distance_target`는 legacy 폴백).
+- UI: `/data/settings/profile` + `BaselineRow`(라디오로 사용 값 선택, 직접 입력). `/data/settings`에서 링크.
+- 한계: 존·플랜 엔진은 conn 없이 `effective_value`를 호출하므로 현재는 직접 입력/옛 키만 반영하고 자체·기기 선택은 표시용이다(엔진에 conn 전달은 S8b에서).
+- 남음(S8b): `POST /data/profile/preview`, PATCH `recompute`, `POST /data/recompute` 잡 + `GET /data/jobs/:id`, `RecomputeSummary`, 레거시 GET `/recompute-metrics` 대체.

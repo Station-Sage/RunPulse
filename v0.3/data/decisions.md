@@ -192,3 +192,8 @@
   - 해제: 자격 증명만 지운다(`keep_data:true` 필수). 데이터 삭제 해제는 400.
 - OAuth `return_to`: 허용목록(`/v2/data/sources/`, `/v2/welcome`)만 통과, `state` 파라미터로 전달해 콜백에서 재검증(오픈 리다이렉트 방지).
 - 사유: 데이터 삭제 해제는 소스별 cascade 삭제 헬퍼가 없어 위험이 커서 보류(후속). Garmin은 인증 흐름 재작성이 별도 작업.
+
+## ADR-027: 러너 기준값 저장 키와 단일 읽기 진입점 (2026-10-08)
+- 결정: 기준값은 `config.profile.overrides`(직접 입력)와 `config.profile.source_choice`(self|device|manual)에 저장하고, 존·플랜 엔진은 `profile_service.effective_value()`만 읽는다. 옛 키(`user.max_hr`, `threshold_pace_sec_km`/`threshold_pace`, `weekly_distance_target`)는 직접 입력으로 취급하는 폴백.
+- 사유: 같은 값이 키 이름 3종으로 흩어져 있어(`threshold_pace` vs `_sec_km`) 화면별 불일치가 났다. 선택값이 없을 때의 사용값은 직접 입력 → 자체 추정 → 기기 순(사용자가 명시한 값이 가장 우선, 기기 값은 사용자가 고르지 않는 한 보조).
+- 한계: conn 없는 호출은 자체·기기 선택을 풀지 못한다(S8b에서 엔진에 conn 전달).

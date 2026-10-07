@@ -130,3 +130,24 @@ export const disconnectSource = (provider: string) =>
 		`/data/sources/${encodeURIComponent(provider)}/disconnect`,
 		{ method: 'POST', body: JSON.stringify({ keep_data: true }) }
 	);
+
+// --- 러너 기준값 (40 design §2.5) ---
+export type ProfileKey = 'hrmax' | 'lthr' | 'threshold_pace' | 'resting_hr' | 'weekly_km';
+export type ProfileSource = 'self' | 'device' | 'manual';
+
+export interface ProfileRow {
+	key: ProfileKey;
+	self: { value: number; basis: string; at: string | null } | null;
+	device: { value: number; provider: string; at: string } | null;
+	manual: { value: number } | null;
+	using: ProfileSource | 'none';
+}
+
+export interface ProfileChanges {
+	overrides?: Partial<Record<ProfileKey, number | null>>;
+	source_choice?: Partial<Record<ProfileKey, ProfileSource>>;
+}
+
+export const getProfile = () => apiFetch<{ rows: ProfileRow[] }>('/data/profile');
+export const patchProfile = (changes: ProfileChanges) =>
+	apiFetch<{ rows: ProfileRow[] }>('/data/profile', { method: 'PATCH', body: JSON.stringify(changes) });

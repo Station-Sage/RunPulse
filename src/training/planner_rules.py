@@ -192,7 +192,8 @@ def get_paces_from_vdot(vdot: float | None,
 
     tp = 300
     if config:
-        tp_cfg = config.get("user", {}).get("threshold_pace_sec_km")
+        from src.services.profile_service import effective_value
+        tp_cfg = effective_value(config, "threshold_pace")
         if tp_cfg:
             try:
                 tp = int(tp_cfg)

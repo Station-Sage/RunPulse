@@ -32,7 +32,8 @@ def _get_zone_uppers(config: dict | None) -> list[int]:
                 hz.get("zone3_max", hz["zone1_max"] + 35),
                 hz.get("zone4_max", hz["zone1_max"] + 50),
             ]
-        max_hr = user.get("max_hr")
+        from src.services.profile_service import effective_value
+        max_hr = effective_value(config, "hrmax")
         if max_hr:
             zones = hr_zones(int(max_hr))
             return [z[1] for z in zones[:4]]
