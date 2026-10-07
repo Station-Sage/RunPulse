@@ -49,3 +49,57 @@ test('pollIntervalMs: 진행 중 5초, 평시·null 60초', () => {
 	assert.equal(pollIntervalMs(state({ first_sync_running: true })), 5000);
 	assert.equal(pollIntervalMs(state({ sources: [src({ state: 'running' })] })), 5000);
 });
+
+import {
+	triggerButtonView, outcomeFromError, outcomeFromResponse, waitLabel, skipLine
+} from '../src/lib/syncState.ts';
+
+const ctx = (over) => ({ triggering: false, cooldownUntil: null, now: 1_000_000, ...over });
+
+test('triggerButtonView: 연결·활성 소스 0개면 설정 링크 + 비활성', () => {
+	const v = triggerButtonView(state({ sources: [src({ connection: 'not_connected', state: 'not_connected' })] }), ctx());
+	assert.equal(v.disabled, true);
+	assert.equal(v.settingsLink, true);
+});
+
+test('triggerButtonView: 요청 중 / 진행 중 / 쿨다운 / 기본', () => {
+	const s = state({ sources: [src(), src({ provider: 'strava' })] });
+	assert.deepEqual(triggerButtonView(s, ctx({ triggering: true })), { label: '요청 중…', disabled: true });
+	const run = state({ sources: [src({ state: 'running' }), src({ provider: 'strava' })] });
+	assert.equal(triggerButtonView(run, ctx()).label, '동기화 중 1/2');
+	assert.equal(triggerButtonView(s, ctx({ cooldownUntil: 1_000_000 + 120_000 })).label, '2분 후 가능');
+	assert.deepEqual(triggerButtonView(s, ctx({ cooldownUntil: 999_000 })), { label: '지금 동기화', disabled: false });
+});
+
+test('pollIntervalMs: 트리거 후 15초는 5초 주기', () => {
+	const idle = state({ sources: [src()] });
+	assert.equal(pollIntervalMs(idle, 1000, 5000), 5000);
+	assert.equal(pollIntervalMs(idle, 1000, 16001), 60000);
+	assert.equal(pollIntervalMs(idle, null, 5000), 60000);
+});
+
+test('outcomeFromError: 상태코드별 문구', () => {
+	assert.equal(outcomeFromError(409, null).kick, true);
+	const c = outcomeFromError(429, { retry_after_sec: 90, skipped: [{ provider: 'garmin', code: 'cooldown', message_ko: 'x', retry_after_sec: 90 }] });
+	assert.equal(c.cooldownSec, 90);
+	assert.equal(c.skipped.length, 1);
+	assert.match(outcomeFromError(422, null).notice, /연결된 소스/);
+	assert.match(outcomeFromError(0, null).notice, /다시 눌러/);
+	assert.equal(outcomeFromError(500, null).kick, false);
+});
+
+test('outcomeFromResponse / waitLabel / skipLine', () => {
+	const o = outcomeFromResponse({ runs: [], skipped: [{ provider: 'strava', code: 'cooldown', message_ko: 'm', retry_after_sec: 61 }] });
+	assert.equal(o.kick, true);
+	assert.equal(waitLabel(30), '30초 후 가능');
+	assert.equal(skipLine(o.skipped[0]), '⏱ Strava 2분 후 가능');
+	assert.equal(skipLine({ provider: 'garmin', code: 'running', message_ko: '' }), 'Garmin 이미 동기화 중');
+});
+
+test('outcomeFromResponse: 미연결·꺼짐 skip은 안내 줄에서 제외', () => {
+	const o = outcomeFromResponse({ runs: [], skipped: [
+		{ provider: 'garmin', code: 'not_connected', message_ko: 'a' },
+		{ provider: 'strava', code: 'disabled', message_ko: 'b' },
+		{ provider: 'intervals', code: 'cooldown', message_ko: 'c', retry_after_sec: 60 }] });
+	assert.deepEqual(o.skipped.map((x) => x.provider), ['intervals']);
+});

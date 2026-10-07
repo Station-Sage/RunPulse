@@ -5,22 +5,13 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { pillView } from '$lib/syncState';
-	import { syncStore, loadSyncState, pollIntervalMs } from '$lib/syncStore.svelte';
+	import { syncStore, loadSyncState, startSyncPolling } from '$lib/syncStore.svelte';
 	import SyncPanel from './SyncPanel.svelte';
 
 	const sync = $derived(syncStore.data);
 	const urlOpen = $derived(page.url.searchParams.get('sheet') === 'sync');
 
-	onMount(() => {
-		loadSyncState();
-		let t: ReturnType<typeof setTimeout>;
-		const tick = async () => {
-			await loadSyncState();
-			t = setTimeout(tick, pollIntervalMs(syncStore.data));
-		};
-		t = setTimeout(tick, 60000);
-		return () => clearTimeout(t);
-	});
+	onMount(() => startSyncPolling());
 
 	$effect(() => {
 		syncStore.panelOpen = urlOpen;

@@ -4,17 +4,19 @@
 const API_BASE = '/api/v1';
 
 interface ApiErrorBody {
-	error?: { code?: string; message?: string };
+	error?: { code?: string; message?: string; details?: unknown };
 }
 
 export class ApiError extends Error {
 	code: string;
 	status: number;
+	details?: unknown;
 
 	constructor(status: number, body: ApiErrorBody) {
 		super(body.error?.message ?? 'API 오류');
 		this.code = body.error?.code ?? 'UNKNOWN';
 		this.status = status;
+		this.details = body.error?.details;
 	}
 }
 
