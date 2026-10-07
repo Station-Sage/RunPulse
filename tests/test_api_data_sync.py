@@ -81,3 +81,35 @@ def test_api_error_details_optional():
     with app.app_context():
         assert "details" not in api_error("X", "m")[0].get_json()["error"]
         assert api_error("X", "m", 400, {"a": 1})[0].get_json()["error"]["details"] == {"a": 1}
+
+
+def _job(status):
+    from types import SimpleNamespace
+    return SimpleNamespace(id="j1", service="garmin", status=status)
+
+
+def test_cancel_404(client, monkeypatch):
+    import src.utils.sync_jobs as sj
+    monkeypatch.setattr(sj, "get_job", lambda i: None)
+    assert client.post("/api/v1/data/sync/runs/x/cancel").status_code == 404
+
+
+def test_cancel_running_requests_stop(client, monkeypatch):
+    import src.utils.sync_jobs as sj
+    import src.web.bg_sync as bg
+    calls = []
+    monkeypatch.setattr(sj, "get_job", lambda i: _job("running"))
+    monkeypatch.setattr(bg, "stop_job", lambda s, u=None: calls.append((s, u)) or True)
+    r = client.post("/api/v1/data/sync/runs/j1/cancel")
+    assert r.status_code == 202 and r.get_json()["data"]["state"] == "stopping"
+    assert calls == [("garmin", "u")]
+
+
+def test_cancel_finished_is_idempotent(client, monkeypatch):
+    import src.utils.sync_jobs as sj
+    import src.web.bg_sync as bg
+    monkeypatch.setattr(sj, "get_job", lambda i: _job("completed"))
+    monkeypatch.setattr(bg, "stop_job", lambda *a, **k: pytest.fail("호출되면 안 됨"))
+    r = client.post("/api/v1/data/sync/runs/j1/cancel")
+    assert r.status_code == 200 and r.get_json()["data"] == {
+        "id": "j1", "provider": "garmin", "state": "completed", "requested": False}

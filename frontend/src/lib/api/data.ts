@@ -10,3 +10,10 @@ export const triggerSync = (sources?: string[]) =>
 		method: 'POST',
 		body: JSON.stringify({ mode: 'incremental', ...(sources ? { sources } : {}) })
 	});
+
+// 중지 요청은 멱등 — 이미 끝난 작업이면 현재 상태만 돌려준다.
+export const cancelSyncRun = (id: string | number) =>
+	apiFetch<{ id: string; provider: string; state: string; requested: boolean }>(
+		`/data/sync/runs/${encodeURIComponent(String(id))}/cancel`,
+		{ method: 'POST' }
+	);

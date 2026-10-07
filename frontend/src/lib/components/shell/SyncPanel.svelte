@@ -2,7 +2,7 @@
 	// §2.2 동기화 패널 — 소스 행 + "지금 동기화"(POST /data/sync) + 오류 행 조치 링크.
 	// 기간 지정 동기화는 v1 /sync 화면으로 연결한다(D11).
 	import { onMount } from 'svelte';
-	import { runTrigger, syncStore } from '$lib/syncStore.svelte';
+	import { cancelRun, runTrigger, syncStore } from '$lib/syncStore.svelte';
 	import {
 		skipLine,
 		sourceLine,
@@ -45,6 +45,16 @@
 				<span class="text-fg-secondary" class:text-red-500={src.state.startsWith('error-')}>
 					<span aria-hidden="true">{line.glyph}</span>
 					{line.text}
+					{#if src.state === 'running' && src.running}
+						<button
+							type="button"
+							disabled={syncStore.cancelling.includes(src.provider)}
+							onclick={() => cancelRun(src.provider, src.running!.job_id)}
+							class="ml-1 underline disabled:text-fg-muted"
+						>
+							{syncStore.cancelling.includes(src.provider) ? '중지 중' : '중지'}
+						</button>
+					{/if}
 					{#if action}
 						<a href={action.href} data-sveltekit-reload class="ml-1 underline">{action.label}</a>
 					{/if}

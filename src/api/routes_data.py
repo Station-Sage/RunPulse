@@ -64,3 +64,21 @@ def post_data_sync():
         resp.headers["Retry-After"] = str(wait)
         return resp, status
     return api_error("SYNC_START_FAILED", "동기화를 시작하지 못했어요", 500, {"skipped": skipped})
+
+
+_TERMINAL = ("completed", "stopped", "failed")
+
+
+@api_bp.post("/data/sync/runs/<run_id>/cancel")
+def cancel_sync_run(run_id: str):
+    """진행 중인 동기화 중지 요청. 이미 끝난 작업이면 현재 상태를 그대로 돌려준다(멱등)."""
+    from src.utils.sync_jobs import get_job
+    from src.web.bg_sync import stop_job
+
+    job = get_job(run_id)
+    if job is None:
+        return api_error("NOT_FOUND", "동기화 작업을 찾을 수 없어요", 404)
+    if job.status in _TERMINAL:
+        return api_ok({"id": job.id, "provider": job.service, "state": job.status, "requested": False})
+    stop_job(job.service, get_current_user_id())
+    return api_ok({"id": job.id, "provider": job.service, "state": "stopping", "requested": True}, 202)

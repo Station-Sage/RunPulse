@@ -19,7 +19,7 @@ export interface SyncSource {
 	last_success_at: string | null;
 	last_new_data_at: string | null;
 	last_error: { code: string; message_ko: string; action: string } | null;
-	running: { job_id: number; progress_pct: number } | null;
+	running: { job_id: string | number; progress_pct: number } | null;
 }
 
 export interface SyncState {

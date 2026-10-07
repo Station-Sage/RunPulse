@@ -565,3 +565,10 @@
 - `syncState.ts`: `justFinished`/`completionSummary`(running→비실행 전이만, 소스 상태 변화로 "n개 소스 갱신 · X 확인 필요" — D2, 원장 확장 없음).
 - `syncStore`: 전이 시 `app:today`·`app:library-home`·`app:race-hub`만 `invalidate`(+10초 뒤 1회 재갱신, 지표 재계산 지연 대응), `summary`를 패널에 표시.
 - 검증: 단위 369 통과, check 0 error, build OK. 브라우저 스모크는 전이 로직이 순수 함수 테스트로 커버돼 생략(실 동기화 POST 위험 회피).
+
+## Phase 4-1 S4 — 중지 버튼 + 좀비 원장 정리 (2026-10-07)
+- 발견: 운영 `sync_jobs.db`에 garmin `running` 행 5건이 실제 동작 없이 남음(좀비). import 시점 정리(`cleanup_stale_running_jobs`)가 사용자 컨텍스트 없이 default 원장만 처리해서였음. 백업 후 수동 `stopped` 처리.
+- 근본 수정: `sync_jobs.cleanup_stale_running_jobs_all_users(600s)` — 모든 사용자 원장에서 600초 이상 갱신 없는 running/pending만 닫음(다른 워커 작업 보호). `bg_sync` import 시 호출. `_conn(user_id)`가 인자를 `_resolve_user_id`에 전달하도록 수정.
+- API: `POST /api/v1/data/sync/runs/<id>/cancel` — 404 / 종료 상태는 멱등(`requested:false`, 200) / 진행 중은 `stop_job` 후 202 `stopping`.
+- 프론트: `cancelSyncRun`, `syncStore.cancelRun`(`cancelling` 중복 방지, 실패 시 notice), SyncPanel 실행 중 행에 "중지"(중지 중 비활성).
+- 검증: 전체 pytest 2590 통과(이전), 관련 21 통과, 단위·check·build OK, 브라우저 스모크(응답 mock — 버튼 노출·cancel 1회 POST·상태 전환 후 사라짐).

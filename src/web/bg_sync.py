@@ -22,6 +22,7 @@ from src.utils.sync_jobs import (
     SyncJob,
     INTER_BATCH_SLEEP,
     cleanup_stale_running_jobs,
+    cleanup_stale_running_jobs_all_users,
     create_job,
     get_active_job,
     get_job,
@@ -58,7 +59,7 @@ def _find_thread(service: str, user_id: str | None = None):
 
 # 프로세스 시작 시 이전 실행에서 남은 stale "running" 작업 정리
 try:
-    _cleaned = cleanup_stale_running_jobs()
+    _cleaned = cleanup_stale_running_jobs() + cleanup_stale_running_jobs_all_users()
     if _cleaned:
         log.info("[bg_sync] stale 작업 %d개 정리됨", _cleaned)
 except Exception:

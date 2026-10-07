@@ -121,15 +121,15 @@ def _jobs_db_path(user_id: str | None = None) -> str:
     return str(get_db_path(user_id).parent / "sync_jobs.db")
 
 
-def _conn() -> sqlite3.Connection:
+def _conn(user_id: str | None = None) -> sqlite3.Connection:
     """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
     # sync_state._resolve_user_id: 인자 → thread-local → Flask session → "default"
     # bg_sync 스레드는 set_current_user()로 thread-local을 설정하므로 올바른 DB를 사용하게 됨
     try:
         from src.utils.sync_state import _resolve_user_id
-        uid = _resolve_user_id(None)
+        uid = _resolve_user_id(user_id)
     except Exception:
-        uid = None
+        uid = user_id
     path = _jobs_db_path(uid)
     conn = sqlite3.connect(path, timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
@@ -155,6 +155,36 @@ def cleanup_stale_running_jobs() -> int:
             (now,),
         )
         return cur.rowcount
+
+
+def cleanup_stale_running_jobs_all_users(older_than_sec: int = 600) -> int:
+    """모든 사용자 원장의 오래 갱신 없는 running/pending 작업을 'stopped'로 정리.
+
+    import 시점엔 사용자 컨텍스트가 없어 default 원장만 정리되던 문제를 보완한다.
+    다른 워커가 진행 중인 작업을 건드리지 않도록 older_than_sec 이상 갱신 없는 행만 닫는다.
+    """
+    from src.db_setup import _PROJECT_ROOT
+
+    users_dir = _PROJECT_ROOT / "data" / "users"
+    if not users_dir.is_dir():
+        return 0
+    cutoff = (datetime.now() - timedelta(seconds=older_than_sec)).isoformat(timespec="seconds")
+    now = datetime.now().isoformat(timespec="seconds")
+    total = 0
+    for d in sorted(users_dir.iterdir()):
+        if not (d / "sync_jobs.db").exists():
+            continue
+        try:
+            with _conn(d.name) as conn:
+                cur = conn.execute(
+                    "UPDATE sync_jobs SET status='stopped', updated_at=?, last_error='프로세스 재시작으로 중단됨' "
+                    "WHERE status IN ('running', 'pending') AND updated_at < ?",
+                    (now, cutoff),
+                )
+                total += cur.rowcount
+        except Exception:
+            continue
+    return total
 
 
 # ── CRUD ─────────────────────────────────────────────────────────────────

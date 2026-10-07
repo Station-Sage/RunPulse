@@ -925,7 +925,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (564줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (565줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, run
@@ -1501,10 +1501,10 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `sync_jobs.py` (248줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (278줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
-- functions: windows, cleanup_stale_running_jobs, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
+- functions: windows, cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
 
 ### `sync_jobs_schema.py` (41줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path) 멱등 보장.
 
@@ -1678,9 +1678,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_data_sync.py` (83줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
+### `test_api_data_sync.py` (115줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
 
-- functions: client, test_202_partial_start, test_422_no_sources, test_409_all_running, test_429_cooldown_has_retry_after, test_400_invalid, test_non_json_body_is_empty, test_503_missing_db, test_api_error_details_optional
+- functions: client, test_202_partial_start, test_422_no_sources, test_409_all_running, test_429_cooldown_has_retry_after, test_400_invalid, test_non_json_body_is_empty, test_503_missing_db, test_api_error_details_optional, test_cancel_404, test_cancel_running_requests_stop, test_cancel_finished_is_idempotent
 
 ### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
@@ -2616,9 +2616,9 @@
 
 - functions: test_classify_http, test_classify_non_http, test_messages_cover_all_codes, test_from_result_only_for_total_failure, test_merge_and_job_dict_carry_error_code, test_strava_wrapper_raises_on_403
 
-### `test_sync_jobs_schema.py` (41줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
+### `test_sync_jobs_schema.py` (63줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
 
-- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_18_fields
+- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_18_fields, test_cleanup_all_users_closes_only_stale
 
 ### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
 

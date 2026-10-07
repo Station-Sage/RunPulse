@@ -1,7 +1,7 @@
 // 동기화 상태 공유 스토어 — Pill·드로어·패널이 한 번의 폴링을 공유하고, 수동 트리거도 여기서 처리한다.
 import { invalidate } from '$app/navigation';
 import { ApiError } from '$lib/api/client';
-import { getSyncState, triggerSync } from '$lib/api/data';
+import { cancelSyncRun, getSyncState, triggerSync } from '$lib/api/data';
 import {
 	completionSummary,
 	outcomeFromError,
@@ -24,6 +24,7 @@ export const syncStore = $state<{
 	notice: string | null;
 	skipped: TriggerSkip[];
 	summary: string | null;
+	cancelling: string[];
 }>({
 	data: null,
 	failed: false,
@@ -33,7 +34,8 @@ export const syncStore = $state<{
 	cooldownUntil: null,
 	notice: null,
 	skipped: [],
-	summary: null
+	summary: null,
+	cancelling: []
 });
 
 // 완료 직후엔 지표 재계산이 아직 안 끝났을 수 있어 한 번 더 갱신한다(40 design §4)
@@ -114,4 +116,18 @@ export async function runTrigger(sources?: string[]): Promise<void> {
 		syncStore.triggeredAt = Date.now();
 		await kick();
 	}
+}
+
+/** 진행 중인 소스 동기화 중지 요청 — 반영은 다음 폴링에서 확인한다 */
+export async function cancelRun(provider: string, jobId: string | number): Promise<void> {
+	if (syncStore.cancelling.includes(provider)) return;
+	syncStore.cancelling = [...syncStore.cancelling, provider];
+	syncStore.notice = null;
+	try {
+		await cancelSyncRun(jobId);
+	} catch {
+		syncStore.notice = '중지하지 못했어요. 잠시 후 다시 시도해 주세요';
+	}
+	await kick();
+	syncStore.cancelling = syncStore.cancelling.filter((p) => p !== provider);
 }
