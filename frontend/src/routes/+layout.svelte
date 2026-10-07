@@ -1,8 +1,8 @@
 <script lang="ts">
 	// 공통 셸 — 하단 3탭(Today/Library/Coach) + 상단 ☰ 메뉴.
 	// 03-screen-catalog.md 전 화면 공통. ☰는 40:S0 과도기 드로어(v1 링크)로 활성화 —
-	// 동기화 패널(SyncStatusPill 등, Phase 4-1)이 붙기 전까지는 이 드로어가 v1↔v2 상호 링크
-	// 역할만 한다. 좌측 ☰·우측 Pill은 40-v2-unimplemented/design.md §2.1 결정.
+	// 우측 SyncStatusPill(Phase 4-1 슬라이스1, 읽기 전용)이 동기화 상태를 보여주고, 드로어는
+	// v1↔v2 상호 링크 역할을 한다. 좌측 ☰·우측 Pill은 40-v2-unimplemented/design.md §2.1 결정.
 	// E5: 탭바 SVG 아이콘, max-w-3xl 중앙 정렬.
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -11,6 +11,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
+	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
 
 	let { children } = $props();
 	let menuOpen = $state(false);
@@ -40,6 +41,7 @@
 				<Icon name="menu" class="h-5 w-5" />
 			</button>
 			<span class="font-medium">RunPulse</span>
+			<SyncStatusPill />
 		</div>
 	</header>
 

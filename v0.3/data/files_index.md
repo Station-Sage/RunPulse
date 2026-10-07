@@ -2187,7 +2187,7 @@
 
 - functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name, test_first_batch_has_description_short, test_texts_within_40_chars, test_action_hint_keys_are_five_level_status, test_action_hint_picks_current_status_only, test_crs_hint_uses_gate_level_not_score_status, test_marathon_shape_label_and_new_texts
 
-### `test_metric_naming.py` (58줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
+### `test_metric_naming.py` (59줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 

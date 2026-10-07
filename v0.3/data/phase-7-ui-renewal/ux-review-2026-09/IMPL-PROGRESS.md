@@ -537,3 +537,9 @@
 - 검증: pytest 전체 통과(기존 index 저장 테스트 1건은 새 계약으로 수정), 프론트 check 0 오류·node 테스트·빌드.
 - U18e 완료(2026-10-06, pansongit DB): v30 배포, 백필 measured 692건(garmin 594·strava 98, unknown 0), `recompute_all` 전 기간 재계산(활동 3997행·일별 42830행). 백업 `running.db.bak-20261006-pre-u18e`.
 - 주의: `recompute_all`은 호출자가 마지막에 `conn.commit()` 해야 결과가 남는다(삭제만 커밋되므로 누락 시 지표 소실). 692·15302는 이미 스트림 시간축이 정상이라 RE 불변, 692 디커플링만 -0.43→2.07.
+
+## Phase 4-1 슬라이스 1 — SyncStatusPill + 읽기 전용 SyncPanel (2026-10-07)
+- `lib/syncState.ts`(계약 타입·`pillView`·`sourceLine`·`relativeAgo`), `lib/api/data.ts`, `lib/components/shell/{SyncStatusPill,SyncPanel}.svelte`, `+layout.svelte` 헤더 우측에 Pill 배선. 단위 테스트 `tests/syncState.test.mjs`.
+- 실 DB 사본 브라우저 확인(모바일 390px 하단 시트·데스크톱 팝오버): Pill `10/7 기준 · 기록 없음`(amber), 소스 4행 표시. 사본 DB 기준 Garmin이 `never`(동기화 원장 없음)라 amber로 보이는 것은 계약대로.
+- 남음(슬라이스 2): `?sheet=sync` URL 시트, v2 `POST /data/sync`(지금 동기화를 v1 `/sync` 링크 대신 직접 실행), MenuDrawer 첫 행 요약·소스 연결 행, Pill 폴링 주기를 first_sync_running에 연동.
+
