@@ -578,3 +578,7 @@
 - `update_job`이 running 최초 전이에 `started_at`, 종료 상태(completed/stopped/failed/rate_limited/auth_required)에 `finished_at` 자동 기록. 완료 시 `counts_json={"activities": n}`.
 - D3(`_threads` 키 `(user_id, service)`)는 이미 코드에 반영돼 있어 추가 작업 없음. 설계서 D2를 "채택"으로 갱신.
 - 검증: 전체 pytest 2595 통과. 배포 전 운영 `sync_jobs.db` 백업.
+
+## SYNC-ERROR-SURFACE + D7/V5 종결 (2026-10-07)
+- `bg_sync._run_one_batch` 일반 예외를 `classify_exception`으로 분류해 보관, 모든 배치가 0건이면 job을 `failed`(error_code·http_status·last_error)로 마감. 일부 성공이면 `completed` 유지. 테스트 `test_bg_sync_batch_error.py` 3건, 전체 pytest 2598 통과, 운영 반영.
+- D7/V5(Garmin `never`) 종결: 원인은 좀비 `running` 5건(10/4~10/7)이었고 S4 정리·`cleanup_stale_running_jobs_all_users`로 해소. 운영 원장 Garmin 312건 중 299 completed, 최근 행 completed/stopped + 실행 중 1건 — `never` 재현 안 됨. D7 임시 문구("원장 기록 없음 · 마지막 수신") 유지.
