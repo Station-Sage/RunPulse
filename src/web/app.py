@@ -125,24 +125,8 @@ def _already_finished(stdout: str) -> bool:
 
 
 def _days_since_last_sync(sources: list[str]) -> int:
-    """DB에서 마지막 활동 이후 일수 계산. 데이터 없으면 7 반환."""
-    from datetime import date
-    db = _db_path()
-    if not db.exists():
-        return 7
-    try:
-        with sqlite3.connect(str(db)) as conn:
-            placeholders = ",".join("?" * len(sources))
-            row = conn.execute(
-                f"SELECT MAX(start_time) FROM activity_summaries WHERE source IN ({placeholders})",
-                sources,
-            ).fetchone()
-        if not row or not row[0]:
-            return 7
-        last_date = date.fromisoformat(str(row[0])[:10])
-        return max(1, min((date.today() - last_date).days + 2, 365))
-    except Exception:
-        return 7
+    from src.services.sync_trigger_service import days_since_last_sync
+    return days_since_last_sync(_db_path(), sources)
 
 
 def _auto_match_after_sync() -> None:
@@ -873,66 +857,33 @@ def create_app() -> Flask:
     @app.post("/trigger-sync-bg")
     def trigger_sync_bg():
         """기본 동기화 — 백그라운드 실행 후 즉시 JSON 응답 (브라우저 연결 독립)."""
-        from datetime import date as _date, timedelta
+        from datetime import date as _date
         from flask import jsonify
-        from src.utils.sync_policy import check_incremental_guard
-        from src.utils.sync_state import is_running, get_last_sync_at
-        from .bg_sync import start_basic_sync, get_status as _bg_get_status
+        from src.services.sync_trigger_service import ALL_SOURCES, plan_incremental
+        from .bg_sync import start_basic_sync
+        from .helpers import get_current_user_id
 
         source = request.form.get("source", "all").strip()
-        _VALID_SOURCES = {"garmin", "strava", "intervals", "runalyze"}
-        checkers = {
-            "garmin": check_garmin_connection,
-            "strava": check_strava_connection,
-            "intervals": check_intervals_connection,
-            "runalyze": check_runalyze_connection,
-        }
         if source == "all":
-            sources_to_sync = list(checkers.keys())
+            sources_to_sync = list(ALL_SOURCES)
         else:
-            sources_to_sync = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
+            sources_to_sync = [s.strip() for s in source.split(",") if s.strip() in ALL_SOURCES]
 
-        from .helpers import get_current_user_id
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
-        today = _date.today().isoformat()
-
-        started = []
+        today = _date.today()
+        started, from_dates, plan_skipped = plan_incremental(
+            config, user_id, sources_to_sync, today, db_file=_db_path())
         skipped = []
-        from_dates: dict[str, str] = {}
-
-        for src in sources_to_sync:
-            conn_status = checkers[src](config)
-            if not conn_status["ok"]:
-                skipped.append({"source": src, "error": f"미연결 ({conn_status['status']})"})
-                continue
-
-            if is_running(src, user_id):
-                skipped.append({"source": src, "error": f"{src} 동기화 이미 진행 중"})
-                continue
-
-            bg_st = _bg_get_status(src)
-            if bg_st.get("active") and bg_st.get("status") in ("running", "pending"):
-                skipped.append({"source": src, "error": f"{src} 백그라운드 동기화 진행 중"})
-                continue
-
-            last_at = get_last_sync_at(src, user_id)
-            guard = check_incremental_guard(src, last_at)
-            if not guard.allowed:
-                skipped.append({
-                    "source": src,
-                    "error": guard.message_ko or "정책 제한",
-                    "retry_after_sec": guard.retry_after_sec,
-                })
-                continue
-
-            days_for_src = _days_since_last_sync([src])
-            from_dates[src] = (_date.today() - timedelta(days=days_for_src)).isoformat()
-            started.append(src)
+        for sk in plan_skipped:
+            item = {"source": sk.provider, "error": sk.message_ko}
+            if sk.retry_after_sec is not None:
+                item["retry_after_sec"] = sk.retry_after_sec
+            skipped.append(item)
 
         job_ids: dict[str, str] = {}
         if started:
-            job_ids = start_basic_sync(started, from_dates, today, config, user_id)
+            job_ids = start_basic_sync(started, from_dates, today.isoformat(), config, user_id)
 
         log.info("[trigger_sync_bg] started=%s, skipped=%s", started, [s["source"] for s in skipped])
         return jsonify({"ok": len(started) > 0, "started": started, "skipped": skipped, "job_ids": job_ids})

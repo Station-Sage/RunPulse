@@ -176,3 +176,10 @@
 - 이중 계산 방지: 측정 TRIMP(formula_v1, 우선순위 20)가 있으면 항상 그쪽이 primary. PMC·합산 소비자는 `trimp is_primary=1`만 보므로 변경 없음.
 - 엔진은 이름 키(`name_to_calc`)로 정렬하므로 calculator `name`은 고유하게 두고 `produces`로 trimp를 지정.
 - 한계: 심박 없이 페이스만으로 추정하므로 인터벌·언덕 활동은 과소 추정 가능(낮은 confidence로 표시). 실 DB 재계산은 별도 승인 후 수행.
+
+## ADR-025: 수동 증분 동기화 트리거 `POST /api/v1/data/sync` (2026-10-07)
+- 배경: v2 헤더 Pill/SyncPanel이 읽기 전용이라 v1 `/sync`로 이동해야 했음. v1 `/trigger-sync-bg`의 판정 로직은 라우트에 인라인.
+- 결정: 판정·시작을 `src/services/sync_trigger_service.py`로 추출해 v1/v2가 공유. 판정 순서 not_connected → disabled → running → cooldown → rate_limited. 응답 202/409/422/429(+Retry-After)/400/503. `api_error(details=)` 추가(하위 호환).
+- 동시성: `bg_sync._threads` 키를 `(user_id, service)`로, `start_job`의 생존 검사+등록을 락 안에서 원자화(sentinel).
+- D1–D11 추천안과 사유는 `phase-7-ui-renewal/ux-review-2026-09/40-v2-unimplemented/sync-trigger-design.md` §11.
+- 한계: `sync_state.json`은 v1 SSE가 원장 단독 기록으로 바뀔 때까지 병행 확인(D6). `bg_sync.py` 520줄 분리는 별도 과제(D8).

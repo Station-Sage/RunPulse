@@ -548,3 +548,9 @@
 - `lib/syncStore.svelte.ts`(Pill·드로어 공유 상태·단일 폴링), `pollIntervalMs`(진행 중 5초/평시 60초, `syncState.ts`+테스트), Pill이 `?sheet=sync`와 양방향 동기화(replaceState), MenuDrawer 첫 행에 동기화 요약(탭 시 패널 열기).
 - 브라우저(실 DB 사본, 390px): 딥링크로 패널 열림, 닫기 시 쿼리 제거, 드로어 요약 행 → 패널 열림 확인.
 - 남음: v2 `POST /data/sync`(지금 동기화 직접 실행, sync_jobs 확장 여부 확인 필요 → 계획 확인 후), 드로어 소스 연결 행(설정 v2와 함께).
+
+## Phase 4-1 S1 — `POST /api/v1/data/sync` 백엔드 (2026-10-07)
+- `src/services/sync_trigger_service.py` 신규(판정 plan/시작 trigger, v1·v2 공용). `routes_data.post_data_sync`(202/400/409/422/429+Retry-After/503), `api_error(details=)`.
+- `bg_sync._threads` 키 `(user_id, service)`, `start_job` 생존검사+등록 원자화. v1 `/trigger-sync-bg`는 서비스 어댑터로 전환(응답 형식 동일).
+- 신규 테스트 22건. D1–D11 추천안·사유: `40-v2-unimplemented/sync-trigger-design.md` §11, ADR-025.
+- 남음: S2(프론트 버튼·폴링), S3(완료 반영), V5(Garmin `never` 원인 → D7).

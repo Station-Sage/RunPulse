@@ -40,8 +40,11 @@ def api_ok_cacheable(data, status: int = 200, meta: dict | None = None):
     return response.make_conditional(request)
 
 
-def api_error(code: str, message: str, status: int = 400):
-    return jsonify({"error": {"code": code, "message": message}}), status
+def api_error(code: str, message: str, status: int = 400, details: dict | None = None):
+    err = {"code": code, "message": message}
+    if details is not None:
+        err["details"] = details
+    return jsonify({"error": err}), status
 
 
 _LIVE_TODAY_PREFIXES = ("/api/v1/today", "/api/v1/library/metrics")

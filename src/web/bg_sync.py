@@ -33,8 +33,28 @@ from src.sync.sync_errors import SyncSourceError
 from src.utils.sync_state import get_retry_after_sec
 
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
-_threads: dict[str, "BgSyncThread"] = {}
+_threads: dict[tuple[str, str], "BgSyncThread"] = {}  # (user_id, service) → 스레드
 _lock = threading.Lock()
+
+
+class _Starting:
+    """start 진행 중 자리표시 — is_alive()가 항상 True."""
+
+    def is_alive(self) -> bool:
+        return True
+
+
+_STARTING = _Starting()
+
+
+def _find_thread(service: str, user_id: str | None = None):
+    """user_id 지정 시 해당 사용자 스레드, 생략 시 service가 같은 아무 스레드(v1 호환). _lock 안에서 호출."""
+    if user_id is not None:
+        return _threads.get((user_id, service))
+    for (_, svc), t in _threads.items():
+        if svc == service:
+            return t
+    return None
 
 # 프로세스 시작 시 이전 실행에서 남은 stale "running" 작업 정리
 try:
@@ -83,7 +103,8 @@ class BgSyncThread(threading.Thread):
             update_job(self.job_id, status="stopped", last_error=str(exc)[:300])
         finally:
             with _lock:
-                _threads.pop(job.service, None)
+                if _threads.get((self.user_id, job.service)) is self:
+                    _threads.pop((self.user_id, job.service), None)
 
     # ── 배치 루프 ─────────────────────────────────────────────────────
 
@@ -398,6 +419,38 @@ class BgSyncThread(threading.Thread):
 
 # ── 공개 API ─────────────────────────────────────────────────────────────
 
+def _start_or_existing(
+    service: str,
+    from_date: str,
+    to_date: str,
+    config: dict,
+    user_id: str = "default",
+    source_path: str = "bg",
+) -> tuple[str, bool]:
+    """(job_id, created). 생존 검사와 스레드 등록을 락 하나로 묶어 중복 시작 경쟁을 막는다."""
+    key = (user_id, service)
+    with _lock:
+        t = _threads.get(key)
+        if t is not None:
+            if t is _STARTING or t.is_alive():
+                existing = get_active_job(service)
+                return (existing.id if existing else ""), False
+            _threads.pop(key, None)
+        _threads[key] = _STARTING
+    try:
+        job = create_job(service, from_date, to_date, source_path=source_path)
+        thread = BgSyncThread(job.id, config, user_id=user_id)
+        with _lock:
+            _threads[key] = thread
+        thread.start()
+    except Exception:
+        with _lock:
+            if _threads.get(key) is _STARTING:
+                _threads.pop(key, None)
+        raise
+    return job.id, True
+
+
 def start_job(
     service: str,
     from_date: str,
@@ -408,35 +461,24 @@ def start_job(
 ) -> str:
     """새 백그라운드 동기화 시작. job_id 반환.
 
-    이미 해당 서비스 스레드가 살아 있으면 기존 job_id 반환.
+    이미 해당 (사용자, 서비스) 스레드가 살아 있으면 기존 job_id 반환.
     """
-    with _lock:
-        t = _threads.get(service)
-        if t and t.is_alive():
-            existing = get_active_job(service)
-            return existing.id if existing else ""
-
-    job = create_job(service, from_date, to_date, source_path=source_path)
-    thread = BgSyncThread(job.id, config, user_id=user_id)
-    with _lock:
-        _threads[service] = thread
-    thread.start()
-    return job.id
+    return _start_or_existing(service, from_date, to_date, config, user_id, source_path)[0]
 
 
-def pause_job(service: str) -> bool:
+def pause_job(service: str, user_id: str | None = None) -> bool:
     with _lock:
-        t = _threads.get(service)
-    if t and t.is_alive():
+        t = _find_thread(service, user_id)
+    if isinstance(t, BgSyncThread) and t.is_alive():
         t.pause()
         return True
     return False
 
 
-def stop_job(service: str) -> bool:
+def stop_job(service: str, user_id: str | None = None) -> bool:
     with _lock:
-        t = _threads.get(service)
-    if t and t.is_alive():
+        t = _find_thread(service, user_id)
+    if isinstance(t, BgSyncThread) and t.is_alive():
         t.stop()
         return True
     # 스레드 없으면 DB 상태만 업데이트
@@ -449,8 +491,8 @@ def stop_job(service: str) -> bool:
 def resume_job(service: str, config: dict, user_id: str = "default") -> bool:
     """일시정지/중지 상태에서 재개. 스레드가 살아 있으면 resume, 없으면 새 스레드 생성."""
     with _lock:
-        t = _threads.get(service)
-    if t and t.is_alive():
+        t = _find_thread(service, user_id)
+    if isinstance(t, BgSyncThread) and t.is_alive():
         t.resume()
         return True
 
@@ -460,7 +502,7 @@ def resume_job(service: str, config: dict, user_id: str = "default") -> bool:
 
     thread = BgSyncThread(job.id, config, user_id=user_id)
     with _lock:
-        _threads[service] = thread
+        _threads[(user_id, service)] = thread
     thread.start()
     return True
 
@@ -487,7 +529,7 @@ def start_basic_sync(
     return result
 
 
-def get_status(service: str) -> dict:
+def get_status(service: str, user_id: str | None = None) -> dict:
     """서비스의 현재 백그라운드 동기화 상태 반환 (UI 폴링용)."""
     job = get_latest_job(service)
     if not job:
@@ -495,7 +537,9 @@ def get_status(service: str) -> dict:
 
     retry_sec = get_retry_after_sec(service)
     rl = job.rate_limit
-    thread_alive = bool(_threads.get(service) and _threads[service].is_alive())
+    with _lock:
+        t = _find_thread(service, user_id)
+    thread_alive = bool(t and t.is_alive())
 
     return {
         "active": True,

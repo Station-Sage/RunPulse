@@ -247,6 +247,12 @@
 
 - functions: classify_error, get_sync_state
 
+### `sync_trigger_service.py` (151줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
+
+- class **SkipReason**: to_dict
+- class **TriggerResult**: 없음
+- functions: days_since_last_sync, plan_incremental, trigger_incremental
+
 ### `today_hero.py` (199줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
@@ -907,7 +913,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1407줄) — RunPulse integration workbench web app.
+### `app.py` (1358줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -919,8 +925,9 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (520줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (564줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
+- class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
 
@@ -1671,6 +1678,10 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
+### `test_api_data_sync.py` (83줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
+
+- functions: client, test_202_partial_start, test_422_no_sources, test_409_all_running, test_429_cooldown_has_retry_after, test_400_invalid, test_non_json_body_is_empty, test_503_missing_db, test_api_error_details_optional
+
 ### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
@@ -1722,6 +1733,11 @@
 
 - class **TestBackfill**: test_backfill_creates_groups, test_backfill_primary_source_priority, test_backfill_ignores_ungrouped, test_backfill_idempotent, test_backfill_multiple_groups, test_backfill_activity_date_from_start_time
 - functions: conn
+
+### `test_bg_sync_concurrency.py` (64줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
+
+- class **_FakeThread**: start, is_alive
+- functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot
 
 ### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
 
@@ -2616,6 +2632,10 @@
 
 - functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream
 
+### `test_sync_trigger_service.py` (100줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
+
+- functions: test_plan_skip_codes, test_plan_cooldown_then_rate_limited, test_plan_from_date_default_seven_days, test_days_since_last_sync, test_trigger_isolates_start_failure, test_trigger_existing_job_becomes_running_skip, test_skip_reason_to_dict_omits_none
+
 ### `test_synth_smoke.py` (55줄) — scripts/synth_smoke 합성 DB 시드 테스트 — 시드가 기능 기대치(서비스 입력)와 어긋나면 UI 스모크가 헛돈다.
 
 - functions: test_seed_creates_expected_rows, test_seed_feeds_provider_status_and_adaptation, test_seed_empty_has_schema_but_no_rows, test_seed_overwrites_existing_file_and_writes_only_there
@@ -2683,6 +2703,10 @@
 - class **TestWorkoutPatch**: test_patch_type_and_distance, test_patch_pace, test_patch_interval_saves_description, test_patch_empty_body_returns_400, test_patch_nonexistent_db, test_patch_persists_to_db
 - class **TestIntervalCalc**: test_basic_1000m, test_200m_short_interval, test_nonstandard_distance_warning, test_default_params
 - functions: app, client, db_file, workout_id
+
+### `test_trigger_sync_bg_v1.py` (27줄) — v1 /trigger-sync-bg — 서비스 판정 위임 후에도 응답 포맷 유지.
+
+- functions: test_v1_response_shape
 
 ### `test_trimp_calc.py` (89줄) — TRIMP + HRSS calculator 테스트 — 설계서 4-2 기준.
 
@@ -2838,7 +2862,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 592개 파일
+총 597개 파일
 
 ## docstring 누락
 
