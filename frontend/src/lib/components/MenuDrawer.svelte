@@ -1,10 +1,23 @@
 <script lang="ts">
-	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 동기화 패널(SyncPanel)이
-	// 아직 없는 단계라(Phase 4-1) 지금은 v1 화면으로의 상호 링크만 제공한다. v1 경로는 SvelteKit
-	// 라우터 밖이라 각 링크에 data-sveltekit-reload로 전체 새로고침을 강제한다.
+	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 첫 행은 동기화 요약(탭하면
+	// ?sheet=sync 패널), 나머지는 v1 화면으로의 상호 링크. v1 경로는 SvelteKit 라우터 밖이라
+	// 각 링크에 data-sveltekit-reload로 전체 새로고침을 강제한다.
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
+	import { pillView } from '$lib/syncState';
+	import { syncStore } from '$lib/syncStore.svelte';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
+
+	const summary = $derived(pillView(syncStore.data));
+
+	function openSyncPanel() {
+		onClose();
+		const u = new URL(page.url);
+		u.searchParams.set('sheet', 'sync');
+		goto(u, { replaceState: true, noScroll: true });
+	}
 
 	const quickLinks = [
 		{ href: '/dashboard', label: '대시보드' },
@@ -39,6 +52,17 @@
 					aria-label="닫기"
 				>
 					<Icon name="close" class="h-5 w-5" />
+				</button>
+			</div>
+
+			<div class="border-b border-border-subtle px-2 py-3">
+				<button
+					type="button"
+					onclick={openSyncPanel}
+					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-fg-primary hover:bg-surface-2"
+				>
+					<span aria-hidden="true">{summary.glyph}</span>
+					<span class="truncate">{summary.text}</span>
 				</button>
 			</div>
 

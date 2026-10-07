@@ -47,7 +47,7 @@
 - `+error.svelte` 신규(§6.3) — 셸(헤더·탭) 유지, 404는 상위 경로로, 그 외는 다시 시도 + Today 링크.
 - `ErrorState.svelte`/`EmptyState.svelte`/`Toast.svelte`/`SubTabs.svelte` 신규(§C5·§7.1) — 전부 프레젠테이션 컴포넌트만, 아직 소비처 없음(다음 단계에서 각 화면에 배치). `lib/states.ts`(4분류 판정)는 SyncState 의존이라 이번엔 미작성.
 - 검증: `npm run check`(0 errors) · `npm run build`(성공) · `npm run test:unit`(206 pass, 회귀 없음).
-- 남음: `ui_default` 전환 스위치(S1, 계정 설정 스키마 필요 → D6과 함께), MenuDrawer를 실제 SyncStatusPill로 교체(Phase 4-1), ErrorState/EmptyState를 각 라우트 로딩 실패 지점에 실제로 배선.
+- 남음: `ui_default` 전환 스위치(S1, 계정 설정 스키마 필요 → D6과 함께), ErrorState/EmptyState를 각 라우트 로딩 실패 지점에 실제로 배선.
 
 | 2-4 ChartScrub 코어(1차) | 진행 중·운영 반영(2026-09-30 06:50, 6982aa6) | 사용자 확인(2026-09-28 "권장안으로 하고") — 2-3(계정 설정 스키마 필요)은 보류, 스키마 안 건드리는 2-4부터 진행 |
 
@@ -543,3 +543,8 @@
 - 실 DB 사본 브라우저 확인(모바일 390px 하단 시트·데스크톱 팝오버): Pill `10/7 기준 · 기록 없음`(amber), 소스 4행 표시. 사본 DB 기준 Garmin이 `never`(동기화 원장 없음)라 amber로 보이는 것은 계약대로.
 - 남음(슬라이스 2): `?sheet=sync` URL 시트, v2 `POST /data/sync`(지금 동기화를 v1 `/sync` 링크 대신 직접 실행), MenuDrawer 첫 행 요약·소스 연결 행, Pill 폴링 주기를 first_sync_running에 연동.
 
+
+## Phase 4-1 슬라이스 2 — URL 시트·드로어 요약·적응형 폴링 (2026-10-07)
+- `lib/syncStore.svelte.ts`(Pill·드로어 공유 상태·단일 폴링), `pollIntervalMs`(진행 중 5초/평시 60초, `syncState.ts`+테스트), Pill이 `?sheet=sync`와 양방향 동기화(replaceState), MenuDrawer 첫 행에 동기화 요약(탭 시 패널 열기).
+- 브라우저(실 DB 사본, 390px): 딥링크로 패널 열림, 닫기 시 쿼리 제거, 드로어 요약 행 → 패널 열림 확인.
+- 남음: v2 `POST /data/sync`(지금 동기화 직접 실행, sync_jobs 확장 여부 확인 필요 → 계획 확인 후), 드로어 소스 연결 행(설정 v2와 함께).

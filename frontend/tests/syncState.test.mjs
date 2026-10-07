@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pillView, sourceLine, relativeAgo } from '../src/lib/syncState.ts';
+import { pillView, sourceLine, relativeAgo, pollIntervalMs } from '../src/lib/syncState.ts';
 
 const NOW = new Date('2026-09-27T21:00:00+09:00');
 const src = (over) => ({
@@ -41,4 +41,11 @@ test('sourceLine: 소스 행 문구', () => {
 	assert.equal(sourceLine(src({ state: 'disabled' }), NOW).glyph, '○');
 	assert.equal(sourceLine(src({ state: 'running', running: { job_id: 1, progress_pct: 40 } }), NOW).text, '동기화 중 40%');
 	assert.equal(sourceLine(src({ state: 'error-access', last_error: { code: 'subscription_required', message_ko: '접근 차단(403)', action: 'x' } }), NOW).text, '접근 차단(403)');
+});
+
+test('pollIntervalMs: 진행 중 5초, 평시·null 60초', () => {
+	assert.equal(pollIntervalMs(null), 60000);
+	assert.equal(pollIntervalMs(state({})), 60000);
+	assert.equal(pollIntervalMs(state({ first_sync_running: true })), 5000);
+	assert.equal(pollIntervalMs(state({ sources: [src({ state: 'running' })] })), 5000);
 });

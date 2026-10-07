@@ -103,3 +103,9 @@ export function sourceLine(src: SyncSource, now: Date = new Date()): { glyph: st
 			return { glyph: '▲', text: src.last_error?.message_ko ?? '오류' };
 	}
 }
+
+export const isSyncRunning = (s: SyncState | null): boolean =>
+	!!s && (s.first_sync_running || s.sources.some((x) => x.state === 'running'));
+
+/** 동기화 진행 중엔 5초, 평시엔 60초 주기로 폴링 */
+export const pollIntervalMs = (s: SyncState | null): number => (isSyncRunning(s) ? 5000 : 60000);
