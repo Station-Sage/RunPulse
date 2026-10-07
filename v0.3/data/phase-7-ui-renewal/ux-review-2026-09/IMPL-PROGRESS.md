@@ -602,3 +602,9 @@
 - 부수 수정: `auto_sync._connected_sources`의 `enabled_sources` 임포트 누락(4-3 잠복 NameError).
 - 검증: pytest 2623 통과, node:test 374, svelte-check 0 오류·build, 사본 DB 브라우저 스모크(POST 모킹).
 - 남음: connect/test/disconnect(OAuth return_to 허용목록), `last_synced_at`→`last_new_data_at`, /data/export·settings 대체.
+
+## Phase 4-5 — 소스 연결·테스트·해제 (2026-10-07)
+- API: `POST /data/sources/:p/connect|test|disconnect` (ADR-026). 키 저장 후 검증·실패 롤백, Strava는 기존 OAuth로 위임(`return_to` 허용목록 + `state`), Garmin 미지원(기존 페이지 링크), 해제는 `keep_data:true`만.
+- UI: 소스 상세 `ConnectPanel`(키 폼·Strava 버튼·연결 테스트·해제 확인 대화상자), 카드의 미연결 라벨 '연결'.
+- 검증: pytest 2637 통과, node:test 374, svelte-check 0 오류·build, 사본 DB 브라우저 스모크(POST 모킹).
+- 남음: 데이터 삭제 해제(cascade 헬퍼 필요), `?connected=1`/`?connect_error=1` 안내·실패 동기화 자동 재시도, `last_synced_at`→`last_new_data_at`, /data/export·settings 대체.

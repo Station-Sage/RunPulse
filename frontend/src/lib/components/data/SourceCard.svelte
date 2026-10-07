@@ -14,7 +14,7 @@
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-medium text-fg-primary">{syncProviderName(source.provider)}</span>
 		<span class="text-xs text-fg-muted tabular-nums">
-			{source.connection === 'connected' ? `${activityCount.toLocaleString()}건` : ''}
+			{source.connection === 'connected' ? `${activityCount.toLocaleString()}건` : '연결'}
 		</span>
 	</div>
 	<div class="mt-1 text-xs {source.state.startsWith('error-') ? 'text-semantic-red' : 'text-fg-secondary'}">

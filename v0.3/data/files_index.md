@@ -115,6 +115,10 @@
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
 
+### `data_connect_service.py` (85줄) — 소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)과 Strava OAuth 시작. 설계: 40 design §2.4·§3.1·§7.3.
+
+- functions: safe_return_to, test_connection, connect, disconnect
+
 ### `data_health_service.py` (32줄) — 데이터 건강 — 부하(TRIMP) 커버리지 등, 지표를 믿어도 되는지 알려주는 읽기 전용 진단.
 
 - functions: get_load_coverage
@@ -1139,7 +1143,7 @@
 
 - functions: render_sync_overview, render_system_info
 
-### `views_settings_integrations.py` (315줄) — 설정 — Strava / Intervals.icu / Runalyze 연동 라우트.
+### `views_settings_integrations.py` (327줄) — 설정 — Strava / Intervals.icu / Runalyze 연동 라우트.
 
 - functions: strava_connect_view, strava_save_app, strava_oauth_start, strava_oauth_callback, strava_disconnect, intervals_connect_view, intervals_connect_post, intervals_disconnect, runalyze_connect_view, runalyze_connect_post, runalyze_disconnect
 
@@ -1935,6 +1939,10 @@
 ### `test_dashboard_service.py` (202줄) — tests/test_dashboard_service.py — Phase 5-B 서비스 레이어 테스트.
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
+
+### `test_data_connect.py` (88줄) — POST /data/sources/<p>/connect|test|disconnect — 키 연결·테스트·해제·return_to 검사.
+
+- functions: env, test_safe_return_to, test_connect_intervals_saves_and_reports, test_connect_failure_rolls_back, test_connect_validation, test_connect_strava_redirect_validates_return_to, test_test_endpoint, test_disconnect_clears_credentials_only_keep_data
 
 ### `test_data_health_service.py` (36줄) — tests/test_data_health_service.py — 부하 커버리지.
 
@@ -2887,7 +2895,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 603개 파일
+총 605개 파일
 
 ## docstring 누락
 

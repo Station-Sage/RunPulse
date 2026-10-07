@@ -103,3 +103,30 @@ export const triggerRangeSync = (sources: string[], from: string, to: string) =>
 		method: 'POST',
 		body: JSON.stringify({ mode: 'range', sources, from, to })
 	});
+
+// --- 소스 연결·테스트·해제 (40 design §7.3). 키 원문은 응답에 오지 않는다 ---
+export interface ConnectResult {
+	ok?: boolean;
+	message_ko?: string;
+	redirect_url?: string;
+}
+
+export const connectSource = (
+	provider: string,
+	body: { api_key?: string; athlete_id?: string; return_to?: string } = {}
+) =>
+	apiFetch<ConnectResult>(`/data/sources/${encodeURIComponent(provider)}/connect`, {
+		method: 'POST',
+		body: JSON.stringify(body)
+	});
+
+export const testSource = (provider: string) =>
+	apiFetch<{ ok: boolean; message_ko: string }>(`/data/sources/${encodeURIComponent(provider)}/test`, {
+		method: 'POST'
+	});
+
+export const disconnectSource = (provider: string) =>
+	apiFetch<{ provider: string; keep_data: boolean }>(
+		`/data/sources/${encodeURIComponent(provider)}/disconnect`,
+		{ method: 'POST', body: JSON.stringify({ keep_data: true }) }
+	);

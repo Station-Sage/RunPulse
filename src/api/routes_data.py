@@ -189,3 +189,44 @@ def patch_sync_auto():
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)
     return api_ok(data_settings_service.patch_auto(config, user_id, changes))
+
+
+def _writable_provider(provider: str):
+    if provider not in _VALID_SOURCES:
+        return api_error("NOT_FOUND", "알 수 없는 소스예요", 404)
+    return None
+
+
+@api_bp.post("/data/sources/<provider>/connect")
+def connect_data_source(provider: str):
+    from src.services import data_connect_service as svc
+
+    if (bad := _writable_provider(provider)):
+        return bad
+    body = request.get_json(silent=True)
+    payload, code = svc.connect(provider, get_current_user_id(), body if isinstance(body, dict) else {})
+    if code:
+        status = 400 if code in ("INVALID_PARAM", "NEEDS_APP") else 422
+        return api_error(code, payload["message_ko"], status)
+    return api_ok(payload)
+
+
+@api_bp.post("/data/sources/<provider>/test")
+def test_data_source(provider: str):
+    from src.services import data_connect_service as svc
+
+    if (bad := _writable_provider(provider)):
+        return bad
+    return api_ok(svc.test_connection(provider, load_config(user_id=get_current_user_id())))
+
+
+@api_bp.post("/data/sources/<provider>/disconnect")
+def disconnect_data_source(provider: str):
+    from src.services import data_connect_service as svc
+
+    if (bad := _writable_provider(provider)):
+        return bad
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or body.get("keep_data") is not True:
+        return api_error("INVALID_PARAM", "keep_data:true만 지원해요(데이터 삭제 해제는 아직 지원하지 않아요)")
+    return api_ok(svc.disconnect(provider, get_current_user_id()))

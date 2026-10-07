@@ -99,6 +99,8 @@ def strava_oauth_start():
     client_id = config.get("strava", {}).get("client_id", "")
     if not client_id:
         return redirect("/connect/strava?error=" + urllib.parse.quote("Client ID를 먼저 저장하세요."))
+    from src.services.data_connect_service import safe_return_to
+
     params = {
         "client_id": client_id,
         "redirect_uri": f"{_PUBLIC_BASE_URL}{_STRAVA_REDIRECT_PATH}",
@@ -106,6 +108,9 @@ def strava_oauth_start():
         "approval_prompt": "auto",
         "scope": _STRAVA_SCOPE,
     }
+    return_to = safe_return_to(request.args.get("return_to"))
+    if return_to:
+        params["state"] = return_to
     auth_url = _STRAVA_AUTH_URL + "?" + urllib.parse.urlencode(params)
     return redirect(auth_url)
 
@@ -114,8 +119,13 @@ def strava_oauth_start():
 def strava_oauth_callback():
     """Strava OAuth2 콜백 — code → token 교환 → 저장."""
     import httpx
+    from src.services.data_connect_service import safe_return_to
+
+    return_to = safe_return_to(request.args.get("state"))
     error = request.args.get("error")
     if error:
+        if return_to:
+            return redirect(return_to.split("?")[0] + "?connect_error=1")
         return redirect("/connect/strava?error=" + urllib.parse.quote(f"OAuth 오류: {error}"))
     code = request.args.get("code", "")
     if not code:
@@ -144,6 +154,8 @@ def strava_oauth_callback():
         "refresh_token": token_data.get("refresh_token", ""),
         "expires_at": token_data.get("expires_at", 0),
     })
+    if return_to:
+        return redirect(return_to)
     return redirect("/connect/strava?msg=" + urllib.parse.quote("Strava 연동 완료! 토큰이 저장되었습니다."))
 
 

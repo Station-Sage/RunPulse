@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
 	import StatTile from '$lib/components/data/StatTile.svelte';
+	import ConnectPanel from '$lib/components/data/ConnectPanel.svelte';
 	import SyncRunRow from '$lib/components/data/SyncRunRow.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -80,6 +81,8 @@
 			{/if}
 			{#if toggleError}<p class="text-xs text-semantic-red" role="status">{toggleError}</p>{/if}
 		{/if}
+
+		<ConnectPanel provider={d.provider} connected={d.connection === 'connected'} activityCount={d.counts.activities} />
 
 		<section aria-label="보유 데이터" class="grid grid-cols-2 gap-2">
 			<StatTile label="활동" value={d.counts.activities.toLocaleString()} />

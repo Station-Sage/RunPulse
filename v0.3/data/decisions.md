@@ -183,3 +183,12 @@
 - 동시성: `bg_sync._threads` 키를 `(user_id, service)`로, `start_job`의 생존 검사+등록을 락 안에서 원자화(sentinel).
 - D1–D11 추천안과 사유는 `phase-7-ui-renewal/ux-review-2026-09/40-v2-unimplemented/sync-trigger-design.md` §11.
 - 한계: `sync_state.json`은 v1 SSE가 원장 단독 기록으로 바뀔 때까지 병행 확인(D6). `bg_sync.py` 520줄 분리는 별도 과제(D8).
+
+## ADR-026: Data 소스 연결/테스트/해제 API (2026-10-07)
+- 결정: `POST /data/sources/:p/{connect,test,disconnect}`. 서비스 `data_connect_service`.
+  - 키 방식(Intervals·Runalyze): 저장 → 연결 확인 → 실패 시 이전 값 복원(롤백). 응답에 키 값을 싣지 않는다.
+  - Strava: client_id/secret이 저장돼 있어야 하며, 기존 OAuth(`/connect/strava/oauth-start`)로 `redirect_url`을 돌려준다.
+  - Garmin: v2에서는 미지원(이메일/비밀번호 토큰스토어 흐름) → 기존 `/connect/garmin` 링크 안내.
+  - 해제: 자격 증명만 지운다(`keep_data:true` 필수). 데이터 삭제 해제는 400.
+- OAuth `return_to`: 허용목록(`/v2/data/sources/`, `/v2/welcome`)만 통과, `state` 파라미터로 전달해 콜백에서 재검증(오픈 리다이렉트 방지).
+- 사유: 데이터 삭제 해제는 소스별 cascade 삭제 헬퍼가 없어 위험이 커서 보류(후속). Garmin은 인증 흐름 재작성이 별도 작업.
