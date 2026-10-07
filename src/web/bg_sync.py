@@ -31,7 +31,7 @@ from src.utils.sync_jobs import (
     update_job,
     windows,
 )
-from src.sync.sync_errors import SyncSourceError
+from src.sync.sync_errors import SyncSourceError, classify_exception
 from src.utils.sync_state import get_retry_after_sec
 
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
@@ -81,6 +81,7 @@ class BgSyncThread(threading.Thread):
         self._stop_event = threading.Event()
         self._pause_event.set()   # 기본: 실행 상태
         self._last_garmin_login: float = 0.0  # monotonic timestamp of last garmin login
+        self._batch_error: SyncSourceError | None = None  # 일반 예외로 끝난 첫 배치 오류
 
     def pause(self) -> None:
         self._pause_event.clear()
@@ -221,6 +222,14 @@ class BgSyncThread(threading.Thread):
 
             # 6) 배치 간 대기
             self._interruptible_sleep(INTER_BATCH_SLEEP.get(job.service, 3.0))
+
+        if self._batch_error is not None and total_synced == 0:
+            err = self._batch_error
+            update_job(
+                self.job_id, status="failed", error_code=err.code,
+                http_status=err.http_status, last_error=str(err)[:300],
+            )
+            return
 
         update_job(
             self.job_id, status="completed",
@@ -381,6 +390,9 @@ class BgSyncThread(threading.Thread):
         except Exception as exc:
             log.error("[bg_sync] 배치 오류: %s", exc, exc_info=True)
             update_job(self.job_id, last_error=str(exc)[:200])
+            if self._batch_error is None:
+                code, http = classify_exception(exc)
+                self._batch_error = SyncSourceError(code, str(exc)[:200], http)
         log.info("[bg_sync] 배치 완료: service=%s, count=%d", service, count)
         return count, req_added, False  # rate_limited = False
 

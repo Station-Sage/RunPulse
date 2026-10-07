@@ -17,7 +17,6 @@
 ## NEXT
 
 - **[SYNC-SOURCE-TOGGLE]** 자동 동기화(`src/web/auto_sync._connected_sources`)가 소스별 사용 여부 설정을 보지 않고 자격증명 존재만으로 대상을 정함 → 화면에서 소스를 끌 방법이 없음. 소스별 on/off 설정(예: `config.<source>.enabled` 또는 동기화 탭 체크박스)을 자동 동기화에도 적용. 현재 Strava는 `config.json`의 `strava` 키를 `strava_disabled`로 바꿔 임시로 제외함(2026-09-27, Strava API 구독자 전용 전환 → 403 `Application Status: Inactive`).
-- **[SYNC-ERROR-SURFACE]** 외부 API 오류가 동기화 결과에 드러나지 않음 — Strava 403이 `배치 완료: count=0`·job `completed`로 기록돼 몇 주간 실패를 알 수 없었음. 4xx/5xx·인증 실패는 job `last_error`/status에 남기고 동기화 탭에 표시.
 
 - **[MCP-REMOTE]** 원격 MCP(Genspark 등 VPS 외부 클라이언트 연결). 현재 MCP는 stdio 전용이라 외부 접속 불가 → HTTP 전송 + 토큰 인증 + 외부 노출 범위(읽기 전용, 유저 스코프) 설계 필요. **선행: MCP-TOKEN-OPT 완료.** 노출/인증은 설계 변경이므로 착수 전 plan 승인 필수. 그 전까지 Genspark로 로그를 넘기는 임시 방식(zip 업로드 vs 복붙)과 로그의 원본 위치는 미결정.
 - **[MCP-CLIENT-VERIFY]** 실제 MCP 클라이언트(Claude Code) 연결 검증 — ADR-016의 stdio 프레임 수정은 서브프로세스 왕복으로만 확인했고 실클라이언트로는 미검증. 로컬 `.mcp.json`에 `runpulse` 등록은 완료(다음 세션에서 `/mcp`로 확인). 같은 파일의 기존 `sqlite` 항목은 활동 0건인 `default` DB를 가리킴 → 경로 정정 또는 제거 필요(로컬 설정이라 커밋 대상 아님).

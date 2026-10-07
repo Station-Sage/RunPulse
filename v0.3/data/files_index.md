@@ -925,7 +925,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (569줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (581줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, run
@@ -1733,6 +1733,11 @@
 
 - class **TestBackfill**: test_backfill_creates_groups, test_backfill_primary_source_priority, test_backfill_ignores_ungrouped, test_backfill_idempotent, test_backfill_multiple_groups, test_backfill_activity_date_from_start_time
 - functions: conn
+
+### `test_bg_sync_batch_error.py` (63줄) — bg_sync — 일반 예외로 끝난 배치는 전체 0건일 때 failed로 마감한다.
+
+- class **_Timeout**: 없음
+- functions: test_all_batches_failed_marks_failed, test_partial_success_stays_completed, test_exception_in_batch_is_classified
 
 ### `test_bg_sync_concurrency.py` (64줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
 
@@ -2862,7 +2867,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 597개 파일
+총 598개 파일
 
 ## docstring 누락
 
