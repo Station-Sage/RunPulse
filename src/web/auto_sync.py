@@ -37,6 +37,13 @@ def _trigger(config: dict, user_id: str, days: int) -> None:
     from src.utils.sync_state import mark_auto_sync_ran, set_current_user
     set_current_user(user_id)
 
+    # 화면에서 바꾼 포함 목록·자격증명이 재시작 없이 반영되도록 실행마다 다시 읽는다
+    try:
+        from src.utils.config import load_config
+        config = load_config(user_id=user_id)
+    except Exception as exc:
+        log.warning("[auto_sync] config 재로딩 실패 — 시작 시점 사본 사용: %s", exc)
+
     sources = _connected_sources(config)
     if not sources:
         log.info("[auto_sync] 연결된 소스 없음 — 스킵")
@@ -108,7 +115,8 @@ def stop() -> None:
 def restart(config: dict, user_id: str = "default") -> None:
     """설정 변경 후 thread 재시작."""
     stop()
-    _stop_event.wait(timeout=2)
+    if _thread and _thread.is_alive():
+        _thread.join(timeout=5)
     start(config, user_id)
 
 
