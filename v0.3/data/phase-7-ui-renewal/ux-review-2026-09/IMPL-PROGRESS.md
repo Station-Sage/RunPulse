@@ -658,3 +658,30 @@
 ## S14 — 프로그램 비교 표 (F-UI-10, 2026-10-08)
 - 프런트: `plan/ScenarioCompareTable.svelte`(데스크톱 열 비교·모바일 스냅 카드, 다른 값만 굵게·같은 값 회색, 추천 배지), `lib/planCompare.ts`, `/coach/plan/compare` 재작성(로컬 fmtTime 제거, 미정의 `semantic-yellow`→amber).
 - 한계: 템플릿 API에 목표 CTL·주별 볼륨 시계열이 없어 해당 행과 미니 차트는 보류(서비스 확장 시 추가).
+
+## 보류·인수인계 (2026-10-08)
+다음 세션은 이 절부터 읽고 이어간다. 항목별 사유와 재개 지점.
+
+### 설계 완료 · 구현 대기
+- **SYNC-SOURCE-TOGGLE G2~G6 (슬라이스 T2~T5)**: 설계 `DESIGN-SYNC-SOURCE-TOGGLE.md`. T1(자동 동기화 config 재로딩)만 완료. 나머지는 design 40 S3/S4와 함께 진행(권장 순서 T3→T2→T4→T5→T6).
+  - T2 `_migrate_legacy_source_keys` + `is_source_enabled`: 운영 config에 `*_disabled` 키 0개라 우선순위 낮음.
+  - T3 `bg_sync_control.cancel_job`, T4 v1 경로 가드, T5 `/data/sync` 행 버튼.
+- **F-UI-10 후속**: 목표 CTL 행·주별 볼륨 미니 차트 — 템플릿 API에 시계열 확장 필요(서비스 변경).
+- **Story 블록 범위**: `b-<planId>-<phase>`는 계획 단계↔날짜 매핑 미구현이라 400. `story_period._get_block_dates` 구현 시 해제.
+
+### 검증 대기
+- 실DB 브라우저 점검: 내보내기, S8b, S10, 가져오기 페이지(합성 DB로만 확인됨).
+- T1·시작 마이그레이션 수정은 컨테이너 재빌드 전까지 실행 프로세스에 미반영.
+
+### 의도적 보류
+- 데이터 삭제형 연결 해제, Garmin v2 연결: 콜드스타트 재설계에서 처리.
+- AI 설정 페이지 외부 AI 섹션, LLM 에이전트 후보: TODO 상태(사용자 지시 전 착수 금지).
+- 정리: `src/utils/config.py` `load_config` return 뒤 도달 불가 코드 블록 제거.
+
+### 운영자 조치 필요
+- Cloudflare Access에서 `/feeds/cal/*` Bypass 정책 추가 후 실제 구글 캘린더 구독 확인.
+- 컨테이너 재빌드(Dockerfile `--logger-class`로 토큰 마스킹 + T1/마이그레이션 수정 로드).
+- 커넥터 OAuth 인증 필요: Google Drive, Notion, Strava, Tredict. pytest MCP 서버는 연결 실패(CONNECTION_CLOSED).
+
+### BACKLOG 잔여
+- MCP-REMOTE(설계 변경 — 계획 승인 필요), MCP-CLIENT-VERIFY, MARATHON-LOG-LAPS.
