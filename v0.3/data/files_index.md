@@ -973,7 +973,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (122줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (130줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -1782,6 +1782,10 @@
 ### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
+
+### `test_auto_sync_reload.py` (56줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
+
+- functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
 ### `test_autopilot_gate.py` (32줄) — tests/test_autopilot_gate.py — gate.check()의 ignore_budget 옵션 테스트.
 
@@ -2988,7 +2992,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 628개 파일
+총 629개 파일
 
 ## docstring 누락
 
