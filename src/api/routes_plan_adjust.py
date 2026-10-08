@@ -69,6 +69,33 @@ def revert_plan_adjustment(adj_id: int):
     return _decide(adj_id, "revert")
 
 
+@api_bp.post("/coach/plan/workouts/<int:workout_id>/action")
+def plan_workout_action(workout_id: int):
+    body = request.get_json(silent=True) or {}
+    conn = _open()
+    if conn is None:
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    try:
+        before_km = None
+        r = conn.execute("SELECT date FROM planned_workouts WHERE id = ?", (workout_id,)).fetchone()
+        if r:
+            before_km = _week_planned_km(conn, r[0])
+        try:
+            adj = svc.create_user_adjustment(conn, workout_id, str(body.get("op") or ""), body,
+                                             source="user", via=body.get("via"))
+        except ValueError as e:
+            return api_error("BAD_REQUEST", str(e), 400)
+        d = date.fromisoformat(adj["date"])
+        ws = d - timedelta(days=d.weekday())
+        compliance = week_compliance.compute(conn, ws, ws + timedelta(days=6), None, d)["compliance"]
+        return api_ok({"adjustment": adj, "compliance": compliance,
+                       "week_planned_km": {"before": before_km, "after": _week_planned_km(conn, adj["date"])}}, 201)
+    except svc.AdjustmentConflict as e:
+        return _conflict(e)
+    finally:
+        conn.close()
+
+
 @api_bp.get("/coach/plan/<int:goal_id>/adjustments")
 def list_plan_adjustments(goal_id: int):
     start, end = request.args.get("from"), request.args.get("to")

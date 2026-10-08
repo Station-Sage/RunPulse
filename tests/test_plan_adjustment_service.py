@@ -81,3 +81,28 @@ def test_expired_and_list(monkeypatch):
     assert svc.get_day_adjustment(c, D, ensure=False, today="2026-10-10")["state"] == "expired"
     rows = svc.list_adjustments(c, goal_id=None, start="2026-10-01", end="2026-10-31", today=D)
     assert [r["id"] for r in rows] == [a["id"]] and rows[0]["state"] == "proposed"
+
+
+def test_create_user_adjustment_reduce_rest_and_replace(monkeypatch):
+    c, _ = _conn(monkeypatch)
+    a = svc.create_user_adjustment(c, 7, "reduce", {"pct": 20, "reason": "fatigue"}, today=D, via="plan")
+    assert a["state"] == "accepted" and a["source"] == "user" and a["after"]["distance_km"] == 8.0
+    b = svc.create_user_adjustment(c, 7, "rest", today=D)
+    assert b["after"]["workout_type"] == "rest" and b["id"] != a["id"]
+    assert svc._get(c, a["id"])["decision"] == "reverted"
+    assert svc.revert(c, b["id"], today=D)["state"] == "undone"
+
+
+def test_create_user_adjustment_errors(monkeypatch):
+    c, _ = _conn(monkeypatch)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 0}, today=D)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "bogus", today=D)
+    for args, code in (((7, "move"), "UNSUPPORTED"), ((99, "rest"), "NOT_FOUND")):
+        with pytest.raises(svc.AdjustmentConflict) as e:
+            svc.create_user_adjustment(c, *args, today=D)
+        assert e.value.code == code
+    with pytest.raises(svc.AdjustmentConflict) as e:
+        svc.create_user_adjustment(c, 7, "rest", today="2026-10-09")
+    assert e.value.code == "LOCKED"

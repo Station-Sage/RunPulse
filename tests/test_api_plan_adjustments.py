@@ -54,3 +54,19 @@ def test_list(client):
     r = client.get(f"/api/v1/coach/plan/1/adjustments?from={TODAY}&to={TODAY}")
     assert r.status_code == 200 and r.get_json()["data"]["adjustments"][0]["state"] == "proposed"
     assert client.get("/api/v1/coach/plan/1/adjustments").status_code == 400
+
+
+def test_workout_action(client):
+    r = client.post("/api/v1/coach/plan/workouts/7/action", json={"op": "reduce", "pct": 30, "via": "plan"})
+    assert r.status_code == 201
+    d = r.get_json()["data"]
+    assert d["adjustment"]["state"] == "accepted" and d["adjustment"]["after"]["distance_km"] == 7.0
+    assert "compliance" in d and d["week_planned_km"]["after"] <= d["week_planned_km"]["before"]
+    assert client.post(f"/api/v1/coach/plan/adjustments/{d['adjustment']['id']}/revert", json={}).status_code == 200
+
+
+def test_workout_action_errors(client):
+    p = "/api/v1/coach/plan/workouts/"
+    assert client.post(p + "7/action", json={"op": "reduce", "pct": 0}).status_code == 400
+    assert client.post(p + "7/action", json={"op": "move", "to_date": "2030-01-01"}).status_code == 409
+    assert client.post(p + "99/action", json={"op": "rest"}).status_code == 404

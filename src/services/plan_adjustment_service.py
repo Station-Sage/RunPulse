@@ -171,6 +171,59 @@ def revert(conn: sqlite3.Connection, adj_id: int, *, via: str | None = None, tod
     return _decide(conn, adj, "reverted", via, today)
 
 
+USER_OPS = ("reduce", "rest", "skip")
+COACH_OPS = ("reduce", "rest", "skip")
+
+
+def _user_after(before: dict, op: str, params: dict) -> dict:
+    if op == "reduce":
+        pct = params.get("pct")
+        if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not 0 < pct < 100:
+            raise ValueError("pct 는 1~99 이어야 해요")
+        km = before.get("distance_km")
+        if not km:
+            raise ValueError("거리가 없는 세션은 줄일 수 없어요")
+        return {**before, "distance_km": round(km * (1 - pct / 100), 1)}
+    return {**before, "workout_type": "rest", "distance_km": None, "target_pace_min": None, "target_pace_max": None}
+
+
+def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, params: dict | None = None,
+                           source: str = "user", *, via: str | None = None, today: str | None = None) -> dict:
+    """행 액션·Coach 제안 → 즉시 accepted 조정 생성. 당일만. 기존 live(같은 source) 조정은 reverted 처리.
+
+    op: reduce(pct)|rest|skip. move 는 v1 미지원. coach 는 강도를 올리는 op 를 쓸 수 없다(위 op 는 모두 감소).
+    ValueError → 잘못된 입력(400), AdjustmentConflict → NOT_FOUND|LOCKED|UNSUPPORTED.
+    """
+    params, today = params or {}, _today(today)
+    ops = COACH_OPS if source == "coach" else USER_OPS
+    if op == "move":
+        raise AdjustmentConflict("UNSUPPORTED", "일정 이동은 아직 지원하지 않아요")
+    if op not in ops or source not in ("user", "coach"):
+        raise ValueError(f"지원하지 않는 op: {op}")
+    r = conn.execute("SELECT date, workout_type, distance_km, target_pace_min, target_pace_max, description"
+                     " FROM planned_workouts WHERE id = ?", (workout_id,)).fetchone()
+    if r is None:
+        raise AdjustmentConflict("NOT_FOUND", "세션을 찾을 수 없어요")
+    if r[0] != today:
+        raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요")
+    before = dict(zip(("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description"), r[1:6]))
+    goal = conn.execute("SELECT id FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+    after = _user_after(before, op, params)
+    reason = params.get("reason")
+    reasons = [{"key": "user", "label": str(reason)}] if reason else []
+    via = via if via in VIAS else None
+    conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE workout_id=?"
+                 " AND date=? AND source=? AND decision IN ('proposed','accepted')", (workout_id, r[0], source))
+    new_id = conn.execute(
+        "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"
+        " reasons_json, rule_version, decision, decided_via, accepted_at, decided_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?,'accepted',?,datetime('now'),datetime('now'))",
+        (goal[0] if goal else None, workout_id, r[0], source, op, json.dumps(before), json.dumps(after),
+         json.dumps(reasons, ensure_ascii=False), source + "_v1", via)).lastrowid
+    conn.commit()
+    return _view(conn, _get(conn, new_id), today)
+
+
 def list_adjustments(conn: sqlite3.Connection, *, goal_id: int | None, start: str, end: str,
                      today: str | None = None) -> list[dict]:
     """[start, end] 기간 이력(최신순), 표시 상태 포함."""
