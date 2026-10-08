@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { createPlan } from '$lib/api/plan';
+	import ScenarioCompareTable from '$lib/components/plan/ScenarioCompareTable.svelte';
 	import type { ComparePlanData } from './+page';
 
 	let { data }: { data: ComparePlanData } = $props();
@@ -11,22 +12,6 @@
 	let error = $state<string | null>(null);
 	// 생성 후 경고가 있으면 이동 전에 보여 준다(설계 §5.2-5 준비도 경고)
 	let created = $state<{ goalId: number; warnings: string[] } | null>(null);
-
-	function fmtTime(sec: number | null): string {
-		if (sec == null) return '—';
-		const h = Math.floor(sec / 3600);
-		const m = Math.floor((sec % 3600) / 60);
-		const s = sec % 60;
-		if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-		return `${m}:${String(s).padStart(2, '0')}`;
-	}
-
-	function riskColor(risk: string | null): string {
-		if (risk === '낮음') return 'text-semantic-green';
-		if (risk === '중간') return 'text-semantic-yellow';
-		if (risk === '높음') return 'text-semantic-red';
-		return 'text-fg-muted';
-	}
 
 	async function handleSelect(weeks: number) {
 		loading = weeks;
@@ -66,7 +51,7 @@
 
 	<div class="flex flex-col gap-4 px-4 py-5">
 		{#if created}
-			<div class="rounded-xl border border-semantic-yellow bg-surface-2 p-4" role="alert" data-testid="plan-warnings">
+			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="alert" data-testid="plan-warnings">
 				<p class="mb-2 text-sm font-semibold text-fg-primary">프로그램을 만들었어요. 확인할 점이 있어요</p>
 				<ul class="mb-3 list-disc pl-4 text-xs text-fg-secondary">
 					{#each created.warnings as w}
@@ -81,53 +66,12 @@
 				</a>
 			</div>
 		{/if}
-		{#each data.templates as t}
-			<div class="rounded-xl border border-border-subtle bg-surface-2 p-4">
-				<div class="mb-3 flex items-start justify-between">
-					<div>
-						<p class="text-sm font-semibold text-fg-primary">{t.label}</p>
-						<p class="text-xs text-fg-muted">{t.weeks}주 프로그램</p>
-					</div>
-					{#if t.risk_level != null}
-						<span class="text-xs font-medium {riskColor(t.risk_level)}">
-							위험도 {t.risk_level}
-						</span>
-					{/if}
-				</div>
-
-				<div class="mb-3 grid grid-cols-2 gap-2 text-xs">
-					<div>
-						<p class="text-fg-muted">주간 최대 거리</p>
-						<p class="font-medium text-fg-secondary">
-							{t.weekly_km_target != null ? `${Math.round(t.weekly_km_target)} km` : '—'}
-						</p>
-					</div>
-					<div>
-						<p class="text-fg-muted">달성 가능성</p>
-						<p class="font-medium text-fg-secondary">
-							{t.achievability_pct != null ? `${Math.round(t.achievability_pct)}%` : '—'}
-						</p>
-					</div>
-					<div>
-						<p class="text-fg-muted">예상 완주 시간</p>
-						<p class="font-medium text-fg-secondary">{fmtTime(t.projected_time_end)}</p>
-					</div>
-				</div>
-
-				{#if t.status_summary}
-					<p class="mb-3 text-xs text-fg-muted">{t.status_summary}</p>
-				{/if}
-
-				<button
-					type="button"
-					onclick={() => handleSelect(t.weeks)}
-					disabled={loading != null || created != null}
-					class="w-full rounded-lg bg-fg-primary py-2 text-sm font-medium text-surface-1 disabled:opacity-40"
-				>
-					{loading === t.weeks ? '생성 중…' : '이 프로그램 선택'}
-				</button>
-			</div>
-		{/each}
+		<ScenarioCompareTable
+			templates={data.templates}
+			{loading}
+			disabled={loading != null || created != null}
+			onselect={handleSelect}
+		/>
 
 		{#if error}
 			<p class="text-sm text-semantic-red">{error}</p>

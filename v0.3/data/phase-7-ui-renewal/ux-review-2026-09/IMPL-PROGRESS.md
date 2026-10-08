@@ -654,3 +654,7 @@
 - 백엔드: `ics_builder`·`calendar_feed_service`(RFC 5545), `calendar_feed_index`(토큰), `views_calendar_feed`(공개 피드, ETag/304, 제한), `routes_data_calendar`(관리 API), `gunicorn_logging`(토큰 마스킹). ADR-033.
 - 프런트: `/data/export` 카드 ③ `CalendarFeedCard`(발급·복사·애플/구글·재발급/해제 확인·마지막 가져감), `lib/calendarFeed.ts`.
 - 운영 필요: CF Access `/feeds/cal/*` Bypass, 컨테이너 재빌드, 실제 구글 구독 확인.
+
+## S14 — 프로그램 비교 표 (F-UI-10, 2026-10-08)
+- 프런트: `plan/ScenarioCompareTable.svelte`(데스크톱 열 비교·모바일 스냅 카드, 다른 값만 굵게·같은 값 회색, 추천 배지), `lib/planCompare.ts`, `/coach/plan/compare` 재작성(로컬 fmtTime 제거, 미정의 `semantic-yellow`→amber).
+- 한계: 템플릿 API에 목표 CTL·주별 볼륨 시계열이 없어 해당 행과 미니 차트는 보류(서비스 확장 시 추가).
