@@ -52,7 +52,7 @@
 
 	function openMonth() {
 		const d = new Date();
-		void goto(`${base}/today/month/${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+		void goto(`${base}/library/story/${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
 	}
 
 	const retry = () => { swrEvict('app:today'); return invalidate('app:today'); };

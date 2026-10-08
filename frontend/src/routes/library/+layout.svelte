@@ -10,6 +10,7 @@
 		{ href: '/library/activities', label: '활동' },
 		{ href: '/library/metrics', label: '메트릭' },
 		{ href: '/library/wellness', label: '웰니스' },
+		{ href: '/library/story', label: '이야기' },
 		{ href: '/library/providers', label: '소스 비교' }
 	] as const;
 
