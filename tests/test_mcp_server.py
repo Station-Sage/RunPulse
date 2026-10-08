@@ -54,7 +54,7 @@ class TestResolveDbPath:
 class TestReadOnly:
     def test_connection_rejects_writes(self, db_path):
         conn = mcp_server._get_conn(db_path)
-        with pytest.raises(sqlite3.OperationalError):
+        with pytest.raises(sqlite3.Error):
             conn.execute("INSERT INTO daily_wellness (date) VALUES ('2026-09-21')")
         conn.close()
 

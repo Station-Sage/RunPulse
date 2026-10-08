@@ -2297,6 +2297,10 @@
 
 - functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
 
+### `test_mcp_protocol.py` (100줄) — mcp_remote.protocol / safe_conn / policy — 허용 집합, 버전 협상, 일반화 오류, 읽기 전용 보장.
+
+- functions: db_path, test_version_negotiation, test_initialize_echoes_supported_version, test_tools_list_filtered_by_allowed, test_disallowed_tool_looks_unknown_and_never_connects, test_generic_errors_hide_exception_text, test_unknown_method_and_notification, test_safe_conn_allows_select_blocks_writes, test_safe_conn_blocks_attach, test_safe_conn_time_limit, test_every_tool_is_classified
+
 ### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
 
 - class **TestResolveDbPath**: test_requires_user_id, test_blank_user_id_is_rejected, test_path_traversal_is_rejected, test_unknown_user_raises_and_creates_no_directory, test_env_var_is_used
@@ -2992,7 +2996,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 629개 파일
+총 630개 파일
 
 ## docstring 누락
 

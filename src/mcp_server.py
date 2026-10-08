@@ -27,8 +27,6 @@ from src.utils.log_config import setup_logging
 setup_logging(stderr=True)  # stdout은 MCP JSON-RPC 프로토콜 전용
 log = logging.getLogger("runpulse-mcp")
 
-_PROTOCOL_VERSION = "2024-11-05"
-
 
 def resolve_db_path(user_id: str | None = None) -> Path:
     """RUNPULSE_USER_ID(또는 인자)로 유저 DB 경로를 결정. 없으면 명확한 오류."""
@@ -47,7 +45,9 @@ def resolve_db_path(user_id: str | None = None) -> Path:
 
 def _get_conn(db_path: Path) -> sqlite3.Connection:
     """읽기 전용 연결. 도구는 조회만 하므로 쓰기 시도는 즉시 실패해야 한다."""
-    return sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    from src.mcp_remote.safe_conn import connect_readonly
+
+    return connect_readonly(db_path)
 
 
 def _read_message() -> dict | None:
@@ -66,72 +66,11 @@ def _write_message(msg: dict) -> None:
     sys.stdout.flush()
 
 
-def _handle_initialize(req: dict) -> dict:
-    from src.ai.tool_guide import USAGE_GUIDE
-
-    return {
-        "jsonrpc": "2.0",
-        "id": req["id"],
-        "result": {
-            "protocolVersion": _PROTOCOL_VERSION,
-            "capabilities": {"tools": {}},
-            "serverInfo": {"name": "runpulse", "version": "1.1.0"},
-            "instructions": USAGE_GUIDE,
-        },
-    }
-
-
-def _handle_tools_list(req: dict) -> dict:
-    from src.ai.tools import TOOL_DECLARATIONS
-
-    tools = [
-        {"name": d["name"], "description": d["description"], "inputSchema": d["parameters"]}
-        for d in TOOL_DECLARATIONS
-    ]
-    return {"jsonrpc": "2.0", "id": req["id"], "result": {"tools": tools}}
-
-
-def _handle_tools_call(req: dict, db_path: Path) -> dict:
-    from src.ai.tools import execute_tool
-
-    params = req.get("params", {})
-    name = params.get("name", "")
-    args = params.get("arguments") or {}
-
-    is_error = False
-    try:
-        conn = _get_conn(db_path)
-        try:
-            text = execute_tool(conn, name, args)
-        finally:
-            conn.close()
-        is_error = text.startswith('{"error":')
-    except Exception as exc:
-        text = json.dumps({"error": str(exc)}, ensure_ascii=False)
-        is_error = True
-
-    return {
-        "jsonrpc": "2.0",
-        "id": req["id"],
-        "result": {"content": [{"type": "text", "text": text}], "isError": is_error},
-    }
-
-
 def handle_request(msg: dict, db_path: Path) -> dict | None:
     """메시지 하나 처리. 알림(notification)이면 None."""
-    method = msg.get("method", "")
-    if method == "initialize":
-        return _handle_initialize(msg)
-    if method == "tools/list":
-        return _handle_tools_list(msg)
-    if method == "tools/call":
-        return _handle_tools_call(msg, db_path)
-    if method == "ping":
-        return {"jsonrpc": "2.0", "id": msg["id"], "result": {}}
-    if "id" not in msg:  # notifications/initialized, notifications/cancelled 등
-        return None
-    return {"jsonrpc": "2.0", "id": msg["id"],
-            "error": {"code": -32601, "message": f"Unknown method: {method}"}}
+    from src.mcp_remote.protocol import handle_message
+
+    return handle_message(msg, lambda: _get_conn(db_path))
 
 
 def main() -> None:
