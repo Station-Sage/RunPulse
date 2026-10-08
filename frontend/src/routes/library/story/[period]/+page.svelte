@@ -51,7 +51,30 @@
 
 	function toggleUnit(unit: 'month' | 'week' | 'block') {
 		unitToggle = unit;
-		// Navigate to same date in different unit (to be implemented)
+		// Convert current period to different unit
+		const currentPeriod = $page.params.period;
+		const endDate = new Date(period.end);
+		let newPeriod = '';
+
+		if (unit === 'month') {
+			const year = endDate.getFullYear();
+			const month = String(endDate.getMonth() + 1).padStart(2, '0');
+			newPeriod = `${year}-${month}`;
+		} else if (unit === 'week') {
+			// ISO week number
+			const d = new Date(endDate);
+			d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+			const yearStart = new Date(d.getFullYear(), 0, 1);
+			const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+			newPeriod = `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+		} else if (unit === 'block') {
+			// Block toggle disabled for now
+			return;
+		}
+
+		if (newPeriod) {
+			goto(`/library/story/${newPeriod}`);
+		}
 	}
 
 	function copyToClipboard() {
