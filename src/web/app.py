@@ -202,7 +202,7 @@ def create_app() -> Flask:
     # 모든 유저 DB 마이그레이션 + 자동 주기 동기화 daemon thread 시작
     try:
         from .auto_sync import start as _start_auto_sync
-        from src.db_setup import migrate_db, get_db_path
+        from src.db_setup import create_tables, migrate_db, get_db_path
         users_dir = _project_root() / "data" / "users"
         user_ids = (
             sorted(d.name for d in users_dir.iterdir() if d.is_dir())
@@ -215,6 +215,7 @@ def create_app() -> Flask:
                 try:
                     with sqlite3.connect(str(_db)) as _conn:
                         _conn.execute("PRAGMA journal_mode=WAL")
+                        create_tables(_conn)  # 빈 DB(가입 직후)도 마이그레이션 전에 스키마 확보
                         migrate_db(_conn)
                 except Exception as _me:
                     log.warning("[startup] %s DB 마이그레이션 실패: %s", _uid, _me)

@@ -965,7 +965,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1362줄) — RunPulse integration workbench web app.
+### `app.py` (1363줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -2698,6 +2698,10 @@
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair, test_time_axis_repair_basis
 
+### `test_startup_empty_db_migration.py` (21줄) — 빈 사용자 DB(가입 직후)에 create_tables → migrate_db 순서로 적용하면 실패하지 않는다.
+
+- functions: test_migrate_alone_fails_on_empty_db, test_create_tables_then_migrate_on_empty_db
+
 ### `test_story_service.py` (94줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
 
 - functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_route
@@ -2984,7 +2988,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 627개 파일
+총 628개 파일
 
 ## docstring 누락
 
