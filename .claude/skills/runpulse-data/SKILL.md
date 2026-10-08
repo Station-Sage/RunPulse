@@ -69,4 +69,11 @@ user-invocable: false
       "env": {"RUNPULSE_USER_ID": "pansongit@gmail.com"}
     }
 
-`RUNPULSE_USER_ID`가 없으면 서버는 시작하지 않는다. 외부(원격) 접속은 미지원 — BACKLOG `MCP-REMOTE`.
+`RUNPULSE_USER_ID`가 없으면 서버는 시작하지 않는다. 
+
+### 원격 연결 (Streamable HTTP)
+서버가 `mcp_remote.enabled=true`이고 CF Access `/mcp` 정책이 적용된 뒤에만 동작한다(ADR-034). 토큰은 설정 > "외부 AI 연결" 카드 또는 `docker compose exec runpulse python scripts/mcp_token.py issue --user <id> --label <이름>`으로 발급(원문은 1회만 표시).
+
+    claude mcp add --transport http runpulse https://<host>/mcp --header "Authorization: Bearer rpmcp_..."
+
+읽기 전용·본인 데이터만 조회된다. 감사 조회: `scripts/mcp_token.py audit --user <id>`.

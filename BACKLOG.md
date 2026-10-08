@@ -18,7 +18,7 @@
 
 - **[SYNC-SOURCE-TOGGLE]** 토글·자동/v2 수동 필터는 구현됨. T1(자동 동기화가 실행마다 config 재로딩, 2026-10-08)로 재시작 없이 반영. 남은 구멍은 `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md` G2~G6(v1 경로 가드, 끄면 cancelled, 레거시 `*_disabled` 마이그레이션, `/data/sync` 행 버튼) — 설계 40 S3/S4로 이관. 전체 보류 목록: `ux-review-2026-09/IMPL-PROGRESS.md` 「보류·인수인계」.
 
-- **[MCP-REMOTE]** 원격 MCP(Genspark 등 VPS 외부 클라이언트 연결). 현재 MCP는 stdio 전용이라 외부 접속 불가 → HTTP 전송 + 토큰 인증 + 외부 노출 범위(읽기 전용, 유저 스코프) 설계 필요. **선행: MCP-TOKEN-OPT 완료.** 노출/인증은 설계 변경이므로 착수 전 plan 승인 필수. 그 전까지 Genspark로 로그를 넘기는 임시 방식(zip 업로드 vs 복붙)과 로그의 원본 위치는 미결정.
+- **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 
 ## DONE (recent)
 - **[MARATHON-LOG-LAPS]** 9/4·9/10·9/17 세션 랩을 일일 로그 및 W13·W14·W15 주간 로그에 반영(2026-10-08, 로그는 gitignore). 9/4는 랩 구분이 계획 3×2k와 불일치해 세트 해석 보류로 기재.

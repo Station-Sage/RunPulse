@@ -236,3 +236,11 @@
 - 사유: 구글·애플 캘린더는 로그인 없이 URL만 가져가므로 URL 자체가 비밀이어야 한다. 해시 조회는 DB 유출 시 피드 접근을 막고, 재표시용 암호문은 키가 있을 때만 둔다.
 - 설계서에는 ADR-032로 적혀 있으나 번호는 Story가 먼저 사용해 033으로 기록.
 - 운영 작업: Cloudflare Access에 `/feeds/cal/*` Bypass 정책 추가, 컨테이너 재빌드(Dockerfile `--logger-class`).
+
+## ADR-034: 원격 MCP는 Flask `/mcp` 읽기 전용 + 앱 Bearer 토큰, 웹·CLI 발급 (2026-10-08)
+- 결정: Streamable HTTP(POST만) `/mcp`를 Flask 블루프린트로 제공한다. 설정 `mcp_remote.enabled`(기본 false)가 킬 스위치이며 꺼지면 404. `auth_cf`는 `/mcp` 정확 경로만 우회하고 쿠키·세션은 쓰지 않는다. 인증은 Bearer `rpmcp_`+43자, 조회는 sha256 해시(전역 `data/mcp_tokens.db`), 사용자 바인딩, 만료 90일, 즉시 폐기, 사용자당 활성 5개, 원문은 발급 시 1회만 노출.
+- 안전: 프로토콜 코어(`mcp_remote.protocol`)를 stdio 서버와 공유하되 허용 도구(`policy.REMOTE_TOOLS`)만 노출하고, 읽기 전용 연결(`safe_conn`: query_only·authorizer·ATTACH 차단·시간 제한)과 일반화 오류를 쓴다. 배치·64KB 초과·Origin 불일치·미지원 버전은 거부.
+- 방어·감사: tools/call 120/10분·1500/일, 인증 실패 IP당 20/10분(429), 모든 실패는 동일한 401. `mcp_audit`에 토큰·도구·인자(500자)·상태·지연·IP 해시를 90일 보관. 토큰 발급·폐기도 같은 표에 `token_issue`/`token_revoke`로 기록.
+- 발급: CLI `scripts/mcp_token.py`와 웹 `GET/POST/DELETE /api/v1/settings/mcp-tokens`(세션 사용자 한정, no-store) + 설정 카드 "외부 AI 연결". 서버가 꺼져 있어도 토큰은 미리 만들 수 있고 카드가 "아직 꺼짐"을 표시한다.
+- 사유: 서버 대 서버 클라이언트는 CF 로그인을 할 수 없고, CF 서비스 토큰만으로는 사용자 바인딩이 안 된다. 앱 토큰이 사용자 스코프를 보장한다.
+- 운영 작업(코드 밖, 켜기 전 필수): (1) CF Access에 `<host>/mcp` 경로 앱 추가 — Genspark가 커스텀 헤더 여러 개를 지원하면 Service Auth, 아니면 Bypass(D1), (2) 서비스 토큰 발급(Service Auth 시), (3) WAF rate limit, (4) `/mcp` 캐시 우회, (5) `config.json`에 `"mcp_remote": {"enabled": true}` 후 컨테이너 재시작.
