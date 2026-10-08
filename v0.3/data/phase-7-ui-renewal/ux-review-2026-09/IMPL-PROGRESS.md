@@ -684,4 +684,4 @@
 - 보류: 커넥터 OAuth 인증(Google Drive, Notion, Strava, Tredict). pytest MCP 서버는 연결 실패(CONNECTION_CLOSED).
 
 ### BACKLOG 잔여
-- MCP-REMOTE(설계 변경 — 계획 승인 필요), MCP-CLIENT-VERIFY, MARATHON-LOG-LAPS.
+- MCP-REMOTE(설계 변경 — 계획 승인 필요). MCP-CLIENT-VERIFY·MARATHON-LOG-LAPS는 완료(2026-10-08).
