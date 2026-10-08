@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { patchProfile, type ProfileRow, type ProfileSource } from '$lib/api/data';
+	import {
+		patchProfile,
+		previewProfile,
+		type ProfileChanges,
+		type ProfilePreview,
+		type ProfileRow,
+		type ProfileSource
+	} from '$lib/api/data';
+	import RecomputeSummary from './RecomputeSummary.svelte';
 	import {
 		PROFILE_LABEL,
 		SOURCE_LABEL,
@@ -24,18 +32,42 @@
 				? `${row.device.provider} · ${row.device.at}`
 				: null;
 
-	async function save(changes: Parameters<typeof patchProfile>[0]) {
+	let pending = $state<{ changes: ProfileChanges; preview: ProfilePreview } | null>(null);
+	let jobId = $state<string | null>(null);
+
+	async function apply(changes: ProfileChanges, recompute: 'none' | '90d') {
 		if (busy) return;
 		busy = true;
 		error = null;
 		try {
-			onSaved((await patchProfile(changes)).rows);
+			const res = await patchProfile(changes, recompute);
+			onSaved(res.rows);
+			jobId = res.job_id;
+			pending = null;
 			editing = false;
 		} catch (e) {
 			error = e instanceof Error && e.message ? e.message : '저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 		}
 		busy = false;
 	}
+
+	async function save(changes: ProfileChanges) {
+		if (busy) return;
+		jobId = null;
+		busy = true;
+		error = null;
+		let preview: ProfilePreview | null = null;
+		try {
+			preview = await previewProfile(changes);
+		} catch {
+			preview = null;
+		}
+		busy = false;
+		if (preview && preview.affected_days > 0) pending = { changes, preview };
+		else await apply(changes, 'none');
+	}
+
+	const zonesText = (z: number[] | null) => (z ? z.map((v) => `${v}`).join(' / ') : '—');
 
 	function saveManual() {
 		const v = parseProfileInput(row.key, input);
@@ -93,5 +125,17 @@
 			}}>직접 입력{row.manual ? ' 수정' : ''}</button
 		>
 	{/if}
+	{#if pending}
+		<div class="mt-2 rounded border border-border-subtle bg-surface-1 p-2 text-xs text-fg-secondary" role="alert">
+			<p>HR 존 상한(1~4존): {zonesText(pending.preview.zones_before)} → <b class="text-fg-primary">{zonesText(pending.preview.zones_after)}</b></p>
+			<p class="mt-1">최근 90일 {pending.preview.affected_days}일 활동의 {pending.preview.affected_metrics.join(', ')}이(가) 달라질 수 있어요.</p>
+			<div class="mt-2 flex gap-3">
+				<button type="button" class="text-fg-primary" disabled={busy} onclick={() => pending && apply(pending.changes, '90d')}>적용하고 재계산</button>
+				<button type="button" disabled={busy} onclick={() => pending && apply(pending.changes, 'none')}>적용만</button>
+				<button type="button" class="text-fg-muted" onclick={() => (pending = null)}>취소</button>
+			</div>
+		</div>
+	{/if}
+	{#if jobId}<div class="mt-2"><RecomputeSummary {jobId} /></div>{/if}
 	{#if error}<p class="mt-1 text-xs text-semantic-red" role="status">{error}</p>{/if}
 </section>

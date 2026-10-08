@@ -110,7 +110,11 @@ def effective_value(config: dict, key: str, conn: sqlite3.Connection | None = No
     """존·플랜이 읽는 단일 진입점. 해당 값이 없으면 None."""
     if conn is None:
         return _stored(config)[0].get(key, _legacy(config, key))
-    for r in profile_rows(conn, config):
+    try:
+        rows = profile_rows(conn, config)
+    except sqlite3.Error:
+        return _stored(config)[0].get(key, _legacy(config, key))
+    for r in rows:
         if r["key"] == key and r["using"] != "none":
             return r[r["using"]]["value"]
     return None

@@ -66,6 +66,7 @@ class SyncJob:
     trigger: Optional[str] = None       # 시작 경로(source_path와 동일 값)
     started_at: Optional[str] = None    # running 최초 전이 시각
     finished_at: Optional[str] = None   # 종료 상태 전이 시각
+    result_json: Optional[str] = None   # 재계산 등 작업별 결과(before/after 요약)
 
     @property
     def progress_pct(self) -> float:
@@ -119,7 +120,7 @@ _COLS = (
     "id, service, from_date, to_date, window_days, current_from, "
     "status, completed_days, total_days, synced_count, req_count, "
     "created_at, updated_at, retry_after, last_error, "
-    "error_code, http_status, source_path, counts_json, trigger, started_at, finished_at"
+    "error_code, http_status, source_path, counts_json, trigger, started_at, finished_at, result_json"
 )
 
 
@@ -216,11 +217,11 @@ def create_job(
             (now, service),
         )
         conn.execute(
-            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 job_id, service, from_date, to_date, wdays, from_date,
                 "pending", 0, total, 0, 0, now, now, None, None,
-                None, None, source_path, None, source_path, None, None,
+                None, None, source_path, None, source_path, None, None, None,
             ),
         )
     job = get_job(job_id)

@@ -197,3 +197,9 @@
 - 결정: 기준값은 `config.profile.overrides`(직접 입력)와 `config.profile.source_choice`(self|device|manual)에 저장하고, 존·플랜 엔진은 `profile_service.effective_value()`만 읽는다. 옛 키(`user.max_hr`, `threshold_pace_sec_km`/`threshold_pace`, `weekly_distance_target`)는 직접 입력으로 취급하는 폴백.
 - 사유: 같은 값이 키 이름 3종으로 흩어져 있어(`threshold_pace` vs `_sec_km`) 화면별 불일치가 났다. 선택값이 없을 때의 사용값은 직접 입력 → 자체 추정 → 기기 순(사용자가 명시한 값이 가장 우선, 기기 값은 사용자가 고르지 않는 한 보조).
 - 한계: conn 없는 호출은 자체·기기 선택을 풀지 못한다(S8b에서 엔진에 conn 전달).
+
+## ADR-028: 재계산 작업은 sync 원장에 `service='recompute'`로 기록 (2026-10-08)
+- 결정: 재계산 작업을 새 테이블 없이 `sync_jobs`(작업 원장)에 `service='recompute'`로 저장하고, 전후 비교 결과용 `result_json` 컬럼 1개만 추가한다(ledger 23컬럼). 진행률은 `completed_days/total_days`, 상태는 `pending/running/completed/failed`를 API에서 `queued/running/done/failed`로 변환한다. 동시에 1건만(409 `RECOMPUTE_RUNNING`).
+- 사유: 원장에 이미 상태·진행률·재시작 시 stale 정리·사용자별 DB가 있어 별도 테이블은 중복이다. 추천안(원장 재사용)을 택한 이유는 새 스키마·정리 로직을 만들지 않고도 같은 폴링 규약을 쓸 수 있어서다.
+- 범위: `from` 범위는 엔진이 `days`만 지원하므로 오늘-from+1일로 환산. 값 변경 미리보기의 영향 일수는 hrmax/lthr/resting_hr 변경일 때만 계산(주간 목표·역치 페이스는 재계산 불필요).
+- 한계: `planner_rules.get_paces_from_vdot`는 conn이 없어 threshold_pace의 자체/기기 선택을 풀지 못한다(직접 입력·옛 키만 반영). 옛 `GET /recompute-metrics`(부작용 GET)는 새 `POST /data/recompute`로 대체 예정이며 v2 UI는 쓰지 않는다.

@@ -34,11 +34,11 @@ def test_old_15_column_db_upgraded(tmp_path):
     row = c.execute("SELECT id, error_code, source_path FROM sync_jobs").fetchone()
     c.close()
     assert row == ("a", None, None)
-    assert len(_cols(p)) == 22
+    assert len(_cols(p)) == 23
 
 
-def test_syncjob_has_22_fields():
-    assert len(dataclasses.fields(SyncJob)) == 22
+def test_syncjob_has_23_fields():
+    assert len(dataclasses.fields(SyncJob)) == 23
 
 
 def test_cleanup_all_users_closes_only_stale(tmp_path, monkeypatch):

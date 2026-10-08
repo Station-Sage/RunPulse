@@ -623,3 +623,8 @@
 - UI: `/data/settings/profile` + `BaselineRow`(라디오로 사용 값 선택, 직접 입력). `/data/settings`에서 링크.
 - 한계: 존·플랜 엔진은 conn 없이 `effective_value`를 호출하므로 현재는 직접 입력/옛 키만 반영하고 자체·기기 선택은 표시용이다(엔진에 conn 전달은 S8b에서).
 - 남음(S8b): `POST /data/profile/preview`, PATCH `recompute`, `POST /data/recompute` 잡 + `GET /data/jobs/:id`, `RecomputeSummary`, 레거시 GET `/recompute-metrics` 대체.
+
+## S8b — 기준값 변경 미리보기·재계산 작업 (2026-10-08)
+- 백엔드: `recompute_service`(start/job_view/preview_profile/snapshot/before_after), `POST /data/profile/preview`, `PATCH /data/profile {recompute}`, `POST /data/recompute`, `GET /data/jobs/:id`. 작업 원장 `sync_jobs`에 `result_json` 추가(ADR-028). `zones_analysis`는 conn을 넘겨 자체/기기 선택이 HR 존에 반영됨.
+- 프런트: `RecomputeSummary`(폴링·전후 표), `BaselineRow` 변경 확인(`적용하고 재계산 / 적용만 / 취소`), `lib/recompute.ts`.
+- 한계: `planner_rules`의 역치 페이스는 conn 없어 자체/기기 선택 미반영. 옛 `GET /recompute-metrics`는 폐기 예정.

@@ -149,5 +149,41 @@ export interface ProfileChanges {
 }
 
 export const getProfile = () => apiFetch<{ rows: ProfileRow[] }>('/data/profile');
-export const patchProfile = (changes: ProfileChanges) =>
-	apiFetch<{ rows: ProfileRow[] }>('/data/profile', { method: 'PATCH', body: JSON.stringify(changes) });
+export const patchProfile = (changes: ProfileChanges, recompute: 'none' | '90d' = 'none') =>
+	apiFetch<{ rows: ProfileRow[]; job_id: string | null }>('/data/profile', {
+		method: 'PATCH',
+		body: JSON.stringify({ ...changes, recompute })
+	});
+
+// --- 재계산 (40 design §7.3) ---
+export interface ProfilePreview {
+	changed_keys: ProfileKey[];
+	zones_before: number[] | null;
+	zones_after: number[] | null;
+	affected_days: number;
+	affected_metrics: string[];
+}
+
+export interface BeforeAfterRow {
+	slug: string;
+	label: string;
+	unit: string;
+	before: number | null;
+	after: number | null;
+	delta: number | null;
+	status: 'unavailable' | 'new' | 'lost' | 'unchanged' | 'changed';
+}
+
+export interface RecomputeJob {
+	id: string;
+	state: 'queued' | 'running' | 'done' | 'failed';
+	progress: { done: number; total: number };
+	result: { before_after: BeforeAfterRow[]; changed_days: number; formula_changes: string[] } | null;
+	error: string | null;
+}
+
+export const previewProfile = (changes: ProfileChanges) =>
+	apiFetch<ProfilePreview>('/data/profile/preview', { method: 'POST', body: JSON.stringify({ changes }) });
+export const startRecompute = (scope: '90d' | 'all') =>
+	apiFetch<{ job_id: string }>('/data/recompute', { method: 'POST', body: JSON.stringify({ scope }) });
+export const getJob = (id: string) => apiFetch<RecomputeJob>(`/data/jobs/${encodeURIComponent(id)}`);

@@ -211,7 +211,7 @@
 
 - functions: record_snapshots, evaluate_race, summary
 
-### `profile_service.py` (152줄) — 러너 기준값(HRmax·LTHR·역치 페이스·안정심박·주간 목표) — 자체 추정/기기/직접 입력 병합과 사용값 결정.
+### `profile_service.py` (156줄) — 러너 기준값(HRmax·LTHR·역치 페이스·안정심박·주간 목표) — 자체 추정/기기/직접 입력 병합과 사용값 결정.
 
 - functions: profile_rows, effective_value, validate_changes, apply_changes
 
@@ -254,6 +254,10 @@
 ### `race_result_service.py` (64줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
 
 - functions: confirm, remove, get, candidates
+
+### `recompute_service.py` (154줄) — 지표 재계산 작업 — 시작·진행률·전후 비교(CTL·TSB·VDOT·마라톤 예측·UTRS). 작업 원장은 sync_jobs(service='recompute').
+
+- functions: parse_scope, snapshot, before_after, start, job_view, preview_profile
 
 ### `sync_range_service.py` (95줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
 
@@ -1517,12 +1521,12 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `sync_jobs.py` (292줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (293줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
 - functions: windows, cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
 
-### `sync_jobs_schema.py` (44줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at) 멱등 보장.
+### `sync_jobs_schema.py` (45줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json) 멱등 보장.
 
 - functions: ensure_ledger
 
@@ -2468,9 +2472,9 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
-### `test_profile_service.py` (100줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
+### `test_profile_service.py` (153줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
 
-- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip
+- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip, test_preview_zones_and_affected, test_before_after_status, test_job_routes
 
 ### `test_progression.py` (37줄) — U16l: 품질 사다리 순수 함수·v29 테이블·저장 서비스.
 
@@ -2655,7 +2659,7 @@
 
 ### `test_sync_jobs_schema.py` (77줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
 
-- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_22_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
+- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_23_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
 
 ### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
 
@@ -2903,7 +2907,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 607개 파일
+총 608개 파일
 
 ## docstring 누락
 

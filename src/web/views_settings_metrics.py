@@ -93,7 +93,7 @@ def metrics_recompute_status():
 
 @settings_metrics_bp.get("/recompute-metrics")
 def recompute_metrics_get():
-    """동기화 탭에서 호출하는 GET 재계산 엔드포인트 (간단 버전, JSON 응답)."""
+    """동기화 탭에서 호출하는 GET 재계산 엔드포인트 (간단 버전, JSON 응답). 폐기 예정 — v2는 POST /api/v1/data/recompute(ADR-028)."""
     from src.metrics import engine as metrics_engine
 
     with _recompute_lock:

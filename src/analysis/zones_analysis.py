@@ -11,7 +11,7 @@ from src.utils.zones import hr_zones
 _ZONE_LABELS = ["회복", "유산소", "템포", "역치", "VO2Max"]
 
 
-def _get_zone_uppers(config: dict | None) -> list[int]:
+def _get_zone_uppers(config: dict | None, conn=None) -> list[int]:
     """config에서 HR zone 상한값 리스트 반환.
 
     우선순위: config hr_zones > config max_hr > zones.py 기본값.
@@ -33,7 +33,7 @@ def _get_zone_uppers(config: dict | None) -> list[int]:
                 hz.get("zone4_max", hz["zone1_max"] + 50),
             ]
         from src.services.profile_service import effective_value
-        max_hr = effective_value(config, "hrmax")
+        max_hr = effective_value(config, "hrmax", conn)
         if max_hr:
             zones = hr_zones(int(max_hr))
             return [z[1] for z in zones[:4]]
@@ -209,7 +209,7 @@ def analyze_zones(
     if not groups:
         return _empty_zones_result()
 
-    zone_uppers = _get_zone_uppers(config)
+    zone_uppers = _get_zone_uppers(config, conn)
     zone_secs = [0.0] * 5
     sources_used: list[str] = []
 

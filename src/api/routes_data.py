@@ -196,17 +196,72 @@ def get_data_profile():
     return _with_conn(lambda c, cfg: api_ok({"rows": profile_service.profile_rows(c, cfg)}))
 
 
+@api_bp.post("/data/profile/preview")
+def preview_data_profile():
+    from src.services import recompute_service
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
+    changes, err = profile_service.validate_changes(body.get("changes") if isinstance(body.get("changes"), dict) else body)
+    if err:
+        return api_error("INVALID_PARAM", err)
+    return _with_conn(lambda c, cfg: api_ok(recompute_service.preview_profile(c, cfg, changes)))
+
+
+def _start_recompute(user_id: str, scope: str, frm, reason: str):
+    from src.services import recompute_service
+
+    data, code = recompute_service.start(user_id, scope, frm, reason)
+    if code:
+        return api_error(code, "이미 재계산 중이에요", 409, data)
+    return api_ok(data, 202)
+
+
 @api_bp.patch("/data/profile")
 def patch_data_profile():
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
+    mode = body.get("recompute", "none")
+    if mode not in ("none", "90d"):
+        return api_error("INVALID_PARAM", "recompute는 none 또는 90d예요")
     changes, err = profile_service.validate_changes(body)
     if err:
         return api_error("INVALID_PARAM", err)
     user_id = get_current_user_id()
     config = profile_service.apply_changes(load_config(user_id=user_id), user_id, changes)
-    return _with_conn(lambda c, _cfg: api_ok({"rows": profile_service.profile_rows(c, config)}))
+    job_id = None
+    if mode == "90d":
+        from src.services import recompute_service
+
+        data, code = recompute_service.start(user_id, "90d", None, "profile")
+        job_id = (data or {}).get("job_id")
+    return _with_conn(lambda c, _cfg: api_ok({"rows": profile_service.profile_rows(c, config), "job_id": job_id}))
+
+
+@api_bp.post("/data/recompute")
+def post_data_recompute():
+    from src.services import recompute_service
+
+    body = request.get_json(silent=True)
+    params, err = recompute_service.parse_scope(body if isinstance(body, dict) else {})
+    if err:
+        return api_error("INVALID_PARAM", err)
+    if not db_path().exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    return _start_recompute(get_current_user_id(), params["scope"], params["from"], params["reason"])
+
+
+@api_bp.get("/data/jobs/<job_id>")
+def get_data_job(job_id: str):
+    from src.services import recompute_service
+    from src.utils.sync_jobs import get_job
+
+    job = get_job(job_id)
+    if job is None:
+        return api_error("NOT_FOUND", "작업을 찾을 수 없어요", 404)
+    return api_ok(recompute_service.job_view(job))
 
 
 def _writable_provider(provider: str):
