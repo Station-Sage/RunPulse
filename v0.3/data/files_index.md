@@ -2309,6 +2309,10 @@
 - class **TestProtocol**: test_initialize_carries_usage_guide, test_tools_list_matches_declarations, test_notification_gets_no_response, test_ping, test_unknown_method_is_error, test_tool_call_success, test_unknown_tool_flags_is_error, test_missing_arguments_key_is_tolerated, test_missing_db_is_reported_as_tool_error_not_crash
 - functions: db_path
 
+### `test_mcp_token_index.py` (119줄) — mcp_remote.token_index / scripts.mcp_token — 해시 저장, 폐기·만료, 상한, 사용자 검증.
+
+- functions: env, test_issue_format_and_plaintext_not_stored, test_lookup_ok_and_malformed, test_revoke_is_immediate_and_user_scoped, test_expiry, test_active_cap_and_revoke_frees_slot, test_unknown_user_and_bad_input_rejected, test_lookup_fails_when_user_db_missing, test_touch_throttled, test_revoke_all, test_cli_issue_list_revoke
+
 ### `test_metric_bands.py` (46줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
 - functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands
@@ -2987,6 +2991,10 @@
 
 - functions: generate, get_structural_fingerprint
 
+### `mcp_token.py` (59줄) — 원격 MCP 토큰 관리 CLI — 컨테이너 안에서 실행: docker compose exec runpulse python scripts/mcp_token.py ...
+
+- functions: main
+
 ### `plan_backtest.py` (43줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
@@ -2996,7 +3004,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 630개 파일
+총 632개 파일
 
 ## docstring 누락
 
