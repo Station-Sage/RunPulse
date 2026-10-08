@@ -209,3 +209,10 @@
 - 사유: CSV는 수초 안에 끝나 작업 원장이 불필요하고, 아카이브만 원본 payload 때문에 오래 걸릴 수 있다. 원장 재사용(ADR-028)으로 새 테이블 없이 이력·상태를 얻는다. BOM은 Excel 한글 깨짐 방지.
 - 활동 CSV는 매칭 그룹당 1행(소스 우선순위 garmin>strava>intervals>runalyze)에 사람용(h:mm:ss)·기계용(초) 열과 소스별 원값 열을 함께 낸다.
 - 가져오기(F-DATA-08)는 후속 슬라이스.
+
+## ADR-030: AI 설정은 config(키·제공자)와 coach_consent(범위)를 한 PATCH로 동기화, 키는 응답에 싣지 않음 (2026-10-08)
+- 결정: `GET/PATCH /data/settings/ai`, `POST /data/settings/ai/test`. 제공자·키는 `config["ai"]`에, 메모 제외·폴백은 `coach_consent`에 쓰되 PATCH 한 번에 둘을 맞춘다. 응답은 키 값을 절대 내지 않고 `key_state(set/missing/invalid)`와 마스크(끝 4자리)만 낸다. `invalid`는 저장된 테스트 결과가 아니라 건강 상태의 마지막 401에서 유도한다.
+- 사유: 두 저장소가 따로 갱신되면 제공자 변경과 동의 상태가 어긋난다. 별도 테스트 결과 저장은 만료·불일치 관리가 필요해 건강 상태 재사용이 단순하다.
+- 범위: 설계서의 `activities_days`·`gps` 스위치는 백엔드에 대응 항목이 없어 만들지 않았다. `scope_catalog()`의 고정 항목은 읽기 전용 고지로, 사용자가 바꿀 수 있는 것은 체크인 메모(`exclude_notes`)뿐이다.
+- 외부 AI(프롬프트 복사·MCP 도구 목록) 섹션은 MCP-REMOTE 작업과 함께 후속.
+

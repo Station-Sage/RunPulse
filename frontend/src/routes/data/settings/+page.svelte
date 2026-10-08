@@ -16,11 +16,10 @@
 		<span class="text-xs text-fg-secondary">최대심박·역치 페이스 등을 자체 추정/기기 값/직접 입력 중에서 골라요.</span>
 	</a>
 	<a
-		href="/settings"
-		data-sveltekit-reload
+		href="/data/settings/ai"
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"
 	>
-		<span class="text-sm text-fg-primary">AI 설정 (기존 화면)</span>
-		<span class="text-xs text-fg-secondary">AI 코치는 아직 기존 설정 화면에서 바꿔요.</span>
+		<span class="text-sm text-fg-primary">AI 설정</span>
+		<span class="text-xs text-fg-secondary">제공자·API 키·AI에 보내는 데이터 범위와 최근 사용량을 봐요.</span>
 	</a>
 </div>

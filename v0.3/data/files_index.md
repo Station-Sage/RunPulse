@@ -82,6 +82,10 @@
 
 - functions: get_adaptation_status
 
+### `ai_settings_service.py` (130줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+
+- functions: mask_key, key_state, usage_7d, build_view, validate_patch, apply_patch, test_connection
+
 ### `archive_service.py` (121줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
 
 - functions: get_archive
@@ -1658,6 +1662,10 @@
 
 - functions: test_validate_valid_plan, test_validate_not_dict, test_validate_no_workouts, test_validate_invalid_type, test_validate_invalid_date, test_validate_distance_out_of_range, test_validate_too_many_workouts, test_validate_rest_no_distance_ok, test_normalize_uses_type_key, test_normalize_uses_workout_type_key, test_normalize_source_is_ai, test_normalize_none_distance
 
+### `test_ai_settings.py` (97줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
+
+- functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes
+
 ### `test_ai_tool_format.py` (115줄) — 도구 응답 압축 헬퍼 — columnar, 반올림, 주별 롤업.
 
 - class **TestNum**: test_integer_valued_float_becomes_int, test_rounds_to_digits, test_none_passthrough, test_integer_after_rounding_drops_decimal
@@ -2915,7 +2923,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 610개 파일
+총 612개 파일
 
 ## docstring 누락
 

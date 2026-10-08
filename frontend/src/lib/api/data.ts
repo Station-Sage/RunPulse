@@ -220,3 +220,32 @@ export async function downloadQuick(kind: Exclude<ExportKind, 'archive'>, range:
 	a.click();
 	URL.revokeObjectURL(url);
 }
+
+export type KeyState = 'set' | 'missing' | 'invalid';
+export interface AiProviderRow { provider: string; model: string; key_state: KeyState; key_mask: string }
+export interface AiSettings {
+	provider: string;
+	providers: AiProviderRow[];
+	mode: 'llm' | 'rule_only' | 'rule_by_choice';
+	fallback_enabled: boolean;
+	exclude_notes: boolean;
+	consented: boolean;
+	scope: { item: string; period: string; optional: boolean; enabled: boolean }[];
+	usage_7d: { messages: number; by_provider: Record<string, number>; fallback: number; rule: number; tool_calls: number };
+	chain: { provider: string; model: string }[];
+	health: { consecutive_failures: number; degraded: boolean };
+	last_error_label: string | null;
+}
+export interface AiPatch {
+	provider?: string;
+	keys?: Record<string, string>;
+	exclude_notes?: boolean;
+	fallback_enabled?: boolean;
+}
+
+export const getAiSettings = () => apiFetch<AiSettings>('/data/settings/ai');
+export const patchAiSettings = (patch: AiPatch) =>
+	apiFetch<AiSettings>('/data/settings/ai', { method: 'PATCH', body: JSON.stringify(patch) });
+export const testAiConnection = (provider: string) =>
+	apiFetch<{ ok: boolean; reason: string | null; label: string; http_status: number | null }>(
+		'/data/settings/ai/test', { method: 'POST', body: JSON.stringify({ provider }) });

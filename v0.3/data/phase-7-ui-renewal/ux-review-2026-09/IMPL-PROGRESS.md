@@ -633,3 +633,8 @@
 - 백엔드: `src/services/export_service.py`(CSV 3종·아카이브 zip·이력/만료), `src/api/routes_data_export.py`(`POST /data/export`, `GET /data/exports`, `GET /data/exports/:id/download`). ADR-029.
 - 프론트: `/data/export` 재작성(기간 선택, 빠른 CSV 3종, 아카이브 작업·이력, .ics, AI 전송 안내), `lib/exports.ts`, `tests/exports.test.mjs`.
 - 남음: 가져오기 미리보기/확정(F-DATA-08), AI 설정 페이지(`/data/settings/ai`, 안내 링크 대상), .ics 구독 URL.
+
+## S10 — AI 설정 (2026-10-08)
+- 백엔드: `src/services/ai_settings_service.py`(마스크·키 상태·7일 사용량·검증·적용·연결 테스트), `src/api/routes_data_ai.py`. ADR-030.
+- 프론트: `/data/settings/ai`(제공자 선택, 키 입력·연결 테스트, 보내는 데이터 범위, 폴백, Coach 상태·7일 사용량), `lib/aiSettings.ts`. `/data/settings` 카드가 새 화면으로 연결됨.
+- 남음: 외부 AI 섹션(프롬프트 복사·MCP 도구 목록), 가져오기(F-DATA-08), .ics 구독 URL.
