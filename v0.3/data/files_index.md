@@ -15,7 +15,7 @@
 > 
 > 파일: activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 > today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
-> data_service(Phase 7b~7d 스텁). story_service는 없음 — Story는 Today L2로 흡수됨
+> data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 > (REVIEW-03, 00-diagnostic-and-direction.md §5.1).
 > 
 > 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
@@ -270,6 +270,18 @@
 ### `recompute_service.py` (154줄) — 지표 재계산 작업 — 시작·진행률·전후 비교(CTL·TSB·VDOT·마라톤 예측·UTRS). 작업 원장은 sync_jobs(service='recompute').
 
 - functions: parse_scope, snapshot, before_after, start, job_view, preview_profile
+
+### `story_period.py` (112줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
+
+- (public API 없음)
+
+### `story_service.py` (216줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
+
+- functions: get_story
+
+### `story_stats.py` (213줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
+
+- (public API 없음)
 
 ### `sync_range_service.py` (95줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
 
@@ -2175,9 +2187,9 @@
 
 - functions: test_second_part_hr, test_self_profile_from_race, test_fallback_and_ref
 
-### `test_import_service.py` (129줄) — import_service — 종류 감지, 사본 미리보기(원본 불변), 실행 결과, API 라우트.
+### `test_import_service.py` (143줄) — import_service — 종류 감지, 사본 미리보기(원본 불변), 실행 결과, API 라우트.
 
-- functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result
+- functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
 
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
@@ -2649,6 +2661,10 @@
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair, test_time_axis_repair_basis
 
+### `test_story_service.py` (94줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
+
+- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_route
+
 ### `test_strava_403_ledger.py` (49줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
 - functions: test_wrapper_raises_subscription_required, test_sync_source_records_failed_ledger_row, test_classify_403_code
@@ -2931,7 +2947,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 614개 파일
+총 618개 파일
 
 ## docstring 누락
 

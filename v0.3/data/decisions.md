@@ -222,3 +222,9 @@
 - 사유: 미리보기 전용 계산기를 따로 두면 실제 가져오기와 결과가 어긋난다. 사본 실행은 단일 진실원을 유지한다. 중복은 source_id 스킵 수, 소스 간 병합은 `assign_group_id`(시작 ±60초·거리 ±3%) 그룹 수.
 - 동반 수정: v12에서 `activity_summaries`의 `calories`·`export_filename` 컬럼이 빠졌는데 임포터(strava_csv/archive, garmin_csv, intervals_fit, import_history)가 여전히 INSERT해 실패하던 문제를 현재 스키마에 맞춰 정리.
 - 후속 수정: 임포터의 `update_changed_fields`/백필 호출이 없는 `distance_km` 컬럼을 넘겨 기존 행 갱신이 무동작이던 것을 `distance_m`(×1000)으로 정리해, 재가져오기 시 바뀐 거리가 반영된다.
+
+## ADR-032: Story는 월·주·블록을 한 서비스에서 조회, 강도 분포는 HR 존 메트릭 합산 (2026-10-08)
+- 결정: `GET /library/story/<period>`가 `YYYY-MM`·`YYYY-Www`·`b-<planId>-<phase>`를 받아 `story_service.get_story`로 응답한다. 기간 해석은 `story_period`, 통계는 `story_stats`로 분리. 블록은 활성 플랜이 없으면 400 `INVALID_PERIOD`.
+- 강도 분포(Z1-2/Z3/Z4-5)는 활동별 `build_hr_zones`(hr_zones_detail 또는 hr_zone_time_1..5)를 합산한다. 존 데이터가 있는 활동의 시간이 전체의 50% 미만이면 `status="insufficient"`로 비율을 숨긴다.
+- CTL 값이 없는 기간은 CTL 칩과 문장을 생략한다(에러 아님).
+- 사유: `activity_summaries`에는 존 컬럼이 없고 존 시간은 metric_store에 있어, 기존 읽기 경로를 재사용해야 소스별 차이가 한곳에서 처리된다. 일부 활동만 존이 있을 때 비율을 내면 왜곡된다.

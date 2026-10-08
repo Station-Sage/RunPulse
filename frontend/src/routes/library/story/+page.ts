@@ -1,10 +1,8 @@
 import { redirect } from '@sveltejs/kit';
-import type { PageLoad } from './$types';
+import { base } from '$app/paths';
 
-export const load: PageLoad = async () => {
-	// Redirect to current month story
-	const today = new Date();
-	const year = today.getFullYear();
-	const month = String(today.getMonth() + 1).padStart(2, '0');
-	throw redirect(302, `/library/story/${year}-${month}`);
-};
+// /library/story → 이번 달 이야기로 이동
+export function load() {
+	const ym = new Date().toLocaleDateString('sv-SE').slice(0, 7);
+	redirect(307, `${base}/library/story/${ym}`);
+}

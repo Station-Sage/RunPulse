@@ -1,300 +1,139 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	// S12 — 훈련 이야기(월·주). 문단·칩·직전 기간 비교·강도 분포·대표 세션·위험 최고·마일스톤.
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import type { StoryData } from '$lib/api/story';
+	import { isoWeekId, storyScope } from '$lib/storyPeriod';
 
-	export let data;
+	let { data }: { data: { story: StoryData } } = $props();
+	const s = $derived(data.story);
+	const scope = $derived(storyScope(s.period.id));
+	const unitLabel = $derived(scope === 'week' ? '주' : scope === 'block' ? '블록' : '달');
+	let copied = $state(false);
 
-	let unitToggle: 'month' | 'week' | 'block' = 'month';
-	let copied = false;
+	const open = (id: string) => goto(`${base}/library/story/${id}`, { replaceState: true });
+	const toMonth = () => open(s.period.end.slice(0, 7));
+	const toWeek = () => open(isoWeekId(s.period.end));
 
-	$: ({
-		period,
-		paragraph,
-		chips,
-		compare,
-		intensity,
-		key_sessions: keySessions,
-		risk_peak: riskPeak,
-		milestones
-	} = data);
-
-	function navigatePeriod(offset: number) {
-		const currentPeriod = $page.params.period;
-		let newPeriod = '';
-
-		if (currentPeriod.includes('-W')) {
-			// Week navigation
-			const [year, weekStr] = currentPeriod.split('-W');
-			const week = parseInt(weekStr) + offset;
-			newPeriod = `${year}-W${week.toString().padStart(2, '0')}`;
-		} else if (currentPeriod.startsWith('b-')) {
-			// Block navigation — not implemented yet
-			return;
-		} else {
-			// Month navigation
-			const [year, month] = currentPeriod.split('-');
-			const yearNum = parseInt(year);
-			const monthNum = parseInt(month) + offset;
-
-			if (monthNum < 1) {
-				newPeriod = `${yearNum - 1}-12`;
-			} else if (monthNum > 12) {
-				newPeriod = `${yearNum + 1}-01`;
-			} else {
-				newPeriod = `${year}-${monthNum.toString().padStart(2, '0')}`;
-			}
-		}
-
-		goto(`/library/story/${newPeriod}`);
-	}
-
-	function toggleUnit(unit: 'month' | 'week' | 'block') {
-		unitToggle = unit;
-		// Convert current period to different unit
-		const currentPeriod = $page.params.period;
-		const endDate = new Date(period.end);
-		let newPeriod = '';
-
-		if (unit === 'month') {
-			const year = endDate.getFullYear();
-			const month = String(endDate.getMonth() + 1).padStart(2, '0');
-			newPeriod = `${year}-${month}`;
-		} else if (unit === 'week') {
-			// ISO week number
-			const d = new Date(endDate);
-			d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-			const yearStart = new Date(d.getFullYear(), 0, 1);
-			const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-			newPeriod = `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
-		} else if (unit === 'block') {
-			// Block toggle disabled for now
-			return;
-		}
-
-		if (newPeriod) {
-			goto(`/library/story/${newPeriod}`);
-		}
-	}
-
-	function copyToClipboard() {
-		const text = `${period.label}\n\n${paragraph}\n\n${
-			chips.map((c) => `${c.label}`).join(' · ')
-		}`;
-		navigator.clipboard.writeText(text);
+	async function copyText() {
+		const text = `${s.period.label}\n\n${s.paragraph}\n\n${s.chips.map((c) => c.label).join(' · ')}`;
+		await navigator.clipboard.writeText(text);
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
 
-	function drillToMetric(drill) {
-		if (!drill) return;
-		// Navigate to metric detail (to be implemented with drill panel)
-		console.log('Drill to metric:', drill);
-	}
-
-	function drillToSession(sessionId: number) {
-		goto(`/library/${sessionId}`);
-	}
-
-	function drillToMilestone(milestoneId: number) {
-		goto(`/library/${milestoneId}`);
-	}
+	const bars = $derived(
+		s.intensity?.status === 'ok'
+			? [
+					['Z1-2', s.intensity.z12_pct ?? 0, 'bg-sky-400'],
+					['Z3', s.intensity.z3_pct ?? 0, 'bg-amber-400'],
+					['Z4-5', s.intensity.z45_pct ?? 0, 'bg-rose-400']
+				]
+			: []
+	);
+	const sign = (n: number) => (n > 0 ? '+' : '');
 </script>
 
-<div class="story-page">
-	<!-- Period Navigation -->
-	<div class="period-header sticky top-0 bg-white/95 backdrop-blur z-10 p-4 border-b">
-		<div class="flex items-center justify-between mb-3">
-			<button class="btn-icon" on:click={() => navigatePeriod(-1)}>‹</button>
-			<div class="text-center flex-1">
-				<div class="text-xl font-semibold">{period.label}</div>
-				<div class="text-xs text-gray-500">{period.start} ~ {period.end}</div>
+<div class="mx-auto flex max-w-2xl flex-col gap-5 p-4">
+	<header class="flex flex-col gap-2">
+		<div class="flex items-center justify-between">
+			<button class="px-3 py-2" aria-label="이전 {unitLabel}" onclick={() => open(s.period.prev)}>‹</button>
+			<div class="text-center">
+				<div class="text-lg font-semibold text-fg-primary">{s.period.label}</div>
+				<div class="text-xs text-fg-muted">{s.period.start} ~ {s.period.end}</div>
 			</div>
-			<button class="btn-icon" on:click={() => navigatePeriod(1)}>›</button>
+			<button class="px-3 py-2" aria-label="다음 {unitLabel}" onclick={() => open(s.period.next)}>›</button>
 		</div>
-
-		<!-- Unit Toggle -->
-		<div class="flex gap-1 text-sm">
-			<button
-				class="flex-1 px-2 py-1 rounded transition"
-				class:active={unitToggle === 'month'}
-				on:click={() => toggleUnit('month')}
-			>
-				월
-			</button>
-			<button
-				class="flex-1 px-2 py-1 rounded transition"
-				class:active={unitToggle === 'week'}
-				on:click={() => toggleUnit('week')}
-			>
-				주
-			</button>
-			<button
-				class="flex-1 px-2 py-1 rounded transition"
-				class:active={unitToggle === 'block'}
-				on:click={() => toggleUnit('block')}
-				disabled
-			>
-				블록
-			</button>
+		<div class="flex gap-1 text-sm" role="group" aria-label="단위">
+			<button class="flex-1 rounded px-2 py-1 {scope === 'month' ? 'bg-surface-2 font-semibold' : ''}" aria-pressed={scope === 'month'} onclick={toMonth}>월</button>
+			<button class="flex-1 rounded px-2 py-1 {scope === 'week' ? 'bg-surface-2 font-semibold' : ''}" aria-pressed={scope === 'week'} onclick={toWeek}>주</button>
 		</div>
+	</header>
 
-		<!-- Copy Button -->
-		<button
-			class="mt-2 w-full px-3 py-2 text-sm rounded transition"
-			class:copied
-			on:click={copyToClipboard}
-		>
-			{copied ? '복사됨' : '텍스트로 복사'}
-		</button>
-	</div>
+	<p class="rounded bg-surface-2 p-4 leading-relaxed text-fg-primary">{s.paragraph}</p>
 
-	<!-- Main Content -->
-	<div class="p-4 max-w-2xl mx-auto">
-		<!-- Narrative Paragraph -->
-		<div class="mb-6 p-4 bg-gray-50 rounded">
-			<p class="text-base leading-relaxed">{paragraph}</p>
+	{#if s.chips.length}
+		<div class="flex flex-wrap gap-2">
+			{#each s.chips as c (c.label)}
+				<span class="rounded-full border border-border-subtle px-3 py-1 text-sm text-fg-secondary">{c.label}</span>
+			{/each}
 		</div>
+	{/if}
 
-		<!-- Drill Chips -->
-		{#if chips.length > 0}
-			<div class="mb-6 flex flex-wrap gap-2">
-				{#each chips as chip}
-					<button
-						class="px-3 py-1 rounded-full text-sm border transition"
-						class:drillable={chip.drill}
-						on:click={() => chip.drill && drillToMetric(chip.drill)}
-					>
-						{chip.label}
-					</button>
+	{#if s.compare.length}
+		<section>
+			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">이전 {unitLabel}과 비교</h3>
+			<ul class="flex flex-col gap-2">
+				{#each s.compare as c (c.key)}
+					<li class="flex items-center justify-between rounded bg-surface-2 p-2 text-sm">
+						<span>{c.label}</span>
+						<span class="text-right">
+							<span class="font-semibold">{c.value}</span>
+							<span class="block text-xs text-fg-muted">{sign(c.delta_pct)}{c.delta_pct}% (이전 {c.prev})</span>
+						</span>
+					</li>
 				{/each}
-			</div>
-		{/if}
+			</ul>
+		</section>
+	{/if}
 
-		<!-- Compare Section -->
-		{#if compare.length > 0}
-			<div class="mb-6">
-				<h3 class="text-sm font-semibold mb-3">이전 {unitToggle}과 비교</h3>
-				<div class="space-y-2">
-					{#each compare as item}
-						<div class="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-							<span>{item.label}</span>
-							<div class="text-right">
-								<div class="font-semibold">{item.value}</div>
-								<div class={item.delta_pct >= 0 ? 'text-green-600' : 'text-red-600'}>
-									{item.delta_pct >= 0 ? '+' : ''}{item.delta_pct}% ({item.prev})
-								</div>
-							</div>
+	{#if s.intensity}
+		<section>
+			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">강도 분포</h3>
+			{#if s.intensity.status === 'insufficient'}
+				<p class="rounded bg-surface-2 p-3 text-sm text-fg-muted">심박 존 데이터가 부족해 분포를 보여줄 수 없어요.</p>
+			{:else}
+				<div class="flex flex-col gap-2">
+					{#each bars as [label, pct, color] (label)}
+						<div class="flex items-center gap-2 text-sm">
+							<span class="w-12">{label}</span>
+							<div class="h-5 flex-1 rounded bg-surface-2"><div class="h-full rounded {color}" style="width: {pct}%"></div></div>
+							<span class="w-10 text-right">{pct}%</span>
 						</div>
 					{/each}
 				</div>
-			</div>
-		{/if}
+			{/if}
+		</section>
+	{/if}
 
-		<!-- Intensity Distribution -->
-		{#if intensity}
-			<div class="mb-6">
-				<h3 class="text-sm font-semibold mb-3">강도 분포</h3>
-				{#if intensity.status === 'insufficient'}
-					<div class="p-3 bg-gray-100 rounded text-sm text-gray-600">존 데이터 부족</div>
-				{:else}
-					<div class="space-y-2">
-						<div class="flex items-center gap-2 text-sm">
-							<span class="w-12">Z1-2</span>
-							<div class="flex-1 bg-gray-200 rounded h-6">
-								<div class="bg-blue-400 h-full rounded" style="width: {intensity.z12_pct}%"></div>
-							</div>
-							<span class="w-8 text-right">{intensity.z12_pct}%</span>
-						</div>
-						<div class="flex items-center gap-2 text-sm">
-							<span class="w-12">Z3</span>
-							<div class="flex-1 bg-gray-200 rounded h-6">
-								<div class="bg-yellow-400 h-full rounded" style="width: {intensity.z3_pct}%"></div>
-							</div>
-							<span class="w-8 text-right">{intensity.z3_pct}%</span>
-						</div>
-						<div class="flex items-center gap-2 text-sm">
-							<span class="w-12">Z4-5</span>
-							<div class="flex-1 bg-gray-200 rounded h-6">
-								<div class="bg-red-400 h-full rounded" style="width: {intensity.z45_pct}%"></div>
-							</div>
-							<span class="w-8 text-right">{intensity.z45_pct}%</span>
-						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
+	{#if s.key_sessions.length}
+		<section>
+			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">대표 세션</h3>
+			<ul class="flex flex-col gap-2">
+				{#each s.key_sessions as k (k.id)}
+					<li>
+						<a class="block rounded bg-surface-2 p-3 text-sm" href="{base}/library/{k.id}">
+							<span class="font-semibold">{k.name}</span>
+							<span class="block text-fg-muted">{k.date} · {k.distance_km}km</span>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
-		<!-- Key Sessions -->
-		{#if keySessions.length > 0}
-			<div class="mb-6">
-				<h3 class="text-sm font-semibold mb-3">대표 세션</h3>
-				<div class="space-y-2">
-					{#each keySessions as session}
-						<button
-							class="w-full p-3 bg-gray-50 rounded text-left hover:bg-gray-100 transition text-sm"
-							on:click={() => drillToSession(session.id)}
-						>
-							<div class="font-semibold">{session.name}</div>
-							<div class="text-gray-600">{session.date} · {session.distance_km}km</div>
-						</button>
-					{/each}
-				</div>
-			</div>
-		{/if}
+	{#if s.risk_peak}
+		<p class="rounded border border-border-subtle p-3 text-sm">
+			<span class="font-semibold">위험 최고</span>
+			{s.risk_peak.slug.toUpperCase()} {s.risk_peak.value} ({s.risk_peak.date})
+		</p>
+	{/if}
 
-		<!-- Risk Peak -->
-		{#if riskPeak}
-			<div class="mb-6 p-3 bg-red-50 rounded border border-red-200">
-				<div class="text-sm font-semibold text-red-900">위험 최고</div>
-				<div class="text-sm text-red-800 mt-1">
-					{riskPeak.slug.toUpperCase()} {riskPeak.value} ({riskPeak.date})
-				</div>
-			</div>
-		{/if}
+	{#if s.milestones.length}
+		<section>
+			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">마일스톤</h3>
+			<ul class="flex flex-col gap-2">
+				{#each s.milestones as m, i (m.id ?? i)}
+					<li class="rounded bg-surface-2 p-3 text-sm">
+						<span class="font-semibold">◆ {m.title ?? m.label}</span>
+						<span class="block text-fg-muted">{m.achieved_date ?? m.date}</span>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
 
-		<!-- Milestones -->
-		{#if milestones.length > 0}
-			<div class="mb-6">
-				<h3 class="text-sm font-semibold mb-3">마일스톤</h3>
-				<div class="space-y-2">
-					{#each milestones as milestone}
-						<button
-							class="w-full p-3 bg-gray-50 rounded text-left hover:bg-gray-100 transition text-sm flex items-center gap-2"
-							on:click={() => drillToMilestone(milestone.id)}
-						>
-							<span class="text-lg">◆</span>
-							<div class="flex-1">
-								<div class="font-semibold">{milestone.title || milestone.label}</div>
-								<div class="text-gray-600">{milestone.achieved_date || milestone.date}</div>
-							</div>
-						</button>
-					{/each}
-				</div>
-			</div>
-		{/if}
-	</div>
+	<button class="rounded border border-border-subtle px-3 py-2 text-sm" onclick={copyText}>
+		{copied ? '복사됨' : '텍스트로 복사'}
+	</button>
 </div>
-
-<style>
-	.story-page {
-		min-height: 100vh;
-		background: #fafafa;
-	}
-
-	.btn-icon {
-		@apply px-3 py-2 rounded transition hover:bg-gray-100 active:bg-gray-200;
-	}
-
-	.active {
-		@apply bg-blue-100 text-blue-900 font-semibold;
-	}
-
-	.copied {
-		@apply bg-green-100 text-green-900;
-	}
-
-	.drillable {
-		@apply cursor-pointer border-blue-300 hover:bg-blue-50;
-	}
-</style>

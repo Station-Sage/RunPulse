@@ -8,7 +8,7 @@ Phase 7a). 첫 번째 인자는 항상 sqlite3.Connection. 반환값은 dict (sn
 
 파일: activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
-data_service(Phase 7b~7d 스텁). story_service는 없음 — Story는 Today L2로 흡수됨
+data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 (REVIEW-03, 00-diagnostic-and-direction.md §5.1).
 
 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,

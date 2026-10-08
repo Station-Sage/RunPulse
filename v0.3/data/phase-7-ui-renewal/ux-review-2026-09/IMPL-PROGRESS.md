@@ -644,3 +644,8 @@
 - 프론트: `/data/import`(소스 선택→파일→미리보기→진행→결과·재계산 제안, 최근 이력), `lib/importFlow.ts`; 내보내기 화면에서 진입 링크.
 - 임포터 `distance_km`→`distance_m` 갱신 경로 정리 완료(재가져오기 테스트 동반).
 - 남음: .ics 구독 URL.
+
+## S12 — Story 월·주·블록 (2026-10-08)
+- 백엔드: `story_service`(조립)·`story_period`(기간 해석)·`story_stats`(통계), 라우트 `GET /library/story/<period>`. 강도 분포는 `build_hr_zones` 합산(ADR-032).
+- 프런트: `/library/story/[period]`, `/library/story`(현재 월로 이동), 라이브러리 탭, Today B7 링크.
+- 검증 중 수정: 존 컬럼 오참조(500), 월·주 범위 검증, CTL 없는 기간의 크래시. 테스트 `tests/test_story_service.py` 7건.

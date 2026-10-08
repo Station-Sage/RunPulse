@@ -1,14 +1,12 @@
-import type { PageLoad } from './$types';
+import { error } from '@sveltejs/kit';
+import { ApiError } from '$lib/api/client';
+import { getStory } from '$lib/api/story';
 
-export const load: PageLoad = async ({ params, fetch }) => {
-	const { period } = params;
-
-	const response = await fetch(`/api/v1/library/story/${period}`);
-	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.error?.message || 'Failed to load story');
+export async function load({ params }: { params: { period: string } }) {
+	try {
+		return { story: await getStory(params.period) };
+	} catch (e) {
+		if (e instanceof ApiError && e.status === 400) error(404, e.message);
+		throw e;
 	}
-
-	const { data } = await response.json();
-	return data;
-};
+}
