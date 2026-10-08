@@ -31,11 +31,12 @@ _LABELS = {
 
 
 def _effective(rows: list[dict]) -> tuple[dict, list[dict]]:
-    """R1 우선순위: 실행된 외부 계획 > 외부 계획 > planner 원안. (유효, 대안들)"""
+    """R1 우선순위: 실행된 외부 계획 > 수락된 조정 행 > 외부 계획 > planner 원안. (유효, 대안들)"""
     def rank(w: dict) -> tuple:
         external = w["source"] != "planner"
         return (0 if external and w["matched_activity_id"] else
-                1 if external else 2, w["id"])
+                1 if w.get("adjusted") else
+                2 if external else 3, w["id"])
     ordered = sorted(rows, key=rank)
     return ordered[0], ordered[1:]
 
@@ -130,9 +131,14 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
             entry["effective"] = {k: eff[k] for k in ("id", "source", "workout_type", "distance_km",
                                                      "matched_activity_id", "actual_dist_km")}
             entry["planned_km"] = planned_km
+            if eff.get("adjusted"):
+                entry["effective"]["adjusted"] = True
+                entry["effective"]["original_type"] = eff["original"]["workout_type"]
             entry["alternatives"] = [a["id"] for a in alts]
             entry["substituted"] = eff["source"] != "planner" and any(a["source"] == "planner" for a in alts)
-        claimed = {w["matched_activity_id"] for w in day_rows if w["matched_activity_id"]}
+        # D9: 휴식으로 조정된 날의 활동은 계획에 속하지 않으므로 계획 외 러닝으로 센다
+        claimed = {w["matched_activity_id"] for w in day_rows
+                   if w["matched_activity_id"] and not (w.get("adjusted") and w["workout_type"] == "rest")}
         for a in acts.get(ds, []):
             if a["id"] not in claimed:
                 unplanned.append({"date": ds, "activity_id": a["id"], "distance_km": round(a["distance_km"], 2)})

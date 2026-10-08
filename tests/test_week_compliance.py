@@ -101,3 +101,30 @@ def test_future_day_is_upcoming_and_not_counted(conn):
     assert _day(r, "2026-09-30")["state"] == "upcoming"
     assert "label" not in _day(r, "2026-09-30")
     assert r["compliance"]["sessions"]["total"] == 0
+
+
+def _accept(conn, wid: int, d: str, before: dict, after: dict) -> None:
+    import json
+    conn.execute(
+        "INSERT INTO plan_adjustments(workout_id,date,source,before_json,after_json,rule_version,decision)"
+        " VALUES (?,?,'crs',?,?,'adjuster_v1','accepted')", (wid, d, json.dumps(before), json.dumps(after)))
+
+
+def test_accepted_rest_adjustment_leaves_denominator_and_run_is_unplanned(conn):
+    a = _act(conn, "2026-09-24", 8.0)
+    pid = _plan(conn, "2026-09-24", "interval", 8.0, act_id=a)
+    _accept(conn, pid, "2026-09-24", {"workout_type": "interval", "distance_km": 8.0},
+            {"workout_type": "rest", "distance_km": None})
+    r = wc.compute(conn, MON, date(2026, 9, 27), MON, TODAY)
+    d = _day(r, "2026-09-24")
+    assert d["state"] == "rest" and d["effective"]["adjusted"]
+    assert r["compliance"]["sessions"]["total"] == 0
+    assert [u["activity_id"] for u in r["unplanned_runs"]] == [a]
+
+
+def test_accepted_easy_adjustment_changes_quality_count(conn):
+    pid = _plan(conn, "2026-09-24", "interval", 8.0)
+    before = wc.compute(conn, MON, date(2026, 9, 27), MON, TODAY)["compliance"]["quality"]
+    _accept(conn, pid, "2026-09-24", {"workout_type": "interval", "distance_km": 8.0}, {"workout_type": "easy"})
+    after = wc.compute(conn, MON, date(2026, 9, 27), MON, TODAY)["compliance"]["quality"]
+    assert before["total"] == 1 and after["total"] == 0

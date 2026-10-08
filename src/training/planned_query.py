@@ -8,8 +8,9 @@ from datetime import date, timedelta
 def get_planned_workouts(
     conn: sqlite3.Connection,
     week_start: date | None = None,
+    overlay: bool = True,
 ) -> list[dict]:
-    """이번 주 (또는 지정 주) planned_workouts 조회."""
+    """이번 주 (또는 지정 주) planned_workouts 조회. overlay=True 면 수락된 조정(plan_adjustments)을 겹쳐 적용."""
     if week_start is None:
         today = date.today()
         week_start = today - timedelta(days=today.weekday())
@@ -31,6 +32,9 @@ def get_planned_workouts(
             "completed", "source", "ai_model", "interval_prescription",
             "matched_activity_id", "outcome_label", "dist_ratio", "actual_dist_km", "compliance_pct"]
     out = [dict(zip(keys, r)) for r in rows]
+    if overlay:
+        from src.training.plan_overlay import apply, live_adjustments
+        out = apply(out, live_adjustments(conn, week_start.isoformat(), week_end.isoformat()))
     # 같은 날 다른 계획(Garmin 저장 워크아웃 등)이 실제 활동을 가져갔으면 추천안(planner)은 '대체됨'
     taken = {w["date"] for w in out if w["source"] != "planner" and w["matched_activity_id"]}
     for w in out:
