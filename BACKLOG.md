@@ -18,6 +18,8 @@
 
 - **[SYNC-SOURCE-TOGGLE]** T1·T3(끄면 cancelled)·T4(v1 경로 가드)·T5(`/data/sync` 행 버튼) 완료(2026-10-08). 남은 것: T2(레거시 `*_disabled` 마이그레이션), T6(v1 제거=G6, AUDIT-V-CANONICAL 동반). 설계: `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md`.
 
+- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** Phase 7c 계획 조정 수락 영속화(ADR-035, 스키마 v31) T1~T7·T9 완료(2026-10-08): `plan_adjustments`·overlay·서비스·API·매처·플랜 상세 `AdjustmentCard`. 남은 것: 세션 상세·Today `NextSessionCard`에 카드 연결, T8(사용자 직접 조정 `workouts/<id>/action`), ICS/Garmin/CalDAV 반영(v1 미반영). 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
+
 - **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
@@ -26,7 +28,7 @@
 - **[USER-CAL-FEED]** 캘린더 구독: Cloudflare Access에 `/feeds/cal/*` Bypass 추가 → 구글 캘린더에서 실제 구독·갱신 확인.
 - **[USER-CONNECTOR-OAUTH]** claude.ai 커넥터 Google Drive·Notion·Strava·Tredict는 OAuth 인증 필요(claude.ai 커넥터 설정 또는 대화형 세션 `/mcp`). 인증 전까지 해당 연동 사용 불가.
 - **[USER-PYTEST-MCP]** `pytest` MCP 서버가 `CONNECTION_CLOSED`로 연결 실패 — 설정·실행 명령 확인 필요.
-- **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 설계 진행 중.
+- **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 구현·배포 완료(아래 NEXT).
 
 ## DONE (recent)
 - **[MARATHON-LOG-LAPS]** 9/4·9/10·9/17 세션 랩을 일일 로그 및 W13·W14·W15 주간 로그에 반영(2026-10-08, 로그는 gitignore). 9/4는 랩 구분이 계획 3×2k와 불일치해 세트 해석 보류로 기재.

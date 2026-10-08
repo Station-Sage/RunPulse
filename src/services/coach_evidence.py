@@ -131,6 +131,15 @@ def _relabel(item: dict) -> dict:
     return item
 
 
+def _adjustment_in_effect(conn: sqlite3.Connection, date: str) -> bool:
+    """거절·되돌림·만료·stale 상태의 조정은 근거에서 제외한다 (ADR-035)."""
+    try:
+        from src.services.plan_adjustment_service import get_day_adjustment
+        return get_day_adjustment(conn, date, ensure=False)["state"] not in ("declined", "undone", "expired", "stale")
+    except Exception:
+        return True
+
+
 def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     """규칙 경로가 쓰는 입력 — 판정 근거 → 계획 세션 → 체크인 (role은 판정 방향과 비교해 부여)."""
     from src.services.today_service import get_todays_checkin
@@ -145,7 +154,7 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
         plan_adj = None
     if plan_adj:
         dist = f" {fmt_distance(plan_adj['distance_km'])}" if plan_adj.get("distance_km") else ""
-        adjusted = bool(plan_adj.get("adjusted"))
+        adjusted = bool(plan_adj.get("adjusted")) and _adjustment_in_effect(conn, date)
         label = (f"오늘 계획: {workout_ko(plan_adj['original_type'])}{dist} → {workout_ko(plan_adj['adjusted_type'])}"
                  if adjusted else
                  f"오늘 계획: {workout_ko(plan_adj.get('workout_type', plan_adj.get('original_type', '')))}{dist}")

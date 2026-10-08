@@ -115,7 +115,7 @@
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (217줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (226줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
@@ -214,6 +214,11 @@
 ### `narrative_warm.py` (82줄) — 이번 달 Today 내러티브 사전 생성(워밍) — 동기화 직후 AI 문장을 캐시에 미리 채운다 (DESIGN-U17 §3).
 
 - functions: warm_month_narrative, warm_in_background
+
+### `plan_adjustment_service.py` (184줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+
+- class **AdjustmentConflict**: 없음
+- functions: state_of, ensure_proposal, get_day_adjustment, accept, revert, list_adjustments
 
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -1348,7 +1353,7 @@
 
 - functions: compatible, pick_activity, is_done, classify_outcome
 
-### `matcher.py` (259줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `matcher.py` (268줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
@@ -1389,6 +1394,10 @@
 
 - functions: week_ctx, g2a_long_cap, g2b_long_envelope, g9_long_floor, f6_long_step
 
+### `plan_overlay.py` (53줄) — 수락된 계획 조정(plan_adjustments)을 planned_workouts 행에 읽기 시점으로 겹쳐 적용 (ADR-035).
+
+- functions: live_adjustments, apply
+
 ### `plan_readiness.py` (65줄) — 계획 준비 볼륨·경고 — 피크 롱런 하한을 담을 주간 거리에 대회 전까지 닿는지 판정한다 (DESIGN-U16-LONGRUN §5.2-5).
 
 - functions: ready_week_km, cold_peak_km, readiness_warning, plan_warnings
@@ -1397,7 +1406,7 @@
 
 - functions: structure_for_plan
 
-### `planned_query.py` (38줄) — 주간 planned_workouts 조회(결과·대체됨 플래그 포함) — planner.py 에서 분리.
+### `planned_query.py` (42줄) — 주간 planned_workouts 조회(결과·대체됨 플래그 포함) — planner.py 에서 분리.
 
 - functions: get_planned_workouts
 
@@ -1441,7 +1450,7 @@
 
 - functions: replan_remaining_week
 
-### `week_compliance.py` (188줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
+### `week_compliance.py` (194줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
 
 - functions: outcome_label, compute
 
@@ -1767,6 +1776,10 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
+### `test_api_plan_adjustments.py` (56줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+
+- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list
+
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
 - functions: mini_app, test_post_plan_reported_load_saved_and_warnings, test_post_plan_400_bad_reported_load
@@ -1918,11 +1931,12 @@
 
 - functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json
 
-### `test_coach_evidence.py` (141줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
+### `test_coach_evidence.py` (150줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
 - class **TestPureHelpers**: test_rest_signal, test_is_drifted_threshold_and_sign, test_cited_needs_keyword_and_number, test_cited_rounding_tolerance
 - class **TestBuildAnswerEvidence**: test_rule_path_roles_and_snapshot, test_llm_path_keeps_only_cited_and_pinned, test_exception_returns_empty, test_dedupes_by_metric
 - class **TestViewEvidence**: test_legacy_without_snapshot, test_user_message_and_empty, test_drift_detected_after_recalc, test_no_drift_when_unchanged, test_wellness_current, test_kst_date_invalid
+- functions: test_adjustment_in_effect_follows_state
 
 ### `test_coach_rule_handlers.py` (153줄) — Coach 규칙 핸들러 레지스트리 (design 30-coach-chat §7.3, §8).
 
@@ -2484,6 +2498,10 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
+### `test_plan_adjustment_service.py` (83줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
+
+- functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list
+
 ### `test_plan_backtest.py` (102줄)
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
@@ -2501,9 +2519,13 @@
 - class **FakeClient**: get_workout_by_id
 - functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_real_shapes, test_ingest_intervals_links_paired_activity, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
-### `test_plan_match_rules.py` (200줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
+### `test_plan_match_rules.py` (222줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
 
-- functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed
+- functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
+
+### `test_plan_overlay.py` (45줄) — plan_overlay: accepted 조정만 읽기 시점에 적용, 원본 불변, 지문 불일치는 stale.
+
+- functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_and_unadjusted_untouched
 
 ### `test_plan_readiness.py` (69줄) — 준비 볼륨·경고(DESIGN-U16-LONGRUN §5.2-5)와 콜드 피크 목표(§5.2 L5 후속).
 
@@ -2942,9 +2964,9 @@
 
 - functions: test_request_params_archive_vs_forecast, test_at_time_interpolates_and_wbgt
 
-### `test_week_compliance.py` (103줄) — tests/test_week_compliance.py — 날짜별 유효 계획·이행 수치(31-coach-plan design R1·R2·R3·R5).
+### `test_week_compliance.py` (130줄) — tests/test_week_compliance.py — 날짜별 유효 계획·이행 수치(31-coach-plan design R1·R2·R3·R5).
 
-- functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted
+- functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted, test_accepted_rest_adjustment_leaves_denominator_and_run_is_unplanned, test_accepted_easy_adjustment_changes_quality_count
 
 ### `test_week_digest.py` (52줄) — week_digest / 월간 프롬프트 W 블록 테스트 (U17g).
 
@@ -3028,7 +3050,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 638개 파일
+총 643개 파일
 
 ## docstring 누락
 

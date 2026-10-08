@@ -139,3 +139,12 @@ class TestViewEvidence:
     def test_kst_date_invalid(self):
         assert ce._kst_date(None) is None
         assert ce._kst_date("garbage") is None
+
+
+def test_adjustment_in_effect_follows_state(monkeypatch):
+    import src.services.plan_adjustment_service as pas
+
+    for state, expected in (("accepted", True), ("proposed", True), ("none", True),
+                            ("declined", False), ("undone", False), ("stale", False), ("expired", False)):
+        monkeypatch.setattr(pas, "get_day_adjustment", lambda *a, _s=state, **k: {"state": _s, "adjustment": None})
+        assert ce._adjustment_in_effect(None, "2026-10-08") is expected

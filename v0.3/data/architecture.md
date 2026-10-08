@@ -69,6 +69,7 @@ RunPulse는 단순한 러닝 로그 앱이 아닙니다. 여러 플랫폼에 흩
 | 4 | session_outcomes | 세션 결과 | — | ~300 |
 | 4 | activity_feedback | 활동 피드백 RPE·통증·메모 (v25, ADR-022) | 7 | ~600 |
 | 4 | user_settings | 사용자 UI 설정 key-value (v25, ADR-023) | 3 | ~5 |
+| 4 | plan_adjustments | 계획 조정 제안·수락·되돌리기 (v31, ADR-035) | 17 | ~100 |
 | — | v_canonical_activities | 대표 활동 뷰 | — | (view) |
 
 > 컬럼 상세, 제약조건 → `phase-1.md` / 컬럼·메트릭 전체 배정표 → `data_master.md` (자동 생성)
