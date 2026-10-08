@@ -55,6 +55,15 @@ def match_week_activities(
     if not plans:
         return 0
 
+    # 수락된 조정은 유형·거리 게이트에 반영(쓰기는 원본 행). rest 로 조정된 날은 매칭 제외
+    from src.training.plan_overlay import apply, live_adjustments
+    keys = ("id", "date", "workout_type", "distance_km", "target_pace_min", "target_pace_max", "target_hr_zone")
+    adjs = live_adjustments(conn, week_start.isoformat(), (week_end + timedelta(days=1)).isoformat())
+    plans = [tuple(d[k] for k in keys) for d in apply([dict(zip(keys, p)) for p in plans], adjs)
+             if d["workout_type"] != "rest"]
+    if not plans:
+        return 0
+
     acts = conn.execute(
         f"SELECT id, DATE(start_time) as d, distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr, "
         f"duration_sec, activity_type "

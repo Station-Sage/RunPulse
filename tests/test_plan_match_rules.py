@@ -198,3 +198,25 @@ def test_adjustment_skips_day_already_executed():
     assert adjust_todays_plan(c, date="2026-09-27") is not None
     _plan(c, "2026-09-27", "easy", None, source="garmin", ssys="garmin", act_id=a, done=1)
     assert adjust_todays_plan(c, date="2026-09-27") is None
+
+
+def _accept_adj(c, d, before, after):
+    pid = c.execute("SELECT id FROM planned_workouts WHERE date=?", (d,)).fetchone()[0]
+    c.execute("INSERT INTO plan_adjustments(workout_id,date,source,op,before_json,after_json,rule_version,decision)"
+              " VALUES (?,?,'crs','replace',?,?,'adjuster_v1','accepted')",
+              (pid, d, json.dumps(before), json.dumps(after)))
+
+
+def test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate():
+    c = mem_conn()
+    seed_run(c, sid="1", date="2026-09-26", dist=7000.0, moving=2400)
+    _plan(c, "2026-09-26", "interval", 7.0)
+    _accept_adj(c, "2026-09-26", {"workout_type": "interval", "distance_km": 7.0}, {"workout_type": "rest"})
+    assert match_week_activities(c, MON) == 0
+    c2 = mem_conn()
+    a = seed_run(c2, sid="1", date="2026-09-26", dist=7000.0, moving=2400)
+    _plan(c2, "2026-09-26", "interval", 7.0)
+    _accept_adj(c2, "2026-09-26", {"workout_type": "interval", "distance_km": 7.0},
+                {"workout_type": "easy", "distance_km": 7.0})
+    assert match_week_activities(c2, MON) == 1
+    assert c2.execute("SELECT matched_activity_id FROM planned_workouts").fetchone()[0] == a
