@@ -163,3 +163,24 @@ def generate_key() -> str:
     """
     from cryptography.fernet import Fernet
     return Fernet.generate_key().decode()
+
+
+def encrypt_value(value: str) -> str | None:
+    """단일 문자열을 Fernet으로 암호화해 "enc:..." 반환. 키가 없으면 None (평문 저장 금지)."""
+    fernet = _get_fernet()
+    if fernet is None:
+        return None
+    return f"{_ENC_PREFIX}{fernet.encrypt(value.encode()).decode()}"
+
+
+def decrypt_value(value: str | None) -> str | None:
+    """encrypt_value 결과 복호화. 키 없음·형식 오류·키 변경 시 None."""
+    if not value or not value.startswith(_ENC_PREFIX):
+        return None
+    try:
+        fernet = _get_fernet()
+        if fernet is None:
+            return None
+        return fernet.decrypt(value[len(_ENC_PREFIX):].encode()).decode()
+    except Exception:
+        return None
