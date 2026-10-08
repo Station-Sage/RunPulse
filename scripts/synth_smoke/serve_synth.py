@@ -16,6 +16,9 @@ def make_app(db: Path):
     import src.db_setup as dbs
 
     dbs.get_db_path = lambda user_id=None, *, create=True: db
+    import src.services.calendar_feed_index as cfi
+
+    cfi.index_path = lambda: db.parent / "calendar_feeds.db"
     from src.web.app import create_app
 
     return create_app()
