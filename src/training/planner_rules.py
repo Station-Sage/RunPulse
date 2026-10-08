@@ -178,10 +178,11 @@ def assign_long_run_slot(available_days: list[int],
 # ── 페이스 처방 (Daniels VDOT 테이블) ────────────────────────────────────
 
 def get_paces_from_vdot(vdot: float | None,
-                        config: dict | None) -> dict[str, int]:
+                        config: dict | None,
+                        conn=None) -> dict[str, int]:
     """VDOT_ADJ → E/T/I/R 페이스 (sec/km).
 
-    VDOT 없으면 eFTP 기반 fallback, 없으면 config threshold_pace fallback.
+    VDOT 없으면 eFTP 기반 fallback, 없으면 프로필 threshold_pace(자체/기기/직접 선택 반영, conn 필요) fallback.
     """
     if vdot and vdot > 20:
         try:
@@ -193,7 +194,7 @@ def get_paces_from_vdot(vdot: float | None,
     tp = 300
     if config:
         from src.services.profile_service import effective_value
-        tp_cfg = effective_value(config, "threshold_pace")
+        tp_cfg = effective_value(config, "threshold_pace", conn)
         if tp_cfg:
             try:
                 tp = int(tp_cfg)

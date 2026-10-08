@@ -151,3 +151,14 @@ def test_job_routes(monkeypatch, tmp_path):
         sync_jobs.update_job(jid, status="completed", result_json='{"before_after": []}')
         assert c.get(f"/api/v1/data/jobs/{jid}").get_json()["data"]["state"] == "done"
         assert c.get("/api/v1/data/jobs/nope").status_code == 404
+
+
+def test_planner_paces_use_profile_threshold(conn):
+    from src.training.planner_rules import get_paces_from_vdot
+
+    cfg = {"profile": {"overrides": {"threshold_pace": 280}, "source_choice": {"threshold_pace": "manual"}}}
+    assert get_paces_from_vdot(None, cfg, conn)["T"] == 280
+    assert get_paces_from_vdot(None, {}, conn)["T"] == 300
+    conn.execute("INSERT INTO metric_store VALUES ('vdot','daily','2026-10-01',50,'runpulse:formula_v1',1)")
+    cfg = {"profile": {"source_choice": {"threshold_pace": "self"}}}
+    assert ps.effective_value(cfg, "threshold_pace", conn) != 300

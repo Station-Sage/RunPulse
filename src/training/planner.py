@@ -173,7 +173,7 @@ def generate_weekly_plan(
             template.append("easy")
 
     # 거리 배분
-    paces = get_paces_from_vdot(vdot, config)
+    paces = get_paces_from_vdot(vdot, config, conn)
     dists = distribute_volume(template, total_km, long_km)
 
     # 인터벌 처방 JSON 생성

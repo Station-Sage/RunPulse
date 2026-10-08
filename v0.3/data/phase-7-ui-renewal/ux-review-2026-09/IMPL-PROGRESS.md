@@ -627,4 +627,4 @@
 ## S8b — 기준값 변경 미리보기·재계산 작업 (2026-10-08)
 - 백엔드: `recompute_service`(start/job_view/preview_profile/snapshot/before_after), `POST /data/profile/preview`, `PATCH /data/profile {recompute}`, `POST /data/recompute`, `GET /data/jobs/:id`. 작업 원장 `sync_jobs`에 `result_json` 추가(ADR-028). `zones_analysis`는 conn을 넘겨 자체/기기 선택이 HR 존에 반영됨.
 - 프런트: `RecomputeSummary`(폴링·전후 표), `BaselineRow` 변경 확인(`적용하고 재계산 / 적용만 / 취소`), `lib/recompute.ts`.
-- 한계: `planner_rules`의 역치 페이스는 conn 없어 자체/기기 선택 미반영. 옛 `GET /recompute-metrics`는 폐기 예정.
+- `planner_rules.get_paces_from_vdot`에 conn 전달 → 역치 페이스 자체/기기/직접 선택 반영(테스트 동반). 옛 `GET /recompute-metrics`는 폐기 예정.
