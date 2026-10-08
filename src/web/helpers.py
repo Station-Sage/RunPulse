@@ -438,7 +438,7 @@ async function bgPollAll(sources) {
     }
     bgUpdateAllUI(active);
     var allDone = active.every(function(d) {
-      return d.status === 'completed' || d.status === 'stopped';
+      return d.status === 'completed' || d.status === 'stopped' || d.status === 'cancelled';
     });
     if (allDone) {
       bgStopPolling();

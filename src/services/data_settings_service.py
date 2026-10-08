@@ -10,20 +10,15 @@ _DEFAULTS = {"enabled": True, "interval_hours": 4, "days": 2}
 
 
 def set_source_enabled(config: dict, user_id: str, provider: str, enabled: bool) -> dict:
-    """소스 동기화 포함 여부를 저장한다. 끄면 대기 중인 작업을 중지 처리한다."""
+    """소스 동기화 포함 여부를 저장한다. 끄면 활성 작업을 cancelled(재개 불가)로 마감한다."""
     set_sync_source(config, provider, enabled)
     save_config(config, user_id=user_id)
+    cancelled: list[str] = []
     if not enabled:
-        _stop_pending(provider, user_id)
-    return {"provider": provider, "sync_enabled": provider in enabled_sources(config)}
-
-
-def _stop_pending(provider: str, user_id: str) -> None:
-    from src.utils.sync_jobs import get_active_job
-    from src.web.bg_sync import stop_job
-
-    if get_active_job(provider) is not None:
-        stop_job(provider, user_id)
+        from src.web.bg_sync import cancel_job
+        cancelled = cancel_job(provider, user_id)
+    return {"provider": provider, "sync_enabled": provider in enabled_sources(config),
+            "cancelled_job_ids": cancelled, "auto_sync_applies": "next_run"}
 
 
 def auto_settings(config: dict, last_run: datetime | None, now: datetime | None = None) -> dict:

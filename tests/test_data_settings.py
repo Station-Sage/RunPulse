@@ -18,7 +18,8 @@ def env(monkeypatch):
     monkeypatch.setattr(rd, "get_current_user_id", lambda: "u")
     monkeypatch.setattr(rd, "load_config", lambda user_id=None: cfg)
     monkeypatch.setattr(svc, "save_config", lambda c, user_id=None: saved.append(dict(c)))
-    monkeypatch.setattr(svc, "_stop_pending", lambda p, u: stopped.append(p))
+    import src.web.bg_sync as bgs
+    monkeypatch.setattr(bgs, "cancel_job", lambda p, u=None, reason="source_disabled": stopped.append(p) or ["j1"])
     import src.web.auto_sync as asy
     monkeypatch.setattr(asy, "restart", lambda c, u: restarted.append(c.get("auto_sync")))
     import src.utils.sync_state as ss
@@ -33,7 +34,9 @@ def test_disable_source_stops_pending(env):
     c, cfg, saved, stopped, _ = env
     r = c.patch("/api/v1/data/sources/strava", json={"sync_enabled": False})
     assert r.status_code == 200
-    assert r.get_json()["data"] == {"provider": "strava", "sync_enabled": False}
+    assert r.get_json()["data"] == {"provider": "strava", "sync_enabled": False,
+                                         "cancelled_job_ids": ["j1"],
+                                         "auto_sync_applies": "next_run"}
     assert cfg["sync_sources"] == ["garmin"] and saved and stopped == ["strava"]
 
 

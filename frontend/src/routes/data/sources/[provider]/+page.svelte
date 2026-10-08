@@ -74,6 +74,11 @@
 					{enabled ? '켜짐' : '꺼짐'}
 				</label>
 			</section>
+			<p class="text-xs text-fg-secondary">
+				{enabled
+					? '끄면 자동·수동 동기화에서 빠지고, 진행 중인 동기화는 중단돼요. 과거 기록은 그대로 보존돼요.'
+					: '꺼진 동안은 새 데이터를 가져오지 않아요. 과거 기록은 그대로 보존돼요.'}
+			</p>
 			{#if undoVisible}
 				<p class="text-xs text-fg-secondary" role="status">
 					동기화에서 제외했어요 <button type="button" class="underline" onclick={() => setEnabled(true, true)}>되돌리기</button>

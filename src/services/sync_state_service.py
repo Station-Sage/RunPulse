@@ -66,7 +66,7 @@ def classify_error(job: SyncJob | None) -> dict | None:
     if job is None:
         return None
     text = job.last_error or ""
-    if job.status in ("running", "pending", "paused", "stopped"):
+    if job.status in ("running", "pending", "paused", "stopped", "cancelled"):
         return None
     if job.status == "completed" and not any(code in text for code in ("401", "403")):
         return None

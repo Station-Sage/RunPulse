@@ -139,7 +139,7 @@
 
 - functions: run_dict, runs, sources, source_detail, summary
 
-### `data_settings_service.py` (79줄) — Data 설정 쓰기 — 소스 동기화 on/off, 자동 동기화 설정 (design 40 §7.3).
+### `data_settings_service.py` (74줄) — Data 설정 쓰기 — 소스 동기화 on/off, 자동 동기화 설정 (design 40 §7.3).
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
@@ -965,7 +965,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1365줄) — RunPulse integration workbench web app.
+### `app.py` (1380줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -977,11 +977,11 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (581줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (606줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
-- class **BgSyncThread**: pause, resume, stop, run
-- functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
+- class **BgSyncThread**: pause, resume, stop, cancel, run
+- functions: start_job, pause_job, stop_job, cancel_job, resume_job, start_basic_sync, get_status
 
 ### `gunicorn_logging.py` (24줄) — gunicorn 로거 — 캘린더 구독 토큰(/feeds/cal/<token>.ics)을 접근 로그에서 마스킹.
 
@@ -1188,7 +1188,7 @@
 
 - functions: settings_view, settings_profile_post, settings_training_prefs_post, settings_ai_post, settings_mapbox_post, settings_prompts_post, settings_prompts_reset, settings_caldav_post, settings_caldav_test
 
-### `views_settings_garmin.py` (586줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
+### `views_settings_garmin.py` (590줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
 
 - functions: garmin_connect_view, garmin_connect_post, garmin_mfa_view, garmin_mfa_submit, garmin_disconnect, garmin_browser_login, garmin_upload_token, garmin_paste_token, garmin_cf_settings_post, garmin_download_script, garmin_download_env
 
@@ -1484,7 +1484,7 @@
 
 - functions: copy_to_clipboard, handle_clipboard_option
 
-### `config.py` (188줄) — 설정 파일(config.json) 로드/저장 유틸리티.
+### `config.py` (178줄) — 설정 파일(config.json) 로드/저장 유틸리티.
 
 - functions: get_config_path, enabled_sources, set_sync_source, load_config, save_config, update_service_config, redact_config_for_display
 
@@ -1820,10 +1820,10 @@
 - class **_Timeout**: 없음
 - functions: test_all_batches_failed_marks_failed, test_partial_success_stays_completed, test_exception_in_batch_is_classified
 
-### `test_bg_sync_concurrency.py` (64줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
+### `test_bg_sync_concurrency.py` (83줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
 
 - class **_FakeThread**: start, is_alive
-- functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot
+- functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop, test_resume_ignores_cancelled_job
 
 ### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
 
@@ -2045,7 +2045,7 @@
 
 - functions: conn, test_sources_cards_have_two_axes_and_counts, test_source_detail_counts_and_coverage, test_source_detail_unknown_is_none, test_runs_parse_counts_and_filter_errors, test_summary_tiles, test_summary_empty_db_does_not_raise, client, test_endpoints
 
-### `test_data_settings.py` (72줄) — PATCH /data/sources/<p>, /data/sync/auto — 소스 on/off·자동 동기화 설정.
+### `test_data_settings.py` (75줄) — PATCH /data/sources/<p>, /data/sync/auto — 소스 on/off·자동 동기화 설정.
 
 - functions: env, test_disable_source_stops_pending, test_enable_source_does_not_stop, test_source_validation, test_auto_patch_saves_and_restarts, test_auto_patch_rejects, test_auto_settings_next_run
 
@@ -2730,9 +2730,9 @@
 
 - functions: test_migrate_alone_fails_on_empty_db, test_create_tables_then_migrate_on_empty_db
 
-### `test_story_service.py` (94줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
+### `test_story_service.py` (110줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
 
-- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_route
+- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route
 
 ### `test_strava_403_ledger.py` (49줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
@@ -2782,9 +2782,9 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
-### `test_sync_state_service.py` (102줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
+### `test_sync_state_service.py` (107줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
 
-- functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream
+- functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream, test_cancelled_job_is_not_an_error
 
 ### `test_sync_trigger_service.py` (100줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
 
@@ -2893,6 +2893,10 @@
 ### `test_utrs.py` (114줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
+
+### `test_v1_sync_guards.py` (42줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
+
+- functions: client, test_bg_start_blocks_disabled_source, test_bg_start_allows_enabled_source, test_bg_resume_blocks_disabled_source, test_stream_skips_disabled_source
 
 ### `test_validator.py` (376줄) — DataValidator 테스트.
 
@@ -3020,7 +3024,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 636개 파일
+총 637개 파일
 
 ## docstring 누락
 

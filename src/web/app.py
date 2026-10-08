@@ -735,8 +735,13 @@ def create_app() -> Flask:
             results = []
             yield _sse({"type": "start", "sources": sources_to_sync})
 
+            from src.utils.config import enabled_sources as _enabled
             for src in sources_to_sync:
                 yield _sse({"type": "source_start", "source": src})
+                if src not in _enabled(config):
+                    yield _sse({"type": "source_done", "source": src, "ok": False, "skipped": True,
+                                "count": 0, "reason": "disabled"})
+                    continue
 
                 conn_status = checkers[src](config)
                 if not conn_status["ok"]:
@@ -974,6 +979,10 @@ def create_app() -> Flask:
         update_service_config("garmin", {"tokenstore": str(tokenstore)}, user_id=user_id)
 
         config = load_config(user_id=user_id)
+        from src.utils.config import enabled_sources as _enabled
+        if "garmin" not in _enabled(config):
+            return jsonify({"status": "token_saved", "job_id": None,
+                            "message": "토큰은 저장했어요. Garmin이 동기화 대상에서 꺼져 있어 동기화는 시작하지 않았어요."})
         to_date = _date.today().isoformat()
         from_date = (_date.today() - timedelta(days=days)).isoformat()
         log.info("[local-sync] bg_sync 시작: %s ~ %s", from_date, to_date)
@@ -995,6 +1004,7 @@ def create_app() -> Flask:
         from datetime import date as _date
         from flask import jsonify
         from .bg_sync import start_job
+        from src.utils.config import enabled_sources
         source = request.form.get("source", "").strip()
         from_date = request.form.get("from_date", "").strip()
         to_date = request.form.get("to_date", "").strip() or _date.today().isoformat()
@@ -1013,6 +1023,8 @@ def create_app() -> Flask:
         from .helpers import get_current_user_id
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
+        if source not in enabled_sources(config):
+            return jsonify({"ok": False, "error": "동기화 대상에서 꺼져 있어요"}), 409
         job_id = start_job(source, from_date, to_date, config, user_id=user_id)
         return jsonify({"ok": True, "job_id": job_id, "source": source})
 
@@ -1036,10 +1048,13 @@ def create_app() -> Flask:
     def bg_sync_resume():
         from flask import jsonify
         from .bg_sync import resume_job
+        from src.utils.config import enabled_sources
         from .helpers import get_current_user_id
         source = request.form.get("source", "").strip()
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
+        if source not in enabled_sources(config):
+            return jsonify({"ok": False, "error": "동기화 대상에서 꺼져 있어요"}), 409
         ok = resume_job(source, config, user_id=user_id)
         return jsonify({"ok": ok})
 

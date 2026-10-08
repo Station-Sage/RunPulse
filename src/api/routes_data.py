@@ -95,7 +95,7 @@ def get_sync_estimate():
     return api_ok(estimate(provider, frm, to))
 
 
-_TERMINAL = ("completed", "stopped", "failed")
+_TERMINAL = ("completed", "stopped", "failed", "cancelled")
 
 
 @api_bp.post("/data/sync/runs/<run_id>/cancel")

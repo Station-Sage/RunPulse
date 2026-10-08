@@ -62,3 +62,22 @@ def test_create_failure_releases_slot(monkeypatch):
     except RuntimeError:
         pass
     assert ("u", "garmin") not in bg_sync._threads
+
+
+def test_cancel_job_marks_cancelled_with_reason(monkeypatch):
+    jobs = [SimpleNamespace(id="j1")]
+    calls = []
+    monkeypatch.setattr(bg_sync, "get_active_job", lambda s: jobs[0] if jobs else None)
+    monkeypatch.setattr(bg_sync, "update_job", lambda jid, **kw: (calls.append((jid, kw)), jobs.clear()))
+    assert bg_sync.cancel_job("strava", "u") == ["j1"]
+    assert calls == [("j1", {"status": "cancelled", "error_code": "source_disabled"})]
+
+
+def test_cancel_job_without_active_job_is_noop(monkeypatch):
+    monkeypatch.setattr(bg_sync, "get_active_job", lambda s: None)
+    assert bg_sync.cancel_job("strava", "u") == []
+
+
+def test_resume_ignores_cancelled_job(monkeypatch):
+    monkeypatch.setattr(bg_sync, "get_active_job", lambda s: None)
+    assert bg_sync.resume_job("strava", {}, "u") is False

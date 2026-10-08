@@ -79,6 +79,7 @@ class BgSyncThread(threading.Thread):
         self.user_id = user_id
         self._pause_event = threading.Event()
         self._stop_event = threading.Event()
+        self._cancelled = False   # 소스 제외로 인한 취소 — 재개 불가 상태로 마감
         self._pause_event.set()   # 기본: 실행 상태
         self._last_garmin_login: float = 0.0  # monotonic timestamp of last garmin login
         self._batch_error: SyncSourceError | None = None  # 일반 예외로 끝난 첫 배치 오류
@@ -92,6 +93,13 @@ class BgSyncThread(threading.Thread):
     def stop(self) -> None:
         self._stop_event.set()
         self._pause_event.set()   # 일시정지 해제 → 루프 종료 진행
+
+    def cancel(self) -> None:
+        self._cancelled = True
+        self.stop()
+
+    def _stopped(self, **kwargs) -> None:
+        update_job(self.job_id, status="cancelled" if self._cancelled else "paused", **kwargs)
 
     def run(self) -> None:
         from src.utils.sync_state import set_current_user
@@ -144,7 +152,7 @@ class BgSyncThread(threading.Thread):
         for win_from, win_to in pending:
             # 1) 중지 확인
             if self._stop_event.is_set():
-                update_job(self.job_id, status="paused", current_from=win_from)
+                self._stopped(current_from=win_from)
                 return
 
             # 2) 일시정지 대기
@@ -152,7 +160,7 @@ class BgSyncThread(threading.Thread):
                 update_job(self.job_id, status="paused")
                 self._pause_event.wait()
                 if self._stop_event.is_set():
-                    update_job(self.job_id, status="paused", current_from=win_from)
+                    self._stopped(current_from=win_from)
                     return
 
             update_job(self.job_id, status="running", current_from=win_from)
@@ -171,7 +179,7 @@ class BgSyncThread(threading.Thread):
                 )
                 self._interruptible_sleep(float(retry_sec))
                 if self._stop_event.is_set():
-                    update_job(self.job_id, status="paused", current_from=win_from)
+                    self._stopped(current_from=win_from)
                     return
                 update_job(
                     self.job_id, status="running",
@@ -503,6 +511,23 @@ def stop_job(service: str, user_id: str | None = None) -> bool:
     if job:
         update_job(job.id, status="stopped")
     return False
+
+
+def cancel_job(service: str, user_id: str | None = None, reason: str = "source_disabled") -> list[str]:
+    """소스 제외로 활성 작업을 cancelled(재개 불가)로 마감한다. 취소한 job_id 목록 반환."""
+    ids = []
+    job = get_active_job(service)
+    while job is not None and job.id not in ids:
+        ids.append(job.id)
+        job = None
+        with _lock:
+            t = _find_thread(service, user_id)
+        if isinstance(t, BgSyncThread) and t.is_alive():
+            t.cancel()
+            t.join(timeout=5)
+        update_job(ids[-1], status="cancelled", error_code=reason)
+        job = get_active_job(service)
+    return ids
 
 
 def resume_job(service: str, config: dict, user_id: str = "default") -> bool:

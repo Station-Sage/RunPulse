@@ -111,7 +111,7 @@ def windows(from_date: str, to_date: str, window_days: int) -> list[tuple[str, s
     return result
 
 
-_TERMINAL_STATUSES = ("completed", "stopped", "failed", "rate_limited", "auth_required")
+_TERMINAL_STATUSES = ("completed", "stopped", "failed", "rate_limited", "auth_required", "cancelled")
 
 
 # ── DB 헬퍼 ─────────────────────────────────────────────────────────────
@@ -242,7 +242,7 @@ def get_active_job(service: str) -> SyncJob | None:
     with _conn() as conn:
         row = conn.execute(
             f"SELECT {_COLS} FROM sync_jobs "
-            "WHERE service = ? AND status NOT IN ('completed', 'stopped', 'failed') "
+            "WHERE service = ? AND status NOT IN ('completed', 'stopped', 'failed', 'cancelled') "
             "ORDER BY created_at DESC LIMIT 1",
             (service,),
         ).fetchone()

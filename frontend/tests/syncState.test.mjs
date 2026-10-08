@@ -127,3 +127,10 @@ test('completionSummary: 갱신·확인 필요 집계, 전이 아니면 null', (
 		'동기화 완료 · 1개 소스 갱신'
 	);
 });
+
+test('rowAction: 꺼진 소스는 다시 포함, 접근 오류는 제외, 그 외 없음', async () => {
+	const { rowAction } = await import('../src/lib/syncState.ts');
+	assert.equal(rowAction(src({ state: 'disabled', enabled: false })).enable, true);
+	assert.equal(rowAction(src({ state: 'error-access' })).enable, false);
+	assert.equal(rowAction(src({ state: 'idle-ok' })), null);
+});

@@ -90,7 +90,7 @@ export function sourceLine(src: SyncSource, now: Date = new Date()): { glyph: st
 		case 'not_connected':
 			return { glyph: '○', text: '미연결' };
 		case 'disabled':
-			return { glyph: '○', text: '동기화 꺼짐' };
+			return { glyph: '○', text: '동기화 꺼짐 · 과거 기록은 보존돼요' };
 		case 'running':
 			return { glyph: '⟳', text: `동기화 중 ${src.running?.progress_pct ?? 0}%` };
 		case 'never':
@@ -102,6 +102,19 @@ export function sourceLine(src: SyncSource, now: Date = new Date()): { glyph: st
 		default:
 			return { glyph: '▲', text: src.last_error?.message_ko ?? '오류' };
 	}
+}
+
+export interface RowAction {
+	kind: 'include' | 'exclude';
+	label: string;
+	enable: boolean;
+}
+
+/** 소스 행의 토글 액션 — 꺼진 소스는 [다시 포함], 접근 오류 소스는 [동기화에서 제외] (design SYNC-SOURCE-TOGGLE §T5) */
+export function rowAction(src: SyncSource): RowAction | null {
+	if (src.state === 'disabled') return { kind: 'include', label: '다시 포함', enable: true };
+	if (src.state === 'error-access') return { kind: 'exclude', label: '동기화에서 제외', enable: false };
+	return null;
 }
 
 export const isSyncRunning = (s: SyncState | null): boolean =>

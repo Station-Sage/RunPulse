@@ -56,6 +56,10 @@ def _trigger_sync_and_redirect(user_id: str, days: int):
 
     days = max(1, min(days, 90))
     config = load_config(user_id=user_id)
+    from src.utils.config import enabled_sources
+    if "garmin" not in enabled_sources(config):
+        return redirect("/connect/garmin?msg=" + urllib.parse.quote(
+            "토큰 저장 완료. Garmin이 동기화 대상에서 꺼져 있어 동기화는 시작하지 않았어요."))
     to_date = _date.today().isoformat()
     from_date = (_date.today() - timedelta(days=days)).isoformat()
     try:

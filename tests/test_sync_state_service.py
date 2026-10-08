@@ -100,3 +100,8 @@ def test_legacy_row_403_maps_to_subscription_required():
 def test_upstream_codes_group_to_error_upstream():
     from src.services.sync_state_service import _STATE_GROUP
     assert _STATE_GROUP.get("timeout", "upstream") == "upstream"
+
+
+def test_cancelled_job_is_not_an_error():
+    from src.services.sync_state_service import classify_error
+    assert classify_error(_job("strava", "cancelled", 1, None)) is None

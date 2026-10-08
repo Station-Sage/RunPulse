@@ -8,7 +8,7 @@
 
 - **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 러닝으로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. **코드 수정 완료(2026-09-26, `_RUNNING_TYPES`에 추가)** — 기존 DB 16건(`activity_type='indoor_running'`) 정정·재계산은 실 DB 작업(백필 런북과 함께)으로 남음.
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
-- **[AUDIT-V-CANONICAL]** `views_report.py` 등 일부 뷰에서 `v_canonical_activities` 대신 `activity_summaries` 직접 쿼리 → 중복 활동 포함 위험. **(판단 필요)** UI 재설계 범위와 함께 결정.
+- **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거(SYNC-SOURCE-TOGGLE G6)와 함께 해소.**
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
@@ -16,7 +16,7 @@
 
 ## NEXT
 
-- **[SYNC-SOURCE-TOGGLE]** 토글·자동/v2 수동 필터는 구현됨. T1(자동 동기화가 실행마다 config 재로딩, 2026-10-08)로 재시작 없이 반영. 남은 구멍은 `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md` G2~G6(v1 경로 가드, 끄면 cancelled, 레거시 `*_disabled` 마이그레이션, `/data/sync` 행 버튼) — 설계 40 S3/S4로 이관. 전체 보류 목록: `ux-review-2026-09/IMPL-PROGRESS.md` 「보류·인수인계」.
+- **[SYNC-SOURCE-TOGGLE]** T1·T3(끄면 cancelled)·T4(v1 경로 가드)·T5(`/data/sync` 행 버튼) 완료(2026-10-08). 남은 것: T2(레거시 `*_disabled` 마이그레이션), T6(v1 제거=G6, AUDIT-V-CANONICAL 동반). 설계: `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md`.
 
 - **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 
@@ -26,7 +26,7 @@
 - **[USER-CAL-FEED]** 캘린더 구독: Cloudflare Access에 `/feeds/cal/*` Bypass 추가 → 구글 캘린더에서 실제 구독·갱신 확인.
 - **[USER-CONNECTOR-OAUTH]** claude.ai 커넥터 Google Drive·Notion·Strava·Tredict는 OAuth 인증 필요(claude.ai 커넥터 설정 또는 대화형 세션 `/mcp`). 인증 전까지 해당 연동 사용 불가.
 - **[USER-PYTEST-MCP]** `pytest` MCP 서버가 `CONNECTION_CLOSED`로 연결 실패 — 설정·실행 명령 확인 필요.
-- **[USER-DECISION]** `AUDIT-V-CANONICAL`(판단 필요), `SYNC-SOURCE-TOGGLE` G2~G6 착수 여부, Phase 7c(조정 수락 영속화) 방향.
+- **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 설계 진행 중.
 
 ## DONE (recent)
 - **[MARATHON-LOG-LAPS]** 9/4·9/10·9/17 세션 랩을 일일 로그 및 W13·W14·W15 주간 로그에 반영(2026-10-08, 로그는 gitignore). 9/4는 랩 구분이 계획 3×2k와 불일치해 세트 해석 보류로 기재.
