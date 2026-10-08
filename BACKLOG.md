@@ -19,9 +19,9 @@
 - **[SYNC-SOURCE-TOGGLE]** 토글·자동/v2 수동 필터는 구현됨. T1(자동 동기화가 실행마다 config 재로딩, 2026-10-08)로 재시작 없이 반영. 남은 구멍은 `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md` G2~G6(v1 경로 가드, 끄면 cancelled, 레거시 `*_disabled` 마이그레이션, `/data/sync` 행 버튼) — 설계 40 S3/S4로 이관. 전체 보류 목록: `ux-review-2026-09/IMPL-PROGRESS.md` 「보류·인수인계」.
 
 - **[MCP-REMOTE]** 원격 MCP(Genspark 등 VPS 외부 클라이언트 연결). 현재 MCP는 stdio 전용이라 외부 접속 불가 → HTTP 전송 + 토큰 인증 + 외부 노출 범위(읽기 전용, 유저 스코프) 설계 필요. **선행: MCP-TOKEN-OPT 완료.** 노출/인증은 설계 변경이므로 착수 전 plan 승인 필수. 그 전까지 Genspark로 로그를 넘기는 임시 방식(zip 업로드 vs 복붙)과 로그의 원본 위치는 미결정.
-- **[MARATHON-LOG-LAPS]** 훈련 로그(`data/2026_marathon_plan/`, gitignore 대상)에 세트별 랩 반영. 2026-09-10(ACTIVE 2세트)·09-17(4세트)은 랩이 이미 적재됨, 09-04 크루즈는 아직 랩 없음(date-range 동기화 필요). 반영 후 W13·W14 주간 로그와 일일 로그 갱신. 팩트 위주·`60_TEMPLATES` 양식 유지.
 
 ## DONE (recent)
+- **[MARATHON-LOG-LAPS]** 9/4·9/10·9/17 세션 랩을 일일 로그 및 W13·W14·W15 주간 로그에 반영(2026-10-08, 로그는 gitignore). 9/4는 랩 구분이 계획 3×2k와 불일치해 세트 해석 보류로 기재.
 - **[MCP-CLIENT-VERIFY]** 실클라이언트(Claude Code 세션)에서 `mcp__runpulse__get_training_summary` 호출 성공(2026-10-08, 주별 요약·notable 정상 반환) — ADR-016 stdio 프레임 수정 검증 완료. 로컬 `.mcp.json`의 `sqlite`(default DB) 항목 정정은 로컬 설정이라 미수행.
 - **[UI-S12-STORY]** 훈련 이야기(월·주) 구현(ADR-032). `/api/v1/library/story/<period>` + `story_service/period/stats` 3모듈, 프론트 `/library/story/[period]`(Svelte 5) 이전·다음·월/주 전환·강도 분포·대표 세션·마일스톤. 블록 스코프는 `NotImplemented`(계획 페이즈 날짜 매핑 미정) → 400.
 - **[OPS-OCI-MIGRATION]** 서버를 AWS Lightsail(x86_64) → OCI 춘천 A1(aarch64, 4 OCPU/24GB)로 이전(2026-09-27 01:39 KST 전환, 다운타임 약 2분). DB 4개 integrity_check·테이블별 행 수 일치 확인. 컨테이너 포트는 127.0.0.1 바인딩(`docker-compose.override.yml`, git 제외), cloudflared는 token-file 방식. 같은 날 AI 기본 모델 종료(404) 대응으로 `config.json`의 `ai.gemini_model=gemini-flash-latest`, `ai.groq_model=openai/gpt-oss-120b` 설정(코드 기본값 `gemini-2.0-flash`/`llama-3.3-70b-versatile`은 둘 다 서비스 종료 — 코드 기본값 갱신은 미수행).
