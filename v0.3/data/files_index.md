@@ -50,7 +50,7 @@
 
 - functions: parse_args, sport_types, build_where, order_clause
 
-### `activity_list_rows.py` (62줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
+### `activity_list_rows.py` (74줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
 
 - functions: is_generic_name, display_title, enrich_rows
 
@@ -1671,9 +1671,9 @@
 - class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
 - functions: app
 
-### `test_activity_service.py` (308줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
+### `test_activity_service.py` (318줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
-- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_meta_unknown_without_row, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many
+- functions: conn, test_get_activity_list_basic, test_get_activity_list_filter_type, test_get_activity_list_filter_date_range, test_get_activity_list_pagination, test_get_activity_list_sort, test_get_activity_list_sort_injection_guard, test_get_activity_list_empty, test_get_activity_detail_core, test_get_activity_detail_metrics_by_category, test_get_activity_detail_source_comparison, test_get_activity_detail_semantic_groups, test_get_activity_detail_streams, test_get_activity_detail_streams_downsampled_over_500_points, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_source_filter, test_get_activity_streams_meta_unknown_without_row, test_get_activity_streams_empty, test_get_activity_trend, test_get_activity_trend_empty, test_list_route_preview_downsampled_and_none_without_gps, test_route_previews_skips_when_too_many, test_list_source_count_merged_and_solo
 
 ### `test_activity_splits.py` (84줄) — activity_splits — 서버 스플릿·series 계산 테스트.
 

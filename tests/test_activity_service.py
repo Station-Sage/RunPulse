@@ -306,3 +306,13 @@ def test_route_previews_skips_when_too_many(conn):
     c, act1_id, _ = conn
     assert _route_previews(c, list(range(1, 60))) == {}
     assert _route_previews(c, []) == {}
+
+
+def test_list_source_count_merged_and_solo(conn):
+    c, act1, _ = conn
+    c.execute("INSERT INTO activity_summaries (source, source_id, name, activity_type, start_time, distance_m)"
+              " VALUES ('garmin', 'solo1', 'x', 'running', '2026-04-05T08:00:00Z', 5000)")
+    c.commit()
+    rows = {a["source_id"]: a for a in get_activity_list(c)["activities"]}
+    assert rows["g123"]["source_count"] == 2
+    assert rows["solo1"]["source_count"] == 1

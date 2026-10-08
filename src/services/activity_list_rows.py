@@ -41,17 +41,29 @@ def _fetch(conn: sqlite3.Connection, ids: list[int], metric: str, col: str, prov
     return out
 
 
+def _source_counts(conn: sqlite3.Connection, activities: list[dict]) -> dict[str, int]:
+    groups = sorted({a["matched_group_id"] for a in activities if a.get("matched_group_id")})
+    if not groups:
+        return {}
+    marks = ",".join("?" * len(groups))
+    return {g: n for g, n in conn.execute(
+        f"SELECT matched_group_id, COUNT(DISTINCT source) FROM activity_summaries"
+        f" WHERE matched_group_id IN ({marks}) GROUP BY matched_group_id", groups)}
+
+
 def enrich_rows(conn: sqlite3.Connection, activities: list[dict]) -> None:
-    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race, rpe를 추가(제자리)."""
+    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race, rpe, source_count를 추가(제자리)."""
     if not activities:
         return
     ids = [a["id"] for a in activities]
     classes = _fetch(conn, ids, "workout_type_classified", "text_value", "runpulse%")
     loads = _fetch(conn, ids, "hrss", "numeric_value", "runpulse%")
     feedbacks = feedback_for_activities(conn, ids)
+    counts = _source_counts(conn, activities)
     for a in activities:
         fb = feedbacks.get(a["id"])
         a["rpe"] = fb["rpe"] if fb else None
+        a["source_count"] = max(1, counts.get(a.get("matched_group_id"), 1))
         key = _CLASS_TO_KEY.get(classes.get(a["id"]))
         label = TAG_LABELS.get(key) if key else None
         load = loads.get(a["id"])

@@ -22,6 +22,7 @@
 		duration_sec?: number | null;
 		avg_hr?: number | null;
 		avg_pace_sec_km?: number | null;
+		source_count?: number;
 		source?: string;
 		route?: [number, number][] | null;
 	}
@@ -57,6 +58,7 @@
 			<span>{dayLabel(act.start_time)}</span>
 			{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
 			{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
+			{#if (act.source_count ?? 1) > 1}<span class="rounded border border-semantic-teal/50 px-1 py-px text-[9px] text-semantic-teal" data-testid="merged-badge">{act.source_count}소스 병합</span>{/if}
 			{#if flag}<span class="flex items-center gap-0.5 text-[10px] text-semantic-amber" title={flag.title}><Icon name="warning" class="h-3 w-3" /> {flag.label}</span>{/if}
 			{#if showProvider && act.source}
 				<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(act.source as ProviderKey)}">{providerLabel(act.source as ProviderKey)}</span>
