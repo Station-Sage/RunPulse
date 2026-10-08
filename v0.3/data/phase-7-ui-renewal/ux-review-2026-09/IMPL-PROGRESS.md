@@ -628,3 +628,8 @@
 - 백엔드: `recompute_service`(start/job_view/preview_profile/snapshot/before_after), `POST /data/profile/preview`, `PATCH /data/profile {recompute}`, `POST /data/recompute`, `GET /data/jobs/:id`. 작업 원장 `sync_jobs`에 `result_json` 추가(ADR-028). `zones_analysis`는 conn을 넘겨 자체/기기 선택이 HR 존에 반영됨.
 - 프런트: `RecomputeSummary`(폴링·전후 표), `BaselineRow` 변경 확인(`적용하고 재계산 / 적용만 / 취소`), `lib/recompute.ts`.
 - `planner_rules.get_paces_from_vdot`에 conn 전달 → 역치 페이스 자체/기기/직접 선택 반영(테스트 동반). 옛 `GET /recompute-metrics`는 폐기 예정.
+
+## S9 — 내보내기 (2026-10-08)
+- 백엔드: `src/services/export_service.py`(CSV 3종·아카이브 zip·이력/만료), `src/api/routes_data_export.py`(`POST /data/export`, `GET /data/exports`, `GET /data/exports/:id/download`). ADR-029.
+- 프론트: `/data/export` 재작성(기간 선택, 빠른 CSV 3종, 아카이브 작업·이력, .ics, AI 전송 안내), `lib/exports.ts`, `tests/exports.test.mjs`.
+- 남음: 가져오기 미리보기/확정(F-DATA-08), AI 설정 페이지(`/data/settings/ai`, 안내 링크 대상), .ics 구독 URL.

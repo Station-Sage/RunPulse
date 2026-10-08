@@ -131,6 +131,10 @@
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
+### `export_service.py` (230줄) — 데이터 내보내기 — 빠른 CSV 3종(활동·웰니스·부하)과 전체 아카이브 zip 작업. 작업 원장은 sync_jobs(service='export').
+
+- functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, build_archive, start_archive, job_view, history
+
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -1364,11 +1368,11 @@
 
 - functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
-### `planner_rules.py` (324줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
+### `planner_rules.py` (325줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (181줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (185줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
@@ -2030,6 +2034,10 @@
 
 - functions: test_find_missing_only_running_with_hr_and_duration, test_backfill_computes_trimp_and_ctl_then_is_idempotent, test_nothing_to_do_returns_empty
 
+### `test_export_service.py` (127줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
+
+- functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_job_view_expiry, test_routes
+
 ### `test_extractor_base.py` (76줄) — BaseExtractor와 MetricRecord 단위 테스트.
 
 - class **DummyExtractor**: extract_activity_core, extract_activity_metrics
@@ -2420,9 +2428,9 @@
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
 
-### `test_planner_schedule_cold.py` (65줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
+### `test_planner_schedule_cold.py` (74줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
 
-- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty, test_start_load_uses_reported_load_only_when_cold, test_week_cap_km_v2_only
+- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty, test_start_load_uses_reported_load_only_when_cold, test_week_cap_km_v2_only, test_long_pace_uses_profile_threshold_without_vdot
 
 ### `test_planner_v2.py` (126줄) — planner_v2 후처리 단위 테스트(순수 함수).
 
@@ -2472,9 +2480,9 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
-### `test_profile_service.py` (153줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
+### `test_profile_service.py` (164줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
 
-- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip, test_preview_zones_and_affected, test_before_after_status, test_job_routes
+- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip, test_preview_zones_and_affected, test_before_after_status, test_job_routes, test_planner_paces_use_profile_threshold
 
 ### `test_progression.py` (37줄) — U16l: 품질 사다리 순수 함수·v29 테이블·저장 서비스.
 
@@ -2907,7 +2915,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 608개 파일
+총 610개 파일
 
 ## docstring 누락
 

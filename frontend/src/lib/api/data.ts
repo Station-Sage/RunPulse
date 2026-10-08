@@ -187,3 +187,36 @@ export const previewProfile = (changes: ProfileChanges) =>
 export const startRecompute = (scope: '90d' | 'all') =>
 	apiFetch<{ job_id: string }>('/data/recompute', { method: 'POST', body: JSON.stringify({ scope }) });
 export const getJob = (id: string) => apiFetch<RecomputeJob>(`/data/jobs/${encodeURIComponent(id)}`);
+
+export type ExportKind = 'quick_activities' | 'quick_wellness' | 'quick_load' | 'archive';
+
+export interface ExportItem {
+	id: string;
+	state: 'queued' | 'running' | 'done' | 'failed' | 'expired';
+	created_at: string | null;
+	finished_at: string | null;
+	result: { filename: string; size_bytes: number; expires_at: string; row_counts: Record<string, number> } | null;
+	error: string | null;
+}
+
+export const getExports = () => apiFetch<{ exports: ExportItem[] }>('/data/exports').then((d) => d.exports);
+export const startArchive = (range: { from?: string; to?: string }) =>
+	apiFetch<{ job_id: string }>('/data/export', { method: 'POST', body: JSON.stringify({ kind: 'archive', ...range }) });
+export const exportDownloadUrl = (id: string) => `/api/v1/data/exports/${encodeURIComponent(id)}/download`;
+
+/** 빠른 CSV를 받아 브라우저 다운로드로 넘긴다. */
+export async function downloadQuick(kind: Exclude<ExportKind, 'archive'>, range: { from?: string; to?: string }) {
+	const res = await fetch('/api/v1/data/export', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ kind, ...range })
+	});
+	if (!res.ok) throw new Error((await res.json().catch(() => null))?.error?.message ?? '내보내기에 실패했어요');
+	const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? `${kind}.csv`;
+	const url = URL.createObjectURL(await res.blob());
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = name;
+	a.click();
+	URL.revokeObjectURL(url);
+}

@@ -203,3 +203,9 @@
 - 사유: 원장에 이미 상태·진행률·재시작 시 stale 정리·사용자별 DB가 있어 별도 테이블은 중복이다. 추천안(원장 재사용)을 택한 이유는 새 스키마·정리 로직을 만들지 않고도 같은 폴링 규약을 쓸 수 있어서다.
 - 범위: `from` 범위는 엔진이 `days`만 지원하므로 오늘-from+1일로 환산. 값 변경 미리보기의 영향 일수는 hrmax/lthr/resting_hr 변경일 때만 계산(주간 목표·역치 페이스는 재계산 불필요).
 - `planner_rules.get_paces_from_vdot(vdot, config, conn)`이 conn을 받아 threshold_pace의 자체/기기/직접 선택을 반영한다(`generate_weekly_plan` 경로). 롱런 페이스용 `planner_schedule._long_pace_fn`도 VDOT가 없을 때 `load_config()`(요청 사용자)와 conn으로 같은 값을 쓴다. 옛 `GET /recompute-metrics`(부작용 GET)는 새 `POST /data/recompute`로 대체 예정이며 v2 UI는 쓰지 않는다.
+
+## ADR-029: 내보내기는 빠른 CSV 스트림 + 아카이브 작업(원장 `service='export'`) (2026-10-08)
+- 결정: 활동·웰니스·부하 CSV는 요청 즉시 파일로 응답하고(UTF-8 BOM), 전체 아카이브(zip)만 `sync_jobs`에 `service='export'`로 기록하는 작업으로 만든다. 파일은 `data/users/<uid>/exports/<job>.zip`, 7일 뒤 만료(다운로드 410). 동시 1건(409 `EXPORT_RUNNING`).
+- 사유: CSV는 수초 안에 끝나 작업 원장이 불필요하고, 아카이브만 원본 payload 때문에 오래 걸릴 수 있다. 원장 재사용(ADR-028)으로 새 테이블 없이 이력·상태를 얻는다. BOM은 Excel 한글 깨짐 방지.
+- 활동 CSV는 매칭 그룹당 1행(소스 우선순위 garmin>strava>intervals>runalyze)에 사람용(h:mm:ss)·기계용(초) 열과 소스별 원값 열을 함께 낸다.
+- 가져오기(F-DATA-08)는 후속 슬라이스.
