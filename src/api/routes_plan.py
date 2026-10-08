@@ -37,10 +37,12 @@ def get_plan_adjustment():
     try:
         result = plan_service.get_todays_adjustment(conn)
         day = plan_adjustment_service.get_day_adjustment(conn, date.today().isoformat())
+        user_adj = plan_adjustment_service.get_user_adjustment(conn, date.today().isoformat())
     finally:
         conn.close()
     base = result if result is not None else {"adjusted": False, "adjustment_reason": None}
-    return api_ok({**base, "state": day["state"], "adjustment": day["adjustment"]})
+    return api_ok({**base, "state": day["state"], "adjustment": day["adjustment"],
+                    "user_adjustment": user_adj})
 
 
 @api_bp.get("/coach/plan/adaptation")

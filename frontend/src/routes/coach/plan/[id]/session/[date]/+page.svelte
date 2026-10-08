@@ -5,6 +5,7 @@
 	import { formatPaceRange, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
+	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
 
 	let { data }: { data: SessionDetailPageData } = $props();
@@ -78,6 +79,17 @@
 			{#if data.session.workout.description}
 				<p class="mt-1.5 text-xs text-fg-secondary">{data.session.workout.description}</p>
 			{/if}
+		</div>
+
+		<div class="flex justify-end border-b border-border-subtle px-4 py-1">
+			<RowActionButton
+				workout={data.session.workout}
+				today={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
+				via="session"
+				label="이 세션 바꾸기"
+				crsPending={['proposed', 'accepted'].includes(data.todaysAdj?.state ?? '')}
+				onChange={() => invalidateAll()}
+			/>
 		</div>
 
 		<!-- 조정 섹션 -->

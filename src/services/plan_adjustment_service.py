@@ -125,6 +125,13 @@ def get_day_adjustment(conn: sqlite3.Connection, date: str, *, ensure: bool = Tr
     return {"state": state_of(conn, adj, today), "adjustment": adj}
 
 
+def get_user_adjustment(conn: sqlite3.Connection, date: str, *, today: str | None = None) -> dict | None:
+    """해당 날짜의 live 사용자·코치 직접 조정(accepted). 없으면 None."""
+    r = conn.execute(f"SELECT {_COLS} FROM plan_adjustments WHERE date=? AND source IN ('user','coach')"
+                     " AND decision='accepted' ORDER BY id DESC LIMIT 1", (date,)).fetchone()
+    return _view(conn, _to_dict(r), _today(today)) if r else None
+
+
 def _load_for_decision(conn: sqlite3.Connection, adj_id: int, today: str | None) -> tuple[dict, str]:
     adj = _get(conn, adj_id)
     if adj is None:
@@ -175,15 +182,27 @@ USER_OPS = ("reduce", "rest", "skip")
 COACH_OPS = ("reduce", "rest", "skip")
 
 
+MAX_REDUCE_PCT = 50
+MIN_REDUCED_KM = 3.0
+PCT_BLOCKED_TYPES = ("interval", "tempo", "threshold", "marathon", "race")
+
+
 def _user_after(before: dict, op: str, params: dict) -> dict:
     if op == "reduce":
         pct = params.get("pct")
         if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not 0 < pct < 100:
             raise ValueError("pct 는 1~99 이어야 해요")
+        if pct > MAX_REDUCE_PCT:
+            raise ValueError(f"한 번에 {MAX_REDUCE_PCT}% 넘게 줄일 수 없어요 · 쉬는 날로 바꿔 보세요")
+        if before.get("workout_type") in PCT_BLOCKED_TYPES:
+            raise ValueError("강도 있는 세션은 비율로 줄일 수 없어요 · 쉬기나 건너뛰기를 고르세요")
         km = before.get("distance_km")
         if not km:
             raise ValueError("거리가 없는 세션은 줄일 수 없어요")
-        return {**before, "distance_km": round(km * (1 - pct / 100), 1)}
+        new_km = round(km * (1 - pct / 100), 1)
+        if new_km < MIN_REDUCED_KM:
+            raise ValueError(f"{MIN_REDUCED_KM:g}km 미만으로는 줄일 수 없어요 · 쉬는 날로 바꿔 보세요")
+        return {**before, "distance_km": new_km}
     return {**before, "workout_type": "rest", "distance_km": None, "target_pace_min": None, "target_pace_max": None}
 
 
@@ -207,13 +226,17 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
     if r[0] != today:
         raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요")
     before = dict(zip(("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description"), r[1:6]))
+    crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
+                       " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, r[0])).fetchone()
+    effective = {**before, **json.loads(crs[0])} if crs else before
     goal = conn.execute("SELECT id FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    after = _user_after(before, op, params)
+    after = _user_after(effective, op, params)
     reason = params.get("reason")
     reasons = [{"key": "user", "label": str(reason)}] if reason else []
     via = via if via in VIAS else None
     conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE workout_id=?"
-                 " AND date=? AND source=? AND decision IN ('proposed','accepted')", (workout_id, r[0], source))
+                 " AND date=? AND (source=? OR source='crs') AND decision IN ('proposed','accepted')",
+                 (workout_id, r[0], source))
     new_id = conn.execute(
         "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"
         " reasons_json, rule_version, decision, decided_via, accepted_at, decided_at)"

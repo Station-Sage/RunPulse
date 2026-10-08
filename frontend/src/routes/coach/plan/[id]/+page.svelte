@@ -7,6 +7,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
 	import { invalidateAll } from '$app/navigation';
+	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
+	import UserAdjustmentLine from '$lib/components/plan/UserAdjustmentLine.svelte';
 	import type { PlannedWorkout } from '$lib/types';
 
 	let { data }: { data: PlanDetailPageData } = $props();
@@ -51,6 +53,9 @@
 		if (!d.status_label) return null;
 		return { text: (d.label === 'on_target' ? '✓ ' : '') + d.status_label, cls: STATUS_CLS[d.status ?? 'neutral'] };
 	}
+
+	const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+	const weekKm = $derived(data.plan?.compliance?.volume?.planned_km ?? null);
 
 	function isAlternative(w: PlannedWorkout): boolean {
 		const d = dayByDate.get(w.date);
@@ -134,10 +139,10 @@
 				<ul class="divide-y divide-border-subtle">
 					{#each data.plan.workouts as w (w.id)}
 						{@const st = statusOf(w)}
-						<li class:opacity-50={isAlternative(w)}>
+						<li class="flex items-start" class:opacity-50={isAlternative(w)}>
 							<a
 								href="{base}/coach/plan/{data.plan.goal.id}/session/{w.date}"
-								class="flex items-start gap-3 py-2.5 hover:bg-surface-2"
+								class="flex min-w-0 flex-1 items-start gap-3 py-2.5 hover:bg-surface-2"
 							>
 								<span class="w-6 shrink-0 text-center text-xs text-fg-muted"
 									>{dayLabel(w.date)}</span
@@ -159,11 +164,20 @@
 									{#if w.description}
 										<p class="mt-0.5 text-xs text-fg-secondary">{w.description}</p>
 									{/if}
+									<UserAdjustmentLine workout={w} />
 								</div>
 								{#if st}
 									<span class="shrink-0 text-xs {st.cls}">{st.text}</span>
 								{/if}
 							</a>
+							<RowActionButton
+								workout={w}
+								{today}
+								via="plan"
+								{weekKm}
+								crsPending={w.date === today && ['proposed', 'accepted'].includes(data.adjustment?.state ?? '')}
+								onChange={() => invalidateAll()}
+							/>
 						</li>
 					{/each}
 				</ul>

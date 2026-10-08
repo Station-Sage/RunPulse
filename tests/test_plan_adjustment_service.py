@@ -85,6 +85,7 @@ def test_expired_and_list(monkeypatch):
 
 def test_create_user_adjustment_reduce_rest_and_replace(monkeypatch):
     c, _ = _conn(monkeypatch)
+    c.execute("UPDATE planned_workouts SET workout_type='easy' WHERE id=7")
     a = svc.create_user_adjustment(c, 7, "reduce", {"pct": 20, "reason": "fatigue"}, today=D, via="plan")
     assert a["state"] == "accepted" and a["source"] == "user" and a["after"]["distance_km"] == 8.0
     b = svc.create_user_adjustment(c, 7, "rest", today=D)
@@ -106,3 +107,28 @@ def test_create_user_adjustment_errors(monkeypatch):
     with pytest.raises(svc.AdjustmentConflict) as e:
         svc.create_user_adjustment(c, 7, "rest", today="2026-10-09")
     assert e.value.code == "LOCKED"
+
+
+def test_reduce_rules_cap_floor_quality(monkeypatch):
+    c, _ = _conn(monkeypatch)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 20}, today=D)  # interval
+    c.execute("UPDATE planned_workouts SET workout_type='easy' WHERE id=7")
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 60}, today=D)
+    c.execute("UPDATE planned_workouts SET distance_km=5.0 WHERE id=7")
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 50}, today=D)
+
+
+def test_user_action_replaces_accepted_crs_and_uses_effective_plan(monkeypatch):
+    c, _ = _conn(monkeypatch, to="easy")
+    crs = svc.ensure_proposal(c, D, today=D)
+    svc.accept(c, crs["id"], rev=crs["rev"], today=D)
+    c.execute("UPDATE plan_adjustments SET after_json=json_set(after_json,'$.distance_km',8.0) WHERE id=?", (crs["id"],))
+    a = svc.create_user_adjustment(c, 7, "reduce", {"pct": 50}, today=D)
+    assert a["after"]["distance_km"] == 4.0 and a["after"]["workout_type"] == "easy"
+    assert a["before"]["workout_type"] == "interval"
+    assert svc._get(c, crs["id"])["decision"] == "reverted"
+    assert svc.get_user_adjustment(c, D, today=D)["id"] == a["id"]
+    assert svc.get_user_adjustment(c, "2026-10-01", today=D) is None

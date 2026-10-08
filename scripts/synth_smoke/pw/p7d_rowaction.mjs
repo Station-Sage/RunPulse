@@ -1,0 +1,20 @@
+// Phase 7d: 플랜 행 액션(줄이기/쉬기/되돌리기) 390px 스모크. 환경: BASE, TODAY
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.request().method() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18097') + '/v2';
+const txt = async () => (await page.locator('body').innerText()).replace(/\n+/g, ' | ');
+const shot = (n) => page.screenshot({ path: `shots/p7d_${n}.png`, fullPage: true });
+await page.goto(B + '/coach/plan/1', { waitUntil: 'networkidle' });
+const btns = page.getByTestId('row-action-btn');
+console.log('row buttons:', await btns.count()); await shot('plan');
+await btns.first().click();
+console.log('sheet open:', await page.getByTestId('row-action-sheet').isVisible(), 'apply disabled:', await page.getByTestId('row-action-apply').isDisabled());
+await shot('sheet');
+await page.getByTestId('row-op-rest').click(); await page.getByTestId('row-action-apply').click(); await page.waitForTimeout(1200);
+console.log('after rest:', /직접 조정|쉬어요/.test(await txt()), await page.getByRole('button', { name: '되돌리기' }).count()); await shot('after');
+await page.getByRole('button', { name: '되돌리기' }).first().click(); await page.waitForTimeout(1200);
+console.log('after undo:', /원래 계획으로/.test(await txt()));
+console.log('errors:', errs);
+await b.close();

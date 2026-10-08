@@ -16,9 +16,9 @@ def client(tmp_path, monkeypatch):
     c = sqlite3.connect(str(f))
     create_tables(c)
     migrate_db(c)
-    c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source) VALUES (7,?,'interval',10.0,'planner')", (TODAY,))
+    c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source) VALUES (7,?,'easy',10.0,'planner')", (TODAY,))
     c.execute("INSERT INTO plan_adjustments(goal_id,workout_id,date,source,op,before_json,after_json,rule_version)"
-              " VALUES (1,7,?,'crs','replace','{\"workout_type\":\"interval\",\"distance_km\":10.0}',"
+              " VALUES (1,7,?,'crs','replace','{\"workout_type\":\"easy\",\"distance_km\":10.0}',"
               "'{\"workout_type\":\"easy\",\"distance_km\":10.0}','adjuster_v1')", (TODAY,))
     c.commit()
     c.close()

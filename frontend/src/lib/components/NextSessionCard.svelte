@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	// 03a-today.md 1-A L2 "다음 세션 현황" — 구 Plan "보기" 흡수.
 	import type { ActivePlan, TodaysAdjustment } from '$lib/types';
 	import { weekProgressLabel, workoutLabel } from '$lib/format';
@@ -117,6 +118,14 @@
 				>
 					전체 계획 보기 →
 				</a>
+				<RowActionButton
+					workout={nextSession}
+					{today}
+					via="today"
+					label="바꾸기"
+					crsPending={dayAdjustment !== null && ['proposed', 'accepted'].includes(dayAdjustment.state ?? '')}
+					onChange={refreshToday}
+				/>
 			</div>
 		</div>
 	</div>

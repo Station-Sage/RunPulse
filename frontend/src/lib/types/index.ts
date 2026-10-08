@@ -1099,6 +1099,9 @@ export interface PlannedWorkout {
 	actual_dist_km?: number | null;
 	compliance_pct?: number | null; // 세트·구간 페이스까지 본 이행률(0~100)
 	superseded?: boolean; // 같은 날 다른 계획(Garmin 저장 워크아웃 등)이 실제 활동을 가져감
+	adjusted?: boolean; // 수락된 조정이 오버레이된 행 (ADR-035)
+	adjustment?: { id: number; source: string; op: string; decided_at: string | null };
+	original?: { workout_type: string; distance_km: number | null; target_pace_min: number | null; target_pace_max: number | null };
 }
 
 export interface PlanGoal {
@@ -1194,6 +1197,7 @@ export interface TodaysAdjustment {
 	volume_boost: boolean;
 	state?: AdjustmentState;
 	adjustment?: PlanAdjustment | null;
+	user_adjustment?: PlanAdjustment | null;
 }
 
 export type AdjustmentState =
@@ -1227,6 +1231,8 @@ export interface PlanAdjustment {
 	rev: number;
 	state: AdjustmentState;
 }
+
+export type WorkoutActionResult = AdjustmentDecisionResult;
 
 export interface AdjustmentDecisionResult {
 	adjustment: PlanAdjustment;

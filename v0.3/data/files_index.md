@@ -215,10 +215,10 @@
 
 - functions: warm_month_narrative, warm_in_background
 
-### `plan_adjustment_service.py` (237줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adjustment_service.py` (260줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
-- functions: state_of, ensure_proposal, get_day_adjustment, accept, revert, create_user_adjustment, list_adjustments
+- functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, create_user_adjustment, list_adjustments
 
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -2498,9 +2498,9 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_adjustment_service.py` (108줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
+### `test_plan_adjustment_service.py` (134줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
 
-- functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors
+- functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors, test_reduce_rules_cap_floor_quality, test_user_action_replaces_accepted_crs_and_uses_effective_plan
 
 ### `test_plan_backtest.py` (102줄)
 

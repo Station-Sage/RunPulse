@@ -9,7 +9,8 @@ import type {
 	SessionDetail,
 	PlanAdaptation,
 	AdjustmentDecisionResult,
-	PlanAdjustment
+	PlanAdjustment,
+	WorkoutActionResult
 } from '$lib/types';
 
 export function getActivePlan(goalId?: number): Promise<ActivePlan> {
@@ -76,4 +77,18 @@ export function revertAdjustment(id: number, via: string): Promise<AdjustmentDec
 
 export function listAdjustments(goalId: number, from: string, to: string): Promise<{ adjustments: PlanAdjustment[] }> {
 	return apiFetch(`/coach/plan/${goalId}/adjustments?from=${from}&to=${to}`);
+}
+
+export interface WorkoutActionBody {
+	op: 'reduce' | 'rest' | 'skip';
+	pct?: number;
+	reason?: string;
+	via: string;
+}
+
+export function workoutAction(workoutId: number, body: WorkoutActionBody): Promise<WorkoutActionResult> {
+	return apiFetch(`/coach/plan/workouts/${workoutId}/action`, {
+		method: 'POST',
+		body: JSON.stringify(body)
+	});
 }
