@@ -177,7 +177,7 @@ def import_strava_archive(
         if cursor.rowcount == 0:
             # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
             existing_id = update_changed_fields(conn, "strava", source_id, {
-                "distance_km": merged.get("distance_km"),
+                "distance_m": (d * 1000 if (d := merged.get("distance_km")) else None),
                 "duration_sec": merged.get("duration_sec"),
                 "avg_pace_sec_km": merged.get("avg_pace_sec_km"),
                 "avg_hr": merged.get("avg_hr"),
@@ -256,6 +256,8 @@ def _backfill_file_data(
     if dist and dur and dist > 0:
         non_null["avg_pace_sec_km"] = int(dur / dist)
 
+    if "distance_km" in non_null:
+        non_null["distance_m"] = non_null.pop("distance_km") * 1000
     set_clause = ", ".join(f"{col} = ?" for col in non_null)
     result = conn.execute(
         f"UPDATE activity_summaries SET {set_clause} "

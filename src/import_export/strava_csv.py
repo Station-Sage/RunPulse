@@ -334,7 +334,7 @@ def import_strava_activities(
             # 이미 존재 — 변경/누락 필드 업데이트 + detail metrics 갱신
             existing_id = update_changed_fields(conn, "strava", source_id, {
                 "start_time": parsed.get("start_time"),
-                "distance_km": parsed.get("distance_km"),
+                "distance_m": (d * 1000 if (d := parsed.get("distance_km")) else None),
                 "duration_sec": parsed.get("duration_sec"),
                 "avg_pace_sec_km": parsed.get("avg_pace_sec_km"),
                 "avg_hr": parsed.get("avg_hr"),

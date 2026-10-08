@@ -127,3 +127,17 @@ def test_run_job_records_result(udb, monkeypatch, tmp_path):
     v = ims.job_view(sync_jobs.get_job(job.id))
     assert v["state"] == "done" and v["result"]["new"] == 2 and v["result"]["suggest_recompute"] is True
     assert not up.exists()
+
+
+def test_reimport_updates_changed_distance(udb, tmp_path):
+    p = tmp_path / "a.csv"
+    p.write_text(CSV, encoding="utf-8")
+    conn = sqlite3.connect(udb)
+    ims.run_on(conn, "strava_csv", [p], "strava")
+    p.write_text(CSV.replace("10000", "10500"), encoding="utf-8")
+    ims.run_on(conn, "strava_csv", [p], "strava")
+    conn.commit()
+    dist = conn.execute(
+        "SELECT distance_m FROM activity_summaries WHERE source_id='111'").fetchone()[0]
+    conn.close()
+    assert dist == 10500

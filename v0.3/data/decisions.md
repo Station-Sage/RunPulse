@@ -221,4 +221,4 @@
 - 결정: `POST /data/import/preview`는 업로드를 임시 폴더에 저장하고 `backup()`한 DB 사본에서 실제 임포터를 실행해 신규·중복·보강·오류 수를 센다(본 DB 무변경). `POST /data/import`가 같은 업로드를 본 DB에 적용하며 `sync_jobs`에 `service='import'`로 기록한다(동시 1건, 409 `IMPORT_RUNNING`). 이력은 `GET /data/imports`.
 - 사유: 미리보기 전용 계산기를 따로 두면 실제 가져오기와 결과가 어긋난다. 사본 실행은 단일 진실원을 유지한다. 중복은 source_id 스킵 수, 소스 간 병합은 `assign_group_id`(시작 ±60초·거리 ±3%) 그룹 수.
 - 동반 수정: v12에서 `activity_summaries`의 `calories`·`export_filename` 컬럼이 빠졌는데 임포터(strava_csv/archive, garmin_csv, intervals_fit, import_history)가 여전히 INSERT해 실패하던 문제를 현재 스키마에 맞춰 정리.
-- 한계: 임포터의 `update_changed_fields` 호출이 존재하지 않는 `distance_km` 컬럼을 넘겨 기존 행 갱신 경로는 무동작이다(보강 수는 영향 없음). 후속 정리 대상.
+- 후속 수정: 임포터의 `update_changed_fields`/백필 호출이 없는 `distance_km` 컬럼을 넘겨 기존 행 갱신이 무동작이던 것을 `distance_m`(×1000)으로 정리해, 재가져오기 시 바뀐 거리가 반영된다.

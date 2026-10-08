@@ -642,4 +642,5 @@
 ## S11 — 가져오기 (F-DATA-08, 2026-10-08)
 - 백엔드: `src/services/import_service.py`(업로드 저장·종류 감지·사본 미리보기·작업·이력), `src/api/routes_data_import.py`. 임포터 5종 스키마 정합 수정. ADR-031.
 - 프론트: `/data/import`(소스 선택→파일→미리보기→진행→결과·재계산 제안, 최근 이력), `lib/importFlow.ts`; 내보내기 화면에서 진입 링크.
-- 남음: 임포터 `update_changed_fields`의 `distance_km` 정리, .ics 구독 URL.
+- 임포터 `distance_km`→`distance_m` 갱신 경로 정리 완료(재가져오기 테스트 동반).
+- 남음: .ics 구독 URL.
