@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from flask import request
 
-from src.services import adaptation_service, plan_service, plan_template_service
+from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service
 from src.training import plan_readiness
 from src.web.helpers import db_path
 
@@ -35,11 +36,11 @@ def get_plan_adjustment():
     conn = sqlite3.connect(str(dpath))
     try:
         result = plan_service.get_todays_adjustment(conn)
+        day = plan_adjustment_service.get_day_adjustment(conn, date.today().isoformat())
     finally:
         conn.close()
-    if result is None:
-        return api_ok({"adjusted": False, "adjustment_reason": None})
-    return api_ok(result)
+    base = result if result is not None else {"adjusted": False, "adjustment_reason": None}
+    return api_ok({**base, "state": day["state"], "adjustment": day["adjustment"]})
 
 
 @api_bp.get("/coach/plan/adaptation")
