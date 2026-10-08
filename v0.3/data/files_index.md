@@ -2325,6 +2325,10 @@
 
 - functions: env, test_issue_format_and_plaintext_not_stored, test_lookup_ok_and_malformed, test_revoke_is_immediate_and_user_scoped, test_expiry, test_active_cap_and_revoke_frees_slot, test_unknown_user_and_bad_input_rejected, test_lookup_fails_when_user_db_missing, test_touch_throttled, test_revoke_all, test_cli_issue_list_revoke
 
+### `test_mcp_token_routes.py` (73줄) — 웹 토큰 발급 API — 세션 사용자 한정, 원문 1회 노출, 상한·폐기·감사.
+
+- functions: client, test_issue_shows_plaintext_once_and_list_hides_it, test_label_required_and_bad_days, test_cap_returns_409, test_revoke_is_user_scoped_and_audited
+
 ### `test_metric_bands.py` (46줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
 - functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands
@@ -3016,7 +3020,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 635개 파일
+총 636개 파일
 
 ## docstring 누락
 

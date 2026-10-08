@@ -1,3 +1,8 @@
+<script lang="ts">
+	import McpTokenCard from '$lib/components/McpTokenCard.svelte';
+	let { data } = $props();
+</script>
+
 <svelte:head><title>데이터 설정 · RunPulse</title></svelte:head>
 
 <div class="flex flex-col gap-3 px-4 py-4">
@@ -22,4 +27,5 @@
 		<span class="text-sm text-fg-primary">AI 설정</span>
 		<span class="text-xs text-fg-secondary">제공자·API 키·AI에 보내는 데이터 범위와 최근 사용량을 봐요.</span>
 	</a>
+	<McpTokenCard initial={data.mcp} />
 </div>
