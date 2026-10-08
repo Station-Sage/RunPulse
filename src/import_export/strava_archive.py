@@ -152,8 +152,8 @@ def import_strava_archive(
                    (source, source_id, activity_type, start_time,
                     distance_m, duration_sec, avg_pace_sec_km,
                     avg_hr, max_hr, avg_cadence, elevation_gain,
-                    calories, description, avg_power, export_filename)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    description, avg_power)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "strava", source_id,
                     merged.get("activity_type") or "running",
@@ -165,10 +165,8 @@ def import_strava_archive(
                     merged.get("max_hr"),
                     merged.get("avg_cadence"),
                     merged.get("elevation_gain"),
-                    merged.get("calories"),
                     merged.get("description"),
                     merged.get("avg_power"),
-                    csv_meta.get("filename"),
                 ),
             )
         except sqlite3.Error as e:
@@ -186,9 +184,7 @@ def import_strava_archive(
                 "max_hr": merged.get("max_hr"),
                 "avg_cadence": merged.get("avg_cadence"),
                 "elevation_gain": merged.get("elevation_gain"),
-                "calories": merged.get("calories"),
                 "avg_power": merged.get("avg_power"),
-                "export_filename": csv_meta.get("filename"),
             })
             if existing_id:
                 _upsert_strava_detail_metrics(conn, existing_id, csv_meta)

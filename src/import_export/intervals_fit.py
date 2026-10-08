@@ -209,8 +209,8 @@ def import_intervals_fit(
                (source, source_id, activity_type, start_time,
                 distance_m, duration_sec, avg_pace_sec_km,
                 avg_hr, max_hr, avg_cadence, elevation_gain,
-                calories, avg_power, export_filename)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                avg_power)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 "intervals",
                 source_id,
@@ -223,9 +223,7 @@ def import_intervals_fit(
                 parsed["max_hr"],
                 parsed["avg_cadence"],
                 parsed["elevation_gain"],
-                parsed["calories"],
                 parsed["avg_power"],
-                fit_path.name,
             ),
         )
     except sqlite3.Error as e:
@@ -242,7 +240,6 @@ def import_intervals_fit(
             "max_hr": parsed.get("max_hr"),
             "avg_cadence": parsed.get("avg_cadence"),
             "elevation_gain": parsed.get("elevation_gain"),
-            "calories": parsed.get("calories"),
             "avg_power": parsed.get("avg_power"),
         })
         if existing_id:

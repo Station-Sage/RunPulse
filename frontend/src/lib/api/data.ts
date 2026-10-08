@@ -249,3 +249,46 @@ export const patchAiSettings = (patch: AiPatch) =>
 export const testAiConnection = (provider: string) =>
 	apiFetch<{ ok: boolean; reason: string | null; label: string; http_status: number | null }>(
 		'/data/settings/ai/test', { method: 'POST', body: JSON.stringify({ provider }) });
+
+export type ImportSource = 'garmin' | 'strava';
+export type ImportKind = 'strava_archive' | 'strava_csv' | 'garmin_csv' | 'files';
+
+export interface ImportPreview {
+	upload_id: string;
+	kind: ImportKind;
+	source: ImportSource;
+	recognized: number;
+	new: number;
+	duplicates: number;
+	enriched: number;
+	errors: number;
+	merged: number;
+	period: { from: string | null; to: string | null };
+}
+
+export interface ImportItem {
+	id: string;
+	state: 'queued' | 'running' | 'done' | 'failed';
+	created_at: string | null;
+	finished_at: string | null;
+	result: {
+		recognized: number; new: number; skipped: number; enriched: number; errors: number;
+		period: { from: string | null; to: string | null }; suggest_recompute: boolean;
+	} | null;
+	error: string | null;
+}
+
+/** 업로드는 multipart라 apiFetch(JSON 헤더 고정)를 쓰지 않는다. */
+export async function previewImport(files: File[], source: ImportSource): Promise<ImportPreview> {
+	const form = new FormData();
+	form.append('source', source);
+	for (const f of files) form.append('files[]', f, f.name);
+	const res = await fetch('/api/v1/data/import/preview', { method: 'POST', body: form });
+	const body = await res.json().catch(() => null);
+	if (!res.ok) throw new Error(body?.error?.message ?? '파일을 확인하지 못했어요');
+	return body.data as ImportPreview;
+}
+export const startImport = (uploadId: string, source: ImportSource) =>
+	apiFetch<{ job_id: string }>('/data/import', { method: 'POST', body: JSON.stringify({ upload_id: uploadId, source }) });
+export const getImports = () => apiFetch<{ imports: ImportItem[] }>('/data/imports').then((d) => d.imports);
+export const getImportJob = (id: string) => apiFetch<ImportItem>(`/data/imports/${encodeURIComponent(id)}`);

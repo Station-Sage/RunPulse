@@ -139,6 +139,10 @@
 
 - functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, build_archive, start_archive, job_view, history
 
+### `import_service.py` (210줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
+
+- functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
+
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -2171,6 +2175,10 @@
 
 - functions: test_second_part_hr, test_self_profile_from_race, test_fallback_and_ref
 
+### `test_import_service.py` (129줄) — import_service — 종류 감지, 사본 미리보기(원본 불변), 실행 결과, API 라우트.
+
+- functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result
+
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
 - class **TestParseSteps**: test_all_steps, test_subset, test_dedup_and_sort, test_whitespace_tolerance, test_invalid_exits
@@ -2923,7 +2931,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 612개 파일
+총 614개 파일
 
 ## docstring 누락
 

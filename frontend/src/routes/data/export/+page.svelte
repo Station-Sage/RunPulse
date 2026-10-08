@@ -119,6 +119,14 @@
 	</section>
 
 	<a
+		href="/data/import"
+		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"
+	>
+		<span class="text-sm text-fg-primary">파일 가져오기</span>
+		<span class="text-xs text-fg-secondary">Strava 내보내기·CSV·FIT/GPX 파일을 미리 확인한 뒤 가져와요.</span>
+	</a>
+
+	<a
 		href="/training/export.ics"
 		data-sveltekit-reload
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"

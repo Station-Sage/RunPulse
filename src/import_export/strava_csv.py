@@ -128,7 +128,6 @@ def _parse_activity_row(row: dict[str, str]) -> dict[str, Any]:
         "max_hr": _int(row.get("Max Heart Rate")),
         "avg_cadence": _int(row.get("Average Cadence")),
         "elevation_gain": _float(row.get("Elevation Gain")),
-        "calories": _int(row.get("Calories")),
         "avg_power": _int(row.get("Average Watts")),
         # 확장 필드 (raw payload + activity_detail_metrics 저장)
         "max_speed": _float(row.get("Max Speed")),
@@ -309,8 +308,8 @@ def import_strava_activities(
                    (source, source_id, activity_type, start_time,
                     distance_m, duration_sec, avg_pace_sec_km,
                     avg_hr, max_hr, avg_cadence, elevation_gain,
-                    calories, description, avg_power, export_filename)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    description, avg_power)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "strava", source_id,
                     parsed["activity_type"],
@@ -322,10 +321,8 @@ def import_strava_activities(
                     parsed["max_hr"],
                     parsed["avg_cadence"],
                     parsed["elevation_gain"],
-                    parsed["calories"],
                     parsed["description"],
                     parsed["avg_power"],
-                    parsed.get("filename"),
                 ),
             )
         except sqlite3.Error as e:
@@ -344,9 +341,7 @@ def import_strava_activities(
                 "max_hr": parsed.get("max_hr"),
                 "avg_cadence": parsed.get("avg_cadence"),
                 "elevation_gain": parsed.get("elevation_gain"),
-                "calories": parsed.get("calories"),
                 "avg_power": parsed.get("avg_power"),
-                "export_filename": parsed.get("filename"),
             })
             if existing_id:
                 _upsert_strava_detail_metrics(conn, existing_id, parsed)
@@ -397,9 +392,7 @@ def _fill_null_fields(
         "max_hr": parsed.get("max_hr"),
         "avg_cadence": parsed.get("avg_cadence"),
         "elevation_gain": parsed.get("elevation_gain"),
-        "calories": parsed.get("calories"),
         "avg_power": parsed.get("avg_power"),
-        "export_filename": parsed.get("filename"),
     }
     for col, val in null_fill.items():
         if val is not None:

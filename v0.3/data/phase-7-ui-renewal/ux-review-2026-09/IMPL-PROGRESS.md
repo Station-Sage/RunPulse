@@ -638,3 +638,8 @@
 - 백엔드: `src/services/ai_settings_service.py`(마스크·키 상태·7일 사용량·검증·적용·연결 테스트), `src/api/routes_data_ai.py`. ADR-030.
 - 프론트: `/data/settings/ai`(제공자 선택, 키 입력·연결 테스트, 보내는 데이터 범위, 폴백, Coach 상태·7일 사용량), `lib/aiSettings.ts`. `/data/settings` 카드가 새 화면으로 연결됨.
 - 남음: 외부 AI 섹션(프롬프트 복사·MCP 도구 목록), 가져오기(F-DATA-08), .ics 구독 URL.
+
+## S11 — 가져오기 (F-DATA-08, 2026-10-08)
+- 백엔드: `src/services/import_service.py`(업로드 저장·종류 감지·사본 미리보기·작업·이력), `src/api/routes_data_import.py`. 임포터 5종 스키마 정합 수정. ADR-031.
+- 프론트: `/data/import`(소스 선택→파일→미리보기→진행→결과·재계산 제안, 최근 이력), `lib/importFlow.ts`; 내보내기 화면에서 진입 링크.
+- 남음: 임포터 `update_changed_fields`의 `distance_km` 정리, .ics 구독 URL.

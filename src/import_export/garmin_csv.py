@@ -264,7 +264,6 @@ def _parse_row(raw: dict[str, str]) -> dict[str, Any]:
         "start_time": start_time,
         "description": mapped.get("description"),
         "distance_km": raw_dist,
-        "calories": _int(mapped.get("calories")),
         "duration_sec": _hms_to_sec(mapped.get("duration_hms")),
         "avg_hr": _int(mapped.get("avg_hr")),
         "max_hr": _int(mapped.get("max_hr")),
@@ -330,8 +329,8 @@ def import_garmin_csv(
                    (source, source_id, activity_type, start_time,
                     distance_m, duration_sec, avg_pace_sec_km,
                     avg_hr, max_hr, avg_cadence, elevation_gain,
-                    calories, description, avg_power, export_filename)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    description, avg_power)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "garmin", source_id,
                     parsed["activity_type"],
@@ -343,10 +342,8 @@ def import_garmin_csv(
                     parsed["max_hr"],
                     parsed["avg_cadence"],
                     parsed["elevation_gain"],
-                    parsed["calories"],
                     parsed["description"],
                     parsed["avg_power"],
-                    csv_path.name,
                 ),
             )
         except sqlite3.Error as e:
@@ -364,7 +361,6 @@ def import_garmin_csv(
                 "max_hr": parsed.get("max_hr"),
                 "avg_cadence": parsed.get("avg_cadence"),
                 "elevation_gain": parsed.get("elevation_gain"),
-                "calories": parsed.get("calories"),
                 "avg_power": parsed.get("avg_power"),
             })
             if existing_id:
