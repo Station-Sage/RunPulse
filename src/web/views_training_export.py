@@ -5,11 +5,11 @@ views_training_crud.py에서 분리 (2026-03-29).
 from __future__ import annotations
 
 import sqlite3
+from datetime import date, timedelta
 
 from flask import Blueprint, Response, redirect, request
 
 from src.web.helpers import db_path
-from src.web.views_training_loaders import load_workouts
 
 training_export_bp = Blueprint("training_export", __name__)
 
@@ -22,44 +22,21 @@ def training_export_ics():
         return Response("No data", status=404)
 
     week_offset = request.args.get("week", 0, type=int)
+    from src.services.calendar_feed_service import build_ics
 
+    today = date.today()
+    start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
     try:
         conn = sqlite3.connect(str(dbp))
         try:
-            workouts, _ = load_workouts(conn, week_offset)
+            body = build_ics(conn, start.isoformat(), (start + timedelta(days=6)).isoformat())
         finally:
             conn.close()
     except Exception:
-        workouts = []
-
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//RunPulse//Training Plan//KO",
-        "CALSCALE:GREGORIAN",
-    ]
-    for w in workouts:
-        wtype = w.get("workout_type", "easy")
-        if wtype == "rest":
-            continue
-        dist = w.get("distance_km")
-        d = w.get("date", "").replace("-", "")
-        summary = f"RunPulse: {wtype}"
-        if dist:
-            summary += f" {dist:.1f}km"
-        desc = w.get("description", "")
-        lines += [
-            "BEGIN:VEVENT",
-            f"DTSTART;VALUE=DATE:{d}",
-            f"DTEND;VALUE=DATE:{d}",
-            f"SUMMARY:{summary}",
-            f"DESCRIPTION:{desc}",
-            "END:VEVENT",
-        ]
-    lines.append("END:VCALENDAR")
+        body = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//RunPulse//Training Plan//KO\r\nEND:VCALENDAR\r\n"
 
     return Response(
-        "\r\n".join(lines),
+        body,
         mimetype="text/calendar",
         headers={"Content-Disposition": "attachment; filename=runpulse-training.ics"},
     )
