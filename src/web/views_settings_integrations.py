@@ -5,7 +5,6 @@ views_settings.py에서 분리 (2026-03-29).
 from __future__ import annotations
 
 import html as _html
-import os
 import urllib.parse
 
 from flask import Blueprint, redirect, render_template, request
@@ -13,6 +12,7 @@ from flask import Blueprint, redirect, render_template, request
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config
+from src.utils.public_url import public_base_url
 from src.utils.sync_state import clear_retry_after
 
 settings_integrations_bp = Blueprint("settings_integrations", __name__)
@@ -21,7 +21,7 @@ _STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
 _STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 _STRAVA_SCOPE = "read,activity:read_all"
 _STRAVA_REDIRECT_PATH = "/connect/strava/callback"
-_PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://runpulse.stationsage.dev").rstrip("/")
+_PUBLIC_BASE_URL = public_base_url("https://runpulse.stationsage.dev")
 
 
 # ── Strava ─────────────────────────────────────────────────────────────

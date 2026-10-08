@@ -120,3 +120,50 @@ def test_rate_window_basic():
     assert rate_window.hit("k", 2, 10, now=0) and rate_window.hit("k", 2, 10, now=1)
     assert not rate_window.hit("k", 2, 10, now=2)
     assert rate_window.hit("k", 2, 10, now=11)
+
+
+def test_api_lifecycle(monkeypatch, tmp_path):
+    import src.api.routes_data_calendar as rc
+    from src.api import api_bp
+    monkeypatch.setattr(idx, "index_path", lambda: tmp_path / "f.db")
+    monkeypatch.setenv("CREDENTIAL_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://h.example")
+    monkeypatch.setattr(rc, "get_current_user_id", lambda: "u1")
+    app = Flask(__name__)
+    app.register_blueprint(api_bp)
+    c = app.test_client()
+    d = c.get("/api/v1/data/calendar-feed").get_json()["data"]
+    assert d["enabled"] is False and d["excluded"]
+    r = c.post("/api/v1/data/calendar-feed", json={})
+    d = r.get_json()["data"]
+    assert r.status_code == 201 and r.headers["Cache-Control"] == "no-store"
+    assert d["url"].startswith("https://h.example/feeds/cal/rpcal_") and d["webcal_url"].startswith("webcal://h.example/")
+    assert c.post("/api/v1/data/calendar-feed", json={}).status_code == 409
+    old = d["url"]
+    new = c.post("/api/v1/data/calendar-feed", json={"rotate": True}).get_json()["data"]["url"]
+    assert new != old and idx.lookup(old.rsplit("/", 1)[1][:-4]) is None
+    assert c.delete("/api/v1/data/calendar-feed").status_code == 204
+    assert c.delete("/api/v1/data/calendar-feed").status_code == 204
+    assert c.get("/api/v1/data/calendar-feed").get_json()["data"]["enabled"] is False
+
+
+def test_api_not_revealable_without_key(monkeypatch, tmp_path):
+    import src.api.routes_data_calendar as rc
+    from src.api import api_bp
+    monkeypatch.setattr(idx, "index_path", lambda: tmp_path / "f.db")
+    monkeypatch.delenv("CREDENTIAL_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setattr(rc, "get_current_user_id", lambda: "u1")
+    app = Flask(__name__)
+    app.register_blueprint(api_bp)
+    d = app.test_client().post("/api/v1/data/calendar-feed", json={}).get_json()["data"]
+    assert d["revealable"] is False and d["url"] is None
+
+
+def test_public_base_url(monkeypatch):
+    from src.utils.public_url import public_base_url
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://a.example/")
+    assert public_base_url() == "https://a.example"
+    monkeypatch.delenv("PUBLIC_BASE_URL")
+    assert public_base_url("https://d.example/") == "https://d.example"
+    with Flask(__name__).test_request_context("http://localhost:5000/"):
+        assert public_base_url() == "http://localhost:5000"

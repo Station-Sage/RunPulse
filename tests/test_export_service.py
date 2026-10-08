@@ -83,6 +83,13 @@ def test_build_archive(conn, tmp_path):
         assert "manifest.json" in names and "raw_payloads/garmin.jsonl" in names and "tables/metric_store.csv" in names
 
 
+def test_archive_excludes_calendar_feed_and_tokens(conn, tmp_path):
+    es.build_archive(conn, tmp_path / "a.zip")
+    with zipfile.ZipFile(tmp_path / "a.zip") as z:
+        assert not any("calendar_feed" in n for n in z.namelist())
+        assert not any(b"rpcal_" in z.read(n) for n in z.namelist())
+
+
 def test_job_view_expiry():
     job = sync_jobs.SyncJob(*([None] * 23))
     job.status, job.result_json = "completed", '{"expires_at": "2026-10-01T00:00:00"}'
