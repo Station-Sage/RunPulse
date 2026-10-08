@@ -4,6 +4,8 @@
 	import { saveSessionNote } from '$lib/api/plan';
 	import { formatPaceRange, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
+	import { invalidateAll } from '$app/navigation';
+	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
 
 	let { data }: { data: SessionDetailPageData } = $props();
 
@@ -79,6 +81,9 @@
 		</div>
 
 		<!-- 조정 섹션 -->
+		{#if data.todaysAdj?.adjustment}
+			<AdjustmentCard initial={data.todaysAdj.state} initialAdj={data.todaysAdj.adjustment} via="session" onChange={() => invalidateAll()} />
+		{/if}
 		<div class="border-b border-border-subtle px-4 py-4">
 			{#if data.session.adjustment?.adjusted}
 				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">오늘 상태 기반 조정</p>

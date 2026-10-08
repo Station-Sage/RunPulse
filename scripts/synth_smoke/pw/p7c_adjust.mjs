@@ -1,0 +1,22 @@
+// Phase 7c: 오늘 조정 수락 → 되돌리기 (플랜/세션/Today). 환경: BASE
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.request().method() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18099') + '/v2';
+const today = process.env.TODAY || '2026-10-08';
+const txt = async () => (await page.locator('body').innerText()).replace(/\n+/g, ' | ');
+const has = async (re) => re.test(await txt());
+const shot = (n) => page.screenshot({ path: `shots/p7c_${n}.png`, fullPage: true });
+await page.goto(B + '/today', { waitUntil: 'networkidle' });
+console.log('today proposed card:', await has(/수락/), await has(/거절/)); await shot('today_proposed');
+await page.getByRole('button', { name: '수락' }).first().click(); await page.waitForTimeout(1200);
+console.log('today after accept (되돌리기):', await has(/되돌리기/)); await shot('today_accepted');
+await page.goto(B + '/coach/plan/1/session/' + today, { waitUntil: 'networkidle' });
+console.log('session accepted (되돌리기):', await has(/되돌리기/)); await shot('session_accepted');
+await page.getByRole('button', { name: '되돌리기' }).first().click(); await page.waitForTimeout(1200);
+console.log('session after revert (수락 again? ):', await has(/수락/), await has(/되돌리기/)); await shot('session_reverted');
+await page.goto(B + '/coach/plan/1', { waitUntil: 'networkidle' });
+console.log('plan page:', (await txt()).slice(0, 400)); await shot('plan');
+console.log('errors:', errs);
+await b.close();

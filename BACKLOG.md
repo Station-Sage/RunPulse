@@ -18,7 +18,7 @@
 
 - **[SYNC-SOURCE-TOGGLE]** T1·T3(끄면 cancelled)·T4(v1 경로 가드)·T5(`/data/sync` 행 버튼) 완료(2026-10-08). 남은 것: T2(레거시 `*_disabled` 마이그레이션), T6(v1 제거=G6, AUDIT-V-CANONICAL 동반). 설계: `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md`.
 
-- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** Phase 7c 계획 조정 수락 영속화(ADR-035, 스키마 v31) T1~T7·T9 완료(2026-10-08): `plan_adjustments`·overlay·서비스·API·매처·플랜 상세 `AdjustmentCard`. 남은 것: 세션 상세·Today `NextSessionCard`에 카드 연결, T8(사용자 직접 조정 `workouts/<id>/action`), ICS/Garmin/CalDAV 반영(v1 미반영). 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
+- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** Phase 7c 계획 조정 수락 영속화(ADR-035, 스키마 v31) T1~T7·T9 완료(2026-10-08): `plan_adjustments`·overlay·서비스·API·매처·플랜 상세 `AdjustmentCard`. 세션 상세·Today 카드 연결 + 브라우저 스모크(수락→되돌리기, 390px) 완료(2026-10-08). 남은 것: T8(사용자 직접 조정 `workouts/<id>/action`), ICS/Garmin/CalDAV 반영(v1 미반영). 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
 
 - **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 

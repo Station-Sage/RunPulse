@@ -4,7 +4,9 @@
 	import { weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
-	import Icon from '$lib/components/Icon.svelte';
+	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
+	import { invalidate } from '$app/navigation';
+	import { swrEvict } from '$lib/loadCache';
 
 	let {
 		plan,
@@ -39,13 +41,16 @@
 		return `${date.slice(5)}(${DOW[new Date(date + 'T00:00:00').getDay()]})`;
 	}
 
-	const showAdjustment = $derived(
-		nextSession !== null &&
-			nextSession.date === today &&
-			adjustment !== null &&
-			'original_type' in adjustment &&
-			adjustment.adjusted === true
+	const dayAdjustment = $derived(
+		nextSession !== null && nextSession.date === today && adjustment !== null && 'state' in adjustment && adjustment.adjustment
+			? adjustment
+			: null
 	);
+
+	function refreshToday() {
+		swrEvict('app:today');
+		void invalidate('app:today');
+	}
 </script>
 
 {#if plan === null}
@@ -93,17 +98,9 @@
 				</div>
 			</div>
 
-			{#if showAdjustment && adjustment && 'original_type' in adjustment}
-				<div class="mt-2 rounded-md bg-semantic-amber/10 px-2 py-1.5">
-					<p class="flex items-center gap-1 text-xs font-medium text-semantic-amber">
-						<Icon name="warning" class="h-3.5 w-3.5 shrink-0" /> 상태 조정: {workoutLabel(
-							adjustment.original_type
-						)} →
-						{workoutLabel(adjustment.adjusted_type)}
-					</p>
-					{#if adjustment.adjustment_reason}
-						<p class="mt-0.5 text-xs text-fg-secondary">{adjustment.adjustment_reason}</p>
-					{/if}
+			{#if dayAdjustment}
+				<div class="-mx-3 mt-2 overflow-hidden">
+					<AdjustmentCard initial={dayAdjustment.state} initialAdj={dayAdjustment.adjustment} via="today" onChange={refreshToday} />
 				</div>
 			{/if}
 
