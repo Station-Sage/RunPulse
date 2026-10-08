@@ -5,6 +5,8 @@
 	import { base } from '$app/paths';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
+	import { invalidateAll } from '$app/navigation';
 	import type { PlannedWorkout } from '$lib/types';
 
 	let { data }: { data: PlanDetailPageData } = $props();
@@ -113,20 +115,14 @@
 			{/if}
 		</div>
 
-		<!-- 오늘 조정 경고 -->
-		{#if data.adjustment?.adjusted}
-			<div class="border-b border-border-subtle bg-surface-2 px-4 py-3">
-				<p class="flex items-center gap-1 text-xs font-medium text-semantic-amber">
-					<Icon name="warning" class="h-3.5 w-3.5 shrink-0" /> 오늘 조정됨
-				</p>
-				{#if data.adjustment.adjustment_reason}
-					<p class="mt-0.5 text-xs text-fg-secondary">{data.adjustment.adjustment_reason}</p>
-				{/if}
-				<p class="mt-0.5 text-xs text-fg-muted">
-					{workoutLabel(data.adjustment.original_type)} →
-					{workoutLabel(data.adjustment.adjusted_type)}
-				</p>
-			</div>
+		<!-- 오늘 조정 제안·적용 (ADR-035) -->
+		{#if data.adjustment?.adjustment}
+			<AdjustmentCard
+				initial={data.adjustment.state}
+				initialAdj={data.adjustment.adjustment}
+				via="plan"
+				onChange={() => invalidateAll()}
+			/>
 		{/if}
 
 		<!-- 이번 주 워크아웃 목록 -->

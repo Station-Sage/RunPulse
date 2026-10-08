@@ -7,7 +7,9 @@ import type {
 	CreatePlanPayload,
 	CreatePlanResult,
 	SessionDetail,
-	PlanAdaptation
+	PlanAdaptation,
+	AdjustmentDecisionResult,
+	PlanAdjustment
 } from '$lib/types';
 
 export function getActivePlan(goalId?: number): Promise<ActivePlan> {
@@ -52,4 +54,26 @@ export function saveSessionNote(date: string, note: string): Promise<void> {
 
 export function getPlanAdaptation(): Promise<PlanAdaptation> {
 	return apiFetch<{ adaptation: PlanAdaptation }>('/coach/plan/adaptation').then((r) => r.adaptation);
+}
+
+export function acceptAdjustment(
+	id: number,
+	rev: number,
+	via: string
+): Promise<AdjustmentDecisionResult> {
+	return apiFetch(`/coach/plan/adjustments/${id}/accept`, {
+		method: 'POST',
+		body: JSON.stringify({ rev, via })
+	});
+}
+
+export function revertAdjustment(id: number, via: string): Promise<AdjustmentDecisionResult> {
+	return apiFetch(`/coach/plan/adjustments/${id}/revert`, {
+		method: 'POST',
+		body: JSON.stringify({ via })
+	});
+}
+
+export function listAdjustments(goalId: number, from: string, to: string): Promise<{ adjustments: PlanAdjustment[] }> {
+	return apiFetch(`/coach/plan/${goalId}/adjustments?from=${from}&to=${to}`);
 }

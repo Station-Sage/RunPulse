@@ -1192,6 +1192,46 @@ export interface TodaysAdjustment {
 	adjustment_reason: string | null;
 	fatigue_level: string;
 	volume_boost: boolean;
+	state?: AdjustmentState;
+	adjustment?: PlanAdjustment | null;
+}
+
+export type AdjustmentState =
+	| 'none'
+	| 'future'
+	| 'proposed'
+	| 'accepted'
+	| 'declined'
+	| 'undone'
+	| 'expired'
+	| 'stale';
+
+export interface PlanAdjustmentSide {
+	workout_type: string | null;
+	distance_km: number | null;
+	target_pace_min: number | null;
+	target_pace_max: number | null;
+	description: string | null;
+}
+
+export interface PlanAdjustment {
+	id: number;
+	goal_id: number | null;
+	workout_id: number;
+	date: string;
+	op: string;
+	before: PlanAdjustmentSide;
+	after: PlanAdjustmentSide;
+	reasons: { key: string; label: string }[];
+	decision: 'proposed' | 'accepted' | 'reverted';
+	rev: number;
+	state: AdjustmentState;
+}
+
+export interface AdjustmentDecisionResult {
+	adjustment: PlanAdjustment;
+	compliance: unknown;
+	week_planned_km: { before: number | null; after: number | null };
 }
 
 // ── Coach Plan Session Detail (5-G — /api/v1/coach/plan/:id/session/:date) ───
