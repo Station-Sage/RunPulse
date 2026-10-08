@@ -44,6 +44,7 @@ from .views_training import training_bp
 from .views_training_crud import training_crud_bp
 from .views_training_goal_crud import training_goal_crud_bp
 from .views_training_export import training_export_bp
+from .views_calendar_feed import calendar_feed_bp
 from .views_training_wizard import wizard_bp
 from .views_training_fullplan import fullplan_bp
 from .views_sync import sync_bp
@@ -241,6 +242,8 @@ def create_app() -> Flask:
     @app.before_request
     def _ensure_user_db_migrated():
         """요청마다 현재 사용자 DB를 최신 스키마로 마이그레이션 (이미 최신이면 즉시 반환)."""
+        if request.path.startswith("/feeds/cal/"):
+            return
         db = _db_path()
         if not db.exists():
             return
@@ -1348,6 +1351,7 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(training_crud_bp)       # v0.3 훈련 워크아웃 CRUD
     app.register_blueprint(training_goal_crud_bp)  # v0.3 훈련 목표 CRUD
     app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송
+    app.register_blueprint(calendar_feed_bp)       # 캘린더 구독 공개 피드 (/feeds/cal/<token>.ics)
     app.register_blueprint(wizard_bp)         # v0.2 훈련 계획 Wizard
     app.register_blueprint(fullplan_bp)       # v0.2 전체 훈련 일정 뷰
     app.register_blueprint(dev_bp)            # 개발자/디버그 도구

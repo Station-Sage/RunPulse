@@ -63,6 +63,9 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
     @app.before_request
     def _identify_user() -> Response | None:
         """CF 헤더에서 이메일을 읽어 session["user_id"] 세팅."""
+        # 캘린더 구독 공개 경로: 토큰 인증, 세션·쿠키 미사용 (CF Access Bypass 대상)
+        if request.path.startswith("/feeds/cal/"):
+            return None
         # 이미 세션에 user_id가 있으면 매 요청마다 헤더 재파싱 불필요
         if _SESSION_KEY in session:
             return None
