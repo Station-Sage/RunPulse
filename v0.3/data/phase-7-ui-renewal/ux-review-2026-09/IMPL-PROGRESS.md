@@ -678,10 +678,10 @@
 - AI 설정 페이지 외부 AI 섹션, LLM 에이전트 후보: TODO 상태(사용자 지시 전 착수 금지).
 - 정리: `src/utils/config.py` `load_config` return 뒤 도달 불가 코드 블록 제거.
 
-### 운영자 조치 필요
-- Cloudflare Access에서 `/feeds/cal/*` Bypass 정책 추가 후 실제 구글 캘린더 구독 확인.
-- 컨테이너 재빌드(Dockerfile `--logger-class`로 토큰 마스킹 + T1/마이그레이션 수정 로드).
-- 커넥터 OAuth 인증 필요: Google Drive, Notion, Strava, Tredict. pytest MCP 서버는 연결 실패(CONNECTION_CLOSED).
+### 운영자 조치 (보류)
+- 컨테이너 재빌드: 2026-10-08 완료(토큰 마스킹 logger, T1, 시작 마이그레이션 수정 반영, 헬스 401 확인).
+- 보류: Cloudflare Access `/feeds/cal/*` Bypass 정책 추가 후 실제 구글 캘린더 구독 확인.
+- 보류: 커넥터 OAuth 인증(Google Drive, Notion, Strava, Tredict). pytest MCP 서버는 연결 실패(CONNECTION_CLOSED).
 
 ### BACKLOG 잔여
 - MCP-REMOTE(설계 변경 — 계획 승인 필요), MCP-CLIENT-VERIFY, MARATHON-LOG-LAPS.
