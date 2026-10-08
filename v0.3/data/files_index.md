@@ -90,6 +90,14 @@
 
 - functions: get_archive
 
+### `calendar_feed_index.py` (104줄) — 캘린더 구독 토큰 전역 인덱스 (data/calendar_feeds.db) — 발급·재발급·해제·조회.
+
+- functions: index_path, hash_token, issue, get_status, revoke, lookup, touch
+
+### `calendar_feed_service.py` (134줄) — 훈련 계획 ICS 빌더 — RFC 5545 준수, 구조화 열만 노출(자유 텍스트·생체값 제외).
+
+- functions: escape_text, fold_line, default_range, build_ics
+
 ### `coach_activity_context.py` (96줄) — Coach 활동 컨텍스트 — `/coach/new?activity={id}` 근거 카드·추천 질문·프롬프트 요약.
 
 - functions: suggested_questions, get_activity_context, activity_prompt_summary
@@ -957,11 +965,11 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1358줄) — RunPulse integration workbench web app.
+### `app.py` (1362줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (114줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (117줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
 
@@ -974,6 +982,11 @@
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, run
 - functions: start_job, pause_job, stop_job, resume_job, start_basic_sync, get_status
+
+### `gunicorn_logging.py` (24줄) — gunicorn 로거 — 캘린더 구독 토큰(/feeds/cal/<token>.ics)을 접근 로그에서 마스킹.
+
+- class **RedactingLogger**: access
+- functions: redact
 
 ### `helpers.py` (902줄) — 웹 뷰 공통 헬퍼 함수.
 
@@ -1078,6 +1091,10 @@
 ### `views_ai_coach_cards.py` (591줄) — AI 코칭 페이지 렌더링 카드 — views_ai_coach.py에서 분리.
 
 - functions: render_coach_profile, render_briefing_card, render_wellness_card, render_chips, render_chat_section, render_recent_training, render_risk_summary
+
+### `views_calendar_feed.py` (89줄) — 캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
+
+- functions: client_family, calendar_feed
 
 ### `views_dashboard.py` (437줄) — 통합 대시보드 뷰 — Flask Blueprint.
 
@@ -1219,7 +1236,7 @@
 
 - functions: workout_create, workout_update, workout_delete, workout_confirm, workout_match_check, workout_skip, training_replan, workout_toggle, workout_patch, workout_interval_calc, training_prefs_post
 
-### `views_training_export.py` (117줄) — 훈련 계획 내보내기/전송 라우트 (ICS, Garmin, CalDAV).
+### `views_training_export.py` (94줄) — 훈련 계획 내보내기/전송 라우트 (ICS, Garmin, CalDAV).
 
 - functions: training_export_ics, push_to_garmin, push_to_caldav
 
@@ -1467,9 +1484,9 @@
 
 - functions: get_config_path, enabled_sources, set_sync_source, load_config, save_config, update_service_config, redact_config_for_display
 
-### `credential_store.py` (165줄) — 자격증명 암호화/복호화 유틸리티 (Fernet AES-128-CBC + HMAC-SHA256).
+### `credential_store.py` (186줄) — 자격증명 암호화/복호화 유틸리티 (Fernet AES-128-CBC + HMAC-SHA256).
 
-- functions: encrypt_config_credentials, decrypt_config_credentials, generate_key
+- functions: encrypt_config_credentials, decrypt_config_credentials, generate_key, encrypt_value, decrypt_value
 
 ### `daniels_table.py` (146줄) — Jack Daniels VDOT 유틸 — 훈련 페이스·레이스 시간은 Daniels–Gilbert 공식(`metrics/prediction/daniels.py`)으로 계산,
 
@@ -1540,6 +1557,14 @@
 
 - class **MatrixRow**: providers
 - functions: get_row, compare_group_for_slug, normalize_provider
+
+### `public_url.py` (14줄) — 외부에 노출되는 앱 기준 URL — PUBLIC_BASE_URL 환경변수 우선, 없으면 요청 url_root.
+
+- functions: public_base_url
+
+### `rate_window.py` (38줄) — 프로세스 메모리 슬라이딩 윈도 레이트 리미터 (워커 1개 전제).
+
+- functions: hit, count, reset
 
 ### `raw_payload.py` (117줄) — source_payloads 저장/병합 유틸리티.
 
@@ -1811,6 +1836,18 @@
 
 - functions: test_none_when_no_metric, test_latest_primary_value_and_status
 
+### `test_calendar_feed_index.py` (69줄) — calendar_feed_index — 발급/재발급/해제/조회, 평문 토큰 미저장.
+
+- functions: test_issue_lookup_and_status, test_rotate_invalidates_old_token, test_revoke, test_no_plaintext_token_on_disk, test_not_revealable_without_key, test_lookup_rejects_bad_format, test_touch_throttled
+
+### `test_calendar_feed_routes.py` (169줄) — 공개 캘린더 피드 라우트 + auth_cf 우회 + gunicorn 로그 마스킹 + rate_window.
+
+- functions: client, test_valid_token_serves_ics_without_cookie, test_etag_304_and_head, test_unknown_and_rotated_token_404, test_ip_404_rate_limit, test_token_rate_limit, test_client_family, test_auth_cf_bypass_on_feed_path, test_redact_token_in_logs, test_redacting_logger_masks_access, test_rate_window_basic, test_api_lifecycle, test_api_not_revealable_without_key, test_public_base_url
+
+### `test_calendar_feed_service.py` (98줄) — calendar_feed_service — RFC 5545 준수, 제외 필드, 결정성, UID 안정성.
+
+- functions: conn, test_valid_structure_and_crlf, test_rest_excluded_and_dtend_next_day, test_summary_description_format, test_excluded_fields_absent, test_deterministic_bytes_and_dtstamp, test_uid_stable_across_regeneration_and_salt, test_escape_and_fold, test_empty_plan_valid, test_no_identity_and_event_cap, test_default_range
+
 ### `test_chat_context_checkin.py` (131줄) — tests/test_chat_context_checkin.py — build_checkin_context / format_checkin_line 단위 + 통합.
 
 - functions: test_no_checkin_returns_none, test_today_checkin_fields, test_old_checkin_ignored, test_yesterday_checkin_included, test_empty_checkin_returns_none, test_empty_checkin_note_whitespace_returns_none, test_note_truncated_at_200, test_integration_checkin_in_chat_context, test_integration_no_checkin_not_in_context
@@ -2058,9 +2095,9 @@
 
 - functions: test_find_missing_only_running_with_hr_and_duration, test_backfill_computes_trimp_and_ctl_then_is_idempotent, test_nothing_to_do_returns_empty
 
-### `test_export_service.py` (127줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
+### `test_export_service.py` (134줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
 
-- functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_job_view_expiry, test_routes
+- functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_archive_excludes_calendar_feed_and_tokens, test_job_view_expiry, test_routes
 
 ### `test_extractor_base.py` (76줄) — BaseExtractor와 MetricRecord 단위 테스트.
 
@@ -2947,7 +2984,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 618개 파일
+총 627개 파일
 
 ## docstring 누락
 

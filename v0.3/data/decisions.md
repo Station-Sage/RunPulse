@@ -228,3 +228,11 @@
 - 강도 분포(Z1-2/Z3/Z4-5)는 활동별 `build_hr_zones`(hr_zones_detail 또는 hr_zone_time_1..5)를 합산한다. 존 데이터가 있는 활동의 시간이 전체의 50% 미만이면 `status="insufficient"`로 비율을 숨긴다.
 - CTL 값이 없는 기간은 CTL 칩과 문장을 생략한다(에러 아님).
 - 사유: `activity_summaries`에는 존 컬럼이 없고 존 시간은 metric_store에 있어, 기존 읽기 경로를 재사용해야 소스별 차이가 한곳에서 처리된다. 일부 활동만 존이 있을 때 비율을 내면 왜곡된다.
+
+## ADR-033: 캘린더 구독은 토큰 URL 공개 피드, 토큰은 해시 조회 + Fernet 재표시 (2026-10-08)
+- 결정: `/feeds/cal/<token>.ics`는 CF Access를 우회하는 공개 경로이며 세션·쿠키를 쓰지 않는다. 토큰은 `rpcal_` + `token_urlsafe(32)`; 조회는 sha256 해시만 쓰고(전역 DB `data/calendar_feeds.db`), 카드에서 다시 보여줄 수 있도록 Fernet `enc:` 암호문을 함께 저장한다(키가 없으면 NULL → "재발급해야 다시 볼 수 있어요"). 관리 API는 `GET/POST(rotate)/DELETE /api/v1/data/calendar-feed`.
+- 방어: 토큰당 60/시간, 실패 IP당 20/10분 제한(초과 429), 모든 실패는 동일한 404 + `X-Robots-Tag: noindex`, gunicorn 접근 로그의 토큰 마스킹(`RedactingLogger`).
+- 담기는 정보: 날짜·종류·거리, 목표 페이스·심박 존, 인터벌 구성. 메모·AI 설명, 건강 수치, 완료 여부, 대회명·장소는 제외. 기간은 오늘 −28일 이후.
+- 사유: 구글·애플 캘린더는 로그인 없이 URL만 가져가므로 URL 자체가 비밀이어야 한다. 해시 조회는 DB 유출 시 피드 접근을 막고, 재표시용 암호문은 키가 있을 때만 둔다.
+- 설계서에는 ADR-032로 적혀 있으나 번호는 Story가 먼저 사용해 033으로 기록.
+- 운영 작업: Cloudflare Access에 `/feeds/cal/*` Bypass 정책 추가, 컨테이너 재빌드(Dockerfile `--logger-class`).

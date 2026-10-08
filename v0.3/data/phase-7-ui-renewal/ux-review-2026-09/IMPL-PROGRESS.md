@@ -632,12 +632,12 @@
 ## S9 — 내보내기 (2026-10-08)
 - 백엔드: `src/services/export_service.py`(CSV 3종·아카이브 zip·이력/만료), `src/api/routes_data_export.py`(`POST /data/export`, `GET /data/exports`, `GET /data/exports/:id/download`). ADR-029.
 - 프론트: `/data/export` 재작성(기간 선택, 빠른 CSV 3종, 아카이브 작업·이력, .ics, AI 전송 안내), `lib/exports.ts`, `tests/exports.test.mjs`.
-- 남음: 가져오기 미리보기/확정(F-DATA-08), AI 설정 페이지(`/data/settings/ai`, 안내 링크 대상), .ics 구독 URL.
+- 남음: 가져오기 미리보기/확정(F-DATA-08), AI 설정 페이지(`/data/settings/ai`, 안내 링크 대상).
 
 ## S10 — AI 설정 (2026-10-08)
 - 백엔드: `src/services/ai_settings_service.py`(마스크·키 상태·7일 사용량·검증·적용·연결 테스트), `src/api/routes_data_ai.py`. ADR-030.
 - 프론트: `/data/settings/ai`(제공자 선택, 키 입력·연결 테스트, 보내는 데이터 범위, 폴백, Coach 상태·7일 사용량), `lib/aiSettings.ts`. `/data/settings` 카드가 새 화면으로 연결됨.
-- 남음: 외부 AI 섹션(프롬프트 복사·MCP 도구 목록), 가져오기(F-DATA-08), .ics 구독 URL.
+- 남음: 외부 AI 섹션(프롬프트 복사·MCP 도구 목록), 가져오기(F-DATA-08).
 
 ## S11 — 가져오기 (F-DATA-08, 2026-10-08)
 - 백엔드: `src/services/import_service.py`(업로드 저장·종류 감지·사본 미리보기·작업·이력), `src/api/routes_data_import.py`. 임포터 5종 스키마 정합 수정. ADR-031.
@@ -649,3 +649,8 @@
 - 백엔드: `story_service`(조립)·`story_period`(기간 해석)·`story_stats`(통계), 라우트 `GET /library/story/<period>`. 강도 분포는 `build_hr_zones` 합산(ADR-032).
 - 프런트: `/library/story/[period]`, `/library/story`(현재 월로 이동), 라이브러리 탭, Today B7 링크.
 - 검증 중 수정: 존 컬럼 오참조(500), 월·주 범위 검증, CTL 없는 기간의 크래시. 테스트 `tests/test_story_service.py` 7건.
+
+## S13 — 캘린더 구독 (.ics, C1–C7, 2026-10-08)
+- 백엔드: `ics_builder`·`calendar_feed_service`(RFC 5545), `calendar_feed_index`(토큰), `views_calendar_feed`(공개 피드, ETag/304, 제한), `routes_data_calendar`(관리 API), `gunicorn_logging`(토큰 마스킹). ADR-033.
+- 프런트: `/data/export` 카드 ③ `CalendarFeedCard`(발급·복사·애플/구글·재발급/해제 확인·마지막 가져감), `lib/calendarFeed.ts`.
+- 운영 필요: CF Access `/feeds/cal/*` Bypass, 컨테이너 재빌드, 실제 구글 구독 확인.

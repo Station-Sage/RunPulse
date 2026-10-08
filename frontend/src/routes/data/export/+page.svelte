@@ -3,6 +3,7 @@
 		downloadQuick, exportDownloadUrl, getExports, startArchive, type ExportItem, type ExportKind
 	} from '$lib/api/data';
 	import { expiryText, formatBytes, rangeBody } from '$lib/exports';
+	import CalendarFeedCard from '$lib/components/CalendarFeedCard.svelte';
 	import type { ExportPageData } from './+page';
 
 	let { data }: { data: ExportPageData } = $props();
@@ -126,13 +127,15 @@
 		<span class="text-xs text-fg-secondary">Strava 내보내기·CSV·FIT/GPX 파일을 미리 확인한 뒤 가져와요.</span>
 	</a>
 
+	<CalendarFeedCard initial={data.feed} />
+
 	<a
 		href="/training/export.ics"
 		data-sveltekit-reload
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"
 	>
-		<span class="text-sm text-fg-primary">훈련 계획 캘린더 (.ics)</span>
-		<span class="text-xs text-fg-secondary">현재 계획을 캘린더 앱으로 가져갈 수 있어요.</span>
+		<span class="text-sm text-fg-primary">훈련 계획 캘린더 파일 (.ics)</span>
+		<span class="text-xs text-fg-secondary">한 번만 가져오고 싶을 때 파일로 받아요.</span>
 	</a>
 
 	<p class="text-xs text-fg-muted">
