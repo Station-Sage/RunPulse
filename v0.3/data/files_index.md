@@ -965,11 +965,11 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1363줄) — RunPulse integration workbench web app.
+### `app.py` (1365줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (117줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (120줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
 
@@ -1143,6 +1143,10 @@
 ### `views_import.py` (311줄) — Strava Archive Import 뷰 — Flask Blueprint.
 
 - functions: strava_archive_view, strava_archive_post, strava_archive_backfill
+
+### `views_mcp_remote.py` (128줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
+
+- functions: enabled, mcp_endpoint
 
 ### `views_perf.py` (161줄) — 성능 최적화 — 배치 데이터 로더 + TTL 캐시.
 
@@ -2297,6 +2301,14 @@
 
 - functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
 
+### `test_mcp_audit.py` (33줄) — mcp_remote.audit — 기록·절단·IP 해시·보존 정리·조회.
+
+- functions: idx, test_record_and_query_with_truncation_and_ip_hash, test_purge_removes_only_old_rows
+
+### `test_mcp_http_routes.py` (169줄) — POST /mcp — 킬 스위치, 토큰 인증(세션 무시), 제한, 감사, auth_cf 예외.
+
+- functions: env, test_disabled_returns_404, test_no_or_bad_token_same_401, test_cookie_only_is_rejected_and_no_set_cookie, test_tools_list_and_audit_record, test_ping_not_audited_and_notification_202, test_disallowed_tool_is_tool_error, test_tool_call_uses_token_user_not_session_or_config, test_batch_and_bad_json_rejected, test_body_too_large_and_origin_and_version, test_get_and_delete_405, test_call_rate_limit_429, test_auth_failure_ip_block, test_auth_cf_exempts_mcp_exact_only
+
 ### `test_mcp_protocol.py` (100줄) — mcp_remote.protocol / safe_conn / policy — 허용 집합, 버전 협상, 일반화 오류, 읽기 전용 보장.
 
 - functions: db_path, test_version_negotiation, test_initialize_echoes_supported_version, test_tools_list_filtered_by_allowed, test_disallowed_tool_looks_unknown_and_never_connects, test_generic_errors_hide_exception_text, test_unknown_method_and_notification, test_safe_conn_allows_select_blocks_writes, test_safe_conn_blocks_attach, test_safe_conn_time_limit, test_every_tool_is_classified
@@ -2991,7 +3003,7 @@
 
 - functions: generate, get_structural_fingerprint
 
-### `mcp_token.py` (59줄) — 원격 MCP 토큰 관리 CLI — 컨테이너 안에서 실행: docker compose exec runpulse python scripts/mcp_token.py ...
+### `mcp_token.py` (69줄) — 원격 MCP 토큰 관리 CLI — 컨테이너 안에서 실행: docker compose exec runpulse python scripts/mcp_token.py ...
 
 - functions: main
 
@@ -3004,7 +3016,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 632개 파일
+총 635개 파일
 
 ## docstring 누락
 

@@ -66,6 +66,9 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
         # 캘린더 구독 공개 경로: 토큰 인증, 세션·쿠키 미사용 (CF Access Bypass 대상)
         if request.path.startswith("/feeds/cal/"):
             return None
+        # 원격 MCP: Bearer 토큰이 유일한 신원. 세션·쿠키·CF 서비스 토큰 우회를 타지 않는다(정확 일치만).
+        if request.path in ("/mcp", "/mcp/"):
+            return None
         # 이미 세션에 user_id가 있으면 매 요청마다 헤더 재파싱 불필요
         if _SESSION_KEY in session:
             return None

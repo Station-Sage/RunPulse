@@ -45,6 +45,7 @@ from .views_training_crud import training_crud_bp
 from .views_training_goal_crud import training_goal_crud_bp
 from .views_training_export import training_export_bp
 from .views_calendar_feed import calendar_feed_bp
+from .views_mcp_remote import mcp_remote_bp
 from .views_training_wizard import wizard_bp
 from .views_training_fullplan import fullplan_bp
 from .views_sync import sync_bp
@@ -1352,6 +1353,7 @@ python src/sync.py --source all --days 7</pre>
     app.register_blueprint(training_crud_bp)       # v0.3 훈련 워크아웃 CRUD
     app.register_blueprint(training_goal_crud_bp)  # v0.3 훈련 목표 CRUD
     app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송
+    app.register_blueprint(mcp_remote_bp)          # 원격 MCP (/mcp, Bearer 토큰)
     app.register_blueprint(calendar_feed_bp)       # 캘린더 구독 공개 피드 (/feeds/cal/<token>.ics)
     app.register_blueprint(wizard_bp)         # v0.2 훈련 계획 Wizard
     app.register_blueprint(fullplan_bp)       # v0.2 전체 훈련 일정 뷰

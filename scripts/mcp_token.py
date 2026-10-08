@@ -1,6 +1,6 @@
 """원격 MCP 토큰 관리 CLI — 컨테이너 안에서 실행: docker compose exec runpulse python scripts/mcp_token.py ...
 
-issue --user <id> --label <name> [--days 90] | list --user <id> [--all] | revoke <token_id> | revoke --user <id> --all
+issue --user <id> --label <name> [--days 90] | list --user <id> [--all] | revoke <token_id> | revoke --user <id> --all | audit [--user <id>] [--since YYYY-MM-DD] [--limit N]
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.mcp_remote import token_index as ti  # noqa: E402
+from src.mcp_remote import audit, token_index as ti  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,7 +27,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("token_id", nargs="?")
     p.add_argument("--user")
     p.add_argument("--all", action="store_true")
+    p = sub.add_parser("audit")
+    p.add_argument("--user")
+    p.add_argument("--since")
+    p.add_argument("--limit", type=int, default=50)
     a = ap.parse_args(argv)
+
+    if a.cmd == "audit":
+        for r in audit.query(a.user, a.since, a.limit):
+            print(f"{r['ts']}  {r['user_id']}  {r['token_id']}  {r['method']}  {r['tool'] or '-'}  "
+                  f"{r['status']}  {r['latency_ms']}ms  {r['resp_bytes']}B  {r['ip_hash']}")
+        return 0
 
     if a.cmd == "issue":
         try:

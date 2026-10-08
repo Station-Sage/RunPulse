@@ -38,6 +38,9 @@
     "suggestion_chips_count": 5,
     "plan_json_format": true
   },
+  "mcp_remote": {
+    "enabled": false
+  },
   "mapbox": {
     "token": ""
   },
