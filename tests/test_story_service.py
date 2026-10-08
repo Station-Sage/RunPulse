@@ -76,6 +76,22 @@ def test_block_without_active_plan_raises(conn):
         ss.get_story(conn, "b-1-build")
 
 
+def test_block_dates_follow_phase_weeks(conn, monkeypatch):
+    from types import SimpleNamespace as W
+
+    from src.training import goals, planner_config, planner_schedule
+
+    monkeypatch.setattr(goals, "get_active_goal", lambda c: {
+        "distance_km": 42.195, "distance_label": "full", "race_date": "2026-11-22", "plan_weeks": 4})
+    monkeypatch.setattr(planner_config, "get_vdot_adj", lambda c: 50.0)
+    sched = [W(phase="base"), W(phase="build"), W(phase="build"), W(phase="taper")]
+    monkeypatch.setattr(planner_schedule, "schedule_for_goal", lambda *a: sched)
+    # 대회 주 월요일 11/16 - 3주 = 10/26 시작
+    assert sp._get_block_dates(conn, "1", "build") == ("2026-11-02", "2026-11-15")
+    with pytest.raises(ValueError):
+        sp._get_block_dates(conn, "1", "peak")
+
+
 def test_route(conn, monkeypatch, tmp_path):
     from flask import Flask
 

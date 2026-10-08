@@ -667,7 +667,7 @@
   - T2 `_migrate_legacy_source_keys` + `is_source_enabled`: 운영 config에 `*_disabled` 키 0개라 우선순위 낮음.
   - T3 `bg_sync_control.cancel_job`, T4 v1 경로 가드, T5 `/data/sync` 행 버튼.
 - **F-UI-10 후속**: 목표 CTL 행·주별 볼륨 미니 차트 — 템플릿 API에 시계열 확장 필요(서비스 변경).
-- **Story 블록 범위**: `b-<planId>-<phase>`는 계획 단계↔날짜 매핑 미구현이라 400. `story_period._get_block_dates` 구현 시 해제.
+- **Story 블록 범위**: `_get_block_dates`는 이미 구현돼 있었음(인수인계 기술이 낡음). 양성 경로 테스트 추가(2026-10-08). 남은 것은 프론트에서 `b-<planId>-<phase>` 진입 링크 유무 확인뿐.
 
 ### 검증 대기
 - 실DB 브라우저 점검: 내보내기, S8b, S10, 가져오기 페이지(합성 DB로만 확인됨).
