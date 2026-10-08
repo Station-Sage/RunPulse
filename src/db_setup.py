@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 30  # v0.3.19: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 31  # v0.3.20: 계획 조정 plan_adjustments (db_schema_v31) — v30: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -595,6 +595,7 @@ APP_TABLES = [
     "chat_threads",
     "user_inputs",
     "ai_feedback",
+    "plan_adjustments",
 ]
 
 ALL_TABLES = PIPELINE_TABLES + APP_TABLES
@@ -744,6 +745,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
     ensure_v29(conn)
     from src.db_schema_v30 import ensure_v30
     ensure_v30(conn)
+    from src.db_schema_v31 import ensure_v31
+    ensure_v31(conn)
 
     conn.commit()
 

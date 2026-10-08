@@ -2069,6 +2069,10 @@
 
 - functions: test_tables_created_and_idempotent, test_rpe_check_rejects_out_of_range, test_note_length_check, test_create_tables_wires_v25_and_version
 
+### `test_db_schema_v31.py` (54줄) — 스키마 v31 plan_adjustments: 멱등, CHECK, 부분 유니크.
+
+- functions: conn, test_idempotent, test_check_constraints, test_partial_unique_live, test_registered_in_create_tables
+
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_20, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
@@ -3024,7 +3028,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 637개 파일
+총 638개 파일
 
 ## docstring 누락
 

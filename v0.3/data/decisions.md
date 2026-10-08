@@ -244,3 +244,8 @@
 - 발급: CLI `scripts/mcp_token.py`와 웹 `GET/POST/DELETE /api/v1/settings/mcp-tokens`(세션 사용자 한정, no-store) + 설정 카드 "외부 AI 연결". 서버가 꺼져 있어도 토큰은 미리 만들 수 있고 카드가 "아직 꺼짐"을 표시한다.
 - 사유: 서버 대 서버 클라이언트는 CF 로그인을 할 수 없고, CF 서비스 토큰만으로는 사용자 바인딩이 안 된다. 앱 토큰이 사용자 스코프를 보장한다.
 - 운영 작업(코드 밖, 켜기 전 필수): (1) CF Access에 `<host>/mcp` 경로 앱 추가 — Genspark가 커스텀 헤더 여러 개를 지원하면 Service Auth, 아니면 Bypass(D1), (2) 서비스 토큰 발급(Service Auth 시), (3) WAF rate limit, (4) `/mcp` 캐시 우회, (5) `config.json`에 `"mcp_remote": {"enabled": true}` 후 컨테이너 재시작.
+
+## ADR-035: 조정 수락은 `plan_adjustments` 테이블에 영속화하고 읽을 때 계획에 겹쳐 적용 (2026-10-08)
+- 결정: 스키마 v31 `plan_adjustments`(proposed/accepted/reverted, rev, before/after/reasons JSON, rule_version)에 조정 이력을 저장한다. 원본 `planned_workouts`는 수정하지 않고, `get_planned_workouts`가 accepted 조정만 읽기 시점에 겹쳐 적용한다(`training/plan_overlay`). 유효 계획 순위(R1)는 `실행된 외부 계획 > 수락된 조정 > 외부 계획 > planner 원안`이며 조정 휴식일은 이행률 분모에서 제외한다(D9). 수락·되돌리기는 당일만, rev 불일치는 409 `CONFLICT`.
+- 세부 결정: (1) 제안은 조회 시 멱등 upsert(`ensure_proposal`)로 만들어 Today·계획·Coach가 같은 id를 공유. (2) v1 조정 후 거리는 유형만 바꾸고 원본 유지(휴식은 NULL), R8 비율은 `rule_version` 상향으로 후속. (3) 원본 행이 바뀌거나 재생성되면 stale로 표시하고 적용하지 않음. (4) ICS 피드·Garmin/CalDAV 푸시에는 v1에서 반영하지 않음(후속).
+- 사유: 읽기 시점 오버레이는 원본 불변으로 되돌리기가 단순하고, 조정 이력이 남아 거절·되돌림을 구분할 수 있다. 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
