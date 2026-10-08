@@ -63,3 +63,12 @@ def test_week_cap_km_v2_only():
     v1, v2 = _goal(c, 1), _goal(c, 2)
     assert S.week_cap_km(c, v1, "half", None) is None
     assert S.week_cap_km(c, v2, "half", None) > 0
+
+
+def test_long_pace_uses_profile_threshold_without_vdot(monkeypatch):
+    import src.utils.config as C
+    cfg = {"profile": {"overrides": {"threshold_pace": 240}, "source_choice": {"threshold_pace": "manual"}}}
+    monkeypatch.setattr(C, "load_config", lambda *a, **k: cfg)
+    fast = S._long_pace_fn({}, "full", None)(10)
+    monkeypatch.setattr(C, "load_config", lambda *a, **k: {})
+    assert fast < S._long_pace_fn({}, "full", None)(10)

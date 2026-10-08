@@ -98,11 +98,15 @@ def _goal_start_load(conn: sqlite3.Connection, goal: dict, dlabel: str, as_of: d
     return start_load(conn, dlabel, as_of, rv, user_km, user_long)
 
 
-def _long_pace_fn(goal: dict, dlabel: str, vdot: float | None):
+def _long_pace_fn(goal: dict, dlabel: str, vdot: float | None, conn: sqlite3.Connection | None = None):
     """대회까지 남은 주 → 그 주 처방 MP 기반 롱런 페이스(planner_v2.apply_for_goal 과 같은 정의)."""
     secs = goal.get("target_time_sec")
     mp_goal = goal.get("target_pace_sec_km") or (secs / 42.195 if secs and dlabel == "full" else None)
-    mp_now = get_paces_from_vdot(vdot, None).get("M")
+    cfg = None
+    if not (vdot and vdot > 20):        # VDOT 없을 때만 프로필 역치 페이스가 쓰인다(요청 사용자 설정)
+        from src.utils.config import load_config
+        cfg = load_config()
+    mp_now = get_paces_from_vdot(vdot, cfg, conn).get("M")
 
     def pace(to_race: int) -> float:
         mp = MR.prescribed_mp(mp_now, mp_goal, max(0, 16 - to_race))
@@ -135,7 +139,7 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     cap, long_cap = None, None
     if rv >= 2:
         n_days = _run_days(conn)
-        pace = _long_pace_fn(goal, dlabel, vdot)
+        pace = _long_pace_fn(goal, dlabel, vdot, conn)
         cap = feasible_week_km(n_days, pace(2), dlabel)      # D-LR-8(B): 피크 롱런 공유 상한과 결합
         long_cap = _long_cap_fn(dlabel, pace, n_days, start_long, recent_long_max(conn, min(start, today), 12))
     return build_schedule(int(goal["plan_weeks"]), start_km, start_long, max(peak, start_km),
@@ -159,7 +163,7 @@ def week_cap_km(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float |
     """v2 주간 상한(러닝 일수로 소화 가능한 km, schedule_for_goal 과 같은 값). v1 은 None."""
     if goal.get("id") is None or _rules_version(conn, goal) < 2:
         return None
-    return feasible_week_km(_run_days(conn), _long_pace_fn(goal, dlabel, vdot)(2), dlabel)
+    return feasible_week_km(_run_days(conn), _long_pace_fn(goal, dlabel, vdot, conn)(2), dlabel)
 
 
 def plan_start_source(conn: sqlite3.Connection, goal: dict, dlabel: str, today: date | None = None) -> str:
