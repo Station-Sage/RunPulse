@@ -285,3 +285,10 @@
 
 #### 외부 출력 반영 (ADR-035 부록)
 - CalDAV/Garmin 푸시는 `get_planned_workouts(overlay=True)`로 이미 조정 반영. ICS 피드(`calendar_feed_service._overlaid_rows`)도 같은 오버레이를 적용: 휴식으로 바뀐 날은 이벤트 제외, 이동은 새 날짜, 조정된 이벤트의 DTSTAMP는 `decided_at`(캘린더 클라이언트 갱신). 범위 밖에서 들어오는 move를 위해 ±7일 넓게 읽고 범위로 다시 거른다. UID는 날짜+슬롯 기반이라 이동 시 옛 UID 소멸·새 UID 생성(구독 클라이언트가 자연 갱신).
+
+#### K1/K2 확인 결과 (A6 재계획 링크, 2026-10-09)
+- 링크 자체는 `/coach/plan/new` 폼 프리필일 뿐이나, 제출(`POST /coach/plan` → `create_plan_from_template`)에 부작용이 있어 링크는 계속 off.
+- K1: `add_goal`이 기존 활성 목표를 종료하지 않아 활성 목표가 둘이 된다.
+- K2: `save_weekly_plan`이 같은 날짜의 `source='planner'` 행을 삭제·재삽입하고 시작 주가 이번 주(월요일)라 이번 주 지난 날의 행까지 새 id로 바뀐다 → `matched_activity_id`·`session_outcomes.planned_id`·`plan_adjustments.workout_id` 연결이 끊긴다.
+- 활성화 전제(설계 필요): 재계획은 오늘 이후 날짜만 교체, 기존 목표를 `cancelled/superseded`로 전환, 이동·조정 이력 보존. 별도 설계 후 진행.
+
