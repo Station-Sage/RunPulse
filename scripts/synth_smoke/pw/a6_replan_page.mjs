@@ -1,0 +1,27 @@
+// A6 재계획 페이지 390px 스모크 (진입·dirty·다시 계산·적용·결과·되돌리기·가로 넘침). 환경: BASE
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18111') + '/v2';
+await page.goto(B + '/coach/plan/replan', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+const apply = page.getByRole('button', { name: /적용/ });
+console.log('apply enabled initially:', await apply.isEnabled());
+await page.screenshot({ path: 'shots/replan_1_preview.png', fullPage: true });
+await page.getByText('직접 입력').click();
+const inp = page.locator('input').first();
+await inp.fill('50');
+console.log('apply enabled when dirty (expect false):', await apply.isEnabled());
+await page.getByRole('button', { name: '다시 계산' }).click(); await page.waitForTimeout(1000);
+console.log('apply enabled after recalc:', await apply.isEnabled());
+await page.screenshot({ path: 'shots/replan_2_recalc.png', fullPage: true });
+await apply.click(); await page.waitForTimeout(1500);
+console.log('after apply text:', (await page.locator('main').innerText()).slice(0, 300).replace(/\n/g, ' | '));
+await page.screenshot({ path: 'shots/replan_3_applied.png', fullPage: true });
+await page.getByRole('button', { name: '되돌리기' }).click(); await page.waitForTimeout(1200);
+console.log('after undo text:', (await page.locator('main').innerText()).slice(0, 200).replace(/\n/g, ' | '));
+await page.screenshot({ path: 'shots/replan_4_undone.png', fullPage: true });
+console.log('overflow:', await page.evaluate(() => document.documentElement.scrollWidth > innerWidth));
+console.log('errors:', errs);
+await b.close();

@@ -92,7 +92,7 @@
 	onMount(load);
 </script>
 
-<div class="mx-auto max-w-xl space-y-4 p-4 pb-32">
+<div class="mx-auto max-w-xl space-y-4 p-4 pb-48 lg:pb-32">
 	<a href={href.plan} class="inline-flex min-h-11 items-center text-xs text-fg-secondary">← 계획</a>
 	<h1 class="text-lg font-semibold">남은 일정 다시 맞추기</h1>
 
@@ -147,7 +147,7 @@
 </div>
 
 {#if stage === 'preview' && preview}
-	<div class="fixed inset-x-0 bottom-0 space-y-2 border-t border-border bg-surface-1 p-3">
+	<div class="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-40 space-y-2 border-t border-border bg-surface-1 p-3 lg:bottom-0 lg:left-52">
 		{#if preview.external.length}
 			<p class="text-xs text-fg-secondary">Garmin 세션 {preview.external.length}개는 직접 지워야 해요</p>
 		{/if}
