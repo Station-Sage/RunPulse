@@ -1,7 +1,10 @@
 """설정 파일(config.json) 로드/저장 유틸리티."""
 
 import json
+import logging
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _CONFIG_PATH = _PROJECT_ROOT / "config.json"
@@ -54,6 +57,27 @@ def enabled_sources(config: dict) -> list[str]:
     return [s for s in ALL_SOURCES if s in listed]
 
 
+def is_source_enabled(config: dict, source: str) -> bool:
+    return source in enabled_sources(config)
+
+
+def _migrate_legacy_source_keys(loaded: dict) -> dict:
+    """수동 우회로 생긴 `<소스>_disabled` 키를 정식 키로 옮기고 sync_sources 에서 뺀다(멱등, 파일 쓰기 없음)."""
+    for src in ALL_SOURCES:
+        legacy = f"{src}_disabled"
+        if legacy not in loaded:
+            continue
+        if not loaded.get(src):
+            loaded[src] = loaded[legacy]
+        elif loaded[legacy]:
+            log.warning("config: %s 와 %s 가 모두 있어 정식 키를 사용합니다", src, legacy)
+        del loaded[legacy]
+        cur = loaded.get("sync_sources")
+        base = cur if isinstance(cur, list) else list(ALL_SOURCES)
+        loaded["sync_sources"] = [s for s in base if s != src]
+    return loaded
+
+
 def set_sync_source(config: dict, source: str, enabled: bool) -> list[str]:
     """config["sync_sources"] 에 소스를 켜고 끈다(제자리 수정). 반환: 새 목록. 끈 소스의 과거 데이터는 그대로."""
     cur = set(enabled_sources(config))
@@ -98,7 +122,7 @@ def load_config(path: Path | None = None, *, user_id: str | None = None) -> dict
         return base
 
     with open(config_path, encoding="utf-8") as f:
-        loaded = json.load(f)
+        loaded = _migrate_legacy_source_keys(json.load(f))
 
     for key, value in loaded.items():
         if isinstance(value, dict) and isinstance(base.get(key), dict):

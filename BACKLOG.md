@@ -8,7 +8,7 @@
 
 - **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 러닝으로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. **코드 수정 완료(2026-09-26, `_RUNNING_TYPES`에 추가)** — 기존 DB 16건(`activity_type='indoor_running'`) 정정·재계산은 실 DB 작업(백필 런북과 함께)으로 남음.
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
-- **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거(SYNC-SOURCE-TOGGLE G6)와 함께 해소.**
+- **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거 시 해소(2026-10-10: G6 와 무관함을 확인, 독립 항목).**
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
@@ -16,7 +16,7 @@
 
 ## NEXT
 
-- **[SYNC-SOURCE-TOGGLE]** T1·T3(끄면 cancelled)·T4(v1 경로 가드)·T5(`/data/sync` 행 버튼) 완료(2026-10-08). 남은 것: T2(레거시 `*_disabled` 마이그레이션), T6(v1 제거=G6, AUDIT-V-CANONICAL 동반). 설계: `ux-review-2026-09/DESIGN-SYNC-SOURCE-TOGGLE.md`.
+- **[SYNC-SOURCE-TOGGLE]** T1~T6 완료(2026-10-10, ADR-037). G6 는 T5 버튼으로 해소; v1 뷰 제거는 AUDIT-V-CANONICAL 로 분리 유지.
 
 - **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** Phase 7c 계획 조정 수락 영속화(ADR-035, 스키마 v31) T1~T7·T9 완료(2026-10-08): `plan_adjustments`·overlay·서비스·API·매처·플랜 상세 `AdjustmentCard`. 세션 상세·Today 카드 연결 + 브라우저 스모크(수락→되돌리기, 390px) 완료(2026-10-08). T8 백엔드(`create_user_adjustment` + `POST workouts/<id>/action`: reduce(pct)/rest/skip, 당일만, 즉시 accepted) 완료(2026-10-08). 행 액션 시트 UI(`RowActionButton/Sheet`, `UserAdjustmentLine`; 플랜·세션 상세·Today, 줄이기/쉬기/건너뛰기+되돌리기 토스트, 390px 스모크 `p7d_rowaction.mjs`) 완료(2026-10-09). `move` op(오늘→내일~+3일 같은 주, 쉬운 날과 맞바꿈·pair 되돌리기, 규칙 M1~M10 `plan_move.py`, 시트 날짜 칩) 완료(2026-10-09). Q 세션 reduce(인터벌 reps −1/−2, 강도·롱런 정해진 pct, structure_json 재계산)·이지로 바꾸기(`easy`→replace) 완료(2026-10-09, `plan_reduce.py`). load_delta(`plan_load.py`, `GET workouts/<id>/action/preview`, 시트 부하 한 줄; 백테스트 `scripts/plan_load_backtest.py`) 완료(2026-10-09). 통증 단계(`plan_pain.py`, 시트 정도·부위 칩, PAIN_REPEAT) 완료(2026-10-09). 경고 A1~A6 서버(`plan_advisory.py`, 주 1회 발급, 액션 응답 `advisories[]`·토스트) 완료(2026-10-09). A6 시트 배너(`GET coach/plan/advisories`, `ReplanBanner`, 390px 스모크 `a6_replan.mjs`) 완료(2026-10-09; 재계획 링크는 플래그 off 유지 — K1/K2 확인 결과 활성 목표 중복·이번 주 지난 날 행 id 교체로 연결 끊김, 안전한 재계획 T1~T7·T9 완료·배포 2026-10-09: decisions.md ADR-035 부록 R, `DESIGN-PLAN-A6-REPLAN-SAFE.md`·`DESIGN-PLAN-A6-REPLAN-UI.md`, 화면 `/coach/plan/replan`, 배너 링크 활성화. 재계획 입력 재검토 §11(이력 기반 시작점 카드, 입력은 공백·신규만) 완료 2026-10-09. Q7 시작 출처 저장(v33)·마지막 재계획 API(Q1) 완료 2026-10-09. Q1 프런트 연결·Q4 진입 규칙 단일화(`entry_state`, REPLAN_PENDING, 헤더 되돌리기/진입 링크) 완료 2026-10-09. 후속: Garmin 외부 삭제(비가역, 사용자 승인 D안, 실계정 스모크 선행), CalDAV R1 복구·정상화 구현 완료 2026-10-09(ADR-036, 운영 caldav 이미지 반영·실서버 연결 확인은 사용자 계정 필요)). `?sheet=row-<id>` URL 상태(딥링크·새로고침 복원, 스모크 `sheet_url.mjs`) 완료(2026-10-09). ICS 캘린더 피드에 수락된 조정 반영(휴식 제외·이동 날짜·DTSTAMP=결정 시각; CalDAV/Garmin 푸시는 이미 오버레이 적용) 완료(2026-10-09). 건너뛰기는 이행률 분모에 포함(사용자 결정 2026-10-09, D9 개정: 코치 제안 휴식만 제외). 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
 

@@ -316,3 +316,9 @@
 - UID = 날짜+슬롯(`{date}-{slot}@runpulse-caldav`, ICS 피드와 같은 겹침 적용 행), DTEND = DTSTART+1일. 같은 UID 재전송은 덮어쓰기라 멱등. 전송 기록은 `caldav_pushes`(스키마 v34).
 - 계획에서 사라진 일정은 `push_range` 가 원격 삭제(1회 재시도 → 로그 → 계속). 재계획 apply 직후 `sync_after_replan` 이 보낸 적 있는 범위만 자동 동기화(preview 에선 안 함, 실패해도 적용은 유지, 결과 `caldav` 키). 사용자가 직접 지울 일이 없어 `external`(Garmin 전용)에는 넣지 않음.
 - 연결 테스트는 사유 3종(모듈 없음/인증·URL/캘린더 없음). Google 은 OAuth 전용이라 미지원을 설정 화면에 명시.
+
+### ADR-037: 동기화 소스 포함 목록 (SYNC-SOURCE-TOGGLE, 2026-10-10)
+- 포함 목록 = `config.sync_sources` 단일 출처(`enabled_sources`/`is_source_enabled`). 끄기 ≠ 연결 해제(자격증명·과거 데이터 보존), 끄기 = 활성 job `cancelled`.
+- 레거시 수동 우회 키 `<소스>_disabled` 는 `load_config` 가 읽을 때 정식 키로 옮기고 목록에서 제외(멱등, 파일 미수정, 값은 로그에 남기지 않음).
+- CLI `--source <이름>` 은 명시 실행이라 포함 여부와 무관. `--source all` 만 목록을 따른다.
+- G6 은 `/data/sync` 행 버튼(T5)으로 완료. v1 뷰 제거는 별개 작업이라 AUDIT-V-CANONICAL 은 BACKLOG 에 그대로 둔다.

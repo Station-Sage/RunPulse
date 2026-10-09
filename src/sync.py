@@ -1,4 +1,4 @@
-"""데이터 동기화 CLI 진입점."""
+"""데이터 동기화 CLI 진입점. --source all 은 config.sync_sources 포함 목록만, --source <이름> 은 포함 여부와 무관하게 명시 실행(CLI 예외)."""
 
 import logging
 import os

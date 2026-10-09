@@ -1528,9 +1528,9 @@
 
 - functions: copy_to_clipboard, handle_clipboard_option
 
-### `config.py` (178줄) — 설정 파일(config.json) 로드/저장 유틸리티.
+### `config.py` (202줄) — 설정 파일(config.json) 로드/저장 유틸리티.
 
-- functions: get_config_path, enabled_sources, set_sync_source, load_config, save_config, update_service_config, redact_config_for_display
+- functions: get_config_path, enabled_sources, is_source_enabled, set_sync_source, load_config, save_config, update_service_config, redact_config_for_display
 
 ### `credential_store.py` (186줄) — 자격증명 암호화/복호화 유틸리티 (Fernet AES-128-CBC + HMAC-SHA256).
 
@@ -2003,6 +2003,10 @@
 ### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
 
 - functions: test_returns_empty_when_no_data, test_shows_utrs_badge, test_utrs_green_when_high, test_utrs_red_when_low, test_cirs_badge_shown, test_cirs_red_border_when_danger, test_wellness_badges_from_adj, test_adjustment_section_when_adjusted, test_no_adjustment_section_when_not_adjusted, test_ai_section_shown_with_utrs, test_ai_override_shown, test_ai_badge_only_when_override, test_volume_boost_shown_when_applicable, test_volume_boost_hidden_when_cirs_high, test_card_title_present
+
+### `test_config_sync_sources.py` (28줄) — 레거시 `<소스>_disabled` 키 마이그레이션과 is_source_enabled.
+
+- functions: test_legacy_key_moves_and_disables, test_canonical_key_not_overwritten, test_idempotent_and_default_base_is_all, test_load_config_applies_migration
 
 ### `test_config_utils.py` (99줄) — config.py 헬퍼 함수 테스트 — save_config, update_service_config, redact.
 
@@ -3147,7 +3151,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 666개 파일
+총 667개 파일
 
 ## docstring 누락
 
