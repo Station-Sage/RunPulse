@@ -189,7 +189,7 @@ def _render_guide() -> str:
         ("📤 훈련 내보내기",
          "S1 헤더의 [📤 내보내기 ▾] 드롭다운에서 4가지 내보내기 방법을 선택합니다. "
          "⌚ Garmin 워크아웃: Garmin Connect에 이번 주 계획을 structured workout으로 전송. "
-         "📅 CalDAV 캘린더: CalDAV 서버에 이번 주 일정을 VEVENT로 등록. "
+         "📅 CalDAV 캘린더: 네이버·Apple 등 CalDAV 서버에 이번 주 일정을 등록(재계획 시 자동 갱신, Google 미지원). "
          "📁 ICS 파일: 이번 주 플랜을 .ics 파일로 다운로드. "
          "🔗 링크 복사: 현재 페이지 URL을 클립보드에 복사."),
     ]

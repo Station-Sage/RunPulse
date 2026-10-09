@@ -26,6 +26,7 @@ fitparse>=1.0.0
 # 날짜 유틸
 python-dateutil>=2.9.0
 
+caldav>=1.4,<2        # CalDAV 캘린더 연동 (/training/push-caldav)
+
 # 선택적 기능 (필요 시 주석 해제)
-# caldav>=1.0.0      # CalDAV 캘린더 연동 (/training/push-caldav)
 # selenium>=4.0.0    # Genspark AI 드라이버 (Termux/Chrome 전용)

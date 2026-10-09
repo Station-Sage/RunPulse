@@ -74,7 +74,7 @@ def push_to_caldav():
     if not dbp or not dbp.exists():
         return redirect("/training")
 
-    from src.training.caldav_push import push_weekly_plan_to_caldav
+    from src.training.caldav_push import CalDavUnavailable, push_weekly_plan_to_caldav
     from src.utils.config import load_config
 
     try:
@@ -90,5 +90,7 @@ def push_to_caldav():
             return redirect(f"/training?msg=캘린더에 {count}개 워크아웃 등록 완료")
         else:
             return redirect("/training?msg=등록할 워크아웃이 없습니다")
+    except CalDavUnavailable as exc:
+        return redirect(f"/training?msg={exc}")
     except Exception as exc:
         return redirect(f"/training?msg=캘린더 등록 실패: {str(exc)[:100]}")

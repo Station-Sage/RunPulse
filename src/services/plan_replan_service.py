@@ -70,6 +70,16 @@ def _start_km(conn: sqlite3.Connection, goal: dict, today: date, user_km: float 
     return km, src, {"km4": km4, "avg16": avg16, "long6": long6, "long12": long12}
 
 
+def _sync_caldav(conn: sqlite3.Connection, frm: str, to: str) -> dict | None:
+    """적용 직후 CalDAV 동기화(보낸 적이 있을 때만, 실패는 로그만)."""
+    from src.training.caldav_push import sync_after_replan
+    from src.utils.config import load_config
+    try:
+        return sync_after_replan(load_config(), conn, frm, to)
+    except Exception:
+        return None
+
+
 def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     goal, anchor, race = _goal_and_anchor(conn, today)
     pending = last_undoable(conn, today)
@@ -105,9 +115,11 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         conn.execute("ROLLBACK TO replan")
         conn.execute("RELEASE replan")
         raise
+    caldav = None
     if write:
         conn.commit()
-    return {"replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
+        caldav = _sync_caldav(conn, a_iso, end)
+    return {"caldav": caldav, "replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
             "start_source": start_source, "basis": basis, "goal_target_time_sec": goal.get("target_time_sec"),
             "start_long_km": user_long, "target_time_sec": target, "before": before, "after": after,
             "deleted_count": len(res["deleted"]), "preserved": res["preserved"], "external": res["external"],

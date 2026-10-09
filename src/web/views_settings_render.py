@@ -184,19 +184,19 @@ def _render_caldav_section(config: dict) -> str:
 <div class='card'>
   <h2 style='margin-bottom:0.5rem;'>캘린더 연동 (CalDAV)</h2>
   <p class='muted' style='font-size:0.82rem;margin-bottom:0.6rem;'>
-    훈련 계획을 Google/네이버/Apple 캘린더에 자동 등록합니다.
+    훈련 계획을 네이버/Apple iCloud/Synology 등 앱 비밀번호 방식 CalDAV 캘린더에 등록합니다. Google 캘린더는 OAuth 전용이라 지원하지 않아요(ICS 구독 피드를 쓰세요).
   </p>
   <p style='font-size:0.82rem;margin-bottom:0.6rem;'>상태: {status}</p>
   <form method='post' action='/settings/caldav' style='display:flex;flex-direction:column;gap:0.5rem;'>
     <label style='font-size:0.88rem;'>
       CalDAV URL
-      <input type='text' name='caldav_url' value='{url}' placeholder='https://caldav.googleapis.com/...'
+      <input type='text' name='caldav_url' value='{url}' placeholder='https://caldav.calendar.naver.com/...'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
     </label>
     <label style='font-size:0.88rem;'>
       사용자명
-      <input type='text' name='caldav_username' value='{username}' placeholder='user@gmail.com'
+      <input type='text' name='caldav_username' value='{username}' placeholder='계정 아이디'
         style='display:block;margin-top:0.2rem;padding:0.4rem;border-radius:4px;
         border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:inherit;width:100%;'>
     </label>
