@@ -1,6 +1,7 @@
 """일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1)."""
 from __future__ import annotations
 
+from src.training.goals import get_active_goal
 import json
 import sqlite3
 from datetime import date as _date, timedelta
@@ -54,8 +55,8 @@ def _effective_types(conn: sqlite3.Connection, start: _date, end: _date) -> dict
 
 
 def _race_date(conn: sqlite3.Connection) -> str | None:
-    r = conn.execute("SELECT race_date FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    return r[0] if r and r[0] else None
+    g = get_active_goal(conn)
+    return g["race_date"] if g and g["race_date"] else None
 
 
 def validate(conn: sqlite3.Connection, workout_id: int, to_date: str, reason: str | None,

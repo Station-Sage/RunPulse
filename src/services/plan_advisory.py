@@ -5,6 +5,7 @@ A6(계획 다시 맞추기)이 켜지면 A1 은 숨긴다. 문구는 사실 + �
 """
 from __future__ import annotations
 
+from src.training.goals import get_active_goal
 import json
 import sqlite3
 from datetime import date, timedelta
@@ -64,8 +65,8 @@ def _q_dropped_2(conn: sqlite3.Connection, today: date) -> bool:
 
 def _long_dropped_2w(conn: sqlite3.Connection, today: date) -> int | None:
     """풀 마라톤 목표에서 직전 2주 연속 롱런이 건너뜀/16km 미만이면 남은 롱런 횟수, 아니면 None."""
-    goal = conn.execute("SELECT distance_km, race_date FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    if not goal or (goal[0] or 0) < FULL_MARATHON_KM:
+    goal = get_active_goal(conn)
+    if not goal or (goal["distance_km"] or 0) < FULL_MARATHON_KM:
         return None
     ws, _ = _week(today)
     ph = ",".join("?" * len(LONG_TYPES))
@@ -83,7 +84,7 @@ def _long_dropped_2w(conn: sqlite3.Connection, today: date) -> int | None:
         if not (all(r[0] in dropped for r in longs) or best < LONG_MIN_KM):
             return None
     return conn.execute(f"SELECT COUNT(*) FROM planned_workouts WHERE workout_type IN ({ph}) AND date > ? AND date <= ?",
-                        (*LONG_TYPES, today.isoformat(), goal[1] or "9999-12-31")).fetchone()[0]
+                        (*LONG_TYPES, today.isoformat(), goal["race_date"] or "9999-12-31")).fetchone()[0]
 
 
 def _replan(conn: sqlite3.Connection, today: date, a1: bool) -> str | None:

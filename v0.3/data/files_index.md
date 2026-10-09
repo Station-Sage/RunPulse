@@ -215,12 +215,12 @@
 
 - functions: warm_month_narrative, warm_in_background
 
-### `plan_adjustment_service.py` (300줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adjustment_service.py` (301줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
 - functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
 
-### `plan_advisory.py` (156줄) — skip/rest 반복 경고 A1~A6 — 거부하지 않고 안내만 한다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §3).
+### `plan_advisory.py` (157줄) — skip/rest 반복 경고 A1~A6 — 거부하지 않고 안내만 한다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §3).
 
 - functions: compute, issue
 
@@ -228,7 +228,7 @@
 
 - functions: session_load, daily_actual, easy_u, load_delta
 
-### `plan_move.py` (142줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
+### `plan_move.py` (143줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
 
 - functions: overlay_date, date_ok, validate, create_move, partner_id, revert_dependents
 
@@ -249,7 +249,7 @@
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (193줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (202줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - functions: get_static_plan_templates, create_plan_from_template
 
@@ -1356,7 +1356,7 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (168줄) — 훈련 목표 CRUD.
+### `goals.py` (171줄) — 훈련 목표 CRUD.
 
 - functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
@@ -1444,7 +1444,7 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (300줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (302줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs
 
@@ -2556,6 +2556,10 @@
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
 
+### `test_plan_create_atomic.py` (56줄) — POST /coach/plan 생성 — 단일 트랜잭션·이전 목표 미래 행 정리 (ADR-035 부록 R T6).
+
+- functions: test_create_cancels_old_goal_and_clears_its_future_rows, test_failure_rolls_back_goal_and_plan, test_commit_false_defers_to_caller
+
 ### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
@@ -3124,7 +3128,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 661개 파일
+총 662개 파일
 
 ## docstring 누락
 

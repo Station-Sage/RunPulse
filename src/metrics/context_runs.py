@@ -114,7 +114,7 @@ class RunHistoryMixin:
         d = (as_of or self._end_date(None).strftime("%Y-%m-%d"))[:10]
         row = self.conn.execute(
             "SELECT id, name, race_date, distance_km, target_time_sec FROM goals WHERE status='active' "
-            "AND race_date IS NOT NULL AND race_date >= ? ORDER BY race_date LIMIT 1", [d]).fetchone()
+            "AND race_date IS NOT NULL AND race_date >= ? ORDER BY race_date, id DESC LIMIT 1", [d]).fetchone()
         if not row:
             return None
         return {"id": row[0], "name": row[1], "race_date": row[2], "distance_km": row[3], "target_time_sec": row[4]}

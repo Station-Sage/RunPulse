@@ -63,6 +63,7 @@ def add_goal(
     target_time_sec: int | None = None,
     target_pace_sec_km: int | None = None,
     rules_version: int | None = None,
+    commit: bool = True,
 ) -> int:
     """목표 추가. 기존 active 목표는 cancelled 로 전환한다(활성 1개 불변식).
 
@@ -74,6 +75,7 @@ def add_goal(
         target_time_sec: 목표 완주 시간 (초).
         target_pace_sec_km: 목표 페이스 (초/km).
         rules_version: 계획 규칙 버전. None이면 플래그에 따라 2(on) 또는 1(off).
+        commit: False 면 호출자가 트랜잭션을 소유한다.
 
     Returns:
         새로 생성된 goal id.
@@ -88,7 +90,8 @@ def add_goal(
            VALUES (?, ?, ?, ?, ?, 'active', ?)""",
         (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return cursor.lastrowid
 
 

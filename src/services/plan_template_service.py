@@ -9,6 +9,7 @@ import sqlite3
 from datetime import date, timedelta
 
 from src.training.goals import add_goal, set_reported_load
+from src.training.plan_replace import replace_range
 from src.training.planner import (
     generate_weekly_plan,
     save_weekly_plan,
@@ -174,20 +175,28 @@ def create_plan_from_template(
     if avail is not None:
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
     goal_name = name or f"{distance_km:.0f}km 목표"
-    goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec)
-    conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
-    if recent_weekly_km is not None or recent_long_km is not None:
-        set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
-    ensure_user_training_prefs(conn)
-
     today = date.today()
-    # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)
-    ws = (plan_start_monday(race_date, weeks) if race_date and avail is not None else None) \
-        or today - timedelta(days=today.weekday())
-    for _ in range(weeks):
-        plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
-        save_weekly_plan(conn, plan)
-        ws += timedelta(weeks=1)
+    conn.execute("SAVEPOINT create_plan")
+    try:
+        goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec, commit=False)
+        # 이전 활성 목표의 미래 계획 중 이력 없는 행은 새 계획과 섞이지 않게 지운다(보호 행은 유지)
+        replace_range(conn, [], today.isoformat(), "9999-12-31")
+        conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
+        if recent_weekly_km is not None or recent_long_km is not None:
+            set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
+        ensure_user_training_prefs(conn, commit=False)
 
+        # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)
+        ws = (plan_start_monday(race_date, weeks) if race_date and avail is not None else None) \
+            or today - timedelta(days=today.weekday())
+        for _ in range(weeks):
+            plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+            save_weekly_plan(conn, plan, commit=False)
+            ws += timedelta(weeks=1)
+        conn.execute("RELEASE create_plan")
+    except Exception:
+        conn.execute("ROLLBACK TO create_plan")
+        conn.execute("RELEASE create_plan")
+        raise
     conn.commit()
     return goal_id

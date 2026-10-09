@@ -217,7 +217,7 @@ def generate_weekly_plan(
 
 # ── 저장/조회/설정 ─────────────────────────────────────────────────────────
 
-def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict]) -> int:
+def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = True) -> int:
     """주간 계획을 planned_workouts 테이블에 저장.
 
     같은 날짜의 source='planner' 기존 레코드를 삭제 후 재삽입.
@@ -252,16 +252,18 @@ def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict]) -> int:
         )
         count += 1
 
-    conn.commit()
+    if commit:
+        conn.commit()
     return count
 
 
-def ensure_user_training_prefs(conn: sqlite3.Connection) -> None:
+def ensure_user_training_prefs(conn: sqlite3.Connection, commit: bool = True) -> None:
     """user_training_prefs 행이 없을 때만 기본값으로 생성 (기존 사용자 설정은 덮어쓰지 않음)."""
     conn.execute(
         "INSERT OR IGNORE INTO user_training_prefs (id, updated_at) VALUES (1, datetime('now'))"
     )
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def upsert_user_training_prefs(

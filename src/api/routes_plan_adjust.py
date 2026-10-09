@@ -1,6 +1,7 @@
 """`/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035)."""
 from __future__ import annotations
 
+from src.training.goals import get_active_goal
 import sqlite3
 from datetime import date, timedelta
 
@@ -152,8 +153,8 @@ def list_plan_adjustments(goal_id: int):
 
 
 def _replan_link(conn: sqlite3.Connection, today: date) -> dict:
-    g = conn.execute("SELECT distance_km, race_date, target_time_sec FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    link: dict = {"distance_km": g[0], "race_date": g[1], "target_time_sec": g[2]} if g else {}
+    g = get_active_goal(conn)
+    link: dict = {"distance_km": g["distance_km"], "race_date": g["race_date"], "target_time_sec": g["target_time_sec"]} if g else {}
     ws = today - timedelta(days=today.weekday())
     kms = []
     for k in (1, 2):
