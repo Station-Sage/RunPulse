@@ -1,0 +1,23 @@
+// Phase 7d: 통증 단계 시트 390px 스모크 (moderate → 쉬기 고정, 옮기기 비활성). 환경: BASE
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.request().method() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18097') + '/v2';
+await page.goto(B + '/coach/plan/1', { waitUntil: 'networkidle' });
+await page.getByTestId('row-action-btn').first().click();
+await page.getByTestId('row-op-reduce').click();
+await page.getByRole('button', { name: '통증', exact: true }).click();
+console.log('guide:', await page.getByTestId('pain-guide').innerText());
+console.log('move disabled:', await page.getByTestId('row-op-move').isDisabled());
+await page.getByTestId('pain-level-moderate').click();
+console.log('rest checked:', await page.getByTestId('row-op-rest').getAttribute('aria-checked'), 'reduce disabled:', await page.getByTestId('row-op-reduce').isDisabled());
+console.log('apply disabled (no site):', await page.getByTestId('row-action-apply').isDisabled());
+for (const k of ['knee', 'foot', 'hip', 'calf']) await page.getByTestId('pain-site-' + k).click();
+console.log('calf pressed (4th, expect false):', await page.getByTestId('pain-site-calf').getAttribute('aria-pressed'));
+console.log('guide:', await page.getByTestId('pain-guide').innerText());
+await page.screenshot({ path: 'shots/p7d_pain.png' });
+await page.getByTestId('row-action-apply').click(); await page.waitForTimeout(1000);
+console.log('sheet closed:', (await page.getByTestId('row-action-sheet').count()) === 0);
+console.log('errors:', errs);
+await b.close();
