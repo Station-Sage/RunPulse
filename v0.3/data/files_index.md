@@ -228,6 +228,10 @@
 
 - functions: overlay_date, date_ok, validate, create_move, partner_id, revert_dependents
 
+### `plan_pain.py` (85줄) — 통증 입력 처리 — 단계별 op 강제, 다음 2일 제안, 반복 통증 알림 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §4).
+
+- functions: resolve, reasons, proposal, repeat
+
 ### `plan_reduce.py` (86줄) — 행 액션 reduce/easy 의 after 계산 (순수) — 강도 세션은 세트 수·구간 거리로, 쉬운 세션은 거리 비율로 줄인다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §2).
 
 - functions: reduce_after, easy_after
@@ -1788,9 +1792,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_plan_adjustments.py` (100줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+### `test_api_plan_adjustments.py` (119줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
-- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field
+- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2547,6 +2551,10 @@
 
 - functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_applies_and_unadjusted_untouched
 
+### `test_plan_pain.py` (56줄) — plan_pain — 단계별 op 강제, 직전 2일 제안 우선, 반복 통증 알림.
+
+- functions: conn, test_resolve_levels, test_proposal_priority_within_two_days, test_mild_has_no_proposal_and_repeat
+
 ### `test_plan_readiness.py` (69줄) — 준비 볼륨·경고(DESIGN-U16-LONGRUN §5.2-5)와 콜드 피크 목표(§5.2 L5 후속).
 
 - functions: test_ready_and_cold_peak_km_by_distance, test_readiness_warning_ramp_message, test_readiness_warning_none_when_reached_or_empty, test_readiness_warning_days_cap_message, test_cold_v2_peak_aims_at_ready_volume_with_ramp_kept, test_plan_warnings_cold_full_short_plan, test_plan_warnings_uses_reported_load
@@ -3065,7 +3073,7 @@
 
 - functions: main
 
-### `plan_load_backtest.py` (37줄) — plan_load 모델 백테스트 — 완료된 주마다 계획 기반 추정 부하와 실제 TRIMP 합을 비교한다 (목표: 중앙 절대오차 ≤10%).
+### `plan_load_backtest.py` (43줄) — plan_load 모델 백테스트 — 완료된 주마다 계획 기반 추정 부하와 실제 TRIMP 합을 비교한다 (목표: 계획≈실제 km 주의 중앙 절대오차 ≤10%).
 
 - functions: main
 
@@ -3074,7 +3082,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 649개 파일
+총 651개 파일
 
 ## docstring 누락
 

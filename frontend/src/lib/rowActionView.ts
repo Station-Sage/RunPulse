@@ -13,9 +13,42 @@ const EASY_FROM = ['interval', 'long', ...Object.keys(WORK_FLOOR_KM)];
 
 export const REASONS: { key: string; label: string }[] = [
 	{ key: 'fatigue', label: '피로' },
-	{ key: 'injury', label: '통증' },
+	{ key: 'pain', label: '통증' },
 	{ key: 'schedule', label: '일정' }
 ];
+
+export const PAIN_LEVELS: { key: string; label: string; guide: string; ops: RowOp[] }[] = [
+	{ key: 'mild', label: '가벼움', guide: '달리는 동안 통증이 커지면 멈추세요.', ops: ['reduce', 'easy', 'rest', 'skip'] },
+	{ key: 'moderate', label: '중간', guide: '통증이 2~3일 이어지면 진료를 받아 보세요.', ops: ['rest'] },
+	{ key: 'severe', label: '심함', guide: '부기·체중 부하 시 통증이 있으면 진료를 먼저 받으세요.', ops: ['rest'] }
+];
+
+export const PAIN_SITES: { key: string; label: string }[] = [
+	{ key: 'foot', label: '발' }, { key: 'ankle', label: '발목' }, { key: 'achilles', label: '아킬레스' },
+	{ key: 'calf', label: '종아리' }, { key: 'shin', label: '정강이' }, { key: 'knee', label: '무릎' },
+	{ key: 'it_band', label: '장경인대' }, { key: 'hamstring', label: '햄스트링' }, { key: 'quad', label: '허벅지 앞' },
+	{ key: 'hip', label: '고관절' }, { key: 'lower_back', label: '허리' }, { key: 'other', label: '기타' }
+];
+export const MAX_PAIN_SITES = 3;
+
+const Q_TYPES = ['tempo', 'threshold', 'marathon', 'long_mp', 'interval', 'long'];
+
+/** 통증 선택 시 허용 op 와 기본 op. 통증이면 옮기기 불가, 중간 이상은 쉬기 고정. 가벼움이면 Q/롱은 이지 기본. */
+export function painOps(level: string | undefined, workoutType: string): { allowed: RowOp[]; default: RowOp | null } {
+	const lv = PAIN_LEVELS.find((l) => l.key === level);
+	if (!lv) return { allowed: [], default: null };
+	if (lv.key !== 'mild') return { allowed: lv.ops, default: 'rest' };
+	return { allowed: lv.ops, default: Q_TYPES.includes(workoutType) ? 'easy' : null };
+}
+
+export function togglePainSite(sites: string[], key: string): string[] {
+	if (sites.includes(key)) return sites.filter((s) => s !== key);
+	return sites.length >= MAX_PAIN_SITES ? sites : [...sites, key];
+}
+
+export function painReady(level: string | undefined, sites: string[]): boolean {
+	return !!level && sites.length >= 1 && sites.length <= MAX_PAIN_SITES;
+}
 
 export function reasonLabel(key: string | null | undefined): string {
 	return REASONS.find((r) => r.key === key)?.label ?? '';

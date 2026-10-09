@@ -85,6 +85,8 @@ export interface WorkoutActionBody {
 	reps?: number;
 	to_date?: string;
 	reason?: string;
+	pain_level?: string;
+	pain_sites?: string[];
 	via: string;
 }
 
@@ -97,10 +99,11 @@ export function workoutAction(workoutId: number, body: WorkoutActionBody): Promi
 
 export function previewWorkoutAction(
 	workoutId: number,
-	q: { op: string; pct?: number; reps?: number }
+	q: { op: string; pct?: number; reps?: number; pain_level?: string; pain_sites?: string[] }
 ): Promise<{ load_delta: import('$lib/rowActionView').LoadDelta | null }> {
 	const p = new URLSearchParams({ op: q.op });
 	if (q.pct != null) p.set('pct', String(q.pct));
 	if (q.reps != null) p.set('reps', String(q.reps));
+	if (q.pain_level) { p.set('reason', 'pain'); p.set('pain_level', q.pain_level); p.set('pain_sites', (q.pain_sites ?? []).join(',')); }
 	return apiFetch(`/coach/plan/workouts/${workoutId}/action/preview?${p}`);
 }

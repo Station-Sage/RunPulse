@@ -266,3 +266,9 @@
 - 세션 부하 = 유형 계수 K × km × u(최근 90일 이지 러닝 TRIMP/km 중앙값, 표본<10이면 전체 러닝, 없으면 8.8). 지난 날은 실제 TRIMP, 오늘 이후는 계획(overlay 적용)으로 채워 이번 주 합계 변화율과 주말 ACWR(α=1/7, 1/42) 전/후를 낸다.
 - move 는 부하 불변이라 null. 이력이 없으면 null(에러 없음). 응답은 POST action 의 `load_delta`와 `GET .../action/preview`. UI 는 ACWR 이 0.8/1.3 경계를 넘을 때만 강조색. 구현: `src/services/plan_load.py`.
 - 백테스트(운영 DB, `scripts/plan_load_backtest.py`, 2026-10-09): 계획 km≈실제 km(±25%)인 6주 중앙 절대오차 10.0%. 계획 이행 편차까지 포함한 전체 21주는 64%(모델이 아니라 계획 vs 실제 km 차이). 미리보기는 '계획대로 달렸을 때'의 추정치로 표기.
+
+### ADR-035 부록: 통증 단계 (2026-10-09)
+- 이유 키 `injury`→`pain`. 통증 선택 시 정도(mild/moderate/severe)와 부위 1~3곳 필수(UI), 서버는 정도·부위 값만 검증 (`plan_pain.resolve`).
+- mild: reduce/easy/rest/skip 허용(Q·롱은 이지 기본). moderate·severe: op 무관 `rest`로 강제. 통증이면 move 금지(`PAIN_NO_MOVE`).
+- moderate/severe 기록 후 D+1~D+2 세션은 `ensure_proposal`에서 `plan_pain.proposal`이 우선 제안(severe 휴식, moderate Q·롱 휴식·그 외 거리 ×0.6, `rule_version=pain_v1`).
+- 14일 내 통증 2회 또는 같은 부위 반복 시 `PAIN_REPEAT` advisory(액션 응답 `advisories[]`). A1~A6은 후속.

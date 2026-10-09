@@ -4,7 +4,7 @@
 	import { previewWorkoutAction } from '$lib/api/plan';
 	import { workoutLabel } from '$lib/format';
 	import {
-		MAX_REDUCE_PCT, REASONS, loadDeltaView, moveCandidates, opAvailability, reduceInput, reducePreview, weekPreview, type LoadDelta, type RowActionMode, type RowOp
+		MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, togglePainSite, weekPreview, type LoadDelta, type RowActionMode, type RowOp
 	} from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
 
@@ -25,7 +25,7 @@
 		crsPending?: boolean;
 		busy?: boolean;
 		error?: string | null;
-		onApply: (op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number) => void;
+		onApply: (op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number, pain?: { level: string; sites: string[] }) => void;
 		today?: string;
 		onClose: () => void;
 	} = $props();
@@ -36,6 +36,16 @@
 	let custom = $state(false);
 	let reason = $state<string | undefined>(undefined);
 	let toDate = $state<string | undefined>(undefined);
+	let painLevel = $state<string | undefined>(undefined);
+	let painSites = $state<string[]>([]);
+	const isPain = $derived(reason === 'pain');
+	const pops = $derived(isPain ? painOps(painLevel, workout.workout_type) : null);
+	const pain = $derived(isPain && painLevel ? { level: painLevel, sites: painSites } : undefined);
+	$effect(() => {
+		if (!pops) return;
+		if (op && !pops.allowed.includes(op)) op = pops.default;
+		else if (!op && pops.default) op = pops.default;
+	});
 	const days = $derived(moveCandidates(today));
 	let root: HTMLElement | undefined = $state();
 
@@ -45,17 +55,17 @@
 	let reps = $state(1);
 	const isReps = $derived(inp.kind === 'reps');
 	const prev = $derived(isReps ? { km, valid: inp.options.includes(reps), hint: null } : !inp.free && !inp.options.includes(pct) ? { km, valid: false, hint: null } : reducePreview(km, pct));
-	const canApply = $derived(!busy && op !== null && (op !== 'reduce' || (avail.reduce.ok && prev.valid)) && (op !== 'move' || !!toDate));
+	const canApply = $derived(!busy && op !== null && (op !== 'reduce' || (avail.reduce.ok && prev.valid)) && (op !== 'move' || !!toDate) && (!isPain || (painReady(painLevel, painSites) && !!pops?.allowed.includes(op))));
 	const cut = $derived(op === 'reduce' && !isReps ? km - prev.km : op === 'move' || (op === 'reduce' && isReps) ? 0 : km);
 	const week = $derived(weekKm != null && op ? weekPreview(weekKm, cut) : null);
 
 	let delta = $state<LoadDelta | null>(null);
 	$effect(() => {
-		const o = op, p = pct, r = reps, ok = canApply;
+		const o = op, p = pct, r = reps, ok = canApply, pn = pain;
 		delta = null;
 		if (!o || o === 'move' || !ok || mode === 'locked') return;
 		let live = true;
-		previewWorkoutAction(workout.id, { op: o, pct: o === 'reduce' && !isReps ? p : undefined, reps: o === 'reduce' && isReps ? r : undefined })
+		previewWorkoutAction(workout.id, { op: o, pct: o === 'reduce' && !isReps ? p : undefined, reps: o === 'reduce' && isReps ? r : undefined, pain_level: pn?.level, pain_sites: pn?.sites })
 			.then((x) => { if (live) delta = x.load_delta; })
 			.catch(() => {});
 		return () => { live = false; };
@@ -112,7 +122,7 @@
 		{/if}
 		<div role="radiogroup" aria-label="조정 방식" class="mt-3 flex flex-col gap-2">
 			{#each OPS as o (o.key)}
-				{@const ok = o.key === 'reduce' ? avail.reduce.ok : true}
+				{@const ok = (o.key === 'reduce' ? avail.reduce.ok : true) && (!isPain || (pops ? pops.allowed.includes(o.key) : o.key !== 'move'))}
 				<button
 					type="button"
 					role="radio"
@@ -151,12 +161,26 @@
 			</div>
 		{/if}
 
-		{#if op}
+		{#if op || isPain}
 			<div class="mt-3 flex gap-2" role="group" aria-label="이유">
 				{#each REASONS as r (r.key)}
 					<button type="button" aria-pressed={reason === r.key} class="h-11 rounded-full border px-4 text-sm {reason === r.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (reason = reason === r.key ? undefined : r.key)}>{r.label}</button>
 				{/each}
 			</div>
+		{/if}
+
+		{#if isPain}
+			<div class="mt-3 flex gap-2" role="group" aria-label="통증 정도">
+				{#each PAIN_LEVELS as l (l.key)}
+					<button type="button" aria-pressed={painLevel === l.key} data-testid="pain-level-{l.key}" class="h-11 rounded-full border px-4 text-sm {painLevel === l.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (painLevel = l.key)}>{l.label}</button>
+				{/each}
+			</div>
+			<div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="통증 부위(최대 3곳)">
+				{#each PAIN_SITES as s (s.key)}
+					<button type="button" aria-pressed={painSites.includes(s.key)} data-testid="pain-site-{s.key}" class="h-9 rounded-full border px-3 text-xs {painSites.includes(s.key) ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (painSites = togglePainSite(painSites, s.key))}>{s.label}</button>
+				{/each}
+			</div>
+			<p data-testid="pain-guide" class="mt-2 text-xs text-fg-secondary">{PAIN_LEVELS.find((l) => l.key === painLevel)?.guide ?? '통증 정도와 부위(1~3곳)를 골라 주세요. 통증이 있으면 옮기기는 할 수 없어요.'}</p>
 		{/if}
 
 		<p class="mt-3 min-h-5 text-xs text-fg-secondary" aria-live="polite">
@@ -167,7 +191,7 @@
 		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
 
 		<div class="mt-3 flex gap-2">
-			<button type="button" data-testid="row-action-apply" class="h-11 flex-1 rounded-lg bg-fg-primary text-sm font-medium text-surface-1 disabled:opacity-40" disabled={!canApply} onclick={() => op && onApply(op, op === 'reduce' && !isReps ? pct : undefined, reason, op === 'move' ? toDate : undefined, op === 'reduce' && isReps ? reps : undefined)}>적용</button>
+			<button type="button" data-testid="row-action-apply" class="h-11 flex-1 rounded-lg bg-fg-primary text-sm font-medium text-surface-1 disabled:opacity-40" disabled={!canApply} onclick={() => op && onApply(op, op === 'reduce' && !isReps ? pct : undefined, reason, op === 'move' ? toDate : undefined, op === 'reduce' && isReps ? reps : undefined, pain)}>적용</button>
 			<button type="button" class="h-11 rounded-lg border border-border-subtle px-4 text-sm" onclick={onClose}>취소</button>
 		</div>
 	{/if}

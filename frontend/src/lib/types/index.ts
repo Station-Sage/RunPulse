@@ -1239,6 +1239,7 @@ export interface AdjustmentDecisionResult {
 	adjustment: PlanAdjustment;
 	compliance: unknown;
 	week_planned_km: { before: number | null; after: number | null };
+	advisories?: { code: string; severity: string; text: string }[];
 }
 
 // ── Coach Plan Session Detail (5-G — /api/v1/coach/plan/:id/session/:date) ───

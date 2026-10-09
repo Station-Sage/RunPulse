@@ -82,3 +82,19 @@ test('loadDeltaView: 0.5% 미만이면 숨기고, ACWR 경계를 넘을 때만 w
 	assert.equal(loadDeltaView(null), null);
 	assert.equal(loadDeltaView({ ...d, acwr_before: null }).text, '이번 주 부하 −15%');
 });
+
+test('통증: 정도별 허용 op·기본 op, 부위 최대 3곳', async () => {
+	const { painOps, togglePainSite, painReady, REASONS } = await import('../src/lib/rowActionView.ts');
+	assert.ok(REASONS.some((r) => r.key === 'pain'));
+	assert.deepEqual(painOps('moderate', 'easy'), { allowed: ['rest'], default: 'rest' });
+	assert.equal(painOps('severe', 'long').default, 'rest');
+	assert.equal(painOps('mild', 'tempo').default, 'easy');
+	assert.equal(painOps('mild', 'easy').default, null);
+	assert.ok(!painOps('mild', 'easy').allowed.includes('move'));
+	assert.deepEqual(painOps(undefined, 'easy').allowed, []);
+	let s = [];
+	for (const k of ['knee', 'foot', 'hip', 'calf']) s = togglePainSite(s, k);
+	assert.deepEqual(s, ['knee', 'foot', 'hip']);
+	assert.deepEqual(togglePainSite(s, 'foot'), ['knee', 'hip']);
+	assert.ok(painReady('mild', ['knee']) && !painReady('mild', []) && !painReady(undefined, ['knee']));
+});

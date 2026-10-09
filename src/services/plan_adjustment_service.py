@@ -5,6 +5,7 @@ import json
 import sqlite3
 from datetime import date as _date
 
+from src.services import plan_pain
 from src.training.adjuster import adjust_todays_plan
 
 RULE_VERSION = "adjuster_v1"
@@ -71,8 +72,8 @@ def _build(w: dict) -> tuple[dict, dict, list]:
                                     "target_pace_max", "description")}
     to_rest = w["adjusted_type"] == "rest"
     after = {**before, "workout_type": w["adjusted_type"], "target_pace_min": None, "target_pace_max": None,
-             "distance_km": None if to_rest else before["distance_km"]}
-    reasons = [{"key": "readiness", "label": p} for p in w.get("adjustment_reason_parts") or []]
+             "distance_km": None if to_rest else w.get("adjusted_distance_km", before["distance_km"])}
+    reasons = w.get("reasons") or [{"key": "readiness", "label": p} for p in w.get("adjustment_reason_parts") or []]
     if w.get("adjustment_reason"):
         reasons.insert(0, {"key": "summary", "label": w["adjustment_reason"]})
     return before, after, reasons
@@ -93,7 +94,7 @@ def ensure_proposal(conn: sqlite3.Connection, date: str, *, today: str | None = 
     if date != today:
         return cur
     try:
-        w = adjust_todays_plan(conn, date=date)
+        w = plan_pain.proposal(conn, date) or adjust_todays_plan(conn, date=date)
     except Exception:
         return cur
     if not w or not w.get("adjusted"):
@@ -101,9 +102,10 @@ def ensure_proposal(conn: sqlite3.Connection, date: str, *, today: str | None = 
     before, after, reasons = _build(w)
     if cur and cur["decision"] == "proposed" and cur["workout_id"] == w["id"]:
         if cur["after"] != after or cur["reasons"] != reasons or cur["before"] != before:
-            conn.execute("UPDATE plan_adjustments SET before_json=?, after_json=?, reasons_json=?, rev=rev+1,"
-                         " updated_at=datetime('now') WHERE id=?",
-                         (json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False), cur["id"]))
+            conn.execute("UPDATE plan_adjustments SET before_json=?, after_json=?, reasons_json=?, rule_version=?,"
+                         " rev=rev+1, updated_at=datetime('now') WHERE id=?",
+                         (json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False),
+                          w.get("rule_version", RULE_VERSION), cur["id"]))
             conn.commit()
             return _get(conn, cur["id"])
         return cur
@@ -115,7 +117,7 @@ def ensure_proposal(conn: sqlite3.Connection, date: str, *, today: str | None = 
         "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"
         " reasons_json, rule_version) VALUES (?,?,?,'crs',?,?,?,?,?)",
         (goal[0] if goal else None, w["id"], date, "rest" if after["workout_type"] == "rest" else "replace",
-         json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False), RULE_VERSION)).lastrowid
+         json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False), w.get("rule_version", RULE_VERSION))).lastrowid
     conn.commit()
     return _get(conn, cur_id)
 
@@ -225,8 +227,7 @@ def _before_after(conn: sqlite3.Connection, workout_id: int, r: tuple, odate: st
     before = dict(zip(_BEFORE_KEYS, r[1:8]))
     crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
                        " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, odate)).fetchone()
-    effective = {**before, **json.loads(crs[0])} if crs else before
-    return before, _user_after(effective, op, params)
+    return before, _user_after({**before, **json.loads(crs[0])} if crs else before, op, params)
 
 
 def preview_after(conn: sqlite3.Connection, workout_id: int, op: str, params: dict | None = None) -> dict | None:
@@ -251,6 +252,7 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
     ops = COACH_OPS if source == "coach" else USER_OPS
     if op not in ops or source not in ("user", "coach"):
         raise ValueError(f"지원하지 않는 op: {op}")
+    op = plan_pain.resolve(op, params)
     r = _planned_row(conn, workout_id)
     from src.services import plan_move
     odate = plan_move.overlay_date(conn, workout_id, r[0])
@@ -270,8 +272,6 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요")
     before, after = _before_after(conn, workout_id, r, odate, op, params)
     goal = conn.execute("SELECT id FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    reason = params.get("reason")
-    reasons = [{"key": "user", "label": str(reason)}] if reason else []
     via = via if via in VIAS else None
     conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE workout_id=?"
                  " AND date=? AND (source=? OR source='crs') AND decision IN ('proposed','accepted')",
@@ -282,7 +282,7 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         " VALUES (?,?,?,?,?,?,?,?,?,'accepted',?,datetime('now'),datetime('now'))",
         (goal[0] if goal else None, workout_id, odate, source, "replace" if op == "easy" else op,
          json.dumps(before), json.dumps(after),
-         json.dumps(reasons, ensure_ascii=False), source + "_v1", via)).lastrowid
+         json.dumps(plan_pain.reasons(params), ensure_ascii=False), source + "_v1", via)).lastrowid
     conn.commit()
     return _view(conn, _get(conn, new_id), today)
 

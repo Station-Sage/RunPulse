@@ -98,3 +98,22 @@ def test_preview_and_load_delta_field(client):
     assert client.get("/api/v1/coach/plan/workouts/99/action/preview?op=rest").status_code == 404
     r = client.post("/api/v1/coach/plan/workouts/7/action", json={"op": "rest"})
     assert r.status_code == 201 and "load_delta" in r.get_json()["data"]
+
+
+def test_pain_levels_force_rest_and_validate(client):
+    p = "/api/v1/coach/plan/workouts/7/action"
+    assert client.post(p, json={"op": "reduce", "pct": 30, "reason": "pain"}).status_code == 400
+    assert client.post(p, json={"op": "reduce", "pct": 30, "reason": "pain", "pain_level": "mild",
+                                "pain_sites": ["foot", "knee", "hip", "calf"]}).status_code == 400
+    r = client.post(p, json={"op": "reduce", "pct": 30, "reason": "pain", "pain_level": "moderate",
+                             "pain_sites": ["knee"]})
+    d = r.get_json()["data"]
+    assert r.status_code == 201 and d["adjustment"]["after"]["workout_type"] == "rest"
+    assert d["adjustment"]["reasons"] == [{"key": "pain", "level": "moderate", "sites": ["knee"]}]
+    assert client.post(p, json={"op": "move", "to_date": "2030-01-01", "reason": "pain"}).status_code == 409
+
+
+def test_preview_accepts_pain_sites_csv(client):
+    p = "/api/v1/coach/plan/workouts/7/action/preview"
+    assert client.get(p + "?op=reduce&pct=30&reason=pain&pain_level=moderate&pain_sites=knee,foot").status_code == 200
+    assert client.get(p + "?op=reduce&pct=30&reason=pain&pain_level=bogus&pain_sites=knee").status_code == 400

@@ -38,13 +38,14 @@
 		btn?.focus();
 	}
 
-	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number) {
+	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number, pain?: { level: string; sites: string[] }) {
 		if (busy) return;
 		busy = true;
 		error = null;
 		try {
-			const res = await workoutAction(workout.id, { op, pct, reps, reason, to_date: toDate, via });
-			toast = { message: toastText(op, res), id: res.adjustment.id };
+			const res = await workoutAction(workout.id, { op, pct, reps, reason, pain_level: pain?.level, pain_sites: pain?.sites, to_date: toDate, via });
+			const adv = res.advisories?.[0]?.text;
+			toast = { message: toastText(op, res) + (adv ? ` · ${adv}` : ''), id: res.adjustment.id };
 			open = false;
 			btn?.focus();
 			onChange?.();

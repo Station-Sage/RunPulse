@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from flask import request
 
 from src.services import plan_adjustment_service as svc
-from src.services import plan_load
+from src.services import plan_load, plan_pain
 from src.training import week_compliance
 from src.web.helpers import db_path
 
@@ -33,7 +33,7 @@ def _conflict(e: svc.AdjustmentConflict):
 
 
 def _load_delta(conn: sqlite3.Connection, workout_id: int, op: str, params: dict) -> dict | None:
-    after = svc.preview_after(conn, workout_id, op, params)
+    after = svc.preview_after(conn, workout_id, plan_pain.resolve(op, params), params)
     return plan_load.load_delta(conn, workout_id, after, today=date.today().isoformat())
 
 
@@ -97,7 +97,8 @@ def plan_workout_action(workout_id: int):
         compliance = week_compliance.compute(conn, ws, ws + timedelta(days=6), None, d)["compliance"]
         return api_ok({"adjustment": adj, "compliance": compliance,
                        "week_planned_km": {"before": before_km, "after": _week_planned_km(conn, adj["date"])},
-                       "load_delta": delta}, 201)
+                       "load_delta": delta,
+                       "advisories": [a for a in [plan_pain.repeat(conn, date.today().isoformat())] if a]}, 201)
     except svc.AdjustmentConflict as e:
         return _conflict(e)
     finally:
@@ -106,7 +107,9 @@ def plan_workout_action(workout_id: int):
 
 @api_bp.get("/coach/plan/workouts/<int:workout_id>/action/preview")
 def plan_workout_action_preview(workout_id: int):
-    params = {k: v for k, v in request.args.items()}
+    params: dict = {k: v for k, v in request.args.items()}
+    if "pain_sites" in params:
+        params["pain_sites"] = [x for x in params["pain_sites"].split(",") if x]
     for k in ("pct", "reps"):
         if k in params:
             try:
