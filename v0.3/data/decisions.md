@@ -305,3 +305,8 @@
 - DB `plan_replans.start_source` CHECK(user/history)는 유지: 저장은 `user` 아니면 `history`, 세분 출처는 응답에만.
 - Q6 채택: 롱런 미입력이면 `start_long_km(long6, long12)`를 저장. Q7(꼬리 일정 출처 "user" 고정) 보류, Q8(수동 하향) 미제공.
 
+
+#### 재계획 진입 규칙 Q4 (ADR-035 부록 R, 2026-10-09)
+- `plan_replan_service.entry_state` 가 노출 규칙의 단일 출처 `{eligible, reason: NO_GOAL|RACE_NEAR|PENDING, last}`. 배너(`plan_advisory`)·`GET coach/plan/replan/last`(`{last, entry}`)·플랜 상세 헤더 링크가 모두 이를 쓰고 프런트는 규칙을 복제하지 않는다. RACE_NEAR = 다음 월요일부터 대회 주까지 2주 미만.
+- 적용 후 되돌리지 않은 재계획이 있으면 새 재계획은 `REPLAN_PENDING`(409, `error.details.last`). 되돌림 불가 사유는 `_undo_blocker` 한 곳(마지막 아님·시작됨·새 행에 이력)으로 모아 undo·last_undoable·가드가 공유.
+- 프런트: 플랜 상세 헤더에 되돌리기 줄 또는 "남은 일정 다시 맞추기 →", 재계획 화면은 REPLAN_PENDING 에서 되돌리기 후 미리보기 재계산.

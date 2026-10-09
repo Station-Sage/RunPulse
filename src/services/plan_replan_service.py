@@ -17,13 +17,17 @@ from src.training import personalize as P
 from src.training.planner_schedule import COLD_WEEK_KM, cold_start_km, recent_avg_km, recent_load, recent_long_max
 
 
-class ReplanError(Exception):
-    """code: NO_GOAL(404) / RACE_WEEK·CONFLICT·REPLAN_LOCKED(409)."""
+MIN_REPLAN_WEEKS = 2
 
-    def __init__(self, code: str, message: str):
+
+class ReplanError(Exception):
+    """code: NO_GOAL(404) / RACE_WEEK·CONFLICT·REPLAN_LOCKED·REPLAN_PENDING(409)."""
+
+    def __init__(self, code: str, message: str, last: dict | None = None):
         super().__init__(message)
         self.code = code
         self.message = message
+        self.last = last
 
 
 def next_monday(today: date) -> date:
@@ -68,6 +72,9 @@ def _start_km(conn: sqlite3.Connection, goal: dict, today: date, user_km: float 
 
 def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     goal, anchor, race = _goal_and_anchor(conn, today)
+    pending = last_undoable(conn, today)
+    if pending:
+        raise ReplanError("REPLAN_PENDING", "이미 다시 맞춘 일정이 있습니다. 되돌린 뒤 다시 맞출 수 있어요", pending)
     user_km, user_long, target = p.get("recent_weekly_km"), p.get("recent_long_km"), p.get("target_time_sec")
     start_km, start_source, basis = _start_km(conn, goal, today, user_km)
     if not user_long:
@@ -120,42 +127,68 @@ def apply(conn: sqlite3.Connection, params: dict, today: date | None = None) -> 
     return _run(conn, today, params, write=True)
 
 
-def last_undoable(conn: sqlite3.Connection, today: date | None = None) -> dict | None:
-    """활성 목표의 마지막 applied 재계획이 아직 시작 전이면 {replan_id, anchor_monday, undo_until}, 아니면 None."""
-    today = today or date.today()
-    goal = get_active_goal(conn)
-    if goal is None:
-        return None
-    row = conn.execute("SELECT id, anchor_monday FROM plan_replans WHERE goal_id=? AND status='applied' "
-                       "ORDER BY anchor_monday DESC, id DESC LIMIT 1", (goal["id"],)).fetchone()
-    if row is None or today >= date.fromisoformat(row[1]):
-        return None
-    return {"replan_id": row[0], "anchor_monday": row[1],
-            "undo_until": (date.fromisoformat(row[1]) - timedelta(days=1)).isoformat()}
+def _last_applied(conn: sqlite3.Connection, goal_id: int) -> tuple | None:
+    return conn.execute("SELECT id, anchor_monday, replaced_json FROM plan_replans WHERE goal_id=? AND status='applied' "
+                        "ORDER BY anchor_monday DESC, id DESC LIMIT 1", (goal_id,)).fetchone()
 
 
-def undo(conn: sqlite3.Connection, replan_id: int, today: date | None = None) -> dict:
-    """마지막으로 적용된 anchor 를 시작 전에만 되돌린다. 조건 위반은 REPLAN_LOCKED."""
-    today = today or date.today()
+def _undo_blocker(conn: sqlite3.Connection, replan_id: int, today: date) -> str | None:
+    """되돌릴 수 없는 사유 문구(가능하면 None). undo·last_undoable·재계획 가드가 공유한다."""
     row = conn.execute("SELECT goal_id, anchor_monday, status, replaced_json FROM plan_replans WHERE id=?",
                        (replan_id,)).fetchone()
     if row is None:
-        raise ReplanError("NO_GOAL", "재계획 기록이 없습니다")
+        return "재계획 기록이 없습니다"
     goal_id, a_iso, status, blob = row
-    last = conn.execute("SELECT id FROM plan_replans WHERE goal_id=? AND status='applied' "
-                        "ORDER BY anchor_monday DESC, id DESC LIMIT 1", (goal_id,)).fetchone()
+    last = _last_applied(conn, goal_id)
     if status != "applied" or last is None or last[0] != replan_id:
-        raise ReplanError("REPLAN_LOCKED", "마지막 재계획만 되돌릴 수 있습니다")
+        return "마지막 재계획만 되돌릴 수 있습니다"
     if today >= date.fromisoformat(a_iso):
-        raise ReplanError("REPLAN_LOCKED", "이미 시작된 재계획은 되돌릴 수 없습니다")
-    saved = json.loads(blob or "{}")
-    ins = saved.get("inserted", [])
+        return "이미 시작된 재계획은 되돌릴 수 없습니다"
+    ins = json.loads(blob or "{}").get("inserted", [])
     if ins and conn.execute(
             f"SELECT 1 FROM planned_workouts w WHERE w.id IN ({','.join('?' * len(ins))}) AND (w.completed=1 "
             "OR w.matched_activity_id IS NOT NULL OR EXISTS (SELECT 1 FROM session_outcomes o WHERE o.planned_id=w.id) "
             "OR EXISTS (SELECT 1 FROM plan_adjustments a WHERE a.workout_id=w.id AND a.decision='accepted')) LIMIT 1",
             ins).fetchone():
-        raise ReplanError("REPLAN_LOCKED", "새 계획 행에 이력이 생겨 되돌릴 수 없습니다")
+        return "새 계획 행에 이력이 생겨 되돌릴 수 없습니다"
+    return None
+
+
+def last_undoable(conn: sqlite3.Connection, today: date | None = None) -> dict | None:
+    """활성 목표의 마지막 applied 재계획이 시작 전이고 되돌릴 수 있으면 {replan_id, anchor_monday, undo_until}."""
+    today = today or date.today()
+    goal = get_active_goal(conn)
+    row = _last_applied(conn, goal["id"]) if goal else None
+    if row is None or _undo_blocker(conn, row[0], today):
+        return None
+    return {"replan_id": row[0], "anchor_monday": row[1],
+            "undo_until": (date.fromisoformat(row[1]) - timedelta(days=1)).isoformat()}
+
+
+def entry_state(conn: sqlite3.Connection, today: date | None = None) -> dict:
+    """재계획 진입 노출 규칙 단일 출처 {eligible, reason: NO_GOAL|RACE_NEAR|PENDING|None, last}."""
+    today = today or date.today()
+    last = last_undoable(conn, today)
+    goal = get_active_goal(conn)
+    if goal is None or not goal.get("race_date") or plan_start_monday(goal["race_date"], goal.get("plan_weeks")) is None:
+        return {"eligible": False, "reason": "NO_GOAL", "last": last}
+    race = date.fromisoformat(goal["race_date"])
+    if (race - timedelta(days=race.weekday()) - next_monday(today)).days < 7 * (MIN_REPLAN_WEEKS - 1):
+        return {"eligible": False, "reason": "RACE_NEAR", "last": last}
+    if last:
+        return {"eligible": False, "reason": "PENDING", "last": last}
+    return {"eligible": True, "reason": None, "last": None}
+
+
+def undo(conn: sqlite3.Connection, replan_id: int, today: date | None = None) -> dict:
+    """마지막으로 적용된 anchor 를 시작 전에만 되돌린다. 조건 위반은 REPLAN_LOCKED."""
+    today = today or date.today()
+    blocker = _undo_blocker(conn, replan_id, today)
+    if blocker:
+        raise ReplanError("NO_GOAL" if blocker.startswith("재계획 기록") else "REPLAN_LOCKED", blocker)
+    blob = conn.execute("SELECT replaced_json FROM plan_replans WHERE id=?", (replan_id,)).fetchone()[0]
+    saved = json.loads(blob or "{}")
+    ins = saved.get("inserted", [])
     conn.execute("SAVEPOINT undo")
     try:
         if ins:

@@ -1576,3 +1576,15 @@ export interface ReplanUndoResult {
 	restored: number;
 	removed: number;
 }
+
+export interface ReplanLast {
+	replan_id: number;
+	anchor_monday: string;
+	undo_until: string;
+}
+
+export interface ReplanEntry {
+	eligible: boolean;
+	reason: 'NO_GOAL' | 'RACE_NEAR' | 'PENDING' | null;
+	last: ReplanLast | null;
+}

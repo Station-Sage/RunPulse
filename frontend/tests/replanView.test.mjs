@@ -103,6 +103,10 @@ test('replanErrorView: 표의 행들', () => {
 	assert.equal(e(409, 'RACE_WEEK', 'apply').action, 'back');
 	assert.equal(e(409, 'CONFLICT', 'apply').action, 'repreview');
 	assert.equal(e(409, 'REPLAN_LOCKED', 'undo').action, 'repreview');
+	const pend = v.replanErrorView({ status: 409, code: 'REPLAN_PENDING', details: { last: { anchor_monday: '2026-10-12' } } }, 'preview');
+	assert.equal(pend.action, 'undo');
+	assert.match(pend.text, /10\/12부터 다시 맞춘/);
+	assert.equal(e(409, 'REPLAN_PENDING', 'apply').action, 'undo');
 	assert.equal(e(400, 'BAD_REQUEST', 'preview').action, null);
 	assert.equal(e(503, 'X', 'preview').action, 'retry');
 	assert.equal(v.replanErrorView(null, 'preview').action, 'retry');

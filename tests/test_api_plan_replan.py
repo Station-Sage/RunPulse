@@ -47,10 +47,16 @@ def test_preview_apply_undo(client):
 
 
 def test_last_endpoint(client):
-    assert client.get("/api/v1/coach/plan/replan/last").get_json()["data"] == {"last": None}
+    d0 = client.get("/api/v1/coach/plan/replan/last").get_json()["data"]
+    assert d0["last"] is None and d0["entry"] == {"eligible": True, "reason": None, "last": None}
     rid = client.post("/api/v1/coach/plan/replan", json={"recent_weekly_km": 20, "expect_anchor": MON.isoformat()}).get_json()["data"]["replan_id"]
     last = client.get("/api/v1/coach/plan/replan/last").get_json()["data"]["last"]
     assert last == {"replan_id": rid, "anchor_monday": MON.isoformat(), "undo_until": (MON - timedelta(days=1)).isoformat()}
+    e = client.get("/api/v1/coach/plan/replan/last").get_json()["data"]["entry"]
+    assert e["eligible"] is False and e["reason"] == "PENDING"
+    r2 = client.post("/api/v1/coach/plan/replan", json={"expect_anchor": MON.isoformat()})
+    assert r2.status_code == 409 and r2.get_json()["error"]["code"] == "REPLAN_PENDING"
+    assert r2.get_json()["error"]["details"]["last"]["replan_id"] == rid
     client.post(f"/api/v1/coach/plan/replan/{rid}/undo")
     assert client.get("/api/v1/coach/plan/replan/last").get_json()["data"]["last"] is None
 

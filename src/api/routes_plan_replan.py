@@ -44,7 +44,7 @@ def _run(fn):
     try:
         return api_ok(fn(conn))
     except svc.ReplanError as e:
-        return api_error(e.code, e.message, _STATUS.get(e.code, 409))
+        return api_error(e.code, e.message, _STATUS.get(e.code, 409), {"last": e.last} if e.last else None)
     finally:
         conn.close()
 
@@ -60,7 +60,7 @@ def replan_preview():
 
 @api_bp.get("/coach/plan/replan/last")
 def replan_last():
-    return _run(lambda c: {"last": svc.last_undoable(c)})
+    return _run(lambda c: (lambda e: {"last": e["last"], "entry": e})(svc.entry_state(c)))
 
 
 @api_bp.post("/coach/plan/replan")

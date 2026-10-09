@@ -1,6 +1,6 @@
 """POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력."""
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from flask import Flask
@@ -125,7 +125,7 @@ def _seed_replan(client, pain=False):
     from datetime import timedelta
     import src.api.routes_plan_adjust as m
     c = sq.connect(str(m.db_path()))
-    c.execute("INSERT INTO goals(id,name,race_date,distance_km,target_time_sec,status) VALUES (1,'m','2099-01-01',42.195,12600,'active')")
+    c.execute("INSERT INTO goals(id,name,race_date,distance_km,target_time_sec,status,plan_weeks) VALUES (1,'m','2099-01-01',42.195,12600,'active',16)")
     ws = date.today() - timedelta(days=date.today().weekday())
     for k in (1, 2):
         for i in range(2):
@@ -154,3 +154,15 @@ def test_advisories_suppressed_by_recent_pain_and_errors(client):
     _seed_replan(client, pain=True)
     assert client.get(f"/api/v1/coach/plan/advisories?date={TODAY}").get_json()["data"]["advisories"] == []
     assert client.get("/api/v1/coach/plan/advisories").status_code == 400
+
+
+def test_advisory_replan_hidden_when_race_near(client):
+    import sqlite3 as sq
+    import src.api.routes_plan_adjust as m
+    _seed_replan(client)
+    c = sq.connect(str(m.db_path()))
+    c.execute("UPDATE goals SET race_date=?", ((date.today() + timedelta(days=3)).isoformat(),))
+    c.commit()
+    c.close()
+    items = client.get(f"/api/v1/coach/plan/advisories?date={TODAY}").get_json()["data"]["advisories"]
+    assert all(a["code"] != "REPLAN" for a in items)

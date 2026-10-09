@@ -180,11 +180,11 @@ export function skippedNotice(dates: string[]): string | null {
 	return `${dateList(dates)}에는 기존 세션이 남아 있어 새 세션을 넣지 않았어요.`;
 }
 
-export type ErrorAction = 'retry' | 'repreview' | 'newGoal' | 'plan' | 'back' | null;
+export type ErrorAction = 'retry' | 'repreview' | 'newGoal' | 'plan' | 'back' | 'undo' | null;
 export type Phase = 'preview' | 'apply' | 'undo';
 
 export function replanErrorView(
-	err: { status?: number; code?: string } | null,
+	err: { status?: number; code?: string; details?: unknown } | null,
 	phase: Phase
 ): { text: string; action: ErrorAction; field?: keyof RawInputs } {
 	const status = err?.status;
@@ -192,6 +192,10 @@ export function replanErrorView(
 	if (status === 404 && code === 'NO_GOAL') {
 		if (phase === 'undo') return { text: '되돌릴 재계획 기록을 찾지 못했어요. 지금 일정은 그대로예요.', action: 'plan' };
 		return { text: '대회일이 있는 목표가 없어요. 다시 맞출 일정이 없어서 지금은 쓸 수 없어요.', action: 'newGoal' };
+	}
+	if (status === 409 && code === 'REPLAN_PENDING') {
+		const a = (err?.details as { last?: { anchor_monday?: string } } | undefined)?.last?.anchor_monday;
+		return { text: `이미 ${a ? md(a) + '부터 ' : ''}다시 맞춘 일정이 있어요. 되돌린 뒤 다시 맞출 수 있어요.`, action: 'undo' };
 	}
 	if (status === 409 && code === 'RACE_WEEK')
 		return { text: '이번 주가 대회 주라 다시 짤 남은 주가 없어요. 계획은 그대로예요.', action: 'back' };

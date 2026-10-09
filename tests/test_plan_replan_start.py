@@ -62,6 +62,7 @@ def test_blank_long_stores_history_long_and_real_source(c):
     out = R.apply(c, {"recent_weekly_km": 50, "expect_anchor": R.next_monday(TODAY).isoformat()}, TODAY)
     row = c.execute("SELECT start_long_km, start_source FROM plan_replans WHERE id=?", (out["replan_id"],)).fetchone()
     assert out["start_long_km"] == row[0] == 18.0 and row[1] == "history"
+    R.undo(c, out["replan_id"], TODAY)
     out2 = R.preview(c, {"recent_long_km": 21}, TODAY)
     assert out2["start_long_km"] == 21
 
@@ -87,3 +88,43 @@ def test_weekly_km_has_long_km(c):
     assert all("long_km" in w for w in out["after"])
     assert any(w["long_km"] > 0 for w in out["after"])
     assert all(w["long_km"] <= w["planned_km"] for w in out["after"])
+
+
+def _apply(conn):
+    return R.apply(conn, {"expect_anchor": R.next_monday(TODAY).isoformat()}, TODAY)
+
+
+def test_pending_blocks_second_replan_until_undone(c):
+    out = _apply(c)
+    with pytest.raises(R.ReplanError) as e:
+        R.preview(c, {}, TODAY)
+    assert e.value.code == "REPLAN_PENDING" and e.value.last["replan_id"] == out["replan_id"]
+    R.undo(c, out["replan_id"], TODAY)
+    assert R.preview(c, {}, TODAY)["replan_id"] is None
+    _apply(c)
+
+
+def test_history_on_new_rows_hides_undo_and_allows_replan(c):
+    out = _apply(c)
+    c.execute("UPDATE planned_workouts SET completed=1 WHERE source='planner' AND date=?",
+              (R.next_monday(TODAY).isoformat(),))
+    c.commit()
+    assert R.last_undoable(c, TODAY) is None
+    with pytest.raises(R.ReplanError) as e:
+        R.undo(c, out["replan_id"], TODAY)
+    assert e.value.code == "REPLAN_LOCKED"
+
+
+def test_entry_state_rules(c):
+    assert R.entry_state(c, TODAY) == {"eligible": True, "reason": None, "last": None}
+    out = _apply(c)
+    st = R.entry_state(c, TODAY)
+    assert not st["eligible"] and st["reason"] == "PENDING" and st["last"]["replan_id"] == out["replan_id"]
+    for days, ok in ((-2, False), (5, False), (12, True)):
+        c.execute("UPDATE goals SET race_date=?", ((R.next_monday(TODAY) + timedelta(days=days)).isoformat(),))
+        c.execute("UPDATE plan_replans SET status='undone'")
+        st = R.entry_state(c, TODAY)
+        assert st["eligible"] is ok, days
+        assert ok or st["reason"] == "RACE_NEAR"
+    c.execute("UPDATE goals SET status='completed'")
+    assert R.entry_state(c, TODAY)["reason"] == "NO_GOAL"

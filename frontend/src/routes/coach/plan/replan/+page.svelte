@@ -2,7 +2,7 @@
 	// 남은 일정 다시 맞추기 — 미리보기 → 적용 → 되돌리기 (DESIGN-PLAN-A6-REPLAN-UI).
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { applyReplan, previewReplan, undoReplan } from '$lib/api/plan';
+	import { applyReplan, getReplanLast, previewReplan, undoReplan } from '$lib/api/plan';
 	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
 	import ReplanInputs from '$lib/components/plan/ReplanInputs.svelte';
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
@@ -20,6 +20,7 @@
 	let stage = $state<'preview' | 'applied' | 'undone'>('preview');
 	let err = $state<{ text: string; action: ErrorAction; phase: Phase } | null>(null);
 	let applied = $state<ReplanPreview | null>(null);
+	let pendingId = $state<number | null>(null);
 
 	const parsed = $derived(parseReplanInputs(values));
 	const hasError = $derived(Object.keys(parsed.errors).length > 0);
@@ -27,9 +28,13 @@
 	const targetNote = $derived(targetChangeText(preview?.goal_target_time_sec ?? null, parsed.params.target_time_sec ?? null));
 	const rows = $derived(preview ? mergeWeeks(preview.before, preview.after) : []);
 
-	function fail(e: unknown, phase: Phase) {
-		const v = replanErrorView(e as { status?: number; code?: string }, phase);
+	async function fail(e: unknown, phase: Phase) {
+		const v = replanErrorView(e as { status?: number; code?: string; details?: unknown }, phase);
 		err = { text: v.text, action: v.action, phase };
+		if (v.action === 'undo') {
+			pendingId = (e as { details?: { last?: { replan_id?: number } } }).details?.last?.replan_id ?? null;
+			if (pendingId == null) pendingId = (await getReplanLast().catch(() => null))?.last?.replan_id ?? null;
+		}
 	}
 
 	async function load() {
@@ -62,12 +67,17 @@
 	}
 
 	async function undo() {
-		if (!applied?.replan_id) return;
+		const id = applied?.replan_id ?? pendingId;
+		if (!id) return;
 		busy = true;
 		err = null;
 		try {
-			await undoReplan(applied.replan_id);
-			stage = 'undone';
+			await undoReplan(id);
+			if (stage === 'applied') stage = 'undone';
+			else {
+				pendingId = null;
+				await load();
+			}
 		} catch (e) {
 			fail(e, 'undo');
 		} finally {
@@ -89,7 +99,7 @@
 		newGoal: `${base}/coach/plan/new`
 	};
 	const actionLabel: Record<string, string> = {
-		retry: '다시 시도', repreview: '미리보기 다시 보기', newGoal: '목표 만들기', plan: '계획 보기', back: '계획으로 돌아가기'
+		retry: '다시 시도', repreview: '미리보기 다시 보기', newGoal: '목표 만들기', plan: '계획 보기', undo: '되돌리기', back: '계획으로 돌아가기'
 	};
 
 	onMount(load);
@@ -147,6 +157,8 @@
 					<a class="inline-flex min-h-11 items-center underline" href={href.plan}>{actionLabel[err.action]}</a>
 				{:else if err.action === 'newGoal'}
 					<a class="inline-flex min-h-11 items-center underline" href={href.newGoal}>{actionLabel.newGoal}</a>
+				{:else if err.action === 'undo'}
+					<button class="min-h-11 underline" disabled={busy || pendingId == null} onclick={undo}>되돌리기</button>
 				{:else}
 					<button class="min-h-11 underline" onclick={onAction}>{actionLabel[err.action]}</button>
 				{/if}

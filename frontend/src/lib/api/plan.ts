@@ -129,3 +129,7 @@ export function applyReplan(params: ReplanParams, expectAnchor: string): Promise
 export function undoReplan(replanId: number): Promise<ReplanUndoResult> {
 	return apiFetch<ReplanUndoResult>(`/coach/plan/replan/${replanId}/undo`, { method: 'POST' });
 }
+
+export function getReplanLast(): Promise<{ last: import('$lib/types').ReplanLast | null; entry: import('$lib/types').ReplanEntry }> {
+	return apiFetch('/coach/plan/replan/last');
+}

@@ -5,6 +5,7 @@ A6(계획 다시 맞추기)이 켜지면 A1 은 숨긴다. 문구는 사실 + �
 """
 from __future__ import annotations
 
+from src.services.plan_replan_service import entry_state
 from src.training.goals import get_active_goal
 import json
 import sqlite3
@@ -110,7 +111,7 @@ def compute(conn: sqlite3.Connection, today: str, delta: dict | None) -> list[di
     a1 = n >= REST_STREAK_MIN
     a4 = bool(delta) and delta["week_pct"] <= WEEK_DROP_PCT
     out = []
-    replan = _replan(conn, t, a1)
+    replan = _replan(conn, t, a1) if entry_state(conn, t)["eligible"] else None
     if replan:
         out.append({"code": "REPLAN", "severity": "info", "text": replan})
     elif a1:

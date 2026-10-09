@@ -10,6 +10,19 @@
 	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import UserAdjustmentLine from '$lib/components/plan/UserAdjustmentLine.svelte';
 	import type { PlannedWorkout } from '$lib/types';
+	import { undoReplan } from '$lib/api/plan';
+	import { anchorLabel, undoUntilLabel } from '$lib/replanView';
+
+	let undoBusy = $state(false);
+	async function undoLast(id: number) {
+		undoBusy = true;
+		try {
+			await undoReplan(id);
+			await invalidateAll();
+		} finally {
+			undoBusy = false;
+		}
+	}
 
 	let { data }: { data: PlanDetailPageData } = $props();
 
@@ -89,6 +102,15 @@
 					· 목표 {formatDuration(data.plan.goal.target_time_sec)}
 				{/if}
 			</p>
+			{#if data.replanEntry?.last}
+				{@const last = data.replanEntry.last}
+				<p class="mt-2 text-xs text-fg-secondary">
+					{anchorLabel(last.anchor_monday)}부터 다시 맞춘 일정이에요. {undoUntilLabel(last.anchor_monday)}까지 되돌릴 수 있어요.
+					<button class="ml-1 min-h-11 underline" disabled={undoBusy} onclick={() => undoLast(last.replan_id)}>되돌리기</button>
+				</p>
+			{:else if data.replanEntry?.eligible}
+				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 →</a>
+			{/if}
 
 			<!-- CTL 현황 -->
 			{#if data.plan.ctl_current != null}
