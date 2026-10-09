@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-	rowActionMode, opAvailability, reducePreview, weekPreview, toastText, actionErrorText, userAdjustmentSummary
+	rowActionMode, opAvailability, reducePreview, weekPreview, toastText, actionErrorText, userAdjustmentSummary, rowSheetParam
 } from '../src/lib/rowActionView.ts';
 class ApiError extends Error { constructor(status, body) { super(body.error?.message ?? ''); this.status = status; this.details = body.error?.details; } }
 
@@ -97,4 +97,8 @@ test('통증: 정도별 허용 op·기본 op, 부위 최대 3곳', async () => {
 	assert.deepEqual(s, ['knee', 'foot', 'hip']);
 	assert.deepEqual(togglePainSite(s, 'foot'), ['knee', 'hip']);
 	assert.ok(painReady('mild', ['knee']) && !painReady('mild', []) && !painReady(undefined, ['knee']));
+});
+
+test('rowSheetParam: 시트 딥링크 값', () => {
+	assert.equal(rowSheetParam(42), 'row-42');
 });

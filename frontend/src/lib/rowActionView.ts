@@ -210,3 +210,6 @@ export function loadDeltaView(d: LoadDelta | null | undefined): { text: string; 
 	}
 	return { text, tone };
 }
+
+/** 시트 딥링크 값: ?sheet=row-<workout id> */
+export const rowSheetParam = (id: number): string => `row-${id}`;
