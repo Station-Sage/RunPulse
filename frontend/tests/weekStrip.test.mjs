@@ -12,6 +12,7 @@ test('요일 계산', () => {
 test('상태 기호: 이행·부족·놓침·예정', () => {
 	assert.equal(dayCell(d({ state: 'done' })).symbol, '●');
 	assert.equal(dayCell(d({ state: 'partial' })).symbol, '◐');
+	assert.equal(dayCell(d({ state: 'skipped' })).tone, 'missed');
 	assert.equal(dayCell(d({ state: 'missed' })).symbol, '○');
 	assert.equal(dayCell(d({ state: 'upcoming' })).tone, 'upcoming');
 });

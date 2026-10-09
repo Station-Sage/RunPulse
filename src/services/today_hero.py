@@ -77,14 +77,18 @@ def build_week(conn: sqlite3.Connection, day: str) -> dict:
     for e in res["days"]:
         eff = e.get("effective") or {}
         wtype = eff.get("workout_type")
-        if e["state"] not in ("rest", "pre_plan") and e.get("planned_km"):
-            plan_km += e["planned_km"]
+        planned_km = e.get("planned_km")
+        if e["state"] == "skipped":  # 직접 건너뛴 날은 원래 계획 기준으로 계속 센다
+            orig = wc.original_of(e)
+            wtype, planned_km = orig["workout_type"], orig.get("distance_km")
+        if e["state"] not in ("rest", "pre_plan") and planned_km:
+            plan_km += planned_km
         if wtype in _KEY_TYPES and e["state"] != "pre_plan":
             key_total += 1
             key_done += e["state"] == "done"
         days.append({
             "date": e["date"], "state": e["state"], "workout_type": wtype,
-            "title": _label(wtype) if wtype else None, "planned_km": e.get("planned_km"),
+            "title": _label(wtype) if wtype else None, "planned_km": planned_km,
             "session_id": eff.get("id"), "activity_id": eff.get("matched_activity_id"),
             "substituted": bool(e.get("substituted")), "today": bool(e.get("today")),
         })

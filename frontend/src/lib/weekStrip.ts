@@ -31,6 +31,7 @@ export function dayCell(d: WeekDay): DayCell {
 	if (d.substituted && d.state !== 'missed') return { ...base, symbol: '⟳', label: name || '대체', title: `${name} · 다른 세션으로 대체`, tone: 'done', linkable: true };
 	if (d.state === 'done') return { ...base, symbol: '●', label: name, title: `${name} · 이행`, tone: 'done', linkable: true };
 	if (d.state === 'partial') return { ...base, symbol: '◐', label: name, title: `${name} · 부족`, tone: 'partial', linkable: true };
+	if (d.state === 'skipped') return { ...base, symbol: '⊘', label: name, title: `${name} · 직접 건너뜀`, tone: 'missed', linkable: true };
 	if (d.state === 'missed') return { ...base, symbol: '○', label: name, title: `${name} · 놓침`, tone: 'missed', linkable: true };
 	return { ...base, symbol: '◌', label: name, title: `${name} · 예정`, tone: 'upcoming', linkable: true };
 }

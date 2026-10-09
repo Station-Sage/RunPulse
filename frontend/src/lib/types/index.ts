@@ -770,7 +770,7 @@ export interface TodayReadinessV2 {
 	tsb: GaugeEntry | null;
 }
 
-export type WeekDayState = 'pre_plan' | 'rest' | 'done' | 'partial' | 'missed' | 'upcoming';
+export type WeekDayState = 'pre_plan' | 'rest' | 'done' | 'partial' | 'missed' | 'skipped' | 'upcoming';
 
 export interface WeekDay {
 	date: string;
@@ -1121,7 +1121,7 @@ export interface PlanCompliance {
 	quality: { done: number; total: number };
 }
 
-export type PlanDayState = 'done' | 'partial' | 'missed' | 'upcoming' | 'rest' | 'pre_plan';
+export type PlanDayState = 'done' | 'partial' | 'missed' | 'skipped' | 'upcoming' | 'rest' | 'pre_plan';
 
 export interface PlanDay {
 	date: string;

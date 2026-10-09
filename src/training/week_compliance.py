@@ -30,6 +30,18 @@ _LABELS = {
 }
 
 
+def _is_user_skip(w: dict) -> bool:
+    """사용자 직접 조정으로 쉬는 날이 된 원래 훈련일(원래 유형이 rest가 아님)."""
+    return bool(w.get("adjusted") and w["workout_type"] == "rest"
+                and (w.get("adjustment") or {}).get("source") == "user"
+                and (w.get("original") or {}).get("workout_type") not in (None, "rest"))
+
+
+def original_of(entry: dict) -> dict:
+    """skipped 일의 원래 계획 {workout_type, distance_km}."""
+    return entry["effective"]["original"]
+
+
 def _effective(rows: list[dict]) -> tuple[dict, list[dict]]:
     """R1 우선순위: 실행된 외부 계획 > 수락된 조정 행 > 외부 계획 > planner 원안. (유효, 대안들)"""
     def rank(w: dict) -> tuple:
@@ -146,6 +158,20 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
         is_past = d < today
         if effective_start and d < effective_start:
             entry["state"] = "pre_plan"
+        elif eff is not None and _is_user_skip(eff):
+            # D9 개정: 사용자가 직접 건너뛴 날은 미이행으로 분모에 포함(코치 제안 휴식만 제외)
+            entry["state"] = "skipped"
+            entry["effective"]["original"] = {k: eff["original"].get(k) for k in ("workout_type", "distance_km")}
+            if is_past:
+                sess_total += 1
+                orig = eff["original"]
+                if orig.get("distance_km"):
+                    counted_dates.append(ds)
+                    planned_km_sum += orig["distance_km"]
+                else:
+                    no_basis += 1
+                if orig["workout_type"] in QUALITY_TYPES:
+                    qual_total += 1
         elif eff is None or eff["workout_type"] == "rest":
             entry["state"] = "rest"
         else:

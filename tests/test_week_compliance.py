@@ -128,3 +128,18 @@ def test_accepted_easy_adjustment_changes_quality_count(conn):
     _accept(conn, pid, "2026-09-24", {"workout_type": "interval", "distance_km": 8.0}, {"workout_type": "easy"})
     after = wc.compute(conn, MON, date(2026, 9, 27), MON, TODAY)["compliance"]["quality"]
     assert before["total"] == 1 and after["total"] == 0
+
+
+def test_user_skip_counts_as_missed_in_denominator(conn):
+    import json
+    pid = _plan(conn, "2026-09-24", "tempo", 8.0)
+    conn.execute(
+        "INSERT INTO plan_adjustments(workout_id,date,source,op,before_json,after_json,rule_version,decision)"
+        " VALUES (?,?,'user','rest',?,?,'user_v1','accepted')",
+        (pid, "2026-09-24", json.dumps({"workout_type": "tempo", "distance_km": 8.0}),
+         json.dumps({"workout_type": "rest", "distance_km": None})))
+    r = wc.compute(conn, MON, date(2026, 9, 27), MON, TODAY)
+    c = r["compliance"]
+    assert _day(r, "2026-09-24")["state"] == "skipped"
+    assert c["sessions"] == {"done": 0, "total": 1}
+    assert c["volume"]["planned_km"] == 8.0 and c["quality"]["total"] == 1
