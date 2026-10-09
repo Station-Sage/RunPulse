@@ -8,7 +8,7 @@
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
 	import ReplanWeekTable from '$lib/components/plan/ReplanWeekTable.svelte';
 	import {
-		anchorLabel, canApply, inputFields, mergeWeeks, startSourceText, startState, targetChangeText, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
+		anchorLabel, canApply, inputFields, longRunLine, mergeWeeks, startSourceText, startState, targetChangeText, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
 		undoUntilLabel, type ErrorAction, type Phase, type RawInputs
 	} from '$lib/replanView';
 	import type { ReplanPreview } from '$lib/types';
@@ -117,6 +117,7 @@
 		{#if preview}
 			<p class="rounded-lg bg-surface-2 p-3 text-sm">
 				{replanSummary(preview)}{#if targetNote} {targetNote}{/if}
+				{#if longRunLine(preview)}<span class="mt-1 block text-fg-secondary">{longRunLine(preview)}</span>{/if}
 			</p>
 			<ReplanStartCard {preview} bind:values error={parsed.errors.target} oninput={() => (dirty = true)} />
 		{:else if busy}

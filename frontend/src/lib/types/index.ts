@@ -1531,6 +1531,7 @@ export interface ProviderPairsData {
 export interface ReplanWeek {
 	week_start: string;
 	planned_km: number;
+	long_km?: number;
 }
 
 export interface ReplanRowRef {

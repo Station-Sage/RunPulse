@@ -142,3 +142,11 @@ test('targetChangeText·fmtTarget', () => {
 	assert.equal(v.targetChangeText(13500, 13500), null);
 	assert.equal(v.targetChangeText(13500, null), null);
 });
+
+test('longRunLine: 전후 비교·동일·없음', () => {
+	const L = (s, k, l) => ({ week_start: s, planned_km: k, long_km: l });
+	assert.equal(v.longRunLine(P([L('2026-10-12', 50, 32)], [L('2026-10-12', 36, 20), L('2026-11-16', 40, 28)])), '가장 긴 롱런 32 → 28km (11/16 주)');
+	assert.equal(v.longRunLine(P([], [L('2026-10-12', 36, 20)])), '가장 긴 롱런 20km (10/12 주)');
+	assert.equal(v.longRunLine(P([L('2026-10-12', 30, 20)], [L('2026-10-12', 30, 20)])), '가장 긴 롱런 20km (10/12 주)');
+	assert.equal(v.longRunLine(P([], [W('2026-10-12', 30)])), null);
+});

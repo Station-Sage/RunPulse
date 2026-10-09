@@ -86,6 +86,18 @@ export function replanSummary(p: ReplanPreview): string {
 	return `${s} 대회 주까지 다시 짜요.`;
 }
 
+export function longRunLine(p: ReplanPreview): string | null {
+	const best = (ws: ReplanWeek[]) =>
+		ws.reduce<ReplanWeek | null>((m, w) => ((w.long_km ?? 0) > (m?.long_km ?? 0) ? w : m), null);
+	const a = best(p.after);
+	if (!a || !a.long_km) return null;
+	const b = best(p.before);
+	const wk = `${md(a.week_start)} 주`;
+	if (!b || !b.long_km || Math.round(b.long_km) === Math.round(a.long_km))
+		return `가장 긴 롱런 ${Math.round(a.long_km)}km (${wk})`;
+	return `가장 긴 롱런 ${Math.round(b.long_km)} → ${Math.round(a.long_km)}km (${wk})`;
+}
+
 export interface RawInputs {
 	weekly: string;
 	long: string;

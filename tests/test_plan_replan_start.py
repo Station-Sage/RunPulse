@@ -80,3 +80,10 @@ def test_history_anchor_tail_not_raised_by_cold_peak(c):
     assert out["start_source"] == "history"
     peak = max(w["planned_km"] for w in out["after"])
     assert peak <= out["start_km"] * 1.6
+
+
+def test_weekly_km_has_long_km(c):
+    out = R.preview(c, {}, TODAY)
+    assert all("long_km" in w for w in out["after"])
+    assert any(w["long_km"] > 0 for w in out["after"])
+    assert all(w["long_km"] <= w["planned_km"] for w in out["after"])

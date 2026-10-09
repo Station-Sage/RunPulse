@@ -240,7 +240,7 @@
 
 - functions: reduce_after, easy_after
 
-### `plan_replan_service.py` (173줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (176줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: next_monday, preview, apply, last_undoable, undo
@@ -2609,9 +2609,9 @@
 
 - functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable
 
-### `test_plan_replan_start.py` (82줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
+### `test_plan_replan_start.py` (89줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
 
-- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak
+- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak, test_weekly_km_has_long_km
 
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 

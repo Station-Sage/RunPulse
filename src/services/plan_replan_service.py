@@ -31,15 +31,18 @@ def next_monday(today: date) -> date:
 
 
 def _weekly_km(conn: sqlite3.Connection, start: str, end: str) -> list[dict]:
+    """주별 {week_start, planned_km, long_km}. long_km 은 그 주 long·long_mp 세션 중 최대 거리(없으면 0)."""
     rows = conn.execute(
-        "SELECT date, COALESCE(distance_km, 0) FROM planned_workouts WHERE source='planner' AND date>=? AND date<=?"
-        " AND workout_type != 'rest' ORDER BY date", (start, end)).fetchall()
-    out: dict[str, float] = {}
-    for d, km in rows:
+        "SELECT date, COALESCE(distance_km, 0), workout_type FROM planned_workouts WHERE source='planner'"
+        " AND date>=? AND date<=? AND workout_type != 'rest' ORDER BY date", (start, end)).fetchall()
+    out: dict[str, list[float]] = {}
+    for d, km, wt in rows:
         dd = date.fromisoformat(d)
-        k = (dd - timedelta(days=dd.weekday())).isoformat()
-        out[k] = round(out.get(k, 0.0) + float(km), 1)
-    return [{"week_start": k, "planned_km": v} for k, v in sorted(out.items())]
+        w = out.setdefault((dd - timedelta(days=dd.weekday())).isoformat(), [0.0, 0.0])
+        w[0] += float(km)
+        if wt in ("long", "long_mp"):
+            w[1] = max(w[1], float(km))
+    return [{"week_start": k, "planned_km": round(v[0], 1), "long_km": round(v[1], 1)} for k, v in sorted(out.items())]
 
 
 def _goal_and_anchor(conn: sqlite3.Connection, today: date) -> tuple[dict, date, date]:
