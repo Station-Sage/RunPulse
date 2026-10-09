@@ -1398,6 +1398,11 @@
 
 - functions: is_comeback, comeback_ceiling, next_level, start_long_km
 
+### `plan_anchor.py` (54줄) — 재계획 anchor 접기(순수 + 조회) — plan_replans 의 적용된 anchor 이후 주만 새 시작 부하로 다시 만든 일정으로 바꾼다(ADR-035 부록 R).
+
+- class **Anchor**: 없음
+- functions: load_anchors, fold
+
 ### `plan_backtest.py` (224줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
@@ -1442,7 +1447,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (185줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (204줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
@@ -2530,6 +2535,10 @@
 
 - functions: conn, test_empty_db_returns_nothing, test_rest_streak_after_three_rest_days, test_pain_rows_are_not_counted, test_week_drop_and_acwr_low, test_q_dropped_twice, test_issue_once_per_week_and_skips_pain
 
+### `test_plan_anchor.py` (61줄) — plan_anchor — anchor 이전 주 불변, 이후 주 새 시작 부하, 주 index 유지, 쓰기 없음(ADR-035 부록 R).
+
+- functions: test_no_anchor_is_identical, test_applied_anchor_replaces_only_later_weeks, test_unapplied_and_out_of_range_ignored, test_extra_anchor_preview_writes_nothing
+
 ### `test_plan_backtest.py` (102줄)
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
@@ -3094,7 +3103,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 654개 파일
+총 656개 파일
 
 ## docstring 누락
 

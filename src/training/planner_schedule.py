@@ -14,6 +14,7 @@ from . import marathon_rules as MR
 from . import personalize as P
 from .goals import get_reported_load, get_rules_version
 from .periodization import WeekTarget, build_schedule
+from .plan_anchor import Anchor, fold, load_anchors
 from .plan_readiness import cold_peak_km
 from .planner_config import DISTANCE_LABEL_KM, LONG_RUN_BASE, load_prefs
 from .planner_rules import get_paces_from_vdot, plan_start_monday
@@ -122,9 +123,30 @@ def _long_cap_fn(dlabel: str, pace, n_days: int, long6: float, long12: float):
     return cap
 
 
+def _build(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None, weeks: int, start_km: float,
+           start_long: float, src: str, as_of: date, rv: int) -> list[WeekTarget]:
+    """weeks 주 일정을 시작 부하(as_of 기준 읽기)로 만든다. 계획 전체와 anchor 이후 꼬리가 같이 쓴다."""
+    peak = recommend_weekly_km(vdot, dlabel, "peak", 0, weeks) if vdot else start_km * 1.3
+    if rv >= 2 and src != "history":        # 콜드: 피크 목표를 거리별 최소 준비 볼륨 이상으로(램프 10%는 그대로)
+        peak = max(peak, cold_peak_km(dlabel))
+    cap, long_cap = None, None
+    if rv >= 2:
+        n_days = _run_days(conn)
+        pace = _long_pace_fn(goal, dlabel, vdot, conn)
+        cap = feasible_week_km(n_days, pace(2), dlabel)      # D-LR-8(B): 피크 롱런 공유 상한과 결합
+        long_cap = _long_cap_fn(dlabel, pace, n_days, start_long, recent_long_max(conn, as_of, 12))
+    return build_schedule(int(weeks), start_km, start_long, max(peak, start_km),
+                          LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
+                          get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
+                          rv, cap, long_cap, _comeback_ceiling(conn, rv, as_of))
+
+
 def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None,
-                      today: date | None = None) -> list[WeekTarget]:
-    """goal(race_date·plan_weeks 필요)의 주별 목표. 계획 정보가 부족하면 빈 리스트(호출부가 기존 규칙으로 폴백)."""
+                      today: date | None = None, extra_anchor: Anchor | None = None) -> list[WeekTarget]:
+    """goal(race_date·plan_weeks 필요)의 주별 목표. 계획 정보가 부족하면 빈 리스트(호출부가 기존 규칙으로 폴백).
+
+    적용된 재계획 anchor(plan_replans)가 있으면 그 주부터는 anchor 시작 부하로 다시 만든 일정이다.
+    extra_anchor 는 저장 전 미리보기용(쓰기 없음)."""
     start = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks"))
     if start is None:
         return []
@@ -133,19 +155,16 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     start_km, start_long, src = _goal_start_load(conn, goal, dlabel, min(start, today), rv)
     if start_km <= 0:       # v1 기록 없음(v2 는 콜드 출처로 항상 > 0)
         return []
-    peak = recommend_weekly_km(vdot, dlabel, "peak", 0, goal["plan_weeks"]) if vdot else start_km * 1.3
-    if rv >= 2 and src != "history":        # 콜드: 피크 목표를 거리별 최소 준비 볼륨 이상으로(램프 10%는 그대로)
-        peak = max(peak, cold_peak_km(dlabel))
-    cap, long_cap = None, None
-    if rv >= 2:
-        n_days = _run_days(conn)
-        pace = _long_pace_fn(goal, dlabel, vdot, conn)
-        cap = feasible_week_km(n_days, pace(2), dlabel)      # D-LR-8(B): 피크 롱런 공유 상한과 결합
-        long_cap = _long_cap_fn(dlabel, pace, n_days, start_long, recent_long_max(conn, min(start, today), 12))
-    return build_schedule(int(goal["plan_weeks"]), start_km, start_long, max(peak, start_km),
-                          LONG_RUN_BASE.get(dlabel, 14.0), _LONG_CAP.get(dlabel, 0.40),
-                          get_taper_weeks(DISTANCE_LABEL_KM.get(dlabel, goal["distance_km"])),
-                          rv, cap, long_cap, _comeback_ceiling(conn, rv, min(start, today)))
+    base = _build(conn, goal, dlabel, vdot, goal["plan_weeks"], start_km, start_long, src, min(start, today), rv)
+    anchors = load_anchors(conn, goal.get("id")) + ([extra_anchor] if extra_anchor else [])
+    if not anchors:
+        return base
+
+    def tail(a: Anchor, weeks: int) -> list[WeekTarget]:
+        g = {**goal, "target_time_sec": a.target_time_sec} if a.target_time_sec else goal
+        long_km = a.start_long_km if a.start_long_km is not None else start_long
+        return _build(conn, g, dlabel, vdot, weeks, a.start_km, long_km, "user", a.anchor_monday, rv)
+    return fold(base, start, anchors, tail)
 
 
 def _comeback_ceiling(conn: sqlite3.Connection, rv: int, as_of: date) -> float:
