@@ -154,3 +154,26 @@ export function userAdjustmentSummary(w: PlannedWorkout, label: (t: string) => s
 	const km = o.distance_km != null ? ` ${o.distance_km}km` : '';
 	return { badge: w.adjustment.source === 'coach' ? '코치 조정' : '직접 조정', original: `원래 ${label(o.workout_type)}${km}` };
 }
+
+export interface LoadDelta {
+	week_pct: number;
+	acwr_before: number | null;
+	acwr_after: number | null;
+	week_load_before: number;
+	week_load_after: number;
+}
+
+const acwrZone = (v: number) => (v < 0.8 ? 'low' : v > 1.3 ? 'high' : 'ok');
+
+/** 시트의 부하 미리보기 한 줄. 색은 ACWR 이 0.8/1.3 경계를 넘나들 때만(tone='warn'). */
+export function loadDeltaView(d: LoadDelta | null | undefined): { text: string; tone: 'warn' | 'none' } | null {
+	if (!d || Math.abs(d.week_pct) < 0.5) return null;
+	const pct = Math.round(d.week_pct);
+	let text = `이번 주 부하 ${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`;
+	let tone: 'warn' | 'none' = 'none';
+	if (d.acwr_before != null && d.acwr_after != null) {
+		text += ` · ACWR ${d.acwr_before.toFixed(2)} → ${d.acwr_after.toFixed(2)}`;
+		if (acwrZone(d.acwr_before) !== acwrZone(d.acwr_after)) tone = 'warn';
+	}
+	return { text, tone };
+}

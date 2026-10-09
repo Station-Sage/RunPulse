@@ -87,3 +87,14 @@ def test_workout_action_easy_and_reps(client):
     assert r.status_code == 201 and r.get_json()["data"]["adjustment"]["after"]["distance_km"] == 9.0
     r = client.post(p, json={"op": "easy"})
     assert r.status_code == 201 and r.get_json()["data"]["adjustment"]["after"]["workout_type"] == "easy"
+
+
+def test_preview_and_load_delta_field(client):
+    p = "/api/v1/coach/plan/workouts/7/action/preview"
+    r = client.get(p + "?op=reduce&pct=30")
+    assert r.status_code == 200 and "load_delta" in r.get_json()["data"]
+    assert client.get(p + "?op=reduce&pct=x").status_code == 400
+    assert client.get(p + "?op=bogus").status_code == 400
+    assert client.get("/api/v1/coach/plan/workouts/99/action/preview?op=rest").status_code == 404
+    r = client.post("/api/v1/coach/plan/workouts/7/action", json={"op": "rest"})
+    assert r.status_code == 201 and "load_delta" in r.get_json()["data"]

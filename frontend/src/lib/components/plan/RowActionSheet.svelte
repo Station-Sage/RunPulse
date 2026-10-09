@@ -1,9 +1,10 @@
 <script lang="ts">
 	// 플랜 행 직접 조정 시트 — 줄이기/쉬기/건너뛰기 (ADR-035, DESIGN-PLAN-ROW-ACTION).
 	import { base } from '$app/paths';
+	import { previewWorkoutAction } from '$lib/api/plan';
 	import { workoutLabel } from '$lib/format';
 	import {
-		MAX_REDUCE_PCT, REASONS, moveCandidates, opAvailability, reduceInput, reducePreview, weekPreview, type RowActionMode, type RowOp
+		MAX_REDUCE_PCT, REASONS, loadDeltaView, moveCandidates, opAvailability, reduceInput, reducePreview, weekPreview, type LoadDelta, type RowActionMode, type RowOp
 	} from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
 
@@ -47,6 +48,19 @@
 	const canApply = $derived(!busy && op !== null && (op !== 'reduce' || (avail.reduce.ok && prev.valid)) && (op !== 'move' || !!toDate));
 	const cut = $derived(op === 'reduce' && !isReps ? km - prev.km : op === 'move' || (op === 'reduce' && isReps) ? 0 : km);
 	const week = $derived(weekKm != null && op ? weekPreview(weekKm, cut) : null);
+
+	let delta = $state<LoadDelta | null>(null);
+	$effect(() => {
+		const o = op, p = pct, r = reps, ok = canApply;
+		delta = null;
+		if (!o || o === 'move' || !ok || mode === 'locked') return;
+		let live = true;
+		previewWorkoutAction(workout.id, { op: o, pct: o === 'reduce' && !isReps ? p : undefined, reps: o === 'reduce' && isReps ? r : undefined })
+			.then((x) => { if (live) delta = x.load_delta; })
+			.catch(() => {});
+		return () => { live = false; };
+	});
+	const dv = $derived(loadDeltaView(delta));
 
 	$effect(() => {
 		root?.querySelector<HTMLElement>('button:not([disabled]), a')?.focus();
@@ -149,6 +163,7 @@
 			{#if op === 'reduce'}{isReps ? `반복 ${reps}회 줄여요` : (prev.hint ?? `${km}km → ${prev.km}km`)}{:else if op === 'easy'}같은 거리를 이지 페이스로 해요{:else if op === 'rest'}휴식으로 바꿔요{:else if op === 'skip'}이 세션을 건너뛰어요{:else if op === 'move'}{toDate ? `${toDate.slice(5).replace('-', '/')}로 옮겨요 · 그날이 쉬운 날이면 서로 맞바꿔요` : '옮길 날을 골라 주세요'}{/if}
 			{#if week && op !== 'move'} · 이번 주 {week.before}→{week.after}km{/if}
 		</p>
+		{#if dv}<p data-testid="load-delta" class="text-xs {dv.tone === 'warn' ? 'text-semantic-amber' : 'text-fg-muted'}">{dv.text}</p>{/if}
 		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
 
 		<div class="mt-3 flex gap-2">

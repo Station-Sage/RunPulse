@@ -209,6 +209,37 @@ def _user_after(before: dict, op: str, params: dict) -> dict:
             "interval_prescription": None, "structure_json": None}
 
 
+_BEFORE_KEYS = ("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description",
+                "interval_prescription", "structure_json")
+
+
+def _planned_row(conn: sqlite3.Connection, workout_id: int) -> tuple:
+    r = conn.execute("SELECT date, " + ", ".join(_BEFORE_KEYS) + " FROM planned_workouts WHERE id = ?",
+                     (workout_id,)).fetchone()
+    if r is None:
+        raise AdjustmentConflict("NOT_FOUND", "세션을 찾을 수 없어요")
+    return r
+
+
+def _before_after(conn: sqlite3.Connection, workout_id: int, r: tuple, odate: str, op: str, params: dict):
+    before = dict(zip(_BEFORE_KEYS, r[1:8]))
+    crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
+                       " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, odate)).fetchone()
+    effective = {**before, **json.loads(crs[0])} if crs else before
+    return before, _user_after(effective, op, params)
+
+
+def preview_after(conn: sqlite3.Connection, workout_id: int, op: str, params: dict | None = None) -> dict | None:
+    """저장 없이 op 적용 후의 세션 값. move 는 부하가 변하지 않으므로 None. 입력 오류는 ValueError."""
+    if op not in USER_OPS:
+        raise ValueError(f"지원하지 않는 op: {op}")
+    r = _planned_row(conn, workout_id)
+    if op == "move":
+        return None
+    from src.services import plan_move
+    return _before_after(conn, workout_id, r, plan_move.overlay_date(conn, workout_id, r[0]), op, params or {})[1]
+
+
 def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, params: dict | None = None,
                            source: str = "user", *, via: str | None = None, today: str | None = None) -> dict:
     """행 액션·Coach 제안 → 즉시 accepted 조정 생성. 당일만. 기존 live(같은 source) 조정은 reverted 처리.
@@ -220,10 +251,7 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
     ops = COACH_OPS if source == "coach" else USER_OPS
     if op not in ops or source not in ("user", "coach"):
         raise ValueError(f"지원하지 않는 op: {op}")
-    r = conn.execute("SELECT date, workout_type, distance_km, target_pace_min, target_pace_max, description,"
-                     " interval_prescription, structure_json FROM planned_workouts WHERE id = ?", (workout_id,)).fetchone()
-    if r is None:
-        raise AdjustmentConflict("NOT_FOUND", "세션을 찾을 수 없어요")
+    r = _planned_row(conn, workout_id)
     from src.services import plan_move
     odate = plan_move.overlay_date(conn, workout_id, r[0])
     if op == "move":
@@ -240,13 +268,8 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         return _view(conn, _get(conn, new_id), today)
     if odate != today:
         raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요")
-    before = dict(zip(("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description",
-                       "interval_prescription", "structure_json"), r[1:8]))
-    crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
-                       " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, odate)).fetchone()
-    effective = {**before, **json.loads(crs[0])} if crs else before
+    before, after = _before_after(conn, workout_id, r, odate, op, params)
     goal = conn.execute("SELECT id FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
-    after = _user_after(effective, op, params)
     reason = params.get("reason")
     reasons = [{"key": "user", "label": str(reason)}] if reason else []
     via = via if via in VIAS else None

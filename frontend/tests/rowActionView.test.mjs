@@ -72,3 +72,13 @@ test('Q 세션: 인터벌은 반복 횟수, 강도는 정해진 비율, 이지�
 	assert.equal(opAvailability(w({ workout_type: 'tempo' })).easy.ok, true);
 	assert.equal(opAvailability(w()).easy.ok, false);
 });
+
+test('loadDeltaView: 0.5% 미만이면 숨기고, ACWR 경계를 넘을 때만 warn', async () => {
+	const { loadDeltaView } = await import('../src/lib/rowActionView.ts');
+	const d = { week_pct: -15.2, acwr_before: 1.05, acwr_after: 0.92, week_load_before: 500, week_load_after: 424 };
+	assert.deepEqual(loadDeltaView(d), { text: '이번 주 부하 −15% · ACWR 1.05 → 0.92', tone: 'none' });
+	assert.equal(loadDeltaView({ ...d, acwr_after: 0.75 }).tone, 'warn');
+	assert.equal(loadDeltaView({ ...d, week_pct: 0.2 }), null);
+	assert.equal(loadDeltaView(null), null);
+	assert.equal(loadDeltaView({ ...d, acwr_before: null }).text, '이번 주 부하 −15%');
+});

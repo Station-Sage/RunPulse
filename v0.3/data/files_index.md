@@ -215,10 +215,14 @@
 
 - functions: warm_month_narrative, warm_in_background
 
-### `plan_adjustment_service.py` (277줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adjustment_service.py` (300줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
-- functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, create_user_adjustment, list_adjustments
+- functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
+
+### `plan_load.py` (109줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
+
+- functions: session_load, daily_actual, easy_u, load_delta
 
 ### `plan_move.py` (142줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
 
@@ -1784,9 +1788,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_plan_adjustments.py` (89줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+### `test_api_plan_adjustments.py` (100줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
-- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps
+- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2527,6 +2531,10 @@
 - class **FakeClient**: get_workout_by_id
 - functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_real_shapes, test_ingest_intervals_links_paired_activity, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
+### `test_plan_load.py` (63줄) — plan_load: 세션 부하, 이지 u 중앙값, load_delta (주 부하 변화율·ACWR).
+
+- functions: test_session_load_and_u, test_load_delta_rest_lowers_week_and_acwr, test_load_delta_none_without_history_or_other_week
+
 ### `test_plan_match_rules.py` (222줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
@@ -3057,12 +3065,16 @@
 
 - functions: main
 
+### `plan_load_backtest.py` (37줄) — plan_load 모델 백테스트 — 완료된 주마다 계획 기반 추정 부하와 실제 TRIMP 합을 비교한다 (목표: 중앙 절대오차 ≤10%).
+
+- functions: main
+
 ### `pred_backtest.py` (102줄) — 예측 v2 수용 백테스트(P7-PRED-62) — 실DB 를 읽기 전용으로 열어 메모리에 복제한 뒤, 전력 대회마다 D-0/D-28 시점
 
 - functions: backtest, backtest_all, main
 
 ---
-총 646개 파일
+총 649개 파일
 
 ## docstring 누락
 

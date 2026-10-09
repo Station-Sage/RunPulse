@@ -94,3 +94,13 @@ export function workoutAction(workoutId: number, body: WorkoutActionBody): Promi
 		body: JSON.stringify(body)
 	});
 }
+
+export function previewWorkoutAction(
+	workoutId: number,
+	q: { op: string; pct?: number; reps?: number }
+): Promise<{ load_delta: import('$lib/rowActionView').LoadDelta | null }> {
+	const p = new URLSearchParams({ op: q.op });
+	if (q.pct != null) p.set('pct', String(q.pct));
+	if (q.reps != null) p.set('reps', String(q.reps));
+	return apiFetch(`/coach/plan/workouts/${workoutId}/action/preview?${p}`);
+}

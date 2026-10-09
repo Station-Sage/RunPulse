@@ -261,3 +261,7 @@
 - 인터벌은 reps −1/−2(남은 reps ≥2, 남은 reps×2 ≥ 원래 sets), 템포·역치·마라톤은 pct 20/30(작업 구간 하한 2km/5km), 롱런은 pct 15/20/30/40(16km 미만이면 easy 로 전환). 페이스는 바꾸지 않는다.
 - Q 감량은 `after`에 `interval_prescription`·`structure_json`을 함께 기록(overlay `_FIELDS` 확장). `easy` op 은 거리 유지·페이스 제거, 저장 op 은 `replace`.
 - 에러 코드: NO_STRUCTURE, BELOW_FLOOR(3.0km), NO_BASIS, PCT_NOT_FOR_QUALITY, RACE_FIXED. 구현: `src/services/plan_reduce.py`.
+
+### ADR-035 부록: load_delta (2026-10-09)
+- 세션 부하 = 유형 계수 K × km × u(최근 90일 이지 러닝 TRIMP/km 중앙값, 표본<10이면 전체 러닝, 없으면 8.8). 지난 날은 실제 TRIMP, 오늘 이후는 계획(overlay 적용)으로 채워 이번 주 합계 변화율과 주말 ACWR(α=1/7, 1/42) 전/후를 낸다.
+- move 는 부하 불변이라 null. 이력이 없으면 null(에러 없음). 응답은 POST action 의 `load_delta`와 `GET .../action/preview`. UI 는 ACWR 이 0.8/1.3 경계를 넘을 때만 강조색. 구현: `src/services/plan_load.py`.

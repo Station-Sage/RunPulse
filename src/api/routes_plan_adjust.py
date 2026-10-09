@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from flask import request
 
 from src.services import plan_adjustment_service as svc
+from src.services import plan_load
 from src.training import week_compliance
 from src.web.helpers import db_path
 
@@ -29,6 +30,11 @@ def _conflict(e: svc.AdjustmentConflict):
     if e.code == "NOT_FOUND":
         return api_error("NOT_FOUND", str(e), 404)
     return api_error("CONFLICT", str(e), 409, {"reason": e.code, "current": e.current})
+
+
+def _load_delta(conn: sqlite3.Connection, workout_id: int, op: str, params: dict) -> dict | None:
+    after = svc.preview_after(conn, workout_id, op, params)
+    return plan_load.load_delta(conn, workout_id, after, today=date.today().isoformat())
 
 
 def _decide(adj_id: int, action: str):
@@ -81,6 +87,7 @@ def plan_workout_action(workout_id: int):
         if r:
             before_km = _week_planned_km(conn, r[0])
         try:
+            delta = _load_delta(conn, workout_id, str(body.get("op") or ""), body)
             adj = svc.create_user_adjustment(conn, workout_id, str(body.get("op") or ""), body,
                                              source="user", via=body.get("via"))
         except ValueError as e:
@@ -89,7 +96,30 @@ def plan_workout_action(workout_id: int):
         ws = d - timedelta(days=d.weekday())
         compliance = week_compliance.compute(conn, ws, ws + timedelta(days=6), None, d)["compliance"]
         return api_ok({"adjustment": adj, "compliance": compliance,
-                       "week_planned_km": {"before": before_km, "after": _week_planned_km(conn, adj["date"])}}, 201)
+                       "week_planned_km": {"before": before_km, "after": _week_planned_km(conn, adj["date"])},
+                       "load_delta": delta}, 201)
+    except svc.AdjustmentConflict as e:
+        return _conflict(e)
+    finally:
+        conn.close()
+
+
+@api_bp.get("/coach/plan/workouts/<int:workout_id>/action/preview")
+def plan_workout_action_preview(workout_id: int):
+    params = {k: v for k, v in request.args.items()}
+    for k in ("pct", "reps"):
+        if k in params:
+            try:
+                params[k] = int(params[k])
+            except ValueError:
+                return api_error("BAD_REQUEST", f"{k} 는 정수", 400)
+    conn = _open()
+    if conn is None:
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    try:
+        return api_ok({"load_delta": _load_delta(conn, workout_id, params.get("op", ""), params)})
+    except ValueError as e:
+        return api_error("BAD_REQUEST", str(e), 400)
     except svc.AdjustmentConflict as e:
         return _conflict(e)
     finally:
