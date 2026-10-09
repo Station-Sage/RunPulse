@@ -139,7 +139,7 @@
 
 		<p class="mt-3 min-h-5 text-xs text-fg-secondary" aria-live="polite">
 			{#if op === 'reduce'}{prev.hint ?? `${km}km → ${prev.km}km`}{:else if op === 'rest'}휴식으로 바꿔요{:else if op === 'skip'}이 세션을 건너뛰어요{:else if op === 'move'}{toDate ? `${toDate.slice(5).replace('-', '/')}로 옮겨요 · 그날이 쉬운 날이면 서로 맞바꿔요` : '옮길 날을 골라 주세요'}{/if}
-			{#if week} · 이번 주 {week.before}→{week.after}km{/if}
+			{#if week && op !== 'move'} · 이번 주 {week.before}→{week.after}km{/if}
 		</p>
 		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
 
