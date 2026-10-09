@@ -109,3 +109,36 @@ test('replanErrorView: 표의 행들', () => {
 	assert.equal(v.replanErrorView(null, 'apply').action, 'plan');
 	assert.equal(v.replanErrorView(null, 'undo').action, 'plan');
 });
+
+test('startState 경계: 12km 이상 A, 0 초과 B, 공백 C, 기록 없음 D', () => {
+	assert.equal(v.startState({ km4: 12, avg16: 0 }), 'A');
+	assert.equal(v.startState({ km4: 11.9, avg16: 30 }), 'B');
+	assert.equal(v.startState({ km4: 0, avg16: 20 }), 'C');
+	assert.equal(v.startState({ km4: 0, avg16: 0 }), 'D');
+});
+
+test('inputFields: A·B 숨김, C 접힘, D 펼침', () => {
+	assert.deepEqual(v.inputFields('A'), { weekly: false, long: false, open: false });
+	assert.deepEqual(v.inputFields('B'), { weekly: false, long: false, open: false });
+	assert.equal(v.inputFields('C').weekly, true);
+	assert.equal(v.inputFields('C').open, false);
+	assert.equal(v.inputFields('D').open, true);
+});
+
+test('startCardText·startSourceText: 출처별 문구', () => {
+	const mk = (start_source, start_km, km4) => ({ start_source, start_km, basis: { km4, avg16: 0, long6: 0, long12: 0 } });
+	assert.equal(v.startCardText(mk('history', 30, 30)), '첫 주 30km — 최근 4주 평균 30km 그대로');
+	assert.match(v.startCardText(mk('floor', 12, 8)), /8km로 적어서 12km부터/);
+	assert.match(v.startCardText(mk('user', 25, 0)), /입력한 값/);
+	assert.match(v.startCardText(mk('avg16', 24, 0)), /16주 평균의 60%/);
+	assert.match(v.startCardText(mk('default', 20, 0)), /기본값/);
+	assert.equal(v.startSourceText(mk('history', 30.4, 30)), '시작 주간 30km · 최근 4주 기록 기준');
+});
+
+test('targetChangeText·fmtTarget', () => {
+	assert.equal(v.fmtTarget(13500), '3:45:00');
+	assert.equal(v.fmtTarget(2730), '45:30');
+	assert.equal(v.targetChangeText(13500, 13800), '목표 3:45:00 → 3:50:00 기준으로 다시 짜요.');
+	assert.equal(v.targetChangeText(13500, 13500), null);
+	assert.equal(v.targetChangeText(13500, null), null);
+});

@@ -1,5 +1,5 @@
 // 재계획 화면 순수 로직 (ADR-035 부록 R, DESIGN-PLAN-A6-REPLAN-UI).
-import type { ReplanParams, ReplanPreview, ReplanRowRef, ReplanWeek } from '$lib/types';
+import type { ReplanBasis, ReplanParams, ReplanPreview, ReplanRowRef, ReplanWeek } from '$lib/types';
 
 export interface MergedWeek {
 	week_start: string;
@@ -191,4 +191,62 @@ export function replanErrorView(
 	if (status === 503) return { text: '데이터를 읽지 못했어요. 계획은 바뀌지 않았어요.', action: 'retry' };
 	if (phase === 'preview') return { text: '미리보기를 불러오지 못했어요. 계획은 바뀌지 않았어요.', action: 'retry' };
 	return { text: '응답을 받지 못했어요. 반영됐는지 계획 화면에서 확인해 주세요.', action: 'plan' };
+}
+
+export type StartState = 'A' | 'B' | 'C' | 'D';
+
+const MIN_WEEK_KM = 12;
+
+// 최근 4주 기록 유무로 시작점 상태 결정: A 충분 / B 적음 / C 공백(더 이전 기록 있음) / D 기록 없음.
+export function startState(b: Pick<ReplanBasis, 'km4' | 'avg16'>): StartState {
+	if (b.km4 >= MIN_WEEK_KM) return 'A';
+	if (b.km4 > 0) return 'B';
+	return b.avg16 > 0 ? 'C' : 'D';
+}
+
+export function inputFields(s: StartState): { weekly: boolean; long: boolean; open: boolean } {
+	const show = s === 'C' || s === 'D';
+	return { weekly: show, long: show, open: s === 'D' };
+}
+
+export function startCardText(p: ReplanPreview): string {
+	const km = Math.round(p.start_km);
+	const k4 = Math.round(p.basis.km4);
+	switch (p.start_source) {
+		case 'history':
+			return km === k4 ? `첫 주 ${km}km — 최근 4주 평균 ${k4}km 그대로` : `첫 주 ${km}km — 최근 4주 평균 ${k4}km 기준`;
+		case 'floor':
+			return `첫 주 ${km}km — 최근 4주 평균이 ${k4}km로 적어서 ${km}km부터 시작해요`;
+		case 'user':
+			return `첫 주 ${km}km — 입력한 값 기준`;
+		case 'avg16':
+			return `첫 주 ${km}km — 최근 4주 기록이 없어 16주 평균의 60%로 잡았어요`;
+		default:
+			return `첫 주 ${km}km — 기록이 없어 거리별 기본값으로 잡았어요`;
+	}
+}
+
+export function startSourceText(p: ReplanPreview): string {
+	const km = Math.round(p.start_km);
+	const label: Record<ReplanPreview['start_source'], string> = {
+		history: '최근 4주 기록',
+		floor: '최소 시작 거리(최근 기록이 적음)',
+		user: '입력한 값',
+		avg16: '최근 16주 평균의 60%',
+		default: '거리별 기본값'
+	};
+	return `시작 주간 ${km}km · ${label[p.start_source]} 기준`;
+}
+
+export function fmtTarget(sec: number): string {
+	const h = Math.floor(sec / 3600);
+	const m = Math.floor((sec % 3600) / 60);
+	const s = sec % 60;
+	const mm = String(m).padStart(2, '0');
+	return h > 0 ? `${h}:${mm}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+export function targetChangeText(goalSec: number | null, newSec: number | null): string | null {
+	if (newSec == null || newSec === goalSec) return null;
+	return goalSec == null ? `목표 ${fmtTarget(newSec)} 기준으로 다시 짜요.` : `목표 ${fmtTarget(goalSec)} → ${fmtTarget(newSec)} 기준으로 다시 짜요.`;
 }

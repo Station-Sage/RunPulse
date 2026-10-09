@@ -1540,10 +1540,20 @@ export interface ReplanRowRef {
 	garmin_workout_id?: string | null;
 }
 
+export interface ReplanBasis {
+	km4: number;
+	avg16: number;
+	long6: number;
+	long12: number;
+}
+
 export interface ReplanPreview {
 	replan_id: number | null;
 	anchor_monday: string;
 	start_km: number;
+	start_source: 'history' | 'floor' | 'user' | 'avg16' | 'default';
+	basis: ReplanBasis;
+	goal_target_time_sec: number | null;
 	start_long_km: number | null;
 	target_time_sec: number | null;
 	before: ReplanWeek[];

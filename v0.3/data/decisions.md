@@ -298,3 +298,9 @@
 - 구현 결과: T1~T7·T9 배포. 링크는 `link.race_date` 가 있을 때 `/coach/plan/replan` 으로 연결. Garmin/CalDAV 는 삭제 API 부재로 `external[]` 안내만(T8 한계). 되돌리기는 결과 화면에서만(Q1 후속).
 - 결정 D1~D7(시작일, goal 정체성, 기존 목표 처리, 미리보기, 외부 푸시 정리, 되돌리기, K3 BUG 등록). 설계·T1~T10: `phase-7-ui-renewal/DESIGN-PLAN-A6-REPLAN-SAFE.md`. 링크는 결정·구현 전까지 off 유지.
 
+#### 재계획 입력 재검토 — 이력 기반 시작점 (A6 §11, 2026-10-09, 구현 완료)
+- 문제: 러닝 기록이 있어도 주간·롱런 입력을 받았으나 A 상태(km4≥12)에서는 [km4, 1.1×km4]로 잘려 효과가 없거나 오해를 줬다.
+- 결정: 서버가 `start_source`(history/floor/user/avg16/default)·`basis`·`goal_target_time_sec`를 돌려주고, 화면은 "시작점" 카드로 근거를 보여 준다. 주간·롱런 입력은 C(공백)·D(신규)에서만 노출, 목표 기록은 카드에서 인라인 수정.
+- DB `plan_replans.start_source` CHECK(user/history)는 유지: 저장은 `user` 아니면 `history`, 세분 출처는 응답에만.
+- Q6 채택: 롱런 미입력이면 `start_long_km(long6, long12)`를 저장. Q7(꼬리 일정 출처 "user" 고정) 보류, Q8(수동 하향) 미제공.
+

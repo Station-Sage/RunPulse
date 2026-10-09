@@ -240,7 +240,7 @@
 
 - functions: reduce_after, easy_after
 
-### `plan_replan_service.py` (151줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (159줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: next_monday, preview, apply, undo
@@ -2605,6 +2605,10 @@
 
 - functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history
 
+### `test_plan_replan_start.py` (66줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
+
+- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source
+
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
@@ -3128,7 +3132,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 662개 파일
+총 663개 파일
 
 ## docstring 누락
 

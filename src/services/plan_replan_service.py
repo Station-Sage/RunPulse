@@ -13,7 +13,8 @@ from src.training.goals import get_active_goal
 from src.training.plan_replace import replace_range
 from src.training.planner import generate_weekly_plan
 from src.training.planner_rules import plan_start_monday, resolve_distance_label
-from src.training.planner_schedule import cold_start_km, recent_avg_km, recent_load
+from src.training import personalize as P
+from src.training.planner_schedule import COLD_WEEK_KM, cold_start_km, recent_avg_km, recent_load, recent_long_max
 
 
 class ReplanError(Exception):
@@ -52,16 +53,22 @@ def _goal_and_anchor(conn: sqlite3.Connection, today: date) -> tuple[dict, date,
     return goal, anchor, race
 
 
-def _start_km(conn: sqlite3.Connection, goal: dict, today: date, user_km: float | None) -> float:
+def _start_km(conn: sqlite3.Connection, goal: dict, today: date, user_km: float | None) -> tuple[float, str, dict]:
+    """(시작 km, 출처, 근거). 출처: history(km4≥12) / floor(0<km4<12, 12km) / user·avg16·default(km4=0)."""
     dlabel = resolve_distance_label(goal["distance_km"], goal.get("distance_label"))
-    km4, _ = recent_load(conn, today)
-    return cold_start_km(dlabel, km4, recent_avg_km(conn, today, 16), user_km)[0]
+    km4, long6 = recent_load(conn, today)
+    avg16, long12 = recent_avg_km(conn, today, 16), recent_long_max(conn, today, 12)
+    km, cold_src = cold_start_km(dlabel, km4, avg16, user_km)
+    src = "history" if km4 >= COLD_WEEK_KM else "floor" if km4 > 0 else cold_src
+    return km, src, {"km4": km4, "avg16": avg16, "long6": long6, "long12": long12}
 
 
 def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     goal, anchor, race = _goal_and_anchor(conn, today)
     user_km, user_long, target = p.get("recent_weekly_km"), p.get("recent_long_km"), p.get("target_time_sec")
-    start_km = _start_km(conn, goal, today, user_km)
+    start_km, start_source, basis = _start_km(conn, goal, today, user_km)
+    if not user_long:
+        user_long = P.start_long_km(basis["long6"], basis["long12"]) or None
     end = (race - timedelta(days=race.weekday()) + timedelta(days=6)).isoformat()
     a_iso = anchor.isoformat()
     conn.execute("SAVEPOINT replan")
@@ -70,7 +77,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         conn.execute(
             "INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_long_km, start_source, target_time_sec)"
             " VALUES (?, ?, ?, ?, ?, ?)",
-            (goal["id"], a_iso, start_km, user_long, "user" if user_km else "history", target))
+            (goal["id"], a_iso, start_km, user_long, "user" if start_source == "user" else "history", target))
         replan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         plan, ws = [], anchor
         while ws <= race:
@@ -91,6 +98,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     if write:
         conn.commit()
     return {"replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
+            "start_source": start_source, "basis": basis, "goal_target_time_sec": goal.get("target_time_sec"),
             "start_long_km": user_long, "target_time_sec": target, "before": before, "after": after,
             "deleted_count": len(res["deleted"]), "preserved": res["preserved"], "external": res["external"],
             "skipped_dates": res["skipped_dates"]}

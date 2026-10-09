@@ -3,11 +3,12 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { applyReplan, previewReplan, undoReplan } from '$lib/api/plan';
+	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
 	import ReplanInputs from '$lib/components/plan/ReplanInputs.svelte';
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
 	import ReplanWeekTable from '$lib/components/plan/ReplanWeekTable.svelte';
 	import {
-		anchorLabel, canApply, mergeWeeks, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
+		anchorLabel, canApply, inputFields, mergeWeeks, startSourceText, startState, targetChangeText, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
 		undoUntilLabel, type ErrorAction, type Phase, type RawInputs
 	} from '$lib/replanView';
 	import type { ReplanPreview } from '$lib/types';
@@ -22,6 +23,8 @@
 
 	const parsed = $derived(parseReplanInputs(values));
 	const hasError = $derived(Object.keys(parsed.errors).length > 0);
+	const fields = $derived(inputFields(preview ? startState(preview.basis) : 'A'));
+	const targetNote = $derived(targetChangeText(preview?.goal_target_time_sec ?? null, parsed.params.target_time_sec ?? null));
 	const rows = $derived(preview ? mergeWeeks(preview.before, preview.after) : []);
 
 	function fail(e: unknown, phase: Phase) {
@@ -112,19 +115,24 @@
 		</div>
 	{:else}
 		{#if preview}
-			<p class="rounded-lg bg-surface-2 p-3 text-sm">{replanSummary(preview)}</p>
+			<p class="rounded-lg bg-surface-2 p-3 text-sm">
+				{replanSummary(preview)}{#if targetNote} {targetNote}{/if}
+			</p>
+			<ReplanStartCard {preview} bind:values error={parsed.errors.target} oninput={() => (dirty = true)} />
 		{:else if busy}
 			<p class="text-xs text-fg-secondary">미리보기를 계산하고 있어요</p>
 		{/if}
 
-		<ReplanInputs bind:values errors={parsed.errors} warnings={parsed.warnings} oninput={() => (dirty = true)} />
+		{#if preview}
+			<ReplanInputs bind:values errors={parsed.errors} warnings={parsed.warnings} {fields} oninput={() => (dirty = true)} />
+		{/if}
 
 		{#if preview}
 			<ReplanWeekTable {rows} />
 			<ReplanNotices {preview} />
 			<details class="rounded-lg bg-surface-2 p-3 text-xs text-fg-secondary">
 				<summary class="min-h-11 cursor-pointer py-3">어떻게 계산했나요</summary>
-				<p>시작 주간 {Math.round(preview.start_km)}km · {parsed.params.recent_weekly_km ? '입력한 값' : '최근 기록'} 기준</p>
+				<p>{startSourceText(preview)}</p>
 				<p>캘린더 구독(ICS)은 자동으로 새 일정으로 바뀌어요.</p>
 			</details>
 		{/if}

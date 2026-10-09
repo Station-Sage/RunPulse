@@ -67,6 +67,8 @@ Level 0 문장 규칙(순수 함수 `replanSummary`):
 
 ## 4. 입력
 
+> 2026-10-09 재검토: 아래는 구현된 1차안. 이력이 있으면 입력이 사실상 무효라는 코드 근거와 대체안은 **§11**(제안, 결정 대기).
+
 - 기본: 접힘, 빈 값. 페이지 진입 시 빈 입력으로 미리보기를 바로 요청(사용자가 아무것도 안 해도 결과가 보이게).
 - 펼친 상태(각 `h-11`, `inputmode="decimal"`, 기존 `input` 클래스 재사용):
   - 최근 주간 거리(km) — placeholder "비우면 최근 기록으로 계산"
@@ -185,3 +187,65 @@ REPLAN_LOCKED(되돌리기 시): 버튼을 지우고 안내 + 선택지 하나 `
 | Q3 | CalDAV 푸시 사용자의 옛 이벤트 | `external[]`가 Garmin만 보고함. CalDAV도 남는다면 같은 안내에 포함할지 |
 | Q4 | 배너 외 진입점(계획 화면 메뉴 "남은 일정 다시 맞추기") | 이번 T9에선 배너만. advisory 없이도 원하는 사용자가 있으면 다음 단계 |
 | Q5 | 적용 후 새 세션의 Garmin 자동 전송 여부 | 동작에 따라 결과 화면에 "새 세션은 {다음 동기화 때} 워치로 보내요" 한 줄 추가 |
+
+## 11. 입력 재검토 — 이력 기반 시작점을 기본으로 (2026-10-09, 구현 완료: Q6 채택·Q7 보류·Q8 미제공, 경계 12km)
+
+사용자 질문: "러닝 기록이 이미 있는데 최근 이력을 입력받을 필요가 있나?"
+
+### 11.1 코드 근거 (`cold_start_km`, `plan_replan_service._start_km`)
+재계획은 이력 유무와 상관없이 항상 `cold_start_km(dlabel, km4, avg16, user_km)`를 탄다(`start_load`의 `km4 ≥ 12 → history` 분기를 거치지 않음). 결과:
+
+| 상태 (`km4`=직전 4주 주평균, `avg16`=16주 주평균) | 자동 값 | 주간 거리 입력의 실제 효과 |
+|---|---|---|
+| A 이력 충분 `km4 ≥ ~11` | `km4` (0.6×avg16 이 더 커도 1.1×km4 상한) | **[km4, 1.1×km4] 로 잘림.** 30km 사용자가 20 입력 → 30, 60 입력 → 33 |
+| B 이력 적음 `0 < km4 < ~11` | 12km | **없음**(입력 무관 12km) |
+| C 공백(부상·휴식) `km4 = 0, avg16 > 0` | 0.6×avg16 | 그대로 반영(12 이상) |
+| D 신규 `km4 = 0, avg16 = 0` | 거리별 기본값(풀 20km) | 그대로 반영 |
+
+- 롱런 입력(`recent_long_km`): 상태와 무관하게 anchor `start_long_km`으로 저장되어 꼬리 일정에 쓰인다(`schedule_for_goal.tail`). **비우면 최근 이력이 아니라 목표 생성 당시의 시작 롱런**을 쓴다 — 공백 후 재계획에서 오래된 값이 남는 문제(아키텍트 Q6).
+- 목표 기록: 활성 목표 `goals.target_time_sec`에 이미 있다(`_replan_link`도 보냄). 입력은 꼬리 일정에만 쓰는 override이고 목표 행은 그대로라 "목표를 바꿨나?"가 모호하다.
+- 출처 표시 오류: Level 2 "입력한 값 기준"은 입력 유무로 판단하고, `plan_replans.start_source`도 `"user" if user_km else "history"`로 저장한다. A 상태에서 20을 넣어도 실제 30(이력)인데 "입력한 값"으로 보인다 → 투명성 원칙 위반.
+
+### 11.2 권장 UX — "시작점" 카드 + 상태별 입력 노출
+Level 0 요약 바로 아래에 항상 보이는 **시작점 카드**(입력이 아니라 근거):
+
+```
+어디서 시작하나요
+첫 주 30km — 최근 4주 평균 30km 그대로        (A)
+첫 주 12km — 최근 4주 평균 8km, 가볍게 다시 쌓아요   (B)
+첫 주 24km — 4주 쉬었어요. 쉬기 전 16주 평균 40km의 60%   (C)
+첫 주 20km — 기록이 없어 풀코스 기본값으로 시작   (D)
+가장 긴 러닝 18km — 최근 6주 최장 (12주 최장 21km의 85%와 비교)
+목표 기록 3:45:00 — 지금 목표 그대로           [바꾸기]
+```
+
+- A·B: 주간·롱런 입력칸 **노출하지 않음**(효과가 없거나 10% 이내). REPLAN 진입 자체가 "2주 이행 부족"이라 `km4`는 이미 줄어든 실제 수준 = 사용자가 원하는 "지금 내 상태"다.
+- C·D: 카드 아래 **"쉬는 동안 다른 운동을 했거나 기록이 빠졌나요? 직접 맞추기 ▸"** 접힘에 주간·롱런 2칸. D는 펼친 채 시작(기본값은 추정이라 사용자 정보가 더 낫다).
+- 목표 기록: 입력 칸에서 빼고 카드의 `[바꾸기]`로만(인라인 1칸, placeholder = 현재 목표). 바꾸면 Level 0에 "목표 3:45 → 3:50 기준으로 다시 짜요"를 덧붙여 의미를 분명히 한다.
+- Level 2 출처는 서버가 돌려준 실제 출처(`history|avg16|default|user`)로 표시. 입력했지만 이력에 밀렸으면 "입력 20km보다 최근 기록 30km가 커서 기록을 따랐어요".
+- 다시 계산·dirty·적용 비활성 규칙(§4)은 그대로.
+
+### 11.3 최소 변경 범위
+백엔드 (응답 필드 형태·저장 의미는 system-architect 확정):
+- `src/services/plan_replan_service.py` `_start_km` → `(km, src, basis)` 반환. `basis = {km4, avg16, long6, long12}` (`recent_load`, `recent_avg_km`, `recent_long_max`). `_run` 응답에 `start_source`, `basis`, `goal_target_time_sec` 추가, `plan_replans.start_source`에 실제 `src` 저장.
+- Q6: 롱런 미입력 시 anchor 기준 이력값(`personalize.start_long_km(long6, long12)`)을 `start_long_km`으로 저장할지(현재 NULL → 목표 생성 당시 값).
+- Q7: `schedule_for_goal.tail`이 출처를 항상 `"user"`로 넘겨 rv2에서 `cold_peak_km` 하한이 A 상태에도 적용됨 — 의도인지.
+- `routes_plan_adjust._replan_link`의 `recent_weekly_km`(2주 평균, 계산식 다름)는 프론트 미사용 — 정리 여부만 판단.
+
+프런트:
+- `frontend/src/lib/types/index.ts` `ReplanPreview`에 `start_source`, `basis`, `goal_target_time_sec`.
+- `frontend/src/lib/replanView.ts` 순수 함수 추가: `startState(preview) → 'A'|'B'|'C'|'D'`, `startBasisText(preview)`(카드 문구), `inputFields(state)`(노출 칸). Level 2 출처 문구를 `start_source` 기반으로.
+- `frontend/src/lib/components/plan/ReplanInputs.svelte`: `fields`를 prop으로, 목표 칸 분리.
+- 신규 `ReplanStartCard.svelte`(시작점 카드 + 목표 [바꾸기]) — `+page.svelte` 300줄 유지.
+- `+page.svelte` 127행 출처 문구 교체, 카드 삽입.
+
+### 11.4 테스트
+- 백엔드: 상태 A/B/C/D 각각 `start_source`·`basis`·`start_km` 기대값 / A에서 `recent_weekly_km < km4` 입력 시 `start_source='history'`(또는 합의한 값) 저장 / `goal_target_time_sec` = 활성 목표 값 / (Q6 채택 시) 롱런 미입력이면 anchor 이력값 저장.
+- 프런트(vitest): `startState` 경계(km4 0·11.9·11·30, avg16 0) / `startBasisText` 4종 문구 / `inputFields` A·B는 빈 배열, C 접힘, D 펼침 / 출처 문구가 입력 유무가 아닌 `start_source`를 따름.
+- 브라우저 스모크(390px, 운영 DB 사본): 현재 사용자(A) 진입 시 입력칸 없음·카드 근거 표시 / 4주 활동 제거 사본(C)에서 접힌 조정 노출 / 목표 [바꾸기] → dirty → 다시 계산 → Level 0 문장 변화.
+
+| ID | 질문 | 제안 |
+|---|---|---|
+| Q6 | 롱런 미입력 시 기준값 | anchor 기준 이력(`start_long_km(long6, long12)`)으로 저장 |
+| Q7 | 꼬리 일정 출처 `"user"` 고정 | 실제 출처 전달(A면 `history`) |
+| Q8 | A 상태에서 "더 가볍게 시작" 수동 하향 필요? | 지금은 미제공(서버가 `km4` 아래로 못 내림). 필요하면 서버 규칙 변경이 먼저 |
