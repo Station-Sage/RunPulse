@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from flask import request
 
 from src.services import plan_adjustment_service as svc
-from src.services import plan_load, plan_pain
+from src.services import plan_advisory, plan_load, plan_pain
 from src.training import week_compliance
 from src.web.helpers import db_path
 
@@ -35,6 +35,11 @@ def _conflict(e: svc.AdjustmentConflict):
 def _load_delta(conn: sqlite3.Connection, workout_id: int, op: str, params: dict) -> dict | None:
     after = svc.preview_after(conn, workout_id, plan_pain.resolve(op, params), params)
     return plan_load.load_delta(conn, workout_id, after, today=date.today().isoformat())
+
+
+def _advisories(conn: sqlite3.Connection, adj_id: int, delta: dict | None) -> list[dict]:
+    today = date.today().isoformat()
+    return [a for a in [plan_pain.repeat(conn, today)] if a] + plan_advisory.issue(conn, adj_id, today, delta)
 
 
 def _decide(adj_id: int, action: str):
@@ -98,7 +103,7 @@ def plan_workout_action(workout_id: int):
         return api_ok({"adjustment": adj, "compliance": compliance,
                        "week_planned_km": {"before": before_km, "after": _week_planned_km(conn, adj["date"])},
                        "load_delta": delta,
-                       "advisories": [a for a in [plan_pain.repeat(conn, date.today().isoformat())] if a]}, 201)
+                       "advisories": _advisories(conn, adj["id"], delta)}, 201)
     except svc.AdjustmentConflict as e:
         return _conflict(e)
     finally:

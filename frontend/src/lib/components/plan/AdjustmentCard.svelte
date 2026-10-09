@@ -79,7 +79,7 @@
 				{headline}
 			</p>
 			<p class="mt-0.5 text-xs text-fg-secondary">{adjustmentDelta(adj, workoutLabel)}</p>
-			{#each adj.reasons as r (r.label)}
+			{#each adj.reasons.filter((r) => r.label) as r (r.label)}
 				<p class="mt-0.5 text-xs text-fg-muted">{r.label}</p>
 			{/each}
 		{:else if note}

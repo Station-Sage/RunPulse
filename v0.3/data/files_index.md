@@ -220,6 +220,10 @@
 - class **AdjustmentConflict**: 없음
 - functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
 
+### `plan_advisory.py` (156줄) — skip/rest 반복 경고 A1~A6 — 거부하지 않고 안내만 한다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §3).
+
+- functions: compute, issue
+
 ### `plan_load.py` (109줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
 
 - functions: session_load, daily_actual, easy_u, load_delta
@@ -2518,6 +2522,10 @@
 
 - functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors, test_reduce_rules_cap_floor_quality, test_user_action_replaces_accepted_crs_and_uses_effective_plan, test_reduce_interval_reps_writes_structure, test_reduce_tempo_long_and_easy_replace
 
+### `test_plan_advisory.py` (80줄) — plan_advisory — A1~A6 경고 계산·주 1회 발급·통증 제외.
+
+- functions: conn, test_empty_db_returns_nothing, test_rest_streak_after_three_rest_days, test_pain_rows_are_not_counted, test_week_drop_and_acwr_low, test_q_dropped_twice, test_issue_once_per_week_and_skips_pain
+
 ### `test_plan_backtest.py` (102줄)
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
@@ -3082,7 +3090,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 651개 파일
+총 653개 파일
 
 ## docstring 누락
 

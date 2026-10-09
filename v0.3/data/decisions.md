@@ -272,3 +272,8 @@
 - mild: reduce/easy/rest/skip 허용(Q·롱은 이지 기본). moderate·severe: op 무관 `rest`로 강제. 통증이면 move 금지(`PAIN_NO_MOVE`).
 - moderate/severe 기록 후 D+1~D+2 세션은 `ensure_proposal`에서 `plan_pain.proposal`이 우선 제안(severe 휴식, moderate Q·롱 휴식·그 외 거리 ×0.6, `rule_version=pain_v1`).
 - 14일 내 통증 2회 또는 같은 부위 반복 시 `PAIN_REPEAT` advisory(액션 응답 `advisories[]`). A1~A6은 후속.
+
+### ADR-035 부록: 경고 A1~A6 (2026-10-09)
+- `src/services/plan_advisory.py`: REST_STREAK·Q_DROPPED_2·LONG_DROPPED_2W·WEEK_LOAD_DROP·ACWR_LOW·REPLAN. 거부하지 않고 액션 응답 `advisories[]`로만 안내(토스트 첫 항목).
+- 같은 코드는 ISO 주당 1회: 발급 시 새 조정 행 `reasons_json`에 `{"key":"advisory","code"}`를 남기고 그 주 행에서 중복 판정. 통증 사유 조정은 세지도 발급하지도 않음. REPLAN 이 켜지면 REST_STREAK 은 숨김.
+- 집계 대상: accepted 조정 중 rest/skip, 품질→이지 전환. 후속: A6 시트 상단 고정 표시, 재계획 링크 대상.
