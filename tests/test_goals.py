@@ -39,8 +39,8 @@ def test_list_goals_active_default(db_conn):
     add_goal(db_conn, name="목표1", distance_km=10.0)
     add_goal(db_conn, name="목표2", distance_km=21.1)
     goals = list_goals(db_conn)
-    assert len(goals) == 2
-    assert all(g["status"] == "active" for g in goals)
+    assert [g["name"] for g in goals] == ["목표2"]
+    assert len(list_goals(db_conn, status="cancelled")) == 1
 
 
 def test_list_goals_all(db_conn):

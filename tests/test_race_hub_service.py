@@ -102,7 +102,7 @@ def test_past_goal_only_returns_none(conn):
 
 def test_nearest_future_goal_selected(conn):
     _seed_goal(conn, "춘천마라톤", "2026-10-25", 42.195)
-    _seed_goal(conn, "서울마라톤", "2027-03-15", 42.195)
+    _seed_goal(conn, "서울마라톤", "2027-03-15", 42.195, status="cancelled")
     conn.commit()
     result = get_race_hub(conn, DATE)
     assert result["goal"] is not None

@@ -1351,7 +1351,7 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (167줄) — 훈련 목표 CRUD.
+### `goals.py` (168줄) — 훈련 목표 CRUD.
 
 - functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
@@ -2106,6 +2106,10 @@
 ### `test_db_schema_v31.py` (54줄) — 스키마 v31 plan_adjustments: 멱등, CHECK, 부분 유니크.
 
 - functions: conn, test_idempotent, test_check_constraints, test_partial_unique_live, test_registered_in_create_tables
+
+### `test_db_schema_v32.py` (57줄) — 스키마 v32 plan_replans·ux_goals_one_active: 멱등, 중복 active 정리, 유니크 강제.
+
+- functions: test_idempotent, test_duplicate_active_cleanup_keeps_newest, test_second_active_insert_fails, test_check_constraints, test_registered_and_migrates
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -3090,7 +3094,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 653개 파일
+총 654개 파일
 
 ## docstring 누락
 

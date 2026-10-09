@@ -64,7 +64,7 @@ def add_goal(
     target_pace_sec_km: int | None = None,
     rules_version: int | None = None,
 ) -> int:
-    """목표 추가.
+    """목표 추가. 기존 active 목표는 cancelled 로 전환한다(활성 1개 불변식).
 
     Args:
         conn: SQLite 연결.
@@ -80,6 +80,7 @@ def add_goal(
     """
     if rules_version is None:
         rules_version = 2 if plan_rules_v2_enabled() else 1
+    conn.execute("UPDATE goals SET status = 'cancelled' WHERE status = 'active'")  # 활성 목표는 항상 1개 (v32)
     cursor = conn.execute(
         """INSERT INTO goals
            (name, race_date, distance_km, target_time_sec, target_pace_sec_km, status,
