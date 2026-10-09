@@ -134,3 +134,44 @@ def test_user_action_replaces_accepted_crs_and_uses_effective_plan(monkeypatch):
     assert svc._get(c, crs["id"])["decision"] == "reverted"
     assert svc.get_user_adjustment(c, D, today=D)["id"] == a["id"]
     assert svc.get_user_adjustment(c, "2026-10-01", today=D) is None
+
+
+def _q(c, wtype, km, rx=None):
+    c.execute("UPDATE planned_workouts SET workout_type=?, distance_km=?, interval_prescription=? WHERE id=7",
+              (wtype, km, rx))
+
+
+def test_reduce_interval_reps_writes_structure(monkeypatch):
+    import json
+    c, _ = _conn(monkeypatch)
+    _q(c, "interval", 10.0, json.dumps({"sets": 6, "rep_m": 1000, "interval_pace": 270, "rest_sec": 90}))
+    a = svc.create_user_adjustment(c, 7, "reduce", {"reps": 2}, today=D)
+    assert json.loads(a["after"]["interval_prescription"])["sets"] == 4 and a["after"]["distance_km"] == 8.0
+    assert json.loads(a["after"]["structure_json"])["steps"][1]["count"] == 4
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 20}, today=D)
+    _q(c, "interval", 10.0, json.dumps({"sets": 3, "rep_m": 1000, "interval_pace": 270}))
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"reps": 2}, today=D)
+    _q(c, "interval", 10.0, None)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"reps": 1}, today=D)
+
+
+def test_reduce_tempo_long_and_easy_replace(monkeypatch):
+    c, _ = _conn(monkeypatch)
+    _q(c, "tempo", 8.0)
+    assert svc.create_user_adjustment(c, 7, "reduce", {"pct": 30}, today=D)["after"]["distance_km"] == 5.6
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 40}, today=D)
+    _q(c, "tempo", 2.5)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "reduce", {"pct": 30}, today=D)
+    _q(c, "long", 20.0)
+    assert svc.create_user_adjustment(c, 7, "reduce", {"pct": 30}, today=D)["after"]["workout_type"] == "easy"
+    e = svc.create_user_adjustment(c, 7, "easy", today=D)
+    assert e["after"]["workout_type"] == "easy" and e["after"]["interval_prescription"] is None
+    assert e["op"] == "replace"
+    _q(c, "easy", 8.0)
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "easy", today=D)

@@ -80,8 +80,9 @@ export function listAdjustments(goalId: number, from: string, to: string): Promi
 }
 
 export interface WorkoutActionBody {
-	op: 'reduce' | 'rest' | 'skip' | 'move';
+	op: 'reduce' | 'easy' | 'rest' | 'skip' | 'move';
 	pct?: number;
+	reps?: number;
 	to_date?: string;
 	reason?: string;
 	via: string;

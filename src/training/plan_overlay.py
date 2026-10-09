@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
-_FIELDS = ("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description")
+_FIELDS = ("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description",
+           "interval_prescription", "structure_json")
 
 
 def live_adjustments(conn: sqlite3.Connection, start: str, end: str) -> dict[int, list[dict]]:

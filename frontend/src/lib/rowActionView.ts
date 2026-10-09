@@ -1,12 +1,15 @@
 // 플랜 행 액션(직접 조정)의 순수 표시 로직 — 백엔드 규칙(plan_adjustment_service)과 일치해야 한다.
 import type { PlannedWorkout, WorkoutActionResult } from '$lib/types';
 
-export type RowOp = 'reduce' | 'rest' | 'skip' | 'move';
+export type RowOp = 'reduce' | 'easy' | 'rest' | 'skip' | 'move';
 export type RowActionMode = 'hidden' | 'locked' | 'active';
 
 export const MAX_REDUCE_PCT = 50;
 export const MIN_REDUCED_KM = 3;
-const PCT_BLOCKED = ['interval', 'tempo', 'threshold', 'marathon', 'race'];
+const WORK_FLOOR_KM: Record<string, number> = { tempo: 2, threshold: 2, marathon: 5, long_mp: 5 };
+const WORK_PCTS = [20, 30];
+const LONG_PCTS = [15, 30];
+const EASY_FROM = ['interval', 'long', ...Object.keys(WORK_FLOOR_KM)];
 
 export const REASONS: { key: string; label: string }[] = [
 	{ key: 'fatigue', label: '피로' },
@@ -26,6 +29,7 @@ export function rowActionMode(w: PlannedWorkout, today: string): RowActionMode {
 
 export interface OpAvailability {
 	reduce: { ok: boolean; hint: string | null };
+	easy: { ok: boolean; hint: string | null };
 	rest: { ok: boolean };
 	skip: { ok: boolean };
 	move: { ok: boolean; hint: string | null };
@@ -50,14 +54,44 @@ export function reducedKm(km: number, pct: number): number {
 	return Math.round(km * (1 - pct / 100) * 10) / 10;
 }
 
+export function intervalSets(w: Pick<PlannedWorkout, 'interval_prescription'>): number | null {
+	try {
+		const n = Number(JSON.parse(w.interval_prescription ?? 'null')?.sets);
+		return Number.isFinite(n) && n > 0 ? n : null;
+	} catch {
+		return null;
+	}
+}
+
+// reduce 의 입력 방식 — 인터벌은 반복 횟수, 강도·롱런은 정해진 비율, 쉬운 러닝은 자유 비율.
+export type ReduceInput = { kind: 'reps' | 'pct'; options: number[]; free: boolean };
+
+export function reduceInput(w: PlannedWorkout): ReduceInput {
+	const t = w.workout_type;
+	if (t === 'interval') {
+		const sets = intervalSets(w) ?? 0;
+		return { kind: 'reps', options: [1, 2].filter((r) => sets - r >= 2 && (sets - r) * 2 >= sets), free: false };
+	}
+	if (t in WORK_FLOOR_KM) return { kind: 'pct', options: WORK_PCTS.filter((p) => reducedKm(w.distance_km ?? 0, p) >= WORK_FLOOR_KM[t]), free: false };
+	if (t === 'long') return { kind: 'pct', options: LONG_PCTS, free: false };
+	return { kind: 'pct', options: [20, 40], free: true };
+}
+
 export function opAvailability(w: PlannedWorkout): OpAvailability {
 	const km = w.distance_km ?? 0;
+	const inp = reduceInput(w);
 	let hint: string | null = null;
-	if (PCT_BLOCKED.includes(w.workout_type)) hint = '강도 세션은 비율로 줄일 수 없어요 · 쉬기나 건너뛰기를 선택해 주세요';
+	if (w.workout_type === 'race') hint = '레이스는 줄일 수 없어요';
+	else if (w.workout_type === 'interval' && !inp.options.length) hint = '반복을 줄이면 구성이 무너져요 · 쉬운 러닝으로 바꾸거나 쉬세요';
 	else if (km <= 0) hint = '거리가 없는 세션이에요';
-	else if (reducedKm(km, 20) < MIN_REDUCED_KM) hint = `줄이면 ${MIN_REDUCED_KM}km 미만이 돼요 · 쉬는 편이 나아요`;
+	else if (!inp.options.length) hint = '더 줄이면 너무 짧아져요 · 쉬는 편이 나아요';
+	else if (inp.free && reducedKm(km, 20) < MIN_REDUCED_KM) hint = `줄이면 ${MIN_REDUCED_KM}km 미만이 돼요 · 쉬는 편이 나아요`;
 	const moveHint = w.workout_type === 'race' ? '레이스는 옮길 수 없어요' : null;
-	return { reduce: { ok: hint === null, hint }, rest: { ok: true }, skip: { ok: true }, move: { ok: moveHint === null, hint: moveHint } };
+	const easyOk = EASY_FROM.includes(w.workout_type);
+	return {
+		reduce: { ok: hint === null, hint }, easy: { ok: easyOk, hint: easyOk ? null : '이미 쉬운 세션이에요' },
+		rest: { ok: true }, skip: { ok: true }, move: { ok: moveHint === null, hint: moveHint }
+	};
 }
 
 export function reducePreview(km: number, pct: number): { km: number; valid: boolean; hint: string | null } {
@@ -80,6 +114,7 @@ export function toastText(op: RowOp, res: WorkoutActionResult): string {
 	const wk = res.week_planned_km;
 	const tail = wk.before != null && wk.after != null ? ` · 이번 주 ${wk.before}→${wk.after}km` : fmt(wk.after);
 	if (op === 'reduce') return `오늘 ${res.adjustment.after.distance_km}km로 줄였어요${tail}`;
+	if (op === 'easy') return `오늘은 쉬운 러닝으로 바꿨어요${tail}`;
 	if (op === 'rest') return `오늘은 쉬어요${tail}`;
 	if (op === 'move') return `${res.adjustment.after.date?.slice(5).replace('-', '/')}로 옮겼어요`;
 	return `오늘 세션을 건너뛰었어요${tail}`;

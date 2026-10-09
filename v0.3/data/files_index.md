@@ -215,7 +215,7 @@
 
 - functions: warm_month_narrative, warm_in_background
 
-### `plan_adjustment_service.py` (289줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adjustment_service.py` (277줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
 - functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, create_user_adjustment, list_adjustments
@@ -223,6 +223,10 @@
 ### `plan_move.py` (142줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
 
 - functions: overlay_date, date_ok, validate, create_move, partner_id, revert_dependents
+
+### `plan_reduce.py` (86줄) — 행 액션 reduce/easy 의 after 계산 (순수) — 강도 세션은 세트 수·구간 거리로, 쉬운 세션은 거리 비율로 줄인다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §2).
+
+- functions: reduce_after, easy_after
 
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -1398,7 +1402,7 @@
 
 - functions: week_ctx, g2a_long_cap, g2b_long_envelope, g9_long_floor, f6_long_step
 
-### `plan_overlay.py` (64줄) — 수락된 계획 조정(plan_adjustments)을 planned_workouts 행에 읽기 시점으로 겹쳐 적용 (ADR-035).
+### `plan_overlay.py` (65줄) — 수락된 계획 조정(plan_adjustments)을 planned_workouts 행에 읽기 시점으로 겹쳐 적용 (ADR-035).
 
 - functions: live_adjustments, apply
 
@@ -1780,9 +1784,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_plan_adjustments.py` (73줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+### `test_api_plan_adjustments.py` (89줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
-- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors
+- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2502,9 +2506,9 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_adjustment_service.py` (136줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
+### `test_plan_adjustment_service.py` (177줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
 
-- functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors, test_reduce_rules_cap_floor_quality, test_user_action_replaces_accepted_crs_and_uses_effective_plan
+- functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors, test_reduce_rules_cap_floor_quality, test_user_action_replaces_accepted_crs_and_uses_effective_plan, test_reduce_interval_reps_writes_structure, test_reduce_tempo_long_and_easy_replace
 
 ### `test_plan_backtest.py` (102줄)
 
@@ -2531,9 +2535,9 @@
 
 - functions: test_move_to_empty_day_and_overlay, test_swap_with_easy_and_pair_revert_from_either_row, test_reduce_after_move_uses_overlay_date, test_validation_codes, test_cross_week_taper_and_done, test_already_moved_and_not_found
 
-### `test_plan_overlay.py` (45줄) — plan_overlay: accepted 조정만 읽기 시점에 적용, 원본 불변, 지문 불일치는 stale.
+### `test_plan_overlay.py` (46줄) — plan_overlay: accepted 조정만 읽기 시점에 적용, 원본 불변, 지문 불일치는 stale.
 
-- functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_and_unadjusted_untouched
+- functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_applies_and_unadjusted_untouched
 
 ### `test_plan_readiness.py` (69줄) — 준비 볼륨·경고(DESIGN-U16-LONGRUN §5.2-5)와 콜드 피크 목표(§5.2 L5 후속).
 
@@ -3058,7 +3062,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 645개 파일
+총 646개 파일
 
 ## docstring 누락
 

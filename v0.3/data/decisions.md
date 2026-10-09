@@ -256,3 +256,8 @@
 - 되돌리기: 어느 쪽 행을 되돌려도 pair 전체와 이후 종속 조정이 함께 되돌려진다.
 - 거절(409 `details.reason`): RACE_FIXED, PAIN_NO_MOVE, ALREADY_MOVED, NOT_TODAY, OUT_OF_RANGE(내일~+3일), CROSS_WEEK, TAPER_LOCK, TARGET_DONE, TARGET_HARD(쉬움·휴식·빈 날만 허용), HARD_SPACING. `to_date` 누락은 400.
 - 이유 `injury`는 통증으로 취급해 이동 불가.
+
+### ADR-035 부록: Q 세션 reduce·easy (2026-10-09)
+- 인터벌은 reps −1/−2(남은 reps ≥2, 남은 reps×2 ≥ 원래 sets), 템포·역치·마라톤은 pct 20/30(작업 구간 하한 2km/5km), 롱런은 pct 15/20/30/40(16km 미만이면 easy 로 전환). 페이스는 바꾸지 않는다.
+- Q 감량은 `after`에 `interval_prescription`·`structure_json`을 함께 기록(overlay `_FIELDS` 확장). `easy` op 은 거리 유지·페이스 제거, 저장 op 은 `replace`.
+- 에러 코드: NO_STRUCTURE, BELOW_FLOOR(3.0km), NO_BASIS, PCT_NOT_FOR_QUALITY, RACE_FIXED. 구현: `src/services/plan_reduce.py`.

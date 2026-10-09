@@ -71,3 +71,19 @@ def test_workout_action_errors(client):
     assert client.post(p + "7/action", json={"op": "move", "to_date": "2030-01-01"}).status_code == 409
     assert client.post(p + "7/action", json={"op": "move"}).status_code == 400
     assert client.post(p + "99/action", json={"op": "rest"}).status_code == 404
+
+
+def test_workout_action_easy_and_reps(client):
+    import json
+    import sqlite3 as sq
+    import src.api.routes_plan_adjust as m
+    c = sq.connect(str(m.db_path()))
+    c.execute("UPDATE planned_workouts SET workout_type='interval', interval_prescription=? WHERE id=7",
+              (json.dumps({"sets": 6, "rep_m": 1000, "interval_pace": 270}),))
+    c.commit()
+    c.close()
+    p = "/api/v1/coach/plan/workouts/7/action"
+    r = client.post(p, json={"op": "reduce", "reps": 1})
+    assert r.status_code == 201 and r.get_json()["data"]["adjustment"]["after"]["distance_km"] == 9.0
+    r = client.post(p, json={"op": "easy"})
+    assert r.status_code == 201 and r.get_json()["data"]["adjustment"]["after"]["workout_type"] == "easy"

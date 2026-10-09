@@ -60,3 +60,15 @@ test('moveCandidates: 내일부터 3일, 같은 주만', async () => {
 	assert.equal(opAvailability(w({ workout_type: 'race' })).move.ok, false);
 	assert.match(actionErrorText(new ApiError(409, { error: { details: { reason: 'TARGET_HARD' } } })), /강한 훈련/);
 });
+
+test('Q 세션: 인터벌은 반복 횟수, 강도는 정해진 비율, 이지로 바꾸기', async () => {
+	const { reduceInput } = await import('../src/lib/rowActionView.ts');
+	const iv = w({ workout_type: 'interval', distance_km: 10, interval_prescription: JSON.stringify({ sets: 6, rep_m: 1000 }) });
+	assert.deepEqual(reduceInput(iv), { kind: 'reps', options: [1, 2], free: false });
+	assert.equal(opAvailability(iv).reduce.ok, true);
+	assert.deepEqual(reduceInput({ ...iv, interval_prescription: JSON.stringify({ sets: 3 }) }).options, [1]);
+	assert.deepEqual(reduceInput(w({ workout_type: 'tempo', distance_km: 8 })).options, [20, 30]);
+	assert.deepEqual(reduceInput(w({ workout_type: 'tempo', distance_km: 2.2 })).options, []);
+	assert.equal(opAvailability(w({ workout_type: 'tempo' })).easy.ok, true);
+	assert.equal(opAvailability(w()).easy.ok, false);
+});

@@ -195,32 +195,18 @@ def revert(conn: sqlite3.Connection, adj_id: int, *, via: str | None = None, tod
     return _decide(conn, adj, "reverted", via, today)
 
 
-USER_OPS = ("reduce", "rest", "skip", "move")
-COACH_OPS = ("reduce", "rest", "skip")
-
-
-MAX_REDUCE_PCT = 50
-MIN_REDUCED_KM = 3.0
-PCT_BLOCKED_TYPES = ("interval", "tempo", "threshold", "marathon", "race")
+USER_OPS = ("reduce", "easy", "rest", "skip", "move")
+COACH_OPS = ("reduce", "easy", "rest", "skip")
 
 
 def _user_after(before: dict, op: str, params: dict) -> dict:
+    from src.services import plan_reduce
     if op == "reduce":
-        pct = params.get("pct")
-        if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not 0 < pct < 100:
-            raise ValueError("pct 는 1~99 이어야 해요")
-        if pct > MAX_REDUCE_PCT:
-            raise ValueError(f"한 번에 {MAX_REDUCE_PCT}% 넘게 줄일 수 없어요 · 쉬는 날로 바꿔 보세요")
-        if before.get("workout_type") in PCT_BLOCKED_TYPES:
-            raise ValueError("강도 있는 세션은 비율로 줄일 수 없어요 · 쉬기나 건너뛰기를 고르세요")
-        km = before.get("distance_km")
-        if not km:
-            raise ValueError("거리가 없는 세션은 줄일 수 없어요")
-        new_km = round(km * (1 - pct / 100), 1)
-        if new_km < MIN_REDUCED_KM:
-            raise ValueError(f"{MIN_REDUCED_KM:g}km 미만으로는 줄일 수 없어요 · 쉬는 날로 바꿔 보세요")
-        return {**before, "distance_km": new_km}
-    return {**before, "workout_type": "rest", "distance_km": None, "target_pace_min": None, "target_pace_max": None}
+        return plan_reduce.reduce_after(before, params)
+    if op == "easy":
+        return plan_reduce.easy_after(before)
+    return {**before, "workout_type": "rest", "distance_km": None, "target_pace_min": None, "target_pace_max": None,
+            "interval_prescription": None, "structure_json": None}
 
 
 def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, params: dict | None = None,
@@ -234,8 +220,8 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
     ops = COACH_OPS if source == "coach" else USER_OPS
     if op not in ops or source not in ("user", "coach"):
         raise ValueError(f"지원하지 않는 op: {op}")
-    r = conn.execute("SELECT date, workout_type, distance_km, target_pace_min, target_pace_max, description"
-                     " FROM planned_workouts WHERE id = ?", (workout_id,)).fetchone()
+    r = conn.execute("SELECT date, workout_type, distance_km, target_pace_min, target_pace_max, description,"
+                     " interval_prescription, structure_json FROM planned_workouts WHERE id = ?", (workout_id,)).fetchone()
     if r is None:
         raise AdjustmentConflict("NOT_FOUND", "세션을 찾을 수 없어요")
     from src.services import plan_move
@@ -254,7 +240,8 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         return _view(conn, _get(conn, new_id), today)
     if odate != today:
         raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요")
-    before = dict(zip(("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description"), r[1:6]))
+    before = dict(zip(("workout_type", "distance_km", "target_pace_min", "target_pace_max", "description",
+                       "interval_prescription", "structure_json"), r[1:8]))
     crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
                        " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, odate)).fetchone()
     effective = {**before, **json.loads(crs[0])} if crs else before
@@ -270,7 +257,8 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"
         " reasons_json, rule_version, decision, decided_via, accepted_at, decided_at)"
         " VALUES (?,?,?,?,?,?,?,?,?,'accepted',?,datetime('now'),datetime('now'))",
-        (goal[0] if goal else None, workout_id, odate, source, op, json.dumps(before), json.dumps(after),
+        (goal[0] if goal else None, workout_id, odate, source, "replace" if op == "easy" else op,
+         json.dumps(before), json.dumps(after),
          json.dumps(reasons, ensure_ascii=False), source + "_v1", via)).lastrowid
     conn.commit()
     return _view(conn, _get(conn, new_id), today)

@@ -38,12 +38,12 @@
 		btn?.focus();
 	}
 
-	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string) {
+	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number) {
 		if (busy) return;
 		busy = true;
 		error = null;
 		try {
-			const res = await workoutAction(workout.id, { op, pct, reason, to_date: toDate, via });
+			const res = await workoutAction(workout.id, { op, pct, reps, reason, to_date: toDate, via });
 			toast = { message: toastText(op, res), id: res.adjustment.id };
 			open = false;
 			btn?.focus();
