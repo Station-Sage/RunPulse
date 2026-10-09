@@ -240,6 +240,11 @@
 
 - functions: reduce_after, easy_after
 
+### `plan_replan_service.py` (151줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+
+- class **ReplanError**: 없음
+- functions: next_monday, preview, apply, undo
+
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
@@ -1427,6 +1432,10 @@
 
 - functions: ready_week_km, cold_peak_km, readiness_warning, plan_warnings
 
+### `plan_replace.py` (66줄) — 계획 구간 교체(ADR-035 부록 R) — [start, end] 의 planner 행을 새 계획으로 바꾸되 이력이 있는 행은 지킨다.
+
+- functions: replace_range
+
 ### `plan_structure.py` (43줄) — 계획 행 → 세그먼트 구조(structure_json, 순수) — 거리뿐 아니라 세트 수·반복 거리·구간 페이스로 이행을 판정하기 위한 기준.
 
 - functions: structure_for_plan
@@ -1804,6 +1813,10 @@
 ### `test_api_plan_adjustments.py` (155줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors
+
+### `test_api_plan_replan.py` (62줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
+
+- functions: client, test_preview_apply_undo, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2580,6 +2593,14 @@
 
 - functions: test_ready_and_cold_peak_km_by_distance, test_readiness_warning_ramp_message, test_readiness_warning_none_when_reached_or_empty, test_readiness_warning_days_cap_message, test_cold_v2_peak_aims_at_ready_volume_with_ramp_kept, test_plan_warnings_cold_full_short_plan, test_plan_warnings_uses_reported_load
 
+### `test_plan_replace.py` (70줄) — plan_replace.replace_range — 보호 행 보존·proposed 조정 정리·외부 항목 보고.
+
+- functions: conn, test_replaces_unprotected_and_keeps_outside_range, test_protected_rows_survive_and_block_same_date, test_proposed_adjustment_removed_with_row_and_external_reported, test_manual_rows_untouched_and_no_commit
+
+### `test_plan_replan_service.py` (83줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
+
+- functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history
+
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
@@ -3103,7 +3124,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 656개 파일
+총 661개 파일
 
 ## docstring 누락
 
