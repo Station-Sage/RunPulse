@@ -1,0 +1,23 @@
+// Phase 7d: Q 세션 reduce(reps 칩)·이지로 바꾸기 390px 스모크. 환경: BASE
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.request().method() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18121') + '/v2';
+const txt = async () => (await page.locator('body').innerText()).replace(/\n+/g, ' | ');
+await page.goto(B + '/coach/plan/1', { waitUntil: 'networkidle' });
+const row = page.locator('li:has([data-testid=row-action-btn])').first();
+await row.getByTestId('row-action-btn').click();
+await page.getByTestId('row-op-reduce').click();
+console.log('chips:', await page.locator('[data-testid^=reduce-chip-]').allInnerTexts());
+await page.getByTestId('reduce-chip-2').click();
+await page.screenshot({ path: 'shots/p7d_qreduce_sheet.png' });
+await page.getByTestId('row-action-apply').click(); await page.waitForTimeout(1500);
+console.log('reduced:', /8(\.0)?km로 줄였어요/.test(await txt()));
+await page.getByRole('button', { name: '되돌리기' }).first().click(); await page.waitForTimeout(1200);
+await row.getByTestId('row-action-btn').click();
+await page.getByTestId('row-op-easy').click();
+await page.getByTestId('row-action-apply').click(); await page.waitForTimeout(1500);
+console.log('easy:', /쉬운 러닝으로 바꿨어요/.test(await txt()));
+console.log('errors:', errs);
+await b.close();
