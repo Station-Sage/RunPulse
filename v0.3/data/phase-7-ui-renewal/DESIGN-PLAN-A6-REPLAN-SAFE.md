@@ -1,6 +1,6 @@
 # DESIGN — 부작용 없는 재계획(REPLAN) — A6 링크 활성화 전제
 
-상태: 초안(사용자 결정 대기) · 2026-10-09 · 작성: system-architect
+상태: 구현 완료(T1~T7·T9 배포, T8은 한계로 종결) · 2026-10-09 · 작성: system-architect
 상위: ADR-035 부록 "A6 REPLAN 배너"·"K1/K2 확인 결과", `DESIGN-PLAN-A6-REPLAN.md` §3
 범위: 재계획의 데이터 의미(목표 정체성, 교체 범위, 조정·매칭 보존, 롤백·미리보기, API). UI는 범위 밖(product-architect).
 
@@ -124,3 +124,9 @@ CREATE INDEX IF NOT EXISTS idx_plan_replans_goal ON plan_replans(goal_id, status
 5. 미리보기 호출 전후 DB 해시 동일(쓰기 없음).
 6. 적용 중 예외 주입 시 DB가 적용 전과 동일.
 7. 운영 DB 사본에서 실제 페이지 로드(계획·Today·Race hub)로 확인.
+
+## 6. 구현 상태 (2026-10-09)
+- T1~T7 백엔드 완료·배포(스키마 v32, `plan_replans`, 재계획 preview/apply/undo API). T9 프론트 `/coach/plan/replan` 완료(설계 `DESIGN-PLAN-A6-REPLAN-UI.md`), 배너 링크는 `link.race_date` 조건으로 활성화.
+- 사용자 결정은 D1~D7만 존재(D8 이상 없음).
+- T8: Garmin/CalDAV 에 삭제 API 가 없어 자동 정리 불가. API 가 `external[]` 로 Garmin 세션을 알리고 UI 가 직접 지우도록 안내한다.
+- 후속: 외부 삭제 수단 조사, 페이지를 떠난 뒤 되돌리기용 "마지막 재계획 id" API(UI 설계 Q1).
