@@ -18,6 +18,8 @@ def conn():
         distance_km REAL, target_pace_min REAL, target_pace_max REAL, target_hr_zone TEXT,
         description TEXT, rationale TEXT, skip_reason TEXT, completed INTEGER, matched_activity_id INTEGER,
         interval_prescription TEXT, updated_at TEXT)""")
+    c.execute("""CREATE TABLE plan_adjustments (id INTEGER PRIMARY KEY, workout_id INTEGER, date TEXT, source TEXT,
+        op TEXT, before_json TEXT, after_json TEXT, decision TEXT, decided_at TEXT)""")
     c.executemany(
         "INSERT INTO planned_workouts (date, workout_type, distance_km, target_pace_min, target_pace_max,"
         " target_hr_zone, description, rationale, skip_reason, completed, interval_prescription, updated_at)"
@@ -80,6 +82,8 @@ def test_empty_plan_valid():
     c.execute("CREATE TABLE planned_workouts (id INTEGER PRIMARY KEY, date TEXT, workout_type TEXT,"
               " distance_km REAL, target_pace_min REAL, target_pace_max REAL, target_hr_zone TEXT,"
               " interval_prescription TEXT, updated_at TEXT)")
+    c.execute("CREATE TABLE plan_adjustments (id INTEGER PRIMARY KEY, workout_id INTEGER, date TEXT, source TEXT,"
+              " op TEXT, before_json TEXT, after_json TEXT, decision TEXT, decided_at TEXT)")
     out = cfs.build_ics(c, "2026-10-01", "2026-10-31")
     assert "BEGIN:VEVENT" not in out and "END:VCALENDAR" in out
 
@@ -96,3 +100,24 @@ def test_default_range(conn):
     today = date(2026, 10, 8)
     frm, to = cfs.default_range(conn, today)
     assert frm == (today - timedelta(days=28)).isoformat() and to == "2026-10-12"
+
+
+def _adjust(c, wid, day, op, before, after, decided="2026-10-09 12:00:00"):
+    import json
+    c.execute("INSERT INTO plan_adjustments(workout_id,date,source,op,before_json,after_json,decision,decided_at)"
+              " VALUES (?,?,'user',?,?,?,'accepted',?)", (wid, day, op, json.dumps(before), json.dumps(after), decided))
+
+
+def test_accepted_rest_removes_event_and_move_shifts_date(conn):
+    _adjust(conn, 1, "2026-10-10", "rest", {"workout_type": "tempo", "distance_km": 3.74}, {"workout_type": "rest"})
+    _adjust(conn, 4, "2026-10-12", "move", {"workout_type": "easy", "distance_km": 5.0}, {"date": "2026-10-14"})
+    out = cfs.build_ics(conn, "2026-10-01", "2026-10-31", "s")
+    assert out.count("BEGIN:VEVENT") == 2
+    assert "DTSTART;VALUE=DATE:20261010" not in out and "DTSTART;VALUE=DATE:20261014" in out
+    assert "DTSTAMP:20261009T120000Z" in out
+
+
+def test_move_into_range_from_outside(conn):
+    _adjust(conn, 1, "2026-10-10", "move", {"workout_type": "tempo", "distance_km": 3.74}, {"date": "2026-10-20"})
+    out = cfs.build_ics(conn, "2026-10-15", "2026-10-31", "s")
+    assert out.count("BEGIN:VEVENT") == 1 and "DTSTART;VALUE=DATE:20261020" in out

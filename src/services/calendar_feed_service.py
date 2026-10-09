@@ -102,18 +102,29 @@ def default_range(conn: sqlite3.Connection, today: date | None = None) -> tuple[
     return frm.isoformat(), end.isoformat()
 
 
-def build_ics(conn: sqlite3.Connection, frm: str, to: str, uid_salt: str = "") -> str:
-    """frm~to(포함) 계획을 ICS 문자열로. 결정적(같은 입력 → 같은 바이트)."""
+def _overlaid_rows(conn: sqlite3.Connection, frm: str, to: str) -> list[dict]:
+    """frm~to 계획 행에 수락된 조정을 겹쳐 적용(이동·휴식 반영). move 가 범위 밖에서 들어오는 경우를 위해 ±7일 넓게 읽는다."""
+    from src.training.plan_overlay import apply, live_adjustments
+    lo = (date.fromisoformat(frm) - timedelta(days=7)).isoformat()
+    hi = (date.fromisoformat(to) + timedelta(days=8)).isoformat()
     prev = conn.row_factory
     conn.row_factory = sqlite3.Row
     try:
-        rows = conn.execute(
+        raw = [dict(r) for r in conn.execute(
             "SELECT id, date, workout_type, distance_km, target_pace_min, target_pace_max, "
             "target_hr_zone, interval_prescription, updated_at FROM planned_workouts "
-            "WHERE date>=? AND date<=? AND workout_type!='rest' ORDER BY date, id LIMIT ?",
-            (frm, to, MAX_EVENTS)).fetchall()
+            "WHERE date>=? AND date<? ORDER BY date, id", (lo, hi)).fetchall()]
     finally:
         conn.row_factory = prev
+    rows = apply(raw, live_adjustments(conn, lo, hi))
+    rows = [w for w in rows if frm <= w["date"] <= to and w["workout_type"] != "rest"]
+    rows.sort(key=lambda w: (w["date"], w["id"]))
+    return rows[:MAX_EVENTS]
+
+
+def build_ics(conn: sqlite3.Connection, frm: str, to: str, uid_salt: str = "") -> str:
+    """frm~to(포함) 계획을 ICS 문자열로. 결정적(같은 입력 → 같은 바이트)."""
+    rows = _overlaid_rows(conn, frm, to)
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//RunPulse//Training Plan//KO",
              "CALSCALE:GREGORIAN", "METHOD:PUBLISH", f"X-WR-CALNAME:{CALNAME}"]
     slots: dict[str, int] = {}
@@ -123,7 +134,7 @@ def build_ics(conn: sqlite3.Connection, frm: str, to: str, uid_salt: str = "") -
         uid = hashlib.sha256(f"{uid_salt}|{d}|{slot}".encode()).hexdigest()[:12]
         nxt = (date.fromisoformat(d) + timedelta(days=1)).strftime("%Y%m%d")
         lines += ["BEGIN:VEVENT", f"UID:{d}-{slot}-{uid}@runpulse",
-                  f"DTSTAMP:{_dtstamp(w['updated_at'], d)}",
+                  f"DTSTAMP:{_dtstamp((w.get('adjustment') or {}).get('decided_at') or w['updated_at'], d)}",
                   f"DTSTART;VALUE=DATE:{d.replace('-', '')}", f"DTEND;VALUE=DATE:{nxt}",
                   f"SUMMARY:{escape_text(_summary(w))}"]
         desc = _description(w)

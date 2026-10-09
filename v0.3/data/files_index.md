@@ -94,7 +94,7 @@
 
 - functions: index_path, hash_token, issue, get_status, revoke, lookup, touch
 
-### `calendar_feed_service.py` (134줄) — 훈련 계획 ICS 빌더 — RFC 5545 준수, 구조화 열만 노출(자유 텍스트·생체값 제외).
+### `calendar_feed_service.py` (145줄) — 훈련 계획 ICS 빌더 — RFC 5545 준수, 구조화 열만 노출(자유 텍스트·생체값 제외).
 
 - functions: escape_text, fold_line, default_range, build_ics
 
@@ -1885,9 +1885,9 @@
 
 - functions: client, test_valid_token_serves_ics_without_cookie, test_etag_304_and_head, test_unknown_and_rotated_token_404, test_ip_404_rate_limit, test_token_rate_limit, test_client_family, test_auth_cf_bypass_on_feed_path, test_redact_token_in_logs, test_redacting_logger_masks_access, test_rate_window_basic, test_api_lifecycle, test_api_not_revealable_without_key, test_public_base_url
 
-### `test_calendar_feed_service.py` (98줄) — calendar_feed_service — RFC 5545 준수, 제외 필드, 결정성, UID 안정성.
+### `test_calendar_feed_service.py` (123줄) — calendar_feed_service — RFC 5545 준수, 제외 필드, 결정성, UID 안정성.
 
-- functions: conn, test_valid_structure_and_crlf, test_rest_excluded_and_dtend_next_day, test_summary_description_format, test_excluded_fields_absent, test_deterministic_bytes_and_dtstamp, test_uid_stable_across_regeneration_and_salt, test_escape_and_fold, test_empty_plan_valid, test_no_identity_and_event_cap, test_default_range
+- functions: conn, test_valid_structure_and_crlf, test_rest_excluded_and_dtend_next_day, test_summary_description_format, test_excluded_fields_absent, test_deterministic_bytes_and_dtstamp, test_uid_stable_across_regeneration_and_salt, test_escape_and_fold, test_empty_plan_valid, test_no_identity_and_event_cap, test_default_range, test_accepted_rest_removes_event_and_move_shifts_date, test_move_into_range_from_outside
 
 ### `test_chat_context_checkin.py` (131줄) — tests/test_chat_context_checkin.py — build_checkin_context / format_checkin_line 단위 + 통합.
 

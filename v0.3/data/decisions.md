@@ -282,3 +282,6 @@
 - `GET /coach/plan/advisories?date=` 읽기 전용(발급 기록 안 함). 최근 72시간 내 accepted 통증 조정이 있으면 빈 목록. REPLAN 항목에 `link`(목표 거리·대회일·목표 기록·최근 2주 실제 주간 km).
 - 시트 상단 `ReplanBanner`(role=note 정보 띠), ISO 주 단위 숨김(localStorage `rp.replanHidden`), 통증 사유 선택 시 숨김, 배너가 보이면 토스트에서 REPLAN 생략, 초기 포커스는 첫 액션 버튼.
 - "계획 다시 맞추기" 링크는 `REPLAN_LINK_ENABLED=false`. `POST /coach/plan` 의 부수효과(새 goal 행 생성, planner 행 삭제 후 재삽입) 확인(K1/K2) 후 켠다.
+
+#### 외부 출력 반영 (ADR-035 부록)
+- CalDAV/Garmin 푸시는 `get_planned_workouts(overlay=True)`로 이미 조정 반영. ICS 피드(`calendar_feed_service._overlaid_rows`)도 같은 오버레이를 적용: 휴식으로 바뀐 날은 이벤트 제외, 이동은 새 날짜, 조정된 이벤트의 DTSTAMP는 `decided_at`(캘린더 클라이언트 갱신). 범위 밖에서 들어오는 move를 위해 ±7일 넓게 읽고 범위로 다시 거른다. UID는 날짜+슬롯 기반이라 이동 시 옛 UID 소멸·새 UID 생성(구독 클라이언트가 자연 갱신).
