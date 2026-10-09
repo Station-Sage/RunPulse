@@ -492,3 +492,74 @@ REPLAN 진입은 "2주 이행 부족"인데 원래 계획보다 피크를 올리
 3'. 롱런은 주 행 펼침(B) 대신 **최장 롱런 전→후 요약 한 줄**(E, 2단위, 서비스 `long_km` 추가)로 할까요?
 4'. 헤더 링크 조건을 **활성 목표 + 재계획 범위 2주 이상 + 마지막 재계획 시작 전이면 되돌리기 줄로 대체**로 바꾸고, 배너 중복·통증 조건은 빼며, 재계획 중첩 방지(③)를 같이 할까요?
 5'. F4(advisory 대회 근접 조건)·F8 서버 가드를 system-architect 검토로 넘길까요?
+
+## 15. CalDAV 재평가 · 배너 대회 근접(F4) · 재계획 중첩(F8) (2026-10-09, system-architect 검토 — 확정 아님, 사용자 승인 대기)
+
+### 15.1 CalDAV — "임포트 에러를 해결해야 하지 않나?"
+
+**조사 결과(코드·이력 사실).**
+
+| # | 사실 | 근거 |
+|---|---|---|
+| C1 | 주석 처리는 2026-03-29 Docker 배포 커밋에서 "선택적 기능(필요 시 주석 해제)"로 분류한 것뿐. 의존성 충돌·이미지 크기·보안 사유 기록 없음. decisions.md에도 CalDAV 제외 결정 없음 | `git show 5e8539a`, `requirements.txt:30` |
+| C2 | 운영 컨테이너에 `caldav` 없음(`ModuleNotFoundError`). 단 import는 함수 안 lazy이고 `except ImportError`로 삼켜 **False 반환** → 라우트는 "등록할 워크아웃이 없습니다"(사실과 다른 문구), 연결 테스트는 "caldav 패키지 필요" | `caldav_push.py:96,116,174`, `views_training_export.py:86-90` |
+| C3 | 진입점은 전부 레거시 SSR(`/training` 내보내기 메뉴, `/settings` CalDAV 섹션·`/settings/caldav`·`/settings/caldav-test`, `/guide` 문구). 신규 Svelte 프런트엔 CalDAV 없음. 단 MenuDrawer의 '훈련 계획'이 `/training`으로 가므로 사용자 도달 가능 | `MenuDrawer.svelte:27` |
+| C4 | 운영 config에 `caldav` 키 없음 = 실제 사용 이력 0. 관련 테스트 0 | config 키 존재만 확인 |
+| C5 | 같은 목적(외부 캘린더에 계획 표시)은 ICS 구독 피드가 이미 담당하고 신규 UI(`/data/export` CalendarFeedCard)에 있다. 피드는 조정 오버레이·재계획을 자동 반영(UID=날짜+슬롯) | `calendar_feed_service.py`, decisions.md:287 |
+| C6 | 패키지만 복구해도 남는 결함: ① UID=`runpulse-{행id}-{유형}` → 재계획·조정 뒤 옛 이벤트가 **고아로 남음**(A6이 해결하려는 문제를 외부에 재생산) ② 푸시 이력·href 미저장 → 수정/삭제 불가, `external[]` 근거 없음 ③ 종일 이벤트 `DTEND=DTSTART`(RFC 5545상 다음날이어야 함) ④ 문서 예시가 Google CalDAV인데 Google은 비밀번호 인증 불가(OAuth 필요) ⑤ `print` 로깅 ⑥ 이번 주만 푸시 | `caldav_push.py` |
+
+**결론.** ImportError는 증상이고, 근본 원인은 "추적·갱신 수단이 없는 일방향 푸시 경로가 ICS 피드와 중복으로 방치된 것"이다. 패키지 복구는 에러 문구를 없애는 대신 **재계획 후 옛 이벤트가 남는 새 오류**를 만든다.
+
+| 안 | 사용자 오류 경험 | 근본성 | 규모 |
+|---|---|---|---|
+| R1 복구(패키지+정상화) | 사라짐(단, C6 해결 전엔 고아 이벤트) | C6까지 고치면 근본 | 8단위 |
+| R2 **추천: 제거 + ICS 구독으로 안내** | 사라짐(실패할 버튼 자체가 없음) | 중복 경로 제거로 근본 | 3단위 |
+| R3 입구 비활성·코드 유지(§13.2 B) | 사라짐 | 죽은 코드 잔존, 사용자 이의 | 2단위 |
+
+**R2 작업 단위(3).**
+1. 서버 제거: `src/training/caldav_push.py`, `views_training_export.py` 라우트, `views_training_cards.py` 메뉴 항목, `views_settings.py` 두 라우트, `views_settings_render.py` 섹션, `views_guide.py` 문구, `requirements.txt:30` 주석 줄. 기존 `/training/push-caldav` POST는 301 대신 `/training?msg=캘린더 연동은 '데이터 > 내보내기'의 구독 링크로 바뀌었어요`로 리다이렉트(북마크·폼 재전송 대비, 1줄).
+2. 문서: `config.json.example`의 caldav 키(있으면), files_index 재생성, decisions.md에 "CalDAV 푸시 폐기 → ICS 구독 단일화" ADR 한 줄, §5 Q3 종결 표기.
+3. 검증: `pytest`, `check_docs.py`, grep `caldav` 0건(문서 제외), 레거시 `/training`·`/settings` 렌더 스모크.
+- `external[]`: 변화 없음(CalDAV 추적 데이터가 원래 없음). ICS 구독은 재계획을 자동 반영하므로 안내 불필요.
+
+**R1을 고를 경우 필요한 것(8단위, 참고).** ① `caldav>=1.4,<2` pin(2.x API 변화 회피) + 이미지 재빌드 ② import는 이미 lazy — 유지하되 `ImportError`를 `CalDavUnavailable`로 올려 라우트가 "캘린더 연동 모듈이 설치되지 않았어요" 표시(현재의 "워크아웃 없음" 오인 제거) ③ 이력 테이블 `caldav_pushes(workout_id, uid, event_href, calendar_url, pushed_at)` + SCHEMA_VERSION 상향 ④ UID를 ICS와 같은 날짜+슬롯 규칙으로, DTEND+1일 ⑤ 재계획 `replace_range`가 삭제 행의 CalDAV 이력을 `external[]`(kind='caldav')로 보고 + best-effort 삭제(재시도 1회→로그→계속) ⑥ 연결 테스트를 principal+calendars까지, 실패 사유 3종(인증/URL/캘린더 없음) 문구 ⑦ `logging` 전환 ⑧ 테스트(DAVClient mock: 성공·인증 실패·미설치·재계획 후 삭제). Google 미지원은 설정 화면 안내로 명시.
+
+### 15.2 배너 → RACE_WEEK(409) 경로 (F4)
+
+**확인.** 경로 있음.
+- 배너 조건 `plan_advisory._replan`은 이행률/연속 휴식만 본다. 대회 근접·목표 유무·진행 중 재계획을 보지 않는다.
+- `_replan_link`는 활성 목표에 `race_date`만 있으면 링크를 준다 → `replanHref`가 링크 생성.
+- 미리보기 `_goal_and_anchor`: `anchor=next_monday(today) > race`면 RACE_WEEK. 즉 대회가 이번 주(오늘~일요일)면 배너 클릭 → 409. 프런트 `replanErrorView`가 "대회 주라 다시 짤 남은 주가 없어요"로 처리하므로 크래시는 아니나, **권장 안내가 실패 화면으로 이어지는 경험**.
+- 부수: 대회가 다음 주(테이퍼 1주)면 409는 아니지만 §14.3-2 기준(범위 2주 이상)에선 노출하면 안 되는 구간.
+
+**수정안(1단위, 서버 단일 규칙).**
+- `plan_replan_service`에 `entry_state(conn, today) -> {eligible: bool, reason: 'NO_GOAL'|'RACE_NEAR'|'PENDING'|None, last: dict|None}` 추가. 규칙: 활성 목표+race_date, `next_monday(today) <= race_monday - 7일`(§14.3-2와 동일 값, 상수 `MIN_REPLAN_WEEKS=2`), 진행 중 재계획 없음(§15.3).
+- `plan_advisory.compute`의 REPLAN 항목은 `entry_state(...).eligible`일 때만 추가(배너 소멸 = 실패 경로 소멸). `_replan_link`는 그대로.
+- `GET /coach/plan/replan/last` 응답을 `{last, entry}`로 확장(프런트 호출처 아직 없음 → 호환 문제 없음). 헤더의 `replanEntry`는 클라이언트 규칙을 따로 두지 말고 `entry.eligible`을 쓴다(§14.3의 "서버보다 엄격한 클라이언트 기준" 대체 — 규칙 이원화 제거).
+- `_goal_and_anchor`의 RACE_WEEK와 프런트 RACE_WEEK 문구는 직접 URL 진입 대비 fallback으로 유지.
+- 테스트: 대회 이번 주/다음 주/3주 후 × advisory 노출 여부, `entry.reason`.
+
+### 15.3 재계획 중첩 (F8)
+
+**코드 사실.** 같은 주 재진입 시 anchor 동일 → 2차 `replace_range`가 1차 inserted 행을 삭제·스냅샷(`SELECT *`, id 포함). 2차 undo는 1차 행을 **같은 id로** 복원하고 1차가 다시 "마지막 applied"가 된다 → 기계적으로는 LIFO 체인이 맞게 동작. 문제는 의미: "되돌리기 = 원래 일정"이 깨지고(2회 필요), Garmin 정리(§13.1)·`last` 표시가 복잡해진다. 중첩 테스트 없음. 추가 결함: `last_undoable`은 새 행 이력(완료·매칭·accepted 조정)을 검사하지 않아, 헤더가 되돌리기를 보여 줘도 undo가 REPLAN_LOCKED로 실패할 수 있다.
+
+| 선택지 | 평가 |
+|---|---|
+| **차단 추천** — 시작 전·되돌리기 가능한 applied가 있으면 preview/apply 409 `REPLAN_PENDING`(+`last` 동봉) | 불변식 "목표당 대기 중 재계획 ≤ 1" → undo는 항상 원래 일정. 입력 수정은 되돌리기→다시 맞추기 2탭 |
+| 허용 + undo 체인 | 이미 동작하나 사용자 모델과 불일치, 체인 깊이 UI 필요 |
+| 재진입 시 서버가 자동 supersede(undo+재적용 한 트랜잭션) | UX 최선이나 undo 본문을 commit 없는 함수로 분리·preview에서도 가상 undo 필요, +2단위. 후속 후보 |
+
+- 기존 `REPLAN_LOCKED`(=되돌릴 수 없음)와 의미가 달라 새 코드로 분리.
+- 가드 조건은 "undo 가능"과 같아야 한다: 대기 중이지만 이력이 생겨 undo 불가면 차단하지 않는다(갇힘 방지). → undo의 검사 쿼리를 `_undo_blocker(conn, replan_id, today) -> str|None`로 추출해 `undo`·`last_undoable`·가드가 공유.
+- 서버(1단위): `_undo_blocker` 추출, `last_undoable`이 blocker 있으면 None, `_run` 앞 가드, 테스트(중첩 차단, 이력 생긴 대기 건은 허용, undo 후 재적용 허용, 기존 LIFO 회귀).
+- 프런트(1단위, §14.3 ③과 동일 작업): 재계획 페이지 진입 시 `entry.last` 있으면 미리보기 대신 적용 상태+되돌리기 표시. `replanErrorView`에 `REPLAN_PENDING` → "이미 {M/D}부터 다시 맞춘 일정이 있어요. 되돌린 뒤 다시 맞출 수 있어요." action `undo`.
+
+### 15.4 승인된 Q4 순서에의 반영
+
+선행으로 서버 1단위(§15.2 `entry_state` + §15.3 `_undo_blocker`·`REPLAN_PENDING` 가드, `/replan/last`→`{last, entry}`, advisory 게이트, 테스트)를 먼저 넣는다. 그다음 승인 순서 1(`last_undoable` 되돌리기 줄을 헤더 슬롯에 연결)은 `entry.last`를 그대로 쓰므로 "보이는데 실패하는 되돌리기"가 사라지고, 같은 단계에서 재계획 페이지 진입 상태(§14.3 ③)와 `REPLAN_PENDING` 문구를 함께 넣는다. 순서 2(헤더 링크)는 `replanEntry`를 `entry.eligible` 기반으로 단순화해 배너와 같은 규칙(대회 2주 미만·대기 중 재계획이면 숨김)을 공유한다. CalDAV R2는 이 흐름과 독립이라 병행 가능. 합계: 서버 1 + Q4 2 + CalDAV 3.
+
+### 15.5 사용자 승인 목록
+
+1. CalDAV를 R2(제거 + ICS 구독 안내, 3단위)로 할까요, R1(복구·정상화, 8단위)로 할까요?
+2. 배너·헤더 노출 규칙을 서버 `entry_state` 하나로 통일(대회까지 재계획 범위 2주 이상, 대기 중 재계획 없음)할까요?
+3. 중첩은 `REPLAN_PENDING` 차단(되돌린 뒤 다시 맞추기)으로 하고, 자동 supersede는 LATER로 둘까요?
