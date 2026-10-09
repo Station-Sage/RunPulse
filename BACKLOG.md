@@ -6,7 +6,6 @@
 
 ## BUGS
 
-- **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running`(16건, 2023-12~2025-02, 88 km)이 러닝으로 정규화되지 않아 TRIMP·분석·MCP 러닝 집계에서 제외됨. **코드 수정 완료(2026-09-26, `_RUNNING_TYPES`에 추가)** — 기존 DB 16건(`activity_type='indoor_running'`) 정정·재계산은 실 DB 작업(백필 런북과 함께)으로 남음.
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거 시 해소(2026-10-10: G6 와 무관함을 확인, 독립 항목).**
 
