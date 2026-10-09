@@ -1526,3 +1526,42 @@ export interface ProviderPairsData {
 	summary_text: string;
 	state: 'ok' | 'insufficient' | 'no_data' | 'not_comparable';
 }
+
+// ADR-035 부록 R — 안전한 재계획 (preview/apply/undo).
+export interface ReplanWeek {
+	week_start: string;
+	planned_km: number;
+}
+
+export interface ReplanRowRef {
+	id: number;
+	date: string;
+	workout_type?: string | null;
+	garmin_workout_id?: string | null;
+}
+
+export interface ReplanPreview {
+	replan_id: number | null;
+	anchor_monday: string;
+	start_km: number;
+	start_long_km: number | null;
+	target_time_sec: number | null;
+	before: ReplanWeek[];
+	after: ReplanWeek[];
+	deleted_count: number;
+	preserved: ReplanRowRef[];
+	external: ReplanRowRef[];
+	skipped_dates: string[];
+}
+
+export interface ReplanParams {
+	recent_weekly_km?: number;
+	recent_long_km?: number;
+	target_time_sec?: number;
+}
+
+export interface ReplanUndoResult {
+	replan_id: number;
+	restored: number;
+	removed: number;
+}

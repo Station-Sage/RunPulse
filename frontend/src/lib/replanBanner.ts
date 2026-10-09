@@ -6,9 +6,6 @@ export interface PlanAdvisory {
 	link?: { distance_km?: number | null; race_date?: string | null; target_time_sec?: number | null; recent_weekly_km?: number };
 }
 
-// K1/K2(POST /coach/plan 의 부작용) 확인 전까지 링크는 끈다.
-export const REPLAN_LINK_ENABLED = false;
-
 export const HIDDEN_KEY = 'rp.replanHidden';
 
 export function isoWeekStart(day: string): string {
@@ -29,12 +26,7 @@ export function replanBannerView(
 }
 
 export function replanHref(base: string, a: PlanAdvisory): string | null {
-	const l = a.link;
-	if (!REPLAN_LINK_ENABLED || !l?.distance_km || !l.race_date) return null;
-	const p = new URLSearchParams({ distance_km: String(l.distance_km), race_date: l.race_date });
-	if (l.target_time_sec != null) p.set('target_time_sec', String(l.target_time_sec));
-	if (l.recent_weekly_km != null) p.set('recent_weekly_km', String(l.recent_weekly_km));
-	return `${base}/coach/plan/new?${p}`;
+	return a.link?.race_date ? `${base}/coach/plan/replan` : null;
 }
 
 // 배너가 이미 보였으면 토스트에서 REPLAN 은 건너뛴다.

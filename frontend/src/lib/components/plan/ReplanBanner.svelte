@@ -11,7 +11,7 @@
 	<p>{advisory.text}</p>
 	<div class="mt-1 flex flex-wrap gap-x-4">
 		{#if href}
-			<a {href} class="flex min-h-11 items-center text-fg-primary underline">계획 다시 맞추기 <span aria-hidden="true">›</span></a>
+			<a {href} class="flex min-h-11 items-center text-fg-primary underline">남은 일정 다시 맞추기 <span aria-hidden="true">›</span></a>
 		{/if}
 		<button type="button" data-testid="replan-hide" class="min-h-11 text-fg-muted" onclick={onHide}>이번 주 숨기기</button>
 	</div>

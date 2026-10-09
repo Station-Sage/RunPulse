@@ -19,8 +19,10 @@ test('banner: REPLAN 만, 통증·숨김이면 없음', () => {
 	assert.equal(replanBannerView(null, null, '2026-10-09', false), null);
 });
 
-test('href: 플래그가 꺼져 있으면 null', () => {
-	assert.equal(replanHref('', R), null);
+test('href: 목표(대회일)가 있을 때만 재계획 화면', () => {
+	assert.equal(replanHref('', R), '/coach/plan/replan');
+	assert.equal(replanHref('/x', R), '/x/coach/plan/replan');
+	assert.equal(replanHref('', { ...R, link: undefined }), null);
 });
 
 test('toast: 배너가 보였으면 REPLAN 건너뜀', () => {

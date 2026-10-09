@@ -10,7 +10,10 @@ import type {
 	PlanAdaptation,
 	AdjustmentDecisionResult,
 	PlanAdjustment,
-	WorkoutActionResult
+	WorkoutActionResult,
+	ReplanParams,
+	ReplanPreview,
+	ReplanUndoResult
 } from '$lib/types';
 
 export function getActivePlan(goalId?: number): Promise<ActivePlan> {
@@ -110,4 +113,19 @@ export function previewWorkoutAction(
 
 export function getPlanAdvisories(date: string): Promise<{ advisories: import('$lib/replanBanner').PlanAdvisory[] }> {
 	return apiFetch(`/coach/plan/advisories?date=${date}`);
+}
+
+export function previewReplan(q: string): Promise<ReplanPreview> {
+	return apiFetch<ReplanPreview>(`/coach/plan/replan/preview${q ? `?${q}` : ''}`);
+}
+
+export function applyReplan(params: ReplanParams, expectAnchor: string): Promise<ReplanPreview> {
+	return apiFetch<ReplanPreview>('/coach/plan/replan', {
+		method: 'POST',
+		body: JSON.stringify({ ...params, expect_anchor: expectAnchor })
+	});
+}
+
+export function undoReplan(replanId: number): Promise<ReplanUndoResult> {
+	return apiFetch<ReplanUndoResult>(`/coach/plan/replan/${replanId}/undo`, { method: 'POST' });
 }
