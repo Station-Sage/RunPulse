@@ -1,7 +1,9 @@
 <script lang="ts">
 	// 플랜 행 직접 조정 시트 — 줄이기/쉬기/건너뛰기 (ADR-035, DESIGN-PLAN-ROW-ACTION).
 	import { base } from '$app/paths';
-	import { previewWorkoutAction } from '$lib/api/plan';
+	import { getPlanAdvisories, previewWorkoutAction } from '$lib/api/plan';
+	import { HIDDEN_KEY, isoWeekStart, replanBannerView, type PlanAdvisory } from '$lib/replanBanner';
+	import ReplanBanner from './ReplanBanner.svelte';
 	import { workoutLabel } from '$lib/format';
 	import {
 		MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, togglePainSite, weekPreview, type LoadDelta, type RowActionMode, type RowOp
@@ -17,6 +19,7 @@
 		error = null,
 		onApply,
 		onClose,
+		onBanner,
 		today = workout.date
 	}: {
 		workout: PlannedWorkout;
@@ -28,6 +31,7 @@
 		onApply: (op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string, reps?: number, pain?: { level: string; sites: string[] }) => void;
 		today?: string;
 		onClose: () => void;
+		onBanner?: (shown: boolean) => void;
 	} = $props();
 
 	let op = $state<RowOp | null>(null);
@@ -47,6 +51,20 @@
 		else if (!op && pops.default) op = pops.default;
 	});
 	const days = $derived(moveCandidates(today));
+	let advisories = $state<PlanAdvisory[] | null>(null);
+	let hiddenWeek = $state<string | null>(typeof localStorage !== 'undefined' ? localStorage.getItem(HIDDEN_KEY) : null);
+	$effect(() => {
+		if (mode === 'locked') return;
+		let live = true;
+		getPlanAdvisories(today).then((x) => { if (live) advisories = x.advisories; }).catch(() => {});
+		return () => { live = false; };
+	});
+	const banner = $derived(replanBannerView(advisories, hiddenWeek, today, isPain));
+	$effect(() => { onBanner?.(banner !== null); });
+	function hideBanner() {
+		hiddenWeek = isoWeekStart(today);
+		try { localStorage.setItem(HIDDEN_KEY, hiddenWeek); } catch { /* 저장소 사용 불가 */ }
+	}
 	let root: HTMLElement | undefined = $state();
 
 	const avail = $derived(opAvailability(workout));
@@ -73,7 +91,7 @@
 	const dv = $derived(loadDeltaView(delta));
 
 	$effect(() => {
-		root?.querySelector<HTMLElement>('button:not([disabled]), a')?.focus();
+		(root?.querySelector<HTMLElement>('[data-autofocus]') ?? root?.querySelector<HTMLElement>('button:not([disabled]), a'))?.focus();
 	});
 
 	function onKey(e: KeyboardEvent) {
@@ -120,6 +138,7 @@
 		{#if crsPending}
 			<p class="mt-2 text-xs text-semantic-amber">코치 조정이 있어요 · 적용하면 직접 조정으로 대신해요</p>
 		{/if}
+		{#if banner}<ReplanBanner advisory={banner} onHide={hideBanner} />{/if}
 		<div role="radiogroup" aria-label="조정 방식" class="mt-3 flex flex-col gap-2">
 			{#each OPS as o (o.key)}
 				{@const ok = (o.key === 'reduce' ? avail.reduce.ok : true) && (!isPain || (pops ? pops.allowed.includes(o.key) : o.key !== 'move'))}
@@ -129,6 +148,7 @@
 					aria-checked={op === o.key}
 					disabled={!ok}
 					data-testid="row-op-{o.key}"
+					data-autofocus={o.key === 'reduce' ? '' : undefined}
 					class="flex min-h-11 flex-col items-start rounded-lg border px-3 py-2 text-left disabled:opacity-40 {op === o.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}"
 					onclick={() => (op = o.key)}
 				>

@@ -149,3 +149,38 @@ def list_plan_adjustments(goal_id: int):
         return api_ok({"adjustments": svc.list_adjustments(conn, goal_id=goal_id, start=start, end=end)})
     finally:
         conn.close()
+
+
+def _replan_link(conn: sqlite3.Connection, today: date) -> dict:
+    g = conn.execute("SELECT distance_km, race_date, target_time_sec FROM goals WHERE status='active' ORDER BY id DESC LIMIT 1").fetchone()
+    link: dict = {"distance_km": g[0], "race_date": g[1], "target_time_sec": g[2]} if g else {}
+    ws = today - timedelta(days=today.weekday())
+    kms = []
+    for k in (1, 2):
+        s = ws - timedelta(weeks=k)
+        kms.append(week_compliance.compute(conn, s, s + timedelta(days=6), None, today)["compliance"]["volume"]["actual_km"])
+    if any(kms):
+        link["recent_weekly_km"] = round(sum(kms) / 2, 1)
+    return link
+
+
+@api_bp.get("/coach/plan/advisories")
+def plan_advisories():
+    try:
+        day = date.fromisoformat(request.args.get("date", ""))
+    except ValueError:
+        return api_error("BAD_REQUEST", "date(YYYY-MM-DD) 필요", 400)
+    conn = _open()
+    if conn is None:
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    try:
+        since = (day - timedelta(days=3)).isoformat()
+        if plan_pain._pain_rows(conn, since, day.isoformat()):
+            return api_ok({"advisories": []})
+        items = plan_advisory.compute(conn, day.isoformat(), None)
+        for a in items:
+            if a["code"] == "REPLAN":
+                a["link"] = _replan_link(conn, day)
+        return api_ok({"advisories": items})
+    finally:
+        conn.close()

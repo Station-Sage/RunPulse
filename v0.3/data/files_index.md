@@ -1796,9 +1796,9 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_plan_adjustments.py` (119줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+### `test_api_plan_adjustments.py` (155줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
-- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv
+- functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 

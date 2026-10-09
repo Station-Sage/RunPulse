@@ -2,6 +2,7 @@
 	// 행 액션 진입 버튼 + 시트 + 성공 토스트(되돌리기). via 로 진입점을 구분한다.
 	import { revertAdjustment, workoutAction } from '$lib/api/plan';
 	import Toast from '$lib/components/Toast.svelte';
+	import { toastAdvisory } from '$lib/replanBanner';
 	import RowActionSheet from './RowActionSheet.svelte';
 	import { actionErrorText, rowActionMode, toastText, type RowOp } from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
@@ -26,6 +27,7 @@
 
 	let open = $state(false);
 	let busy = $state(false);
+	let bannerShown = false;
 	let error = $state<string | null>(null);
 	let toast = $state<{ message: string; id: number } | null>(null);
 	let btn: HTMLButtonElement | undefined = $state();
@@ -44,7 +46,7 @@
 		error = null;
 		try {
 			const res = await workoutAction(workout.id, { op, pct, reps, reason, pain_level: pain?.level, pain_sites: pain?.sites, to_date: toDate, via });
-			const adv = res.advisories?.[0]?.text;
+			const adv = toastAdvisory(res.advisories, bannerShown);
 			toast = { message: toastText(op, res) + (adv ? ` · ${adv}` : ''), id: res.adjustment.id };
 			open = false;
 			btn?.focus();
@@ -80,6 +82,6 @@
 	>
 {/if}
 {#if open}
-	<RowActionSheet {today} {workout} {mode} {weekKm} {crsPending} {busy} {error} onApply={apply} onClose={close} />
+	<RowActionSheet {today} {workout} {mode} {weekKm} {crsPending} {busy} {error} onBanner={(v) => (bannerShown = v)} onApply={apply} onClose={close} />
 {/if}
 <Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast && toast.id ? undo : undefined} onDismiss={() => (toast = null)} />

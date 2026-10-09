@@ -117,3 +117,39 @@ def test_preview_accepts_pain_sites_csv(client):
     p = "/api/v1/coach/plan/workouts/7/action/preview"
     assert client.get(p + "?op=reduce&pct=30&reason=pain&pain_level=moderate&pain_sites=knee,foot").status_code == 200
     assert client.get(p + "?op=reduce&pct=30&reason=pain&pain_level=bogus&pain_sites=knee").status_code == 400
+
+
+def _seed_replan(client, pain=False):
+    import json
+    import sqlite3 as sq
+    from datetime import timedelta
+    import src.api.routes_plan_adjust as m
+    c = sq.connect(str(m.db_path()))
+    c.execute("INSERT INTO goals(id,name,race_date,distance_km,target_time_sec,status) VALUES (1,'m','2099-01-01',42.195,12600,'active')")
+    ws = date.today() - timedelta(days=date.today().weekday())
+    for k in (1, 2):
+        for i in range(2):
+            d = (ws - timedelta(weeks=k) + timedelta(days=i)).isoformat()
+            c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source) VALUES (?, 'easy', 8.0,'planner')", (d,))
+    if pain:
+        c.execute("INSERT INTO plan_adjustments(goal_id,workout_id,date,source,op,before_json,after_json,reasons_json,rule_version,decision)"
+                  " VALUES (1,7,?,'user','rest','{\"workout_type\":\"easy\"}','{\"workout_type\":\"rest\"}',?,'t','accepted')",
+                  (TODAY, json.dumps([{"key": "pain", "level": "mild", "sites": ["foot"]}])))
+    c.commit()
+    c.close()
+
+
+def test_advisories_replan_with_link_and_no_record(client):
+    _seed_replan(client)
+    r = client.get(f"/api/v1/coach/plan/advisories?date={TODAY}")
+    items = r.get_json()["data"]["advisories"]
+    rp = [a for a in items if a["code"] == "REPLAN"][0]
+    assert rp["link"]["distance_km"] == 42.195 and rp["link"]["target_time_sec"] == 12600
+    again = client.get(f"/api/v1/coach/plan/advisories?date={TODAY}").get_json()["data"]["advisories"]
+    assert [a["code"] for a in again] == [a["code"] for a in items]
+
+
+def test_advisories_suppressed_by_recent_pain_and_errors(client):
+    _seed_replan(client, pain=True)
+    assert client.get(f"/api/v1/coach/plan/advisories?date={TODAY}").get_json()["data"]["advisories"] == []
+    assert client.get("/api/v1/coach/plan/advisories").status_code == 400

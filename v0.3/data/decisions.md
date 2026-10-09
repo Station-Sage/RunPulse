@@ -276,4 +276,9 @@
 ### ADR-035 부록: 경고 A1~A6 (2026-10-09)
 - `src/services/plan_advisory.py`: REST_STREAK·Q_DROPPED_2·LONG_DROPPED_2W·WEEK_LOAD_DROP·ACWR_LOW·REPLAN. 거부하지 않고 액션 응답 `advisories[]`로만 안내(토스트 첫 항목).
 - 같은 코드는 ISO 주당 1회: 발급 시 새 조정 행 `reasons_json`에 `{"key":"advisory","code"}`를 남기고 그 주 행에서 중복 판정. 통증 사유 조정은 세지도 발급하지도 않음. REPLAN 이 켜지면 REST_STREAK 은 숨김.
-- 집계 대상: accepted 조정 중 rest/skip, 품질→이지 전환. 후속: A6 시트 상단 고정 표시, 재계획 링크 대상.
+- 집계 대상: accepted 조정 중 rest/skip, 품질→이지 전환.
+
+### ADR-035 부록: A6 REPLAN 배너 (2026-10-09)
+- `GET /coach/plan/advisories?date=` 읽기 전용(발급 기록 안 함). 최근 72시간 내 accepted 통증 조정이 있으면 빈 목록. REPLAN 항목에 `link`(목표 거리·대회일·목표 기록·최근 2주 실제 주간 km).
+- 시트 상단 `ReplanBanner`(role=note 정보 띠), ISO 주 단위 숨김(localStorage `rp.replanHidden`), 통증 사유 선택 시 숨김, 배너가 보이면 토스트에서 REPLAN 생략, 초기 포커스는 첫 액션 버튼.
+- "계획 다시 맞추기" 링크는 `REPLAN_LINK_ENABLED=false`. `POST /coach/plan` 의 부수효과(새 goal 행 생성, planner 행 삭제 후 재삽입) 확인(K1/K2) 후 켠다.

@@ -107,3 +107,7 @@ export function previewWorkoutAction(
 	if (q.pain_level) { p.set('reason', 'pain'); p.set('pain_level', q.pain_level); p.set('pain_sites', (q.pain_sites ?? []).join(',')); }
 	return apiFetch(`/coach/plan/workouts/${workoutId}/action/preview?${p}`);
 }
+
+export function getPlanAdvisories(date: string): Promise<{ advisories: import('$lib/replanBanner').PlanAdvisory[] }> {
+	return apiFetch(`/coach/plan/advisories?date=${date}`);
+}

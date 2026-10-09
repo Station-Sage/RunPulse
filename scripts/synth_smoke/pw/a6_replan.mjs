@@ -1,0 +1,24 @@
+// A6: REPLAN 배너 390px 스모크 (표시·숨김·통증 시 숨김·초기 포커스). 환경: BASE
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const page = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; page.on('response', (r) => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); });
+page.on('pageerror', (e) => errs.push('pageerror ' + e.message));
+const B = (process.env.BASE || 'http://127.0.0.1:18111') + '/v2';
+await page.goto(B + '/coach/plan/1', { waitUntil: 'networkidle' });
+await page.getByTestId('row-action-btn').first().click();
+await page.getByTestId('replan-banner').waitFor({ timeout: 5000 });
+console.log('banner:', await page.getByTestId('replan-banner').innerText());
+console.log('link count (flag off, expect 0):', await page.getByTestId('replan-banner').locator('a').count());
+console.log('focus testid:', await page.evaluate(() => document.activeElement?.getAttribute('data-testid')));
+await page.screenshot({ path: 'shots/a6_banner.png' });
+await page.getByTestId('row-op-reduce').click();
+await page.getByRole('button', { name: '통증', exact: true }).click();
+console.log('banner on pain (expect 0):', await page.getByTestId('replan-banner').count());
+await page.getByRole('button', { name: '통증', exact: true }).click();
+await page.getByTestId('replan-hide').click();
+console.log('after hide (expect 0):', await page.getByTestId('replan-banner').count());
+await page.keyboard.press('Escape');
+await page.getByTestId('row-action-btn').first().click(); await page.waitForTimeout(800);
+console.log('reopen hidden (expect 0):', await page.getByTestId('replan-banner').count());
+console.log('errors:', errs);
+await b.close();
