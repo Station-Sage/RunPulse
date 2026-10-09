@@ -3,7 +3,7 @@ export interface PlanAdvisory {
 	code: string;
 	severity: string;
 	text: string;
-	link?: { distance_km?: number | null; race_date?: string | null; target_time_sec?: number | null; recent_weekly_km?: number };
+	link?: { distance_km?: number | null; race_date?: string | null; target_time_sec?: number | null };
 }
 
 export const HIDDEN_KEY = 'rp.replanHidden';

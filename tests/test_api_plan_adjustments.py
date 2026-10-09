@@ -145,6 +145,7 @@ def test_advisories_replan_with_link_and_no_record(client):
     items = r.get_json()["data"]["advisories"]
     rp = [a for a in items if a["code"] == "REPLAN"][0]
     assert rp["link"]["distance_km"] == 42.195 and rp["link"]["target_time_sec"] == 12600
+    assert "recent_weekly_km" not in rp["link"]
     again = client.get(f"/api/v1/coach/plan/advisories?date={TODAY}").get_json()["data"]["advisories"]
     assert [a["code"] for a in again] == [a["code"] for a in items]
 

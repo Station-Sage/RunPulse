@@ -53,5 +53,5 @@ def test_registered_and_migrates(tmp_path):
     c.execute("PRAGMA user_version = 31")
     migrate_db(c)
     assert "plan_replans" in APP_TABLES
-    assert c.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 32
+    assert c.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION >= 32
     assert c.execute("SELECT name FROM sqlite_master WHERE name='ux_goals_one_active'").fetchone()

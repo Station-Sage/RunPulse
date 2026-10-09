@@ -58,6 +58,11 @@ def replan_preview():
     return _run(lambda c: svc.preview(c, p))
 
 
+@api_bp.get("/coach/plan/replan/last")
+def replan_last():
+    return _run(lambda c: {"last": svc.last_undoable(c)})
+
+
 @api_bp.post("/coach/plan/replan")
 def replan_apply():
     try:

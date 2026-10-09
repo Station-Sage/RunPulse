@@ -20,6 +20,7 @@ class Anchor:
     start_long_km: float | None = None
     target_time_sec: int | None = None
     id: int | None = None
+    start_source: str = "user"
 
 
 # build_tail(anchor, remaining_weeks) → anchor 주부터 대회 주까지의 일정(index 는 0 부터)
@@ -32,11 +33,11 @@ def load_anchors(conn: sqlite3.Connection, goal_id: int | None) -> list[Anchor]:
         return []
     try:
         rows = conn.execute(
-            "SELECT id, anchor_monday, start_km, start_long_km, target_time_sec FROM plan_replans "
+            "SELECT id, anchor_monday, start_km, start_long_km, target_time_sec, start_source FROM plan_replans "
             "WHERE goal_id = ? AND status = 'applied' ORDER BY anchor_monday, id", (goal_id,)).fetchall()
     except sqlite3.OperationalError:
         return []
-    return [Anchor(date.fromisoformat(r[1]), float(r[2]), r[3], r[4], r[0]) for r in rows]
+    return [Anchor(date.fromisoformat(r[1]), float(r[2]), r[3], r[4], r[0], r[5] or "user") for r in rows]
 
 
 def fold(base: list[WeekTarget], plan_start: date, anchors: list[Anchor], build_tail: TailBuilder) -> list[WeekTarget]:

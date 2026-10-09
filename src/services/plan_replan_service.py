@@ -77,7 +77,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         conn.execute(
             "INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_long_km, start_source, target_time_sec)"
             " VALUES (?, ?, ?, ?, ?, ?)",
-            (goal["id"], a_iso, start_km, user_long, "user" if start_source == "user" else "history", target))
+            (goal["id"], a_iso, start_km, user_long, start_source, target))
         replan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         plan, ws = [], anchor
         while ws <= race:
@@ -115,6 +115,20 @@ def apply(conn: sqlite3.Connection, params: dict, today: date | None = None) -> 
     if params.get("expect_anchor") != next_monday(today).isoformat():
         raise ReplanError("CONFLICT", "기준일이 바뀌었습니다. 미리보기를 다시 확인하세요")
     return _run(conn, today, params, write=True)
+
+
+def last_undoable(conn: sqlite3.Connection, today: date | None = None) -> dict | None:
+    """활성 목표의 마지막 applied 재계획이 아직 시작 전이면 {replan_id, anchor_monday, undo_until}, 아니면 None."""
+    today = today or date.today()
+    goal = get_active_goal(conn)
+    if goal is None:
+        return None
+    row = conn.execute("SELECT id, anchor_monday FROM plan_replans WHERE goal_id=? AND status='applied' "
+                       "ORDER BY anchor_monday DESC, id DESC LIMIT 1", (goal["id"],)).fetchone()
+    if row is None or today >= date.fromisoformat(row[1]):
+        return None
+    return {"replan_id": row[0], "anchor_monday": row[1],
+            "undo_until": (date.fromisoformat(row[1]) - timedelta(days=1)).isoformat()}
 
 
 def undo(conn: sqlite3.Connection, replan_id: int, today: date | None = None) -> dict:

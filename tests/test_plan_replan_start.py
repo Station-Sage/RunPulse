@@ -64,3 +64,19 @@ def test_blank_long_stores_history_long_and_real_source(c):
     assert out["start_long_km"] == row[0] == 18.0 and row[1] == "history"
     out2 = R.preview(c, {"recent_long_km": 21}, TODAY)
     assert out2["start_long_km"] == 21
+
+
+def test_real_source_stored_and_loaded(c):
+    from src.training.plan_anchor import load_anchors
+    out = R.apply(c, {"recent_weekly_km": 25, "expect_anchor": R.next_monday(TODAY).isoformat()}, TODAY)
+    assert c.execute("SELECT start_source FROM plan_replans WHERE id=?", (out["replan_id"],)).fetchone()[0] == "user"
+    gid = c.execute("SELECT id FROM goals").fetchone()[0]
+    assert load_anchors(c, gid)[0].start_source == "user"
+
+
+def test_history_anchor_tail_not_raised_by_cold_peak(c):
+    _runs(c, [1, 2, 3, 4], 32, long_km=18)
+    out = R.preview(c, {}, TODAY)
+    assert out["start_source"] == "history"
+    peak = max(w["planned_km"] for w in out["after"])
+    assert peak <= out["start_km"] * 1.6

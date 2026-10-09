@@ -249,3 +249,92 @@ Level 0 요약 바로 아래에 항상 보이는 **시작점 카드**(입력이 
 | Q6 | 롱런 미입력 시 기준값 | anchor 기준 이력(`start_long_km(long6, long12)`)으로 저장 |
 | Q7 | 꼬리 일정 출처 `"user"` 고정 | 실제 출처 전달(A면 `history`) |
 | Q8 | A 상태에서 "더 가볍게 시작" 수동 하향 필요? | 지금은 미제공(서버가 `km4` 아래로 못 내림). 필요하면 서버 규칙 변경이 먼저 |
+
+## 12. 보류 항목 정리 — Q7·Q8·후속 (2026-10-09, system-architect 분석, Q7·Q1 API·link 정리 구현 2026-10-09)
+
+| 항목 | 결론 |
+|---|---|
+| Q7 꼬리 출처 `"user"` 고정 | **구현** (실제 출처 전달. 저장 방식은 12.1 (가)/(나) 중 사용자 선택) |
+| Q8 수동 하향 | **불필요**(현 시점). 재검토 조건은 12.2 |
+| Q1 마지막 재계획 id API | **구현 가능** (읽기 전용, 작음) |
+| `_replan_link.recent_weekly_km` 정리 | **구현 가능** (사용처 없음) |
+| Garmin 외부 삭제(D5/T8) | **사용자 결정 필요** — 삭제 API 있음(SAFE §T8 기록 정정) |
+| Q3 CalDAV | **불필요(종결 제안)**, 사용자 확인 |
+| Q5 적용 후 자동 전송 | **사실 확인 완료** — 자동 전송 없음. 안내 문구는 product |
+| Q2 롱런·Q 전/후 비교, Q4 계획 화면 진입점 | **사용자 결정 필요**(범위) |
+
+### 12.1 Q7 — 꼬리 일정 출처
+
+**코드 근거.** `_build`는 `rv ≥ 2 and src != "history"`일 때 `peak = max(peak, cold_peak_km(dlabel))`(풀 48·하프 32·10k 28·5k 20, 그 외 라벨은 10k 값). `tail`은 항상 `"user"`를 넘기므로 A 상태 재계획에도 하한이 걸린다. 반면 `base`는 실제 출처라 A 목표에는 하한이 없다 → **재계획 꼬리만 피크가 올라가는 불일치**.
+
+**실제 출력 차이**(`build_schedule` 직접 계산, 풀, 시작 롱런 18, cap 없음):
+
+| 조건 | 피크 | 주별 km |
+|---|---|---|
+| VDOT 있음 + 표준 거리 | Pfitzinger 표×1.05(풀 ≥57.8, 하프 ≥42, 10k ≥31.5, 5k ≥26.3) ≥ 하한 | **차이 없음** |
+| VDOT 없음, 시작 30, 10주 | 39 → **48** | 5~8주차 39 → 39.9/43.8/48/48 |
+| VDOT 없음, 시작 20, 10주 | 26 → **48** | 26 → 26.6/29.2/32.1/35.3 |
+| 남은 주 ≤ 4 | 램프 10%에 막혀 | 차이 없음 |
+| `1.5k`/`3k`/`custom` + 낮은 VDOT | 표값 < 28 | 28로 상승 |
+
+REPLAN 진입은 "2주 이행 부족"인데 원래 계획보다 피크를 올리는 것은 의도와 반대다. 하한은 콜드(B·C·D)에서만 유지한다.
+
+**설계.**
+- `plan_anchor.Anchor`에 `start_source: str = "user"`(기본값 = 기존 동작, `extra_anchor`·레거시 호환). `load_anchors` SELECT에 `start_source` 추가.
+- `planner_schedule.schedule_for_goal.tail`: `_build(..., "history" if a.start_source == "history" else "user", ...)`.
+- `plan_replan_service._run` INSERT: 저장값 결정(아래). 현재 `"user" if src=="user" else "history"`는 floor/avg16/default를 `history`로 저장해 그대로 읽으면 C·D의 하한이 사라진다 — **저장 매핑을 같이 바꿔야 한다**.
+
+| 저장 방식 | 내용 | 트레이드오프 |
+|---|---|---|
+| (가) 권장 | 스키마 v33: `plan_replans.start_source` CHECK를 `('user','history','floor','avg16','default')`로 확장(테이블 재생성·복사), 실제 `src` 저장 | 출처 보존·§11.3 원안과 일치. 마이그레이션 1개 |
+| (나) | 스키마 유지. `'history' if src=='history' else 'user'` 저장, 컬럼 의미를 "history=이력, user=콜드(입력·floor·avg16·default)"로 문서화 | 변경 최소, 출처 정보 손실 |
+
+레거시 행: T9 배포 당일이라 소수. 배포 전 `SELECT id,start_source,start_km FROM plan_replans WHERE status='applied'`로 확인하고, B·C·D에서 `history`로 저장된 행만 수동 보정(`floor` 또는 (나)라면 `user`).
+
+**변경 파일**: `src/training/plan_anchor.py`, `src/training/planner_schedule.py`(tail 1줄), `src/services/plan_replan_service.py`(INSERT), (가)면 `src/db_schema_v33.py` 신규 + `src/db_setup.py` `SCHEMA_VERSION=33`. 문서: `decisions.md` ADR-035 부록 R에 한 줄, `architecture.md` 스키마 버전.
+
+**테스트**
+- `tests/test_planner_schedule_cold.py`: VDOT 없음·풀·A anchor(`history`, 30km, 10주) → 꼬리 피크 39 / C anchor(`avg16`) → 48 유지 / VDOT 있음 → 변경 전후 동일(회귀).
+- `tests/test_plan_anchor.py`: `start_source` 로드, 컬럼 없는 옛 행 기본값 `"user"`.
+- `tests/test_plan_replan_service.py`·`test_plan_replan_start.py`: A/B/C/D 저장값 = 응답 `start_source`((나)면 매핑값).
+- (가) 마이그레이션: v32 DB의 행 보존, `floor` INSERT 허용.
+
+**회귀 위험**
+- VDOT 없는 A 상태 사용자의 적용된 anchor: 배포 후 `schedule_for_goal` 소비자(`readiness_warning`, `story_period`, 코치 핸들러, `week_target`)의 목표가 낮아진다. 이미 생성된 `planned_workouts`는 그대로라 **목표와 행이 잠깐 어긋날 수 있다**(다음 재생성/재계획에서 해소). 준비 볼륨 경고가 새로 뜰 수 있다(정직한 결과).
+- 범위 밖 관찰: `_note_cold_start`는 목표 수준 출처(`plan_start_source`)만 보므로 콜드로 만든 목표를 A 상태에서 재계획해도 1주차 근거 문구가 "기록이 적어…"로 남는다(index 0 주에만 붙으므로 anchor 주에는 해당 없음, 영향 작음).
+
+### 12.2 Q8 — "더 가볍게 시작" 수동 하향
+
+**결론: 불필요(현 시점).** 근거:
+- `km4`는 오늘 기준 28일 합 ÷ 4(이동 평균)라 최근 공백을 자동으로 깎는다. 직전 주 40km 사용자 기준: 1주 쉼(40,40,40,0) → 30(75%), 2주 쉼(40,40,0,0) → 20~22(50~55%), 3주 쉼 → 10 → B 상태 12km. Daniels 복귀 지침(6~28일 공백이면 50~75%로 재개)과 같은 범위이며, 0.6×avg16을 섞어도 상한이 1.1×km4라 위로 많이 가지 않는다.
+- 단기 피로·통증은 주간 단위가 아니라 세션 단위 도구가 이미 담당한다: 행 액션(줄이기/쉬기/건너뛰기/이지로), 통증 단계(`plan_pain.py`, PAIN_REPEAT), 계획 자체의 회복주(3:1).
+- 자유 하향 입력은 §11 원칙(A·B 입력칸 없음)과 충돌하고, 시작 부하를 근거 없이 바꾸는 경로를 연다.
+
+**재검토 조건**(이 중 하나라도 실제 사례가 나오면 서버 규칙부터 바꾼다):
+- 통증·질병으로 공백 없이 **볼륨을 유지한 채** 재계획(km4는 높지만 몸은 아님) — PAIN_REPEAT 발급 상태에서 재계획 진입.
+- 이때 안: 자유 입력 대신 서버 규칙 `lighter=true` → `start_km = max(12, floor(0.8×km4))`. 꼬리에서는 이력 기반으로 취급해야 한다(콜드 하한이 붙으면 "가볍게"인데 피크가 오른다) — (가)면 출처 값 `lighter` 추가, (나)면 `history`로 저장. 화면 표현은 product-architect.
+
+### 12.3 후속 분류
+
+**지금 구현 가능**
+
+1. Q1 마지막 재계획 id API
+   - 서비스: `plan_replan_service.last_undoable(conn, today) -> dict | None` — 활성 목표의 마지막 `applied` 행이고 `today < anchor_monday`일 때 `{replan_id, anchor_monday, undo_until(anchor-1일)}`, 아니면 None. `undo()`의 잠금 조건 중 "새 행 이력" 검사는 비싸므로 여기선 하지 않고 undo 시점의 `REPLAN_LOCKED`에 맡긴다.
+   - API: `GET /coach/plan/replan/last` (`src/api/routes_plan_replan.py`, 74줄 → ~85줄). 응답 `{"last": {...} | null}`.
+   - 프런트 위치·문구는 §10 Q1 안(product 확정 사항).
+   - 테스트: `tests/test_plan_replan_service.py`(없음/applied 미래/anchor 당일 None/undone 제외/두 개 중 마지막), `tests/test_api_plan_replan.py` 1건.
+   - 회귀 위험: 읽기 전용, 없음.
+2. `_replan_link.recent_weekly_km` 제거
+   - 프런트는 `link.race_date`만 사용(`replanBanner.ts:29`). 제거하면 advisory 응답마다 `week_compliance.compute` 2회가 사라진다. `distance_km`·`target_time_sec`는 비용이 없어 유지.
+   - 변경: `src/api/routes_plan_adjust.py` `_replan_link`, `frontend/src/lib/replanBanner.ts` 타입에서 필드 삭제. 테스트: 링크에 필드 없음 1건. 위험: 없음(`/coach/plan/compare`의 `recent_weekly_km`은 별개 경로).
+
+**사용자 결정 필요**
+
+3. Garmin 외부 삭제(D5/T8): SAFE §T8의 "삭제 API 없음"은 사실과 다르다 — 운영 컨테이너의 `garminconnect`에 `delete_workout(workout_id)`, `unschedule_workout(scheduled_id)`가 있다. 우리는 행마다 별도 템플릿을 업로드하고 `garmin_workout_id`(템플릿 id)를 저장하므로 `delete_workout`로 정리 가능. 결정할 것: ① 실제 계정에 비가역 삭제를 할지 ② 시점(적용 직후 vs 되돌리기 기간 종료 후) ③ 되돌리기 시 복원 행의 `garmin_workout_id` 처리(NULL 복원 → 재전송 필요). 채택 시 원칙: 커밋 후 best-effort(재시도 1회 → 로그 → 계속), 실패해도 재계획은 성공, 결과의 `external[]`에 삭제 성공 여부 표시.
+4. Q2 주별 롱런·Q 전/후 비교: `_weekly_km`과 같은 방식으로 `long_km`, `q_count` 집계 추가는 간단하나 응답·화면 범위 결정이 먼저.
+5. Q4 계획 화면 진입점: product 결정. 서버는 변경 없음(advisory 없이도 preview/apply 가능).
+
+**불필요 / 확인 완료**
+
+6. Q3 CalDAV: `caldav` 패키지가 `requirements.txt`에서 주석 처리, 운영 컨테이너에서 `ImportError` → 운영에서 CalDAV 푸시는 동작하지 않고 푸시 이력도 DB에 남지 않는다. `external[]`에 넣을 근거 데이터 자체가 없으므로 종결 제안(CalDAV 지원 재개는 LATER 대상).
+7. Q5: Garmin 전송은 v0.2 수동 경로(`src/web/views_training_export.py`)뿐, 자동 전송 없음. 재계획으로 생긴 새 세션은 워치에 가지 않는다 — 결과 화면 안내 여부는 product.

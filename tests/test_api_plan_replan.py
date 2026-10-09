@@ -46,6 +46,15 @@ def test_preview_apply_undo(client):
     assert client.post(f"/api/v1/coach/plan/replan/{rid}/undo").status_code == 409
 
 
+def test_last_endpoint(client):
+    assert client.get("/api/v1/coach/plan/replan/last").get_json()["data"] == {"last": None}
+    rid = client.post("/api/v1/coach/plan/replan", json={"recent_weekly_km": 20, "expect_anchor": MON.isoformat()}).get_json()["data"]["replan_id"]
+    last = client.get("/api/v1/coach/plan/replan/last").get_json()["data"]["last"]
+    assert last == {"replan_id": rid, "anchor_monday": MON.isoformat(), "undo_until": (MON - timedelta(days=1)).isoformat()}
+    client.post(f"/api/v1/coach/plan/replan/{rid}/undo")
+    assert client.get("/api/v1/coach/plan/replan/last").get_json()["data"]["last"] is None
+
+
 def test_bad_request_and_conflict(client):
     assert client.get("/api/v1/coach/plan/replan/preview?recent_weekly_km=abc").status_code == 400
     assert client.post("/api/v1/coach/plan/replan", json={}).status_code == 400

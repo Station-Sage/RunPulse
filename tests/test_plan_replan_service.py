@@ -81,3 +81,13 @@ def test_undo_locked_after_start_or_new_history(c):
     with pytest.raises(R.ReplanError) as e:
         R.undo(c, out["replan_id"], TODAY)
     assert e.value.code == "REPLAN_LOCKED"
+
+
+def test_last_undoable(c):
+    assert R.last_undoable(c, TODAY) is None
+    a = R.apply(c, {"recent_weekly_km": 20, "expect_anchor": MON.isoformat()}, TODAY)
+    last = R.last_undoable(c, TODAY)
+    assert last["replan_id"] == a["replan_id"] and last["undo_until"] == (MON - timedelta(days=1)).isoformat()
+    assert R.last_undoable(c, MON) is None
+    R.undo(c, a["replan_id"], TODAY)
+    assert R.last_undoable(c, TODAY) is None

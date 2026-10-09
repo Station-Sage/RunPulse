@@ -155,13 +155,6 @@ def list_plan_adjustments(goal_id: int):
 def _replan_link(conn: sqlite3.Connection, today: date) -> dict:
     g = get_active_goal(conn)
     link: dict = {"distance_km": g["distance_km"], "race_date": g["race_date"], "target_time_sec": g["target_time_sec"]} if g else {}
-    ws = today - timedelta(days=today.weekday())
-    kms = []
-    for k in (1, 2):
-        s = ws - timedelta(weeks=k)
-        kms.append(week_compliance.compute(conn, s, s + timedelta(days=6), None, today)["compliance"]["volume"]["actual_km"])
-    if any(kms):
-        link["recent_weekly_km"] = round(sum(kms) / 2, 1)
     return link
 
 

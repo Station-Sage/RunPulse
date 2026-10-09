@@ -240,10 +240,10 @@
 
 - functions: reduce_after, easy_after
 
-### `plan_replan_service.py` (159줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (173줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
-- functions: next_monday, preview, apply, undo
+- functions: next_monday, preview, apply, last_undoable, undo
 
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -1403,7 +1403,7 @@
 
 - functions: is_comeback, comeback_ceiling, next_level, start_long_km
 
-### `plan_anchor.py` (54줄) — 재계획 anchor 접기(순수 + 조회) — plan_replans 의 적용된 anchor 이후 주만 새 시작 부하로 다시 만든 일정으로 바꾼다(ADR-035 부록 R).
+### `plan_anchor.py` (55줄) — 재계획 anchor 접기(순수 + 조회) — plan_replans 의 적용된 anchor 이후 주만 새 시작 부하로 다시 만든 일정으로 바꾼다(ADR-035 부록 R).
 
 - class **Anchor**: 없음
 - functions: load_anchors, fold
@@ -1456,7 +1456,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (204줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (205줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
@@ -1810,13 +1810,13 @@
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
-### `test_api_plan_adjustments.py` (155줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
+### `test_api_plan_adjustments.py` (156줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors
 
-### `test_api_plan_replan.py` (62줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
+### `test_api_plan_replan.py` (71줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
-- functions: client, test_preview_apply_undo, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503
+- functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2128,6 +2128,10 @@
 ### `test_db_schema_v32.py` (57줄) — 스키마 v32 plan_replans·ux_goals_one_active: 멱등, 중복 active 정리, 유니크 강제.
 
 - functions: test_idempotent, test_duplicate_active_cleanup_keeps_newest, test_second_active_insert_fails, test_check_constraints, test_registered_and_migrates
+
+### `test_db_schema_v33.py` (39줄) — 스키마 v33 plan_replans.start_source 확장: 멱등, 행·인덱스 보존, 새 값 허용.
+
+- functions: test_preserves_rows_and_index_and_idempotent, test_new_sources_allowed_bogus_rejected, test_schema_version
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -2601,13 +2605,13 @@
 
 - functions: conn, test_replaces_unprotected_and_keeps_outside_range, test_protected_rows_survive_and_block_same_date, test_proposed_adjustment_removed_with_row_and_external_reported, test_manual_rows_untouched_and_no_commit
 
-### `test_plan_replan_service.py` (83줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
+### `test_plan_replan_service.py` (93줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
 
-- functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history
+- functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable
 
-### `test_plan_replan_start.py` (66줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
+### `test_plan_replan_start.py` (82줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
 
-- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source
+- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak
 
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
@@ -3132,7 +3136,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 663개 파일
+총 664개 파일
 
 ## docstring 누락
 

@@ -293,6 +293,7 @@
 - 활성화 전제(설계 필요): 재계획은 오늘 이후 날짜만 교체, 기존 목표를 `cancelled/superseded`로 전환, 이동·조정 이력 보존. 별도 설계 후 진행.
 
 #### 재계획 의미 (ADR-035 부록 R, 2026-10-09, 구현·배포 완료)
+- 후속(2026-10-09, 스키마 v33): `plan_replans.start_source` 에 실제 출처(history/floor/user/avg16/default) 저장 → 꼬리 주가 A 상태(history)에서 cold 피크로 올라가던 불일치 해소. `GET coach/plan/replan/last`(Q1, 프런트 연결은 미착수). 배너 link 의 `recent_weekly_km` 제거.
 - 검증: K1·K2 정확. 추가 확인: K1a 활성 목표 조회 정렬이 코드마다 다름(CalcContext는 id 기준 없음), K1b 새 goal이면 이행률·N주차·`plan_progression` 리셋, K2a 끊긴 `session_outcomes`가 활동을 계속 점유해 새 행이 재매칭되지 않음(지난 날이 미이행으로 바뀜), K2c proposed 조정 고아, K2d Garmin/CalDAV 중복, K3 `create_plan_from_template`이 `user_training_prefs`를 기본값으로 덮어씀(기존 버그), K4 단계별 commit으로 원자성 없음, K5 같은 goal로 미래만 다시 만들면 시작 부하가 계획 시작일 기준이라 원래 램프를 재현, K6 새 목표가 옛 목표의 미래 행을 남김.
 - 제안: 재계획 = 같은 goal 안에서 기준점(`plan_replans`, v32)을 새로 찍고 **다음 월요일부터** 미래 주만 교체. 이동은 CROSS_WEEK 금지, 수락은 당일만이라 교체 범위에 accepted 조정·매칭이 구조적으로 없음. 방어적으로 matched/outcome/accepted 행은 보존, proposed 조정은 삭제. 미리보기(쓰기 없음)·한 트랜잭션 적용·마지막 1건 되돌리기. 전용 API `GET .../replan/preview`, `POST .../replan`, `POST .../replan/<id>/undo`. `POST /coach/plan`(새 목표)은 활성 1개 불변식(기존 active→`cancelled`, 부분 유니크 인덱스, 조회 통일), prefs 덮어쓰기 제거, 단일 트랜잭션.
 - 구현 결과: T1~T7·T9 배포. 링크는 `link.race_date` 가 있을 때 `/coach/plan/replan` 으로 연결. Garmin/CalDAV 는 삭제 API 부재로 `external[]` 안내만(T8 한계). 되돌리기는 결과 화면에서만(Q1 후속).

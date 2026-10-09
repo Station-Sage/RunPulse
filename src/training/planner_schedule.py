@@ -163,7 +163,8 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
     def tail(a: Anchor, weeks: int) -> list[WeekTarget]:
         g = {**goal, "target_time_sec": a.target_time_sec} if a.target_time_sec else goal
         long_km = a.start_long_km if a.start_long_km is not None else start_long
-        return _build(conn, g, dlabel, vdot, weeks, a.start_km, long_km, "user", a.anchor_monday, rv)
+        return _build(conn, g, dlabel, vdot, weeks, a.start_km, long_km,
+                      "history" if a.start_source == "history" else "user", a.anchor_monday, rv)
     return fold(base, start, anchors, tail)
 
 
