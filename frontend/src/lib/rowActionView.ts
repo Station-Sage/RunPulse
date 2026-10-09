@@ -1,7 +1,7 @@
 // 플랜 행 액션(직접 조정)의 순수 표시 로직 — 백엔드 규칙(plan_adjustment_service)과 일치해야 한다.
 import type { PlannedWorkout, WorkoutActionResult } from '$lib/types';
 
-export type RowOp = 'reduce' | 'rest' | 'skip';
+export type RowOp = 'reduce' | 'rest' | 'skip' | 'move';
 export type RowActionMode = 'hidden' | 'locked' | 'active';
 
 export const MAX_REDUCE_PCT = 50;
@@ -28,6 +28,22 @@ export interface OpAvailability {
 	reduce: { ok: boolean; hint: string | null };
 	rest: { ok: boolean };
 	skip: { ok: boolean };
+	move: { ok: boolean; hint: string | null };
+}
+
+const DAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 오늘 세션을 옮길 수 있는 후보 날짜 — 내일부터 3일 이내, 같은 주(월~일). 세부 규칙은 서버가 판정한다.
+export function moveCandidates(today: string): { date: string; label: string }[] {
+	const t = new Date(today + 'T00:00:00Z');
+	const wk = (d: Date) => Math.floor((d.getTime() / 86400000 + 3) / 7);
+	const out: { date: string; label: string }[] = [];
+	for (let i = 1; i <= 3; i++) {
+		const d = new Date(t.getTime() + i * 86400000);
+		if (wk(d) !== wk(t)) break;
+		out.push({ date: d.toISOString().slice(0, 10), label: `${DAY_KO[d.getUTCDay()]} ${d.getUTCMonth() + 1}/${d.getUTCDate()}` });
+	}
+	return out;
 }
 
 export function reducedKm(km: number, pct: number): number {
@@ -40,7 +56,8 @@ export function opAvailability(w: PlannedWorkout): OpAvailability {
 	if (PCT_BLOCKED.includes(w.workout_type)) hint = '강도 세션은 비율로 줄일 수 없어요 · 쉬기나 건너뛰기를 선택해 주세요';
 	else if (km <= 0) hint = '거리가 없는 세션이에요';
 	else if (reducedKm(km, 20) < MIN_REDUCED_KM) hint = `줄이면 ${MIN_REDUCED_KM}km 미만이 돼요 · 쉬는 편이 나아요`;
-	return { reduce: { ok: hint === null, hint }, rest: { ok: true }, skip: { ok: true } };
+	const moveHint = w.workout_type === 'race' ? '레이스는 옮길 수 없어요' : null;
+	return { reduce: { ok: hint === null, hint }, rest: { ok: true }, skip: { ok: true }, move: { ok: moveHint === null, hint: moveHint } };
 }
 
 export function reducePreview(km: number, pct: number): { km: number; valid: boolean; hint: string | null } {
@@ -64,8 +81,22 @@ export function toastText(op: RowOp, res: WorkoutActionResult): string {
 	const tail = wk.before != null && wk.after != null ? ` · 이번 주 ${wk.before}→${wk.after}km` : fmt(wk.after);
 	if (op === 'reduce') return `오늘 ${res.adjustment.after.distance_km}km로 줄였어요${tail}`;
 	if (op === 'rest') return `오늘은 쉬어요${tail}`;
+	if (op === 'move') return `${res.adjustment.after.date?.slice(5).replace('-', '/')}로 옮겼어요`;
 	return `오늘 세션을 건너뛰었어요${tail}`;
 }
+
+const MOVE_ERRORS: Record<string, string> = {
+	RACE_FIXED: '레이스는 옮길 수 없어요',
+	PAIN_NO_MOVE: '통증이 있으면 옮기지 말고 쉬어 주세요',
+	ALREADY_MOVED: '이미 옮긴 세션이에요 · 되돌린 뒤 다시 옮겨 주세요',
+	OUT_OF_RANGE: '내일부터 3일 이내로만 옮길 수 있어요',
+	CROSS_WEEK: '같은 주 안에서만 옮길 수 있어요',
+	TAPER_LOCK: '대회 직전 테이퍼 기간에는 옮길 수 없어요',
+	TARGET_DONE: '이미 수행한 날이에요',
+	TARGET_HARD: '그날도 강한 훈련이 있어요 · 다른 날을 골라 주세요',
+	HARD_SPACING: '강한 훈련이 연속돼요 · 다른 날을 골라 주세요',
+	NOT_TODAY: '오늘 세션만 옮길 수 있어요'
+};
 
 export function actionErrorText(e: unknown): string {
 	const err = e as { status?: number; details?: unknown; message?: string } | null;
@@ -73,6 +104,7 @@ export function actionErrorText(e: unknown): string {
 		const e2 = err as { status: number; details?: unknown; message?: string };
 		const reason = (e2.details as { reason?: string } | undefined)?.reason;
 		if (e2.status === 409 && reason === 'LOCKED') return '오늘 세션만 바꿀 수 있어요';
+		if (e2.status === 409 && reason && MOVE_ERRORS[reason]) return MOVE_ERRORS[reason];
 		if (e2.status === 409 && reason === 'UNSUPPORTED') return '아직 지원하지 않는 조정이에요';
 		if (e2.status === 409) return '다른 곳에서 계획이 바뀌었어요 · 새로고침 후 다시 시도해 주세요';
 		if (e2.status === 404) return '세션을 찾을 수 없어요 · 새로고침해 주세요';

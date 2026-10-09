@@ -1216,6 +1216,7 @@ export interface PlanAdjustmentSide {
 	target_pace_min: number | null;
 	target_pace_max: number | null;
 	description: string | null;
+	date?: string;
 }
 
 export interface PlanAdjustment {

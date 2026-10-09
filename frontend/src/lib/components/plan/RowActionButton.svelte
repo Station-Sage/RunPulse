@@ -38,12 +38,12 @@
 		btn?.focus();
 	}
 
-	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined) {
+	async function apply(op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string) {
 		if (busy) return;
 		busy = true;
 		error = null;
 		try {
-			const res = await workoutAction(workout.id, { op, pct, reason, via });
+			const res = await workoutAction(workout.id, { op, pct, reason, to_date: toDate, via });
 			toast = { message: toastText(op, res), id: res.adjustment.id };
 			open = false;
 			btn?.focus();
@@ -79,6 +79,6 @@
 	>
 {/if}
 {#if open}
-	<RowActionSheet {workout} {mode} {weekKm} {crsPending} {busy} {error} onApply={apply} onClose={close} />
+	<RowActionSheet {today} {workout} {mode} {weekKm} {crsPending} {busy} {error} onApply={apply} onClose={close} />
 {/if}
 <Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast && toast.id ? undo : undefined} onDismiss={() => (toast = null)} />

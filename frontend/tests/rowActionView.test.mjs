@@ -51,3 +51,12 @@ test('userAdjustmentSummary ignores crs', () => {
 	assert.deepEqual(userAdjustmentSummary({ ...base, adjustment: { id: 1, source: 'user', op: 'reduce' } }, (t) => t),
 		{ badge: '직접 조정', original: '원래 easy 10km' });
 });
+
+test('moveCandidates: 내일부터 3일, 같은 주만', async () => {
+	const { moveCandidates } = await import('../src/lib/rowActionView.ts');
+	assert.deepEqual(moveCandidates('2026-10-07').map((d) => d.date), ['2026-10-08', '2026-10-09', '2026-10-10']);
+	assert.deepEqual(moveCandidates('2026-10-10').map((d) => d.date), ['2026-10-11']);
+	assert.deepEqual(moveCandidates('2026-10-11'), []);
+	assert.equal(opAvailability(w({ workout_type: 'race' })).move.ok, false);
+	assert.match(actionErrorText(new ApiError(409, { error: { details: { reason: 'TARGET_HARD' } } })), /강한 훈련/);
+});

@@ -250,3 +250,9 @@
 - 세부 결정: (1) 제안은 조회 시 멱등 upsert(`ensure_proposal`)로 만들어 Today·계획·Coach가 같은 id를 공유. (2) v1 조정 후 거리는 유형만 바꾸고 원본 유지(휴식은 NULL), R8 비율은 `rule_version` 상향으로 후속. (3) 원본 행이 바뀌거나 재생성되면 stale로 표시하고 적용하지 않음. (4) ICS 피드·Garmin/CalDAV 푸시에는 v1에서 반영하지 않음(후속).
 - 사유: 읽기 시점 오버레이는 원본 불변으로 되돌리기가 단순하고, 조정 이력이 남아 거절·되돌림을 구분할 수 있다. 설계: `phase-7-ui-renewal/DESIGN-PLAN-ADJUSTMENTS.md`.
 - 추가(2026-10-09, 행 액션 T8): 사용자 직접 조정은 `source='user'`로 즉시 accepted 생성(`POST /coach/plan/workouts/<id>/action`: reduce/rest/skip, 당일만). (B1) 수락된 코치(crs) 조정이 있으면 직접 조정이 대체(기존 건 reverted). (B2) 줄이기는 유효 계획(조정 반영 후) 기준으로 계산. reduce 규칙: 최대 50%, 결과 3.0km 미만 불가, 품질 유형(interval/tempo/threshold/marathon/race) 불가. `GET /coach/plan/adjustment`는 `user_adjustment`도 반환. D9 개정(사용자 결정 2026-10-09): 사용자 직접 건너뛴 날(source='user' rest)은 `state='skipped'`로 지난 날에 한해 세션·볼륨·핵심 분모에 원래 계획 기준으로 포함(미이행). 코치 제안 휴식(crs)만 분모 제외 유지. 설계: `DESIGN-PLAN-ROW-ACTION.md`, `DESIGN-PLAN-ROW-ACTION-COACHING.md`.
+
+### ADR-035 부록: `move` op (2026-10-09)
+- 저장: move 행(`op='move'`, `date`=원래 날짜, `after.date`=목적일) + 맞바꿈 행(목적일 세션을 오늘로, reasons의 `pair`로 연결)을 한 트랜잭션에 기록. overlay는 읽을 때 `date`를 바꾸고 재정렬.
+- 되돌리기: 어느 쪽 행을 되돌려도 pair 전체와 이후 종속 조정이 함께 되돌려진다.
+- 거절(409 `details.reason`): RACE_FIXED, PAIN_NO_MOVE, ALREADY_MOVED, NOT_TODAY, OUT_OF_RANGE(내일~+3일), CROSS_WEEK, TAPER_LOCK, TARGET_DONE, TARGET_HARD(쉬움·휴식·빈 날만 허용), HARD_SPACING. `to_date` 누락은 400.
+- 이유 `injury`는 통증으로 취급해 이동 불가.

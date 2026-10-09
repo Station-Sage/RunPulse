@@ -100,13 +100,15 @@ def test_create_user_adjustment_errors(monkeypatch):
         svc.create_user_adjustment(c, 7, "reduce", {"pct": 0}, today=D)
     with pytest.raises(ValueError):
         svc.create_user_adjustment(c, 7, "bogus", today=D)
-    for args, code in (((7, "move"), "UNSUPPORTED"), ((99, "rest"), "NOT_FOUND")):
+    for args, code in (((99, "rest"), "NOT_FOUND"),):
         with pytest.raises(svc.AdjustmentConflict) as e:
             svc.create_user_adjustment(c, *args, today=D)
         assert e.value.code == code
     with pytest.raises(svc.AdjustmentConflict) as e:
         svc.create_user_adjustment(c, 7, "rest", today="2026-10-09")
     assert e.value.code == "LOCKED"
+    with pytest.raises(ValueError):
+        svc.create_user_adjustment(c, 7, "move", {}, today=D)
 
 
 def test_reduce_rules_cap_floor_quality(monkeypatch):

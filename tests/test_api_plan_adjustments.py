@@ -69,4 +69,5 @@ def test_workout_action_errors(client):
     p = "/api/v1/coach/plan/workouts/"
     assert client.post(p + "7/action", json={"op": "reduce", "pct": 0}).status_code == 400
     assert client.post(p + "7/action", json={"op": "move", "to_date": "2030-01-01"}).status_code == 409
+    assert client.post(p + "7/action", json={"op": "move"}).status_code == 400
     assert client.post(p + "99/action", json={"op": "rest"}).status_code == 404

@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { workoutLabel } from '$lib/format';
 	import {
-		MAX_REDUCE_PCT, REASONS, opAvailability, reducePreview, weekPreview, type RowActionMode, type RowOp
+		MAX_REDUCE_PCT, REASONS, moveCandidates, opAvailability, reducePreview, weekPreview, type RowActionMode, type RowOp
 	} from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
 
@@ -15,7 +15,8 @@
 		busy = false,
 		error = null,
 		onApply,
-		onClose
+		onClose,
+		today = workout.date
 	}: {
 		workout: PlannedWorkout;
 		mode: RowActionMode;
@@ -23,7 +24,8 @@
 		crsPending?: boolean;
 		busy?: boolean;
 		error?: string | null;
-		onApply: (op: RowOp, pct: number | undefined, reason: string | undefined) => void;
+		onApply: (op: RowOp, pct: number | undefined, reason: string | undefined, toDate?: string) => void;
+		today?: string;
 		onClose: () => void;
 	} = $props();
 
@@ -31,13 +33,15 @@
 	let pct = $state(20);
 	let custom = $state(false);
 	let reason = $state<string | undefined>(undefined);
+	let toDate = $state<string | undefined>(undefined);
+	const days = $derived(moveCandidates(today));
 	let root: HTMLElement | undefined = $state();
 
 	const avail = $derived(opAvailability(workout));
 	const km = $derived(workout.distance_km ?? 0);
 	const prev = $derived(reducePreview(km, pct));
-	const canApply = $derived(!busy && op !== null && (op !== 'reduce' || (avail.reduce.ok && prev.valid)));
-	const cut = $derived(op === 'reduce' ? km - prev.km : km);
+	const canApply = $derived(!busy && op !== null && (op !== 'reduce' || (avail.reduce.ok && prev.valid)) && (op !== 'move' || !!toDate));
+	const cut = $derived(op === 'reduce' ? km - prev.km : op === 'move' ? 0 : km);
 	const week = $derived(weekKm != null && op ? weekPreview(weekKm, cut) : null);
 
 	$effect(() => {
@@ -57,7 +61,8 @@
 	const OPS: { key: RowOp; label: string; sub: string }[] = [
 		{ key: 'reduce', label: '줄이기', sub: '거리를 비율로 줄여요' },
 		{ key: 'rest', label: '쉬기', sub: '오늘은 휴식으로 바꿔요' },
-		{ key: 'skip', label: '건너뛰기', sub: '이 세션을 하지 않아요' }
+		{ key: 'skip', label: '건너뛰기', sub: '이 세션을 하지 않아요' },
+		{ key: 'move', label: '옮기기', sub: '같은 주 다른 날로 옮겨요' }
 	];
 </script>
 
@@ -99,7 +104,7 @@
 					onclick={() => (op = o.key)}
 				>
 					<span class="text-sm font-medium">{o.label}</span>
-					<span class="text-xs text-fg-muted">{o.key === 'reduce' && avail.reduce.hint ? avail.reduce.hint : o.sub}</span>
+					<span class="text-xs text-fg-muted">{o.key === 'reduce' && avail.reduce.hint ? avail.reduce.hint : o.key === 'move' && avail.move.hint ? avail.move.hint : o.sub}</span>
 				</button>
 			{/each}
 		</div>
@@ -116,6 +121,14 @@
 			</div>
 		{/if}
 
+		{#if op === 'move'}
+			<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="옮길 날짜">
+				{#each days as d (d.date)}
+					<button type="button" aria-pressed={toDate === d.date} data-testid="move-day-{d.date}" class="h-11 rounded-full border px-4 text-sm {toDate === d.date ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (toDate = d.date)}>{d.label}</button>
+				{/each}
+			</div>
+		{/if}
+
 		{#if op}
 			<div class="mt-3 flex gap-2" role="group" aria-label="이유">
 				{#each REASONS as r (r.key)}
@@ -125,13 +138,13 @@
 		{/if}
 
 		<p class="mt-3 min-h-5 text-xs text-fg-secondary" aria-live="polite">
-			{#if op === 'reduce'}{prev.hint ?? `${km}km → ${prev.km}km`}{:else if op === 'rest'}휴식으로 바꿔요{:else if op === 'skip'}이 세션을 건너뛰어요{/if}
+			{#if op === 'reduce'}{prev.hint ?? `${km}km → ${prev.km}km`}{:else if op === 'rest'}휴식으로 바꿔요{:else if op === 'skip'}이 세션을 건너뛰어요{:else if op === 'move'}{toDate ? `${toDate.slice(5).replace('-', '/')}로 옮겨요 · 그날이 쉬운 날이면 서로 맞바꿔요` : '옮길 날을 골라 주세요'}{/if}
 			{#if week} · 이번 주 {week.before}→{week.after}km{/if}
 		</p>
 		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
 
 		<div class="mt-3 flex gap-2">
-			<button type="button" data-testid="row-action-apply" class="h-11 flex-1 rounded-lg bg-fg-primary text-sm font-medium text-surface-1 disabled:opacity-40" disabled={!canApply} onclick={() => op && onApply(op, op === 'reduce' ? pct : undefined, reason)}>적용</button>
+			<button type="button" data-testid="row-action-apply" class="h-11 flex-1 rounded-lg bg-fg-primary text-sm font-medium text-surface-1 disabled:opacity-40" disabled={!canApply} onclick={() => op && onApply(op, op === 'reduce' ? pct : undefined, reason, op === 'move' ? toDate : undefined)}>적용</button>
 			<button type="button" class="h-11 rounded-lg border border-border-subtle px-4 text-sm" onclick={onClose}>취소</button>
 		</div>
 	{/if}

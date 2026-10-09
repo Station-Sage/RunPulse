@@ -39,7 +39,8 @@ def test_fingerprint_mismatch_is_stale():
     assert out["adjustment_stale"] and out["workout_type"] == "interval" and "adjusted" not in out
 
 
-def test_move_and_unadjusted_untouched():
-    adjs = live_adjustments(_conn(op="move"), "2026-10-05", "2026-10-12")
-    assert apply([ROW], adjs) == [ROW]
+def test_move_applies_and_unadjusted_untouched():
+    adjs = live_adjustments(_conn(op="move", after={"date": "2026-10-10"}), "2026-10-05", "2026-10-12")
+    out = apply([ROW], adjs)[0]
+    assert out["date"] == "2026-10-10" and out["original"]["date"] == "2026-10-08" and out["workout_type"] == "interval"
     assert apply([{**ROW, "id": 8}], live_adjustments(_conn(), "2026-10-05", "2026-10-12")) == [{**ROW, "id": 8}]
