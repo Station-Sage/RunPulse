@@ -73,4 +73,4 @@ def _refresh_today_metrics():
     return None
 
 
-from . import routes_coach, routes_data, routes_data_ai, routes_data_calendar, routes_data_export, routes_data_import, routes_library, routes_library_activities, routes_library_export, routes_library_feedback, routes_mcp_tokens, routes_me, routes_plan, routes_plan_adjust, routes_prediction, routes_story, routes_today  # noqa: E402,F401
+from . import routes_coach, routes_data, routes_data_ai, routes_data_calendar, routes_data_export, routes_data_import, routes_library, routes_library_activities, routes_library_export, routes_library_feedback, routes_mcp_tokens, routes_me, routes_plan, routes_plan_adjust, routes_plan_replan, routes_prediction, routes_story, routes_today  # noqa: E402,F401
