@@ -256,6 +256,14 @@ def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict]) -> int:
     return count
 
 
+def ensure_user_training_prefs(conn: sqlite3.Connection) -> None:
+    """user_training_prefs 행이 없을 때만 기본값으로 생성 (기존 사용자 설정은 덮어쓰지 않음)."""
+    conn.execute(
+        "INSERT OR IGNORE INTO user_training_prefs (id, updated_at) VALUES (1, datetime('now'))"
+    )
+    conn.commit()
+
+
 def upsert_user_training_prefs(
     conn: sqlite3.Connection,
     rest_weekdays_mask: int = 0,

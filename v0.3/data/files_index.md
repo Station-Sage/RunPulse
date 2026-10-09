@@ -1430,9 +1430,9 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (292줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (300줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
-- functions: generate_weekly_plan, save_weekly_plan, upsert_user_training_prefs
+- functions: generate_weekly_plan, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs
 
 ### `planner_config.py` (185줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
@@ -2571,9 +2571,9 @@
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
 
-### `test_plan_template_service.py` (145줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
+### `test_plan_template_service.py` (168줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
 
-- functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date
+- functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date, test_create_plan_keeps_existing_training_prefs, test_ensure_prefs_creates_default_row_once
 
 ### `test_planner_as_of.py` (20줄)
 

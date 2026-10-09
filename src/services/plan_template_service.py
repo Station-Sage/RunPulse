@@ -12,7 +12,7 @@ from src.training.goals import add_goal, set_reported_load
 from src.training.planner import (
     generate_weekly_plan,
     save_weekly_plan,
-    upsert_user_training_prefs,
+    ensure_user_training_prefs,
 )
 from src.training.planner_rules import plan_start_monday, plan_weeks_until_race
 from src.training.readiness import (
@@ -178,7 +178,7 @@ def create_plan_from_template(
     conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
     if recent_weekly_km is not None or recent_long_km is not None:
         set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
-    upsert_user_training_prefs(conn)
+    ensure_user_training_prefs(conn)
 
     today = date.today()
     # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)

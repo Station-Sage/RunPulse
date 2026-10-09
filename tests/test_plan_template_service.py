@@ -143,3 +143,26 @@ def test_create_plan_respects_weeks_not_race_date(conn):
         for r in rows
     }
     assert len(mondays) == 16
+
+
+def test_create_plan_keeps_existing_training_prefs():
+    from datetime import date, timedelta
+    from src.services import plan_template_service as pts
+    from src.training.planner import upsert_user_training_prefs
+    from tests.helpers_pred import mem_conn
+    c = mem_conn()
+    upsert_user_training_prefs(c, rest_weekdays_mask=5, interval_rep_m=800, max_q_days=1, long_run_weekday_mask=64)
+    race = (date.today() + timedelta(days=30)).isoformat()
+    pts.create_plan_from_template(c, 10.0, race, 4, name="t")
+    row = c.execute("SELECT rest_weekdays_mask, interval_rep_m, max_q_days, long_run_weekday_mask "
+                    "FROM user_training_prefs WHERE id=1").fetchone()
+    assert tuple(row) == (5, 800, 1, 64)
+
+
+def test_ensure_prefs_creates_default_row_once():
+    from src.training.planner import ensure_user_training_prefs
+    from tests.helpers_pred import mem_conn
+    c = mem_conn()
+    ensure_user_training_prefs(c)
+    ensure_user_training_prefs(c)
+    assert c.execute("SELECT COUNT(*) FROM user_training_prefs").fetchone()[0] == 1
