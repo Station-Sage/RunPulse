@@ -518,8 +518,9 @@ def create_app() -> Flask:
         from src.utils.sync_policy import check_incremental_guard, check_range_guard
         from src.utils.sync_state import (
             is_running, mark_running, mark_finished,
-            get_last_sync_at, get_retry_after_sec,
+            get_last_sync_at,
         )
+        from src.utils.sync_gates import wait_sec
 
         mode = request.form.get("mode", "basic").strip()
         source = request.form.get("source", "all").strip()
@@ -590,7 +591,7 @@ def create_app() -> Flask:
                 continue
 
             # 3) retry_after 확인 (429 등으로 설정된 경우)
-            retry_sec = get_retry_after_sec(src, user_id)
+            retry_sec = wait_sec(src, user_id)
             if retry_sec and retry_sec > 0:
                 from src.utils.sync_policy import _fmt_duration
                 log.info("[trigger_sync] %s retry_after=%ds — skip", src, retry_sec)
@@ -711,8 +712,9 @@ def create_app() -> Flask:
         from src.utils.sync_policy import check_incremental_guard, check_range_guard
         from src.utils.sync_state import (
             is_running, mark_running, mark_finished,
-            get_last_sync_at, get_retry_after_sec,
+            get_last_sync_at,
         )
+        from src.utils.sync_gates import wait_sec
 
         mode = request.form.get("mode", "basic").strip()
         source = request.form.get("source", "all").strip()
@@ -787,7 +789,7 @@ def create_app() -> Flask:
                     yield _sse({"type": "source_done", **r})
                     continue
 
-                retry_sec = get_retry_after_sec(src, user_id)
+                retry_sec = wait_sec(src, user_id)
                 if retry_sec and retry_sec > 0:
                     from src.utils.sync_policy import _fmt_duration
                     r = {"source": src, "ok": False, "skipped": True, "count": 0,

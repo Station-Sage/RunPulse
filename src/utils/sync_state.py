@@ -113,19 +113,6 @@ def get_last_sync_at(service: str, user_id: str | None = None) -> datetime | Non
     return max(candidates) if candidates else None
 
 
-def get_retry_after_sec(service: str, user_id: str | None = None) -> int | None:
-    """재시도 가능까지 남은 초. 없거나 만료됐으면 None."""
-    retry_at_str = _load(user_id).get(service, {}).get("retry_after")
-    if not retry_at_str:
-        return None
-    try:
-        retry_at = datetime.fromisoformat(retry_at_str)
-        remain = int((retry_at - datetime.now()).total_seconds())
-        return remain if remain > 0 else None
-    except Exception:
-        return None
-
-
 def get_rate_state(service: str, user_id: str | None = None) -> dict:
     """저장된 rate limit 상태 반환."""
     return _load(user_id).get(service, {}).get("rate_state", {})
@@ -197,29 +184,6 @@ def mark_finished(
         if rate_state:
             state[service]["rate_state"] = rate_state
         _save(state, uid)
-
-
-def set_retry_after(service: str, seconds: int, user_id: str | None = None) -> None:
-    """429 등 발생 시 재시도 가능 시각 설정."""
-    with _LOCK:
-        uid = _resolve_user_id(user_id)
-        state = _load(uid)
-        state.setdefault(service, {})
-        retry_at = (datetime.now() + timedelta(seconds=seconds)).isoformat(
-            timespec="seconds"
-        )
-        state[service]["retry_after"] = retry_at
-        _save(state, uid)
-
-
-def clear_retry_after(service: str, user_id: str | None = None) -> None:
-    """재시도 제한 해제."""
-    with _LOCK:
-        uid = _resolve_user_id(user_id)
-        state = _load(uid)
-        if service in state:
-            state[service].pop("retry_after", None)
-            _save(state, uid)
 
 
 # ── 자동 주기 동기화 타임스탬프 ──────────────────────────────────────────

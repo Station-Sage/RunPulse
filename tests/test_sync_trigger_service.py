@@ -20,7 +20,8 @@ def _patch(monkeypatch, *, connected=("garmin", "strava"), enabled=("garmin", "s
     import src.utils.sync_state as ss
     monkeypatch.setattr(ss, "is_running", lambda s, u=None: s in running)
     monkeypatch.setattr(ss, "get_last_sync_at", lambda s, u=None: None)
-    monkeypatch.setattr(ss, "get_retry_after_sec", lambda s, u=None: (wait or {}).get(s, 0))
+    import src.utils.sync_gates as sg
+    monkeypatch.setattr(sg, "wait_sec", lambda s, u=None: (wait or {}).get(s, 0))
     import src.utils.sync_policy as sp
     monkeypatch.setattr(sp, "check_incremental_guard", lambda s, last: (guard or {}).get(
         s, SimpleNamespace(allowed=True, retry_after_sec=None, message_ko="")))

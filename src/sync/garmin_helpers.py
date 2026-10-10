@@ -6,7 +6,7 @@ import sqlite3
 
 from src.utils.db_helpers import upsert_metric
 from src.utils.raw_payload import store_raw_payload as _store_rp
-from src.utils.sync_state import set_retry_after
+from src.utils.sync_gates import bump_backoff
 
 
 def _store_raw_payload(
@@ -73,13 +73,7 @@ def _handle_rate_limit(service: str, source_id: str = "") -> None:
     이미 대기 중이면 대기 시간을 2배로 증가 (최대 24시간).
     첫 발생 시 15분.
     """
-    from src.utils.sync_state import get_retry_after_sec
-
-    current = get_retry_after_sec(service)
-    if current and current > 0:
-        next_wait = min(current * 2, 86400)  # 2배, 최대 24시간
-    else:
-        next_wait = 900  # 첫 번째: 15분
+    next_wait = bump_backoff(service)
 
     hours = next_wait // 3600
     mins = (next_wait % 3600) // 60
@@ -95,4 +89,3 @@ def _handle_rate_limit(service: str, source_id: str = "") -> None:
     if source_id:
         msg += f" (마지막 처리: {source_id})"
     print(msg)
-    set_retry_after(service, next_wait)

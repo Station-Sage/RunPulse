@@ -34,7 +34,7 @@ def test_old_15_column_db_upgraded(tmp_path):
     row = c.execute("SELECT id, error_code, source_path FROM sync_jobs").fetchone()
     c.close()
     assert row == ("a", None, None)
-    assert len(_cols(p)) == 23
+    assert len(_cols(p)) == 24
 
 
 def test_syncjob_has_23_fields():

@@ -82,7 +82,8 @@ def plan_incremental(
     from src.utils.config import enabled_sources
     from src.utils.sync_jobs import get_active_job
     from src.utils.sync_policy import check_incremental_guard
-    from src.utils.sync_state import get_last_sync_at, get_retry_after_sec, is_running
+    from src.utils.sync_gates import wait_sec
+    from src.utils.sync_state import get_last_sync_at, is_running
     from src.web.bg_sync import get_status as bg_status
     if db_file is None:
         from src.web.helpers import db_path
@@ -113,7 +114,7 @@ def plan_incremental(
         if not guard.allowed:
             skipped.append(SkipReason(src, "cooldown", guard.message_ko or "정책 제한", guard.retry_after_sec))
             continue
-        wait = get_retry_after_sec(src, user_id)
+        wait = wait_sec(src, user_id)
         if wait:
             skipped.append(SkipReason(src, "rate_limited", "요청 제한 대기 중이에요", wait))
             continue

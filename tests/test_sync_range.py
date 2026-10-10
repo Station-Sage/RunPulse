@@ -42,7 +42,8 @@ def _patch(monkeypatch, connected=("garmin", "strava"), running=()):
     monkeypatch.setattr(cfg, "enabled_sources", lambda c: ["garmin"])
     import src.utils.sync_state as ss
     monkeypatch.setattr(ss, "is_running", lambda s, u=None: s in running)
-    monkeypatch.setattr(ss, "get_retry_after_sec", lambda s, u=None: 0)
+    import src.utils.sync_gates as sg
+    monkeypatch.setattr(sg, "wait_sec", lambda s, u=None: 0)
     import src.utils.sync_jobs as sj
     monkeypatch.setattr(sj, "get_active_job", lambda s: None)
 

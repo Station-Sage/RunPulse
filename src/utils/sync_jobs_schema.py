@@ -1,4 +1,4 @@
-"""sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json) 멱등 보장."""
+"""sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json·params_json) 멱등 보장."""
 from __future__ import annotations
 
 import sqlite3
@@ -21,10 +21,19 @@ CREATE_SQL = """CREATE TABLE IF NOT EXISTS sync_jobs (
     last_error TEXT
 )"""
 
+GATES_SQL = """CREATE TABLE IF NOT EXISTS sync_gates (
+    service     TEXT PRIMARY KEY,
+    retry_after TEXT NOT NULL,
+    backoff_sec INTEGER NOT NULL,
+    reason_code TEXT NOT NULL,
+    set_at      TEXT NOT NULL,
+    job_id      TEXT
+)"""
+
 LEDGER_COLUMNS = {
     "error_code": "TEXT", "http_status": "INTEGER", "source_path": "TEXT",
     "counts_json": "TEXT", "trigger": "TEXT", "started_at": "TEXT", "finished_at": "TEXT",
-    "result_json": "TEXT",
+    "result_json": "TEXT", "params_json": "TEXT",
 }
 
 _ensured: set[str] = set()
@@ -33,6 +42,7 @@ _ensured: set[str] = set()
 def ensure_ledger(conn: sqlite3.Connection, path: str) -> None:
     """테이블·인덱스·원장 열을 보장한다. 경로별로 PRAGMA 검사는 프로세스당 1회."""
     conn.execute(CREATE_SQL)
+    conn.execute(GATES_SQL)
     if path in _ensured:
         return
     cols = {r[1] for r in conn.execute("PRAGMA table_info(sync_jobs)")}
@@ -42,4 +52,6 @@ def ensure_ledger(conn: sqlite3.Connection, path: str) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_sync_jobs_service ON sync_jobs(service, created_at)"
     )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sync_jobs_trigger ON sync_jobs(trigger, created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sync_jobs_busy ON sync_jobs(service, status, updated_at)")
     _ensured.add(path)

@@ -32,7 +32,7 @@ from src.utils.sync_jobs import (
     windows,
 )
 from src.sync.sync_errors import SyncSourceError, classify_exception
-from src.utils.sync_state import get_retry_after_sec
+from src.utils.sync_gates import wait_sec
 
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
 _threads: dict[tuple[str, str], "BgSyncThread"] = {}  # (user_id, service) → 스레드
@@ -63,6 +63,8 @@ try:
     _cleaned = cleanup_stale_running_jobs() + cleanup_stale_running_jobs_all_users()
     if _cleaned:
         log.info("[bg_sync] stale 작업 %d개 정리됨", _cleaned)
+    from src.utils.sync_state_retire import retire_all_users
+    retire_all_users()
 except Exception:
     pass
 
@@ -102,8 +104,9 @@ class BgSyncThread(threading.Thread):
         update_job(self.job_id, status="cancelled" if self._cancelled else "paused", **kwargs)
 
     def run(self) -> None:
-        from src.utils.user_context import set_current_user
+        from src.utils.user_context import set_current_job, set_current_user
         set_current_user(self.user_id)
+        set_current_job(self.job_id)
         job = get_job(self.job_id)
         if job is None:
             return
@@ -166,7 +169,7 @@ class BgSyncThread(threading.Thread):
             update_job(self.job_id, status="running", current_from=win_from)
 
             # 3) rate limit 대기
-            retry_sec = get_retry_after_sec(job.service)
+            retry_sec = wait_sec(job.service)
             if retry_sec and retry_sec > 0:
                 reset_at = (
                     datetime.now() + timedelta(seconds=retry_sec)
@@ -584,7 +587,7 @@ def get_status(service: str, user_id: str | None = None) -> dict:
     if not job:
         return {"active": False}
 
-    retry_sec = get_retry_after_sec(service)
+    retry_sec = wait_sec(service)
     rl = job.rate_limit
     with _lock:
         t = _find_thread(service, user_id)

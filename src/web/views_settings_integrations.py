@@ -13,7 +13,7 @@ from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, update_service_config
 from src.utils.public_url import public_base_url
-from src.utils.sync_state import clear_retry_after
+from src.utils.sync_gates import clear as clear_gate
 
 settings_integrations_bp = Blueprint("settings_integrations", __name__)
 
@@ -308,7 +308,7 @@ def runalyze_connect_post():
         return redirect("/connect/runalyze?error=" + urllib.parse.quote("토큰을 입력하세요."))
 
     update_service_config("runalyze", {"token": token})
-    clear_retry_after("runalyze")
+    clear_gate("runalyze")
 
     if action == "save":
         return redirect("/connect/runalyze?msg=" + urllib.parse.quote("저장 완료."))

@@ -342,7 +342,7 @@
 
 - (public API 없음)
 
-### `sync_range_service.py` (95줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
+### `sync_range_service.py` (96줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
 
 - functions: parse_range, estimate, trigger_range
 
@@ -350,7 +350,7 @@
 
 - functions: classify_error, get_sync_state
 
-### `sync_trigger_service.py` (151줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
+### `sync_trigger_service.py` (152줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
 
 - class **SkipReason**: to_dict
 - class **TriggerResult**: 없음
@@ -686,7 +686,7 @@
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
-### `garmin_helpers.py` (98줄) — Garmin 동기화 공통 헬퍼.
+### `garmin_helpers.py` (91줄) — Garmin 동기화 공통 헬퍼.
 
 - (public API 없음)
 
@@ -764,7 +764,7 @@
 
 - functions: reprocess_all
 
-### `runalyze.py` (261줄) — Runalyze 데이터 동기화 (API Token).
+### `runalyze.py` (262줄) — Runalyze 데이터 동기화 (API Token).
 
 - functions: sync_activities, check_runalyze_connection
 
@@ -1033,7 +1033,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1398줄) — RunPulse integration workbench web app.
+### `app.py` (1400줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1045,7 +1045,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (613줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (616줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1664,12 +1664,17 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
+### `sync_gates.py` (79줄) — 동기화 게이트 — 429/인증 만료 후 재시도 가능 시각(sync_gates 테이블, 사용자별 sync_jobs.db).
+
+- class **Gate**: remaining_sec
+- functions: gate, wait_sec, bump_backoff, block, clear
+
 ### `sync_jobs.py` (293줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
 - functions: windows, cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
 
-### `sync_jobs_schema.py` (45줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json) 멱등 보장.
+### `sync_jobs_schema.py` (57줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json·params_json) 멱등 보장.
 
 - functions: ensure_ledger
 
@@ -1679,13 +1684,17 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (248줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
+### `sync_state.py` (212줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
-- functions: get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
+- functions: get_service_state, is_running, get_last_sync_at, get_rate_state, get_all_states, mark_running, mark_finished, get_last_auto_sync, mark_auto_sync_ran
 
-### `user_context.py` (29줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+### `sync_state_retire.py` (70줄) — sync_state.json 퇴역 이관 — 미래의 retry_after만 sync_gates로 옮긴다 (--restore: 이름 원복).
 
-- functions: set_current_user, resolve_user_id
+- functions: retire_all_users, restore_all_users
+
+### `user_context.py` (38줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+
+- functions: set_current_user, set_current_job, current_job, resolve_user_id
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
 
@@ -3002,6 +3011,10 @@
 
 - functions: test_classify_http, test_classify_non_http, test_messages_cover_all_codes, test_from_result_only_for_total_failure, test_merge_and_job_dict_carry_error_code, test_strava_wrapper_raises_on_403
 
+### `test_sync_gates.py` (59줄) — sync_gates — 게이트 읽기/쓰기/백오프/사용자 분리.
+
+- functions: ledger, test_no_gate_is_none, test_first_backoff_900_then_doubles_to_cap, test_active_gate_wait_sec, test_expired_gate_is_none_and_restarts_at_900, test_block_and_clear, test_job_id_recorded, test_users_are_separate
+
 ### `test_sync_jobs_schema.py` (77줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
 
 - functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_23_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
@@ -3010,7 +3023,7 @@
 
 - functions: test_cli_run_completed, test_manual_failed_with_code, test_fail_run_creates_missing_row_for_timeout, test_fail_run_does_not_overwrite_child_failure, test_auto_and_bg_source_path_persist
 
-### `test_sync_range.py` (118줄) — 기간 동기화 — parse_range·estimate·trigger_range·POST/GET API.
+### `test_sync_range.py` (119줄) — 기간 동기화 — parse_range·estimate·trigger_range·POST/GET API.
 
 - functions: test_parse_range_errors, test_estimate_counts_and_limits, test_trigger_range_skips_and_starts, test_trigger_range_too_large_and_running, client, test_api_range_validation, test_api_range_202_and_too_large, test_api_estimate, test_auto_sync_connected_sources_respects_enabled
 
@@ -3018,11 +3031,15 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
+### `test_sync_state_retire.py` (52줄) — sync_state_retire — 미래 retry_after만 sync_gates로 이관.
+
+- functions: root, test_future_retry_moved, test_past_retry_ignored, test_idempotent_keeps_existing_gate, test_rename_and_restore
+
 ### `test_sync_state_service.py` (107줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
 
 - functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream, test_cancelled_job_is_not_an_error
 
-### `test_sync_trigger_service.py` (100줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
+### `test_sync_trigger_service.py` (101줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
 
 - functions: test_plan_skip_codes, test_plan_cooldown_then_rate_limited, test_plan_from_date_default_seven_days, test_days_since_last_sync, test_trigger_isolates_start_failure, test_trigger_existing_job_becomes_running_skip, test_skip_reason_to_dict_omits_none
 
@@ -3288,7 +3305,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 700개 파일
+총 704개 파일
 
 ## docstring 누락
 

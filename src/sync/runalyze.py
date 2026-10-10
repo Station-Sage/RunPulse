@@ -10,7 +10,8 @@ from src.utils.db_helpers import upsert_metric
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
-from src.utils.sync_state import get_retry_after_sec, mark_finished, set_retry_after
+from src.utils.sync_gates import block, wait_sec
+from src.utils.sync_state import mark_finished
 
 
 def _store_raw_payload(
@@ -80,7 +81,7 @@ def sync_activities(
         return 0
 
     # 이전 403 인증 오류로 인한 대기 중인지 확인
-    retry_sec = get_retry_after_sec("runalyze")
+    retry_sec = wait_sec("runalyze")
     if retry_sec:
         hours = retry_sec // 3600
         print(f"[runalyze] 이전 인증 오류(403)로 인해 동기화 대기 중 (약 {hours}시간 남음). "
@@ -103,7 +104,7 @@ def sync_activities(
     except api.ApiError as e:
         if e.status_code == 403:
             print("[runalyze] 403 Forbidden — 토큰 오류. 24시간 동안 동기화 중단.")
-            set_retry_after("runalyze", 86400)
+            block("runalyze", 86400, reason="auth_expired")
             mark_finished("runalyze", count=0, error="403 Forbidden — 토큰 오류/만료. 토큰을 재발급하세요.")
         else:
             print(f"[runalyze] API 오류 {e.status_code}: {e}")

@@ -15,7 +15,7 @@ _Timeout.__name__ = "ReadTimeout"
 
 def _thread(monkeypatch, calls, counts, tmp_path):
     monkeypatch.setattr(bg_sync, "update_job", lambda jid, **kw: calls.append(kw))
-    monkeypatch.setattr(bg_sync, "get_retry_after_sec", lambda s: 0)
+    monkeypatch.setattr(bg_sync, "wait_sec", lambda s: 0)
     monkeypatch.setattr(bg_sync.BgSyncThread, "_interruptible_sleep", lambda self, s: None)
     seq = iter(counts)
 

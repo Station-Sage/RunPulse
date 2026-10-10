@@ -61,7 +61,8 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
     """소스별 판정(미연결·꺼짐·실행 중·대기·기간 정책) 후 통과한 소스만 시작."""
     from src.utils.config import enabled_sources
     from src.utils.sync_jobs import get_active_job
-    from src.utils.sync_state import get_retry_after_sec, is_running
+    from src.utils.sync_gates import wait_sec
+    from src.utils.sync_state import is_running
     from src.web.bg_sync import _start_or_existing
 
     checkers, on = _checkers(), enabled_sources(config)
@@ -80,7 +81,7 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
             skipped.append(SkipReason(src, "running", "이미 동기화 중이에요", job_id=job.id if job else None))
         elif not (guard := check_range_guard(src, days)).allowed:
             skipped.append(SkipReason(src, "range_too_large", guard.message_ko or "기간이 너무 길어요"))
-        elif wait := get_retry_after_sec(src, user_id):
+        elif wait := wait_sec(src, user_id):
             skipped.append(SkipReason(src, "rate_limited", "요청 제한 대기 중이에요", wait))
         else:
             try:

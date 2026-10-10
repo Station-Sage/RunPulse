@@ -15,6 +15,15 @@ def set_current_user(user_id: str) -> None:
     _LOCAL.user_id = user_id
 
 
+def set_current_job(job_id: str | None) -> None:
+    """현재 스레드가 처리 중인 원장 작업 id — 게이트 기록 등에서 job_id 연결용."""
+    _LOCAL.job_id = job_id
+
+
+def current_job() -> str | None:
+    return getattr(_LOCAL, "job_id", None)
+
+
 def resolve_user_id(user_id: str | None = None) -> str:
     """user_id 해석: 인자 → thread-local → Flask session → 'default'."""
     if user_id:
