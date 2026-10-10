@@ -25,6 +25,7 @@
 		{ href: `${base}/coach`, label: 'Coach', match: '/coach', icon: 'coach' as const }
 	];
 
+	const isLanding = $derived(page.url.pathname.startsWith(`${base}/landing`));
 	const isActive = (match: string) => page.url.pathname.startsWith(`${base}${match}`);
 </script>
 
@@ -33,6 +34,9 @@
 <ProgressBar />
 {#if $demoActive}<DemoBanner />{/if}
 
+{#if isLanding}
+	<div class="min-h-screen bg-surface-1 text-fg-primary">{@render children()}</div>
+{:else}
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
 	<header class="border-b border-border-subtle pt-[env(safe-area-inset-top)]">
 		<div class="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 lg:max-w-6xl">
@@ -73,3 +77,4 @@
 		</div>
 	</nav>
 </div>
+{/if}

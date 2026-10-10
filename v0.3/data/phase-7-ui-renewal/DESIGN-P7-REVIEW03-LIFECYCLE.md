@@ -279,3 +279,4 @@ L1  곧 열려요 (미래 약속)
 - 2026-10-10: 초안. 갭 15건, S0/S1/S2 설계, 구현 L1~L7, 판단 D-L1~D-L8.
 - 2026-10-10: 사용자 확정 — D-L1 사이트 공개(추천 (b) 별도 정적 공개 사이트, 인증 경계 무변경), D-L2~D-L8 추천안. ADR-038. L5·L6 착수 차단 해제.
 - 2026-10-10: L5 `/demo` 구현 — `window.fetch` 가로채기(lib/demoMode.ts)로 기존 화면 그대로 재사용, 읽기는 `static/demo/snapshot.json`(synth DB 크롤, `pw/export_demo_snapshot.mjs`), 쓰기는 시트 전환. 스냅샷 날짜는 내보낸 시점으로 고정(릴리스 시 재생성). Coach는 스냅샷 스레드 읽기 전용, 서버 호출 0 확인.
+- 2026-10-10: L6 `/landing` 구현(정적, 탭 숨김, `/demo?to=` 딥링크, 초대 요청=mailto). 별도 공개 정적 사이트 호스팅·Cloudflare Access 우회는 사용자 조치(USER-PUBLIC-SITE).

@@ -30,6 +30,7 @@
 - **[USER-CONNECTOR-OAUTH]** claude.ai 커넥터 Google Drive·Notion·Strava·Tredict는 OAuth 인증 필요(claude.ai 커넥터 설정 또는 대화형 세션 `/mcp`). 인증 전까지 해당 연동 사용 불가.
 - **[USER-PYTEST-MCP]** `pytest` MCP 서버가 `CONNECTION_CLOSED`로 연결 실패 — 설정·실행 명령 확인 필요.
 - **[USER-CALDAV-LIVE]** CalDAV 실계정 연결: 설정에서 네이버 또는 iCloud 앱 비밀번호로 계정 연결 후 연결 테스트 실행(ADR-036). 구글은 CalDAV 미지원이라 불가.
+- **[USER-PUBLIC-SITE]** 공개 랜딩/데모(REVIEW03 D-L1 b): `frontend/build`의 `/landing`·`/demo`·`/demo/snapshot.json`을 별도 정적 호스팅에 올리고 Cloudflare Access 우회(공개) 경로를 설정. 초대 요청 메일 주소(`routes/landing/+page.svelte` INVITE_HREF) 확인.
 - **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 구현·배포 완료(아래 NEXT).
 
 ## DONE (recent)
