@@ -6,7 +6,7 @@
 
 ## BUGS
 
-- **[AUDIT-SERVICE-LAYER]** **(판단 필요)** 재조사(2026-10-10): raw SQL 은 `src/web/views_*`(레거시 Flask HTML 뷰) 150곳에 집중. 신규 UI 경로 `src/api`(Svelte용 JSON)는 raw SQL 5곳뿐이고 SQL 은 `src/services`가 담당 → 서비스 레이어는 이미 신규 UI 에서 충족. 추천: 레거시 뷰를 서비스로 옮기지 말고 Svelte 대체 완료 라우트부터 블루프린트 퇴역(삭제). 퇴역 대상 목록·라우트 대응표 작성 후 승인받아 진행. (이관 vs 퇴역 선택 필요)
+- **[AUDIT-SERVICE-LAYER]** **(판단 필요)** 재조사(2026-10-10): raw SQL 은 `src/web/views_*`(레거시 Flask HTML 뷰) 150곳에 집중, 신규 `src/api` 는 5곳뿐이고 SQL 은 `src/services`가 담당 → 신규 UI 는 충족. **범위 확대**: import 그래프상 v2(api/services/sync/mcp_remote)에서 도달 불가한 코드가 약 36,000줄/63,000줄 — web 19.9k(전체 23.3k 중 3.3k 는 bg_sync·app 일부로 v2 현역), metrics 6.4k(`_v02_backup` 34파일 포함), ai 3.4k, analysis 2.2k, training 2.0k(planner_v2·replanner·plan_gates 등), 루트(analyze/plan/mcp_server/validation) 1.3k 등. sync·services 는 전부 현역. 한계: CLI·스크립트·테스트 전용 코드도 '도달 불가'로 잡히므로 삭제 근거로 쓰기 전 검증 필요. v2가 의존하는 v1 라우트(/sync, /trigger-sync-bg, /connect/garmin, /import, /mcp, /feeds/cal, /guide)는 유지. **추천 B(단계적 퇴역)**: 0) 도달성 감사 — 현역/v1 전용/CLI·스크립트 전용/테스트 전용 대응표(코드 변경 없음, `replanner`·`planner_v2` 호출 경로 확인 포함) → 승인 / 1) 확실한 죽은 코드(`_v02_backup`, analyze.py, plan.py, ai_context_legacy) / 2) 대체 완료 v1 화면 라우트 퇴역(리다이렉트 유지) + 그 뷰 전용 ai·analysis·training 모듈 / 3) web 내 현역 코드(bg_sync 등)를 services 로 이관 / 4) 테스트 29파일·check_docs·files_index·ADR 정리. 단계마다 별도 커밋·운영 반영. 대안 A(전면 이관)는 비추천, C(유지)는 규칙 위반 잔존. 승인 대기: 0단계 착수 여부.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거 시 해소(2026-10-10: G6 와 무관함을 확인, 독립 항목).**
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
