@@ -16,10 +16,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", help="실DB 경로(읽기 전용). 없으면 합성 격자만")
     ap.add_argument("--out", default="plan_backtest.json")
-    ap.add_argument("--engine", choices=["v1", "v2"], default="v1")
+    ap.add_argument("--engine", choices=["v1", "v2", "replan"], default="v1")
     ap.add_argument("--grid-limit", type=int, default=0, help="격자 시나리오 수 제한(0=전부)")
     ap.add_argument("--distance", help="격자 거리 필터(예: full)")
     a = ap.parse_args()
+    if a.engine == "replan":      # v1 계획 중간에서 v2 로 전환(E7). 실DB 없이 합성 격자만
+        from src.training import plan_backtest_replan as RP
+        out = RP.run_replan_grid(a.distance, a.grid_limit)
+        Path(a.out).write_text(json.dumps(out, ensure_ascii=False, indent=1))
+        print(json.dumps({k: out[k] for k in ("total", "passed")}))
+        return 0 if out["passed"] == out["total"] else 1
     scenarios, base = [], None
     if a.db:
         src = sqlite3.connect(f"file:{a.db}?mode=ro", uri=True)

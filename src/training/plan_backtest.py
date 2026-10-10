@@ -19,6 +19,7 @@ from . import personalize as PZ
 from . import plan_gates_long as GL
 from .goals import add_goal
 from .long_run_rules import LongCtx
+from .marathon_rules import mp_now_from_prediction
 from .planner import generate_weekly_plan, upsert_user_training_prefs
 from .planner_rules import plan_start_monday
 from .week_structure import _is_shakeout
@@ -189,6 +190,7 @@ def run_scenario(scn: Scenario, base_conn: sqlite3.Connection | None, engine=eng
         if scn.kind == "history" and base_conn is not None:
             base_conn.backup(mem)
             inp = history_inputs(mem, scn.start_monday)
+            inp["mp_now"] = mp_now_from_prediction(mem, None, scn.start_monday.isoformat())      # 엔진과 같은 MP 출처(E7)
             scn.days = min(6, max(3, round(inp["days_median_8w"])))
             return mem, inp
         seed_grid_history(mem, scn)
@@ -204,7 +206,8 @@ def run_scenario(scn: Scenario, base_conn: sqlite3.Connection | None, engine=eng
 
     weeks, inputs = once()
     v1w = v1_engine(scn, build()[0])[0] if v1_engine else None
-    gates = judge(scn, weeks, inputs, lambda: once()[0], v1=v1w)
+    m = inputs.get("mp_now")
+    gates = judge(scn, weeks, inputs, lambda: once()[0], v1=v1w, mp_now=(lambda w: m) if m else None)
     return {"scenario": {k: v for k, v in scn.__dict__.items() if k != "aux"}, "inputs": inputs,
             "weeks": [{"i": w.index, "phase": w.phase, "km": round(w.km, 1), "long": round(w.long_km, 1),
                        "run_days": w.run_days} for w in weeks],

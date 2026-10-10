@@ -240,7 +240,7 @@
 
 - functions: reduce_after, easy_after
 
-### `plan_replan_service.py` (221줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (222줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: next_monday, preview, apply, last_undoable, entry_state, undo
@@ -1409,10 +1409,14 @@
 - class **Anchor**: 없음
 - functions: load_anchors, fold
 
-### `plan_backtest.py` (224줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+### `plan_backtest.py` (227줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
 - functions: rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
+
+### `plan_backtest_replan.py` (82줄) — 재계획(v1 계획 중간 anchor 에서 v2 로 전환) 백테스트 — 전환 이후 주(꼬리)를 게이트로 판정한다 (PLAN-ENGINE E7).
+
+- functions: engine_replan, run_replan_scenario, replan_grid, run_replan_grid
 
 ### `plan_gates.py` (182줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
 
@@ -1445,7 +1449,7 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (303줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (300줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs
 
@@ -1461,7 +1465,7 @@
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
-### `planner_v2.py` (193줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
+### `planner_v2.py` (207줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
 - functions: apply_v2, apply_for_goal
 
@@ -2491,9 +2495,9 @@
 - class **TestVDOTMock**: test_10k, test_non_running
 - class **TestConfidenceBuilder**: test_all_available, test_partial_available, test_estimated_penalty, test_empty, test_mixed
 
-### `test_mp_now_prediction.py` (32줄) — MP_now 출처 — r3 마라톤 예측 우선, 없으면 VDOT M (PLAN-ENGINE E4/X3).
+### `test_mp_now_prediction.py` (44줄) — MP_now 출처 — r3 마라톤 예측 우선, 없으면 VDOT M (PLAN-ENGINE E4/X3).
 
-- functions: test_falls_back_to_vdot_when_no_prediction, test_uses_latest_prediction_not_after_as_of, test_run_days_default_uses_median_when_no_rest_mask
+- functions: test_falls_back_to_vdot_when_no_prediction, test_uses_latest_prediction_not_after_as_of, test_run_days_default_uses_median_when_no_rest_mask, test_finalize_rows_clears_rest_and_adds_mp_segment
 
 ### `test_narrative_cache.py` (153줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
 
@@ -2583,6 +2587,10 @@
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
 
+### `test_plan_backtest_replan.py` (15줄) — 재계획 백테스트(E7) — v1 계획 중간 anchor 에서 v2 로 전환한 꼬리가 하드 게이트를 통과한다.
+
+- functions: test_replan_grid_skips_cold_and_short_tails, test_replan_tail_passes_hard_gates_sample
+
 ### `test_plan_create_atomic.py` (56줄) — POST /coach/plan 생성 — 단일 트랜잭션·이전 목표 미래 행 정리 (ADR-035 부록 R T6).
 
 - functions: test_create_cancels_old_goal_and_clears_its_future_rows, test_failure_rolls_back_goal_and_plan, test_commit_false_defers_to_caller
@@ -2632,9 +2640,9 @@
 
 - functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable
 
-### `test_plan_replan_start.py` (130줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
+### `test_plan_replan_start.py` (131줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
 
-- functions: c, test_state_a_history_ignores_low_input, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak, test_weekly_km_has_long_km, test_pending_blocks_second_replan_until_undone, test_history_on_new_rows_hides_undo_and_allows_replan, test_entry_state_rules
+- functions: c, test_state_a_low_input_is_honored, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak, test_weekly_km_has_long_km, test_pending_blocks_second_replan_until_undone, test_history_on_new_rows_hides_undo_and_allows_replan, test_entry_state_rules
 
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
@@ -2652,9 +2660,9 @@
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
 
-### `test_planner_schedule_cold.py` (74줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
+### `test_planner_schedule_cold.py` (79줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
 
-- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty, test_start_load_uses_reported_load_only_when_cold, test_week_cap_km_v2_only, test_long_pace_uses_profile_threshold_without_vdot
+- functions: test_cold_start_km_sources, test_cold_start_km_week1_limited_by_history, test_recent_avg_km, test_start_load_cold_only_for_v2, test_schedule_for_goal_cold_v2_not_empty_v1_empty, test_start_load_uses_reported_load_only_when_cold, test_week_cap_km_v2_only, test_long_pace_uses_profile_threshold_without_vdot, test_cold_start_km_user_below_prev4_is_honored
 
 ### `test_planner_v2.py` (126줄) — planner_v2 후처리 단위 테스트(순수 함수).
 
@@ -3146,7 +3154,7 @@
 
 - functions: main
 
-### `plan_backtest.py` (43줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
+### `plan_backtest.py` (49줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
 
@@ -3159,7 +3167,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 669개 파일
+총 671개 파일
 
 ## docstring 누락
 
