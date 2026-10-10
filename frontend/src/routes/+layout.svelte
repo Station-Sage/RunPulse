@@ -11,10 +11,13 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
+	import DemoBanner from '$lib/components/DemoBanner.svelte';
+	import { demoActive, isDemoActive } from '$lib/demoMode';
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
 
 	let { children } = $props();
 	let menuOpen = $state(false);
+	if (isDemoActive()) demoActive.set(true);
 
 	const tabs = [
 		{ href: `${base}/today`, label: 'Today', match: '/today', icon: 'today' as const },
@@ -28,20 +31,21 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <ProgressBar />
+{#if $demoActive}<DemoBanner />{/if}
 
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
 	<header class="border-b border-border-subtle pt-[env(safe-area-inset-top)]">
 		<div class="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 lg:max-w-6xl">
-			<button
+			{#if !$demoActive}<button
 				type="button"
 				onclick={() => (menuOpen = true)}
 				aria-label="메뉴"
 				class="-ml-1.5 rounded p-1.5 text-fg-secondary hover:text-fg-primary"
 			>
 				<Icon name="menu" class="h-5 w-5" />
-			</button>
+			</button>{/if}
 			<span class="font-medium">RunPulse</span>
-			<SyncStatusPill />
+			{#if !$demoActive}<SyncStatusPill />{/if}
 		</div>
 	</header>
 
