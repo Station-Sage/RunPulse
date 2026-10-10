@@ -269,9 +269,9 @@
 
 - functions: profile_rows, effective_value, validate_changes, apply_changes
 
-### `progression_service.py` (25줄) — 품질 세션 사다리 단계 저장·갱신 서비스(U16l) — progression.py 순수 함수와 plan_progression 테이블을 잇는다.
+### `progression_service.py` (66줄) — 품질 세션 사다리 단계 저장·갱신 서비스(U16l) — progression.py 순수 함수와 plan_progression 테이블을 잇는다.
 
-- functions: get_step, advance
+- functions: get_step, advance, recompute, on_outcome
 
 ### `provider_comparison_service.py` (296줄) — Provider 비교 서비스 — 활동 그룹 내 소스별 메트릭 비교 (3-G-2).
 
@@ -1369,6 +1369,10 @@
 
 - functions: prescribe_interval, prescribe_from_vdot
 
+### `ladder_apply.py` (93줄) — 품질 세션 사다리 처방 적용(순수, E8) — 사다리 단계(progression.py)를 v2 주간 행의 interval·tempo·long_mp 처방에 덮어쓴다.
+
+- functions: long_mp_structure, apply_ladder
+
 ### `long_run_rules.py` (192줄) — 롱런 하한·상한 규칙(순수) — 엔진 후처리·주기화·게이트가 같은 함수를 부른다 (DESIGN-U16-LONGRUN §3~§5).
 
 - class **LongCtx**: 없음
@@ -1391,7 +1395,7 @@
 
 - (public API 없음)
 
-### `outcome_store.py` (57줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
+### `outcome_store.py` (59줄) — 세그먼트 이행 결과 저장(P7-PRED-43) — 매칭된 계획·활동 쌍에 v2 비교(outcome_v2.compare)와 소스 컴플라이언스를 기록.
 
 - functions: update_outcome_v2
 
@@ -2612,6 +2616,10 @@
 - class **FakeClient**: get_workout_by_id
 - functions: test_parse_garmin_workout_structure_and_unknown_step_skipped, test_parse_adaptive_task_and_rest_day, test_parse_intervals_event_real_shapes, test_ingest_intervals_links_paired_activity, test_store_planned_upsert_keeps_runpulse_rows, test_ingest_garmin_executed_links_by_workout_id_and_skips_deleted
 
+### `test_plan_ladder.py` (66줄) — 품질 사다리 연결(E8) — 단계→처방 구조, 라벨 이력→단계(멱등), 거리에 안 맞으면 v1 유지.
+
+- functions: test_interval_step_changes_structure, test_too_short_row_keeps_v1, test_tempo_reps_and_continuous, test_long_mp_ladder_caps_phase_value, test_recompute_up_and_idempotent_and_down
+
 ### `test_plan_load.py` (63줄) — plan_load: 세션 부하, 이지 u 중앙값, load_delta (주 부하 변화율·ACWR).
 
 - functions: test_session_load_and_u, test_load_delta_rest_lowers_week_and_acwr, test_load_delta_none_without_history_or_other_week
@@ -3171,7 +3179,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 672개 파일
+총 674개 파일
 
 ## docstring 누락
 

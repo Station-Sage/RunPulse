@@ -11,6 +11,7 @@ from datetime import date, timedelta
 
 from . import long_run_rules as LR
 from . import marathon_rules as MR
+from .ladder_apply import apply_ladder, long_mp_structure
 from .plan_structure import structure_for_plan
 from .planner_v2_long import long_fill_km, plan_long_week, rebalance as _rebalance, total as _total, trim_run_days
 from .week_structure import MIN_SESSION_KM, apply_week_structure
@@ -142,10 +143,7 @@ def _finalize_rows(rows: list[dict], mp: float | None) -> None:
             r.update(target_pace_min=None, target_pace_max=None, target_hr_zone=None, rationale="",
                      interval_prescription=None, structure=None)
         elif r["workout_type"] == "long_mp" and mp and r.get("mp_km") and r.get("distance_km"):
-            easy_km = max(0.0, float(r["distance_km"]) - float(r["mp_km"]))
-            easy = structure_for_plan("long", easy_km, r.get("target_pace_min"), r.get("target_pace_max")) if easy_km > 0 else None
-            mps = structure_for_plan("marathon", float(r["mp_km"]), round(mp - 3), round(mp + 5))
-            r["structure"] = {"steps": ((easy or {}).get("steps") or []) + (mps or {}).get("steps", [])}
+            r["structure"] = long_mp_structure(r, mp)
 
 
 def _place_mp(out: list[dict], mp: float, phase: str, weeks_to_race: int, taper_first: bool, week_km: float,
@@ -191,6 +189,8 @@ def apply_for_goal(conn, goal: dict, rows: list[dict], target, dlabel: str, pace
                     weeks_since_build=max(0, 16 - target.weeks_to_race), run_days=n_run_days,
                     week_km=target.weekly_km, long_max_12w=recent_long_max(conn, ref, 12), race_date=goal.get("race_date"),
                     long_max_6w=long6)
+    from src.services.progression_service import get_step
+    out = apply_ladder(out, {q: get_step(conn, goal["id"], q) for q in ("interval", "tempo", "long_mp")}, MP_SESSION_KM)
     if target.index == 0:
         _note_cold_start(out, plan_start_source(conn, goal, dlabel, as_of), target.weekly_km)
     return out

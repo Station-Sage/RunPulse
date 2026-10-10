@@ -54,4 +54,6 @@ def update_outcome_v2(conn: sqlite3.Connection, planned_id: int, activity_id: in
     conn.execute("UPDATE session_outcomes SET compliance_pct=?, segment_match_json=?, source_compliance=?, "
                  "source_system=?, outcome_label=? WHERE planned_id=?",
                  (res["compliance_pct"], json.dumps(res, ensure_ascii=False), src_c, p[1], res["label"], planned_id))
+    from src.services.progression_service import on_outcome
+    on_outcome(conn, planned_id)
     return res
