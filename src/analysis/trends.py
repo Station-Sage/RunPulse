@@ -3,6 +3,8 @@
 import sqlite3
 from datetime import date, timedelta
 
+from src.utils.vo2max_source import garmin_vo2max_between
+
 
 def _week_start(d: date) -> date:
     """월요일 기준 주 시작일."""
@@ -164,7 +166,6 @@ def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
         ("intervals_tsb",    "daily",    "intervals", "tsb"),
         ("runalyze_evo2max", "activity", "runalyze",  "effective_vo2max"),
         ("runalyze_vdot",    "activity", "runalyze",  "vdot"),
-        ("garmin_vo2max",    "activity", "garmin",     "vo2max_activity"),
     ]
 
     results = []
@@ -185,6 +186,10 @@ def fitness_trend(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
                     conn, wk_start_str, wk_end_str, provider, metric_name
                 )
             entry[result_key] = val
+
+        entry["garmin_vo2max"] = garmin_vo2max_between(
+            conn, wk_start_str, (wk_end - timedelta(days=1)).isoformat()
+        )[0]
 
         results.append(entry)
 

@@ -336,3 +336,11 @@
 - D-U16-2("목표당 고정") 대체: 규칙 버전은 `plan_replans.rules_version`(anchor 단위)이며, 그 주 이전 마지막 applied anchor 값이 우선하고 없으면 `goals.plan_rules_version`(`effective_rules_version`). 되돌리면(undone) 이전 버전으로 복귀.
 - 재계획 API: `rules_version`(전환 요청)·`expect_rules_version`(미리보기 때 본 현재 버전, 불일치 시 409 `RULES_MISMATCH`). 미리보기는 `structure_diff`(종류·구조 행 수 전/후, 달라진 날)를 돌려준다.
 - 검증: 합성 격자 재계획 백테스트(`plan_backtest.py --engine replan`, 1596건) 하드 게이트 위반 0.
+
+### ADR-040: Garmin VO2max 정밀값 (GARMIN-VO2MAX-PRECISE, 2026-10-10)
+- D1: 일별 메트릭 `vo2max`(provider garmin, daily, numeric=`vo2MaxPreciseValue` 소수 1자리, 없으면 정수값)로 저장. 소스는 `get_max_metrics_range`(≤365일/호출, 측정일만 존재), raw 는 `maxmet_day`.
+- D2: SEMANTIC_GROUPS `vo2max` 에 daily 멤버 추가, 제공자 매트릭스 garmin 셀을 daily `vo2max` 로 교체.
+- D3: 소비처는 `utils/vo2max_source`(정밀값 vs 활동 정수값 중 더 최근 날짜, 동일 날짜면 정밀값, 나이 제한 없음).
+- D4: 죽은 user_summary `vo2MaxValue` 경로(`_upsert_vo2max`, wellness fitness 블록, Garmin `extract_fitness`)를 제거.
+- D5: `training_status_day` 는 건드리지 않고 ATL/CTL 파서 결함은 BUG 로 등록.
+- 과거 백필은 `scripts/backfill_garmin_vo2max.py`(기본 dry-run), 실 DB 쓰기는 백업 + 사용자 승인 후.

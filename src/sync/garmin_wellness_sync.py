@@ -12,7 +12,6 @@ from src.sync.sync_result import SyncResult
 from src.sync._helpers import (
     save_daily_wellness,
     save_metrics,
-    save_daily_fitness,
     resolve_primaries,
 )
 
@@ -148,11 +147,6 @@ def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
     metrics = extractor.extract_wellness_metrics(date_str, **raw_payloads)
     if metrics:
         save_metrics(conn, "daily", date_str, "garmin", metrics)
-
-    user_summary = raw_payloads.get("wellness_user_summary", {})
-    fitness = extractor.extract_fitness(date_str, user_summary)
-    if fitness.get("vo2max") is not None:
-        save_daily_fitness(conn, date_str, "garmin", fitness)
 
     resolve_primaries(conn, "daily", date_str)
     return True

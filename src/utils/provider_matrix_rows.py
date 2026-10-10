@@ -84,9 +84,9 @@ ROWS: tuple[MatrixRow, ...] = (
     ),
     MatrixRow(
         "vo2max_vdot", "VO2max · VDOT", None, "float1", "definition",
-        (("vo2max_activity", "garmin", "activity"), ("runpulse_vdot", "runpulse", "activity")),
-        definitions={"garmin": "Garmin VO2max(생리 추정)", "runpulse": "VDOT(기록 기반 환산)"},
-        metric_slugs=("vo2max_activity", "runpulse_vdot"),
+        (("vo2max", "garmin", "daily"), ("runpulse_vdot", "runpulse", "activity")),
+        definitions={"garmin": "Garmin VO2max(정밀값, 측정일)", "runpulse": "VDOT(기록 기반 환산)"},
+        metric_slugs=("vo2max", "vo2max_activity", "runpulse_vdot"),
     ),
     MatrixRow(
         "efficiency_factor", "효율 지수 (EF)", None, "float2", "definition",

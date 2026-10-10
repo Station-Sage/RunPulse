@@ -553,12 +553,8 @@ class GarminExtractor(BaseExtractor):
     # ── Fitness ──
 
     def extract_fitness(self, date: str, raw: dict) -> dict:
-        """→ daily_fitness INSERT용 dict."""
-        fitness: dict = {"source": self.SOURCE, "date": date}
-        vo2max = raw.get("vo2MaxValue") or raw.get("vo2max")
-        if vo2max is not None:
-            fitness["vo2max"] = float(vo2max)
-        return {k: v for k, v in fitness.items() if v is not None}
+        """Garmin VO2max 는 maxmet/daily(garmin_maxmet_sync)로만 저장한다 — 여기서는 비어 있음."""
+        return {}
 
 
 # ── Garmin 헬퍼 함수 ──

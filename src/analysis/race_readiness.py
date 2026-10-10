@@ -236,7 +236,8 @@ def assess_race_readiness(
     atl = _safe_float(_latest_daily(conn, "intervals", "atl"))
     tsb = _safe_float(_latest_daily(conn, "intervals", "tsb"))
 
-    vo2max = _safe_float(_latest_metric(conn, "garmin", "vo2max_activity"))
+    from src.utils.vo2max_source import garmin_vo2max_asof
+    vo2max = _safe_float(garmin_vo2max_asof(conn)[0])
     if vo2max is None:
         vo2max = _safe_float(_latest_metric(conn, "runalyze", "effective_vo2max"))
 

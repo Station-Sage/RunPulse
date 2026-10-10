@@ -2,7 +2,7 @@
 
 하위 모듈:
   garmin_auth.py             — 인증 (_login, check_garmin_connection)
-  garmin_helpers.py          — 공통 헬퍼 (_store_raw_payload, _upsert_vo2max 등)
+  garmin_helpers.py          — 공통 헬퍼 (_store_raw_payload, _upsert_daily_detail_metric 등)
   garmin_activity_sync.py    — 활동 동기화 (sync_activities, _sync_activity_splits)
   garmin_wellness_sync.py    — 웰니스 동기화 (sync_wellness)
   garmin_api_extensions.py   — 활동 확장 API (gear, exercise_sets)
@@ -28,7 +28,6 @@ from src.sync.garmin_helpers import (  # noqa: F401 (re-export)
     _store_daily_detail_metrics,
     _store_raw_payload,
     _upsert_daily_detail_metric,
-    _upsert_vo2max,
 )
 # v0.3: garmin_activity_sync는 sync() 시그니처로 변경됨
 # v0.3: garmin_wellness_sync는 sync() 시그니처로 변경됨
@@ -237,6 +236,12 @@ def sync_garmin(config: dict, conn: sqlite3.Connection, days: int) -> dict:
     act_count = sync_activities(config, conn, days, client=client)
     well_count = sync_wellness(config, conn, days, client=client)
     daily_count = sync_daily_extensions(config, conn, days, client=client)
+    from src.sync.garmin_maxmet_sync import sync_vo2max_range
+    today = datetime.now().date()
+    try:
+        sync_vo2max_range(conn, client, (today - timedelta(days=days)).isoformat(), today.isoformat())
+    except Exception as e:
+        print(f"[garmin] vo2max 동기화 실패: {e}")
     sync_athlete_extensions(config, conn, client=client)
     return {
         "activity_summaries": act_count,

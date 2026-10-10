@@ -408,11 +408,12 @@ def deep_analyze(
         ).fetchone()
         return row[0] if row else None
 
+    from src.utils.vo2max_source import garmin_vo2max_asof
     fitness_ctx: dict = {
         "ctl":              _ms_daily("ctl", "intervals"),
         "atl":              _ms_daily("atl", "intervals"),
         "tsb":              _ms_daily("tsb", "intervals"),
-        "garmin_vo2max":    _ms_activity_latest("vo2max_activity", "garmin"),
+        "garmin_vo2max":    garmin_vo2max_asof(conn, act_date)[0],
         "runalyze_evo2max": _ms_activity_latest("effective_vo2max", "runalyze"),
         "runalyze_vdot":    _ms_activity_latest("vdot", "runalyze"),
     }

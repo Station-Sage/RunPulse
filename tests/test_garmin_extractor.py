@@ -239,10 +239,7 @@ class TestGarminWellness:
         assert by_name["hrv_status"].text_value == "BALANCED"
 
     def test_fitness(self, ext):
-        raw = {"vo2MaxValue": 52.0}
-        fit = ext.extract_fitness("2025-03-25", raw)
-        assert fit["source"] == "garmin"
-        assert fit["vo2max"] == 52.0
+        assert ext.extract_fitness("2025-03-25", {"vo2MaxValue": 52.0}) == {}
 
 
 class TestGarminExtractorStreams:

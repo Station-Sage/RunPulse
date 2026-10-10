@@ -50,7 +50,7 @@ MISC_DEFS: list[MetricDef] = [
     MetricDef("marathon_shape", "capacity", "metric", "%", "Marathon Shape (훈련 완성도)", scope="daily"),
     MetricDef("sapi", "capacity", "metric", "", "SAPI (계절 성과 비교)", scope="daily"),
     MetricDef("rri", "capacity", "metric", "", "RRI (레이스 준비도)", scope="daily"),
-    MetricDef("vo2max", "capacity", "metric", "ml/kg/min", "일별 VO2Max 추정치 (Garmin wellness)", scope="daily"),
+    MetricDef("vo2max", "capacity", "metric", "ml/kg/min", "일별 VO2Max 추정치 (Garmin maxmet 정밀값, 소수 1자리, 측정일만)", scope="daily", aliases={"garmin": "vo2MaxPreciseValue"}),
     MetricDef("di", "capacity", "metric", "", "Durability Index", scope="weekly"),
 
     # ── prediction ──

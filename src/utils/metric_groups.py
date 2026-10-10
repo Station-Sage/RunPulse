@@ -41,6 +41,7 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "comparable": True,
         "display_name": "VO2Max",
         "members": [
+            ("vo2max", "garmin"),
             ("vo2max_activity", "garmin"),
             ("effective_vo2max", "runalyze"),
         ],

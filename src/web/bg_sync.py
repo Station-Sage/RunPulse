@@ -351,7 +351,14 @@ class BgSyncThread(threading.Thread):
                         if progress_cb:
                             progress_cb(day, total_synced + count, total_req + req_added)
                         cur += timedelta(days=1)
-                    req_added = count * 2 + 1 + 7
+                    try:
+                        from src.sync.garmin_maxmet_sync import sync_vo2max_range
+                        sync_vo2max_range(conn, garmin_client, win_from, win_to)
+                    except _G429:
+                        raise
+                    except Exception as me:
+                        log.warning("[bg_sync] VO2max 동기화 실패: %s", me)
+                    req_added = count * 2 + 1 + 8
                 elif service == "strava":
                     from src.sync.strava import sync_activities
                     count = sync_activities(

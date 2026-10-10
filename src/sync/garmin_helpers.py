@@ -20,12 +20,6 @@ def _store_raw_payload(
     _store_rp(conn, "garmin", entity_type, entity_id, payload, activity_id=activity_id)
 
 
-def _upsert_vo2max(conn: sqlite3.Connection, date_str: str, vo2max: float) -> None:
-    """Garmin vo2max를 metric_store(scope=daily)에 저장."""
-    upsert_metric(conn, "daily", date_str, "vo2max", "garmin",
-                  numeric_value=float(vo2max), category="capacity")
-
-
 def _upsert_daily_detail_metric(
     conn: sqlite3.Connection,
     date_str: str,

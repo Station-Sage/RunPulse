@@ -817,6 +817,7 @@ Garmin/Strava/Intervals/Runalyze
 
 | 메트릭 | 제공자 |
 |--------|--------|
+| `vo2max` | garmin |
 | `vo2max_activity` | garmin |
 | `effective_vo2max` | runalyze |
 
