@@ -21,6 +21,8 @@
 
 - **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 
+- **[GARMIN-VO2MAX-PRECISE]** (기록만, 계획 승인 전 착수 금지) Garmin VO2max가 정수로만 저장됨: `vo2max_activity`는 활동 목록 `vO2MaxValue`(정수, `garmin_v2_mappings.py:77,180`). 소수점 값은 `source_payloads` `training_status_day`의 `mostRecentVO2Max.generic.vo2MaxPreciseValue`(예: 5월 정점 약 54.3, 2026-10-10 53.9)에 있으나 payload가 10건뿐이고 메트릭으로 미저장. 제안: 일별 메트릭 추가 저장 + 과거 구간 백필. 새 메트릭이므로 설계 승인·`gen_metric_dictionary.py` 필요.
+
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
 
 - **[USER-MCP-ENABLE]** 원격 MCP 켜기: (1) Cloudflare Access에 `/mcp` 정책 추가 — Genspark가 커스텀 헤더 여러 개를 지원하면 Service Auth, 아니면 Bypass(앱 Bearer 토큰이 인증) (2) WAF·캐시 규칙(`/mcp` 캐시 제외, 속도 제한) (3) `config.json`에 `"mcp_remote": {"enabled": true}` 후 컨테이너 재시작 (4) 설정 > "외부 AI 연결" 카드에서 토큰 발급(브라우저 실사용 확인 겸) → `claude mcp add --transport http runpulse https://<host>/mcp --header "Authorization: Bearer rpmcp_..."` 및 Genspark 스모크.
