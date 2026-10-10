@@ -31,6 +31,7 @@
 | 파일 | 영역 | 주요 화면 |
 |------|------|----------|
 | [03a-today.md](03a-today.md) | 1. TODAY (하단 탭) | L0 즉시 브리핑, L1 내 상태(1-A), L2 흐름·훈련·성장(1-A, 구 Story·Plan"보기" 흡수), L3 드릴다운(1-B~D) |
+| (DESIGN-P7-REVIEW03-LIFECYCLE.md) | 0. 생애주기 화면 | S0 공개 랜딩 `/`·`/demo`, S1 `/welcome` 온보딩, S2a/S2b/S2c Today 콜드스타트 변형 — 상세는 REVIEW03 설계서 §2, Today 변형은 `03a-today.md` 1-E |
 | [03b-story.md](03b-story.md) | ~~2. STORY~~ **흡수됨 → 03a** | 안내 스텁 — 구 2-A/2-B는 `03a-today.md`의 L2로 흡수 |
 | [03c-library.md](03c-library.md) | 3. LIBRARY (하단 탭) | Library 홈(3-A), 메트릭 드릴다운(3-B~D), Provider 비교(3-E~G) |
 | [03d-plan.md](03d-plan.md) | ~~4. PLAN~~ **분할 흡수됨** | 안내 스텁 — "보기"는 `03a-today.md` L2, "작업"은 `03e-coach.md` 5-C~5-G |

@@ -672,8 +672,10 @@ Phase 7 구현 시작 전 충족되어야 할 조건:
 - 정식 로그인 기능 없음. Cloudflare Access가 GitHub email을 로그인 대체로 검증한다 — Flask는
   `CF-Access-Authenticated-User-Email` 헤더를 신뢰 소스로 사용(운영 환경, Cloudflare가
   요청 앞단에서 인증을 강제).
-- DB는 현재 단일 파일(`running.db`), 사실상 단일 사용자(`pansongit@gmail.com`)로 운용 중.
-  `email@db` 파일 단위 사용자별 분리 저장은 **로드맵**이다(아직 구현 안 됨).
+- DB는 사용자별 파일로 분리되어 있다 — `src/db_setup.py`의 `get_db_path(uid)`가 사용자 식별자로
+  DB 파일 경로를 해석한다(2026-10 확인; 이전 서술 "단일 running.db, email@db는 로드맵"은 낡은 내용이었음).
+  신규 가입자는 빈 DB로 시작하므로 생애주기 빈 상태(S1/S2)가 실제로 노출된다
+  (`DESIGN-P7-REVIEW03-LIFECYCLE.md`).
 
 ### 11.2 인증 로드맵
 
