@@ -266,3 +266,5 @@ class TestPersonalText:
         assert "낮아요" in personal_text(50, None, 60)
         assert personal_text(None, "좋음", 60) is None
         assert personal_text(60, "좋음", None) is None
+        assert personal_text(13240, None, 13300, "sec") == "지금 3:40:40. 90일 평균 3:41:40보다 낮아요"
+        assert personal_text(345, None, 345, "sec/km") == "지금 5:45/km. 90일 평균 5:45/km과 같아요"

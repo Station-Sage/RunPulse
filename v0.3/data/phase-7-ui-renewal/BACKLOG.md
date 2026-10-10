@@ -201,8 +201,8 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).
   **DESIGN-PENDING 진행 — 2026-10-04**: 12(기간 필터)·2(RRI)·1(UTRS 입력)·9단계1(Sparkline)·3(활동 `@a{id}` 드릴)·11 완료,
-  8은 1단계(`race_pred_*_sec` explain + `PredictionEvidence`: 범위·신뢰·제한 요인·모델 비교) 완료 — 목표 달성 가능성(`requiredImprovement`: (예측−목표)/예측 %, 신뢰도<0.5면 범위만, 허브 요약 카드) 완료(실 DB 사본 스모크: 신뢰도 낮음 → % 숨김 확인) — **남음**: `x.taper` 드릴 패널(현재 투영 칩은 `/v2/today/race`로 연결; `chipTarget`만 바꾸면 됨). 시간형 지표 차트 툴팁·축·단위 라벨 h:mm:ss 완료(`displayUnit`; explain 문구 속 "7일 평균 13240" 원값은 이월).
-  9 단계2: `/trend` `events[]` ▲대회 마커 완료(`_race_events` + `TrendChart events`; 실 DB 사본 1y ctl 12개) — ◆알고리즘 버전 변경은 미착수. 4(문서 정리), 7(캐시 워밍; D8 동의·일일 호출 상한 확인 선행), 10(스키마; 백업·승인) 미착수, 5·6 보류.
+  8은 1단계(`race_pred_*_sec` explain + `PredictionEvidence`: 범위·신뢰·제한 요인·모델 비교) 완료 — 목표 달성 가능성(`requiredImprovement`: (예측−목표)/예측 %, 신뢰도<0.5면 범위만, 허브 요약 카드) 완료(실 DB 사본 스모크: 신뢰도 낮음 → % 숨김 확인) — **남음**: `x.taper` 드릴 패널(현재 투영 칩은 `/v2/today/race`로 연결; `chipTarget`만 바꾸면 됨). 시간형 지표 차트 툴팁·축·단위 라벨 h:mm:ss 완료(`displayUnit`; explain 문구 속 시간형 원값은 2026-10-10 `personal_text` 단위 포맷으로 해결).
+  9 단계2: `/trend` `events[]` ▲대회 마커 완료(`_race_events` + `TrendChart events`; 실 DB 사본 1y ctl 12개) — ◆알고리즘 버전 변경은 설계 완료(2026-10-10, `DESIGN-ALGO-VERSION-MARKER.md`: 코드 선언 changelog 레지스트리, V1~V5) — 구현은 D-1(◆ 날짜=커밋일 추천)·D-2(하위 지표 전파 추천) 사용자 확인 대기. 4(S1b 종료 — 잔여 3건 모두 완료, 정리됨), 7(캐시 워밍; D8 동의·일일 호출 상한 확인 선행), 10(스키마; 백업·승인) 미착수, 5·6 보류.
   **구조·정리 — 2026-10-04 완료**: `metric_registry.py` → `metric_def.py`+`metric_defs_{layer1,load,misc}.py` 분리(파사드 유지),
   `ai_context.py` → `ai_context_legacy.py` 분리, `engine_label("legacy_rule")` 단일화 + 오류·중단 행 엔진 뷰를 행 status 기준으로,
   미사용 `RecommendationCard`·`ScoreRing`·`Meaning` 제거, 10-docs `display_name_ko` 정정, `#3b82f6` 토큰화.

@@ -38,6 +38,7 @@ from src.services.metrics_explain_whatif import build_what_if
 from src.services.metrics_explain_shared import daily_trimp_sum, top_activity_sources
 from src.services.metrics_service import _metric_label, _metric_unit
 from src.utils.db_helpers import get_primary_metric
+from src.utils.format_ko import fmt_duration, fmt_pace
 from src.utils.metric_labels import label_for
 
 _PMC_ALPHA = {"ctl": 1.0 / 42, "atl": 1.0 / 7}
@@ -117,13 +118,23 @@ def _avg_90d(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_na
     return round(row[0], 2) if row and row[1] >= 14 else None
 
 
-def personal_text(value: float | None, status_label: str | None, avg_90d: float | None) -> str | None:
+def _fmt_by_unit(v: float, unit: str | None) -> str:
+    """시간·페이스 단위는 h:mm:ss/m:ss 로, 그 외는 :g."""
+    if unit == "sec":
+        return fmt_duration(v)
+    if unit == "sec/km":
+        return fmt_pace(v)
+    return f"{v:g}"
+
+
+def personal_text(value: float | None, status_label: str | None, avg_90d: float | None, unit: str | None = None) -> str | None:
     """'지금 {값} — {등급}. 90일 평균 {mean}보다 {높음/낮음}' (A-7)."""
     if value is None or avg_90d is None:
         return None
     rel = "높아요" if value > avg_90d else "낮아요" if value < avg_90d else "같아요"
-    head = f"지금 {value:g}" + (f" — {status_label}" if status_label else "")
-    return f"{head}. 90일 평균 {avg_90d:g}보다 {rel}" if rel != "같아요" else f"{head}. 90일 평균 {avg_90d:g}과 같아요"
+    head = f"지금 {_fmt_by_unit(value, unit)}" + (f" — {status_label}" if status_label else "")
+    avg = _fmt_by_unit(avg_90d, unit)
+    return f"{head}. 90일 평균 {avg}보다 {rel}" if rel != "같아요" else f"{head}. 90일 평균 {avg}과 같아요"
 
 
 def _explain_tsb(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tuple[list[dict], list[dict], str]:
@@ -219,7 +230,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
             "what": _WHAT.get(slug) or label_for(slug).description_short or "",
             "bands": _bands_v2(slug),
             "baseline": base or {"avg_7d": None, "delta_1d": None},
-            "personal": personal_text(value, band["label"] if band else None, base["avg_90d"]) if base else None,
+            "personal": personal_text(value, band["label"] if band else None, base["avg_90d"], _metric_unit(slug)) if base else None,
             "so_what": _SO_WHAT.get(slug, {}).get(band["status"] if band else "", ""),
         },
         "formula": {
