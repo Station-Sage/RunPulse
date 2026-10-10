@@ -1,6 +1,6 @@
 """동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
-"마지막 동기화"가 세 저장소(`sync_state.json`, `sync_jobs.updated_at`, `source_payloads.fetched_at`)에서
+"마지막 동기화"가 세 저장소(`sync_jobs.updated_at`, `source_payloads.fetched_at`)에서
 서로 달랐다(UX 리뷰 40 F-DATA-01). 작업 원장(`sync_jobs.db`)을 기준으로 소스별 시도·성공·새 데이터 시각과
 오류를 하나의 계약으로 만든다. 셸·Today·Library·Data가 이 계약만 읽는다.
 

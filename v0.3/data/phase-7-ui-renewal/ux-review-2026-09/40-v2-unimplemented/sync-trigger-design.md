@@ -223,7 +223,7 @@ def trigger_incremental(config: dict, user_id: str, sources: list[str] | None,
 | D3 | `bg_sync._threads` 키를 `(user_id, service)`로 바꿀지(v1 동작 변경) | 실제 다중 사용자 운영 여부에 달림 |
 | D4 | §7.3의 `/data/sync/status`·`/data/sync/stream`(SSE)을 폐기하고 sync-state 폴링으로 일원화할지 | 설계자 의견: 일원화 |
 | D5 | 세션 없는 `"default"` 사용자로 쓰기 요청 허용 여부 | v1과 동일 유지 vs 401 차단 |
-| D6 | 실행 중 판정에서 `sync_state.json`(`is_running`)을 언제 제외할지 | v1 SSE 경로가 원장 단독 기록으로 바뀐 뒤 |
+| D6 | 실행 중 판정에서 `sync_state.json`(`is_running`)을 언제 제외할지 | v1 SSE 경로가 원장 단독 기록으로 바뀐 뒤 — **종결 2026-10-10**(sync_state.py 삭제, ADR-044) |
 | D7 | 원장 기록 없음 + 수신 데이터 있음일 때 `never` 대신 다른 상태로 표시할지 | 원장 단일화 원칙과 충돌, V5 결과 보고 결정 |
 | D8 | `bg_sync.py`(520줄) 분리 리팩터를 이 작업에 포함할지 | 설계자 의견: 별도 과제 |
 | D9 | `error-auth`/`error-access` 소스를 "지금 동기화" 대상에서 자동 제외할지 | 제외 시 무의미한 401/403 호출 감소, 대신 회복 감지 지연 |

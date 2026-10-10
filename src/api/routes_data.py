@@ -171,11 +171,11 @@ def patch_data_source(provider: str):
 
 @api_bp.get("/data/sync/auto")
 def get_sync_auto():
-    from src.utils.sync_state import get_last_auto_sync
+    from src.utils.sync_ledger_query import last_auto_run
 
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)
-    return api_ok(data_settings_service.auto_settings(config, get_last_auto_sync(user_id)))
+    return api_ok(data_settings_service.auto_settings(config, last_auto_run(user_id)))
 
 
 @api_bp.patch("/data/sync/auto")

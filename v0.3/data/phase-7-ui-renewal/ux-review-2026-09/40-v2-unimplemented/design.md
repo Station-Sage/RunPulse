@@ -410,7 +410,7 @@ ui.md §2.10 와이어프레임을 채택하고 data·ux를 합친다.
 ### 7.2 백엔드·데이터
 | 항목 | 변경 |
 |---|---|
-| `sync_jobs` 확장(작업 원장) | 열 추가: `trigger`(auto/manual/range/onboarding/system), `started_at`, `finished_at`, `error_code`, `error_message_ko`, `counts_json`(`{activities_new, activities_updated, wellness_days, laps_backfilled, streams}`), `result_json`(재계산 전후 요약·내보내기 파일 목록), `params_json`. `job_type ∈ activity\|wellness\|range\|recompute\|export\|import`. **모든 동기화 경로**(수동 SSE `app.py:608-655`, `/trigger-sync-bg`, `auto_sync._trigger`, `sync.py`)가 원장에 쓴다. DDL은 `db_setup.py`, 등록은 `/check-data-consistency` 대상 |
+| `sync_jobs` 확장(작업 원장) | 열 추가: `trigger`(auto/manual/range/onboarding/system), `started_at`, `finished_at`, `error_code`, `error_message_ko`, `counts_json`(`{activities_new, activities_updated, wellness_days, laps_backfilled, streams}`), `result_json`(재계산 전후 요약·내보내기 파일 목록), `params_json`. `job_type ∈ activity\|wellness\|range\|recompute\|export\|import`. **모든 동기화 경로**(수동 SSE `app.py:608-655`, `/trigger-sync-bg`, `auto_sync._trigger`, `sync.py`)가 원장에 쓴다. DDL은 `sync_jobs_schema.py`, 등록은 `/check-data-consistency` 대상 |
 | `sync_state.json` | 쓰기 중단. 읽는 곳(`helpers.get_last_sync_at`)은 원장 파생 함수로 교체 |
 | 오류 분류 | `src/sync/errors.py`(신규): HTTP·예외 → `auth_expired\|auth_revoked\|subscription_required\|rate_limited\|upstream_5xx\|timeout\|interrupted\|unknown`, 코드별 `message_ko`·`action`. 403이 `completed, count=0`으로 기록되는 경로를 제거한다(SYNC-ERROR-SURFACE) |
 | 끈 소스 정리 | `sync_enabled=false`가 되면 해당 소스의 `pending`/`stopped` 작업을 `cancelled`로 전이한다(`bg_sync.py:460` 보완) |

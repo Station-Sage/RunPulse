@@ -468,11 +468,11 @@ def create_app() -> Flask:
 
         from .sync_ui import sync_card_html
         from .helpers import last_sync_info, connected_services
-        from src.utils.sync_state import get_all_states
+        from src.utils.sync_ledger_query import legacy_card_states
         from .helpers import get_current_user_id as _get_uid
         sync_card = sync_card_html(
             last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
-            sync_states=get_all_states(_get_uid()),
+            sync_states=legacy_card_states(_get_uid()),
             connected=connected_services(),
         )
 

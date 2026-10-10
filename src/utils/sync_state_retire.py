@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-RENAME_ENABLED = False  # R5에서 활성화 — 그 전엔 구 코드가 파일을 계속 쓴다
+RENAME_ENABLED = True  # sync_state.py 삭제(R5) 후 구 코드는 파일을 쓰지 않는다
 
 
 def _users_dir() -> Path:

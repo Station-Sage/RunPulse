@@ -108,7 +108,7 @@ def _sync_state_banner(sync_states: dict | None) -> str:
     """서비스별 cooldown / 실행 중 / 오류 상태 배너 HTML.
 
     Args:
-        sync_states: get_all_states() 반환값.
+        sync_states: legacy_card_states() 반환값.
     """
     if not sync_states:
         return ""
@@ -147,7 +147,7 @@ def sync_card_html(
 
     Args:
         last_sync: last_sync_info() 반환값.
-        sync_states: get_all_states() 반환값.
+        sync_states: legacy_card_states() 반환값.
         connected: 연결된 서비스 이름 집합. None이면 모두 활성.
     """
     last_sync_html = _last_sync_line(last_sync)

@@ -354,7 +354,7 @@
 
 - functions: classify_error, get_sync_state
 
-### `sync_trigger_service.py` (151줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
+### `sync_trigger_service.py` (150줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
 
 - class **SkipReason**: to_dict
 - class **TriggerResult**: 없음
@@ -1045,7 +1045,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (131줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (129줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -1696,10 +1696,6 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (212줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
-
-- functions: get_service_state, is_running, get_last_sync_at, get_rate_state, get_all_states, mark_running, mark_finished, get_last_auto_sync, mark_auto_sync_ran
-
 ### `sync_state_retire.py` (70줄) — sync_state.json 퇴역 이관 — 미래의 retry_after만 sync_gates로 옮긴다 (--restore: 이름 원복).
 
 - functions: retire_all_users, restore_all_users
@@ -1918,7 +1914,7 @@
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
 
-### `test_auto_sync_reload.py` (56줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
+### `test_auto_sync_reload.py` (54줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
 
 - functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
@@ -3329,7 +3325,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 710개 파일
+총 709개 파일
 
 ## docstring 누락
 

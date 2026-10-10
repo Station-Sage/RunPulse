@@ -22,8 +22,8 @@ def env(monkeypatch):
     monkeypatch.setattr(bgs, "cancel_job", lambda p, u=None, reason="source_disabled": stopped.append(p) or ["j1"])
     import src.web.auto_sync as asy
     monkeypatch.setattr(asy, "restart", lambda c, u: restarted.append(c.get("auto_sync")))
-    import src.utils.sync_state as ss
-    monkeypatch.setattr(ss, "get_last_auto_sync", lambda u=None: datetime(2026, 10, 7, 12, 0))
+    import src.utils.sync_ledger_query as ss
+    monkeypatch.setattr(ss, "last_auto_run", lambda u=None: datetime(2026, 10, 7, 12, 0))
     app = Flask(__name__)
     app.register_blueprint(api_bp)
     with app.test_client() as c:

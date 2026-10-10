@@ -895,9 +895,9 @@ def last_sync_info(sources: list[str]) -> dict[str, str | None]:
     Returns:
         {"garmin": "2026-03-20 14:30", "strava": None, ...}
     """
-    from src.utils.sync_state import get_last_sync_at
+    from src.utils.sync_ledger_query import last_success_at
     result: dict[str, str | None] = {}
     for src in sources:
-        dt = get_last_sync_at(src)
+        dt = last_success_at(src)
         result[src] = dt.strftime("%Y-%m-%d %H:%M") if dt else None
     return result

@@ -63,12 +63,12 @@ def validate_auto_patch(body: dict) -> tuple[dict, str | None]:
 
 def patch_auto(config: dict, user_id: str, changes: dict) -> dict:
     """auto_sync 설정을 저장하고 스레드를 재시작한다."""
-    from src.utils.sync_state import get_last_auto_sync
+    from src.utils.sync_ledger_query import last_auto_run
     from src.web.auto_sync import restart
 
     config["auto_sync"] = {**_DEFAULTS, **(config.get("auto_sync") or {}), **changes}
     save_config(config, user_id=user_id)
     restart(config, user_id)
-    return auto_settings(config, get_last_auto_sync(user_id))
+    return auto_settings(config, last_auto_run(user_id))
 
 

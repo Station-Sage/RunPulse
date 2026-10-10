@@ -34,7 +34,6 @@ def _connected_sources(config: dict) -> list[str]:
 
 def _trigger(config: dict, user_id: str, days: int) -> None:
     from src.web.bg_sync import start_basic_sync
-    from src.utils.sync_state import mark_auto_sync_ran
     from src.utils.user_context import set_current_user
     set_current_user(user_id)
 
@@ -57,7 +56,6 @@ def _trigger(config: dict, user_id: str, days: int) -> None:
     log.info("[auto_sync] 트리거: sources=%s, %s ~ %s", sources, from_date, to_date)
     try:
         result = start_basic_sync(sources, from_dates, to_date, config, user_id, source_path="auto")
-        mark_auto_sync_ran(user_id)
         log.info("[auto_sync] 완료: jobs=%s", result)
     except Exception as exc:
         log.error("[auto_sync] 실패: %s", exc, exc_info=True)
@@ -67,8 +65,8 @@ def _loop(config: dict, user_id: str, interval_hours: int, days: int) -> None:
     log.info("[auto_sync] 루프 시작: interval=%dh, days=%d, user=%s", interval_hours, days, user_id)
     while not _stop_event.is_set():
         try:
-            from src.utils.sync_state import get_last_auto_sync
-            last = get_last_auto_sync(user_id)
+            from src.utils.sync_ledger_query import last_auto_run
+            last = last_auto_run(user_id)
             now = datetime.now()
             if last is None or (now - last) >= timedelta(hours=interval_hours):
                 _trigger(config, user_id, days)
@@ -123,8 +121,8 @@ def restart(config: dict, user_id: str = "default") -> None:
 
 def status() -> dict:
     """현재 상태 반환 (UI 표시용)."""
-    from src.utils.sync_state import get_last_auto_sync
-    last = get_last_auto_sync()
+    from src.utils.sync_ledger_query import last_auto_run
+    last = last_auto_run()
     return {
         "running": bool(_thread and _thread.is_alive()),
         "last_run": last.isoformat(timespec="seconds") if last else None,

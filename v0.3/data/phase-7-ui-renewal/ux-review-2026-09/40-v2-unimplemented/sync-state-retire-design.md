@@ -287,4 +287,6 @@ def current_job() -> str | None: ...
 
 ## 10. 구현 기록
 
-(구현 후 기입: 완료일, 실제 테스트 수, 변경 파일 목록)
+완료 2026-10-10. R0~R5 전 단계 구현·배포. 전체 테스트 2984 passed 기준 + R4/R5 갱신분.
+- R0 `utils/user_context.py` 분리 / R1 `sync_gates` 테이블 / R2 `claim_run`·`heartbeat`·`sync_ledger_query` / R3 `manual_sync_service` 추출(app.py -250줄), `mark_running/finished` 제거 / R4 읽기 전환(`last_success_at`·`last_auto_run`·`legacy_card_states`) / R5 `utils/sync_state.py` 삭제, `sync_state_retire` 이관 활성(`RENAME_ENABLED=True`, 파일은 `.retired-YYYYMMDD`로 이름 변경).
+- 잔여: `running.db`의 `sync_jobs` 잔재(`db_setup.py:395`) DROP은 별도 백로그(SYNC-JOBS-LEGACY-DROP).

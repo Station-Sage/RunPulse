@@ -174,7 +174,7 @@ def sync_sources_post():
 def _auto_sync_settings_html(config: dict) -> str:
     """자동 주기 동기화 설정 카드."""
     from .auto_sync import status as auto_sync_status
-    from src.utils.sync_state import get_last_auto_sync
+    from src.utils.sync_ledger_query import last_auto_run
 
     cfg = config.get("auto_sync", {})
     enabled = cfg.get("enabled", True)

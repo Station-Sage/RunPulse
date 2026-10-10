@@ -360,3 +360,9 @@
 - D2: Coach 프리필 계약은 `/coach/new?metric=<slug>&date=<YYYY-MM-DD>`(slug `[a-z0-9_]+`, 형식 불일치는 무시). 스레드 컨텍스트는 `{kind:'metric', ref:'slug@date'}`, 질문 3개는 클라이언트에서 생성.
 - D3: 백엔드 프롬프트는 아직 `activity` 종류만 요약하므로 `metric` 컨텍스트는 저장·뒤로가기 링크용이다(프롬프트 주입은 LLM 연동 항목).
 
+### ADR-044: sync_state.json 퇴역 — 동기화 상태 원장 일원화 (2026-10-10)
+- D1: 실행 중·마지막 성공·자동 실행 시각·소스 카드 상태는 `sync_jobs.db` 원장(`sync_ledger_query`)만 진실로 읽는다. `utils/sync_state.py` 삭제.
+- D2: 429 `retry_after`는 `sync_gates` 테이블이 보관한다. 이관은 활성 게이트만, 나머지는 버리고 json은 `.retired-YYYYMMDD`로 이름 변경(`--restore`로 원복).
+- D3: 실행 슬롯은 `claim_run`(BEGIN IMMEDIATE)으로 원자 선점, stale 기준은 하트비트 10분 무갱신(기존 1시간에서 변경).
+- D4: 수동 동기화 두 라우트는 `manual_sync_service`로 추출해 원장 단독 기록.
+- D5: `running.db`의 구 `sync_jobs` 잔재는 범위 밖, 별도 항목으로 DROP.
