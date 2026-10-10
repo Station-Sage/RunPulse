@@ -114,7 +114,7 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
 | D1 | `parent_metric_id` 트리 활성화 — Calculator 자식 메트릭 행 저장 | Phase 7a | ✅ 완료(2026-09-22) |
 | D2 | 활동 그룹 ID 모델 명시화 (그룹 마스터 테이블) | Phase 7b | ✅ 완료(2026-09-22, 백필 스크립트는 작성만·실행은 별도 승인 필요) |
 | D3 | `user_inputs` / `ai_feedback` 테이블 신설 (+ 구현 중 발견: `chat_threads` 신설) | Phase 7a | ✅ 완료(2026-09-22) |
-| D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c | 미구현 |
+| D4 | `athlete_profile_snapshots` 테이블 신설 | Phase 7c | ⊘ 불필요로 종료(2026-10-10) — `start_load` 실시간 계산으로 충족 |
 | D5 | `src/services/` — today_service·coach_service 구현, 나머지 3개 스텁 | Phase 7a (전제조건) | ✅ 완료(2026-09-22) |
 
 ---
@@ -193,7 +193,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
      - ② **종료(2026-10-07)**: 이미 구현됨(활동 `gap` 메트릭·랩 83%·스트림 41% 저장). 빈 구간은 GPS·고도 없는 활동으로 원본 부재 — 추가 개발 없음.
      - ③ **완료(2026-10-07)**: 레거시 `trends.calculate_acwr`가 정본(metric_store `acwr`, EWMA 7/42) 최신 값을 읽도록 교체(반환 형태 유지). weekly_score·race_readiness·suggestions·ai_context_legacy 값이 정본 기준으로 바뀜.
   5. ~~**3-10 RPE 입력·`⋯` 메뉴**~~ **이미 구현됨(U15, ADR-022)**: 활동 상세 `⋯` 메뉴 → "메모·RPE 기록"(`ActivityMoreMenu`, `activity_feedback_service`, RPE 1~10). 2026-10-10 확인, 추가 작업 없음.
-  6. **3-16(D4)**: 사용자 지시 없이 진행 금지. **2026-10-10 확인: `athlete_profile_snapshots` 테이블은 미구현**(코드에 DDL 없음, 스키마 v35). 다만 설계 목적(계획 생성 시 현재 부하 반영)은 `planner_schedule.start_load`가 지표에서 실시간 계산 + 목표별 사용자 입력(v28 `reported_weekly_km`·`reported_long_km`)으로 이미 충족. 남는 가치는 '생성 시점 부하 이력 보존'뿐 — 필요 여부는 사용자 판단.
+  6. ~~**3-16(D4)**~~ **불필요로 종료(2026-10-10, 사용자 결정)**: **2026-10-10 확인: `athlete_profile_snapshots` 테이블은 미구현**(코드에 DDL 없음, 스키마 v35). 다만 설계 목적(계획 생성 시 현재 부하 반영)은 `planner_schedule.start_load`가 지표에서 실시간 계산 + 목표별 사용자 입력(v28 `reported_weekly_km`·`reported_long_km`)으로 이미 충족. 남는 가치는 '생성 시점 부하 이력 보존'뿐 — 필요 여부는 사용자 판단.
   7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
   8. **목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**(3-1 이월, 설계서 P2 이하).
   9. **S2 이월**: 이벤트 마커(데이터 소스 미정), Sparkline min_span·끝점 점·캡션.
