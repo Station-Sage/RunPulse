@@ -15,7 +15,7 @@
 
 ## NEXT
 
-- **[PHASE-7-REMAINING]** UI 리뉴얼 v2 감사(2026-10-10)로 확인한 미완 일람 — 코드 변경 전 사용자 지시 필요: (1) **G5 기본 전환**: v2 를 기본 진입으로(2주 운영·v1 복귀율 <10% 게이트, 사용자 결정). (2) **G6 v1 제거 + 301 리다이렉트**(G5 이후; AUDIT-V-CANONICAL 해소). (3) **Training Balance Radar**(07 §7d, 미배정). (4) **COROS/Polar 커넥터**(미배정, "러닝 우선" 보류와 겹침). (5) **Lighthouse/CWV 실측**(미측정). (6) **Coach 컨텍스트 패널**(07 §7d, 상태 미확인 — 착수 전 현황 점검). 보류: AUDIT-SERVICE-LAYER phase 0, LLM 에이전트 연동(승인 대기).
+- **[PHASE-7-REMAINING]** UI 리뉴얼 v2 감사(2026-10-10)로 확인한 미완 일람 — 코드 변경 전 사용자 지시 필요: (0) **전환 배관 미연결(감사 2026-10-10 확인)**: `/me/preferences`·`resolve_ui_default` 는 있으나 Flask `/`(app.py `index`)는 무조건 `/dashboard` 로 redirect — `ui_default` 분기 미적용(40 design §7.2), 프론트 `ui_default` 토글 UI 없음(타입만), 롤백/게이트 로그(복귀 클릭·사유 1문항) 없음. 그 외: `sync_state.json` 쓰기 지속(`sync_state.mark_finished`, 수용기준 '쓰기 0회' 미달), v1 `GET /recompute-metrics` 부작용 GET 존속, Coach 컨텍스트 패널 미구현(grep 0건, 07 §7d), 컴포넌트 `DateStepper`·`ProviderBadge`·`SidebarSyncBlock` 별도 파일 없음(인라인 여부 미확인). (1) **G5 기본 전환**: v2 를 기본 진입으로(2주 운영·v1 복귀율 <10% 게이트, 사용자 결정). (2) **G6 v1 제거 + 301 리다이렉트**(G5 이후; AUDIT-V-CANONICAL 해소). (3) **Training Balance Radar**(07 §7d, 미배정). (4) **COROS/Polar 커넥터**(미배정, "러닝 우선" 보류와 겹침). (5) **Lighthouse/CWV 실측**(미측정). (6) **Coach 컨텍스트 패널**(07 §7d, 미구현 확인). 보류: AUDIT-SERVICE-LAYER phase 0, LLM 에이전트 연동(승인 대기).
 
 - **[REVIEW03-LIFECYCLE]** L1~L7 완료(L7 문서 반영 확인)·L1~L6 배포(2026-10-10): 빈 상태·소량 데이터·/demo·/landing, A9(신규 계정 init_db + 503 NOT_FOUND만 empty) 해결, 신규 계정 /welcome 리다이렉트(200-빈 응답 대응) 및 T12=탭 2회 스모크. 데모 `snapshot.json`은 릴리스마다 재생성 필요. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
 
