@@ -1630,7 +1630,7 @@
 
 - (public API 없음)
 
-### `metric_labels.py` (126줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
+### `metric_labels.py` (127줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
 
 - class **MetricLabel**: 없음
 - functions: label_for
@@ -2529,9 +2529,9 @@
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level
 
-### `test_metrics_changelog_events.py` (71줄)
+### `test_metrics_changelog_events.py` (76줄)
 
-- functions: test_direct_and_propagated_merge_into_one_event, test_propagation_only_reports_via, test_out_of_range_and_unrelated_metric_excluded, test_source_provider_series_excluded, test_new_calculator_has_no_marker, test_data_event_merged_with_changelog_reason, test_provider_switch_event_kept, test_caption_uses_changelog_reason_then_milestone_fallback
+- functions: test_direct_and_propagated_merge_into_one_event, test_propagation_only_reports_via, test_out_of_range_and_unrelated_metric_excluded, test_source_provider_series_excluded, test_new_calculator_has_no_marker, test_data_event_merged_with_changelog_reason, test_provider_switch_event_kept, test_caption_uses_changelog_reason_then_milestone_fallback, test_via_label_is_korean_not_slug
 
 ### `test_metrics_explain.py` (270줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 

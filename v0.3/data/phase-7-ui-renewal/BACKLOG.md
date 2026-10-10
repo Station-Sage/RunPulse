@@ -196,7 +196,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   6. ~~**3-16(D4)**~~ **불필요로 종료(2026-10-10, 사용자 결정)**: **2026-10-10 확인: `athlete_profile_snapshots` 테이블은 미구현**(코드에 DDL 없음, 스키마 v35). 다만 설계 목적(계획 생성 시 현재 부하 반영)은 `planner_schedule.start_load`가 지표에서 실시간 계산 + 목표별 사용자 입력(v28 `reported_weekly_km`·`reported_long_km`)으로 이미 충족. 남는 가치는 '생성 시점 부하 이력 보존'뿐 — 필요 여부는 사용자 판단.
   7. ~~**내러티브 캐시 워밍**·`MonthNarrative` 레이어링~~ **이미 구현됨(U17d/e/f)**: `narrative_warm.py`(동의·신선 캐시·일일 상한 3회·동시 실행 가드, 동기화 직후 `bg_sync`에서 호출, `tests/test_narrative_warm.py`), 재계산 후 캐시 무효화, 월 내러티브는 오버레이 대신 `/today/month/[ym]` 라우트로 전환(중첩 문제 해소). 2026-10-10 확인, 추가 작업 없음.
   8. ~~**목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**~~ **이미 구현됨**: explain·`PredictionEvidence`·달성 가능성(`requiredImprovement`, 2026-10-04), `x.taper` 드릴 시트(`TaperSheet.svelte`, U8 B-1, 2026-10-05). 2026-10-10 확인, 추가 작업 없음.
-  9. **S2 이월**: 이벤트 마커는 ▲ 레이스·◆ 알고리즘(ADR-042)으로 구현 완료, Sparkline `minSpan` 구현됨. **남음**: Sparkline 끝점 점·캡션(2026-10-10 감사: 코드에 없음).
+  ~~9. **S2 이월**~~ 완료: 이벤트 마커는 ▲ 레이스·◆ 알고리즘(ADR-042)으로 구현 완료, Sparkline `minSpan`·끝점 점(`endColor`)·캡션(`sparkCaption`, 메트릭 브라우저) 모두 구현됨(2026-10-10 감사 확인) → **9번 전체 완료**. ◆ 브라우저 스모크(ctl 1y, 데스크톱·390px): 9/28 마커·판독·사유 확인(2026-10-10), 사유의 입력 지표명은 한글 라벨로 정정.
   10. ~~**계정 설정 스키마(2-3)**·`sync_jobs` 열 확장·4경로 오류 표면화~~ **이미 구현됨(U15)**: `user_settings`(스키마 v25, ADR-023), 원장 `sync_jobs.db` 열 확장(`error_code`·`http_status` 등, `sync_jobs_schema.py`), 오류 코드 기록(sync 원장·bg_sync·내보내기·가져오기·재계산) → `sync_state_service` 오류 상태. 2026-10-10 확인, 스키마 v36 불필요.
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).

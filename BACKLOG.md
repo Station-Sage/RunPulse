@@ -2,7 +2,7 @@
 
 ## NOW
 
-- **[PHASE-7]** UI Renewal v2 구현 대부분 완료(잔여: Sparkline 끝점·캡션, ◆ 브라우저 스모크, USER-* 조치) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
+- **[PHASE-7]** UI Renewal v2 구현 대부분 완료(잔여: USER-* 조치·승인 대기 항목) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
 ## BUGS
 

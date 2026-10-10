@@ -104,6 +104,7 @@ METRIC_LABELS: dict[str, MetricLabel] = {
     "cirs_consecutive": MetricLabel("연속 훈련일 위험 요소"),
     "cirs_fatigue": MetricLabel("피로 누적 위험 요소"),
     "heat_model": MetricLabel("기온 영향 계수"),
+    "trimp": MetricLabel("심박 기반 훈련 부하", "TRIMP"),
 }
 
 def _merge_texts() -> None:
