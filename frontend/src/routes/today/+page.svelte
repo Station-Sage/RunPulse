@@ -16,6 +16,8 @@
 	import ColdStartProgress from '$lib/components/today/ColdStartProgress.svelte';
 	import { isSmallData, lockedRows } from '$lib/unlock';
 	import TodayEmpty from '$lib/components/TodayEmpty.svelte';
+	import { redirectToWelcomeIfNew } from '$lib/welcomeRedirect';
+	import { onMount } from 'svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
@@ -75,6 +77,9 @@
 			savingCheckin = false;
 		}
 	}
+	onMount(() => {
+		if (data.today && data.today.recent_activities.length === 0) void redirectToWelcomeIfNew();
+	});
 </script>
 
 <svelte:head><title>Today · RunPulse</title></svelte:head>

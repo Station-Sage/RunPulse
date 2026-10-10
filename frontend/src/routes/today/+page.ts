@@ -63,7 +63,7 @@ function emptyTrend(slug: string, e: unknown): MetricTrendData {
 
 function failed(e: unknown): TodayPageData {
 	// running.db 없음(NOT_FOUND/503)은 "데이터 없음"(온보딩), 그 외는 "조회 실패"(재시도).
-	const empty = e instanceof ApiError && (e.status === 404 || e.status === 503);
+	const empty = e instanceof ApiError && (e.status === 404 || (e.status === 503 && e.code === 'NOT_FOUND'));
 	const message = e instanceof Error ? e.message : '오늘 데이터를 불러올 수 없습니다.';
 	const none = Promise.resolve(null);
 	return {

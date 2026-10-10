@@ -280,3 +280,9 @@ L1  곧 열려요 (미래 약속)
 - 2026-10-10: 사용자 확정 — D-L1 사이트 공개(추천 (b) 별도 정적 공개 사이트, 인증 경계 무변경), D-L2~D-L8 추천안. ADR-038. L5·L6 착수 차단 해제.
 - 2026-10-10: L5 `/demo` 구현 — `window.fetch` 가로채기(lib/demoMode.ts)로 기존 화면 그대로 재사용, 읽기는 `static/demo/snapshot.json`(synth DB 크롤, `pw/export_demo_snapshot.mjs`), 쓰기는 시트 전환. 스냅샷 날짜는 내보낸 시점으로 고정(릴리스 시 재생성). Coach는 스냅샷 스레드 읽기 전용, 서버 호출 0 확인.
 - 2026-10-10: L6 `/landing` 구현(정적, 탭 숨김, `/demo?to=` 딥링크, 초대 요청=mailto). 별도 공개 정적 사이트 호스팅·Cloudflare Access 우회는 사용자 조치(USER-PUBLIC-SITE).
+
+## 구현 상태 보강 (2026-10-10)
+- **A9 해결**: 서버 `_ensure_user_db_migrated`가 인증된 `/api/v1/` 첫 요청에서 `init_db`를 수행해 신규 계정도 200+빈 데이터를 받는다. 프런트는 `today/+page.ts`에서 `503 && code==='NOT_FOUND'`만 empty로 보고 나머지 503은 failed로 처리한다.
+- **웰컴 리다이렉트**: 200-빈 응답에서는 `TodayEmpty`가 렌더되지 않으므로 `lib/welcomeRedirect.ts`를 Today 페이지(`recent_activities` 비어 있을 때)와 `TodayEmpty`에서 공통 호출한다.
+- **G2/T12 스모크**(`scripts/synth_smoke/pw/empty_welcome.mjs`, sync-state 소스 0 모킹): /today → /welcome 자동 이동, 탭 2회(시작, 다음)로 Today 도달 (기준 ≤8 충족).
+- **데모 스냅샷**: `snapshot.json`은 export일(2026-10-10) 기준으로 고정. 릴리스마다 재생성 필요.
