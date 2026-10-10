@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from src.training.planned_query import get_planned_workouts
 
 RUN_TYPES = ("running", "trail_running", "treadmill", "indoor_running")
+CROSS_TYPES = ("cycling", "virtual_cycling", "swimming", "lap_swimming", "rowing", "elliptical")
 QUALITY_TYPES = {"interval", "tempo", "marathon", "long_mp", "threshold"}
 EASY_TYPES = {"easy", "recovery", "long"}
 DONE_RATIO = 0.75           # 세션 이행 기준(R3, completed 플래그와 같은 값)
@@ -104,6 +105,13 @@ def _run_activities(conn: sqlite3.Connection, start: str, end: str) -> dict[str,
     return out
 
 
+def _cross_dates(conn: sqlite3.Connection, start: str, end: str) -> set[str]:
+    marks = ",".join("?" * len(CROSS_TYPES))
+    return {r[0] for r in conn.execute(
+        f"SELECT DISTINCT substr(start_time, 1, 10) FROM v_canonical_activities WHERE activity_type IN ({marks})"
+        " AND substr(start_time, 1, 10) BETWEEN ? AND ?", (*CROSS_TYPES, start, end))}
+
+
 def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: date | None,
             today: date | None = None) -> dict:
     """start~end(포함) 날짜별 유효 계획·상태와 이행 수치.
@@ -121,6 +129,7 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
     for w in rows:
         by_date.setdefault(w["date"], []).append(w)
     acts = _run_activities(conn, start.isoformat(), end.isoformat())
+    cross = _cross_dates(conn, start.isoformat(), end.isoformat())
     act_by_id = {a["id"]: a for day in acts.values() for a in day}
 
     days, unplanned = [], []
@@ -174,6 +183,8 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
                     qual_total += 1
         elif eff is None or eff["workout_type"] == "rest":
             entry["state"] = "rest"
+        elif is_past and ds in cross and not eff["matched_activity_id"] and not eff["completed"]:
+            entry["state"] = "cross"   # 교차훈련으로 대체한 날은 이행률 분모에서 뺀다(E10)
         else:
             v = _volume_ratio(eff, entry["planned_km"])
             label = outcome_label(eff, entry["planned_km"], act_by_id.get(eff["matched_activity_id"]), is_past)

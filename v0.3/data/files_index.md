@@ -147,6 +147,10 @@
 
 - functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, build_archive, start_archive, job_view, history
 
+### `heat_forecast.py` (52줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
+
+- functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
+
 ### `import_service.py` (210줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
 
 - functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
@@ -369,7 +373,7 @@
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
-### `weekly_adapt_job.py` (44줄) — 주간 적응 잡 — 월요일 첫 계획 조회 때 지난주 결과로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
+### `weekly_adapt_job.py` (53줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
 
 - functions: run
 
@@ -1501,7 +1505,7 @@
 
 - functions: replan_remaining_week
 
-### `week_compliance.py` (220줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
+### `week_compliance.py` (231줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
 
 - functions: original_of, outcome_label, compute
 
@@ -2323,6 +2327,10 @@
 
 - functions: test_copy_id_is_computed_on_canonical_only, test_stale_copy_rows_pruned, test_group_streams_and_metric_filled_from_sibling
 
+### `test_heat_forecast.py` (11줄) — 예보 기온 → 폭염 보정(E10) 순수 변환.
+
+- functions: test_morning_temps_and_pct
+
 ### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
 
 - functions: test_ols_exact, test_few_points_returns_default, test_shrinkage_toward_truth
@@ -3097,6 +3105,10 @@
 
 - functions: conn, test_superseded_planner_row_not_in_denominator, test_volume_labels, test_easy_run_too_fast_is_intensity_off, test_missed_and_unplanned_run, test_before_effective_start_is_pre_plan, test_future_day_is_upcoming_and_not_counted, test_accepted_rest_adjustment_leaves_denominator_and_run_is_unplanned, test_accepted_easy_adjustment_changes_quality_count, test_user_skip_counts_as_missed_in_denominator
 
+### `test_week_compliance_cross.py` (25줄) — 교차훈련으로 대체한 날은 이행률 분모에서 제외(E10).
+
+- functions: test_cross_day_excluded_from_denominator
+
 ### `test_week_digest.py` (52줄) — week_digest / 월간 프롬프트 W 블록 테스트 (U17g).
 
 - functions: test_weeks_overlapping_monday_start, test_empty_week_has_none_values, test_week_with_run_and_plan, test_in_progress_week_is_partial, test_prompt_contains_week_block, test_prompt_lines_empty_week
@@ -3109,9 +3121,9 @@
 
 - functions: test_decide_table_rows, test_decide_boundaries_and_gates, test_taper_start_not_pushed_by_repeat, test_apply_to_rows_scales_and_limits_quality, test_adapt_plan_noop_for_v1_or_no_goal
 
-### `test_weekly_adapt_job.py` (58줄) — 주간 적응 잡(E9) — 멱등, 완료·수동 행 보존, v1 목표 무변경.
+### `test_weekly_adapt_job.py` (84줄) — 주간 적응 잡(E9) — 멱등, 완료·수동 행 보존, v1 목표 무변경.
 
-- functions: test_idempotent_and_applies, test_completed_and_manual_rows_kept, test_v1_goal_untouched
+- functions: test_idempotent_and_applies, test_completed_and_manual_rows_kept, test_v1_goal_untouched, test_heat_forecast_slows_pace_only_and_idempotent, test_heat_forecast_failure_changes_nothing
 
 ### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
 
@@ -3187,7 +3199,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 676개 파일
+총 679개 파일
 
 ## docstring 누락
 

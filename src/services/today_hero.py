@@ -81,7 +81,7 @@ def build_week(conn: sqlite3.Connection, day: str) -> dict:
         if e["state"] == "skipped":  # 직접 건너뛴 날은 원래 계획 기준으로 계속 센다
             orig = wc.original_of(e)
             wtype, planned_km = orig["workout_type"], orig.get("distance_km")
-        if e["state"] not in ("rest", "pre_plan") and planned_km:
+        if e["state"] not in ("rest", "pre_plan", "cross") and planned_km:
             plan_km += planned_km
         if wtype in _KEY_TYPES and e["state"] != "pre_plan":
             key_total += 1

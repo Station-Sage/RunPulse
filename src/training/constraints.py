@@ -19,11 +19,11 @@ def _km(r: dict) -> float:
     return float(r.get("distance_km") or 0.0)
 
 
-def heat_adjust(rows: list[dict], heat_pct: dict[str, float]) -> list[dict]:
-    """날짜별 폭염 보정(%) > 2 이면 거리는 두고 페이스 범위만 늦춘다. 퀄리티가 더 더운 날이면 가장 선선한 이지 날과 맞바꾼다."""
+def heat_adjust(rows: list[dict], heat_pct: dict[str, float], swap: bool = True) -> list[dict]:
+    """날짜별 폭염 보정(%) > 2 이면 거리는 두고 페이스 범위만 늦춘다. swap 이면 퀄리티가 더 더운 날에 가장 선선한 이지 날과 맞바꾼다."""
     out = [dict(r) for r in rows]
     runs = [r for r in out if r["workout_type"] not in _SKIP]
-    for q in [r for r in runs if r["workout_type"] in _QUAL]:
+    for q in [r for r in runs if swap and r["workout_type"] in _QUAL]:
         cool = [r for r in runs if r["workout_type"] in ("easy", "recovery")
                 and heat_pct.get(r["date"], 0.0) < heat_pct.get(q["date"], 0.0)]
         if heat_pct.get(q["date"], 0.0) > HEAT_MIN_PCT and cool:
