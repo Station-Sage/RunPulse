@@ -192,7 +192,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
      - ① 심박 결측 TRIMP 대체 부하(페이스·RPE 기반 새 Calculator) — 2025-09 이전 CTL 과소, 현재 값 영향 없음. 루트 BACKLOG `DATA-CTL-WARMUP` 참조. **코드 구현 완료(2026-10-07, ADR-024 `TRIMPEstCalculator`)**. 실 DB 재계산 완료(2026-10-07, 백업 /tmp/bk/running_pre_trimp_est_20261007.db, 133건 추정·2023-11-18~ 일별 PMC 재계산, 2025-10 이후 CTL 불변).
      - ② **종료(2026-10-07)**: 이미 구현됨(활동 `gap` 메트릭·랩 83%·스트림 41% 저장). 빈 구간은 GPS·고도 없는 활동으로 원본 부재 — 추가 개발 없음.
      - ③ **완료(2026-10-07)**: 레거시 `trends.calculate_acwr`가 정본(metric_store `acwr`, EWMA 7/42) 최신 값을 읽도록 교체(반환 형태 유지). weekly_score·race_readiness·suggestions·ai_context_legacy 값이 정본 기준으로 바뀜.
-  5. **3-10 RPE 입력·`⋯` 메뉴**: ⑦ ADR + 사용자 승인 필요.
+  5. ~~**3-10 RPE 입력·`⋯` 메뉴**~~ **이미 구현됨(U15, ADR-022)**: 활동 상세 `⋯` 메뉴 → "메모·RPE 기록"(`ActivityMoreMenu`, `activity_feedback_service`, RPE 1~10). 2026-10-10 확인, 추가 작업 없음.
   6. **3-16(D4)**: 사용자 지시 없이 진행 금지.
   7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
   8. **목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**(3-1 이월, 설계서 P2 이하).
