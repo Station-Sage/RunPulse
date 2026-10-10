@@ -30,3 +30,15 @@ def test_run_days_default_uses_median_when_no_rest_mask():
     with patch.object(S, "load_prefs", return_value={"rest_weekdays_mask": 0}), \
             patch.object(S, "recent_run_days_per_week", return_value=[]):
         assert S._run_days(conn) == 4
+
+
+def test_finalize_rows_clears_rest_and_adds_mp_segment():
+    from src.training.planner_v2 import _finalize_rows
+    rows = [
+        {"workout_type": "rest", "target_pace_min": 300, "target_pace_max": 330, "rationale": "x", "structure": {"steps": []}},
+        {"workout_type": "long_mp", "distance_km": 24.0, "mp_km": 10.0, "target_pace_min": 340, "target_pace_max": 360},
+    ]
+    _finalize_rows(rows, 300.0)
+    assert rows[0]["target_pace_min"] is None and rows[0]["rationale"] == "" and rows[0]["structure"] is None
+    steps = rows[1]["structure"]["steps"]
+    assert len(steps) == 2 and abs(steps[0]["dist_m"] - 14000) < 1 and abs(steps[1]["dist_m"] - 10000) < 1

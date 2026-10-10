@@ -131,7 +131,21 @@ def apply_v2(rows: list[dict], *, dlabel: str, phase: str, weeks_to_race: int, t
     if ctx is not None:
         for r in res:
             r["_long_ctx"] = asdict(ctx)
+    _finalize_rows(res, mp)
     return res
+
+
+def _finalize_rows(rows: list[dict], mp: float | None) -> None:
+    """휴식 행의 페이스·근거를 비우고(E6), long_mp 구조에 MP 구간을 넣는다."""
+    for r in rows:
+        if r["workout_type"] == "rest":
+            r.update(target_pace_min=None, target_pace_max=None, target_hr_zone=None, rationale="",
+                     interval_prescription=None, structure=None)
+        elif r["workout_type"] == "long_mp" and mp and r.get("mp_km") and r.get("distance_km"):
+            easy_km = max(0.0, float(r["distance_km"]) - float(r["mp_km"]))
+            easy = structure_for_plan("long", easy_km, r.get("target_pace_min"), r.get("target_pace_max")) if easy_km > 0 else None
+            mps = structure_for_plan("marathon", float(r["mp_km"]), round(mp - 3), round(mp + 5))
+            r["structure"] = {"steps": ((easy or {}).get("steps") or []) + (mps or {}).get("steps", [])}
 
 
 def _place_mp(out: list[dict], mp: float, phase: str, weeks_to_race: int, taper_first: bool, week_km: float,
