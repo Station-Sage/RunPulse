@@ -49,3 +49,16 @@ def race_week_session(warmup_km: float = 1.5) -> dict:
     mp = RACE_WEEK_MP_KM[0]
     total = max(RACE_WEEK_MIN_TOTAL_KM, round(mp + warmup_km * 2, 1))
     return {"workout_type": "marathon", "mp_km": mp, "distance_km": total}
+
+
+def mp_now_from_prediction(conn, vdot_m: float | None, as_of: str | None = None) -> float | None:
+    """현재 MP(sec/km): r3 마라톤 예측(race_pred_marathon_sec, 최신)/42.195, 없으면 VDOT M 페이스(DESIGN X3)."""
+    try:
+        from datetime import date
+        row = conn.execute(
+            "SELECT numeric_value FROM metric_store WHERE scope_type='daily' AND metric_name='race_pred_marathon_sec' "
+            "AND provider='runpulse:formula_v1' AND scope_id<=? AND numeric_value>0 ORDER BY scope_id DESC LIMIT 1",
+            ((as_of or date.today().isoformat()),)).fetchone() if conn is not None else None
+    except Exception:
+        row = None
+    return row[0] / 42.195 if row else vdot_m

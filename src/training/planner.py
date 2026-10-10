@@ -54,7 +54,7 @@ from .planner_rules import (
 
 from .planned_query import get_planned_workouts  # noqa: F401  (하위 호환 re-export)
 from .plan_structure import structure_for_plan
-from .planner_schedule import week_target
+from .planner_schedule import _run_days, week_target
 
 log = logging.getLogger(__name__)
 
@@ -172,11 +172,9 @@ def generate_weekly_plan(
         else:
             template.append("easy")
 
-    # 거리 배분
     paces = get_paces_from_vdot(vdot, config, conn)
     dists = distribute_volume(template, total_km, long_km)
 
-    # 인터벌 처방 JSON 생성
     interval_rep_m = prefs.get("interval_rep_m", 1000)
 
     plan: list[dict] = []
@@ -211,12 +209,12 @@ def generate_weekly_plan(
 
     if goal and target and effective_rules_version(conn, goal["id"], week_start) >= 2:
         from .planner_v2 import apply_for_goal
-        plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start, len(available), vdot, as_of)
+        plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start,
+                            min(len(available), _run_days(conn, as_of or week_start)), vdot, as_of)
     return apply_race_week(plan, race_date, goal_distance)
 
 
-# ── 저장/조회/설정 ─────────────────────────────────────────────────────────
-
+# ── 저장/조회/설정 ──
 def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = True) -> int:
     """주간 계획을 planned_workouts 테이블에 저장.
 

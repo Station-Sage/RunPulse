@@ -1371,9 +1371,9 @@
 - class **LongBudget**: 없음
 - functions: abs_min_km, basis_km, time_cap_km, abs_cap_km, share_ratio, long_floor_km, prog_cap_km, long_cap_km, min_viable_week_km, budget_floor_km, plan_long_budget, feasible_week_km
 
-### `marathon_rules.py` (51줄) — 마라톤 페이스(MP) 규칙 R6(순수) — 처방 MP, 롱런 페이스, long_mp 비중, 테이퍼 MP 세션 (DESIGN-U16 §2.3).
+### `marathon_rules.py` (64줄) — 마라톤 페이스(MP) 규칙 R6(순수) — 처방 MP, 롱런 페이스, long_mp 비중, 테이퍼 MP 세션 (DESIGN-U16 §2.3).
 
-- functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session
+- functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session, mp_now_from_prediction
 
 ### `match_select.py` (61줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
 
@@ -1445,7 +1445,7 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (302줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (303줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs
 
@@ -1457,11 +1457,11 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (209줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (227줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
-- functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
+- functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
-### `planner_v2.py` (192줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
+### `planner_v2.py` (193줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
 - functions: apply_v2, apply_for_goal
 
@@ -2491,6 +2491,10 @@
 - class **TestVDOTMock**: test_10k, test_non_running
 - class **TestConfidenceBuilder**: test_all_available, test_partial_available, test_estimated_penalty, test_empty, test_mixed
 
+### `test_mp_now_prediction.py` (32줄) — MP_now 출처 — r3 마라톤 예측 우선, 없으면 VDOT M (PLAN-ENGINE E4/X3).
+
+- functions: test_falls_back_to_vdot_when_no_prediction, test_uses_latest_prediction_not_after_as_of, test_run_days_default_uses_median_when_no_rest_mask
+
 ### `test_narrative_cache.py` (153줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
 
 - class **TestNarrativeCacheHelpers**: test_cache_miss_returns_none, test_set_then_get_roundtrip, test_different_keys_do_not_collide, test_set_cache_failure_is_swallowed
@@ -3155,7 +3159,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 668개 파일
+총 669개 파일
 
 ## docstring 누락
 

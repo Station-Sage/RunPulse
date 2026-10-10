@@ -172,7 +172,8 @@ def apply_for_goal(conn, goal: dict, rows: list[dict], target, dlabel: str, pace
     ref = min(week_start, as_of) if as_of else week_start
     _, long6 = recent_load(conn, ref)
     out = apply_v2(rows, dlabel=dlabel, phase=target.phase, weeks_to_race=target.weeks_to_race,
-                    taper_first=taper_first, mp_now=paces.get("M"), mp_goal=mp_goal,
+                    taper_first=taper_first, mp_goal=mp_goal,
+                    mp_now=MR.mp_now_from_prediction(conn, paces.get("M"), ref.isoformat()),
                     weeks_since_build=max(0, 16 - target.weeks_to_race), run_days=n_run_days,
                     week_km=target.weekly_km, long_max_12w=recent_long_max(conn, ref, 12), race_date=goal.get("race_date"),
                     long_max_6w=long6)

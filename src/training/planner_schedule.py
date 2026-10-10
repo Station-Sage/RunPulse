@@ -111,7 +111,7 @@ def _long_pace_fn(goal: dict, dlabel: str, vdot: float | None, conn: sqlite3.Con
     if not (vdot and vdot > 20):        # VDOT 없을 때만 프로필 역치 페이스가 쓰인다(요청 사용자 설정)
         from src.utils.config import load_config
         cfg = load_config()
-    mp_now = get_paces_from_vdot(vdot, cfg, conn).get("M")
+    mp_now = MR.mp_now_from_prediction(conn, get_paces_from_vdot(vdot, cfg, conn).get("M"))
 
     def pace(to_race: int) -> float:
         mp = MR.prescribed_mp(mp_now, mp_goal, max(0, 16 - to_race))
@@ -135,7 +135,7 @@ def _build(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None
         peak = max(peak, cold_peak_km(dlabel))
     cap, long_cap = None, None
     if rv >= 2:
-        n_days = _run_days(conn)
+        n_days = _run_days(conn, as_of)
         pace = _long_pace_fn(goal, dlabel, vdot, conn)
         cap = feasible_week_km(n_days, pace(2), dlabel)      # D-LR-8(B): 피크 롱런 공유 상한과 결합
         long_cap = _long_cap_fn(dlabel, pace, n_days, start_long, recent_long_max(conn, as_of, 12))
@@ -179,8 +179,26 @@ def _comeback_ceiling(conn: sqlite3.Connection, rv: int, as_of: date) -> float:
     return P.comeback_ceiling(recent_load(conn, as_of)[0], recent_avg_km(conn, as_of, 16))
 
 
-def _run_days(conn: sqlite3.Connection) -> int:
-    return 7 - bin(load_prefs(conn).get("rest_weekdays_mask", 0) & 0x7F).count("1")
+def recent_run_days_per_week(conn: sqlite3.Connection, as_of: date, weeks: int = 8) -> list[int]:
+    """as_of 직전 weeks 주의 주별 러닝 일수(러닝이 있던 주만, 오래된 주부터)."""
+    rows = conn.execute(
+        f"SELECT DATE(start_time) d FROM v_canonical_activities WHERE activity_type IN {_RUN} "
+        "AND DATE(start_time) >= ? AND DATE(start_time) < ? GROUP BY d",
+        ((as_of - timedelta(weeks=weeks)).isoformat(), as_of.isoformat())).fetchall()
+    per: dict[int, int] = {}
+    for (d,) in rows:
+        k = (as_of - date.fromisoformat(d)).days // 7
+        per[k] = per.get(k, 0) + 1
+    return [per[k] for k in sorted(per, reverse=True)]
+
+
+def _run_days(conn: sqlite3.Connection, as_of: date | None = None) -> int:
+    """주 러닝 일수: 휴식 요일 설정이 있으면 7-휴식일, 없으면 최근 8주 중앙값(3~6, 기록 없으면 4) — DESIGN X2."""
+    mask = load_prefs(conn).get("rest_weekdays_mask", 0) & 0x7F
+    if mask:
+        return 7 - bin(mask).count("1")
+    from .week_structure import default_run_days
+    return default_run_days(recent_run_days_per_week(conn, as_of or date.today()))
 
 
 def week_cap_km(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None) -> float | None:
