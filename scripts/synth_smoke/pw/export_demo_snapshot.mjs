@@ -17,7 +17,7 @@ const p = await (await b.newContext({ viewport: { width: 1100, height: 900 } }))
 p.on('response', async (r) => {
 	const u = r.url();
 	if (!u.includes('/api/v1/') || r.request().method() !== 'GET' || !r.ok()) return;
-	if (u.includes('/stream') || u.includes('/events')) return;
+	if (u.includes('/events') || (r.headers()['content-type'] || '').includes('event-stream')) return;
 	try { snap[key(u)] = await r.json(); } catch {}
 });
 const visit = async (path) => { await p.goto(`${BASE}/v2${path}`, { waitUntil: 'networkidle' }); await p.waitForTimeout(600); };

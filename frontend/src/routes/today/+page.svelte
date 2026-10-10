@@ -24,6 +24,7 @@
 	import { openDrill } from '$lib/drillStack';
 	import { swrEvict } from '$lib/loadCache';
 	import { loadCoverageNotice } from '$lib/healthNotice';
+	import { demoActive } from '$lib/demoMode';
 	import { postCheckin } from '$lib/api/today';
 	import { morningAsOf } from '$lib/todayHero';
 	import { base } from '$app/paths';
@@ -103,7 +104,7 @@
 	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
 		<div class="contents lg:flex lg:flex-col lg:gap-6">
 			<section class="order-1 flex flex-col gap-3">
-				{#if loadCoverageNotice(data.today.data_health)}
+				{#if !$demoActive && loadCoverageNotice(data.today.data_health)}
 					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 				{/if}
 				{#if isSmallData(unlock) && data.today.recent_activities.length > 0 && !briefing.state}
