@@ -197,7 +197,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   7. **내러티브 캐시 워밍**·`MonthNarrative` 레이어링(오버레이 안 드릴다운 중첩) — LLM 호출 비용·캐시 키 설계.
   8. **목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**(3-1 이월, 설계서 P2 이하).
   9. **S2 이월**: 이벤트 마커(데이터 소스 미정), Sparkline min_span·끝점 점·캡션.
-  10. **계정 설정 스키마(2-3)**·`sync_jobs` 열 확장(error_code 등)·4경로 오류 표면화.
+  10. ~~**계정 설정 스키마(2-3)**·`sync_jobs` 열 확장·4경로 오류 표면화~~ **이미 구현됨(U15)**: `user_settings`(스키마 v25, ADR-023), 원장 `sync_jobs.db` 열 확장(`error_code`·`http_status` 등, `sync_jobs_schema.py`), 오류 코드 기록(sync 원장·bg_sync·내보내기·가져오기·재계산) → `sync_state_service` 오류 상태. 2026-10-10 확인, 스키마 v36 불필요.
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).
   **DESIGN-PENDING 진행 — 2026-10-04**: 12(기간 필터)·2(RRI)·1(UTRS 입력)·9단계1(Sparkline)·3(활동 `@a{id}` 드릴)·11 완료,
