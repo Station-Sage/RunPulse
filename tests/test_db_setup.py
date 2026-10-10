@@ -101,7 +101,7 @@ class TestPhase1Schema:
             "source_payloads", "activity_summaries", "daily_wellness",
             "metric_store", "activity_streams",
             "activity_laps", "activity_best_efforts", "gear",
-            "weather_cache", "sync_jobs", "activity_groups", "milestones",
+            "weather_cache", "activity_groups", "milestones",
         }
         assert pipeline.issubset(tables), f"누락: {pipeline - tables}"
         assert "daily_fitness" not in tables, "daily_fitness가 삭제되지 않음 (ADR-005)"

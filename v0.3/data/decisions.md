@@ -373,5 +373,10 @@
 
 ## ADR-046: G5 게이트(v1 복귀율 로그) 생략 (2026-10-11)
 - 사용자 결정: v1은 제거할 예정이므로 G5 "2주 운용·복귀율 <10%" 게이트를 건너뛴다. 구현했던 v1 복귀 로그(`ui_events`, 사유 시트, 운영자 리포트)는 철회(a266af6 revert).
-- 이미 마이그레이션된 사용자 DB에는 빈 `ui_events` 테이블이 남을 수 있다(user_version 36 ≥ 코드 35라 재마이그레이션 없음, 무해). 필요 시 별도 정리.
+- 이미 만들어진 `ui_events` 테이블은 스키마 v36 마이그레이션(`db_schema_v36`)이 DROP 한다.
 - G5 기본 전환·G6 v1 제거의 구체 작업은 별도 설계 후 사용자 지시로 진행.
+
+### ADR-047: 퇴역 잔재 제거 — 구 sync_jobs 테이블·sync_state.json 이관 코드 (2026-10-11)
+- 사용자 결정: ADR-044 D5의 `running.db` 구 `sync_jobs` 테이블은 지금 DROP(스키마 v36, `ui_events` 포함). 원장은 `sync_jobs.db`.
+- ADR-044 D2 변경: `sync_state.json` 이관·`--restore`는 하지 않는다. `sync_state_retire.py`와 시작 시 호출을 삭제하고 `sync_state.json*` 파일도 지운다(옛 `retry_after`는 버림).
+- ADR-044 D4(수동 동기화 라우트 `manual_sync_service` 추출, app.py −250줄)는 범위 확장이지만 사용자가 승인했다.

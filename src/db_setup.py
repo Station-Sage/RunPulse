@@ -10,7 +10,7 @@
            activity_laps            — 랩/스플릿
            activity_best_efforts    — 베스트 에포트
            activity_exercise_sets   — 근력/운동 세트 (Garmin)
-  Layer 4: gear, weather_cache, sync_jobs, v_canonical_activities
+  Layer 4: gear, weather_cache, v_canonical_activities
 
 마이그레이션:
   v0.2 → v0.3은 schema reset (SCHEMA_VERSION=10). 기존 데이터는
@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 35  # v35: plan_replans.rules_version anchor 별 규칙 버전 (db_schema_v35) — v34: CalDAV 전송 기록 caldav_pushes (db_schema_v34) — v33: plan_replans.start_source 확장 (db_schema_v33) — v0.3.21: 안전한 재계획 plan_replans·활성 목표 유니크 (db_schema_v32) — v31: 계획 조정 plan_adjustments (db_schema_v31) — v30: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 36  # v36: 퇴역 테이블 sync_jobs·ui_events 삭제 (db_schema_v36) — v35: plan_replans.rules_version anchor 별 규칙 버전 (db_schema_v35) — v34: CalDAV 전송 기록 caldav_pushes (db_schema_v34) — v33: plan_replans.start_source 확장 (db_schema_v33) — v0.3.21: 안전한 재계획 plan_replans·활성 목표 유니크 (db_schema_v32) — v31: 계획 조정 plan_adjustments (db_schema_v31) — v30: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -391,24 +391,6 @@ CREATE TABLE IF NOT EXISTS milestones (
 );
 """
 
-_DDL_SYNC_JOBS = """
-CREATE TABLE IF NOT EXISTS sync_jobs (
-    id              TEXT PRIMARY KEY,
-    source          TEXT NOT NULL,
-    job_type        TEXT NOT NULL DEFAULT 'activity',
-    from_date       TEXT,
-    to_date         TEXT,
-    status          TEXT DEFAULT 'pending',
-    total_items     INTEGER,
-    completed_items INTEGER DEFAULT 0,
-    error_count     INTEGER DEFAULT 0,
-    last_error      TEXT,
-    retry_after     TEXT,
-    created_at      TEXT DEFAULT (datetime('now')),
-    updated_at      TEXT DEFAULT (datetime('now'))
-);
-"""
-
 # ── 앱 기능 테이블 (기존 유지) ──
 
 _DDL_APP_TABLES = """
@@ -583,7 +565,6 @@ PIPELINE_TABLES = [
     "athlete_profile",
     "athlete_stats",
     "weather_cache",
-    "sync_jobs",
 ]
 
 APP_TABLES = [
@@ -657,10 +638,6 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
     _idx(conn, "activity_exercise_sets", "activity_id",
          "CREATE INDEX IF NOT EXISTS idx_exercise_sets_activity ON activity_exercise_sets(activity_id, source)")
 
-    # sync_jobs
-    _idx(conn, "sync_jobs", "source",
-         "CREATE INDEX IF NOT EXISTS idx_sync_jobs_source ON sync_jobs(source, created_at)")
-
     # activity_groups (D2)
     _idx(conn, "activity_groups", "activity_date",
          "CREATE INDEX IF NOT EXISTS idx_ag_date ON activity_groups(activity_date)")
@@ -705,7 +682,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
         _DDL_ATHLETE_PROFILE,
         _DDL_ATHLETE_STATS,
         _DDL_WEATHER_CACHE,
-        _DDL_SYNC_JOBS,
         _DDL_APP_TABLES,
     ]:
         conn.executescript(ddl)
@@ -757,6 +733,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
     ensure_v34(conn)
     from src.db_schema_v35 import ensure_v35
     ensure_v35(conn)
+    from src.db_schema_v36 import ensure_v36
+    ensure_v36(conn)
 
     conn.commit()
 

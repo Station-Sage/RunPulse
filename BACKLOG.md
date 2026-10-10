@@ -15,9 +15,8 @@
 
 ## NEXT
 
-- **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 남은 일: `running.db`의 구 `sync_jobs` 잔재(`db_setup.py:395`) DROP — 별도 항목 [SYNC-JOBS-LEGACY-DROP].
+- **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 구 `sync_jobs` 잔재·이관 코드·json 파일 제거 완료(2026-10-11, ADR-047, 스키마 v36).
 
-- **[SYNC-JOBS-LEGACY-DROP]** `running.db`의 구 `sync_jobs` 테이블 잔재(`db_setup.py:395`) DROP + 마이그레이션·테스트. 원장은 `sync_jobs.db`가 진실(ADR-044). 설계 에이전트 검토 후 진행.
 
 - **[PHASE-7-REMAINING]** UI 리뉴얼 v2 감사(2026-10-10)로 확인한 미완 일람 — 코드 변경 전 사용자 지시 필요: (0) **전환 배관 미연결(감사 2026-10-10 확인)**: `/me/preferences`·`resolve_ui_default` 는 있으나 `/` 분기·토글 UI(설정 '시작 화면'·드로어 '이전 화면으로(v1)'·v1 헤더 '새 화면 사용해 보기') 구현 완료(2026-10-10, `entry_path`), G5 게이트(복귀율 로그)는 사용자 결정으로 건너뜀(2026-10-11, ADR-046): v1은 제거 예정, 롤백 로그 코드 철회. 그 외: `sync_state.json` 퇴역 R0·R1·R2 완료(R3~R5 진행 중, 설계 sync-state-retire-design.md); 쓰기 지속(`sync_state.mark_finished`, 수용기준 '쓰기 0회' 미달), v1 `GET /recompute-metrics` 퇴역 완료(ADR-045), Coach 컨텍스트 패널은 LLM 에이전트 연동(승인 대기)에 종속되어 보류(03e 5-B 와이어프레임뿐, 참조 근거 데이터 출처 없음), 컴포넌트 점검 완료: `ProviderBadge`=`SourceBadge.svelte`로 구현, `DateStepper`·`SidebarSyncBlock`은 04 카탈로그에 없음(설계 외). (1) **G5 기본 전환**: v2 를 기본 진입으로(2주 운영·v1 복귀율 <10% 게이트, 사용자 결정). (2) **G6 v1 제거 + 301 리다이렉트**(G5 이후; AUDIT-V-CANONICAL 해소). (3) **Training Balance Radar**(07 §7d, 미배정). (4) **COROS/Polar 커넥터**(미배정, "러닝 우선" 보류와 겹침). (5) **Lighthouse/CWV 실측**(미측정). (6) **Coach 컨텍스트 패널**(07 §7d, 미구현 확인). 보류: AUDIT-SERVICE-LAYER phase 0, LLM 에이전트 연동(승인 대기).
 

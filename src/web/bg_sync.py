@@ -65,8 +65,6 @@ try:
     _cleaned = cleanup_stale_running_jobs() + cleanup_stale_running_jobs_all_users()
     if _cleaned:
         log.info("[bg_sync] stale 작업 %d개 정리됨", _cleaned)
-    from src.utils.sync_state_retire import retire_all_users
-    retire_all_users()
 except Exception:
     pass
 

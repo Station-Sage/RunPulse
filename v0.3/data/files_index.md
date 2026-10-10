@@ -1049,7 +1049,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (627줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (625줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1696,10 +1696,6 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state_retire.py` (70줄) — sync_state.json 퇴역 이관 — 미래의 retry_after만 sync_gates로 옮긴다 (--restore: 이름 원복).
-
-- functions: retire_all_users, restore_all_users
-
 ### `user_context.py` (38줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
 - functions: set_current_user, set_current_job, current_job, resolve_user_id
@@ -2226,6 +2222,10 @@
 ### `test_db_schema_v35.py` (55줄) — 스키마 v35 — plan_replans.rules_version, effective_rules_version, anchor 별 규칙 버전.
 
 - functions: test_ensure_v35_idempotent, test_effective_follows_goal_without_anchor_version, test_effective_by_week_and_undone, test_schedule_prefix_unchanged_and_tail_uses_anchor_version
+
+### `test_db_schema_v36.py` (23줄)
+
+- functions: test_drops_retired_tables_idempotent, test_migrate_drops_legacy_in_old_db
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -3055,10 +3055,6 @@
 
 - class **TestSyncResult**: test_defaults, test_rate_limited, test_merge, test_merge_failed_becomes_partial, test_to_sync_job_dict
 
-### `test_sync_state_retire.py` (52줄) — sync_state_retire — 미래 retry_after만 sync_gates로 이관.
-
-- functions: root, test_future_retry_moved, test_past_retry_ignored, test_idempotent_keeps_existing_gate, test_rename_and_restore
-
 ### `test_sync_state_service.py` (107줄) — tests/test_sync_state_service.py — SyncState 계약(작업 원장 기준 동기화 상태).
 
 - functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream, test_cancelled_job_is_not_an_error
@@ -3329,7 +3325,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 710개 파일
+총 709개 파일
 
 ## docstring 누락
 
@@ -3337,6 +3333,7 @@
 - `tests/test_constraints.py`
 - `tests/test_critical_power.py`
 - `tests/test_crs.py`
+- `tests/test_db_schema_v36.py`
 - `tests/test_eftp.py`
 - `tests/test_fixture_loader.py`
 - `tests/test_fixtures_layout.py`
