@@ -25,16 +25,16 @@
 			<table class="w-full text-left text-xs">
 				<thead class="bg-surface-2 text-fg-muted">
 					<tr>
-						<th class="px-3 py-2 font-medium">지표</th>
+						<th class="sticky left-0 z-10 bg-surface-2 px-3 py-2 font-medium">지표</th>
 						{#each cols as p}<th class="px-3 py-2 font-medium">{providerName(p)}</th>{/each}
-						<th class="px-3 py-2 font-medium">차이</th>
+						<th class="sticky right-0 z-10 bg-surface-2 px-3 py-2 font-medium shadow-[-6px_0_6px_-6px_rgba(0,0,0,0.25)]">차이</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each section.rows as row (row.key)}
 						{@const href = rowHref(base, row, data.days)}
 						<tr class="border-t border-border-subtle align-top">
-							<th scope="row" class="px-3 py-2 font-medium text-fg-primary">
+							<th scope="row" class="sticky left-0 z-10 bg-surface-1 px-3 py-2 font-medium text-fg-primary">
 								{row.label}{#if row.unit}<span class="ml-1 text-fg-muted">({row.unit})</span>{/if}
 							</th>
 							{#each cols as p}
