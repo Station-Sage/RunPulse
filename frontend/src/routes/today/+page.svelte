@@ -13,7 +13,8 @@
 	import TodayNextSession from '$lib/components/TodayNextSession.svelte';
 	import TodayFormChart from '$lib/components/TodayFormChart.svelte';
 	import UnlockList from '$lib/components/today/UnlockList.svelte';
-	import { lockedRows } from '$lib/unlock';
+	import ColdStartProgress from '$lib/components/today/ColdStartProgress.svelte';
+	import { isSmallData, lockedRows } from '$lib/unlock';
 	import TodayEmpty from '$lib/components/TodayEmpty.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
@@ -100,11 +101,15 @@
 				{#if loadCoverageNotice(data.today.data_health)}
 					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 				{/if}
-				{#await data.raceHub}
-					<TodayHero {briefing} goal={null} onEvidence={openEvidence} onRetry={retry} />
-				{:then hub}
-					<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} onRetry={retry} />
-				{/await}
+				{#if isSmallData(unlock) && data.today.recent_activities.length > 0 && !briefing.state}
+					<ColdStartProgress activities={data.today.recent_activities} />
+				{:else}
+					{#await data.raceHub}
+						<TodayHero {briefing} goal={null} onEvidence={openEvidence} onRetry={retry} />
+					{:then hub}
+						<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} onRetry={retry} />
+					{/await}
+				{/if}
 				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
 				<QuickInput
 					compact={true}
