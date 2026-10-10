@@ -369,7 +369,7 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `user_settings_service.py` (42줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
+### `user_settings_service.py` (46줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default
 
@@ -3061,9 +3061,9 @@
 - class **TestAiFeedback**: test_insert_feedback, test_unique_per_thread_message
 - class **TestChatThreads**: test_chat_messages_thread_id_column_exists, test_thread_groups_messages
 
-### `test_user_settings_service.py` (71줄) — 사용자 설정 서비스·API 테스트.
+### `test_user_settings_service.py` (79줄) — 사용자 설정 서비스·API 테스트.
 
-- functions: conn, test_whitelist_and_invalid_value, test_resolve_priority, test_set_overwrites, test_invalid_global_falls_back, client, test_api_get_patch, test_api_patch_invalid_400, test_api_state_persists
+- functions: conn, test_whitelist_and_invalid_value, test_resolve_priority, test_set_overwrites, test_invalid_global_falls_back, client, test_api_get_patch, test_api_patch_invalid_400, test_api_state_persists, test_api_onboarding_patch
 
 ### `test_utrs.py` (114줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 

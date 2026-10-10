@@ -4,7 +4,10 @@
 	import { onMount } from 'svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import { goto } from '$app/navigation';
 	import { getSyncState } from '$lib/api/data';
+	import { getPreferences } from '$lib/api/me';
+	import { shouldRedirect } from '$lib/onboarding';
 	import { postCheckin } from '$lib/api/today';
 	import { lifecycleOf, todayEmptyCopy, type Lifecycle } from '$lib/states';
 
@@ -13,7 +16,13 @@
 	let error = $state<string | null>(null);
 
 	onMount(() => {
-		getSyncState().then((s) => { life = lifecycleOf(s); }).catch(() => {});
+		getSyncState()
+			.then(async (s) => {
+				life = lifecycleOf(s);
+				const prefs = await getPreferences().catch(() => null);
+				if (prefs && shouldRedirect(s, prefs.onboarding)) void goto(`${base}/welcome`, { replaceState: true });
+			})
+			.catch(() => {});
 	});
 
 	const copy = $derived(todayEmptyCopy(life));

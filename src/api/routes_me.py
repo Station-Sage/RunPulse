@@ -19,7 +19,12 @@ def _open():
 
 def _payload(conn) -> dict:
     config = load_config()
-    return {"ui_default": svc.resolve_ui_default(conn, config), "ui_default_global": svc.global_ui_default(config)}
+    return {
+        "ui_default": svc.resolve_ui_default(conn, config),
+        "ui_default_global": svc.global_ui_default(config),
+        "onboarding": svc.get_setting(conn, "onboarding", "pending"),
+        "onboarding_step": svc.get_setting(conn, "onboarding_step", 0),
+    }
 
 
 @api_bp.get("/me/preferences")
@@ -36,13 +41,15 @@ def get_preferences():
 @api_bp.patch("/me/preferences")
 def patch_preferences():
     body = request.get_json(silent=True)
-    if not isinstance(body, dict) or "ui_default" not in body:
-        return api_error("INVALID_PARAM", "ui_default가 필요해요", 400)
+    keys = [k for k in svc.ALLOWED if isinstance(body, dict) and k in body]
+    if not keys:
+        return api_error("INVALID_PARAM", f"{', '.join(svc.ALLOWED)} 중 하나가 필요해요", 400)
     conn = _open()
     if conn is None:
         return api_error("NOT_FOUND", "running.db 없음", 503)
     try:
-        svc.set_setting(conn, "ui_default", body["ui_default"])
+        for k in keys:
+            svc.set_setting(conn, k, body[k])
         return api_ok(_payload(conn))
     except ValueError as e:
         return api_error("INVALID_PARAM", str(e), 400)

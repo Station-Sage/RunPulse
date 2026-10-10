@@ -4,7 +4,11 @@ from __future__ import annotations
 import json
 import sqlite3
 
-ALLOWED: dict[str, tuple[str, ...]] = {"ui_default": ("v1", "v2")}
+ALLOWED: dict[str, tuple] = {
+    "ui_default": ("v1", "v2"),
+    "onboarding": ("pending", "skipped", "done"),
+    "onboarding_step": (0, 1, 2, 3, 4),
+}
 FALLBACK_UI = "v1"
 
 
@@ -22,7 +26,7 @@ def set_setting(conn: sqlite3.Connection, key: str, value) -> None:
     if key not in ALLOWED:
         raise ValueError(f"허용되지 않은 설정 키: {key}")
     if value not in ALLOWED[key]:
-        raise ValueError(f"{key}는 {', '.join(ALLOWED[key])} 중 하나여야 해요")
+        raise ValueError(f"{key}는 {', '.join(map(str, ALLOWED[key]))} 중 하나여야 해요")
     conn.execute(
         "INSERT INTO user_settings(key, value_json, updated_at) VALUES (?, ?, datetime('now')) "
         "ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, updated_at=excluded.updated_at",

@@ -56,7 +56,8 @@ def client(tmp_path, monkeypatch):
 
 
 def test_api_get_patch(client):
-    assert client.get("/api/v1/me/preferences").get_json()["data"] == {"ui_default": "v1", "ui_default_global": "v1"}
+    assert client.get("/api/v1/me/preferences").get_json()["data"] == {
+        "ui_default": "v1", "ui_default_global": "v1", "onboarding": "pending", "onboarding_step": 0}
     r = client.patch("/api/v1/me/preferences", json={"ui_default": "v2"})
     assert r.get_json()["data"]["ui_default"] == "v2"
 
@@ -69,3 +70,10 @@ def test_api_patch_invalid_400(client):
 def test_api_state_persists(client):
     client.patch("/api/v1/me/preferences", json={"ui_default": "v2"})
     assert client.get("/api/v1/me/preferences").get_json()["data"]["ui_default"] == "v2"
+
+
+def test_api_onboarding_patch(client):
+    r = client.patch("/api/v1/me/preferences", json={"onboarding": "skipped", "onboarding_step": 2})
+    d = r.get_json()["data"]
+    assert (d["onboarding"], d["onboarding_step"]) == ("skipped", 2)
+    assert client.patch("/api/v1/me/preferences", json={"onboarding_step": 9}).status_code == 400
