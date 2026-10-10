@@ -11,7 +11,7 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
+	import { EXPLAIN_SUPPORTED_SLUGS, prefetchDailyExplain } from '$lib/api/metrics';
 	import { openDrill, parseDrillToken } from '$lib/drillStack';
 	import { lockedMetricNotice } from '$lib/unlock';
 	import { metricsBackHref, fromToday } from '$lib/libraryNav';
@@ -174,6 +174,7 @@
 					periodLabel={PERIODS.find((x) => x.key === data.period)?.label ?? ''}
 					selectedDate={pinned}
 					onSelect={setPinned}
+					onPrefetch={explainSupported ? (d) => prefetchDailyExplain(data.slug, d) : undefined}
 				/>
 				{#if data.trend.recompute_note}
 					<p class="mt-2 text-xs text-fg-muted" data-testid="recompute-note">{data.trend.recompute_note.text}</p>

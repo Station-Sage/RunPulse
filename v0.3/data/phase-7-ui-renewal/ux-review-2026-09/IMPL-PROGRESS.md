@@ -314,8 +314,8 @@
 
 ### U3 A-4~A-7 완료 (2026-10-05)
 - A-4: 서버 `conclusion{top_loss,text}`(UTRS/CIRS/RRI, `metrics_explain_conclusion.py`) + 패널 상단 한 줄.
-- A-5: 패널 푸터 `Garmin 값과 비교 →`/`RunPulse 단독 산출`/`Coach에게 묻기 →`, 중복 "Provider 비교" 버튼 제거. Coach 링크는 `/coach/new`(메트릭 프리필은 coach/new가 `activity`만 지원해 미구현).
-- A-6: 패널 높이 예약(min-h 22rem). 차트 pointerdown 프리페치는 미구현(핀 시점 fetch로 충분, 필요 시 재검토).
+- A-5: 패널 푸터 `Garmin 값과 비교 →`/`RunPulse 단독 산출`/`Coach에게 묻기 →`, 중복 "Provider 비교" 버튼 제거. Coach 링크는 `/coach/new?metric=<slug>&date=<일자>`(2026-10-10 프리필 구현, ADR-043).
+- A-6: 패널 높이 예약(min-h 22rem). 차트 hover/드래그/핀 시 설명 프리페치(30초 캐시, `explainPrefetch.ts`) 구현 2026-10-10.
 - A-7: 서버 `meaning.personal`("지금 N — 등급. 90일 평균 M보다 높아요/낮아요", 표본 14 미만이면 생략) + 패널 표시.
 - 실 DB 스모크(utrs/cirs/rri) 통과, pytest 2095 통과.
 

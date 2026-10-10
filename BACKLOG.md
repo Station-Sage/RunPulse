@@ -2,7 +2,7 @@
 
 ## NOW
 
-- **[PHASE-7]** UI Renewal v2 화면·기능 구현은 완료했으나 **전환은 미완**(기본 진입 v1 유지: G5 기본 전환·G6 v1 제거는 사용자 결정 대기; 07 §7d의 Training Balance Radar·COROS/Polar 커넥터는 미구현·미배정; 그 외 NEXT 11 요약 탭 다운샘플·SWR, A-6 프리페치·Coach 프리필 미구현) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
+- **[PHASE-7]** UI Renewal v2 화면·기능 구현은 완료했으나 **전환은 미완**(기본 진입 v1 유지: G5 기본 전환·G6 v1 제거는 사용자 결정 대기; 07 §7d의 Training Balance Radar·COROS/Polar 커넥터는 미구현·미배정; NEXT 11 요약 탭 다운샘플·SWR, A-6 프리페치, Coach 지표 프리필은 2026-10-10 완료·ADR-043). 남은 미완 일람: [PHASE-7-REMAINING] 참조) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
 ## BUGS
 
@@ -14,6 +14,8 @@
 - [낮음] test_flask_routes.py garmin 라우트 포함 여부 — 테스트 커버리지
 
 ## NEXT
+
+- **[PHASE-7-REMAINING]** UI 리뉴얼 v2 감사(2026-10-10)로 확인한 미완 일람 — 코드 변경 전 사용자 지시 필요: (1) **G5 기본 전환**: v2 를 기본 진입으로(2주 운영·v1 복귀율 <10% 게이트, 사용자 결정). (2) **G6 v1 제거 + 301 리다이렉트**(G5 이후; AUDIT-V-CANONICAL 해소). (3) **Training Balance Radar**(07 §7d, 미배정). (4) **COROS/Polar 커넥터**(미배정, "러닝 우선" 보류와 겹침). (5) **Lighthouse/CWV 실측**(미측정). (6) **Coach 컨텍스트 패널**(07 §7d, 상태 미확인 — 착수 전 현황 점검). 보류: AUDIT-SERVICE-LAYER phase 0, LLM 에이전트 연동(승인 대기).
 
 - **[REVIEW03-LIFECYCLE]** L1~L7 완료(L7 문서 반영 확인)·L1~L6 배포(2026-10-10): 빈 상태·소량 데이터·/demo·/landing, A9(신규 계정 init_db + 503 NOT_FOUND만 empty) 해결, 신규 계정 /welcome 리다이렉트(200-빈 응답 대응) 및 T12=탭 2회 스모크. 데모 `snapshot.json`은 릴리스마다 재생성 필요. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
 

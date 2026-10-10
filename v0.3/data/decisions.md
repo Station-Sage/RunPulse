@@ -354,3 +354,9 @@
 - D2: 전 기간 재계산이 행을 지우고 다시 쓰므로 데이터 불연속이 없다. ◆ 는 정보 표시(사유 한 줄 + "과거 값도 다시 계산")이며 시계열 단절 표시가 아니다.
 - D3: 상위 지표(requires 역추적) 변경도 해당 차트에 전파(예: TRIMP→ctl). 같은 날짜 변경은 1건으로 병합. 신규 Calculator(prev=None)는 마커 없음.
 - D4: `tests/test_algo_changelog.py` 가 Calculator version≠"1.0" 의 항목 누락을 막는다. version 을 올리면 레지스트리 항목을 함께 추가한다.
+
+### ADR-043: 지표 설명 프리페치·Coach 지표 프리필 (2026-10-10)
+- D1: 차트 스크럽(hover·드래그·핀) 시 일자별 explain 을 프리페치하고 30초 메모리 캐시로 패널 요청과 공유한다(실패는 캐시하지 않음).
+- D2: Coach 프리필 계약은 `/coach/new?metric=<slug>&date=<YYYY-MM-DD>`(slug `[a-z0-9_]+`, 형식 불일치는 무시). 스레드 컨텍스트는 `{kind:'metric', ref:'slug@date'}`, 질문 3개는 클라이언트에서 생성.
+- D3: 백엔드 프롬프트는 아직 `activity` 종류만 요약하므로 `metric` 컨텍스트는 저장·뒤로가기 링크용이다(프롬프트 주입은 LLM 연동 항목).
+

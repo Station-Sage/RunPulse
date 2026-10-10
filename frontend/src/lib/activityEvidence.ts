@@ -25,5 +25,7 @@ export function threadBackHref(
 	if (context?.kind === 'activity' && /^\d+$/.test(context.ref)) {
 		return { href: `${base}/library/${context.ref}?from=coach`, label: '← 활동' };
 	}
+	const m = context?.kind === 'metric' ? /^([a-z0-9_]+)@(\d{4}-\d{2}-\d{2})$/.exec(context.ref) : null;
+	if (m) return { href: `${base}/library/metrics/${m[1]}?date=${m[2]}`, label: '← 지표' };
 	return { href: `${base}/coach`, label: '← Coach' };
 }

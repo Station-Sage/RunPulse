@@ -16,3 +16,8 @@ test('threadBackHref: 활동 스레드는 활동으로', () => {
 	assert.equal(threadBackHref({ kind: 'activity', ref: 'x' }, '').href, '/coach');
 	assert.equal(threadBackHref(null, '/b').href, '/b/coach');
 });
+
+test('threadBackHref: 지표 스레드는 지표 상세로', () => {
+	assert.equal(threadBackHref({ kind: 'metric', ref: 'tsb@2026-10-01' }, '').href, '/library/metrics/tsb?date=2026-10-01');
+	assert.equal(threadBackHref({ kind: 'metric', ref: 'bad' }, '').href, '/coach');
+});

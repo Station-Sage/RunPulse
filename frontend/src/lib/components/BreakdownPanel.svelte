@@ -1,6 +1,6 @@
 <script lang="ts">
 	// 메트릭 상세의 인라인 분해 패널 — 선택일(slug, date)의 explain을 불러 BreakdownView로 그린다.
-	import { getMetricExplain } from '$lib/api/metrics';
+	import { getDailyExplainCached } from '$lib/api/metrics';
 	import type { MetricExplainData } from '$lib/types';
 	import BreakdownView from './BreakdownView.svelte';
 	import Icon from './Icon.svelte';
@@ -27,7 +27,7 @@
 		const d = date;
 		let cancelled = false;
 		status = 'loading';
-		getMetricExplain(s, 'daily', d)
+		getDailyExplainCached(s, d)
 			.then((r) => {
 				if (cancelled) return;
 				data = r.formula ? r : null;

@@ -6,6 +6,7 @@
 	import { statusColorVar } from '$lib/statusColor';
 	import { formatChange, formatUnitValue } from '$lib/format';
 	import PredictionEvidence from '$lib/components/PredictionEvidence.svelte';
+	import { metricCoachHref } from '$lib/coachMetricPrefill';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let {
@@ -209,6 +210,6 @@
 		{:else}
 			<span data-testid="footer-compare-none">RunPulse 단독 산출</span>
 		{/if}
-		<a href="{base}/coach/new" class="text-fg-secondary underline" data-testid="footer-coach">Coach에게 묻기 →</a>
+		<a href={metricCoachHref(base, data.slug, data.scope.id)} class="text-fg-secondary underline" data-testid="footer-coach">Coach에게 묻기 →</a>
 	</section>
 </div>

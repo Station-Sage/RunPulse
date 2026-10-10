@@ -18,7 +18,8 @@
 		periodLabel = '',
 		selectedDate = null,
 		events = [],
-		onSelect
+		onSelect,
+		onPrefetch
 	}: {
 		series: TrendSeries[];
 		height?: number;
@@ -35,6 +36,8 @@
 		/** 차트 위 이벤트 마커(▲ 대회, ◇ 예측 기준 대회 변경, ◆ 계산 버전·출처 변경). 날짜가 x 범위 밖이면 그리지 않는다. */
 		events?: { date: string; kind: string; label: string; reason?: string; recomputed?: boolean }[];
 		onSelect?: (date: string | null) => void;
+		/** 호버/탭 중인 날짜 — 분해 선요청용. */
+		onPrefetch?: (date: string) => void;
 	} = $props();
 
 	const STATUS_COLOR: Record<string, string> = {
@@ -99,6 +102,7 @@
 	let wasPinned = false;
 	function onScrubChange(index: number | null, pinned = false) {
 		frac = index == null ? null : index / totalDays;
+		if (index != null) onPrefetch?.(dateAtOffset(t0, index));
 		if (pinned && index != null) onSelect?.(dateAtOffset(t0, index));
 		else if (index == null && wasPinned) onSelect?.(null);
 		wasPinned = pinned;
