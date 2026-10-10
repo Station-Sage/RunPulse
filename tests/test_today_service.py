@@ -84,6 +84,24 @@ class TestGetRecentActivities:
         assert isinstance(result[0]["route"], list)
         assert len(result[0]["route"]) >= 2
 
+    def test_latest_activity_has_hr_zone_from_avg_hr(self, db_conn):
+        """avg_hr만 있어도 최근 활동에 최다 존·비중이 붙고, 이전 활동에는 붙지 않는다."""
+        _seed_activity(db_conn, activity_id=20, start_time="2026-09-21T06:00:00")
+        _seed_activity(db_conn, activity_id=21, start_time="2026-09-22T06:00:00")
+        db_conn.execute("UPDATE activity_summaries SET avg_hr = 135")
+        db_conn.commit()
+
+        result = today_service.get_recent_activities(db_conn, limit=2)
+        hz = result[0]["hr_zone"]
+        assert hz is not None and 1 <= hz["zone"] <= 5 and hz["pct"] == 100
+        assert "hr_zone" not in result[1]
+
+    def test_hr_zone_none_without_hr_data(self, db_conn):
+        _seed_activity(db_conn, activity_id=22, start_time="2026-09-22T06:00:00")
+        db_conn.execute("UPDATE activity_summaries SET avg_hr = NULL")
+        db_conn.commit()
+        assert today_service.get_recent_activities(db_conn, limit=1)[0]["hr_zone"] is None
+
     def test_route_is_none_when_no_stream(self, db_conn):
         """GPS 스트림이 없는 활동은 route가 None."""
         _seed_activity(db_conn, activity_id=11, start_time="2026-09-22T06:00:00")

@@ -548,6 +548,7 @@ export interface RecentActivity {
 	duration_sec: number;
 	source: string;
 	route?: [number, number][] | null;
+	hr_zone?: { zone: number; pct: number; source: string } | null;
 }
 
 export interface CheckinPayload {

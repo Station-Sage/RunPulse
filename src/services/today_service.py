@@ -45,8 +45,23 @@ def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
     }
 
 
-def get_recent_activities(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
-    """최근 활동 N개 (v_canonical_activities 기준, 중복 제거됨). 각 항목에 route 미리보기 포함."""
+def _dominant_zone(conn: sqlite3.Connection, start_time: str, config: dict | None) -> dict | None:
+    """활동일의 HR존 분포에서 최다 존과 비중. 데이터 없으면 None."""
+    from src.analysis.zones_analysis import analyze_zones
+
+    day = start_time[:10]
+    z = analyze_zones(conn, day, day + "T99", config)
+    if z["data_source"] == "none":
+        return None
+    key, info = max(z["zone_distribution"].items(), key=lambda kv: kv[1]["pct"])
+    return {"zone": int(key[1:]), "pct": round(info["pct"]), "source": z["data_source"]}
+
+
+def get_recent_activities(conn: sqlite3.Connection, limit: int = 3, config: dict | None = None) -> list[dict]:
+    """최근 활동 N개 (v_canonical_activities 기준, 중복 제거됨). 각 항목에 route 미리보기 포함.
+
+    가장 최근 활동에만 hr_zone({zone, pct, source}|None)을 붙인다(S2b 히어로 의미 문장용).
+    """
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
         "SELECT id, name, activity_type, start_time, distance_m, duration_sec, source"
@@ -59,6 +74,11 @@ def get_recent_activities(conn: sqlite3.Connection, limit: int = 3) -> list[dict
     previews = _route_previews(conn, [a["id"] for a in activities])
     for a in activities:
         a["route"] = previews.get(a["id"])
+    if activities:
+        try:
+            activities[0]["hr_zone"] = _dominant_zone(conn, activities[0]["start_time"], config)
+        except Exception:
+            activities[0]["hr_zone"] = None
     return activities
 
 

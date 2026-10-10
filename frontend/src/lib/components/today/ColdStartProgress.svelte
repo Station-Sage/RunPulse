@@ -12,6 +12,7 @@
 	<section class="flex flex-col gap-2 rounded-xl border border-border-subtle bg-surface-2 p-4" aria-label="첫 기록 요약" data-testid="cold-start">
 		<h1 class="text-xl font-semibold">{sum.headline}</h1>
 		<p class="text-sm text-fg-secondary">{sum.stats}</p>
+		{#if sum.meaning}<p class="text-sm text-fg-primary">{sum.meaning}</p>{/if}
 		<p class="text-xs text-fg-muted">기록이 쌓이면 오늘의 권고와 상태 지표가 열려요.</p>
 		<a href="{base}/library/{sum.activityId}?from=today" class="self-start text-sm text-fg-secondary hover:text-fg-primary">활동 보기 ›</a>
 	</section>

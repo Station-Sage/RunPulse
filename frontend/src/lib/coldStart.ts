@@ -6,6 +6,7 @@ export interface ColdStartSummary {
 	headline: string;
 	stats: string;
 	activityId: number;
+	meaning: string | null;
 }
 
 export function coldStartSummary(acts: RecentActivity[] | null | undefined): ColdStartSummary | null {
@@ -16,6 +17,13 @@ export function coldStartSummary(acts: RecentActivity[] | null | undefined): Col
 	return {
 		headline: runs.length === 1 ? '첫 기록이 들어왔어요' : `기록 ${runs.length}건이 들어왔어요`,
 		stats: `${formatDistance(a.distance_m)} · ${pace}/km · ${formatDuration(a.duration_sec)}`,
-		activityId: a.id
+		activityId: a.id,
+		meaning: zoneMeaning(a.hr_zone)
 	};
+}
+
+function zoneMeaning(z: RecentActivity['hr_zone']): string | null {
+	if (!z || z.zone < 1 || z.zone > 5 || z.pct <= 0) return null;
+	const tone = z.zone <= 2 ? '편안한 강도였어요' : z.zone === 3 ? '적당히 힘을 쓴 강도였어요' : '꽤 힘든 강도였어요';
+	return `심박 ${z.zone}존 비중이 높아 ${tone} (Z${z.zone} ${z.pct}%)`;
 }

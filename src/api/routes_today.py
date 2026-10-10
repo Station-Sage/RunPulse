@@ -23,7 +23,7 @@ def get_today():
     try:
         status = today_service.get_today_status(conn)
         briefing = today_service.get_today_briefing(conn)
-        recent_activities = today_service.get_recent_activities(conn, limit=3)
+        recent_activities = today_service.get_recent_activities(conn, limit=3, config=load_config(user_id=get_current_user_id()))
         checkin = today_service.get_todays_checkin(conn)
         data_health = data_health_service.get_load_coverage(conn)
         extras = today_hero.build_today_extras(conn, load_config(user_id=get_current_user_id()))

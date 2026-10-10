@@ -18,3 +18,8 @@ test('여러 건이면 가장 최근 활동', () => {
 	assert.equal(r.activityId, 2);
 	assert.match(r.headline, /2건/);
 });
+test('심박존 있으면 의미 문장, 없으면 null', () => {
+	const a = { ...act(1, '2026-10-01T07:00:00', 5000, 1500), hr_zone: { zone: 2, pct: 71, source: 'x' } };
+	assert.equal(coldStartSummary([a]).meaning, '심박 2존 비중이 높아 편안한 강도였어요 (Z2 71%)');
+	assert.equal(coldStartSummary([act(1, '2026-10-01T07:00:00', 5000, 1500)]).meaning, null);
+});
