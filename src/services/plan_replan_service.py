@@ -66,7 +66,8 @@ def _start_km(conn: sqlite3.Connection, goal: dict, today: date, user_km: float 
     km4, long6 = recent_load(conn, today)
     avg16, long12 = recent_avg_km(conn, today, 16), recent_long_max(conn, today, 12)
     km, cold_src = cold_start_km(dlabel, km4, avg16, user_km)
-    src = "history" if km4 >= COLD_WEEK_KM else "floor" if km4 > 0 else cold_src
+    low_input = bool(user_km and 0 < user_km < km4)     # 직전 평균보다 낮게 입력하면 입력을 따른다(E5)
+    src = cold_src if low_input else "history" if km4 >= COLD_WEEK_KM else "floor" if km4 > 0 else cold_src
     return km, src, {"km4": km4, "avg16": avg16, "long6": long6, "long12": long12}
 
 

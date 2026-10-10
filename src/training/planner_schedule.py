@@ -65,7 +65,7 @@ def cold_start_km(dlabel: str, prev4: float, avg16: float, user_km: float | None
         km, src = avg16 * DETRAIN_FACTOR, "avg16"
     else:
         km, src = W_COLD.get(dlabel, COLD_WEEK_KM), "default"
-    km = max(km, prev4, COLD_WEEK_KM)
+    km = max(km, COLD_WEEK_KM if src == "user" else max(prev4, COLD_WEEK_KM))   # 사용자 입력은 직전 평균보다 낮아도 따른다(바닥 12km)
     if prev4 > 0:       # G6 1주차 예외와 같은 기준(기록이 있으면 그 이상 뛰지 않는다)
         km = min(km, max(1.10 * prev4, COLD_WEEK_KM))
     return math.floor(km * 10 + 1e-6) / 10, src      # 내림(1주차 상한을 넘지 않게)

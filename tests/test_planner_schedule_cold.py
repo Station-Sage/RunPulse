@@ -72,3 +72,8 @@ def test_long_pace_uses_profile_threshold_without_vdot(monkeypatch):
     fast = S._long_pace_fn({}, "full", None)(10)
     monkeypatch.setattr(C, "load_config", lambda *a, **k: {})
     assert fast < S._long_pace_fn({}, "full", None)(10)
+
+
+def test_cold_start_km_user_below_prev4_is_honored():
+    assert S.cold_start_km("full", 11.5, 30.0, user_km=8.0) == (12.0, "user")
+    assert S.cold_start_km("full", 11.5, 30.0, user_km=12.2) == (12.2, "user")

@@ -30,11 +30,12 @@ def _runs(conn, weeks_back, km_per_week, long_km=None):
                  dist=(km_per_week - long_km) * 1000)
 
 
-def test_state_a_history_ignores_low_input(c):
+def test_state_a_low_input_is_honored(c):
     _runs(c, [1, 2, 3, 4], 32, long_km=18)
     out = R.preview(c, {"recent_weekly_km": 10}, TODAY)
-    assert out["start_source"] == "history" and out["basis"]["km4"] >= 12
-    assert out["start_km"] >= out["basis"]["km4"]
+    assert out["start_source"] == "user" and out["basis"]["km4"] >= 12
+    assert out["start_km"] == 12.0
+    assert R.preview(c, {}, TODAY)["start_source"] == "history"
     assert out["goal_target_time_sec"] == 7200
 
 
