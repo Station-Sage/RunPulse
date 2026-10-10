@@ -4,9 +4,9 @@ from __future__ import annotations
 import sqlite3
 from datetime import date
 
-from flask import request
+from flask import current_app, request
 
-from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service
+from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service, weekly_adapt_job
 from src.training import plan_readiness
 from src.web.helpers import db_path
 
@@ -20,6 +20,10 @@ def get_active_plan_route():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     conn = sqlite3.connect(str(dpath))
     try:
+        try:
+            weekly_adapt_job.run(conn)
+        except Exception:
+            current_app.logger.exception("weekly_adapt_job 실패 — 계획 조회는 계속")
         result = plan_service.get_active_plan(conn)
     finally:
         conn.close()

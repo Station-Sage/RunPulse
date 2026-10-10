@@ -369,6 +369,10 @@
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
+### `weekly_adapt_job.py` (44줄) — 주간 적응 잡 — 월요일 첫 계획 조회 때 지난주 결과로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
+
+- functions: run
+
 ### `weekly_adapt_service.py` (57줄) — 주간 적응 서비스 — 지난주 이행도·CRS·ACWR를 읽어 weekly_adapt 규칙으로 이번 주 계획 행을 조정한다(v2 목표만).
 
 - functions: load_input, adapt_plan
@@ -3105,6 +3109,10 @@
 
 - functions: test_decide_table_rows, test_decide_boundaries_and_gates, test_taper_start_not_pushed_by_repeat, test_apply_to_rows_scales_and_limits_quality, test_adapt_plan_noop_for_v1_or_no_goal
 
+### `test_weekly_adapt_job.py` (58줄) — 주간 적응 잡(E9) — 멱등, 완료·수동 행 보존, v1 목표 무변경.
+
+- functions: test_idempotent_and_applies, test_completed_and_manual_rows_kept, test_v1_goal_untouched
+
 ### `test_wellness_day.py` (87줄) — tests/test_wellness_day.py — 웰니스 /:date 일 상세(헤드라인·기준선·nav·week)와 trend band.
 
 - functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
@@ -3179,7 +3187,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 674개 파일
+총 676개 파일
 
 ## docstring 누락
 
