@@ -34,7 +34,9 @@ def _params(src) -> dict:
     return {"recent_weekly_km": _num(src.get("recent_weekly_km"), "recent_weekly_km"),
             "recent_long_km": _num(src.get("recent_long_km"), "recent_long_km"),
             "target_time_sec": _num(src.get("target_time_sec"), "target_time_sec", True),
-            "expect_anchor": src.get("expect_anchor")}
+            "expect_anchor": src.get("expect_anchor"),
+            "rules_version": _num(src.get("rules_version"), "rules_version", True),
+            "expect_rules_version": _num(src.get("expect_rules_version"), "expect_rules_version", True)}
 
 
 def _run(fn):

@@ -6,10 +6,12 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import date, timedelta
 
-from src.training.goals import get_active_goal
+from src.services.plan_replan_diff import snapshot, structure_diff
+from src.training.goals import effective_rules_version, get_active_goal
 from src.training.plan_replace import replace_range
 from src.training.planner import generate_weekly_plan
 from src.training.planner_rules import plan_start_monday, resolve_distance_label
@@ -28,6 +30,26 @@ class ReplanError(Exception):
         self.code = code
         self.message = message
         self.last = last
+
+
+def upgrade_enabled() -> bool:
+    """v1 계획 중간에서 v2 로 전환 허용 여부(환경변수 REPLAN_UPGRADE_ENABLED, 기본 off)."""
+    return os.environ.get("REPLAN_UPGRADE_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _resolve_version(conn: sqlite3.Connection, goal_id: int, anchor: date, p: dict) -> tuple[int, int | None]:
+    """(현재 버전, 새 anchor 에 저장할 버전). 전환 요청이 없으면 저장값은 None(기존 규칙 유지)."""
+    cur = effective_rules_version(conn, goal_id, anchor)
+    if p.get("expect_rules_version") is not None and int(p["expect_rules_version"]) != cur:
+        raise ReplanError("RULES_MISMATCH", "계획 규칙 버전이 바뀌었습니다. 미리보기를 다시 확인하세요")
+    want = p.get("rules_version")
+    if want is None or int(want) == cur:
+        return cur, None
+    if int(want) < cur or int(want) != 2:
+        raise ReplanError("RULES_UNSUPPORTED", "지원하지 않는 규칙 버전 전환입니다")
+    if not upgrade_enabled():
+        raise ReplanError("UPGRADE_DISABLED", "규칙 버전 전환이 아직 열려 있지 않습니다")
+    return cur, 2
 
 
 def next_monday(today: date) -> date:
@@ -88,24 +110,25 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         raise ReplanError("REPLAN_PENDING", "이미 다시 맞춘 일정이 있습니다. 되돌린 뒤 다시 맞출 수 있어요", pending)
     user_km, user_long, target = p.get("recent_weekly_km"), p.get("recent_long_km"), p.get("target_time_sec")
     start_km, start_source, basis = _start_km(conn, goal, today, user_km)
+    cur_version, new_version = _resolve_version(conn, goal["id"], anchor, p)
     if not user_long:
         user_long = P.start_long_km(basis["long6"], basis["long12"]) or None
     end = (race - timedelta(days=race.weekday()) + timedelta(days=6)).isoformat()
     a_iso = anchor.isoformat()
     conn.execute("SAVEPOINT replan")
     try:
-        before = _weekly_km(conn, a_iso, end)
+        before, rows_before = _weekly_km(conn, a_iso, end), snapshot(conn, a_iso, end)
         conn.execute(
-            "INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_long_km, start_source, target_time_sec)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (goal["id"], a_iso, start_km, user_long, start_source, target))
+            "INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_long_km, start_source, target_time_sec,"
+            " rules_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (goal["id"], a_iso, start_km, user_long, start_source, target, new_version))
         replan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         plan, ws = [], anchor
         while ws <= race:
             plan += generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
             ws += timedelta(weeks=1)
         res = replace_range(conn, plan, a_iso, end)
-        after = _weekly_km(conn, a_iso, end)
+        after, diff = _weekly_km(conn, a_iso, end), structure_diff(rows_before, snapshot(conn, a_iso, end))
         if write:
             conn.execute("UPDATE plan_replans SET replaced_json=? WHERE id=?", (json.dumps(
                 {"deleted": res["snapshot"], "inserted": res["inserted"]}, ensure_ascii=False), replan_id))
@@ -124,7 +147,8 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
             "start_source": start_source, "basis": basis, "goal_target_time_sec": goal.get("target_time_sec"),
             "start_long_km": user_long, "target_time_sec": target, "before": before, "after": after,
             "deleted_count": len(res["deleted"]), "preserved": res["preserved"], "external": res["external"],
-            "skipped_dates": res["skipped_dates"]}
+            "skipped_dates": res["skipped_dates"], "rules_version": new_version or cur_version,
+            "rules_upgrade": new_version is not None, "structure_diff": diff}
 
 
 def preview(conn: sqlite3.Connection, params: dict, today: date | None = None) -> dict:

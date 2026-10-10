@@ -129,3 +129,29 @@ def test_entry_state_rules(c):
         assert ok or st["reason"] == "RACE_NEAR"
     c.execute("UPDATE goals SET status='completed'")
     assert R.entry_state(c, TODAY)["reason"] == "NO_GOAL"
+
+
+def test_upgrade_gate_and_version_stored(c, monkeypatch):
+    from src.training.goals import effective_rules_version, set_rules_version
+    gid = c.execute("SELECT id FROM goals").fetchone()[0]
+    set_rules_version(c, gid, 1)
+    monkeypatch.delenv("REPLAN_UPGRADE_ENABLED", raising=False)
+    with pytest.raises(R.ReplanError) as e:
+        R.preview(c, {"rules_version": 2}, TODAY)
+    assert e.value.code == "UPGRADE_DISABLED"
+    monkeypatch.setenv("REPLAN_UPGRADE_ENABLED", "1")
+    out = R.preview(c, {"rules_version": 2, "expect_rules_version": 1}, TODAY)
+    assert out["rules_upgrade"] and out["rules_version"] == 2 and out["structure_diff"]["types"]
+    with pytest.raises(R.ReplanError) as e:
+        R.preview(c, {"rules_version": 2, "expect_rules_version": 2}, TODAY)
+    assert e.value.code == "RULES_MISMATCH"
+    done = R.apply(c, {"rules_version": 2, "expect_anchor": R.next_monday(TODAY).isoformat()}, TODAY)
+    assert effective_rules_version(c, gid, R.next_monday(TODAY)) == 2
+    assert c.execute("SELECT rules_version FROM plan_replans WHERE id=?", (done["replan_id"],)).fetchone()[0] == 2
+    assert effective_rules_version(c, gid, TODAY - timedelta(days=7)) == 1
+
+
+def test_structure_diff_counts():
+    from src.services.plan_replan_diff import structure_diff
+    d = structure_diff([("2026-01-05", "easy", 5, 0)], [("2026-01-05", "rest", 0, 0), ("2026-01-06", "long", 20, 1)])
+    assert d["changed_days"] == 2 and d["structured"] == {"before": 0, "after": 1}

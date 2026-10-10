@@ -240,10 +240,14 @@
 
 - functions: reduce_after, easy_after
 
-### `plan_replan_service.py` (222줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_diff.py` (21줄) — 재계획 미리보기용 구조 비교 — 같은 기간의 전/후 행을 종류·구조 기준으로 요약한다 (PLAN-ENGINE E2).
+
+- functions: snapshot, structure_diff
+
+### `plan_replan_service.py` (246줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
-- functions: next_monday, preview, apply, last_undoable, entry_state, undo
+- functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
 
 ### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -2640,9 +2644,9 @@
 
 - functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable
 
-### `test_plan_replan_start.py` (131줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
+### `test_plan_replan_start.py` (157줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
 
-- functions: c, test_state_a_low_input_is_honored, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak, test_weekly_km_has_long_km, test_pending_blocks_second_replan_until_undone, test_history_on_new_rows_hides_undo_and_allows_replan, test_entry_state_rules
+- functions: c, test_state_a_low_input_is_honored, test_state_b_floor, test_state_c_gap_uses_avg16_or_user, test_state_d_new_user_default, test_blank_long_stores_history_long_and_real_source, test_real_source_stored_and_loaded, test_history_anchor_tail_not_raised_by_cold_peak, test_weekly_km_has_long_km, test_pending_blocks_second_replan_until_undone, test_history_on_new_rows_hides_undo_and_allows_replan, test_entry_state_rules, test_upgrade_gate_and_version_stored, test_structure_diff_counts
 
 ### `test_plan_service.py` (214줄) — tests/test_plan_service.py — plan_service 단위 테스트.
 
@@ -3167,7 +3171,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 671개 파일
+총 672개 파일
 
 ## docstring 누락
 

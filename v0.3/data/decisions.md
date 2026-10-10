@@ -330,3 +330,9 @@
 - D-L5: 첫 백필 90일. D-L6: 신규 가입자 `ui_default` 는 v2(기존 사용자 유지). D-L7: "소량" = 핵심 3게이지 중 하나라도 미해금.
 - D-L8: L1·L7 → L2·L3 → L4 → L5·L6 순. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
 
+
+### ADR-039: 계획 규칙 버전은 anchor 단위, v1→v2 전환은 사용자가 승인한 재계획으로만 (2026-10-10)
+- D4 개정: 진행 중 계획의 엔진 전환은 자동이 아니라 사용자가 미리보기를 확인하고 적용한 재계획에서만 일어난다(`REPLAN_UPGRADE_ENABLED`, 기본 off).
+- D-U16-2("목표당 고정") 대체: 규칙 버전은 `plan_replans.rules_version`(anchor 단위)이며, 그 주 이전 마지막 applied anchor 값이 우선하고 없으면 `goals.plan_rules_version`(`effective_rules_version`). 되돌리면(undone) 이전 버전으로 복귀.
+- 재계획 API: `rules_version`(전환 요청)·`expect_rules_version`(미리보기 때 본 현재 버전, 불일치 시 409 `RULES_MISMATCH`). 미리보기는 `structure_diff`(종류·구조 행 수 전/후, 달라진 날)를 돌려준다.
+- 검증: 합성 격자 재계획 백테스트(`plan_backtest.py --engine replan`, 1596건) 하드 게이트 위반 0.
