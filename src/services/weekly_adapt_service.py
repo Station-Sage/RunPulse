@@ -45,8 +45,8 @@ def load_input(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: s
 def adapt_plan(conn: sqlite3.Connection, goal: dict | None, rows: list[dict], week_start: date,
                dlabel: str, vdot: float | None, injury_flag: bool = False) -> list[dict]:
     """v2 목표이고 지난주 이행 데이터가 있으면 조정된 행을, 아니면 입력을 그대로 돌려준다."""
-    from src.training.goals import get_rules_version
-    if not goal or get_rules_version(conn, goal["id"]) < 2:
+    from src.training.goals import effective_rules_version
+    if not goal or effective_rules_version(conn, goal["id"], week_start) < 2:
         return rows
     x = load_input(conn, goal, week_start, dlabel, vdot, injury_flag)
     if x is None:

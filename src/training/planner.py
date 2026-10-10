@@ -84,7 +84,7 @@ def generate_weekly_plan(
     Returns:
         7개 planned_workout dict 리스트 (월~일).
     """
-    from src.training.goals import get_active_goal, get_goal, get_rules_version
+    from src.training.goals import effective_rules_version, get_active_goal, get_goal
 
     if week_start is None:
         today = date.today()
@@ -209,7 +209,7 @@ def generate_weekly_plan(
             "_vdot": vdot,
         })
 
-    if goal and target and get_rules_version(conn, goal["id"]) >= 2:
+    if goal and target and effective_rules_version(conn, goal["id"], week_start) >= 2:
         from .planner_v2 import apply_for_goal
         plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start, len(available), vdot, as_of)
     return apply_race_week(plan, race_date, goal_distance)

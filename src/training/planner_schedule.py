@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from . import long_run_rules as LR
 from . import marathon_rules as MR
 from . import personalize as P
-from .goals import get_reported_load, get_rules_version
+from .goals import effective_rules_version, get_reported_load, get_rules_version
 from .periodization import WeekTarget, build_schedule
 from .plan_anchor import Anchor, fold, load_anchors
 from .plan_readiness import cold_peak_km
@@ -93,6 +93,10 @@ def _rules_version(conn: sqlite3.Connection, goal: dict) -> int:
     return get_rules_version(conn, goal["id"]) if goal.get("id") is not None else 1
 
 
+def _latest_rules_version(conn: sqlite3.Connection, goal: dict) -> int:
+    return effective_rules_version(conn, goal["id"]) if goal.get("id") is not None else 1
+
+
 def _goal_start_load(conn: sqlite3.Connection, goal: dict, dlabel: str, as_of: date, rv: int):
     """목표에 저장된 사용자 입력(v28)을 넣어 start_load 를 부른다."""
     user_km, user_long = get_reported_load(conn, goal["id"]) if goal.get("id") is not None else (None, None)
@@ -164,7 +168,7 @@ def schedule_for_goal(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: f
         g = {**goal, "target_time_sec": a.target_time_sec} if a.target_time_sec else goal
         long_km = a.start_long_km if a.start_long_km is not None else start_long
         return _build(conn, g, dlabel, vdot, weeks, a.start_km, long_km,
-                      "history" if a.start_source == "history" else "user", a.anchor_monday, rv)
+                      "history" if a.start_source == "history" else "user", a.anchor_monday, a.rules_version or rv)
     return fold(base, start, anchors, tail)
 
 
@@ -181,7 +185,7 @@ def _run_days(conn: sqlite3.Connection) -> int:
 
 def week_cap_km(conn: sqlite3.Connection, goal: dict, dlabel: str, vdot: float | None) -> float | None:
     """v2 주간 상한(러닝 일수로 소화 가능한 km, schedule_for_goal 과 같은 값). v1 은 None."""
-    if goal.get("id") is None or _rules_version(conn, goal) < 2:
+    if goal.get("id") is None or _latest_rules_version(conn, goal) < 2:
         return None
     return feasible_week_km(_run_days(conn), _long_pace_fn(goal, dlabel, vdot, conn)(2), dlabel)
 
@@ -191,7 +195,7 @@ def plan_start_source(conn: sqlite3.Connection, goal: dict, dlabel: str, today: 
     start = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks"))
     if start is None:
         return "history"
-    return _goal_start_load(conn, goal, dlabel, min(start, today or date.today()), _rules_version(conn, goal))[2]
+    return _goal_start_load(conn, goal, dlabel, min(start, today or date.today()), _latest_rules_version(conn, goal))[2]
 
 
 def week_target(conn: sqlite3.Connection, goal: dict, week_start: date, dlabel: str, vdot: float | None,

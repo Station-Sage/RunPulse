@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from datetime import date
 
 _COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at, plan_weeks"
 
@@ -27,6 +28,22 @@ def get_rules_version(conn: sqlite3.Connection, goal_id: int) -> int:
     except sqlite3.OperationalError:
         return 1
     return int(row[0]) if row and row[0] else 1
+
+
+def effective_rules_version(conn: sqlite3.Connection, goal_id: int, week_start: date | str | None = None) -> int:
+    """week_start 주에 적용되는 규칙 버전: 그 주 이전(포함) 마지막 applied anchor 의 rules_version, 없으면 목표 값.
+
+    week_start 가 None 이면 날짜와 무관하게 마지막 applied anchor 를 쓴다."""
+    q = "SELECT rules_version FROM plan_replans WHERE goal_id = ? AND status = 'applied' AND rules_version IS NOT NULL"
+    args: list = [goal_id]
+    if week_start is not None:
+        q += " AND anchor_monday <= ?"
+        args.append(week_start.isoformat() if isinstance(week_start, date) else week_start)
+    try:
+        row = conn.execute(q + " ORDER BY anchor_monday DESC, id DESC LIMIT 1", args).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+    return int(row[0]) if row else get_rules_version(conn, goal_id)
 
 
 def set_rules_version(conn: sqlite3.Connection, goal_id: int, version: int) -> None:

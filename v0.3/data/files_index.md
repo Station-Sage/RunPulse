@@ -1357,9 +1357,9 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (171줄) — 훈련 목표 CRUD.
+### `goals.py` (188줄) — 훈련 목표 CRUD.
 
-- functions: plan_rules_v2_enabled, get_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
+- functions: plan_rules_v2_enabled, get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
 ### `interval_calc.py` (221줄) — 인터벌 트레이닝 처방 계산.
 
@@ -1404,7 +1404,7 @@
 
 - functions: is_comeback, comeback_ceiling, next_level, start_long_km
 
-### `plan_anchor.py` (55줄) — 재계획 anchor 접기(순수 + 조회) — plan_replans 의 적용된 anchor 이후 주만 새 시작 부하로 다시 만든 일정으로 바꾼다(ADR-035 부록 R).
+### `plan_anchor.py` (56줄) — 재계획 anchor 접기(순수 + 조회) — plan_replans 의 적용된 anchor 이후 주만 새 시작 부하로 다시 만든 일정으로 바꾼다(ADR-035 부록 R).
 
 - class **Anchor**: 없음
 - functions: load_anchors, fold
@@ -1457,7 +1457,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (205줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (209줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, week_cap_km, plan_start_source, week_target
 
@@ -2147,6 +2147,10 @@
 ### `test_db_schema_v34.py` (17줄) — 스키마 v34 caldav_pushes: 멱등, (date, slot) 유일.
 
 - functions: test_ensure_idempotent_and_unique
+
+### `test_db_schema_v35.py` (55줄) — 스키마 v35 — plan_replans.rules_version, effective_rules_version, anchor 별 규칙 버전.
+
+- functions: test_ensure_v35_idempotent, test_effective_follows_goal_without_anchor_version, test_effective_by_week_and_undone, test_schedule_prefix_unchanged_and_tail_uses_anchor_version
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -3151,7 +3155,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 667개 파일
+총 668개 파일
 
 ## docstring 누락
 
