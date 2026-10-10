@@ -322,3 +322,11 @@
 - 레거시 수동 우회 키 `<소스>_disabled` 는 `load_config` 가 읽을 때 정식 키로 옮기고 목록에서 제외(멱등, 파일 미수정, 값은 로그에 남기지 않음).
 - CLI `--source <이름>` 은 명시 실행이라 포함 여부와 무관. `--source all` 만 목록을 따른다.
 - G6 은 `/data/sync` 행 버튼(T5)으로 완료. v1 뷰 제거는 별개 작업이라 AUDIT-V-CANONICAL 은 BACKLOG 에 그대로 둔다.
+
+### ADR-038: 생애주기 화면(S0/S1/S2) 판단 D-L1~D-L8 확정 (2026-10-10)
+- D-L1: 사이트를 공개한다. 노출 방식은 (b) 별도 공개 정적 사이트(랜딩·데모 빌드). 앱 인증 경계(CF Access·`_identify_user`)는 변경하지 않는다.
+- D-L2: 데모 데이터 = `scripts/synth_smoke` 합성 스냅샷의 정적 내보내기, Coach 는 미리 생성한 대화 1개(라이브 LLM 호출 0).
+- D-L3: 가입은 초대제 유지, S0 CTA 는 "초대 요청". D-L4: Garmin 연결은 v1 `/connect/garmin` 왕복 유지.
+- D-L5: 첫 백필 90일. D-L6: 신규 가입자 `ui_default` 는 v2(기존 사용자 유지). D-L7: "소량" = 핵심 3게이지 중 하나라도 미해금.
+- D-L8: L1·L7 → L2·L3 → L4 → L5·L6 순. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
+
