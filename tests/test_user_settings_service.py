@@ -77,3 +77,12 @@ def test_api_onboarding_patch(client):
     d = r.get_json()["data"]
     assert (d["onboarding"], d["onboarding_step"]) == ("skipped", 2)
     assert client.patch("/api/v1/me/preferences", json={"onboarding_step": 9}).status_code == 400
+
+
+def test_entry_path(conn):
+    assert svc.entry_path(conn, {}) == "/dashboard"
+    assert svc.entry_path(None, {"ui_default_global": "v2"}) == "/v2/today"
+    svc.set_setting(conn, "ui_default", "v2")
+    assert svc.entry_path(conn, {}) == "/v2/today"
+    svc.set_setting(conn, "ui_default", "v1")
+    assert svc.entry_path(conn, {"ui_default_global": "v2"}) == "/dashboard"

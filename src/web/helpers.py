@@ -664,6 +664,7 @@ def html_page(
 <body>
   <header>
     <a class="brand" href="/">RunPulse</a>
+    <a href="/v2/today" onclick="fetch('/api/v1/me/preferences',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({ui_default:'v2'})}).finally(function(){location.assign('/v2/today')});return false" style="margin-left:auto;font-size:.8rem;color:inherit;opacity:.8">새 화면 사용해 보기</a>
   </header>
   <main>
     <h1>{_html.escape(title)}</h1>

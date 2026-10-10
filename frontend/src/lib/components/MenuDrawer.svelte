@@ -8,6 +8,7 @@
 	import { base } from '$app/paths';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
+	import { patchPreferences } from '$lib/api/me';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -18,6 +19,16 @@
 		const u = new URL(page.url);
 		u.searchParams.set('sheet', 'sync');
 		goto(u, { replaceState: true, noScroll: true });
+	}
+
+	let switching = $state(false);
+	async function backToV1() {
+		switching = true;
+		try {
+			await patchPreferences({ ui_default: 'v1' });
+		} finally {
+			location.assign('/dashboard');
+		}
 	}
 
 	const quickLinks = [
@@ -107,6 +118,15 @@
 				>
 					계정 전환
 				</a>
+				<button
+					type="button"
+					onclick={backToV1}
+					disabled={switching}
+					data-testid="back-to-v1"
+					class="block w-full rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2 disabled:opacity-40"
+				>
+					이전 화면으로(v1)
+				</button>
 			</div>
 		</div>
 	</div>

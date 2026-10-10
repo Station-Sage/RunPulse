@@ -378,9 +378,9 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `user_settings_service.py` (46줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
+### `user_settings_service.py` (52줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
-- functions: get_setting, set_setting, global_ui_default, resolve_ui_default
+- functions: get_setting, set_setting, global_ui_default, resolve_ui_default, entry_path
 
 ### `week_digest.py` (109줄) — 주간 다이제스트 — 월간 내러티브의 주(週) 단위 근거 (DESIGN-U17 U17g).
 
@@ -1033,7 +1033,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1388줄) — RunPulse integration workbench web app.
+### `app.py` (1398줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1056,7 +1056,7 @@
 - class **RedactingLogger**: access
 - functions: redact
 
-### `helpers.py` (902줄) — 웹 뷰 공통 헬퍼 함수.
+### `helpers.py` (903줄) — 웹 뷰 공통 헬퍼 함수.
 
 - functions: project_root, get_current_user_id, db_path, render_sub_nav, bottom_nav, html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration, safe_str, connected_services, tooltip, race_shape_label, no_data_card, fmt_pace, last_sync_info
 
@@ -2396,6 +2396,10 @@
 
 - functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
 
+### `test_index_ui_default.py` (41줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v1(/dashboard).
+
+- functions: make_client, test_default_goes_to_v1, test_global_v2, test_user_overrides_global
+
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
 - class **TestParseSteps**: test_all_steps, test_subset, test_dedup_and_sort, test_whitespace_tolerance, test_invalid_exits
@@ -3114,9 +3118,9 @@
 - class **TestAiFeedback**: test_insert_feedback, test_unique_per_thread_message
 - class **TestChatThreads**: test_chat_messages_thread_id_column_exists, test_thread_groups_messages
 
-### `test_user_settings_service.py` (79줄) — 사용자 설정 서비스·API 테스트.
+### `test_user_settings_service.py` (88줄) — 사용자 설정 서비스·API 테스트.
 
-- functions: conn, test_whitelist_and_invalid_value, test_resolve_priority, test_set_overwrites, test_invalid_global_falls_back, client, test_api_get_patch, test_api_patch_invalid_400, test_api_state_persists, test_api_onboarding_patch
+- functions: conn, test_whitelist_and_invalid_value, test_resolve_priority, test_set_overwrites, test_invalid_global_falls_back, client, test_api_get_patch, test_api_patch_invalid_400, test_api_state_persists, test_api_onboarding_patch, test_entry_path
 
 ### `test_utrs.py` (114줄) — UTRS (Unified Training Readiness Score) 단위 테스트 — 설계서 4-6.
 
@@ -3276,7 +3280,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 697개 파일
+총 698개 파일
 
 ## docstring 누락
 

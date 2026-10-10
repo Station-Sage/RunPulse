@@ -316,7 +316,17 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
-        return redirect("/dashboard")
+        from src.services.user_settings_service import entry_path
+        conn = None
+        try:
+            db = _db_path()
+            conn = sqlite3.connect(str(db)) if db.exists() else None
+            return redirect(entry_path(conn, load_config()))
+        except sqlite3.Error:
+            return redirect("/dashboard")
+        finally:
+            if conn is not None:
+                conn.close()
 
     # ── v0.1 → v0.2 리다이렉트 (V2-9-7) ──────────────────────────────
     @app.get("/analyze/today")
