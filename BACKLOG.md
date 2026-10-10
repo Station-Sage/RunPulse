@@ -8,7 +8,6 @@
 
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거 시 해소(2026-10-10: G6 와 무관함을 확인, 독립 항목).**
-- **[GARMIN-TRAINING-STATUS-PARSER]** `training_status_day` ATL/CTL 파서 결함(ADR-040 D5): 정밀 VO2max 와 무관하게 별도 수정 필요.
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
@@ -28,6 +27,7 @@
 - **[GARMIN-VO2MAX-PRECISE]** 완료(2026-10-10, ADR-040): 일별 `vo2max`(정밀값) 수집·소비처 전환·그룹/매트릭스. T8 실 DB 백필 적용(259일, 2026-10-09=53.9, 백업 `running.db.bak-20261010-pre-vo2max-precise`).
 
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
+- **[USER-TRAINING-STATUS-REPARSE]** 과거 `training_status_day` payload 를 새 파서로 재파싱(`garmin_acute_load`/`garmin_chronic_load` 백필) — 운영 DB 쓰기라 사용자 승인 후 백업 → 실행. 신규 동기화분은 이미 정상 저장.
 
 - **[USER-MCP-ENABLE]** 원격 MCP 켜기: (1) Cloudflare Access에 `/mcp` 정책 추가 — Genspark가 커스텀 헤더 여러 개를 지원하면 Service Auth, 아니면 Bypass(앱 Bearer 토큰이 인증) (2) WAF·캐시 규칙(`/mcp` 캐시 제외, 속도 제한) (3) `config.json`에 `"mcp_remote": {"enabled": true}` 후 컨테이너 재시작 (4) 설정 > "외부 AI 연결" 카드에서 토큰 발급(브라우저 실사용 확인 겸) → `claude mcp add --transport http runpulse https://<host>/mcp --header "Authorization: Bearer rpmcp_..."` 및 Genspark 스모크.
 - **[USER-CAL-FEED]** 캘린더 구독: Cloudflare Access에 `/feeds/cal/*` Bypass 추가 → 구글 캘린더에서 실제 구독·갱신 확인.

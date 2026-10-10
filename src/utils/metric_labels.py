@@ -37,6 +37,8 @@ METRIC_LABELS: dict[str, MetricLabel] = {
     "avg_stress": MetricLabel("평균 스트레스"),
     "ctl": MetricLabel("체력", "CTL"),
     "atl": MetricLabel("피로", "ATL"),
+    "garmin_acute_load": MetricLabel("가민 급성 부하"),
+    "garmin_chronic_load": MetricLabel("가민 만성 부하"),
     "tsb": MetricLabel("폼", "TSB"),
     "ramp_rate": MetricLabel("체력 증가율"),
     "acwr": MetricLabel("급성/만성 부하비", "ACWR"),

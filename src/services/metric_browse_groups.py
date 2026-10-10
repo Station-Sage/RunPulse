@@ -30,7 +30,7 @@ _SPEC: dict[str, tuple[str, str, str]] = {
         "training_readiness_hrv_factor training_readiness_sleep_factor training_readiness_recovery_factor",
     ),
     "load": (
-        "acwr tsb ctl atl",
+        "acwr tsb ctl atl garmin_acute_load garmin_chronic_load",
         "ramp_rate rtti lsi monotony training_strain running_tolerance_load running_tolerance_score training_response",
         "running_tolerance_optimal_min running_tolerance_optimal_max",
     ),

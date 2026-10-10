@@ -127,6 +127,8 @@ LOAD_DEFS: list[MetricDef] = [
     # daily load
     MetricDef("ctl", "load", "metric", "", "Chronic Training Load", scope="daily"),
     MetricDef("atl", "load", "metric", "", "Acute Training Load", scope="daily"),
+    MetricDef("garmin_acute_load", "load", "metric", "", "Garmin 급성 훈련 부하(가민 자체 단위)", scope="daily"),
+    MetricDef("garmin_chronic_load", "load", "metric", "", "Garmin 만성 훈련 부하(가민 자체 단위)", scope="daily"),
     MetricDef("tsb", "load", "metric", "", "Training Stress Balance", scope="daily"),
     MetricDef("ramp_rate", "load", "metric", "", "CTL 증가율", scope="daily"),
     MetricDef("acwr", "load", "metric", "", "Acute:Chronic Workload Ratio", scope="daily"),

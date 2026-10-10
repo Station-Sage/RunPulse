@@ -673,7 +673,7 @@
 
 - class **GarminBulkLoader**: load
 
-### `garmin_daily_extensions.py` (428줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
+### `garmin_daily_extensions.py` (433줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
@@ -1605,7 +1605,7 @@
 
 - (public API 없음)
 
-### `metric_defs_load.py` (144줄) — 메트릭 정의 — Layer 2 hr~load 도메인. metric_registry가 합쳐서 사용.
+### `metric_defs_load.py` (146줄) — 메트릭 정의 — Layer 2 hr~load 도메인. metric_registry가 합쳐서 사용.
 
 - (public API 없음)
 
@@ -2341,6 +2341,11 @@
 - class **FakeClient**: get_lactate_threshold, get_race_predictions
 - class **WindowClient**: get_race_predictions, get_lactate_threshold
 - functions: test_snapshots, test_history_and_failure, test_history_is_split_into_windows
+
+### `test_garmin_training_status.py` (53줄) — Garmin training_status 중첩 payload 파서 테스트.
+
+- class **FakeClient**: get_training_status
+- functions: test_primary_device_selected, test_falls_back_to_first_and_empty, test_saves_garmin_loads_not_pmc, test_no_data_is_noop
 
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
@@ -3254,7 +3259,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 692개 파일
+총 693개 파일
 
 ## docstring 누락
 

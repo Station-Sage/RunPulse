@@ -23,6 +23,17 @@ def sync_daily_race_predictions(
     sync_race_predictions(conn, client, date_str)
 
 
+def _primary_training_status(data: dict) -> dict:
+    """mostRecentTrainingStatus.latestTrainingStatusData 에서 주 기기(없으면 첫 기기) 레코드."""
+    by_dev = ((data.get("mostRecentTrainingStatus") or {})
+              .get("latestTrainingStatusData") or {})
+    recs = [r for r in by_dev.values() if isinstance(r, dict)]
+    for r in recs:
+        if r.get("primaryTrainingDevice"):
+            return r
+    return recs[0] if recs else {}
+
+
 def sync_daily_training_status(
     conn: sqlite3.Connection,
     client: "Garmin",
@@ -40,25 +51,19 @@ def sync_daily_training_status(
 
     _store_raw_payload(conn, "training_status_day", date_str, data)
 
-    atl_dto = data.get("acuteTrainingLoadDTO") or {}
-    atl = atl_dto.get("acuteTrainingLoad")
-    ctl = (
-        atl_dto.get("chronicTrainingLoad")
-        or atl_dto.get("longTermTrainingLoad")
-    )
-    acwr = atl_dto.get("acuteChronicTrainingLoadRatio")
-    training_status_val = (
-        data.get("trainingStatus") or data.get("mostRecentTrainingStatus")
-    )
-    fitness_trend = (
-        data.get("fitnessTrend") or data.get("mostRecentFitnessTrend")
-    )
+    rec = _primary_training_status(data)
+    atl_dto = rec.get("acuteTrainingLoadDTO") or {}
+    atl = atl_dto.get("dailyTrainingLoadAcute")
+    ctl = atl_dto.get("dailyTrainingLoadChronic")
+    acwr = atl_dto.get("dailyAcuteChronicWorkloadRatio")
+    training_status_val = rec.get("trainingStatus")
+    fitness_trend = rec.get("fitnessTrend")
 
     if atl is not None:
-        upsert_metric(conn, "daily", date_str, "atl", "garmin",
+        upsert_metric(conn, "daily", date_str, "garmin_acute_load", "garmin",
                       numeric_value=float(atl), category="load")
     if ctl is not None:
-        upsert_metric(conn, "daily", date_str, "ctl", "garmin",
+        upsert_metric(conn, "daily", date_str, "garmin_chronic_load", "garmin",
                       numeric_value=float(ctl), category="load")
 
     if acwr is not None:

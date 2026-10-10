@@ -344,3 +344,7 @@
 - D4: 죽은 user_summary `vo2MaxValue` 경로(`_upsert_vo2max`, wellness fitness 블록, Garmin `extract_fitness`)를 제거.
 - D5: `training_status_day` 는 건드리지 않고 ATL/CTL 파서 결함은 BUG 로 등록.
 - 과거 백필은 `scripts/backfill_garmin_vo2max.py`(기본 dry-run), 실 DB 쓰기는 백업 + 사용자 승인 후.
+
+### ADR-041: Garmin 훈련 상태 부하 저장 (GARMIN-TRAINING-STATUS-PARSER, 2026-10-10)
+- 가민 급성/만성 부하는 PMC(`atl`/`ctl`, provider intervals/자체계산)와 단위·산식이 달라 `garmin_acute_load`/`garmin_chronic_load` 로 분리 저장. 플래너·분석이 읽는 `atl`/`ctl` 은 오염시키지 않는다.
+- payload 는 `mostRecentTrainingStatus.latestTrainingStatusData[기기ID]` 중첩 구조; `primaryTrainingDevice` 레코드 우선, 없으면 첫 레코드.
