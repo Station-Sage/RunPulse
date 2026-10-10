@@ -2,7 +2,7 @@
 
 ## NOW
 
-- **[PHASE-7]** UI Renewal v2 구현 대부분 완료(잔여: USER-* 조치·승인 대기 항목) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
+- **[PHASE-7]** UI Renewal v2 화면·기능 구현은 완료했으나 **전환은 미완**(기본 진입 v1 유지: G5 기본 전환·G6 v1 제거는 사용자 결정 대기; 07 §7d의 Training Balance Radar·COROS/Polar 커넥터는 미구현·미배정; 그 외 NEXT 11 요약 탭 다운샘플·SWR, A-6 프리페치·Coach 프리필 미구현) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
 ## BUGS
 
