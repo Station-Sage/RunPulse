@@ -13,6 +13,7 @@
 	import { base } from '$app/paths';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill, parseDrillToken } from '$lib/drillStack';
+	import { lockedMetricNotice } from '$lib/unlock';
 	import { metricsBackHref, fromToday } from '$lib/libraryNav';
 
 	let { data }: { data: MetricTrendPageData } = $props();
@@ -27,6 +28,7 @@
 		{ key: '1y', label: '1년' }
 	];
 
+	const lockedNotice = $derived(lockedMetricNotice(data.slug, data.unlock));
 	const points = $derived(data.trend?.points ?? []);
 	const latestDate = $derived(points.at(-1)?.date ?? '');
 
@@ -116,6 +118,12 @@
 		<a href="{base}/library/metrics" class="mt-2 block text-xs text-fg-muted underline">← 메트릭 브라우저로</a>
 	</div>
 {:else if data.trend}
+	{#if lockedNotice}
+		<div class="mx-4 mt-3 rounded-lg border border-dashed border-border-subtle px-3 py-2" data-testid="metric-locked">
+			<p class="text-sm text-fg-secondary">{lockedNotice.message}</p>
+			<p class="mt-0.5 text-xs text-fg-muted">{lockedNotice.formula}</p>
+		</div>
+	{/if}
 	<!-- 기간 선택 버튼 -->
 	<div class="flex gap-2 border-b border-border-subtle px-4 py-2">
 		{#each PERIODS as p}

@@ -15,6 +15,7 @@
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
 	import { needsConsent } from '$lib/coachEngine';
 	import { inputText as chipLabel, type CoachInput } from '$lib/coachSuggestions';
+	import { smallDataTodos, evidenceLimitNotice } from '$lib/coachSmallData';
 	import { staleLabel, threadTitles } from '$lib/threadAge';
 
 	let { data }: { data: CoachPageData } = $props();
@@ -48,6 +49,8 @@
 	}
 
 	const chips: CoachChip[] = data.suggestions;
+	const todos = smallDataTodos(data.unlock);
+	const limitNotice = evidenceLimitNotice(data.unlock);
 
 	let checkin = $state<CheckinRow | null>(data.checkin);
 	let savingCheckin = $state(false);
@@ -210,7 +213,26 @@
 
 	<!-- 지금 답할 수 있는 질문 (서버가 데이터 있는 칩만 제공) -->
 	{#if !isCreating}
-		{#if chips.length > 0}
+		{#if todos.length > 0}
+			<div class="border-t border-border-subtle px-4 py-3" data-testid="coach-small-data">
+				<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">데이터 모이는 동안 할 일</p>
+				{#if limitNotice}<p class="mb-2 text-xs text-fg-muted">{limitNotice}</p>{/if}
+				<div class="flex flex-wrap gap-2">
+					{#each todos as todo (todo.id)}
+						{#if todo.kind === 'chat'}
+							<button type="button" onclick={() => start(todo.target)} disabled={sending} class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50">{todo.label}</button>
+						{:else}
+							<a href="{base}{todo.target}" class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3">{todo.label}</a>
+						{/if}
+					{/each}
+				</div>
+				{#if sending}
+					<p class="mt-2 text-xs text-fg-muted">답변을 준비하고 있어요…</p>
+				{:else if errorMessage}
+					<p class="mt-2 text-xs text-semantic-red">{errorMessage}</p>
+				{/if}
+			</div>
+		{:else if chips.length > 0}
 			<div class="border-t border-border-subtle px-4 py-3">
 				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">바로 물어보기</p>
 				<div class="flex flex-wrap gap-2">

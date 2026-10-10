@@ -179,6 +179,8 @@ L1  곧 열려요 (미래 약속)
 | **L7** 문서 | 03 카탈로그에 S0/S1/S2 행, 03a Today 상태 변형, 05 §11.1 정정(A14), 02 §2.1에 G0 공존(§2.4) | 문서만 | `check_docs.py` | 없음 |
 
 > L2 구현 상태(2026-10-10): `/today` 의 `unlock`·`SyncState.activity_count`, 빈 DB 자동 생성, `lib/unlock.ts`·`UnlockList.svelte` 완료. 잠긴 게이지는 제외하고 진행도 줄만 표시. `ColdStartProgress`(S2b 히어로, 최근 활동 요약; 최근 활동에 hr_zone 최다 존·비중을 얹어 심박존 의미 문장 포함) 완료.
+
+> L4 구현 상태(2026-10-10): Coach 소량 데이터 카드("데이터 모이는 동안 할 일" 3개 + 근거 한계 문구, `lib/coachSmallData.ts`), 지표 상세 잠금 안내(`lockedMetricNotice`: N일 필요·지금 M일 + 산식), Library 목록 하단 "더 가져오는 중 · 지금까지 N건"(첫 동기화 중). 총 예정 건수는 백엔드가 모르므로 "남음" 대신 현재 건수 표기.
 > L3 구현 상태(2026-10-10): `/welcome` 4단계(`routes/welcome`, `components/welcome/Step*`, `lib/onboarding.ts`), 서버 저장(`/me/preferences` onboarding·onboarding_step), Today 빈 상태 진입 리다이렉트 완료. Playwright 신규 계정 T12≤8 검증은 미실시.
 
 - L1·L7은 판단 없이 착수 가능. L1은 G2(40 S5)와 같은 작업이므로 **별도 항목이 아니라 40 S5에 합류** 권장.

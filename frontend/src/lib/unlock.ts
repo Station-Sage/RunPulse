@@ -40,3 +40,23 @@ export function lockedRows(u: UnlockMap | null | undefined): UnlockRow[] {
 		};
 	});
 }
+
+const FORMULA: Record<UnlockKey, string> = {
+	ctl: 'CTL = 최근 42일 훈련부하의 지수가중 평균',
+	tsb: 'TSB = CTL(만성 부하) − ATL(7일 급성 부하)',
+	cirs: 'CIRS = 급성/만성 부하 비율·급증·통증 신호를 합친 부상 위험 점수',
+	utrs: 'UTRS = 수면·HRV·안정시 심박·피로를 합친 준비도 점수'
+};
+
+export interface LockedMetricNotice {
+	message: string;
+	formula: string;
+}
+
+/** 지표 상세에서 해금 전 안내. 열렸거나 해금 대상이 아니면 null. */
+export function lockedMetricNotice(slug: string, u: UnlockMap | null | undefined): LockedMetricNotice | null {
+	if (!u || !(slug in FORMULA)) return null;
+	const e = u[slug as UnlockKey];
+	if (!e || e.unlocked) return null;
+	return { message: `이 지표는 ${e.required_days}일 데이터가 필요해요 · 지금 ${e.have_days}일`, formula: FORMULA[slug as UnlockKey] };
+}

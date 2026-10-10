@@ -1,4 +1,5 @@
 import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
+import { getSyncState } from '$lib/api/data';
 import { ApiError } from '$lib/api/client';
 import { parseFilters, type ActivityFilterState } from '$lib/activityFilters';
 import { toApiFilters, PER_PAGE } from '$lib/activityListQuery';
@@ -11,6 +12,7 @@ export interface ActivitiesPageData {
 	errorMessage: string | null;
 	filters: ActivityFilterState;
 	today: string;
+	firstSyncRunning: boolean;
 }
 
 const localToday = () => {
@@ -23,15 +25,16 @@ export async function load({ url }: { url: URL }): Promise<ActivitiesPageData> {
 	const filters = parseFilters(url.searchParams, today);
 	const api = toApiFilters(filters);
 	const soft = <T>(p: Promise<T>) => p.catch(() => null);
+	const syncing = getSyncState().then((s) => s.first_sync_running).catch(() => false);
 	try {
 		const [result, facets, summary] = await Promise.all([
 			getActivities({ ...api, page: 1, per_page: PER_PAGE }),
 			soft(getActivityFacets(api)),
 			soft(getActivitySummary(api))
 		]);
-		return { result, facets, summary, errorMessage: null, filters, today };
+		return { result, facets, summary, errorMessage: null, filters, today, firstSyncRunning: await syncing };
 	} catch (e) {
 		const message = e instanceof ApiError ? e.message : '활동 목록을 불러올 수 없습니다.';
-		return { result: null, facets: null, summary: null, errorMessage: message, filters, today };
+		return { result: null, facets: null, summary: null, errorMessage: message, filters, today, firstSyncRunning: await syncing };
 	}
 }

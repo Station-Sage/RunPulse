@@ -1,7 +1,8 @@
 import { getThreads, getEngine, getSuggestions } from '$lib/api/coach';
 import { getActivePlan } from '$lib/api/plan';
-import { getTodayCheckin, getRaceHub } from '$lib/api/today';
+import { getTodayCheckin, getRaceHub, getToday } from '$lib/api/today';
 import { ApiError } from '$lib/api/client';
+import type { UnlockMap } from '$lib/unlock';
 import type { ThreadsListResponse, ActivePlan, CheckinRow, RaceHubGoal, CoachEngine, CoachChip } from '$lib/types';
 
 export interface CoachPageData {
@@ -12,10 +13,11 @@ export interface CoachPageData {
 	errorMessage: string | null;
 	engine: CoachEngine | null;
 	suggestions: CoachChip[];
+	unlock: UnlockMap | null;
 }
 
 export async function load(): Promise<CoachPageData> {
-	const [threadsResult, activePlan, checkin, hub, engine, suggested] = await Promise.all([
+	const [threadsResult, activePlan, checkin, hub, engine, suggested, today] = await Promise.all([
 		getThreads().catch((e: unknown) => {
 			const message = e instanceof ApiError ? e.message : '대화 목록을 불러올 수 없습니다.';
 			return { error: message };
@@ -24,12 +26,14 @@ export async function load(): Promise<CoachPageData> {
 		getTodayCheckin().catch(() => null),
 		getRaceHub().catch(() => null),
 		getEngine().catch(() => null),
-		getSuggestions().catch(() => null)
+		getSuggestions().catch(() => null),
+		getToday().catch(() => null)
 	]);
 	const suggestions = suggested?.suggestions ?? [];
+	const unlock = today?.unlock ?? null;
 
 	if ('error' in threadsResult) {
-		return { result: null, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: threadsResult.error, engine, suggestions };
+		return { result: null, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: threadsResult.error, engine, suggestions, unlock };
 	}
-	return { result: threadsResult, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: null, engine, suggestions };
+	return { result: threadsResult, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: null, engine, suggestions, unlock };
 }

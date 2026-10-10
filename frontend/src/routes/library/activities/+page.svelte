@@ -240,6 +240,10 @@
 		</ul>
 	{/if}
 
+	{#if data.firstSyncRunning && !hasMore && activities.length > 0}
+		<p class="px-4 py-4 text-center text-xs text-fg-muted" data-testid="library-syncing">더 가져오는 중 · 지금까지 {total}건</p>
+	{/if}
+
 	{#if hasMore}
 		<div bind:this={sentinel} class="flex justify-center px-4 py-6">
 			<button type="button" onclick={loadMore} disabled={loading} class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2 text-sm text-fg-secondary disabled:opacity-50">

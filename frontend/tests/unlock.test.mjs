@@ -26,3 +26,13 @@ test('진행률과 안내 문구', () => {
 	assert.match(tsb.hint, /21일 더/);
 	assert.match(rows.find((r) => r.key === 'utrs').hint, /들어오면/);
 });
+
+import { lockedMetricNotice } from '../src/lib/unlock.ts';
+test('지표 상세 잠금 안내', () => {
+	const u = { ctl: { required_days: 42, have_days: 28, unlocked: false, basis: 'load_span' }, tsb: { required_days: 42, have_days: 50, unlocked: true, basis: 'load_span' }, cirs: { required_days: 28, have_days: 1, unlocked: false, basis: 'load_span' }, utrs: { required_days: 7, have_days: 9, unlocked: true, basis: 'wellness_days' } };
+	assert.equal(lockedMetricNotice('ctl', u).message, '이 지표는 42일 데이터가 필요해요 · 지금 28일');
+	assert.match(lockedMetricNotice('ctl', u).formula, /42일/);
+	assert.equal(lockedMetricNotice('tsb', u), null);
+	assert.equal(lockedMetricNotice('pace', u), null);
+	assert.equal(lockedMetricNotice('ctl', null), null);
+});
