@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { applyReplan, getReplanLast, previewReplan, undoReplan } from '$lib/api/plan';
+	import GarminCleanup from '$lib/components/plan/GarminCleanup.svelte';
 	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
 	import ReplanInputs from '$lib/components/plan/ReplanInputs.svelte';
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
@@ -117,12 +118,18 @@
 				<button class="min-h-11 rounded-lg px-4 underline" disabled={busy} onclick={undo}>되돌리기</button>
 			</div>
 		</div>
+		{#if applied.replan_id && applied.external.length}
+			<GarminCleanup replanId={applied.replan_id} dates={applied.external.map((x) => x.date)} />
+		{/if}
 		<ReplanNotices preview={applied} />
 	{:else if stage === 'undone'}
 		<div class="space-y-3 rounded-lg bg-surface-2 p-3 text-sm">
 			<p>원래 일정으로 돌렸어요.</p>
 			<a href={href.plan} class="inline-flex min-h-11 items-center rounded-lg bg-surface-1 px-4">계획 보기</a>
 		</div>
+		{#if applied?.replan_id && applied.external.length}
+			<GarminCleanup replanId={applied.replan_id} dates={[]} undone />
+		{/if}
 	{:else}
 		{#if preview}
 			<p class="rounded-lg bg-surface-2 p-3 text-sm">

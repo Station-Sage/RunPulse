@@ -8,6 +8,7 @@
 
 - **[AUDIT-SERVICE-LAYER]** 웹 UI 각 뷰가 raw SQL 직접 작성 (40+곳). Phase 5 설계에서 요구한 `activity_service`, `metrics_loader`, `wellness_loader` 서비스 레이어 미구현. UI 재설계 시 함께 정리 필요.
 - **[AUDIT-V-CANONICAL]** `views_report.py` 등 v1 뷰의 `activity_summaries` 직접 쿼리(중복 활동 위험). **결정(2026-10-08): 지금 코드 수정 안 함 — v1 제거 시 해소(2026-10-10: G6 와 무관함을 확인, 독립 항목).**
+- **[GARMIN-TRAINING-STATUS-PARSER]** `training_status_day` ATL/CTL 파서 결함(ADR-040 D5): 정밀 VO2max 와 무관하게 별도 수정 필요.
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
@@ -23,15 +24,18 @@
 
 - **[MCP-REMOTE]** R1~R8 구현·배포 완료(ADR-034, 기본 `enabled=false`). **운영자 조치 남음**: CF Access `/mcp` 정책(Genspark 커스텀 헤더 지원 확인 후 Service Auth 또는 Bypass) + WAF/캐시 규칙 → `config.json`에 `mcp_remote.enabled=true` → 실제 클라이언트(`claude mcp add --transport http`, Genspark) 스모크. 완료 후 DONE으로 이동.
 
-- **[GARMIN-VO2MAX-PRECISE]** (기록만, 계획 승인 전 착수 금지) Garmin VO2max가 정수로만 저장됨: `vo2max_activity`는 활동 목록 `vO2MaxValue`(정수, `garmin_v2_mappings.py:77,180`). 소수점 값은 `source_payloads` `training_status_day`의 `mostRecentVO2Max.generic.vo2MaxPreciseValue`(예: 5월 정점 약 54.3, 2026-10-10 53.9)에 있으나 payload가 10건뿐이고 메트릭으로 미저장. 제안: 일별 메트릭 추가 저장 + 과거 구간 백필. 새 메트릭이므로 설계 승인·`gen_metric_dictionary.py` 필요.
+- **[GARMIN-DELETE-BUTTON]** Garmin 외부 삭제 버튼 구현·목킹 테스트 완료(2026-10-10): `src/services/garmin_cleanup.py`, `GET/POST coach/plan/replan/<id>/garmin[-cleanup]`, 재계획 화면 `GarminCleanup.svelte`(확인 시트·실패분 재시도). 실계정 스모크(USER-GARMIN-DELETE-SMOKE) 전까지 실사용 보류 — 사용자 확인 후에만 동작.
+- **[GARMIN-VO2MAX-PRECISE]** T1~T7·T9 구현 완료(2026-10-10, ADR-040): 일별 `vo2max`(정밀값) 수집·소비처 전환·그룹/매트릭스. T8 과거 백필(`scripts/backfill_garmin_vo2max.py`, 기본 dry-run)은 실 DB 쓰기라 백업+사용자 승인 대기(USER-VO2MAX-BACKFILL).
 
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
 
+- **[USER-VO2MAX-BACKFILL]** VO2max 과거 백필 승인: 컨테이너에서 `--dry-run`(기본)으로 건수 확인 후 `running.db` 백업(`running.db.bak-YYYYMMDD-pre-vo2max-precise`) → `--apply`. 예상 약 260건, 2026-10-09=53.9.
 - **[USER-MCP-ENABLE]** 원격 MCP 켜기: (1) Cloudflare Access에 `/mcp` 정책 추가 — Genspark가 커스텀 헤더 여러 개를 지원하면 Service Auth, 아니면 Bypass(앱 Bearer 토큰이 인증) (2) WAF·캐시 규칙(`/mcp` 캐시 제외, 속도 제한) (3) `config.json`에 `"mcp_remote": {"enabled": true}` 후 컨테이너 재시작 (4) 설정 > "외부 AI 연결" 카드에서 토큰 발급(브라우저 실사용 확인 겸) → `claude mcp add --transport http runpulse https://<host>/mcp --header "Authorization: Bearer rpmcp_..."` 및 Genspark 스모크.
 - **[USER-CAL-FEED]** 캘린더 구독: Cloudflare Access에 `/feeds/cal/*` Bypass 추가 → 구글 캘린더에서 실제 구독·갱신 확인.
 - **[USER-CONNECTOR-OAUTH]** claude.ai 커넥터 Google Drive·Notion·Strava·Tredict는 OAuth 인증 필요(claude.ai 커넥터 설정 또는 대화형 세션 `/mcp`). 인증 전까지 해당 연동 사용 불가.
 - **[USER-PYTEST-MCP]** `pytest` MCP 서버가 `CONNECTION_CLOSED`로 연결 실패 — 설정·실행 명령 확인 필요.
 - **[USER-CALDAV-LIVE]** CalDAV 실계정 연결: 설정에서 네이버 또는 iCloud 앱 비밀번호로 계정 연결 후 연결 테스트 실행(ADR-036). 구글은 CalDAV 미지원이라 불가.
+- **[USER-GARMIN-DELETE-SMOKE]** Garmin 외부 삭제 버튼(DESIGN-PLAN-A6-REPLAN-UI §13.1 D)의 선행 스모크: 실계정에 임시 워크아웃 1건 업로드→2027-03-01 예약→`delete_workout`→캘린더에서 사라지는지 확인(자동 권한 분류기가 실계정 쓰기를 차단함, 2026-10-10). 사용자가 해당 Bash 권한을 허용하거나 직접 `/tmp/gsmoke.py` 류 스크립트를 컨테이너에서 실행해 결과를 알려줘야 함. 예약이 남으면 `scheduled_id` 저장이 선행되어야 하고 그 전에는 버튼 배포 보류.
 - **[USER-PUBLIC-SITE]** 공개 랜딩/데모(REVIEW03 D-L1 b): `frontend/build`의 `/landing`·`/demo`·`/demo/snapshot.json`을 별도 정적 호스팅에 올리고 Cloudflare Access 우회(공개) 경로를 설정. 초대 요청 메일 주소(`routes/landing/+page.svelte` INVITE_HREF) 확인.
 - **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 구현·배포 완료(아래 NEXT).
 

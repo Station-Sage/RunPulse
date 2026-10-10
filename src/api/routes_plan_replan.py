@@ -5,6 +5,7 @@ import sqlite3
 
 from flask import request
 
+from src.services import garmin_cleanup as gc
 from src.services import plan_replan_service as svc
 from src.web.helpers import db_path
 
@@ -79,3 +80,35 @@ def replan_apply():
 @api_bp.post("/coach/plan/replan/<int:replan_id>/undo")
 def replan_undo(replan_id: int):
     return _run(lambda c: svc.undo(c, replan_id))
+
+
+@api_bp.get("/coach/plan/replan/<int:replan_id>/garmin")
+def replan_garmin_targets(replan_id: int):
+    return _cleanup(lambda c: {"targets": gc.targets(c, replan_id)})
+
+
+@api_bp.post("/coach/plan/replan/<int:replan_id>/garmin-cleanup")
+def replan_garmin_cleanup(replan_id: int):
+    def run(c):
+        from src.training.garmin_push import _login
+        from src.utils.config import load_config
+        if not gc.targets(c, replan_id):
+            return {"deleted": 0, "missing": 0, "failed": []}
+        try:
+            client = _login(load_config())
+        except Exception as e:
+            raise gc.CleanupError("GARMIN_LOGIN", f"Garmin 로그인 실패: {str(e)[:80]}")
+        return gc.cleanup(c, replan_id, client)
+    return _cleanup(run)
+
+
+def _cleanup(fn):
+    conn = _open()
+    if conn is None:
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    try:
+        return api_ok(fn(conn))
+    except gc.CleanupError as e:
+        return api_error(e.code, e.message, {"NO_REPLAN": 404, "GARMIN_LOGIN": 502}.get(e.code, 409))
+    finally:
+        conn.close()

@@ -75,3 +75,27 @@ def test_no_goal_404_and_no_db_503(tmp_path, monkeypatch):
     c.close()
     assert _app(f, monkeypatch).get("/api/v1/coach/plan/replan/preview").status_code == 404
     assert _app(tmp_path / "none.db", monkeypatch).get("/api/v1/coach/plan/replan/preview").status_code == 503
+
+
+def test_garmin_cleanup_api(client, tmp_path, monkeypatch):
+    import json
+    import src.api.routes_plan_replan as m
+    f = m.db_path()
+    c = sqlite3.connect(str(f))
+    blob = json.dumps({"deleted": [{"id": 1, "date": "2026-10-14", "garmin_workout_id": "111"}], "inserted": []})
+    c.execute("INSERT INTO plan_replans(id, goal_id, anchor_monday, start_km, start_source, status, replaced_json)"
+              " VALUES (7, 1, '2026-10-12', 30, 'user', 'applied', ?)", (blob,))
+    c.commit()
+    c.close()
+
+    class FC:
+        def get_workout_by_id(self, w): pass
+        def delete_workout(self, w): pass
+    monkeypatch.setattr("src.training.garmin_push._login", lambda cfg: FC())
+    monkeypatch.setattr("src.utils.config.load_config", lambda **k: {})
+    r = client.get("/api/v1/coach/plan/replan/7/garmin")
+    assert r.get_json()["data"]["targets"][0]["date"] == "2026-10-14"
+    r = client.post("/api/v1/coach/plan/replan/7/garmin-cleanup")
+    assert r.get_json()["data"]["deleted"] == 1
+    assert client.get("/api/v1/coach/plan/replan/7/garmin").get_json()["data"]["targets"] == []
+    assert client.get("/api/v1/coach/plan/replan/99/garmin").status_code == 404

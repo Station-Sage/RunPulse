@@ -147,6 +147,11 @@
 
 - functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, build_archive, start_archive, job_view, history
 
+### `garmin_cleanup.py` (78줄) — 재계획으로 지워진 RunPulse 세션의 Garmin 캘린더 일정을 사용자 확인 후 삭제한다 (DESIGN-PLAN-A6-REPLAN-UI §13.1 D).
+
+- class **CleanupError**: 없음
+- functions: targets, cleanup
+
 ### `heat_forecast.py` (52줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
 
 - functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
@@ -638,7 +643,7 @@
 
 - functions: run
 
-### `garmin.py` (245줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
+### `garmin.py` (250줄) — Garmin Connect 데이터 동기화 — 메인 진입점.
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
@@ -672,9 +677,13 @@
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
-### `garmin_helpers.py` (104줄) — Garmin 동기화 공통 헬퍼.
+### `garmin_helpers.py` (98줄) — Garmin 동기화 공통 헬퍼.
 
 - (public API 없음)
+
+### `garmin_maxmet_sync.py` (64줄) — Garmin maxmet/daily 수집 — 일별 VO2max 정밀값을 metric_store(daily/vo2max)에 저장.
+
+- functions: sync_vo2max_range, backfill_vo2max
 
 ### `garmin_ref_parsers.py` (70줄) — Garmin 참조값 파서(순수) — 젖산역치(LTHR·역치속도·FTP)와 레이스 예측 payload → 날짜별 값(P7-PRED-25).
 
@@ -688,7 +697,7 @@
 
 - functions: extract_summary_fields_from_api, extract_summary_fields_from_zip, extract_detail_fields, build_upsert_sql
 
-### `garmin_wellness_sync.py` (169줄) — Garmin 일별 wellness 동기화 Orchestrator.
+### `garmin_wellness_sync.py` (163줄) — Garmin 일별 wellness 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -805,13 +814,17 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (687줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (683줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
 ### `garmin_lap_fields.py` (36줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
 
 - functions: lap_extras, pick
+
+### `garmin_maxmet_fields.py` (35줄) — Garmin maxmet/daily 응답 → 일별 VO2max(소수 1자리) MetricRecord 변환.
+
+- functions: extract_vo2max_daily
 
 ### `intervals_extractor.py` (197줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
@@ -1023,7 +1036,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (606줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (613줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1600,7 +1613,7 @@
 
 - (public API 없음)
 
-### `metric_groups.py` (150줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
+### `metric_groups.py` (151줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
 
@@ -1660,6 +1673,10 @@
 ### `sync_state.py` (266줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
 - functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
+
+### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
+
+- functions: garmin_vo2max_between, garmin_vo2max_asof
 
 ### `zones.py` (90줄) — HR존 및 페이스존 계산 유틸리티.
 
@@ -1839,9 +1856,9 @@
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors, test_advisory_replan_hidden_when_race_near
 
-### `test_api_plan_replan.py` (77줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
+### `test_api_plan_replan.py` (101줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
-- functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503
+- functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503, test_garmin_cleanup_api
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -2271,7 +2288,12 @@
 - class **TestSaveZipMetrics**: test_routes_metric_fields_to_metric_store, test_skips_none_values
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
-### `test_garmin_extractor.py` (323줄) — Garmin Extractor 단위 테스트.
+### `test_garmin_cleanup.py` (55줄)
+
+- class **FakeClient**: get_workout_by_id, delete_workout
+- functions: test_targets_sorted_and_filtered, test_cleanup_partial_failure_and_retry, test_rejects_undone_and_missing
+
+### `test_garmin_extractor.py` (320줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates
@@ -2300,6 +2322,15 @@
 - class **TestGarminLogin**: test_returns_token_dict_on_success, test_fresh_login_creates_token_file, test_exits_on_too_many_requests
 - class **TestUploadToken**: test_posts_json_with_cf_headers, test_exits_on_401
 - class **TestTokenOnlyMode**: test_saves_token_locally
+
+### `test_garmin_maxmet_fields.py` (31줄)
+
+- functions: test_normal_list_by_date, test_integer_fallback_when_no_precise, test_skips_missing_generic_and_empty, test_invalid_values_ignored
+
+### `test_garmin_maxmet_sync.py` (58줄)
+
+- class **FakeClient**: get_max_metrics_range
+- functions: test_saves_metric_and_raw, test_idempotent, test_error_returns_zero, test_backfill_splits_windows, test_backfill_stops_on_429
 
 ### `test_garmin_ref_parsers.py` (43줄) — P7-PRED-25: Garmin 참조값 파서.
 
@@ -3104,6 +3135,14 @@
 - class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
 - functions: garmin_app
 
+### `test_vo2max_consumers.py` (27줄) — VO2max 소비처가 일별 정밀값을 쓰는지 회귀 확인.
+
+- functions: test_fitness_trend_uses_precise, test_race_readiness_uses_precise, test_semantic_group_has_daily_member
+
+### `test_vo2max_source.py` (49줄) — vo2max_source — 정밀값/활동값 선택 규칙.
+
+- functions: test_empty, test_activity_only, test_precise_newer_wins, test_activity_newer_wins_and_tie_prefers_precise, test_asof_and_between_bounds
+
 ### `test_weather_ingest.py` (57줄) — P7-PRED-32: 활동 기상 인제스트·캐시·폴백·충돌.
 
 - class **FakeGet**: 없음
@@ -3162,6 +3201,10 @@
 
 - functions: backfill, main
 
+### `backfill_garmin_vo2max.py` (34줄) — Garmin VO2max 정밀값 과거 백필(GARMIN-VO2MAX-PRECISE T8). 기본은 dry-run(조회만, DB 미수정).
+
+- (public API 없음)
+
 ### `backfill_stream_meta.py` (17줄) — activity_stream_meta 백필(U18e). 사용: PYTHONPATH=. python3 scripts/backfill_stream_meta.py --db <path> [--dry-run]
 
 - (public API 없음)
@@ -3211,7 +3254,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 682개 파일
+총 692개 파일
 
 ## docstring 누락
 
@@ -3222,6 +3265,9 @@
 - `tests/test_eftp.py`
 - `tests/test_fixture_loader.py`
 - `tests/test_fixtures_layout.py`
+- `tests/test_garmin_cleanup.py`
+- `tests/test_garmin_maxmet_fields.py`
+- `tests/test_garmin_maxmet_sync.py`
 - `tests/test_marathon_shape.py`
 - `tests/test_metrics_basis_events.py`
 - `tests/test_metrics_version_events.py`

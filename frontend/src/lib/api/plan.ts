@@ -133,3 +133,13 @@ export function undoReplan(replanId: number): Promise<ReplanUndoResult> {
 export function getReplanLast(): Promise<{ last: import('$lib/types').ReplanLast | null; entry: import('$lib/types').ReplanEntry }> {
 	return apiFetch('/coach/plan/replan/last');
 }
+
+export interface GarminCleanupResult {
+	deleted: number;
+	missing: number;
+	failed: { date: string; error: string }[];
+}
+
+export function cleanupGarmin(replanId: number): Promise<GarminCleanupResult> {
+	return apiFetch<GarminCleanupResult>(`/coach/plan/replan/${replanId}/garmin-cleanup`, { method: 'POST' });
+}
