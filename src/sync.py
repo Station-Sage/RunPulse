@@ -14,11 +14,12 @@ setup_logging()
 import argparse
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from datetime import date, timedelta
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import enabled_sources, load_config
-from src.utils.user_context import set_current_user
+from src.utils.user_context import set_current_job, set_current_user
 
 log = logging.getLogger(__name__)
 
@@ -30,8 +31,7 @@ def _sync_source(
     job_id: str | None = None, trigger: str = "cli",
 ) -> dict:
     """단일 소스 동기화. {"activities": int, "wellness": int, "errors": list} 반환. 원장(sync_jobs.db)에도 기록."""
-    from src.utils.sync_state import mark_finished
-    from src.sync.ledger import start_run, finish_run
+    from src.sync.ledger import start_run, finish_run, heartbeat
     from src.sync.sync_errors import SyncSourceError, classify_exception
     try:
         job_id = start_run(source, source_path=trigger, job_id=job_id, days=days)
@@ -41,8 +41,10 @@ def _sync_source(
     activities = 0
     wellness = 0
     errors = []
+    if job_id:
+        set_current_job(job_id)
     try:
-        with sqlite3.connect(str(db_path), timeout=30) as conn:
+        with heartbeat(job_id) if job_id else nullcontext(), sqlite3.connect(str(db_path), timeout=30) as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             if source == "garmin":
                 from src.sync.garmin import sync_garmin
@@ -65,10 +67,6 @@ def _sync_source(
     except Exception as e:
         err_msg = str(e)
         errors.append(err_msg)
-        try:
-            mark_finished(source, count=0, error=err_msg, user_id=user_id)
-        except Exception:
-            pass
         if job_id:
             try:
                 if isinstance(e, SyncSourceError):

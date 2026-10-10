@@ -35,8 +35,7 @@ def test_sync_source_records_failed_ledger_row(tmp_path):
         "sync_cli_mod", pathlib.Path(__file__).resolve().parent.parent / "src" / "sync.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    with patch("src.sync.strava.sync_strava", side_effect=_http403()), \
-         patch("src.utils.sync_state.mark_finished"):
+    with patch("src.sync.strava.sync_strava", side_effect=_http403()):
         res = mod._sync_source("strava", {}, tmp_path / "r.db", 7, job_id="s403", trigger="manual")
     assert res["errors"]
     j = get_latest_job("strava")

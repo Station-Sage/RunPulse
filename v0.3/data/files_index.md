@@ -160,6 +160,10 @@
 
 - functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
+### `manual_sync_service.py` (90줄) — 수동 동기화 1소스 실행 — 원장 선점(claim_run) → sync.py subprocess → 원장 판독으로 결과 dict 생성.
+
+- functions: skipped, precheck, run_one
+
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -731,7 +735,7 @@
 
 - functions: sync_wellness
 
-### `ledger.py` (138줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
+### `ledger.py` (154줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
 
 - functions: start_run, finish_run, fail_run, claim_run, heartbeat
 
@@ -764,7 +768,7 @@
 
 - functions: reprocess_all
 
-### `runalyze.py` (262줄) — Runalyze 데이터 동기화 (API Token).
+### `runalyze.py` (260줄) — Runalyze 데이터 동기화 (API Token).
 
 - functions: sync_activities, check_runalyze_connection
 
@@ -772,7 +776,7 @@
 
 - functions: sync
 
-### `strava.py` (85줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
+### `strava.py` (78줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
 
 - functions: sync_activities, sync_strava
 
@@ -1033,7 +1037,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1400줄) — RunPulse integration workbench web app.
+### `app.py` (1161줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1045,7 +1049,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (628줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (627줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -2477,6 +2481,10 @@
 
 - functions: ctx, test_floor_boundaries, test_floor_uses_long12_basis, test_half_base_low_volume_week_has_no_long, test_cap_boundaries, test_share_ratio_by_days, test_min_viable_week_km, test_floor_never_exceeds_cap, test_prog_cap_only_with_prev_long, test_budget_full_build_moves_mp_into_long, test_budget_relaxes_floor_before_dropping_long, test_budget_floor_matches_recorded_ctx, test_feasible_week_km_monotone_and_full_peak_share
 
+### `test_manual_sync_service.py` (61줄) — manual_sync_service — 원장 선점·결과 판독 단위 테스트.
+
+- functions: test_run_one_skips_when_slot_taken, test_run_one_reads_count_from_ledger, test_run_one_partial_flag, test_run_one_nonzero_exit_records_failure, test_run_one_timeout_records_failure, test_precheck_blocks_on_retry_after
+
 ### `test_marathon_rules.py` (43줄) — U16g: R6 MP 규칙(순수 함수).
 
 - functions: test_prescribed_mp_without_goal_and_data, test_prescribed_mp_weekly_progress, test_prescribed_mp_capped_by_12s_and_goal, test_long_run_pace_clamped, test_long_mp_share_by_phase, test_taper_week1_mp_range, test_race_week_session
@@ -2991,7 +2999,7 @@
 
 - functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route
 
-### `test_strava_403_ledger.py` (49줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
+### `test_strava_403_ledger.py` (48줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
 - functions: test_wrapper_raises_subscription_required, test_sync_source_records_failed_ledger_row, test_classify_403_code
 
@@ -3321,7 +3329,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 708개 파일
+총 710개 파일
 
 ## docstring 누락
 

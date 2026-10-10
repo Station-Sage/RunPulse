@@ -105,27 +105,6 @@ def _html_page(title: str, body: str) -> str:
     return _hp(title, body)
 
 
-def _ledger_job_id() -> str:
-    """수동 동기화 subprocess에 넘길 원장 job id."""
-    import uuid
-    return str(uuid.uuid4())
-
-
-def _ledger_fail(job_id: str, src: str, code: str, message: str, user_id: str = "default") -> None:
-    """subprocess가 원장에 쓰지 못한 실패(타임아웃·비정상 종료)를 기록. 실패해도 sync 흐름은 계속."""
-    try:
-        from src.sync.ledger import fail_run
-        fail_run(job_id, code, message[:300], service=src, source_path="manual")
-    except Exception:
-        log.warning("[ledger] fail_run 기록 실패", exc_info=True)
-
-
-def _already_finished(stdout: str) -> bool:
-    """sync.py 내부에서 mark_finished를 이미 호출했는지 stdout으로 추정."""
-    # strava/garmin sync 함수가 rate limit 발생 시 직접 mark_finished 호출
-    return "⚠️" in stdout and ("제한" in stdout or "타임아웃" in stdout)
-
-
 def _days_since_last_sync(sources: list[str]) -> int:
     from src.services.sync_trigger_service import days_since_last_sync
     return days_since_last_sync(_db_path(), sources)
@@ -511,16 +490,9 @@ def create_app() -> Flask:
     @app.post("/trigger-sync")
     def trigger_sync():
         """동기화 실행 — 연결 확인 + 정책 검사 + 중복 방지 + JSON 응답."""
-        import re
-        import subprocess
         from datetime import date
         from flask import jsonify
-        from src.utils.sync_policy import check_incremental_guard, check_range_guard
-        from src.utils.sync_state import (
-            is_running, mark_running, mark_finished,
-            get_last_sync_at,
-        )
-        from src.utils.sync_gates import wait_sec
+        from src.services.manual_sync_service import precheck, run_one
 
         mode = request.form.get("mode", "basic").strip()
         source = request.form.get("source", "all").strip()
@@ -568,129 +540,15 @@ def create_app() -> Flask:
                 })
                 continue
 
-            # 2) 중복 실행 방지
-            if is_running(src, user_id):
-                log.info("[trigger_sync] %s 이미 실행 중 — skip", src)
-                results.append({
-                    "source": src, "ok": False, "skipped": True, "count": 0,
-                    "error": f"{src} 동기화가 이미 진행 중입니다. 잠시 후 다시 시도하세요.",
-                    "reason": "running",
-                })
+            # 2) 재시도 대기·정책 검사
+            days_for_src, guard, blocked = precheck(src, user_id, hist_days, _days_since_last_sync([src]))
+            if blocked:
+                log.info("[trigger_sync] %s 건너뜀: %s", src, blocked.get("reason"))
+                results.append(blocked)
                 continue
 
-            # 2-1) bg_sync 활성 중이면 수동 동기화 스킵 (Garmin API 429 방지)
-            from .bg_sync import get_status as _bg_get_status
-            _bg_st = _bg_get_status(src)
-            if _bg_st.get("active") and _bg_st.get("status") in ("running", "pending"):
-                log.info("[trigger_sync] %s bg_sync 활성 중 — skip", src)
-                results.append({
-                    "source": src, "ok": False, "skipped": True, "count": 0,
-                    "error": f"{src} 백그라운드 동기화 진행 중 — 완료 후 재시도하세요.",
-                    "reason": "bg_sync_active",
-                })
-                continue
-
-            # 3) retry_after 확인 (429 등으로 설정된 경우)
-            retry_sec = wait_sec(src, user_id)
-            if retry_sec and retry_sec > 0:
-                from src.utils.sync_policy import _fmt_duration
-                log.info("[trigger_sync] %s retry_after=%ds — skip", src, retry_sec)
-                results.append({
-                    "source": src, "ok": False, "skipped": True, "count": 0,
-                    "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
-                    "reason": "retry_after",
-                    "retry_after_sec": retry_sec,
-                })
-                continue
-
-            # 4) 정책 검사
-            if hist_days is not None:
-                # 기간 동기화: 범위 검사
-                guard = check_range_guard(src, hist_days)
-                days_for_src = hist_days
-            else:
-                # 증분 동기화: cooldown 검사
-                last_at = get_last_sync_at(src, user_id)
-                guard = check_incremental_guard(src, last_at)
-                days_for_src = _days_since_last_sync([src])
-
-            if not guard.allowed:
-                log.info("[trigger_sync] %s 정책 차단: %s", src, guard.reason)
-                results.append({
-                    "source": src, "ok": False, "skipped": True, "count": 0,
-                    "error": guard.message_ko or "정책 제한",
-                    "reason": guard.reason,
-                    "retry_after_sec": guard.retry_after_sec,
-                })
-                continue
-
-            if guard.message_ko and guard.reason == "range_auto_reduced":
-                log.info("[trigger_sync] %s 범위 자동 조정: %s", src, guard.message_ko)
-
-            # 5) 동기화 실행
-            mark_running(src, mode, user_id)
-            log.info("[trigger_sync] subprocess 시작: src=%s, days=%d, user=%s",
-                     src, days_for_src, user_id)
-            try:
-                ledger_id = _ledger_job_id()
-                proc = subprocess.run(
-                    [sys.executable, "src/sync.py", "--source", src, "--days", str(days_for_src), "--user", user_id,
-                     "--job-id", ledger_id, "--trigger", "manual"],
-                    capture_output=True, text=True, timeout=300,
-                    cwd=str(_project_root()),
-                )
-                log.info("[trigger_sync] subprocess 종료: src=%s, returncode=%d", src, proc.returncode)
-                if proc.stdout:
-                    for line in proc.stdout.splitlines():
-                        log.info("[sync.py stdout] %s", line)
-                if proc.stderr:
-                    for line in proc.stderr.splitlines():
-                        log.warning("[sync.py stderr] %s", line)
-
-                count = 0
-                for line in proc.stdout.splitlines():
-                    m = re.search(r"활동 (\d+)개 동기화", line)
-                    if m:
-                        count += int(m.group(1))
-
-                stderr_tail = (proc.stderr or "")[-400:]
-                # subprocess 내 sync 함수가 mark_finished 를 직접 호출하지만
-                # subprocess 바깥에서도 실패 시 상태 복구
-                if proc.returncode != 0:
-                    mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
-                    _ledger_fail(ledger_id, src, "unknown", stderr_tail, user_id)
-                    results.append({
-                        "source": src, "ok": False, "skipped": False,
-                        "count": 0, "error": stderr_tail,
-                        "warn": guard.message_ko,
-                    })
-                else:
-                    partial = "일부" in proc.stdout or "⚠️" in proc.stdout
-                    if not _already_finished(proc.stdout):
-                        mark_finished(src, count=count, partial=partial, error=None, user_id=user_id)
-                    log.info("[trigger_sync] %s 완료: count=%d, partial=%s",
-                             src, count, partial)
-                    results.append({
-                        "source": src, "ok": count > 0 or not partial,
-                        "skipped": False, "count": count,
-                        "partial": partial,
-                        "warn": guard.message_ko,
-                    })
-            except subprocess.TimeoutExpired:
-                log.error("[trigger_sync] %s 타임아웃 (300초)", src)
-                _ledger_fail(ledger_id, src, "timeout", "타임아웃 (300초)", user_id)
-                mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
-                results.append({
-                    "source": src, "ok": False, "skipped": False,
-                    "count": 0, "error": "동기화 타임아웃 (300초 초과)",
-                })
-            except Exception as e:
-                log.error("[trigger_sync] %s 예외: %s", src, e, exc_info=True)
-                mark_finished(src, count=0, partial=True, error=str(e), user_id=user_id)
-                results.append({
-                    "source": src, "ok": False, "skipped": False,
-                    "count": 0, "error": str(e),
-                })
+            # 3) 원장 선점 + 동기화 실행
+            results.append(run_one(src, days_for_src, user_id, guard.message_ko))
 
         total_count = sum(r.get("count", 0) for r in results)
         overall_ok = any(r.get("ok") for r in results)
@@ -705,16 +563,9 @@ def create_app() -> Flask:
     def trigger_sync_stream():
         """동기화 실행 — SSE 스트리밍 응답 (소스별 실시간 진행 상황)."""
         import json as _json
-        import re
-        import subprocess
         from datetime import date
         from flask import Response, stream_with_context
-        from src.utils.sync_policy import check_incremental_guard, check_range_guard
-        from src.utils.sync_state import (
-            is_running, mark_running, mark_finished,
-            get_last_sync_at,
-        )
-        from src.utils.sync_gates import wait_sec
+        from src.services.manual_sync_service import precheck, run_one
 
         mode = request.form.get("mode", "basic").strip()
         source = request.form.get("source", "all").strip()
@@ -771,105 +622,15 @@ def create_app() -> Flask:
                     yield _sse({"type": "source_done", **r})
                     continue
 
-                if is_running(src, user_id):
-                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
-                         "error": f"{src} 동기화가 이미 진행 중입니다.", "reason": "running"}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
+                days_for_src, guard, blocked = precheck(src, user_id, hist_days, _days_since_last_sync([src]))
+                if blocked:
+                    results.append(blocked)
+                    yield _sse({"type": "source_done", **blocked})
                     continue
 
-                # bg_sync 활성 중이면 수동 동기화 스킵 (Garmin API 429 방지)
-                from .bg_sync import get_status as _bg_get_status
-                _bg_st = _bg_get_status(src)
-                if _bg_st.get("active") and _bg_st.get("status") in ("running", "pending"):
-                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
-                         "error": f"{src} 백그라운드 동기화 진행 중 — 완료 후 재시도하세요.",
-                         "reason": "bg_sync_active"}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
-                    continue
-
-                retry_sec = wait_sec(src, user_id)
-                if retry_sec and retry_sec > 0:
-                    from src.utils.sync_policy import _fmt_duration
-                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
-                         "error": f"{src} — {_fmt_duration(retry_sec)} 후 재시도 가능합니다.",
-                         "reason": "retry_after", "retry_after_sec": retry_sec}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
-                    continue
-
-                if hist_days is not None:
-                    guard = check_range_guard(src, hist_days)
-                    days_for_src = hist_days
-                else:
-                    last_at = get_last_sync_at(src, user_id)
-                    guard = check_incremental_guard(src, last_at)
-                    days_for_src = _days_since_last_sync([src])
-
-                if not guard.allowed:
-                    r = {"source": src, "ok": False, "skipped": True, "count": 0,
-                         "error": guard.message_ko or "정책 제한",
-                         "reason": guard.reason, "retry_after_sec": guard.retry_after_sec}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
-                    continue
-
-                mark_running(src, mode, user_id)
-                log.info("[trigger_sync_stream] subprocess: src=%s, days=%d", src, days_for_src)
-                try:
-                    ledger_id = _ledger_job_id()
-                    proc = subprocess.run(
-                        [sys.executable, "src/sync.py", "--source", src,
-                         "--days", str(days_for_src), "--user", user_id,
-                         "--job-id", ledger_id, "--trigger", "manual"],
-                        capture_output=True, text=True, timeout=300,
-                        cwd=str(_project_root()),
-                    )
-                    log.info("[trigger_sync_stream] 종료: src=%s, rc=%d", src, proc.returncode)
-                    if proc.stdout:
-                        for line in proc.stdout.splitlines():
-                            log.info("[sync.py stdout] %s", line)
-                    if proc.stderr:
-                        for line in proc.stderr.splitlines():
-                            log.warning("[sync.py stderr] %s", line)
-
-                    count = 0
-                    for line in proc.stdout.splitlines():
-                        m = re.search(r"활동 (\d+)개 동기화", line)
-                        if m:
-                            count += int(m.group(1))
-
-                    if proc.returncode != 0:
-                        stderr_tail = (proc.stderr or "")[-400:]
-                        mark_finished(src, count=0, partial=True, error=stderr_tail, user_id=user_id)
-                        _ledger_fail(ledger_id, src, "unknown", stderr_tail, user_id)
-                        r = {"source": src, "ok": False, "skipped": False,
-                             "count": 0, "error": stderr_tail}
-                    else:
-                        partial = "일부" in proc.stdout or "⚠️" in proc.stdout
-                        if not _already_finished(proc.stdout):
-                            mark_finished(src, count=count, partial=partial, error=None, user_id=user_id)
-                        r = {"source": src, "ok": count > 0 or not partial,
-                             "skipped": False, "count": count, "partial": partial,
-                             "warn": guard.message_ko}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
-
-                except subprocess.TimeoutExpired:
-                    mark_finished(src, count=0, partial=True, error="타임아웃 (300초)", user_id=user_id)
-                    _ledger_fail(ledger_id, src, "timeout", "타임아웃 (300초)", user_id)
-                    r = {"source": src, "ok": False, "skipped": False,
-                         "count": 0, "error": "동기화 타임아웃 (300초 초과)"}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
-                except Exception as e:
-                    log.error("[trigger_sync_stream] %s 예외: %s", src, e, exc_info=True)
-                    mark_finished(src, count=0, partial=True, error=str(e), user_id=user_id)
-                    r = {"source": src, "ok": False, "skipped": False,
-                         "count": 0, "error": str(e)}
-                    results.append(r)
-                    yield _sse({"type": "source_done", **r})
+                r = run_one(src, days_for_src, user_id, guard.message_ko)
+                results.append(r)
+                yield _sse({"type": "source_done", **r})
 
             total_count = sum(r.get("count", 0) for r in results)
             overall_ok = any(r.get("ok") for r in results)

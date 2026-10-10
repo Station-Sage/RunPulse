@@ -370,7 +370,6 @@ class BgSyncThread(threading.Thread):
                     count = sync_activities(
                         self.config, conn, 7,
                         from_date=win_from, to_date=win_to,
-                        bg_mode=True,
                     )
                     if progress_cb:
                         progress_cb(win_to, total_synced + count, total_req + req_added)

@@ -24,8 +24,6 @@ from .strava_athlete_sync import (  # noqa: F401
 import src.sync.strava_activity_sync as _act_sync
 from .sync_errors import from_result
 
-from src.utils.sync_state import mark_finished
-
 
 def sync_activities(
     config: dict,
@@ -33,7 +31,6 @@ def sync_activities(
     days: int = 7,
     from_date: str | None = None,
     to_date: str | None = None,
-    bg_mode: bool = False,
 ) -> int:
     """Strava 활동 동기화 wrapper."""
     result = _act_sync.sync(conn, days, config=config, from_date=from_date, to_date=to_date)
@@ -49,7 +46,6 @@ def sync_strava(
     days: int,
     from_date: str | None = None,
     to_date: str | None = None,
-    bg_mode: bool = False,
 ) -> dict:
     """Strava 전체 동기화: 활동 + 선수 프로필 + 통계 + 기어.
 
@@ -59,7 +55,6 @@ def sync_strava(
         days: 가져올 일수.
         from_date: 기간 동기화 시작일.
         to_date: 기간 동기화 종료일.
-        bg_mode: True이면 mark_finished 호출 생략.
 
     Returns:
         {"activities": N, "profile": bool, "stats": bool, "gear": int}
@@ -70,7 +65,7 @@ def sync_strava(
     headers = {"Authorization": f"Bearer {token}"}
 
     # 1. 활동 동기화
-    act_count = sync_activities(config, conn, days, from_date, to_date, bg_mode=True)
+    act_count = sync_activities(config, conn, days, from_date, to_date)
 
     # 2. 선수 프로필 + 통계 + 기어
     try:
@@ -79,7 +74,5 @@ def sync_strava(
         print(f"[strava] 선수/기어 동기화 실패: {e}")
 
     conn.commit()
-    if not bg_mode:
-        mark_finished("strava", count=act_count)
 
     return {"activities": act_count, "profile": True, "stats": True}

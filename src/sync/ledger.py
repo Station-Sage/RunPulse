@@ -43,9 +43,25 @@ def finish_run(
         )
         return
     kw: dict = {"status": "completed", "synced_count": synced}
+    partial_code = partial_code or _gate_partial_code(job_id)
     if partial_code:
         kw["error_code"] = partial_code
     update_job(job_id, **kw)
+
+
+def _gate_partial_code(job_id: str) -> str | None:
+    """이 실행이 직접 세운 게이트가 있으면(한도 초과로 일부만 수집) 부분 실패 코드를 돌려준다."""
+    try:
+        job = get_job(job_id)
+        if job is None:
+            return None
+        from src.utils.sync_gates import gate
+        g = gate(job.service)
+        if g is not None and g.job_id == job_id:
+            return "partial_rate_limited"
+    except Exception:
+        log.debug("게이트 부분 실패 판정 실패 job=%s", job_id, exc_info=True)
+    return None
 
 
 def fail_run(

@@ -11,7 +11,6 @@ from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
 from src.utils.raw_payload import store_raw_payload as _store_rp
 from src.utils.sync_gates import block, wait_sec
-from src.utils.sync_state import mark_finished
 
 
 def _store_raw_payload(
@@ -105,7 +104,6 @@ def sync_activities(
         if e.status_code == 403:
             print("[runalyze] 403 Forbidden — 토큰 오류. 24시간 동안 동기화 중단.")
             block("runalyze", 86400, reason="auth_expired")
-            mark_finished("runalyze", count=0, error="403 Forbidden — 토큰 오류/만료. 토큰을 재발급하세요.")
         else:
             print(f"[runalyze] API 오류 {e.status_code}: {e}")
         code, status = classify_exception(e)
