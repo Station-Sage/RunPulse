@@ -125,7 +125,7 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
   S2(콜드스타트) 화면 설계가 아직 없다 — 지금까지 한 재정렬은 전부 S3(데이터 충만) 기준.
   §9-4가 정한 구현 순서(S3→S2→S0)상 Phase 7a~7d 착수를 막지는 않지만, 03 화면 카탈로그에
   언젠가 반영해야 하는 남은 설계 작업. 2026-10-10 설계서(DESIGN-P7-REVIEW03-LIFECYCLE)
-  완료, 사용자가 D-L1~D-L8 확정(사이트 공개, 나머지 추천안) → ADR-038. 구현 L1~L7 진행.
+  완료, 사용자가 D-L1~D-L8 확정(사이트 공개, 나머지 추천안) → ADR-038. 구현 L1~L7 전부 완료(L7 문서는 03·03a·02 §2.4·05 §11.1에 이미 반영, 2026-10-10 감사 확인).
 
 P7-IMPL-D2(`activity_groups` 마스터 테이블)·P7-IMPL-D1-REST(utrs/cirs 자식 메트릭,
 `P7-IMPL-D1-REST-UC`로 완료 — race_readiness는 별도 Calculator가 아니라 RRI 자신이고
@@ -196,7 +196,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   6. ~~**3-16(D4)**~~ **불필요로 종료(2026-10-10, 사용자 결정)**: **2026-10-10 확인: `athlete_profile_snapshots` 테이블은 미구현**(코드에 DDL 없음, 스키마 v35). 다만 설계 목적(계획 생성 시 현재 부하 반영)은 `planner_schedule.start_load`가 지표에서 실시간 계산 + 목표별 사용자 입력(v28 `reported_weekly_km`·`reported_long_km`)으로 이미 충족. 남는 가치는 '생성 시점 부하 이력 보존'뿐 — 필요 여부는 사용자 판단.
   7. ~~**내러티브 캐시 워밍**·`MonthNarrative` 레이어링~~ **이미 구현됨(U17d/e/f)**: `narrative_warm.py`(동의·신선 캐시·일일 상한 3회·동시 실행 가드, 동기화 직후 `bg_sync`에서 호출, `tests/test_narrative_warm.py`), 재계산 후 캐시 무효화, 월 내러티브는 오버레이 대신 `/today/month/[ym]` 라우트로 전환(중첩 문제 해소). 2026-10-10 확인, 추가 작업 없음.
   8. ~~**목표 달성 가능성·D2 `x.taper`·explain `race_pred_marathon_sec`**~~ **이미 구현됨**: explain·`PredictionEvidence`·달성 가능성(`requiredImprovement`, 2026-10-04), `x.taper` 드릴 시트(`TaperSheet.svelte`, U8 B-1, 2026-10-05). 2026-10-10 확인, 추가 작업 없음.
-  9. **S2 이월**: 이벤트 마커(데이터 소스 미정), Sparkline min_span·끝점 점·캡션.
+  9. **S2 이월**: 이벤트 마커는 ▲ 레이스·◆ 알고리즘(ADR-042)으로 구현 완료, Sparkline `minSpan` 구현됨. **남음**: Sparkline 끝점 점·캡션(2026-10-10 감사: 코드에 없음).
   10. ~~**계정 설정 스키마(2-3)**·`sync_jobs` 열 확장·4경로 오류 표면화~~ **이미 구현됨(U15)**: `user_settings`(스키마 v25, ADR-023), 원장 `sync_jobs.db` 열 확장(`error_code`·`http_status` 등, `sync_jobs_schema.py`), 오류 코드 기록(sync 원장·bg_sync·내보내기·가져오기·재계산) → `sync_state_service` 오류 상태. 2026-10-10 확인, 스키마 v36 불필요.
   11. **요약 탭 스트림 다운샘플·P-5 탭 재방문 SWR 캐싱**(2-6 이월).
   12. **활동 목록 기간 필터**(20:S8/S9 이월).

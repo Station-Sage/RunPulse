@@ -2,7 +2,7 @@
 
 ## NOW
 
-- **[PHASE-7]** UI Renewal 설계 문서 작성 진행 중 → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
+- **[PHASE-7]** UI Renewal v2 구현 대부분 완료(잔여: Sparkline 끝점·캡션, ◆ 브라우저 스모크, USER-* 조치) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
 ## BUGS
 
@@ -15,7 +15,7 @@
 
 ## NEXT
 
-- **[REVIEW03-LIFECYCLE]** L1~L6 완료·배포(2026-10-10): 빈 상태·소량 데이터·/demo·/landing, A9(신규 계정 init_db + 503 NOT_FOUND만 empty) 해결, 신규 계정 /welcome 리다이렉트(200-빈 응답 대응) 및 T12=탭 2회 스모크. 데모 `snapshot.json`은 릴리스마다 재생성 필요. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
+- **[REVIEW03-LIFECYCLE]** L1~L7 완료(L7 문서 반영 확인)·L1~L6 배포(2026-10-10): 빈 상태·소량 데이터·/demo·/landing, A9(신규 계정 init_db + 503 NOT_FOUND만 empty) 해결, 신규 계정 /welcome 리다이렉트(200-빈 응답 대응) 및 T12=탭 2회 스모크. 데모 `snapshot.json`은 릴리스마다 재생성 필요. 설계: `phase-7-ui-renewal/DESIGN-P7-REVIEW03-LIFECYCLE.md`.
 
 - **[SYNC-SOURCE-TOGGLE]** T1~T6 완료(2026-10-10, ADR-037). G6 는 T5 버튼으로 해소; v1 뷰 제거는 AUDIT-V-CANONICAL 로 분리 유지.
 
