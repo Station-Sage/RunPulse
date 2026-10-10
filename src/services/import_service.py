@@ -159,7 +159,7 @@ def preview(user_id: str, kind: str, paths: list[Path], source: str) -> dict:
 
 
 def _run(job_id: str, user_id: str, upload_id: str, kind: str, source: str) -> None:
-    from src.utils.sync_state import set_current_user
+    from src.utils.user_context import set_current_user
 
     set_current_user(user_id)
     try:

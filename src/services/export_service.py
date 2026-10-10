@@ -185,7 +185,7 @@ def _loads(text):
 
 
 def _run(job_id: str, user_id: str, frm, to) -> None:
-    from src.utils.sync_state import set_current_user
+    from src.utils.user_context import set_current_user
 
     set_current_user(user_id)
     try:

@@ -18,7 +18,7 @@ from datetime import date, timedelta
 
 from src.db_setup import get_db_path, init_db
 from src.utils.config import enabled_sources, load_config
-from src.utils.sync_state import set_current_user
+from src.utils.user_context import set_current_user
 
 log = logging.getLogger(__name__)
 

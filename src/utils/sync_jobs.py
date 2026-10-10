@@ -131,11 +131,11 @@ def _jobs_db_path(user_id: str | None = None) -> str:
 
 def _conn(user_id: str | None = None) -> sqlite3.Connection:
     """sync_jobs.db 전용 커넥션. 테이블 없으면 자동 생성."""
-    # sync_state._resolve_user_id: 인자 → thread-local → Flask session → "default"
+    # user_context.resolve_user_id: 인자 → thread-local → Flask session → "default"
     # bg_sync 스레드는 set_current_user()로 thread-local을 설정하므로 올바른 DB를 사용하게 됨
     try:
-        from src.utils.sync_state import _resolve_user_id
-        uid = _resolve_user_id(user_id)
+        from src.utils.user_context import resolve_user_id
+        uid = resolve_user_id(user_id)
     except Exception:
         uid = user_id
     path = _jobs_db_path(uid)

@@ -15,28 +15,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from src.utils.user_context import resolve_user_id as _resolve_user_id, set_current_user  # noqa: F401  (재수출)
+
 _LOCK = threading.Lock()
-_LOCAL = threading.local()  # per-thread user_id
 _SERVICES = ("garmin", "strava", "intervals", "runalyze")
-
-
-def set_current_user(user_id: str) -> None:
-    """subprocess 또는 bg_sync 스레드 시작 시 호출 — request context 없는 환경에서 user_id 설정."""
-    _LOCAL.user_id = user_id
-
-
-def _resolve_user_id(user_id: str | None) -> str:
-    """user_id 해석: 인자 → thread-local → Flask session → 'default'."""
-    if user_id:
-        return user_id
-    uid = getattr(_LOCAL, "user_id", None)
-    if uid:
-        return uid
-    try:
-        from src.web.helpers import get_current_user_id
-        return get_current_user_id()
-    except Exception:
-        return "default"
 
 
 def _state_path(user_id: str | None = None) -> Path:

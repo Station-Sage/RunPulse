@@ -1041,7 +1041,7 @@
 
 - functions: init_cf_auth, get_current_user_email
 
-### `auto_sync.py` (130줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (131줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
 - functions: start, stop, restart, status
 
@@ -1679,9 +1679,13 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `sync_state.py` (266줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
+### `sync_state.py` (248줄) — 동기화 상태 관리 — 실행 중 여부, 마지막 동기화 시각, rate limit 상태, 오류.
 
-- functions: set_current_user, get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
+- functions: get_service_state, is_running, get_last_sync_at, get_retry_after_sec, get_rate_state, get_all_states, mark_running, mark_finished, set_retry_after, clear_retry_after, get_last_auto_sync, mark_auto_sync_ran
+
+### `user_context.py` (29줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+
+- functions: set_current_user, resolve_user_id
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
 
@@ -3112,6 +3116,10 @@
 - class **TestGroupOperations**: test_assign_creates_group, test_assign_requires_two, test_remove_from_group
 - functions: mem_db
 
+### `test_user_context.py` (29줄) — user_context — user_id 해석 우선순위.
+
+- functions: test_argument_wins, test_thread_local_fallback_is_per_thread, test_default_without_context
+
 ### `test_user_inputs.py` (130줄) — D3 — user_inputs / ai_feedback / chat_threads 테이블 스키마 테스트.
 
 - class **TestUserInputs**: test_save_checkin, test_checkin_unique_per_day, test_checkin_raw_insert_conflict_without_upsert_raises, test_activity_id_no_fk_enforcement
@@ -3280,7 +3288,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 698개 파일
+총 700개 파일
 
 ## docstring 누락
 

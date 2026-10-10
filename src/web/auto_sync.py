@@ -34,7 +34,8 @@ def _connected_sources(config: dict) -> list[str]:
 
 def _trigger(config: dict, user_id: str, days: int) -> None:
     from src.web.bg_sync import start_basic_sync
-    from src.utils.sync_state import mark_auto_sync_ran, set_current_user
+    from src.utils.sync_state import mark_auto_sync_ran
+    from src.utils.user_context import set_current_user
     set_current_user(user_id)
 
     # 화면에서 바꾼 포함 목록·자격증명이 재시작 없이 반영되도록 실행마다 다시 읽는다

@@ -102,7 +102,7 @@ class BgSyncThread(threading.Thread):
         update_job(self.job_id, status="cancelled" if self._cancelled else "paused", **kwargs)
 
     def run(self) -> None:
-        from src.utils.sync_state import set_current_user
+        from src.utils.user_context import set_current_user
         set_current_user(self.user_id)
         job = get_job(self.job_id)
         if job is None:

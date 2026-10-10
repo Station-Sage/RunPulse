@@ -9,7 +9,7 @@ def _patch_sync(monkeypatch, captured):
     import src.utils.sync_state as ss
     monkeypatch.setattr(bg, "start_basic_sync", lambda sources, *a, **k: captured.append(list(sources)) or [])
     monkeypatch.setattr(ss, "mark_auto_sync_ran", lambda uid: None)
-    monkeypatch.setattr(ss, "set_current_user", lambda uid: None)
+    monkeypatch.setattr("src.utils.user_context.set_current_user", lambda uid: None)
 
 
 def test_trigger_uses_reloaded_config(monkeypatch):
