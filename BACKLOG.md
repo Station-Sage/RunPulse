@@ -4,6 +4,8 @@
 
 - **[PHASE-7]** UI Renewal v2 화면·기능 구현은 완료했으나 **전환은 미완**(기본 진입 v1 유지: G5 기본 전환·G6 v1 제거는 사용자 결정 대기; 07 §7d의 Training Balance Radar·COROS/Polar 커넥터는 미구현·미배정; NEXT 11 요약 탭 다운샘플·SWR, A-6 프리페치, Coach 지표 프리필은 2026-10-10 완료·ADR-043). 남은 미완 일람: [PHASE-7-REMAINING] 참조) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
+- **[V2-AUDIT]** v2 버그·개선점 식별(설계·수정 제외). 7개 묶음을 sonnet 에이전트로 순차 점검(오늘 → 라이브러리 활동 → 라이브러리 지표 → 데이터 → 훈련 계획 → 코치 → 진입·공통). 결과는 `v0.3/data/phase-7-ui-renewal/ux-review-2026-10/`에 누적. 진행: 7개 묶음+보충 패스 완료(232건, 상 26). 종합은 `99-summary.md`. 설계·수정 대기(사용자 지시 시).
+
 ## BUGS
 
 - **[AUDIT-SERVICE-LAYER]** **(판단 필요)** 재조사(2026-10-10): raw SQL 은 `src/web/views_*`(레거시 Flask HTML 뷰) 150곳에 집중, 신규 `src/api` 는 5곳뿐이고 SQL 은 `src/services`가 담당 → 신규 UI 는 충족. **범위 확대**: import 그래프상 v2(api/services/sync/mcp_remote)에서 도달 불가한 코드가 약 36,000줄/63,000줄 — web 19.9k(전체 23.3k 중 3.3k 는 bg_sync·app 일부로 v2 현역), metrics 6.4k(`_v02_backup` 34파일 포함), ai 3.4k, analysis 2.2k, training 2.0k(planner_v2·replanner·plan_gates 등), 루트(analyze/plan/mcp_server/validation) 1.3k 등. sync·services 는 전부 현역. 한계: CLI·스크립트·테스트 전용 코드도 '도달 불가'로 잡히므로 삭제 근거로 쓰기 전 검증 필요. v2가 의존하는 v1 라우트(/sync, /trigger-sync-bg, /connect/garmin, /import, /mcp, /feeds/cal, /guide)는 유지. **추천 B(단계적 퇴역)**: 0) 도달성 감사 — 현역/v1 전용/CLI·스크립트 전용/테스트 전용 대응표(코드 변경 없음, `replanner`·`planner_v2` 호출 경로 확인 포함) → 승인 / 1) 확실한 죽은 코드(`_v02_backup`, analyze.py, plan.py, ai_context_legacy) / 2) 대체 완료 v1 화면 라우트 퇴역(리다이렉트 유지) + 그 뷰 전용 ai·analysis·training 모듈 / 3) web 내 현역 코드(bg_sync 등)를 services 로 이관 / 4) 테스트 29파일·check_docs·files_index·ADR 정리. 단계마다 별도 커밋·운영 반영. 대안 A(전면 이관)는 비추천, C(유지)는 규칙 위반 잔존. 승인 대기: 0단계 착수 여부.
