@@ -83,8 +83,8 @@ def plan_incremental(
     from src.utils.sync_jobs import get_active_job
     from src.utils.sync_policy import check_incremental_guard
     from src.utils.sync_gates import wait_sec
-    from src.utils.sync_state import get_last_sync_at, is_running
-    from src.web.bg_sync import get_status as bg_status
+    from src.utils.sync_state import get_last_sync_at
+    from src.utils.sync_ledger_query import is_busy
     if db_file is None:
         from src.web.helpers import db_path
         db_file = db_path()
@@ -105,8 +105,7 @@ def plan_incremental(
         if src not in on:
             skipped.append(SkipReason(src, "disabled", "동기화 대상에서 꺼져 있어요"))
             continue
-        bg = bg_status(src, user_id)
-        if is_running(src, user_id) or (bg.get("active") and bg.get("status") in ("running", "pending")):
+        if is_busy(src, user_id):
             job = get_active_job(src)
             skipped.append(SkipReason(src, "running", "이미 동기화 중이에요", job_id=job.id if job else None))
             continue

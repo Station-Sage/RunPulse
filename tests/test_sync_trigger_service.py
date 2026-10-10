@@ -17,9 +17,9 @@ def _patch(monkeypatch, *, connected=("garmin", "strava"), enabled=("garmin", "s
         for s in svc.ALL_SOURCES})
     import src.utils.config as cfg
     monkeypatch.setattr(cfg, "enabled_sources", lambda c: list(enabled))
-    import src.utils.sync_state as ss
-    monkeypatch.setattr(ss, "is_running", lambda s, u=None: s in running)
-    monkeypatch.setattr(ss, "get_last_sync_at", lambda s, u=None: None)
+    import src.utils.sync_ledger_query as ss
+    monkeypatch.setattr(ss, "is_busy", lambda s, u=None: s in running)
+    monkeypatch.setattr(__import__("src.utils.sync_state", fromlist=["x"]), "get_last_sync_at", lambda s, u=None: None)
     import src.utils.sync_gates as sg
     monkeypatch.setattr(sg, "wait_sec", lambda s, u=None: (wait or {}).get(s, 0))
     import src.utils.sync_policy as sp

@@ -22,10 +22,15 @@ def _setup(monkeypatch):
     bg_sync._threads.clear()
     n = {"c": 0}
 
-    def create(service, f, t, source_path="bg"):
+    taken = set()
+
+    def claim(service, f, t, *, source_path="bg", user_id=None, **kw):
+        if (user_id, service) in taken:
+            return None
+        taken.add((user_id, service))
         n["c"] += 1
-        return SimpleNamespace(id=f"job{n['c']}")
-    monkeypatch.setattr(bg_sync, "create_job", create)
+        return f"job{n['c']}"
+    monkeypatch.setattr(bg_sync, "claim_run", claim)
     monkeypatch.setattr(bg_sync, "BgSyncThread", _FakeThread)
     monkeypatch.setattr(bg_sync, "get_active_job", lambda s: SimpleNamespace(id="job1"))
     return n
@@ -56,7 +61,7 @@ def test_different_users_do_not_collide(monkeypatch):
 
 def test_create_failure_releases_slot(monkeypatch):
     _setup(monkeypatch)
-    monkeypatch.setattr(bg_sync, "create_job", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(bg_sync, "claim_run", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x")))
     try:
         bg_sync._start_or_existing("garmin", "a", "b", {}, "u")
     except RuntimeError:

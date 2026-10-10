@@ -22,9 +22,6 @@ from src.db_setup import get_db_path
 from src.utils.sync_jobs import (
     SyncJob,
     INTER_BATCH_SLEEP,
-    cleanup_stale_running_jobs,
-    cleanup_stale_running_jobs_all_users,
-    create_job,
     get_active_job,
     get_job,
     get_latest_job,
@@ -33,6 +30,11 @@ from src.utils.sync_jobs import (
 )
 from src.sync.sync_errors import SyncSourceError, classify_exception
 from src.utils.sync_gates import wait_sec
+from src.utils.sync_jobs_maintenance import (
+    cleanup_stale_running_jobs,
+    cleanup_stale_running_jobs_all_users,
+)
+from src.sync.ledger import claim_run, heartbeat
 
 # ── 전역 스레드 레지스트리 ────────────────────────────────────────────────
 _threads: dict[tuple[str, str], "BgSyncThread"] = {}  # (user_id, service) → 스레드
@@ -112,7 +114,8 @@ class BgSyncThread(threading.Thread):
             return
         update_job(self.job_id, status="running")
         try:
-            self._run_batches(job)
+            with heartbeat(self.job_id, user_id=self.user_id):
+                self._run_batches(job)
         except Exception as exc:
             update_job(self.job_id, status="stopped", last_error=str(exc)[:300])
         finally:
@@ -473,17 +476,26 @@ def _start_or_existing(
             _threads.pop(key, None)
         _threads[key] = _STARTING
     try:
-        job = create_job(service, from_date, to_date, source_path=source_path)
-        thread = BgSyncThread(job.id, config, user_id=user_id)
-        with _lock:
-            _threads[key] = thread
-        thread.start()
+        job_id = claim_run(service, from_date, to_date, source_path=source_path, user_id=user_id)
+        if job_id is None:
+            with _lock:
+                _threads.pop(key, None)
+            existing = get_active_job(service)
+            return (existing.id if existing else ""), False
+        try:
+            thread = BgSyncThread(job_id, config, user_id=user_id)
+            with _lock:
+                _threads[key] = thread
+            thread.start()
+        except Exception:
+            update_job(job_id, status="stopped", last_error="스레드 시작 실패")
+            raise
     except Exception:
         with _lock:
             if _threads.get(key) is _STARTING:
                 _threads.pop(key, None)
         raise
-    return job.id, True
+    return job_id, True
 
 
 def start_job(

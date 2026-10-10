@@ -40,8 +40,8 @@ def _patch(monkeypatch, connected=("garmin", "strava"), running=()):
         for s in ("garmin", "strava", "intervals", "runalyze")})
     import src.utils.config as cfg
     monkeypatch.setattr(cfg, "enabled_sources", lambda c: ["garmin"])
-    import src.utils.sync_state as ss
-    monkeypatch.setattr(ss, "is_running", lambda s, u=None: s in running)
+    import src.utils.sync_ledger_query as ss
+    monkeypatch.setattr(ss, "is_busy", lambda s, u=None: s in running)
     import src.utils.sync_gates as sg
     monkeypatch.setattr(sg, "wait_sec", lambda s, u=None: 0)
     import src.utils.sync_jobs as sj

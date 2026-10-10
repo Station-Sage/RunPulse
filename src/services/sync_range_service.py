@@ -62,7 +62,7 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
     from src.utils.config import enabled_sources
     from src.utils.sync_jobs import get_active_job
     from src.utils.sync_gates import wait_sec
-    from src.utils.sync_state import is_running
+    from src.utils.sync_ledger_query import is_busy
     from src.web.bg_sync import _start_or_existing
 
     checkers, on = _checkers(), enabled_sources(config)
@@ -76,7 +76,7 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
             skipped.append(SkipReason(src, "not_connected", f"미연결 ({st['status']})"))
         elif src not in on:
             skipped.append(SkipReason(src, "disabled", "동기화 대상에서 꺼져 있어요"))
-        elif is_running(src, user_id):
+        elif is_busy(src, user_id):
             job = get_active_job(src)
             skipped.append(SkipReason(src, "running", "이미 동기화 중이에요", job_id=job.id if job else None))
         elif not (guard := check_range_guard(src, days)).allowed:

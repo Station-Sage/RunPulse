@@ -346,11 +346,11 @@
 
 - functions: parse_range, estimate, trigger_range
 
-### `sync_state_service.py` (177줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+### `sync_state_service.py` (188줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
 - functions: classify_error, get_sync_state
 
-### `sync_trigger_service.py` (152줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
+### `sync_trigger_service.py` (151줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
 
 - class **SkipReason**: to_dict
 - class **TriggerResult**: 없음
@@ -731,9 +731,9 @@
 
 - functions: sync_wellness
 
-### `ledger.py` (58줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
+### `ledger.py` (138줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
 
-- functions: start_run, finish_run, fail_run
+- functions: start_run, finish_run, fail_run, claim_run, heartbeat
 
 ### `orchestrator.py` (120줄) — 통합 sync 진입점.
 
@@ -1045,7 +1045,7 @@
 
 - functions: start, stop, restart, status
 
-### `bg_sync.py` (616줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (628줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1669,14 +1669,22 @@
 - class **Gate**: remaining_sec
 - functions: gate, wait_sec, bump_backoff, block, clear
 
-### `sync_jobs.py` (293줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (255줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
-- functions: windows, cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
+- functions: windows, insert_job, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
+
+### `sync_jobs_maintenance.py` (52줄) — 원장 정리(유지보수) — 재시작·stale 로 남은 running/pending 행을 stopped 로 닫는다.
+
+- functions: cleanup_stale_running_jobs, cleanup_stale_running_jobs_all_users
 
 ### `sync_jobs_schema.py` (57줄) — sync_jobs.db 스키마 — 테이블 생성과 원장 열(error_code·http_status·source_path·counts_json·trigger·started_at·finished_at·result_json·params_json) 멱등 보장.
 
 - functions: ensure_ledger
+
+### `sync_ledger_query.py` (89줄) — 동기화 원장 읽기 전용 질의 — 실행 중·마지막 성공·자동 실행 시각을 sync_jobs.db 한 곳에서 낸다(부작용 없음).
+
+- functions: busy_job, is_busy, last_success_at, last_auto_run, legacy_card_states
 
 ### `sync_policy.py` (176줄) — 동기화 정책 — 서비스별 rate limit / cooldown / 기간 제한 정책 정의 및 검사.
 
@@ -1939,7 +1947,7 @@
 - class **_Timeout**: 없음
 - functions: test_all_batches_failed_marks_failed, test_partial_success_stays_completed, test_exception_in_batch_is_classified
 
-### `test_bg_sync_concurrency.py` (83줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
+### `test_bg_sync_concurrency.py` (88줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
 
 - class **_FakeThread**: start, is_alive
 - functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop, test_resume_ignores_cancelled_job
@@ -2460,6 +2468,10 @@
 
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
+
+### `test_ledger_claim.py` (82줄) — claim_run·heartbeat — 원자적 선점, stale 정리, 동시성.
+
+- functions: db, test_claim_empty_ledger_returns_running_row, test_claim_blocked_by_fresh_running, test_claim_other_service_independent, test_claim_closes_stale_and_takes_slot, test_claim_saves_params, test_concurrent_claims_single_winner, test_heartbeat_updates_and_stops
 
 ### `test_long_run_rules.py` (92줄) — U16-LR L1: 롱런 하한·상한 순수 규칙 — 설계서 §8.1 경계값 표(#1~#17).
 
@@ -3017,11 +3029,15 @@
 
 ### `test_sync_jobs_schema.py` (77줄) — 원장 스키마(ensure_ledger) 멱등성·구버전 업그레이드 테스트.
 
-- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_23_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
+- functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_24_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
 
 ### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
 
 - functions: test_cli_run_completed, test_manual_failed_with_code, test_fail_run_creates_missing_row_for_timeout, test_fail_run_does_not_overwrite_child_failure, test_auto_and_bg_source_path_persist
+
+### `test_sync_ledger_query.py` (79줄) — sync_ledger_query — 읽기 전용 질의.
+
+- functions: db, test_busy_fresh_running, test_busy_ignores_stale_and_does_not_write, test_busy_excludes_paused_and_rate_limited, test_last_success_prefers_finished_at, test_last_success_falls_back_to_updated_at_and_ignores_failures, test_last_auto_run_only_auto, test_legacy_card_states_shape
 
 ### `test_sync_range.py` (119줄) — 기간 동기화 — parse_range·estimate·trigger_range·POST/GET API.
 
@@ -3305,7 +3321,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 704개 파일
+총 708개 파일
 
 ## docstring 누락
 

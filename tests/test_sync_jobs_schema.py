@@ -37,8 +37,8 @@ def test_old_15_column_db_upgraded(tmp_path):
     assert len(_cols(p)) == 24
 
 
-def test_syncjob_has_23_fields():
-    assert len(dataclasses.fields(SyncJob)) == 23
+def test_syncjob_has_24_fields():
+    assert len(dataclasses.fields(SyncJob)) == 24
 
 
 def test_cleanup_all_users_closes_only_stale(tmp_path, monkeypatch):
@@ -56,7 +56,7 @@ def test_cleanup_all_users_closes_only_stale(tmp_path, monkeypatch):
             c.execute("INSERT INTO sync_jobs (id,service,from_date,to_date,window_days,status,completed_days,"
                       "total_days,synced_count,req_count,created_at,updated_at) "
                       "VALUES ('j','garmin','2026-01-01','2026-01-02',7,'running',0,1,0,0,?,?)", (ts, ts))
-    assert sj.cleanup_stale_running_jobs_all_users(600) == 1
+    assert __import__("src.utils.sync_jobs_maintenance", fromlist=["x"]).cleanup_stale_running_jobs_all_users(600) == 1
     with sj._conn("a@x") as c:
         assert c.execute("select status from sync_jobs").fetchone()[0] == "stopped"
     with sj._conn("b@x") as c:

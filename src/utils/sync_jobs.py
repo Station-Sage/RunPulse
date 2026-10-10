@@ -67,6 +67,7 @@ class SyncJob:
     started_at: Optional[str] = None    # running 최초 전이 시각
     finished_at: Optional[str] = None   # 종료 상태 전이 시각
     result_json: Optional[str] = None   # 재계산 등 작업별 결과(before/after 요약)
+    params_json: Optional[str] = None   # 시작 인자(mode 등)
 
     @property
     def progress_pct(self) -> float:
@@ -120,7 +121,7 @@ _COLS = (
     "id, service, from_date, to_date, window_days, current_from, "
     "status, completed_days, total_days, synced_count, req_count, "
     "created_at, updated_at, retry_after, last_error, "
-    "error_code, http_status, source_path, counts_json, trigger, started_at, finished_at, result_json"
+    "error_code, http_status, source_path, counts_json, trigger, started_at, finished_at, result_json, params_json"
 )
 
 
@@ -149,53 +150,26 @@ def _row(row: tuple) -> SyncJob:
     return SyncJob(*row)
 
 
-def cleanup_stale_running_jobs() -> int:
-    """프로세스 재시작 시 남아있는 'running'/'pending' 작업을 'stopped'로 정리.
-
-    Returns:
-        정리된 작업 수.
-    """
-    now = datetime.now().isoformat(timespec="seconds")
-    with _conn() as conn:
-        cur = conn.execute(
-            "UPDATE sync_jobs SET status='stopped', updated_at=?, last_error='프로세스 재시작으로 중단됨' "
-            "WHERE status IN ('running', 'pending')",
-            (now,),
-        )
-        return cur.rowcount
-
-
-def cleanup_stale_running_jobs_all_users(older_than_sec: int = 600) -> int:
-    """모든 사용자 원장의 오래 갱신 없는 running/pending 작업을 'stopped'로 정리.
-
-    import 시점엔 사용자 컨텍스트가 없어 default 원장만 정리되던 문제를 보완한다.
-    다른 워커가 진행 중인 작업을 건드리지 않도록 older_than_sec 이상 갱신 없는 행만 닫는다.
-    """
-    from src.db_setup import _PROJECT_ROOT
-
-    users_dir = _PROJECT_ROOT / "data" / "users"
-    if not users_dir.is_dir():
-        return 0
-    cutoff = (datetime.now() - timedelta(seconds=older_than_sec)).isoformat(timespec="seconds")
-    now = datetime.now().isoformat(timespec="seconds")
-    total = 0
-    for d in sorted(users_dir.iterdir()):
-        if not (d / "sync_jobs.db").exists():
-            continue
-        try:
-            with _conn(d.name) as conn:
-                cur = conn.execute(
-                    "UPDATE sync_jobs SET status='stopped', updated_at=?, last_error='프로세스 재시작으로 중단됨' "
-                    "WHERE status IN ('running', 'pending') AND updated_at < ?",
-                    (now, cutoff),
-                )
-                total += cur.rowcount
-        except Exception:
-            continue
-    return total
-
-
 # ── CRUD ─────────────────────────────────────────────────────────────────
+
+def insert_job(
+    conn: sqlite3.Connection, job_id: str, service: str, from_date: str, to_date: str,
+    *, source_path: str | None = None, status: str = "pending",
+    params_json: str | None = None, now: str | None = None,
+) -> None:
+    """sync_jobs 행 1건 INSERT — create_job·claim_run 공용 (트랜잭션은 호출자 소관)."""
+    now = now or datetime.now().isoformat(timespec="seconds")
+    total = max(1, (date.fromisoformat(to_date) - date.fromisoformat(from_date)).days + 1)
+    started = now if status == "running" else None
+    conn.execute(
+        f"INSERT INTO sync_jobs ({_COLS}) VALUES ({','.join('?' * 24)})",
+        (
+            job_id, service, from_date, to_date, WINDOW_DAYS.get(service, 14), from_date,
+            status, 0, total, 0, 0, now, now, None, None,
+            None, None, source_path, None, source_path, started, None, None, params_json,
+        ),
+    )
+
 
 def create_job(
     service: str, from_date: str, to_date: str,
@@ -204,11 +178,6 @@ def create_job(
     """새 동기화 작업 생성 후 반환."""
     job_id = job_id or str(uuid.uuid4())
     now = datetime.now().isoformat(timespec="seconds")
-    wdays = WINDOW_DAYS.get(service, 14)
-    start = date.fromisoformat(from_date)
-    end = date.fromisoformat(to_date)
-    total = max(1, (end - start).days + 1)
-
     with _conn() as conn:
         # 신규 작업 시작 시 동일 서비스의 기존 미완료 작업을 stopped로 정리
         conn.execute(
@@ -216,14 +185,7 @@ def create_job(
             "WHERE service=? AND status IN ('pending','paused','stopped','rate_limited')",
             (now, service),
         )
-        conn.execute(
-            f"INSERT INTO sync_jobs ({_COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                job_id, service, from_date, to_date, wdays, from_date,
-                "pending", 0, total, 0, 0, now, now, None, None,
-                None, None, source_path, None, source_path, None, None, None,
-            ),
-        )
+        insert_job(conn, job_id, service, from_date, to_date, source_path=source_path, now=now)
     job = get_job(job_id)
     assert job is not None
     return job

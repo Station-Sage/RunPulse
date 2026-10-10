@@ -14,6 +14,7 @@ from datetime import date, datetime, timezone
 from src.sync.sync_errors import MESSAGES_KO
 from src.utils.config import enabled_sources
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
+from src.utils.sync_ledger_query import STALE_SEC
 
 SOURCES = ("garmin", "strava", "intervals", "runalyze")
 STALE_HOURS = 12
@@ -78,12 +79,22 @@ def classify_error(job: SyncJob | None) -> dict | None:
     return _error_dict("unknown", job, text[:200])
 
 
+def _fresh(job: SyncJob, now: datetime) -> bool:
+    """하트비트가 STALE_SEC 이내인 작업만 실행 중으로 본다(죽은 행 무시)."""
+    try:
+        upd = datetime.fromisoformat(job.updated_at)
+        ref = now.replace(tzinfo=None) if upd.tzinfo is None else now
+        return (ref - upd).total_seconds() <= STALE_SEC
+    except ValueError:
+        return False
+
+
 def _source_state(provider: str, config: dict, on: set[str], jobs: list[SyncJob],
                   last_new_data_at: str | None, now: datetime) -> dict:
     connected = bool(config.get(provider, {}).get(_CREDENTIAL_KEYS[provider]))
     latest = jobs[0] if jobs else None
     success = next((j for j in jobs if j.status == "completed"), None)
-    running = next((j for j in jobs if j.status in ("running", "pending")), None)
+    running = next((j for j in jobs if j.status in ("running", "pending") and _fresh(j, now)), None)
     error = classify_error(latest)
 
     last_success_at = _local_iso(success.updated_at) if success else None

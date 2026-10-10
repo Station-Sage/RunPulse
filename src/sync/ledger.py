@@ -1,12 +1,16 @@
 """동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록."""
 from __future__ import annotations
 
+import json
 import logging
+import threading
 import uuid
-from datetime import date, timedelta
+from contextlib import contextmanager
+from datetime import date, datetime, timedelta
 
 from src.sync.sync_errors import SyncSourceError
-from src.utils.sync_jobs import create_job, get_job, update_job
+from src.utils.sync_ledger_query import STALE_SEC
+from src.utils.sync_jobs import _conn, create_job, get_job, insert_job, update_job
 
 log = logging.getLogger(__name__)
 
@@ -56,3 +60,79 @@ def fail_run(
         return
     update_job(job_id, status="failed", error_code=code,
                http_status=http_status, last_error=message[:300])
+
+
+def claim_run(
+    service: str, from_date: str, to_date: str, *, source_path: str,
+    params: dict | None = None, job_id: str | None = None, user_id: str | None = None,
+) -> str | None:
+    """같은 service 의 실행 슬롯을 원자적으로 선점한다. 이미 신선한 실행이 있으면 None.
+
+    BEGIN IMMEDIATE 한 트랜잭션에서 stale(하트비트 STALE_SEC 무갱신) 행을 닫고 → 신선한 행 검사 → 삽입.
+    """
+    job_id = job_id or str(uuid.uuid4())
+    now = datetime.now()
+    now_s = now.isoformat(timespec="seconds")
+    cutoff = (now - timedelta(seconds=STALE_SEC)).isoformat(timespec="seconds")
+    conn = _conn(user_id)
+    conn.isolation_level = None
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            "UPDATE sync_jobs SET status='stopped', error_code='stale', updated_at=?, finished_at=? "
+            "WHERE service=? AND status IN ('pending','running') AND updated_at < ?",
+            (now_s, now_s, service, cutoff),
+        )
+        if conn.execute(
+            "SELECT 1 FROM sync_jobs WHERE service=? AND status IN ('pending','running') LIMIT 1",
+            (service,),
+        ).fetchone():
+            conn.execute("ROLLBACK")
+            return None
+        conn.execute(
+            "UPDATE sync_jobs SET status='stopped', updated_at=? "
+            "WHERE service=? AND status IN ('paused','stopped','rate_limited')",
+            (now_s, service),
+        )
+        insert_job(
+            conn, job_id, service, from_date, to_date, source_path=source_path, status="running",
+            params_json=json.dumps(params, ensure_ascii=False) if params else None, now=now_s,
+        )
+        conn.execute("COMMIT")
+        return job_id
+    except Exception:
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.close()
+
+
+@contextmanager
+def heartbeat(job_id: str, every_sec: int = 60, user_id: str | None = None):
+    """데몬 스레드가 every_sec 마다 updated_at 만 갱신한다. with 종료 시 정지."""
+    from src.utils.user_context import resolve_user_id
+    uid = resolve_user_id(user_id)
+    stop = threading.Event()
+
+    def _beat() -> None:
+        while not stop.wait(every_sec):
+            try:
+                conn = _conn(uid)
+                try:
+                    with conn:
+                        conn.execute(
+                            "UPDATE sync_jobs SET updated_at=? WHERE id=? AND status IN ('pending','running')",
+                            (datetime.now().isoformat(timespec="seconds"), job_id),
+                        )
+                finally:
+                    conn.close()
+            except Exception:
+                log.debug("heartbeat 실패 job=%s", job_id, exc_info=True)
+
+    t = threading.Thread(target=_beat, daemon=True, name=f"hb-{job_id[:8]}")
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
