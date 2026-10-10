@@ -1272,9 +1272,9 @@
 
 - functions: strava_connect_view, strava_save_app, strava_oauth_start, strava_oauth_callback, strava_disconnect, intervals_connect_view, intervals_connect_post, intervals_disconnect, runalyze_connect_view, runalyze_connect_post, runalyze_disconnect
 
-### `views_settings_metrics.py` (125줄) — 설정 — 메트릭 재계산 라우트 (SSE 스트림 포함).
+### `views_settings_metrics.py` (91줄) — 설정 — 메트릭 재계산 라우트 (SSE 스트림 포함).
 
-- functions: metrics_recompute, metrics_recompute_stream, metrics_recompute_status, recompute_metrics_get
+- functions: metrics_recompute, metrics_recompute_stream, metrics_recompute_status
 
 ### `views_settings_render.py` (222줄) — 설정 페이지 렌더 헬퍼 — 서비스 카드 + 프로필 + Mapbox + CalDAV.
 
@@ -1288,7 +1288,7 @@
 
 - functions: shoes_list
 
-### `views_sync.py` (265줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
+### `views_sync.py` (270줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
 
 - functions: sync_page, sync_sources_post, auto_sync_settings_post
 
@@ -2917,6 +2917,10 @@
 
 - functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history, test_recompute_all_commits_results
 
+### `test_recompute_retire.py` (22줄) — v1 부작용 GET /recompute-metrics 퇴역 — 라우트 부재와 동기화 탭의 v2 POST 전환.
+
+- functions: test_get_recompute_route_removed, test_sync_tab_uses_v2_recompute_post
+
 ### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
 
 - functions: test_reextract_keeps_ids_and_fills_fields, test_activity_metrics_reextracted, test_dry_run_writes_nothing, test_orphan_guard_blocks_destructive_reprocess
@@ -3325,7 +3329,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 709개 파일
+총 710개 파일
 
 ## docstring 누락
 

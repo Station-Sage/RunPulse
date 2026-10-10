@@ -202,7 +202,7 @@
 - 결정: 재계산 작업을 새 테이블 없이 `sync_jobs`(작업 원장)에 `service='recompute'`로 저장하고, 전후 비교 결과용 `result_json` 컬럼 1개만 추가한다(ledger 23컬럼). 진행률은 `completed_days/total_days`, 상태는 `pending/running/completed/failed`를 API에서 `queued/running/done/failed`로 변환한다. 동시에 1건만(409 `RECOMPUTE_RUNNING`).
 - 사유: 원장에 이미 상태·진행률·재시작 시 stale 정리·사용자별 DB가 있어 별도 테이블은 중복이다. 추천안(원장 재사용)을 택한 이유는 새 스키마·정리 로직을 만들지 않고도 같은 폴링 규약을 쓸 수 있어서다.
 - 범위: `from` 범위는 엔진이 `days`만 지원하므로 오늘-from+1일로 환산. 값 변경 미리보기의 영향 일수는 hrmax/lthr/resting_hr 변경일 때만 계산(주간 목표·역치 페이스는 재계산 불필요).
-- `planner_rules.get_paces_from_vdot(vdot, config, conn)`이 conn을 받아 threshold_pace의 자체/기기/직접 선택을 반영한다(`generate_weekly_plan` 경로). 롱런 페이스용 `planner_schedule._long_pace_fn`도 VDOT가 없을 때 `load_config()`(요청 사용자)와 conn으로 같은 값을 쓴다. 옛 `GET /recompute-metrics`(부작용 GET)는 새 `POST /data/recompute`로 대체 예정이며 v2 UI는 쓰지 않는다.
+- `planner_rules.get_paces_from_vdot(vdot, config, conn)`이 conn을 받아 threshold_pace의 자체/기기/직접 선택을 반영한다(`generate_weekly_plan` 경로). 롱런 페이스용 `planner_schedule._long_pace_fn`도 VDOT가 없을 때 `load_config()`(요청 사용자)와 conn으로 같은 값을 쓴다. 옛 `GET /recompute-metrics`(부작용 GET)는 새 `POST /data/recompute`로 대체되어 삭제됐다(ADR-045).  v2 UI는 쓰지 않는다.
 
 ## ADR-029: 내보내기는 빠른 CSV 스트림 + 아카이브 작업(원장 `service='export'`) (2026-10-08)
 - 결정: 활동·웰니스·부하 CSV는 요청 즉시 파일로 응답하고(UTF-8 BOM), 전체 아카이브(zip)만 `sync_jobs`에 `service='export'`로 기록하는 작업으로 만든다. 파일은 `data/users/<uid>/exports/<job>.zip`, 7일 뒤 만료(다운로드 410). 동시 1건(409 `EXPORT_RUNNING`).
@@ -366,3 +366,7 @@
 - D3: 실행 슬롯은 `claim_run`(BEGIN IMMEDIATE)으로 원자 선점, stale 기준은 하트비트 10분 무갱신(기존 1시간에서 변경).
 - D4: 수동 동기화 두 라우트는 `manual_sync_service`로 추출해 원장 단독 기록.
 - D5: `running.db`의 구 `sync_jobs` 잔재는 범위 밖, 별도 항목으로 DROP.
+
+## ADR-045: v1 부작용 GET `/recompute-metrics` 퇴역 (2026-10-10)
+- ADR-028이 예고한 대체를 완료한다. GET 라우트를 삭제하고, v1 동기화 탭 재계산 카드는 `POST /api/v1/data/recompute`(scope=all|from, reason=v1_sync_tab)로 전환했다.
+- 진행 상태는 원장(`service='recompute'`)이 보관한다. 설정 탭 `POST /metrics/recompute`와 `/metrics/recompute-status`는 v1 잔존분으로 G6(v1 제거) 때 함께 정리한다.

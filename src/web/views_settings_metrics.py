@@ -89,37 +89,3 @@ def metrics_recompute_status():
     """재계산 현재 상태 JSON (폴링 fallback용)."""
     with _recompute_lock:
         return jsonify(dict(_recompute_state))
-
-
-@settings_metrics_bp.get("/recompute-metrics")
-def recompute_metrics_get():
-    """동기화 탭에서 호출하는 GET 재계산 엔드포인트 (간단 버전, JSON 응답). 폐기 예정 — v2는 POST /api/v1/data/recompute(ADR-028)."""
-    from src.metrics import engine as metrics_engine
-
-    with _recompute_lock:
-        if _recompute_state.get("status") == "running":
-            return jsonify({"message": "재계산이 이미 진행 중입니다."})
-
-    try:
-        days = int(request.args.get("days", 90))
-        if days < 0:
-            days = 0
-    except (ValueError, TypeError):
-        days = 90
-
-    import time as _time
-    _set_recompute_state(status="running", days=days, completed=0, total=days,
-                         current_date="", pct=0, error=None,
-                         started_at=_time.time())
-
-    def _run() -> None:
-        try:
-            with sqlite3.connect(str(db_path())) as conn:
-                metrics_engine.recompute_all(conn, days=days)
-            _set_recompute_state(status="completed", pct=100)
-        except Exception as exc:
-            _set_recompute_state(status="error", error=str(exc)[:200])
-
-    _threading.Thread(target=_run, daemon=True, name="metrics-recompute-get").start()
-    label = "전체 기간" if days == 0 else f"최근 {days}일"
-    return jsonify({"message": f"재계산 시작 ({label}). 백그라운드에서 진행 중..."})
