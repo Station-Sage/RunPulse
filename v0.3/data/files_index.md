@@ -163,6 +163,10 @@
 
 - functions: display_name, action_hint, min_span, display_meta
 
+### `metric_unlock_service.py` (32줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
+
+- functions: get_unlock_progress
+
 ### `metrics_basis_events.py` (68줄) — 예측 추세의 기준 대회 교체 이벤트(◇) — race_pred_vdot json 의 anchor.activity_id 가 전날과 달라진 첫 날.
 
 - functions: load_json, basis_change_events
@@ -333,7 +337,7 @@
 
 - functions: parse_range, estimate, trigger_range
 
-### `sync_state_service.py` (175줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+### `sync_state_service.py` (177줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
 - functions: classify_error, get_sync_state
 
@@ -1007,7 +1011,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1380줄) — RunPulse integration workbench web app.
+### `app.py` (1388줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1847,9 +1851,9 @@
 
 - functions: client, test_compare, test_profile, test_confirm_flow
 
-### `test_api_today.py` (173줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (178줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields, test_today_includes_unlock
 
 ### `test_archive_service.py` (89줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
@@ -2464,6 +2468,10 @@
 - class **TestCanonicalize**: test_canonical_name_returns_itself, test_alias_resolves, test_unknown_returns_none_or_input, test_get_metric_returns_metric_def
 - functions: test_definitions_split_modules_cover_registry_in_order
 
+### `test_metric_unlock_service.py` (19줄) — 지표 해금 진행도 — 빈 DB 0일, 첫 러닝 기점 일수, 임계 도달 시 unlocked.
+
+- functions: test_empty_db_all_locked, test_span_counts_from_first_run
+
 ### `test_metrics_basis_events.py` (43줄)
 
 - functions: test_id_change_gives_one_event, test_no_change_and_missing_key_and_other_slug, test_load_json_tolerates_bad_input
@@ -2528,6 +2536,10 @@
 ### `test_narrative_warm.py` (47줄) — tests/test_narrative_warm.py — 내러티브 워밍 가드·반환값 검증.
 
 - functions: test_no_consent_skips_llm, test_warmed_and_counts_call, test_rule_fallback_is_failed, test_exception_is_failed_and_no_cache_row, test_capped_after_daily_limit, test_fresh_cache_skips
+
+### `test_new_user_db_autocreate.py` (34줄) — 신규 가입자: 인증된 /api/v1 요청에서 빈 DB 자동 생성, 그 외 경로·미인증은 생성 안 함.
+
+- functions: client, test_api_request_creates_empty_db, test_non_api_path_does_not_create_db
 
 ### `test_orchestrator.py` (115줄) — DoD #11: orchestrator.full_sync + sync_jobs 기록.
 
@@ -3199,7 +3211,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 679개 파일
+총 682개 파일
 
 ## docstring 누락
 

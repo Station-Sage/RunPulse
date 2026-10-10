@@ -171,3 +171,8 @@ def test_today_response_has_v2_fields(mini_app):
     assert body["briefing"]["state"] == "no_plan" and "headline" in body["briefing"]
     assert set(body["readiness"]) == {"utrs", "cirs", "tsb"}
     assert len(body["week_compliance"]["days"]) == 7
+
+
+def test_today_includes_unlock(mini_app):
+    d = mini_app.get("/api/v1/today").get_json()["data"]
+    assert set(d["unlock"]) == {"ctl", "tsb", "cirs", "utrs"} and not d["unlock"]["ctl"]["unlocked"]

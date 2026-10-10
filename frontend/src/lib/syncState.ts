@@ -27,6 +27,7 @@ export interface SyncState {
 	latest_data_date: string | null;
 	overall: { level: 'ok' | 'stale' | 'error' | 'running'; label_ko: string; last_success_at: string | null };
 	connected_count: number;
+	activity_count: number; // 캐노니컬 러닝 활동 수(S2a/S2b 판정)
 	first_sync_running: boolean;
 	sources: SyncSource[];
 	caveats: { code: string; provider: string; days: number }[];

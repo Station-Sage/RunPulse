@@ -12,6 +12,8 @@
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
 	import TodayNextSession from '$lib/components/TodayNextSession.svelte';
 	import TodayFormChart from '$lib/components/TodayFormChart.svelte';
+	import UnlockList from '$lib/components/today/UnlockList.svelte';
+	import { lockedRows } from '$lib/unlock';
 	import TodayEmpty from '$lib/components/TodayEmpty.svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
@@ -88,6 +90,8 @@
 	{@const status = data.today.status}
 	{@const briefing = data.today.briefing}
 	{@const readiness = data.today.readiness}
+	{@const unlock = data.today.unlock}
+	{@const locked = new Set(lockedRows(unlock).map((r) => r.key))}
 
 <DrillPanel scopeType="daily" scopeId={todayDate} fromTag="today">
 	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
@@ -125,11 +129,14 @@
 					<span>{morningAsOf(data.today.as_of?.date ?? status.date)}</span>
 					<span class="rounded bg-surface-3 px-1.5 py-0.5">RunPulse 계산</span>
 				</div>
-				<div class="grid grid-cols-3 gap-2">
-					<ReadinessGauge slug="utrs" label="UTRS" kind="ring" entry={readiness?.utrs ?? null} />
-					<ReadinessGauge slug="cirs" label="CIRS" kind="track" entry={readiness?.cirs ?? null} />
-					<ReadinessGauge slug="tsb" label="TSB" kind="bipolar" entry={readiness?.tsb ?? null} />
-				</div>
+				{#if locked.size < 3}
+					<div class="grid gap-2" style="grid-template-columns: repeat({3 - locked.size}, minmax(0, 1fr))">
+						{#if !locked.has('utrs')}<ReadinessGauge slug="utrs" label="UTRS" kind="ring" entry={readiness?.utrs ?? null} />{/if}
+						{#if !locked.has('cirs')}<ReadinessGauge slug="cirs" label="CIRS" kind="track" entry={readiness?.cirs ?? null} />{/if}
+						{#if !locked.has('tsb')}<ReadinessGauge slug="tsb" label="TSB" kind="bipolar" entry={readiness?.tsb ?? null} />{/if}
+					</div>
+				{/if}
+				<UnlockList {unlock} />
 				<TodayRecent activities={data.today.recent_activities} />
 			</section>
 

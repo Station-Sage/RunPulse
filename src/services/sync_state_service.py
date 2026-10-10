@@ -168,6 +168,8 @@ def get_sync_state(conn: sqlite3.Connection, config: dict, now: datetime | None 
         "latest_data_date": latest_data_date,
         "overall": {"level": level, "label_ko": _relative_ko(last_success, now), "last_success_at": last_success},
         "connected_count": sum(1 for s in sources if s["connection"] == "connected"),
+        "activity_count": int(conn.execute(
+            "SELECT COUNT(*) FROM v_canonical_activities WHERE activity_type LIKE '%running%'").fetchone()[0] or 0),
         "first_sync_running": any(s["state"] == "running" for s in active) and not last_success,
         "sources": sources,
         "caveats": caveats,

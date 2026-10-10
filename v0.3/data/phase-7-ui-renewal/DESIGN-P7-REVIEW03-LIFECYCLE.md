@@ -178,6 +178,8 @@ L1  곧 열려요 (미래 약속)
 | **L6** S0 랜딩 | §2.1 정적 화면 | `routes/(public)/+page.svelte`(~150) | 인증 사용자 즉시 이동, 미인증 노출 | **D-L1, D-L3** |
 | **L7** 문서 | 03 카탈로그에 S0/S1/S2 행, 03a Today 상태 변형, 05 §11.1 정정(A14), 02 §2.1에 G0 공존(§2.4) | 문서만 | `check_docs.py` | 없음 |
 
+> L2 구현 상태(2026-10-10): `/today` 의 `unlock`·`SyncState.activity_count`, 빈 DB 자동 생성, `lib/unlock.ts`·`UnlockList.svelte` 완료. 잠긴 게이지는 제외하고 진행도 줄만 표시. `ColdStartProgress`(S2b 히어로)는 미구현.
+
 - L1·L7은 판단 없이 착수 가능. L1은 G2(40 S5)와 같은 작업이므로 **별도 항목이 아니라 40 S5에 합류** 권장.
 - L5·L6은 D-L1 결정 전 착수 금지(외부 정책 변경 동반).
 
@@ -237,6 +239,38 @@ L1  곧 열려요 (미래 약속)
 2. 메트릭별 최소 데이터 조건(해금 조건)과 현재 보유량을 화면이 받을 수 있는지(A11, D-L7).
 3. 온보딩 진행 상태와 활동 수를 생애주기 판정 입력으로 받을 수 있는지(§2.0, 기존 사용자 설정 저장소 재사용 가능성 포함).
 4. D-L1 (a) 선택 시 공개 경로 예외 목록의 관리 방식(현재 `/feeds/cal/`·`/mcp` 하드코딩).
+
+### 확인 결과 (2026-10-10)
+코드 기준 확인(system-architect). 4번은 범위 밖(D-L1 (b) 확정으로 불필요).
+
+**1. DB 최초 생성과 503 구분 (A9)**
+- `get_db_path()`는 사용자 디렉터리만 만들고 `running.db`는 만들지 않는다(`src/db_setup.py:39-49`). 테이블을 만드는
+  `init_db()`의 웹 호출처는 v1 `/switch-user`뿐이다(`src/web/app.py:285-286`). CF 인증(`src/web/auth_cf.py:64-114`)은 session만 설정한다.
+- 요청별 마이그레이션은 DB가 없으면 건너뛰고(`app.py:248-250`), 기동 시 `create_tables`도 이미 있는 DB에만 실행한다(`app.py:213-219`).
+  → **v2 경로에는 신규 CF 사용자의 DB를 만드는 곳이 없다.** `/today`·`/data/sync-state`·`/me/preferences`가 503을 주고, **`POST /data/sync`도 503**이어서
+  (`src/api/routes_data.py:75-76`) v2만으로는 첫 동기화를 시작할 수 없다. `connect`가 DB를 만드는지는 미확인.
+- 503 본문은 `{error:{code:"NOT_FOUND"}}`(`src/api/routes_today.py:18-20`)이고, 프론트는 status 404/503을 모두 'empty'로 본다
+  (`frontend/src/routes/today/+page.ts:66`). 그래서 프록시나 gunicorn의 실제 503도 온보딩 화면으로 잘못 분류된다. `ApiError.code`는 이미 받고 있다(`frontend/src/lib/api/client.ts:17`).
+- 테이블만 있는 빈 DB에서는 서비스가 모두 200 + null/빈 배열을 돌려준다. 실측 결과: readiness `{utrs,cirs,tsb}`=null, `recent_activities`=[],
+  `data_health.runs`=0, `briefing.headline`="데이터 수집 중". 서비스 함수를 직접 호출해 확인했고, HTTP 라우트로는 미확인.
+- 최소안: 인증된 요청에서 DB가 없으면 `init_db(uid)`를 실행한다(`_ensure_user_db_migrated` 확장). 그러면 '데이터 없음'은 200 + 빈 값으로만 나타나고, 503은 장애에만 쓰인다.
+  과도기에는 프론트 판정을 `status===503 && code==='NOT_FOUND'`로 좁힌다.
+
+**2. 해금 조건과 현재 보유량 (A11, D-L7)**
+- Today 핵심 게이지는 `GAUGE_METRICS=("utrs","cirs","tsb")`(`src/services/today_readiness.py:14`)이고, 값이 없으면 None이다(`:34-36`). CTL은 `status.training_status.ctl`로 별도 카드에 나온다.
+- **해금 조건 개념이 코드에 없다.** `MetricDef`에 min_days류 필드가 없다(`src/utils/metric_def.py:8-23`). PMC는 부하가 하루만 있어도 CTL/TSB를 산출한다
+  (`src/metrics/pmc.py:81-83`, CTL_DAYS=42는 `:21`의 EWMA 시정수일 뿐이다). UTRS는 수면·HRV 등 구성요소가 하나만 있어도 산출한다(`src/metrics/utrs.py:72-73`). 그 결과 첫 활동 직후 작은 CTL 값이 'non-null'로 나오므로, null만으로는 S2b를 판정할 수 없다.
+- 기존 재료: `/data/summary`의 `wellness_days`·`period.first`(`src/services/data_service.py:104-106`), `data_health.runs`(90일, `data_health_service.py:8-32`).
+  다만 메트릭별 조건은 없다. CIRS의 필요 일수(ACWR chronic 창)는 미확인.
+- 최소안: 서비스 계층에 `src/services/metric_unlock_service.py`를 신설한다(Calculator 아님. 집계 SQL은 `data_health_service`와 같은 서비스 계층 관례).
+  조건 테이블 `UNLOCK_RULES`를 SSOT로 두고, `/today` 응답에 additive 필드 `unlock`을 추가한다(별도 엔드포인트 불필요).
+
+**3. 활동 수·온보딩 상태 (§2.0, A5)**
+- 활동 수: `/data/summary.activities`는 `activity_summaries` 원시 행 수다(`data_service.py:96,104`). 소스 중복이 포함되어 판정 입력으로는 부정확하다.
+  캐노니컬 수(`v_canonical_activities`)는 노출되지 않는다. 최소안: SyncState에 `activity_count`(캐노니컬 러닝 수)를 추가한다. SyncState는 이미 `lifecycleOf()`의 입력이다(`frontend/src/lib/states.ts:6`).
+- 온보딩: `user_settings` KV(ADR-023)를 재사용할 수 있다. 다만 화이트리스트가 `{"ui_default":("v1","v2")}` 하나뿐이고(`src/services/user_settings_service.py:7`),
+  PATCH는 `ui_default`만 받는다(`src/api/routes_me.py:39`). 최소안: `ALLOWED`에 `onboarding`·`onboarding_step` 키를 추가하고, `/me/preferences`의 GET/PATCH를 ALLOWED 키 전반으로 일반화한다.
+  새 테이블이나 스키마 버전 변경은 필요 없다. 단, 1번이 선행되어야 한다(DB가 없으면 `/me/preferences`도 503, `routes_me.py:28-29`).
 
 ## 작성 이력
 - 2026-10-10: 초안. 갭 15건, S0/S1/S2 설계, 구현 L1~L7, 판단 D-L1~D-L8.

@@ -248,6 +248,14 @@ def create_app() -> Flask:
             return
         db = _db_path()
         if not db.exists():
+            # 신규 가입자: 인증을 통과한 v2 API 요청에서만 빈 DB를 만들어 503 대신 빈 상태를 보이게 한다.
+            if not request.path.startswith("/api/v1/") or "user_id" not in session:
+                return
+            try:
+                from src.db_setup import init_db
+                init_db(session["user_id"])
+            except Exception as exc:
+                log.warning("신규 사용자 DB 생성 실패: %s", exc)
             return
         try:
             from src.db_setup import migrate_db
