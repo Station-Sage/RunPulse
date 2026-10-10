@@ -8,7 +8,7 @@
 	import { base } from '$app/paths';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
-	import RollbackReasonSheet from '$lib/components/RollbackReasonSheet.svelte';
+	import { patchPreferences } from '$lib/api/me';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -21,7 +21,15 @@
 		goto(u, { replaceState: true, noScroll: true });
 	}
 
-	let rollbackOpen = $state(false);
+	let switching = $state(false);
+	async function backToV1() {
+		switching = true;
+		try {
+			await patchPreferences({ ui_default: 'v1' });
+		} finally {
+			location.assign('/dashboard');
+		}
+	}
 
 	const quickLinks = [
 		{ href: '/dashboard', label: '대시보드' },
@@ -112,7 +120,8 @@
 				</a>
 				<button
 					type="button"
-					onclick={() => (rollbackOpen = true)}
+					onclick={backToV1}
+					disabled={switching}
 					data-testid="back-to-v1"
 					class="block w-full rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2 disabled:opacity-40"
 				>
@@ -122,5 +131,3 @@
 		</div>
 	</div>
 {/if}
-
-<RollbackReasonSheet open={rollbackOpen} onClose={() => (rollbackOpen = false)} />
