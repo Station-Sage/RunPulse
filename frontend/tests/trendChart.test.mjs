@@ -158,3 +158,10 @@ test2('markerEvents: 같은 날 ◆ > ◇ > ▲ 우선, 범위 밖 제외', () =
 	assert2.equal(m.length, 1);
 	assert2.equal(m[0].kind, 'version_change');
 });
+
+test2('markerEvents: reason 등 선택 필드가 있어도 결과 불변', () => {
+	const ev = [{ date: '2026-09-28', kind: 'version_change', label: 'v', source: 'changelog', reason: '사유', recomputed: true }];
+	const m = markerEvents(ev, '2026-09-01', '2026-10-01');
+	assert2.equal(m.length, 1);
+	assert2.equal(m[0].reason, '사유');
+});

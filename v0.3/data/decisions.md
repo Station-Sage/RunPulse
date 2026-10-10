@@ -348,3 +348,9 @@
 ### ADR-041: Garmin 훈련 상태 부하 저장 (GARMIN-TRAINING-STATUS-PARSER, 2026-10-10)
 - 가민 급성/만성 부하는 PMC(`atl`/`ctl`, provider intervals/자체계산)와 단위·산식이 달라 `garmin_acute_load`/`garmin_chronic_load` 로 분리 저장. 플래너·분석이 읽는 `atl`/`ctl` 은 오염시키지 않는다.
 - payload 는 `mostRecentTrainingStatus.latestTrainingStatusData[기기ID]` 중첩 구조; `primaryTrainingDevice` 레코드 우선, 없으면 첫 레코드.
+
+### ADR-042: 알고리즘 변경 이력 ◆ 마커 (2026-10-10)
+- D1: 단일 소스는 코드 레지스트리 `src/metrics/algo_changelog.py`(순수 데이터). DB 스키마 변경 없음(SCHEMA_VERSION 35 유지). 날짜는 코드 반영일(커밋 날짜).
+- D2: 전 기간 재계산이 행을 지우고 다시 쓰므로 데이터 불연속이 없다. ◆ 는 정보 표시(사유 한 줄 + "과거 값도 다시 계산")이며 시계열 단절 표시가 아니다.
+- D3: 상위 지표(requires 역추적) 변경도 해당 차트에 전파(예: TRIMP→ctl). 같은 날짜 변경은 1건으로 병합. 신규 Calculator(prev=None)는 마커 없음.
+- D4: `tests/test_algo_changelog.py` 가 Calculator version≠"1.0" 의 항목 누락을 막는다. version 을 올리면 레지스트리 항목을 함께 추가한다.

@@ -11,6 +11,7 @@
 ## 메트릭
 - Calculator 내부에서 raw SQL 금지 (CalcContext API만 사용, ADR-009)
 - 데이터 부족 시 빈 리스트 반환 (에러 raise 금지)
+- Calculator version 을 올리면 `src/metrics/algo_changelog.py` 항목 추가 (ADR-042)
 
 ## 테스트
 - 새 함수 작성 시 최소 1개 테스트 동반

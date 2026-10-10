@@ -973,7 +973,7 @@ export interface MetricTrendData {
 	bands?: { from: number | null; to: number | null; status: string; label: string }[];
 	change_pct: number | null;
 	points: MetricTrendPoint[];
-	events?: { date: string; kind: 'race' | 'basis_change' | 'version_change'; label: string; activity_id?: number }[];
+	events?: { date: string; kind: 'race' | 'basis_change' | 'version_change'; label: string; activity_id?: number; source?: 'changelog' | 'data'; reason?: string; via?: string; adr?: string; recomputed?: boolean }[];
 	recompute_note?: { date: string; to: string | null; text: string } | null;
 }
 

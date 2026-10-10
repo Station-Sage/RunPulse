@@ -180,6 +180,10 @@
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
+### `metrics_changelog_events.py` (107줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
+
+- functions: changelog_events, version_events, recompute_caption
+
 ### `metrics_explain.py` (253줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: personal_text, get_metric_explain
@@ -418,6 +422,11 @@
 ### `adti.py` (47줄) — ADTI (Adaptive Training Trend Index) — 설계서 4-4 기준.
 
 - class **ADTICalculator**: compute
+
+### `algo_changelog.py` (45줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
+
+- class **AlgoChange**: 없음
+- functions: changes_for
 
 ### `bands.py` (94줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
 
@@ -1827,6 +1836,10 @@
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
 
+### `test_algo_changelog.py` (40줄) — algo_changelog 계약 테스트 — Calculator 버전과 변경 이력의 일치를 강제.
+
+- functions: test_every_non_default_version_has_entry, test_calculator_names_exist_and_latest_matches, test_dates_well_formed_and_ascending, test_prev_chain_consistent, test_reason_non_empty_and_short
+
 ### `test_api.py` (81줄) — api.py httpx 래퍼 테스트.
 
 - class **TestGet**: test_success, test_retry_then_success, test_double_failure_raises
@@ -2515,6 +2528,10 @@
 ### `test_metrics_browser_service.py` (310줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level
+
+### `test_metrics_changelog_events.py` (71줄)
+
+- functions: test_direct_and_propagated_merge_into_one_event, test_propagation_only_reports_via, test_out_of_range_and_unrelated_metric_excluded, test_source_provider_series_excluded, test_new_calculator_has_no_marker, test_data_event_merged_with_changelog_reason, test_provider_switch_event_kept, test_caption_uses_changelog_reason_then_milestone_fallback
 
 ### `test_metrics_explain.py` (270줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -3259,7 +3276,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 693개 파일
+총 697개 파일
 
 ## docstring 누락
 
@@ -3275,6 +3292,7 @@
 - `tests/test_garmin_maxmet_sync.py`
 - `tests/test_marathon_shape.py`
 - `tests/test_metrics_basis_events.py`
+- `tests/test_metrics_changelog_events.py`
 - `tests/test_metrics_version_events.py`
 - `tests/test_personalize.py`
 - `tests/test_plan_backtest.py`

@@ -33,7 +33,7 @@
 		/** 고정(pin)된 선택일 — 차트 커서와 분해 패널 기준일을 공유한다. */
 		selectedDate?: string | null;
 		/** 차트 위 이벤트 마커(▲ 대회, ◇ 예측 기준 대회 변경, ◆ 계산 버전·출처 변경). 날짜가 x 범위 밖이면 그리지 않는다. */
-		events?: { date: string; kind: string; label: string }[];
+		events?: { date: string; kind: string; label: string; reason?: string; recomputed?: boolean }[];
 		onSelect?: (date: string | null) => void;
 	} = $props();
 
@@ -141,6 +141,9 @@
 			{/each}
 			{#each events.filter((e) => e.kind !== 'race' && e.date === readoutDate) as e (e.date + e.label)}
 				<span class={e.kind === 'version_change' ? 'text-semantic-amber' : 'text-fg-secondary'} data-testid="trend-event-readout">{eventSymbol(e.kind)} {e.label}</span>
+				{#if e.reason}
+					<span class="basis-full text-fg-muted" data-testid="trend-event-reason">{e.reason}{e.recomputed ? ' · 과거 값도 다시 계산했어요' : ''}</span>
+				{/if}
 			{/each}
 		</div>
 
