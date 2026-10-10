@@ -370,3 +370,9 @@
 ## ADR-045: v1 부작용 GET `/recompute-metrics` 퇴역 (2026-10-10)
 - ADR-028이 예고한 대체를 완료한다. GET 라우트를 삭제하고, v1 동기화 탭 재계산 카드는 `POST /api/v1/data/recompute`(scope=all|from, reason=v1_sync_tab)로 전환했다.
 - 진행 상태는 원장(`service='recompute'`)이 보관한다. 설정 탭 `POST /metrics/recompute`와 `/metrics/recompute-status`는 v1 잔존분으로 G6(v1 제거) 때 함께 정리한다.
+
+## ADR-046: G5 v1 복귀 로그 `ui_events` (2026-10-10)
+- 결정: v1 복귀는 사용자 DB `ui_events`(kind=`v1_rollback`, 사유 1문항 선택·건너뛰기 허용)로 기록하고, 분모는 `v2_visit`(일 1행)로 둔다. 복귀율 = 14일 창 복귀 사용자 / 활성 사용자(방문 1일 이상), 전체 집계는 운영자 CLI(`scripts/ui_rollback_report.py`). 사유 응답은 v1 이동을 지연·차단하지 않는다(1.5초 상한).
+- 미결 3건은 설계 에이전트 기본값 채택(사용자 명시 승인 아님): 시트 닫기=건너뛰고 v1 이동, 자유입력 200자 허용, 활성=방문 1일 이상.
+- `ui_events`는 `ensure_v36`으로 생성하며 `APP_TABLES`에는 넣지 않는다(v25 `user_settings`와 같은 관례).
+- 대안(user_settings 카운터, 서버 로그, 전역 DB)은 설계서 §4 사유로 기각. 근거 문서: `phase-7-ui-renewal/ux-review-2026-09/40-v2-unimplemented/DESIGN-ROLLBACK-LOG.md`.

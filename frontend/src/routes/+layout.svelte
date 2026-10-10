@@ -13,11 +13,16 @@
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
 	import { demoActive, isDemoActive } from '$lib/demoMode';
+	import { onMount } from 'svelte';
+	import { recordVisit } from '$lib/api/uiEvents';
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
 
 	let { children } = $props();
 	let menuOpen = $state(false);
 	if (isDemoActive()) demoActive.set(true);
+	onMount(() => {
+		if (!isDemoActive()) recordVisit().catch(() => {});
+	});
 
 	const tabs = [
 		{ href: `${base}/today`, label: 'Today', match: '/today', icon: 'today' as const },

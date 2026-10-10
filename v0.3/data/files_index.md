@@ -372,6 +372,10 @@
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
+### `ui_events_service.py` (96줄) — UI 이벤트 기록·집계 — v2 방문(일 1행)과 v1 복귀 클릭(클릭당 1행), G5 게이트 복귀율 산출.
+
+- functions: record_visit, record_rollback, summarize, summarize_all_users
+
 ### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
 
 - (public API 없음)
@@ -3148,6 +3152,14 @@
 
 - functions: test_fit_recovers_line, test_fit_rejects_flat_or_negative, test_estimates_missing_hr_with_low_confidence, test_faster_pace_gives_higher_estimate, test_skips_when_hr_measured, test_empty_when_not_enough_history, test_measured_provider_outranks_estimate, test_store_primary_prefers_measured
 
+### `test_ui_events.py` (109줄) — 스키마 v36 ui_events — DDL·서비스·API·전 사용자 집계(G5 게이트).
+
+- functions: test_ensure_v36_idempotent, test_visit_once_per_day, test_rollback_validates_and_trims, test_summarize_window, test_summarize_all_users, client, test_api_visit_and_rollback, test_api_validation
+
+### `test_ui_rollback_report.py` (17줄) — scripts/ui_rollback_report.py CLI.
+
+- functions: test_empty_prints_undetermined, test_json_output
+
 ### `test_unified_activities.py` (338줄) — unified_activities 서비스 테스트.
 
 - class **TestPickValue**: test_garmin_first, test_fallback_when_garmin_missing, test_none_when_all_missing, test_all_values_populated, test_service_priority_order
@@ -3328,8 +3340,12 @@
 
 - functions: backtest, backtest_all, main
 
+### `ui_rollback_report.py` (48줄) — G5 게이트 리포트 — 전 사용자 DB의 ui_events 를 읽기 전용으로 집계해 v1 복귀율을 출력한다.
+
+- functions: main
+
 ---
-총 710개 파일
+총 714개 파일
 
 ## docstring 누락
 
