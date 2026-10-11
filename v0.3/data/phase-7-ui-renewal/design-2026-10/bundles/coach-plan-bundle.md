@@ -6,7 +6,8 @@
 - 변경 이력: 2026-10-11 PLN-3 보강 반영 — 지정 요일 저장 `user_training_prefs.workout_weekdays_mask`(NULL=미지정), 기존 v1 목표 즉시 재생성 제안(미리보기·확인, 자동 재생성 아님). 결정 섹션 축약
 - 변경 이력: 2026-10-11 2차 동기화 — PLN-11(workout mask 우선)·PLN-12(mask NULL 이면 모든 생성 경로에서 요일 입력 전 생성 보류)·PLN-13(최소 휴식일 하한 없음) 반영, §8 해소 항목 축약
 - 변경 이력: 2026-10-11 3차 동기화 — PLN-14(휴식 0~1일 저장 전 1회 안내)·PLN-15(보류 중 기존 행 유지 + '요일 입력 전까지 갱신 안 됨' 표시)·PLN-16(코치 화면 배너, v1 범위 제외)·PLN-17(요일 입력 전까지 주간 적응 정지 + 안내) 반영. v1 변경 파일·단계 제거
-- 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면(`src/web/views_training*`)은 사용하지 않으므로 범위 밖(PLN-16, v1 변경 없음)
+- 변경 이력: 2026-10-11 4차 동기화 — V1-1(v1 화면·경로는 v2 완료 시 일몰, 설계·검증·호환성에서 고려하지 않음): 레거시 v1 UI 호출·호환 서술 제거. 'v1 템플릿/v1 폴백/v1 목표'(plan_weeks NULL·rules_version<2 데이터·알고리즘 용어)는 유지
+- 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면·경로는 일몰 예정(V1-1)이라 범위 밖
 - 참조만: 입력·Origin 검증 → `server-input-origin-validation.md`, 오류·재시도 → `error-retry-common.md`, 접근성 → 별도 접근성 설계
 
 ## 1. 근본 원인
@@ -24,7 +25,7 @@
 
 ### R3. 읽기 모델이 "이번 주" 하나뿐이고 매칭은 동기화 시점에만 돈다 (P-06, P-07, P-08 검증 불가, P-09)
 - `plan_service.get_active_plan` 은 `_current_week_start()` 한 주만 조회한다. 전체 주차 볼륨·단계·테이퍼를 돌려주는 API 가 없다(P-07). 사용자가 P-08 을 검증할 화면도 없다.
-- `match_week_activities`는 `bg_sync` 완료 후(v2 동기화 포함, 최근 4주)·앱 시작·v1 CRUD에서 호출된다. v2 `POST /coach/plan`은 생성 후 재매칭하지 않는다. P-06 10/8·10/9는 거리 비율 상한(`match_select.py:10,40-41`, 2.5배·1.83배 > 1.6)으로 탈락했다(합성 재현으로 확정). 외부 계획 행이 먼저 정렬·매칭(`matcher.py:51`)되어도 결과는 같았다.
+- `match_week_activities`는 `bg_sync` 완료 후(v2 동기화 포함, 최근 4주)·앱 시작에서 호출된다. v2 `POST /coach/plan`은 생성 후 재매칭하지 않는다. P-06 10/8·10/9는 거리 비율 상한(`match_select.py:10,40-41`, 2.5배·1.83배 > 1.6)으로 탈락했다(합성 재현으로 확정). 외부 계획 행이 먼저 정렬·매칭(`matcher.py:51`)되어도 결과는 같았다.
 - `outcome_label`은 이지 페이스 판정을 볼륨보다 먼저 한다(`week_compliance.py:69-72`). 10/6·10/7의 10km·6km가 "강도 어긋남"이 되고(확정), 사유·실제 거리/페이스는 응답에 없다. `_effective` 순위(48-52)는 미매칭 외부 행을 매칭된 planner 행보다 우선해 missed를 만든다(결함 재현됨, 이번 데이터 해당 여부 불명, §5). 헤더는 누적(`_plan_compliance`), 목록은 주간(`week_compliance.compute`)이라 기준이 다르다(P-09).
 
 ## 2. 설계안 (확정: A안, PLN-9)
@@ -37,8 +38,7 @@
 - 두 mask 우선순위(PLN-11): `workout_weekdays_mask` 와 `rest_weekdays_mask` 가 같은 요일에서 모순되면 **workout 우선** — 지정 운동 요일은 rest mask 와 무관하게 러닝 요일로 쓴다. 저장 시 모순을 거부하지 않는다(입력 검증 없음). `run_weekdays` 산출을 `planner_store.resolve_run_weekdays(prefs)` 한 곳에 두어 v2·`finalize_week`·`week_violations` 가 같은 값을 쓴다.
 - 최소 휴식일(PLN-13): **하한 없이 사용자 지정 존중**. 7요일 모두 지정해도 생성·`week_violations` 가 막거나 교정하지 않으며, G1 게이트(`plan_gates.py:71`)는 운영 경로에 재사용하지 않는다(`plan_backtest` 전용 유지). 휴식 0~1일 지정 시(PLN-14) **저장 전 1회 안내** — 요일 선택 단계에서 지정 요일이 6~7개면 저장(생성 요청) 전에 부상 위험 안내를 한 번 보여 주고, 확인 시 그대로 저장한다(차단 아님). 판정은 프런트 순수 함수(지정 요일 수 ≥ 6)로 두고 서버 계약은 바꾸지 않는다. 문구는 구현 단계에서 후보 제시.
 - mask NULL 인 생성 경로(PLN-12): **생성 전 요일 입력 요구**를 v2 `POST /coach/plan` 뿐 아니라 `generate_weekly_plan` 을 부르는 모든 경로에 적용한다. 확인 지점은 `planner_store.resolve_run_weekdays` 한 곳 — mask NULL 이면 `WeekdaysRequired` 를 올린다(요일 무시 폴백·과거 요일 재사용 없음). 호출 경로별 처리 수준:
-  - 사용자 요청 경로(v2 `POST /coach/plan`·`regen-preview`, CLI `src/plan.py:162`): 생성하지 않고 요일 입력을 요구한다(v2 는 400 + 요일 선택 단계, CLI 는 안내 메시지). v1 생성 화면·경로는 처리 대상에서 제외(PLN-16, v1 변경 없음).
-  - v1 사실 확인(grep): `wizard_bp`·`training_bp` 는 아직 `src/web/app.py:1148·1154` 에 등록되어 있고 `/training/wizard/complete`(`views_training_wizard.py:351·410`)·`/training/generate`(`views_training.py:239`)가 `generate_weekly_plan` 을 호출한다. 두 경로 모두 `except Exception` 으로 감싸 500 은 나지 않지만, 위저드는 생성 전에 `add_goal`(기존 active 취소)·미래 planner 행 DELETE 를 커밋하므로(`views_training_wizard.py:330-334·366·381`) mask NULL 로 호출되면 행이 비거나 새 목표만 남는다 — v1 을 실제로 쓰지 않는 한 무시해도 되며, 호출 가능성 자체는 v1 제거 전까지 남는다.
+  - 사용자 요청 경로(v2 `POST /coach/plan`·`regen-preview`, CLI `src/plan.py:162`): 생성하지 않고 요일 입력을 요구한다(v2 는 400 + 요일 선택 단계, CLI 는 안내 메시지).
   - 자동 경로(`weekly_adapt_job.run`·`rematch.py:82`·`plan_replan_service.py:128`): **안전한 보류** — 해당 실행에서 생성·저장하지 않고 기존 `planned_workouts` 행을 그대로 둔 채(PLN-15) 사유를 로그에 남긴다(`weekly_adapt_job` 은 기존 rules_version<2 분기처럼 0 반환). 기존 사용자(goal 1 등)도 요일 입력 전까지 **주간 적응을 정지**한다(PLN-17, mask 추론·마지막 규칙 1회 계속 없음).
   - 보류 표시·안내(PLN-15·16·17): 플랜 읽기 응답(`plan_service`·`/weeks`)에 `weekdays_required: true`(mask NULL 이고 active goal 존재)를 싣고, v2 플랜 화면은 기존 행을 그대로 보여 주며 '요일 입력 전까지 갱신 안 됨' 표시를 단다. 안내 채널은 **코치 화면 배너**(요일 입력으로 연결, 주간 적응 정지 사실 포함). 배너 외 알림 채널은 두지 않는다. 문구는 구현 단계에서 후보 제시.
 - 기존 v1 목표(PLN-3, goal 1 등 — rules_version<2 또는 plan_weeks NULL 인 active goal): **즉시 재생성을 제안**하되 자동 재생성은 하지 않는다. 플랜 화면에 제안 배너 → `GET /coach/plan/<id>/regen-preview`(저장 없이 v2 초안 주차 요약 + 현행 대비) 미리보기 → 사용자 확인 시 PLN-1 교체 흐름(이전 플랜 cancelled·행 보존·복구 가능)으로 재생성. mask 가 NULL 이면 미리보기 전에 요일 선택을 받는다. 마이그레이션·동기화는 기존 목표를 건드리지 않는다. 테이퍼 볼륨·마지막 롱런 시점, 컨디션 기반 변경(adjuster·weekly_adapt, ADR-035 확인 후)은 이 설계 범위 밖.
@@ -105,7 +105,7 @@
 | `src/training/week_compliance.py` | 수정 | reason(s)·actual 필드, 두 라벨, `_effective` 순위 | +25 (≤256) |
 | `src/api/routes_plan.py` | 수정 | 409, mask NULL 시 run_weekdays 필수(`WeekdaysRequired` → 400), `/weeks`·`/restore`·`/regen-preview` 라우트 | +50 |
 | `src/services/weekly_adapt_job.py`, `src/training/rematch.py`, `src/services/plan_replan_service.py` | 수정 | `WeekdaysRequired` 시 생성·저장 보류(기존 행 유지)·사유 로그(PLN-12) | +6 each |
-| `src/plan.py` | 수정 | `WeekdaysRequired` 시 생성하지 않고 요일 입력 안내(CLI). v1 `views_training*` 는 변경 없음(PLN-16) | +5 |
+| `src/plan.py` | 수정 | `WeekdaysRequired` 시 생성하지 않고 요일 입력 안내(CLI) | +5 |
 | `frontend/src/lib/api/plan.ts` | 수정 | 타입(`weekdays_required` 포함)·getPlanWeeks·restore·regenPreview·409 처리 | +40 |
 | `frontend/src/lib/planWeekdays.ts` | 신규 | 휴식 0~1일 판정(지정 요일 수 ≥ 6, PLN-14) 순수 함수 | ~20 |
 | `frontend/src/lib/components/plan/PlanWeeksTable.svelte` | 신규 | 주차 표 | ~100 |
@@ -114,7 +114,7 @@
 | `tests/test_plan_finalize.py`, `test_plan_ownership.py`, `test_plan_overview.py`, `test_week_compliance_reason.py`, `test_plan_weekdays.py`, 프런트 `planWeekdays.test.ts` | 신규 | 아래 검증 | ~450 |
 
 ## 5. 단계·검증
-1. R1: 7주 템플릿을 rv1 / rv2+plan_weeks NULL / rv2+plan_weeks=7 세 픽스처로 생성 → 교정 후 `week_violations == []`, 러닝 요일 ⊆ 지정 요일. 신규 목표는 plan_weeks 누락 입력에서도 v2 경로 진입. mask NULL + `run_weekdays` 없음 → 400, `run_weekdays` 전달 시 mask 저장, mask 설정 후 재생성 시 생략 가능. PLN-11: workout mask 와 rest mask 가 같은 요일을 지정하면 그 요일은 러닝(모순 저장도 허용). PLN-13: 7요일 지정 시 휴식 0일로 생성되고 `week_violations` 위반 없음. PLN-14: `planWeekdays` 가 지정 5개 → 안내 없음, 6·7개 → 안내 필요. PLN-12·15·17: mask NULL 에서 `weekly_adapt_job.run`·`rematch`·replan 은 저장 0건·기존 행 불변·사유 로그(goal 1 형태 기존 사용자 픽스처 포함, 주간 적응 결과 없음), 플랜 읽기 응답 `weekdays_required=true`·mask 저장 후 false, CLI 는 생성 없이 안내. v1 경로는 검증 대상 아님(PLN-16). 기존 planner 골든 테스트는 description 기대값만 갱신.
+1. R1: 7주 템플릿을 rv1 / rv2+plan_weeks NULL / rv2+plan_weeks=7 세 픽스처로 생성 → 교정 후 `week_violations == []`, 러닝 요일 ⊆ 지정 요일. 신규 목표는 plan_weeks 누락 입력에서도 v2 경로 진입. mask NULL + `run_weekdays` 없음 → 400, `run_weekdays` 전달 시 mask 저장, mask 설정 후 재생성 시 생략 가능. PLN-11: workout mask 와 rest mask 가 같은 요일을 지정하면 그 요일은 러닝(모순 저장도 허용). PLN-13: 7요일 지정 시 휴식 0일로 생성되고 `week_violations` 위반 없음. PLN-14: `planWeekdays` 가 지정 5개 → 안내 없음, 6·7개 → 안내 필요. PLN-12·15·17: mask NULL 에서 `weekly_adapt_job.run`·`rematch`·replan 은 저장 0건·기존 행 불변·사유 로그(goal 1 형태 기존 사용자 픽스처 포함, 주간 적응 결과 없음), 플랜 읽기 응답 `weekdays_required=true`·mask 저장 후 false, CLI 는 생성 없이 안내. 기존 planner 골든 테스트는 description 기대값만 갱신.
 2. R3 읽기: overview 합계 = planned_workouts 집계, 생성 직후 과거 날짜 매칭, 10/6~10/9 합성 주로 reasons(대표 volume_over·보조 pace_fast / 상한 탈락), ext2 픽스처(미매칭 외부 + 매칭 planner)에서 매칭 행이 effective, 수락 조정 행 > 미매칭 외부 행.
    **실데이터 확인 필요**(real_ui.db 사본, 읽기 전용):
    | 확인 | 쿼리 | 판정 |
@@ -126,7 +126,7 @@
    | P-06 주 매칭·외부 행 | `SELECT id,date,source,workout_type,distance_km,matched_activity_id FROM planned_workouts WHERE date BETWEEN '2026-10-05' AND '2026-10-11' ORDER BY date,id;` | 같은 날 외부 미매칭 + planner 매칭이면 PLN-10 해당 |
 3. R2: 마이그레이션 백필 테스트(겹치는 goal)·`workout_weekdays_mask` 기본 NULL, v1 목표(rv1 또는 plan_weeks NULL)에 재생성 제안 노출·`regen-preview` 는 DB 무변경·마이그레이션/동기화 후에도 기존 목표 행 불변, 확인 시 교체 흐름으로 재생성, 409 → 확인 재전송 → 이전 플랜 cancelled·행 보존, restore 후 active 교대, 취소 플랜 세션 응답 status=cancelled, 일요일 생성 시 첫 주 = 그 일요일 하루, 메모는 교체 전후 같은 날짜에서 동일.
 4. 브라우저(DB 사본): 375/1280px 에서 /coach/plan/{id} 주차 표·사유·두 라벨, 헤더 '누적(플랜 시작~어제)' 툴팁, compare 교체 확인, 복구 버튼, replan 되돌리기 확인, 생성 폼 요일 선택·6~7요일 지정 시 저장 전 1회 안내(취소 시 요청 없음), mask NULL 상태에서 플랜 화면 기존 행 + '요일 입력 전까지 갱신 안 됨' 표시와 코치 화면 배너, goal 1 재생성 제안 배너·미리보기. `pytest`·`check_docs.py`·프런트 테스트 통과.
-- 호환성: goal_id NULL 허용(외부 행). `workout_weekdays_mask` NULL 기본 — 기존 사용자는 다음 생성·재생성 시점까지 영향 없으나, PLN-12·17 로 자동 경로(weekly_adapt·rematch·replan)는 요일 입력 전까지 보류되어 주간 적응이 멈추고 기존 행은 유지된다(PLN-15, 코치 배너로 안내), 기존 v1 목표는 사용자 확인 전까지 그대로. 보존된 취소 플랜 행이 날짜 기준 조회에 섞이지 않도록 v2 서비스는 goal_id 필터, 날짜 기준 경로는 §8-5 확인 결과에 따라 처리. v1 제거 후 NOT NULL 승격 검토. `POST /coach/plan` 409·run_weekdays 필수는 v1 이 호출하지 않는다(grep: v1 은 `routes_plan` 대신 `generate_weekly_plan` 직접 호출). v1 의 `generate_weekly_plan` 호출은 §2.1 사실 확인 참조(미사용 전제로 무시, PLN-16). 알고리즘 출력(설명·요일)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
+- 호환성: goal_id NULL 허용(외부 행). `workout_weekdays_mask` NULL 기본 — 기존 사용자는 다음 생성·재생성 시점까지 영향 없으나, PLN-12·17 로 자동 경로(weekly_adapt·rematch·replan)는 요일 입력 전까지 보류되어 주간 적응이 멈추고 기존 행은 유지된다(PLN-15, 코치 배너로 안내), 기존 v1 목표는 사용자 확인 전까지 그대로. 보존된 취소 플랜 행이 날짜 기준 조회에 섞이지 않도록 v2 서비스는 goal_id 필터, 날짜 기준 경로는 §8-5 확인 결과에 따라 처리. v1 화면·경로 호환은 고려하지 않는다(일몰 예정, V1-1). 알고리즘 출력(설명·요일)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
 
 ## 6. 결정
 - PLN-1~17, 연관 HSR-1: 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
@@ -142,5 +142,6 @@
 2. PLN-5 부분 첫 주와 v2 주 단위 로직(`plan_replans.anchor_monday`, `schedule_for_goal` 주차·phase, 주간 볼륨 목표)의 처리 방식 — 결정표 "설계에서 정리", 미정.
 3. 해소(PLN-11).
 4. 해소(PLN-12·15·16·17). 남은 것: 안내·표시 문구(PLN-14 안내, PLN-15 표시, PLN-16 배너)는 구현 단계에서 후보 제시 후 사용자 확정.
-5. PLN-1 행 보존 시 날짜 기준 읽기 경로(v1 `views_training_crud`, `matcher`/`match_week_activities`, `week_compliance`, calendar_feed, garmin_push)에서 두 플랜 행 겹침 — goal_id 필터 적용 범위 미정.
+5. PLN-1 행 보존 시 날짜 기준 읽기 경로(`matcher`/`match_week_activities`, `week_compliance`, calendar_feed, garmin_push)에서 두 플랜 행 겹침 — goal_id 필터 적용 범위 미정.
 6. PLN-10 "수락된 조정 행" 식별 컬럼(`source` 값 등)이 `planned_workouts` DDL 에 없음 — 구현 시 확인.
+7. V1-1 적용 해석: 'v1 목표'(rules_version<2 또는 plan_weeks NULL 인 기존 goal)·'v1 템플릿/폴백'(planner 알고리즘)은 레거시 UI 가 아니라 데이터로 남으므로 재생성 제안·검증을 유지했다. 호환성의 "v1 제거 후 `goal_id` NOT NULL 승격 검토" 문장은 v1 일몰에 묶인 서술이라 지웠다 — 외부 행이 NULL 이라 승격 자체가 성립하는지는 별도 판단 필요.

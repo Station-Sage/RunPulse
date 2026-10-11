@@ -2,7 +2,7 @@
 
 > 작성 2026-10-11 · 상태: 설계 확정(ADJ-1~17·NEW-1~3 결정 반영, 구현 전) · 관련: [ADJUSTMENT-SOURCE-CRS-LABEL], [CRS-EVALUATE-MISSING], FRS-12~21(`patterns/data-freshness.md` §2.6·§2.7), ADR-035, `bundles/adjustment-new-signals.md`, `bundles/race-calendar.md`
 > 전제(결정됨): `crs.evaluate()` 복원(저장 CRS·신선도 읽기 전용), CRS stale/게이트 불명 시 BOOST만 보류(FRS-12 c', `adjuster_v2`), 보류 범위 A1+A2(FRS-15), 해제 = BB·HRV 당일 확보+CRS fresh(FRS-17), `plan_service.todays_adjustment_with_hold` 래퍼(FRS-18), Hero `as_planned`+`hold_reason` 중립 회색 한 줄(FRS-19·21), 사유 한 줄·Coach 근거 한 줄(FRS-16·20).
-> 변경 이력: 2026-10-11 초안 · 2026-10-11 ADJ-1·2·4 결정 반영(신호 목록 (c)+대회 계획·추가 신호 후보, 트리거 확장 (c) `adjuster_v3`, source=주 트리거 종류 재적재) · 2026-10-11 설계서 동기화(ADJ-3~16, NEW-1~3 확정 반영) · 2026-10-11 설계서 동기화(ADJ-13 readiness 표 추가 결정, ADJ-15 표 순서 일치 확인, RC-4b/RC-6 정합으로 §3.4 수집·unplanned 정의 보정, TZ-1 '오늘' 헬퍼, NEW-10 익명화 행·NEW-12 일반화 반영, §7 축약·§9 모호점 정리) · 2026-10-11 2차 동기화(ADJ-17 race 주 트리거 위치 — §3.8·§3.10·§5·§7·§9 갱신, 유니크 인덱스 충돌 사실 확인 1줄)
+> 변경 이력: 2026-10-11 초안 · 2026-10-11 ADJ-1·2·4 결정 반영(신호 목록 (c)+대회 계획·추가 신호 후보, 트리거 확장 (c) `adjuster_v3`, source=주 트리거 종류 재적재) · 2026-10-11 설계서 동기화(ADJ-3~16, NEW-1~3 확정 반영) · 2026-10-11 설계서 동기화(ADJ-13 readiness 표 추가 결정, ADJ-15 표 순서 일치 확인, RC-4b/RC-6 정합으로 §3.4 수집·unplanned 정의 보정, TZ-1 '오늘' 헬퍼, NEW-10 익명화 행·NEW-12 일반화 반영, §7 축약·§9 모호점 정리) · 2026-10-11 2차 동기화(ADJ-17 race 주 트리거 위치 — §3.8·§3.10·§5·§7·§9 갱신, 유니크 인덱스 충돌 사실 확인 1줄) · 2026-10-11 4차 동기화(V1-1 v1 화면·경로 일몰 — §5 호환 항목의 v1 서술 제거, `adjuster_v1`·`pain_v1` 규칙 버전명은 유지)
 > 결정 번호: 본문 D1~D17 = decisions-table ADJ-1~17, 신규 신호 저장·트리거는 NEW-1~3(`adjustment-new-signals.md`).
 
 ## 1. 근본 원인
@@ -128,7 +128,7 @@
 5. 백테스트 v2/v3 비교 후 사용자 확인 → `adjuster_version=v3` 활성화 + 주간 로그·자동 롤백 감시.
 6. API·프론트·coach_evidence. `pytest tests/`, `npm run check`, 픽스처 DB 브라우저 확인(운영 DB 미사용).
 - 검증 체크: v37 전후 행 수·id·decision 일치, `integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부, `plan_overlay` 불변, OR 단독 하향(통증·체크인 통증·질병)·AND 1개=support/2개=하향 테스트, readiness 하향 + AND 1개 → AND 미성립(readiness 미투표)·readiness 단독 경로는 기존과 동일, stale trigger 시 freshness 기록, 주 트리거 순서 테스트(§3.8 표 7단계, race가 checkin 뒤·crs 앞 — 예: checkin+race → `checkin`, race+crs+acwr → `race`), trigger 집합 변화만 rev+1·accepted 동결, proposed 재기록·과거 행 불변, 롤백 기준 초과 시 v2 전환 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
-- 호환·v1: v1 `views_training_loaders:45`·`plan.py`는 `adjust_todays_plan` 직접 호출만, `src/web`에서 `plan_adjustments` 조회 없음 → 영향 없음.
+- 호환: CLI `plan.py`는 `adjust_todays_plan` 직접 호출만 → 영향 없음. v1 화면·경로는 일몰 예정(V1-1)이라 고려하지 않는다.
 
 ## 6. 대안(기각)
 - **A. `reasons_json`에 신호 내장** — 칩·원장·근거 혼재, rev 필터 필요. D5에서 B 채택.
