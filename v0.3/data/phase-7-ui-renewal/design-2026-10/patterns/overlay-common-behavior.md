@@ -88,13 +88,13 @@ ConnectPanel(D-25, S-10), CalendarFeedCard, McpTokenCard 의 확인 창은 문�
 7. **DemoBanner (E-23)**: 데모 시트에서 Esc 가 포커스 위치와 무관하게 닫히고 호출 버튼으로 복귀하는지 본다.
 8. **나머지 일괄 적용과 회귀 확인**: RowActionSheet 의 기존 동작(처음 포커스는 첫 액션, Esc 닫기)이 유지되어야 한다. 재발 방지 검사(2.5)를 켠다. 실행: `npm run check`, 단위 테스트 전체, 백엔드 `python3 -m pytest tests/` (영향 없음 확인용).
 
-## 5. 호환성·v1 의존
+## 5. 호환성
 
 - **동작 변경**: 배경 닫기 버튼이 Tab 순서에서 빠진다. 닫기는 시트 안의 닫기 버튼이나 Esc 로 한다. RowActionSheet 는 트랩 대상 selector 가 넓어진다(select·textarea·tabindex 포함). DrillPanel 은 window `stopPropagation` 방식에서 스택 판정 방식으로 바뀐다. 시트 안 차트의 Esc(ChartScrub)는 차트가 이벤트를 먼저 소비하면 그대로 두는 규칙(`defaultPrevented` 존중)을 따른다.
 - **뒤로가기 동작 변경(OVL-4)**: 시트가 열린 상태의 뒤로가기는 지금은 페이지를 떠나지만, 변경 후에는 시트만 닫는다. 시트를 열 때마다 history 항목이 하나 생긴다.
 - **알려진 한계(결정으로 수용)**: `inert` 를 쓰지 않으므로(OVL-3) 일부 스크린리더 가상 커서가 배경에 접근할 수 있다. `overflow:hidden` 만 쓰므로(OVL-6) iOS Safari 에서 배경 스크롤이 샐 수 있다.
 - **URL 계약 불변**: `?sheet=sync` 와 드릴 스택의 쿼리 형식은 바뀌지 않는다.
-- **v1 의존**: action 자체는 v1 에 의존하지 않는다. 다만 MenuDrawer 는 "과도기 드로어"로, 내용의 대부분이 v1 링크(`data-sveltekit-reload`)와 "v1로 돌아가기"다. v1 이 제거되면 드로어의 내용이 바뀌거나 드로어 자체가 사라질 수 있으므로 MenuDrawer 수정은 최소(action 부착)로 한정한다. v1 템플릿은 수정하지 않는다.
+- **MenuDrawer**: 수정은 action 부착(§3)만. 드로어 안 v1 링크·"v1로 돌아가기"는 일몰 예정(V1-1).
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 
@@ -130,3 +130,4 @@ ConnectPanel(D-25, S-10), CalendarFeedCard, McpTokenCard 의 확인 창은 문�
 - OVL-4 결정에 "드릴 스택 정책 정렬은 구현 시"가 붙어 있어, 드릴 스택(현행 방식)에도 push 를 적용할지는 이 문서에서 확정하지 않았다.
 - OVL-1(group + `aria-live`)과 OVL-2(열릴 때 "취소"로 포커스 이동)를 함께 쓰면 스크린리더가 확인 문구와 버튼 이름을 연달아 두 번 읽을 수 있다. 실기기 스크린리더 점검으로 확인이 필요하다.
 - OVL-7 검사 위치 `tests/a11yStatic.test.mjs` 는 `accessibility-common.md` 의 신규 파일이다. 두 설계의 구현 순서에 따라 먼저 만드는 쪽이 파일을 생성한다.
+- (V1-1 동기화) MenuDrawer 내용 대부분이 v1 링크라 일몰 시 드로어 구성·존속이 바뀔 수 있다. 일몰 후 드로어 내용 정의는 어느 설계 소관인지 미정(이 문서는 action 부착만 유지).

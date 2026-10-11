@@ -95,14 +95,13 @@
 4. **display + verdict**: 17425(수영) `/100m`·이동시간 기준 페이스와 히어로의 이동·총시간 병기가 서로 맞는지, 598(근력) 거리·페이스 칸 대신 시간·심박·칼로리가 나오는지, 603(걷기) 접두가 "걷기/하이킹"이고 `/km`인지, 사이클이 km/h 인지 확인. 러닝 활동은 기존 verdict 문자열과 바이트 단위로 같아야 한다(회귀 테스트).
 5. `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`, files_index 재생성.
 
-## 5. 호환성·v1 의존
+## 5. 호환성
 
 - `highlights`·`evidence` 값의 의미가 "전체 활동"에서 "러닝"으로 바뀐다(키 불변, `highlights.other` 추가). 소비처는 v2 Today, `narrative_warm`, AI 캐시. 값 변화는 의도된 수정이다.
 - `verdict.text`는 Coach 컨텍스트(`src/ai/ai_context.py` → `get_activity_detail`)에도 들어간다. 비러닝 문구가 바뀌면 Coach 근거 문장도 바뀐다.
 - `story_stats` 숫자가 바뀌면 ADR-032 Story 월/주 카드 값이 바뀐다(같은 결함 수정).
 - `activity_impact_service`는 `LIKE '%running%'` 기준에서 SSOT 기준으로 바뀌어 `treadmill`·`race` 활동에도 영향 블록이 생길 수 있다.
 - `today_service.get_today_narrative`는 re-export로 남겨 import 호환을 유지한다.
-- v1 의존: `src/web/`(v1)은 이번 변경 모듈을 import하지 않는다(grep 확인). v1 쪽 RUN_TYPES 사본(`ai_context_legacy.py`·`suggestions.py`)은 손대지 않고 v1과 함께 제거한다.
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 
@@ -137,3 +136,4 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 - NRA-8 의 "별도 BACKLOG" 항목은 이 동기화에서 `BACKLOG.md` 에 등록하지 않았다(수정 범위 밖). 등록이 필요하다.
 - HSR-4 의 러닝 488건은 sync-state 의 `LIKE '%running%'` 기준이다. SSOT(`family_clause`)는 `treadmill`·`race` 를 포함하고 LIKE 는 `treadmill` 을 놓치므로 두 숫자가 다를 수 있다. sync_state 는 NRA-8 로 이번 이관 대상이 아니어서, 개요 러닝 수를 어느 쪽 기준으로 셀지 HSR 설계와 맞춰야 한다(2.5 는 SSOT 기준으로 적었다).
 - `normalize_activity_type` 의 현재 HIIT·race·treadmill 매핑 값은 이 동기화에서 코드로 확인하지 않았다. 수집 단계 매핑이 NRA-7 과 다르면 정규화 저장값과 읽기 판정이 어긋나므로 구현 1단계에서 확인이 필요하다.
+- (V1-1 동기화) §5의 v1 의존 서술을 삭제하면서 `ai_context_legacy.py`·`suggestions.py`의 RUN_TYPES 사본을 "v1 쪽"으로 본 근거가 사라졌다 — 두 파일이 레거시 v1 화면 경로인지(일몰) NRA-8 별도 BACKLOG 이관 대상인지 확인 필요(`data-freshness.md` §2.7은 `ai_context_legacy`를 AI 호출원으로 이관).

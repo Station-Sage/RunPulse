@@ -7,7 +7,7 @@
 
 | 경로 | 위치 | 하는 일 | 한계 |
 |------|------|---------|------|
-| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | v1 제거 예정. 활동만 |
+| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | 일몰 예정(V1-1), 설계 대상 아님 |
 | v2 빠른 CSV 3종 | `src/services/export_service.py` `quick_export` + `POST /api/v1/data/export` kind=quick_* | 활동·웰니스·부하 CSV 동기 스트림 | from/to 범위만 |
 | v2 아카이브 잡 | 같은 파일 `start_archive`→`_run`→`build_archive` (스레드), 원장 `sync_jobs(service='export')` | `data/users/<uid>/exports/<job>.zip`, 7일 만료(`EXPIRE_DAYS`) | 아래 결함 |
 | 이력·다운로드 | `src/api/routes_data_export.py` `GET /data/exports`, `GET /data/exports/<id>/download` (`send_file`) | 이력·재다운로드 | 반복 다운로드(EXP-9 로 유지), no-store 없음 |
@@ -114,7 +114,6 @@ raw_payloads/<src>.jsonl
 | `frontend/src/lib/components/ExportConfirmDialog.svelte` | 신규 | 질병 포함 생성 전 확인 1회(문구 자리만, EXP-7·TXT-1) | ~60 |
 | `frontend/src/routes/data/export/+page.svelte` | 수정 | 폼·확인 단계 삽입, 공통 오류 컴포넌트, 24시간 만료 안내 | 145→~180 |
 | `frontend/src/lib/types/index.ts` | 수정 | ExportGroup·manifest 타입 | +15 |
-| `src/web/views_export.py` | 유지 | v1 제거 시 함께 삭제(이번 변경 없음) | 0 |
 | tests: `test_export_groups.py`, `test_export_archive.py`, `test_export_service.py`(확장), `test_routes_data_export.py`(확장), 프론트 `exportScope.test.ts`, `ExportScopeForm.test.ts`, `ExportConfirmDialog.test.ts` | 신규/수정 | 함수마다 ≥1 | ~40개 |
 | `LATER.md` | 메인 처리 | 전체 import 로드맵 항목 등록(EXP-6) — 이 설계 구현 범위 아님 | — |
 
@@ -125,7 +124,7 @@ raw_payloads/<src>.jsonl
 4. **S4 화면**: 375px 브라우저 확인(초기 체크 5개·dismissed 해제, 체크박스 44px, 가로 스크롤 없음, h1 보임, 키보드만으로 선택·생성·다운로드), episodes 선택 시 질병 기록 유무와 무관하게 확인 단계 1회·취소 시 요청 없음·episodes 해제 시 확인 없이 생성(EXP-12), dismissed 하위 체크박스 비활성 전환, 24시간 만료 안내, 실패 시 공통 오류·재시도, 스크린리더 상태 알림.
 5. 전체 `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`. 신규 ADR 필요 여부(비밀 허용 목록 원칙) 메인 판단.
 
-호환성: 기존 kind=archive 요청에 groups 가 없으면 현재와 같은 그룹(activities·metrics·raw + 빠른 CSV)으로 처리해 기존 화면/테스트 무회귀(화면 기본 체크는 EXP-15 로 episodes·races 가 추가되지만 groups 없는 구 요청은 현행 3그룹 유지). 단 보관 기간 7일→24시간은 의도된 동작 변경이므로 기존 만료 테스트는 갱신한다. v1 `views_export.py` 는 의존하지 않음. 스키마 변경 없음(v38 은 다른 묶음 소관, 이 설계는 존재 여부만 검사).
+호환성: 기존 kind=archive 요청에 groups 가 없으면 현재와 같은 그룹(activities·metrics·raw + 빠른 CSV)으로 처리해 기존 화면/테스트 무회귀(화면 기본 체크는 EXP-15 로 episodes·races 가 추가되지만 groups 없는 구 요청은 현행 3그룹 유지). 단 보관 기간 7일→24시간은 의도된 동작 변경이므로 기존 만료 테스트는 갱신한다. 스키마 변경 없음(v38 은 다른 묶음 소관, 이 설계는 존재 여부만 검사).
 
 대안:
 - **A(추천) zip JSON+CSV 그룹 허용 목록** — 기존 잡·이력·화면 재사용, 비밀 제외를 코드로 보장, 스프레드시트로 열람 가능. 단점: 재가져오기는 별도 구현 필요.
@@ -142,5 +141,4 @@ EXP-1~19 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 �
 - 질병 별도 동의(NEW-12)의 동의 UI·저장은 adjustment-new-signals.md 소관. 내보내기와는 연동하지 않는다(EXP-17).
 - 전체 import 구현은 LATER(EXP-6). 에피소드 단건 삭제·익명화(NEW-10) 구현도 adjustment-new-signals.md 소관이며 이 설계는 기존 zip 을 건드리지 않는다(EXP-11).
 - `archive_service.py` 의 월별 아카이브 조회는 이름만 유사, 무관.
-- v1 `/activities/export.csv` 삭제는 v1 제거 작업에 포함.
 - 계정 삭제(전체 데이터 삭제) 기능과 "삭제 전 내보내기" 연결은 LATER 후보.

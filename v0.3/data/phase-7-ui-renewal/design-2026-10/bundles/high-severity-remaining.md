@@ -64,7 +64,7 @@
    | `_effective` 결함 해당 | 위 결과에서 같은 date에 source≠'planner' 미매칭 행과 planner 매칭 행이 공존하는지 | 공존하면 해당 |
    | 실제 활동 거리 | `SELECT * FROM v_canonical_activities WHERE <날짜열> BETWEEN '2026-10-05' AND '2026-10-11';` (컬럼명은 뷰 정의로 먼저 확인) | 계획 대비 비율 >1.6 이면 상한 탈락 확정 |
 4. `pytest tests/`, `npm run check`, `scripts/check_docs.py`, `scripts/gen_metric_dictionary.py`. 각 신규 파일 300줄 이하.
-- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. v1 `app.py:_auto_match_after_sync`는 변경 없음(v1 제거 시 함께 삭제). Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`·floor는 코드 정의 필드라 DB 무관.
+- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`·floor는 코드 정의 필드라 DB 무관.
 
 ## 5. 결정
 - HSR-1~10(연관 PLN-6·PLN-10): 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
@@ -79,3 +79,4 @@
 2. HSR-4 표시 정의와 `non-running-activities.md` 종목 정책의 일치 여부 미확인.
 3. 해소(HSR-9·HSR-10). 남은 확인: 중복 그룹화가 동기화 실행 안에서 끝나는지(차이 계산 시점) — 구현 시 코드 확인.
 4. 해소(HSR-8, 단위·적용 범위). 남은 것: floor 필드명과 각 지표의 구체 값(구현 시 지표별 산정, 사전으로 검토).
+5. V1-1 동기화로 `src/web/app.py:_auto_match_after_sync`(동기화 트리거 라우트 경로) 언급을 v1 로 보고 삭제했다 — 이 경로가 v2 동기화에서도 쓰이는지(T-01 match_hooks 이관 대상 여부) 구현 시 확인.
