@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 273건 (결정 256건 / 부분 결정 3건 / 미결정 14건).
+- 총 276건 (결정 272건 / 부분 결정 3건 / 미결정 1건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -238,7 +238,7 @@
 | RC-27 | 대회 캘린더 | cancelled 대회 수정 가능 여부 | (a) 불가(복원 후 수정) / (b) 수정 가능 / (c) 날짜 외 필드만 수정 가능 **결정 2026-10-11: (b) cancelled 대회도 수정 가능 — cancelled 상태는 신호·D-day 제외 규칙 유지(상태 기준)****추가 2026-10-11: cancelled → 다시 활성화(planned 로 복원)하는 경로가 반드시 존재해야 한다(복원 시 신호·D-day 대상으로 복귀).** |
 | V1-2 | 공통 | v1 일몰 전까지 views_training_loaders.py 가 adjust_todays_plan 을 직접 호출 — 가드 테스트 처리 | (a) 가드 테스트 스캔 범위에서 해당 v1 파일 제외 / (b) v1 일몰을 먼저 수행 / (c) 임시 허용 목록 + 일몰 시 제거 항목 등록 **결정 2026-10-11: v1 일몰 = UI 와 라우트의 일몰이다. 필요한 파일·함수는 유지하고, 재설계가 필요한 v1 파일은 재설계한다(views_training_loaders.py 처럼 v2 도 쓰는 로직은 view 밖 모듈로 이관 설계). 가드 테스트 제외 방식은 채택하지 않음** |
 | V1-3 | 공통 | /switch-user(E-02) 일몰 처리 | (a) 개발용 기능으로 유지(운영 차단은 SRV-6) / (b) v2 로 이관 후 v1 제거 / (c) 제거(개발자는 쿼리/CLI 로 사용자 전환) **결정 2026-10-11: (b) /switch-user 는 v2 로 이관한 뒤 v1 제거** |
-| V1-4 | 공통 | classify_surface 의 'v1' 분기(SEC-2: v1 에 CSP 미부착) | (a) 일몰 시 분기 제거, 그 전까지 유지 / (b) 지금 제거(v1 은 이미 고려 대상 아님) / (c) 유지 **부분 결정 2026-10-11: (보류) 설계 검토 후 결정 — classify_surface 'v1' 분기는 V1-2 의 일몰 정의(라우트 일몰)와 함께 검토** |
+| V1-4 | 공통 | classify_surface 의 'v1' 분기(SEC-2: v1 에 CSP 미부착) | (a) 일몰 시 분기 제거, 그 전까지 유지 / (b) 지금 제거(v1 은 이미 고려 대상 아님) / (c) 유지 **부분 결정 2026-10-11: (보류) 설계 검토 후 결정 — classify_surface 'v1' 분기는 V1-2 의 일몰 정의(라우트 일몰)와 함께 검토****해소 2026-10-11(V1-15): 'v1' 분기 제거.** |
 | V1-5 | 공통 | v1 일몰 후 MenuDrawer 내용을 맡을 설계 | (a) 접근성 설계(accessibility-common) / (b) 오버레이 설계(overlay-common-behavior) / (c) 별도 항목으로 BACKLOG 등록 **결정 2026-10-11: (c) 별도 BACKLOG 항목으로 등록** |
 | RC-28 | 대회 캘린더 | cancelled 대회 복원(RC-27) 시 adapt_choice·plan_state 초기값 | (a) unasked/미반영으로 초기화(복원 후 조정 질문 다시 대기) / (b) 취소 직전 값을 복원 / (c) 복원 시트에서 사용자가 선택 **결정 2026-10-11: (b) 취소 직전 adapt_choice·plan_state 값을 복원(취소 시 값 보존 필드 필요)** |
 | RC-29 | 대회 캘린더 | 복원할 때 대회 날짜가 이미 지난 경우 | (a) 날짜 수정을 먼저 요구 / (b) RC-18 확인 문구 후 복원(done 처리, RC-8·RC-20 규칙 적용) / (c) 지난 날짜 대회는 복원 불가(새로 등록) **결정 2026-10-11: (b) 날짜가 지난 cancelled 대회는 RC-18 확인 문구 후 복원(done 처리, RC-8·RC-20 규칙 적용)** |
@@ -270,22 +270,22 @@
 | PLN-21 | 훈련 계획 | v1 라우트 일몰과 v41(goal_id NOT NULL 승격)의 선후 | (a) v41 이 먼저, v1 INSERT 경로는 goal_id 기입하도록 수정 / (b) v1 라우트 일몰 후 v41 / (c) 같은 릴리스에서 동시 **결정 2026-10-11: (b) v1 라우트 일몰 후 v41 — 단 PLN-20 이 (e) 로 바뀌어 v1 manual·imported 행이 NULL 허용이 되면 선후 제약은 사실상 사라짐** |
 | PLN-22 | 훈련 계획 | 백테스트 이력 시나리오(days=0)에 줄 요일 mask | (a) 전체 요일(7일) mask / (b) 해당 시점 실제 사용 mask 를 입력으로 필수 / (c) days=0 시나리오는 mask 무시 **결정 2026-10-11: (b) 백테스트 이력 시나리오(days=0)에도 해당 시점의 실제 mask 를 필수 입력** |
 | NEW-38 | 신규 신호 | 복귀 context 3일(NEW-34·37)의 시작 기준 | (a) end_date 부터 세어 귀국 창과 겹치지 않는 남은 날만 사용 / (b) 귀국 창이 끝난 다음 날부터 3일을 새로 셈 **결정 2026-10-11: (a) 복귀 context 3일은 end_date 부터 세어 귀국 창과 겹치지 않는 남은 날만 사용** |
-| RC-35 | 대회 캘린더 | RC-30 강등과 불변식 3(활성 목표의 대회는 A) 충돌, §2.2 '이전 A가 done 이면 그대로 둔다' 규칙과의 관계 | (a) 기존 A 가 활성 목표 대회면 강등 대신 목표 연결 변경을 먼저 요구 / (b) 강등 허용, 불변식 3 을 'A 이거나 목표 미연결'로 완화 / (c) 기존 A 가 done 이면 강등하지 않고 복원 대회를 B 로 복원 **결정 2026-10-11: (b) 강등 허용 + 불변식 3 을 'A 이거나 활성 목표 미연결'로 완화(check_data_consistency 조건 동일하게 갱신)** |
+| RC-35 | 대회 캘린더 | RC-30 강등과 불변식 3(활성 목표의 대회는 A) 충돌, §2.2 '이전 A가 done 이면 그대로 둔다' 규칙과의 관계 | (a) 기존 A 가 활성 목표 대회면 강등 대신 목표 연결 변경을 먼저 요구 / (b) 강등 허용, 불변식 3 을 'A 이거나 목표 미연결'로 완화 / (c) 기존 A 가 done 이면 강등하지 않고 복원 대회를 B 로 복원 **결정 2026-10-11: (b) 강등 허용 + 불변식 3 을 'A 이거나 활성 목표 미연결'로 완화(check_data_consistency 조건 동일하게 갱신)****대체 2026-10-11(RC-39): 강등 허용·불변식 3 완화는 철회, 강등 시 목표 연결 변경 창.** |
 | RC-36 | 대회 캘린더 | cancelled 복원 시 직전 adapt_choice 가 applied 였던 경우 | (a) 값만 applied 복원(실제 반영 없음, 표시만) / (b) 복원 시 다시 반영(accept 재실행, 날짜 지나면 불가) / (c) applied 는 adapt·stale 로 낮춰 복원. 보존 값이 없는 행의 기본값도 함께 정함 **결정 2026-10-11: (b) 복원 시 직전 값이 applied 였으면 accept 를 다시 실행(날짜가 지나 실패하면 처리 규칙은 설계에서 제안)** |
 | RC-37 | 대회 캘린더 | RC-32 '예정으로 되돌리기' 후 adapt_choice·plan_state 와 A 행 처리(대부분 완료 목표 백필 행: A·applied) | (a) unasked 로 초기화, A 충돌은 RC-30 규칙 / (b) 이전 값 유지 / (c) A 행은 B 로 내리고 되돌리기 **결정 2026-10-11: (a) '예정으로 되돌리기' 후 adapt_choice 는 unasked 로 초기화, A 충돌은 RC-30 규칙** |
 | RC-38 | 대회 캘린더 | RC-28 취소 직전 값 보존 방식 | (a) 새 컬럼 cancel_prev_adapt_choice·cancel_prev_plan_state(제안) / (b) 기존 컬럼 유지(취소해도 값 변경 안 함) / (c) 조정 이력에서 유도 **결정 2026-10-11: (a) 새 컬럼 cancel_prev_adapt_choice·cancel_prev_plan_state 로 취소 직전 값 보존(v38 DDL)** |
 | PLN-23 | 훈련 계획 | 기존 훈련 플랜 처리(마이그레이션·미티게이션 코드 필요 여부) | 사용자 지시로 결정 | **결정 2026-10-11: 기존 훈련 플랜은 삭제해도 된다. 기존 플랜을 위한 마이그레이션·미티게이션 코드(goal_id 백필, 고아·외부 행 귀속, v1 목표 재생성 제안 등)는 작성하지 않는다. 삭제 실행에 필요하면 사용자가 bash·운영 DB 삭제 권한을 승인했다(실행은 구현 단계에서 대상·백업 확인 후).** |
 | V1-13 | 공통 | v1 화면 동작 손상 허용 | 사용자 지시로 결정 | **결정 2026-10-11: v1 이 깨지는 것은 괜찮다. v1 보호·호환·완충 코드를 설계에 넣지 않는다(v1 은 일몰 예정).** |
-| PLN-24 | 훈련 계획 | PLN-23 기존 플랜 삭제 대상 범위(복수 선택) | 대상 후보: planned_workouts 의 planner 행 / 외부 계획 행(garmin·intervals) / plan_adjustments(FK 없음, 고아 방지) / plan_replans(남기면 되돌리기가 CHECK 에 걸림) / session_outcomes(훈련 결과 이력) / goals(active goal 만 남으면 자동 경로가 보류 반복) | 미결정 |
-| PLN-25 | 훈련 계획 | PLN-22 이력 시나리오에 줄 실제 mask 의 출처(user_training_prefs 는 단일 행, 시점별 이력 없음) | (a) 현재 저장된 mask 를 모든 시점에 사용 / (b) 시나리오 입력에 직접 명시(호출자 책임) / (c) 이력 시나리오는 활동 요일 분포에서 추정 | 미결정 |
-| PLN-26 | 훈련 계획 | v40·v41 병합(ADD COLUMN + CHECK, 테이블 재생성 없음) | (a) 병합 채택(v40 하나) / (b) 분리 유지(v40 컬럼, v41 CHECK) — 운영 SQLite 버전은 구현 첫 단계에서 확인 | 미결정 |
-| PLN-27 | 훈련 계획 | PLN-16 코치 배너 삭제(배너 조건 active goal + mask NULL 이 기존 플랜에서만 생김) 판단 | (a) 삭제 유지 — 신규 생성에서 요일 입력 요구로 충분 / (b) 배너 복원 — 기존 goal 이 남는 경우 안내 필요 | 미결정 |
-| RC-39 | 대회 캘린더 | RC-35 해석: RC-30 이 활성 목표의 A 를 강등해 활성 목표가 B 를 가리키는 상태 | (a) 허용 상태로 해석(설계 현재 해석) / (b) 위반으로 보고 강등 시 목표 연결을 해제 / (c) 강등 대신 목표 연결 변경 요구 | 미결정 |
-| RC-40 | 대회 캘린더 | 보존 값이 NULL 인 cancelled 행(v39 백필분)을 복원할 때 값 | (a) unasked·none(제안) / (b) 목표 상태에서 유도(completed 목표면 applied 등) / (c) 복원 시트에서 선택 | 미결정 |
-| RC-41 | 대회 캘린더 | 활성 목표에 연결되지 않은 A 가 §2.4 'adapt 고정' 행을 따르는지 | (a) 일반 행을 따름 / (b) adapt 고정 / (c) 연결 여부와 무관하게 A 는 adapt 고정 | 미결정 |
-| RC-42 | 대회 캘린더 | RC-36 재반영(accept 재실행) 실패 시 처리 | (a) 복원은 진행하고 adapt·stale 로 둠(제안) / (b) 복원 전체 실패 / (c) 사용자에게 알리고 선택 | 미결정 |
-| NEW-39 | 신규 신호 | 귀국 창의 첫날 기준(NEW-38 일수 계산) | (a) end_date 를 첫날로 봄(현 해석) / (b) end_date 다음 날부터 | 미결정 |
-| V1-14 | 공통 | v1 views_ai_coach._load_chips 에 남는 suggestions import(V1S-4 제거 후) | (a) import 와 칩 로드를 함께 삭제 / (b) import 유지(호출마다 경고 로그) / (c) v1 /ai-coach 라우트를 먼저 제거 | 미결정 |
-| V1-15 | 공통 | V1-4 classify_surface 'v1' 분기(근거 v1 HTML 보호가 V1-13 과 충돌) | (a) 분기 제거(v1 도 일반 표면 정책 적용) / (b) 일몰 때까지 유지 / (c) 유지 | 미결정 |
-| V1-16 | 공통 | 신규 request_guard.py·response_policy.py·spa_static.py·export_purge.py 의 위치(V1-10: 공용 파일은 view 밖) | (a) src/web/ 에 둠 / (b) src/api/ 에 둠 / (c) 기능별 분산(request_guard·response_policy → api, spa_static → web, export_purge → services) | 미결정 |
-| V1S-8 | v1 일몰 준비 | V1S-1 이관 후 파일명 유지 여부 | (a) 기존 이름 유지(bg_sync.py, auto_sync.py) / (b) 새 이름(예 bg_sync_runner.py) | 미결정 |
+| PLN-24 | 훈련 계획 | PLN-23 기존 플랜 삭제 대상 범위(복수 선택) | 대상 후보: planned_workouts 의 planner 행 / 외부 계획 행(garmin·intervals) / plan_adjustments(FK 없음, 고아 방지) / plan_replans(남기면 되돌리기가 CHECK 에 걸림) / session_outcomes(훈련 결과 이력) / goals(active goal 만 남으면 자동 경로가 보류 반복) **결정 2026-10-11: 삭제 대상 6종 모두: planned_workouts planner 행, 외부 계획 행(garmin·intervals — 일반 sync 에 연결돼 있지 않고 CLI 수동 실행으로만 들어옴, 코드 확인), plan_adjustments, plan_replans, session_outcomes, goals(active goal). session_outcomes·goals 삭제는 이력 손실이 크므로 실행 시점에 대상 건수를 표시하고 재확인한 뒤 진행** |
+| PLN-25 | 훈련 계획 | PLN-22 이력 시나리오에 줄 실제 mask 의 출처(user_training_prefs 는 단일 행, 시점별 이력 없음) | (a) 현재 저장된 mask 를 모든 시점에 사용 / (b) 시나리오 입력에 직접 명시(호출자 책임) / (c) 이력 시나리오는 활동 요일 분포에서 추정 **결정 2026-10-11: (b) 백테스트 이력 시나리오 입력에 mask 를 직접 명시(호출자 책임)** |
+| PLN-26 | 훈련 계획 | v40·v41 병합(ADD COLUMN + CHECK, 테이블 재생성 없음) | (a) 병합 채택(v40 하나) / (b) 분리 유지(v40 컬럼, v41 CHECK) — 운영 SQLite 버전은 구현 첫 단계에서 확인 **결정 2026-10-11: (a) v40·v41 병합 채택(ADD COLUMN + CHECK, 테이블 재생성 없음; 운영 SQLite 버전은 구현 첫 단계에서 확인)** |
+| PLN-27 | 훈련 계획 | PLN-16 코치 배너 삭제(배너 조건 active goal + mask NULL 이 기존 플랜에서만 생김) 판단 | (a) 삭제 유지 — 신규 생성에서 요일 입력 요구로 충분 / (b) 배너 복원 — 기존 goal 이 남는 경우 안내 필요 **결정 2026-10-11: (a) PLN-16 코치 배너 삭제 유지(신규 생성의 요일 입력 요구로 충분)** |
+| RC-39 | 대회 캘린더 | RC-35 해석: RC-30 이 활성 목표의 A 를 강등해 활성 목표가 B 를 가리키는 상태 | (a) 허용 상태로 해석(설계 현재 해석) / (b) 위반으로 보고 강등 시 목표 연결을 해제 / (c) 강등 대신 목표 연결 변경 요구 **결정 2026-10-11: RC-35 (b) 를 대체: 강등 허용·불변식 3 완화는 철회. 기존 활성 목표 연결 A 를 강등할 때는 목표 연결 변경 창을 먼저 띄운다(활성 목표의 대회는 A 라는 불변식 3 유지)** |
+| RC-40 | 대회 캘린더 | 보존 값이 NULL 인 cancelled 행(v39 백필분)을 복원할 때 값 | (a) unasked·none(제안) / (b) 목표 상태에서 유도(completed 목표면 applied 등) / (c) 복원 시트에서 선택 **결정 2026-10-11: (a) 보존 값이 NULL 인 cancelled 행은 복원 시 unasked·none** |
+| RC-41 | 대회 캘린더 | 활성 목표에 연결되지 않은 A 가 §2.4 'adapt 고정' 행을 따르는지 | (a) 일반 행을 따름 / (b) adapt 고정 / (c) 연결 여부와 무관하게 A 는 adapt 고정 **결정 2026-10-11: (a) 활성 목표 미연결 A 는 'adapt 고정' 행이 아니라 adapt_choice 별 일반 행을 따름** |
+| RC-42 | 대회 캘린더 | RC-36 재반영(accept 재실행) 실패 시 처리 | (a) 복원은 진행하고 adapt·stale 로 둠(제안) / (b) 복원 전체 실패 / (c) 사용자에게 알리고 선택 **결정 2026-10-11: (a) applied 재반영이 실패하면 복원은 진행하고 adapt·stale 로 두며 안내** |
+| NEW-39 | 신규 신호 | 귀국 창의 첫날 기준(NEW-38 일수 계산) | (a) end_date 를 첫날로 봄(현 해석) / (b) end_date 다음 날부터 **결정 2026-10-11: (a) 귀국 창의 첫날은 end_date** |
+| V1-14 | 공통 | v1 views_ai_coach._load_chips 에 남는 suggestions import(V1S-4 제거 후) | (a) import 와 칩 로드를 함께 삭제 / (b) import 유지(호출마다 경고 로그) / (c) v1 /ai-coach 라우트를 먼저 제거 **결정 2026-10-11: (c) v1 /ai-coach 라우트를 먼저 제거(V1-13 으로 v1 손상 허용; _load_chips import 문제 소멸)** |
+| V1-15 | 공통 | V1-4 classify_surface 'v1' 분기(근거 v1 HTML 보호가 V1-13 과 충돌) | (a) 분기 제거(v1 도 일반 표면 정책 적용) / (b) 일몰 때까지 유지 / (c) 유지 **결정 2026-10-11: (a) classify_surface 의 'v1' 분기 제거(V1-4 보류 해소, V1-13 근거)** |
+| V1-16 | 공통 | 신규 request_guard.py·response_policy.py·spa_static.py·export_purge.py 의 위치(V1-10: 공용 파일은 view 밖) | (a) src/web/ 에 둠 / (b) src/api/ 에 둠 / (c) 기능별 분산(request_guard·response_policy → api, spa_static → web, export_purge → services) **결정 2026-10-11: (c') request_guard·response_policy·spa_static → src/web/ (앱 조립 계층, 일몰 후에도 유지; 'web = 앱 셸 전용'으로 정의), export_purge → src/services/** |
+| V1S-8 | v1 일몰 준비 | V1S-1 이관 후 파일명 유지 여부 | (a) 기존 이름 유지(bg_sync.py, auto_sync.py) / (b) 새 이름(예 bg_sync_runner.py) **결정 2026-10-11: (a) bg_sync.py·auto_sync.py 파일명 유지(위치만 src/sync/ 로 이동)** |
