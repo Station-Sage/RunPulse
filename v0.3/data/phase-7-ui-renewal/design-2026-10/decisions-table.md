@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 286건 (결정 282건 / 부분 결정 3건 / 미결정 1건).
+- 총 320건 (결정 282건 / 부분 결정 3건 / 미결정 35건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -299,3 +299,37 @@
 | V1-17 | 공통 | V1-14 /ai-coach 라우트 제거 시 라우트 전용 파일(views_ai_coach.py, views_ai_coach_cards.py; import 는 app.py 뿐) 삭제 | (a) 파일까지 삭제 / (b) 라우트 등록만 삭제하고 파일은 일몰 때 삭제 **결정 2026-10-11: (b) /ai-coach 라우트 등록만 삭제, 라우트 전용 파일 2개는 v1 일몰 때 삭제(import 하는 곳은 app.py 뿐)** |
 | V1-18 | 공통 | 'v1' 분기 제거 후 /v2·/api·/mcp·/feeds 밖 경로가 받을 응답 정책(CSP) | (a) 일반 표면 정책(엄격 CSP) 적용 / (b) 기본 보수 정책 + Report-Only 로 관찰 / (c) 해당 경로 전체를 404 로 정리 **결정 2026-10-11: (a) 'v1' 분기 제거 후 /v2·/api·/mcp·/feeds 밖 경로도 일반 표면 정책 적용(CSP 는 기존 CSP_V2_MODE Report-Only→enforce 단계에 따름)** |
 | V1-19 | 공통 | 앱 셸 정의(app.py·auth_cf.py·request_guard·response_policy·spa_static)와 안 맞는 파일 template_helpers.py·views_calendar_feed.py·app.py 의 비UI 라우트 | (a) 일몰 시 v1 UI 와 함께 삭제(비UI 라우트는 v2 로 이관 후) / (b) 비UI 라우트(캘린더 피드 등)만 src/api 로 이관, template_helpers 는 삭제 / (c) 구현 단계에서 사용처 조사 후 결정 **결정 2026-10-11: (b') template_helpers.py(src/ai/ai_context.py 등 5곳 import 공용 포맷 모듈) → src/utils/ 로 이관, views_calendar_feed.py(토큰 인증 공개 ICS 피드, v2 기능) → src/api/routes_calendar_feed.py 로 이관. app.py 의 그 밖의 비UI 라우트는 구현 첫 단계에서 목록화** |
+| PLN-31 | 훈련 계획 | PLN-28 로 completed 목표를 남길 때 v39 백필·계획 행·session_outcomes 처리(본문은 'goals 전부 삭제 → v39 no-op' 가정) | (a) completed 목표는 유지하되 그 목표의 계획 행·session_outcomes 는 삭제(PLN-24 와 일관, 대회 행만 이력으로 남음) / (b) completed 목표의 계획 행·outcomes 까지 보존(이력 유지, PLN-24 범위 변경) | 미결정 |
+| ADJ-19 | 조정 신호 | v37 에서 source 를 나눌 때 ux_plan_adj_live (workout_id, date, source) 유니크 인덱스 충돌 | (a) 자동 source 를 'auto' 로 묶는 표현식 인덱스 / (b) 서비스가 날짜당 live 자동 행 1개 유지 / (c) 인덱스에서 source 제외 | 미결정 |
+| ADJ-20 | 조정 신호 | adjuster_v3 체크인 피로 임계(입력은 1~10, 본문은 1~5 가정 '피로≥4') | (a) 피로≥7 / (b) 피로≥8 / (c) 1~10 을 1~5 로 정규화 후 ≥4. 확정은 백테스트 후 | 미결정 |
+| ADJ-21 | 조정 신호 | 통증 OR 트리거 조건('비어있지 않음'이 'none' 도 통과) | (a) moderate 이상 / (b) mild 이상 / (c) 사용자 설정 | 미결정 |
+| ADJ-22 | 조정 신호 | crs.evaluate() 복원(BACKLOG CRS-EVALUATE-MISSING)을 맡을 위치 | (a) 별도 선행 커밋(replanner 테스트 기대값 갱신) / (b) FRS 범위에 포함 | 미결정 |
+| RC-47 | 대회 캘린더 | RC-46 이후 재반영 세부: 지난 날짜 행, 0행 | (a) 지난 날짜 행 제외, 0행은 RC-42 처리(adapt·stale+안내) / (b) 지난 날짜 행 포함 / (c) 0행은 성공으로 처리 | 미결정 |
+| TZ-19 | 시간대 표기 | TZ-3 일괄 교정 범위(부분 결정 확정) | (a) dry-run 결과를 보고 Strava CSV 행부터 적용 / (b) 전체 일괄 / (c) 신규 수집분만 | 미결정 |
+| ADR-1 | 공통 | ADR-048 이 SRV·SEC·FRS·NRA 4개 설계서에 중복 배정(ADR-047 은 사용 중) | (a) SRV 048, SEC 049, FRS 050, NRA 051, 이후 조정·캘린더 등 순차 / (b) 설계서를 묶어 ADR 수 축소(SRV+SEC 한 건 등) / (c) 구현 시점에 번호 배정 | 미결정 |
+| SRV-10 | 서버 입력·Origin | SESSION_COOKIE_SECURE 판정(운영 판정 키는 APP_ENV, app.py:156·auth_cf.py:24) | (a) APP_ENV 로 판정(V1-12 와 동일 키) / (b) 별도 설정값 | 미결정 |
+| SRV-11 | 서버 입력·Origin | warnings 필드 위치(api_ok) | (a) api_ok 의 meta 안(api/__init__.py:18) / (b) 최상위 필드 | 미결정 |
+| SRV-12 | 서버 입력·Origin | /api/v1/csp-report 의 415(Content-Type) 검사 적용 여부 | (a) 면제(브라우저가 application/csp-report 로 보냄) / (b) 일반 검사 적용 | 미결정 |
+| SRV-13 | 서버 입력·Origin | uid 허용 정규식 | (a) 기존 사용자 id 형식을 코드로 확인해 그 형식 그대로 / (b) 엄격(소문자·숫자·밑줄·하이픈 길이 제한) / (c) 완화 | 미결정 |
+| SEC-10 | 보안 헤더 | Origin 관찰 모드·CSP Report-Only 운영 기간과 enforce 전환 기준 | (a) 1주 관찰 후 위반 0건이면 enforce / (b) 2주 / (c) 사용자 판단으로 전환 | 미결정 |
+| FRS-22 | 데이터 신선도 | FRS-18 이관 대상 범위(결정문 4곳 vs 본문 7곳) | (a) 본문 7곳 유지 / (b) 결정문 4곳으로 축소 | 미결정 |
+| FRS-23 | 데이터 신선도 | crs_stale·crs_missing 사유 문구 관리 | (a) 서버는 reason 코드만, 문구는 한 곳(프런트)에서 관리 / (b) 서버가 문구 내려줌 | 미결정 |
+| FRS-24 | 데이터 신선도 | HRV 7일 rolling 형성의 최소 일수(값 1개로도 형성됨, signals.hrv_rolling 키는 존재) | (a) 3일 / (b) 5일 / (c) 7일 전부 | 미결정 |
+| FRS-25 | 데이터 신선도 | plan_line 을 FRS-20 범위에 포함 | (a) 미포함 / (b) 포함 | 미결정 |
+| TZ-20 | 시간대 표기 | TZ-14 이동일 차용에서 앞뒤 후보가 동률일 때 | (a) 앞 후보(출발지) / (b) 뒤 후보 / (c) 5b(KST) 로 폴백 | 미결정 |
+| TZ-21 | 시간대 표기 | '오늘' 헬퍼를 user_inputs.input_date 에도 적용 | (a) 적용 / (b) 미적용(서버 로컬 유지) | 미결정 |
+| TZ-22 | 시간대 표기 | TZ-4 상대시각('3시간 전') 갱신 주기 | (a) 렌더 시 1회 / (b) 1분마다 갱신 / (c) 갱신하지 않음 | 미결정 |
+| HSR-11 | 고심각도 잔여 | HSR-1 '같은 날 후보 1개'의 기준 | (a) 계획 행 기준 활동 수 / (b) 활동 기준 계획 행 수 / (c) 둘 다 만족 | 미결정 |
+| HSR-12 | 고심각도 잔여 | 러닝 수 기준 통일(sync_state_service.py:183 은 LIKE 사용; HSR D-03 은 activity_counts 로, NRA §9 는 sync_state 를 이관 대상 아님으로 봐 정의가 둘) | (a) family_clause 로 통일하고 activity_counts 헬퍼로 일원화 / (b) 현행 LIKE 유지 / (c) NRA §9 를 HSR 에 맞춰 이관 대상에 포함 | 미결정 |
+| PLN-32 | 훈련 계획 | PLN-5 부분 첫 주와 v2 주 단위 로직(anchor_monday, schedule_for_goal 주차·phase, 주간 볼륨 목표) | (a) 첫 주를 부분 주로 두고 주간 볼륨 목표를 일수 비례 축소 / (b) 첫 주 건너뛰고 다음 월요일부터 시작 / (c) 생성일부터 7일을 첫 주로 | 미결정 |
+| PLN-33 | 훈련 계획 | planner 이외 읽기 경로(matcher, week_compliance, calendar_feed 등)의 goal_id 필터 적용 범위 | (a) planner 행에만 goal_id 필터(외부 행은 날짜 기준 그대로) / (b) 모든 경로에 필터 / (c) 읽기 경로 목록화 후 구현 중 판단 | 미결정 |
+| PLN-34 | 훈련 계획 | '수락된 조정 행' 식별 방법(planned_workouts 에 식별 컬럼 없음) | (a) plan_adjustments 조인으로 판정 / (b) planned_workouts 에 컬럼 추가 / (c) source 값 규칙으로 판정 | 미결정 |
+| ADJ-23 | 조정 신호 | 수락률 '급락' 수치와 adjuster_version 저장 위치 | (a) 최근 N건 수락률이 이전 대비 절반 미만 / (b) 고정 임계(예 30%) / (c) 사용자 설정; 저장 위치는 설정 저장소 키 | 미결정 |
+| NEW-40 | 신규 신호 | /api/context-episodes 경로가 /api/v1 밖이라 엔벨로프·오류 처리 적용 여부 불명 | (a) /api/v1/context-episodes 로 이전 / (b) 현 경로 유지하고 동일 엔벨로프 적용 / (c) 구현 중 판단 | 미결정 |
+| RC-48 | 대회 캘린더 | RC-13 미리보기를 캘린더 시트(A 날짜·거리 수정)에도 적용 | (a) 적용 / (b) 목표 화면만 | 미결정 |
+| RC-49 | 대회 캘린더 | 백필 시 created_at UTC→현지 변환 | (a) TZ-1 헬퍼 기준 현지 날짜로 변환 / (b) UTC 날짜 그대로 | 미결정 |
+| EXP-20 | 데이터 내보내기 | v38 신규 테이블(illness_consent_events 포함)의 내보내기 그룹 분류 | (a) profile 그룹 / (b) episodes 그룹 / (c) 내보내기 제외(동의 이력은 개인정보 이력) | 미결정 |
+| OVL-8 | 오버레이 | 드릴 스택을 history push 로 다룰지 | (a) push(뒤로가기로 한 단계씩) / (b) 단일 항목으로 처리 | 미결정 |
+| ERR-8 | 오류·재시도 | 404 를 뺀 4xx 분류 | (a) server 쪽 오류로 분류('서버 오류' 문구) / (b) 입력 오류로 분류 | 미결정 |
+| SEC-11 | 보안 헤더 | Permissions-Policy 항목 / pollInterval 값 / 아이콘 디자인 담당 / theme-color meta 중복(A11Y §2.5) | (a) 최소 항목(카메라·마이크·위치 차단), pollInterval 기존값 유지, 아이콘은 사용자 제공, theme-color 는 A11Y 에 일원화 / (b) 구현 중 제안 | 미결정 |
+| A11Y-15 | 접근성 | A11Y-7 레이아웃 설계 문서가 없음; group+live 조합 스크린리더 이중 읽기 | (a) 별도 레이아웃 설계서를 이번 범위에 신설 / (b) 구현 중 컴포넌트 단위로 정리 | 미결정 |
