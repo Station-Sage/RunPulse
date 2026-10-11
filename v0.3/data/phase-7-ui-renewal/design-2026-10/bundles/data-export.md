@@ -3,12 +3,13 @@
 > 근거: decisions-table.md NEW-10·11·12, EXP-1~19(2026-10-11 결정), TXT-1(문구), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
 > 변경 이력: 2026-10-11 3차 동기화 — EXP-18(고정 여유)·EXP-19(삭제 안내 항상 표시) 반영, EXP-7 문구는 TXT-1 로 구현 단계 후보 제시.
 > 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰): §1 v1 활동 CSV 행·§3 `views_export.py` 행을 grep 사실(라우트 전용, 공유 함수 `get_activity_list`, v2 MenuDrawer 링크)로 정정·복원, §6 MenuDrawer 링크 메모(V1-5 BACKLOG 참조).
+> 변경 이력: 2026-10-11 6차 동기화 — V1-11(MenuDrawer "CSV 내보내기" 링크 → v2 내보내기(EXP) 화면): §1 행·§3 표·§4 S4·§6 갱신. V1-10(`auto_sync.py` view 밖 이관) 영향 한 줄(§2.3·§5).
 
 ## 1. 근본 원인 (현황, 코드로 확인한 것만)
 
 | 경로 | 위치 | 하는 일 | 한계 |
 |------|------|---------|------|
-| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | 라우트 전용 파일(`app.py:33` 만 import). 데이터는 공유 함수 `activity_service.get_activity_list`(v2 `routes_library.py:37` 도 사용, 유지). v2 `MenuDrawer.svelte:47` "CSV 내보내기" 링크가 이 라우트를 가리킴. 라우트 일몰(V1-2) 대상 |
+| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | 라우트 전용 파일(`app.py:33` 만 import). 데이터는 공유 함수 `activity_service.get_activity_list`(v2 `routes_library.py:37` 도 사용, 유지). v2 `MenuDrawer.svelte:47` "CSV 내보내기" 링크가 현재 이 라우트를 가리킴 — V1-11에 따라 v2 내보내기(EXP) 화면으로 연결을 바꾼다(§3). 라우트 일몰(V1-2) 대상 |
 | v2 빠른 CSV 3종 | `src/services/export_service.py` `quick_export` + `POST /api/v1/data/export` kind=quick_* | 활동·웰니스·부하 CSV 동기 스트림 | from/to 범위만 |
 | v2 아카이브 잡 | 같은 파일 `start_archive`→`_run`→`build_archive` (스레드), 원장 `sync_jobs(service='export')` | `data/users/<uid>/exports/<job>.zip`, 7일 만료(`EXPIRE_DAYS`) | 아래 결함 |
 | 이력·다운로드 | `src/api/routes_data_export.py` `GET /data/exports`, `GET /data/exports/<id>/download` (`send_file`) | 이력·재다운로드 | 반복 다운로드(EXP-9 로 유지), no-store 없음 |

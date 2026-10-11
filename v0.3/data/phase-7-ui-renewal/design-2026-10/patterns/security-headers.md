@@ -107,6 +107,7 @@
 - 2026-10-11 설계서 동기화: D1~D9 결정(SEC-1~9) 반영 — Report-Only→enforce 단계, v1 CSP 제외, DENY, HSTS 위임, csp-report 엔드포인트·면제, 아이콘 자산, 새 버전 알림 UX, Permissions-Policy.
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 4절 v1 무회귀 단계·호환성 v1 항목·테스트 'v1 CSP 없음' 삭제, D2·2.1 `v1` 분기·7절 v1 XSS 메모·대안 B 'v1' 언급 축약/삭제.
 - 2026-10-11 5차 동기화(V1-1 정정·V1-3·V1-4): 일몰 = UI·라우트 일몰. `"v1"` 분기를 V1-4 보류 열린 항목으로 명시(2.1·D2·§10), 사용자 전환 v2 이관(V1-3)에 따른 표면 변화 기록(§10).
+- 2026-10-11 6차 동기화(V1-8·V1-9·V1-10, V1-4 보류 유지): §10 사용자 전환 항목의 엔드포인트 표면 단정을 경로 규칙 의존으로 완화(경로는 구현 단계 제안), SRV-6 적용 시점(이관과 같은 변경) 반영, `src/web` 공용 4파일 view 밖 이관의 영향(없음) 명시.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - ADR 번호: 초안 4절이 ADR-048을 "응답 정책 계층"에 배정했으나, `decisions-table.md` SRV-9가 ADR-048 후보를 "쓰기 요청 Origin 관문 + 경계 스키마"로 확정했다. 이 문서의 ADR 번호 배정이 필요하다.
@@ -118,4 +119,5 @@
 
 ## 10. 동기화 중 발견한 모호점
 - **(V1-4, 열린 항목 — 보류)** `classify_surface`의 `"v1"` 분기(그 밖의 서버 렌더 HTML → CSP 없음, D2/SEC-2) 처리는 미결정: (a) 일몰 시 제거·그 전까지 유지 / (b) 지금 제거 / (c) 유지. V1-2의 일몰 정의(UI·라우트 일몰)와 함께 설계 검토 후 결정한다. 검토 입력(사실): D2의 근거는 v1 서버 렌더 HTML이 인라인 스크립트·인라인 핸들러·CDN(ECharts, Google Fonts)에 의존한다는 것(초안 호환성 절). `"v1"`은 `/v2/`·`/api/`·`/mcp`·`/feeds/` 이외 경로 전체의 폴백 표면이라, v1 화면 라우트가 사라져도 남는 비API 경로(예: `app.py`의 `/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import/*`)와 미정의 경로 404 응답이 어느 표면·정책을 받을지가 분기 제거 시 함께 정해져야 한다. 2026-10-11 grep 기준 v2 프론트(`frontend/src`)는 이 v1 경로들을 호출하지 않는다(`/switch-user` 링크 1건 제외).
-- (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 `"v1"` 표면(CSP 없음)이지만, 이관 후 화면은 `"v2"` CSP, 엔드포인트는 `"api"` 정책을 받는다 — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404) 응답도 같은 표면 정책을 받는다.
+- (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 `"v1"` 표면(CSP 없음)이다. 이관 후 v2 엔드포인트 경로·화면 위치는 구현 단계에서 제안하므로(V1-8 (c)) 받을 표면은 `classify_surface`의 경로 규칙을 그대로 따른다(예: `/api/` 아래면 `"api"`, `/v2/` 아래 화면이면 `"v2"`) — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404)은 v2 이관과 같은 변경에서 그 엔드포인트에 적용되며(V1-9 (b)) 같은 표면 정책을 받는다.
+- (V1-10 영향) `src/web` 공용 4파일(`bg_sync.py`·`helpers.py`·`auto_sync.py`·`views_mcp_remote.py`)은 이번 작업에서 모두 view 밖으로 이관된다(새 위치 미정). 이 문서는 네 파일을 경로로 참조하지 않는다 — §10 V1-4 항목의 `/bg-sync/*`·`/trigger-sync` 등은 `app.py`의 URL 경로이고 `/mcp` 표면 분류도 URL 경로 기준이라, 모듈 이관은 `classify_surface`·CSP 판정, 이 문서의 파일 경로·테스트(`test_response_policy.py` 등) 범위, import 경로 어느 것에도 영향이 없다. 단, 이 문서의 신규 `src/web/response_policy.py`·`src/web/spa_static.py`는 V1-10 대상이 아니며 `src/web/` 위치 유지 여부는 결정 기록이 없다(열린 항목).
