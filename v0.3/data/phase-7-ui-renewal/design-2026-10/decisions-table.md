@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 320건 (결정 289건 / 부분 결정 4건 / 미결정 27건).
+- 총 328건 (결정 289건 / 부분 결정 4건 / 미결정 35건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -333,3 +333,11 @@
 | ERR-8 | 오류·재시도 | 404 를 뺀 4xx 분류 | (a) server 쪽 오류로 분류('서버 오류' 문구) / (b) 입력 오류로 분류 | 미결정 |
 | SEC-11 | 보안 헤더 | Permissions-Policy 항목 / pollInterval 값 / 아이콘 디자인 담당 / theme-color meta 중복(A11Y §2.5) | (a) 최소 항목(카메라·마이크·위치 차단), pollInterval 기존값 유지, 아이콘은 사용자 제공, theme-color 는 A11Y 에 일원화 / (b) 구현 중 제안 | 미결정 |
 | A11Y-15 | 접근성 | A11Y-7 레이아웃 설계 문서가 없음; group+live 조합 스크린리더 이중 읽기 | (a) 별도 레이아웃 설계서를 이번 범위에 신설 / (b) 구현 중 컴포넌트 단위로 정리 | 미결정 |
+| PLN-35 | 훈련 계획 | D안: PLN-1(취소 플랜 행 보존) 문구 정정과 옛 목표의 복구 버튼(옛 목표에는 plan_snapshot_json 이 없음) | (a) 문구를 '보호 행 규칙에 따라 보존'으로 정정, 스냅샷이 없는 목표는 복구 버튼 숨김, 복구 시 goal_id 부여 / (b) 옛 목표도 복구 가능하도록 보존 행에서 스냅샷 재구성 / (c) 복구 기능을 신규 목표부터 적용 | 미결정 |
+| PLN-36 | 훈련 계획 | D안: save_weekly_plan 이 보호 행도 같은 날짜 planner 행이면 조건 없이 삭제(create_plan_from_template 은 이번 주 월요일부터 생성) | (a) 보호 행(completed·매칭·outcomes 참조·수락 조정)은 건드리지 않도록 수정 / (b) 현행 유지(이번 주 지난 날 완료 행도 삭제) / (c) 생성 시작을 오늘로 변경 | 미결정 |
+| PLN-37 | 훈련 계획 | D안: replan 되돌리기(plan_replan_service.undo, routes_plan_replan.py:81)가 목표 활성 여부를 검사하지 않고 goal_id 없이 재INSERT | (a) 활성 목표의 replan 만 되돌릴 수 있게 하고 재INSERT 에 goal_id 기입 / (b) 현행 유지 / (c) 취소 목표 replan 은 되돌리기 버튼 숨김만 | 미결정 |
+| PLN-38 | 훈련 계획 | D안 가드: goal_id 누락 방지 방식 | (a) 서비스 헬퍼 단일 진입점(planner_store.write_planner_rows) + v40 시점 max(id) 워터마크 + check_data_consistency 항목 + pytest 정적 검사 / (b) (a) + BEFORE INSERT 트리거(새 행 누락을 DB 가 차단; 트리거 미사용 원칙과 충돌, v1 경로·테스트 픽스처 약 18개 파일 영향) / (c) 검사 항목만 | 미결정 |
+| PLN-39 | 훈련 계획 | D안: PLN-12 plan_replan_service:128 이 '자동 경로'로 분류돼 사용자가 누른 재계획이 조용히 skip | (a) 사용자 경로로 분류(WeekdaysRequired 시 400) / (b) 현행 유지 | 미결정 |
+| PLN-40 | 훈련 계획 | D안: 'active goal + mask NULL' 상태가 다시 생겨 PLN-3 보강(재생성 제안)·PLN-15/16/17/27(배너·보류 표시)을 재결정 | (a) 코치 화면 배너로 요일 입력 안내(PLN-16 복원) + 보류 중 기존 행 유지 표시 / (b) 재생성 제안 없이 다음 생성 때만 요일 요구 / (c) active goal 인 경우 한 번 요일 입력 요구 후 자동 재생성 | 미결정 |
+| PLN-41 | 훈련 계획 | D안: 고아 session_outcomes 가 matcher.py:91-93 claimed 조건으로 활동을 계속 점유 | (a) 고아 outcomes 를 점유 판정에서 제외(planned_id 존재 확인 조인) / (b) 현행 유지 / (c) 고아 outcomes 의 planned_id 를 NULL 로 정리 | 미결정 |
+| RC-50 | 대회 캘린더 | D안: v39 2단계 applied 판정('그 목표의 planned_workouts 가 있으면')이 v40 보다 먼저 실행돼 goal_id 를 쓸 수 없음 | (a) 목표 날짜 범위 규칙으로 판정 / (b) v40 을 v39 보다 먼저 실행 / (c) applied 판정 없이 unasked 로 백필 | 미결정 |
