@@ -1,7 +1,7 @@
 # 설계: 쓰기 API 서버 입력 검증·Origin 검증
 
 - 대상 ID: T-15, P-04, P-05, D-22, E-02, C-02 (참고 동일 원인: P-17, C-18)
-- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1).
+- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1). 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3).
 - 관련 ADR: ADR-034 (원격 MCP의 Origin 불일치 거부 — `views_mcp_remote._origin_ok`가 이미 있는 선례), 신규 ADR-048 후보(D9)
 
 ## 1. 근본 원인
@@ -61,7 +61,16 @@
 | P-05 | POST `/coach/plan` | distance_km `DISTANCE_KM`, weeks `WEEKS_RANGE`(가능 주수 초과는 보정+경고), race_date `RACE_DATE_WINDOW`, target_time_sec `TARGET_TIME_SEC`, name str |
 | P-04 | GET `/coach/plan/templates` | 위와 같은 race_date·target_time_sec·distance_km 규칙(`parse_args`) |
 | C-02 | POST `/coach/threads`, `/threads/<id>/messages` | initial_message/text ≤`COACH_MESSAGE_MAX`, chip_id enum(`CHIP_TEXT`) — `_message_input`을 스키마 위로 재작성 |
-| E-02 | v1 POST/GET `/switch-user` | production에서 라우트 차단(404, D6). 개발 환경은 `get_db_path` 경로 이탈 차단(`resolve()`가 `data/users` 하위인지) + option 값 `html.escape` |
+| E-02 | 사용자 전환(현 v1 POST/GET `/switch-user` → v2 이관, 2.5) | production에서 차단(404, D6 — 이관 후 v2 엔드포인트에 적용). 개발 환경은 `get_db_path` 경로 이탈 차단(`resolve()`가 `data/users` 하위인지) + uid 검증 |
+
+### 2.5 사용자 전환 v2 이관 (V1-3 (b) 결정)
+v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지해 v2 로 이관한 뒤 v1 `/switch-user` 라우트를 제거한다.
+- **현행(코드 확인 2026-10-11)**: `app.py:266` 라우트 안에 로직이 인라인이다 — POST는 `session["user_id"] = uid` + `init_db(uid)` 후 `/` 리다이렉트, GET은 `data/users` 하위 디렉터리 목록을 `<option>` 문자열로 조립(미이스케이프). v2 API도 같은 Flask 세션(`helpers.get_current_user_id`)을 쓰므로 세션 키를 바꾸는 방식은 v2 에서 그대로 유효하다. v2 `MenuDrawer.svelte:115`가 `/switch-user`를 `data-sveltekit-reload`로 링크한다.
+- **view 밖 모듈**: 사용자 목록·uid 검증·전환(`session` 갱신 + `init_db`)을 서비스 함수로 분리(`src/services/` 신규 모듈). 라우트는 얇게 유지.
+- **v2 노출**: `/api/v1` 아래 JSON 엔드포인트(목록 GET, 전환 POST)와 v2 화면. 쓰기(POST)는 2.1 Origin 관문·2.2 `parse_body`(uid 필드) 적용 대상이 된다. HTML 문자열 조립이 사라지므로 `<option value>` 이스케이프 결함(E-02 후반)은 이관으로 소멸한다(프론트 렌더는 텍스트 바인딩).
+- **SRV-6 정합**: production 차단(404)은 v2 엔드포인트에 그대로 적용한다(D6 변경 없음). production에서 v2 진입점(MenuDrawer 링크)도 숨긴다. 개발 환경 경로 이탈 차단(`get_db_path` `resolve()`)은 이관과 무관하게 `db_setup.py`에 둔다.
+- **순서**: ① 서비스 분리 + v2 엔드포인트(production 404) → ② v2 화면·MenuDrawer 링크 교체 → ③ v1 `/switch-user` 라우트 삭제(`app.py` -30줄).
+- **열린 항목**: 엔드포인트 경로명, v2 화면 위치(MenuDrawer 하단 유지 여부 — V1-5 별도 BACKLOG와 연결), production 판정 키(설정값 이름)는 미정(§10).
 
 ## 3. 변경 파일 표
 | 파일 | 신규/수정 | 내용 | 예상 줄 |
@@ -70,8 +79,10 @@
 | `src/api/validation.py` | 신규 | Field 생성자, `parse_body`(415/400), `parse_args` | ~150 |
 | `src/services/input_limits.py` | 신규 | D4 범위·열거 상수 | ~30 |
 | `src/api/__init__.py` | 수정 | errorhandler 2개 | +20 |
-| `src/web/app.py` | 수정 | guard 등록, 쿠키 설정, `/switch-user`를 `views_switch_user.py`로 분리 | +5/-30 (이미 1161줄, 늘리지 않음) |
-| `src/web/views_switch_user.py` | 신규 | production 차단 분기, 개발용 전환 + escape | ~45 |
+| `src/web/app.py` | 수정 | guard 등록, 쿠키 설정, v1 `/switch-user` 라우트 삭제(2.5 ③) | +5/-30 (이미 1161줄, 늘리지 않음) |
+| `src/services/`(사용자 전환 신규 모듈) | 신규 | 사용자 목록, uid 검증, 전환(session + `init_db`) — 2.5 | ~40 |
+| `src/api/`(사용자 전환 라우트) | 신규/수정 | 목록 GET·전환 POST, production 404(D6) | ~30 |
+| `frontend/src/lib/components/MenuDrawer.svelte` 외 v2 화면 | 수정 | `/switch-user` 링크 → v2 화면, production 숨김 | 범위(product 영역 포함) |
 | `src/web/views_mcp_remote.py` | 수정 | `_origin_ok` → `request_guard.same_origin` | -3/+2 |
 | `src/db_setup.py` | 수정 | `get_db_path` uid 경로 이탈 거부(ValueError) | +6 |
 | `src/api/routes_today.py` | 수정 | 체크인 스키마 | +12 |
@@ -81,7 +92,7 @@
 | `tests/test_request_guard.py` | 신규 | 동일/위조/누락 Origin, Referer 대체, 둘 다 없음 거부, observe 통과+로그, 면제 경로, 쿠키 속성 | ~140 |
 | `tests/test_api_validation.py` | 신규 | Field별 경계값, 비JSON 415, 깨진 JSON 400, details 형태 | ~150 |
 | `tests/test_api_input_contracts.py` | 신규 | T-15·P-04·P-05·C-02 재현 케이스 → 400 JSON, weeks 보정 경고, errorhandler → JSON 500 | ~130 |
-| `tests/test_switch_user.py` | 신규 | production 차단, `../`·빈 값·특수문자 uid 거부, escape | ~60 |
+| `tests/test_switch_user.py` | 신규 | 서비스·v2 엔드포인트: production 404, `../`·빈 값·특수문자 uid 거부, 전환 후 세션 user_id, Origin 관문 적용 | ~60 |
 | `frontend/src/lib/api/*` | 수정 가능 | `details` 필드 오류·`warnings` 표시(UI 범위는 product 영역) | 범위 밖 |
 
 합계: 신규 약 795줄(테스트 480 포함), 수정 약 110줄.
@@ -91,14 +102,14 @@
 2. **input_limits + validation.py + 4개 라우트 (2.2/2.4)** — 검증: 재현 값(fatigue 0·11·5.5·"x", pain "bogus", weeks 0/-3/500, race_date "garbage"·2020-01-01·오늘+6년, 99:99:99, distance_km 0·251, note 501자) 전부 400 + `details`, text/plain 본문 415. race_date 오늘은 통과. 가능 주수 초과 weeks는 201 + `warnings`. 브라우저(사본 DB): 오늘 체크인 저장, `/v2/coach/plan/new` 정상 생성·과거 날짜 오류 표시.
 3. **Origin 관문 + 쿠키 (2.1), observe 모드** — 배포 후 거부 대상 로그를 관찰한다(기간 미정, D8). 검증: observe에서 위조 Origin 요청이 통과하며 로그가 남는지, `curl -i /v2/today`의 `Set-Cookie`에 `SameSite=Lax; HttpOnly`.
 4. **enforce 전환** — 관찰 로그에 정상 클라이언트 거부가 없을 때 `ORIGIN_GUARD_MODE=enforce`. 검증: `curl -X POST -H 'Origin: http://evil.example'` → 403, Origin·Referer 없는 POST → 403, 같은 출처 → 정상, `/mcp`·`/api/garmin/local-sync`·`/api/v1/csp-report` 면제 확인. 브라우저: v2 전 화면 쓰기 동작(체크인·코치·플랜·데이터 설정·가져오기 업로드·캘린더 피드 삭제) 1회씩.
-5. **switch-user / get_db_path** — 구현 전 운영 실사용 여부 확인(D6). 검증: production 설정에서 `/switch-user` 404, 개발 환경에서 경로 이탈 uid 거부·기존 사용자 전환 정상.
+5. **사용자 전환 v2 이관 / get_db_path (2.5, V1-3)** — 구현 전 운영 실사용 여부 확인(D6). 2.5 순서 ①→②→③. 검증: production 설정에서 v2 사용자 전환 엔드포인트 404·링크 숨김, 개발 환경에서 경로 이탈 uid 거부·기존 사용자 전환 후 v2 화면이 해당 사용자 DB를 읽음, ③ 후 `/switch-user` 404.
 6. 완료 체크리스트: `pytest tests/`, `scripts/check_docs.py`, `decisions.md`에 ADR-048 후보("쓰기 요청은 Origin 관문 + 경계 스키마") 기록(D9).
 
 ### 호환성
 - **깨지는 동작**: 범위 밖 값 400, 비JSON 본문 415, Origin 위조와 Origin·Referer 없는 쓰기 요청 403(enforce 이후). 기존 테스트 중 Origin 없이 POST하는 `test_client` 호출은 헤더 추가가 필요하다(공통 fixture 기본 헤더로 처리).
 - **weeks**: 범위(1~52) 안의 보정 동작은 유지되고 응답에 `warnings`가 추가된다(하위 호환).
 - **외부 클라이언트**: `/api/garmin/local-sync`는 면제. CF 서비스 토큰으로 Origin 없이 쓰기 호출하는 스크립트가 있으면 enforce 후 거부된다 — observe 기간 로그로 확인.
-- **switch-user 링크**: v2 `MenuDrawer.svelte`가 `/switch-user`를 링크한다(production 차단 시 링크 숨김 필요). 그 밖의 레거시 v1 화면은 일몰 예정(V1-1).
+- **사용자 전환(V1-3)**: v2 로 이관 후 v1 `/switch-user` 제거(2.5). v2 `MenuDrawer.svelte` 링크는 v2 화면으로 교체하고 production에서 숨긴다. 그 밖의 레거시 v1 화면·라우트는 일몰 예정(V1-1·V1-2 — 일몰은 UI·라우트 일몰).
 
 ## 5. 대안 비교
 | | A안(채택): 전역 Origin 관문 + 라우트 경계 경량 스키마 | B안: CSRF 토큰(Flask-WTF 등) + pydantic 모델 |
@@ -114,20 +125,21 @@
 - **D3 (SRV-3)** SameSite `Lax` — 외부 링크 진입 시 CF 재식별 비용을 피하면서 교차 사이트 POST 차단.
 - **D4 (SRV-4)** 2.2 상수 표의 제안 값으로 진행, 운영 데이터로 확인 후 조정.
 - **D5 (SRV-5)** 비JSON 본문 415 Unsupported Media Type — 원인이 본문 형식임을 코드로 구분.
-- **D6 (SRV-6)** 운영에서 `/switch-user` 차단 — 인가 문제를 입력 검증보다 앞서 제거. 운영 실사용 여부는 구현 전 확인.
+- **D6 (SRV-6)** 운영에서 `/switch-user` 차단 — 인가 문제를 입력 검증보다 앞서 제거. 운영 실사용 여부는 구현 전 확인. V1-3 (b)에 따라 차단은 v2 로 이관된 사용자 전환 엔드포인트에 적용된다(2.5).
 - **D7 (SRV-7)** `min(weeks, 가능 주수)` 보정 유지 + 보정 경고 응답 반환 — 사용성 유지, 조용한 보정만 제거.
 - **D8 (SRV-8)** 관찰 모드(로그만) 선행 후 enforce 전환, 기간 미정 — 정상 클라이언트 오차단 방지.
 - **D9 (SRV-9)** 새 ADR로 기록(ADR-048 후보).
 
 ## 7. 범위 밖 메모
 - E-01 보안 헤더(CSP·X-Frame-Options 등) — `security-headers.md`.
-- `src/web/app.py` 1161줄 — 300줄 규칙 위반, 별도 분리 작업(이번엔 switch-user만 분리).
+- `src/web/app.py` 1161줄 — 300줄 규칙 위반, 별도 분리 작업(이번엔 switch-user 라우트만 제거, 2.5).
 - 프론트에서 서버 `details`·`warnings`를 보여 주는 UX — product-architect 영역.
 
 ## 8. 변경 이력
 - 초안 작성.
 - 2026-10-11 설계서 동기화: D1~D9 결정(SRV-1~9) 반영 — 관찰→enforce 롤아웃, 면제 목록에 `/api/v1/csp-report` 추가, `input_limits` 상수 모듈, switch-user 운영 차단·분리, weeks 경고 반환.
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 관문 대상 'v1 폼' 표기·4단계 'v1 폼 1회' 검증·호환성 v1 폼 25곳·v1 제거 시 정리 서술 삭제, 대안 B 'v1 폼' 언급 삭제.
+- 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3): 일몰 = UI·라우트 일몰. E-02를 v2 이관 설계(2.5)로 재작성 — `views_switch_user.py` 분리 대신 서비스 모듈 + v2 엔드포인트, v1 라우트 삭제, SRV-6 차단을 v2 엔드포인트에 적용.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - ADR 번호: 이 문서 D9와 `security-headers.md` 4절 마지막 단계(초안 9절 참조)가 모두 ADR-048을 후보로 쓴다. 번호 배정이 필요하다.
@@ -135,8 +147,9 @@
 - D6 결정은 운영 차단만 정했다. 개발 환경 uid 허용 문자 집합(정규식)은 미정이며, 이 문서는 경로 이탈 차단 + escape만 설계한다.
 - D7 `warnings` 필드는 기존 성공 응답 엔벨로프 규약에 정의가 없다. 구현 전 엔벨로프 형식 확인이 필요하다.
 - `/api/v1/csp-report`는 브라우저가 `application/csp-report`/`application/reports+json`으로 보내므로 D5(415)를 적용하면 안 된다(`require_json=False` 또는 전용 파서).
-- D6 production 차단 시 v2 `MenuDrawer.svelte`의 `/switch-user` 링크 처리(숨김)가 프론트 범위로 남는다.
+- D6 production 차단 시 v2 사용자 전환 진입점(현 `MenuDrawer.svelte` 링크) 숨김이 프론트 범위로 남는다(2.5 ②).
 
 ## 10. 동기화 중 발견한 모호점
-- (V1-1) E-02 `/switch-user`는 v1 HTML 라우트지만 SRV-6(운영 차단) 결정 대상인 보안 결함이고 v2 `MenuDrawer`가 링크하므로, 2.4 행·`views_switch_user.py`·`test_switch_user.py`·`db_setup.py` 행·5단계를 유지했다. 일몰 전 노출 기간의 보안 조치로 남길지, V1-1에 따라 범위 밖으로 뺄지 확인 필요.
+- (V1-1, 5차에서 해소) E-02 처리 — V1-3 (b) 결정으로 v2 이관 후 v1 제거(2.5).
+- (V1-3, 열린 항목) 2.5의 v2 엔드포인트 경로명·v2 화면 위치(V1-5 MenuDrawer BACKLOG와 연결)·production 판정 설정값 이름은 미정. 이관 전(①~② 사이) v1 `/switch-user` 노출 기간에도 D6 차단을 v1 라우트에 먼저 적용할지는 결정 기록이 없다.
 - (V1-1) 2.1 거부 응답 '그 외 → text 403'과 5절 'B는 v1 제거 이후 위협 모델이 바뀌면 재검토'는 v1 호환 서술이 아니라고 보고 유지했다.

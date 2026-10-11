@@ -123,6 +123,9 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 - **NRA-6 해석 줄 접두**: 종목 라벨 그대로('수영','근력','걷기/하이킹') + 가용한 지표만 설명(2.3).
 - **NRA-7 경계 종목**: race·treadmill=러닝, HIIT=기타(비러닝), 미매핑 raw=other. 계획 매칭에서 HIIT 가 빠지는 영향은 구현 시 확인(2.1, 9절).
 - **NRA-8 범위**: 나머지 RUN_TYPES 사본 이관은 이번 작업에서 제외, 별도 BACKLOG(2.1).
+- **`src/ai/` RUN_TYPES 사본 2곳(코드 확인 2026-10-11)**: 둘 다 v1 전용 파일이 아니므로 v1 UI 일몰과 함께 사라지지 않는다 — NRA-8 별도 BACKLOG 대상 사본에 포함된다.
+  - `ai_context_legacy.py:16` `_RUN_TYPES`(`build_context`가 사용): AI 공용 경로. `ai_context.py:14` 재노출 → `briefing.build_chip_prompt` → `chat_engine`(칩 프롬프트) → `coach_service`(v2 `/api/v1/coach`).
+  - `suggestions.py:39` `_RUN_TYPES`(`get_runner_state`가 사용): 파일은 공유(`CHIP_REGISTRY`를 `chat_engine`·`briefing`이 사용)이나 `get_runner_state`·`rule_based_chips`의 호출부는 v1 `web/views_ai_coach.py:149`뿐이다. v1 UI 일몰 시 이 두 함수의 처리는 열린 항목(§9).
 
 ## 8. 범위 밖 메모
 
@@ -136,4 +139,5 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 - NRA-8 의 "별도 BACKLOG" 항목은 이 동기화에서 `BACKLOG.md` 에 등록하지 않았다(수정 범위 밖). 등록이 필요하다.
 - HSR-4 의 러닝 488건은 sync-state 의 `LIKE '%running%'` 기준이다. SSOT(`family_clause`)는 `treadmill`·`race` 를 포함하고 LIKE 는 `treadmill` 을 놓치므로 두 숫자가 다를 수 있다. sync_state 는 NRA-8 로 이번 이관 대상이 아니어서, 개요 러닝 수를 어느 쪽 기준으로 셀지 HSR 설계와 맞춰야 한다(2.5 는 SSOT 기준으로 적었다).
 - `normalize_activity_type` 의 현재 HIIT·race·treadmill 매핑 값은 이 동기화에서 코드로 확인하지 않았다. 수집 단계 매핑이 NRA-7 과 다르면 정규화 저장값과 읽기 판정이 어긋나므로 구현 1단계에서 확인이 필요하다.
-- (V1-1 동기화) §5의 v1 의존 서술을 삭제하면서 `ai_context_legacy.py`·`suggestions.py`의 RUN_TYPES 사본을 "v1 쪽"으로 본 근거가 사라졌다 — 두 파일이 레거시 v1 화면 경로인지(일몰) NRA-8 별도 BACKLOG 이관 대상인지 확인 필요(`data-freshness.md` §2.7은 `ai_context_legacy`를 AI 호출원으로 이관).
+- (5차 동기화, 사실 확인) 4차 이전 §5의 "v1 쪽 RUN_TYPES 사본(`ai_context_legacy.py`·`suggestions.py`)은 v1과 함께 제거"는 코드와 맞지 않았다 — 두 파일 모두 v2 Coach 경로가 쓰는 공유 파일이다(§5). V1-1 정정(일몰 = UI·라우트 일몰)에 따라 두 사본은 NRA-8 별도 BACKLOG 대상으로 남는다.
+- (5차 동기화, 열린 항목) `suggestions.get_runner_state`·`rule_based_chips`는 v1 `views_ai_coach.py:149`만 호출한다. v1 UI 일몰 시 함께 제거할지(순수 UI 보조 함수), v2 쪽 칩 규칙으로 재설계·이관할지 미결정 — v2 칩은 현재 `coach_rule_handlers.suggestion_chips`(`routes_coach.py:37`)가 별도로 만든다.

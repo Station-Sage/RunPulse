@@ -6,6 +6,7 @@
 - 변경 이력: 2026-10-11 HSR-7 반영 — M-03 floor 를 지표별로 `MetricDef` 에 정의(전역 floor 아님). 결정 섹션 축약
 - 변경 이력: 2026-10-11 2차 동기화 — HSR-8(모든 지표 floor, 원단위 절댓값 + 누락 검증)·HSR-9(동기화된 건 = 신규 활동 수) 반영, §7 해소 항목 축약
 - 변경 이력: 2026-10-11 3차 동기화 — HSR-10(두 소스 같은 활동은 canonical 1건으로 신규 집계) 반영: 집계 위치를 동기화 오케스트레이터로 옮기고 소스별 `sync_activities` 수정 제거
+- 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰): 4차에서 지운 `_auto_match_after_sync` 호환성 서술을 grep 사실(v1 라우트 전용, v2 는 `bg_sync`)로 복원, §7-5 해소
 - 관련 ADR: ADR-009(Calculator raw SQL 금지 — 본 설계는 Calculator 무변경), ADR-020(판정·등급은 서버 SSOT)
 - 묶음: **G1 "같은 수치를 여러 곳에서 각자 계산"**(M-03, M-04, D-03) / **G2 "매칭 실행 여부가 보이지 않음"**(T-01) / 단독: M-01, D-01, C-01
 
@@ -64,7 +65,7 @@
    | `_effective` 결함 해당 | 위 결과에서 같은 date에 source≠'planner' 미매칭 행과 planner 매칭 행이 공존하는지 | 공존하면 해당 |
    | 실제 활동 거리 | `SELECT * FROM v_canonical_activities WHERE <날짜열> BETWEEN '2026-10-05' AND '2026-10-11';` (컬럼명은 뷰 정의로 먼저 확인) | 계획 대비 비율 >1.6 이면 상한 탈락 확정 |
 4. `pytest tests/`, `npm run check`, `scripts/check_docs.py`, `scripts/gen_metric_dictionary.py`. 각 신규 파일 300줄 이하.
-- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`·floor는 코드 정의 필드라 DB 무관.
+- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. 공유 함수 `match_week_activities`(HSR-1 변경 대상)는 유지된다. 호출자 사실(2026-10-11 grep): v2 동기화는 `sync_trigger_service`→`src/web/bg_sync.py:277-290`(4주) — `src/web/` 에 있으나 v2 공용 파일이며 T-01 ①로 매칭 블록을 view 밖 `src/training/match_hooks.py` 로 이관한다. `src/web/app.py:_auto_match_after_sync`(113, 이번·지난 주 2주)는 v1 라우트 `/trigger-sync`(558)·`/trigger-sync-stream`(638)에서만 호출되고 v2 프런트는 이 라우트를 부르지 않는다 → 변경 없음, 라우트 일몰 시 함께 소멸(V1-2). Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`·floor는 코드 정의 필드라 DB 무관.
 
 ## 5. 결정
 - HSR-1~10(연관 PLN-6·PLN-10): 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
@@ -79,4 +80,4 @@
 2. HSR-4 표시 정의와 `non-running-activities.md` 종목 정책의 일치 여부 미확인.
 3. 해소(HSR-9·HSR-10). 남은 확인: 중복 그룹화가 동기화 실행 안에서 끝나는지(차이 계산 시점) — 구현 시 코드 확인.
 4. 해소(HSR-8, 단위·적용 범위). 남은 것: floor 필드명과 각 지표의 구체 값(구현 시 지표별 산정, 사전으로 검토).
-5. V1-1 동기화로 `src/web/app.py:_auto_match_after_sync`(동기화 트리거 라우트 경로) 언급을 v1 로 보고 삭제했다 — 이 경로가 v2 동기화에서도 쓰이는지(T-01 match_hooks 이관 대상 여부) 구현 시 확인.
+5. 해소(5차 동기화, grep): `_auto_match_after_sync` 는 v1 라우트 전용 호출자라 match_hooks 이관 대상 아님(§4 호환성). v2 경로는 `bg_sync.py` 블록만 이관.

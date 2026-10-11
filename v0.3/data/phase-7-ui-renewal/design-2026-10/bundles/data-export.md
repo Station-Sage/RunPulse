@@ -2,12 +2,13 @@
 
 > 근거: decisions-table.md NEW-10·11·12, EXP-1~19(2026-10-11 결정), TXT-1(문구), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
 > 변경 이력: 2026-10-11 3차 동기화 — EXP-18(고정 여유)·EXP-19(삭제 안내 항상 표시) 반영, EXP-7 문구는 TXT-1 로 구현 단계 후보 제시.
+> 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰): §1 v1 활동 CSV 행·§3 `views_export.py` 행을 grep 사실(라우트 전용, 공유 함수 `get_activity_list`, v2 MenuDrawer 링크)로 정정·복원, §6 MenuDrawer 링크 메모(V1-5 BACKLOG 참조).
 
 ## 1. 근본 원인 (현황, 코드로 확인한 것만)
 
 | 경로 | 위치 | 하는 일 | 한계 |
 |------|------|---------|------|
-| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | 일몰 예정(V1-1), 설계 대상 아님 |
+| v1 활동 CSV | `src/web/views_export.py` (`/activities/export.csv`, 99줄) | 활동 목록 CSV 동기 응답 | 라우트 전용 파일(`app.py:33` 만 import). 데이터는 공유 함수 `activity_service.get_activity_list`(v2 `routes_library.py:37` 도 사용, 유지). v2 `MenuDrawer.svelte:47` "CSV 내보내기" 링크가 이 라우트를 가리킴. 라우트 일몰(V1-2) 대상 |
 | v2 빠른 CSV 3종 | `src/services/export_service.py` `quick_export` + `POST /api/v1/data/export` kind=quick_* | 활동·웰니스·부하 CSV 동기 스트림 | from/to 범위만 |
 | v2 아카이브 잡 | 같은 파일 `start_archive`→`_run`→`build_archive` (스레드), 원장 `sync_jobs(service='export')` | `data/users/<uid>/exports/<job>.zip`, 7일 만료(`EXPIRE_DAYS`) | 아래 결함 |
 | 이력·다운로드 | `src/api/routes_data_export.py` `GET /data/exports`, `GET /data/exports/<id>/download` (`send_file`) | 이력·재다운로드 | 반복 다운로드(EXP-9 로 유지), no-store 없음 |
@@ -114,6 +115,7 @@ raw_payloads/<src>.jsonl
 | `frontend/src/lib/components/ExportConfirmDialog.svelte` | 신규 | 질병 포함 생성 전 확인 1회(문구 자리만, EXP-7·TXT-1) | ~60 |
 | `frontend/src/routes/data/export/+page.svelte` | 수정 | 폼·확인 단계 삽입, 공통 오류 컴포넌트, 24시간 만료 안내 | 145→~180 |
 | `frontend/src/lib/types/index.ts` | 수정 | ExportGroup·manifest 타입 | +15 |
+| `src/web/views_export.py` | 유지 | 이번 변경 없음. v2 가 import 하는 함수 없음(grep), 공유 로직(`get_activity_list`)은 이미 `src/services`. 재설계: view 밖으로 이관 후 UI 일몰(이관할 로직 없음 — 라우트만 일몰) | 0 |
 | tests: `test_export_groups.py`, `test_export_archive.py`, `test_export_service.py`(확장), `test_routes_data_export.py`(확장), 프론트 `exportScope.test.ts`, `ExportScopeForm.test.ts`, `ExportConfirmDialog.test.ts` | 신규/수정 | 함수마다 ≥1 | ~40개 |
 | `LATER.md` | 메인 처리 | 전체 import 로드맵 항목 등록(EXP-6) — 이 설계 구현 범위 아님 | — |
 
@@ -141,4 +143,5 @@ EXP-1~19 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 �
 - 질병 별도 동의(NEW-12)의 동의 UI·저장은 adjustment-new-signals.md 소관. 내보내기와는 연동하지 않는다(EXP-17).
 - 전체 import 구현은 LATER(EXP-6). 에피소드 단건 삭제·익명화(NEW-10) 구현도 adjustment-new-signals.md 소관이며 이 설계는 기존 zip 을 건드리지 않는다(EXP-11).
 - `archive_service.py` 의 월별 아카이브 조회는 이름만 유사, 무관.
+- v2 MenuDrawer 의 `/activities/export.csv` 링크는 v1 라우트 일몰 시 끊긴다 — 드로어 내용은 BACKLOG `MENUDRAWER-POST-V1`(V1-5) 소관, 이 설계는 다루지 않는다.
 - 계정 삭제(전체 데이터 삭제) 기능과 "삭제 전 내보내기" 연결은 LATER 후보.

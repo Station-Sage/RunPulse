@@ -2,7 +2,7 @@
 
 - 대상 증상: S-01, S-02, S-03, S-04 (99-summary 항목 5). E-23 은 ERR-7 결정으로 `overlay-common-behavior.md` 로 이관
 - 작성일: 2026-10-10 · 상태: 설계 확정 — ERR-1~7 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(ERR-1~7 결정 반영, "결정 필요" → "결정됨")
+- 변경 이력: 2026-10-11 설계서 동기화(ERR-1~7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-1 정정·V1-2: §5 오류 본문 생성 위치·v1 화면 한 줄 추가)
 - 범위: `frontend/` v2 SPA 만. 서버 API 는 바꾸지 않는다.
 
 ## 1. 근본 원인
@@ -87,7 +87,8 @@ E-23(DemoBanner 시트 Esc)은 오류·재시도와 원인이 다르다. ERR-7 �
 - load 반환 필드 `errorMessage` → `LoadResult` 전환은 해당 라우트의 `+page.svelte` 와 함께 바꿔야 한다. 한 라우트씩 원자적으로 바꾼다.
 - `SyntaxError` 를 직접 잡는 코드가 있다면 동작이 달라진다. 구현 전에 `grep -rn SyntaxError frontend/src` 로 확인한다.
 - `coach/plan/[id]` 보조 블록은 지금 조용히 숨던 실패가 화면에 드러난다(ERR-5 의도된 변화).
-- 서버 오류 본문 형식 `{error:{code,message}}` 에 의존한다(서버 API 변경 없음).
+- 서버 오류 본문 형식 `{error:{code,message}}` 에 의존한다(서버 API 변경 없음). 생성 위치는 v2 `src/api/__init__.py:44`(v2 API, 일몰 대상 아님).
+- 레거시 v1 화면(Flask 템플릿): 공유 로직 없음(이 설계는 `frontend/` 만 변경). 재설계: view 밖으로 이관 후 UI 일몰(V1-2).
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 | | A. 분류 모듈 + ErrorState 확장 + depends/invalidate (채택) | B. load 에서 SvelteKit `error(status)` throw → `+error.svelte` 경계 |

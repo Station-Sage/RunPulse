@@ -84,7 +84,7 @@
   - `check_strava_connection(config)["ok"]`가 False면 `available=False`, `status`는 그 반환값(`"설정 누락"`/`"재연동 필요"`).
   - `ok=True`면 `refresh_token(config)`를 1회 호출. 실패 시 `classify_exception()` 코드가 `auth_expired`면 `available=False, status="auth_expired"`.
   - `fetch()`는 `rate_limiter.py`를 거친다. 실행 중 401이 나오면 `available=False`로 전환. **호출자는 2.2.3 백필뿐**이다.
-- `import_strava_activities(conn, path, ..., config: dict | None = None)`와 `import_strava_archive(...)`에 선택 인자 `config` 추가(연결 상태 판정만, 네트워크는 `refresh_token` 1회 이하). 기본값 None이라 기존 호출자는 수정 없이 같은 오프라인 체인으로 동작. v2 `import_service.apply_import()`만 config를 넘긴다.
+- `import_strava_activities(conn, path, ..., config: dict | None = None)`와 `import_strava_archive(...)`에 선택 인자 `config` 추가(연결 상태 판정만, 네트워크는 `refresh_token` 1회 이하). 기본값 None이라 기존 호출자(CLI `src/import_history.py:343`, 공유 함수 `strava_csv.import_strava_folder`(:471), 이를 부르는 v1 라우트 `views_export_import.py:212`·`views_import.py:241`)는 수정 없이 같은 오프라인 체인으로 동작. v2 `import_service.apply_import()`만 config를 넘긴다.
 - 반환 dict에 `tz_resolved: {"api_payload", "fit_local", "peer_direct", "peer_derived", "neighbor", "fallback"}`(건수), `tz_lookup_status: str`, `tz_peer_conflicts: n`, `tz_backfill_pending: n`(백필 대상 수) 추가. 로그는 `[strava_csv] 시간대 교차소스 N건·차용 K건·폴백 M건 (Strava 연결: {status})` 한 줄(행별 로그 금지).
 
 **연결 무효 시 동작 요약 (TZ-6~9 반영)**: 가져오기는 연결과 무관하게 오프라인 체인으로 끝남 → payload 있는 행 정확 → 다른 소스에 같은 활동 있으면 그 오프셋 → 없으면 같은 날 앞뒤 확인 활동 차용 → 그것도 없으면 KST(`fallback`, '시간대 추정' 표시) → 결과 요약에 건수·연결 상태 → 연결이 유효해지면 2.2.3 백필·자동 재교정이 추정 행을 점진 교정(다른 소스 동기화 뒤에는 연결 없이도 오프라인 단계 재실행, TZ-15).
@@ -101,7 +101,7 @@
 - "다른 시간대에서 한 활동"은 체인 1~3이면 정확, 5a면 대개 정확(이동일 제외), 5b면 KST로 남는다 — 연결 무효 사용자에게 남는 오차는 "같은 날 다른 확인 활동도 없는 Strava 단독 해외 활동"뿐이며 `tz_source`로 식별된다.
 - 교차 소스(체인 3)는 dedup 결과에 **의존하지 않는다**(2.2.2 순환 방지). 교정된 `start_time`으로 dedup이 다시 판정되는 것은 한 방향(시간대 → dedup)뿐이다.
 
-**호환성**: 레거시 v1 가져오기 경로는 일몰 예정(V1-1). `_LOCAL_UTC_OFFSET` 상수는 5b 값(+9)으로 남기고 모듈 주석의 "dedup 기준" 설명을 "체인 5b 최종 폴백"으로 바꾼다.
+**호환성**: config 없이 부르는 호출자(위 CLI·`import_strava_folder`)는 API 조회 없이 동작하고, `peers`는 내부에서 기본 생성하므로 교차 소스 교정(체인 3)은 함께 받는다(외부 호출 없음). 공유 함수 `import_strava_folder`·CLI 는 유지되고, 이를 부르는 v1 라우트(`/import-export`, `views_import.py`)는 라우트 일몰(V1-2) 대상이라 수정하지 않는다. `_LOCAL_UTC_OFFSET` 상수는 5b 값(+9)으로 남기고 모듈 주석의 "dedup 기준" 설명을 "체인 5b 최종 폴백"으로 바꾼다.
 
 ### 2.2.2 교차 소스 시간대 참조 (TZ-6 결정 반영)
 
@@ -179,7 +179,7 @@
 ### 2.3 프론트(v2) — 표시 함수 단일화
 - `format.ts`에 `formatInstant(iso, style: 'stamp'|'time'|'date')` 추가: `parseDbTimestamp()` 재사용 후 `Intl.DateTimeFormat`(시간대 = 브라우저 기본, TZ-1)으로 포맷. `answerEvidence.ts`의 `stamp()`는 이를 호출하도록 교체하고, 문구는 현행 `M/D HH:mm 계산` 유지 + 상대시각 병기(`· 3시간 전`, TZ-4) — `formatRelative(iso)`를 `format.ts`에 함께 둔다.
 - 활동 시각 표시 함수(`formatDateShort`, `formatDate`)는 동작 유지, JSDoc에 "wall-clock 전용, instant 금지" 명시. 사용처 0인 `formatDate()`는 제거 후보(범위 밖 메모).
-- 2.1 완료 후에도 `parseDbTimestamp()`의 무표기 처리 분기는 v1·구 응답 호환을 위해 유지.
+- 2.1 완료 후에도 `parseDbTimestamp()`의 무표기 처리 분기는 유지. 사유: 2.1 은 `computed_at` 만 먼저 바꾸고 다른 `*_at` 은 순차 적용이라, 아직 무표기 SQLite UTC 를 내보내는 `/api/v1` 응답이 남는다(예: `coach_service.py:46` `last_message_at` → `coach/+page.svelte` `formatRelativeTime`). `parseDbTimestamp` 는 v2 SPA(`format.ts:157`) 코드라 레거시 v1 화면과는 무관(2026-10-11 grep).
 
 ### 2.4 '오늘' 기준일 헬퍼 (TZ-1 추가 결정 반영)
 
@@ -230,7 +230,7 @@
 | 신규 | `src/utils/reference_day.py` | TZ-1 추가 결정: `reference_offset`(최근 활동 → 오프셋 없으면 이전 활동으로 거슬러 첫 유효 오프셋, TZ-18)·`reference_today`·`reference_today_info`(2.4) | ~80 |
 | 신규 | `tests/test_reference_day.py` | 활동 없음 → 서버 로컬, 최근 활동 +7·UTC 날짜 경계, Strava 텍스트 오프셋, CSV 행 오프셋, 최근 활동이 `fallback`(+9)·그 이전 확인 활동 +7 → +9 사용(TZ-17), 마지막 활동이 1년 전이어도 그 오프셋 사용(기간 제한 없음), 최근 활동 오프셋 없음·그 이전 활동 +7 → +7·근거 `activity_id`=이전 활동(TZ-18), 활동은 있으나 전부 오프셋 없음 → 서버 로컬, `now_utc` 주입 결정성 | ~95 |
 
-레거시 v1 화면(`src/web/`): 일몰 예정(V1-1).
+레거시 v1 화면(`src/web/` 7개 파일의 `[:10]` 절단): v2 가 import 하는 부분 없음(grep). 재설계: view 밖으로 이관 후 UI 일몰(V1-2).
 
 ## 4. 단계와 검증
 
@@ -282,4 +282,4 @@
 - TZ-1 추가 결정 "최근 활동의 현지 날짜(시간대)"를 2.4는 "최근 활동의 시간대를 현재 순시에 적용한 날짜"로 해석했다(활동 날짜 자체를 오늘로 쓰는 해석이 아님) — 확인 필요.
 - 해소(TZ-17·TZ-18): 추정 시간대 행 포함, 오래된 활동 기한 없음, 오프셋 없는 최근 활동은 이전 활동으로 거슬러 첫 유효 오프셋(2.4).
 - 체크인 `user_inputs.input_date` 등 '오늘'로 저장되는 기존 날짜 값이 같은 헬퍼를 쓸지(TZ-1 추가 결정의 열거 대상 밖)는 정해지지 않았다.
-- (V1-1) 2.3 `parseDbTimestamp()` 무표기 분기 유지 사유 "v1·구 응답 호환"의 'v1'이 레거시 v1 화면인지 `/api/v1` 구 응답 형식인지 불분명해 원문 유지했다.
+- 해소(5차 동기화, grep): 2.3 "v1·구 응답 호환"의 'v1'은 레거시 화면이 아니라 무표기 시각을 내보내는 `/api/v1` 응답이다 — 2.3 문구 정정.

@@ -2,7 +2,7 @@
 
 - 대상 증상: E-08, C-03, S-07, S-08, S-10, D-25 (99-summary 항목 4), E-23 (ERR-7 결정으로 이 문서 소관)
 - 상태: 설계 확정 — OVL-1~7 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(OVL-1~7·ERR-7 결정 반영, "결정 필요" → "결정됨")
+- 변경 이력: 2026-10-11 설계서 동기화(OVL-1~7·ERR-7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-2·V1-5: §5 MenuDrawer 를 BACKLOG `MENUDRAWER-POST-V1` 참조로 정리, §9 해소)
 - 범위: `frontend/src/lib/components/` 의 드로어·시트·다이얼로그·인라인 확인 창 (v2 전용)
 
 ## 1. 근본 원인
@@ -94,7 +94,7 @@ ConnectPanel(D-25, S-10), CalendarFeedCard, McpTokenCard 의 확인 창은 문�
 - **뒤로가기 동작 변경(OVL-4)**: 시트가 열린 상태의 뒤로가기는 지금은 페이지를 떠나지만, 변경 후에는 시트만 닫는다. 시트를 열 때마다 history 항목이 하나 생긴다.
 - **알려진 한계(결정으로 수용)**: `inert` 를 쓰지 않으므로(OVL-3) 일부 스크린리더 가상 커서가 배경에 접근할 수 있다. `overflow:hidden` 만 쓰므로(OVL-6) iOS Safari 에서 배경 스크롤이 샐 수 있다.
 - **URL 계약 불변**: `?sheet=sync` 와 드릴 스택의 쿼리 형식은 바뀌지 않는다.
-- **MenuDrawer**: 수정은 action 부착(§3)만. 드로어 안 v1 링크·"v1로 돌아가기"는 일몰 예정(V1-1).
+- **MenuDrawer**: 수정은 action 부착(§3)만. 드로어 내용은 대부분 v1 라우트 링크(`data-sveltekit-reload`, `/activities/export.csv` 포함)와 "v1로 돌아가기"(`ui_default` 전환)라 v1 라우트 일몰(V1-2) 시 구성·존속이 바뀐다. 일몰 후 드로어 내용은 BACKLOG `MENUDRAWER-POST-V1`(V1-5) 소관이며 이 설계는 다루지 않는다.
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 
@@ -130,4 +130,4 @@ ConnectPanel(D-25, S-10), CalendarFeedCard, McpTokenCard 의 확인 창은 문�
 - OVL-4 결정에 "드릴 스택 정책 정렬은 구현 시"가 붙어 있어, 드릴 스택(현행 방식)에도 push 를 적용할지는 이 문서에서 확정하지 않았다.
 - OVL-1(group + `aria-live`)과 OVL-2(열릴 때 "취소"로 포커스 이동)를 함께 쓰면 스크린리더가 확인 문구와 버튼 이름을 연달아 두 번 읽을 수 있다. 실기기 스크린리더 점검으로 확인이 필요하다.
 - OVL-7 검사 위치 `tests/a11yStatic.test.mjs` 는 `accessibility-common.md` 의 신규 파일이다. 두 설계의 구현 순서에 따라 먼저 만드는 쪽이 파일을 생성한다.
-- (V1-1 동기화) MenuDrawer 내용 대부분이 v1 링크라 일몰 시 드로어 구성·존속이 바뀔 수 있다. 일몰 후 드로어 내용 정의는 어느 설계 소관인지 미정(이 문서는 action 부착만 유지).
+- 해소(V1-5): 일몰 후 MenuDrawer 내용 정의는 BACKLOG `MENUDRAWER-POST-V1` 별도 항목(§5).

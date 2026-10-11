@@ -7,7 +7,8 @@
 - 변경 이력: 2026-10-11 2차 동기화 — PLN-11(workout mask 우선)·PLN-12(mask NULL 이면 모든 생성 경로에서 요일 입력 전 생성 보류)·PLN-13(최소 휴식일 하한 없음) 반영, §8 해소 항목 축약
 - 변경 이력: 2026-10-11 3차 동기화 — PLN-14(휴식 0~1일 저장 전 1회 안내)·PLN-15(보류 중 기존 행 유지 + '요일 입력 전까지 갱신 안 됨' 표시)·PLN-16(코치 화면 배너, v1 범위 제외)·PLN-17(요일 입력 전까지 주간 적응 정지 + 안내) 반영. v1 변경 파일·단계 제거
 - 변경 이력: 2026-10-11 4차 동기화 — V1-1(v1 화면·경로는 v2 완료 시 일몰, 설계·검증·호환성에서 고려하지 않음): 레거시 v1 UI 호출·호환 서술 제거. 'v1 템플릿/v1 폴백/v1 목표'(plan_weeks NULL·rules_version<2 데이터·알고리즘 용어)는 유지
-- 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면·경로는 일몰 예정(V1-1)이라 범위 밖
+- 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰, 공유 파일·함수 유지): §2 PLN-12 에 v1 위저드 mask NULL 위험을 '라우트 일몰 시 소멸하는 위험'으로 한 줄 복원(grep 재확인)
+- 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면·라우트는 일몰 예정(V1-1·V1-2, UI·라우트 일몰)이라 범위 밖. 공유 함수(`generate_weekly_plan`, `match_week_activities` 등)는 유지 대상
 - 참조만: 입력·Origin 검증 → `server-input-origin-validation.md`, 오류·재시도 → `error-retry-common.md`, 접근성 → 별도 접근성 설계
 
 ## 1. 근본 원인
@@ -39,6 +40,7 @@
 - 최소 휴식일(PLN-13): **하한 없이 사용자 지정 존중**. 7요일 모두 지정해도 생성·`week_violations` 가 막거나 교정하지 않으며, G1 게이트(`plan_gates.py:71`)는 운영 경로에 재사용하지 않는다(`plan_backtest` 전용 유지). 휴식 0~1일 지정 시(PLN-14) **저장 전 1회 안내** — 요일 선택 단계에서 지정 요일이 6~7개면 저장(생성 요청) 전에 부상 위험 안내를 한 번 보여 주고, 확인 시 그대로 저장한다(차단 아님). 판정은 프런트 순수 함수(지정 요일 수 ≥ 6)로 두고 서버 계약은 바꾸지 않는다. 문구는 구현 단계에서 후보 제시.
 - mask NULL 인 생성 경로(PLN-12): **생성 전 요일 입력 요구**를 v2 `POST /coach/plan` 뿐 아니라 `generate_weekly_plan` 을 부르는 모든 경로에 적용한다. 확인 지점은 `planner_store.resolve_run_weekdays` 한 곳 — mask NULL 이면 `WeekdaysRequired` 를 올린다(요일 무시 폴백·과거 요일 재사용 없음). 호출 경로별 처리 수준:
   - 사용자 요청 경로(v2 `POST /coach/plan`·`regen-preview`, CLI `src/plan.py:162`): 생성하지 않고 요일 입력을 요구한다(v2 는 400 + 요일 선택 단계, CLI 는 안내 메시지).
+  - v1 라우트(라우트 일몰 시 소멸하는 위험, V1-2): `/training/wizard/complete`(`views_training_wizard.py:351·410`)·`/training/generate`(`views_training.py:239`)는 요일 없이 `generate_weekly_plan` 을 호출하고, 위저드는 생성 전에 미래 planner 행 DELETE·`add_goal` 을 커밋(`:331-334·366·381`)하므로 mask NULL 이면 `WeekdaysRequired` 로 생성이 막혀 플랜 행이 빈다(`except Exception` 으로 500 은 없음). 라우트 일몰 전까지 존재(2026-10-11 grep 재확인).
   - 자동 경로(`weekly_adapt_job.run`·`rematch.py:82`·`plan_replan_service.py:128`): **안전한 보류** — 해당 실행에서 생성·저장하지 않고 기존 `planned_workouts` 행을 그대로 둔 채(PLN-15) 사유를 로그에 남긴다(`weekly_adapt_job` 은 기존 rules_version<2 분기처럼 0 반환). 기존 사용자(goal 1 등)도 요일 입력 전까지 **주간 적응을 정지**한다(PLN-17, mask 추론·마지막 규칙 1회 계속 없음).
   - 보류 표시·안내(PLN-15·16·17): 플랜 읽기 응답(`plan_service`·`/weeks`)에 `weekdays_required: true`(mask NULL 이고 active goal 존재)를 싣고, v2 플랜 화면은 기존 행을 그대로 보여 주며 '요일 입력 전까지 갱신 안 됨' 표시를 단다. 안내 채널은 **코치 화면 배너**(요일 입력으로 연결, 주간 적응 정지 사실 포함). 배너 외 알림 채널은 두지 않는다. 문구는 구현 단계에서 후보 제시.
 - 기존 v1 목표(PLN-3, goal 1 등 — rules_version<2 또는 plan_weeks NULL 인 active goal): **즉시 재생성을 제안**하되 자동 재생성은 하지 않는다. 플랜 화면에 제안 배너 → `GET /coach/plan/<id>/regen-preview`(저장 없이 v2 초안 주차 요약 + 현행 대비) 미리보기 → 사용자 확인 시 PLN-1 교체 흐름(이전 플랜 cancelled·행 보존·복구 가능)으로 재생성. mask 가 NULL 이면 미리보기 전에 요일 선택을 받는다. 마이그레이션·동기화는 기존 목표를 건드리지 않는다. 테이퍼 볼륨·마지막 롱런 시점, 컨디션 기반 변경(adjuster·weekly_adapt, ADR-035 확인 후)은 이 설계 범위 밖.
