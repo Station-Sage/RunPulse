@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW).
-- 총 136건 (결정 101건 / 부분 결정 2건 / 미결정 33건).
+- 총 136건 (결정 105건 / 부분 결정 2건 / 미결정 29건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -138,10 +138,10 @@
 | ADJ-13 | 조정 제안 근거 신호 | v3 임계값·결합 | v3 임계값·결합(신규): CRS level≤1, ACWR 1.5/1.8, 피로 ≥4 제안 값 확정 + OR(단일 신호) vs AND(2개 합의). **결정 2026-10-11: 혼합: 통증·체크인 통증은 단독(OR), CRS·ACWR·체크인 피로는 2개 합의(AND). 임계값은 제안 값(CRS level≤1, ACWR 1.5/1.8, 피로≥4) 유지 후 ADJ-14 빈도 관찰로 조정** |
 | ADJ-14 | 조정 제안 근거 신호 | 빈도 경보 기준 | 빈도 경보 기준(신규): 주 3회 초과 2주 연속·수락률 급락 기준값, 로그만 vs 자동 롤백 플래그(`adjuster_version` 설정). | 미결정 |
 | ADJ-15 | 조정 제안 근거 신호 | 주 트리거 선정 | 주 트리거 선정(신규): §3.8 (a) 안전 고정 순서 / (b) 강도 기여 최대 / (c) 사용자 입력 우선. **결정 2026-10-11: (a) 안전 우선 고정 순서 pain > checkin(통증·피로) > crs > acwr > readiness (동률·미판정은 readiness)** |
-| ADJ-16 | 조정 제안 근거 신호 | 판별 불가 레거시 행 | 판별 불가 레거시 행(신규): (a) `readiness` 간주 / (b) `crs` 유지(레거시 의미) — (b)면 CHECK에 'crs' 의미가 둘로 갈림. | 미결정 |
-| NEW-1 | 조정 신호 신규 수집 | 저장 모델 | 저장 모델: (a) 신규 `context_episodes`·`race_calendar`(추천) — 기간 상태·자동/수동·확인 상태 표현, 가산 마이그레이션 / (b) `user_inputs` 확장(새 `input_type` + `payload_json` 컬럼, 우선순위는 `planned_workouts.priority` 컬럼) — 테이블 수 적음, 하루 단위라 기간·종료 표현 불가·재계획 시 race 행 재생성으로 우선순위 유실 위험. | 미결정 |
-| NEW-2 | 조정 신호 신규 수집 | v37 source CHECK 사전 포함 | v37 source CHECK 사전 포함: (a) `illness`(+`travel`·`altitude`) 미리 포함 — 이후 재생성 없음, 미사용 값 존재 / (b) 미포함 — NEW-3 에서 트리거로 정하면 v39 재생성(백업 필요) 추가. | 미결정 |
-| NEW-3 | 조정 신호 신규 수집 | 신규 신호의 trigger 여부 | 신규 신호의 trigger 여부(ADJ-13 결합 규칙과의 관계): (a) 전부 support/hold/context 만(트리거 집합 불변, 빈도 변화 없음) / (b) 질병만 통증처럼 단독 OR 트리거(안전 방향, 자가 보고 신뢰) / (c) 질병·여행·고도를 AND 그룹(CRS·ACWR·피로)에 편입. (b)(c)는 `primary_trigger` 순서(ADJ-15)에 위치 결정 필요(예: pain > illness > checkin …). | 미결정 |
+| ADJ-16 | 조정 제안 근거 신호 | 판별 불가 레거시 행 | 판별 불가 레거시 행(신규): (a) `readiness` 간주 / (b) `crs` 유지(레거시 의미) — (b)면 CHECK에 'crs' 의미가 둘로 갈림. **결정 2026-10-11: (a) 판별 불가 기존 'crs' 행은 v37 마이그레이션에서 source 값을 'readiness' 로 UPDATE(dry-run 으로 건수 확인, 백업 포함)** |
+| NEW-1 | 조정 신호 신규 수집 | 저장 모델 | 저장 모델: (a) 신규 `context_episodes`·`race_calendar`(추천) — 기간 상태·자동/수동·확인 상태 표현, 가산 마이그레이션 / (b) `user_inputs` 확장(새 `input_type` + `payload_json` 컬럼, 우선순위는 `planned_workouts.priority` 컬럼) — 테이블 수 적음, 하루 단위라 기간·종료 표현 불가·재계획 시 race 행 재생성으로 우선순위 유실 위험. **결정 2026-10-11: (a) 신규 context_episodes·race_calendar 테이블(v38, 가산 마이그레이션)** |
+| NEW-2 | 조정 신호 신규 수집 | v37 source CHECK 사전 포함 | v37 source CHECK 사전 포함: (a) `illness`(+`travel`·`altitude`) 미리 포함 — 이후 재생성 없음, 미사용 값 존재 / (b) 미포함 — NEW-3 에서 트리거로 정하면 v39 재생성(백업 필요) 추가. **결정 2026-10-11: (a) v37 source CHECK 에 illness(+travel·altitude) 미리 포함해 테이블 재생성을 한 번으로** |
+| NEW-3 | 조정 신호 신규 수집 | 신규 신호의 trigger 여부 | 신규 신호의 trigger 여부(ADJ-13 결합 규칙과의 관계): (a) 전부 support/hold/context 만(트리거 집합 불변, 빈도 변화 없음) / (b) 질병만 통증처럼 단독 OR 트리거(안전 방향, 자가 보고 신뢰) / (c) 질병·여행·고도를 AND 그룹(CRS·ACWR·피로)에 편입. (b)(c)는 `primary_trigger` 순서(ADJ-15)에 위치 결정 필요(예: pain > illness > checkin …). **결정 2026-10-11: (b) 질병만 통증처럼 단독 OR 트리거. 여행·고도는 support/context. primary_trigger 순서에 illness 추가(예: pain > illness > checkin > crs …, 확정은 설계 반영)** |
 | NEW-4 | 조정 신호 신규 수집 | B/C 미선택 시 | B/C 미선택 시: (a) `unknown` 저장(창 길이 B/C 절반 미적용) / (b) C 로 간주 / (c) 우선순위 필수 입력. | 미결정 |
 | NEW-5 | 조정 신호 신규 수집 | 대회 추가의 계획 반영 | 대회 추가의 계획 반영: (a) 캘린더만(조정 제안이 hold/support) / (b) 그날 계획 행을 race 로 바꾸는 제안 1건 생성(사용자 수락) / (c) `b_race_week()` 로 주간 재배치 제안 — 계획 엔진 범위, system-architect 협의. | 미결정 |
 | NEW-6 | 조정 신호 신규 수집 | 창 길이·임계 | 창 길이·임계: 시차 임계(3h/4h), 도착 후 창(시차 h당 1일 / 고정 3일), 귀국 역방향 창 적용 여부, 고도 임계(1,500/2,000m)·연속일 조건(1일/2일), 고도 적응 창(3/7일). | 미결정 |
