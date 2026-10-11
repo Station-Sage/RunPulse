@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 329건 (결정 299건 / 부분 결정 4건 / 미결정 26건).
+- 총 329건 (결정 303건 / 부분 결정 4건 / 미결정 22건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -302,7 +302,7 @@
 | PLN-31 | 훈련 계획 | PLN-28 로 completed 목표를 남길 때 v39 백필·계획 행·session_outcomes 처리(본문은 'goals 전부 삭제 → v39 no-op' 가정) | (a) completed 목표는 유지하되 그 목표의 계획 행·session_outcomes 는 삭제(PLN-24 와 일관, 대회 행만 이력으로 남음) / (b) completed 목표의 계획 행·outcomes 까지 보존(이력 유지, PLN-24 범위 변경) **결정 2026-10-11: D안 채택으로 해소: planned_workouts.goal_id 는 NULL 허용 컬럼으로만 추가(백필·CHECK·재생성 없음), 기존 플랜·goals·session_outcomes·plan_adjustments·plan_replans 는 삭제하지 않고 보존. D안 충돌 검토 결과(워터마크·단일 진입점·PLN-1/33/8 영향)는 별도 결정으로 확정****재결정 2026-10-11: D안 철회, E안 채택 — planned_workouts 에 goal_id 컬럼 + CHECK(source<>'planner' OR goal_id IS NOT NULL), 외부(garmin·intervals)·v1 manual·imported 행은 NULL 유지. 옛 목표·레거시 planner 행은 사용자가 마이그레이션 전에 DB 에서 먼저 삭제한다(삭제 선행이 CHECK 추가의 전제).** |
 | ADJ-19 | 조정 신호 | v37 에서 source 를 나눌 때 ux_plan_adj_live (workout_id, date, source) 유니크 인덱스 충돌 | (a) 자동 source 를 'auto' 로 묶는 표현식 인덱스 / (b) 서비스가 날짜당 live 자동 행 1개 유지 / (c) 인덱스에서 source 제외 **결정 2026-10-11: (a) 자동 source 를 'auto' 로 묶는 표현식 유니크 인덱스** |
 | ADJ-20 | 조정 신호 | adjuster_v3 체크인 피로 임계(입력은 1~10, 본문은 1~5 가정 '피로≥4') | (a) 피로≥7 / (b) 피로≥8 / (c) 1~10 을 1~5 로 정규화 후 ≥4. 확정은 백테스트 후 **결정 2026-10-11: (a) 체크인 피로 임계 ≥7(1~10 스케일, 백테스트 후 재조정)** |
-| ADJ-21 | 조정 신호 | 통증 OR 트리거 조건('비어있지 않음'이 'none' 도 통과) | (a) moderate 이상 / (b) mild 이상 / (c) 사용자 설정 | 미결정 |
+| ADJ-21 | 조정 신호 | 통증 OR 트리거 조건('비어있지 않음'이 'none' 도 통과) | (a) moderate 이상 / (b) mild 이상 / (c) 사용자 설정 **결정 2026-10-11: (a) 통증 OR 트리거는 moderate 이상(확정은 백테스트 후 재조정)** |
 | ADJ-22 | 조정 신호 | crs.evaluate() 복원(BACKLOG CRS-EVALUATE-MISSING)을 맡을 위치 | (a) 별도 선행 커밋(replanner 테스트 기대값 갱신) / (b) FRS 범위에 포함 **결정 2026-10-11: (a) crs.evaluate() 복원은 별도 선행 커밋(replanner 테스트 기대값 갱신)** |
 | RC-47 | 대회 캘린더 | RC-46 이후 재반영 세부: 지난 날짜 행, 0행 | (a) 지난 날짜 행 제외, 0행은 RC-42 처리(adapt·stale+안내) / (b) 지난 날짜 행 포함 / (c) 0행은 성공으로 처리 **결정 2026-10-11: (a) 재반영에서 지난 날짜 행은 제외, 0행은 RC-42 처리(adapt·stale + 안내)** |
 | TZ-19 | 시간대 표기 | TZ-3 일괄 교정 범위(부분 결정 확정) | (a) dry-run 결과를 보고 Strava CSV 행부터 적용 / (b) 전체 일괄 / (c) 신규 수집분만 **결정 2026-10-11: (c) TZ-3 기존 start_time 행 교정은 하지 않고 신규 수집분에만 적용(dry-run 은 영향 확인용으로 유지)** |
@@ -321,9 +321,9 @@
 | TZ-22 | 시간대 표기 | TZ-4 상대시각('3시간 전') 갱신 주기 | (a) 렌더 시 1회 / (b) 1분마다 갱신 / (c) 갱신하지 않음 | 미결정 |
 | HSR-11 | 고심각도 잔여 | HSR-1 '같은 날 후보 1개'의 기준 | (a) 계획 행 기준 활동 수 / (b) 활동 기준 계획 행 수 / (c) 둘 다 만족 | 미결정 |
 | HSR-12 | 고심각도 잔여 | 러닝 수 기준 통일(sync_state_service.py:183 은 LIKE 사용; HSR D-03 은 activity_counts 로, NRA §9 는 sync_state 를 이관 대상 아님으로 봐 정의가 둘) | (a) family_clause 로 통일하고 activity_counts 헬퍼로 일원화 / (b) 현행 LIKE 유지 / (c) NRA §9 를 HSR 에 맞춰 이관 대상에 포함 | 미결정 |
-| PLN-32 | 훈련 계획 | PLN-5 부분 첫 주와 v2 주 단위 로직(anchor_monday, schedule_for_goal 주차·phase, 주간 볼륨 목표) | (a) 첫 주를 부분 주로 두고 주간 볼륨 목표를 일수 비례 축소 / (b) 첫 주 건너뛰고 다음 월요일부터 시작 / (c) 생성일부터 7일을 첫 주로 | 미결정 |
-| PLN-33 | 훈련 계획 | planner 이외 읽기 경로(matcher, week_compliance, calendar_feed 등)의 goal_id 필터 적용 범위 | (a) planner 행에만 goal_id 필터(외부 행은 날짜 기준 그대로) / (b) 모든 경로에 필터 / (c) 읽기 경로 목록화 후 구현 중 판단 | 미결정 |
-| PLN-34 | 훈련 계획 | '수락된 조정 행' 식별 방법(planned_workouts 에 식별 컬럼 없음) | (a) plan_adjustments 조인으로 판정 / (b) planned_workouts 에 컬럼 추가 / (c) source 값 규칙으로 판정 | 미결정 |
+| PLN-32 | 훈련 계획 | PLN-5 부분 첫 주와 v2 주 단위 로직(anchor_monday, schedule_for_goal 주차·phase, 주간 볼륨 목표) | (a) 첫 주를 부분 주로 두고 주간 볼륨 목표를 일수 비례 축소 / (b) 첫 주 건너뛰고 다음 월요일부터 시작 / (c) 생성일부터 7일을 첫 주로 **결정 2026-10-11: (a) 첫 주는 부분 주로 두고 주간 볼륨 목표를 일수 비례로 축소하되, 그 주의 사용자 러닝 기록(거리·세션 종류·대회 등)을 참고해 조정** |
+| PLN-33 | 훈련 계획 | planner 이외 읽기 경로(matcher, week_compliance, calendar_feed 등)의 goal_id 필터 적용 범위 | (a) planner 행에만 goal_id 필터(외부 행은 날짜 기준 그대로) / (b) 모든 경로에 필터 / (c) 읽기 경로 목록화 후 구현 중 판단 **결정 2026-10-11: (a) goal_id 필터는 planner 행이 여러 목표에 겹칠 수 있는 경로(종료·취소 목표 플랜이 남는 경우)에만 'goal_id=? OR source<>planner' 로 적용하고 나머지 날짜 기반 읽기는 현행 유지** |
+| PLN-34 | 훈련 계획 | '수락된 조정 행' 식별 방법(planned_workouts 에 식별 컬럼 없음) | (a) plan_adjustments 조인으로 판정 / (b) planned_workouts 에 컬럼 추가 / (c) source 값 규칙으로 판정 **결정 2026-10-11: (b) '수락된 조정 행' 식별용 표시 컬럼을 planned_workouts 에 추가(v40 DDL, plan_adjustments 와 어긋나지 않도록 동기화 규칙을 설계에서 정의)** |
 | ADJ-23 | 조정 신호 | 수락률 '급락' 수치와 adjuster_version 저장 위치 | (a) 최근 N건 수락률이 이전 대비 절반 미만 / (b) 고정 임계(예 30%) / (c) 사용자 설정; 저장 위치는 설정 저장소 키 | 미결정 |
 | NEW-40 | 신규 신호 | /api/context-episodes 경로가 /api/v1 밖이라 엔벨로프·오류 처리 적용 여부 불명 | (a) /api/v1/context-episodes 로 이전 / (b) 현 경로 유지하고 동일 엔벨로프 적용 / (c) 구현 중 판단 | 미결정 |
 | RC-48 | 대회 캘린더 | RC-13 미리보기를 캘린더 시트(A 날짜·거리 수정)에도 적용 | (a) 적용 / (b) 목표 화면만 | 미결정 |
