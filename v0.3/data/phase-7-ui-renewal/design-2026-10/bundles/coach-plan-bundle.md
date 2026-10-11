@@ -1,6 +1,6 @@
 # 설계: 훈련 계획 묶음 (P-01~P-25)
 
-- 대상: `ux-review-2026-10/05-coach-plan.md` P-01~P-25 · 작성일 2026-10-11 · 상태: 결정 확정(2026-10-11, PLN-1~19), 구현 전 — 실데이터 확인·후속 확인 항목 남음(§5, §8)
+- 대상: `ux-review-2026-10/05-coach-plan.md` P-01~P-25 · 작성일 2026-10-11 · 상태: 결정 확정(2026-10-11, PLN-1~23·V1-13), 구현 전 — 실데이터 확인·후속 확인 항목 남음(§5, §8)
 - 변경 이력: 2026-10-11 원인 검증 반영 — P-06(매칭 비율 상한·판정 순서·_effective 순위), P-08(v1 폴백·운영 경로 휴식 보장 부재) 원인 확정 및 실데이터 확인 항목 추가
 - 변경 이력: 2026-10-11 설계서 동기화 — `decisions-table.md` PLN-1~10 결정을 본문(설계안·변경 파일·단계·검증·호환성)에 반영, HSR-1 과의 단일 결정 관계 반영
 - 변경 이력: 2026-10-11 PLN-3 보강 반영 — 지정 요일 저장 `user_training_prefs.workout_weekdays_mask`(NULL=미지정), 기존 v1 목표 즉시 재생성 제안(미리보기·확인, 자동 재생성 아님). 결정 섹션 축약
@@ -9,6 +9,7 @@
 - 변경 이력: 2026-10-11 4차 동기화 — V1-1(v1 화면·경로는 v2 완료 시 일몰, 설계·검증·호환성에서 고려하지 않음): 레거시 v1 UI 호출·호환 서술 제거. 'v1 템플릿/v1 폴백/v1 목표'(plan_weeks NULL·rules_version<2 데이터·알고리즘 용어)는 유지
 - 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰, 공유 파일·함수 유지): §2 PLN-12 에 v1 위저드 mask NULL 위험을 '라우트 일몰 시 소멸하는 위험'으로 한 줄 복원(grep 재확인)
 - 변경 이력: 2026-10-11 6차 동기화 — PLN-18(백테스트 `plan_backtest*` 입력에 요일 mask 지정: §2.1·§4·§5), PLN-19(`planned_workouts.goal_id` 이번 작업에서 NOT NULL 승격, 백필 완료 후: §2.2 마이그레이션 순서·NULL 잔존 처리·INSERT 경로 grep, §4·§5·호환성), V1-2 정합 재확인(v1 라우트의 INSERT 경로는 라우트 일몰 시 소멸, 공유 함수 `save_weekly_plan`·`replace_range` 는 유지)
+- 변경 이력: 2026-10-11 7차 동기화 — PLN-23(기존 훈련 플랜 삭제 허용, 기존 플랜용 마이그레이션·미티게이션 코드 미작성): goal_id 백필·dry-run 분포·고아/외부/v1 행 귀속·NULL 잔존 중단·옛 스냅샷 goal_id 보충·기존 v1 목표 재생성 제안(`regen-preview`)·보류 중 기존 행 유지 표시(`weekdays_required`)·코치 배너·기존 사용자 주간 적응 정지 안내 삭제. PLN-19 재결정·PLN-20(goal_id NOT NULL 을 planner 행 한정 CHECK 로, 외부·v1 행 NULL 유지)·PLN-21 해소·PLN-22(이력 시나리오도 실제 mask 필수)·V1-13(v1 보호·호환 서술 제거) 반영. v40·v41 병합 제안(§8-10), 삭제 범위 사실 정리(§8-11)
 - 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면·라우트는 일몰 예정(V1-1·V1-2, UI·라우트 일몰)이라 범위 밖. 공유 함수(`generate_weekly_plan`, `match_week_activities` 등)는 유지 대상
 - 참조만: 입력·Origin 검증 → `server-input-origin-validation.md`, 오류·재시도 → `error-retry-common.md`, 접근성 → 별도 접근성 설계
 
@@ -40,34 +41,35 @@
 - 두 mask 우선순위(PLN-11): `workout_weekdays_mask` 와 `rest_weekdays_mask` 가 같은 요일에서 모순되면 **workout 우선** — 지정 운동 요일은 rest mask 와 무관하게 러닝 요일로 쓴다. 저장 시 모순을 거부하지 않는다(입력 검증 없음). `run_weekdays` 산출을 `planner_store.resolve_run_weekdays(prefs)` 한 곳에 두어 v2·`finalize_week`·`week_violations` 가 같은 값을 쓴다.
 - 최소 휴식일(PLN-13): **하한 없이 사용자 지정 존중**. 7요일 모두 지정해도 생성·`week_violations` 가 막거나 교정하지 않으며, G1 게이트(`plan_gates.py:71`)는 운영 경로에 재사용하지 않는다(`plan_backtest` 전용 유지). 휴식 0~1일 지정 시(PLN-14) **저장 전 1회 안내** — 요일 선택 단계에서 지정 요일이 6~7개면 저장(생성 요청) 전에 부상 위험 안내를 한 번 보여 주고, 확인 시 그대로 저장한다(차단 아님). 판정은 프런트 순수 함수(지정 요일 수 ≥ 6)로 두고 서버 계약은 바꾸지 않는다. 문구는 구현 단계에서 후보 제시.
 - mask NULL 인 생성 경로(PLN-12): **생성 전 요일 입력 요구**를 v2 `POST /coach/plan` 뿐 아니라 `generate_weekly_plan` 을 부르는 모든 경로에 적용한다. 확인 지점은 `planner_store.resolve_run_weekdays` 한 곳 — mask NULL 이면 `WeekdaysRequired` 를 올린다(요일 무시 폴백·과거 요일 재사용 없음). 호출 경로별 처리 수준:
-  - 사용자 요청 경로(v2 `POST /coach/plan`·`regen-preview`, CLI `src/plan.py:162`): 생성하지 않고 요일 입력을 요구한다(v2 는 400 + 요일 선택 단계, CLI 는 안내 메시지).
-  - v1 라우트(라우트 일몰 시 소멸하는 위험, V1-2): `/training/wizard/complete`(`views_training_wizard.py:351·410`)·`/training/generate`(`views_training.py:239`)는 요일 없이 `generate_weekly_plan` 을 호출하고, 위저드는 생성 전에 미래 planner 행 DELETE·`add_goal` 을 커밋(`:331-334·366·381`)하므로 mask NULL 이면 `WeekdaysRequired` 로 생성이 막혀 플랜 행이 빈다(`except Exception` 으로 500 은 없음). 라우트 일몰 전까지 존재(2026-10-11 grep 재확인).
-  - 자동 경로(`weekly_adapt_job.run`·`rematch.py:82`·`plan_replan_service.py:128`): **안전한 보류** — 해당 실행에서 생성·저장하지 않고 기존 `planned_workouts` 행을 그대로 둔 채(PLN-15) 사유를 로그에 남긴다(`weekly_adapt_job` 은 기존 rules_version<2 분기처럼 0 반환). 기존 사용자(goal 1 등)도 요일 입력 전까지 **주간 적응을 정지**한다(PLN-17, mask 추론·마지막 규칙 1회 계속 없음).
-  - 백테스트 경로(PLN-18 b): `plan_backtest.py:70-74`·`plan_backtest_replan.py:22-30` 은 현재 `rest_weekdays_mask=rest_mask(scn.days)` 만 쓰고 `generate_weekly_plan` 을 부르므로 mask NULL 이면 `WeekdaysRequired` 로 깨진다. **백테스트 입력(`Scenario`)에 요일 mask 를 지정**한다 — `Scenario.workout_weekdays_mask: int` 필드를 추가하고, 시나리오 실행 시 `upsert_user_training_prefs(conn, workout_weekdays_mask=scn.workout_weekdays_mask, rest_weekdays_mask=…)` 로 메모리 DB prefs 에 넣은 뒤 생성한다(운영 `resolve_run_weekdays` 경로를 그대로 탄다, 백테스트 전용 우회 없음). 격자 시나리오는 격자 정의의 `days` 와 `DAY_ORDER`(`plan_backtest.py:28`)로 만든 mask 를 **입력값으로 명시**해 넣고, `plan_backtest_replan` 의 `Scenario(**scn.__dict__)` 복제(`:53·81`)는 필드를 그대로 이어받는다. mask 미지정 시나리오는 생성 전에 구성 오류로 거부한다(`WeekdaysRequired` 를 결과 '실패'로 세지 않음). 이력 시나리오의 mask 는 §8-9. G1 게이트(`plan_gates.py:71`)는 백테스트 전용으로 유지(PLN-13).
-  - 보류 표시·안내(PLN-15·16·17): 플랜 읽기 응답(`plan_service`·`/weeks`)에 `weekdays_required: true`(mask NULL 이고 active goal 존재)를 싣고, v2 플랜 화면은 기존 행을 그대로 보여 주며 '요일 입력 전까지 갱신 안 됨' 표시를 단다. 안내 채널은 **코치 화면 배너**(요일 입력으로 연결, 주간 적응 정지 사실 포함). 배너 외 알림 채널은 두지 않는다. 문구는 구현 단계에서 후보 제시.
-- 기존 v1 목표(PLN-3, goal 1 등 — rules_version<2 또는 plan_weeks NULL 인 active goal): **즉시 재생성을 제안**하되 자동 재생성은 하지 않는다. 플랜 화면에 제안 배너 → `GET /coach/plan/<id>/regen-preview`(저장 없이 v2 초안 주차 요약 + 현행 대비) 미리보기 → 사용자 확인 시 PLN-1 교체 흐름(이전 플랜 cancelled·행 보존·복구 가능)으로 재생성. mask 가 NULL 이면 미리보기 전에 요일 선택을 받는다. 마이그레이션·동기화는 기존 목표를 건드리지 않는다. 테이퍼 볼륨·마지막 롱런 시점, 컨디션 기반 변경(adjuster·weekly_adapt, ADR-035 확인 후)은 이 설계 범위 밖.
+  - 사용자 요청 경로(v2 `POST /coach/plan`, CLI `src/plan.py:162`): 생성하지 않고 요일 입력을 요구한다(v2 는 400 + 요일 선택 단계, CLI 는 안내 메시지).
+  - v1 라우트(`/training/wizard/complete`·`/training/generate`): 요일 없이 `generate_weekly_plan` 을 불러 mask NULL 이면 생성이 막힌다. 대응하지 않는다(V1-13, v1 손상 허용).
+  - 자동 경로(`weekly_adapt_job.run`·`rematch.py:82`·`plan_replan_service.py:128`): `WeekdaysRequired` 를 잡아 해당 실행에서 생성·저장하지 않고 사유를 로그에 남긴다(`weekly_adapt_job` 은 기존 rules_version<2 분기처럼 0 반환). 신규 생성은 mask 를 먼저 저장하므로 정상 흐름에서는 도달하지 않는 방어 분기다.
+  - 삭제(PLN-23): 보류 중 기존 행 유지·'요일 입력 전까지 갱신 안 됨' 표시(PLN-15)와 기존 사용자 주간 적응 정지 안내(PLN-17)는 기존 플랜을 삭제하므로 작성하지 않는다.
+  - 백테스트 경로(PLN-18 b): `plan_backtest.py:70-74`·`plan_backtest_replan.py:22-30` 은 현재 `rest_weekdays_mask=rest_mask(scn.days)` 만 쓰고 `generate_weekly_plan` 을 부르므로 mask NULL 이면 `WeekdaysRequired` 로 깨진다. **백테스트 입력(`Scenario`)에 요일 mask 를 지정**한다 — `Scenario.workout_weekdays_mask: int` 필드를 추가하고, 시나리오 실행 시 `upsert_user_training_prefs(conn, workout_weekdays_mask=scn.workout_weekdays_mask, rest_weekdays_mask=…)` 로 메모리 DB prefs 에 넣은 뒤 생성한다(운영 `resolve_run_weekdays` 경로를 그대로 탄다, 백테스트 전용 우회 없음). 격자 시나리오는 격자 정의의 `days` 와 `DAY_ORDER`(`plan_backtest.py:28`)로 만든 mask 를 **입력값으로 명시**해 넣고, `plan_backtest_replan` 의 `Scenario(**scn.__dict__)` 복제(`:53·81`)는 필드를 그대로 이어받는다. mask 미지정 시나리오는 생성 전에 구성 오류로 거부한다(`WeekdaysRequired` 를 결과 '실패'로 세지 않음). **이력 시나리오(PLN-22 b)**: `history_scenarios`(`plan_backtest.py:131-150`, `days=0`)도 해당 시점의 실제 mask 를 필수 입력으로 받는다 — 격자와 같은 `Scenario.workout_weekdays_mask` 필드를 쓰고, 없으면 같은 구성 오류로 거부(전체 요일·mask 무시 폴백 없음). 실제 mask 를 어디서 얻는지는 §8-9. G1 게이트(`plan_gates.py:71`)는 백테스트 전용으로 유지(PLN-13).
+- 삭제(PLN-23): 기존 v1 목표 즉시 재생성 제안(PLN-3 보강의 제안 배너·`regen-preview`)과 코치 화면 보류 배너(PLN-16, 트리거 상태 'active goal + mask NULL' 은 기존 플랜에서만 생김)는 기존 플랜 삭제로 대체되어 작성하지 않는다.
+- 테이퍼 볼륨·마지막 롱런 시점, 컨디션 기반 변경(adjuster·weekly_adapt, ADR-035 확인 후)은 이 설계 범위 밖.
 
 ### 2.2 R2 — 플랜 소유권 + 교체 확인 + 복구
-- `planned_workouts.goal_id` 추가 + 백필 + **NOT NULL 승격을 이번 작업에서 수행**(PLN-19 a, 백필 완료 후). 백필: 각 goal 의 `_plan_date_range` 에 들어가는 planner 행에 goal_id 기입, 겹치면 최신 goal.
+- `planned_workouts.goal_id INTEGER` 추가 + **planner 행 한정 CHECK `(source <> 'planner' OR goal_id IS NOT NULL)`**(PLN-19 재결정·PLN-20 e). 외부 계획 행(`source`=`'garmin'`·`'intervals'`, `plan_ingest.store_planned` 이 `source=source_system` 으로 기입)과 v1 `manual`·`imported` 행은 goal_id NULL 유지.
+- **기존 플랜 전제(PLN-23):** 기존 훈련 플랜은 삭제하고 시작한다. goal_id 백필·dry-run 분포·범위 밖 고아 행 처리·외부/v1 행 귀속 코드는 작성하지 않는다(PLN-20 의 '고아 행 dry-run 후 삭제/귀속' 은 PLN-23 으로 대체). 삭제 실행은 구현 단계에서 대상·백업 확인 후(사용자 승인됨), 삭제 범위는 §8-11. 마이그레이션은 '`source='planner'` 행이 0 인 상태'를 전제로 한다.
 - **마이그레이션 버전·순서(제안):** 현재 `SCHEMA_VERSION = 36`(`db_setup.py:32`), v37(`plan_adjustments` 재생성)·v38(가산 테이블)·v39(`goals.race_id` 백필, `race-calendar.md`)이 다른 번들에 배정돼 있으므로 이 번들은 그 뒤에 둔다.
-  - **v40** = `planned_workouts.goal_id INTEGER NULL` + `user_training_prefs.workout_weekdays_mask INTEGER NULL` 가산(`ALTER … ADD COLUMN`) + goal_id 백필. dry-run(`dry_run=True`: 기입 n·NULL 잔존 n·잔존 행 `source`/`source_system` 분포·샘플 id) 공유, 멱등(컬럼 있으면 skip, 백필은 `WHERE goal_id IS NULL` 만).
-  - **v41** = NOT NULL 승격. SQLite 는 컬럼 제약을 바꿀 수 없으므로 v27 패턴(`db_schema_v27.py`: `planned_workouts__vNN` 생성 → `INSERT … SELECT` → RENAME, 인덱스 재생성, 행 수·id 일치 검증)으로 재생성. `running.db.bak-v40-<ts>` 백업 + `PRAGMA integrity_check` 선행. 백필과 버전을 나눠 사본에서 v40 결과(NULL 잔존 0)를 확인한 뒤 v41 을 적용할 수 있게 한다. 역마이그레이션 = 백업 복원.
-  - v39 와의 선후: 데이터 의존은 없다(goal_id 백필은 `goals` 날짜 범위만 쓰고 `race_id` 를 읽지 않음). 순서는 번호 순차성 때문이며, v39 가 전진 전용(`race-calendar.md` §4)이므로 v40·v41 롤백은 v39 이후 상태로만 돌아간다.
-- **NULL 행 잔존 시 처리:** v41 은 승격 전 `SELECT COUNT(*) FROM planned_workouts WHERE goal_id IS NULL` 이 0 이 아니면 **승격하지 않고 트랜잭션 롤백 + 잔존 분포 로그**(원 테이블·v40 결과 유지, 앱 기동은 계속). 잔존이 예상되는 행: ① 외부 계획 행(`sync/plan_ingest.store_planned`, 이전 설계는 'NULL 유지') ② 어떤 goal 범위에도 들지 않는 planner 행(범위 밖 고아) ③ v1 화면의 `manual`·`imported` 행. ①~③을 어느 goal 로 귀속할지(또는 삭제·별도 보관할지)는 결정 문구에 없다 → §8-8 열린 질문. 이 질문이 풀리기 전에는 ① 때문에 실데이터에서 v41 이 중단된다.
-- **승격 전 goal_id NULL 가능 INSERT 경로(grep 2026-10-11, `INTO planned_workouts`):** 승격 시 모두 goal_id 를 채워야 한다.
+  - **병합안(v40 단일, 제안 — 채택 여부 §8-10):** `ALTER TABLE planned_workouts ADD COLUMN goal_id INTEGER CHECK (source <> 'planner' OR goal_id IS NOT NULL)` + `ALTER TABLE user_training_prefs ADD COLUMN workout_weekdays_mask INTEGER`. 테이블 재생성·백필 없음. SQLite 는 CHECK 가 붙은 ADD COLUMN 시 기존 행을 검사하므로 planner 행이 남아 있으면 ALTER 가 `CHECK constraint failed` 로 실패 → 트랜잭션 롤백(로컬 SQLite 3.45.1 로 확인: planner 행 없으면 추가 성공·이후 goal_id NULL planner INSERT 거부, planner 행 있으면 추가 실패. 운영 SQLite 버전 확인 필요). 멱등: 컬럼이 있으면 skip. `PRAGMA integrity_check` 선행, 역마이그레이션 = 백업 복원.
+  - **분리안(기존 v40·v41):** v40 = 두 컬럼 NULL 가산, v41 = v27 패턴(`db_schema_v27.py`: `planned_workouts__vNN` 생성 → `INSERT … SELECT` → RENAME, 인덱스 재생성, 행 수·id 일치 검증)으로 CHECK 추가 재생성. 백필이 없어져 단계를 나눌 이유(사본에서 백필 결과 확인 후 승격)가 사라졌다.
+  - v39 와의 선후: 데이터 의존은 없다(`race_id` 를 읽지 않음). 순서는 번호 순차성 때문이며, v39 가 전진 전용(`race-calendar.md` §4)이므로 롤백은 v39 이후 상태로만 돌아간다.
+- **PLN-21 해소:** v1 `manual`·`imported` 행이 CHECK 대상이 아니어서 v1 라우트 일몰과 마이그레이션의 선후 제약은 없다.
+- **planner 행 INSERT 경로(grep 2026-10-11, `INTO planned_workouts`):** CHECK 이후 planner 행은 goal_id 를 채워야 한다.
 
   | 경로 | 위치 | 호출자 | 처리 |
   |---|---|---|---|
-  | `planner.save_weekly_plan` | `planner.py:238`(→ `planner_store.py` 이동) | `plan_template_service.py:194`, `weekly_adapt_job.py:53`, `rematch.py:87`, CLI `plan.py:165`, v1 `views_training_wizard.py:352·411`·`views_training.py:240` | goal_id 인자 추가(공유 함수 유지, V1-2 — v1 호출자는 라우트 일몰 시 소멸) |
+  | `planner.save_weekly_plan` | `planner.py:238`(→ `planner_store.py` 이동) | `plan_template_service.py:194`, `weekly_adapt_job.py:53`, `rematch.py:87`, CLI `plan.py:165` (v1 `views_training_wizard.py:352·411`·`views_training.py:240` 은 수정하지 않음, V1-13) | goal_id 인자 추가 |
   | `plan_replace.replace_range` | `plan_replace.py:53` | `plan_replan_service.py:130`, `plan_template_service.py:183`(빈 plan) | 행 dict 또는 인자로 goal_id 기입 |
-  | replan 되돌리기 복원 | `plan_replan_service.py:237` | `plan_replans.replaced_json` 의 `deleted` 행을 컬럼 그대로 재INSERT | v40 이전 저장 스냅샷에는 `goal_id` 키가 없음 → `plan_replans.goal_id` 로 보충 |
-  | PLN-1 복구(`restore`) | 신규(`goals.plan_snapshot_json`) | `POST /coach/plan/<id>/restore` | 스냅샷 행에 goal_id 포함, 없으면 대상 goal id |
-  | 외부 계획 수집 | `sync/plan_ingest.py:121` | Garmin 등 동기화 | goal 없는 외부 행 — §8-8 결정 전까지 승격 차단 요인 |
-  | v1 수동 추가 | `web/views_training_crud.py:39`(`source='manual'`) | v1 라우트 | 라우트 일몰 시 소멸(V1-2). 일몰 전 v41 이면 INSERT 실패 → §8-8 |
-  | v1 범위 복사 | `web/views_training_goal_crud.py:374`(`source='imported'`) | v1 라우트 | 동일 |
-  | v27 재생성 복사 | `db_schema_v27.py:22` | 과거 마이그레이션 | v40 이전 실행, 영향 없음 |
+  | replan 되돌리기 복원 | `plan_replan_service.py:237` | `plan_replans.replaced_json` 의 `deleted` 행을 컬럼 그대로 재INSERT | 신규 스냅샷은 goal_id 포함. 마이그레이션 이전 스냅샷 보충 코드는 작성하지 않음(PLN-23, 이전 replan 처리는 §8-11) |
+  | PLN-1 복구(`restore`) | 신규(`goals.plan_snapshot_json`) | `POST /coach/plan/<id>/restore` | 스냅샷 행에 goal_id 포함 |
+  | 외부 계획 수집 | `sync/plan_ingest.py:121`(`plan_ingest_intervals.py:73` 경유 포함) | Garmin·intervals 동기화 | 변경 없음(goal_id NULL, CHECK 대상 아님, PLN-20) |
+  | v1 수동 추가·범위 복사 | `web/views_training_crud.py:39`(`manual`), `web/views_training_goal_crud.py:374`(`imported`) | v1 라우트 | 변경 없음(CHECK 대상 아님) |
+  | v27 재생성 복사 | `db_schema_v27.py:22` | 과거 마이그레이션 | 영향 없음 |
 
-  테스트 픽스처: `tests/` 에서 `INTO planned_workouts` 를 직접 쓰는 파일 32개 — v41 이후 goal_id 필요(공용 헬퍼로 처리).
+  테스트 픽스처: `tests/` 에서 `INTO planned_workouts` 를 직접 쓰는 파일 32개 중 `'planner'` 를 포함하는 18개(문자열 기준, 구현 시 재확인)만 goal_id 필요(공용 헬퍼로 처리).
 - `create_plan_from_template(..., expect_active_goal_id)`: 활성 플랜이 있는데 기대값이 다르면 `PlanConflict` → API 409 `ACTIVE_PLAN_EXISTS`(현재 플랜 요약 포함). 클라이언트는 확인 후 다시 보낸다(compare 의 `expect_anchor` 패턴 재사용).
 - 교체(PLN-1): 이전 goal 은 `cancelled` 로 두고 그 goal_id 행은 삭제하지 않으며, `replace_range` snapshot 은 `goals.plan_snapshot_json` 에 보존. 취소 플랜 화면에 **복구 버튼** — `POST /coach/plan/<id>/restore` 가 대상 goal 을 active 로, 현재 active 를 cancelled 로 바꾼다(같은 409 확인 흐름).
 - 조회(`get_active_plan(goal_id)`, 세션 상세)는 `goal_id` 로 필터하고 `goal.status` 를 응답에 실어 취소 플랜을 읽기 전용 표시(P-23).
@@ -96,7 +98,7 @@
 | P-04, P-05 | 참조 | server-input-origin-validation.md 2.4 |
 | P-06 | 설계 R3 | 원인 확정. reason·두 라벨(PLN-6), `_effective`(PLN-10), 상한은 HSR-1 |
 | P-07 | 설계 R3 | plan overview API·표 |
-| P-08 | 설계 R1 | 지정 요일(`workout_weekdays_mask`) 준수·workout mask 우선(PLN-11)·미지정 시 생성 경로에서 입력 요구·자동 경로 보류(PLN-12)·휴식 하한 없음(PLN-13)·휴식 0~1일 저장 전 안내(PLN-14)·보류 중 행 유지+표시(PLN-15)·코치 배너(PLN-16)·주간 적응 정지(PLN-17)·신규 목표 v2 전환·기존 목표 재생성 제안(PLN-3) |
+| P-08 | 설계 R1 | 지정 요일(`workout_weekdays_mask`) 준수·workout mask 우선(PLN-11)·미지정 시 생성 경로에서 입력 요구·자동 경로 보류(PLN-12)·휴식 하한 없음(PLN-13)·휴식 0~1일 저장 전 안내(PLN-14)·신규 목표 v2 전환(PLN-3). 기존 목표·행 대응(PLN-3 재생성 제안, PLN-15·16·17)은 기존 플랜 삭제로 대체(PLN-23) |
 | P-09 | 설계 R3 | basis 필드 + '누적(플랜 시작~어제)' 라벨(PLN-7) |
 | P-10 | BACKLOG 개별 | ACWR 범위를 메트릭 정의에서 받기, CTL 스케일 |
 | P-11 | 설계 R2 | 생성일부터 시작(PLN-5) + 생성 후 재매칭 |
@@ -121,30 +123,29 @@
 | `src/training/planner_store.py` | 신규 | planner.py 에서 저장·prefs 함수 이동, `workout_weekdays_mask` 읽기·쓰기, `resolve_run_weekdays`(workout 우선, NULL 이면 `WeekdaysRequired`) | ~110 |
 | `src/training/planner.py` | 수정 | finalize 호출, 이동분 재수출, 부분 첫 주 | 300 → ~225 |
 | `src/training/planner_v2.py` | 수정 | `_desc_locked` 표시(race·cold-start), 지정 요일 입력 | +10 |
-| `src/db_schema_v40.py` | 신규 | `planned_workouts.goal_id` NULL 가산 + 백필(겹치면 최신 goal), `user_training_prefs.workout_weekdays_mask INTEGER NULL`, dry_run·멱등 | ~80 |
-| `src/db_schema_v41.py` | 신규 | `planned_workouts` 재생성으로 `goal_id NOT NULL` 승격(PLN-19), 백업·integrity_check·NULL 잔존 시 중단 롤백·행 수/id 검증·멱등 | ~80 |
-| `src/db_setup.py` | 수정 | DDL(`goal_id INTEGER NOT NULL`)·`SCHEMA_VERSION` 41·ensure 호출 | +10 |
-| `src/training/plan_replace.py`, `src/sync/plan_ingest.py` | 수정 | INSERT 에 goal_id 기입(plan_ingest 는 §8-8 결정 후) | +각 3 |
-| `src/training/plan_backtest.py`, `plan_backtest_replan.py`, `scripts/plan_backtest.py` | 수정 | PLN-18: `Scenario.workout_weekdays_mask`, prefs 에 mask 기입 후 생성, mask 미지정 시나리오 거부 | +15 / +3 / +3 |
-| `src/training/goals.py`, `plan_template_service.py` | 수정 | v2 일괄 전환, expect_active_goal_id, PlanConflict, 행 보존·snapshot 저장, restore, goal_id 기입, 재매칭, v1 목표 판별·재생성 미리보기(저장 없음) | +80 |
-| `src/services/plan_service.py` | 수정 | goal_id 필터, status, basis, `weekdays_required`(PLN-15·17) | +25 |
+| `src/db_schema_v40.py` | 신규 | (병합안) `planned_workouts.goal_id INTEGER CHECK(source<>'planner' OR goal_id IS NOT NULL)` + `user_training_prefs.workout_weekdays_mask INTEGER NULL` ADD COLUMN, integrity_check·멱등(PLN-19·20) | ~40 |
+| `src/db_schema_v41.py` | 신규(분리안 채택 시만) | v27 패턴 재생성으로 CHECK 추가, 행 수/id 검증·멱등 — §8-10 | ~80 |
+| `src/db_setup.py` | 수정 | DDL(`goal_id INTEGER CHECK(...)`)·`SCHEMA_VERSION` 40(병합안) 또는 41·ensure 호출 | +10 |
+| `src/training/plan_replace.py` | 수정 | INSERT 에 goal_id 기입 | +3 |
+| `src/training/plan_backtest.py`, `plan_backtest_replan.py`, `scripts/plan_backtest.py` | 수정 | PLN-18·22: `Scenario.workout_weekdays_mask`(격자·이력 시나리오 모두 필수), prefs 에 mask 기입 후 생성, mask 미지정 시나리오 거부 | +15 / +3 / +3 |
+| `src/training/goals.py`, `plan_template_service.py` | 수정 | v2 일괄 전환, expect_active_goal_id, PlanConflict, 행 보존·snapshot 저장, restore, goal_id 기입, 재매칭 | +70 |
+| `src/services/plan_service.py` | 수정 | goal_id 필터, status, basis | +20 |
 | `src/services/plan_overview_service.py` | 신규 | 주차 요약 | ~110 |
 | `src/training/week_compliance.py` | 수정 | reason(s)·actual 필드, 두 라벨, `_effective` 순위 | +25 (≤256) |
-| `src/api/routes_plan.py` | 수정 | 409, mask NULL 시 run_weekdays 필수(`WeekdaysRequired` → 400), `/weeks`·`/restore`·`/regen-preview` 라우트 | +50 |
-| `src/services/weekly_adapt_job.py`, `src/training/rematch.py`, `src/services/plan_replan_service.py` | 수정 | `WeekdaysRequired` 시 생성·저장 보류(기존 행 유지)·사유 로그(PLN-12), `save_weekly_plan`/`replace_range` 에 goal_id 전달, 되돌리기 복원 행 goal_id 보충(PLN-19) | +8 each |
+| `src/api/routes_plan.py` | 수정 | 409, mask NULL 시 run_weekdays 필수(`WeekdaysRequired` → 400), `/weeks`·`/restore` 라우트 | +40 |
+| `src/services/weekly_adapt_job.py`, `src/training/rematch.py`, `src/services/plan_replan_service.py` | 수정 | `WeekdaysRequired` 시 생성·저장 보류·사유 로그(PLN-12), `save_weekly_plan`/`replace_range`·되돌리기 복원에 goal_id 전달 | +6 each |
 | `src/plan.py` | 수정 | `WeekdaysRequired` 시 생성하지 않고 요일 입력 안내(CLI), `save_weekly_plan` 에 goal_id 전달 | +6 |
-| `frontend/src/lib/api/plan.ts` | 수정 | 타입(`weekdays_required` 포함)·getPlanWeeks·restore·regenPreview·409 처리 | +40 |
+| `frontend/src/lib/api/plan.ts` | 수정 | 타입·getPlanWeeks·restore·409 처리 | +30 |
 | `frontend/src/lib/planWeekdays.ts` | 신규 | 휴식 0~1일 판정(지정 요일 수 ≥ 6, PLN-14) 순수 함수 | ~20 |
 | `frontend/src/lib/components/plan/PlanWeeksTable.svelte` | 신규 | 주차 표 | ~100 |
-| `frontend/src/routes/coach/plan/[id]/+page.svelte`·`+page.ts`, `compare/+page.svelte`, 생성 폼 | 수정 | 표·사유·상태·복구, 교체·되돌리기 확인, 요일 선택·휴식 0~1일 저장 전 안내(PLN-14), '요일 입력 전까지 갱신 안 됨' 표시(PLN-15), v1 목표 재생성 제안 배너·미리보기 | +120 |
-| 코치 화면(`frontend/src/routes/coach/+page.svelte` 또는 공용 배너 컴포넌트, 구현 시 위치 확인) | 수정 | `weekdays_required` 시 요일 입력 배너(PLN-16·17) | +20 |
-| `tests/test_plan_finalize.py`, `test_plan_ownership.py`, `test_plan_overview.py`, `test_week_compliance_reason.py`, `test_plan_weekdays.py`, `test_db_schema_v40.py`, `test_db_schema_v41.py`, `test_plan_backtest_weekdays.py`, 프런트 `planWeekdays.test.ts` | 신규 | 아래 검증 | ~550 |
-| 기존 테스트 픽스처(`INTO planned_workouts` 32개 파일) | 수정 | goal_id 기입(공용 헬퍼) | — |
+| `frontend/src/routes/coach/plan/[id]/+page.svelte`·`+page.ts`, `compare/+page.svelte`, 생성 폼 | 수정 | 표·사유·상태·복구, 교체·되돌리기 확인, 요일 선택·휴식 0~1일 저장 전 안내(PLN-14) | +90 |
+| `tests/test_plan_finalize.py`, `test_plan_ownership.py`, `test_plan_overview.py`, `test_week_compliance_reason.py`, `test_plan_weekdays.py`, `test_db_schema_v40.py`(분리안이면 `test_db_schema_v41.py` 추가), `test_plan_backtest_weekdays.py`, 프런트 `planWeekdays.test.ts` | 신규 | 아래 검증 | ~450 |
+| 기존 테스트 픽스처(`INTO planned_workouts` 32개 중 planner 행을 넣는 약 18개 파일) | 수정 | goal_id 기입(공용 헬퍼) | — |
 
 ## 5. 단계·검증
-1. R1: 7주 템플릿을 rv1 / rv2+plan_weeks NULL / rv2+plan_weeks=7 세 픽스처로 생성 → 교정 후 `week_violations == []`, 러닝 요일 ⊆ 지정 요일. 신규 목표는 plan_weeks 누락 입력에서도 v2 경로 진입. mask NULL + `run_weekdays` 없음 → 400, `run_weekdays` 전달 시 mask 저장, mask 설정 후 재생성 시 생략 가능. PLN-11: workout mask 와 rest mask 가 같은 요일을 지정하면 그 요일은 러닝(모순 저장도 허용). PLN-13: 7요일 지정 시 휴식 0일로 생성되고 `week_violations` 위반 없음. PLN-14: `planWeekdays` 가 지정 5개 → 안내 없음, 6·7개 → 안내 필요. PLN-12·15·17: mask NULL 에서 `weekly_adapt_job.run`·`rematch`·replan 은 저장 0건·기존 행 불변·사유 로그(goal 1 형태 기존 사용자 픽스처 포함, 주간 적응 결과 없음), 플랜 읽기 응답 `weekdays_required=true`·mask 저장 후 false, CLI 는 생성 없이 안내. 기존 planner 골든 테스트는 description 기대값만 갱신. PLN-18: 격자 시나리오가 mask 를 입력으로 받아 `WeekdaysRequired` 없이 생성, 러닝 요일 ⊆ 시나리오 mask, mask 미지정 시나리오는 구성 오류로 거부(결과 '실패' 집계에 안 들어감), `plan_backtest_replan` 복제 시 mask 유지, 기존 격자 통과 수 회귀 비교(`scripts/plan_backtest.py --engine v2|replan`).
+1. R1: 7주 템플릿을 rv1 / rv2+plan_weeks NULL / rv2+plan_weeks=7 세 픽스처로 생성 → 교정 후 `week_violations == []`, 러닝 요일 ⊆ 지정 요일. 신규 목표는 plan_weeks 누락 입력에서도 v2 경로 진입. mask NULL + `run_weekdays` 없음 → 400, `run_weekdays` 전달 시 mask 저장, mask 설정 후 재생성 시 생략 가능. PLN-11: workout mask 와 rest mask 가 같은 요일을 지정하면 그 요일은 러닝(모순 저장도 허용). PLN-13: 7요일 지정 시 휴식 0일로 생성되고 `week_violations` 위반 없음. PLN-14: `planWeekdays` 가 지정 5개 → 안내 없음, 6·7개 → 안내 필요. PLN-12: mask NULL 에서 `weekly_adapt_job.run`·`rematch`·replan 은 저장 0건·사유 로그·예외 전파 없음, CLI 는 생성 없이 안내. 기존 planner 골든 테스트는 description 기대값만 갱신. PLN-18·22: 격자·이력 시나리오가 mask 를 입력으로 받아 `WeekdaysRequired` 없이 생성, 러닝 요일 ⊆ 시나리오 mask, mask 미지정 시나리오(이력 포함)는 구성 오류로 거부(결과 '실패' 집계에 안 들어감), `plan_backtest_replan` 복제 시 mask 유지, 기존 격자 통과 수 회귀 비교(`scripts/plan_backtest.py --engine v2|replan`).
 2. R3 읽기: overview 합계 = planned_workouts 집계, 생성 직후 과거 날짜 매칭, 10/6~10/9 합성 주로 reasons(대표 volume_over·보조 pace_fast / 상한 탈락), ext2 픽스처(미매칭 외부 + 매칭 planner)에서 매칭 행이 effective, 수락 조정 행 > 미매칭 외부 행.
-   **실데이터 확인 필요**(real_ui.db 사본, 읽기 전용):
+   **실데이터 확인 필요**(real_ui.db 사본, 읽기 전용 — 원인 확인용이므로 PLN-23 기존 플랜 삭제 전 사본에서 실행):
    | 확인 | 쿼리 | 판정 |
    |---|---|---|
    | goal 생성 경로 | `SELECT id,status,created_at,plan_rules_version,plan_weeks,race_date,distance_km FROM goals ORDER BY id;` | rv=1 또는 plan_weeks NULL이면 v1 경로 |
@@ -152,12 +153,12 @@
    | 휴식 설정 | `SELECT rest_weekdays_mask,long_run_weekday_mask,max_q_days FROM user_training_prefs;` | mask=0이면 v1에서 휴식 0 |
    | 주간 러닝 일수 | `SELECT date(date,'weekday 0','-6 days') wk, SUM(workout_type<>'rest') runs, ROUND(SUM(distance_km),1) km FROM planned_workouts WHERE source='planner' GROUP BY wk ORDER BY wk;` | 7회가 이어지면 P-08 재현 |
    | P-06 주 매칭·외부 행 | `SELECT id,date,source,workout_type,distance_km,matched_activity_id FROM planned_workouts WHERE date BETWEEN '2026-10-05' AND '2026-10-11' ORDER BY date,id;` | 같은 날 외부 미매칭 + planner 매칭이면 PLN-10 해당 |
-3. R2: 마이그레이션 백필 테스트(겹치는 goal)·`workout_weekdays_mask` 기본 NULL, (PLN-19) v40 사본 dry-run 분포·재실행 멱등, v41: NULL 0 이면 승격 후 goal_id NULL INSERT 거부·행 수/id 일치·`integrity_check` ok·재실행 멱등, NULL 잔존 픽스처(외부 행 1건)면 승격 중단·원 테이블 불변·잔존 분포 로그, INSERT 경로 표의 v2 경로마다 goal_id 기입 테스트(되돌리기 복원은 goal_id 없는 옛 스냅샷 포함), v1 목표(rv1 또는 plan_weeks NULL)에 재생성 제안 노출·`regen-preview` 는 DB 무변경·마이그레이션/동기화 후에도 기존 목표 행 불변, 확인 시 교체 흐름으로 재생성, 409 → 확인 재전송 → 이전 플랜 cancelled·행 보존, restore 후 active 교대, 취소 플랜 세션 응답 status=cancelled, 일요일 생성 시 첫 주 = 그 일요일 하루, 메모는 교체 전후 같은 날짜에서 동일.
-4. 브라우저(DB 사본): 375/1280px 에서 /coach/plan/{id} 주차 표·사유·두 라벨, 헤더 '누적(플랜 시작~어제)' 툴팁, compare 교체 확인, 복구 버튼, replan 되돌리기 확인, 생성 폼 요일 선택·6~7요일 지정 시 저장 전 1회 안내(취소 시 요청 없음), mask NULL 상태에서 플랜 화면 기존 행 + '요일 입력 전까지 갱신 안 됨' 표시와 코치 화면 배너, goal 1 재생성 제안 배너·미리보기. `pytest`·`check_docs.py`·프런트 테스트 통과.
-- 호환성: goal_id 는 v40 에서 NULL 허용으로 들어오고 v41 에서 NOT NULL(PLN-19). 외부 행·v1 수동 행 귀속은 §8-8 미정 — 정해지기 전에는 v41 이 중단되어 NULL 허용 상태로 남는다. `workout_weekdays_mask` NULL 기본 — 기존 사용자는 다음 생성·재생성 시점까지 영향 없으나, PLN-12·17 로 자동 경로(weekly_adapt·rematch·replan)는 요일 입력 전까지 보류되어 주간 적응이 멈추고 기존 행은 유지된다(PLN-15, 코치 배너로 안내), 기존 v1 목표는 사용자 확인 전까지 그대로. 보존된 취소 플랜 행이 날짜 기준 조회에 섞이지 않도록 v2 서비스는 goal_id 필터, 날짜 기준 경로는 §8-5 확인 결과에 따라 처리. v1 화면·경로 호환은 고려하지 않는다(일몰 예정, V1-1). 알고리즘 출력(설명·요일)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
+3. R2: 마이그레이션 — `workout_weekdays_mask` 기본 NULL, (PLN-19·20) planner 행 없는 DB 에서 적용 후 planner 행 goal_id NULL INSERT 거부·`garmin`/`intervals`/`manual` 행 goal_id NULL INSERT 허용·`integrity_check` ok·재실행 멱등, planner 행이 남은 DB 에서는 적용 실패·롤백·원 테이블 불변(전제 위반 검출). INSERT 경로 표의 planner 경로마다 goal_id 기입 테스트(되돌리기 복원은 신규 스냅샷 기준), 409 → 확인 재전송 → 이전 플랜 cancelled·행 보존, restore 후 active 교대, 취소 플랜 세션 응답 status=cancelled, 일요일 생성 시 첫 주 = 그 일요일 하루, 메모는 교체 전후 같은 날짜에서 동일.
+4. 브라우저(DB 사본): 375/1280px 에서 /coach/plan/{id} 주차 표·사유·두 라벨, 헤더 '누적(플랜 시작~어제)' 툴팁, compare 교체 확인, 복구 버튼, replan 되돌리기 확인, 생성 폼 요일 선택·6~7요일 지정 시 저장 전 1회 안내(취소 시 요청 없음). `pytest`·`check_docs.py`·프런트 테스트 통과.
+- 호환성: 기존 훈련 플랜은 삭제하고 시작한다(PLN-23, 범위 §8-11) — 기존 플랜·목표를 위한 이행·완충 코드는 없다. goal_id 는 planner 행만 CHECK 로 필수, 외부(garmin·intervals)·v1 행은 NULL(PLN-20). `workout_weekdays_mask` NULL 기본, 신규 생성 시 요일 입력으로 채워진다(PLN-12). 보존된 취소 플랜 행이 날짜 기준 조회에 섞이지 않도록 v2 서비스는 goal_id 필터, 날짜 기준 경로는 §8-5 확인 결과에 따라 처리. v1 화면·경로는 깨져도 허용하며 보호·호환 코드를 두지 않는다(V1-1·V1-13). 알고리즘 출력(설명·요일)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
 
 ## 6. 결정
-- PLN-1~19, 연관 HSR-1·V1-2: 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
+- PLN-1~23, 연관 HSR-1·V1-2·V1-13: 결정 완료(PLN-19 는 PLN-20 으로 재결정, PLN-21 은 PLN-20 으로 해소)(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
 
 ## 7. 범위 밖 메모
 - `planned_workouts` INSERT 경로의 goal_id 기입은 §2.2 표로 이동(PLN-19). garmin_push(`garmin_workout_id` UPDATE 만)·calendar_feed(조회)는 INSERT 하지 않아 §8-5 goal_id 필터 범위 문제로만 남는다.
@@ -169,9 +170,17 @@
 1. 해소(PLN-13·PLN-14).
 2. PLN-5 부분 첫 주와 v2 주 단위 로직(`plan_replans.anchor_monday`, `schedule_for_goal` 주차·phase, 주간 볼륨 목표)의 처리 방식 — 결정표 "설계에서 정리", 미정.
 3. 해소(PLN-11).
-4. 해소(PLN-12·15·16·17). 남은 것: 안내·표시 문구(PLN-14 안내, PLN-15 표시, PLN-16 배너)는 구현 단계에서 후보 제시 후 사용자 확정.
+4. 해소(PLN-12·15·16·17, 표시·배너는 PLN-23 으로 삭제). 남은 것: PLN-14 안내 문구는 구현 단계에서 후보 제시 후 사용자 확정.
 5. PLN-1 행 보존 시 날짜 기준 읽기 경로(`matcher`/`match_week_activities`, `week_compliance`, calendar_feed, garmin_push)에서 두 플랜 행 겹침 — goal_id 필터 적용 범위 미정.
 6. PLN-10 "수락된 조정 행" 식별 컬럼(`source` 값 등)이 `planned_workouts` DDL 에 없음 — 구현 시 확인.
-7. V1-1 적용 해석: 'v1 목표'(rules_version<2 또는 plan_weeks NULL 인 기존 goal)·'v1 템플릿/폴백'(planner 알고리즘)은 레거시 UI 가 아니라 데이터로 남으므로 재생성 제안·검증을 유지했다. NOT NULL 승격 여부는 해소(PLN-19) — 남은 외부 행 귀속은 §8-8.
-8. **열린 질문(PLN-19):** NOT NULL 승격 시 goal 이 없는 행의 처리 — 외부 계획 행(`plan_ingest`, 이전 설계의 'NULL 유지'와 충돌), goal 범위 밖 planner 고아 행, v1 `manual`·`imported` 행을 활성 goal 귀속/삭제/별도 보관 중 무엇으로 할지 결정 문구에 없다. 또 v1 라우트 일몰이 v41 보다 늦으면 일몰 전까지 해당 INSERT 가 실패한다 — 일몰과 v41 선후 확인 필요. 현재 설계는 잔존 시 승격 중단(안전 쪽)만 적었다.
-9. **열린 질문(PLN-18):** 이력(history) 시나리오는 `days=0`(`plan_backtest.py:143`)으로 만들어져 지정할 요일이 입력에 없다 — 이력 시나리오 mask 를 무엇으로 줄지(고정 기본값, 실DB `user_training_prefs` 값, 실제 활동 요일 등) 결정 문구에 없다.
+7. 해소(PLN-23): 기존 v1 목표 재생성 제안·검증은 기존 플랜 삭제로 대체. 'v1 템플릿/폴백'(planner 알고리즘)의 R1 픽스처 검증은 유지.
+8. 해소(PLN-20·21·23): 외부·v1 행은 NULL 유지(CHECK 대상 아님), 고아 planner 행은 기존 플랜 삭제로 대체, v1 일몰 선후 제약 없음.
+9. **열린 질문(PLN-22 후속):** 이력 시나리오에 '해당 시점의 실제 mask' 를 필수로 넣기로 했으나, 그 값을 얻을 곳이 코드에 없다 — `history_scenarios`(`plan_backtest.py:131-150`)는 대회 활동만으로 시나리오를 만들고, `user_training_prefs` 는 단일 행(`id=1`)이라 시점별 mask 이력이 없다. mask 출처(시나리오 정의에 수동 기입, 시점 이전 실제 활동 요일에서 산출 등)는 사용자 확인 필요.
+10. **열린 질문(PLN-19·20, 단순화 제안):** 기존 플랜 삭제로 'NULL planner 행 0' 에서 시작하므로 v40(컬럼 추가)·v41(CHECK 추가 재생성)을 하나의 v40(`ADD COLUMN goal_id INTEGER CHECK(source<>'planner' OR goal_id IS NOT NULL)`, 재생성 없음)으로 합칠 수 있다(§2.2 병합안, 로컬 SQLite 3.45.1 동작 확인). 채택 여부와 운영 SQLite 버전 확인은 사용자 확인 필요. 미채택 시 분리안(v41 재생성) 유지.
+11. **열린 질문(PLN-23 삭제 범위):** '기존 훈련 플랜' 이 무엇까지인지 결정 문구에 없다. 코드 grep(2026-10-11) 사실:
+    - `planned_workouts`: planner 행(`source='planner'`), 외부 계획 행(`source`=`'garmin'`·`'intervals'`, `source_system`·`external_id` UPSERT — 다음 동기화에서 다시 수집될 수 있음), v1 `manual`·`imported` 행. CHECK 전제에 필요한 것은 planner 행 삭제뿐.
+    - `plan_adjustments.workout_id` → `planned_workouts.id`(FK 선언 없음, `db_schema_v31.py:10`), `goal_id` 도 보유. planner 행만 지우면 조정 행이 고아로 남는다.
+    - `plan_replans`(`goal_id NOT NULL`, `replaced_json` 에 삭제 행 스냅샷): 남겨 두면 되돌리기(`plan_replan_service.py:237`)가 goal_id 없는 planner 행을 재INSERT 해 CHECK 로 실패한다.
+    - `session_outcomes.planned_id` → `planned_workouts.id`(FK 없음, `planned_query.py:24`·`outcome_store.py` 가 조인·갱신). `plan_replace` 는 이 참조가 있는 행을 '보호 행'으로 둔다(`plan_replace.py:14`). 훈련 결과 이력이므로 플랜과 함께 지울지 별도 판단.
+    - `goals`(active·cancelled, `plan_rules_version`·`plan_weeks`): 플랜 행만 지우고 active goal 을 남기면 mask NULL·planner 행 0 인 active goal 이 남아 자동 경로가 `WeekdaysRequired` 보류만 반복한다.
+    삭제 대상(planner 행만 / 외부 계획 행 포함 / `plan_adjustments`·`plan_replans`·`session_outcomes`·`goals` 포함)은 사용자 확인 필요.
