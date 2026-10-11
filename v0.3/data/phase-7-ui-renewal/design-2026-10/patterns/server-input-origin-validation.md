@@ -95,7 +95,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 | `tests/test_switch_user.py` | 신규 | 서비스·v2 엔드포인트: production 404, `../`·빈 값·특수문자 uid 거부, 전환 후 세션 user_id, Origin 관문 적용 | ~60 |
 | `frontend/src/lib/api/*` | 수정 가능 | `details` 필드 오류·`warnings` 표시(UI 범위는 product 영역) | 범위 밖 |
 
-합계: 신규 약 795줄(테스트 480 포함), 수정 약 110줄.
+합계: 신규 약 820줄(테스트 480 포함, 2.5 이관으로 `views_switch_user.py` ~45줄 대신 서비스·라우트 ~70줄), 수정 약 110줄(프론트 제외).
 
 ## 4. 적용 순서·검증
 1. **errorhandler (2.3)** — 가장 안전, 단독 배포 가능. 검증: C-02·`distance_km:"abc"` 재현 시 JSON 500/400, `pytest tests/test_api_*.py` 전체 통과.

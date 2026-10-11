@@ -18,7 +18,7 @@
   - `api`/`feed`: `default-src 'none'; frame-ancestors 'none'`. 문서가 아닌 응답이라 가장 엄격하게 enforce.
   - `v2`: `default-src 'self'; script-src 'self' <인라인 부트스트랩 해시>; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; report-uri /api/v1/csp-report`. `style-src 'unsafe-inline'`은 Svelte style 속성과 `app.html`의 `<div style>` 때문에 필요하다.
   - `v2` 집행 모드(D1): 설정값 `CSP_V2_MODE ∈ {report-only, enforce}`. 초기 `report-only`(`Content-Security-Policy-Report-Only` 헤더)로 운영하고, 위반 로그가 정리되면 `enforce`로 전환한다. 단, `frame-ancestors`는 Report-Only에서 무시되므로 프레임 보호는 `X-Frame-Options: DENY`가 처음부터 맡는다.
-  - `v1`(D2): 일몰 예정(V1-1) — CSP 없음(`None`).
+  - `v1`(D2): CSP 없음(`None`). 이 분기의 처리(일몰 시 제거·지금 제거·유지)는 **보류(V1-4, 설계 검토 필요)** — §10.
 - 라우트가 이미 붙인 헤더는 덮어쓰지 않는다(`headers.setdefault`). 기존 `Cache-Control` 테스트를 그대로 지키기 위해서다.
 - HSTS는 앱에서 송출하지 않는다(D4, Cloudflare 프록시에 위임).
 
@@ -87,7 +87,7 @@
 ## 6. 결정됨 (2026-10-11, `decisions-table.md` SEC-1~9)
 
 - **D1 (SEC-1)** v2 CSP는 Report-Only 후 enforce — 누락 출처로 화면이 깨지는 위험을 먼저 관찰.
-- **D2 (SEC-2)** v1은 CSP 없이 공통 헤더만 — 일몰 예정(V1-1).
+- **D2 (SEC-2)** v1은 CSP 없이 공통 헤더만. `classify_surface` `"v1"` 분기의 일몰 처리는 V1-4 보류(§10).
 - **D3 (SEC-3)** 프레임 `DENY` / `frame-ancestors 'none'` — 자체 임베드 수요가 없어 가장 안전한 값.
 - **D4 (SEC-4)** HSTS는 Cloudflare 프록시에 위임, 앱 미송출 — 로컬 HTTP 영향 제거.
 - **D5 (SEC-5)** `Referrer-Policy: strict-origin-when-cross-origin` — 호환성 높고 Referer 대체 판정 유지.
@@ -99,13 +99,14 @@
 ## 7. 범위 밖 메모
 - E-21: description, 비표준 `text-scale` meta는 메타 정비 작업에서 다룬다(아이콘·theme-color는 D7로 이 작업과 함께 처리).
 - 세션 쿠키 `Secure/SameSite/HttpOnly`, Origin/CSRF 검사는 `server-input-origin-validation.md`에서 다룬다.
-- 레거시 v1 HTML: 일몰 예정(V1-1), 점검 범위 밖.
+- 레거시 v1 HTML: UI·라우트 일몰 예정(V1-1 정정·V1-2), 점검 범위 밖.
 - COOP 도입 — OAuth 팝업 영향 검증 후 재검토(D9).
 
 ## 8. 변경 이력
 - 초안 작성.
 - 2026-10-11 설계서 동기화: D1~D9 결정(SEC-1~9) 반영 — Report-Only→enforce 단계, v1 CSP 제외, DENY, HSTS 위임, csp-report 엔드포인트·면제, 아이콘 자산, 새 버전 알림 UX, Permissions-Policy.
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 4절 v1 무회귀 단계·호환성 v1 항목·테스트 'v1 CSP 없음' 삭제, D2·2.1 `v1` 분기·7절 v1 XSS 메모·대안 B 'v1' 언급 축약/삭제.
+- 2026-10-11 5차 동기화(V1-1 정정·V1-3·V1-4): 일몰 = UI·라우트 일몰. `"v1"` 분기를 V1-4 보류 열린 항목으로 명시(2.1·D2·§10), 사용자 전환 v2 이관(V1-3)에 따른 표면 변화 기록(§10).
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - ADR 번호: 초안 4절이 ADR-048을 "응답 정책 계층"에 배정했으나, `decisions-table.md` SRV-9가 ADR-048 후보를 "쓰기 요청 Origin 관문 + 경계 스키마"로 확정했다. 이 문서의 ADR 번호 배정이 필요하다.
@@ -116,4 +117,5 @@
 - D8 알림 문구·위치는 product 영역이며 이 문서에서 확정하지 않았다.
 
 ## 10. 동기화 중 발견한 모호점
-- (V1-1) `classify_surface`의 `"v1"` 표면(그 밖의 서버 렌더 HTML)과 D2(SEC-2) 'CSP 없음' 분기는 V1-1(v1 전혀 고려 안 함)과 겹친다. 분기 자체를 없앨지(폴백 표면 이름·정책)는 새 결정 사항이라 원문 구조를 유지하고 한 줄로 축약했다.
+- **(V1-4, 열린 항목 — 보류)** `classify_surface`의 `"v1"` 분기(그 밖의 서버 렌더 HTML → CSP 없음, D2/SEC-2) 처리는 미결정: (a) 일몰 시 제거·그 전까지 유지 / (b) 지금 제거 / (c) 유지. V1-2의 일몰 정의(UI·라우트 일몰)와 함께 설계 검토 후 결정한다. 검토 입력(사실): D2의 근거는 v1 서버 렌더 HTML이 인라인 스크립트·인라인 핸들러·CDN(ECharts, Google Fonts)에 의존한다는 것(초안 호환성 절). `"v1"`은 `/v2/`·`/api/`·`/mcp`·`/feeds/` 이외 경로 전체의 폴백 표면이라, v1 화면 라우트가 사라져도 남는 비API 경로(예: `app.py`의 `/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import/*`)와 미정의 경로 404 응답이 어느 표면·정책을 받을지가 분기 제거 시 함께 정해져야 한다. 2026-10-11 grep 기준 v2 프론트(`frontend/src`)는 이 v1 경로들을 호출하지 않는다(`/switch-user` 링크 1건 제외).
+- (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 `"v1"` 표면(CSP 없음)이지만, 이관 후 화면은 `"v2"` CSP, 엔드포인트는 `"api"` 정책을 받는다 — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404) 응답도 같은 표면 정책을 받는다.
