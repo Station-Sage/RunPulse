@@ -1,13 +1,14 @@
 # 설계: 데이터 신선도 반영 (지표 판정에 입력 경과일·커버리지 포함)
 
 - 대상 ID: T-03 (`/today` Hero + UTRS 게이지), M-02 (`/library/metrics` UTRS 카드·상세, 수면 계열 상세), FRS-8 확장(`crs`·`rmr`·`rtti` 목록·상세, `/today` 상태의 CRS)
-- 상태: 설계 초안 (구현 전, D1~D3·D5~D19 결정됨, D4·D20·D21 결정 필요)
+- 상태: 설계 확정 (구현 전, D1~D21 = FRS-1~21 전부 결정됨 2026-10-11)
 - 변경 이력:
   - 2026-10-11 FRS-8 확장 설계 — `crs`·`rmr`·`rtti` 입력 분석과 메트릭별 SPEC(§2.5), 변경 파일·단계·검증 반영, 결정 D9~D13 추가
   - 2026-10-11 FRS-9~11 결정 반영(FRS-11=c) — 읽기 시점 대체 coverage 제거, `rmr`·`rtti`·`crs` Calculator가 실측 confidence 기록(1.0→1.1)·전체 재계산·단계적 롤아웃, D14 추가
   - 2026-10-11 FRS-12~14 결정 반영 — BOOST 보류(§2.6, `adjuster_v2`), 결측 성분 문구 목록/상세 분리, `AlgoChange.value_changed`, D15~D17 추가
   - 2026-10-11 FRS-15~17 결정 반영 — A1+A2 모두 BOOST 보류(adjuster 인자 주입), 한 줄 보류 사유(문구는 FRS-4), 해제 = BB·HRV 당일 + CRS fresh, D18·D19 추가
   - 2026-10-11 FRS-18(c) 래퍼 설계, FRS-19(a) — `plan_service.todays_adjustment_with_hold` 단일 진입점·호출부 이관 순서(§2.7), Hero `as_planned`+`hold_reason`, D20·D21 추가
+  - 2026-10-11 설계서 동기화(FRS-4·20·21 확정 반영)
 - 관련 ADR: ADR-009 (Calculator raw SQL 금지 — 신선도 판정은 서비스 계층, confidence는 이미 조회한 입력으로만 계산), ADR-020 (등급은 서버 SSOT, 프론트 임계값 없음 — 신선도도 같은 원칙), ADR-044 (동기화 상태는 원장만 진실 — `source_missing` caveat의 출처), ADR-042 (Calculator 버전 변경 시 changelog — `rmr`·`rtti`·`crs` 1.1), ADR-035 (조정 제안 행의 `rule_version` — BOOST 보류로 `adjuster_v2`)
 
 ## 1. 근본 원인
@@ -49,7 +50,7 @@
 - 동기화 caveat(`source_missing`)는 원장 기반 "소스가 끊김" 신호로 그대로 둔다. 화면 병합은 D5((b) freshness 하나로 병합).
 
 ### 2.4 프론트(v2)
-- `ReadinessGauge`, 지표 목록 카드, `[slug]` 상세, `TodayHero`가 `freshness.level`/`reasons`로 배지·유보 표시를 렌더. 표시 방식은 D3·D4.
+- `ReadinessGauge`, 지표 목록 카드, `[slug]` 상세, `TodayHero`가 `freshness.level`/`reasons`로 배지·유보 표시를 렌더. 표시는 D3(값 유지 + 등급 라벨 회색/유보), 문구는 D4(`freshness.ts` 문구 사전, §2.6-B).
 
 ### 2.5 FRS-8 확장: `crs`·`rmr`·`rtti` — Calculator confidence 기록 + 메트릭별 SPEC
 
@@ -109,16 +110,17 @@ FRESHNESS_SPEC = {
 - (A1) CRS 행 `json.level == 4`("볼륨 +5%") → `metric_display.action_hint`(library `crs` 카드·상세, `/today` `readiness.crs`). UTRS가 TSB 단독 85 → `crs_score ≥ 80`, BB·HRV 게이트 결측 "통과", TSB>5 → BOOST가 되는 것이 RC-1의 행동판.
 - (A2) `adjuster.adjust_todays_plan`의 `volume_boost`(TSB>10·당일 BB>70, CRS 무관) → `today_hero` `verdict="up"`, v1 뷰, `plan.py` CLI. `plan_adjustments`에는 저장되지 않는다(`ensure_proposal`은 `adjusted=True` 하향만 저장). **D15 (b) 결정: A1·A2 모두 보류.**
 - `adjust_todays_plan` 호출부 전수와 v2 호출부의 래퍼 이관은 §2.7(D18 (c) 결정). v1 `views_training_loaders`·`plan.py`는 미수정.
-- `plan_adjustment_service`의 `source='crs'`는 이름과 달리 `readiness_decision`(피로도) 기반 하향만 만든다. `replanner`·`matcher_context`는 존재하지 않는 `crs.evaluate` import로 예외가 삼켜진다 — (c')의 영향 없음(§8, BACKLOG 등록됨).
+- `plan_adjustment_service`의 `source='crs'`는 이름과 달리 `readiness_decision`(피로도) 기반 하향만 만든다. `replanner`·`matcher_context`는 존재하지 않는 `crs.evaluate` import로 예외가 삼켜진다 — (c')의 영향 없음(§8, `evaluate()` 복원으로 결정 — BACKLOG).
 - **게이트 불명 판정에 새 저장값 불필요**: CRS 행 `signals.body_battery`·`signals.hrv_today`가 null이면 해당 게이트가 "(통과)"로 낙관 판정된 것(1.0 행에도 존재 → `min_version` 무관). confidence(BB·HRV 결측 0.65)는 보조 지표로만 쓰고 판정 키로 쓰지 않는다(가중치 변경에 취약).
 - **판정·해제 조건(D17 (a) 결정)**: `metric_freshness.boost_hold(fr) -> {hold, reasons}` 순수 함수. 해제는 CRS `level == "fresh"` **이고** `signals.body_battery`·`signals.hrv_today` 모두 당일 non-null **이고 HRV 7일 rolling이 형성**(`is_estimated` 아님 — 행에서 식별할 키는 구현 시 확인, 없으면 crs 1.1 json에 `hrv_rolling: bool` 추가)일 때만. 그 외(stale·partial·missing, CRS 행 없음, `gate_unknown` 하나라도) → hold. reasons는 `[{code:"crs_stale"|"crs_missing"|"gate_unknown", gates:[...]}]`(사유 문구 원천). `crs_boost_hold(conn, date)`는 crs 행 1건 조회 + `assess` + `boost_hold`(서비스 계층, ADR-009). Calculator·저장 level 불변(1.2 없음).
 - **적용(D15 (b) 결정)**: A1 — `action_hint(..., boost_hold=None)`: `level==4`이고 hold면 level 3 문구 + 사유 한 줄, level 0~3은 무시. A2 — `adjust_todays_plan(..., boost_hold=None)`: adjuster는 **이미 계산된 `{hold, reasons}` dict를 인자로만 받는다**(training → services import 없음, 계층 역전 없음). 원래 상향 조건(TSB>10·BB>70)이 참**이고** hold일 때만 `volume_boost=False`, `boost_held=True`, `boost_hold_reasons` 추가(상향 조건이 거짓인 날은 사유를 만들지 않음 — 매일 "보류" 노이즈 방지). hold가 아니거나 `None`이면 **키 추가 없이** 현행 dict 그대로(회귀 비교가 dict 동등성으로 가능). 하향 분기(`fatigue` high/moderate)는 이 인자를 읽지 않는다.
-- **사유 표시(D16 (b)·D19 (a) 결정)**: `today_hero`는 `boost_held`면 `verdict`를 기본값 `"as_planned"`로 두고 `adjustment = {"reason": None, "from": t, "to": t, "hold_reason": boost_hold_reasons}`(t = `_label(adjusted_type)`, 하향과 상호배타 — `adjusted`가 우선)를 싣는다. 신규 verdict 값 없음. 문구는 `boost_hold.reasons`에서 프론트 `freshness.ts`의 `boostHoldCaption(reasons)`가 생성(예: "HRV·바디배터리 데이터가 없어 강도 상향은 보류했어요" — **예시, 문구 확정은 FRS-4**). library `crs` 카드·상세의 level 4 보류도 같은 함수.
+- **사유 표시(D16 (b)·D19 (a) 결정)**: `today_hero`는 `boost_held`면 `verdict`를 기본값 `"as_planned"`로 두고 `adjustment = {"reason": None, "from": t, "to": t, "hold_reason": boost_hold_reasons}`(t = `_label(adjusted_type)`, 하향과 상호배타 — `adjusted`가 우선)를 싣는다. 신규 verdict 값 없음. 문구는 `boost_hold.reasons`에서 프론트 `freshness.ts`의 `boostHoldCaption(reasons)`가 생성(FRS-4 확정: "HRV·바디배터리 데이터가 없어 강도 상향은 보류했어요", 화면 확인 후 미세 조정). library `crs` 카드·상세의 level 4 보류도 같은 함수.
 - **rule_version(ADR-035)**: `RULE_VERSION` `adjuster_v1`→`adjuster_v2`. (b)로 제안 생성 함수 자체(`adjust_todays_plan` 분기)가 바뀌므로 상향 실효가 가장 크다. 저장 행은 하향뿐이라 같은 입력에서 v1/v2의 `after`·`reasons`는 동일 — 마이그레이션 없음, `ensure_proposal` UPDATE는 내용이 다를 때만 실행되므로 기존 `proposed` v1 행은 rev 불변. `pain_v1` 불변.
 
 **B. 결측 성분 문구(D13 (c)).** `assess`가 정규화 키를 내보낸다: `missing_inputs: [...]`(utrs·rmr `components` 키, rtti `wellness_used` 여집합 → SPEC 웰니스 필드명으로 정규화), crs는 `unknown_gates: ["body_battery","hrv"]`. `frontend/src/lib/freshness.ts`:
 - `INPUT_LABELS`(필드→성분명: `body_battery_high` 바디배터리, `sleep_score` 수면, `hrv_weekly_avg` HRV, `avg_stress` 스트레스, `resting_hr` 안정 심박, `tsb`·`atl`·`ctl` 훈련 부하, `acwr`·`cirs`·`utrs` 지표명) + 메트릭별 템플릿(`component`: "{성분} 없이 계산", `modifier`(rtti): "{성분} 보정 미적용", `gate`(crs): "{게이트} 게이트 데이터 없음").
-- `listCaption(fr)` = 결측이 있으면 공통 "일부 데이터 없이 계산", `detailCaption(metric, fr)` = 템플릿 적용. 사전에 없는 키는 공통 문구로 폴백. 최종 문구는 D4와 함께 확정.
+- `listCaption(fr)` = 결측이 있으면 공통 "일부 데이터 없이 계산", `detailCaption(metric, fr)` = 템플릿 적용. 사전에 없는 키는 공통 문구로 폴백.
+- **문구 사전(D4 = FRS-4 확정, 화면 확인 후 미세 조정)**: `BADGE_TEXT = {stale: "입력이 오래됐어요", partial: "일부 데이터 없이 계산"}`, `HOLD_HEADLINE = "최근 데이터가 부족해 참고용이에요"`(유보형 헤드라인), `basisCaption(d)` = "MM-DD 기록 기준", `BOOST_HOLD_TEXT = "HRV·바디배터리 데이터가 없어 강도 상향은 보류했어요"`(`boostHoldCaption`).
 
 **C. ◆ 생략(D14 (b)).** `AlgoChange`에 `value_changed: bool = True`(마지막 필드, 기본값으로 기존 항목 무수정). `rmr`·`rtti`·`crs` 1.1은 `value_changed=False`. `metrics_changelog_events`: `changelog_events`의 hits 필터에 `c.value_changed` 추가(상위 지표 전파 ◆도 함께 사라짐), `version_events`는 `(calculator, to)`가 `value_changed=False` 항목과 일치하는 data 불연속 이벤트를 제거(재계산 중단 시 1.0/1.1 혼재 ◆ 방지; 현 `versions` dict는 버전 문자열만 키라 계산기 간 충돌 — 같이 수정). `recompute_caption`은 logged가 비면 기존 폴백.
 
@@ -138,7 +140,7 @@ FRESHNESS_SPEC = {
 | `web/views_training_loaders.py:45` | v1 | 미수정 | `views_training_wellness:77`·`views_training_condition:99` "볼륨 부스트 가능" |
 | `plan.py:117` | CLI | 미수정 | `:136` `volume_boost` 출력 |
 
-→ 현재 실제 불일치는 plan API JSON(필드만, 미렌더)과 AI ctx다. Coach 문장 경로 3곳은 `volume_boost`를 읽지 않으므로 이관만으로는 **문구 변화 없음**(문구 추가 여부는 D20).
+→ 현재 실제 불일치는 plan API JSON(필드만, 미렌더)과 AI ctx다. Coach 문장 경로 3곳은 `volume_boost`를 읽지 않으므로 이관만으로는 문구가 변하지 않는다 → **D20 (b)**: `_session_line` 규칙 문장과 `coach_evidence` plan 근거에 `boost_held`면 보류 한 줄(FRS-4 문구) 추가. `plan_line`(AI ctx)은 래퍼 dict의 `boost_held`·reasons 필드만.
 
 **래퍼(서비스 계층, `plan_service.py`).**
 ```python
@@ -156,17 +158,17 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 - **계층**: `ai/`→`services/`는 기존 방향(`coach_rule_plan_handlers`→`plan_service`, `chat_engine`·`ai_context` 등). `services/`→`ai/`는 `ai_cache`·provider 인프라뿐이라 역전 아님. ai 2곳은 기존 관례대로 함수 내 지연 import. `today_hero`는 이미 `plan_service`를 지연 import. `plan_service`는 `plan_adjustment_service`·`coach_evidence`를 import하지 않아 순환 없음(구현 시 import 목록 재확인).
 - **v1 비수정 보장**: 래퍼는 v1 경로에서 호출되지 않고 adjuster 기본값 `boost_hold=None`이 현행이다. 가드 테스트 `tests/test_adjuster_callers.py`: `src/`에서 `adjust_todays_plan(` 직접 호출은 `adjuster.py`·`plan_service.py`(래퍼)·`views_training_loaders.py`·`plan.py`만 허용(정규식 스캔).
 
-**FRS-19 (a) 전달 경로.** adjuster `boost_hold_reasons` → 래퍼 → `today_hero`: `elif adj.get("boost_held")`면 verdict `"as_planned"` 유지 + `adjustment.hold_reason` → `/api/v1/today` → 프론트 `todayHero.ts`가 `view.adjustment` 생성 시 `hold_reason`이 있으면 `boostHoldCaption(hold_reason)`, 없으면 기존 "from → to" 문자열. 타입은 **필드 추가만**: `BriefingStateFields.adjustment`에 `hold_reason?: BoostHoldReason[]`, 플랜 응답 2타입(`volume_boost` 보유)에 `boost_held?: boolean`·`boost_hold_reasons?: BoostHoldReason[]`. verdict 유니언 불변.
+**FRS-19 (a) 전달 경로.** adjuster `boost_hold_reasons` → 래퍼 → `today_hero`: `elif adj.get("boost_held")`면 verdict `"as_planned"` 유지 + `adjustment.hold_reason` → `/api/v1/today` → 프론트 `todayHero.ts`가 `view.adjustment` 생성 시 `hold_reason`이 있으면 `boostHoldCaption(hold_reason)`, 없으면 기존 "from → to" 문자열. **D21 (b)**: `view.adjustment`에 종류 필드 `kind: "down" | "hold"`를 넘기고 `TodayHero.svelte`는 `hold`면 중립(회색) 한 줄, `down`이면 기존 amber 박스(+5줄). 타입은 **필드 추가만**: `BriefingStateFields.adjustment`에 `hold_reason?: BoostHoldReason[]`, 플랜 응답 2타입(`volume_boost` 보유)에 `boost_held?: boolean`·`boost_hold_reasons?: BoostHoldReason[]`. verdict 유니언 불변.
 
 **이관 순서(1호출부 = 1커밋, 각 단계 대상 테스트 통과 후 다음).** 선행: §4 5-1의 adjuster `boost_hold` 인자(None 현행)·`crs_boost_hold`.
 1. 래퍼 추가(호출자 없음) + `test_plan_service` 4개: hold 주입·`hold=` 전달 시 crs 미조회·crs 예외 → hold·계획 없음 → None.
 2. `plan_service` 145·177 → 래퍼. `test_plan_service`·`test_api_plan*`.
-3. `coach_evidence:152` → 래퍼. `test_coach_evidence`.
+3. `coach_evidence:152` → 래퍼 + `boost_held`면 plan 근거에 보류 한 줄(D20 b). `test_coach_evidence`(+1).
 4. `ai/chat_readiness:22` → 래퍼. `test_chat_readiness`(없으면 `test_ai_context*`).
-5. `ai/coach_rule_handlers:49` → 래퍼. `test_coach_rule*`.
+5. `ai/coach_rule_handlers:49` → 래퍼 + `_session_line` 보류 한 줄(D20 b). `test_coach_rule*`(+2: 보류 한 줄·비보류 문장 불변).
 6. `plan_adjustment_service:98` → 래퍼 + `RULE_VERSION` v2. `test_plan_adjustment_service`·`test_api_plan_adjustments`.
-7. `today_hero:143` → 래퍼 + `hold_reason`(FRS-19) + 프론트 타입·`todayHero.ts`. `test_today_hero`, `npm run check`.
-8. 가드 테스트 + 일관성 테스트 `tests/test_boost_hold_consistency.py`: **보류일 픽스처**(TSB>10·BB>70·HRV null) → `get_todays_adjustment`·`get_session_detail.adjustment`·`attach_readiness` ctx 모두 `volume_boost=False`·`boost_hold_reasons` 존재, `coach_evidence`·`_session_line`은 래퍼 경유(spy)·문장 불변, Hero `as_planned`+`hold_reason`. **비보류 픽스처**(웰니스·CRS fresh) → 4곳 출력이 `adjust_todays_plan(conn, date=d)` 직접 결과와 dict 동등, Coach 문장 동일(회귀). ~8개.
+7. `today_hero:143` → 래퍼 + `hold_reason`(FRS-19) + 프론트 타입·`todayHero.ts` 종류 필드·`TodayHero.svelte` 회색 분기(D21 b). `test_today_hero`, `npm run check`.
+8. 가드 테스트 + 일관성 테스트 `tests/test_boost_hold_consistency.py`: **보류일 픽스처**(TSB>10·BB>70·HRV null) → `get_todays_adjustment`·`get_session_detail.adjustment`·`attach_readiness` ctx 모두 `volume_boost=False`·`boost_hold_reasons` 존재, `coach_evidence`·`_session_line`은 래퍼 경유(spy)·보류 한 줄 포함(D20 b), Hero `as_planned`+`hold_reason`. **비보류 픽스처**(웰니스·CRS fresh) → 4곳 출력이 `adjust_todays_plan(conn, date=d)` 직접 결과와 dict 동등, Coach 문장 동일(회귀). ~8개.
 
 ## 3. 변경 파일 표
 
@@ -182,7 +184,8 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 | 수정 | `src/services/plan_service.py` | `todays_adjustment_with_hold`·`_safe_boost_hold`(D18 c), 145·177 이관 | 214→~238 |
 | 수정 | `src/services/plan_adjustment_service.py` | `RULE_VERSION="adjuster_v2"`, 98행 래퍼 경유 | +2 |
 | 수정 | `src/services/today_hero.py` | 143행 래퍼 경유(`today_service`가 `hold=` 전달 가능), `boost_held`면 verdict `as_planned`+`adjustment.hold_reason`(D16 b·D19 a) | 203→~210 |
-| 수정 | `src/services/coach_evidence.py`, `src/ai/chat_readiness.py`, `src/ai/coach_rule_handlers.py` | 각 1호출부 래퍼로 교체(지연 import), 문구 무변경(D20 전) | 각 ±2 |
+| 수정 | `src/services/coach_evidence.py`, `src/ai/coach_rule_handlers.py` | 래퍼 교체(지연 import) + `boost_held`면 plan 근거·`_session_line`에 보류 한 줄(D20 b, FRS-4 문구) | 각 +4~6(216→~222) |
+| 수정 | `src/ai/chat_readiness.py` | 래퍼 교체만(ctx에 `boost_held`·reasons 필드) | ±2 |
 | 신규 | `src/services/metric_freshness_spec.py` | `FRESHNESS_SPEC`, level 우선순위, 임계값, upstream 사이클 assert | ~50 |
 | 신규 | `src/services/metrics_trend_service.py` | `get_metric_trend`·`_race_events` 이동(+freshness). `metrics_browser_service.py` 298줄이라 분리 | ~100 |
 | 수정 | `src/services/metrics_browser_service.py` | trend 제거(−75), entry에 freshness(+8), crs `action_hint` 유보(+3), 하위호환 re-export | 298→~238 |
@@ -192,18 +195,19 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 | 수정 | `src/services/today_readiness.py` | confidence·freshness 첨부 | +12 |
 | 수정 | `src/training/fatigue.py`, `src/services/race_hub_service.py` | `freshness` 인자, 유보형 분기 | +12, +10 |
 | 수정 | `frontend/src/lib/types/index.ts` | `Freshness`·`BoostHoldReason` 타입, 응답 타입 확장, `adjustment.hold_reason?`·플랜 2타입 `boost_held?`·`boost_hold_reasons?`(추가만, verdict 유니언 불변) | +26 |
-| 수정 | `frontend/src/lib/todayHero.ts` | `hold_reason` 있으면 `boostHoldCaption`, 없으면 기존 문자열 | +4 |
-| 수정 | `ReadinessGauge.svelte`, `TodayHero.svelte`, `routes/library/metrics/+page.svelte`(291줄), `[slug]/+page.svelte` | 배지·유보 표시(목록은 카드 컴포넌트 분리 검토) | 각 +5~15 |
-| 신규 | `frontend/src/lib/freshness.ts` | level→표시 매핑, `INPUT_LABELS`·role별 템플릿, `listCaption`/`detailCaption`·`boostHoldCaption`(§2.6-A·B, 문구는 D4 후) | ~60 |
+| 수정 | `frontend/src/lib/todayHero.ts` | `hold_reason` 있으면 `boostHoldCaption`, 없으면 기존 문자열 + 종류 필드 `kind: "down"\|"hold"`(D21 b) | +6 |
+| 수정 | `ReadinessGauge.svelte`, `TodayHero.svelte`, `routes/library/metrics/+page.svelte`(291줄), `[slug]/+page.svelte` | 배지·유보 표시(목록은 카드 컴포넌트 분리 검토), `TodayHero`는 `kind=="hold"` 중립(회색) 한 줄 분기(D21 b, +5) | 각 +5~15 |
+| 신규 | `frontend/src/lib/freshness.ts` | level→표시 매핑, `INPUT_LABELS`·role별 템플릿, `listCaption`/`detailCaption`·`boostHoldCaption`, FRS-4 문구 사전(§2.6-B) | ~60 |
 | 신규/수정 | `tests/test_rmr.py`(신규), `tests/test_rtti.py`, `tests/test_crs.py` | 위 표의 confidence 값(전부/TSB 단독/웰니스 0개/HRV estimated/전부 None=0.0), `wellness_used`, 값·level 불변 회귀, 데이터 부족 `[]` 유지 | 각 +3~4개 |
 | 수정 | `tests/test_algo_changelog.py` | 기존 누락·버전·prev 체인 검사 유지 + `value_changed=False`면 `prev` 필수 1개 | +1개 |
 | 수정 | `tests/test_metrics_changelog_events.py` | 무변경 항목 ◆·전파 ◆ 없음, 혼재 data 이벤트 제거, `value_changed=True` 회귀 | +3개 |
 | 수정 | `tests/test_adjuster.py`, `tests/test_plan_adjustment_service.py`, `tests/test_today_hero.py` | D15 (b) 신규 +3: ① hold면 `volume_boost=False`·`boost_held`·reasons ② **하향 불변** — 같은 입력에서 hold 유무와 무관하게 fatigue high/moderate `adjusted_type`·reasons 동일 ③ `boost_hold=None` 현행 회귀. 그 외 신규 제안 `adjuster_v2`·기존 v1 `proposed` rev 불변, Hero `"down"` 불변·`"up"`만 `"as_planned"`+`hold_reason` | 각 +2~3개 |
 | 신규/수정 | `tests/test_plan_service.py`(+4), `tests/test_boost_hold_consistency.py`(~8), `tests/test_adjuster_callers.py`(1) | §2.7 래퍼 단위·호출부 4곳+Hero 보류일 일관성·비보류 dict 동등 회귀·직접 호출 가드 | ~13개 |
+| 수정 | `tests/test_coach_evidence.py`(+1), `tests/test_coach_rule*`(+2) | D20 (b) 보류 한 줄·비보류 문장 불변 회귀 | +3개 |
 | 신규 | `tests/test_metric_freshness.py` | fresh/partial/stale/missing, 웰니스 원값, 공유 조회, rmr confidence<0.5, rtti modifier(웰니스 14일 결측 → partial만), crs upstream·`gate_unknown`, metric 입력 결측(경과일 무시), `min_version` 미달 → `coverage_unknown`, 쿼리 수 2 고정, `missing_inputs` 정규화, `boost_hold`(D17 a: stale·partial·CRS 행 없음·BB만 null·HRV만 null → hold, fresh+BB·HRV 당일 → 해제, `hrv_today`만 있고 rolling 미형성 → hold, 1.0 행 signals로 판정) | ~29개 |
 | 신규 | `tests/test_metric_freshness_spec.py` | SPEC ⊆ Calculator `requires`·`daily_wellness` 컬럼, `min_version` == 각 Calculator `version`, upstream 사이클 없음 | ~5개 |
 | 수정 | `test_today_hero.py`, `test_fatigue.py`, `test_race_hub_service.py`, `test_metrics_browser_service.py`, `test_api_library.py`, `test_today_service.py`, `test_metric_display.py`(없으면 신규) | 추가 필드·유보 분기·`freshness=None` 회귀, crs/rmr/rtti entry·상세, `action_hint` assertive·level 4 보류/level 0~3 불변 | 각 +2~5개 |
-| 신규 | `frontend/tests/freshness.test.mjs` | 매핑·배지 조건, 목록 공통/상세 성분명·미등록 키 폴백 | ~9개 |
+| 신규 | `frontend/tests/freshness.test.mjs` | 매핑·배지 조건, FRS-4 문구, 목록 공통/상세 성분명·미등록 키 폴백, `todayHero` `kind` 분기(D21 b) | ~11개 |
 | 문서 | `v0.3/data/decisions.md`, `v0.3/data/metric_dictionary.md`(`gen_metric_dictionary.py` 재생성) | ADR-048(신선도·BOOST 보류·`value_changed`), 버전 1.1 반영 | — |
 
 ## 4. 적용 순서와 검증 (단계적 롤아웃: 코드 배포 → 재계산 → 신선도 판정 활성)
@@ -214,10 +218,10 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 3. **판정 모듈(배포 2, 신선도 활성)**: `metric_freshness_spec.py`·`metric_freshness.py` + 단위 테스트. 픽스처: "웰니스 마지막 09-27, 10-11 UTRS=85 conf=0.25 components={tsb}" → `stale`+`low_coverage`, `assertive=False`; 같은 날 웰니스가 있으면 `fresh`. FRS-8: `rmr` components={tsb}, conf 0.25 → `stale`+`low_coverage`; `rtti` 웰니스 결측·ATL/CTL 당일 존재·conf 0.6 → `partial`(`modifier_missing`, stale 아님); `crs` BB·HRV 결측 + upstream UTRS stale → `stale`, reasons `upstream`·`gate_unknown`; 1.0 행 → `coverage_unknown`; 웰니스 당일 존재 시 4개 모두 `fresh`. `assess_many(['utrs','crs','rmr','rtti'])` 쿼리 수 2 고정. `boost_hold`: 위 crs 픽스처 → hold, BB만 null·HRV만 null·rolling 미형성·CRS 행 없음 → hold, fresh+BB·HRV 당일 → 해제(D17 a).
 4. **Today API**: `build_readiness`·`readiness.crs` 첨부. `test_today_hero` + API 테스트.
 5. **판정 문구**: `readiness_decision`·`race_briefing` 인자. `freshness=None` 회귀, `assertive=False` 분기, `coach_evidence` 영향 테스트 1개.
-5-1. **BOOST 보류(D12·D15 b·D16 b·D17 a, `adjuster_v2`)**: 테스트 먼저(하향·휴식 결과가 hold 유무와 무관하게 동일함을 고정, adjuster +3) → `adjust_todays_plan(boost_hold=None)` 인자 주입(None 현행, 동작 불변 커밋) → `action_hint` level 4 보류+사유 → §2.7 이관 1~8단계(래퍼 → plan_service → coach_evidence → AI 2곳 → `ensure_proposal`+`RULE_VERSION` → Hero `as_planned`+`hold_reason` → 가드·일관성 테스트). `pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_plan_adjustment_service.py tests/test_api_plan_adjustments.py tests/test_today_hero.py tests/test_boost_hold_consistency.py tests/test_adjuster_callers.py tests/test_replanner.py`(replanner는 무변경 회귀). 배포 후 `SELECT rule_version, COUNT(*) FROM plan_adjustments WHERE source='crs' GROUP BY 1`로 신규 행 v2 확인.
+5-1. **BOOST 보류(D12·D15 b·D16 b·D17 a·D20 b·D21 b, `adjuster_v2`)**: 테스트 먼저(하향·휴식 결과가 hold 유무와 무관하게 동일함을 고정, adjuster +3) → `adjust_todays_plan(boost_hold=None)` 인자 주입(None 현행, 동작 불변 커밋) → `action_hint` level 4 보류+사유 → §2.7 이관 1~8단계(래퍼 → plan_service → coach_evidence → AI 2곳 → `ensure_proposal`+`RULE_VERSION` → Hero `as_planned`+`hold_reason` → 가드·일관성 테스트). `pytest tests/test_adjuster.py tests/test_plan_service.py tests/test_plan_adjustment_service.py tests/test_api_plan_adjustments.py tests/test_today_hero.py tests/test_boost_hold_consistency.py tests/test_adjuster_callers.py tests/test_coach_evidence.py tests/test_replanner.py`(replanner는 무변경 회귀). 배포 후 `SELECT rule_version, COUNT(*) FROM plan_adjustments WHERE source='crs' GROUP BY 1`로 신규 행 v2 확인.
 6. **Library API**: trend 분리 이동(동작 불변 커밋 먼저) → freshness 추가 → crs `action_hint` 유보. `test_metrics_browser_service`, `test_api_library`.
 7. **프론트**: 타입·매핑·컴포넌트. `frontend/tests/*.test.mjs`, `npm run check`.
-8. **브라우저 확인**(로컬 DB 사본·픽스처, 재계산 완료 상태): (a) 웰니스 14일 결측 — `/today` 배지·유보 문구·caveat 병합, `/library/metrics` UTRS·crs·rmr·rtti 카드(라벨 회색/유보, `confidence_label` 변화, action hint 유보), `/library/metrics/utrs`·`/sleep_score`·`/crs`(게이트 '데이터 없음', BOOST 보류 사유)·`/rmr`·`/rtti`(◆ 없음·상세 성분명·목록 공통 문구); `/today` Hero 상향 보류 + 사유 한 줄·하향 카드 유지; (b) 당일 웰니스 정상 — 배지 없음, BOOST 표시(회귀). `pw/s5_wellness.mjs` 패턴으로 시나리오 1개 추가 검토.
+8. **브라우저 확인**(로컬 DB 사본·픽스처, 재계산 완료 상태): (a) 웰니스 14일 결측 — `/today` 배지·유보 문구·caveat 병합, `/library/metrics` UTRS·crs·rmr·rtti 카드(라벨 회색/유보, `confidence_label` 변화, action hint 유보), `/library/metrics/utrs`·`/sleep_score`·`/crs`(게이트 '데이터 없음', BOOST 보류 사유)·`/rmr`·`/rtti`(◆ 없음·상세 성분명·목록 공통 문구); `/today` Hero 상향 보류 시 중립(회색) 사유 한 줄·하향 amber 박스 유지(D21 b), Coach 근거 보류 한 줄(D20 b), FRS-4 문구 화면 확인 후 미세 조정; (b) 당일 웰니스 정상 — 배지 없음, BOOST 표시(회귀). `pw/s5_wellness.mjs` 패턴으로 시나리오 1개 추가 검토.
 9. 전체 `pytest tests/`, `scripts/check_docs.py`, ADR-048 기록.
 
 ## 5. 호환성·v1 의존
@@ -229,7 +233,7 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 - 스키마 변경 없음. 재계산은 1회(§4-2), 이후 일상 동기화는 1.1로 계산.
 - BOOST 보류는 읽기 시점 판정이라 저장 CRS level·과거 `plan_adjustments` 행은 불변. `rule_version`은 신규·내용 변경 행만 `adjuster_v2`(ADR-035, 기존 v1 행 유지). v2 서비스·Coach·AI 호출부는 래퍼로 Hero와 같은 보류 결과를 받는다(D18 c). `boost_hold=None` 기본값으로 v1 뷰(`views_training_*`)·`plan.py`만 현행 상향 표시 — v1 제거 예정(ADR-046)이라 수용. 보류가 아닌 날은 모든 호출부 출력이 dict 단위로 현행과 같다. Hero verdict 유니언·API 기존 키 불변(D19 a, 필드 추가만).
 - **알려진 한계(D17 a)**: HRV 7일 rolling 미형성 사용자(HRV 미지원 기기, 착용 7일 미만, 수면 중 미착용 잦음)와 BB 미지원 기기 사용자는 **장기간·사실상 영구히 BOOST가 나오지 않는다**. 하향·휴식은 정상. 보류 사유 한 줄로 원인은 드러나지만 해제 수단은 없다(수동 해제 (c)는 미채택).
-- AI·Coach가 보류 사실을 문장으로 말할지는 D20(이관 자체는 문구 무변경). CRS level 4를 싣는 AI 컨텍스트 경로는 §8.
+- D20 (b): Coach 규칙 문장·`coach_evidence`는 보류 한 줄을 말하고, LLM ctx는 `boost_held`·reasons 필드만 받는다. CRS level 4를 싣는 AI 컨텍스트 경로는 §8.
 
 ## 6. 대안 비교
 
@@ -241,29 +245,19 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 
 B안의 재정규화 정책 변경은 지표 정의 문제라 별도 결정(D7, 현행 유지)으로 분리.
 
-## 7. 결정 필요
+## 7. 결정됨(2026-10-11)
 
-- **D1 stale 기준 경과일 (FRS-1, 결정 2026-10-11: 2일)**.
-- **D2 partial 기준 (FRS-2, 결정 2026-10-11: 웰니스 성분 0개 또는 confidence<0.5)**.
-- **D3 stale·partial 시 표시 (FRS-3, 결정 2026-10-11: (b) 값 유지 + 등급 라벨 회색/유보)**.
-- **D4 문구 (FRS-4, 미결정)**: 배지 문구, 유보형 헤드라인 문구, 상세 "MM-DD 기록 기준" 표기 문구.
-- **D5 caveat 병합 (FRS-5, 결정 2026-10-11: (b) freshness 하나로 병합, 규칙·문구는 구현 시)**.
-- **D6 `salience.fresh` 의미 (FRS-6, 결정 2026-10-11: 입력 신선도 기준)**.
-- **D7 UTRS 재정규화 정책 (FRS-7, 결정 2026-10-11: 현행 유지)**.
-- **D8 2차 적용 범위 (FRS-8, 결정됨 2026-10-11)**: `crs`·`rmr`·`rtti`도 같은 규칙. §2.5·§3·§4.
-- **D9 메트릭별 stale 일수 (FRS-9, 결정됨 2026-10-11: (c))**: 웰니스 입력만 공통 2일, metric 입력(acwr·atl 등)은 당일 존재만 보고 경과일 판정 안 함.
-- **D10 RTTI 웰니스 결측 처리 (FRS-10, 결정됨 2026-10-11: (b))**: 웰니스 결측은 partial("보정 미적용")까지만, stale은 value_age로만.
-- **D11 coverage 출처 (FRS-11, 결정됨 2026-10-11: (c))**: Calculator가 실측 confidence 기록 — `rmr`·`rtti`·`crs` 1.0→1.1, `algo_changelog` 3항목(ADR-042), 전체 재계산, 과거 행 confidence 변경. 가중치는 §2.5 표, 롤아웃은 §4-1~3.
-- **D12 CRS 행동 경로 반영 (FRS-12, 결정됨 2026-10-11: (c'))**: CRS stale 또는 BB·HRV 게이트 불명이면 강도 상향(BOOST)만 보류, 감량·휴식은 유지. `boost_hold` 서비스 판정, `adjuster_v1`→`v2`, 하향 불변 테스트. §2.6-A.
-- **D13 결측 성분 표시 문구 범위 (FRS-13, 결정됨 2026-10-11: (c))**: 목록 공통 "일부 데이터 없이 계산", 상세만 성분명. §2.6-B.
-- **D14 confidence만 바뀐 버전 상향의 ◆ 마커 (FRS-14, 결정됨 2026-10-11: (b))**: `AlgoChange.value_changed=False`면 ◆ 생략, changelog 기록·ADR-042 테스트 유지. §2.6-C.
-- **D15 BOOST 보류 적용 범위 (FRS-15, 결정됨 2026-10-11: (b))**: A1(CRS level 4 행동 힌트)+A2(Hero `volume_boost` 상향) 모두 보류. adjuster는 `boost_hold` dict 인자 주입(계층 역전 없음), `adjuster_v1`→`v2` 실효 최대, 테스트 +3. §2.6-A.
-- **D16 BOOST 보류 사유 표시 (FRS-16, 결정됨 2026-10-11: (b))**: 한 줄 사유, `boost_hold.reasons`로 생성, D4 문구 체계 편입. 예시 "HRV·바디배터리 데이터가 없어 강도 상향은 보류했어요" — **문구 확정은 FRS-4**.
-- **D17 보류 해제 조건 (FRS-17, 결정됨 2026-10-11: (a))**: BB·HRV(7일 rolling 포함) 모두 당일 확보 + CRS fresh일 때만 해제. 장기 BOOST 불가 사용자는 §5 알려진 한계.
-- **D18 `adjust_todays_plan` 나머지 호출부 범위 (FRS-18, 결정됨 2026-10-11: (c))**: `plan_service.todays_adjustment_with_hold(conn, date=None, *, hold=None)` 단일 진입점, v2 호출부 7곳(plan_service 2·coach_evidence·AI 2·Hero·제안 저장) 1커밋씩 이관, v1·`plan.py` 미수정·가드 테스트. §2.7.
-- **D19 보류 시 Hero `verdict` 값 (FRS-19, 결정됨 2026-10-11: (a))**: `"as_planned"` 유지 + `adjustment.hold_reason`(reasons 목록, 문구는 프론트 `boostHoldCaption`). 타입은 선택 필드 추가만. §2.6-A·§2.7.
-- **D20 래퍼 이관 시 Coach/AI 문구 범위 (신규, 미결정)**: 이관만으로는 Coach 문장 3경로(`coach_evidence`·`_session_line`·`plan_line`)가 `volume_boost`를 읽지 않아 문구가 변하지 않는다. (a) 데이터만 — 문구 무변경, LLM ctx에는 `boost_held`·reasons 필드만 실림, Hero는 사유를 보이는데 Coach는 침묵 / (b) 규칙 문장·`coach_evidence` plan 근거에 보류 한 줄 추가 — 화면 간 설명 일관, 문구가 FRS-4에 의존, 테스트 +3·`coach_rule_handlers`(216줄) 증가 / (c) LLM 프롬프트 ctx에만 사유 문장 추가 — 규칙 경로 무변경, 규칙 fallback과 LLM 응답이 갈림.
-- **D21 Hero 보류 사유 표시 스타일 (신규, 미결정)**: `TodayHero`는 `view.adjustment`를 amber(경고) 박스로 렌더한다. (a) 같은 박스 재사용 — 변경 0, 보류가 하향처럼 "경고"로 읽힘 / (b) 중립(회색) 한 줄로 구분 — `todayHero.ts`가 종류 필드를 넘기고 `TodayHero.svelte` 분기 +5줄, 하향과 보류가 시각적으로 구분.
+decisions-table FRS-1~21과 1:1(D_n = FRS-n).
+- **D1** stale 기준 2일. **D2** partial = 웰니스 성분 0개 또는 confidence<0.5. **D3** (b) 값 유지 + 등급 라벨 회색/유보.
+- **D4 문구**: 배지 stale "입력이 오래됐어요"/partial "일부 데이터 없이 계산", 유보형 헤드라인 "최근 데이터가 부족해 참고용이에요", 상세 "MM-DD 기록 기준", BOOST 보류 "HRV·바디배터리 데이터가 없어 강도 상향은 보류했어요". 최종은 화면 확인 후 미세 조정(§2.6-B 문구 사전).
+- **D5** (b) `source_missing`과 freshness를 freshness 하나로 병합(규칙·문구는 구현 시). **D6** `salience.fresh` = 입력 신선도 기준. **D7** UTRS 재정규화 현행 유지.
+- **D8** `crs`·`rmr`·`rtti`도 같은 규칙(§2.5·§3·§4). **D9** (c) 웰니스 입력만 2일, metric 입력은 당일 존재만. **D10** (b) RTTI 웰니스 결측은 partial("보정 미적용")까지, stale은 value_age로만.
+- **D11** (c) Calculator 실측 confidence — 1.0→1.1, `algo_changelog` 3항목(ADR-042), 전체 재계산(§4-1~3).
+- **D12** (c') CRS stale·게이트 불명이면 BOOST만 보류, 감량·휴식 유지, `adjuster_v2`(§2.6-A). **D13** (c) 목록 공통 문구, 상세만 성분명(§2.6-B). **D14** (b) `value_changed=False`면 ◆ 생략(§2.6-C).
+- **D15** (b) A1+A2 모두 보류, adjuster는 `boost_hold` dict 인자 주입. **D16** (b) 한 줄 사유(D4 문구). **D17** (a) BB·HRV(7일 rolling 포함) 당일 확보 + CRS fresh일 때만 해제(§5 알려진 한계).
+- **D18** (c) `plan_service.todays_adjustment_with_hold` 단일 진입점, v2 호출부 7곳 1커밋씩 이관, v1·`plan.py` 미수정·가드 테스트(§2.7). **D19** (a) Hero `"as_planned"` + `adjustment.hold_reason`.
+- **D20** (b) 규칙 문장(`_session_line`)·`coach_evidence` plan 근거에 보류 한 줄(FRS-4 문구), 테스트 +3, `coach_rule_handlers` 216→~222줄(§2.7 3·5단계).
+- **D21** (b) Hero 보류 사유는 중립(회색) 한 줄 — `todayHero.ts` 종류 필드 `kind`, `TodayHero.svelte` 분기 +5줄(§2.7 FRS-19 경로).
 
 ## 8. 범위 밖 메모
 
@@ -272,6 +266,14 @@ B안의 재정규화 정책 변경은 지표 정의 문제라 별도 결정(D7, 
 - T-03의 "ACWR 0.67(저부하)과 결이 다름"은 지표 간 일관성 문제로 신선도와 별개.
 - `get_metric_trend`의 `change_pct`·`peak` 산식 문제(M-03, M-04)는 trend 분리 시 건드리지 않는다.
 - `src/metrics/crs.py`의 주석 "NOTE: raw SQL 사용"은 실제 코드(전부 CalcContext)와 맞지 않고 `since` 변수는 미사용 — 1.1 수정 시 함께 정리 가능하나 동작 무관.
-- `replanner.py:142`·`matcher_context.py:84`가 존재하지 않는 `src.metrics.crs.evaluate`를 import → 예외 삼킴으로 CRS Q-day 경고 미발생, `planned_workouts` 매칭 스냅샷 `crs_at_session` 항상 NULL. BACKLOG [CRS-EVALUATE-MISSING] 등록됨(BOOST 보류와 무관 — 하향/기록 경로).
+- `replanner.py:142`·`matcher_context.py:84`가 존재하지 않는 `src.metrics.crs.evaluate`를 import → 예외 삼킴으로 CRS Q-day 경고 미발생, `planned_workouts` 매칭 스냅샷 `crs_at_session` 항상 NULL. [CRS-EVALUATE-MISSING]: `evaluate()` 복원으로 결정(BACKLOG) — 저장 CRS(·신선도)를 읽는 읽기 전용 함수, FRS-12·15~18과 함께 구현.
 - `plan_adjustments.source='crs'`는 실제로 `readiness_decision` 기반 — BACKLOG [ADJUSTMENT-SOURCE-CRS-LABEL] 등록됨.
 - `crs`가 입력 전부 None에도 행(base 60)을 만드는 것은 빈 리스트 규칙과 어긋남 — 값 정의 변경이라 별도 백로그 후보(이번엔 confidence 0.0 기록만).
+
+## 동기화 중 발견한 충돌/확인 필요
+
+- FRS-18 결정 문구는 이관 대상을 "plan_service·coach_evidence·AI 2곳"(4곳)으로 적지만 본문 D18·§2.7은 Hero·`ensure_proposal` 포함 7곳. 본문 유지, 표와의 범위 차이 확인 필요.
+- CRS-EVALUATE-MISSING `evaluate()` 복원 결정이 §3 변경 파일 표·§4 단계에 없고, §4 5-1은 `test_replanner`를 "무변경 회귀"로 둔다 — 복원 시 재계획 Q-day 경고·`crs_at_session`이 바뀌므로 본 설계 범위 포함 여부와 테스트 기대값 확인 필요.
+- FRS-4 BOOST 보류 문구는 BB·HRV 결측(`gate_unknown`) 기준 한 문장뿐 — `crs_stale`·`crs_missing` 사유의 문구는 미정(화면 확인 시 조정 범위로 처리 가능한지 확인).
+- 유보형 헤드라인은 서버(`fatigue.readiness_decision`·`race_briefing`), Coach 보류 한 줄은 Python(D20 b)에서 생성되어 FRS-4 문구가 프론트 `freshness.ts`와 백엔드에 이중 정의된다(ADR-020 서버 SSOT 원칙과의 정합 확인 필요).
+- FRS-20 (b)의 "규칙 문장"에 `plan_line`(`ai/chat_readiness`)이 포함되는지 불명확 — 본문은 `_session_line`·`coach_evidence`만 문구 추가로 해석.

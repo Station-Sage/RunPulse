@@ -1,14 +1,15 @@
 # 설계: 시간대 표기 (UTC 표기·날짜 절단)
 
 - 대상 ID: C-06 (코치 답변 근거 시트 "계산 시각" 9시간 어긋남), S-17 (Strava 단독 활동 상세 헤더 날짜가 KST 자정 경계에서 틀림)
-- 상태: 설계 초안 (구현 전. TZ-1·2·5~9 결정, TZ-3 부분 결정, D4·D10~D12 본문 미반영(표에는 결정 기재), D13~D16 결정 필요)
+- 상태: 설계 확정 (구현 전. TZ-1·2·4~16 결정, TZ-3만 부분 결정 — dry-run 결과 확인 후 범위 확정). 2026-10-11 설계서 동기화(TZ-10~16 확정 반영)
 - 관련 ADR: ADR-006 (Strava `start_date_local` 우선 — 활동 시각은 "현지 벽시계"가 기준이라는 기존 결정), ADR-009 (Calculator 무변경, 해당 없음)
-- 결정 번호 대응: 본문 D1~D12 = `decisions-table.md`의 TZ-1~TZ-12(같은 번호). D13 이후는 이 문서에서 새로 생긴 항목(표에 없음).
+- 결정 번호 대응: 본문 D1~D16 = `decisions-table.md`의 TZ-1~TZ-16(같은 번호).
 
 ### 변경 이력
 - 2026-10-11 TZ-5 결정 반영 (Strava CSV 고정 오프셋 → 활동별 timezone, Strava 연결 무효 시 폴백. 2.2.1 신설, 표·단계·검증·결정 필요 갱신, D6~D9 추가)
 - 2026-10-11 TZ-6 교차 소스 참조 반영 (Strava 연결 무효여도 같은 활동의 다른 소스 현지 시각/오프셋을 우선 폴백으로 사용. 2.2.2 신설, 체인 5단계로 재배치, D6 범위 축소, D7~D9 영향 기술, D10~D12 추가)
 - 2026-10-11 TZ-6~9 결정 반영 (D6 같은 날 차용→KST, D7 별도 백필, D8 `fallback` 행만 '시간대 추정', D9 자동 재교정+이력·되돌리기·상한. 2.2.3 신설, 체인·표·단계·검증 갱신, D13~D16 추가)
+- 2026-10-11 설계서 동기화(TZ-10~16 확정 반영): TZ-4 상대시각 병기, 허용오차 60초, 소스 우선순위 고정, 범위 Strava CSV/ZIP, 그룹 변화 행 자동 적용(`held` 보류 제거), 이동일=UTC 순시 가까운 쪽, 계기 확장(다른 소스 동기화 후 오프라인 재실행), 재연결 링크·툴팁. 6절을 결정 목록으로 정리
 
 ## 1. 근본 원인
 
@@ -35,9 +36,9 @@
 - `coach_evidence.py`의 `computed_at` 3곳에 적용. 다른 응답의 `*_at` 필드는 2단계에서 grep(`updated_at|created_at|_at"`)으로 목록화해 순차 적용.
 
 ### 2.2 백엔드 — 활동 시각 정규화 (RC-2)
-- `src/utils/timefmt.py`에 `to_local_wallclock(local: str | None, utc: str | None, offset_sec: int | None) -> str | None` 추가. 우선순위: 소스가 준 현지 시각(가짜 `Z` 제거) → `utc + offset` → (offset 미상) D2 결정대로 FIT 현지 시각, 없으면 KST 변환. Strava CSV는 2.2.1의 체인을 따른다.
+- `src/utils/timefmt.py`에 `to_local_wallclock(local: str | None, utc: str | None, offset_sec: int | None) -> str | None` 추가. 우선순위: 소스가 준 현지 시각(가짜 `Z` 제거) → `utc + offset` → (offset 미상) TZ-2대로 FIT 현지 시각, 없으면 KST 변환. Strava CSV는 2.2.1의 체인을 따른다.
 - 적용: `strava_extractor.py:30`, `intervals_extractor.py:34`, `garmin_extractor.py:42`, `import_history.py:107`(FIT: `timestamp`+`local_timestamp` 메시지 활용 가능 여부 확인).
-- 기존 행 교정: `source_payloads` 원본에서 재추출하는 1회성 스크립트(`scripts/normalize_start_time.py`, dry-run 기본). dedup 매칭 키에 영향이 있으므로 실행 여부·범위는 결정 필요 D3.
+- 기존 행 교정(TZ-3 부분 결정): `source_payloads` 원본에서 재추출하는 1회성 스크립트(`scripts/normalize_start_time.py`, dry-run 기본). 일괄 교정을 전제로 하되 dry-run으로 dedup 변화를 먼저 확인하고, 적용 범위는 그 결과를 본 뒤 확정한다.
 
 ### 2.2.1 Strava CSV — 활동별 timezone (TZ-5 결정 반영)
 
@@ -60,7 +61,7 @@
 | 5a | 같은 날 차용 (TZ-6 d) | 대상과 같은 현지 날짜에 앞뒤로 있는 **시간대 확인 활동**(등급 `api_*`·`fit_local`·`peer_direct`, 모든 소스)의 오프셋을 빌림. 아래 "차용 규칙" | 없음 | `neighbor:{source}` |
 | 5b | 최종 폴백 (TZ-2와 동일) | 차용 대상도 없으면 KST +9 (`_LOCAL_UTC_OFFSET`) | 없음 | `fallback` |
 
-**차용 규칙 (5a)** — `PeerTzIndex.nearest_confirmed(utc_target) -> (prev, next)`. 후보는 확인 등급 활동만(차용·폴백·`peer_derived` 값은 다시 빌려주지 않음 → 연쇄 추정 차단). 후보의 오프셋으로 환산한 대상의 현지 날짜가 후보의 현지 날짜와 같을 때만 "같은 날"로 본다. 앞·뒤 중 한쪽만 있으면 그 값, 둘의 오프셋이 같으면 그 값, **다르면(이동일)** 처리는 D14. `tz_peer`에 `{"mode":"neighbor","prev":…,"next":…}`를 남긴다.
+**차용 규칙 (5a)** — `PeerTzIndex.nearest_confirmed(utc_target) -> (prev, next)`. 후보는 확인 등급 활동만(차용·폴백·`peer_derived` 값은 다시 빌려주지 않음 → 연쇄 추정 차단). 후보의 오프셋으로 환산한 대상의 현지 날짜가 후보의 현지 날짜와 같을 때만 "같은 날"로 본다. 앞·뒤 중 한쪽만 있으면 그 값, 둘의 오프셋이 같으면 그 값, **다르면(이동일)** UTC 순시가 대상에 더 가까운 쪽(TZ-14). `tz_peer`에 `{"mode":"neighbor","prev":…,"next":…}`를 남긴다.
 
 **순서 변경 이유 (TZ-5 대비)**
 - 기존 순서는 "payload → API → FIT → 고정 오프셋"이었다. TZ-6로 **오프라인 단계를 모두 외부 호출 앞에** 둔다. 근거: (1) coding-rules의 "sync 중단 금지"와 Strava 한도(15분 100회·일 1,000회)를 고려하면 DB 안에서 풀리는 행은 API를 쓰지 않는 편이 낫다. (2) 사용자 지시의 핵심 상황이 "Strava 연결 무효"이므로 교차 소스는 연결 상태와 무관하게 항상 실행돼야 한다.
@@ -82,17 +83,17 @@
 - `import_strava_activities(conn, path, ..., config: dict | None = None)`와 `import_strava_archive(...)`에 선택 인자 `config` 추가(연결 상태 판정만, 네트워크는 `refresh_token` 1회 이하). 기본값 None이라 기존 호출자(v1 포함)는 수정 없이 같은 오프라인 체인으로 동작. v2 `import_service.apply_import()`만 config를 넘긴다.
 - 반환 dict에 `tz_resolved: {"api_payload", "fit_local", "peer_direct", "peer_derived", "neighbor", "fallback"}`(건수), `tz_lookup_status: str`, `tz_peer_conflicts: n`, `tz_backfill_pending: n`(백필 대상 수) 추가. 로그는 `[strava_csv] 시간대 교차소스 N건·차용 K건·폴백 M건 (Strava 연결: {status})` 한 줄(행별 로그 금지).
 
-**연결 무효 시 동작 요약 (TZ-6~9 반영)**: 가져오기는 연결과 무관하게 오프라인 체인으로 끝남 → payload 있는 행 정확 → 다른 소스에 같은 활동 있으면 그 오프셋 → 없으면 같은 날 앞뒤 확인 활동 차용 → 그것도 없으면 KST(`fallback`, '시간대 추정' 표시) → 결과 요약에 건수·연결 상태 → 연결이 유효해지면 2.2.3 백필·자동 재교정이 추정 행을 점진 교정.
+**연결 무효 시 동작 요약 (TZ-6~9 반영)**: 가져오기는 연결과 무관하게 오프라인 체인으로 끝남 → payload 있는 행 정확 → 다른 소스에 같은 활동 있으면 그 오프셋 → 없으면 같은 날 앞뒤 확인 활동 차용 → 그것도 없으면 KST(`fallback`, '시간대 추정' 표시) → 결과 요약에 건수·연결 상태 → 연결이 유효해지면 2.2.3 백필·자동 재교정이 추정 행을 점진 교정(다른 소스 동기화 뒤에는 연결 없이도 오프라인 단계 재실행, TZ-15).
 
 **사용자 안내 (TZ-8 B)**
-- 가져오기 결과 요약(v2 가져오기 결과 화면): `fallback`이 1건 이상일 때만 "N건은 시간대를 확인하지 못해 한국 시간으로 저장했어요" + 연결 상태. 0건이면 문구 없음. 재연결 링크·문구 최종안은 D16.
-- 활동 상세 헤더(`/library/[id]/+layout.svelte`): 응답 필드 `tz_estimated: bool`(= `csv_export` payload의 `tz_source == "fallback"`)이 참일 때만 날짜 옆 "시간대 추정" 보조 표기. 상세 서비스가 payload를 `json_extract`로 1회 읽음(DDL 무변경, 서비스 파일은 구현 시 grep). 재교정으로 등급이 오르면 표기는 자동 소멸.
+- 가져오기 결과 요약(v2 가져오기 결과 화면): `fallback`이 1건 이상일 때만 "N건은 시간대를 확인하지 못해 한국 시간으로 저장했어요" + 연결 상태. 0건이면 문구 없음. 연결이 무효일 때만 "Strava 다시 연결" 링크(설정 화면)를 붙이고 유효하면 숨긴다(TZ-16).
+- 활동 상세 헤더(`/library/[id]/+layout.svelte`): 응답 필드 `tz_estimated: bool`(= `csv_export` payload의 `tz_source == "fallback"`)이 참일 때만 날짜 옆 "시간대 추정" 보조 표기, 툴팁 "Strava 시간대를 확인하지 못해 한국 시간으로 표시했어요. 연결하면 자동으로 고쳐져요"(TZ-16). 상세 서비스가 payload를 `json_extract`로 1회 읽음(DDL 무변경, 서비스 파일은 구현 시 grep). 재교정으로 등급이 오르면 표기는 자동 소멸.
 - 대상은 드물 것으로 예상(Strava 단독·payload 없음·연결 무효·교차/차용 실패의 교집합). 단계 1에서 실제 건수를 집계해 0건에 가까우면 UI 작업 순서를 뒤로 미룬다(설계는 유지).
 
 **dedup 영향 (TZ-3 dry-run과 연결)**
 - KST 활동은 체인 어느 단계든 결과가 지금(+9h)과 같다 → `start_time`·`group_id` 무변화.
 - KST 밖에서 한 활동만 바뀐다(예: 도쿄 +9는 동일, 방콕 +7은 −2h, 유럽은 −7~−8h). 이 행들은 지금 Garmin `startTimeLocal`과 시간 차가 커서 `dedup._TIME_TOLERANCE`(7분)를 넘어 **매칭이 안 되던** 행이다. 교정 후 새로 매칭되어 group 병합이 생길 수 있다(분리는 드묾).
-- `normalize_start_time.py --dry-run` 출력에 Strava CSV 행용 항목을 추가: `source_id`, 기존/신규 `start_time`, `tz_source`, 기존/예상 `group_id`. 예상 group은 `dedup.is_duplicate` 재평가로 산출하고 DB에 쓰지 않는다. 사용자가 이 목록을 보고 TZ-3 일괄 교정 여부를 정한다.
+- `normalize_start_time.py --dry-run` 출력에 Strava CSV 행용 항목을 추가: `source_id`, 기존/신규 `start_time`, `tz_source`, 기존/예상 `group_id`. 예상 group은 `dedup.is_duplicate` 재평가로 산출하고 DB에 쓰지 않는다. 사용자가 이 목록을 보고 TZ-3 일괄 교정의 적용 범위를 확정한다.
 - "다른 시간대에서 한 활동"은 체인 1~3이면 정확, 5a면 대개 정확(이동일 제외), 5b면 KST로 남는다 — 연결 무효 사용자에게 남는 오차는 "같은 날 다른 확인 활동도 없는 Strava 단독 해외 활동"뿐이며 `tz_source`로 식별된다.
 - 교차 소스(체인 3)는 dedup 결과에 **의존하지 않는다**(2.2.2 순환 방지). 교정된 `start_time`으로 dedup이 다시 판정되는 것은 한 방향(시간대 → dedup)뿐이다.
 
@@ -123,9 +124,9 @@
 
 **매칭 경로 2가지**
 1. **단순 경로 (dedup 그룹 재사용)** — 대상 행에 `matched_group_id`가 있으면 같은 그룹의 다른 소스 행을 후보로 먼저 본다. KST 활동은 지금도 대부분 이 경로로 잡힌다. **단, 그룹 소속만으로 확정하지 않고** 아래 2의 UTC 순시·거리 검증을 똑같이 통과해야 채택한다(그룹이 틀린 시각으로 우연히 묶였을 가능성 차단). 검증 실패한 그룹 후보는 버리고 2로 진행한다.
-2. **UTC 순시 경로 (기본)** — `PeerTzIndex`가 제공자 소스들의 `activity_summary` payload를 한 번에 읽어 `(utc_instant, local_wallclock|None, distance_m, source, source_id, grade)` 목록을 UTC 순으로 정렬해 둔다. 대상마다 `bisect`로 `|utc_peer − utc_target| ≤ 허용오차(D10)` 후보를 찾고, 거리 조건은 `dedup.is_duplicate`의 거리 규칙을 재사용한다(시간 비교는 이 경로가 대신하므로 거리 함수만 분리 호출. dedup 모듈 변경은 거리 판정 헬퍼를 공개 함수로 꺼내는 정도).
+2. **UTC 순시 경로 (기본)** — `PeerTzIndex`가 제공자 소스들의 `activity_summary` payload를 한 번에 읽어 `(utc_instant, local_wallclock|None, distance_m, source, source_id, grade)` 목록을 UTC 순으로 정렬해 둔다. 대상마다 `bisect`로 `|utc_peer − utc_target| ≤ 허용오차(TZ-10: 60초, 상수 `PEER_TOLERANCE_SEC`)` 후보를 찾고, 거리 조건은 `dedup.is_duplicate`의 거리 규칙을 재사용한다(시간 비교는 이 경로가 대신하므로 거리 함수만 분리 호출. dedup 모듈 변경은 거리 판정 헬퍼를 공개 함수로 꺼내는 정도).
    - 수천 건 CSV에서도 payload 조회는 제공자 소스별 1회 쿼리 + 메모리 이분 탐색이라 O((N+M) log M). 행마다 SQL을 날리지 않는다.
-   - derived 제공자(Runalyze 현지만)는 UTC가 없어 순시 비교가 불가하다. 대신 `local_peer − utc_target`이 −12h~+14h 안이고 15분 배수 ± 허용오차(D10)인 후보를 찾되, 그 창 안에서 거리 조건까지 통과하는 Runalyze 활동이 **정확히 1건일 때만** 채택한다(같은 날 비슷한 거리 활동이 2건 이상이면 오프셋이 달라질 수 있어 포기). 단순 경로(그룹)에서 후보가 Runalyze뿐일 때도 같은 규칙.
+   - derived 제공자(Runalyze 현지만)는 UTC가 없어 순시 비교가 불가하다. 대신 `local_peer − utc_target`이 −12h~+14h 안이고 15분 배수 ± 허용오차(60초)인 후보를 찾되, 그 창 안에서 거리 조건까지 통과하는 Runalyze 활동이 **정확히 1건일 때만** 채택한다(같은 날 비슷한 거리 활동이 2건 이상이면 오프셋이 달라질 수 있어 포기). 단순 경로(그룹)에서 후보가 Runalyze뿐일 때도 같은 규칙.
 
 **오프셋 계산**
 - `offset_sec = local_wallclock − utc_instant`(초). 실제 시간대는 15분 단위이므로 가장 가까운 900초 배수로 반올림하고, 반올림 오차가 120초를 넘거나 범위(−12h~+14h)를 벗어나면 그 후보를 버린다(기록 지연·파싱 오류 방지).
@@ -134,27 +135,27 @@
 **소스 간 오프셋 충돌 시 우선순위**
 1. 등급: `direct`(소스가 현지 시각과 UTC를 함께 줌: Garmin, Intervals, 접미사 있는 Runalyze, `local_timestamp` 있는 FIT) > `derived`(현지만 있어 역산).
 2. 같은 등급 안에서 오프셋이 모두 같으면 채택, `tz_source`에는 순시 차가 가장 작은 제공자를 기록.
-3. 같은 등급 안에서 오프셋이 다르면 처리 방식은 **D11**(선택지: 소스 우선순위 고정 / 순시 차 최소 / 충돌로 보고 다음 단계로). 충돌 건수는 `tz_peer_conflicts`로 집계하고 payload `tz_peer`에 후보 전부를 남긴다.
+3. 같은 등급 안에서 오프셋이 다르면 **소스 우선순위 고정**(TZ-11): `dedup._SOURCE_PRIORITY`(garmin > intervals > runalyze) 최상위 제공자의 오프셋 채택. 충돌 건수는 `tz_peer_conflicts`로 집계하고 payload `tz_peer`에 후보 전부를 남긴다.
 4. 상위 등급 결과가 있으면 하위 등급 후보는 비교하지 않는다(충돌로 세지 않음).
 
 **인터페이스 (삼성헬스 등 향후 소스 흡수 방식)** — 신규 `src/utils/tz_peers.py`
 - `PeerTime` (dataclass): `source, source_id, utc: datetime | None, local: datetime | None, distance_m: float | None, grade: Literal["direct","derived"]`.
-- `_PEER_READERS: dict[str, Callable[[dict], PeerTime | None]]` — 소스별 **payload → PeerTime** 순수 함수 등록표. 현재 `garmin`(startTimeGMT/startTimeLocal), `intervals`(start_date/start_date_local), `runalyze`(datetime, 접미사 판별). 새 소스(예: 삼성헬스)가 생기면 해당 sync가 `source_payloads`에 `activity_summary`를 저장하고 reader 1개를 등록하는 것만으로 체인 3에 합류한다. Strava는 대상 자신이므로 등록하지 않되, 다른 대상(예: FIT 가져오기)을 위해 `strava` reader를 등록할지는 D12.
+- `_PEER_READERS: dict[str, Callable[[dict], PeerTime | None]]` — 소스별 **payload → PeerTime** 순수 함수 등록표. 현재 `garmin`(startTimeGMT/startTimeLocal), `intervals`(start_date/start_date_local), `runalyze`(datetime, 접미사 판별). 새 소스(예: 삼성헬스)가 생기면 해당 sync가 `source_payloads`에 `activity_summary`를 저장하고 reader 1개를 등록하는 것만으로 체인 3에 합류한다. Strava는 대상 자신이므로 등록하지 않되, `strava` reader는 등록하지 않는다(TZ-12: 적용 범위가 Strava CSV/ZIP뿐).
 - `PeerTzIndex.build(conn, exclude_sources: set[str]) -> PeerTzIndex` / `lookup(utc_target, distance_m, group_id=None) -> PeerMatch | None` (`PeerMatch`: `offset_sec, grade, source, source_id, delta_sec, conflicts: list`).
 - DB 접근은 `source_payloads` 읽기 전용, 외부 호출 없음. 데이터가 없으면 `None`(에러 없음).
 - `strava_tz.py`는 이를 호출만 한다. 파일 300줄 규칙상 매칭 로직을 `strava_tz.py`에 넣지 않는다.
 
-**적용 범위**: 이번 범위는 Strava CSV/ZIP(체인 3). 같은 인덱스를 FIT 가져오기(TZ-2의 "FIT 현지 시각 없음 → KST" 사이)에도 끼워 넣을 수 있으나 범위 확장 여부는 D12.
+**적용 범위 (TZ-12)**: Strava CSV/ZIP(체인 3)만. FIT 가져오기·전체 소스 확장은 후속.
 
-**다른 결정과의 관계**: 교차 소스로 5a·5b 행이 줄어 D6 차용·D8 표시·D7 백필 대상이 모두 작아진다. 다른 소스 동기화로 같은 활동이 나중에 들어오는 경우는 외부 호출 없는 재교정 계기이며, 실행 여부는 D15.
+**다른 결정과의 관계**: 교차 소스로 5a·5b 행이 줄어 D6 차용·D8 표시·D7 백필 대상이 모두 작아진다. 다른 소스 동기화로 같은 활동이 나중에 들어오면 외부 호출 없는 재교정 계기가 된다(TZ-15, 2.2.3).
 
 ### 2.2.3 백필·자동 재교정 (TZ-7·TZ-9 결정 반영)
 
-신규 `src/import_export/tz_backfill.py`: `run_tz_backfill(conn, config, *, max_rows=TZ_BACKFILL_MAX_ROWS, on_group_change=<D13>, dry_run=False) -> dict`. 백필(TZ-7, 체인 4)과 자동 재교정(TZ-9)을 **한 함수**로 처리한다 — 둘 다 "추정 행의 체인 재실행 + 등급 상승 시 갱신"이라 같은 경로다.
+신규 `src/import_export/tz_backfill.py`: `run_tz_backfill(conn, config, *, offline_only=False, max_rows=TZ_BACKFILL_MAX_ROWS, dry_run=False) -> dict`. 백필(TZ-7, 체인 4)과 자동 재교정(TZ-9)을 **한 함수**로 처리한다 — 둘 다 "추정 행의 체인 재실행 + 등급 상승 시 갱신"이라 같은 경로다.
 
 **대상 선택**: `source='strava'` 행 중 `csv_export` payload의 `tz_source`가 `fallback` → `neighbor:*` → `peer_derived:*` 순, 같은 등급 안에서는 최근 활동부터. `tz_backfill.attempts ≥ 3`(404·삭제 활동 등 영구 실패)은 제외.
 
-**실행 계기**: Strava 연결이 유효(`StravaTzLookup.available`)하고 대상이 1건 이상일 때, Strava 동기화 성공 직후 꼬리 작업으로(`orchestrator.py`, 위치는 구현 시 grep). 계기 확장(다른 소스 동기화 후 오프라인 재실행 등)은 D15.
+**실행 계기 (TZ-15)**: (1) Strava 동기화 성공 직후 꼬리 작업 — 연결 유효(`StravaTzLookup.available`)·대상 1건 이상이면 체인 1~5a 전체(API 포함). (2) 다른 소스(Garmin·Intervals·Runalyze) 동기화 후 `offline_only=True` — 체인 1~3·5a만, 외부 호출 0회, 상한 미적용(대상 0이면 쿼리 1회). 둘 다 `orchestrator.py`(위치는 구현 시 grep).
 
 **한도 처리**
 - 1회 상한 `TZ_BACKFILL_MAX_ROWS = 50`(Strava 15분 100회 중 동기화 몫을 남김). 호출은 `rate_limiter.py` 경유.
@@ -164,15 +165,15 @@
 **안전장치 (TZ-9)**
 1. **이력 보존·되돌리기**: 값이 바뀌는 행의 `csv_export` payload `tz_history`(최근 5건)에 `{"run_id", "at", "prev_start_time", "prev_tz_source", "new_start_time", "new_tz_source", "prev_group_id", "new_group_id"}`를 append. 되돌리기는 `normalize_start_time.py --revert-run <run_id>`(dry-run 기본): `prev_*` 복원 + 해당 행 dedup 재평가. 되돌린 행은 `tz_pinned=true`로 표시해 이후 자동 재교정에서 제외(재실행 시 다시 바뀌는 왕복 방지).
 2. **등급 단조 증가**: 2.2.1 규칙 4. 같은 등급·같은 값이면 쓰지 않고 이력도 남기지 않는다.
-3. **dedup 그룹 변화**: 행마다 갱신 전 `group_id`를 읽고, 새 `start_time`으로 `dedup` 재평가(`src/utils/dedup.py`의 단일 행 재매칭 함수, 없으면 공개 헬퍼로 분리)한 예상 그룹과 비교. 변화가 있으면 D13 정책(`on_group_change`)에 따라 적용/보류. 보류 행은 `tz_backfill.held=true` + 예상 그룹을 payload에 남기고 `start_time`은 그대로.
+3. **dedup 그룹 변화 (TZ-13)**: 그룹이 바뀌는 행도 자동 적용한다(보류 없음). 갱신 전 `group_id`와 새 `start_time`으로 `dedup` 재평가(`src/utils/dedup.py`의 단일 행 재매칭 함수, 없으면 공개 헬퍼로 분리)한 결과를 `tz_history`의 `prev_group_id`/`new_group_id`에 남기고 `group_changed`로 집계·로그. 되돌리기는 1의 `--revert-run`.
 4. **원자성**: 행 단위 트랜잭션(`start_time`·payload·dedup 갱신을 한 번에). 중간 중단 후 재실행해도 끝난 행은 등급이 올라 대상에서 빠지므로 중복 처리 없음.
 5. **멱등성**: 같은 DB 상태·같은 API 응답이면 두 번째 실행은 변경 0건·이력 추가 0건. `run_id`는 실행마다 새로 발급.
-6. **보고**: 동기화 결과에 `tz_recalibrated: {"checked", "changed", "date_changed", "group_changed", "held", "api_calls", "stopped_reason", "run_id"}`, 로그 1줄 `[tz_backfill] run=… 확인 N·변경 M(날짜 변경 D·그룹 변화 G·보류 H)·API A회`. 행별 목록은 `tz_history`로 조회(`normalize_start_time.py --list-run <run_id>`).
+6. **보고**: 동기화 결과에 `tz_recalibrated: {"checked", "changed", "date_changed", "group_changed", "api_calls", "stopped_reason", "run_id"}`, 로그 1줄 `[tz_backfill] run=… 확인 N·변경 M(날짜 변경 D·그룹 변화 G)·API A회`. 행별 목록은 `tz_history`로 조회(`normalize_start_time.py --list-run <run_id>`).
 
-**TZ-3(일괄 교정 dry-run 선행)과의 관계**: TZ-3은 "규칙 변경으로 **확정값을 포함한** 기존 행 전체를 다시 쓰는" 일괄 교정에 적용된다. TZ-9 자동 재교정은 대상이 추정 행(`fallback`·`neighbor`·`peer_derived`)으로 한정되고, 등급이 오르는 방향만 허용되며, 이력·되돌리기가 있으므로 dry-run 없이 자동 실행한다(사용자 결정). 단 dedup 그룹이 바뀌는 행은 TZ-3이 우려한 "매칭/분리 재발생"과 같은 성격이라 처리 방식을 D13으로 분리한다. `dry_run=True`는 같은 함수로 제공해 스크립트·테스트가 재사용.
+**TZ-3(일괄 교정 dry-run 선행)과의 관계**: TZ-3은 "규칙 변경으로 **확정값을 포함한** 기존 행 전체를 다시 쓰는" 일괄 교정에 적용된다. TZ-9 자동 재교정은 대상이 추정 행(`fallback`·`neighbor`·`peer_derived`)으로 한정되고, 등급이 오르는 방향만 허용되며, 이력·되돌리기가 있으므로 dry-run 없이 자동 실행한다(TZ-9). dedup 그룹이 바뀌는 행도 자동 적용하고 로그·이력으로 추적한다(TZ-13). `dry_run=True`는 같은 함수로 제공해 스크립트·테스트가 재사용.
 
 ### 2.3 프론트(v2) — 표시 함수 단일화
-- `format.ts`에 `formatInstant(iso, style: 'stamp'|'time'|'date')` 추가: `parseDbTimestamp()` 재사용 후 `Intl.DateTimeFormat`(시간대는 D1)으로 포맷. `answerEvidence.ts`의 `stamp()`는 이를 호출하도록 교체.
+- `format.ts`에 `formatInstant(iso, style: 'stamp'|'time'|'date')` 추가: `parseDbTimestamp()` 재사용 후 `Intl.DateTimeFormat`(시간대 = 브라우저 기본, TZ-1)으로 포맷. `answerEvidence.ts`의 `stamp()`는 이를 호출하도록 교체하고, 문구는 현행 `M/D HH:mm 계산` 유지 + 상대시각 병기(`· 3시간 전`, TZ-4) — `formatRelative(iso)`를 `format.ts`에 함께 둔다.
 - 활동 시각 표시 함수(`formatDateShort`, `formatDate`)는 동작 유지, JSDoc에 "wall-clock 전용, instant 금지" 명시. 사용처 0인 `formatDate()`는 제거 후보(범위 밖 메모).
 - 2.1 완료 후에도 `parseDbTimestamp()`의 무표기 처리 분기는 v1·구 응답 호환을 위해 유지.
 
@@ -188,24 +189,24 @@
 | 수정 | `src/services/wellness_day.py` | 154행 변환 대체 | ±2 |
 | 수정 | `src/sync/extractors/{strava,intervals,garmin}_extractor.py` | `start_time`을 `to_local_wallclock`로 | 각 +3 |
 | 수정 | `src/import_history.py` | FIT start_time 현지화 | +5 |
-| 수정 | `frontend/src/lib/format.ts` (253줄) | `formatInstant` 추가, wall-clock 함수 주석 | +20 (→~273) |
-| 수정 | `frontend/src/lib/answerEvidence.ts` | `stamp()` → `formatInstant` | ±4 |
+| 수정 | `frontend/src/lib/format.ts` (253줄) | `formatInstant`·`formatRelative`(TZ-4) 추가, wall-clock 함수 주석 | +28 (→~281) |
+| 수정 | `frontend/src/lib/answerEvidence.ts` | `stamp()` → `formatInstant` + 상대시각 병기 | ±6 |
 | 수정 | `tests/test_coach_evidence*.py`, extractor 테스트 | `computed_at` 오프셋, `start_time` 무접미사 단언 추가 | +30 |
 | 신규 | `src/import_export/strava_tz.py` | `resolve_strava_start`, `StravaTzLookup`(연결 판정 재사용 래퍼) | ~120 |
 | 신규 | `tests/test_strava_tz.py` | 오프라인 체인 각 단계(교차 소스·5a 차용·5b), 가져오기 중 네트워크 0회, 연결 무효(설정 누락/재연동 필요/401) 상태 기록, 낮은 등급 덮어쓰기 금지 | ~120 |
-| 신규 | `src/import_export/tz_backfill.py` | TZ-7·9: `run_tz_backfill`(대상 선택·상한·한도 중단·이력·dedup 변화 정책·보고) | ~170 |
-| 신규 | `tests/test_tz_backfill.py` | 2.2.3 검증 목록(단계 4-3) | ~180 |
-| 수정 | `src/sync/orchestrator.py` | Strava 동기화 성공 후 `run_tz_backfill` 호출, 결과에 `tz_recalibrated` | +10 |
-| 수정 | 활동 상세 서비스(구현 시 grep) + `frontend/src/routes/library/[id]/+layout.svelte` | TZ-8: `tz_estimated` 필드, 헤더 "시간대 추정" 표기 | +5 / +8 |
+| 신규 | `src/import_export/tz_backfill.py` | TZ-7·9: `run_tz_backfill`(대상 선택·상한·한도 중단·이력·그룹 변화 자동 적용+기록·`offline_only`·보고) | ~160 |
+| 신규 | `tests/test_tz_backfill.py` | 2.2.3 검증 목록(단계 4-3) | ~170 |
+| 수정 | `src/sync/orchestrator.py` | Strava 동기화 성공 후 `run_tz_backfill`, 다른 소스 동기화 후 `offline_only=True` 호출(TZ-15), 결과에 `tz_recalibrated` | +14 |
+| 수정 | 활동 상세 서비스(구현 시 grep) + `frontend/src/routes/library/[id]/+layout.svelte` | TZ-8·16: `tz_estimated` 필드, 헤더 "시간대 추정" 표기+툴팁 | +5 / +10 |
 | 수정 | `src/import_export/strava_csv.py` (488줄, 이미 300줄 초과) | `_parse_strava_date`가 UTC를 반환하고 현지화는 `strava_tz`에 위임, payload에 `start_date_utc`·`tz_source`, 기존 행 갱신 규칙, `config` 인자, 반환 dict 확장. 새 로직은 `strava_tz.py`로 빼서 순증을 막음 | −10/+25 |
 | 수정 | `src/import_export/strava_archive.py` | `config` 전달, FIT `local_timestamp`를 체인 3에 전달 | +10 |
 | 수정 | `src/services/import_service.py` | Strava 가져오기에 config 전달, 결과의 `tz_resolved`·`tz_lookup_status` 노출 | +5 |
 | 수정 | `scripts/normalize_start_time.py` (신규 파일에 포함) | `--source strava --tz-source` 필터, CSV 행의 예상 group_id 출력, 교차 소스 결과(`tz_peer`) 열, TZ-9 `--list-run`/`--revert-run <run_id>`(dry-run 기본, `tz_history` 기반) | +60 |
-| 신규 | `src/utils/tz_peers.py` | TZ-6: `PeerTime`, `_PEER_READERS`(garmin/intervals/runalyze), `PeerTzIndex.build/lookup/nearest_confirmed`(5a 차용), 오프셋 반올림·범위 검증, 충돌 처리(D11) | ~170 |
+| 신규 | `src/utils/tz_peers.py` | TZ-6: `PeerTime`, `_PEER_READERS`(garmin/intervals/runalyze), `PeerTzIndex.build/lookup/nearest_confirmed`(5a 차용), 오프셋 반올림·범위 검증, 60초 허용오차(TZ-10), 소스 우선순위 충돌 처리(TZ-11), 이동일 순시 근접 차용(TZ-14) | ~170 |
 | 신규 | `tests/test_tz_peers.py` | TZ-6 교차 소스 매칭 단위 테스트(4단계 검증 목록) | ~150 |
 | 수정 | `src/utils/dedup.py` | `is_duplicate`의 거리 판정을 공개 헬퍼(`distance_matches`)로 분리, 기존 동작 무변화 | ±10 |
 | 수정 | `src/import_export/strava_tz.py` (위 신규에 포함) | 체인 재배치(가져오기는 오프라인만, 5a/5b), `peers` 인자, `TZ_SOURCE_RANK` | +30 |
-| 수정 | 프론트 가져오기 결과 화면(v2, 구현 시 grep) | TZ-8: `fallback` ≥1건일 때만 안내·연결 상태 (문구·링크는 D16) | +10 |
+| 수정 | 프론트 가져오기 결과 화면(v2, 구현 시 grep) | TZ-8·16: `fallback` ≥1건일 때만 안내·연결 상태, 연결 무효일 때만 "Strava 다시 연결" 링크 | +12 |
 | 수정 | `tests/test_strava_csv*.py` | 기존 +9h 단언을 "저장 payload 없음+config 없음 → 폴백" 케이스로 이동, API 행 보존 케이스 추가 | +40 |
 
 v1 의존: `src/web/`(v1) 7개 파일이 `[:10]` 절단을 쓴다. 2.2로 저장값이 무접미사 현지 시각이 되면 v1도 같이 맞아지고 깨지는 부분은 없다. 2.1의 `computed_at` 형식 변경은 v1이 이 필드를 직접 잘라 쓰는지 구현 시 grep으로 확인한다(v1 제거 예정이므로 수정은 하지 않고 깨지면 기록만).
@@ -216,19 +217,19 @@ v1 의존: `src/web/`(v1) 7개 파일이 `[:10]` 절단을 쓴다. 2.2로 저장
 2. **`timefmt.py` + 단위 테스트** → `pytest tests/test_timefmt.py`.
 3. **C-06 적용**(2.1 + 2.3) → `pytest tests/`. 브라우저: `/coach`에서 근거 시트를 열고 "계산" 시각이 `metric_store.updated_at`+9h와 같은지 확인. `/today` 동기화 시각이 회귀하지 않았는지 확인.
 4. **S-17 신규 수집 경로 적용**(extractor·FIT) → extractor 테스트에 `start_date_local`(가짜 Z)과 `start_date`만 있는 픽스처를 둘 다 둔다. dedup 테스트 전체 통과 확인.
-4-1. **Strava CSV 활동별 timezone(2.2.1)**: 단계 1 조사에 "같은 `source_id`에 API payload가 있는 CSV 행 수 / 없는 행 수", `timezone`·`utc_offset` 채움률, **TZ-8 대상 예상 건수**(API payload 없음 ∧ 교차 소스 매칭 없음 ∧ 같은 날 확인 활동 없음 = 5b 행 수, 그중 연결 무효 사용자 기준)를 추가한다. `strava_tz.py` + 테스트 → `pytest tests/test_strava_tz.py tests/test_strava_csv*.py`. 검증: (a) config 없고 다른 소스·같은 날 활동 없음 → 지금과 같은 값, `tz_source="fallback"`, (b) API payload 있는 해외 활동 → `start_date_local`, (c) 연결 유효/무효 모두 가져오기 중 네트워크 호출 0회(`refresh_token` 판정 제외)·`tz_lookup_status`·`tz_backfill_pending` 기록, (d) API 행에 CSV 재가져오기 → `start_time` 유지, (e) 같은 활동의 Garmin payload(방콕 +7) → `peer_direct:garmin`, (f) 같은 활동은 없고 같은 날 앞 Garmin(+7)·뒤 Intervals(+7) → `neighbor:garmin`(+7), 앞뒤 +7/+9 → D14 정책별 기대값, 다른 날 활동만 있음 → `fallback`, `neighbor`/`fallback` 행은 차용 제공자가 되지 않음, (g) 상세 응답 `tz_estimated`는 `fallback` 행만 참(`neighbor`·`peer_derived`는 거짓).
-4-3. **백필·자동 재교정(2.2.3, TZ-7·9)** → `pytest tests/test_tz_backfill.py`. 검증: (a) 연결 무효 → 호출 0회·변경 0, (b) 대상 120건·상한 50 → API 최대 50회, 다음 실행이 나머지 처리, (c) 429 → 즉시 중단·`stopped_reason`, 끝난 행은 커밋 유지, (d) 체인 1~3으로 풀리는 행은 API 미호출, (e) 값 변경 행은 `tz_history`에 prev/new·group 기록, 같은 값은 이력 없음, (f) 2회 연속 실행 → 두 번째 변경 0·이력 0(멱등), (g) `--revert-run` → `start_time`·`tz_source`·group 원복, `tz_pinned` 행은 재교정 제외, (h) dedup 그룹 변화 행 → D13 정책 파라미터별 기대(적용/보류·`held` 집계), (i) 404 3회 → 대상 제외, (j) 날짜 경계: UTC 6/30 15:30 활동이 KST 7/1 00:30 → +2(6/30 17:30) 교정 시 `date_changed` 집계.
-4-2. **교차 소스 인덱스(2.2.2, TZ-6)**: 단계 1 조사에 추가 — Garmin `activity_summary`의 `startTimeGMT` 채움률, Intervals 원본의 `start_date`·`timezone` 키 유무, Runalyze `datetime`의 오프셋 접미사 유무, Strava CSV 행 중 UTC 순시로 다른 소스와 매칭되는 비율(허용오차 30/60/120/420초별 집계 — D10 판단 자료). `tz_peers.py` + 테스트 → `pytest tests/test_tz_peers.py tests/test_dedup*.py`. 단위 테스트:
+4-1. **Strava CSV 활동별 timezone(2.2.1)**: 단계 1 조사에 "같은 `source_id`에 API payload가 있는 CSV 행 수 / 없는 행 수", `timezone`·`utc_offset` 채움률, **TZ-8 대상 예상 건수**(API payload 없음 ∧ 교차 소스 매칭 없음 ∧ 같은 날 확인 활동 없음 = 5b 행 수, 그중 연결 무효 사용자 기준)를 추가한다. `strava_tz.py` + 테스트 → `pytest tests/test_strava_tz.py tests/test_strava_csv*.py`. 검증: (a) config 없고 다른 소스·같은 날 활동 없음 → 지금과 같은 값, `tz_source="fallback"`, (b) API payload 있는 해외 활동 → `start_date_local`, (c) 연결 유효/무효 모두 가져오기 중 네트워크 호출 0회(`refresh_token` 판정 제외)·`tz_lookup_status`·`tz_backfill_pending` 기록, (d) API 행에 CSV 재가져오기 → `start_time` 유지, (e) 같은 활동의 Garmin payload(방콕 +7) → `peer_direct:garmin`, (f) 같은 활동은 없고 같은 날 앞 Garmin(+7)·뒤 Intervals(+7) → `neighbor:garmin`(+7), 앞뒤 +7/+9 → UTC 순시가 가까운 쪽 값(TZ-14)·`tz_peer`에 두 후보, 다른 날 활동만 있음 → `fallback`, `neighbor`/`fallback` 행은 차용 제공자가 되지 않음, (g) 상세 응답 `tz_estimated`는 `fallback` 행만 참(`neighbor`·`peer_derived`는 거짓), (h) 결과 요약 재연결 링크는 연결 무효일 때만.
+4-3. **백필·자동 재교정(2.2.3, TZ-7·9)** → `pytest tests/test_tz_backfill.py`. 검증: (a) 연결 무효 → 호출 0회·변경 0, (b) 대상 120건·상한 50 → API 최대 50회, 다음 실행이 나머지 처리, (c) 429 → 즉시 중단·`stopped_reason`, 끝난 행은 커밋 유지, (d) 체인 1~3으로 풀리는 행은 API 미호출, (e) 값 변경 행은 `tz_history`에 prev/new·group 기록, 같은 값은 이력 없음, (f) 2회 연속 실행 → 두 번째 변경 0·이력 0(멱등), (g) `--revert-run` → `start_time`·`tz_source`·group 원복, `tz_pinned` 행은 재교정 제외, (h) dedup 그룹 변화 행 → 자동 적용·`group_changed` 집계·`tz_history`에 prev/new group(TZ-13), (i) 404 3회 → 대상 제외, (j) 날짜 경계: UTC 6/30 15:30 활동이 KST 7/1 00:30 → +2(6/30 17:30) 교정 시 `date_changed` 집계, (k) `offline_only=True` → API 호출 0회·체인 1~3·5a로 풀리는 행만 변경(TZ-15).
+4-2. **교차 소스 인덱스(2.2.2, TZ-6)**: 단계 1 조사에 추가 — Garmin `activity_summary`의 `startTimeGMT` 채움률, Intervals 원본의 `start_date`·`timezone` 키 유무, Runalyze `datetime`의 오프셋 접미사 유무, Strava CSV 행 중 UTC 순시로 다른 소스와 매칭되는 비율(허용오차 30/60/120/420초별 집계 — TZ-10 60초 상수 조정 근거). `tz_peers.py` + 테스트 → `pytest tests/test_tz_peers.py tests/test_dedup*.py`. 단위 테스트:
    - Garmin 있음: Strava CSV UTC 01:00Z, Garmin GMT 01:00:20/Local 08:00:20(+7) → 오프셋 +25200, 대상 현지 = 08:00:00(제공자 시각 복사 아님).
    - Garmin 없음: Intervals만 있음 → `peer_direct:intervals` / 아무 소스 없음 → `None`(에러 없음) → 체인 다음 단계.
    - 허용오차 경계: 순시 차 = 허용오차 → 채택, 허용오차 + 1초 → 미채택. 거리 불일치(규칙 밖) → 미채택.
-   - 소스 간 오프셋 충돌: Garmin +9 / Intervals +8 → D11 정책별 기대값(정책을 파라미터로 둬 세 선택지 모두 테스트), `conflicts`에 두 후보 기록.
+   - 소스 간 오프셋 충돌: Garmin +9 / Intervals +8 → Garmin +9 채택(TZ-11 소스 우선순위), `conflicts`에 두 후보 기록.
    - 등급: Garmin direct +9와 Runalyze derived +7 → direct 채택, 충돌로 세지 않음. Runalyze만 있고 창 안 후보 2건 → 포기.
    - 오프셋 검증: local−GMT가 +9h 03분(반올림 오차 > 120초) → 후보 제외, +15h → 제외.
    - 순환 방지: 대상과 같은 `matched_group_id`지만 UTC 순시가 허용오차 밖인 행 → 채택 안 함. 그룹 없는 행도 순시로 매칭됨.
    - 외부 호출 0: `PeerTzIndex`는 `conn` 외 의존성 없음(네트워크 모의 객체 호출 0회 단언).
 4-4. **TZ-8 UI**: 단계 1 건수 확인 후 진행. 브라우저: `fallback` 픽스처 활동 상세 헤더에 "시간대 추정" 표기, `neighbor`/정확 행은 미표기, 가져오기 결과 요약 문구는 `fallback` ≥1건일 때만.
-5. **기존 행 교정**(D3 승인 시, dry-run 선행은 결정됨. TZ-9 자동 재교정과 별개 — 2.2.3 "TZ-3과의 관계") — Strava CSV 행은 2.2.1 dry-run 목록(예상 group 변화 포함)을 먼저 사용자에게 보인다. → 스크립트 dry-run 출력 검토 후 적용. 브라우저: `/library/1327` 헤더가 "7/1(월)"인지, Garmin/Intervals 활동 날짜가 그대로인지, 목록 월 그룹(`activities/+page.svelte:220`)의 경계 확인.
+5. **기존 행 교정**(TZ-3 부분 결정: dry-run 선행, 적용 범위는 결과 확인 후 확정. TZ-9 자동 재교정과 별개 — 2.2.3 "TZ-3과의 관계") — Strava CSV 행은 2.2.1 dry-run 목록(예상 group 변화 포함)을 먼저 사용자에게 보인다. → 스크립트 dry-run 출력 검토 후 적용. 브라우저: `/library/1327` 헤더가 "7/1(월)"인지, Garmin/Intervals 활동 날짜가 그대로인지, 목록 월 그룹(`activities/+page.svelte:220`)의 경계 확인.
 6. `python3 scripts/check_docs.py`, `npm run check`(타입).
 
 ## 5. 대안 비교
@@ -238,36 +239,35 @@ v1 의존: `src/web/`(v1) 7개 파일이 `[:10]` 절단을 쓴다. 2.2로 저장
 | **A (추천)** | 저장/직렬화 계약 분리: instant는 오프셋 ISO, 활동은 무접미사 현지 시각 | 근본 해결. 프론트 추측 제거, 소스별 차이 소멸, v1도 함께 교정 | 기존 행 교정 스크립트와 dedup 회귀 검증 필요 |
 | B | 프론트만 수정: `stamp()`에 `parseDbTimestamp` 적용, 활동 날짜는 `Z`면 로컬 변환 | 변경 작음(프론트 2파일) | Strava API 가짜 `Z` 행을 9시간 밀어 정상 데이터를 깨뜨림. 소스별 의미 차이가 남아 재발 |
 
-## 6. 결정 필요
+## 6. 결정됨 (2026-10-11, `decisions-table.md` TZ-1~16)
 
-- **D1. 표시 시간대 기준**: (a) 브라우저 시간대 — 구현 단순, 해외 접속 시 화면마다 달라짐 / (b) 서버 프로세스 로컬 시간대(현재 `date('now','localtime')`와 일치) — 백엔드 "오늘"과 일관, 컨테이너 TZ 설정에 의존 / (c) 사용자 설정값 — 가장 정확, 설정 항목·저장소 추가 필요.
-- **D2. 오프셋 미상 UTC 활동(FIT 등)의 현지화**: (a) D1 기준 시간대로 변환 — 해외 레이스 날짜가 틀릴 수 있음 / (b) UTC 그대로 두고 "시간대 미상" 플래그 — 정직하지만 날짜 경계 문제 잔존.
-- **D3. 기존 `start_time` 행 교정**: (a) 스크립트로 일괄 교정 — 즉시 일관, dedup 결과가 바뀔 수 있음(매칭/분리 재발생) / (b) 신규 수집분만 적용 — 안전, 과거 행 불일치 지속 / (c) 재동기화로 대체 — 외부 API 호출 비용.
-- **D4. 근거 시트 시각 문구 형식**: 현재 `M/D HH:mm 계산`. 연도 포함·상대시각("3시간 전") 병기 여부.
-- **D5. Strava CSV의 고정 오프셋(`_LOCAL_UTC_OFFSET`)** — **결정됨(2026-10-11, TZ-5): 활동별 timezone 기반으로 교체, Strava 연결 무효 시 폴백.** 설계는 2.2.1.
-
-(D1~D3도 2026-10-11에 결정·부분 결정됨: D1 활동 시각=현지 벽시계/기록 시각=브라우저 시간대, D2 FIT 현지 시각 우선→KST, D3 dry-run 선행 후 일괄 교정 검토. 상세는 `decisions-table.md` TZ-1~3.)
-
-- **D6. 최종 폴백(체인 5)** — **결정됨(2026-10-11, TZ-6): (d) 같은 날 앞뒤로 timezone이 확인된 활동의 값 차용, 차용 대상도 없으면 TZ-2대로 KST.** 설계는 2.2.1 체인 5a/5b·차용 규칙(이동일 처리는 D14). 교차 소스(체인 3)도 같은 날 TZ-6 지시로 확정.
-- **D7. API 조회(체인 4) 시점** — **결정됨(2026-10-11, TZ-7): (b) 가져오기는 폴백으로 끝내고 별도 백필 작업이 Strava 한도 안에서 점진 조회.** 설계는 2.2.3(1회 상한 50, 429 즉시 중단, 다음 동기화가 이어받음).
-- **D8. 사용자 안내** — **결정됨(2026-10-11, TZ-8): B 가져오기 결과 요약 + 활동 상세 '시간대 추정' 표시, 단 `tz_source="fallback"`이 실제 쓰인 행에만.** 대상이 드물 것으로 보여 단계 1에서 DB 집계로 실제 건수 확인. 설계는 2.2.1 "사용자 안내"(문구·링크는 D16).
-- **D9. 연결 복구 후 재교정** — **결정됨(2026-10-11, TZ-9): (a) 자동 재교정.** 안전장치(이력 보존·되돌리기, 등급 단조, 상한·한도 중단, 멱등, 변경·그룹 변화 보고)는 2.2.3. dedup 그룹이 바뀌는 행의 처리는 D13.
-
-아래 D10~D12는 TZ-6 설계로 새로 생긴 항목이다.
-
-- **D10. 교차 소스 매칭 허용오차(UTC 순시 차)** **결정됨(2026-10-11): (a) 60초.**: (a) 60초 — 같은 기기 기록이 여러 플랫폼으로 전파된 경우(대부분) 충분, 오매칭 거의 없음, 기기 2대 동시 기록(시계+폰)은 놓칠 수 있음 / (b) 120초 — 수동 시작 차이까지 흡수, 오매칭 위험 여전히 낮음 / (c) 420초(dedup `_TIME_TOLERANCE` 7분과 동일) — 개념 하나로 통일·설명 쉬움, 짧은 간격 연속 활동(워밍업→본운동)을 잘못 잡을 위험이 가장 큼(거리 조건이 일부 막음). 단계 4-2의 허용오차별 매칭률 집계를 보고 정하는 것을 권장.
-- **D11. 같은 등급 소스 간 오프셋 충돌 처리** **결정됨(2026-10-11): (a) 소스 우선순위 고정.**: (a) 소스 우선순위 고정 — `dedup._SOURCE_PRIORITY`(garmin 1 > intervals 2 > runalyze 4) 재사용, 결정적·단순, Garmin 기기 시간대 설정이 틀린 경우 그대로 따라감 / (b) 대상과 UTC 순시 차가 가장 작은 제공자 — "가장 같은 기록"을 고름, 동률·초 단위 차이는 우연일 수 있어 근거가 약함 / (c) 충돌로 간주해 체인 3을 포기하고 다음 단계(API 조회→최종 폴백)로 — 가장 보수적, 충돌 행은 연결 무효 시 폴백값이 되어 TZ-6 효과가 줄어듦. 어느 쪽이든 후보 전체를 payload `tz_peer`에 남겨 사후 확인 가능.
-- **D12. 교차 소스 적용 범위** **결정됨(2026-10-11): (a) Strava CSV/ZIP만.**: (a) Strava CSV/ZIP만 — 이번 문제(S-17·TZ-5)에 한정, 변경 최소 / (b) + FIT 가져오기(`import_history.py`, `local_timestamp` 없을 때 KST 폴백 앞) — TZ-2 폴백 행도 줄어듦, FIT 대상 시 Strava API payload도 제공자로 등록해야 해서 reader 1개 추가 / (c) + Runalyze 등 활동 소스 전반(자기 payload에 오프셋이 없는 경우) — 일관되지만 sync 경로(extractor 이후 단계)에 교차 조회가 들어가 동기화 순서 의존성이 생김(나중 소스가 들어오면 D9 재교정 필요).
-
-아래 D13~D16은 TZ-6~9 설계로 새로 생긴 항목이다.
-
-- **D13. 자동 재교정에서 dedup 그룹이 바뀌는 행(`on_group_change`)**: (a) 그룹 변화 없는 행만 자동, 변화 행은 보류(`held`)하고 로그·`tz_recalibrated.held`에만 남김 → 수동 스크립트로 처리 — TZ-3 원칙과 가장 일관, 보류 행은 사용자가 모르면 영구 미교정(날짜는 틀린 채 유지) / (b) 변화가 있어도 자동 적용 + 로그·이력 — 사용자 수고 0, TZ-9 취지에 가장 충실, 그룹 병합으로 대표 활동·주간 합계가 예고 없이 바뀜(되돌리기는 `--revert-run`) / (c) 변화 행은 보류 + UI 알림(동기화 결과·데이터 화면에 "N건 확인 필요", 승인 시 적용) — 안전과 인지 모두 확보, 승인 UI·엔드포인트 추가로 범위 최대. 참고: 대상 행은 KST 밖 해외 활동이라 그룹 변화는 대부분 "그동안 매칭 안 되던 Garmin 행과 새로 병합"(교정 방향)일 것으로 예상.
-- **D14. 차용(5a)에서 앞뒤 오프셋이 다른 경우(이동일)**: (a) UTC 순시가 더 가까운 쪽 — 단순, 출국 직후·귀국 직전 활동에서 틀릴 수 있음 / (b) 차용 포기 → 5b(KST, '시간대 추정' 표시) — 보수적, 이동일 활동이 표시 대상이 됨 / (c) 앞 활동(출발지) 우선 — 규칙 설명 쉬움, 근거 약함. 어느 쪽이든 `tz_peer`에 앞뒤 후보 모두 보존.
-- **D15. 백필·재교정 실행 계기 확장**: (a) Strava 동기화 성공 직후만(현 설계) — 외부 호출 위치가 한 곳 / (b) + 다른 소스 동기화 후 오프라인 단계(1~3·5a)만 재실행 — 나중에 들어온 Garmin 활동으로 추정 행이 연결 없이도 교정, 동기화마다 대상 조회 비용(대상 0이면 쿼리 1회) / (c) + 데이터 화면 수동 실행 버튼 — 즉시 실행 가능, UI 추가.
-- **D16. 안내 문구·재연결 링크(TZ-8 세부)**: 결과 요약 문구에 "Strava 다시 연결" 링크(설정 화면) 동반 여부, 상세 "시간대 추정" 표기의 툴팁 문구("Strava 시간대를 확인하지 못해 한국 시간으로 표시했어요. 연결하면 자동으로 고쳐져요" 등) 채택 여부. 연결 유효 사용자에게는 링크를 숨길지도 함께.
+- **D1 (TZ-1)** 활동 시각 = 활동 현지 벽시계(변환 없음), 기록 시각 = 보는 사람의 브라우저 시간대. → 2 표, 2.3.
+- **D2 (TZ-2)** FIT 현지 시각 우선, 없으면 KST 변환. → 2.2, 체인 2·5b.
+- **D3 (TZ-3) — 부분 결정(dry-run 결과 확인 후 범위 확정)**: 일괄 교정 전제, dry-run으로 dedup 변화 확인 선행. → 2.2, 2.2.1 dedup 영향, 단계 5.
+- **D4 (TZ-4)** 근거 시트 문구 현행 `M/D HH:mm 계산` 유지 + 상대시각 병기. → 2.3.
+- **D5 (TZ-5)** Strava CSV 고정 오프셋 → 활동별 timezone, 연결 무효 시 폴백. → 2.2.1.
+- **D6 (TZ-6)** 다른 소스의 같은 활동 오프셋 참조, 최종 폴백은 같은 날 앞뒤 확인 활동 차용, 없으면 KST. → 2.2.1 체인 3·5a·5b, 2.2.2.
+- **D7 (TZ-7)** 가져오기는 오프라인 체인으로 끝내고 별도 백필이 한도 안에서 점진 조회. → 2.2.3.
+- **D8 (TZ-8)** 결과 요약 + 상세 '시간대 추정', `tz_source="fallback"` 행에만. → 2.2.1 사용자 안내.
+- **D9 (TZ-9)** 자동 재교정, 안전장치 `tz_history`·`--revert-run`. → 2.2.3.
+- **D10 (TZ-10)** 교차 소스 허용오차 60초(단계 4-2 집계 후 상수만 조정). → 2.2.2.
+- **D11 (TZ-11)** 같은 등급 충돌은 `dedup._SOURCE_PRIORITY` 고정, 후보 전체 `tz_peer` 보존. → 2.2.2.
+- **D12 (TZ-12)** 교차 소스는 Strava CSV/ZIP만(FIT·전체 소스는 후속). → 2.2.2.
+- **D13 (TZ-13)** 재교정에서 dedup 그룹이 바뀌는 행도 자동 적용 + 로그·이력. → 2.2.3 안전장치 3.
+- **D14 (TZ-14)** 이동일 차용은 UTC 순시가 더 가까운 쪽, 앞뒤 후보 `tz_peer` 보존. → 2.2.1 차용 규칙.
+- **D15 (TZ-15)** Strava 동기화 직후 + 다른 소스 동기화 후 오프라인 단계(1~3·5a) 재실행. → 2.2.3 실행 계기.
+- **D16 (TZ-16)** 결과 요약에 'Strava 다시 연결' 링크, 상세 툴팁 문구 채택, 연결 유효 시 링크 숨김. → 2.2.1 사용자 안내.
 
 ## 7. 범위 밖 메모
 
 - `format.ts`의 `formatDate()`는 사용처 0 — 제거 후보.
 - `replanBanner.ts`, `wellnessDay.ts`, `onboarding.ts`, `RangeSyncForm.svelte` 등의 `new Date().toISOString().slice(0,10)`은 "오늘" 날짜를 UTC로 구해 KST 00~09시에 하루 전이 된다(별도 묶음 권장, coach plan 페이지는 이미 보정).
 - `metrics/base.py:227,268`의 `datetime.now(timezone.utc)` 기본 종료일도 같은 경계 문제 가능성.
+
+### 동기화 중 발견한 충돌/확인 필요
+- TZ-14 동률(앞뒤 후보의 UTC 순시 차가 같음) 처리는 표에 없다. 본문은 규칙을 정하지 않았다.
+- TZ-9 표 문구는 "폴백 행 재계산"이나, 본문 2.2.3 대상은 `fallback`·`neighbor:*`·`peer_derived:*`다(TZ-9 이후 추가된 등급 포함). 표 문구와 범위가 다르다.
+- TZ-7·TZ-9 표 선택지 문구는 `tz_source='fallback_fixed'`를 쓰나 본문 값은 `fallback`이다(명칭 차이).
+- TZ-2 결정에 "해외 사용자 폴백 정확도는 TZ-1 기록 결정과 함께 재검토"가 남아 있다. 본문 5b는 KST 고정 그대로다.
+- TZ-13 자동 적용으로 `held` 보류가 사라졌으나 `tz_pinned`(되돌린 행 재교정 제외)는 TZ-9 안전장치로 유지했다. 표에는 `tz_pinned` 언급이 없다.
+- TZ-4 상대시각의 기준 시점(렌더 시각, 갱신 주기)은 표에 없다.

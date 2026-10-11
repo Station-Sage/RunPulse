@@ -1,10 +1,9 @@
 # 설계: 접근성 공통 (대비·테마·터치 타깃·문서 구조·라벨) — 99-summary 횡단 패턴 6
 
-- 변경 이력: 2026-10-11 A11Y-1·3·4·5 결정 반영, 라이트 테마 설계
-- 변경 이력: 2026-10-11 A11Y-9~12 결정 반영, stone 팔레트(2.5~2.7 slate 제안값 대체)
-- 변경 이력: 2026-10-11 A11Y-13 B안 확정(미달 색 재조절), A11Y-14 심화 검토
+- 변경 이력: 2026-10-11 A11Y-1·3·4·5 결정 반영, 라이트 테마 설계 / A11Y-9~12 결정 반영, stone 팔레트(slate 제안값 대체)
+- 변경 이력: 2026-10-11 A11Y-13 B안 확정(미달 색 재조절), A11Y-14 심화 검토 / 설계서 동기화(A11Y-14 (a) 확정, NEW-10 참조 추가)
 - 대상 증상: E-15, S-12, S-13, S-14, E-09, E-14, M-27, D-28, P-18, T-12, C-12, D-26, C-10, E-06, P-19, P-20, E-07, S-15, T-19, M-28, D-27 외 (4절 매핑 표)
-- 상태: 설계 초안. 구현 전 "6. 결정 필요"의 미결 항목(14: 라이트 s3 보다 어두운 상태 배경 규칙) 확인 필요
+- 상태: 설계 확정 — A11Y-1~14 결정 반영(2026-10-11). A11Y-7 내비 순서만 구현 전 별도 레이아웃 설계 필요
 - 범위: `frontend/src/` (v2 전용). 오버레이 Esc·포커스 트랩은 `overlay-common-behavior.md`, 오류·재시도는 `error-retry-common.md`, CSP는 보안 헤더 설계 소관
 
 ## 1. 근본 원인
@@ -50,7 +49,7 @@
 ### 2.2 공용 인터랙티브 부품 (RC-2) — `lib/components/ui/`
 - `layout.css` 에 `--size-tap: 44px` 토큰(결정 2: 44px, 문장 속 인라인 링크·차트 점 예외)과 `.tap`(min-height/min-width) 유틸, 텍스트 링크용 `.tap-area`(가상 요소로 히트 영역만 넓히고 레이아웃은 유지)를 둔다.
 - `IconButton.svelte`: `label` prop 을 필수로 받아 `aria-label` 로 출력하고 `.tap` 을 적용한다. ☰, ⓘ, 복사, 이전/다음, 닫기에 쓴다.
-- `ToggleChip.svelte` + `ToggleGroup.svelte`: `mode='single'` 은 radiogroup/radio + `aria-checked` + 화살표 키 이동(roving tabindex), `mode='multi'` 는 `aria-pressed`. 그룹 `label` 은 필수다. 피로도·통증·기간·카테고리·Provider·월/주·대회 확인 토글이 대상이며, 대회 토글은 그룹 이름에 대회명을 넣는다(T-12).
+- `ToggleChip.svelte` + `ToggleGroup.svelte`: `mode='single'` 은 radiogroup/radio + `aria-checked` + 화살표 키 이동(roving tabindex), `mode='multi'` 는 `aria-pressed`. 그룹 `label` 은 필수다. 피로도·통증·기간·카테고리·Provider·월/주·대회 확인 토글이 대상이며, 대회 토글은 그룹 이름에 대회명을 넣는다(T-12). 선택 표시(A11Y-14): 배경만으로 선택을 표시하지 않는다 — `multi` 칩=테두리(fg-primary/teal 2px), `single` 세그먼트=반전 채움, hover 배경은 s3 까지.
 - `lib/a11y/rovingIndex.ts` (신규, 순수): `nextIndex(current, key, count, disabled[])` 는 화살표·Home/End 를 처리하고 비활성 항목을 건너뛴다.
 - `TextField.svelte`: `label` 필수, `labelHidden` 이면 sr-only 로 출력한다. placeholder 는 보조로만 쓴다. HH/MM/SS, 메모 textarea, 비밀번호, ChatComposer 에 적용한다.
 - `Toast.svelte`: hover·focus 중 타이머를 멈춘다. 결정 5(A11Y-5): `kind='error'` 는 자동 닫힘 없이 닫기 버튼(IconButton)으로만 닫고 `role="alert"`, 성공·정보는 짧게(기존 시간) 자동 닫힘 + `role="status"`(S-11).
@@ -149,6 +148,7 @@
 | +error.svelte 2개, Toast.svelte | 수정 | +2, +15 | PageHead, 오류 지속·hover/focus 일시정지 |
 | 라우트 +page.svelte 약 30개 | 수정 | 각 +1~3 | PageHead 적용(h1/title) |
 | QuickInput, RaceConfirmList, MenuDrawer, ChatComposer, ConnectPanel, AI 설정, plan/session·new 폼, metrics 목록/상세, wellness, story 등 약 20개 | 수정 | 각 ±5~20 | 부품으로 교체 |
+| 배경만 선택 표시 6곳(story 월/주, streams x축, ArchiveTabCard, `+layout` lg 내비, TaperSheet, WeekStrip)·`hover:bg-border-subtle` 1·ActivityRow | 수정 | 각 ±1~4 | A11Y-14: 전경 지시자 추가, amber/20 위 amber 글자 → `/10` 또는 fg-primary |
 모든 파일은 300줄 이하를 유지한다. Svelte 부품의 로직은 순수 모듈로 빼서 함수마다 테스트를 둔다.
 
 ## 4. ID 처리 매핑
@@ -167,6 +167,7 @@
 | M-26, T-02 | BACKLOG 개별 | 차트 텍스트 요약(TrendChart·WellnessTrends), 스트립 기호 범례(문구 결정) |
 | T-29 | 제외 | 접근성 결함이 아님(390px 양호, 노출 여부 미확인) |
 | E-08, C-03, S-07, S-08, S-10, D-25, E-23 | 참조 | overlay-common-behavior.md |
+| NEW-10 단건 삭제 UI·RC 시트 | 참조 | 이 문서 계약을 따른다: 시트는 `use:modal`(overlay), 버튼 44px(`.tap`/IconButton), 보이는 h1(PageHead) |
 | E-05 | 범위 밖 | 404 HTTP 상태(서버) |
 
 ## 5. 단계·검증
@@ -174,7 +175,7 @@
 1. 대비 모듈과 테스트를 먼저 넣는다(테마 파서 포함, 라이트 블록이 없으면 라이트 검사는 skip). 현재 실패 조합을 `expectedFail` 로 표시해 목록을 확정한다(동작 변화 없음).
 2. **다크 그대로 토큰화:** 2.7 의 차트·heat·scrim·shimmer·on 토큰을 현재 값 그대로 만들고 hex·rgba·기본 팔레트·`text-white` 를 교체한 뒤 색 리터럴 가드를 켠다. 교체 전후 다크 스크린샷이 같아야 한다.
 3. **다크 값 조정:** A11Y-1 fg-muted #8494a9, semantic-red, series-3 마크, provider mark·on 토큰(A11Y-4), focus-ring(결정 8 후)과 전역 `:focus-visible` 을 넣고 다크 `expectedFail` 을 비운다.
-4. **라이트 도입(결정 14 확정 후):** B 라이트 블록 2개·`color-scheme`·theme-init·theme.ts·설정 화면 ThemeSwitch 를 넣고 라이트 `expectedFail` 없이 통과시킨다. 2.6·2.7 의 금지 조합은 `contrastPairs.ts` 에 넣지 않아 사용 시 정적 검토로 걸리게 하고, 여유 0.15 이하 조합(strava·runalyze 마크 × s3, teal 텍스트 × s3)은 테스트 메시지에 "s3 하한 — 배경을 어둡게 하지 말 것(결정 14)" 을 붙인다. 재조절 색은 원래 값과 함께 주석으로 남겨 브랜드 이탈을 추적한다.
+4. **라이트 도입:** B 라이트 블록 2개·`color-scheme`·theme-init·theme.ts·설정 화면 ThemeSwitch 를 넣고 라이트 `expectedFail` 없이 통과시킨다. 2.6·2.7 의 금지 조합은 `contrastPairs.ts` 에 넣지 않아 사용 시 정적 검토로 걸리게 하고, 여유 0.15 이하 조합(strava·runalyze 마크 × s3, teal 텍스트 × s3)은 테스트 메시지에 "s3 하한 — 배경을 어둡게 하지 말 것(결정 14)" 을 붙인다. 재조절 색은 원래 값과 함께 주석으로 남겨 브랜드 이탈을 추적한다.
 5. 레이아웃 skip link·main·내비 순서와 PageHead 를 넣고, 전 라우트에 적용한 뒤 정적 가드를 켠다.
 6. 공용 부품을 넣고 영역별(shell → Today → Library → Coach → Data)로 교체하면서 baseline 을 줄인다. 마지막으로 Toast(오류 지속)를 수정한다.
 검증: `npm run test:unit`(tokenContrast 두 테마·라이트 블록 동일성 포함), `npm run check`, `python3 -m pytest tests/`(백엔드 무변경 확인).
@@ -188,7 +189,7 @@
 - A안(추천): 위 설계. 원인 단계에서 막고 런타임 의존이 없다. 단점은 정적 스캔이라 실제 렌더 크기·합성 색(불투명도)은 브라우저 점검에 의존한다는 점이다.
 - B안: axe-core + Playwright E2E 감사를 CI 에 추가. 렌더 결과를 두 테마로 직접 검사해 누락이 적지만 현재 package.json 에 브라우저 테스트 도구가 없어 의존성·실행 시간이 늘고, 부품이 없어 고치는 방식은 여전히 화면별이 된다. A 완료 후 보강으로 둘 수 있다.
 
-## 6. 결정 필요
+## 6. 결정됨 (2026-10-11)
 
 1. fg-muted 처리 — **결정됨(2026-10-11, A11Y-1): (a) 값을 올림.** 다크 #8494a9(s1 5.77 / s2 4.73 / s3 3.35 → s3 텍스트 금지), 라이트 #6b645c(B안 s1 5.36 / s2 5.74 / s3 4.91)로 재검증(2.6).
 2. 터치 타깃 기준 — **결정됨(2026-10-11, A11Y-2): 44px, 문장 속 인라인 링크·차트 점 예외.**
@@ -203,14 +204,7 @@
 11. 라이트 팔레트 방향 — **결정됨(2026-10-11, A11Y-11): (b) 따뜻한 중성.** slate 반전 제안값은 폐기, 최종 톤은 결정 13(B 따뜻한 종이).
 12. 라이트 provider 마크 — **결정됨(2026-10-11, A11Y-12): (a) 브랜드 원색 유지, 배지 배경은 두 테마 원색 고정.** **수정 메모(2026-10-11, 결정 13 의 효과):** B 안에서 원색 strava(s3 2.86)·runalyze(2.78) 마크가 미달하므로 '라이트용 마크는 대비 통과하도록 조절 허용'으로 바뀐다 — strava #f14902, runalyze #159946(명도 −2.2%p). 배지 배경 원색 고정은 그대로(2.7).
 13. 라이트 팔레트 최종 톤 — **결정됨(2026-10-11, A11Y-13): B 따뜻한 종이** s1 #f7f5f2 / s2 #fffdfa / s3 #efebe5, 텍스트 fg #1c1917/#57534e/#6b645c. 미달 색 재조절(명도만 −0.8~−2.2%p): amber #b45309→#aa4f09, green #15803d→#14793a, delta-worse #c2410c→#bb3f0c, series-3·border-strong #8c847b→#887f76, strava 마크 #fc4c02→#f14902, runalyze 마크 #16a34a→#159946, 경로 #0d9488→#0d9085. 재조절 후 2.6·2.7 전 조합 통과(최소 text 4.61, ui 3.11).
-14. 라이트 s3 보다 어두운 상태 배경(선택·hover·pressed·disabled) 허용 여부 — **재검토 완료, 결정 필요.**
-    - **현황(2026-10-11 grep, `frontend/src` svelte):** ① hover 배경 62곳/37파일(`hover:bg-surface-3` 40, `-2` 15, `-3/70` 4, `-2/50` 1, `semantic-amber/20` 1, `border-subtle` 1) ② 선택·pressed 를 배경으로 그리는 조건식 35줄/21파일(`aria-pressed` 25·`aria-current` 7·`aria-checked` 2·`aria-selected` 1, 20파일). 유형: 중립 배경만(+굵기) — story 월/주, streams x축, ArchiveTabCard 탭, `+layout` lg 내비 활성(`lg:bg-surface-3`), TaperSheet 행, WeekStrip / 테두리+배경 — RowActionSheet(`border-fg-primary bg-surface-2`), SplitBars(`ring-1 ring-fg-muted`) / 반전 채움 — metrics 목록·상세 5, coach/plan/new(`bg-fg-primary text-surface-1`) / 의미색 채움 — QuickInput, ActivityFeedbackSheet(`bg-semantic-teal|amber text-white`) / 틴트+색 테두리 — ActivityFilters, library/providers(`bg-semantic-teal/15 border-semantic-teal`) ③ disabled: `opacity-30~60` 47곳/30파일, `disabled:bg-surface-3` 1 ④ 스크림 `bg-black/30~50` 10곳.
-    - **요건 구분(WCAG 2.2):** hover 배경은 상태 식별 정보가 아니라 장식 피드백이라 1.4.11 대상이 아니다(그 위 글자 4.5 만 필요). disabled 는 1.4.3·1.4.11 예외(비활성 컴포넌트). 스크림은 위에 전경이 없어 대상 아님. **선택·pressed·current 만 1.4.11 대상**이며, 상태를 배경만으로 보여 주면 인접 색(s2)과 3:1 이 필요하다.
-    - **핵심 계산:** s3 vs s2 1.17, 후보 state #e9e4dc vs s2 1.25, amber/20 틴트 1.33. 밝은 배경이 s2 와 3:1 이 되려면 상대휘도 ≤ 0.30(중간 회색)이어야 해 fg-primary 글자가 무너진다 → **라이트에서 어떤 '어두운 배경'도 단독 상태 표시가 될 수 없고**, 상태 대비는 전경(테두리 fg-primary 17.2, teal 5.39, 반전 채움 17.2, 의미색 채움 5.4~6.4)이 맡아야 한다. 현재 '중립 배경만' 6곳은 다크·라이트 모두 1.4.11 미달이다.
-    - (a) **s3 하한 + 전경 지시자(추천):** 라이트 배경은 s3 까지만. 선택은 ToggleChip 에서 테두리 fg-primary/teal(2px) 또는 반전·의미색 채움(흰 글자 5.47~6.47) 중 하나를 필수로, hover 는 s3. 대비: 2.6 표 전부 그대로 통과, 신규 금지 조합 0. 시각 강도: 채움형은 강함, 테두리형은 중간. 관리: 토큰 추가 0, 규칙 1줄. 변경: 중립 배경만 6파일 + hover:bg-border-subtle 1 + ActivityRow(amber/20 위 amber 글자 4.05 ✗ → `/10` 또는 fg-primary) 1 = 약 8파일(나머지는 2.2 ToggleChip 교체에 흡수).
-    - (b) **전용 `--color-surface-state` #e9e4dc 허용 + 허용 전경 제한:** 위 허용 fg-primary 13.8·secondary 6.03·muted 4.61·red 5.11·focus 4.69, 금지 amber·green·teal·delta-worse 텍스트 4.33, series-3·strava·runalyze 마크 2.91. 금지를 없애려면 의미색을 한 번 더 어둡게(amber #a34b08, strava #e94602, runalyze #149443 등, 명도 −3~−4%p) 해야 해 브랜드 이탈이 두 배가 된다. 시각 강도: 배경 대비 1.25 로 (a)의 테두리 없이는 1.4.11 을 여전히 못 넘어 전경 지시자도 필요. 관리: 토큰 1·contrastPairs 5행·금지 규칙 7개. 변경: (a) 8파일 + layout.css·contrastPairs.
-    - (c) **배경 상태 표현 전면 금지(전경만: 밑줄·체크 아이콘·테두리):** hover 배경까지 제거. 대비 가장 단순하나 시각 피드백 가장 약하고 hover 62곳/37파일 + 선택 21파일을 고쳐야 한다.
-    - **추천 (a):** 어두운 배경은 라이트에서 1.4.11 충족에 기여하지 못하면서 금지 조합 7개(또는 추가 색 이탈)만 늘린다. 강한 피드백이 필요한 단일 선택 세그먼트는 이미 쓰는 반전 채움(17.2)으로 충분하다. heat-0 #e6e0d7 은 데이터 셀(위 전경 금지)로 예외 처리. 남은 결정: (a)/(b)/(c) 선택, (a) 시 테두리형과 채움형을 컴포넌트별로 고정할지(예: 다중 선택 칩=테두리, 단일 세그먼트=채움).
+14. 라이트 s3 보다 어두운 상태 배경 — **결정됨(2026-10-11, A11Y-14): (a) 라이트 배경 하한 s3 + 전경 지시자.** 선택·pressed·current 는 테두리(fg-primary/teal 2px) 또는 반전·의미색 채움 필수, hover 는 s3 까지. 다중 선택 칩=테두리, 단일 세그먼트=반전 채움(2.2). 근거: s2 대비 3:1 이 되려면 배경 상대휘도 ≤0.30 이어서 라이트의 어떤 어두운 배경도 단독 상태 표시가 될 수 없고(s3 vs s2 1.17, 후보 #e9e4dc 1.25), (b) 전용 state 토큰은 금지 조합 7개 또는 추가 색 이탈만 늘린다. 1.4.11 대상은 선택·pressed·current 뿐(hover 장식·disabled·스크림 제외). 수정: 배경만 선택 표시 6곳 + `hover:bg-border-subtle` 1 + ActivityRow(amber/20 위 amber 4.05 ✗) ≈ 8파일(3절), 나머지는 ToggleChip 교체에 흡수. heat-0 #e6e0d7 은 데이터 셀(위 전경 금지) 예외. 토큰 추가 0.
 
 ## 7. 범위 밖 메모
 
@@ -220,3 +214,8 @@
 - svelte-check a11y 경고 0 을 통과 기준으로 둘지, 스크린리더·실기기 점검(미검증)은 별도 판단.
 - 고대비 모드(`prefers-contrast: more`)·`forced-colors` 대응은 이번 범위 밖. 토큰 구조상 같은 방식으로 블록을 추가할 수 있다.
 
+## 8. 동기화 중 발견한 충돌/확인 필요
+
+- A11Y-12 결정 원문은 "(a) 브랜드 원색 유지"이나 A11Y-13 결정이 라이트 마크 조절 허용으로 사실상 수정했다(결정 12 수정 메모·2.7 에 반영). decisions-table 의 A11Y-12 줄 자체는 원문 그대로다.
+- A11Y-7(1280px 내비 DOM 순서)은 "구현 전 별도 레이아웃 설계 필요"로 결정돼 이 문서에 레이아웃 설계가 없다.
+- NEW-10 의 "RC 시트" 설계서는 이 동기화에서 읽지 않았다. 4절 참조 행은 계약 적용만 명시한다.

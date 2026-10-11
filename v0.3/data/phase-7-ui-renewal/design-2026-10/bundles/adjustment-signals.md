@@ -1,9 +1,9 @@
 # 조정 제안 근거 신호 확장 (adjustment-signals)
 
-> 작성 2026-10-11 · 상태: 설계 초안(ADJ-1·2·4 결정 반영, 나머지 미확정) · 관련: [ADJUSTMENT-SOURCE-CRS-LABEL], [CRS-EVALUATE-MISSING], FRS-12~19(`patterns/data-freshness.md` §2.6·§2.7), ADR-035
-> 전제(결정됨): `crs.evaluate()` 복원(저장 CRS·신선도 읽기 전용), CRS stale/게이트 불명 시 BOOST만 보류(`adjuster_v2`), `plan_service.todays_adjustment_with_hold` 래퍼, Hero `as_planned`+`hold_reason`.
-> 변경 이력: 2026-10-11 초안 · 2026-10-11 ADJ-1·2·4 결정 반영(신호 목록 (c)+대회 계획·추가 신호 후보, 트리거 확장 (c) `adjuster_v3`, source=주 트리거 종류 재적재)
-> 결정 번호: 본문 D1~D9 = decisions-table ADJ-1~9, D10~ = 신규(미결정).
+> 작성 2026-10-11 · 상태: 설계 확정(ADJ-1~16·NEW-1~3 결정 반영, 구현 전) · 관련: [ADJUSTMENT-SOURCE-CRS-LABEL], [CRS-EVALUATE-MISSING], FRS-12~21(`patterns/data-freshness.md` §2.6·§2.7), ADR-035, `bundles/adjustment-new-signals.md`, `bundles/race-calendar.md`
+> 전제(결정됨): `crs.evaluate()` 복원(저장 CRS·신선도 읽기 전용), CRS stale/게이트 불명 시 BOOST만 보류(FRS-12 c', `adjuster_v2`), 보류 범위 A1+A2(FRS-15), 해제 = BB·HRV 당일 확보+CRS fresh(FRS-17), `plan_service.todays_adjustment_with_hold` 래퍼(FRS-18), Hero `as_planned`+`hold_reason` 중립 회색 한 줄(FRS-19·21), 사유 한 줄·Coach 근거 한 줄(FRS-16·20).
+> 변경 이력: 2026-10-11 초안 · 2026-10-11 ADJ-1·2·4 결정 반영(신호 목록 (c)+대회 계획·추가 신호 후보, 트리거 확장 (c) `adjuster_v3`, source=주 트리거 종류 재적재) · 2026-10-11 설계서 동기화(ADJ-3~16, NEW-1~3 확정 반영)
+> 결정 번호: 본문 D1~D16 = decisions-table ADJ-1~16, 신규 신호 저장·트리거는 NEW-1~3(`adjustment-new-signals.md`).
 
 ## 1. 근본 원인
 - `plan_adjustments.source='crs'`는 "누가 만들었나(시스템 자동)"와 "무엇이 근거인가"를 한 라벨에 섞었다. 실제 생성 경로는 `plan_pain.proposal`(통증, `pain_v1`) 또는 `adjust_todays_plan`→`readiness_decision`(BB·수면·스트레스·TSB, `adjuster_v1`)이며 CRS는 한 번도 읽히지 않는다(`plan_adjustment_service.py:98`).
@@ -32,115 +32,126 @@
 → "조정 제안"이 실제로 보는 신호는 웰니스 3종+TSB(+통증)뿐이고, 저장 행에는 그 값·신선도가 남지 않는다.
 
 ## 3. 설계안
-**3.1 개념 분리(ADJ-4 결정 반영).** `source` = **주 트리거 신호 종류**(`crs`/`readiness`/`pain`/…, 사용자 작성은 `user`, 코치는 `coach`). 생성 주체(auto/user/coach)는 source 값 집합으로 유도(`user`·`coach` 이외 = 자동). 전체 근거는 `signals_json`(§3.2). 역할 분담: **source = "왜 이 제안이 나왔나"의 한 단어(필터·집계·UI 분기용)**, **signals_json = 판정에 쓰인/참고한 신호 전부(값·신선도·role)**. 불변식: 자동 행이면 `signals_json` 안 `role:"trigger"` 중 하나가 source 와 같은 종류(레거시 백필 행은 예외, §3.9).
+**3.1 개념 분리(D4).** `source` = **주 트리거 신호 종류**(`pain`/`illness`/`checkin`/`crs`/`acwr`/`readiness`/`race`, 사용자 작성은 `user`, 코치는 `coach`). 생성 주체(auto/user/coach)는 source 값 집합으로 유도(`user`·`coach` 이외 = 자동). 역할 분담: **source = "왜 이 제안이 나왔나"의 한 단어(필터·집계·UI 분기용)**, **signals_json = 판정에 쓰인/참고한 신호 전부(값·신선도·role)**. 불변식: 자동 행이면 `signals_json` 안 `role:"trigger"` 중 하나가 source 와 같은 종류(레거시 행은 예외, §3.9).
 
-**3.2 저장(추천: 컬럼 추가, D5).** `signals_json TEXT NOT NULL DEFAULT '[]'`. ADJ-4로 테이블 재생성이 어차피 필요하므로 **v37 한 번에 재생성 + CHECK 확장 + 컬럼 추가**(§3.9). 항목:
+**3.2 저장(D5 확정: B `signals_json` 컬럼).** `signals_json TEXT NOT NULL DEFAULT '[]'`을 **v37 재생성에 합류**(재생성+CHECK 확장+컬럼 추가 1회, §3.9). 항목:
 ```json
 {"signal":"crs","role":"trigger|support|counter|hold|context","value":2,"detail":{"level_label":"…","gates":["hrv"]},
  "as_of":"2026-10-11","freshness":"fresh|stale|partial|missing","provider":"runpulse:formula_v1"}
 ```
 `role`: trigger=제안 방향을 만든 신호, support=같은 방향, counter=반대 방향, hold=BOOST 보류 사유(FRS-16 재사용), context=판정 미사용 참고값. `reasons_json`은 UI 칩·advisory 원장으로 유지(무수정).
 
-**3.3 신호 목록(ADJ-1 (c) 확정분).** 판정 입력: BB·수면·스트레스·TSB·통증 기록 / 추가 기록: CRS(level·score·gates)·UTRS·ACWR·HRV(`hrv_last_night`/`hrv_weekly_avg`)·체크인(`user_inputs` fatigue·pain) / 외부·일정: 폭염(`weather_cache` 캐시만)·**대회 계획**(§3.4). 추가 후보는 §3.5(D10).
+**3.3 신호 목록(D1·D10 확정).** 판정 입력: BB·수면·스트레스·TSB·통증 기록 / 추가 기록: CRS(level·score·gates)·UTRS·ACWR·HRV(`hrv_last_night`/`hrv_weekly_avg`)·체크인(`user_inputs` fatigue·pain) / 외부·일정: 폭염(`weather_cache` 캐시만)·**대회 계획**(§3.4) / 가용 추가 신호 6종(§3.5, 표의 쓰임대로) / 신규 수집 4종(질병·여행·시간대·고도·B/C 우선순위 — 수집·UI는 `adjustment-new-signals.md`, 대회는 `race-calendar.md`).
 
-**3.4 대회 계획 신호 `race_plan`(ADJ-1 사용자 요구).** 현황(grep 2026-10-11): 대회 정보 원천은 ① `goals.race_date·distance_km`(활성 목표 1개 유니크, v32) ② `planned_workouts.workout_type='race'` 행(계획 중간 레이스, `plan_move`·`plan_reduce`·`plan_pain`이 이미 race 를 이동/축소/통증 제안 제외) ③ `race_result_service.candidates`(과거 실적, 계획 아님). B/C 레이스 전용 저장소는 **없다** — `training/constraints.b_race_week()`는 호출자 0(죽은 경로).
-- 수집: `goals` 활성 1건(A) + 오늘 기준 −14~+21일 `planned_workouts` race 행(A일 제외 = B/C 후보). 계획 도중 추가된 대회는 ②로 들어오면 자동 포착(`created_at` 비교로 `detail.added_mid_plan`). 우선순위(B/C) 표기 원천이 없으므로 D11.
-- 정규화: `{"signal":"race_plan","value":<d_day>,"detail":{"race_date","distance_km","priority":"A|B|C|unknown","phase":"pre_taper|taper|race_day|recovery","source":"goal|planned"}}`. 하나의 날짜에 여러 대회면 가장 가까운 미래 1건을 주, 나머지는 `detail.others`.
-- 단계 판정(제안 값, D12): taper 창 = 거리별 `≤10K 3일 / 하프 7일 / 풀 14일`(B/C는 절반), recovery 창 = 대회 후 `≤10K 2일 / 하프 4일 / 풀 7일`.
-- 역할: taper·recovery 창 안에서 **상향 금지 hold**(BOOST 보류, role:hold) + 하향 support. race_day·race 행 자체는 조정 대상 제외(현행 `plan_pain` 규칙과 동일). race_plan 단독으로는 하향 trigger를 만들지 않는다(계획 자체가 이미 테이퍼를 반영 — 이중 감량 방지). 단 계획에 없는 추가 대회(added_mid_plan)의 recovery 창에 Q-day가 있으면 하향 trigger 후보(D12).
+**3.4 대회 계획 신호 `race_plan`(D1·D11·D12 확정).** 대회 사실의 원천은 **`race_calendar`**(v38, 우선순위 `A|B|C` 필수 — NEW-4/RC-2), 목표는 v39 `goals.race_id`로 참조(`race-calendar.md`). `planned_workouts.workout_type='race'` 행은 계획상 위치(조정 제외 대상)로만 쓴다. `training/constraints.b_race_week()`는 현재 호출자 0(정리는 RC 번들).
+- 수집: 오늘 기준 −14~+21일 `race_calendar` `status='planned'` 행 전부(A = 활성 목표의 `race_id`). 계획 중간에 있거나 새로 추가된 대회 포함, 계획에 반영되지 않은 대회는 `detail.unplanned=true`(판정 근거 필드는 RC 설계 기준). v38 이전 DB에서는 `goals`+race 행으로 수집하고 priority=`unknown`.
+- 정규화: `{"signal":"race_plan","value":<d_day>,"detail":{"race_id","race_date","distance_km","priority":"A|B|C","phase":"pre_taper|taper|race_day|recovery","unplanned"}}`. 가장 가까운 미래 1건을 주, 나머지는 `detail.others`.
+- 보호 기간(D12, RC-5): 기본값 taper `≤10K 3일 / 하프 7일 / 풀 14일`, recovery `2/4/7일`, B/C는 절반 + **대회별 덮어쓰기**(race_calendar 필드).
+- 역할: taper·recovery 창 안에서 **상향 금지 hold** + 하향 support. race_day·race 행은 조정 대상 제외. 계획에 반영된 대회는 하향 trigger를 만들지 않는다(이중 감량 방지). **계획에 반영하지 않은 대회(unplanned)의 recovery 창 Q-day만 하향 trigger**(source=`race`, RC-6). 대회 등록·수정 시 리플랜 질문·일괄 적용은 RC-7 흐름(본 번들 범위 밖).
 
-**3.5 추가 신호 후보(사용자 질문 "더 추가할 것은?", 포함 여부 D10).**
-| 후보 | 가용성 | 원천(코드 확인) | 쓰임 제안 |
-|---|---|---|---|
-| 직전 고강도 간격·연속 Q-day | 가용 | `plan_move.HARD/Q_TYPES` + `activity_summaries`·`planned_workouts` | 48h 내 Q 2회 → support/하향 후보 |
-| 최근 7일 수면 부채 | 가용 | `daily_wellness.sleep_duration_sec`(28일 평균 대비 누적 부족) | support, 단독 trigger 아님 |
-| 안정시 심박 상승 | 가용 | `daily_wellness.resting_hr`(7일 기준선 +5bpm 등) | support |
-| 통증 추세(재발) | 가용 | `plan_adjustments` pain 행 + `user_inputs.pain` 14일 횟수 | pain trigger 강화·context |
-| 놓침/미이행 추세 | 가용 | `week_compliance.outcome_label`='missed' | context(하향 아님, 복귀 첫날 감량 근거 후보) |
-| 테이퍼 단계 | 가용 | §3.4 race_plan.phase + `periodization` | hold/support |
-| 폭염 | 가용(캐시) | `weather_cache`/`weekly_adapt.heat_forecast` | support·context, 외부 호출 금지 |
-| 질병·메모 | 부분 | `user_inputs.note` 자유 텍스트 — 구조화 키 없음 | **신규 수집 필요**(체크인 `illness` 항목) |
-| 여행·시간대 변화 | 없음 | 타임존 설계(PRED-1x) 미구현 | **신규 수집 필요** |
-| 고도 | 없음 | 활동 고도 상승만 존재, 체류 고도 없음 | **신규 수집 필요** |
-| B/C 레이스 우선순위 | 없음 | 저장소 없음(§3.4) | **신규 수집 필요**(D11) |
+**3.5 추가 신호(가용분, D10 확정 — 표의 쓰임대로 채택).**
+| 신호 | 원천(코드 확인) | 쓰임 |
+|---|---|---|
+| 직전 고강도 간격·연속 Q-day | `plan_move.HARD/Q_TYPES` + `activity_summaries`·`planned_workouts` | 48h 내 Q 2회 → support |
+| 최근 7일 수면 부채 | `daily_wellness.sleep_duration_sec`(28일 평균 대비 누적 부족) | support, 단독 trigger 아님 |
+| 안정시 심박 상승 | `daily_wellness.resting_hr`(7일 기준선 +5bpm 등) | support |
+| 통증 추세(재발) | `plan_adjustments` pain 행 + `user_inputs.pain` 14일 횟수 | context |
+| 놓침/미이행 추세 | `week_compliance.outcome_label`='missed' | context |
+| 폭염 | `weather_cache`/`weekly_adapt.heat_forecast` | support·context, 외부 호출 금지 |
+신규 수집 신호(NEW-3): **질병 = 단독 OR trigger**(+BOOST hold), 여행·시간대·고도 = support/context.
 
-**3.6 수집 모듈 `src/services/adjustment_signals.py`(신규, 서비스 계층).** `collect(conn, day, *, readiness=None, crs=None, hold=None) -> list[dict]` — 수집기별 try/except, 실패 신호만 `freshness:"missing"`. 외부 호출 금지(캐시만). 대회 수집기는 `adjustment_signals_race.py`로 분리(300줄). `classify(signals, proposal)` 순수 함수로 role 부여. `primary_trigger(signals) -> str`(§3.8) 순수 함수.
+**3.6 수집 모듈 `src/services/adjustment_signals.py`(신규, 서비스 계층).** `collect(conn, day, *, readiness=None, crs=None, hold=None) -> list[dict]` — 수집기별 try/except, 실패 신호만 `freshness:"missing"`. 외부 호출 금지(캐시만). 대회 수집기 `adjustment_signals_race.py`, 질병·여행·고도 수집기 `adjustment_signals_context.py`(new-signals 번들)로 분리(300줄). `classify(signals, proposal)` 순수 함수로 role 부여. `primary_trigger(signals) -> str`(§3.8) 순수 함수.
 
-**3.7 트리거 확장(ADJ-2 (c), `adjuster_v3`).** 하향 판정 규칙(임계값은 **제안 값**, 확정은 D13):
-- CRS: `level ≤ 1`(fresh 또는 partial) → 하향. level 0 = rest/skip 후보, 1 = reduce.
-- ACWR 과부하: `acwr ≥ 1.5` → reduce, `≥ 1.8` → Q-day를 easy 로 replace. 1.3~1.5 는 support만.
-- 체크인 피로: 당일/전일 `fatigue ≥ 4`(1~5 척도 가정, 척도 확인 필요) → reduce. 체크인 통증: `pain` 비어있지 않음 → 통증 경로와 동일 처리(D+1~2).
-- 결합: 단일 신호 1개로 하향(OR) vs 2개 이상 합의 필요(AND)는 D13. stale 신호 허용은 D9.
-- 제안 강도는 기존 `readiness_decision` 의 `adjusted_type` 체계 재사용(새 op 없음). race 행·rest 행 제외.
-- 버전: 새 하향 경로가 만든 행 = `rule_version='adjuster_v3'`, 기존 경로 동일 결과는 v3 배포 후 모두 `adjuster_v3`로 기록(버전 = 배포된 규칙 세트). `pain_v1` 불변. Calculator 아님 → `algo_changelog` 대신 ADR-035 개정에 기록.
-- **제안 빈도 관찰**: ① 배포 전 백테스트 — 픽스처/운영 DB 사본에서 최근 90일을 v2·v3 로 각각 dry 판정해 일별 제안 수·주 트리거 분포 비교(`scripts/adjuster_backtest.py`, 쓰기 없음). ② 배포 후 — `plan_adjustments` 에서 `GROUP BY rule_version, source, decision` 주간 집계(제안/수락/되돌림 비율)를 로그 1줄(`adjuster_v3 weekly: proposed=…, accepted=…, by_source={…}`)로 남기고, 수락률이 v2 대비 급락하거나 주 3회 초과 제안이 2주 연속이면 임계값 재검토(기준은 D14).
+**3.7 트리거 확장(D2·D9·D13, `adjuster_v3`).** 판정 규칙(임계값은 **제안 값** — 빈도 관찰(§3.13) 후 조정):
+- **단독 OR(하나만으로 하향)**: 통증 기록(`plan_pain`, D+1~2) · 체크인 통증(`pain` 비어있지 않음, 통증 경로와 동일 처리) · 질병(확인된 `illness` 에피소드, NEW-3).
+- **2개 합의 AND**: CRS `level ≤ 1` · ACWR `≥ 1.5` · 체크인 피로 당일/전일 `fatigue ≥ 4`(1~5 척도 가정, 구현 시 확인) 중 **2개 이상**이 같은 날 성립하면 하향. 1개만 성립하면 role=support로 기록만. 강도: CRS level 0 포함 시 rest/skip 후보, ACWR `≥ 1.8` 포함 시 Q-day → easy replace, 그 외 reduce. ACWR 1.3~1.5는 support.
+- 기존 `readiness_decision`(BB·수면·스트레스·TSB) 하향은 현행대로 유지(source=`readiness`).
+- stale 허용(D9): stale·partial 신호도 trigger 가능, 대신 `freshness`·`as_of`를 signals에 기록하고 상세에 표시.
+- 제안 강도는 `readiness_decision`의 `adjusted_type` 체계 재사용(새 op 없음). race 행·rest 행 제외.
+- 버전: v3 배포 후 자동 행은 모두 `rule_version='adjuster_v3'`(버전 = 배포된 규칙 세트), `pain_v1` 불변. Calculator 아님 → `algo_changelog` 대신 ADR-035 개정에 기록.
 
-**3.8 주 트리거 선정(ADJ-4, 우선순위는 D15).** trigger가 복수면 `primary_trigger`가 하나를 source로 고른다. 후보: (a) 안전 우선 고정 순서 `pain > checkin(pain/fatigue) > crs > acwr > readiness` — 결정적·설명 쉬움 / (b) 제안 강도 기여 최대 신호(rest를 만든 신호) — 정확하나 동률 규칙 필요 / (c) 사용자 입력 우선(`checkin`·`pain` > 측정치) — 주관 신호 존중. 동률·미판정 시 `readiness`. source 값 집합 후보: `pain, checkin, crs, acwr, readiness, race`(race 는 recovery-창 trigger 채택 시만) + `user, coach`.
+**3.8 주 트리거 선정(D15 확정 + NEW-3).** trigger가 복수면 고정 순서 **`pain > illness > checkin > crs > acwr > readiness`**로 source를 고른다(안전 우선·결정적). 동률·미판정은 `readiness`. `race` trigger의 순서 위치는 §9 확인 필요. 표시 순서(D3)도 동일.
 
-**3.9 source 재적재·마이그레이션(v37, ADJ-4).**
-- 절차: ① 시작 전 `running.db` 파일 복사 백업(`running.db.bak-v36-<ts>`) + `PRAGMA integrity_check` ② 트랜잭션 안에서 v33 패턴 재사용 — `plan_adjustments_new` 생성(CHECK `source IN ('pain','checkin','crs','acwr','readiness','race','user','coach')`, `signals_json` 추가) → `INSERT … SELECT` + 재분류 → 인덱스 재생성(유니크 인덱스 동일) → 행 수·id 일치 검증 후 RENAME ③ 멱등: CHECK에 `'readiness'`가 이미 있으면 skip.
-- dry-run: `scripts/plan_adjustments_resource.py --dry-run`(신규, 쓰기 없음) — 재분류 결과 분포(`crs→readiness n, crs→pain n, 판별불가 n`)와 샘플 id 출력. 마이그레이션 함수도 `dry_run=True` 인자로 같은 로직 공유.
-- 재분류 매핑(기존 `source='crs'` 행): `rule_version='pain_v1'` 또는 reasons 키 `pain` 존재 → `pain`; reasons 키 `readiness` 존재 → `readiness`; 둘 다 없음(summary만·빈 배열) → **판별 불가**: 후보 (a) `readiness`로 간주(기존 생성 경로상 pain 아니면 전부 adjuster — 사실상 정확) / (b) `crs` 그대로 두고 "레거시" 의미로 유지(D16). 기존 행은 CRS를 읽은 적이 없으므로 `crs`로 남는 행은 원칙적으로 0이어야 한다.
-- 백필 행의 `signals_json`은 `[]`(ADJ-6 선택에 따름) — 불변식 예외로 `detail` 없이 source만 신뢰.
-- 롤백: 마이그레이션 실패 시 트랜잭션 롤백(원 테이블 유지). 배포 후 문제 시 백업 파일 복원 + `SCHEMA_VERSION` 36 코드로 되돌림(v37 행의 새 source 값은 v36 CHECK 위반이므로 **역마이그레이션 = 백업 복원만** 지원, 명시).
-- 소비처 수정(`source='crs'` 판정, 2026-10-11 grep): `plan_adjustment_service.py:84`(오늘 자동 제안 조회), `:229`(워크아웃별 자동 조정 after), `:278`(`source=? OR source='crs'` 중복 방지), `ensure_proposal` INSERT의 source 인자, `frontend/src/lib/rowActionView.ts:185`(자동 제안 판정), `PlanAdjustment.source` 타입(`index.ts`). 공통 헬퍼 `AUTO_SOURCES`(백엔드 상수)·`isAutoSource()`(프론트)로 치환 — 구현 시 `grep -rn "'crs'" src frontend/src` 재확인.
-- ADR-035 개정 범위: source 의미(actor→주 트리거), 값 집합, `signals_json` 컬럼, `adjuster_v3` 트리거 규칙, 주 트리거 선정 규칙, 레거시 재분류 기록. 오버레이(`after_json`)·유니크·decision 상태기계는 불변.
+**3.9 스키마·마이그레이션(v37 → v38 → v39).**
+- **v37 `plan_adjustments` 재생성(본 번들)**: ① `running.db.bak-v36-<ts>` 파일 백업 + `PRAGMA integrity_check` ② 한 트랜잭션에서 v33 패턴 재사용 — `plan_adjustments_new`(CHECK `source IN ('pain','illness','checkin','crs','acwr','readiness','race','travel','altitude','user','coach')`(NEW-2), `signals_json` 추가) → `INSERT … SELECT` + 재분류 → 인덱스 재생성(유니크 동일) → 행 수·id 일치 검증 후 RENAME ③ 멱등: CHECK에 `'illness'`가 있으면 skip.
+- 재분류(기존 `source='crs'` 행): `rule_version='pain_v1'` 또는 reasons 키 `pain` → `pain`; reasons 키 `readiness` → `readiness`; **판별 불가(summary만·빈 배열) → `readiness`로 UPDATE**(D16). 마이그레이션 후 `source='crs'` 레거시 행 0건.
+- dry-run: `scripts/plan_adjustments_resource.py --dry-run`(쓰기 없음) — `crs→readiness n, crs→pain n, 판별불가→readiness n` 분포·샘플 id. 마이그레이션 함수도 `dry_run=True`로 같은 로직 공유. 운영 DB **사본**에서 먼저 실행.
+- 기존 행 signals(D6): `proposed` 행은 다음 조회 때 `collect` 결과로 **전체 재기록**. `accepted`/`reverted` 행은 현재 값을 덧씌우지 않고 `[]` 유지(불변식 예외). **제안**: 이 과거 행에 reasons 키 기반 trigger 1건(`detail.backfilled=true`, 값·신선도 없음)을 v37 재분류와 같은 판정으로 병행 백필 — 비용 거의 0, 필요 시 채택.
+- **v38 `context_episodes`·`race_calendar` 생성(가산, NEW-1)**: 스키마는 `adjustment-new-signals.md`·`race-calendar.md`. **v39 `goals.race_id` + 백필**(`race-calendar.md`, `race_backfill_dry_run.py`). 각 단계 사본 dry-run·멱등·`integrity_check`.
+- 롤백: 실패 시 트랜잭션 롤백(원 테이블 유지). v37은 새 source 값이 v36 CHECK 위반이므로 **역마이그레이션 = 백업 파일 복원 + `SCHEMA_VERSION` 36 코드만**. v38은 v39 전이면 DROP 가능, v39 이후는 전진 전용(race-calendar.md). 운영상 롤백은 우선 §3.13 플래그(v3→v2)로 하고 스키마는 되돌리지 않는다.
+- 소비처 수정(`source='crs'` 판정, 2026-10-11 grep): `plan_adjustment_service.py:84`(오늘 자동 제안 조회), `:229`(워크아웃별 자동 조정 after), `:278`(`source=? OR source='crs'` 중복 방지), `ensure_proposal` INSERT의 source 인자, `frontend/src/lib/rowActionView.ts:185`(자동 제안 판정), `PlanAdjustment.source` 타입(`index.ts`). 공통 헬퍼 `AUTO_SOURCES`(백엔드)·`isAutoSource()`(프론트)로 치환 — 구현 시 `grep -rn "'crs'" src frontend/src` 재확인.
+- ADR-035 개정: source 의미(actor→주 트리거)·값 집합, `signals_json`, `adjuster_v3` 규칙(OR/AND), 주 트리거 순서, 레거시 재분류, 자동 롤백 플래그. 오버레이(`after_json`)·유니크·decision 상태기계 불변.
 
-**3.10 생성 흐름·우선순위(D3).** `plan_pain.proposal` → 체크인 통증 → v3 하향(CRS·ACWR·체크인 피로·readiness) → 래퍼 hold(상향만 차단) 순. 하향·상향 동시 → 하향. 대회 taper/recovery 창 → 상향 hold. D3 미결정 시 counter 는 저장만, 표시 보류.
+**3.10 생성 흐름·표시(D3·D7).** 생성: `plan_pain.proposal` → 질병 → 체크인 통증 → v3 AND 판정(CRS·ACWR·체크인 피로) → readiness → 래퍼 hold(상향만 차단). 하향·상향 동시 → 하향. 대회 taper/recovery 창 → 상향 hold. 표시: 신호 순서는 §3.8과 동일. **카드 = 주 트리거 칩 1개**, **상세 = 전체 신호**(counter는 상세에서만, 통증 제안에서도 다른 신호는 접어서 유지, stale 신호는 freshness 표기), **Coach 근거 = trigger 신호**(문구 FRS-4 체계).
 
-**3.11 rev·갱신(D8).** 제안 상태에서 **trigger 집합 또는 source가 바뀔 때만 rev+1**, 값만 바뀌면 rev 유지 UPDATE, accepted 이후 동결. source 변경(예: readiness→crs) 시 행을 새로 만들지 않고 같은 행 갱신(유니크 키가 source 포함 여부 구현 시 확인).
+**3.11 rev·갱신(D8).** 제안 상태에서 **trigger 집합이 바뀔 때만 rev+1**, 값만 바뀌면 rev 유지 UPDATE, accepted 이후 동결. 주 트리거가 바뀌어 source가 달라져도 같은 행 갱신(현 유니크 키가 source를 포함하므로 §9 확인 필요).
 
-**3.12 읽기·소비처.** `_to_dict`에 `signals` 추가, 프론트 `PlanAdjustment.signals?`, `AdjustmentCard` 표시(D7). `coach_evidence`는 source + trigger label. R·M은 `crs.evaluate` 복원으로 CRS 채워짐.
+**3.12 읽기·소비처.** `_to_dict`에 `signals` 추가, 프론트 `PlanAdjustment.signals?`, `AdjustmentCard` 표시(§3.10). `coach_evidence`는 source + trigger label. R·M은 `crs.evaluate` 복원으로 CRS 채워짐.
+
+**3.13 빈도 관찰·자동 롤백(D14).** ① 배포 전 백테스트 — DB 사본 최근 90일을 v2·v3로 dry 판정, 일별 제안 수·주 트리거 분포 비교(`scripts/adjuster_backtest.py`, 쓰기 없음). ② 배포 후 주간 집계 — `GROUP BY rule_version, source, decision` 로그 1줄(`adjuster_v3 weekly: proposed=…, accepted=…, by_source={…}`). ③ **자동 롤백 플래그** 설정 `adjuster_version`(v3|v2): 기준(제안 값) **자동 제안 주 3회 초과 2주 연속** 또는 **수락률 급락(v2 백테스트 기준 대비 절반 이하, 제안 값)** 시 `v2`로 전환 → v3 트리거(CRS·ACWR·체크인 피로 AND, 질병·체크인 통증 OR) 정지, 기존 행·스키마 유지. 오작동 방지(제안): 판정 최소 표본 주 2회 이상, 대회 recovery·질병 에피소드 주간 제외. 사용자 설명(제안): 전환 시 Coach/설정에 중립 한 줄("최근 제안이 많아 이전 기준으로 돌아갔어요"), 재활성은 수동.
 
 ## 4. 변경 파일 표
 | 파일 | 구분 | 내용 | 예상 줄 |
 |---|---|---|---|
-| `src/db_schema_v37.py` | 신규 | 재생성(CHECK 확장)+`signals_json`+재분류, dry_run, 멱등 | ~90 |
-| `src/db_setup.py` | 수정 | `SCHEMA_VERSION=37`, ensure 호출 | +3 |
+| `src/db_schema_v37.py` | 신규 | 재생성(CHECK 11값)+`signals_json`+재분류(판별불가→readiness), 백업 확인, dry_run, 멱등 | ~95 |
+| `src/db_schema_v38.py` / `v39.py` | 신규(타 번들) | context_episodes·race_calendar / goals.race_id | new-signals·race-calendar 참조 |
+| `src/db_setup.py` | 수정 | `SCHEMA_VERSION` 37→39(번들 순차), ensure 호출 | +3(v37분) |
 | `scripts/plan_adjustments_resource.py` | 신규 | 재분류 dry-run 리포트 | ~50 |
-| `src/services/adjustment_signals.py` / `_race.py` | 신규 | collect·classify·primary_trigger / 대회 계획 수집 | ~180 / ~90 |
-| `src/services/adjustment_triggers_v3.py` | 신규 | CRS·ACWR·체크인 하향 판정(순수) | ~100 |
-| `src/services/plan_adjustment_proposal.py` | 신규(분리) | `ensure_proposal` 이동(원 파일 301줄) + source=primary | ~110 |
+| `src/services/adjustment_signals.py` / `_race.py` | 신규 | collect·classify·primary_trigger / race_calendar 기반 대회 수집 | ~180 / ~100 |
+| `src/services/adjustment_triggers_v3.py` | 신규 | OR(통증·체크인 통증·질병)/AND(CRS·ACWR·피로) 판정(순수) | ~110 |
+| `src/services/adjuster_frequency.py` | 신규 | 주간 집계 로그·롤백 기준 판정·`adjuster_version` 전환 | ~80 |
+| `src/services/plan_adjustment_proposal.py` | 신규(분리) | `ensure_proposal` 이동(원 파일 301줄) + source=primary, proposed 재기록·rev 규칙 | ~120 |
 | `src/services/plan_adjustment_service.py` | 수정 | `'crs'` 판정 3곳→`AUTO_SOURCES`, signals 노출 | −70/+15 |
 | `src/metrics/crs.py` | 수정(선행) | `evaluate()` 복원 | +30 |
 | `src/services/coach_evidence.py` | 수정 | source·trigger label | +15 |
-| `frontend/src/lib/rowActionView.ts`, `lib/types/index.ts`, `AdjustmentCard.svelte` | 수정 | `isAutoSource`, 타입, 근거 표시 | +5/+15/+25 |
+| `frontend/src/lib/rowActionView.ts`, `lib/types/index.ts`, `AdjustmentCard.svelte` | 수정 | `isAutoSource`, 타입, 칩 1개/상세 전체 | +5/+15/+30 |
 | `scripts/adjuster_backtest.py` | 신규 | v2 vs v3 빈도 비교(읽기 전용) | ~80 |
-| tests: `test_adjustment_signals*.py`, `test_adjustment_triggers_v3.py`, `test_db_schema_v37.py`, `test_plan_adjustment_service.py` | 신규/수정 | 아래 §5 | ~30개 |
-| `v0.3/data/decisions.md` | 수정(구현 시) | ADR-035 개정 | +20 |
+| tests: `test_adjustment_signals*.py`, `test_adjustment_triggers_v3.py`, `test_adjuster_frequency.py`, `test_db_schema_v37.py`, `test_plan_adjustment_service.py` | 신규/수정 | §5 | ~35개 |
+| `v0.3/data/decisions.md` | 수정(구현 시) | ADR-035 개정 | +25 |
 
-## 5. 단계·검증
-0. 선행: `crs.evaluate` 복원 → FRS `boost_hold`·래퍼.
-1. `adjustment_signals`(+race) 추가(호출자 없음) + 단위 테스트(수집기별 정상·결측, race 창 판정, 추가 대회 포착, 외부 호출 없음).
-2. dry-run 스크립트로 운영 DB **사본** 재분류 분포 확인 → v37 마이그레이션(백업·재생성·재분류) + `ensure_proposal` 분리(동작 불변 커밋 별도). 회귀: 같은 픽스처에서 `after`·`reasons`·rev 동일, source만 `readiness`/`pain`.
-3. 소비처 6곳 `AUTO_SOURCES` 치환 → 레거시·신규 source 모두에서 Hero·row action·중복 방지 동일 동작.
-4. 백테스트로 v2/v3 빈도 비교 후 사용자 확인 → `adjuster_v3` 트리거 활성화 + 주간 집계 로그.
-5. API·프론트·coach_evidence. `pytest tests/`, `npm run check`, 픽스처 DB 브라우저 확인(운영 DB 미사용).
-- 검증 체크: v37 전후 행 수·id·decision 일치, `PRAGMA integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부 테스트, `plan_overlay` 결과 불변, 기존 하향 불변 + 신규 하향(CRS·ACWR·체크인) 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
+## 5. 단계·검증·롤아웃
+0. 선행: `crs.evaluate` 복원 → FRS `boost_hold`·래퍼(FRS-12~21).
+1. `adjustment_signals`(+race·context) 추가(호출자 없음) + 단위 테스트(수집기별 정상·결측·stale, race 창·대회별 덮어쓰기, unplanned 포착, 외부 호출 없음).
+2. v37: 사본 dry-run 분포 확인 → 백업·재생성·재분류 + `ensure_proposal` 분리(동작 불변 커밋 별도). 회귀: 같은 픽스처에서 `after`·`reasons`·rev 동일, source만 `readiness`/`pain`, `crs` 0건.
+3. 소비처 6곳 `AUTO_SOURCES` 치환 → Hero·row action·중복 방지 동일 동작.
+4. v38 → v39(타 번들 일정, 각 사본 dry-run·백업). race_plan priority가 race_calendar로 채워지는지 회귀.
+5. 백테스트 v2/v3 비교 후 사용자 확인 → `adjuster_version=v3` 활성화 + 주간 로그·자동 롤백 감시.
+6. API·프론트·coach_evidence. `pytest tests/`, `npm run check`, 픽스처 DB 브라우저 확인(운영 DB 미사용).
+- 검증 체크: v37 전후 행 수·id·decision 일치, `integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부, `plan_overlay` 불변, OR 단독 하향(통증·체크인 통증·질병)·AND 1개=support/2개=하향 테스트, stale trigger 시 freshness 기록, 주 트리거 순서 테스트, trigger 집합 변화만 rev+1·accepted 동결, proposed 재기록·과거 행 불변, 롤백 기준 초과 시 v2 전환 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
 - 호환·v1: v1 `views_training_loaders:45`·`plan.py`는 `adjust_todays_plan` 직접 호출만, `src/web`에서 `plan_adjustments` 조회 없음 → 영향 없음.
 
-## 6. 대안
-- **A. `reasons_json`에 신호 내장** — 마이그레이션 없음, 단 칩·원장·근거 혼재, rev 필터 필요. ADJ-4로 재생성이 확정돼 "무마이그레이션" 이점이 사라짐.
-- **B. `signals_json` 컬럼(추천)** — v37 재생성에 합류해 추가 비용 거의 0.
-- **source 대안(기각, ADJ-4 결정)**: `'crs'` 유지 + API 별칭 / `'auto'` 치환 — 사용자 결정으로 "주 트리거 종류" 채택.
+## 6. 대안(기각)
+- **A. `reasons_json`에 신호 내장** — 칩·원장·근거 혼재, rev 필터 필요. D5에서 B 채택.
+- **source `'crs'` 유지 + API 별칭 / `'auto'` 치환** — D4에서 "주 트리거 종류" 채택.
+- **v3 전부 OR / 전부 AND** — D13 혼합 채택(안전 신호는 단독, 측정·피로는 합의).
 
-## 7. 결정 필요
-- **D1(ADJ-1) 결정됨(2026-10-11)**: (c) + 대회 계획(계획 중간·추가 대회 포함). 추가 후보 최종 목록은 D10.
-- **D2(ADJ-2) 결정됨(2026-10-11)**: (c) CRS+ACWR 과부하+체크인 피로·통증 하향, `adjuster_v3`. 임계값은 D13, 빈도 기준은 D14.
-- **D3 우선순위·counter 표시(미결정)**: §3.10 순서 채택 여부, counter 노출, 통증 제안 시 다른 신호 숨김. 주 트리거 선정(D15)과 같은 순서를 쓰면 일관, 달리하면 "판정 순서 ≠ 표시 라벨" 혼란.
-- **D4(ADJ-4) 결정됨(2026-10-11)**: source = 주 트리거 종류, 기존 'crs' 행 재분류 백필(§3.9).
-- **D5 저장 위치(미결정)**: A vs B — ADJ-4로 재생성이 확정돼 B의 추가 비용이 사라졌다는 점 반영.
-- **D6 기존 행 signals(미결정)**: (a) `[]` 보존 / (b) reasons 키로 trigger 1건만 부분 백필(값·신선도 없음, source 재분류와 같은 판정 재사용) / (c) 미결정 proposed 행만 다음 조회 때 재기록. source 재분류는 D6과 무관하게 수행.
-- **D7 사용자 표시(미결정)**.
-- **D8 signals 갱신과 rev(미결정)**: 후보 (a)에 "source 변경 시도 rev+1" 포함 여부 추가.
-- **D9 stale 신호 하향 트리거(미결정)**: v3에서 CRS·ACWR·체크인(전일분)이 실제 트리거가 되므로 영향 커짐 — 허용 시 제안 빈도↑, 불허 시 결측일 하향 누락.
-- **D10 추가 신호 최종 목록(신규)**: §3.5 가용 6종 중 포함할 것(기록만/support/트리거) + 신규 수집 4종(질병, 여행·시간대, 고도, B/C 우선순위) 착수 여부. 가용분만 먼저 = 즉시 가능 / 신규 수집 포함 = 체크인·목표 UI 확장 필요(product 영역).
-- **D11 B/C 레이스 원천(신규)**: (a) `planned_workouts` race 행 + `goals` 외는 모두 `unknown` 우선순위 / (b) `planned_workouts`에 `race_priority` 컬럼 추가 / (c) `goals`에 보조 레이스(status 'secondary') 허용 — 활성 목표 유니크(v32)와 충돌.
-- **D12 대회 창 길이·추가 대회 trigger(신규)**: §3.4 제안 값(taper 3/7/14일, recovery 2/4/7일, B/C 절반) 채택 여부, 추가 대회 recovery 창에서 하향 trigger 허용 여부.
-- **D13 v3 임계값·결합(신규)**: CRS level≤1, ACWR 1.5/1.8, 피로 ≥4 제안 값 확정 + OR(단일 신호) vs AND(2개 합의).
-- **D14 빈도 경보 기준(신규)**: 주 3회 초과 2주 연속·수락률 급락 기준값, 로그만 vs 자동 롤백 플래그(`adjuster_version` 설정).
-- **D15 주 트리거 선정(신규)**: §3.8 (a) 안전 고정 순서 / (b) 강도 기여 최대 / (c) 사용자 입력 우선.
-- **D16 판별 불가 레거시 행(신규)**: (a) `readiness` 간주 / (b) `crs` 유지(레거시 의미) — (b)면 CHECK에 'crs' 의미가 둘로 갈림.
+## 7. 결정됨(2026-10-11)
+- **D1(ADJ-1)** (c) 현행+CRS·UTRS·ACWR·HRV·체크인+대회(중간·추가 포함)·폭염 — 근거: 판정 근거 재현성.
+- **D2(ADJ-2)** (c) CRS+ACWR+체크인 하향 트리거, `adjuster_v3` — 근거: CRS 행동 경로 0회 해소.
+- **D3(ADJ-3)** 표시 순서 = 주 트리거 순서, counter 상세만, 통증 제안에도 다른 신호 접어서 유지 — 근거: 판정·표시 일관.
+- **D4(ADJ-4)** source = 주 트리거 종류, 기존 'crs' 행 재분류(v37) — 근거: actor/근거 라벨 분리.
+- **D5(ADJ-5)** B `signals_json` 컬럼(v37 합류) — 근거: 재생성 확정으로 추가 비용 0.
+- **D6(ADJ-6)** proposed 행 전체 재기록, 결정된 과거 행 덧씌움 금지 — 근거: 과거 판정 보존. trigger 1건 백필은 제안(§3.9).
+- **D7(ADJ-7)** 카드 칩 1개 / 상세 전체 / Coach trigger — 근거: 카드 공간·설명력 균형.
+- **D8(ADJ-8)** trigger 집합 변화 시만 rev+1, 수락 후 동결 — 근거: 값 흔들림에 rev 남발 방지.
+- **D9(ADJ-9)** stale 하향 트리거 허용 + freshness 기록 — 근거: 결측일 하향 누락 방지(안전 방향).
+- **D10(ADJ-10)** 가용 6종 + 신규 수집 4종 착수 — 근거: 사용자 요구, UI는 new-signals 번들.
+- **D11(ADJ-11)** B/C 원천 = race_calendar — 근거: 대회 사실 단일 원천(RC-1).
+- **D12(ADJ-12, RC-5·6)** 보호 기간 기본값+대회별 덮어쓰기, recovery 하향은 미반영 대회만 — 근거: 이중 감량 방지.
+- **D13(ADJ-13)** 혼합 OR/AND, 임계값 제안 값 유지 — 근거: 안전 신호 즉시·측정 신호 오탐 억제.
+- **D14(ADJ-14)** 로그+자동 롤백 플래그(`adjuster_version`) — 근거: 빈도 폭주 시 즉시 복귀.
+- **D15(ADJ-15)+NEW-3** `pain > illness > checkin > crs > acwr > readiness` — 근거: 안전 우선·결정적.
+- **D16(ADJ-16)** 판별 불가 'crs' 행 → `readiness` UPDATE(dry-run·백업) — 근거: 생성 경로상 사실상 정확, 'crs' 의미 단일화.
+- **NEW-1~3** v38 신규 테이블 / v37 CHECK에 illness·travel·altitude 사전 포함 / 질병만 단독 OR — 근거: 재생성 1회, 안전 방향.
 
 ## 8. 범위 밖 메모
-- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호의 입력 UI(product-architect), `b_race_week` 죽은 경로 정리.
+- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호 입력 UI(new-signals·product), race_calendar 관리 화면·리플랜 질문(race-calendar), `b_race_week` 죽은 경로 정리.
+
+## 9. 동기화 중 발견한 충돌/확인 필요
+- decisions-table ADJ-15 결정 문구는 `pain > checkin > crs > acwr > readiness`(illness 없음). 본문은 NEW-3 결정에 따라 illness를 pain 다음에 넣었다. 표 문구는 갱신되지 않았다.
+- ADJ-15 순서에 `race`(ADJ-12 미반영 대회 recovery trigger)가 없다. 주 트리거 순서 내 위치가 미정이다.
+- ADJ-13 AND 집합(CRS·ACWR·피로)에 기존 `readiness` 하향을 1표로 셀지 결정 문구에 없다. 본문은 readiness를 현행 단독 경로로 유지했다.
+- `adjustment-new-signals.md` §2.0의 `race_calendar` 스키마(priority B/C만, `goal_id`)는 `race-calendar.md`(A|B|C 필수, `goals.race_id` 단방향, `goal_id` 폐기)와 다르다. 본문은 race-calendar.md를 따랐다.
+- new-signals §2.0은 v38 롤백을 DROP으로 적었으나 v39(`goals.race_id` FK) 적용 후에는 race-calendar.md상 전진 전용이라 DROP 롤백이 성립하지 않는다.
+- ADJ-14 수락률 "급락" 수치와 `adjuster_version` 저장 위치(설정 저장소)는 결정에 없어 제안 값으로 적었다.
+- `plan_adjustments` 유니크 인덱스는 `(workout_id, date, source) WHERE decision IN ('proposed','accepted')`(`db_schema_v31.py:30`)로 source를 포함한다. 자동 source가 여러 값으로 나뉘면 같은 워크아웃·날짜에 자동 제안 행이 source별로 공존할 수 있고, §3.11 "같은 행 갱신"은 인덱스가 막지 않는다. v37 재생성 시 유니크 키 조정(자동 source 묶음) 여부 확인이 필요하다.
