@@ -33,3 +33,6 @@ Phase 4-5에서 보류한 항목은 현재 설계를 확장하지 않고, 콜드
 
 ## 데이터 내보내기 전체 import (2026-10-11 EXP-6 결정)
 - 내보낸 zip(format_version 포함)을 다시 가져오는 전체 import 기능은 이번 범위 밖, 로드맵 등록. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/bundles/data-export.md`.
+
+## 주 트리거 순서 재검토 (2026-10-11 ADJ-17 결정)
+- 조정 제안 주 트리거 고정 순서(pain > illness > checkin > race > crs > acwr > readiness)는 현재 안전 우선 규칙으로 정했다. 추후 데이터 백테스트·ML 로 순서와 race 위치를 재검토한다(ADJ-READINESS-VOTE 와 함께 분석). 참고: `design-2026-10/bundles/adjustment-signals.md` §3.8.
