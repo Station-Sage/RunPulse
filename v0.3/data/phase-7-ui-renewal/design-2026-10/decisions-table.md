@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 276건 (결정 272건 / 부분 결정 3건 / 미결정 1건).
+- 총 286건 (결정 272건 / 부분 결정 3건 / 미결정 11건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -289,3 +289,13 @@
 | V1-15 | 공통 | V1-4 classify_surface 'v1' 분기(근거 v1 HTML 보호가 V1-13 과 충돌) | (a) 분기 제거(v1 도 일반 표면 정책 적용) / (b) 일몰 때까지 유지 / (c) 유지 **결정 2026-10-11: (a) classify_surface 의 'v1' 분기 제거(V1-4 보류 해소, V1-13 근거)** |
 | V1-16 | 공통 | 신규 request_guard.py·response_policy.py·spa_static.py·export_purge.py 의 위치(V1-10: 공용 파일은 view 밖) | (a) src/web/ 에 둠 / (b) src/api/ 에 둠 / (c) 기능별 분산(request_guard·response_policy → api, spa_static → web, export_purge → services) **결정 2026-10-11: (c') request_guard·response_policy·spa_static → src/web/ (앱 조립 계층, 일몰 후에도 유지; 'web = 앱 셸 전용'으로 정의), export_purge → src/services/** |
 | V1S-8 | v1 일몰 준비 | V1S-1 이관 후 파일명 유지 여부 | (a) 기존 이름 유지(bg_sync.py, auto_sync.py) / (b) 새 이름(예 bg_sync_runner.py) **결정 2026-10-11: (a) bg_sync.py·auto_sync.py 파일명 유지(위치만 src/sync/ 로 이동)** |
+| PLN-28 | 훈련 계획 | PLN-24 goals 삭제 범위('active goal') | (a) active 목표만 / (b) active + cancelled + completed 모든 목표 / (c) active 와 cancelled 만(completed 는 대회 기록 근거로 유지) | 미결정 |
+| PLN-29 | 훈련 계획 | 기존 플랜 삭제 실행 시점(v37·v39 대비) | (a) v37 이전에(삭제 후 v37~v40 순서대로 실행) / (b) v39 이전·v38 이후 / (c) v40 까지 모두 적용한 뒤(v39 가 만든 goals 파생 race 행 정리 필요) | 미결정 |
+| PLN-30 | 훈련 계획 | plan_adjustments 전체 삭제가 PLN-24 범위 밖 source(기본 'manual') 행의 조정까지 지우는 문제 | (a) 전체 삭제(범위 밖 source 도 함께) / (b) planner·외부 행에 달린 조정만 삭제 / (c) 전체 삭제하되 삭제 전 건수 분포를 source 별로 표시해 재확인 | 미결정 |
+| RC-43 | 대회 캘린더 | v39 2단계에서 재사용되는 B/C 대회를 활성 목표의 A 로 승격(불변식 3) | (a) 자동으로 A 로 승격 / (b) 승격하지 않고 새 대회 행 생성 / (c) 승격하되 승격 내역을 백필 리포트에 남김 | 미결정 |
+| RC-44 | 대회 캘린더 | 목표 연결 변경 창이 제공하는 선택(R5) | (a) 연결할 다른 대회 선택 + 목표 날짜·거리 수정 / (b) 다른 대회 선택만 / (c) 활성 목표 취소(대회 모두 목표 미연결로)까지 제공 | 미결정 |
+| RC-45 | 대회 캘린더 | 창·강등·복원이 한 요청·한 트랜잭션인지, 409 코드 이름(R5) | (a) 한 요청·한 트랜잭션 / (b) 목표 연결 변경을 별도 요청으로 먼저 수행 후 복원 / (c) 구현 단계에서 코드 이름과 함께 제안 | 미결정 |
+| RC-46 | 대회 캘린더 | RC-42 재반영 세부: 지난 날짜 행, 0행, 부분 실패 | (a) 지난 날짜 행은 건너뜀, 0행은 성공, 부분 실패는 성공분만 적용 후 stale 로 표시 / (b) 하나라도 실패하면 전체 롤백 후 adapt·stale / (c) 지난 날짜 행도 포함하고 실패는 건별 안내 | 미결정 |
+| V1-17 | 공통 | V1-14 /ai-coach 라우트 제거 시 라우트 전용 파일(views_ai_coach.py, views_ai_coach_cards.py; import 는 app.py 뿐) 삭제 | (a) 파일까지 삭제 / (b) 라우트 등록만 삭제하고 파일은 일몰 때 삭제 | 미결정 |
+| V1-18 | 공통 | 'v1' 분기 제거 후 /v2·/api·/mcp·/feeds 밖 경로가 받을 응답 정책(CSP) | (a) 일반 표면 정책(엄격 CSP) 적용 / (b) 기본 보수 정책 + Report-Only 로 관찰 / (c) 해당 경로 전체를 404 로 정리 | 미결정 |
+| V1-19 | 공통 | 앱 셸 정의(app.py·auth_cf.py·request_guard·response_policy·spa_static)와 안 맞는 파일 template_helpers.py·views_calendar_feed.py·app.py 의 비UI 라우트 | (a) 일몰 시 v1 UI 와 함께 삭제(비UI 라우트는 v2 로 이관 후) / (b) 비UI 라우트(캘린더 피드 등)만 src/api 로 이관, template_helpers 는 삭제 / (c) 구현 단계에서 사용처 조사 후 결정 | 미결정 |
