@@ -1,6 +1,6 @@
-# race_calendar 관리 화면·계획 연동·목표 원천 재설계 (ADJ-11·12·17, NEW-1·4·5, RC-1~22)
+# race_calendar 관리 화면·계획 연동·목표 원천 재설계 (ADJ-11·12·17, NEW-1·4·5, RC-1~24)
 
-> 작성 2026-10-11 · product-architect · 상태: RC-1~22 전부 결정 반영(2026-10-11) · 상위: `decisions-table.md` ADJ-11·12·17·NEW-1·4·5·RC-1~22, `adjustment-signals.md` §3.4, `adjustment-new-signals.md`
+> 작성 2026-10-11 · product-architect · 상태: RC-1~24·V1-1 전부 결정 반영(2026-10-11) · 상위: `decisions-table.md` ADJ-11·12·17·NEW-1·4·5·RC-1~24·V1-1, `adjustment-signals.md` §3.4, `adjustment-new-signals.md`
 > DB·API 형태는 system-architect 확인 대상이다. 정책·기본값·문구는 `decisions-table.md` RC-* 결정이 기준이다(§5).
 
 **변경 이력**
@@ -10,10 +10,11 @@
 - 2026-10-11 설계서 동기화(TZ-1 추가 결정·RC-4b/RC-6 정합·NEW-11): '오늘' = `reference_today` 헬퍼(§2.9 신설, §2.6-5·§2.7·§3·§4), §2.4 '미반영 대회' 정의 명시, 내보내기는 `data-export.md` 링크(§2.10, 대안은 §2.11로 이동), §5를 '결정 완료(표 참조)'로 축약, §7을 '동기화 중 발견한 모호점'으로 정리.
 - 2026-10-11 2차 동기화(RC-18·RC-19·ADJ-17): 지난 날짜 대회 등록 허용+확인 문구(§2.4 전이·§2.7 시트·§2.9 검증·§4 검증), race_date 없는 비활성 목표는 목표 생성일로 대회 생성(§2.1·§4 백필 3단계·dry-run 리포트), '지난 대회' 구역 기준 정리(§2.7), race 주 트리거 위치(§2.4), §7 해소 표시.
 - 2026-10-11 3차 동기화(RC-20~22): 지난 날짜 등록 대회도 날짜 규칙 그대로 RC-6 하향·계획 반영 질문 대상(§2.4·§4), RC-19 백필은 대회 행만 생성하고 `goals.race_date` 캐시는 NULL 유지(§2.1·§2.2 불변식 4 예외·§3 `check_data_consistency.py`·§4 백필 3·4단계), 미래 날짜 done 대회는 별도 표시 후 사용자 정리(§2.7, 화면 표시 방식은 §7 열린 질문).
+- 2026-10-11 4차 동기화(RC-23·24·V1-1): 미래 날짜 done 대회는 목록 '확인 필요' 배지 + 신호·D-day 제외 코드 경로 열거(§2.4·§2.7·§2.8 신설·§3·§4), RC-21 예외 행 수정 시 `push_cache`가 `race_date` 캐시를 채워 불변식 4 예외 해소(§2.2·§2.3·§3·§4), v1 화면·경로 호환 서술 제거(§1·§2.1·§2.3·§3·§4·§6, V1-1 일몰).
 
 ## 1. 근본 원인 (grep 2026-10-11)
 - **대회의 원천이 셋으로 흩어져 있고, B/C 대회를 관리하는 곳이 없다.** ① `goals.race_date·distance_km`(활성 목표 1건 유니크 `ux_goals_one_active`, v32) ② `planned_workouts.workout_type='race'` 행(재계획 때 다시 만들어져 메타데이터가 사라짐) ③ `race_results`(v20, `activity_id` 기준 실적, 예정 대회 아님).
-- **대회 사실을 쓰는 경로가 목표 쪽에 흩어져 있다.** `training/goals.add_goal`(188줄) 호출자: `plan_template_service.py:181`(신규 화면 `/coach/plan/new`), `web/views_training_wizard.py:366`(온보딩 마법사, v1), `web/views_training_goal_crud.py:52`(v1 목표 CRUD), `src/plan.py:79`(CLI). `update_goal`이 race_date·distance_km를 직접 고친다. `goals.race_date`를 읽는 곳은 `src/` 40여 파일(planner·replanner·race_hub·today_hero·ai 컨텍스트 등)이다.
+- **대회 사실을 쓰는 경로가 목표 쪽에 흩어져 있다.** `training/goals.add_goal`(188줄) 호출자: `plan_template_service.py:181`(신규 화면 `/coach/plan/new`), `src/plan.py:79`(CLI). v1 화면 호출자는 일몰 예정(V1-1)이라 고려하지 않는다. `update_goal`이 race_date·distance_km를 직접 고친다. `goals.race_date`를 읽는 곳은 `src/` 40여 파일(planner·replanner·race_hub·today_hero·ai 컨텍스트 등)이다.
 - **화면이 없다.** 대회 화면은 `/today/race`(예측 위주)와 `/today/race/races`(실적 확정 목록, 39줄)뿐이다. 등록 경로는 목표 생성의 race_date 하나뿐이고 B/C 등록·수정·삭제·조회는 없다.
 - **대회에서 계획으로 이어지는 길이 끊겨 있다.** `training/constraints.b_race_week()`는 테스트만 부른다. `plan_replan_service.preview/apply/undo`는 활성 goal 기준이고 다음 월요일 시작·대회 주 거부(409 `RACE_WEEK`)라 가까운 B/C 대회를 반영할 수 없다. `plan_adjustments`(v31)의 `source` CHECK는 `crs|user|coach`뿐이다(v37 재생성에서 확장 예정).
 - 그 결과 B/C 대회를 알릴 방법이 없고, `race_plan` 신호 priority는 `unknown`이며, 목표와 대회가 같은 사실을 두 곳에 들고 있게 된다.
@@ -21,7 +22,7 @@
 ## 2. 설계안 (확정 = 대안 A 하이브리드 + RC-1 (c))
 
 ### 2.1 데이터 모델
-**원칙(RC-1 c):** 대회 사실(이름·날짜·거리·우선순위·대회 목표)의 원천은 `race_calendar` 한 곳이다. `goals`는 "그 대회를 위한 훈련 계획의 목표"(plan_weeks, 규칙 버전, 시작 부하, 상태)를 갖고 `goals.race_id`로 대회를 참조한다. `goals.race_date·distance_km·target_time_sec`는 **읽기 호환 캐시**로 남긴다(40여 개 읽기 경로와 v1을 바꾸지 않기 위함). 캐시는 `race_goal_sync` 한 곳만 쓴다. `goals.name`은 목표 자체 이름이라 동기화하지 않는다.
+**원칙(RC-1 c):** 대회 사실(이름·날짜·거리·우선순위·대회 목표)의 원천은 `race_calendar` 한 곳이다. `goals`는 "그 대회를 위한 훈련 계획의 목표"(plan_weeks, 규칙 버전, 시작 부하, 상태)를 갖고 `goals.race_id`로 대회를 참조한다. `goals.race_date·distance_km·target_time_sec`는 **읽기 호환 캐시**로 남긴다(40여 개 읽기 경로를 바꾸지 않기 위함). 캐시는 `race_goal_sync` 한 곳만 쓴다. `goals.name`은 목표 자체 이름이라 동기화하지 않는다.
 
 `race_calendar` (v38 생성, 가산)
 | 필드 | 필수 | 의미 |
@@ -41,7 +42,7 @@
 - 인덱스: `ux_race_planned_same`(`race_date, distance_km` WHERE status='planned'), `ux_race_one_a`(`priority` WHERE priority='A' AND status='planned').
 
 `goals` 변경 (v39)
-- `race_id INTEGER REFERENCES race_calendar(id)` NULL 허용. race_date 없는 활성 목표는 NULL로 두고 날짜 입력 배너로 유도, 입력 시 A 대회 생성·연결(RC-11 b). race_date 없는 비활성 목표는 **목표 생성일(`goals.created_at`의 날짜)을 race_date로 써서 대회를 만들고 연결**한다(RC-19 b, §4 백필 3단계). 이때 **대회 행만 만들고 `goals.race_date` 캐시는 NULL로 둔다**(RC-21 b, 불변식 4 예외). 따라서 v39 이후 race_id NULL은 'race_date 없는 활성 목표'뿐이고, `race_id IS NOT NULL AND race_date IS NULL`은 'RC-19 백필로 연결된 비활성 목표'뿐이다.
+- `race_id INTEGER REFERENCES race_calendar(id)` NULL 허용. race_date 없는 활성 목표는 NULL로 두고 날짜 입력 배너로 유도, 입력 시 A 대회 생성·연결(RC-11 b). race_date 없는 비활성 목표는 **목표 생성일(`goals.created_at`의 날짜)을 race_date로 써서 대회를 만들고 연결**한다(RC-19 b, §4 백필 3단계). 이때 **대회 행만 만들고 `goals.race_date` 캐시는 NULL로 둔다**(RC-21 b, 불변식 4 예외). 이 대회를 나중에 캘린더 시트에서 수정하면 `push_cache`가 `race_date` 캐시를 채워 예외가 해소된다(RC-24 a, §2.2). 따라서 v39 이후 race_id NULL은 'race_date 없는 활성 목표'뿐이고, `race_id IS NOT NULL AND race_date IS NULL`은 'RC-19 백필로 연결되고 아직 수정되지 않은 비활성 목표'뿐이다.
 - `ux_goals_race`(`race_id` WHERE race_id IS NOT NULL AND status='active'): 한 대회에 활성 목표 1건.
 - `ux_goals_one_active`(v32)는 **그대로 둔다.** 회귀 위험 없이 "활성 목표 1개"를 계속 보장한다.
 
@@ -49,17 +50,17 @@
 1. 활성 목표 ≤ 1 (`ux_goals_one_active`, v32 유지).
 2. planned A 대회 ≤ 1 (`ux_race_one_a`).
 3. 활성 목표에 race_id가 있으면 그 대회는 `priority='A' AND status IN ('planned','done')`이다(done은 RC-17: 대회가 지나도 목표는 사용자가 완료할 때까지 활성). 반대로 planned A 대회가 있으면 그것을 참조하는 활성 목표가 있다. 즉 **A 지정 = 목표 대회 지정**이다. A는 목표 생성·교체 흐름으로만 만들어지고, 캘린더 시트에서 A를 고르면 목표 생성 화면으로 넘어간다. 교체 시 이전 planned A는 B로 강등, `adapt_choice='unasked'`·`plan_state='none'`(질문 대기, RC-15 b). 이전 A가 이미 done이면 그대로 둔다.
-4. 캐시 일치: 활성·비활성 목표 모두 `goals.race_date/distance_km/target_time_sec` = 참조 대회 값. **예외(RC-21 b):** RC-19 백필로 생성일 대회에 연결된 비활성 목표(`status != 'active' AND race_id IS NOT NULL AND race_date IS NULL`)는 `race_date` 캐시가 NULL인 것을 허용한다(`distance_km`·`target_time_sec`는 일치 대상 그대로). 생성일은 실제 대회 날짜가 아니므로 캐시로 퍼뜨리지 않는다.
-- 1·2는 DB 인덱스, 3·4는 서비스(`race_goal_sync`)와 `check_data_consistency.py` 신규 검사 2건으로 지킨다(불변식 3 검사 조건은 `status IN ('planned','done')`, 불변식 4 검사는 위 예외 행의 `race_date` 비교를 건너뛴다)(SQLite 트리거는 마이그레이션·테스트 부담 대비 이득이 작아 쓰지 않는다).
+4. 캐시 일치: 활성·비활성 목표 모두 `goals.race_date/distance_km/target_time_sec` = 참조 대회 값. **예외(RC-21 b):** RC-19 백필로 생성일 대회에 연결된 비활성 목표(`status != 'active' AND race_id IS NOT NULL AND race_date IS NULL`)는 `race_date` 캐시가 NULL인 것을 허용한다(`distance_km`·`target_time_sec`는 일치 대상 그대로). 생성일은 실제 대회 날짜가 아니므로 캐시로 퍼뜨리지 않는다. **예외 해소(RC-24 a):** 사용자가 이 대회 행을 캘린더 시트(`race_calendar_service.update`)로 수정해 저장하면 같은 트랜잭션에서 `race_goal_sync.push_cache`가 연결 목표의 `race_date`(와 `distance_km`·`target_time_sec`) 캐시를 대회 값으로 채운다 — 그 뒤로 이 행은 예외가 아니며 일반 불변식 4를 따른다. 해소 조건 = 캘린더 시트에서 이 대회 행을 수정 저장. 날짜를 바꾸지 않은 저장(생성일 그대로)도 해소로 볼지는 §7.
+- 1·2는 DB 인덱스, 3·4는 서비스(`race_goal_sync`)와 `check_data_consistency.py` 신규 검사 2건으로 지킨다(불변식 3 검사 조건은 `status IN ('planned','done')`, 불변식 4 검사는 위 예외 행(캐시 `race_date IS NULL`인 비활성 연결 목표)의 `race_date` 비교만 건너뛴다 — RC-24로 캐시가 채워진 행은 일반 비교 대상)(SQLite 트리거는 마이그레이션·테스트 부담 대비 이득이 작아 쓰지 않는다).
 
 ### 2.3 쓰기 경로와 화면 역할 (어느 쪽에서 고쳐도 한 곳이 갱신)
 | 진입 | 고치는 것 | 실제 쓰기 |
 |---|---|---|
-| 대회 캘린더 시트 `RaceEntrySheet` | B/C 대회 전부, A 대회의 이름·날짜·거리·대회 목표 | `race_calendar_service.update` → A이면 같은 트랜잭션에서 `race_goal_sync.push_cache` |
+| 대회 캘린더 시트 `RaceEntrySheet` | B/C 대회 전부, A 대회의 이름·날짜·거리·대회 목표 | `race_calendar_service.update` → A이면 같은 트랜잭션에서 `race_goal_sync.push_cache`(RC-21 예외 행이면 `race_date` 캐시도 채워 예외 해소, RC-24) |
 | 목표 생성 `/coach/plan/new` | 대회 고르기(등록된 B/C 또는 새 대회) + 계획 조건 | `goal_service.create_goal_with_race`: 대회 행 생성·승격(A) → `add_goal(race_id=…)` |
 | 목표 수정(계획 상세 `/coach/plan/[id]`) | 계획 조건, "대회 바꾸기" | 대회 사실 변경은 캘린더 시트를 같은 컴포넌트로 연다(별도 폼 없음) |
 | race_date 없는 활성 목표 배너(Today·계획 상세) | 대회 날짜·거리 입력(RC-11 b) | `race_goal_sync.attach_race`: A 대회 생성 + `goals.race_id`·캐시 한 트랜잭션 |
-| v1·CLI(`views_training_wizard`, `views_training_goal_crud`, `plan.py`) | 기존과 같음 | `add_goal(race_date=…)` 호환 래퍼가 대회 행을 만들고 연결. `update_goal(race_date|distance_km)`은 `race_calendar_service.update`로 위임 |
+| CLI(`plan.py`) | 기존과 같음 | `add_goal(race_date=…)` 호환 래퍼가 대회 행을 만들고 연결. `update_goal(race_date|distance_km)`은 `race_calendar_service.update`로 위임 |
 - 대회 사실을 고치는 UI는 `RaceEntrySheet` 하나다. 목표 화면은 그 시트를 재사용하고, 날짜·거리 변경은 **저장 전 재계획 미리보기를 거쳐야 저장된다**(RC-13 a, 미리보기 취소 시 아무것도 쓰지 않음).
 - A 대회 날짜·거리 변경은 §2.6-3의 재계획 경로, B/C는 행 단위 경로로 간다.
 
@@ -76,6 +77,8 @@
 | done | no_adapt | none | X | X | X | 결과 연결 |
 | cancelled | 무관 | none | X | X | X | 취소됨 |
 | planned/done, A | adapt 고정 | applied | O | X | O | 목표 대회 |
+| done, `race_date ≥ today`(미래 날짜 done, RC-22·23) | 무관 | 무관 | **X** | **X** | **X** | **확인 필요** 배지 |
+- **미래 날짜 done 행(RC-23 a):** 위 마지막 행이 다른 done 행보다 우선한다. 사용자가 정리(날짜 수정 또는 삭제)하기 전까지 어떤 대회 신호·D-day에도 쓰지 않고 목록에만 '확인 필요' 배지로 보인다. 제외 경로 목록은 §2.8.
 - 테이퍼 기간 하향은 어떤 상태에서도 보조 근거로만 쓴다(§3.4). `no_adapt`는 캘린더 표시만 남고 조정 신호에는 전혀 들어가지 않는다.
 - **race 주 트리거 위치(ADJ-17 a):** RC-6 회복 하향 트리거(source=`race`)는 `adjustment-signals.md` §3.8 주 트리거 순서 `pain > illness > checkin > race > crs > acwr > readiness`에서 체크인 바로 뒤다. 같은 날 통증·질병·체크인 통증 트리거가 함께 있으면 source는 그쪽이 되고 race는 support 이하로 기록된다. 순서는 추후 백테스트·ML 재검토 대상(`LATER.md` 기록).
 - **RC-4b ↔ RC-6 정합(결정 표 기준):** RC-4b가 우선한다. RC-6(a)의 "계획에 반영하지 않은 대회"는 `adapt_choice IN ('unasked','later')`(질문 대기·나중에)만 뜻하고, `no_adapt`('조정 안 함')는 회복 하향 트리거를 포함한 어떤 대회 신호에도 들어가지 않는다. `adjustment-signals.md` §3.4의 `detail.unplanned=true`도 이 두 상태에만 붙인다.
@@ -98,7 +101,7 @@
 - **진입:** 레이스 허브 "대회 캘린더" 카드(예: "다음 대회 · 춘천 10K(B) · D-15 · 반영됨"), 계획 상세 주간 목록의 A/B/C 배지, 목표 생성의 "등록된 대회에서 고르기".
 - **목록 `/today/race/calendar`(h1 "대회 캘린더"):** 다가오는/지난 두 구역, 행 = 배지·이름·D-day·거리·목표 한 줄·§2.4 칩. 우상단 "대회 추가". D-day·구역 경계는 응답에 동봉된 `today`(§2.9)로 계산하고 브라우저 날짜를 쓰지 않는다.
   - 구역 기준(현 설계 정리): cancelled 아닌 행은 `race_date`와 `today` 비교로 나눈다(`race_date ≥ today` = 다가오는, 그 외 = 지난). RC-18 지난 날짜 등록 대회와 RC-19 생성일 대회는 날짜가 과거라 '지난' 구역에 들어간다.
-  - **미래 날짜 done 행(RC-22 c):** `status='done' AND race_date ≥ today`(RC-12 b의 미래 날짜 completed 목표 백필분)는 두 구역 어디에도 그대로 섞지 않고 **별도로 표시해 사용자가 정리**하게 한다. 서버는 목록 응답에서 이 행들을 구분할 수 있게 내려 준다(필드 형태는 S0에서 확정). 정리는 기존 시트의 수정(날짜 고치기)·삭제(cancelled) 경로를 재사용하고 새 쓰기 경로는 만들지 않는다. 별도 표시의 화면 형태(별도 구역·배너·행 칩 등)는 열린 질문(§7).
+  - **미래 날짜 done 행(RC-22 c·RC-23 a):** `status='done' AND race_date ≥ today`(RC-12 b의 미래 날짜 completed 목표 백필분)는 **목록에서 '확인 필요' 배지**를 달아 보여 주고 사용자가 정리하게 한다. 행의 §2.4 칩 자리에 '확인 필요' 배지를 쓰고 D-day는 표시하지 않는다(D-day 제외, §2.8). 서버는 목록 응답에서 이 행들을 구분할 수 있게 내려 준다(예: `needs_review: true`, 필드 형태는 S0에서 확정). 정리는 기존 시트의 수정(날짜 고치기)·삭제(cancelled) 경로를 재사용하고 새 쓰기 경로는 만들지 않는다. 배지 행이 다가오는/지난 어느 구역에 놓이는지는 결정 문구에 없다(§7).
 - **등록·수정 시트:** 필수 4개(날짜·이름·거리 칩·우선순위 세그먼트) 위, 나머지(목표 유형·값, 보호 기간 덮어쓰기, 메모)는 "더 설정"에 접는다. **지난 날짜 확인(RC-18 c):** 날짜가 응답의 `today`(§2.9)보다 이전이면 저장 전에 확인 문구를 한 번 띄우고, 확인하면 저장한다(취소 시 입력 유지). 문구 초안 "지난 날짜예요. 지난 대회로 기록할까요?" — **최종 문구는 사용자 확정 필요**. A를 고르면 "목표 대회로 지정하면 훈련 계획을 이 대회에 맞춰 새로 만들어요" 안내(기존 A가 있으면 "지금 목표 대회는 B로 바뀌어요" 병기, RC-15) 후 목표 생성으로 이동. 저장 실패는 시트 안 문구 + 입력 유지.
 - **계획 반영 질문:** 제목 "이 대회에 맞춰 계획을 조정할까요?", 버튼 "조정할게요 / 나중에 / 조정 안 함"(RC-10, 최종 문구는 구현 중 확인). 수정 시 "변경 영향" 모드(기존 반영분 되돌리기 + 새 제안 diff).
 - **날짜 입력 배너(RC-11):** "목표 대회 날짜를 알려 주시면 대회 캘린더에 등록하고 계획을 맞춰요" + 입력(날짜·거리) → 대회 생성.
@@ -106,9 +109,23 @@
 - **삭제:** 확인 다이얼로그에 되돌릴 조정 N건·연결 실적 유지 안내 → cancelled(RC-9). A 삭제는 목표 취소를 함께 묻는다(목표 화면과 같은 확인).
 - **빈 상태:** "등록된 대회가 없어요. 목표 외에 나갈 대회를 추가하면 그 앞뒤 훈련을 맞춰 드려요" + 추가 버튼. **오류:** 공통 `ErrorState`, 409(A 중복·같은 날 같은 거리·`REPLAN_LOCKED`·`RACE_WEEK`)는 코드별 문구.
 
+### 2.8 미래 날짜 done 대회 제외 경로 (RC-23 a)
+판정은 한 곳: `race_calendar_service.is_needs_review(row, today)` = `status='done' AND race_date ≥ today`(today = `reference_today`, §2.9). 아래 경로는 모두 이 함수로 행을 거른다(경로마다 조건을 다시 쓰지 않음).
+| 경로 | 처리 |
+|---|---|
+| `race_calendar_service.list`(목록 API) | 행은 포함, `needs_review` 표시·D-day 값 없음(배지만) |
+| `race_calendar_service` "다음 대회" 조회 → 레이스 허브 "대회 캘린더" 카드(§2.7 진입) | 제외(다음 대회·D-day 후보 아님) |
+| `adjustment_signals_race` `race_plan` 수집기(`adjustment-signals.md` §3.4, −14~+21일 `planned|done`) | 제외 — hold·support·trigger·`detail.others` 어디에도 넣지 않음 |
+| RC-6 회복 하향 트리거(source=`race`, done·unasked/later 행) | 제외 |
+| `race_plan_link`(계획 반영 질문·`RacePlanPrompt`·일괄 적용) | 제외(질문 띄우지 않음) |
+| AI 코치 대회 맥락(`race_plan` 신호 경유, `coach_evidence` 등) | 신호 수집에서 빠지므로 자동 제외 — 별도 경로가 `race_calendar`를 직접 읽으면 같은 함수로 거름(구현 시 grep) |
+| 레이스 허브 "결과 기록" 카드(§2.6-5) | 결정 문구에 없음(§7) |
+- 기존 D-day 경로(Today·레이스 허브의 `goals.race_date` 읽기 40여 곳)는 활성 목표만 본다. 미래 날짜 done 대회는 RC-12 b상 completed(비활성) 목표에 연결되므로 이 경로에 나타나지 않는다 — 비활성 목표를 읽는 경로가 있는지는 구현 시 grep 확인.
+- 정리 후: 날짜를 과거로 고치면 일반 done 행(§2.4 날짜 규칙), 미래로 둔 채 수정하면 여전히 배지 행, 삭제하면 cancelled. 배지 행의 status를 planned로 되돌리는 경로는 결정에 없다(§7).
+
 ### 2.9 '오늘' 기준일 (TZ-1 추가 결정)
 - 이 번들에서 날짜 전용 값과 비교하는 '오늘'은 모두 `src/utils/reference_day.reference_today(conn)` 하나로 구한다: **사용자의 최근 활동의 현지 시간대 기준 날짜, 활동이 없으면 서버 로컬 날짜 폴백**. 헬퍼 정의·테스트는 `patterns/timezone-display.md` §2.4가 원천이고 여기서는 쓰는 곳만 적는다.
-- 사용처: 지연 done 전이(`race_date < 오늘`, §2.6-5), D-day·다가오는/지난 구역(§2.7, API가 `reference_today_info()`의 `today`를 목록·상세 응답에 동봉), `race_date` 입력 검증에서 '오늘'과 비교하는 모든 곳(`race_calendar_service`), RC-11 배너·`attach_race`의 날짜 검증.
+- 사용처: 지연 done 전이(`race_date < 오늘`, §2.6-5), 미래 날짜 done 판정(`is_needs_review`, §2.8), D-day·다가오는/지난 구역(§2.7, API가 `reference_today_info()`의 `today`를 목록·상세 응답에 동봉), `race_date` 입력 검증에서 '오늘'과 비교하는 모든 곳(`race_calendar_service`), RC-11 배너·`attach_race`의 날짜 검증.
 - 지난 날짜(RC-18 c): `race_calendar_service.add`는 `race_date < 오늘`을 **거부하지 않는다**(400 없음). 확인은 시트(§2.7)에서 저장 전에 하고, 서버는 형식·중복·A 규칙만 검사한다.
 - `race_calendar_service`는 한 요청 안에서 헬퍼를 한 번 부르고 값을 넘겨 쓴다.
 
@@ -127,24 +144,24 @@
 | `src/db_setup.py` | 수정 | SCHEMA_VERSION 39, ensure_v38·v39 호출 | +6 |
 | `frontend/src/lib/components/RaceDateBanner.svelte`·`GoalResultCard.svelte` | 신규 | RC-11 배너, RC-17 카드(Today·허브 배치) | ~70/~80 |
 | `src/training/goals.py` | 수정 | `_COLS`에 race_id, `add_goal(race_id=…)` + race_date 호환 래퍼, `update_goal` 대회 필드 위임 | 188→~225 |
-| `src/services/race_calendar_service.py` | 신규 | add/list/get/update/cancel, 지연 done 전이, 중복·A 검사(지난 날짜 허용, RC-18), 목록에서 미래 날짜 done 행 구분(RC-22), '오늘'은 `reference_today`(§2.9) | ~195 |
+| `src/services/race_calendar_service.py` | 신규 | add/list/get/update/cancel, 지연 done 전이, 중복·A 검사(지난 날짜 허용, RC-18), 목록에서 미래 날짜 done 행 구분·`is_needs_review`(RC-22·23, §2.8 경로 공용), '다음 대회' 조회에서 제외, '오늘'은 `reference_today`(§2.9) | ~205 |
 | `src/utils/reference_day.py` | 신규(타 설계) | '오늘' 기준일 헬퍼 — `patterns/timezone-display.md` §2.4 소관, 이 번들은 사용만 | TZ 참조 |
-| `src/services/race_goal_sync.py` | 신규 | 캐시 쓰기, A 승격·교체(이전 A→B 강등, RC-15), `attach_race`(RC-11), 불변식 검사 함수 | ~140 |
+| `src/services/race_goal_sync.py` | 신규 | 캐시 쓰기(RC-21 예외 행 수정 시 `race_date` 캐시 채움, RC-24), A 승격·교체(이전 A→B 강등, RC-15), `attach_race`(RC-11), 불변식 검사 함수 | ~145 |
 | `src/services/goal_service.py` | 신규 | `create_goal_with_race`(목표+대회 한 트랜잭션) | ~80 |
 | `src/services/plan_template_service.py` | 수정 | add_goal 호출에 race_id 전달(선택한 대회) | 202→~215 |
-| `src/services/race_plan_link.py` | 신규 | race_impact 호출, 묶음 적용·되돌리기, 상태 전이 | ~160 |
+| `src/services/race_plan_link.py` | 신규 | race_impact 호출, 묶음 적용·되돌리기, 상태 전이, 미래 날짜 done 행 질문 제외(RC-23) | ~165 |
 | `src/training/constraints.py` | 수정 | `b_race_week` 일수 인자 일반화(시그니처 호환) | +20 |
-| `src/services/adjustment_signals_race.py` | 수정 | race_calendar·§2.4 표 기반 신호 | +40 |
-| `src/api/routes_race_calendar.py` | 신규 | CRUD, `/<id>/impact`, `/<id>/plan`(adapt/later/no_adapt/undo). v1 밖 | ~150 |
+| `src/services/adjustment_signals_race.py` | 수정 | race_calendar·§2.4 표 기반 신호, 미래 날짜 done 행 제외(RC-23, `is_needs_review`) | +45 |
+| `src/api/routes_race_calendar.py` | 신규 | CRUD, `/<id>/impact`, `/<id>/plan`(adapt/later/no_adapt/undo), 목록 응답에 `needs_review`(RC-23) | ~150 |
 | 목표 생성 API 핸들러(`src/api/routes_plan*.py`, 구현 시 grep 확정) | 수정 | race_id 입력 수용 | +20 |
-| `scripts/check_data_consistency.py` | 수정 | 불변식 3(`planned|done`)·4(RC-21 예외 행의 `race_date` 비교 제외) 검사 2건 | +30 |
+| `scripts/check_data_consistency.py` | 수정 | 불변식 3(`planned|done`)·4(RC-21 예외 행 — 캐시 `race_date` NULL인 비활성 연결 목표 — 의 `race_date` 비교만 제외, RC-24로 채워진 행은 비교) 검사 2건 | +30 |
 | `scripts/race_backfill_dry_run.py` | 신규 | DB 사본에 v39 실행 후 리포트(쓰기는 사본만) | ~90 |
-| `frontend/src/routes/today/race/calendar/+page.svelte`·`+page.ts` | 신규 | 목록·빈·오류 상태 | ~150 |
+| `frontend/src/routes/today/race/calendar/+page.svelte`·`+page.ts` | 신규 | 목록·빈·오류 상태, 미래 날짜 done 행 '확인 필요' 배지·D-day 미표시(RC-23) | ~155 |
 | `frontend/src/lib/components/RaceEntrySheet.svelte`·`RacePlanPrompt.svelte`·`RaceDetailSheet.svelte` | 신규 | 시트 3종(RaceEntrySheet에 지난 날짜 확인 문구, RC-18) | ~190/~130/~140 |
 | `frontend/src/routes/coach/plan/new/+page.svelte`, `lib/planPrefill.ts`, `lib/api/plan.ts`, `lib/types/index.ts` | 수정 | 대회 고르기, race_id 전달 | +40/+15/+10/+10 |
 | `frontend/src/routes/today/race/+page.svelte`, `coach/plan/[id]/+page.svelte` | 수정 | 캘린더 카드, 배지, "대회 바꾸기" | +20/+25 |
 | tests: `test_db_schema_v39.py`, `test_race_calendar_service.py`, `test_race_goal_sync.py`, `test_goal_service.py`, `test_race_plan_link.py`, `test_routes_race_calendar.py`, `test_goals.py`(+), `test_plan_template_service.py`(+), `test_constraints.py`(+), `test_db_schema_v32.py`(회귀 유지); 프론트 시트 3종 | 신규·수정 | 함수마다 1개 이상 | ~75개 |
-- 바꾸지 않음: `goals.race_date`를 읽는 40여 파일(캐시 유지), `race_results`, `/today/race/races`, v1 라우트.
+- 바꾸지 않음: `goals.race_date`를 읽는 40여 파일(캐시 유지), `race_results`, `/today/race/races`.
 
 ## 4. 스키마 순서·마이그레이션·단계·검증
 **버전 순서(확정 제안):** v37 `plan_adjustments` 재생성(`source`에 `race` 포함) → v38 `context_episodes`·`race_calendar` 생성(가산만) → **v39 goals.race_id + 백필**. goals 참조를 v38에 넣지 않는 이유: v38은 다른 번들과 공유하는 가산 단계라 실패·롤백이 쉬워야 하고, 백필은 race_calendar 최종 컬럼에 의존하며 실패 시 v38까지 묶여 막히면 안 된다.
@@ -160,32 +177,33 @@
 **롤백·호환:**
 - 코드 롤백(v36~38 코드로 되돌림): 스키마는 앞으로만 간다. 구 코드는 user_version ≥ 자기 버전이면 마이그레이션을 건너뛰고, race_id·race_calendar를 모른 채 캐시 컬럼(race_date 등)을 그대로 읽고 쓴다 → 동작한다. 재업그레이드 시 v39 4단계가 차이를 흡수한다(ensure_v39는 user_version과 무관하게 재동기화 함수를 한 번 더 부를 수 있게 분리).
 - 데이터 롤백: 중단 시 단일 트랜잭션 롤백으로 v38 상태 유지, 손상·오판 시 0단계 백업 파일로 복원(RC-14 a).
-- v1: 의존 경로는 `add_goal`/`update_goal` 래퍼로 계속 동작한다. v1 제거 후 캐시 컬럼 제거 여부는 범위 밖(§6).
+- v1 화면·경로: 일몰 예정(V1-1), 호환을 고려하지 않는다.
 
 **단계:**
 1. **S0** system-architect와 `source='race'`·API 형태·v37~39 순서 확정. 선행: `reference_day.py`(timezone-display.md 단계 5-1).
 2. **S1 스키마** v38·v39, 검증: 빈 DB/DB **사본** 마이그레이션, 재실행 멱등, `race_backfill_dry_run.py` 리포트(목표 수/연결/재사용/생성/race_date 없음(활성 NULL 유지·비활성 생성일 사용 건수 분리, RC-19)/캐시 차이), 불변식 1~4 위반 0, 백업 파일 생성·복원 리허설, 비활성 목표 done/cancelled 매핑, race_date 없는 비활성 목표 → 생성일 날짜로 대회 생성·연결(RC-19)되고 `goals.race_date`는 NULL 유지(RC-21)·재실행 시 4단계가 대회 날짜를 바꾸지 않음·`check_data_consistency.py` 불변식 4 위반 0, race_date 없는 활성 목표 → NULL 유지, 미래 날짜 completed 목표 → done 대회 행 생성(RC-22 표시 대상 건수를 리포트에 포함), `test_db_schema_v32.py` 그대로 통과.
-3. **S2 서비스·목표 경로** `race_calendar_service`·`race_goal_sync`·`goal_service`·goals.py 래퍼. 검증: **활성 목표 유니크 회귀**(add_goal 2회 → 활성 1건, 새 목표 대회만 A, 이전 planned A는 B·unasked), 캘린더에서 A 날짜 수정 → goals 캐시 갱신, `update_goal(race_date)` → race_calendar 갱신(양방향 왕복), v1 마법사·CLI 경로 회귀, plan_template_service 생성 경로, race_date 없는 목표 → `attach_race`, A done 후 목표 활성 유지.
-4. **S3 영향·연동** `race_impact`·`race_plan_link`. 검증: 보호 행 불변, 묶음 적용 → 되돌리기 왕복, B/C 절반 올림 일수, stale → 재반영, 삭제 시 되돌리기, §2.4 표 행별 신호 테스트(no_adapt 무신호, later·unasked done 하향 허용, applied 하향 없음), 지연 done 전이가 `reference_today`를 쓰는지(최근 활동 +7·UTC 날짜 경계 픽스처, 활동 없음 → 서버 로컬 폴백), 지난 날짜 등록 대회가 회복 창 안이면 RC-6 하향 트리거·계획 반영 질문 대상, 창 밖이면 신호 없음(RC-20).
-5. **S4 API** 400/404/409 매핑, 지난 날짜 등록 → 201(거부 없음)·다음 조회에서 done(RC-18). **S5 화면** 375px 브라우저: 등록 → 질문 → 일괄 적용 → 되돌리기, 지난 날짜 입력 시 확인 문구 → 취소(입력 유지)/확인(저장 후 '지난' 구역, 회복 창 안이면 계획 반영 질문 노출 RC-20), 미래 날짜 done 행 별도 표시 → 수정·삭제로 정리(RC-22, 표시 형태 확정 후), 목표 생성에서 B 대회 고르기 → A 승격, 계획 상세 "대회 바꾸기"(저장 전 미리보기·취소 시 무변경), 날짜 입력 배너, 결과 기록·다음 목표 카드, 삭제 미리보기, 데모 모드, h1·44px·Esc 포커스 복귀.
+3. **S2 서비스·목표 경로** `race_calendar_service`·`race_goal_sync`·`goal_service`·goals.py 래퍼. 검증: **활성 목표 유니크 회귀**(add_goal 2회 → 활성 1건, 새 목표 대회만 A, 이전 planned A는 B·unasked), 캘린더에서 A 날짜 수정 → goals 캐시 갱신, `update_goal(race_date)` → race_calendar 갱신(양방향 왕복), CLI 경로 회귀, RC-21 예외 행(생성일 대회·캐시 NULL)을 캘린더 시트로 수정 → 같은 트랜잭션에서 `goals.race_date` 캐시 채워짐·이후 `check_data_consistency.py` 불변식 4 일반 비교 통과(RC-24), plan_template_service 생성 경로, race_date 없는 목표 → `attach_race`, A done 후 목표 활성 유지.
+4. **S3 영향·연동** `race_impact`·`race_plan_link`. 검증: 보호 행 불변, 묶음 적용 → 되돌리기 왕복, B/C 절반 올림 일수, stale → 재반영, 삭제 시 되돌리기, §2.4 표 행별 신호 테스트(no_adapt 무신호, later·unasked done 하향 허용, applied 하향 없음), 지연 done 전이가 `reference_today`를 쓰는지(최근 활동 +7·UTC 날짜 경계 픽스처, 활동 없음 → 서버 로컬 폴백), 지난 날짜 등록 대회가 회복 창 안이면 RC-6 하향 트리거·계획 반영 질문 대상, 창 밖이면 신호 없음(RC-20), 미래 날짜 done 행(`race_date ≥ today`)은 `race_plan` 수집·RC-6 트리거·계획 반영 질문·'다음 대회' 조회에서 모두 빠지고 목록에는 `needs_review`로 남음, `today` 경계(정확히 오늘 날짜 = 배지 대상)(RC-23, §2.8).
+5. **S4 API** 400/404/409 매핑, 지난 날짜 등록 → 201(거부 없음)·다음 조회에서 done(RC-18). **S5 화면** 375px 브라우저: 등록 → 질문 → 일괄 적용 → 되돌리기, 지난 날짜 입력 시 확인 문구 → 취소(입력 유지)/확인(저장 후 '지난' 구역, 회복 창 안이면 계획 반영 질문 노출 RC-20), 미래 날짜 done 행 '확인 필요' 배지·D-day 미표시 → 수정·삭제로 정리(RC-22·23), 목표 생성에서 B 대회 고르기 → A 승격, 계획 상세 "대회 바꾸기"(저장 전 미리보기·취소 시 무변경), 날짜 입력 배너, 결과 기록·다음 목표 카드, 삭제 미리보기, 데모 모드, h1·44px·Esc 포커스 복귀.
 6. `pytest tests/` 전체, `check_docs.py`, `check_data_consistency.py`, BACKLOG·decisions 기록.
 
 ## 5. 결정 필요
-- 결정 완료(표 참조: `decisions-table.md` RC-1~22, 연관 ADJ-11·12·17, NEW-4·5·11, TZ-1 추가 결정). 화면은 A11Y-2(44px) 준수.
-- 사용자 확정 대기: RC-18 지난 날짜 확인 문구(§2.7 초안, TXT-1). RC-22 미래 날짜 done 행의 화면 표시 방식(§7).
+- 결정 완료(표 참조: `decisions-table.md` RC-1~24, V1-1, 연관 ADJ-11·12·17, NEW-4·5·11, TZ-1 추가 결정). 화면은 A11Y-2(44px) 준수.
+- 사용자 확정 대기: RC-18 지난 날짜 확인 문구(§2.7 초안, TXT-1).
 
 ## 6. 범위 밖 메모
 - 외부 캘린더 가져오기(`origin='import'`), CalDAV·Garmin에 푸시된 race 행 정리(A6 D5와 같은 문제).
 - 생성기가 race_calendar를 직접 제약으로 받는 방식, 다중 A 시즌 계획(계획 엔진 영역).
-- v1 제거 후 goals 캐시 컬럼(race_date·distance_km·target_time_sec) 제거와 읽기 경로 40여 곳 전환.
+- goals 캐시 컬럼(race_date·distance_km·target_time_sec) 제거와 읽기 경로 40여 곳 전환.
 - `/today/race/races`와 캘린더 지난 대회 구역 통합(IA 정리 때). 대회 데이터 AI 전송 동의는 NEW-12와 함께.
 
 ## 7. 동기화 중 발견한 모호점
 - RC-17(b)로 A 대회가 done이어도 목표가 활성이므로, RC-1 설계의 불변식 3(`status='planned'`)을 `planned|done`으로 넓혔다(§2.2, `check_data_consistency.py` 검사 조건 반영).
-- 해소(RC-19·RC-21): 생성일로 대회 행만 생성, `goals.race_date` 캐시 NULL 유지(불변식 4 예외, §2.2). 남은 부분: 이 예외 행의 대회를 나중에 캘린더 시트에서 수정할 때 `race_goal_sync.push_cache`가 `race_date` 캐시를 채울지(예외 유지 여부)는 표에 없다. (`goals.distance_km`는 `NOT NULL`이라 백필 대회 거리는 항상 있음, `db_setup.py` goals DDL.)
-- 해소(RC-22): 미래 날짜 done 대회는 별도 표시 후 사용자 정리(§2.7). **열린 질문:** 별도 표시의 화면 형태(목록 상단 별도 구역/배너/행 칩), 사용자가 정리하지 않은 동안 이 행이 신호(§2.4 done 행 규칙)·D-day·레이스 허브 카드에 어떻게 쓰이는지.
+- 해소(RC-19·RC-21·RC-24): 생성일로 대회 행만 생성, `goals.race_date` 캐시 NULL 유지(불변식 4 예외), 캘린더 시트 수정 시 `push_cache`가 캐시를 채워 예외 해소(§2.2). (`goals.distance_km`는 `NOT NULL`이라 백필 대회 거리는 항상 있음, `db_setup.py` goals DDL.) **남은 부분:** 날짜를 바꾸지 않은 저장(생성일 그대로)도 해소로 볼지 — 그러면 생성일이 캐시로 퍼진다(RC-21의 '생성일은 캐시로 퍼뜨리지 않음' 취지와 충돌 가능). 예외 행은 `priority='A'`·status done/cancelled인데, cancelled 행도 캘린더 시트에서 수정 가능한지는 §2.4 전이에 없다.
+- 해소(RC-22·RC-23): 미래 날짜 done 대회는 목록 '확인 필요' 배지, 신호·D-day 제외(§2.4·§2.7·§2.8). **남은 부분:** 배지 행이 다가오는/지난 어느 구역(또는 목록 상단)에 놓이는지, 레이스 허브 '결과 기록' 카드 후보에서도 빼는지, 정리 시 status를 planned로 되돌리는 경로가 필요한지(현재는 날짜 수정·삭제만).
 - RC-15(b)는 planned A 교체만 정의한다. A가 이미 done(RC-17로 목표 활성)인 상태에서 새 목표를 만들 때 이전 A를 그대로 두는 것은 설계 해석이다.
 - RC-13(a)는 "목표 화면" 한정이다. 캘린더 시트에서 A의 날짜·거리를 고치는 경우도 같은 컴포넌트·§2.6-3 경로라 저장 전 미리보기를 적용했다. 범위 확인 필요.
 - 해소(RC-18·RC-20): 지난 날짜 등록 허용 + 확인 문구(문구는 TXT-1 확정 대기), 날짜 규칙 그대로 RC-6 하향·계획 반영 질문 대상(§2.4).
 - 해소(ADJ-17): race는 checkin 바로 뒤(§2.4).
 - 자동 done 전이 시점이 '최근 활동 시간대' 기준이라, 사용자가 시간대를 옮긴 직후(새 시간대 활동 전)에는 전이가 하루 이르거나 늦을 수 있다(헬퍼 해석 모호점은 timezone-display.md §7).
+- V1-1 적용: v1 화면 호출자(온보딩 마법사·v1 목표 CRUD)와 v1 라우트·호환 서술을 지웠다. `add_goal(race_date=…)` 호환 래퍼·`update_goal` 위임은 CLI(`plan.py:79`)가 쓰므로 유지했다 — 단 코드 사실(grep 2026-10-11): `update_goal(` 호출자는 `src/web/views_training_wizard.py:299`(v1) 하나뿐이라, §2.3 표·§3 `goals.py` 행의 `update_goal` 대회 필드 위임은 V1-1상 불필요할 수 있다(유지/삭제 판단 필요). §3 `routes_race_calendar.py` 행의 'v1 밖'은 레거시 v1 UI 밖인지 `/api/v1` 접두 밖인지 모호해 지웠다(모든 `src/api` 라우트는 `/api/v1` 아래).
