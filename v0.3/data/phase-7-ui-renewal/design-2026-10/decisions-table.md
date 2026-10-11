@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 329건 (결정 314건 / 부분 결정 4건 / 미결정 11건).
+- 총 329건 (결정 324건 / 부분 결정 4건 / 미결정 1건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -319,20 +319,20 @@
 | TZ-20 | 시간대 표기 | TZ-14 이동일 차용에서 앞뒤 후보가 동률일 때 | (a) 앞 후보(출발지) / (b) 뒤 후보 / (c) 5b(KST) 로 폴백 **결정 2026-10-11: (a) 이동일 차용에서 앞뒤 후보가 동률이면 앞 후보(출발지)** |
 | TZ-21 | 시간대 표기 | '오늘' 헬퍼를 user_inputs.input_date 에도 적용 | (a) 적용 / (b) 미적용(서버 로컬 유지) **결정 2026-10-11: (a) reference_today 헬퍼를 user_inputs.input_date 에도 적용** |
 | TZ-22 | 시간대 표기 | TZ-4 상대시각('3시간 전') 갱신 주기 | (a) 렌더 시 1회 / (b) 1분마다 갱신 / (c) 갱신하지 않음 **결정 2026-10-11: (a) 상대시각('3시간 전')은 렌더 시 1회 계산** |
-| HSR-11 | 고심각도 잔여 | HSR-1 '같은 날 후보 1개'의 기준 | (a) 계획 행 기준 활동 수 / (b) 활동 기준 계획 행 수 / (c) 둘 다 만족 | 미결정 |
-| HSR-12 | 고심각도 잔여 | 러닝 수 기준 통일(sync_state_service.py:183 은 LIKE 사용; HSR D-03 은 activity_counts 로, NRA §9 는 sync_state 를 이관 대상 아님으로 봐 정의가 둘) | (a) family_clause 로 통일하고 activity_counts 헬퍼로 일원화 / (b) 현행 LIKE 유지 / (c) NRA §9 를 HSR 에 맞춰 이관 대상에 포함 | 미결정 |
+| HSR-11 | 고심각도 잔여 | HSR-1 '같은 날 후보 1개'의 기준 | (a) 계획 행 기준 활동 수 / (b) 활동 기준 계획 행 수 / (c) 둘 다 만족 **결정 2026-10-11: (a) HSR-1 '같은 날 후보 1개'는 계획 행 기준 후보 활동 수로 판정** |
+| HSR-12 | 고심각도 잔여 | 러닝 수 기준 통일(sync_state_service.py:183 은 LIKE 사용; HSR D-03 은 activity_counts 로, NRA §9 는 sync_state 를 이관 대상 아님으로 봐 정의가 둘) | (a) family_clause 로 통일하고 activity_counts 헬퍼로 일원화 / (b) 현행 LIKE 유지 / (c) NRA §9 를 HSR 에 맞춰 이관 대상에 포함 **결정 2026-10-11: (a) 러닝 수 기준은 family_clause 로 통일하고 activity_counts 헬퍼로 일원화(sync_state_service LIKE 제거, NRA §9 갱신)** |
 | PLN-32 | 훈련 계획 | PLN-5 부분 첫 주와 v2 주 단위 로직(anchor_monday, schedule_for_goal 주차·phase, 주간 볼륨 목표) | (a) 첫 주를 부분 주로 두고 주간 볼륨 목표를 일수 비례 축소 / (b) 첫 주 건너뛰고 다음 월요일부터 시작 / (c) 생성일부터 7일을 첫 주로 **결정 2026-10-11: (a) 첫 주는 부분 주로 두고 주간 볼륨 목표를 일수 비례로 축소하되, 그 주의 사용자 러닝 기록(거리·세션 종류·대회 등)을 참고해 조정** |
 | PLN-33 | 훈련 계획 | planner 이외 읽기 경로(matcher, week_compliance, calendar_feed 등)의 goal_id 필터 적용 범위 | (a) planner 행에만 goal_id 필터(외부 행은 날짜 기준 그대로) / (b) 모든 경로에 필터 / (c) 읽기 경로 목록화 후 구현 중 판단 **결정 2026-10-11: (a) goal_id 필터는 planner 행이 여러 목표에 겹칠 수 있는 경로(종료·취소 목표 플랜이 남는 경우)에만 'goal_id=? OR source<>planner' 로 적용하고 나머지 날짜 기반 읽기는 현행 유지** |
 | PLN-34 | 훈련 계획 | '수락된 조정 행' 식별 방법(planned_workouts 에 식별 컬럼 없음) | (a) plan_adjustments 조인으로 판정 / (b) planned_workouts 에 컬럼 추가 / (c) source 값 규칙으로 판정 **결정 2026-10-11: (b) '수락된 조정 행' 식별용 표시 컬럼을 planned_workouts 에 추가(v40 DDL, plan_adjustments 와 어긋나지 않도록 동기화 규칙을 설계에서 정의)** |
-| ADJ-23 | 조정 신호 | 수락률 '급락' 수치와 adjuster_version 저장 위치 | (a) 최근 N건 수락률이 이전 대비 절반 미만 / (b) 고정 임계(예 30%) / (c) 사용자 설정; 저장 위치는 설정 저장소 키 | 미결정 |
-| NEW-40 | 신규 신호 | /api/context-episodes 경로가 /api/v1 밖이라 엔벨로프·오류 처리 적용 여부 불명 | (a) /api/v1/context-episodes 로 이전 / (b) 현 경로 유지하고 동일 엔벨로프 적용 / (c) 구현 중 판단 | 미결정 |
-| RC-48 | 대회 캘린더 | RC-13 미리보기를 캘린더 시트(A 날짜·거리 수정)에도 적용 | (a) 적용 / (b) 목표 화면만 | 미결정 |
+| ADJ-23 | 조정 신호 | 수락률 '급락' 수치와 adjuster_version 저장 위치 | (a) 최근 N건 수락률이 이전 대비 절반 미만 / (b) 고정 임계(예 30%) / (c) 사용자 설정; 저장 위치는 설정 저장소 키 **결정 2026-10-11: (a) 수락률 '급락' = 최근 N건 수락률이 이전 N건 대비 절반 미만(N·최소 표본은 설계에서 제안), adjuster_version 은 설정 저장소 키에 저장** |
+| NEW-40 | 신규 신호 | /api/context-episodes 경로가 /api/v1 밖이라 엔벨로프·오류 처리 적용 여부 불명 | (a) /api/v1/context-episodes 로 이전 / (b) 현 경로 유지하고 동일 엔벨로프 적용 / (c) 구현 중 판단 **결정 2026-10-11: (b) /api/context-episodes 는 현 경로 유지 + 동일 응답 봉투 적용(/api/v1 접두 기반 Origin 관문·입력 제한에서 빠지지 않도록 예외 없이 게이트 대상에 명시)** |
+| RC-48 | 대회 캘린더 | RC-13 미리보기를 캘린더 시트(A 날짜·거리 수정)에도 적용 | (a) 적용 / (b) 목표 화면만 **결정 2026-10-11: (a) RC-13 재계획 미리보기를 캘린더 시트에서 A 대회 날짜·거리를 고칠 때도 적용** |
 | RC-49 | 대회 캘린더 | 백필 시 created_at UTC→현지 변환 | (a) TZ-1 헬퍼 기준 현지 날짜로 변환 / (b) UTC 날짜 그대로 **결정 2026-10-11: (a) v39 백필의 created_at UTC→현지 변환은 TZ-1 헬퍼(최근 활동 시간대) 기준** |
-| EXP-20 | 데이터 내보내기 | v38 신규 테이블(illness_consent_events 포함)의 내보내기 그룹 분류 | (a) profile 그룹 / (b) episodes 그룹 / (c) 내보내기 제외(동의 이력은 개인정보 이력) | 미결정 |
-| OVL-8 | 오버레이 | 드릴 스택을 history push 로 다룰지 | (a) push(뒤로가기로 한 단계씩) / (b) 단일 항목으로 처리 | 미결정 |
-| ERR-8 | 오류·재시도 | 404 를 뺀 4xx 분류 | (a) server 쪽 오류로 분류('서버 오류' 문구) / (b) 입력 오류로 분류 | 미결정 |
-| SEC-11 | 보안 헤더 | Permissions-Policy 항목 / pollInterval 값 / 아이콘 디자인 담당 / theme-color meta 중복(A11Y §2.5) | (a) 최소 항목(카메라·마이크·위치 차단), pollInterval 기존값 유지, 아이콘은 사용자 제공, theme-color 는 A11Y 에 일원화 / (b) 구현 중 제안 | 미결정 |
-| A11Y-15 | 접근성 | A11Y-7 레이아웃 설계 문서가 없음; group+live 조합 스크린리더 이중 읽기 | (a) 별도 레이아웃 설계서를 이번 범위에 신설 / (b) 구현 중 컴포넌트 단위로 정리 | 미결정 |
+| EXP-20 | 데이터 내보내기 | v38 신규 테이블(illness_consent_events 포함)의 내보내기 그룹 분류 | (a) profile 그룹 / (b) episodes 그룹 / (c) 내보내기 제외(동의 이력은 개인정보 이력) **결정 2026-10-11: (a) illness_consent_events 는 내보내기 profile 그룹** |
+| OVL-8 | 오버레이 | 드릴 스택을 history push 로 다룰지 | (a) push(뒤로가기로 한 단계씩) / (b) 단일 항목으로 처리 **결정 2026-10-11: (a) 드릴 스택은 history push 로 처리(뒤로가기로 한 단계씩 닫기)** |
+| ERR-8 | 오류·재시도 | 404 를 뺀 4xx 분류 | (a) server 쪽 오류로 분류('서버 오류' 문구) / (b) 입력 오류로 분류 **결정 2026-10-11: (a) 404 를 뺀 4xx 는 서버 오류(server) 문구로 분류** |
+| SEC-11 | 보안 헤더 | Permissions-Policy 항목 / pollInterval 값 / 아이콘 디자인 담당 / theme-color meta 중복(A11Y §2.5) | (a) 최소 항목(카메라·마이크·위치 차단), pollInterval 기존값 유지, 아이콘은 사용자 제공, theme-color 는 A11Y 에 일원화 / (b) 구현 중 제안 **결정 2026-10-11: (a) Permissions-Policy 최소 항목(카메라·마이크·위치 차단), pollInterval 은 기존값 유지, theme-color 는 A11Y 에 일원화, 아이콘 디자인은 별도 에이전트를 활용** |
+| A11Y-15 | 접근성 | A11Y-7 레이아웃 설계 문서가 없음; group+live 조합 스크린리더 이중 읽기 | (a) 별도 레이아웃 설계서를 이번 범위에 신설 / (b) 구현 중 컴포넌트 단위로 정리 **결정 2026-10-11: (a) A11Y-7 레이아웃 설계서를 이번 범위에 신설(group+live 스크린리더 이중 읽기 해소 포함)** |
 | PLN-35 | 훈련 계획 | D안: PLN-1(취소 플랜 행 보존) 문구 정정과 옛 목표의 복구 버튼(옛 목표에는 plan_snapshot_json 이 없음) | (a) 문구를 '보호 행 규칙에 따라 보존'으로 정정, 스냅샷이 없는 목표는 복구 버튼 숨김, 복구 시 goal_id 부여 / (b) 옛 목표도 복구 가능하도록 보존 행에서 스냅샷 재구성 / (c) 복구 기능을 신규 목표부터 적용 **결정 2026-10-11: (c) 옛 목표는 사용자가 DB 에서 직접 지우므로 옛 목표의 취소 플랜 복구는 설계에서 고려하지 않는다(PLN-1 복구는 신규 목표부터)** |
 | PLN-36 | 훈련 계획 | D안: save_weekly_plan 이 보호 행도 같은 날짜 planner 행이면 조건 없이 삭제(create_plan_from_template 은 이번 주 월요일부터 생성) | (a) 보호 행(completed·매칭·outcomes 참조·수락 조정)은 건드리지 않도록 수정 / (b) 현행 유지(이번 주 지난 날 완료 행도 삭제) / (c) 생성 시작을 오늘로 변경 **결정 2026-10-11: (c) 플랜 생성 시작을 오늘로 변경 — PLN-5(생성일부터 시작, 지난 날짜는 계획에 넣지 않음)를 코드에 맞추는 것(현 코드는 이번 주 월요일부터 생성해 PLN-5 와 어긋남)** |
 | PLN-37 | 훈련 계획 | D안: replan 되돌리기(plan_replan_service.undo, routes_plan_replan.py:81)가 목표 활성 여부를 검사하지 않고 goal_id 없이 재INSERT | (a) 활성 목표의 replan 만 되돌릴 수 있게 하고 재INSERT 에 goal_id 기입 / (b) 현행 유지 / (c) 취소 목표 replan 은 되돌리기 버튼 숨김만 **결정 2026-10-11: (a) replan 되돌리기는 활성 목표의 replan 만 허용하고 재INSERT 에 goal_id 기입** |
