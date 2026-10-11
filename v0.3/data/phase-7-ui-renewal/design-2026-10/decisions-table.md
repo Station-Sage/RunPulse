@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN).
-- 총 77건 (결정 49건 / 부분 결정 2건 / 미결정 26건).
+- 총 77건 (결정 53건 / 부분 결정 2건 / 미결정 22건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -60,10 +60,10 @@
 | SEC-3 | 보안 헤더 | 프레임 정책 | `DENY`/`'none'`(가장 안전) vs `SAMEORIGIN`/`'self'`(향후 자체 임베드 여지) **결정 2026-10-11: 프레임 DENY / frame-ancestors 'none'** |
 | SEC-4 | 보안 헤더 | HSTS | (a) 앱에서 송출(설정 플래그, max-age 값 필요) / (b) 프록시에 위임 / (c) 미송출. HTTP 로컬 사용 시 영향 고려 **결정 2026-10-11: HSTS 는 프록시(Cloudflare)에 위임, 앱 미송출** |
 | SEC-5 | 보안 헤더 | Referrer-Policy 값 | `strict-origin-when-cross-origin`(호환성 높음) / `same-origin`(외부 유출 0, Referer 대체 판정 유지) / `no-referrer`(request_guard 대체 판정 불가) **결정 2026-10-11: Referrer-Policy strict-origin-when-cross-origin** |
-| SEC-6 | 보안 헤더 | CSP 위반 보고 | (a) 수집 안 함 / (b) `/api/v1/csp-report` 로그 전용 엔드포인트 추가(Origin 관문 면제 목록 갱신 필요) | 미결정 |
-| SEC-7 | 보안 헤더 | favicon·manifest | (a) 404만 반환 / (b) 실제 파일 추가(E-21과 합쳐 처리) | 미결정 |
-| SEC-8 | 보안 헤더 | 새 버전 감지 UX | (a) 청크 실패 시 조용히 1회 새로고침 / (b) "새 버전" 알림 후 사용자 새로고침 / pollInterval 값(0=폴링 안 함 포함) | 미결정 |
-| SEC-9 | 보안 헤더 | 추가 헤더 범위 | `Permissions-Policy`, `Cross-Origin-Opener-Policy` 포함 여부 | 미결정 |
+| SEC-6 | 보안 헤더 | CSP 위반 보고 | (a) 수집 안 함 / (b) `/api/v1/csp-report` 로그 전용 엔드포인트 추가(Origin 관문 면제 목록 갱신 필요) **결정 2026-10-11: (b) 로그 전용 /api/v1/csp-report 추가(Origin 관문 면제 목록 갱신 필요)** |
+| SEC-7 | 보안 헤더 | favicon·manifest | (a) 404만 반환 / (b) 실제 파일 추가(E-21과 합쳐 처리) **결정 2026-10-11: (b) favicon·manifest·theme-color·apple-touch-icon 실제 파일 추가(E-21 과 함께; 아이콘 디자인 필요)** |
+| SEC-8 | 보안 헤더 | 새 버전 감지 UX | (a) 청크 실패 시 조용히 1회 새로고침 / (b) "새 버전" 알림 후 사용자 새로고침 / pollInterval 값(0=폴링 안 함 포함) **결정 2026-10-11: (b) '새 버전' 알림 후 사용자가 새로고침(폴링 주기 값은 구현 시 정함)** |
+| SEC-9 | 보안 헤더 | 추가 헤더 범위 | `Permissions-Policy`, `Cross-Origin-Opener-Policy` 포함 여부 **결정 2026-10-11: Permissions-Policy 만 추가, COOP 는 OAuth 팝업 영향 검증 전까지 보류** |
 | TZ-1 | 시간대 표기 | 표시 시간대 기준 | (a) 브라우저 시간대 — 구현 단순, 해외 접속 시 화면마다 달라짐 / (b) 서버 프로세스 로컬 시간대(현재 `date('now','localtime')`와 일치) — 백엔드 "오늘"과 일관, 컨테이너 TZ 설정에 의존 / (c) 사용자 설정값 — 가장 정확, 설정 항목·저장소 추가 필요. **결정 2026-10-11: 활동 시각 = 활동 현지 벽시계(Strava 방식, 변환 없음) / 기록 시각(updated_at·computed_at 등) = 보는 사람의 브라우저 시간대** |
 | TZ-2 | 시간대 표기 | 오프셋 미상 UTC 활동(FIT 등)의 현지화 | (a) D1 기준 시간대로 변환 — 해외 레이스 날짜가 틀릴 수 있음 / (b) UTC 그대로 두고 "시간대 미상" 플래그 — 정직하지만 날짜 경계 문제 잔존. **결정 2026-10-11: FIT 메시지의 현지 시각 우선, 없으면 KST 변환 (해외 사용자 폴백 정확도는 TZ-1 기록 결정과 함께 재검토)** |
 | TZ-3 | 시간대 표기 | 기존 `start_time` 행 교정 | (a) 스크립트로 일괄 교정 — 즉시 일관, dedup 결과가 바뀔 수 있음(매칭/분리 재발생) / (b) 신규 수집분만 적용 — 안전, 과거 행 불일치 지속 / (c) 재동기화로 대체 — 외부 API 호출 비용. **부분 결정 2026-10-11: TZ 기준 확정 후 일괄 교정 전제로 검토하되 dry-run 으로 영향(dedup 변화) 확인 먼저. 다른 시간대에서 한 활동의 처리 방안은 TZ-2 와 함께 검토** |
