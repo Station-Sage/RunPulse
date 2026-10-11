@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 329건 (결정 295건 / 부분 결정 4건 / 미결정 30건).
+- 총 329건 (결정 299건 / 부분 결정 4건 / 미결정 26건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -327,7 +327,7 @@
 | ADJ-23 | 조정 신호 | 수락률 '급락' 수치와 adjuster_version 저장 위치 | (a) 최근 N건 수락률이 이전 대비 절반 미만 / (b) 고정 임계(예 30%) / (c) 사용자 설정; 저장 위치는 설정 저장소 키 | 미결정 |
 | NEW-40 | 신규 신호 | /api/context-episodes 경로가 /api/v1 밖이라 엔벨로프·오류 처리 적용 여부 불명 | (a) /api/v1/context-episodes 로 이전 / (b) 현 경로 유지하고 동일 엔벨로프 적용 / (c) 구현 중 판단 | 미결정 |
 | RC-48 | 대회 캘린더 | RC-13 미리보기를 캘린더 시트(A 날짜·거리 수정)에도 적용 | (a) 적용 / (b) 목표 화면만 | 미결정 |
-| RC-49 | 대회 캘린더 | 백필 시 created_at UTC→현지 변환 | (a) TZ-1 헬퍼 기준 현지 날짜로 변환 / (b) UTC 날짜 그대로 | 미결정 |
+| RC-49 | 대회 캘린더 | 백필 시 created_at UTC→현지 변환 | (a) TZ-1 헬퍼 기준 현지 날짜로 변환 / (b) UTC 날짜 그대로 **결정 2026-10-11: (a) v39 백필의 created_at UTC→현지 변환은 TZ-1 헬퍼(최근 활동 시간대) 기준** |
 | EXP-20 | 데이터 내보내기 | v38 신규 테이블(illness_consent_events 포함)의 내보내기 그룹 분류 | (a) profile 그룹 / (b) episodes 그룹 / (c) 내보내기 제외(동의 이력은 개인정보 이력) | 미결정 |
 | OVL-8 | 오버레이 | 드릴 스택을 history push 로 다룰지 | (a) push(뒤로가기로 한 단계씩) / (b) 단일 항목으로 처리 | 미결정 |
 | ERR-8 | 오류·재시도 | 404 를 뺀 4xx 분류 | (a) server 쪽 오류로 분류('서버 오류' 문구) / (b) 입력 오류로 분류 | 미결정 |
@@ -338,8 +338,8 @@
 | PLN-37 | 훈련 계획 | D안: replan 되돌리기(plan_replan_service.undo, routes_plan_replan.py:81)가 목표 활성 여부를 검사하지 않고 goal_id 없이 재INSERT | (a) 활성 목표의 replan 만 되돌릴 수 있게 하고 재INSERT 에 goal_id 기입 / (b) 현행 유지 / (c) 취소 목표 replan 은 되돌리기 버튼 숨김만 **결정 2026-10-11: (a) replan 되돌리기는 활성 목표의 replan 만 허용하고 재INSERT 에 goal_id 기입** |
 | PLN-38 | 훈련 계획 | D안 가드: goal_id 누락 방지 방식 | (a) 서비스 헬퍼 단일 진입점(planner_store.write_planner_rows) + v40 시점 max(id) 워터마크 + check_data_consistency 항목 + pytest 정적 검사 / (b) (a) + BEFORE INSERT 트리거(새 행 누락을 DB 가 차단; 트리거 미사용 원칙과 충돌, v1 경로·테스트 픽스처 약 18개 파일 영향) / (c) 검사 항목만 **결정 2026-10-11: (b) 서비스 헬퍼 단일 진입점 + v40 워터마크 + consistency 검사 + pytest 정적 검사 + BEFORE INSERT 트리거. 단 PLN-31(E) 로 planner 행 CHECK 가 이미 신규 누락을 막으므로 트리거는 CHECK 와 중복 — 'race-calendar 트리거 미사용 원칙' 예외 처리 또는 트리거 생략 여부는 설계서 반영 때 확인** |
 | PLN-39 | 훈련 계획 | D안: PLN-12 plan_replan_service:128 이 '자동 경로'로 분류돼 사용자가 누른 재계획이 조용히 skip | (a) 사용자 경로로 분류(WeekdaysRequired 시 400) / (b) 현행 유지 **결정 2026-10-11: (a) plan_replan_service:128 을 사용자 경로로 분류(요일 미입력 시 400)** |
-| PLN-40 | 훈련 계획 | D안: 'active goal + mask NULL' 상태가 다시 생겨 PLN-3 보강(재생성 제안)·PLN-15/16/17/27(배너·보류 표시)을 재결정 | (a) 코치 화면 배너로 요일 입력 안내(PLN-16 복원) + 보류 중 기존 행 유지 표시 / (b) 재생성 제안 없이 다음 생성 때만 요일 요구 / (c) active goal 인 경우 한 번 요일 입력 요구 후 자동 재생성 | 미결정 |
+| PLN-40 | 훈련 계획 | D안: 'active goal + mask NULL' 상태가 다시 생겨 PLN-3 보강(재생성 제안)·PLN-15/16/17/27(배너·보류 표시)을 재결정 | (a) 코치 화면 배너로 요일 입력 안내(PLN-16 복원) + 보류 중 기존 행 유지 표시 / (b) 재생성 제안 없이 다음 생성 때만 요일 요구 / (c) active goal 인 경우 한 번 요일 입력 요구 후 자동 재생성 **결정 2026-10-11: (a) 신규 생성 때만 요일 입력 요구, 코치 배너·재생성 제안 없음(옛 active 목표는 삭제되어 해당 상태 없음)** |
 | PLN-41 | 훈련 계획 | D안: 고아 session_outcomes 가 matcher.py:91-93 claimed 조건으로 활동을 계속 점유 | (a) 고아 outcomes 를 점유 판정에서 제외(planned_id 존재 확인 조인) / (b) 현행 유지 / (c) 고아 outcomes 의 planned_id 를 NULL 로 정리 **결정 2026-10-11: (b) 현행 유지(고아 session_outcomes 의 활동 점유 조건 변경 없음)** |
-| RC-50 | 대회 캘린더 | D안: v39 2단계 applied 판정('그 목표의 planned_workouts 가 있으면')이 v40 보다 먼저 실행돼 goal_id 를 쓸 수 없음 | (a) 목표 날짜 범위 규칙으로 판정 / (b) v40 을 v39 보다 먼저 실행 / (c) applied 판정 없이 unasked 로 백필 | 미결정 |
+| RC-50 | 대회 캘린더 | D안: v39 2단계 applied 판정('그 목표의 planned_workouts 가 있으면')이 v40 보다 먼저 실행돼 goal_id 를 쓸 수 없음 | (a) 목표 날짜 범위 규칙으로 판정 / (b) v40 을 v39 보다 먼저 실행 / (c) applied 판정 없이 unasked 로 백필 **결정 2026-10-11: (a) v39 2단계 applied 판정은 목표 날짜 범위 규칙으로(goal_id 사용 안 함)** |
 
-| PLN-42 | 훈련 계획 | E안 전제의 레거시 삭제 세부 범위: session_outcomes(ML 자산, 고아 허용 PLN-41 b)·completed 목표·plan_adjustments·plan_replans·외부 계획 행 | (a) planner 행과 옛 active/cancelled 목표·plan_replans·그 목표의 plan_adjustments 삭제, session_outcomes·completed 목표는 보존 / (b) 6종 모두 삭제(PLN-24 원안) / (c) planner 행만 삭제하고 나머지 모두 보존 | 미결정 |
+| PLN-42 | 훈련 계획 | E안 전제의 레거시 삭제 세부 범위: session_outcomes(ML 자산, 고아 허용 PLN-41 b)·completed 목표·plan_adjustments·plan_replans·외부 계획 행 | (a) planner 행과 옛 active/cancelled 목표·plan_replans·그 목표의 plan_adjustments 삭제, session_outcomes·completed 목표는 보존 / (b) 6종 모두 삭제(PLN-24 원안) / (c) planner 행만 삭제하고 나머지 모두 보존 **결정 2026-10-11: (b) PLN-24 6종(planner 행, 외부 계획 행, plan_adjustments, plan_replans, session_outcomes, goals)을 모두 삭제. goals 는 PLN-28 에 따라 active·cancelled 만 삭제하고 completed 는 대회 기록 근거로 유지. session_outcomes(ML 자산) 삭제는 사용자가 알고 선택함(추천안 (a) 대신). 삭제는 사용자가 v40 이전에 DB 에서 실행하며 session_outcomes·goals 는 실행 시점 건수 표시 후 재확인(PLN-24)** |
