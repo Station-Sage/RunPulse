@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 329건 (결정 303건 / 부분 결정 4건 / 미결정 22건).
+- 총 329건 (결정 307건 / 부분 결정 4건 / 미결정 18건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -308,10 +308,10 @@
 | TZ-19 | 시간대 표기 | TZ-3 일괄 교정 범위(부분 결정 확정) | (a) dry-run 결과를 보고 Strava CSV 행부터 적용 / (b) 전체 일괄 / (c) 신규 수집분만 **결정 2026-10-11: (c) TZ-3 기존 start_time 행 교정은 하지 않고 신규 수집분에만 적용(dry-run 은 영향 확인용으로 유지)** |
 | ADR-1 | 공통 | ADR-048 이 SRV·SEC·FRS·NRA 4개 설계서에 중복 배정(ADR-047 은 사용 중) | (a) SRV 048, SEC 049, FRS 050, NRA 051, 이후 조정·캘린더 등 순차 / (b) 설계서를 묶어 ADR 수 축소(SRV+SEC 한 건 등) / (c) 구현 시점에 번호 배정 **결정 2026-10-11: (a) SRV 048, SEC 049, FRS 050, NRA 051, 이후 조정·캘린더 등 순차** |
 | SRV-10 | 서버 입력·Origin | SESSION_COOKIE_SECURE 판정(운영 판정 키는 APP_ENV, app.py:156·auth_cf.py:24) | (a) APP_ENV 로 판정(V1-12 와 동일 키) / (b) 별도 설정값 **결정 2026-10-11: (a) SESSION_COOKIE_SECURE 는 APP_ENV 로 판정(V1-12 의 키 확인도 APP_ENV 로 종결)** |
-| SRV-11 | 서버 입력·Origin | warnings 필드 위치(api_ok) | (a) api_ok 의 meta 안(api/__init__.py:18) / (b) 최상위 필드 | 미결정 |
-| SRV-12 | 서버 입력·Origin | /api/v1/csp-report 의 415(Content-Type) 검사 적용 여부 | (a) 면제(브라우저가 application/csp-report 로 보냄) / (b) 일반 검사 적용 | 미결정 |
-| SRV-13 | 서버 입력·Origin | uid 허용 정규식 | (a) 기존 사용자 id 형식을 코드로 확인해 그 형식 그대로 / (b) 엄격(소문자·숫자·밑줄·하이픈 길이 제한) / (c) 완화 | 미결정 |
-| SEC-10 | 보안 헤더 | Origin 관찰 모드·CSP Report-Only 운영 기간과 enforce 전환 기준 | (a) 1주 관찰 후 위반 0건이면 enforce / (b) 2주 / (c) 사용자 판단으로 전환 | 미결정 |
+| SRV-11 | 서버 입력·Origin | warnings 필드 위치(api_ok) | (a) api_ok 의 meta 안(api/__init__.py:18) / (b) 최상위 필드 **결정 2026-10-11: (a) warnings 는 api_ok 의 meta 안** |
+| SRV-12 | 서버 입력·Origin | /api/v1/csp-report 의 415(Content-Type) 검사 적용 여부 | (a) 면제(브라우저가 application/csp-report 로 보냄) / (b) 일반 검사 적용 **결정 2026-10-11: (a) /api/v1/csp-report 는 415(Content-Type) 검사에서 면제** |
+| SRV-13 | 서버 입력·Origin | uid 허용 정규식 | (a) 기존 사용자 id 형식을 코드로 확인해 그 형식 그대로 / (b) 엄격(소문자·숫자·밑줄·하이픈 길이 제한) / (c) 완화 **결정 2026-10-11: (a) uid 는 이메일 호환 허용 목록(예 ^[A-Za-z0-9._%+@-]{1,254}$) + '.'·'..'·경로 구분자·선행 '.' 거부(user_id 는 CF 이메일 원문이 data/users/<uid>/ 경로에 쓰이는 현 구조 기준)** |
+| SEC-10 | 보안 헤더 | Origin 관찰 모드·CSP Report-Only 운영 기간과 enforce 전환 기준 | (a) 1주 관찰 후 위반 0건이면 enforce / (b) 2주 / (c) 사용자 판단으로 전환 **결정 2026-10-11: (b) Origin 관찰 모드·CSP Report-Only 를 2주 운영하고 위반 0건이면 enforce 로 전환** |
 | FRS-22 | 데이터 신선도 | FRS-18 이관 대상 범위(결정문 4곳 vs 본문 7곳) | (a) 본문 7곳 유지 / (b) 결정문 4곳으로 축소 | 미결정 |
 | FRS-23 | 데이터 신선도 | crs_stale·crs_missing 사유 문구 관리 | (a) 서버는 reason 코드만, 문구는 한 곳(프런트)에서 관리 / (b) 서버가 문구 내려줌 | 미결정 |
 | FRS-24 | 데이터 신선도 | HRV 7일 rolling 형성의 최소 일수(값 1개로도 형성됨, signals.hrv_rolling 키는 존재) | (a) 3일 / (b) 5일 / (c) 7일 전부 | 미결정 |
