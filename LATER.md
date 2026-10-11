@@ -30,3 +30,6 @@ Phase 4-5에서 보류한 항목은 현재 설계를 확장하지 않고, 콜드
 
 ## 조정 제안 트리거 재검토 (2026-10-11 사용자 결정)
 - **ADJ-READINESS-VOTE**: 하향 트리거 AND 합의(CRS·ACWR·체크인 피로 2개)에 기존 준비도(readiness) 하향을 '1표'로 셀지는 지금 결정하지 않고(현행: readiness 는 단독 경로 유지), 데이터 분석 또는 ML/백테스트로 효과를 확인한 뒤 결정한다. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/bundles/adjustment-signals.md` §3.8, ADJ-13.
+
+## 데이터 내보내기 전체 import (2026-10-11 EXP-6 결정)
+- 내보낸 zip(format_version 포함)을 다시 가져오는 전체 import 기능은 이번 범위 밖, 로드맵 등록. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/bundles/data-export.md`.
