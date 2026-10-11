@@ -58,7 +58,7 @@
 | 통증 추세(재발) | `plan_adjustments` pain 행 + `user_inputs.pain` 14일 횟수 | context |
 | 놓침/미이행 추세 | `week_compliance.outcome_label`='missed' | context |
 | 폭염 | `weather_cache`/`weekly_adapt.heat_forecast` | support·context, 외부 호출 금지 |
-신규 수집 신호(NEW-3): **질병 = 단독 OR trigger**(+BOOST hold), 여행·시간대·고도 = support/context.
+신규 수집 신호(NEW-3): **질병 = 단독 OR trigger**(+BOOST hold), 여행·시간대·고도 = support/context. 복귀 context(`detail.returning`)는 질병 `end_date` 이후 7일·여행/고도 3일, 여행은 귀국 역방향 창과 겹친 날을 빼고 `end_date` 부터 센 남은 날만(NEW-34·37·38, `adjustment-new-signals.md` §2.2·§2.7).
 
 **3.6 수집 모듈 `src/services/adjustment_signals.py`(신규, 서비스 계층).** `collect(conn, day, *, readiness=None, crs=None, hold=None) -> list[dict]` — 수집기별 try/except, 실패 신호만 `freshness:"missing"`. 외부 호출 금지(캐시만). 대회 수집기 `adjustment_signals_race.py`, 질병·여행·고도 수집기 `adjustment_signals_context.py`(new-signals 번들)로 분리(300줄). `classify(signals, proposal)` 순수 함수로 role 부여. `primary_trigger(signals) -> str`(§3.8) 순수 함수.
 
@@ -100,6 +100,14 @@
 
 **3.13 빈도 관찰·자동 롤백(D14).** ① 배포 전 백테스트 — DB 사본 최근 90일을 v2·v3로 dry 판정, 일별 제안 수·주 트리거 분포 비교(`scripts/adjuster_backtest.py`, 쓰기 없음). ② 배포 후 주간 집계 — `GROUP BY rule_version, source, decision` 로그 1줄(`adjuster_v3 weekly: proposed=…, accepted=…, by_source={…}`). ③ **자동 롤백 플래그** 설정 `adjuster_version`(v3|v2): 기준(제안 값) **자동 제안 주 3회 초과 2주 연속** 또는 **수락률 급락(v2 백테스트 기준 대비 절반 이하, 제안 값)** 시 `v2`로 전환 → v3 트리거(CRS·ACWR·체크인 피로 AND, 질병·체크인 통증 OR) 정지, 기존 행·스키마 유지. 오작동 방지(제안): 판정 최소 표본 주 2회 이상, 대회 recovery·질병 에피소드 주간 제외. 사용자 설명(제안): 전환 시 Coach/설정에 중립 한 줄("최근 제안이 많아 이전 기준으로 돌아갔어요"), 재활성은 수동.
 
+**3.14 기존 훈련 플랜 삭제(PLN-23)와 `plan_adjustments`.** PLN-23으로 기존 `planned_workouts`는 삭제해도 되고 기존 플랜용 이관·보정 코드는 쓰지 않는다. 삭제 시 조정 이력에 미치는 영향 — 코드 사실(grep 2026-10-11):
+- **참조 관계:** `plan_adjustments.workout_id INTEGER NOT NULL`은 `planned_workouts.id`를 가리키지만 **FK 선언이 없다**(`db_schema_v31.py:10`, 주석 "원본 행은 재생성될 수 있음"). `PRAGMA foreign_keys=ON`(`db_setup.py:922·934`)이어도 FK가 없으므로 `planned_workouts` 삭제는 조정 행을 지우지도 막지도 않는다 → 함께 지우지 않으면 고아 행으로 남는다. `goal_id`도 FK 없음(`:9`).
+- **기존 삭제 경로의 관행:** `plan_replace.replace_range`(`:11-42`)는 completed·`matched_activity_id`·`session_outcomes.planned_id`·**accepted 조정이 있는 행을 보호(삭제 안 함)**하고, 지우는 행의 `decision != 'accepted'` 조정(proposed·reverted)을 같이 DELETE한다. `plan_replan_service.undo`(`:233-234`)도 같은 패턴. 즉 현재 코드에는 "accepted 조정이 달린 계획 행을 지우는" 경로가 없다.
+- **`workout_id`로 조정 행을 읽는 곳:** `plan_overlay`(`:12-20`, accepted 조정을 `{workout_id: …}`로 묶어 원본 행에 겹침 — 원본 행이 없으면 적용 대상 없음), `plan_move._live_moves`(`:21-24`), `plan_adjustment_service`(`:229` after 조회, `:277` 같은 workout·date 자동 행 reverted).
+- **`workout_id`와 무관하게 읽는 곳(고아 행이 남으면 계속 영향):** `plan_adjustment_service._live`(`:83-86`, 날짜·`source='crs'`로 최신 1건) → `ensure_proposal`(`:89-121`)은 그 날짜의 행이 accepted·reverted면 새 제안 없이 그대로 반환하고, proposed면 새 제안 workout과 다를 때 reverted 처리 후 새로 INSERT한다. `plan_advisory._events`(`:27-42`, 최근 28일 accepted rest/skip/replace 이력), `plan_pain._pain_rows`(`:46-52`, `source='user'` accepted 통증 칩).
+- **proposed 행:** 오늘 이후 날짜의 proposed 행은 원본 행이 지워지면 수락해도 겹칠 대상이 없다. 오늘 날짜 고아 행은 위 `_live` 경로로 처리된다(accepted·reverted면 그날 새 제안이 막힘).
+- **열린 질문(사용자 확인 필요, 결정 아님):** 기존 플랜 삭제 때 `plan_adjustments`를 어디까지 지울지 — 예: ① 지운 행의 non-accepted만(현 `replace_range` 관행, accepted 고아 행은 이력으로 남음) ② 지운 행에 달린 조정 전부 ③ 조정 행은 하나도 지우지 않음. ①·③은 고아 accepted 행이 `plan_advisory`·`plan_pain`·`_live`(오늘 날짜면 새 제안 차단)에 계속 읽히고, ②는 통증·advisory 이력이 사라진다. 삭제 대상 `planned_workouts` 범위(전부/planner만/과거 포함 여부)도 같은 질문에 묶인다. 실행은 PLN-23대로 구현 단계에서 대상·백업 확인 후.
+
 ## 4. 변경 파일 표
 | 파일 | 구분 | 내용 | 예상 줄 |
 |---|---|---|---|
@@ -128,7 +136,7 @@
 5. 백테스트 v2/v3 비교 후 사용자 확인 → `adjuster_version=v3` 활성화 + 주간 로그·자동 롤백 감시.
 6. API·프론트·coach_evidence. `pytest tests/`, `npm run check`, 픽스처 DB 브라우저 확인(운영 DB 미사용).
 - 검증 체크: v37 전후 행 수·id·decision 일치, `integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부, `plan_overlay` 불변, OR 단독 하향(통증·체크인 통증·질병)·AND 1개=support/2개=하향 테스트, readiness 하향 + AND 1개 → AND 미성립(readiness 미투표)·readiness 단독 경로는 기존과 동일, stale trigger 시 freshness 기록, 주 트리거 순서 테스트(§3.8 표 7단계, race가 checkin 뒤·crs 앞 — 예: checkin+race → `checkin`, race+crs+acwr → `race`), '미판정'(ADJ-18): AND 합의만 성립(crs+acwr, 다른 trigger 없음) → `crs`, 체크인 피로+acwr → `checkin`(둘 다 readiness 아님), 동률 후보 직접 주입 → `readiness`(§9), trigger 집합 변화만 rev+1·accepted 동결, proposed 재기록·과거 행 불변, 롤백 기준 초과 시 v2 전환 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
-- 호환: v1 일몰은 UI·라우트 일몰이며 공유 파일·함수는 유지한다(V1-1 정정·V1-2). 공유 함수 `src/training/adjuster.adjust_todays_plan`(v2 `plan_adjustment_service.py:98`·`plan_service.py:145`·`ai/chat_readiness.py:22`·`ai/coach_rule_handlers.py:49`도 호출)은 유지·시그니처 불변. 직접 호출자 CLI `plan.py`와 v1 로더 `src/web/views_training_loaders.load_adjustment`(`:45`)는 `adjust_todays_plan`만 부르고 `src/web`에서 `plan_adjustments` 조회는 없음(grep 2026-10-11) → v37·v3 영향 없음. `views_training_loaders.py`처럼 v2도 필요한 로직을 가진 v1 파일은 재설계 대상이며 view 밖 모듈로 이관 설계(V1-2) — 가드 테스트에서 v1 파일을 제외하는 방식은 쓰지 않는다. v1 화면·라우트 자체는 고려하지 않는다.
+- 호환: 공유 함수 `src/training/adjuster.adjust_todays_plan`(v2 `plan_adjustment_service.py:98`·`plan_service.py:145`·`ai/chat_readiness.py:22`·`ai/coach_rule_handlers.py:49`, CLI `plan.py`가 호출)은 유지·시그니처 불변. v1 화면·라우트는 깨져도 되며 보호·호환·이관 설계를 넣지 않는다(V1-13). 참고 사실(grep 2026-10-11): `views_training_loaders`는 `src/web` 안에서만 import된다.
 
 ## 6. 대안(기각)
 - **A. `reasons_json`에 신호 내장** — 칩·원장·근거 혼재, rev 필터 필요. D5에서 B 채택.
@@ -136,15 +144,16 @@
 - **v3 전부 OR / 전부 AND** — D13 혼합 채택(안전 신호는 단독, 측정·피로는 합의).
 
 ## 7. 결정 필요
-- 결정 완료(표 참조: `decisions-table.md` ADJ-1~18·NEW-1~3·V1-1·V1-2, 본문 D번호 = ADJ번호). ADJ-17 주 트리거 순서는 확정, 재검토는 백테스트·ML 후(`LATER.md`). ADJ-13 readiness 투표 여부는 추가 결정으로 현행 유지, 재결정은 `LATER.md` 'ADJ-READINESS-VOTE'. 제안 상태로 남은 것: §3.9 과거 행 trigger 1건 백필(ADJ-6 단서).
+- 결정 완료(표 참조: `decisions-table.md` ADJ-1~18·NEW-1~3·NEW-38·V1-1·V1-2·V1-13·PLN-23, 본문 D번호 = ADJ번호). 사용자 확인 필요: PLN-23 기존 플랜 삭제 시 `plan_adjustments` 삭제 범위(§3.14). ADJ-17 주 트리거 순서는 확정, 재검토는 백테스트·ML 후(`LATER.md`). ADJ-13 readiness 투표 여부는 추가 결정으로 현행 유지, 재결정은 `LATER.md` 'ADJ-READINESS-VOTE'. 제안 상태로 남은 것: §3.9 과거 행 trigger 1건 백필(ADJ-6 단서).
 
 ## 8. 범위 밖 메모
-- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호 입력 UI(new-signals·product), race_calendar 관리 화면·리플랜 질문(race-calendar), `b_race_week` 죽은 경로 정리. v1 로더 `views_training_loaders.py`의 view 밖 이관(V1-2) — 본 번들은 공유 함수 `adjust_todays_plan`을 바꾸지 않으므로 이관 일정과 독립.
+- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호 입력 UI(new-signals·product), race_calendar 관리 화면·리플랜 질문(race-calendar), `b_race_week` 죽은 경로 정리.
 
 ## 9. 동기화 중 발견한 모호점
 - 해소(ADJ-17): race는 checkin 바로 뒤(§3.8 표).
 - 해소(ADJ-18): '미판정' = 주 트리거 후보 동률만, AND만 성립은 미판정 아님(§3.8).
 - **확인 항목(ADJ-18):** 고정 순서는 source 종류마다 순위가 달라 종류 간 동률이 없다. 같은 종류 후보가 여럿(예: 통증 기록 2건)인 경우는 source가 같아 결과가 같다. 그러면 '동률 → readiness' 규칙이 적용되는 실제 입력이 무엇인지(사실상 도달 불가 방어 분기인지) 결정 문구로 정해지지 않았다 — 구현은 방어 분기로 두고 테스트는 `primary_trigger` 에 동률을 직접 주입해 검증하는 것을 제안.
 - NEW-10 익명화는 `accepted`/`reverted` 행도 고친다 — "수락 후 동결"(ADJ-8)·"과거 행 덧씌움 금지"(ADJ-6)의 예외로 적었으나 표에 명시는 없다.
+- **열린 질문(PLN-23):** 기존 `planned_workouts` 삭제 때 `plan_adjustments`(accepted·proposed·reverted) 삭제 범위와 삭제 대상 계획 행 범위 — 참조 사실·선택지는 §3.14, 사용자 확인 필요.
 - ADJ-14 수락률 "급락" 수치와 `adjuster_version` 저장 위치(설정 저장소)는 결정에 없어 제안 값으로 적었다.
 - `plan_adjustments` 유니크 인덱스는 `(workout_id, date, source) WHERE decision IN ('proposed','accepted')`(`db_schema_v31.py:30`)로 source를 포함한다. 자동 source가 여러 값으로 나뉘면 같은 워크아웃·날짜에 자동 제안 행이 source별로 공존할 수 있고, §3.11 "같은 행 갱신"은 인덱스가 막지 않는다. v37 재생성 시 유니크 키 조정(자동 source 묶음) 여부 확인이 필요하다. NEW-10 익명화(`illness`→`readiness`)도 같은 워크아웃·날짜의 `readiness` 행과 이 인덱스에서 충돌할 수 있다. 코드 확인(2026-10-11 grep): 인덱스는 partial이라 reverted 행은 충돌 대상이 아니고, 현재 `ensure_proposal`은 `_live`(날짜·`source='crs'`)로 날짜당 live 자동 행을 1개만 두며 새 제안 전 기존 proposed를 reverted 처리한다(`plan_adjustment_service.py:83-121`) — 지금 코드에서는 충돌이 생기지 않고, v37 이후 같은 workout·date에 live `illness`·live `readiness` 행이 공존할 수 있을 때만 UPDATE가 유니크 위반이 된다(`adjustment-new-signals.md` §4 S0 확인 항목, 해결안 미결정).
