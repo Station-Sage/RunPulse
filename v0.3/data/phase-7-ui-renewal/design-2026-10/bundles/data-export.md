@@ -1,6 +1,7 @@
 # 사용자 데이터 전체 내보내기 (NEW-11) 설계 초안 — 2026-10-11
 
-> 근거: decisions-table.md NEW-10·11·12, EXP-1~17(2026-10-11 결정), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
+> 근거: decisions-table.md NEW-10·11·12, EXP-1~19(2026-10-11 결정), TXT-1(문구), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
+> 변경 이력: 2026-10-11 3차 동기화 — EXP-18(고정 여유)·EXP-19(삭제 안내 항상 표시) 반영, EXP-7 문구는 TXT-1 로 구현 단계 후보 제시.
 
 ## 1. 근본 원인 (현황, 코드로 확인한 것만)
 
@@ -65,7 +66,7 @@ DB 테이블(코드 `CREATE TABLE` 기준, SCHEMA_VERSION=36) 분류:
 ### 2.2 형식 — zip 안 JSON+CSV 혼합(현 구조 확장)
 ```
 manifest.json      # format_version, schema_version, created_at(오프셋 포함 ISO), range, groups[{key, tables, row_counts, skipped}], sensitive_groups
-README.txt         # 각 파일 설명 + 건강 정보 공유 주의(문구 미확정, EXP-7)
+README.txt         # 각 파일 설명 + 건강 정보 공유 주의(문구 미확정, EXP-7 → TXT-1)
 tables/<table>.csv # 표 형태(활동·지표·계획·체크인·대회)
 json/<table>.json  # 중첩 구조(context_episodes.detail_json, chat_messages, user_settings)
 csv/*.csv          # 기존 빠른 CSV 3종(사람용)
@@ -78,10 +79,10 @@ raw_payloads/<src>.jsonl
 ### 2.3 생성 방식 — 기존 백그라운드 잡 재사용
 - `POST /api/v1/data/export {kind:"archive", groups:[...], include_dismissed, from, to}` → 202 + job_id. 같은 사용자 동시 1건(`get_active_job`, 기존 409 유지).
 - 입력 검증(SRV-4): `groups` 는 리스트·중복 제거·허용 키만(미지 키 400), 빈 리스트 400, `include_dismissed` 는 bool(episodes 미선택 시 무시), 날짜는 기존 `parse_params`, JSON 아닌 본문 415(SRV-5).
-- 크기: **상한 없음, 디스크 여유 검사만**(EXP-8). 잡 시작 전 `shutil.disk_usage(exports_dir)` 여유 확인, 쓰는 중에도 테이블 경계마다 재확인. 부족하면 **안전한 실패만**(EXP-13) — 쓰기 중단·부분 zip 삭제·원장 `failed`·`EXPORT_DISK_FULL`, 다른 사용자 데이터·DB 는 건드리지 않는다. 그룹 자동 제외 후 계속하는 대체 동작은 두지 않는다. 필요 여유량 산정 기준은 §5. 스트림은 테이블 단위 커서 반복(`fetchmany`)으로 메모리 상한 유지.
+- 크기: **상한 없음, 디스크 여유 검사만**(EXP-8). 잡 시작 전 `shutil.disk_usage(exports_dir)` 여유 확인, 쓰는 중에도 테이블 경계마다 재확인. 부족하면 **안전한 실패만**(EXP-13) — 쓰기 중단·부분 zip 삭제·원장 `failed`·`EXPORT_DISK_FULL`, 다른 사용자 데이터·DB 는 건드리지 않는다. 그룹 자동 제외 후 계속하는 대체 동작은 두지 않는다. 필요 여유량은 **고정 여유**(EXP-18) — 상수 `EXPORT_MIN_FREE_BYTES`(예 1GB, 값은 구현 시 확인)를 `export_service` 에 두고 시작 전·테이블 경계 재확인 모두 같은 값과 비교한다(선택 그룹 크기·DB 크기 추정 없음). 스트림은 테이블 단위 커서 반복(`fetchmany`)으로 메모리 상한 유지.
 - 실패: 원장 `status=failed, error_code`(EXPORT_FAILED/DISK_FULL/SECRET_DETECTED), 부분 zip 삭제. 화면은 공통 오류 컴포넌트(ERR) + "다시 만들기"(수동, ERR-3 결정 따름).
 - 보관·만료: **24시간**(EXP-1, 현행 `EXPIRE_DAYS=7` → `EXPIRE_HOURS=24`). 만료는 판정만이 아니라 **zip 파일 삭제 잡**으로 보장한다 — `purge_expired(user_id)` 를 (1) 이력 조회·새 잡 시작 시, (2) 사용자 방문과 무관한 주기 정리 잡에서 전 사용자 대상으로 호출. 원장 행은 남기고 `status=expired`. 주기 잡은 **앱 시작 시 띄우는 별도 경량 데몬 스레드**(EXP-14) — `auto_sync` 루프와 분리되어 자동 동기화가 꺼져 있어도 동작한다. `src/web/app.py` 의 `auto_sync` 시작 지점 옆에서 시작하고, 시작 실패는 경고 로그만 남긴다. 주기 간격은 구현 시 정한다(만료 24시간 대비 짧게).
-- 에피소드 단건 삭제(NEW-10)와의 관계(EXP-11): 이미 생성된 zip 은 건드리지 않고 24시간 만료로 소멸. 삭제·익명화(NEW-10 추가 결정: `signals_json` 질병 항목 제거, `source='illness'`→`'readiness'`) 이후 새로 만드는 zip 에만 반영된다. 삭제 시 화면에 **"기존 내보내기 파일에는 최대 24시간 남아 있음" 안내**(EXP-16)를 표시한다 — 삭제 UI 는 adjustment-new-signals.md 소관이므로 이 설계는 문구 요구만 전달한다. 만료 전 내보내기 zip 이 없을 때 안내를 생략할지는 §5.
+- 에피소드 단건 삭제(NEW-10)와의 관계(EXP-11): 이미 생성된 zip 은 건드리지 않고 24시간 만료로 소멸. 삭제·익명화(NEW-10 추가 결정: `signals_json` 질병 항목 제거, `source='illness'`→`'readiness'`) 이후 새로 만드는 zip 에만 반영된다. 삭제 시 화면에 **"기존 내보내기 파일에는 최대 24시간 남아 있음" 안내**(EXP-16)를 표시한다 — 삭제 UI 는 adjustment-new-signals.md 소관이므로 이 설계는 문구 요구만 전달한다. 안내는 만료 전 내보내기 zip 유무와 무관하게 **항상 표시**한다(EXP-19) — 삭제 화면이 내보내기 이력을 조회할 필요 없음.
 
 ### 2.4 보안
 - 인증 사용자 본인만: 경로는 `exports_dir(get_current_user_id())`, 잡 조회는 사용자별 `sync_jobs.db` → 타 사용자 job_id 는 NOT_FOUND. job_id 는 UUID 형식 검사 후 사용(경로 조작 차단).
@@ -89,7 +90,7 @@ raw_payloads/<src>.jsonl
 - 다운로드 응답 헤더: `Content-Disposition: attachment; filename="runpulse_export_<YYYY-MM-DD>.zip"`(ASCII 고정), `Content-Type: application/zip`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`(SEC 공통 헤더가 이미 붙이면 중복 없이).
 - 감사 기록: 사용자별 sync_jobs 원장 `result_json` 에 `groups`, `download_count`, `last_downloaded_at`(오프셋 포함) 추가 — 새 테이블 없음. 서버 로그 1줄(job_id·groups·크기, 내용 없음).
 - 민감 표시: episodes·coach 를 `sensitive_groups` 로 manifest·이력에 표시.
-- 질병 확인(EXP-7·12): **episodes 그룹을 선택하면 항상** 생성 **전** 확인 단계 1회(확인 → POST, 취소 → 요청 없음). 선택 범위에 질병 에피소드가 실제 있는지는 조회하지 않는다(서버 사전 조회 없음). 상시 안내문은 두지 않는다. 문구 미확정(§5). 확인은 화면 단계이며 서버 POST 계약은 바꾸지 않는다.
+- 질병 확인(EXP-7·12): **episodes 그룹을 선택하면 항상** 생성 **전** 확인 단계 1회(확인 → POST, 취소 → 요청 없음). 선택 범위에 질병 에피소드가 실제 있는지는 조회하지 않는다(서버 사전 조회 없음). 상시 안내문은 두지 않는다. 문구는 TXT-1 에 따라 구현 단계에서 후보 제시 후 사용자 확정(§5). 확인은 화면 단계이며 서버 POST 계약은 바꾸지 않는다.
 - NEW-12 와의 관계(EXP-17): NEW-12 의 질병 별도 동의는 **AI 코치 전송** 범위이며 내보내기에 **영향 없음** — 미동의·철회 상태여도 episodes 기본 체크·확인 단계·포함 내용은 같다. 로컬 내보내기의 민감 정보 처리는 EXP-7·12 확인으로 다룬다. 내보낸 `chat_messages` 는 저장된 대화 원문이라 사용자가 직접 쓴 질병 언급이 있을 수 있다(EXP-4 기본 해제 근거). 질병 동의 저장소(위치 미정, adjustment-new-signals.md)가 DB 테이블로 생기면 S1 분류 테스트가 그룹 지정을 강제한다.
 
 ### 2.5 화면 (`/data/export`, 375px 기준)
@@ -105,12 +106,12 @@ raw_payloads/<src>.jsonl
 |------|------|------|--------|
 | `src/services/export_groups.py` | 신규 | GroupDef·EXPORT_GROUPS(기본 체크 activities·metrics·raw·episodes·races, dismissed 기본 해제)·열 거부 규칙·`enc:` 검사·테이블 존재 확인·episodes dismissed 필터 | ~130 |
 | `src/services/export_archive.py` | 신규 | `build_archive(conn, path, groups, frm, to, include_dismissed, space_check)` — 현 build_archive 이동·확장, manifest(format_version)/README, 디스크 여유 재확인 | ~180 |
-| `src/services/export_service.py` | 수정 | parse_params 에 groups·include_dismissed, start_archive 인자, `EXPIRE_DAYS=7`→`EXPIRE_HOURS=24`, 시작 전 디스크 여유 검사, purge_expired(파일 삭제), 다운로드 기록, created_at 오프셋. build_archive 제거로 300줄 이하 유지 | 230→~230 |
+| `src/services/export_service.py` | 수정 | parse_params 에 groups·include_dismissed, start_archive 인자, `EXPIRE_DAYS=7`→`EXPIRE_HOURS=24`, 시작 전 디스크 여유 검사(고정 `EXPORT_MIN_FREE_BYTES`, EXP-18), purge_expired(파일 삭제), 다운로드 기록, created_at 오프셋. build_archive 제거로 300줄 이하 유지 | 230→~230 |
 | `src/web/export_purge.py`(신규 경량 스레드, EXP-14), `src/web/app.py`(시작 호출) | 신규/수정 | 앱 시작 시 데몬 스레드, 주기마다 전 사용자 `purge_expired`, 실패 시 로그만 | ~40 / +4 |
 | `src/api/routes_data_export.py` | 수정 | groups·include_dismissed 전달, 415, job_id 형식 검사, no-store 헤더, 다운로드 기록(Origin 관문 변경 없음) | 56→~85 |
 | `frontend/src/lib/exportScope.ts` | 신규 | 그룹 메타·기본 체크·질병 확인 필요 여부 판정(episodes 선택 = 확인, EXP-12)·요청 본문 생성 | ~60 |
 | `frontend/src/lib/components/ExportScopeForm.svelte` | 신규 | fieldset 체크박스 그룹·dismissed 하위 체크박스·민감 표시 | ~130 |
-| `frontend/src/lib/components/ExportConfirmDialog.svelte` | 신규 | 질병 포함 생성 전 확인 1회(문구 자리만, EXP-7) | ~60 |
+| `frontend/src/lib/components/ExportConfirmDialog.svelte` | 신규 | 질병 포함 생성 전 확인 1회(문구 자리만, EXP-7·TXT-1) | ~60 |
 | `frontend/src/routes/data/export/+page.svelte` | 수정 | 폼·확인 단계 삽입, 공통 오류 컴포넌트, 24시간 만료 안내 | 145→~180 |
 | `frontend/src/lib/types/index.ts` | 수정 | ExportGroup·manifest 타입 | +15 |
 | `src/web/views_export.py` | 유지 | v1 제거 시 함께 삭제(이번 변경 없음) | 0 |
@@ -119,8 +120,8 @@ raw_payloads/<src>.jsonl
 
 ## 4. 단계·검증
 1. **S1 그룹 허용 목록**: export_groups.py. 검증 — db_setup·db_schema_v* 의 모든 `CREATE TABLE` 이 "그룹 소속 또는 항상 제외" 중 하나로 분류됐는지 검사하는 테스트(새 테이블 추가 시 자동 실패 → 누락 방지). 기본 체크 집합이 정확히 {activities, metrics, raw, episodes, races} 이고 `include_dismissed` 기본 false 인지 검사(EXP-15). check_docs.py 검사 후보로도 등록 검토.
-2. **S2 아카이브 확장**: export_archive.py. 검증 — 임시 DB에 `enc:` 값·`token_hash` 열·calendar_feeds 행을 심고 zip 전체 바이트에서 미검출; from/to 가 각 테이블에 적용; v38 미적용 DB에서 episodes skipped; `include_dismissed` false 면 dismissed 행 없음·true 면 있음; 디스크 여유 부족(가짜 `space_check`) 시 부분 파일 삭제·`EXPORT_DISK_FULL`·streams 포함 요청도 그룹 제외 없이 실패(EXP-13); manifest `format_version`·created_at 오프셋 포함.
-3. **S3 API·만료**: 미지 그룹 400, 빈 그룹 400, `include_dismissed` 비bool 400, 비JSON 415, 타 사용자 job_id 404, 생성 24시간 경과 시 410 + zip 파일 실제 삭제됨(시계 주입), 주기 정리 스레드가 자동 동기화 꺼짐 상태에서도 방문 없는 사용자의 만료 zip 을 삭제(EXP-14), 만료 전에는 반복 다운로드 200(EXP-9), 다운로드 헤더(no-store·attachment), Origin 없는 POST 는 SRV-1·SRV-8 모드대로·다운로드 GET 은 현행과 동일. 에피소드 단건 삭제 후 기존 zip 그대로·새 zip 에는 미포함(EXP-11). NEW-12 미동의·철회 사용자도 episodes 포함 결과 동일(EXP-17).
+2. **S2 아카이브 확장**: export_archive.py. 검증 — 임시 DB에 `enc:` 값·`token_hash` 열·calendar_feeds 행을 심고 zip 전체 바이트에서 미검출; from/to 가 각 테이블에 적용; v38 미적용 DB에서 episodes skipped; `include_dismissed` false 면 dismissed 행 없음·true 면 있음; 디스크 여유 부족(가짜 `space_check`) 시 부분 파일 삭제·`EXPORT_DISK_FULL`·streams 포함 요청도 그룹 제외 없이 실패(EXP-13); 여유가 `EXPORT_MIN_FREE_BYTES` 바로 아래면 실패·이상이면 진행(선택 그룹과 무관한 고정 기준, EXP-18); manifest `format_version`·created_at 오프셋 포함.
+3. **S3 API·만료**: 미지 그룹 400, 빈 그룹 400, `include_dismissed` 비bool 400, 비JSON 415, 타 사용자 job_id 404, 생성 24시간 경과 시 410 + zip 파일 실제 삭제됨(시계 주입), 주기 정리 스레드가 자동 동기화 꺼짐 상태에서도 방문 없는 사용자의 만료 zip 을 삭제(EXP-14), 만료 전에는 반복 다운로드 200(EXP-9), 다운로드 헤더(no-store·attachment), Origin 없는 POST 는 SRV-1·SRV-8 모드대로·다운로드 GET 은 현행과 동일. 에피소드 단건 삭제 후 기존 zip 그대로·새 zip 에는 미포함(EXP-11). 24시간 안내(EXP-16)는 만료 전 zip 이 없어도 표시(EXP-19) — 삭제 UI 테스트는 adjustment-new-signals.md 소관이므로 요구 사항으로 전달. NEW-12 미동의·철회 사용자도 episodes 포함 결과 동일(EXP-17).
 4. **S4 화면**: 375px 브라우저 확인(초기 체크 5개·dismissed 해제, 체크박스 44px, 가로 스크롤 없음, h1 보임, 키보드만으로 선택·생성·다운로드), episodes 선택 시 질병 기록 유무와 무관하게 확인 단계 1회·취소 시 요청 없음·episodes 해제 시 확인 없이 생성(EXP-12), dismissed 하위 체크박스 비활성 전환, 24시간 만료 안내, 실패 시 공통 오류·재시도, 스크린리더 상태 알림.
 5. 전체 `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`. 신규 ADR 필요 여부(비밀 허용 목록 원칙) 메인 판단.
 
@@ -131,11 +132,10 @@ raw_payloads/<src>.jsonl
 - B SQLite 사본(`VACUUM INTO` 후 제외 테이블 DROP) — 재가져오기 쉽고 구현 짧음. 단점: 삭제 누락 시 비밀 유출(차단 목록 방식), free page 잔존 가능, 내부 스키마가 사용자 계약이 됨, 그룹·기간 필터가 번거로움.
 
 ## 5. 결정 필요
-EXP-1~17 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 질문이다.
-- **EXP-7 확인 문구**: 생성 전 확인 대화상자·README 의 건강 정보 주의 문구(사용자 확정 필요).
+EXP-1~19 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 질문이다.
+- **EXP-7 확인 문구**(TXT-1, 미결정): 생성 전 확인 대화상자·README 의 건강 정보 주의 문구. 후보 문구는 구현 단계에서 제시, 사용자 확정.
 - 해소(EXP-12) 확인 발동 조건 · 해소(EXP-13) 부족 시 동작 · 해소(EXP-14) 정리 잡 위치 · 해소(EXP-15) episodes·races·dismissed 기본값 · 해소(EXP-17) NEW-12 연동.
-- **EXP-8 디스크 여유 기준**: 필요 여유량 산정(예 DB 크기 배수 vs 고정 여유).
-- **EXP-16 안내 생략 조건**: 에피소드 삭제 시 만료 전 내보내기 zip 이 하나도 없으면 안내를 생략할지(생략하려면 삭제 화면이 내보내기 이력을 조회해야 함).
+- 해소(EXP-18) 디스크 여유 기준 · 해소(EXP-19) 삭제 안내 항상 표시. 남은 확인: 고정 여유 실제 값(예 1GB)은 구현 시 확인.
 
 ## 6. 범위 밖 메모
 - `config.json` 자격 증명·`enc:` 키 백업/이관은 이 기능에서 다루지 않는다(별도 계정 이전 설계).
