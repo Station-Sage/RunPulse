@@ -2,8 +2,9 @@
 
 - 변경 이력: 2026-10-11 A11Y-1·3·4·5 결정 반영, 라이트 테마 설계
 - 변경 이력: 2026-10-11 A11Y-9~12 결정 반영, stone 팔레트(2.5~2.7 slate 제안값 대체)
+- 변경 이력: 2026-10-11 A11Y-13 B안 확정(미달 색 재조절), A11Y-14 심화 검토
 - 대상 증상: E-15, S-12, S-13, S-14, E-09, E-14, M-27, D-28, P-18, T-12, C-12, D-26, C-10, E-06, P-19, P-20, E-07, S-15, T-19, M-28, D-27 외 (4절 매핑 표)
-- 상태: 설계 초안. 구현 전 "6. 결정 필요"의 미결 항목(13·14: 라이트 팔레트 최종 톤, s3 이하 배경 규칙) 확인 필요
+- 상태: 설계 초안. 구현 전 "6. 결정 필요"의 미결 항목(14: 라이트 s3 보다 어두운 상태 배경 규칙) 확인 필요
 - 범위: `frontend/src/` (v2 전용). 오버레이 Esc·포커스 트랩은 `overlay-common-behavior.md`, 오류·재시도는 `error-retry-common.md`, CSP는 보안 헤더 설계 소관
 
 ## 1. 근본 원인
@@ -81,46 +82,45 @@
 - **런타임 모듈:** `lib/theme/theme.ts` (신규, 순수 + 얇은 DOM 래퍼): `resolveTheme(pref: 'system'|'light'|'dark', systemLight: boolean)`, `readPref()`/`writePref()`(try/catch, 실패 시 'system'), `applyTheme(pref)`(`data-theme` 설정/제거). 전환 UI(결정 9)는 **설정 화면에만** `ThemeSwitch`(`ToggleGroup mode='single'` 3상태 시스템/라이트/다크, 기본 '시스템')로 두고 셸(헤더·MenuDrawer)은 바꾸지 않는다. '시스템' 상태에서 OS 테마가 바뀌면 CSS 가 즉시 따라가므로 `matchMedia` 리스너는 `theme-color` 갱신용으로만 쓴다.
 
 ### 2.6 테마별 대비 조합 표 (허용 조합 원본, WCAG 상대휘도 스크립트 계산)
-배경: 다크 s1 #0f172a / s2 #1e293b / s3 #334155(유지). 라이트는 결정 11(b) stone 계열 **제안안 A**: s1 #fafaf9(페이지, stone-50) / s2 #ffffff(카드) / s3 #f5f5f4(칩·hover·중첩, stone-100). 기준 text 4.5, ui 3.0. ✗ 는 금지 조합. 계산: scratchpad `stone_contrast.py`(WCAG 2.x 상대휘도) → 구현 시 `tokenContrast.test.mjs` 가 같은 표를 재검증한다.
+배경: 다크 s1 #0f172a / s2 #1e293b / s3 #334155(유지). 라이트는 결정 13 **B 따뜻한 종이**: s1 #f7f5f2(페이지) / s2 #fffdfa(카드) / s3 #efebe5(칩·hover·중첩), border-subtle #e6e0d7(장식). 기준 text 4.5, ui 3.0. ✗ 는 금지 조합. 미달 색은 hue·채도를 두고 HSL 명도만 낮춰 s3 기준 text 4.6·ui 3.1 이상(여유 0.1)이 되는 가장 밝은 값으로 재조절했다. 표기 `원래 → 조절(ΔL)`. 계산: scratchpad `paper_contrast.py`·`state_check.py` → 구현 시 `tokenContrast.test.mjs` 가 같은 표를 재검증한다.
 
-| 토큰 | 용도 | 다크 값 | 다크 s1/s2/s3 | 라이트 값(제안 A) | 라이트 s1/s2/s3 |
+| 토큰 | 용도 | 다크 값 | 다크 s1/s2/s3 | 라이트 값(B) | 라이트 s1/s2/s3 |
 |---|---|---|---|---|---|
-| fg-primary | text | #f1f5f9 | 16.3/13.4/9.45 | #1c1917 | 16.7/17.5/16.0 |
-| fg-secondary | text | #94a3b8 | 6.96/5.71/**4.04 large만** | #57534e | 7.30/7.63/6.99 |
-| fg-muted (A11Y-1) | text | **#8494a9**(현 #64748b) | 5.77/4.73/**3.35 ✗** | #6b645c | 5.58/5.83/5.34 |
-| semantic-red / status-danger | text·ui | #f87171(현 #ef4444) | 6.45/5.29/3.74 ui만 | #b91c1c | 6.19/6.47/5.93 |
-| semantic-amber | text·ui | #f59e0b | 8.31/6.81/4.82 | #b45309 | 4.81/5.02/4.60 |
-| semantic-green | text·ui | #22c55e | 7.83/6.42/4.54 | #15803d | 4.80/5.02/4.60 |
-| semantic-blue | text·ui | (현 값 유지, 다크 표 미기재) | — | #1d4ed8 | 6.42/6.70/6.14 |
-| semantic-teal | text·ui | #14b8a6 | 7.17/5.88/4.16 ui만 | #0f766e | 5.24/5.47/5.02 |
-| delta-better / worse | text | #38bdf8 / #fb923c | 6.83 / 6.46 (s2) | #0369a1 / #c2410c | 5.68·5.93·5.44 / 4.96·5.18·4.75 |
-| series-1 | ui | #7dd3fc | 10.7/8.77/6.21 | #0284c7 | 3.92/4.10/3.75 |
-| series-2 | ui | #cbd5e1 | 12.0/9.85/6.97 | #57534e | 7.30/7.63/6.99 |
-| series-3 (마크) | ui | **#8a98ad**(현 #475569) | 6.10/5.00/3.54 | #8c847b | 3.53/3.68/3.38 |
-| border-strong (신규, 입력 테두리) | ui | #64748b | 3.75/3.07/✗ | #8c847b | 3.53/3.68/3.38 |
-| border-subtle | 장식(검사 제외) | #334155 | — | #e7e5e4 | — |
-| focus-ring (A11Y-8) | ui | #38bdf8 | 8.33/6.83/4.83 | #0369a1 | 5.68/5.93/5.44 |
-- **라이트 A 는 표의 전 조합 통과**(최소: runalyze 마크 s3 3.02, amber·green 텍스트 s3 4.60). 의미색은 다크와 같은 토큰을 text·ui 로 함께 쓰므로 -700 단계로 둔다. 중성색만 stone 으로 바꾸고 의미색·차트색은 hue 를 유지해 다크와 색 의미가 같다.
-- **금지 조합:** 다크 s3 위 fg-muted·semantic 텍스트(red·teal 은 ui만, secondary 는 큰 글자만). 다크 series-1/2/3 값을 라이트 배경에 쓰는 것(1.36~2.93 ✗ — series 는 반드시 테마별 토큰). 라이트 s3 보다 어두운 배경(stone-200 #e7e5e4 이하: hover 강조·선택 칩·heat 셀) 위의 semantic 텍스트·provider 마크(아래 2.7).
+| fg-primary | text | #f1f5f9 | 16.3/13.4/9.45 | #1c1917 | 16.1/17.2/14.7 |
+| fg-secondary | text | #94a3b8 | 6.96/5.71/**4.04 large만** | #57534e | 7.01/7.51/6.42 |
+| fg-muted (A11Y-1) | text | **#8494a9**(현 #64748b) | 5.77/4.73/**3.35 ✗** | #6b645c | 5.36/5.74/4.91 |
+| semantic-red / status-danger | text·ui | #f87171(현 #ef4444) | 6.45/5.29/3.74 ui만 | #b91c1c | 5.95/6.37/5.45 |
+| semantic-amber | text·ui | #f59e0b | 8.31/6.81/4.82 | #b45309(s3 4.23 ✗) → **#aa4f09**(ΔL −2.0%p) | 5.04/5.40/4.62 |
+| semantic-green | text·ui | #22c55e | 7.83/6.42/4.54 | #15803d(s3 4.22 ✗) → **#14793a**(−1.6%p) | 5.04/5.41/4.62 |
+| semantic-blue | text·ui | (현 값 유지, 다크 표 미기재) | — | #1d4ed8 | 6.16/6.60/5.64 |
+| semantic-teal | text·ui | #14b8a6 | 7.17/5.88/4.16 ui만 | #0f766e | 5.03/5.39/4.61 |
+| delta-better / worse | text | #38bdf8 / #fb923c | 6.83 / 6.46 (s2) | #0369a1 / #c2410c(s3 4.36 ✗) → **#bb3f0c**(−1.4%p) | 5.45·5.84·5.00 / 5.04·5.40·4.62 |
+| series-1 | ui | #7dd3fc | 10.7/8.77/6.21 | #0284c7 | 3.76/4.03/3.45 |
+| series-2 | ui | #cbd5e1 | 12.0/9.85/6.97 | #57534e | 7.01/7.51/6.42 |
+| series-3 (마크) | ui | **#8a98ad**(현 #475569) | 6.10/5.00/3.54 | #8c847b(s3 3.10, 여유 0) → **#887f76**(−1.8%p) | 3.61/3.87/3.31 |
+| border-strong (신규, 입력 테두리) | ui | #64748b | 3.75/3.07/✗ | series-3 과 같은 값 **#887f76** | 3.61/3.87/3.31 |
+| border-subtle | 장식(검사 제외) | #334155 | — | #e6e0d7 | — |
+| focus-ring (A11Y-8) | ui | #38bdf8 | 8.33/6.83/4.83 | #0369a1 | 5.45/5.84/5.00 |
+- **B 재조절 후 표의 전 조합 통과**(최소: amber·green·delta-worse 텍스트 s3 4.62, teal 4.61, series-3·border s3 3.31). 재조절 폭은 명도 −1.4~−2.0%p 로 다크와 색 의미(hue)는 그대로다. 조절값은 라이트 블록에만 쓰고 다크 값은 바꾸지 않는다.
+- **금지 조합:** 다크 s3 위 fg-muted·semantic 텍스트(red·teal 은 ui만, secondary 는 큰 글자만). 다크 series-1/2/3 값을 라이트 배경에 쓰는 것(1.25~2.88 ✗ — series 는 반드시 테마별 토큰). **원래 값(#b45309·#15803d·#c2410c·#fc4c02·#16a34a)을 라이트 s3 위 text/마크로 쓰는 것**. 라이트 s3 보다 어두운 배경 위 semantic 텍스트·provider 마크(2.7·결정 14). semantic 틴트는 라이트 `/10` 까지만 같은 색 텍스트를 허용(amber/10 위 amber 4.70, amber/20 위 4.05 ✗ — `/15` 이상 틴트 위 글자는 fg-primary 13.0+만).
 - 다크 semantic-red #f87171 은 RC-1 미달(s2 3.89) 해소 목적의 제안값이다. 합성 색(`/40` 등 36곳)은 표 대상이 아니며 5절 브라우저 점검으로 확인한다.
-- 대안 비교(결정 13): **B 따뜻한 종이** s1 #f7f5f2 / s2 #fffdfa / s3 #efebe5 — 톤은 더 따뜻하나 s3 에서 amber 4.23·green 4.22·delta-worse 4.36 텍스트 ✗, strava 2.86·runalyze 2.78 마크 ✗(s3 를 #f5f5f4 이상 밝기로 올려야 해결). **C stone-200 칩** s1 #f5f5f4 / s2 #fff / s3 #e7e5e4 — 위계가 선명하나 s3 에서 amber 4.00·green 3.99·teal 4.36·delta-worse 4.12, series-3·border 2.93, strava 2.71·runalyze 2.62, 경로 #0d9488 2.98 ✗. 두 안 모두 s1·s2 는 전 조합 통과한다.
+- 폐기안 참고(결정 13): A stone(s1 #fafaf9/s2 #fff/s3 #f5f5f4)은 원래 색 그대로 전 조합 통과, C stone-200 칩(s3 #e7e5e4)은 재조절 폭이 더 커서(amber·green s3 4.00) 채택하지 않았다.
 
 ### 2.7 차트·provider 마크·배지 (A11Y-4)
-- **provider 토큰 3층:** `--color-provider-{x}`(브랜드, 배지 배경 — 두 테마 고정, A11Y-12), `--color-provider-{x}-mark`(점·선·아이콘, 테마별, ui 3.0), `--color-provider-{x}-on`(배지 글자, 테마 무관, 배경 대비로 흑/백 선택). 결정 12(a)로 라이트 mark 는 브랜드 원색이며 토큰은 `var(--color-provider-{x})` 별칭이다.
+- **provider 토큰 3층:** `--color-provider-{x}`(브랜드, 배지 배경 — 두 테마 원색 고정), `--color-provider-{x}-mark`(점·선·아이콘, 테마별, ui 3.0), `--color-provider-{x}-on`(배지 글자, 테마 무관, 배경 대비로 흑/백 선택). **A11Y-12 수정(결정 13 의 효과):** 라이트 mark 는 원색 별칭이 아니라 대비 통과용 조절값을 허용한다. 원색과 같으면 별칭, 다르면 독립 값이다.
 
-| provider | 브랜드 | 다크 mark (s1/s2/s3) | 라이트 mark = 브랜드 (A안 s1/s2/s3) | 배지 글자 (대비) |
+| provider | 브랜드(배지 배경) | 다크 mark (s1/s2/s3) | 라이트 mark (B s1/s2/s3) | 배지 글자 (대비) |
 |---|---|---|---|---|
-| garmin | #0056b3 | #4c8fe0 (5.37/4.40/3.11) | 6.74/7.04/6.46 | 흰 #fff (7.04) |
-| strava | #fc4c02 | 브랜드 (5.25/4.30/3.04) | 3.26/3.40/**3.12** | 검정 #0f172a (5.25) |
-| intervals | #7c3aed | #a78bfa (6.56/5.38/3.80) | 5.46/5.70/5.22 | 흰 (5.70) |
-| runalyze | #16a34a | 브랜드 (5.42/4.44/3.14) | 3.16/3.30/**3.02** | 검정 (5.42) |
-| runpulse | #6b7280 | #8b95a5 (5.90/4.83/3.42) | 4.63/4.83/4.43 | 흰 (4.83) |
-| primary(★) | #fbbf24 | 브랜드 (10.7/8.76/6.20) | #b45309 (4.81/5.02/4.60, 테마별) | 검정 (10.7) |
-- **A안에서는 브랜드 원색 마크가 s1~s3 모두 통과**한다. 다만 strava·runalyze 는 배경 상대휘도 하한이 있다: strava ≥ 0.876, runalyze ≥ 0.906(≈ #f5f5f4). 따라서 라이트 s3 는 #f5f5f4 보다 어둡게 할 수 없다(결정 14).
-- **배경 조정으로 해결 가능:** B·C 안의 s3(#efebe5 2.86/2.78, #e7e5e4 2.71/2.62) — s3 를 #f5f5f4 이상으로 올리면 해결. 연한 상태 틴트(#fef2f2 3.11/3.01, #f0fdf4 3.25/3.15)는 통과.
-- **해결 불가(원색 유지 전제):** stone-200 이하 배경(선택 칩·hover 강조·heat 램프 셀·다른 provider 배지 위) 위의 strava·runalyze 마크, 흰 글자 on strava/runalyze 배지(3.40/3.30). 이 조합은 금지하고, 그런 자리에서는 마크 대신 배지(원색 배경 + on 글자) 또는 이름 병기로 표현한다. strava(주황)·runalyze(초록)와 semantic amber·green 이 같은 차트에 함께 나오는 경우 색만으로 구분되지 않으므로 범례·이름 병기를 둔다.
+| garmin | #0056b3 | #4c8fe0 (5.37/4.40/3.11) | 브랜드 (6.47/6.94/5.93) | 흰 #fff (7.04) |
+| strava | #fc4c02 | 브랜드 (5.25/4.30/3.04) | #fc4c02(s3 2.86 ✗) → **#f14902**(ΔL −2.2%p) (3.39/3.63/3.11) | 검정 #0f172a (5.25) |
+| intervals | #7c3aed | #a78bfa (6.56/5.38/3.80) | 브랜드 (5.24/5.61/4.80) | 흰 (5.70) |
+| runalyze | #16a34a | 브랜드 (5.42/4.44/3.14) | #16a34a(s3 2.78 ✗) → **#159946**(−2.2%p) (3.40/3.64/3.12) | 검정 (5.42) |
+| runpulse | #6b7280 | #8b95a5 (5.90/4.83/3.42) | 브랜드 (4.44/4.76/4.07) | 흰 (4.83) |
+| primary(★) | #fbbf24 | 브랜드 (10.7/8.76/6.20) | semantic-amber 별칭 #aa4f09 (5.04/5.40/4.62) | 검정 (10.7) |
+- strava·runalyze 라이트 mark 는 s3 에서 여유 0.11~0.12 다. s3 보다 어두운 배경 위 마크는 결정 14 대상이며, 그런 자리(선택 칩·다른 provider 배지 위·heat 셀)에서는 마크 대신 배지(원색 배경 + on 글자) 또는 이름 병기로 표현한다.
+- **해결 불가로 남는 금지 조합:** 흰 글자 on strava/runalyze 배지(3.40/3.30 — 배지 배경은 원색 고정이라 on 은 검정만), 원색 #fc4c02·#16a34a 를 라이트 s2·s3 위 마크로 쓰는 것. strava(주황)·runalyze(초록)와 semantic amber·green 이 같은 차트에 함께 나오면 색만으로 구분되지 않으므로 범례·이름 병기를 둔다.
 - 다크 strava 3.04·runalyze 3.14(s3)는 기존 A11Y-4 설계대로 유지한다.
-- **차트 토큰(신규, 테마별):** `--color-chart-ctl/atl/tsb/taper`(FormChart), `--color-chart-hr/alt/cad/power`(streams), `--color-route-low/high`·`--color-route-slow/fast`(routeGeometry), `--color-heat-0..4`(ActivityHeatmap·SourceCoverage 공용 램프), `--color-gauge-*`(ReadinessGauge → status 토큰 재사용). 다크 값은 현재 hex 그대로 옮겨 시각 변화 없음, 라이트 제안(A안 s1/s2/s3): CTL #2563eb(4.95/5.17/4.74), ATL #b45309(4.81/5.02/4.60), TSB #0f766e(5.24/5.47/5.02), HR #dc2626(4.62/4.83/4.43), 고도 #047857(5.48 s2), 파워 #7c3aed(5.46/5.70/5.22), 경로 #0d9488(3.59/3.74/3.43), heat 램프 #e7e5e4(stone-200, heat-0)→#99f6e4→#2dd4bf→#0d9488→#0f766e.
+- **차트 토큰(신규, 테마별, ui 3.0):** `--color-chart-ctl/atl/tsb/taper`(FormChart), `--color-chart-hr/alt/cad/power`(streams), `--color-route-low/high`·`--color-route-slow/fast`(routeGeometry), `--color-heat-0..4`(ActivityHeatmap·SourceCoverage 공용 램프), `--color-gauge-*`(ReadinessGauge → status 토큰 재사용). 다크 값은 현재 hex 그대로 옮겨 시각 변화 없음, 라이트(B s1/s2/s3): CTL #2563eb(4.75/5.09/4.35), ATL = amber #aa4f09(5.04/5.40/4.62), TSB #0f766e(5.03/5.39/4.61), HR #dc2626(4.44/4.76/4.07), 고도 #047857(5.04/5.40/4.62), 파워 #7c3aed(5.24/5.61/4.80), 경로 #0d9488(s3 3.15, 여유 0.15) → **#0d9085**(−0.8%p, 3.61/3.87/3.31), heat 램프 #e6e0d7(heat-0, s2 대비 1.29 — 빈 칸 구분용, 위에 글자·마크 금지)→#99f6e4→#2dd4bf→#0d9488→#0f766e. 차트 색을 글자로 쓰면(범례 수치) text 4.5 가 필요하므로 CTL·HR 은 범례 글자에 쓰지 않고 fg 토큰을 쓴다.
 - SVG 는 `stroke="#hex"` 대신 `style="stroke: var(--color-chart-ctl)"` 또는 클래스로 칠한다(presentation 속성의 `var()` 는 브라우저마다 다름). JS 색 배열(`series=[{color}]`)은 `'var(--color-chart-ctl)'` 문자열을 넘긴다.
 - `routeGeometry.ts` 의 hex lerp 는 `color-mix(in oklab, var(--color-route-fast) ${p}%, var(--color-route-slow))` 문자열을 돌려주도록 바꾼다(순수 함수 유지, `routeGeometry.test.mjs` 기대값 갱신). heat 램프 인접 단계 간 대비는 1.4.11 대상 아님(값은 툴팁·텍스트로 제공), 빈 칸(heat-0)은 배경과 구분만 확인한다.
 - 기타: `--color-scrim`(두 테마 `rgb(0 0 0 / .4)`), `--color-shimmer`(다크 흰 6% / 라이트 #1c1917 6%), `--color-fg-on-accent`(teal·red 버튼 위 글자; 라이트 흰 글자 on #0f766e 5.47·#b91c1c 6.47, 다크는 구현 시 확인), ArchiveHero 그라디언트·ProviderMatrix 고정열 그림자 토큰화.
@@ -141,7 +141,7 @@
 | src/lib/components/ui/IconButton, ToggleChip, ToggleGroup, TextField, PageHead (.svelte) | 신규 | 각 25~60 | 공용 부품 |
 | src/lib/components/ui/ThemeSwitch.svelte | 신규 | ~30 | 3상태(시스템/라이트/다크) 전환, 기본 '시스템' |
 | 설정 화면 라우트(+page.svelte) | 수정 | +5 | ThemeSwitch 배치(셸 무변경, 결정 9) |
-| src/routes/layout.css (+ 필요 시 theme-light.css) | 수정(+신규) | +120 | 다크 값 조정, 마크·on·차트·heat·scrim 토큰, stone 라이트 블록 2개(`@media`·`data-theme`), color-scheme, focus-ring·tap |
+| src/routes/layout.css (+ 필요 시 theme-light.css) | 수정(+신규) | +120 | 다크 값 조정, 마크·on·차트·heat·scrim 토큰, B(따뜻한 종이) 라이트 블록 2개(`@media`·`data-theme`), color-scheme, focus-ring·tap |
 | FormChart, streams/+page, routeGeometry.ts, ActivityHeatmap, SourceCoverage, ReadinessGauge, ArchiveTabCard, RouteThumb, RacePredictionSummary | 수정 | 각 ±3~15 | hex → 차트 토큰 |
 | GarminCleanup, SyncStatusPill, SyncPanel, UiDefaultCard, ProviderComparison, coach/new, story/[period] | 수정 | 각 ±1~4 | Tailwind 기본 팔레트 → 상태 토큰 |
 | text-white 사용 약 10파일, Skeleton, ArchiveHero, ProviderMatrix, provider 배지·마크 사용처 | 수정 | 각 ±1~5 | on/mark/shimmer/그림자 토큰 |
@@ -174,7 +174,7 @@
 1. 대비 모듈과 테스트를 먼저 넣는다(테마 파서 포함, 라이트 블록이 없으면 라이트 검사는 skip). 현재 실패 조합을 `expectedFail` 로 표시해 목록을 확정한다(동작 변화 없음).
 2. **다크 그대로 토큰화:** 2.7 의 차트·heat·scrim·shimmer·on 토큰을 현재 값 그대로 만들고 hex·rgba·기본 팔레트·`text-white` 를 교체한 뒤 색 리터럴 가드를 켠다. 교체 전후 다크 스크린샷이 같아야 한다.
 3. **다크 값 조정:** A11Y-1 fg-muted #8494a9, semantic-red, series-3 마크, provider mark·on 토큰(A11Y-4), focus-ring(결정 8 후)과 전역 `:focus-visible` 을 넣고 다크 `expectedFail` 을 비운다.
-4. **라이트 도입(결정 13·14 확정 후):** stone 라이트 블록 2개·`color-scheme`·theme-init·theme.ts·설정 화면 ThemeSwitch 를 넣고 라이트 `expectedFail` 없이 통과시킨다. 2.6·2.7 의 금지 조합(라이트 s3 하한, 원색 마크 금지 배경)은 `contrastPairs.ts` 에 넣지 않아 사용 시 정적 검토로 걸리게 하고, provider 원색 마크 3 조합(strava·runalyze × s3)은 여유가 0.12 이하라 테스트 메시지에 "A11Y-12 원색 유지 — 배경을 어둡게 하지 말 것" 을 붙인다.
+4. **라이트 도입(결정 14 확정 후):** B 라이트 블록 2개·`color-scheme`·theme-init·theme.ts·설정 화면 ThemeSwitch 를 넣고 라이트 `expectedFail` 없이 통과시킨다. 2.6·2.7 의 금지 조합은 `contrastPairs.ts` 에 넣지 않아 사용 시 정적 검토로 걸리게 하고, 여유 0.15 이하 조합(strava·runalyze 마크 × s3, teal 텍스트 × s3)은 테스트 메시지에 "s3 하한 — 배경을 어둡게 하지 말 것(결정 14)" 을 붙인다. 재조절 색은 원래 값과 함께 주석으로 남겨 브랜드 이탈을 추적한다.
 5. 레이아웃 skip link·main·내비 순서와 PageHead 를 넣고, 전 라우트에 적용한 뒤 정적 가드를 켠다.
 6. 공용 부품을 넣고 영역별(shell → Today → Library → Coach → Data)로 교체하면서 baseline 을 줄인다. 마지막으로 Toast(오류 지속)를 수정한다.
 검증: `npm run test:unit`(tokenContrast 두 테마·라이트 블록 동일성 포함), `npm run check`, `python3 -m pytest tests/`(백엔드 무변경 확인).
@@ -190,7 +190,7 @@
 
 ## 6. 결정 필요
 
-1. fg-muted 처리 — **결정됨(2026-10-11, A11Y-1): (a) 값을 올림.** 다크 #8494a9(s1 5.77 / s2 4.73 / s3 3.35 → s3 텍스트 금지), 라이트 #6b645c(stone, A안 s1 5.58 / s2 5.83 / s3 5.34)로 재검증(2.6).
+1. fg-muted 처리 — **결정됨(2026-10-11, A11Y-1): (a) 값을 올림.** 다크 #8494a9(s1 5.77 / s2 4.73 / s3 3.35 → s3 텍스트 금지), 라이트 #6b645c(B안 s1 5.36 / s2 5.74 / s3 4.91)로 재검증(2.6).
 2. 터치 타깃 기준 — **결정됨(2026-10-11, A11Y-2): 44px, 문장 속 인라인 링크·차트 점 예외.**
 3. 라이트 테마·`prefers-color-scheme` 도입 시점 — **결정됨(2026-10-11, A11Y-3): 이번 접근성 작업에 함께 도입, 구현 전 토큰·조합 표 재설계(2.5~2.7).**
 4. Provider 색·배지 — **결정됨(2026-10-11, A11Y-4): 어두운 배경용 마크 토큰 분리(비텍스트 3:1), 배지 글자는 배경에 맞춰 흑/백 선택(2.7).**
@@ -200,10 +200,17 @@
 8. 포커스 링 색(teal·흰색·하늘색 등)과 — **결정됨(2026-10-11, A11Y-8): 두께 2px, 색은 두 테마 각각 대비 검증(후보 다크 #38bdf8, 라이트 #0369a1).**
 9. 수동 테마 전환 UI — **결정됨(2026-10-11, A11Y-9): (b) 설정 화면에 3상태(시스템/라이트/다크), 셸 변경 없음, FOUC 방지 스크립트 포함(2.5).**
 10. 기본 테마 정책 — **결정됨(2026-10-11, A11Y-10): (a) 시스템 따름(기본).** 라이트 OS 사용자는 업데이트 직후 밝게 바뀌므로 4단계 전후 스크린샷 비교(5절).
-11. 라이트 팔레트 방향 — **결정됨(2026-10-11, A11Y-11): (b) 따뜻한 중성(stone 계열).** slate 반전 제안값은 폐기, 2.6 A안으로 대체. 최종 톤은 결정 13.
-12. 라이트 provider 마크 — **결정됨(2026-10-11, A11Y-12): (a) 브랜드 원색 유지, 배지 배경은 두 테마 원색 고정.** A안에서 통과(strava s3 3.12, runalyze s3 3.02), 금지 배경은 2.7.
-13. 라이트 stone 팔레트 최종 톤(2.6): (a) **A stone(추천)** s1 #fafaf9 / s2 #fff / s3 #f5f5f4 — 전 조합 통과, 중성에 가까운 따뜻함 / (b) B 따뜻한 종이 s1 #f7f5f2 / s2 #fffdfa / s3 #efebe5 — 정체성 강함, s3 를 #f5f5f4 로 밝히지 않으면 의미색 텍스트 3개·strava·runalyze 마크 미달 / (c) C stone-200 칩 s3 #e7e5e4 — 카드·칩 위계 선명, s3 위 의미색 텍스트·series-3·border·원색 마크·경로색이 미달이라 s3 를 장식 전용으로 제한해야 함. 텍스트 색(fg #1c1917/#57534e/#6b645c)은 세 안 공통 제안이며 함께 확정한다. 결정 전 A·B 실화면 시안 비교 권장.
-14. 라이트 s3 보다 어두운 배경 규칙(2.7): A11Y-12 원색 유지로 runalyze 는 배경 상대휘도 0.906 이상이 필요하다. (a) 라이트 배경 하한을 s3(#f5f5f4)로 고정하고 선택·hover 강조는 배경 대신 테두리·굵기로 표현 — 대비 안전, 시각 피드백 약함 / (b) 더 어두운 강조 배경(stone-200)을 허용하되 그 위에서는 원색 마크·semantic 텍스트 금지(배지·이름 병기만) — 표현 자유, 금지 규칙 관리 부담.
+11. 라이트 팔레트 방향 — **결정됨(2026-10-11, A11Y-11): (b) 따뜻한 중성.** slate 반전 제안값은 폐기, 최종 톤은 결정 13(B 따뜻한 종이).
+12. 라이트 provider 마크 — **결정됨(2026-10-11, A11Y-12): (a) 브랜드 원색 유지, 배지 배경은 두 테마 원색 고정.** **수정 메모(2026-10-11, 결정 13 의 효과):** B 안에서 원색 strava(s3 2.86)·runalyze(2.78) 마크가 미달하므로 '라이트용 마크는 대비 통과하도록 조절 허용'으로 바뀐다 — strava #f14902, runalyze #159946(명도 −2.2%p). 배지 배경 원색 고정은 그대로(2.7).
+13. 라이트 팔레트 최종 톤 — **결정됨(2026-10-11, A11Y-13): B 따뜻한 종이** s1 #f7f5f2 / s2 #fffdfa / s3 #efebe5, 텍스트 fg #1c1917/#57534e/#6b645c. 미달 색 재조절(명도만 −0.8~−2.2%p): amber #b45309→#aa4f09, green #15803d→#14793a, delta-worse #c2410c→#bb3f0c, series-3·border-strong #8c847b→#887f76, strava 마크 #fc4c02→#f14902, runalyze 마크 #16a34a→#159946, 경로 #0d9488→#0d9085. 재조절 후 2.6·2.7 전 조합 통과(최소 text 4.61, ui 3.11).
+14. 라이트 s3 보다 어두운 상태 배경(선택·hover·pressed·disabled) 허용 여부 — **재검토 완료, 결정 필요.**
+    - **현황(2026-10-11 grep, `frontend/src` svelte):** ① hover 배경 62곳/37파일(`hover:bg-surface-3` 40, `-2` 15, `-3/70` 4, `-2/50` 1, `semantic-amber/20` 1, `border-subtle` 1) ② 선택·pressed 를 배경으로 그리는 조건식 35줄/21파일(`aria-pressed` 25·`aria-current` 7·`aria-checked` 2·`aria-selected` 1, 20파일). 유형: 중립 배경만(+굵기) — story 월/주, streams x축, ArchiveTabCard 탭, `+layout` lg 내비 활성(`lg:bg-surface-3`), TaperSheet 행, WeekStrip / 테두리+배경 — RowActionSheet(`border-fg-primary bg-surface-2`), SplitBars(`ring-1 ring-fg-muted`) / 반전 채움 — metrics 목록·상세 5, coach/plan/new(`bg-fg-primary text-surface-1`) / 의미색 채움 — QuickInput, ActivityFeedbackSheet(`bg-semantic-teal|amber text-white`) / 틴트+색 테두리 — ActivityFilters, library/providers(`bg-semantic-teal/15 border-semantic-teal`) ③ disabled: `opacity-30~60` 47곳/30파일, `disabled:bg-surface-3` 1 ④ 스크림 `bg-black/30~50` 10곳.
+    - **요건 구분(WCAG 2.2):** hover 배경은 상태 식별 정보가 아니라 장식 피드백이라 1.4.11 대상이 아니다(그 위 글자 4.5 만 필요). disabled 는 1.4.3·1.4.11 예외(비활성 컴포넌트). 스크림은 위에 전경이 없어 대상 아님. **선택·pressed·current 만 1.4.11 대상**이며, 상태를 배경만으로 보여 주면 인접 색(s2)과 3:1 이 필요하다.
+    - **핵심 계산:** s3 vs s2 1.17, 후보 state #e9e4dc vs s2 1.25, amber/20 틴트 1.33. 밝은 배경이 s2 와 3:1 이 되려면 상대휘도 ≤ 0.30(중간 회색)이어야 해 fg-primary 글자가 무너진다 → **라이트에서 어떤 '어두운 배경'도 단독 상태 표시가 될 수 없고**, 상태 대비는 전경(테두리 fg-primary 17.2, teal 5.39, 반전 채움 17.2, 의미색 채움 5.4~6.4)이 맡아야 한다. 현재 '중립 배경만' 6곳은 다크·라이트 모두 1.4.11 미달이다.
+    - (a) **s3 하한 + 전경 지시자(추천):** 라이트 배경은 s3 까지만. 선택은 ToggleChip 에서 테두리 fg-primary/teal(2px) 또는 반전·의미색 채움(흰 글자 5.47~6.47) 중 하나를 필수로, hover 는 s3. 대비: 2.6 표 전부 그대로 통과, 신규 금지 조합 0. 시각 강도: 채움형은 강함, 테두리형은 중간. 관리: 토큰 추가 0, 규칙 1줄. 변경: 중립 배경만 6파일 + hover:bg-border-subtle 1 + ActivityRow(amber/20 위 amber 글자 4.05 ✗ → `/10` 또는 fg-primary) 1 = 약 8파일(나머지는 2.2 ToggleChip 교체에 흡수).
+    - (b) **전용 `--color-surface-state` #e9e4dc 허용 + 허용 전경 제한:** 위 허용 fg-primary 13.8·secondary 6.03·muted 4.61·red 5.11·focus 4.69, 금지 amber·green·teal·delta-worse 텍스트 4.33, series-3·strava·runalyze 마크 2.91. 금지를 없애려면 의미색을 한 번 더 어둡게(amber #a34b08, strava #e94602, runalyze #149443 등, 명도 −3~−4%p) 해야 해 브랜드 이탈이 두 배가 된다. 시각 강도: 배경 대비 1.25 로 (a)의 테두리 없이는 1.4.11 을 여전히 못 넘어 전경 지시자도 필요. 관리: 토큰 1·contrastPairs 5행·금지 규칙 7개. 변경: (a) 8파일 + layout.css·contrastPairs.
+    - (c) **배경 상태 표현 전면 금지(전경만: 밑줄·체크 아이콘·테두리):** hover 배경까지 제거. 대비 가장 단순하나 시각 피드백 가장 약하고 hover 62곳/37파일 + 선택 21파일을 고쳐야 한다.
+    - **추천 (a):** 어두운 배경은 라이트에서 1.4.11 충족에 기여하지 못하면서 금지 조합 7개(또는 추가 색 이탈)만 늘린다. 강한 피드백이 필요한 단일 선택 세그먼트는 이미 쓰는 반전 채움(17.2)으로 충분하다. heat-0 #e6e0d7 은 데이터 셀(위 전경 금지)로 예외 처리. 남은 결정: (a)/(b)/(c) 선택, (a) 시 테두리형과 채움형을 컴포넌트별로 고정할지(예: 다중 선택 칩=테두리, 단일 세그먼트=채움).
 
 ## 7. 범위 밖 메모
 
@@ -212,3 +219,4 @@
 - E-21: description·manifest 메타와 비표준 `text-scale` meta(theme-color 는 2.5 에서 테마별로 추가).
 - svelte-check a11y 경고 0 을 통과 기준으로 둘지, 스크린리더·실기기 점검(미검증)은 별도 판단.
 - 고대비 모드(`prefers-contrast: more`)·`forced-colors` 대응은 이번 범위 밖. 토큰 구조상 같은 방식으로 블록을 추가할 수 있다.
+
