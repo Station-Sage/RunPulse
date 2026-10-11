@@ -21,6 +21,9 @@
   - `07-entry-common.md` E-: 19건 (03,05,10,11,12,13,16,17,18,19,20,21,22,25,26,27,28,29,30)
   - `08-supplement.md` S-: 11건 (05,06,09,14,16,18,19,20,21,22,23)
 
+- **[CRS-EVALUATE-MISSING]** **(판단 필요)** `src/training/replanner.py:142`·`src/training/matcher_context.py:84` 가 `src.metrics.crs.evaluate` 를 import 하지만 해당 심볼이 없음(crs.py 에는 LEVEL_Z1·게이트 함수·CRSCalculator 만 존재) → ImportError 를 `except Exception` 으로 삼켜 CRS 경고(재계획 Q-day)·매처 스냅샷 CRS 가 항상 비어 있음. 복구 방식(evaluate 복원 vs metric_store 읽기)은 FRS-12(BOOST 보류)와 함께 설계 필요. 출처: `v0.3/data/phase-7-ui-renewal/design-2026-10/patterns/data-freshness.md` §8.
+- **[ADJUSTMENT-SOURCE-CRS-LABEL]** `plan_adjustment_service` 의 `source='crs'` 조정 제안은 실제로는 `plan_pain.proposal`/`adjust_todays_plan`(readiness·피로도 기반)에서 생성되어 이름과 근거가 불일치. 라벨/근거 정정 또는 CRS 근거 실제 반영 여부 판단 필요(ADR-035 영향 확인). 출처: 같은 문서 §8.
+
 ## 미해결 확인 사항 (MIGRATION-04 §6)
 - ~~[중간] curl_cffi ARM64 wheel 존재 여부~~ → 해결: OCI A1(aarch64)에서 이미지 빌드·Garmin 동기화 정상 (2026-09-27)
 - [낮음] test_flask_routes.py garmin 라우트 포함 여부 — 테스트 커버리지
