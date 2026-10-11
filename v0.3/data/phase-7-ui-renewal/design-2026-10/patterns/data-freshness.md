@@ -10,6 +10,7 @@
   - 2026-10-11 FRS-18(c) 래퍼 설계, FRS-19(a) — `plan_service.todays_adjustment_with_hold` 단일 진입점·호출부 이관 순서(§2.7), Hero `as_planned`+`hold_reason`, D20·D21 추가
   - 2026-10-11 설계서 동기화(FRS-4·20·21 확정 반영)
   - 2026-10-11 6차 동기화(V1-6·V1-10) — v1 `load_adjustment`는 이관이 아니라 호출부 재설계로 loader 자체를 없앰(§2.6-A2·§2.7 표·가드·이관 순서 0단계, §3·§5·§7 D18), `src/web` 공용 4파일 view 밖 이관의 영향(§동기화 중 발견 항목)
+  - 2026-10-11 7차 동기화(V1S-6·V1S-1~3·V1-13) — 호출부 형태 확정(`views_training.py:83` → `adjustment = None`, 조정 입력 미전달), v1 화면 영향 서술을 '감수(V1-13)' 한 줄로, 4파일 새 위치 확정 반영
 - 관련 ADR: ADR-009 (Calculator raw SQL 금지 — 신선도 판정은 서비스 계층, confidence는 이미 조회한 입력으로만 계산), ADR-020 (등급은 서버 SSOT, 프론트 임계값 없음 — 신선도도 같은 원칙), ADR-044 (동기화 상태는 원장만 진실 — `source_missing` caveat의 출처), ADR-042 (Calculator 버전 변경 시 changelog — `rmr`·`rtti`·`crs` 1.1), ADR-035 (조정 제안 행의 `rule_version` — BOOST 보류로 `adjuster_v2`)
 
 ## 1. 근본 원인
@@ -109,7 +110,7 @@ FRESHNESS_SPEC = {
 
 **A. BOOST 보류(D12 (c')) — 코드 확인 결과.** 강도 상향이 나가는 지점은 둘이고, 하향 경로와 코드상 분리돼 있다.
 - (A1) CRS 행 `json.level == 4`("볼륨 +5%") → `metric_display.action_hint`(library `crs` 카드·상세, `/today` `readiness.crs`). UTRS가 TSB 단독 85 → `crs_score ≥ 80`, BB·HRV 게이트 결측 "통과", TSB>5 → BOOST가 되는 것이 RC-1의 행동판.
-- (A2) `adjuster.adjust_todays_plan`의 `volume_boost`(TSB>10·당일 BB>70, CRS 무관) → `today_hero` `verdict="up"`, `web/views_training_loaders.load_adjustment`(v1 뷰 로더 — V1-6: 호출부 재설계로 loader 자체를 없앰, §2.7), `plan.py` CLI. `plan_adjustments`에는 저장되지 않는다(`ensure_proposal`은 `adjusted=True` 하향만 저장). **D15 (b) 결정: A1·A2 모두 보류.**
+- (A2) `adjuster.adjust_todays_plan`의 `volume_boost`(TSB>10·당일 BB>70, CRS 무관) → `today_hero` `verdict="up"`, `web/views_training_loaders.load_adjustment`(v1 뷰 로더 — V1-6·V1S-6: loader 자체를 없애고 호출부는 조정 입력 미전달, §2.7), `plan.py` CLI. `plan_adjustments`에는 저장되지 않는다(`ensure_proposal`은 `adjusted=True` 하향만 저장). **D15 (b) 결정: A1·A2 모두 보류.**
 - `adjust_todays_plan` 호출부 전수와 v2 호출부의 래퍼 이관은 §2.7(D18 (c) 결정). `views_training_loaders.py:45` 직접 호출은 이관하지 않고, 호출부(`views_training.py:83`)를 재설계해 `load_adjustment` loader 자체를 없앤다(V1-2·V1-6). `plan.py`(CLI)는 미수정.
 - `plan_adjustment_service`의 `source='crs'`는 이름과 달리 `readiness_decision`(피로도) 기반 하향만 만든다. `replanner`·`matcher_context`는 존재하지 않는 `crs.evaluate` import로 예외가 삼켜진다 — (c')의 영향 없음(§8, `evaluate()` 복원으로 결정 — BACKLOG).
 - **게이트 불명 판정에 새 저장값 불필요**: CRS 행 `signals.body_battery`·`signals.hrv_today`가 null이면 해당 게이트가 "(통과)"로 낙관 판정된 것(1.0 행에도 존재 → `min_version` 무관). confidence(BB·HRV 결측 0.65)는 보조 지표로만 쓰고 판정 키로 쓰지 않는다(가중치 변경에 취약).
@@ -138,7 +139,7 @@ FRESHNESS_SPEC = {
 | `ai/coach_rule_handlers.py:49` `_session_line` | AI 규칙 | 래퍼(`config` 위치인자 제거) | `adjusted`·타입 → 문장(`volume_boost` 미사용) |
 | `services/today_hero.py:143` | v2 Hero | 래퍼(§2.6 직접 전달 대신) | `adjusted`→`"down"`, `volume_boost`→`"up"`, 보류→`hold_reason` |
 | `services/plan_adjustment_service.py:98` `ensure_proposal` | v2 제안 저장 | 래퍼(`plan_pain.proposal` 우선 유지) | `adjusted=True` 하향만 저장 — hold 무관, `rule_version` 실효용 |
-| `web/views_training_loaders.py:45` `load_adjustment` | v1 뷰 로더(import는 `web/views_training*.py`만, `services/`·`api/`·`ai/` 0건 — 2026-10-11 grep) | **loader 제거(V1-6 (c))**: 호출부 `views_training.py:83`을 재설계해 `load_adjustment`를 삭제(이관 없음, 가드 허용 목록 추가 없음) | v1 UI(`views_training_wellness:77`·`views_training_condition:99` `volume_boost` 문구) — 일몰 대상 |
+| `web/views_training_loaders.py:45` `load_adjustment` | v1 뷰 로더(import는 `web/views_training*.py`만, `services/`·`api/`·`ai/` 0건 — 2026-10-11 grep) | **loader 제거(V1-6 (c)·V1S-6 (b))**: `views_training.py:83`을 `adjustment = None`(조정 입력 미전달)으로 바꾸고 `load_adjustment` 삭제(이관 없음, 가드 허용 목록 추가 없음) | 없음 — v1 조정 표시 사라짐, 감수(V1-13) |
 | `plan.py:117` | CLI | 미수정 | `:136` `volume_boost` 출력 |
 
 → 현재 실제 불일치는 plan API JSON(필드만, 미렌더)과 AI ctx다. Coach 문장 경로 3곳은 `volume_boost`를 읽지 않으므로 이관만으로는 문구가 변하지 않는다 → **D20 (b)**: `_session_line` 규칙 문장과 `coach_evidence` plan 근거에 `boost_held`면 보류 한 줄(FRS-4 문구) 추가. `plan_line`(AI ctx)은 래퍼 dict의 `boost_held`·reasons 필드만.
@@ -157,14 +158,14 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 - **중복 방지**: 모듈 전역 캐시는 두지 않는다(동기화 후 stale·conn 수명 문제). 같은 요청에서 CRS freshness를 이미 산출한 호출자(`today_service`의 `readiness.crs`)는 `hold=boost_hold(fr)`로 넘겨 추가 쿼리 0.
 - **에러·데이터 부족**: CRS 행 없음·stale은 `crs_boost_hold`가 hold로 판정(D17 a). `crs_boost_hold` 예외는 `log.warning` 후 `{"hold": True, "reasons": [{"code": "crs_missing"}]}`(불명 → 보류, D17과 같은 방향) — 래퍼가 새 예외를 만들지 않는다. `adjust_todays_plan` 자체의 예외는 **현행대로 전파**(호출부별 기존 처리 유지: plan_service 미처리, Coach·AI 3곳 try/except) — 회귀 불변 우선.
 - **계층**: `ai/`→`services/`는 기존 방향(`coach_rule_plan_handlers`→`plan_service`, `chat_engine`·`ai_context` 등). `services/`→`ai/`는 `ai_cache`·provider 인프라뿐이라 역전 아님. ai 2곳은 기존 관례대로 함수 내 지연 import. `today_hero`는 이미 `plan_service`를 지연 import. `plan_service`는 `plan_adjustment_service`·`coach_evidence`를 import하지 않아 순환 없음(구현 시 import 목록 재확인).
-- **직접 호출 차단**: adjuster 기본값 `boost_hold=None`이 현행이다. 가드 테스트 `tests/test_adjuster_callers.py`: `src/`에서 `adjust_todays_plan(` 직접 호출은 `adjuster.py`·`plan_service.py`(래퍼)·`plan.py`만 허용(정규식 스캔). 스캔 범위에서 v1 파일을 제외하거나 허용 목록에 v1 view를 넣는 방식은 채택하지 않는다(V1-2).
-- **v1 뷰 호출부 재설계 — loader 제거(V1-2·V1-6 (c))**: `views_training_loaders.load_adjustment`(`adjust_todays_plan(conn, config)` 직접 호출)는 view 밖 모듈로 이관하지 않는다. 유일한 호출부 `views_training.py:83`을 재설계해 loader 자체를 없앤다 — 이관 대상 모듈·가드 허용 목록 추가가 모두 필요 없어진다. loader 제거는 가드 테스트 도입보다 먼저(또는 같은 커밋) 끝나야 가드 테스트가 현행 `src/`에서 통과한다(이관 순서 0단계). 재설계된 호출부의 형태는 §동기화 중 발견 항목의 열린 항목.
-- **v1 화면 영향(한 줄)**: v1 일몰은 UI·라우트 일몰이라 일몰 전까지 v1 `/training` 화면은 남으며, 그 조정 표시(`render_adjustment_card`·컨디션 카드의 조정·"볼륨 부스트" 문구)는 재설계된 호출부가 넘기는 값으로 바뀐다 — 래퍼를 거치면 보류일 상향 문구가 사라지고, 조정 입력을 넘기지 않으면 현행 예외 시와 같은 `adj=None` 경로(조정 카드·섹션 미표시)로 렌더된다.
+- **직접 호출 차단**: adjuster 기본값 `boost_hold=None`이 현행이다. 가드 테스트 `tests/test_adjuster_callers.py`: `src/`에서 `adjust_todays_plan(` 직접 호출은 `adjuster.py`·`plan_service.py`(래퍼)·`plan.py`만 허용(정규식 스캔, `src/` 전체 — 제외 경로 없음). 전제: 0단계 v1 loader 제거(V1S-6)가 끝나 `src/web/`에 직접 호출이 0건이다.
+- **v1 뷰 호출부 재설계 — loader 제거(V1-2·V1-6 (c)·V1S-6 (b))**: `views_training_loaders.load_adjustment`(`adjust_todays_plan(conn, config)` 직접 호출)는 view 밖 모듈로 이관하지 않는다. 유일한 호출부 `views_training.py:83`을 `adjustment = None`(조정 입력 미전달)으로 바꾸고 loader 를 삭제한다 — 래퍼 호출·이관 대상 모듈·가드 허용 목록 추가 모두 없음. loader 제거는 가드 테스트 도입보다 먼저(또는 같은 커밋) 끝나야 가드 테스트가 현행 `src/`에서 통과한다(이관 순서 0단계).
+- 감수(V1-13): 일몰 전 v1 `/training` 조정 카드·조정 문구는 표시되지 않는다.
 
 **FRS-19 (a) 전달 경로.** adjuster `boost_hold_reasons` → 래퍼 → `today_hero`: `elif adj.get("boost_held")`면 verdict `"as_planned"` 유지 + `adjustment.hold_reason` → `/api/v1/today` → 프론트 `todayHero.ts`가 `view.adjustment` 생성 시 `hold_reason`이 있으면 `boostHoldCaption(hold_reason)`, 없으면 기존 "from → to" 문자열. **D21 (b)**: `view.adjustment`에 종류 필드 `kind: "down" | "hold"`를 넘기고 `TodayHero.svelte`는 `hold`면 중립(회색) 한 줄, `down`이면 기존 amber 박스(+5줄). 타입은 **필드 추가만**: `BriefingStateFields.adjustment`에 `hold_reason?: BoostHoldReason[]`, 플랜 응답 2타입(`volume_boost` 보유)에 `boost_held?: boolean`·`boost_hold_reasons?: BoostHoldReason[]`. verdict 유니언 불변.
 
 **이관 순서(1호출부 = 1커밋, 각 단계 대상 테스트 통과 후 다음).** 선행: §4 5-1의 adjuster `boost_hold` 인자(None 현행)·`crs_boost_hold`.
-0. v1 loader 제거(V1-6 (c)): `views_training.py:83` 호출부 재설계 + `views_training_loaders.load_adjustment` 삭제. 8단계 가드 테스트보다 먼저(늦어도 같은 커밋) — 남은 `src/` 직접 호출은 `adjuster.py`·`plan_service.py`(래퍼)·`plan.py`뿐이어야 한다. v1 UI 회귀 검증은 하지 않는다(V1-1).
+0. v1 loader 제거(V1-6 (c)·V1S-6 (b)): `views_training.py:83` → `adjustment = None` + `views_training_loaders.load_adjustment` 삭제(`bundles/v1-sunset-prep.md` §4 4단계와 같은 커밋). 8단계 가드 테스트보다 먼저(늦어도 같은 커밋) — 남은 `src/` 직접 호출은 v2 호출부(1~7단계 이관 대상)와 `adjuster.py`·`plan_service.py`·`plan.py`뿐이어야 한다. v1 화면 검증 없음(감수, V1-13).
 1. 래퍼 추가(호출자 없음) + `test_plan_service` 4개: hold 주입·`hold=` 전달 시 crs 미조회·crs 예외 → hold·계획 없음 → None.
 2. `plan_service` 145·177 → 래퍼. `test_plan_service`·`test_api_plan*`.
 3. `coach_evidence:152` → 래퍼 + `boost_held`면 plan 근거에 보류 한 줄(D20 b). `test_coach_evidence`(+1).
@@ -190,7 +191,7 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 | 수정 | `src/services/today_hero.py` | 143행 래퍼 경유(`today_service`가 `hold=` 전달 가능), `boost_held`면 verdict `as_planned`+`adjustment.hold_reason`(D16 b·D19 a) | 203→~210 |
 | 수정 | `src/services/coach_evidence.py`, `src/ai/coach_rule_handlers.py` | 래퍼 교체(지연 import) + `boost_held`면 plan 근거·`_session_line`에 보류 한 줄(D20 b, FRS-4 문구) | 각 +4~6(216→~222) |
 | 수정 | `src/ai/chat_readiness.py` | 래퍼 교체만(ctx에 `boost_held`·reasons 필드) | ±2 |
-| 수정 | `src/web/views_training_loaders.py`, `src/web/views_training.py` | V1-6 (c): `load_adjustment` 삭제, `:83` 호출부 재설계(형태는 §동기화 열린 항목) — §2.7 이관 순서 0단계 | −9 / 미정 |
+| 수정 | `src/web/views_training_loaders.py`, `src/web/views_training.py` | V1-6 (c)·V1S-6 (b): `load_adjustment` 삭제, `:83` → `adjustment = None`·import 제거 — §2.7 이관 순서 0단계 | −10 / −1 |
 | 신규 | `src/services/metric_freshness_spec.py` | `FRESHNESS_SPEC`, level 우선순위, 임계값, upstream 사이클 assert | ~50 |
 | 신규 | `src/services/metrics_trend_service.py` | `get_metric_trend`·`_race_events` 이동(+freshness). `metrics_browser_service.py` 298줄이라 분리 | ~100 |
 | 수정 | `src/services/metrics_browser_service.py` | trend 제거(−75), entry에 freshness(+8), crs `action_hint` 유보(+3), 하위호환 re-export | 298→~238 |
@@ -235,7 +236,7 @@ def todays_adjustment_with_hold(conn, date: str | None = None, *, hold: dict | N
 - **과거 행 confidence 변경**: 재계산 후 `rmr`·`rtti`·`crs`의 모든 과거 행 confidence가 실측값으로 바뀐다(값·level·text 불변). `confidence`를 읽는 소비처 — library `confidence_label`, `dashboard_service.get_dashboard_data`(readiness crs에 confidence 적재, `dashboard_service.py:84`), AI 컨텍스트 중 confidence를 싣는 경로 — 의 표시가 낮아질 수 있다. `get_dashboard_data`는 v1 전용이 아니다(2026-10-11 grep): `src/` 호출부는 `today_service.get_today_status`(v2 `/api/v1/today`, `routes_today.py:24`)·`ai_context.build_daily_briefing`(AI) 둘이고 `src/web/` import는 0건 — 공유 서비스로 유지. AI 컨텍스트의 confidence 표시는 이 설계에서 수정하지 않지만 저장값 자체가 정확해져 혜택을 받는다.
 - `readiness_decision` 헤드라인은 v2 `/today`, `coach_evidence`가 공유 → 유보 문구가 Coach 근거에도 나간다(의도된 일관성).
 - 스키마 변경 없음. 재계산은 1회(§4-2), 이후 일상 동기화는 1.1로 계산.
-- BOOST 보류는 읽기 시점 판정이라 저장 CRS level·과거 `plan_adjustments` 행은 불변. `rule_version`은 신규·내용 변경 행만 `adjuster_v2`(ADR-035, 기존 v1 행 유지). v2 서비스·Coach·AI 호출부는 래퍼로 Hero와 같은 보류 결과를 받는다(D18 c). `boost_hold=None` 기본값으로 `plan.py`(CLI)만 현행 상향 표시. v1 `views_training_loaders.load_adjustment`는 호출부 재설계로 loader 자체를 없앤다(V1-6 (c), §2.7) — 일몰 전 v1 `/training` 조정 표시 영향은 §2.7 "v1 화면 영향", v1 UI 문구는 일몰. 보류가 아닌 날은 모든 호출부 출력이 dict 단위로 현행과 같다. Hero verdict 유니언·API 기존 키 불변(D19 a, 필드 추가만).
+- BOOST 보류는 읽기 시점 판정이라 저장 CRS level·과거 `plan_adjustments` 행은 불변. `rule_version`은 신규·내용 변경 행만 `adjuster_v2`(ADR-035, 기존 v1 행 유지). v2 서비스·Coach·AI 호출부는 래퍼로 Hero와 같은 보류 결과를 받는다(D18 c). `boost_hold=None` 기본값으로 `plan.py`(CLI)만 현행 상향 표시. v1 `views_training_loaders.load_adjustment`는 loader 자체를 없앤다(V1-6 (c)·V1S-6 (b), §2.7) — v1 `/training` 조정 표시 소멸은 감수(V1-13). 보류가 아닌 날은 모든 호출부 출력이 dict 단위로 현행과 같다. Hero verdict 유니언·API 기존 키 불변(D19 a, 필드 추가만).
 - **알려진 한계(D17 a)**: HRV 7일 rolling 미형성 사용자(HRV 미지원 기기, 착용 7일 미만, 수면 중 미착용 잦음)와 BB 미지원 기기 사용자는 **장기간·사실상 영구히 BOOST가 나오지 않는다**. 하향·휴식은 정상. 보류 사유 한 줄로 원인은 드러나지만 해제 수단은 없다(수동 해제 (c)는 미채택).
 - D20 (b): Coach 규칙 문장·`coach_evidence`는 보류 한 줄을 말하고, LLM ctx는 `boost_held`·reasons 필드만 받는다. CRS level 4를 싣는 AI 컨텍스트 경로는 §8.
 
@@ -259,7 +260,7 @@ decisions-table FRS-1~21과 1:1(D_n = FRS-n).
 - **D11** (c) Calculator 실측 confidence — 1.0→1.1, `algo_changelog` 3항목(ADR-042), 전체 재계산(§4-1~3).
 - **D12** (c') CRS stale·게이트 불명이면 BOOST만 보류, 감량·휴식 유지, `adjuster_v2`(§2.6-A). **D13** (c) 목록 공통 문구, 상세만 성분명(§2.6-B). **D14** (b) `value_changed=False`면 ◆ 생략(§2.6-C).
 - **D15** (b) A1+A2 모두 보류, adjuster는 `boost_hold` dict 인자 주입. **D16** (b) 한 줄 사유(D4 문구). **D17** (a) BB·HRV(7일 rolling 포함) 당일 확보 + CRS fresh일 때만 해제(§5 알려진 한계).
-- **D18** (c) `plan_service.todays_adjustment_with_hold` 단일 진입점, v2 호출부 7곳 1커밋씩 이관, `plan.py` 미수정·가드 테스트(§2.7). v1 `views_training_loaders.py:45`는 가드 제외·이관 없이 호출부 재설계로 loader 제거(V1-2·V1-6 (c)). **D19** (a) Hero `"as_planned"` + `adjustment.hold_reason`.
+- **D18** (c) `plan_service.todays_adjustment_with_hold` 단일 진입점, v2 호출부 7곳 1커밋씩 이관, `plan.py` 미수정·가드 테스트(§2.7). v1 `views_training_loaders.py:45`는 가드 제외·이관 없이 loader 제거, 호출부는 조정 입력 미전달(V1-2·V1-6 (c)·V1S-6 (b)). **D19** (a) Hero `"as_planned"` + `adjustment.hold_reason`.
 - **D20** (b) 규칙 문장(`_session_line`)·`coach_evidence` plan 근거에 보류 한 줄(FRS-4 문구), 테스트 +3, `coach_rule_handlers` 216→~222줄(§2.7 3·5단계).
 - **D21** (b) Hero 보류 사유는 중립(회색) 한 줄 — `todayHero.ts` 종류 필드 `kind`, `TodayHero.svelte` 분기 +5줄(§2.7 FRS-19 경로).
 
@@ -281,7 +282,7 @@ decisions-table FRS-1~21과 1:1(D_n = FRS-n).
 - FRS-4 BOOST 보류 문구는 BB·HRV 결측(`gate_unknown`) 기준 한 문장뿐 — `crs_stale`·`crs_missing` 사유의 문구는 미정(화면 확인 시 조정 범위로 처리 가능한지 확인).
 - 유보형 헤드라인은 서버(`fatigue.readiness_decision`·`race_briefing`), Coach 보류 한 줄은 Python(D20 b)에서 생성되어 FRS-4 문구가 프론트 `freshness.ts`와 백엔드에 이중 정의된다(ADR-020 서버 SSOT 원칙과의 정합 확인 필요).
 - FRS-20 (b)의 "규칙 문장"에 `plan_line`(`ai/chat_readiness`)이 포함되는지 불명확 — 본문은 `_session_line`·`coach_evidence`만 문구 추가로 해석.
-- (5차 동기화 → 6차 동기화, V1-6 (c)로 해소) 4차에서 가드 허용 목록에서 뺀 v1 `views_training_loaders.py:45` 호출부는 가드 제외도, view 밖 이관도 아니라 호출부 재설계로 `load_adjustment` loader 자체를 없앤다(§2.7). 5차의 "이관 대상 모듈"·"래퍼 경유 vs 직접 호출(가드 허용 목록 추가)" 열린 항목은 소멸했다. 코드 사실: `load_adjustment` 호출부는 `views_training.py:83` 1곳(2026-10-11 grep), 반환값은 `render_adjustment_card`·컨디션 카드로만 간다. **남은 열린 항목**: 재설계된 호출부의 형태 — `views_training.py`가 `plan_service.todays_adjustment_with_hold`(가드 허용 래퍼)를 직접 부를지, v1 화면에 조정 입력을 넘기지 않을지는 미정(어느 쪽도 가드 허용 목록 변경 없음).
-- (6차 동기화, V1-10 영향) `src/web` 공용 4파일(`bg_sync.py`·`helpers.py`·`auto_sync.py`·`views_mcp_remote.py`)은 이번 작업에서 view 밖으로 모두 이관된다(새 위치 미정). 이 문서는 네 파일을 경로로 참조하지 않으므로 문서 속 파일 경로 변경은 없고, 가드 테스트 `test_adjuster_callers.py`는 `src/` 전체 정규식 스캔이라 이관 위치와 무관하며(네 파일의 `adjust_todays_plan` 호출 0건, 2026-10-11 grep), 이 설계의 import 경로(`plan_service`·`metric_freshness` 등)도 영향이 없다. §5의 "`get_dashboard_data` `src/web/` import 0건" 사실도 이관 후 그대로다.
+- (5차 동기화 → 6차 동기화, V1-6 (c)로 해소) 4차에서 가드 허용 목록에서 뺀 v1 `views_training_loaders.py:45` 호출부는 가드 제외도, view 밖 이관도 아니라 호출부 재설계로 `load_adjustment` loader 자체를 없앤다(§2.7). 5차의 "이관 대상 모듈"·"래퍼 경유 vs 직접 호출(가드 허용 목록 추가)" 열린 항목은 소멸했다. 코드 사실: `load_adjustment` 호출부는 `views_training.py:83` 1곳(2026-10-11 grep), 반환값은 `render_adjustment_card`·컨디션 카드로만 간다. (7차 동기화, V1S-6 (b)로 해소) 호출부 형태 = 조정 입력 미전달(`adjustment = None`), 래퍼 직접 호출 없음.
+- (6차 → 7차 동기화, V1-10·V1S-1~3 영향) `src/web` 공용 4파일은 이번 작업에서 view 밖으로 모두 이관된다 — `bg_sync.py`·`auto_sync.py` → `src/sync/`, `helpers.py` 공용 3함수 → `src/utils/user_context.py`(HTML 헬퍼는 잔류), `views_mcp_remote.py` → `src/mcp_remote/http.py`(shim 없음, V1S-5). 이 문서는 네 파일을 경로로 참조하지 않으므로 문서 속 파일 경로 변경은 없고, 가드 테스트 `test_adjuster_callers.py`는 `src/` 전체 정규식 스캔이라 이관 위치와 무관하며(네 파일의 `adjust_todays_plan` 호출 0건, 2026-10-11 grep), 이 설계의 import 경로(`plan_service`·`metric_freshness` 등)도 영향이 없다. §5의 "`get_dashboard_data` `src/web/` import 0건" 사실도 이관 후 그대로다.
 - (5차 동기화, 해소) §5 `dashboard_service`는 v1 전용이 아니다 — `get_dashboard_data` 호출부는 `today_service.get_today_status`(v2)·`ai_context.build_daily_briefing`(AI)뿐, `src/web/` import 0건. `today_service.py:29` docstring의 "v1 레거시 대시보드와 공유"는 현 코드와 맞지 않는다(코드 수정 범위 밖). §1 RC-1의 "v2 게이지 경로는 쓰지 않는다"는 `today_readiness.build_readiness`가 confidence를 빼는 것을 말한다 — `get_today_status` 응답에 crs confidence가 나가는지는 구현 시 확인.
 - (5차 동기화, 해소) `ai_context_legacy`는 AI 공용 경로다: `build_context`가 `ai_context.py:14` 재노출 → `briefing.build_chip_prompt` → `chat_engine`(칩 프롬프트, `chat_engine.py:88-92`) → `coach_service.chat_result`(v2 `/api/v1/coach`). `attach_readiness`는 `ai_context_legacy.py:107`에서 지연 import된다. §2.7 이관 대상 유지.

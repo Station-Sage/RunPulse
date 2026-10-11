@@ -1,6 +1,6 @@
-# race_calendar 관리 화면·계획 연동·목표 원천 재설계 (ADJ-11·12·17, NEW-1·4·5, RC-1~34)
+# race_calendar 관리 화면·계획 연동·목표 원천 재설계 (ADJ-11·12·17, NEW-1·4·5, RC-1~38)
 
-> 작성 2026-10-11 · product-architect · 상태: RC-1~34·V1-1(V1-2 정정) 결정 반영(2026-10-11) · 상위: `decisions-table.md` ADJ-11·12·17·NEW-1·4·5·RC-1~34·V1-1·V1-2, `adjustment-signals.md` §3.4, `adjustment-new-signals.md`
+> 작성 2026-10-11 · product-architect · 상태: RC-1~38·V1-1(V1-2 정정)·V1-13·PLN-23 결정 반영(2026-10-11) · 상위: `decisions-table.md` ADJ-11·12·17·NEW-1·4·5·RC-1~38·V1-1·V1-2·V1-13·PLN-23, `adjustment-signals.md` §3.4, `adjustment-new-signals.md`
 > DB·API 형태는 system-architect 확인 대상이다. 정책·기본값·문구는 `decisions-table.md` RC-* 결정이 기준이다(§5).
 
 **변경 이력**
@@ -13,6 +13,7 @@
 - 2026-10-11 4차 동기화(RC-23·24·V1-1): 미래 날짜 done 대회는 목록 '확인 필요' 배지 + 신호·D-day 제외 코드 경로 열거(§2.4·§2.7·§2.8 신설·§3·§4), RC-21 예외 행 수정 시 `push_cache`가 `race_date` 캐시를 채워 불변식 4 예외 해소(§2.2·§2.3·§3·§4), v1 화면·경로 호환 서술 제거(§1·§2.1·§2.3·§3·§4·§6, V1-1 일몰).
 - 2026-10-11 5차 동기화(RC-25·26·27, V1-1 정정·V1-2): '확인 필요' 대회는 별도 구역(§2.7·§2.8·§3·§4), RC-21 예외 행 캐시는 날짜를 실제로 입력·변경한 저장에서만 채움(§2.1·§2.2·§2.3·§3·§4), cancelled 대회 수정 허용 + cancelled → planned 복원 경로 신설(§2.4·§2.7·§2.12 신설·§3·§4), v1 일몰 = UI·라우트 일몰로 정정 — 공유 함수 `add_goal`·`update_goal` 유지 근거 복원(§1·§2.3·§3·§4·§7).
 - 2026-10-11 6차 동기화(RC-28~34): 복원 시 취소 직전 adapt_choice·plan_state 복원(RC-28, 보존 필드 제안 §2.1·§2.12), 지난 날짜 복원은 RC-18 확인 후 done(RC-29), A 충돌 시 기존 A 강등 확인(RC-30), '취소됨' 접힘 구역(RC-31, §2.7), '확인 필요' 행 '예정으로 되돌리기'(RC-32, §2.4·§2.7·§2.8·§2.13 신설), '확인 필요' 행 결과 기록 카드 제외(RC-33, §2.6-5·§2.8), 같은 날짜 재선택은 '입력' 아님(RC-34, §2.2). §3·§4·§5·§7 갱신.
+- 2026-10-11 7차 동기화(RC-35~38·PLN-23·V1-13): 불변식 3 완화 'A 이거나 활성 목표 미연결'(RC-35, §2.2·§3 `check_data_consistency.py`), 복원 시 직전 applied면 일괄 적용 재실행·실패 처리 제안(RC-36, §2.12), '예정으로 되돌리기' 후 unasked·A 충돌은 RC-30(RC-37, §2.13), 보존 컬럼 `cancel_prev_*` 확정·보존 값 없는 행 서술(RC-38, §2.1·§2.12), 기존 플랜 삭제에 따른 v39 백필·계획 연동 정리(PLN-23, §2.6·§4), v1 호환 서술 제거(V1-13, §3·§4·§7). §5·§7 열린 질문 갱신.
 
 ## 1. 근본 원인 (grep 2026-10-11)
 - **대회의 원천이 셋으로 흩어져 있고, B/C 대회를 관리하는 곳이 없다.** ① `goals.race_date·distance_km`(활성 목표 1건 유니크 `ux_goals_one_active`, v32) ② `planned_workouts.workout_type='race'` 행(재계획 때 다시 만들어져 메타데이터가 사라짐) ③ `race_results`(v20, `activity_id` 기준 실적, 예정 대회 아님).
@@ -35,7 +36,7 @@
 | `goal_type`, `goal_value` | 선택 | `finish|time|pb` CHECK(RC-3). `time`이면 `goal_value`=초, `pb`는 기존 PB를 표시하고 값은 비움 |
 | `adapt_choice` | 자동 | `unasked|later|adapt|no_adapt`, 기본 `unasked`. 기본 선택값은 없고 항상 묻는다(RC-4 b) |
 | `plan_state` | 자동 | `none|applied|stale`: 계획에 실제 반영된 상태 |
-| `cancel_prev_adapt_choice`, `cancel_prev_plan_state` | 자동(제안) | 취소 직전 값 보존(RC-28). 취소(cancelled 전이) 때 기록, 복원 때 읽고 NULL로 비움. 컬럼 방식은 열린 질문(§2.12) |
+| `cancel_prev_adapt_choice`, `cancel_prev_plan_state` | 자동 | 취소 직전 값 보존(RC-28, **RC-38 a 확정: 새 컬럼, v38 DDL**). NULL 허용·기본값 NULL, CHECK는 각각 `adapt_choice`·`plan_state`와 같은 값 + NULL. 취소(cancelled 전이) 때 기록, 복원 때 읽고 NULL로 비움. NULL = "보존 값 없음"(§2.12) |
 | `taper_days`, `recovery_days` | 선택 | NULL이면 거리별 기본값(§2.5), 값이 있으면 대회별 덮어쓰기(RC-5 a) |
 | `status` | 자동 | `planned|done|cancelled` |
 | `origin` | 자동 | `manual|goal|import`(goal=v39 백필 또는 목표 생성 경로, import는 범위 밖) |
@@ -52,9 +53,12 @@
 ### 2.2 불변식 ('A 대회 하나'의 새 표현)
 1. 활성 목표 ≤ 1 (`ux_goals_one_active`, v32 유지).
 2. planned A 대회 ≤ 1 (`ux_race_one_a`).
-3. 활성 목표에 race_id가 있으면 그 대회는 `priority='A' AND status IN ('planned','done')`이다(done은 RC-17: 대회가 지나도 목표는 사용자가 완료할 때까지 활성). 반대로 planned A 대회가 있으면 그것을 참조하는 활성 목표가 있다. 즉 **A 지정 = 목표 대회 지정**이다. A는 목표 생성·교체 흐름으로만 만들어지고, 캘린더 시트에서 A를 고르면 목표 생성 화면으로 넘어간다. 교체 시 이전 planned A는 B로 강등, `adapt_choice='unasked'`·`plan_state='none'`(질문 대기, RC-15 b). 이전 A가 이미 done이면 그대로 둔다.
+3. **(RC-35 b로 완화, 결정 문구 'A 이거나 활성 목표 미연결')** 활성 목표에 race_id가 있으면 그 대회는 `status IN ('planned','done')`이다(done은 RC-17: 대회가 지나도 목표는 사용자가 완료할 때까지 활성). 완화 전의 두 조건 — "활성 목표의 대회는 `priority='A'`", "planned A 대회는 활성 목표가 참조" — 은 더 이상 강제하지 않는다. 완화로 허용되는 상태(현 설계가 만드는 경우만):
+   - **활성 목표에 연결되지 않은 A:** §2.2 교체 규칙으로 남은 done A(이전 A가 done이면 그대로 둔다 — 아래), RC-30 복원으로 planned/done이 된 A(연결 목표는 cancelled·completed), RC-37 '예정으로 되돌리기'로 planned가 된 A(연결 목표 completed).
+   - **활성 목표가 연결된 B:** RC-30 강등(복원 A와 충돌한 기존 A가 활성 목표 대회일 때). RC-35는 강등 전에 목표 연결 변경을 요구하지 않는다((a) 기각) — 목표는 활성·연결 그대로, 대회만 B·`unasked`·`none`. **해석 주의:** 결정 문구를 대회 행마다 "A 이거나 활성 목표에 미연결"로 글자 그대로 읽으면 이 상태(활성 목표 → B)는 위반이다. RC-35가 '목표 연결 변경 먼저'(a)를 기각하고 강등을 허용했으므로 이 설계는 허용 쪽으로 읽었다 — 확인 필요(§7 열린 질문 R1).
+   - 정상 흐름에서는 여전히 **A 지정 = 목표 대회 지정**이다. A는 목표 생성·교체 흐름(RC-30 복원·RC-37 되돌리기 제외)으로만 만들어지고, 캘린더 시트에서 A를 고르면 목표 생성 화면으로 넘어간다. 교체 시 이전 planned A는 B로 강등, `adapt_choice='unasked'`·`plan_state='none'`(질문 대기, RC-15 b). 이전 A가 이미 done이면 그대로 둔다(활성 목표 미연결 done A — 완화된 불변식 3 허용). **RC-30과의 관계:** 이 '그대로 둔다'는 목표 교체 경로 규칙이고, RC-30 복원 경로는 기존 A가 planned이든 done이든 강등을 묻는다(RC-35 (c) 기각). 두 경로 결과 모두 완화된 불변식 3을 만족한다. planned A ≤ 1은 불변식 2(`ux_race_one_a`)가 계속 지킨다.
 4. 캐시 일치: 활성·비활성 목표 모두 `goals.race_date/distance_km/target_time_sec` = 참조 대회 값. **예외(RC-21 b):** RC-19 백필로 생성일 대회에 연결된 비활성 목표(`status != 'active' AND race_id IS NOT NULL AND race_date IS NULL`)는 `race_date` 캐시가 NULL인 것을 허용한다(`distance_km`·`target_time_sec`는 일치 대상 그대로). 생성일은 실제 대회 날짜가 아니므로 캐시로 퍼뜨리지 않는다. **예외 해소(RC-24 a, RC-26 a):** 사용자가 이 대회 행을 캘린더 시트(`race_calendar_service.update`)로 수정해 저장할 때 **`race_date`를 실제로 입력·변경한 경우에만** 같은 트랜잭션에서 `race_goal_sync.push_cache`가 연결 목표의 `race_date` 캐시를 대회 값으로 채운다 — 그 뒤로 이 행은 예외가 아니며 일반 불변식 4를 따른다. 날짜를 바꾸지 않은 저장(생성일 그대로)은 `race_date` 캐시를 NULL로 두고 예외를 유지한다(생성일을 캐시로 퍼뜨리지 않음, RC-21 취지). `distance_km`·`target_time_sec` 캐시는 예외 대상이 아니므로 어떤 저장이든 대회 값으로 맞춘다. 판정은 서비스에서 저장 전 행의 `race_date`와 요청 값을 비교한다(변경 = 값이 다름). 같은 날짜를 시트에서 다시 골라 저장해도 값이 같으면 '입력'으로 보지 않는다(RC-34 a, 예외 유지 — 시트가 별도 '날짜 확인' 신호를 보낼 필요 없음). 예외 행은 status done/cancelled이며, RC-27로 cancelled 행도 수정 가능하므로 같은 규칙이 적용된다.
-- 1·2는 DB 인덱스, 3·4는 서비스(`race_goal_sync`)와 `check_data_consistency.py` 신규 검사 2건으로 지킨다(불변식 3 검사 조건은 `status IN ('planned','done')`, 불변식 4 검사는 위 예외 행(캐시 `race_date IS NULL`인 비활성 연결 목표)의 `race_date` 비교만 건너뛴다 — 날짜 미변경 저장으로 NULL이 유지된 행도 여기에 포함되고(RC-26), 날짜 입력·변경으로 캐시가 채워진 행은 일반 비교 대상(RC-24))(SQLite 트리거는 마이그레이션·테스트 부담 대비 이득이 작아 쓰지 않는다).
+- 1·2는 DB 인덱스, 3·4는 서비스(`race_goal_sync`)와 `check_data_consistency.py` 신규 검사 2건으로 지킨다(불변식 3 검사 조건은 RC-35 완화와 동일하게 갱신 — 활성 목표가 연결한 대회가 존재하고 `status IN ('planned','done')`인지만 본다. `priority='A'` 조건과 "planned A ⇒ 활성 목표 참조" 역방향 검사는 하지 않는다(R1 해석 확정 시 함께 조정). 불변식 4 검사는 위 예외 행(캐시 `race_date IS NULL`인 비활성 연결 목표)의 `race_date` 비교만 건너뛴다 — 날짜 미변경 저장으로 NULL이 유지된 행도 여기에 포함되고(RC-26), 날짜 입력·변경으로 캐시가 채워진 행은 일반 비교 대상(RC-24))(SQLite 트리거는 마이그레이션·테스트 부담 대비 이득이 작아 쓰지 않는다).
 
 ### 2.3 쓰기 경로와 화면 역할 (어느 쪽에서 고쳐도 한 곳이 갱신)
 | 진입 | 고치는 것 | 실제 쓰기 |
@@ -80,13 +84,14 @@
 | done | adapt | applied·stale | 회복 O | X(이중 감량 방지) | O | 결과 연결 |
 | done | no_adapt | none | X | X | X | 결과 연결 |
 | cancelled | 무관(직전 값은 `cancel_prev_*`에 보존, RC-28) | none | X | X | X | 취소됨(수정 가능 RC-27 b, "다시 활성화" §2.12, '취소됨' 접힘 구역 RC-31) |
-| planned/done, A | adapt 고정 | applied | O | X | O | 목표 대회 |
+| planned/done, A(활성 목표 연결) | adapt 고정 | applied | O | X | O | 목표 대회 |
 | done, `race_date ≥ today`(미래 날짜 done, RC-22·23) | 무관 | 무관 | **X** | **X** | **X** | **확인 필요** 배지(결과 기록 카드도 제외 RC-33, '예정으로 되돌리기' RC-32) |
 - **미래 날짜 done 행(RC-23 a):** 위 마지막 행이 다른 done 행보다 우선한다. 사용자가 정리(날짜 수정 또는 삭제)하기 전까지 어떤 대회 신호·D-day에도 쓰지 않고 목록에만 '확인 필요' 배지로 보인다. 제외 경로 목록은 §2.8.
+- **활성 목표 미연결 A(RC-35 완화로 생김):** RC-37로 되돌린 A는 `unasked`·`none`, RC-30 복원 A는 복원 값(RC-28·RC-36)을 가진다. 이 행들이 'adapt 고정' 행이 아니라 adapt_choice별 일반 행(질문 대기 등)을 따르는지는 결정 문구에 없다 — §7 열린 질문 R3(현 설계는 일반 행을 따르는 것으로 서술).
 - 테이퍼 기간 하향은 어떤 상태에서도 보조 근거로만 쓴다(§3.4). `no_adapt`는 캘린더 표시만 남고 조정 신호에는 전혀 들어가지 않는다.
 - **race 주 트리거 위치(ADJ-17 a):** RC-6 회복 하향 트리거(source=`race`)는 `adjustment-signals.md` §3.8 주 트리거 순서 `pain > illness > checkin > race > crs > acwr > readiness`에서 체크인 바로 뒤다. 같은 날 통증·질병·체크인 통증 트리거가 함께 있으면 source는 그쪽이 되고 race는 support 이하로 기록된다. 순서는 추후 백테스트·ML 재검토 대상(`LATER.md` 기록).
 - **RC-4b ↔ RC-6 정합(결정 표 기준):** RC-4b가 우선한다. RC-6(a)의 "계획에 반영하지 않은 대회"는 `adapt_choice IN ('unasked','later')`(질문 대기·나중에)만 뜻하고, `no_adapt`('조정 안 함')는 회복 하향 트리거를 포함한 어떤 대회 신호에도 들어가지 않는다. `adjustment-signals.md` §3.4의 `detail.unplanned=true`도 이 두 상태에만 붙인다.
-- **전이:** 등록 → unasked. 지난 날짜(`race_date < reference_today`) 등록(RC-18 c)도 같은 경로로 planned·unasked로 저장되고, 다음 조회 때 기존 지연 done 전이(RC-8)로 done이 된다(별도 분기 없음). **RC-20 a:** 지난 날짜 등록분도 날짜 규칙 그대로 다룬다 — 회복 창(`race_date` + 회복 일수) 안이면 done·unasked 행으로 RC-6 회복 하향 트리거 대상이 되고 계획 반영 질문도 띄운다(등록 경로·이력용 여부로 제외하지 않음). 회복 창이 이미 지났으면 날짜 규칙상 신호가 생기지 않는다. 질문 응답 → adapt(일괄 적용 성공 시 applied) / later / no_adapt. 시트를 닫으면 unasked 유지. later·no_adapt는 목록 칩에서 다시 고를 수 있다. applied 대회의 날짜·거리·우선순위·보호 기간 수정 → stale(no_adapt·unasked·later는 질문 없이 값만 바뀜). 일괄 되돌리기 → plan_state none, adapt_choice later. A 교체로 강등된 이전 A → B·unasked·none(RC-15). 날짜 경과 → done(RC-8), A이면 목표는 활성 유지(RC-17). 삭제 → cancelled, applied였으면 같은 트랜잭션에서 반영분 일괄 되돌리기(RC-9). A는 질문 없이 adapt·applied(계획이 목표에서 생성). **cancelled 수정(RC-27 b):** 이름·날짜·거리·우선순위·목표·보호 기간·메모를 고칠 수 있고 status는 cancelled 그대로, adapt_choice·plan_state는 바뀌지 않으며 질문·신호·D-day는 없다(제외는 status 기준). **취소 시 값 보존(RC-28):** cancelled 전이(RC-9) 직전의 adapt_choice·plan_state를 보존 필드에 기록한 뒤 RC-9 되돌리기를 적용한다(§2.12). **복원(RC-27 추가·RC-28~30):** `race_date ≥ today`면 cancelled → planned, 지난 날짜면 RC-18 확인 문구 후 cancelled → done(RC-29, RC-8·RC-20 규칙 적용). adapt_choice·plan_state는 취소 직전 값으로 되돌린다(RC-28). A 행이 다른 A와 충돌하면 기존 A 강등 확인(RC-30). 복원 후에는 해당 status의 표 행대로 신호·D-day 대상에 복귀하고, 이후 전이는 위 규칙을 그대로 따른다. **예정으로 되돌리기(RC-32 a):** '확인 필요'(미래 날짜 done) 행만 수정 시트 버튼으로 done → planned(§2.13).
+- **전이:** 등록 → unasked. 지난 날짜(`race_date < reference_today`) 등록(RC-18 c)도 같은 경로로 planned·unasked로 저장되고, 다음 조회 때 기존 지연 done 전이(RC-8)로 done이 된다(별도 분기 없음). **RC-20 a:** 지난 날짜 등록분도 날짜 규칙 그대로 다룬다 — 회복 창(`race_date` + 회복 일수) 안이면 done·unasked 행으로 RC-6 회복 하향 트리거 대상이 되고 계획 반영 질문도 띄운다(등록 경로·이력용 여부로 제외하지 않음). 회복 창이 이미 지났으면 날짜 규칙상 신호가 생기지 않는다. 질문 응답 → adapt(일괄 적용 성공 시 applied) / later / no_adapt. 시트를 닫으면 unasked 유지. later·no_adapt는 목록 칩에서 다시 고를 수 있다. applied 대회의 날짜·거리·우선순위·보호 기간 수정 → stale(no_adapt·unasked·later는 질문 없이 값만 바뀜). 일괄 되돌리기 → plan_state none, adapt_choice later. A 교체로 강등된 이전 A → B·unasked·none(RC-15). 날짜 경과 → done(RC-8), A이면 목표는 활성 유지(RC-17). 삭제 → cancelled, applied였으면 같은 트랜잭션에서 반영분 일괄 되돌리기(RC-9). A는 질문 없이 adapt·applied(계획이 목표에서 생성). **cancelled 수정(RC-27 b):** 이름·날짜·거리·우선순위·목표·보호 기간·메모를 고칠 수 있고 status는 cancelled 그대로, adapt_choice·plan_state는 바뀌지 않으며 질문·신호·D-day는 없다(제외는 status 기준). **취소 시 값 보존(RC-28):** cancelled 전이(RC-9) 직전의 adapt_choice·plan_state를 보존 필드에 기록한 뒤 RC-9 되돌리기를 적용한다(§2.12). **복원(RC-27 추가·RC-28~30):** `race_date ≥ today`면 cancelled → planned, 지난 날짜면 RC-18 확인 문구 후 cancelled → done(RC-29, RC-8·RC-20 규칙 적용). adapt_choice·plan_state는 취소 직전 값으로 되돌린다(RC-28·RC-38). 직전 값이 applied였으면 복원 때 일괄 적용을 다시 실행한다(RC-36 b, 실패 처리는 §2.12). A 행이 다른 A와 충돌하면 기존 A(planned·done 모두) 강등 확인(RC-30, 불변식 3 완화 RC-35). 복원 후에는 해당 status의 표 행대로 신호·D-day 대상에 복귀하고, 이후 전이는 위 규칙을 그대로 따른다. **예정으로 되돌리기(RC-32 a):** '확인 필요'(미래 날짜 done) 행만 수정 시트 버튼으로 done → planned, adapt_choice `unasked`·plan_state `none`으로 초기화(RC-37 a), A 충돌은 RC-30 규칙(§2.13).
 - 적용 실패(409 등)면 adapt_choice·plan_state를 바꾸지 않는다.
 
 **상태 전이 요약(status 축)**
@@ -98,9 +103,9 @@
 | done | 삭제(배지 행 정리 포함) | cancelled | RC-9·RC-23 |
 | done(미래 날짜) | 날짜를 과거로 수정 | done(일반) | RC-23, §2.8 |
 | cancelled | 수정 | cancelled | RC-27 b |
-| cancelled | 다시 활성화(`race_date ≥ today`) | planned | RC-27 추가·RC-28·RC-30, §2.12 |
-| cancelled | 다시 활성화(`race_date < today`, RC-18 확인 후) | done | RC-29(RC-8·RC-20), §2.12 |
-| done(미래 날짜, '확인 필요') | 예정으로 되돌리기 | planned | RC-32 a, §2.13 |
+| cancelled | 다시 활성화(`race_date ≥ today`) | planned | RC-27 추가·RC-28·RC-30·RC-35·RC-36·RC-38, §2.12 |
+| cancelled | 다시 활성화(`race_date < today`, RC-18 확인 후) | done | RC-29(RC-8·RC-20)·RC-36, §2.12 |
+| done(미래 날짜, '확인 필요') | 예정으로 되돌리기 | planned(`unasked`·`none`) | RC-32 a·RC-37 a, §2.13 |
 | done(일반, 과거 날짜) | planned 되돌리기 | — | 경로 없음(RC-32는 '확인 필요' 행 한정) |
 
 ### 2.5 보호 기간 (RC-5 a)
@@ -110,6 +115,7 @@
 ### 2.6 계획 연동 흐름
 1. **저장 → 영향 계산(쓰기 없음):** 순수 함수 `race_impact(rows, race, windows)`. `b_race_week()`를 일반화(테이퍼·회복 일수 인자)해 재사용한다. race·rest·완료·매칭된 행은 건드리지 않는다.
 2. **B/C 대회 일괄 적용(RC-7 a):** `RacePlanPrompt` 미리보기(날짜별 전→후, 근거 칩) 한 번에 수락 → 행 단위 `plan_adjustments`를 한 묶음(`batch_id`)으로 적용, 묶음 단위로 되돌린다. `source='race'`는 v37 재생성에 포함하도록 system-architect와 협의한다.
+   - **PLN-23(기존 플랜 삭제) 영향:** `race_impact`·일괄 적용·RC-6 회복 하향은 그 시점 `planned_workouts`에 있는 행(새로 만든 계획)만 대상으로 하고, `race_plan` 신호 수집(`adjustment-signals.md` §3.4)은 `race_calendar`만 읽는다 — 기존 플랜 행에 의존하는 경로가 없어 기존 행 이관·보정 로직을 두지 않는다. 계획이 없거나 창 안에 행이 없으면 `race_impact` 결과는 0건이다(빈 결과의 화면 처리는 기존 설계 범위, PLN-23로 새로 생기는 분기 아님). 기존 race 행(`workout_type='race'`)과 `race_calendar.planned_workout_id`를 잇는 백필도 하지 않는다(새 계획 생성 때만 채움).
 3. **A 대회:** 날짜·거리 변경 시 저장 전 `plan_replan_service.preview`를 보여 주고(RC-13 a), 수락하면 `race_calendar` 갱신 + 캐시 + `apply`를 한 흐름으로, 이후 `undo`(다음 월요일 시작, 마지막 1건 되돌리기 규칙 유지). 대회 주 안의 변경은 2번 경로로 대체한다.
 4. **보호 기간 신호:** §2.4 표대로. applied 대회는 `race_plan` 단독 하향 트리거를 만들지 않는다.
 5. **완료(RC-8 b):** `race_date < 오늘`(오늘 = `reference_today`, §2.9)인 planned 행은 조회·동기화 시점에 `done`으로 바꾸고(지연 전이, 별도 스케줄러 없음) 레이스 허브 "결과 기록" 카드에 `race_result_service.candidates`(같은 날짜, 거리 ±10%)를 띄운다. '확인 필요' 행(`is_needs_review`, §2.8)은 이 카드에서 제외한다(RC-33 a). 확정하면 `race_result_id` 연결. A 대회 done 시 목표는 활성 유지하고 허브·Today에 "결과 기록·다음 목표" 카드를 띄워 사용자가 목표를 완료한다(RC-17 b, 현재 동작과 같음).
@@ -156,24 +162,20 @@
 - B: 모든 대회를 재계획 엔진 제약으로 처리 — 2주 안 대회 반영 불가, 엔진 변경 큼. 채택 안 함.
 - RC-1 (a) 미러·(b) B/C만 저장 — 사용자가 (c)를 골라 채택 안 함.
 
-### 2.12 취소된 대회 수정·다시 활성화 (RC-27~30)
+### 2.12 취소된 대회 수정·다시 활성화 (RC-27~30·RC-35·RC-36·RC-38)
 - **수정(RC-27 b):** `race_calendar_service.update`는 cancelled 행을 거부하지 않는다. status는 cancelled 그대로이고, §2.4 표대로 신호·D-day·계획 반영 질문 대상이 아니다(status 기준 제외 유지). RC-21 예외 행(백필 cancelled 목표의 생성일 대회)이면 RC-26 규칙으로 `push_cache`가 동작한다(날짜 값이 실제로 바뀐 저장에서만 `race_date` 캐시 채움, 같은 날짜 재선택은 변경 아님 RC-34). 수정은 보존 필드(`cancel_prev_*`)를 바꾸지 않는다. 중복 인덱스 `ux_race_planned_same`·`ux_race_one_a`는 planned만 보므로 cancelled 수정은 이 검사에 걸리지 않는다.
 - **취소 시 값 보존(RC-28 b):** `race_calendar_service.cancel`은 status를 cancelled로 바꾸기 **전에** 현재 `adapt_choice`·`plan_state`를 보존 필드에 기록하고, 그다음 RC-9 되돌리기(applied면 반영분 일괄 되돌리기 → plan_state none·adapt_choice later)를 적용한다. 같은 트랜잭션.
-  - 보존 방식 제안(코드 사실 grep 2026-10-11): `race_calendar`는 아직 코드에 없다(`src/`·`scripts/`에 `race_calendar` 참조 0건, v38 DDL은 설계 단계)이므로 컬럼 추가 비용은 v38 DDL 두 줄뿐이다. **제안 = 새 컬럼** `cancel_prev_adapt_choice`·`cancel_prev_plan_state`(NULL 허용, 같은 CHECK 값 + NULL; 취소 때 기록, 복원 때 읽고 NULL로 비움, §2.1). 대안 비교:
-    - (가) 새 컬럼(제안): 취소 직전 값이 명시적으로 남고, `adapt_choice`·`plan_state`는 계속 "현재 상태"만 뜻한다. §2.4 표의 cancelled 행(plan_state none)과 RC-9 되돌리기 전이가 그대로다.
-    - (나) 기존 컬럼 유지(취소 때 `adapt_choice`·`plan_state`를 건드리지 않음): 새 컬럼은 없지만 RC-9로 반영분을 되돌린 행에 `plan_state='applied'`가 남아 "계획에 실제 반영된 상태"라는 정의와 어긋나고, `plan_state`를 읽는 모든 경로가 status를 함께 봐야 한다. RC-9의 "일괄 되돌리기 → none·later" 전이도 cancelled 경로에서만 예외가 된다.
-    - (다) 이력에서 유도(`plan_adjustments`의 같은 `batch_id` reverted 묶음으로 applied 여부 추정): 컬럼은 없지만 `adapt_choice`의 unasked/later/no_adapt 구분은 복원할 수 없어 RC-28을 충족하지 못한다.
-  - 결정은 열린 질문 1(아래).
+  - **보존 방식(RC-38 a 확정):** 새 컬럼 `cancel_prev_adapt_choice`·`cancel_prev_plan_state`를 **v38 DDL**(race_calendar CREATE)에 넣는다 — NULL 허용, 기본값 NULL, 같은 CHECK 값 + NULL. 취소 때 기록, 복원 때 읽고 NULL로 비움(§2.1). `adapt_choice`·`plan_state`는 계속 "현재 상태"만 뜻하고, §2.4 표의 cancelled 행(plan_state none)과 RC-9 되돌리기 전이는 그대로다. (기각: 기존 컬럼 유지·이력 유도.)
+  - **보존 값이 없는 행(기본값 NULL):** 컬럼이 race_calendar 생성(v38)과 함께 생기므로 "컬럼 도입 전에 취소된 race_calendar 행"은 존재하지 않는다. 보존 필드가 NULL인 cancelled 행은 **v39 백필이 만든 cancelled 행**(cancelled 목표 → cancelled A 대회, §4 백필 2·3단계)뿐이다 — 백필은 취소 동작(`cancel`)을 거치지 않으므로 보존 필드를 쓰지 않는다(NULL 그대로, 백필 대회의 `plan_state`는 none). 이 행을 복원할 때의 값은 §2.12 열린 질문 R2(제안 아래).
 - **복원(RC-27 추가 + RC-28~30, 필수 경로):** `race_calendar_service.restore(conn, race_id, today, *, confirm_past=False, demote_existing_a=False)`. API `POST /api/v1/race-calendar/<id>/restore`(본문 `confirm_past`·`demote_existing_a`, 경로·필드 형태는 S0에서 확정), 화면은 §2.7 "다시 활성화" 버튼. cancelled가 아닌 행은 409(상태 불일치).
   - **도착 status:** `race_date ≥ today`면 planned. `race_date < today`면 **done**(RC-29 b) — 시트가 RC-18 확인 문구를 먼저 띄우고, 확인해야 서버가 처리한다(`confirm_past` 없이 지난 날짜면 409 `CONFIRM_PAST`, 시트가 문구를 띄우는 근거). done 판정은 RC-8 규칙(`race_date < reference_today`)을 restore 안에서 같은 `today`로 적용한 결과이며, 이후 RC-20대로 회복 창(`race_date` + 회복 일수) 안이면 RC-6 회복 하향·계획 반영 질문 대상(복원된 adapt_choice가 unasked·later일 때), 창 밖이면 신호 없음. 복원은 미래 날짜여도 planned로 가므로 '확인 필요'(done 전용)가 되지 않는다.
-  - **값 복원(RC-28 b):** `adapt_choice`·`plan_state` ← 보존 필드, 보존 필드는 NULL로 비운다. 보존 필드가 NULL(보존 도입 전 취소분·백필 cancelled 행)이면 무엇으로 둘지는 열린 질문 2. 복원 후 §2.4 표의 해당 행대로 신호·D-day 대상에 복귀한다(RC-27 추가 문구).
-  - **A 충돌(RC-30 a):** 복원 행이 `priority='A'`이고 다른 A(status planned 또는 done)가 있으면 서버는 409 `A_CONFLICT`(기존 A 요약 포함)를 돌려주고, 시트는 "지금 목표 대회는 B로 바뀌어요"(RC-15 문구) 확인을 띄운다. 확인하면 `demote_existing_a=true`로 다시 보내 같은 트랜잭션에서 기존 A를 RC-15 규칙(→ B·`adapt_choice='unasked'`·`plan_state='none'`)으로 강등한 뒤 복원한다. 확인을 취소하면 아무것도 바꾸지 않는다. `ux_race_one_a`(planned A ≤ 1)는 강등이 복원보다 먼저 실행되므로 지켜진다. 불변식 3과의 정합은 열린 질문 3.
+  - **값 복원(RC-28 b·RC-38 a):** `adapt_choice`·`plan_state` ← 보존 필드, 보존 필드는 NULL로 비운다. 보존 필드가 NULL(v39 백필 cancelled 행, 위)이면 복원 값은 열린 질문 R2. 복원 후 §2.4 표의 해당 행대로 신호·D-day 대상에 복귀한다(RC-27 추가 문구).
+  - **applied 재반영(RC-36 b):** 보존 `cancel_prev_plan_state='applied'`면 복원 때 일괄 적용을 다시 실행한다. 코드 사실(grep 2026-10-11): `plan_adjustment_service.accept`(`:164-176`)는 `reverted → accepted`를 **당일 행만** 허용한다(`date != today` → `LOCKED` — 지난 날짜뿐 아니라 미래 날짜 행도, 원본 변경 시 `STALE`). 그래서 RC-9로 reverted된 옛 묶음 행을 하나씩 다시 accept하는 방식은 당일 행 외에는 실패한다 → "accept 재실행"은 `race_plan_link`의 일괄 적용(RC-7, 사용자가 '조정할게요'를 고를 때와 같은 함수)을 복원 트랜잭션에서 다시 부르는 것으로 설계한다: 현재 계획에 대해 `race_impact`를 다시 계산하고 새 `batch_id` 묶음을 적용, 성공 시 `adapt`·`applied`. 미리보기(`RacePlanPrompt`) 없이 실행한다(RC-36 문구가 재실행이므로).
+    - **실패 처리 제안(결정 아님, 열린 질문 R4):** ① 지난 날짜(`date < today`) 행은 `race_impact` 대상에서 뺀다(지난 훈련을 바꾸지 않음, §2.6-1 완료·매칭 행 제외와 같은 취지) — 대회가 이미 지나 모든 영향 행이 과거면 적용할 행 0건. ② 적용할 행이 0건이거나 적용이 실패(409 `LOCKED`·`STALE`·`REPLAN_LOCKED` 등)하면 **제안 (가)** 복원은 진행하고 `adapt_choice='adapt'`·`plan_state='stale'`('변경 후 미반영' 칩, 사용자가 칩에서 다시 반영) / (나) 복원 전체를 409로 거부(무변경) / (다) 복원 진행 + `later`·`none`. ③ 일부 행만 실패할 때 묶음 전체를 실패로 볼지(제안: 전체 실패 — RC-7 묶음 단위 원칙).
+  - **A 충돌(RC-30 a·RC-35 b):** 복원 행이 `priority='A'`이고 다른 A(status planned 또는 done)가 있으면 서버는 409 `A_CONFLICT`(기존 A 요약 포함)를 돌려주고, 시트는 "지금 목표 대회는 B로 바뀌어요"(RC-15 문구) 확인을 띄운다. 확인하면 `demote_existing_a=true`로 다시 보내 같은 트랜잭션에서 기존 A를 RC-15 규칙(→ B·`adapt_choice='unasked'`·`plan_state='none'`)으로 강등한 뒤 복원한다. 확인을 취소하면 아무것도 바꾸지 않는다. `ux_race_one_a`(planned A ≤ 1)는 강등이 복원보다 먼저 실행되므로 지켜진다. **불변식 3(RC-35 b):** 기존 A가 활성 목표 대회여도 목표 연결 변경 없이 강등하고(활성 목표 → B, §2.2 해석 R1), 기존 A가 done이어도 강등한다((c) 기각 — §2.2 '이전 A가 done이면 그대로'는 목표 교체 경로 한정). 복원된 A는 연결 목표(cancelled)를 다시 활성화하지 않고 활성 목표 미연결 A로 둔다(완화된 불변식 3 허용).
   - 저장 전 검사(planned로 갈 때): 같은 날짜·거리 planned 행이 있으면 409(`ux_race_planned_same`). done으로 가는 복원은 두 인덱스(planned 전용) 검사 대상이 아니다.
-  - 한 트랜잭션: (강등) + status·adapt_choice·plan_state 갱신 + 보존 필드 비움 + `updated_at`. 실패 시 아무것도 바꾸지 않는다.
-- **열린 질문(§7, 결정 전까지 해당 부분 구현 보류):**
-  1. RC-28 보존 방식 — (가) 새 컬럼(제안) / (나) 기존 컬럼 유지 / (다) 이력 유도(위 비교).
-  2. 복원 값 세부 — ① 취소 직전 `plan_state='applied'`였던 B/C 행: RC-9로 반영분은 이미 reverted이고, 코드상 reverted 조정은 **당일에만** 다시 accepted가 된다(`plan_adjustment_service.accept`: `date != today` → `LOCKED`, 원본 변경 시 `STALE`). 따라서 값만 applied로 되돌리면 실제 반영이 없는 applied가 된다. 복원 트랜잭션에서 `race_impact`를 다시 계산해 새 묶음을 적용할지(미리보기 `RacePlanPrompt` 경유 여부 포함), `adapt`·`stale`(반영 필요)로 둘지. ② 보존 필드가 NULL인 행(백필 cancelled A 행은 plan_state none, 보존 도입 전 데이터)의 복원 값.
-  3. RC-30 강등과 불변식 3 — (i) 기존 A가 활성 목표의 대회면 강등 즉시 "활성 목표의 대회는 A" 조건이 깨진다. 강등을 목표 교체 흐름(목표 생성 화면, §2.7 A 선택과 같은 처리)으로 넘길지. (ii) 복원 A가 planned가 되면 "planned A는 활성 목표가 참조" 조건상 참조 목표가 필요하다 — 연결된 취소 목표를 다시 활성화할지(`ux_goals_one_active` 충돌), 새 목표 생성으로 넘길지. (iii) RC-30은 기존 A가 done이어도 강등을 묻지만, §2.2의 목표 교체 규칙은 "이전 A가 done이면 그대로 둔다"이다 — done 기존 A도 강등하는지 확인 필요.
+  - 한 트랜잭션: (강등) + status·adapt_choice·plan_state 갱신 + 보존 필드 비움 + (applied였으면 일괄 적용 재실행, RC-36) + `updated_at`. 실패 시 처리는 위 R4 제안을 따르며, R4 결정 전에는 "실패 시 아무것도 바꾸지 않음"이 기본이다.
+- 해소: 보존 방식(RC-38 a), applied 재반영(RC-36 b), 강등과 불변식 3·done 기존 A 강등(RC-35 b). **남은 열린 질문(§7):** R1 불변식 3 완화 문구 해석(§2.2), R2 보존 값 없는 행의 복원 값 — 제안: 등록·RC-37과 같은 `unasked`·`none`(대안: 백필 목표 상태에서 유도한 값 `adapt`·`none` 등), R4 RC-36 재반영 실패 처리(위 제안 (가)).
 
 ### 2.13 '확인 필요' 행 예정으로 되돌리기 (RC-32 a)
 - `race_calendar_service.reopen(conn, race_id, today)` → status done → planned. 대상은 `is_needs_review(row, today)`가 참인 행만(§2.8). 아니면 409(상태 불일치). API `POST /api/v1/race-calendar/<id>/reopen`(경로 형태는 S0에서 확정), 화면은 §2.7 수정 시트 "예정으로 되돌리기" 버튼.
