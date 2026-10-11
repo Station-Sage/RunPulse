@@ -32,6 +32,8 @@
 
 ## NEXT
 
+- **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 내용을 맡을 설계 미정(V1-5, 2026-10-11) — 일몰 계획 수립 시 별도 설계. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/decisions-table.md` V1-1~V1-5.
+
 - **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 구 `sync_jobs` 잔재·이관 코드·json 파일 제거 완료(2026-10-11, ADR-047, 스키마 v36).
 
 
