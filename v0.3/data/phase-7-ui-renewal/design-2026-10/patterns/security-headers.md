@@ -18,7 +18,7 @@
   - `api`/`feed`: `default-src 'none'; frame-ancestors 'none'`. 문서가 아닌 응답이라 가장 엄격하게 enforce.
   - `v2`: `default-src 'self'; script-src 'self' <인라인 부트스트랩 해시>; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; report-uri /api/v1/csp-report`. `style-src 'unsafe-inline'`은 Svelte style 속성과 `app.html`의 `<div style>` 때문에 필요하다.
   - `v2` 집행 모드(D1): 설정값 `CSP_V2_MODE ∈ {report-only, enforce}`. 초기 `report-only`(`Content-Security-Policy-Report-Only` 헤더)로 운영하고, 위반 로그가 정리되면 `enforce`로 전환한다. 단, `frame-ancestors`는 Report-Only에서 무시되므로 프레임 보호는 `X-Frame-Options: DENY`가 처음부터 맡는다.
-  - `v1`(D2): CSP를 붙이지 않는다(`None`). 공통 헤더만 받는다.
+  - `v1`(D2): 일몰 예정(V1-1) — CSP 없음(`None`).
 - 라우트가 이미 붙인 헤더는 덮어쓰지 않는다(`headers.setdefault`). 기존 `Cache-Control` 테스트를 그대로 지키기 위해서다.
 - HSTS는 앱에서 송출하지 않는다(D4, Cloudflare 프록시에 위임).
 
@@ -53,7 +53,7 @@
 | `frontend/src/hooks.client.ts` | 신규 | `shouldNotify`, preloadError 핸들러 | ~35 |
 | `frontend/src/lib/components/UpdateNotice.svelte` | 신규 | "새 버전" 알림 UI(문구·위치는 product 영역) | ~30 |
 | `frontend/vite.config.ts` | 수정 | `version.pollInterval` | +3 |
-| `tests/test_response_policy.py` | 신규 | 표면 분류, 표면별 CSP·Report-Only 전환, v1 CSP 없음, 공통 헤더(Permissions-Policy, HSTS 없음), setdefault 보존, SSE | ~130 |
+| `tests/test_response_policy.py` | 신규 | 표면 분류, 표면별 CSP·Report-Only 전환, 공통 헤더(Permissions-Policy, HSTS 없음), setdefault 보존, SSE | ~130 |
 | `tests/test_csp_report.py` | 신규 | 204, Origin 없이 통과, 크기 상한 | ~40 |
 | `tests/test_spa_static.py` | 신규 | 404/200 분기, 딥링크 보존, 캐시 규칙(version.json), 해시 추출·mtime 캐시, favicon 200 | ~90 |
 | `frontend/tests/update-notice.test.ts` | 신규 | `shouldNotify` 중복 방지 | ~30 |
@@ -66,13 +66,11 @@
 2. **`response_policy` 공통 헤더 + api/feed CSP + csp-report**: 전체 pytest를 돌려 기존 `Cache-Control` 단언(캘린더, MCP, coach SSE)이 그대로 통과하는지 본다. `curl -I`로 `/api/v1/...`, `/feeds/cal/...`에 `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`가 있고 `Strict-Transport-Security`가 없는지 확인한다. Origin 없는 `POST /api/v1/csp-report` → 204.
 3. **v2 CSP Report-Only**: Flask 서빙 빌드(5173 dev 서버는 Flask를 거치지 않으니 검증 대상이 아니다)로 v2 주요 화면(today, coach, library, data, welcome)을 돌며 csp-report 로그를 수집한다. SSE(coach)와 차트가 정상인지도 확인한다.
 4. **v2 CSP enforce 전환**: 위반 로그가 정리되면 `CSP_V2_MODE=enforce`. 같은 화면에서 콘솔 CSP 위반 0건을 확인한다.
-5. **v1 무회귀(D2)**: v1 대시보드, 동기화, 임포트 화면에서 기능이 회귀하지 않았는지, CSP 헤더가 없고 공통 헤더만 있는지 확인한다.
-6. **favicon·manifest(D7)**: 아이콘 자산 추가 후 `/v2/favicon.ico`·manifest 200, 홈 화면 추가 시 아이콘·theme-color 표시.
-7. **오래된 탭 복구(D8)**: 빌드 A로 탭을 연다 → 빌드 B로 재빌드한다 → 탭에서 내비게이션한다 → 자동 새로고침 없이 알림이 1회 뜨고, 새로고침 버튼으로 정상 화면이 나오는지 확인한다.
-8. 완료 후 `decisions.md`에 응답 정책 계층 ADR을 기록하고(번호는 9절 참조) `check_docs.py`를 실행한다.
+5. **favicon·manifest(D7)**: 아이콘 자산 추가 후 `/v2/favicon.ico`·manifest 200, 홈 화면 추가 시 아이콘·theme-color 표시.
+6. **오래된 탭 복구(D8)**: 빌드 A로 탭을 연다 → 빌드 B로 재빌드한다 → 탭에서 내비게이션한다 → 자동 새로고침 없이 알림이 1회 뜨고, 새로고침 버튼으로 정상 화면이 나오는지 확인한다.
+7. 완료 후 `decisions.md`에 응답 정책 계층 ADR을 기록하고(번호는 9절 참조) `check_docs.py`를 실행한다.
 
-### 호환성·v1 의존
-- v1 서버 렌더 HTML은 인라인 스크립트, 인라인 핸들러, CDN(ECharts, Google Fonts)에 의존하므로 CSP를 붙이지 않는다(D2). v1 제거 시 `"v1"` 분기만 삭제하면 된다.
+### 호환성
 - 프레임 DENY는 저장소에서 자체 페이지를 iframe으로 넣는 곳을 찾지 못했으므로 회귀 위험이 낮다. 외부 서비스가 임베드하는지는 확인되지 않았다.
 - `Referrer-Policy: strict-origin-when-cross-origin`은 같은 출처 요청에 Referer 전체를 보내므로 `request_guard`의 Referer 대체 판정과 충돌하지 않는다(SRV-1과 정합).
 - HSTS는 Cloudflare 설정에 의존한다. 로컬 HTTP 사용에는 영향이 없다.
@@ -83,13 +81,13 @@
 | 안 | 내용 | 장점 | 단점 |
 |---|---|---|---|
 | **A (채택)** | 자체 `after_request` 모듈 + `spa_static` 분리 | 의존성 0, 표면별 정책·라우트 헤더 보존을 직접 제어, pytest로 검증 가능 | 헤더 목록 유지보수 책임 |
-| B | `flask-talisman` 도입 | 검증된 기본값, HSTS·nonce 지원 | 새 의존성, 기본 `force_https`가 로컬을 깨뜨림, nonce는 Jinja 대상이라 정적 SPA와 문자열 HTML v1에는 이점이 없음, 표면별 CSP는 데코레이터를 흩뿌려야 함. E-04는 해결 못 함 |
+| B | `flask-talisman` 도입 | 검증된 기본값, HSTS·nonce 지원 | 새 의존성, 기본 `force_https`가 로컬을 깨뜨림, nonce는 Jinja 대상이라 정적 SPA에는 이점이 없음, 표면별 CSP는 데코레이터를 흩뿌려야 함. E-04는 해결 못 함 |
 | C | 리버스 프록시(nginx 등)에서 헤더 부여 | 앱 코드 무변경 | 저장소에 프록시 설정이 없어 배포 환경마다 다름, 테스트 불가, 표면별 CSP 해시 자동화 불가. E-04는 해결 못 함 |
 
 ## 6. 결정됨 (2026-10-11, `decisions-table.md` SEC-1~9)
 
 - **D1 (SEC-1)** v2 CSP는 Report-Only 후 enforce — 누락 출처로 화면이 깨지는 위험을 먼저 관찰.
-- **D2 (SEC-2)** v1은 CSP 없이 공통 헤더만 — 제거 예정 표면에 투자 최소, 무회귀.
+- **D2 (SEC-2)** v1은 CSP 없이 공통 헤더만 — 일몰 예정(V1-1).
 - **D3 (SEC-3)** 프레임 `DENY` / `frame-ancestors 'none'` — 자체 임베드 수요가 없어 가장 안전한 값.
 - **D4 (SEC-4)** HSTS는 Cloudflare 프록시에 위임, 앱 미송출 — 로컬 HTTP 영향 제거.
 - **D5 (SEC-5)** `Referrer-Policy: strict-origin-when-cross-origin` — 호환성 높고 Referer 대체 판정 유지.
@@ -101,12 +99,13 @@
 ## 7. 범위 밖 메모
 - E-21: description, 비표준 `text-scale` meta는 메타 정비 작업에서 다룬다(아이콘·theme-color는 D7로 이 작업과 함께 처리).
 - 세션 쿠키 `Secure/SameSite/HttpOnly`, Origin/CSRF 검사는 `server-input-origin-validation.md`에서 다룬다.
-- v1 HTML의 문자열 조립 XSS 여부는 이번에 점검하지 않았다(CSP는 완화책일 뿐 대체가 아니다).
+- 레거시 v1 HTML: 일몰 예정(V1-1), 점검 범위 밖.
 - COOP 도입 — OAuth 팝업 영향 검증 후 재검토(D9).
 
 ## 8. 변경 이력
 - 초안 작성.
 - 2026-10-11 설계서 동기화: D1~D9 결정(SEC-1~9) 반영 — Report-Only→enforce 단계, v1 CSP 제외, DENY, HSTS 위임, csp-report 엔드포인트·면제, 아이콘 자산, 새 버전 알림 UX, Permissions-Policy.
+- 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 4절 v1 무회귀 단계·호환성 v1 항목·테스트 'v1 CSP 없음' 삭제, D2·2.1 `v1` 분기·7절 v1 XSS 메모·대안 B 'v1' 언급 축약/삭제.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - ADR 번호: 초안 4절이 ADR-048을 "응답 정책 계층"에 배정했으나, `decisions-table.md` SRV-9가 ADR-048 후보를 "쓰기 요청 Origin 관문 + 경계 스키마"로 확정했다. 이 문서의 ADR 번호 배정이 필요하다.
@@ -115,3 +114,6 @@
 - D7은 아이콘 디자인이 선행 조건이며 담당·일정이 정해지지 않았다.
 - D9 `Permissions-Policy`의 구체 항목 목록은 결정에 없다(구현 시 확정으로 둠).
 - D8 알림 문구·위치는 product 영역이며 이 문서에서 확정하지 않았다.
+
+## 10. 동기화 중 발견한 모호점
+- (V1-1) `classify_surface`의 `"v1"` 표면(그 밖의 서버 렌더 HTML)과 D2(SEC-2) 'CSP 없음' 분기는 V1-1(v1 전혀 고려 안 함)과 겹친다. 분기 자체를 없앨지(폴백 표면 이름·정책)는 새 결정 사항이라 원문 구조를 유지하고 한 줄로 축약했다.
