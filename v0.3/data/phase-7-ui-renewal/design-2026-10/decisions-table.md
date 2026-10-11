@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 258건 (결정 248건 / 부분 결정 3건 / 미결정 7건).
+- 총 258건 (결정 254건 / 부분 결정 3건 / 미결정 1건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -259,13 +259,13 @@
 | PLN-18 | 훈련 계획 | plan_backtest* 가 generate_weekly_plan 을 부를 때 요일 mask 가 비어 있는 경우 | (a) 백테스트는 mask 무시(기존 동작) / (b) 백테스트 입력에 요일 지정 / (c) mask NULL 이면 백테스트 거부 **결정 2026-10-11: (b) 백테스트 입력에 요일(mask) 지정** |
 | PLN-19 | 훈련 계획 | planned_workouts.goal_id NOT NULL 승격 | (a) 이번 작업에서 승격(백필 완료 후) / (b) 승격하지 않음(NULL 허용 유지) / (c) 별도 마이그레이션으로 이후 수행 **결정 2026-10-11: (a) 이번 작업에서 planned_workouts.goal_id NOT NULL 승격(백필 완료 후)****재결정 2026-10-11(PLN-20): NOT NULL 승격은 planner 행 한정(CHECK). 외부·v1 행은 NULL 유지.** |
 | V1S-1 | v1 일몰 준비 | bg_sync·auto_sync 새 위치 | (A) src/services/ / (B) src/sync/ (파일명 유지 여부 포함, 예: bg_sync_runner.py) **결정 2026-10-11: (B) src/sync/** |
-| V1S-2 | v1 일몰 준비 | helpers 분리 방식과 위치 | (a) 공용 3함수만 이동, HTML 헬퍼는 src/web/helpers.py 잔류(v1 일몰 시 삭제) / (b) 파일 전체를 view 밖으로 이동. 위치 (A) utils/user_context.py / (B) api/request_context.py | 미결정 |
+| V1S-2 | v1 일몰 준비 | helpers 분리 방식과 위치 | (a) 공용 3함수만 이동, HTML 헬퍼는 src/web/helpers.py 잔류(v1 일몰 시 삭제) / (b) 파일 전체를 view 밖으로 이동. 위치 (A) utils/user_context.py / (B) api/request_context.py **결정 2026-10-11: (a)+(A) 공용 3함수(project_root·get_current_user_id·db_path)만 src/utils/user_context.py 로 이동, HTML 헬퍼는 src/web/helpers.py 에 잔류(v1 일몰 시 삭제). 근거: utils/config.py:101 의 web 역참조 제거** |
 | V1S-3 | v1 일몰 준비 | views_mcp_remote 새 위치 | (A) src/mcp_remote/http.py / (B) src/api/routes_mcp_remote.py(별도 Blueprint) **결정 2026-10-11: (A) src/mcp_remote/http.py** |
-| V1S-4 | v1 일몰 준비 | suggestions 2함수(get_runner_state·rule_based_chips)의 처리(V1-7 검토 결과) | (a) v1 /ai-coach 와 함께 제거(+tests 10곳 정리, CHIP_REGISTRY 유지) / (b) v2 suggestion_chips 로 이미 대체됐다고 보고 지금 제거 / (c) v2 재설계로 유지(coach_rule_handlers.answerable_chips 와 중복) | 미결정 |
-| V1S-5 | v1 일몰 준비 | 구 경로 재노출 shim | (a) 두지 않음(한 커밋에서 전 importer 갱신) / (b) 일몰까지 src/web/ 에 재노출(monkeypatch 대상 혼동 위험) | 미결정 |
-| V1S-6 | v1 일몰 준비 | V1-6 재설계 호출부 형태(views_training.py:83) | (a) 래퍼 직접 호출 / (b) 조정 입력 미전달(조정 카드 비표시) | 미결정 |
-| V1S-7 | v1 일몰 준비 | 새 위치가 SCAN_DIRS 밖일 때 check_docs·gen_files_index 디렉터리 추가 | (a) 추가 / (b) 새 위치를 기존 SCAN_DIRS 안으로 한정 | 미결정 |
-| V1-12 | v1 일몰 준비 | 사용자 전환 production 판정에 쓸 설정값 이름 | (a) 기존 환경/설정 키 재사용(코드로 확인 후) / (b) 신규 키(예 deploy_env) / (c) 구현 단계에서 제안 | 미결정 |
+| V1S-4 | v1 일몰 준비 | suggestions 2함수(get_runner_state·rule_based_chips)의 처리(V1-7 검토 결과) | (a) v1 /ai-coach 와 함께 제거(+tests 10곳 정리, CHIP_REGISTRY 유지) / (b) v2 suggestion_chips 로 이미 대체됐다고 보고 지금 제거 / (c) v2 재설계로 유지(coach_rule_handlers.answerable_chips 와 중복) **결정 2026-10-11: (b) v2 대체(suggestion_chips·coach_rule_handlers.answerable_chips) 완료로 보고 get_runner_state·rule_based_chips 를 지금 제거(tests 정리, CHIP_REGISTRY 유지; v1 /ai-coach 영향은 설계서에 명시)** |
+| V1S-5 | v1 일몰 준비 | 구 경로 재노출 shim | (a) 두지 않음(한 커밋에서 전 importer 갱신) / (b) 일몰까지 src/web/ 에 재노출(monkeypatch 대상 혼동 위험) **결정 2026-10-11: (a) 구 경로 재노출 shim 을 두지 않고 한 커밋에서 모든 importer 갱신** |
+| V1S-6 | v1 일몰 준비 | V1-6 재설계 호출부 형태(views_training.py:83) | (a) 래퍼 직접 호출 / (b) 조정 입력 미전달(조정 카드 비표시) **결정 2026-10-11: (b) 조정 입력 미전달 — v1 /training 의 조정 카드는 일몰 전까지 표시되지 않음(사용자 가시 후퇴를 감수)** |
+| V1S-7 | v1 일몰 준비 | 새 위치가 SCAN_DIRS 밖일 때 check_docs·gen_files_index 디렉터리 추가 | (a) 추가 / (b) 새 위치를 기존 SCAN_DIRS 안으로 한정 **결정 2026-10-11: (a) 새 위치가 SCAN_DIRS 밖이면 check_docs·gen_files_index 에 디렉터리 추가(실제 SCAN_DIRS 는 구현 첫 단계에서 확인)** |
+| V1-12 | v1 일몰 준비 | 사용자 전환 production 판정에 쓸 설정값 이름 | (a) 기존 환경/설정 키 재사용(코드로 확인 후) / (b) 신규 키(예 deploy_env) / (c) 구현 단계에서 제안 **결정 2026-10-11: (a) production 판정은 기존 환경/설정 키를 재사용(어느 키인지는 구현 첫 단계에서 코드로 확인)** |
 | PLN-20 | 훈련 계획 | NOT NULL 승격(PLN-19) 시 goal 이 없는 행 처리(외부 계획 행 plan_ingest, 범위 밖 planner 고아 행, v1 manual·imported 행) | (a) 활성 goal 에 귀속(외부 행은 날짜 겹치는 goal) / (b) 외부·고아 행은 삭제, 수동 행만 귀속 / (c) 별도 보관 테이블로 이동 후 삭제 / (d) 외부 행은 goal 없는 가상 'external' goal 에 귀속 **결정 2026-10-11: (e) NOT NULL 승격을 planner 행으로 한정: CHECK(source<>'planner' OR goal_id IS NOT NULL). 외부(garmin·intervals)·v1 행은 NULL 유지, 범위 밖 planner 고아 행은 v40 dry-run 분포 확인 후 보호되지 않은 행 삭제/보호된 행은 가장 가까운 goal 귀속. 사용자 요청으로 재검토한 결과 추천안(e) 채택. PLN-19 결정 문구는 'planner 행 한정 NOT NULL'로 재결정됨** |
 | PLN-21 | 훈련 계획 | v1 라우트 일몰과 v41(goal_id NOT NULL 승격)의 선후 | (a) v41 이 먼저, v1 INSERT 경로는 goal_id 기입하도록 수정 / (b) v1 라우트 일몰 후 v41 / (c) 같은 릴리스에서 동시 **결정 2026-10-11: (b) v1 라우트 일몰 후 v41 — 단 PLN-20 이 (e) 로 바뀌어 v1 manual·imported 행이 NULL 허용이 되면 선후 제약은 사실상 사라짐** |
 | PLN-22 | 훈련 계획 | 백테스트 이력 시나리오(days=0)에 줄 요일 mask | (a) 전체 요일(7일) mask / (b) 해당 시점 실제 사용 mask 를 입력으로 필수 / (c) days=0 시나리오는 mask 무시 **결정 2026-10-11: (b) 백테스트 이력 시나리오(days=0)에도 해당 시점의 실제 mask 를 필수 입력** |
