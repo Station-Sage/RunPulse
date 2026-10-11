@@ -2,7 +2,7 @@
 
 - 대상 ID: T-05 (`GET /api/v1/today/narrative` 월 내러티브·highlights·evidence·weeks), A-01 (수영 상세 히어로 페이스), A-02 (상세 해석 줄 "러닝" 접두), A-03 (근력 상세 거리·페이스 블록)
 - 상태: 설계 확정 — NRA-1~8 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(NRA-1~8 결정 반영, HSR-4 정합, "결정 필요" → "결정됨") · 2026-10-11 6차 동기화(V1-7: §5 에 `get_runner_state`·`rule_based_chips` 필요 여부 검토 절차 추가, §7·§9 갱신)
+- 변경 이력: 2026-10-11 설계서 동기화(NRA-1~8 결정 반영, HSR-4 정합, "결정 필요" → "결정됨") · 2026-10-11 6차 동기화(V1-7: §5 에 `get_runner_state`·`rule_based_chips` 필요 여부 검토 절차 추가, §7·§9 갱신) · 2026-10-11 7차 동기화(V1S-4 (b)·V1-13: 검토 절차를 '지금 제거' 결정으로 교체, `suggestions.py` `_RUN_TYPES` 사본을 NRA-8 대상에서 제외, §5·§7·§9)
 - 관련 ADR: ADR-009 (Calculator raw SQL 금지 — 이번 변경은 서비스 계층만, Calculator 무변경), ADR-032 (Story 통계 `story_stats` — 같은 집계 쿼리 공유 대상), ADR-020 계열 원칙(판정·표시 규칙은 서버 SSOT)
 - 이월: 2026-09 리뷰 F-DATA-13(월간 이야기에 수영 합산)이 "반영"으로 표시됐으나 집계 쿼리는 그대로 남아 있음
 
@@ -102,9 +102,7 @@
 - `story_stats` 숫자가 바뀌면 ADR-032 Story 월/주 카드 값이 바뀐다(같은 결함 수정).
 - `activity_impact_service`는 `LIKE '%running%'` 기준에서 SSOT 기준으로 바뀌어 `treadmill`·`race` 활동에도 영향 블록이 생길 수 있다.
 - `today_service.get_today_narrative`는 re-export로 남겨 import 호환을 유지한다.
-- **`suggestions.get_runner_state`·`rule_based_chips`(V1-7 결정 2026-10-11: 필요 여부 검토 먼저)**: 이 설계는 두 함수를 수정하지 않는다(`suggestions.py:39` `_RUN_TYPES` 사본도 NRA-8 대상으로 그대로 둔다). 처리(제거 또는 v2 재설계)는 아래 검토 절차의 결과로 정하며, 검토 전에는 어느 쪽도 전제하지 않는다.
-  1. **호출처 열거**: `src/`·`tests/` 전수 grep. 2026-10-11 기준 `src/` 호출부는 v1 `web/views_ai_coach.py:149` 1곳, 테스트는 `tests/test_data_quality.py`·`tests/test_integration_realdb.py`가 직접 호출한다(제거 시 함께 정리 대상).
-  2. **v2 대체 여부**: v2 칩을 만드는 `coach_rule_handlers.suggestion_chips`(`routes_coach.py:37`)가 두 함수의 규칙(러너 상태 판정·규칙 기반 칩)을 이미 대체하는지 비교한다. 대체되면 제거, 대체되지 않는 규칙이 있으면 v2 쪽 재설계 대상으로 넘긴다.
+- **`suggestions.get_runner_state`·`rule_based_chips`(V1S-4 (b) 결정 2026-10-11: 지금 제거)**: v2 대체(`coach_rule_handlers.suggestion_chips`·`answerable_chips`) 완료로 보고 두 함수를 제거한다. 제거 작업은 `bundles/v1-sunset-prep.md` §2.4·§4 5단계 소관이며 이 설계는 두 함수를 수정하지 않는다. 두 함수 전용 `RunnerState`·`suggestions.py:39` `_RUN_TYPES` 사본도 함께 사라지므로 NRA-8 이관 대상에서 빠진다. `CHIP_REGISTRY`는 유지. v1 `/ai-coach` 칩 소멸은 감수(V1-13).
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 
@@ -126,9 +124,9 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 - **NRA-6 해석 줄 접두**: 종목 라벨 그대로('수영','근력','걷기/하이킹') + 가용한 지표만 설명(2.3).
 - **NRA-7 경계 종목**: race·treadmill=러닝, HIIT=기타(비러닝), 미매핑 raw=other. 계획 매칭에서 HIIT 가 빠지는 영향은 구현 시 확인(2.1, 9절).
 - **NRA-8 범위**: 나머지 RUN_TYPES 사본 이관은 이번 작업에서 제외, 별도 BACKLOG(2.1).
-- **`src/ai/` RUN_TYPES 사본 2곳(코드 확인 2026-10-11)**: 둘 다 v1 전용 파일이 아니므로 v1 UI 일몰과 함께 사라지지 않는다 — NRA-8 별도 BACKLOG 대상 사본에 포함된다.
-  - `ai_context_legacy.py:16` `_RUN_TYPES`(`build_context`가 사용): AI 공용 경로. `ai_context.py:14` 재노출 → `briefing.build_chip_prompt` → `chat_engine`(칩 프롬프트) → `coach_service`(v2 `/api/v1/coach`).
-  - `suggestions.py:39` `_RUN_TYPES`(`get_runner_state`가 사용): 파일은 공유(`CHIP_REGISTRY`를 `chat_engine`·`briefing`이 사용)이나 `get_runner_state`·`rule_based_chips`의 호출부는 v1 `web/views_ai_coach.py:149`뿐이다. 두 함수의 처리는 V1-7 결정(필요 여부 검토 먼저)에 따라 §5 검토 절차로 정한다.
+- **`src/ai/` RUN_TYPES 사본 2곳(코드 확인 2026-10-11)**:
+  - `ai_context_legacy.py:16` `_RUN_TYPES`(`build_context`가 사용): AI 공용 경로(`ai_context.py:14` 재노출 → `briefing.build_chip_prompt` → `chat_engine` → `coach_service`, v2 `/api/v1/coach`). v1 전용이 아니므로 NRA-8 별도 BACKLOG 대상 사본에 포함된다.
+  - `suggestions.py:39` `_RUN_TYPES`(`get_runner_state` 전용): V1S-4 (b)로 두 함수와 함께 제거된다(§5) — NRA-8 대상 아님.
 
 ## 8. 범위 밖 메모
 
@@ -138,9 +136,10 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 
-- NRA-7(HIIT=비러닝)과 현재 matcher·suggestions 의 러닝 집합(HIIT 포함)이 다르다. NRA-8 로 matcher 이관은 이번 범위 밖이라 이번 작업 후에도 matcher 는 HIIT 를 러닝으로 매칭한다. 이관 시 계획 매칭에서 HIIT 가 빠지는 영향을 확인해야 한다.
+- NRA-7(HIIT=비러닝)과 현재 matcher 의 러닝 집합(HIIT 포함)이 다르다(suggestions 사본은 V1S-4 로 제거). NRA-8 로 matcher 이관은 이번 범위 밖이라 이번 작업 후에도 matcher 는 HIIT 를 러닝으로 매칭한다. 이관 시 계획 매칭에서 HIIT 가 빠지는 영향을 확인해야 한다.
 - NRA-8 의 "별도 BACKLOG" 항목은 이 동기화에서 `BACKLOG.md` 에 등록하지 않았다(수정 범위 밖). 등록이 필요하다.
 - HSR-4 의 러닝 488건은 sync-state 의 `LIKE '%running%'` 기준이다. SSOT(`family_clause`)는 `treadmill`·`race` 를 포함하고 LIKE 는 `treadmill` 을 놓치므로 두 숫자가 다를 수 있다. sync_state 는 NRA-8 로 이번 이관 대상이 아니어서, 개요 러닝 수를 어느 쪽 기준으로 셀지 HSR 설계와 맞춰야 한다(2.5 는 SSOT 기준으로 적었다).
 - `normalize_activity_type` 의 현재 HIIT·race·treadmill 매핑 값은 이 동기화에서 코드로 확인하지 않았다. 수집 단계 매핑이 NRA-7 과 다르면 정규화 저장값과 읽기 판정이 어긋나므로 구현 1단계에서 확인이 필요하다.
 - (5차 동기화, 사실 확인) 4차 이전 §5의 "v1 쪽 RUN_TYPES 사본(`ai_context_legacy.py`·`suggestions.py`)은 v1과 함께 제거"는 코드와 맞지 않았다 — 두 파일 모두 v2 Coach 경로가 쓰는 공유 파일이다(§5). V1-1 정정(일몰 = UI·라우트 일몰)에 따라 두 사본은 NRA-8 별도 BACKLOG 대상으로 남는다.
-- (5차 동기화 열린 항목 → 6차 동기화, V1-7 반영) `suggestions.get_runner_state`·`rule_based_chips`는 v1 `views_ai_coach.py:149`만 호출한다. V1-7 결정: 제거·v2 재설계를 정하기 전에 필요 여부부터 검토한다(§5 절차: 호출처 열거 → v2 `coach_rule_handlers.suggestion_chips` 대체 여부). **남은 열린 항목**: 검토 결과(제거 또는 v2 재설계)와 검토 수행 시점(이 설계 구현 중인지, v1 UI 일몰 작업 중인지)은 미정.
+- (6차 열린 항목 → 7차 동기화, V1S-4 (b)로 해소) `suggestions.get_runner_state`·`rule_based_chips`는 지금 제거한다(수행은 `bundles/v1-sunset-prep.md` §4 5단계). NRA-8 BACKLOG 등록 시 `suggestions.py` 사본은 목록에서 뺀다.
+- (5차 동기화 사실 정정 보충) 위 항목의 "두 사본 모두 NRA-8 대상"은 7차부터 `ai_context_legacy.py` 1곳만 해당한다(§7).

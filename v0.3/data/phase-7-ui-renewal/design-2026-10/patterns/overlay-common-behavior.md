@@ -2,7 +2,7 @@
 
 - 대상 증상: E-08, C-03, S-07, S-08, S-10, D-25 (99-summary 항목 4), E-23 (ERR-7 결정으로 이 문서 소관)
 - 상태: 설계 확정 — OVL-1~7 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(OVL-1~7·ERR-7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-2·V1-5: §5 MenuDrawer 를 BACKLOG `MENUDRAWER-POST-V1` 참조로 정리, §9 해소) · 2026-10-11 6차 동기화(V1-11: §5 MenuDrawer "CSV 내보내기" 링크를 EXP 화면 연결로 갱신, data-export 소관)
+- 변경 이력: 2026-10-11 설계서 동기화(OVL-1~7·ERR-7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-2·V1-5: §5 MenuDrawer 를 BACKLOG `MENUDRAWER-POST-V1` 참조로 정리, §9 해소) · 2026-10-11 6차 동기화(V1-11: §5 MenuDrawer "CSV 내보내기" 링크를 EXP 화면 연결로 갱신, data-export 소관) · 2026-10-11 7차 동기화(V1-13: §5 MenuDrawer v1 링크 손상 감수 한 줄, V1-3·V1-12: §5 사용자 전환 링크 교체·production 숨김 소관 명시)
 - 범위: `frontend/src/lib/components/` 의 드로어·시트·다이얼로그·인라인 확인 창 (v2 전용)
 
 ## 1. 근본 원인
@@ -94,7 +94,7 @@ ConnectPanel(D-25, S-10), CalendarFeedCard, McpTokenCard 의 확인 창은 문�
 - **뒤로가기 동작 변경(OVL-4)**: 시트가 열린 상태의 뒤로가기는 지금은 페이지를 떠나지만, 변경 후에는 시트만 닫는다. 시트를 열 때마다 history 항목이 하나 생긴다.
 - **알려진 한계(결정으로 수용)**: `inert` 를 쓰지 않으므로(OVL-3) 일부 스크린리더 가상 커서가 배경에 접근할 수 있다. `overflow:hidden` 만 쓰므로(OVL-6) iOS Safari 에서 배경 스크롤이 샐 수 있다.
 - **URL 계약 불변**: `?sheet=sync` 와 드릴 스택의 쿼리 형식은 바뀌지 않는다.
-- **MenuDrawer**: 이 설계의 수정은 action 부착(§3)만. 드로어 내용은 대부분 v1 라우트 링크(`data-sveltekit-reload`)와 "v1로 돌아가기"(`ui_default` 전환)라 v1 라우트 일몰(V1-2) 시 구성·존속이 바뀐다. 예외로 "CSV 내보내기" 링크는 V1-11 결정에 따라 v1 `/activities/export.csv` 대신 v2 내보내기(EXP) 화면으로 연결된다(`bundles/data-export.md` §3 소관 — 이 설계의 변경 아님). 그 밖의 일몰 후 드로어 내용은 BACKLOG `MENUDRAWER-POST-V1`(V1-5) 소관이며 이 설계는 다루지 않는다. 링크 교체는 드로어의 포커스 트랩·Esc·복귀 동작에 영향이 없다.
+- **MenuDrawer**: 이 설계의 수정은 action 부착(§3)만. 드로어 내용은 대부분 v1 라우트 링크(`data-sveltekit-reload`)와 "v1로 돌아가기"(`ui_default` 전환)라 v1 라우트 일몰(V1-2) 시 구성·존속이 바뀐다. 일몰 전 이 링크 대상 v1 화면이 깨지는 것은 감수(V1-13) — 이 설계는 v1 링크를 보호·우회하지 않는다. 예외로 "CSV 내보내기" 링크는 V1-11 결정에 따라 v1 `/activities/export.csv` 대신 v2 내보내기(EXP) 화면으로 연결된다(`bundles/data-export.md` §3 소관 — 이 설계의 변경 아님). `/switch-user` 링크의 v2 화면 교체·production 숨김(판정은 기존 설정 키, V1-12)은 `server-input-origin-validation.md` §2.5 소관이다. 그 밖의 일몰 후 드로어 내용은 BACKLOG `MENUDRAWER-POST-V1`(V1-5) 소관이며 이 설계는 다루지 않는다. 링크 교체는 드로어의 포커스 트랩·Esc·복귀 동작에 영향이 없다.
 
 ## 6. 대안 비교 (기록용 — A안 채택)
 
