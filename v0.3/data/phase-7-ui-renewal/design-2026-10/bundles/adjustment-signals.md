@@ -70,7 +70,7 @@
 - 제안 강도는 `readiness_decision`의 `adjusted_type` 체계 재사용(새 op 없음). race 행·rest 행 제외.
 - 버전: v3 배포 후 자동 행은 모두 `rule_version='adjuster_v3'`(버전 = 배포된 규칙 세트), `pain_v1` 불변. Calculator 아님 → `algo_changelog` 대신 ADR-035 개정에 기록.
 
-**3.8 주 트리거 선정(D15·D17·D18 확정 + NEW-3).** trigger가 복수면 고정 순서 **`pain > illness > checkin > race > crs > acwr > readiness`**로 source를 고른다(안전 우선·결정적). `race`(RC-6 미반영 대회 recovery 창 Q-day 하향)는 **checkin 바로 뒤, crs 앞**(ADJ-17 a). 동률·미판정은 `readiness`(decisions-table ADJ-15·ADJ-3 문구와 일치). **'미판정' = 주 트리거 후보가 2개 이상 동률인 경우만**(ADJ-18 b) — trigger가 하나도 없는데 AND 합의만 성립한 경우는 '미판정'이 아니다(AND 합의 성립 시 구성원 `crs`/`acwr` 중 순서상 앞선 것이 trigger·source). 고정 순서는 종류 간 동률을 만들지 않으므로, 동률은 같은 순위에 놓인 후보를 순서로 가를 수 없을 때(예: 순서 표에 없는 trigger 종류가 들어온 경우)에만 생기고 이때 `readiness`로 둔다. 표시 순서(D3)도 동일. 이 순서는 확정값이지만 **추후 데이터 백테스트·ML로 재검토할 대상이며 `LATER.md`에 기록돼 있다**(ADJ-17).
+**3.8 주 트리거 선정(D15·D17·D18 확정 + NEW-3).** trigger가 복수면 고정 순서 **`pain > illness > checkin > race > crs > acwr > readiness`**로 source를 고른다(안전 우선·결정적). `race`(RC-6 미반영 대회 recovery 창 Q-day 하향)는 **checkin 바로 뒤, crs 앞**(ADJ-17 a). 동률·미판정은 `readiness`(decisions-table ADJ-15·ADJ-3 문구와 일치). **'미판정' = 주 트리거 후보가 2개 이상 동률인 경우만**(ADJ-18 b) — OR trigger 없이 AND 합의만 성립한 경우는 '미판정'이 아니다. 이때 AND 구성원(체크인 피로=`checkin`(ADJ-15 'checkin(통증·피로)'), `crs`, `acwr`)이 trigger 후보이고 위 고정 순서로 source를 고른다(이 문서의 적용 해석). 고정 순서 아래에서 '동률'이 실제로 생기는 경로는 §9 확인 항목. 표시 순서(D3)도 동일. 이 순서는 확정값이지만 **추후 데이터 백테스트·ML로 재검토할 대상이며 `LATER.md`에 기록돼 있다**(ADJ-17).
 
 | 순위 | source | 트리거 종류(§3.7) |
 |---|---|---|
@@ -127,7 +127,7 @@
 4. v38 → v39(타 번들 일정, 각 사본 dry-run·백업). race_plan priority가 race_calendar로 채워지는지 회귀.
 5. 백테스트 v2/v3 비교 후 사용자 확인 → `adjuster_version=v3` 활성화 + 주간 로그·자동 롤백 감시.
 6. API·프론트·coach_evidence. `pytest tests/`, `npm run check`, 픽스처 DB 브라우저 확인(운영 DB 미사용).
-- 검증 체크: v37 전후 행 수·id·decision 일치, `integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부, `plan_overlay` 불변, OR 단독 하향(통증·체크인 통증·질병)·AND 1개=support/2개=하향 테스트, readiness 하향 + AND 1개 → AND 미성립(readiness 미투표)·readiness 단독 경로는 기존과 동일, stale trigger 시 freshness 기록, 주 트리거 순서 테스트(§3.8 표 7단계, race가 checkin 뒤·crs 앞 — 예: checkin+race → `checkin`, race+crs+acwr → `race`), '미판정'(ADJ-18): AND 합의만 성립(crs+acwr, 다른 trigger 없음) → `crs`(readiness 아님), 순서로 가를 수 없는 동률 후보 → `readiness`, trigger 집합 변화만 rev+1·accepted 동결, proposed 재기록·과거 행 불변, 롤백 기준 초과 시 v2 전환 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
+- 검증 체크: v37 전후 행 수·id·decision 일치, `integrity_check` ok, 재실행 멱등, CHECK 위반 INSERT 거부, `plan_overlay` 불변, OR 단독 하향(통증·체크인 통증·질병)·AND 1개=support/2개=하향 테스트, readiness 하향 + AND 1개 → AND 미성립(readiness 미투표)·readiness 단독 경로는 기존과 동일, stale trigger 시 freshness 기록, 주 트리거 순서 테스트(§3.8 표 7단계, race가 checkin 뒤·crs 앞 — 예: checkin+race → `checkin`, race+crs+acwr → `race`), '미판정'(ADJ-18): AND 합의만 성립(crs+acwr, 다른 trigger 없음) → `crs`, 체크인 피로+acwr → `checkin`(둘 다 readiness 아님), 동률 후보 직접 주입 → `readiness`(§9), trigger 집합 변화만 rev+1·accepted 동결, proposed 재기록·과거 행 불변, 롤백 기준 초과 시 v2 전환 테스트, race 행 조정 제외, taper 창 BOOST hold, 신규 파일 300줄 이하, `check_docs.py` 통과.
 - 호환: v1 일몰은 UI·라우트 일몰이며 공유 파일·함수는 유지한다(V1-1 정정·V1-2). 공유 함수 `src/training/adjuster.adjust_todays_plan`(v2 `plan_adjustment_service.py:98`·`plan_service.py:145`·`ai/chat_readiness.py:22`·`ai/coach_rule_handlers.py:49`도 호출)은 유지·시그니처 불변. 직접 호출자 CLI `plan.py`와 v1 로더 `src/web/views_training_loaders.load_adjustment`(`:45`)는 `adjust_todays_plan`만 부르고 `src/web`에서 `plan_adjustments` 조회는 없음(grep 2026-10-11) → v37·v3 영향 없음. `views_training_loaders.py`처럼 v2도 필요한 로직을 가진 v1 파일은 재설계 대상이며 view 밖 모듈로 이관 설계(V1-2) — 가드 테스트에서 v1 파일을 제외하는 방식은 쓰지 않는다. v1 화면·라우트 자체는 고려하지 않는다.
 
 ## 6. 대안(기각)
@@ -139,11 +139,12 @@
 - 결정 완료(표 참조: `decisions-table.md` ADJ-1~18·NEW-1~3·V1-1·V1-2, 본문 D번호 = ADJ번호). ADJ-17 주 트리거 순서는 확정, 재검토는 백테스트·ML 후(`LATER.md`). ADJ-13 readiness 투표 여부는 추가 결정으로 현행 유지, 재결정은 `LATER.md` 'ADJ-READINESS-VOTE'. 제안 상태로 남은 것: §3.9 과거 행 trigger 1건 백필(ADJ-6 단서).
 
 ## 8. 범위 밖 메모
-- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호 입력 UI(new-signals·product), race_calendar 관리 화면·리플랜 질문(race-calendar), `b_race_week` 죽은 경로 정리.
+- `session_outcomes.crs_at_session`·replanner CRS 경고 문구, 폭염 보정의 일일 조정 연결(본 설계는 support/context 기록까지), R8 거리 비율 규칙, 신규 수집 신호 입력 UI(new-signals·product), race_calendar 관리 화면·리플랜 질문(race-calendar), `b_race_week` 죽은 경로 정리. v1 로더 `views_training_loaders.py`의 view 밖 이관(V1-2) — 본 번들은 공유 함수 `adjust_todays_plan`을 바꾸지 않으므로 이관 일정과 독립.
 
 ## 9. 동기화 중 발견한 모호점
 - 해소(ADJ-17): race는 checkin 바로 뒤(§3.8 표).
 - 해소(ADJ-18): '미판정' = 주 트리거 후보 동률만, AND만 성립은 미판정 아님(§3.8).
+- **확인 항목(ADJ-18):** 고정 순서는 source 종류마다 순위가 달라 종류 간 동률이 없다. 같은 종류 후보가 여럿(예: 통증 기록 2건)인 경우는 source가 같아 결과가 같다. 그러면 '동률 → readiness' 규칙이 적용되는 실제 입력이 무엇인지(사실상 도달 불가 방어 분기인지) 결정 문구로 정해지지 않았다 — 구현은 방어 분기로 두고 테스트는 `primary_trigger` 에 동률을 직접 주입해 검증하는 것을 제안.
 - NEW-10 익명화는 `accepted`/`reverted` 행도 고친다 — "수락 후 동결"(ADJ-8)·"과거 행 덧씌움 금지"(ADJ-6)의 예외로 적었으나 표에 명시는 없다.
 - ADJ-14 수락률 "급락" 수치와 `adjuster_version` 저장 위치(설정 저장소)는 결정에 없어 제안 값으로 적었다.
 - `plan_adjustments` 유니크 인덱스는 `(workout_id, date, source) WHERE decision IN ('proposed','accepted')`(`db_schema_v31.py:30`)로 source를 포함한다. 자동 source가 여러 값으로 나뉘면 같은 워크아웃·날짜에 자동 제안 행이 source별로 공존할 수 있고, §3.11 "같은 행 갱신"은 인덱스가 막지 않는다. v37 재생성 시 유니크 키 조정(자동 source 묶음) 여부 확인이 필요하다. NEW-10 익명화(`illness`→`readiness`)도 같은 워크아웃·날짜의 `readiness` 행과 이 인덱스에서 충돌할 수 있다. 코드 확인(2026-10-11 grep): 인덱스는 partial이라 reverted 행은 충돌 대상이 아니고, 현재 `ensure_proposal`은 `_live`(날짜·`source='crs'`)로 날짜당 live 자동 행을 1개만 두며 새 제안 전 기존 proposed를 reverted 처리한다(`plan_adjustment_service.py:83-121`) — 지금 코드에서는 충돌이 생기지 않고, v37 이후 같은 workout·date에 live `illness`·live `readiness` 행이 공존할 수 있을 때만 UPDATE가 유니크 위반이 된다(`adjustment-new-signals.md` §4 S0 확인 항목, 해결안 미결정).
