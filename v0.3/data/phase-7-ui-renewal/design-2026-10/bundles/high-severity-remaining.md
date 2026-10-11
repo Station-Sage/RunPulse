@@ -1,8 +1,9 @@
 # 설계: 상 심각도 잔여 7건 (T-01, M-01, M-03, M-04, D-01, D-03, C-01)
 
-- 상태: 결정 확정(2026-10-11, HSR-1~6), 구현 전 — T-01 실데이터 확인 남음. 범위 제외: P-01~P-08(훈련 계획 묶음), T-03/M-02(`data-freshness.md`), T-05/A-01(`non-running-activities.md`)
+- 상태: 결정 확정(2026-10-11, HSR-1~7), 구현 전 — T-01 실데이터 확인 남음. 범위 제외: P-01~P-08(훈련 계획 묶음), T-03/M-02(`data-freshness.md`), T-05/A-01(`non-running-activities.md`)
 - 변경 이력: 2026-10-11 원인 검증 반영 — T-01 근본 원인·설계안·단계 재작성(v2 경로 매칭 존재 확인, 실데이터 확인 항목 추가)
 - 변경 이력: 2026-10-11 설계서 동기화 — `decisions-table.md` HSR-1~6 결정을 설계안·변경 파일·단계·검증·호환성에 반영
+- 변경 이력: 2026-10-11 HSR-7 반영 — M-03 floor 를 지표별로 `MetricDef` 에 정의(전역 floor 아님). 결정 섹션 축약
 - 관련 ADR: ADR-009(Calculator raw SQL 금지 — 본 설계는 Calculator 무변경), ADR-020(판정·등급은 서버 SSOT)
 - 묶음: **G1 "같은 수치를 여러 곳에서 각자 계산"**(M-03, M-04, D-03) / **G2 "매칭 실행 여부가 보이지 않음"**(T-01) / 단독: M-01, D-01, C-01
 
@@ -24,7 +25,7 @@
   ⑤ 거리 비율 상한(HSR-1): `match_select`에서 **같은 날 후보가 1개면 비율 상한을 무시**, 후보가 여럿이면 `MAX_RATIO=1.6` 유지. `coach-plan-bundle.md`의 판정 순서(PLN-6)·`_effective` 순위(PLN-10)와 단일 결정이며 그 두 항목은 그 설계서 R3에서 처리한다.
   - 기각: B(읽기 시점 즉석 매칭) — 저장 상태와 화면이 갈라짐.
 - **M-01** `src/services/story_period.py`(신규, ~60줄) 값 객체 `Period(kind, key, start, end)` + `parse(key)`, `prev()`, `next()`. 주는 `date.fromisocalendar`/`isocalendar().year`만 사용(달력 연도 혼용 금지), 잘못된 키는 `ValueError` → 라우트 400. `story_service`는 `Period`만 소비(분기 제거).
-- **M-03 (A)** 서버 SSOT `src/services/metric_change.py`(신규, ~70줄) `compute_change(points, slug, window) -> {abs, pct|None, pct_suppressed: reason|None, window_days, direction: better|worse|neutral|None}`. 규칙: ① 분모는 `abs(base)` 단일 정의, ② `pct`는 지표가 비율 척도이고 `abs(base) >= floor`일 때만, 아니면 `pct=None`+사유(`interval_scale`/`near_zero_base`), ③ direction은 `HIGHER_IS_BETTER`로 서버가 판정. `_change`와 `get_metric_trend`가 이 함수를 호출, 프론트 `periodChange`/`changeLabel`의 % 계산 제거(렌더만). 척도 메타는 **`MetricDef.scale` 필드**(HSR-2, `src/utils/metric_def.py`, SSOT)로 두고 `gen_metric_dictionary`·`check_docs`·`check_data_consistency`를 함께 수정한다.
+- **M-03 (A)** 서버 SSOT `src/services/metric_change.py`(신규, ~70줄) `compute_change(points, slug, window) -> {abs, pct|None, pct_suppressed: reason|None, window_days, direction: better|worse|neutral|None}`. 규칙: ① 분모는 `abs(base)` 단일 정의, ② `pct`는 지표가 비율 척도이고 `abs(base) >= floor`일 때만, 아니면 `pct=None`+사유(`interval_scale`/`near_zero_base`), ③ direction은 `HIGHER_IS_BETTER`로 서버가 판정. `floor`는 **지표별 값**(HSR-7)으로 `MetricDef`에 `scale`과 함께 정의하며 전역 공통 floor는 두지 않는다. `_change`와 `get_metric_trend`가 이 함수를 호출, 프론트 `periodChange`/`changeLabel`의 % 계산 제거(렌더만). 척도·floor 메타는 **`MetricDef.scale` + 지표별 floor 필드**(HSR-2·HSR-7, `src/utils/metric_def.py`, SSOT)로 두고 `gen_metric_dictionary`·`check_docs`·`check_data_consistency`를 함께 수정한다.
   - 기각: B(프론트 임계값 숨김) — ADR-020 위반·3곳 중복 유지.
 - **M-04** `get_metric_trend` 응답에 `best/worst`(이미 계산됨)를 노출하고 `peak`는 deprecate(한 릴리스 유지 후 제거). 타일 라벨(HSR-3)은 **방향 반영 "최고/최저"**, `higher_is_better=None`(중립·예측) 지표는 best/worst를 `null`로 두고 프론트가 **타일을 숨긴다**(`range` 필드·`extreme_kind` 불필요).
 - **D-01** 6건 `{base}` 적용(`$app/paths`) + `scripts/check_frontend_links.py`(신규, ~40줄): `frontend/src/**/*.svelte`에서 `href="/`·`goto('/`로 시작하는 리터럴을 실패 처리, `check_docs.py`에 검사 추가 또는 pre-commit 연결.
@@ -39,7 +40,7 @@
 | src/training/match_select.py | 수정(같은 날 후보 1개면 비율 상한 무시) | +8 |
 | src/services/story_period.py / story_service.py | 신규 / 수정 | ~60 / -25 |
 | src/services/metric_change.py | 신규 | ~70 |
-| src/utils/metric_def.py + 레지스트리 정의, scripts/gen_metric_dictionary.py, check_data_consistency 검사 | 수정(`scale` 필드·값 채움·사전 출력·정합성 검사) | +15 / 지표 수만큼 / +5 / +10 |
+| src/utils/metric_def.py + 레지스트리 정의, scripts/gen_metric_dictionary.py, check_data_consistency 검사 | 수정(`scale`·지표별 floor 필드, 값 채움, 사전 출력, 정합성 검사) | +15 / 지표 수만큼 / +5 / +10 |
 | src/services/metrics_browser_service.py | 수정 | -20 +10 |
 | src/services/activity_counts.py / data_service.py / sync_state_service.py | 신규 / 수정 | ~40 / ±10 |
 | frontend/src/lib/trendChart.ts, metricMeaning.ts, routes/library/metrics/{+page,[slug]/+page}.svelte | 수정(% 계산 제거, 최고/최저 타일·중립 숨김) | -30 +15 |
@@ -51,7 +52,7 @@
 
 ## 4. 단계·검증
 1. **즉시 수정(위험 낮음)**: M-01 → D-01 → C-01. 검증: `test_story_period`(2026-W40, 2027-W01↔2026-W53, 2026-12 ↔ 2027-01, 잘못된 키 400), `GET /api/v1/library/story/2026-W40` 200; 링크 검사 스크립트가 수정 전 6건 실패·수정 후 0건; 375px에서 300자 무공백 전송 시 `scrollWidth == clientWidth`, 여러 줄 입력 보존.
-2. **G1 SSOT**: `MetricDef.scale` 추가·채움 → metric_change → M-04 extremes → activity_counts. 검증: TSB/REC/ramp_rate/skin_temp 픽스처로 pct=None+사유, 부호가 API·목록·상세 일치; `gen_metric_dictionary`·`check_docs`·`check_data_consistency` 통과(scale 누락 지표 0); marathon_prediction 등 중립·예측 지표는 best/worst null·타일 숨김, CIRS worst=최댓값·"최저" 라벨; 개요 타일 전체·러닝 값이 activity_counts와 같고 러닝 값 = sync-state.
+2. **G1 SSOT**: `MetricDef.scale`·지표별 floor 추가·채움 → metric_change → M-04 extremes → activity_counts. 검증: TSB/REC/ramp_rate/skin_temp 픽스처로 pct=None+사유, 같은 base 값이 지표 floor 에 따라 `near_zero_base` 여부가 달라짐(지표별 floor 적용 확인), 부호가 API·목록·상세 일치; `gen_metric_dictionary`·`check_docs`·`check_data_consistency` 통과(scale 누락 지표 0, 비율 척도 지표 floor 누락 0); marathon_prediction 등 중립·예측 지표는 best/worst null·타일 숨김, CIRS worst=최댓값·"최저" 라벨; 개요 타일 전체·러닝 값이 activity_counts와 같고 러닝 값 = sync-state.
 3. **T-01**: 먼저 아래 실데이터 확인으로 후보 ①②③ 중 어느 것인지 판정 → match_hooks 추출·CLI 호출·result_json 기록·같은 날 단일 후보 상한 무시 → 사본 DB에서 `rematch` 1회 → 스트립 재확인(10/8·10/9 매칭). 테스트: 매칭 예외 시 job은 completed이고 `result_json.match.error`가 채워짐, 조기 return + 동기화 1건 이상이면 매칭 실행·0건이면 `match.skipped` 기록, CLI 동기화 후 매칭 실행, 같은 날 후보 1개(비율 2.5) 매칭·후보 2개면 1.6 초과 탈락.
    **실데이터 확인 필요**(사용자 머신, 읽기 전용; `sync_jobs`는 v36에서 running.db가 아닌 `sync_jobs.db`로 이동 — `src/utils/sync_jobs.py:129-130`):
    | 확인 | 쿼리(대상 DB) | 판정 |
@@ -61,24 +62,18 @@
    | `_effective` 결함 해당 | 위 결과에서 같은 date에 source≠'planner' 미매칭 행과 planner 매칭 행이 공존하는지 | 공존하면 해당 |
    | 실제 활동 거리 | `SELECT * FROM v_canonical_activities WHERE <날짜열> BETWEEN '2026-10-05' AND '2026-10-11';` (컬럼명은 뷰 정의로 먼저 확인) | 계획 대비 비율 >1.6 이면 상한 탈락 확정 |
 4. `pytest tests/`, `npm run check`, `scripts/check_docs.py`, `scripts/gen_metric_dictionary.py`. 각 신규 파일 300줄 이하.
-- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. v1 `app.py:_auto_match_after_sync`는 변경 없음(v1 제거 시 함께 삭제). Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`은 코드 정의 필드라 DB 무관.
+- 호환성: API는 필드 추가 위주(`peak`·`change_pct`는 한 릴리스 유지). 매칭 규칙 변경(HSR-1)으로 다음 4주 재매칭 시 기존 미매칭 행이 매칭으로 바뀔 수 있다. v1 `app.py:_auto_match_after_sync`는 변경 없음(v1 제거 시 함께 삭제). Calculator·metric_store·DB 스키마 변경 없음(SCHEMA_VERSION 유지). `MetricDef.scale`·floor는 코드 정의 필드라 DB 무관.
 
-## 5. 결정됨(2026-10-11, `decisions-table.md` HSR-1~6)
-1. HSR-1 거리 비율 상한 — (c) 같은 날 후보 1개면 비율 무시, 여럿이면 1.6 유지. 근거: 이번 탈락은 고치고 다른 날 세션 오매칭 위험은 막는 절충. PLN-6·PLN-10과 단일 결정.
-2. HSR-2 비율 척도 메타 위치 — (b) `MetricDef.scale` 필드. 근거: 레지스트리 SSOT, 사전·검사 도구 동반 수정.
-3. HSR-3 M-04 타일 라벨 — 방향 반영 "최고/최저", 중립·예측 지표는 타일 숨김. 근거: 방향 없는 지표엔 최고 개념이 없음.
-4. HSR-4 개요 "활동" 정의 — (c) 전체 canonical·러닝 둘 다 표시(라벨 구분). 근거: 두 정의 모두 쓰임, 라벨로 혼동 제거.
-5. HSR-5 조기 return 시 매칭 — (b) 동기화된 건 1건 이상이면 실행, 0건이면 skip 사유 기록. 근거: 부분 누락은 다음 동기화 재매칭으로 일시적.
-6. HSR-6 "매칭 미실행" 표시 — (a) 구분 안 함, 로그·result_json으로만 관측. 실데이터 확인 결과 원인 ①이면 (b) 재검토.
-7. **(미결정, 동기화 중 추가) M-03 floor 값** — (a) 공통 floor 하나(단순, 지표 단위 차이 무시) (b) `MetricDef`에 지표별 floor(정확, `scale`과 함께 채움 부담).
+## 5. 결정
+- HSR-1~7(연관 PLN-6·PLN-10): 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 본문 §2 각 항목에 반영.
 
 ## 6. 범위 밖 메모
 - M-01의 `delta_pct`가 이전 값 0일 때 0을 반환(“변화 없음”으로 오독 가능) — M-03 규칙 적용 후보.
 - 목록(14일 창)과 상세(선택 기간) 변화의 창 길이 차이는 문구 문제로 별도 UX 검토.
 - `week_compliance`·`matcher`가 직접 SQL로 `v_canonical_activities`를 조회(서비스 계층이라 ADR-009 대상 아님) — 정의 공유는 D-03 헬퍼로 후속 통합 가능.
 
-## 7. 동기화 중 발견한 충돌/확인 필요
-1. HSR-2 원문의 "floor 값(지표별 vs 공통)"은 결정에 포함되지 않았다. `compute_change`의 `near_zero_base` 판정에 필요하다(→ 결정 7).
-2. HSR-1 "같은 날 후보 1개"의 기준이 불명확: 계획 행 기준 같은 날 활동 후보 수인지, 활동 기준 같은 날 계획 행 수(외부 계획 행 공존 포함)인지. `match_select`/`matcher.py:51` 정렬 구조에 따라 구현 시 확인.
-3. HSR-4는 원문이 `non-running-activities.md` 종목 정책과 맞춰야 한다고 명시했으나, 이번 동기화에서 그 설계서 결정과의 일치 여부는 확인하지 않았다.
-4. HSR-5 (b)의 "동기화된 건" 집계 기준(소스별 합인지 신규 활동만인지, `counts_json` 어느 키인지)이 정해지지 않았다.
+## 7. 동기화 중 발견한 모호점
+1. HSR-1 "같은 날 후보 1개"의 기준(계획 행 기준 활동 수 vs 활동 기준 계획 행 수, 외부 계획 행 포함 여부) 미정 — `match_select`/`matcher.py:51` 구조로 구현 시 확인.
+2. HSR-4 표시 정의와 `non-running-activities.md` 종목 정책의 일치 여부 미확인.
+3. HSR-5 "동기화된 건" 집계 기준(소스별 합/신규 활동만, `counts_json` 키) 미정.
+4. HSR-7 지표별 floor 의 필드명·단위(지표 원단위 절댓값인지)·각 지표 값, 비율 척도가 아닌 지표에도 값을 둘지 미정.
