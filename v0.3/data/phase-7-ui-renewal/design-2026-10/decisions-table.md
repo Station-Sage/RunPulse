@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN).
-- 총 105건 (결정 95건 / 부분 결정 2건 / 미결정 8건).
+- 총 107건 (결정 95건 / 부분 결정 2건 / 미결정 10건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -44,6 +44,8 @@
 | FRS-17 | 데이터 신선도 | 보류 해제 조건 (신규, 미결정) | (a) BB·HRV 모두 당일 확보 + CRS fresh — 엄격, HRV 7일 rolling 미형성 사용자는 장기간 BOOST 불가 / (b) BB 당일 확보 + CRS fresh, HRV는 `hrv_today` 존재만 — 실용적, 게이트 1개는 여전히 낙관 판정 가능 / (c) (a) + 사용자가 "컨디션 좋음" 수동 확인 시 1일 해제 — 유연하나 UI·저장(ADR-035 `decided_via`) 추가. 현재 설계는 (a) 기준으로 작성(`gate_unknown` 하나라도 → hold). **결정 2026-10-11: (a) BB·HRV 모두 당일 확보 + CRS fresh 일 때만 보류 해제** |
 | FRS-18 | 데이터 신선도 | `adjust_todays_plan` 나머지 호출부 범위 (신규, 미결정) | `plan_service`(145·177), `coach_evidence`, `ai/chat_readiness`, `ai/coach_rule_handlers`는 `boost_hold=None`이라 Hero가 보류해도 Coach/AI 근거·plan API에는 `volume_boost=True`가 남을 수 있다. (a) 이번 범위 유지(Hero·제안만) — 변경 최소, Coach가 "상향 가능"이라 말할 수 있는 불일치 / (b) v2 서비스·AI 호출부 4곳 모두 `crs_boost_hold` 전달 — 일관, 호출부마다 crs 조회 1회·테스트 +4 / (c) `plan_service`에 `todays_adjustment_with_hold(conn, date)` 래퍼를 두고 v2 호출부를 이관 — 중복 제거, 리팩터 범위 증가. v1·`plan.py`는 어느 안이든 미수정. **결정 2026-10-11: (c) plan_service 에 todays_adjustment_with_hold(conn, date) 래퍼를 두고 v2 호출부(plan_service·coach_evidence·AI 2곳)를 이관 — 리팩터 범위가 커서 구현 전 설계 먼저(v1·plan.py 미수정)** |
 | FRS-19 | 데이터 신선도 | 보류 시 Hero `verdict` 값 (신규, 미결정) | (a) `"as_planned"` + `adjustment.hold_reason` — 프론트 타입 불변, "계획대로"와 보류의 구분은 사유 유무로만 / (b) 신규 `"up_held"` — 의미 명확, `TodayHero`·타입·테스트 분기 추가, 기존 소비처가 미지 값 처리 필요. **결정 2026-10-11: (a) Hero verdict 는 'as_planned' 유지 + adjustment.hold_reason** |
+| FRS-20 | 데이터 신선도 | 래퍼 이관 시 Coach/AI 문구 범위 (신규, 미결정) | 이관만으로는 Coach 문장 3경로(`coach_evidence`·`_session_line`·`plan_line`)가 `volume_boost`를 읽지 않아 문구가 변하지 않는다. (a) 데이터만 — 문구 무변경, LLM ctx에는 `boost_held`·reasons 필드만 실림, Hero는 사유를 보이는데 Coach는 침묵 / (b) 규칙 문장·`coach_evidence` plan 근거에 보류 한 줄 추가 — 화면 간 설명 일관, 문구가 FRS-4에 의존, 테스트 +3·`coach_rule_handlers`(216줄) 증가 / (c) LLM 프롬프트 ctx에만 사유 문장 추가 — 규칙 경로 무변경, 규칙 fallback과 LLM 응답이 갈림. | 미결정 |
+| FRS-21 | 데이터 신선도 | Hero 보류 사유 표시 스타일 (신규, 미결정) | `TodayHero`는 `view.adjustment`를 amber(경고) 박스로 렌더한다. (a) 같은 박스 재사용 — 변경 0, 보류가 하향처럼 "경고"로 읽힘 / (b) 중립(회색) 한 줄로 구분 — `todayHero.ts`가 종류 필드를 넘기고 `TodayHero.svelte` 분기 +5줄, 하향과 보류가 시각적으로 구분. | 미결정 |
 | NRA-1 | 비러닝 활동 | 월/주 내러티브의 비러닝 처리 | (a) 러닝만 집계하고 비러닝은 언급 안 함 — 단순하지만 수영·근력 훈련이 "기록 없음"처럼 보일 수 있음 / (b) 러닝 수치 + 별도 한 줄("그 외 수영 1회") — 정확하지만 문구·칩이 늘어남 / (c) 전체 "활동"으로 집계하되 라벨을 바꿈 — 러닝 앱 목적과 주간 스트립과의 불일치가 남음. **결정 2026-10-11: (b) 러닝 수치 + 비러닝 별도 한 줄** |
 | NRA-2 | 비러닝 활동 | "회" 단위 | 러닝 세션 수만 셀지, 같은 날 여러 건을 1회로 볼지(현재는 건수). **결정 2026-10-11: 러닝 활동 건수(현행 유지)** |
 | NRA-3 | 비러닝 활동 | 수영 페이스 basis | 이동시간(Garmin·Strava 관례, 휴식 제외) vs 총시간(화면 시간과 직관적 일치). 이동시간을 쓰면 히어로에 이동시간도 같이 보여야 모순이 없다. **결정 2026-10-11: 이동시간 기준 + 히어로에 이동·총시간 병기** |
