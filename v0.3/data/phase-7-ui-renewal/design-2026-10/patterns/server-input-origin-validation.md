@@ -1,7 +1,7 @@
 # 설계: 쓰기 API 서버 입력 검증·Origin 검증
 
 - 대상 ID: T-15, P-04, P-05, D-22, E-02, C-02 (참고 동일 원인: P-17, C-18)
-- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1). 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3). 2026-10-11 6차 동기화(V1-8·V1-9·V1-10). 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13).
+- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1). 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3). 2026-10-11 6차 동기화(V1-8·V1-9·V1-10). 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13). 2026-10-11 8차 동기화(V1-15·V1-16).
 - 관련 ADR: ADR-034 (원격 MCP의 Origin 불일치 거부 — `_origin_ok`가 이미 있는 선례. 현 위치 `src/web/views_mcp_remote.py` → V1S-3 로 `src/mcp_remote/http.py` 이관), 신규 ADR-048 후보(D9)
 
 ## 1. 근본 원인
@@ -16,6 +16,7 @@
 ## 2. 설계안 (A안 확정)
 
 ### 2.1 Origin 관문 — `src/web/request_guard.py` (신규)
+- 위치(V1-16 (c')): `src/web/` — 앱 조립 계층으로 v1 일몰 후에도 유지('src/web = 앱 셸 전용': `app.py`·`auth_cf.py`·`request_guard.py`·`response_policy.py`·`spa_static.py`). view 밖 이관(V1-10) 대상이 아니다.
 - 앱 전역 `before_request` 1개. 대상: 메서드가 POST/PUT/PATCH/DELETE인 모든 요청.
 - 판정(D2): 허용 출처 = `public_base_url()`의 출처 + 개발용 허용 목록 상수 `DEV_ALLOWED_ORIGINS`(`http://localhost:5173` 등, development 설정에서만 적용). 프록시 뒤 `request.host`(Host 헤더)는 비교 기준으로 쓰지 않는다. `Origin`이 있으면 그것으로, 없으면 `Referer`의 출처로 판정한다.
 - Origin·Referer 둘 다 없는 쓰기 요청은 **거부**한다(D1).
@@ -68,10 +69,10 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - **현행(코드 확인 2026-10-11)**: `app.py:266` 라우트 안에 로직이 인라인이다 — POST는 `session["user_id"] = uid` + `init_db(uid)` 후 `/` 리다이렉트, GET은 `data/users` 하위 디렉터리 목록을 `<option>` 문자열로 조립(미이스케이프). v2 API도 같은 Flask 세션(`get_current_user_id` — 현 `src/web/helpers.py`, V1S-2 로 `src/utils/user_context.py` 이동)을 쓰므로 세션 키를 바꾸는 방식은 v2 에서 그대로 유효하다. v2 `MenuDrawer.svelte:115`가 `/switch-user`를 `data-sveltekit-reload`로 링크한다.
 - **view 밖 모듈**: 사용자 목록·uid 검증·전환(`session` 갱신 + `init_db`)을 서비스 함수로 분리(`src/services/` 신규 모듈). 라우트는 얇게 유지.
 - **v2 노출**: JSON 엔드포인트(목록 GET, 전환 POST)와 v2 화면. **엔드포인트 경로와 화면 위치는 구현 단계에서 제안한다(V1-8 (c))** — 이 문서는 경로명·위치를 정하지 않는다. 쓰기(POST)는 2.1 Origin 관문(경로 무관 전역)·2.2 `parse_body`(uid 필드) 적용 대상이 된다(거부 응답 형식은 2.1 규칙대로 제안 경로에 따름). HTML 문자열 조립이 사라지므로 `<option value>` 이스케이프 결함(E-02 후반)은 이관으로 소멸한다(프론트 렌더는 텍스트 바인딩).
-- **SRV-6 정합(V1-9 (b)·V1-12 (a))**: production 차단(404)은 v2 이관과 **같은 변경**에서 v2 엔드포인트에 적용한다(D6 변경 없음). production 판정은 **기존 환경/설정 키를 재사용**하며, 어느 키인지는 구현 첫 단계에서 코드로 확인한다(신규 키 없음). production에서 v2 진입점(MenuDrawer 링크)도 숨긴다. 개발 환경 경로 이탈 차단(`get_db_path` `resolve()`)은 이관과 무관하게 `db_setup.py`에 둔다.
+- **SRV-6 정합(V1-9 (b)·V1-12 (a))**: production 차단(404)은 v2 이관과 **같은 변경**에서 v2 엔드포인트에 적용한다(D6 변경 없음, v1 라우트 선적용 없음). 응답 헤더는 이관 후 경로에 따라 `security-headers.md` `classify_surface`의 표면을 받는다 — 'v1' 표면은 V1-15 로 없다. production 판정은 **기존 환경/설정 키를 재사용**하며, 어느 키인지는 구현 첫 단계에서 코드로 확인한다(신규 키 없음). production에서 v2 진입점(MenuDrawer 링크)도 숨긴다. 개발 환경 경로 이탈 차단(`get_db_path` `resolve()`)은 이관과 무관하게 `db_setup.py`에 둔다.
 - **순서**: ① 서비스 분리 + v2 엔드포인트(production 404, SRV-6 동시 적용) → ② v2 화면·MenuDrawer 링크 교체 → ③ v1 `/switch-user` 라우트 삭제(`app.py` -30줄).
 - **열린 항목**: 엔드포인트 경로·v2 화면 위치는 구현 단계 제안 대상(V1-8 (c), 위치는 V1-5 MenuDrawer 별도 BACKLOG와 연결).
-- **V1-10 확정 위치(V1S-2·V1S-3·V1S-5)**: 신규 사용자 전환 서비스·라우트는 `get_current_user_id`를 `src.utils.user_context`에서, `src/mcp_remote/http.py`는 `request_guard.same_origin`을 import 한다. `app.py`의 `mcp_remote_bp` 등록 import 와 테스트 patch 문자열(`tests/test_mcp_http_routes.py`의 `src.web.views_mcp_remote` → `src.mcp_remote.http`, `src.web.helpers.get_current_user_id` → `src.utils.user_context.get_current_user_id`)은 이관 커밋에서 함께 바뀐다(shim 없음). 순서: 이관(`bundles/v1-sunset-prep.md` §4 2·3단계)이 이 문서 2.5 ①보다 먼저. 면제 목록(`/mcp`)·Origin 판정은 URL 경로 기준이라 영향이 없다.
+- **V1-10 확정 위치(V1S-2·V1S-3·V1S-5, V1-16)**: 신규 `request_guard.py`는 `src/web/`(V1-16). 신규 사용자 전환 서비스·라우트는 `get_current_user_id`를 `src.utils.user_context`에서, `src/mcp_remote/http.py`는 `request_guard.same_origin`을 import 한다. `app.py`의 `mcp_remote_bp` 등록 import 와 테스트 patch 문자열(`tests/test_mcp_http_routes.py`의 `src.web.views_mcp_remote` → `src.mcp_remote.http`, `src.web.helpers.get_current_user_id` → `src.utils.user_context.get_current_user_id`)은 이관 커밋에서 함께 바뀐다(shim 없음). 순서: 이관(`bundles/v1-sunset-prep.md` §4 2·3단계)이 이 문서 2.5 ①보다 먼저. 면제 목록(`/mcp`)·Origin 판정은 URL 경로 기준이라 영향이 없다.
 
 ## 3. 변경 파일 표
 | 파일 | 신규/수정 | 내용 | 예상 줄 |
@@ -142,6 +143,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 관문 대상 'v1 폼' 표기·4단계 'v1 폼 1회' 검증·호환성 v1 폼 25곳·v1 제거 시 정리 서술 삭제, 대안 B 'v1 폼' 언급 삭제.
 - 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3): 일몰 = UI·라우트 일몰. E-02를 v2 이관 설계(2.5)로 재작성 — `views_switch_user.py` 분리 대신 서비스 모듈 + v2 엔드포인트, v1 라우트 삭제, SRV-6 차단을 v2 엔드포인트에 적용.
 - 2026-10-11 6차 동기화(V1-8·V1-9·V1-10): 2.5 엔드포인트 경로·화면 위치 단정을 '구현 단계 제안'(V1-8 c)으로 완화, SRV-6은 v2 이관과 같은 변경에서 적용(V1-9 b — 이관 전 v1 선적용 서술 제거), `helpers.py`·`views_mcp_remote.py` view 밖 이관(V1-10)에 따른 경로·import·테스트 영향 명시.
+- 2026-10-11 8차 동기화(V1-15·V1-16): `request_guard.py` 위치 `src/web/` 확정('src/web = 앱 셸 전용', 2.1·2.5·§10 열린 항목 해소), 사용자 전환 엔드포인트의 응답 표면에 'v1' 분기 제거(V1-15) 반영, SRV-6 = v2 이관과 같은 변경 재확인.
 - 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13): '새 위치 미정'을 확정 위치(`src/utils/user_context.py`·`src/mcp_remote/http.py`, shim 없음)로 교체, production 판정 = 기존 설정 키 재사용(키 확인은 구현 첫 단계), §10 열린 항목 정리.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
@@ -155,5 +157,5 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 ## 10. 동기화 중 발견한 모호점
 - (V1-1, 5차에서 해소) E-02 처리 — V1-3 (b) 결정으로 v2 이관 후 v1 제거(2.5).
 - (V1-3 → 6차 동기화) 2.5의 v2 엔드포인트 경로·v2 화면 위치는 구현 단계에서 제안(V1-8 (c), 위치는 V1-5 MenuDrawer BACKLOG와 연결). 이관 전 v1 라우트 선적용 여부는 V1-9 (b)로 해소 — v2 이관과 같은 변경에서 SRV-6 적용. production 판정 키는 V1-12 (a)로 해소 — 기존 키 재사용, 키 이름은 구현 첫 단계에서 코드로 확인.
-- (V1-10, 7차에서 해소) 4파일 새 위치는 V1S-1~3 으로 확정(2.5 확정 위치 줄). **남은 열린 항목**: 이 문서의 신규 `src/web/request_guard.py`는 V1-10 대상 4파일이 아니어서 `src/web/` 위치를 유지하는지는 결정 기록이 없다(view 밖 이관 원칙과의 정합 확인 필요).
+- (V1-10, 7차에서 해소) 4파일 새 위치는 V1S-1~3 으로 확정(2.5 확정 위치 줄). (8차, V1-16 으로 해소) 신규 `request_guard.py`는 `src/web/`에 둔다 — 'src/web = 앱 셸 전용' 정의에 포함되어 view 밖 이관 원칙과 충돌하지 않는다.
 - (V1-1) 2.1 거부 응답 '그 외 → text 403'과 5절 'B는 v1 제거 이후 위협 모델이 바뀌면 재검토'는 v1 호환 서술이 아니라고 보고 유지했다.

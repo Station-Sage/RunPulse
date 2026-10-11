@@ -1,6 +1,6 @@
 # 설계: 보안 헤더·정적 응답 정책 (E-01, E-04)
 
-> 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SEC-1~9). 2026-10-11 설계서 동기화. 근거: `ux-review-2026-10/07-entry-common.md` E-01, E-04.
+> 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SEC-1~9, D2 의 'v1' 분기는 V1-15 로 제거). 2026-10-11 설계서 동기화(8차: V1-15·V1-16). 근거: `ux-review-2026-10/07-entry-common.md` E-01, E-04.
 > 관련 설계: `server-input-origin-validation.md`(Origin 관문 `request_guard`, 세션 쿠키 속성). 이 문서는 그 영역을 다시 설계하지 않는다.
 
 ## 1. 근본 원인
@@ -11,14 +11,15 @@
 ## 2. 설계안 (A안 확정)
 
 ### 2.1 응답 정책 모듈 — `src/web/response_policy.py` (신규)
+- 위치(V1-16 (c')): `response_policy.py`·`spa_static.py`(2.3)·`request_guard.py`(`server-input-origin-validation.md`)는 `src/web/`(앱 조립 계층, v1 일몰 후에도 유지 — 'src/web = 앱 셸 전용': `app.py`·`auth_cf.py`·이 3파일)에 둔다.
 - `init_response_policy(app)`: `after_request` 1개를 등록한다. `create_app`에서 `request_guard` 초기화 바로 뒤에 호출한다.
-- `classify_surface(path) -> str`: 응답을 `"v2"`(`/v2/`), `"api"`(`/api/`, `/mcp`), `"feed"`(`/feeds/`), `"v1"`(그 밖의 서버 렌더 HTML)로 나눈다.
+- `classify_surface(path) -> str`: 응답을 `"v2"`(`/v2/`), `"api"`(`/api/`, `/mcp`), `"feed"`(`/feeds/`)로 나눈다. **`"v1"` 분기는 두지 않는다**(V1-15 (a), V1-4 해소 — v1 HTML 도 일반 표면 정책을 받는다). 위 세 접두사 밖 경로가 어느 표면·CSP 를 받는지는 §10 열린 항목.
 - 공통 헤더(모든 표면): `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`(D5), `X-Frame-Options: DENY`(D3), `Permissions-Policy`(D9, 앱이 쓰지 않는 기능을 빈 허용 목록으로 차단 — 항목은 구현 시 확정). COOP는 보내지 않는다.
 - 표면별 CSP(`build_csp(surface, script_hashes) -> str | None`), 모든 CSP에 `frame-ancestors 'none'`(D3):
   - `api`/`feed`: `default-src 'none'; frame-ancestors 'none'`. 문서가 아닌 응답이라 가장 엄격하게 enforce.
   - `v2`: `default-src 'self'; script-src 'self' <인라인 부트스트랩 해시>; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; report-uri /api/v1/csp-report`. `style-src 'unsafe-inline'`은 Svelte style 속성과 `app.html`의 `<div style>` 때문에 필요하다.
   - `v2` 집행 모드(D1): 설정값 `CSP_V2_MODE ∈ {report-only, enforce}`. 초기 `report-only`(`Content-Security-Policy-Report-Only` 헤더)로 운영하고, 위반 로그가 정리되면 `enforce`로 전환한다. 단, `frame-ancestors`는 Report-Only에서 무시되므로 프레임 보호는 `X-Frame-Options: DENY`가 처음부터 맡는다.
-  - `v1`(D2): CSP 없음(`None`). 이 분기의 처리(일몰 시 제거·지금 제거·유지)는 **보류(V1-4, 설계 검토 필요)** — §10.
+  - (D2 → V1-15) v1 전용 'CSP 없음' 분기는 없다. v1 화면이 CSP 로 깨지는 것은 감수한다(V1-13).
 - 라우트가 이미 붙인 헤더는 덮어쓰지 않는다(`headers.setdefault`). 기존 `Cache-Control` 테스트를 그대로 지키기 위해서다.
 - HSTS는 앱에서 송출하지 않는다(D4, Cloudflare 프록시에 위임).
 
@@ -53,7 +54,7 @@
 | `frontend/src/hooks.client.ts` | 신규 | `shouldNotify`, preloadError 핸들러 | ~35 |
 | `frontend/src/lib/components/UpdateNotice.svelte` | 신규 | "새 버전" 알림 UI(문구·위치는 product 영역) | ~30 |
 | `frontend/vite.config.ts` | 수정 | `version.pollInterval` | +3 |
-| `tests/test_response_policy.py` | 신규 | 표면 분류, 표면별 CSP·Report-Only 전환, 공통 헤더(Permissions-Policy, HSTS 없음), setdefault 보존, SSE | ~130 |
+| `tests/test_response_policy.py` | 신규 | 표면 분류('v1' 표면 없음 — V1-15), 표면별 CSP·Report-Only 전환, 공통 헤더(Permissions-Policy, HSTS 없음), setdefault 보존, SSE | ~130 |
 | `tests/test_csp_report.py` | 신규 | 204, Origin 없이 통과, 크기 상한 | ~40 |
 | `tests/test_spa_static.py` | 신규 | 404/200 분기, 딥링크 보존, 캐시 규칙(version.json), 해시 추출·mtime 캐시, favicon 200 | ~90 |
 | `frontend/tests/update-notice.test.ts` | 신규 | `shouldNotify` 중복 방지 | ~30 |
@@ -87,7 +88,7 @@
 ## 6. 결정됨 (2026-10-11, `decisions-table.md` SEC-1~9)
 
 - **D1 (SEC-1)** v2 CSP는 Report-Only 후 enforce — 누락 출처로 화면이 깨지는 위험을 먼저 관찰.
-- **D2 (SEC-2)** v1은 CSP 없이 공통 헤더만. `classify_surface` `"v1"` 분기의 일몰 처리는 V1-4 보류(§10).
+- **D2 (SEC-2 → V1-15)** SEC-2 의 'v1 은 CSP 없이 공통 헤더만'은 V1-15 (a)로 대체 — `classify_surface` `"v1"` 분기 제거(V1-4 해소, 근거 V1-13 v1 손상 허용). 공통 헤더는 모든 표면에 그대로.
 - **D3 (SEC-3)** 프레임 `DENY` / `frame-ancestors 'none'` — 자체 임베드 수요가 없어 가장 안전한 값.
 - **D4 (SEC-4)** HSTS는 Cloudflare 프록시에 위임, 앱 미송출 — 로컬 HTTP 영향 제거.
 - **D5 (SEC-5)** `Referrer-Policy: strict-origin-when-cross-origin` — 호환성 높고 Referer 대체 판정 유지.
@@ -108,6 +109,7 @@
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 고려 제거 — 4절 v1 무회귀 단계·호환성 v1 항목·테스트 'v1 CSP 없음' 삭제, D2·2.1 `v1` 분기·7절 v1 XSS 메모·대안 B 'v1' 언급 축약/삭제.
 - 2026-10-11 5차 동기화(V1-1 정정·V1-3·V1-4): 일몰 = UI·라우트 일몰. `"v1"` 분기를 V1-4 보류 열린 항목으로 명시(2.1·D2·§10), 사용자 전환 v2 이관(V1-3)에 따른 표면 변화 기록(§10).
 - 2026-10-11 6차 동기화(V1-8·V1-9·V1-10, V1-4 보류 유지): §10 사용자 전환 항목의 엔드포인트 표면 단정을 경로 규칙 의존으로 완화(경로는 구현 단계 제안), SRV-6 적용 시점(이관과 같은 변경) 반영, `src/web` 공용 4파일 view 밖 이관의 영향(없음) 명시.
+- 2026-10-11 8차 동기화(V1-15·V1-16): `classify_surface` 'v1' 분기 제거(2.1·D2·테스트·§10, V1-4 해소), 남는 폴백 경로의 표면은 열린 항목으로 축소. `response_policy`·`spa_static`·`request_guard` 위치 `src/web/` 확정(2.1·§10, 'src/web = 앱 셸 전용'). 사용자 전환 SRV-6 은 v2 이관과 같은 변경(유지).
 - 2026-10-11 7차 동기화(V1S-1~3·V1S-5·V1-12·V1-13, V1-4 보류 유지): §10 V1-10 항목의 '새 위치 미정'을 확정 위치로 교체(영향 없음 유지), V1-4 검토 입력에 D2 근거와 V1-13 충돌 기록, 사용자 전환 production 판정 키(V1-12) 반영.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
@@ -119,6 +121,6 @@
 - D8 알림 문구·위치는 product 영역이며 이 문서에서 확정하지 않았다.
 
 ## 10. 동기화 중 발견한 모호점
-- **(V1-4, 열린 항목 — 보류)** `classify_surface`의 `"v1"` 분기(그 밖의 서버 렌더 HTML → CSP 없음, D2/SEC-2) 처리는 미결정: (a) 일몰 시 제거·그 전까지 유지 / (b) 지금 제거 / (c) 유지. V1-2의 일몰 정의(UI·라우트 일몰)와 함께 설계 검토 후 결정한다. 검토 입력(사실): D2의 근거는 v1 서버 렌더 HTML이 인라인 스크립트·인라인 핸들러·CDN(ECharts, Google Fonts)에 의존한다는 것(초안 호환성 절). `"v1"`은 `/v2/`·`/api/`·`/mcp`·`/feeds/` 이외 경로 전체의 폴백 표면이라, v1 화면 라우트가 사라져도 남는 비API 경로(예: `app.py`의 `/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import/*`)와 미정의 경로 404 응답이 어느 표면·정책을 받을지가 분기 제거 시 함께 정해져야 한다. 2026-10-11 grep 기준 v2 프론트(`frontend/src`)는 이 v1 경로들을 호출하지 않는다(`/switch-user` 링크 1건 제외). 7차 검토 입력: D2 근거(v1 HTML 이 CSP 를 받으면 깨짐)는 v1 보호 사유인데 V1-13(v1 손상 허용)과 충돌한다 — 처리 결정은 V1-4 보류 그대로 두며, 검토 시 이 충돌을 함께 본다.
-- (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 `"v1"` 표면(CSP 없음)이다. 이관 후 v2 엔드포인트 경로·화면 위치는 구현 단계에서 제안하므로(V1-8 (c)) 받을 표면은 `classify_surface`의 경로 규칙을 그대로 따른다(예: `/api/` 아래면 `"api"`, `/v2/` 아래 화면이면 `"v2"`) — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404)은 v2 이관과 같은 변경에서 그 엔드포인트에 적용되며(V1-9 (b), production 판정은 기존 설정 키 재사용 — V1-12) 같은 표면 정책을 받는다.
-- (V1-10·V1S-1~3 영향) `src/web` 공용 4파일은 이번 작업에서 모두 view 밖으로 이관된다 — `bg_sync.py`·`auto_sync.py` → `src/sync/`, `helpers.py` 공용 3함수 → `src/utils/user_context.py`(HTML 헬퍼 잔류), `views_mcp_remote.py` → `src/mcp_remote/http.py`(shim 없음, V1S-5). 이 문서는 네 파일을 경로로 참조하지 않는다 — §10 V1-4 항목의 `/bg-sync/*`·`/trigger-sync` 등은 `app.py`의 URL 경로이고 `/mcp` 표면 분류도 URL 경로 기준이라, 모듈 이관은 `classify_surface`·CSP 판정, 이 문서의 파일 경로·테스트(`test_response_policy.py` 등) 범위, import 경로 어느 것에도 영향이 없다. 단, 이 문서의 신규 `src/web/response_policy.py`·`src/web/spa_static.py`는 V1-10 대상이 아니며 `src/web/` 위치 유지 여부는 결정 기록이 없다(열린 항목).
+- **(V1-15 후속, 열린 항목)** V1-4 는 V1-15 (a)로 해소 — `classify_surface`의 `"v1"` 분기는 제거한다(2.1·D2). 남은 것: 분기가 폴백 표면이었으므로 `/v2/`·`/api/`·`/mcp`·`/feeds/` 이외 경로가 어느 표면·CSP 를 받을지(v2 정책 / api·feed 의 `default-src 'none'` / 별도)가 결정에 없다. 대상(사실): 일몰 전 v1 화면 전체, 일몰 후에도 남는 `app.py`의 비API 경로(`/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import/*`·`/` 리다이렉트), 미정의 경로 404 응답. 2026-10-11 grep 기준 v2 프론트(`frontend/src`)는 이 경로들을 호출하지 않는다(`/switch-user`·MenuDrawer quickLinks 의 v1 링크 제외). v1 화면이 이 정책으로 깨지는 것은 감수(V1-13).
+- (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 서버 렌더 HTML 이라 위 폴백 경로에 해당한다(V1-15 로 'v1' 표면 없음). 이관 후 v2 엔드포인트 경로·화면 위치는 구현 단계에서 제안하므로(V1-8 (c)) 받을 표면은 `classify_surface`의 경로 규칙을 그대로 따른다(예: `/api/` 아래면 `"api"`, `/v2/` 아래 화면이면 `"v2"`) — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404)은 v2 이관과 같은 변경에서 그 엔드포인트에 적용되며(V1-9 (b), production 판정은 기존 설정 키 재사용 — V1-12) 같은 표면 정책을 받는다.
+- (V1-10·V1S-1~3 영향) `src/web` 공용 4파일은 이번 작업에서 모두 view 밖으로 이관된다 — `bg_sync.py`·`auto_sync.py` → `src/sync/`, `helpers.py` 공용 3함수 → `src/utils/user_context.py`(HTML 헬퍼 잔류), `views_mcp_remote.py` → `src/mcp_remote/http.py`(shim 없음, V1S-5). 이 문서는 네 파일을 경로로 참조하지 않는다 — §10 V1-4 항목의 `/bg-sync/*`·`/trigger-sync` 등은 `app.py`의 URL 경로이고 `/mcp` 표면 분류도 URL 경로 기준이라, 모듈 이관은 `classify_surface`·CSP 판정, 이 문서의 파일 경로·테스트(`test_response_policy.py` 등) 범위, import 경로 어느 것에도 영향이 없다. 이 문서의 신규 `response_policy.py`·`spa_static.py`는 V1-16 (c')로 `src/web/` 위치 확정(해소 — 앱 조립 계층, 일몰 후 유지).

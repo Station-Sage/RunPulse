@@ -5,6 +5,7 @@
 > 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰): §1 v1 활동 CSV 행·§3 `views_export.py` 행을 grep 사실(라우트 전용, 공유 함수 `get_activity_list`, v2 MenuDrawer 링크)로 정정·복원, §6 MenuDrawer 링크 메모(V1-5 BACKLOG 참조).
 > 변경 이력: 2026-10-11 6차 동기화 — V1-11(MenuDrawer "CSV 내보내기" 링크 → v2 내보내기(EXP) 화면): §1 행·§3 표·§4 S4·§6 갱신. V1-10(`auto_sync.py` view 밖 이관) 영향 한 줄(§2.3·§5).
 > 변경 이력: 2026-10-11 7차 동기화 — V1S-1·V1S-5(`auto_sync.py` → `src/sync/`, shim 없음): §2.3 정리 스레드 시작 지점 확정(`app.py` 유지), §5 열린 항목을 `export_purge.py` 위치로 축소. V1-13: §1·§3 v1 CSV 라우트는 보호 없이 라우트 일몰.
+> 변경 이력: 2026-10-11 8차 동기화 — V1-16(c'): 신규 정리 스레드 위치 `src/services/export_purge.py` 확정(§2.3·§3·§5 열린 항목 해소), 시작 호출은 `src/web/app.py`(앱 셸) 유지.
 
 ## 1. 근본 원인 (현황, 코드로 확인한 것만)
 
@@ -84,7 +85,7 @@ raw_payloads/<src>.jsonl
 - 입력 검증(SRV-4): `groups` 는 리스트·중복 제거·허용 키만(미지 키 400), 빈 리스트 400, `include_dismissed` 는 bool(episodes 미선택 시 무시), 날짜는 기존 `parse_params`, JSON 아닌 본문 415(SRV-5).
 - 크기: **상한 없음, 디스크 여유 검사만**(EXP-8). 잡 시작 전 `shutil.disk_usage(exports_dir)` 여유 확인, 쓰는 중에도 테이블 경계마다 재확인. 부족하면 **안전한 실패만**(EXP-13) — 쓰기 중단·부분 zip 삭제·원장 `failed`·`EXPORT_DISK_FULL`, 다른 사용자 데이터·DB 는 건드리지 않는다. 그룹 자동 제외 후 계속하는 대체 동작은 두지 않는다. 필요 여유량은 **고정 여유**(EXP-18) — 상수 `EXPORT_MIN_FREE_BYTES`(예 1GB, 값은 구현 시 확인)를 `export_service` 에 두고 시작 전·테이블 경계 재확인 모두 같은 값과 비교한다(선택 그룹 크기·DB 크기 추정 없음). 스트림은 테이블 단위 커서 반복(`fetchmany`)으로 메모리 상한 유지.
 - 실패: 원장 `status=failed, error_code`(EXPORT_FAILED/DISK_FULL/SECRET_DETECTED), 부분 zip 삭제. 화면은 공통 오류 컴포넌트(ERR) + "다시 만들기"(수동, ERR-3 결정 따름).
-- 보관·만료: **24시간**(EXP-1, 현행 `EXPIRE_DAYS=7` → `EXPIRE_HOURS=24`). 만료는 판정만이 아니라 **zip 파일 삭제 잡**으로 보장한다 — `purge_expired(user_id)` 를 (1) 이력 조회·새 잡 시작 시, (2) 사용자 방문과 무관한 주기 정리 잡에서 전 사용자 대상으로 호출. 원장 행은 남기고 `status=expired`. 주기 잡은 **앱 시작 시 띄우는 별도 경량 데몬 스레드**(EXP-14) — `auto_sync` 루프와 분리되어 자동 동기화가 꺼져 있어도 동작한다. `src/web/app.py` 의 `auto_sync` 시작 지점(`app.py:184`) 옆에서 시작하고, 시작 실패는 경고 로그만 남긴다. (V1S-1 영향: `auto_sync.py` 는 `src/sync/` 로 이관되며 shim 이 없다(V1S-5). 시작 호출은 `app.py` 에 그대로 있고 import 경로만 `src.sync.auto_sync` 로 바뀐다 — 정리 스레드 시작 위치는 변하지 않는다. 신규 `src/web/export_purge.py` 의 위치는 §5 열린 질문.) 주기 간격은 구현 시 정한다(만료 24시간 대비 짧게).
+- 보관·만료: **24시간**(EXP-1, 현행 `EXPIRE_DAYS=7` → `EXPIRE_HOURS=24`). 만료는 판정만이 아니라 **zip 파일 삭제 잡**으로 보장한다 — `purge_expired(user_id)` 를 (1) 이력 조회·새 잡 시작 시, (2) 사용자 방문과 무관한 주기 정리 잡에서 전 사용자 대상으로 호출. 원장 행은 남기고 `status=expired`. 주기 잡은 **앱 시작 시 띄우는 별도 경량 데몬 스레드**(EXP-14) — `auto_sync` 루프와 분리되어 자동 동기화가 꺼져 있어도 동작한다. `src/web/app.py` 의 `auto_sync` 시작 지점(`app.py:184`) 옆에서 시작하고, 시작 실패는 경고 로그만 남긴다. (V1S-1 영향: `auto_sync.py` 는 `src/sync/` 로 이관되며 shim 이 없다(V1S-5). 시작 호출은 `app.py` 에 그대로 있고 import 경로만 `src.sync.auto_sync` 로 바뀐다 — 정리 스레드 시작 위치는 변하지 않는다. 신규 정리 스레드 모듈은 V1-16 (c')로 `src/services/export_purge.py` — `app.py` 는 앱 셸로서 시작 호출만 한다.) 주기 간격은 구현 시 정한다(만료 24시간 대비 짧게).
 - 에피소드 단건 삭제(NEW-10)와의 관계(EXP-11): 이미 생성된 zip 은 건드리지 않고 24시간 만료로 소멸. 삭제·익명화(NEW-10 추가 결정: `signals_json` 질병 항목 제거, `source='illness'`→`'readiness'`) 이후 새로 만드는 zip 에만 반영된다. 삭제 시 화면에 **"기존 내보내기 파일에는 최대 24시간 남아 있음" 안내**(EXP-16)를 표시한다 — 삭제 UI 는 adjustment-new-signals.md 소관이므로 이 설계는 문구 요구만 전달한다. 안내는 만료 전 내보내기 zip 유무와 무관하게 **항상 표시**한다(EXP-19) — 삭제 화면이 내보내기 이력을 조회할 필요 없음.
 
 ### 2.4 보안
@@ -110,7 +111,7 @@ raw_payloads/<src>.jsonl
 | `src/services/export_groups.py` | 신규 | GroupDef·EXPORT_GROUPS(기본 체크 activities·metrics·raw·episodes·races, dismissed 기본 해제)·열 거부 규칙·`enc:` 검사·테이블 존재 확인·episodes dismissed 필터 | ~130 |
 | `src/services/export_archive.py` | 신규 | `build_archive(conn, path, groups, frm, to, include_dismissed, space_check)` — 현 build_archive 이동·확장, manifest(format_version)/README, 디스크 여유 재확인 | ~180 |
 | `src/services/export_service.py` | 수정 | parse_params 에 groups·include_dismissed, start_archive 인자, `EXPIRE_DAYS=7`→`EXPIRE_HOURS=24`, 시작 전 디스크 여유 검사(고정 `EXPORT_MIN_FREE_BYTES`, EXP-18), purge_expired(파일 삭제), 다운로드 기록, created_at 오프셋. build_archive 제거로 300줄 이하 유지 | 230→~230 |
-| `src/web/export_purge.py`(신규 경량 스레드, EXP-14), `src/web/app.py`(시작 호출) | 신규/수정 | 앱 시작 시 데몬 스레드, 주기마다 전 사용자 `purge_expired`, 실패 시 로그만 | ~40 / +4 |
+| `src/services/export_purge.py`(신규 경량 스레드, EXP-14, 위치 V1-16), `src/web/app.py`(시작 호출) | 신규/수정 | 앱 시작 시 데몬 스레드, 주기마다 전 사용자 `purge_expired`, 실패 시 로그만 | ~40 / +4 |
 | `src/api/routes_data_export.py` | 수정 | groups·include_dismissed 전달, 415, job_id 형식 검사, no-store 헤더, 다운로드 기록(Origin 관문 변경 없음) | 56→~85 |
 | `frontend/src/lib/exportScope.ts` | 신규 | 그룹 메타·기본 체크·질병 확인 필요 여부 판정(episodes 선택 = 확인, EXP-12)·요청 본문 생성 | ~60 |
 | `frontend/src/lib/components/ExportScopeForm.svelte` | 신규 | fieldset 체크박스 그룹·dismissed 하위 체크박스·민감 표시 | ~130 |
@@ -141,7 +142,7 @@ EXP-1~19 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 �
 - 해소(EXP-12) 확인 발동 조건 · 해소(EXP-13) 부족 시 동작 · 해소(EXP-14) 정리 잡 위치 · 해소(EXP-15) episodes·races·dismissed 기본값 · 해소(EXP-17) NEW-12 연동.
 - 해소(EXP-18) 디스크 여유 기준 · 해소(EXP-19) 삭제 안내 항상 표시. 남은 확인: 고정 여유 실제 값(예 1GB)은 구현 시 확인.
 - 해소(V1-11) MenuDrawer "CSV 내보내기" 링크 → v2 내보내기 화면(§3). 남은 확인: 링크 라벨("CSV 내보내기" 유지 여부)은 결정 기록이 없다 — 화면은 CSV 외 아카이브도 다룬다.
-- 해소(V1S-1) `auto_sync.py` 새 위치 `src/sync/` — 정리 스레드 시작 지점은 `app.py` 그대로(§2.3). 남은 열린 질문: 신규 `export_purge.py`(V1-10 대상 4파일 아님)를 `src/web/` 에 둘지 — 비 view 공용 코드를 view 밖으로 옮기는 V1-10 방향과의 정합은 결정 기록 없음.
+- 해소(V1S-1) `auto_sync.py` 새 위치 `src/sync/` — 정리 스레드 시작 지점은 `app.py` 그대로(§2.3). 해소(V1-16) 신규 `export_purge.py` 위치 `src/services/`('src/web = 앱 셸 전용' 정의와 정합).
 
 ## 6. 범위 밖 메모
 - `config.json` 자격 증명·`enc:` 키 백업/이관은 이 기능에서 다루지 않는다(별도 계정 이전 설계).
