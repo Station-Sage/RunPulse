@@ -1,11 +1,12 @@
 # 설계: 훈련 계획 묶음 (P-01~P-25)
 
-- 대상: `ux-review-2026-10/05-coach-plan.md` P-01~P-25 · 작성일 2026-10-11 · 상태: 결정 확정(2026-10-11, PLN-1~42·V1-13), 구현 전 — 실데이터 확인·열린 질문 남음(§5, §8)
+- 대상: `ux-review-2026-10/05-coach-plan.md` P-01~P-25 · 작성일 2026-10-11 · 상태: 결정 확정(2026-10-11~12, PLN-1~46·V1-13), 구현 전 — 실데이터 확인·열린 질문 남음(§5, §8)
 - 변경 이력: 2026-10-11 원인 검증 반영 — P-06(매칭 비율 상한·판정 순서·_effective 순위), P-08(v1 폴백·운영 경로 휴식 보장 부재) 원인 확정 및 실데이터 확인 항목 추가
 - 변경 이력: 2026-10-11 1~3차 동기화 — PLN-1~17 반영(지정 요일 `user_training_prefs.workout_weekdays_mask`, workout mask 우선, mask NULL 시 생성 전 요일 입력 요구, 최소 휴식일 하한 없음, 휴식 0~1일 저장 전 1회 안내). v1 화면·경로 범위 제외
 - 변경 이력: 2026-10-11 4~5차 동기화 — V1-1·V1-2(v1 일몰 = UI·라우트 일몰, 공유 파일·함수 유지). 'v1 템플릿/v1 폴백/v1 목표'(plan_weeks NULL·rules_version<2 데이터·알고리즘 용어)는 유지
 - 변경 이력: 2026-10-11 6~8차 동기화 — PLN-18(백테스트 입력 mask), PLN-19·20(planner 행 한정 goal_id CHECK), PLN-22·25(이력 시나리오 mask 직접 명시), PLN-23·24(기존 플랜 삭제, 이행 코드 미작성), PLN-26(v40 단일 마이그레이션), PLN-27 반영
-- 변경 이력: 2026-10-12 9차 동기화 — PLN-31 최종 E안(D안 철회) 기준으로 전면 정합. PLN-19·20·26 복원(planner 행 한정 CHECK, v40 단일 = ADD COLUMN+CHECK), PLN-21 소멸, PLN-23·24·28·29·30·42(레거시 6종을 사용자가 v40 이전에 DB 에서 직접 삭제 — goals 는 active·cancelled 만, §2.4), PLN-32(부분 첫 주 볼륨 일수 비례 축소 + 그 주 러닝 기록 참고), PLN-33(겹칠 수 있는 경로만 goal_id 필터), PLN-34(수락 조정 표시 컬럼·동기화 규칙), PLN-35(옛 목표 복구 고려 안 함), PLN-36(생성 시작 = 오늘), PLN-37(undo 활성 목표 한정 + goal_id 기입), PLN-38(goal_id 누락 방지 가드), PLN-39(replan 사용자 경로 400), PLN-40(배너·재생성 제안 없음), PLN-41(고아 outcomes 점유 현행). §8 재작성
+- 변경 이력: 2026-10-12 9차 동기화 — PLN-31 최종 E안(D안 철회) 기준으로 전면 정합. PLN-19·20·26 복원(planner 행 한정 CHECK, v40 단일 = ADD COLUMN+CHECK), PLN-21 소멸, PLN-23·24·28·29·30·42(레거시 삭제를 사용자가 DB 에서 직접 실행 — goals 는 active·cancelled 만, §2.4; 10차에서 7종·v37 이전으로 정정), PLN-32(부분 첫 주 볼륨 일수 비례 축소 + 그 주 러닝 기록 참고), PLN-33(겹칠 수 있는 경로만 goal_id 필터), PLN-34(수락 조정 표시 컬럼·동기화 규칙), PLN-35(옛 목표 복구 고려 안 함), PLN-36(생성 시작 = 오늘), PLN-37(undo 활성 목표 한정 + goal_id 기입), PLN-38(goal_id 누락 방지 가드), PLN-39(replan 사용자 경로 400), PLN-40(배너·재생성 제안 없음), PLN-41(고아 outcomes 점유 현행). §8 재작성
+- 변경 이력: 2026-10-12 10차 동기화 — PLN-43(새 목표 생성 시 이전 목표 미래 행 삭제 + `plan_snapshot_json` 스냅샷 저장·복구 INSERT 신규, §8-14 해소), PLN-44(`plan_progression` 고아 행 삭제 추가 → 레거시 삭제 7종, `sqlite_sequence` 불변, §8-15 해소), PLN-45(첫 주는 이미 달린 같은 품질·롱런 세션만 회피·거리 차감 없음, 대회는 v38 이후, §8-2 해소), PLN-46(BEFORE INSERT 트리거·워터마크 생략 — PLN-38 일부 대체, §8-13 해소), 레거시 삭제 시점 = PLN-29 'v37 이전'으로 통일(§8-12 해소)
 - 범위: 플랜 생성 파이프라인(`src/training/planner*`), 플랜 소유·교체(`goals`, `plan_replace`), 읽기 모델(`plan_service`, `week_compliance`, `routes_plan`), v2 `frontend/src/routes/coach/plan/*`. v1 화면·라우트는 일몰 예정(V1-1·V1-2, UI·라우트 일몰)이라 범위 밖. 공유 함수(`generate_weekly_plan`, `match_week_activities` 등)는 유지 대상
 - 참조만: 입력·Origin 검증 → `server-input-origin-validation.md`, 오류·재시도 → `error-retry-common.md`, 접근성 → 별도 접근성 설계
 
@@ -18,7 +19,7 @@
 
 ### R2. planned_workouts 에 플랜 소유자가 없다 (P-03, P-11, P-15, P-23, P-09 일부)
 - `planned_workouts` 는 날짜 키로만 존재하고 `goal_id` 가 없다. 플랜 = "활성 목표 + 그 날짜 범위의 행" 이라는 암묵 규칙이다.
-- 그래서 새 플랜 생성은 `add_goal` 이 기존 active 를 무조건 `cancelled` 로 바꾸고(`goals.py` L102), `replace_range(today~9999)` 가 이력 없는 미래 행을 지운다(P-03, `plan_template_service.py:183`). 확인 단계·복구 스냅샷이 없다. `replace_range` 는 snapshot 을 반환하지만 `create_plan_from_template` 이 버린다.
+- 그래서 새 플랜 생성은 `add_goal` 이 기존 active 를 무조건 `cancelled` 로 바꾸고(`goals.py` L102), `replace_range(today~9999)` 가 이력 없는 미래 행을 지운다(P-03, `plan_template_service.py:183`). 확인 단계·복구 스냅샷이 없다. `replace_range` 는 snapshot 을 반환하지만 `create_plan_from_template` 이 버린다(`plan_template_service.py:183` 이 반환값을 받지 않음 — 저장·복구는 PLN-43 으로 신규, §2.2).
 - 같은 이유로 `get_active_plan(goal_id)` 는 goal_id 와 무관하게 "오늘 주의 행" 을 돌려주고, 취소된 플랜 세션도 현재 행으로 보인다(P-23). 메모는 `user_inputs(input_date, 'session_note')` 날짜 키라 플랜 간 공유된다(P-15).
 - 시작 주는 `today - weekday()`(`plan_template_service.py:191`) 또는 `plan_start_monday`(이번 주 월요일이 될 수 있음)로 정해져 일요일 생성 시 지난 6일이 1주차에 들어간다(P-11). 이 지난 날짜에 `save_weekly_plan`(`planner.py:231`)이 같은 날짜 planner 행을 보호 여부와 무관하게 지우고 다시 넣는다(PLN-36 문제 제기).
 
@@ -46,14 +47,13 @@
 
 ### 2.2 R2 — 플랜 소유권(E안) + 교체 확인 + 복구
 - **E안(PLN-31 재결정, PLN-19·20·26 복원):** `planned_workouts.goal_id INTEGER` 추가 + **planner 행 한정 CHECK `(source <> 'planner' OR goal_id IS NOT NULL)`**. 외부 계획 행(`source`=`'garmin'`·`'intervals'`, `plan_ingest.store_planned` 이 `source=source_system` 으로 기입)과 v1 `manual`·`imported` 행은 goal_id NULL 유지. D안(NULL 허용 컬럼만 추가·기존 데이터 보존)은 철회됐다.
-- **전제 — 레거시 삭제 선행(PLN-23·24·28·42):** v40 은 '`source='planner'` 행이 0 인 DB' 를 전제한다. 레거시 6종은 **사용자가 v40 적용 전에 DB 에서 직접 삭제**한다(§2.4). goal_id 백필·고아/외부/v1 행 귀속·옛 스냅샷 보충 등 마이그레이션·미티게이션 코드는 작성하지 않는다(PLN-23). 옛 목표의 취소 플랜 복구는 설계에서 고려하지 않는다(PLN-35 c — PLN-1 복구는 신규 목표부터).
+- **전제 — 레거시 삭제 선행(PLN-23·24·28·42):** v40 은 '`source='planner'` 행이 0 인 DB' 를 전제한다. 레거시 7종(PLN-24·42·44)은 **사용자가 v37 적용 전에 DB 에서 직접 삭제**한다(PLN-29, §2.4). goal_id 백필·고아/외부/v1 행 귀속·옛 스냅샷 보충 등 **기존 플랜용** 마이그레이션·미티게이션 코드는 작성하지 않는다(PLN-23). 옛 목표의 취소 플랜 복구는 설계에서 고려하지 않는다(PLN-35 c — PLN-1 복구는 신규 목표부터). PLN-43 의 스냅샷 저장·복구 INSERT 는 v40 이후 생성되는 **신규 목표용 기능**이며 PLN-23 이 금지한 기존 플랜용 이행 코드가 아니다.
 - **마이그레이션 버전(PLN-26 a 복원):** 현재 `SCHEMA_VERSION = 36`(`db_setup.py:32`), v37(`plan_adjustments` 재생성, `adjustment-signals.md`)·v38(가산 테이블, `adjustment-new-signals.md`·`race-calendar.md`)·v39(`goals.race_id` 백필, `race-calendar.md`)이 다른 번들에 배정돼 있으므로 이 번들은 그 뒤 **v40 하나**를 쓴다(2026-10-12 grep: 설계 폴더에서 v40 을 쓰는 다른 문서 없음). v39 와 데이터 의존은 없다(`race_id` 를 읽지 않음). 순서는 번호 순차성 때문이며, v39 가 전진 전용(`race-calendar.md` §4)이므로 롤백은 v39 이후 상태로만 돌아간다.
 - **v40 내용(단일 트랜잭션, 테이블 재생성·백필 없음):**
-  1. `ALTER TABLE planned_workouts ADD COLUMN goal_id INTEGER CHECK (source <> 'planner' OR goal_id IS NOT NULL)` — SQLite 는 CHECK 가 붙은 ADD COLUMN 시 기존 행을 검사하므로 planner 행이 남아 있으면 `CHECK constraint failed` 로 실패 → 롤백(로컬 SQLite 3.45.1 로 확인: planner 행 없으면 추가 성공·이후 goal_id NULL planner INSERT 거부, planner 행 있으면 추가 실패). 이것이 §2.4 삭제 누락의 검출 지점이다(planner 행 외 나머지 5종 삭제 여부는 v40 이 검사하지 않음).
+  1. `ALTER TABLE planned_workouts ADD COLUMN goal_id INTEGER CHECK (source <> 'planner' OR goal_id IS NOT NULL)` — SQLite 는 CHECK 가 붙은 ADD COLUMN 시 기존 행을 검사하므로 planner 행이 남아 있으면 `CHECK constraint failed` 로 실패 → 롤백(로컬 SQLite 3.45.1 로 확인: planner 행 없으면 추가 성공·이후 goal_id NULL planner INSERT 거부, planner 행 있으면 추가 실패). 이것이 §2.4 삭제 누락의 검출 지점이다 — **CHECK 는 v40 적용 시점에 planner 행이 0건이어야만 추가되므로, 수동 삭제에서 planner 행을 빠뜨리면 v40 마이그레이션이 중단·롤백된다**(PLN-46 위험 문구). planner 행 외 나머지 6종 삭제 여부는 v40 이 검사하지 않는다.
   2. `ALTER TABLE planned_workouts ADD COLUMN` 수락 조정 표시 컬럼(PLN-34 b, 이름 가칭 `adj_accepted INTEGER NOT NULL DEFAULT 0 CHECK (adj_accepted IN (0,1))`) — 동기화 규칙은 아래 별도 항목.
   3. `ALTER TABLE user_training_prefs ADD COLUMN workout_weekdays_mask INTEGER`(NULL 기본).
-  4. goal_id 워터마크(PLN-38): 적용 시점 `planned_workouts` max(id) 기록. 저장 위치는 구현 시 확정(현 DB 에 메타 키-값 테이블 없음, grep 2026-10-12).
-  5. (조건부) BEFORE INSERT 트리거(PLN-38) — CHECK 와 중복 여부 확인 전까지 보류, §8-13.
+  - goal_id 워터마크·BEFORE INSERT 트리거는 **두지 않는다**(PLN-46 a, PLN-38 의 트리거·워터마크 부분 대체). CHECK 가 INSERT·UPDATE 모두에서 planner 행 goal_id 누락을 막고, `race-calendar.md` §2.2 'SQLite 트리거 미사용' 원칙을 유지한다.
   - 공통: `PRAGMA integrity_check` 선행, 멱등(컬럼이 있으면 skip), 역마이그레이션 = 백업 복원. **운영 SQLite 버전은 구현 첫 단계에서 확인**(PLN-26).
 - **PLN-21 소멸:** v41 은 없고(PLN-26), v1 `manual`·`imported` 행은 CHECK 대상이 아니어서 v1 라우트 일몰과 마이그레이션의 선후 제약은 없다.
 - **planner 행 INSERT 경로(grep 2026-10-12, `INTO planned_workouts`):** CHECK 이후 planner 행은 goal_id 를 채워야 한다. planner INSERT 는 모두 **서비스 헬퍼 단일 진입점 `planner_store.write_planner_rows(conn, rows, *, goal_id)`**(PLN-38)를 거친다.
@@ -61,29 +61,29 @@
   | 경로 | 위치 | 호출자 | 처리 |
   |---|---|---|---|
   | `planner.save_weekly_plan` | `planner.py:238`(→ `planner_store.py` 이동) | `plan_template_service.py:194`, `weekly_adapt_job.py:53`, `rematch.py:87`, CLI `plan.py:165` (v1 `views_training_wizard.py:352·411`·`views_training.py:240` 은 수정하지 않음, V1-13) | goal_id 인자 추가 → `write_planner_rows` |
-  | `plan_replace.replace_range` | `plan_replace.py:53` | `plan_replan_service.py:130`, `plan_template_service.py:183`(빈 plan) | goal_id 인자 → `write_planner_rows` |
-  | replan 되돌리기 복원 | `plan_replan_service.py:237` | `plan_replans.replaced_json` 의 `deleted` 행 재INSERT | **활성 목표의 replan 만 허용, 재INSERT 에 goal_id 기입**(PLN-37 a, 아래). 스냅샷은 `SELECT *`(`plan_replace._row_dicts`)라 v40 이후 goal_id 를 포함. v40 이전 `plan_replans` 는 §2.4 에서 삭제 |
-  | PLN-1 복구(`restore`) | 신규(`goals.plan_snapshot_json`) | `POST /coach/plan/<id>/restore` | 스냅샷 행에 goal_id 포함 → `write_planner_rows` |
+  | `plan_replace.replace_range` | `plan_replace.py:53` | `plan_replan_service.py:130`, `plan_template_service.py:183`(빈 plan) | goal_id 인자 → `write_planner_rows`. `:183` 은 이전 활성 목표 goal_id 의 미래 무이력 행만 지우고(INSERT 없음), **현재 버리는 반환 스냅샷을 이전 목표 `goals.plan_snapshot_json` 에 저장**(PLN-43) |
+  | replan 되돌리기 복원 | `plan_replan_service.py:237` | `plan_replans.replaced_json` 의 `deleted` 행 재INSERT | **활성 목표의 replan 만 허용, 재INSERT 에 goal_id 기입**(PLN-37 a, 아래). 스냅샷은 `SELECT *`(`plan_replace._row_dicts`)라 v40 이후 goal_id 를 포함. 레거시 `plan_replans` 는 §2.4 에서 삭제 |
+  | PLN-1·43 복구(`restore`) | 신규(`goals.plan_snapshot_json` 저장·복구 INSERT) | `POST /coach/plan/<id>/restore` | 스냅샷 행을 **`write_planner_rows` 단일 진입점으로 재INSERT, goal_id = 복구 대상 목표 id 기입**(스냅샷 `SELECT *` 의 goal_id 와 일치). 신규 목표부터(PLN-35) |
   | 외부 계획 수집 | `sync/plan_ingest.py:121`(`plan_ingest_intervals.py:73` 경유 포함) | Garmin·intervals 계획 수집 — 일반 sync 에 연결돼 있지 않고 CLI 수동 실행으로만 호출 | 변경 없음(goal_id NULL, CHECK 대상 아님) |
   | v1 수동 추가·범위 복사 | `web/views_training_crud.py:39`(`manual`), `web/views_training_goal_crud.py:374`(`imported`) | v1 라우트 | 변경 없음(CHECK 대상 아님) |
   | v27 재생성 복사 | `db_schema_v27.py:22` | 과거 마이그레이션 | 영향 없음 |
 
   테스트 픽스처: `tests/` 에서 `INTO planned_workouts` 를 직접 쓰는 파일 32개 중 `'planner'` 를 포함하는 18개(문자열 기준, 구현 시 재확인)는 CHECK 때문에 goal_id 필요(공용 헬퍼로 처리).
-- **goal_id 누락 방지 가드(PLN-38 b):** ① 단일 진입점 `write_planner_rows`(위 표) ② v40 워터마크 ③ `scripts/check_data_consistency.py` 검사 — 워터마크 이후 planner 행 중 goal_id NULL 0건, 수락 조정 표시 컬럼 불일치 0건(PLN-34) ④ pytest 정적 검사 — `src/` 에서 `INTO planned_workouts` 가 허용 파일(`planner_store.py`, `sync/plan_ingest.py`, v1 `web/views_training_crud.py`·`views_training_goal_crud.py`, `db_schema_v27.py`) 밖에 나오면 실패 ⑤ BEFORE INSERT 트리거. 단 E안 CHECK 가 신규 planner 행의 goal_id 누락을 이미 DB 수준에서 막으므로 ⑤는 CHECK 와 중복이고, `race-calendar.md` §2.2 의 'SQLite 트리거 미사용' 원칙과 충돌한다 — 예외 처리 또는 생략은 §8-13 열린 질문. 워터마크(②)도 레거시 planner 행이 모두 삭제된 상태에서 시작하므로 역할이 '검사 경계 기록'으로 줄어든다(§8-13).
+- **goal_id 누락 방지 가드(PLN-38, PLN-46 으로 일부 대체):** ① DB CHECK `(source <> 'planner' OR goal_id IS NOT NULL)`(INSERT·UPDATE 모두 차단) ② 단일 진입점 `write_planner_rows`(위 표) ③ pytest 정적 검사 — `src/` 에서 `INTO planned_workouts` 가 허용 파일(`planner_store.py`, `sync/plan_ingest.py`, v1 `web/views_training_crud.py`·`views_training_goal_crud.py`, `db_schema_v27.py`) 밖에 나오면 실패 ④ `scripts/check_data_consistency.py` 검사 — 수락 조정 표시 컬럼 불일치 0건(PLN-34). BEFORE INSERT 트리거와 v40 워터마크(및 워터마크에 의존하던 'goal_id NULL planner 행 0건' 검사 항목)는 두지 않는다(PLN-46 a, 'SQLite 트리거 미사용' 원칙 유지).
 - **수락 조정 표시 컬럼(PLN-34 b) — 동기화 규칙:** 원천(SSOT)은 `plan_adjustments`(`decision='accepted'`)이고 표시 컬럼은 파생값이다(ADR-035: 조정은 원본 행 값을 수정하지 않음 — 이 컬럼은 값이 아니라 표시만). 불변식: `adj_accepted = 1 ⇔ EXISTS(plan_adjustments a WHERE a.workout_id = w.id AND a.decision = 'accepted')`.
   - 갱신 지점: `plan_adjustments` 의 decision 이 바뀌거나 행이 생기거나 지워지는 모든 쓰기(grep 2026-10-12: `plan_adjustment_service.py:106·114·118·154·194·277·281`, `plan_move.py:116·142`, `plan_replace.py:41`, `plan_replan_service.py:233`, v37 재생성 경로) 직후 **같은 트랜잭션**에서 헬퍼 `sync_adj_flag(conn, workout_ids)` 가 위 EXISTS 로 다시 계산해 기록한다(토글이 아닌 재계산 — 여러 출처의 accepted 가 공존해도 맞음).
   - 초기값: v40 시점 0. §2.4 로 `plan_adjustments` 가 비어 있으므로 백필 없이 불변식이 성립한다.
   - 읽기: `_effective` 순위(PLN-10, §2.3)가 이 컬럼을 쓴다. 보호 행 판정(`plan_replace._PROTECT_SQL`, `_undo_blocker`)의 EXISTS 조인은 그대로 둔다(원천 기준 판정 유지).
-  - 검증: consistency 검사(위 ③)와 테스트(accept → 1, revert → 0, 같은 workout 에 다른 accepted 가 남으면 1 유지).
-- **쓰기·삭제 범위:** `save_weekly_plan` 의 같은 날짜 planner 행 삭제(`planner.py:231`)와 `replace_range` 의 범위 삭제는 대상 goal_id 행으로 한정한다 — PLN-1 의 '취소 플랜 행 보존'과 맞추기 위함(다른 목표 행을 지우지 않음). `create_plan_from_template` 의 `replace_range(today~9999)`(이전 활성 목표의 미래 무이력 행 삭제)와 PLN-1 행 보존의 관계는 §8-14.
+  - 검증: consistency 검사(위 ④)와 테스트(accept → 1, revert → 0, 같은 workout 에 다른 accepted 가 남으면 1 유지).
+- **쓰기·삭제 범위:** `save_weekly_plan` 의 같은 날짜 planner 행 삭제(`planner.py:231`)와 `replace_range` 의 범위 삭제는 대상 goal_id 행으로 한정한다(다른 목표 행을 지우지 않음). 예외는 `create_plan_from_template` 의 `replace_range(today~9999)`(`plan_template_service.py:183`)로, **이전 활성 목표의 미래 무이력 행을 지우고 반환 스냅샷을 그 목표의 `plan_snapshot_json` 에 저장**한다(PLN-43 b — 날짜당 planner 행이 목표 하나에만 속하는 불변식 유지). 보호 행(이력 있는 행)과 오늘 이전 행은 남는다.
 - `create_plan_from_template(..., expect_active_goal_id)`: 활성 플랜이 있는데 기대값이 다르면 `PlanConflict` → API 409 `ACTIVE_PLAN_EXISTS`(현재 플랜 요약 포함). 클라이언트는 확인 후 다시 보낸다(compare 의 `expect_anchor` 패턴 재사용).
-- 교체(PLN-1): 이전 goal 은 `cancelled` 로 두고 그 goal_id 행·스냅샷(`goals.plan_snapshot_json`)을 보존. 취소 플랜 화면에 **복구 버튼** — `POST /coach/plan/<id>/restore` 가 대상 goal 을 active 로, 현재 active 를 cancelled 로 바꾼다(같은 409 확인 흐름). 복구 대상은 v40 이후 생성된 목표뿐이다(PLN-35 c — 옛 목표는 §2.4 로 삭제됨, completed 옛 목표는 `plan_snapshot_json` 이 없고 복구 대상 아님).
+- 교체(PLN-1·43): 이전 goal 은 `cancelled` 로 두고, 그 goal_id 의 오늘 이전 행·보호 행은 남기며, 미래 무이력 행은 지우고 스냅샷(`goals.plan_snapshot_json`)으로 보존한다(위 쓰기·삭제 범위). 현 코드는 이 스냅샷을 버리므로 **스냅샷 저장과 복구 INSERT 는 신규 기능**이다. 취소 플랜 화면에 **복구 버튼** — `POST /coach/plan/<id>/restore` 가 대상 goal 을 active 로, 현재 active 를 cancelled 로 바꾸고(같은 409 확인 흐름), 대상 goal 의 스냅샷 행을 `write_planner_rows`(goal_id = 대상 goal id)로 재INSERT 한다. 복구 대상은 v40 이후 생성된 목표뿐이다(PLN-35 c — 옛 목표는 §2.4 로 삭제됨, completed 옛 목표는 `plan_snapshot_json` 이 없고 복구 대상 아님).
 - replan 되돌리기(PLN-37 a): `_undo_blocker` 에 '해당 replan 의 goal 이 active 가 아니면 차단' 사유를 추가하고(응답은 기존 `REPLAN_LOCKED` 경로), 복원 재INSERT 는 `plan_replans.goal_id` 를 goal_id 로 기입해 `write_planner_rows` 로 넣는다. `last_undoable` 은 이미 활성 목표 기준이라 노출 규칙은 같다.
 - 조회(`get_active_plan(goal_id)`, 세션 상세)는 `goal_id` 로 필터하고 `goal.status` 를 응답에 실어 취소 플랜을 읽기 전용 표시(P-23).
-- 날짜 기준 읽기 경로의 goal_id 필터(PLN-33 a): **planner 행이 여러 목표에 겹칠 수 있는 경로에만** `(goal_id = :goal_id OR source <> 'planner')` 를 적용하고, 나머지 날짜 기반 읽기는 현행 유지. 겹침은 PLN-1 로 취소 플랜 행이 남은 날짜(교체·복구일 이후)에서만 생긴다. 필터 절은 `planned_query` 한 곳의 헬퍼로 둔다. 판정 기준과 후보 경로 목록은 §8-5.
+- 날짜 기준 읽기 경로의 goal_id 필터(PLN-33 a): **planner 행이 여러 목표에 겹칠 수 있는 경로에만** `(goal_id = :goal_id OR source <> 'planner')` 를 적용하고, 나머지 날짜 기반 읽기는 현행 유지. 겹침은 PLN-1 로 취소 플랜 행이 남은 날짜(교체·복구일 이후)에서만 생긴다 — PLN-43 으로 이전 목표의 미래 무이력 행은 지워지므로 실제 겹침 후보는 교체일 이후에 남은 보호 행이다. 필터 절은 `planned_query` 한 곳의 헬퍼로 둔다. 판정 기준과 후보 경로 목록은 §8-5.
 - 메모(PLN-2): **날짜 기준 유지**(`user_inputs` 스키마·API 변경 없음). 플랜 교체와 무관한 훈련 기록으로 취급하며 화면에 "날짜별 메모" 로 표기.
 - 시작일(PLN-5·PLN-36 c): **플랜 생성 시작을 오늘로** 한다. 현 코드(`plan_template_service.py:190-191`)는 이번 주 월요일(`today - weekday()`) 또는 `plan_start_monday`(이번 주 월요일이 될 수 있음)부터 생성해 PLN-5 와 어긋나므로 수정 항목이다 — 시작 월요일이 오늘 이전이면 첫 주에서 오늘 이전 날짜 행을 만들지·저장하지 않는다(지난 날짜는 계획에 넣지 않음). 그 결과 `save_weekly_plan` 이 지난 날짜의 보호 행을 지우는 경로도 생기지 않는다. 시작 월요일이 미래이면 현행대로 그 월요일부터.
-- 부분 첫 주(PLN-32 a): 주차 경계는 월요일 유지, 첫 주는 부분 주(오늘~일요일)로 1주차에 포함한다(`plan_replans.anchor_monday`·`schedule_for_goal` 주차·phase 는 그 주 월요일 기준 그대로). 그 주의 **주간 볼륨 목표는 남은 일수 비례로 축소**(목표 × 남은 일수/7)하고, **그 주 이미 기록된 사용자 러닝(거리·세션 종류·대회)을 참고해 조정**한다. 참고 방식(차감·중복 품질 세션 회피 등 구체 규칙)은 §8-2.
+- 부분 첫 주(PLN-32 a): 주차 경계는 월요일 유지, 첫 주는 부분 주(오늘~일요일)로 1주차에 포함한다(`plan_replans.anchor_monday`·`schedule_for_goal` 주차·phase 는 그 주 월요일 기준 그대로). 그 주의 **주간 볼륨 목표는 남은 일수 비례로 축소**(목표 × 남은 일수/7)한다. 'PLN-32 그 주 러닝 기록 참고'의 범위는 PLN-45(b-lite)로 한정한다 — **이번 주 이미 달린 같은 종류의 품질·롱런 세션만 첫 주 계획에서 회피**하고, **이미 달린 거리는 차감하지 않는다**(일수 비례 축소와 이중 감액 방지, UX 전문가 차감안 미채택). 그 주 대회 처리는 `race_calendar`(v38) 이후로 미룬다. 한계: 첫 주 기록 조회가 `_RUN_TYPES` 활동을 날짜별 dict 로 모으면 같은 날 두 번째 활동이 덮어써져 그날 세션 종류 하나만 반영된다.
 - 고아 `session_outcomes`(PLN-41 b): `matcher.py:91-93` 의 claimed 조건(다른 `planned_id` 의 outcomes 가 활동 점유)은 현행 유지. 레거시 outcomes 는 §2.4 로 삭제되고, 이후 삭제되는 planner 행은 보호 행 규칙상 outcomes 참조가 없는 행이라 새 고아는 정상 경로에서 생기지 않는다.
 
 ### 2.3 R3 — 전체 주차 읽기 모델 + 생성 직후 재매칭 + 판정 사유
@@ -96,9 +96,9 @@
 - replan 되돌리기(PLN-8): 프런트에 확인 단계(확인 대화상자) 추가(P-20). 활성 목표 한정(PLN-37)은 서버 규칙.
 - 프런트: `PlanWeeksTable.svelte`(신규)로 주차 표, 주간 목록 행에 실제값·사유 표시.
 
-### 2.4 레거시 플랜 삭제 — 사용자가 v40 이전에 직접 실행하는 일회성 운영 절차 (PLN-23·24·28·29·30·42)
-- **성격:** 사용자가 운영 DB 에서 **v40 적용 전에 직접 실행**하는 일회성 수동 절차다(PLN-31 E·PLN-42). **마이그레이션·미티게이션 코드가 아니다**(PLN-23) — `db_schema_v40`·`ensure_*`·앱 시작 경로·테스트에 삭제 로직을 넣지 않으며, 새 DB·다른 환경에서 자동으로 재실행되지 않는다. 삭제 선행은 v40 CHECK 추가의 전제다(§2.2).
-- **삭제 대상(PLN-24·PLN-42 b, 6종):**
+### 2.4 레거시 플랜 삭제 — 사용자가 v37 이전에 직접 실행하는 일회성 운영 절차 (PLN-23·24·28·29·30·42·44)
+- **성격:** 사용자가 운영 DB 에서 **v37 적용 전에 직접 실행**(PLN-29 a)하는 일회성 수동 절차다(PLN-31 E·PLN-42). **마이그레이션·미티게이션 코드가 아니다**(PLN-23) — `db_schema_v40`·`ensure_*`·앱 시작 경로·테스트에 삭제 로직을 넣지 않으며, 새 DB·다른 환경에서 자동으로 재실행되지 않는다. 삭제 선행은 v40 CHECK 추가의 전제다(§2.2).
+- **삭제 대상(PLN-24·PLN-42 b·PLN-44 a, 7종):**
 
   | # | 대상 | 조건 | 비고 |
   |---|---|---|---|
@@ -107,19 +107,20 @@
   | ③ | `plan_replans` | 전체 행 | 남기면 되돌리기(`plan_replan_service.py:237`)가 goal_id 없는 planner 행을 재INSERT 해 CHECK 에 걸림 |
   | ④ | `planned_workouts` planner 행 | `source='planner'` | v40 CHECK 전제(남으면 v40 실패) |
   | ⑤ | `planned_workouts` 외부 계획 행 | `source IN ('garmin','intervals')` | 일반 sync 에 연결돼 있지 않고 CLI 수동 실행으로만 유입 — 삭제 후 CLI 를 다시 돌리지 않으면 재유입 없음(재유입돼도 goal_id NULL 허용) |
-  | ⑥ | `goals` | `status IN ('active','cancelled')` | **completed 는 유지**(대회 기록 RC-12 근거, PLN-28 c). **실행 시점 건수 표시 후 재확인** |
+  | ⑥ | `plan_progression` | ⑦ 삭제 뒤 고아가 될 행 + 이미 고아인 행(`goal_id IN (SELECT id FROM goals WHERE status IN ('active','cancelled')) OR goal_id NOT IN (SELECT id FROM goals)`). completed 목표 행은 유지 | 목표별 품질 사다리 단계(`db_schema_v29.py`) — 남기면 고아 행(PLN-44 a) |
+  | ⑦ | `goals` | `status IN ('active','cancelled')` | **completed 는 유지**(대회 기록 RC-12 근거, PLN-28 c). **실행 시점 건수 표시 후 재확인** |
 
-  대상 아님: v1 `manual`·`imported` 행(CHECK 대상 아님), 날짜별 메모 `user_inputs`(PLN-2), completed 목표. 6종 밖 목표 참조 테이블 `plan_progression(goal_id)`(`db_schema_v29.py`)은 결정 범위에 없음 — §8-15.
-- **순서:** 참조하는 쪽 먼저 — ① `session_outcomes`(`planned_id` 참조) → ② `plan_adjustments`(`workout_id`·`goal_id`) → ③ `plan_replans`(`goal_id`) → ④·⑤ `planned_workouts` → ⑥ `goals`. FK 선언이 없어 순서가 결과를 바꾸지는 않지만, 단계별로 건수를 확인할 때 고아 참조가 생기지 않는 순서다.
+  대상 아님: v1 `manual`·`imported` 행(CHECK 대상 아님), 날짜별 메모 `user_inputs`(PLN-2), completed 목표. **`sqlite_sequence` 는 건드리지 않는다**(PLN-44) — 초기화하면 `goals.id`(AUTOINCREMENT, `db_setup.py:449`)가 재사용되어 남은 목표 참조 행이 새 목표에 섞일 수 있다.
+- **순서:** 참조하는 쪽 먼저 — ① `session_outcomes`(`planned_id` 참조) → ② `plan_adjustments`(`workout_id`·`goal_id`) → ③ `plan_replans`(`goal_id`) → ④·⑤ `planned_workouts` → ⑥ `plan_progression`(`goal_id`, ⑦ 삭제 전에 조건 평가) → ⑦ `goals`. FK 선언이 없어 순서가 결과를 바꾸지는 않지만, 단계별로 건수를 확인할 때 고아 참조가 생기지 않는 순서다.
 - **권장 절차(사용자 실행용 체크리스트):**
   0. 사전: 앱·백그라운드 작업(자동 동기화·`weekly_adapt_job`) 정지로 동시 쓰기 차단, 대상 DB 파일 경로 확정(사용자별 DB 각각). §5 실데이터 확인 쿼리는 이 절차 **전에** 사본에서 실행.
   1. 백업: SQLite backup API(`sqlite3 … ".backup"`)로 같은 폴더에 `running.db.pre-plan-reset-<타임스탬프>` 생성(커밋 대상 아님), `PRAGMA integrity_check` = ok. 백업 실패 시 중단.
-  2. 건수 표시: 6종 각각 위 조건 그대로 `SELECT COUNT(*)`, ②는 `GROUP BY source` 분포도 함께.
-  3. 재확인: ①`session_outcomes`·⑥`goals`(·②분포) 건수를 보고 진행 여부를 다시 확인한다(PLN-24·30). 확인하지 않으면 중단(삭제 0건).
-  4. 실행: 단일 트랜잭션(`BEGIN IMMEDIATE` … `COMMIT`)에서 위 순서로 `DELETE`. 트랜잭션 안 재집계가 0 이 아니면 `ROLLBACK`.
-  5. 사후 검증: 6종 대상 건수 0(⑥은 active·cancelled 0, completed 건수 불변), `source='planner'` 행 0, `PRAGMA integrity_check` = ok. 그 뒤 마이그레이션 적용.
+  2. 건수 표시: 7종 각각 위 조건 그대로 `SELECT COUNT(*)`, ②는 `GROUP BY source` 분포도 함께.
+  3. 재확인: ①`session_outcomes`·⑦`goals`(·②분포) 건수를 보고 진행 여부를 다시 확인한다(PLN-24·30). 확인하지 않으면 중단(삭제 0건).
+  4. 실행: 단일 트랜잭션(`BEGIN IMMEDIATE` … `COMMIT`)에서 위 순서로 `DELETE`(`sqlite_sequence` 대상 DELETE·UPDATE 없음). 트랜잭션 안 재집계가 0 이 아니면 `ROLLBACK`.
+  5. 사후 검증: 7종 대상 건수 0(⑥은 고아 0, ⑦은 active·cancelled 0, completed 건수 불변), `source='planner'` 행 0, `sqlite_sequence` 의 goals 값 불변, `PRAGMA integrity_check` = ok. 그 뒤 v37~v40 순차 적용.
 - **롤백:** 단계 4 실패는 트랜잭션 롤백(원 상태 유지), 완료 후 되돌림은 단계 1 백업 파일 복원.
-- **다른 마이그레이션과의 위치:** v40 이전은 필수(CHECK 전제). PLN-29 원결정은 'v37 이전에 삭제 후 v37~v40 순차 적용'이며, 조정 문구(PLN-31 E)는 'v40 전'으로 적혀 있다 — 어느 쪽이 최종 기준인지는 §8-12. v37 이전이면 v37 은 빈 `plan_adjustments` 를 재생성하고, v39 는 남은 completed 목표만 `race_calendar` 로 백필한다.
+- **다른 마이그레이션과의 위치(PLN-29 a 로 통일):** **v37 이전에 삭제하고 v37~v40 을 순차 적용**한다. PLN-31 E 조정 문구의 'v40 전'은 CHECK 전제의 최소 조건이며 v37 이전 실행은 이를 만족한다. 따라서 v37 은 빈 `plan_adjustments` 를 재생성하고, v39 는 남은 completed 목표만 `race_calendar` 로 백필한다(삭제된 목표를 가리키는 `race_calendar`·`goals.race_id` 정리 문제 없음).
 
 ### 기각된 대안
 - B안(스키마 무변경, 스냅샷만)·C안(R1만 우선)은 PLN-9 로 기각. D안(goal_id NULL 허용 컬럼만, 기존 데이터 보존)은 PLN-31 재결정으로 철회. 단계 1(R1)·단계 2(R3)는 스키마 무관이라 먼저 진행 가능.
@@ -156,15 +157,15 @@
 |------|------|------|------------|
 | `src/training/plan_finalize.py` | 신규 | finalize_week, week_violations, 자동 교정·로그 | ~110 |
 | `src/training/planner_store.py` | 신규 | planner.py 에서 저장·prefs 함수 이동, `workout_weekdays_mask` 읽기·쓰기, `resolve_run_weekdays`(workout 우선, NULL 이면 `WeekdaysRequired`), **`write_planner_rows`(planner INSERT 단일 진입점, goal_id 필수, PLN-38)**, `save_weekly_plan` 삭제 범위 goal_id 한정 | ~130 |
-| `src/training/planner.py` | 수정 | finalize 호출, 이동분 재수출, 부분 첫 주(오늘 이전 날짜 제외·볼륨 일수 비례 축소 + 그 주 러닝 기록 참고, PLN-32) | 300 → ~235 |
+| `src/training/planner.py` | 수정 | finalize 호출, 이동분 재수출, 부분 첫 주(오늘 이전 날짜 제외·볼륨 일수 비례 축소, PLN-32 / 이번 주 이미 달린 같은 품질·롱런 세션 회피·거리 차감 없음, PLN-45) | 300 → ~240 |
 | `src/training/planner_v2.py` | 수정 | `_desc_locked` 표시(race·cold-start), 지정 요일 입력, 부분 주 볼륨 목표 입력 | +15 |
-| `src/db_schema_v40.py` | 신규 | `planned_workouts.goal_id INTEGER CHECK(source<>'planner' OR goal_id IS NOT NULL)` + 수락 조정 표시 컬럼(PLN-34) + `user_training_prefs.workout_weekdays_mask` ADD COLUMN, 워터마크 기록, integrity_check·멱등. 트리거는 §8-13 결과에 따름. 레거시 삭제 로직 없음(§2.4) | ~50 |
+| `src/db_schema_v40.py` | 신규 | `planned_workouts.goal_id INTEGER CHECK(source<>'planner' OR goal_id IS NOT NULL)` + 수락 조정 표시 컬럼(PLN-34) + `user_training_prefs.workout_weekdays_mask` ADD COLUMN, integrity_check·멱등. 워터마크·트리거 없음(PLN-46). 레거시 삭제 로직 없음(§2.4) — planner 행 잔존 시 CHECK 실패로 중단·롤백 | ~40 |
 | `src/db_setup.py` | 수정 | DDL(goal_id CHECK·표시 컬럼)·`SCHEMA_VERSION` 40·ensure 호출 | +10 |
 | `src/training/planned_query.py` | 수정 | 겹침 경로용 goal_id 필터 절 헬퍼(PLN-33) | +10 |
 | `src/training/plan_replace.py` | 수정 | goal_id 인자, 삭제 범위 goal_id 한정, `write_planner_rows` 경유, 조정 삭제 후 `sync_adj_flag` | +8 |
 | `src/services/plan_adjustment_service.py`, `src/services/plan_move.py` | 수정 | decision 변경·INSERT 직후 `sync_adj_flag`(PLN-34 동기화 규칙) | +6 each |
 | `src/training/plan_backtest.py`, `plan_backtest_replan.py`, `scripts/plan_backtest.py` | 수정 | PLN-18·22·25: `Scenario.workout_weekdays_mask`(격자·이력 시나리오 모두 필수, 이력은 호출자가 직접 명시), prefs 에 mask 기입 후 생성, mask 미지정 시나리오 거부 | +15 / +3 / +3 |
-| `src/training/goals.py`, `src/services/plan_template_service.py` | 수정 | v2 일괄 전환, expect_active_goal_id, PlanConflict, 행 보존·snapshot 저장, restore, goal_id 기입, **생성 시작 = 오늘(PLN-36)**, 재매칭 | +75 |
+| `src/training/goals.py`, `src/services/plan_template_service.py` | 수정 | v2 일괄 전환, expect_active_goal_id, PlanConflict, **`:183` `replace_range` 반환 스냅샷(현재 버림)을 이전 목표 `plan_snapshot_json` 에 저장·restore 시 스냅샷 행 복구 INSERT(`write_planner_rows`, goal_id 기입) — PLN-43 신규 목표용 기능**, goal_id 기입, **생성 시작 = 오늘(PLN-36)**, 재매칭 | +90 |
 | `src/services/plan_service.py` | 수정 | goal_id 필터, status, basis | +20 |
 | `src/services/plan_overview_service.py` | 신규 | 주차 요약(부분 첫 주 표시 포함) | ~110 |
 | `src/training/week_compliance.py` | 수정 | reason(s)·actual 필드, 두 라벨, `_effective` 순위(표시 컬럼 사용), 겹침 경로면 goal_id 필터 | +25 (≤256) |
@@ -173,12 +174,12 @@
 | `src/services/weekly_adapt_job.py`, `src/training/rematch.py` | 수정 | `WeekdaysRequired` 시 생성·저장 보류·사유 로그(PLN-12 자동 경로), `save_weekly_plan` 에 goal_id 전달 | +6 each |
 | `src/plan.py` | 수정 | `WeekdaysRequired` 시 생성하지 않고 요일 입력 안내(CLI), `save_weekly_plan` 에 goal_id 전달 | +6 |
 | 겹침 가능 읽기 경로(§8-5 분류 결과) | 수정 | `planned_query` 필터 절 적용 | 경로당 +2 |
-| `scripts/check_data_consistency.py` | 수정 | 워터마크 이후 planner 행 goal_id NULL 0건, 수락 조정 표시 컬럼 불일치 0건(PLN-38·34) | +25 |
+| `scripts/check_data_consistency.py` | 수정 | 수락 조정 표시 컬럼 불일치 0건(PLN-34). 워터마크 의존 항목 없음(PLN-46) | +15 |
 | `frontend/src/lib/api/plan.ts` | 수정 | 타입·getPlanWeeks·restore·409 처리 | +30 |
 | `frontend/src/lib/planWeekdays.ts` | 신규 | 휴식 0~1일 판정(지정 요일 수 ≥ 6, PLN-14) 순수 함수 | ~20 |
 | `frontend/src/lib/components/plan/PlanWeeksTable.svelte` | 신규 | 주차 표 | ~100 |
 | `frontend/src/routes/coach/plan/[id]/+page.svelte`·`+page.ts`, `compare/+page.svelte`, 생성 폼 | 수정 | 표·사유·상태·복구, 교체·되돌리기 확인, 요일 선택·휴식 0~1일 저장 전 안내(PLN-14), 재계획 400 시 요일 입력 유도 | +95 |
-| `tests/test_plan_finalize.py`, `test_plan_ownership.py`, `test_plan_overview.py`, `test_week_compliance_reason.py`, `test_plan_weekdays.py`, `test_db_schema_v40.py`, `test_plan_backtest_weekdays.py`, `test_planner_insert_guard.py`(정적 검사), `test_adj_flag_sync.py`, 프런트 `planWeekdays.test.ts` | 신규 | 아래 검증 | ~520 |
+| `tests/test_plan_finalize.py`, `test_plan_ownership.py`, `test_plan_overview.py`, `test_week_compliance_reason.py`, `test_plan_weekdays.py`, `test_db_schema_v40.py`, `test_plan_backtest_weekdays.py`, `test_planner_insert_guard.py`(정적 검사), `test_adj_flag_sync.py`, `test_plan_snapshot_restore.py`(PLN-43), `test_plan_first_week.py`(PLN-32·45), 프런트 `planWeekdays.test.ts` | 신규 | 아래 검증 | ~600 |
 | 기존 테스트 픽스처(`INTO planned_workouts` 32개 중 planner 행을 넣는 약 18개 파일) | 수정 | goal_id 기입(공용 헬퍼) | — |
 
 ## 5. 단계·검증
@@ -192,12 +193,12 @@
    | 휴식 설정 | `SELECT rest_weekdays_mask,long_run_weekday_mask,max_q_days FROM user_training_prefs;` | mask=0이면 v1에서 휴식 0 |
    | 주간 러닝 일수 | `SELECT date(date,'weekday 0','-6 days') wk, SUM(workout_type<>'rest') runs, ROUND(SUM(distance_km),1) km FROM planned_workouts WHERE source='planner' GROUP BY wk ORDER BY wk;` | 7회가 이어지면 P-08 재현 |
    | P-06 주 매칭·외부 행 | `SELECT id,date,source,workout_type,distance_km,matched_activity_id FROM planned_workouts WHERE date BETWEEN '2026-10-05' AND '2026-10-11' ORDER BY date,id;` | 같은 날 외부 미매칭 + planner 매칭이면 PLN-10 해당 |
-3. R2: 레거시 삭제(§2.4, 사용자 실행 — 코드·테스트 없음) 후 확인 — 백업 파일 존재·`integrity_check` ok, session_outcomes·goals 재확인 기록, 사후 대상 건수 0·completed 목표 불변. 그 뒤 마이그레이션 — 운영 SQLite 버전 확인(PLN-26), `workout_weekdays_mask` 기본 NULL, 표시 컬럼 기본 0, planner 행 없는 DB 에서 적용 후 planner 행 goal_id NULL INSERT 거부·`garmin`/`intervals`/`manual` 행 goal_id NULL INSERT 허용·`integrity_check` ok·재실행 멱등, planner 행이 남은 DB 에서는 적용 실패·롤백·원 테이블 불변(전제 위반 검출). INSERT 경로 표의 planner 경로마다 goal_id 기입 테스트, 정적 검사(허용 파일 밖 `INTO planned_workouts` → 실패), consistency 검사 2건 통과. PLN-34: accept → 표시 1, revert → 0, 다른 accepted 공존 시 1 유지, 조정 삭제 경로 후 불변식 유지. PLN-37: 취소 목표의 replan undo → `REPLAN_LOCKED`, 활성 목표 undo 재INSERT 행 goal_id = `plan_replans.goal_id`. 409 → 확인 재전송 → 이전 플랜 cancelled·행 보존(다른 목표 행 삭제 없음), restore 후 active 교대, 취소 플랜 세션 응답 status=cancelled, 겹침 경로에서 취소 플랜 행이 활성 플랜 조회에 섞이지 않음(PLN-33). PLN-36·32: 수요일 생성 시 첫 주 행은 수~일만 존재·월~화 행 없음·보호 행 삭제 없음, 첫 주 볼륨 목표 ≈ 주간 목표 × 5/7(그 주 기록 반영 규칙은 §8-2 확정 후), 일요일 생성 시 첫 주 = 그 일요일 하루. 메모는 교체 전후 같은 날짜에서 동일.
+3. R2: 레거시 삭제(§2.4, 사용자 실행 — v37 이전, 코드·테스트 없음) 후 확인 — 백업 파일 존재·`integrity_check` ok, session_outcomes·goals 재확인 기록, 사후 7종 대상 건수 0(`plan_progression` 고아 0 포함)·completed 목표 불변·`sqlite_sequence` 불변. 그 뒤 v37~v40 순차 적용 — 운영 SQLite 버전 확인(PLN-26), `workout_weekdays_mask` 기본 NULL, 표시 컬럼 기본 0, planner 행 없는 DB 에서 적용 후 planner 행 goal_id NULL INSERT·UPDATE 거부·`garmin`/`intervals`/`manual` 행 goal_id NULL INSERT 허용·`integrity_check` ok·재실행 멱등·트리거 0개(`sqlite_master` type='trigger' 에 planned_workouts 없음), planner 행이 남은 DB(수동 삭제 누락)에서는 v40 적용 중단·롤백·원 테이블 불변(전제 위반 검출). INSERT 경로 표의 planner 경로마다 goal_id 기입 테스트, 정적 검사(허용 파일 밖 `INTO planned_workouts` → 실패), consistency 검사(표시 컬럼 불일치 0건) 통과. PLN-43: 새 목표 생성 시 이전 목표의 오늘 이후 무이력 행 삭제·보호 행과 오늘 이전 행 유지·삭제 행이 이전 목표 `plan_snapshot_json` 에 저장, restore 시 스냅샷 행이 `write_planner_rows` 로 goal_id = 대상 목표 id 로 재INSERT(행 수·날짜·내용 일치), 날짜당 planner 무이력 행이 한 목표에만 속함. PLN-34: accept → 표시 1, revert → 0, 다른 accepted 공존 시 1 유지, 조정 삭제 경로 후 불변식 유지. PLN-37: 취소 목표의 replan undo → `REPLAN_LOCKED`, 활성 목표 undo 재INSERT 행 goal_id = `plan_replans.goal_id`. 409 → 확인 재전송 → 이전 플랜 cancelled·과거·보호 행 보존(PLN-43 범위 밖 다른 목표 행 삭제 없음), restore 후 active 교대, 취소 플랜 세션 응답 status=cancelled, 겹침 경로에서 취소 플랜 행이 활성 플랜 조회에 섞이지 않음(PLN-33). PLN-36·32·45: 수요일 생성 시 첫 주 행은 수~일만 존재·월~화 행 없음·보호 행 삭제 없음, 첫 주 볼륨 목표 ≈ 주간 목표 × 5/7(이번 주 이미 달린 거리와 무관 — 차감 없음), 월~화에 품질·롱런을 이미 달렸으면 첫 주 남은 날에 같은 종류 세션 없음, 일요일 생성 시 첫 주 = 그 일요일 하루. 메모는 교체 전후 같은 날짜에서 동일.
 4. 브라우저(DB 사본): 375/1280px 에서 /coach/plan/{id} 주차 표(부분 첫 주 표시)·사유·두 라벨, 헤더 '누적(플랜 시작~어제)' 툴팁, compare 교체 확인, 복구 버튼, replan 되돌리기 확인, 생성 폼 요일 선택·6~7요일 지정 시 저장 전 1회 안내(취소 시 요청 없음). `pytest`·`check_docs.py`·`check_data_consistency.py`·프런트 테스트 통과.
-- 호환성: 레거시 플랜(6종)은 사용자가 v40 전에 삭제하고 시작한다(§2.4, PLN-23·42) — 기존 플랜·목표를 위한 이행·완충 코드는 없고, completed 목표만 남는다(PLN-28). goal_id 는 planner 행만 CHECK 로 필수, 외부(garmin·intervals)·v1 행은 NULL(PLN-31 E). `workout_weekdays_mask` NULL 기본, 신규 생성 시 요일 입력으로 채워진다(PLN-12·40). 보존된 취소 플랜 행은 겹칠 수 있는 경로에서만 goal_id 필터로 분리(PLN-33). v1 화면·경로는 깨져도 허용하며 보호·호환 코드를 두지 않는다(V1-1·V1-13). 알고리즘 출력(설명·요일·부분 첫 주 볼륨)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
+- 호환성: 레거시 플랜(7종)은 사용자가 v37 전에 삭제하고 시작한다(§2.4, PLN-23·29·42·44) — 기존 플랜·목표를 위한 이행·완충 코드는 없고(PLN-43 스냅샷 복구는 신규 목표용), completed 목표만 남는다(PLN-28). goal_id 는 planner 행만 CHECK 로 필수, 외부(garmin·intervals)·v1 행은 NULL(PLN-31 E). `workout_weekdays_mask` NULL 기본, 신규 생성 시 요일 입력으로 채워진다(PLN-12·40). 보존된 취소 플랜 행은 겹칠 수 있는 경로에서만 goal_id 필터로 분리(PLN-33). v1 화면·경로는 깨져도 허용하며 보호·호환 코드를 두지 않는다(V1-1·V1-13). 알고리즘 출력(설명·요일·부분 첫 주 볼륨)이 바뀌므로 ADR-042 에 따라 버전/algo_changelog 항목 필요 여부 확인.
 
 ## 6. 결정
-- PLN-1~42, 연관 HSR-1·V1-2·V1-13: 결정 완료(표 참조, `decisions-table.md` 2026-10-11). 최종 소유권 방식은 PLN-31 재결정 E안(D안 철회) — PLN-19·20·26 은 E안으로 복원, PLN-21 은 v41 이 없어져 소멸, PLN-23·24·28·29·30·42 는 '사용자가 v40 전에 직접 삭제'(6종, goals 는 active·cancelled 만), PLN-35 는 옛 목표 복구 미고려. 본문 §2 각 항목에 반영.
+- PLN-1~46, 연관 HSR-1·V1-2·V1-13: 결정 완료(표 참조, `decisions-table.md` 2026-10-11~12). 최종 소유권 방식은 PLN-31 재결정 E안(D안 철회) — PLN-19·20·26 은 E안으로 복원, PLN-21 은 v41 이 없어져 소멸, PLN-23·24·28·29·30·42·44 는 '사용자가 v37 전에 직접 삭제'(7종, goals 는 active·cancelled 만, `plan_progression` 고아 포함, `sqlite_sequence` 불변), PLN-35 는 옛 목표 복구 미고려, PLN-43 은 이전 목표 미래 행 삭제 + 스냅샷 복구(신규 목표용), PLN-45 는 첫 주 같은 품질·롱런 회피만(거리 차감 없음), PLN-46 은 PLN-38 의 트리거·워터마크 대체(생략). 본문 §2 각 항목에 반영.
 
 ## 7. 범위 밖 메모
 - `planned_workouts` INSERT 경로의 goal_id 기입은 §2.2 표. garmin_push(`garmin_workout_id` UPDATE 만)·calendar_feed(조회)는 INSERT 하지 않아 §8-5 goal_id 필터 분류 대상으로만 남는다.
@@ -207,11 +208,12 @@
 - `src/training/planner_rules.py` 가 이미 325줄(300줄 규칙 초과). 이번 설계는 이 파일을 건드리지 않으며 분리는 별도 작업.
 
 ## 8. 동기화 중 발견한 모호점
-번호는 다른 절의 '§8-n' 참조를 위해 유지한다. 해소된 항목: 8-1·3·7·8·9(PLN-25)·10(PLN-26)·11(PLN-24) 삭제, 8-6 해소(PLN-34) 삭제. 아래에 남은 항목과 이번 동기화의 해소 표시만 둔다.
-- **8-2. 해소(PLN-32) — 세부 1건 남음:** 부분 첫 주는 1주차·월요일 경계·일수 비례 축소로 확정. **남은 것:** '그 주 사용자 러닝 기록(거리·세션 종류·대회) 참고' 의 구체 규칙(이미 달린 거리 차감 여부, 이미 수행한 품질·롱런 세션의 중복 회피, 그 주 대회가 있을 때 처리)은 결정 문구에 없음 — 구현 단계에서 후보 제시 후 사용자 확정.
+번호는 다른 절의 '§8-n' 참조를 위해 유지한다. 해소된 항목: 8-1·3·7·8·9(PLN-25)·10(PLN-26)·11(PLN-24) 삭제, 8-6 해소(PLN-34) 삭제. 아래에 남은 항목과 해소 표시만 둔다.
+- **8-2. 해소(PLN-32·PLN-45):** 첫 주 기록 참고는 이미 달린 같은 품질·롱런 세션 회피만, 거리 차감 없음, 대회 처리는 v38 이후(§2.2 부분 첫 주).
 - **8-4.** PLN-14 안내 문구는 구현 단계에서 후보 제시 후 사용자 확정.
 - **8-5. 판정 기준 해소(PLN-33) — 경로 분류 남음:** 기준은 '교체·복구 이후 날짜의 planner 행을 날짜만으로 고르는 경로 = 겹침 가능 → 필터, 그 외 현행'. 후보(grep 2026-10-12, `planned_workouts` 를 읽는 `src/` 비-v1 파일): `matcher`·`rematch`, `week_compliance`, `planned_query`·`plan_overlay`, `adjuster`·`plan_adjustment_service`·`plan_pain`·`plan_move`·`plan_advisory`, `calendar_feed_service`, `garmin_push`, `week_digest`, `plan_load`, `progression_service`, `weekly_adapt_job`, `replanner`·`plan_replan_service`·`plan_replan_diff`, `ai/*` 컨텍스트 빌더. 경로별 해당 여부는 구현 첫 단계에서 목록으로 확정(사실 확인, 정책 아님).
-- **8-12. 열린 질문(삭제 실행 시점):** PLN-29 원결정은 'v37 이전 삭제 → v37~v40 순차', 조정 문구(PLN-31 E·PLN-42)는 'v40 이전' 만 명시한다. 'v37 이전'이 여전히 유효한지 불명확하다. v39 이후에 삭제하면 삭제된 active·cancelled 목표를 가리키던 `race_calendar` 행(`origin='goal'`)·`goals.race_id` 정리 문제가 생기고(v39 는 비활성 목표도 백필), v37 이후면 v37 재분류 백필이 곧바로 지워질 데이터에 수행된다.
-- **8-13. 열린 질문(PLN-38 트리거·워터마크):** E안 CHECK 가 신규 planner 행 goal_id 누락을 INSERT·UPDATE 모두에서 이미 막으므로 BEFORE INSERT 트리거는 중복이다. (a) `race-calendar.md` §2.2 'SQLite 트리거는 쓰지 않는다' 원칙의 예외로 트리거를 둘지 (b) 트리거를 생략할지 미정. 워터마크도 레거시 planner 행이 모두 삭제된 뒤 v40 이 적용되므로 consistency 검사 경계로서의 실익이 작다 — 유지(결정대로) 시 저장 위치(메타 테이블 없음)는 구현 시 확정.
-- **8-14. 열린 질문(교체 시 이전 목표 미래 행):** PLN-1 은 이전 goal 행을 '삭제하지 않고 보존'하는데, 현 `create_plan_from_template` 은 `replace_range(today~9999)` 로 이전 활성 목표의 미래 무이력 행을 지우고 그 snapshot 을 `plan_snapshot_json` 보존 근거로 쓴다(§1 R2). 교체 시 이전 목표의 미래 행을 (가) 모두 남기고 goal_id 필터로만 분리할지 (나) 지우고 스냅샷으로 복구할지가 본문(행 보존 + 스냅샷 보존)에서 하나로 정해져 있지 않다. 복구 동작·PLN-33 겹침 범위가 이 답에 달려 있다.
-- **8-15. 열린 질문(삭제 범위 밖 목표 참조):** `plan_progression(goal_id, qtype)`(`db_schema_v29.py`, 목표별 품질 사다리 단계)은 6종에 없어 active·cancelled 목표 삭제 후 고아 행이 남는다. 함께 지울지 남길지는 결정 기록이 없다(`goals.id` 는 AUTOINCREMENT(`db_setup.py:449`)라 삭제된 id 가 재사용되지 않아 고아 행이 새 목표에 섞이지는 않음 — 잔존 데이터 정리 여부만 남음).
+- **8-12. 해소(PLN-29):** 레거시 삭제는 v37 이전, 이후 v37~v40 순차(§2.4).
+- **8-13. 해소(PLN-46):** 트리거·워터마크 생략, 가드는 CHECK + 단일 진입점 + pytest 정적 검사 + consistency 검사(§2.2).
+- **8-14. 해소(PLN-43):** 이전 목표 미래 무이력 행은 새 목표 생성 시 지우고 `plan_snapshot_json` 스냅샷으로 복구(§2.2).
+- **8-15. 해소(PLN-44):** `plan_progression` 고아 행은 레거시 삭제 ⑥에 포함, `sqlite_sequence` 불변(§2.4).
+- **8-16. 열린 질문(복구 시 현재 활성 목표의 미래 행):** PLN-43 은 '새 목표 생성 시' 이전 목표 미래 행을 지우고 스냅샷한다고만 정한다. `restore` 로 현재 active 가 cancelled 가 될 때 그 목표의 미래 무이력 행도 같은 방식(삭제 + 스냅샷)으로 처리할지, 남겨 두고 PLN-33 필터로 가를지는 결정 문구에 없다. 같은 방식이 아니면 복구 대상 스냅샷 행과 같은 날짜에 두 목표의 무이력 행이 겹친다.
