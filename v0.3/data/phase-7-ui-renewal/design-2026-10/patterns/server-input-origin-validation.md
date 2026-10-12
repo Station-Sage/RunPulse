@@ -119,7 +119,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 1. **errorhandler (2.3)** — 가장 안전, 단독 배포 가능. 검증: C-02·`distance_km:"abc"` 재현 시 JSON 500/400, `pytest tests/test_api_*.py` 전체 통과.
 2. **input_limits + validation.py + 4개 라우트 (2.2/2.4)** — 검증: 재현 값(fatigue 0·11·5.5·"x", pain "bogus", weeks 0/-3/500, race_date "garbage"·2020-01-01·오늘+6년, 99:99:99, distance_km 0·251, note 501자) 전부 400 + `details`, text/plain 본문 415. race_date 오늘은 통과. 가능 주수 초과 weeks는 201 + `meta.warnings`. 브라우저(사본 DB): 오늘 체크인 저장, `/v2/coach/plan/new` 정상 생성·과거 날짜 오류 표시.
 3. **Origin 관문 + 쿠키 (2.1), observe 모드 2주(SEC-10)** — 배포 후 2주 동안 거부 대상 로그를 관찰한다. 검증: observe에서 위조 Origin 요청이 통과하며 로그가 남는지, `curl -i /v2/today`의 `Set-Cookie`에 `SameSite=Lax; HttpOnly`(`APP_ENV=production`이면 `Secure` 포함, SRV-10).
-4. **enforce 전환(SEC-10)** — 2주 관찰 기간의 거부 대상 로그가 0건이면 `ORIGIN_GUARD_MODE=enforce`. 검증: `curl -X POST -H 'Origin: http://evil.example'` → 403(`/api/v1/*`·`/api/context-episodes`는 `FORBIDDEN_ORIGIN` 봉투), Origin·Referer 없는 POST → 403, 같은 출처 → 정상, `/mcp`·`/api/garmin/local-sync`·`/api/v1/csp-report` 면제 확인. 브라우저: v2 전 화면 쓰기 동작(체크인·코치·플랜·데이터 설정·가져오기 업로드·캘린더 피드 삭제·컨텍스트 에피소드 저장/삭제) 1회씩.
+4. **enforce 전환(SEC-10)** — 2주 관찰 기간의 거부 대상 로그(인증을 통과한 요청만 집계, 2026-10-12 Q5)가 0건이면 `ORIGIN_GUARD_MODE=enforce`. 검증: `curl -X POST -H 'Origin: http://evil.example'` → 403(`/api/v1/*`·`/api/context-episodes`는 `FORBIDDEN_ORIGIN` 봉투), Origin·Referer 없는 POST → 403, 같은 출처 → 정상, `/mcp`·`/api/garmin/local-sync`·`/api/v1/csp-report` 면제 확인. 브라우저: v2 전 화면 쓰기 동작(체크인·코치·플랜·데이터 설정·가져오기 업로드·캘린더 피드 삭제·컨텍스트 에피소드 저장/삭제) 1회씩.
 5. **사용자 전환 v2 이관 / uid 규칙 / get_db_path (2.5·2.6, V1-3·SRV-13)** — 구현 전 운영 실사용 여부 확인(D6). production 판정 키는 `APP_ENV`(SRV-10). 선행: `helpers` 3함수·`views_mcp_remote` 이관(`bundles/v1-sunset-prep.md` §4 2·3단계 — `validate_uid`가 `src/utils/user_context.py`에 들어감). 2.5 순서 ①→②→③(SRV-6 차단은 ①에서 v2 엔드포인트와 함께, V1-9). 검증: `APP_ENV=production`에서 v2 사용자 전환 엔드포인트 404·링크 숨김, 개발 환경에서 규칙 위반 uid(2.6) 400·`get_db_path` `ValueError`·디렉터리 미생성, 규칙 위반 CF 이메일 헤더·세션 저장값·`svc_user` → 403 + 마스킹 로그(V1-20), 기존 사용자(이메일·`default`) 전환 후 v2 화면이 해당 사용자 DB를 읽음, ③ 후 `/switch-user` 404.
 6. 완료 체크리스트: `pytest tests/`, `scripts/check_docs.py`, `decisions.md`에 **ADR-048**("쓰기 요청은 Origin 관문 + 경계 스키마", ADR-1) 기록(D9).
 
@@ -180,7 +180,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - 해소(NEW-40): `/api/context-episodes` 봉투·관문·입력 제한 적용(2.1·2.3·2.4).
 - D6 production 차단 시 v2 사용자 전환 진입점(현 `MenuDrawer.svelte` 링크) 숨김이 프론트 범위로 남는다(2.5 ②).
 - 해소(V1-20): 규칙 위반 CF 이메일은 403 + 마스킹 보안 로그, 세션 저장값·`svc_user`도 같은 규칙, `get_db_path` `ValueError` 처리(2.6).
-- (구현 확인) SEC-10 의 '위반 0건' 판정에서 observe 로그 중 정상 클라이언트가 아닌 요청(봇·스캐너)을 어떻게 제외할지는 결정에 없다.
+- (해소 2026-10-12, Q5) SEC-10 의 '위반 0건' 집계는 인증을 통과한 요청만 센다. 미인증 요청(봇·스캐너)은 제외.
 
 ## 10. 동기화 중 발견한 모호점
 - (V1-1, 5차에서 해소) E-02 처리 — V1-3 (b) 결정으로 v2 이관 후 v1 제거(2.5).
