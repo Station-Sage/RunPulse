@@ -3,8 +3,9 @@
 - 변경 이력: 2026-10-11 A11Y-1·3·4·5 결정 반영, 라이트 테마 설계 / A11Y-9~12 결정 반영, stone 팔레트(slate 제안값 대체)
 - 변경 이력: 2026-10-11 A11Y-13 B안 확정(미달 색 재조절), A11Y-14 심화 검토 / 설계서 동기화(A11Y-14 (a) 확정, NEW-10 참조 추가)
 - 변경 이력: 2026-10-11 5차 동기화(V1-1 정정·V1-2) — 7절 검증 말미 호환성 뒤에 v1 화면 한 줄(스타일 비공유, `helpers.py` 공유 함수 유지) 추가
+- 변경 이력: 2026-10-12 9차 동기화 — SEC-11(theme-color 는 A11Y 에 일원화): 2.5 theme-color 단일 소유 규칙·값·수동 선택 시 갱신 명시, 3·5·7절 반영 / A11Y-15·A11Y-L6: 2.2 Toast 를 LiveRegion `announce` 로 전환 / A11Y-7 레이아웃은 `accessibility-layout.md` 참조로 정리(8절 해소)
 - 대상 증상: E-15, S-12, S-13, S-14, E-09, E-14, M-27, D-28, P-18, T-12, C-12, D-26, C-10, E-06, P-19, P-20, E-07, S-15, T-19, M-28, D-27 외 (4절 매핑 표)
-- 상태: 설계 확정 — A11Y-1~14 결정 반영(2026-10-11). A11Y-7 내비 순서만 구현 전 별도 레이아웃 설계 필요
+- 상태: 설계 확정 — A11Y-1~14 결정 반영(2026-10-11). A11Y-7 내비 순서·live region 은 `accessibility-layout.md`(A11Y-15, 2026-10-12 결정 완료)
 - 범위: `frontend/src/` (v2 전용). 오버레이 Esc·포커스 트랩은 `overlay-common-behavior.md`, 오류·재시도는 `error-retry-common.md`, CSP는 보안 헤더 설계 소관
 
 ## 1. 근본 원인
@@ -53,12 +54,12 @@
 - `ToggleChip.svelte` + `ToggleGroup.svelte`: `mode='single'` 은 radiogroup/radio + `aria-checked` + 화살표 키 이동(roving tabindex), `mode='multi'` 는 `aria-pressed`. 그룹 `label` 은 필수다. 피로도·통증·기간·카테고리·Provider·월/주·대회 확인 토글이 대상이며, 대회 토글은 그룹 이름에 대회명을 넣는다(T-12). 선택 표시(A11Y-14): 배경만으로 선택을 표시하지 않는다 — `multi` 칩=테두리(fg-primary/teal 2px), `single` 세그먼트=반전 채움, hover 배경은 s3 까지.
 - `lib/a11y/rovingIndex.ts` (신규, 순수): `nextIndex(current, key, count, disabled[])` 는 화살표·Home/End 를 처리하고 비활성 항목을 건너뛴다.
 - `TextField.svelte`: `label` 필수, `labelHidden` 이면 sr-only 로 출력한다. placeholder 는 보조로만 쓴다. HH/MM/SS, 메모 textarea, 비밀번호, ChatComposer 에 적용한다.
-- `Toast.svelte`: hover·focus 중 타이머를 멈춘다. 결정 5(A11Y-5): `kind='error'` 는 자동 닫힘 없이 닫기 버튼(IconButton)으로만 닫고 `role="alert"`, 성공·정보는 짧게(기존 시간) 자동 닫힘 + `role="status"`(S-11).
+- `Toast.svelte`: hover·focus 중 타이머를 멈춘다. 결정 5(A11Y-5): `kind='error'` 는 자동 닫힘 없이 닫기 버튼(IconButton)으로만 닫고, 성공·정보는 짧게(기존 시간) 자동 닫힘(S-11). 알림은 Toast 자체의 `role` 이 아니라 셸의 상시 LiveRegion 에 `announce(text, 'assertive')`(오류)·`'polite'`(성공·정보)로 보낸다 — 조건부 생성 live 가 읽히지 않는 문제 회피(`accessibility-layout.md` §2.3 R3·R7, A11Y-L6).
 
 ### 2.3 페이지 문서 계약 (RC-3)
 - `lib/a11y/pageTitle.ts` (신규, 순수): `pageTitle(...parts)` 는 빈 값을 제거하고 `"A · B · RunPulse"` 를 만든다. 모든 부분이 비면 `"RunPulse"` 를 돌려준다.
 - `PageHead.svelte` (신규): `title`(문서 제목), `heading`(h1 문구, 기본값은 title), `headingHidden`(sr-only). `<svelte:head><title>` 과 h1 을 한곳에서 출력한다. h1 을 컴포넌트가 그리는 화면(TodayHero 등)은 `heading={null}` 로 h1 출력을 끈다.
-- `+layout.svelte`: 첫 포커스 요소로 "본문 바로가기" skip link → `<main id="main" tabindex="-1">`. 1280px 좌측 내비는 DOM 순서를 시각 순서에 맞춘다(모바일 하단 탭과의 관계는 결정 7).
+- `+layout.svelte`: 첫 포커스 요소로 "본문 바로가기" skip link → `<main id="main" tabindex="-1">`. 1280px 좌측 내비는 DOM 순서를 시각 순서에 맞춘다(결정 7). 셸 DOM 순서·ShellNav 이중 렌더·LiveRegion 의 상세는 `accessibility-layout.md` §2.1·§2.3 이 원본이다.
 - `+error.svelte`, `library/wellness/[date]/+error.svelte`: PageHead 를 적용해 title 을 채운다(E-06, E-24).
 
 ### 2.4 정적 가드 (회귀 방지)
@@ -78,8 +79,9 @@
   - 두 블록은 각 40줄 안팎이라 `layout.css` 가 300줄을 넘으면 `src/routes/theme-light.css` 로 분리해 `@import` 한다.
 - **FOUC 방지(결정 9 로 필요):** 시스템 따름은 CSS 미디어 쿼리라 스크립트가 필요 없지만, 수동 선택은 저장된 값을 첫 페인트 전에 적용해야 한다. 저장값 없음·'system' 은 `data-theme` 를 두지 않는다.
   - `frontend/static/theme-init.js` (신규, ~12줄): `<head>` 맨 앞에서 동기 로드. `try { const t = localStorage.getItem('rp-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}`.
-  - `src/app.html`: `<script src="%sveltekit.assets%/theme-init.js"></script>` 를 `%sveltekit.head%` 앞에, `<meta name="theme-color" media="(prefers-color-scheme: …)">` 2개를 추가한다. 외부 파일이므로 CSP `script-src 'self'` 로 통과한다(인라인으로 두면 SEC-1 CSP 에 sha256 해시를 따로 관리해야 함).
-- **런타임 모듈:** `lib/theme/theme.ts` (신규, 순수 + 얇은 DOM 래퍼): `resolveTheme(pref: 'system'|'light'|'dark', systemLight: boolean)`, `readPref()`/`writePref()`(try/catch, 실패 시 'system'), `applyTheme(pref)`(`data-theme` 설정/제거). 전환 UI(결정 9)는 **설정 화면에만** `ThemeSwitch`(`ToggleGroup mode='single'` 3상태 시스템/라이트/다크, 기본 '시스템')로 두고 셸(헤더·MenuDrawer)은 바꾸지 않는다. '시스템' 상태에서 OS 테마가 바뀌면 CSS 가 즉시 따라가므로 `matchMedia` 리스너는 `theme-color` 갱신용으로만 쓴다.
+  - `src/app.html`: `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">`·`media="(prefers-color-scheme: light)" content="#f7f5f2">` 2개를 두고, 그 **뒤에** `<script src="%sveltekit.assets%/theme-init.js"></script>` 를 `%sveltekit.head%` 앞에 둔다(스크립트가 meta 를 찾을 수 있게). 외부 파일이므로 CSP `script-src 'self'` 로 통과한다(인라인으로 두면 SEC-1 CSP 에 sha256 해시를 따로 관리해야 함).
+- **theme-color 단일 소유(SEC-11, 2026-10-12 동기화):** theme-color meta 의 위치·값·갱신은 이 절만 정한다. 보안 헤더 설계(SEC-7/D7)는 favicon·manifest·apple-touch-icon 만 다루고 theme-color meta 를 따로 넣지 않는다. 값은 각 테마의 s1(다크 #0f172a, 라이트 #f7f5f2, 2.6)이며 토큰이 바뀌면 함께 바뀐다. 수동 선택(`data-theme`)이 OS 와 다르면 media meta 가 틀린 색을 내므로, `theme-init.js` 와 `applyTheme()` 은 수동 'light'/'dark' 일 때 두 meta 의 `content` 를 선택 테마 값으로 덮고 'system' 이면 원래 값(위 기본)으로 되돌린다. manifest 의 `theme_color` 는 단일 값이라 다크 s1 을 쓰고, 브라우저 UI 색은 meta 가 우선한다.
+- **런타임 모듈:** `lib/theme/theme.ts` (신규, 순수 + 얇은 DOM 래퍼): `resolveTheme(pref: 'system'|'light'|'dark', systemLight: boolean)`, `readPref()`/`writePref()`(try/catch, 실패 시 'system'), `applyTheme(pref)`(`data-theme` 설정/제거 + theme-color meta 갱신), `themeColorFor(pref)`(순수: 두 meta 의 content 쌍). 전환 UI(결정 9)는 **설정 화면에만** `ThemeSwitch`(`ToggleGroup mode='single'` 3상태 시스템/라이트/다크, 기본 '시스템')로 두고 셸(헤더·MenuDrawer)은 바꾸지 않는다. '시스템' 상태에서 OS 테마가 바뀌면 CSS 와 media 별 theme-color meta 가 즉시 따라가므로 `matchMedia` 리스너는 두지 않는다.
 
 ### 2.6 테마별 대비 조합 표 (허용 조합 원본, WCAG 상대휘도 스크립트 계산)
 배경: 다크 s1 #0f172a / s2 #1e293b / s3 #334155(유지). 라이트는 결정 13 **B 따뜻한 종이**: s1 #f7f5f2(페이지) / s2 #fffdfa(카드) / s3 #efebe5(칩·hover·중첩), border-subtle #e6e0d7(장식). 기준 text 4.5, ui 3.0. ✗ 는 금지 조합. 미달 색은 hue·채도를 두고 HSL 명도만 낮춰 s3 기준 text 4.6·ui 3.1 이상(여유 0.1)이 되는 가장 밝은 값으로 재조절했다. 표기 `원래 → 조절(ΔL)`. 계산: scratchpad `paper_contrast.py`·`state_check.py` → 구현 시 `tokenContrast.test.mjs` 가 같은 표를 재검증한다.
@@ -133,9 +135,9 @@
 | src/lib/a11y/contrastPairs.ts | 신규 | ~60 | 허용 조합 표(테마 태그) |
 | src/lib/a11y/rovingIndex.ts, pageTitle.ts | 신규 | ~30, ~15 | 화살표 키 인덱스, 문서 제목 조립 |
 | src/lib/theme/theme.ts | 신규 | ~40 | 선호 읽기/쓰기, 해석, 적용 |
-| static/theme-init.js, src/app.html | 신규, 수정 | ~12, +4 | FOUC 방지 초기 스크립트, theme-color meta |
+| static/theme-init.js, src/app.html | 신규, 수정 | ~15, +4 | FOUC 방지 초기 스크립트(수동 선택 시 theme-color 덮기 포함), theme-color meta 2개(SEC-11 단일 소유) |
 | tests/tokenContrast.test.mjs | 신규 | ~80 | 두 테마 조합 전수, 라이트 블록 동일성·누락 검사, 파서 단위 |
-| tests/theme.test.mjs | 신규 | ~30 | resolveTheme·저장 실패 fallback |
+| tests/theme.test.mjs | 신규 | ~40 | resolveTheme·저장 실패 fallback·`themeColorFor`, app.html meta 값 = `layout.css` 두 테마 s1(파서 재사용) |
 | tests/rovingIndex.test.mjs, tests/pageTitle.test.mjs | 신규 | ~30, ~20 | 순수 함수 테스트 |
 | tests/a11yStatic.test.mjs + a11yBaseline.json | 신규 | ~110 + 목록 | 라우트 정적 스캔·색 리터럴 가드(ratchet) |
 | src/lib/components/ui/IconButton, ToggleChip, ToggleGroup, TextField, PageHead (.svelte) | 신규 | 각 25~60 | 공용 부품 |
@@ -145,8 +147,8 @@
 | FormChart, streams/+page, routeGeometry.ts, ActivityHeatmap, SourceCoverage, ReadinessGauge, ArchiveTabCard, RouteThumb, RacePredictionSummary | 수정 | 각 ±3~15 | hex → 차트 토큰 |
 | GarminCleanup, SyncStatusPill, SyncPanel, UiDefaultCard, ProviderComparison, coach/new, story/[period] | 수정 | 각 ±1~4 | Tailwind 기본 팔레트 → 상태 토큰 |
 | text-white 사용 약 10파일, Skeleton, ArchiveHero, ProviderMatrix, provider 배지·마크 사용처 | 수정 | 각 ±1~5 | on/mark/shimmer/그림자 토큰 |
-| src/routes/+layout.svelte | 수정 | +8 | skip link, main id, 내비 DOM 순서, ☰ → IconButton |
-| +error.svelte 2개, Toast.svelte | 수정 | +2, +15 | PageHead, 오류 지속·hover/focus 일시정지 |
+| src/routes/+layout.svelte | 수정 | 80→~75 | skip link, main id, ShellNav 이중 렌더, LiveRegion, ☰ → IconButton(상세 `accessibility-layout.md` §3) |
+| +error.svelte 2개, Toast.svelte | 수정 | +2, +15 | PageHead, 오류 지속·hover/focus 일시정지, role 대신 `announce` |
 | 라우트 +page.svelte 약 30개 | 수정 | 각 +1~3 | PageHead 적용(h1/title) |
 | QuickInput, RaceConfirmList, MenuDrawer, ChatComposer, ConnectPanel, AI 설정, plan/session·new 폼, metrics 목록/상세, wellness, story 등 약 20개 | 수정 | 각 ±5~20 | 부품으로 교체 |
 | 배경만 선택 표시 6곳(story 월/주, streams x축, ArchiveTabCard, `+layout` lg 내비, TaperSheet, WeekStrip)·`hover:bg-border-subtle` 1·ActivityRow | 수정 | 각 ±1~4 | A11Y-14: 전경 지시자 추가, amber/20 위 amber 글자 → `/10` 또는 fg-primary |
@@ -181,7 +183,7 @@
 6. 공용 부품을 넣고 영역별(shell → Today → Library → Coach → Data)로 교체하면서 baseline 을 줄인다. 마지막으로 Toast(오류 지속)를 수정한다.
 검증: `npm run test:unit`(tokenContrast 두 테마·라이트 블록 동일성 포함), `npm run check`, `python3 -m pytest tests/`(백엔드 무변경 확인).
 - 브라우저 375px·1280px × 다크·라이트: DevTools Rendering 의 `prefers-color-scheme` 에뮬레이션과 `data-theme` 수동 값 양쪽으로 Today·Library 목록/상세(FormChart·streams·지도)·Coach·Data(ProviderMatrix)·설정 화면을 본다. 불투명도 합성 36곳과 그림자, 배지 글자, 스켈레톤 반짝임을 확인한다.
-- 테마 3상태: 설정에서 시스템/라이트/다크 각각 선택 → 새로고침 후 유지, '시스템'에서 OS 테마 전환 시 즉시 따라가는지 본다.
+- 테마 3상태: 설정에서 시스템/라이트/다크 각각 선택 → 새로고침 후 유지, '시스템'에서 OS 테마 전환 시 즉시 따라가는지 본다. 모바일(iOS Safari·Android Chrome)에서 OS 다크 + 수동 라이트일 때 주소창 색이 라이트 s1 인지, '시스템'으로 돌리면 OS 를 따르는지 본다(theme-color).
 - FOUC: 수동 라이트 선택 후 네트워크 Slow 3G 로 새로고침해 첫 프레임이 다크로 깜빡이지 않는지, localStorage 차단(시크릿·쿠키 차단)에서도 오류 없이 시스템 따름으로 뜨는지 본다.
 - 첫 Tab 이 skip link 이고 Enter 시 포커스가 main 으로 이동하는지, 1280px Tab 순서가 시각 순서와 같은지 본다. 포커스 링이 두 테마 s1~s3 위에서 보이는지 본다.
 - DevTools 스니펫으로 전 라우트를 돌며 `document.title` 비어 있지 않음, `h1` 정확히 1개, `a,button,input,[role=radio]` bbox 가 44px 이상인지 확인한다(인라인 텍스트 링크는 예외 목록). 데모 모드(`/demo`) 화면도 같은 점검을 한다.
@@ -212,12 +214,13 @@
 
 - E-05: 알 수 없는 경로가 HTTP 200 — 서버 라우팅 문제.
 - M-09: 메트릭 상세 h1 명명 불일치 — 용어 정리 소관.
-- E-21: description·manifest 메타와 비표준 `text-scale` meta(theme-color 는 2.5 에서 테마별로 추가).
+- E-21: description·manifest 메타와 비표준 `text-scale` meta(theme-color 는 2.5 소관 — SEC-11 일원화, 보안 헤더 D7 은 theme-color 를 넣지 않음).
 - svelte-check a11y 경고 0 을 통과 기준으로 둘지, 스크린리더·실기기 점검(미검증)은 별도 판단.
 - 고대비 모드(`prefers-contrast: more`)·`forced-colors` 대응은 이번 범위 밖. 토큰 구조상 같은 방식으로 블록을 추가할 수 있다.
 
 ## 8. 동기화 중 발견한 충돌/확인 필요
 
 - A11Y-12 결정 원문은 "(a) 브랜드 원색 유지"이나 A11Y-13 결정이 라이트 마크 조절 허용으로 사실상 수정했다(결정 12 수정 메모·2.7 에 반영). decisions-table 의 A11Y-12 줄 자체는 원문 그대로다.
-- A11Y-7(1280px 내비 DOM 순서)은 "구현 전 별도 레이아웃 설계 필요"로 결정돼 이 문서에 레이아웃 설계가 없다.
+- 해소(A11Y-15, 2026-10-12): A11Y-7 레이아웃 설계는 `accessibility-layout.md`(A11Y-L1~L9 결정 완료).
+- SEC-11 반영(2026-10-12): theme-color 는 2.5 단일 소유로 정리했다. `security-headers.md`(D7 본문·3절 표·검증 5·결정 요약·E-21 메모)는 아직 "theme-color 등 메타"를 D7 에서 추가한다고 적고 있어, 그 문서 동기화 때 "theme-color 는 accessibility-common §2.5"로 바꿔야 한다(이번 동기화 범위 밖).
 - NEW-10 의 "RC 시트" 설계서는 이 동기화에서 읽지 않았다. 4절 참조 행은 계약 적용만 명시한다.

@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 329건 (결정 324건 / 부분 결정 4건 / 미결정 1건).
+- 총 338건 (결정 333건 / 부분 결정 4건 / 미결정 1건).
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -343,3 +343,12 @@
 | RC-50 | 대회 캘린더 | D안: v39 2단계 applied 판정('그 목표의 planned_workouts 가 있으면')이 v40 보다 먼저 실행돼 goal_id 를 쓸 수 없음 | (a) 목표 날짜 범위 규칙으로 판정 / (b) v40 을 v39 보다 먼저 실행 / (c) applied 판정 없이 unasked 로 백필 **결정 2026-10-11: (a) v39 2단계 applied 판정은 목표 날짜 범위 규칙으로(goal_id 사용 안 함)** |
 
 | PLN-42 | 훈련 계획 | E안 전제의 레거시 삭제 세부 범위: session_outcomes(ML 자산, 고아 허용 PLN-41 b)·completed 목표·plan_adjustments·plan_replans·외부 계획 행 | (a) planner 행과 옛 active/cancelled 목표·plan_replans·그 목표의 plan_adjustments 삭제, session_outcomes·completed 목표는 보존 / (b) 6종 모두 삭제(PLN-24 원안) / (c) planner 행만 삭제하고 나머지 모두 보존 **결정 2026-10-11: (b) PLN-24 6종(planner 행, 외부 계획 행, plan_adjustments, plan_replans, session_outcomes, goals)을 모두 삭제. goals 는 PLN-28 에 따라 active·cancelled 만 삭제하고 completed 는 대회 기록 근거로 유지. session_outcomes(ML 자산) 삭제는 사용자가 알고 선택함(추천안 (a) 대신). 삭제는 사용자가 v40 이전에 DB 에서 실행하며 session_outcomes·goals 는 실행 시점 건수 표시 후 재확인(PLN-24)** |
+| A11Y-L1 | 접근성 | 인라인 확인의 알림 경로(OVL-1 수정) | (a) live 제거, 그룹 이름 + '취소' 포커스만 / (b) live 유지+짧은 고정 라벨 / (c) live 유지·포커스 이동 없음 | **결정 2026-10-12(에이전트 위임): (a) live 제거, 그룹 이름(확인 문구)과 '취소' 포커스만 사용 — 포커스 이동이 문구를 이미 1회 읽으므로 live 는 중복. OVL-1 서술도 수정** |
+| A11Y-L2 | 접근성 | 서브탭과 h1 의 위치 | (a) 현행(탭이 h1 위) / (b) h1 을 탭 위로 | **결정 2026-10-12(에이전트 위임): (a) 현행 유지 — 서브탭은 이름 있는 nav 랜드마크라 건너뛸 수 있고 (b) 는 구조·시각 변화가 큼** |
+| A11Y-L3 | 접근성 | 이름 없는 섹션·시트의 제목 | (a) 보이는 제목 / (b) sr-only 제목 / (c) aria-label 만 | **결정 2026-10-12(에이전트 위임): (b) sr-only h2 + aria-labelledby — 시각 변화 없이 대화상자 이름과 제목 탐색 확보. 문구는 TXT-1** |
+| A11Y-L4 | 접근성 | Today 의 DOM·Tab 순서 | (a) DOM 을 모바일 순서로+lg 행 정렬 / (b) 모바일 표시 순서를 DOM 순서로(다음 세션이 2번째) / (c) 현행 수용 | **결정 2026-10-12(에이전트 위임): (b) 모바일도 DOM 순서대로 — 다음 세션 카드가 모바일에서 2번째로 올라옴(제품 우선순위 변화, 사용자 375px 스크린샷 확인 필요)** |
+| A11Y-L5 | 접근성 | 컴포넌트 가로 스크롤 허용 범위 | (a) 표만 / (b) 표·캐러셀·칩 행·서브탭(스크롤 단서 필수) / (c) 현행 전부 | **결정 2026-10-12(에이전트 위임): (b) 표·비교 캐러셀·칩 행·서브탭만 허용, 스크롤 단서 필수·표 영역 tabindex=0** |
+| A11Y-L6 | 접근성 | 인라인 오류의 긴급도 | (a) 동작 직후 오류 assertive·로드 실패 polite / (b) 전부 polite / (c) 전부 assertive | **결정 2026-10-12(에이전트 위임): (a) 사용자 동작 직후 오류는 assertive, 나머지는 polite, 첫 렌더 로드 실패는 live 없이 정적 텍스트** |
+| A11Y-L7 | 접근성 | axe 자동화 | (a) 수동만 / (b) CI 에 @axe-core/playwright | **결정 2026-10-12(에이전트 위임): (a) 수동 점검만 — 브라우저 테스트 도구가 없고 회귀는 ratchet 정적 가드로 차단** |
+| A11Y-L8 | 접근성 | YearMonthScrubber 레일(20px) | (a) 44px 로 확대 / (b) 보조 조작으로 예외 처리 / (c) 제거 | **결정 2026-10-12(에이전트 위임): (b) 레일은 aria-hidden 포인터 가속기로 예외(월 칩·MonthHeader 이전/다음으로 동등 접근). 별도 F-18: 키 처리기 없는 role=slider 정리** |
+| A11Y-L9 | 접근성 | 보조 nav 이름 형식 | (a) '<영역> 하위 메뉴' 통일 / (b) 현행 | **결정 2026-10-12(에이전트 위임): (a) '<영역> 하위 메뉴'로 통일, 경로 nav 는 '경로' 유지** |
