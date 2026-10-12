@@ -1,7 +1,7 @@
 # 설계: 시간대 표기 (UTC 표기·날짜 절단)
 
 - 대상 ID: C-06 (코치 답변 근거 시트 "계산 시각" 9시간 어긋남), S-17 (Strava 단독 활동 상세 헤더 날짜가 KST 자정 경계에서 틀림)
-- 상태: 설계 확정 (구현 전. TZ-1~22 전부 결정 — TZ-3 은 TZ-19 (c)로 확정: 기존 행 교정 없음, 신규 수집분만). 2026-10-11 설계서 동기화(TZ-10~16 확정 반영, TZ-1 추가 결정 '오늘' 기준일 헬퍼 반영) · 2026-10-11 2차 동기화(TZ-17) · 2026-10-11 3차 동기화(TZ-18) · 2026-10-11 4차 동기화(V1-1) · 2026-10-11 5차 동기화(V1-1 정정·V1-2)
+- 상태: 설계 확정 (구현 전. TZ-1~23 전부 결정 — TZ-3 은 TZ-19 (c)로 확정: 기존 행 교정 없음, 신규 수집분만. 활동 1327 은 TZ-23 (a) 수동 정정). 2026-10-11 설계서 동기화(TZ-10~16 확정 반영, TZ-1 추가 결정 '오늘' 기준일 헬퍼 반영) · 2026-10-11 2차 동기화(TZ-17) · 2026-10-11 3차 동기화(TZ-18) · 2026-10-11 4차 동기화(V1-1) · 2026-10-11 5차 동기화(V1-1 정정·V1-2)
 - 관련 ADR: ADR-006 (Strava `start_date_local` 우선 — 활동 시각은 "현지 벽시계"가 기준이라는 기존 결정), ADR-009 (Calculator 무변경, 해당 없음)
 - 결정 번호 대응: 본문 D1~D22 = `decisions-table.md`의 TZ-1~TZ-22(같은 번호). 연관: RC-49(대회 캘린더 v39 백필 `created_at` 변환이 2.4 헬퍼 기준).
 
@@ -16,6 +16,7 @@
 - 2026-10-11 4차 동기화(V1-1): 레거시 v1 화면·경로 고려 제거 — 2.2.1 호환성·3절 v1 의존 문단을 '일몰 예정(V1-1)'로 축약, 기존 호출자 '(v1 포함)'·대안 A 'v1도 함께 교정' 삭제
 - 2026-10-11 5차 동기화(V1-1 정정·V1-2, v1 일몰 = UI·라우트 일몰): 2.2.1 기존 호출자·호환성을 grep 사실(CLI·공유 `import_strava_folder` 유지, v1 라우트만 일몰)로 복원, 2.3 무표기 분기 유지 사유를 `/api/v1` 무표기 응답으로 정정(7절 모호점 해소), 3절 v1 화면 한 줄
 - 2026-10-12 9차 동기화(TZ-19~22·RC-49): TZ-3 '부분 결정' 표기 정리 — 기존 `start_time` 행 교정 없음·신규 수집분만, `normalize_start_time.py`는 영향 확인 dry-run 전용(2.2·2.2.1·2.2.3·3절·단계 5), 과거 행 불일치 영구 잔존을 7절 한계로; 이동일 차용 동률 → 앞 후보(TZ-20, 2.2.1·검증); `reference_today`를 `user_inputs.input_date`에도 적용(TZ-21, 2.4·3절·5-1); 상대시각은 렌더 시 1회(TZ-22, 2.3); RC-49 관계 한 줄(2.4); 해소된 모호점 표시
+- 2026-10-12 10차 동기화(TZ-23, 설계 단계 마지막): S-17 해결 범위 = TZ-19 범위(신규 수집분) 수용, 활동 1327 은 백업 후 사본에서 확인하고 수동 SQL 로 정정(2.2·단계 5·7절), 코드 현황 `strava_csv.py:384-387`(`_fill_null_fields`)이 `start_time`을 CSV 값으로 덮어써 CSV 재가져오기로 교정될 수 있음 유의(2.2.1), `tz_source` 없는 기존 행의 신뢰 등급 정의는 구현 S0 항목(8절). 9차 모호점 해소 표시
 
 ## 1. 근본 원인
 
@@ -44,7 +45,7 @@
 ### 2.2 백엔드 — 활동 시각 정규화 (RC-2)
 - `src/utils/timefmt.py`에 `to_local_wallclock(local: str | None, utc: str | None, offset_sec: int | None) -> str | None` 추가. 우선순위: 소스가 준 현지 시각(가짜 `Z` 제거) → `utc + offset` → (offset 미상) TZ-2대로 FIT 현지 시각, 없으면 KST 변환. Strava CSV는 2.2.1의 체인을 따른다.
 - 적용: `strava_extractor.py:30`, `intervals_extractor.py:34`, `garmin_extractor.py:42`, `import_history.py:107`(FIT: `timestamp`+`local_timestamp` 메시지 활용 가능 여부 확인).
-- 기존 행(TZ-3 → TZ-19 (c) 결정): 이미 저장된 `start_time` 행은 **교정하지 않는다**. 새 규칙은 이 변경 이후 **신규 수집분**(동기화·가져오기로 새로 들어오는 행)에만 적용된다. `scripts/normalize_start_time.py`는 `source_payloads` 원본에서 재계산한 값과 dedup 변화를 보여 주는 **영향 확인용 dry-run 전용**으로 유지하고, 기존 행 일괄 적용 모드는 두지 않는다(같은 스크립트의 TZ-9 `--list-run`/`--revert-run`은 별개 — 2.2.3). 과거 행 불일치가 남는 한계는 7절.
+- 기존 행(TZ-3 → TZ-19 (c) 결정): 이미 저장된 `start_time` 행은 **교정하지 않는다**. 새 규칙은 이 변경 이후 **신규 수집분**(동기화·가져오기로 새로 들어오는 행)에만 적용된다. `scripts/normalize_start_time.py`는 `source_payloads` 원본에서 재계산한 값과 dedup 변화를 보여 주는 **영향 확인용 dry-run 전용**으로 유지하고, 기존 행 일괄 적용 모드는 두지 않는다(같은 스크립트의 TZ-9 `--list-run`/`--revert-run`은 별개 — 2.2.3). 과거 행 불일치가 남는 한계는 7절. S-17 대상 활동 1327 은 예외적으로 **백업 후 사본에서 확인하고 수동 SQL 로 정정**한다(TZ-23 (a), 코드 변경·스크립트 적용 모드 없음, 단계 5).
 
 ### 2.2.1 Strava CSV — 활동별 timezone (TZ-5 결정 반영)
 
@@ -53,7 +54,7 @@
 - **조인 키 있음**: CSV `Activity ID` → `source_id`. API 경로(`strava_extractor.py:25`)도 `source_id = raw["id"]`이고 둘 다 `source='strava'`라서 **같은 `activity_summaries` 행**이다(CSV는 `INSERT OR IGNORE` 후 기존 행이면 `update_changed_fields`).
 - **payload timezone**: API 경로는 `source_payloads`에 `entity_type='activity_summary'`(목록 응답 원본)와 `'activity_detail'`을 저장한다(`strava_activity_sync.py`). Strava API 활동 객체에는 `start_date`, `start_date_local`, `timezone`(예: `"(GMT+09:00) Asia/Seoul"`), `utc_offset`(초)이 있고, `timezone`은 metric `timezone_offset`(text)으로도 추출된다(`strava_extractor.py:87`). 실제 DB 행에 `utc_offset`이 채워져 있는지는 단계 1에서 확인한다.
 - CSV 경로의 payload는 `entity_type='csv_export'`로 **이미 +9h 된** 파싱값만 저장한다. 원본 UTC·시간대 출처가 남지 않는다(고정 +9라 역산은 가능).
-- **잠재 버그**: API로 이미 들어온 행에 CSV를 가져오면 `update_changed_fields`(값이 다르면 덮어씀)와 `_fill_null_fields`(start_time 강제 갱신)가 API의 `start_date_local`을 `UTC+9`로 덮어쓴다. KST 밖 활동은 이때 틀어진다. TZ-5 구현에서 함께 고친다(아래 규칙 4).
+- **잠재 버그**: API로 이미 들어온 행에 CSV를 가져오면 `update_changed_fields`(값이 다르면 덮어씀)와 `_fill_null_fields`(start_time 강제 갱신)가 API의 `start_date_local`을 `UTC+9`로 덮어쓴다. KST 밖 활동은 이때 틀어진다. TZ-5 구현에서 함께 고친다(아래 규칙 4). 코드 현황(TZ-23): `strava_csv.py:384-387` `_fill_null_fields`가 `start_time`을 CSV 값(UTC+9 고정)으로 덮어쓰므로, 규칙 4 도입 전 코드로 CSV를 재가져오면 기존 행(예: 1327)이 의도와 무관하게 바뀔 수 있다.
 - **연결 상태 판정**: `strava_auth.check_strava_connection(config) -> {"ok", "status", "detail"}`. `ok`는 설정·refresh_token 유무만 본다(만료 access_token은 `ok=True`, 자동 갱신 전제). 폐기된 토큰은 갱신/호출 시 401 → `sync_errors.classify_exception()`이 `"auth_expired"`로 분류한다.
 
 **우선순위 체인 (TZ-6·7 반영, 1~5b)** — 신규 `src/import_export/strava_tz.py`의 `resolve_strava_start(conn, source_id, utc_naive, distance_m, *, api=None, fit_local=None, peers=None) -> tuple[str, str]` (반환: 무접미사 현지 벽시계, `tz_source`). `peers`는 2.2.2의 `PeerTzIndex`(없으면 체인 3 생략).
@@ -78,7 +79,7 @@
 1. 가져오기 경로의 체인(1·2·3·5a·5b)은 **네트워크 호출 0회**로 끝난다(TZ-7 b). `config`는 연결 상태 기록과 백필 예약 판단에만 쓴다.
 2. CSV payload(`csv_export`)에 `start_date_utc`(CSV 원본 UTC)와 `tz_source`, 교차 소스/차용으로 풀린 경우 `tz_peer`(`{"source", "source_id", "offset_sec", "delta_sec"}` 또는 차용 형식)를 추가 저장한다. DDL 변경 없음(JSON 필드 추가). 재교정 이력은 같은 payload의 `tz_history`(2.2.3).
 3. "시간대 추정" **표시**는 `tz_source == "fallback"`(5b 실제 사용) 행에만 한다(TZ-8). `peer_derived:*`·`neighbor:*`는 표시하지 않되 백필 대상에는 포함한다.
-4. 기존 행 갱신 규칙: `start_time` 변경은 새 값의 신뢰 등급이 기존보다 **같거나 높을 때만** 허용. 등급(높음→낮음): `api_payload` = `api_fetch` = `fit_local` > `peer_direct:*` > `peer_derived:*` > `neighbor:*` > `fallback`. API 경로 행은 CSV의 추정값으로 덮어쓰지 않는다. `_fill_null_fields` 강제 갱신·2.2.3 재교정도 같은 규칙. 등급 표는 `strava_tz.TZ_SOURCE_RANK` 1곳.
+4. 기존 행 갱신 규칙: `start_time` 변경은 새 값의 신뢰 등급이 기존보다 **같거나 높을 때만** 허용. 등급(높음→낮음): `api_payload` = `api_fetch` = `fit_local` > `peer_direct:*` > `peer_derived:*` > `neighbor:*` > `fallback`. API 경로 행은 CSV의 추정값으로 덮어쓰지 않는다. `_fill_null_fields` 강제 갱신·2.2.3 재교정도 같은 규칙. 등급 표는 `strava_tz.TZ_SOURCE_RANK` 1곳. `tz_source`가 없는 기존 행의 등급(따라서 CSV 재가져오기 시 갱신 여부)은 구현 S0 항목(TZ-23, 8절).
 
 **연결 유효성 인터페이스** — 기존 판정을 재사용하고 새 판정 로직은 만들지 않는다.
 - `strava_tz.StravaTzLookup` (얇은 래퍼): `available: bool`, `status: str`, `fetch(source_id) -> dict | None`.
@@ -255,7 +256,7 @@
    - 순환 방지: 대상과 같은 `matched_group_id`지만 UTC 순시가 허용오차 밖인 행 → 채택 안 함. 그룹 없는 행도 순시로 매칭됨.
    - 외부 호출 0: `PeerTzIndex`는 `conn` 외 의존성 없음(네트워크 모의 객체 호출 0회 단언).
 4-4. **TZ-8 UI**: 단계 1 건수 확인 후 진행. 브라우저: `fallback` 픽스처 활동 상세 헤더에 "시간대 추정" 표기, `neighbor`/정확 행은 미표기, 가져오기 결과 요약 문구는 `fallback` ≥1건일 때만.
-5. **기존 행 영향 확인**(TZ-3 → TZ-19 (c): 기존 `start_time` 행은 교정하지 않음, 새 규칙은 신규 수집분만. TZ-9 자동 재교정과 별개 — 2.2.3 "TZ-3과의 관계") — `normalize_start_time.py` dry-run으로 기존 행 중 새 규칙이면 값이 바뀔 행 수·날짜 변경·예상 group 변화(Strava CSV 행은 2.2.1 목록)를 집계해 남는 불일치 규모를 기록한다. 적용 단계는 없다. 브라우저: 신규 수집 픽스처 활동의 상세 헤더 날짜가 현지 날짜인지, 기존 Garmin/Intervals 활동 날짜가 그대로인지, 목록 월 그룹(`activities/+page.svelte:220`)의 경계 확인. 기존 행인 `/library/1327`(S-17)은 교정되지 않으므로 그대로 남는다(7절 한계).
+5. **기존 행 영향 확인**(TZ-3 → TZ-19 (c): 기존 `start_time` 행은 교정하지 않음, 새 규칙은 신규 수집분만. TZ-9 자동 재교정과 별개 — 2.2.3 "TZ-3과의 관계") — `normalize_start_time.py` dry-run으로 기존 행 중 새 규칙이면 값이 바뀔 행 수·날짜 변경·예상 group 변화(Strava CSV 행은 2.2.1 목록)를 집계해 남는 불일치 규모를 기록한다. 적용 단계는 없다. 브라우저: 신규 수집 픽스처 활동의 상세 헤더 날짜가 현지 날짜인지, 기존 Garmin/Intervals 활동 날짜가 그대로인지, 목록 월 그룹(`activities/+page.svelte:220`)의 경계 확인. 기존 행인 `/library/1327`(S-17)은 코드로 교정되지 않으며, TZ-23 (a)대로 운영 DB 백업 → 사본에서 `source_payloads` 대조로 올바른 값 확인 → 수동 SQL 정정(사용자 실행) 순으로 처리한다(7절 한계).
 5-1. **'오늘' 기준일 헬퍼(2.4, TZ-1 추가 결정)**: race-calendar·조정 신호 구현보다 먼저 `reference_day.py` + 테스트 → `pytest tests/test_reference_day.py`. 검증: 활동 0건 → 서버 로컬 날짜·`basis="server_local"`, 최근 활동 오프셋 +7에서 UTC 17:30 → 다음 날, KST 사용자는 서버 로컬(KST)과 같은 값, 최근 활동이 시간대 추정 행이어도 그 행을 사용(TZ-17), 오래된 활동만 있어도 `basis="activity_tz"`(기간 제한 없음), 최근 활동에 오프셋이 없으면 이전 활동의 첫 유효 오프셋 사용(TZ-18), 유효 오프셋 활동이 전혀 없을 때만 `basis="server_local"`, 외부 호출 0회. TZ-21: 오프셋 +7·UTC 17:30에서 날짜 없이 체크인 저장 → `input_date` = 다음 날, KST 사용자는 현행과 같은 값(`test_today_service` 체크인 케이스 +1).
 6. `python3 scripts/check_docs.py`, `npm run check`(타입).
 
@@ -268,19 +269,19 @@
 
 ## 6. 결정 필요
 
-- 결정 완료(표 참조: `decisions-table.md` TZ-1~22, 본문 D번호 = TZ번호). TZ-3 적용 범위는 TZ-19 (c)로 확정(기존 행 교정 없음, 신규 수집분만, dry-run은 영향 확인용).
+- 결정 완료(표 참조: `decisions-table.md` TZ-1~23, 본문 D번호 = TZ번호). TZ-3 적용 범위는 TZ-19 (c)로 확정(기존 행 교정 없음, 신규 수집분만, dry-run은 영향 확인용).
 
 ## 7. 범위 밖 메모
 
 - `format.ts`의 `formatDate()`는 사용처 0 — 제거 후보.
 - `replanBanner.ts`, `wellnessDay.ts`, `onboarding.ts`, `RangeSyncForm.svelte` 등의 `new Date().toISOString().slice(0,10)`은 "오늘" 날짜를 UTC로 구해 KST 00~09시에 하루 전이 된다(별도 묶음 권장, coach plan 페이지는 이미 보정). TZ-1 추가 결정의 대상(날짜 전용 대회 필드)은 2.4 헬퍼가 맡고, 이 화면들의 전환 여부는 별도 묶음에서.
 - `metrics/base.py:227,268`의 `datetime.now(timezone.utc)` 기본 종료일도 같은 경계 문제 가능성.
-- **기존 행 미교정의 한계(TZ-19 c 수용):** 이 변경 이전에 저장된 `start_time` 행(진짜 UTC로 저장된 API `start_date` 폴백·FIT `+00:00` 행, 고정 +9로 저장된 해외 Strava CSV 행 등)은 그대로 남아 **과거 행의 날짜·시각 불일치가 영구히 남는다**(예: S-17 활동 1327). 이 행들의 dedup 그룹도 바뀌지 않으며, `tz_source`가 없어 TZ-9 자동 재교정 대상도 아니다. 영향 규모는 단계 5 dry-run 집계로만 기록한다.
+- **기존 행 미교정의 한계(TZ-19 c 수용):** 이 변경 이전에 저장된 `start_time` 행(진짜 UTC로 저장된 API `start_date` 폴백·FIT `+00:00` 행, 고정 +9로 저장된 해외 Strava CSV 행 등)은 그대로 남아 **과거 행의 날짜·시각 불일치가 영구히 남는다**(예: S-17 활동 1327 — 이 1건만 TZ-23 (a) 수동 SQL 정정). 이 행들의 dedup 그룹도 바뀌지 않으며, `tz_source`가 없어 TZ-9 자동 재교정 대상도 아니다. 영향 규모는 단계 5 dry-run 집계로만 기록한다.
 - **'오늘' 헬퍼의 알려진 한계(TZ-17 a 수용):** 기간 제한이 없으므로 마지막 활동이 오래된 경우(예: 해외 여행 중 마지막 활동 후 귀국해 한동안 활동 없음) 그 시간대가 계속 쓰여 현재 위치의 날짜와 하루 어긋날 수 있다. 추정 시간대 행이 최근 활동이면 추정 오차도 그대로 이어진다. 이번 범위에서는 보정하지 않는다.
 
 ### 동기화 중 발견한 모호점
 - 해소(TZ-20): TZ-14 동률이면 앞 후보(출발지).
-- (9차, TZ-19 관련) 기존 Strava 행에 CSV/ZIP을 다시 가져올 때 2.2.1 규칙 4(등급 같거나 높으면 `start_time` 갱신)가 기존 행을 바꾸는 것이 '신규 수집분'인지 '기존 행 교정'인지 결정문에 없다. 또 S-17 대상 활동 1327 같은 기존 행은 TZ-19로 교정되지 않아 S-17 증상이 해당 행에는 남는다 — 이 설계의 S-17 해결 범위를 신규 수집분으로 한정하는 것이 의도인지 확인 필요.
+- 해소(TZ-23): S-17 해결 범위는 TZ-19 범위(신규 수집분) 수용, 활동 1327 은 백업 후 사본 확인 → 수동 SQL 정정. CSV 재가져오기 시 `tz_source` 없는 기존 행의 등급은 8절 S0 항목.
 - TZ-9 표 문구는 "폴백 행 재계산"이나, 본문 2.2.3 대상은 `fallback`·`neighbor:*`·`peer_derived:*`다(TZ-9 이후 추가된 등급 포함). 표 문구와 범위가 다르다.
 - TZ-7·TZ-9 표 선택지 문구는 `tz_source='fallback_fixed'`를 쓰나 본문 값은 `fallback`이다(명칭 차이).
 - TZ-2 결정에 "해외 사용자 폴백 정확도는 TZ-1 기록 결정과 함께 재검토"가 남아 있다. 본문 5b는 KST 고정 그대로다.
@@ -290,3 +291,7 @@
 - 해소(TZ-17·TZ-18): 추정 시간대 행 포함, 오래된 활동 기한 없음, 오프셋 없는 최근 활동은 이전 활동으로 거슬러 첫 유효 오프셋(2.4).
 - 해소(TZ-21): 체크인 `user_inputs.input_date`도 `reference_today` 적용(2.4). 그 밖의 '오늘'로 저장되는 날짜 값(있다면)은 구현 시 grep으로 목록화 — 결정 범위는 `input_date`까지.
 - 해소(5차 동기화, grep): 2.3 "v1·구 응답 호환"의 'v1'은 레거시 화면이 아니라 무표기 시각을 내보내는 `/api/v1` 응답이다 — 2.3 문구 정정.
+
+## 8. S0 점검 목록 (10차 — 구현 착수 때 한 줄씩 확인, 새 결정 아님)
+- TZ-23: `tz_source`가 없는 기존 Strava 행의 신뢰 등급(2.2.1 규칙 4의 비교 기준)을 정의하고, 그에 따라 CSV/ZIP 재가져오기가 기존 행 `start_time`을 바꾸는지 확정.
+- TZ-23: 활동 1327 수동 정정 SQL 이 `start_time` 외에 dedup 그룹(`matched_group_id`)·관련 날짜 파생 값까지 맞춰야 하는지 사본에서 확인.

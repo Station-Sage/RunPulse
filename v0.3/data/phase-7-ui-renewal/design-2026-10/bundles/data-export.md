@@ -1,12 +1,13 @@
 # 사용자 데이터 전체 내보내기 (NEW-11) 설계 초안 — 2026-10-11
 
-> 근거: decisions-table.md NEW-10·11·12, EXP-1~20(2026-10-11 결정), TXT-1(문구), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
+> 근거: decisions-table.md NEW-10·11·12, EXP-1~21(2026-10-11·12 결정), TXT-1(문구), SRV-1/4/8, SEC-1~9, ERR-1~7, TZ-1, A11Y. EXP 결정 반영본이며 §5 의 열린 질문은 미확정. 코드 변경 없음.
 > 변경 이력: 2026-10-11 3차 동기화 — EXP-18(고정 여유)·EXP-19(삭제 안내 항상 표시) 반영, EXP-7 문구는 TXT-1 로 구현 단계 후보 제시.
 > 변경 이력: 2026-10-11 5차 동기화 — V1-1 정정·V1-2(v1 일몰 = UI·라우트 일몰): §1 v1 활동 CSV 행·§3 `views_export.py` 행을 grep 사실(라우트 전용, 공유 함수 `get_activity_list`, v2 MenuDrawer 링크)로 정정·복원, §6 MenuDrawer 링크 메모(V1-5 BACKLOG 참조).
 > 변경 이력: 2026-10-11 6차 동기화 — V1-11(MenuDrawer "CSV 내보내기" 링크 → v2 내보내기(EXP) 화면): §1 행·§3 표·§4 S4·§6 갱신. V1-10(`auto_sync.py` view 밖 이관) 영향 한 줄(§2.3·§5).
 > 변경 이력: 2026-10-11 7차 동기화 — V1S-1·V1S-5(`auto_sync.py` → `src/sync/`, shim 없음): §2.3 정리 스레드 시작 지점 확정(`app.py` 유지), §5 열린 항목을 `export_purge.py` 위치로 축소. V1-13: §1·§3 v1 CSV 라우트는 보호 없이 라우트 일몰.
 > 변경 이력: 2026-10-11 8차 동기화 — V1-16(c'): 신규 정리 스레드 위치 `src/services/export_purge.py` 확정(§2.3·§3·§5 열린 항목 해소), 시작 호출은 `src/web/app.py`(앱 셸) 유지.
 > 변경 이력: 2026-10-12 9차 동기화 — EXP-20(`illness_consent_events` → profile 그룹): §1 분류표 v38 행을 신규 테이블 3개의 그룹 소속으로 갱신, §2.1 그룹표 profile 행·v38 미적용 처리, §2.4 NEW-12 단락, §4 S1 검증, §5.
+> 변경 이력: 2026-10-12 10차 동기화(설계 단계 마지막) — EXP-21 (c): profile 그룹의 질병 동의 이력은 확인 단계 없이 README 안내 문구에 포함, manifest `sensitive_groups` 에 profile 추가(§2.2 README·§2.4 민감 표시·§4 S1·S2·S4·§5 해소). 남은 구현 점검은 §7 S0 점검 목록.
 
 ## 1. 근본 원인 (현황, 코드로 확인한 것만)
 
@@ -71,7 +72,7 @@ DB 테이블(코드 `CREATE TABLE` 기준, SCHEMA_VERSION=36) 분류:
 ### 2.2 형식 — zip 안 JSON+CSV 혼합(현 구조 확장)
 ```
 manifest.json      # format_version, schema_version, created_at(오프셋 포함 ISO), range, groups[{key, tables, row_counts, skipped}], sensitive_groups
-README.txt         # 각 파일 설명 + 건강 정보 공유 주의(문구 미확정, EXP-7 → TXT-1)
+README.txt         # 각 파일 설명 + 건강 정보 공유 주의(문구 미확정, EXP-7 → TXT-1) + profile 포함 시 질병 동의 이력 안내(EXP-21)
 tables/<table>.csv # 표 형태(활동·지표·계획·체크인·대회)
 json/<table>.json  # 중첩 구조(context_episodes.detail_json, chat_messages, user_settings)
 csv/*.csv          # 기존 빠른 CSV 3종(사람용)
@@ -94,9 +95,9 @@ raw_payloads/<src>.jsonl
 - 다운로드 URL 은 현행 유지(EXP-9): 세션 인증 + 만료(24시간)까지 반복 다운로드. 다운로드가 접근 권한 상태를 바꾸지 않으므로 SRV-1 Origin 관문은 현행대로 POST 에만 적용, GET 변경 없음(아래 `download_count` 는 감사용 기록일 뿐 권한 판정에 쓰지 않는다).
 - 다운로드 응답 헤더: `Content-Disposition: attachment; filename="runpulse_export_<YYYY-MM-DD>.zip"`(ASCII 고정), `Content-Type: application/zip`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`(SEC 공통 헤더가 이미 붙이면 중복 없이).
 - 감사 기록: 사용자별 sync_jobs 원장 `result_json` 에 `groups`, `download_count`, `last_downloaded_at`(오프셋 포함) 추가 — 새 테이블 없음. 서버 로그 1줄(job_id·groups·크기, 내용 없음).
-- 민감 표시: episodes·coach 를 `sensitive_groups` 로 manifest·이력에 표시.
+- 민감 표시: episodes·coach·**profile**(EXP-21 (c), 질병 동의 이력 `illness_consent_events` 포함 — `via='first_input'` 이 질병 입력 사실을 간접적으로 드러냄)을 `sensitive_groups` 로 manifest·이력에 표시. profile 은 민감 표시만 하고 **확인 단계는 두지 않는다** — 대신 README 에 질병 동의 이력이 들어 있음을 안내한다(EXP-21, 문구는 TXT-1).
 - 질병 확인(EXP-7·12): **episodes 그룹을 선택하면 항상** 생성 **전** 확인 단계 1회(확인 → POST, 취소 → 요청 없음). 선택 범위에 질병 에피소드가 실제 있는지는 조회하지 않는다(서버 사전 조회 없음). 상시 안내문은 두지 않는다. 문구는 TXT-1 에 따라 구현 단계에서 후보 제시 후 사용자 확정(§5). 확인은 화면 단계이며 서버 POST 계약은 바꾸지 않는다.
-- NEW-12 와의 관계(EXP-17): NEW-12 의 질병 별도 동의는 **AI 코치 전송** 범위이며 내보내기에 **영향 없음** — 미동의·철회 상태여도 episodes 기본 체크·확인 단계·포함 내용은 같다. 로컬 내보내기의 민감 정보 처리는 EXP-7·12 확인으로 다룬다. 내보낸 `chat_messages` 는 저장된 대화 원문이라 사용자가 직접 쓴 질병 언급이 있을 수 있다(EXP-4 기본 해제 근거). 질병 동의 저장소는 v38 테이블 `illness_consent_events`(NEW-14·21)로 확정됐고 내보내기 **profile 그룹**에 속한다(EXP-20) — profile 기본 해제(EXP-2)이므로 사용자가 profile 을 체크할 때만 동의 이력이 나간다. S1 분류 테스트가 이 소속을 강제한다.
+- NEW-12 와의 관계(EXP-17): NEW-12 의 질병 별도 동의는 **AI 코치 전송** 범위이며 내보내기에 **영향 없음** — 미동의·철회 상태여도 episodes 기본 체크·확인 단계·포함 내용은 같다. 로컬 내보내기의 민감 정보 처리는 EXP-7·12 확인으로 다룬다. 내보낸 `chat_messages` 는 저장된 대화 원문이라 사용자가 직접 쓴 질병 언급이 있을 수 있다(EXP-4 기본 해제 근거). 질병 동의 저장소는 v38 테이블 `illness_consent_events`(NEW-14·21)로 확정됐고 내보내기 **profile 그룹**에 속한다(EXP-20) — profile 기본 해제(EXP-2)이므로 사용자가 profile 을 체크할 때만 동의 이력이 나간다. S1 분류 테스트가 이 소속을 강제한다. profile 선택 시 질병 확인 단계(EXP-12, episodes 전용)는 뜨지 않고, README 안내 + manifest `sensitive_groups` 의 profile 표시로 다룬다(EXP-21 (c)).
 
 ### 2.5 화면 (`/data/export`, 375px 기준)
 - 보이는 `h1`("데이터 내보내기"), 그룹 체크박스는 `<fieldset><legend>` + 라벨 클릭 영역 44px 이상, 각 그룹 옆 짧은 설명·민감 표시. 초기 상태는 activities·metrics·raw·episodes·races 5개 체크, dismissed 하위 해제(EXP-2·3·4·5·15). episodes 아래 "해제한 기록도 포함" 하위 체크박스(EXP-10, episodes 미선택 시 비활성). "전체 선택/해제" 1개. 기간 선택은 기존 from/to 재사용.
@@ -125,10 +126,10 @@ raw_payloads/<src>.jsonl
 | `LATER.md` | 메인 처리 | 전체 import 로드맵 항목 등록(EXP-6) — 이 설계 구현 범위 아님 | — |
 
 ## 4. 단계·검증
-1. **S1 그룹 허용 목록**: export_groups.py. 검증 — db_setup·db_schema_v* 의 모든 `CREATE TABLE` 이 "그룹 소속 또는 항상 제외" 중 하나로 분류됐는지 검사하는 테스트(새 테이블 추가 시 자동 실패 → 누락 방지). v38 3개 소속 단언: context_episodes→episodes, race_calendar→races, illness_consent_events→profile(EXP-20); v38 미적용 DB 에서 profile 은 `illness_consent_events` 만 `not_migrated`. 기본 체크 집합이 정확히 {activities, metrics, raw, episodes, races} 이고 `include_dismissed` 기본 false 인지 검사(EXP-15). check_docs.py 검사 후보로도 등록 검토.
-2. **S2 아카이브 확장**: export_archive.py. 검증 — 임시 DB에 `enc:` 값·`token_hash` 열·calendar_feeds 행을 심고 zip 전체 바이트에서 미검출; from/to 가 각 테이블에 적용; v38 미적용 DB에서 episodes skipped; `include_dismissed` false 면 dismissed 행 없음·true 면 있음; 디스크 여유 부족(가짜 `space_check`) 시 부분 파일 삭제·`EXPORT_DISK_FULL`·streams 포함 요청도 그룹 제외 없이 실패(EXP-13); 여유가 `EXPORT_MIN_FREE_BYTES` 바로 아래면 실패·이상이면 진행(선택 그룹과 무관한 고정 기준, EXP-18); manifest `format_version`·created_at 오프셋 포함.
+1. **S1 그룹 허용 목록**: export_groups.py. 검증 — db_setup·db_schema_v* 의 모든 `CREATE TABLE` 이 "그룹 소속 또는 항상 제외" 중 하나로 분류됐는지 검사하는 테스트(새 테이블 추가 시 자동 실패 → 누락 방지). v38 3개 소속 단언: context_episodes→episodes, race_calendar→races, illness_consent_events→profile(EXP-20); v38 미적용 DB 에서 profile 은 `illness_consent_events` 만 `not_migrated`. `sensitive_groups` 상수가 {episodes, coach, profile} 인지 단언(EXP-21). 기본 체크 집합이 정확히 {activities, metrics, raw, episodes, races} 이고 `include_dismissed` 기본 false 인지 검사(EXP-15). check_docs.py 검사 후보로도 등록 검토.
+2. **S2 아카이브 확장**: export_archive.py. 검증 — 임시 DB에 `enc:` 값·`token_hash` 열·calendar_feeds 행을 심고 zip 전체 바이트에서 미검출; from/to 가 각 테이블에 적용; v38 미적용 DB에서 episodes skipped; profile 포함 zip 의 manifest `sensitive_groups` 에 profile 이 있고 README 에 질병 동의 이력 안내가 있음(EXP-21); `include_dismissed` false 면 dismissed 행 없음·true 면 있음; 디스크 여유 부족(가짜 `space_check`) 시 부분 파일 삭제·`EXPORT_DISK_FULL`·streams 포함 요청도 그룹 제외 없이 실패(EXP-13); 여유가 `EXPORT_MIN_FREE_BYTES` 바로 아래면 실패·이상이면 진행(선택 그룹과 무관한 고정 기준, EXP-18); manifest `format_version`·created_at 오프셋 포함.
 3. **S3 API·만료**: 미지 그룹 400, 빈 그룹 400, `include_dismissed` 비bool 400, 비JSON 415, 타 사용자 job_id 404, 생성 24시간 경과 시 410 + zip 파일 실제 삭제됨(시계 주입), 주기 정리 스레드가 자동 동기화 꺼짐 상태에서도 방문 없는 사용자의 만료 zip 을 삭제(EXP-14), 만료 전에는 반복 다운로드 200(EXP-9), 다운로드 헤더(no-store·attachment), Origin 없는 POST 는 SRV-1·SRV-8 모드대로·다운로드 GET 은 현행과 동일. 에피소드 단건 삭제 후 기존 zip 그대로·새 zip 에는 미포함(EXP-11). 24시간 안내(EXP-16)는 만료 전 zip 이 없어도 표시(EXP-19) — 삭제 UI 테스트는 adjustment-new-signals.md 소관이므로 요구 사항으로 전달. NEW-12 미동의·철회 사용자도 episodes 포함 결과 동일(EXP-17).
-4. **S4 화면**: 375px 브라우저 확인(초기 체크 5개·dismissed 해제, 체크박스 44px, 가로 스크롤 없음, h1 보임, 키보드만으로 선택·생성·다운로드), episodes 선택 시 질병 기록 유무와 무관하게 확인 단계 1회·취소 시 요청 없음·episodes 해제 시 확인 없이 생성(EXP-12), dismissed 하위 체크박스 비활성 전환, 24시간 만료 안내, 실패 시 공통 오류·재시도, 스크린리더 상태 알림. MenuDrawer "CSV 내보내기" 를 누르면 v2 내보내기 화면으로 이동(전체 새로고침·v1 CSV 다운로드 없음, V1-11).
+4. **S4 화면**: 375px 브라우저 확인(초기 체크 5개·dismissed 해제, 체크박스 44px, 가로 스크롤 없음, h1 보임, 키보드만으로 선택·생성·다운로드), episodes 선택 시 질병 기록 유무와 무관하게 확인 단계 1회·취소 시 요청 없음·episodes 해제 시 확인 없이 생성(EXP-12), profile 만 선택 시 확인 단계 없이 생성(EXP-21), dismissed 하위 체크박스 비활성 전환, 24시간 만료 안내, 실패 시 공통 오류·재시도, 스크린리더 상태 알림. MenuDrawer "CSV 내보내기" 를 누르면 v2 내보내기 화면으로 이동(전체 새로고침·v1 CSV 다운로드 없음, V1-11).
 5. 전체 `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`. 신규 ADR 필요 여부(비밀 허용 목록 원칙) 메인 판단.
 
 호환성: 기존 kind=archive 요청에 groups 가 없으면 현재와 같은 그룹(activities·metrics·raw + 빠른 CSV)으로 처리해 기존 화면/테스트 무회귀(화면 기본 체크는 EXP-15 로 episodes·races 가 추가되지만 groups 없는 구 요청은 현행 3그룹 유지). 단 보관 기간 7일→24시간은 의도된 동작 변경이므로 기존 만료 테스트는 갱신한다. 스키마 변경 없음(v38 은 다른 묶음 소관, 이 설계는 존재 여부만 검사).
@@ -138,9 +139,9 @@ raw_payloads/<src>.jsonl
 - B SQLite 사본(`VACUUM INTO` 후 제외 테이블 DROP) — 재가져오기 쉽고 구현 짧음. 단점: 삭제 누락 시 비밀 유출(차단 목록 방식), free page 잔존 가능, 내부 스키마가 사용자 계약이 됨, 그룹·기간 필터가 번거로움.
 
 ## 5. 결정 필요
-EXP-1~20 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 질문이다.
-- 해소(EXP-20) v38 신규 테이블 그룹 분류 — `illness_consent_events` 는 profile(§1·§2.1). 남은 확인: profile 은 `sensitive_groups`(episodes·coach)에 들어 있지 않아 질병 동의 이력이 포함돼도 민감 표시·질병 확인 단계(episodes 선택 시만, EXP-12)가 뜨지 않는다 — 민감 표시 대상에 profile 을 넣을지는 결정 기록이 없다.
-- **EXP-7 확인 문구**(TXT-1, 미결정): 생성 전 확인 대화상자·README 의 건강 정보 주의 문구. 후보 문구는 구현 단계에서 제시, 사용자 확정.
+EXP-1~21 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 질문이다.
+- 해소(EXP-20) v38 신규 테이블 그룹 분류 — `illness_consent_events` 는 profile(§1·§2.1). 해소(EXP-21): profile 은 `sensitive_groups` 표시 + README 안내, 확인 단계 없음(§2.4).
+- **EXP-7 확인 문구**(TXT-1, 미결정): 생성 전 확인 대화상자·README 의 건강 정보 주의 문구(EXP-21 질병 동의 이력 안내 포함). 후보 문구는 구현 단계에서 제시, 사용자 확정.
 - 해소(EXP-12) 확인 발동 조건 · 해소(EXP-13) 부족 시 동작 · 해소(EXP-14) 정리 잡 위치 · 해소(EXP-15) episodes·races·dismissed 기본값 · 해소(EXP-17) NEW-12 연동.
 - 해소(EXP-18) 디스크 여유 기준 · 해소(EXP-19) 삭제 안내 항상 표시. 남은 확인: 고정 여유 실제 값(예 1GB)은 구현 시 확인.
 - 해소(V1-11) MenuDrawer "CSV 내보내기" 링크 → v2 내보내기 화면(§3). 남은 확인: 링크 라벨("CSV 내보내기" 유지 여부)은 결정 기록이 없다 — 화면은 CSV 외 아카이브도 다룬다.
@@ -153,3 +154,7 @@ EXP-1~20 결정 완료(decisions-table.md 표 참조). 아래는 남은 열린 �
 - `archive_service.py` 의 월별 아카이브 조회는 이름만 유사, 무관.
 - v2 MenuDrawer "CSV 내보내기" 링크는 V1-11 결정에 따라 이 설계에서 v2 내보내기(EXP) 화면으로 연결한다(§3) — v1 `/activities/export.csv` 라우트 일몰과 무관하게 링크가 유지된다. 그 밖의 드로어 내용은 BACKLOG `MENUDRAWER-POST-V1`(V1-5) 소관, 이 설계는 다루지 않는다.
 - 계정 삭제(전체 데이터 삭제) 기능과 "삭제 전 내보내기" 연결은 LATER 후보.
+
+## 7. S0 점검 목록 (10차 — 구현 착수 때 한 줄씩 확인, 새 결정 아님)
+- EXP-21: `sensitive_groups` 를 고정 목록으로 쓸지, 이번 zip 에 실제 포함된 그룹 중 민감 그룹만 적을지(현행 episodes·coach 표기 방식 확인 후 같은 방식으로).
+- EXP-21: README 의 질병 동의 이력 안내를 profile 선택 시에만 넣을지 항상 넣을지(README 생성 코드 구조 확인 후 TXT-1 문구와 함께).

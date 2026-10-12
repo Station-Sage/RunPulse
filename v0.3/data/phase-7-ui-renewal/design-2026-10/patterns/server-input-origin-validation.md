@@ -1,7 +1,7 @@
 # 설계: 쓰기 API 서버 입력 검증·Origin 검증
 
 - 대상 ID: T-15, P-04, P-05, D-22, E-02, C-02 (참고 동일 원인: P-17, C-18)
-- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1). 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3). 2026-10-11 6차 동기화(V1-8·V1-9·V1-10). 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13). 2026-10-11 8차 동기화(V1-15·V1-16). 2026-10-12 9차 동기화(SRV-10~13·SEC-10·ADR-1·NEW-40).
+- 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SRV-1~9). 2026-10-11 설계서 동기화. 2026-10-11 4차 동기화(V1-1). 2026-10-11 5차 동기화(V1-1 정정·V1-2·V1-3). 2026-10-11 6차 동기화(V1-8·V1-9·V1-10). 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13). 2026-10-11 8차 동기화(V1-15·V1-16). 2026-10-12 9차 동기화(SRV-10~13·SEC-10·ADR-1·NEW-40). 2026-10-12 10차 동기화(V1-20, 설계 단계 마지막).
 - 관련 ADR: ADR-034 (원격 MCP의 Origin 불일치 거부 — `_origin_ok`가 이미 있는 선례. 현 위치 `src/web/views_mcp_remote.py` → V1S-3 로 `src/mcp_remote/http.py` 이관), 신규 **ADR-048**(D9, 번호 확정 ADR-1 — SRV 048, SEC 049, FRS 050, NRA 051)
 
 ## 1. 근본 원인
@@ -80,11 +80,11 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - **V1-10 확정 위치(V1S-2·V1S-3·V1S-5, V1-16)**: 신규 `request_guard.py`는 `src/web/`(V1-16). 신규 사용자 전환 서비스·라우트는 `get_current_user_id`를 `src.utils.user_context`에서, `src/mcp_remote/http.py`는 `request_guard.same_origin`을 import 한다. `app.py`의 `mcp_remote_bp` 등록 import 와 테스트 patch 문자열(`tests/test_mcp_http_routes.py`의 `src.web.views_mcp_remote` → `src.mcp_remote.http`, `src.web.helpers.get_current_user_id` → `src.utils.user_context.get_current_user_id`)은 이관 커밋에서 함께 바뀐다(shim 없음). 순서: 이관(`bundles/v1-sunset-prep.md` §4 2·3단계)이 이 문서 2.5 ①보다 먼저. 면제 목록(`/mcp`)·Origin 판정은 URL 경로 기준이라 영향이 없다.
 
 ### 2.6 uid 허용 규칙 (SRV-13 (a))
-- **현 구조(코드 사실, 2026-10-12)**: `user_id`는 CF Access 이메일 헤더 원문이 그대로 세션에 들어가고(`auth_cf.py:72-77` — `session[_SESSION_KEY] = email`), `get_db_path`가 그 값을 `data/users/<uid>/` 경로 조립에 쓰며 `create=True`면 `mkdir`한다(`db_setup.py:39-49`). 어느 단계에도 uid 형식 검증이 없다. 개발 기본값은 `DEV_USER_ID` 또는 `"default"`.
+- **현 구조(코드 사실, 2026-10-12)**: `user_id`는 CF Access 이메일 헤더 원문이 그대로 세션에 들어가고(`auth_cf.py:72-80` — 세션에 값이 있으면 재검사 없이 통과(:73), 없으면 `session[_SESSION_KEY] = email`(:79). 서비스 토큰 경로도 `svc_user`(`config.garmin.email`, 기본 `"service"`)를 그대로 기록(:96)), `get_db_path`가 그 값을 `data/users/<uid>/` 경로 조립에 쓰며 `create=True`면 `mkdir`한다(`db_setup.py:39-49`). 어느 단계에도 uid 형식 검증이 없다. 개발 기본값은 `DEV_USER_ID` 또는 `"default"`.
 - **규칙**: 이메일 호환 허용 목록 정규식(예 `^[A-Za-z0-9._%+@-]{1,254}$`)에 맞고, 다음을 거부한다 — 값 `.`·`..`, 경로 구분자(`/`·`\`), 선행 `.`. 기존 형식(CF 이메일, `default`)은 그대로 통과한다.
 - **위치**: 검증 함수(예 `validate_uid(uid) -> str`, 실패 시 `ValueError`)는 V1S-2 로 `project_root`·`get_current_user_id`·`db_path`가 옮겨 가는 `src/utils/user_context.py`에 둔다(uid 해석과 같은 모듈 — Flask 무의존 순수 함수). `src/web/helpers.py`에는 두지 않는다.
-- **적용 대상(모든 uid 입력 경로)**: ① 사용자 전환 v2 이관 엔드포인트(2.5, `parse_body`의 uid 필드 → 실패 시 400 `INVALID_PARAM`) ② 2.5 사용자 전환 서비스 ③ `auth_cf._identify_user`의 CF 이메일 → 세션 기록 지점 ④ `DEV_USER_ID` 폴백 ⑤ 최종 관문 `db_setup.get_db_path`(`validate_uid` + `resolve()`가 `data/users` 하위인지 — 이중 방어). `db_setup`→`user_context` import 는 순환을 만들지 않는다(`user_context.db_path`의 `db_setup` import 는 지연 import 유지, 구현 시 확인).
-- 거부 시 응답·동작: API 경로는 400 봉투, `get_db_path`는 `ValueError`. CF 이메일이 규칙에 맞지 않을 때의 사용자 처리(로그인 거부 등)는 결정에 없다(9절).
+- **적용 대상(모든 uid 입력 경로)**: ① 사용자 전환 v2 이관 엔드포인트(2.5, `parse_body`의 uid 필드 → 실패 시 400 `INVALID_PARAM`) ② 2.5 사용자 전환 서비스 ③ `auth_cf._identify_user`의 CF 이메일 → 세션 기록 **전**(V1-20) ③-1 세션에 **이미 저장된** `user_id`(규칙 도입 전 세션 우회 방지 — :73 조기 통과 전에 같은 규칙으로 검증, V1-20) ③-2 서비스 토큰 경로의 `svc_user`(같은 규칙, V1-20) ④ `DEV_USER_ID` 폴백 ⑤ 최종 관문 `db_setup.get_db_path`(`validate_uid` + `resolve()`가 `data/users` 하위인지 — 이중 방어). `db_setup`→`user_context` import 는 순환을 만들지 않는다(`user_context.db_path`의 `db_setup` import 는 지연 import 유지, 구현 시 확인).
+- 거부 시 응답·동작: 사용자 전환 API 경로(①)는 400 봉투. **CF 이메일·세션 저장값·`svc_user`가 규칙 위반이면 `403` + 보안 로그**(V1-20 (a)): 세션에 기록하지 않고(③), 로그에는 이메일을 마스킹해 남긴다(예: 로컬 부분 앞 1자 + `***@` + 도메인, 원문 미기록). default 사용자로 폴백하지 않는다. `get_db_path`는 `ValueError`를 던지고, 호출 경로는 이를 **처리해 HTML 500 으로 새지 않게 한다**(V1-20 — 403 판정이 앞에서 먼저 걸리므로 남는 경로는 이중 방어용).
 
 ## 3. 변경 파일 표
 | 파일 | 신규/수정 | 내용 | 예상 줄 |
@@ -95,7 +95,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 | `src/api/__init__.py` | 수정 | `register_envelope_handlers(bp)`(errorhandler 2개, `api_bp`·`context_bp` 공용 — NEW-40). `warnings`는 기존 `api_ok` `meta` 인자 사용(SRV-11, 변경 없음) | +22 |
 | `src/web/app.py` | 수정 | guard 등록, 쿠키 설정(`SESSION_COOKIE_SECURE` = `APP_ENV == "production"`, SRV-10), v1 `/switch-user` 라우트 삭제(2.5 ③) | +5/-30 (이미 1161줄, 늘리지 않음) |
 | `src/utils/user_context.py` | 수정 | `validate_uid`(2.6, SRV-13) — V1S-2 3함수 이동과 같은 모듈 | +12 |
-| `src/web/auth_cf.py` | 수정 | CF 이메일·`DEV_USER_ID` → 세션 기록 전 `validate_uid`(2.6) | +4 |
+| `src/web/auth_cf.py` | 수정 | CF 이메일·`svc_user`·`DEV_USER_ID` → 세션 기록 전 `validate_uid`, 세션 저장값 재검증, 위반 시 403 + 마스킹 보안 로그(2.6, V1-20) | +14 |
 | `src/services/`(사용자 전환 신규 모듈) | 신규 | 사용자 목록, uid 검증(`validate_uid` 재사용), 전환(session + `init_db`) — 2.5 | ~40 |
 | `src/api/`(사용자 전환 라우트) | 신규/수정 | 목록 GET·전환 POST, production 404(D6, 이관과 같은 변경 — V1-9). 경로는 구현 단계 제안(V1-8) | ~30 |
 | `frontend/src/lib/components/MenuDrawer.svelte` 외 v2 화면 | 수정 | `/switch-user` 링크 → v2 화면(위치는 구현 단계 제안, V1-8), production 숨김 | 범위(product 영역 포함) |
@@ -110,6 +110,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 | `tests/test_api_input_contracts.py` | 신규 | T-15·P-04·P-05·C-02 재현 케이스 → 400 JSON, weeks 보정 경고(`meta.warnings`), errorhandler → JSON 500 | ~130 |
 | `tests/test_switch_user.py` | 신규 | 서비스·v2 엔드포인트: production 404(`APP_ENV`), uid 규칙(`.`·`..`·`/`·`\`·선행 `.`·빈 값·255자·허용 목록 밖 문자 거부, 이메일·`default` 통과), 전환 후 세션 user_id, Origin 관문 적용 | ~70 |
 | `tests/test_user_context.py`(기존 파일) | 수정 | `validate_uid` 경계값, `get_db_path` 거부 | +30 |
+| `tests/test_auth_cf.py`(기존 파일) | 수정 | V1-20: 규칙 위반 CF 이메일 → 403·세션 미기록·로그에 원문 이메일 없음(마스킹), 규칙 위반 값이 이미 든 세션 → 403, 규칙 위반 `svc_user` → 403, 정상 이메일·`default` 통과, `get_db_path` `ValueError`가 HTML 500 으로 나가지 않음 | ~60 |
 | `frontend/src/lib/api/*` | 수정 가능 | `details` 필드 오류·`meta.warnings` 표시(UI 범위는 product 영역) | 범위 밖 |
 
 합계: 신규 약 880줄(테스트 540 포함, 2.5 이관으로 `views_switch_user.py` ~45줄 대신 서비스·라우트 ~70줄), 수정 약 130줄(프론트 제외). `src/api/routes_context.py`(NEW-40)는 `adjustment-new-signals.md` 변경 파일 표 소관.
@@ -119,7 +120,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 2. **input_limits + validation.py + 4개 라우트 (2.2/2.4)** — 검증: 재현 값(fatigue 0·11·5.5·"x", pain "bogus", weeks 0/-3/500, race_date "garbage"·2020-01-01·오늘+6년, 99:99:99, distance_km 0·251, note 501자) 전부 400 + `details`, text/plain 본문 415. race_date 오늘은 통과. 가능 주수 초과 weeks는 201 + `meta.warnings`. 브라우저(사본 DB): 오늘 체크인 저장, `/v2/coach/plan/new` 정상 생성·과거 날짜 오류 표시.
 3. **Origin 관문 + 쿠키 (2.1), observe 모드 2주(SEC-10)** — 배포 후 2주 동안 거부 대상 로그를 관찰한다. 검증: observe에서 위조 Origin 요청이 통과하며 로그가 남는지, `curl -i /v2/today`의 `Set-Cookie`에 `SameSite=Lax; HttpOnly`(`APP_ENV=production`이면 `Secure` 포함, SRV-10).
 4. **enforce 전환(SEC-10)** — 2주 관찰 기간의 거부 대상 로그가 0건이면 `ORIGIN_GUARD_MODE=enforce`. 검증: `curl -X POST -H 'Origin: http://evil.example'` → 403(`/api/v1/*`·`/api/context-episodes`는 `FORBIDDEN_ORIGIN` 봉투), Origin·Referer 없는 POST → 403, 같은 출처 → 정상, `/mcp`·`/api/garmin/local-sync`·`/api/v1/csp-report` 면제 확인. 브라우저: v2 전 화면 쓰기 동작(체크인·코치·플랜·데이터 설정·가져오기 업로드·캘린더 피드 삭제·컨텍스트 에피소드 저장/삭제) 1회씩.
-5. **사용자 전환 v2 이관 / uid 규칙 / get_db_path (2.5·2.6, V1-3·SRV-13)** — 구현 전 운영 실사용 여부 확인(D6). production 판정 키는 `APP_ENV`(SRV-10). 선행: `helpers` 3함수·`views_mcp_remote` 이관(`bundles/v1-sunset-prep.md` §4 2·3단계 — `validate_uid`가 `src/utils/user_context.py`에 들어감). 2.5 순서 ①→②→③(SRV-6 차단은 ①에서 v2 엔드포인트와 함께, V1-9). 검증: `APP_ENV=production`에서 v2 사용자 전환 엔드포인트 404·링크 숨김, 개발 환경에서 규칙 위반 uid(2.6) 400·`get_db_path` `ValueError`·디렉터리 미생성, 기존 사용자(이메일·`default`) 전환 후 v2 화면이 해당 사용자 DB를 읽음, ③ 후 `/switch-user` 404.
+5. **사용자 전환 v2 이관 / uid 규칙 / get_db_path (2.5·2.6, V1-3·SRV-13)** — 구현 전 운영 실사용 여부 확인(D6). production 판정 키는 `APP_ENV`(SRV-10). 선행: `helpers` 3함수·`views_mcp_remote` 이관(`bundles/v1-sunset-prep.md` §4 2·3단계 — `validate_uid`가 `src/utils/user_context.py`에 들어감). 2.5 순서 ①→②→③(SRV-6 차단은 ①에서 v2 엔드포인트와 함께, V1-9). 검증: `APP_ENV=production`에서 v2 사용자 전환 엔드포인트 404·링크 숨김, 개발 환경에서 규칙 위반 uid(2.6) 400·`get_db_path` `ValueError`·디렉터리 미생성, 규칙 위반 CF 이메일 헤더·세션 저장값·`svc_user` → 403 + 마스킹 로그(V1-20), 기존 사용자(이메일·`default`) 전환 후 v2 화면이 해당 사용자 DB를 읽음, ③ 후 `/switch-user` 404.
 6. 완료 체크리스트: `pytest tests/`, `scripts/check_docs.py`, `decisions.md`에 **ADR-048**("쓰기 요청은 Origin 관문 + 경계 스키마", ADR-1) 기록(D9).
 
 ### 호환성
@@ -151,6 +152,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - **D11 (SRV-11)** `warnings`는 `api_ok`의 `meta` 안.
 - **D12 (SRV-12)** `/api/v1/csp-report`는 415 검사 면제(본문 크기·형식 제한은 별도).
 - **D13 (SRV-13)** uid 는 이메일 호환 허용 목록 + `.`·`..`·경로 구분자·선행 `.` 거부(2.6).
+- **D14 (V1-20, 2026-10-12)** 규칙 위반 CF 이메일은 403 + 보안 로그(이메일 마스킹). 세션 기록 전 검증, 세션에 이미 저장된 값과 `svc_user`도 같은 규칙으로 검증, `get_db_path` `ValueError` 처리(2.6).
 - **NEW-40** `/api/context-episodes`는 현 경로 유지 + 같은 봉투, Origin 관문·입력 제한을 예외 없이 적용(2.1 봉투 경로 상수, 2.3 공용 핸들러).
 
 ## 7. 범위 밖 메모
@@ -167,6 +169,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - 2026-10-11 8차 동기화(V1-15·V1-16): `request_guard.py` 위치 `src/web/` 확정('src/web = 앱 셸 전용', 2.1·2.5·§10 열린 항목 해소), 사용자 전환 엔드포인트의 응답 표면에 'v1' 분기 제거(V1-15) 반영, SRV-6 = v2 이관과 같은 변경 재확인.
 - 2026-10-11 7차 동기화(V1S-2·V1S-3·V1S-5·V1-12·V1-13): '새 위치 미정'을 확정 위치(`src/utils/user_context.py`·`src/mcp_remote/http.py`, shim 없음)로 교체, production 판정 = 기존 설정 키 재사용(키 확인은 구현 첫 단계), §10 열린 항목 정리.
 - 2026-10-12 9차 동기화(SRV-10~13·SEC-10·ADR-1·NEW-40): `SESSION_COOKIE_SECURE`·production 판정 = `APP_ENV`(2.1·2.5·4절), `warnings` → `meta.warnings`(2.2·3절·호환성), csp-report 415 면제(2.2), uid 허용 규칙 2.6 신설(현 구조 코드 사실·`validate_uid` 위치 `src/utils/user_context.py`·적용 경로), observe 2주·위반 0건 enforce(2.1·4절·D8), ADR-048 확정, `/api/context-episodes` 봉투 경로 상수·공용 오류 핸들러·`int_list_field`(2.1·2.2·2.3·2.4·3절, `adjustment-new-signals.md` §2.8 정합), 9절 해소 정리.
+- 2026-10-12 10차 동기화(V1-20, 설계 단계 마지막): 2.6 적용 대상에 세션 저장값·`svc_user` 추가, 규칙 위반 CF 이메일 403 + 마스킹 보안 로그·`get_db_path` `ValueError` 처리(2.6·3절·4절 5·D14), 코드 사실 줄 번호 `auth_cf.py:72-80` 정정, 9절 열린 질문 해소, 11절 S0 점검 목록.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - 해소(ADR-1): ADR 번호 — 이 문서 ADR-048, `security-headers.md` ADR-049.
@@ -176,7 +179,7 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - 해소(SRV-12): `/api/v1/csp-report` 415 면제(2.2).
 - 해소(NEW-40): `/api/context-episodes` 봉투·관문·입력 제한 적용(2.1·2.3·2.4).
 - D6 production 차단 시 v2 사용자 전환 진입점(현 `MenuDrawer.svelte` 링크) 숨김이 프론트 범위로 남는다(2.5 ②).
-- (열린 질문) SRV-13 을 CF 이메일 경로(`auth_cf._identify_user`)에 적용할 때 규칙에 맞지 않는 이메일의 처리(요청 거부 응답 형태·로그)가 결정에 없다. 허용 목록이 이메일 호환이라 실제 발생 가능성은 낮다.
+- 해소(V1-20): 규칙 위반 CF 이메일은 403 + 마스킹 보안 로그, 세션 저장값·`svc_user`도 같은 규칙, `get_db_path` `ValueError` 처리(2.6).
 - (구현 확인) SEC-10 의 '위반 0건' 판정에서 observe 로그 중 정상 클라이언트가 아닌 요청(봇·스캐너)을 어떻게 제외할지는 결정에 없다.
 
 ## 10. 동기화 중 발견한 모호점
@@ -184,3 +187,9 @@ v1 일몰은 UI·라우트 일몰이다(V1-2). 사용자 전환 로직은 유지
 - (V1-3 → 6차 동기화) 2.5의 v2 엔드포인트 경로·v2 화면 위치는 구현 단계에서 제안(V1-8 (c), 위치는 V1-5 MenuDrawer BACKLOG와 연결). 이관 전 v1 라우트 선적용 여부는 V1-9 (b)로 해소 — v2 이관과 같은 변경에서 SRV-6 적용. 해소(SRV-10): production 판정 키는 `APP_ENV`(V1-12 종결).
 - (V1-10, 7차에서 해소) 4파일 새 위치는 V1S-1~3 으로 확정(2.5 확정 위치 줄). (8차, V1-16 으로 해소) 신규 `request_guard.py`는 `src/web/`에 둔다 — 'src/web = 앱 셸 전용' 정의에 포함되어 view 밖 이관 원칙과 충돌하지 않는다.
 - (V1-1) 2.1 거부 응답 '그 외 → text 403'과 5절 'B는 v1 제거 이후 위협 모델이 바뀌면 재검토'는 v1 호환 서술이 아니라고 보고 유지했다.
+
+## 11. S0 점검 목록 (10차 — 구현 착수 때 한 줄씩 확인, 새 결정 아님)
+- V1-20: 세션 저장값이 규칙 위반일 때 403 과 함께 그 세션 키를 지울지(다음 요청에서 CF 헤더로 재식별되게 할지) 구현 시 확인.
+- V1-20: 403 응답 형태 — `/api/v1/*`·`/api/context-episodes`(봉투 경로, 2.1 `ENVELOPE_PATH_PREFIXES`)는 JSON 봉투, 그 밖은 text 403 으로 2.1 거부 응답 규칙을 그대로 따를지 확인.
+- V1-20: 마스킹 형식(로컬 부분 앞 1자 + 도메인 유지 여부)과 보안 로그 로거 이름·레벨을 기존 `[auth_cf]` 로그와 맞춰 확정.
+- V1-20: `get_db_path` `ValueError`의 처리 위치(2.3 공용 오류 핸들러에서 잡을지, `user_context.db_path` 호출부에서 잡을지)와 응답 코드(400/403) 확인.

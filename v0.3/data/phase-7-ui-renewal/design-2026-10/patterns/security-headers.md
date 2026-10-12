@@ -1,6 +1,6 @@
 # 설계: 보안 헤더·정적 응답 정책 (E-01, E-04)
 
-> 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SEC-1~9, D2 의 'v1' 분기는 V1-15 로 제거), 후속 SEC-10·SEC-11 결정 반영. 2026-10-11 설계서 동기화(8차: V1-15·V1-16). 2026-10-12 9차 동기화(SEC-10·SEC-11·SRV-12·ADR-1·NEW-40·V1-18). ADR-049(ADR-1). 근거: `ux-review-2026-10/07-entry-common.md` E-01, E-04.
+> 상태: 설계 확정 (구현 전). D1~D9 결정 완료(2026-10-11, `decisions-table.md` SEC-1~9, D2 의 'v1' 분기는 V1-15 로 제거), 후속 SEC-10·SEC-11 결정 반영. 2026-10-11 설계서 동기화(8차: V1-15·V1-16). 2026-10-12 9차 동기화(SEC-10·SEC-11·SRV-12·ADR-1·NEW-40·V1-18). 2026-10-12 10차 동기화(SEC-12, 설계 단계 마지막). ADR-049(ADR-1). 근거: `ux-review-2026-10/07-entry-common.md` E-01, E-04.
 > 관련 설계: `server-input-origin-validation.md`(Origin 관문 `request_guard`, 세션 쿠키 속성). 이 문서는 그 영역을 다시 설계하지 않는다.
 
 ## 1. 근본 원인
@@ -15,6 +15,7 @@
 - `init_response_policy(app)`: `after_request` 1개를 등록한다. `create_app`에서 `request_guard` 초기화 바로 뒤에 호출한다.
 - `classify_surface(path) -> str`: 응답을 `"v2"`(`/v2/`), `"api"`(`/api/`, `/mcp`), `"feed"`(`/feeds/`)로 나누고, 그 밖 경로는 일반 표면(`"default"`)으로 둔다. **`"v1"` 분기는 두지 않는다**(V1-15 (a), V1-4 해소 — v1 HTML 도 일반 표면 정책을 받는다).
   - 일반 표면(V1-18 (a)): `/v2/`·`/api/`·`/mcp`·`/feeds/` 밖 경로(일몰 전 v1 화면, 일몰 후 남는 `app.py`의 `/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import*`·`/` 리다이렉트, 미정의 경로 404)는 공통 헤더 + 엄격 CSP 를 받고, CSP 집행 모드는 `v2`와 같은 `CSP_V2_MODE`(Report-Only → enforce) 단계를 따른다. v1 화면이 깨지는 것은 감수(V1-13).
+  - 일반 표면 CSP 는 **v2 인라인 부트스트랩 해시를 넣지 않는다**(SEC-12 (a), 엄격): `script-src 'self'`(그 밖 지시어는 `v2`와 같고 `report-uri /api/v1/csp-report` 포함). 해시는 `v2` 표면의 `index.html` 전용 값이다(`build_csp("default", ...)`는 `script_hashes`를 쓰지 않는다).
   - `/api/context-episodes`(`/api/v1` 밖, NEW-40 (b) 현 경로 유지)는 `/api/` 접두 판정이라 `"api"` 표면이다. 표면 판정은 `/api/v1` 접두에 기대지 않으므로 이 경로가 빠지지 않는다 — 테스트로 단언한다(`adjustment-new-signals.md` §2.8·§4 S4).
 - 공통 헤더(모든 표면): `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`(D5), `X-Frame-Options: DENY`(D3), `Permissions-Policy: camera=(), microphone=(), geolocation=()`(D9·SEC-11 — 최소 항목: 카메라·마이크·위치 차단). COOP는 보내지 않는다.
 - 표면별 CSP(`build_csp(surface, script_hashes) -> str | None`), 모든 CSP에 `frame-ancestors 'none'`(D3):
@@ -27,7 +28,10 @@
 
 ### 2.2 CSP 위반 보고 — `src/api/routes_csp_report.py` (신규, D6)
 - `POST /api/v1/csp-report`: 본문(`application/csp-report`, `application/reports+json`)을 크기 제한(예: 16KB) 안에서 읽어 로그에 남기고 `204`를 반환한다. DB 저장 없음.
+- 수용 형식 밖 본문(위 두 Content-Type 이 아니거나 파싱 불가)도 **`204` + 로그**만 남긴다(SEC-12 (a), 오류 코드 없음 — 브라우저 보고 경로라 4xx 를 줘도 쓰는 쪽이 없다).
+- 봇·확장 프로그램 잡음(SEC-12 (a)): User-Agent 가 아니라 보고의 `blocked-uri`/`source-file`(`reports+json`은 `blockedURL`/`sourceFile`)이 확장 프로그램 스킴(`chrome-extension:`, `moz-extension:`, `safari-web-extension:` 등)인 보고를 거른다 — 로그에 별도 표시하고 '위반 0건' 집계(4절 4)에서 제외한다.
 - `request_guard` 면제 목록에 추가한다(브라우저 보고는 Origin을 보장하지 않음). 로그 남용 방지를 위해 본문 크기 상한·필드 절삭만 둔다.
+- **도달 경로 위험(SEC-12, 실환경 미확인)**: `/api/v1/csp-report`도 CF Access 와 사용자 식별(`auth_cf._identify_user`)을 거친다. 브라우저가 쿠키 없이 보고를 보내 엣지에서 막히거나 401 이 되면, 위반이 있어도 로그는 '0건'이 되어 enforce 전환을 잘못 판단한다 → 4절 4의 **의도적 위반 보고 도착 확인**을 전환 전 필수 단계로 둔다.
 - 415 면제(SRV-12 (a)): 브라우저가 `application/csp-report`로 보내므로 `server-input-origin-validation.md` §2.2 `parse_body`의 비JSON 415 검사를 적용하지 않는다(`parse_body` 미사용, 전용 읽기). 본문 크기 상한·수용 형식(위 두 Content-Type) 제한은 이 엔드포인트 안에서 별도로 둔다.
 
 ### 2.3 v2 정적 서빙 분리 — `src/web/spa_static.py` (신규)
@@ -57,8 +61,8 @@
 | `frontend/static/*`, `frontend/src/app.html` | 신규/수정 | favicon·manifest·apple-touch-icon 파일과 링크(theme-color meta 는 `accessibility-common.md` §2.5 소관 — SEC-11) | 자산 + ~3 |
 | `frontend/src/hooks.client.ts` | 신규 | `shouldNotify`, preloadError 핸들러 | ~35 |
 | `frontend/src/lib/components/UpdateNotice.svelte` | 신규 | "새 버전" 알림 UI(문구·위치는 product 영역) | ~30 |
-| `tests/test_response_policy.py` | 신규 | 표면 분류('v1' 표면 없음 — V1-15, 폴백 경로 = 일반 표면 — V1-18, `/api/context-episodes` = api 표면 — NEW-40), 표면별 CSP·Report-Only 전환(일반 표면도 `CSP_V2_MODE` 따름), 공통 헤더(Permissions-Policy 카메라·마이크·위치 항목, HSTS 없음), setdefault 보존, SSE | ~140 |
-| `tests/test_csp_report.py` | 신규 | 204, Origin 없이 통과, `application/csp-report` 본문이 415 없이 204(SRV-12), 크기 상한 | ~45 |
+| `tests/test_response_policy.py` | 신규 | 표면 분류('v1' 표면 없음 — V1-15, 폴백 경로 = 일반 표면 — V1-18, 일반 표면 `script-src`에 인라인 해시 없음 — SEC-12, `/api/context-episodes` = api 표면 — NEW-40), 표면별 CSP·Report-Only 전환(일반 표면도 `CSP_V2_MODE` 따름), 공통 헤더(Permissions-Policy 카메라·마이크·위치 항목, HSTS 없음), setdefault 보존, SSE | ~140 |
+| `tests/test_csp_report.py` | 신규 | 204, Origin 없이 통과, `application/csp-report` 본문이 415 없이 204(SRV-12), 크기 상한, 수용 형식 밖 본문 204 + 로그(SEC-12), 확장 프로그램 스킴 보고는 집계 제외 표시(SEC-12) | ~55 |
 | `tests/test_spa_static.py` | 신규 | 404/200 분기, 딥링크 보존, 캐시 규칙(version.json), 해시 추출·mtime 캐시, favicon 200 | ~90 |
 | `frontend/tests/update-notice.test.ts` | 신규 | `shouldNotify` 중복 방지 | ~30 |
 
@@ -69,7 +73,10 @@
 1. **`spa_static` 분리(E-04 서버)**: pytest로 `/v2/_app/immutable/x.js`가 404인지, `/v2/today`와 `/v2/activity/2026.10.01`이 200 HTML인지, `_app/version.json`이 `no-cache`인지 확인한다. 브라우저에서는 `npm run build` 후 DevTools Network로 확인한다.
 2. **`response_policy` 공통 헤더 + api/feed CSP + csp-report**: 전체 pytest를 돌려 기존 `Cache-Control` 단언(캘린더, MCP, coach SSE)이 그대로 통과하는지 본다. `curl -I`로 `/api/v1/...`, `/api/context-episodes`, `/feeds/cal/...`에 `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`가 있고 `Strict-Transport-Security`가 없는지 확인한다. Origin 없는 `POST /api/v1/csp-report`(`Content-Type: application/csp-report`) → 204(415 아님, SRV-12).
 3. **v2·일반 표면 CSP Report-Only(2주, SEC-10)**: Flask 서빙 빌드(5173 dev 서버는 Flask를 거치지 않으니 검증 대상이 아니다)로 v2 주요 화면(today, coach, library, data, welcome)을 돌며 csp-report 로그를 수집한다. SSE(coach)와 차트가 정상인지도 확인한다. 2주 동안 위반 보고를 모은다.
-4. **CSP enforce 전환(SEC-10)**: 2주 운영 기간의 위반 보고가 0건이면 `CSP_V2_MODE=enforce`. 같은 화면에서 콘솔 CSP 위반 0건을 확인한다.
+4. **CSP enforce 전환(SEC-10·SEC-12)** — 아래 순서를 모두 통과해야 전환한다.
+   1) **(필수) 보고 도착 확인**: 실환경(CF Access 경유)에서 v2 화면과 일반 표면 화면에 각각 **의도적 위반**(예: 허용되지 않은 인라인 스크립트를 개발자 도구로 주입)을 일으켜 `/api/v1/csp-report` 로그에 보고가 실제로 도착하는지 확인한다. 도착하지 않으면(엣지 차단·401 등) '위반 0건'은 판단 근거가 될 수 없으므로 전환하지 않는다.
+   2) 2주 운영 기간의 위반 보고(확장 프로그램 스킴 보고 제외, SEC-12)가 0건이면 `CSP_V2_MODE=enforce`.
+   3) 같은 화면에서 콘솔 CSP 위반 0건을 확인한다.
 5. **favicon·manifest(D7)**: 아이콘 자산(디자인은 별도 에이전트, SEC-11) 추가 후 `/v2/favicon.ico`·manifest 200, 홈 화면 추가 시 아이콘 표시. theme-color 검증은 `accessibility-common.md` §5.
 6. **오래된 탭 복구(D8)**: 빌드 A로 탭을 연다 → 빌드 B로 재빌드한다 → 탭에서 내비게이션한다 → 자동 새로고침 없이 알림이 1회 뜨고, 새로고침 버튼으로 정상 화면이 나오는지 확인한다.
 7. 완료 후 `decisions.md`에 **ADR-049**(응답 정책 계층, ADR-1)를 기록하고 `check_docs.py`를 실행한다.
@@ -99,6 +106,7 @@
 - **D7 (SEC-7·SEC-11)** favicon·manifest·apple-touch-icon 실제 파일 추가(E-21과 함께). theme-color 는 `accessibility-common.md` §2.5 에 일원화(SEC-11), 아이콘 디자인은 별도 에이전트 활용(SEC-11).
 - **D8 (SEC-8·SEC-11)** "새 버전" 알림 후 사용자가 새로고침 — 입력 중 데이터 유실 방지. pollInterval 은 기존값 유지(SEC-11).
 - **D9 (SEC-9·SEC-11)** `Permissions-Policy`만 추가(최소 항목: 카메라·마이크·위치 차단, SEC-11), COOP는 OAuth 팝업 영향 검증 전까지 보류.
+- **D10 (SEC-12, 2026-10-12)** (a) 일반 표면 CSP 는 인라인 해시 미포함(엄격), csp-report 수용 형식 밖 본문은 204 + 로그, 봇·확장 프로그램 잡음은 확장 프로그램 스킴 보고를 걸러 '위반 0건' 집계에서 제외. enforce 전환 전 의도적 위반으로 보고 도착 확인 필수(2.1·2.2·4절 4).
 - **ADR (ADR-1)** 응답 정책 계층은 ADR-049(SRV 048, SEC 049, FRS 050, NRA 051).
 
 ## 7. 범위 밖 메모
@@ -116,6 +124,7 @@
 - 2026-10-11 8차 동기화(V1-15·V1-16): `classify_surface` 'v1' 분기 제거(2.1·D2·테스트·§10, V1-4 해소), 남는 폴백 경로의 표면은 열린 항목으로 축소. `response_policy`·`spa_static`·`request_guard` 위치 `src/web/` 확정(2.1·§10, 'src/web = 앱 셸 전용'). 사용자 전환 SRV-6 은 v2 이관과 같은 변경(유지).
 - 2026-10-11 7차 동기화(V1S-1~3·V1S-5·V1-12·V1-13, V1-4 보류 유지): §10 V1-10 항목의 '새 위치 미정'을 확정 위치로 교체(영향 없음 유지), V1-4 검토 입력에 D2 근거와 V1-13 충돌 기록, 사용자 전환 production 판정 키(V1-12) 반영.
 - 2026-10-12 9차 동기화(SEC-10·SEC-11·SRV-12·ADR-1·NEW-40·V1-18): Report-Only 2주·위반 0건 enforce(2.1·4절·D1), Permissions-Policy 최소 항목(2.1·D9), pollInterval 기존값 유지로 `vite.config.ts` 변경 삭제(2.4·3절·D8), theme-color 서술 제거 → `accessibility-common.md` §2.5 참조(2.3·3절·4절 5·D7·7절), 아이콘 디자인 별도 에이전트, csp-report 415 면제(2.2·D6), ADR-049, 폴백 경로 일반 표면(V1-18, 2.1·§10 해소), `/api/context-episodes` api 표면 명시(NEW-40).
+- 2026-10-12 10차 동기화(SEC-12, 설계 단계 마지막): 일반 표면 CSP 인라인 해시 미포함(2.1), csp-report 수용 형식 밖 본문 204 + 로그·확장 프로그램 스킴 보고 집계 제외·CF Access/사용자 식별 도달 위험(2.2), enforce 전환 전 의도적 위반 보고 도착 확인 필수 단계(4절 4), D10, 테스트 갱신(3절), §9 구현 확인 2건 해소, §11 S0 점검 목록.
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - 해소(ADR-1): ADR 번호 — 이 문서 ADR-049, `server-input-origin-validation.md` ADR-048.
@@ -124,11 +133,16 @@
 - 해소(SEC-11): D7 아이콘 디자인은 별도 에이전트 활용(일정은 결정 기록 없음), theme-color 는 A11Y 일원화. D9 Permissions-Policy 항목은 카메라·마이크·위치.
 - D8 알림 문구·위치는 product 영역이며 이 문서에서 확정하지 않았다.
 - (구현 확인) pollInterval 기존값(설정 없음 = SvelteKit 기본)에서는 `updated` 스토어가 주기적으로 갱신되지 않을 수 있다 — 2.4 알림 트리거는 `vite:preloadError`·동적 import 실패 경로가 주가 되며, `updated` 경로의 동작은 구현 시 SvelteKit 버전 기준으로 확인한다.
-- (구현 확인) 일반 표면(V1-18) CSP 의 `script-src`에 v2 인라인 부트스트랩 해시를 함께 넣을지(v2 `index.html` 전용 값)는 결정에 없다 — "엄격 CSP + `CSP_V2_MODE` 단계"만 확정.
-- (구현 확인) csp-report 의 수용 형식 밖 본문에 줄 응답 코드는 결정에 없다(415 검사 면제만 확정, SRV-12).
+- 해소(SEC-12): 일반 표면 CSP 는 인라인 해시 미포함(2.1), csp-report 수용 형식 밖 본문은 204 + 로그(2.2), 봇 제외는 확장 프로그램 스킴 필터(2.2), enforce 전 보고 도착 확인 필수(4절 4).
 
 ## 10. 동기화 중 발견한 모호점
 - 해소(V1-18): `classify_surface`의 `"v1"` 분기 제거(V1-15) 후 `/v2/`·`/api/`·`/mcp`·`/feeds/` 밖 경로(일몰 전 v1 화면, `app.py`의 `/trigger-sync`·`/bg-sync/*`·`/sync-status`·`/import/*`·`/` 리다이렉트, 미정의 경로 404)는 일반 표면 정책(엄격 CSP, `CSP_V2_MODE` 단계)을 받는다(2.1). 2026-10-11 grep 기준 v2 프론트(`frontend/src`)는 이 경로들을 호출하지 않는다(`/switch-user`·MenuDrawer quickLinks 의 v1 링크 제외). v1 화면이 이 정책으로 깨지는 것은 감수(V1-13).
 - 해소(NEW-40): `/api/context-episodes`는 `/api/` 접두 판정으로 `"api"` 표면(2.1). Origin 관문 거부 응답 봉투 판정은 `server-input-origin-validation.md` 2.1 `ENVELOPE_PATH_PREFIXES` 소관.
 - (V1-3 정합) 사용자 전환은 v2 로 이관한 뒤 v1 `/switch-user`를 제거한다(`server-input-origin-validation.md` 2.5). 현재 `/switch-user`는 서버 렌더 HTML 이라 위 일반 표면 경로에 해당한다(V1-15 로 'v1' 표면 없음). 이관 후 v2 엔드포인트 경로·화면 위치는 구현 단계에서 제안하므로(V1-8 (c)) 받을 표면은 `classify_surface`의 경로 규칙을 그대로 따른다(예: `/api/` 아래면 `"api"`, `/v2/` 아래 화면이면 `"v2"`) — 이 문서의 추가 변경은 없다. SRV-6 production 차단(404)은 v2 이관과 같은 변경에서 그 엔드포인트에 적용되며(V1-9 (b), production 판정 키는 `APP_ENV` — V1-12·SRV-10) 같은 표면 정책을 받는다.
 - (V1-10·V1S-1~3 영향) `src/web` 공용 4파일은 이번 작업에서 모두 view 밖으로 이관된다 — `bg_sync.py`·`auto_sync.py` → `src/sync/`, `helpers.py` 공용 3함수 → `src/utils/user_context.py`(HTML 헬퍼 잔류), `views_mcp_remote.py` → `src/mcp_remote/http.py`(shim 없음, V1S-5). 이 문서는 네 파일을 경로로 참조하지 않는다 — §10 V1-4 항목의 `/bg-sync/*`·`/trigger-sync` 등은 `app.py`의 URL 경로이고 `/mcp` 표면 분류도 URL 경로 기준이라, 모듈 이관은 `classify_surface`·CSP 판정, 이 문서의 파일 경로·테스트(`test_response_policy.py` 등) 범위, import 경로 어느 것에도 영향이 없다. 이 문서의 신규 `response_policy.py`·`spa_static.py`는 V1-16 (c')로 `src/web/` 위치 확정(해소 — 앱 조립 계층, 일몰 후 유지).
+
+## 11. S0 점검 목록 (10차 — 구현 착수 때 한 줄씩 확인, 새 결정 아님)
+- SEC-12: 걸러낼 확장 프로그램 스킴 목록(`chrome-extension`·`moz-extension`·`safari-web-extension` 외)과 `blocked-uri`가 `inline`·`eval`일 때 `source-file`로만 판정하는 규칙 확정.
+- SEC-12: 크기 상한을 넘는 보고 본문도 '수용 형식 밖'과 같이 204 + 로그(절삭)로 처리하는지 확인.
+- SEC-12: 4절 4-1) 의도적 위반 재현 절차(주입 방법·대상 화면·확인할 로그 줄 형식)를 구현 시 한 줄 절차로 고정.
+- SEC-12: 브라우저가 `report-uri` 보고에 같은 출처 쿠키를 싣는지를 실환경 확인 결과로 기록(4절 4-1)의 판정 근거).
