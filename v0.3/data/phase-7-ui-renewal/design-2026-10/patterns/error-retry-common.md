@@ -1,8 +1,8 @@
 # 설계: 오류·재시도 공통 (실패 분류 + 블록 오류 상태 + 재로드 키)
 
 - 대상 증상: S-01, S-02, S-03, S-04 (99-summary 항목 5). E-23 은 ERR-7 결정으로 `overlay-common-behavior.md` 로 이관
-- 작성일: 2026-10-10 · 상태: 설계 확정 — ERR-1~7 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(ERR-1~7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-1 정정·V1-2: §5 오류 본문 생성 위치·v1 화면 한 줄 추가)
+- 작성일: 2026-10-10 · 상태: 설계 확정 — ERR-1~8 결정 반영(2026-10-11). 구현 가능
+- 변경 이력: 2026-10-11 설계서 동기화(ERR-1~7 결정 반영, "결정 필요" → "결정됨") · 2026-10-11 5차 동기화(V1-1 정정·V1-2: §5 오류 본문 생성 위치·v1 화면 한 줄 추가) · 2026-10-12 9차 동기화(ERR-8: 404 를 뺀 4xx → `server`(서버 오류 문구) 확정, ERR-1 두 문구와 정합 — 2.2·3절 테스트·7절·9절)
 - 범위: `frontend/` v2 SPA 만. 서버 API 는 바꾸지 않는다.
 
 ## 1. 근본 원인
@@ -28,7 +28,7 @@ E-23(DemoBanner 시트 Esc)은 오류·재시도와 원인이 다르다. ERR-7 �
 - 자동 재시도는 하지 않는다(ERR-3). 재시도는 항상 사용자의 "다시 시도" 버튼으로만 한다.
 
 ### 2.2 순수 분류 모듈: `lib/loadFailure.ts` (신규, DOM·Svelte 비의존)
-- `classifyFailure(e) → { kind: 'not_found' | 'network' | 'server' | 'aborted', status, code, detail }`. 404 → `not_found`, status 0·`NETWORK` → `network`(연결 끊김), 5xx·`BAD_RESPONSE`·그 밖의 4xx·알 수 없는 예외 → `server`(서버 오류).
+- `classifyFailure(e) → { kind: 'not_found' | 'network' | 'server' | 'aborted', status, code, detail }`. 404 → `not_found`, status 0·`NETWORK` → `network`(연결 끊김), 5xx·`BAD_RESPONSE`·404 를 뺀 4xx(ERR-8, 예: 400·409)·알 수 없는 예외 → `server`(서버 오류). 사용자에게 보이는 문구는 ERR-1 의 두 가지(연결 끊김/서버 오류)뿐이고, 4xx 전용 문구('입력 오류' 등)는 두지 않는다(ERR-8).
 - `failureMessage(kind)`: 문구 매핑(ERR-1). **연결 끊김**과 **서버 오류** 두 가지만 둔다. 문구 초안: network "연결이 끊겨 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요." / server "서버 오류로 불러오지 못했어요. 잠시 후 다시 시도해 주세요." 404 없음은 오류 문구가 아니라 화면별 EmptyState 문구를 쓴다(ERR-6).
 - `nullOn404(p)`: 404 일 때만 `null` 로 풀고 나머지 실패는 다시 던진다. 기존 `.catch(() => null)` 중 "없음이 정상인 경우"를 이것으로 바꾼다.
 - `LoadResult<T> = { ok: true; data: T } | { ok: false; failure: Failure }`. load 반환 형태를 통일한다. 기존 `errorMessage: string | null` 을 대체한다.
@@ -68,7 +68,7 @@ E-23(DemoBanner 시트 Esc)은 오류·재시도와 원인이 다르다. ERR-7 �
 | `src/routes/library/activities/+page.ts`·`.svelte` | 수정 | ErrorState + 재요청 연결 | 각 ±10 |
 | `src/routes/coach/+page.svelte` | 수정 | **현재 310줄로 규칙(300줄) 초과**. 대화 목록 블록을 아래 컴포넌트로 빼면서 ErrorState 적용 | -60 |
 | `src/lib/components/coach/ThreadList.svelte` | 신규 | 최근 대화 목록 + 빈/오류 상태 | 약 70 |
-| `tests/loadFailure.test.mjs` | 신규 | 분류(0/404/500/502 HTML/abort/임의 예외 → 4종), 문구 2종 매핑, nullOn404 | 약 75 |
+| `tests/loadFailure.test.mjs` | 신규 | 분류(0/404/400·409/500/502 HTML/abort/임의 예외 → 4종, 400·409 → `server`(ERR-8)), 문구 2종 매핑, nullOn404 | 약 75 |
 | `tests/apiClient.test.mjs` | 신규 | `fetch` 스텁으로 정규화 검증 | 약 60 |
 
 합계: 신규 4개, 수정 약 16개, 순증 약 +330줄.
@@ -107,6 +107,7 @@ E-23(DemoBanner 시트 Esc)은 오류·재시도와 원인이 다르다. ERR-7 �
 5. **ERR-5 보조 블록 부분 실패**: compact 오류로 노출, 블록 단위 재시도(2.3·2.4·2.5).
 6. **ERR-6 404 표현 위치**: 라우트 안 EmptyState. 근거: 탭·헤더 유지(6절).
 7. **ERR-7 E-23**: 이 묶음에서 빼고 오버레이 설계(`use:modal`)로 일원화(1.3).
+8. **ERR-8 404 를 뺀 4xx**: (a) `server` 로 분류해 '서버 오류' 문구(2.2).
 
 ## 8. 범위 밖 메모
 - E-23·S-08 Esc/포커스는 `overlay-common-behavior.md` 소관이다.
@@ -115,5 +116,5 @@ E-23(DemoBanner 시트 Esc)은 오류·재시도와 원인이 다르다. ERR-7 �
 
 ## 9. 동기화 중 발견한 충돌/확인 필요
 - ERR-1 은 문구를 "두 가지로 구분"까지만 정했다. 2.2·2.5 의 실제 문장은 초안이며 확정 문구가 아니다.
-- ERR-1 의 두 분류에 4xx(404 제외, 예: 400·409)와 분류할 수 없는 예외가 어느 쪽인지는 결정에 없다. 이 문서는 `server` 쪽에 넣었다.
+- 해소(ERR-8): 404 를 뺀 4xx 는 `server`. 남은 것: 분류할 수 없는 임의 예외(ApiError 아님)의 분류는 결정문에 없다 — 이 문서는 `server` 쪽에 둔다(2.2).
 - `coach/plan/[id]/+page.svelte` 의 현재 줄 수는 확인하지 않았다. ERR-5 반영(+10) 뒤 300줄을 넘는지 구현 전에 확인이 필요하다.

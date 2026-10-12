@@ -2,7 +2,7 @@
 
 - 대상 ID: T-05 (`GET /api/v1/today/narrative` 월 내러티브·highlights·evidence·weeks), A-01 (수영 상세 히어로 페이스), A-02 (상세 해석 줄 "러닝" 접두), A-03 (근력 상세 거리·페이스 블록)
 - 상태: 설계 확정 — NRA-1~8 결정 반영(2026-10-11). 구현 가능
-- 변경 이력: 2026-10-11 설계서 동기화(NRA-1~8 결정 반영, HSR-4 정합, "결정 필요" → "결정됨") · 2026-10-11 6차 동기화(V1-7: §5 에 `get_runner_state`·`rule_based_chips` 필요 여부 검토 절차 추가, §7·§9 갱신) · 2026-10-11 7차 동기화(V1S-4 (b)·V1-13: 검토 절차를 '지금 제거' 결정으로 교체, `suggestions.py` `_RUN_TYPES` 사본을 NRA-8 대상에서 제외, §5·§7·§9)
+- 변경 이력: 2026-10-11 설계서 동기화(NRA-1~8 결정 반영, HSR-4 정합, "결정 필요" → "결정됨") · 2026-10-11 6차 동기화(V1-7: §5 에 `get_runner_state`·`rule_based_chips` 필요 여부 검토 절차 추가, §7·§9 갱신) · 2026-10-11 7차 동기화(V1S-4 (b)·V1-13: 검토 절차를 '지금 제거' 결정으로 교체, `suggestions.py` `_RUN_TYPES` 사본을 NRA-8 대상에서 제외, §5·§7·§9) · 2026-10-12 9차 동기화(HSR-12·ADR-1, V1S-4 점검: `sync_state_service.py:183` LIKE 제거·`activity_counts` 이관을 §2.5·§4·§7·§9에 반영, ADR 번호 ADR-051 확정. V1S-4 서술은 결정과 일치 — 변경 없음)
 - 관련 ADR: ADR-009 (Calculator raw SQL 금지 — 이번 변경은 서비스 계층만, Calculator 무변경), ADR-032 (Story 통계 `story_stats` — 같은 집계 쿼리 공유 대상), ADR-020 계열 원칙(판정·표시 규칙은 서버 SSOT)
 - 이월: 2026-09 리뷰 F-DATA-13(월간 이야기에 수영 합산)이 "반영"으로 표시됐으나 집계 쿼리는 그대로 남아 있음
 
@@ -62,6 +62,7 @@
 
 ### 2.5 개요 활동 수와의 정합 (HSR-4)
 - HSR-4 결정(개요 "활동"은 전체 canonical·러닝 둘 다 표시, 라벨로 구분)은 NRA-1 (b)(러닝 수치 + 비러닝 한 줄)와 같은 방향이다. 개요의 "러닝" 수는 `family_clause("running")` 기준으로 세어 내러티브·주 요약과 같은 정의를 쓴다. 전체 수는 종목 조건 없는 canonical 건수다.
+- **러닝 수 단일 정의(HSR-12 (a))**: 러닝 수는 `family_clause("running")`로 통일하고 `src/services/activity_counts.py`(`bundles/high-severity-remaining.md` D-03 소관, 신규) 한 곳에서 센다. 소비처는 `data_service` 개요와 `sync_state_service.activity_count` — `sync_state_service.py:183`의 `LIKE '%running%'`는 제거되고 `activity_counts`로 이관된다(NRA-8 별도 BACKLOG의 예외로 이번 작업 포함). 결과: `treadmill`(LIKE가 놓치던 값)·`race`가 sync-state 러닝 수에 포함되어 값이 바뀔 수 있다(의도된 수정). `activity_counts`는 이 설계의 `family_clause`에 의존하므로 §4 1단계(SSOT 유틸)가 먼저다.
 
 ## 3. 변경 파일 표
 
@@ -85,7 +86,7 @@
 | 수정 | Today 내러티브 컴포넌트(v2) | 비러닝 한 줄 표시 | +6 |
 | 테스트 | `tests/test_activity_types.py`(+6: 경계 종목 race·treadmill·HIIT·미매핑 포함), `tests/test_run_totals.py`(신규 ~7: 건수·other_totals), `tests/test_week_digest.py`(+1 수영 제외), `tests/test_narrative_cache.py`(+1 키), `tests/test_today_narrative.py`(신규 ~4: 수영 제외·최장 러닝·비러닝 줄), `tests/test_activity_display.py`(신규 ~8: 러닝/수영/근력/사이클 km/h/걷기/HIIT/unknown/시간 병기), `tests/test_activity_summary_extras.py`(+3 verdict), `frontend/tests/activityDisplay.test.mjs`(신규 ~6) | ~36 |
 
-스키마·SCHEMA_VERSION·Calculator·metric_store 변경 없음. 신규 ADR(ADR-048 후보: "종목 판정은 `activity_types` 단일 출처, 기간 집계는 `run_totals`, 경계 종목 규칙") 기록 필요.
+스키마·SCHEMA_VERSION·Calculator·metric_store 변경 없음. 신규 ADR **ADR-051**(ADR-1 (a) 번호 배정: "종목 판정은 `activity_types` 단일 출처, 기간 집계는 `run_totals`, 러닝 수는 `activity_counts`(HSR-12), 경계 종목 규칙") 기록 필요. `activity_counts.py`·`sync_state_service.py` 수정은 HSR 번들 변경 파일 표 소관이라 이 표에 중복 기재하지 않는다.
 
 ## 4. 적용 순서와 검증
 
@@ -93,7 +94,9 @@
 2. **run_totals + 3곳 교체**: 픽스처(러닝 7건 51.0km + 수영 0.5km)로 내러티브 highlights `51.0/7`, 비러닝 줄 "수영 1회", week_digest·story_stats 같은 값을 assert. 내러티브 함수 이동 후 `routes_today`·`narrative_warm` import 경로 테스트 통과.
 3. **브라우저**: `/v2/today` 월 내러티브 칩·비러닝 줄과 주간 스트립·주 요약의 km가 일치하는지, `/v2/library/story/<월>`과 숫자가 같은지 확인한다.
 4. **display + verdict**: 17425(수영) `/100m`·이동시간 기준 페이스와 히어로의 이동·총시간 병기가 서로 맞는지, 598(근력) 거리·페이스 칸 대신 시간·심박·칼로리가 나오는지, 603(걷기) 접두가 "걷기/하이킹"이고 `/km`인지, 사이클이 km/h 인지 확인. 러닝 활동은 기존 verdict 문자열과 바이트 단위로 같아야 한다(회귀 테스트).
-5. `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`, files_index 재생성.
+5. `python3 -m pytest tests/`, 프론트 테스트, `python3 scripts/check_docs.py`, files_index 재생성, ADR-051 기록.
+
+순서 의존(HSR-12): 1단계 `family_clause` 도입 뒤에 HSR 번들의 `activity_counts`(D-03)가 이를 소비한다. 검증은 사본 DB에서 `sync_state` 러닝 수 == `activity_counts.canonical_running` == 개요 러닝 수(같은 정의).
 
 ## 5. 호환성
 
@@ -123,7 +126,7 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 - **NRA-5 대체 칸**: 거리·페이스가 빠지면 활동 시간·평균 심박·칼로리(데이터 있는 값만, 세트 수는 있을 때만)(2.3).
 - **NRA-6 해석 줄 접두**: 종목 라벨 그대로('수영','근력','걷기/하이킹') + 가용한 지표만 설명(2.3).
 - **NRA-7 경계 종목**: race·treadmill=러닝, HIIT=기타(비러닝), 미매핑 raw=other. 계획 매칭에서 HIIT 가 빠지는 영향은 구현 시 확인(2.1, 9절).
-- **NRA-8 범위**: 나머지 RUN_TYPES 사본 이관은 이번 작업에서 제외, 별도 BACKLOG(2.1).
+- **NRA-8 범위**: 나머지 RUN_TYPES 사본 이관은 이번 작업에서 제외, 별도 BACKLOG(2.1). 예외: `sync_state_service.py:183` LIKE는 HSR-12 (a)로 이번에 `activity_counts`로 이관(§2.5).
 - **`src/ai/` RUN_TYPES 사본 2곳(코드 확인 2026-10-11)**:
   - `ai_context_legacy.py:16` `_RUN_TYPES`(`build_context`가 사용): AI 공용 경로(`ai_context.py:14` 재노출 → `briefing.build_chip_prompt` → `chat_engine` → `coach_service`, v2 `/api/v1/coach`). v1 전용이 아니므로 NRA-8 별도 BACKLOG 대상 사본에 포함된다.
   - `suggestions.py:39` `_RUN_TYPES`(`get_runner_state` 전용): V1S-4 (b)로 두 함수와 함께 제거된다(§5) — NRA-8 대상 아님.
@@ -138,7 +141,7 @@ B안의 장점(단일 WHERE)은 A안의 `family_clause`로 대부분 얻을 수 
 
 - NRA-7(HIIT=비러닝)과 현재 matcher 의 러닝 집합(HIIT 포함)이 다르다(suggestions 사본은 V1S-4 로 제거). NRA-8 로 matcher 이관은 이번 범위 밖이라 이번 작업 후에도 matcher 는 HIIT 를 러닝으로 매칭한다. 이관 시 계획 매칭에서 HIIT 가 빠지는 영향을 확인해야 한다.
 - NRA-8 의 "별도 BACKLOG" 항목은 이 동기화에서 `BACKLOG.md` 에 등록하지 않았다(수정 범위 밖). 등록이 필요하다.
-- HSR-4 의 러닝 488건은 sync-state 의 `LIKE '%running%'` 기준이다. SSOT(`family_clause`)는 `treadmill`·`race` 를 포함하고 LIKE 는 `treadmill` 을 놓치므로 두 숫자가 다를 수 있다. sync_state 는 NRA-8 로 이번 이관 대상이 아니어서, 개요 러닝 수를 어느 쪽 기준으로 셀지 HSR 설계와 맞춰야 한다(2.5 는 SSOT 기준으로 적었다).
+- (해소, HSR-12) 러닝 수 정의 이원화 — `family_clause`로 통일, `activity_counts` 헬퍼로 일원화하고 `sync_state_service.py:183` LIKE를 제거해 이관 대상에 포함(§2.5·§7 NRA-8 예외). HSR-4 의 러닝 488건(LIKE 기준)은 이관 후 `treadmill`·`race` 포함으로 달라질 수 있다.
 - `normalize_activity_type` 의 현재 HIIT·race·treadmill 매핑 값은 이 동기화에서 코드로 확인하지 않았다. 수집 단계 매핑이 NRA-7 과 다르면 정규화 저장값과 읽기 판정이 어긋나므로 구현 1단계에서 확인이 필요하다.
 - (5차 동기화, 사실 확인) 4차 이전 §5의 "v1 쪽 RUN_TYPES 사본(`ai_context_legacy.py`·`suggestions.py`)은 v1과 함께 제거"는 코드와 맞지 않았다 — 두 파일 모두 v2 Coach 경로가 쓰는 공유 파일이다(§5). V1-1 정정(일몰 = UI·라우트 일몰)에 따라 두 사본은 NRA-8 별도 BACKLOG 대상으로 남는다.
 - (6차 열린 항목 → 7차 동기화, V1S-4 (b)로 해소) `suggestions.get_runner_state`·`rule_based_chips`는 지금 제거한다(수행은 `bundles/v1-sunset-prep.md` §4 5단계). NRA-8 BACKLOG 등록 시 `suggestions.py` 사본은 목록에서 뺀다.
