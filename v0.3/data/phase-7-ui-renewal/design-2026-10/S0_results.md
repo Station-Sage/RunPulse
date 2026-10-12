@@ -8,7 +8,7 @@
 |---|---|
 | SCAN_DIRS | `check_docs.py`는 9개 폴더(+ tests·scripts를 별도 추가), `gen_files_index.py`는 11개. 둘 다 `src/api`·`src/mcp_remote`·`src/import_export`·`src/analysis`를 포함하지 않는다. S2에서 `src/mcp_remote/`가 새 위치가 되면 두 스크립트에 추가해야 한다 |
 | 현재 스키마 | `SCHEMA_VERSION = 36` (`src/db_setup.py:32`), `db_schema_v20~v36.py` 존재. v37 이후는 새 파일 |
-| 개발 환경 SQLite | 3.45.1. 운영 버전은 **미확인(사용자 확인 필요)** |
+| 개발 환경 SQLite | 3.45.1. 운영 컨테이너(`runpulse-runpulse-1`)는 3.46.1 (2026-10-12, `sqlite3.sqlite_version`만 조회, DB 미접근) |
 | APP_ENV 판정 | `auth_cf.py:23-24`, `app.py:156`, `app.py:707`이 각각 같은 식으로 판정한다(분산). SEC에서 단일 헬퍼로 모을지 S3에서 결정 |
 | CSP·csp-report | `src/`에 `Content-Security-Policy`·`csp-report` 문자열 없음. 전부 신규 구현 |
 | session 키 | `session["user_id"]`만 쓰고 `app.py:235,270`, `auth_cf.py:65` |
@@ -39,7 +39,6 @@
 
 ## 4. 사용자 확인·결정이 필요한 항목
 
-1. 운영 SQLite 버전 (v37~v40 DDL의 `ALTER TABLE ... DROP/ADD`·CHECK 재작성 방식 결정에 필요)
 2. BACKLOG NOW에 구현 단계 항목이 없음 → S1~S8을 NOW(최대 3개)로 어떻게 올릴지
 3. Q5(인증 통과 요청만 집계) 문서 반영(SEC-10·SEC-12 수정)은 승인 후 별도 처리
 4. race-calendar §8 6항목, FRS-27 badge·hold_headline, TZ-23 1327 파생 값, `get_db_path` ValueError는 미확인. 해당 단계(S3/S4/S6) 착수 시 확인

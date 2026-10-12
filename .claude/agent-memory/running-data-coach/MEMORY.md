@@ -1,1 +1,4 @@
 - [예측 리뉴얼 r4 상태](project_pred_r4.md) — r3 기본+r4 섀도, 거리별 전력 판정, 명세 31단계 검증 완료, 생성기 위치
+- [행 액션 코칭 규칙](project_row_action_coaching.md) — move/reduce/pain/경고/load_delta 설계(2026-10-09), 결정 4건 대기
+- [기존 계획 v2 이행 검토](project_plan_engine_existing.md) — 2026-10-10 승인 재계획 추천, anchor별 rules_version, X2~X5 결함
+- [계획 엔진 U16 설계](project_plan_engine_u16.md) — D4 R6·R7 확정, 게이트 G1~G8·F1~F5, 롱런 하한·상한 재설계 제안(LONGRUN)
