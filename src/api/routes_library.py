@@ -8,7 +8,7 @@ from flask import request
 
 from src.services import activity_list_filters, activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
 from src.utils.provider_matrix_rows import compare_group_for_slug
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok, api_ok_cacheable
 

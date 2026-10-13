@@ -10,7 +10,7 @@ from datetime import date
 
 from flask import Blueprint, Response, jsonify, redirect, request
 
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 from src.web.views_training_loaders import load_workouts
 
 training_crud_bp = Blueprint("training_crud", __name__)

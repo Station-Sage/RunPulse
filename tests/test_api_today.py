@@ -20,7 +20,7 @@ def mini_app(tmp_path):
     migrate_db(conn)
     conn.close()
 
-    import src.web.helpers as helpers
+    import src.utils.user_context as helpers
     _orig = helpers.db_path
     helpers.db_path = lambda: db_file
 
@@ -141,7 +141,7 @@ def test_get_race_hub_no_goal(mini_app):
 
 def test_get_library_archive_empty(mini_app, monkeypatch):
     import src.api.routes_library as routes_library
-    import src.web.helpers as helpers
+    import src.utils.user_context as helpers
     monkeypatch.setattr(routes_library, "db_path", helpers.db_path)  # mini_app이 패치한 경로
     res = mini_app.get("/api/v1/library/archive")
     assert res.status_code == 200

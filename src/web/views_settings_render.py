@@ -57,7 +57,7 @@ def _service_card(
 def _estimate_profile() -> dict:
     """DB에서 사용자 프로필 추정값 계산."""
     import sqlite3
-    from src.web.helpers import db_path
+    from src.utils.user_context import db_path
     est: dict = {}
     try:
         dbp = db_path()

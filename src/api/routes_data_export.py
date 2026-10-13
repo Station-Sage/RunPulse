@@ -6,7 +6,7 @@ import sqlite3
 from flask import Response, request, send_file
 
 from src.services import export_service
-from src.web.helpers import db_path, get_current_user_id
+from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from flask import Blueprint, render_template, request
 
-from .helpers import db_path
+from src.utils.user_context import db_path
 
 import_bp = Blueprint("import_data", __name__)
 

@@ -10,7 +10,8 @@ from datetime import date, timedelta
 
 from flask import Blueprint, request
 
-from src.web.helpers import db_path, fmt_pace, html_page, no_data_card
+from src.web.helpers import fmt_pace, html_page, no_data_card
+from src.utils.user_context import db_path
 from src.web.views_training_loaders import load_full_plan_weeks, load_goal
 
 fullplan_bp = Blueprint("fullplan", __name__)

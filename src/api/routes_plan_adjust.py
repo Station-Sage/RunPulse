@@ -10,7 +10,7 @@ from flask import request
 from src.services import plan_adjustment_service as svc
 from src.services import plan_advisory, plan_load, plan_pain
 from src.training import week_compliance
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from .helpers import db_path
+from src.utils.user_context import db_path
 
 
 def render_map_placeholder(activity_id: int | None = None) -> str:

@@ -11,7 +11,7 @@ import sqlite3
 
 from flask import Blueprint, jsonify, redirect, request
 
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 wizard_bp = Blueprint("training_wizard", __name__)
 

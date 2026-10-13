@@ -19,7 +19,8 @@ from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
 from src.utils.config import load_config, save_config, update_service_config
-from src.web.helpers import db_path, last_sync_info
+from src.web.helpers import last_sync_info
+from src.utils.user_context import db_path
 from src.web.views_settings_hub import render_sync_overview, render_system_info
 from src.web.views_settings_render import (
     _service_card, _render_user_profile_section,

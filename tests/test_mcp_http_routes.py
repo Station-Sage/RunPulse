@@ -103,7 +103,7 @@ def test_tool_call_uses_token_user_not_session_or_config(env, monkeypatch):
     def boom(*a, **k):
         raise AssertionError("세션/설정 의존 금지")
     monkeypatch.setattr("src.utils.config.load_config", boom)
-    monkeypatch.setattr("src.web.helpers.get_current_user_id", boom, raising=False)
+    monkeypatch.setattr("src.utils.user_context.get_current_user_id", boom, raising=False)
     used = []
     real = v.get_db_path
     monkeypatch.setattr(v, "get_db_path", lambda uid=None, **k: used.append(uid) or real(uid, **k))

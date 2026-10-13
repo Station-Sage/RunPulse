@@ -10,7 +10,7 @@ from flask import Response, request, stream_with_context
 
 from src.services import coach_async, coach_consent, coach_engine_health, coach_service
 from src.utils.config import load_config
-from src.web.helpers import db_path, get_current_user_id
+from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
 

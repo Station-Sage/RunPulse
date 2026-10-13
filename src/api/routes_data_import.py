@@ -5,7 +5,7 @@ from flask import request
 
 from src.services import import_service
 from src.utils.sync_jobs import get_job
-from src.web.helpers import db_path, get_current_user_id
+from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
 

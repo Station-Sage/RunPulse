@@ -14,7 +14,7 @@ import sqlite3
 from flask import Blueprint, render_template, request
 
 from src.analysis.activity_deep import deep_analyze
-from .helpers import db_path
+from src.utils.user_context import db_path
 
 # 기존 loaders
 from .views_activity_loaders import (

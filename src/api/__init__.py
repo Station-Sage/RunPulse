@@ -60,7 +60,7 @@ def _refresh_today_metrics():
     import sqlite3
 
     from src.metrics.today_refresh import refresh_today_if_stale
-    from src.web.helpers import db_path
+    from src.utils.user_context import db_path
 
     dpath = db_path()
     if not dpath.exists():

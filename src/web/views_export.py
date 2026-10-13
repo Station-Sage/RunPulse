@@ -9,7 +9,7 @@ import sqlite3
 from flask import Blueprint, Response, request
 
 from src.services.activity_service import get_activity_list
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 export_bp = Blueprint("export", __name__)
 

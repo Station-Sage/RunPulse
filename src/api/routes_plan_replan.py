@@ -7,7 +7,7 @@ from flask import request
 
 from src.services import garmin_cleanup as gc
 from src.services import plan_replan_service as svc
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

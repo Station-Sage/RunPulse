@@ -8,7 +8,7 @@ import html as _html
 import os
 from pathlib import Path
 
-from .helpers import db_path
+from src.utils.user_context import db_path
 
 
 def render_sync_overview(statuses: dict[str, dict], sync_times: dict[str, str | None]) -> str:

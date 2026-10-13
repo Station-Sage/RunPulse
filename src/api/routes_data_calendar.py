@@ -5,7 +5,7 @@ from flask import request
 
 from src.services import calendar_feed_index as feeds
 from src.utils.public_url import public_base_url
-from src.web.helpers import get_current_user_id
+from src.utils.user_context import get_current_user_id
 
 from . import api_bp, api_error, api_ok
 

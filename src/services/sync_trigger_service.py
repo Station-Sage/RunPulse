@@ -85,7 +85,7 @@ def plan_incremental(
     from src.utils.sync_gates import wait_sec
     from src.utils.sync_ledger_query import is_busy, last_success_at
     if db_file is None:
-        from src.web.helpers import db_path
+        from src.utils.user_context import db_path
         db_file = db_path()
 
     today = today or date.today()

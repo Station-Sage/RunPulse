@@ -14,7 +14,8 @@ from src.sync.garmin import check_garmin_connection, _tokenstore_path
 from src.sync.strava import check_strava_connection
 from src.sync.intervals import check_intervals_connection
 from src.sync.runalyze import check_runalyze_connection
-from .helpers import db_path, html_page, last_sync_info
+from .helpers import html_page, last_sync_info
+from src.utils.user_context import db_path
 from .sync_ui import sync_card_html
 from .views_settings_hub import render_sync_overview
 from .views_settings_render import _service_card
@@ -27,7 +28,7 @@ sync_bp = Blueprint("sync_tab", __name__)
 @sync_bp.route("/sync")
 def sync_page():
     """동기화 탭 메인 페이지."""
-    from .helpers import get_current_user_id
+    from src.utils.user_context import get_current_user_id
     config = load_config(user_id=get_current_user_id())
 
     garmin_status = check_garmin_connection(config)
@@ -167,7 +168,7 @@ def _sync_sources_html(on: set[str], connected: set[str]) -> str:
 @sync_bp.post("/sync/sources")
 def sync_sources_post():
     """동기화 대상 소스 저장(config.sync_sources). 체크된 것만 포함."""
-    from .helpers import get_current_user_id
+    from src.utils.user_context import get_current_user_id
     from src.utils.config import ALL_SOURCES
 
     config = load_config(user_id=get_current_user_id())
@@ -242,7 +243,7 @@ def _auto_sync_settings_html(config: dict) -> str:
 @sync_bp.post("/sync/auto-sync-settings")
 def auto_sync_settings_post():
     """자동 동기화 설정 저장 + thread 재시작."""
-    from .helpers import get_current_user_id
+    from src.utils.user_context import get_current_user_id
     from src.sync.auto_sync import restart as auto_sync_restart
 
     user_id = get_current_user_id()

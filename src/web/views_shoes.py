@@ -10,7 +10,8 @@ import sqlite3
 
 from flask import Blueprint
 
-from .helpers import db_path, html_page
+from .helpers import html_page
+from src.utils.user_context import db_path
 
 shoes_bp = Blueprint("shoes", __name__)
 

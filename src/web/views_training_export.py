@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, redirect, request
 
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 training_export_bp = Blueprint("training_export", __name__)
 

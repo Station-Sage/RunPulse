@@ -7,7 +7,7 @@ from flask import request
 
 from src.services import user_settings_service as svc
 from src.utils.config import load_config
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

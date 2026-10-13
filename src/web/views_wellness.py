@@ -15,17 +15,8 @@ from datetime import date
 from flask import Blueprint, request
 
 from src.analysis.recovery import get_recovery_status, recovery_trend
-from .helpers import (
-    db_path,
-    fmt_min,
-    html_page,
-    make_table,
-    metric_row,
-    readiness_badge,
-    render_sub_nav,
-    safe_str,
-    score_badge,
-)
+from .helpers import fmt_min, html_page, make_table, metric_row, readiness_badge, render_sub_nav, safe_str, score_badge
+from src.utils.user_context import db_path
 from .views_wellness_enhanced import (
     build_outlier_mark_points,
     build_pattern_recovery_tips,

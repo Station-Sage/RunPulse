@@ -8,7 +8,7 @@ from flask import current_app, request
 
 from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service, weekly_adapt_job
 from src.training import plan_readiness
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

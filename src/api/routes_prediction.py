@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from flask import request
 
 from src.services import prediction_compare_service, race_result_service
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

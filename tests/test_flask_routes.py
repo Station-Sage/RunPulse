@@ -38,7 +38,7 @@ def mini_app(tmp_path):
     os.environ.setdefault("FLASK_SECRET_KEY", "test-secret-key")
 
     # db_path()가 테스트 DB를 가리키도록 패치
-    import src.web.helpers as helpers
+    import src.utils.user_context as helpers
     import src.web.views_activity_merge as merge_mod
     import src.web.views_activities as acts_mod
     import src.web.views_export as export_mod

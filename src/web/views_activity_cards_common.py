@@ -4,14 +4,8 @@ from __future__ import annotations
 import html
 import json
 
-from .helpers import (
-    db_path,
-    fmt_duration,
-    fmt_pace,
-    make_table,
-    metric_row,
-    safe_str,
-)
+from .helpers import fmt_duration, fmt_pace, make_table, metric_row, safe_str
+from src.utils.user_context import db_path
 
 
 # ── 포매터 ──────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import threading as _threading
 
 from flask import Blueprint, jsonify, redirect, request
 
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 settings_metrics_bp = Blueprint("settings_metrics", __name__)
 

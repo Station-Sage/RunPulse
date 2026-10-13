@@ -6,7 +6,7 @@ import sqlite3
 from flask import Response
 
 from src.services import activity_gpx, activity_source_links
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
 

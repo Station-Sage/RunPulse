@@ -14,7 +14,8 @@ from pathlib import Path
 
 from flask import Blueprint, request
 
-from .helpers import db_path, html_page
+from .helpers import html_page
+from src.utils.user_context import db_path
 
 
 def _import_garmin_folder(*args, **kwargs):

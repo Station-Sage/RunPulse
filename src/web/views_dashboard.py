@@ -12,7 +12,8 @@ from flask import Blueprint
 
 from src.db_setup import get_needs_resync
 
-from .helpers import db_path, html_page
+from .helpers import html_page
+from src.utils.user_context import db_path
 from .views_dashboard_cards import (
     _CIRS_COLORS,
     _UTRS_COLORS,

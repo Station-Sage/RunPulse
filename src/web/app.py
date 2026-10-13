@@ -95,7 +95,7 @@ def _project_root() -> Path:
 
 def _db_path() -> Path:
     """helpers.db_path() 위임 — 사용자별 DB 경로 반환."""
-    from .helpers import db_path as _dbp
+    from src.utils.user_context import db_path as _dbp
     return _dbp()
 
 
@@ -469,7 +469,7 @@ def create_app() -> Flask:
         from .sync_ui import sync_card_html
         from .helpers import last_sync_info, connected_services
         from src.utils.sync_ledger_query import legacy_card_states
-        from .helpers import get_current_user_id as _get_uid
+        from src.utils.user_context import get_current_user_id as _get_uid
         sync_card = sync_card_html(
             last_sync=last_sync_info(["garmin", "strava", "intervals", "runalyze"]),
             sync_states=legacy_card_states(_get_uid()),
@@ -514,7 +514,7 @@ def create_app() -> Flask:
             # 콤마 구분 다중 소스 지원
             parts = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
             sources_to_sync = parts if parts else list(checkers.keys())
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
 
@@ -586,7 +586,7 @@ def create_app() -> Flask:
             parts = [s.strip() for s in source.split(",") if s.strip() in _VALID_SOURCES]
             sources_to_sync = parts if parts else list(checkers.keys())
 
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
 
@@ -652,7 +652,7 @@ def create_app() -> Flask:
         from flask import jsonify
         from src.services.sync_trigger_service import ALL_SOURCES, plan_incremental
         from src.sync.bg_sync import start_basic_sync
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
 
         source = request.form.get("source", "all").strip()
         if source == "all":
@@ -694,7 +694,7 @@ def create_app() -> Flask:
         from pathlib import Path
         from flask import jsonify
         from src.sync.bg_sync import start_job
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
 
         import hmac as _hmac
         import os as _os
@@ -801,7 +801,7 @@ def create_app() -> Flask:
         except ValueError:
             return jsonify({"ok": False, "error": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)."}), 400
 
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
         if source not in enabled_sources(config):
@@ -830,7 +830,7 @@ def create_app() -> Flask:
         from flask import jsonify
         from src.sync.bg_sync import resume_job
         from src.utils.config import enabled_sources
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         source = request.form.get("source", "").strip()
         user_id = get_current_user_id()
         config = load_config(user_id=user_id)
@@ -1068,7 +1068,7 @@ def create_app() -> Flask:
 
     @app.get("/sync-status")
     def sync_status():
-        from .helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         config = load_config(user_id=get_current_user_id())
         garmin_st = check_garmin_connection(config)
         strava_st = check_strava_connection(config)

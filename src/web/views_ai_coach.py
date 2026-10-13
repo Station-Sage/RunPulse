@@ -12,10 +12,8 @@ import sqlite3
 
 from flask import Blueprint, redirect, request
 
-from src.web.helpers import (
-    db_path, fmt_pace, html_page, no_data_card, fmt_duration,
-    get_current_user_id,
-)
+from src.web.helpers import fmt_pace, html_page, no_data_card, fmt_duration
+from src.utils.user_context import db_path, get_current_user_id
 from src.web.views_ai_coach_cards import (
     render_briefing_card,
     render_chat_section,

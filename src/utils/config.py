@@ -98,7 +98,7 @@ def _auto_user_id(user_id: str | None) -> str | None:
     if user_id is not None:
         return user_id
     try:
-        from src.web.helpers import get_current_user_id
+        from src.utils.user_context import get_current_user_id
         return get_current_user_id()
     except (ImportError, RuntimeError):
         return None

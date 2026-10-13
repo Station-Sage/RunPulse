@@ -6,10 +6,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from flask import Blueprint, request
-from src.web.helpers import (
-    html_page, no_data_card, fmt_pace, fmt_duration, db_path,
-    metric_row, render_sub_nav, svg_semicircle_gauge,
-)
+from src.web.helpers import html_page, no_data_card, fmt_pace, fmt_duration, metric_row, render_sub_nav, svg_semicircle_gauge
+from src.utils.user_context import db_path
 from src.web.views_race_enhanced import (
     load_prediction_trend, load_fitness_factors,
     render_goal_gap, render_prediction_trend_chart,

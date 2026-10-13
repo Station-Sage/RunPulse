@@ -128,7 +128,7 @@ def test_sync_sources_post_saves_checked_only(monkeypatch):
     saved = {}
     monkeypatch.setattr(vs, "load_config", lambda **k: {"garmin": {}})
     monkeypatch.setattr(vs, "save_config", lambda c: saved.update(c))
-    monkeypatch.setattr("src.web.helpers.get_current_user_id", lambda: "u")
+    monkeypatch.setattr("src.utils.user_context.get_current_user_id", lambda: "u")
     app = Flask(__name__)
     app.register_blueprint(vs.sync_bp)
     r = app.test_client().post("/sync/sources", data={"src_garmin": "1", "src_runalyze": "1"})

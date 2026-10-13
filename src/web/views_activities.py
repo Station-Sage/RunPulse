@@ -21,7 +21,8 @@ from datetime import date, timedelta
 from flask import Blueprint, request
 
 from src.services.unified_view import fetch_unified_activities
-from .helpers import db_path, html_page
+from .helpers import html_page
+from src.utils.user_context import db_path
 from .views_activities_filter import _render_filter_form
 from .views_activities_table import (
     _JS,

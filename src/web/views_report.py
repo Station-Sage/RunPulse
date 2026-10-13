@@ -13,7 +13,8 @@ from datetime import date, timedelta
 
 from flask import Blueprint, render_template, request
 
-from .helpers import db_path, render_sub_nav
+from .helpers import render_sub_nav
+from src.utils.user_context import db_path
 from .views_perf import load_activity_metrics_batch
 from .views_report_charts import (
     render_form_trend,

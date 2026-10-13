@@ -9,7 +9,7 @@ from datetime import date as _date, timedelta as _td
 
 from flask import Blueprint, Response, jsonify, redirect, request
 
-from src.web.helpers import db_path
+from src.utils.user_context import db_path
 
 training_goal_crud_bp = Blueprint("training_goal_crud", __name__)
 

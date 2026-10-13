@@ -1061,9 +1061,9 @@
 - class **RedactingLogger**: access
 - functions: redact
 
-### `helpers.py` (903줄) — 웹 뷰 공통 헬퍼 함수.
+### `helpers.py` (880줄) — 웹 뷰 공통 헬퍼 함수 — HTML 조립·포맷터. (공용 경로/사용자 함수는 src/utils/user_context.py 로 이관, V1S-2)
 
-- functions: project_root, get_current_user_id, db_path, render_sub_nav, bottom_nav, html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration, safe_str, connected_services, tooltip, race_shape_label, no_data_card, fmt_pace, last_sync_info
+- functions: render_sub_nav, bottom_nav, html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration, safe_str, connected_services, tooltip, race_shape_label, no_data_card, fmt_pace, last_sync_info
 
 ### `helpers_svg.py` (171줄) — SVG 시각화 헬퍼 — 반원 게이지 + 레이더 차트.
 
@@ -1081,7 +1081,7 @@
 
 - functions: format_distance, format_pace, format_duration, format_speed, format_time_prediction, format_metric, interpret_metric_level, metric_level_color, confidence_badge, provider_badge, metric_display_name, metric_unit
 
-### `views_activities.py` (184줄) — 활동 목록 뷰 — Flask Blueprint + 라우트 핸들러.
+### `views_activities.py` (185줄) — 활동 목록 뷰 — Flask Blueprint + 라우트 핸들러.
 
 - functions: activities_list
 
@@ -1101,7 +1101,7 @@
 
 - functions: activity_deep_view, activity_service_data
 
-### `views_activity_cards_common.py` (317줄) — 활동 상세 — 공통 헬퍼·포매터·독립 카드 함수.
+### `views_activity_cards_common.py` (311줄) — 활동 상세 — 공통 헬퍼·포매터·독립 카드 함수.
 
 - functions: fmt_int, fmt_float1, fmt_min_sec, fmt_val, metric_tooltip_icon, set_ai_metric_cache, clear_ai_metric_cache, metric_interp_badge, gauge_bar, rp_row, source_badge, no_data_msg, group_header, render_activity_summary, render_activity_nav, render_horizontal_scroll, render_classification_badge, render_splits
 
@@ -1157,7 +1157,7 @@
 
 - (public API 없음)
 
-### `views_ai_coach.py` (411줄) — AI 코칭 뷰 — Flask Blueprint.
+### `views_ai_coach.py` (409줄) — AI 코칭 뷰 — Flask Blueprint.
 
 - functions: ai_coach_page, ai_coach_chat_async, ai_coach_chat, ai_coach_get_prompt, ai_coach_paste_response
 
@@ -1169,7 +1169,7 @@
 
 - functions: client_family, calendar_feed
 
-### `views_dashboard.py` (437줄) — 통합 대시보드 뷰 — Flask Blueprint.
+### `views_dashboard.py` (438줄) — 통합 대시보드 뷰 — Flask Blueprint.
 
 - functions: dashboard
 
@@ -1205,7 +1205,7 @@
 
 - functions: activities_export_csv
 
-### `views_export_import.py` (233줄) — Export 데이터 임포트 뷰 — Flask Blueprint.
+### `views_export_import.py` (234줄) — Export 데이터 임포트 뷰 — Flask Blueprint.
 
 - functions: export_import_page, export_import_run
 
@@ -1225,7 +1225,7 @@
 
 - functions: cached_page, invalidate_cache, load_latest_metric_date, load_metrics_batch, load_metrics_json_batch, load_activity_metrics_batch, load_darp_batch
 
-### `views_race.py` (410줄) — Sprint 5 · V2-6-1 — Race Prediction (DARP) UI Blueprint.
+### `views_race.py` (408줄) — Sprint 5 · V2-6-1 — Race Prediction (DARP) UI Blueprint.
 
 - functions: race_page
 
@@ -1233,7 +1233,7 @@
 
 - functions: load_prediction_trend, load_fitness_factors, render_goal_gap, render_prediction_trend_chart, render_fitness_factors_chart, render_race_shape_trio, render_di_interpretation, render_metric_glossary
 
-### `views_report.py` (350줄) — 분석 레포트 뷰 — Flask Blueprint.
+### `views_report.py` (351줄) — 분석 레포트 뷰 — Flask Blueprint.
 
 - functions: report_view
 
@@ -1257,7 +1257,7 @@
 
 - (public API 없음)
 
-### `views_settings.py` (320줄) — 서비스 연동 설정 뷰 — 메인 허브 + 설정 저장 라우트.
+### `views_settings.py` (321줄) — 서비스 연동 설정 뷰 — 메인 허브 + 설정 저장 라우트.
 
 - functions: settings_view, settings_profile_post, settings_training_prefs_post, settings_ai_post, settings_mapbox_post, settings_prompts_post, settings_prompts_reset, settings_caldav_post, settings_caldav_test
 
@@ -1285,15 +1285,15 @@
 
 - (public API 없음)
 
-### `views_shoes.py` (85줄) — 신발 목록 뷰 — Flask Blueprint.
+### `views_shoes.py` (86줄) — 신발 목록 뷰 — Flask Blueprint.
 
 - functions: shoes_list
 
-### `views_sync.py` (270줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
+### `views_sync.py` (271줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
 
 - functions: sync_page, sync_sources_post, auto_sync_settings_post
 
-### `views_training.py` (349줄) — 훈련 계획 뷰 — Flask Blueprint.
+### `views_training.py` (350줄) — 훈련 계획 뷰 — Flask Blueprint.
 
 - functions: training_page, training_calendar_partial, training_generate
 
@@ -1317,7 +1317,7 @@
 
 - functions: training_export_ics, push_to_garmin, push_to_caldav
 
-### `views_training_fullplan.py` (260줄) — 훈련 전체 일정 뷰 — GET /training/fullplan.
+### `views_training_fullplan.py` (261줄) — 훈련 전체 일정 뷰 — GET /training/fullplan.
 
 - functions: training_fullplan
 
@@ -1365,7 +1365,7 @@
 
 - functions: render_step1, render_step2, render_step3, render_step4, wizard_js, render_wizard_page
 
-### `views_wellness.py` (440줄) — 회복/웰니스 상세 뷰 — Flask Blueprint.
+### `views_wellness.py` (431줄) — 회복/웰니스 상세 뷰 — Flask Blueprint.
 
 - functions: wellness_view
 
@@ -1697,9 +1697,9 @@
 - class **SyncGuardResult**: 없음
 - functions: check_incremental_guard, check_range_guard, should_reduce_expensive_calls
 
-### `user_context.py` (38줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+### `user_context.py` (61줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
-- functions: set_current_user, set_current_job, current_job, resolve_user_id
+- functions: set_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
 

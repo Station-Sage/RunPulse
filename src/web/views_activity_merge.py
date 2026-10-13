@@ -10,7 +10,7 @@ import sqlite3
 
 from flask import Blueprint, Response, request
 
-from .helpers import db_path
+from src.utils.user_context import db_path
 from src.utils.dedup import auto_group_all, assign_group_to_activities, remove_from_group
 
 merge_bp = Blueprint("activity_merge", __name__)

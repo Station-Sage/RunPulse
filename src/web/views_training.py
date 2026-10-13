@@ -16,7 +16,8 @@ from flask import Blueprint, redirect, request
 log = logging.getLogger(__name__)
 
 from src.utils.config import load_config
-from src.web.helpers import db_path, html_page, no_data_card
+from src.web.helpers import html_page, no_data_card
+from src.utils.user_context import db_path
 from src.web.views_training_prefs import render_training_prefs_collapsed
 from src.web.views_training_cards import (
     render_adjustment_card,
