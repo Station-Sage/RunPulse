@@ -1049,7 +1049,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1161줄) — RunPulse integration workbench web app.
+### `app.py` (1159줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
