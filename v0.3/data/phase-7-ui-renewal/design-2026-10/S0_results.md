@@ -46,3 +46,4 @@
 ## 5. S1 진입 조건
 
 - 점검 결과상 S1(`crs.evaluate()` 복원, ADJ-22)을 막는 항목 없음. 단 `adjustment-signals` §3.13·ADJ-23 확인(미완)이 S1 시작 시 첫 작업
+- (2026-10-13) S1 완료 — `S1_results.md`. `adjustment-signals` §3.13·ADJ-23 확인: ADJ-23(`adjuster_version`·수락률 N)은 신규 `adjuster_frequency.py`·`user_settings` 범위로 S1과 무관(S6).

@@ -140,7 +140,7 @@
 | `v0.3/data/decisions.md` | 수정(구현 시) | ADR-035 개정 | +25 |
 
 ## 5. 단계·검증·롤아웃
-0. 선행(ADJ-22 a): `crs.evaluate()` 복원을 **이 번들과 분리된 별도 선행 커밋**으로 한다(BACKLOG CRS-EVALUATE-MISSING). 같은 커밋에서 `replanner`(`replanner.py:142`) 테스트 기대값을 갱신한다 — 지금은 import 실패로 CRS 가 항상 빈 값이라 기존 기대값이 'CRS 없음' 기준이다. `matcher_context`(`:84`) 스냅샷 테스트가 영향을 받으면 같은 커밋에서 함께 갱신. 그다음 FRS `boost_hold`·래퍼(FRS-12~21).
+0. **(완료 2026-10-13, 커밋 20acc7e, `S1_results.md` — 날짜는 정확 날짜 ADJ-24, 예외 전파 ADJ-25)** 선행(ADJ-22 a): `crs.evaluate()` 복원을 **이 번들과 분리된 별도 선행 커밋**으로 한다(BACKLOG CRS-EVALUATE-MISSING). 같은 커밋에서 `replanner`(`replanner.py:142`) 테스트 기대값을 갱신한다 — 지금은 import 실패로 CRS 가 항상 빈 값이라 기존 기대값이 'CRS 없음' 기준이다. `matcher_context`(`:84`) 스냅샷 테스트가 영향을 받으면 같은 커밋에서 함께 갱신. 그다음 FRS `boost_hold`·래퍼(FRS-12~21).
 1. `adjustment_signals`(+race·context) 추가(호출자 없음) + 단위 테스트(수집기별 정상·결측·stale, race 창·대회별 덮어쓰기, unplanned 포착 — `unasked`·`later`만, `no_adapt` 무신호, done 대회 recovery 창 수집, '오늘'=`reference_today` 주입, 외부 호출 없음). 선행: `reference_day.py`(timezone-display.md 단계 5-1).
 2. v37: 사본 dry-run 분포·묶음 키 중복 0건 확인 → 백업·재생성·재분류·표현식 유니크 인덱스(ADJ-19) + `ensure_proposal` 분리(동작 불변 커밋 별도). 회귀: 같은 픽스처에서 `after`·`reasons`·rev 동일, source만 `readiness`/`pain`, `crs` 0건.
 3. 소비처 6곳 `AUTO_SOURCES` 치환 → Hero·row action·중복 방지 동일 동작.

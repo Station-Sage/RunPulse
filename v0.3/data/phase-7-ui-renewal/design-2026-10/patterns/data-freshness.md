@@ -287,7 +287,7 @@ decisions-table FRS-1~27와 1:1(D_n = FRS-n).
 ## 동기화 중 발견한 충돌/확인 필요
 
 - (해소, FRS-22) FRS-18 이관 대상 범위 — 본문 7곳 기준(D18·§2.7 표).
-- CRS-EVALUATE-MISSING `evaluate()` 복원 결정이 §3 변경 파일 표·§4 단계에 없고, §4 5-1은 `test_replanner`를 "무변경 회귀"로 둔다 — 복원 시 재계획 Q-day 경고·`crs_at_session`이 바뀌므로 본 설계 범위 포함 여부와 테스트 기대값 확인 필요.
+- (해소, S1 2026-10-13 — 커밋 20acc7e, ADJ-22·24·25, `S1_results.md`) 복원은 별도 선행 커밋으로 완료. 이 설계의 §4 5-1 `test_replanner`는 '무변경 회귀'가 아니라 CRS 경고 테스트가 추가된 상태이며, `crs_at_session`·Q-day 경고가 실제 동작한다. 원문: CRS-EVALUATE-MISSING `evaluate()` 복원 결정이 §3 변경 파일 표·§4 단계에 없고, §4 5-1은 `test_replanner`를 "무변경 회귀"로 둔다 — 복원 시 재계획 Q-day 경고·`crs_at_session`이 바뀌므로 본 설계 범위 포함 여부와 테스트 기대값 확인 필요.
 - (해소, FRS-23) `crs_stale`·`crs_missing` 사유 문구 관리 — 서버가 코드+params+규칙 기본 문구를 내려준다(§2.6-A). 두 사유의 구체 문안·길이 상한은 TXT-1(FRS-27).
 - 해소(FRS-23·FRS-27): BOOST 보류 사유·유보형 헤드라인·배지 문구 모두 서버 코드+파라미터+기본 문구가 원천, 프런트 `HOLD_HEADLINE`·`BADGE_TEXT` 사전 제거(§2.3·§2.6-B).
 - 해소(FRS-26): `hrv_rolling_days` 키 없는 1.0 행은 hold, 배포 직후 1회 재계산 안내(§2.6-A·§4-2).

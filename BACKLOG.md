@@ -4,7 +4,7 @@
 
 - **[PHASE-7]** UI Renewal v2 화면·기능 구현은 완료했으나 **전환은 미완**(기본 진입 v1 유지: G5 기본 전환·G6 v1 제거는 사용자 결정 대기; 07 §7d의 Training Balance Radar·COROS/Polar 커넥터는 미구현·미배정; NEXT 11 요약 탭 다운샘플·SWR, A-6 프리페치, Coach 지표 프리필은 2026-10-10 완료·ADR-043). 남은 미완 일람: [PHASE-7-REMAINING] 참조) → `v0.3/data/phase-7-ui-renewal/BACKLOG.md` 참조
 
-- **[V2-IMPL]** v2 점검 구현 S0~S8(2026-10-12 승인, 단계마다 결과 보고·사용자 확인 후 다음 단계). 계획·정책은 `v0.3/data/phase-7-ui-renewal/design-2026-10/README.md`, S0 결과는 `S0_results.md`. S0 완료, S1(crs.evaluate 복원, ADJ-22) 구현·검증 완료(사용자 확인 대기), 다음은 S2. S5(레거시 삭제 7종)는 사용자 허가·건수·백업 확인 후에만 실행.
+- **[V2-IMPL]** v2 점검 구현 S0~S8(2026-10-12 승인, 단계마다 결과 보고·사용자 확인 후 다음 단계). 계획·정책은 `v0.3/data/phase-7-ui-renewal/design-2026-10/README.md`, S0 결과는 `S0_results.md`. S0 완료, S1(crs.evaluate 복원, ADJ-22) 구현·검증 완료(커밋 20acc7e; 위험·미결정·후속은 design-2026-10/S1_results.md), S2(v1 일몰 준비) 계획 단계. S5(레거시 삭제 7종)는 사용자 허가·건수·백업 확인 후에만 실행.
 - **[V2-AUDIT]** v2 버그·개선점 식별(설계·수정 제외). 7개 묶음을 sonnet 에이전트로 순차 점검(오늘 → 라이브러리 활동 → 라이브러리 지표 → 데이터 → 훈련 계획 → 코치 → 진입·공통). 결과는 `v0.3/data/phase-7-ui-renewal/ux-review-2026-10/`에 누적. 진행: 7개 묶음+보충 패스 완료(232건, 상 26). 종합은 `99-summary.md`. 설계 10건 작성 완료(2026-10-11, `design-2026-10/{patterns,bundles}/`, 결정 77건 통합 표 `decisions-table.md`: 서버 입력·Origin, 데이터 신선도, 비러닝 활동, 오버레이, 오류·재시도, 보안 헤더, 시간대, 상 심각도 잔여, 훈련 계획 묶음, 접근성) — **결정 필요 항목 확정 전 구현 금지**. 개별 버그는 [V2-AUDIT-INDIV]. 수정 대기(사용자 지시 시). **설계 완료(2026-10-12)**: `v0.3/data/phase-7-ui-renewal/design-2026-10/README.md`(색인·스키마 v37~v40·구현 순서·사용자 사전 작업·정책 질문 5건). 구현은 승인 대기.
 
 ## BUGS
@@ -22,6 +22,7 @@
   - `07-entry-common.md` E-: 19건 (03,05,10,11,12,13,16,17,18,19,20,21,22,25,26,27,28,29,30)
   - `08-supplement.md` S-: 11건 (05,06,09,14,16,18,19,20,21,22,23)
 
+- **[TEST-PLAN-CREATION-DATE]** `tests/test_plan_creation.py::test_created_plan_follows_periodization_and_ends_on_race` 가 `assert 9 == 10`(주 수 불일치)로 실패 — S1 이전 기준선(2026-10-13, 샌드박스 python3.13·venv)에서도 동일. 원인 미확인(`date.today()` 의존·실행 날짜 경계 의심). S1과 무관.
 - **[ADJUSTMENT-SOURCE-CRS-LABEL]** `plan_adjustment_service` 의 `source='crs'` 조정 제안은 실제로는 `plan_pain.proposal`/`adjust_todays_plan`(readiness·피로도 기반)에서 생성되어 이름과 근거가 불일치. **방향(2026-10-11): 조정 제안 근거에 CRS·readiness 등 복수 신호를 모두 반영하도록 확장 — opus 설계 진행(`design-2026-10/bundles/adjustment-signals.md`).** ADR-035 영향 확인 필요. 출처: 같은 문서 §8.
 
 - **[RUN-TYPES-SSOT]** **(판단 필요)** 종목(러닝) 판정 SSOT 이관 후속(결정 NRA-8, 2026-10-11): `src/utils/activity_types` 의 `sport_family`·`family_clause` 로 나머지 RUN_TYPES 사본(training·metrics·archive·matcher·suggestions 등 10여 곳, `LIKE '%running%'` 포함)을 통합. 일부는 Calculator 입력(CTL·classifier)이라 결과값이 바뀔 수 있고 HIIT(NRA-7=비러닝)가 계획 매칭에서 빠지는 영향 확인 필요. 출처: `v0.3/data/phase-7-ui-renewal/design-2026-10/patterns/non-running-activities.md`.
