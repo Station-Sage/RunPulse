@@ -111,6 +111,47 @@ def test_dev_origins_only_outside_production(enforce, client, monkeypatch):
     assert client.post("/form", headers=h).status_code == 403
 
 
+@pytest.mark.parametrize("origin", [
+    "https://run.example.com:443",          # 기본 포트 표기 — 브라우저는 보내지 않지만 같은 출처
+    "https://RUN.example.com",
+])
+def test_default_port_and_case_normalized_accepted(enforce, client, origin):
+    assert client.post("/form", headers={"Origin": origin}).status_code == 200
+
+
+@pytest.mark.parametrize("origin", [
+    "",                                      # 빈 Origin 헤더
+    "https://run.example.com@evil.example",  # userinfo 로 위장 (호스트는 evil)
+    "https://user@run.example.com",          # userinfo 포함 — 브라우저는 보내지 않는다
+    "ftp://run.example.com",
+    "javascript://run.example.com",
+    "https://run.example.com:notaport",
+    "run.example.com",
+    "//run.example.com",
+])
+def test_malformed_or_deceptive_origins_rejected(enforce, client, origin):
+    assert client.post("/form", headers={"Origin": origin}).status_code == 403
+
+
+def test_empty_origin_does_not_fall_back_to_referer(enforce, client):
+    """Origin 헤더가 있으면(비어 있어도) Referer 로 갈아타지 않는다 — 우회 방지."""
+    assert client.post("/form", headers={"Origin": "", "Referer": BASE + "/v2"}).status_code == 403
+
+
+def test_public_base_url_with_path_and_default_port_is_normalized(enforce, monkeypatch):
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://Run.Example.com:443/app/")
+    c = _make_app().test_client()
+    assert c.post("/form", headers={"Origin": "https://run.example.com"}).status_code == 200
+
+
+def test_invalid_public_base_url_warns_and_rejects(enforce, monkeypatch, caplog):
+    monkeypatch.setenv("PUBLIC_BASE_URL", "run.example.com")  # 스킴 누락
+    with caplog.at_level(logging.WARNING, logger="runpulse.security"):
+        c = _make_app().test_client()
+    assert any("형식" in x.getMessage() for x in caplog.records)
+    assert c.post("/form", headers={"Origin": BASE}).status_code == 403
+
+
 def test_base_url_fallback_is_request_root(enforce, monkeypatch):
     """PUBLIC_BASE_URL 이 없으면 요청 url_root 가 기준(개발 편의) — Host 헤더 위조는 그 요청의 Host 로만 통한다."""
     monkeypatch.delenv("PUBLIC_BASE_URL")
@@ -173,6 +214,23 @@ def test_observe_is_default_and_passes_through_with_log(client, caplog):
     assert "mode=observe" in msg and "POST" in msg and "/form" in msg and "evil.example" in msg
 
 
+def test_log_strips_referer_query_and_fragment_and_limits_length(client, caplog):
+    ref = "https://evil.example/path?token=SECRET123&x=1#frag" + "a" * 500
+    with caplog.at_level(logging.WARNING, logger="runpulse.security"):
+        client.post("/form", headers={"Origin": "https://evil.example", "Referer": ref})
+    msg = [x.getMessage() for x in caplog.records if "origin_guard" in x.getMessage()][0]
+    assert "SECRET123" not in msg and "token=" not in msg and "frag" not in msg
+    assert "https://evil.example/path" in msg
+    assert len(msg) < 600
+
+
+def test_log_limits_origin_length(client, caplog):
+    with caplog.at_level(logging.WARNING, logger="runpulse.security"):
+        client.post("/form", headers={"Origin": "https://" + "a" * 5000 + ".example"})
+    msg = [x.getMessage() for x in caplog.records if "origin_guard" in x.getMessage()][0]
+    assert len(msg) < 600
+
+
 def test_observe_logs_missing_origin_and_referer(client, caplog):
     with caplog.at_level(logging.WARNING, logger="runpulse.security"):
         assert client.post("/api/v1/things").status_code == 200
@@ -200,6 +258,13 @@ def test_mode_parsing_falls_back_to_observe(env, monkeypatch, raw, expected):
     assert rg.guard_mode() == expected
 
 
+def test_unknown_mode_is_logged(env, monkeypatch, caplog):
+    monkeypatch.setenv("ORIGIN_GUARD_MODE", "enfroce")  # 오타가 조용히 observe 로 남지 않게
+    with caplog.at_level(logging.WARNING, logger="runpulse.security"):
+        assert rg.guard_mode() == "observe"
+    assert any("enfroce" in x.getMessage() for x in caplog.records)
+
+
 def test_production_without_public_base_url_warns(env, monkeypatch, caplog):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.delenv("PUBLIC_BASE_URL")
@@ -225,6 +290,33 @@ def test_session_cookie_config_per_app_env(tmp_path, monkeypatch, app_env, secur
     assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
     assert app.config["SESSION_COOKIE_HTTPONLY"] is True
     assert app.config["SESSION_COOKIE_SECURE"] is secure
+
+
+def test_create_app_default_mode_is_observe(tmp_path, monkeypatch):
+    """운영 기본(환경변수 없음)은 observe — 위조 Origin 이 통과하고 로그가 남는다. (conftest 의 enforce 를 해제)"""
+    monkeypatch.delenv("ORIGIN_GUARD_MODE", raising=False)
+    monkeypatch.setenv("PUBLIC_BASE_URL", BASE)
+    app = _create(tmp_path, monkeypatch, "development")
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        r = c.post("/api/v1/today/checkin", json={"fatigue": 3},
+                   headers={"CF-Access-Authenticated-User-Email": "ok@example.com", "Origin": "https://evil.example"})
+    assert r.status_code != 403
+
+
+@pytest.mark.parametrize("app_env,secure", [("development", False), ("production", True)])
+def test_set_cookie_header_attributes(tmp_path, monkeypatch, app_env, secure):
+    """설정값이 아니라 실제 응답 `Set-Cookie` 헤더로 확인 (SRV-10)."""
+    app = _create(tmp_path, monkeypatch, app_env)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        r = c.get("/api/v1/today", headers={"CF-Access-Authenticated-User-Email": "ok@example.com"},
+                  base_url="https://run.example.com")
+    cookies = [h for h in r.headers.getlist("Set-Cookie") if h.startswith("session=")]
+    assert cookies, "세션 쿠키가 발급되어야 한다"
+    c0 = cookies[0]
+    assert "HttpOnly" in c0 and "SameSite=Lax" in c0
+    assert ("Secure" in c0) is secure
 
 
 def test_create_app_registers_guard_and_enforces(tmp_path, monkeypatch):

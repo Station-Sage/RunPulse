@@ -2,11 +2,14 @@
 
 - 상태 변경 메서드(POST/PUT/PATCH/DELETE)는 `Origin`(없으면 `Referer` 의 출처)이 허용 출처여야 한다.
   둘 다 없으면 거부한다(D1). 허용 출처 = `public_base_url()` + (개발 환경 한정) `DEV_ALLOWED_ORIGINS`.
-  프록시 뒤 `Host` 헤더는 기준이 아니다 — 운영은 `PUBLIC_BASE_URL` 설정이 전제다.
+  프록시 뒤 `Host` 헤더는 기준이 아니다 — 운영은 `PUBLIC_BASE_URL` 설정이 전제다(없으면 요청 `url_root` 로 폴백,
+  개발 편의용). 비교는 소문자·기본 포트 생략으로 정규화하며 userinfo 포함·http(s) 외 스킴·`null` 은 허용되지 않는다.
 - 모드 `ORIGIN_GUARD_MODE` 환경변수: `observe`(기본, 로그만 남기고 통과) / `enforce`(403).
   인증(auth_cf)이 먼저 실행되므로 인증 실패 요청은 여기까지 오지 않는다 → 위반 로그는 인증 통과 요청만 집계된다(Q5).
 - 면제(`EXEMPT_PATHS`)는 자체 인증이 있거나 읽기 전용인 경로다. `/api/context-episodes` 는 면제가 아니다(NEW-40).
-- `same_origin()` 은 `/mcp`(ADR-034)도 재사용한다. 거기서는 Origin 헤더가 없는 비브라우저 클라이언트를 허용한다.
+- 보안 로그(`runpulse.security`)에는 Origin 과 Referer(쿼리·프래그먼트 제거, 200자 제한)만 남긴다.
+- `same_origin()` 은 `/mcp`(ADR-034)도 재사용한다. 거기서는 Origin 헤더가 없는 비브라우저 클라이언트를 허용한다
+  (비교 기준이 요청 Host 에서 허용 출처 목록으로 바뀜 — S3-5 ④).
 """
 from __future__ import annotations
 
@@ -61,7 +64,10 @@ def _is_production() -> bool:
 def guard_mode() -> str:
     """`ORIGIN_GUARD_MODE` — 알 수 없는 값은 observe 로 처리한다(오설정이 서비스를 막지 않게)."""
     raw = os.environ.get("ORIGIN_GUARD_MODE", _DEFAULT_MODE).strip().lower()
-    return raw if raw in _MODES else _DEFAULT_MODE
+    if raw not in _MODES:
+        security_log.warning("[origin_guard] ORIGIN_GUARD_MODE=%r 은 알 수 없는 값 — observe 로 처리", raw[:20])
+        return _DEFAULT_MODE
+    return raw
 
 
 def is_exempt(path: str) -> bool:
@@ -74,15 +80,35 @@ def is_exempt(path: str) -> bool:
     return False
 
 
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
 def _origin_of(url: str) -> str | None:
-    """`scheme://host[:port]` (소문자). 출처로 볼 수 없으면 None (`null`·상대경로·스킴 없음)."""
+    """`scheme://host[:port]` (소문자, 기본 포트 생략). 출처로 볼 수 없으면 None.
+
+    None 대상: `null`·상대경로·스킴 없음·http(s) 외 스킴·userinfo 포함(브라우저는 보내지 않음)·잘못된 포트.
+    """
     try:
         parts = urlsplit(url.strip())
+        host, port = parts.hostname, parts.port
     except ValueError:
         return None
-    if not parts.scheme or not parts.netloc:
+    scheme = parts.scheme.lower()
+    if scheme not in _DEFAULT_PORTS or not host or parts.username is not None or parts.password is not None:
         return None
-    return f"{parts.scheme.lower()}://{parts.netloc.lower()}"
+    host = f"[{host}]" if ":" in host else host  # IPv6 리터럴
+    if port is None or port == _DEFAULT_PORTS[scheme]:
+        return f"{scheme}://{host}"
+    return f"{scheme}://{host}:{port}"
+
+
+def _loggable(value: str | None, *, strip_query: bool = False, limit: int = 200) -> str | None:
+    """보안 로그용 — Referer 의 쿼리·프래그먼트(토큰 가능성)를 떼고 길이를 제한한다. repr 은 호출 측 `%r`."""
+    if value is None:
+        return None
+    if strip_query:
+        value = value.split("#", 1)[0].split("?", 1)[0]
+    return value[:limit]
 
 
 def allowed_origins() -> set[str]:
@@ -97,14 +123,18 @@ def allowed_origins() -> set[str]:
 
 
 def request_origin(req=None) -> str | None:
-    """요청이 주장하는 출처 — `Origin` 우선, 없으면 `Referer` 의 출처. 둘 다 없으면 None."""
+    """요청이 주장하는 출처 — `Origin` 우선, 없으면 `Referer` 의 출처.
+
+    둘 다 없으면 None. 헤더는 있으나 출처로 해석할 수 없으면(`null`·빈 값·상대경로 등) 빈 문자열 —
+    허용 목록에 없으므로 `same_origin` 이 거부한다.
+    """
     req = req or request
     origin = req.headers.get("Origin")
     if origin is not None:
-        return _origin_of(origin) or origin  # 'null' 등은 원문 그대로 → 허용 목록과 불일치
+        return _origin_of(origin) or ""
     referer = req.headers.get("Referer")
     if referer:
-        return _origin_of(referer) or referer
+        return _origin_of(referer) or ""
     return None
 
 
@@ -113,7 +143,7 @@ def same_origin(req=None, *, allow_missing: bool = False) -> bool:
     claimed = request_origin(req)
     if claimed is None:
         return allow_missing
-    return claimed.lower() in allowed_origins()
+    return claimed in allowed_origins()
 
 
 def _check() -> Response | None:
@@ -125,7 +155,8 @@ def _check() -> Response | None:
     security_log.warning(
         "[origin_guard] 거부 대상 (mode=%s, method=%s, path=%s, origin=%r, referer=%r)",
         mode, request.method, request.path,
-        request.headers.get("Origin"), request.headers.get("Referer"),
+        _loggable(request.headers.get("Origin")),
+        _loggable(request.headers.get("Referer"), strip_query=True),
     )
     if mode != "enforce":
         return None
@@ -134,8 +165,13 @@ def _check() -> Response | None:
 
 def init_request_guard(app: Flask) -> None:
     """Origin 관문 `before_request` 등록. `init_cf_auth` 뒤에 호출한다(인증 통과 요청만 검사·집계)."""
-    if _is_production() and not os.environ.get("PUBLIC_BASE_URL", "").strip():
+    configured = os.environ.get("PUBLIC_BASE_URL", "").strip()
+    if _is_production() and not configured:
         security_log.warning(
             "[origin_guard] production 인데 PUBLIC_BASE_URL 미설정 — 프록시 뒤에서는 정상 요청이 거부 대상으로 집계된다"
+        )
+    elif configured and _origin_of(configured) is None:
+        security_log.warning(
+            "[origin_guard] PUBLIC_BASE_URL 이 http(s)://호스트 형식이 아니다 — 모든 쓰기 요청이 거부 대상으로 집계된다"
         )
     app.before_request(_check)

@@ -115,6 +115,19 @@ def test_tool_call_uses_token_user_not_session_or_config(env, monkeypatch):
     assert r.status_code == 200 and used == ["b"]
 
 
+def test_mcp_origin_judged_against_allowed_origins_not_host(env, monkeypatch):
+    """S3-5 ④ — Origin 판정은 요청 Host 가 아니라 허용 출처(`PUBLIC_BASE_URL`)다. Origin 없는 요청은 기존대로 통과."""
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://run.example.com")
+    h, _ = _auth()
+    c = env.test_client()
+    ok = c.post("/mcp", json=_rpc("ping"), headers={**h, "Origin": "https://run.example.com"})
+    assert ok.status_code == 200
+    # Host 와 같은 Origin 이라도 허용 출처가 아니면 거부 (Host 헤더는 기준이 아님)
+    same_host = c.post("/mcp", json=_rpc("ping"), headers={**h, "Origin": "http://localhost"})
+    assert same_host.status_code == 403
+    assert c.post("/mcp", json=_rpc("ping"), headers=h).status_code == 200  # Origin 없음
+
+
 def test_batch_and_bad_json_rejected(env):
     h, _ = _auth()
     c = env.test_client()

@@ -5,6 +5,8 @@ import pytest
 
 import src.web.app as web_app
 
+ORIGIN = {"Origin": "http://localhost"}  # Origin 관문 enforce (conftest)
+
 
 @pytest.fixture
 def client(monkeypatch):
@@ -22,21 +24,21 @@ def client(monkeypatch):
 
 
 def test_bg_start_blocks_disabled_source(client):
-    r = client.post("/bg-sync/start", data={"source": "strava", "from_date": "2026-01-01"})
+    r = client.post("/bg-sync/start", data={"source": "strava", "from_date": "2026-01-01"}, headers=ORIGIN)
     assert r.status_code == 409 and "꺼져" in r.get_json()["error"]
 
 
 def test_bg_start_allows_enabled_source(client):
-    r = client.post("/bg-sync/start", data={"source": "garmin", "from_date": "2026-01-01"})
+    r = client.post("/bg-sync/start", data={"source": "garmin", "from_date": "2026-01-01"}, headers=ORIGIN)
     assert r.status_code == 200 and r.get_json()["job_id"] == "job1"
 
 
 def test_bg_resume_blocks_disabled_source(client):
-    assert client.post("/bg-sync/resume", data={"source": "strava"}).status_code == 409
+    assert client.post("/bg-sync/resume", data={"source": "strava"}, headers=ORIGIN).status_code == 409
 
 
 def test_stream_skips_disabled_source(client):
-    r = client.post("/trigger-sync-stream", data={"source": "strava"})
+    r = client.post("/trigger-sync-stream", data={"source": "strava"}, headers=ORIGIN)
     events = [json.loads(l[6:]) for l in r.get_data(as_text=True).splitlines() if l.startswith("data: ")]
     done = [e for e in events if e.get("type") == "source_done"]
     assert done and done[0]["reason"] == "disabled" and done[0]["skipped"] is True

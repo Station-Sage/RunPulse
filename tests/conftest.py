@@ -20,6 +20,14 @@ from src.db_setup import create_tables, migrate_db, get_db_path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Origin 관문(SRV 2.1)은 운영 기본이 observe 지만 테스트는 enforce 최종 상태로 돌린다 —
+# 쓰기 요청을 보내는 test_client 호출은 `Origin: http://localhost`(test_client 의 url_root)를 붙여야 한다.
+
+@pytest.fixture(autouse=True)
+def _origin_guard_enforce(monkeypatch):
+    monkeypatch.setenv("ORIGIN_GUARD_MODE", "enforce")
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. 인메모리 (순수 단위 테스트)

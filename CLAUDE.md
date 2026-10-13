@@ -43,6 +43,7 @@
 
     python3 src/sync.py --source all --days 7      # 데이터 동기화
     .venv/bin/python -m pytest tests/              # 테스트 (flask·gunicorn 은 .venv 에만 있음, ENV-1. 시스템 python3 는 수집 오류)
+    # 쓰기 요청(POST/PUT/PATCH/DELETE)을 보내는 test_client 호출은 `headers={"Origin": "http://localhost"}` 필요 — conftest 가 Origin 관문을 enforce 로 고정 (S3-5 ⑨)
     python3 scripts/check_docs.py                  # 문서 정합성 검증 (20개 검사)
     python3 scripts/gen_files_index.py             # 파일 인덱스 재생성
     python3 scripts/gen_metric_dictionary.py       # 메트릭 사전 재생성

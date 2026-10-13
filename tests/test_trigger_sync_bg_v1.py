@@ -21,7 +21,7 @@ def test_v1_response_shape(monkeypatch, tmp_path):
     app = webapp.create_app()
     app.config["TESTING"] = True
     with app.test_client() as c:
-        d = c.post("/trigger-sync-bg", data={"source": "all"}).get_json()
+        d = c.post("/trigger-sync-bg", data={"source": "all"}, headers={"Origin": "http://localhost"}).get_json()
     assert d["ok"] is True and d["started"] == ["garmin"] and d["job_ids"] == {"garmin": "j1"}
     assert {"source": "strava", "error": "쿨다운", "retry_after_sec": 30} in d["skipped"]
     assert {"source": "runalyze", "error": "미연결"} in d["skipped"]

@@ -1073,7 +1073,7 @@
 
 - functions: svg_semicircle_gauge, svg_radar_chart
 
-### `request_guard.py` (141줄) — 요청 경계 보호 — Origin 관문·봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
+### `request_guard.py` (177줄) — 요청 경계 보호 — Origin 관문·봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
 
 - functions: is_envelope_path, forbidden_response, guard_mode, is_exempt, allowed_origins, request_origin, same_origin, init_request_guard
 
@@ -1866,7 +1866,7 @@
 
 ## `tests/`
 
-### `conftest.py` (146줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (154줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -2650,9 +2650,9 @@
 
 - functions: idx, test_record_and_query_with_truncation_and_ip_hash, test_purge_removes_only_old_rows
 
-### `test_mcp_http_routes.py` (169줄) — POST /mcp — 킬 스위치, 토큰 인증(세션 무시), 제한, 감사, auth_cf 예외.
+### `test_mcp_http_routes.py` (182줄) — POST /mcp — 킬 스위치, 토큰 인증(세션 무시), 제한, 감사, auth_cf 예외.
 
-- functions: env, test_disabled_returns_404, test_no_or_bad_token_same_401, test_cookie_only_is_rejected_and_no_set_cookie, test_tools_list_and_audit_record, test_ping_not_audited_and_notification_202, test_disallowed_tool_is_tool_error, test_tool_call_uses_token_user_not_session_or_config, test_batch_and_bad_json_rejected, test_body_too_large_and_origin_and_version, test_get_and_delete_405, test_call_rate_limit_429, test_auth_failure_ip_block, test_auth_cf_exempts_mcp_exact_only
+- functions: env, test_disabled_returns_404, test_no_or_bad_token_same_401, test_cookie_only_is_rejected_and_no_set_cookie, test_tools_list_and_audit_record, test_ping_not_audited_and_notification_202, test_disallowed_tool_is_tool_error, test_tool_call_uses_token_user_not_session_or_config, test_mcp_origin_judged_against_allowed_origins_not_host, test_batch_and_bad_json_rejected, test_body_too_large_and_origin_and_version, test_get_and_delete_405, test_call_rate_limit_429, test_auth_failure_ip_block, test_auth_cf_exempts_mcp_exact_only
 
 ### `test_mcp_protocol.py` (100줄) — mcp_remote.protocol / safe_conn / policy — 허용 집합, 버전 협상, 일반화 오류, 읽기 전용 보장.
 
@@ -3093,9 +3093,9 @@
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
-### `test_request_guard.py` (241줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
+### `test_request_guard.py` (333줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
 
-- functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_registers_guard_and_enforces
+- functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_default_port_and_case_normalized_accepted, test_malformed_or_deceptive_origins_rejected, test_empty_origin_does_not_fall_back_to_referer, test_public_base_url_with_path_and_default_port_is_normalized, test_invalid_public_base_url_warns_and_rejects, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_log_strips_referer_query_and_fragment_and_limits_length, test_log_limits_origin_length, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_unknown_mode_is_logged, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_default_mode_is_observe, test_set_cookie_header_attributes, test_create_app_registers_guard_and_enforces
 
 ### `test_round2.py` (193줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric.
 
@@ -3327,7 +3327,7 @@
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
 
-### `test_v1_sync_guards.py` (42줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
+### `test_v1_sync_guards.py` (44줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
 
 - functions: client, test_bg_start_blocks_disabled_source, test_bg_start_allows_enabled_source, test_bg_resume_blocks_disabled_source, test_stream_skips_disabled_source
 
