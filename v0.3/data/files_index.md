@@ -2379,6 +2379,10 @@
 
 - functions: test_find_missing_only_running_with_hr_and_duration, test_backfill_computes_trimp_and_ctl_then_is_idempotent, test_nothing_to_do_returns_empty
 
+### `test_envelope_handlers.py` (124줄) — tests/test_envelope_handlers.py — register_envelope_handlers (SRV 2.3, ADR-048 1단계).
+
+- functions: client, test_unhandled_exception_is_json_500_without_leaking, test_404_in_view_is_envelope, test_400_keeps_description, test_405_raised_in_view_is_envelope, test_routing_level_404_405_are_outside_blueprint_handlers, test_413_is_envelope, test_unmapped_http_status_uses_name_as_code, test_api_bp_has_the_shared_handlers
+
 ### `test_export_service.py` (134줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
 
 - functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_archive_excludes_calendar_feed_and_tokens, test_job_view_expiry, test_routes
@@ -3446,7 +3450,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 733개 파일
+총 734개 파일
 
 ## docstring 누락
 

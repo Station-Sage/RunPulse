@@ -10,7 +10,12 @@
 """
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import HTTPException
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
@@ -46,6 +51,46 @@ def api_error(code: str, message: str, status: int = 400, details: dict | None =
         err["details"] = details
     return jsonify({"error": err}), status
 
+
+def register_envelope_handlers(bp: Blueprint) -> None:
+    """블루프린트의 모든 오류를 `{error:{code,message}}` 봉투로 내보내는 공용 핸들러 등록 (SRV 2.3).
+
+    - `HTTPException`(뷰 안의 400/404/413/415 등) → 같은 상태코드의 봉투. 응답 헤더(`Allow` 등)는 유지한다.
+    - 그 밖의 예외 → 서버 로그에 스택을 남기고 `INTERNAL` 500 봉투(메시지에 예외 내용을 싣지 않음).
+    입력 검증이 빠진 라우트가 남아도 HTML 500 이 나가지 않게 하는 안전망이며 검증을 대체하지 않는다.
+
+    `api_bp` 와 `/api/context-episodes` 블루프린트(NEW-40)가 같은 함수로 등록한다(복제 금지).
+    제약(Flask 동작, S3 1단계에서 확인): 블루프린트 핸들러는 '라우트가 매칭된 요청'에만 적용된다.
+    라우팅 단계에서 나는 404(없는 URL)·405(허용 안 되는 메서드)는 `url_rule` 이 없어 이 핸들러 밖이며
+    기본 HTML 로 나간다. 뷰 안에서 `abort()`·예외로 난 오류는 모두 봉투가 된다.
+    """
+
+    @bp.errorhandler(HTTPException)
+    def _http_error(exc: HTTPException):
+        status = exc.code or 500
+        code = _HTTP_ERROR_CODES.get(status) or exc.name.upper().replace(" ", "_")
+        resp, _ = api_error(code, exc.description or exc.name, status)
+        for key, value in exc.get_headers():
+            if key.lower() not in ("content-type", "content-length"):
+                resp.headers[key] = value
+        return resp, status
+
+    @bp.errorhandler(Exception)
+    def _unhandled_error(exc: Exception):
+        logger.exception("[api] 처리되지 않은 예외 %s %s", request.method, request.path)
+        return api_error("INTERNAL", "서버 내부 오류가 발생했습니다.", 500)
+
+
+_HTTP_ERROR_CODES = {
+    400: "BAD_REQUEST",
+    404: "NOT_FOUND",
+    405: "METHOD_NOT_ALLOWED",
+    413: "TOO_LARGE",
+    415: "UNSUPPORTED_MEDIA_TYPE",
+    500: "INTERNAL",
+}
+
+register_envelope_handlers(api_bp)
 
 _LIVE_TODAY_PREFIXES = ("/api/v1/today", "/api/v1/library/metrics")
 
