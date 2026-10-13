@@ -1282,7 +1282,7 @@
 
 - functions: sync_page, sync_sources_post, auto_sync_settings_post
 
-### `views_training.py` (350줄) — 훈련 계획 뷰 — Flask Blueprint.
+### `views_training.py` (349줄) — 훈련 계획 뷰 — Flask Blueprint.
 
 - functions: training_page, training_calendar_partial, training_generate
 
@@ -1318,9 +1318,9 @@
 
 - functions: render_goals_panel, render_goal_detail_html
 
-### `views_training_loaders.py` (347줄) — 훈련 계획 뷰 — 데이터 로더.
+### `views_training_loaders.py` (335줄) — 훈련 계획 뷰 — 데이터 로더.
 
-- functions: load_goal, load_workouts, load_adjustment, load_training_metrics, load_yesterday_pending, load_actual_activities, load_month_workouts, load_full_plan_weeks, load_goals_with_stats, load_goal_weeks, load_sync_status
+- functions: load_goal, load_workouts, load_training_metrics, load_yesterday_pending, load_actual_activities, load_month_workouts, load_full_plan_weeks, load_goals_with_stats, load_goal_weeks, load_sync_status
 
 ### `views_training_month.py` (211줄) — 훈련 계획 — 월간 캘린더 렌더러 (4주 뷰).
 

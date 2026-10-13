@@ -34,7 +34,6 @@ from src.web.views_training_cards import (
 )
 from src.web.views_training_loaders import (
     load_actual_activities,
-    load_adjustment,
     load_goal,
     load_goals_with_stats,
     load_month_workouts,
@@ -81,7 +80,7 @@ def training_page():
             goal = load_goal(conn)
             workouts, week_start = load_workouts(conn, week_offset)
 
-            adjustment = load_adjustment(conn, config)
+            adjustment = None  # V1S-6: v1 조정 카드는 일몰 전까지 표시하지 않음(loader 제거, V1-6)
             metrics = load_training_metrics(conn)
             sync_info = load_sync_status(conn)
             yesterday_pending = load_yesterday_pending(conn) if week_offset == 0 else None

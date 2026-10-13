@@ -35,18 +35,6 @@ def load_workouts(
     return workouts, week_start
 
 
-def load_adjustment(
-    conn: sqlite3.Connection,
-    config: dict | None = None,
-) -> dict | None:
-    """오늘 컨디션 조정 데이터."""
-    from src.training.adjuster import adjust_todays_plan
-    try:
-        return adjust_todays_plan(conn, config)
-    except Exception:
-        return None
-
-
 def _safe_json(raw) -> dict:
     """안전한 JSON 파싱."""
     if not raw:
