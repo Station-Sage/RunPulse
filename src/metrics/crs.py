@@ -12,11 +12,15 @@ CRS 참고 점수 (0~100) → UTRS 기반 + ACWR/CIRS 보정.
 
 반환: level(0~4), crs(0~100), gates[], signals{}
 
+evaluate(conn, target_date): 저장된 CRS 행을 읽는 읽기 전용 함수(계산하지 않음).
+  replanner·matcher_context 가 사용. 행이 없거나 데이터가 손상됐으면 None.
+
 v0.3 포팅: _v02_backup/crs.py → MetricCalculator 형식
 """
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import date, timedelta
 from src.metrics.base import MetricCalculator, CalcResult, CalcContext
 
@@ -204,3 +208,52 @@ class CRSCalculator(MetricCalculator):
         
             confidence=1.0,
         )]
+
+
+# ── 저장된 CRS 읽기 (읽기 전용) ───────────────────────────────────────
+
+def _is_number(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def evaluate(conn: sqlite3.Connection, target_date: str) -> dict | None:
+    """target_date(ISO) 하루의 저장된 CRS(is_primary=1)를 읽어 반환한다. 계산·쓰기 없음.
+
+    정확히 그 날짜의 행만 읽는다(이전 날짜 행으로 대체하지 않음 — 오래된 값이
+    그날 값처럼 쓰이는 것을 막는다). 같은 날짜에 대표 행이 여럿이면 id 가 큰 쪽.
+
+    Returns:
+        {"level": int 0~4, "level_label": str, "crs": float | None,
+         "gates": list, "signals": dict, "boost_allowed": bool}
+        행이 없거나 json_value 가 손상됐거나 level 이 유효하지 않으면 None.
+
+    DB 오류(테이블 없음 등)는 잡지 않고 그대로 전파한다.
+    """
+    row = conn.execute(
+        "SELECT json_value FROM metric_store "
+        "WHERE scope_type='daily' AND scope_id=? AND metric_name='crs' "
+        "AND is_primary=1 AND json_value IS NOT NULL ORDER BY id DESC LIMIT 1",
+        (target_date,),
+    ).fetchone()
+    if row is None:
+        return None
+    try:
+        data = json.loads(row[0])
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    level = data.get("level")
+    if not isinstance(level, int) or isinstance(level, bool) or level not in LEVEL_LABELS:
+        return None
+    label = data.get("level_label")
+    gates = data.get("gates")
+    signals = data.get("signals")
+    return {
+        "level": level,
+        "level_label": label if isinstance(label, str) and label else LEVEL_LABELS[level],
+        "crs": data["crs"] if _is_number(data.get("crs")) else None,
+        "gates": gates if isinstance(gates, list) else [],
+        "signals": signals if isinstance(signals, dict) else {},
+        "boost_allowed": data.get("boost_allowed") is True,
+    }

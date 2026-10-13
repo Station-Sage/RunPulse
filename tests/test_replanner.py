@@ -7,6 +7,7 @@ import pytest
 
 from src.training.replanner import replan_remaining_week
 from src.training.goals import add_goal
+from src.utils.db_helpers import upsert_metric
 
 
 # ── 헬퍼 ────────────────────────────────────────────────────────────────────
@@ -218,3 +219,59 @@ def test_unknown_workout_id_returns_error(db_conn):
     result = replan_remaining_week(db_conn, 99999)
     assert result["moved"] is False
     assert "찾을 수 없습니다" in result["message"]
+
+
+# ── CRS 기반 Q-day 경고 (crs.evaluate 복원, ADJ-22) ──────────────────────────
+
+_CRS_WARN = "현재 CRS 레벨"
+
+
+def _replan_with_crs(db_conn, crs_json, *, crs_offset=1, raw=None):
+    """today = 건너뜀 다음 날. crs_offset 일 뒤 날짜에 CRS 행을 저장하고 재계획 실행."""
+    monday = _monday_of(date.today())
+    skip_date = monday + timedelta(days=1)
+    today = skip_date + timedelta(days=1)
+    plan_id = _insert_plan(db_conn, skip_date.isoformat(), "easy", 8.0)
+    _skip(db_conn, plan_id)
+    crs_day = (skip_date + timedelta(days=crs_offset)).isoformat()
+    if raw is not None:
+        db_conn.execute(
+            "INSERT INTO metric_store (scope_type, scope_id, metric_name, category, provider, "
+            "json_value, is_primary) VALUES ('daily', ?, 'crs', 'readiness', 'p', ?, 1)",
+            (crs_day, raw))
+        db_conn.commit()
+    elif crs_json is not None:
+        upsert_metric(db_conn, "daily", crs_day, "crs", "runpulse:formula_v1",
+                      numeric_value=50.0, category="readiness", json_value=crs_json)
+    with patch("src.training.replanner.date") as mock_date:
+        mock_date.today.return_value = today
+        mock_date.fromisoformat = date.fromisoformat
+        return replan_remaining_week(db_conn, plan_id)
+
+
+@pytest.mark.parametrize("level,label", [(0, "휴식"), (1, "이지런만")])
+def test_crs_low_level_adds_warning(db_conn, level, label):
+    result = _replan_with_crs(db_conn, {"level": level, "level_label": label, "crs": 30.0})
+    assert any(_CRS_WARN in w and label in w and "이지런으로 전환" in w for w in result["warnings"])
+
+
+@pytest.mark.parametrize("level", [2, 3, 4])
+def test_crs_level_above_z1_no_warning(db_conn, level):
+    result = _replan_with_crs(db_conn, {"level": level, "crs": 70.0})
+    assert not any(_CRS_WARN in w for w in result["warnings"])
+
+
+def test_crs_missing_row_no_warning_no_error(db_conn):
+    result = _replan_with_crs(db_conn, None)
+    assert not any(_CRS_WARN in w for w in result["warnings"])
+
+
+def test_crs_other_day_row_not_used_as_today(db_conn):
+    """오늘이 아닌 날(어제) 저장된 level 0 은 경고로 쓰지 않는다."""
+    result = _replan_with_crs(db_conn, {"level": 0, "crs": 10.0}, crs_offset=0)
+    assert not any(_CRS_WARN in w for w in result["warnings"])
+
+
+def test_crs_corrupt_row_no_warning_no_error(db_conn):
+    result = _replan_with_crs(db_conn, None, raw="{broken")
+    assert not any(_CRS_WARN in w for w in result["warnings"])

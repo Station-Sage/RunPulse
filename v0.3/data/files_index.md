@@ -465,9 +465,10 @@
 
 - class **CriticalPowerCalculator**: compute
 
-### `crs.py` (206줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
+### `crs.py` (259줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
 
 - class **CRSCalculator**: compute
+- functions: evaluate
 
 ### `darp.py` (140줄) — DARP v2 레이스 예측 — 앵커 대회(15℃ 정규화·감쇠) + 작업 블록 + HR@LTHR 결합, 개인 내구성 지수, 마라톤 Daniels·Tanda.
 
@@ -1429,7 +1430,7 @@
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
-### `matcher_context.py` (122줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
+### `matcher_context.py` (119줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
 
 - (public API 없음)
 
@@ -1531,7 +1532,7 @@
 
 - functions: rematch, replan_future, main
 
-### `replanner.py` (286줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
+### `replanner.py` (284줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
 
 - functions: replan_remaining_week
 
@@ -2113,9 +2114,10 @@
 
 - class **TestCriticalPower**: test_with_power_data, test_no_power, test_confidence
 
-### `test_crs.py` (107줄)
+### `test_crs.py` (201줄)
 
 - class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_category
+- class **TestEvaluate**: test_roundtrip_matches_calculator_output, test_no_row_returns_none, test_exact_date_only, test_ignores_non_primary_other_metric_and_scope, test_newest_primary_row_wins_on_same_date, test_invalid_data_returns_none, test_field_defaults_and_type_normalization, test_db_error_propagates, test_does_not_write
 
 ### `test_daily2_calcs.py` (139줄) — Daily-Scope 2차 calculator 테스트.
 
@@ -2493,6 +2495,10 @@
 ### `test_marathon_types_wiring.py` (56줄) — U16h: marathon·long_mp 유형 배선(스키마 CHECK·구조·판정·매처·라벨·푸시).
 
 - functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
+
+### `test_matcher_context_crs.py` (47줄) — matcher_context._get_condition_snapshot — 저장된 CRS 가 스냅샷에 채워지는지 (ADJ-22).
+
+- functions: test_snapshot_fills_crs_from_stored_row, test_snapshot_crs_none_without_row_or_other_day, test_snapshot_crs_none_on_invalid_row, test_snapshot_other_fields_unaffected_by_crs, test_skipped_outcome_persists_crs
 
 ### `test_mcp_audit.py` (33줄) — mcp_remote.audit — 기록·절단·IP 해시·보존 정리·조회.
 
@@ -2930,9 +2936,9 @@
 - class **TestRelativeEffort**: test_from_avg_hr, test_high_intensity, test_low_intensity, test_no_hr, test_confidence_from_avg_hr, test_category
 - class **TestRelativeEffortMock**: test_basic_mock, test_no_hr_mock
 
-### `test_replanner.py` (220줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
+### `test_replanner.py` (277줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
 
-- functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error
+- functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error, test_crs_low_level_adds_warning, test_crs_level_above_z1_no_warning, test_crs_missing_row_no_warning_no_error, test_crs_other_day_row_not_used_as_today, test_crs_corrupt_row_no_warning_no_error
 
 ### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
@@ -3325,7 +3331,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 709개 파일
+총 710개 파일
 
 ## docstring 누락
 

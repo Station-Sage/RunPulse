@@ -23,6 +23,8 @@ import logging
 import sqlite3
 from datetime import date, timedelta
 
+from src.metrics.crs import LEVEL_Z1, evaluate as crs_eval
+
 log = logging.getLogger(__name__)
 
 _HIGH_INTENSITY = {"interval", "tempo"}
@@ -137,17 +139,13 @@ def replan_remaining_week(
     if pace_warning:
         warnings.append(pace_warning)
 
-    # CRS 기반 Q-day 경고
-    try:
-        from src.metrics.crs import evaluate as crs_eval, LEVEL_Z1
-        crs_result = crs_eval(conn)
-        if crs_result["level"] <= LEVEL_Z1:
-            warnings.append(
-                f"현재 CRS 레벨 {crs_result['level_label']} — "
-                f"남은 고강도 훈련을 이지런으로 전환하는 것을 고려하세요."
-            )
-    except Exception:
-        pass
+    # CRS 기반 Q-day 경고 (오늘의 저장된 CRS 행이 없으면 경고 없음)
+    crs_result = crs_eval(conn, today.isoformat())
+    if crs_result is not None and crs_result["level"] <= LEVEL_Z1:
+        warnings.append(
+            f"현재 CRS 레벨 {crs_result['level_label']} — "
+            f"남은 고강도 훈련을 이지런으로 전환하는 것을 고려하세요."
+        )
 
     # 이번 주 잔여 계획 (오늘 이후)
     remaining = conn.execute(

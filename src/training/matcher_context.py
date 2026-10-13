@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from src.metrics.crs import evaluate as crs_eval
 from src.utils.canonical import canonical_activity_id  # noqa: F401  (재export — 기존 import 경로 유지)
 
 
@@ -80,12 +81,8 @@ def _get_condition_snapshot(
 ) -> tuple[float | None, float | None, float | None, int | None, float | None]:
     """훈련 당일 컨디션 스냅샷 (CRS, TSB, HRV, BB, ACWR)."""
     # CRS
-    try:
-        from src.metrics.crs import evaluate as crs_eval
-        crs_result = crs_eval(conn, target_date)
-        crs = crs_result.get("crs")
-    except Exception:
-        crs = None
+    crs_result = crs_eval(conn, target_date)
+    crs = crs_result["crs"] if crs_result is not None else None
 
     # TSB
     tsb_row = conn.execute(
