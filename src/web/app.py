@@ -171,10 +171,18 @@ def create_app() -> Flask:
     )
     app.secret_key = _resolve_secret_key()
     app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7  # 7일
+    # 세션 쿠키 속성 (SRV-10) — Secure 판정은 APP_ENV (http 개발 환경에서 쿠키가 사라지지 않게)
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV", "development").lower() == "production"
 
     # CF Zero Trust 헤더 기반 사용자 식별 미들웨어 등록
     from .auth_cf import init_cf_auth
     init_cf_auth(app, config=load_config())
+
+    # Origin 관문 — 인증 훅 뒤에 등록(인증 통과 요청만 검사, SRV 2.1)
+    from .request_guard import init_request_guard
+    init_request_guard(app)
 
     _auto_migrate()
 

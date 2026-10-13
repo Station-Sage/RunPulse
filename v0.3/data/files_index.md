@@ -1052,7 +1052,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1165줄) — RunPulse integration workbench web app.
+### `app.py` (1173줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1073,9 +1073,9 @@
 
 - functions: svg_semicircle_gauge, svg_radar_chart
 
-### `request_guard.py` (24줄) — 요청 경계 보호 — 봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
+### `request_guard.py` (141줄) — 요청 경계 보호 — Origin 관문·봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
 
-- functions: is_envelope_path, forbidden_response
+- functions: is_envelope_path, forbidden_response, guard_mode, is_exempt, allowed_origins, request_origin, same_origin, init_request_guard
 
 ### `route_svg.py` (118줄) — GPS 경로 SVG 썸네일 생성 — activity_streams에서 latlng 데이터를 SVG polyline으로 변환.
 
@@ -1749,7 +1749,7 @@
 
 - functions: ip_hash, record, purge, query
 
-### `http.py` (128줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
+### `http.py` (130줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
 
 - functions: enabled, mcp_endpoint
 
@@ -3093,6 +3093,10 @@
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
+### `test_request_guard.py` (241줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
+
+- functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_registers_guard_and_enforces
+
 ### `test_round2.py` (193줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric.
 
 - class **TestComputeResult**: test_summary, test_defaults
@@ -3481,7 +3485,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 741개 파일
+총 742개 파일
 
 ## docstring 누락
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from urllib.parse import urlparse
 
 from flask import Blueprint, Response, request
 
@@ -19,6 +18,7 @@ from src.mcp_remote.protocol import SUPPORTED_VERSIONS, handle_message
 from src.mcp_remote.safe_conn import connect_readonly
 from src.utils import rate_window
 from src.utils.config import load_config
+from src.web.request_guard import same_origin
 
 log = logging.getLogger(__name__)
 mcp_remote_bp = Blueprint("mcp_remote", __name__)
@@ -56,8 +56,10 @@ def _bearer() -> str:
 
 
 def _origin_ok() -> bool:
-    origin = request.headers.get("Origin")
-    return not origin or urlparse(origin).netloc == request.host
+    # Origin 이 있으면 허용 출처여야 한다. 없는(비브라우저) 클라이언트는 Bearer 로 인증한다 (ADR-034)
+    if not request.headers.get("Origin"):
+        return True
+    return same_origin(request)
 
 
 def _auth_fail(method: str | None, ip: str) -> Response:
