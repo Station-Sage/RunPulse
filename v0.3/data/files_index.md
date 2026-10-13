@@ -1162,10 +1162,6 @@
 
 - functions: render_coach_profile, render_briefing_card, render_wellness_card, render_chips, render_chat_section, render_recent_training, render_risk_summary
 
-### `views_calendar_feed.py` (89줄) — 캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
-
-- functions: client_family, calendar_feed
-
 ### `views_dashboard.py` (438줄) — 통합 대시보드 뷰 — Flask Blueprint.
 
 - functions: dashboard
@@ -1765,6 +1761,94 @@
 
 - class **TokenError**: 없음
 - functions: index_path, connect, hash_token, issue, list_tokens, revoke, revoke_all, lookup, touch
+
+## `src/api/`
+
+> Phase 7 `/api/v1/` 블루프린트 — SvelteKit(v2)용 JSON API.
+> 
+> 기존 v1 뷰의 `{ok, error}` ad-hoc 포맷과 달리, `05-tech-architecture.md` §3.3이 정한
+> `{data, meta?}` / `{error: {code, message}}` 포맷을 쓴다 — SvelteKit `apiFetch()`
+> 클라이언트가 `res.json().data`를 그대로 destructure하기 때문(같은 문서 §4.2).
+> 
+> 새 비즈니스 로직 없음 — routes_*.py는 src/services/의 기존 함수를 그대로 호출한다.
+> 
+> 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
+
+### `routes_calendar_feed.py` (91줄) — 캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
+
+- functions: client_family, calendar_feed
+
+### `routes_coach.py` (262줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
+
+- functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
+
+### `routes_data.py` (305줄) — `/api/v1/data/*` — 데이터 관리(동기화 상태 등). 40-v2-unimplemented design §7.3.
+
+- functions: get_sync_state, post_data_sync, get_sync_estimate, cancel_sync_run, get_data_summary, get_data_sources, get_data_source, get_data_runs, patch_data_source, get_sync_auto, patch_sync_auto, get_data_profile, preview_data_profile, patch_data_profile, post_data_recompute, get_data_job, connect_data_source, test_data_source, disconnect_data_source
+
+### `routes_data_ai.py` (54줄) — AI 설정 라우트 — GET/PATCH /data/settings/ai, POST /data/settings/ai/test (F-DATA-12).
+
+- functions: get_ai_settings, patch_ai_settings, test_ai_connection
+
+### `routes_data_calendar.py` (54줄) — `/api/v1/data/calendar-feed` — 캘린더 구독 주소 조회/발급·재발급/해제. design ICS-SUBSCRIBE §6.
+
+- functions: get_data_calendar_feed, post_data_calendar_feed, delete_data_calendar_feed
+
+### `routes_data_export.py` (56줄) — `/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2.
+
+- functions: post_data_export, get_data_exports, download_data_export
+
+### `routes_data_import.py` (70줄) — `/api/v1/data/import*` — 업로드+미리보기, 실행 작업, 가져오기 이력. design §2.4 가져오기.
+
+- functions: post_data_import_preview, post_data_import, get_data_imports, get_data_import
+
+### `routes_library.py` (316줄) — GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
+
+- functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_activity_streams, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
+
+### `routes_library_activities.py` (36줄) — GET /api/v1/library/activities/facets · /summary — 목록 칩·월/주 요약 (UX 리뷰 20 §7-2 ⑤, B-3).
+
+- functions: get_library_activity_facets, get_library_activity_summary
+
+### `routes_library_export.py` (48줄) — 활동 원본 링크·GPX 내보내기 — /api/v1/library/activities/<id>/source-links · export.gpx (ADR-022).
+
+- functions: get_activity_source_links, get_activity_gpx
+
+### `routes_library_feedback.py` (63줄) — 활동 피드백(RPE·통증·메모) GET/PUT/DELETE — /api/v1/library/activities/<id>/feedback (ADR-022).
+
+- functions: get_activity_feedback, put_activity_feedback, delete_activity_feedback
+
+### `routes_mcp_tokens.py` (64줄) — `/api/v1/settings/mcp-tokens` — 원격 MCP 토큰 목록/발급/폐기(세션 사용자 한정). design MCP-REMOTE R8.
+
+- functions: get_mcp_tokens, post_mcp_token, delete_mcp_token
+
+### `routes_me.py` (57줄) — 사용자 설정 API — /api/v1/me/preferences (ADR-023). 저장소만 제공하며 `/` 분기 연결은 G0 작업.
+
+- functions: get_preferences, patch_preferences
+
+### `routes_plan.py` (178줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+
+- functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan
+
+### `routes_plan_adjust.py` (180줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
+
+- functions: accept_plan_adjustment, revert_plan_adjustment, plan_workout_action, plan_workout_action_preview, list_plan_adjustments, plan_advisories
+
+### `routes_plan_replan.py` (114줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+
+- functions: replan_preview, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
+
+### `routes_prediction.py` (85줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
+
+- functions: get_prediction_compare, get_prediction_profile, get_race_candidates, put_race_confirm, delete_race_confirm
+
+### `routes_story.py` (37줄) — GET /api/v1/library/story/<period> — Phase 7 Story endpoint.
+
+- functions: get_story
+
+### `routes_today.py` (143줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+
+- functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
 
 ## `tests/`
 
@@ -3365,7 +3449,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 715개 파일
+총 733개 파일
 
 ## docstring 누락
 

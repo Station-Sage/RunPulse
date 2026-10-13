@@ -9,7 +9,7 @@ from flask import Flask
 
 from src.services import calendar_feed_index as idx
 from src.utils import rate_window
-from src.web import views_calendar_feed as v
+from src.api import routes_calendar_feed as v
 from src.web.gunicorn_logging import redact
 
 

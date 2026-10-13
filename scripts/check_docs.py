@@ -45,7 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 SCAN_DIRS = [
     "src/services", "src/metrics", "src/sync", "src/sync/extractors",
-    "src/ai", "src/web", "src/training", "src/utils", "src/validation", "src/mcp_remote",
+    "src/ai", "src/web", "src/training", "src/utils", "src/validation", "src/mcp_remote", "src/api",
 ]
 MAX_LINES = 300
 errors = 0

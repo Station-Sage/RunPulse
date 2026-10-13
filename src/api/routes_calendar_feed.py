@@ -1,5 +1,7 @@
 """캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
 
+`/api/v1` Blueprint 가 아닌 별도 Blueprint(`calendar_feed_bp`) — URL 은 `/feeds/cal/...` 그대로, app.py 가 등록(V1-19).
+
 설계: v0.3/data/phase-7-ui-renewal/ux-review-2026-09/DESIGN-ICS-SUBSCRIBE.md §4
 """
 from __future__ import annotations
