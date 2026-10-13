@@ -15,6 +15,8 @@ import logging
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+from src.utils.user_context import InvalidUserId
+
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
@@ -74,6 +76,12 @@ def register_envelope_handlers(bp: Blueprint) -> None:
             if key.lower() not in ("content-type", "content-length"):
                 resp.headers[key] = value
         return resp, status
+
+    @bp.errorhandler(InvalidUserId)
+    def _invalid_user(exc: InvalidUserId):
+        # get_db_path 등 깊은 곳에서 올라온 uid 규칙 위반(V1-20 이중 방어) — 500 으로 새지 않게 403 봉투
+        logging.getLogger("runpulse.security").warning("[api] uid 규칙 위반 %s (path=%s)", exc.masked, request.path)
+        return api_error("FORBIDDEN_USER", "허용되지 않는 사용자 식별자입니다.", 403)
 
     @bp.errorhandler(Exception)
     def _unhandled_error(exc: Exception):

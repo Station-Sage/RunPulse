@@ -41,9 +41,18 @@ def get_db_path(user_id: str | None = None, *, create: bool = True) -> Path:
 
     create=False 는 읽기 전용 소비자(MCP 서버 등)용 — 오타 난 user_id로 빈 디렉터리가
     생기지 않도록 디렉터리를 만들지 않는다.
+
+    uid 는 `validate_uid` 규칙을 통과해야 하고(위반 시 `InvalidUserId`, 디렉터리 미생성), 조립한 경로가
+    `data/users` 바로 아래인지 `resolve()` 로 한 번 더 확인한다(이중 방어 — SRV 2.6 ⑤). 따라서
+    `data/users/<uid>` 가 다른 위치를 가리키는 심볼릭 링크면 거부된다(운영에 그런 배치가 있는지는 미확인 — S3-4).
     """
-    uid = user_id or DEFAULT_USER
-    user_dir = _PROJECT_ROOT / "data" / "users" / uid
+    from src.utils.user_context import InvalidUserId, mask_uid, validate_uid
+
+    uid = validate_uid(user_id) if user_id else DEFAULT_USER
+    base = _PROJECT_ROOT / "data" / "users"
+    user_dir = base / uid
+    if user_dir.resolve().parent != base.resolve():
+        raise InvalidUserId(mask_uid(uid))
     if create:
         user_dir.mkdir(parents=True, exist_ok=True)
     return user_dir / "running.db"

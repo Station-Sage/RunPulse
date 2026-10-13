@@ -182,11 +182,8 @@ def create_app() -> Flask:
     try:
         from src.sync.auto_sync import start as _start_auto_sync
         from src.db_setup import create_tables, migrate_db, get_db_path
-        users_dir = _project_root() / "data" / "users"
-        user_ids = (
-            sorted(d.name for d in users_dir.iterdir() if d.is_dir())
-            if users_dir.exists() else ["default"]
-        )
+        from src.utils.user_context import list_user_ids
+        user_ids = list_user_ids() if (_project_root() / "data" / "users").exists() else ["default"]
         # 모든 유저 DB를 최신 스키마로 마이그레이션
         for _uid in user_ids:
             _db = get_db_path(_uid)
@@ -218,6 +215,15 @@ def create_app() -> Flask:
         _start_auto_sync(load_config(user_id=_sync_uid), user_id=_sync_uid)
     except Exception as _e:
         log.warning("[auto_sync] 시작 실패: %s", _e)
+
+    from src.utils.user_context import InvalidUserId
+
+    @app.errorhandler(InvalidUserId)
+    def _invalid_user_id(exc: InvalidUserId):
+        """get_db_path 등에서 올라온 uid 규칙 위반(V1-20 이중 방어) — HTML 500 으로 새지 않게 403."""
+        from .request_guard import forbidden_response
+        logging.getLogger("runpulse.security").warning("[app] uid 규칙 위반 %s (path=%s)", exc.masked, request.path)
+        return forbidden_response("FORBIDDEN_USER", "허용되지 않는 사용자 식별자입니다.")
 
     @app.before_request
     def _ensure_user_db_migrated():

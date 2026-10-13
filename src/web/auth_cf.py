@@ -16,12 +16,23 @@ import os
 
 from flask import Flask, Response, request, session
 
+from src.utils.user_context import InvalidUserId, validate_uid
+
+from .request_guard import forbidden_response
+
 log = logging.getLogger(__name__)
+security_log = logging.getLogger("runpulse.security")
 
 _CF_EMAIL_HEADER = "CF-Access-Authenticated-User-Email"
 _SESSION_KEY = "user_id"
 _APP_ENV = os.environ.get("APP_ENV", "development").lower()
 _IS_PRODUCTION = _APP_ENV == "production"
+
+
+def _reject_uid(source: str, exc: InvalidUserId) -> Response:
+    """uid 규칙 위반(V1-20) — 세션에 기록하지 않고 403 + 마스킹 보안 로그. default 로 폴백하지 않는다."""
+    security_log.warning("[auth_cf] uid 규칙 위반 (source=%s, value=%s, path=%s)", source, exc.masked, request.path)
+    return forbidden_response("FORBIDDEN_USER", "허용되지 않는 사용자 식별자입니다.")
 
 
 def _get_dev_user_id() -> str:
@@ -69,12 +80,22 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
         # 원격 MCP: Bearer 토큰이 유일한 신원. 세션·쿠키·CF 서비스 토큰 우회를 타지 않는다(정확 일치만).
         if request.path in ("/mcp", "/mcp/"):
             return None
-        # 이미 세션에 user_id가 있으면 매 요청마다 헤더 재파싱 불필요
+        # 이미 세션에 user_id가 있으면 매 요청마다 헤더 재파싱 불필요 — 단, 저장값이 규칙 위반이면
+        # (규칙 도입 전 세션 우회 방지, V1-20) 세션 키를 지우고 403. 다음 요청은 CF 헤더로 다시 식별된다.
         if _SESSION_KEY in session:
+            try:
+                validate_uid(session[_SESSION_KEY])
+            except InvalidUserId as exc:
+                session.pop(_SESSION_KEY, None)
+                return _reject_uid("session", exc)
             return None
 
         email = request.headers.get(_CF_EMAIL_HEADER, "").strip()
         if email:
+            try:
+                validate_uid(email)
+            except InvalidUserId as exc:
+                return _reject_uid("cf_email", exc)
             session.permanent = True
             session[_SESSION_KEY] = email
             log.debug("[auth_cf] 사용자 식별: %s", email)
@@ -92,6 +113,10 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
             req_id = request.headers.get("CF-Access-Client-Id", "")
             req_secret = request.headers.get("CF-Access-Client-Secret", "")
             if req_id == svc_id and req_secret == svc_secret:
+                try:
+                    validate_uid(svc_user)
+                except InvalidUserId as exc:
+                    return _reject_uid("svc_user", exc)
                 session.permanent = True
                 session[_SESSION_KEY] = svc_user
                 log.debug("[auth_cf] 서비스 토큰 인증 성공 (user=%s)", svc_user)
@@ -110,6 +135,10 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
 
         # 개발 환경 fallback
         fallback = _get_dev_user_id()
+        try:
+            validate_uid(fallback)
+        except InvalidUserId as exc:
+            return _reject_uid("dev_user_id", exc)
         session.permanent = True
         session[_SESSION_KEY] = fallback
         return None

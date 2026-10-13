@@ -1052,11 +1052,11 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1159줄) — RunPulse integration workbench web app.
+### `app.py` (1165줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (120줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (149줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
 
@@ -1072,6 +1072,10 @@
 ### `helpers_svg.py` (171줄) — SVG 시각화 헬퍼 — 반원 게이지 + 레이더 차트.
 
 - functions: svg_semicircle_gauge, svg_radar_chart
+
+### `request_guard.py` (24줄) — 요청 경계 보호 — 봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
+
+- functions: is_envelope_path, forbidden_response
 
 ### `route_svg.py` (118줄) — GPS 경로 SVG 썸네일 생성 — activity_streams에서 latlng 데이터를 SVG polyline으로 변환.
 
@@ -1571,7 +1575,7 @@
 
 - functions: copy_to_clipboard, handle_clipboard_option
 
-### `config.py` (202줄) — 설정 파일(config.json) 로드/저장 유틸리티.
+### `config.py` (203줄) — 설정 파일(config.json) 로드/저장 유틸리티.
 
 - functions: get_config_path, enabled_sources, is_source_enabled, set_sync_source, load_config, save_config, update_service_config, redact_config_for_display
 
@@ -1693,9 +1697,10 @@
 
 - functions: format_distance, format_pace, format_duration, format_speed, format_time_prediction, format_metric, interpret_metric_level, metric_level_color, confidence_badge, provider_badge, metric_display_name, metric_unit
 
-### `user_context.py` (61줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+### `user_context.py` (117줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
-- functions: set_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
+- class **InvalidUserId**: 없음
+- functions: mask_uid, validate_uid, users_root, list_user_ids, set_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
 
@@ -2042,9 +2047,9 @@
 
 - functions: test_months_back_crosses_year, test_empty_db, test_totals_monthly_heatmap_longest, test_personal_bests_pick_min_and_skip_missing, test_personal_bests_merge_race_results_with_source_labels
 
-### `test_auth_cf.py` (120줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
+### `test_auth_cf.py` (243줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
-- functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401
+- functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401, test_invalid_cf_email_403_no_session_masked_log, test_invalid_cf_email_in_prod_is_403_not_401, test_invalid_cf_email_on_envelope_path_is_json_403, test_session_with_invalid_stored_uid_is_403_and_key_cleared, test_session_with_valid_uid_still_passes, test_invalid_dev_user_id_is_403_no_default_fallback, test_invalid_svc_user_is_403, test_valid_svc_user_still_passes, test_get_db_path_value_error_does_not_become_html_500, test_app_level_handler_registered_in_create_app
 
 ### `test_auto_sync_reload.py` (54줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
 
@@ -2166,6 +2171,10 @@
 ### `test_chat_readiness.py` (81줄) — tests/test_chat_readiness.py — Coach 채팅이 Today·adjuster와 같은 readiness_decision을 쓰는지 검증.
 
 - functions: conn, test_adjuster_fatigue_matches_readiness_decision, test_build_context_has_decision_and_adjustment, test_plan_line_shows_original_and_adjusted, test_chat_verdict_equals_today_headline, test_rested_runner_keeps_planned_session, test_no_data_graceful
+
+### `test_check_user_dirs.py` (51줄) — scripts/check_user_dirs.py — 운영 점검 스크립트(S3-1) 단위 테스트.
+
+- functions: test_clean_root_returns_0, test_violations_masked_and_exit_1, test_show_names_flag, test_symlink_escape_flagged, test_read_only_and_missing_root
 
 ### `test_cirs.py` (78줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
@@ -3296,9 +3305,9 @@
 - class **TestGroupOperations**: test_assign_creates_group, test_assign_requires_two, test_remove_from_group
 - functions: mem_db
 
-### `test_user_context.py` (29줄) — user_context — user_id 해석 우선순위.
+### `test_user_context.py` (109줄) — user_context — user_id 해석 우선순위.
 
-- functions: test_argument_wins, test_thread_local_fallback_is_per_thread, test_default_without_context
+- functions: test_argument_wins, test_thread_local_fallback_is_per_thread, test_default_without_context, test_validate_uid_accepts_existing_forms, test_validate_uid_rejects, test_invalid_uid_error_does_not_carry_raw_value, test_get_db_path_rejects_and_creates_no_directory, test_get_db_path_rejects_symlink_escape, test_get_config_path_validates_uid, test_list_user_ids_skips_invalid_dirs_and_logs_masked
 
 ### `test_user_inputs.py` (130줄) — D3 — user_inputs / ai_feedback / chat_threads 테이블 스키마 테스트.
 
@@ -3431,6 +3440,10 @@
 
 - functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, main
 
+### `check_user_dirs.py` (61줄) — 운영 점검 — `data/users/` 의 디렉터리가 uid 허용 규칙(SRV-13)에 맞는지 읽기 전용으로 확인한다 (S3-1).
+
+- functions: check, main
+
 ### `encrypt_existing_configs.py` (153줄) — 기존 config.json 파일의 자격증명을 Fernet으로 암호화하는 마이그레이션 스크립트.
 
 - functions: main
@@ -3468,7 +3481,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 738개 파일
+총 741개 파일
 
 ## docstring 누락
 

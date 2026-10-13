@@ -13,7 +13,8 @@ _CONFIG_PATH = _PROJECT_ROOT / "config.json"
 def get_config_path(user_id: str | None = None) -> Path:
     """사용자별 config.json 경로. None이면 프로젝트 루트 config.json."""
     if user_id and user_id != "default":
-        user_dir = _PROJECT_ROOT / "data" / "users" / user_id
+        from src.utils.user_context import validate_uid
+        user_dir = _PROJECT_ROOT / "data" / "users" / validate_uid(user_id)  # 경로 조립 전 uid 규칙(SRV-13)
         user_dir.mkdir(parents=True, exist_ok=True)
         return user_dir / "config.json"
     return _CONFIG_PATH

@@ -6,10 +6,66 @@
 """
 from __future__ import annotations
 
+import logging
+import re
 import threading
 from pathlib import Path
 
 _LOCAL = threading.local()
+_UID_RE = re.compile(r"[A-Za-z0-9._%+@-]{1,254}")  # fullmatch 로만 쓴다 — `$` 는 끝의 개행 1개를 허용
+_security_log = logging.getLogger("runpulse.security")
+
+
+class InvalidUserId(ValueError):
+    """uid 허용 규칙(SRV-13) 위반. 메시지·속성에 원문을 싣지 않는다(`masked` 만) — 로그·응답 유출 방지."""
+
+    def __init__(self, masked: str):
+        super().__init__("invalid user id")
+        self.masked = masked
+
+
+def mask_uid(value: object) -> str:
+    """보안 로그용 마스킹 — 앞 2자 + 길이만 남긴다(S3-2). 이메일 원문·경로 조각을 기록하지 않는다."""
+    text = value if isinstance(value, str) else repr(value)
+    return f"{text[:2]}***(len={len(text)})"
+
+
+def validate_uid(uid: object) -> str:
+    """사용자 ID 허용 규칙(SRV-13, 2.6): 이메일 호환 문자만 1~254자.
+
+    값 `.`·`..`, 경로 구분자(`/`·`\\`), 선행 `.` 은 거부한다. 기존 형식(CF 이메일, `default`)은 통과한다.
+    통과하면 입력을 그대로 돌려주고(정규화·공백 제거 없음), 위반하면 `InvalidUserId`(ValueError).
+    Flask 무의존 순수 함수.
+    """
+    if not isinstance(uid, str) or not _UID_RE.fullmatch(uid) or uid.startswith("."):
+        raise InvalidUserId(mask_uid(uid))
+    return uid
+
+
+def users_root() -> Path:
+    """사용자 데이터 루트 `data/users`."""
+    return project_root() / "data" / "users"
+
+
+def list_user_ids(*, log_skipped: bool = True) -> list[str]:
+    """`data/users` 하위 디렉터리 중 uid 규칙에 맞는 이름을 정렬해 반환한다(없으면 빈 목록).
+
+    규칙 위반 디렉터리는 건너뛰고 마스킹해 `runpulse.security` 로그에 남긴다 — 하나가 있다고 시작 루프 전체가
+    중단되지 않게 한다(S3-1: 운영 디렉터리 점검은 `scripts/check_user_dirs.py`).
+    """
+    root = users_root()
+    if not root.is_dir():
+        return []
+    out: list[str] = []
+    for d in sorted(root.iterdir()):
+        if not d.is_dir():
+            continue
+        try:
+            out.append(validate_uid(d.name))
+        except InvalidUserId as exc:
+            if log_skipped:
+                _security_log.warning("[uid] 규칙 위반 사용자 디렉터리 건너뜀: %s", exc.masked)
+    return out
 
 
 def set_current_user(user_id: str) -> None:
@@ -58,4 +114,4 @@ def db_path(user_id: str | None = None) -> Path:
     """사용자별 running.db 경로. user_id 미지정 시 Flask 세션에서 추출."""
     from src.db_setup import get_db_path
     uid = user_id or get_current_user_id()
-    return get_db_path(uid)
+    return get_db_path(uid)  # uid 규칙 위반이면 InvalidUserId
