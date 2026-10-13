@@ -390,6 +390,10 @@
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default, entry_path
 
+### `user_switch_service.py` (38줄) — 개발용 사용자 전환 서비스 — v1 `/switch-user` 이관 (SRV 2.5, V1-3 (b)·V1-8·V1-9).
+
+- functions: dev_switch_enabled, list_users, switch_user
+
 ### `week_digest.py` (109줄) — 주간 다이제스트 — 월간 내러티브의 주(週) 단위 근거 (DESIGN-U17 U17g).
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
@@ -1052,7 +1056,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1173줄) — RunPulse integration workbench web app.
+### `app.py` (1144줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1810,6 +1814,10 @@
 
 - functions: post_data_import_preview, post_data_import, get_data_imports, get_data_import
 
+### `routes_dev.py` (41줄) — 개발용 사용자 전환 API — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (V1-8, SRV 2.5).
+
+- functions: get_dev_users, post_dev_switch_user
+
 ### `routes_library.py` (316줄) — GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
 - functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_activity_streams, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
@@ -1866,9 +1874,9 @@
 
 ## `tests/`
 
-### `conftest.py` (154줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (172줄) — pytest 공통 fixture — v0.3 스키마.
 
-- functions: db_conn, db_conn_default, db_conn_user, sample_config
+- functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
 ### `helpers_pred.py` (29줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
 
@@ -2047,7 +2055,7 @@
 
 - functions: test_months_back_crosses_year, test_empty_db, test_totals_monthly_heatmap_longest, test_personal_bests_pick_min_and_skip_missing, test_personal_bests_merge_race_results_with_source_labels
 
-### `test_auth_cf.py` (243줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
+### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401, test_invalid_cf_email_403_no_session_masked_log, test_invalid_cf_email_in_prod_is_403_not_401, test_invalid_cf_email_on_envelope_path_is_json_403, test_session_with_invalid_stored_uid_is_403_and_key_cleared, test_session_with_valid_uid_still_passes, test_invalid_dev_user_id_is_403_no_default_fallback, test_invalid_svc_user_is_403, test_valid_svc_user_still_passes, test_get_db_path_value_error_does_not_become_html_500, test_app_level_handler_registered_in_create_app
 
@@ -3093,7 +3101,7 @@
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
-### `test_request_guard.py` (333줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
+### `test_request_guard.py` (337줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
 
 - functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_default_port_and_case_normalized_accepted, test_malformed_or_deceptive_origins_rejected, test_empty_origin_does_not_fall_back_to_referer, test_public_base_url_with_path_and_default_port_is_normalized, test_invalid_public_base_url_warns_and_rejects, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_log_strips_referer_query_and_fragment_and_limits_length, test_log_limits_origin_length, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_unknown_mode_is_logged, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_default_mode_is_observe, test_set_cookie_header_attributes, test_create_app_registers_guard_and_enforces
 
@@ -3182,6 +3190,10 @@
 ### `test_stream_time.py` (71줄) — U18a — 스트림 시간축 결정(stream_time) + 추출기 연결 테스트.
 
 - functions: test_sum_elapsed_preferred, test_direct_elapsed_fallback, test_timestamp_only_is_derived, test_no_key_scaled_times_none, test_partial_none_interpolated_small_ratio_keeps_basis, test_many_none_lowers_basis, test_non_monotonic_lowers_without_sorting, test_garmin_extractor_meta_and_no_index_fallback, test_strava_time_is_measured, test_stream_meta_empty
+
+### `test_switch_user.py` (249줄) — tests/test_switch_user.py — 개발용 사용자 전환 v2 (V1-8, SRV 2.5, ADR-048 5단계).
+
+- functions: root, app, client, test_service_list_users_sorted_and_skips_invalid, test_service_list_users_empty_falls_back_to_default, test_service_switch_creates_db_and_sets_session, test_service_rejects_invalid_uid_without_touching_session_or_disk, test_service_accepts_valid_uids, test_service_session_unchanged_when_init_db_fails, test_service_dev_switch_enabled_by_app_env, test_service_dev_switch_enabled_when_unset, test_get_users_lists_current_and_users, test_post_switch_changes_session_user, test_switch_overrides_cf_header_on_following_requests, test_post_invalid_uid_400_with_details_and_no_dir, test_post_missing_uid_400, test_post_non_string_uid_400, test_post_non_json_415_and_broken_json_400, test_post_uid_is_stripped_like_other_str_fields, test_post_rejects_forged_origin_and_missing_origin, prod_client, test_production_404_envelope_for_both_endpoints, test_production_404_is_independent_of_origin_and_body, test_production_other_api_still_works, test_dev_toggle_is_evaluated_per_request, test_v1_switch_user_route_removed, test_no_dev_route_registered_outside_api_v1, test_invalid_uid_attempt_is_not_logged_with_raw_value, test_post_invalid_uid_response_never_echoes_input, test_post_too_long_uid_400_by_field_length_and_no_dir
 
 ### `test_sync_errors.py` (61줄) — sync_errors 분류·SyncResult 전파 테스트.
 
@@ -3485,7 +3497,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 742개 파일
+총 745개 파일
 
 ## docstring 누락
 

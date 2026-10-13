@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
+	import DevUserSwitch from '$lib/components/DevUserSwitch.svelte';
 	import { base } from '$app/paths';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
@@ -111,13 +112,8 @@
 			</div>
 
 			<div class="mt-auto border-t border-border-subtle px-2 py-3">
-				<a
-					href="/switch-user"
-					data-sveltekit-reload
-					class="block rounded-lg px-3 py-2 text-sm text-fg-secondary hover:bg-surface-2"
-				>
-					계정 전환
-				</a>
+				<!-- 개발 전용(V1-8): 서버가 production 이면 /dev/users 가 404 라 렌더되지 않는다 -->
+				<DevUserSwitch {onClose} />
 				<button
 					type="button"
 					onclick={backToV1}

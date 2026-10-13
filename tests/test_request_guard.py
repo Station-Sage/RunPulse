@@ -278,9 +278,13 @@ def test_production_without_public_base_url_warns(env, monkeypatch, caplog):
 def _create(tmp_path, monkeypatch, app_env):
     from src.web.app import create_app
     import src.db_setup as dbs
+    import src.utils.config as cfg
+    import src.utils.user_context as uc
     monkeypatch.setenv("FLASK_SECRET_KEY", "k")
     monkeypatch.setenv("APP_ENV", app_env)
-    monkeypatch.setattr(dbs, "_PROJECT_ROOT", tmp_path)  # 실제 data/users 격리
+    for mod, attr in ((dbs, "_PROJECT_ROOT"), (cfg, "_PROJECT_ROOT")):  # 실제 data/users 격리 (3곳)
+        monkeypatch.setattr(mod, attr, tmp_path)
+    monkeypatch.setattr(uc, "project_root", lambda: tmp_path)
     return create_app()
 
 

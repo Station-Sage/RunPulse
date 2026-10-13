@@ -224,15 +224,13 @@ def test_get_db_path_value_error_does_not_become_html_500(dev_app):
         assert client.get("/deep").status_code == 403
 
 
-def test_app_level_handler_registered_in_create_app(tmp_path, monkeypatch):
+def test_app_level_handler_registered_in_create_app(isolated_users_root, monkeypatch):
     """실제 앱 조립(create_app)에 InvalidUserId 핸들러가 있고, 봉투 경로에서는 JSON 403 이 나간다."""
     from src.utils.user_context import InvalidUserId
     from src.web.app import create_app
 
     monkeypatch.setenv("FLASK_SECRET_KEY", "k")
-    import src.db_setup as dbs
-    monkeypatch.setattr(dbs, "_PROJECT_ROOT", tmp_path)  # 실제 data/users 에 빈 DB 가 생기지 않게 격리
-    app = create_app()
+    app = create_app()  # 실제 data/users 격리는 isolated_users_root (db_setup·config·user_context 3곳)
     assert InvalidUserId in app.error_handler_spec[None][None]
     import src.api.routes_today as rt
     monkeypatch.setattr(rt, "db_path", lambda: (_ for _ in ()).throw(InvalidUserId("..***(len=2)")))

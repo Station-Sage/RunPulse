@@ -275,36 +275,7 @@ def create_app() -> Flask:
 
     app.jinja_env.globals["bottom_nav"] = bottom_nav
 
-    # ── 사용자 전환 ──────────────────────────────────────────────────────
-    @app.route("/switch-user", methods=["GET", "POST"])
-    def switch_user():
-        if request.method == "POST":
-            uid = request.form.get("user_id", "").strip() or "default"
-            session["user_id"] = uid
-            # 새 사용자 DB 초기화
-            from src.db_setup import init_db
-            init_db(uid)
-            return redirect("/")
-        # GET: 사용자 목록
-        users_dir = _project_root() / "data" / "users"
-        users = sorted(d.name for d in users_dir.iterdir() if d.is_dir()) if users_dir.exists() else ["default"]
-        current = session.get("user_id", "default")
-        options = "".join(
-            f'<option value="{u}" {"selected" if u == current else ""}>{u}</option>'
-            for u in users
-        )
-        body = (
-            '<div class="card"><h2>사용자 전환</h2>'
-            '<form method="post" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">'
-            f'<select name="user_id" style="padding:8px;border-radius:8px">{options}</select>'
-            '<span>또는 새 사용자:</span>'
-            '<input name="user_id" placeholder="새 이름" style="padding:8px;border-radius:8px;width:120px">'
-            '<button type="submit">전환</button>'
-            '</form></div>'
-        )
-        from .helpers import html_page
-        return html_page("사용자 전환", body)
-
+    # 사용자 전환은 v2 로 이관됨 — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (개발 전용, V1-8)
 
     @app.get("/")
     def index():

@@ -23,6 +23,24 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Origin 관문(SRV 2.1)은 운영 기본이 observe 지만 테스트는 enforce 최종 상태로 돌린다 —
 # 쓰기 요청을 보내는 test_client 호출은 `Origin: http://localhost`(test_client 의 url_root)를 붙여야 한다.
 
+@pytest.fixture
+def isolated_users_root(tmp_path, monkeypatch):
+    """`data/users` 를 tmp 로 격리 — 경로를 조립·생성하는 3곳(db_setup·config·user_context)을 모두 돌린다.
+
+    CF 헤더 사용자로 create_app 요청을 보내는 테스트는 이걸 써야 실제 `data/users/<uid>` 가 생기지 않는다
+    (`load_config(user_id=...)` 도 mkdir 한다 — S3 5단계에서 발견). 반환은 tmp 의 `data/users`.
+    """
+    import src.db_setup as dbs
+    import src.utils.config as cfg
+    import src.utils.user_context as uc
+    monkeypatch.setattr(dbs, "_PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(cfg, "_PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(uc, "project_root", lambda: tmp_path)
+    users = tmp_path / "data" / "users"
+    users.mkdir(parents=True)
+    return users
+
+
 @pytest.fixture(autouse=True)
 def _origin_guard_enforce(monkeypatch):
     monkeypatch.setenv("ORIGIN_GUARD_MODE", "enforce")
