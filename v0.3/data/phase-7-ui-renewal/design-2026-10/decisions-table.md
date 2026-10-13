@@ -2,7 +2,7 @@
 
 - 각 설계서 "결정 필요" 섹션의 항목을 그대로 모은 것이다. **모두 미결정**이며, 선택지·장단점은 원문(요약 없음)이다. 결정 ID 는 `설계서코드-순번`(설계서 내 D 번호 순서와 같음).
 - 설계서 위치: `patterns/`(횡단 패턴 8건: SRV·FRS·NRA·OVL·ERR·SEC·TZ·A11Y), `bundles/`(HSR·PLN·ADJ·NEW·RC).
-- 총 361건 (결정 354건 / 부분 결정 4건 / 미결정 3건). 2026-10-13 S1: ADJ-24·ADJ-25 결정 추가, FRS-28 미결정 추가. 2026-10-13 S2: V1S-9~11 결정 추가, V1S-12 미결정 추가.
+- 총 362건 (결정 355건 / 부분 결정 4건 / 미결정 3건). 2026-10-13 S1: ADJ-24·ADJ-25 결정 추가, FRS-28 미결정 추가. 2026-10-13 S2: V1S-9~11 결정 추가, V1S-12 미결정 추가. 2026-10-13: V1S-12 S3 로 연기, ENV-1(Flask 환경 → S3 0단계) 결정 추가.
 
 ## 설계서 간 연관 결정(설계서에 명시된 것만)
 
@@ -374,4 +374,5 @@
 | V1S-9 | v1 일몰 준비 | S2 구현 범위 분할 (구현 단계 S2 계획 중 확정) | (a) 설계서 §4 1~8단계 전부를 S2 에서 / (b) 1~5(이관·loader·라우트·suggestions)+마감만 S2, 6(/switch-user·SRV-6·uid 규칙)·7(MenuDrawer CSV)은 S3 / (c) 6·7 만 먼저. **결정 2026-10-13: (b)** — 6·7 은 새 서비스·프런트 변경·보안 규칙(SRV-6·SRV-13)이라 성격이 달라 S3 로 이관. 설계서 §4 번호(1~5)는 유지 |
 | V1S-10 | v1 일몰 준비 | `template_helpers.py` 이관 후 파일명 (V1-19 후속) | (a) 기존 이름 유지(`src/utils/template_helpers.py`) / (b) 새 이름. **결정 2026-10-13: (a) 이름 유지** |
 | V1S-11 | v1 일몰 준비 | S2 에서 ADR 추가 여부 | (a) 추가 안 함 / (b) 이관 결정을 ADR 로 기록. **결정 2026-10-13: (a)** — ADR 048~051 은 S3 이후(보안·EXP 등) 몫으로 남김. 이관 결정은 V1-10·V1S-1~8 이 SSOT |
-| V1S-12 | v1 일몰 준비 | `app.py` 의 그 밖의 비UI 직접 라우트(`/trigger-sync*`·`/bg-sync/*`·`/api/garmin/local-sync`·`/import*`·`/sync-status` 등)의 위치·처리 (V1-19 후속, **미결정**) | (a) v2 `src/api/` 로 이관 후 v1 일몰 / (b) 일몰 때 v1 UI 와 함께 삭제 / (c) 사용처(외부 스크립트·로컬 동기화 클라이언트) 조사 후 결정. S2 는 목록화만 하고 이동하지 않음. 사용처 확인에 운영 접근이 필요해 **미결정 유지(S3 이후)** |
+| V1S-12 | v1 일몰 준비 | `app.py` 의 그 밖의 비UI 직접 라우트(`/trigger-sync*`·`/bg-sync/*`·`/api/garmin/local-sync`·`/import*`·`/sync-status` 등)의 위치·처리 (V1-19 후속, **미결정**) | (a) v2 `src/api/` 로 이관 후 v1 일몰 / (b) 일몰 때 v1 UI 와 함께 삭제 / (c) 사용처(외부 스크립트·로컬 동기화 클라이언트) 조사 후 결정. S2 는 목록화만 하고 이동하지 않음. 사용처 확인에 운영 접근이 필요해 **결정 2026-10-13: 사용자가 S3 에서 결정하도록 연기 — 아직 미결정(S3 에서 다룸)** |
+| ENV-1 | 구현 환경 | Flask 설치·테스트 실행 환경을 어느 S 단계에 넣을지 (S2 승인 후 사용자 요청: 단계 검토 위임) | (a) S3 0단계 — SRV(Origin 관문 `before_request`)·SEC(CSP `after_request`)·`/switch-user` v2 가 Flask 요청 파이프라인 코드의 시작이고 검증이 Flask 테스트 클라이언트에 의존 / (b) S4 이후 — S4~S6 은 Flask 없는 순수 로직 비중이 커서 늦춰도 되나, S3 검증이 막힘 / (c) 단계 없이 문서만 수정(실행 환경은 .venv 로 이미 충족). 코드 사실(2026-10-13): 시스템 `python3` 에 flask·gunicorn 없음 → CLAUDE.md 의 `python3 -m pytest tests/` 는 수집 오류 32건(전체 310파일 중, 모두 `No module named 'flask'`)으로 중단. `.venv`(gitignore)에는 requirements.txt 전체 설치됨. `docs/install-guide.md`·`docs/setup-termux.md` 는 flask 를 '선택'으로 적고 있으나 requirements.txt 는 필수로 선언. **결정 2026-10-13: 단계 = S3 0단계(사용자가 단계 선정을 위임, 에이전트 추천 (a) 채택). 내용은 미확정 — S3 계획에서 사용자 승인 필요. 에이전트 제안: ① 표준 테스트 명령을 `.venv/bin/python -m pytest tests/` 로 CLAUDE.md 에 문서화 ② `docs/install-guide.md`·`docs/setup-termux.md` 의 flask '선택' 표기를 필수로 정정(`pip install -r requirements.txt`) ③ 시스템 `python3` 에는 설치하지 않음(`.venv` 가 프로젝트 환경). 사용자가 말한 '플라스크 설치'가 시스템 python3 설치·conftest 가드·Docker/Termux 환경 중 무엇을 뜻하는지는 미확인(S3 계획에서 질문)** |

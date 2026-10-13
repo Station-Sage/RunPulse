@@ -1,6 +1,6 @@
 # S2 결과 (2026-10-13) — v1 일몰 준비 (공용 파일 view 밖 이관·v1 호출부 정리)
 
-브랜치 `ccr-8ec9b1bc-q2i3u3`. 설계서 `bundles/v1-sunset-prep.md`. 롤백 = 단계별 커밋 revert. 미확인은 '미확인'으로 표시. **상태: 구현·검증 완료(사용자 확인 대기)**.
+브랜치 `ccr-8ec9b1bc-q2i3u3`. 설계서 `bundles/v1-sunset-prep.md`. 롤백 = 단계별 커밋 revert. 미확인은 '미확인'으로 표시. **상태: 구현·검증 완료, 사용자 승인 2026-10-13**.
 
 ## 1. S2 결정 (2026-10-13, 사용자 승인)
 
@@ -9,12 +9,14 @@
 | V1S-9 | 설계서 §4 6단계(/switch-user·SRV-6·uid 규칙)·7단계(MenuDrawer CSV)는 S3 로 이관. S2 = 1~5 + 마감 |
 | V1S-10 | `template_helpers.py` 이름 유지(`src/utils/template_helpers.py`) |
 | V1S-11 | S2 에서 ADR 추가 없음(ADR 048~051 은 S3 이후) |
+| (승인) | S2 결과 승인(2026-10-13). V1S-12 는 S3 로 연기, 열려 있는 항목(R1 백필·TXT-1·FRS-28·`TEST-PLAN-CREATION-DATE`)은 그대로 유지 |
+| ENV-1 | Flask 설치·테스트 환경 정비는 S3 0단계(단계만 결정, 내용은 S3 계획에서 승인 — 아래 §7) |
 
 ## 2. 미결정·다른 작업으로 이관
 
 | 항목 | 상태 | 이관처 |
 |---|---|---|
-| `app.py` 비UI 직접 라우트(`/trigger-sync*`·`/bg-sync/*`·`/api/garmin/local-sync`·`/import*`·`/sync-status`)의 위치·처리 (V1S-12) | **미결정**. S2 는 목록화만, 이동 안 함. 사용처 확인에 운영 접근 필요 | S3 이후 결정 |
+| `app.py` 비UI 직접 라우트(`/trigger-sync*`·`/bg-sync/*`·`/api/garmin/local-sync`·`/import*`·`/sync-status`)의 위치·처리 (V1S-12) | **미결정**. S2 는 목록화만, 이동 안 함. 사용처 확인에 운영 접근 필요 | **S3 에서 결정**(2026-10-13 사용자 연기) |
 | `/switch-user` v2 이관·SRV-6·uid 규칙(`validate_uid`)·MenuDrawer CSV→EXP 링크 | 결정됨(V1-3·8·9·11, SRV-6·13), 구현만 남음 | S3 |
 | MenuDrawer `/ai-coach` quickLink, `SyncPanel.svelte` `/settings` 링크, `data/export/+page.svelte:133` | 결정됨(V1-5: BACKLOG 별도 항목) | MENUDRAWER-POST-V1 |
 | `views_ai_coach.py`·`views_ai_coach_cards.py` 삭제 | 결정됨(V1-17) | v1 일몰 시 |
@@ -57,7 +59,7 @@
 
 | # | 내용 | 처리 |
 |---|---|---|
-| R1 | `app.py` 비UI 직접 라우트가 `src/web/app.py` 에 그대로 있다(V1S-12 미결정). v1 일몰 때 `app.py` 를 정리하면 같이 사라질 수 있음 — 아래 목록 | S3 이후 결정 |
+| R1 | `app.py` 비UI 직접 라우트가 `src/web/app.py` 에 그대로 있다(V1S-12 미결정). v1 일몰 때 `app.py` 를 정리하면 같이 사라질 수 있음 — 아래 목록 | S3 에서 결정 |
 | R2 | `views_ai_coach.py` 의 `_load_chips` 가 제거된 함수를 import 한다. 라우트 미등록이라 도달 불가이며 `except Exception` 으로 감싸 있음. 파일째 일몰 때 삭제(V1-17) | 수용 |
 | R3 | `src/web/helpers.py` 880줄, `bg_sync.py` 625줄, `app.py` 1159줄: 300줄 초과 경고 지속 | 미배정 |
 | R4 | v1 `/ai-coach` 외 v1 HTML 곳곳(`helpers.py:569` 하단 내비, `views_report_sections.py` 3곳)이 `/ai-coach` 링크를 유지 → 404 | V1-13 감수. 일몰 때 정리 |
@@ -82,7 +84,8 @@
 |---|---|---|
 | `/switch-user` v2 이관·SRV-6·uid 규칙(`validate_uid` 를 `src/utils/user_context.py` 에) | S3 | 설계서 §4 6단계. 이제 `user_context.py` 에 `db_path` 가 있어 같은 모듈에 둘 수 있음 |
 | MenuDrawer CSV → EXP 링크 | S3 | 설계서 §4 7단계 |
-| 비UI 직접 라우트의 위치·처리 | 미결정(V1S-12) | 위 목록 |
+| 비UI 직접 라우트의 위치·처리 | **S3 에서 결정**(V1S-12, 미결정) | 위 목록 |
+| **0단계 환경: Flask 설치·표준 테스트 명령(ENV-1)** | S3 0단계 | (제안, 미승인) `.venv/bin/python -m pytest tests/` 를 CLAUDE.md 에 문서화, `docs/install-guide.md`·`docs/setup-termux.md` 의 flask '선택' → 필수(`pip install -r requirements.txt`). 시스템 `python3` 에는 설치하지 않음. 근거: 시스템 python3 로 `pytest tests/` 하면 수집 오류 32건으로 중단 |
 | MenuDrawer `AI 코치` quickLink 등 v2→v1 링크 | MENUDRAWER-POST-V1 | V1-5 |
 | `views_ai_coach*.py`·`views_training_*`·v1 HTML 삭제 | v1 일몰 | V1-17 |
 

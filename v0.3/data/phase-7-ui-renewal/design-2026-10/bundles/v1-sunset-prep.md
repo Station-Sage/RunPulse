@@ -155,7 +155,7 @@
 결정 완료(decisions-table.md V1-1~V1-19, V1S-1~8, SRV-10·SRV-13 표 참조). 해소: 파일명(V1S-8 유지), `_load_chips` 지연 import(V1-14 라우트 선제거 — V1-17 로 파일은 잔존하나 도달 불가), V1-4(V1-15 분기 제거), 신규 파일 위치(V1-16), production 판정 키(V1-12 → SRV-10 `APP_ENV`), 해소(V1-18): 폴백 경로 CSP = 일반 표면 정책(`security-headers.md` §2.1), 해소(V1-19): `template_helpers.py` → `src/utils/`, `views_calendar_feed.py` → `src/api/routes_calendar_feed.py`. 남은 열린 질문:
 - **V1-19 후속:** `app.py`의 그 밖의 비UI 직접 라우트(`/api/garmin/local-sync`·`/trigger-sync*`·`/bg-sync/*`·`/sync-status`·`/import*` 등)는 구현 첫 단계에서 목록화만 정해졌고(0단계 (d)), 목록화 후 위치·처리는 결정 기록이 없다.
 - **V1-19 파일명:** 해소(V1S-10, 2026-10-13) — 기존 이름 유지.
-- **V1-19 후속(V1S-12):** 2026-10-13 현재도 미결정. S2 는 목록화만 한다.
+- **V1-19 후속(V1S-12):** 2026-10-13 현재도 미결정 — 사용자가 S3 에서 결정하도록 연기. S2 는 목록화만 했다(`../S2_results.md` §6).
 
 ## 6. 범위 밖 메모
 - (V1-19 로 범위 안으로 이동) `template_helpers.py`·`views_calendar_feed.py` 이관은 §2.2·§4 3b·3c.

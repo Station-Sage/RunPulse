@@ -1,6 +1,6 @@
 # design-2026-10 — v2 점검 설계 묶음 (설계 완료, 구현 승인 대기)
 
-> 상태(2026-10-12): 설계 단계 종료. 결정 `decisions-table.md`(총 361행, 미결정 3건 = TXT-1 문구·FRS-28·V1S-12). 코드 변경 없음. **구현은 사용자 승인 후 착수**(CLAUDE.md: plan 승인 후 진행).
+> 상태(2026-10-12): 설계 단계 종료. 결정 `decisions-table.md`(총 362행, 미결정 3건 = TXT-1 문구·FRS-28·V1S-12). 코드 변경 없음. **구현은 사용자 승인 후 착수**(CLAUDE.md: plan 승인 후 진행).
 
 ## 1. 문서 색인
 | 구분 | 문서 | ADR(구현 시 기록) |
@@ -25,7 +25,7 @@
 0. **S0 점검**: 각 문서 말미 'S0 점검 목록'(SCAN_DIRS, 읽기 경로별 goal_id 필터 분류, 운영 SQLite 버전 등) 사실 확인
 1. `crs.evaluate()` 복원 선행 커밋(ADJ-22, replanner 테스트 기대값 갱신)
 2. v1 일몰 준비(v1-sunset-prep): 공용 파일 이관(`src/sync/`, `utils/user_context.py`, `src/mcp_remote/`, `routes_calendar_feed`), `/ai-coach` 라우트 등록 삭제(파일은 일몰 때), loader 제거
-3. SRV(048) → SEC(049): Origin 관문·입력 제한, uid 검증(`validate_uid`), 보안 헤더(CSP Report-Only 2주 후 enforce — 전환 전 의도적 위반 보고 도착 확인 필수)
+3. (0단계 환경: Flask 설치·표준 테스트 명령 문서화, ENV-1) SRV(048) → SEC(049): Origin 관문·입력 제한, uid 검증(`validate_uid`), 보안 헤더(CSP Report-Only 2주 후 enforce — 전환 전 의도적 위반 보고 도착 확인 필수)
 4. FRS(050)·NRA(051)·TZ: 신선도·비러닝·시간대
 5. 레거시 삭제(사전) → v37~v40 + PLN·RC·ADJ·NEW 구현(캘린더·조정 신호·플랜 생성 변경)
 6. EXP·OVL·ERR·A11Y(레이아웃 포함, coach/+page 분리) 프런트 작업
