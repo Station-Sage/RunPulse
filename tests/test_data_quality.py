@@ -18,7 +18,6 @@ from src.analysis.compare import compare_periods, compare_this_week_vs_last
 from src.analysis.weekly_score import calculate_weekly_score
 from src.analysis.race_readiness import assess_race_readiness
 from src.analysis.activity_deep import deep_analyze
-from src.ai.suggestions import get_runner_state, rule_based_chips, RunnerState
 from src.services.dashboard_service import get_dashboard_data
 from src.services.wellness_service import get_wellness_detail, get_wellness_trend
 
@@ -33,7 +32,6 @@ _TSB_MIN, _TSB_MAX = -100, 60
 
 _VALID_GRADES = {"A", "B", "C", "D", "F"}
 _VALID_PHASES = {"tapering", "recovering", "building", "detraining", "maintaining", "unknown"}
-_VALID_ACWR_STATUS = {"low", "safe", "caution", "danger", "unknown"}
 
 _TODAY = date.today()
 _MONDAY = _TODAY - timedelta(days=_TODAY.weekday())
@@ -350,66 +348,6 @@ class TestActivityDeepRanges:
         ctl = result.get("fitness_context", {}).get("ctl")
         if ctl is not None:
             assert 0 <= ctl <= _CTL_MAX, f"fitness_context.ctl 범위 초과: {ctl}"
-
-
-# ─── 6. TestSuggestionsRanges ─────────────────────────────────────────────────
-
-class TestSuggestionsRanges:
-    def test_state_acwr_status_valid(self, rich_conn):
-        state = get_runner_state(rich_conn)
-        assert state.acwr_status in _VALID_ACWR_STATUS, \
-            f"잘못된 acwr_status: {state.acwr_status!r}"
-
-    def test_weekly_run_count_plausible(self, rich_conn):
-        state = get_runner_state(rich_conn)
-        assert 0 <= state.weekly_run_count <= 7, \
-            f"weekly_run_count 범위 초과: {state.weekly_run_count}"
-
-    def test_total_distance_non_negative(self, rich_conn):
-        state = get_runner_state(rich_conn)
-        assert state.total_distance_this_week >= 0
-
-    def test_chips_count_range(self, rich_conn):
-        state = get_runner_state(rich_conn)
-        chips = rule_based_chips(state)
-        assert 1 <= len(chips) <= 5, f"칩 개수 범위 초과: {len(chips)}"
-
-    def test_chips_have_required_keys(self, rich_conn):
-        state = get_runner_state(rich_conn)
-        chips = rule_based_chips(state)
-        for chip in chips:
-            assert "id" in chip, f"칩에 id 키 없음: {chip}"
-            assert "label" in chip, f"칩에 label 키 없음: {chip}"
-
-    def test_danger_acwr_triggers_injury_chip(self):
-        """acwr_status='danger'이면 injury_risk 칩이 반드시 포함돼야 한다."""
-        danger_state = RunnerState(
-            date=_TODAY.isoformat(),
-            has_today_run=False,
-            acwr=1.6,
-            acwr_status="danger",
-            weekly_run_count=5,
-            total_distance_this_week=50.0,
-        )
-        chips = rule_based_chips(danger_state)
-        chip_ids = [c["id"] for c in chips]
-        assert "injury_risk" in chip_ids, \
-            f"danger 상태에서 injury_risk 칩 없음: {chip_ids}"
-
-    def test_safe_acwr_no_injury_as_first_chip(self):
-        """acwr_status='safe'이면 injury_risk 칩이 최우선이 아니어야 한다."""
-        safe_state = RunnerState(
-            date=_TODAY.isoformat(),
-            has_today_run=False,
-            acwr=1.0,
-            acwr_status="safe",
-            weekly_run_count=3,
-            total_distance_this_week=30.0,
-        )
-        chips = rule_based_chips(safe_state)
-        if chips:
-            assert chips[0]["id"] != "injury_risk", \
-                "safe 상태에서 injury_risk 칩이 첫 번째"
 
 
 # ─── 7. TestDashboardRanges ───────────────────────────────────────────────────

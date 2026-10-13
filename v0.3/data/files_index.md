@@ -1000,10 +1000,9 @@
 - class **RateLimitError**: 없음
 - functions: model_for, api_key_for, reason_for_status, check_response, timeout_for, wrap_transport_error
 
-### `suggestions.py` (174줄) — 추천 칩 생성 — 규칙 기반 + AI 응답 파싱 하이브리드.
+### `suggestions.py` (20줄) — 추천 칩 레지스트리 — 칩 id → 라벨·프롬프트 템플릿 이름.
 
-- class **RunnerState**: 없음
-- functions: get_runner_state, rule_based_chips
+- (public API 없음)
 
 ### `tool_declarations.py` (210줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
@@ -2283,14 +2282,13 @@
 
 - functions: test_empty, test_counts_missing_within_window_only
 
-### `test_data_quality.py` (481줄) — 분석 파이프라인 데이터 품질 검증 테스트.
+### `test_data_quality.py` (419줄) — 분석 파이프라인 데이터 품질 검증 테스트.
 
 - class **TestTrendsRanges**: test_weekly_distances_in_km, test_weekly_pace_range, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_exist, test_fitness_ctl_present
 - class **TestCompareRanges**: test_all_required_keys, test_delta_equals_p2_minus_p1, test_distances_in_km_range, test_avg_hr_range_when_present
 - class **TestWeeklyScoreRanges**: test_score_0_to_100, test_grade_valid, test_components_non_negative, test_data_distance_km
 - class **TestRaceReadinessRanges**: test_readiness_score_range, test_grade_valid, test_5k_prediction_range, test_10k_prediction_range, test_half_prediction_range, test_full_prediction_range, test_recommendation_nonempty, test_component_scores_range, test_predictions_come_from_fixture_data
 - class **TestActivityDeepRanges**: first_act_id, test_structure_keys, test_pace_format, test_distance_km_not_m, test_hr_range, test_fitness_context_ctl_present
-- class **TestSuggestionsRanges**: test_state_acwr_status_valid, test_weekly_run_count_plausible, test_total_distance_non_negative, test_chips_count_range, test_chips_have_required_keys, test_danger_acwr_triggers_injury_chip, test_safe_acwr_no_injury_as_first_chip
 - class **TestDashboardRanges**: test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_range_when_present, test_recent_activities_have_distance
 - class **TestWellnessRanges**: test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length, test_wellness_detail_has_core
 - functions: rich_conn
@@ -2548,7 +2546,7 @@
 - class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
 - class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
 
-### `test_integration_realdb.py` (1194줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+### `test_integration_realdb.py` (1161줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
 - class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
 - class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
@@ -2563,7 +2561,6 @@
 - class **TestEfficiencyRangesReal**: run_with_streams_id, test_calculate_efficiency_structure, test_decoupling_pct_range, test_efficiency_trend_structure, test_efficiency_trend_ef_values
 - class **TestRecoveryRangesReal**: test_recovery_status_always_dict, test_recovery_score_range, test_recovery_grade_valid, test_recovery_trend_structure
 - class **TestZonesRangesReal**: test_analyze_zones_structure, test_zone_pct_sums, test_weekly_zone_trend_length, test_weekly_zone_trend_pct_range
-- class **TestSuggestionsRangesReal**: test_acwr_status_valid, test_weekly_run_count_plausible, test_chips_count_range, test_chips_keys, test_no_exception
 - class **TestDashboardRangesReal**: dashboard, test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_when_present, test_pmc_chart_sorted, test_pmc_chart_values, test_daily_metric_chart
 - class **TestWellnessRangesReal**: test_detail_is_dict, test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length
 - class **TestActivityServiceRangesReal**: test_list_pagination, test_list_distance_km, test_detail_structure, test_filter_sport, test_streams_values

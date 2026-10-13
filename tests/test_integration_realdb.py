@@ -36,7 +36,6 @@ _ALT_MIN, _ALT_MAX = -100, 10000
 
 _VALID_SOURCES = {"strava", "intervals", "garmin"}
 _VALID_GRADES = {"A", "B", "C", "D", "F"}
-_VALID_ACWR_STATUS = {"low", "safe", "caution", "danger", "unknown"}
 _VALID_PHASES = {"tapering", "recovering", "building", "detraining", "maintaining", "unknown"}
 _VALID_RECOVERY_GRADES = {"excellent", "good", "moderate", "poor"}
 _VALID_POLARIZATION = {"threshold_heavy", "optimal", "too_hard", "too_easy", "unknown"}
@@ -646,38 +645,6 @@ class TestZonesRangesReal:
 # ═══════════════════════════════════════════════════════════════════
 # Part 3: 서비스 레이어
 # ═══════════════════════════════════════════════════════════════════
-
-class TestSuggestionsRangesReal:
-    def test_acwr_status_valid(self, real_conn):
-        from src.ai.suggestions import get_runner_state
-        state = get_runner_state(real_conn)
-        assert state.acwr_status in _VALID_ACWR_STATUS
-
-    def test_weekly_run_count_plausible(self, real_conn):
-        from src.ai.suggestions import get_runner_state
-        state = get_runner_state(real_conn)
-        assert 0 <= state.weekly_run_count <= 7
-
-    def test_chips_count_range(self, real_conn):
-        from src.ai.suggestions import get_runner_state, rule_based_chips
-        state = get_runner_state(real_conn)
-        chips = rule_based_chips(state)
-        assert 1 <= len(chips) <= 5, f"chips={len(chips)}"
-
-    def test_chips_keys(self, real_conn):
-        from src.ai.suggestions import get_runner_state, rule_based_chips
-        state = get_runner_state(real_conn)
-        chips = rule_based_chips(state)
-        for chip in chips:
-            assert "id" in chip, f"chip에 'id' 없음: {chip}"
-            assert "label" in chip, f"chip에 'label' 없음: {chip}"
-
-    def test_no_exception(self, real_conn):
-        from src.ai.suggestions import get_runner_state, rule_based_chips
-        state = get_runner_state(real_conn)
-        chips = rule_based_chips(state)
-        assert state is not None and chips is not None
-
 
 class TestDashboardRangesReal:
     @pytest.fixture(scope="class")
