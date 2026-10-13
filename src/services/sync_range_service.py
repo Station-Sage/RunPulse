@@ -63,7 +63,7 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
     from src.utils.sync_jobs import get_active_job
     from src.utils.sync_gates import wait_sec
     from src.utils.sync_ledger_query import is_busy
-    from src.web.bg_sync import _start_or_existing
+    from src.sync.bg_sync import _start_or_existing
 
     checkers, on = _checkers(), enabled_sources(config)
     runs: list[dict] = []

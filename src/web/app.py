@@ -181,7 +181,7 @@ def create_app() -> Flask:
 
     # 모든 유저 DB 마이그레이션 + 자동 주기 동기화 daemon thread 시작
     try:
-        from .auto_sync import start as _start_auto_sync
+        from src.sync.auto_sync import start as _start_auto_sync
         from src.db_setup import create_tables, migrate_db, get_db_path
         users_dir = _project_root() / "data" / "users"
         user_ids = (
@@ -651,7 +651,7 @@ def create_app() -> Flask:
         from datetime import date as _date
         from flask import jsonify
         from src.services.sync_trigger_service import ALL_SOURCES, plan_incremental
-        from .bg_sync import start_basic_sync
+        from src.sync.bg_sync import start_basic_sync
         from .helpers import get_current_user_id
 
         source = request.form.get("source", "all").strip()
@@ -693,7 +693,7 @@ def create_app() -> Flask:
         from datetime import date as _date, timedelta
         from pathlib import Path
         from flask import jsonify
-        from .bg_sync import start_job
+        from src.sync.bg_sync import start_job
         from .helpers import get_current_user_id
 
         import hmac as _hmac
@@ -784,7 +784,7 @@ def create_app() -> Flask:
         """백그라운드 기간 동기화 시작."""
         from datetime import date as _date
         from flask import jsonify
-        from .bg_sync import start_job
+        from src.sync.bg_sync import start_job
         from src.utils.config import enabled_sources
         source = request.form.get("source", "").strip()
         from_date = request.form.get("from_date", "").strip()
@@ -812,7 +812,7 @@ def create_app() -> Flask:
     @app.post("/bg-sync/pause")
     def bg_sync_pause():
         from flask import jsonify
-        from .bg_sync import pause_job
+        from src.sync.bg_sync import pause_job
         source = request.form.get("source", "").strip()
         ok = pause_job(source)
         return jsonify({"ok": ok})
@@ -820,7 +820,7 @@ def create_app() -> Flask:
     @app.post("/bg-sync/stop")
     def bg_sync_stop():
         from flask import jsonify
-        from .bg_sync import stop_job
+        from src.sync.bg_sync import stop_job
         source = request.form.get("source", "").strip()
         ok = stop_job(source)
         return jsonify({"ok": ok})
@@ -828,7 +828,7 @@ def create_app() -> Flask:
     @app.post("/bg-sync/resume")
     def bg_sync_resume():
         from flask import jsonify
-        from .bg_sync import resume_job
+        from src.sync.bg_sync import resume_job
         from src.utils.config import enabled_sources
         from .helpers import get_current_user_id
         source = request.form.get("source", "").strip()
@@ -842,7 +842,7 @@ def create_app() -> Flask:
     @app.get("/bg-sync/status")
     def bg_sync_status():
         from flask import jsonify
-        from .bg_sync import get_status
+        from src.sync.bg_sync import get_status
         source = request.args.get("source", "").strip()
         if source not in ("garmin", "strava", "intervals", "runalyze"):
             return jsonify({"active": False})

@@ -14,7 +14,7 @@ def client(monkeypatch):
     app.config["TESTING"] = True
     cfg = {"sync_sources": ["garmin"]}
     monkeypatch.setattr(web_app, "load_config", lambda user_id=None: cfg)
-    import src.web.bg_sync as bgs
+    import src.sync.bg_sync as bgs
     monkeypatch.setattr(bgs, "start_job", lambda *a, **k: "job1")
     monkeypatch.setattr(bgs, "resume_job", lambda *a, **k: True)
     with app.test_client() as c:

@@ -9,7 +9,7 @@ from src.services.sync_trigger_service import SkipReason
 def test_v1_response_shape(monkeypatch, tmp_path):
     from src.web import app as webapp
     import src.services.sync_trigger_service as svc
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
 
     monkeypatch.setattr(webapp, "_db_path", lambda: tmp_path / "x.db")
     monkeypatch.setattr(webapp, "load_config", lambda user_id=None: {})

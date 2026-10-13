@@ -128,7 +128,7 @@ def trigger_incremental(
     source_path: str = "v2",
 ) -> TriggerResult:
     """plan → 소스별 bg_sync 시작. 한 소스 시작 실패는 start_failed로 담고 나머지는 계속."""
-    from src.web.bg_sync import _start_or_existing
+    from src.sync.bg_sync import _start_or_existing
 
     today = date.today()
     start, from_dates, skipped = plan_incremental(config, user_id, sources, today)

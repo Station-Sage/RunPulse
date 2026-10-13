@@ -15,7 +15,7 @@ def set_source_enabled(config: dict, user_id: str, provider: str, enabled: bool)
     save_config(config, user_id=user_id)
     cancelled: list[str] = []
     if not enabled:
-        from src.web.bg_sync import cancel_job
+        from src.sync.bg_sync import cancel_job
         cancelled = cancel_job(provider, user_id)
     return {"provider": provider, "sync_enabled": provider in enabled_sources(config),
             "cancelled_job_ids": cancelled, "auto_sync_applies": "next_run"}
@@ -64,7 +64,7 @@ def validate_auto_patch(body: dict) -> tuple[dict, str | None]:
 def patch_auto(config: dict, user_id: str, changes: dict) -> dict:
     """auto_sync 설정을 저장하고 스레드를 재시작한다."""
     from src.utils.sync_ledger_query import last_auto_run
-    from src.web.auto_sync import restart
+    from src.sync.auto_sync import restart
 
     config["auto_sync"] = {**_DEFAULTS, **(config.get("auto_sync") or {}), **changes}
     save_config(config, user_id=user_id)

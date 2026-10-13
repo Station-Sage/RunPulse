@@ -18,9 +18,9 @@ def env(monkeypatch):
     monkeypatch.setattr(rd, "get_current_user_id", lambda: "u")
     monkeypatch.setattr(rd, "load_config", lambda user_id=None: cfg)
     monkeypatch.setattr(svc, "save_config", lambda c, user_id=None: saved.append(dict(c)))
-    import src.web.bg_sync as bgs
+    import src.sync.bg_sync as bgs
     monkeypatch.setattr(bgs, "cancel_job", lambda p, u=None, reason="source_disabled": stopped.append(p) or ["j1"])
-    import src.web.auto_sync as asy
+    import src.sync.auto_sync as asy
     monkeypatch.setattr(asy, "restart", lambda c, u: restarted.append(c.get("auto_sync")))
     import src.utils.sync_ledger_query as ss
     monkeypatch.setattr(ss, "last_auto_run", lambda u=None: datetime(2026, 10, 7, 12, 0))

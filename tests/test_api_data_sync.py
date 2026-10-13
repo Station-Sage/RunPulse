@@ -96,7 +96,7 @@ def test_cancel_404(client, monkeypatch):
 
 def test_cancel_running_requests_stop(client, monkeypatch):
     import src.utils.sync_jobs as sj
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     calls = []
     monkeypatch.setattr(sj, "get_job", lambda i: _job("running"))
     monkeypatch.setattr(bg, "stop_job", lambda s, u=None: calls.append((s, u)) or True)
@@ -107,7 +107,7 @@ def test_cancel_running_requests_stop(client, monkeypatch):
 
 def test_cancel_finished_is_idempotent(client, monkeypatch):
     import src.utils.sync_jobs as sj
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     monkeypatch.setattr(sj, "get_job", lambda i: _job("completed"))
     monkeypatch.setattr(bg, "stop_job", lambda *a, **k: pytest.fail("호출되면 안 됨"))
     r = client.post("/api/v1/data/sync/runs/j1/cancel")

@@ -50,7 +50,7 @@ def _patch(monkeypatch, connected=("garmin", "strava"), running=()):
 
 def test_trigger_range_skips_and_starts(monkeypatch):
     _patch(monkeypatch)
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     calls = []
     monkeypatch.setattr(bg, "_start_or_existing",
                         lambda s, f, t, c, u, p: calls.append((s, f, t, p)) or ("j1", True))
@@ -114,6 +114,6 @@ def test_api_estimate(client):
 
 
 def test_auto_sync_connected_sources_respects_enabled():
-    from src.web.auto_sync import _connected_sources
+    from src.sync.auto_sync import _connected_sources
     cfg = {"garmin": {"email": "a"}, "strava": {"refresh_token": "t"}, "sync_sources": ["garmin"]}
     assert _connected_sources(cfg) == ["garmin"]

@@ -96,7 +96,7 @@ def test_coverage_marks_disabled_sources(coverage_conn):
 
 
 def test_start_basic_sync_skips_disabled(monkeypatch):
-    from src.web import bg_sync
+    from src.sync import bg_sync
     started = []
     monkeypatch.setattr(bg_sync, "start_job", lambda svc, *a, **k: started.append(svc) or f"job-{svc}")
     out = bg_sync.start_basic_sync(["garmin", "strava", "runalyze"], {}, "2026-09-27",

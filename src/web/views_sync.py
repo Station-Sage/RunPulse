@@ -178,7 +178,7 @@ def sync_sources_post():
 
 def _auto_sync_settings_html(config: dict) -> str:
     """자동 주기 동기화 설정 카드."""
-    from .auto_sync import status as auto_sync_status
+    from src.sync.auto_sync import status as auto_sync_status
     from src.utils.sync_ledger_query import last_auto_run
 
     cfg = config.get("auto_sync", {})
@@ -243,7 +243,7 @@ def _auto_sync_settings_html(config: dict) -> str:
 def auto_sync_settings_post():
     """자동 동기화 설정 저장 + thread 재시작."""
     from .helpers import get_current_user_id
-    from .auto_sync import restart as auto_sync_restart
+    from src.sync.auto_sync import restart as auto_sync_restart
 
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)

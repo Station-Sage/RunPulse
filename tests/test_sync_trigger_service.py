@@ -25,7 +25,7 @@ def _patch(monkeypatch, *, connected=("garmin", "strava"), enabled=("garmin", "s
     import src.utils.sync_policy as sp
     monkeypatch.setattr(sp, "check_incremental_guard", lambda s, last: (guard or {}).get(
         s, SimpleNamespace(allowed=True, retry_after_sec=None, message_ko="")))
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     monkeypatch.setattr(bg, "get_status", lambda s, u=None: {"active": False})
     import src.utils.sync_jobs as sj
     monkeypatch.setattr(sj, "get_active_job", lambda s: None)
@@ -75,7 +75,7 @@ def test_days_since_last_sync(tmp_path):
 
 def test_trigger_isolates_start_failure(monkeypatch):
     _patch(monkeypatch)
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
 
     def fake(src, f, t, cfg, uid, sp):
         if src == "garmin":
@@ -90,7 +90,7 @@ def test_trigger_isolates_start_failure(monkeypatch):
 
 def test_trigger_existing_job_becomes_running_skip(monkeypatch):
     _patch(monkeypatch, connected=("garmin",))
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     monkeypatch.setattr(bg, "_start_or_existing", lambda *a: ("j9", False))
     res = svc.trigger_incremental({}, "u", ["garmin"])
     assert res.runs == [] and res.skipped[0].code == "running" and res.skipped[0].job_id == "j9"

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from src.web import bg_sync
+from src.sync import bg_sync
 
 
 class _Timeout(Exception):

@@ -102,7 +102,7 @@ _TERMINAL = ("completed", "stopped", "failed", "cancelled")
 def cancel_sync_run(run_id: str):
     """진행 중인 동기화 중지 요청. 이미 끝난 작업이면 현재 상태를 그대로 돌려준다(멱등)."""
     from src.utils.sync_jobs import get_job
-    from src.web.bg_sync import stop_job
+    from src.sync.bg_sync import stop_job
 
     job = get_job(run_id)
     if job is None:

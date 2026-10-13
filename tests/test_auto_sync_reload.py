@@ -1,11 +1,11 @@
 """auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7)."""
 import time
 
-from src.web import auto_sync
+from src.sync import auto_sync
 
 
 def _patch_sync(monkeypatch, captured):
-    import src.web.bg_sync as bg
+    import src.sync.bg_sync as bg
     monkeypatch.setattr(bg, "start_basic_sync", lambda sources, *a, **k: captured.append(list(sources)) or [])
     monkeypatch.setattr("src.utils.user_context.set_current_user", lambda uid: None)
 

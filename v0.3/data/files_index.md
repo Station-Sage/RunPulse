@@ -653,6 +653,16 @@
 
 - functions: sanitize_activity_core, save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries
 
+### `auto_sync.py` (129줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+
+- functions: start, stop, restart, status
+
+### `bg_sync.py` (625줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+
+- class **_Starting**: is_alive
+- class **BgSyncThread**: pause, resume, stop, cancel, run
+- functions: start_job, pause_job, stop_job, cancel_job, resume_job, start_basic_sync, get_status
+
 ### `dedup.py` (119줄) — 활동 중복 감지 — 7분 / 15% 규칙.
 
 - functions: run
@@ -1045,16 +1055,6 @@
 ### `auth_cf.py` (120줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
-
-### `auto_sync.py` (129줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
-
-- functions: start, stop, restart, status
-
-### `bg_sync.py` (625줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
-
-- class **_Starting**: is_alive
-- class **BgSyncThread**: pause, resume, stop, cancel, run
-- functions: start_job, pause_job, stop_job, cancel_job, resume_job, start_basic_sync, get_status
 
 ### `gunicorn_logging.py` (24줄) — gunicorn 로거 — 캘린더 구독 토큰(/feeds/cal/<token>.ics)을 접근 로그에서 마스킹.
 

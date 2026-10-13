@@ -52,7 +52,7 @@ def _trigger_sync_and_redirect(user_id: str, days: int):
     from datetime import date as _date
     from datetime import timedelta
 
-    from src.web.bg_sync import start_job
+    from src.sync.bg_sync import start_job
 
     days = max(1, min(days, 90))
     config = load_config(user_id=user_id)
