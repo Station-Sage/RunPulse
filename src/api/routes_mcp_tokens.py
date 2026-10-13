@@ -18,7 +18,7 @@ def _no_store(resp):
 
 
 def _enabled() -> bool:
-    from src.web.views_mcp_remote import enabled
+    from src.mcp_remote.http import enabled
 
     return enabled()
 

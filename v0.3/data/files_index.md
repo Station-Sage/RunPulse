@@ -1217,10 +1217,6 @@
 
 - functions: strava_archive_view, strava_archive_post, strava_archive_backfill
 
-### `views_mcp_remote.py` (128줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
-
-- functions: enabled, mcp_endpoint
-
 ### `views_perf.py` (161줄) — 성능 최적화 — 배치 데이터 로더 + TTL 캐시.
 
 - functions: cached_page, invalidate_cache, load_latest_metric_date, load_metrics_batch, load_metrics_json_batch, load_activity_metrics_batch, load_darp_batch
@@ -1731,6 +1727,43 @@
 
 - class **CheckResult**: 없음
 - class **DataValidator**: run_all
+
+## `src/mcp_remote/`
+
+> MCP 원격/공용 코어 — stdio(src/mcp_server.py)와 HTTP(/mcp)가 공유하는 프로토콜·안전 장치.
+> 
+> - protocol.py   : JSON-RPC 처리(허용 도구 집합·연결 팩토리 주입, 프로토콜 버전 협상)
+> - safe_conn.py  : 읽기 전용 SQLite 연결(ro + query_only + authorizer + 시간 제한)
+> - policy.py     : 원격 노출 도구 분류(REMOTE_TOOLS / REMOTE_DENIED)
+> - token_index.py: Bearer 토큰 인덱스(data/mcp_tokens.db, 해시만 저장)
+> - audit.py      : 호출 감사 로그(mcp_audit)
+> - http.py       : 원격 MCP HTTP 엔드포인트 POST /mcp (Flask Blueprint, V1S-3 — src/web/views_mcp_remote.py 에서 이관)
+> 설계: v0.3/data/phase-7-ui-renewal/ux-review-2026-09/DESIGN-MCP-REMOTE.md
+
+### `audit.py` (83줄) — 원격 MCP 호출 감사(mcp_audit) 기록·정리·조회, IP 해시. 토큰·원문 IP는 저장하지 않는다.
+
+- functions: ip_hash, record, purge, query
+
+### `http.py` (128줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
+
+- functions: enabled, mcp_endpoint
+
+### `policy.py` (17줄) — 원격(HTTP) 노출 도구 정책 — 모든 도구는 REMOTE_TOOLS 또는 REMOTE_DENIED 중 하나로 분류돼야 한다.
+
+- functions: unclassified_tools
+
+### `protocol.py` (92줄) — MCP JSON-RPC 처리 코어 — 전송(stdio/HTTP)과 무관. 연결 팩토리·허용 도구 집합을 주입받는다.
+
+- functions: negotiate_version, handle_message
+
+### `safe_conn.py` (41줄) — 읽기 전용 SQLite 연결 — mode=ro + query_only + authorizer(ATTACH 포함 쓰기 거부) + 쿼리 시간 제한.
+
+- functions: connect_readonly
+
+### `token_index.py` (164줄) — 원격 MCP Bearer 토큰 인덱스 (data/mcp_tokens.db) — 발급·목록·폐기·조회·사용 기록.
+
+- class **TokenError**: 없음
+- functions: index_path, connect, hash_token, issue, list_tokens, revoke, revoke_all, lookup, touch
 
 ## `tests/`
 
@@ -3331,7 +3364,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 710개 파일
+총 715개 파일
 
 ## docstring 누락
 

@@ -5,5 +5,6 @@
 - policy.py     : 원격 노출 도구 분류(REMOTE_TOOLS / REMOTE_DENIED)
 - token_index.py: Bearer 토큰 인덱스(data/mcp_tokens.db, 해시만 저장)
 - audit.py      : 호출 감사 로그(mcp_audit)
+- http.py       : 원격 MCP HTTP 엔드포인트 POST /mcp (Flask Blueprint, V1S-3 — src/web/views_mcp_remote.py 에서 이관)
 설계: v0.3/data/phase-7-ui-renewal/ux-review-2026-09/DESIGN-MCP-REMOTE.md
 """

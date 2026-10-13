@@ -9,7 +9,7 @@ from flask import Flask, session
 from src.mcp_remote import audit
 from src.mcp_remote import token_index as ti
 from src.utils import rate_window
-from src.web import views_mcp_remote as v
+from src.mcp_remote import http as v
 
 H = {"MCP-Protocol-Version": "2025-03-26"}
 

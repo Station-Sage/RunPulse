@@ -11,7 +11,7 @@ from src.api import routes_mcp_tokens as r
 from src.db_setup import create_tables
 from src.mcp_remote import audit
 from src.mcp_remote import token_index as ti
-from src.web import views_mcp_remote as v
+from src.mcp_remote import http as v
 
 URL = "/api/v1/settings/mcp-tokens"
 

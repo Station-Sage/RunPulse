@@ -45,7 +45,7 @@ from .views_training_crud import training_crud_bp
 from .views_training_goal_crud import training_goal_crud_bp
 from .views_training_export import training_export_bp
 from .views_calendar_feed import calendar_feed_bp
-from .views_mcp_remote import mcp_remote_bp
+from src.mcp_remote.http import mcp_remote_bp
 from .views_training_wizard import wizard_bp
 from .views_training_fullplan import fullplan_bp
 from .views_sync import sync_bp
