@@ -160,6 +160,10 @@
 
 - functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
+### `input_limits.py` (55줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
+
+- functions: race_date_window, check_checkin, check_plan_request
+
 ### `manual_sync_service.py` (90줄) — 수동 동기화 1소스 실행 — 원장 선점(claim_run) → sync.py subprocess → 원장 판독으로 결과 dict 생성.
 
 - functions: skipped, precheck, run_one
@@ -274,7 +278,7 @@
 
 - functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (202줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (205줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - functions: get_static_plan_templates, create_plan_from_template
 
@@ -368,7 +372,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (320줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (324줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1777,7 +1781,7 @@
 
 - functions: client_family, calendar_feed
 
-### `routes_coach.py` (262줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
+### `routes_coach.py` (285줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
@@ -1825,7 +1829,7 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (178줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (184줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan
 
@@ -1845,9 +1849,15 @@
 
 - functions: get_story
 
-### `routes_today.py` (143줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+### `routes_today.py` (154줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
+
+### `validation.py` (227줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
+
+- class **FieldError**: 없음
+- class **Field**: 없음
+- functions: int_field, float_field, enum_field, date_field, str_field, int_list_field, dict_field, parse_body, parse_args
 
 ## `tests/`
 
@@ -1992,11 +2002,15 @@
 
 - functions: client, test_202_partial_start, test_422_no_sources, test_409_all_running, test_429_cooldown_has_retry_after, test_400_invalid, test_non_json_body_is_empty, test_503_missing_db, test_api_error_details_optional, test_cancel_404, test_cancel_running_requests_stop, test_cancel_finished_is_idempotent
 
+### `test_api_input_contracts.py` (287줄) — tests/test_api_input_contracts.py — SRV 1차 적용 4개 라우트 입력 계약 (T-15·P-04·P-05·C-02, ADR-048).
+
+- functions: ctx, test_checkin_rejects_bad_fatigue, test_checkin_rejects_bad_pain_and_long_note, test_checkin_boundaries_accepted, test_checkin_non_json_is_415_and_broken_json_400, test_save_checkin_service_keeps_minimal_invariant, test_templates_rejects, test_templates_rejects_race_date_past_5_years, test_templates_today_race_date_and_optional_fields_ok, test_plan_create_rejects, test_plan_create_missing_required_fields, test_plan_create_non_json_415, test_plan_create_string_numbers_accepted, test_plan_create_weeks_adjusted_returns_meta_warning, test_plan_create_race_date_today_ok, test_plan_service_keeps_minimal_invariant, test_coach_create_thread_rejects_non_string_message, test_coach_rejects_long_message_and_bad_ids, test_coach_message_boundaries_and_whitespace, test_coach_context_and_client_msg_id_pass_through, test_coach_non_json_415, test_unvalidated_route_exception_is_json_500
+
 ### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
-### `test_api_plan.py` (311줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+### `test_api_plan.py` (313줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
@@ -2019,6 +2033,10 @@
 ### `test_api_today.py` (178줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
 - functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields, test_today_includes_unlock
+
+### `test_api_validation.py` (200줄) — tests/test_api_validation.py — src/api/validation.py Field·parse_body·parse_args (SRV 2.2, ADR-048).
+
+- functions: test_int_accepts_lossless, test_int_rejects, test_float_exclusive_lower_bound, test_float_inclusive_lower_bound, test_float_rejects, test_enum_field, test_str_field_limits_and_strip, test_date_field_strict_format_and_bounds, test_date_field_callable_bounds_evaluated_each_time, test_int_list_dedupes_keeps_order, test_int_list_rejects, test_dict_field_nested, app, test_parse_body_ok_and_defaults, test_parse_body_null_and_empty_string_mean_absent, test_parse_body_details_shape, test_parse_body_missing_required, test_parse_body_non_json_is_415, test_parse_body_no_content_type_is_415, test_parse_body_require_json_false_allows_empty, test_parse_body_broken_json_is_400, test_parse_body_non_object_json_is_400, test_parse_args
 
 ### `test_archive_service.py` (89줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
@@ -3450,7 +3468,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 734개 파일
+총 738개 파일
 
 ## docstring 누락
 

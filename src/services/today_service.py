@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from . import input_limits
+
 
 def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
     """오늘 상태 지표 — readiness(utrs/cirs/crs) + training_status(ctl/atl/tsb/acwr).
@@ -293,7 +295,9 @@ def save_checkin(
     """QuickInput 체크인 저장 — user_inputs UPSERT (D3).
 
     같은 날짜에 이미 체크인이 있으면 갱신한다(UNIQUE(input_date, input_type)).
+    범위 밖 fatigue·알 수 없는 pain 은 ValueError(내부 호출용 최소 불변식 — `input_limits`).
     """
+    input_limits.check_checkin(fatigue, pain)
     if input_date is None:
         input_date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
 

@@ -148,7 +148,7 @@ def test_get_templates_400_no_distance(mini_app):
     client, _ = mini_app
     res = client.get("/api/v1/coach/plan/templates")
     assert res.status_code == 400
-    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+    assert res.get_json()["error"]["code"] == "INVALID_PARAM"  # SRV 2.2: 필수 누락도 INVALID_PARAM + details
 
 
 def test_get_templates_200(mini_app):
@@ -170,7 +170,9 @@ def test_post_plan_400_missing_fields(mini_app):
     client, _ = mini_app
     res = client.post("/api/v1/coach/plan", json={"distance_km": 42.195})
     assert res.status_code == 400
-    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+    err = res.get_json()["error"]
+    assert err["code"] == "INVALID_PARAM"
+    assert err["details"] == {"weeks": "필수 항목입니다"}
 
 
 def test_post_plan_201_creates_goal(mini_app):

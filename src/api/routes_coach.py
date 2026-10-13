@@ -8,23 +8,46 @@ import sqlite3
 
 from flask import Response, request, stream_with_context
 
+from src.ai.coach_rule_types import CHIP_TEXT
+from src.services import input_limits
 from src.services import coach_async, coach_consent, coach_engine_health, coach_service
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
+from .validation import dict_field, enum_field, parse_body, str_field
 
 
-def _message_input(body: dict, text_key: str):
-    """(text, chip_id, error_response) — 본문 또는 알려진 chip_id 중 하나는 있어야 한다."""
-    from src.ai.coach_rule_types import CHIP_TEXT
-    text = (body.get(text_key) or "").strip() or None
-    chip_id = body.get("chip_id") or None
-    if chip_id is not None and chip_id not in CHIP_TEXT:
-        return None, None, api_error("INVALID_PARAM", f"알 수 없는 chip_id: {chip_id}", 400)
-    if not text and not chip_id:
-        return None, None, api_error("INVALID_PARAM", f"{text_key} 또는 chip_id가 필요합니다.", 400)
-    return text, chip_id, None
+_CLIENT_MSG_ID = str_field(input_limits.CLIENT_MSG_ID_MAX)
+
+
+def _message_schema(text_key: str, *, with_context: bool = False) -> dict:
+    schema = {
+        text_key: str_field(input_limits.COACH_MESSAGE_MAX),
+        "chip_id": enum_field(CHIP_TEXT),
+        "client_msg_id": _CLIENT_MSG_ID,
+    }
+    if with_context:
+        schema["context"] = dict_field({
+            "kind": str_field(input_limits.CONTEXT_KIND_MAX),
+            "ref": str_field(input_limits.CONTEXT_REF_MAX),
+        })
+    return schema
+
+
+def _message_input(text_key: str, *, with_context: bool = False):
+    """(검증된 본문 dict, error_response) — 본문 또는 알려진 chip_id 중 하나는 있어야 한다.
+
+    `body[text_key]` 는 앞뒤 공백을 뺀 문자열 또는 None, 스키마 위반은 400 INVALID_PARAM(details),
+    JSON 이 아니면 415 — `src/api/validation.py` 규약.
+    """
+    body, err = parse_body(_message_schema(text_key, with_context=with_context))
+    if err:
+        return None, err
+    if not body[text_key] and not body["chip_id"]:
+        return None, api_error("INVALID_PARAM", f"{text_key} 또는 chip_id가 필요합니다.", 400,
+                               {text_key: "비어 있을 수 없습니다(chip_id 도 없음)"})
+    return body, None
 
 
 @api_bp.get("/coach/suggestions")
@@ -86,17 +109,17 @@ def post_coach_threads():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    body = request.get_json(silent=True) or {}
-    initial_message, chip_id, err = _message_input(body, "initial_message")
+    body, err = _message_input("initial_message", with_context=True)
     if err:
         return err
+    initial_message, chip_id = body["initial_message"], body["chip_id"]
 
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
     try:
         sent = coach_service.create_thread(conn, initial_message, config=config, chip_id=chip_id,
-                                           client_msg_id=body.get("client_msg_id") or None,
-                                           context=body.get("context"))
+                                           client_msg_id=body["client_msg_id"],
+                                           context=body["context"])
     finally:
         conn.close()
 
@@ -131,10 +154,10 @@ def post_coach_thread_messages(thread_id: int):
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    body = request.get_json(silent=True) or {}
-    content, chip_id, err = _message_input(body, "content")
+    body, err = _message_input("content")
     if err:
         return err
+    content, chip_id = body["content"], body["chip_id"]
 
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
@@ -142,7 +165,7 @@ def post_coach_thread_messages(thread_id: int):
         if coach_service.get_thread(conn, thread_id) is None:
             return api_error("NOT_FOUND", f"스레드를 찾을 수 없습니다: {thread_id}", 404)
         sent = coach_service.add_message(conn, thread_id, content, config=config, chip_id=chip_id,
-                                         client_msg_id=body.get("client_msg_id") or None)
+                                         client_msg_id=body["client_msg_id"])
     finally:
         conn.close()
 

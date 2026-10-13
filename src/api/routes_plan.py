@@ -6,11 +6,13 @@ from datetime import date
 
 from flask import current_app, request
 
+from src.services import input_limits
 from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service, weekly_adapt_job
 from src.training import plan_readiness
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
+from .validation import date_field, float_field, int_field, parse_args, parse_body, str_field
 
 
 @api_bp.get("/coach/plan/active")
@@ -77,20 +79,28 @@ def get_plan_by_id(goal_id: int):
     return api_ok(result)
 
 
+_RACE_DATE = date_field(min_date=lambda: input_limits.race_date_window()[0],
+                        max_date=lambda: input_limits.race_date_window()[1])
+_TARGET_TIME = int_field(1, input_limits.TARGET_TIME_SEC_MAX)
+_TEMPLATES_SCHEMA = {
+    "distance_km": float_field(0, input_limits.DISTANCE_KM_MAX, lo_exclusive=True, required=True),
+    "target_time_sec": _TARGET_TIME,
+    "race_date": _RACE_DATE,
+}
+
+
 @api_bp.get("/coach/plan/templates")
 def get_plan_templates():
-    distance_km = request.args.get("distance_km", type=float)
-    if distance_km is None:
-        return api_error("BAD_REQUEST", "distance_km 필수", 400)
-    target_time_sec = request.args.get("target_time_sec", type=int)
-    race_date = request.args.get("race_date") or None
+    args, err = parse_args(_TEMPLATES_SCHEMA)
+    if err:
+        return err
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     conn = sqlite3.connect(str(dpath))
     try:
         templates = plan_template_service.get_static_plan_templates(
-            conn, distance_km, target_time_sec, race_date
+            conn, args["distance_km"], args["target_time_sec"], args["race_date"]
         )
     finally:
         conn.close()
@@ -129,50 +139,46 @@ def save_session_note_route(session_date: str):
     return api_ok({"note": note})
 
 
-_REPORTED_MAX_KM = {"recent_weekly_km": 300.0, "recent_long_km": 60.0}
+def _reported_km_field(key: str):
+    """선택 입력(최근 주간 km·최장 롱런 km) — 0 초과 상한 이하, 소수 첫째 자리 반올림은 라우트에서."""
+    return float_field(0, input_limits.REPORTED_KM_MAX[key], lo_exclusive=True)
 
 
-def _reported_km(body: dict, key: str) -> tuple[float | None, str | None]:
-    """선택 입력(최근 주간 km·최장 롱런 km) 검증. 비어 있으면 None, 범위 밖이면 오류 문구."""
-    raw = body.get(key)
-    if raw is None or raw == "":
-        return None, None
-    try:
-        val = float(raw)
-    except (TypeError, ValueError):
-        return None, f"{key} 는 숫자여야 합니다"
-    if not 0 < val <= _REPORTED_MAX_KM[key]:
-        return None, f"{key} 는 0 초과 {_REPORTED_MAX_KM[key]:.0f} 이하"
-    return round(val, 1), None
+_CREATE_PLAN_SCHEMA = {
+    "distance_km": float_field(0, input_limits.DISTANCE_KM_MAX, lo_exclusive=True, required=True),
+    "weeks": int_field(*input_limits.WEEKS_RANGE, required=True),
+    "race_date": _RACE_DATE,
+    "target_time_sec": _TARGET_TIME,
+    "name": str_field(input_limits.PLAN_NAME_MAX),
+    "recent_weekly_km": _reported_km_field("recent_weekly_km"),
+    "recent_long_km": _reported_km_field("recent_long_km"),
+}
 
 
 @api_bp.post("/coach/plan")
 def create_plan():
-    body = request.get_json(silent=True) or {}
-    distance_km = body.get("distance_km")
-    if distance_km is None:
-        return api_error("BAD_REQUEST", "distance_km 필수", 400)
-    weeks = body.get("weeks")
-    if weeks is None:
-        return api_error("BAD_REQUEST", "weeks 필수", 400)
-    race_date = body.get("race_date") or None
-    target_time_sec = body.get("target_time_sec") or None
-    name = body.get("name") or None
-    weekly_km, err_w = _reported_km(body, "recent_weekly_km")
-    long_km, err_l = _reported_km(body, "recent_long_km")
-    if err_w or err_l:
-        return api_error("BAD_REQUEST", err_w or err_l, 400)
+    body, err = parse_body(_CREATE_PLAN_SCHEMA)
+    if err:
+        return err
+    weeks = body["weeks"]
+    weekly_km, long_km = body["recent_weekly_km"], body["recent_long_km"]
+    weekly_km = round(weekly_km, 1) if weekly_km is not None else None
+    long_km = round(long_km, 1) if long_km is not None else None
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     conn = sqlite3.connect(str(dpath))
     try:
         goal_id = plan_template_service.create_plan_from_template(
-            conn, float(distance_km), race_date, int(weeks), target_time_sec, name,
+            conn, body["distance_km"], body["race_date"], weeks, body["target_time_sec"], body["name"],
             recent_weekly_km=weekly_km, recent_long_km=long_km,
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
         warnings = plan_readiness.plan_warnings(conn, goal_id)
     finally:
         conn.close()
-    return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks, "warnings": warnings})
+    # 대회일까지 가능 주수보다 길게 요청하면 서비스가 줄여 만든다 — 조용한 보정 대신 알린다(SRV-7·SRV-11)
+    meta = None
+    if plan_weeks != weeks:
+        meta = {"warnings": [{"code": "WEEKS_ADJUSTED", "requested": weeks, "applied": plan_weeks}]}
+    return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks, "warnings": warnings}, meta=meta)

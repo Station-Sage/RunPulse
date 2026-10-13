@@ -8,6 +8,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
+from src.services import input_limits
 from src.training.goals import add_goal, set_reported_load
 from src.training.plan_replace import replace_range
 from src.training.planner import (
@@ -72,6 +73,7 @@ def get_static_plan_templates(
         [{"weeks","label","weekly_km_target","achievability_pct",
           "projected_time_end","risk_level","status_summary"}, ...]
     """
+    input_limits.check_plan_request(distance_km)
     rec = get_recommended_weeks(distance_km)
     week_presets = sorted(set([rec["min"], rec["optimal_min"], rec["optimal_max"]]))
     avail = plan_weeks_until_race(race_date)
@@ -171,6 +173,7 @@ def create_plan_from_template(
     Returns:
         새로 생성된 goal_id.
     """
+    input_limits.check_plan_request(distance_km, weeks)
     avail = plan_weeks_until_race(race_date)
     if avail is not None:
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)

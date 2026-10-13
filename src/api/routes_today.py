@@ -6,11 +6,13 @@ import sqlite3
 
 from flask import request
 
+from src.services import input_limits
 from src.services import data_health_service, metric_unlock_service, milestone_service, race_hub_service, today_hero, today_service
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
+from .validation import enum_field, int_field, parse_body, str_field
 
 
 @api_bp.get("/today")
@@ -122,20 +124,29 @@ def get_today_race_hub():
     return api_ok(result)
 
 
+_CHECKIN_SCHEMA = {
+    "fatigue": int_field(*input_limits.FATIGUE_RANGE),
+    "pain": enum_field(input_limits.PAIN_LEVELS),
+    "note": str_field(input_limits.CHECKIN_NOTE_MAX),
+}
+
+
 @api_bp.post("/today/checkin")
 def post_today_checkin():
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    body = request.get_json(silent=True) or {}
+    body, err = parse_body(_CHECKIN_SCHEMA)
+    if err:
+        return err
     conn = sqlite3.connect(str(dpath))
     try:
         result = today_service.save_checkin(
             conn,
-            fatigue=body.get("fatigue"),
-            pain=body.get("pain"),
-            note=body.get("note"),
+            fatigue=body["fatigue"],
+            pain=body["pain"],
+            note=body["note"],
         )
     finally:
         conn.close()
