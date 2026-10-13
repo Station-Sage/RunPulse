@@ -4,6 +4,7 @@
 - 변경 이력: 2026-10-11 7차 동기화 — V1S-1~7·V1-12·V1-13 반영(새 위치 확정, 후보 비교 삭제, 이관 순서·변경 파일 표·단계·검증을 확정 위치 기준으로 재작성, importer 실측 24파일로 정정).
 - 변경 이력: 2026-10-11 8차 동기화 — V1-14(v1 `/ai-coach` 라우트를 suggestions 제거보다 먼저 제거: §1.5·§2.4·§3·§4 5a 신설, `_load_chips` import 문제 소멸), V1-15(`classify_surface` 'v1' 분기 제거, V1-4 해소: 범위·§2.5·§4 0단계·§6), V1-16(`request_guard`·`response_policy`·`spa_static` → `src/web/`, `export_purge` → `src/services/`, 'src/web = 앱 셸 전용' 정의: §2.2), V1S-8(파일명 `bg_sync.py`·`auto_sync.py` 유지: §2.2). §5 열린 질문 갱신.
 - 변경 이력: 2026-10-12 9차 동기화 — V1-17(`/ai-coach` 라우트 등록만 삭제, 전용 파일 2개는 일몰 때 삭제: §2.4·§2.4.1·§3·§4 5a·5b 정정, '−1002줄' 삭제), V1-18(폴백 경로 일반 표면 정책: §2.5·§5 해소), V1-19(`template_helpers.py` → `src/utils/`, `views_calendar_feed.py` → `src/api/routes_calendar_feed.py`: §1.7 신설·§2.2·§3·§4 0단계·3b·3c·8단계·§5·§6), SRV-10(production 판정 키 `APP_ENV`로 V1-12 종결: §1.3·§2.5·§4 0·6단계), SRV-13(uid 허용 규칙·검증 위치 `src/utils/user_context.py`: §1.3·§2.5·§3).
+- 변경 이력: 2026-10-13 S2 착수 — 구현 범위 분할(V1S-9): §4 1~5단계(3b·3c·5a·5b 포함)+8단계 마감은 구현 단계 S2, **6단계(/switch-user·SRV-6·uid 규칙)·7단계(MenuDrawer CSV)는 S3 로 이관**. `template_helpers.py` 이름 유지(V1S-10), S2 에서 ADR 없음(V1S-11), `app.py` 비UI 직접 라우트 위치·처리는 미결정(V1S-12). 구현 진행 상태는 `../S2_results.md`.
 - 일몰 정의(V1-1 정정·V1-2): v1 일몰 = **UI·라우트 일몰**. 공유 파일·함수는 유지, 재설계가 필요한 v1 파일은 재설계.
 - v1 손상 허용(V1-13): v1 보호·호환·완충 코드를 설계에 넣지 않는다. v1 화면이 깨지는 지점은 "감수(V1-13)"로만 적는다.
 - 이 문서 범위: V1-10 4파일 이관(V1S-1·2·3·5·7), V1-6 loader 제거(V1S-6), V1-3·V1-8·V1-9·V1-12 /switch-user, V1-11 MenuDrawer CSV, V1-14·V1-17 v1 `/ai-coach` 라우트 등록 제거(V1-7 suggestions 제거 선행, 전용 파일은 일몰 때 삭제), V1-7 suggestions 제거(V1S-4), V1-16 신규 공용 파일 위치(§2.2), V1-19 `template_helpers.py`·`views_calendar_feed.py` 이관(§2.2). V1-15(V1-4 해소)·V1-18: `classify_surface` 'v1' 분기 제거·폴백 경로 일반 표면 정책 — 함수 자체가 아직 코드에 없어(`security-headers.md` 설계에만 존재) 이 문서의 작업은 없고, 그 설계서가 반영한다(§2.5).
@@ -145,15 +146,16 @@
 5. **V1-14 라우트 제거 → V1S-4 suggestions 제거**(2커밋, 5a 가 먼저 — 다른 문서의 '§4 5단계' 참조는 5b 를 포함한 이 단계).
    - 5a. **V1-14 v1 `/ai-coach` 라우트 등록 제거(V1-17: 파일 유지)**. 검증: `grep -nE "views_ai_coach|ai_coach_bp" src/web/app.py` 0건, `views_ai_coach.py`·`views_ai_coach_cards.py` 밖에서 `grep -rnE "views_ai_coach|ai_coach_bp" src tests` 0건(두 파일 자체·서로 간 import 는 일몰 때까지 잔존), 앱 기동·전체 pytest 통과, `/ai-coach` 404. v1 화면 검증 없음(감수, V1-13).
    - 5b. **V1S-4 suggestions 제거**. 검증: `grep -rnE "get_runner_state|rule_based_chips|RunnerState" src tests` — 예외 `src/web/views_ai_coach.py`(`_load_chips` 함수 내 지연 import, 라우트 미등록 잔존 파일·도달 불가, V1-17) 외 0건, `test_chat_engine*`·`test_briefing*`(CHIP_REGISTRY 사용) 통과.
-6. **/switch-user v2 이관 + SRV-6 + uid 규칙(SRV-13)**(§2.5 ①②③, 2단계 이후 — 새 서비스·`validate_uid`가 `src.utils.user_context`에 의존). 검증: `APP_ENV=production` 시 v2 엔드포인트 404·링크 숨김, 개발 설정 전환 동작·규칙 위반 uid 거부, `grep -rn "switch-user" src frontend/src`에 v1 경로 0건.
-7. **MenuDrawer CSV 링크 교체**. 검증: `npm run check`, 링크 대상 `/data/export` 렌더.
+6. **(S3 이관, V1S-9)** **/switch-user v2 이관 + SRV-6 + uid 규칙(SRV-13)**(§2.5 ①②③, 2단계 이후 — 새 서비스·`validate_uid`가 `src.utils.user_context`에 의존). 검증: `APP_ENV=production` 시 v2 엔드포인트 404·링크 숨김, 개발 설정 전환 동작·규칙 위반 uid 거부, `grep -rn "switch-user" src frontend/src`에 v1 경로 0건.
+7. **(S3 이관, V1S-9)** **MenuDrawer CSV 링크 교체**. 검증: `npm run check`, 링크 대상 `/data/export` 렌더.
 8. 마감: `gen_files_index.py`, `check_docs.py`, 전체 `pytest tests/`, 최종 `grep -rln "src\.web\." src --include=*.py | grep -v "^src/web/"`(목표: 0건 — V1-19 로 `ai/ai_context.py`의 template_helpers 의존도 3b 에서 제거).
 
 ## 5. 결정
 
 결정 완료(decisions-table.md V1-1~V1-19, V1S-1~8, SRV-10·SRV-13 표 참조). 해소: 파일명(V1S-8 유지), `_load_chips` 지연 import(V1-14 라우트 선제거 — V1-17 로 파일은 잔존하나 도달 불가), V1-4(V1-15 분기 제거), 신규 파일 위치(V1-16), production 판정 키(V1-12 → SRV-10 `APP_ENV`), 해소(V1-18): 폴백 경로 CSP = 일반 표면 정책(`security-headers.md` §2.1), 해소(V1-19): `template_helpers.py` → `src/utils/`, `views_calendar_feed.py` → `src/api/routes_calendar_feed.py`. 남은 열린 질문:
 - **V1-19 후속:** `app.py`의 그 밖의 비UI 직접 라우트(`/api/garmin/local-sync`·`/trigger-sync*`·`/bg-sync/*`·`/sync-status`·`/import*` 등)는 구현 첫 단계에서 목록화만 정해졌고(0단계 (d)), 목록화 후 위치·처리는 결정 기록이 없다.
-- **V1-19 파일명:** `template_helpers.py`의 이관 후 파일명은 결정에 위치(`src/utils/`)만 있다 — 이 문서는 기존 이름 유지로 기술했다.
+- **V1-19 파일명:** 해소(V1S-10, 2026-10-13) — 기존 이름 유지.
+- **V1-19 후속(V1S-12):** 2026-10-13 현재도 미결정. S2 는 목록화만 한다.
 
 ## 6. 범위 밖 메모
 - (V1-19 로 범위 안으로 이동) `template_helpers.py`·`views_calendar_feed.py` 이관은 §2.2·§4 3b·3c.
