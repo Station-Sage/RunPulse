@@ -42,8 +42,8 @@
 ## 빌드 및 실행 명령어 (파일 내용 읽지 말 것)
 
     python3 src/sync.py --source all --days 7      # 데이터 동기화
-    python3 -m pytest tests/                       # 테스트
-    python3 scripts/check_docs.py                  # 문서 정합성 검증 (15개 검사)
+    .venv/bin/python -m pytest tests/              # 테스트 (flask·gunicorn 은 .venv 에만 있음, ENV-1. 시스템 python3 는 수집 오류)
+    python3 scripts/check_docs.py                  # 문서 정합성 검증 (20개 검사)
     python3 scripts/gen_files_index.py             # 파일 인덱스 재생성
     python3 scripts/gen_metric_dictionary.py       # 메트릭 사전 재생성
 

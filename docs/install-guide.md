@@ -16,19 +16,17 @@
 
     pip install --upgrade pip
 
-    # 필수
-    pip install garminconnect    # Garmin Connect 비공식 API
-    pip install httpx            # 비동기 HTTP 클라이언트
-    pip install gpxpy            # GPX 파일 파싱
-    pip install fitparse         # FIT 파일 파싱
-    pip install python-dateutil  # 날짜 파싱 유틸
+    # 필수 (flask·gunicorn 포함, requirements.txt 한 번에 설치)
+    pip install -r requirements.txt
 
     # 테스트
     pip install pytest
 
-    # 웹 대시보드 (선택)
-    pip install flask
-    # 또는 더 경량: pip install bottle
+참고:
+- flask 는 웹 앱(`src/serve.py`)과 테스트 클라이언트에 필수다. 선택 사항이 아니다. (bottle 대체는 지원하지 않는다.)
+- gunicorn 은 Docker 실행(`Dockerfile` CMD)과 `src/web/gunicorn_logging.py`·`tests/test_calendar_feed_routes.py` 에 필요하다.
+  Termux 의 `python src/serve.py` 실행에는 쓰이지 않지만 테스트 수집에 필요하므로 같이 설치한다.
+- 프로젝트 환경은 가상환경(`.venv`)이다. 시스템 python 에는 설치하지 않는다 (ENV-1).
 
 ## 3. SQLite (이미 포함)
 Termux의 Python에 sqlite3 모듈이 내장되어 있음.

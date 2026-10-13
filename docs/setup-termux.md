@@ -12,9 +12,13 @@ Google Play 버전은 오래되었으므로 F-Droid 권장
 ## 3. Python 패키지
 
     pip install --upgrade pip
-    pip install garminconnect httpx gpxpy python-dateutil fitparse
-    pip install pytest  # 테스트용
-    pip install flask   # 웹 대시보드용 (선택)
+    pip install -r requirements.txt   # flask·gunicorn 포함 (필수)
+    pip install pytest                # 테스트용
+
+flask 는 웹 앱·테스트에 필수이고, gunicorn 은 Docker 실행과 테스트 수집에 필요하다
+(Termux 실행 자체는 `python src/serve.py` 라 gunicorn 을 쓰지 않는다). 가상환경(`.venv` 또는 `start.sh` 의
+`/root/venvs/runpulse`)에 설치하고 시스템 python 에는 설치하지 않는다 (ENV-1).
+저장소 클론(4단계) 후 저장소 루트에서 실행한다.
 
 ## 4. 저장소 클론
 

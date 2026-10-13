@@ -84,8 +84,8 @@
 |---|---|---|
 | `/switch-user` v2 이관·SRV-6·uid 규칙(`validate_uid` 를 `src/utils/user_context.py` 에) | S3 | 설계서 §4 6단계. 이제 `user_context.py` 에 `db_path` 가 있어 같은 모듈에 둘 수 있음 |
 | MenuDrawer CSV → EXP 링크 | S3 | 설계서 §4 7단계 |
-| 비UI 직접 라우트의 위치·처리 | **S3 에서 결정**(V1S-12, 미결정) | 위 목록 |
-| **0단계 환경: Flask 설치·표준 테스트 명령(ENV-1)** | S3 0단계 | (제안, 미승인) `.venv/bin/python -m pytest tests/` 를 CLAUDE.md 에 문서화, `docs/install-guide.md`·`docs/setup-termux.md` 의 flask '선택' → 필수(`pip install -r requirements.txt`). 시스템 `python3` 에는 설치하지 않음. 근거: 시스템 python3 로 `pytest tests/` 하면 수집 오류 32건으로 중단 |
+| 비UI 직접 라우트의 위치·처리 | **S3 에서 결정 → 결정됨(V1S-12 b안: `src/api/` Blueprint 이동, URL 불변, 삭제는 일몰 단계)** | 위 목록 |
+| **0단계 환경: Flask 설치·표준 테스트 명령(ENV-1)** | S3 0단계 | (승인 2026-10-13, 사용자 2번 선택·gunicorn 동일 처리) `.venv/bin/python -m pytest tests/` 를 CLAUDE.md 에 문서화, `docs/install-guide.md`·`docs/setup-termux.md` 의 flask '선택' → 필수(`pip install -r requirements.txt`). 시스템 `python3` 에는 설치하지 않음. 근거: 시스템 python3 로 `pytest tests/` 하면 수집 오류 32건으로 중단 |
 | MenuDrawer `AI 코치` quickLink 등 v2→v1 링크 | MENUDRAWER-POST-V1 | V1-5 |
 | `views_ai_coach*.py`·`views_training_*`·v1 HTML 삭제 | v1 일몰 | V1-17 |
 
