@@ -5,5 +5,5 @@
 직접 SQL 금지 — 서비스 레이어만 호출. None 메트릭은 출력에서 제외.
 
 설계 문서: v0.3/data/phase-5-impl/02-ai-context.md
-의존: src/services/, src/web/template_helpers.py
+의존: src/services/, src/utils/template_helpers.py
 """

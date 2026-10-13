@@ -1,7 +1,7 @@
 """tests/test_template_helpers.py — Phase 5-E 헬퍼 함수 테스트."""
 import pytest
 
-from src.web.template_helpers import (
+from src.utils.template_helpers import (
     confidence_badge,
     format_distance,
     format_duration,

@@ -18,7 +18,7 @@ from src.ai.ai_context_legacy import (  # noqa: F401  재노출
 )
 from src.services.activity_service import get_activity_detail
 from src.services.dashboard_service import get_dashboard_data
-from src.web.template_helpers import (
+from src.utils.template_helpers import (
     confidence_badge,
     format_distance,
     format_duration,
