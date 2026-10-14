@@ -401,3 +401,11 @@
 - D5: favicon·manifest·apple-touch-icon 실제 파일을 `frontend/static/` 에 두고(라우트 추가 없음), "새 버전" 알림은 `vite:preloadError`·탭 복귀 시 `updated.check()` 로 띄운다. 자동 새로고침은 하지 않고 사용자가 누를 때만 새로고침한다(입력 유실 방지, SEC-8). `pollInterval` 은 0 유지(SEC-11). 아이콘 이미지는 v1 maskable 아이콘에서 파생한 **임시 자산**이다.
 - D6: CSP report-only → enforce 전환은 운영 절차다: 2주 관찰, `ext=0` 위반 0건, 의도적 위반으로 보고 도착(CF Access 경유)을 실환경에서 확인한 뒤에만 `CSP_V2_MODE=enforce`. S3 코드 범위에는 전환이 포함되지 않는다.
 - 구현 세부(S3-7~S3-10)와 위험·인계는 `design-2026-10/decisions-table.md`·`S3_results.md` 참조.
+
+## ADR-051: 비러닝 활동 표시·집계 분리 (2026-10-15)
+- 배경: v2 점검 NRA 설계(`phase-7-ui-renewal/design-2026-10/patterns/non-running-activities.md`, 결정 NRA-1~8). 구현 S4 N1~N5(커밋 `3025215`·`65b58d1`·`5132797`·`5a52ba5`·`68d1c0a`).
+- D1: 기간 합계·횟수·최장은 러닝만(`run_totals`), 비러닝은 한 줄로 따로("그 외 수영 1회 · 근력 2회", 0이면 생략) — `other_totals`·`other_line`. "회"는 러닝 횟수(NRA-1·2).
+- D2: 스포츠 군 SSOT는 `src/utils/activity_types.py`(`sport_family`·`family_clause`·`SPORT_LABELS`). 레이스·트레드밀=러닝, HIIT·미매핑 원문=기타(NRA-7).
+- D3: 활동 표시 계약 `activity_display.build_display` — 러닝·걷기 /km, 수영 /100m, 자전거 km/h, 근력·기타는 거리·페이스 숨김, 페이스는 거리÷이동시간 재계산(이동시간 없으면 경과시간, basis=`elapsed`), 보조 칸 `alt_fields`=시간·평균심박·칼로리·세트(NRA-3~5). 상세 응답에 최상위 `display` 키.
+- D4: 판정 접두는 `wc.label or display.label`, 페이스 변동·날씨 칩은 러닝만(NRA-6). Today 내러티브는 `today_narrative.py` 로 분리(300줄 규칙), 캐시 키 접미 `:r2`.
+- 미결: NRA-8(매처·`ai_context_legacy` RUN_TYPES 사본)은 범위 밖. HSR-12(`activity_counts` 가 `family_clause` 소비)는 HSR 묶음 소관. 세부는 `design-2026-10/decisions-table.md` S4-5.
