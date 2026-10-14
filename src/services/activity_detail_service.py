@@ -108,7 +108,9 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
     environment = extras.build_environment(conn, ids, core)
     hr_zones = extras.build_hr_zones(conn, ids)
     source_diffs = extras.build_source_diffs(source_comparison)
-    verdict = extras.build_verdict(core, wc, splits, environment)
+    from src.services.activity_display import build_display
+    display = build_display(core)
+    verdict = extras.build_verdict(core, wc, splits, environment, display)
 
     # laps
     lap_rows = conn.execute(
@@ -154,6 +156,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         "hr_zones": hr_zones,
         "source_diffs": source_diffs,
         "verdict": verdict,
+        "display": display,
         "stream_point_count": stream_point_count,
         "laps": laps,
         "best_efforts": best_efforts,

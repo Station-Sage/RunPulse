@@ -106,27 +106,42 @@ def _fmt_pace(sec: float) -> str:
     return f"{int(sec // 60)}:{int(round(sec % 60)):02d}/km".replace(":60/", ":59/")
 
 
-def build_verdict(core: dict, wc: dict, splits: list[dict], environment: dict | None) -> dict | None:
+def _pace_text(display: dict | None, core: dict) -> str | None:
+    """러닝은 기존 core 페이스(byte-identical), 그 외는 표시 계약의 단위(NRA-4)."""
+    if display is None or display["family"] == "running":
+        pace = core.get("avg_pace_sec_km")
+        return _fmt_pace(pace) if pace else None
+    if display["pace"]:
+        v, unit = display["pace"]["value_sec"], display["pace"]["unit"]
+        return _fmt_pace(v).replace("/km", unit)
+    if display["speed_kmh"]:
+        return f"{display['speed_kmh']}km/h"
+    return None
+
+
+def build_verdict(core: dict, wc: dict, splits: list[dict], environment: dict | None,
+                  display: dict | None = None) -> dict | None:
     """규칙 기반 한 줄 판정 + 근거 칩. 페이스·심박 둘 다 없으면 None."""
-    pace, hr = core.get("avg_pace_sec_km"), core.get("avg_hr")
-    if not pace and not hr:
+    pace_text, hr = _pace_text(display, core), core.get("avg_hr")
+    if not pace_text and not hr:
         return None
+    running = display is None or display["family"] == "running"
     basis = wc["workout_class_basis"]
     cv = basis["pace_cv"]
-    head = wc["label"] or "러닝"
-    parts = [f"{head} {_fmt_pace(pace)}" if pace else head]
+    head = wc["label"] or (display["label"] if display else "러닝")
+    parts = [f"{head} {pace_text}" if pace_text else head]
     evidence = []
     if hr:
         pct = basis["hr_pct_max"]
         parts.append(f"평균 심박 {round(hr)}" + (f"(최대의 {round(pct)}%)" if pct else ""))
         if pct:
             evidence.append({"kind": "info", "label": f"최대심박 {round(pct)}%", "target": "hr_pct_max"})
-    if cv is not None:
+    if cv is not None and running:
         steady = cv < _STEADY_PACE_CV
         parts.append("페이스 일정" if steady else "페이스 변동 큼")
         evidence.append({"kind": "info", "label": f"페이스 변동 {cv * 100:.1f}%", "target": "pace_cv"})
     eff = environment and environment.get("pace_effect_sec_km")
-    if eff and abs(eff) >= 5:
+    if running and eff and abs(eff) >= 5:
         parts.append(f"날씨로 km당 약 {abs(round(eff))}초 {'느려짐' if eff > 0 else '빨라짐'}")
         evidence.append({"kind": "drill", "label": "날씨 보정", "target": "m.fearp"})
     return {"text": " · ".join(parts), "evidence": evidence[:3]}

@@ -28,9 +28,13 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_detail_service.py` (225줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (228줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
+
+### `activity_display.py` (37줄) — 활동 표시 계약 — 스포츠 군별로 보일 거리·페이스·시간·대체 셀 결정 (ADR-051 NRA-3/4/5).
+
+- functions: build_display
 
 ### `activity_feedback_service.py` (106줄) — 활동별 주관 입력(RPE·통증·메모) 저장 서비스 — activity_feedback(ADR-022).
 
@@ -74,7 +78,7 @@
 
 - functions: cumulative_distance, stopped_flags, compute_splits, series_step_m, build_series
 
-### `activity_summary_extras.py` (132줄) — 활동 상세 S1 부가 필드 — workout_class·environment·hr_zones·source_diffs·verdict.
+### `activity_summary_extras.py` (147줄) — 활동 상세 S1 부가 필드 — workout_class·environment·hr_zones·source_diffs·verdict.
 
 - functions: pace_cv, build_workout_class, build_environment, build_hr_zones, build_source_diffs, build_verdict
 
@@ -1925,6 +1929,10 @@
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty, test_u18c_measured_meta_skips_rescale, test_u18c_dwell_sum_matches_measured_moving_time, test_u18c_ctx_get_stream_meta
 
+### `test_activity_display.py` (54줄) — activity_display.build_display 단위 테스트 (NRA-3/4/5).
+
+- functions: test_running_pace_moving_basis, test_elapsed_fallback_basis, test_swimming_per_100m, test_strength_hides_distance_and_pace, test_cycling_speed, test_walking_pace_km, test_hiit_is_other, test_unknown_type_is_other_and_alt_only_existing, test_times_equal_when_no_moving
+
 ### `test_activity_export.py` (70줄) — 원본 링크·GPX 내보내기 테스트.
 
 - functions: conn_ids, test_source_links_skip_unsafe_id, test_gpx_no_gps, test_gpx_ok_and_missing, test_export_routes
@@ -1955,9 +1963,9 @@
 
 - functions: test_splits_even_pace, test_splits_stop_excluded_from_pace, test_splits_partial_and_short, test_cumulative_distance_integrates_speed_when_missing, test_series_bounded_and_aligned, test_series_none_without_distance, test_detail_includes_splits_series_siblings
 
-### `test_activity_summary_extras.py` (64줄) — activity_summary_extras 단위 테스트.
+### `test_activity_summary_extras.py` (91줄) — activity_summary_extras 단위 테스트.
 
-- functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none
+- functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none, test_verdict_running_unchanged_with_display, test_verdict_swimming_uses_label_and_100m_without_running_chips, test_verdict_strength_hr_only
 
 ### `test_activity_types.py` (75줄) — activity_types.py 단위 테스트.
 
@@ -3546,7 +3554,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 757개 파일
+총 759개 파일
 
 ## docstring 누락
 

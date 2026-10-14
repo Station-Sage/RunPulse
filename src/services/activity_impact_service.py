@@ -10,6 +10,7 @@ import sqlite3
 from datetime import date as _date
 
 from src.services.activity_similar import find_similar
+from src.utils.activity_types import sport_family
 
 
 def get_activity_impact(
@@ -19,7 +20,7 @@ def get_activity_impact(
 ) -> dict | None:
     """활동이 훈련 부하·동류 활동·레이스 맥락에서 어디에 위치하는지 반환.
 
-    러닝 계열(activity_type LIKE '%running%')이 아니거나 거리가 없으면 None.
+    러닝 계열(sport_family == "running")이 아니거나 거리가 없으면 None.
     반환: {"load", "ctl_contribution", "tsb", "tsb_as_of", "similar", "race"}.
     load는 이 활동의 TRIMP, ctl_contribution은 활동일 CTL의 전일 대비 변화(그날 다른 활동 포함).
     """
@@ -34,8 +35,7 @@ def get_activity_impact(
     if act is None:
         return None
 
-    act_type: str = act["activity_type"] or ""
-    if "running" not in act_type.lower():
+    if sport_family(act["activity_type"]) != "running":
         return None
 
     if not act["distance_m"]:

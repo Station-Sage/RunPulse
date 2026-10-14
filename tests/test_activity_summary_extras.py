@@ -62,3 +62,30 @@ def test_verdict_text_and_none():
     assert v["text"].startswith("이지런 5:35/km") and "페이스 일정" in v["text"]
     assert len(v["evidence"]) == 3
     assert ex.build_verdict({}, wc, [], None) is None
+
+
+def _wc(label=None):
+    return {"label": label, "workout_class_basis": {"pace_cv": 0.02, "hr_pct_max": 80}}
+
+
+def test_verdict_running_unchanged_with_display():
+    from src.services.activity_display import build_display
+    core = {"activity_type": "running", "avg_pace_sec_km": 300, "avg_hr": 150, "distance_m": 10000, "duration_sec": 3000}
+    env = {"pace_effect_sec_km": 8}
+    old = ex.build_verdict(core, _wc(), [], env)
+    assert old == ex.build_verdict(core, _wc(), [], env, build_display(core))
+    assert old["text"].startswith("러닝 5:00/km · 평균 심박 150(최대의 80%) · 페이스 일정")
+
+
+def test_verdict_swimming_uses_label_and_100m_without_running_chips():
+    from src.services.activity_display import build_display
+    core = {"activity_type": "lap_swimming", "avg_hr": 130, "distance_m": 1000, "duration_sec": 1800}
+    v = ex.build_verdict(core, _wc(), [], {"pace_effect_sec_km": 9}, build_display(core))
+    assert v["text"].startswith("수영 3:00/100m") and "페이스" not in v["text"] and "날씨" not in v["text"]
+
+
+def test_verdict_strength_hr_only():
+    from src.services.activity_display import build_display
+    core = {"activity_type": "strength_training", "avg_hr": 100, "duration_sec": 1800}
+    v = ex.build_verdict(core, _wc(), [], None, build_display(core))
+    assert v["text"].startswith("근력 · 평균 심박 100")
