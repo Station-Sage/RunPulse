@@ -38,7 +38,7 @@ def changelog_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> l
     """기간 안 changelog 변경(◆). 대표 시계열이 변경일 이후 RunPulse 값일 때만, 같은 날짜는 1건으로 합친다."""
     related = _upstream(slug, _calcs())
     hits: list[tuple[AlgoChange, str | None]] = [
-        (c, related[c.calculator]) for c in CHANGELOG if c.calculator in related and c.prev is not None and d0 <= c.date <= d1
+        (c, related[c.calculator]) for c in CHANGELOG if c.calculator in related and c.prev is not None and c.value_changed and d0 <= c.date <= d1
     ]
     if not hits:
         return []
@@ -73,9 +73,15 @@ def changelog_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> l
     return out
 
 
+def _data_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> list[dict[str, Any]]:
+    """불연속 감지 중 '값 변화 없음' changelog 항목(메타만 바뀐 버전)에 해당하는 것은 제외."""
+    silent = {(c.prev, c.version) for c in CHANGELOG if c.calculator == slug and not c.value_changed}
+    return [e for e in version_change_events(conn, slug, d0, d1) if (e.get("from"), e.get("to")) not in silent]
+
+
 def version_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> list[dict[str, Any]]:
     """불연속 감지(data)와 changelog 이벤트 병합 — 같은 버전이면 날짜는 data, 사유는 changelog."""
-    data = version_change_events(conn, slug, d0, d1)
+    data = _data_events(conn, slug, d0, d1)
     logged = changelog_events(conn, slug, d0, d1)
     versions = {c.version: c for c in CHANGELOG}
     out: list[dict[str, Any]] = []
@@ -95,7 +101,7 @@ def version_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> lis
 
 def recompute_caption(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> dict[str, Any] | None:
     """전 기간 재계산 캡션 — changelog 최신 항목(사유 포함) 우선, 없으면 milestones 폴백. 불연속이 있으면 None."""
-    if version_change_events(conn, slug, d0, d1):
+    if _data_events(conn, slug, d0, d1):
         return None
     logged = changelog_events(conn, slug, d0, d1)
     if not logged:

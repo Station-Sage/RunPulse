@@ -101,3 +101,20 @@ class TestRTTIMock:
     def test_no_data_mock(self):
         ctx = MockCalcContext(scope_type="daily", scope_id="2026-04-01")
         assert RTTICalculator().compute(ctx) == []
+
+
+class TestRTTIConfidence:
+    def test_full_inputs_confidence_one(self):
+        conn = _conn()
+        _seed_wellness(conn, "2026-04-01", body_battery_high=80, sleep_score=85)
+        _seed_daily_metrics(conn, "2026-04-01", ctl=50.0, atl=50.0)
+        r = RTTICalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))[0]
+        assert r.confidence == 1.0
+        assert json.loads(r.json_value)["wellness_used"] == ["body_battery_high", "sleep_score"]
+
+    def test_no_wellness_lowers_confidence(self):
+        conn = _conn()
+        _seed_daily_metrics(conn, "2026-04-01", ctl=50.0, atl=50.0)
+        r = RTTICalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))[0]
+        assert r.confidence == pytest.approx(0.6)
+        assert json.loads(r.json_value)["wellness_used"] == []

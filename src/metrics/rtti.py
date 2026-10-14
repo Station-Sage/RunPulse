@@ -8,13 +8,13 @@ v0.3 포팅: _v02_backup/rtti.py → MetricCalculator 형식
 """
 from __future__ import annotations
 
-from src.metrics.base import MetricCalculator, CalcResult, CalcContext
+from src.metrics.base import CalcContext, CalcResult, ConfidenceBuilder, MetricCalculator
 
 
 class RTTICalculator(MetricCalculator):
     name = "rtti"
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "1.1"
     scope_type = "daily"
     category = "load"
     requires = ["ctl", "atl"]
@@ -45,9 +45,11 @@ class RTTICalculator(MetricCalculator):
         # 웰니스 보정
         wf = 1.0
         wellness = ctx.get_wellness()
+        used: list[str] = []
         if wellness:
             bb = wellness.get("body_battery_high")
             if bb is not None:
+                used.append("body_battery_high")
                 bb = float(bb)
                 if bb < 30:
                     wf *= 0.8
@@ -55,6 +57,7 @@ class RTTICalculator(MetricCalculator):
                     wf *= 0.9
             sleep = wellness.get("sleep_score")
             if sleep is not None:
+                used.append("sleep_score")
                 sleep = float(sleep)
                 if sleep < 40:
                     wf *= 0.85
@@ -65,6 +68,12 @@ class RTTICalculator(MetricCalculator):
         capacity = ctl * wf
         rtti = round(atl / capacity * 100, 1)
 
+        cb = (ConfidenceBuilder()
+              .add_input("atl", is_available=True, weight=0.3)
+              .add_input("ctl", is_available=True, weight=0.3)
+              .add_input("body_battery_high", is_available="body_battery_high" in used, weight=0.2)
+              .add_input("sleep_score", is_available="sleep_score" in used, weight=0.2))
+
         return [self._result(
             value=rtti,
             json_val={
@@ -72,7 +81,7 @@ class RTTICalculator(MetricCalculator):
                 "ctl": round(ctl, 1),
                 "wellness_factor": round(wf, 2),
                 "capacity": round(capacity, 1),
+                "wellness_used": used,
             },
-        
-            confidence=1.0,
+            confidence=cb.compute(),
         )]

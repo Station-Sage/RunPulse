@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import date, timedelta
-from src.metrics.base import MetricCalculator, CalcResult, CalcContext
+from src.metrics.base import MetricCalculator, CalcResult, CalcContext, ConfidenceBuilder
 
 # 훈련 레벨
 LEVEL_REST = 0
@@ -118,7 +118,7 @@ def _compute_crs_score(utrs, acwr, cirs):
 class CRSCalculator(MetricCalculator):
     name = "crs"
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "1.1"
     scope_type = "daily"
     category = "readiness"
     requires = ["acwr", "tsb", "cirs", "utrs"]
@@ -159,6 +159,7 @@ class CRSCalculator(MetricCalculator):
 
         # HRV rolling (최근 7일)
         hrv_rolling = None
+        hrv_rolling_days = 0
         if hrv_today is not None:
             td = date.fromisoformat(ctx.scope_id)
             since = (td - timedelta(days=7)).isoformat()
@@ -166,6 +167,16 @@ class CRSCalculator(MetricCalculator):
             vals = [float(w["hrv_weekly_avg"]) for w in wellness_hist
                     if w.get("hrv_weekly_avg") is not None]
             hrv_rolling = sum(vals) / len(vals) if vals else None
+            hrv_rolling_days = len(vals)
+
+        cb = (ConfidenceBuilder()
+              .add_input("acwr", is_available=acwr is not None, weight=0.2)
+              .add_input("hrv_weekly_avg", is_available=hrv_today is not None, weight=0.2,
+                         is_estimated=hrv_today is not None and hrv_rolling_days < 3)
+              .add_input("body_battery_high", is_available=bb is not None, weight=0.15)
+              .add_input("tsb", is_available=tsb is not None, weight=0.15)
+              .add_input("cirs", is_available=cirs is not None, weight=0.15)
+              .add_input("utrs", is_available=utrs is not None, weight=0.15))
 
         # 게이트 평가
         gates_raw = [
@@ -203,10 +214,10 @@ class CRSCalculator(MetricCalculator):
                     "hrv_rolling": round(hrv_rolling, 1) if hrv_rolling else None,
                     "cirs": cirs,
                     "utrs": utrs,
+                    "hrv_rolling_days": hrv_rolling_days,
                 },
             },
-        
-            confidence=1.0,
+            confidence=cb.compute(),
         )]
 
 

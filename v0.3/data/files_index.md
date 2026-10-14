@@ -192,7 +192,7 @@
 
 - functions: confidence_label, get_metrics_browser, get_metric_trend
 
-### `metrics_changelog_events.py` (107줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
+### `metrics_changelog_events.py` (113줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
 
 - functions: changelog_events, version_events, recompute_caption
 
@@ -447,7 +447,7 @@
 
 - class **ADTICalculator**: compute
 
-### `algo_changelog.py` (45줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
+### `algo_changelog.py` (49줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
 
 - class **AlgoChange**: 없음
 - functions: changes_for
@@ -485,7 +485,7 @@
 
 - class **CriticalPowerCalculator**: compute
 
-### `crs.py` (259줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
+### `crs.py` (270줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
 
 - class **CRSCalculator**: compute
 - functions: evaluate
@@ -580,7 +580,7 @@
 
 - functions: reprocess_from_payloads
 
-### `rmr.py` (66줄) — RMR (Recovery & Metabolic Readiness) — 설계서 4-4 기준.
+### `rmr.py` (71줄) — RMR (Recovery & Metabolic Readiness) — 설계서 4-4 기준.
 
 - class **RMRCalculator**: compute
 
@@ -588,7 +588,7 @@
 
 - class **RRICalculator**: compute
 
-### `rtti.py` (78줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
+### `rtti.py` (87줄) — RTTI (Running Tolerance Training Index) — 달리기 내성 훈련 지수.
 
 - class **RTTICalculator**: compute
 
@@ -2049,9 +2049,9 @@
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
 
-### `test_algo_changelog.py` (40줄) — algo_changelog 계약 테스트 — Calculator 버전과 변경 이력의 일치를 강제.
+### `test_algo_changelog.py` (45줄) — algo_changelog 계약 테스트 — Calculator 버전과 변경 이력의 일치를 강제.
 
-- functions: test_every_non_default_version_has_entry, test_calculator_names_exist_and_latest_matches, test_dates_well_formed_and_ascending, test_prev_chain_consistent, test_reason_non_empty_and_short
+- functions: test_every_non_default_version_has_entry, test_calculator_names_exist_and_latest_matches, test_dates_well_formed_and_ascending, test_prev_chain_consistent, test_reason_non_empty_and_short, test_silent_entries_flagged_value_unchanged
 
 ### `test_api.py` (81줄) — api.py httpx 래퍼 테스트.
 
@@ -2321,10 +2321,11 @@
 
 - class **TestCriticalPower**: test_with_power_data, test_no_power, test_confidence
 
-### `test_crs.py` (201줄)
+### `test_crs.py` (230줄)
 
 - class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_category
 - class **TestEvaluate**: test_roundtrip_matches_calculator_output, test_no_row_returns_none, test_exact_date_only, test_ignores_non_primary_other_metric_and_scope, test_newest_primary_row_wins_on_same_date, test_invalid_data_returns_none, test_field_defaults_and_type_normalization, test_db_error_propagates, test_does_not_write
+- class **TestCRSConfidence**: test_full_inputs_with_rolling_confidence_one, test_short_rolling_marks_estimated, test_no_signals_confidence_zero_row_kept
 
 ### `test_csp_report.py` (197줄) — POST /api/v1/csp-report — 로그 전용 보고 수신 (S3 8단계, SRV-12·SEC-12).
 
@@ -2781,9 +2782,9 @@
 
 - functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level
 
-### `test_metrics_changelog_events.py` (76줄)
+### `test_metrics_changelog_events.py` (83줄)
 
-- functions: test_direct_and_propagated_merge_into_one_event, test_propagation_only_reports_via, test_out_of_range_and_unrelated_metric_excluded, test_source_provider_series_excluded, test_new_calculator_has_no_marker, test_data_event_merged_with_changelog_reason, test_provider_switch_event_kept, test_caption_uses_changelog_reason_then_milestone_fallback, test_via_label_is_korean_not_slug
+- functions: test_direct_and_propagated_merge_into_one_event, test_propagation_only_reports_via, test_out_of_range_and_unrelated_metric_excluded, test_source_provider_series_excluded, test_new_calculator_has_no_marker, test_data_event_merged_with_changelog_reason, test_provider_switch_event_kept, test_caption_uses_changelog_reason_then_milestone_fallback, test_via_label_is_korean_not_slug, test_silent_version_bump_makes_no_marker_or_caption
 
 ### `test_metrics_explain.py` (270줄) — tests/test_metrics_explain.py — get_metric_explain() 분해 v2(explain=1) 테스트.
 
@@ -3172,6 +3173,10 @@
 
 - functions: test_classify_surface, test_no_v1_surface, test_csp_api_and_feed_strictest, test_csp_v2_has_hash_and_required_directives, test_csp_default_surface_ignores_hashes, test_csp_v2_without_hashes_has_plain_self, test_csp_drops_non_hash_tokens, test_csp_unknown_surface_raises, test_common_headers_content, test_common_headers_returns_copy, test_mode_default_and_values, test_mode_unknown_falls_back_to_report_only, test_csp_header_for, app, client, test_all_surfaces_get_common_headers, test_404_and_errors_also_covered, test_v2_report_only_with_hash_from_index, test_v2_enforce_switches_header, test_default_surface_follows_mode_and_has_no_hash, test_api_feed_always_enforced_strict, test_route_headers_preserved, test_route_set_csp_and_xfo_not_overwritten, test_missing_index_html_gives_plain_self, test_apply_policy_direct, test_real_app_surfaces, test_real_app_v2_asset_keeps_cache_control
 
+### `test_rmr.py` (48줄) — RMR Calculator 단위 테스트 — 신뢰도(ADR-050 F2).
+
+- functions: test_all_inputs_confidence_one, test_tsb_only_confidence_quarter, test_no_inputs_no_row
+
 ### `test_round2.py` (193줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric.
 
 - class **TestComputeResult**: test_summary, test_defaults
@@ -3191,10 +3196,11 @@
 - class **TestRRI**: test_with_all_inputs, test_high_cirs_lowers_rri, test_no_vdot, test_category
 - class **TestRRIMock**: test_with_all_inputs_mock, test_no_vdot_mock
 
-### `test_rtti.py` (103줄)
+### `test_rtti.py` (120줄)
 
 - class **TestRTTI**: test_optimal, test_overload, test_no_data, test_category
 - class **TestRTTIMock**: test_optimal_mock, test_no_data_mock
+- class **TestRTTIConfidence**: test_full_inputs_confidence_one, test_no_wellness_lowers_confidence
 
 ### `test_run_totals.py` (49줄) — run_totals / other_totals / other_line 테스트 (NRA N2).
 
@@ -3602,7 +3608,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 770개 파일
+총 771개 파일
 
 ## docstring 누락
 

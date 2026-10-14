@@ -199,3 +199,32 @@ class TestEvaluate:
         evaluate(conn, D)
         evaluate(conn, "2026-01-01")
         assert conn.total_changes == before
+
+
+class TestCRSConfidence:
+    def _jv(self, r):
+        return json.loads(r.json_value) if isinstance(r.json_value, str) else r.json_value
+
+    def test_full_inputs_with_rolling_confidence_one(self):
+        conn = _conn()
+        for d in ("2026-03-30", "2026-03-31", "2026-04-01"):
+            _seed_wellness(conn, d, body_battery_high=80, hrv_weekly_avg=55)
+        _seed_daily_metrics(conn, "2026-04-01", acwr=1.1, tsb=5.0, cirs=20.0, utrs=75.0)
+        r = CRSCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))[0]
+        assert r.confidence == pytest.approx(1.0)
+        assert self._jv(r)["signals"]["hrv_rolling_days"] == 3
+
+    def test_short_rolling_marks_estimated(self):
+        conn = _conn()
+        _seed_wellness(conn, "2026-04-01", body_battery_high=80, hrv_weekly_avg=55)
+        _seed_daily_metrics(conn, "2026-04-01", acwr=1.1, tsb=5.0, cirs=20.0, utrs=75.0)
+        r = CRSCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))[0]
+        assert r.confidence < 1.0
+        assert self._jv(r)["signals"]["hrv_rolling_days"] == 1
+
+    def test_no_signals_confidence_zero_row_kept(self):
+        conn = _conn()
+        _seed_wellness(conn, "2026-04-01")
+        r = CRSCalculator().compute(CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01"))[0]
+        assert r.confidence == 0.0
+        assert self._jv(r)["signals"]["hrv_rolling_days"] == 0

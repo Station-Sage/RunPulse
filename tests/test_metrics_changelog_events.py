@@ -74,3 +74,10 @@ def test_caption_uses_changelog_reason_then_milestone_fallback():
 def test_via_label_is_korean_not_slug():
     ev = changelog_events(_conn(SPAN, "ctl"), "ctl", "2026-09-20", "2026-10-05")
     assert "입력 지표(심박 기반 훈련 부하)" in ev[0]["reason"] and "(trimp)" not in ev[0]["reason"]
+
+
+def test_silent_version_bump_makes_no_marker_or_caption():
+    rows = [("2026-10-01", RP, "1.0"), ("2026-10-05", RP, "1.1")]
+    assert version_events(_conn(rows, "crs"), "crs", "2026-10-01", "2026-10-05") == []
+    assert changelog_events(_conn(rows, "crs"), "crs", "2026-10-01", "2026-10-05") == []
+    assert recompute_caption(_conn(rows, "crs"), "crs", "2026-10-01", "2026-10-05") is None

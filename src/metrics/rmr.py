@@ -4,13 +4,13 @@
 """
 from __future__ import annotations
 
-from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.metrics.base import CalcContext, CalcResult, ConfidenceBuilder, MetricCalculator
 
 
 class RMRCalculator(MetricCalculator):
     name = "rmr"
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "1.1"
     scope_type = "daily"
     category = "readiness"
     display_name = "회복 준비도 (RMR)"
@@ -60,7 +60,12 @@ class RMRCalculator(MetricCalculator):
         weights = {"resting_hr": 0.25, "body_battery": 0.25, "tsb": 0.25, "sleep": 0.25}
         score = sum(components[k] * weights[k] for k in components) / total_w
 
+        cb = ConfidenceBuilder()
+        for k in weights:
+            cb.add_input(k, is_available=k in components, weight=weights[k])
+
         return [self._result(
             value=round(score, 1),
             json_val={"components": {k: round(v, 1) for k, v in components.items()}},
+            confidence=cb.compute(),
         )]

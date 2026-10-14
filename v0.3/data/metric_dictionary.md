@@ -43,6 +43,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `trimp` |
 | 메트릭 이름 | `trimp` |
+| 화면 표시명 | 심박 기반 훈련 부하 (TRIMP) |
 | 설명 | 심박 기반 훈련 부하 점수. 운동 시간과 심박 강도를 종합한 부하 지표. |
 | 단위 | AU |
 | 카테고리 | `load` |
@@ -66,6 +67,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `trimp_est` |
 | 메트릭 이름 | `trimp` |
+| 화면 표시명 | 심박 기반 훈련 부하 (TRIMP) |
 | 설명 | 심박 결측 러닝의 훈련 부하를 근접 시기 페이스-심박 관계로 추정한 값. |
 | 단위 | AU |
 | 카테고리 | `load` |

@@ -16,6 +16,7 @@ class AlgoChange:
     reason: str              # 사용자용 한 줄 사유
     prev: str | None = None  # 직전 버전. 신규 Calculator면 None(마커를 만들지 않음)
     adr: str | None = None
+    value_changed: bool = True  # False: 값은 그대로, 메타(신뢰도 등)만 바뀜 → 추세 ◆ 를 만들지 않음
 
 
 CHANGELOG: tuple[AlgoChange, ...] = (
@@ -36,6 +37,9 @@ CHANGELOG: tuple[AlgoChange, ...] = (
     AlgoChange("relative_effort", "2.0", "2026-09-28", "상대 노력도에 선수 최대심박과 심박 구간을 반영했어요", "1.0"),
     AlgoChange("aerobic_decoupling_rp", "2.0", "2026-09-28", "디커플링을 Friel 방식으로 바로잡았어요", "1.0"),
     AlgoChange("gap_rp", "minetti_2002_v2", "2026-09-28", "경사 보정 페이스를 30m 고도 창 기준으로 교정했어요", "minetti_2002"),
+    AlgoChange("rmr", "1.1", "2026-10-15", "신뢰도를 실제 입력 데이터 기준으로 기록해요(값은 그대로예요)", "1.0", "ADR-050", False),
+    AlgoChange("rtti", "1.1", "2026-10-15", "신뢰도를 실제 입력 데이터 기준으로 기록해요(값은 그대로예요)", "1.0", "ADR-050", False),
+    AlgoChange("crs", "1.1", "2026-10-15", "신뢰도를 실제 입력 데이터 기준으로 기록해요(값은 그대로예요)", "1.0", "ADR-050", False),
     AlgoChange("trimp_est", "trimp_est_v1", "2026-10-07", "심박이 없는 러닝의 부하를 추정하도록 했어요", adr="ADR-024"),
 )
 

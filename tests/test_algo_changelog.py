@@ -38,3 +38,8 @@ def test_prev_chain_consistent():
 def test_reason_non_empty_and_short():
     for c in CHANGELOG:
         assert c.reason.strip() and len(c.reason) <= 80, c
+
+
+def test_silent_entries_flagged_value_unchanged():
+    silent = {c.calculator for c in CHANGELOG if not c.value_changed}
+    assert {"rmr", "rtti", "crs"} <= silent
