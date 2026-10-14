@@ -380,3 +380,24 @@
 - 사용자 결정: ADR-044 D5의 `running.db` 구 `sync_jobs` 테이블은 지금 DROP(스키마 v36, `ui_events` 포함). 원장은 `sync_jobs.db`.
 - ADR-044 D2 변경: `sync_state.json` 이관·`--restore`는 하지 않는다. `sync_state_retire.py`와 시작 시 호출을 삭제하고 `sync_state.json*` 파일도 지운다(옛 `retry_after`는 버림).
 - ADR-044 D4(수동 동기화 라우트 `manual_sync_service` 추출, app.py −250줄)는 범위 확장이지만 사용자가 승인했다.
+
+## ADR-048: 쓰기 요청은 Origin 관문 + 경계 스키마 (2026-10-14)
+- 배경: v2 점검 SRV 설계(`design-2026-10/patterns/server-input-origin-validation.md`, 결정 SRV-1~13·ADR-1). 구현 S3 1~5단계(커밋 `9aa6399`·`ce6a1cb`·`e4f41ab`·`caefcfc`·`a7930ee`·`5abd17e`).
+- D1: 쓰기 요청(POST/PUT/PATCH/DELETE)은 `Origin`(없으면 `Referer`)이 `public_base_url()` 또는 개발 허용 목록과 같은 출처일 때만 통과한다. 둘 다 없으면 거부(SRV-1). 면제는 명시 상수 `EXEMPT_PATHS`(`/mcp`·`/api/garmin/local-sync`·`/feeds/cal/`·`/api/v1/csp-report`)뿐이며 경계 안전 매칭이다.
+- D2: `ORIGIN_GUARD_MODE` 기본은 observe(로그만), `enforce` 로 전환한다. 알 수 없는 값은 observe 로 폴백한다(오설정이 서비스를 막지 않게). observe 2주·위반 0건 확인 후 enforce 전환은 운영 절차다(SRV-8·SEC-10).
+- D3: `/mcp` 의 Origin 판정은 `request.host` 비교에서 같은 `same_origin` 로직(`public_base_url` 기준)으로 바뀐다. `Origin` 헤더가 없는 요청은 기존대로 허용한다(ADR-034 유지).
+- D4: 세션 쿠키는 `SameSite=Lax`·`HttpOnly`, `Secure` 는 `APP_ENV=production` 일 때만(SRV-3·SRV-10).
+- D5: 경계 검증은 `src/api/validation.py`(선언형 `Field`·`parse_body`·`parse_args`)와 상수 SSOT `src/services/input_limits.py` 로 한다. 비JSON 본문은 415, 범위·열거 위반은 400 `INVALID_PARAM`(SRV-5). `register_envelope_handlers(bp)` 가 뷰 안의 HTTP 오류·미처리 예외를 봉투 `{error:{code,message}}` 로 바꾼다(라우팅 단계의 404/405 는 봉투가 아님 — 알려진 한계).
+- D6: 사용자 식별자 규칙은 `validate_uid`(`[A-Za-z0-9._%+@-]{1,254}`, 선행 `.` 거부, `fullmatch`)로 단일화하고 `data/users/<uid>` 를 만드는 모든 경로(`get_db_path`·`get_config_path`·`db_setup`)에 적용한다. 위반은 `InvalidUserId`(`ValueError` 하위, 원문 미포함) → 요청 경로에서 403 `FORBIDDEN_USER`(V1-20), 앱 시작 시 디렉터리 순회는 위반 항목을 건너뛰고 마스킹 로그를 남긴다. 운영 디렉터리 점검은 `scripts/check_user_dirs.py`(운영에서 실행).
+- D7: v1 `/switch-user` 는 삭제하고 v2 `GET /api/v1/dev/users`·`POST /api/v1/dev/switch-user` 로 이관한다. production(`APP_ENV`, 요청 시점 판정)에서는 경로 존재 자체를 숨겨 404 로 응답한다(SRV-6·V1-8·V1-9).
+- 구현 세부(S3-2~S3-6)와 사용자 확인 대기 상태는 `design-2026-10/decisions-table.md`, 위험·인계는 `design-2026-10/S3_results.md` 참조.
+
+## ADR-049: 응답 정책 계층 — 보안 헤더·표면별 CSP (2026-10-14)
+- 배경: v2 점검 SEC 설계(`design-2026-10/patterns/security-headers.md`, 결정 SEC-1~12·ADR-1). 구현 S3 6~9단계(커밋 `9159789`·`201f4fd`·`50ba9ad`·`9091d20`·`d47fca2`).
+- D1: 모든 응답에 공통 헤더 4종(`X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy` 카메라·마이크·위치 차단)을 붙인다. HSTS 는 Cloudflare 프록시에 위임하고 COOP 는 OAuth 팝업 영향 검증 전까지 보류한다(SEC-3·4·5·9). 라우트가 직접 정한 CSP 는 덮어쓰지 않는다.
+- D2: CSP 는 `classify_surface`(v2/api/feed/default, 경계 일치)별로 만든다. api·feed 는 `default-src 'none'; frame-ancestors 'none'` 을 항상 enforce 하고, v2·일반 표면은 `CSP_V2_MODE`(기본 report-only, 알 수 없는 값은 report-only)를 따른다. v1 전용 분기는 두지 않는다(V1-15). v2 만 `index.html` 인라인 스크립트의 sha256 해시를 포함한다(일반 표면은 엄격, SEC-12). 해시 토큰은 형식 검증을 통과한 것만 헤더에 넣는다.
+- D3: 로그 전용 `POST /api/v1/csp-report` 는 항상 204, 수용 형식·16KB·10건 제한 밖은 204 + 로그. 확장 프로그램 스킴 보고(`ext=1`)는 '위반 0건' 집계에서 제외하고 `ext=0` 줄만 WARNING 으로 센다. Origin 관문과 415 검사에서 면제한다(SEC-6·SRV-12).
+- D4: `/v2` 정적 서빙은 `src/web/spa_static.py` 로 분리한다. 없는 자산(`_app/` 아래 또는 알려진 자산 확장자)은 404 `no-store`, 앱 경로는 `index.html` 200 `no-cache`(딥링크 보존), `immutable` 장기 캐시는 `_app/immutable/` 에만 준다. 이전에는 없는 자산도 HTML 200 이었다(의도된 동작 변경).
+- D5: favicon·manifest·apple-touch-icon 실제 파일을 `frontend/static/` 에 두고(라우트 추가 없음), "새 버전" 알림은 `vite:preloadError`·탭 복귀 시 `updated.check()` 로 띄운다. 자동 새로고침은 하지 않고 사용자가 누를 때만 새로고침한다(입력 유실 방지, SEC-8). `pollInterval` 은 0 유지(SEC-11). 아이콘 이미지는 v1 maskable 아이콘에서 파생한 **임시 자산**이다.
+- D6: CSP report-only → enforce 전환은 운영 절차다: 2주 관찰, `ext=0` 위반 0건, 의도적 위반으로 보고 도착(CF Access 경유)을 실환경에서 확인한 뒤에만 `CSP_V2_MODE=enforce`. S3 코드 범위에는 전환이 포함되지 않는다.
+- 구현 세부(S3-7~S3-10)와 위험·인계는 `design-2026-10/decisions-table.md`·`S3_results.md` 참조.
