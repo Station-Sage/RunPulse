@@ -1,7 +1,7 @@
 """내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
 분리 이유: today_service.py 300줄 캡(coding-rules.md) 초과 방지.
-외부에서 직접 import하지 않는다 — today_service를 통해서만 사용.
+외부에서 직접 import하지 않는다 — today_service → today_narrative 경로로만 사용.
 """
 from __future__ import annotations
 
