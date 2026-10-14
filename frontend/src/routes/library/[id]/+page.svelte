@@ -7,6 +7,7 @@
 	import { openDrill } from '$lib/drillStack';
 	import { providerLabel } from '$lib/provider';
 	import { formatDuration, formatPace, formatUnitValue } from '$lib/format';
+	import { altCells, paceCell, showDistance, timeCell, type HeroCell } from '$lib/activityDisplay';
 	import { formatMetricValue, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
@@ -25,6 +26,20 @@
 	let { data }: { data: ActivityPageData } = $props();
 
 	const core = $derived(data.activity?.core ?? null);
+	const display = $derived(data.activity?.display ?? null);
+	const heroCells = $derived.by((): HeroCell[] => {
+		if (!core) return [];
+		const t = timeCell(display, core.duration_sec ?? null);
+		const hr: HeroCell = { label: '평균 심박', value: core.avg_hr != null ? String(core.avg_hr) : '—', unit: 'bpm' };
+		if (!display) {
+			const p = core.avg_pace_sec_km != null ? formatPace(core.avg_pace_sec_km).replace('/km', '') : '—';
+			return [t, { label: '평균 페이스', value: p, unit: '/km' }, hr];
+		}
+		const p = paceCell(display);
+		if (p) return [t, p, hr];
+		const alts = altCells(display).filter((c) => c.label !== '시간');
+		return [t, ...alts].slice(0, 3);
+	});
 	const metricsByCategory = $derived(data.activity?.metrics_by_category ?? {});
 	const splits = $derived(data.activity?.splits ?? []);
 	const series = $derived(data.activity?.series ?? null);
@@ -79,25 +94,19 @@
 
 		<!-- 히어로 통계 -->
 		<section class="flex flex-col gap-3" aria-label="활동 요약">
-			{#if core.distance_m != null}
+			{#if core.distance_m != null && showDistance(display)}
 				<div class="flex items-end gap-2">
-					<span class="font-mono text-5xl font-bold leading-none">{(core.distance_m / 1000).toFixed(2)}</span>
-					<span class="pb-1 text-lg text-fg-muted">km</span>
+					<span class="font-mono text-5xl font-bold leading-none">{display?.pace?.unit === '/100m' ? Math.round(core.distance_m) : (core.distance_m / 1000).toFixed(2)}</span>
+					<span class="pb-1 text-lg text-fg-muted">{display?.pace?.unit === '/100m' ? 'm' : 'km'}</span>
 				</div>
 			{/if}
 			<div class="grid grid-cols-3 gap-3 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
-				<div class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-fg-muted">시간</span>
-					<span class="font-mono text-xl font-bold">{core.duration_sec != null ? formatDuration(core.duration_sec) : '—'}</span>
-				</div>
-				<div class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-fg-muted">평균 페이스</span>
-					<span class="font-mono text-xl font-bold">{core.avg_pace_sec_km != null ? formatPace(core.avg_pace_sec_km).replace('/km', '') : '—'}<span class="text-xs font-normal text-fg-muted"> /km</span></span>
-				</div>
-				<div class="flex flex-col gap-0.5">
-					<span class="text-[11px] text-fg-muted">평균 심박</span>
-					<span class="font-mono text-xl font-bold">{core.avg_hr ?? '—'}<span class="text-xs font-normal text-fg-muted"> bpm</span></span>
-				</div>
+				{#each heroCells as c (c.label)}
+					<div class="flex flex-col gap-0.5">
+						<span class="text-[11px] text-fg-muted">{c.label}</span>
+						<span class="font-mono text-xl font-bold">{c.value}{#if c.unit}<span class="text-xs font-normal text-fg-muted"> {c.unit}</span>{/if}</span>
+					</div>
+				{/each}
 			</div>
 			{#if core.elevation_gain != null && (core.elevation_gain as number) > 0}
 				{@const elev = formatUnitValue(core.elevation_gain as number, 'm')}

@@ -376,11 +376,15 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
+### `today_narrative.py` (135줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+
+- functions: get_today_narrative
+
 ### `today_readiness.py` (47줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
 
 - functions: build_readiness
 
-### `today_service.py` (321줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (208줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -3300,6 +3304,10 @@
 
 - functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing, test_race_summary_none_without_goal, test_race_summary_without_prediction, test_race_summary_uses_self_row_range, test_extras_include_race_summary
 
+### `test_today_narrative.py` (63줄) — today_narrative 테스트 — 위임 경로, 비러닝 별도 한 줄(ADR-051), 규칙 fallback.
+
+- functions: test_service_delegates_to_narrative_module, test_highlights_other_carries_non_running, test_prompt_includes_other_line, test_rule_fallback_source_and_no_other, test_cache_key_has_r2_suffix
+
 ### `test_today_service.py` (433줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
@@ -3554,7 +3562,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 759개 파일
+총 761개 파일
 
 ## docstring 누락
 

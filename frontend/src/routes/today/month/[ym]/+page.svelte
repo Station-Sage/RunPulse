@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { otherLine } from '$lib/activityDisplay';
 	// /today/month/[ym] — 월간 내러티브 라우트(DESIGN-U17 §4.1). 오버레이가 아니라 페이지다.
 	// ‹ › 는 replaceState(히스토리 길이 불변), 닫기(‹ 오늘)는 뒤로가기. 칩은 DrillPanel(URL 스택) 하나만 연다.
 	import { onMount } from 'svelte';
@@ -204,6 +205,9 @@
 				<span class="text-[10px] text-fg-muted">최고 CTL</span>
 			</div>
 		</div>
+		{#if otherLine(h.other)}
+			<p class="text-xs text-fg-muted">{otherLine(h.other)}</p>
+		{/if}
 
 		<!-- 마일스톤 목록 -->
 		{#if narrativeData.milestones.length > 0}

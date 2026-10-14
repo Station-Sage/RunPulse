@@ -317,6 +317,7 @@ export interface ActivityDetail {
 	hr_zones?: ActivityHrZones | null;
 	source_diffs?: SourceDiff[];
 	verdict?: ActivityVerdict | null;
+	display?: ActivityDisplay | null;
 }
 
 export interface ActivityDetailResponse {
@@ -696,6 +697,25 @@ export interface NarrativeHighlights {
 	activity_count: number;
 	longest_run_km: number;
 	peak_ctl: number | null;
+	other?: NarrativeOther[];
+}
+
+export interface NarrativeOther {
+	family: string;
+	label: string;
+	count: number;
+	distance_km: number;
+	duration_sec: number;
+}
+
+export interface ActivityDisplay {
+	family: string;
+	label: string;
+	show_distance: boolean;
+	pace: { value_sec: number; unit: string; basis: string } | null;
+	speed_kmh: number | null;
+	times: { moving_sec: number | null; elapsed_sec: number | null };
+	alt_fields: { key: string; value: number | string }[];
 }
 
 export interface NarrativeResponse {
