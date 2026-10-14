@@ -180,6 +180,14 @@
 
 - functions: display_name, action_hint, min_span, display_meta
 
+### `metric_freshness.py` (231줄) — 메트릭 신선도 평가 (ADR-050) — 값이 오늘의 입력으로 계산됐는지 fresh/partial/stale/missing 으로 판정.
+
+- functions: assess_many, assess, boost_hold, boost_hold_text, crs_boost_hold
+
+### `metric_freshness_spec.py` (40줄) — 메트릭별 신선도 입력 명세 (ADR-050) — 어떤 wellness 컬럼·선행 메트릭에 의존하는지 선언.
+
+- (public API 없음)
+
 ### `metric_unlock_service.py` (32줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
 
 - functions: get_unlock_progress
@@ -2750,6 +2758,10 @@
 
 - functions: test_every_daily_slug_is_mapped, test_no_mapping_key_outside_daily, test_groups_are_known, test_unknown_slug_goes_to_other_detail, test_baseline_z_null_under_7_days, test_baseline_z_null_when_not_fresh, test_baseline_z_sd_zero_uses_floor, test_fresh_before_stale, test_caution_before_big_z_neutral, test_z_null_goes_last_among_same_status, test_tie_then_tier_then_registry
 
+### `test_metric_freshness.py` (187줄) — metric_freshness 단위 테스트 (ADR-050 F1).
+
+- functions: test_missing_row, test_fresh, test_stale_by_age, test_one_day_old_is_still_fresh, test_partial_low_confidence_and_missing_inputs, test_metric_missing_makes_partial, test_rtti_modifier_never_stale_by_age, test_rtti_empty_wellness_used_is_partial, test_old_version_coverage_unknown, test_crs_fresh, test_crs_gate_unknown_when_signal_null, test_crs_upstream_worse_wins, test_assess_many_fixed_query_count, test_boost_hold_fresh_releases, test_boost_hold_missing_crs, test_boost_hold_stale, test_boost_hold_short_hrv_history, test_boost_hold_old_row_without_key_is_hold, test_boost_hold_text, test_spec_shape
+
 ### `test_metric_labels.py` (100줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
 
 - functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name, test_first_batch_has_description_short, test_texts_within_40_chars, test_action_hint_keys_are_five_level_status, test_action_hint_picks_current_status_only, test_crs_hint_uses_gate_level_not_score_status, test_marathon_shape_label_and_new_texts
@@ -3608,7 +3620,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 771개 파일
+총 774개 파일
 
 ## docstring 누락
 
