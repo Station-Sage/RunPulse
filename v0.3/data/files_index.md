@@ -160,7 +160,7 @@
 
 - functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
 
-### `import_service.py` (210줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
+### `import_service.py` (228줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
 
 - functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
@@ -1619,9 +1619,9 @@
 
 - functions: get_status, print_status, main
 
-### `dedup.py` (292줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
+### `dedup.py` (293줄) — 중복 활동 매칭 유틸리티 (timestamp ±5분, distance ±3%).
 
-- functions: is_duplicate, find_duplicates, assign_group_id, auto_group_all, assign_group_to_activities, remove_from_group
+- functions: distance_matches, is_duplicate, find_duplicates, assign_group_id, auto_group_all, assign_group_to_activities, remove_from_group
 
 ### `format_ko.py` (78줄) — 한국어 표시 포맷터 — Coach 규칙 답변·근거 칩이 같은 숫자 표기를 쓰도록 하는 단일 소스 (30-coach-chat §4.5).
 
@@ -1724,6 +1724,12 @@
 ### `timefmt.py` (57줄) — 시각 직렬화·현지화 단일 출처 (TZ-1~, patterns/timezone-display.md).
 
 - functions: to_iso_instant, to_local_wallclock
+
+### `tz_peers.py` (203줄) — 교차 소스 시간대 추정 — 다른 소스의 같은 활동에서 UTC 오프셋을 빌린다 (TZ T2, ADR-052).
+
+- class **PeerTime**: 없음
+- class **PeerMatch**: 없음
+- class **PeerTzIndex**: add_confirmed, build, lookup, nearest_confirmed
 
 ### `user_context.py` (117줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
@@ -3378,6 +3384,10 @@
 
 - functions: test_fit_recovers_line, test_fit_rejects_flat_or_negative, test_estimates_missing_hr_with_low_confidence, test_faster_pace_gives_higher_estimate, test_skips_when_hr_measured, test_empty_when_not_enough_history, test_measured_provider_outranks_estimate, test_store_primary_prefers_measured
 
+### `test_tz_peers.py` (174줄) — tz_peers / strava_tz / strava_tz_apply 단위 테스트 (TZ T2/T3).
+
+- functions: test_distance_matches, test_rank_and_overwrite, test_peer_direct_offset, test_peer_outside_tolerance_or_distance, test_peer_irregular_offset_discarded, test_derived_only_when_unique, test_direct_conflict_uses_source_priority, test_chain_order, test_neighbor_then_fallback, test_lookup_no_network_on_init, test_tz_context_summary_and_borrow, test_tz_payload_fields, test_apply_to_existing_rank_rules, test_apply_to_existing_protects_manual_and_pinned, test_csv_import_uses_peer_and_reimport_protects
+
 ### `test_unified_activities.py` (338줄) — unified_activities 서비스 테스트.
 
 - class **TestPickValue**: test_garmin_first, test_fallback_when_garmin_missing, test_none_when_all_missing, test_all_values_populated, test_service_priority_order
@@ -3571,7 +3581,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 763개 파일
+총 765개 파일
 
 ## docstring 누락
 

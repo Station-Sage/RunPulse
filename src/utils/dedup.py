@@ -29,6 +29,16 @@ def _parse_dt(s: str) -> datetime:
     return datetime.fromisoformat(s.replace(" ", "T").rstrip("Z")[:19]).replace(tzinfo=None)
 
 
+def distance_matches(d1: float, d2: float) -> bool:
+    """두 거리가 같은 활동으로 볼 만큼 가까운가 (15%, 둘 다 0 → True, 단위 무관)."""
+    if d1 == 0 and d2 == 0:
+        return True
+    max_dist = max(d1, d2)
+    if max_dist == 0:
+        return False
+    return abs(d1 - d2) / max_dist <= _DISTANCE_TOLERANCE
+
+
 def is_duplicate(
     start_time1: str,
     distance1: float,
@@ -52,16 +62,7 @@ def is_duplicate(
     if abs(t1 - t2) > _TIME_TOLERANCE:
         return False
 
-    # 거리가 둘 다 0이면 중복으로 판정
-    if distance1 == 0 and distance2 == 0:
-        return True
-
-    max_dist = max(distance1, distance2)
-    if max_dist == 0:
-        return False
-
-    distance_diff = abs(distance1 - distance2) / max_dist
-    return distance_diff <= _DISTANCE_TOLERANCE
+    return distance_matches(distance1, distance2)
 
 
 def find_duplicates(activities: list[dict]) -> list[list[dict]]:

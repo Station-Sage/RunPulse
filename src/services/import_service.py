@@ -88,8 +88,16 @@ def _safe_extract(zip_path: Path, dest: Path) -> Path | None:
     return next((s for s in sorted(dest.iterdir()) if s.is_dir() and (s / "activities.csv").exists()), None)
 
 
-def apply_import(conn: sqlite3.Connection, kind: str, paths: list[Path], source: str = "garmin") -> dict:
-    """임포터를 conn에 적용. 반환: {recognized, inserted, skipped, enriched, errors}."""
+_TZ_KEYS = ("tz_resolved", "tz_lookup_status", "tz_peer_conflicts", "tz_backfill_pending")
+
+
+def _tz_fields(stats: dict) -> dict:
+    return {k: stats[k] for k in _TZ_KEYS if k in stats}
+
+
+def apply_import(conn: sqlite3.Connection, kind: str, paths: list[Path], source: str = "garmin",
+                 config: dict | None = None) -> dict:
+    """임포터를 conn에 적용. 반환: {recognized, inserted, skipped, enriched, errors[, tz_*]}."""
     if kind == "strava_archive":
         from src.import_export.strava_archive import import_strava_archive
 
@@ -97,18 +105,18 @@ def apply_import(conn: sqlite3.Connection, kind: str, paths: list[Path], source:
             root = _safe_extract(paths[0], Path(tmp))
             if root is None:
                 return {"recognized": 0, "inserted": 0, "skipped": 0, "enriched": 0, "errors": 1}
-            s = import_strava_archive(conn, root)
+            s = import_strava_archive(conn, root, config)
         return {"recognized": s["csv_total"], "inserted": s["inserted"], "skipped": s["skipped"],
-                "enriched": s["file_linked"], "errors": s["errors"]}
+                "enriched": s["file_linked"], "errors": s["errors"], **_tz_fields(s)}
     if kind in ("strava_csv", "garmin_csv"):
         if kind == "strava_csv":
             from src.import_export.strava_csv import import_strava_activities as fn
         else:
             from src.import_export.garmin_csv import import_garmin_csv as fn
-        s = fn(conn, paths[0])
+        s = fn(conn, paths[0], config) if kind == "strava_csv" else fn(conn, paths[0])
         conn.commit()
         return {"recognized": s["inserted"] + s["skipped"] + s["errors"], "inserted": s["inserted"],
-                "skipped": s["skipped"], "enriched": 0, "errors": s["errors"]}
+                "skipped": s["skipped"], "enriched": 0, "errors": s["errors"], **_tz_fields(s)}
     from src.import_history import import_file, parse_file_data
 
     ins = skip = err = 0
@@ -133,9 +141,19 @@ def _new_rows_info(conn: sqlite3.Connection, before_max: int) -> dict:
     return {"from": lo, "to": hi, "merged": merged}
 
 
-def run_on(conn: sqlite3.Connection, kind: str, paths: list[Path], source: str) -> dict:
+def _load_config(user_id: str) -> dict | None:
+    try:
+        from src.utils.config import load_config
+
+        return load_config(user_id=user_id)
+    except Exception:  # config 없음/손상은 시간대 체인의 Strava 연결 상태만 "config 없음"으로 만든다
+        return None
+
+
+def run_on(conn: sqlite3.Connection, kind: str, paths: list[Path], source: str,
+           config: dict | None = None) -> dict:
     before = conn.execute("SELECT COALESCE(MAX(id), 0) FROM activity_summaries").fetchone()[0]
-    stats = apply_import(conn, kind, paths, source)
+    stats = apply_import(conn, kind, paths, source, config)
     return {**stats, **_new_rows_info(conn, before)}
 
 
@@ -150,12 +168,12 @@ def preview(user_id: str, kind: str, paths: list[Path], source: str) -> dict:
         finally:
             src.close()
         try:
-            res = run_on(dst, kind, paths, source)
+            res = run_on(dst, kind, paths, source, _load_config(user_id))
         finally:
             dst.close()
     return {"kind": kind, "source": source, "recognized": res["recognized"], "new": res["inserted"],
             "duplicates": res["skipped"], "enriched": res["enriched"], "errors": res["errors"],
-            "merged": res["merged"], "period": {"from": res["from"], "to": res["to"]}}
+            "merged": res["merged"], "period": {"from": res["from"], "to": res["to"]}, **_tz_fields(res)}
 
 
 def _run(job_id: str, user_id: str, upload_id: str, kind: str, source: str) -> None:
@@ -166,12 +184,12 @@ def _run(job_id: str, user_id: str, upload_id: str, kind: str, source: str) -> N
         sync_jobs.update_job(job_id, status="running")
         conn = sqlite3.connect(str(get_db_path(user_id)), timeout=60)
         try:
-            res = run_on(conn, kind, upload_paths(user_id, upload_id), source)
+            res = run_on(conn, kind, upload_paths(user_id, upload_id), source, _load_config(user_id))
         finally:
             conn.close()
         out = {"recognized": res["recognized"], "new": res["inserted"], "skipped": res["skipped"],
                "enriched": res["enriched"], "errors": res["errors"], "period": {"from": res["from"], "to": res["to"]},
-               "suggest_recompute": bool(res["inserted"] or res["enriched"])}
+               "suggest_recompute": bool(res["inserted"] or res["enriched"]), **_tz_fields(res)}
         shutil.rmtree(imports_dir(user_id) / upload_id, ignore_errors=True)
         sync_jobs.update_job(job_id, status="completed", completed_days=1, total_days=1,
                              result_json=json.dumps(out, ensure_ascii=False))

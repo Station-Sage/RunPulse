@@ -91,6 +91,21 @@ def parse_gpx(file_path: Path, *, data: bytes | None = None) -> dict | None:
     }
 
 
+def _fit_local_start(fit, start) -> datetime | None:
+    """activity 메시지의 local_timestamp - timestamp 오프셋으로 세션 시작의 현지 벽시계(naive)를 구한다."""
+    if not isinstance(start, datetime):
+        return None
+    try:
+        for msg in fit.get_messages("activity"):
+            f = {x.name: x.value for x in msg.fields}
+            ts, loc = f.get("timestamp"), f.get("local_timestamp")
+            if isinstance(ts, datetime) and isinstance(loc, datetime):
+                return start.replace(tzinfo=None) + (loc - ts)
+    except Exception:
+        return None
+    return None
+
+
 def parse_fit(file_path: Path, *, data: bytes | None = None) -> dict | None:
     """FIT 파일 → activity dict."""
     try:
@@ -103,6 +118,7 @@ def parse_fit(file_path: Path, *, data: bytes | None = None) -> dict | None:
         fields = {f.name: f.value for f in record.fields}
 
         start_time = fields.get("start_time") or fields.get("timestamp")
+        fit_local = _fit_local_start(fit, start_time)
         if isinstance(start_time, datetime):
             start_time = start_time.replace(tzinfo=timezone.utc).isoformat()
         elif not start_time:
@@ -125,6 +141,7 @@ def parse_fit(file_path: Path, *, data: bytes | None = None) -> dict | None:
             "elevation_gain": fields.get("total_ascent"),
             "calories": fields.get("total_calories"),
             "description": file_path.stem,
+            "fit_local": fit_local,
         }
 
     return None
