@@ -7,7 +7,7 @@
 | ID | 내용 |
 |---|---|
 | V1S-12 | (b) `app.py` 비UI 직접 라우트를 `src/api/` Blueprint 로 이동, URL 불변, 삭제는 일몰 단계(S5) |
-| V1-8 해석 | '두번째' = `GET /api/v1/dev/users` + `POST /api/v1/dev/switch-user` + MenuDrawer 다이얼로그 — **미확인(사용자 확인 대기)** |
+| V1-8 해석 | '두번째' = `GET /api/v1/dev/users` + `POST /api/v1/dev/switch-user` + MenuDrawer 다이얼로그 — **사용자 확인 완료(2026-10-14)** |
 | ENV-1 | Flask·gunicorn 은 `.venv`, 표준 테스트 명령·설치 문서 정정(0단계) |
 | S3-1·S3-2 | 승인(운영 `data/users` 점검은 운영에서, 기본값 이견 없음) |
 
@@ -40,7 +40,7 @@
 - MenuDrawer 'CSV 내보내기' 는 `/v2/data/export` 로 이동(v1 CSV 라우트는 삭제 안 함).
 - v1 sync·import URL·응답 포맷 불변(219-rule URL map 이동 전후 동일, 엔드포인트 이름만 `v1_sync.*`·`v1_pages.*`).
 
-## 4. 설계서에 없던 세부 (에이전트가 정함 — 사용자 확인 필요)
+## 4. 설계서에 없던 세부 (에이전트가 정함 — S3-3~S3-9·S3-11 사용자 확인 완료 2026-10-14, S3-10 대기)
 
 S3-3(보조 상한 기본값), S3-4(uid 규칙 범위·심볼릭 링크 거부), S3-5(Origin 관문 정규화·폴백·`/mcp` 판정 변경), S3-6(dev 전환 방식·production 판정 시점), S3-7(Blueprint 분할), S3-8(자산 판정 규칙), S3-9(알 수 없는 값 처리·로그 형식), S3-10(임시 아이콘·알림 동작), S3-11(라벨 유지). 각 행 본문은 `decisions-table.md`.
 

@@ -36,3 +36,9 @@ Phase 4-5에서 보류한 항목은 현재 설계를 확장하지 않고, 콜드
 
 ## 주 트리거 순서 재검토 (2026-10-11 ADJ-17 결정)
 - 조정 제안 주 트리거 고정 순서(pain > illness > checkin > race > crs > acwr > readiness)는 현재 안전 우선 규칙으로 정했다. 추후 데이터 백테스트·ML 로 순서와 race 위치를 재검토한다(ADJ-READINESS-VOTE 와 함께 분석). 참고: `design-2026-10/bundles/adjustment-signals.md` §3.8.
+
+## 개발용 계정 전환 운영 빌드 분리 (2026-10-14 S3-6 ⑤ 결정)
+- 현재는 서버 응답(`/api/v1/dev/users` 404 이면 숨김)으로 판정하며 운영에서 메뉴를 열 때 404 1회가 발생한다. 추후 운영 빌드에서 `DevUserSwitch` 를 제외하는 빌드 분리로 전환. 참고: `design-2026-10/decisions-table.md` S3-6.
+
+## v2 를 메인 URL 로 승격 (2026-10-14 S3-8 답변)
+- 추후 v2 를 메인 URL 로 변경(현재 `/v2/` 하위). 변경 시 `spa_static` 의 경로 규칙·manifest `scope`·`start_url`·CSP 표면 분류(`/v2` 접두)를 함께 재검토. 참고: S3-8, S3-10.
