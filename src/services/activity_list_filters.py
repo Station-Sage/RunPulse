@@ -9,7 +9,7 @@ import re
 import sqlite3
 from typing import Any
 
-from src.utils.activity_types import normalize_activity_type
+from src.utils.activity_types import SPORT_LABELS, normalize_activity_type  # noqa: F401 (re-export)
 
 TYPE_CLASSES: dict[str, tuple[str, ...]] = {
     "race": ("race",),
@@ -19,8 +19,6 @@ TYPE_CLASSES: dict[str, tuple[str, ...]] = {
     "easy": ("easy", "steady"),
     "recovery": ("recovery",),
 }
-SPORT_LABELS = {"running": "러닝", "cycling": "사이클", "swimming": "수영", "walking": "걷기/하이킹",
-                "strength": "근력"}
 LOAD_METRIC = ("hrss", "runpulse:formula_v1")
 _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 SORT_COLUMNS = {"date": "start_time", "distance": "distance_m", "pace": "avg_pace_sec_km", "load": "load"}

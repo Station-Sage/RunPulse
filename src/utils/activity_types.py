@@ -83,3 +83,31 @@ def normalize_activity_type(raw_type: str, source: str | None = None) -> str:
 
     key = raw_type.lower().strip()
     return _TYPE_MAP.get(key, key)
+
+
+# --- 종목 family SSOT (ADR-051, NRA-7) ---
+FAMILIES = ("running", "cycling", "swimming", "walking", "strength")
+SPORT_LABELS = {"running": "러닝", "cycling": "사이클", "swimming": "수영", "walking": "걷기/하이킹",
+                "strength": "근력"}
+
+
+def sport_family(raw_type: str | None, source: str | None = None) -> str:
+    """종목 family(5종 + 'other'). HIIT·미매핑 값은 'other'(비러닝)."""
+    fam = normalize_activity_type(raw_type or "", source)
+    return fam if fam in FAMILIES else "other"
+
+
+def family_raw_types(family: str) -> tuple[str, ...]:
+    """family 로 정규화되는 모든 raw 문자열(소스 전용 표기·레거시 행 포함). DB 조회 없음."""
+    raws = {k for k, v in _TYPE_MAP.items() if v == family}
+    for m in (_STRAVA_MAP, _INTERVALS_MAP):
+        raws |= {k for k, v in m.items() if v == family}
+    return tuple(sorted(raws))
+
+
+def family_clause(family: str, col: str = "activity_type") -> tuple[str, list]:
+    """`col IN (?,…)` 와 params. LIKE 는 쓰지 않는다."""
+    raws = family_raw_types(family)
+    if not raws:
+        return "0", []
+    return f"{col} IN ({','.join('?' * len(raws))})", list(raws)
