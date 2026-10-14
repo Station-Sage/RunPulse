@@ -53,6 +53,14 @@
 				<h1 class="truncate text-base font-semibold">{core.name}</h1>
 				<p class="flex items-center gap-1.5 text-xs text-fg-muted">
 					<span>{formatDateShort(core.start_time)}</span>
+					{#if data.activity?.tz_estimated}
+						<span
+							class="rounded-full bg-surface-3 px-2 py-0.5 text-fg-secondary"
+							data-testid="tz-estimated-badge"
+							title="Strava 시간대를 확인하지 못해 한국 시간으로 표시했어요. 연결하면 자동으로 고쳐져요"
+							>시간대 추정</span
+						>
+					{/if}
 					{#if data.activity?.workout_class_label}
 						<span class="rounded-full bg-surface-3 px-2 py-0.5 text-fg-secondary" data-testid="class-chip"
 							>{data.activity.workout_class_label}</span

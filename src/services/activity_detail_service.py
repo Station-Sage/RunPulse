@@ -5,6 +5,7 @@ activity_service.py에서 300줄 규칙 위반으로 분리(get_activity_detail 
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections import defaultdict
 
@@ -34,6 +35,21 @@ def _downsample_streams(rows: list[dict]) -> list[dict]:
     if len(rows) <= n:
         return rows
     return [rows[round(i * (len(rows) - 1) / (n - 1))] for i in range(n)]
+
+
+def _tz_estimated(conn: sqlite3.Connection, core: dict) -> bool:
+    """Strava 파일 가져오기 행 중 시간대를 확인하지 못해 KST 로 둔 행(tz_source == 'fallback') 여부."""
+    if core.get("source") != "strava" or not core.get("source_id"):
+        return False
+    rows = conn.execute(
+        "SELECT payload FROM source_payloads WHERE source='strava' AND entity_id=?"
+        " AND entity_type IN ('csv_export','archive_import')", (str(core["source_id"]),)).fetchall()
+    for (raw,) in rows:
+        try:
+            return json.loads(raw).get("tz_source") == "fallback"
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return False
 
 
 def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_streams: bool = False) -> dict:
@@ -140,6 +156,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         "menu": {"has_gps": bool(has_gps and has_gps[0] >= activity_gpx.MIN_POINTS),
                  "source_links": activity_source_links.source_links(conn, activity_id)},
         "core": core,
+        "tz_estimated": _tz_estimated(conn, core),
         "metrics_by_category": metrics_by_category,
         "source_comparison": source_comparison,
         "semantic_groups": semantic_groups,

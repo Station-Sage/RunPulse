@@ -312,6 +312,7 @@ export interface ActivityDetail {
 	siblings?: { id: number; provider: string; is_canonical: boolean }[];
 	workout_class?: string | null;
 	workout_class_label?: string | null;
+	tz_estimated?: boolean;
 	workout_class_basis?: ActivityWorkoutClassBasis | null;
 	environment?: ActivityEnvironment | null;
 	hr_zones?: ActivityHrZones | null;

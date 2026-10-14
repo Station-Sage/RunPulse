@@ -135,6 +135,14 @@
 				<h2 class="text-sm text-fg-primary">가져오기를 마쳤어요</h2>
 				<p class="text-xs text-fg-secondary">새 활동 {job.result.new}건 · 보강 {job.result.enriched}건 · 건너뜀 {job.result.skipped}건 · 오류 {job.result.errors}건</p>
 				<p class="text-xs text-fg-secondary">기간 {periodText(job.result.period)}</p>
+				{#if job.result.tz_resolved?.fallback}
+					<p class="text-xs text-fg-secondary" data-testid="tz-fallback-note">
+						{job.result.tz_resolved.fallback}건은 시간대를 확인하지 못해 한국 시간으로 저장했어요
+						{#if job.result.tz_lookup_status !== '연결됨'}
+							· <a href="/data/sources/strava" class="underline" data-testid="tz-reconnect">Strava 다시 연결</a>
+						{/if}
+					</p>
+				{/if}
 				{#if job.result.suggest_recompute}
 					<button
 						type="button"

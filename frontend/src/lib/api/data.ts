@@ -274,6 +274,7 @@ export interface ImportItem {
 	result: {
 		recognized: number; new: number; skipped: number; enriched: number; errors: number;
 		period: { from: string | null; to: string | null }; suggest_recompute: boolean;
+		tz_resolved?: Record<string, number>; tz_lookup_status?: string; tz_backfill_pending?: number;
 	} | null;
 	error: string | null;
 }

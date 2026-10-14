@@ -28,7 +28,7 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
-### `activity_detail_service.py` (228줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (245줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
 
@@ -1947,6 +1947,10 @@
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty, test_u18c_measured_meta_skips_rescale, test_u18c_dwell_sum_matches_measured_moving_time, test_u18c_ctx_get_stream_meta
 
+### `test_activity_detail_tz.py` (19줄) — 활동 상세 tz_estimated 플래그 (TZ-8).
+
+- functions: test_tz_estimated_only_for_fallback
+
 ### `test_activity_display.py` (54줄) — activity_display.build_display 단위 테스트 (NRA-3/4/5).
 
 - functions: test_running_pace_moving_basis, test_elapsed_fallback_basis, test_swimming_per_100m, test_strength_hides_distance_and_pace, test_cycling_speed, test_walking_pace_km, test_hiit_is_other, test_unknown_type_is_other_and_alt_only_existing, test_times_equal_when_no_moving
@@ -3598,7 +3602,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 769개 파일
+총 770개 파일
 
 ## docstring 누락
 
