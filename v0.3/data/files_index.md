@@ -1056,7 +1056,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (488줄) — RunPulse integration workbench web app.
+### `app.py` (492줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1080,6 +1080,10 @@
 ### `request_guard.py` (177줄) — 요청 경계 보호 — Origin 관문·봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
 
 - functions: is_envelope_path, forbidden_response, guard_mode, is_exempt, allowed_origins, request_origin, same_origin, init_request_guard
+
+### `response_policy.py` (142줄) — 앱 전역 응답 정책 — 보안 헤더(공통)와 표면별 CSP (E-01, ADR-049).
+
+- functions: classify_surface, csp_v2_mode, build_csp, common_headers, csp_header_for, default_index_path, apply_policy, init_response_policy
 
 ### `route_svg.py` (118줄) — GPS 경로 SVG 썸네일 생성 — activity_streams에서 latlng 데이터를 SVG polyline으로 변환.
 
@@ -1798,6 +1802,10 @@
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
+### `routes_csp_report.py` (116줄) — `POST /api/v1/csp-report` — 브라우저 CSP 위반 보고 수신(로그 전용, DB 저장 없음, D6).
+
+- functions: is_extension, parse_reports, csp_report
+
 ### `routes_data.py` (305줄) — `/api/v1/data/*` — 데이터 관리(동기화 상태 등). 40-v2-unimplemented design §7.3.
 
 - functions: get_sync_state, post_data_sync, get_sync_estimate, cancel_sync_run, get_data_summary, get_data_sources, get_data_source, get_data_runs, patch_data_source, get_sync_auto, patch_sync_auto, get_data_profile, preview_data_profile, patch_data_profile, post_data_recompute, get_data_job, connect_data_source, test_data_source, disconnect_data_source
@@ -2282,6 +2290,10 @@
 
 - class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_category
 - class **TestEvaluate**: test_roundtrip_matches_calculator_output, test_no_row_returns_none, test_exact_date_only, test_ignores_non_primary_other_metric_and_scope, test_newest_primary_row_wins_on_same_date, test_invalid_data_returns_none, test_field_defaults_and_type_normalization, test_db_error_propagates, test_does_not_write
+
+### `test_csp_report.py` (197줄) — POST /api/v1/csp-report — 로그 전용 보고 수신 (S3 8단계, SRV-12·SEC-12).
+
+- functions: app, client, post, lines, test_legacy_report_204_without_origin, test_reporting_api_format_204, test_charset_in_content_type_ok, test_exempt_from_origin_gate_but_other_post_is_not, test_get_not_allowed, test_wrong_content_type_204_logged, test_no_content_type_204, test_unparsable_204_logged, test_reporting_api_non_csp_types_ignored, test_oversize_body_204_logged_not_parsed, test_body_at_limit_is_accepted, test_extension_scheme_flagged_and_excluded, test_inline_blocked_judged_by_source_file, test_extension_logged_below_warning_real_violation_at_warning, test_is_extension_unit, test_query_and_fragment_stripped_from_logs, test_fields_truncated_and_non_str_safe, test_newline_injection_stays_in_one_record, test_report_count_capped, test_not_enveloped_and_has_security_headers, test_parse_reports_unit
 
 ### `test_daily2_calcs.py` (139줄) — Daily-Scope 2차 calculator 테스트.
 
@@ -3117,6 +3129,10 @@
 
 - functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_default_port_and_case_normalized_accepted, test_malformed_or_deceptive_origins_rejected, test_empty_origin_does_not_fall_back_to_referer, test_public_base_url_with_path_and_default_port_is_normalized, test_invalid_public_base_url_warns_and_rejects, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_log_strips_referer_query_and_fragment_and_limits_length, test_log_limits_origin_length, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_unknown_mode_is_logged, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_default_mode_is_observe, test_set_cookie_header_attributes, test_create_app_registers_guard_and_enforces
 
+### `test_response_policy.py` (263줄) — response_policy — 공통 보안 헤더·표면별 CSP (S3 8단계, E-01, ADR-049).
+
+- functions: test_classify_surface, test_no_v1_surface, test_csp_api_and_feed_strictest, test_csp_v2_has_hash_and_required_directives, test_csp_default_surface_ignores_hashes, test_csp_v2_without_hashes_has_plain_self, test_csp_drops_non_hash_tokens, test_csp_unknown_surface_raises, test_common_headers_content, test_common_headers_returns_copy, test_mode_default_and_values, test_mode_unknown_falls_back_to_report_only, test_csp_header_for, app, client, test_all_surfaces_get_common_headers, test_404_and_errors_also_covered, test_v2_report_only_with_hash_from_index, test_v2_enforce_switches_header, test_default_surface_follows_mode_and_has_no_hash, test_api_feed_always_enforced_strict, test_route_headers_preserved, test_route_set_csp_and_xfo_not_overwritten, test_missing_index_html_gives_plain_self, test_apply_policy_direct, test_real_app_surfaces, test_real_app_v2_asset_keeps_cache_control
+
 ### `test_round2.py` (193줄) — 라운드 2 테스트: ComputeResult, compute_for_activities/dates, recompute_single_metric.
 
 - class **TestComputeResult**: test_summary, test_defaults
@@ -3517,7 +3533,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 750개 파일
+총 754개 파일
 
 ## docstring 누락
 

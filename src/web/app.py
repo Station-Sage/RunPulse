@@ -157,6 +157,10 @@ def create_app() -> Flask:
     from .request_guard import init_request_guard
     init_request_guard(app)
 
+    # 응답 정책 — 공통 보안 헤더 + 표면별 CSP (after_request, S3-9)
+    from .response_policy import init_response_policy
+    init_response_policy(app)
+
     _auto_migrate()
 
     # 모든 유저 DB 마이그레이션 + 자동 주기 동기화 daemon thread 시작
