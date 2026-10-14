@@ -24,7 +24,7 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (209줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (212줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
@@ -46,7 +46,7 @@
 
 - functions: get_activity_impact
 
-### `activity_list_filters.py` (91줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
+### `activity_list_filters.py` (89줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
 
 - functions: parse_args, sport_types, build_where, order_clause
 
@@ -338,6 +338,10 @@
 
 - functions: parse_scope, snapshot, before_after, start, job_view, preview_profile
 
+### `run_totals.py` (62줄) — 기간 러닝 합계·비러닝 요약 단일 출처 (ADR-051 NRA-1/NRA-2).
+
+- functions: run_totals, other_totals, other_line
+
 ### `story_period.py` (112줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
 
 - (public API 없음)
@@ -346,7 +350,7 @@
 
 - functions: get_story
 
-### `story_stats.py` (213줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
+### `story_stats.py` (210줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
 
 - (public API 없음)
 
@@ -372,7 +376,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (324줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (321줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -394,7 +398,7 @@
 
 - functions: dev_switch_enabled, list_users, switch_user
 
-### `week_digest.py` (109줄) — 주간 다이제스트 — 월간 내러티브의 주(週) 단위 근거 (DESIGN-U17 U17g).
+### `week_digest.py` (107줄) — 주간 다이제스트 — 월간 내러티브의 주(週) 단위 근거 (DESIGN-U17 U17g).
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
@@ -1570,9 +1574,9 @@
 > 주의: db_helpers의 upsert 함수는 Phase 3 sync에서만 호출.
 >       서비스 레이어는 read 함수만 사용.
 
-### `activity_types.py` (85줄) — 활동 유형 정규화.
+### `activity_types.py` (113줄) — 활동 유형 정규화.
 
-- functions: normalize_activity_type
+- functions: normalize_activity_type, sport_family, family_raw_types, family_clause
 
 ### `api.py` (189줄) — httpx 기반 HTTP GET/POST 래퍼. 재시도 및 에러 처리.
 
@@ -1955,9 +1959,10 @@
 
 - functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none
 
-### `test_activity_types.py` (43줄) — activity_types.py 단위 테스트.
+### `test_activity_types.py` (75줄) — activity_types.py 단위 테스트.
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants, test_garmin_indoor_running, test_indoor_running_case_whitespace
+- class **TestSportFamily**: test_boundary_types, test_family_raw_types_running, test_family_clause, test_sport_labels_reexport
 
 ### `test_adaptation_service.py` (121줄) — tests/test_adaptation_service.py — adaptation_service.get_adaptation_status() 단위 테스트.
 
@@ -3157,6 +3162,10 @@
 - class **TestRTTI**: test_optimal, test_overload, test_no_data, test_category
 - class **TestRTTIMock**: test_optimal_mock, test_no_data_mock
 
+### `test_run_totals.py` (49줄) — run_totals / other_totals / other_line 테스트 (NRA N2).
+
+- functions: test_run_totals_ignores_non_running, test_run_totals_empty, test_other_totals_and_line, test_week_digest_and_story_stats_running_only
+
 ### `test_runalyze_extractor.py` (58줄) — Runalyze Extractor 단위 테스트.
 
 - class **TestRunalyzeActivityCore**: test_required_fields, test_distance_time, test_pace_calculated
@@ -3537,7 +3546,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 755개 파일
+총 757개 파일
 
 ## docstring 누락
 

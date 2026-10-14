@@ -172,6 +172,7 @@ def get_today_narrative(
     반환: {date, text, source("ai"|"rule"), evidence, milestones, highlights}
     """
     from src.services import milestone_service
+    from src.services.run_totals import other_line, other_totals, run_totals
     from src.services.week_digest import week_digests
     from src.services._narrative import (
         attach_drill, build_evidence, build_narrative_prompt, month_date_range,
@@ -208,15 +209,9 @@ def get_today_narrative(
     ctl_start = query_metric(conn, "daily", month_start, "ctl")
 
     # ── 해당 달 누적거리·활동수·최장 러닝 ─────────────────────────────────
-    row = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_m), 0), COALESCE(MAX(distance_m), 0)"
-        " FROM v_canonical_activities"
-        " WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?",
-        (month_start, date),
-    ).fetchone()
-    month_count = int(row[0]) if row else 0
-    month_dist_km = round(float(row[1]) / 1000.0, 1) if row else 0.0
-    longest_run_km = round(float(row[2]) / 1000.0, 1) if row and row[2] else 0.0
+    rt = run_totals(conn, month_start, date)
+    month_count, month_dist_km, longest_run_km = rt["count"], rt["distance_km"], rt["longest_km"]
+    month_other = other_totals(conn, month_start, date)
 
     peak_ctl = peak_ctl_in_range(conn, month_start, date)
 
@@ -243,6 +238,7 @@ def get_today_narrative(
         "activity_count": month_count,
         "longest_run_km": longest_run_km,
         "peak_ctl": peak_ctl,
+        "other": month_other,
     }
 
     weeks = week_digests(conn, month_start, date)
@@ -255,6 +251,7 @@ def get_today_narrative(
         prompt = build_narrative_prompt(
             date, ctl_now, ctl_start, month_dist_km, month_count,
             sleep_recent, sleep_prev, month_label=month_label, weeks=weeks,
+            other_line=other_line(month_other),
         )
         for prov in chain:
             ai_result = _call_provider(prov, prompt, config)

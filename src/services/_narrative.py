@@ -108,6 +108,7 @@ def build_narrative_prompt(
     sleep_prev: float | None,
     month_label: str | None = None,
     weeks: list[dict] | None = None,
+    other_line: str = "",
 ) -> str:
     """AI 내러티브 생성 프롬프트 — 제공된 수치만 나열(환각 방지)."""
     period = month_label or "이번 달"
@@ -125,6 +126,8 @@ def build_narrative_prompt(
             lines.append(f"- CTL: {ctl_now:.1f}")
     if month_count > 0:
         lines.append(f"- 이번 달 누적 거리: {month_dist_km}km ({month_count}회 훈련)")
+    if other_line:
+        lines.append(f"- {other_line}")
     if sleep_recent is not None:
         if sleep_prev is not None:
             lines.append(f"- 수면 점수: 최근 7일 평균 {sleep_recent:.0f} (이전 7일 {sleep_prev:.0f})")
@@ -158,14 +161,14 @@ def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str
 def get_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str) -> dict | None:
     """캐시된 AI 내러티브 조회. 유효하면 dict, 아니면 None."""
     from src.ai import ai_cache
-    return ai_cache.get_cached(conn, "today_narrative", f"{month_start}:{date}")
+    return ai_cache.get_cached(conn, "today_narrative", f"{month_start}:{date}:r2")
 
 
 def set_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str, result: dict) -> None:
     """AI 내러티브 결과 캐시 저장 (AI 성공 시에만 호출할 것). 실패는 삼킴."""
     from src.ai import ai_cache
     try:
-        ai_cache.set_cached(conn, "today_narrative", f"{month_start}:{date}", result)
+        ai_cache.set_cached(conn, "today_narrative", f"{month_start}:{date}:r2", result)
     except Exception:
         pass
 

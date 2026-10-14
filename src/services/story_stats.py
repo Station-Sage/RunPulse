@@ -4,6 +4,10 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
+from src.utils.activity_types import family_clause
+
+_RUN_CLAUSE, _RUN_PARAMS = family_clause("running")
+
 
 def _get_period_activity_stats(
     conn: sqlite3.Connection,
@@ -14,17 +18,10 @@ def _get_period_activity_stats(
 
     v_canonical_activities만 집계(중복 제거됨).
     """
-    row = conn.execute(
-        """SELECT COUNT(*), COALESCE(SUM(distance_m), 0), COALESCE(MAX(distance_m), 0)
-           FROM v_canonical_activities
-           WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?""",
-        (start_date, end_date),
-    ).fetchone()
+    from src.services.run_totals import run_totals
 
-    count = int(row[0]) if row else 0
-    distance_m = float(row[1]) if row and row[1] else 0.0
-    distance_km = round(distance_m / 1000.0, 1)
-    longest_run_km = round(float(row[2]) / 1000.0, 1) if row and row[2] else 0.0
+    t = run_totals(conn, start_date, end_date)
+    count, distance_km, longest_run_km = t["count"], t["distance_km"], t["longest_km"]
 
     return {
         "count": count,
@@ -157,9 +154,9 @@ def _get_key_sessions(
     row_long = conn.execute(
         """SELECT id, name, DATE(start_time), distance_m, activity_type, workout_label
            FROM v_canonical_activities
-           WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?
-           ORDER BY distance_m DESC LIMIT 1""",
-        (start_date, end_date),
+           WHERE DATE(start_time) >= ? AND DATE(start_time) <= ? AND {run_clause}
+           ORDER BY distance_m DESC LIMIT 1""".format(run_clause=_RUN_CLAUSE),
+        (start_date, end_date, *_RUN_PARAMS),
     ).fetchone()
 
     if row_long:

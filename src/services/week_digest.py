@@ -8,6 +8,7 @@ from __future__ import annotations
 import datetime
 import sqlite3
 
+from src.services.run_totals import other_totals, run_totals
 from src.utils.db_helpers import get_metric_history
 
 TSB_LOW = -30.0
@@ -40,14 +41,11 @@ def week_digest(conn: sqlite3.Connection, week_start: str) -> dict:
     s, e = start.isoformat(), end.isoformat()
     partial = end >= datetime.date.today()
 
-    row = conn.execute(
-        "SELECT COUNT(*), COALESCE(SUM(distance_m), 0), COALESCE(MAX(distance_m), 0)"
-        " FROM v_canonical_activities WHERE DATE(start_time) >= ? AND DATE(start_time) <= ?",
-        (s, e),
-    ).fetchone()
-    run_count = int(row[0]) if row else 0
-    dist = round(float(row[1]) / 1000.0, 1) if run_count else None
-    long_km = round(float(row[2]) / 1000.0, 1) if run_count else None
+    t = run_totals(conn, s, e)
+    run_count = t["count"]
+    dist = t["distance_km"] if run_count else None
+    long_km = t["longest_km"] if run_count else None
+    others = other_totals(conn, s, e)
     quality = conn.execute(
         "SELECT COUNT(*) FROM planned_workouts WHERE date >= ? AND date <= ?"
         " AND completed = 1 AND workout_type IN ('tempo','interval','marathon','threshold','long_mp')",
@@ -83,7 +81,7 @@ def week_digest(conn: sqlite3.Connection, week_start: str) -> dict:
         "week_start": s, "week_end": e, "run_count": run_count, "distance_km": dist,
         "long_run_km": long_km, "quality_count": int(quality),
         "ctl_start": ctl_start, "ctl_end": ctl_end, "tsb_min": tsb_min, "sleep_avg": sleep_avg,
-        "plan_done": plan_done, "plan_total": plan_total, "flags": flags, "partial": partial,
+        "other": others, "plan_done": plan_done, "plan_total": plan_total, "flags": flags, "partial": partial,
     }
 
 
