@@ -148,6 +148,7 @@ export function formatPrediction(
 	return `${shortHm(sec)} (${shortHm(rangeSec[0])}–${shortHm(rangeSec[1])})`;
 }
 
+/** 달력 날짜(wall-clock 전용) — 앞 10자만 자른다. 시각(instant)에는 쓰지 말고 formatInstant 를 쓴다. */
 export function formatDate(isoStr: string): string {
 	return isoStr.slice(0, 10);
 }
@@ -157,6 +158,16 @@ export function formatDate(isoStr: string): string {
 export function parseDbTimestamp(s: string): Date {
 	const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(s);
 	return new Date(hasZone ? s : s.replace(' ', 'T') + 'Z');
+}
+
+/** instant(UTC 저장 시각)를 보는 사람의 로컬 시각으로. stamp='9/25 19:51', time='19:51', date='9/25'. 파싱 실패 시 ''. */
+export function formatInstant(iso: string | null | undefined, style: 'stamp' | 'time' | 'date' = 'stamp'): string {
+	if (!iso) return '';
+	const d = parseDbTimestamp(iso);
+	if (Number.isNaN(d.getTime())) return '';
+	const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	const md = `${d.getMonth() + 1}/${d.getDate()}`;
+	return style === 'time' ? hm : style === 'date' ? md : `${md} ${hm}`;
 }
 
 export function formatRelativeTime(isoStr: string): string {
@@ -203,7 +214,7 @@ export function formatDateLong(isoDate: string): string {
 	return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${WEEKDAY_KO[d.getUTCDay()]})`;
 }
 
-/** 날짜(짧게) — '9/27(일)'. */
+/** 날짜(짧게) — '9/27(일)'. wall-clock 날짜 전용(변환 없음). 시각(instant)에는 formatInstant. */
 export function formatDateShort(isoDate: string): string {
 	const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
 	return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAY_KO[d.getUTCDay()]})`;

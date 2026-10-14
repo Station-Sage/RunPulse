@@ -14,6 +14,7 @@ from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
 from src.sync.extractors.garmin_lap_fields import STREAM_KEY_ALIASES, lap_extras, pick
 from src.sync.extractors.stream_time import StreamRows, resolve_time_axis, stream_meta
+from src.utils.timefmt import to_local_wallclock
 
 
 class GarminExtractor(BaseExtractor):
@@ -39,7 +40,7 @@ class GarminExtractor(BaseExtractor):
             "source_id": str(raw.get("activityId", "")),
             "name": raw.get("activityName"),
             "activity_type": normalize_activity_type(type_key, self.SOURCE),
-            "start_time": raw.get("startTimeLocal") or raw.get("startTimeGMT"),
+            "start_time": to_local_wallclock(raw.get("startTimeLocal"), raw.get("startTimeGMT")),
             # 거리/시간
             "distance_m": raw.get("distance"),
             "duration_sec": _seconds(raw.get("duration")),

@@ -33,12 +33,18 @@ test('driftText: 변한 근거만, 없으면 null', () => {
 	assert.equal(driftText([d]), '답변 이후 데이터가 바뀌었어요 · TSB −10.7 → −3.3');
 });
 
-test('snapshotLine: 같으면 한 줄, 다르면 화살표', () => {
-	const snap = { value: -10.7, computed_at: '2026-09-25 10:51:00', version: 'pmc_v1', as_of: 'x' };
-	assert.deepEqual(snapshotLine(ev('tsb', { snapshot: snap })), { text: '답변 당시 −10.7 (9/25 10:51 계산 · pmc_v1)', changed: false });
-	const cur = { display: '−3.3', value: -3.3, computed_at: '2026-09-27 11:57:00', version: 'pmc_v1' };
+test('snapshotLine: 같으면 한 줄, 다르면 화살표 (instant 는 보는 사람 로컬 + 상대시간)', () => {
+	const at3h = new Date(Date.now() - 3 * 3600_000);
+	const at1h = new Date(Date.now() - 3600_000);
+	const hm = (d) => `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	const snap = { value: -10.7, computed_at: at3h.toISOString(), version: 'pmc_v1', as_of: 'x' };
+	assert.deepEqual(snapshotLine(ev('tsb', { snapshot: snap })), {
+		text: `답변 당시 −10.7 (${hm(at3h)} 계산 · 3시간 전 · pmc_v1)`,
+		changed: false
+	});
+	const cur = { display: '−3.3', value: -3.3, computed_at: at1h.toISOString(), version: 'pmc_v1' };
 	assert.deepEqual(snapshotLine(ev('tsb', { snapshot: snap, current: cur, drifted: true })), {
-		text: '답변 당시 −10.7 (9/25 10:51 계산 · pmc_v1) → 현재 −3.3 (9/27 11:57 재계산 · pmc_v1)',
+		text: `답변 당시 −10.7 (${hm(at3h)} 계산 · 3시간 전 · pmc_v1) → 현재 −3.3 (${hm(at1h)} 재계산 · 1시간 전 · pmc_v1)`,
 		changed: true
 	});
 	assert.equal(snapshotLine(ev('tsb')), null);

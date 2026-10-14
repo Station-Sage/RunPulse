@@ -26,7 +26,7 @@ class TestStravaActivityCore:
         assert core["source"] == "strava"
         assert core["source_id"] == "9876543210"
         assert core["activity_type"] == "running"
-        assert core["start_time"] == "2025-03-25T09:30:00Z"
+        assert core["start_time"] == "2025-03-25T18:30:00"  # 로컬 시각·offset 없음 → KST(+9) fallback
 
     def test_distance_time(self, ext, activity_raw):
         core = ext.extract_activity_core(activity_raw)
@@ -96,3 +96,14 @@ class TestStravaStreams:
     def test_empty_streams(self, ext):
         assert ext.extract_activity_streams([]) == []
         assert ext.extract_activity_streams({}) == []
+
+
+class TestStartTimeWallclock:
+    def test_fake_z_removed_from_local(self, ext, activity_raw):
+        raw = {**activity_raw, "start_date_local": "2026-10-01T08:00:00Z", "start_date": "2026-09-30T23:00:00Z"}
+        assert ext.extract_activity_core(raw)["start_time"] == "2026-10-01T08:00:00"
+
+    def test_only_utc_uses_offset(self, ext, activity_raw):
+        raw = {k: v for k, v in activity_raw.items() if k != "start_date_local"}
+        raw.update(start_date="2026-10-01T17:30:00Z", utc_offset=25200)
+        assert ext.extract_activity_core(raw)["start_time"] == "2026-10-02T00:30:00"

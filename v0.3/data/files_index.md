@@ -119,7 +119,7 @@
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (226줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (227줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
@@ -362,7 +362,7 @@
 
 - functions: parse_range, estimate, trigger_range
 
-### `sync_state_service.py` (188줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+### `sync_state_service.py` (179줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
 - functions: classify_error, get_sync_state
 
@@ -418,7 +418,7 @@
 
 - functions: load_input, adapt_plan
 
-### `wellness_day.py` (202줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
+### `wellness_day.py` (203줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
 
 - functions: percentile_band, build_day
 
@@ -858,7 +858,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (683줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (684줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -870,7 +870,7 @@
 
 - functions: extract_vo2max_daily
 
-### `intervals_extractor.py` (197줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
+### `intervals_extractor.py` (198줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
 - class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_fitness
 
@@ -878,7 +878,7 @@
 
 - class **RunalyzeExtractor**: extract_activity_core, extract_activity_metrics
 
-### `strava_extractor.py` (216줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
+### `strava_extractor.py` (217줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
 
 - class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_streams, extract_best_efforts
 
@@ -1720,6 +1720,10 @@
 ### `template_helpers.py` (204줄) — Phase 5 템플릿 헬퍼 — UI와 AI context 공용 포맷/해석 함수.
 
 - functions: format_distance, format_pace, format_duration, format_speed, format_time_prediction, format_metric, interpret_metric_level, metric_level_color, confidence_badge, provider_badge, metric_display_name, metric_unit
+
+### `timefmt.py` (57줄) — 시각 직렬화·현지화 단일 출처 (TZ-1~, patterns/timezone-display.md).
+
+- functions: to_iso_instant, to_local_wallclock
 
 ### `user_context.py` (117줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
@@ -3220,12 +3224,13 @@
 
 - functions: test_wrapper_raises_subscription_required, test_sync_source_records_failed_ledger_row, test_classify_403_code
 
-### `test_strava_extractor.py` (98줄) — Strava Extractor 단위 테스트.
+### `test_strava_extractor.py` (109줄) — Strava Extractor 단위 테스트.
 
 - class **TestStravaActivityCore**: test_required_fields, test_distance_time, test_suffer_score_in_metrics, test_latlng, test_source_url, test_no_none_values
 - class **TestStravaActivityMetrics**: test_basic_metrics, test_splits_as_json
 - class **TestStravaBestEfforts**: test_extraction
 - class **TestStravaStreams**: test_stream_extraction, test_empty_streams
+- class **TestStartTimeWallclock**: test_fake_z_removed_from_local, test_only_utc_uses_offset
 - functions: ext, activity_raw
 
 ### `test_strava_sync.py` (140줄) — DoD #8: Strava sync — OAuth + detail + streams mock 기반.
@@ -3299,6 +3304,10 @@
 ### `test_tids_time.py` (25줄) — P7-PRED-88: TIDS 시간 기준.
 
 - functions: test_time_based_distribution_and_patterns, test_pattern_zero_zone1_has_no_polarization_index
+
+### `test_timefmt.py` (37줄) — timefmt — instant 직렬화·활동 현지 벽시계 변환.
+
+- functions: test_instant_naive_is_utc, test_instant_respects_suffix, test_instant_none_and_garbage, test_local_wins_and_fake_z_removed, test_utc_plus_offset, test_unknown_offset_falls_back_to_kst, test_nothing_usable
 
 ### `test_today_hero.py` (139줄) — tests/test_today_hero.py — Today 히어로 state 판정·주간 스트립·게이지(10-today design §2.4·§7.3).
 
@@ -3562,7 +3571,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 761개 파일
+총 763개 파일
 
 ## docstring 누락
 

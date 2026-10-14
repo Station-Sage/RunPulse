@@ -6,6 +6,7 @@ import json
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.sync.extractors.stream_time import StreamRows, stream_meta
 from src.utils.activity_types import normalize_activity_type
+from src.utils.timefmt import to_local_wallclock
 
 
 class StravaExtractor(BaseExtractor):
@@ -27,7 +28,7 @@ class StravaExtractor(BaseExtractor):
             "activity_type": normalize_activity_type(
                 raw.get("type", "unknown"), self.SOURCE
             ),
-            "start_time": raw.get("start_date_local") or raw.get("start_date"),
+            "start_time": to_local_wallclock(raw.get("start_date_local"), raw.get("start_date"), raw.get("utc_offset")),
             "distance_m": raw.get("distance"),
             "duration_sec": raw.get("elapsed_time"),
             "moving_time_sec": raw.get("moving_time"),

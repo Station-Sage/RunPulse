@@ -11,6 +11,7 @@ import re
 import sqlite3
 from datetime import datetime, timedelta
 
+from src.utils.timefmt import to_iso_instant
 from src.utils.format_ko import fmt_distance, fmt_int, fmt_signed, workout_ko
 
 MAX_ITEMS = 8
@@ -49,7 +50,7 @@ def _snapshot(conn: sqlite3.Connection, item: dict, as_of: str) -> dict:
             " WHERE scope_type='daily' AND metric_name=? AND is_primary=1 AND scope_id<=?"
             " ORDER BY scope_id DESC LIMIT 1", (item["metric"], as_of)).fetchone()
         if row:
-            snap.update(value=row[0], version=row[1], computed_at=row[2], as_of=row[3])
+            snap.update(value=row[0], version=row[1], computed_at=to_iso_instant(row[2]), as_of=row[3])
     return snap
 
 
@@ -64,7 +65,7 @@ def _read_current(conn: sqlite3.Connection, item: dict) -> dict | None:
             "SELECT numeric_value, algorithm_version, COALESCE(updated_at, created_at) FROM metric_store"
             " WHERE scope_type='daily' AND scope_id=? AND metric_name=? AND is_primary=1",
             (as_of, metric)).fetchone()
-        return {"value": row[0], "version": row[1], "computed_at": row[2]} if row and row[0] is not None else None
+        return {"value": row[0], "version": row[1], "computed_at": to_iso_instant(row[2])} if row and row[0] is not None else None
     col = _WELLNESS_COLUMNS.get(metric)
     if item.get("type") == "wellness" and col:
         row = conn.execute(f"SELECT {col} FROM daily_wellness WHERE date=?", (as_of,)).fetchone()

@@ -9,9 +9,10 @@ from __future__ import annotations
 import math
 import sqlite3
 from datetime import date as _date
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from src.metrics.bands import grade
+from src.utils.timefmt import to_iso_instant
 
 MIN_N = 7
 Z_MIN = 0.5  # 근거로 삼을 최소 |z|
@@ -150,10 +151,10 @@ def _headline(readiness: dict, reasons: list[dict]) -> dict:
 def _as_of(updated_at: str | None) -> str | None:
     if not updated_at:
         return None
-    try:
-        dt = datetime.fromisoformat(updated_at).replace(tzinfo=timezone.utc).astimezone()
-    except ValueError:
+    iso = to_iso_instant(updated_at)
+    if iso is None:
         return None
+    dt = datetime.fromisoformat(iso).astimezone()
     return dt.strftime("%H:%M")
 
 

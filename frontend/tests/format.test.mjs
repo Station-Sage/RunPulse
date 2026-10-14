@@ -48,3 +48,14 @@ test('formatPace — 초를 먼저 반올림해 "5:60" 같은 표기가 나오�
 	assert.equal(formatPace(356.8), '5:57/km');
 	assert.equal(formatPaceRange(359.6, 419.7), '6:00–7:00/km');
 });
+
+test('formatInstant: 접미사 없는 DB 시각은 UTC 로 보고 로컬로 변환, 실패는 빈 문자열', async () => {
+	const { formatInstant } = await import('../src/lib/format.ts');
+	const d = new Date('2026-09-25T10:51:00Z');
+	const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+	assert.equal(formatInstant('2026-09-25 10:51:00', 'time'), hm);
+	assert.equal(formatInstant('2026-09-25T10:51:00+00:00', 'stamp'), `${d.getMonth() + 1}/${d.getDate()} ${hm}`);
+	assert.equal(formatInstant('2026-09-25T10:51:00Z', 'date'), `${d.getMonth() + 1}/${d.getDate()}`);
+	assert.equal(formatInstant(null), '');
+	assert.equal(formatInstant('garbage'), '');
+});

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
+from src.utils.timefmt import to_local_wallclock
 
 
 class IntervalsExtractor(BaseExtractor):
@@ -31,7 +32,7 @@ class IntervalsExtractor(BaseExtractor):
             "activity_type": normalize_activity_type(
                 raw.get("type", "unknown"), self.SOURCE
             ),
-            "start_time": raw.get("start_date_local") or raw.get("start_date"),
+            "start_time": to_local_wallclock(raw.get("start_date_local"), raw.get("start_date")),
             "distance_m": raw.get("distance"),
             "duration_sec": raw.get("elapsed_time") or raw.get("icu_total_time"),
             "moving_time_sec": raw.get("moving_time") or raw.get("icu_moving_time"),

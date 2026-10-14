@@ -63,7 +63,7 @@ class TestBuildAnswerEvidence:
         assert by["tsb"]["role"] == "supports"
         assert by["tsb"]["drill"] == {"scope_type": "daily", "scope_id": DAY}
         assert by["tsb"]["snapshot"]["version"] == "pmc_v1"
-        assert by["tsb"]["snapshot"]["computed_at"] == "2026-09-25 10:51:00"
+        assert by["tsb"]["snapshot"]["computed_at"] == "2026-09-25T10:51:00+00:00"
         assert by["body_battery"]["drill"] is None
         assert by["checkin"]["pinned"] is True
         assert by["checkin"]["role"] == "caveat"   # 피로 3은 진행 신호 ↔ 쉬라는 판정

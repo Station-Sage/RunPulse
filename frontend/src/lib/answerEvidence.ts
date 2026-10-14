@@ -1,5 +1,6 @@
 // Coach 답변 근거 v2 순수 함수 — 칩 노출 분할, 투영 문구, drift 배너, D2 스냅샷 줄(30-coach-chat design §4.4·§7.3).
 import type { AnswerEvidence } from '$lib/types';
+import { formatInstant, formatRelativeTime } from './format.ts';
 
 export const MAX_VISIBLE = 3;
 export const PROJECTION_METRIC = 'race_form_projection';
@@ -62,9 +63,11 @@ export function driftText(items: AnswerEvidence[] | undefined): string | null {
 	return `답변 이후 데이터가 바뀌었어요 · ${parts.join(', ')}${more}`;
 }
 
-function stamp(iso: string | null | undefined): string {
-	const m = /^\d{4}-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(iso ?? '');
-	return m ? `${Number(m[1])}/${Number(m[2])} ${m[3]}:${m[4]}` : '';
+function stamp(iso: string | null | undefined, verb: string): string {
+	const at = formatInstant(iso);
+	if (!at) return verb;
+	const rel = formatRelativeTime(iso as string);
+	return rel ? `${at} ${verb} · ${rel}` : `${at} ${verb}`;
 }
 
 /** D2 스냅샷 줄 — 답변 칩에서 열었을 때만. 값이 같으면 한 줄, 다르면 변화 안내를 함께. */
@@ -72,7 +75,7 @@ export function snapshotLine(ev: AnswerEvidence): { text: string; changed: boole
 	const s = ev.snapshot;
 	if (!s || s.value == null) return null;
 	const meta = (at: string | null, ver: string | null, verb: string) =>
-		[[stamp(at), verb].filter(Boolean).join(' '), ver].filter(Boolean).join(' · ');
+		[stamp(at, verb), ver].filter(Boolean).join(' · ');
 	const then = `답변 당시 ${exact(s.value)}${meta(s.computed_at, s.version, '계산') ? ` (${meta(s.computed_at, s.version, '계산')})` : ''}`;
 	const cur = ev.current;
 	if (!cur || !ev.drifted) return { text: then, changed: false };

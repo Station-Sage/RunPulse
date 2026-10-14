@@ -9,12 +9,13 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 
 from src.sync.sync_errors import MESSAGES_KO
 from src.utils.config import enabled_sources
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
 from src.utils.sync_ledger_query import STALE_SEC
+from src.utils.timefmt import to_iso_instant
 
 SOURCES = ("garmin", "strava", "intervals", "runalyze")
 STALE_HOURS = 12
@@ -47,16 +48,6 @@ def _local_iso(naive_local: str | None) -> str | None:
         return None
     try:
         return datetime.fromisoformat(naive_local).astimezone().isoformat(timespec="seconds")
-    except ValueError:
-        return None
-
-
-def _utc_to_local_iso(naive_utc: str | None) -> str | None:
-    if not naive_utc:
-        return None
-    try:
-        dt = datetime.fromisoformat(naive_utc.replace(" ", "T")).replace(tzinfo=timezone.utc)
-        return dt.astimezone().isoformat(timespec="seconds")
     except ValueError:
         return None
 
@@ -150,7 +141,7 @@ def get_sync_state(conn: sqlite3.Connection, config: dict, now: datetime | None 
 
     sources = [
         _source_state(p, config, on, list_recent_jobs(p, limit=20),
-                      _utc_to_local_iso(fetched.get(p)), now)
+                      to_iso_instant(fetched.get(p)), now)
         for p in SOURCES
     ]
     active = [s for s in sources if s["enabled"] and s["connection"] == "connected"]
