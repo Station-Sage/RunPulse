@@ -1056,7 +1056,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (495줄) — RunPulse integration workbench web app.
+### `app.py` (488줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1084,6 +1084,10 @@
 ### `route_svg.py` (118줄) — GPS 경로 SVG 썸네일 생성 — activity_streams에서 latlng 데이터를 SVG polyline으로 변환.
 
 - functions: render_route_svg
+
+### `spa_static.py` (132줄) — SvelteKit 정적 빌드(`frontend/build`) 서빙 정책 — `/v2/` 경로 판정·캐시 규칙·인라인 스크립트 해시.
+
+- functions: resolve_v2, cache_control_for, inline_script_hashes, serve_v2_response
 
 ### `sync_ui.py` (246줄) — 동기화 카드 UI 컴포넌트 — 기본(마지막 동기화 이후) / 기간 2탭.
 
@@ -3163,6 +3167,10 @@
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair, test_time_axis_repair_basis
 
+### `test_spa_static.py` (183줄) — spa_static — `/v2/` 정적 서빙 분기·캐시 규칙·인라인 해시 (S3 7단계, E-04).
+
+- functions: build, client, test_resolve_existing_file_is_asset, test_resolve_missing_asset, test_resolve_client_routes_are_spa, test_resolve_never_serves_outside_build, test_cache_control_rules, test_missing_immutable_asset_is_404_not_html, test_deeplinks_return_index_html, test_immutable_asset_cached_one_year, test_version_json_not_immutable, test_favicon_200_when_present_404_when_absent, test_no_build_dir_clientroute_404, test_hashes_inline_only_deduped_in_order, test_hashes_skip_external_and_json, test_hashes_missing_file, test_hashes_cached_by_mtime, test_hashes_returns_copy, test_real_app_serve_v2_delegates
+
 ### `test_startup_empty_db_migration.py` (21줄) — 빈 사용자 DB(가입 직후)에 create_tables → migrate_db 순서로 적용하면 실패하지 않는다.
 
 - functions: test_migrate_alone_fails_on_empty_db, test_create_tables_then_migrate_on_empty_db
@@ -3509,7 +3517,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 748개 파일
+총 750개 파일
 
 ## docstring 누락
 

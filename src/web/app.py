@@ -9,7 +9,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from flask import Flask, redirect, request, send_from_directory, session
+from flask import Flask, redirect, request, session
 
 from src.utils.config import load_config
 
@@ -49,6 +49,7 @@ from .views_guide import guide_bp
 from src.api import api_bp
 from src.api.routes_v1_sync import v1_sync_bp
 from src.api.routes_v1_pages import v1_pages_bp
+from .spa_static import serve_v2_response
 # ── 홈 화면 TTL 캐시 (60초) ─────────────────────────────────────────────────
 _HOME_CACHE_TTL = 60
 # db_path 문자열 → {"ts": float, "data": dict} 맵
@@ -450,16 +451,8 @@ def create_app() -> Flask:
     @app.route("/v2/", defaults={"path": ""})
     @app.route("/v2/<path:path>")
     def serve_v2(path):
-        static_dir = _project_root() / "frontend" / "build"
-        file_path = static_dir / path
-        if path and file_path.is_file():
-            resp = send_from_directory(static_dir, path)
-            if path.startswith("_app/"):
-                resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            return resp
-        resp = send_from_directory(static_dir, "index.html")
-        resp.headers["Cache-Control"] = "no-cache"
-        return resp
+        # 자산/클라이언트 라우트 분기·캐시 규칙은 spa_static (S3-8, E-04)
+        return serve_v2_response(_project_root() / "frontend" / "build", path)
 
     # ── Blueprint 등록 ─────────────────────────────────────────────────
     app.register_blueprint(wellness_bp)
