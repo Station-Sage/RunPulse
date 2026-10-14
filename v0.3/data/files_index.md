@@ -3392,6 +3392,11 @@
 
 - functions: test_fit_recovers_line, test_fit_rejects_flat_or_negative, test_estimates_missing_hr_with_low_confidence, test_faster_pace_gives_higher_estimate, test_skips_when_hr_measured, test_empty_when_not_enough_history, test_measured_provider_outranks_estimate, test_store_primary_prefers_measured
 
+### `test_tz_backfill.py` (58줄) — tz_backfill 단위 테스트 — dry-run 무변경, 적용, 되돌리기, 그룹 재평가 (TZ T4).
+
+- class **_Lookup**: 없음
+- functions: test_dry_run_changes_nothing, test_apply_then_revert, test_limit_and_confirmed_skipped
+
 ### `test_tz_peers.py` (174줄) — tz_peers / strava_tz / strava_tz_apply 단위 테스트 (TZ T2/T3).
 
 - functions: test_distance_matches, test_rank_and_overwrite, test_peer_direct_offset, test_peer_outside_tolerance_or_distance, test_peer_irregular_offset_discarded, test_derived_only_when_unique, test_direct_conflict_uses_source_priority, test_chain_order, test_neighbor_then_fallback, test_lookup_no_network_on_init, test_tz_context_summary_and_borrow, test_tz_payload_fields, test_apply_to_existing_rank_rules, test_apply_to_existing_protects_manual_and_pinned, test_csv_import_uses_peer_and_reimport_protects
@@ -3576,6 +3581,10 @@
 
 - functions: main
 
+### `normalize_start_time.py` (61줄) — Strava 시작 시각 시간대 백필·되돌리기 CLI (TZ T4). 기본은 dry-run, --apply 일 때만 DB 를 바꾼다.
+
+- functions: main
+
 ### `plan_backtest.py` (49줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
@@ -3589,7 +3598,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 767개 파일
+총 769개 파일
 
 ## docstring 누락
 

@@ -86,9 +86,27 @@ def _load_payload(conn: sqlite3.Connection, source_id: str) -> tuple[str, dict] 
     return None
 
 
+def _group_of(conn: sqlite3.Connection, activity_id: int) -> str | None:
+    row = conn.execute("SELECT matched_group_id FROM activity_summaries WHERE id=?", (activity_id,)).fetchone()
+    return row[0] if row else None
+
+
+def reeval_group(conn: sqlite3.Connection, activity_id: int) -> tuple[str | None, str | None]:
+    """start_time 이 바뀐 행의 dedup 그룹을 재평가. (이전 group_id, 새 group_id)."""
+    from src.utils.dedup import assign_group_id
+
+    prev = _group_of(conn, activity_id)
+    conn.execute("UPDATE activity_summaries SET matched_group_id = NULL WHERE id = ?", (activity_id,))
+    assign_group_id(conn, activity_id)
+    return prev, _group_of(conn, activity_id)
+
+
 def apply_to_existing(conn: sqlite3.Connection, source_id: str, new_start: str, new_tz_source: str,
-                      peer: dict | None) -> bool:
-    """기존 Strava 행의 start_time 을 순위 규칙으로 갱신. 갱신했으면 True."""
+                      peer: dict | None, *, run_id: str | None = None, regroup: bool = False) -> bool:
+    """기존 Strava 행의 start_time 을 순위 규칙으로 갱신. 갱신했으면 True.
+
+    run_id 가 있으면 이력에 기록(--revert-run 대상), regroup 이면 dedup 그룹을 재평가해 이력에 남긴다.
+    """
     loaded = _load_payload(conn, source_id)
     if loaded is None:
         return False
@@ -103,12 +121,17 @@ def apply_to_existing(conn: sqlite3.Connection, source_id: str, new_start: str, 
     hist = list(payload.get("tz_history") or [])
     hist.append({"from": row[1], "from_source": old_src, "to": new_start, "to_source": new_tz_source,
                  "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")})
+    if run_id:
+        hist[-1]["run_id"] = run_id
     payload.update({"start_time": new_start, "tz_source": new_tz_source, "tz_history": hist[-_HISTORY_MAX:]})
     if peer:
         payload["tz_peer"] = peer
     else:
         payload.pop("tz_peer", None)
     conn.execute("UPDATE activity_summaries SET start_time=? WHERE id=?", (new_start, row[0]))
+    if regroup:
+        hist[-1]["prev_group_id"], hist[-1]["new_group_id"] = reeval_group(conn, row[0])
+        payload["tz_history"] = hist[-_HISTORY_MAX:]
     conn.execute("UPDATE source_payloads SET payload=? WHERE source='strava' AND entity_type=? AND entity_id=?",
                  (json.dumps(payload, ensure_ascii=False), et, str(source_id)))
     return True
