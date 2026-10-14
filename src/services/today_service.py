@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from src.utils.reference_day import reference_today
+
 from . import input_limits
 
 
@@ -133,7 +135,7 @@ def get_todays_checkin(conn: sqlite3.Connection, date: str | None = None) -> dic
     (03g-common-patterns.md 7-5) 판단에 쓰인다.
     """
     if date is None:
-        date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
+        date = reference_today(conn)[0]
 
     conn.row_factory = sqlite3.Row
     row = conn.execute(
@@ -183,7 +185,7 @@ def save_checkin(
     """
     input_limits.check_checkin(fatigue, pain)
     if input_date is None:
-        input_date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
+        input_date = reference_today(conn)[0]
 
     conn.execute(
         """

@@ -384,7 +384,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (208줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (210줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1688,6 +1688,10 @@
 ### `raw_payload.py` (117줄) — source_payloads 저장/병합 유틸리티.
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
+
+### `reference_day.py` (68줄) — '오늘' 기준일 헬퍼 — 최근 활동의 UTC 오프셋으로 사용자 현지 날짜를 구한다 (TZ T5, TZ-17/18/21).
+
+- functions: reference_offset, reference_today
 
 ### `sync_gates.py` (79줄) — 동기화 게이트 — 429/인증 만료 후 재시도 가능 시각(sync_gates 테이블, 사용자별 sync_jobs.db).
 
@@ -3136,6 +3140,10 @@
 
 - functions: test_reextract_keeps_ids_and_fills_fields, test_activity_metrics_reextracted, test_dry_run_writes_nothing, test_orphan_guard_blocks_destructive_reprocess
 
+### `test_reference_day.py` (47줄) — reference_today: 최근 활동 오프셋 기반 '오늘' 판정 (TZ T5).
+
+- functions: test_activity_tz_crosses_date, test_falls_back_to_older_activity, test_strava_csv_offset, test_server_local_fallback
+
 ### `test_relative_effort.py` (116줄)
 
 - class **TestRelativeEffort**: test_from_avg_hr, test_high_intensity, test_low_intensity, test_no_hr, test_confidence_from_avg_hr, test_category
@@ -3581,7 +3589,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 765개 파일
+총 767개 파일
 
 ## docstring 누락
 
