@@ -5,13 +5,13 @@
 	// v1↔v2 상호 링크 역할을 한다. 좌측 ☰·우측 Pill은 40-v2-unimplemented/design.md §2.1 결정.
 	// E5: 탭바 SVG 아이콘, max-w-3xl 중앙 정렬.
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
+	import UpdateNotice from '$lib/components/UpdateNotice.svelte';
 	import { demoActive, isDemoActive } from '$lib/demoMode';
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
 
@@ -29,9 +29,8 @@
 	const isActive = (match: string) => page.url.pathname.startsWith(`${base}${match}`);
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
-
 <ProgressBar />
+<UpdateNotice />
 {#if $demoActive}<DemoBanner />{/if}
 
 {#if isLanding}

@@ -1,0 +1,20 @@
+{
+  "name": "RunPulse - 개인 러닝 코치",
+  "short_name": "RunPulse",
+  "description": "Garmin, Strava, Intervals.icu, Runalyze 데이터 통합 분석 + AI 코칭",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/v2/today",
+  "scope": "/v2/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/v2/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/v2/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/v2/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/v2/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["health", "fitness", "sports"]
+}

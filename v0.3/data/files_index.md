@@ -3379,6 +3379,10 @@
 
 - functions: client, test_bg_start_blocks_disabled_source, test_bg_start_allows_enabled_source, test_bg_resume_blocks_disabled_source, test_stream_skips_disabled_source
 
+### `test_v2_static_assets.py` (147줄) — frontend/static 의 favicon·manifest·apple-touch-icon 자산 정합성 (S3 9단계, SEC-7/D7).
+
+- functions: manifest, client, png_size, test_manifest_basics, test_manifest_colors_match_dark_s1_token, test_manifest_icons_exist_and_sizes_match, test_maskable_glyph_inside_safe_zone, test_icons_are_opaque_not_fake_checkerboard, test_apple_touch_icon_180, test_favicon_is_real_ico_with_small_sizes, test_app_html_links_and_no_theme_color, test_served_200_with_revalidation, test_unknown_icon_still_404, test_hooks_client_wiring_present
+
 ### `test_validator.py` (376줄) — DataValidator 테스트.
 
 - class **TestRowCounts**: test_pass, test_fail_empty_db
@@ -3533,7 +3537,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 754개 파일
+총 755개 파일
 
 ## docstring 누락
 
