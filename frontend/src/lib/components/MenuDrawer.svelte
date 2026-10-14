@@ -10,6 +10,7 @@
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
 	import { patchPreferences } from '$lib/api/me';
+	import { EXPORT_LABEL, EXPORT_PATH, V1_DATA_LINKS, V1_QUICK_LINKS } from '$lib/menuLinks';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -31,22 +32,6 @@
 			location.assign('/dashboard');
 		}
 	}
-
-	const quickLinks = [
-		{ href: '/dashboard', label: '대시보드' },
-		{ href: '/activities', label: '활동 목록' },
-		{ href: '/wellness', label: '웰니스' },
-		{ href: '/training', label: '훈련 계획' },
-		{ href: '/race', label: '레이스' },
-		{ href: '/ai-coach', label: 'AI 코치' },
-		{ href: '/shoes', label: '신발' }
-	];
-
-	const dataLinks = [
-		{ href: '/settings', label: '설정' },
-		{ href: '/guide', label: '지표 가이드' },
-		{ href: '/activities/export.csv', label: 'CSV 내보내기' }
-	];
 </script>
 
 {#if open}
@@ -80,7 +65,7 @@
 
 			<div class="flex flex-col gap-1 px-2 py-3">
 				<p class="px-2 py-1 text-xs text-fg-muted">기존 화면(v1)</p>
-				{#each quickLinks as link (link.href)}
+				{#each V1_QUICK_LINKS as link (link.href)}
 					<a
 						href={link.href}
 						data-sveltekit-reload
@@ -100,7 +85,16 @@
 				>
 					데이터 (동기화·소스)
 				</a>
-				{#each dataLinks as link (link.href)}
+				<!-- V1-11 (b): v1 CSV 라우트 대신 v2 내보내기(EXP) 화면 -->
+				<a
+					href="{base}{EXPORT_PATH}"
+					onclick={onClose}
+					data-testid="menu-export-link"
+					class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+				>
+					{EXPORT_LABEL}
+				</a>
+				{#each V1_DATA_LINKS as link (link.href)}
 					<a
 						href={link.href}
 						data-sveltekit-reload
