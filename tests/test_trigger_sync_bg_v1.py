@@ -8,11 +8,12 @@ from src.services.sync_trigger_service import SkipReason
 
 def test_v1_response_shape(monkeypatch, tmp_path):
     from src.web import app as webapp
+    import src.api.routes_v1_sync as v1_sync  # S3-7: 라우트가 src/api/로 이동
     import src.services.sync_trigger_service as svc
     import src.sync.bg_sync as bg
 
-    monkeypatch.setattr(webapp, "_db_path", lambda: tmp_path / "x.db")
-    monkeypatch.setattr(webapp, "load_config", lambda user_id=None: {})
+    monkeypatch.setattr(v1_sync, "db_path", lambda: tmp_path / "x.db")
+    monkeypatch.setattr(v1_sync, "load_config", lambda user_id=None: {})
     monkeypatch.setattr(svc, "plan_incremental", lambda *a, **k: (
         ["garmin"], {"garmin": "2026-10-01"},
         [SkipReason("strava", "cooldown", "쿨다운", 30), SkipReason("runalyze", "not_connected", "미연결")]))

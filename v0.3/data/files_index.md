@@ -1056,7 +1056,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (1144줄) — RunPulse integration workbench web app.
+### `app.py` (495줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1865,6 +1865,14 @@
 ### `routes_today.py` (154줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
+
+### `routes_v1_pages.py` (295줄) — v1 HTML 페이지 라우트 — `/import`·`/import-preview`·`/import/upload*`·`/sync-status` (V1S-12 b안).
+
+- functions: import_page, import_upload, import_upload_archive, sync_status
+
+### `routes_v1_sync.py` (416줄) — v1 동기화 JSON·SSE 라우트 — `/trigger-sync*`·`/api/garmin/local-sync`·`/bg-sync/*` (V1S-12 b안).
+
+- functions: trigger_sync, trigger_sync_stream, trigger_sync_bg, garmin_local_sync, bg_sync_start, bg_sync_pause, bg_sync_stop, bg_sync_resume, bg_sync_status
 
 ### `validation.py` (227줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
 
@@ -3299,7 +3307,7 @@
 - class **TestIntervalCalc**: test_basic_1000m, test_200m_short_interval, test_nonstandard_distance_warning, test_default_params
 - functions: app, client, db_file, workout_id
 
-### `test_trigger_sync_bg_v1.py` (27줄) — v1 /trigger-sync-bg — 서비스 판정 위임 후에도 응답 포맷 유지.
+### `test_trigger_sync_bg_v1.py` (28줄) — v1 /trigger-sync-bg — 서비스 판정 위임 후에도 응답 포맷 유지.
 
 - functions: test_v1_response_shape
 
@@ -3339,7 +3347,11 @@
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
 
-### `test_v1_sync_guards.py` (44줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
+### `test_v1_routes_moved.py` (83줄) — S3-7 (V1S-12 b) — v1 sync/import 라우트를 app.py → src/api/ 블루프린트로 옮긴 뒤에도
+
+- functions: app, test_urls_and_methods_unchanged, test_owned_by_new_blueprints, test_no_duplicate_rules, test_app_py_has_no_moved_helpers, test_garmin_local_sync_stays_origin_exempt, test_trigger_sync_without_origin_is_rejected
+
+### `test_v1_sync_guards.py` (45줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
 
 - functions: client, test_bg_start_blocks_disabled_source, test_bg_start_allows_enabled_source, test_bg_resume_blocks_disabled_source, test_stream_skips_disabled_source
 
@@ -3497,7 +3509,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 745개 파일
+총 748개 파일
 
 ## docstring 누락
 

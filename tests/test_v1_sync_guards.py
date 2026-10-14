@@ -4,6 +4,7 @@ import json
 import pytest
 
 import src.web.app as web_app
+import src.api.routes_v1_sync as v1_sync
 
 ORIGIN = {"Origin": "http://localhost"}  # Origin 관문 enforce (conftest)
 
@@ -15,7 +16,7 @@ def client(monkeypatch):
         pytest.skip("create_app 없음")
     app.config["TESTING"] = True
     cfg = {"sync_sources": ["garmin"]}
-    monkeypatch.setattr(web_app, "load_config", lambda user_id=None: cfg)
+    monkeypatch.setattr(v1_sync, "load_config", lambda user_id=None: cfg)  # S3-7: 라우트가 src/api/로 이동
     import src.sync.bg_sync as bgs
     monkeypatch.setattr(bgs, "start_job", lambda *a, **k: "job1")
     monkeypatch.setattr(bgs, "resume_job", lambda *a, **k: True)
