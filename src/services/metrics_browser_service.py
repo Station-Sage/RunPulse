@@ -5,13 +5,16 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from src.utils.db_helpers import get_metric_history
+from src.services.metric_freshness import assess_many, crs_boost_hold
+from src.services.metric_freshness_spec import FRESHNESS_SPEC
+from src.services.metrics_trend_service import (  # noqa: F401  (재노출)
+    _baseline, _crs_level, _race_events, _today, get_metric_trend,
+)
+from src.utils.db_helpers import get_primary_metric
 from src.utils.metric_registry import METRIC_REGISTRY
-from src.metrics.bands import band_ranges, grade, with_grade
-from src.services.metric_display import HIGHER_IS_BETTER as _HIGHER_IS_BETTER, action_hint, display_meta
+from src.metrics.bands import with_grade
+from src.services.metric_display import action_hint, display_meta
 from src.services.metric_browse_groups import GROUPS, baseline_z, classify, salience_key
-from src.services.metrics_basis_events import basis_change_events
-from src.services.metrics_changelog_events import recompute_caption, version_events
 
 # 스파크라인 조회 창(일). 2-6 성능 — 메트릭당(daily-scope 84개) 별도 쿼리 2회씩
 # (get_primary_metric + 무제한 get_metric_history) 돌던 게 /library/metrics 776ms의
@@ -21,8 +24,6 @@ from src.services.metrics_changelog_events import recompute_caption, version_eve
 _SPARKLINE_LOOKBACK_DAYS = 90
 
 _WELLNESS_TEXT = frozenset({"sleep_start_time"})
-
-_PERIOD_DAYS: dict[str, int] = {"4w": 28, "3m": 90, "6m": 180, "1y": 365}
 
 
 def confidence_label(conf: float | None) -> str | None:
@@ -111,22 +112,6 @@ def _daily_history(
     return out
 
 
-def _crs_level(conn: sqlite3.Connection, date: str) -> int | None:
-    """CRS 게이트 level(0~4) — 힌트는 점수 밴드가 아닌 level로 고른다. 없으면 None."""
-    import json
-
-    row = conn.execute(
-        "SELECT json_value FROM metric_store WHERE scope_type='daily' AND scope_id=? AND metric_name='crs' "
-        "AND is_primary=1 AND json_value IS NOT NULL",
-        (date,),
-    ).fetchone()
-    try:
-        level = json.loads(row[0]).get("level") if row else None
-    except (TypeError, ValueError, AttributeError):
-        return None
-    return level if isinstance(level, int) and 0 <= level <= 4 else None
-
-
 def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> dict[str, Any]:
     """카테고리별 daily-scope 메트릭 현재값 + 14일 스파크라인 반환.
 
@@ -141,6 +126,9 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
 
     # 표시 그룹(8의도)별 수집 — 기준일에 값이 없으면 창 안의 최신값을 쓰고 last_value_date로 알린다.
     # 구성요소(tier hidden)는 목록에서 제외하고, 그룹 안 정렬은 salience(당일·경고·평소 대비 편차·대표) 순.
+    fresh_names = [n for n in daily_names if n in FRESHNESS_SPEC and history.get(n)]
+    fresh_rows = {n: get_primary_metric(conn, "daily", history[n][-1][0], n) for n in fresh_names}
+    freshness = assess_many(conn, fresh_names, date, fresh_rows) if fresh_names else {}
     group_map: dict[str, list[tuple[tuple, dict[str, Any]]]] = {}
     for idx, name in enumerate(daily_names):
         rows = history.get(name)
@@ -172,10 +160,20 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
             "group": group,
             "tier": tier,
             "source_category": mdef.category,
-            "salience": {"fresh": last_date == date, "z": None if z is None else round(z, 2)},
+            "freshness": freshness.get(name),
+            "salience": {
+                "fresh": (freshness[name]["level"] == "fresh") if name in freshness else last_date == date,
+                "z": None if z is None else round(z, 2),
+            },
         }
         with_grade(entry, name, value)
-        entry["action_hint"] = action_hint(name, entry.get("status"), _crs_level(conn, date) if name == "crs" else None)
+        if name == "crs":
+            fr = freshness.get(name) or {}
+            entry["action_hint"] = action_hint(
+                name, entry.get("status"), _crs_level(conn, date),
+                assertive=fr.get("assertive", True), boost_hold=crs_boost_hold(conn, date)["hold"])
+        else:
+            entry["action_hint"] = action_hint(name, entry.get("status"))
         group_map.setdefault(group, []).append((salience_key(entry, idx), entry))
 
     categories = []
@@ -192,107 +190,3 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
         categories.append(cat)
 
     return {"date": date, "categories": categories}
-
-
-def get_metric_trend(
-    conn: sqlite3.Connection, slug: str, period: str = "3m"
-) -> dict[str, Any] | None:
-    """slug 메트릭의 기간별 일별 시계열 반환. 데이터 없으면 None."""
-    days = _PERIOD_DAYS.get(period, _PERIOD_DAYS["3m"])
-    date_from = str(_today() - timedelta(days=days))
-
-    mdef0 = METRIC_REGISTRY.get(slug)
-    if mdef0 is not None and mdef0.storage == "wellness" and slug not in _WELLNESS_TEXT:
-        conn.row_factory = sqlite3.Row
-        wrows = conn.execute(
-            f"SELECT date, {slug} AS v FROM daily_wellness WHERE date >= ? AND {slug} IS NOT NULL ORDER BY date",
-            (date_from,),
-        ).fetchall()
-        points = [{"date": r["date"], "value": r["v"]} for r in wrows]
-    else:
-        history = get_metric_history(conn, slug, scope_type="daily", date_from=date_from)
-        points = [{"date": r["scope_id"], "value": r["numeric_value"]} for r in history]
-    if not points:
-        return None
-
-    current = points[-1]["value"]
-    peak_entry = max(points, key=lambda p: (p["value"] is not None, p["value"] or 0))
-    peak = {"value": peak_entry["value"], "date": peak_entry["date"]}
-    valued = [p for p in points if p["value"] is not None]
-    best = worst = None
-    if valued:
-        hi = max(valued, key=lambda p: p["value"])
-        lo = min(valued, key=lambda p: p["value"])
-        if _HIGHER_IS_BETTER.get(slug) is False:
-            best, worst = lo, hi
-        else:
-            best, worst = hi, lo
-    baseline = _baseline(valued)
-
-    first_val = points[0]["value"]
-    if first_val and current is not None:
-        change_pct = (current - first_val) / first_val * 100
-    else:
-        change_pct = None
-
-    mdef = METRIC_REGISTRY.get(slug)
-    label = mdef.description if mdef else slug
-    unit = mdef.unit if mdef else ""
-
-    return {
-        "slug": slug,
-        **display_meta(slug, unit, label),
-        "label": label,
-        "unit": unit,
-        "action_hint": action_hint(
-            slug, (grade(slug, current) or {}).get("status"), _crs_level(conn, points[-1]["date"]) if slug == "crs" else None
-        ),
-        "current": current,
-        "peak": peak,
-        "best": best,
-        "worst": worst,
-        "baseline": baseline,
-        "bands": band_ranges(slug),
-        "change_pct": change_pct,
-        "points": points,
-        "events": sorted(
-            _race_events(conn, points[0]["date"], points[-1]["date"])
-            + basis_change_events(conn, slug, points[0]["date"], points[-1]["date"])
-            + version_events(conn, slug, points[0]["date"], points[-1]["date"]),
-            key=lambda e: e["date"],
-        ),
-        "recompute_note": recompute_caption(conn, slug, points[0]["date"], points[-1]["date"]),
-    }
-
-
-def _race_events(conn: sqlite3.Connection, d0: str, d1: str) -> list[dict[str, Any]]:
-    """차트 기간 내 대회(▲) — race_result_service.candidates 기준. 실패해도 차트는 계속."""
-    try:
-        from src.services import race_result_service
-
-        rows = race_result_service.candidates(conn, d0)
-    except sqlite3.Error:
-        return []
-    return [
-        {"date": r["date"], "kind": "race", "label": r["name"] or "대회", "activity_id": r["activity_id"]}
-        for r in reversed(rows) if d0 <= r["date"] <= d1
-    ]
-
-
-def _baseline(valued: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """조회 구간 값의 평균·P25·P75. 3점 미만이면 None."""
-    vals = sorted(p["value"] for p in valued)
-    if len(vals) < 3:
-        return None
-
-    def q(f: float) -> float:
-        i = (len(vals) - 1) * f
-        lo = int(i)
-        hi = min(lo + 1, len(vals) - 1)
-        return round(vals[lo] + (vals[hi] - vals[lo]) * (i - lo), 4)
-
-    return {"mean": round(sum(vals) / len(vals), 4), "p25": q(0.25), "p75": q(0.75), "days": len(vals)}
-
-
-def _today() -> date:
-    return date.today()

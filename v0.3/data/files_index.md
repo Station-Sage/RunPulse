@@ -176,13 +176,13 @@
 
 - functions: classify, baseline_z, salience_key
 
-### `metric_display.py` (56줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (66줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
 - functions: display_name, action_hint, min_span, display_meta
 
-### `metric_freshness.py` (231줄) — 메트릭 신선도 평가 (ADR-050) — 값이 오늘의 입력으로 계산됐는지 fresh/partial/stale/missing 으로 판정.
+### `metric_freshness.py` (240줄) — 메트릭 신선도 평가 (ADR-050) — 값이 오늘의 입력으로 계산됐는지 fresh/partial/stale/missing 으로 판정.
 
-- functions: assess_many, assess, boost_hold, boost_hold_text, crs_boost_hold
+- functions: assess_many, assess, boost_hold, boost_hold_text, crs_boost_hold, hedge_evidence
 
 ### `metric_freshness_spec.py` (40줄) — 메트릭별 신선도 입력 명세 (ADR-050) — 어떤 wellness 컬럼·선행 메트릭에 의존하는지 선언.
 
@@ -196,9 +196,9 @@
 
 - functions: load_json, basis_change_events
 
-### `metrics_browser_service.py` (298줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
+### `metrics_browser_service.py` (192줄) — 메트릭 브라우저·추세 서비스 — 3-E/3-F (daily-scope 전용).
 
-- functions: confidence_label, get_metrics_browser, get_metric_trend
+- functions: confidence_label, get_metrics_browser
 
 ### `metrics_changelog_events.py` (113줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
 
@@ -235,6 +235,10 @@
 ### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
 - functions: get_metric_breakdown
+
+### `metrics_trend_service.py` (148줄) — 메트릭 추세 서비스 — 3-F (daily-scope 단일 메트릭의 기간별 시계열 + 신선도/행동 힌트).
+
+- functions: get_metric_trend
 
 ### `metrics_version_events.py` (60줄) — 추세 차트의 계산 버전 마커(◆) — 대표 시계열에서 (provider, algorithm_version)이 바뀐 첫 날 + 전 기간 재계산 캡션.
 
@@ -334,7 +338,7 @@
 
 - functions: get_provider_status, get_provider_coverage
 
-### `race_hub_service.py` (181줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
+### `race_hub_service.py` (189줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
 
@@ -388,11 +392,11 @@
 
 - functions: get_today_narrative
 
-### `today_readiness.py` (47줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
+### `today_readiness.py` (59줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
 
 - functions: build_readiness
 
-### `today_service.py` (210줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (229줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1420,7 +1424,7 @@
 
 - functions: heat_adjust, redistribute_blocked, b_race_week, cross_substituted
 
-### `fatigue.py` (158줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
+### `fatigue.py` (168줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
 
 - functions: get_todays_wellness, get_latest_tsb, fatigue_level, readiness_decision
 
@@ -2506,9 +2510,9 @@
 - class **TestSecondsHelper**: test_already_seconds, test_milliseconds_conversion, test_none_returns_none, test_boundary_86400, test_exactly_86400, test_float_input
 - class **TestCrossExtractorConsistency**: test_all_extractors_registered, test_all_have_unique_source, test_source_field_matches_class_source, test_activity_type_is_normalized, test_source_url_contains_source_id, test_all_extractors_inherit_base, test_pace_sec_km_reasonable, test_duration_sec_reasonable
 
-### `test_fatigue.py` (85줄) — tests/test_fatigue.py — src.training.fatigue.readiness_decision 단위 테스트.
+### `test_fatigue.py` (95줄) — tests/test_fatigue.py — src.training.fatigue.readiness_decision 단위 테스트.
 
-- functions: conn, test_no_data_returns_data_pending_headline, test_high_fatigue_overrides_good_tsb_headline, test_low_fatigue_falls_back_to_tsb_headline, test_explicit_tsb_overrides_lookup
+- functions: conn, test_no_data_returns_data_pending_headline, test_high_fatigue_overrides_good_tsb_headline, test_low_fatigue_falls_back_to_tsb_headline, test_explicit_tsb_overrides_lookup, test_readiness_decision_freshness_hedge
 
 ### `test_fearp_v2.py` (10줄) — P7-PRED-90: fearp v2 — 외기·이슬점 보정, 기기 온도 미사용.
 
@@ -2758,9 +2762,13 @@
 
 - functions: test_every_daily_slug_is_mapped, test_no_mapping_key_outside_daily, test_groups_are_known, test_unknown_slug_goes_to_other_detail, test_baseline_z_null_under_7_days, test_baseline_z_null_when_not_fresh, test_baseline_z_sd_zero_uses_floor, test_fresh_before_stale, test_caution_before_big_z_neutral, test_z_null_goes_last_among_same_status, test_tie_then_tier_then_registry
 
-### `test_metric_freshness.py` (187줄) — metric_freshness 단위 테스트 (ADR-050 F1).
+### `test_metric_display.py` (21줄) — metric_display.action_hint — CRS 힌트의 신선도·BOOST hold 처리 (FRS F3).
 
-- functions: test_missing_row, test_fresh, test_stale_by_age, test_one_day_old_is_still_fresh, test_partial_low_confidence_and_missing_inputs, test_metric_missing_makes_partial, test_rtti_modifier_never_stale_by_age, test_rtti_empty_wellness_used_is_partial, test_old_version_coverage_unknown, test_crs_fresh, test_crs_gate_unknown_when_signal_null, test_crs_upstream_worse_wins, test_assess_many_fixed_query_count, test_boost_hold_fresh_releases, test_boost_hold_missing_crs, test_boost_hold_stale, test_boost_hold_short_hrv_history, test_boost_hold_old_row_without_key_is_hold, test_boost_hold_text, test_spec_shape
+- functions: test_crs_hint_by_level, test_crs_hint_omitted_when_not_assertive_or_no_level, test_crs_boost_hold_caps_level, test_non_crs_hint_by_status_only
+
+### `test_metric_freshness.py` (196줄) — metric_freshness 단위 테스트 (ADR-050 F1).
+
+- functions: test_missing_row, test_fresh, test_stale_by_age, test_one_day_old_is_still_fresh, test_partial_low_confidence_and_missing_inputs, test_metric_missing_makes_partial, test_rtti_modifier_never_stale_by_age, test_rtti_empty_wellness_used_is_partial, test_old_version_coverage_unknown, test_crs_fresh, test_crs_gate_unknown_when_signal_null, test_crs_upstream_worse_wins, test_assess_many_fixed_query_count, test_boost_hold_fresh_releases, test_boost_hold_missing_crs, test_boost_hold_stale, test_boost_hold_short_hrv_history, test_boost_hold_old_row_without_key_is_hold, test_boost_hold_text, test_spec_shape, test_hedge_evidence
 
 ### `test_metric_labels.py` (100줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
 
@@ -2790,9 +2798,9 @@
 
 - functions: test_id_change_gives_one_event, test_no_change_and_missing_key_and_other_slug, test_load_json_tolerates_bad_input
 
-### `test_metrics_browser_service.py` (310줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
+### `test_metrics_browser_service.py` (316줄) — tests/test_metrics_browser_service.py — metrics_browser_service 단위 테스트.
 
-- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level
+- functions: conn, test_get_metrics_browser_structure, test_get_metrics_browser_no_empty_categories, test_get_metrics_browser_entry_fields, test_get_metrics_browser_auto_date, test_get_metric_trend_returns_data, test_get_metric_trend_unknown_returns_none, test_get_metric_trend_invalid_period_falls_back, test_sparkline_matches_batched_history_over_multiple_days, test_get_metric_trend_peak_and_change_pct, test_confidence_label_thresholds, test_change_and_baseline_helpers, test_browser_entries_have_meta, test_display_meta_dispatch, test_display_name_strips_parent_and_maps_core, test_label_registry_does_not_affect_which_metrics_are_listed, test_wellness_stored_metrics_are_listed, test_metric_without_value_on_base_date_uses_latest_in_window, test_metric_older_than_window_is_dropped, test_trend_reads_wellness_column, test_band_ranges_cover_axis_without_gaps, test_display_meta_min_span, test_race_events_filters_by_window, test_browser_groups_hide_components_and_sort, test_flat_kind_distinguishes_fixed_and_uncomputed, test_load_headline_is_none_on_empty_db, test_display_meta_description_and_action_hint, test_crs_level_reads_gate_level, test_trend_service_reexport_and_fields
 
 ### `test_metrics_changelog_events.py` (83줄)
 
@@ -3103,9 +3111,9 @@
 
 - functions: test_runner_races, test_expected_ratio_monotone_and_t0, test_point_in_time_hrmax_and_proxy
 
-### `test_race_hub_service.py` (284줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
+### `test_race_hub_service.py` (294줄) — tests/test_race_hub_service.py — race_hub_service 단위 테스트.
 
-- functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context
+- functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context, test_race_briefing_freshness_hedge
 
 ### `test_race_projection_service.py` (81줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
 
@@ -3620,7 +3628,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 774개 파일
+총 776개 파일
 
 ## docstring 누락
 

@@ -41,12 +41,30 @@ def get_today_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
         conn, "daily", data["date"], names=["utrs", "cirs", "tsb"],
     )
     providers = {r["metric_name"]: r.get("provider") for r in provider_rows}
+    readiness = data["readiness"]
+    crs = readiness.get("crs")
+    if isinstance(crs, dict):
+        crs["freshness"] = _crs_freshness(conn, data["date"])
     return {
         "date": data["date"],
-        "readiness": data["readiness"],
+        "readiness": readiness,
         "training_status": data["training_status"],
         "providers": providers,
     }
+
+
+def _crs_freshness(conn: sqlite3.Connection, day: str) -> dict:
+    from src.services.metric_freshness import assess
+    from src.utils import db_helpers
+
+    return assess(conn, "crs", day, db_helpers.get_primary_metric(conn, "daily", day, "crs"))
+
+
+def _utrs_freshness(conn: sqlite3.Connection, day: str) -> dict:
+    from src.services.metric_freshness import assess
+    from src.utils import db_helpers
+
+    return assess(conn, "utrs", day, db_helpers.get_primary_metric(conn, "daily", day, "utrs"))
 
 
 def _dominant_zone(conn: sqlite3.Connection, start_time: str, config: dict | None) -> dict | None:
@@ -103,7 +121,8 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
     training = status["training_status"]
     readiness = status["readiness"]
 
-    decision = readiness_decision(conn, date=status["date"], tsb=training.get("tsb"))
+    fresh = _utrs_freshness(conn, status["date"])
+    decision = readiness_decision(conn, date=status["date"], tsb=training.get("tsb"), freshness=fresh)
     headline = decision["headline"]
     evidence: list[dict] = list(decision["evidence"])
 
@@ -118,7 +137,7 @@ def get_today_briefing(conn: sqlite3.Connection, date: str | None = None) -> dic
 
     # 목표 레이스가 있으면 헤드라인을 레이스 국면에 맞추고 근거를 앞에 붙인다(맥락 있는 안내)
     from src.services.race_hub_service import get_race_hub, race_briefing
-    race = race_briefing(get_race_hub(conn, status["date"]), training.get("tsb"))
+    race = race_briefing(get_race_hub(conn, status["date"]), training.get("tsb"), fresh)
     if race is not None:
         headline, race_evidence = race
         evidence = race_evidence + evidence

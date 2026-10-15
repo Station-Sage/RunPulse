@@ -143,12 +143,14 @@ def _signed(v: float) -> str:
     return f"+{r}" if r > 0 else (f"\u2212{-r}" if r < 0 else "0")
 
 
-def race_briefing(hub: dict, tsb: float | None) -> tuple[str, list[dict]] | None:
+def race_briefing(hub: dict, tsb: float | None, freshness: dict | None = None) -> tuple[str, list[dict]] | None:
     """목표 레이스가 있을 때 오늘 브리핑을 레이스 국면(빌드/테이퍼/레이스 주간/당일)에 맞춰 만든다.
 
     반환: (헤드라인, 근거 리스트) 또는 None(목표 없음·TSB 없음). 근거 metric 이름은
     metric_store에 없어 프론트에서 드릴 없는 칩으로 렌더링된다.
+    freshness 가 단정 불가면 피로 판단(빌드 구간)만 "참고용" 문구로 완충한다(날짜 기반 국면 문구는 그대로).
     """
+    from src.services.metric_freshness import HOLD_HEADLINE, hedge_evidence
     goal = hub.get("goal")
     if not goal or tsb is None:
         return None
@@ -171,6 +173,10 @@ def race_briefing(hub: dict, tsb: float | None) -> tuple[str, list[dict]] | None
     else:
         headline = f"레이스까지 {n}일 — 컨디션 여유가 있어 핵심 세션을 소화하기 좋습니다."
 
+    hedge = hedge_evidence(freshness)
+    if hedge is not None and n > 21:
+        headline = f"{headline} {HOLD_HEADLINE}."
+
     name = goal.get("name") or "레이스"
     evidence = [{"type": "metric", "metric": "race_days_left", "value": n, "label": f"{name} D-{n}" if n else f"{name} D-DAY"}]
     if taper is not None:
@@ -178,4 +184,6 @@ def race_briefing(hub: dict, tsb: float | None) -> tuple[str, list[dict]] | None
             "type": "metric", "metric": "race_form_projection", "value": taper["tsb"],
             "label": f"레이스 아침 TSB {_signed(taper['tsb'])} (테이퍼 시)",
         })
+    if hedge is not None:
+        evidence.append(hedge)
     return headline, evidence

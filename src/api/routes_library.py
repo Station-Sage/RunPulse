@@ -6,7 +6,7 @@ from datetime import date
 
 from flask import request
 
-from src.services import activity_list_filters, activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
+from src.services import activity_list_filters, activity_service, archive_service, metrics_browser_service, metrics_explain, metrics_service, metrics_trend_service, provider_comparison_service, provider_matrix_service, provider_pairs_service, provider_status_service, wellness_service
 from src.utils.provider_matrix_rows import compare_group_for_slug
 from src.utils.user_context import db_path
 
@@ -150,7 +150,7 @@ def get_library_metric_trend(slug: str):
     period = request.args.get("period", "3m")
     conn = sqlite3.connect(str(dpath))
     try:
-        result = metrics_browser_service.get_metric_trend(conn, slug, period=period)
+        result = metrics_trend_service.get_metric_trend(conn, slug, period=period)
     finally:
         conn.close()
 

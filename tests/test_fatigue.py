@@ -83,3 +83,13 @@ def test_explicit_tsb_overrides_lookup(conn):
 
     decision2 = readiness_decision(conn, tsb=3.0)
     assert decision2["tsb"] == 3.0
+
+
+def test_readiness_decision_freshness_hedge(conn):
+    from src.services.metric_freshness import HOLD_HEADLINE
+    base = readiness_decision(conn, tsb=5)
+    same = readiness_decision(conn, tsb=5, freshness={"assertive": True, "level": "fresh"})
+    assert same["headline"] == base["headline"] and same["evidence"] == base["evidence"]
+    hedged = readiness_decision(conn, tsb=5, freshness={"assertive": False, "level": "stale", "badge": {"text": "입력이 오래됐어요"}})
+    assert HOLD_HEADLINE in hedged["headline"]
+    assert hedged["evidence"][-1]["type"] == "freshness"

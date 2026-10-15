@@ -25,13 +25,23 @@ def display_name(name: str, description: str) -> tuple[str, str | None]:
     return label.name_ko, label.abbr
 
 
-def action_hint(name: str, status: str | None, level: int | None = None) -> str | None:
-    """현재 status(crs는 게이트 level)에 맞는 행동 힌트 1문장. 문구가 없으면 None."""
+def action_hint(name: str, status: str | None, level: int | None = None,
+                assertive: bool = True, boost_hold: bool = False) -> str | None:
+    """현재 status(crs는 게이트 level)에 맞는 행동 힌트 1문장. 문구가 없으면 None.
+
+    crs 는 신선도가 단정 불가(assertive=False)면 힌트를 내지 않고, BOOST 보류(boost_hold)면
+    level 4(부스트)를 level 3 문구로 낮춘다.
+    """
     hints = label_for(name).action_hint
     if not hints:
         return None
-    key = f"level_{level}" if name == "crs" else status
-    return hints.get(key) if key and not (name == "crs" and level is None) else None
+    if name != "crs":
+        return hints.get(status) if status else None
+    if level is None or not assertive:
+        return None
+    if boost_hold and level >= 4:
+        level = 3
+    return hints.get(f"level_{level}")
 
 
 def min_span(fmt: str, unit: str, value: float | None) -> float | None:

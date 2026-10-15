@@ -282,3 +282,13 @@ def test_today_briefing_uses_race_context(db_conn):
     assert "레이스까지 31일" in b["headline"]
     assert b["evidence"][0]["metric"] == "race_days_left"
     assert b["evidence"][0]["drill"] is None
+
+
+def test_race_briefing_freshness_hedge():
+    from src.services.metric_freshness import HOLD_HEADLINE
+    fr = {"assertive": False, "level": "partial", "badge": {"text": "일부 데이터 없이 계산"}}
+    plain, plain_ev = race_briefing(_hub(31), -3)
+    hedged, ev = race_briefing(_hub(31), -3, freshness=fr)
+    assert HOLD_HEADLINE in hedged and HOLD_HEADLINE not in plain
+    assert ev[-1]["type"] == "freshness" and len(ev) == len(plain_ev) + 1
+    assert race_briefing(_hub(31), -3, freshness={"assertive": True}) == (plain, plain_ev)

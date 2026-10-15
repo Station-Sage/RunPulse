@@ -229,3 +229,12 @@ def crs_boost_hold(conn: sqlite3.Connection, date: str) -> dict:
         if (sig.get("hrv_rolling_days") or 0) < 3:
             hold = {"hold": True, "reasons": [{"code": "gate_unknown", "params": {}, "text": _HOLD_TEXT["gate_unknown"]}]}
     return hold
+
+
+def hedge_evidence(fr: dict | None) -> dict | None:
+    """신선도가 단정 불가(assertive=False)일 때 브리핑 근거에 붙일 항목. 그 외 None."""
+    if not fr or fr.get("assertive"):
+        return None
+    return {"type": "freshness", "level": fr.get("level"),
+            "code": "hold_headline", "params": {}, "text": HOLD_HEADLINE,
+            "label": (fr.get("badge") or {}).get("text") or HOLD_HEADLINE}

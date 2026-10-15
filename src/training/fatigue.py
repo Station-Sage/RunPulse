@@ -108,6 +108,7 @@ def readiness_decision(
     conn: sqlite3.Connection,
     date: str | None = None,
     tsb: float | None = None,
+    freshness: dict | None = None,
 ) -> dict:
     """오늘(또는 지정 날짜) 컨디션 판정 — wellness+TSB 결합, 한 줄 헤드라인 + 근거.
 
@@ -116,6 +117,8 @@ def readiness_decision(
         date: 조회 날짜(ISO). None이면 오늘.
         tsb: 이미 조회된 TSB 값(호출부의 단일 소스 유지용). None이면 이 함수가
              get_latest_tsb()로 직접 조회한다(날짜 이전 최신값 폴백).
+        freshness: UTRS 신선도(metric_freshness.assess 결과). assertive 가 아니면 헤드라인을
+             단정 대신 "참고용" 문구로 바꾸고 freshness 근거를 붙인다. None 이면 기존 동작.
 
     Returns:
         {date, fatigue_level, tsb, wellness, headline, evidence}
@@ -151,6 +154,13 @@ def readiness_decision(
     else:
         g = grade("tsb", tsb)
         headline = _TSB_HEADLINES[g["status"]]
+
+    from src.services.metric_freshness import HOLD_HEADLINE, hedge_evidence
+    pending = fatigue not in _FATIGUE_HEADLINES and tsb is None  # 이미 "수집 중" 문구
+    hedge = None if pending else hedge_evidence(freshness)
+    if hedge is not None:
+        headline = f"{headline} {HOLD_HEADLINE}."
+        evidence.append(hedge)
 
     return {
         "date": target, "fatigue_level": fatigue, "tsb": tsb, "wellness": wellness,

@@ -308,3 +308,9 @@ def test_crs_level_reads_gate_level(conn):
     from src.services.metrics_browser_service import _crs_level
 
     assert _crs_level(conn, "2026-01-01") is None
+
+
+def test_trend_service_reexport_and_fields(db_conn):
+    from src.services import metrics_browser_service as b, metrics_trend_service as t
+    assert b.get_metric_trend is t.get_metric_trend and b._baseline is t._baseline
+    assert t.get_metric_trend(db_conn, "utrs") is None

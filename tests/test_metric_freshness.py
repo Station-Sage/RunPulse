@@ -185,3 +185,12 @@ def test_spec_shape():
     for name, s in FRESHNESS_SPEC.items():
         assert s["wellness_role"] in ("component", "modifier", "gate"), name
         assert s["wellness"] and s["metrics"], name
+
+
+def test_hedge_evidence(db_conn):
+    assert mf.hedge_evidence(None) is None
+    _setup(db_conn)
+    _metric(db_conn, "utrs", js=UTRS_ALL)
+    assert mf.hedge_evidence(mf.assess(db_conn, "utrs", DAY, _row(db_conn, "utrs"))) is None
+    ev = mf.hedge_evidence(mf.assess(db_conn, "utrs", DAY, None))
+    assert ev["type"] == "freshness" and ev["text"] == mf.HOLD_HEADLINE and ev["level"] == "missing"
