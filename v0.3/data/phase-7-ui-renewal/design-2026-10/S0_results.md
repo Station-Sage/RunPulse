@@ -39,8 +39,8 @@
 
 ## 4. 사용자 확인·결정이 필요한 항목
 
-2. BACKLOG NOW에 구현 단계 항목이 없음 → S1~S8을 NOW(최대 3개)로 어떻게 올릴지
-3. Q5(인증 통과 요청만 집계) 문서 반영(SEC-10·SEC-12 수정)은 승인 후 별도 처리
+2. BACKLOG NOW에 구현 단계 항목이 없음 → S1~S8을 NOW(최대 3개)로 어떻게 올릴지 — **승인 2026-10-16**: 단일 `[V2-IMPL]` 항목으로 단계 진행 상태를 갱신하는 현행 방식 유지(NOW 3개 이내)
+3. Q5(인증 통과 요청만 집계) 문서 반영(SEC-10·SEC-12 수정) — **승인 2026-10-16, 반영 확인 완료**: decisions-table SEC-10·SEC-12 행, `patterns/security-headers.md` §4, `patterns/server-input-origin-validation.md` §4·§해소 항목에 이미 기재됨
 4. race-calendar §8 6항목, FRS-27 badge·hold_headline, TZ-23 1327 파생 값, `get_db_path` ValueError는 미확인. 해당 단계(S3/S4/S6) 착수 시 확인
 
 ## 5. S1 진입 조건
