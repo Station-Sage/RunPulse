@@ -767,6 +767,20 @@ export interface BriefingCaveat {
 	days?: number;
 }
 
+export interface HoldReason {
+	code: string;
+	params?: Record<string, unknown>;
+	text: string;
+}
+
+export interface FreshnessInfo {
+	level: 'fresh' | 'partial' | 'stale' | 'missing';
+	assertive?: boolean;
+	badge: { code: string; params?: Record<string, unknown>; text: string } | null;
+	reasons?: { code: string; text?: string }[];
+	missing_inputs?: string[];
+}
+
 export interface BriefingStateFields {
 	state: BriefingState;
 	target_date: string;
@@ -774,6 +788,7 @@ export interface BriefingStateFields {
 	today_result: { activity_id: number; distance_m: number; outcome_label: string | null; plan_ratio_pct: number | null } | null;
 	session: BriefingSession | null;
 	adjustment: { reason: string | null; from: string; to: string } | null;
+	hold_reason?: HoldReason[] | null;
 	caveats: BriefingCaveat[];
 }
 
@@ -784,6 +799,7 @@ export interface GaugeEntry {
 	status_label: string | null;
 	provider: ProviderKey | null;
 	version: string;
+	freshness?: FreshnessInfo | null;
 }
 
 export interface TodayReadinessV2 {
@@ -952,6 +968,7 @@ export interface MetricBrowserEntry {
 	tier?: 'primary' | 'detail';
 	source_category?: string;
 	salience?: { z: number | null; fresh: boolean; rank: number };
+	freshness?: FreshnessInfo | null;
 }
 
 export interface MetricBrowserCategory {
@@ -996,6 +1013,7 @@ export interface MetricTrendData {
 	points: MetricTrendPoint[];
 	events?: { date: string; kind: 'race' | 'basis_change' | 'version_change'; label: string; activity_id?: number; source?: 'changelog' | 'data'; reason?: string; via?: string; adr?: string; recomputed?: boolean }[];
 	recompute_note?: { date: string; to: string | null; text: string } | null;
+	freshness?: FreshnessInfo | null;
 }
 
 // ── Wellness (3-G — /api/v1/library/wellness) ────────────────────────────────

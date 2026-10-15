@@ -48,7 +48,7 @@
 | F2 | Calculator 신뢰도를 실제 입력에서 기록: rmr/rtti/crs 1.0→1.1, `algo_changelog.py`(`value_changed=False`), `signals.hrv_rolling_days`, changelog events | rmr.py, rtti.py, crs.py, algo_changelog.py, metrics_changelog_events.py | 버전·신뢰도, dictionary 재생성 |
 | F3 | 소비처 연결 (읽기 시점 판정) | today_readiness, today_hero, coach_*, chat_readiness, metrics_browser_service, metric_display, race_hub_service, fatigue 등 | 서비스별 회귀 |
 | F4 | BOOST 보류: `adjuster_v2` `boost_hold` 주입 + `plan_service.todays_adjustment_with_hold`, Hero `as_planned`+`hold_reason`, 해제 = BB·HRV 당일 + CRS fresh. `load_adjustment` 제거(V1-6) | adjuster.py, plan_service.py, plan_adjustment_service.py, views_training_loaders.py | 보류/해제/경계 |
-| F5 | 서버 제공 `text`(배지·hold_headline·사유; FRS-23/27) + 프론트 | types/index.ts, todayHero.ts, freshness.ts, Svelte | vitest, build |
+| F5 (완료) | 서버 제공 `text`(배지·hold_headline·사유; FRS-23/27) + 프론트 | types/index.ts, todayHero.ts, freshness.ts, Svelte | vitest, build |
 | F6 | 배포 후 전체 재계산 (사용자 작업) → 신선도 활성화 | `POST /api/v1/data/recompute {"scope":"all"}` | — |
 - 롤백: 코드 revert + (재계산 후라면) 백업 DB 복원. 순서: 코드 배포 → 재계산 → 활성화. `scope:"90d"` 금지.
 - 사용자 선행 조건: 재계산 전 DB 백업, 재계산 실행은 사용자가. FRS-28·FRS-26 확인.

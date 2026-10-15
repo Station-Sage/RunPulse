@@ -5,6 +5,7 @@
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { base } from '$app/paths';
+	import { freshnessBadgeText } from '$lib/freshness';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
@@ -150,6 +151,7 @@
 			{/if}
 		</div>
 		{#if m.last_value_date && data.browser?.date && m.last_value_date < data.browser.date}<span class="text-[10px] text-fg-muted">{m.last_value_date.slice(5)} 기준</span>{/if}
+		{#if freshnessBadgeText(m.freshness)}<span class="text-[10px] text-fg-muted" data-testid="card-fresh-badge">{freshnessBadgeText(m.freshness)}</span>{/if}
 		{#if m.status}<span class="text-[11px] {STATUS_TEXT_CLASS[m.status]}">● {m.status_label}</span>{/if}
 		{#if cardSubline(m)}<span class="text-[11px] leading-snug text-fg-muted" data-testid="card-subline">{cardSubline(m)}</span>{/if}
 		{#if m.sparkline.length > 1 && !isFlat(m.sparkline)}<Sparkline data={m.sparkline} height={big ? 32 : 20} color="var(--color-series-1)" minSpan={m.min_span ?? 0} endColor={m.status ? STATUS_DOT_COLOR[m.status] : undefined} />{#if sparkCaption(m.change)}<span class="hidden text-[10px] text-fg-muted lg:block">{sparkCaption(m.change)}</span>{/if}{:else if m.sparkline.length > 1}<span class="text-[10px] text-fg-muted" data-testid="flat-note">{m.flat_kind === 'uncomputed' ? '계산 안 됨' : '고정값(프로필)'}</span>{/if}

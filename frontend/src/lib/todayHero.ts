@@ -1,6 +1,7 @@
 // Today 히어로·게이지 순수 로직 — 문구 조립, 조사, 게이지 기하. 테스트: tests/todayHero.test.mjs
 // 판정·등급은 서버(bands.py / readiness_decision)가 내려준 값만 쓴다. 여기서는 임계값을 두지 않는다.
 import type { BriefingCaveat, BriefingStateFields } from './types/index';
+import { holdText } from './freshness.ts';
 import { formatDistance, formatPaceRange } from './format.ts';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -33,6 +34,7 @@ export interface HeroView {
 	headline: string;
 	sub: string;
 	adjustment: string | null;
+	hold: string | null;
 	tone: 'neutral' | 'caution' | 'done';
 	cta: 'plan_new' | 'session' | 'activity' | null;
 }
@@ -52,28 +54,29 @@ function sessionSub(b: BriefingStateFields): string {
 export function heroView(b: BriefingStateFields): HeroView {
 	const adj = b.adjustment;
 	const adjustment = adj ? `⚠ ${adj.reason ? `${adj.reason} → ` : ''}${eulReul(adj.from)} ${euroRo(adj.to)}` : null;
+	const hold = adj ? null : holdText(b.hold_reason);
 	const km = b.today_result ? formatDistance(b.today_result.distance_m) : '';
 	switch (b.state) {
 		case 'pre':
-			return { headline: `오늘 · ${b.session?.title ?? '훈련'}`, sub: sessionSub(b), adjustment,
+			return { headline: `오늘 · ${b.session?.title ?? '훈련'}`, sub: sessionSub(b), adjustment, hold,
 				tone: adj ? 'caution' : 'neutral', cta: b.session?.id != null ? 'session' : null };
 		case 'done': {
 			const ratio = b.today_result?.plan_ratio_pct;
-			return { headline: `오늘 완료 ✓ ${km}`, sub: ratio != null ? `계획의 ${ratio}%` : '', adjustment: null,
+			return { headline: `오늘 완료 ✓ ${km}`, sub: ratio != null ? `계획의 ${ratio}%` : '', adjustment: null, hold: null,
 				tone: 'done', cta: 'activity' };
 		}
 		case 'extra':
-			return { headline: `오늘 ${km} 달렸어요`, sub: '', adjustment: null, tone: 'done', cta: 'activity' };
+			return { headline: `오늘 ${km} 달렸어요`, sub: '', adjustment: null, hold: null, tone: 'done', cta: 'activity' };
 		case 'rest':
-			return { headline: '오늘은 휴식', sub: '', adjustment: null, tone: 'neutral', cta: null };
+			return { headline: '오늘은 휴식', sub: '', adjustment: null, hold: null, tone: 'neutral', cta: null };
 		case 'race_week':
-			return { headline: '레이스 주간이에요', sub: sessionSub(b), adjustment, tone: adj ? 'caution' : 'neutral',
+			return { headline: '레이스 주간이에요', sub: sessionSub(b), adjustment, hold, tone: adj ? 'caution' : 'neutral',
 				cta: b.session?.id != null ? 'session' : null };
 		case 'race_day':
-			return { headline: '오늘은 레이스 날이에요', sub: '', adjustment: null, tone: 'neutral', cta: null };
+			return { headline: '오늘은 레이스 날이에요', sub: '', adjustment: null, hold: null, tone: 'neutral', cta: null };
 		default:
 			return { headline: '아직 훈련 계획이 없어요', sub: '목표 레이스를 정하면 오늘 할 훈련을 알려드려요.',
-				adjustment: null, tone: 'neutral', cta: 'plan_new' };
+				adjustment: null, hold: null, tone: 'neutral', cta: 'plan_new' };
 	}
 }
 

@@ -39,6 +39,9 @@
 		{#if view.adjustment}
 			<p class="rounded-md bg-semantic-amber/10 px-2.5 py-1.5 text-sm text-semantic-amber" data-testid="hero-adjustment">{view.adjustment}</p>
 		{/if}
+		{#if view.hold}
+			<p class="rounded-md bg-surface-3 px-2.5 py-1.5 text-sm text-fg-muted" data-testid="hero-hold">{view.hold}</p>
+		{/if}
 		{#if view.cta === 'plan_new'}
 			<a href={planHref} class="self-start rounded-md bg-surface-3 px-3 py-1.5 text-sm font-medium hover:bg-border-subtle">계획 만들기 ›</a>
 		{:else if view.cta === 'session'}

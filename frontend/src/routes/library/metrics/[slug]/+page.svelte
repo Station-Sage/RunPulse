@@ -8,6 +8,7 @@
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
 	import { displayUnit, formatMetric } from '$lib/format';
+	import { freshnessBadgeText, freshnessReasonTexts, missingInputsText } from '$lib/freshness';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -30,6 +31,9 @@
 
 	const lockedNotice = $derived(lockedMetricNotice(data.slug, data.unlock));
 	const points = $derived(data.trend?.points ?? []);
+	const freshBadge = $derived(freshnessBadgeText(data.trend?.freshness));
+	const freshReasons = $derived(freshnessReasonTexts(data.trend?.freshness));
+	const freshMissing = $derived(missingInputsText(data.trend?.freshness));
 	const latestDate = $derived(points.at(-1)?.date ?? '');
 
 	// 선택일 = 차트 pin = 분해 기준일. `?date=`는 히스토리를 쌓지 않고 교체한다.
@@ -140,6 +144,13 @@
 
 	<div class="grid grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-12">
 	<div class="flex flex-col gap-4 lg:col-span-8">
+		{#if freshBadge}
+			<div class="rounded-xl bg-surface-3 px-3 py-2 text-xs text-fg-muted" data-testid="detail-fresh">
+				<p class="font-medium text-fg-secondary">{freshBadge}</p>
+				{#each freshReasons as r}<p>{r}</p>{/each}
+				{#if freshMissing}<p data-testid="detail-fresh-missing">없는 입력: {freshMissing}</p>{/if}
+			</div>
+		{/if}
 		<!-- 현재값·변화율·피크 요약 -->
 		<div class="grid grid-cols-3 gap-2">
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">

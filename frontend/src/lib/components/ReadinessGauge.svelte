@@ -3,6 +3,7 @@
 	import { ringFraction, ringDash } from '$lib/scoreRing';
 	import { openDrill } from '$lib/drillStack';
 	import { bipolarAngle, trackPct, deltaText } from '$lib/todayHero';
+	import { freshnessBadgeText } from '$lib/freshness';
 	import type { GaugeEntry, SemanticStatus } from '$lib/types';
 
 	let { slug, label, entry, kind }: {
@@ -16,6 +17,7 @@
 		excellent: '#22c55e', good: '#22c55e', neutral: '#14b8a6', caution: '#f59e0b', poor: '#ef4444'
 	};
 	const color = $derived(entry?.status ? COLORS[entry.status] ?? '#14b8a6' : '#14b8a6');
+	const badge = $derived(freshnessBadgeText(entry?.freshness));
 	const delta = $derived(deltaText(entry?.delta_1d));
 
 	// 반원: 중심 (50,50) 반지름 40, 각도 180°(왼쪽)~0°(오른쪽)
@@ -77,6 +79,7 @@
 
 	{#if entry}
 		<span class="text-[11px]" style="color:{color}">{entry.status_label ?? ''}</span>
+		{#if badge}<span class="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-fg-muted" data-testid="gauge-fresh-badge">{badge}</span>{/if}
 		<span class="text-[10px] text-fg-muted">{delta ? `어제 대비 ${delta}` : ' '}</span>
 	{/if}
 </button>
