@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from src.training.adjuster import adjust_todays_plan
+from src.services.plan_service import todays_adjustment_with_hold
 from src.training.fatigue import readiness_decision
 from src.utils.format_ko import fmt_distance, workout_ko
 
@@ -19,7 +19,7 @@ def attach_readiness(conn: sqlite3.Connection, ctx: dict, date_str: str) -> None
     except Exception:
         ctx["readiness_decision"] = None
     try:
-        ctx["plan_adjustment"] = adjust_todays_plan(conn, date=date_str)
+        ctx["plan_adjustment"] = todays_adjustment_with_hold(conn, date_str)
     except Exception:
         ctx["plan_adjustment"] = None
 

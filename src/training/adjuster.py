@@ -9,6 +9,8 @@ from datetime import date as _date
 
 from src.training.fatigue import readiness_decision
 
+RULE_VERSION = "adjuster_v2"
+
 # 피로도 높음: interval/tempo → rest, long → easy
 _DOWNGRADE_HIGH: dict[str, str] = {
     "interval": "rest", "tempo": "rest", "long": "easy",
@@ -26,6 +28,7 @@ def adjust_todays_plan(
     conn: sqlite3.Connection,
     config: dict | None = None,
     date: str | None = None,
+    boost_hold: dict | None = None,
 ) -> dict | None:
     """지정 날짜(기본 오늘)의 계획된 운동을 컨디션 기반으로 조정.
 
@@ -33,11 +36,14 @@ def adjust_todays_plan(
         conn: SQLite 연결.
         config: 설정 딕셔너리 (현재 미사용, 확장용).
         date: 조회 날짜 (ISO 문자열). None이면 오늘.
+        boost_hold: `crs_boost_hold` 결과({hold, reasons}). hold 면 볼륨 증가(BOOST)를 보류한다.
+            호출부는 `plan_service.todays_adjustment_with_hold` 를 거쳐 주입한다(ADR-050).
 
     Returns:
         조정된 workout dict.
         추가 필드: original_type, adjusted_type, adjusted, adjustment_reason,
-                   adjustment_reason_parts, fatigue_level, volume_boost, wellness, tsb.
+                   adjustment_reason_parts, fatigue_level, volume_boost, boost_held, hold_reason,
+                   wellness, tsb, rule_version.
         해당 날짜 계획이 없거나 이미 실행 완료면 None.
     """
     target = date or _date.today().isoformat()
@@ -94,11 +100,14 @@ def adjust_todays_plan(
 
     # 컨디션 양호: TSB > 10 + body_battery > 70 → 볼륨 소폭 추가 가능
     bb = wellness.get("body_battery")
-    volume_boost = (
+    boost_ok = (
         tsb is not None and tsb > 10
         and bb is not None and bb > 70
         and original_type not in ("rest",)
     )
+    held = bool(boost_ok and boost_hold and boost_hold.get("hold"))
+    volume_boost = boost_ok and not held
+    hold_reason = (boost_hold or {}).get("reasons") if held else None
 
     workout.update({
         "original_type": original_type,
@@ -108,6 +117,9 @@ def adjust_todays_plan(
         "adjustment_reason_parts": reason_parts,
         "fatigue_level": fatigue,
         "volume_boost": volume_boost,
+        "boost_held": held,
+        "hold_reason": hold_reason,
+        "rule_version": RULE_VERSION,
         "wellness": wellness,
         "tsb": tsb,
     })

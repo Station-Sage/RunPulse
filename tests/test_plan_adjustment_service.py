@@ -17,7 +17,7 @@ def _conn(monkeypatch, adjusted=True, to="easy"):
     state = {"w": {"id": 7, "date": D, "workout_type": "interval", "distance_km": 10.0,
                    "adjusted": adjusted, "adjusted_type": to, "adjustment_reason": "피로 높음",
                    "adjustment_reason_parts": ["수면 부족"]}}
-    monkeypatch.setattr(svc, "adjust_todays_plan", lambda conn, config=None, date=None: state["w"])
+    monkeypatch.setattr(svc, "todays_adjustment_with_hold", lambda conn, date=None: state["w"])
     return c, state
 
 

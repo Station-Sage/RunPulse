@@ -149,8 +149,8 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     rest_dir = d["fatigue_level"] in ("moderate", "high")
     items = [_relabel(dict(e)) for e in d["evidence"]]
     try:
-        from src.training.adjuster import adjust_todays_plan
-        plan_adj = adjust_todays_plan(conn, date=date)
+        from src.services.plan_service import todays_adjustment_with_hold
+        plan_adj = todays_adjustment_with_hold(conn, date)
     except Exception:
         plan_adj = None
     if plan_adj:

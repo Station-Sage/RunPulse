@@ -44,9 +44,9 @@ def _grade(conn: sqlite3.Connection, today: date) -> RecoveryGrade | None:
 
 
 def _session_line(conn: sqlite3.Connection, today: date) -> str | None:
-    from src.training.adjuster import adjust_todays_plan
+    from src.services.plan_service import todays_adjustment_with_hold
     try:
-        w = adjust_todays_plan(conn, None, today.isoformat())
+        w = todays_adjustment_with_hold(conn, today.isoformat())
     except Exception:
         log.warning("coach rule: 오늘 계획 조회 실패", exc_info=True)
         return None

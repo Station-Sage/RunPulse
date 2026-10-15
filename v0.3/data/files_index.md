@@ -290,9 +290,9 @@
 - class **ReplanError**: 없음
 - functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
 
-### `plan_service.py` (214줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (226줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
-- functions: get_active_plan, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
+- functions: get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
 ### `plan_template_service.py` (205줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
@@ -384,7 +384,7 @@
 - class **TriggerResult**: 없음
 - functions: days_since_last_sync, plan_incremental, trigger_incremental
 
-### `today_hero.py` (203줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
+### `today_hero.py` (205줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
@@ -1411,7 +1411,7 @@
 > 
 > 설계 문서: v0.3/data/phase-7(preview).md
 
-### `adjuster.py` (114줄) — 컨디션 기반 당일 훈련 계획 조정.
+### `adjuster.py` (126줄) — 컨디션 기반 당일 훈련 계획 조정.
 
 - functions: adjust_todays_plan
 
@@ -2163,6 +2163,10 @@
 
 - class **_FakeThread**: start, is_alive
 - functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop, test_resume_ignores_cancelled_job
+
+### `test_boost_hold.py` (97줄) — BOOST 보류(ADR-050 F4) — adjuster boost_hold 주입, todays_adjustment_with_hold, Hero hold_reason.
+
+- functions: conn, test_boost_allowed_without_hold, test_boost_allowed_when_hold_false, test_boost_held, test_hold_irrelevant_when_no_boost_condition, test_wrapper_holds_without_crs, test_wrapper_holds_on_hold_error, test_wrapper_releases, test_hero_held_is_as_planned_with_reason, test_no_direct_adjust_todays_plan_calls
 
 ### `test_briefing.py` (79줄) — tests/test_briefing.py — briefing.py 클립보드 프롬프트 조립 테스트.
 
@@ -3628,7 +3632,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 776개 파일
+총 777개 파일
 
 ## docstring 누락
 

@@ -1,7 +1,7 @@
 """Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 get_active_plan() — 활성 목표 + 이번 주 워크아웃 + 피트니스 조합.
-get_todays_adjustment() — adjust_todays_plan() 위임.
+get_todays_adjustment() — todays_adjustment_with_hold()(BOOST 보류 주입) 위임.
 get_session_detail() — 특정 날짜 세션 상세 (조정 포함).
 get_session_note() / save_session_note() — 세션 메모 CRUD.
 """
@@ -140,9 +140,21 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
     }
 
 
+def todays_adjustment_with_hold(conn: sqlite3.Connection, date: str | None = None) -> dict | None:
+    """`adjust_todays_plan` 에 BOOST 보류 판정(`crs_boost_hold`)을 주입한 유일한 진입점 (ADR-050)."""
+    from src.services.metric_freshness import crs_boost_hold
+    from src.utils.reference_day import reference_today
+    day = date or reference_today(conn)[0]
+    try:
+        hold = crs_boost_hold(conn, day)
+    except Exception:
+        hold = {"hold": True, "reasons": []}
+    return adjust_todays_plan(conn, date=date, boost_hold=hold)
+
+
 def get_todays_adjustment(conn: sqlite3.Connection) -> dict | None:
     """오늘 워크아웃 조정 반환. 플랜 없으면 None."""
-    return adjust_todays_plan(conn)
+    return todays_adjustment_with_hold(conn)
 
 
 def get_session_detail(
@@ -174,7 +186,7 @@ def get_session_detail(
         return None
 
     week_index = _week_index_for_date(goal, sd)
-    adjustment = adjust_todays_plan(conn, date=session_date)
+    adjustment = todays_adjustment_with_hold(conn, session_date)
     note = get_session_note(conn, session_date)
 
     return {

@@ -10,7 +10,7 @@ from datetime import date as _date
 from datetime import timedelta
 
 from src.training import week_compliance as wc
-from src.training.adjuster import adjust_todays_plan
+from src.services.plan_service import todays_adjustment_with_hold
 
 WORKOUT_LABELS = {
     "easy": "이지런", "tempo": "템포", "interval": "인터벌", "long": "롱런",
@@ -115,7 +115,7 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
                          config: dict | None = None) -> dict:
     """{state, target_date, verdict, today_result, session, adjustment, caveats}."""
     out: dict = {"state": "no_plan", "target_date": day, "verdict": "as_planned",
-                 "today_result": None, "session": None, "adjustment": None,
+                 "today_result": None, "session": None, "adjustment": None, "hold_reason": None,
                  "caveats": _caveats(conn, config)}
     left = race_days_left(conn, day)
     today_day = next((d for d in week["days"] if d["date"] == day), None)
@@ -140,7 +140,7 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
             ratio = round(run["distance_m"] / 1000 / planned["planned_km"] * 100)
         out["today_result"] = {**run, "outcome_label": None, "plan_ratio_pct": ratio}
 
-    adj = adjust_todays_plan(conn, date=day)
+    adj = todays_adjustment_with_hold(conn, day)
     if adj and out["state"] in ("pre", "race_week", "race_day"):
         out["session"] = _session(adj, adj["adjusted_type"])
         if adj["adjusted"]:
@@ -150,6 +150,8 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
                                  "to": _label(adj["adjusted_type"])}
         elif adj["volume_boost"]:
             out["verdict"] = "up"
+        elif adj.get("boost_held"):
+            out["hold_reason"] = adj["hold_reason"]
     if out["session"] is None:
         nxt = next((d for d in week["days"] if d["date"] > day and d["state"] == "upcoming"), None)
         if nxt and out["state"] in ("done", "extra", "rest"):

@@ -16,7 +16,7 @@ from src.utils.config import load_config
 from src.utils.pace import seconds_to_pace
 from src.training.goals import add_goal, list_goals, complete_goal, cancel_goal
 from src.training.planner import generate_weekly_plan, save_weekly_plan, get_planned_workouts
-from src.training.adjuster import adjust_todays_plan
+from src.services.plan_service import todays_adjustment_with_hold
 
 
 def _fmt_pace(sec: int | None) -> str:
@@ -114,7 +114,7 @@ def cmd_week(conn: sqlite3.Connection) -> None:
 
 
 def cmd_today(conn: sqlite3.Connection, config: dict) -> None:
-    result = adjust_todays_plan(conn, config)
+    result = todays_adjustment_with_hold(conn)
     if result is None:
         print("오늘 계획된 운동 없음.")
         return

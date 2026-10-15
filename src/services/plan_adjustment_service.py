@@ -7,9 +7,9 @@ import sqlite3
 from datetime import date as _date
 
 from src.services import plan_pain
-from src.training.adjuster import adjust_todays_plan
+from src.services.plan_service import todays_adjustment_with_hold
 
-RULE_VERSION = "adjuster_v1"
+RULE_VERSION = "adjuster_v2"
 VIAS = ("plan", "session", "today", "coach")
 _COLS = ("id, goal_id, workout_id, date, source, op, before_json, after_json, reasons_json, rule_version,"
          " decision, rev, accepted_at, decided_at, decided_via, created_at, updated_at")
@@ -95,7 +95,7 @@ def ensure_proposal(conn: sqlite3.Connection, date: str, *, today: str | None = 
     if date != today:
         return cur
     try:
-        w = plan_pain.proposal(conn, date) or adjust_todays_plan(conn, date=date)
+        w = plan_pain.proposal(conn, date) or todays_adjustment_with_hold(conn, date)
     except Exception:
         return cur
     if not w or not w.get("adjusted"):
