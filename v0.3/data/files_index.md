@@ -2472,6 +2472,10 @@
 
 - functions: conn, test_creates_and_idempotent, test_race_defaults_and_checks, test_race_unique_indexes, test_context_episodes_checks, test_illness_consent_checks, test_full_chain_reaches_v38, test_lookup_indexes_exist_and_used
 
+### `test_db_schema_v39.py` (164줄) — 스키마 v39 — goals.race_id + race_calendar 백필.
+
+- functions: conn, test_empty_and_idempotent, test_completed_creates_done_a_race_and_idempotent, test_done_bc_reuse_promoted_and_reported, test_active_reuses_planned_and_promotes, test_active_plan_state_by_date_range, test_active_without_date_stays_null, test_inactive_without_date_uses_created_date_with_offset, test_inactive_without_date_server_local_fallback, test_cancelled_goal_makes_cancelled_race_and_future_counted, test_resync_cache, test_backup_file_created_and_failure_blocks, test_invariant3_blocks_index
+
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_20, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
@@ -3647,8 +3651,12 @@
 
 - functions: backtest, backtest_all, main
 
+### `race_backfill_dry_run.py` (32줄) — v39 백필 드라이런 — DB 사본에 ensure_v39를 적용하고 보고서를 출력(원본 쓰기 없음).
+
+- functions: run
+
 ---
-총 781개 파일
+총 783개 파일
 
 ## docstring 누락
 

@@ -70,7 +70,7 @@ def test_illness_consent_checks(conn):
 
 
 def test_full_chain_reaches_v38(db_conn):
-    assert db_conn.execute("PRAGMA user_version").fetchone()[0] == 38
+    assert db_conn.execute("PRAGMA user_version").fetchone()[0] >= 38
     assert dry_run(db_conn) == []
 
 
