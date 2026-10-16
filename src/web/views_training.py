@@ -234,10 +234,12 @@ def training_generate():
             end_date = max(end_date, base + timedelta(weeks=1))
             total_weeks = max(1, (end_date - base).days // 7)
 
+            if not goal:
+                return redirect("/training")
             ws = base
             while ws < end_date:
-                plan = generate_weekly_plan(conn, config=config, week_start=ws)
-                save_weekly_plan(conn, plan)
+                plan = generate_weekly_plan(conn, goal["id"], config=config, week_start=ws)
+                save_weekly_plan(conn, plan, goal_id=goal["id"])
                 ws += timedelta(weeks=1)
             conn.commit()
         finally:

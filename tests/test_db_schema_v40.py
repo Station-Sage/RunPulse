@@ -7,7 +7,7 @@ import pytest
 
 from src.db_schema_v40 import ensure_v40
 from src.db_setup import create_tables
-from src.training.planner_store import resolve_goal_id, save_weekly_plan, write_planner_rows
+from src.training.planner_store import save_weekly_plan, write_planner_rows
 from src.training.plan_replace import replace_range
 
 
@@ -75,14 +75,6 @@ def test_write_restore_keeps_id(conn):
     assert ids == [999]
 
 
-def test_resolve_goal_id(conn):
-    with pytest.raises(ValueError):
-        resolve_goal_id(conn, None)
-    g = _goal(conn)
-    assert resolve_goal_id(conn, None) == g
-    assert resolve_goal_id(conn, 77) == 77
-
-
 def test_save_weekly_plan_scoped_delete(conn):
     a, b = _goal(conn, "A", "completed"), _goal(conn, "B")
     save_weekly_plan(conn, _plan("2030-01-01"), goal_id=a)
@@ -90,13 +82,14 @@ def test_save_weekly_plan_scoped_delete(conn):
     save_weekly_plan(conn, _plan("2030-01-01"), goal_id=b)
     rows = conn.execute("SELECT goal_id FROM planned_workouts ORDER BY goal_id").fetchall()
     assert rows == [(a,), (b,)]
-    save_weekly_plan(conn, _plan("2030-01-02"))  # 활성 목표 b
-    assert conn.execute("SELECT goal_id FROM planned_workouts WHERE date='2030-01-02'").fetchone()[0] == b
 
 
-def test_save_weekly_plan_no_goal_raises(conn):
-    with pytest.raises(ValueError):
+def test_save_weekly_plan_requires_goal_id(conn):
+    _goal(conn)
+    with pytest.raises(TypeError):
         save_weekly_plan(conn, _plan("2030-01-01"))
+    with pytest.raises(ValueError):
+        save_weekly_plan(conn, _plan("2030-01-01"), goal_id=None)
 
 
 def test_replace_range_goal_scoped(conn):

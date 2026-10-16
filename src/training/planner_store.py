@@ -46,25 +46,14 @@ def write_planner_rows(conn: sqlite3.Connection, rows: list[dict], *, goal_id: i
     return ids
 
 
-def resolve_goal_id(conn: sqlite3.Connection, goal_id: int | None) -> int:
-    """goal_id 가 없으면 활성 목표. 둘 다 없으면 ValueError."""
-    if goal_id is not None:
-        return goal_id
-    row = conn.execute(
-        "SELECT id FROM goals WHERE status='active' ORDER BY created_at DESC, id DESC LIMIT 1").fetchone()
-    if not row:
-        raise ValueError("활성 목표가 없어 planner 행을 저장할 수 없습니다")
-    return row[0]
-
-
-def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = True, *, goal_id: int | None = None) -> int:
-    """주간 계획 저장 — 같은 목표의 같은 날짜 planner 행을 지우고 다시 넣는다. goal_id 없으면 활성 목표.
+def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = True, *, goal_id: int) -> int:
+    """주간 계획 저장 — 같은 목표의 같은 날짜 planner 행을 지우고 다시 넣는다. goal_id 필수(S4-18).
 
     Returns: 저장된 레코드 수.
     """
     if not plan:
         return 0
-    gid = resolve_goal_id(conn, goal_id)
+    gid = goal_id
     for w in plan:
         conn.execute("DELETE FROM planned_workouts WHERE date = ? AND source = 'planner' AND goal_id = ?",
                      (w["date"], gid))

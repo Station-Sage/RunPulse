@@ -21,7 +21,7 @@ def c():
     conn.commit()
     ws = MON - timedelta(weeks=1)
     for i in range(12):
-        save_weekly_plan(conn, generate_weekly_plan(conn, gid, week_start=ws + timedelta(weeks=i)))
+        save_weekly_plan(conn, generate_weekly_plan(conn, gid, week_start=ws + timedelta(weeks=i)), goal_id=gid)
     return conn
 
 

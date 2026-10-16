@@ -12,8 +12,8 @@ MON = TODAY - timedelta(days=TODAY.weekday())
 
 def _setup(version=2):
     c = mem_conn()
-    add_goal(c, "g", 42.195, (MON + timedelta(weeks=12)).isoformat(), 14400, rules_version=version)
-    save_weekly_plan(c, generate_weekly_plan(c, week_start=MON))
+    gid = add_goal(c, "g", 42.195, (MON + timedelta(weeks=12)).isoformat(), 14400, rules_version=version)
+    save_weekly_plan(c, generate_weekly_plan(c, week_start=MON), goal_id=gid)
     return c
 
 

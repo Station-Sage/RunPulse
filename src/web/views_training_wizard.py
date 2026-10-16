@@ -349,7 +349,7 @@ def _update_and_maybe_regen(conn: sqlite3.Connection, data: dict) -> int:
     ws = current_week
     while ws < end_date:
         plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
-        total_count += save_weekly_plan(conn, plan)
+        total_count += save_weekly_plan(conn, plan, goal_id=goal_id)
         ws += timedelta(weeks=1)
     return total_count
 
@@ -408,6 +408,6 @@ def _save_and_generate(conn: sqlite3.Connection, data: dict) -> int:
     ws = current_week
     while ws < end_date:
         plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
-        total_count += save_weekly_plan(conn, plan)
+        total_count += save_weekly_plan(conn, plan, goal_id=goal_id)
         ws += timedelta(weeks=1)
     return total_count

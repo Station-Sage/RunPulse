@@ -1329,7 +1329,7 @@
 
 - functions: sync_page, sync_sources_post, auto_sync_settings_post
 
-### `views_training.py` (349줄) — 훈련 계획 뷰 — Flask Blueprint.
+### `views_training.py` (351줄) — 훈련 계획 뷰 — Flask Blueprint.
 
 - functions: training_page, training_calendar_partial, training_generate
 
@@ -1548,9 +1548,9 @@
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
-### `planner_store.py` (74줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
+### `planner_store.py` (63줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
 
-- functions: write_planner_rows, resolve_goal_id, save_weekly_plan
+- functions: write_planner_rows, save_weekly_plan
 
 ### `planner_v2.py` (207줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
@@ -2480,9 +2480,9 @@
 
 - functions: conn, test_empty_and_idempotent, test_completed_creates_done_a_race_and_idempotent, test_done_bc_reuse_promoted_and_reported, test_active_reuses_planned_and_promotes, test_active_plan_state_by_date_range, test_active_without_date_stays_null, test_inactive_without_date_uses_created_date_with_offset, test_inactive_without_date_server_local_fallback, test_cancelled_goal_makes_cancelled_race_and_future_counted, test_resync_cache, test_backup_file_created_and_failure_blocks, test_invariant3_blocks_index
 
-### `test_db_schema_v40.py` (133줄) — 스키마 v40 + planner_store(PLN-38) 테스트.
+### `test_db_schema_v40.py` (126줄) — 스키마 v40 + planner_store(PLN-38) 테스트.
 
-- functions: test_adds_columns_and_idempotent, test_check_rejects_planner_without_goal, test_existing_planner_row_blocks_migration, conn, test_write_requires_goal_id, test_write_restore_keeps_id, test_resolve_goal_id, test_save_weekly_plan_scoped_delete, test_save_weekly_plan_no_goal_raises, test_replace_range_goal_scoped, test_insert_planned_workouts_only_in_allowed_files, test_check_adj_accepted_mismatch
+- functions: test_adds_columns_and_idempotent, test_check_rejects_planner_without_goal, test_existing_planner_row_blocks_migration, conn, test_write_requires_goal_id, test_write_restore_keeps_id, test_save_weekly_plan_scoped_delete, test_save_weekly_plan_requires_goal_id, test_replace_range_goal_scoped, test_insert_planned_workouts_only_in_allowed_files, test_check_adj_accepted_mismatch
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
