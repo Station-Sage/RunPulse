@@ -1,4 +1,4 @@
-"""스키마 v38 — 가산 CREATE: race_calendar·context_episodes·illness_consent_events (롤백 = DROP, v39 적용 전까지만)."""
+"""스키마 v38 — 가산 CREATE(+조회용 인덱스 2개): race_calendar·context_episodes·illness_consent_events (롤백 = DROP, v39 적용 전까지만)."""
 from __future__ import annotations
 
 import sqlite3
@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS race_calendar (
 )""",
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_race_planned_same ON race_calendar(race_date, distance_km)"
     " WHERE status = 'planned'",
+    "CREATE INDEX IF NOT EXISTS idx_race_status_date ON race_calendar(status, race_date)",
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_race_one_a ON race_calendar(priority)"
     " WHERE priority = 'A' AND status = 'planned'",
     """
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS context_episodes (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 )""",
+    "CREATE INDEX IF NOT EXISTS idx_episodes_kind_status ON context_episodes(kind, status, start_date)",
     """
 CREATE TABLE IF NOT EXISTS illness_consent_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

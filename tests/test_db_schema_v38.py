@@ -72,3 +72,12 @@ def test_illness_consent_checks(conn):
 def test_full_chain_reaches_v38(db_conn):
     assert db_conn.execute("PRAGMA user_version").fetchone()[0] == 38
     assert dry_run(db_conn) == []
+
+
+def test_lookup_indexes_exist_and_used(conn):
+    ensure_v38(conn)
+    names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='index'")}
+    assert {"idx_episodes_kind_status", "idx_race_status_date"} <= names
+    plan = " ".join(r[3] for r in conn.execute(
+        "EXPLAIN QUERY PLAN SELECT * FROM context_episodes WHERE kind='illness' AND status='confirmed'"))
+    assert "idx_episodes_kind_status" in plan

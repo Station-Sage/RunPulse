@@ -2468,9 +2468,9 @@
 
 - functions: test_classify_crs, test_rebuild_reclassifies_and_keeps_rows, test_idempotent_and_new_sources_allowed, test_grouped_unique_index, test_duplicate_live_rolls_back_and_dry_run_reports, test_dry_run_distribution_no_write, test_file_db_backup
 
-### `test_db_schema_v38.py` (74줄) — 스키마 v38 — race_calendar·context_episodes·illness_consent_events 가산 CREATE.
+### `test_db_schema_v38.py` (83줄) — 스키마 v38 — race_calendar·context_episodes·illness_consent_events 가산 CREATE.
 
-- functions: conn, test_creates_and_idempotent, test_race_defaults_and_checks, test_race_unique_indexes, test_context_episodes_checks, test_illness_consent_checks, test_full_chain_reaches_v38
+- functions: conn, test_creates_and_idempotent, test_race_defaults_and_checks, test_race_unique_indexes, test_context_episodes_checks, test_illness_consent_checks, test_full_chain_reaches_v38, test_lookup_indexes_exist_and_used
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
