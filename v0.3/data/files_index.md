@@ -2464,6 +2464,10 @@
 
 - functions: test_drops_retired_tables_idempotent, test_migrate_drops_legacy_in_old_db
 
+### `test_db_schema_v37.py` (106줄) — 스키마 v37 — plan_adjustments 재생성(source 11종·signals_json·묶음 유니크·crs 재분류).
+
+- functions: test_classify_crs, test_rebuild_reclassifies_and_keeps_rows, test_idempotent_and_new_sources_allowed, test_grouped_unique_index, test_duplicate_live_rolls_back_and_dry_run_reports, test_dry_run_distribution_no_write, test_file_db_backup
+
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_20, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
@@ -3640,7 +3644,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 779개 파일
+총 780개 파일
 
 ## docstring 누락
 
