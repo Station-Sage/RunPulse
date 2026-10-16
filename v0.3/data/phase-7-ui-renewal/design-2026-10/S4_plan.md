@@ -59,14 +59,14 @@
 | `strava_csv.py:384-387` | 확인: start_time 을 COALESCE 없이 강제 UPDATE(docstring 에 UTC→KST 교정 목적). T3 대상 |
 | 매처 `acts_by_date` | 확인: `src/training/matcher.py:76-83`, 날짜 키 리스트 구조 |
 | `normalize_activity_type` | 확인: `race`·`treadmill`·`treadmill_running` → running. **HIIT 는 매핑 없음**(소문자 원문 `hiit` 그대로, strava_csv 는 "HIIT"→"hiit", unified_view 는 strength 군에 포함). NRA N1 은 `hiit` 를 비러닝으로 분류. 설계서 §9 "미확인" 해소 |
-| `hrv_weekly_avg` 의미 | 확인: DB 컬럼 `daily_wellness.hrv_weekly_avg`, 라벨 "최근 7일 심박변이도 평균". utrs·adaptation 에서 소비. FRS-26: garmin `wellness_hrv` payload `hrvSummary.weeklyAvg`(7일 평균)와 일치 — 2026-10-14~16 3일 읽기 전용 대조(10-16: 76, `lastNightAvg` 48 은 `hrv_last_night`). 전 기간 대조는 **미확인**, 사용자 확인 대기(S4-2) |
+| `hrv_weekly_avg` 의미 | 확인: DB 컬럼 `daily_wellness.hrv_weekly_avg`, 라벨 "최근 7일 심박변이도 평균". utrs·adaptation 에서 소비. FRS-26: garmin `wellness_hrv` payload `hrvSummary.weeklyAvg`(7일 평균)와 일치 — 2026-10-14~16 3일 읽기 전용 대조(10-16: 76, `lastNightAvg` 48 은 `hrv_last_night`). 2026-10-16 전 기간 읽기 전용 대조: garmin `wellness_hrv` payload 512건 중 비교 가능 509건 모두 0.5 이내 일치, 불일치 0건 → **확인 완료(S4-2)** |
 | Calculator confidence | `crs.py:209`, `rtti.py:77` 모두 `confidence=1.0` 하드코딩 → F2 필요성 확인. `rmr.py` 에는 confidence 문자열 없음 → 구조 별도 확인 **미확인** |
 | `race_briefing` | 확인: `race_hub_service.py:146`, `today_service.py:118-119` 에서 호출. FRS-27 코드/텍스트 통일 대상 |
 | 신규 모듈 | `timefmt.py`·`metric_freshness.py`·`run_totals.py` 모두 현재 없음(신규 생성 예정) |
 
 ## 6. 사용자 확인 필요 (S4-n)
 - S4-1: 스트림 순서 NRA → TZ → FRS (또는 다른 순서). **확인(2026-10-16): 이 순서로 구현·배포 완료.**
-- S4-2: `hrv_weekly_avg` 의미(FRS-26)를 raw payload 로 확인하는 시점 — 사용자가 운영 DB 값을 알려주거나 F2 착수 전에 결정.
+- S4-2: `hrv_weekly_avg` 의미(FRS-26) — 2026-10-16 전 기간 대조로 확인 완료(509/509 일치). 비교 불가 3건은 payload 값 없음.
 - S4-3: HIIT 를 비러닝으로 처리하며 매처는 그대로(NRA-7/8) — 설계서 결정 재확인. **확인(2026-10-16): 매처 코드 변경 없음(`src/training/matcher*.py` 에 HIIT 분기 없음, 설계와 일치).**
 - S4-4: `strava_csv.py` 488줄 → 300줄 규칙 때문에 분리가 필요(T2/T3 와 함께 분할). **확인(2026-10-16): 분할 완료, `strava_csv.py` 176줄(≤300).**
 
