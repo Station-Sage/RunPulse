@@ -1466,7 +1466,7 @@
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
-### `matcher_context.py` (119줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
+### `matcher_context.py` (123줄) — 세션 결과 컨텍스트 — 활동 HR 존 분포·훈련 당일 컨디션 스냅샷(matcher.py 에서 분리).
 
 - (public API 없음)
 
@@ -2734,9 +2734,9 @@
 
 - functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
 
-### `test_matcher_context_crs.py` (47줄) — matcher_context._get_condition_snapshot — 저장된 CRS 가 스냅샷에 채워지는지 (ADJ-22).
+### `test_matcher_context_crs.py` (59줄) — matcher_context._get_condition_snapshot — 저장된 CRS 가 스냅샷에 채워지는지 (ADJ-22).
 
-- functions: test_snapshot_fills_crs_from_stored_row, test_snapshot_crs_none_without_row_or_other_day, test_snapshot_crs_none_on_invalid_row, test_snapshot_other_fields_unaffected_by_crs, test_skipped_outcome_persists_crs
+- functions: test_snapshot_fills_crs_from_stored_row, test_snapshot_crs_none_without_row_or_other_day, test_snapshot_crs_none_on_invalid_row, test_snapshot_other_fields_unaffected_by_crs, test_skipped_outcome_persists_crs, test_snapshot_tsb_acwr_stale_rule
 
 ### `test_mcp_audit.py` (33줄) — mcp_remote.audit — 기록·절단·IP 해시·보존 정리·조회.
 

@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from src.metrics.crs import evaluate as crs_eval
+from src.services.metric_freshness_spec import STALE_DAYS
 from src.utils.canonical import canonical_activity_id  # noqa: F401  (재export — 기존 import 경로 유지)
 
 
@@ -75,6 +77,20 @@ def _get_hr_zone_dist(
         return None, None, None, hr_delta
 
 
+def _recent_daily_value(conn: sqlite3.Connection, name: str, target_date: str) -> float | None:
+    """target_date 이하 최신 primary 일별 값. FRS-28(d): STALE_DAYS 이상 오래된 값은 None."""
+    row = conn.execute(
+        "SELECT numeric_value, scope_id FROM metric_store"
+        " WHERE metric_name=? AND scope_type='daily' AND is_primary=1"
+        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
+        (name, target_date),
+    ).fetchone()
+    if row is None:
+        return None
+    age = (date.fromisoformat(target_date) - date.fromisoformat(str(row[1]))).days
+    return float(row[0]) if age < STALE_DAYS else None
+
+
 def _get_condition_snapshot(
     conn: sqlite3.Connection,
     target_date: str,
@@ -85,13 +101,7 @@ def _get_condition_snapshot(
     crs = crs_result["crs"] if crs_result is not None else None
 
     # TSB
-    tsb_row = conn.execute(
-        "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='tsb' AND scope_type='daily' AND is_primary=1"
-        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
-        (target_date,)
-    ).fetchone()
-    tsb = float(tsb_row[0]) if tsb_row else None
+    tsb = _recent_daily_value(conn, "tsb", target_date)
 
     # HRV
     hrv_row = conn.execute(
@@ -108,12 +118,6 @@ def _get_condition_snapshot(
     bb = int(bb_row[0]) if bb_row else None
 
     # ACWR
-    acwr_row = conn.execute(
-        "SELECT numeric_value FROM metric_store"
-        " WHERE metric_name='acwr' AND scope_type='daily' AND is_primary=1"
-        "   AND scope_id<=? AND numeric_value IS NOT NULL ORDER BY scope_id DESC LIMIT 1",
-        (target_date,)
-    ).fetchone()
-    acwr = float(acwr_row[0]) if acwr_row else None
+    acwr = _recent_daily_value(conn, "acwr", target_date)
 
     return crs, tsb, hrv, bb, acwr

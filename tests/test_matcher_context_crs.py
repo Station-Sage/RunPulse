@@ -29,8 +29,8 @@ def test_snapshot_crs_none_on_invalid_row(db_conn):
 
 def test_snapshot_other_fields_unaffected_by_crs(db_conn):
     """CRS 유무가 tsb·acwr 스냅샷(기존 읽기 방식)을 바꾸지 않는다."""
-    upsert_metric(db_conn, "daily", "2026-09-20", "tsb", "runpulse:formula_v1", numeric_value=-4.0)
-    upsert_metric(db_conn, "daily", "2026-09-20", "acwr", "runpulse:formula_v1", numeric_value=1.1)
+    upsert_metric(db_conn, "daily", "2026-09-21", "tsb", "runpulse:formula_v1", numeric_value=-4.0)
+    upsert_metric(db_conn, "daily", "2026-09-21", "acwr", "runpulse:formula_v1", numeric_value=1.1)
     _, tsb0, _, _, acwr0 = _get_condition_snapshot(db_conn, D)
     _store(db_conn, D, {"level": 2, "crs": 61.5})
     _, tsb1, _, _, acwr1 = _get_condition_snapshot(db_conn, D)
@@ -45,3 +45,15 @@ def test_skipped_outcome_persists_crs(db_conn):
     save_skipped_outcome(db_conn, cur.lastrowid, D, 8.0)
     row = db_conn.execute("SELECT crs_at_session, outcome_label FROM session_outcomes").fetchone()
     assert row == (38.0, "skipped")
+
+
+def _daily(conn, d, name, v):
+    upsert_metric(conn, "daily", d, name, "runpulse:formula_v1", numeric_value=v, category="load")
+
+
+def test_snapshot_tsb_acwr_stale_rule(db_conn):
+    """FRS-28(d): 1일 전 값은 사용, STALE_DAYS(2일) 이상 오래된 값은 None."""
+    _daily(db_conn, "2026-09-21", "tsb", -5.0)
+    _daily(db_conn, "2026-09-20", "acwr", 1.1)
+    snap = _get_condition_snapshot(db_conn, D)
+    assert snap[1] == -5.0 and snap[4] is None
