@@ -76,7 +76,7 @@ def test_classify_outcome_prioritises_distance():
 
 def _plan(c, d, wtype, dist, source="planner", ssys=None, structure=None, act_id=None, done=0):
     c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, source_system, structure_json,"
-              " matched_activity_id, completed) VALUES (?,?,?,?,?,?,?,?)",
+              " matched_activity_id, completed, goal_id) VALUES (?,?,?,?,?,?,?,?, 1)",
               (d, wtype, dist, source, ssys, structure, act_id, done))
 
 

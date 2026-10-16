@@ -140,8 +140,8 @@ def test_week_plan_lists_remaining(conn):
     if TODAY.weekday() == 6:
         pytest.skip("일요일엔 이번 주 남은 훈련이 오늘뿐")
     d = (TODAY + timedelta(days=1)).isoformat()
-    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source)"
-                 " VALUES (?, 'easy', 8.0, 0, 'planner')", (d,))
+    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source, goal_id)"
+                 " VALUES (?, 'easy', 8.0, 0, 'planner', 1)", (d,))
     conn.commit()
     ans = answer_chip(conn, "week_plan")
     assert "이지런 8.00km(저강도)" in ans.text

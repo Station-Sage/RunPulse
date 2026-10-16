@@ -31,8 +31,8 @@ def test_create_tables(db_conn):
 def test_planned_workouts_new_columns(db_conn):
     """planned_workouts에 source, ai_model, garmin_workout_id 컬럼 존재 확인."""
     db_conn.execute("""
-        INSERT INTO planned_workouts (date, workout_type, source, ai_model, garmin_workout_id)
-        VALUES ('2026-01-01', 'easy', 'ai_genspark', 'genspark', 'gw_123')
+        INSERT INTO planned_workouts (date, workout_type, source, ai_model, garmin_workout_id, goal_id)
+        VALUES ('2026-01-01', 'easy', 'ai_genspark', 'genspark', 'gw_123', 1)
     """)
     row = db_conn.execute(
         "SELECT source, ai_model, garmin_workout_id FROM planned_workouts"

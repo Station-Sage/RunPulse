@@ -17,7 +17,7 @@ def _db(rows):
     create_tables(c)
     migrate_db(c)
     for i, (d, t, km) in enumerate(rows, 1):
-        c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source) VALUES (?,?,?,?,'planner')",
+        c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source, goal_id) VALUES (?,?,?,?,'planner', 1)",
                   (i, d, t, km))
     c.commit()
     return c

@@ -48,7 +48,7 @@ def cal(monkeypatch):
 def c():
     conn = mem_conn()
     ensure_v34(conn)
-    conn.execute("INSERT INTO planned_workouts(date, workout_type, distance_km, source) VALUES (?, 'easy', 8, 'planner')",
+    conn.execute("INSERT INTO planned_workouts(date, workout_type, distance_km, source, goal_id) VALUES (?, 'easy', 8, 'planner', 1)",
                  (D.isoformat(),))
     conn.commit()
     return conn

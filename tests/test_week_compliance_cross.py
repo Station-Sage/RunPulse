@@ -8,7 +8,7 @@ MON = date(2026, 9, 7)
 
 
 def _plan(c, d, km=10.0):
-    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed) VALUES (?,?,?,?,0)",
+    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed, goal_id) VALUES (?,?,?,?,0, 1)",
               (d.isoformat(), "easy", km, "planner"))
 
 

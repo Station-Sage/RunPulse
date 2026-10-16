@@ -16,8 +16,8 @@ def _setup(structure=True):
     bouts = [{"dist_m": 1000.0, "dur_s": 250.0, "speed_ms": 4.0, "hr": 172}] * 5
     upsert_metric(c, "activity", str(aid), "workout_type_classified", "runpulse:rule_v2", text_value="interval",
                   json_value={"type": "interval", "bouts": bouts})
-    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, structure_json, source_system) "
-              "VALUES ('2026-09-22', 'interval', 9.0, 'planner', ?, 'runpulse')",
+    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, structure_json, source_system, goal_id) "
+              "VALUES ('2026-09-22', 'interval', 9.0, 'planner', ?, 'runpulse', 1)",
               (json.dumps(PLAN) if structure else None,))
     return c, aid
 

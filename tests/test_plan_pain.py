@@ -19,7 +19,7 @@ def conn(tmp_path):
     migrate_db(c)
     rows = [(1, D(-1), "easy", 8.0), (2, D(0), "tempo", 10.0), (3, D(0 + 1), "easy", 10.0)]
     for i, d, t, km in rows:
-        c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source) VALUES (?,?,?,?,'planner')",
+        c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source, goal_id) VALUES (?,?,?,?,'planner', 1)",
                   (i, d, t, km))
     c.commit()
     return c

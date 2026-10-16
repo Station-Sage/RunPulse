@@ -50,8 +50,8 @@ def db_file(tmp_path) -> Path:
             wtype = "rest" if d.weekday() == 6 else "easy"
             conn.execute(
                 """INSERT INTO planned_workouts
-                   (date, workout_type, distance_km, source)
-                   VALUES (?, ?, ?, 'manual')""",
+                   (date, workout_type, distance_km, source, goal_id)
+                   VALUES (?, ?, ?, 'manual', 1)""",
                 (d.isoformat(), wtype, 10.0 if wtype != "rest" else None),
             )
         # 첫날 완료 처리

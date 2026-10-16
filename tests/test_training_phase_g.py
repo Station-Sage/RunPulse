@@ -38,8 +38,8 @@ def _add_workout(conn, d: str, wtype: str = "easy", km: float = 5.0,
                  completed: int = 0):
     conn.execute(
         """INSERT INTO planned_workouts
-           (date, workout_type, distance_km, completed, source)
-           VALUES (?, ?, ?, ?, 'test')""",
+           (date, workout_type, distance_km, completed, source, goal_id)
+           VALUES (?, ?, ?, ?, 'test', 1)""",
         (d, wtype, km, completed),
     )
     conn.commit()

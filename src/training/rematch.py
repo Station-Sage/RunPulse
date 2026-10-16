@@ -74,8 +74,8 @@ def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = N
     start_mon = created - timedelta(days=created.weekday())
     weeks = (race_mon - start_mon).days // 7 + 1
     conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
-    deleted = conn.execute("DELETE FROM planned_workouts WHERE source='planner' AND date > ?",
-                           (race.isoformat(),)).rowcount
+    deleted = conn.execute("DELETE FROM planned_workouts WHERE source='planner' AND date > ? AND goal_id=?",
+                           (race.isoformat(), goal_id)).rowcount
     this_mon = today - timedelta(days=today.weekday())
     ws, n = this_mon, 0
     while ws <= race_mon:
@@ -84,7 +84,7 @@ def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = N
             done = {r[0] for r in conn.execute(
                 "SELECT date FROM planned_workouts WHERE source='planner' AND (completed=1 OR matched_activity_id IS NOT NULL)")}
             plan = [w for w in plan if w["date"] >= today.isoformat() and w["date"] not in done]
-        save_weekly_plan(conn, plan)
+        save_weekly_plan(conn, plan, goal_id=goal_id)
         ws += timedelta(weeks=1)
         n += 1
     conn.commit()

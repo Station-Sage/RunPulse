@@ -194,7 +194,7 @@ def create_plan_from_template(
             or today - timedelta(days=today.weekday())
         for _ in range(weeks):
             plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
-            save_weekly_plan(conn, plan, commit=False)
+            save_weekly_plan(conn, plan, commit=False, goal_id=goal_id)
             ws += timedelta(weeks=1)
         conn.execute("RELEASE create_plan")
     except Exception:

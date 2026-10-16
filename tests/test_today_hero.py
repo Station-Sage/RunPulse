@@ -28,8 +28,8 @@ def _goal(conn, race_date="2026-12-06"):
 
 
 def _plan(conn, d, wtype, km):
-    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed)"
-                 " VALUES (?, ?, ?, 'planner', 0)", (d, wtype, km))
+    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed, goal_id)"
+                 " VALUES (?, ?, ?, 'planner', 0, 1)", (d, wtype, km))
 
 
 def _act(conn, d, km):

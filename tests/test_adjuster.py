@@ -22,8 +22,8 @@ def conn():
 
 def _seed_workout(conn, target_date: str, workout_type: str = "long"):
     conn.execute(
-        "INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source)"
-        " VALUES (?, ?, 10.0, 0, 'planner')",
+        "INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source, goal_id)"
+        " VALUES (?, ?, 10.0, 0, 'planner', 1)",
         (target_date, workout_type),
     )
     conn.commit()

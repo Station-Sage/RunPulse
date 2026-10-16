@@ -369,8 +369,31 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
     # ── Check 18·19: activity 계산 그룹당 1회(21 design §7.3 C3) · SEMANTIC_GROUPS 멤버 실재 ──
     if db_path:
         results += _check_group_once(db_path)
+        results += _check_adj_accepted(db_path)
 
     return results
+
+
+def _check_adj_accepted(db_path: str) -> list[tuple[str, str]]:
+    """Check 20: planned_workouts.adj_accepted ⇔ accepted plan_adjustments 존재(v40 불변식) 불일치 0."""
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return []
+    try:
+        if not any(r[1] == "adj_accepted" for r in conn.execute("PRAGMA table_info(planned_workouts)")):
+            return []
+        n = conn.execute(
+            "SELECT COUNT(*) FROM planned_workouts w WHERE w.adj_accepted <> "
+            "(EXISTS (SELECT 1 FROM plan_adjustments a WHERE a.workout_id = w.id AND a.decision='accepted'))"
+        ).fetchone()[0]
+    except sqlite3.Error as e:
+        return [("🟠", f"adj_accepted 검사 실패: {e}")]
+    finally:
+        conn.close()
+    if n:
+        return [("🔴", f"adj_accepted 불일치 {n}건 (accepted plan_adjustments 와 어긋남)")]
+    return [("✅", "adj_accepted: accepted plan_adjustments 와 일치")]
 
 
 def _check_group_once(db_path: str) -> list[tuple[str, str]]:

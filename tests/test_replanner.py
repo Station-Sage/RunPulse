@@ -16,8 +16,8 @@ def _insert_plan(conn, plan_date: str, wtype: str = "easy",
                  dist: float = 10.0, completed: int = 0) -> int:
     cur = conn.execute(
         "INSERT INTO planned_workouts "
-        "(date, workout_type, distance_km, completed, source) "
-        "VALUES (?,?,?,?,'planner')",
+        "(date, workout_type, distance_km, completed, source, goal_id) "
+        "VALUES (?,?,?,?,'planner',1)",
         (plan_date, wtype, dist, completed),
     )
     conn.commit()

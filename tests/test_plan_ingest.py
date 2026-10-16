@@ -90,7 +90,7 @@ def test_ingest_intervals_links_paired_activity():
 
 def test_store_planned_upsert_keeps_runpulse_rows():
     c = mem_conn()
-    c.execute("INSERT INTO planned_workouts (date, workout_type, source, source_system) VALUES ('2026-09-26','easy','planner','runpulse')")
+    c.execute("INSERT INTO planned_workouts (date, workout_type, source, source_system, goal_id) VALUES ('2026-09-26','easy','planner','runpulse', 1)")
     parsed = pi.parse_garmin_adaptive_task(TASK)
     a = pi.store_planned(c, source_system="garmin", external_id="fbt:1:2026-09-26", date="2026-09-26", parsed=parsed)
     b = pi.store_planned(c, source_system="garmin", external_id="fbt:1:2026-09-26", date="2026-09-26",

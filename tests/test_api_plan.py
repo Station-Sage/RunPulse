@@ -20,8 +20,8 @@ def _seed_workout(conn, goal_date: str, workout_type: str = "easy",
                   completed: int = 0):
     conn.execute(
         "INSERT INTO planned_workouts "
-        "(date, workout_type, distance_km, completed, source) "
-        "VALUES (?, ?, ?, ?, 'planner')",
+        "(date, workout_type, distance_km, completed, source, goal_id) "
+        "VALUES (?, ?, ?, ?, 'planner', COALESCE((SELECT MIN(id) FROM goals),1))",
         (goal_date, workout_type, 10.0, completed),
     )
     conn.commit()

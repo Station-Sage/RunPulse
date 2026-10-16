@@ -17,7 +17,7 @@ def test_create_cancels_old_goal_and_clears_its_future_rows():
     c = mem_conn()
     old = svc.create_plan_from_template(c, 21.0975, _race(40), 5, name="old")
     fut = (date.today() + timedelta(days=3)).isoformat()
-    c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source,completed) VALUES (?, 'easy', 5, 'planner', 1)",
+    c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source,completed, goal_id) VALUES (?, 'easy', 5, 'planner', 1, 1)",
               (fut,))
     c.commit()
     new = svc.create_plan_from_template(c, 42.195, _race(70), 8, name="new")

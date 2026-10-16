@@ -21,7 +21,7 @@ def conn(tmp_path):
 
 
 def _adj(c, day, op="rest", wtype="easy", reasons=None, after="rest", decision="accepted"):
-    c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source) VALUES (?,?,8.0,'planner')",
+    c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source, goal_id) VALUES (?,?,8.0,'planner', 1)",
               (day.isoformat(), wtype))
     wid = c.execute("SELECT last_insert_rowid()").fetchone()[0]
     c.execute("INSERT INTO plan_adjustments(goal_id,workout_id,date,source,op,before_json,after_json,reasons_json,"

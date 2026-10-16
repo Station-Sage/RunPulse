@@ -52,6 +52,7 @@ from .planner_rules import (
     weeks_to_race,
 )
 
+from .planner_store import save_weekly_plan  # noqa: F401  (하위 호환 re-export)
 from .planned_query import get_planned_workouts  # noqa: F401  (하위 호환 re-export)
 from .plan_structure import structure_for_plan
 from .planner_schedule import _run_days, week_target
@@ -215,46 +216,6 @@ def generate_weekly_plan(
 
 
 # ── 저장/조회/설정 ──
-def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = True) -> int:
-    """주간 계획을 planned_workouts 테이블에 저장.
-
-    같은 날짜의 source='planner' 기존 레코드를 삭제 후 재삽입.
-
-    Returns:
-        저장된 레코드 수.
-    """
-    if not plan:
-        return 0
-
-    for w in plan:
-        conn.execute(
-            "DELETE FROM planned_workouts WHERE date = ? AND source = 'planner'",
-            (w["date"],),
-        )
-
-    count = 0
-    for w in plan:
-        conn.execute(
-            """INSERT INTO planned_workouts
-               (date, workout_type, distance_km, target_pace_min, target_pace_max,
-                target_hr_zone, description, rationale, source, interval_prescription, structure_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                w["date"], w["workout_type"], w.get("distance_km"),
-                w.get("target_pace_min"), w.get("target_pace_max"),
-                w.get("target_hr_zone"), w.get("description"),
-                w.get("rationale"), w.get("source", "planner"),
-                w.get("interval_prescription"),
-                json.dumps(w["structure"]) if w.get("structure") else None,
-            ),
-        )
-        count += 1
-
-    if commit:
-        conn.commit()
-    return count
-
-
 def ensure_user_training_prefs(conn: sqlite3.Connection, commit: bool = True) -> None:
     """user_training_prefs 행이 없을 때만 기본값으로 생성 (기존 사용자 설정은 덮어쓰지 않음)."""
     conn.execute(

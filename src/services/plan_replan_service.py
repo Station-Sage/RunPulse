@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from src.services.plan_replan_diff import snapshot, structure_diff
 from src.training.goals import effective_rules_version, get_active_goal
 from src.training.plan_replace import replace_range
+from src.training.planner_store import write_planner_rows
 from src.training.planner import generate_weekly_plan
 from src.training.planner_rules import plan_start_monday, resolve_distance_label
 from src.training import personalize as P
@@ -127,7 +128,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         while ws <= race:
             plan += generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
             ws += timedelta(weeks=1)
-        res = replace_range(conn, plan, a_iso, end)
+        res = replace_range(conn, plan, a_iso, end, goal_id=goal["id"])
         after, diff = _weekly_km(conn, a_iso, end), structure_diff(rows_before, snapshot(conn, a_iso, end))
         if write:
             conn.execute("UPDATE plan_replans SET replaced_json=? WHERE id=?", (json.dumps(
@@ -232,10 +233,8 @@ def undo(conn: sqlite3.Connection, replan_id: int, today: date | None = None) ->
             ph = ",".join("?" * len(ins))
             conn.execute(f"DELETE FROM plan_adjustments WHERE workout_id IN ({ph}) AND decision != 'accepted'", ins)
             conn.execute(f"DELETE FROM planned_workouts WHERE id IN ({ph})", ins)
-        for d in saved.get("deleted", []):
-            cols = list(d)
-            conn.execute(f"INSERT INTO planned_workouts({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
-                         [d[c] for c in cols])
+        goal_id = conn.execute("SELECT goal_id FROM plan_replans WHERE id=?", (replan_id,)).fetchone()[0]
+        write_planner_rows(conn, saved.get("deleted", []), goal_id=goal_id, restore=True)
         conn.execute("UPDATE plan_replans SET status='undone', undone_at=datetime('now') WHERE id=?", (replan_id,))
         conn.execute("RELEASE undo")
     except Exception:

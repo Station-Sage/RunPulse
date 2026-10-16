@@ -32,8 +32,8 @@ def db_file(tmp_path) -> Path:
             ("서울마라톤", str(today + timedelta(weeks=12)), 42.195, 14400, 343),
         )
         conn.execute(
-            "INSERT INTO planned_workouts (date, workout_type, distance_km, source)"
-            " VALUES (?,?,?,'manual')",
+            "INSERT INTO planned_workouts (date, workout_type, distance_km, source, goal_id)"
+            " VALUES (?,?,?,'manual', 1)",
             (today.isoformat(), "easy", 10.0),
         )
         conn.commit()

@@ -50,4 +50,4 @@ def run(conn: sqlite3.Connection, today: date | None = None, getter=None) -> int
         if (*_sig(cur), cur["structure_json"]) == (*_sig(a), new_struct):
             continue
         changed.append(a)
-    return save_weekly_plan(conn, changed) if changed else 0
+    return save_weekly_plan(conn, changed, goal_id=goal["id"]) if changed else 0

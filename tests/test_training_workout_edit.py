@@ -40,8 +40,8 @@ def db_file(tmp_path) -> Path:
         migrate_db(conn)
         conn.execute(
             """INSERT INTO planned_workouts
-               (date, workout_type, distance_km, target_pace_min, target_pace_max, source)
-               VALUES ('2026-04-01', 'easy', 10.0, 270, 300, 'manual')"""
+               (date, workout_type, distance_km, target_pace_min, target_pace_max, source, goal_id)
+               VALUES ('2026-04-01', 'easy', 10.0, 270, 300, 'manual', 1)"""
         )
         conn.commit()
     return path

@@ -16,7 +16,7 @@ def client(tmp_path, monkeypatch):
     c = sqlite3.connect(str(f))
     create_tables(c)
     migrate_db(c)
-    c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source) VALUES (7,?,'easy',10.0,'planner')", (TODAY,))
+    c.execute("INSERT INTO planned_workouts(id,date,workout_type,distance_km,source, goal_id) VALUES (7,?,'easy',10.0,'planner', 1)", (TODAY,))
     c.execute("INSERT INTO plan_adjustments(goal_id,workout_id,date,source,op,before_json,after_json,rule_version)"
               " VALUES (1,7,?,'crs','replace','{\"workout_type\":\"easy\",\"distance_km\":10.0}',"
               "'{\"workout_type\":\"easy\",\"distance_km\":10.0}','adjuster_v1')", (TODAY,))
@@ -130,7 +130,7 @@ def _seed_replan(client, pain=False):
     for k in (1, 2):
         for i in range(2):
             d = (ws - timedelta(weeks=k) + timedelta(days=i)).isoformat()
-            c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source) VALUES (?, 'easy', 8.0,'planner')", (d,))
+            c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source, goal_id) VALUES (?, 'easy', 8.0,'planner', 1)", (d,))
     if pain:
         c.execute("INSERT INTO plan_adjustments(goal_id,workout_id,date,source,op,before_json,after_json,reasons_json,rule_version,decision)"
                   " VALUES (1,7,?,'user','rest','{\"workout_type\":\"easy\"}','{\"workout_type\":\"rest\"}',?,'t','accepted')",

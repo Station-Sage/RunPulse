@@ -162,7 +162,7 @@ def cmd_generate(conn: sqlite3.Connection, args, config: dict) -> None:
     plan = generate_weekly_plan(conn, goal_id=goal_id, config=config)
     plan = _adapt(conn, plan, goal_id)
     plan = _constrain(conn, plan)
-    count = save_weekly_plan(conn, plan)
+    count = save_weekly_plan(conn, plan, goal_id=goal_id)
     print(f"주간 훈련 계획 {count}개 생성/저장 완료.\n")
     for w in plan:
         print(_fmt_workout(w))

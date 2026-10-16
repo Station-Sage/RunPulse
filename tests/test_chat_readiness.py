@@ -26,8 +26,8 @@ def conn():
 
 
 def _seed(conn, bb: int, tsb: float, workout: str = "interval", sleep: int = 30):
-    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source)"
-                 " VALUES (?, ?, 10.0, 0, 'planner')", (TODAY, workout))
+    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source, goal_id)"
+                 " VALUES (?, ?, 10.0, 0, 'planner', 1)", (TODAY, workout))
     conn.execute("INSERT OR REPLACE INTO daily_wellness (date, body_battery_high, sleep_score) VALUES (?, ?, ?)",
                  (TODAY, bb, sleep))
     conn.execute("INSERT OR REPLACE INTO metric_store (scope_type, scope_id, metric_name, provider, numeric_value, is_primary)"

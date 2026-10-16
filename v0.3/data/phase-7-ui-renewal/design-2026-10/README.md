@@ -19,7 +19,7 @@
 | v37 | plan_adjustments 재구축(source·signals_json·재분류, 자동 source 'auto' 표현식 유니크 인덱스) | 위 삭제 후 |
 | v38 | race_calendar, context_episodes, illness_consent_events, cancel_prev_* 컬럼 | |
 | v39 | goals.race_id 백필(completed 목표 → done A 대회 생성, 활성 목표 재사용 B/C 는 A 승격), 자동 DB 백업·단일 트랜잭션 — ✅ 구현(S4-16) | v38 |
-| v40 | planned_workouts.goal_id + CHECK(source<>'planner' OR goal_id IS NOT NULL) + 수락 조정 표시 컬럼 | planner 행 0건(수동 삭제 누락 시 중단·롤백) |
+| v40 | planned_workouts.goal_id + CHECK(source<>'planner' OR goal_id IS NOT NULL) + adj_accepted + user_training_prefs.workout_weekdays_mask — ✅ 구현(S4-17) | planner 행 0건(수동 삭제 누락 시 중단·롤백) |
 
 ## 3. 제안 구현 순서 (미승인 — 각 문서 '단계·검증' 참조)
 0. **S0 점검**: 각 문서 말미 'S0 점검 목록'(SCAN_DIRS, 읽기 경로별 goal_id 필터 분류, 운영 SQLite 버전 등) 사실 확인

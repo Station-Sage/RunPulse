@@ -22,8 +22,8 @@ def conn():
     c = sqlite3.connect(":memory:")
     create_tables(c)
     migrate_db(c)
-    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source)"
-              " VALUES (?, 'easy', 10.0, 0, 'planner')", (TODAY,))
+    c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, completed, source, goal_id)"
+              " VALUES (?, 'easy', 10.0, 0, 'planner', 1)", (TODAY,))
     c.execute("INSERT INTO daily_wellness (date, body_battery_high, sleep_score) VALUES (?, 90, 85)", (TODAY,))
     c.execute("INSERT INTO metric_store (scope_type, scope_id, metric_name, provider, numeric_value, is_primary)"
               " VALUES ('daily', ?, 'tsb', 'runpulse', 15, 1)", (TODAY,))

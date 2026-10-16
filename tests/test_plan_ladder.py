@@ -49,7 +49,7 @@ def _setup():
 
 def _outcome(c, i, label, wtype="interval"):
     d = (date.today() - timedelta(days=20 - i)).isoformat()
-    pid = c.execute("INSERT INTO planned_workouts(date, workout_type, source) VALUES(?,?, 'planner')", (d, wtype)).lastrowid
+    pid = c.execute("INSERT INTO planned_workouts(date, workout_type, source, goal_id) VALUES(?,?, 'planner', 1)", (d, wtype)).lastrowid
     c.execute("INSERT INTO session_outcomes(planned_id, date, outcome_label) VALUES(?,?,?)", (pid, d, label))
     return pid
 

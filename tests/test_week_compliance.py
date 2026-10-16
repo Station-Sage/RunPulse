@@ -34,7 +34,7 @@ def _plan(conn, d: str, wtype: str, km: float | None, source: str = "planner",
           act_id: int | None = None, pace_min: int | None = None) -> int:
     cur = conn.execute(
         "INSERT INTO planned_workouts (date, workout_type, distance_km, source, matched_activity_id,"
-        " target_pace_min, completed) VALUES (?, ?, ?, ?, ?, ?, 0)",
+        " target_pace_min, completed, goal_id) VALUES (?, ?, ?, ?, ?, ?, 0, 1)",
         (d, wtype, km, source, act_id, pace_min))
     pid = cur.lastrowid
     if act_id:

@@ -5,8 +5,9 @@
 """
 from __future__ import annotations
 
-import json
 import sqlite3
+
+from .planner_store import write_planner_rows
 
 _PROTECT_SQL = """
 SELECT w.id,
@@ -15,6 +16,7 @@ SELECT w.id,
    OR EXISTS (SELECT 1 FROM plan_adjustments a WHERE a.workout_id = w.id AND a.decision = 'accepted')) AS prot
 FROM planned_workouts w WHERE w.source = 'planner' AND w.date >= ? AND w.date <= ?
 """
+_GOAL_FILTER = " AND w.goal_id = ?"
 
 
 def _row_dicts(conn: sqlite3.Connection, ids: list[int]) -> list[dict]:
@@ -25,13 +27,16 @@ def _row_dicts(conn: sqlite3.Connection, ids: list[int]) -> list[dict]:
     return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
-def replace_range(conn: sqlite3.Connection, plan: list[dict], start: str, end: str, commit: bool = False) -> dict:
-    """[start, end](ISO, 양끝 포함) 의 planner 행을 plan 으로 교체.
+def replace_range(conn: sqlite3.Connection, plan: list[dict], start: str, end: str, commit: bool = False,
+                  *, goal_id: int | None = None) -> dict:
+    """[start, end](ISO, 양끝 포함) 의 planner 행을 plan 으로 교체. goal_id 가 있으면 그 목표 행만 지운다(None 이면 전체 목표).
+    plan 을 넣으려면 goal_id 필수.
 
     Returns: {deleted: [행 dict], preserved: [행 dict], inserted: [id], snapshot: [삭제 행 dict],
               external: [{id, date, garmin_workout_id}], skipped_dates: [보호 행과 겹쳐 넣지 않은 날짜]}
     """
-    rows = conn.execute(_PROTECT_SQL, (start, end)).fetchall()
+    rows = conn.execute(_PROTECT_SQL + (_GOAL_FILTER if goal_id is not None else ""),
+                        (start, end) + ((goal_id,) if goal_id is not None else ())).fetchall()
     del_ids = [r[0] for r in rows if not r[1]]
     keep_ids = [r[0] for r in rows if r[1]]
     deleted = _row_dicts(conn, del_ids)
@@ -49,15 +54,7 @@ def replace_range(conn: sqlite3.Connection, plan: list[dict], start: str, end: s
         if w["date"] in kept_dates:
             skipped.append(w["date"])
             continue
-        cur = conn.execute(
-            """INSERT INTO planned_workouts
-               (date, workout_type, distance_km, target_pace_min, target_pace_max, target_hr_zone,
-                description, rationale, source, interval_prescription, structure_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (w["date"], w["workout_type"], w.get("distance_km"), w.get("target_pace_min"), w.get("target_pace_max"),
-             w.get("target_hr_zone"), w.get("description"), w.get("rationale"), w.get("source", "planner"),
-             w.get("interval_prescription"), json.dumps(w["structure"]) if w.get("structure") else None))
-        inserted.append(cur.lastrowid)
+        inserted += write_planner_rows(conn, [w], goal_id=goal_id)
     if commit:
         conn.commit()
     external = [{"id": d["id"], "date": d["date"], "garmin_workout_id": d["garmin_workout_id"]}

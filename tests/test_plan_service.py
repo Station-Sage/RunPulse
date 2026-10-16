@@ -20,8 +20,8 @@ def _seed_workout(conn, goal_date: str, workout_type: str = "easy",
                   completed: int = 0):
     conn.execute(
         "INSERT INTO planned_workouts "
-        "(date, workout_type, distance_km, completed, source) "
-        "VALUES (?, ?, ?, ?, 'planner')",
+        "(date, workout_type, distance_km, completed, source, goal_id) "
+        "VALUES (?, ?, ?, ?, 'planner', COALESCE((SELECT MIN(id) FROM goals),1))",
         (goal_date, workout_type, 10.0, completed),
     )
     conn.commit()
@@ -206,9 +206,9 @@ def test_active_plan_next_session_skips_done_and_superseded(tmp_path):
     nxt = today + timedelta(days=1)
     c.execute("INSERT INTO goals (name, distance_km, status) VALUES ('g', 10, 'active')")
     for d, t, done in ((today, "long", 0), (nxt, "easy", 0)):
-        c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed) VALUES (?,?,?,?,?)",
+        c.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, completed, goal_id) VALUES (?,?,?,?,?, 1)",
                   (d.isoformat(), t, 10.0, "planner", done))
-    c.execute("INSERT INTO planned_workouts (date, workout_type, source, source_system, completed, matched_activity_id) "
-              "VALUES (?, 'easy', 'garmin', 'garmin', 1, 99)", (today.isoformat(),))
+    c.execute("INSERT INTO planned_workouts (date, workout_type, source, source_system, completed, matched_activity_id, goal_id) "
+              "VALUES (?, 'easy', 'garmin', 'garmin', 1, 99, 1)", (today.isoformat(),))
     plan = plan_service.get_active_plan(c)
     assert plan["next_session"]["date"] == nxt.isoformat()      # 오늘 추천안은 대체됨 → 내일

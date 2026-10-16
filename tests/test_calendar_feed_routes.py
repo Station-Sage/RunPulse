@@ -23,8 +23,8 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setattr(v, "get_db_path", lambda uid=None, create=True: db)
     db_setup.init_db()
     conn = sqlite3.connect(db)
-    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source) "
-                 "VALUES (date('now','+1 day'), 'easy', 8, 'planner')")
+    conn.execute("INSERT INTO planned_workouts (date, workout_type, distance_km, source, goal_id) "
+                 "VALUES (date('now','+1 day'), 'easy', 8, 'planner', 1)")
     conn.commit()
     conn.close()
     rate_window.reset()

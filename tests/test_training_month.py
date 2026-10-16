@@ -26,8 +26,8 @@ def db_file(tmp_path) -> Path:
             d = week_start + timedelta(days=offset)
             wtype = "rest" if d.weekday() == 6 else "easy"
             conn.execute(
-                "INSERT INTO planned_workouts (date, workout_type, distance_km, source)"
-                " VALUES (?, ?, ?, 'manual')",
+                "INSERT INTO planned_workouts (date, workout_type, distance_km, source, goal_id)"
+                " VALUES (?, ?, ?, 'manual', 1)",
                 (d.isoformat(), wtype, 10.0 if wtype != "rest" else None),
             )
         conn.commit()
