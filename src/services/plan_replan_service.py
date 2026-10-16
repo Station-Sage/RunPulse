@@ -177,6 +177,9 @@ def _undo_blocker(conn: sqlite3.Connection, replan_id: int, today: date) -> str 
     if row is None:
         return "재계획 기록이 없습니다"
     goal_id, a_iso, status, blob = row
+    gst = conn.execute("SELECT status FROM goals WHERE id=?", (goal_id,)).fetchone()
+    if gst is None or gst[0] != "active":
+        return "활성이 아닌 플랜의 재계획은 되돌릴 수 없습니다"
     last = _last_applied(conn, goal_id)
     if status != "applied" or last is None or last[0] != replan_id:
         return "마지막 재계획만 되돌릴 수 있습니다"

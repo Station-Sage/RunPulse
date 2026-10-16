@@ -7,7 +7,8 @@ from datetime import date
 from flask import current_app, request
 
 from src.services import input_limits
-from src.services import adaptation_service, plan_adjustment_service, plan_service, plan_template_service, weekly_adapt_job
+from src.services import (adaptation_service, plan_adjustment_service, plan_restore, plan_service, plan_template_service,
+                          weekly_adapt_job)
 from src.training import plan_readiness
 from src.training.planner_store import WeekdaysRequired
 from src.utils.user_context import db_path
@@ -154,7 +155,17 @@ _CREATE_PLAN_SCHEMA = {
     "run_weekdays": int_list_field(0, 6, max_items=7, required=True),
     "recent_weekly_km": _reported_km_field("recent_weekly_km"),
     "recent_long_km": _reported_km_field("recent_long_km"),
+    "expect_active_goal_id": int_field(1, 2**31 - 1),
 }
+
+
+def _expect(body_in: dict, parsed: dict):
+    """요청에 expect_active_goal_id 키가 있을 때만 검사 대상(없으면 기존 동작 — 클라이언트 구버전 호환)."""
+    return parsed["expect_active_goal_id"] if "expect_active_goal_id" in body_in else plan_template_service._UNSET
+
+
+def _conflict(exc: plan_template_service.PlanConflict):
+    return api_error("ACTIVE_PLAN_EXISTS", str(exc), 409, {"current": exc.current})
 
 
 @api_bp.post("/coach/plan")
@@ -174,11 +185,14 @@ def create_plan():
         goal_id = plan_template_service.create_plan_from_template(
             conn, body["distance_km"], body["race_date"], weeks, body["target_time_sec"], body["name"],
             recent_weekly_km=weekly_km, recent_long_km=long_km, run_weekdays=body["run_weekdays"],
+            expect_active_goal_id=_expect(request.get_json(silent=True) or {}, body),
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
         warnings = plan_readiness.plan_warnings(conn, goal_id)
     except WeekdaysRequired as exc:
         return api_error("INVALID_PARAM", str(exc), 400, {"run_weekdays": str(exc)})
+    except plan_template_service.PlanConflict as exc:
+        return _conflict(exc)
     finally:
         conn.close()
     # 대회일까지 가능 주수보다 길게 요청하면 서비스가 줄여 만든다 — 조용한 보정 대신 알린다(SRV-7·SRV-11)
@@ -186,3 +200,24 @@ def create_plan():
     if plan_weeks != weeks:
         meta = {"warnings": [{"code": "WEEKS_ADJUSTED", "requested": weeks, "applied": plan_weeks}]}
     return api_ok({"goal_id": goal_id, "plan_weeks": plan_weeks, "warnings": warnings}, meta=meta)
+
+
+@api_bp.post("/coach/plan/<int:goal_id>/restore")
+def restore_plan_route(goal_id: int):
+    """취소된 과거 플랜을 복원(PLN-43). 활성 플랜이 있으면 expect_active_goal_id 확인 후 교체, 불일치 시 409."""
+    raw = request.get_json(silent=True) or {}
+    expect = raw.get("expect_active_goal_id", plan_template_service._UNSET)
+    if expect is not plan_template_service._UNSET and expect is not None and not isinstance(expect, int):
+        return api_error("BAD_REQUEST", "expect_active_goal_id 는 정수여야 합니다", 400)
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        return api_ok(plan_restore.restore_plan(conn, goal_id, expect))
+    except plan_template_service.PlanConflict as exc:
+        return _conflict(exc)
+    except plan_restore.RestoreError as exc:
+        return api_error(exc.code, str(exc), 404 if exc.code == "NOT_FOUND" else 409)
+    finally:
+        conn.close()

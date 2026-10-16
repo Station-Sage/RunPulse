@@ -113,7 +113,7 @@ def _cross_dates(conn: sqlite3.Connection, start: str, end: str) -> set[str]:
 
 
 def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: date | None,
-            today: date | None = None) -> dict:
+            today: date | None = None, goal_id: int | None = None) -> dict:
     """start~end(포함) 날짜별 유효 계획·상태와 이행 수치.
 
     effective_start 이전 날짜는 `pre_plan`(집계 제외). today 이후는 upcoming.
@@ -122,7 +122,7 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
     rows: list[dict] = []
     ws = start - timedelta(days=start.weekday())
     while ws <= end:
-        rows += [w for w in get_planned_workouts(conn, week_start=ws)
+        rows += [w for w in get_planned_workouts(conn, week_start=ws, goal_id=goal_id)
                  if start.isoformat() <= w["date"] <= end.isoformat()]
         ws += timedelta(weeks=1)
     by_date: dict[str, list[dict]] = {}

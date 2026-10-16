@@ -9,8 +9,14 @@ def get_planned_workouts(
     conn: sqlite3.Connection,
     week_start: date | None = None,
     overlay: bool = True,
+    goal_id: int | None = None,
+    active_only: bool = True,
 ) -> list[dict]:
-    """이번 주 (또는 지정 주) planned_workouts 조회. overlay=True 면 수락된 조정(plan_adjustments)을 겹쳐 적용."""
+    """이번 주 (또는 지정 주) planned_workouts 조회. overlay=True 면 수락된 조정(plan_adjustments)을 겹쳐 적용.
+
+    goal_id 가 있으면 그 목표의 planner 행 + 비-planner 행만 낸다(취소된 목표 행 혼입 방지, PLN-33).
+    goal_id 가 없고 active_only 면 활성 목표가 있을 때 그 목표의 planner 행만 낸다(활성 목표가 없으면 필터 없음).
+    """
     if week_start is None:
         today = date.today()
         week_start = today - timedelta(days=today.weekday())
@@ -22,9 +28,12 @@ def get_planned_workouts(
                   p.interval_prescription, p.matched_activity_id, o.outcome_label, o.dist_ratio,
                   o.actual_dist_km, o.compliance_pct
            FROM planned_workouts p LEFT JOIN session_outcomes o ON o.planned_id = p.id
-           WHERE p.date >= ? AND p.date < ?
+           WHERE p.date >= ? AND p.date < ?""" + (" AND (p.goal_id = ? OR p.source <> 'planner')" if goal_id is not None else
+                 " AND (p.source <> 'planner' OR NOT EXISTS (SELECT 1 FROM goals WHERE status='active')"
+                 " OR p.goal_id IN (SELECT id FROM goals WHERE status='active'))" if active_only else "")
+        + """
            ORDER BY p.date, (p.source = 'planner') DESC""",
-        (week_start.isoformat(), week_end.isoformat()),
+        (week_start.isoformat(), week_end.isoformat()) + ((goal_id,) if goal_id is not None else ()),
     ).fetchall()
 
     keys = ["id", "date", "workout_type", "distance_km", "target_pace_min",

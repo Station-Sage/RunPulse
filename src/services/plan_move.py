@@ -1,6 +1,7 @@
 """일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1)."""
 from __future__ import annotations
 
+from src.services.plan_adj_flag import sync_adj_flag
 from src.training.goals import get_active_goal
 import json
 import sqlite3
@@ -128,6 +129,7 @@ def create_move(conn: sqlite3.Connection, workout_id: int, params: dict, *, via:
                                json.dumps([{"key": "pair", "adj_id": move_id}], ensure_ascii=False), via)).lastrowid
         conn.execute("UPDATE plan_adjustments SET reasons_json=? WHERE id=?",
                      (json.dumps(reasons + [{"key": "pair", "adj_id": swap_id}], ensure_ascii=False), move_id))
+    sync_adj_flag(conn, [workout_id, swap["id"] if swap else None])
     return move_id
 
 
@@ -141,3 +143,4 @@ def revert_dependents(conn: sqlite3.Connection, adj: dict, partner: dict | None)
     marks = ",".join("?" * len(ids))
     conn.execute(f"UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE workout_id IN ({marks})"
                  " AND op != 'move' AND id > ? AND decision IN ('proposed','accepted')", (*ids, min(adj["id"], partner["id"] if partner else adj["id"])))
+    sync_adj_flag(conn, ids)

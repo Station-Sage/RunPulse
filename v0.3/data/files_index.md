@@ -260,7 +260,11 @@
 
 - functions: warm_month_narrative, warm_in_background
 
-### `plan_adjustment_service.py` (301줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adj_flag.py` (20줄) — planned_workouts.adj_accepted 동기화 (PLN-34 b) — 불변식: adj_accepted=1 ⇔ 그 행에 decision='accepted' 조정이 존재.
+
+- functions: sync_adj_flag
+
+### `plan_adjustment_service.py` (300줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
 - functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
@@ -273,7 +277,7 @@
 
 - functions: session_load, daily_actual, easy_u, load_delta
 
-### `plan_move.py` (143줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
+### `plan_move.py` (146줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
 
 - functions: overlay_date, date_ok, validate, create_move, partner_id, revert_dependents
 
@@ -289,18 +293,24 @@
 
 - functions: snapshot, structure_diff
 
-### `plan_replan_service.py` (245줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (248줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
+
+### `plan_restore.py` (52줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
+
+- class **RestoreError**: 없음
+- functions: restore_plan
 
 ### `plan_service.py` (226줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (211줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (243줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
-- functions: get_static_plan_templates, create_plan_from_template
+- class **PlanConflict**: 없음
+- functions: check_active_expectation, get_static_plan_templates, create_plan_from_template
 
 ### `prediction_compare_service.py` (88줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
 
@@ -1505,6 +1515,10 @@
 
 - functions: week_violations, finalize_week
 
+### `plan_first_week.py` (63줄) — 시작 주(부분 주) 보정 — PLN-32 a · PLN-45 b-lite.
+
+- functions: classes_run_between, trim_first_week
+
 ### `plan_gates.py` (182줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
 
 - class **Session**: 없음
@@ -1532,7 +1546,7 @@
 
 - functions: structure_for_plan
 
-### `planned_query.py` (42줄) — 주간 planned_workouts 조회(결과·대체됨 플래그 포함) — planner.py 에서 분리.
+### `planned_query.py` (51줄) — 주간 planned_workouts 조회(결과·대체됨 플래그 포함) — planner.py 에서 분리.
 
 - functions: get_planned_workouts
 
@@ -1905,9 +1919,9 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (188줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (223줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
-- functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan
+- functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
 ### `routes_plan_adjust.py` (180줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
@@ -2114,6 +2128,10 @@
 ### `test_api_plan_adjustments.py` (168줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors, test_advisory_replan_hidden_when_race_near
+
+### `test_api_plan_r2.py` (63줄) — R2 API — 활성 플랜 교체 409 확인 흐름, 복원 라우트, 비활성 플랜 재계획 undo 차단.
+
+- functions: api, test_409_then_confirm_replaces_and_restore_swaps, test_undo_blocked_for_non_active_goal
 
 ### `test_api_plan_replan.py` (103줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
@@ -2488,6 +2506,10 @@
 ### `test_db_schema_v40.py` (126줄) — 스키마 v40 + planner_store(PLN-38) 테스트.
 
 - functions: test_adds_columns_and_idempotent, test_check_rejects_planner_without_goal, test_existing_planner_row_blocks_migration, conn, test_write_requires_goal_id, test_write_restore_keeps_id, test_save_weekly_plan_scoped_delete, test_save_weekly_plan_requires_goal_id, test_replace_range_goal_scoped, test_insert_planned_workouts_only_in_allowed_files, test_check_adj_accepted_mismatch
+
+### `test_db_schema_v41.py` (24줄) — 스키마 v41 (goals.plan_snapshot_json) 테스트.
+
+- functions: test_adds_column_and_idempotent, test_create_tables_reaches_v41
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -2990,7 +3012,7 @@
 
 - functions: test_create_cancels_old_goal_and_clears_its_future_rows, test_failure_rolls_back_goal_and_plan, test_commit_false_defers_to_caller
 
-### `test_plan_creation.py` (67줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
+### `test_plan_creation.py` (68줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
 
@@ -3026,6 +3048,10 @@
 ### `test_plan_pain.py` (56줄) — plan_pain — 단계별 op 강제, 직전 2일 제안 우선, 반복 통증 알림.
 
 - functions: conn, test_resolve_levels, test_proposal_priority_within_two_days, test_mild_has_no_proposal_and_repeat
+
+### `test_plan_r2.py` (171줄) — R2 — 활성 플랜 교체 확인(409)·스냅샷 복원·adj_accepted 동기화·부분 주·goal 소유 조회.
+
+- functions: conn, test_check_active_expectation, test_create_requires_confirm_then_replaces, test_restore_swaps_active_and_rows, test_restore_rejects_active_and_missing, test_sync_adj_flag, test_goal_filter_excludes_other_planner_rows, test_trim_first_week_wednesday, test_trim_first_week_sunday_single_day, test_trim_full_week_untouched, test_trim_avoids_same_type_already_run, test_classes_run_between_empty, test_planner_insert_guard, test_default_read_excludes_inactive_goal_planner_rows
 
 ### `test_plan_readiness.py` (69줄) — 준비 볼륨·경고(DESIGN-U16-LONGRUN §5.2-5)와 콜드 피크 목표(§5.2 L5 후속).
 
@@ -3673,7 +3699,7 @@
 - functions: run
 
 ---
-총 787개 파일
+총 793개 파일
 
 ## docstring 누락
 

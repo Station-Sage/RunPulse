@@ -49,7 +49,8 @@ def test_created_plan_follows_periodization_and_ends_on_race():
             by_week[mon] = by_week.get(mon, 0.0) + (km or 0.0)
     vols = [by_week[k] for k in sorted(by_week)]
     assert len(vols) == weeks and vols[-1] < max(vols) * 0.7      # 대회 주는 피크보다 크게 낮다
-    assert max(vols) <= vols[0] * 1.10 ** (weeks - 3) * 1.05      # 피크까지 주 +10% 안쪽으로 완만히
+    base = vols[1] if date.today().weekday() > 0 else vols[0]       # 시작 주가 부분 주면(PLN-32) 첫 온전한 주 기준
+    assert max(vols) <= base * 1.10 ** (weeks - 3) * 1.05      # 피크까지 주 +10% 안쪽으로 완만히
 
 
 def test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start():

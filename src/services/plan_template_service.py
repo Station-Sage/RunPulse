@@ -5,11 +5,13 @@ create_plan_from_template()  — 템플릿 선택 → goal + 전체 플랜 생�
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import date, timedelta
 
 from src.services import input_limits
-from src.training.goals import add_goal, set_reported_load
+from src.training.goals import add_goal, get_active_goal, set_reported_load
+from src.training.plan_first_week import trim_first_week
 from src.training.plan_replace import replace_range
 from src.training.planner import (
     generate_weekly_plan,
@@ -24,6 +26,29 @@ from src.training.readiness import (
     recommend_weekly_km,
     vdot_to_time,
 )
+
+
+_UNSET = object()
+
+
+class PlanConflict(Exception):
+    """활성 플랜이 있는데 클라이언트가 확인한 활성 목표와 다르다(API 409 ACTIVE_PLAN_EXISTS)."""
+
+    def __init__(self, current: dict | None):
+        super().__init__("이미 활성 플랜이 있습니다")
+        self.current = current
+
+
+def check_active_expectation(conn: sqlite3.Connection, expect_active_goal_id) -> dict | None:
+    """활성 목표를 돌려주되, 기대값(expect_active_goal_id)이 지정됐고 다르면 PlanConflict.
+
+    _UNSET 이면 검사하지 않는다(내부 호출). None 은 "활성 플랜 없음을 기대".
+    """
+    prev = get_active_goal(conn)
+    if expect_active_goal_id is not _UNSET and prev is not None and prev["id"] != expect_active_goal_id:
+        raise PlanConflict({"goal_id": prev["id"], "name": prev["name"], "race_date": prev.get("race_date"),
+                            "distance_km": prev.get("distance_km")})
+    return prev
 
 
 def _km_to_label(distance_km: float) -> str:
@@ -161,6 +186,7 @@ def create_plan_from_template(
     recent_long_km: float | None = None,
     *,
     run_weekdays,
+    expect_active_goal_id=_UNSET,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -173,6 +199,7 @@ def create_plan_from_template(
         name: 목표 이름. None이면 "{distance_km}km 목표" 자동 생성.
         recent_weekly_km / recent_long_km: 사용자가 입력한 최근 주간 km·최장 롱런 km(선택, v2 콜드스타트 출처).
         run_weekdays: 운동 요일(0=월..6=일) 필수. 비면 WeekdaysRequired. 저장 후 계획이 이 요일 안에서만 달린다(PLN-11·12).
+        expect_active_goal_id: 활성 플랜이 있고 이 값과 다르면 PlanConflict(확인 후 재전송, PLN-43).
 
     Returns:
         새로 생성된 goal_id.
@@ -185,11 +212,15 @@ def create_plan_from_template(
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
     goal_name = name or f"{distance_km:.0f}km 목표"
     today = date.today()
+    prev = check_active_expectation(conn, expect_active_goal_id)
     conn.execute("SAVEPOINT create_plan")
     try:
         goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec, commit=False)
         # 이전 활성 목표의 미래 계획 중 이력 없는 행은 새 계획과 섞이지 않게 지운다(보호 행은 유지)
-        replace_range(conn, [], today.isoformat(), "9999-12-31")
+        if prev is not None:
+            res = replace_range(conn, [], today.isoformat(), "9999-12-31", goal_id=prev["id"])
+            conn.execute("UPDATE goals SET plan_snapshot_json=? WHERE id=?",
+                         (json.dumps(res["snapshot"], ensure_ascii=False, default=str), prev["id"]))
         conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
         if recent_weekly_km is not None or recent_long_km is not None:
             set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
@@ -200,6 +231,7 @@ def create_plan_from_template(
             or today - timedelta(days=today.weekday())
         for _ in range(weeks):
             plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+            plan = trim_first_week(conn, plan, today)   # 시작일 이전 행 제외·부분 주 볼륨 축소(PLN-36 c, PLN-32 a, PLN-45 b)
             save_weekly_plan(conn, plan, commit=False, goal_id=goal_id)
             ws += timedelta(weeks=1)
         conn.execute("RELEASE create_plan")

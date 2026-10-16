@@ -1,19 +1,19 @@
 """계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다."""
 from __future__ import annotations
 
-from src.training.goals import get_active_goal
 import json
 import sqlite3
 from datetime import date as _date
 
 from src.services import plan_pain
+from src.services.plan_adj_flag import sync_adj_flag
 from src.services.plan_service import todays_adjustment_with_hold
+from src.training.goals import get_active_goal
 
 RULE_VERSION = "adjuster_v2"
 VIAS = ("plan", "session", "today", "coach")
 _COLS = ("id, goal_id, workout_id, date, source, op, before_json, after_json, reasons_json, rule_version,"
          " decision, rev, accepted_at, decided_at, decided_via, created_at, updated_at")
-
 
 class AdjustmentConflict(Exception):
     """code: REV_MISMATCH | LOCKED | STALE | INVALID_TRANSITION | NOT_FOUND"""
@@ -157,6 +157,7 @@ def _decide(conn: sqlite3.Connection, adj: dict, decision: str, via: str | None,
     except sqlite3.IntegrityError:
         conn.rollback()
         raise AdjustmentConflict("INVALID_TRANSITION", "이미 적용 중인 조정이 있어요", _get(conn, adj["id"]))
+    sync_adj_flag(conn, [adj["workout_id"]])
     conn.commit()
     return _view(conn, _get(conn, adj["id"]), today)
 
@@ -193,6 +194,7 @@ def revert(conn: sqlite3.Connection, adj_id: int, *, via: str | None = None, tod
             if partner:
                 conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE id=?",
                              (partner["id"],))
+                sync_adj_flag(conn, [partner["workout_id"]])
     if adj["date"] != today:
         raise AdjustmentConflict("LOCKED", "당일만 바꿀 수 있어요", _view(conn, adj, today))
     return _decide(conn, adj, "reverted", via, today)
@@ -284,6 +286,7 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
         (goal["id"] if goal else None, workout_id, odate, source, "replace" if op == "easy" else op,
          json.dumps(before), json.dumps(after),
          json.dumps(plan_pain.reasons(params), ensure_ascii=False), source + "_v1", via)).lastrowid
+    sync_adj_flag(conn, [workout_id])
     conn.commit()
     return _view(conn, _get(conn, new_id), today)
 
@@ -292,10 +295,6 @@ def list_adjustments(conn: sqlite3.Connection, *, goal_id: int | None, start: st
                      today: str | None = None) -> list[dict]:
     """[start, end] 기간 이력(최신순), 표시 상태 포함."""
     today = _today(today)
-    q = f"SELECT {_COLS} FROM plan_adjustments WHERE date BETWEEN ? AND ?"
-    args: list = [start, end]
-    if goal_id is not None:
-        q += " AND goal_id = ?"
-        args.append(goal_id)
-    rows = conn.execute(q + " ORDER BY date DESC, id DESC", args).fetchall()
+    q = f"SELECT {_COLS} FROM plan_adjustments WHERE date BETWEEN ? AND ?" + (" AND goal_id = ?" if goal_id is not None else "")
+    rows = conn.execute(q + " ORDER BY date DESC, id DESC", [start, end] + ([goal_id] if goal_id is not None else [])).fetchall()
     return [_view(conn, _to_dict(r), today) for r in rows]

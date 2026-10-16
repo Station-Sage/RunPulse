@@ -80,7 +80,7 @@ def _plan_compliance(conn: sqlite3.Connection, goal: dict, today: date | None = 
     eff_start = _effective_start(goal)
     if eff_start is None or eff_start > today:
         return None
-    return week_compliance.compute(conn, eff_start, today, eff_start, today)["compliance"]
+    return week_compliance.compute(conn, eff_start, today, eff_start, today, goal_id=goal["id"])["compliance"]
 
 
 def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
@@ -91,12 +91,12 @@ def _compliance_pct(conn: sqlite3.Connection, goal: dict) -> float | None:
     return round(c["sessions"]["done"] / c["sessions"]["total"] * 100, 1)
 
 
-def _next_session(conn: sqlite3.Connection) -> dict | None:
+def _next_session(conn: sqlite3.Connection, goal_id: int | None = None) -> dict | None:
     """오늘 이후 첫 미완료 세션(이번 주 → 다음 주). 휴식·완료·대체된 추천안은 건너뛴다."""
     ws = _current_week_start()
     today = date.today().isoformat()
     for w in (ws, ws + timedelta(weeks=1)):
-        for row in get_planned_workouts(conn, week_start=w):
+        for row in get_planned_workouts(conn, week_start=w, goal_id=goal_id):
             if (row["date"] >= today and row["workout_type"] != "rest"
                     and not row["completed"] and not row["superseded"]):
                 return row
@@ -113,13 +113,13 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
     if goal is None:
         return None
     week_start = _current_week_start()
-    workouts = get_planned_workouts(conn, week_start=week_start)
+    workouts = get_planned_workouts(conn, week_start=week_start, goal_id=goal["id"])
     fitness = get_latest_fitness(conn)
     ctl_current = fitness.get("ctl")
     week_index = _week_index_absolute(conn, goal)
     compliance_pct = _compliance_pct(conn, goal)
     week = week_compliance.compute(conn, week_start, week_start + timedelta(days=6),
-                                   _effective_start(goal))
+                                   _effective_start(goal), goal_id=goal["id"])
     return {
         "goal": {
             "id": goal["id"],
@@ -136,7 +136,7 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
         "compliance_pct": compliance_pct,
         "compliance": _plan_compliance(conn, goal),
         "week": week,
-        "next_session": _next_session(conn),
+        "next_session": _next_session(conn, goal["id"]),
     }
 
 
@@ -180,7 +180,7 @@ def get_session_detail(
         return None
 
     week_start = sd - timedelta(days=sd.weekday())
-    workouts = get_planned_workouts(conn, week_start=week_start)
+    workouts = get_planned_workouts(conn, week_start=week_start, goal_id=goal_id)
     workout = next((w for w in workouts if w.get("date") == session_date), None)
     if workout is None:
         return None
