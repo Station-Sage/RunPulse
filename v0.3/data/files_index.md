@@ -28,6 +28,10 @@
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
+### `activity_counts.py` (20줄) — 활동 건수 단일 정의 (HSR-12 (a), NRA SSOT) — canonical 전체·러닝 계열·소스별 수신.
+
+- functions: activity_counts
+
 ### `activity_detail_service.py` (245줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
@@ -139,7 +143,7 @@
 
 - functions: get_load_coverage
 
-### `data_service.py` (109줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
+### `data_service.py` (113줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
 
 - functions: run_dict, runs, sources, source_detail, summary
 
@@ -1955,6 +1959,10 @@
 - class **TestStreamHeartRate**: test_zero_heart_rate_becomes_null
 - class **TestACWRCap**: test_steady_load_ratio, test_low_chronic_load_returns_empty, test_no_history_returns_empty, test_zero_ctl_returns_empty
 
+### `test_activity_counts.py` (29줄) — activity_counts 단위 테스트 (HSR-12).
+
+- functions: test_counts_use_running_family_not_like, test_empty_db, test_sync_state_activity_count_matches
+
 ### `test_activity_derived_v2.py` (159줄) — tests/test_activity_derived_v2.py — 1-3 활동 파생 수치(UX 리뷰 20 design S1): RE·디커플링·스트림 헬퍼.
 
 - functions: test_easy_run_re_uses_athlete_max_not_activity_max, test_re_integrates_stream_zones, test_moving_segments_drop_stops_and_rescale_index_elapsed, test_decoupling_excludes_warmup_and_stops, test_activity_vdot_and_low_confidence_re_hidden, test_te_bands_follow_garmin_scale, test_gap_uphill_is_faster_than_actual_pace, test_gap_without_elevation_is_empty, test_u18c_measured_meta_skips_rescale, test_u18c_dwell_sum_matches_measured_moving_time, test_u18c_ctx_get_stream_meta
@@ -3632,7 +3640,7 @@
 - functions: backtest, backtest_all, main
 
 ---
-총 777개 파일
+총 779개 파일
 
 ## docstring 누락
 

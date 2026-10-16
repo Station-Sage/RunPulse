@@ -11,6 +11,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, datetime
 
+from src.services.activity_counts import activity_counts
 from src.sync.sync_errors import MESSAGES_KO
 from src.utils.config import enabled_sources
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
@@ -170,8 +171,7 @@ def get_sync_state(conn: sqlite3.Connection, config: dict, now: datetime | None 
         "latest_data_date": latest_data_date,
         "overall": {"level": level, "label_ko": _relative_ko(last_success, now), "last_success_at": last_success},
         "connected_count": sum(1 for s in sources if s["connection"] == "connected"),
-        "activity_count": int(conn.execute(
-            "SELECT COUNT(*) FROM v_canonical_activities WHERE activity_type LIKE '%running%'").fetchone()[0] or 0),
+        "activity_count": activity_counts(conn)["canonical_running"],
         "first_sync_running": any(s["state"] == "running" for s in active) and not last_success,
         "sources": sources,
         "caveats": caveats,

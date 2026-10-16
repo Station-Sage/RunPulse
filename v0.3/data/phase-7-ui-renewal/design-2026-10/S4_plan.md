@@ -65,10 +65,10 @@
 | 신규 모듈 | `timefmt.py`·`metric_freshness.py`·`run_totals.py` 모두 현재 없음(신규 생성 예정) |
 
 ## 6. 사용자 확인 필요 (S4-n)
-- S4-1: 스트림 순서 NRA → TZ → FRS (또는 다른 순서).
+- S4-1: 스트림 순서 NRA → TZ → FRS (또는 다른 순서). **확인(2026-10-16): 이 순서로 구현·배포 완료.**
 - S4-2: `hrv_weekly_avg` 의미(FRS-26)를 raw payload 로 확인하는 시점 — 사용자가 운영 DB 값을 알려주거나 F2 착수 전에 결정.
-- S4-3: HIIT 를 비러닝으로 처리하며 매처는 그대로(NRA-7/8) — 설계서 결정 재확인.
-- S4-4: `strava_csv.py` 488줄 → 300줄 규칙 때문에 분리가 필요(T2/T3 와 함께 분할).
+- S4-3: HIIT 를 비러닝으로 처리하며 매처는 그대로(NRA-7/8) — 설계서 결정 재확인. **확인(2026-10-16): 매처 코드 변경 없음(`src/training/matcher*.py` 에 HIIT 분기 없음, 설계와 일치).**
+- S4-4: `strava_csv.py` 488줄 → 300줄 규칙 때문에 분리가 필요(T2/T3 와 함께 분할). **확인(2026-10-16): 분할 완료, `strava_csv.py` 176줄(≤300).**
 
 ## 7. 공통 검증 (단계마다)
 `.venv/bin/python -m pytest tests/ -q -p no:cacheprovider` (기준 3255 passed / 240 skipped), 프론트 `npm run check`·`test:unit`(기준 479)·`build`, `gen_files_index.py` → `check_docs.py`(기준 0 errors / 64 warnings), `ls data/users` 전후 비교.

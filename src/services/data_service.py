@@ -10,6 +10,7 @@ import sqlite3
 from datetime import datetime
 
 from src.services import provider_status_service, sync_state_service
+from src.services.activity_counts import activity_counts
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
 
 SOURCES = sync_state_service.SOURCES
@@ -100,8 +101,11 @@ def summary(conn: sqlite3.Connection, config: dict) -> dict:
         page_size = conn.execute("PRAGMA page_size").fetchone()[0]
     except sqlite3.OperationalError:
         page_count = page_size = 0
+    counts = activity_counts(conn)
     return {
         "activities": acts,
+        "canonical_total": counts["canonical_total"],
+        "canonical_running": counts["canonical_running"],
         "wellness_days": _scalar(conn, "SELECT COUNT(*) FROM daily_wellness"),
         "period": {"first": first, "last": last},
         "storage_bytes": page_count * page_size,
