@@ -95,21 +95,33 @@ def load_prefs(conn: sqlite3.Connection) -> dict:
     return d
 
 
-def get_available_days(week_start: date, prefs: dict) -> list[int]:
-    """이번 주 훈련 가능 요일 인덱스(0=월~6=일) 반환.
+class WeekdaysRequired(ValueError):
+    """운동 요일(workout_weekdays_mask)이 지정되지 않아 계획을 만들 수 없다(PLN-12)."""
 
-    비트마스크: bit0=월(1), bit1=화(2), ..., bit6=일(64)
+
+def resolve_run_weekdays(prefs: dict) -> list[int]:
+    """운동 요일 인덱스(0=월~6=일). 운동 요일 마스크가 휴식 마스크보다 우선한다(PLN-11).
+
+    마스크가 NULL(미지정)이면 전체 요일·과거 요일로 대체하지 않고 WeekdaysRequired 를 던진다(PLN-12).
     """
-    mask = prefs.get("rest_weekdays_mask", 0)
+    mask = prefs.get("workout_weekdays_mask")
+    if mask is None:
+        raise WeekdaysRequired("운동 요일을 먼저 지정해야 계획을 만들 수 있습니다")
+    days = [i for i in range(7) if mask & (1 << i)]
+    if not days:
+        raise WeekdaysRequired("운동 요일이 비어 있습니다")
+    return days
+
+
+def weekdays_to_mask(days) -> int:
+    """요일 인덱스(0=월~6=일) 집합 → 비트마스크."""
+    return sum(1 << int(d) for d in set(days))
+
+
+def get_available_days(week_start: date, prefs: dict) -> list[int]:
+    """이번 주 훈련 가능 요일 인덱스(0=월~6=일) = 운동 요일 − 차단 날짜. 운동 요일 미지정이면 WeekdaysRequired."""
     blocked = set(prefs.get("blocked_dates") or [])
-    available = []
-    for i in range(7):
-        day = week_start + timedelta(days=i)
-        bit = 1 << i
-        if (mask & bit) or day.isoformat() in blocked:
-            continue
-        available.append(i)
-    return available
+    return [i for i in resolve_run_weekdays(prefs) if (week_start + timedelta(days=i)).isoformat() not in blocked]
 
 
 # ── 메트릭 조회 ───────────────────────────────────────────────────────────

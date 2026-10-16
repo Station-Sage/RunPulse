@@ -7,6 +7,7 @@ from flask import request
 
 from src.services import garmin_cleanup as gc
 from src.services import plan_replan_service as svc
+from src.training.planner import WeekdaysRequired
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
@@ -46,6 +47,8 @@ def _run(fn):
         return api_error("NOT_FOUND", "running.db 없음", 503)
     try:
         return api_ok(fn(conn))
+    except WeekdaysRequired as e:
+        return api_error("INVALID_PARAM", str(e), 400, {"run_weekdays": str(e)})
     except svc.ReplanError as e:
         return api_error(e.code, e.message, _STATUS.get(e.code, 409), {"last": e.last} if e.last else None)
     finally:

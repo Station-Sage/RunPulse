@@ -9,7 +9,7 @@ from src.training.outcome_v2 import compare_continuous, is_continuous
 from src.training.planned_query import get_planned_workouts
 from src.training.planner import generate_weekly_plan
 from src.training.planner_rules import apply_race_week, plan_weeks_until_race, weeks_to_race
-from tests.helpers_pred import mem_conn, seed_run
+from tests.helpers_pred import mem_conn, seed_run, with_days
 
 MON = date(2026, 9, 21)
 
@@ -26,7 +26,7 @@ def test_weeks_to_race_is_relative_to_as_of():
 
 
 def test_phase_differs_by_week_and_race_week_is_built():
-    c = mem_conn()
+    c = with_days(mem_conn())
     c.execute("INSERT INTO goals (name, race_date, distance_km, status) VALUES ('m', '2026-11-22', 42.195, 'active')")
     early = generate_weekly_plan(c, goal_id=1, week_start=date(2026, 9, 21))
     late = generate_weekly_plan(c, goal_id=1, week_start=date(2026, 11, 16))
@@ -43,16 +43,16 @@ def test_apply_race_week_rests_after_race():
 
 
 def test_create_plan_is_clamped_to_race_week():
-    c = mem_conn()
+    c = with_days(mem_conn())
     race = (date.today() + timedelta(days=20)).isoformat()
-    gid = plan_template_service.create_plan_from_template(c, 10.0, race, 16)
+    gid = plan_template_service.create_plan_from_template(c, 10.0, race, 16, run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     weeks = c.execute("SELECT plan_weeks FROM goals WHERE id=?", (gid,)).fetchone()[0]
     assert weeks == plan_weeks_until_race(race) and weeks < 16
     assert c.execute("SELECT MAX(date) FROM planned_workouts").fetchone()[0] <= (date.fromisoformat(race) + timedelta(days=6)).isoformat()
 
 
 def test_templates_are_capped_by_race_date():
-    c = mem_conn()
+    c = with_days(mem_conn())
     race = (date.today() + timedelta(days=30)).isoformat()
     avail = plan_weeks_until_race(race)
     ts = plan_template_service.get_static_plan_templates(c, 42.195, None, race)
@@ -81,7 +81,7 @@ def _plan(c, d, wtype, dist, source="planner", ssys=None, structure=None, act_id
 
 
 def test_matcher_does_not_steal_activity_claimed_by_external_plan():
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-27", dist=9300.0, moving=3300)
     _plan(c, "2026-09-27", "long", 26.0)
     _plan(c, "2026-09-27", "easy", None, source="garmin", ssys="garmin", act_id=a, done=1)
@@ -93,7 +93,7 @@ def test_matcher_does_not_steal_activity_claimed_by_external_plan():
 
 
 def test_matcher_partial_run_is_linked_but_not_completed():
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-26", dist=7100.0, moving=2422)
     _plan(c, "2026-09-26", "easy", 11.5)
     assert match_week_activities(c, MON) == 1
@@ -112,7 +112,7 @@ def test_continuous_plan_outcome_uses_duration():
 
 
 def test_continuous_garmin_plan_is_not_marked_skipped_when_executed():
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-27", dist=9300.0, moving=3318)
     st = json.dumps({"steps": [{"type": "work", "dur_s": 2340.0}]})
     _plan(c, "2026-09-27", "easy", None, source="garmin", ssys="garmin", structure=st)
@@ -123,7 +123,7 @@ def test_continuous_garmin_plan_is_not_marked_skipped_when_executed():
 
 def test_rematch_resets_wrong_completion_and_replan_trims_after_race():
     from src.training.rematch import rematch, replan_future
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-27", dist=9300.0, moving=3300)
     _plan(c, "2026-09-27", "long", 26.0, act_id=a, done=1)                       # 잘못된 자동 완료
     _plan(c, "2026-09-26", "easy", 8.0, done=1)                                  # 수동 완료(연결 없음) — 보존
@@ -170,7 +170,7 @@ def test_easy_run_too_fast_is_modified_not_on_target():
 
 def test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis():
     from src.utils.db_helpers import upsert_metric
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-22", dist=8000.0, moving=2400)
     upsert_metric(c, "activity", str(a), "workout_type_classified", "runpulse:rule_v2", text_value="interval",
                   json_value={"type": "interval", "bouts": []})
@@ -192,7 +192,7 @@ def test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis():
 
 def test_adjustment_skips_day_already_executed():
     from src.training.adjuster import adjust_todays_plan
-    c = mem_conn()
+    c = with_days(mem_conn())
     a = seed_run(c, sid="1", date="2026-09-27", dist=9300.0, moving=3300)
     _plan(c, "2026-09-27", "long", 26.0)
     assert adjust_todays_plan(c, date="2026-09-27") is not None
@@ -208,12 +208,12 @@ def _accept_adj(c, d, before, after):
 
 
 def test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate():
-    c = mem_conn()
+    c = with_days(mem_conn())
     seed_run(c, sid="1", date="2026-09-26", dist=7000.0, moving=2400)
     _plan(c, "2026-09-26", "interval", 7.0)
     _accept_adj(c, "2026-09-26", {"workout_type": "interval", "distance_km": 7.0}, {"workout_type": "rest"})
     assert match_week_activities(c, MON) == 0
-    c2 = mem_conn()
+    c2 = with_days(mem_conn())
     a = seed_run(c2, sid="1", date="2026-09-26", dist=7000.0, moving=2400)
     _plan(c2, "2026-09-26", "interval", 7.0)
     _accept_adj(c2, "2026-09-26", {"workout_type": "interval", "distance_km": 7.0},

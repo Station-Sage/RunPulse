@@ -29,7 +29,9 @@ from .planner_config import (
     LONG_RUN_BASE,
     LONG_RUN_PHASE_FACTOR,
     MAX_Q_DAYS_BY_LABEL,
+    WeekdaysRequired,  # noqa: F401 (re-export)
     get_available_days,
+    resolve_run_weekdays,
     get_eftp,
     get_latest_fitness,
     get_marathon_shape_pct,
@@ -52,7 +54,9 @@ from .planner_rules import (
     weeks_to_race,
 )
 
-from .planner_store import save_weekly_plan  # noqa: F401  (하위 호환 re-export)
+from .planner_store import (  # noqa: F401  (하위 호환 re-export)
+    ensure_user_training_prefs, save_weekly_plan, upsert_user_training_prefs)
+from .plan_finalize import finalize_week
 from .planned_query import get_planned_workouts  # noqa: F401  (하위 호환 re-export)
 from .plan_structure import structure_for_plan
 from .planner_schedule import _run_days, week_target
@@ -124,9 +128,8 @@ def generate_weekly_plan(
 
     # 사용자 설정 (휴식 요일/날짜)
     prefs = load_prefs(conn)
-    available = get_available_days(week_start, prefs)
-    if not available:
-        available = list(range(7))
+    available = get_available_days(week_start, prefs)   # 운동 요일 미지정이면 WeekdaysRequired(PLN-12)
+    run_weekdays = resolve_run_weekdays(prefs)
 
     # Q-day 수 결정
     # Seiler 2010 80/20: 가용일의 20% → ceil로 올림 (round는 7일→1개로 과소)
@@ -212,50 +215,4 @@ def generate_weekly_plan(
         from .planner_v2 import apply_for_goal
         plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start,
                             min(len(available), _run_days(conn, as_of or week_start)), vdot, as_of)
-    return apply_race_week(plan, race_date, goal_distance)
-
-
-# ── 저장/조회/설정 ──
-def ensure_user_training_prefs(conn: sqlite3.Connection, commit: bool = True) -> None:
-    """user_training_prefs 행이 없을 때만 기본값으로 생성 (기존 사용자 설정은 덮어쓰지 않음)."""
-    conn.execute(
-        "INSERT OR IGNORE INTO user_training_prefs (id, updated_at) VALUES (1, datetime('now'))"
-    )
-    if commit:
-        conn.commit()
-
-
-def upsert_user_training_prefs(
-    conn: sqlite3.Connection,
-    rest_weekdays_mask: int = 0,
-    blocked_dates: list[str] | None = None,
-    interval_rep_m: int = 1000,
-    max_q_days: int = 0,
-    long_run_weekday_mask: int = 0,
-) -> None:
-    """user_training_prefs 저장 (id=1 고정 upsert).
-
-    Args:
-        long_run_weekday_mask: 롱런 요일 비트마스크 (0=자동 선택).
-    """
-    conn.execute(
-        """INSERT INTO user_training_prefs
-           (id, rest_weekdays_mask, blocked_dates, interval_rep_m, max_q_days,
-            long_run_weekday_mask, updated_at)
-           VALUES (1, ?, ?, ?, ?, ?, datetime('now'))
-           ON CONFLICT(id) DO UPDATE SET
-               rest_weekdays_mask=excluded.rest_weekdays_mask,
-               blocked_dates=excluded.blocked_dates,
-               interval_rep_m=excluded.interval_rep_m,
-               max_q_days=excluded.max_q_days,
-               long_run_weekday_mask=excluded.long_run_weekday_mask,
-               updated_at=excluded.updated_at""",
-        (
-            rest_weekdays_mask,
-            json.dumps(blocked_dates or [], ensure_ascii=False),
-            interval_rep_m,
-            max_q_days,
-            long_run_weekday_mask,
-        ),
-    )
-    conn.commit()
+    return finalize_week(apply_race_week(plan, race_date, goal_distance), run_weekdays=run_weekdays)

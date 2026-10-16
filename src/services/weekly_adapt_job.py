@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from datetime import date, timedelta
 
 from src.services.heat_forecast import forecast_heat_pct
 from src.training.constraints import heat_adjust
 from src.training.goals import effective_rules_version, get_active_goal
-from src.training.planner import generate_weekly_plan, get_vdot_adj, resolve_distance_label, save_weekly_plan
+from src.training.planner import WeekdaysRequired, generate_weekly_plan, get_vdot_adj, resolve_distance_label, save_weekly_plan
+
+log = logging.getLogger(__name__)
 
 
 def _stored(conn: sqlite3.Connection, ds: str) -> dict | None:
@@ -31,7 +34,11 @@ def run(conn: sqlite3.Connection, today: date | None = None, getter=None) -> int
     ws = today - timedelta(days=today.weekday())
     if not goal or effective_rules_version(conn, goal["id"], ws) < 2:
         return 0
-    base = generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
+    try:
+        base = generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
+    except WeekdaysRequired as exc:
+        log.warning("주간 적응 건너뜀: %s", exc)
+        return 0
     dlabel = resolve_distance_label(goal["distance_km"], goal.get("distance_label"))
     adapted = adapt_plan(conn, goal, base, ws, dlabel, get_vdot_adj(conn))
     if getter is None:

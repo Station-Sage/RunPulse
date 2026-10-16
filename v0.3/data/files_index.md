@@ -298,7 +298,7 @@
 
 - functions: get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (205줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (211줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - functions: get_static_plan_templates, create_plan_from_template
 
@@ -426,7 +426,7 @@
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
-### `weekly_adapt_job.py` (53줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
+### `weekly_adapt_job.py` (60줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
 
 - functions: run
 
@@ -1436,9 +1436,9 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (188줄) — 훈련 목표 CRUD.
+### `goals.py` (195줄) — 훈련 목표 CRUD.
 
-- functions: plan_rules_v2_enabled, get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
+- functions: get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
 ### `interval_calc.py` (221줄) — 인터벌 트레이닝 처방 계산.
 
@@ -1492,14 +1492,18 @@
 - class **Anchor**: 없음
 - functions: load_anchors, fold
 
-### `plan_backtest.py` (227줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
+### `plan_backtest.py` (237줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
-- functions: rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
+- functions: workout_mask, rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
 
-### `plan_backtest_replan.py` (82줄) — 재계획(v1 계획 중간 anchor 에서 v2 로 전환) 백테스트 — 전환 이후 주(꼬리)를 게이트로 판정한다 (PLAN-ENGINE E7).
+### `plan_backtest_replan.py` (83줄) — 재계획(v1 계획 중간 anchor 에서 v2 로 전환) 백테스트 — 전환 이후 주(꼬리)를 게이트로 판정한다 (PLAN-ENGINE E7).
 
 - functions: engine_replan, run_replan_scenario, replan_grid, run_replan_grid
+
+### `plan_finalize.py` (67줄) — 주간 계획 최종 정합화(PLN-4) — 변형이 모두 끝난 뒤 행 불변식을 검사하고 자동 보정한다.
+
+- functions: week_violations, finalize_week
 
 ### `plan_gates.py` (182줄) — 계획 백테스트 게이트(순수) — 주간 계획이 구조 불변식(G1~G9)과 실행 가능성(F1~F6)을 지키는지 판정한다.
 
@@ -1532,25 +1536,26 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (261줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (218줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
-- functions: generate_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs
+- functions: generate_weekly_plan
 
-### `planner_config.py` (185줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
+### `planner_config.py` (197줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
-- functions: load_prefs, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
+- class **WeekdaysRequired**: 없음
+- functions: load_prefs, resolve_run_weekdays, weekdays_to_mask, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
 ### `planner_rules.py` (325줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (227줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (231줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
-### `planner_store.py` (63줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
+### `planner_store.py` (105줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
 
-- functions: write_planner_rows, save_weekly_plan
+- functions: write_planner_rows, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs, set_workout_weekdays
 
 ### `planner_v2.py` (207줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
@@ -1568,7 +1573,7 @@
 
 - functions: vdot_to_time, get_taper_weeks, get_recommended_weeks, recommend_weekly_km, get_phase_for_week, analyze_readiness
 
-### `rematch.py` (110줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
+### `rematch.py` (114줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
 
 - functions: rematch, replan_future, main
 
@@ -1900,7 +1905,7 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (184줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (188줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan
 
@@ -1908,7 +1913,7 @@
 
 - functions: accept_plan_adjustment, revert_plan_adjustment, plan_workout_action, plan_workout_action_preview, list_plan_adjustments, plan_advisories
 
-### `routes_plan_replan.py` (114줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+### `routes_plan_replan.py` (117줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
 - functions: replan_preview, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
 
@@ -1944,9 +1949,9 @@
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
-### `helpers_pred.py` (29줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
+### `helpers_pred.py` (36줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
 
-- functions: mem_conn, seed_run, seed_laps
+- functions: mem_conn, with_days, seed_run, seed_laps
 
 ### `test_activity_calcs.py` (172줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
@@ -2102,7 +2107,7 @@
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
-### `test_api_plan.py` (313줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+### `test_api_plan.py` (314줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
 - functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
@@ -2110,7 +2115,7 @@
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors, test_advisory_replan_hidden_when_race_near
 
-### `test_api_plan_replan.py` (101줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
+### `test_api_plan_replan.py` (103줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
 - functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503, test_garmin_cleanup_api
 
@@ -2650,9 +2655,9 @@
 
 - functions: test_reported_load_roundtrip_and_default_none, test_v28_migration_idempotent_and_missing_column_safe
 
-### `test_goal_rules_version.py` (57줄) — U16e: 목표별 계획 규칙 버전 고정·플래그·마이그레이션.
+### `test_goal_rules_version.py` (52줄) — U16e: 목표별 계획 규칙 버전 고정·플래그·마이그레이션.
 
-- functions: test_schema_version_and_default_one, test_flag_on_new_goal_is_v2_and_existing_stays_v1, test_explicit_version_and_downgrade, test_migration_adds_column_to_legacy_goals_idempotent, test_get_rules_version_missing_goal_is_one
+- functions: test_schema_version_and_default_two, test_new_goal_fills_plan_weeks_and_explicit_v1_allowed, test_explicit_version_and_downgrade, test_migration_adds_column_to_legacy_goals_idempotent, test_get_rules_version_missing_goal_is_one
 
 ### `test_goals.py` (116줄) — goals.py 테스트.
 
@@ -2973,7 +2978,7 @@
 
 - functions: test_no_anchor_is_identical, test_applied_anchor_replaces_only_later_weeks, test_unapplied_and_out_of_range_ignored, test_extra_anchor_preview_writes_nothing
 
-### `test_plan_backtest.py` (102줄)
+### `test_plan_backtest.py` (104줄)
 
 - functions: test_rest_mask_leaves_requested_days, test_grid_size, test_cold_grid_scenario_passes_gates, test_v1_full_plan_fails_marathon_gates, test_deterministic, test_summarize_counts, test_history_scenarios_from_seeded_db, test_v1_output_snapshot_protects_existing_goals, test_v1_output_snapshot_full_and_cold, test_seed_grid_history_matches_start_load, test_engine_v2_grid_passes_gates
 
@@ -3586,6 +3591,10 @@
 
 - class **TestWLEI**: test_basic, test_hot_weather, test_cold_weather, test_no_trimp, test_json_value, test_confidence
 
+### `test_workout_weekdays.py` (103줄) — 운동 요일 필수화(PLN-11/12) · 주간 정합화(PLN-4) 단위 테스트.
+
+- functions: test_set_workout_weekdays_stores_mask, test_set_workout_weekdays_rejects_invalid, test_resolve_requires_mask, test_generate_without_mask_raises, test_generate_respects_specified_weekdays, test_week_violations_detects_each_kind, test_finalize_week_fixes_weekday_and_rest_distance, test_finalize_week_skips_race_rows, test_plan_weeks_counts_inclusive_and_rejects_past, test_backtest_scenario_without_mask_raises, test_auto_paths_skip_without_mask
+
 ### `test_zones.py` (64줄) — zones 유틸리티 테스트.
 
 - class **TestHrZones**: test_returns_5_zones, test_zone_boundaries, test_zones_ascending
@@ -3647,7 +3656,7 @@
 
 - functions: main
 
-### `plan_backtest.py` (49줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
+### `plan_backtest.py` (50줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
 
@@ -3664,7 +3673,7 @@
 - functions: run
 
 ---
-총 785개 파일
+총 787개 파일
 
 ## docstring 누락
 

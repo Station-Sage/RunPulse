@@ -6,7 +6,7 @@ import pytest
 from src.services import plan_template_service as svc
 from src.training import planner
 from src.training.goals import add_goal, get_active_goal
-from tests.helpers_pred import mem_conn
+from tests.helpers_pred import mem_conn, with_days
 
 
 def _race(days=70):
@@ -14,13 +14,13 @@ def _race(days=70):
 
 
 def test_create_cancels_old_goal_and_clears_its_future_rows():
-    c = mem_conn()
-    old = svc.create_plan_from_template(c, 21.0975, _race(40), 5, name="old")
+    c = with_days(mem_conn())
+    old = svc.create_plan_from_template(c, 21.0975, _race(40), 5, name="old", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     fut = (date.today() + timedelta(days=3)).isoformat()
     c.execute("INSERT INTO planned_workouts(date,workout_type,distance_km,source,completed, goal_id) VALUES (?, 'easy', 5, 'planner', 1, 1)",
               (fut,))
     c.commit()
-    new = svc.create_plan_from_template(c, 42.195, _race(70), 8, name="new")
+    new = svc.create_plan_from_template(c, 42.195, _race(70), 8, name="new", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     assert get_active_goal(c)["id"] == new != old
     assert c.execute("SELECT status FROM goals WHERE id=?", (old,)).fetchone()[0] == "cancelled"
     # 이력(completed) 행은 보존
@@ -28,7 +28,7 @@ def test_create_cancels_old_goal_and_clears_its_future_rows():
 
 
 def test_failure_rolls_back_goal_and_plan(monkeypatch):
-    c = mem_conn()
+    c = with_days(mem_conn())
     keep = add_goal(c, "keep", 10, _race(30))
     before = c.execute("SELECT count(*) FROM planned_workouts").fetchone()[0]
     calls = {"n": 0}
@@ -42,14 +42,14 @@ def test_failure_rolls_back_goal_and_plan(monkeypatch):
 
     monkeypatch.setattr(svc, "generate_weekly_plan", boom)
     with pytest.raises(RuntimeError):
-        svc.create_plan_from_template(c, 42.195, _race(70), 8, name="bad")
+        svc.create_plan_from_template(c, 42.195, _race(70), 8, name="bad", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     assert get_active_goal(c)["id"] == keep
     assert c.execute("SELECT count(*) FROM goals").fetchone()[0] == 1
     assert c.execute("SELECT count(*) FROM planned_workouts").fetchone()[0] == before
 
 
 def test_commit_false_defers_to_caller():
-    c = mem_conn()
+    c = with_days(mem_conn())
     c.commit()
     add_goal(c, "g", 10, _race(30), commit=False)
     c.rollback()

@@ -31,6 +31,8 @@ def client(tmp_path, monkeypatch):
     migrate_db(c)
     gid = add_goal(c, "g", 21.0975, RACE, None, rules_version=2)
     c.execute("UPDATE goals SET plan_weeks=12, distance_label='half' WHERE id=?", (gid,))
+    from src.training.planner_store import set_workout_weekdays
+    set_workout_weekdays(c, range(7))
     c.commit()
     c.close()
     return _app(f, monkeypatch)

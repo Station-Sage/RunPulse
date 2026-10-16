@@ -3,7 +3,16 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
-	import { parsePrefill, parseReportedLoad, REPORTED_MAX_KM, reportedLoadEntries } from '$lib/planPrefill';
+	import {
+		needsInjuryNotice,
+		parsePrefill,
+		parseReportedLoad,
+		parseRunWeekdays,
+		REPORTED_MAX_KM,
+		reportedLoadEntries,
+		toggleWeekday,
+		WEEKDAY_LABELS
+	} from '$lib/planPrefill';
 
 	const DISTANCES: { label: string; km: number }[] = [
 		{ label: '5km', km: 5 },
@@ -23,6 +32,7 @@
 	const reported = parseReportedLoad(page.url.searchParams);
 	let recentWeekly = $state(reported.weeklyKm != null ? String(reported.weeklyKm) : '');
 	let recentLong = $state(reported.longKm != null ? String(reported.longKm) : '');
+	let runDays = $state<number[]>(parseRunWeekdays(page.url.searchParams.get('run_weekdays')));
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
@@ -40,6 +50,10 @@
 			error = '거리를 선택해주세요.';
 			return;
 		}
+		if (runDays.length === 0) {
+			error = '운동할 요일을 1개 이상 선택해주세요.';
+			return;
+		}
 		loading = true;
 		error = null;
 		try {
@@ -47,6 +61,7 @@
 			const tts = targetTimeSec();
 			await getPlanTemplates(selectedKm, tts);
 			const params = new URLSearchParams({ distance_km: String(selectedKm) });
+			params.set('run_weekdays', runDays.join(','));
 			if (raceDate) params.set('race_date', raceDate);
 			if (tts != null) params.set('target_time_sec', String(tts));
 			for (const [k, v] of reportedLoadEntries(String(recentWeekly ?? ''), String(recentLong ?? ''))) params.set(k, v);
@@ -88,6 +103,32 @@
 					</button>
 				{/each}
 			</div>
+		</div>
+
+		<!-- 운동 요일(필수) -->
+		<div>
+			<p class="mb-1 text-sm font-medium text-fg-primary">운동 요일</p>
+			<p class="mb-2 text-xs text-fg-muted">달리는 요일을 선택하세요. 선택하지 않은 요일은 휴식으로 배치됩니다.</p>
+			<div class="flex flex-wrap gap-2">
+				{#each WEEKDAY_LABELS as label, i}
+					<button
+						type="button"
+						aria-pressed={runDays.includes(i)}
+						onclick={() => (runDays = toggleWeekday(runDays, i))}
+						class="h-9 w-9 rounded-full border text-sm transition-colors
+							{runDays.includes(i)
+							? 'border-fg-primary bg-fg-primary text-surface-1'
+							: 'border-border-subtle bg-surface-2 text-fg-secondary hover:bg-surface-3'}"
+					>
+						{label}
+					</button>
+				{/each}
+			</div>
+			{#if needsInjuryNotice(runDays)}
+				<p class="mt-2 text-xs text-semantic-red" data-testid="injury-notice">
+					주 {runDays.length}일 운동은 부상 위험이 높아질 수 있습니다. (문구 확정 대기)
+				</p>
+			{/if}
 		</div>
 
 		<!-- 날짜 입력 -->
@@ -191,7 +232,7 @@
 		<button
 			type="button"
 			onclick={handleSubmit}
-			disabled={loading || selectedKm == null}
+			disabled={loading || selectedKm == null || runDays.length === 0}
 			class="self-start rounded-lg bg-fg-primary px-6 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-40"
 		>
 			{loading ? '분석 중…' : '프로그램 생성 →'}

@@ -5,7 +5,7 @@ import pytest
 
 from src.services import plan_replan_service as R
 from src.training.goals import add_goal
-from tests.helpers_pred import mem_conn, seed_run
+from tests.helpers_pred import mem_conn, seed_run, with_days
 
 TODAY = date.today()
 RACE = (R.next_monday(TODAY) + timedelta(weeks=10, days=5)).isoformat()
@@ -13,7 +13,7 @@ RACE = (R.next_monday(TODAY) + timedelta(weeks=10, days=5)).isoformat()
 
 @pytest.fixture
 def c():
-    conn = mem_conn()
+    conn = with_days(mem_conn())
     gid = add_goal(conn, "g", 21.0975, RACE, 7200, rules_version=2)
     conn.execute("UPDATE goals SET plan_weeks=14, distance_label='half' WHERE id=?", (gid,))
     conn.commit()

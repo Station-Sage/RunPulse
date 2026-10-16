@@ -43,11 +43,16 @@ class Scenario:
     start_km: float = 0.0
     long_start: float = 0.0
     race_sec: int | None = None    # 역사 시나리오의 실제 기록
+    workout_weekdays_mask: int | None = None   # 운동 요일(PLN-12). None 이면 설정 오류
     aux: dict = field(default_factory=dict)
 
     @property
     def start_monday(self) -> date:
         return plan_start_monday(self.race_date, self.plan_weeks)
+
+
+def workout_mask(days: int) -> int:
+    return sum(1 << d for d in DAY_ORDER[:days])
 
 
 def rest_mask(days: int) -> int:
@@ -63,11 +68,14 @@ def _plan_from_rows(k: int, to_race: int, rows: list[dict]) -> G.WeekPlan:
     return G.WeekPlan(k, to_race, rows[0].get("_phase", ""), days, rows[0].get("_mp_sec"), LongCtx(**ctx) if ctx else None)
 
 
-def engine_v1(scn: Scenario, conn: sqlite3.Connection, rules_version: int | None = None) -> tuple[list[G.WeekPlan], dict]:
+def engine_v1(scn: Scenario, conn: sqlite3.Connection, rules_version: int = 1) -> tuple[list[G.WeekPlan], dict]:
     gid = add_goal(conn, f"bt-{scn.race_date}", DIST_KM[scn.distance], scn.race_date, scn.goal_sec,
                    rules_version=rules_version)
     conn.execute("UPDATE goals SET plan_weeks=?, distance_label=? WHERE id=?", (scn.plan_weeks, scn.distance, gid))
-    upsert_user_training_prefs(conn, rest_weekdays_mask=rest_mask(scn.days))
+    if scn.workout_weekdays_mask is None:
+        raise ValueError("Scenario.workout_weekdays_mask 가 필요합니다 (PLN-12)")
+    upsert_user_training_prefs(conn, rest_weekdays_mask=rest_mask(scn.days),
+                               workout_weekdays_mask=scn.workout_weekdays_mask)
     start = scn.start_monday
     weeks = []
     for k in range(scn.plan_weeks):
@@ -85,7 +93,8 @@ def grid_scenarios() -> list[Scenario]:
     race0 = date(2030, 11, 24)       # 일요일. 합성 격자의 기준 대회일
 
     def grid(loads: dict) -> list[Scenario]:
-        return [Scenario("grid", d, w, race0.isoformat(), n, start_km=s, long_start=ls)
+        return [Scenario("grid", d, w, race0.isoformat(), n, start_km=s, long_start=ls,
+                         workout_weekdays_mask=workout_mask(n))
                 for d in GRID["distance"] for w in GRID["weeks"] for n in GRID["days"]
                 for s in loads["start_km"] for ls in loads["long_start"]]
     return grid(GRID) + grid(COLD_GRID)
@@ -128,7 +137,7 @@ def history_inputs(conn: sqlite3.Connection, start: date) -> dict:
             "long_max_12w": round(long12, 1), "avg16": recent_avg_km(conn, start, 16), "peak_week_16w": round(max((sum(v) for v in wk.values()), default=0.0), 1)}
 
 
-def history_scenarios(conn: sqlite3.Connection, factors=(None, 0.97)) -> list[Scenario]:
+def history_scenarios(conn: sqlite3.Connection, workout_weekdays_mask: int, factors=(None, 0.97)) -> list[Scenario]:
     """하프 이상 대회(레이스 판정은 get_race_history 와 동일) × plan_weeks {9,12,16} × 목표(없음/기록×0.97). 데이터 시작보다 앞서는 시작일은 생략."""
     first = conn.execute("SELECT MIN(DATE(start_time)) FROM activity_summaries").fetchone()[0]
     out: list[Scenario] = []
@@ -140,7 +149,8 @@ def history_scenarios(conn: sqlite3.Connection, factors=(None, 0.97)) -> list[Sc
         " OR a.name LIKE '%대회%' OR a.name LIKE '%Race%') ORDER BY 1").fetchall()
     for day, dist, sec in races:
         for w in (9, 12, 16):
-            scn = Scenario("history", "full" if dist >= 41000 else "half", w, day, 0, race_sec=int(sec))
+            scn = Scenario("history", "full" if dist >= 41000 else "half", w, day, 0, race_sec=int(sec),
+                       workout_weekdays_mask=workout_weekdays_mask)
             if first and scn.start_monday < date.fromisoformat(first):
                 continue
             for f in factors:

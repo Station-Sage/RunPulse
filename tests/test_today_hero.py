@@ -24,7 +24,7 @@ def conn():
 
 def _goal(conn, race_date="2026-12-06"):
     gid = add_goal(conn, "테스트 대회", 42.195, race_date=race_date)
-    conn.execute("UPDATE goals SET created_at = '2026-09-01 00:00:00' WHERE id = ?", (gid,))
+    conn.execute("UPDATE goals SET created_at = '2026-09-01 00:00:00', plan_weeks = 14 WHERE id = ?", (gid,))
 
 
 def _plan(conn, d, wtype, km):

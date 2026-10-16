@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
 from src.training import planner
-from tests.helpers_pred import mem_conn
+from tests.helpers_pred import mem_conn, with_days
 
 
 def test_as_of_passthrough_and_default():
-    c = mem_conn()
+    c = with_days(mem_conn())
     seen = {}
     real = planner.get_latest_fitness
 

@@ -35,7 +35,7 @@ def test_post_plan_reported_load_saved_and_warnings(mini_app, monkeypatch):
     monkeypatch.setenv("PLAN_RULES_V2_ENABLED", "1")
     res = client.post("/api/v1/coach/plan", json={
         "distance_km": 42.195, "weeks": 8, "race_date": (date.today() + timedelta(weeks=8)).isoformat(),
-        "recent_weekly_km": 12, "recent_long_km": 8.5})
+        "recent_weekly_km": 12, "recent_long_km": 8.5, "run_weekdays": [0, 2, 4, 6]})
     assert res.status_code == 200
     data = res.get_json()["data"]
     assert len(data["warnings"]) == 1 and "풀마라톤 준비 볼륨" in data["warnings"][0]
@@ -49,5 +49,5 @@ def test_post_plan_reported_load_saved_and_warnings(mini_app, monkeypatch):
 @pytest.mark.parametrize("bad", [{"recent_weekly_km": "abc"}, {"recent_weekly_km": -1}, {"recent_long_km": 99}])
 def test_post_plan_400_bad_reported_load(mini_app, bad):
     client, _ = mini_app
-    res = client.post("/api/v1/coach/plan", json={"distance_km": 10.0, "weeks": 8, **bad})
+    res = client.post("/api/v1/coach/plan", json={"distance_km": 10.0, "weeks": 8, "run_weekdays": [0, 2], **bad})
     assert res.status_code == 400

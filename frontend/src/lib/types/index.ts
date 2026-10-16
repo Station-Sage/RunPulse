@@ -1214,6 +1214,7 @@ export interface CreatePlanPayload {
 	name?: string;
 	recent_weekly_km?: number;
 	recent_long_km?: number;
+	run_weekdays: number[];
 }
 
 export interface CreatePlanResult {

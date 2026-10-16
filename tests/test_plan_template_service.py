@@ -85,7 +85,7 @@ def test_templates_risk_level_mapping(conn):
 
 def test_create_plan_inserts_goal(conn):
     goal_id = plan_template_service.create_plan_from_template(
-        conn, 42.195, "2027-03-15", 16, target_time_sec=14400
+        conn, 42.195, "2027-03-15", 16, target_time_sec=14400, run_weekdays=[0, 1, 2, 3, 4, 5, 6]
     )
     assert isinstance(goal_id, int)
     row = conn.execute("SELECT id, plan_weeks, distance_km FROM goals WHERE id=?", (goal_id,)).fetchone()
@@ -96,7 +96,7 @@ def test_create_plan_inserts_goal(conn):
 
 def test_create_plan_fills_planned_workouts(conn):
     goal_id = plan_template_service.create_plan_from_template(
-        conn, 10.0, None, 8, target_time_sec=2700
+        conn, 10.0, None, 8, target_time_sec=2700, run_weekdays=[0, 1, 2, 3, 4, 5, 6]
     )
     count = conn.execute(
         "SELECT COUNT(*) FROM planned_workouts WHERE source='planner'"
@@ -107,7 +107,7 @@ def test_create_plan_fills_planned_workouts(conn):
 def test_create_plan_no_race_date(conn):
     """race_date=None이어도 정상 생성."""
     goal_id = plan_template_service.create_plan_from_template(
-        conn, 21.097, None, 12, target_time_sec=7200
+        conn, 21.097, None, 12, target_time_sec=7200, run_weekdays=[0, 1, 2, 3, 4, 5, 6]
     )
     assert isinstance(goal_id, int)
     row = conn.execute("SELECT id FROM goals WHERE id=?", (goal_id,)).fetchone()
@@ -116,7 +116,7 @@ def test_create_plan_no_race_date(conn):
 
 def test_create_plan_custom_name(conn):
     goal_id = plan_template_service.create_plan_from_template(
-        conn, 5.0, None, 6, name="봄 5km 도전"
+        conn, 5.0, None, 6, name="봄 5km 도전", run_weekdays=[0, 1, 2, 3, 4, 5, 6]
     )
     row = conn.execute("SELECT name FROM goals WHERE id=?", (goal_id,)).fetchone()
     assert row[0] == "봄 5km 도전"
@@ -131,7 +131,7 @@ def test_create_plan_respects_weeks_not_race_date(conn):
     """
     far_race_date = (date.today() + timedelta(weeks=40)).isoformat()
     plan_template_service.create_plan_from_template(
-        conn, 42.195, far_race_date, 16, target_time_sec=14400
+        conn, 42.195, far_race_date, 16, target_time_sec=14400, run_weekdays=[0, 1, 2, 3, 4, 5, 6]
     )
     rows = conn.execute(
         "SELECT date FROM planned_workouts WHERE source='planner'"
@@ -153,7 +153,7 @@ def test_create_plan_keeps_existing_training_prefs():
     c = mem_conn()
     upsert_user_training_prefs(c, rest_weekdays_mask=5, interval_rep_m=800, max_q_days=1, long_run_weekday_mask=64)
     race = (date.today() + timedelta(days=30)).isoformat()
-    pts.create_plan_from_template(c, 10.0, race, 4, name="t")
+    pts.create_plan_from_template(c, 10.0, race, 4, name="t", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     row = c.execute("SELECT rest_weekdays_mask, interval_rep_m, max_q_days, long_run_weekday_mask "
                     "FROM user_training_prefs WHERE id=1").fetchone()
     assert tuple(row) == (5, 800, 1, 64)

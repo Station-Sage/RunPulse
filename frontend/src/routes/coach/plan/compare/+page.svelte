@@ -14,6 +14,10 @@
 	let created = $state<{ goalId: number; warnings: string[] } | null>(null);
 
 	async function handleSelect(weeks: number) {
+		if (data.runWeekdays.length === 0) {
+			error = '운동 요일이 지정되지 않았습니다. 이전 단계에서 요일을 선택해주세요.';
+			return;
+		}
 		loading = weeks;
 		error = null;
 		try {
@@ -21,6 +25,7 @@
 				distance_km: data.distanceKm,
 				race_date: data.raceDate,
 				weeks,
+				run_weekdays: data.runWeekdays,
 				...(data.targetTimeSec != null ? { target_time_sec: data.targetTimeSec } : {}),
 				...(data.recentWeeklyKm != null ? { recent_weekly_km: data.recentWeeklyKm } : {}),
 				...(data.recentLongKm != null ? { recent_long_km: data.recentLongKm } : {})

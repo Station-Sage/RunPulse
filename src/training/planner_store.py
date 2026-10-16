@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
+from .planner_config import WeekdaysRequired, resolve_run_weekdays  # noqa: F401  (단일 출처 re-export)
+
 _STD_COLS = (
     "date", "workout_type", "distance_km", "target_pace_min", "target_pace_max", "target_hr_zone",
     "description", "rationale", "source", "interval_prescription", "structure_json",
@@ -61,3 +63,43 @@ def save_weekly_plan(conn: sqlite3.Connection, plan: list[dict], commit: bool = 
     if commit:
         conn.commit()
     return count
+
+
+def ensure_user_training_prefs(conn: sqlite3.Connection, commit: bool = True) -> None:
+    """user_training_prefs 단일 행(id=1) 보장."""
+    conn.execute("INSERT OR IGNORE INTO user_training_prefs (id, updated_at) VALUES (1, datetime('now'))")
+    if commit:
+        conn.commit()
+
+
+def upsert_user_training_prefs(conn: sqlite3.Connection, rest_weekdays_mask: int = 0,
+                               blocked_dates: list[str] | None = None, interval_rep_m: int = 1000,
+                               max_q_days: int = 0, long_run_weekday_mask: int = 0,
+                               workout_weekdays_mask: int | None = None) -> None:
+    """user_training_prefs 저장. workout_weekdays_mask=None 이면 기존 값을 유지한다(미지정 상태 보존)."""
+    conn.execute(
+        """INSERT INTO user_training_prefs (id, rest_weekdays_mask, blocked_dates, interval_rep_m, max_q_days,
+             long_run_weekday_mask, workout_weekdays_mask, updated_at)
+           VALUES (1, ?, ?, ?, ?, ?, ?, datetime('now'))
+           ON CONFLICT(id) DO UPDATE SET rest_weekdays_mask=excluded.rest_weekdays_mask,
+             blocked_dates=excluded.blocked_dates, interval_rep_m=excluded.interval_rep_m,
+             max_q_days=excluded.max_q_days, long_run_weekday_mask=excluded.long_run_weekday_mask,
+             workout_weekdays_mask=COALESCE(excluded.workout_weekdays_mask, workout_weekdays_mask),
+             updated_at=excluded.updated_at""",
+        (rest_weekdays_mask, json.dumps(blocked_dates or [], ensure_ascii=False), interval_rep_m,
+         max_q_days, long_run_weekday_mask, workout_weekdays_mask))
+    conn.commit()
+
+
+def set_workout_weekdays(conn: sqlite3.Connection, days, commit: bool = True) -> int:
+    """운동 요일(0=월..6=일)을 마스크로 저장한다. 비어 있으면 WeekdaysRequired. 저장한 마스크를 돌려준다."""
+    from .planner_config import weekdays_to_mask
+    days = sorted({int(d) for d in days or []})
+    if not days or any(d < 0 or d > 6 for d in days):
+        raise WeekdaysRequired("운동 요일은 월~일 중 1개 이상이어야 합니다")
+    mask = weekdays_to_mask(days)
+    ensure_user_training_prefs(conn, commit=False)
+    conn.execute("UPDATE user_training_prefs SET workout_weekdays_mask=?, updated_at=datetime('now') WHERE id=1", (mask,))
+    if commit:
+        conn.commit()
+    return mask

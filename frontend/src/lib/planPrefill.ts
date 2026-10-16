@@ -59,3 +59,26 @@ export function reportedLoadEntries(weekly: string, long: string): [string, stri
 	if (l != null) out.push(['recent_long_km', String(l)]);
 	return out;
 }
+
+// 운동 요일(0=월..6=일) — PLN-11/12: 플랜 생성에 필수. 쿼리 "run_weekdays=0,2,4" ↔ number[].
+export const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+export const INJURY_NOTICE_MIN_DAYS = 6;
+
+export function parseRunWeekdays(raw: string | null | undefined): number[] {
+	if (!raw) return [];
+	const set = new Set<number>();
+	for (const t of raw.split(',')) {
+		const n = Number(t);
+		if (Number.isInteger(n) && n >= 0 && n <= 6 && t.trim() !== '') set.add(n);
+	}
+	return [...set].sort((a, b) => a - b);
+}
+
+export function toggleWeekday(days: number[], d: number): number[] {
+	return days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b);
+}
+
+// PLN-14: 지정 요일이 6일 이상이면 저장 전 부상 위험 안내를 1회 보인다(서버 계약은 불변).
+export function needsInjuryNotice(days: number[]): boolean {
+	return new Set(days).size >= INJURY_NOTICE_MIN_DAYS;
+}

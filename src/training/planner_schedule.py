@@ -193,8 +193,12 @@ def recent_run_days_per_week(conn: sqlite3.Connection, as_of: date, weeks: int =
 
 
 def _run_days(conn: sqlite3.Connection, as_of: date | None = None) -> int:
-    """주 러닝 일수: 휴식 요일 설정이 있으면 7-휴식일, 없으면 최근 8주 중앙값(3~6, 기록 없으면 4) — DESIGN X2."""
-    mask = load_prefs(conn).get("rest_weekdays_mask", 0) & 0x7F
+    """주 러닝 일수: 운동 요일이 있으면 그 수, 휴식 요일 설정이 있으면 7-휴식일, 없으면 최근 8주 중앙값(3~6, 기록 없으면 4) — DESIGN X2."""
+    prefs = load_prefs(conn)
+    wmask = prefs.get("workout_weekdays_mask")
+    if wmask:
+        return bin(wmask & 0x7F).count("1")
+    mask = prefs.get("rest_weekdays_mask", 0) & 0x7F
     if mask:
         return 7 - bin(mask).count("1")
     from .week_structure import default_run_days

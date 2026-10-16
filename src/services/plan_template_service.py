@@ -14,8 +14,9 @@ from src.training.plan_replace import replace_range
 from src.training.planner import (
     generate_weekly_plan,
     save_weekly_plan,
-    ensure_user_training_prefs,
+    ensure_user_training_prefs,  # noqa: F401
 )
+from src.training.planner_store import WeekdaysRequired, set_workout_weekdays
 from src.training.planner_rules import plan_start_monday, plan_weeks_until_race
 from src.training.readiness import (
     analyze_readiness,
@@ -158,6 +159,8 @@ def create_plan_from_template(
     name: str | None = None,
     recent_weekly_km: float | None = None,
     recent_long_km: float | None = None,
+    *,
+    run_weekdays,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -169,11 +172,14 @@ def create_plan_from_template(
         target_time_sec: 목표 완주 시간(초). None이면 "완주" 목표.
         name: 목표 이름. None이면 "{distance_km}km 목표" 자동 생성.
         recent_weekly_km / recent_long_km: 사용자가 입력한 최근 주간 km·최장 롱런 km(선택, v2 콜드스타트 출처).
+        run_weekdays: 운동 요일(0=월..6=일) 필수. 비면 WeekdaysRequired. 저장 후 계획이 이 요일 안에서만 달린다(PLN-11·12).
 
     Returns:
         새로 생성된 goal_id.
     """
     input_limits.check_plan_request(distance_km, weeks)
+    if not run_weekdays:
+        raise WeekdaysRequired("운동 요일을 먼저 지정해야 계획을 만들 수 있습니다")
     avail = plan_weeks_until_race(race_date)
     if avail is not None:
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
@@ -187,7 +193,7 @@ def create_plan_from_template(
         conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
         if recent_weekly_km is not None or recent_long_km is not None:
             set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
-        ensure_user_training_prefs(conn, commit=False)
+        set_workout_weekdays(conn, run_weekdays, commit=False)
 
         # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)
         ws = (plan_start_monday(race_date, weeks) if race_date and avail is not None else None) \

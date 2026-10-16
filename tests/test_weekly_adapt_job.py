@@ -4,14 +4,14 @@ from datetime import date, timedelta
 from src.services import weekly_adapt_job as J
 from src.training.goals import add_goal
 from src.training.planner import generate_weekly_plan, save_weekly_plan
-from tests.helpers_pred import mem_conn
+from tests.helpers_pred import mem_conn, with_days
 
 TODAY = date.today()
 MON = TODAY - timedelta(days=TODAY.weekday())
 
 
 def _setup(version=2):
-    c = mem_conn()
+    c = with_days(mem_conn())
     gid = add_goal(c, "g", 42.195, (MON + timedelta(weeks=12)).isoformat(), 14400, rules_version=version)
     save_weekly_plan(c, generate_weekly_plan(c, week_start=MON), goal_id=gid)
     return c

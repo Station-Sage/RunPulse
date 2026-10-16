@@ -168,7 +168,7 @@ def test_get_templates_200(mini_app):
 def test_post_plan_400_missing_fields(mini_app):
     """distance_km 또는 weeks 없으면 400."""
     client, _ = mini_app
-    res = client.post("/api/v1/coach/plan", json={"distance_km": 42.195})
+    res = client.post("/api/v1/coach/plan", json={"distance_km": 42.195, "run_weekdays": [0, 2]})
     assert res.status_code == 400
     err = res.get_json()["error"]
     assert err["code"] == "INVALID_PARAM"
@@ -181,6 +181,7 @@ def test_post_plan_201_creates_goal(mini_app):
     res = client.post("/api/v1/coach/plan", json={
         "distance_km": 10.0,
         "weeks": 8,
+        "run_weekdays": [0, 2, 4, 6],
         "target_time_sec": 2700
     })
     assert res.status_code == 200

@@ -10,6 +10,13 @@ def mem_conn():
     return c
 
 
+def with_days(c, days=range(7)):
+    """운동 요일 마스크를 지정한다(PLN-12 — 미지정이면 계획 생성이 WeekdaysRequired)."""
+    from src.training.planner_store import set_workout_weekdays
+    set_workout_weekdays(c, days)
+    return c
+
+
 def seed_run(c, *, source="garmin", sid="1", date="2026-05-09", t="07:30:00", name="Run", dist=10000.0,
              moving=2700, elapsed=None, avg_hr=150, max_hr=175, event_type=None, group=None, atype="running",
              lat=37.52, lon=126.92, temp=None):

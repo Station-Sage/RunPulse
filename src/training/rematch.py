@@ -19,7 +19,7 @@ from src.training.matcher import match_week_activities
 from src.training.matcher_context import canonical_activity_id
 from src.training.outcome_store import update_outcome_v2
 from src.training.plan_structure import structure_for_plan
-from src.training.planner import generate_weekly_plan, save_weekly_plan
+from src.training.planner import WeekdaysRequired, generate_weekly_plan, save_weekly_plan
 
 
 def _backfill_structure(conn: sqlite3.Connection, start: date, end: date) -> int:
@@ -79,7 +79,11 @@ def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = N
     this_mon = today - timedelta(days=today.weekday())
     ws, n = this_mon, 0
     while ws <= race_mon:
-        plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+        try:
+            plan = generate_weekly_plan(conn, goal_id=goal_id, week_start=ws)
+        except WeekdaysRequired as exc:
+            conn.rollback()
+            return {"weeks": None, "regenerated": 0, "deleted": 0, "skipped": str(exc)}
         if ws == this_mon:
             done = {r[0] for r in conn.execute(
                 "SELECT date FROM planned_workouts WHERE source='planner' AND (completed=1 OR matched_activity_id IS NOT NULL)")}

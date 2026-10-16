@@ -19,7 +19,8 @@ def engine_replan(scn: B.Scenario, conn: sqlite3.Connection, anchor_k: int) -> t
     """전체 일정을 만들되 anchor_k 주부터 v2. 반환 weeks 는 꼬리(index 0 = anchor 주)만."""
     gid = add_goal(conn, f"bt-rp-{scn.race_date}", B.DIST_KM[scn.distance], scn.race_date, scn.goal_sec, rules_version=1)
     conn.execute("UPDATE goals SET plan_weeks=?, distance_label=? WHERE id=?", (scn.plan_weeks, scn.distance, gid))
-    upsert_user_training_prefs(conn, rest_weekdays_mask=B.rest_mask(scn.days))
+    upsert_user_training_prefs(conn, rest_weekdays_mask=B.rest_mask(scn.days),
+                               workout_weekdays_mask=scn.workout_weekdays_mask)
     start = scn.start_monday
     anchor = start + timedelta(weeks=anchor_k)
     km = max(12.0, float(scn.start_km))

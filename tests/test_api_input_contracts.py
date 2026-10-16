@@ -148,7 +148,7 @@ def test_templates_today_race_date_and_optional_fields_ok(ctx):
 # ── P-05 plan create ─────────────────────────────────────────────────────────
 
 def _plan(client, **over):
-    body = {"distance_km": 10.0, "weeks": 8, **over}
+    body = {"distance_km": 10.0, "weeks": 8, "run_weekdays": [0, 2, 4, 6], **over}
     return client.post("/api/v1/coach/plan", json=body)
 
 
@@ -173,7 +173,7 @@ def test_plan_create_rejects(ctx, over, field):
 def test_plan_create_missing_required_fields(ctx):
     client, _ = ctx
     res = client.post("/api/v1/coach/plan", json={})
-    assert set(_details(res)) == {"distance_km", "weeks"}
+    assert set(_details(res)) == {"distance_km", "weeks", "run_weekdays"}
 
 
 def test_plan_create_non_json_415(ctx):
@@ -209,9 +209,9 @@ def test_plan_service_keeps_minimal_invariant(ctx):
     from src.services import plan_template_service as svc
     conn = sqlite3.connect(":memory:")
     with pytest.raises(ValueError):
-        svc.create_plan_from_template(conn, 10.0, None, 0)
+        svc.create_plan_from_template(conn, 10.0, None, 0, run_weekdays=[0])
     with pytest.raises(ValueError):
-        svc.create_plan_from_template(conn, 0, None, 8)
+        svc.create_plan_from_template(conn, 0, None, 8, run_weekdays=[0])
     with pytest.raises(ValueError):
         svc.get_static_plan_templates(conn, -5)
 

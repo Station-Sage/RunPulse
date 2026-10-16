@@ -14,27 +14,22 @@ def _conn():
     return c
 
 
-def test_schema_version_and_default_one(monkeypatch):
-    monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
+def test_schema_version_and_default_two():
     assert SCHEMA_VERSION >= 26
     c = _conn()
     gid = add_goal(c, "x", 42.195, "2026-11-22")
-    assert get_rules_version(c, gid) == 1
+    assert get_rules_version(c, gid) == 2
 
 
-def test_flag_on_new_goal_is_v2_and_existing_stays_v1(monkeypatch):
-    monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
+def test_new_goal_fills_plan_weeks_and_explicit_v1_allowed():
     c = _conn()
-    old = add_goal(c, "old", 42.195, "2026-11-22")
-    monkeypatch.setenv("PLAN_RULES_V2_ENABLED", "true")
-    new = add_goal(c, "new", 42.195, "2027-03-01")
-    assert (get_rules_version(c, old), get_rules_version(c, new)) == (1, 2)
-    monkeypatch.setenv("PLAN_RULES_V2_ENABLED", "0")
-    assert get_rules_version(c, add_goal(c, "off", 10, "2027-04-01")) == 1
+    gid = add_goal(c, "x", 42.195, "2099-01-01")
+    assert c.execute("SELECT plan_weeks FROM goals WHERE id=?", (gid,)).fetchone()[0] is not None
+    old = add_goal(c, "old", 10, "2027-04-01", rules_version=1)
+    assert get_rules_version(c, old) == 1
 
 
-def test_explicit_version_and_downgrade(monkeypatch):
-    monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
+def test_explicit_version_and_downgrade():
     c = _conn()
     gid = add_goal(c, "v2", 42.195, "2027-03-01", rules_version=2)
     assert get_rules_version(c, gid) == 2

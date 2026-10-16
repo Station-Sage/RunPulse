@@ -1,6 +1,5 @@
 """훈련 목표 CRUD."""
 
-import os
 import sqlite3
 from datetime import date
 
@@ -14,9 +13,16 @@ def _row_to_dict(row: tuple) -> dict:
     return dict(zip(keys, row))
 
 
-def plan_rules_v2_enabled() -> bool:
-    """새 목표를 계획 규칙 v2로 만들지 여부(환경변수 PLAN_RULES_V2_ENABLED, 기본 off)."""
-    return os.environ.get("PLAN_RULES_V2_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+def _plan_weeks(race_date: str) -> int | None:
+    """오늘이 속한 주 ~ 레이스 주(포함)의 주 수. 날짜 해석 불가 또는 과거면 None."""
+    from datetime import date, timedelta
+    try:
+        race = date.fromisoformat(str(race_date)[:10])
+    except ValueError:
+        return None
+    today = date.today()
+    weeks = ((race - timedelta(days=race.weekday())) - (today - timedelta(days=today.weekday()))).days // 7 + 1
+    return weeks if weeks >= 1 else None
 
 
 def get_rules_version(conn: sqlite3.Connection, goal_id: int) -> int:
@@ -91,21 +97,22 @@ def add_goal(
         race_date: 레이스 날짜 (YYYY-MM-DD).
         target_time_sec: 목표 완주 시간 (초).
         target_pace_sec_km: 목표 페이스 (초/km).
-        rules_version: 계획 규칙 버전. None이면 플래그에 따라 2(on) 또는 1(off).
+        rules_version: 계획 규칙 버전. None이면 2. plan_weeks 는 오늘~레이스 주까지의 주 수로 채운다.
         commit: False 면 호출자가 트랜잭션을 소유한다.
 
     Returns:
         새로 생성된 goal id.
     """
     if rules_version is None:
-        rules_version = 2 if plan_rules_v2_enabled() else 1
+        rules_version = 2
+    plan_weeks = _plan_weeks(race_date)
     conn.execute("UPDATE goals SET status = 'cancelled' WHERE status = 'active'")  # 활성 목표는 항상 1개 (v32)
     cursor = conn.execute(
         """INSERT INTO goals
            (name, race_date, distance_km, target_time_sec, target_pace_sec_km, status,
-            plan_rules_version)
-           VALUES (?, ?, ?, ?, ?, 'active', ?)""",
-        (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version),
+            plan_rules_version, plan_weeks)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
+        (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version, plan_weeks),
     )
     if commit:
         conn.commit()

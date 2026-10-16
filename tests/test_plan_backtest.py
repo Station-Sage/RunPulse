@@ -15,7 +15,8 @@ def test_grid_size():
 
 def test_cold_grid_scenario_passes_gates():         # §5.2: 기록 없음 v2 도 v1 로 빠지지 않는다
     from tests.helpers_pred import mem_conn
-    s = _grid(distance="half", plan_weeks=12, days=4, start_km=0, long_start=0)
+    s = _grid(distance="half", plan_weeks=12, days=4, start_km=0, long_start=0,
+                     workout_weekdays_mask=B.workout_mask(4))
     c = mem_conn()
     B.seed_grid_history(c, s)
     assert c.execute("SELECT COUNT(*) FROM activity_summaries").fetchone()[0] == 0
@@ -47,7 +48,7 @@ def test_history_scenarios_from_seeded_db():
         seed_run(c, sid=f"a{i}", date=f"2025-0{1 + i // 10}-{1 + (i % 10) * 2:02d}", name="easy", dist=8000.0)
     seed_run(c, sid="race", date="2025-06-01", name="서울 하프 레이스", dist=21100.0, moving=6000)
     c.commit()
-    scns = B.history_scenarios(c)
+    scns = B.history_scenarios(c, B.workout_mask(4))
     assert scns and all(s.kind == "history" and s.distance == "half" for s in scns)
     r = B.run_scenario(scns[0], c)
     assert r["inputs"]["start_km"] >= 0 and len(r["weeks"]) == scns[0].plan_weeks
@@ -77,7 +78,8 @@ def test_v1_output_snapshot_full_and_cold(monkeypatch):
     import hashlib
     monkeypatch.delenv("PLAN_RULES_V2_ENABLED", raising=False)
     full = _grid(distance="full", plan_weeks=12, days=5, start_km=55, long_start=18)
-    cold = B.Scenario("grid", "half", 12, "2030-11-24", 4, start_km=0, long_start=0)
+    cold = B.Scenario("grid", "half", 12, "2030-11-24", 4, start_km=0, long_start=0,
+                     workout_weekdays_mask=B.workout_mask(4))
     h_full = hashlib.sha1(repr(_v1_signature(full)).encode()).hexdigest()
     h_cold = hashlib.sha1(repr(_v1_signature(cold, seed=False)).encode()).hexdigest()
     assert h_full == "6a87c42a512750d44acb9a5cdb46b01b8373fac8"

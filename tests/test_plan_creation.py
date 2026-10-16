@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from src.services import plan_service, plan_template_service
 from src.training.planner_rules import plan_start_monday
 from src.training.planner_schedule import recent_load
-from tests.helpers_pred import mem_conn, seed_run
+from tests.helpers_pred import mem_conn, seed_run, with_days
 
 
 def _seed_history(c, weeks=8, km_per_week=40.0):
@@ -26,17 +26,17 @@ def test_plan_start_monday():
 
 
 def test_recent_load_reads_history():
-    c = mem_conn()
+    c = with_days(mem_conn())
     _seed_history(c)
     km, longest = recent_load(c, date.today())
     assert 30 <= km <= 50 and longest >= 15
 
 
 def test_created_plan_follows_periodization_and_ends_on_race():
-    c = mem_conn()
+    c = with_days(mem_conn())
     _seed_history(c)
     race = date.today() + timedelta(days=62)                 # 약 9주 뒤
-    gid = plan_template_service.create_plan_from_template(c, 42.195, race.isoformat(), 16, name="m")
+    gid = plan_template_service.create_plan_from_template(c, 42.195, race.isoformat(), 16, name="m", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     weeks = c.execute("SELECT plan_weeks FROM goals WHERE id=?", (gid,)).fetchone()[0]
     rows = c.execute("SELECT date, workout_type, distance_km FROM planned_workouts WHERE source='planner' "
                      "ORDER BY date").fetchall()
@@ -53,10 +53,10 @@ def test_created_plan_follows_periodization_and_ends_on_race():
 
 
 def test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start():
-    c = mem_conn()
+    c = with_days(mem_conn())
     _seed_history(c)
     race = date.today() + timedelta(days=90)
-    gid = plan_template_service.create_plan_from_template(c, 10.0, race.isoformat(), 6, name="10k")
+    gid = plan_template_service.create_plan_from_template(c, 10.0, race.isoformat(), 6, name="10k", run_weekdays=[0, 1, 2, 3, 4, 5, 6])
     start = plan_start_monday(race.isoformat(), 6)
     assert start > date.today() - timedelta(days=date.today().weekday())
     assert c.execute("SELECT MIN(date) FROM planned_workouts").fetchone()[0] == start.isoformat()

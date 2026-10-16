@@ -15,7 +15,7 @@ from src.db_setup import get_db_path, init_db
 from src.utils.config import load_config
 from src.utils.pace import seconds_to_pace
 from src.training.goals import add_goal, list_goals, complete_goal, cancel_goal
-from src.training.planner import generate_weekly_plan, save_weekly_plan, get_planned_workouts
+from src.training.planner import WeekdaysRequired, generate_weekly_plan, save_weekly_plan, get_planned_workouts
 from src.services.plan_service import todays_adjustment_with_hold
 
 
@@ -159,7 +159,11 @@ def _constrain(conn: sqlite3.Connection, plan: list[dict]) -> list[dict]:
 
 def cmd_generate(conn: sqlite3.Connection, args, config: dict) -> None:
     goal_id = getattr(args, "goal_id", None)
-    plan = generate_weekly_plan(conn, goal_id=goal_id, config=config)
+    try:
+        plan = generate_weekly_plan(conn, goal_id=goal_id, config=config)
+    except WeekdaysRequired as exc:
+        print(f"계획을 만들 수 없습니다: {exc}. 앱의 훈련 설정에서 운동 요일을 먼저 지정하세요.")
+        return
     plan = _adapt(conn, plan, goal_id)
     plan = _constrain(conn, plan)
     count = save_weekly_plan(conn, plan, goal_id=goal_id)
