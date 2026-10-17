@@ -2,9 +2,32 @@
 	// 03e-coach.md 5-C — 플랜 없음 화면.
 	import type { PlanGatewayData } from './+page';
 	import { base } from '$app/paths';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
+	import { restorePlan } from '$lib/api/plan';
+	import { ApiError } from '$lib/api/client';
 
 	let { data }: { data: PlanGatewayData } = $props();
+	let confirmId = $state<number | null>(null);
+	let busy = $state(false);
+	let err = $state<string | null>(null);
+
+	async function doRestore(id: number) {
+		busy = true;
+		err = null;
+		try {
+			await restorePlan(id, data.activeId);
+			await invalidateAll();
+			await goto(`${base}/coach/plan/${id}`);
+		} catch (e) {
+			err = e instanceof ApiError && e.code === 'ACTIVE_PLAN_EXISTS'
+				? '그 사이 활성 플랜이 바뀌었어요. 새로고침 후 다시 시도해주세요.'
+				: '플랜을 복원하지 못했어요. 다시 시도해주세요.';
+		} finally {
+			busy = false;
+			confirmId = null;
+		}
+	}
 </script>
 
 <svelte:head><title>훈련 플랜 · RunPulse</title></svelte:head>
@@ -31,3 +54,31 @@
 		{data.goal ? roadmapLabel(data.goal.days_left) + ' →' : '새 프로그램 만들기 →'}
 	</a>
 </div>
+
+{#if data.restorable.length > 0}
+	<section class="px-4 pb-10" aria-label="지난 플랜">
+		<h2 class="mb-2 text-sm font-medium text-fg-primary">지난 플랜 복원</h2>
+		{#if data.activeId != null}
+			<p class="mb-2 text-xs text-fg-muted">복원하면 현재 활성 플랜의 남은 일정은 지난 플랜으로 보관돼요.</p>
+		{/if}
+		<ul class="flex flex-col gap-2">
+			{#each data.restorable as p (p.goal_id)}
+				<li class="rounded-lg border border-border-subtle bg-surface-2 p-3 text-sm" data-testid="restorable-plan">
+					<p class="font-medium">{p.name}</p>
+					<p class="text-xs text-fg-muted">
+						{p.distance_km}km{p.race_date ? ` · 레이스 ${p.race_date}` : ''} · 남은 일정 {p.rows}개
+					</p>
+					{#if confirmId === p.goal_id}
+						<span role="alertdialog" aria-label="복원 확인" class="mt-2 flex flex-wrap items-center gap-2" data-testid="restore-confirm">
+							<button class="min-h-11 underline" disabled={busy} onclick={() => doRestore(p.goal_id)}>복원</button>
+							<button class="min-h-11 underline" disabled={busy} onclick={() => (confirmId = null)}>취소</button>
+						</span>
+					{:else}
+						<button class="mt-1 min-h-11 text-xs underline" disabled={busy} onclick={() => (confirmId = p.goal_id)}>복원하기</button>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+		{#if err}<p class="mt-2 text-xs text-semantic-red" role="alert">{err}</p>{/if}
+	</section>
+{/if}

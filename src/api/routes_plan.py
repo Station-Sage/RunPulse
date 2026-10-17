@@ -36,6 +36,18 @@ def get_active_plan_route():
     return api_ok(result)
 
 
+@api_bp.get("/coach/plan/restorable")
+def get_restorable_plans_route():
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        return api_ok({"plans": plan_restore.list_restorable(conn)})
+    finally:
+        conn.close()
+
+
 @api_bp.get("/coach/plan/<int:goal_id>/weeks")
 def get_plan_weeks_route(goal_id: int):
     dpath = db_path()

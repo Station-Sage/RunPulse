@@ -50,6 +50,18 @@ export function getPlanWeeks(goalId: number): Promise<PlanWeeks> {
 	return apiFetch<PlanWeeks>(`/coach/plan/${goalId}/weeks`);
 }
 
+export interface RestorablePlan {
+	goal_id: number;
+	name: string;
+	race_date: string | null;
+	distance_km: number;
+	rows: number;
+}
+
+export function getRestorablePlans(): Promise<{ plans: RestorablePlan[] }> {
+	return apiFetch('/coach/plan/restorable');
+}
+
 export function restorePlan(goalId: number, expectActiveGoalId: number | null): Promise<{ goal_id: number }> {
 	return apiFetch(`/coach/plan/${goalId}/restore`, {
 		method: 'POST',

@@ -21,6 +21,20 @@ class RestoreError(Exception):
         self.code = code
 
 
+def list_restorable(conn: sqlite3.Connection) -> list[dict]:
+    """스냅샷이 있는 취소 목표(최신순). 각 항목 {goal_id, name, race_date, distance_km, rows}."""
+    out = []
+    for gid, name, rd, km, blob in conn.execute(
+            "SELECT id, name, race_date, distance_km, plan_snapshot_json FROM goals"
+            " WHERE status='cancelled' AND plan_snapshot_json IS NOT NULL ORDER BY created_at DESC, id DESC"):
+        try:
+            n = len(json.loads(blob))
+        except ValueError:
+            continue
+        out.append({"goal_id": gid, "name": name, "race_date": rd, "distance_km": km, "rows": n})
+    return out
+
+
 def restore_plan(conn: sqlite3.Connection, goal_id: int, expect_active_goal_id=_UNSET) -> dict:
     """goal_id 플랜 복원. 반환 {goal_id, restored}. 복원 불가면 RestoreError(NOT_FOUND|NOT_RESTORABLE)."""
     goal = get_goal(conn, goal_id)

@@ -100,6 +100,7 @@
 		<div class="border-b border-border-subtle px-4 py-4">
 			<div class="mb-1 flex items-center gap-2">
 				<a href="{base}/coach" class="text-xs text-fg-muted hover:underline">← 코치</a>
+				<a href="{base}/coach/plan?past=1" class="ml-auto text-xs text-fg-muted hover:underline">지난 플랜</a>
 			</div>
 			<h1 class="text-base font-semibold">{data.plan.goal.name}</h1>
 			<p class="text-sm text-fg-secondary">

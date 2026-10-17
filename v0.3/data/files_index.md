@@ -302,10 +302,10 @@
 - class **ReplanError**: 없음
 - functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
 
-### `plan_restore.py` (54줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
+### `plan_restore.py` (68줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
 
 - class **RestoreError**: 없음
-- functions: restore_plan
+- functions: list_restorable, restore_plan
 
 ### `plan_service.py` (233줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
@@ -1923,9 +1923,9 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (238줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (250줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
-- functions: get_active_plan_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
+- functions: get_active_plan_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
 ### `routes_plan_adjust.py` (180줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
@@ -3085,6 +3085,10 @@
 
 - functions: conn, test_get_active_plan_no_goal_returns_none, test_get_active_plan_returns_structure, test_get_active_plan_by_goal_id, test_get_active_plan_by_invalid_goal_id_returns_none, test_compliance_pct_with_mixed_workouts, test_compliance_pct_ignores_prior_goal_leftovers, test_week_index_ignores_prior_goal_leftovers, test_get_todays_adjustment_no_plan_returns_none, test_get_todays_adjustment_with_plan, test_get_session_detail_existing_date, test_get_session_detail_missing_date_returns_none, test_get_session_detail_invalid_goal_id_returns_none, test_get_session_note_empty, test_save_session_note_and_retrieve, test_save_session_note_upsert, test_active_plan_next_session_skips_done_and_superseded
 
+### `test_plan_snapshot_restore.py` (57줄) — PLN-43 — 교체 시 스냅샷 저장, 복원 시 write_planner_rows 로 goal_id 와 함께 재삽입, 복원 후보 목록.
+
+- functions: test_replace_stores_snapshot_and_restore_reinserts_with_goal_id, test_list_restorable_skips_empty_and_bad_json
+
 ### `test_plan_template_service.py` (168줄) — tests/test_plan_template_service.py — get_static_plan_templates + create_plan_from_template 단위 테스트.
 
 - functions: conn, test_templates_with_target_time_sec, test_templates_completion_with_vdot, test_templates_completion_no_vdot, test_templates_dedup_weeks, test_templates_risk_level_mapping, test_create_plan_inserts_goal, test_create_plan_fills_planned_workouts, test_create_plan_no_race_date, test_create_plan_custom_name, test_create_plan_respects_weeks_not_race_date, test_create_plan_keeps_existing_training_prefs, test_ensure_prefs_creates_default_row_once
@@ -3096,6 +3100,10 @@
 ### `test_planner_config_as_of.py` (37줄) — planner_config 조회 헬퍼의 as_of 시점 고정(U16a).
 
 - functions: test_default_reads_latest, test_as_of_cuts_future_values, test_as_of_before_data_is_empty
+
+### `test_planner_insert_guard.py` (26줄) — planned_workouts INSERT 는 planner_store·replan undo 등 허용 모듈에서만 한다(goal_id 필수 불변식, S4-17/18).
+
+- functions: test_planned_workouts_inserts_only_in_allowed_modules
 
 ### `test_planner_schedule_cold.py` (79줄) — v2 콜드스타트 시작 부하(DESIGN-U16-LONGRUN §5.2).
 
@@ -3715,7 +3723,7 @@
 - functions: run
 
 ---
-총 797개 파일
+총 799개 파일
 
 ## docstring 누락
 
