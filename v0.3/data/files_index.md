@@ -281,6 +281,10 @@
 
 - functions: overlay_date, date_ok, validate, create_move, partner_id, revert_dependents
 
+### `plan_overview_service.py` (60줄) — 플랜 주간 개요(R3, PLN-1/5/7) — 목표의 전체 주를 한 표로: 단계·계획 거리·실제 거리·러닝/휴식일·롱런·품질·준수율.
+
+- functions: get_plan_overview
+
 ### `plan_pain.py` (85줄) — 통증 입력 처리 — 단계별 op 강제, 다음 2일 제안, 반복 통증 알림 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §4).
 
 - functions: resolve, reasons, proposal, repeat
@@ -293,21 +297,21 @@
 
 - functions: snapshot, structure_diff
 
-### `plan_replan_service.py` (248줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (250줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
 
-### `plan_restore.py` (52줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
+### `plan_restore.py` (54줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
 
 - class **RestoreError**: 없음
 - functions: restore_plan
 
-### `plan_service.py` (226줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (233줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (243줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (245줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - class **PlanConflict**: 없음
 - functions: check_active_expectation, get_static_plan_templates, create_plan_from_template
@@ -1587,17 +1591,17 @@
 
 - functions: vdot_to_time, get_taper_weeks, get_recommended_weeks, recommend_weekly_km, get_phase_for_week, analyze_readiness
 
-### `rematch.py` (114줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
+### `rematch.py` (131줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
 
-- functions: rematch, replan_future, main
+- functions: rematch, rematch_goal, replan_future, main
 
 ### `replanner.py` (284줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
 
 - functions: replan_remaining_week
 
-### `week_compliance.py` (231줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
+### `week_compliance.py` (253줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
 
-- functions: original_of, outcome_label, compute
+- functions: original_of, outcome_label, reasons_for, compute
 
 ### `week_structure.py` (132줄) — 주간 구조 규칙 R7(순수) — 러닝 일수 기본값, 롱런 상한, 최소 세션 병합·재분배 (DESIGN-U16 §2.3).
 
@@ -1919,9 +1923,9 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (223줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (238줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
-- functions: get_active_plan_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
+- functions: get_active_plan_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
 ### `routes_plan_adjust.py` (180줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
@@ -2041,6 +2045,10 @@
 
 - functions: test_acwr_zone_boundaries, test_hrv_zone_boundaries, test_get_adaptation_status_all_none, test_get_adaptation_status_acwr_latest_before_date, test_get_adaptation_status_hrv_zone, test_get_adaptation_status_hrv_null_baseline, test_get_adaptation_status_fatigue_avg
 
+### `test_adj_flag_sync.py` (32줄) — R3 — adj_accepted 가 plan_adjustments(accepted) 와 동기화된다.
+
+- functions: test_flag_follows_accepted_adjustment
+
 ### `test_adjuster.py` (120줄) — tests/test_adjuster.py — adjuster 단위 테스트.
 
 - functions: conn, test_adjust_returns_none_no_plan, test_adjust_returns_dict_with_plan, test_adjustment_reason_parts_is_list, test_adjust_past_date_uses_that_dates_data, test_adjust_today_default_unchanged, test_adjust_past_date_no_plan_returns_none
@@ -2129,9 +2137,9 @@
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors, test_advisory_replan_hidden_when_race_near
 
-### `test_api_plan_r2.py` (63줄) — R2 API — 활성 플랜 교체 409 확인 흐름, 복원 라우트, 비활성 플랜 재계획 undo 차단.
+### `test_api_plan_r2.py` (71줄) — R2 API — 활성 플랜 교체 409 확인 흐름, 복원 라우트, 비활성 플랜 재계획 undo 차단.
 
-- functions: api, test_409_then_confirm_replaces_and_restore_swaps, test_undo_blocked_for_non_active_goal
+- functions: api, test_409_then_confirm_replaces_and_restore_swaps, test_undo_blocked_for_non_active_goal, test_weeks_route
 
 ### `test_api_plan_replan.py` (103줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
@@ -3045,6 +3053,10 @@
 
 - functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_applies_and_unadjusted_untouched
 
+### `test_plan_overview.py` (71줄) — R3 — 플랜 주간 개요(PLN-1/5/7) 서비스·API.
+
+- functions: conn, test_unknown_goal_returns_none, test_totals_equal_planned_workouts_aggregate, test_partial_first_week_carries_start_date, test_future_weeks_have_no_actuals, test_cumulative_basis_labels, test_rematch_goal_matches_past_activity, test_rematch_goal_swallows_errors
+
 ### `test_plan_pain.py` (56줄) — plan_pain — 단계별 op 강제, 직전 2일 제안 우선, 반복 통증 알림.
 
 - functions: conn, test_resolve_levels, test_proposal_priority_within_two_days, test_mild_has_no_proposal_and_repeat
@@ -3589,6 +3601,10 @@
 
 - functions: test_cross_day_excluded_from_denominator
 
+### `test_week_compliance_reason.py` (51줄) — R3 — 준수 사유(reason/reasons)·actual_km/actual_pace·유효 행 우선순위(PLN-10).
+
+- functions: test_volume_over_is_representative_and_pace_fast_secondary, test_volume_under, test_no_activity_reason_on_past_unmatched, test_on_target_has_no_reason, test_matched_planner_beats_unmatched_external, test_accepted_adjustment_beats_unmatched_external
+
 ### `test_week_digest.py` (52줄) — week_digest / 월간 프롬프트 W 블록 테스트 (U17g).
 
 - functions: test_weeks_overlapping_monday_start, test_empty_week_has_none_values, test_week_with_run_and_plan, test_in_progress_week_is_partial, test_prompt_contains_week_block, test_prompt_lines_empty_week
@@ -3699,7 +3715,7 @@
 - functions: run
 
 ---
-총 793개 파일
+총 797개 파일
 
 ## docstring 누락
 

@@ -61,3 +61,11 @@ def test_undo_blocked_for_non_active_goal(api):
     c.execute("INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_source) VALUES (?, '2030-01-07', 30, 'user')", (gid,))
     rid = c.execute("SELECT MAX(id) FROM plan_replans").fetchone()[0]
     assert "활성이 아닌" in _undo_blocker(c, rid, date.today())
+
+
+def test_weeks_route(api):
+    cl, _ = api
+    gid = cl.post("/api/v1/coach/plan", json={**BODY, "expect_active_goal_id": None}, headers=H).get_json()["data"]["goal_id"]
+    d = cl.get(f"/api/v1/coach/plan/{gid}/weeks").get_json()["data"]
+    assert d["weeks"] and d["basis"]["scope"] == "week"
+    assert cl.get("/api/v1/coach/plan/9999/weeks").status_code == 404

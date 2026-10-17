@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sqlite3
 from datetime import date, timedelta
 
@@ -20,6 +21,8 @@ from src.training.matcher_context import canonical_activity_id
 from src.training.outcome_store import update_outcome_v2
 from src.training.plan_structure import structure_for_plan
 from src.training.planner import WeekdaysRequired, generate_weekly_plan, save_weekly_plan
+
+log = logging.getLogger(__name__)
 
 
 def _backfill_structure(conn: sqlite3.Connection, start: date, end: date) -> int:
@@ -59,6 +62,20 @@ def rematch(conn: sqlite3.Connection, start: date, end: date) -> dict:
         ws += timedelta(weeks=1)
     conn.commit()
     return {"reset": len(rows), "matched": matched, "external": len(ext)}
+
+
+def rematch_goal(conn: sqlite3.Connection, goal_id: int, today: date | None = None) -> dict | None:
+    """플랜 생성·복원·재계획 직후 과거 구간 재매칭(PLN-43). 커밋 뒤에 호출하며 실패는 로그만 남긴다."""
+    try:
+        row = conn.execute("SELECT MIN(date), MAX(date) FROM planned_workouts WHERE goal_id=? AND source='planner'",
+                           (goal_id,)).fetchone()
+        end = min(date.fromisoformat(row[1]), today or date.today()) if row and row[1] else None
+        if end is None or date.fromisoformat(row[0]) > end:
+            return None
+        return rematch(conn, date.fromisoformat(row[0]), end)
+    except Exception:
+        log.exception("rematch_goal failed: goal=%s", goal_id)
+        return None
 
 
 def replan_future(conn: sqlite3.Connection, goal_id: int, today: date | None = None) -> dict:

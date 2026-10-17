@@ -7,7 +7,7 @@ from datetime import date
 from flask import current_app, request
 
 from src.services import input_limits
-from src.services import (adaptation_service, plan_adjustment_service, plan_restore, plan_service, plan_template_service,
+from src.services import (adaptation_service, plan_overview_service, plan_adjustment_service, plan_restore, plan_service, plan_template_service,
                           weekly_adapt_job)
 from src.training import plan_readiness
 from src.training.planner_store import WeekdaysRequired
@@ -33,6 +33,21 @@ def get_active_plan_route():
         conn.close()
     if result is None:
         return api_error("NOT_FOUND", "활성 플랜 없음", 404)
+    return api_ok(result)
+
+
+@api_bp.get("/coach/plan/<int:goal_id>/weeks")
+def get_plan_weeks_route(goal_id: int):
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        result = plan_overview_service.get_plan_overview(conn, goal_id)
+    finally:
+        conn.close()
+    if result is None:
+        return api_error("NOT_FOUND", "목표 없음", 404)
     return api_ok(result)
 
 

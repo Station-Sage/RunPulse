@@ -1191,7 +1191,40 @@ export interface ActivePlan {
 	ctl_current: number | null;
 	compliance_pct: number | null;
 	compliance?: PlanCompliance | null;
+	compliance_basis?: PlanBasis;
+	week_basis?: PlanBasis;
 	week?: PlanWeek;
+}
+
+export interface PlanBasis {
+	scope: 'cumulative' | 'week';
+	label: string;
+	tooltip?: string;
+}
+
+export interface PlanWeekRow {
+	week_start: string;
+	start_date: string | null;
+	phase: string | null;
+	planned_km: number;
+	actual_km: number | null;
+	run_days: number;
+	rest_days: number;
+	long_km: number;
+	quality_n: number;
+	compliance_pct: number | null;
+}
+
+export interface PlanWeeks {
+	goal_id: number;
+	weeks: PlanWeekRow[];
+	basis: PlanBasis;
+}
+
+export interface ActivePlanConflict {
+	goal_id: number;
+	name: string;
+	race_date?: string | null;
 }
 
 // ── Coach Plan Templates (5-D/5-E — /api/v1/coach/plan/templates) ────────────
@@ -1215,6 +1248,7 @@ export interface CreatePlanPayload {
 	recent_weekly_km?: number;
 	recent_long_km?: number;
 	run_weekdays: number[];
+	expect_active_goal_id?: number | null;
 }
 
 export interface CreatePlanResult {

@@ -103,6 +103,11 @@ def _next_session(conn: sqlite3.Connection, goal_id: int | None = None) -> dict 
     return None
 
 
+CUMULATIVE_BASIS = {"scope": "cumulative", "label": "누적(플랜 시작~어제)",
+                    "tooltip": "플랜 시작일부터 어제까지 지난 계획 전체를 합산한 수치입니다. 이번 주만의 수치는 아래 주간 목록을 보세요."}
+WEEK_BASIS = {"scope": "week", "label": "이번 주"}
+
+
 def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dict | None:
     """활성 플랜 조합 반환.
 
@@ -135,7 +140,9 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
         "ctl_current": ctl_current,
         "compliance_pct": compliance_pct,
         "compliance": _plan_compliance(conn, goal),
+        "compliance_basis": CUMULATIVE_BASIS,
         "week": week,
+        "week_basis": WEEK_BASIS,
         "next_session": _next_session(conn, goal["id"]),
     }
 

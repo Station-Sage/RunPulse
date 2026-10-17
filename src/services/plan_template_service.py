@@ -13,6 +13,7 @@ from src.services import input_limits
 from src.training.goals import add_goal, get_active_goal, set_reported_load
 from src.training.plan_first_week import trim_first_week
 from src.training.plan_replace import replace_range
+from src.training.rematch import rematch_goal
 from src.training.planner import (
     generate_weekly_plan,
     save_weekly_plan,
@@ -240,4 +241,5 @@ def create_plan_from_template(
         conn.execute("RELEASE create_plan")
         raise
     conn.commit()
+    rematch_goal(conn, goal_id, today)
     return goal_id

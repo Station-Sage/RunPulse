@@ -44,12 +44,11 @@ def original_of(entry: dict) -> dict:
 
 
 def _effective(rows: list[dict]) -> tuple[dict, list[dict]]:
-    """R1 우선순위: 실행된 외부 계획 > 수락된 조정 행 > 외부 계획 > planner 원안. (유효, 대안들)"""
+    """R1·PLN-10 우선순위: 활동이 연결된 행(출처 무관) > 수락된 조정 행 > 외부 계획 > planner 원안. (유효, 대안들)"""
     def rank(w: dict) -> tuple:
-        external = w["source"] != "planner"
-        return (0 if external and w["matched_activity_id"] else
+        return (0 if w["matched_activity_id"] else
                 1 if w.get("adjusted") else
-                2 if external else 3, w["id"])
+                2 if w["source"] != "planner" else 3, w["id"])
     ordered = sorted(rows, key=rank)
     return ordered[0], ordered[1:]
 
@@ -78,6 +77,22 @@ def outcome_label(eff: dict, planned_km: float | None, act: dict | None, is_past
     if v > OVER:
         return "over"
     return "on_target"
+
+
+def reasons_for(eff: dict, planned_km: float | None, act: dict | None, is_past: bool) -> list[str]:
+    """PLN-6 사유 코드. 첫 원소가 대표(볼륨 초과·부족 > 강도 어긋남). 미수행 과거는 no_activity."""
+    if not eff["matched_activity_id"]:
+        return ["no_activity"] if is_past and not eff.get("completed") else []
+    out, v = [], _volume_ratio(eff, planned_km)
+    if v is not None and v > OVER:
+        out.append("volume_over")
+    elif v is not None and v < UNDER:
+        out.append("volume_under")
+    pace_fast = eff.get("target_pace_min")
+    if (eff["workout_type"] in EASY_TYPES and pace_fast and act and act.get("avg_pace_sec_km")
+            and act["avg_pace_sec_km"] < pace_fast * (1 - PACE_FAST_TOL)):
+        out.append("pace_fast")
+    return out
 
 
 def _label_view(label: str | None, v: float | None) -> dict:
@@ -185,10 +200,17 @@ def compute(conn: sqlite3.Connection, start: date, end: date, effective_start: d
             entry["state"] = "rest"
         elif is_past and ds in cross and not eff["matched_activity_id"] and not eff["completed"]:
             entry["state"] = "cross"   # 교차훈련으로 대체한 날은 이행률 분모에서 뺀다(E10)
+            entry.update(reason="cross", reasons=["cross"])
         else:
             v = _volume_ratio(eff, entry["planned_km"])
             label = outcome_label(eff, entry["planned_km"], act_by_id.get(eff["matched_activity_id"]), is_past)
             entry.update(_label_view(label, v))
+            act = act_by_id.get(eff["matched_activity_id"])
+            reasons = reasons_for(eff, entry["planned_km"], act, is_past)
+            if reasons:
+                entry.update(reason=reasons[0], reasons=reasons)
+            if act:
+                entry.update(actual_km=round(act["distance_km"], 2), actual_pace=act["avg_pace_sec_km"])
             # 활동이 연결됐으면 볼륨으로 판정(저장된 completed 플래그는 옛 규칙 값일 수 있음),
             # 연결 없는 수동 완료(completed=1)는 이행으로 센다
             if eff["matched_activity_id"]:

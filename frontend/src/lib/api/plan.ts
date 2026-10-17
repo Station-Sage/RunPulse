@@ -13,7 +13,8 @@ import type {
 	WorkoutActionResult,
 	ReplanParams,
 	ReplanPreview,
-	ReplanUndoResult
+	ReplanUndoResult,
+	PlanWeeks
 } from '$lib/types';
 
 export function getActivePlan(goalId?: number): Promise<ActivePlan> {
@@ -43,6 +44,17 @@ export function createPlan(payload: CreatePlanPayload): Promise<CreatePlanResult
 		method: 'POST',
 		body: JSON.stringify(payload)
 	}).then((r) => ({ ...r, warnings: r.warnings ?? [] }));
+}
+
+export function getPlanWeeks(goalId: number): Promise<PlanWeeks> {
+	return apiFetch<PlanWeeks>(`/coach/plan/${goalId}/weeks`);
+}
+
+export function restorePlan(goalId: number, expectActiveGoalId: number | null): Promise<{ goal_id: number }> {
+	return apiFetch(`/coach/plan/${goalId}/restore`, {
+		method: 'POST',
+		body: JSON.stringify({ expect_active_goal_id: expectActiveGoalId })
+	});
 }
 
 export function getSessionDetail(goalId: number, date: string): Promise<SessionDetail> {

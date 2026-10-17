@@ -12,6 +12,7 @@ from src.services.plan_template_service import _UNSET, check_active_expectation
 from src.training.goals import get_goal
 from src.training.plan_replace import replace_range
 from src.training.planner_store import write_planner_rows
+from src.training.rematch import rematch_goal
 
 
 class RestoreError(Exception):
@@ -49,4 +50,5 @@ def restore_plan(conn: sqlite3.Connection, goal_id: int, expect_active_goal_id=_
         conn.execute("RELEASE restore_plan")
         raise
     conn.commit()
+    rematch_goal(conn, goal_id)
     return {"goal_id": goal_id, "restored": len(keep)}

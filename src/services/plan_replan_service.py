@@ -14,6 +14,7 @@ from src.services.plan_replan_diff import snapshot, structure_diff
 from src.training.goals import effective_rules_version, get_active_goal
 from src.training.plan_replace import replace_range
 from src.training.planner_store import write_planner_rows
+from src.training.rematch import rematch_goal
 from src.training.planner import generate_weekly_plan
 from src.training.planner_rules import plan_start_monday, resolve_distance_label
 from src.training import personalize as P
@@ -143,6 +144,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     caldav = None
     if write:
         conn.commit()
+        rematch_goal(conn, goal["id"])
         caldav = _sync_caldav(conn, a_iso, end)
     return {"caldav": caldav, "replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
             "start_source": start_source, "basis": basis, "goal_target_time_sec": goal.get("target_time_sec"),

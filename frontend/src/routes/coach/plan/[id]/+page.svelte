@@ -7,6 +7,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
 	import { invalidateAll } from '$app/navigation';
+	import PlanWeeksTable from '$lib/components/plan/PlanWeeksTable.svelte';
 	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import UserAdjustmentLine from '$lib/components/plan/UserAdjustmentLine.svelte';
 	import type { PlannedWorkout } from '$lib/types';
@@ -14,8 +15,10 @@
 	import { anchorLabel, undoUntilLabel } from '$lib/replanView';
 
 	let undoBusy = $state(false);
+	let confirmUndo = $state<number | null>(null);
 	async function undoLast(id: number) {
 		undoBusy = true;
+		confirmUndo = null;
 		try {
 			await undoReplan(id);
 			await invalidateAll();
@@ -67,6 +70,12 @@
 		return { text: (d.label === 'on_target' ? '✓ ' : '') + d.status_label, cls: STATUS_CLS[d.status ?? 'neutral'] };
 	}
 
+	function mondayOf(ds: string): string {
+		const d = new Date(ds + 'T00:00:00');
+		d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+
 	const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 	const weekKm = $derived(data.plan?.compliance?.volume?.planned_km ?? null);
 
@@ -106,7 +115,14 @@
 				{@const last = data.replanEntry.last}
 				<p class="mt-2 text-xs text-fg-secondary">
 					{anchorLabel(last.anchor_monday)}부터 다시 맞춘 일정이에요. {undoUntilLabel(last.anchor_monday)}까지 되돌릴 수 있어요.
-					<button class="ml-1 min-h-11 underline" disabled={undoBusy} onclick={() => undoLast(last.replan_id)}>되돌리기</button>
+					<button class="ml-1 min-h-11 underline" disabled={undoBusy} onclick={() => (confirmUndo = last.replan_id)}>되돌리기</button>
+					{#if confirmUndo === last.replan_id}
+						<span role="alertdialog" aria-label="되돌리기 확인" class="mt-1 flex flex-wrap items-center gap-2" data-testid="undo-confirm">
+							<span>다시 맞추기 이전 일정으로 되돌립니다. 계속할까요?</span>
+							<button class="min-h-11 font-medium underline" disabled={undoBusy} onclick={() => undoLast(last.replan_id)}>되돌리기 진행</button>
+							<button class="min-h-11 underline" onclick={() => (confirmUndo = null)}>취소</button>
+						</span>
+					{/if}
 				</p>
 			{:else if data.replanEntry?.eligible}
 				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 →</a>
@@ -154,7 +170,7 @@
 
 		<!-- 이번 주 워크아웃 목록 -->
 		<div class="border-b border-border-subtle px-4 py-3">
-			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">이번 주</p>
+			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">{data.plan.week_basis?.label ?? '이번 주'}</p>
 			{#if data.plan.workouts.length === 0}
 				<p class="text-sm text-fg-muted">이번 주 워크아웃이 없습니다.</p>
 			{:else}
@@ -205,6 +221,10 @@
 				</ul>
 			{/if}
 		</div>
+
+		{#if data.weeks}
+			<PlanWeeksTable weeks={data.weeks.weeks} currentWeek={data.plan.workouts[0]?.date ? mondayOf(data.plan.workouts[0].date) : ''} />
+		{/if}
 
 		{#if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
 			<div class="border-b border-border-subtle px-4 py-3">

@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { createPlan } from '$lib/api/plan';
+	import { ApiError } from '$lib/api/client';
+	import type { ActivePlanConflict } from '$lib/types';
 	import ScenarioCompareTable from '$lib/components/plan/ScenarioCompareTable.svelte';
 	import type { ComparePlanData } from './+page';
 
@@ -13,7 +15,10 @@
 	// 생성 후 경고가 있으면 이동 전에 보여 준다(설계 §5.2-5 준비도 경고)
 	let created = $state<{ goalId: number; warnings: string[] } | null>(null);
 
-	async function handleSelect(weeks: number) {
+	// 활성 플랜이 있으면 서버가 409 로 알리고, 사용자가 교체를 확인하면 현재 활성 id 를 실어 재전송한다(PLN-33)
+	let conflict = $state<{ current: ActivePlanConflict; weeks: number } | null>(null);
+
+	async function handleSelect(weeks: number, expectActive?: number) {
 		if (data.runWeekdays.length === 0) {
 			error = '운동 요일이 지정되지 않았습니다. 이전 단계에서 요일을 선택해주세요.';
 			return;
@@ -28,14 +33,23 @@
 				run_weekdays: data.runWeekdays,
 				...(data.targetTimeSec != null ? { target_time_sec: data.targetTimeSec } : {}),
 				...(data.recentWeeklyKm != null ? { recent_weekly_km: data.recentWeeklyKm } : {}),
-				...(data.recentLongKm != null ? { recent_long_km: data.recentLongKm } : {})
+				...(data.recentLongKm != null ? { recent_long_km: data.recentLongKm } : {}),
+				...(expectActive != null ? { expect_active_goal_id: expectActive } : {})
 			});
+			conflict = null;
 			if (res.warnings.length > 0) {
 				created = { goalId: res.goal_id, warnings: res.warnings };
 				return;
 			}
 			await goto(`${base}/coach/plan/${res.goal_id}`);
-		} catch {
+		} catch (e) {
+			if (e instanceof ApiError && e.code === 'ACTIVE_PLAN_EXISTS') {
+				const cur = (e.details as { current?: ActivePlanConflict } | undefined)?.current;
+				if (cur) {
+					conflict = { current: cur, weeks };
+					return;
+				}
+			}
 			error = '플랜 생성에 실패했습니다. 다시 시도해주세요.';
 		} finally {
 			loading = null;
@@ -69,6 +83,18 @@
 				>
 					계획 보기 →
 				</a>
+			</div>
+		{/if}
+		{#if conflict}
+			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="alertdialog" data-testid="plan-replace-confirm">
+				<p class="mb-2 text-sm font-semibold text-fg-primary">진행 중인 프로그램이 있어요</p>
+				<p class="mb-3 text-xs text-fg-secondary">
+					'{conflict.current.name}'을(를) 취소하고 새 프로그램으로 바꿀까요? 취소한 프로그램은 나중에 복원할 수 있어요.
+				</p>
+				<div class="flex gap-2">
+					<button class="min-h-11 rounded-lg bg-fg-primary px-4 text-sm font-medium text-surface-1" onclick={() => conflict && handleSelect(conflict.weeks, conflict.current.goal_id)}>교체하기</button>
+					<button class="min-h-11 rounded-lg border border-border-subtle px-4 text-sm" onclick={() => (conflict = null)}>취소</button>
+				</div>
 			</div>
 		{/if}
 		<ScenarioCompareTable
