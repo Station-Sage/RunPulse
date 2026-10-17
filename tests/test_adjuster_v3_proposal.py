@@ -70,3 +70,39 @@ def test_default_version_is_v2(monkeypatch):
     c = _conn()
     monkeypatch.setattr(prop, "todays_adjustment_with_hold", lambda conn, date=None: None)
     assert prop._propose(c, D) == (None, None)
+
+
+def test_get_day_adjustment_exposes_signals_and_evidence_items(monkeypatch):
+    from src.services import coach_evidence
+    _crs(monkeypatch, 1)
+    c = _conn()
+    set_setting(c, "adjuster_version", "v3")
+    monkeypatch.setattr(svc, "_today", lambda t=None: t or D)
+    r = svc.get_day_adjustment(c, D, today=D)
+    assert r["adjustment"]["signals"] and r["adjustment"]["source"] == "checkin"
+    items = coach_evidence._trigger_items(c, D)
+    assert {i["metric"] for i in items} == {"crs", "acwr", "checkin_fatigue"}
+    assert all(i["label"] and i["_rest"] for i in items)
+
+
+def test_trigger_items_empty_for_manual_or_none():
+    from src.services import coach_evidence
+    assert coach_evidence._trigger_items(_conn(), D) == []
+
+
+def test_trigger_label():
+    from src.services.adjustment_labels import trigger_label
+    assert trigger_label({"signal": "acwr", "value": 1.8}) == "ACWR 1.80"
+    assert trigger_label({"signal": "pain", "value": None}) == "통증 기록"
+    assert trigger_label({"signal": "crs", "value": None}) is None
+
+
+def test_weekly_job_rolls_back_v3(monkeypatch):
+    from datetime import date
+    from src.services import weekly_adapt_job
+    from src.services.user_settings_service import get_setting
+    c = _conn()
+    set_setting(c, "adjuster_version", "v3")
+    monkeypatch.setattr("src.services.adjuster_frequency.should_rollback", lambda conn, today: ["weekly_over"])
+    assert weekly_adapt_job.run(c, date.fromisoformat(D)) == 0
+    assert get_setting(c, "adjuster_version", "v2") == "v2"

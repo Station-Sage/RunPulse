@@ -98,6 +98,10 @@
 
 - functions: propose
 
+### `adjustment_labels.py` (20줄) — 조정 v3 트리거 신호의 사용자 표시 라벨 (프론트 adjustmentView.CHIP 과 같은 문구).
+
+- functions: trigger_label
+
 ### `adjustment_signals.py` (102줄) — 조정 신호 수집·분류 (ADR-035 개정, ADJ §3.6) — 읽기 전용, 외부 호출 없음. 수집기별 실패는 freshness='missing' 으로 격리한다.
 
 - functions: collect, evaluate
@@ -143,7 +147,7 @@
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (227줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (249줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
@@ -468,7 +472,7 @@
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
-### `weekly_adapt_job.py` (60줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
+### `weekly_adapt_job.py` (73줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
 
 - functions: run
 
@@ -2085,9 +2089,9 @@
 
 - functions: test_weekly_counts_and_rollback_needs_two_weeks, test_acceptance_drop_and_min_sample, test_acceptance_no_drop_when_prev_zero_or_stable, test_check_and_rollback_switches_version, test_backtest_run_summarizes_without_plan
 
-### `test_adjuster_v3_proposal.py` (72줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
+### `test_adjuster_v3_proposal.py` (108줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
 
-- functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2
+- functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2, test_get_day_adjustment_exposes_signals_and_evidence_items, test_trigger_items_empty_for_manual_or_none, test_trigger_label, test_weekly_job_rolls_back_v3
 
 ### `test_adjustment_signals.py` (72줄) — 조정 신호 수집(adjustment_signals, _race) 단위 테스트.
 
@@ -3775,7 +3779,7 @@
 - functions: run
 
 ---
-총 812개 파일
+총 813개 파일
 
 ## docstring 누락
 

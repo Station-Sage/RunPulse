@@ -26,10 +26,23 @@ def _sig(r: dict) -> tuple:
     return (r["workout_type"], r.get("distance_km"), r.get("rationale"), r.get("target_pace_min"), r.get("target_pace_max"))
 
 
+def _check_rollback(conn: sqlite3.Connection, today: date) -> None:
+    """v3 조정기 빈도·수락률 감시 — 실패해도 주간 적응은 계속한다."""
+    from src.services.adjuster_frequency import check_and_rollback
+    try:
+        why = check_and_rollback(conn, today)
+    except Exception:
+        log.exception("adjuster 롤백 판정 실패")
+        return
+    if why:
+        log.warning("조정기 v3 → v2 자동 복귀: %s", why)
+
+
 def run(conn: sqlite3.Connection, today: date | None = None, getter=None) -> int:
     """오늘~이번 주 일요일의 미완료 planner 행 중 적응으로 바뀐 것만 다시 저장. 반환: 갱신 행 수."""
     from src.services.weekly_adapt_service import adapt_plan
     today = today or date.today()
+    _check_rollback(conn, today)
     goal = get_active_goal(conn)
     ws = today - timedelta(days=today.weekday())
     if not goal or effective_rules_version(conn, goal["id"], ws) < 2:

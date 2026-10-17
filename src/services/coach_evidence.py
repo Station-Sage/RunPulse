@@ -141,6 +141,27 @@ def _adjustment_in_effect(conn: sqlite3.Connection, date: str) -> bool:
         return True
 
 
+def _trigger_items(conn: sqlite3.Connection, date: str) -> list[dict]:
+    """v3 자동 조정이 적용 중이면 그 트리거 신호를 근거 항목(쉬라는 방향)으로 낸다."""
+    from src.services.adjustment_labels import trigger_label
+    from src.services.plan_adjustment_rows import MANUAL_SOURCES
+    try:
+        from src.services.plan_adjustment_service import get_day_adjustment
+        r = get_day_adjustment(conn, date, ensure=False)
+    except Exception:
+        return []
+    adj = r["adjustment"]
+    if not adj or adj["source"] in MANUAL_SOURCES or r["state"] in ("declined", "undone", "expired", "stale"):
+        return []
+    out = []
+    for sg in adj.get("signals") or []:
+        label = sg.get("role") == "trigger" and trigger_label(sg)
+        if label:
+            out.append({"type": "adjustment", "metric": sg["signal"], "value": sg.get("value"),
+                        "label": label, "_rest": True})
+    return out
+
+
 def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     """규칙 경로가 쓰는 입력 — 판정 근거 → 계획 세션 → 체크인 (role은 판정 방향과 비교해 부여)."""
     from src.services.today_service import get_todays_checkin
@@ -161,6 +182,7 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
                  f"오늘 계획: {workout_ko(plan_adj.get('workout_type', plan_adj.get('original_type', '')))}{dist}")
         items.append({"type": "plan", "metric": "plan_session", "value": None, "label": label,
                       "_rest": adjusted})
+    items.extend(_trigger_items(conn, date))
     ci = get_todays_checkin(conn, date)
     if ci and (ci.get("fatigue") is not None or ci.get("pain")):
         f = ci.get("fatigue")
