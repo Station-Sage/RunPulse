@@ -3,13 +3,13 @@
 import sqlite3
 from datetime import date
 
-_COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at, plan_weeks"
+_COLS = "id, name, race_date, distance_km, target_time_sec, target_pace_sec_km, status, created_at, plan_weeks, race_id"
 
 
 def _row_to_dict(row: tuple) -> dict:
     """DB 행을 dict로 변환."""
     keys = ["id", "name", "race_date", "distance_km", "target_time_sec",
-            "target_pace_sec_km", "status", "created_at", "plan_weeks"]
+            "target_pace_sec_km", "status", "created_at", "plan_weeks", "race_id"]
     return dict(zip(keys, row))
 
 
@@ -87,6 +87,7 @@ def add_goal(
     target_pace_sec_km: int | None = None,
     rules_version: int | None = None,
     commit: bool = True,
+    race_id: int | None = None,
 ) -> int:
     """목표 추가. 기존 active 목표는 cancelled 로 전환한다(활성 1개 불변식).
 
@@ -99,20 +100,29 @@ def add_goal(
         target_pace_sec_km: 목표 페이스 (초/km).
         rules_version: 계획 규칙 버전. None이면 2. plan_weeks 는 오늘~레이스 주까지의 주 수로 채운다.
         commit: False 면 호출자가 트랜잭션을 소유한다.
+        race_id: 연결할 race_calendar id. 없고 race_date 가 있으면 A 대회를 만들어 연결한다(호환 경로).
 
     Returns:
         새로 생성된 goal id.
     """
     if rules_version is None:
         rules_version = 2
-    plan_weeks = _plan_weeks(race_date)
+    if race_id is None and race_date:
+        from src.services.goal_service import create_goal_with_race
+        g = create_goal_with_race(conn, name=name, distance_km=distance_km, race_date=race_date,
+                                  target_time_sec=target_time_sec, target_pace_sec_km=target_pace_sec_km,
+                                  rules_version=rules_version)
+        if commit:
+            conn.commit()
+        return g["id"]
+    plan_weeks = _plan_weeks(race_date) if race_date else None
     conn.execute("UPDATE goals SET status = 'cancelled' WHERE status = 'active'")  # 활성 목표는 항상 1개 (v32)
     cursor = conn.execute(
         """INSERT INTO goals
            (name, race_date, distance_km, target_time_sec, target_pace_sec_km, status,
-            plan_rules_version, plan_weeks)
-           VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
-        (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version, plan_weeks),
+            plan_rules_version, plan_weeks, race_id)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)""",
+        (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version, plan_weeks, race_id),
     )
     if commit:
         conn.commit()
@@ -169,6 +179,24 @@ def update_goal(conn: sqlite3.Connection, goal_id: int, **kwargs) -> bool:
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:
         return False
+    g = get_goal(conn, goal_id)
+    if g is None:
+        return False
+    shared = {k: updates.pop(k) for k in ("race_date", "distance_km") if k in updates}
+    if shared:  # 대회 사실의 원천은 race_calendar (RC §2.3)
+        from src.services import race_calendar_service, race_goal_sync
+        if g["race_id"] is not None:
+            race_calendar_service.update(conn, g["race_id"], shared)
+            race_goal_sync.push_cache(conn, g["race_id"], date_changed="race_date" in shared)
+        elif shared.get("race_date") and g["status"] == "active":
+            if "distance_km" in shared:
+                conn.execute("UPDATE goals SET distance_km = ? WHERE id = ?", (shared["distance_km"], goal_id))
+            race_goal_sync.attach_race(conn, goal_id, shared["race_date"])
+        else:
+            updates.update(shared)
+    if not updates:
+        conn.commit()
+        return True
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values()) + [goal_id]
     cursor = conn.execute(f"UPDATE goals SET {set_clause} WHERE id = ?", values)

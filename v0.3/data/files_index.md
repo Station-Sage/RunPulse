@@ -204,6 +204,10 @@
 - class **CleanupError**: 없음
 - functions: targets, cleanup
 
+### `goal_service.py` (48줄) — 목표+대회 생성 (RC §2.3) — 대회를 A 로 만들거나 올린 뒤 add_goal(race_id=…). commit 은 호출자.
+
+- functions: create_goal_with_race
+
 ### `heat_forecast.py` (52줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
 
 - functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
@@ -411,6 +415,23 @@
 ### `provider_status_service.py` (91줄) — Provider별 데이터 현황 조회 서비스 (읽기 전용).
 
 - functions: get_provider_status, get_provider_coverage
+
+### `race_calendar_query.py` (96줄) — race_calendar 조회·공통 규칙 — 행 변환, 확인 필요 판정, A 충돌·중복 검사, 구역 목록 (RC §2.2·2.4·2.8).
+
+- class **RaceError**: 없음
+- functions: row_dict, get, require, is_needs_review, lazy_done, active_goal_race_id, is_goal_race, find_other_a, a_conflict, check_duplicate, list_zones
+
+### `race_calendar_service.py` (84줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
+
+- functions: add, update, cancel
+
+### `race_calendar_state.py` (96줄) — 대회 상태 전이 — 복원(restore, §2.12)·되돌리기(reopen, §2.13).
+
+- functions: restore, reopen
+
+### `race_goal_sync.py` (98줄) — 목표↔대회 동기화 (RC §2.2·2.3) — goals 의 race_date·distance_km·target_time_sec 은 race_calendar 의 읽기 호환 캐시.
+
+- functions: push_cache, demote_a, promote_to_a, link_goal, attach_race, check_invariants
 
 ### `race_hub_service.py` (189줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
@@ -1506,7 +1527,7 @@
 
 - functions: push_workout_to_garmin, push_weekly_plan
 
-### `goals.py` (195줄) — 훈련 목표 CRUD.
+### `goals.py` (223줄) — 훈련 목표 CRUD.
 
 - functions: get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
@@ -3290,6 +3311,10 @@
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled, test_set_sync_source_toggles_and_keeps_order, test_sync_page_widgets_reflect_sources, test_sync_sources_post_saves_checked_only
 
+### `test_race_calendar_service.py` (200줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
+
+- functions: test_add_defaults_and_duplicate, test_add_second_a_conflicts, test_past_date_allowed, test_lazy_done_and_zones, test_needs_review_zone, test_update_applied_goes_stale_and_editable_whitelist, test_update_not_found, test_cancel_saves_prev_and_blocks_goal_race, test_restore_future_restores_prev_values, test_restore_past_needs_confirm, test_restore_non_cancelled_409, test_restore_a_conflict_demote, test_restore_over_goal_race_requires_goal_link, test_restore_goal_link_wrong_target, test_restore_reapply_unavailable_becomes_stale, test_reopen, test_create_goal_with_race_demotes_old_a_and_syncs_cache, test_add_goal_compat_creates_linked_race, test_add_goal_without_date_has_no_race_then_attach, test_update_goal_delegates_to_race, test_push_cache_rc21_exception_keeps_null_date, test_demote_a_blocked_for_goal_race, test_check_invariants_detects_drift
+
 ### `test_race_effort.py` (39줄) — P7-PRED-22(r4 보강): 거리·지속시간별 전력 판정 — 이 러너 대회 값으로 검증(REVIEW-09 §10).
 
 - functions: test_runner_races, test_expected_ratio_monotone_and_t0, test_point_in_time_hrmax_and_proxy
@@ -3827,7 +3852,7 @@
 - functions: run
 
 ---
-총 825개 파일
+총 831개 파일
 
 ## docstring 누락
 
