@@ -23,8 +23,8 @@ def test_whitelist_and_invalid_value(conn):
 
 
 def test_resolve_priority(conn):
-    assert svc.resolve_ui_default(conn, {}) == "v1"
-    assert svc.resolve_ui_default(conn, {"ui_default_global": "v2"}) == "v2"
+    assert svc.resolve_ui_default(conn, {}) == "v2"
+    assert svc.resolve_ui_default(conn, {"ui_default_global": "v1"}) == "v1"
     svc.set_setting(conn, "ui_default", "v1")
     assert svc.resolve_ui_default(conn, {"ui_default_global": "v2"}) == "v1"
 
@@ -36,7 +36,7 @@ def test_set_overwrites(conn):
 
 
 def test_invalid_global_falls_back(conn):
-    assert svc.resolve_ui_default(conn, {"ui_default_global": "zzz"}) == "v1"
+    assert svc.resolve_ui_default(conn, {"ui_default_global": "zzz"}) == "v2"
 
 
 @pytest.fixture
@@ -80,8 +80,8 @@ def test_api_onboarding_patch(client):
 
 
 def test_entry_path(conn):
-    assert svc.entry_path(conn, {}) == "/dashboard"
-    assert svc.entry_path(None, {"ui_default_global": "v2"}) == "/v2/today"
+    assert svc.entry_path(conn, {}) == "/v2/today"
+    assert svc.entry_path(None, {"ui_default_global": "v1"}) == "/dashboard"
     svc.set_setting(conn, "ui_default", "v2")
     assert svc.entry_path(conn, {}) == "/v2/today"
     svc.set_setting(conn, "ui_default", "v1")

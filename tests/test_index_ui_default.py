@@ -1,4 +1,4 @@
-"""`/` 진입 분기 — 사용자 ui_default → 전역값 → v1(/dashboard)."""
+"""`/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today)."""
 import sqlite3
 
 import pytest
@@ -29,8 +29,12 @@ def make_client(monkeypatch, tmp_path):
     return build
 
 
-def test_default_goes_to_v1(make_client):
-    assert make_client().get("/").headers["Location"].endswith("/dashboard")
+def test_default_goes_to_v2(make_client):
+    assert make_client().get("/").headers["Location"].endswith("/v2/today")
+
+
+def test_global_v1(make_client):
+    assert make_client(global_value="v1").get("/").headers["Location"].endswith("/dashboard")
 
 
 def test_global_v2(make_client):

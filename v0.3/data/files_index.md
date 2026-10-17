@@ -2842,9 +2842,9 @@
 
 - functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
 
-### `test_index_ui_default.py` (41줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v1(/dashboard).
+### `test_index_ui_default.py` (45줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
 
-- functions: make_client, test_default_goes_to_v1, test_global_v2, test_user_overrides_global
+- functions: make_client, test_default_goes_to_v2, test_global_v1, test_global_v2, test_user_overrides_global
 
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 

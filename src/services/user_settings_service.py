@@ -10,7 +10,7 @@ ALLOWED: dict[str, tuple] = {
     "onboarding_step": (0, 1, 2, 3, 4),
     "adjuster_version": ("v3", "v2"),
 }
-FALLBACK_UI = "v1"
+FALLBACK_UI = "v2"
 
 
 def get_setting(conn: sqlite3.Connection, key: str, default=None):
@@ -42,12 +42,12 @@ def global_ui_default(config: dict) -> str:
 
 
 def resolve_ui_default(conn: sqlite3.Connection, config: dict) -> str:
-    """사용자 값 → config["ui_default_global"] → "v1"."""
+    """사용자 값 → config["ui_default_global"] → "v2"."""
     value = get_setting(conn, "ui_default")
     return value if value in ALLOWED["ui_default"] else global_ui_default(config)
 
 
 def entry_path(conn: sqlite3.Connection | None, config: dict) -> str:
-    """`/` 진입 경로 — 사용자 ui_default → 전역값 → v1(/dashboard). DB가 없으면 전역값만 본다."""
+    """`/` 진입 경로 — 사용자 ui_default → 전역값 → v2(/v2/today). DB가 없으면 전역값만 본다."""
     ui = resolve_ui_default(conn, config) if conn is not None else global_ui_default(config)
     return "/v2/today" if ui == "v2" else "/dashboard"
