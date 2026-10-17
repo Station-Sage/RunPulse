@@ -68,17 +68,24 @@ def update(conn: sqlite3.Connection, race_id: int, changes: dict) -> dict:
     return q.require(conn, race_id)
 
 
-def cancel(conn: sqlite3.Connection, race_id: int) -> dict:
-    """삭제=취소. 이전 선택·적용 상태를 저장(RC-28)한 뒤 적용 배치를 되돌린다(RC-9). 활성 목표 대회는 거부."""
+def cancel(conn: sqlite3.Connection, race_id: int, *, cancel_goal: bool = False) -> dict:
+    """삭제=취소. 이전 선택·적용 상태를 저장(RC-28)한 뒤 적용 배치를 되돌린다(RC-9).
+
+    활성 목표 대회는 cancel_goal=True(사용자 확인) 일 때만 목표와 함께 취소, 아니면 409 GOAL_LINKED(needs_confirm).
+    """
     cur = q.require(conn, race_id)
     if cur["status"] == "cancelled":
         raise RaceError("ALREADY_CANCELLED", "이미 취소된 대회입니다")
+    goal_cancelled = None
     if q.is_goal_race(conn, race_id):
-        raise RaceError("GOAL_LINKED", "활성 목표에 연결된 대회는 취소할 수 없습니다. 목표를 먼저 변경하세요")
+        if not cancel_goal:
+            raise RaceError("GOAL_LINKED", "연결된 목표도 함께 취소됩니다. 취소하시겠습니까?", needs_confirm=True)
+        goal_cancelled = conn.execute("SELECT id FROM goals WHERE status='active' AND race_id=?", (race_id,)).fetchone()[0]
+        conn.execute("UPDATE goals SET status='cancelled' WHERE id=?", (goal_cancelled,))
     conn.execute("UPDATE race_calendar SET cancel_prev_adapt_choice=?, cancel_prev_plan_state=? WHERE id=?",
                  (cur["adapt_choice"], cur["plan_state"], race_id))
     if cur["plan_state"] == "applied":
         _rollback_applied(conn, race_id)
     conn.execute("UPDATE race_calendar SET status='cancelled', plan_state='none', updated_at=datetime('now')"
                  " WHERE id=?", (race_id,))
-    return q.require(conn, race_id)
+    return {**q.require(conn, race_id), "goal_cancelled": goal_cancelled}

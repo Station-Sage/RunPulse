@@ -71,7 +71,12 @@ def test_cancel_saves_prev_and_blocks_goal_race(db_conn):
     g = create_goal_with_race(db_conn, name="G", distance_km=42.195, race_date="2026-12-20")
     with pytest.raises(RaceError) as e:
         svc.cancel(db_conn, g["race_id"])
-    assert e.value.code == "GOAL_LINKED"
+    assert e.value.code == "GOAL_LINKED" and e.value.extra["needs_confirm"] is True
+    assert db_conn.execute("SELECT status FROM goals WHERE id=?", (g["id"],)).fetchone()[0] == "active"
+    out = svc.cancel(db_conn, g["race_id"], cancel_goal=True)
+    assert out["status"] == "cancelled" and out["goal_cancelled"] == g["id"]
+    assert db_conn.execute("SELECT status FROM goals WHERE id=?", (g["id"],)).fetchone()[0] == "cancelled"
+    assert st.restore(db_conn, g["race_id"], TODAY)["status"] == "planned"
 
 
 def test_restore_future_restores_prev_values(db_conn):

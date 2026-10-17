@@ -421,7 +421,7 @@
 - class **RaceError**: 없음
 - functions: row_dict, get, require, is_needs_review, lazy_done, active_goal_race_id, is_goal_race, find_other_a, a_conflict, check_duplicate, list_zones
 
-### `race_calendar_service.py` (84줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
+### `race_calendar_service.py` (91줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
 
 - functions: add, update, cancel
 
@@ -3311,7 +3311,7 @@
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled, test_set_sync_source_toggles_and_keeps_order, test_sync_page_widgets_reflect_sources, test_sync_sources_post_saves_checked_only
 
-### `test_race_calendar_service.py` (200줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
+### `test_race_calendar_service.py` (205줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
 
 - functions: test_add_defaults_and_duplicate, test_add_second_a_conflicts, test_past_date_allowed, test_lazy_done_and_zones, test_needs_review_zone, test_update_applied_goes_stale_and_editable_whitelist, test_update_not_found, test_cancel_saves_prev_and_blocks_goal_race, test_restore_future_restores_prev_values, test_restore_past_needs_confirm, test_restore_non_cancelled_409, test_restore_a_conflict_demote, test_restore_over_goal_race_requires_goal_link, test_restore_goal_link_wrong_target, test_restore_reapply_unavailable_becomes_stale, test_reopen, test_create_goal_with_race_demotes_old_a_and_syncs_cache, test_add_goal_compat_creates_linked_race, test_add_goal_without_date_has_no_race_then_attach, test_update_goal_delegates_to_race, test_push_cache_rc21_exception_keeps_null_date, test_demote_a_blocked_for_goal_race, test_check_invariants_detects_drift
 
