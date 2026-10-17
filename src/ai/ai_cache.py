@@ -104,6 +104,12 @@ def invalidate(conn: sqlite3.Connection, tab: str | None = None) -> None:
     conn.commit()
 
 
+def clear_all_no_commit(conn: sqlite3.Connection) -> int:
+    """전체 삭제(commit 은 호출자) — 다른 삭제와 한 트랜잭션으로 묶을 때 쓴다."""
+    _ensure_table(conn)
+    return conn.execute("DELETE FROM ai_cache").rowcount
+
+
 # ── 내부 헬퍼 ──────────────────────────────────────────────────────────────
 
 def _compute_fingerprint(conn: sqlite3.Connection) -> str:

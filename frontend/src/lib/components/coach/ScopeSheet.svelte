@@ -3,6 +3,8 @@
 	import type { CoachEngine } from '$lib/types';
 	import type { ConsentInput } from '$lib/api/coach';
 	import { visibleScope } from '$lib/coachEngine';
+	import { getConsent, postConsent } from '$lib/api/context';
+	import { onMount } from 'svelte';
 
 	let {
 		engine,
@@ -22,6 +24,19 @@
 	let fallbackEnabled = $state(c?.fallback_enabled ?? true);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
+
+	let illnessShare = $state(false);
+	let illnessBusy = $state(false);
+	onMount(async () => {
+		try { illnessShare = (await getConsent()).action === 'grant'; } catch { /* 부가 설정 — 실패해도 시트는 연다 */ }
+	});
+	async function toggleIllness() {
+		illnessBusy = true;
+		const next = !illnessShare;
+		try { await postConsent(next ? 'grant' : 'revoke', 'settings'); illnessShare = next; }
+		catch (e) { error = e instanceof Error ? e.message : '저장하지 못했어요.'; }
+		finally { illnessBusy = false; }
+	}
 
 	const items = $derived(visibleScope(engine.scope, excludeNotes));
 
@@ -71,6 +86,12 @@
 			<span>실패 시 다른 AI로 재시도</span>
 			<input type="checkbox" bind:checked={fallbackEnabled} data-testid="toggle-fallback" />
 		</label>
+
+		<label class="flex items-center justify-between gap-3 text-sm">
+			<span>아팠던 기록을 코치와 공유</span>
+			<input type="checkbox" checked={illnessShare} disabled={illnessBusy} onchange={toggleIllness} data-testid="toggle-illness" />
+		</label>
+		{#if !illnessShare}<p class="text-xs text-fg-muted">끄면 이후 AI에는 '컨디션 신호'로만 전달돼요. 이미 보낸 대화는 그대로예요.</p>{/if}
 
 		{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 

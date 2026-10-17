@@ -841,6 +841,7 @@ export interface TodayResponse {
 	week_compliance?: WeekCompliance;
 	race_summary?: RaceSummary | null;
 	unlock?: import('../unlock').UnlockMap;
+	context?: import('../contextView').TodayContext;
 }
 
 /** B4 한 줄용 레이스 요약(src/services/today_hero.py build_race_summary). 목표 없으면 null. */

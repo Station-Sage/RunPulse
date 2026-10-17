@@ -153,8 +153,9 @@ def _trigger_items(conn: sqlite3.Connection, date: str) -> list[dict]:
     adj = r["adjustment"]
     if not adj or adj["source"] in MANUAL_SOURCES or r["state"] in ("declined", "undone", "expired", "stale"):
         return []
+    from src.services.illness_consent import redact_illness_for_ai
     out = []
-    for sg in adj.get("signals") or []:
+    for sg in redact_illness_for_ai(conn, adj.get("signals") or []):
         label = sg.get("role") == "trigger" and trigger_label(sg)
         if label:
             out.append({"type": "adjustment", "metric": sg["signal"], "value": sg.get("value"),

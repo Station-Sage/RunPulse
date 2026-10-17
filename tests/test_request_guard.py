@@ -335,3 +335,15 @@ def test_create_app_registers_guard_and_enforces(tmp_path, monkeypatch):
         assert bad.get_json()["error"]["code"] == "FORBIDDEN_ORIGIN"
         good = c.post("/api/v1/today/checkin", json={"fatigue": 3}, headers={**hdr, "Origin": BASE})
         assert good.status_code != 403
+
+
+def test_context_episodes_forged_origin_gets_envelope_403(tmp_path, monkeypatch):
+    monkeypatch.setenv("PUBLIC_BASE_URL", BASE)
+    monkeypatch.setenv("ORIGIN_GUARD_MODE", "enforce")
+    app = _create(tmp_path, monkeypatch, "development")
+    app.config["TESTING"] = True
+    hdr = {"CF-Access-Authenticated-User-Email": "ok@example.com"}
+    with app.test_client() as c:
+        bad = c.post("/api/context-episodes", json={"kind": "travel"}, headers={**hdr, "Origin": "https://evil.example"})
+        assert bad.status_code == 403 and bad.get_json()["error"]["code"] == "FORBIDDEN_ORIGIN"
+        assert c.delete("/api/context-episodes/1", headers={**hdr, "Origin": "https://evil.example"}).status_code == 403

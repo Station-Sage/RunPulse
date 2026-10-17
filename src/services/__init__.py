@@ -6,7 +6,7 @@ save_checkin()과 Coach의 스레드/메시지 저장은 명시적 예외다(07-
 Phase 7a). 첫 번째 인자는 항상 sqlite3.Connection. 반환값은 dict (snake_case 키).
 단위 변환 하지 않음 — SI 그대로 반환.
 
-파일: activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
+파일: context_episodes·illness_consent·context_episode_delete·context_autodetect·context_today·adjustment_signals_context(S5-13 컨텍스트 신호: 질병·이동·고지대, ADR-035 v3) / activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
 data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 (REVIEW-03, 00-diagnostic-and-direction.md §5.1).

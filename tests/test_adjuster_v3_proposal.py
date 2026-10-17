@@ -106,3 +106,24 @@ def test_weekly_job_rolls_back_v3(monkeypatch):
     monkeypatch.setattr("src.services.adjuster_frequency.should_rollback", lambda conn, today: ["weekly_over"])
     assert weekly_adapt_job.run(c, date.fromisoformat(D)) == 0
     assert get_setting(c, "adjuster_version", "v2") == "v2"
+
+
+def _illness_adj(monkeypatch):
+    adj = {"source": "checkin", "signals": [{"signal": "illness", "role": "trigger", "value": "flu", "detail": "독감"}]}
+    monkeypatch.setattr(svc, "get_day_adjustment", lambda conn, date, ensure=False: {"adjustment": adj, "state": "proposed"})
+
+
+def test_trigger_items_redact_illness_without_consent(monkeypatch):
+    from src.services import coach_evidence
+    _illness_adj(monkeypatch)
+    items = coach_evidence._trigger_items(_conn(), D)
+    assert [i["metric"] for i in items] == ["condition"]
+    assert items[0]["label"] == "컨디션 신호" and items[0]["value"] != "flu"
+
+
+def test_trigger_items_keep_illness_with_consent(monkeypatch):
+    from src.services import coach_evidence
+    _illness_adj(monkeypatch)
+    monkeypatch.setattr("src.services.illness_consent.has_consent", lambda conn: True)
+    items = coach_evidence._trigger_items(_conn(), D)
+    assert [i["metric"] for i in items] == ["illness"] and items[0]["label"] == "질병 확인"

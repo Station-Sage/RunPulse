@@ -7,7 +7,7 @@ import sqlite3
 from flask import request
 
 from src.services import input_limits
-from src.services import data_health_service, metric_unlock_service, milestone_service, race_hub_service, today_hero, today_service
+from src.services import context_today, data_health_service, metric_unlock_service, milestone_service, race_hub_service, today_hero, today_service
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
@@ -30,6 +30,7 @@ def get_today():
         data_health = data_health_service.get_load_coverage(conn)
         extras = today_hero.build_today_extras(conn, load_config(user_id=get_current_user_id()))
         unlock = metric_unlock_service.get_unlock_progress(conn)
+        context = context_today.build(conn)
     finally:
         conn.close()
 
@@ -46,6 +47,7 @@ def get_today():
         "checkin": checkin,
         "data_health": data_health,
         "unlock": unlock,
+        "context": context,
     })
 
 

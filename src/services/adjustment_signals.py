@@ -8,6 +8,7 @@ import sqlite3
 from datetime import date as _date
 
 from src.services import adjustment_triggers_v3 as T
+from src.services.adjustment_signals_context import collect_context
 from src.services.adjustment_signals_race import collect_race
 
 
@@ -57,13 +58,6 @@ def _pain(conn, day):
     return [_item("pain", True, "plan_adjustments", day, detail={"op": p["adjusted_type"]})]
 
 
-def _illness(conn, day):
-    row = conn.execute("SELECT id, severity FROM context_episodes WHERE kind='illness' AND status='confirmed'"
-                       " AND start_date<=? AND (end_date IS NULL OR end_date>=?) ORDER BY id DESC LIMIT 1",
-                       (day, day)).fetchone()
-    return [_item("illness", row is not None, "context_episodes", day, detail=None if row is None else {"severity": row[1]})]
-
-
 def _readiness(conn, day, readiness):
     from src.training.fatigue import readiness_decision
     r = readiness if readiness is not None else readiness_decision(conn, date=day)
@@ -83,7 +77,7 @@ def collect(conn: sqlite3.Connection, day: str, *, readiness: dict | None = None
     """day 의 모든 신호(role 미분류 또는 hold). 수집기 예외는 해당 신호를 missing 으로 만든다."""
     steps = [("checkin_pain", lambda: _checkin(conn, day)), ("crs", lambda: _crs(conn, day, crs)),
              ("acwr", lambda: _acwr(conn, day)), ("pain", lambda: _pain(conn, day)),
-             ("illness", lambda: _illness(conn, day)), ("readiness", lambda: _readiness(conn, day, readiness)),
+             ("context", lambda: collect_context(conn, day)), ("readiness", lambda: _readiness(conn, day, readiness)),
              ("boost_hold", lambda: _hold(conn, day, hold)),
              ("race_plan", lambda: [r] if (r := collect_race(conn, day)) else [])]
     out: list[dict] = []

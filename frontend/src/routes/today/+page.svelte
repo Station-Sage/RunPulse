@@ -19,6 +19,8 @@
 	import { redirectToWelcomeIfNew } from '$lib/welcomeRedirect';
 	import { onMount } from 'svelte';
 	import QuickInput from '$lib/components/QuickInput.svelte';
+	import ContextChips from '$lib/components/ContextChips.svelte';
+	import { staleBanner } from '$lib/contextView';
 	import RaceSummaryLine from '$lib/components/RaceSummaryLine.svelte';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { openDrill } from '$lib/drillStack';
@@ -98,6 +100,7 @@
 	{@const briefing = data.today.briefing}
 	{@const readiness = data.today.readiness}
 	{@const unlock = data.today.unlock}
+	{@const stale = staleBanner({ episodes: data.today.context?.active ?? [], illness_reconfirm: data.today.context?.illness_reconfirm ?? null, consent: { action: null, needs_first_prompt: false }, health_question: false })}
 	{@const locked = new Set(lockedRows(unlock).map((r) => r.key))}
 
 <DrillPanel scopeType="daily" scopeId={todayDate} fromTag="today">
@@ -117,6 +120,8 @@
 					{/await}
 				{/if}
 				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
+				{#if stale}<p class="rounded-lg bg-semantic-amber/10 px-3 py-2 text-sm text-fg-primary" role="status">{stale}</p>{/if}
+				<ContextChips onChange={() => { swrEvict('app:today'); void invalidate('app:today'); }} />
 				<QuickInput
 					compact={true}
 					existing={checkin

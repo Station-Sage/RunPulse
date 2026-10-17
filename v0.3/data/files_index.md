@@ -13,7 +13,7 @@
 > Phase 7a). 첫 번째 인자는 항상 sqlite3.Connection. 반환값은 dict (snake_case 키).
 > 단위 변환 하지 않음 — SI 그대로 반환.
 > 
-> 파일: activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
+> 파일: context_episodes·illness_consent·context_episode_delete·context_autodetect·context_today·adjustment_signals_context(S5-13 컨텍스트 신호: 질병·이동·고지대, ADR-035 v3) / activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 > today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
 > data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 > (REVIEW-03, 00-diagnostic-and-direction.md §5.1).
@@ -98,13 +98,17 @@
 
 - functions: propose
 
-### `adjustment_labels.py` (20줄) — 조정 v3 트리거 신호의 사용자 표시 라벨 (프론트 adjustmentView.CHIP 과 같은 문구).
+### `adjustment_labels.py` (21줄) — 조정 v3 트리거 신호의 사용자 표시 라벨 (프론트 adjustmentView.CHIP 과 같은 문구).
 
 - functions: trigger_label
 
-### `adjustment_signals.py` (102줄) — 조정 신호 수집·분류 (ADR-035 개정, ADJ §3.6) — 읽기 전용, 외부 호출 없음. 수집기별 실패는 freshness='missing' 으로 격리한다.
+### `adjustment_signals.py` (96줄) — 조정 신호 수집·분류 (ADR-035 개정, ADJ §3.6) — 읽기 전용, 외부 호출 없음. 수집기별 실패는 freshness='missing' 으로 격리한다.
 
 - functions: collect, evaluate
+
+### `adjustment_signals_context.py` (107줄) — 컨텍스트 신호 illness·travel·altitude 수집 (NEW-3·9·19·33·34) — context_episodes(confirmed) 읽기 전용.
+
+- functions: travel_window_days, return_window_days, collect_illness, collect_travel, collect_altitude, collect_context
 
 ### `adjustment_signals_race.py` (50줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
 
@@ -147,13 +151,29 @@
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (249줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (250줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
 ### `coach_service.py` (300줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
 - functions: list_threads, get_thread, create_thread, add_message, generate_reply, get_message, regenerate
+
+### `context_autodetect.py` (114줄) — 여행·고지대 자동 감지 (NEW-2·8) — 최근 활동에서 후보(origin='auto', status='candidate')만 만든다.
+
+- functions: detect_travel, detect_altitude, rhr_hrv_question, run
+
+### `context_episode_delete.py` (87줄) — 컨텍스트 에피소드 삭제 연쇄 (NEW-18·28) — 한 트랜잭션, commit 은 호출자.
+
+- functions: delete_episode
+
+### `context_episodes.py` (102줄) — 컨텍스트 에피소드(질병·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
+
+- functions: open_episode, confirm, dismiss, close, expire_candidates, list_active, list_all, illness_reconfirm
+
+### `context_today.py` (16줄) — 오늘 화면용 컨텍스트 요약 (NEW-19·22) — 읽기 전용. 진행 중 에피소드·질병 재확인 배너·건강 질문 플래그.
+
+- functions: build
 
 ### `dashboard_service.py` (214줄) — Phase 5 서비스 레이어 - 대시보드 데이터 조회.
 
@@ -188,11 +208,15 @@
 
 - functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
 
+### `illness_consent.py` (44줄) — 질병 정보 AI 코치 전송 동의 (NEW-12·14~17) — illness_consent_events 추가 전용 기록, 현재 상태 = 최신 행.
+
+- functions: record, current_action, has_consent, needs_first_prompt, redact_illness_for_ai
+
 ### `import_service.py` (228줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
 
 - functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
-### `input_limits.py` (55줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
+### `input_limits.py` (60줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
 
 - functions: race_date_window, check_checkin, check_plan_request
 
@@ -959,9 +983,9 @@
 > 설계 문서: v0.3/data/phase-5-impl/02-ai-context.md
 > 의존: src/services/, src/utils/template_helpers.py
 
-### `ai_cache.py` (167줄) — AI 캐시 관리 — DB 기반 AI 해석 결과 저장/조회/갱신.
+### `ai_cache.py` (173줄) — AI 캐시 관리 — DB 기반 AI 해석 결과 저장/조회/갱신.
 
-- functions: get_cached, set_cached, get_cache_age, invalidate
+- functions: get_cached, set_cached, get_cache_age, invalidate, clear_all_no_commit
 
 ### `ai_context.py` (185줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
 
@@ -1130,7 +1154,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (492줄) — RunPulse integration workbench web app.
+### `app.py` (494줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1903,6 +1927,10 @@
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
+### `routes_context.py` (171줄) — `/api/context-episodes*` — 질병·여행·고도 컨텍스트 에피소드와 AI 동의 (NEW-40, ADR-035 v3).
+
+- functions: list_episodes, create_episode, confirm_episode, dismiss_episode, close_episode, remove_episode, get_consent, post_consent
+
 ### `routes_csp_report.py` (116줄) — `POST /api/v1/csp-report` — 브라우저 CSP 위반 보고 수신(로그 전용, DB 저장 없음, D6).
 
 - functions: is_extension, parse_reports, csp_report
@@ -1975,7 +2003,7 @@
 
 - functions: get_story
 
-### `routes_today.py` (154줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+### `routes_today.py` (156줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
 
@@ -2089,13 +2117,17 @@
 
 - functions: test_weekly_counts_and_rollback_needs_two_weeks, test_acceptance_drop_and_min_sample, test_acceptance_no_drop_when_prev_zero_or_stable, test_check_and_rollback_switches_version, test_backtest_run_summarizes_without_plan
 
-### `test_adjuster_v3_proposal.py` (108줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
+### `test_adjuster_v3_proposal.py` (129줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
 
-- functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2, test_get_day_adjustment_exposes_signals_and_evidence_items, test_trigger_items_empty_for_manual_or_none, test_trigger_label, test_weekly_job_rolls_back_v3
+- functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2, test_get_day_adjustment_exposes_signals_and_evidence_items, test_trigger_items_empty_for_manual_or_none, test_trigger_label, test_weekly_job_rolls_back_v3, test_trigger_items_redact_illness_without_consent, test_trigger_items_keep_illness_with_consent
 
 ### `test_adjustment_signals.py` (72줄) — 조정 신호 수집(adjustment_signals, _race) 단위 테스트.
 
 - functions: test_phase_of_windows, test_collect_race_filters, test_collect_isolates_failures_and_reads_db, test_collect_missing_when_collector_raises, test_evaluate_no_trigger
+
+### `test_adjustment_signals_context.py` (66줄) — 컨텍스트 신호 수집(illness·travel·altitude) — 신선도·재확인·창 경계.
+
+- functions: c, test_illness_freshness_and_reconfirm, test_illness_return_context_boundary, test_travel_windows, test_travel_departure_window_expires, test_altitude_adapt_and_return, test_collect_wires_illness_trigger
 
 ### `test_adjustment_triggers_v3.py` (53줄) — adjuster_v3 트리거 판정(순수 함수) 단위 테스트.
 
@@ -2164,6 +2196,10 @@
 ### `test_api_coach.py` (272줄) — tests/test_api_coach.py — /api/v1/coach 테스트(스레드·메시지·SSE·취소·재생성·엔진·동의).
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
+
+### `test_api_context_episodes.py` (83줄) — /api/context-episodes* — 목록·생성·확정·종료·삭제·동의 + 봉투 오류.
+
+- functions: client, test_create_list_close_illness, test_validation_errors_are_envelopes, test_dismiss_only_candidates_and_confirm, test_delete_with_chat_threads_and_404, test_consent_roundtrip, test_today_context_block_and_forged_origin
 
 ### `test_api_data_sync.py` (115줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
 
@@ -2415,6 +2451,18 @@
 - class **TestIntervalsExtractor**: test_extract_core_distance_m
 - class **TestViewsExportCSV**: test_csv_distance_km_conversion
 - functions: conn
+
+### `test_context_autodetect.py` (76줄) — 여행·고지대 자동 감지 + RHR/HRV 질문 (NEW-2·8).
+
+- functions: test_detect_travel_flags_large_tz_shift, test_detect_travel_ignores_small_shift_and_no_data, test_detect_altitude_needs_threshold_and_delta, test_rhr_hrv_question_requires_both, test_run_creates_candidates_once
+
+### `test_context_episode_delete.py` (62줄) — 에피소드 삭제 연쇄 테스트 (NEW-18·28).
+
+- functions: test_missing_returns_none, test_travel_keeps_history, test_illness_anonymizes_and_withdraws, test_illness_clears_cache_and_chats
+
+### `test_context_episodes.py` (85줄) — context_episodes·illness_consent 서비스 단위 테스트 (NEW-1~3·9·13·19·22·12~17).
+
+- functions: conn, test_open_confirmed_and_idempotent, test_invalid_kind, test_close_not_before_start, test_candidate_expires_after_two_days, test_fresh_candidate_stays_and_confirm, test_dismiss_only_candidate, test_illness_reconfirm_boundary, test_list_all_hides_dismissed, test_consent_state_machine, test_redact_without_consent
 
 ### `test_context_runs.py` (66줄) — P7-PRED-14: RunHistoryMixin.get_runs / get_active_goal / get_race_results / canonical 시리즈.
 
@@ -3320,9 +3368,9 @@
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
 
-### `test_request_guard.py` (337줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
+### `test_request_guard.py` (349줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
 
-- functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_default_port_and_case_normalized_accepted, test_malformed_or_deceptive_origins_rejected, test_empty_origin_does_not_fall_back_to_referer, test_public_base_url_with_path_and_default_port_is_normalized, test_invalid_public_base_url_warns_and_rejects, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_log_strips_referer_query_and_fragment_and_limits_length, test_log_limits_origin_length, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_unknown_mode_is_logged, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_default_mode_is_observe, test_set_cookie_header_attributes, test_create_app_registers_guard_and_enforces
+- functions: env, enforce, client, test_same_origin_accepts_public_base, test_origin_case_and_default_port_forms, test_forged_origin_rejected, test_null_origin_rejected, test_lookalike_origin_rejected, test_referer_fallback_when_origin_absent, test_origin_wins_over_referer, test_both_missing_rejected, test_garbage_referer_rejected, test_get_is_never_checked, test_all_state_changing_methods_checked, test_dev_origins_only_outside_production, test_default_port_and_case_normalized_accepted, test_malformed_or_deceptive_origins_rejected, test_empty_origin_does_not_fall_back_to_referer, test_public_base_url_with_path_and_default_port_is_normalized, test_invalid_public_base_url_warns_and_rejects, test_base_url_fallback_is_request_root, test_exempt_paths_pass_without_origin, test_context_episodes_is_not_exempt, test_exempt_matching_is_boundary_safe, test_envelope_paths_get_json_403, test_other_paths_get_text_403, test_observe_is_default_and_passes_through_with_log, test_log_strips_referer_query_and_fragment_and_limits_length, test_log_limits_origin_length, test_observe_logs_missing_origin_and_referer, test_no_log_for_valid_exempt_or_get, test_enforce_also_logs, test_mode_parsing_falls_back_to_observe, test_unknown_mode_is_logged, test_production_without_public_base_url_warns, test_session_cookie_config_per_app_env, test_create_app_default_mode_is_observe, test_set_cookie_header_attributes, test_create_app_registers_guard_and_enforces, test_context_episodes_forged_origin_gets_envelope_403
 
 ### `test_response_policy.py` (263줄) — response_policy — 공통 보안 헤더·표면별 CSP (S3 8단계, E-01, ADR-049).
 
@@ -3779,7 +3827,7 @@
 - functions: run
 
 ---
-총 813개 파일
+총 825개 파일
 
 ## docstring 누락
 

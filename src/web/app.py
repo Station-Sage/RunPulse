@@ -47,6 +47,7 @@ from .views_guide import guide_bp
 
 # Phase 7 /api/v1/ JSON API (SvelteKit v2 소비)
 from src.api import api_bp
+from src.api.routes_context import context_bp
 from src.api.routes_v1_sync import v1_sync_bp
 from src.api.routes_v1_pages import v1_pages_bp
 from .spa_static import serve_v2_response
@@ -486,6 +487,7 @@ def create_app() -> Flask:
     app.register_blueprint(guide_bp)          # 용어집/가이드
     app.register_blueprint(sync_bp)           # 동기화 탭
     app.register_blueprint(api_bp)            # Phase 7 /api/v1/ JSON API
+    app.register_blueprint(context_bp)        # 컨텍스트 에피소드 /api/context-episodes (NEW-40)
     app.register_blueprint(v1_sync_bp)        # v1 sync 트리거·bg-sync·garmin local-sync (V1S-12 b, S3-7)
     app.register_blueprint(v1_pages_bp)       # v1 import 화면·sync-status (V1S-12 b, S3-7)
 
