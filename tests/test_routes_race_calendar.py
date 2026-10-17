@@ -38,7 +38,8 @@ def test_create_list_get_patch(ctx):
     assert d["status"] == "planned" and d["needs_review"] is False and d["goal_linked"] is False
     rid = d["id"]
     assert _post(cl).status_code == 409
-    assert cl.get("/api/v1/race-calendar").status_code == 200
+    z = cl.get("/api/v1/race-calendar").get_json()["data"]
+    assert z["goal_race_id"] is None and [x["id"] for x in z["upcoming"]] == [rid]
     assert cl.get(f"/api/v1/race-calendar/{rid}").get_json()["data"]["name"] == "서울"
     r = cl.patch(f"/api/v1/race-calendar/{rid}", json={"note": "메모"}, headers=H)
     assert r.status_code == 200 and r.get_json()["data"]["note"] == "메모"

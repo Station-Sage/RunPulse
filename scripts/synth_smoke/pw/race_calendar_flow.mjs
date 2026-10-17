@@ -1,0 +1,27 @@
+// 대회 캘린더(RC-d) 375px 스모크: 목록·추가·상세·취소·복원. 환경: BASE, API
+import { chromium } from 'playwright';
+const BASE = process.env.BASE || 'http://127.0.0.1:5200';
+const API = process.env.API || 'http://127.0.0.1:18098';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 375, height: 800 } });
+await ctx.route('**/api/v1/**', (r) => r.continue({ url: r.request().url().replace(/^https?:\/\/[^/]+/, API), headers: { ...r.request().headers(), origin: 'http://localhost' } }));
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+page.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+await page.goto(`${BASE}/v2/today/race/calendar`, { waitUntil: 'networkidle' });
+console.log('h1:', await page.locator('h1').allInnerTexts());
+console.log('rows:', (await page.locator('li button').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ')));
+console.log('overflow:', await page.evaluate(() => document.documentElement.scrollWidth > innerWidth));
+await page.screenshot({ path: 'shots/rc_list.png', fullPage: true });
+await page.getByRole('button', { name: '대회 추가' }).click();
+await page.screenshot({ path: 'shots/rc_entry.png' });
+await page.getByLabel(/이름|대회명/).first().fill('서울 마라톤');
+await page.getByLabel(/날짜/).first().fill('2026-12-20');
+await page.getByLabel(/거리/).first().fill('42.195');
+await page.getByRole('button', { name: /^저장|추가$/ }).last().click();
+await page.waitForTimeout(1200);
+await page.screenshot({ path: 'shots/rc_after_add.png' });
+console.log('dialogs:', await page.locator('[role=dialog]').count(), 'text:', (await page.locator('[role=dialog]').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').slice(0, 160)));
+console.log('errors:', errs);
+await b.close();

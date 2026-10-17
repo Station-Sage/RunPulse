@@ -2024,7 +2024,7 @@
 
 - functions: get_prediction_compare, get_prediction_profile, get_race_candidates, put_race_confirm, delete_race_confirm
 
-### `routes_race_calendar.py` (208줄) — `/api/v1/race-calendar*` — 대회 캘린더 CRUD·영향 미리보기·플랜 반영·복원·되돌리기 (RC-c, S4-28).
+### `routes_race_calendar.py` (210줄) — `/api/v1/race-calendar*` — 대회 캘린더 CRUD·영향 미리보기·플랜 반영·복원·되돌리기 (RC-c, S4-28).
 
 - functions: list_races, create_race, get_race, update_race, cancel_race, race_impact_route, race_plan_route, restore_route, reopen_route
 
@@ -3431,7 +3431,7 @@
 - class **TestCalculatorMetadata**: test_all_have_display_name, test_all_have_description, test_format_types_valid, test_ranges_are_dict_or_none, test_groups_have_members, test_get_group_for_metric, test_get_group_members, test_get_group_members_nonexistent
 - class **TestCLI**: test_status_empty, test_status_with_data, test_cli_no_command
 
-### `test_routes_race_calendar.py` (150줄) — RC-c: /api/v1/race-calendar* — CRUD·영향·플랜 반영·복원·되돌리기 + 봉투 오류.
+### `test_routes_race_calendar.py` (151줄) — RC-c: /api/v1/race-calendar* — CRUD·영향·플랜 반영·복원·되돌리기 + 봉투 오류.
 
 - functions: ctx, test_create_list_get_patch, test_validation_envelope, test_cancel_goal_linked_needs_confirm, test_cancel_plain_via_query, test_impact_and_plan_actions, test_restore_and_conflicts, test_restore_a_conflict_and_reopen, test_reopen_needs_review
 

@@ -38,6 +38,13 @@
 		<span class="w-10"></span>
 	</div>
 
+	<a
+		href="{base}/today/race/calendar"
+		class="flex min-h-11 items-center justify-between rounded-lg border border-border-subtle bg-surface-2 px-4 py-3 text-sm hover:bg-surface-3"
+	>
+		<span>대회 캘린더 · 다가오는 대회 관리</span><span class="text-fg-muted">›</span>
+	</a>
+
 	{#if data.failed}
 		<ErrorState message="레이스 예측을 불러오지 못했어요" onRetry={() => invalidate('app:race-hub')} />
 	{:else if !data.hub?.goal}
