@@ -126,7 +126,7 @@
 			</div>
 			{#if needsInjuryNotice(runDays)}
 				<p class="mt-2 text-xs text-semantic-red" data-testid="injury-notice">
-					주 {runDays.length}일 운동은 부상 위험이 높아질 수 있습니다. (문구 확정 대기)
+					주 {runDays.length}일 달리면 회복 시간이 부족해 부상 위험이 높아질 수 있어요. 주 1일 이상은 쉬는 것을 권장합니다.
 				</p>
 			{/if}
 		</div>
