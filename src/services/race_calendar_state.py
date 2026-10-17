@@ -11,8 +11,11 @@ from src.services import race_calendar_query as q
 from src.services import race_goal_sync as sync
 from src.services.race_calendar_query import RaceError
 
-# RC-b 에서 race_plan_link 가 채운다. (적용 여부, 사유코드) 반환.
-_reapply = lambda conn, race_id, today: (False, "NOT_AVAILABLE")  # noqa: E731
+
+def _reapply(conn, race_id: int, today: str) -> tuple[bool, str | None]:
+    """(적용 여부, 사유코드). 테스트에서 교체할 수 있도록 모듈 함수로 둔다."""
+    from src.services import race_plan_link
+    return race_plan_link.reapply(conn, race_id, today)
 
 
 def _resolve_a_conflict(conn, race_id: int, demote_existing_a: bool, goal_link: dict | None) -> int | None:

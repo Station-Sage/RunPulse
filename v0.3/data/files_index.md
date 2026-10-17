@@ -110,9 +110,9 @@
 
 - functions: travel_window_days, return_window_days, collect_illness, collect_travel, collect_altitude, collect_context
 
-### `adjustment_signals_race.py` (50줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
+### `adjustment_signals_race.py` (61줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
 
-- functions: phase_of, collect_race
+- functions: windows_for, phase_of, collect_race
 
 ### `adjustment_triggers_v3.py` (78줄) — adjuster_v3 트리거 판정 (ADR-035 개정, ADJ) — 신호 목록 → 단독 OR / 2개 이상 AND 판정. 순수 함수(DB 접근 없음).
 
@@ -421,11 +421,11 @@
 - class **RaceError**: 없음
 - functions: row_dict, get, require, is_needs_review, lazy_done, active_goal_race_id, is_goal_race, find_other_a, a_conflict, check_duplicate, list_zones
 
-### `race_calendar_service.py` (91줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
+### `race_calendar_service.py` (94줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
 
 - functions: add, update, cancel
 
-### `race_calendar_state.py` (96줄) — 대회 상태 전이 — 복원(restore, §2.12)·되돌리기(reopen, §2.13).
+### `race_calendar_state.py` (99줄) — 대회 상태 전이 — 복원(restore, §2.12)·되돌리기(reopen, §2.13).
 
 - functions: restore, reopen
 
@@ -436,6 +436,10 @@
 ### `race_hub_service.py` (189줄) — Today 목표 레이스 허브 — 활성 목표 + D-day + 예측 기록·목표 격차·예측 추이.
 
 - functions: bucket_for_distance, get_race_hub, form_band, race_briefing
+
+### `race_plan_link.py` (100줄) — 대회 ↔ 플랜 연결 (RC-b, §2.6·§2.12) — B/C 대회 영향을 plan_adjustments 배치(source='race')로 적용·되돌린다.
+
+- functions: preview, apply, undo, reapply
 
 ### `race_projection_service.py` (100줄) — 레이스 아침 폼 예측 — 현재 CTL/ATL에서 테이퍼 유무 두 시나리오로 TSB를 전방 투영한다.
 
@@ -1515,9 +1519,9 @@
 - class **CalDavUnavailable**: 없음
 - functions: push_range, push_weekly_plan_to_caldav, sync_after_replan, test_connection
 
-### `constraints.py` (81줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
+### `constraints.py` (113줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
 
-- functions: heat_adjust, redistribute_blocked, b_race_week, cross_substituted
+- functions: heat_adjust, redistribute_blocked, b_race_week, race_impact, cross_substituted
 
 ### `fatigue.py` (168줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
 
@@ -2455,9 +2459,9 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_constraints.py` (42줄)
+### `test_constraints.py` (58줄)
 
-- functions: test_heat_moves_quality_and_keeps_km, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted
+- functions: test_heat_moves_quality_and_keeps_km, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted, test_race_impact_windows_and_protection, test_race_impact_empty_outside_window
 
 ### `test_consumer_migration.py` (270줄) — Phase 5-J consumer migration 검증 테스트.
 
@@ -3323,6 +3327,10 @@
 
 - functions: conn, test_bucket_marathon, test_bucket_marathon_near, test_bucket_half, test_bucket_half_near, test_bucket_10k, test_bucket_5k, test_bucket_none_out_of_range, test_bucket_none_input, test_no_goal_all_none, test_past_goal_only_returns_none, test_nearest_future_goal_selected, test_days_left_and_weeks_left, test_prediction_value_and_gap, test_prediction_history_ascending, test_prediction_history_90d_window, test_no_bucket_no_prediction, test_no_target_gap_is_none, test_form_with_ctl_tsb, test_form_no_metrics_both_none, test_hub_includes_projection_key, test_form_band_boundaries, test_race_briefing_none_without_goal_or_tsb, test_race_briefing_phases, test_today_briefing_uses_race_context, test_race_briefing_freshness_hedge
 
+### `test_race_plan_link.py` (98줄) — race_plan_link (RC-b) — 배치 적용·되돌리기·재적용·보호 행·신호 창.
+
+- functions: test_windows_distance_based_and_bc_rounded_up, test_apply_and_undo_roundtrip, test_protected_rows_untouched, test_no_plan_gives_zero_rows, test_cancel_undoes_applied, test_restore_reapplies_batch, test_live_proposed_auto_is_replaced_accepted_is_skipped, test_needs_review_excluded_from_signal
+
 ### `test_race_projection_service.py` (81줄) — tests/test_race_projection_service.py — 레이스 아침 폼 예측.
 
 - functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb, test_scenarios_have_ctl_change_pct
@@ -3852,7 +3860,7 @@
 - functions: run
 
 ---
-총 831개 파일
+총 833개 파일
 
 ## docstring 누락
 

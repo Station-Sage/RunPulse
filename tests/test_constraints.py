@@ -40,3 +40,19 @@ def test_b_race_week():
 
 def test_cross_substituted():
     assert C.cross_substituted(WEEK, {"2026-10-05", "2026-10-08"}) == {"2026-10-05"}
+
+
+def test_race_impact_windows_and_protection():
+    rows = [dict(r) for r in WEEK]
+    rows[0]["completed"] = 1  # 10-05 완료 행은 보호
+    race = {"race_date": "2026-10-10", "distance_km": 10}
+    out = {c["before"]["date"]: c["after"] for c in C.race_impact(rows, race, (4, 2))}
+    assert "2026-10-05" not in out and "2026-10-08" not in out  # 완료·rest 보호
+    assert out["2026-10-06"]["distance_km"] == 8.0 and out["2026-10-06"]["workout_type"] == "tempo"
+    assert out["2026-10-09"]["workout_type"] == "easy"
+    assert out["2026-10-10"]["workout_type"] == "race"
+    assert out["2026-10-11"]["workout_type"] == "rest"
+
+
+def test_race_impact_empty_outside_window():
+    assert C.race_impact(WEEK, {"race_date": "2026-12-01", "distance_km": 10}, (3, 2)) == []

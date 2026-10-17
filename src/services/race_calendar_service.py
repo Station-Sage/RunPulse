@@ -16,8 +16,11 @@ _PLAN_AFFECTING = ("race_date", "distance_km", "priority")
 _INSERT = ("name", "race_date", "distance_km", "priority", "goal_type", "goal_value",
            "taper_days", "recovery_days", "origin", "note")
 
-# RC-b 에서 race_plan_link 가 채운다. 적용된 배치를 되돌리고 되돌린 행 수를 반환.
-_rollback_applied = lambda conn, race_id: 0  # noqa: E731
+
+def _rollback_applied(conn, race_id: int) -> int:
+    """적용된 배치를 되돌리고 되돌린 행 수를 반환."""
+    from src.services import race_plan_link
+    return race_plan_link.undo(conn, race_id)
 
 
 def add(conn: sqlite3.Connection, data: dict, *, as_goal: bool = False) -> dict:

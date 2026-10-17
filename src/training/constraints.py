@@ -75,6 +75,38 @@ def b_race_week(rows: list[dict], b_race_date: str, distance_km: float) -> list[
     return out
 
 
+def _protected(r: dict) -> bool:
+    return r["workout_type"] in _SKIP or bool(r.get("completed")) or r.get("matched_activity_id") is not None
+
+
+def race_impact(rows: list[dict], race: dict, windows: tuple[int, int]) -> list[dict]:
+    """B/C 대회 영향(순수): windows=(taper일, recovery일). 창 안의 보호되지 않은 행만 바꿔 [{before, after}] 로 돌려준다.
+
+    테이퍼 구간은 볼륨 0.8배(직전 2일은 이지), 대회일은 레이스, 회복 구간은 휴식. rest·race·완료·매칭 행은 건드리지 않는다.
+    """
+    taper, recovery = windows
+    rd = date.fromisoformat(race["race_date"])
+    km = float(race.get("distance_km") or 0.0)
+    out = []
+    for r in rows:
+        n = (rd - date.fromisoformat(r["date"])).days
+        if n > taper or -n > recovery or _protected(r):
+            continue
+        new = dict(r)
+        if n > 0:
+            new["distance_km"] = round(_km(r) * B_RACE_VOLUME, 1)
+            if n <= 2:
+                new.update(workout_type="easy", interval_prescription=None)
+        elif n == 0:
+            new.update(workout_type="race", distance_km=round(km, 1), target_pace_min=None, target_pace_max=None,
+                       interval_prescription=None)
+        else:
+            new.update(WS._to_rest(r))
+        if (new["workout_type"], new["distance_km"]) != (r["workout_type"], r.get("distance_km")):
+            out.append({"before": dict(r), "after": new})
+    return out
+
+
 def cross_substituted(planned: list[dict], cross_dates: set[str]) -> set[str]:
     """교차훈련 활동이 있고 러닝이 없던 계획 러닝일 — 볼륨 이행률 분모에서 빼는 날짜 집합."""
     return {r["date"] for r in planned
