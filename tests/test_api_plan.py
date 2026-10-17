@@ -190,6 +190,39 @@ def test_post_plan_201_creates_goal(mini_app):
     assert isinstance(body["data"]["goal_id"], int)
 
 
+def _race_row(db_file, prio="A", date_="2099-12-06"):
+    c = sqlite3.connect(str(db_file))
+    c.execute("INSERT INTO race_calendar(name, race_date, distance_km, priority) VALUES ('r', ?, 21.0975, ?)", (date_, prio))
+    rid = c.execute("SELECT max(id) FROM race_calendar").fetchone()[0]
+    c.commit()
+    c.close()
+    return rid
+
+
+def test_post_plan_with_race_id_links_race(mini_app):
+    """race_id 를 주면 목표가 그 대회에 연결되고 대회는 adapt·applied."""
+    client, db_file = mini_app
+    rid = _race_row(db_file)
+    res = client.post("/api/v1/coach/plan", json={"distance_km": 21.0975, "weeks": 8, "run_weekdays": [0, 2, 4, 6],
+                                                  "race_id": rid}, headers={"Origin": "http://localhost"})
+    assert res.status_code == 200, res.get_json()
+    c = sqlite3.connect(str(db_file))
+    assert c.execute("SELECT race_id FROM goals WHERE status='active'").fetchone()[0] == rid
+    assert c.execute("SELECT adapt_choice, plan_state FROM race_calendar WHERE id=?", (rid,)).fetchone() == ("adapt", "applied")
+    c.close()
+
+
+def test_post_plan_race_id_not_linkable(mini_app):
+    """B 등급·없는 대회는 연결 불가(RACE_NOT_LINKABLE 계열 오류)."""
+    client, db_file = mini_app
+    rid = _race_row(db_file, prio="B")
+    body = {"distance_km": 21.0975, "weeks": 8, "run_weekdays": [0, 2, 4, 6]}
+    res = client.post("/api/v1/coach/plan", json={**body, "race_id": rid}, headers={"Origin": "http://localhost"})
+    assert res.status_code == 409 and res.get_json()["error"]["code"] == "RACE_NOT_LINKABLE"
+    res = client.post("/api/v1/coach/plan", json={**body, "race_id": 999}, headers={"Origin": "http://localhost"})
+    assert res.status_code == 404
+
+
 # ── /coach/plan/<goal_id>/session/<date> ─────────────────────────────────────
 
 @pytest.fixture

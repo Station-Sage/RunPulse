@@ -6,6 +6,7 @@ from datetime import date
 
 from flask import current_app, request
 
+from src.services.race_calendar_query import RaceError
 from src.services import input_limits
 from src.services import (adaptation_service, plan_overview_service, plan_adjustment_service, plan_restore, plan_service, plan_template_service,
                           weekly_adapt_job)
@@ -183,6 +184,7 @@ _CREATE_PLAN_SCHEMA = {
     "recent_weekly_km": _reported_km_field("recent_weekly_km"),
     "recent_long_km": _reported_km_field("recent_long_km"),
     "expect_active_goal_id": int_field(1, 2**31 - 1),
+    "race_id": int_field(1, 2**31 - 1),
 }
 
 
@@ -212,7 +214,7 @@ def create_plan():
         goal_id = plan_template_service.create_plan_from_template(
             conn, body["distance_km"], body["race_date"], weeks, body["target_time_sec"], body["name"],
             recent_weekly_km=weekly_km, recent_long_km=long_km, run_weekdays=body["run_weekdays"],
-            expect_active_goal_id=_expect(request.get_json(silent=True) or {}, body),
+            expect_active_goal_id=_expect(request.get_json(silent=True) or {}, body), race_id=body["race_id"],
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
         warnings = plan_readiness.plan_warnings(conn, goal_id)
@@ -220,6 +222,8 @@ def create_plan():
         return api_error("INVALID_PARAM", str(exc), 400, {"run_weekdays": str(exc)})
     except plan_template_service.PlanConflict as exc:
         return _conflict(exc)
+    except RaceError as exc:
+        return api_error(exc.code, str(exc), exc.http, exc.extra or None)
     finally:
         conn.close()
     # 대회일까지 가능 주수보다 길게 요청하면 서비스가 줄여 만든다 — 조용한 보정 대신 알린다(SRV-7·SRV-11)

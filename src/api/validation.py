@@ -127,6 +127,17 @@ def date_field(min_date: date | Callable[[], date] | None = None,
     return Field(parse, required=required, default=default)
 
 
+def bool_field(*, required: bool = False, default: Any = None) -> Field:
+    def parse(raw):
+        if isinstance(raw, bool):
+            return raw
+        if isinstance(raw, str) and raw.lower() in ("true", "false", "1", "0"):
+            return raw.lower() in ("true", "1")
+        raise FieldError("true/false 여야 합니다")
+
+    return Field(parse, required=required, default=default)
+
+
 def str_field(max_len: int, *, required: bool = False, strip: bool = True, default: Any = None) -> Field:
     """문자열 필드. `strip` 이면 앞뒤 공백을 제거한 길이로 검사하고, 비면 '없음'(선택) 또는 오류(필수)."""
     def parse(raw):

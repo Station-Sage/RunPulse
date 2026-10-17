@@ -188,6 +188,7 @@ def create_plan_from_template(
     *,
     run_weekdays,
     expect_active_goal_id=_UNSET,
+    race_id: int | None = None,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -200,11 +201,18 @@ def create_plan_from_template(
         name: 목표 이름. None이면 "{distance_km}km 목표" 자동 생성.
         recent_weekly_km / recent_long_km: 사용자가 입력한 최근 주간 km·최장 롱런 km(선택, v2 콜드스타트 출처).
         run_weekdays: 운동 요일(0=월..6=일) 필수. 비면 WeekdaysRequired. 저장 후 계획이 이 요일 안에서만 달린다(PLN-11·12).
+        race_id: 기존 대회(race_calendar)에 연결. A·예정 대회만 허용하고 대회일·거리·이름을 그 값으로 맞춘다(RC-c).
         expect_active_goal_id: 활성 플랜이 있고 이 값과 다르면 PlanConflict(확인 후 재전송, PLN-43).
 
     Returns:
         새로 생성된 goal_id.
     """
+    if race_id is not None:
+        from src.services import race_calendar_query as rq
+        r = rq.require(conn, race_id)
+        if r["status"] != "planned" or r["priority"] != "A" or rq.is_needs_review(r, date.today().isoformat()):
+            raise rq.RaceError("RACE_NOT_LINKABLE", "A 등급 예정 대회만 플랜에 연결할 수 있습니다")
+        distance_km, race_date, name = r["distance_km"], r["race_date"], name or r["name"]
     input_limits.check_plan_request(distance_km, weeks)
     if not run_weekdays:
         raise WeekdaysRequired("운동 요일을 먼저 지정해야 계획을 만들 수 있습니다")
@@ -216,7 +224,10 @@ def create_plan_from_template(
     prev = check_active_expectation(conn, expect_active_goal_id)
     conn.execute("SAVEPOINT create_plan")
     try:
-        goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec, commit=False)
+        goal_id = add_goal(conn, goal_name, distance_km, race_date, target_time_sec, commit=False, race_id=race_id)
+        if race_id is not None:
+            conn.execute("UPDATE race_calendar SET adapt_choice='adapt', plan_state='applied',"
+                         " updated_at=datetime('now') WHERE id=?", (race_id,))
         # 이전 활성 목표의 미래 계획 중 이력 없는 행은 새 계획과 섞이지 않게 지운다(보호 행은 유지)
         if prev is not None:
             res = replace_range(conn, [], today.isoformat(), "9999-12-31", goal_id=prev["id"])

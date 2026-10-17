@@ -7,7 +7,7 @@ import pytest
 from flask import Flask
 
 from src.api.validation import (
-    FieldError, date_field, dict_field, enum_field, float_field, int_field, int_list_field,
+    FieldError, bool_field, date_field, dict_field, enum_field, float_field, int_field, int_list_field,
     parse_args, parse_body, str_field,
 )
 
@@ -198,3 +198,15 @@ def test_parse_args(app):
     with app.test_request_context("/x"):
         _, err = parse_args({"n": int_field(1, 5, required=True)})
     assert err[0].get_json()["error"]["details"] == {"n": "필수 항목입니다"}
+
+
+# ── bool_field ───────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("raw,expected", [(True, True), (False, False), ("true", True), ("0", False), ("1", True)])
+def test_bool_accepts(raw, expected):
+    assert _ok(bool_field(), raw) is expected
+
+
+@pytest.mark.parametrize("raw", ["yes", 2, [], {}])
+def test_bool_rejects(raw):
+    _bad(bool_field(), raw)
