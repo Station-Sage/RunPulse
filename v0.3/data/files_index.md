@@ -2407,6 +2407,10 @@
 
 - functions: conn, test_adjuster_fatigue_matches_readiness_decision, test_build_context_has_decision_and_adjustment, test_plan_line_shows_original_and_adjusted, test_chat_verdict_equals_today_headline, test_rested_runner_keeps_planned_session, test_no_data_graceful
 
+### `test_check_race_invariants.py` (70줄) — RC-e: 대회 불변식 3·4 검사.
+
+- functions: db, test_clean_and_empty, test_invariant3_violation, test_invariant4_cache_mismatch, test_finish_race_expects_null_target, test_inactive_null_date_exception
+
 ### `test_check_user_dirs.py` (51줄) — scripts/check_user_dirs.py — 운영 점검 스크립트(S3-1) 단위 테스트.
 
 - functions: test_clean_root_returns_0, test_violations_masked_and_exit_1, test_show_names_flag, test_symlink_escape_flagged, test_read_only_and_missing_root
@@ -3811,13 +3815,17 @@
 
 - (public API 없음)
 
-### `check_data_consistency.py` (472줄) — RunPulse 데이터 정합성 검증 v1.5
+### `check_data_consistency.py` (474줄) — RunPulse 데이터 정합성 검증 v1.5
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
 ### `check_docs.py` (1054줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
 - functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, main
+
+### `check_race_invariants.py` (32줄) — 대회 캘린더 불변식 3·4 검사 (check_data_consistency 에서 호출) — 3: 활성 목표의 대회는 A·planned|done, 4: 목표 캐시 = 대회 값.
+
+- functions: check_race_invariants
 
 ### `check_user_dirs.py` (61줄) — 운영 점검 — `data/users/` 의 디렉터리가 uid 허용 규칙(SRV-13)에 맞는지 읽기 전용으로 확인한다 (S3-1).
 
@@ -3868,7 +3876,7 @@
 - functions: run
 
 ---
-총 835개 파일
+총 837개 파일
 
 ## docstring 누락
 

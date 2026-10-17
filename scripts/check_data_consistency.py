@@ -370,6 +370,8 @@ def check_all(db_path: str | None = None) -> list[tuple[str, str]]:
     if db_path:
         results += _check_group_once(db_path)
         results += _check_adj_accepted(db_path)
+        from scripts.check_race_invariants import check_race_invariants
+        results += check_race_invariants(db_path)
 
     return results
 
