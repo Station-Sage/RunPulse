@@ -47,7 +47,8 @@ test('error text', () => {
 
 test('userAdjustmentSummary ignores crs', () => {
 	const base = w({ adjusted: true, original: { workout_type: 'easy', distance_km: 10 } });
-	assert.equal(userAdjustmentSummary({ ...base, adjustment: { id: 1, source: 'crs', op: 'replace' } }, (t) => t), null);
+	for (const src of ['crs', 'pain', 'readiness', 'acwr', 'race'])
+		assert.equal(userAdjustmentSummary({ ...base, adjustment: { id: 1, source: src, op: 'replace' } }, (t) => t), null);
 	assert.deepEqual(userAdjustmentSummary({ ...base, adjustment: { id: 1, source: 'user', op: 'reduce' } }, (t) => t),
 		{ badge: '직접 조정', original: '원래 easy 10km' });
 });

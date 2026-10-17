@@ -89,7 +89,7 @@ def test_hero_held_is_as_planned_with_reason(conn, monkeypatch):
 def test_no_direct_adjust_todays_plan_calls():
     """호출부는 plan_service.todays_adjustment_with_hold 를 거쳐야 한다 (보류 판정 누락 방지)."""
     root = Path(__file__).resolve().parent.parent / "src"
-    allowed = {"training/adjuster.py", "services/plan_service.py"}
+    allowed = {"training/adjuster.py", "services/plan_service.py", "services/adjuster_v3.py"}  # v3 는 호출부가 넘긴 hold 를 그대로 주입
     pat = re.compile(r"\badjust_todays_plan\s*\(")
     bad = [str(p.relative_to(root)) for p in root.rglob("*.py")
            if str(p.relative_to(root)) not in allowed

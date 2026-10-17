@@ -90,6 +90,26 @@
 
 - functions: get_adaptation_status
 
+### `adjuster_frequency.py` (67줄) — 조정 제안 빈도·수락률 감시와 v2 자동 롤백 판정 (ADR-035 개정, ADJ §3.13).
+
+- functions: weekly_counts, acceptance_drop, should_rollback, check_and_rollback
+
+### `adjuster_v3.py` (58줄) — 조정 제안 v3 (ADR-035 개정, ADJ §3.7) — 신호 수집 → 트리거 판정 → adjust_todays_plan 형식 제안 dict.
+
+- functions: propose
+
+### `adjustment_signals.py` (102줄) — 조정 신호 수집·분류 (ADR-035 개정, ADJ §3.6) — 읽기 전용, 외부 호출 없음. 수집기별 실패는 freshness='missing' 으로 격리한다.
+
+- functions: collect, evaluate
+
+### `adjustment_signals_race.py` (50줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
+
+- functions: phase_of, collect_race
+
+### `adjustment_triggers_v3.py` (78줄) — adjuster_v3 트리거 판정 (ADR-035 개정, ADJ) — 신호 목록 → 단독 OR / 2개 이상 AND 판정. 순수 함수(DB 접근 없음).
+
+- functions: kind_of, triggered, intensity, primary, classify
+
 ### `ai_settings_service.py` (130줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, validate_patch, apply_patch, test_connection
@@ -264,10 +284,18 @@
 
 - functions: sync_adj_flag
 
-### `plan_adjustment_service.py` (300줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
+### `plan_adjustment_proposal.py` (93줄) — 당일 자동 조정 제안 upsert (plan_adjustments, ADR-035) — 통증 제안 우선, 없으면 컨디션 기반 제안.
+
+- functions: build, ensure_proposal
+
+### `plan_adjustment_rows.py` (33줄) — plan_adjustments 행 읽기 공통부 — 컬럼 목록·dict 변환·live 조회·자동 source 집합 (ADR-035).
+
+- functions: to_dict, get_row, live_auto
+
+### `plan_adjustment_service.py` (230줄) — 계획 조정 제안·수락·되돌리기 (plan_adjustments, ADR-035). 원본 planned_workouts 는 수정하지 않는다.
 
 - class **AdjustmentConflict**: 없음
-- functions: state_of, ensure_proposal, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
+- functions: state_of, get_day_adjustment, get_user_adjustment, accept, revert, preview_after, create_user_adjustment, list_adjustments
 
 ### `plan_advisory.py` (158줄) — skip/rest 반복 경고 A1~A6 — 거부하지 않고 안내만 한다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §3).
 
@@ -428,7 +456,7 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `user_settings_service.py` (52줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
+### `user_settings_service.py` (53줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default, entry_path
 
@@ -2053,6 +2081,22 @@
 
 - functions: conn, test_adjust_returns_none_no_plan, test_adjust_returns_dict_with_plan, test_adjustment_reason_parts_is_list, test_adjust_past_date_uses_that_dates_data, test_adjust_today_default_unchanged, test_adjust_past_date_no_plan_returns_none
 
+### `test_adjuster_frequency.py` (73줄) — adjuster_frequency: 주간 빈도·수락률 하락 롤백 판정.
+
+- functions: test_weekly_counts_and_rollback_needs_two_weeks, test_acceptance_drop_and_min_sample, test_acceptance_no_drop_when_prev_zero_or_stable, test_check_and_rollback_switches_version, test_backtest_run_summarizes_without_plan
+
+### `test_adjuster_v3_proposal.py` (72줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
+
+- functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2
+
+### `test_adjustment_signals.py` (72줄) — 조정 신호 수집(adjustment_signals, _race) 단위 테스트.
+
+- functions: test_phase_of_windows, test_collect_race_filters, test_collect_isolates_failures_and_reads_db, test_collect_missing_when_collector_raises, test_evaluate_no_trigger
+
+### `test_adjustment_triggers_v3.py` (53줄) — adjuster_v3 트리거 판정(순수 함수) 단위 테스트.
+
+- functions: S, test_standalone_triggers, test_and_needs_two_members, test_missing_signal_ignored, test_intensity, test_primary_order, test_classify_roles
+
 ### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
 - functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
@@ -2996,7 +3040,11 @@
 - class **TestCIRSScenarios**: test_high_acwr_produces_high_cirs, test_optimal_acwr_produces_low_cirs
 - class **TestCircularDependency**: test_circular_dependency_does_not_crash
 
-### `test_plan_adjustment_service.py` (177줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
+### `test_plan_adjustment_rows.py` (49줄) — plan_adjustment_rows: AUTO_SOURCES 가 v37 live 인덱스 CASE 식과 일치, to_dict signals, live_auto.
+
+- functions: test_auto_sources_match_index_case_expression, test_two_live_auto_sources_conflict_and_manual_coexists, test_live_auto_and_to_dict_signals
+
+### `test_plan_adjustment_service.py` (178줄) — plan_adjustment_service: 제안 upsert 멱등, 수락/되돌리기 전이, rev 충돌, stale.
 
 - functions: test_ensure_proposal_idempotent_and_rev_bump, test_no_proposal_when_not_adjusted_or_future, test_accept_revert_flow, test_decline_state_and_no_new_proposal, test_conflicts, test_expired_and_list, test_create_user_adjustment_reduce_rest_and_replace, test_create_user_adjustment_errors, test_reduce_rules_cap_floor_quality, test_user_action_replaces_accepted_crs_and_uses_effective_plan, test_reduce_interval_reps_writes_structure, test_reduce_tempo_long_and_easy_replace
 
@@ -3654,6 +3702,10 @@
 
 ## `scripts/`
 
+### `adjuster_backtest.py` (67줄) — 조정기 v2 vs v3 백테스트 — DB 사본에서 최근 N일(기본 90)의 일별 제안 건수를 비교한다 (ADJ §3.13).
+
+- functions: run, main
+
 ### `backfill_activity_groups.py` (89줄) — activity_groups 마스터 테이블 백필 스크립트 (D2).
 
 - functions: backfill, main
@@ -3723,7 +3775,7 @@
 - functions: run
 
 ---
-총 799개 파일
+총 812개 파일
 
 ## docstring 누락
 

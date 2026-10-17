@@ -35,3 +35,19 @@ export function adjustmentDelta(adj: PlanAdjustment, label: (t: string) => strin
 		? type
 		: `${type} (${km(adj.before.distance_km)} → ${km(adj.after.distance_km)})`;
 }
+
+const CHIP: Record<string, (v: unknown) => string> = {
+	pain: () => '통증 기록',
+	illness: () => '질병 확인',
+	checkin_pain: () => '체크인 통증',
+	checkin_fatigue: (v) => `체크인 피로 ${v}/10`,
+	crs: (v) => `CRS 레벨 ${v}`,
+	acwr: (v) => `ACWR ${typeof v === 'number' ? v.toFixed(2) : v}`
+};
+
+/** 제안을 일으킨 신호(role=trigger)를 칩 텍스트로. v2 제안은 signals 가 없어 빈 배열. */
+export function triggerChips(adj: PlanAdjustment): string[] {
+	return (adj.signals ?? [])
+		.filter((s) => s.role === 'trigger' && CHIP[s.signal])
+		.map((s) => CHIP[s.signal](s.value));
+}

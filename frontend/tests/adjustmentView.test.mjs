@@ -29,3 +29,19 @@ test('adjustmentDelta: 유형·거리 변화', () => {
 	assert.equal(adjustmentDelta(adj(side('tempo', 10), side('rest', null)), label), '템포 → 휴식 (10km → -)');
 	assert.equal(adjustmentDelta(adj(side('easy', 8), side('easy', 6)), label), '이지 (8km → 6km)');
 });
+
+test('triggerChips: trigger 역할 신호만 칩으로, v2(신호 없음)는 빈 배열', async () => {
+	const { triggerChips } = await import('../src/lib/adjustmentView.ts');
+	assert.deepEqual(triggerChips({ signals: undefined }), []);
+	assert.deepEqual(
+		triggerChips({
+			signals: [
+				{ signal: 'acwr', role: 'trigger', value: 1.6 },
+				{ signal: 'crs', role: 'support', value: 1 },
+				{ signal: 'checkin_fatigue', role: 'trigger', value: 8 },
+				{ signal: 'unknown', role: 'trigger', value: 1 }
+			]
+		}),
+		['ACWR 1.60', '체크인 피로 8/10']
+	);
+});

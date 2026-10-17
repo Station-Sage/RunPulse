@@ -7,13 +7,11 @@ from datetime import date as _date
 
 from src.services import plan_pain
 from src.services.plan_adj_flag import sync_adj_flag
-from src.services.plan_service import todays_adjustment_with_hold
+from src.services.plan_adjustment_proposal import RULE_VERSION, ensure_proposal  # noqa: F401
+from src.services.plan_adjustment_rows import AUTO_SQL, COLS as _COLS, get_row as _get, live_auto as _live, to_dict as _to_dict
 from src.training.goals import get_active_goal
 
-RULE_VERSION = "adjuster_v2"
 VIAS = ("plan", "session", "today", "coach")
-_COLS = ("id, goal_id, workout_id, date, source, op, before_json, after_json, reasons_json, rule_version,"
-         " decision, rev, accepted_at, decided_at, decided_via, created_at, updated_at")
 
 class AdjustmentConflict(Exception):
     """code: REV_MISMATCH | LOCKED | STALE | INVALID_TRANSITION | NOT_FOUND"""
@@ -26,19 +24,6 @@ class AdjustmentConflict(Exception):
 
 def _today(today: str | None) -> str:
     return today or _date.today().isoformat()
-
-
-def _to_dict(r: tuple) -> dict:
-    keys = [c.strip() for c in _COLS.split(",")]
-    d = dict(zip(keys, r))
-    for k in ("before", "after", "reasons"):
-        d[k] = json.loads(d.pop(f"{k}_json") or ("[]" if k == "reasons" else "{}"))
-    return d
-
-
-def _get(conn: sqlite3.Connection, adj_id: int) -> dict | None:
-    r = conn.execute(f"SELECT {_COLS} FROM plan_adjustments WHERE id = ?", (adj_id,)).fetchone()
-    return _to_dict(r) if r else None
 
 
 def _is_stale(conn: sqlite3.Connection, adj: dict) -> bool:
@@ -66,61 +51,6 @@ def state_of(conn: sqlite3.Connection, adj: dict, today: str) -> str:
 
 def _view(conn: sqlite3.Connection, adj: dict, today: str) -> dict:
     return {**adj, "state": state_of(conn, adj, today)}
-
-
-def _build(w: dict) -> tuple[dict, dict, list]:
-    before = {k: w.get(k) for k in ("workout_type", "distance_km", "target_pace_min",
-                                    "target_pace_max", "description")}
-    to_rest = w["adjusted_type"] == "rest"
-    after = {**before, "workout_type": w["adjusted_type"], "target_pace_min": None, "target_pace_max": None,
-             "distance_km": None if to_rest else w.get("adjusted_distance_km", before["distance_km"])}
-    reasons = w.get("reasons") or [{"key": "readiness", "label": p} for p in w.get("adjustment_reason_parts") or []]
-    if w.get("adjustment_reason"):
-        reasons.insert(0, {"key": "summary", "label": w["adjustment_reason"]})
-    return before, after, reasons
-
-
-def _live(conn: sqlite3.Connection, date: str) -> dict | None:
-    r = conn.execute(f"SELECT {_COLS} FROM plan_adjustments WHERE date = ? AND source = 'crs'"
-                     " ORDER BY (decision = 'accepted') DESC, id DESC LIMIT 1", (date,)).fetchone()
-    return _to_dict(r) if r else None
-
-
-def ensure_proposal(conn: sqlite3.Connection, date: str, *, today: str | None = None) -> dict | None:
-    """당일 조정 제안을 멱등 upsert. accepted·reverted 행이 있으면 그대로 두고 반환한다."""
-    today = _today(today)
-    cur = _live(conn, date)
-    if cur and cur["decision"] != "proposed":
-        return cur
-    if date != today:
-        return cur
-    try:
-        w = plan_pain.proposal(conn, date) or todays_adjustment_with_hold(conn, date)
-    except Exception:
-        return cur
-    if not w or not w.get("adjusted"):
-        return cur
-    before, after, reasons = _build(w)
-    if cur and cur["decision"] == "proposed" and cur["workout_id"] == w["id"]:
-        if cur["after"] != after or cur["reasons"] != reasons or cur["before"] != before:
-            conn.execute("UPDATE plan_adjustments SET before_json=?, after_json=?, reasons_json=?, rule_version=?,"
-                         " rev=rev+1, updated_at=datetime('now') WHERE id=?",
-                         (json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False),
-                          w.get("rule_version", RULE_VERSION), cur["id"]))
-            conn.commit()
-            return _get(conn, cur["id"])
-        return cur
-    if cur and cur["decision"] == "proposed":
-        conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE id=?",
-                     (cur["id"],))
-    goal = get_active_goal(conn)
-    cur_id = conn.execute(
-        "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"
-        " reasons_json, rule_version) VALUES (?,?,?,'crs',?,?,?,?,?)",
-        (goal["id"] if goal else None, w["id"], date, "rest" if after["workout_type"] == "rest" else "replace",
-         json.dumps(before), json.dumps(after), json.dumps(reasons, ensure_ascii=False), w.get("rule_version", RULE_VERSION))).lastrowid
-    conn.commit()
-    return _get(conn, cur_id)
 
 
 def get_day_adjustment(conn: sqlite3.Connection, date: str, *, ensure: bool = True,
@@ -228,7 +158,7 @@ def _planned_row(conn: sqlite3.Connection, workout_id: int) -> tuple:
 
 def _before_after(conn: sqlite3.Connection, workout_id: int, r: tuple, odate: str, op: str, params: dict):
     before = dict(zip(_BEFORE_KEYS, r[1:8]))
-    crs = conn.execute("SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source='crs'"
+    crs = conn.execute(f"SELECT after_json FROM plan_adjustments WHERE workout_id=? AND date=? AND source IN ({AUTO_SQL})"
                        " AND decision='accepted' ORDER BY id DESC LIMIT 1", (workout_id, odate)).fetchone()
     return before, _user_after({**before, **json.loads(crs[0])} if crs else before, op, params)
 
@@ -277,7 +207,7 @@ def create_user_adjustment(conn: sqlite3.Connection, workout_id: int, op: str, p
     goal = get_active_goal(conn)
     via = via if via in VIAS else None
     conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now') WHERE workout_id=?"
-                 " AND date=? AND (source=? OR source='crs') AND decision IN ('proposed','accepted')",
+                 f" AND date=? AND (source=? OR source IN ({AUTO_SQL})) AND decision IN ('proposed','accepted')",
                  (workout_id, odate, source))
     new_id = conn.execute(
         "INSERT INTO plan_adjustments(goal_id, workout_id, date, source, op, before_json, after_json,"

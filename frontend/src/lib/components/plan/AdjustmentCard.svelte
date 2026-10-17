@@ -8,7 +8,8 @@
 		adjustmentActions,
 		adjustmentDelta,
 		adjustmentHeadline,
-		adjustmentStateText
+		adjustmentStateText,
+		triggerChips
 	} from '$lib/adjustmentView';
 	import type { AdjustmentState, PlanAdjustment, TodaysAdjustment } from '$lib/types';
 
@@ -79,6 +80,9 @@
 				{headline}
 			</p>
 			<p class="mt-0.5 text-xs text-fg-secondary">{adjustmentDelta(adj, workoutLabel)}</p>
+			{#each triggerChips(adj) as chip (chip)}
+				<span class="mr-1 mt-1 inline-block rounded bg-surface-1 px-1.5 py-0.5 text-xs text-fg-secondary" data-testid="adj-trigger-chip">{chip}</span>
+			{/each}
 			{#each adj.reasons.filter((r) => r.label) as r (r.label)}
 				<p class="mt-0.5 text-xs text-fg-muted">{r.label}</p>
 			{/each}

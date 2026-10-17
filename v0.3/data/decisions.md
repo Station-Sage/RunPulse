@@ -367,6 +367,11 @@
 - D4: 수동 동기화 두 라우트는 `manual_sync_service`로 추출해 원장 단독 기록.
 - D5: `running.db`의 구 `sync_jobs` 잔재는 범위 밖, 별도 항목으로 DROP.
 
+### ADR-035 부록: 조정기 v3 신호 기반 트리거 (2026-10-17)
+- `plan_adjustments.source` 는 주 트리거(`pain/illness/checkin/race/crs/acwr/readiness`) 또는 `user/coach`. 자동 조정은 두 값 외 전부이며 live 유일성은 v37 표현식 인덱스(자동은 하나로 묶음)가 보장한다.
+- 신호 목록은 `signals_json`(role trigger/support/counter/hold/context)에 저장. rev 는 트리거 집합 변경 때만 +1, accepted 행은 동결.
+- `adjuster_version` 설정(기본 v2)으로 전환. 빈도·수락률 기준 자동 v2 복귀는 `adjuster_frequency`(임계값 사용자 확정 대기). 상세 S4-23.
+
 ## ADR-045: v1 부작용 GET `/recompute-metrics` 퇴역 (2026-10-10)
 - ADR-028이 예고한 대체를 완료한다. GET 라우트를 삭제하고, v1 동기화 탭 재계산 카드는 `POST /api/v1/data/recompute`(scope=all|from, reason=v1_sync_tab)로 전환했다.
 - 진행 상태는 원장(`service='recompute'`)이 보관한다. 설정 탭 `POST /metrics/recompute`와 `/metrics/recompute-status`는 v1 잔존분으로 G6(v1 제거) 때 함께 정리한다.

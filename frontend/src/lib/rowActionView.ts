@@ -181,8 +181,12 @@ export function actionErrorText(e: unknown): string {
 	return '처리하지 못했어요 · 잠시 후 다시 시도해 주세요';
 }
 
+export function isManualSource(source: string): boolean {
+	return source === 'user' || source === 'coach';
+}
+
 export function userAdjustmentSummary(w: PlannedWorkout, label: (t: string) => string): { badge: string; original: string } | null {
-	if (!w.adjusted || !w.adjustment || !w.original || w.adjustment.source === 'crs') return null;
+	if (!w.adjusted || !w.adjustment || !w.original || !isManualSource(w.adjustment.source)) return null;
 	const o = w.original;
 	const km = o.distance_km != null ? ` ${o.distance_km}km` : '';
 	return { badge: w.adjustment.source === 'coach' ? '코치 조정' : '직접 조정', original: `원래 ${label(o.workout_type)}${km}` };

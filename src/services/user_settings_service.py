@@ -8,6 +8,7 @@ ALLOWED: dict[str, tuple] = {
     "ui_default": ("v1", "v2"),
     "onboarding": ("pending", "skipped", "done"),
     "onboarding_step": (0, 1, 2, 3, 4),
+    "adjuster_version": ("v3", "v2"),
 }
 FALLBACK_UI = "v1"
 

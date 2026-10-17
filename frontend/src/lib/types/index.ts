@@ -1295,15 +1295,27 @@ export interface PlanAdjustmentSide {
 	date?: string;
 }
 
+export interface AdjustmentSignal {
+	signal: string;
+	role: 'trigger' | 'support' | 'counter' | 'hold' | 'context';
+	value?: number | string | null;
+	detail?: string | null;
+	as_of?: string | null;
+	freshness?: 'fresh' | 'stale' | 'partial' | 'missing';
+	provider?: string | null;
+}
+
 export interface PlanAdjustment {
 	id: number;
 	goal_id: number | null;
 	workout_id: number;
 	date: string;
 	op: string;
+	source: string;
 	before: PlanAdjustmentSide;
 	after: PlanAdjustmentSide;
 	reasons: { key: string; label: string }[];
+	signals?: AdjustmentSignal[];
 	decision: 'proposed' | 'accepted' | 'reverted';
 	rev: number;
 	state: AdjustmentState;
