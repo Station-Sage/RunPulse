@@ -26,7 +26,7 @@
 			{/if}
 		</dl>
 		<div class="flex justify-between text-sm">
-			<a href="{base}/settings" class="underline">AI 설정 ›</a>
+			<a href="{base}/data/settings" class="underline">AI 설정 ›</a>
 			<button type="button" onclick={onClose} class="text-fg-secondary">닫기</button>
 		</div>
 	</div>

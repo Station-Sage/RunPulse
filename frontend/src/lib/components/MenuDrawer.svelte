@@ -1,7 +1,6 @@
 <script lang="ts">
 	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 첫 행은 동기화 요약(탭하면
-	// ?sheet=sync 패널), 나머지는 v1 화면으로의 상호 링크. v1 경로는 SvelteKit 라우터 밖이라
-	// 각 링크에 data-sveltekit-reload로 전체 새로고침을 강제한다.
+	// ?sheet=sync 패널), 나머지는 v2 화면 바로가기.
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
@@ -9,8 +8,7 @@
 	import { base } from '$app/paths';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
-	import { patchPreferences } from '$lib/api/me';
-	import { EXPORT_LABEL, EXPORT_PATH, V1_DATA_LINKS, V1_QUICK_LINKS } from '$lib/menuLinks';
+	import { EXPORT_LABEL, EXPORT_PATH, DATA_LINKS, QUICK_LINKS } from '$lib/menuLinks';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -21,16 +19,6 @@
 		const u = new URL(page.url);
 		u.searchParams.set('sheet', 'sync');
 		goto(u, { replaceState: true, noScroll: true });
-	}
-
-	let switching = $state(false);
-	async function backToV1() {
-		switching = true;
-		try {
-			await patchPreferences({ ui_default: 'v1' });
-		} finally {
-			location.assign('/dashboard');
-		}
 	}
 </script>
 
@@ -64,11 +52,11 @@
 			</div>
 
 			<div class="flex flex-col gap-1 px-2 py-3">
-				<p class="px-2 py-1 text-xs text-fg-muted">기존 화면(v1)</p>
-				{#each V1_QUICK_LINKS as link (link.href)}
+				<p class="px-2 py-1 text-xs text-fg-muted">바로가기</p>
+				{#each QUICK_LINKS as link (link.href)}
 					<a
-						href={link.href}
-						data-sveltekit-reload
+						href="{base}{link.href}"
+						onclick={onClose}
 						class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 					>
 						{link.label}
@@ -94,10 +82,10 @@
 				>
 					{EXPORT_LABEL}
 				</a>
-				{#each V1_DATA_LINKS as link (link.href)}
+				{#each DATA_LINKS as link (link.href)}
 					<a
-						href={link.href}
-						data-sveltekit-reload
+						href="{base}{link.href}"
+						onclick={onClose}
 						class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 					>
 						{link.label}
@@ -108,15 +96,6 @@
 			<div class="mt-auto border-t border-border-subtle px-2 py-3">
 				<!-- 개발 전용(V1-8): 서버가 production 이면 /dev/users 가 404 라 렌더되지 않는다 -->
 				<DevUserSwitch {onClose} />
-				<button
-					type="button"
-					onclick={backToV1}
-					disabled={switching}
-					data-testid="back-to-v1"
-					class="block w-full rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2 disabled:opacity-40"
-				>
-					이전 화면으로(v1)
-				</button>
 			</div>
 		</div>
 	</div>

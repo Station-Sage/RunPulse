@@ -2,6 +2,7 @@
 	// §2.2 동기화 패널 — 소스 행 + "지금 동기화"(POST /data/sync) + 오류 행 조치 링크.
 	// 기간 지정 동기화는 v1 /sync 화면으로 연결한다(D11).
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { cancelRun, runTrigger, syncStore } from '$lib/syncStore.svelte';
 	import {
 		skipLine,
@@ -25,8 +26,8 @@
 	);
 
 	function errorAction(src: SyncSource): { href: string; label: string } | null {
-		if (src.state === 'error-auth') return { href: '/settings', label: '다시 연결' };
-		if (src.state === 'error-access') return { href: '/settings', label: '설정 확인' };
+		if (src.state === 'error-auth') return { href: `${base}/data/settings`, label: '다시 연결' };
+		if (src.state === 'error-access') return { href: `${base}/data/settings`, label: '설정 확인' };
 		return null;
 	}
 </script>
@@ -66,7 +67,7 @@
 		<p class="text-xs text-fg-muted">일부 소스는 {sync.caveats[0].days}일 이상 새 데이터가 없어요.</p>
 	{/if}
 	{#if btn.settingsLink}
-		<a href="/settings" data-sveltekit-reload class="flex h-11 w-full items-center justify-center rounded-lg bg-surface-3 text-sm text-fg-secondary">
+		<a href="{base}/data/settings" class="flex h-11 w-full items-center justify-center rounded-lg bg-surface-3 text-sm text-fg-secondary">
 			{btn.label} · 설정에서 연결 →
 		</a>
 	{:else}
@@ -91,7 +92,7 @@
 		{/each}
 	</div>
 	<div class="flex items-center justify-between border-t border-border-subtle pt-3 text-sm">
-		<a href="/sync" data-sveltekit-reload class="text-fg-secondary hover:text-fg-primary">기간 지정 ›</a>
-		<a href="/settings" data-sveltekit-reload class="text-fg-secondary hover:text-fg-primary">설정에서 관리 →</a>
+		<a href="{base}/data/sync" class="text-fg-secondary hover:text-fg-primary">기간 지정 ›</a>
+		<a href="{base}/data/settings" class="text-fg-secondary hover:text-fg-primary">설정에서 관리 →</a>
 	</div>
 </div>

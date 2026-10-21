@@ -15,6 +15,6 @@
 		data-testid="degraded-banner"
 	>
 		AI 연결이 계속 실패해 규칙 답변으로 대신하고 있어요{err ? ` (${reasonText(err.reason)})` : ''}.
-		<a href="{base}/settings" class="underline">AI 설정 ›</a>
+		<a href="{base}/data/settings" class="underline">AI 설정 ›</a>
 	</div>
 {/if}

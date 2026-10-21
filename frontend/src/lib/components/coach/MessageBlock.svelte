@@ -69,7 +69,7 @@
 				</div>
 			</div>
 		{:else if banner === 'rule_only'}
-			<a href="{base}/settings" class="mt-1 inline-block text-[11px] underline text-fg-secondary">AI 설정 ›</a>
+			<a href="{base}/data/settings" class="mt-1 inline-block text-[11px] underline text-fg-secondary">AI 설정 ›</a>
 		{:else if banner === 'error'}
 			<p class="mt-1 text-[11px] text-semantic-red">
 				답변을 만들지 못했어요 ({reasonText(engine?.reason)}) ·

@@ -54,6 +54,9 @@
 - **[GARMIN-VO2MAX-PRECISE]** 완료(2026-10-10, ADR-040): 일별 `vo2max`(정밀값) 수집·소비처 전환·그룹/매트릭스. T8 실 DB 백필 적용(259일, 2026-10-09=53.9, 백업 `running.db.bak-20261010-pre-vo2max-precise`).
 
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
+- **[V2-SHOES]** 신발 관리 v2 개발(2026-10-21 결정: 나중에 설계 후 진행). v1 신발 화면·라우트는 backup 으로 이동되므로 그 사이 신발 UI 없음. 설계 시 v1 backup(`v1_backup/`)의 기능·데이터 모델 참고.
+- **[V2-GARMIN-CONNECT]** Garmin 연결·MFA v2 개발(2026-10-21 결정: 신규 개발, 그 전까지 v1 `/connect/garmin` 유지). 완료 시 `data_connect_service.connect('garmin')` UNSUPPORTED 해소 후 v1 라우트 제거.
+- **[V1-KEPT]** v1 에서 유지하는 항목(S5-4, 2026-10-21): `/connect/garmin`(V2-GARMIN-CONNECT 전까지), Strava OAuth `/connect/strava/oauth-start`·`/callback`(외부 redirect URL 불변), `/training/export.ics`·`activities/export.csv`(v2 내보내기·캘린더 피드 사용), `routes_v1_sync`(`/api/garmin/local-sync`·`/trigger-sync*`·`/bg-sync/*` 로컬 클라이언트 사용 미확인), `routes_v1_pages`(`/import*`·`/sync-status`·`/db`). 활동 병합·분리 UI 는 v2 불필요(자동 묶기는 sync·import 에서 계속 동작)라 backup 으로 이동.
 - **[V1-REMOVAL-BROWSER-TEST]** TODO: v1 뷰·라우트를 backup 폴더(gitignore)로 옮긴 뒤 **브라우저 테스트** 필요 — v2 전 화면·메뉴 링크·Strava OAuth·Garmin 연결·내보내기·로그인 후 진입(`/`→`/v2/today`) 확인. 선행: S5-4 단계 완료.
 - **[USER-TRAINING-STATUS-REPARSE]** 과거 `training_status_day` payload 를 새 파서로 재파싱(`garmin_acute_load`/`garmin_chronic_load` 백필) — 운영 DB 쓰기라 사용자 승인 후 백업 → 실행. 신규 동기화분은 이미 정상 저장.
 
