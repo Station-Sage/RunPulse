@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import {
 		getImportJob, getImports, previewImport, startImport, startRecompute,
 		type ImportItem, type ImportPreview, type ImportSource
@@ -139,7 +140,7 @@
 					<p class="text-xs text-fg-secondary" data-testid="tz-fallback-note">
 						{job.result.tz_resolved.fallback}건은 시간대를 확인하지 못해 한국 시간으로 저장했어요
 						{#if job.result.tz_lookup_status !== '연결됨'}
-							· <a href="/data/sources/strava" class="underline" data-testid="tz-reconnect">Strava 다시 연결</a>
+							· <a href="{base}/data/sources/strava" class="underline" data-testid="tz-reconnect">Strava 다시 연결</a>
 						{/if}
 					</p>
 				{/if}

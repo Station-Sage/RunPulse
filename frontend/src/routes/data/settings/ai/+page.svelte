@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
 	import { engineSummary, keyStateText, providerName, usageText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
@@ -104,6 +105,6 @@
 		</section>
 
 		{#if message}<p class="text-xs text-fg-secondary" role="status">{message}</p>{/if}
-		<a href="/data/settings" class="text-xs text-fg-secondary underline">데이터 설정으로</a>
+		<a href="{base}/data/settings" class="text-xs text-fg-secondary underline">데이터 설정으로</a>
 	</div>
 {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import {
 		downloadQuick, exportDownloadUrl, getExports, startArchive, type ExportItem, type ExportKind
 	} from '$lib/api/data';
@@ -120,7 +121,7 @@
 	</section>
 
 	<a
-		href="/data/import"
+		href="{base}/data/import"
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"
 	>
 		<span class="text-sm text-fg-primary">파일 가져오기</span>
@@ -140,6 +141,6 @@
 
 	<p class="text-xs text-fg-muted">
 		이 파일들은 내 기기로만 내려받아요. 외부 AI로 보내는 데이터는
-		<a href="/data/settings/ai" class="underline">AI 설정</a>에서 확인할 수 있어요.
+		<a href="{base}/data/settings/ai" class="underline">AI 설정</a>에서 확인할 수 있어요.
 	</p>
 </div>
