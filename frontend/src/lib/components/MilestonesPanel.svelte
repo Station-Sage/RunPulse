@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { getTodayMilestones } from '$lib/api/today';
 	import { base } from '$app/paths';
+	import { modal } from '$lib/overlay';
 	import Icon from '$lib/components/Icon.svelte';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import type { MilestoneEntry } from '$lib/types';
@@ -41,7 +42,7 @@
 	{/if}
 {/snippet}
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true">
+<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="전체 마일스톤" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
 	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
 

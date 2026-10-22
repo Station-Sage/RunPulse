@@ -2,6 +2,8 @@
 	// 03e-coach.md 5-C — 플랜 없음 화면.
 	import type { PlanGatewayData } from './+page';
 	import { base } from '$app/paths';
+	import { tick } from 'svelte';
+	import { inlineConfirm } from '$lib/overlay';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
 	import { restorePlan } from '$lib/api/plan';
@@ -10,6 +12,11 @@
 	let { data }: { data: PlanGatewayData } = $props();
 	let confirmId = $state<number | null>(null);
 	let busy = $state(false);
+	async function cancelRestore(id: number) {
+		confirmId = null;
+		await tick();
+		document.getElementById(`restore-open-${id}`)?.focus();
+	}
 	let err = $state<string | null>(null);
 
 	async function doRestore(id: number) {
@@ -69,12 +76,12 @@
 						{p.distance_km}km{p.race_date ? ` · 레이스 ${p.race_date}` : ''} · 남은 일정 {p.rows}개
 					</p>
 					{#if confirmId === p.goal_id}
-						<span role="alertdialog" aria-label="복원 확인" class="mt-2 flex flex-wrap items-center gap-2" data-testid="restore-confirm">
+						<span role="group" aria-label="복원 확인" class="mt-2 flex flex-wrap items-center gap-2" data-testid="restore-confirm" use:inlineConfirm={{ onCancel: () => cancelRestore(p.goal_id) }}>
 							<button class="min-h-11 underline" disabled={busy} onclick={() => doRestore(p.goal_id)}>복원</button>
-							<button class="min-h-11 underline" disabled={busy} onclick={() => (confirmId = null)}>취소</button>
+							<button class="min-h-11 underline" data-autofocus disabled={busy} onclick={() => cancelRestore(p.goal_id)}>취소</button>
 						</span>
 					{:else}
-						<button class="mt-1 min-h-11 text-xs underline" disabled={busy} onclick={() => (confirmId = p.goal_id)}>복원하기</button>
+						<button id="restore-open-{p.goal_id}" class="mt-1 min-h-11 text-xs underline" disabled={busy} onclick={() => (confirmId = p.goal_id)}>복원하기</button>
 					{/if}
 				</li>
 			{/each}

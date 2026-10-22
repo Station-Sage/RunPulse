@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { getPlanAdvisories, previewWorkoutAction } from '$lib/api/plan';
 	import { HIDDEN_KEY, isoWeekStart, replanBannerView, type PlanAdvisory } from '$lib/replanBanner';
+	import { modal } from '$lib/overlay';
 	import ReplanBanner from './ReplanBanner.svelte';
 	import { workoutLabel } from '$lib/format';
 	import {
@@ -65,7 +66,6 @@
 		hiddenWeek = isoWeekStart(today);
 		try { localStorage.setItem(HIDDEN_KEY, hiddenWeek); } catch { /* 저장소 사용 불가 */ }
 	}
-	let root: HTMLElement | undefined = $state();
 
 	const avail = $derived(opAvailability(workout));
 	const km = $derived(workout.distance_km ?? 0);
@@ -90,20 +90,6 @@
 	});
 	const dv = $derived(loadDeltaView(delta));
 
-	$effect(() => {
-		(root?.querySelector<HTMLElement>('[data-autofocus]') ?? root?.querySelector<HTMLElement>('button:not([disabled]), a'))?.focus();
-	});
-
-	function onKey(e: KeyboardEvent) {
-		if (e.key === 'Escape') return onClose();
-		if (e.key !== 'Tab' || !root) return;
-		const f = [...root.querySelectorAll<HTMLElement>('button:not([disabled]), a, input')];
-		if (!f.length) return;
-		const first = f[0], last = f[f.length - 1];
-		if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-		else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-	}
-
 	const OPS: { key: RowOp; label: string; sub: string }[] = [
 		{ key: 'reduce', label: '줄이기', sub: '거리를 비율로 줄여요' },
 		{ key: 'easy', label: '이지로 바꾸기', sub: '같은 거리를 쉬운 러닝으로 해요' },
@@ -113,11 +99,9 @@
 	];
 </script>
 
-<svelte:window onkeydown={onKey} />
-
 <div class="fixed inset-0 z-[60] bg-black/50" role="presentation" onclick={onClose}></div>
 <div
-	bind:this={root}
+	use:modal={{ onClose, initialFocus: '[data-autofocus]' }}
 	role="dialog"
 	aria-modal="true"
 	aria-label="세션 바꾸기"

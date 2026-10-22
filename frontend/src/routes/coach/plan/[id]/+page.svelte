@@ -3,6 +3,7 @@
 	import type { PlanDetailPageData } from './+page';
 	import { formatDuration, formatPaceRange, weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
+	import { inlineConfirm } from '$lib/overlay';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
@@ -118,10 +119,10 @@
 					{anchorLabel(last.anchor_monday)}부터 다시 맞춘 일정이에요. {undoUntilLabel(last.anchor_monday)}까지 되돌릴 수 있어요.
 					<button class="ml-1 min-h-11 underline" disabled={undoBusy} onclick={() => (confirmUndo = last.replan_id)}>되돌리기</button>
 					{#if confirmUndo === last.replan_id}
-						<span role="alertdialog" aria-label="되돌리기 확인" class="mt-1 flex flex-wrap items-center gap-2" data-testid="undo-confirm">
+						<span role="group" aria-label="되돌리기 확인" class="mt-1 flex flex-wrap items-center gap-2" data-testid="undo-confirm" use:inlineConfirm={{ onCancel: () => (confirmUndo = null) }}>
 							<span>다시 맞추기 이전 일정으로 되돌립니다. 계속할까요?</span>
 							<button class="min-h-11 font-medium underline" disabled={undoBusy} onclick={() => undoLast(last.replan_id)}>되돌리기 진행</button>
-							<button class="min-h-11 underline" onclick={() => (confirmUndo = null)}>취소</button>
+							<button class="min-h-11 underline" data-autofocus onclick={() => (confirmUndo = null)}>취소</button>
 						</span>
 					{/if}
 				</p>

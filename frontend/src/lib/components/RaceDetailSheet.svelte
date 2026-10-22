@@ -1,5 +1,6 @@
 <script lang="ts">
 	// 대회 상세·동작 시트 (RC §2.7~2.13) — 수정·플랜 반영·취소(목표 연결 확인)·복원(과거 확인·A 충돌)·예정으로 되돌리기.
+	import { modal } from '$lib/overlay';
 	import { ApiError } from '$lib/api/client';
 	import {
 		cancelRace, reopenRace, restoreRace, type ExistingA, type RaceRow
@@ -47,8 +48,7 @@
 	const btn = 'min-h-11 flex-1 rounded-lg bg-surface-2 disabled:opacity-50';
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !busy && (ask ? (ask = null) : onClose())} />
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-detail-title">
+<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-detail-title" use:modal={{ onClose: () => { if (!busy) { if (ask) ask = null; else onClose(); } } }}>
 	<div class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 		<p id="race-detail-title" class="text-sm font-medium text-fg-primary">{race.name} <span class="text-fg-muted">({race.priority})</span></p>
 		<p class="text-xs text-fg-secondary">{race.race_date}{needsReview ? '' : ` · ${dDayLabel(race.race_date, today)}`} · {kmLabel(race.distance_km)}{goalLine(race) ? ` · ${goalLine(race)}` : ''}</p>

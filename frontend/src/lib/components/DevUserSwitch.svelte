@@ -3,6 +3,7 @@
 	// 같은 빌드를 개발·운영이 함께 쓰므로 빌드 플래그가 아니라 서버 응답(APP_ENV)으로 판정한다.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
+	import { modal } from '$lib/overlay';
 	import { ApiError } from '$lib/api/client';
 	import { getDevUsers, switchDevUser } from '$lib/api/devUsers';
 	import { isSameUser, pickUserId, uidProblem } from '$lib/devUsers';
@@ -76,6 +77,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-label="사용자 전환 (개발 전용)"
+			use:modal={{ onClose: () => (dialogOpen = false) }}
 		>
 			<button
 				type="button"

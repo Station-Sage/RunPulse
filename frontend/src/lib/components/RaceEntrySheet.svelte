@@ -1,5 +1,6 @@
 <script lang="ts">
 	// 대회 추가·수정 시트 (RC §2.5) — 과거 날짜는 확인 문장을 한 번 더 보인다. 저장은 부모가 refresh 한다.
+	import { modal } from '$lib/overlay';
 	import { ApiError } from '$lib/api/client';
 	import { createRace, updateRace, type RaceDraft, type RacePriority, type RaceRow } from '$lib/api/raceCalendar';
 
@@ -43,8 +44,7 @@
 	const inp = 'min-h-11 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal';
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !busy && onClose()} />
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-entry-title">
+<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-entry-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
 	<form class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl" onsubmit={(e) => { e.preventDefault(); if (valid && !busy) save(); }}>
 		<p id="race-entry-title" class="text-sm font-medium text-fg-primary">{race ? '대회 수정' : '대회 추가'}</p>
 		<label class="block text-xs text-fg-secondary">이름<input class={inp} bind:value={name} maxlength="80" required /></label>

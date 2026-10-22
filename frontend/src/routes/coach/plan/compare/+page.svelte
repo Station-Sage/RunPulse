@@ -2,6 +2,7 @@
 	// 03e-coach.md 5-E — 프로그램 비교: 템플릿 카드 3개, 선택 시 플랜 생성.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { inlineConfirm } from '$lib/overlay';
 	import { createPlan } from '$lib/api/plan';
 	import { ApiError } from '$lib/api/client';
 	import type { ActivePlanConflict } from '$lib/types';
@@ -86,14 +87,14 @@
 			</div>
 		{/if}
 		{#if conflict}
-			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="alertdialog" data-testid="plan-replace-confirm">
+			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="group" aria-label="프로그램 교체 확인" data-testid="plan-replace-confirm" use:inlineConfirm={{ onCancel: () => (conflict = null) }}>
 				<p class="mb-2 text-sm font-semibold text-fg-primary">진행 중인 프로그램이 있어요</p>
 				<p class="mb-3 text-xs text-fg-secondary">
 					'{conflict.current.name}'을(를) 취소하고 새 프로그램으로 바꿀까요? 취소한 프로그램은 나중에 복원할 수 있어요.
 				</p>
 				<div class="flex gap-2">
 					<button class="min-h-11 rounded-lg bg-fg-primary px-4 text-sm font-medium text-surface-1" onclick={() => conflict && handleSelect(conflict.weeks, conflict.current.goal_id)}>교체하기</button>
-					<button class="min-h-11 rounded-lg border border-border-subtle px-4 text-sm" onclick={() => (conflict = null)}>취소</button>
+					<button class="min-h-11 rounded-lg border border-border-subtle px-4 text-sm" data-autofocus onclick={() => (conflict = null)}>취소</button>
 				</div>
 			</div>
 		{/if}

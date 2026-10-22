@@ -1,5 +1,6 @@
 <script lang="ts">
 	// 대회 → 플랜 반영 질문 (RC §2.6) — 영향 미리보기를 보고 반영 / 나중에 / 조정 안 함 / 되돌리기를 고른다.
+	import { modal } from '$lib/overlay';
 	import { onMount } from 'svelte';
 	import { getRaceImpact, setRacePlan, type ImpactChange, type RaceRow, type RaceView } from '$lib/api/raceCalendar';
 
@@ -23,8 +24,7 @@
 	const btn = 'min-h-11 flex-1 rounded-lg bg-surface-2 disabled:opacity-50';
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !busy && onClose()} />
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-plan-title">
+<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-plan-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
 	<div class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 		<p id="race-plan-title" class="text-sm font-medium text-fg-primary">{race.name}에 맞춰 훈련 계획을 조정할까요?</p>
 		{#if changes === null}<p class="text-xs text-fg-muted">영향을 확인하는 중…</p>

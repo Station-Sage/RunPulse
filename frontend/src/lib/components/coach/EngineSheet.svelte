@@ -2,6 +2,7 @@
 	// "원인 보기" — 이 답변이 왜 규칙으로 나갔는지 (30-coach-chat design §7.2).
 	import { base } from '$app/paths';
 	import type { EngineView } from '$lib/types';
+	import { modal } from '$lib/overlay';
 	import { reasonText } from '$lib/coachEngine';
 
 	let { engine, attempted = null, onClose }: {
@@ -12,7 +13,7 @@
 	const shown = $derived(engine.status === 'fallback' ? attempted : engine.provider ? engine : null);
 </script>
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="답변 엔진 상세">
+<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="답변 엔진 상세" use:modal={{ onClose }}>
 	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
 	<div class="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col gap-3 rounded-t-2xl bg-surface-1 p-4 shadow-lg">
 		<h2 class="font-medium">이 답변의 엔진</h2>

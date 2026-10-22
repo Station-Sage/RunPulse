@@ -4,6 +4,7 @@
 	import { getMetricBreakdown } from '$lib/api/metrics';
 	import { providerLabel } from '$lib/provider';
 	import { formatUnitValue } from '$lib/format';
+	import { modal } from '$lib/overlay';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { MetricBreakdownData } from '$lib/types';
 
@@ -48,7 +49,7 @@
 	});
 </script>
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true">
+<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="지표 근거" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
 	<button
 		class="absolute inset-0 bg-black/40"

@@ -1,5 +1,6 @@
 <script lang="ts">
 	// 진행 중·확정된 상태 기록 목록 — 끝내기·삭제. 질병 삭제만 코치 대화 선택을 묻는다(NEW-18·25).
+	import { modal } from '$lib/overlay';
 	import { closeContext, deleteContext } from '$lib/api/context';
 	import { getThreads } from '$lib/api/coach';
 	import { episodeLabel, isOpen, type ContextEpisode } from '$lib/contextView';
@@ -50,7 +51,7 @@
 
 {#if target}
 	{@const t = target}
-	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="ctx-del-title">
+	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="ctx-del-title" use:modal={{ onClose: () => { if (!busy) target = null; } }}>
 		<div class="w-full space-y-3 rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 			<p id="ctx-del-title" class="text-sm font-medium text-fg-primary">이 기록을 삭제할까요?</p>
 			{#if t.kind === 'illness'}

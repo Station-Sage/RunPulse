@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 재계획으로 지워진 세션의 Garmin 일정 삭제 — 확인 시트 1회, 실패분만 재시도.
 	import { cleanupGarmin, type GarminCleanupResult } from '$lib/api/plan';
+	import { modal } from '$lib/overlay';
 	import { confirmText, resultText } from '$lib/garminCleanup';
 
 	let { replanId, dates, undone = false }: { replanId: number; dates: string[]; undone?: boolean } = $props();
@@ -40,12 +41,12 @@
 {/if}
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true">
+	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-label="Garmin 일정 삭제 확인" use:modal={{ onClose: () => { if (!busy) open = false; }, initialFocus: '[data-autofocus]' }}>
 		<div class="w-full space-y-3 rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 			<p class="text-sm">{confirmText(left)}</p>
 			{#if error}<p class="text-xs text-red-500">{error}</p>{/if}
 			<div class="flex gap-2">
-				<button class="min-h-11 flex-1 rounded-lg bg-surface-2" disabled={busy} onclick={() => (open = false)}>취소</button>
+				<button class="min-h-11 flex-1 rounded-lg bg-surface-2" data-autofocus disabled={busy} onclick={() => (open = false)}>취소</button>
 				<button class="min-h-11 flex-1 rounded-lg bg-red-600 text-white" disabled={busy} onclick={run}>삭제</button>
 			</div>
 		</div>
