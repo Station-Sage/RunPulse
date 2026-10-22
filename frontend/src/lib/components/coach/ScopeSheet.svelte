@@ -5,6 +5,7 @@
 	import { visibleScope } from '$lib/coachEngine';
 	import { getConsent, postConsent } from '$lib/api/context';
 	import { onMount } from 'svelte';
+	import { modal } from '$lib/overlay';
 
 	let {
 		engine,
@@ -58,9 +59,15 @@
 	}
 </script>
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="전송 범위">
-	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
-	<div class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 shadow-lg">
+<div class="fixed inset-0 z-50 flex flex-col">
+	<button class="absolute inset-0 bg-black/40" onclick={onClose} tabindex="-1" aria-hidden="true" aria-label="닫기"></button>
+	<div
+		use:modal={{ onClose }}
+		role="dialog"
+		aria-modal="true"
+		aria-label="전송 범위"
+		class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 shadow-lg"
+	>
 		<h2 class="font-medium">{requireConsent ? 'AI로 질문을 보내기 전에' : '전송 범위'}</h2>
 		{#if requireConsent}
 			<p class="text-xs text-fg-secondary">
@@ -102,6 +109,7 @@
 				onclick={save}
 				disabled={saving}
 				data-testid="consent-save"
+				data-autofocus
 				class="rounded-lg bg-fg-primary px-4 py-2 text-surface-1 disabled:opacity-40"
 			>{requireConsent ? '동의하고 보내기' : '저장'}</button>
 		</div>
