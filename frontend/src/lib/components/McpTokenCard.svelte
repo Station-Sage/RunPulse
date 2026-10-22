@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getMcpTokens, issueMcpToken, revokeMcpToken, type McpTokenList } from '$lib/api/mcpTokens';
+	import { tick } from 'svelte';
+	import { inlineConfirm } from '$lib/overlay';
 	import { expiryText, lastUsedText, mcpEndpoint } from '$lib/mcpTokens';
 
 	let { initial }: { initial: McpTokenList | null } = $props();
@@ -9,6 +11,13 @@
 	let message = $state('');
 	let fresh = $state<string | null>(null);
 	let confirmId = $state<string | null>(null);
+	// 열기 버튼이 확인 블록과 교체되므로, 취소 뒤 새로 그려진 열기 버튼으로 포커스를 돌려준다.
+	async function cancelConfirm() {
+		const id = confirmId;
+		confirmId = null;
+		await tick();
+		document.getElementById(`mcp-revoke-${id}`)?.focus();
+	}
 	const endpoint = $derived(mcpEndpoint(typeof location === 'undefined' ? '' : location.origin));
 
 	async function issue() {
@@ -87,12 +96,12 @@
 					<span class="text-fg-muted">{expiryText(t)} · {lastUsedText(t)}</span>
 				</div>
 				{#if confirmId === t.token_id}
-					<div role="alertdialog" aria-label="폐기 확인" class="flex gap-2">
+					<div role="group" aria-label="폐기 확인" use:inlineConfirm={{ onCancel: cancelConfirm }} class="flex gap-2">
 						<button type="button" disabled={busy} onclick={() => revoke(t.token_id)} class="text-semantic-red underline disabled:opacity-60">폐기</button>
-						<button type="button" onclick={() => (confirmId = null)} class="text-fg-secondary underline">취소</button>
+						<button type="button" data-autofocus onclick={cancelConfirm} class="text-fg-secondary underline">취소</button>
 					</div>
 				{:else}
-					<button type="button" onclick={() => (confirmId = t.token_id)} class="text-fg-secondary underline">폐기</button>
+					<button type="button" id="mcp-revoke-{t.token_id}" onclick={() => (confirmId = t.token_id)} class="text-fg-secondary underline">폐기</button>
 				{/if}
 			</div>
 		{/each}

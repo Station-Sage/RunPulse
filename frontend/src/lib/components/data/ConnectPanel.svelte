@@ -7,6 +7,7 @@
 	import { ApiError } from '$lib/api/client';
 	import { connectSource, disconnectSource, testSource } from '$lib/api/data';
 	import { kick, runTrigger } from '$lib/syncStore.svelte';
+	import { inlineConfirm } from '$lib/overlay';
 
 	let { provider, connected, activityCount }: { provider: string; connected: boolean; activityCount: number } =
 		$props();
@@ -118,11 +119,11 @@
 	{/if}
 
 	{#if confirming}
-		<div role="alertdialog" aria-label="연결 해제 확인" class="rounded border border-border-subtle bg-surface-1 p-3 text-xs">
+		<div role="group" aria-label="연결 해제 확인" use:inlineConfirm={{ onCancel: () => (confirming = false) }} class="rounded border border-border-subtle bg-surface-1 p-3 text-xs">
 			<p class="text-fg-primary">연결을 해제해도 가져온 활동 {activityCount.toLocaleString()}건은 그대로 남아요. 다시 연결하면 이어서 동기화돼요.</p>
 			<div class="mt-2 flex gap-3">
 				<button type="button" class="rounded bg-semantic-red px-3 py-1.5 text-surface-1 disabled:opacity-50" disabled={busy} onclick={disconnect}>연결 해제</button>
-				<button type="button" class="underline" onclick={() => (confirming = false)}>취소</button>
+				<button type="button" data-autofocus class="underline" onclick={() => (confirming = false)}>취소</button>
 			</div>
 		</div>
 	{/if}

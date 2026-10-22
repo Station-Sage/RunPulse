@@ -2,6 +2,8 @@
 	import {
 		getCalendarFeed, issueCalendarFeed, revokeCalendarFeed, type CalendarFeed
 	} from '$lib/api/calendarFeed';
+	import { tick } from 'svelte';
+	import { inlineConfirm } from '$lib/overlay';
 	import { googleSubscribeUrl, lastAccessText } from '$lib/calendarFeed';
 
 	let { initial }: { initial: CalendarFeed | null } = $props();
@@ -9,6 +11,12 @@
 	let busy = $state(false);
 	let message = $state('');
 	let confirm = $state<'rotate' | 'revoke' | null>(null);
+	async function cancelConfirm() {
+		const k = confirm;
+		confirm = null;
+		await tick();
+		document.getElementById(`cal-${k}`)?.focus();
+	}
 
 	async function run(fn: () => Promise<CalendarFeed | void>, done: string) {
 		busy = true;
@@ -75,7 +83,7 @@
 			<p>담기지 않음: {feed.excluded.join(' · ')}</p>
 		</details>
 		{#if confirm}
-			<div role="alertdialog" aria-label="확인" class="flex flex-col gap-2 rounded border border-border-subtle bg-surface-1 p-2 text-xs">
+			<div role="group" aria-label="확인" use:inlineConfirm={{ onCancel: cancelConfirm }} class="flex flex-col gap-2 rounded border border-border-subtle bg-surface-1 p-2 text-xs">
 				<p class="text-fg-primary">
 					{confirm === 'rotate'
 						? '새 주소를 만들면 지금 구독 중인 캘린더는 업데이트가 멈춰요. 새 주소로 다시 구독해야 해요.'
@@ -86,13 +94,13 @@
 						class="rounded border border-border-subtle bg-surface-3 px-3 py-1.5 text-semantic-red disabled:opacity-60">
 						{confirm === 'rotate' ? '재발급' : '해제'}
 					</button>
-					<button type="button" onclick={() => (confirm = null)} class="rounded border border-border-subtle px-3 py-1.5 text-fg-secondary">취소</button>
+					<button type="button" data-autofocus onclick={cancelConfirm} class="rounded border border-border-subtle px-3 py-1.5 text-fg-secondary">취소</button>
 				</div>
 			</div>
 		{:else}
 			<div class="flex gap-3 text-xs text-fg-secondary">
-				<button type="button" class="underline" onclick={() => (confirm = 'rotate')}>주소 재발급</button>
-				<button type="button" class="underline" onclick={() => (confirm = 'revoke')}>구독 해제</button>
+				<button type="button" id="cal-rotate" class="underline" onclick={() => (confirm = 'rotate')}>주소 재발급</button>
+				<button type="button" id="cal-revoke" class="underline" onclick={() => (confirm = 'revoke')}>구독 해제</button>
 			</div>
 		{/if}
 	{/if}
