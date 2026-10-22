@@ -81,8 +81,8 @@ def test_api_onboarding_patch(client):
 
 def test_entry_path(conn):
     assert svc.entry_path(conn, {}) == "/v2/today"
-    assert svc.entry_path(None, {"ui_default_global": "v1"}) == "/dashboard"
+    assert svc.entry_path(None, {"ui_default_global": "v1"}) == "/v2/today"
     svc.set_setting(conn, "ui_default", "v2")
     assert svc.entry_path(conn, {}) == "/v2/today"
     svc.set_setting(conn, "ui_default", "v1")
-    assert svc.entry_path(conn, {"ui_default_global": "v2"}) == "/dashboard"
+    assert svc.entry_path(conn, {"ui_default_global": "v2"}) == "/v2/today"

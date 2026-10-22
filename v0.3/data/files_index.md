@@ -509,7 +509,7 @@
 - class **UnifiedActivity**: date, can_expand
 - functions: build_unified_activity, fetch_unified_activities, build_source_comparison
 
-### `user_settings_service.py` (53줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
+### `user_settings_service.py` (52줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default, entry_path
 
@@ -1179,7 +1179,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (494줄) — RunPulse integration workbench web app.
+### `app.py` (229줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1208,301 +1208,25 @@
 
 - functions: classify_surface, csp_v2_mode, build_csp, common_headers, csp_header_for, default_index_path, apply_policy, init_response_policy
 
-### `route_svg.py` (118줄) — GPS 경로 SVG 썸네일 생성 — activity_streams에서 latlng 데이터를 SVG polyline으로 변환.
-
-- functions: render_route_svg
-
 ### `spa_static.py` (132줄) — SvelteKit 정적 빌드(`frontend/build`) 서빙 정책 — `/v2/` 경로 판정·캐시 규칙·인라인 스크립트 해시.
 
 - functions: resolve_v2, cache_control_for, inline_script_hashes, serve_v2_response
-
-### `sync_ui.py` (246줄) — 동기화 카드 UI 컴포넌트 — 기본(마지막 동기화 이후) / 기간 2탭.
-
-- functions: sync_card_html
-
-### `views_activities.py` (185줄) — 활동 목록 뷰 — Flask Blueprint + 라우트 핸들러.
-
-- functions: activities_list
-
-### `views_activities_filter.py` (214줄) — 활동 목록 뷰 — 필터 폼 + 날짜 프리셋 JS.
-
-- (public API 없음)
-
-### `views_activities_helpers.py` (265줄) — 활동 목록 뷰 — 포맷 헬퍼 + 아이콘/배지.
-
-- (public API 없음)
-
-### `views_activities_table.py` (423줄) — 활동 목록 뷰 — 활동 테이블 + 요약 + 편집 바 + JS.
-
-- (public API 없음)
-
-### `views_activity.py` (339줄) — 활동 심층 분석 뷰 — Flask Blueprint.
-
-- functions: activity_deep_view, activity_service_data
-
-### `views_activity_cards_common.py` (311줄) — 활동 상세 — 공통 헬퍼·포매터·독립 카드 함수.
-
-- functions: fmt_int, fmt_float1, fmt_min_sec, fmt_val, metric_tooltip_icon, set_ai_metric_cache, clear_ai_metric_cache, metric_interp_badge, gauge_bar, rp_row, source_badge, no_data_msg, group_header, render_activity_summary, render_activity_nav, render_horizontal_scroll, render_classification_badge, render_splits
-
-### `views_activity_g1_status.py` (142줄) — 활동 상세 — 그룹1: 오늘의 상태 (Daily Status Strip).
-
-- functions: render_group1_daily_status
-
-### `views_activity_g2_performance.py` (206줄) — 활동 상세 — 그룹2: 퍼포먼스.
-
-- functions: render_group2_performance
-
-### `views_activity_g3_load.py` (119줄) — 활동 상세 — 그룹3: 부하/노력.
-
-- functions: render_group3_load
-
-### `views_activity_g4_risk.py` (87줄) — 활동 상세 — 그룹4: 과훈련/부상 위험.
-
-- functions: render_group4_risk
-
-### `views_activity_g5_biomechanics.py` (104줄) — 활동 상세 — 그룹5: 폼/바이오메카닉스.
-
-- functions: render_group5_biomechanics
-
-### `views_activity_g6_distribution.py` (161줄) — 활동 상세 — 그룹6: 훈련 분포.
-
-- functions: render_group6_distribution
-
-### `views_activity_g7_fitness.py` (170줄) — 활동 상세 — 그룹7: 피트니스 컨텍스트.
-
-- functions: render_group7_fitness
-
-### `views_activity_loaders.py` (278줄) — 활동 상세 — 데이터 로딩 함수.
-
-- (public API 없음)
-
-### `views_activity_loaders_v2.py` (104줄) — 활동 상세 — 신규 데이터 로더 (UI 재설계용).
-
-- functions: load_ef_decoupling_series, load_risk_series, load_tids_weekly_series, load_darp_values
-
-### `views_activity_map.py` (90줄) — 활동 상세 — Leaflet + OpenStreetMap 경로 지도 렌더링.
-
-- functions: render_map_placeholder
-
-### `views_activity_merge.py` (128줄) — 활동 그룹 병합/분리 API — Flask Blueprint.
-
-- functions: activities_merge, activities_ungroup, activities_auto_group
-
-### `views_activity_s5_cards.py` (277줄) — S5-C2 신규 메트릭 카드 — RTTI, WLEI, TPDI, Running Tolerance, HR 존 차트.
-
-- functions: render_rtti_card, render_wlei_card, render_tpdi_card, render_running_tolerance_card, render_hr_zone_chart
-
-### `views_activity_source_cards.py` (437줄) — 활동 상세 — 소스별 서비스 카드 렌더링.
-
-- (public API 없음)
-
-### `views_ai_coach.py` (409줄) — AI 코칭 뷰 — Flask Blueprint.
-
-- functions: ai_coach_page, ai_coach_chat_async, ai_coach_chat, ai_coach_get_prompt, ai_coach_paste_response
-
-### `views_ai_coach_cards.py` (591줄) — AI 코칭 페이지 렌더링 카드 — views_ai_coach.py에서 분리.
-
-- functions: render_coach_profile, render_briefing_card, render_wellness_card, render_chips, render_chat_section, render_recent_training, render_risk_summary
-
-### `views_dashboard.py` (438줄) — 통합 대시보드 뷰 — Flask Blueprint.
-
-- functions: dashboard
-
-### `views_dashboard_cards.py` (34줄) — 대시보드 카드 진입점 — 하위 모듈 re-export (backward compat).
-
-- (public API 없음)
-
-### `views_dashboard_cards_fitness.py` (280줄) — 대시보드 피트니스 카드 — 추세 차트 + PMC + 활동 목록 + 피트니스 미니.
-
-- functions: render_fitness_trends_chart
-
-### `views_dashboard_cards_recommend.py` (267줄) — 대시보드 권장/예측 카드 — 훈련 권장 + DARP + 게이지/RMR.
-
-- (public API 없음)
-
-### `views_dashboard_cards_risk.py` (185줄) — 대시보드 리스크 카드 — ACWR/LSI/Monotony/TSB + UTRS/CIRS 상세.
-
-- functions: render_risk_pills_v2
-
-### `views_dashboard_cards_status.py` (145줄) — 대시보드 상태 카드 — 오늘의 상태 스트립 + 주간 요약.
-
-- functions: render_daily_status_strip, render_weekly_summary
-
-### `views_dashboard_loaders.py` (129줄) — 대시보드 — 신규 데이터 로더 (UI 재설계용).
-
-- functions: load_wellness_mini, load_weekly_summary, load_fitness_trends, load_risk_7day_trends
-
-### `views_dev.py` (595줄) — Developer/debug routes — config, payloads, DB summary, analyze preview.
-
-- functions: dev_index, config_summary, config_db_path, payloads, payload_view, db_summary, analyze_preview
 
 ### `views_export.py` (99줄) — 활동 데이터 CSV 내보내기 라우트.
 
 - functions: activities_export_csv
 
-### `views_export_import.py` (234줄) — Export 데이터 임포트 뷰 — Flask Blueprint.
-
-- functions: export_import_page, export_import_run
-
-### `views_guide.py` (240줄) — 용어집/가이드 페이지 — 메트릭 설명 + 분류 기준 + 적정 범위 통합.
-
-- functions: guide_page
-
-### `views_import.py` (311줄) — Strava Archive Import 뷰 — Flask Blueprint.
-
-- functions: strava_archive_view, strava_archive_post, strava_archive_backfill
-
-### `views_perf.py` (161줄) — 성능 최적화 — 배치 데이터 로더 + TTL 캐시.
-
-- functions: cached_page, invalidate_cache, load_latest_metric_date, load_metrics_batch, load_metrics_json_batch, load_activity_metrics_batch, load_darp_batch
-
-### `views_race.py` (408줄) — Sprint 5 · V2-6-1 — Race Prediction (DARP) UI Blueprint.
-
-- functions: race_page
-
-### `views_race_enhanced.py` (381줄) — 레이스 예측 보강 — 추세 차트, 목표 갭, 준비 요소, 메트릭 해설.
-
-- functions: load_prediction_trend, load_fitness_factors, render_goal_gap, render_prediction_trend_chart, render_fitness_factors_chart, render_race_shape_trio, render_di_interpretation, render_metric_glossary
-
-### `views_report.py` (351줄) — 분석 레포트 뷰 — Flask Blueprint.
-
-- functions: report_view
-
-### `views_report_charts.py` (335줄) — 레포트 — 신규 차트 렌더러 (UI 재설계용).
-
-- functions: render_summary_delta, render_training_quality_chart, render_tids_weekly_chart, render_risk_trend_chart, render_form_trend, render_wellness_trend_chart
-
-### `views_report_loaders.py` (182줄) — 레포트 — 신규 데이터 로더 (UI 재설계용).
-
-- functions: load_prev_period_stats, load_training_quality_series, load_risk_trend_series, load_form_trend_series, load_wellness_trend_series, load_tids_weekly_series
-
-### `views_report_sections.py` (312줄) — 레포트 추가 섹션 — AI 인사이트 + 요약 카드 + 테이블 + Export.
-
-- functions: render_ai_insight, render_ai_insight_placeholder, render_export_buttons, render_summary_cards, render_weekly_chart, render_metrics_table
-
-### `views_report_sections_cards.py` (276줄) — 레포트 섹션 — 메트릭 카드 렌더러.
-
-- functions: render_tids_section, render_trimp_weekly_chart, render_risk_overview, render_darp_card, render_fitness_trend, render_endurance_trend
-
-### `views_report_sections_data.py` (111줄) — 레포트 섹션 — 데이터 로더.
-
-- (public API 없음)
-
-### `views_settings.py` (321줄) — 서비스 연동 설정 뷰 — 메인 허브 + 설정 저장 라우트.
-
-- functions: settings_view, settings_profile_post, settings_training_prefs_post, settings_ai_post, settings_mapbox_post, settings_prompts_post, settings_prompts_reset, settings_caldav_post, settings_caldav_test
-
 ### `views_settings_garmin.py` (590줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
 
 - functions: garmin_connect_view, garmin_connect_post, garmin_mfa_view, garmin_mfa_submit, garmin_disconnect, garmin_browser_login, garmin_upload_token, garmin_paste_token, garmin_cf_settings_post, garmin_download_script, garmin_download_env
-
-### `views_settings_hub.py` (94줄) — Settings 허브 보조 렌더링 — sync 상태 요약 + 시스템 정보.
-
-- functions: render_sync_overview, render_system_info
 
 ### `views_settings_integrations.py` (327줄) — 설정 — Strava / Intervals.icu / Runalyze 연동 라우트.
 
 - functions: strava_connect_view, strava_save_app, strava_oauth_start, strava_oauth_callback, strava_disconnect, intervals_connect_view, intervals_connect_post, intervals_disconnect, runalyze_connect_view, runalyze_connect_post, runalyze_disconnect
 
-### `views_settings_metrics.py` (91줄) — 설정 — 메트릭 재계산 라우트 (SSE 스트림 포함).
-
-- functions: metrics_recompute, metrics_recompute_stream, metrics_recompute_status
-
-### `views_settings_render.py` (222줄) — 설정 페이지 렌더 헬퍼 — 서비스 카드 + 프로필 + Mapbox + CalDAV.
-
-- (public API 없음)
-
-### `views_settings_render_prefs.py` (264줄) — 설정 페이지 렌더 헬퍼 — 훈련 환경설정 + AI + 프롬프트 관리.
-
-- (public API 없음)
-
-### `views_shoes.py` (86줄) — 신발 목록 뷰 — Flask Blueprint.
-
-- functions: shoes_list
-
-### `views_sync.py` (271줄) — 동기화 탭 뷰 — 데이터 동기화 + 서비스 연결 + 임포트/익스포트.
-
-- functions: sync_page, sync_sources_post, auto_sync_settings_post
-
-### `views_training.py` (351줄) — 훈련 계획 뷰 — Flask Blueprint.
-
-- functions: training_page, training_calendar_partial, training_generate
-
-### `views_training_cal_js.py` (313줄) — 훈련 캘린더 공통 JS — week/month 뷰 공유 (H-1 스와이프, H-2 모달, H-3 툴팁 포함).
-
-- (public API 없음)
-
-### `views_training_cards.py` (372줄) — 훈련 계획 뷰 — 카드 렌더러 (S1~S3).
-
-- functions: render_header_actions, render_goal_card, render_weekly_summary
-
-### `views_training_condition.py` (152줄) — 훈련탭 — 컨디션 + AI추천 통합 카드 렌더러.
-
-- functions: render_condition_ai_card
-
-### `views_training_crud.py` (468줄) — 훈련 계획 — 워크아웃 CRUD 라우트 + 환경설정.
-
-- functions: workout_create, workout_update, workout_delete, workout_confirm, workout_match_check, workout_skip, training_replan, workout_toggle, workout_patch, workout_interval_calc, training_prefs_post
-
 ### `views_training_export.py` (96줄) — 훈련 계획 내보내기/전송 라우트 (ICS, Garmin, CalDAV).
 
 - functions: training_export_ics, push_to_garmin, push_to_caldav
-
-### `views_training_fullplan.py` (261줄) — 훈련 전체 일정 뷰 — GET /training/fullplan.
-
-- functions: training_fullplan
-
-### `views_training_goal_crud.py` (387줄) — 훈련 목표 관리 CRUD 라우트 (goal_create/complete/cancel/detail/import).
-
-- functions: goal_create, goal_complete, goal_cancel, goal_delete_plan, goal_delete, goal_detail, goal_import_preview, goal_import
-
-### `views_training_goals.py` (486줄) — 훈련 목표 관리 패널 렌더러 (Phase G: G-1 ~ G-4).
-
-- functions: render_goals_panel, render_goal_detail_html
-
-### `views_training_loaders.py` (335줄) — 훈련 계획 뷰 — 데이터 로더.
-
-- functions: load_goal, load_workouts, load_training_metrics, load_yesterday_pending, load_actual_activities, load_month_workouts, load_full_plan_weeks, load_goals_with_stats, load_goal_weeks, load_sync_status
-
-### `views_training_month.py` (211줄) — 훈련 계획 — 월간 캘린더 렌더러 (4주 뷰).
-
-- functions: render_month_calendar
-
-### `views_training_plan_ui.py` (247줄) — 훈련탭 — AI 추천 / 훈련 계획 개요 / 동기화 상태 렌더러.
-
-- functions: render_ai_recommendation, render_plan_overview, render_sync_status
-
-### `views_training_prefs.py` (207줄) — 훈련 환경 설정 카드 렌더러 — 훈련탭 내 Collapsible 섹션.
-
-- functions: render_training_prefs_collapsed
-
-### `views_training_shared.py` (31줄) — 훈련탭 공용 상수/헬퍼 — 여러 렌더러 모듈에서 공유.
-
-- (public API 없음)
-
-### `views_training_week.py` (293줄) — 훈련탭 — 주간 캘린더 렌더러 (S5).
-
-- functions: render_week_calendar
-
-### `views_training_wellness.py` (320줄) — 훈련탭 — 웰니스/컨디션 카드 렌더러.
-
-- functions: render_adjustment_card, render_checkin_card, render_interval_prescription_card
-
-### `views_training_wizard.py` (413줄) — 훈련 계획 Wizard — Blueprint + 라우트 (Phase C).
-
-- functions: wizard_page, wizard_step, wizard_complete
-
-### `views_training_wizard_render.py` (343줄) — 훈련 계획 Wizard — HTML 렌더러 (Phase C).
-
-- functions: render_step1, render_step2, render_step3, render_step4, wizard_js, render_wizard_page
-
-### `views_wellness.py` (431줄) — 회복/웰니스 상세 뷰 — Flask Blueprint.
-
-- functions: wellness_view
-
-### `views_wellness_enhanced.py` (570줄) — 웰니스 보강 — 기준선 밴드, 패턴 인사이트, 주간 비교, 미니차트.
-
-- functions: load_wellness_14d, load_sleep_times, load_hrv_baseline, load_weekly_comparison, render_metrics_dash, render_7day_chart_enhanced, render_sleep_mini_chart, render_hrv_mini_chart, render_pattern_insights, render_weekly_comparison, render_wellness_glossary, render_sleep_time_pattern, build_outlier_mark_points, build_pattern_recovery_tips
 
 ## `src/training/`
 
@@ -2044,6 +1768,10 @@
 
 - functions: trigger_sync, trigger_sync_stream, trigger_sync_bg, garmin_local_sync, bg_sync_start, bg_sync_pause, bg_sync_stop, bg_sync_resume, bg_sync_status
 
+### `v1_pages_helpers.py` (68줄) — v1 import·sync-status 화면용 작은 HTML/스캔 헬퍼 (views_dev 에서 이관, S4-33).
+
+- functions: table, scan_history_dir
+
 ### `validation.py` (238줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
 
 - class **FieldError**: 없음
@@ -2106,12 +1834,6 @@
 ### `test_activity_list_summary.py` (118줄) — 활동 목록 facets·summary·확장 필터/정렬/행 필드 테스트 (U10, A-17/A-18/B-3).
 
 - functions: conn, test_facets_running_group_counts_indoor, test_facets_types_respect_sport_group, test_list_type_filter_maps_long_run, test_list_sport_group_month_and_row_fields, test_list_sort_load_and_q, test_parse_args_rejects_bad_values, test_display_title_keeps_user_names, test_summary_boundary_week_in_range_only, test_summary_month_block_prev_month_pct, test_summary_prev_month_empty_is_null_and_no_month_without_param, test_summary_avg_12w_ignores_filters_and_needs_history, test_summary_shares_type_filter
-
-### `test_activity_merge.py` (152줄) — 활동 그룹 병합/분리 API 엔드포인트 테스트.
-
-- class **TestMergeEndpoint**: test_merge_two_activities, test_merge_requires_two, test_merge_missing_ids, test_merge_invalid_ids
-- class **TestUngroupEndpoint**: test_ungroup_activity, test_ungroup_missing_id, test_ungroup_invalid_id
-- functions: app
 
 ### `test_activity_service.py` (318줄) — tests/test_activity_service.py — Phase 5-A 서비스 레이어 테스트.
 
@@ -2455,10 +2177,6 @@
 - class **TestChipAndFollowups**: seen, test_chip_only_thread_uses_chip_text, test_followups_exclude_asked_chips, test_regenerate_keeps_chip_id, test_user_messages_have_no_followups
 - functions: create_thread, add_message
 
-### `test_condition_ai_card.py` (112줄) — tests/test_condition_ai_card.py — render_condition_ai_card 단위 테스트.
-
-- functions: test_returns_empty_when_no_data, test_shows_utrs_badge, test_utrs_green_when_high, test_utrs_red_when_low, test_cirs_badge_shown, test_cirs_red_border_when_danger, test_wellness_badges_from_adj, test_adjustment_section_when_adjusted, test_no_adjustment_section_when_not_adjusted, test_ai_section_shown_with_utrs, test_ai_override_shown, test_ai_badge_only_when_override, test_volume_boost_shown_when_applicable, test_volume_boost_hidden_when_cirs_high, test_card_title_present
-
 ### `test_config_sync_sources.py` (28줄) — 레거시 `<소스>_disabled` 키 마이그레이션과 is_source_enabled.
 
 - functions: test_legacy_key_moves_and_disables, test_canonical_key_not_overwritten, test_idempotent_and_default_base_is_all, test_load_config_applies_migration
@@ -2722,9 +2440,9 @@
 
 - functions: test_fixtures_layout_exists
 
-### `test_flask_routes.py` (136줄) — Flask 라우트 스모크 테스트 (DoD #12).
+### `test_flask_routes.py` (84줄) — Flask 라우트 스모크 테스트 (DoD #12).
 
-- class **TestRouteSmoke**: test_activities_200, test_activities_with_data_rendered, test_activities_export_csv_200, test_activities_export_csv_has_rows, test_activities_export_csv_distance_km, test_activities_filter_source, test_activities_filter_type, test_activities_pagination, test_merge_bad_ids_no_500, test_ungroup_missing_id_no_500
+- class **TestRouteSmoke**: test_activities_export_csv_200, test_activities_export_csv_has_rows, test_activities_export_csv_distance_km
 - functions: mini_app
 
 ### `test_format_ko.py` (37줄) — format_ko — Coach 규칙 답변 표기 단일 소스.
@@ -2842,9 +2560,9 @@
 
 - functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
 
-### `test_index_ui_default.py` (45줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
+### `test_index_ui_default.py` (54줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
 
-- functions: make_client, test_default_goes_to_v2, test_global_v1, test_global_v2, test_user_overrides_global
+- functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2, test_v1_pages_helpers
 
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
@@ -3319,9 +3037,9 @@
 
 - functions: test_empty_db_returns_four_providers, test_empty_db_has_data_false, test_garmin_activity_sets_has_data, test_activity_count_aggregates_correctly, test_last_new_data_at_from_source_payloads, test_last_new_data_at_none_when_no_payload, test_provider_order_fixed, test_unknown_source_not_in_result, test_payload_only_provider_has_data, api_client, test_api_providers_status_returns_four, test_api_providers_status_counts_activity
 
-### `test_provider_status_service.py` (135줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
+### `test_provider_status_service.py` (112줄) — tests/test_provider_status_service.py — get_provider_coverage 단위 테스트.
 
-- functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled, test_set_sync_source_toggles_and_keeps_order, test_sync_page_widgets_reflect_sources, test_sync_sources_post_saves_checked_only
+- functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled, test_set_sync_source_toggles_and_keeps_order
 
 ### `test_race_calendar_service.py` (205줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
 
@@ -3380,10 +3098,6 @@
 ### `test_recompute_all_range.py` (38줄) — P7-PRED-87: recompute_all 이 재계산 범위 밖 이력을 지우지 않는다.
 
 - functions: test_clear_range_keeps_history, test_recompute_all_default_spans_all_history, test_recompute_all_commits_results
-
-### `test_recompute_retire.py` (22줄) — v1 부작용 GET /recompute-metrics 퇴역 — 라우트 부재와 동기화 탭의 v2 POST 전환.
-
-- functions: test_get_recompute_route_removed, test_sync_tab_uses_v2_recompute_post
 
 ### `test_reextract.py` (70줄) — P7-PRED-13: 제자리 재추출 — id 유지, 랩 GAP·스트림 경과시간 채움.
 
@@ -3606,36 +3320,9 @@
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
 
-### `test_training_fullplan.py` (145줄) — E-1: 전체 훈련 일정 뷰 테스트.
-
-- class **TestLoadFullPlanWeeks**: test_groups_by_week, test_current_week_flagged, test_total_km_calculated, test_completed_count, test_no_goal_uses_12_week_horizon
-- class **TestFullplanRoute**: test_returns_200, test_contains_week_cards, test_current_week_open, test_no_db_graceful, test_goal_info_shown, test_back_link
-- functions: app, client, db_file
-
-### `test_training_month.py` (109줄) — E-2: 월간 캘린더 뷰 테스트.
-
-- class **TestLoadMonthWorkouts**: test_returns_4_weeks, test_each_tuple_has_workouts_and_date, test_week_offset_shifts_start
-- class **TestRenderMonthCalendar**: test_returns_html_string, test_has_rp_calendar_id, test_shows_day_names, test_empty_weeks_graceful, test_actual_activities_shown
-- class **TestViewTabs**: test_contains_all_three_tabs, test_month_active_highlighted, test_week_tab_links_correctly
-- functions: db_file
-
-### `test_training_phase_f.py` (226줄) — Phase F: Wizard edit 모드 + 목표 카드 인터랙션 테스트.
-
-- functions: db_file, app, client, test_goal_to_wizard_data_standard, test_goal_to_wizard_data_custom, test_fmt_time_hms, test_fmt_pace_mmss, test_render_step4_edit_mode, test_render_step4_create_mode, test_wizard_edit_get, test_render_goal_card_no_goal, test_render_goal_card_with_goal_no_workout, test_render_goal_card_with_today_workout, test_render_goal_card_already_completed, test_render_goal_card_skipped, test_workout_confirm_json, test_workout_match_check, test_workout_match_check_not_found
-
-### `test_training_phase_g.py` (218줄) — Phase G: 목표 관리 개선 테스트 (G-1 ~ G-4).
-
-- functions: initialize_db, conn, test_load_goals_with_stats_empty, test_load_goals_with_stats_counts, test_load_goals_with_stats_status_all, test_render_goals_panel_empty, test_render_goals_panel_with_goals, test_render_goals_panel_d_day, test_load_goal_weeks, test_render_goal_detail_html, test_render_goal_detail_no_delete_for_cancelled, test_goal_date_range_with_race_date, test_goal_date_range_with_plan_weeks, test_import_all
-
 ### `test_training_response.py` (35줄) — P7-PRED-41: 훈련 반응 r4(세트 기반, 기기 불필요).
 
 - functions: test_weekly_zone_minutes_and_summary, test_set_trend_needs_4, test_long_mp_km
-
-### `test_training_workout_edit.py` (204줄) — Phase D: 워크아웃 편집 AJAX 라우트 테스트.
-
-- class **TestWorkoutPatch**: test_patch_type_and_distance, test_patch_pace, test_patch_interval_saves_description, test_patch_empty_body_returns_400, test_patch_nonexistent_db, test_patch_persists_to_db
-- class **TestIntervalCalc**: test_basic_1000m, test_200m_short_interval, test_nonstandard_distance_warning, test_default_params
-- functions: app, client, db_file, workout_id
 
 ### `test_trigger_sync_bg_v1.py` (28줄) — v1 /trigger-sync-bg — 서비스 판정 위임 후에도 응답 포맷 유지.
 
@@ -3876,7 +3563,7 @@
 - functions: run
 
 ---
-총 837개 파일
+총 761개 파일
 
 ## docstring 누락
 

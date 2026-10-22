@@ -48,6 +48,5 @@ def resolve_ui_default(conn: sqlite3.Connection, config: dict) -> str:
 
 
 def entry_path(conn: sqlite3.Connection | None, config: dict) -> str:
-    """`/` 진입 경로 — 사용자 ui_default → 전역값 → v2(/v2/today). DB가 없으면 전역값만 본다."""
-    ui = resolve_ui_default(conn, config) if conn is not None else global_ui_default(config)
-    return "/v2/today" if ui == "v2" else "/dashboard"
+    """`/` 진입 경로 — v1 UI 는 제거되어(S4-33) 저장된 ui_default 와 무관하게 항상 v2."""
+    return "/v2/today"

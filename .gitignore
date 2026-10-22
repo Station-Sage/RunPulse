@@ -124,3 +124,6 @@ data/*.zip
 scripts/synth_smoke/out/
 scripts/synth_smoke/pw/node_modules/
 scripts/synth_smoke/pw/shots/
+
+# v1 UI 백업(S4-33) — 푸시 금지
+v1_backup/

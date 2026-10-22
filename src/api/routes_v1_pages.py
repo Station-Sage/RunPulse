@@ -2,7 +2,7 @@
 
 `app.py` 의 `create_app` 안에 있던 직접 라우트를 **URL·동작 불변**으로 옮겼다(S3 6단계). 삭제하지 않는다 —
 삭제 여부는 v1 일몰 단계에서 별도 결정한다. v1 UI 의 HTML 헬퍼(`src.web.helpers.html_page`·
-`src.web.views_dev._table`)를 쓰므로 `src/api` → `src/web` 의존이 생긴다 — 일몰 때 이 파일도 함께 사라질 대상이다.
+`v1_pages_helpers.table`)를 쓰므로 `src/api` → `src/web` 의존이 생긴다 — 일몰 때 이 파일도 함께 사라질 대상이다.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from src.sync.strava import check_strava_connection
 from src.utils.config import load_config
 from src.utils.user_context import db_path, project_root
 from src.web.helpers import html_page
-from src.web.views_dev import _scan_history_dir, _table
+from .v1_pages_helpers import scan_history_dir as _scan_history_dir, table as _table
 
 log = logging.getLogger(__name__)
 v1_pages_bp = Blueprint("v1_pages", __name__)
