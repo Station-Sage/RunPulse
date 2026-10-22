@@ -1,0 +1,18 @@
+import { chromium } from '/home/ubuntu/projects/RunPulse/scripts/synth_smoke/pw/node_modules/playwright/index.mjs';
+const B = 'http://127.0.0.1:18205/v2';
+const b = await chromium.launch({executablePath:'/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome'});
+const page = await (await b.newContext({ viewport:{width:375,height:812}, locale:'ko-KR' })).newPage();
+const errs=[]; page.on('pageerror',e=>errs.push(e.message));
+const url = () => page.url().replace(B,'');
+const dr = () => page.locator('[role=dialog][aria-modal=true]').filter({has:page.getByLabel('닫기')});
+await page.goto(B+'/today',{waitUntil:'networkidle'});
+await page.goto(B+'/today?drill=ctl,atl',{waitUntil:'networkidle'});
+await page.waitForTimeout(800);
+console.log('deep open', url(), await page.getByLabel('이전으로').count());
+await page.locator('[role=dialog]').getByLabel('닫기').last().click(); await page.waitForTimeout(600);
+console.log('after close', url(), 'closeBtn', await page.getByLabel('이전으로').count());
+await page.goto(B+'/today?drill=ctl,atl',{waitUntil:'networkidle'}); await page.waitForTimeout(600);
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+console.log('after esc', url());
+console.log('errs',errs);
+await b.close();

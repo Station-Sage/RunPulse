@@ -9,6 +9,8 @@ declare global {
 			// §C3.1/C3.3 드릴다운 스택 — pushState 직후엔 이 값이, 새로고침·딥링크 직후엔
 			// page.url의 `drill` 쿼리로 초기화된다(pushState는 page.url을 갱신하지 않는다).
 			drill?: string[];
+			// OVL-4 앱에서 push 한 시트 — 있으면 닫을 때 history.back(), 없으면(딥링크) replaceState.
+			sheet?: string;
 		}
 		// interface Platform {}
 	}

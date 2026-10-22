@@ -1,12 +1,11 @@
 <script lang="ts">
 	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 첫 행은 동기화 요약(탭하면
 	// ?sheet=sync 패널), 나머지는 v2 화면 바로가기.
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
 	import DevUserSwitch from '$lib/components/DevUserSwitch.svelte';
 	import { base } from '$app/paths';
 	import { modal } from '$lib/overlay';
+	import { openSheet } from '$lib/sheetHistory';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
 	import { EXPORT_LABEL, EXPORT_PATH, DATA_LINKS, QUICK_LINKS } from '$lib/menuLinks';
@@ -17,9 +16,7 @@
 
 	function openSyncPanel() {
 		onClose();
-		const u = new URL(page.url);
-		u.searchParams.set('sheet', 'sync');
-		goto(u, { replaceState: true, noScroll: true });
+		openSheet('sync');
 	}
 </script>
 

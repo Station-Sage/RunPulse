@@ -8,7 +8,8 @@ import {
 	tokenSlug,
 	resolveDrillScope,
 	DRILL_MAX_DEPTH,
-	isSpecialToken
+	isSpecialToken,
+	closePlan
 } from '../src/lib/drillStackCore.ts';
 
 test('parseDrillStack — drill 파라미터 없으면 빈 배열', () => {
@@ -77,4 +78,28 @@ test('x. 특수 토큰: isSpecialToken · 포맷/파싱 왕복', () => {
 	assert.equal(isSpecialToken('m.utrs'), false);
 	assert.equal(formatDrillToken('x.taper'), 'x.taper');
 	assert.equal(parseDrillToken('x.taper').slug, 'x.taper');
+});
+
+test('closePlan — 앱에서 연 1단은 back 1, 쿼리 정리 없음', () => {
+	assert.deepEqual(closePlan(['m.a'], []), { back: 1, replace: null });
+});
+
+test('closePlan — 앱에서 3단 push 하면 back 3', () => {
+	assert.deepEqual(closePlan(['m.a', 'm.b', 'm.c'], []), { back: 3, replace: null });
+});
+
+test('closePlan — 딥링크 2단 그대로면 history 없이 쿼리만 지운다', () => {
+	assert.deepEqual(closePlan(undefined, ['m.a', 'm.b']), { back: 0, replace: [] });
+});
+
+test('closePlan — 딥링크 2단 위에 1단 push 하면 back 1 후 쿼리 정리', () => {
+	assert.deepEqual(closePlan(['m.a', 'm.b', 'm.c'], ['m.a', 'm.b']), { back: 1, replace: [] });
+});
+
+test('closePlan — 딥링크 중에 새로 연 드릴(openDrill)은 back 1 후 쿼리 정리', () => {
+	assert.deepEqual(closePlan(['m.x'], ['m.a', 'm.b']), { back: 1, replace: [] });
+});
+
+test('closePlan — 스택이 없으면 아무것도 하지 않는다', () => {
+	assert.deepEqual(closePlan(undefined, []), { back: 0, replace: null });
 });

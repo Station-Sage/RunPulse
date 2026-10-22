@@ -49,3 +49,17 @@ export function resolveDrillScope(
 	const m = /^a(\d+)$/.exec(scope);
 	return m ? { scopeType: 'activity', scopeId: m[1] } : { scopeType: defaultType, scopeId: scope };
 }
+
+// OVL-8 닫기 계획 — stateStack(page.state.drill, 앱에서 push 한 스택·없으면 undefined)과 urlStack(딥링크 스택).
+// back: history 로 되돌릴 push 단계 수, replace: 되돌린 뒤 딥링크 스택을 바꿀 값([]=drill 쿼리 제거, null=손대지 않음).
+export function closePlan(
+	stateStack: string[] | undefined,
+	urlStack: string[]
+): { back: number; replace: string[] | null } {
+	const replace = urlStack.length > 0 ? [] : null;
+	if (!stateStack || stateStack.length === 0) return { back: 0, replace };
+	// 딥링크 스택을 그대로 앞부분으로 이어 쌓았을 때만 그 단계는 push 로 세지 않는다.
+	const keeps = urlStack.length > 0 && urlStack.every((t, i) => stateStack[i] === t);
+	const pushed = stateStack.length - (keeps ? urlStack.length : 0);
+	return { back: Math.max(pushed, 1), replace };
+}

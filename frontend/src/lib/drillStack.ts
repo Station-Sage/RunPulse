@@ -6,9 +6,9 @@
 // 않는다(shallow routing 전용 — 실제로 변하는 건 `page.state`뿐). 그래서 두 값 다 쓴다:
 // push 직후의 "지금" 값은 `page.state.drill`에서, 새로고침·딥링크 직후의 "처음" 값은
 // `page.url`의 `drill` 쿼리에서 읽는다(`currentDrillStack` 참조).
-import { pushState } from '$app/navigation';
+import { goto, pushState } from '$app/navigation';
 import { page } from '$app/state';
-import { DRILL_MAX_DEPTH, formatDrillToken, isSpecialToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug } from './drillStackCore';
+import { DRILL_MAX_DEPTH, closePlan, formatDrillToken, isSpecialToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug } from './drillStackCore';
 
 export { isSpecialToken, parseDrillStack, parseDrillToken, resolveDrillScope, tokenSlug };
 
@@ -39,11 +39,26 @@ export function pushDrill(slug: string, scope?: string) {
 	pushState(url, { drill: next });
 }
 
+// 딥링크로 들어온 스택은 history 항목이 없으므로 쿼리만 교체한다(OVL-8, shallow replaceState 는 page.url 을 갱신하지 않아 goto 사용).
+function replaceDrill(stack: string[]) {
+	const url = new URL(page.url);
+	if (stack.length) url.searchParams.set('drill', stack.join(','));
+	else url.searchParams.delete('drill');
+	void goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+}
+
 export function popDrill() {
-	if (currentDrillStack().length > 0) history.back();
+	if (page.state.drill?.length) history.back();
+	else replaceDrill(parseDrillStack(page.url).slice(0, -1));
 }
 
 export function closeDrill() {
-	const depth = currentDrillStack().length;
-	if (depth > 0) history.go(-depth);
+	const plan = closePlan(page.state.drill, parseDrillStack(page.url));
+	const after = () => {
+		if (plan.replace) replaceDrill(plan.replace);
+	};
+	if (plan.back > 0) {
+		window.addEventListener('popstate', () => setTimeout(after, 0), { once: true });
+		history.go(-plan.back);
+	} else after();
 }

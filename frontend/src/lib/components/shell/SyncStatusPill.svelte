@@ -2,14 +2,14 @@
 	// §2.1 헤더 우측 동기화 Pill — 색+모양+문구 3중 표기, 폭 고정(레이아웃 점프 방지).
 	// 클릭 시 SyncPanel(모바일 하단 시트 / 데스크톱 360px 팝오버). ?sheet=sync로 딥링크.
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { closeSheet, openSheet, sheetOpen } from '$lib/sheetHistory';
+	import { modal } from '$lib/overlay';
 	import { pillView } from '$lib/syncState';
 	import { syncStore, loadSyncState, startSyncPolling } from '$lib/syncStore.svelte';
 	import SyncPanel from './SyncPanel.svelte';
 
 	const sync = $derived(syncStore.data);
-	const urlOpen = $derived(page.url.searchParams.get('sheet') === 'sync');
+	const urlOpen = $derived(sheetOpen('sync'));
 
 	onMount(() => startSyncPolling());
 
@@ -18,11 +18,8 @@
 	});
 
 	function setOpen(v: boolean) {
-		syncStore.panelOpen = v;
-		const u = new URL(page.url);
-		if (v) u.searchParams.set('sheet', 'sync');
-		else u.searchParams.delete('sheet');
-		goto(u, { replaceState: true, keepFocus: true, noScroll: true });
+		if (v) openSheet('sync');
+		else closeSheet('sync');
 	}
 
 	const view = $derived(
@@ -56,8 +53,8 @@
 		<span class="truncate">{view.text}</span>
 	</button>
 	{#if syncStore.panelOpen && sync}
-		<button class="fixed inset-0 z-40 cursor-default bg-black/30 sm:bg-transparent" aria-label="닫기" onclick={() => setOpen(false)}></button>
-		<div class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-[360px] sm:rounded-xl sm:border sm:border-border-subtle">
+		<button class="fixed inset-0 z-40 cursor-default bg-black/30 sm:bg-transparent" aria-label="닫기" tabindex="-1" aria-hidden="true" onclick={() => setOpen(false)}></button>
+		<div use:modal={{ onClose: () => setOpen(false) }} role="dialog" aria-modal="true" aria-label="동기화 상태" class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-[360px] sm:rounded-xl sm:border sm:border-border-subtle">
 			<SyncPanel state={sync} onClose={() => setOpen(false)} />
 		</div>
 	{/if}
