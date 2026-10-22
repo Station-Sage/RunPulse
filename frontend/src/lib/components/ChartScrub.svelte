@@ -72,8 +72,9 @@
 		} else if (e.key === 'End') {
 			set(pointCount - 1, true);
 			e.preventDefault();
-		} else if (e.key === 'Escape') {
+		} else if (e.key === 'Escape' && (index !== null || pinned)) {
 			set(null, false);
+			e.preventDefault();
 		}
 	}
 </script>

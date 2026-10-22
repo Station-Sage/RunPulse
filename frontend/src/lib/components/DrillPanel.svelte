@@ -2,7 +2,8 @@
 	// §C3.1 드릴다운 시트 컨테이너 — URL(`?drill=`) 스택이 곧 열림 상태다(C3.3).
 	// 데스크톱(≥1024px)은 본문 grid를 1fr 420px로 밀어내는 비모달 패널, 모바일은 풀스크린 슬라이드업.
 	// 끌어 닫기 제스처(C3.1 "최상위에서만 아래로 끌어 닫기")는 이번 라운드에 구현하지 않음(탭/Esc/뒤로가기로 닫기는 됨) — 별도 판단 필요.
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
+	import { modal } from '$lib/overlay';
 	import { base } from '$app/paths';
 	import { currentDrillStack, parseDrillToken, resolveDrillScope, pushDrill, popDrill, closeDrill } from '$lib/drillStack';
 	import { isExplainSupported, getMetricExplain, getMetricTrend } from '$lib/api/metrics';
@@ -105,11 +106,20 @@
 		if (isOpen) headingEl?.focus();
 	});
 
+	// 모바일(<lg)은 풀스크린 modal, 데스크톱(lg)은 인라인 패널이라 트랩·잠금 없이 Esc 로 한 단계만 닫는다(OVL-5).
+	let mobile = $state(false);
+	onMount(() => {
+		const mq = window.matchMedia('(max-width: 1023.98px)');
+		const sync = () => (mobile = mq.matches);
+		sync();
+		mq.addEventListener('change', sync);
+		return () => mq.removeEventListener('change', sync);
+	});
+
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			e.stopPropagation();
-			popDrill();
-		}
+		if (e.key !== 'Escape' || e.defaultPrevented) return;
+		e.preventDefault();
+		popDrill();
 	}
 
 	function breadcrumbLabel(slug: string): string {
@@ -119,7 +129,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={isOpen ? handleKeydown : undefined} />
+<svelte:window onkeydown={isOpen && !mobile ? handleKeydown : undefined} />
 
 <div class="lg:grid lg:h-full {isOpen ? 'lg:grid-cols-[1fr_420px]' : 'lg:grid-cols-1'}">
 	<div class="min-w-0">
@@ -128,9 +138,13 @@
 
 	{#if isOpen}
 		<!-- 모바일: 풀스크린 슬라이드업 -->
-		<div class="fixed inset-0 z-50 flex flex-col lg:hidden" role="dialog" aria-modal="true">
-			<button class="absolute inset-0 bg-black/40" onclick={closeDrill} aria-label="닫기"></button>
+		<div class="fixed inset-0 z-50 flex flex-col lg:hidden">
+			<button class="absolute inset-0 bg-black/40" onclick={closeDrill} tabindex="-1" aria-hidden="true" aria-label="닫기"></button>
 			<div
+				use:modal={{ onClose: popDrill, initialFocus: 'h2', enabled: mobile }}
+				role="dialog"
+				aria-modal="true"
+				aria-label="지표 상세"
 				class="relative mt-auto flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg"
 			>
 				{@render header()}

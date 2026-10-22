@@ -29,8 +29,12 @@
 	}
 
 	function onKey(e: KeyboardEvent) {
-		if (e.key === 'Escape') sel = -1;
-		else if (e.key === 'Enter' && cell) open(cell);
+		if (e.key === 'Escape') {
+			if (sel >= 0) {
+				sel = -1;
+				e.preventDefault();
+			}
+		} else if (e.key === 'Enter' && cell) open(cell);
 		else if (e.key.startsWith('Arrow')) {
 			e.preventDefault();
 			sel = moveHeatCell(grid.cells, sel < 0 ? grid.cells.length - 1 : sel, e.key);

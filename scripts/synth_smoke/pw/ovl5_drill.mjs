@@ -1,0 +1,36 @@
+import { chromium } from '/home/ubuntu/projects/RunPulse/scripts/synth_smoke/pw/node_modules/playwright/index.mjs';
+const B = 'http://127.0.0.1:18205/v2';
+const b = await chromium.launch({executablePath:'/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome'});
+const errs=[]; let ok=true; const chk=(n,c)=>{console.log(c?'OK ':'NG ',n); if(!c) ok=false;};
+// 모바일
+let page = await (await b.newContext({ viewport:{width:375,height:812}, locale:'ko-KR' })).newPage();
+page.on('pageerror',e=>errs.push(e.message));
+await page.goto(B+'/today',{waitUntil:'networkidle'});
+await page.goto(B+'/library/metrics/ctl',{waitUntil:'networkidle'});
+await page.getByRole('button',{name:'계산 분해 보기'}).click(); await page.waitForTimeout(800);
+const dlg = page.locator('[role=dialog][aria-label="지표 상세"]');
+chk('mobile dialog 1', await dlg.count()===1);
+chk('mobile focus inside', await page.evaluate(()=>!!document.activeElement.closest('[role=dialog]')));
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+chk('esc closes (click-opened)', !page.url().includes('drill'));
+await page.goto(B+'/today?drill=ctl,atl',{waitUntil:'networkidle'}); await page.waitForTimeout(800);
+for(let i=0;i<14;i++) await page.keyboard.press('Tab');
+chk('mobile trap', await page.evaluate(()=>!!document.activeElement.closest('[role=dialog]')));
+chk('scroll lock', await page.evaluate(()=>document.body.style.overflow==='hidden'));
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+chk('esc pops one level', page.url().includes('drill=ctl') && !page.url().includes('atl'));
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+chk('esc closes', !page.url().includes('drill'));
+chk('lock released', await page.evaluate(()=>document.body.style.overflow!=='hidden'));
+// 데스크톱
+page = await (await b.newContext({ viewport:{width:1280,height:800}, locale:'ko-KR' })).newPage();
+page.on('pageerror',e=>errs.push(e.message));
+await page.goto(B+'/today',{waitUntil:'networkidle'});
+await page.goto(B+'/today?drill=ctl,atl',{waitUntil:'networkidle'}); await page.waitForTimeout(800);
+chk('desktop no lock', await page.evaluate(()=>document.body.style.overflow!=='hidden'));
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+chk('desktop esc pops one', page.url().includes('drill=ctl') && !page.url().includes('atl'));
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+chk('desktop esc closes', !page.url().includes('drill'));
+console.log('errs',errs);
+await b.close(); process.exit(ok&&!errs.length?0:1);
