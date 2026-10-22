@@ -1,6 +1,5 @@
 # DONE — 완료된 버그
 
-- **[BUG-RAW-PAYLOAD-LIST]** `upsert_payload` `isinstance` 체크를 `(dict, list)` 로 확장, 타입 선언도 `str | dict | list` 로 변경.
 - **[BUG-DASHBOARD-INCLUDE-WEEKLY]** `views_dashboard.py` `run_for_date(include_weekly=False)` 잘못된 파라미터 제거 → `run_for_date(conn, today)`.
 - **[BUG-WORKOUT-TYPE-COLUMN]** 앱 AI 코치 컨텍스트가 `workout_type_classified`를 `numeric_value`에서 읽어 항상 비던 버그 — `text_value`로 수정(`chat_context_builders.py` 2곳, `chat_context_rich.py` 3곳) + 회귀 테스트. 오토파일럿 P7-FIX-CHAT-WORKOUT-TYPE (2026-09-26).
 - **[AI-CHAT-TOOL-PROMPT]** `_TOOL_SYSTEM_TEXT`에 누락된 `get_training_summary`·`get_activity_laps`·`compare_workout_sets` 추가 + 모든 도구 이름 포함 검증 테스트. 오토파일럿 P7-FIX-CHAT-TOOL-PROMPT (2026-09-26).
@@ -10,3 +9,4 @@
 - **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running` 16건을 러닝으로 정규화(`_RUNNING_TYPES`, 2026-09-26) + 운영 DB 16건 `running` 정정 및 전 기간 `recompute_all` 완료(2026-10-10). 활동 632·645 등에 TRIMP·HRSS 생성 확인. 백업 `running.db.bak-20261009-pre-indoor`(커밋 금지).
 - **[GARMIN-TRAINING-STATUS-PARSER]** `training_status` 파서가 존재하지 않는 최상위 키를 읽던 결함 수정 — `mostRecentTrainingStatus.latestTrainingStatusData`의 primary 기기 레코드에서 읽고, 가민 자체 단위라 PMC 와 섞이지 않도록 `garmin_acute_load`/`garmin_chronic_load` 로 저장(2026-10-10). 과거 `training_status_day` payload 재파싱은 운영 DB 쓰기라 사용자 조치로 남김.
 - **[CRS-EVALUATE-MISSING]** `src.metrics.crs.evaluate(conn, target_date)` 복원(ADJ-22, 2026-10). 저장된 daily CRS(`is_primary=1`) 중 **정확히 그 날짜** 행만 읽는 읽기 전용 함수 — 행 없음·손상 JSON·유효하지 않은 level 은 `None`, DB 오류는 전파. `replanner`(오늘 기준)·`matcher_context` 호출부의 광범위 `except Exception` 제거. 재계획 CRS 경고(level≤1)·매처 `crs_at_session` 이 실제로 채워짐. 신선도(FRS-12·15~18 BOOST 보류)는 FRS 번들(S4) 범위로 남음.
+- **[AUDIT-V-CANONICAL]** v1 뷰의 `activity_summaries` 직접 쿼리 위험 — v1 뷰 backup 이동(S5-4, S4-33, 2026-10-22)으로 해소. 잔여 `src/api` 조회 2곳은 ID 존재 확인뿐(중복 집계 무관).
