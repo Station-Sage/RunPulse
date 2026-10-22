@@ -1,7 +1,7 @@
 import { getThreads, getEngine, getSuggestions } from '$lib/api/coach';
 import { getActivePlan } from '$lib/api/plan';
 import { getTodayCheckin, getRaceHub, getToday } from '$lib/api/today';
-import { ApiError } from '$lib/api/client';
+import { toResult, type Failure } from '$lib/loadFailure';
 import type { UnlockMap } from '$lib/unlock';
 import type { ThreadsListResponse, ActivePlan, CheckinRow, RaceHubGoal, CoachEngine, CoachChip } from '$lib/types';
 
@@ -11,17 +11,16 @@ export interface CoachPageData {
 	checkin: CheckinRow | null;
 	goal: RaceHubGoal | null;
 	errorMessage: string | null;
+	threadsFailure: Failure | null;
 	engine: CoachEngine | null;
 	suggestions: CoachChip[];
 	unlock: UnlockMap | null;
 }
 
-export async function load(): Promise<CoachPageData> {
+export async function load({ depends }: { depends: (k: string) => void }): Promise<CoachPageData> {
+	depends('app:coach-threads');
 	const [threadsResult, activePlan, checkin, hub, engine, suggested, today] = await Promise.all([
-		getThreads().catch((e: unknown) => {
-			const message = e instanceof ApiError ? e.message : '대화 목록을 불러올 수 없습니다.';
-			return { error: message };
-		}),
+		toResult(getThreads()),
 		getActivePlan().catch(() => null),
 		getTodayCheckin().catch(() => null),
 		getRaceHub().catch(() => null),
@@ -32,8 +31,9 @@ export async function load(): Promise<CoachPageData> {
 	const suggestions = suggested?.suggestions ?? [];
 	const unlock = today?.unlock ?? null;
 
-	if ('error' in threadsResult) {
-		return { result: null, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: threadsResult.error, engine, suggestions, unlock };
+	const base = { activePlan, checkin, goal: hub?.goal ?? null, engine, suggestions, unlock };
+	if (!threadsResult.ok) {
+		return { ...base, result: null, errorMessage: threadsResult.failure.detail ?? null, threadsFailure: threadsResult.failure };
 	}
-	return { result: threadsResult, activePlan, checkin, goal: hub?.goal ?? null, errorMessage: null, engine, suggestions, unlock };
+	return { ...base, result: threadsResult.data, errorMessage: null, threadsFailure: null };
 }

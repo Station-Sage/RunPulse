@@ -4,16 +4,26 @@ import { getActivePlan, getRestorablePlans, type RestorablePlan } from '$lib/api
 import { getToday, getRaceHub } from '$lib/api/today';
 import type { ActivePlan, RaceHubGoal } from '$lib/types';
 import { base } from '$app/paths';
+import { classifyFailure, nullOn404, type Failure } from '$lib/loadFailure';
 
 export interface PlanGatewayData {
 	ctlCurrent: number | null;
 	goal: RaceHubGoal | null;
 	restorable: RestorablePlan[];
 	activeId: number | null;
+	planFailure: Failure | null;
 }
 
-export async function load({ url }): Promise<PlanGatewayData> {
-	const plan: ActivePlan | null = await getActivePlan().catch(() => null);
+export async function load({ url, depends }): Promise<PlanGatewayData> {
+	depends('app:plan-active');
+	// 404(활성 플랜 없음)만 정상 빈 상태. 네트워크·서버 실패는 구분해 보여준다(ERR-2).
+	let plan: ActivePlan | null = null;
+	let planFailure: Failure | null = null;
+	try {
+		plan = await nullOn404(getActivePlan());
+	} catch (e) {
+		planFailure = classifyFailure(e);
+	}
 	const past = url.searchParams.has('past');
 	if (plan != null && !past) {
 		throw redirect(302, `${base}/coach/plan/${plan.goal.id}`);
@@ -27,6 +37,7 @@ export async function load({ url }): Promise<PlanGatewayData> {
 		ctlCurrent: today?.status.training_status.ctl ?? null,
 		goal: hub?.goal ?? null,
 		restorable: rest.plans,
-		activeId: plan?.goal.id ?? null
+		activeId: plan?.goal.id ?? null,
+		planFailure
 	};
 }

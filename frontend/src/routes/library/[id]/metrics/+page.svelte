@@ -3,6 +3,7 @@
 	// 행을 누르면 계산 분해(DrillPanel, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
 	import type { MetricsTabPageData } from './+page';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
+	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	import { openDrill } from '$lib/drillStack';
 	import { providerLabel } from '$lib/provider';
 	import { formatMetricValue, metricUnit } from '$lib/metrics';
@@ -29,11 +30,8 @@
 
 <DrillPanel scopeType="activity" scopeId={String(data.activityId)}>
 
-{#if data.errorMessage && total === 0}
-	<div class="px-4 py-8 text-center">
-		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
-		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
-	</div>
+{#if data.failure && total === 0}
+	<LoadFailure failure={data.failure} retryKey={`app:activity:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="← 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
 {:else if total === 0}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">메트릭 데이터 수집 중</p>

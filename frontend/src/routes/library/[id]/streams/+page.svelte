@@ -3,6 +3,7 @@
 	// 체크박스로 표시할 스트림 토글; 해당 컬럼이 전부 null이면 체크박스 숨김.
 	import type { StreamsPageData } from './+page';
 	import Sparkline from '$lib/components/Sparkline.svelte';
+	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
 	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, isTrustedBasis, streamSeconds } from '$lib/streamAxis';
@@ -135,11 +136,8 @@
 <svelte:head><title>스트림 · RunPulse</title></svelte:head>
 
 <!-- 본문 -->
-{#if data.errorMessage && data.streams.length === 0}
-	<div class="px-4 py-8 text-center">
-		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
-		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
-	</div>
+{#if data.failure && data.streams.length === 0}
+	<LoadFailure failure={data.failure} retryKey={`app:activity-streams:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="← 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
 {:else if data.streams.length === 0}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">스트림 데이터 없음</p>

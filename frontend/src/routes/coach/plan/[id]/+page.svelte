@@ -7,7 +7,8 @@
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate, invalidateAll } from '$app/navigation';
+	import ErrorState from '$lib/components/ErrorState.svelte';
 	import PlanWeeksTable from '$lib/components/plan/PlanWeeksTable.svelte';
 	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import UserAdjustmentLine from '$lib/components/plan/UserAdjustmentLine.svelte';
@@ -92,8 +93,12 @@
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.plan}
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">
-			<p class="text-fg-secondary">플랜을 불러올 수 없습니다</p>
-			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
+			{#if data.planFailure && data.planFailure.kind !== 'not_found'}
+				<ErrorState failure={data.planFailure} onRetry={() => invalidate('app:plan-active')} />
+			{:else}
+				<p class="text-fg-secondary">플랜을 불러올 수 없습니다</p>
+				<p class="text-xs text-fg-muted">{data.errorMessage}</p>
+			{/if}
 			<a href="{base}/coach" class="mt-2 text-sm text-semantic-amber hover:underline">← 코치 홈</a>
 		</div>
 	{:else if data.plan}
@@ -224,11 +229,15 @@
 			{/if}
 		</div>
 
-		{#if data.weeks}
+		{#if data.weeksFailure}
+			<div class="px-4 py-2"><ErrorState compact message="주차별 계획을 불러오지 못했어요" failure={data.weeksFailure} onRetry={() => invalidate('app:plan-active')} /></div>
+		{:else if data.weeks}
 			<PlanWeeksTable weeks={data.weeks.weeks} currentWeek={data.plan.workouts[0]?.date ? mondayOf(data.plan.workouts[0].date) : ''} />
 		{/if}
 
-		{#if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
+		{#if data.adaptationFailure}
+			<div class="px-4 py-2"><ErrorState compact message="적응 지표를 불러오지 못했어요" failure={data.adaptationFailure} onRetry={() => invalidate('app:plan-active')} /></div>
+		{:else if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
 			<div class="border-b border-border-subtle px-4 py-3">
 				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</p>
 				<ul class="flex flex-col gap-2 text-sm">

@@ -4,10 +4,11 @@
 	import { base } from '$app/paths';
 	import { tick } from 'svelte';
 	import { inlineConfirm } from '$lib/overlay';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, invalidate, invalidateAll } from '$app/navigation';
 	import { planNewHref, roadmapLabel } from '$lib/planPrefill';
 	import { restorePlan } from '$lib/api/plan';
 	import { ApiError } from '$lib/api/client';
+	import ErrorState from '$lib/components/ErrorState.svelte';
 
 	let { data }: { data: PlanGatewayData } = $props();
 	let confirmId = $state<number | null>(null);
@@ -54,12 +55,27 @@
 		{/if}
 	</div>
 
-	<a
-		href={data.goal ? planNewHref(base, data.goal) : `${base}/coach/plan/new`}
-		class="rounded-lg bg-fg-primary px-6 py-3 text-sm font-medium text-surface-1"
-	>
-		{data.goal ? roadmapLabel(data.goal.days_left) + ' →' : '새 프로그램 만들기 →'}
-	</a>
+	{#if data.planFailure}
+		<div class="flex w-full max-w-sm flex-col gap-3 text-left">
+			<ErrorState failure={data.planFailure} onRetry={() => invalidate('app:plan-active')} />
+			<span
+				aria-disabled="true"
+				class="rounded-lg bg-fg-primary px-6 py-3 text-center text-sm font-medium text-surface-1 opacity-40"
+			>
+				새 프로그램 만들기 →
+			</span>
+			<p class="text-center text-xs text-fg-muted">
+				기존 플랜 확인이 끝나야 새로 만들 수 있어요. 활성 플랜과 겹칠 수 있어서요.
+			</p>
+		</div>
+	{:else}
+		<a
+			href={data.goal ? planNewHref(base, data.goal) : `${base}/coach/plan/new`}
+			class="rounded-lg bg-fg-primary px-6 py-3 text-sm font-medium text-surface-1"
+		>
+			{data.goal ? roadmapLabel(data.goal.days_left) + ' →' : '새 프로그램 만들기 →'}
+		</a>
+	{/if}
 </div>
 
 {#if data.restorable.length > 0}

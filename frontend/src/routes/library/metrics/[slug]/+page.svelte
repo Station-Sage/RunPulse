@@ -6,6 +6,7 @@
 	import MetricTerm from '$lib/components/MetricTerm.svelte';
 	import MetricAbout from '$lib/components/MetricAbout.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
+	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
 	import { displayUnit, formatMetric } from '$lib/format';
 	import { freshnessBadgeText, freshnessReasonTexts, missingInputsText } from '$lib/freshness';
@@ -116,11 +117,8 @@
 	{/if}
 </div>
 
-{#if data.errorMessage && !data.trend}
-	<div class="px-4 py-8 text-center">
-		<p class="text-sm text-fg-secondary">{data.errorMessage}</p>
-		<a href="{base}/library/metrics" class="mt-2 block text-xs text-fg-muted underline">← 메트릭 브라우저로</a>
-	</div>
+{#if data.failure && !data.trend}
+	<LoadFailure failure={data.failure} retryKey={`app:metric:${data.slug}`} backHref="{base}/library/metrics" backLabel="← 메트릭 브라우저로" notFoundText="없는 메트릭이에요" />
 {:else if data.trend}
 	{#if lockedNotice}
 		<div class="mx-4 mt-3 rounded-lg border border-dashed border-border-subtle px-3 py-2" data-testid="metric-locked">

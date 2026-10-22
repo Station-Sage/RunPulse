@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ErrorState from '$lib/components/ErrorState.svelte';
+	import { classifyFailure, type Failure } from '$lib/loadFailure';
 	// 03c-library.md 3-B / 20-library-activities §2-3 — 활동 목록. 필터(URL 동기화)·월 헤더·주 헤더(12주 평균 눈금)·
 	// 연-월 스크러버·무한 스크롤. 정렬이 최신순이 아니면 주 그룹 없이 평면 목록.
 	import type { ActivitiesPageData } from './+page';
@@ -7,7 +9,6 @@
 	import { tick, untrack } from 'svelte';
 	import { presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
 	import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
-	import { ApiError } from '$lib/api/client';
 	import { formatDuration } from '$lib/format';
 	import { weekGroups } from '$lib/activityList';
 	import { toApiFilters, jumpLoadCount, weekMap, shiftMonth, PER_PAGE } from '$lib/activityListQuery';
@@ -27,6 +28,7 @@
 	let facets = $state<ActivityFacets | null>(seed.facets);
 	let summary = $state<ActivityListSummary | null>(seed.summary);
 	let errorMessage = $state(seed.errorMessage);
+	let failure = $state<Failure | null>(seed.failure);
 	let period = $state<{ from?: string; to?: string }>({ from: seed.filters.from, to: seed.filters.to });
 	let preset = $state<PeriodPreset | null>(seed.filters.preset);
 	let month = $state(seed.filters.month);
@@ -63,6 +65,7 @@
 		const seq = ++reqSeq;
 		loading = true;
 		errorMessage = null;
+		failure = null;
 		const api = toApiFilters(cur());
 		try {
 			const [res, f, s] = await Promise.all([
@@ -78,7 +81,10 @@
 			summary = s;
 			return true;
 		} catch (e) {
-			if (seq === reqSeq) errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
+			if (seq === reqSeq) {
+				failure = classifyFailure(e);
+				errorMessage = failure.detail ?? null;
+			}
 			return false;
 		} finally {
 			if (seq === reqSeq) loading = false;
@@ -103,7 +109,7 @@
 			total = res.total;
 			hasMore = res.has_more;
 		} catch (e) {
-			if (seq === reqSeq) errorMessage = e instanceof ApiError ? e.message : '목록을 불러올 수 없습니다.';
+			if (seq === reqSeq) errorMessage = classifyFailure(e).detail ?? '목록을 불러올 수 없습니다.';
 		} finally {
 			if (seq === reqSeq) loading = false;
 		}
@@ -198,9 +204,8 @@
 	{/if}
 
 	{#if errorMessage && activities.length === 0}
-		<div class="flex flex-col items-center gap-2 px-4 py-16 text-center">
-			<p class="text-lg text-fg-secondary">활동을 불러올 수 없습니다</p>
-			<p class="text-xs text-fg-muted">{errorMessage}</p>
+		<div class="px-4 py-8">
+			<ErrorState message="활동 목록을 불러오지 못했어요" failure={failure ?? undefined} detail={failure ? undefined : errorMessage ?? undefined} onRetry={() => reload()} />
 		</div>
 	{:else if activities.length === 0 && !loading}
 		<div class="flex flex-col items-center gap-2 px-4 py-16 text-center">
