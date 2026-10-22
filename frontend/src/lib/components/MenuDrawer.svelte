@@ -6,6 +6,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import DevUserSwitch from '$lib/components/DevUserSwitch.svelte';
 	import { base } from '$app/paths';
+	import { modal } from '$lib/overlay';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
 	import { EXPORT_LABEL, EXPORT_PATH, DATA_LINKS, QUICK_LINKS } from '$lib/menuLinks';
@@ -23,8 +24,20 @@
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="메뉴">
-		<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
+	<div
+		class="fixed inset-0 z-50 flex"
+		role="dialog"
+		aria-modal="true"
+		aria-label="메뉴"
+		use:modal={{ onClose }}
+	>
+		<button
+			class="absolute inset-0 bg-black/40"
+			onclick={onClose}
+			tabindex="-1"
+			aria-hidden="true"
+			aria-label="닫기"
+		></button>
 
 		<div
 			class="relative flex h-full w-72 max-w-[85vw] flex-col overflow-y-auto bg-surface-1 pt-[env(safe-area-inset-top)] shadow-lg"
