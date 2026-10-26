@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
 	import type { TodayPageData } from './+page';
+	import { toQuickInputExisting } from '$lib/checkinView';
 	import { goto, invalidate } from '$app/navigation';
 	import ReadinessGauge from '$lib/components/ReadinessGauge.svelte';
 	import TodayHero from '$lib/components/TodayHero.svelte';
@@ -124,9 +125,7 @@
 				<ContextChips onChange={() => { swrEvict('app:today'); void invalidate('app:today'); }} />
 				<QuickInput
 					compact={true}
-					existing={checkin
-						? { fatigue: checkin.fatigue ?? undefined, pain: checkin.pain ?? undefined, note: checkin.note ?? undefined, timestamp: checkin.created_at }
-						: undefined}
+					existing={toQuickInputExisting(checkin)}
 					saving={savingCheckin}
 					dismissDate={todayDate}
 					onSave={handleSaveCheckin}

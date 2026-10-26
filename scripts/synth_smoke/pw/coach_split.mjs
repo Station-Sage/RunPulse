@@ -1,0 +1,18 @@
+import { chromium } from '/home/ubuntu/projects/RunPulse/scripts/synth_smoke/pw/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ executablePath: '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome' });
+const ctx = await b.newContext({ viewport: { width: 375, height: 800 } });
+const page = await ctx.newPage();
+const errs = []; page.on('pageerror', (e) => errs.push(String(e)));
+await page.goto('http://127.0.0.1:18205/v2/coach', { waitUntil: 'networkidle' });
+console.log('chips', await page.getByTestId('home-chip').count(), 'small', await page.getByTestId('coach-small-data').count());
+console.log('plan section', await page.locator('text=플랜').count(), 'checkin', await page.locator('text=입력한 컨디션').count());
+await page.getByRole('button', { name: '+ 새 대화 시작' }).click();
+console.log('textarea', await page.locator('textarea').count(), 'chips hidden', await page.getByTestId('home-chip').count());
+await page.locator('textarea').fill('안녕');
+console.log('send enabled', await page.getByRole('button', { name: '전송', exact: true }).isEnabled());
+await page.getByRole('button', { name: '취소' }).click();
+console.log('back to button', await page.getByRole('button', { name: '+ 새 대화 시작' }).count());
+await page.getByRole('button', { name: '+ 새 대화 시작' }).click();
+console.log('textarea cleared', await page.locator('textarea').inputValue() === '');
+console.log('errs', errs);
+await b.close();

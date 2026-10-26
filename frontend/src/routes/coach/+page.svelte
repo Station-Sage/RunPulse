@@ -2,16 +2,16 @@
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
 	import { createThread, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
-	import { postCheckin } from '$lib/api/today';
 	import { ApiError } from '$lib/api/client';
-	import { weekProgressLabel } from '$lib/format';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import type { ChatThread, PainLevel, CheckinRow, CoachEngine, CoachChip } from '$lib/types';
-	import QuickInput from '$lib/components/QuickInput.svelte';
+	import type { ChatThread, CoachEngine, CoachChip } from '$lib/types';
 	import DegradedBanner from '$lib/components/coach/DegradedBanner.svelte';
 	import ThreadList from '$lib/components/coach/ThreadList.svelte';
-	import EngineLine from '$lib/components/coach/EngineLine.svelte';
+	import NewThreadForm from '$lib/components/coach/NewThreadForm.svelte';
+	import CoachStartChips from '$lib/components/coach/CoachStartChips.svelte';
+	import CoachPlanCard from '$lib/components/coach/CoachPlanCard.svelte';
+	import CoachCheckin from '$lib/components/coach/CoachCheckin.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
 	import { needsConsent } from '$lib/coachEngine';
 	import { inputText as chipLabel, type CoachInput } from '$lib/coachSuggestions';
@@ -24,9 +24,7 @@
 	const titles = $derived(threadTitles(threads));
 	let errorMessage = $state<string | null>(null);
 
-	// 새 대화 입력 상태
 	let isCreating = $state(false);
-	let newInput = $state('');
 	let sending = $state(false);
 	let engine = $state<CoachEngine | null>(data.engine);
 	let scopeOpen = $state(false);
@@ -52,31 +50,6 @@
 	const todos = smallDataTodos(data.unlock);
 	const limitNotice = evidenceLimitNotice(data.unlock);
 
-	let checkin = $state<CheckinRow | null>(data.checkin);
-	let savingCheckin = $state(false);
-	let checkinError = $state<string | null>(null);
-	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
-		savingCheckin = true;
-		checkinError = null;
-		try {
-			checkin = await postCheckin(value);
-		} catch (e) {
-			checkinError = e instanceof Error ? e.message : '저장에 실패했습니다.';
-		} finally {
-			savingCheckin = false;
-		}
-	}
-
-	function openNew() {
-		newInput = '';
-		isCreating = true;
-	}
-
-	function submitNew() {
-		const msg = newInput.trim();
-		if (msg) start(msg);
-	}
-
 	// 칩 탭·자유 입력 모두 한 번에 스레드를 만들고 대화 화면으로 이동한다(design H3).
 	let retry: { key: string; id: string } | null = null;
 
@@ -100,171 +73,40 @@
 			sending = false;
 		}
 	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		// 한글 IME 조합 중 Enter는 글자 확정용 — 전송하면 마지막 글자가 중복·누락된다.
-		if (e.isComposing || e.keyCode === 229) return;
-		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			submitNew();
-		}
-	}
 </script>
 
 <svelte:head><title>Coach · RunPulse</title></svelte:head>
 
 <div class="flex flex-col">
 	<DegradedBanner {engine} />
-	<!-- 최근 대화 섹션 -->
 	<div class="border-b border-border-subtle px-4 py-3">
 		<p class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</p>
 	</div>
 
 	<ThreadList {threads} {titles} failure={data.threadsFailure} />
 
-	<!-- 새 대화 입력 폼 (토글) -->
 	{#if isCreating}
-		<div class="border-t border-border-subtle px-4 py-3">
-			<textarea
-				bind:value={newInput}
-				onkeydown={handleKeydown}
-				placeholder="무엇이든 물어보세요…"
-				rows={3}
-				disabled={sending}
-				class="w-full resize-none rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50"
-			></textarea>
-			<div class="mt-1">
-				<EngineLine {engine} onOpenScope={() => (scopeOpen = true)} />
-			</div>
-			<div class="mt-2 flex justify-end gap-2">
-				<button
-					type="button"
-					onclick={() => {
-						isCreating = false;
-						newInput = '';
-					}}
-					disabled={sending}
-					class="rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-secondary disabled:opacity-50"
-				>
-					취소
-				</button>
-				<button
-					type="button"
-					onclick={submitNew}
-					disabled={sending || !newInput.trim()}
-					class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
-				>
-					{sending ? '전송 중…' : '전송'}
-				</button>
-			</div>
-			{#if errorMessage}
-				<p class="mt-1 text-xs text-semantic-red">{errorMessage}</p>
-			{/if}
-		</div>
+		<NewThreadForm
+			{engine}
+			{sending}
+			{errorMessage}
+			onSubmit={start}
+			onCancel={() => (isCreating = false)}
+			onOpenScope={() => (scopeOpen = true)}
+		/>
 	{:else}
-		<!-- + 새 대화 시작 버튼 -->
 		<div class="flex justify-center px-4 py-4">
 			<button
 				type="button"
-				onclick={() => openNew()}
+				onclick={() => (isCreating = true)}
 				class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2.5 text-sm font-medium text-fg-primary"
 			>
 				+ 새 대화 시작
 			</button>
 		</div>
-	{/if}
-
-	<!-- 지금 답할 수 있는 질문 (서버가 데이터 있는 칩만 제공) -->
-	{#if !isCreating}
-		{#if todos.length > 0}
-			<div class="border-t border-border-subtle px-4 py-3" data-testid="coach-small-data">
-				<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">데이터 모이는 동안 할 일</p>
-				{#if limitNotice}<p class="mb-2 text-xs text-fg-muted">{limitNotice}</p>{/if}
-				<div class="flex flex-wrap gap-2">
-					{#each todos as todo (todo.id)}
-						{#if todo.kind === 'chat'}
-							<button type="button" onclick={() => start(todo.target)} disabled={sending} class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50">{todo.label}</button>
-						{:else}
-							<a href="{base}{todo.target}" class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3">{todo.label}</a>
-						{/if}
-					{/each}
-				</div>
-				{#if sending}
-					<p class="mt-2 text-xs text-fg-muted">답변을 준비하고 있어요…</p>
-				{:else if errorMessage}
-					<p class="mt-2 text-xs text-semantic-red">{errorMessage}</p>
-				{/if}
-			</div>
-		{:else if chips.length > 0}
-			<div class="border-t border-border-subtle px-4 py-3">
-				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">바로 물어보기</p>
-				<div class="flex flex-wrap gap-2">
-					{#each chips as chip (chip.chip_id)}
-						<button
-							type="button"
-							data-testid="home-chip"
-							onclick={() => start(chip)}
-							disabled={sending}
-							class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50"
-						>
-							{chip.text}
-						</button>
-					{/each}
-				</div>
-				{#if sending}
-					<p class="mt-2 text-xs text-fg-muted">답변을 준비하고 있어요…</p>
-				{:else if errorMessage}
-					<p class="mt-2 text-xs text-semantic-red">{errorMessage}</p>
-				{/if}
-			</div>
-		{/if}
-
-		<!-- 플랜 섹션 -->
-		<div class="border-t border-border-subtle px-4 py-3">
-			<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">플랜</p>
-			{#if data.activePlan}
-				<a
-					href="{base}/coach/plan/{data.activePlan.goal.id}"
-					class="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 hover:bg-surface-3"
-				>
-					<div class="min-w-0">
-						<p class="truncate text-sm font-medium">{data.activePlan.goal.name}</p>
-						<p class="text-xs text-fg-muted">
-							진행 중: {weekProgressLabel(data.activePlan.week_index, data.activePlan.goal.plan_weeks)}
-						</p>
-					</div>
-					<span class="ml-2 shrink-0 text-fg-muted">›</span>
-				</a>
-			{:else}
-				<a
-					href="{base}/coach/plan/new"
-					class="text-sm text-semantic-amber hover:underline"
-				>
-					새 프로그램 만들기 →
-				</a>
-			{/if}
-		</div>
-
-		<!-- QuickInput 체크인 섹션 -->
-		<div class="flex flex-col gap-1 border-t border-border-subtle px-4 py-3">
-			<QuickInput
-				compact
-				existing={checkin
-					? {
-							fatigue: checkin.fatigue ?? undefined,
-							pain: checkin.pain ?? undefined,
-							note: checkin.note ?? undefined,
-							timestamp: checkin.created_at
-						}
-					: undefined}
-				saving={savingCheckin}
-				onSave={handleSaveCheckin}
-			/>
-			<p class="text-xs text-fg-muted">입력한 컨디션은 오늘 훈련 답변에 반영됩니다.</p>
-			{#if checkinError}
-				<p class="text-xs text-semantic-red">{checkinError}</p>
-			{/if}
-		</div>
+		<CoachStartChips {todos} {chips} {limitNotice} {sending} {errorMessage} onStart={start} />
+		<CoachPlanCard activePlan={data.activePlan} />
+		<CoachCheckin initial={data.checkin} />
 	{/if}
 </div>
 
