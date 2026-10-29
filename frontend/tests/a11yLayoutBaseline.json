@@ -38,9 +38,6 @@
 	"b": {
 		"src/lib/components/data/RecomputeSummary.svelte": 1
 	},
-	"e": {
-		"src/routes/+layout.svelte": 1
-	},
 	"d": {
 		"src/routes/today/+page.svelte": 5
 	}

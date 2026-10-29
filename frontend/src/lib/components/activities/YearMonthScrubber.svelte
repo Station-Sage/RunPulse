@@ -47,7 +47,7 @@
 {#if months.length > 1}
 	<div
 		bind:this={strip}
-		class="fixed bottom-20 right-0 top-40 z-20 w-5 touch-none select-none"
+		class="fixed bottom-[var(--shell-bottom)] right-0 top-40 z-20 w-5 touch-none select-none"
 		role="slider"
 		aria-label="연월 이동"
 		aria-valuetext={current}

@@ -74,3 +74,13 @@ body {
 .num {
 	font-variant-numeric: tabular-nums;
 }
+
+/* 하단 탭 높이 + safe-area. lg 에서는 하단 탭이 없어 0. main 패딩·Toast·스크러버가 이 값만 참조한다. */
+:root {
+	--shell-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 64rem) {
+	:root {
+		--shell-bottom: 0px;
+	}
+}

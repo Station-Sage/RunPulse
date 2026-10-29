@@ -27,7 +27,7 @@
 
 {#if open}
 	<div
-		class="fixed inset-x-4 bottom-20 z-[70] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-lg bg-surface-3 px-4 py-3 text-sm text-fg-primary shadow-lg lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
+		class="fixed inset-x-4 bottom-[calc(var(--shell-bottom)+1.5rem)] z-[70] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-lg bg-surface-3 px-4 py-3 text-sm text-fg-primary shadow-lg lg:bottom-6 lg:left-auto lg:right-6 lg:mx-0"
 	>
 		<span>{message}</span>
 		{#if onUndo}

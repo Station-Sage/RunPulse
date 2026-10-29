@@ -155,12 +155,12 @@
 		</div>
 
 		<!-- 데스크톱: 비모달 사이드 패널 -->
-		<div class="hidden lg:flex lg:h-full lg:flex-col lg:border-l lg:border-border-subtle lg:bg-surface-1">
+		<aside aria-label="지표 상세" class="hidden lg:flex lg:h-full lg:flex-col lg:border-l lg:border-border-subtle lg:bg-surface-1">
 			{@render header()}
 			<div class="flex-1 overflow-y-auto">
 				{@render body()}
 			</div>
-		</div>
+		</aside>
 	{/if}
 </div>
 

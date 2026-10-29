@@ -8,6 +8,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
+	import ShellNav from '$lib/components/shell/ShellNav.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
@@ -20,16 +21,14 @@
 	let menuOpen = $state(false);
 	if (isDemoActive()) demoActive.set(true);
 
-	const tabs = [
-		{ href: `${base}/today`, label: 'Today', match: '/today', icon: 'today' as const },
-		{ href: `${base}/library`, label: 'Library', match: '/library', icon: 'library' as const },
-		{ href: `${base}/coach`, label: 'Coach', match: '/coach', icon: 'coach' as const }
-	];
-
 	const isLanding = $derived(page.url.pathname.startsWith(`${base}/landing`));
-	const isActive = (match: string) => page.url.pathname.startsWith(`${base}${match}`);
 </script>
 
+<a
+	href="#main"
+	class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[90] focus:rounded focus:bg-surface-3 focus:px-3 focus:py-2 focus:text-sm focus:text-fg-primary"
+	>본문 바로가기</a
+>
 <LiveRegion />
 <ProgressBar />
 <UpdateNotice />
@@ -56,26 +55,16 @@
 
 	<MenuDrawer open={menuOpen} onClose={() => (menuOpen = false)} />
 
-	<main class="mx-auto w-full max-w-3xl lg:max-w-6xl flex-1 pb-20 lg:pb-6">
+	<ShellNav variant="side" />
+
+	<main
+		id="main"
+		tabindex="-1"
+		class="mx-auto w-full max-w-3xl flex-1 pb-[calc(var(--shell-bottom)+1.5rem)] outline-none lg:max-w-6xl"
+	>
 		{@render children()}
 	</main>
 
-	<nav
-		aria-label="주 메뉴"
-		class="fixed inset-x-0 bottom-0 border-t border-border-subtle bg-surface-2 pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-52 lg:border-r lg:border-t-0 lg:pb-0 lg:pt-16"
-	>
-		<div class="mx-auto flex w-full max-w-3xl lg:max-w-none lg:flex-col lg:gap-1 lg:px-2">
-			{#each tabs as tab (tab.href)}
-				<a
-					href={tab.href}
-					aria-current={isActive(tab.match) ? 'page' : undefined}
-					class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] lg:flex-none lg:flex-row lg:gap-3 lg:rounded-lg lg:px-3 lg:py-2.5 lg:text-sm {isActive(tab.match) ? 'text-fg-primary lg:bg-surface-3' : 'text-fg-muted lg:hover:bg-surface-3'}"
-				>
-					<Icon name={tab.icon} />
-					{tab.label}
-				</a>
-			{/each}
-		</div>
-	</nav>
+	<ShellNav variant="bottom" />
 </div>
 {/if}
