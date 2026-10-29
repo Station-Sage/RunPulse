@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-D — 새 프로그램 생성: 거리/날짜/목표 입력.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -74,7 +75,7 @@
 	}
 </script>
 
-<svelte:head><title>새 플랜 · RunPulse</title></svelte:head>
+<PageHead title="새 플랜" heading={null} />
 
 <div class="flex flex-col">
 	<div class="border-b border-border-subtle px-4 py-3">

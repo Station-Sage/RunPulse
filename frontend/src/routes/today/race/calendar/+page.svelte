@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 대회 캘린더 — 확인 필요 / 다가오는 / 지난 / 취소됨 구역과 대회 추가·상세·플랜 반영 시트 (RC-d).
 	import { base } from '$app/paths';
 	import { invalidate } from '$app/navigation';
@@ -49,7 +50,7 @@
 <div class="space-y-4 p-4">
 	<header class="flex items-center justify-between gap-2">
 		<a href="{base}/today/race" class="flex min-h-11 min-w-11 items-center text-fg-secondary" aria-label="레이스 허브로">‹</a>
-		<h1 class="flex-1 text-lg font-semibold text-fg-primary">대회 캘린더</h1>
+		<PageHead title="대회 캘린더" class="flex-1 text-lg font-semibold text-fg-primary" />
 		<button type="button" class="min-h-11 rounded-lg bg-semantic-teal px-3 text-sm text-fg-on-accent" onclick={() => (sheet = { kind: 'entry', race: null })}>대회 추가</button>
 	</header>
 

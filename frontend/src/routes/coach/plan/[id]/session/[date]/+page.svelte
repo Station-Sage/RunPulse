@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-G — 일일 세션 상세.
 	import type { SessionDetailPageData } from './+page';
 	import { saveSessionNote } from '$lib/api/plan';
@@ -38,7 +39,7 @@
 	}
 </script>
 
-<svelte:head><title>세션 상세 · RunPulse</title></svelte:head>
+<PageHead title="세션 상세" heading={null} />
 
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.session}

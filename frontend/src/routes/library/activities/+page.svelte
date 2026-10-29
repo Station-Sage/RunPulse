@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
 	import { classifyFailure, type Failure } from '$lib/loadFailure';
 	// 03c-library.md 3-B / 20-library-activities §2-3 — 활동 목록. 필터(URL 동기화)·월 헤더·주 헤더(12주 평균 눈금)·
@@ -183,7 +184,7 @@
 	};
 </script>
 
-<svelte:head><title>활동 목록 · RunPulse</title></svelte:head>
+<PageHead title="활동 목록" heading={null} />
 <svelte:window onscroll={onScroll} />
 
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 03e-coach.md 5-E — 프로그램 비교: 템플릿 카드 3개, 선택 시 플랜 생성.
 	import { goto } from '$app/navigation';
@@ -59,7 +60,7 @@
 	}
 </script>
 
-<svelte:head><title>플랜 비교 · RunPulse</title></svelte:head>
+<PageHead title="플랜 비교" heading={null} />
 
 <div class="flex flex-col">
 	<div class="border-b border-border-subtle px-4 py-3">

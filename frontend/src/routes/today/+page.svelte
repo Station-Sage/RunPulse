@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
 	import type { TodayPageData } from './+page';
@@ -87,7 +88,7 @@
 	});
 </script>
 
-<svelte:head><title>Today · RunPulse</title></svelte:head>
+<PageHead title="Today" heading={null} />
 
 {#if !data.today}
 	{#if data.errorKind === 'failed'}

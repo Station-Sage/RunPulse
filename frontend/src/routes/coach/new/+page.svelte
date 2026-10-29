@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 활동에서 시작하는 새 대화 — 근거 카드 + 유형별 추천 질문 3개 + 자유 입력(20 design §코치에게 묻기).
 	import type { CoachNewPageData } from './+page';
@@ -65,7 +66,7 @@
 	}
 </script>
 
-<svelte:head><title>코치에게 묻기 · RunPulse</title></svelte:head>
+<PageHead title="코치에게 묻기" heading={null} />
 
 <div class="flex min-h-[calc(100dvh-8rem)] flex-col">
 	<DegradedBanner {engine} />

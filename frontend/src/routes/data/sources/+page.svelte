@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import type { DataSourcesPageData } from './+page';
 	import SourceCard from '$lib/components/data/SourceCard.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
@@ -7,7 +8,7 @@
 	let { data }: { data: DataSourcesPageData } = $props();
 </script>
 
-<svelte:head><title>소스 · RunPulse</title></svelte:head>
+<PageHead title="소스" heading={null} />
 
 <h1 class="sr-only">소스</h1>
 

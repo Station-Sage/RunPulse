@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import type { DataHomeData } from './+page';
 	import { base } from '$app/paths';
 	import StatTile from '$lib/components/data/StatTile.svelte';
@@ -15,7 +16,7 @@
 	);
 </script>
 
-<svelte:head><title>데이터 · RunPulse</title></svelte:head>
+<PageHead title="데이터" heading={null} />
 
 <h1 class="sr-only">데이터</h1>
 

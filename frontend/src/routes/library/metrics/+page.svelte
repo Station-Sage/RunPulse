@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-E — 메트릭 브라우저. daily-scope 메트릭 카테고리별 그리드.
 	// P3 Provider Transparency: 카드 Provider 배지 + [모든 Provider] 칩 필터.
 	import type { MetricsBrowserPageData } from './+page';
@@ -167,7 +168,7 @@
 	</div>
 {/snippet}
 
-<svelte:head><title>메트릭 브라우저 · RunPulse</title></svelte:head>
+<PageHead title="메트릭 브라우저" heading={null} />
 
 <!-- 헤더 -->
 <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">

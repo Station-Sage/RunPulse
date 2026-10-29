@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import type { ProfilePageData } from './+page';
 	import type { ProfileRow } from '$lib/api/data';
 	import BaselineRow from '$lib/components/data/BaselineRow.svelte';
@@ -10,7 +11,7 @@
 	const rows = $derived(saved ?? data.rows);
 </script>
 
-<svelte:head><title>러너 기준값 · RunPulse</title></svelte:head>
+<PageHead title="러너 기준값" heading={null} />
 
 <h1 class="sr-only">러너 기준값</h1>
 

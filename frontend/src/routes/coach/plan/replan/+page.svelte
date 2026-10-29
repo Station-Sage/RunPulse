@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 남은 일정 다시 맞추기 — 미리보기 → 적용 → 되돌리기 (DESIGN-PLAN-A6-REPLAN-UI).
 	import { onMount } from 'svelte';
@@ -109,7 +110,7 @@
 
 <div class="mx-auto max-w-xl space-y-4 p-4 pb-48 lg:pb-32">
 	<a href={href.plan} class="inline-flex min-h-11 items-center text-xs text-fg-secondary">← 계획</a>
-	<h1 class="text-lg font-semibold">남은 일정 다시 맞추기</h1>
+	<PageHead title="남은 일정 다시 맞추기" class="text-lg font-semibold" />
 
 	{#if stage === 'applied' && applied}
 		<div class="space-y-3 rounded-lg bg-surface-2 p-3 text-sm">

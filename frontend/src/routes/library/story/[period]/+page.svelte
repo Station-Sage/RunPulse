@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// S12 — 훈련 이야기(월·주). 문단·칩·직전 기간 비교·강도 분포·대표 세션·위험 최고·마일스톤.
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
@@ -33,6 +34,8 @@
 	);
 	const sign = (n: number) => (n > 0 ? '+' : '');
 </script>
+
+<PageHead title={`${s.period.label} 훈련 이야기`} headingHidden />
 
 <div class="mx-auto flex max-w-2xl flex-col gap-5 p-4">
 	<header class="flex flex-col gap-2">

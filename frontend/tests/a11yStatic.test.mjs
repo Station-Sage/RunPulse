@@ -66,3 +66,43 @@ test('colorLiterals: 대표 위반을 잡고 토큰은 통과', () => {
 	assert.equal(colorLiterals('<p class="bg-scrim text-fg-on-accent" style="stroke: var(--color-chart-ctl)">').length, 0);
 	assert.equal(colorLiterals('// #ef4444 주석').length, 0);
 });
+
+// A11Y 공통 5단계 — 페이지 문서 계약: 모든 라우트 페이지·오류 화면은 PageHead(또는 <title>)를 가진다.
+const pages = files.filter((f) => /\+(page|error)\.svelte$/.test(f) && f.includes('routes'));
+// 리다이렉트 전용 페이지(마크업 없음)는 제외.
+const REDIRECT_ONLY = new Set(['src/routes/+page.svelte', 'src/routes/library/wellness/+page.svelte']);
+const content = (f) => readFileSync(f, 'utf8');
+const hasHead = (s) => /<PageHead\b/.test(s) || /<title>/.test(s);
+const ownsH1 = (s) => /<h1\b/.test(s) || /<PageHead\b(?![^>]*heading=\{null\})/.test(s);
+
+test('모든 +page/+error 에 PageHead 또는 <title>', () => {
+	const bad = pages.filter((f) => !REDIRECT_ONLY.has(f) && !hasHead(content(f)));
+	assert.deepEqual(bad, []);
+});
+
+// h1 을 라우트 파일이 직접 그리지 않는 페이지(자식 컴포넌트가 그림) — 줄어들 수만 있다(ratchet).
+const H1_IN_CHILD = [
+	'src/routes/demo/+page.svelte',
+	'src/routes/library/[id]/+page.svelte',
+	'src/routes/library/[id]/laps/+page.svelte',
+	'src/routes/library/[id]/metrics/+page.svelte',
+	'src/routes/library/[id]/providers/+page.svelte',
+	'src/routes/library/[id]/streams/+page.svelte',
+	'src/routes/library/wellness/[date]/+page.svelte',
+	'src/routes/coach/plan/[id]/session/[date]/+page.svelte',
+	'src/routes/today/+page.svelte',
+	'src/routes/welcome/+page.svelte'
+];
+test('h1 ratchet — 라우트 파일에 h1 이 없는 페이지는 허용 목록에만', () => {
+	const noH1 = pages.filter((f) => !REDIRECT_ONLY.has(f) && !ownsH1(content(f))).sort();
+	const extra = noH1.filter((f) => !H1_IN_CHILD.includes(f));
+	assert.deepEqual(extra, [], '새로 h1 없는 페이지 — PageHead 를 쓰거나 자식 컴포넌트 h1 을 허용 목록에 근거와 함께 추가');
+	const improved = H1_IN_CHILD.filter((f) => !noH1.includes(f));
+	assert.deepEqual(improved, [], '개선됨 — 허용 목록에서 제거');
+});
+
+test('PageHead 는 title 필수·sr-only/h1 null 처리', () => {
+	const s = content('src/lib/components/ui/PageHead.svelte');
+	assert.match(s, /title: string/);
+	assert.match(s, /heading === undefined/);
+});

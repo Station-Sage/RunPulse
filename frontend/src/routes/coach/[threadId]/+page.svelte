@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { threadBackHref } from '$lib/activityEvidence';
 	// 03e-coach.md 5-B — 대화 스레드: 메시지 목록 + 입력 바.
 	// P7-IMPL-COACH-EVIDENCE-UI: 근거 칩(EvidenceQuote) + MetricBreakdown 드릴다운 + 입력창 하단 도킹.
@@ -188,7 +189,7 @@
 	}
 </script>
 
-<svelte:head><title>Coach 대화 · RunPulse</title></svelte:head>
+<PageHead title="Coach 대화" heading={null} />
 
 {#if !thread}
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">

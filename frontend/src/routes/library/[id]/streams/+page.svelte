@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-D — 활동 스트림 시각화 페이지.
 	// 체크박스로 표시할 스트림 토글; 해당 컬럼이 전부 null이면 체크박스 숨김.
 	import type { StreamsPageData } from './+page';
@@ -133,7 +134,7 @@
 	}
 </script>
 
-<svelte:head><title>스트림 · RunPulse</title></svelte:head>
+<PageHead title="스트림" heading={null} />
 
 <!-- 본문 -->
 {#if data.failure && data.streams.length === 0}

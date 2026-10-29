@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 레이스 허브 — 오늘 탭에서 분리된 상세(design 10-today §3). 데스크톱 2열: ①②③ | ④⑤⑥.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
@@ -34,7 +35,7 @@
 <div class="mx-auto flex max-w-5xl flex-col gap-4 p-4">
 	<div class="flex items-center justify-between">
 		<a href="{base}/today" class="text-sm text-fg-muted hover:text-fg-primary">‹ 오늘</a>
-		<h1 class="text-base font-semibold">레이스 허브</h1>
+		<PageHead title="레이스 허브" class="text-base font-semibold" />
 		<span class="w-10"></span>
 	</div>
 

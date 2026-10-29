@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// S6 소스 비교 — 같은 러닝을 소스마다 어떻게 계산하는지.
 	import type { ProvidersMatrixPageData } from './+page';
 	import ProviderMatrix from '$lib/components/ProviderMatrix.svelte';
@@ -14,7 +15,7 @@
 	}
 </script>
 
-<svelte:head><title>소스 비교 · RunPulse</title></svelte:head>
+<PageHead title="소스 비교" heading={null} />
 
 <div class="flex h-12 items-center gap-2 border-b border-border-subtle px-4">
 	<a href="{base}/library" class="shrink-0 text-fg-muted" aria-label="Library로">‹</a>

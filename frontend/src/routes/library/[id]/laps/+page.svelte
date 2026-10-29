@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-C 랩 탭 — activity_laps 고정 열 표(LapTable, 인터벌 그룹 뷰).
 	import type { LapsPageData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
@@ -15,7 +16,7 @@
 	const source = $derived(data.laps.length > 0 ? data.laps[0].source : null);
 </script>
 
-<svelte:head><title>랩 · RunPulse</title></svelte:head>
+<PageHead title="랩" heading={null} />
 
 {#if data.failure && data.laps.length === 0}
 	<LoadFailure failure={data.failure} retryKey={`app:activity:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="← 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />

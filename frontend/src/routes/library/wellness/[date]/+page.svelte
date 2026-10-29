@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// S5 — 웰니스 일 상세(/library/wellness/:date). 헤드라인·근거 칩·준비도·수면·핵심 카드·30일 추세.
 	// 등급·임계값은 서버가 준다(프론트 상수 없음). 날짜 이동은 모두 replace.
 	import { base } from '$app/paths';
@@ -38,7 +39,7 @@
 	);
 </script>
 
-<svelte:head><title>{dateLabel(data.date)} 웰니스 · RunPulse</title></svelte:head>
+<PageHead title={`${dateLabel(data.date)} 웰니스`} heading={null} />
 
 <div ontouchstart={onTouchStart} ontouchend={onTouchEnd} role="presentation">
 	<WellnessDateBar detail={d} />

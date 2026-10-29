@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-F — 메트릭 상세. 시계열 차트 + 계산 분해 바텀시트.
 	import type { MetricTrendPageData } from './+page';
 	import TrendChart from '$lib/components/TrendChart.svelte';
@@ -91,7 +92,7 @@
 	});
 </script>
 
-<svelte:head><title>{data.trend?.label ?? data.slug} · RunPulse</title></svelte:head>
+<PageHead title={`${data.trend?.label ?? data.slug}`} heading={null} />
 
 <DrillPanel scopeType="daily" scopeId={latestDate}>
 

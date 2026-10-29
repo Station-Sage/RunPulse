@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-A — Library 홈. 히어로 → 찾기 → 기록(PB) → 캘린더/월별 → 최근 활동 → 출처 요약.
 	// 히어로만 라우트 load가 기다리고, 나머지 블록은 각자 로드·실패 격리(LibraryBlock).
 	import type { LibraryHomeData } from './+page';
@@ -25,7 +26,7 @@
 	};
 </script>
 
-<svelte:head><title>Library · RunPulse</title></svelte:head>
+<PageHead title="Library" heading={null} />
 
 <h1 class="sr-only">Library</h1>
 

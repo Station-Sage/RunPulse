@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import type { DataSyncPageData } from './+page';
 	import { invalidate } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -44,7 +45,7 @@
 	});
 </script>
 
-<svelte:head><title>동기화 · RunPulse</title></svelte:head>
+<PageHead title="동기화" heading={null} />
 
 <h1 class="sr-only">동기화</h1>
 

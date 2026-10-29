@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	// 활동 소스 비교 페이지 — C4 ProviderComparison 를 전체화면으로 렌더링.
 	import type { ProvidersPageData } from './+page';
@@ -8,7 +9,7 @@
 	let { data }: { data: ProvidersPageData } = $props();
 </script>
 
-<svelte:head><title>소스 비교 · RunPulse</title></svelte:head>
+<PageHead title="소스 비교" heading={null} />
 
 <!-- 본문 -->
 {#if data.failure && !data.comparison}

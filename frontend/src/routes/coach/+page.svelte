@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
 	import { createThread, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
@@ -75,7 +76,7 @@
 	}
 </script>
 
-<svelte:head><title>Coach · RunPulse</title></svelte:head>
+<PageHead title="Coach" heading={null} />
 
 <h1 class="sr-only">Coach</h1>
 

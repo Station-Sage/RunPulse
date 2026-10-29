@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 03e-coach.md 5-C — 플랜 없음 화면.
 	import type { PlanGatewayData } from './+page';
@@ -39,7 +40,7 @@
 	}
 </script>
 
-<svelte:head><title>훈련 플랜 · RunPulse</title></svelte:head>
+<PageHead title="훈련 플랜" heading={null} />
 
 <h1 class="sr-only">훈련 플랜</h1>
 

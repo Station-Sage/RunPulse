@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-F — 플랜 상세: 진행 중인 훈련 플랜.
 	import type { PlanDetailPageData } from './+page';
 	import { formatDuration, formatPaceRange, weekProgressLabel, workoutLabel } from '$lib/format';
@@ -88,10 +89,11 @@
 
 </script>
 
-<svelte:head><title>플랜 상세 · RunPulse</title></svelte:head>
+<PageHead title="플랜 상세" heading={null} />
 
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.plan}
+		<h1 class="sr-only">플랜 상세</h1>
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">
 			{#if data.planFailure && data.planFailure.kind !== 'not_found'}
 				<ErrorState failure={data.planFailure} onRetry={() => invalidate('app:plan-active')} />

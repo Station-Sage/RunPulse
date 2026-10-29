@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import type { ProviderGroupPageData } from './+page';
 	import ProviderPairChart from '$lib/components/ProviderPairChart.svelte';
 	import ProviderPairList from '$lib/components/ProviderPairList.svelte';
@@ -10,7 +11,7 @@
 	const back = $derived(`${base}/library/providers${data.days === 28 ? '' : `?days=${data.days}`}`);
 </script>
 
-<svelte:head><title>{label} · 소스 비교 · RunPulse</title></svelte:head>
+<PageHead title={`${label} · 소스 비교`} heading={null} />
 
 <div class="flex h-12 items-center gap-2 border-b border-border-subtle px-4">
 	<a href={back} class="shrink-0 text-fg-muted" aria-label="소스 비교로">‹</a>

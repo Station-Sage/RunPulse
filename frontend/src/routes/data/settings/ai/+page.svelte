@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
@@ -40,7 +41,7 @@
 	}
 </script>
 
-<svelte:head><title>AI 설정 · RunPulse</title></svelte:head>
+<PageHead title="AI 설정" heading={null} />
 
 <h1 class="sr-only">AI 설정</h1>
 

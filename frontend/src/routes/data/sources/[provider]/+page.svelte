@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	import type { DataSourcePageData } from './+page';
 	import { base } from '$app/paths';
@@ -40,7 +41,7 @@
 	const maxCount = $derived(d ? Math.max(1, ...d.coverage.months.map((m) => m.count)) : 1);
 </script>
 
-<svelte:head><title>{syncProviderName(data.provider)} · RunPulse</title></svelte:head>
+<PageHead title={`${syncProviderName(data.provider)}`} heading={null} />
 
 <div class="flex flex-col gap-5 px-4 py-4">
 	<a href="{base}/data/sources" class="text-xs text-fg-muted hover:text-fg-secondary">‹ 소스</a>

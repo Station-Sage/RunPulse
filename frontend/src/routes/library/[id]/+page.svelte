@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-C — 활동 상세 요약 탭. 나머지 탭은 별도 라우트(ActivityTabs).
 	import type { ActivityPageData } from './+page';
 	import RouteMap from '$lib/components/RouteMap.svelte';
@@ -76,7 +77,7 @@
 	}
 </script>
 
-<svelte:head><title>{core?.name ?? '활동 상세'} · RunPulse</title></svelte:head>
+<PageHead title={`${core?.name ?? '활동 상세'}`} heading={null} />
 
 <DrillPanel scopeType="activity" scopeId={String(core?.id ?? '')}>
 

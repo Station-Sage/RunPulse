@@ -1,11 +1,12 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { base } from '$app/paths';
 	import ThemeSwitch from '$lib/components/ui/ThemeSwitch.svelte';
 	import McpTokenCard from '$lib/components/McpTokenCard.svelte';
 	let { data } = $props();
 </script>
 
-<svelte:head><title>데이터 설정 · RunPulse</title></svelte:head>
+<PageHead title="데이터 설정" heading={null} />
 
 <h1 class="sr-only">데이터 설정</h1>
 

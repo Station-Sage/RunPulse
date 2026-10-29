@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// /welcome — 신규 계정 4단계 온보딩(40 design §2.10). 진행은 서버(/me/preferences)에 저장.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -23,7 +24,7 @@
 	}
 </script>
 
-<svelte:head><title>시작하기 · RunPulse</title></svelte:head>
+<PageHead title="시작하기" heading={null} />
 
 <div class="mx-auto flex max-w-md flex-col gap-4 px-4 py-8">
 	{#if step === 0}<Step0Intro onStart={() => go(1)} />

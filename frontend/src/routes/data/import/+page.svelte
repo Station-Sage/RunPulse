@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import {
@@ -84,7 +85,7 @@
 	}
 </script>
 
-<svelte:head><title>가져오기 · RunPulse</title></svelte:head>
+<PageHead title="가져오기" heading={null} />
 
 <h1 class="sr-only">가져오기</h1>
 

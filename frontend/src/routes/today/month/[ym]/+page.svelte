@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { otherLine } from '$lib/activityDisplay';
 	// /today/month/[ym] — 월간 내러티브 라우트(DESIGN-U17 §4.1). 오버레이가 아니라 페이지다.
 	// ‹ › 는 replaceState(히스토리 길이 불변), 닫기(‹ 오늘)는 뒤로가기. 칩은 DrillPanel(URL 스택) 하나만 연다.
@@ -146,7 +147,7 @@
 	});
 </script>
 
-<svelte:head><title>{monthLabel} · RunPulse</title></svelte:head>
+<PageHead title={`${monthLabel}`} heading={null} />
 
 <DrillPanel scopeType="daily" scopeId={`${displayYear}-${String(displayMonth).padStart(2, '0')}-01`} fromTag="today">
 <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-4">
