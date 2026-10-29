@@ -108,7 +108,7 @@
 			</section>
 
 			{#if errorMessage}
-				<p class="text-xs text-red-400" use:say={{ text: errorMessage, level: 'assertive' }}>{errorMessage}</p>
+				<p class="text-xs text-semantic-red" use:say={{ text: errorMessage, level: 'assertive' }}>{errorMessage}</p>
 			{/if}
 		</div>
 		<ChatComposer {engine} bind:value={input} busy={sending} onSend={() => start(input)} onOpenScope={() => (scopeOpen = true)} />

@@ -82,7 +82,7 @@
 		>
 			<button
 				type="button"
-				class="absolute inset-0 bg-black/50"
+				class="absolute inset-0 bg-scrim"
 				aria-label="닫기"
 				onclick={() => (dialogOpen = false)}
 			></button>

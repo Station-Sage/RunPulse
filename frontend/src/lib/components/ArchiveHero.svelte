@@ -21,7 +21,7 @@
 	<section class="px-4 pt-4" aria-label="러닝 아카이브">
 		<div
 			class="relative flex flex-col gap-3 rounded-xl border border-border-subtle p-4"
-			style="background-color: var(--color-surface-2); background-image: radial-gradient(120% 90% at 0% 0%, rgba(20,184,166,0.16), transparent 62%)"
+			style="background-color: var(--color-surface-2); background-image: radial-gradient(120% 90% at 0% 0%, var(--color-hero-glow), transparent 62%)"
 		>
 			<p class="text-xs text-fg-muted">{sinceLabel}부터 내가 달린 거리</p>
 			<div class="flex items-end gap-2">

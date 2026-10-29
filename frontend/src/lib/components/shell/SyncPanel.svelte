@@ -43,7 +43,7 @@
 			{@const action = errorAction(src)}
 			<li class="flex items-center justify-between gap-2 text-sm">
 				<span>{syncProviderName(src.provider)}</span>
-				<span class="text-fg-secondary" class:text-red-500={src.state.startsWith('error-')}>
+				<span class="text-fg-secondary" class:text-semantic-red={src.state.startsWith('error-')}>
 					<span aria-hidden="true">{line.glyph}</span>
 					{line.text}
 					{#if src.state === 'running' && src.running}
@@ -75,7 +75,7 @@
 			type="button"
 			disabled={btn.disabled}
 			onclick={() => runTrigger()}
-			class="h-11 w-full rounded-lg bg-teal-500 text-sm font-medium text-white disabled:bg-surface-3 disabled:text-fg-muted"
+			class="h-11 w-full rounded-lg bg-semantic-teal text-sm font-medium text-fg-on-accent disabled:bg-surface-3 disabled:text-fg-muted"
 		>
 			{btn.label}
 		</button>

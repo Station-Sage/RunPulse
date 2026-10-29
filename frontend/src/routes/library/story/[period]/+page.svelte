@@ -25,9 +25,9 @@
 	const bars = $derived(
 		s.intensity?.status === 'ok'
 			? [
-					['Z1-2', s.intensity.z12_pct ?? 0, 'bg-sky-400'],
-					['Z3', s.intensity.z3_pct ?? 0, 'bg-amber-400'],
-					['Z4-5', s.intensity.z45_pct ?? 0, 'bg-rose-400']
+					['Z1-2', s.intensity.z12_pct ?? 0, 'bg-zone-low'],
+					['Z3', s.intensity.z3_pct ?? 0, 'bg-zone-mid'],
+					['Z4-5', s.intensity.z45_pct ?? 0, 'bg-zone-high']
 				]
 			: []
 	);

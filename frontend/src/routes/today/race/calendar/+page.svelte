@@ -50,7 +50,7 @@
 	<header class="flex items-center justify-between gap-2">
 		<a href="{base}/today/race" class="flex min-h-11 min-w-11 items-center text-fg-secondary" aria-label="레이스 허브로">‹</a>
 		<h1 class="flex-1 text-lg font-semibold text-fg-primary">대회 캘린더</h1>
-		<button type="button" class="min-h-11 rounded-lg bg-semantic-teal px-3 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => (sheet = { kind: 'entry', race: null })}>대회 추가</button>
+		<button type="button" class="min-h-11 rounded-lg bg-semantic-teal px-3 text-sm text-fg-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => (sheet = { kind: 'entry', race: null })}>대회 추가</button>
 	</header>
 
 	{#if data.failed || !z}

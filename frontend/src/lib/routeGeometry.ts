@@ -84,9 +84,13 @@ export function lerpColor(a: string, b: string, t: number): string {
 	return '#' + pa.map((x, i) => Math.round(x + (pb[i] - x) * c).toString(16).padStart(2, '0')).join('');
 }
 
-/** 값→색. pace: 빠름(작은 값) 파랑 #3b82f6 → 느림 주황 #f97316. hr: 낮음 청록 #14b8a6 → 높음 빨강 #ef4444. 값 또는 범위가 없으면 회색 #64748b. */
+/** 값→색(CSS 토큰). pace: 빠름 route-fast → 느림 route-slow 혼합. hr: 낮음 route-low → 높음 route-high. 값 또는 범위가 없으면 route-none. */
 export function segmentColor(value: number | null, range: { lo: number; hi: number } | null, mode: 'pace' | 'hr'): string {
-	if (value == null || !range) return '#64748b';
-	const t = (value - range.lo) / (range.hi - range.lo);
-	return mode === 'pace' ? lerpColor('#3b82f6', '#f97316', t) : lerpColor('#14b8a6', '#ef4444', t);
+	if (value == null || !range) return 'var(--color-route-none)';
+	const t = Math.min(1, Math.max(0, (value - range.lo) / (range.hi - range.lo)));
+	const p = Math.round(t * 100);
+	const [from, to] = mode === 'pace' ? ['route-slow', 'route-fast'] : ['route-low', 'route-high'];
+	if (p === 0) return `var(--color-${from})`;
+	if (p === 100) return `var(--color-${to})`;
+	return `color-mix(in oklab, var(--color-${to}) ${p}%, var(--color-${from}))`;
 }

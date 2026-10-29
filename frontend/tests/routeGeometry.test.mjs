@@ -90,9 +90,10 @@ test('lerpColor: 중간값·clamp', () => {
 	assert.equal(lerpColor('#000000', '#ffffff', 5), '#ffffff');
 });
 
-test('segmentColor: 값 없음은 회색, 범위 양끝은 모드 색', () => {
+test('segmentColor: 값 없음은 route-none, 양끝은 토큰, 중간은 color-mix', () => {
 	const range = { lo: 300, hi: 500 };
-	assert.equal(segmentColor(null, range, 'pace'), '#64748b');
-	assert.equal(segmentColor(300, range, 'pace'), '#3b82f6');
-	assert.equal(segmentColor(500, range, 'pace'), '#f97316');
+	assert.equal(segmentColor(null, range, 'pace'), 'var(--color-route-none)');
+	assert.equal(segmentColor(300, range, 'pace'), 'var(--color-route-slow)');
+	assert.equal(segmentColor(500, range, 'pace'), 'var(--color-route-fast)');
+	assert.equal(segmentColor(400, range, 'hr'), 'color-mix(in oklab, var(--color-route-high) 50%, var(--color-route-low))');
 });

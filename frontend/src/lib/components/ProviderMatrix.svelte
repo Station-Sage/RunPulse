@@ -27,7 +27,7 @@
 					<tr>
 						<th class="sticky left-0 z-10 bg-surface-2 px-3 py-2 font-medium">지표</th>
 						{#each cols as p}<th class="px-3 py-2 font-medium">{providerName(p)}</th>{/each}
-						<th class="sticky right-0 z-10 bg-surface-2 px-3 py-2 font-medium shadow-[-6px_0_6px_-6px_rgba(0,0,0,0.25)]">차이</th>
+						<th class="sticky right-0 z-10 bg-surface-2 px-3 py-2 font-medium shadow-[-6px_0_6px_-6px_var(--color-shadow-edge)]">차이</th>
 					</tr>
 				</thead>
 				<tbody>

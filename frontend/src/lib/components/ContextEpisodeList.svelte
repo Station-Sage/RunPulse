@@ -51,7 +51,7 @@
 
 {#if target}
 	{@const t = target}
-	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="ctx-del-title" use:modal={{ onClose: () => { if (!busy) target = null; } }}>
+	<div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="ctx-del-title" use:modal={{ onClose: () => { if (!busy) target = null; } }}>
 		<div class="w-full space-y-3 rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 			<p id="ctx-del-title" class="text-sm font-medium text-fg-primary">이 기록을 삭제할까요?</p>
 			{#if t.kind === 'illness'}
@@ -61,7 +61,7 @@
 			{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 			<div class="flex gap-2">
 				<button type="button" class="min-h-11 flex-1 rounded-lg bg-surface-2" onclick={() => (target = null)}>취소</button>
-				<button type="button" class="min-h-11 flex-1 rounded-lg bg-semantic-red text-white" disabled={busy}
+				<button type="button" class="min-h-11 flex-1 rounded-lg bg-semantic-red text-fg-on-accent" disabled={busy}
 					onclick={() => run(() => deleteContext(t.id, t.kind === 'illness' && withChat ? selected : undefined))}>삭제</button>
 			</div>
 		</div>

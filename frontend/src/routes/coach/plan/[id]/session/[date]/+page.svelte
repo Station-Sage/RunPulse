@@ -130,7 +130,7 @@
 			{/if}
 			<div class="mt-2 flex items-center gap-2">
 				<button
-					class="rounded-md bg-semantic-teal px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+					class="rounded-md bg-semantic-teal px-4 py-1.5 text-sm font-medium text-fg-on-accent disabled:opacity-50"
 					onclick={handleNoteSave}
 					disabled={noteSaving || !noteText.trim()}
 				>

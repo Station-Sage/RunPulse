@@ -29,7 +29,7 @@
 		use:modal={{ onClose }}
 	>
 		<button
-			class="absolute inset-0 bg-black/40"
+			class="absolute inset-0 bg-scrim"
 			onclick={onClose}
 			tabindex="-1"
 			aria-hidden="true"

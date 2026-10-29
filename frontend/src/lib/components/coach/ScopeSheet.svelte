@@ -60,7 +60,7 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex flex-col">
-	<button class="absolute inset-0 bg-black/40" onclick={onClose} tabindex="-1" aria-hidden="true" aria-label="닫기"></button>
+	<button class="absolute inset-0 bg-scrim" onclick={onClose} tabindex="-1" aria-hidden="true" aria-label="닫기"></button>
 	<div
 		use:modal={{ onClose }}
 		role="dialog"

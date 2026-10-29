@@ -59,6 +59,36 @@
 	--color-provider-runpulse: #6b7280;
 	--color-provider-primary: #fbbf24;
 
+	/* A11Y 공통 2단계 — 하드코딩 색을 토큰으로(값은 다크 그대로). 3단계에서 대비 보정. */
+	--color-fg-on-accent: #ffffff;
+	--color-scrim: rgb(0 0 0 / 0.4);
+	--color-shimmer: rgb(255 255 255 / 0.06);
+	--color-hero-glow: rgb(20 184 166 / 0.16);
+	--color-shadow-edge: rgb(0 0 0 / 0.25);
+	--color-chart-ctl: #3b82f6;
+	--color-chart-atl: #f59e0b;
+	--color-chart-tsb: #14b8a6;
+	--color-chart-taper: #22c55e;
+	--color-chart-keep: #94a3b8;
+	--color-chart-hr: #ef4444;
+	--color-chart-alt: #10b981;
+	--color-chart-cad: #f59e0b;
+	--color-chart-power: #8b5cf6;
+	--color-route-slow: #3b82f6;
+	--color-route-fast: #f97316;
+	--color-route-low: #14b8a6;
+	--color-route-high: #ef4444;
+	--color-route-none: #64748b;
+	--color-route-thumb: #2dd4bf;
+	--color-heat-0: #1a2536;
+	--color-heat-1: #0f5f5a;
+	--color-heat-2: #12897f;
+	--color-heat-3: #14b8a6;
+	--color-heat-4: #5eead4;
+	--color-zone-low: #38bdf8;
+	--color-zone-mid: #fbbf24;
+	--color-zone-high: #fb7185;
+
 	--font-sans:
 		'InterVariable', -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, monospace;

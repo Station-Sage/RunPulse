@@ -63,14 +63,14 @@
 		{#each RPE as n (n)}
 			<button type="button" aria-pressed={rpe === n} aria-label={`RPE ${n}`}
 				onclick={() => (rpe = rpe === n ? null : n)}
-				class="h-11 rounded border border-border-subtle text-sm {rpe === n ? 'bg-semantic-teal text-white' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{n}</button>
+				class="h-11 rounded border border-border-subtle text-sm {rpe === n ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{n}</button>
 		{/each}
 	</div>
 	<div class="-mt-2 flex justify-between text-xs text-fg-muted" aria-hidden="true"><span>1 매우 쉬움</span><span>10 최대</span></div>
 	<div role="radiogroup" aria-label="통증 수준" class="flex flex-wrap gap-1">
 		{#each PAIN as p (p.value)}
 			<button type="button" aria-pressed={pain === p.value} onclick={() => (pain = pain === p.value ? null : p.value)}
-				class="h-11 rounded border border-border-subtle px-3 text-sm {pain === p.value ? 'bg-semantic-amber text-white' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{p.label}</button>
+				class="h-11 rounded border border-border-subtle px-3 text-sm {pain === p.value ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{p.label}</button>
 		{/each}
 	</div>
 	{#if showSites}
@@ -78,7 +78,7 @@
 		<div class="flex flex-wrap gap-1">
 			{#each SITES as [slug, label] (slug)}
 				<button type="button" aria-pressed={sites.includes(slug)} onclick={() => toggleSite(slug)}
-					class="h-11 rounded-full border border-border-subtle px-3 text-sm {sites.includes(slug) ? 'bg-semantic-amber text-white' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{label}</button>
+					class="h-11 rounded-full border border-border-subtle px-3 text-sm {sites.includes(slug) ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{label}</button>
 			{/each}
 		</div>
 	{/if}
@@ -87,6 +87,6 @@
 	{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 	<div class="flex justify-end">
 		<button type="button" onclick={save} disabled={saving}
-			class="h-11 rounded bg-semantic-teal px-5 text-sm font-medium text-white disabled:opacity-60">{saving ? '저장 중…' : '저장'}</button>
+			class="h-11 rounded bg-semantic-teal px-5 text-sm font-medium text-fg-on-accent disabled:opacity-60">{saving ? '저장 중…' : '저장'}</button>
 	</div>
 </div>

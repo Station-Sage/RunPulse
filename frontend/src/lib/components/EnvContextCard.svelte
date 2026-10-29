@@ -37,7 +37,7 @@
 	<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 px-4 py-3">
 		<div class="flex items-center justify-between">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">환경 컨텍스트</h2>
-			<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider)}">{providerLabel(provider)}</span>
+			<span class="rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(provider)}">{providerLabel(provider)}</span>
 		</div>
 		<div class="grid grid-cols-3 gap-x-3 gap-y-2">
 			{#each cells as c (c.f.name)}

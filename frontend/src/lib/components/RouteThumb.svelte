@@ -19,7 +19,7 @@
 >
 	{#if proj}
 		<svg viewBox="0 0 {proj.width} {proj.height}" style="width:{proj.width}px;height:{proj.height}px;max-width:100%;max-height:100%">
-			<polyline points={line} fill="none" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+			<polyline points={line} fill="none" stroke="var(--color-route-thumb)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
 		</svg>
 	{:else}
 		<span class="h-1.5 w-1.5 rounded-full bg-fg-muted"></span>

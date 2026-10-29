@@ -28,7 +28,7 @@
 	<div class="flex flex-col gap-3 px-4 py-4">
 		<div class="flex items-center gap-2 text-xs text-fg-muted">
 			{#if source}
-				<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
+				<span class="rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
 			{/if}
 			<span>{data.laps.length}개 랩{#if Number.isFinite(fastest)}{' · '}가장 빠른 랩 {formatPace(fastest)}{/if}</span>
 		</div>

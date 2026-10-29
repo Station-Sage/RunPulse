@@ -107,7 +107,7 @@
 					<th class="sticky left-0 z-10 bg-surface-1 py-2 pl-4 pr-2 text-left text-xs font-medium text-fg-muted">지표</th>
 					{#each providers() as provider}
 						<th class="px-2 py-2 text-right text-xs font-medium text-fg-muted">
-							<span class="rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(provider as ProviderKey)}">
+							<span class="rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(provider as ProviderKey)}">
 								{providerLabelCompact(provider as ProviderKey)}
 							</span>
 						</th>
@@ -124,7 +124,7 @@
 						{@const d = diffText(row)}
 						{@const open = expanded.has(row.slug)}
 						<tr
-							class="cursor-pointer border-b border-border-subtle hover:bg-surface-2/50 {hasDiscrepancy(row) ? 'bg-amber-500/5' : ''}"
+							class="cursor-pointer border-b border-border-subtle hover:bg-surface-2/50 {hasDiscrepancy(row) ? 'bg-semantic-amber/5' : ''}"
 							onclick={() => toggle(row.slug)}
 							data-testid="provider-row"
 						>
@@ -146,7 +146,7 @@
 									title={isPrimary(row, provider) && showPrimaryReason && row.primaryReason ? row.primaryReason.rule : undefined}
 								>
 									<span class="font-mono text-sm tabular-nums {row.values[provider]?.available ? 'text-fg-primary' : 'text-fg-muted'}">
-										{#if isPrimary(row, provider)}<Icon name="source-primary" class="inline h-3 w-3 text-amber-500 align-baseline" /> {/if}{cellDisplayValue(row, provider)}
+										{#if isPrimary(row, provider)}<Icon name="source-primary" class="inline h-3 w-3 text-semantic-amber align-baseline" /> {/if}{cellDisplayValue(row, provider)}
 									</span>
 								</td>
 							{/each}
@@ -172,7 +172,7 @@
 		</table>
 	</div>
 
-	<div class="mt-2 px-4 text-xs text-fg-muted"><Icon name="source-primary" class="inline h-3 w-3 text-amber-500 align-baseline" /> 대표값(우선 소스) · 행을 누르면 설명</div>
+	<div class="mt-2 px-4 text-xs text-fg-muted"><Icon name="source-primary" class="inline h-3 w-3 text-semantic-amber align-baseline" /> 대표값(우선 소스) · 행을 누르면 설명</div>
 
 	{#if data.rows.some((r) => hasDiscrepancy(r))}
 		<div class="mt-2 px-4 pb-2 text-xs text-fg-muted">

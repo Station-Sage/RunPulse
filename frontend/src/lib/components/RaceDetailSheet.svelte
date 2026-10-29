@@ -49,7 +49,7 @@
 	const btn = 'min-h-11 flex-1 rounded-lg bg-surface-2 disabled:opacity-50';
 </script>
 
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-detail-title" use:modal={{ onClose: () => { if (!busy) { if (ask) ask = null; else onClose(); } } }}>
+<div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-detail-title" use:modal={{ onClose: () => { if (!busy) { if (ask) ask = null; else onClose(); } } }}>
 	<div class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 		<p id="race-detail-title" class="text-sm font-medium text-fg-primary">{race.name} <span class="text-fg-muted">({race.priority})</span></p>
 		<p class="text-xs text-fg-secondary">{race.race_date}{needsReview ? '' : ` · ${dDayLabel(race.race_date, today)}`} · {kmLabel(race.distance_km)}{goalLine(race) ? ` · ${goalLine(race)}` : ''}</p>
@@ -57,20 +57,20 @@
 		{#if race.note}<p class="text-xs text-fg-secondary">{race.note}</p>{/if}
 		{#if ask?.kind === 'cancel_goal'}
 			<p class="text-sm text-fg-primary">연결된 목표도 함께 취소됩니다. 취소하시겠습니까?</p>
-			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-red text-white" disabled={busy} onclick={() => cancel(true)}>취소하기</button></div>
+			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-red text-fg-on-accent" disabled={busy} onclick={() => cancel(true)}>취소하기</button></div>
 		{:else if ask?.kind === 'past'}
 			<p class="text-sm text-fg-primary">지난 날짜의 대회예요. 지난 대회로 복원할까요?</p>
-			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy} onclick={() => restore({ confirm_past: true })}>복원</button></div>
+			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-teal text-fg-on-accent" disabled={busy} onclick={() => restore({ confirm_past: true })}>복원</button></div>
 		{:else if ask?.kind === 'a_conflict'}
 			{@const a = ask}
 			<p class="text-sm text-fg-primary">이미 A 대회 '{a.existing.name}'({a.existing.race_date})가 있어요. 그 대회를 B로 바꾸고 이 대회를 A로 둘까요?{a.existing.active_goal_id ? ' 활성 목표는 이 대회로 옮겨져요.' : ''}</p>
-			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy} onclick={() => confirmConflict(a)}>바꾸기</button></div>
+			<div class="flex gap-2"><button type="button" class={btn} disabled={busy} onclick={() => (ask = null)}>아니요</button><button type="button" class="{btn} bg-semantic-teal text-fg-on-accent" disabled={busy} onclick={() => confirmConflict(a)}>바꾸기</button></div>
 		{:else}
 			<div class="flex flex-wrap gap-2">
 				{#if race.status === 'cancelled'}
-					<button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy} onclick={() => restore()}>복원</button>
+					<button type="button" class="{btn} bg-semantic-teal text-fg-on-accent" disabled={busy} onclick={() => restore()}>복원</button>
 				{:else if needsReview}
-					<button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy} onclick={() => reopen()}>예정으로 되돌리기</button>
+					<button type="button" class="{btn} bg-semantic-teal text-fg-on-accent" disabled={busy} onclick={() => reopen()}>예정으로 되돌리기</button>
 				{:else if race.status === 'planned'}
 					<button type="button" class={btn} onclick={onEdit}>수정</button>
 					<button type="button" class={btn} onclick={onPlan}>플랜 반영</button>

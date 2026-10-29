@@ -45,7 +45,7 @@
 	const inp = 'min-h-11 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal';
 </script>
 
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-entry-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
+<div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-entry-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
 	<form class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl" onsubmit={(e) => { e.preventDefault(); if (valid && !busy) save(); }}>
 		<p id="race-entry-title" class="text-sm font-medium text-fg-primary">{race ? '대회 수정' : '대회 추가'}</p>
 		<label class="block text-xs text-fg-secondary">이름<input class={inp} bind:value={name} maxlength="80" required /></label>
@@ -61,7 +61,7 @@
 		<fieldset class="space-y-1"><legend class="text-xs text-fg-secondary">우선순위</legend>
 			<div class="flex gap-2">
 				{#each ['A', 'B', 'C'] as p}
-					<button type="button" aria-pressed={priority === p} class="min-h-11 flex-1 rounded-lg {priority === p ? 'bg-semantic-teal text-white' : 'bg-surface-2'}" onclick={() => (priority = p as RacePriority)}>{p}</button>
+					<button type="button" aria-pressed={priority === p} class="min-h-11 flex-1 rounded-lg {priority === p ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-2'}" onclick={() => (priority = p as RacePriority)}>{p}</button>
 				{/each}
 			</div>
 		</fieldset>
@@ -83,7 +83,7 @@
 		{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 		<div class="flex gap-2">
 			<button type="button" class="min-h-11 flex-1 rounded-lg bg-surface-2" disabled={busy} onclick={onClose}>닫기</button>
-			<button type="submit" class="min-h-11 flex-1 rounded-lg bg-semantic-teal text-white disabled:opacity-50" disabled={!valid || busy}>저장</button>
+			<button type="submit" class="min-h-11 flex-1 rounded-lg bg-semantic-teal text-fg-on-accent disabled:opacity-50" disabled={!valid || busy}>저장</button>
 		</div>
 	</form>
 </div>

@@ -78,31 +78,31 @@
 		<div class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-1 p-3">
 			<div class="flex flex-wrap gap-1" role="group" aria-label="상태 종류">
 				{#each Object.entries(KIND_LABEL) as [k, label] (k)}
-					<button type="button" aria-pressed={pick === k} disabled={openKinds.has(k as ContextKind)} class="{chip} {pick === k ? 'bg-semantic-teal text-white' : 'bg-surface-2 text-fg-secondary'} disabled:opacity-50" onclick={() => (pick = pick === k ? null : (k as ContextKind))}>{label}</button>
+					<button type="button" aria-pressed={pick === k} disabled={openKinds.has(k as ContextKind)} class="{chip} {pick === k ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-2 text-fg-secondary'} disabled:opacity-50" onclick={() => (pick = pick === k ? null : (k as ContextKind))}>{label}</button>
 				{/each}
 			</div>
 			{#if pick === 'illness'}
 				<div class="flex flex-wrap gap-1" role="group" aria-label="정도">
 					{#each SEVERITY as s (s.value)}
-						<button type="button" aria-pressed={severity === s.value} class="{chip} {severity === s.value ? 'bg-semantic-amber text-white' : 'bg-surface-2'}" onclick={() => (severity = severity === s.value ? undefined : s.value)}>{s.label}</button>
+						<button type="button" aria-pressed={severity === s.value} class="{chip} {severity === s.value ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-2'}" onclick={() => (severity = severity === s.value ? undefined : s.value)}>{s.label}</button>
 					{/each}
 				</div>
 				<div class="flex flex-wrap gap-1" role="group" aria-label="부위">
 					{#each SITES as s (s)}
-						<button type="button" aria-pressed={site === s} class="{chip} {site === s ? 'bg-semantic-amber text-white' : 'bg-surface-2'}" onclick={() => (site = site === s ? undefined : s)}>{s}</button>
+						<button type="button" aria-pressed={site === s} class="{chip} {site === s ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-2'}" onclick={() => (site = site === s ? undefined : s)}>{s}</button>
 					{/each}
 				</div>
 			{:else if pick === 'altitude'}
 				<div class="flex flex-wrap gap-1" role="group" aria-label="고도 구간">
 					{#each ALT_BANDS as b (b.key)}
-						<button type="button" aria-pressed={band === b.key} class="{chip} {band === b.key ? 'bg-semantic-teal text-white' : 'bg-surface-2'}" onclick={() => (band = band === b.key ? undefined : b.key)}>{b.label}</button>
+						<button type="button" aria-pressed={band === b.key} class="{chip} {band === b.key ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-2'}" onclick={() => (band = band === b.key ? undefined : b.key)}>{b.label}</button>
 					{/each}
 				</div>
 			{/if}
 			{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 			<div class="flex justify-end gap-2">
 				<button type="button" class="{chip} bg-surface-2" onclick={() => { open = false; pick = null; }}>닫기</button>
-				<button type="button" class="{chip} bg-semantic-teal text-white disabled:opacity-60" disabled={!pick || busy} onclick={submit}>기록</button>
+				<button type="button" class="{chip} bg-semantic-teal text-fg-on-accent disabled:opacity-60" disabled={!pick || busy} onclick={submit}>기록</button>
 			</div>
 		</div>
 	{/if}

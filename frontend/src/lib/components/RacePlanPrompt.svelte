@@ -25,7 +25,7 @@
 	const btn = 'min-h-11 flex-1 rounded-lg bg-surface-2 disabled:opacity-50';
 </script>
 
-<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-plan-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
+<div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-plan-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>
 	<div class="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 		<p id="race-plan-title" class="text-sm font-medium text-fg-primary">{race.name}에 맞춰 훈련 계획을 조정할까요?</p>
 		{#if changes === null}<p class="text-xs text-fg-muted">영향을 확인하는 중…</p>
@@ -37,7 +37,7 @@
 		{/if}
 		{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 		<div class="flex flex-wrap gap-2">
-			<button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy || !changes?.length} onclick={() => choose('adapt')}>{applied ? '다시 반영' : '반영'}</button>
+			<button type="button" class="{btn} bg-semantic-teal text-fg-on-accent" disabled={busy || !changes?.length} onclick={() => choose('adapt')}>{applied ? '다시 반영' : '반영'}</button>
 			{#if applied}<button type="button" class={btn} disabled={busy} onclick={() => choose('undo')}>되돌리기</button>{/if}
 			<button type="button" class={btn} disabled={busy} onclick={() => choose('later')}>나중에</button>
 			<button type="button" class={btn} disabled={busy} onclick={() => choose('no_adapt')}>조정 안 함</button>

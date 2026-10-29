@@ -27,7 +27,7 @@
 	const BOT_H = 84;
 	const uid = Math.random().toString(36).slice(2, 8);
 
-	const SCEN_COLOR: Record<string, string> = { taper: '#22c55e', keep: '#94a3b8' };
+	const SCEN_COLOR: Record<string, string> = { taper: 'var(--color-chart-taper)', keep: 'var(--color-chart-keep)' };
 
 	const future = $derived(
 		(projection?.scenarios ?? []).map((s) => ({ key: s.key, label: s.label, points: s.series }))
@@ -70,9 +70,9 @@
 			return {
 				date: layout.today,
 				items: [
-					{ label: '체력 CTL', color: '#3b82f6', v: ctl.at(-1)?.value },
-					{ label: '피로 ATL', color: '#f59e0b', v: atl.at(-1)?.value },
-					{ label: '폼 TSB', color: '#14b8a6', v: tsb.at(-1)?.value }
+					{ label: '체력 CTL', color: 'var(--color-chart-ctl)', v: ctl.at(-1)?.value },
+					{ label: '피로 ATL', color: 'var(--color-chart-atl)', v: atl.at(-1)?.value },
+					{ label: '폼 TSB', color: 'var(--color-chart-tsb)', v: tsb.at(-1)?.value }
 				]
 			};
 		}
@@ -87,9 +87,9 @@
 		return {
 			date: c?.date ?? '',
 			items: [
-				{ label: '체력 CTL', color: '#3b82f6', v: c?.value },
-				{ label: '피로 ATL', color: '#f59e0b', v: nearestByFrac(atl, frac, layout)?.value },
-				{ label: '폼 TSB', color: '#14b8a6', v: nearestByFrac(tsb, frac, layout)?.value }
+				{ label: '체력 CTL', color: 'var(--color-chart-ctl)', v: c?.value },
+				{ label: '피로 ATL', color: 'var(--color-chart-atl)', v: nearestByFrac(atl, frac, layout)?.value },
+				{ label: '폼 TSB', color: 'var(--color-chart-tsb)', v: nearestByFrac(tsb, frac, layout)?.value }
 			]
 		};
 	});
@@ -125,8 +125,8 @@
 				{#each [0, TOP_H / 2, TOP_H] as y (y)}
 					<line x1="0" x2={W} y1={y} y2={y} stroke="currentColor" stroke-opacity="0.1" vector-effect="non-scaling-stroke" />
 				{/each}
-				<polyline points={toPolyline(atl, layout, layout.top, W, TOP_H)} fill="none" stroke="#f59e0b" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
-				<polyline points={toPolyline(ctl, layout, layout.top, W, TOP_H)} fill="none" stroke="#3b82f6" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+				<polyline points={toPolyline(atl, layout, layout.top, W, TOP_H)} fill="none" stroke="var(--color-chart-atl)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+				<polyline points={toPolyline(ctl, layout, layout.top, W, TOP_H)} fill="none" stroke="var(--color-chart-ctl)" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
 			</svg>
 			<span class="pointer-events-none absolute left-0 top-0 font-mono text-[10px] text-fg-muted">{Math.round(layout.top.max)}</span>
 
@@ -137,11 +137,11 @@
 						<clipPath id="up-{uid}"><rect x="0" y="0" width={W} height={zeroY} /></clipPath>
 						<clipPath id="dn-{uid}"><rect x="0" y={zeroY} width={W} height={BOT_H - zeroY} /></clipPath>
 					</defs>
-					<rect x="0" y={bandY1} width={W} height={bandY2 - bandY1} fill="#22c55e" fill-opacity="0.12" />
-					<polygon points={tsbArea} fill="#14b8a6" fill-opacity="0.28" clip-path="url(#up-{uid})" />
-					<polygon points={tsbArea} fill="#f59e0b" fill-opacity="0.28" clip-path="url(#dn-{uid})" />
+					<rect x="0" y={bandY1} width={W} height={bandY2 - bandY1} fill="var(--color-chart-taper)" fill-opacity="0.12" />
+					<polygon points={tsbArea} fill="var(--color-chart-tsb)" fill-opacity="0.28" clip-path="url(#up-{uid})" />
+					<polygon points={tsbArea} fill="var(--color-chart-atl)" fill-opacity="0.28" clip-path="url(#dn-{uid})" />
 					<line x1="0" x2={W} y1={zeroY} y2={zeroY} stroke="currentColor" stroke-opacity="0.25" vector-effect="non-scaling-stroke" />
-					<polyline points={toPolyline(tsb, layout, layout.bottom, W, BOT_H)} fill="none" stroke="#14b8a6" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+					<polyline points={toPolyline(tsb, layout, layout.bottom, W, BOT_H)} fill="none" stroke="var(--color-chart-tsb)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
 					{#each future as f (f.key)}
 						<polyline points={futureLine(f.points)} fill="none" stroke={SCEN_COLOR[f.key]} stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
 					{/each}

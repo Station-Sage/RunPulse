@@ -4,7 +4,7 @@
 	import { providerHint } from '$lib/providerHint';
 	import type { ProviderCoverage, ProviderStatusItem, ProviderKey } from '$lib/types';
 
-	const LEVEL_COLOR = ['#1f2937', '#0f766e', '#14b8a6', '#5eead4'] as const;
+	const LEVEL_COLOR = ['var(--color-heat-0)', 'var(--color-heat-1)', 'var(--color-heat-3)', 'var(--color-heat-4)'] as const;
 
 	let { coverage, status }: { coverage: ProviderCoverage; status: ProviderStatusItem[] } = $props();
 
@@ -25,7 +25,7 @@
 			<!-- 헤더 -->
 			<div class="flex items-center gap-2">
 				<span
-					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white {providerBadgeClass(
+					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(
 						item.provider as ProviderKey
 					)}"
 				>

@@ -30,7 +30,7 @@
 		position: absolute;
 		inset: 0;
 		transform: translateX(-100%);
-		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent);
+		background: linear-gradient(90deg, transparent, var(--color-shimmer), transparent);
 		animation: skeleton-sweep 1.2s ease-in-out infinite;
 	}
 	@media (prefers-reduced-motion: reduce) {

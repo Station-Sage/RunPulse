@@ -14,9 +14,9 @@
 	} = $props();
 
 	const COLORS: Record<SemanticStatus, string> = {
-		excellent: '#22c55e', good: '#22c55e', neutral: '#14b8a6', caution: '#f59e0b', poor: '#ef4444'
+		excellent: 'var(--color-semantic-green)', good: 'var(--color-semantic-green)', neutral: 'var(--color-semantic-teal)', caution: 'var(--color-semantic-amber)', poor: 'var(--color-semantic-red)'
 	};
-	const color = $derived(entry?.status ? COLORS[entry.status] ?? '#14b8a6' : '#14b8a6');
+	const color = $derived(entry?.status ? COLORS[entry.status] ?? 'var(--color-semantic-teal)' : 'var(--color-semantic-teal)');
 	const badge = $derived(freshnessBadgeText(entry?.freshness));
 	const delta = $derived(deltaText(entry?.delta_1d));
 
@@ -56,9 +56,9 @@
 			<span class="font-mono text-lg font-bold">{Math.round(entry.value)}</span>
 			<div class="relative h-2 w-full overflow-visible rounded-full">
 				<div class="absolute inset-0 flex gap-0.5">
-					<span class="flex-1 rounded-l-full" style="background:#22c55e66"></span>
-					<span class="flex-1" style="background:#f59e0b66"></span>
-					<span class="flex-1 rounded-r-full" style="background:#ef444466"></span>
+					<span class="flex-1 rounded-l-full" style="background: color-mix(in srgb, var(--color-semantic-green) 40%, transparent)"></span>
+					<span class="flex-1" style="background: color-mix(in srgb, var(--color-semantic-amber) 40%, transparent)"></span>
+					<span class="flex-1 rounded-r-full" style="background: color-mix(in srgb, var(--color-semantic-red) 40%, transparent)"></span>
 				</div>
 				<span class="absolute top-1/2 h-3.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-sm"
 					style="left:{trackPct(entry.value)}%;background:{color}"></span>

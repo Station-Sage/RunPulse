@@ -52,7 +52,7 @@
 <div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="metric-breakdown-h" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
 	<button
-		class="absolute inset-0 bg-black/40"
+		class="absolute inset-0 bg-scrim"
 		onclick={onClose}
 		aria-label="닫기"
 	></button>

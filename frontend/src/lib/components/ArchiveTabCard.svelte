@@ -40,8 +40,8 @@
 					<div
 						class="w-full rounded-t"
 						style="height:{Math.max(2, heights[i] * 70)}%; background:{live
-							? 'repeating-linear-gradient(135deg,#5eead4 0 3px,#12897f 3px 6px)'
-							: '#12897f'}"
+							? 'repeating-linear-gradient(135deg,var(--color-heat-4) 0 3px,var(--color-heat-2) 3px 6px)'
+							: 'var(--color-heat-2)'}"
 					></div>
 					<span class="font-mono text-[9px] text-fg-muted">{Number(m.month.slice(5))}</span>
 				</a>

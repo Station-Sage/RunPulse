@@ -44,7 +44,7 @@
 
 <div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="milestones-h" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
-	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
+	<button class="absolute inset-0 bg-scrim" onclick={onClose} aria-label="닫기"></button>
 
 	<!-- 하단 시트 패널 -->
 	<div class="absolute inset-x-0 bottom-0 sheet-bottom flex flex-col rounded-t-2xl bg-surface-1 shadow-lg">

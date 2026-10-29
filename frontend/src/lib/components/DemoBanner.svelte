@@ -20,7 +20,7 @@
 </div>
 
 {#if sheet}
-	<div class="fixed inset-0 z-50 flex items-end bg-black/50" role="presentation" onclick={() => (sheet = false)}>
+	<div class="fixed inset-0 z-50 flex items-end bg-scrim" role="presentation" onclick={() => (sheet = false)}>
 		<!-- svelte-ignore a11y_click_events_have_key_events -- 키보드(Esc·트랩)는 use:modal 이 담당, 클릭은 백드롭 전파 차단용 -->
 		<div
 			class="mx-auto w-full max-w-3xl rounded-t-2xl bg-surface-2 p-5"

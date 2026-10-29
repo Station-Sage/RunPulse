@@ -66,7 +66,7 @@
 				{#if delta}<span class="text-xs {delta.deltaSec < -30 ? 'text-semantic-green' : 'text-fg-muted'}">{delta.label}</span>{/if}
 			</div>
 			<TrendChart
-				series={[{ key: 'pred', label: '예측', color: '#14b8a6', points: pred.history }]}
+				series={[{ key: 'pred', label: '예측', color: 'var(--color-semantic-teal)', points: pred.history }]}
 				height={72}
 				formatValue={(v) => formatDuration(Math.round(v))}
 			/>

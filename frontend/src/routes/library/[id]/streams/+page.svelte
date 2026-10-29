@@ -28,10 +28,10 @@
 
 	const STREAM_DEFS: StreamDef[] = [
 		{ key: 'pace', label: '페이스', color: 'var(--color-series-1)', extract: (p) => toPace(p.speed_ms), unit: '/km' },
-		{ key: 'heart_rate', label: '심박수', color: '#ef4444', extract: (p) => p.heart_rate, unit: 'bpm' },
-		{ key: 'altitude_m', label: '고도', color: '#10b981', extract: (p) => p.altitude_m, unit: 'm' },
-		{ key: 'cadence', label: '케이던스', color: '#f59e0b', extract: (p) => p.cadence, unit: 'spm' },
-		{ key: 'power_watts', label: '파워', color: '#8b5cf6', extract: (p) => p.power_watts, unit: 'W' }
+		{ key: 'heart_rate', label: '심박수', color: 'var(--color-chart-hr)', extract: (p) => p.heart_rate, unit: 'bpm' },
+		{ key: 'altitude_m', label: '고도', color: 'var(--color-chart-alt)', extract: (p) => p.altitude_m, unit: 'm' },
+		{ key: 'cadence', label: '케이던스', color: 'var(--color-chart-cad)', extract: (p) => p.cadence, unit: 'spm' },
+		{ key: 'power_watts', label: '파워', color: 'var(--color-chart-power)', extract: (p) => p.power_watts, unit: 'W' }
 	];
 
 	// 전부 null인 스트림은 숨김

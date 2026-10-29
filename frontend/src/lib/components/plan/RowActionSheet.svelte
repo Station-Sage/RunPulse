@@ -100,7 +100,7 @@
 	];
 </script>
 
-<div class="fixed inset-0 z-[60] bg-black/50" role="presentation" onclick={onClose}></div>
+<div class="fixed inset-0 z-[60] bg-scrim" role="presentation" onclick={onClose}></div>
 <div
 	use:modal={{ onClose, initialFocus: '[data-autofocus]' }}
 	role="dialog"

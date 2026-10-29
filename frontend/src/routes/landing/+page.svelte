@@ -20,7 +20,7 @@
 			Garmin·Strava·Intervals·Runalyze를 오가며 맞추던 숫자, 한 화면에서 근거까지.
 		</h1>
 		<div class="flex flex-wrap gap-2">
-			<a href={demoHref()} class="inline-flex min-h-11 items-center min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white" data-testid="landing-demo">샘플 러너로 둘러보기</a>
+			<a href={demoHref()} class="inline-flex min-h-11 items-center min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-fg-on-accent" data-testid="landing-demo">샘플 러너로 둘러보기</a>
 			<a href={INVITE_HREF} class="inline-flex min-h-11 items-center min-h-11 rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-primary" data-testid="landing-invite">내 데이터로 시작 · 초대 요청</a>
 		</div>
 		<p class="text-xs text-fg-muted">지금은 초대받은 분만 시작할 수 있어요.</p>

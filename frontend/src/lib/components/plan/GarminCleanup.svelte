@@ -42,13 +42,13 @@
 {/if}
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-end bg-black/40 lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-label="Garmin 일정 삭제 확인" use:modal={{ onClose: () => { if (!busy) open = false; }, initialFocus: '[data-autofocus]' }}>
+	<div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-label="Garmin 일정 삭제 확인" use:modal={{ onClose: () => { if (!busy) open = false; }, initialFocus: '[data-autofocus]' }}>
 		<div class="w-full space-y-3 rounded-t-2xl bg-surface-1 p-4 lg:max-w-md lg:rounded-2xl">
 			<p class="text-sm">{confirmText(left)}</p>
-			{#if error}<p class="text-xs text-red-500">{error}</p>{/if}
+			{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 			<div class="flex gap-2">
 				<button class="min-h-11 flex-1 rounded-lg bg-surface-2" data-autofocus disabled={busy} onclick={() => (open = false)}>취소</button>
-				<button class="min-h-11 flex-1 rounded-lg bg-red-600 text-white" disabled={busy} onclick={run}>삭제</button>
+				<button class="min-h-11 flex-1 rounded-lg bg-semantic-red text-fg-on-accent" disabled={busy} onclick={run}>삭제</button>
 			</div>
 		</div>
 	</div>

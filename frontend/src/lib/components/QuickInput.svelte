@@ -97,7 +97,7 @@
 					aria-label={`피로도 ${n}`}
 					onclick={() => pickFatigue(n)}
 					class="h-11 w-full rounded border border-border-subtle text-sm {fatigue === n
-						? 'bg-semantic-teal text-white'
+						? 'bg-semantic-teal text-fg-on-accent'
 						: 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}"
 				>
 					{n}
@@ -126,7 +126,7 @@
 					aria-label={p.label}
 					onclick={() => (pain = p.value)}
 					class="rounded border border-border-subtle px-3 py-1.5 text-sm {pain === p.value
-						? 'bg-semantic-amber text-white'
+						? 'bg-semantic-amber text-fg-on-accent'
 						: 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}"
 				>
 					{p.label}
@@ -146,7 +146,7 @@
 				type="button"
 				onclick={handleSave}
 				disabled={saving}
-				class="rounded bg-semantic-teal px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+				class="rounded bg-semantic-teal px-4 py-1.5 text-sm font-medium text-fg-on-accent disabled:opacity-60"
 			>
 				{saving ? '저장 중…' : '저장'}
 			</button>

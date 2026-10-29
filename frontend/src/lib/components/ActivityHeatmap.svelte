@@ -12,7 +12,7 @@
 	const GAP = 2;
 	const STEP = CELL + GAP;
 	const TOP = 14;
-	const COLORS = ['#1a2536', '#0f5f5a', '#12897f', '#14b8a6', '#5eead4'];
+	const COLORS = ['var(--color-heat-0)', 'var(--color-heat-1)', 'var(--color-heat-2)', 'var(--color-heat-3)', 'var(--color-heat-4)'];
 
 	const grid = $derived(buildHeatmap(data, endDate, 53));
 	const width = $derived(grid.columns * STEP - GAP);
@@ -71,7 +71,7 @@
 						height={CELL}
 						rx="2"
 						fill={COLORS[c.level]}
-						stroke={sel === i ? '#fff' : 'none'}
+						stroke={sel === i ? 'var(--color-fg-primary)' : 'none'}
 						onclick={() => (sel = sel === i ? -1 : i)}
 						onmouseenter={() => (sel = i)}
 					/>
