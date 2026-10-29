@@ -16,7 +16,7 @@
 
 <div class="sticky top-0 z-40 flex items-center justify-between gap-2 bg-semantic-amber/20 px-4 py-2 text-xs text-fg-primary" data-testid="demo-banner">
 	<span>샘플 러너 "민준"의 합성 데이터예요 · 실제 사람 아님</span>
-	<button type="button" class="shrink-0 rounded bg-surface-3 px-2 py-1 font-medium" onclick={start}>내 데이터로 시작</button>
+	<button type="button" class="shrink-0 min-h-11 rounded bg-surface-3 px-3 font-medium" onclick={start}>내 데이터로 시작</button>
 </div>
 
 {#if sheet}
@@ -35,8 +35,8 @@
 			<h2 id="demo-sheet-h" class="font-medium">이건 내 데이터에서 동작해요</h2>
 			<p class="mt-1 text-sm text-fg-secondary">데모에서는 저장·전송·동기화가 실행되지 않아요.</p>
 			<div class="mt-4 flex gap-2">
-				<button type="button" data-autofocus class="flex-1 rounded-lg bg-fg-primary px-3 py-2 text-sm font-medium text-surface-1" onclick={start}>시작하기</button>
-				<button type="button" class="flex-1 rounded-lg border border-border-subtle px-3 py-2 text-sm" onclick={() => (sheet = false)}>계속 둘러보기</button>
+				<button type="button" data-autofocus class="flex-1 min-h-11 rounded-lg bg-fg-primary px-3 py-2 text-sm font-medium text-surface-1" onclick={start}>시작하기</button>
+				<button type="button" class="flex-1 min-h-11 rounded-lg border border-border-subtle px-3 py-2 text-sm" onclick={() => (sheet = false)}>계속 둘러보기</button>
 			</div>
 		</div>
 	</div>

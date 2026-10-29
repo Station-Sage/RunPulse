@@ -133,6 +133,9 @@
 			{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}
 		</section>
 
+		<div class="flex flex-col gap-3 border-t border-border-subtle pt-3 lg:col-start-1 lg:row-start-2">
+			<TodayNextSession nextSession={data.nextSession} raceHub={data.raceHub} week={data.today.week_compliance} today={status.date} onRetry={retry} />
+		</div>
 
 		<section class="flex flex-col gap-3 lg:col-start-2 lg:row-start-1">
 			<h2 class="sr-only">컨디션</h2>
@@ -162,10 +165,6 @@
 				onMilestones={() => { showMilestonesPanel = true; }}
 			/>
 		</section>
-
-		<div class="flex flex-col gap-3 border-t border-border-subtle pt-3 lg:col-start-1 lg:row-start-2">
-			<TodayNextSession nextSession={data.nextSession} raceHub={data.raceHub} week={data.today.week_compliance} today={status.date} onRetry={retry} />
-		</div>
 
 		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</h2>

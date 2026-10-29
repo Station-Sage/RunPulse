@@ -89,9 +89,9 @@
 
 	{#if provider === 'garmin'}
 		<p class="text-xs text-fg-secondary">Garmin은 아직 이 화면에서 연결할 수 없어요. 기존 설정 화면에서 연결해 주세요.</p>
-		<a class="text-xs underline" href="/connect/garmin">Garmin 연결 화면</a>
+		<a class="inline-flex min-h-11 items-center text-xs underline" href="/connect/garmin">Garmin 연결 화면</a>
 	{:else if provider === 'strava'}
-		<button type="button" class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy} onclick={oauth}>
+		<button type="button" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy} onclick={oauth}>
 			{connected ? 'Strava 재연결' : 'Strava로 연결'}
 		</button>
 	{:else if needsKey}
@@ -104,7 +104,7 @@
 			<label class="text-xs text-fg-secondary">{provider === 'runalyze' ? 'API 토큰' : 'API 키'}
 				<input type="password" class="mt-1 w-full rounded border border-border-subtle bg-surface-1 p-2 text-sm" bind:value={apiKey} autocomplete="off" />
 			</label>
-			<button type="submit" class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy || !apiKey.trim()}>
+			<button type="submit" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy || !apiKey.trim()}>
 				{connected ? '키 바꾸기' : '연결'}
 			</button>
 		</form>

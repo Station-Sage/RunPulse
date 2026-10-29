@@ -15,7 +15,7 @@
 
 <div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="engine-sheet-h" use:modal={{ onClose }}>
 	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
-	<div class="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col gap-3 rounded-t-2xl bg-surface-1 p-4 shadow-lg">
+	<div class="absolute inset-x-0 bottom-0 sheet-bottom flex flex-col gap-3 rounded-t-2xl bg-surface-1 p-4 shadow-lg">
 		<h2 id="engine-sheet-h" class="font-medium">이 답변의 엔진</h2>
 		<dl class="grid grid-cols-[5rem_1fr] gap-y-1 text-sm">
 			<dt class="text-fg-muted">표시</dt><dd>{engine.label}</dd>

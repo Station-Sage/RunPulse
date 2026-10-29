@@ -37,7 +37,7 @@
 	const SORTS = [['date', '최신순'], ['distance', '거리순'], ['pace', '페이스순'], ['load', '부하순']] as const;
 	const monthLabel = (m: string) => `${m.slice(0, 4)}년 ${Number(m.slice(5))}월`;
 	const chip = (on: boolean) =>
-		`rounded-full border px-3 py-1 text-xs ${on ? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary' : 'border-border-subtle text-fg-muted hover:text-fg-secondary'}`;
+		`inline-flex min-h-11 items-center rounded-full border px-3 py-1 text-xs ${on ? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary' : 'border-border-subtle text-fg-muted hover:text-fg-secondary'}`;
 	const sports = $derived(facets?.sports.length ? facets.sports : [{ key: 'running', label: '러닝', n: 0 }]);
 </script>
 
@@ -81,7 +81,7 @@
 			bind:value={q}
 			oninput={onsearch}
 			placeholder="활동 이름 검색"
-			class="min-w-0 flex-1 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
+			class="min-w-0 flex-1 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 			aria-label="활동 검색"
 		/>
 		<select

@@ -84,3 +84,23 @@ body {
 		--shell-bottom: 0px;
 	}
 }
+
+/* A11Y-L 7단계 — 터치 타깃 44px, 하단 시트 높이 상한, 가로 스크롤 영역 */
+.tap {
+	min-height: 2.75rem;
+	min-width: 2.75rem;
+}
+.sheet-bottom {
+	max-height: 85dvh;
+	overflow-y: auto;
+	padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.scroll-x {
+	overflow-x: auto;
+	scrollbar-width: thin;
+}
+input[type='checkbox'],
+input[type='radio'] {
+	width: 1.25rem;
+	height: 1.25rem;
+}

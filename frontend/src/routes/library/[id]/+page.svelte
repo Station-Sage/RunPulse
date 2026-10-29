@@ -191,7 +191,7 @@
 			<ActivityFeedbackSheet activityId={core.id} existing={feedback} onSaved={(fb) => (feedback = fb)} onClose={() => (sheetOpen = false)} />
 		{:else if feedback}
 			<button type="button" onclick={() => (sheetOpen = true)} data-testid="feedback-summary"
-				class="self-start rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3">
+				class="self-start min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3">
 				{feedback.rpe ? `RPE ${feedback.rpe}` : ''}{feedback.pain && feedback.pain !== 'none' ? ` · 통증 ${feedback.pain}` : ''}{feedback.note ? ` · ${feedback.note}` : ''}
 			</button>
 		{/if}

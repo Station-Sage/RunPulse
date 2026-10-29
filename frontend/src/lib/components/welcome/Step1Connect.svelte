@@ -47,12 +47,12 @@
 		{#each rows as r (r.id)}
 			<li class="flex items-center justify-between rounded-lg border border-border-subtle bg-surface-2 p-3 text-sm">
 				<span>{r.label} <span class="text-xs text-fg-muted">{connected.includes(r.id) ? '연결됨' : r.note}</span></span>
-				{#if !connected.includes(r.id)}<a class="text-xs underline" href={r.href}>연결 ↗</a>{/if}
+				{#if !connected.includes(r.id)}<a class="inline-flex min-h-11 items-center text-xs underline" href={r.href}>연결 ↗</a>{/if}
 			</li>
 		{/each}
 		<li class="flex items-center justify-between rounded-lg border border-border-subtle bg-surface-2 p-3 text-sm">
 			<span>Strava <span class="text-xs text-fg-muted">{connected.includes('strava') ? '연결됨' : 'OAuth'}</span></span>
-			{#if !connected.includes('strava')}<button type="button" class="text-xs underline" onclick={strava}>연결</button>{/if}
+			{#if !connected.includes('strava')}<button type="button" class="inline-flex min-h-11 items-center text-xs underline" onclick={strava}>연결</button>{/if}
 		</li>
 	</ul>
 	{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}

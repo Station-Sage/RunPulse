@@ -19,7 +19,7 @@
 				type="button"
 				role="tab"
 				aria-selected={tab === k}
-				class="rounded-full px-3 py-1 text-xs {tab === k ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted'}"
+				class="min-h-11 rounded-full px-3 text-xs {tab === k ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted'}"
 				onclick={() => (tab = k as typeof tab)}>{label}</button
 			>
 		{/each}

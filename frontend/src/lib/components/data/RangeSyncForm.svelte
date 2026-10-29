@@ -63,10 +63,10 @@
 				<ul class="text-xs text-fg-secondary" aria-label="추정 결과">{#each view.lines as l}<li>{l}</li>{/each}</ul>
 			{/if}
 			{#if view?.canStart}
-				<button type="button" class="rounded-lg bg-fg-primary px-4 py-2 text-sm font-medium text-surface-1 disabled:opacity-50"
+				<button type="button" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm font-medium text-surface-1 disabled:opacity-50"
 					disabled={syncStore.triggering} onclick={start}>이 기간 동기화 시작</button>
 			{:else}
-				<button type="button" class="rounded-lg border border-border-subtle px-4 py-2 text-sm disabled:opacity-50"
+				<button type="button" class="min-h-11 rounded-lg border border-border-subtle px-4 py-2 text-sm disabled:opacity-50"
 					disabled={busy || !current} onclick={check}>{busy ? '확인 중…' : '요청 수 확인'}</button>
 			{/if}
 		</div>

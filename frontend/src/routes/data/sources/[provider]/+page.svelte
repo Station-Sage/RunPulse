@@ -59,7 +59,7 @@
 		{#if d.connection === 'connected'}
 			<button
 				type="button"
-				class="rounded-lg bg-fg-primary px-4 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-50"
+				class="min-h-11 rounded-lg bg-fg-primary px-4 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-50"
 				disabled={!d.enabled || !!d.running || syncStore.triggering}
 				onclick={() => runTrigger([d.provider])}
 			>

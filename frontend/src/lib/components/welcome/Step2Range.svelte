@@ -51,7 +51,7 @@
 				{etaLabel(r.label, eta[r.key])}{r.recommended ? ' (추천)' : ''}
 			</label>
 		{/each}
-		<button type="button" class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy} onclick={start}>가져오기 시작</button>
+		<button type="button" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy} onclick={start}>가져오기 시작</button>
 	{/if}
 	{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 </div>

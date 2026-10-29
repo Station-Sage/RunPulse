@@ -107,7 +107,7 @@
 	aria-modal="true"
 	aria-labelledby="row-action-h"
 	data-testid="row-action-sheet"
-	class="fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border-subtle bg-surface-1 p-4 lg:inset-x-auto lg:bottom-auto lg:right-6 lg:top-24 lg:w-80 lg:rounded-2xl"
+	class="fixed inset-x-0 bottom-0 z-[61] sheet-bottom rounded-t-2xl border border-border-subtle bg-surface-1 p-4 lg:inset-x-auto lg:bottom-auto lg:right-6 lg:top-24 lg:w-80 lg:rounded-2xl"
 >
 	<h2 id="row-action-h" class="text-sm font-semibold">
 		{workoutLabel(workout.workout_type)}{km ? ` ${km}km` : ''} · {workout.date.slice(5)}
@@ -134,7 +134,7 @@
 					disabled={!ok}
 					data-testid="row-op-{o.key}"
 					data-autofocus={o.key === 'reduce' ? '' : undefined}
-					class="flex min-h-11 flex-col items-start rounded-lg border px-3 py-2 text-left disabled:opacity-40 {op === o.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}"
+					class="flex min-h-11 flex-col items-start min-h-11 rounded-lg border px-3 py-2 text-left disabled:opacity-40 {op === o.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}"
 					onclick={() => (op = o.key)}
 				>
 					<span class="text-sm font-medium">{o.label}</span>

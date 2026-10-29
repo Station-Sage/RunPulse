@@ -49,7 +49,7 @@
 			{#if nearest}
 				<button
 					type="button"
-					class="rounded-lg border border-border-subtle bg-surface-2 px-4 py-2 text-sm text-fg-secondary"
+					class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-4 py-2 text-sm text-fg-secondary"
 					onclick={() => go(nearest)}>가까운 기록({dateLabel(nearest)})으로 이동</button
 				>
 			{/if}

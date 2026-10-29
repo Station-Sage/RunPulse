@@ -36,6 +36,13 @@
 		hint = '';
 		if (m) onjump(m);
 	}
+	function key(e: KeyboardEvent) {
+		const i = months.findIndex((m) => m.month === current);
+		const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: months.length - 1 }[e.key];
+		if (to === undefined) return;
+		e.preventDefault();
+		onjump(months[Math.min(months.length - 1, Math.max(0, to))].month);
+	}
 	const marks = $derived(
 		[...new Set(months.map((m) => m.month.slice(0, 4)))].map((y) => ({
 			y,
@@ -54,6 +61,7 @@
 		aria-valuenow={months.findIndex((m) => m.month === current)}
 		tabindex="0"
 		data-testid="scrubber"
+		onkeydown={key}
 		onpointerdown={down}
 		onpointermove={dragging ? move : undefined}
 		onpointerup={up}

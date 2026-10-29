@@ -37,9 +37,9 @@
 		<div class="flex flex-wrap gap-2">
 			{#each todos as todo (todo.id)}
 				{#if todo.kind === 'chat'}
-					<button type="button" onclick={() => onStart(todo.target)} disabled={sending} class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50">{todo.label}</button>
+					<button type="button" onclick={() => onStart(todo.target)} disabled={sending} class="inline-flex min-h-11 items-center rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50">{todo.label}</button>
 				{:else}
-					<a href="{base}{todo.target}" class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3">{todo.label}</a>
+					<a href="{base}{todo.target}" class="inline-flex min-h-11 items-center rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3">{todo.label}</a>
 				{/if}
 			{/each}
 		</div>
@@ -55,7 +55,7 @@
 					data-testid="home-chip"
 					onclick={() => onStart(chip)}
 					disabled={sending}
-					class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50"
+					class="inline-flex min-h-11 items-center rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-sm text-fg-secondary hover:bg-surface-3 disabled:opacity-50"
 				>
 					{chip.text}
 				</button>

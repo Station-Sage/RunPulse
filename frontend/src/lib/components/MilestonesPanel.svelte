@@ -47,7 +47,7 @@
 	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
 
 	<!-- 하단 시트 패널 -->
-	<div class="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-surface-1 shadow-lg">
+	<div class="absolute inset-x-0 bottom-0 sheet-bottom flex flex-col rounded-t-2xl bg-surface-1 shadow-lg">
 		<!-- 헤더 -->
 		<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
 			<h2 id="milestones-h" class="font-medium">전체 마일스톤</h2>

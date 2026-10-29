@@ -67,7 +67,7 @@
 		type="button"
 		data-testid="dev-switch-open"
 		onclick={() => (dialogOpen = true)}
-		class="block w-full rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2"
+		class="block w-full min-h-11 rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2"
 	>
 		사용자 전환 (개발)
 	</button>
@@ -128,7 +128,7 @@
 					<button
 						type="button"
 						onclick={() => (dialogOpen = false)}
-						class="rounded-lg px-3 py-2 text-sm text-fg-secondary hover:bg-surface-2"
+						class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-secondary hover:bg-surface-2"
 					>
 						취소
 					</button>
@@ -136,7 +136,7 @@
 						type="submit"
 						disabled={busy || !!problem || !target}
 						data-testid="dev-switch-submit"
-						class="rounded-lg bg-surface-3 px-3 py-2 text-sm text-fg-primary hover:bg-border-subtle disabled:opacity-40"
+						class="min-h-11 rounded-lg bg-surface-3 px-3 py-2 text-sm text-fg-primary hover:bg-border-subtle disabled:opacity-40"
 					>
 						전환
 					</button>

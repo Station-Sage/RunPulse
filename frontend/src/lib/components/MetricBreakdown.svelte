@@ -58,7 +58,7 @@
 	></button>
 
 	<!-- 하단 시트 패널 -->
-	<div class="absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col rounded-t-2xl bg-surface-1 shadow-lg">
+	<div class="absolute inset-x-0 bottom-0 sheet-bottom flex flex-col rounded-t-2xl bg-surface-1 shadow-lg">
 		<!-- 헤더 -->
 		<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
 			<h2 id="metric-breakdown-h" class="font-medium">

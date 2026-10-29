@@ -1,7 +1,4 @@
 {
-	"j": {
-		"src/lib/components/activities/YearMonthScrubber.svelte": 1
-	},
 	"b": {
 		"src/lib/components/data/RecomputeSummary.svelte": 1
 	}

@@ -66,7 +66,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="scope-sheet-h"
-		class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 shadow-lg"
+		class="absolute inset-x-0 bottom-0 flex sheet-bottom flex-col gap-3 rounded-t-2xl bg-surface-1 p-4 shadow-lg"
 	>
 		<h2 id="scope-sheet-h" class="font-medium">{requireConsent ? 'AI로 질문을 보내기 전에' : '전송 범위'}</h2>
 		{#if requireConsent}
@@ -103,14 +103,14 @@
 		{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 
 		<div class="flex justify-end gap-2 text-sm">
-			<button type="button" onclick={onClose} class="rounded-lg px-3 py-2 text-fg-secondary">취소</button>
+			<button type="button" onclick={onClose} class="min-h-11 rounded-lg px-3 py-2 text-fg-secondary">취소</button>
 			<button
 				type="button"
 				onclick={save}
 				disabled={saving}
 				data-testid="consent-save"
 				data-autofocus
-				class="rounded-lg bg-fg-primary px-4 py-2 text-surface-1 disabled:opacity-40"
+				class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-surface-1 disabled:opacity-40"
 			>{requireConsent ? '동의하고 보내기' : '저장'}</button>
 		</div>
 	</div>

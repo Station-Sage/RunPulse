@@ -8,7 +8,7 @@
 	let { summary, onRetry }: { summary: RaceSummary | null | undefined; onRetry?: () => void } = $props();
 
 	const parts = $derived(summary ? raceSummaryParts(summary) : []);
-	const cls = 'flex items-center justify-between gap-2 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm';
+	const cls = 'flex items-center justify-between gap-2 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm';
 </script>
 
 {#if summary === undefined}

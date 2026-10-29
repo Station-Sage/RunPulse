@@ -43,7 +43,7 @@
 		placeholder="무엇이든 물어보세요…"
 		rows={3}
 		disabled={sending}
-		class="w-full resize-none rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50"
+		class="w-full resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50"
 	></textarea>
 	<div class="mt-1">
 		<EngineLine {engine} {onOpenScope} />
@@ -53,7 +53,7 @@
 			type="button"
 			onclick={onCancel}
 			disabled={sending}
-			class="rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-secondary disabled:opacity-50"
+			class="min-h-11 rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-secondary disabled:opacity-50"
 		>
 			취소
 		</button>
@@ -61,7 +61,7 @@
 			type="button"
 			onclick={submitNew}
 			disabled={sending || !newInput.trim()}
-			class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
+			class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
 		>
 			{sending ? '전송 중…' : '전송'}
 		</button>

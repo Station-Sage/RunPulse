@@ -120,7 +120,7 @@
 	{:else}
 		<button
 			type="button"
-			class="mt-2 text-xs text-fg-secondary underline"
+			class="mt-2 min-h-11 text-xs text-fg-secondary underline"
 			onclick={() => {
 				input = row.manual ? String(row.manual.value) : '';
 				editing = true;

@@ -24,7 +24,7 @@
 				href={tab.href}
 				aria-current={active ? 'page' : undefined}
 				class={side
-					? `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${active ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted hover:bg-surface-3'}`
+					? `flex items-center gap-3 min-h-11 rounded-lg px-3 py-2.5 text-sm ${active ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted hover:bg-surface-3'}`
 					: `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${active ? 'text-fg-primary' : 'text-fg-muted'}`}
 			>
 				<Icon name={tab.icon} />

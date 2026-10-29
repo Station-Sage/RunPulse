@@ -35,14 +35,14 @@
 			onkeydown={handleKeydown}
 			placeholder="메시지 입력…"
 			rows={1}
-			class="flex-1 resize-none rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none"
+			class="flex-1 resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none"
 			style="min-height:2.25rem; max-height:8rem; overflow-y:auto;"
 		></textarea>
 		<button
 			type="button"
 			onclick={onSend}
 			disabled={busy || !value.trim()}
-			class="rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
+			class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-40"
 			aria-label="전송"
 		>
 			전송

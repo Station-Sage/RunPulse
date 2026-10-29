@@ -12,7 +12,7 @@
 	{#if activePlan}
 		<a
 			href="{base}/coach/plan/{activePlan.goal.id}"
-			class="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 hover:bg-surface-3"
+			class="flex items-center justify-between min-h-11 rounded-lg bg-surface-2 px-3 py-2 hover:bg-surface-3"
 		>
 			<div class="min-w-0">
 				<p class="truncate text-sm font-medium">{activePlan.goal.name}</p>

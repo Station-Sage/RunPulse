@@ -36,7 +36,7 @@
 
 {#snippet row(r: RaceRow, review: boolean)}
 	<li>
-		<button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm hover:bg-surface-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => open(r, review)}>
+		<button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm hover:bg-surface-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => open(r, review)}>
 			<span class="min-w-0">
 				<span class="block truncate text-fg-primary"><span class="mr-1 text-xs text-fg-muted">{r.priority}</span>{r.name}</span>
 				<span class="block text-xs text-fg-secondary">{r.race_date}{review || !z ? '' : ` · ${dDayLabel(r.race_date, z.today)}`} · {kmLabel(r.distance_km)}{goalLine(r) ? ` · ${goalLine(r)}` : ''}</span>

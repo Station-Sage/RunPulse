@@ -30,7 +30,7 @@
 		<button
 			type="button"
 			aria-pressed={data.days === p.days}
-			class="rounded-full border px-3 py-1 text-xs {data.days === p.days
+			class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 text-xs {data.days === p.days
 				? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
 				: 'border-border-subtle text-fg-secondary'}"
 			onclick={() => selectPeriod(p.days)}

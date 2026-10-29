@@ -66,7 +66,7 @@
 		<button
 			type="button"
 			onclick={() => (editing = true)}
-			class="w-full rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3"
+			class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3"
 		>
 			피로 {existing?.fatigue ?? '—'} · 통증 {painLabel || '—'} ✓
 		</button>
@@ -74,7 +74,7 @@
 		<button
 			type="button"
 			onclick={() => (editing = true)}
-			class="w-full rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3"
+			class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3"
 		>
 			오늘 컨디션 입력 →
 		</button>

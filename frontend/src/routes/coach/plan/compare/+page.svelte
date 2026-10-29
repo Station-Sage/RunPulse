@@ -81,7 +81,7 @@
 				</ul>
 				<a
 					href="{base}/coach/plan/{created.goalId}"
-					class="inline-block rounded-lg bg-fg-primary px-4 py-2 text-sm font-medium text-surface-1"
+					class="inline-block min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm font-medium text-surface-1"
 				>
 					계획 보기 →
 				</a>

@@ -44,7 +44,7 @@
 	<div class="flex flex-col items-center gap-3 px-4 py-16 text-center">
 		<p class="text-base text-fg-primary">아직 가져온 러닝이 없어요</p>
 		<p class="text-sm text-fg-muted">소스를 연결하고 동기화하면 여기에 내 기록이 쌓여요.</p>
-		<a href="{base}/data/settings" class="rounded-lg bg-surface-3 px-4 py-2 text-sm text-fg-primary">소스 연결하기</a>
+		<a href="{base}/data/settings" class="min-h-11 rounded-lg bg-surface-3 px-4 py-2 text-sm text-fg-primary">소스 연결하기</a>
 	</div>
 {:else}
 	<div class="flex flex-col gap-5 pb-8">

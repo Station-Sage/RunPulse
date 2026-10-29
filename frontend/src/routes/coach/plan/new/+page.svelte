@@ -94,7 +94,7 @@
 					<button
 						type="button"
 						onclick={() => (selectedKm = d.km)}
-						class="rounded-full border px-4 py-1.5 text-sm transition-colors
+						class="inline-flex min-h-11 items-center rounded-full border px-4 py-1.5 text-sm transition-colors
 							{selectedKm === d.km
 							? 'border-fg-primary bg-fg-primary text-surface-1'
 							: 'border-border-subtle bg-surface-2 text-fg-secondary hover:bg-surface-3'}"
@@ -115,7 +115,7 @@
 						type="button"
 						aria-pressed={runDays.includes(i)}
 						onclick={() => (runDays = toggleWeekday(runDays, i))}
-						class="h-9 w-9 rounded-full border text-sm transition-colors
+						class="h-11 w-11 rounded-full border text-sm transition-colors
 							{runDays.includes(i)
 							? 'border-fg-primary bg-fg-primary text-surface-1'
 							: 'border-border-subtle bg-surface-2 text-fg-secondary hover:bg-surface-3'}"
@@ -140,7 +140,7 @@
 				id="race-date"
 				type="date"
 				bind:value={raceDate}
-				class="rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary focus:outline-none"
+				class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary focus:outline-none"
 			/>
 		</div>
 
@@ -165,7 +165,7 @@
 						placeholder="HH"
 						min="0"
 						max="23"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
 					/>
 					<span class="text-fg-muted">:</span>
 					<input
@@ -174,7 +174,7 @@
 						placeholder="MM"
 						min="0"
 						max="59"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
 					/>
 					<span class="text-fg-muted">:</span>
 					<input
@@ -183,7 +183,7 @@
 						placeholder="SS"
 						min="0"
 						max="59"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
 					/>
 				</div>
 			{/if}
@@ -204,7 +204,7 @@
 						min="0"
 						max={REPORTED_MAX_KM.weekly}
 						step="0.1"
-						class="w-20 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
 					/>
 					km
 				</label>
@@ -218,7 +218,7 @@
 						min="0"
 						max={REPORTED_MAX_KM.long}
 						step="0.1"
-						class="w-20 rounded-lg border border-border-subtle bg-surface-2 px-2 py-1.5 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
 					/>
 					km
 				</label>
@@ -233,7 +233,7 @@
 			type="button"
 			onclick={handleSubmit}
 			disabled={loading || selectedKm == null || runDays.length === 0}
-			class="self-start rounded-lg bg-fg-primary px-6 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-40"
+			class="self-start min-h-11 rounded-lg bg-fg-primary px-6 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-40"
 		>
 			{loading ? '분석 중…' : '프로그램 생성 →'}
 		</button>

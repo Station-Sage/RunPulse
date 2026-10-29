@@ -130,7 +130,7 @@
 	<div class="flex gap-2 border-b border-border-subtle px-4 py-2">
 		{#each PERIODS as p}
 			<button
-				class="rounded-full px-3 py-1 text-xs {data.period === p.key
+				class="min-h-11 rounded-full px-3 text-xs {data.period === p.key
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
 				onclick={() => selectPeriod(p.key)}

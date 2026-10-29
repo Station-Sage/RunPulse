@@ -21,7 +21,7 @@
 		aria-label="이전 기록"
 		disabled={!detail.nav.prev}
 		onclick={() => go(detail.nav.prev)}
-		class="h-9 w-9 rounded-full text-lg text-fg-secondary disabled:opacity-30">‹</button
+		class="tap rounded-full text-lg text-fg-secondary disabled:opacity-30">‹</button
 	>
 	<h1 class="text-base font-semibold">
 		{dateLabel(detail.date)}{#if detail.is_today}<span class="ml-1 text-xs font-normal text-fg-muted">오늘</span>{/if}
@@ -31,7 +31,7 @@
 		aria-label="다음 기록"
 		disabled={!detail.nav.next}
 		onclick={() => go(detail.nav.next)}
-		class="h-9 w-9 rounded-full text-lg text-fg-secondary disabled:opacity-30">›</button
+		class="tap rounded-full text-lg text-fg-secondary disabled:opacity-30">›</button
 	>
 </div>
 <div class="flex justify-between px-6 pb-1 pt-2" role="group" aria-label="이번 주">

@@ -251,7 +251,7 @@
 
 	{#if hasMore}
 		<div bind:this={sentinel} class="flex justify-center px-4 py-6">
-			<button type="button" onclick={loadMore} disabled={loading} class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2 text-sm text-fg-secondary disabled:opacity-50">
+			<button type="button" onclick={loadMore} disabled={loading} class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-6 py-2 text-sm text-fg-secondary disabled:opacity-50">
 				{loading ? '불러오는 중…' : '더 불러오기'}
 			</button>
 		</div>

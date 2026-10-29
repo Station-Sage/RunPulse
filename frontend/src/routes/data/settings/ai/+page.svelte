@@ -74,11 +74,11 @@
 					</p>
 					<div class="mt-2 flex gap-2">
 						<input type="password" autocomplete="off" placeholder="새 API 키" bind:value={drafts[p.provider]}
-							class="min-w-0 flex-1 rounded border border-border-subtle bg-surface-1 px-2 py-1 text-sm" />
-						<button class="rounded border border-border-subtle px-2 py-1 text-sm disabled:opacity-40"
+							class="min-h-11 min-w-0 flex-1 rounded border border-border-subtle bg-surface-1 px-2 text-sm" />
+						<button class="min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
 							disabled={busy || !drafts[p.provider]?.trim()}
 							onclick={() => save({ keys: { [p.provider]: drafts[p.provider] } })}>저장</button>
-						<button class="rounded border border-border-subtle px-2 py-1 text-sm disabled:opacity-40"
+						<button class="min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
 							disabled={p.key_state === 'missing'} onclick={() => test(p.provider)}>연결 테스트</button>
 					</div>
 					{#if results[p.provider]}<p class="mt-1 text-xs text-fg-secondary">{results[p.provider]}</p>{/if}

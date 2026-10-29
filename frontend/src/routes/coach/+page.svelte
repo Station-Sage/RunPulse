@@ -101,7 +101,7 @@
 			<button
 				type="button"
 				onclick={() => (isCreating = true)}
-				class="rounded-lg border border-border-subtle bg-surface-2 px-6 py-2.5 text-sm font-medium text-fg-primary"
+				class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-6 py-2.5 text-sm font-medium text-fg-primary"
 			>
 				+ 새 대화 시작
 			</button>

@@ -20,14 +20,14 @@
 			bind:value={q}
 			placeholder="활동 이름·메모 검색"
 			aria-label="활동 검색"
-			class="h-10 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary placeholder:text-fg-muted"
+			class="h-11 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary placeholder:text-fg-muted"
 		/>
 	</form>
 	<div class="flex flex-wrap gap-2">
 		{#each QUICK_CHIPS as c (c.query)}
 			<a
 				href="{base}/library/activities?{c.query}"
-				class="rounded-full border border-border-subtle bg-surface-2 px-3 py-1.5 text-xs text-fg-secondary hover:bg-surface-3"
+				class="inline-flex min-h-11 items-center rounded-full border border-border-subtle bg-surface-2 px-3 py-1.5 text-xs text-fg-secondary hover:bg-surface-3"
 				>{c.label}</a
 			>
 		{/each}

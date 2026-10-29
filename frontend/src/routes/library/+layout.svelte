@@ -26,7 +26,7 @@
 			<a
 				href="{base}{t.href}"
 				aria-current={isActive(t) ? 'page' : undefined}
-				class="flex flex-1 items-center justify-center text-sm {isActive(t)
+				class="flex min-h-11 flex-1 items-center justify-center text-sm {isActive(t)
 					? 'border-b-2 border-fg-primary font-medium text-fg-primary'
 					: 'text-fg-muted hover:text-fg-secondary'}">{t.label}</a
 			>

@@ -54,7 +54,7 @@
 				<button
 					type="button"
 					onclick={openSyncPanel}
-					class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-fg-primary hover:bg-surface-2"
+					class="flex w-full items-center gap-2 min-h-11 rounded-lg px-3 py-2 text-left text-sm text-fg-primary hover:bg-surface-2"
 				>
 					<span aria-hidden="true">{summary.glyph}</span>
 					<span class="truncate">{summary.text}</span>
@@ -67,7 +67,7 @@
 					<a
 						href="{base}{link.href}"
 						onclick={onClose}
-						class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+						class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 					>
 						{link.label}
 					</a>
@@ -79,7 +79,7 @@
 				<a
 					href="{base}/data"
 					onclick={onClose}
-					class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+					class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 				>
 					데이터 (동기화·소스)
 				</a>
@@ -88,7 +88,7 @@
 					href="{base}{EXPORT_PATH}"
 					onclick={onClose}
 					data-testid="menu-export-link"
-					class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+					class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 				>
 					{EXPORT_LABEL}
 				</a>
@@ -96,7 +96,7 @@
 					<a
 						href="{base}{link.href}"
 						onclick={onClose}
-						class="rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+						class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
 					>
 						{link.label}
 					</a>

@@ -161,7 +161,7 @@
 		aria-pressed={pins.includes(m.name)}
 		aria-label="{pins.includes(m.name) ? '내 지표에서 해제' : '내 지표에 고정'}"
 		onclick={() => pin(m.name)}
-		class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center text-sm {pins.includes(m.name) ? 'text-semantic-amber' : 'text-fg-muted'}"
+		class="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-sm {pins.includes(m.name) ? 'text-semantic-amber' : 'text-fg-muted'}"
 		>{pins.includes(m.name) ? '★' : '☆'}</button
 	>
 	</div>
@@ -196,14 +196,14 @@
 			oninput={syncQuery}
 			placeholder="지표 검색 ( / )"
 			aria-label="지표 검색"
-			class="w-full rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
+			class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 		/>
 	</div>
 
 	<!-- 카테고리 칩 필터 -->
 	<div class="flex gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
 		<button
-			class="shrink-0 rounded-full px-3 py-1 text-xs {selectedCategory === 'all'
+			class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedCategory === 'all'
 				? 'bg-fg-primary text-surface-1'
 				: 'bg-surface-2 text-fg-secondary'}"
 			onclick={() => pickCategory('all')}
@@ -212,7 +212,7 @@
 		</button>
 		{#each categories as cat}
 			<button
-				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedCategory === cat.category
+				class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedCategory === cat.category
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
 				onclick={() => pickCategory(cat.category)}
@@ -226,14 +226,14 @@
 	{#if availableProviders.length > 1}
 		<div class="flex gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
 			<button
-				class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === 'all'
+				class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedProvider === 'all'
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
 				onclick={() => pickProvider('all')}>모든 Provider</button
 			>
 			{#each availableProviders as key}
 				<button
-					class="shrink-0 rounded-full px-3 py-1 text-xs {selectedProvider === key
+					class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedProvider === key
 						? 'bg-fg-primary text-surface-1'
 						: 'bg-surface-2 text-fg-secondary'}"
 					onclick={() => pickProvider(key)}>{providerLabel(key as ProviderKey)}</button

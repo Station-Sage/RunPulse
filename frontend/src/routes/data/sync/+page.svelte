@@ -83,7 +83,7 @@
 	<div>
 		<button
 			type="button"
-			class="w-full rounded-lg bg-fg-primary px-4 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-50"
+			class="w-full min-h-11 rounded-lg bg-fg-primary px-4 py-2.5 text-sm font-medium text-surface-1 disabled:opacity-50"
 			disabled={syncStore.triggering || anyRunning || connected.length === 0}
 			onclick={() => runTrigger()}
 		>

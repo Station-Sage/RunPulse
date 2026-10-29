@@ -17,7 +17,7 @@
 			{#each pbs as p (p.key)}
 				<a
 					href="{base}/library/{p.activity_id}?from=pb"
-					class="flex flex-col gap-0.5 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 hover:bg-surface-3"
+					class="flex flex-col gap-0.5 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 hover:bg-surface-3"
 				>
 					<span class="text-[11px] text-fg-muted">{p.label}</span>
 					<span class="font-mono text-lg font-bold">{formatDuration(p.time_sec)}</span>
