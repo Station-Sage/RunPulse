@@ -53,9 +53,9 @@ export const PAIRS: Pair[] = [
 	{ fg: 'provider-runalyze-on', bg: 'provider-runalyze', use: 'text' },
 	{ fg: 'provider-runpulse-on', bg: 'provider-runpulse', use: 'text' },
 	{ fg: 'provider-primary-on', bg: 'provider-primary', use: 'text' },
-	{ fg: 'fg-on-accent', bg: 'semantic-teal', use: 'text', themes: ['dark'] },
-	{ fg: 'fg-on-accent', bg: 'semantic-amber', use: 'text', themes: ['dark'] },
-	{ fg: 'fg-on-accent', bg: 'semantic-red', use: 'text', themes: ['dark'] }
+	{ fg: 'fg-on-accent', bg: 'semantic-teal', use: 'text' },
+	{ fg: 'fg-on-accent', bg: 'semantic-amber', use: 'text' },
+	{ fg: 'fg-on-accent', bg: 'semantic-red', use: 'text' }
 ];
 
 // 라이트 s3 하한 — 배경을 더 어둡게 하면 안 되는 여유 0.15 이하 조합(결정 14).

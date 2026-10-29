@@ -108,6 +108,124 @@
 	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* A11Y 공통 4단계 — 테마. 라이트(B 따뜻한 종이) 선언은 아래 두 블록이 같아야 한다(tokenContrast 테스트).
+   시스템 따름(기본)은 media, 수동 선택은 data-theme. 수동 '다크'는 data-theme=dark 로 media 를 막는다. */
+:root {
+	color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+	:root:not([data-theme='dark']) {
+		color-scheme: light;
+		--color-surface-1: #f7f5f2;
+		--color-surface-2: #fffdfa;
+		--color-surface-3: #efebe5;
+		--color-border-subtle: #e6e0d7;
+		--color-fg-primary: #1c1917;
+		--color-fg-secondary: #57534e;
+		--color-fg-muted: #6b645c;
+		--color-semantic-green: #14793a;
+		--color-semantic-teal: #0f766e;
+		--color-semantic-amber: #aa4f09;
+		--color-semantic-red: #b91c1c;
+		--color-semantic-neutral: #57534e;
+		--color-delta-better: #0369a1;
+		--color-delta-worse: #bb3f0c;
+		--color-series-1: #0284c7;
+		--color-series-2: #57534e;
+		--color-series-3: #887f76;
+		--color-border-strong: #887f76;
+		--color-focus-ring: #0369a1;
+		--color-provider-garmin-mark: #0056b3;
+		--color-provider-strava-mark: #f14902;
+		--color-provider-intervals-mark: #7c3aed;
+		--color-provider-runalyze-mark: #159946;
+		--color-provider-runpulse-mark: #6b7280;
+		--color-fg-on-accent: #ffffff;
+		--color-scrim: rgb(0 0 0 / 0.4);
+		--color-shimmer: rgb(28 25 23 / 0.06);
+		--color-hero-glow: rgb(15 118 110 / 0.1);
+		--color-shadow-edge: rgb(28 25 23 / 0.12);
+		--color-chart-ctl: #2563eb;
+		--color-chart-atl: #aa4f09;
+		--color-chart-tsb: #0f766e;
+		--color-chart-taper: #14793a;
+		--color-chart-keep: #78716c;
+		--color-chart-hr: #dc2626;
+		--color-chart-alt: #047857;
+		--color-chart-cad: #aa4f09;
+		--color-chart-power: #7c3aed;
+		--color-route-slow: #2563eb;
+		--color-route-fast: #c2410c;
+		--color-route-low: #0d9085;
+		--color-route-high: #dc2626;
+		--color-route-none: #887f76;
+		--color-route-thumb: #0d9085;
+		--color-heat-0: #e6e0d7;
+		--color-heat-1: #99f6e4;
+		--color-heat-2: #2dd4bf;
+		--color-heat-3: #0d9488;
+		--color-heat-4: #0f766e;
+		--color-zone-low: #0369a1;
+		--color-zone-mid: #aa4f09;
+		--color-zone-high: #be123c;
+	}
+}
+:root[data-theme='light'] {
+	color-scheme: light;
+	--color-surface-1: #f7f5f2;
+	--color-surface-2: #fffdfa;
+	--color-surface-3: #efebe5;
+	--color-border-subtle: #e6e0d7;
+	--color-fg-primary: #1c1917;
+	--color-fg-secondary: #57534e;
+	--color-fg-muted: #6b645c;
+	--color-semantic-green: #14793a;
+	--color-semantic-teal: #0f766e;
+	--color-semantic-amber: #aa4f09;
+	--color-semantic-red: #b91c1c;
+	--color-semantic-neutral: #57534e;
+	--color-delta-better: #0369a1;
+	--color-delta-worse: #bb3f0c;
+	--color-series-1: #0284c7;
+	--color-series-2: #57534e;
+	--color-series-3: #887f76;
+	--color-border-strong: #887f76;
+	--color-focus-ring: #0369a1;
+	--color-provider-garmin-mark: #0056b3;
+	--color-provider-strava-mark: #f14902;
+	--color-provider-intervals-mark: #7c3aed;
+	--color-provider-runalyze-mark: #159946;
+	--color-provider-runpulse-mark: #6b7280;
+	--color-fg-on-accent: #ffffff;
+	--color-scrim: rgb(0 0 0 / 0.4);
+	--color-shimmer: rgb(28 25 23 / 0.06);
+	--color-hero-glow: rgb(15 118 110 / 0.1);
+	--color-shadow-edge: rgb(28 25 23 / 0.12);
+	--color-chart-ctl: #2563eb;
+	--color-chart-atl: #aa4f09;
+	--color-chart-tsb: #0f766e;
+	--color-chart-taper: #14793a;
+	--color-chart-keep: #78716c;
+	--color-chart-hr: #dc2626;
+	--color-chart-alt: #047857;
+	--color-chart-cad: #aa4f09;
+	--color-chart-power: #7c3aed;
+	--color-route-slow: #2563eb;
+	--color-route-fast: #c2410c;
+	--color-route-low: #0d9085;
+	--color-route-high: #dc2626;
+	--color-route-none: #887f76;
+	--color-route-thumb: #0d9085;
+	--color-heat-0: #e6e0d7;
+	--color-heat-1: #99f6e4;
+	--color-heat-2: #2dd4bf;
+	--color-heat-3: #0d9488;
+	--color-heat-4: #0f766e;
+	--color-zone-low: #0369a1;
+	--color-zone-mid: #aa4f09;
+	--color-zone-high: #be123c;
+}
+
 /* A11Y-8 — 전역 포커스 링. 개별 outline-* 클래스는 두지 않는다. */
 :focus-visible {
 	outline: 2px solid var(--color-focus-ring);

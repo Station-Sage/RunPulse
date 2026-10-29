@@ -52,6 +52,7 @@ export function colorLiterals(text) {
 test('색 리터럴 없음 — 토큰(var(--color-*))·시맨틱 클래스만', () => {
 	const bad = [];
 	for (const f of srcFiles('src')) {
+		if (f.endsWith('lib/theme/theme.ts')) continue; // theme-color meta 값(브라우저 UI 색)은 토큰이 아니라 리터럴
 		const h = colorLiterals(readFileSync(f, 'utf8'));
 		if (h.length) bad.push(`${f}: ${h.join(' ')}`);
 	}

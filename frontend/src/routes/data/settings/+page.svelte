@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import ThemeSwitch from '$lib/components/ui/ThemeSwitch.svelte';
 	import McpTokenCard from '$lib/components/McpTokenCard.svelte';
 	let { data } = $props();
 </script>
@@ -30,5 +31,6 @@
 		<span class="text-sm text-fg-primary">AI 설정</span>
 		<span class="text-xs text-fg-secondary">제공자·API 키·AI에 보내는 데이터 범위와 최근 사용량을 봐요.</span>
 	</a>
+	<ThemeSwitch />
 	<McpTokenCard initial={data.mcp} />
 </div>
