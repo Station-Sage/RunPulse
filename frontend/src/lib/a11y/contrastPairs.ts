@@ -41,7 +41,21 @@ export const PAIRS: Pair[] = [
 	...on('series-3', [S1, S2, S3], 'ui'),
 	...on('border-strong', [S1, S2], 'ui'),
 	...on('border-strong', [S3], 'ui', ['light']),
-	...on('focus-ring', [S1, S2, S3], 'ui')
+	...on('focus-ring', [S1, S2, S3], 'ui'),
+	...on('provider-garmin-mark', [S1, S2, S3], 'ui'),
+	...on('provider-strava-mark', [S1, S2, S3], 'ui'),
+	...on('provider-intervals-mark', [S1, S2, S3], 'ui'),
+	...on('provider-runalyze-mark', [S1, S2, S3], 'ui'),
+	...on('provider-runpulse-mark', [S1, S2, S3], 'ui'),
+	{ fg: 'provider-garmin-on', bg: 'provider-garmin', use: 'text' },
+	{ fg: 'provider-strava-on', bg: 'provider-strava', use: 'text' },
+	{ fg: 'provider-intervals-on', bg: 'provider-intervals', use: 'text' },
+	{ fg: 'provider-runalyze-on', bg: 'provider-runalyze', use: 'text' },
+	{ fg: 'provider-runpulse-on', bg: 'provider-runpulse', use: 'text' },
+	{ fg: 'provider-primary-on', bg: 'provider-primary', use: 'text' },
+	{ fg: 'fg-on-accent', bg: 'semantic-teal', use: 'text', themes: ['dark'] },
+	{ fg: 'fg-on-accent', bg: 'semantic-amber', use: 'text', themes: ['dark'] },
+	{ fg: 'fg-on-accent', bg: 'semantic-red', use: 'text', themes: ['dark'] }
 ];
 
 // 라이트 s3 하한 — 배경을 더 어둡게 하면 안 되는 여유 0.15 이하 조합(결정 14).

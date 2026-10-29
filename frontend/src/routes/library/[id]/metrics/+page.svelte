@@ -38,7 +38,7 @@
 	</div>
 {:else}
 	<div class="flex flex-col gap-3 px-4 py-4">
-		<input type="search" bind:value={query} placeholder="메트릭 검색 (이름·설명)" class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none" />
+		<input type="search" bind:value={query} placeholder="메트릭 검색 (이름·설명)" class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted" />
 		<p class="text-xs text-fg-muted">{total}개 메트릭</p>
 		{#if sections.length === 0}
 			<p class="text-sm text-fg-muted">일치하는 메트릭이 없습니다.</p>

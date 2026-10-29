@@ -20,8 +20,8 @@
 		<p class="text-xs text-fg-secondary">나누면 코치가 컨디션을 더 정확히 이해해요. 나누지 않아도 훈련 조정에는 그대로 쓰이고, AI에는 '컨디션 신호'로만 전달돼요. 설정에서 언제든 바꿀 수 있어요.</p>
 		{#if error}<p class="text-xs text-semantic-red">{error}</p>{/if}
 		<div class="flex gap-2">
-			<button type="button" class="min-h-11 flex-1 rounded-lg bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" disabled={busy} onclick={() => choose('decline')}>동의 안 함</button>
-			<button type="button" class="min-h-11 flex-1 rounded-lg bg-semantic-teal text-fg-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-semantic-teal" disabled={busy} onclick={() => choose('grant')}>동의</button>
+			<button type="button" class="min-h-11 flex-1 rounded-lg bg-surface-2" disabled={busy} onclick={() => choose('decline')}>동의 안 함</button>
+			<button type="button" class="min-h-11 flex-1 rounded-lg bg-semantic-teal text-fg-on-accent" disabled={busy} onclick={() => choose('grant')}>동의</button>
 		</div>
 	</div>
 </div>

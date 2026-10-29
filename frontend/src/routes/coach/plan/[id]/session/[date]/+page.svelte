@@ -120,7 +120,7 @@
 		<div class="px-4 py-4">
 			<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">세션 메모</h2>
 			<textarea
-				class="w-full rounded-md border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none focus:ring-1 focus:ring-semantic-teal"
+				class="w-full rounded-md border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 				rows="4"
 				placeholder="세션 후 메모 입력..."
 				bind:value={noteText}

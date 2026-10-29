@@ -35,7 +35,7 @@
 			onkeydown={handleKeydown}
 			placeholder="메시지 입력…"
 			rows={1}
-			class="flex-1 resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none"
+			class="flex-1 resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 			style="min-height:2.25rem; max-height:8rem; overflow-y:auto;"
 		></textarea>
 		<button

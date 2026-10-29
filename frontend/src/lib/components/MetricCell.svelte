@@ -72,7 +72,7 @@
 		</div>
 		{#if provider}
 			<span
-				class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(provider)}"
+				class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(provider)}"
 				title={providerLabel(provider)}
 			>
 				{providerLabelCompact(provider)}

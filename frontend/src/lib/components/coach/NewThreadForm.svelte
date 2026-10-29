@@ -43,7 +43,7 @@
 		placeholder="무엇이든 물어보세요…"
 		rows={3}
 		disabled={sending}
-		class="w-full resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50"
+		class="w-full resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted disabled:opacity-50"
 	></textarea>
 	<div class="mt-1">
 		<EngineLine {engine} {onOpenScope} />

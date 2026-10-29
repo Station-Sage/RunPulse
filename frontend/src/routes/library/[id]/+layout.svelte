@@ -67,7 +67,7 @@
 						>
 					{/if}
 					<span
-						class="rounded px-1.5 py-0.5 text-[11px] text-fg-on-accent {providerBadgeClass(core.source as ProviderKey)}"
+						class="rounded px-1.5 py-0.5 text-[11px] {providerBadgeClass(core.source as ProviderKey)}"
 						data-testid="source-badge">{sourceLabel}</span
 					>
 				</p>

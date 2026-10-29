@@ -33,11 +33,11 @@ export function providerLabelCompact(p: ProviderKey | null | undefined): string 
 export function providerBadgeClass(p: ProviderKey | null | undefined): string {
 	const base = p?.split(':')[0] ?? '';
 	const map: Record<string, string> = {
-		garmin: 'bg-provider-garmin',
-		strava: 'bg-provider-strava',
-		intervals: 'bg-provider-intervals',
-		runalyze: 'bg-provider-runalyze',
-		runpulse: 'bg-provider-runpulse'
+		garmin: 'bg-provider-garmin text-provider-garmin-on',
+		strava: 'bg-provider-strava text-provider-strava-on',
+		intervals: 'bg-provider-intervals text-provider-intervals-on',
+		runalyze: 'bg-provider-runalyze text-provider-runalyze-on',
+		runpulse: 'bg-provider-runpulse text-provider-runpulse-on'
 	};
-	return map[base] ?? 'bg-surface-3';
+	return map[base] ?? 'bg-surface-3 text-fg-primary';
 }

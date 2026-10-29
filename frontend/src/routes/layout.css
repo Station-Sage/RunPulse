@@ -27,12 +27,12 @@
 
 	--color-fg-primary: #f1f5f9;
 	--color-fg-secondary: #94a3b8;
-	--color-fg-muted: #64748b;
+	--color-fg-muted: #8494a9;
 
 	--color-semantic-green: #22c55e;
 	--color-semantic-teal: #14b8a6;
 	--color-semantic-amber: #f59e0b;
-	--color-semantic-red: #ef4444;
+	--color-semantic-red: #f87171;
 	--color-semantic-neutral: #94a3b8;
 
 	/* status enum(danger/caution/neutral/good/great) → §C7 의미색. 프론트는 경계값을 두지 않고
@@ -50,7 +50,9 @@
 	/* 차트 시리즈색 — 의미색·provider색과 분리(§C7) */
 	--color-series-1: #7dd3fc;
 	--color-series-2: #cbd5e1;
-	--color-series-3: #475569;
+	--color-series-3: #8a98ad;
+	--color-border-strong: #64748b;
+	--color-focus-ring: #38bdf8;
 
 	--color-provider-garmin: #0056b3;
 	--color-provider-strava: #fc4c02;
@@ -58,9 +60,21 @@
 	--color-provider-runalyze: #16a34a;
 	--color-provider-runpulse: #6b7280;
 	--color-provider-primary: #fbbf24;
+	/* mark: 점·선·아이콘(ui 3.0, 테마별) / on: 배지 글자(배지 배경 원색 기준, 테마 무관) */
+	--color-provider-garmin-mark: #4c8fe0;
+	--color-provider-strava-mark: #fc4c02;
+	--color-provider-intervals-mark: #a78bfa;
+	--color-provider-runalyze-mark: #16a34a;
+	--color-provider-runpulse-mark: #8b95a5;
+	--color-provider-garmin-on: #ffffff;
+	--color-provider-strava-on: #0f172a;
+	--color-provider-intervals-on: #ffffff;
+	--color-provider-runalyze-on: #0f172a;
+	--color-provider-runpulse-on: #ffffff;
+	--color-provider-primary-on: #0f172a;
 
 	/* A11Y 공통 2단계 — 하드코딩 색을 토큰으로(값은 다크 그대로). 3단계에서 대비 보정. */
-	--color-fg-on-accent: #ffffff;
+	--color-fg-on-accent: #0f172a;
 	--color-scrim: rgb(0 0 0 / 0.4);
 	--color-shimmer: rgb(255 255 255 / 0.06);
 	--color-hero-glow: rgb(20 184 166 / 0.16);
@@ -92,6 +106,12 @@
 	--font-sans:
 		'InterVariable', -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* A11Y-8 — 전역 포커스 링. 개별 outline-* 클래스는 두지 않는다. */
+:focus-visible {
+	outline: 2px solid var(--color-focus-ring);
+	outline-offset: 2px;
 }
 
 body {

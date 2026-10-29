@@ -8,15 +8,7 @@ const css = readFileSync(new URL('../src/routes/layout.css', import.meta.url), '
 const tokens = parseThemeTokens(css);
 
 // 단계 3·4 에서 비운다. 형식: `테마|fg|bg`. 목록에 없는 실패, 목록에 있는데 통과한 항목 모두 실패 처리(ratchet).
-const EXPECTED_FAIL = new Set([
-	'dark|fg-muted|surface-1',
-	'dark|fg-muted|surface-2',
-	'dark|semantic-red|surface-2',
-	'dark|semantic-red|surface-3',
-	'dark|series-3|surface-1',
-	'dark|series-3|surface-2',
-	'dark|series-3|surface-3'
-]);
+const EXPECTED_FAIL = new Set([]);
 
 test('상대휘도·대비비 기준값', () => {
 	assert.equal(relativeLuminance('#000000'), 0);

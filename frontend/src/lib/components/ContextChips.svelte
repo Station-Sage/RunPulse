@@ -56,7 +56,7 @@
 		});
 	}
 
-	const chip = 'min-h-11 rounded border border-border-subtle px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-semantic-teal';
+	const chip = 'min-h-11 rounded border border-border-subtle px-3 text-sm';
 </script>
 
 <div class="flex flex-col gap-2">

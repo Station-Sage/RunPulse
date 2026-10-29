@@ -25,7 +25,7 @@
 			<!-- 헤더 -->
 			<div class="flex items-center gap-2">
 				<span
-					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(
+					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(
 						item.provider as ProviderKey
 					)}"
 				>

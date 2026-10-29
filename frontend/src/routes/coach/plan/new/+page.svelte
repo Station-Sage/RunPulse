@@ -140,7 +140,7 @@
 				id="race-date"
 				type="date"
 				bind:value={raceDate}
-				class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary focus:outline-none"
+				class="min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary"
 			/>
 		</div>
 
@@ -165,7 +165,7 @@
 						placeholder="HH"
 						min="0"
 						max="23"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
 					/>
 					<span class="text-fg-muted">:</span>
 					<input
@@ -174,7 +174,7 @@
 						placeholder="MM"
 						min="0"
 						max="59"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
 					/>
 					<span class="text-fg-muted">:</span>
 					<input
@@ -183,7 +183,7 @@
 						placeholder="SS"
 						min="0"
 						max="59"
-						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
 					/>
 				</div>
 			{/if}
@@ -204,7 +204,7 @@
 						min="0"
 						max={REPORTED_MAX_KM.weekly}
 						step="0.1"
-						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
 					/>
 					km
 				</label>
@@ -218,7 +218,7 @@
 						min="0"
 						max={REPORTED_MAX_KM.long}
 						step="0.1"
-						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary focus:outline-none"
+						class="w-20 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
 					/>
 					km
 				</label>

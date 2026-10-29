@@ -42,7 +42,7 @@
 			busy = false;
 		}
 	}
-	const inp = 'min-h-11 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal';
+	const inp = 'min-h-11 w-full rounded-lg border border-border-subtle bg-surface-2 px-3 text-sm text-fg-primary';
 </script>
 
 <div class="fixed inset-0 z-50 flex items-end bg-scrim lg:items-center lg:justify-center" role="dialog" aria-modal="true" aria-labelledby="race-entry-title" use:modal={{ onClose: () => { if (!busy) onClose(); } }}>

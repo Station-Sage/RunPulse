@@ -107,7 +107,7 @@
 					<th class="sticky left-0 z-10 bg-surface-1 py-2 pl-4 pr-2 text-left text-xs font-medium text-fg-muted">지표</th>
 					{#each providers() as provider}
 						<th class="px-2 py-2 text-right text-xs font-medium text-fg-muted">
-							<span class="rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(provider as ProviderKey)}">
+							<span class="rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(provider as ProviderKey)}">
 								{providerLabelCompact(provider as ProviderKey)}
 							</span>
 						</th>

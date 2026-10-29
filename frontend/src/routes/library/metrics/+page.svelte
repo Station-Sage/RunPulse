@@ -141,7 +141,7 @@
 			</span>
 			{#if m.provider && availableProviders.length > 1}
 				<span
-					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-fg-on-accent {providerBadgeClass(
+					class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(
 						m.provider as ProviderKey
 					)}"
 					title={providerLabel(m.provider as ProviderKey)}

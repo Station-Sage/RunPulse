@@ -36,7 +36,7 @@
 
 {#snippet row(r: RaceRow, review: boolean)}
 	<li>
-		<button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm hover:bg-surface-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => open(r, review)}>
+		<button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm hover:bg-surface-3" onclick={() => open(r, review)}>
 			<span class="min-w-0">
 				<span class="block truncate text-fg-primary"><span class="mr-1 text-xs text-fg-muted">{r.priority}</span>{r.name}</span>
 				<span class="block text-xs text-fg-secondary">{r.race_date}{review || !z ? '' : ` · ${dDayLabel(r.race_date, z.today)}`} · {kmLabel(r.distance_km)}{goalLine(r) ? ` · ${goalLine(r)}` : ''}</span>
@@ -50,7 +50,7 @@
 	<header class="flex items-center justify-between gap-2">
 		<a href="{base}/today/race" class="flex min-h-11 min-w-11 items-center text-fg-secondary" aria-label="레이스 허브로">‹</a>
 		<h1 class="flex-1 text-lg font-semibold text-fg-primary">대회 캘린더</h1>
-		<button type="button" class="min-h-11 rounded-lg bg-semantic-teal px-3 text-sm text-fg-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-semantic-teal" onclick={() => (sheet = { kind: 'entry', race: null })}>대회 추가</button>
+		<button type="button" class="min-h-11 rounded-lg bg-semantic-teal px-3 text-sm text-fg-on-accent" onclick={() => (sheet = { kind: 'entry', race: null })}>대회 추가</button>
 	</header>
 
 	{#if data.failed || !z}
