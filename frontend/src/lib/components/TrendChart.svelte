@@ -107,6 +107,14 @@
 		else if (index == null && wasPinned) onSelect?.(null);
 		wasPinned = pinned;
 	}
+	function valueText(index: number): string {
+		const date = dateAtOffset(t0, index);
+		const parts = series.map((s) => {
+			const p = nearestPoint(s.points, index / totalDays, t0, t1);
+			return `${s.label} ${p ? formatValue(p.value) + (unit ? ` ${unit}` : '') : '—'}`;
+		});
+		return `${date}, ${parts.join(', ')}`;
+	}
 	const effFrac = $derived(
 		frac ?? (selectedDate && t0 && selectedDate >= t0 && selectedDate <= t1 ? xFraction(selectedDate, t0, t1) : null)
 	);
@@ -241,7 +249,7 @@
 			</div>
 			<div class="min-w-0 flex-1">
 		{#if interactive}
-			<ChartScrub {pointCount} ariaLabel="{ariaLabel} — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
+			<ChartScrub {pointCount} ariaLabel="{ariaLabel} — 눌러서 날짜별 값 확인" onChange={onScrubChange} {valueText}>
 				{#snippet children()}
 					{@render chartBody(cursorPct == null ? null : cursorPct / 100)}
 				{/snippet}

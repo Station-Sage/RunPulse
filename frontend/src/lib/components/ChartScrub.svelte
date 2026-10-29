@@ -10,11 +10,13 @@
 		pointCount,
 		ariaLabel = '차트 스크럽',
 		onChange,
+		valueText,
 		children
 	}: {
 		pointCount: number;
 		ariaLabel?: string;
 		onChange?: (index: number | null, pinned: boolean) => void;
+		valueText?: (index: number) => string;
 		children?: Snippet<[number | null, boolean]>;
 	} = $props();
 
@@ -89,6 +91,7 @@
 	aria-valuemin={0}
 	aria-valuemax={Math.max(0, pointCount - 1)}
 	aria-valuenow={index ?? undefined}
+	aria-valuetext={index != null ? valueText?.(index) : undefined}
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMove}
 	onpointerleave={onPointerLeave}

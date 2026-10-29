@@ -93,6 +93,13 @@
 			]
 		};
 	});
+	function valueText(index: number): string {
+		if (!layout) return '';
+		const f = index / totalDays;
+		const c = nearestByFrac(ctl, f, layout);
+		const v = (x: number | undefined) => (x == null ? '—' : x.toFixed(1));
+		return `${c?.date ?? ''}, 체력 ${v(c?.value)}, 피로 ${v(nearestByFrac(atl, f, layout)?.value)}, 폼 ${v(nearestByFrac(tsb, f, layout)?.value)}`;
+	}
 	const fmt = (v: number | undefined) => (v == null ? '—' : v > 0 && false ? `+${v}` : v.toFixed(1));
 	const cursorPct = $derived(frac == null ? null : frac * 100);
 </script>
@@ -110,7 +117,7 @@
 			{/each}
 		</div>
 
-		<ChartScrub {pointCount} ariaLabel="체력·피로·폼 추세 — 눌러서 날짜별 값 확인" onChange={onScrubChange}>
+		<ChartScrub {pointCount} ariaLabel="체력·피로·폼 추세 — 눌러서 날짜별 값 확인" onChange={onScrubChange} {valueText}>
 			{#snippet children()}
 				<div class="relative" style="touch-action: pan-y">
 			<!-- 위 패널: CTL·ATL -->

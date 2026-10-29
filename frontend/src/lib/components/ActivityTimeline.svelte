@@ -47,6 +47,7 @@
 		<ChartScrub
 			pointCount={n}
 			ariaLabel="활동 타임라인"
+			valueText={(i) => `${((series.dist_m[i] ?? 0) / 1000).toFixed(2)} km`}
 			onChange={(i) => onCursor?.(i == null ? null : series.dist_m[i])}
 		>
 			{#snippet children(index, pinned)}

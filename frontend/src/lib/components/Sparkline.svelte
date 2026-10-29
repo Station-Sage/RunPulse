@@ -77,6 +77,11 @@
 		return segs;
 	});
 
+	function valueText(index: number): string {
+		const v = data[index];
+		const d = dates?.[index];
+		return `${d ? d + ', ' : ''}${v == null ? '—' : formatValue(v)}`;
+	}
 	function scrubbedValue(index: number | null): number | null {
 		if (index == null) return null;
 		return data[index] ?? null;
@@ -117,7 +122,7 @@
 	{/snippet}
 
 	{#if interactive}
-		<ChartScrub pointCount={n}>
+		<ChartScrub pointCount={n} {valueText}>
 			{#snippet children(index, pinned)}
 				{@const v = scrubbedValue(index)}
 				<div class="relative">
