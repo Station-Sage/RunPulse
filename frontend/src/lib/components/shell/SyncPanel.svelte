@@ -34,7 +34,7 @@
 
 <div class="flex flex-col gap-3 p-4">
 	<div class="flex items-center justify-between">
-		<h2 class="text-sm font-medium">동기화</h2>
+		<h2 id="sync-panel-h" class="text-sm font-medium">동기화</h2>
 		<button type="button" onclick={onClose} class="text-xs text-fg-muted hover:text-fg-primary">닫기</button>
 	</div>
 	<ul class="flex flex-col gap-2">

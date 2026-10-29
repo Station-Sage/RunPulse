@@ -9,6 +9,8 @@
 
 <svelte:head><title>소스 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">소스</h1>
+
 <div class="flex flex-col gap-2 px-4 py-4">
 	{#if data.sources}
 		{#each data.sources as src (src.provider)}

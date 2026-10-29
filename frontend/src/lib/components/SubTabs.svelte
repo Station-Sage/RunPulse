@@ -3,15 +3,17 @@
 	// aria-current. F-UI-09 "서브탭 복제" 방지 — 소비 화면은 이 컴포넌트 하나만 쓴다.
 	let {
 		tabs,
-		current
+		current,
+		label = '하위 메뉴'
 	}: {
 		tabs: { href: string; label: string }[];
 		current: string;
+		label?: string;
 	} = $props();
 </script>
 
 <nav
-	aria-label="하위 메뉴"
+	aria-label={label}
 	class="flex overflow-x-auto border-b border-border-subtle [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 >
 	{#each tabs as tab (tab.href)}

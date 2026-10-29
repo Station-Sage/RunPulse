@@ -21,7 +21,7 @@
 </script>
 
 {#if showTabs}
-	<nav class="flex h-11 border-b border-border-subtle" aria-label="Library 섹션">
+	<nav class="flex h-11 border-b border-border-subtle" aria-label="Library 하위 메뉴">
 		{#each TABS as t (t.href)}
 			<a
 				href="{base}{t.href}"

@@ -27,6 +27,8 @@
 
 <svelte:head><title>Library · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">Library</h1>
+
 {#if data.archiveError || !data.archive}
 	<div class="px-4 pt-4">
 		<ErrorState

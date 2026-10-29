@@ -101,7 +101,7 @@
 			</section>
 
 			<section class="flex flex-col gap-2">
-				<p class="text-xs uppercase tracking-wide text-fg-muted">이런 걸 물어볼 수 있어요</p>
+				<h2 class="text-xs uppercase tracking-wide text-fg-muted">이런 걸 물어볼 수 있어요</h2>
 				{#each suggestions as q (q)}
 					<button type="button" disabled={sending} onclick={() => start(q)} class="rounded-lg border border-border-subtle bg-surface-2 px-3 py-3 text-left text-sm text-fg-primary disabled:opacity-40" data-testid="suggested-question">{q}</button>
 				{/each}

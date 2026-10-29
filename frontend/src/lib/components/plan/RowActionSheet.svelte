@@ -105,13 +105,13 @@
 	use:modal={{ onClose, initialFocus: '[data-autofocus]' }}
 	role="dialog"
 	aria-modal="true"
-	aria-label="세션 바꾸기"
+	aria-labelledby="row-action-h"
 	data-testid="row-action-sheet"
 	class="fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border-subtle bg-surface-1 p-4 lg:inset-x-auto lg:bottom-auto lg:right-6 lg:top-24 lg:w-80 lg:rounded-2xl"
 >
-	<p class="text-sm font-semibold">
+	<h2 id="row-action-h" class="text-sm font-semibold">
 		{workoutLabel(workout.workout_type)}{km ? ` ${km}km` : ''} · {workout.date.slice(5)}
-	</p>
+	</h2>
 
 	{#if mode === 'locked'}
 		<p class="mt-2 text-sm text-fg-secondary">오늘 세션만 바꿀 수 있어요. 미래 세션은 당일에 조정하거나 코치와 상의해 보세요.</p>

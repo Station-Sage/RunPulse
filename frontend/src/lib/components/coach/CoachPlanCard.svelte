@@ -8,7 +8,7 @@
 </script>
 
 <div class="border-t border-border-subtle px-4 py-3">
-	<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">플랜</p>
+	<h2 class="mb-1 text-xs uppercase tracking-wide text-fg-muted">플랜</h2>
 	{#if activePlan}
 		<a
 			href="{base}/coach/plan/{activePlan.goal.id}"

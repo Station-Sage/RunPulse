@@ -12,6 +12,8 @@
 
 <svelte:head><title>러너 기준값 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">러너 기준값</h1>
+
 <div class="flex flex-col gap-2 px-4 py-4">
 	{#if rows}
 		<p class="text-xs text-fg-muted">

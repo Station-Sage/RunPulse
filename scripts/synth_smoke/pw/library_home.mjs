@@ -11,7 +11,7 @@ await p.goto(`${BASE}/v2/library`);
 await p.waitForSelector('text=부터 내가 달린 거리');
 console.log('hero ms', Date.now() - t0);
 await p.waitForSelector('text=내 데이터 출처');
-const tabs = await p.locator('nav[aria-label="Library 섹션"] a').allTextContents();
+const tabs = await p.locator('nav[aria-label="Library 하위 메뉴"] a').allTextContents();
 console.log('tabs', tabs.join('|'));
 await p.screenshot({ path: '/tmp/lib_home.png', fullPage: true });
 const rect = p.locator('svg[aria-label="최근 1년 러닝 캘린더"] rect').nth(300);

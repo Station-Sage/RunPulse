@@ -41,6 +41,8 @@
 
 <svelte:head><title>훈련 플랜 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">훈련 플랜</h1>
+
 <div class="flex flex-col items-center justify-center gap-6 px-4 py-16 text-center">
 	<div>
 		{#if data.goal}

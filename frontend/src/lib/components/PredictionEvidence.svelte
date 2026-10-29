@@ -30,7 +30,7 @@
 
 	{#if terms.length > 0}
 		<div class="flex flex-col gap-1.5">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">신호별 환산 기록</p>
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">신호별 환산 기록</h2>
 			{#each terms as t (t.slug)}
 				<div class="flex items-center justify-between text-sm">
 					<span>{t.label}{#if t.weight != null} <span class="text-[11px] text-fg-muted">· 가중 {Math.round(t.weight * 100)}%</span>{/if}</span>
@@ -42,7 +42,7 @@
 
 	{#if evidence.models}
 		<div class="flex flex-col gap-1.5">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">모델 비교</p>
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">모델 비교</h2>
 			{#each evidence.models as m (m.name)}
 				<div class="flex items-center justify-between text-sm">
 					<span>{m.name}</span><span class="num text-fg-secondary">{formatDuration(m.sec)}</span>
@@ -53,7 +53,7 @@
 
 	{#if evidence.limiting?.length}
 		<div class="flex flex-col gap-1">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">신뢰를 낮추는 요인</p>
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">신뢰를 낮추는 요인</h2>
 			<ul class="list-disc pl-4 text-xs text-fg-secondary">
 				{#each evidence.limiting as r (r)}<li>{r}</li>{/each}
 			</ul>

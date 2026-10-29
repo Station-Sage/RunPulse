@@ -107,70 +107,68 @@
 
 <DrillPanel scopeType="daily" scopeId={todayDate} fromTag="today">
 	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
-		<div class="contents lg:flex lg:flex-col lg:gap-6">
-			<section class="order-1 flex flex-col gap-3">
-				{#if !$demoActive && loadCoverageNotice(data.today.data_health)}
-					<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
-				{/if}
-				{#if isSmallData(unlock) && data.today.recent_activities.length > 0 && !briefing.state}
-					<ColdStartProgress activities={data.today.recent_activities} />
-				{:else}
-					{#await data.raceHub}
-						<TodayHero {briefing} goal={null} onEvidence={openEvidence} onRetry={retry} />
-					{:then hub}
-						<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} onRetry={retry} />
-					{/await}
-				{/if}
-				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
-				{#if stale}<p class="rounded-lg bg-semantic-amber/10 px-3 py-2 text-sm text-fg-primary" use:say={{ text: stale }}>{stale}</p>{/if}
-				<ContextChips onChange={() => { swrEvict('app:today'); void invalidate('app:today'); }} />
-				<QuickInput
-					compact={true}
-					existing={toQuickInputExisting(checkin)}
-					saving={savingCheckin}
-					dismissDate={todayDate}
-					onSave={handleSaveCheckin}
-				/>
-				{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}
-			</section>
+		<section class="flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
+			{#if !$demoActive && loadCoverageNotice(data.today.data_health)}
+				<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
+			{/if}
+			{#if isSmallData(unlock) && data.today.recent_activities.length > 0 && !briefing.state}
+				<ColdStartProgress activities={data.today.recent_activities} />
+			{:else}
+				{#await data.raceHub}
+					<TodayHero {briefing} goal={null} onEvidence={openEvidence} onRetry={retry} />
+				{:then hub}
+					<TodayHero {briefing} goal={hub?.goal ?? null} onEvidence={openEvidence} onRetry={retry} />
+				{/await}
+			{/if}
+			<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
+			{#if stale}<p class="rounded-lg bg-semantic-amber/10 px-3 py-2 text-sm text-fg-primary" use:say={{ text: stale }}>{stale}</p>{/if}
+			<ContextChips onChange={() => { swrEvict('app:today'); void invalidate('app:today'); }} />
+			<QuickInput
+				compact={true}
+				existing={toQuickInputExisting(checkin)}
+				saving={savingCheckin}
+				dismissDate={todayDate}
+				onSave={handleSaveCheckin}
+			/>
+			{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}
+		</section>
 
-			<div class="order-4 flex flex-col gap-3 border-t border-border-subtle pt-3">
-				<TodayNextSession nextSession={data.nextSession} raceHub={data.raceHub} week={data.today.week_compliance} today={status.date} onRetry={retry} />
+
+		<section class="flex flex-col gap-3 lg:col-start-2 lg:row-start-1">
+			<h2 class="sr-only">컨디션</h2>
+			<div class="flex items-center justify-between text-[11px] text-fg-muted">
+				<span>{morningAsOf(data.today.as_of?.date ?? status.date)}</span>
+				<span class="rounded bg-surface-3 px-1.5 py-0.5">RunPulse 계산</span>
 			</div>
-		</div>
-
-		<div class="contents lg:flex lg:flex-col lg:gap-6">
-			<section class="order-2 flex flex-col gap-3">
-				<div class="flex items-center justify-between text-[11px] text-fg-muted">
-					<span>{morningAsOf(data.today.as_of?.date ?? status.date)}</span>
-					<span class="rounded bg-surface-3 px-1.5 py-0.5">RunPulse 계산</span>
+			{#if locked.size < 3}
+				<div class="grid gap-2" style="grid-template-columns: repeat({3 - locked.size}, minmax(0, 1fr))">
+					{#if !locked.has('utrs')}<ReadinessGauge slug="utrs" label="UTRS" kind="ring" entry={readiness?.utrs ?? null} />{/if}
+					{#if !locked.has('cirs')}<ReadinessGauge slug="cirs" label="CIRS" kind="track" entry={readiness?.cirs ?? null} />{/if}
+					{#if !locked.has('tsb')}<ReadinessGauge slug="tsb" label="TSB" kind="bipolar" entry={readiness?.tsb ?? null} />{/if}
 				</div>
-				{#if locked.size < 3}
-					<div class="grid gap-2" style="grid-template-columns: repeat({3 - locked.size}, minmax(0, 1fr))">
-						{#if !locked.has('utrs')}<ReadinessGauge slug="utrs" label="UTRS" kind="ring" entry={readiness?.utrs ?? null} />{/if}
-						{#if !locked.has('cirs')}<ReadinessGauge slug="cirs" label="CIRS" kind="track" entry={readiness?.cirs ?? null} />{/if}
-						{#if !locked.has('tsb')}<ReadinessGauge slug="tsb" label="TSB" kind="bipolar" entry={readiness?.tsb ?? null} />{/if}
-					</div>
-				{/if}
-				<UnlockList {unlock} />
-				<TodayRecent activities={data.today.recent_activities} />
-			</section>
+			{/if}
+			<UnlockList {unlock} />
+			<TodayRecent activities={data.today.recent_activities} />
+		</section>
 
-			<section class="order-3 flex flex-col gap-3 border-t border-border-subtle pt-4">
-				<p class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</p>
-				<TodayFormChart chart={data.formChart} raceHub={data.raceHub} onMonth={openMonth} onRetry={retry} />
-				<TodayNarrative
-					narrative={data.narrative}
-					ctl={status.training_status.ctl ?? null}
-					onEvidence={openEvidence}
-					onMonth={openMonth}
-					onMilestones={() => { showMilestonesPanel = true; }}
-				/>
-			</section>
+		<section class="flex flex-col gap-3 border-t border-border-subtle pt-4 lg:col-start-2 lg:row-start-2">
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">흐름 · 훈련 · 성장</h2>
+			<TodayFormChart chart={data.formChart} raceHub={data.raceHub} onMonth={openMonth} onRetry={retry} />
+			<TodayNarrative
+				narrative={data.narrative}
+				ctl={status.training_status.ctl ?? null}
+				onEvidence={openEvidence}
+				onMonth={openMonth}
+				onMilestones={() => { showMilestonesPanel = true; }}
+			/>
+		</section>
+
+		<div class="flex flex-col gap-3 border-t border-border-subtle pt-3 lg:col-start-1 lg:row-start-2">
+			<TodayNextSession nextSession={data.nextSession} raceHub={data.raceHub} week={data.today.week_compliance} today={status.date} onRetry={retry} />
 		</div>
 
-		<section class="order-5 flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</p>
+		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</h2>
 			<a href="{base}/library" class="text-sm text-fg-secondary hover:text-fg-primary">Library에서 전체 탐색 →</a>
 		</section>
 	</div>

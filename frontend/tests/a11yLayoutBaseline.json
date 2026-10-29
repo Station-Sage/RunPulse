@@ -1,44 +1,8 @@
 {
-	"i": {
-		"src/lib/components/ActivityTimeline.svelte": 1,
-		"src/lib/components/BreakdownView.svelte": 1,
-		"src/lib/components/EnvContextCard.svelte": 1,
-		"src/lib/components/MetricBreakdown.svelte": 2,
-		"src/lib/components/PersonalBests.svelte": 1,
-		"src/lib/components/PredictionEvidence.svelte": 3,
-		"src/lib/components/RouteMap.svelte": 2,
-		"src/lib/components/SplitBars.svelte": 1,
-		"src/lib/components/TodayNextSession.svelte": 1,
-		"src/lib/components/coach/CoachPlanCard.svelte": 1,
-		"src/lib/components/coach/CoachStartChips.svelte": 2,
-		"src/lib/components/plan/PlanWeeksTable.svelte": 1,
-		"src/routes/coach/+page.svelte": 1,
-		"src/routes/coach/new/+page.svelte": 1,
-		"src/routes/coach/plan/[id]/+page.svelte": 2,
-		"src/routes/coach/plan/[id]/session/[date]/+page.svelte": 3,
-		"src/routes/landing/+page.svelte": 1,
-		"src/routes/library/[id]/+page.svelte": 3,
-		"src/routes/today/+page.svelte": 2
-	},
-	"f": {
-		"src/lib/components/DemoBanner.svelte": 1,
-		"src/lib/components/DevUserSwitch.svelte": 1,
-		"src/lib/components/DrillPanel.svelte": 1,
-		"src/lib/components/MenuDrawer.svelte": 1,
-		"src/lib/components/MetricBreakdown.svelte": 1,
-		"src/lib/components/MilestonesPanel.svelte": 1,
-		"src/lib/components/coach/EngineSheet.svelte": 1,
-		"src/lib/components/coach/ScopeSheet.svelte": 1,
-		"src/lib/components/plan/RowActionSheet.svelte": 1,
-		"src/lib/components/shell/SyncStatusPill.svelte": 1
-	},
 	"j": {
 		"src/lib/components/activities/YearMonthScrubber.svelte": 1
 	},
 	"b": {
 		"src/lib/components/data/RecomputeSummary.svelte": 1
-	},
-	"d": {
-		"src/routes/today/+page.svelte": 5
 	}
 }

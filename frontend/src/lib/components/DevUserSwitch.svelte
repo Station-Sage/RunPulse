@@ -77,7 +77,7 @@
 			class="fixed inset-0 z-[60] flex items-center justify-center p-4"
 			role="dialog"
 			aria-modal="true"
-			aria-label="사용자 전환 (개발 전용)"
+			aria-labelledby="dev-switch-h"
 			use:modal={{ onClose: () => (dialogOpen = false) }}
 		>
 			<button
@@ -93,7 +93,7 @@
 					submit();
 				}}
 			>
-				<h3 class="mb-1 font-medium">사용자 전환</h3>
+				<h3 id="dev-switch-h" class="mb-1 font-medium">사용자 전환</h3>
 				<p class="mb-3 text-xs text-fg-muted">개발 환경 전용입니다. 현재: {current}</p>
 
 				<label class="mb-1 block text-xs text-fg-muted" for="dev-user-select">기존 사용자</label>

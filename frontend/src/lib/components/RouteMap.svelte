@@ -61,7 +61,7 @@
 
 {#if !sr}
 	<section class="flex flex-col gap-2" aria-label="경로" data-testid="route-map">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">경로</p>
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">경로</h2>
 		<p class="rounded-lg border border-border-subtle bg-surface-2 p-4 text-sm text-fg-muted" data-testid="route-indoor">
 			실내 · 경로 없음
 		</p>
@@ -69,7 +69,7 @@
 {:else}
 	<section class="flex flex-col gap-2" aria-label="경로" data-testid="route-map">
 		<div class="flex items-center justify-between">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">경로</p>
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">경로</h2>
 			{#if canToggle}
 				<div class="flex gap-3">
 					{#each [['pace', '페이스'], ['hr', '심박']] as [key, label] (key)}

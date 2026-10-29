@@ -64,7 +64,7 @@
 
 		<!-- 원래 계획 -->
 		<div class="border-b border-border-subtle px-4 py-4">
-			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">원래 계획</p>
+			<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">원래 계획</h2>
 			<p class="text-sm font-semibold">
 				{workoutLabel(data.session.workout.workout_type)}
 			</p>
@@ -98,7 +98,7 @@
 		{/if}
 		<div class="border-b border-border-subtle px-4 py-4">
 			{#if data.session.adjustment?.adjusted}
-				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">오늘 상태 기반 조정</p>
+				<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">오늘 상태 기반 조정</h2>
 				<p class="text-sm font-semibold">
 					{workoutLabel(data.session.adjustment.original_type)}
 					<span class="font-normal text-fg-muted">→</span>
@@ -118,7 +118,7 @@
 
 		<!-- 세션 메모 -->
 		<div class="px-4 py-4">
-			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">세션 메모</p>
+			<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">세션 메모</h2>
 			<textarea
 				class="w-full rounded-md border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none focus:ring-1 focus:ring-semantic-teal"
 				rows="4"

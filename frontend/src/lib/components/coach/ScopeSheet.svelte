@@ -65,10 +65,10 @@
 		use:modal={{ onClose }}
 		role="dialog"
 		aria-modal="true"
-		aria-label="전송 범위"
+		aria-labelledby="scope-sheet-h"
 		class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col gap-3 overflow-y-auto rounded-t-2xl bg-surface-1 p-4 shadow-lg"
 	>
-		<h2 class="font-medium">{requireConsent ? 'AI로 질문을 보내기 전에' : '전송 범위'}</h2>
+		<h2 id="scope-sheet-h" class="font-medium">{requireConsent ? 'AI로 질문을 보내기 전에' : '전송 범위'}</h2>
 		{#if requireConsent}
 			<p class="text-xs text-fg-secondary">
 				질문과 아래 러닝 데이터가 {engine.selected.provider} 서버로 전송돼요. 동의해야 AI 답변을 쓸 수 있고, 동의 전에는 아무것도 전송하지 않아요.

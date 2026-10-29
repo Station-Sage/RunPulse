@@ -15,7 +15,7 @@
 
 <main class="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-10" data-testid="landing">
 	<header class="flex flex-col gap-4">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">RunPulse</p>
+		<div class="text-xs uppercase tracking-wide text-fg-muted">RunPulse</div>
 		<h1 class="text-2xl font-semibold leading-snug text-fg-primary">
 			Garmin·Strava·Intervals·Runalyze를 오가며 맞추던 숫자, 한 화면에서 근거까지.
 		</h1>

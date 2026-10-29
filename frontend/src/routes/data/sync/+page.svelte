@@ -46,6 +46,8 @@
 
 <svelte:head><title>동기화 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">동기화</h1>
+
 <div class="flex flex-col gap-5 px-4 py-4">
 	<section aria-label="소스 상태" class="flex flex-col gap-2">
 		{#each sources as src (src.provider)}

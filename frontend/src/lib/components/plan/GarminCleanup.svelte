@@ -31,6 +31,7 @@
 	<p class="text-xs text-fg-secondary">Garmin 일정은 복원되지 않아요. 다시 보내려면 내보내기에서 전송하세요.</p>
 {:else if left.length || result}
 	<div class="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
+		<h2 class="sr-only">Garmin 일정 정리</h2>
 		{#if result}<p>{resultText(result)}</p>{:else}<p>이전 일정이 Garmin 캘린더에 남아 있어요.</p>{/if}
 		{#if left.length}
 			<button class="min-h-11 rounded-lg bg-surface-1 px-4" disabled={busy} onclick={() => (open = true)}>

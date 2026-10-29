@@ -65,6 +65,8 @@
 
 <svelte:head><title>내보내기 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">내보내기</h1>
+
 <div class="flex flex-col gap-3 px-4 py-4">
 	<fieldset class="flex items-center gap-2 text-xs text-fg-secondary">
 		<legend class="mb-1">기간 (비우면 전체)</legend>

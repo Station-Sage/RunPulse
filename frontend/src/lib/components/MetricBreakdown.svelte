@@ -49,7 +49,7 @@
 	});
 </script>
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="지표 근거" use:modal={{ onClose }}>
+<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="metric-breakdown-h" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
 	<button
 		class="absolute inset-0 bg-black/40"
@@ -61,7 +61,7 @@
 	<div class="absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col rounded-t-2xl bg-surface-1 shadow-lg">
 		<!-- 헤더 -->
 		<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-			<h2 class="font-medium">
+			<h2 id="metric-breakdown-h" class="font-medium">
 				{#if data}{data.label}{:else}{slug}{/if}
 			</h2>
 			<button
@@ -93,7 +93,7 @@
 				<!-- 구성 요소 (children — 평평한 목록) -->
 				{#if data.children.length > 0}
 					<div class="mb-4">
-						<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">구성 요소</p>
+						<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">구성 요소</h2>
 						<div class="flex flex-col gap-1">
 							{#each data.children as child (child.name)}
 								<div class="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2">
@@ -110,7 +110,7 @@
 				<!-- 입력 메트릭 (inputs — 드릴다운 가능) -->
 				{#if data.inputs.length > 0}
 					<div>
-						<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">입력 메트릭</p>
+						<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">입력 메트릭</h2>
 						<div class="flex flex-col gap-1">
 							{#each data.inputs as input (input.name)}
 								<button

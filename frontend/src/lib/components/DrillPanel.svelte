@@ -144,10 +144,10 @@
 				use:modal={{ onClose: popDrill, initialFocus: 'h2', enabled: mobile }}
 				role="dialog"
 				aria-modal="true"
-				aria-label="지표 상세"
+				aria-labelledby="drill-h-m"
 				class="relative mt-auto flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg"
 			>
-				{@render header()}
+				{@render header('drill-h-m')}
 				<div class="overflow-y-auto">
 					{@render body()}
 				</div>
@@ -155,8 +155,8 @@
 		</div>
 
 		<!-- 데스크톱: 비모달 사이드 패널 -->
-		<aside aria-label="지표 상세" class="hidden lg:flex lg:h-full lg:flex-col lg:border-l lg:border-border-subtle lg:bg-surface-1">
-			{@render header()}
+		<aside aria-labelledby="drill-h-d" class="hidden lg:flex lg:h-full lg:flex-col lg:border-l lg:border-border-subtle lg:bg-surface-1">
+			{@render header('drill-h-d')}
 			<div class="flex-1 overflow-y-auto">
 				{@render body()}
 			</div>
@@ -164,7 +164,7 @@
 	{/if}
 </div>
 
-{#snippet header()}
+{#snippet header(hid: string)}
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 		{#if slugs.length >= 2}
 			<button onclick={popDrill} aria-label="이전으로" class="shrink-0 text-fg-secondary">
@@ -172,7 +172,7 @@
 			</button>
 		{/if}
 		<div class="min-w-0 flex-1">
-			<h2 tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
+			<h2 id={hid} tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
 				{slugs.map(breadcrumbLabel).join(' › ')}
 			</h2>
 			<p class="text-[11px] text-fg-muted">{special ? '레이스 아침 기준' : currentScopeType === 'activity' ? '이 활동 기준' : `${currentScopeId} 아침 기준`}</p>

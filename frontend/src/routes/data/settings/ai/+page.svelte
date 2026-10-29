@@ -42,6 +42,8 @@
 
 <svelte:head><title>AI 설정 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">AI 설정</h1>
+
 {#if !s}
 	<p class="px-4 py-6 text-sm text-fg-secondary">AI 설정을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>
 {:else}

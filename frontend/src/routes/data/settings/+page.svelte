@@ -6,6 +6,8 @@
 
 <svelte:head><title>데이터 설정 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">데이터 설정</h1>
+
 <div class="flex flex-col gap-3 px-4 py-4">
 	<a
 		href="{base}/data/sources"

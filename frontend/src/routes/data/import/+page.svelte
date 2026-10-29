@@ -86,6 +86,8 @@
 
 <svelte:head><title>가져오기 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">가져오기</h1>
+
 <div class="flex flex-col gap-3 px-4 py-4">
 	<ol class="flex gap-2 text-xs text-fg-muted" aria-label="진행 단계">
 		{#each ['파일 선택', '미리보기', '가져오는 중', '결과'] as label, i (label)}

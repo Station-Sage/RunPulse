@@ -43,7 +43,7 @@
 
 {#if n >= 2 && tracks.length > 0}
 	<section class="flex flex-col gap-1" aria-label="페이스·심박·고도 타임라인" data-testid="activity-timeline">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">구간별 흐름</p>
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">구간별 흐름</h2>
 		<ChartScrub
 			pointCount={n}
 			ariaLabel="활동 타임라인"

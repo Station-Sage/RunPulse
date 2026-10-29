@@ -151,7 +151,7 @@
 	<!-- ③원천 -->
 	{#if data.sources.length > 0}
 		<section class="flex flex-col gap-1.5">
-			<p class="text-xs uppercase tracking-wide text-fg-muted">원천</p>
+			<h2 class="text-xs uppercase tracking-wide text-fg-muted">원천</h2>
 			{#each data.sources as src, i (i)}
 				<div class="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
 					<div class="flex flex-col">

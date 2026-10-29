@@ -25,7 +25,7 @@
 		class="fixed inset-0 z-50 flex"
 		role="dialog"
 		aria-modal="true"
-		aria-label="메뉴"
+		aria-labelledby="menu-drawer-h"
 		use:modal={{ onClose }}
 	>
 		<button
@@ -40,7 +40,7 @@
 			class="relative flex h-full w-72 max-w-[85vw] flex-col overflow-y-auto bg-surface-1 pt-[env(safe-area-inset-top)] shadow-lg"
 		>
 			<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-				<h2 class="font-medium">메뉴</h2>
+				<h2 id="menu-drawer-h" class="font-medium">메뉴</h2>
 				<button
 					onclick={onClose}
 					class="rounded p-1 text-fg-secondary hover:text-fg-primary"

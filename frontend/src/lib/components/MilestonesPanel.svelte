@@ -42,7 +42,7 @@
 	{/if}
 {/snippet}
 
-<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="전체 마일스톤" use:modal={{ onClose }}>
+<div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="milestones-h" use:modal={{ onClose }}>
 	<!-- 배경 오버레이 -->
 	<button class="absolute inset-0 bg-black/40" onclick={onClose} aria-label="닫기"></button>
 
@@ -50,7 +50,7 @@
 	<div class="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-surface-1 shadow-lg">
 		<!-- 헤더 -->
 		<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-			<h2 class="font-medium">전체 마일스톤</h2>
+			<h2 id="milestones-h" class="font-medium">전체 마일스톤</h2>
 			<button
 				onclick={onClose}
 				class="rounded p-1 text-fg-secondary hover:text-fg-primary"

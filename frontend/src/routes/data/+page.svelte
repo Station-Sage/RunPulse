@@ -17,6 +17,8 @@
 
 <svelte:head><title>데이터 · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">데이터</h1>
+
 <div class="flex flex-col gap-5 px-4 py-4">
 	{#if stale.length > 0}
 		<a

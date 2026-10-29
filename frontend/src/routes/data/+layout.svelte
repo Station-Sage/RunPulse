@@ -13,5 +13,5 @@
 	const current = $derived(`${base}${activeDataTab(rel)}`);
 </script>
 
-<SubTabs {tabs} {current} />
+<SubTabs {tabs} {current} label="데이터 하위 메뉴" />
 {@render children()}

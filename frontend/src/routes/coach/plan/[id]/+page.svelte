@@ -177,7 +177,7 @@
 
 		<!-- 이번 주 워크아웃 목록 -->
 		<div class="border-b border-border-subtle px-4 py-3">
-			<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">{data.plan.week_basis?.label ?? '이번 주'}</p>
+			<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">{data.plan.week_basis?.label ?? '이번 주'}</h2>
 			{#if data.plan.workouts.length === 0}
 				<p class="text-sm text-fg-muted">이번 주 워크아웃이 없습니다.</p>
 			{:else}
@@ -239,7 +239,7 @@
 			<div class="px-4 py-2"><ErrorState compact message="적응 지표를 불러오지 못했어요" failure={data.adaptationFailure} onRetry={() => invalidate('app:plan-active')} /></div>
 		{:else if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
 			<div class="border-b border-border-subtle px-4 py-3">
-				<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</p>
+				<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</h2>
 				<ul class="flex flex-col gap-2 text-sm">
 					{#if data.adaptation.acwr}
 						{@const a = data.adaptation.acwr}

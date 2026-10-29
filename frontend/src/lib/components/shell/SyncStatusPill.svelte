@@ -54,7 +54,7 @@
 	</button>
 	{#if syncStore.panelOpen && sync}
 		<button class="fixed inset-0 z-40 cursor-default bg-black/30 sm:bg-transparent" aria-label="닫기" tabindex="-1" aria-hidden="true" onclick={() => setOpen(false)}></button>
-		<div use:modal={{ onClose: () => setOpen(false) }} role="dialog" aria-modal="true" aria-label="동기화 상태" class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-[360px] sm:rounded-xl sm:border sm:border-border-subtle">
+		<div use:modal={{ onClose: () => setOpen(false) }} role="dialog" aria-modal="true" aria-labelledby="sync-panel-h" class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-[360px] sm:rounded-xl sm:border sm:border-border-subtle">
 			<SyncPanel state={sync} onClose={() => setOpen(false)} />
 		</div>
 	{/if}

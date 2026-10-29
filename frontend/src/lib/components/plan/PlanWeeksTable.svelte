@@ -7,7 +7,7 @@
 
 {#if weeks.length > 0}
 	<div class="overflow-x-auto border-b border-border-subtle px-4 py-3" data-testid="plan-weeks">
-		<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">전체 주간 개요</p>
+		<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">전체 주간 개요</h2>
 		<table class="w-full min-w-[480px] text-xs">
 			<thead class="text-fg-muted">
 				<tr>

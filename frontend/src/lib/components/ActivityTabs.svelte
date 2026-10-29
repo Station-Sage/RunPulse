@@ -20,7 +20,7 @@
 	] as const;
 </script>
 
-<nav class="flex h-11 border-b border-border-subtle bg-surface-1" aria-label="활동 상세 탭">
+<nav class="flex h-11 border-b border-border-subtle bg-surface-1" aria-label="활동 상세 하위 메뉴">
 	{#each TABS as tab (tab.key)}
 		{#if tab.key === active}
 			<span

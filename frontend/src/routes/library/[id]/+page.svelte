@@ -141,12 +141,12 @@
 		{/if}
 
 		<!-- 이 러닝의 의미 -->
-		{#if impactList.length > 0}<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3"><p class="text-xs uppercase tracking-wide text-fg-muted">이 러닝의 의미</p>{#each impactList as line}<p class="text-sm text-fg-primary">{line}</p>{/each}</section>{/if}
+		{#if impactList.length > 0}<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3"><h2 class="text-xs uppercase tracking-wide text-fg-muted">이 러닝의 의미</h2>{#each impactList as line}<p class="text-sm text-fg-primary">{line}</p>{/each}</section>{/if}
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}
 			<section class="flex flex-col gap-2">
-				<div class="flex items-center justify-between"><p class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</p><a href="{base}/library/{core.id}/metrics" class="text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>
+				<div class="flex items-center justify-between"><h2 class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</h2><a href="{base}/library/{core.id}/metrics" class="text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
 					{#each keyMetrics as m (m.metric_name)}
 						<MetricCell
@@ -169,7 +169,7 @@
 		{#if zones && zoneTotal > 0}
 			<section class="flex flex-col gap-2" data-testid="hr-zones">
 				<div class="flex items-center justify-between">
-					<p class="text-xs uppercase tracking-wide text-fg-muted">HR 존 분포</p>
+					<h2 class="text-xs uppercase tracking-wide text-fg-muted">HR 존 분포</h2>
 					<span class="text-xs text-fg-muted">{providerLabel(zones.provider as ProviderKey)} · {zones.basis === 'intervals_zones' ? '개인 존' : '기기 존'}</span>
 				</div>
 				<div class="flex flex-col gap-1.5">

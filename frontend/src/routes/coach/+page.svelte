@@ -77,10 +77,12 @@
 
 <svelte:head><title>Coach · RunPulse</title></svelte:head>
 
+<h1 class="sr-only">Coach</h1>
+
 <div class="flex flex-col">
 	<DegradedBanner {engine} />
 	<div class="border-b border-border-subtle px-4 py-3">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</p>
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</h2>
 	</div>
 
 	<ThreadList {threads} {titles} failure={data.threadsFailure} />

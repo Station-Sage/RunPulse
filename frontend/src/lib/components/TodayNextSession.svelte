@@ -25,7 +25,7 @@
 {:then [n, hub]}
 	<WeekStrip {week} planId={n.plan?.goal.id ?? null} />
 	<div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</p>
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">다음 세션</h2>
 		<NextSessionCard plan={n.plan} adjustment={n.adjustment} {today} raceGoal={hub?.goal ?? null} />
 	</div>
 {:catch}

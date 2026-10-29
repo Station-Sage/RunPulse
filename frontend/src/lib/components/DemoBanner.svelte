@@ -26,13 +26,13 @@
 			class="mx-auto w-full max-w-3xl rounded-t-2xl bg-surface-2 p-5"
 			role="dialog"
 			aria-modal="true"
-			aria-label="데모 안내"
+			aria-labelledby="demo-sheet-h"
 			data-testid="demo-write-sheet"
 			tabindex="-1"
 			use:modal={{ onClose: () => (sheet = false), initialFocus: '[data-autofocus]' }}
 			onclick={(e) => e.stopPropagation()}
 		>
-			<p class="font-medium">이건 내 데이터에서 동작해요</p>
+			<h2 id="demo-sheet-h" class="font-medium">이건 내 데이터에서 동작해요</h2>
 			<p class="mt-1 text-sm text-fg-secondary">데모에서는 저장·전송·동기화가 실행되지 않아요.</p>
 			<div class="mt-4 flex gap-2">
 				<button type="button" data-autofocus class="flex-1 rounded-lg bg-fg-primary px-3 py-2 text-sm font-medium text-surface-1" onclick={start}>시작하기</button>

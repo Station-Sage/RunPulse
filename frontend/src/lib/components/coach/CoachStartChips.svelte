@@ -32,7 +32,7 @@
 
 {#if todos.length > 0}
 	<div class="border-t border-border-subtle px-4 py-3" data-testid="coach-small-data">
-		<p class="mb-1 text-xs uppercase tracking-wide text-fg-muted">데이터 모이는 동안 할 일</p>
+		<h2 class="mb-1 text-xs uppercase tracking-wide text-fg-muted">데이터 모이는 동안 할 일</h2>
 		{#if limitNotice}<p class="mb-2 text-xs text-fg-muted">{limitNotice}</p>{/if}
 		<div class="flex flex-wrap gap-2">
 			{#each todos as todo (todo.id)}
@@ -47,7 +47,7 @@
 	</div>
 {:else if chips.length > 0}
 	<div class="border-t border-border-subtle px-4 py-3">
-		<p class="mb-2 text-xs uppercase tracking-wide text-fg-muted">바로 물어보기</p>
+		<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">바로 물어보기</h2>
 		<div class="flex flex-wrap gap-2">
 			{#each chips as chip (chip.chip_id)}
 				<button

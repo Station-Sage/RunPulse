@@ -35,7 +35,7 @@
 
 {#if rows.length > 0}
 	<section class="flex flex-col gap-2" data-testid="split-bars">
-		<p class="text-xs uppercase tracking-wide text-fg-muted">
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">
 			km 스플릿
 			<span class="normal-case opacity-70">
 				· 이동 시간 기준{avg != null ? ` · 평균 ${formatPace(avg)}` : ''}{rows.length > 0 &&
@@ -43,7 +43,7 @@
 					? ' · 5km 묶음'
 					: ''}
 			</span>
-		</p>
+		</h2>
 		<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-fg-muted">
 			<span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm bg-delta-better"></i>평균보다 빠름</span>
 			<span class="flex items-center gap-1"><i class="inline-block h-2 w-2 rounded-sm bg-delta-worse"></i>평균보다 느림</span>
