@@ -1,71 +1,4 @@
 {
-	"b": {
-		"src/lib/components/ActivityFeedbackSheet.svelte": 1,
-		"src/lib/components/ActivityHeatmap.svelte": 1,
-		"src/lib/components/CalendarFeedCard.svelte": 1,
-		"src/lib/components/DevUserSwitch.svelte": 1,
-		"src/lib/components/McpTokenCard.svelte": 3,
-		"src/lib/components/MetricTerm.svelte": 1,
-		"src/lib/components/RaceConfirmList.svelte": 1,
-		"src/lib/components/RaceDetailSheet.svelte": 1,
-		"src/lib/components/RaceEntrySheet.svelte": 1,
-		"src/lib/components/RacePlanPrompt.svelte": 1,
-		"src/lib/components/RaceSummaryLine.svelte": 1,
-		"src/lib/components/Toast.svelte": 1,
-		"src/lib/components/UpdateNotice.svelte": 1,
-		"src/lib/components/coach/DegradedBanner.svelte": 1,
-		"src/lib/components/data/AutoSyncRow.svelte": 1,
-		"src/lib/components/data/BaselineRow.svelte": 2,
-		"src/lib/components/data/ConnectPanel.svelte": 1,
-		"src/lib/components/data/RangeSyncForm.svelte": 1,
-		"src/lib/components/data/RecomputeSummary.svelte": 1,
-		"src/lib/components/plan/AdjustmentCard.svelte": 1,
-		"src/lib/components/plan/RowActionSheet.svelte": 1,
-		"src/routes/coach/new/+page.svelte": 1,
-		"src/routes/coach/plan/+page.svelte": 1,
-		"src/routes/coach/plan/compare/+page.svelte": 1,
-		"src/routes/coach/plan/replan/+page.svelte": 1,
-		"src/routes/data/export/+page.svelte": 1,
-		"src/routes/data/import/+page.svelte": 2,
-		"src/routes/data/settings/ai/+page.svelte": 1,
-		"src/routes/data/sources/[provider]/+page.svelte": 2,
-		"src/routes/data/sync/+page.svelte": 1,
-		"src/routes/today/+page.svelte": 1
-	},
-	"h": {
-		"src/lib/components/ActivityFeedbackSheet.svelte": 1,
-		"src/lib/components/DevUserSwitch.svelte": 1,
-		"src/lib/components/ErrorState.svelte": 1,
-		"src/lib/components/RaceConfirmList.svelte": 2,
-		"src/lib/components/RaceDetailSheet.svelte": 1,
-		"src/lib/components/RaceEntrySheet.svelte": 1,
-		"src/lib/components/RacePlanPrompt.svelte": 1,
-		"src/lib/components/RaceSummaryLine.svelte": 1,
-		"src/lib/components/data/BaselineRow.svelte": 1,
-		"src/lib/components/data/RangeSyncForm.svelte": 1,
-		"src/lib/components/plan/AdjustmentCard.svelte": 1,
-		"src/lib/components/plan/RowActionSheet.svelte": 1,
-		"src/routes/coach/new/+page.svelte": 1,
-		"src/routes/coach/plan/+page.svelte": 1,
-		"src/routes/coach/plan/compare/+page.svelte": 1,
-		"src/routes/coach/plan/replan/+page.svelte": 1,
-		"src/routes/data/import/+page.svelte": 1
-	},
-	"c": {
-		"src/lib/components/ActivityHeatmap.svelte": 1,
-		"src/lib/components/ErrorState.svelte": 1,
-		"src/lib/components/McpTokenCard.svelte": 1,
-		"src/lib/components/RaceConfirmList.svelte": 1,
-		"src/lib/components/RaceSummaryLine.svelte": 1,
-		"src/lib/components/Toast.svelte": 1,
-		"src/lib/components/UpdateNotice.svelte": 1,
-		"src/lib/components/coach/DegradedBanner.svelte": 1,
-		"src/lib/components/coach/StreamStatus.svelte": 1,
-		"src/lib/components/data/BaselineRow.svelte": 1,
-		"src/routes/coach/plan/compare/+page.svelte": 1,
-		"src/routes/coach/plan/replan/+page.svelte": 1,
-		"src/routes/data/sources/[provider]/+page.svelte": 1
-	},
 	"i": {
 		"src/lib/components/ActivityTimeline.svelte": 1,
 		"src/lib/components/BreakdownView.svelte": 1,
@@ -102,8 +35,8 @@
 	"j": {
 		"src/lib/components/activities/YearMonthScrubber.svelte": 1
 	},
-	"a": {
-		"src/lib/components/shell/SyncPanel.svelte": 1
+	"b": {
+		"src/lib/components/data/RecomputeSummary.svelte": 1
 	},
 	"e": {
 		"src/routes/+layout.svelte": 1

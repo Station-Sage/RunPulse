@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
 	import type { TodayPageData } from './+page';
 	import { toQuickInputExisting } from '$lib/checkinView';
@@ -121,7 +122,7 @@
 					{/await}
 				{/if}
 				<RaceSummaryLine summary={data.today.race_summary} onRetry={() => invalidate('app:today')} />
-				{#if stale}<p class="rounded-lg bg-semantic-amber/10 px-3 py-2 text-sm text-fg-primary" role="status">{stale}</p>{/if}
+				{#if stale}<p class="rounded-lg bg-semantic-amber/10 px-3 py-2 text-sm text-fg-primary" use:say={{ text: stale }}>{stale}</p>{/if}
 				<ContextChips onChange={() => { swrEvict('app:today'); void invalidate('app:today'); }} />
 				<QuickInput
 					compact={true}

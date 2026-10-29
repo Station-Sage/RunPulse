@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import { patchAutoSync, type AutoSyncSettings } from '$lib/api/data';
 
 	let { settings }: { settings: AutoSyncSettings } = $props();
@@ -66,5 +67,5 @@
 				: ''}
 		</p>
 	{/if}
-	{#if error}<p class="mt-1 text-xs text-semantic-red" role="status">{error}</p>{/if}
+	{#if error}<p class="mt-1 text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 </section>

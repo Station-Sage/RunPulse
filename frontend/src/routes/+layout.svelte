@@ -11,6 +11,7 @@
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import MenuDrawer from '$lib/components/MenuDrawer.svelte';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
+	import LiveRegion from '$lib/components/LiveRegion.svelte';
 	import UpdateNotice from '$lib/components/UpdateNotice.svelte';
 	import { demoActive, isDemoActive } from '$lib/demoMode';
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
@@ -29,6 +30,7 @@
 	const isActive = (match: string) => page.url.pathname.startsWith(`${base}${match}`);
 </script>
 
+<LiveRegion />
 <ProgressBar />
 <UpdateNotice />
 {#if $demoActive}<DemoBanner />{/if}

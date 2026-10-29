@@ -12,7 +12,7 @@
 </script>
 
 {#if summary === undefined}
-	<div class={cls} role="alert">
+	<div class={cls}>
 		<span class="text-fg-secondary">예측을 불러오지 못했어요</span>
 		{#if onRetry}
 			<button type="button" class="text-fg-primary underline underline-offset-2" onclick={onRetry}>다시 시도</button>

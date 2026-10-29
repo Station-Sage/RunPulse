@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 대회 상세·동작 시트 (RC §2.7~2.13) — 수정·플랜 반영·취소(목표 연결 확인)·복원(과거 확인·A 충돌)·예정으로 되돌리기.
 	import { modal } from '$lib/overlay';
 	import { ApiError } from '$lib/api/client';
@@ -77,7 +78,7 @@
 				{/if}
 			</div>
 		{/if}
-		{#if error}<p class="text-xs text-semantic-red" role="alert">{error}</p>{/if}
+		{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 		<button type="button" class="min-h-11 w-full text-xs text-fg-muted" disabled={busy} onclick={onClose}>닫기</button>
 	</div>
 </div>

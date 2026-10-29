@@ -80,7 +80,7 @@
 			{btn.label}
 		</button>
 	{/if}
-	<div role="status" aria-live="polite" class="flex flex-col gap-1 text-xs">
+	<div class="flex flex-col gap-1 text-xs">
 		{#if syncStore.summary}
 			<p class="font-medium text-fg-primary">{syncStore.summary}</p>
 		{/if}

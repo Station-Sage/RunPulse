@@ -38,11 +38,10 @@
 	}
 </script>
 
-<div
+<div data-testid="error-state"
 	class="flex flex-col items-start gap-1.5 rounded-lg border border-border-subtle bg-surface-2 text-fg-secondary"
 	class:p-3={!compact}
 	class:p-2={compact}
-	role="alert"
 >
 	<div class="flex w-full items-center justify-between gap-2">
 		<span class="text-sm">{text}</span>

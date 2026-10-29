@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 활동에서 시작하는 새 대화 — 근거 카드 + 유형별 추천 질문 3개 + 자유 입력(20 design §코치에게 묻기).
 	import type { CoachNewPageData } from './+page';
 	import { createThread, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
@@ -107,7 +108,7 @@
 			</section>
 
 			{#if errorMessage}
-				<p class="text-xs text-red-400" role="alert">{errorMessage}</p>
+				<p class="text-xs text-red-400" use:say={{ text: errorMessage, level: 'assertive' }}>{errorMessage}</p>
 			{/if}
 		</div>
 		<ChatComposer {engine} bind:value={input} busy={sending} onSend={() => start(input)} onOpenScope={() => (scopeOpen = true)} />

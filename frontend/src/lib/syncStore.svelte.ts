@@ -1,5 +1,6 @@
 // 동기화 상태 공유 스토어 — Pill·드로어·패널이 한 번의 폴링을 공유하고, 수동 트리거도 여기서 처리한다.
 import { invalidate } from '$app/navigation';
+import { announce } from '$lib/a11y/announce';
 import { ApiError } from '$lib/api/client';
 import { cancelSyncRun, getSyncState, triggerRangeSync, triggerSync } from '$lib/api/data';
 import {
@@ -50,6 +51,7 @@ function refreshData() {
 
 function onFinished(summary: string) {
 	syncStore.summary = summary;
+	announce(summary);
 	syncStore.triggeredAt = null;
 	refreshData();
 	clearTimeout(refetchTimer);
@@ -94,6 +96,7 @@ export function startSyncPolling(): () => void {
 
 function apply(o: TriggerOutcome) {
 	syncStore.notice = o.notice;
+	announce(o.notice);
 	syncStore.skipped = o.skipped;
 	if (o.cooldownSec !== null) syncStore.cooldownUntil = Date.now() + o.cooldownSec * 1000;
 }
@@ -134,6 +137,7 @@ export async function cancelRun(provider: string, jobId: string | number): Promi
 		await cancelSyncRun(jobId);
 	} catch {
 		syncStore.notice = '중지하지 못했어요. 잠시 후 다시 시도해 주세요';
+		announce(syncStore.notice, 'assertive');
 	}
 	await kick();
 	syncStore.cancelling = syncStore.cancelling.filter((p) => p !== provider);

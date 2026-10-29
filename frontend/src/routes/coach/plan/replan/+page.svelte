@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 남은 일정 다시 맞추기 — 미리보기 → 적용 → 되돌리기 (DESIGN-PLAN-A6-REPLAN-UI).
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
@@ -157,7 +158,7 @@
 	{/if}
 
 	{#if err}
-		<div role="alert" class="space-y-2 rounded-lg bg-surface-2 p-3 text-xs text-semantic-red">
+		<div class="space-y-2 rounded-lg bg-surface-2 p-3 text-xs text-semantic-red" use:say={{ text: err.text, level: 'assertive' }}>
 			<p>{err.text}</p>
 			{#if err.action}
 				{#if err.action === 'plan' || err.action === 'back'}

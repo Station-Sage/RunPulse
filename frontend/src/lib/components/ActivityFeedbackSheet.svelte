@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// U15d — 활동별 RPE·통증·메모 입력(ADR-022). 저장은 PUT, 전부 비우면 서버가 삭제한다.
 	import type { ActivityFeedback, PainLevel } from '$lib/types';
 	import { putActivityFeedback } from '$lib/api/activityFeedback';
@@ -83,7 +84,7 @@
 	{/if}
 	<textarea bind:value={note} maxlength="500" rows="2" placeholder="메모 (선택, 500자)"
 		class="rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted"></textarea>
-	{#if error}<p class="text-xs text-semantic-red" role="alert">{error}</p>{/if}
+	{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 	<div class="flex justify-end">
 		<button type="button" onclick={save} disabled={saving}
 			class="h-11 rounded bg-semantic-teal px-5 text-sm font-medium text-white disabled:opacity-60">{saving ? '저장 중…' : '저장'}</button>

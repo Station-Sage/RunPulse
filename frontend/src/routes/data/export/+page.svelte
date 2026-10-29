@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import {
 		downloadQuick, exportDownloadUrl, getExports, startArchive, type ExportItem, type ExportKind
@@ -94,7 +95,7 @@
 		<span class="text-xs text-fg-secondary">테이블 CSV, 위 CSV 3종, 소스 원본 데이터, manifest를 한 파일로 묶어요. 7일간 받을 수 있어요.</span>
 	</button>
 
-	{#if message}<p class="text-xs text-fg-secondary" role="status">{message}</p>{/if}
+	{#if message}<p class="text-xs text-fg-secondary" use:say={{ text: message }}>{message}</p>{/if}
 
 	<section aria-label="아카이브 이력" class="flex flex-col gap-2">
 		<h2 class="text-xs font-semibold text-fg-primary">아카이브 이력</h2>

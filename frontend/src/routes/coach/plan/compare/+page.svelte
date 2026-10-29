@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 03e-coach.md 5-E — 프로그램 비교: 템플릿 카드 3개, 선택 시 플랜 생성.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -71,7 +72,7 @@
 
 	<div class="flex flex-col gap-4 px-4 py-5">
 		{#if created}
-			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="alert" data-testid="plan-warnings">
+			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" use:say={{ text: '프로그램을 만들었어요. 확인할 점이 있어요' }} data-testid="plan-warnings">
 				<p class="mb-2 text-sm font-semibold text-fg-primary">프로그램을 만들었어요. 확인할 점이 있어요</p>
 				<ul class="mb-3 list-disc pl-4 text-xs text-fg-secondary">
 					{#each created.warnings as w}

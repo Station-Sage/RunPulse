@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import {
 		getCalendarFeed, issueCalendarFeed, revokeCalendarFeed, type CalendarFeed
 	} from '$lib/api/calendarFeed';
@@ -104,5 +105,5 @@
 			</div>
 		{/if}
 	{/if}
-	{#if message}<p class="text-xs text-fg-secondary" role="status">{message}</p>{/if}
+	{#if message}<p class="text-xs text-fg-secondary" use:say={{ text: message }}>{message}</p>{/if}
 </section>

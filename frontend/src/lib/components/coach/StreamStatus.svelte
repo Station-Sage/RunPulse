@@ -25,11 +25,13 @@
 			AI 연결에 실패해 기본 규칙으로 답하는 중이에요
 		</p>
 	{/if}
-	<p class="flex items-center gap-2" aria-live="polite">
-		<span class="animate-pulse" aria-hidden="true">◌</span>
-		<span data-testid="stage-line">{writing ? '답변 작성 중…' : stageLine(stream)}</span>
+	<div class="flex items-center gap-2">
+		<p class="flex items-center gap-2" role="status">
+			<span class="animate-pulse" aria-hidden="true">◌</span>
+			<span data-testid="stage-line">{writing ? '답변 작성 중…' : stageLine(stream)}</span>
+		</p>
 		<button type="button" class="ml-auto underline" data-testid="cancel-stream" onclick={onCancel}>중단</button>
-	</p>
+	</div>
 	{#if live.reconnecting}
 		<p class="text-semantic-amber" data-testid="reconnecting">연결을 다시 잇는 중…</p>
 	{/if}

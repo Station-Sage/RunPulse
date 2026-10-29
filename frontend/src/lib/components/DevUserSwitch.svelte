@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 개발 전용 사용자 전환(V1-8, S3 5단계) — 서버가 production 이면 /dev/users 가 404 라 아무것도 그리지 않는다.
 	// 같은 빌드를 개발·운영이 함께 쓰므로 빌드 플래그가 아니라 서버 응답(APP_ENV)으로 판정한다.
 	import { onMount } from 'svelte';
@@ -120,7 +121,7 @@
 					<p class="mb-2 text-xs text-status-danger" data-testid="dev-switch-problem">{problem}</p>
 				{/if}
 				{#if error}
-					<p class="mb-2 text-xs text-status-danger" role="alert" data-testid="dev-switch-error">{error}</p>
+					<p class="mb-2 text-xs text-status-danger" data-testid="dev-switch-error" use:say={{ text: error, level: 'assertive' }}>{error}</p>
 				{/if}
 
 				<div class="mt-3 flex justify-end gap-2">

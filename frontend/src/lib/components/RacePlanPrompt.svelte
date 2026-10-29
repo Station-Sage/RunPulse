@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 대회 → 플랜 반영 질문 (RC §2.6) — 영향 미리보기를 보고 반영 / 나중에 / 조정 안 함 / 되돌리기를 고른다.
 	import { modal } from '$lib/overlay';
 	import { onMount } from 'svelte';
@@ -34,7 +35,7 @@
 				{#each changes as c}<li class="flex justify-between gap-2 text-fg-secondary"><span>{c.before.date}</span><span>{label(c.before)} → <b class="text-fg-primary">{label(c.after)}</b></span></li>{/each}
 			</ul>
 		{/if}
-		{#if error}<p class="text-xs text-semantic-red" role="alert">{error}</p>{/if}
+		{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 		<div class="flex flex-wrap gap-2">
 			<button type="button" class="{btn} bg-semantic-teal text-white" disabled={busy || !changes?.length} onclick={() => choose('adapt')}>{applied ? '다시 반영' : '반영'}</button>
 			{#if applied}<button type="button" class={btn} disabled={busy} onclick={() => choose('undo')}>되돌리기</button>{/if}

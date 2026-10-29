@@ -78,7 +78,7 @@
 						<span class="absolute right-0 top-0">km</span>
 					</div>
 					{#if index != null}
-						<p class="text-[11px] text-fg-muted" aria-live="polite">{((series.dist_m[index] ?? 0) / 1000).toFixed(2)} km{pinned ? ' · 고정됨' : ''}</p>
+						<p class="text-[11px] text-fg-muted">{((series.dist_m[index] ?? 0) / 1000).toFixed(2)} km{pinned ? ' · 고정됨' : ''}</p>
 					{/if}
 				</div>
 			{/snippet}

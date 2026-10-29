@@ -9,13 +9,13 @@ await page.route(/\/api\/v1\/(coach\/plan\/active|coach\/threads|library\/activi
 for (const [name,path] of [['plan','/coach/plan'],['coach','/coach'],['acts','/library/activities']]) {
   for (const m of ['500','net']) {
     mode=m; await page.goto(B+path,{waitUntil:'networkidle'}); await page.waitForTimeout(500);
-    const alert = page.locator('[role=alert]').first();
+    const alert = page.locator('[data-testid=error-state]').first();
     console.log(name,m,'alert',await alert.count(), (await alert.innerText().catch(()=>'')).replace(/\n/g,' | '));
   }
   mode='500'; await page.goto(B+path,{waitUntil:'networkidle'}); await page.waitForTimeout(400);
   mode='ok';
   const rb = page.getByRole('button',{name:'다시 시도'}).first();
-  if (await rb.count()) { await rb.click(); await page.waitForTimeout(1000); console.log(name,'after retry alerts',await page.locator('[role=alert]').count()); }
+  if (await rb.count()) { await rb.click(); await page.waitForTimeout(1000); console.log(name,'after retry alerts',await page.locator('[data-testid=error-state]').count()); }
   await page.screenshot({path:`/tmp/err_${name}.png`});
 }
 console.log('errs',errs);

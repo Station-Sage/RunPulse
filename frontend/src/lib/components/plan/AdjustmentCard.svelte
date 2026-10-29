@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 계획 조정 제안·적용 카드 (ADR-035). 수락/되돌리기 후 호출부에 onChange 로 알린다.
 	import { ApiError } from '$lib/api/client';
 	import { acceptAdjustment, getTodaysAdjustment, revertAdjustment } from '$lib/api/plan';
@@ -112,6 +113,6 @@
 				onclick={() => run(() => revertAdjustment(adj!.id, via))}>되돌리기</button
 			>
 		{/if}
-		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
+		{#if error}<p class="mt-1 text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 	</div>
 {/if}

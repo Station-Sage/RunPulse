@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import {
 		patchProfile,
 		previewProfile,
@@ -126,7 +127,7 @@
 		>
 	{/if}
 	{#if pending}
-		<div class="mt-2 rounded border border-border-subtle bg-surface-1 p-2 text-xs text-fg-secondary" role="alert">
+		<div class="mt-2 rounded border border-border-subtle bg-surface-1 p-2 text-xs text-fg-secondary">
 			<p>HR 존 상한(1~4존): {zonesText(pending.preview.zones_before)} → <b class="text-fg-primary">{zonesText(pending.preview.zones_after)}</b></p>
 			<p class="mt-1">최근 90일 {pending.preview.affected_days}일 활동의 {pending.preview.affected_metrics.join(', ')}이(가) 달라질 수 있어요.</p>
 			<div class="mt-2 flex gap-3">
@@ -137,5 +138,5 @@
 		</div>
 	{/if}
 	{#if jobId}<div class="mt-2"><RecomputeSummary {jobId} /></div>{/if}
-	{#if error}<p class="mt-1 text-xs text-semantic-red" role="status">{error}</p>{/if}
+	{#if error}<p class="mt-1 text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 </section>

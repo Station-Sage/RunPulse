@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 대회 추가·수정 시트 (RC §2.5) — 과거 날짜는 확인 문장을 한 번 더 보인다. 저장은 부모가 refresh 한다.
 	import { modal } from '$lib/overlay';
 	import { ApiError } from '$lib/api/client';
@@ -79,7 +80,7 @@
 			</div>
 			<label class="block text-xs text-fg-secondary">메모<input class={inp} bind:value={note} maxlength="500" /></label>
 		{/if}
-		{#if error}<p class="text-xs text-semantic-red" role="alert">{error}</p>{/if}
+		{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 		<div class="flex gap-2">
 			<button type="button" class="min-h-11 flex-1 rounded-lg bg-surface-2" disabled={busy} onclick={onClose}>닫기</button>
 			<button type="submit" class="min-h-11 flex-1 rounded-lg bg-semantic-teal text-white disabled:opacity-50" disabled={!valid || busy}>저장</button>

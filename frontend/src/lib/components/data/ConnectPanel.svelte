@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 소스 연결·재연결·연결 테스트·해제 — 키 입력(Intervals·Runalyze), Strava는 OAuth 이동, Garmin은 안내만.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
@@ -128,5 +129,5 @@
 		</div>
 	{/if}
 
-	{#if msg}<p class="text-xs {msg.ok ? 'text-fg-secondary' : 'text-semantic-red'}" role="status">{msg.text}</p>{/if}
+	{#if msg}<p class="text-xs {msg.ok ? 'text-fg-secondary' : 'text-semantic-red'}" use:say={{ text: msg.text, level: msg.ok ? 'polite' : 'assertive' }}>{msg.text}</p>{/if}
 </section>

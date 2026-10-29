@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 플랜 행 직접 조정 시트 — 줄이기/쉬기/건너뛰기 (ADR-035, DESIGN-PLAN-ROW-ACTION).
 	import { base } from '$app/paths';
 	import { getPlanAdvisories, previewWorkoutAction } from '$lib/api/plan';
@@ -187,12 +188,12 @@
 			<p data-testid="pain-guide" class="mt-2 text-xs text-fg-secondary">{PAIN_LEVELS.find((l) => l.key === painLevel)?.guide ?? '통증 정도와 부위(1~3곳)를 골라 주세요. 통증이 있으면 옮기기는 할 수 없어요.'}</p>
 		{/if}
 
-		<p class="mt-3 min-h-5 text-xs text-fg-secondary" aria-live="polite">
+		<p class="mt-3 min-h-5 text-xs text-fg-secondary">
 			{#if op === 'reduce'}{isReps ? `반복 ${reps}회 줄여요` : (prev.hint ?? `${km}km → ${prev.km}km`)}{:else if op === 'easy'}같은 거리를 이지 페이스로 해요{:else if op === 'rest'}휴식으로 바꿔요{:else if op === 'skip'}이 세션을 건너뛰어요{:else if op === 'move'}{toDate ? `${toDate.slice(5).replace('-', '/')}로 옮겨요 · 그날이 쉬운 날이면 서로 맞바꿔요` : '옮길 날을 골라 주세요'}{/if}
 			{#if week && op !== 'move'} · 이번 주 {week.before}→{week.after}km{/if}
 		</p>
 		{#if dv}<p data-testid="load-delta" class="text-xs {dv.tone === 'warn' ? 'text-semantic-amber' : 'text-fg-muted'}">{dv.text}</p>{/if}
-		{#if error}<p class="mt-1 text-xs text-semantic-red" role="alert">{error}</p>{/if}
+		{#if error}<p class="mt-1 text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 
 		<div class="mt-3 flex gap-2">
 			<button type="button" data-testid="row-action-apply" class="h-11 flex-1 rounded-lg bg-fg-primary text-sm font-medium text-surface-1 disabled:opacity-40" disabled={!canApply} onclick={() => op && onApply(op, op === 'reduce' && !isReps ? pct : undefined, reason, op === 'move' ? toDate : undefined, op === 'reduce' && isReps ? reps : undefined, pain)}>적용</button>

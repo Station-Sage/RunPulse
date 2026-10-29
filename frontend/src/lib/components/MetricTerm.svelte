@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 용어 옆 ⓘ — 탭하면 한 줄 설명 팝오버. 설명이 없으면 아무것도 렌더하지 않는다.
 	import { getMetricExplain } from '$lib/api/metrics';
 
@@ -34,7 +35,7 @@
 		{#if open}
 			<span
 				class="absolute left-0 top-6 z-20 w-56 rounded-md border border-border-subtle bg-surface-3 p-2 text-xs font-normal text-fg-primary shadow"
-				role="status">{text ?? '설명 준비 중이에요.'}</span
+				use:say={{ text: text ?? '설명 준비 중이에요.' }}>{text ?? '설명 준비 중이에요.'}</span
 			>
 		{/if}
 	</span>

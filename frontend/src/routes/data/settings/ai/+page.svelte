@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
 	import { engineSummary, keyStateText, providerName, usageText } from '$lib/aiSettings';
@@ -9,16 +10,19 @@
 	let drafts = $state<Record<string, string>>({});
 	let results = $state<Record<string, string>>({});
 	let message = $state('');
+	let failed = $state(false);
 	let busy = $state(false);
 
 	async function save(patch: AiPatch) {
 		busy = true;
 		message = '';
+		failed = false;
 		try {
 			s = await patchAiSettings(patch);
 			drafts = {};
 			message = '저장했어요';
 		} catch (e) {
+			failed = true;
 			message = e instanceof Error ? e.message : '저장하지 못했어요';
 		} finally {
 			busy = false;
@@ -104,7 +108,7 @@
 			</ul>
 		</section>
 
-		{#if message}<p class="text-xs text-fg-secondary" role="status">{message}</p>{/if}
+		{#if message}<p class="text-xs text-fg-secondary" use:say={{ text: message, level: failed ? 'assertive' : 'polite' }}>{message}</p>{/if}
 		<a href="{base}/data/settings" class="text-xs text-fg-secondary underline">데이터 설정으로</a>
 	</div>
 {/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 최근 53주 러닝 캘린더 — 고정 크기 셀(가로 스크롤, 최신 쪽에서 시작), 탭/호버/방향키 팝오버. 순수 배치: $lib/archive.
 	import { buildHeatmap } from '$lib/archive';
+	import { announce } from '$lib/a11y/announce';
 	import { heatCellLabel, moveHeatCell } from '$lib/libraryHome';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -27,6 +28,10 @@
 	function open(c: { date: string }) {
 		goto(`${base}/library/activities?from=${c.date}&to=${c.date}`);
 	}
+
+	$effect(() => {
+		if (cell) announce(heatCellLabel(cell.date, cell.km));
+	});
 
 	function onKey(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
@@ -76,7 +81,6 @@
 				<div
 					class="absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-border-subtle bg-surface-3 px-2 py-1 text-xs text-fg-primary shadow"
 					style="left:{Math.min(Math.max(cell.col * STEP + CELL / 2, 70), width - 70)}px;top:{Math.max(0, TOP + cell.row * STEP - 30)}px"
-					role="status"
 				>
 					{heatCellLabel(cell.date, cell.km)}
 					{#if cell.km > 0}

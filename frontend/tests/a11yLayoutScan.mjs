@@ -16,6 +16,7 @@ const tags = (s, re) => [...s.matchAll(re)].map((m) => m[0]);
 const LIVE = /\brole="(?:status|alert)"|\baria-live=/;
 
 export function scan(path, s) {
+	if (path === 'src/lib/components/LiveRegion.svelte') return {}; // R3 상시 영역 자체는 예외
 	const out = {};
 	const add = (k, n = 1) => n > 0 && (out[k] = (out[k] ?? 0) + n);
 	const openTags = tags(s, /<[a-zA-Z][\w.:-]*\b(?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})*>/g);

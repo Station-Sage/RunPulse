@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 03e-coach.md 5-C — 플랜 없음 화면.
 	import type { PlanGatewayData } from './+page';
 	import { base } from '$app/paths';
@@ -102,6 +103,6 @@
 				</li>
 			{/each}
 		</ul>
-		{#if err}<p class="mt-2 text-xs text-semantic-red" role="alert">{err}</p>{/if}
+		{#if err}<p class="mt-2 text-xs text-semantic-red" use:say={{ text: err, level: 'assertive' }}>{err}</p>{/if}
 	</section>
 {/if}

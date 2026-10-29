@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import { estimateSync, type SyncEstimate } from '$lib/api/data';
 	import { estimateView, validateRange } from '$lib/rangeSync';
 	import { syncProviderName } from '$lib/syncState';
@@ -57,7 +58,7 @@
 						class="rounded border border-border-subtle bg-surface-1 p-2 text-sm text-fg-primary" />
 				</label>
 			</div>
-			{#if err}<p class="text-xs text-fg-secondary" role="alert">{err}</p>{/if}
+			{#if err}<p class="text-xs text-fg-secondary" use:say={{ text: err, level: 'assertive' }}>{err}</p>{/if}
 			{#if view}
 				<ul class="text-xs text-fg-secondary" aria-label="추정 결과">{#each view.lines as l}<li>{l}</li>{/each}</ul>
 			{/if}

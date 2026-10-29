@@ -90,7 +90,7 @@
 		{#if connected.length === 0 && sources.some((x) => !x.enabled)}
 			<p class="mt-2 text-xs text-fg-secondary">동기화할 소스가 없어요 · 위에서 [다시 포함]을 눌러 켜세요</p>
 		{/if}
-		{#if syncStore.notice}<p class="mt-2 text-xs text-fg-secondary" role="status">{syncStore.notice}</p>{/if}
+		{#if syncStore.notice}<p class="mt-2 text-xs text-fg-secondary">{syncStore.notice}</p>{/if}
 	</div>
 
 	{#if connected.length > 0}<RangeSyncForm providers={connected.map((x) => x.provider)} />{/if}

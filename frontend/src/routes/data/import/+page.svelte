@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import {
 		getImportJob, getImports, previewImport, startImport, startRecompute,
@@ -125,7 +126,7 @@
 	{/if}
 
 	{#if step === 3}
-		<p class="text-sm text-fg-secondary" role="status">가져오는 중이에요. 이 화면을 닫아도 계속돼요.</p>
+		<p class="text-sm text-fg-secondary" use:say={{ text: '가져오는 중이에요. 이 화면을 닫아도 계속돼요.' }}>가져오는 중이에요. 이 화면을 닫아도 계속돼요.</p>
 	{/if}
 
 	{#if step === 4 && job}
@@ -157,7 +158,7 @@
 		<button type="button" onclick={again} class="text-xs text-fg-primary underline">다른 파일 가져오기</button>
 	{/if}
 
-	{#if message}<p class="text-xs text-semantic-red" role="alert">{message}</p>{/if}
+	{#if message}<p class="text-xs text-semantic-red" use:say={{ text: message, level: 'assertive' }}>{message}</p>{/if}
 
 	<section aria-label="가져오기 이력" class="flex flex-col gap-2">
 		<h2 class="text-xs font-semibold text-fg-primary">최근 가져오기</h2>

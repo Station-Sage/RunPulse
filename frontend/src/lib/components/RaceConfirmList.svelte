@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { say } from '$lib/a11y/say';
 	// 대회 확인(P7-PRED-73): 대회로 보이는 활동에 전력/페이스/펀런/DNF 를 표시 — 예측은 '전력'만 기준으로 쓴다.
 	import { onMount } from 'svelte';
 	import type { RaceCandidate, RaceEffort } from '$lib/types';
@@ -56,12 +57,12 @@
 <div class="flex flex-col gap-2" aria-label="대회 확인">
 	<span class="text-xs text-fg-muted">대회 기록 확인 · 예측은 '전력'으로 표시한 대회만 기준으로 써요</span>
 	{#if saveError}
-		<p class="text-[11px] text-semantic-red" role="alert">저장하지 못했어요 · 다시 시도해 주세요 ({saveError})</p>
+		<p class="text-[11px] text-semantic-red" use:say={{ text: `저장하지 못했어요 · 다시 시도해 주세요 (${saveError})`, level: 'assertive' }}>저장하지 못했어요 · 다시 시도해 주세요 ({saveError})</p>
 	{/if}
 	{#if !loaded}
 		<p class="text-[11px] text-fg-muted">불러오는 중…</p>
 	{:else if loadError}
-		<p class="text-[11px] text-fg-secondary" role="alert">
+		<p class="text-[11px] text-fg-secondary" use:say={{ text: '대회 목록을 불러오지 못했어요', level: 'assertive' }}>
 			대회 목록을 불러오지 못했어요 ·
 			<button type="button" class="underline underline-offset-2" onclick={load}>다시 시도</button>
 		</p>
