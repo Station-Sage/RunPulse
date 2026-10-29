@@ -106,3 +106,15 @@ test('PageHead 는 title 필수·sr-only/h1 null 처리', () => {
 	assert.match(s, /title: string/);
 	assert.match(s, /heading === undefined/);
 });
+
+test('공용 부품: IconButton/TextField/ToggleGroup 은 label 필수', () => {
+	const dir = 'src/lib/components/ui/';
+	for (const n of ['IconButton', 'TextField', 'ToggleGroup']) {
+		const src = readFileSync(dir + n + '.svelte', 'utf8');
+		assert.match(src, /\n\t\tlabel[,:]/, `${n}: label prop 필수`);
+		assert.doesNotMatch(src, /label\?:/, `${n}: label 은 선택이 될 수 없다`);
+	}
+	const chip = readFileSync(dir + 'ToggleChip.svelte', 'utf8');
+	assert.match(chip, /aria-pressed=\{mode === 'multi'/);
+	assert.match(chip, /aria-checked=\{mode === 'single'/);
+});
