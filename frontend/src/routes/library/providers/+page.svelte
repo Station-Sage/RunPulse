@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// S6 소스 비교 — 같은 러닝을 소스마다 어떻게 계산하는지.
 	import type { ProvidersMatrixPageData } from './+page';
 	import ProviderMatrix from '$lib/components/ProviderMatrix.svelte';
@@ -26,19 +27,13 @@
 	</nav>
 </div>
 
-<div role="group" aria-label="기간" class="flex gap-2 border-b border-border-subtle px-4 py-2">
-	{#each PERIOD_DAYS as p}
-		<button
-			type="button"
-			aria-pressed={data.days === p.days}
-			class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 text-xs {data.days === p.days
-				? 'border-semantic-teal bg-semantic-teal/15 text-fg-primary'
-				: 'border-border-subtle text-fg-secondary'}"
-			onclick={() => selectPeriod(p.days)}
-		>
-			{p.label}
-		</button>
-	{/each}
+<div class="border-b border-border-subtle px-4 py-2">
+	<ToggleGroup
+		label="기간"
+		items={PERIOD_DAYS.map((p) => ({ value: String(p.days), label: p.label }))}
+		selected={String(data.days)}
+		onchange={(v) => v && selectPeriod(Number(v))}
+	/>
 </div>
 
 {#if data.errorMessage && !data.matrix}

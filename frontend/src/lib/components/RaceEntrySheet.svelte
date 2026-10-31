@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import { say } from '$lib/a11y/say';
 	// 대회 추가·수정 시트 (RC §2.5) — 과거 날짜는 확인 문장을 한 번 더 보인다. 저장은 부모가 refresh 한다.
 	import { modal } from '$lib/overlay';
@@ -58,13 +59,13 @@
 				<input type="checkbox" bind:checked={pastOk} />이미 지난 날짜예요. 지난 대회로 기록할게요
 			</label>
 		{/if}
-		<fieldset class="space-y-1"><legend class="text-xs text-fg-secondary">우선순위</legend>
-			<div class="flex gap-2">
-				{#each ['A', 'B', 'C'] as p}
-					<button type="button" aria-pressed={priority === p} class="min-h-11 flex-1 rounded-lg {priority === p ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-2'}" onclick={() => (priority = p as RacePriority)}>{p}</button>
-				{/each}
-			</div>
-		</fieldset>
+		<ToggleGroup
+			label="우선순위"
+			items={['A', 'B', 'C'].map((p) => ({ value: p, label: p }))}
+			selected={priority}
+			onchange={(v) => v && (priority = v as RacePriority)}
+			class="grid grid-cols-3 gap-2"
+		/>
 		{#if priority === 'A'}<p class="text-xs text-fg-muted">A 대회는 한 번에 하나만 둘 수 있어요. 목표와 연결되는 대회예요.</p>{/if}
 		<label class="block text-xs text-fg-secondary">목표
 			<select class={inp} bind:value={goalType}>

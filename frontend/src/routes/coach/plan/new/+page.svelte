@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// 03e-coach.md 5-D — 새 프로그램 생성: 거리/날짜/목표 입력.
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -11,7 +12,6 @@
 		parseRunWeekdays,
 		REPORTED_MAX_KM,
 		reportedLoadEntries,
-		toggleWeekday,
 		WEEKDAY_LABELS
 	} from '$lib/planPrefill';
 
@@ -110,21 +110,13 @@
 		<div>
 			<p class="mb-1 text-sm font-medium text-fg-primary">운동 요일</p>
 			<p class="mb-2 text-xs text-fg-muted">달리는 요일을 선택하세요. 선택하지 않은 요일은 휴식으로 배치됩니다.</p>
-			<div class="flex flex-wrap gap-2">
-				{#each WEEKDAY_LABELS as label, i}
-					<button
-						type="button"
-						aria-pressed={runDays.includes(i)}
-						onclick={() => (runDays = toggleWeekday(runDays, i))}
-						class="h-11 w-11 rounded-full border text-sm transition-colors
-							{runDays.includes(i)
-							? 'border-fg-primary bg-fg-primary text-surface-1'
-							: 'border-border-subtle bg-surface-2 text-fg-secondary hover:bg-surface-3'}"
-					>
-						{label}
-					</button>
-				{/each}
-			</div>
+			<ToggleGroup
+				mode="multi"
+				label="운동 요일"
+				items={WEEKDAY_LABELS.map((label, i) => ({ value: String(i), label }))}
+				selected={runDays.map(String)}
+				onchange={(v) => (runDays = (v as string[]).map(Number).sort((a, b) => a - b))}
+			/>
 			{#if needsInjuryNotice(runDays)}
 				<p class="mt-2 text-xs text-semantic-red" data-testid="injury-notice">
 					주 {runDays.length}일 달리면 회복 시간이 부족해 부상 위험이 높아질 수 있어요. 주 1일 이상은 쉬는 것을 권장합니다.
