@@ -6,8 +6,8 @@ await page.goto((process.env.BASE || 'http://127.0.0.1:18099') + '/v2/coach', { 
 console.log('before:', (await page.locator('text=컨디션').allInnerTexts()).join(' | '));
 await page.getByText('오늘 컨디션 입력').click();
 await page.waitForTimeout(300);
-await page.getByRole('button', { name: '피로도 6' }).click();
-await page.getByRole('button', { name: '경미' }).click();
+await page.getByRole('radio', { name: '6', exact: true }).click();
+await page.getByRole('radio', { name: '경미' }).click();
 await page.getByRole('button', { name: '저장' }).click();
 await page.waitForTimeout(800);
 console.log('after:', (await page.locator('text=피로').allInnerTexts()).join(' | '));

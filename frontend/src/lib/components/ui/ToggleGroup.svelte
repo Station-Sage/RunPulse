@@ -11,6 +11,7 @@
 		mode = 'single',
 		selected = $bindable(mode === 'single' ? null : []),
 		onchange,
+		clearable = false,
 		class: cls = 'flex flex-wrap gap-2'
 	}: {
 		label: string;
@@ -18,6 +19,7 @@
 		mode?: 'single' | 'multi';
 		selected?: string | string[] | null;
 		onchange?: (v: string | string[] | null) => void;
+		clearable?: boolean;
 		class?: string;
 	} = $props();
 
@@ -32,7 +34,7 @@
 	});
 
 	function pick(v: string) {
-		if (mode === 'single') selected = v;
+		if (mode === 'single') selected = clearable && selected === v ? null : v;
 		else {
 			const cur = Array.isArray(selected) ? selected : [];
 			selected = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];

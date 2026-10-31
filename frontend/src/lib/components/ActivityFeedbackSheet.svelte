@@ -2,6 +2,8 @@
 	import { say } from '$lib/a11y/say';
 	// U15d — 활동별 RPE·통증·메모 입력(ADR-022). 저장은 PUT, 전부 비우면 서버가 삭제한다.
 	import type { ActivityFeedback, PainLevel } from '$lib/types';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
+	import TextField from '$lib/components/ui/TextField.svelte';
 	import { putActivityFeedback } from '$lib/api/activityFeedback';
 
 	let { activityId, existing = null, onSaved, onClose }: {
@@ -31,11 +33,6 @@
 
 	const showSites = $derived(pain != null && pain !== 'none');
 
-	function toggleSite(s: string) {
-		if (sites.includes(s)) sites = sites.filter((x) => x !== s);
-		else if (sites.length < 3) sites = [...sites, s];
-	}
-
 	async function save() {
 		saving = true;
 		error = '';
@@ -59,31 +56,34 @@
 		<button type="button" onclick={onClose} class="h-11 px-2 text-xs text-fg-muted hover:text-fg-primary">닫기</button>
 	</div>
 	<p class="text-xs text-fg-muted">운동 강도 체감(RPE)</p>
-	<div role="radiogroup" aria-label="운동 강도 체감 (1 매우 쉬움 ~ 10 최대)" class="grid grid-cols-10 gap-1">
-		{#each RPE as n (n)}
-			<button type="button" aria-pressed={rpe === n} aria-label={`RPE ${n}`}
-				onclick={() => (rpe = rpe === n ? null : n)}
-				class="h-11 rounded border border-border-subtle text-sm {rpe === n ? 'bg-semantic-teal text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{n}</button>
-		{/each}
-	</div>
+	<ToggleGroup
+		label="운동 강도 체감 (1 매우 쉬움 ~ 10 최대)"
+		items={RPE.map((n) => ({ value: String(n), label: String(n) }))}
+		selected={rpe == null ? null : String(rpe)}
+		onchange={(v) => (rpe = v == null ? null : Number(v))}
+		clearable
+		class="grid grid-cols-5 gap-1"
+	/>
 	<div class="-mt-2 flex justify-between text-xs text-fg-muted" aria-hidden="true"><span>1 매우 쉬움</span><span>10 최대</span></div>
-	<div role="radiogroup" aria-label="통증 수준" class="flex flex-wrap gap-1">
-		{#each PAIN as p (p.value)}
-			<button type="button" aria-pressed={pain === p.value} onclick={() => (pain = pain === p.value ? null : p.value)}
-				class="h-11 rounded border border-border-subtle px-3 text-sm {pain === p.value ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{p.label}</button>
-		{/each}
-	</div>
+	<ToggleGroup
+		label="통증 수준"
+		items={PAIN}
+		selected={pain}
+		onchange={(v) => (pain = v as PainLevel | null)}
+		clearable
+	/>
 	{#if showSites}
 		<p class="text-xs text-fg-muted">아픈 부위 (최대 3곳)</p>
-		<div class="flex flex-wrap gap-1">
-			{#each SITES as [slug, label] (slug)}
-				<button type="button" aria-pressed={sites.includes(slug)} onclick={() => toggleSite(slug)}
-					class="h-11 rounded-full border border-border-subtle px-3 text-sm {sites.includes(slug) ? 'bg-semantic-amber text-fg-on-accent' : 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}">{label}</button>
-			{/each}
-		</div>
+		<ToggleGroup
+			mode="multi"
+			label="아픈 부위 (최대 3곳)"
+			items={SITES.map(([value, label]) => ({ value, label, disabled: sites.length >= 3 && !sites.includes(value) }))}
+			selected={sites}
+			onchange={(v) => (sites = v as string[])}
+		/>
 	{/if}
-	<textarea bind:value={note} maxlength="500" rows="2" placeholder="메모 (선택, 500자)"
-		class="rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted"></textarea>
+	<TextField label="메모" labelHidden multiline bind:value={note} maxlength={500} rows={2} placeholder="메모 (선택, 500자)"
+		class="w-full rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted" />
 	{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
 	<div class="flex justify-end">
 		<button type="button" onclick={save} disabled={saving}

@@ -4,6 +4,8 @@
 	// 키보드 단축키(R/P/N)는 이번 1차 범위에서 뺐다 — 메모 입력 중 타이핑과 충돌 위험이
 	// 있어 별도 검토가 필요해서다(DONE 기록 참조).
 	import type { PainLevel, QuickInputProps } from '$lib/types';
+	import TextField from '$lib/components/ui/TextField.svelte';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import { dismiss, isDismissed } from '$lib/checkinDismiss';
 
 	let { existing, compact = false, saving = false, dismissDate, onSave }: QuickInputProps = $props();
@@ -89,21 +91,13 @@
 		</div>
 
 		<p class="text-xs text-fg-muted">피로도</p>
-		<div role="radiogroup" aria-label="피로도 (1 가뿐함 ~ 10 매우 피곤)" class="grid grid-cols-10 gap-1">
-			{#each FATIGUE_LEVELS as n (n)}
-				<button
-					type="button"
-					aria-pressed={fatigue === n}
-					aria-label={`피로도 ${n}`}
-					onclick={() => pickFatigue(n)}
-					class="h-11 w-full rounded border border-border-subtle text-sm {fatigue === n
-						? 'bg-semantic-teal text-fg-on-accent'
-						: 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}"
-				>
-					{n}
-				</button>
-			{/each}
-		</div>
+		<ToggleGroup
+			label="피로도 (1 가뿐함 ~ 10 매우 피곤)"
+			items={FATIGUE_LEVELS.map((n) => ({ value: String(n), label: String(n) }))}
+			selected={fatigue === undefined ? null : String(fatigue)}
+			onchange={(v) => pickFatigue(Number(v))}
+			class="grid grid-cols-5 gap-1"
+		/>
 		<div class="-mt-2 flex justify-between text-xs text-fg-muted" aria-hidden="true">
 			<span>1 가뿐함</span>
 			<span>10 매우 피곤</span>
@@ -118,28 +112,22 @@
 				+ 더하기 <span class="text-xs text-fg-muted">(통증·메모)</span>
 			</button>
 		{:else}
-		<div role="radiogroup" aria-label="통증 수준" class="flex flex-wrap gap-1">
-			{#each PAIN_LEVELS as p (p.value)}
-				<button
-					type="button"
-					aria-pressed={pain === p.value}
-					aria-label={p.label}
-					onclick={() => (pain = p.value)}
-					class="rounded border border-border-subtle px-3 py-1.5 text-sm {pain === p.value
-						? 'bg-semantic-amber text-fg-on-accent'
-						: 'bg-surface-1 text-fg-secondary hover:bg-surface-3'}"
-				>
-					{p.label}
-				</button>
-			{/each}
-		</div>
+		<ToggleGroup
+			label="통증 수준"
+			items={PAIN_LEVELS}
+			selected={pain ?? null}
+			onchange={(v) => (pain = v as PainLevel)}
+		/>
 
-		<textarea
+		<TextField
+			label="메모"
+			labelHidden
+			multiline
 			bind:value={note}
 			placeholder="메모 (선택)"
-			rows="2"
-			class="rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted"
-		></textarea>
+			rows={2}
+			class="w-full rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted"
+		/>
 
 		<div class="flex justify-end">
 			<button
