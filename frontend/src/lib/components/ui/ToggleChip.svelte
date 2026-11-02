@@ -7,6 +7,7 @@
 		selected,
 		disabled = false,
 		tabindex,
+		testid,
 		onclick,
 		onkeydown,
 		el = $bindable(),
@@ -16,6 +17,7 @@
 		selected: boolean;
 		disabled?: boolean;
 		tabindex?: number;
+		testid?: string;
 		onclick?: () => void;
 		onkeydown?: (e: KeyboardEvent) => void;
 		el?: HTMLButtonElement;
@@ -39,6 +41,7 @@
 	aria-pressed={mode === 'multi' ? selected : undefined}
 	{disabled}
 	{tabindex}
+	data-testid={testid}
 	{onclick}
 	{onkeydown}
 	class="tap inline-flex items-center justify-center rounded-lg border px-3 text-sm disabled:opacity-50 {look}"

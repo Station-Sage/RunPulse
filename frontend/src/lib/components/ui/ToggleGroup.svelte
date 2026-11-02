@@ -3,7 +3,7 @@
 	import ToggleChip from './ToggleChip.svelte';
 	import { nextIndex } from '$lib/a11y/rovingIndex';
 
-	type Item = { value: string; label: string; disabled?: boolean };
+	type Item = { value: string; label: string; disabled?: boolean; testid?: string };
 
 	let {
 		label,
@@ -63,6 +63,7 @@
 			{mode}
 			selected={isOn(it.value)}
 			disabled={it.disabled}
+			testid={it.testid}
 			tabindex={mode === 'single' ? (i === activeIdx ? 0 : -1) : undefined}
 			bind:el={els[i]}
 			onclick={() => pick(it.value)}

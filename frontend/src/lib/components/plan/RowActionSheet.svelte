@@ -6,9 +6,10 @@
 	import { HIDDEN_KEY, isoWeekStart, replanBannerView, type PlanAdvisory } from '$lib/replanBanner';
 	import { modal } from '$lib/overlay';
 	import ReplanBanner from './ReplanBanner.svelte';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import { workoutLabel } from '$lib/format';
 	import {
-		MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, togglePainSite, weekPreview, type LoadDelta, type RowActionMode, type RowOp
+		MAX_PAIN_SITES, MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, weekPreview, type LoadDelta, type RowActionMode, type RowOp
 	} from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
 
@@ -159,32 +160,42 @@
 		{/if}
 
 		{#if op === 'move'}
-			<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="옮길 날짜">
-				{#each days as d (d.date)}
-					<button type="button" aria-pressed={toDate === d.date} data-testid="move-day-{d.date}" class="h-11 rounded-full border px-4 text-sm {toDate === d.date ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (toDate = d.date)}>{d.label}</button>
-				{/each}
-			</div>
+			<ToggleGroup
+				label="옮길 날짜"
+				class="mt-3 flex flex-wrap gap-2"
+				items={days.map((d) => ({ value: d.date, label: d.label, testid: `move-day-${d.date}` }))}
+				selected={toDate ?? null}
+				onchange={(v) => (toDate = (v as string) ?? undefined)}
+			/>
 		{/if}
 
 		{#if op || isPain}
-			<div class="mt-3 flex gap-2" role="group" aria-label="이유">
-				{#each REASONS as r (r.key)}
-					<button type="button" aria-pressed={reason === r.key} class="h-11 rounded-full border px-4 text-sm {reason === r.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (reason = reason === r.key ? undefined : r.key)}>{r.label}</button>
-				{/each}
-			</div>
+			<ToggleGroup
+				label="이유"
+				class="mt-3 flex gap-2"
+				clearable
+				items={REASONS.map((r) => ({ value: r.key, label: r.label }))}
+				selected={reason ?? null}
+				onchange={(v) => (reason = (v as string) ?? undefined)}
+			/>
 		{/if}
 
 		{#if isPain}
-			<div class="mt-3 flex gap-2" role="group" aria-label="통증 정도">
-				{#each PAIN_LEVELS as l (l.key)}
-					<button type="button" aria-pressed={painLevel === l.key} data-testid="pain-level-{l.key}" class="h-11 rounded-full border px-4 text-sm {painLevel === l.key ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (painLevel = l.key)}>{l.label}</button>
-				{/each}
-			</div>
-			<div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="통증 부위(최대 3곳)">
-				{#each PAIN_SITES as s (s.key)}
-					<button type="button" aria-pressed={painSites.includes(s.key)} data-testid="pain-site-{s.key}" class="h-9 rounded-full border px-3 text-xs {painSites.includes(s.key) ? 'border-fg-primary bg-surface-2' : 'border-border-subtle'}" onclick={() => (painSites = togglePainSite(painSites, s.key))}>{s.label}</button>
-				{/each}
-			</div>
+			<ToggleGroup
+				label="통증 정도"
+				class="mt-3 flex gap-2"
+				items={PAIN_LEVELS.map((l) => ({ value: l.key, label: l.label, testid: `pain-level-${l.key}` }))}
+				selected={painLevel ?? null}
+				onchange={(v) => (painLevel = v as typeof painLevel)}
+			/>
+			<ToggleGroup
+				label="통증 부위(최대 3곳)"
+				mode="multi"
+				class="mt-2 flex flex-wrap gap-2"
+				items={PAIN_SITES.map((s) => ({ value: s.key, label: s.label, testid: `pain-site-${s.key}`, disabled: painSites.length >= MAX_PAIN_SITES && !painSites.includes(s.key) }))}
+				selected={painSites}
+				onchange={(v) => (painSites = v as string[])}
+			/>
 			<p data-testid="pain-guide" class="mt-2 text-xs text-fg-secondary">{PAIN_LEVELS.find((l) => l.key === painLevel)?.guide ?? '통증 정도와 부위(1~3곳)를 골라 주세요. 통증이 있으면 옮기기는 할 수 없어요.'}</p>
 		{/if}
 
