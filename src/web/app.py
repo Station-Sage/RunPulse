@@ -135,6 +135,8 @@ def create_app() -> Flask:
                  user_ids[0] if user_ids else "default"),
         )
         _start_auto_sync(load_config(user_id=_sync_uid), user_id=_sync_uid)
+        from src.services.export_purge import start as _start_export_purge
+        _start_export_purge()
     except Exception as _e:
         log.warning("[auto_sync] 시작 실패: %s", _e)
 

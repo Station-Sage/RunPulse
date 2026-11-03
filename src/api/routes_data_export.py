@@ -1,11 +1,12 @@
-"""`/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2."""
+"""`/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2, data-export §2.3."""
 from __future__ import annotations
 
 import sqlite3
+import uuid
 
 from flask import Response, request, send_file
 
-from src.services import export_service
+from src.services import export_groups, export_service
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
@@ -13,6 +14,8 @@ from . import api_bp, api_error, api_ok
 
 @api_bp.post("/data/export")
 def post_data_export():
+    if request.get_data(cache=True) and not request.is_json:
+        return api_error("UNSUPPORTED_MEDIA_TYPE", "JSON 본문만 받아요", 415)
     body = request.get_json(silent=True)
     params, err = export_service.parse_params(body if isinstance(body, dict) else {})
     if err:
@@ -21,7 +24,8 @@ def post_data_export():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
     if params["kind"] == "archive":
-        data, code = export_service.start_archive(get_current_user_id(), params["from"], params["to"])
+        data, code = export_service.start_archive(get_current_user_id(), params["from"], params["to"],
+                                                  params["groups"], params["include_dismissed"])
         if code:
             return api_error(code, "이미 아카이브를 만드는 중이에요", 409, data)
         return api_ok(data, 202)
@@ -32,25 +36,37 @@ def post_data_export():
         conn.close()
     name = export_service.quick_filename(params["kind"])
     return Response(text, mimetype="text/csv; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+                    headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"})
 
 
 @api_bp.get("/data/exports")
 def get_data_exports():
-    return api_ok({"exports": export_service.history()})
+    export_service.purge_expired(get_current_user_id())
+    return api_ok({"exports": export_service.history(), "groups": [
+        {"key": g.key, "label": g.label, "default": g.default, "sensitive": g.sensitive}
+        for g in export_groups.EXPORT_GROUPS]})
 
 
 @api_bp.get("/data/exports/<job_id>/download")
 def download_data_export(job_id: str):
     from src.utils.sync_jobs import get_job
 
+    try:
+        uuid.UUID(job_id)
+    except ValueError:
+        return api_error("NOT_FOUND", "내보내기를 찾을 수 없어요", 404)
     job = get_job(job_id)
     if job is None or job.service != export_service.SERVICE:
         return api_error("NOT_FOUND", "내보내기를 찾을 수 없어요", 404)
     view = export_service.job_view(job)
     if view["state"] == "expired":
-        return api_error("EXPIRED", "보관 기간(7일)이 지나 받을 수 없어요. 다시 만들어 주세요", 410)
-    path = export_service.exports_dir(get_current_user_id()) / f"{job.id}.zip"
+        return api_error("EXPIRED", "보관 기간(24시간)이 지나 받을 수 없어요. 다시 만들어 주세요", 410)
+    uid = get_current_user_id()
+    path = export_service.exports_dir(uid) / f"{job.id}.zip"
     if view["state"] != "done" or not path.exists():
         return api_error("NOT_FOUND", "파일이 아직 없어요", 404)
-    return send_file(path, mimetype="application/zip", as_attachment=True, download_name=view["result"]["filename"])
+    export_service.record_download(job, uid)
+    resp = send_file(path, mimetype="application/zip", as_attachment=True, download_name=view["result"]["filename"])
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp

@@ -17,3 +17,14 @@ export function expiryText(item: ExportItem, now: Date = new Date()): string {
 export function rangeBody(from: string, to: string): { from?: string; to?: string } {
 	return { ...(from ? { from } : {}), ...(to ? { to } : {}) };
 }
+
+const ERROR_TEXT: Record<string, string> = {
+	EXPORT_SECRET_DETECTED: '민감한 값이 섞여 있어 안전을 위해 만들지 않았어요',
+	EXPORT_DISK_FULL: '저장 공간이 부족해요',
+	EXPORT_FAILED: '파일을 만들지 못했어요'
+};
+
+export function errorText(item: ExportItem): string {
+	const base = (item.error_code && ERROR_TEXT[item.error_code]) || '실패';
+	return item.error && !item.error_code ? `${base} — ${item.error}` : base;
+}

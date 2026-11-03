@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from src.services import export_archive as ea
 from src.services import export_service as es
 from src.utils import sync_jobs
 
@@ -27,6 +28,14 @@ def conn():
       provider TEXT, is_primary INT);
     CREATE TABLE source_payloads (source TEXT, entity_type TEXT, entity_id TEXT, entity_date TEXT,
       fetched_at TEXT, payload TEXT);
+    CREATE TABLE activity_laps (id INTEGER PRIMARY KEY, activity_id INT, lap_index INT);
+    CREATE TABLE activity_best_efforts (id INTEGER PRIMARY KEY, activity_id INT, name TEXT);
+    CREATE TABLE activity_exercise_sets (id INTEGER PRIMARY KEY, activity_id INT, name TEXT);
+    CREATE TABLE activity_feedback (id INTEGER PRIMARY KEY, activity_id INT, note TEXT);
+    CREATE TABLE activity_groups (id INTEGER PRIMARY KEY, activity_date TEXT);
+    CREATE TABLE gear (id INTEGER PRIMARY KEY, name TEXT);
+    CREATE TABLE prediction_snapshots (id INTEGER PRIMARY KEY, as_of TEXT);
+    CREATE TABLE milestones (id INTEGER PRIMARY KEY, date TEXT);
     INSERT INTO activity_summaries VALUES (1,'strava','g1','Run','running','2026-10-01T07:00:00',10000,3000,300,150,170,180,50);
     INSERT INTO activity_summaries VALUES (2,'garmin','g1','Run','running','2026-10-01T07:00:00',10020,3001,299,151,171,181,52);
     INSERT INTO activity_summaries VALUES (3,'strava',NULL,'Old','running','2026-09-01T07:00:00',5000,1500,300,140,160,170,10);
@@ -49,6 +58,13 @@ def test_parse_params():
     assert es.parse_params({"kind": "archive", "from": "bad"})[1]
     assert es.parse_params({"kind": "quick_load", "from": "2026-02-01", "to": "2026-01-01"})[1]
     assert es.parse_params({"kind": "quick_load", "from": "2026-01-01"})[1] is None
+    assert es.parse_params({"kind": "archive"})[0]["groups"] is None
+    assert es.parse_params({"kind": "archive", "groups": []})[1]
+    assert es.parse_params({"kind": "archive", "groups": ["nope"]})[1]
+    assert es.parse_params({"kind": "archive", "groups": ["raw", "raw"]})[1]
+    assert es.parse_params({"kind": "archive", "include_dismissed": "yes"})[1]
+    ok = es.parse_params({"kind": "archive", "groups": ["raw"], "include_dismissed": True})[0]
+    assert ok["groups"] == ["raw"] and ok["include_dismissed"] is True
 
 
 def test_activities_groups_and_prefers_garmin(conn):
@@ -76,7 +92,7 @@ def test_quick_export_bom_and_parseable(conn):
 
 
 def test_build_archive(conn, tmp_path):
-    info = es.build_archive(conn, tmp_path / "a.zip")
+    info = ea.build_archive(conn, tmp_path / "a.zip")
     assert info["row_counts"]["activity_summaries"] == 3 and info["row_counts"]["source_payloads"] == 1
     with zipfile.ZipFile(tmp_path / "a.zip") as z:
         names = z.namelist()
@@ -84,7 +100,7 @@ def test_build_archive(conn, tmp_path):
 
 
 def test_archive_excludes_calendar_feed_and_tokens(conn, tmp_path):
-    es.build_archive(conn, tmp_path / "a.zip")
+    ea.build_archive(conn, tmp_path / "a.zip")
     with zipfile.ZipFile(tmp_path / "a.zip") as z:
         assert not any("calendar_feed" in n for n in z.namelist())
         assert not any(b"rpcal_" in z.read(n) for n in z.namelist())
@@ -95,6 +111,11 @@ def test_job_view_expiry():
     job.status, job.result_json = "completed", '{"expires_at": "2026-10-01T00:00:00"}'
     assert es.job_view(job, datetime(2026, 9, 30))["state"] == "done"
     assert es.job_view(job, datetime(2026, 10, 2))["state"] == "expired"
+    job.status = "expired"
+    assert es.job_view(job, datetime(2026, 9, 30))["state"] == "expired"
+
+
+H = {"Origin": "http://localhost"}
 
 
 def test_routes(monkeypatch, tmp_path, conn):
@@ -114,19 +135,23 @@ def test_routes(monkeypatch, tmp_path, conn):
     app = Flask(__name__)
     app.register_blueprint(api_bp)
     with app.test_client() as c:
-        assert c.post("/api/v1/data/export", json={"kind": "nope"}).status_code == 400
-        r = c.post("/api/v1/data/export", json={"kind": "quick_wellness"})
+        assert c.post("/api/v1/data/export", headers=H, json={"kind": "nope"}).status_code == 400
+        r = c.post("/api/v1/data/export", headers=H, json={"kind": "quick_wellness"})
         assert r.status_code == 200 and "attachment" in r.headers["Content-Disposition"]
-        r = c.post("/api/v1/data/export", json={"kind": "archive"})
+        r = c.post("/api/v1/data/export", headers=H, json={"kind": "archive"})
         assert r.status_code == 202
         jid = r.get_json()["data"]["job_id"]
-        assert c.post("/api/v1/data/export", json={"kind": "archive"}).status_code == 409
+        assert c.post("/api/v1/data/export", headers=H, json={"kind": "archive"}).status_code == 409
         assert c.get(f"/api/v1/data/exports/{jid}/download").status_code == 404
         (tmp_path / "exports").mkdir()
-        es.build_archive(conn, tmp_path / "exports" / f"{jid}.zip")
+        ea.build_archive(conn, tmp_path / "exports" / f"{jid}.zip")
         exp = (datetime.now() + timedelta(days=1)).isoformat(timespec="seconds")
         sync_jobs.update_job(jid, status="completed", result_json='{"filename":"a.zip","expires_at":"%s"}' % exp)
-        assert c.get(f"/api/v1/data/exports/{jid}/download").status_code == 200
+        r = c.get(f"/api/v1/data/exports/{jid}/download")
+        assert r.status_code == 200 and r.headers["Cache-Control"] == "no-store"
+        assert r.headers["X-Content-Type-Options"] == "nosniff" and r.mimetype == "application/zip"
+        assert sync_jobs.get_job(jid).result_json.count('"download_count": 1') == 1
+        assert c.post("/api/v1/data/export", headers=H, data="x", content_type="text/plain").status_code == 415
         assert c.get("/api/v1/data/exports").get_json()["data"]["exports"][0]["state"] == "done"
         old = (datetime.now() - timedelta(days=1)).isoformat(timespec="seconds")
         sync_jobs.update_job(jid, result_json='{"filename":"a.zip","expires_at":"%s"}' % old)

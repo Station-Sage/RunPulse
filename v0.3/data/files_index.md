@@ -195,9 +195,24 @@
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
-### `export_service.py` (230줄) — 데이터 내보내기 — 빠른 CSV 3종(활동·웰니스·부하)과 전체 아카이브 zip 작업. 작업 원장은 sync_jobs(service='export').
+### `export_archive.py` (198줄) — 내보내기 아카이브 zip 작성 — 그룹별 테이블 CSV/JSON·원본 jsonl·manifest·README (data-export §2.2).
 
-- functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, build_archive, start_archive, job_view, history
+- class **ExportError**: 없음
+- functions: check_free_space, build_archive
+
+### `export_groups.py` (96줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
+
+- class **TableDef**: 없음
+- class **GroupDef**: 없음
+- functions: get_group, all_group_tables, table_exists, safe_columns, has_secret_value
+
+### `export_purge.py` (43줄) — 만료된 내보내기 zip 주기 정리 스레드 — 모든 사용자 폴더를 훑는다 (data-export §2.2).
+
+- functions: purge_all, start
+
+### `export_service.py` (257줄) — 데이터 내보내기 — 빠른 CSV 3종(활동·웰니스·부하)과 전체 아카이브 zip 작업. 작업 원장은 sync_jobs(service='export').
+
+- functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, start_archive, record_download, purge_expired, job_view, history
 
 ### `garmin_cleanup.py` (78줄) — 재계획으로 지워진 RunPulse 세션의 Garmin 캘린더 일정을 사용자 확인 후 삭제한다 (DESIGN-PLAN-A6-REPLAN-UI §13.1 D).
 
@@ -1179,7 +1194,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (229줄) — RunPulse integration workbench web app.
+### `app.py` (231줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1696,7 +1711,7 @@
 
 - functions: get_data_calendar_feed, post_data_calendar_feed, delete_data_calendar_feed
 
-### `routes_data_export.py` (56줄) — `/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2.
+### `routes_data_export.py` (72줄) — `/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2, data-export §2.3.
 
 - functions: post_data_export, get_data_exports, download_data_export
 
@@ -2404,7 +2419,15 @@
 
 - functions: client, test_unhandled_exception_is_json_500_without_leaking, test_404_in_view_is_envelope, test_400_keeps_description, test_405_raised_in_view_is_envelope, test_routing_level_404_405_are_outside_blueprint_handlers, test_413_is_envelope, test_unmapped_http_status_uses_name_as_code, test_api_bp_has_the_shared_handlers
 
-### `test_export_service.py` (134줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
+### `test_export_archive.py` (94줄) — export_archive — 그룹 선택, 기간 필터, 해제 에피소드, 미마이그레이션 skip, 비밀 차단, 디스크, 부분 파일 정리.
+
+- functions: conn, test_manifest_and_readme, test_sensitive_groups_listed, test_dismissed_episodes_excluded_by_default, test_optional_table_missing_is_skipped, test_required_table_missing_fails_and_cleans_up, test_secret_value_aborts, test_disk_full, test_check_free_space_ok, test_purge_all_runs_per_user
+
+### `test_export_groups.py` (50줄) — export_groups — 허용목록이 실제 스키마를 빠짐없이 덮고, 비밀 컬럼/값을 막는다.
+
+- functions: real_conn, test_every_real_table_is_grouped_or_excluded, test_no_secret_columns_in_exported_tables, test_secret_column_rejected, test_secret_value_detected, test_defaults_and_sensitive
+
+### `test_export_service.py` (159줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
 
 - functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_archive_excludes_calendar_feed_and_tokens, test_job_view_expiry, test_routes
 
@@ -3563,7 +3586,7 @@
 - functions: run
 
 ---
-총 761개 파일
+총 766개 파일
 
 ## docstring 누락
 

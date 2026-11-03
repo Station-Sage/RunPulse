@@ -1,5 +1,6 @@
 // 데이터 영역 API — SyncState 계약(40 design §7.3).
 import { apiFetch } from './client';
+import type { ExportGroup, archiveBody } from '$lib/exportScope';
 import type { SyncSource, SyncState, TriggerResponse } from '$lib/syncState';
 
 export const getSyncState = () => apiFetch<SyncState>('/data/sync-state');
@@ -197,11 +198,14 @@ export interface ExportItem {
 	finished_at: string | null;
 	result: { filename: string; size_bytes: number; expires_at: string; row_counts: Record<string, number> } | null;
 	error: string | null;
+	error_code?: string | null;
 }
 
-export const getExports = () => apiFetch<{ exports: ExportItem[] }>('/data/exports').then((d) => d.exports);
-export const startArchive = (range: { from?: string; to?: string }) =>
-	apiFetch<{ job_id: string }>('/data/export', { method: 'POST', body: JSON.stringify({ kind: 'archive', ...range }) });
+export const getExportsFull = () =>
+	apiFetch<{ exports: ExportItem[]; groups: ExportGroup[] }>('/data/exports');
+export const getExports = () => getExportsFull().then((d) => d.exports);
+export const startArchive = (body: ReturnType<typeof archiveBody>) =>
+	apiFetch<{ job_id: string }>('/data/export', { method: 'POST', body: JSON.stringify({ kind: 'archive', ...body }) });
 export const exportDownloadUrl = (id: string) => `/api/v1/data/exports/${encodeURIComponent(id)}/download`;
 
 /** 빠른 CSV를 받아 브라우저 다운로드로 넘긴다. */

@@ -1,11 +1,15 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import { untrack } from 'svelte';
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import {
 		downloadQuick, exportDownloadUrl, getExports, startArchive, type ExportItem, type ExportKind
 	} from '$lib/api/data';
-	import { expiryText, formatBytes, rangeBody } from '$lib/exports';
+	import { expiryText, formatBytes, rangeBody, errorText } from '$lib/exports';
+	import { archiveBody, defaultSelection, needsConfirm } from '$lib/exportScope';
+	import ExportScopeForm from '$lib/components/ExportScopeForm.svelte';
+	import ExportConfirmDialog from '$lib/components/ExportConfirmDialog.svelte';
 	import CalendarFeedCard from '$lib/components/CalendarFeedCard.svelte';
 	import type { ExportPageData } from './+page';
 
@@ -15,6 +19,9 @@
 	let to = $state('');
 	let busy = $state<ExportKind | null>(null);
 	let message = $state('');
+	let selected = $state<string[]>(untrack(() => defaultSelection(data.groups)));
+	let includeDismissed = $state(false);
+	let confirmOpen = $state(false);
 
 	const quick = [
 		{ kind: 'quick_activities', title: '활동 CSV', desc: '같은 활동은 한 줄로 합치고 소스별 원값 열을 함께 담아요.' },
@@ -49,11 +56,21 @@
 		}
 	}
 
+	function requestArchive() {
+		if (selected.length === 0) {
+			message = '내보낼 데이터를 하나 이상 골라 주세요';
+			return;
+		}
+		if (needsConfirm(selected)) confirmOpen = true;
+		else makeArchive();
+	}
+
 	async function makeArchive() {
+		confirmOpen = false;
 		busy = 'archive';
 		message = '';
 		try {
-			await startArchive(rangeBody(from, to));
+			await startArchive(archiveBody(selected, includeDismissed, rangeBody(from, to)));
 			message = '아카이브를 만들고 있어요. 끝나면 아래 목록에서 받을 수 있어요.';
 		} catch (e) {
 			message = e instanceof Error ? e.message : '아카이브를 시작하지 못했어요';
@@ -64,9 +81,9 @@
 	}
 </script>
 
-<PageHead title="내보내기" heading={null} />
+<PageHead title="데이터 내보내기" heading={null} />
 
-<h1 class="sr-only">내보내기</h1>
+<h1 class="sr-only">데이터 내보내기</h1>
 
 <div class="flex flex-col gap-3 px-4 py-4">
 	<fieldset class="flex items-center gap-2 text-xs text-fg-secondary">
@@ -88,20 +105,23 @@
 		</button>
 	{/each}
 
+	<ExportScopeForm groups={data.groups} bind:selected bind:includeDismissed />
+
 	<button
 		type="button"
 		disabled={busy !== null || active}
-		onclick={makeArchive}
+		onclick={requestArchive}
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 text-left hover:bg-surface-3 disabled:opacity-60"
 	>
 		<span class="text-sm text-fg-primary">전체 아카이브 (zip){active ? ' · 만드는 중…' : ''}</span>
-		<span class="text-xs text-fg-secondary">테이블 CSV, 위 CSV 3종, 소스 원본 데이터, manifest를 한 파일로 묶어요. 7일간 받을 수 있어요.</span>
+		<span class="text-xs text-fg-secondary">선택한 데이터의 CSV·JSON, manifest를 한 파일로 묶어요. 위에서 고른 데이터만 담기고, 24시간 뒤 자동으로 지워져요.</span>
 	</button>
 
 	{#if message}<p class="text-xs text-fg-secondary" use:say={{ text: message }}>{message}</p>{/if}
 
 	<section aria-label="아카이브 이력" class="flex flex-col gap-2">
 		<h2 class="text-xs font-semibold text-fg-primary">아카이브 이력</h2>
+		<p class="sr-only" aria-live="polite">{active ? '아카이브를 만들고 있어요' : ''}</p>
 		{#if history === null}
 			<p class="text-xs text-fg-muted">이력을 불러오지 못했어요</p>
 		{:else if history.length === 0}
@@ -113,9 +133,12 @@
 						{(h.finished_at ?? h.created_at ?? '').slice(0, 16).replace('T', ' ')}
 						{#if h.state === 'done' && h.result} · {formatBytes(h.result.size_bytes)} · {expiryText(h)}
 						{:else if h.state === 'expired'} · {expiryText(h)}
-						{:else if h.state === 'failed'} · <span class="text-semantic-red">실패{h.error ? ` — ${h.error}` : ''}</span>
+						{:else if h.state === 'failed'} · <span class="text-semantic-red">{errorText(h)}</span>
 						{:else} · 만드는 중…{/if}
 					</span>
+					{#if h.state === 'failed'}
+						<button type="button" class="tap text-fg-primary underline" disabled={busy !== null || active} onclick={requestArchive}>다시 만들기</button>
+					{/if}
 					{#if h.state === 'done'}
 						<a href={exportDownloadUrl(h.id)} data-sveltekit-reload class="text-fg-primary underline">받기</a>
 					{/if}
@@ -148,3 +171,7 @@
 		<a href="{base}/data/settings/ai" class="underline">AI 설정</a>에서 확인할 수 있어요.
 	</p>
 </div>
+
+{#if confirmOpen}
+	<ExportConfirmDialog onConfirm={makeArchive} onCancel={() => (confirmOpen = false)} />
+{/if}
