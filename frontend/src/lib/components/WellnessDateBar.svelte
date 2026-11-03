@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// 웰니스 날짜 바 + 이번 주 7일 점. 이동은 모두 replace(히스토리 누적 방지).
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -16,23 +17,11 @@
 </script>
 
 <div class="flex items-center justify-between px-4 pt-3">
-	<button
-		type="button"
-		aria-label="이전 기록"
-		disabled={!detail.nav.prev}
-		onclick={() => go(detail.nav.prev)}
-		class="tap rounded-full text-lg text-fg-secondary disabled:opacity-30">‹</button
-	>
+	<IconButton label="이전 기록" disabled={!detail.nav.prev} onclick={() => go(detail.nav.prev)} class="rounded-full text-lg text-fg-secondary disabled:opacity-30">‹</IconButton>
 	<h1 class="text-base font-semibold">
 		{dateLabel(detail.date)}{#if detail.is_today}<span class="ml-1 text-xs font-normal text-fg-muted">오늘</span>{/if}
 	</h1>
-	<button
-		type="button"
-		aria-label="다음 기록"
-		disabled={!detail.nav.next}
-		onclick={() => go(detail.nav.next)}
-		class="tap rounded-full text-lg text-fg-secondary disabled:opacity-30">›</button
-	>
+	<IconButton label="다음 기록" disabled={!detail.nav.next} onclick={() => go(detail.nav.next)} class="rounded-full text-lg text-fg-secondary disabled:opacity-30">›</IconButton>
 </div>
 <div class="flex justify-between px-6 pb-1 pt-2" role="group" aria-label="이번 주">
 	{#each detail.week as w, i (w.date)}

@@ -74,7 +74,7 @@
 						{keyStateText(p.key_state)}{p.key_mask ? ` · ${p.key_mask}` : ''}
 					</p>
 					<div class="mt-2 flex gap-2">
-						<input type="password" autocomplete="off" placeholder="새 API 키" bind:value={drafts[p.provider]}
+						<input type="password" autocomplete="off" placeholder="새 API 키" aria-label="{p.provider} API 키" bind:value={drafts[p.provider]}
 							class="min-h-11 min-w-0 flex-1 rounded border border-border-subtle bg-surface-1 px-2 text-sm" />
 						<button class="min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
 							disabled={busy || !drafts[p.provider]?.trim()}

@@ -31,7 +31,7 @@
 	let busy = $state(false);
 	let bannerShown = false;
 	let error = $state<string | null>(null);
-	let toast = $state<{ message: string; id: number } | null>(null);
+	let toast = $state<{ message: string; id: number; error?: boolean } | null>(null);
 	let btn: HTMLButtonElement | undefined = $state();
 
 	const mode = $derived(rowActionMode(workout, today));
@@ -82,7 +82,7 @@
 			await revertAdjustment(toast.id, via);
 			toast = { message: '원래 계획으로 돌렸어요', id: 0 };
 		} catch (e) {
-			toast = { message: actionErrorText(e), id: 0 };
+			toast = { message: actionErrorText(e), id: 0, error: true };
 		}
 		onChange?.();
 	}
@@ -102,4 +102,4 @@
 {#if open}
 	<RowActionSheet {today} {workout} {mode} {weekKm} {crsPending} {busy} {error} onBanner={(v) => (bannerShown = v)} onApply={apply} onClose={close} />
 {/if}
-<Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast && toast.id ? undo : undefined} onDismiss={() => (toast = null)} />
+<Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast && toast.id ? undo : undefined} level={toast?.error ? 'error' : 'info'} onDismiss={() => (toast = null)} />

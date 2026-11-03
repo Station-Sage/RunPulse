@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// 공통 셸 — 하단 3탭(Today/Library/Coach) + 상단 ☰ 메뉴.
 	// 03-screen-catalog.md 전 화면 공통. ☰는 40:S0 과도기 드로어(v1 링크)로 활성화 —
 	// 우측 SyncStatusPill(Phase 4-1 슬라이스1, 읽기 전용)이 동기화 상태를 보여주고, 드로어는
@@ -40,14 +41,7 @@
 <div class="flex min-h-screen flex-col bg-surface-1 text-fg-primary lg:pl-52">
 	<header class="border-b border-border-subtle pt-[env(safe-area-inset-top)]">
 		<div class="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 lg:max-w-6xl">
-			{#if !$demoActive}<button
-				type="button"
-				onclick={() => (menuOpen = true)}
-				aria-label="메뉴"
-				class="-ml-1.5 rounded p-1.5 text-fg-secondary hover:text-fg-primary"
-			>
-				<Icon name="menu" class="h-5 w-5" />
-			</button>{/if}
+			{#if !$demoActive}<IconButton label="메뉴" onclick={() => (menuOpen = true)} class="-ml-2 rounded text-fg-secondary hover:text-fg-primary"><Icon name="menu" class="h-5 w-5" /></IconButton>{/if}
 			<span class="font-medium">RunPulse</span>
 			{#if !$demoActive}<SyncStatusPill />{/if}
 		</div>

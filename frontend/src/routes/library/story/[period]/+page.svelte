@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// S12 — 훈련 이야기(월·주). 문단·칩·직전 기간 비교·강도 분포·대표 세션·위험 최고·마일스톤.
@@ -41,12 +42,12 @@
 <div class="mx-auto flex max-w-2xl flex-col gap-5 p-4">
 	<header class="flex flex-col gap-2">
 		<div class="flex items-center justify-between">
-			<button class="px-3 py-2" aria-label="이전 {unitLabel}" onclick={() => open(s.period.prev)}>‹</button>
+			<IconButton label="이전 {unitLabel}" onclick={() => open(s.period.prev)}>‹</IconButton>
 			<div class="text-center">
 				<div class="text-lg font-semibold text-fg-primary">{s.period.label}</div>
 				<div class="text-xs text-fg-muted">{s.period.start} ~ {s.period.end}</div>
 			</div>
-			<button class="px-3 py-2" aria-label="다음 {unitLabel}" onclick={() => open(s.period.next)}>›</button>
+			<IconButton label="다음 {unitLabel}" onclick={() => open(s.period.next)}>›</IconButton>
 		</div>
 		<ToggleGroup
 			label="단위"

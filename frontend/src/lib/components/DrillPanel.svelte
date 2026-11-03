@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// §C3.1 드릴다운 시트 컨테이너 — URL(`?drill=`) 스택이 곧 열림 상태다(C3.3).
 	// 데스크톱(≥1024px)은 본문 grid를 1fr 420px로 밀어내는 비모달 패널, 모바일은 풀스크린 슬라이드업.
 	// 끌어 닫기 제스처(C3.1 "최상위에서만 아래로 끌어 닫기")는 이번 라운드에 구현하지 않음(탭/Esc/뒤로가기로 닫기는 됨) — 별도 판단 필요.
@@ -167,9 +168,7 @@
 {#snippet header(hid: string)}
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
 		{#if slugs.length >= 2}
-			<button onclick={popDrill} aria-label="이전으로" class="shrink-0 text-fg-secondary">
-				<Icon name="chevron" class="h-4 w-4 rotate-180" />
-			</button>
+			<IconButton label="이전으로" onclick={popDrill} class="shrink-0 text-fg-secondary"><Icon name="chevron" class="h-4 w-4 rotate-180" /></IconButton>
 		{/if}
 		<div class="min-w-0 flex-1">
 			<h2 id={hid} tabindex="-1" bind:this={headingEl} class="truncate text-sm font-semibold outline-none">
@@ -177,9 +176,7 @@
 			</h2>
 			<p class="text-[11px] text-fg-muted">{special ? '레이스 아침 기준' : currentScopeType === 'activity' ? '이 활동 기준' : `${currentScopeId} 아침 기준`}</p>
 		</div>
-		<button onclick={closeDrill} aria-label="닫기" class="shrink-0 text-fg-secondary hover:text-fg-primary">
-			<Icon name="close" class="h-4 w-4" />
-		</button>
+		<IconButton label="닫기" onclick={closeDrill} class="shrink-0 text-fg-secondary hover:text-fg-primary"><Icon name="close" class="h-4 w-4" /></IconButton>
 	</div>
 {/snippet}
 

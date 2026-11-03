@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { otherLine } from '$lib/activityDisplay';
 	// /today/month/[ym] — 월간 내러티브 라우트(DESIGN-U17 §4.1). 오버레이가 아니라 페이지다.
@@ -152,16 +153,11 @@
 <DrillPanel scopeType="daily" scopeId={`${displayYear}-${String(displayMonth).padStart(2, '0')}-01`} fromTag="today">
 <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-4">
 	<div class="flex items-center justify-between border-b border-border-subtle pb-3">
-		<button onclick={close} class="text-sm text-fg-muted hover:text-fg-primary" aria-label="닫기">‹ 오늘</button>
+		<button onclick={close} class="tap text-sm text-fg-muted hover:text-fg-primary" aria-label="닫기">‹ 오늘</button>
 		<div class="flex items-center gap-2">
-			<button onclick={prevMonth} class="rounded p-1 text-fg-secondary hover:text-fg-primary" aria-label="이전 달">‹</button>
+			<IconButton label="이전 달" onclick={prevMonth} class="rounded text-fg-secondary hover:text-fg-primary">‹</IconButton>
 			<h1 class="font-medium" data-testid="month-title">{monthLabel}</h1>
-			<button
-				onclick={nextMonth}
-				disabled={isCurrentOrFuture}
-				class="rounded p-1 text-fg-secondary hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30"
-				aria-label="다음 달"
-			>›</button>
+			<IconButton label="다음 달" onclick={nextMonth} disabled={isCurrentOrFuture} class="rounded text-fg-secondary hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30">›</IconButton>
 		</div>
 	</div>
 

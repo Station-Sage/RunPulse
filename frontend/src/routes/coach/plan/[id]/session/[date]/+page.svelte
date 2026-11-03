@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextField from '$lib/components/ui/TextField.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-G — 일일 세션 상세.
 	import type { SessionDetailPageData } from './+page';
@@ -120,12 +121,15 @@
 		<!-- 세션 메모 -->
 		<div class="px-4 py-4">
 			<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">세션 메모</h2>
-			<textarea
+			<TextField
+				label="세션 메모"
+				labelHidden
+				multiline
 				class="w-full rounded-md border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
-				rows="4"
+				rows={4}
 				placeholder="세션 후 메모 입력..."
 				bind:value={noteText}
-			></textarea>
+			/>
 			{#if noteError}
 				<p class="mt-1 text-xs text-semantic-red">{noteError}</p>
 			{/if}

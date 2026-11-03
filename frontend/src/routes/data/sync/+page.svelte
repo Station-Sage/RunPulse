@@ -17,7 +17,7 @@
 	const anyRunning = $derived(sources.some((x) => x.state === 'running'));
 	const connected = $derived(sources.filter((x) => x.connection === 'connected' && x.enabled));
 
-	let toast = $state<{ message: string; undo: (() => void) | null } | null>(null);
+	let toast = $state<{ message: string; undo: (() => void) | null; error?: boolean } | null>(null);
 	let toggling = $state<string | null>(null);
 
 	async function toggle(provider: string, enable: boolean, undoable: boolean) {
@@ -31,7 +31,7 @@
 			};
 			await loadSyncState();
 		} catch {
-			toast = { message: '변경하지 못했어요 · 잠시 후 다시 시도해 주세요', undo: null };
+			toast = { message: '변경하지 못했어요 · 잠시 후 다시 시도해 주세요', undo: null, error: true };
 		} finally {
 			toggling = null;
 		}
@@ -112,4 +112,4 @@
 	</section>
 </div>
 
-<Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast?.undo ?? undefined} onDismiss={() => (toast = null)} />
+<Toast open={toast !== null} message={toast?.message ?? ''} onUndo={toast?.undo ?? undefined} level={toast?.error ? 'error' : 'info'} onDismiss={() => (toast = null)} />

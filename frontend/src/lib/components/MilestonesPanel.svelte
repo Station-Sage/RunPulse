@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// 03a-today.md 1-D — Today "전체 마일스톤" 우측/하단 시트 패널.
 	// 월간 라우트와 달리 fixed inset-0 오버레이 + 하단 시트 패턴.
 	import { onMount } from 'svelte';
@@ -51,11 +52,7 @@
 		<!-- 헤더 -->
 		<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
 			<h2 id="milestones-h" class="font-medium">전체 마일스톤</h2>
-			<button
-				onclick={onClose}
-				class="rounded p-1 text-fg-secondary hover:text-fg-primary"
-				aria-label="닫기"
-			><Icon name="close" class="h-4 w-4" /></button>
+			<IconButton label="닫기" onclick={onClose} class="rounded text-fg-secondary hover:text-fg-primary"><Icon name="close" class="h-4 w-4" /></IconButton>
 		</div>
 
 		<!-- 본문 -->

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextField from '$lib/components/ui/TextField.svelte';
 	// 새 대화 입력 폼(textarea + 엔진 줄 + 취소/전송). 입력값은 폼이 소유한다.
 	import type { CoachEngine } from '$lib/types';
 	import EngineLine from './EngineLine.svelte';
@@ -37,14 +38,17 @@
 </script>
 
 <div class="border-t border-border-subtle px-4 py-3">
-	<textarea
+	<TextField
+		label="질문"
+		labelHidden
+		multiline
 		bind:value={newInput}
 		onkeydown={handleKeydown}
 		placeholder="무엇이든 물어보세요…"
 		rows={3}
 		disabled={sending}
 		class="w-full resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted disabled:opacity-50"
-	></textarea>
+	/>
 	<div class="mt-1">
 		<EngineLine {engine} {onOpenScope} />
 	</div>

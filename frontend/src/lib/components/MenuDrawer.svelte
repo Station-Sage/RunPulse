@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 첫 행은 동기화 요약(탭하면
 	// ?sheet=sync 패널), 나머지는 v2 화면 바로가기.
 	import Icon from '$lib/components/Icon.svelte';
@@ -41,13 +42,7 @@
 		>
 			<div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
 				<h2 id="menu-drawer-h" class="font-medium">메뉴</h2>
-				<button
-					onclick={onClose}
-					class="rounded p-1 text-fg-secondary hover:text-fg-primary"
-					aria-label="닫기"
-				>
-					<Icon name="close" class="h-5 w-5" />
-				</button>
+				<IconButton label="닫기" onclick={onClose} class="rounded text-fg-secondary hover:text-fg-primary"><Icon name="close" class="h-5 w-5" /></IconButton>
 			</div>
 
 			<div class="border-b border-border-subtle px-2 py-3">

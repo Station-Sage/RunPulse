@@ -2,25 +2,31 @@
 	// §C5 — 쓰기 성공 토스트 + [되돌리기](5s). 호출부가 표시 여부(open)와 내용을 들고 있는다
 	// (전역 스토어는 아직 두지 않음 — 소비처가 하나씩 생길 때 필요하면 승격).
 	import { announce } from '$lib/a11y/announce';
+	import { toastPolicy, type ToastLevel } from '$lib/a11y/toastPolicy';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 
 	let {
 		open,
 		message,
 		onUndo,
 		onDismiss,
-		durationMs = 5000
+		durationMs = 5000,
+		level = 'info'
 	}: {
 		open: boolean;
 		message: string;
 		onUndo?: () => void;
 		onDismiss: () => void;
 		durationMs?: number;
+		level?: ToastLevel;
 	} = $props();
 
 	$effect(() => {
 		if (!open) return;
-		announce(message);
-		const t = setTimeout(onDismiss, durationMs);
+		const policy = toastPolicy(level, durationMs);
+		announce(message, policy.politeness);
+		if (policy.autoCloseMs === null) return;
+		const t = setTimeout(onDismiss, policy.autoCloseMs);
 		return () => clearTimeout(t);
 	});
 </script>
@@ -41,6 +47,9 @@
 			>
 				되돌리기
 			</button>
+		{/if}
+		{#if level === 'error'}
+			<IconButton label="알림 닫기" onclick={onDismiss} class="-mr-2 shrink-0 rounded text-fg-secondary hover:text-fg-primary">✕</IconButton>
 		{/if}
 	</div>
 {/if}

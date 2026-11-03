@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TextField from '$lib/components/ui/TextField.svelte';
 	// 대화 입력 바 — 엔진 라벨 + 텍스트 입력. 전송 중에도 입력은 열어 둔다(design §6.2 sending).
 	import EngineLine from './EngineLine.svelte';
 	import type { CoachEngine } from '$lib/types';
@@ -30,14 +31,17 @@
 <div class="sticky bottom-14 lg:bottom-0 z-10 flex flex-col gap-1 border-t border-border-subtle bg-surface-1 px-4 py-3">
 	<EngineLine {engine} {onOpenScope} />
 	<div class="flex items-end gap-2">
-		<textarea
+		<TextField
+			label="메시지"
+			labelHidden
+			multiline
 			bind:value
 			onkeydown={handleKeydown}
 			placeholder="메시지 입력…"
 			rows={1}
 			class="flex-1 resize-none min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
 			style="min-height:2.25rem; max-height:8rem; overflow-y:auto;"
-		></textarea>
+		/>
 		<button
 			type="button"
 			onclick={onSend}

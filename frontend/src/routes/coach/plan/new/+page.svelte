@@ -156,6 +156,7 @@
 						type="number"
 						bind:value={goalHH}
 						placeholder="HH"
+						aria-label="목표 시간(시)"
 						min="0"
 						max="23"
 						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
@@ -165,6 +166,7 @@
 						type="number"
 						bind:value={goalMM}
 						placeholder="MM"
+						aria-label="목표 시간(분)"
 						min="0"
 						max="59"
 						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"
@@ -174,6 +176,7 @@
 						type="number"
 						bind:value={goalSS}
 						placeholder="SS"
+						aria-label="목표 시간(초)"
 						min="0"
 						max="59"
 						class="w-14 rounded-lg border border-border-subtle bg-surface-2 min-h-11 px-2 text-center text-sm text-fg-primary"

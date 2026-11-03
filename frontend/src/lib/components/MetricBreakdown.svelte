@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	// C3 축소판 — 04-component-catalog.md 기준이나 실제 API 응답에 맞춰 축소.
 	// children: 평평한 목록(재귀 없음), inputs: 드릴다운 가능(onDrillInput 콜백).
 	import { getMetricBreakdown } from '$lib/api/metrics';
@@ -64,11 +65,7 @@
 			<h2 id="metric-breakdown-h" class="font-medium">
 				{#if data}{data.label}{:else}{slug}{/if}
 			</h2>
-			<button
-				onclick={onClose}
-				class="rounded p-1 text-fg-secondary hover:text-fg-primary"
-				aria-label="닫기"
-			><Icon name="close" class="h-4 w-4" /></button>
+			<IconButton label="닫기" onclick={onClose} class="rounded text-fg-secondary hover:text-fg-primary"><Icon name="close" class="h-4 w-4" /></IconButton>
 		</div>
 
 		<!-- 본문 -->
