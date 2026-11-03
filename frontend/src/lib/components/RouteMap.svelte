@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// GPS 경로(타일 없음, 로컬 퍼스트) — 서버 series lat/lon 사용. 페이스(5~95퍼센타일)/심박 색, km 마커,
 	// 스플릿 선택·타임라인 커서와 양방향 연동. 색은 토큰 color-mix.
 	import type { ActivitySeries } from '$lib/types';
@@ -71,20 +72,13 @@
 		<div class="flex items-center justify-between">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">경로</h2>
 			{#if canToggle}
-				<div class="flex gap-3">
-					{#each [['pace', '페이스'], ['hr', '심박']] as [key, label] (key)}
-						<button
-							type="button"
-							aria-pressed={mode === key}
-							onclick={() => {
-							mode = key as 'pace' | 'hr';
-							onModeChange?.(mode);
-						}}
-							class="min-h-7 text-xs {mode === key ? 'text-fg-primary underline' : 'text-fg-muted'}"
-							>{label}</button
-						>
-					{/each}
-				</div>
+				<ToggleGroup
+					label="경로 색 기준"
+					class="flex gap-1"
+					items={[{ value: 'pace', label: '페이스' }, { value: 'hr', label: '심박' }]}
+					selected={mode}
+					onchange={(v) => { if (v) { mode = v as 'pace' | 'hr'; onModeChange?.(mode); } }}
+				/>
 			{/if}
 		</div>
 		<div class="flex justify-center rounded-lg border border-border-subtle bg-surface-2 p-3">

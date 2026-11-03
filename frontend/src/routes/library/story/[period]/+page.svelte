@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// S12 — 훈련 이야기(월·주). 문단·칩·직전 기간 비교·강도 분포·대표 세션·위험 최고·마일스톤.
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
@@ -47,10 +48,13 @@
 			</div>
 			<button class="px-3 py-2" aria-label="다음 {unitLabel}" onclick={() => open(s.period.next)}>›</button>
 		</div>
-		<div class="flex gap-1 text-sm" role="group" aria-label="단위">
-			<button class="flex-1 rounded px-2 py-1 {scope === 'month' ? 'bg-surface-2 font-semibold' : ''}" aria-pressed={scope === 'month'} onclick={toMonth}>월</button>
-			<button class="flex-1 rounded px-2 py-1 {scope === 'week' ? 'bg-surface-2 font-semibold' : ''}" aria-pressed={scope === 'week'} onclick={toWeek}>주</button>
-		</div>
+		<ToggleGroup
+			label="단위"
+			class="flex gap-1 text-sm"
+			items={[{ value: 'month', label: '월' }, { value: 'week', label: '주' }]}
+			selected={scope === 'month' || scope === 'week' ? scope : null}
+			onchange={(v) => (v === 'month' ? toMonth() : toWeek())}
+		/>
 	</header>
 
 	<p class="rounded bg-surface-2 p-4 leading-relaxed text-fg-primary">{s.paragraph}</p>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03c-library.md 3-D — 활동 스트림 시각화 페이지.
 	// 체크박스로 표시할 스트림 토글; 해당 컬럼이 전부 null이면 체크박스 숨김.
@@ -158,11 +159,13 @@
 				><span style="color:{def.color}">●</span> {def.label}</button>
 			{/each}
 			{#if hasDistance}
-				<div class="ml-auto inline-flex overflow-hidden rounded-full border border-border-subtle text-xs" role="group" aria-label="가로축">
-					{#each [['time', '시간'], ['distance', '거리']] as [k, l] (k)}
-						<button type="button" data-testid="stream-xaxis-{k}" aria-pressed={xAxis === k} onclick={() => (xAxis = k as 'time' | 'distance')} class="h-9 px-3 {xAxis === k ? 'bg-surface-2 font-medium' : 'text-fg-muted'}">{l}</button>
-					{/each}
-				</div>
+				<ToggleGroup
+					label="가로축"
+					class="ml-auto flex gap-1"
+					items={[{ value: 'time', label: '시간', testid: 'stream-xaxis-time' }, { value: 'distance', label: '거리', testid: 'stream-xaxis-distance' }]}
+					selected={xAxis}
+					onchange={(v) => v && (xAxis = v as 'time' | 'distance')}
+				/>
 			{/if}
 		</div>
 

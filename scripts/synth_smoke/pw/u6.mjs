@@ -8,7 +8,7 @@ await p.goto(`${BASE}/v2/library/${ID}?seg=3`); await p.waitForTimeout(2500);
 ok('seg=3 stays after load', p.url().includes('seg=3'));
 await p.reload(); await p.waitForTimeout(2500);
 ok('seg=3 survives refresh', p.url().includes('seg=3'));
-const hrBtn = p.getByRole('button', { name: /심박/ }).first();
+const hrBtn = p.getByRole('radio', { name: /심박/ }).first();
 if (await hrBtn.count()) {
   await hrBtn.click(); await p.waitForTimeout(500);
   ok('map=hr synced', p.url().includes('map=hr'));
