@@ -414,3 +414,11 @@
 - D3: 활동 표시 계약 `activity_display.build_display` — 러닝·걷기 /km, 수영 /100m, 자전거 km/h, 근력·기타는 거리·페이스 숨김, 페이스는 거리÷이동시간 재계산(이동시간 없으면 경과시간, basis=`elapsed`), 보조 칸 `alt_fields`=시간·평균심박·칼로리·세트(NRA-3~5). 상세 응답에 최상위 `display` 키.
 - D4: 판정 접두는 `wc.label or display.label`, 페이스 변동·날씨 칩은 러닝만(NRA-6). Today 내러티브는 `today_narrative.py` 로 분리(300줄 규칙), 캐시 키 접미 `:r2`.
 - 미결: NRA-8(매처·`ai_context_legacy` RUN_TYPES 사본)은 범위 밖. HSR-12(`activity_counts` 가 `family_clause` 소비)는 HSR 묶음 소관. 세부는 `design-2026-10/decisions-table.md` S4-5.
+
+### ADR-043: 신규가입·다중 인증·비인증 방문자 허용 — ADR-038 D-L1/D-L3 및 05 §11.2 대체 (2026-11-04)
+- 대체: ADR-038 D-L1(b)(앱 인증 경계 불변)·D-L3(초대제 유지), 05-tech-architecture §11.2(앱 자체 OAuth). 설계서 `phase-7-ui-renewal/design-2026-11-auth/README.md`.
+- D1: CF Access 는 IdP 브로커(GitHub 유지 + Google·One-time PIN 추가). 앱이 `Cf-Access-Jwt-Assertion` 서명(RS256·aud·iss·exp)을 직접 검증하고 이메일 헤더는 신뢰하지 않는다(F1).
+- D2: 계정 레지스트리 `data/auth.db`(accounts·identities·invites 해시·auth_events). 기존 uid 는 디렉토리명 유지, 신규 uid 는 정규화 이메일(권고 G-5).
+- D3: 비인증 방문자는 공개 경로(`/v2/*` 등)만. 비공개 경로는 요청마다 JWT 필요(F2). 세션 없을 때 "default" 폴백 제거 → `NoUserContext` 401(F3), 익명 요청은 사용자 DB 를 열지 않는다(F4).
+- D4: 신규가입은 pending(사용자 디렉토리·`session["user_id"]` 없음) → 초대코드 + 일 20명 상한으로 활성화(2단계). 비밀번호 로그인 없음(G-7).
+- D5: `AUTH_MODE=legacy|registry`, 기본 legacy(롤백 경로). 운영 registry 전환은 CF·Google 설정 후 사용자 확인 시.

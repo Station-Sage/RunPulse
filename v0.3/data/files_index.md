@@ -1194,11 +1194,11 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (231줄) — RunPulse integration workbench web app.
+### `app.py` (241줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (149줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (156줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
 
@@ -1598,9 +1598,10 @@
 - class **PeerMatch**: 없음
 - class **PeerTzIndex**: add_confirmed, build, lookup, nearest_confirmed
 
-### `user_context.py` (117줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+### `user_context.py` (127줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
 - class **InvalidUserId**: 없음
+- class **NoUserContext**: 없음
 - functions: mask_uid, validate_uid, users_root, list_user_ids, set_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
@@ -1682,6 +1683,10 @@
 > 새 비즈니스 로직 없음 — routes_*.py는 src/services/의 기존 함수를 그대로 호출한다.
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
+
+### `routes_auth.py` (18줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
+
+- functions: get_auth_session
 
 ### `routes_calendar_feed.py` (91줄) — 캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
 
@@ -2018,6 +2023,10 @@
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401, test_invalid_cf_email_403_no_session_masked_log, test_invalid_cf_email_in_prod_is_403_not_401, test_invalid_cf_email_on_envelope_path_is_json_403, test_session_with_invalid_stored_uid_is_403_and_key_cleared, test_session_with_valid_uid_still_passes, test_invalid_dev_user_id_is_403_no_default_fallback, test_invalid_svc_user_is_403, test_valid_svc_user_still_passes, test_get_db_path_value_error_does_not_become_html_500, test_app_level_handler_registered_in_create_app
+
+### `test_auth_registry.py` (185줄) — AUTH-2026-11 stage 1 — registry 모드 신원 해석·공개 경로·F1~F4 방어.
+
+- functions: app, test_auth_mode_default_legacy, test_safe_next_blocks_open_redirect, test_is_public, test_anonymous_private_path_401, test_header_email_without_jwt_is_ignored, test_invalid_jwt_401, test_public_path_anonymous_has_no_user, test_new_signup_is_pending_without_user_id, test_active_account_reaches_data, test_session_alone_not_enough_on_private_path, test_disabled_account_403, test_identity_switch_clears_previous_session, test_backfilled_account_links_new_identity, test_invalid_uid_email_403, test_pending_cannot_use_private_path_but_start_ok, test_logout_clears_session, test_no_user_context_not_default, test_backfill_filters_and_collisions, test_cf_jwt_unconfigured_fails_closed
 
 ### `test_auto_sync_reload.py` (54줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
 
@@ -3513,6 +3522,10 @@
 
 - functions: run, main
 
+### `auth_backfill.py` (35줄) — 기존 data/users 디렉터리를 계정 레지스트리(data/auth.db)에 active 로 등록한다. 기본은 dry-run.
+
+- functions: main
+
 ### `backfill_activity_groups.py` (89줄) — activity_groups 마스터 테이블 백필 스크립트 (D2).
 
 - functions: backfill, main
@@ -3586,7 +3599,7 @@
 - functions: run
 
 ---
-총 766개 파일
+총 769개 파일
 
 ## docstring 누락
 

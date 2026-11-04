@@ -100,10 +100,20 @@ def project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
+class NoUserContext(Exception):
+    """AUTH_MODE=registry 에서 인증된(active) 사용자가 없는 요청이 사용자 데이터에 접근 — 'default' 로 폴백하지 않는다(F3)."""
+
+
 def get_current_user_id() -> str:
-    """현재 Flask 요청의 사용자 ID를 반환. 세션 없으면 'default'."""
+    """현재 Flask 요청의 사용자 ID를 반환. 세션 없으면 'default'.
+
+    registry 모드에서 `g.auth_state` 가 active 가 아니면 `NoUserContext`(401). CLI·스레드 경로(요청 컨텍스트 밖)는 'default'.
+    """
     try:
-        from flask import session
+        from flask import g, session
+        state = getattr(g, "auth_state", None)
+        if state is not None and state != "active":
+            raise NoUserContext(state)
         return session.get("user_id", "default")
     except RuntimeError:
         # Flask 앱 컨텍스트 밖 (CLI 등)

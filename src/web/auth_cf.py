@@ -62,6 +62,13 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
         app: Flask 앱 인스턴스.
         config: 사용하지 않음 (하위 호환 유지용).
     """
+    from src.auth import auth_mode
+    if auth_mode() == "registry":
+        from src.auth.identify import init_registry_auth
+        init_registry_auth(app)
+        log.info("[auth_cf] AUTH_MODE=registry — CF JWT 검증 + 계정 레지스트리")
+        return
+
     if _IS_PRODUCTION:
         log.info("[auth_cf] production 모드: CF 헤더 필수 (서비스 토큰 동적 로딩)")
     else:

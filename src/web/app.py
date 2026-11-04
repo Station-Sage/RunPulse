@@ -7,7 +7,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, redirect, request, session
+from flask import Flask, Response, g, redirect, request, session
 
 from src.utils.config import load_config
 
@@ -140,7 +140,7 @@ def create_app() -> Flask:
     except Exception as _e:
         log.warning("[auto_sync] 시작 실패: %s", _e)
 
-    from src.utils.user_context import InvalidUserId
+    from src.utils.user_context import InvalidUserId, NoUserContext
 
     @app.errorhandler(InvalidUserId)
     def _invalid_user_id(exc: InvalidUserId):
@@ -154,6 +154,8 @@ def create_app() -> Flask:
         """요청마다 현재 사용자 DB를 최신 스키마로 마이그레이션 (이미 최신이면 즉시 반환)."""
         if request.path.startswith("/feeds/cal/"):
             return
+        if getattr(g, "auth_state", "active") != "active":
+            return  # registry 모드의 anonymous/pending — 사용자 DB 에 접근하지 않는다(F4)
         db = _db_path()
         if not db.exists():
             # 신규 가입자: 인증을 통과한 v2 API 요청에서만 빈 DB를 만들어 503 대신 빈 상태를 보이게 한다.
@@ -193,9 +195,15 @@ def create_app() -> Flask:
 
     # 사용자 전환은 v2 로 이관됨 — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (개발 전용, V1-8)
 
+    @app.errorhandler(NoUserContext)
+    def _no_user_context(exc: NoUserContext):
+        return Response("Unauthorized", status=401, mimetype="text/plain")
+
     @app.get("/")
     def index():
         from src.services.user_settings_service import entry_path
+        if getattr(g, "auth_state", "active") != "active":
+            return redirect("/v2/landing")
         conn = None
         try:
             db = _db_path()
@@ -223,6 +231,8 @@ def create_app() -> Flask:
     app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송
     app.register_blueprint(mcp_remote_bp)          # 원격 MCP (/mcp, Bearer 토큰)
     app.register_blueprint(calendar_feed_bp)       # 캘린더 구독 공개 피드 (/feeds/cal/<token>.ics)
+    from src.auth.routes import auth_bp
+    app.register_blueprint(auth_bp)           # AUTH-2026-11 /auth/start·/auth/logout
     app.register_blueprint(api_bp)            # Phase 7 /api/v1/ JSON API
     app.register_blueprint(context_bp)        # 컨텍스트 에피소드 /api/context-episodes (NEW-40)
     app.register_blueprint(v1_sync_bp)        # v1 sync 트리거·bg-sync·garmin local-sync (V1S-12 b, S3-7)

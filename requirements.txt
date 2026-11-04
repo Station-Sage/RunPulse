@@ -4,6 +4,9 @@
 # 환경변수 관리
 python-dotenv>=1.0.0
 
+# Cloudflare Access JWT 서명 검증 (AUTH_MODE=registry, src/auth/cf_jwt.py)
+PyJWT>=2.8.0
+
 # 자격증명 암호화 (Fernet AES-128-CBC + HMAC-SHA256)
 cryptography>=42.0.0
 

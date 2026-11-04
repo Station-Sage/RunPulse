@@ -15,7 +15,7 @@ import logging
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from src.utils.user_context import InvalidUserId
+from src.utils.user_context import InvalidUserId, NoUserContext
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,10 @@ def register_envelope_handlers(bp: Blueprint) -> None:
         logging.getLogger("runpulse.security").warning("[api] uid 규칙 위반 %s (path=%s)", exc.masked, request.path)
         return api_error("FORBIDDEN_USER", "허용되지 않는 사용자 식별자입니다.", 403)
 
+    @bp.errorhandler(NoUserContext)
+    def _no_user(exc: NoUserContext):
+        return api_error("AUTH_REQUIRED", "로그인이 필요합니다.", 401)
+
     @bp.errorhandler(Exception)
     def _unhandled_error(exc: Exception):
         logger.exception("[api] 처리되지 않은 예외 %s %s", request.method, request.path)
@@ -126,4 +130,4 @@ def _refresh_today_metrics():
     return None
 
 
-from . import routes_race_calendar, routes_coach, routes_csp_report, routes_data, routes_data_ai, routes_data_calendar, routes_data_export, routes_data_import, routes_dev, routes_library, routes_library_activities, routes_library_export, routes_library_feedback, routes_mcp_tokens, routes_me, routes_plan, routes_plan_adjust, routes_plan_replan, routes_prediction, routes_story, routes_today  # noqa: E402,F401
+from . import routes_auth, routes_race_calendar, routes_coach, routes_csp_report, routes_data, routes_data_ai, routes_data_calendar, routes_data_export, routes_data_import, routes_dev, routes_library, routes_library_activities, routes_library_export, routes_library_feedback, routes_mcp_tokens, routes_me, routes_plan, routes_plan_adjust, routes_plan_replan, routes_prediction, routes_story, routes_today  # noqa: E402,F401
