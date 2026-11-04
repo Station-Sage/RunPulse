@@ -158,6 +158,13 @@ def create_app() -> Flask:
             return  # registry 모드의 anonymous/pending — 사용자 DB 에 접근하지 않는다(F4)
         db = _db_path()
         if not db.exists():
+            from src.auth import auth_mode
+            if auth_mode() == "registry":
+                # 프로비저닝은 가입 활성화 시점에만 — active 인데 디렉터리가 없으면 지연 생성하지 않고 503
+                if request.path.startswith("/api/v1/"):
+                    from flask import jsonify
+                    return jsonify({"error": {"code": "USER_NOT_PROVISIONED", "message": "계정 준비가 필요합니다."}}), 503
+                return
             # 신규 가입자: 인증을 통과한 v2 API 요청에서만 빈 DB를 만들어 503 대신 빈 상태를 보이게 한다.
             if not request.path.startswith("/api/v1/") or "user_id" not in session:
                 return

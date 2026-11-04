@@ -1194,7 +1194,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (241줄) — RunPulse integration workbench web app.
+### `app.py` (248줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1684,9 +1684,9 @@
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
 
-### `routes_auth.py` (18줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
+### `routes_auth.py` (52줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
 
-- functions: get_auth_session
+- functions: get_auth_session, post_auth_invite
 
 ### `routes_calendar_feed.py` (91줄) — 캘린더 구독 공개 피드 — GET|HEAD /feeds/cal/<token>.ics (토큰 인증, 세션·쿠키 없음).
 
@@ -2027,6 +2027,10 @@
 ### `test_auth_registry.py` (185줄) — AUTH-2026-11 stage 1 — registry 모드 신원 해석·공개 경로·F1~F4 방어.
 
 - functions: app, test_auth_mode_default_legacy, test_safe_next_blocks_open_redirect, test_is_public, test_anonymous_private_path_401, test_header_email_without_jwt_is_ignored, test_invalid_jwt_401, test_public_path_anonymous_has_no_user, test_new_signup_is_pending_without_user_id, test_active_account_reaches_data, test_session_alone_not_enough_on_private_path, test_disabled_account_403, test_identity_switch_clears_previous_session, test_backfilled_account_links_new_identity, test_invalid_uid_email_403, test_pending_cannot_use_private_path_but_start_ok, test_logout_clears_session, test_no_user_context_not_default, test_backfill_filters_and_collisions, test_cf_jwt_unconfigured_fails_closed
+
+### `test_auth_signup.py` (123줄) — AUTH-2026-11 stage 2 — 초대코드·일일 상한·프로비저닝·가입 엔드포인트.
+
+- functions: client, test_invite_hash_only_and_consume_limits, test_invite_expired, test_provision_idempotent, test_signup_flow_activates_and_provisions, test_daily_cap_429, test_provision_failure_rolls_back, test_rate_limit, test_allowlist_and_open_modes, test_pending_touches_no_user_db, test_cli_issue_and_list
 
 ### `test_auto_sync_reload.py` (54줄) — auto_sync — 실행마다 config 재로딩(G1), restart 후 스레드 유지(G7).
 
@@ -3526,6 +3530,10 @@
 
 - functions: main
 
+### `auth_invite.py` (33줄) — 초대코드 발급·조회 CLI — `python3 scripts/auth_invite.py issue [--uses N] [--days D] [--note ..]` / `list`.
+
+- functions: main
+
 ### `backfill_activity_groups.py` (89줄) — activity_groups 마스터 테이블 백필 스크립트 (D2).
 
 - functions: backfill, main
@@ -3599,7 +3607,7 @@
 - functions: run
 
 ---
-총 769개 파일
+총 771개 파일
 
 ## docstring 누락
 
