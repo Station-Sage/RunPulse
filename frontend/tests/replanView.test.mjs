@@ -114,6 +114,12 @@ test('replanErrorView: 표의 행들', () => {
 	assert.equal(v.replanErrorView(null, 'undo').action, 'plan');
 });
 
+test('replanErrorView: 400 run_weekdays 는 숫자 안내가 아니라 요일 안내', () => {
+	const r = v.replanErrorView({ status: 400, code: 'INVALID_PARAM', details: { run_weekdays: 'x' } }, 'preview');
+	assert.match(r.text, /운동 요일/);
+	assert.equal(r.action, 'plan');
+});
+
 test('startState 경계: 12km 이상 A, 0 초과 B, 공백 C, 기록 없음 D', () => {
 	assert.equal(v.startState({ km4: 12, avg16: 0 }), 'A');
 	assert.equal(v.startState({ km4: 11.9, avg16: 30 }), 'B');

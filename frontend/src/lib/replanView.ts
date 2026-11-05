@@ -203,6 +203,8 @@ export function replanErrorView(
 		return { text: '미리보기 뒤에 날짜가 바뀌어 시작 주가 달라졌어요. 아직 바뀐 것은 없어요.', action: 'repreview' };
 	if (status === 409 && code === 'REPLAN_LOCKED')
 		return { text: '새 일정이 이미 시작됐거나 그 뒤에 기록이 생겨서 되돌릴 수 없어요. 지금 일정은 그대로예요.', action: 'repreview' };
+	if (status === 400 && (err?.details as Record<string, unknown> | undefined)?.run_weekdays)
+		return { text: '운동 요일을 먼저 정해야 일정을 다시 맞출 수 있어요. 새 계획 화면에서 요일을 정해 주세요.', action: 'plan' };
 	if (status === 400) return { text: '0보다 큰 숫자를 넣어 주세요.', action: null };
 	if (status === 503) return { text: '데이터를 읽지 못했어요. 계획은 바뀌지 않았어요.', action: 'retry' };
 	if (phase === 'preview') return { text: '미리보기를 불러오지 못했어요. 계획은 바뀌지 않았어요.', action: 'retry' };

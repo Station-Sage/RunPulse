@@ -3077,6 +3077,10 @@
 
 - functions: coverage_conn, test_months_range, test_garmin_counts, test_strava_counts, test_intervals_runalyze_all_zero, test_providers_length_always_four, test_months_first, test_empty_db_returns_all_zeros, test_enabled_sources_default_and_filter, test_coverage_marks_disabled_sources, test_start_basic_sync_skips_disabled, test_set_sync_source_toggles_and_keeps_order
 
+### `test_prune_stale_crs.py` (36줄) — scripts/prune_stale_crs: 첫 활동일 이전 구버전 crs 행만 삭제.
+
+- functions: test_dry_run_keeps_rows, test_apply_deletes_only_stale, test_no_activities_deletes_nothing
+
 ### `test_race_calendar_service.py` (205줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
 
 - functions: test_add_defaults_and_duplicate, test_add_second_a_conflicts, test_past_date_allowed, test_lazy_done_and_zones, test_needs_review_zone, test_update_applied_goes_stale_and_editable_whitelist, test_update_not_found, test_cancel_saves_prev_and_blocks_goal_race, test_restore_future_restores_prev_values, test_restore_past_needs_confirm, test_restore_non_cancelled_409, test_restore_a_conflict_demote, test_restore_over_goal_race_requires_goal_link, test_restore_goal_link_wrong_target, test_restore_reapply_unavailable_becomes_stale, test_reopen, test_create_goal_with_race_demotes_old_a_and_syncs_cache, test_add_goal_compat_creates_linked_race, test_add_goal_without_date_has_no_race_then_attach, test_update_goal_delegates_to_race, test_push_cache_rc21_exception_keeps_null_date, test_demote_a_blocked_for_goal_race, test_check_invariants_detects_drift
@@ -3602,12 +3606,16 @@
 
 - functions: backtest, backtest_all, main
 
+### `prune_stale_crs.py` (38줄) — 첫 활동일 이전의 crs 구버전(1.0) 행 정리. 사용: PYTHONPATH=. python3 scripts/prune_stale_crs.py --db <path> [--apply]
+
+- functions: stale_crs_where, prune_stale_crs
+
 ### `race_backfill_dry_run.py` (32줄) — v39 백필 드라이런 — DB 사본에 ensure_v39를 적용하고 보고서를 출력(원본 쓰기 없음).
 
 - functions: run
 
 ---
-총 771개 파일
+총 773개 파일
 
 ## docstring 누락
 
