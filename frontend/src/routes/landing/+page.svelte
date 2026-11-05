@@ -2,7 +2,7 @@
 	// S0 랜딩 — DESIGN-P7-REVIEW03 §2.1. 정적 화면: API 호출·로딩 상태 없음. 가짜 후기·통계 금지.
 	import { base } from '$app/paths';
 
-	const INVITE_HREF = 'mailto:pansong.us@gmail.com?subject=RunPulse%20초대%20요청';
+	const START_HREF = `${base}/auth/login`;
 	const proofs = [
 		{ title: '같은 달리기, 다른 숫자', body: 'Garmin 10.02km, Strava 10.05km. 어느 쪽을 쓰는지 근거와 함께 보여줘요.', to: '/library' },
 		{ title: 'CIRS 62, 계산식까지', body: '점수만이 아니라 계산식과 입력값을 눌러서 확인해요.', to: '/library/metrics/cirs' },
@@ -21,9 +21,9 @@
 		</h1>
 		<div class="flex flex-wrap gap-2">
 			<a href={demoHref()} class="inline-flex min-h-11 items-center min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-fg-on-accent" data-testid="landing-demo">샘플 러너로 둘러보기</a>
-			<a href={INVITE_HREF} class="inline-flex min-h-11 items-center min-h-11 rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-primary" data-testid="landing-invite">내 데이터로 시작 · 초대 요청</a>
+			<a href={START_HREF} class="inline-flex min-h-11 items-center min-h-11 rounded-lg border border-border-subtle px-4 py-2 text-sm text-fg-primary" data-testid="landing-invite">시작하기</a>
 		</div>
-		<p class="text-xs text-fg-muted">지금은 초대받은 분만 시작할 수 있어요.</p>
+		<p class="text-xs text-fg-muted">처음 가입하려면 초대코드가 필요해요.</p>
 	</header>
 
 	<section class="grid gap-3 sm:grid-cols-3">

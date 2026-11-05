@@ -4,6 +4,7 @@
 	// failure 를 주면 문구·상세를 분류 결과에서 만든다(ERR-1·9). onRetry 가 Promise 를 돌려주면 끝날 때까지 버튼 비활성(ERR-4).
 	import type { Snippet } from 'svelte';
 	import { failureMessage, type Failure } from '$lib/loadFailure';
+	import { loginHref } from '$lib/auth/guard';
 
 	let {
 		message,
@@ -57,6 +58,9 @@
 			</button>
 		{/if}
 	</div>
+	{#if failure?.kind === 'auth'}
+		<a href={loginHref(location.pathname)} data-sveltekit-reload data-testid="error-relogin" class="min-h-11 py-2 text-sm font-medium text-fg-primary underline">다시 로그인</a>
+	{/if}
 	{#if secondary}{@render secondary()}{/if}
 	{#if detailText}
 		<button

@@ -27,6 +27,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 	try {
 		res = await fetch(`${API_BASE}${path}`, {
 			headers: { 'Content-Type': 'application/json' },
+			redirect: 'manual',
 			...init
 		});
 	} catch (e) {
@@ -37,6 +38,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 				message: aborted ? '요청이 취소되었습니다' : '네트워크 연결 실패'
 			}
 		});
+	}
+	// 로그인 만료로 CF 가 로그인 페이지로 돌려보내면 manual 리다이렉트는 opaqueredirect 로 보인다.
+	if (res.type === 'opaqueredirect') {
+		throw new ApiError(401, { error: { code: 'AUTH_REQUIRED', message: '로그인이 필요해요' } });
 	}
 	let body: unknown;
 	try {

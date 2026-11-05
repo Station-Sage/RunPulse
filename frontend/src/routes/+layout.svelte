@@ -22,7 +22,9 @@
 	let menuOpen = $state(false);
 	if (isDemoActive()) demoActive.set(true);
 
-	const isLanding = $derived(page.url.pathname.startsWith(`${base}/landing`));
+	const isLanding = $derived(
+		page.url.pathname.startsWith(`${base}/landing`) || page.url.pathname.startsWith(`${base}/auth/`)
+	);
 </script>
 
 <a

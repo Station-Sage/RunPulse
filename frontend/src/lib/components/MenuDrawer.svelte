@@ -5,6 +5,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import DevUserSwitch from '$lib/components/DevUserSwitch.svelte';
 	import { base } from '$app/paths';
+	import { demoActive } from '$lib/demoMode';
 	import { modal } from '$lib/overlay';
 	import { openSheet } from '$lib/sheetHistory';
 	import { pillView } from '$lib/syncState';
@@ -101,6 +102,11 @@
 			<div class="mt-auto border-t border-border-subtle px-2 py-3">
 				<!-- 개발 전용(V1-8): 서버가 production 이면 /dev/users 가 404 라 렌더되지 않는다 -->
 				<DevUserSwitch {onClose} />
+				{#if !$demoActive}
+					<form method="POST" action="/auth/logout">
+						<button type="submit" data-testid="menu-logout" class="min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-2">로그아웃</button>
+					</form>
+				{/if}
 			</div>
 		</div>
 	</div>

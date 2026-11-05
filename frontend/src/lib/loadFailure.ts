@@ -1,7 +1,7 @@
 // 로드 실패 분류 — 순수 모듈(DOM·Svelte 비의존). design error-retry-common §2.2.
 import { ApiError } from './api/client.ts';
 
-export type FailureKind = 'not_found' | 'network' | 'server' | 'aborted';
+export type FailureKind = 'not_found' | 'network' | 'server' | 'aborted' | 'auth';
 
 export interface Failure {
 	kind: FailureKind;
@@ -16,6 +16,7 @@ export type LoadResult<T> = { ok: true; data: T } | { ok: false; failure: Failur
 export function classifyFailure(e: unknown): Failure {
 	if (e instanceof ApiError) {
 		const detail = `${e.status} ${e.code}`;
+		if (e.code === 'AUTH_REQUIRED') return { kind: 'auth', status: 401, code: e.code, detail };
 		if (e.code === 'ABORTED') return { kind: 'aborted', status: 0, code: e.code, detail };
 		if (e.status === 404) return { kind: 'not_found', status: 404, code: e.code, detail };
 		if (e.status === 0 || e.code === 'NETWORK')
@@ -29,6 +30,7 @@ export function classifyFailure(e: unknown): Failure {
 
 // 문구는 초안(TXT-1 미결). 404 는 오류 문구가 아니라 화면별 EmptyState 를 쓴다(ERR-6).
 export function failureMessage(kind: FailureKind): string {
+	if (kind === 'auth') return '로그인이 만료됐어요. 다시 로그인해 주세요.';
 	return kind === 'network'
 		? '연결이 끊겨 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.'
 		: '서버 오류로 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';

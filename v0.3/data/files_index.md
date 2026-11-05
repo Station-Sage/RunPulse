@@ -1684,7 +1684,7 @@
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
 
-### `routes_auth.py` (52줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
+### `routes_auth.py` (54줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
 
 - functions: get_auth_session, post_auth_invite
 
@@ -2024,9 +2024,9 @@
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401, test_invalid_cf_email_403_no_session_masked_log, test_invalid_cf_email_in_prod_is_403_not_401, test_invalid_cf_email_on_envelope_path_is_json_403, test_session_with_invalid_stored_uid_is_403_and_key_cleared, test_session_with_valid_uid_still_passes, test_invalid_dev_user_id_is_403_no_default_fallback, test_invalid_svc_user_is_403, test_valid_svc_user_still_passes, test_get_db_path_value_error_does_not_become_html_500, test_app_level_handler_registered_in_create_app
 
-### `test_auth_registry.py` (185줄) — AUTH-2026-11 stage 1 — registry 모드 신원 해석·공개 경로·F1~F4 방어.
+### `test_auth_registry.py` (198줄) — AUTH-2026-11 stage 1 — registry 모드 신원 해석·공개 경로·F1~F4 방어.
 
-- functions: app, test_auth_mode_default_legacy, test_safe_next_blocks_open_redirect, test_is_public, test_anonymous_private_path_401, test_header_email_without_jwt_is_ignored, test_invalid_jwt_401, test_public_path_anonymous_has_no_user, test_new_signup_is_pending_without_user_id, test_active_account_reaches_data, test_session_alone_not_enough_on_private_path, test_disabled_account_403, test_identity_switch_clears_previous_session, test_backfilled_account_links_new_identity, test_invalid_uid_email_403, test_pending_cannot_use_private_path_but_start_ok, test_logout_clears_session, test_no_user_context_not_default, test_backfill_filters_and_collisions, test_cf_jwt_unconfigured_fails_closed
+- functions: app, test_auth_mode_default_legacy, test_safe_next_blocks_open_redirect, test_is_public, test_anonymous_private_path_401, test_header_email_without_jwt_is_ignored, test_invalid_jwt_401, test_public_path_anonymous_has_no_user, test_new_signup_is_pending_without_user_id, test_active_account_reaches_data, test_session_alone_not_enough_on_private_path, test_disabled_account_403, test_identity_switch_clears_previous_session, test_backfilled_account_links_new_identity, test_invalid_uid_email_403, test_pending_cannot_use_private_path_but_start_ok, test_logout_clears_session, test_no_user_context_not_default, test_backfill_filters_and_collisions, test_cf_jwt_unconfigured_fails_closed, test_real_session_endpoint_reports_mode
 
 ### `test_auth_signup.py` (123줄) — AUTH-2026-11 stage 2 — 초대코드·일일 상한·프로비저닝·가입 엔드포인트.
 

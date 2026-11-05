@@ -183,3 +183,16 @@ def test_cf_jwt_unconfigured_fails_closed(monkeypatch):
     monkeypatch.delenv("CF_ACCESS_TEAM", raising=False)
     with pytest.raises(cf_jwt.CfJwtError):
         cf_jwt.verify("x")
+
+
+def test_real_session_endpoint_reports_mode(app):
+    from src.api.routes_auth import get_auth_session
+
+    app.view_functions.pop("sess", None)
+    with app.test_request_context("/api/v1/auth/session"):
+        g.auth_state = "anonymous"
+        g.auth_email = None
+        resp, status = get_auth_session()
+        body = resp.get_json()["data"]
+    assert status == 200 and resp.headers["Cache-Control"] == "no-store"
+    assert body == {"mode": "registry", "state": "anonymous", "email": None}
