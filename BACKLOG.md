@@ -34,6 +34,8 @@
 
 ## NEXT
 
+- **[AUTH-MULTIUSER-SYNC]** (G-9) 가입 개방 전 필수: 자동 동기화가 1명 전용(app.py:132-137) → 다중 사용자 순회·LLM 비용 상한 설계. 사용자 승인 후 착수.
+
 - **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 내용을 맡을 설계 미정(V1-5, 2026-10-11) — 일몰 계획 수립 시 별도 설계. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/decisions-table.md` V1-1~V1-5.
 
 - **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 구 `sync_jobs` 잔재·이관 코드·json 파일 제거 완료(2026-10-11, ADR-047, 스키마 v36).
@@ -53,6 +55,7 @@
 - **[GARMIN-VO2MAX-PRECISE]** 완료(2026-10-10, ADR-040): 일별 `vo2max`(정밀값) 수집·소비처 전환·그룹/매트릭스. T8 실 DB 백필 적용(259일, 2026-10-09=53.9, 백업 `running.db.bak-20261010-pre-vo2max-precise`).
 
 ## 사용자 조치 필요 (Claude가 대신 할 수 없음)
+- **[USER-AUTH-CUTOVER]** 신규가입·다중 인증 공개 전환(ADR-043, 코드 1~3단계 배포 완료·운영 legacy). 설계서 `phase-7-ui-renewal/design-2026-11-auth/README.md` §F 체크리스트: CF 좌석 한도 확인, Google OAuth 클라이언트, CF Access에 Google·OTP IdP 추가(GitHub 유지, 정책 Everyone), `/v2/*`·`/api/v1/auth/session` Bypass 앱, `CF_ACCESS_AUD`·`CF_ACCESS_TEAM` 환경변수, WAF 속도 규칙, `ORIGIN_GUARD_MODE=enforce`, 컨테이너에 PyJWT 설치, `data/users` 백필 제외 목록 확인, Cloudflare Web Analytics 끄기. 완료 후 사용자 확인 시 `AUTH_MODE=registry` 전환·백필·운영 스모크.
 - **[V2-SHOES]** 신발 관리 v2 개발(2026-10-21 결정: 나중에 설계 후 진행). v1 신발 화면·라우트는 backup 으로 이동되므로 그 사이 신발 UI 없음. 설계 시 v1 backup(`v1_backup/`)의 기능·데이터 모델 참고.
 - **[V2-GARMIN-CONNECT]** Garmin 연결·MFA v2 개발(2026-10-21 결정: 신규 개발, 그 전까지 v1 `/connect/garmin` 유지). 완료 시 `data_connect_service.connect('garmin')` UNSUPPORTED 해소 후 v1 라우트 제거.
 - **[V1-KEPT]** v1 에서 유지하는 항목(S5-4, 2026-10-21): `/connect/garmin`(V2-GARMIN-CONNECT 전까지), Strava OAuth `/connect/strava/oauth-start`·`/callback`(외부 redirect URL 불변), `/training/export.ics`·`activities/export.csv`(v2 내보내기·캘린더 피드 사용), `routes_v1_sync`(`/api/garmin/local-sync`·`/trigger-sync*`·`/bg-sync/*` 로컬 클라이언트 사용 미확인), `routes_v1_pages`(`/import*`·`/sync-status`; `/db`·`/config`·`/payloads` 는 S4-33 에서 제거). 활동 병합·분리 UI 는 v2 불필요(자동 묶기는 sync·import 에서 계속 동작)라 backup 으로 이동.

@@ -198,6 +198,7 @@ CREATE TABLE auth_events (ts TEXT NOT NULL, kind TEXT NOT NULL, uid TEXT, subjec
 | 3 프런트 | 세션 스토어·가드·login/pending 화면·랜딩 CTA·로그아웃·apiFetch 인증 실패 정규화 | routes/+layout.ts, lib/api/client.ts, lib/loadFailure.ts, routes/auth/*, routes/landing, MenuDrawer | vitest: 가드 판정 순수함수, `next` 검증, opaqueredirect→auth 분류. 브라우저 스모크(scripts/synth_smoke/pw): 익명 랜딩→데모, 보호 경로 리다이렉트, 로그아웃 |
 | 4 외부 설정·공개 전환 | CF 콘솔 작업(아래), 운영 `AUTH_MODE=registry` 전환, 백필 실행, 운영 스모크, ADR·결정표 기록 | `.env`/compose(운영), decisions.md, decisions-table.md, 05 §11 갱신 | 운영 스모크: 3개 IdP 각각 신규·기존 로그인, 공개 경로 응답에 사용자 데이터 없음, 위조 헤더 직접 요청 401 |
 
+- 진행 상태(2026-11-05): 1~3단계 구현·운영 배포 완료(S4-64~66, 운영 legacy). 4단계는 사용자 외부 설정 체크리스트 완료 후 전환 확인 대기.
 - 롤백: `AUTH_MODE=legacy` 환경변수 + 재시작 → 현 동작. `auth.db`는 추가 전용이라 남겨도 무해. CF는 Bypass 애플리케이션 삭제·정책 원복. `data/users/` 무변경.
 - 사용자 외부 작업 체크리스트
   - [ ] CF Zero Trust 플랜의 좌석 한도·현재 사용량 확인(G-3 판단 근거)

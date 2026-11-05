@@ -422,3 +422,4 @@
 - D3: 비인증 방문자는 공개 경로(`/v2/*` 등)만. 비공개 경로는 요청마다 JWT 필요(F2). 세션 없을 때 "default" 폴백 제거 → `NoUserContext` 401(F3), 익명 요청은 사용자 DB 를 열지 않는다(F4).
 - D4: 신규가입은 pending(사용자 디렉토리·`session["user_id"]` 없음) → 초대코드 + 일 20명 상한으로 활성화(2단계). 비밀번호 로그인 없음(G-7).
 - D5: `AUTH_MODE=legacy|registry`, 기본 legacy(롤백 경로). 운영 registry 전환은 CF·Google 설정 후 사용자 확인 시.
+- 진행(2026-11-05): 코드 1~3단계(서버 신원 코어·가입 게이트·프런트 가드, S4-64~66) 구현·운영 배포 완료, 운영은 `AUTH_MODE=legacy` 유지. 남은 것: 사용자 외부 설정(설계서 §F 체크리스트)과 전환 확인, 가입 개방 전 다중 사용자 자동 동기화(G-9, BACKLOG `AUTH-MULTIUSER-SYNC`). TXT-1(동의 문구)은 미결, `consent_version` 컬럼만 예약.
