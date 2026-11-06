@@ -3661,6 +3661,10 @@ DONE으로 옮긴다.
 
 ## DONE
 
+- **[P7-BALANCE-RADAR]** Training Balance Radar(07 §7d) T1~T8 완료(2026-11-06, 설계 `design-2026-11-features/balance-radar.md`, D1~D4 추천안 확정):
+  `training_balance_service`·`training_balance_axes`(새 Calculator 없음, 표시 시점 계산), `GET /api/v1/library/metrics/training-balance`,
+  조회 보강 `metrics_service.get_daily_metric_as_of/get_daily_series`·`plan_load.weekly_planned_km/longest_planned_long_km`,
+  프런트 `BalanceRadar`·`BalanceTable`(상시 표)·`TrainingBalanceCard`(메트릭 브라우저 상단)·`/library/balance`. A4 레이스 분리(D3)는 후속.
 - **[P7-UXR-P0]** UX 리뷰 Phase 0 핫픽스(2026-09-28): Coach 규칙 답변의 회복 등급 코드 불일치(`A/B/C` vs
   `excellent/good/moderate/poor`) 수정 + 상수화·회귀 테스트(항상 "피로 회복 필요"가 나오던 결함), 규칙 답변 페이스
   `초/km`→`m:ss/km`, 없는 목적지 문구("훈련 탭", "설정 > AI") 교체, gunicorn gthread 8스레드(워커 1 유지 — auto_sync·

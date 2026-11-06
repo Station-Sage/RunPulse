@@ -5,6 +5,7 @@
 	import type { MetricsBrowserPageData } from './+page';
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import TrainingBalanceCard from '$lib/components/TrainingBalanceCard.svelte';
 	import { base } from '$app/paths';
 	import { freshnessBadgeText } from '$lib/freshness';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
@@ -251,6 +252,7 @@
 				<button type="button" class="rounded-full bg-surface-2 px-3 py-1 text-xs text-fg-secondary" onclick={() => (query = '')}>검색 지우기</button>
 			</div>
 		{/if}
+		{#if showCore}<TrainingBalanceCard />{/if}
 		{#if coreMetrics.length}
 			<section>
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">내 지표</h2>

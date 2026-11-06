@@ -259,7 +259,7 @@ v1 HTML 뷰는 리다이렉트 전용으로 유지하다 제거한다.
 
 **데이터 레이어**
 - [ ] 신규 소스 커넥터 — COROS 또는 Polar 중 1개 우선 (기존 `src/connectors/` 패턴 동일)
-- [ ] Training Balance Radar 메트릭 계산 — 다차원 레이더 데이터 (stress/load/recovery/form/sleep/hrv)
+- [x] Training Balance Radar 메트릭 계산 — 다차원 레이더 데이터 (stress/load/recovery/form/sleep/hrv) → 2026-11-06 6축(볼륨·롱런·이지·품질·부하·회복)으로 재정의해 서비스 레이어로 구현(`design-2026-11-features/balance-radar.md`)
 - [ ] `sync.py` 신규 소스 등록
 
 **Flask API**
@@ -267,12 +267,12 @@ v1 HTML 뷰는 리다이렉트 전용으로 유지하다 제거한다.
 - [ ] `GET /api/v1/data/sync`
 - [ ] `POST /api/v1/data/sync` — 동기화 실행
 - [ ] `GET /api/v1/data/settings`
-- [ ] `GET /api/v1/library/metrics/training-balance` — Training Balance Radar 데이터
+- [x] `GET /api/v1/library/metrics/training-balance` — Training Balance Radar 데이터 (2026-11-06)
 
 **SvelteKit UI**
 - [ ] Data 화면(상단 3선 메뉴 산하) — `03f-data.md` 구현 (신규 소스 연결 카드 포함)
 - [ ] Coach 스레드 완성 — `03e-coach.md` 컨텍스트 패널 구현 (7a MVP에서 제외된 부분)
-- [ ] Training Balance Radar 차트 — Library 내 표시
+- [x] Training Balance Radar 차트 — Library 내 표시 (메트릭 브라우저 카드 + `/library/balance`, 2026-11-06)
 - [ ] 베타 토글 → 하단 3탭 + 상단 3선 메뉴 전체 커버 확인
 
 **v2 기본 전환**

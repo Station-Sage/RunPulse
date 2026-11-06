@@ -313,9 +313,9 @@
 
 - functions: tomorrow_tsb_if_rest, utrs_with_tsb, build_what_if
 
-### `metrics_service.py` (88줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
+### `metrics_service.py` (115줄) — Phase 7b 서비스 레이어 - 메트릭 계산 분해 트리.
 
-- functions: get_metric_breakdown
+- functions: get_metric_breakdown, get_daily_series, get_daily_metric_as_of
 
 ### `metrics_trend_service.py` (148줄) — 메트릭 추세 서비스 — 3-F (daily-scope 단일 메트릭의 기간별 시계열 + 신선도/행동 힌트).
 
@@ -358,9 +358,9 @@
 
 - functions: compute, issue
 
-### `plan_load.py` (109줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
+### `plan_load.py` (137줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
 
-- functions: session_load, daily_actual, easy_u, load_delta
+- functions: session_load, daily_actual, easy_u, load_delta, weekly_planned_km, longest_planned_long_km
 
 ### `plan_move.py` (146줄) — 일정 이동(move) 조정 — 오늘 세션을 같은 주 가까운 날로 옮기거나 쉬운 날과 맞바꾼다 (ADR-035 후속, DESIGN-PLAN-ROW-ACTION-COACHING §1).
 
@@ -541,6 +541,14 @@
 ### `today_service.py` (229줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
+
+### `training_balance_axes.py` (133줄) — Training Balance 6축 순수 계산 — target 우선순위·score·band·status·state (balance-radar 설계 §3·§4).
+
+- functions: score, status, build_axis, volume_target, goal_long_run_km, long_run_target, recovery_ratio, overall_state
+
+### `training_balance_service.py` (127줄) — Training Balance Radar 조립 — 기존 메트릭(tids·marathon_shape·acwr)·wellness·계획·목표로 6축 (07 §7d).
+
+- functions: compute_axes, get_training_balance
 
 ### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
 
@@ -1772,6 +1780,10 @@
 
 - functions: get_library_activity_facets, get_library_activity_summary
 
+### `routes_library_balance.py` (46줄) — GET /api/v1/library/metrics/training-balance — Training Balance Radar 6축 (07 §7d, balance-radar 설계 §6).
+
+- functions: get_library_training_balance
+
 ### `routes_library_export.py` (48줄) — 활동 원본 링크·GPX 내보내기 — /api/v1/library/activities/<id>/source-links · export.gpx (ADR-022).
 
 - functions: get_activity_source_links, get_activity_gpx
@@ -2033,6 +2045,10 @@
 ### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
 - functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
+
+### `test_api_library_balance.py` (72줄) — GET /api/v1/library/metrics/training-balance — 스키마 키·파라미터 검증·503·<slug> 라우트 비충돌 (§8 T3).
+
+- functions: client, test_schema_keys_fixed, test_default_date_uses_reference_today, test_invalid_params_400, test_compare_zero_skips, test_no_db_503, test_static_route_wins_over_slug
 
 ### `test_api_plan.py` (347줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
@@ -3442,6 +3458,14 @@
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
 
+### `test_training_balance_axes.py` (94줄) — training_balance_axes: score clamp·band 경계·target 우선순위·A6 부분 결측·state (balance-radar §3·§8 T2).
+
+- functions: test_score_clamp_and_missing, test_status_band_edges_inclusive, test_build_axis_reason_cleared_when_scored_and_stale, test_volume_target_priority_plan_then_peak, test_goal_long_run_table, test_long_run_target_priority, test_recovery_ratio_partial_items_and_inverse_stress, test_recovery_ratio_insufficient_days, test_recovery_ignores_future_dates, test_overall_state
+
+### `test_training_balance_service.py` (141줄) — training_balance_service + T1 조회 함수(metrics_service as-of·plan_load 계획 km) — 빈 DB·정상·누수 (§8 T1·T2).
+
+- functions: conn, test_t1_empty_db_returns_empty, test_t1_as_of_never_reads_future, test_t1_weekly_planned_km_and_longest, test_empty_db_is_collecting_not_error, test_full_data_ready_and_expected_scores, test_plan_target_beats_peak_and_goal, test_partial_state_with_four_axes, test_compare_does_not_leak_future, test_past_goal_ignored, test_finished_plan_long_run_not_used
+
 ### `test_training_export_routes.py` (15줄) — v1 훈련 내보내기 블루프린트 — ICS 만 남고 push-garmin/push-caldav 는 제거됐다 (S4-70).
 
 - functions: test_only_ics_route_remains
@@ -3701,7 +3725,7 @@
 - functions: run
 
 ---
-총 793개 파일
+총 799개 파일
 
 ## docstring 누락
 

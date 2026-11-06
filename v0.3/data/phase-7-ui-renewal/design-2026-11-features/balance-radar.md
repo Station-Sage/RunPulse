@@ -1,6 +1,6 @@
 # Training Balance Radar 설계서 (07 §7d)
 
-- 작성: 2026-11-06 · 상태: **설계(승인 대기)** · 코드 변경 없음
+- 작성: 2026-11-06 · 상태: **구현 완료(2026-11-06, D1~D4 추천안 확정)** · §10 구현 메모 참조
 - 원문: `07-migration-roadmap.md` §Phase 7d — "Training Balance Radar 메트릭 계산 — 다차원 레이더 데이터
   (stress/load/recovery/form/sleep/hrv)", `GET /api/v1/library/metrics/training-balance`, "Library 내 표시",
   검증 "6개 축 데이터 정상 렌더링". BACKLOG `[PHASE-7-REMAINING]` (3) 미배정 항목.
@@ -157,3 +157,14 @@ wellness는 `wellness_service`, 계획 km는 `plan_load`(planned_workouts 주 �
 - **D2** 기본 목표표(80/20 강도, 거리별 롱런 30/18/14/12 km)를 [가정] 상태로 출시할지, 플랜 템플릿 값과 맞출지.
 - **D3** A4의 레이스 분리(TIDS v2.1, algo_changelog 동반)를 1차에 포함할지 후속으로 둘지.
 - **D4** 배정: BACKLOG NOW/NEXT 승격 여부(현재 미배정).
+
+## 10. 구현 메모 (2026-11-06)
+
+- D1 6축 재정의 승인, D2 기본 목표표 [가정] 상태로 출시(표 주석으로 안내), D3 레이스 분리 후속(`race_share_of_quality=null`), D4 배정·완료.
+- 설계와 달라진 점: (a) A2 ① "활성 플랜"은 as_of 이후 계획 행이 남아 있는 플랜으로 한정(끝난 플랜의 롱런은 목표로 쓰지 않음 —
+  실계정은 10/22~11/01 10K 플랜이 끝나 목표 없음 기본 규칙으로 감). (b) 축에 `reason_text`, 응답에 `stale_text`(metric_freshness
+  BADGE_TEXT) 추가. (c) 타입은 `$lib/types/trainingBalance`(types/index.ts 크기 가드 때문). (d) 브라우저 카드는 작은 레이더 +
+  축·점수·상태만의 compact 표(레이더에 그린 정보와 동일).
+- 실계정 사본 검증(읽기 전용, 2026-11-06): A3 103.9, A4 84.5, A5 103(최신 ACWR 1.03), A1 35.5/45.5=78(개인 최고), A6 101.4,
+  A2 150(목표 지남 → 기본 규칙 13.65 km). state=ready.
+

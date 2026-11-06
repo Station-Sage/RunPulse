@@ -107,3 +107,31 @@ def load_delta(conn: sqlite3.Connection, workout_id: int, after: dict | None, *,
         return None
     return {"week_pct": round((a_total - b_total) / b_total * 100, 1), "acwr_before": b_acwr, "acwr_after": a_acwr,
             "week_load_before": round(b_total), "week_load_after": round(a_total)}
+
+
+_LONG_TYPES = ("long", "long_mp")
+
+
+def _plan_rows(conn: sqlite3.Connection, start: str, end: str) -> list[dict]:
+    cols = ("id", "date", "workout_type", "distance_km")
+    rows = [dict(zip(cols, r)) for r in conn.execute(
+        "SELECT id, date, workout_type, distance_km FROM planned_workouts WHERE date >= ? AND date < ? ORDER BY date",
+        (start, end))]
+    return plan_overlay.apply(rows, plan_overlay.live_adjustments(conn, start, end))
+
+
+def weekly_planned_km(conn: sqlite3.Connection, start: str, end: str) -> dict[str, float]:
+    """[start, end) 계획(overlay 적용) km 의 주(월요일 시작)별 합. 계획 행이 있는 주만 키로 둔다(휴식만 있으면 0)."""
+    out: dict[str, float] = {}
+    for r in _plan_rows(conn, start, end):
+        ws = _week_bounds(r["date"])[0]
+        km = r["distance_km"] if r["workout_type"] != "rest" and r["distance_km"] else 0.0
+        out[ws] = round(out.get(ws, 0.0) + float(km), 2)
+    return out
+
+
+def longest_planned_long_km(conn: sqlite3.Connection, start: str, end: str) -> float | None:
+    """[start, end) 계획 롱런(long·long_mp) 중 최장 km. 없으면 None."""
+    kms = [float(r["distance_km"]) for r in _plan_rows(conn, start, end)
+           if r["workout_type"] in _LONG_TYPES and r["distance_km"]]
+    return max(kms) if kms else None

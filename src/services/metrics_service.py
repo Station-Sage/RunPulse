@@ -6,9 +6,11 @@ Library/metrics 화면(03c-library.md)용. 06-data-layer-extensions.md D1 "2026-
 """
 from __future__ import annotations
 
+import json
 import sqlite3
+from datetime import date, timedelta
 
-from src.utils.db_helpers import get_primary_metric
+from src.utils.db_helpers import get_metric_history, get_primary_metric
 from src.utils.metric_registry import METRIC_REGISTRY
 
 
@@ -86,3 +88,28 @@ def get_metric_breakdown(
         "children": children,
         "inputs": inputs,
     }
+
+
+def _as_point(row: dict) -> dict:
+    """metric_store 행 → {"date", "value", "json"} (json 파싱 실패는 None)."""
+    try:
+        js = json.loads(row["json_value"]) if row.get("json_value") else None
+    except (TypeError, ValueError):
+        js = None
+    return {"date": row["scope_id"], "value": row.get("numeric_value"), "json": js if isinstance(js, dict) else None}
+
+
+def get_daily_series(conn: sqlite3.Connection, metric_name: str, start: str, end: str) -> list[dict]:
+    """[start, end] 대표 daily 값 → [{"date", "value", "json"}] 날짜순. 값·json 이 모두 없는 행은 뺀다."""
+    rows = get_metric_history(conn, metric_name, scope_type="daily", date_from=start, date_to=end)
+    pts = [_as_point(r) for r in rows]
+    return [p for p in pts if p["value"] is not None or p["json"] is not None]
+
+
+def get_daily_metric_as_of(
+    conn: sqlite3.Connection, metric_name: str, as_of: str, max_age_days: int = 28
+) -> dict | None:
+    """as_of(포함) 이전 max_age_days 안의 가장 최근 대표 daily 값. 미래 날짜는 읽지 않는다. 없으면 None."""
+    start = (date.fromisoformat(as_of) - timedelta(days=max_age_days)).isoformat()
+    pts = get_daily_series(conn, metric_name, start, as_of)
+    return pts[-1] if pts else None
