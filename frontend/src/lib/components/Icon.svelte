@@ -85,5 +85,8 @@
 			fill="currentColor"
 			stroke="none"
 		/>
+	{:else if name === 'shoe'}
+		<path d="M3 16v-5l3-1 2 2c2 1 4 1 6 0l1.5 2.5L21 16v2H3v-2z" />
+		<path d="M8 12l1.5-1.5M11 12.6l1.2-1.5" />
 	{/if}
 </svg>

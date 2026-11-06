@@ -42,7 +42,8 @@ EXPORT_GROUPS: tuple[GroupDef, ...] = (
     GroupDef("activities", "활동 (요약·랩·최고 기록·피드백·장비)", (
         _t("activity_summaries", "start_time"), _t("activity_laps", fk=True), _t("activity_best_efforts", fk=True),
         _t("activity_exercise_sets", fk=True), _t("activity_groups", "activity_date"),
-        _t("activity_feedback", fk=True), _t("gear")), default=True),
+        _t("activity_feedback", fk=True), _t("gear"), _t("user_shoes", optional=True),
+        _t("activity_shoe", fk=True, optional=True)), default=True),
     GroupDef("streams", "활동 스트림 (초 단위 심박·위치, 용량 큼)", (
         _t("activity_streams", fk=True), _t("activity_stream_meta", fk=True))),
     GroupDef("metrics", "지표·웰니스·예측·마일스톤", (

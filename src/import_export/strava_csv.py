@@ -2,7 +2,7 @@
 
 Strava > 내 계정 데이터 내보내기에서 얻은 파일을 파싱:
 - activities.csv : 활동 메타데이터 + 파일명
-- shoes.csv      : 신발 목록
+- shoes.csv      : 신발 목록 → gear(source='strava_export'), 활동 `Activity Gear` → gear_id
 
 activities/ 폴더의 GPX/FIT/TCX 파일은 별도 처리 (향후 확장).
 """
@@ -19,6 +19,7 @@ from src.import_export.strava_detail_metrics import (  # noqa: F401  (재노출)
     _upsert_strava_detail_metrics,
     backfill_strava_detail_metrics,
 )
+from src.import_export.strava_shoes import link_activity_gear
 from src.import_export.strava_tz_apply import TzContext, apply_to_existing, tz_payload_fields
 from src.utils.dedup import assign_group_id
 from src.utils.raw_payload import update_changed_fields
@@ -108,6 +109,7 @@ def import_strava_activities(
                 "avg_power": parsed.get("avg_power"),
             })
             if existing_id:
+                link_activity_gear(conn, existing_id, parsed.get("gear"))
                 if utc is not None:
                     apply_to_existing(conn, source_id, parsed["start_time"], tz_source, peer)
                 _upsert_strava_detail_metrics(conn, existing_id, parsed)
@@ -130,6 +132,7 @@ def import_strava_activities(
             pass
 
         _upsert_strava_detail_metrics(conn, activity_id, parsed)
+        link_activity_gear(conn, activity_id, parsed.get("gear"))
         assign_group_id(conn, activity_id)
 
     conn.commit()

@@ -7,6 +7,8 @@
 	import { invalidate } from '$app/navigation';
 	import { getActivities } from '$lib/api/library';
 	import { getProviderStatus, getProviderCoverage } from '$lib/api/providers';
+	import { getShoes } from '$lib/api/shoes';
+	import ShoeCard from '$lib/components/ShoeCard.svelte';
 	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import ArchiveHero from '$lib/components/ArchiveHero.svelte';
 	import ArchiveTabCard from '$lib/components/ArchiveTabCard.svelte';
@@ -66,6 +68,27 @@
 							<li><ActivityRow {act} from="home" showProvider /></li>
 						{/each}
 					</ul>
+				{/snippet}
+			</LibraryBlock>
+		</section>
+
+		<section class="px-4" aria-label="신발" data-testid="library-shoes">
+			<div class="mb-2 flex items-center justify-between">
+				<h2 class="text-xs font-medium uppercase tracking-wide text-fg-muted">신발</h2>
+				<a href="{base}/library/shoes" class="text-xs text-fg-muted hover:text-fg-secondary">전체 보기 →</a>
+			</div>
+			<LibraryBlock load={() => getShoes(false)} skeletonClass="h-24">
+				{#snippet children(res)}
+					{#if res.shoes.length === 0}
+						<a href="{base}/library/shoes" class="block rounded-xl border border-border-subtle bg-surface-2 px-3 py-3 text-sm text-fg-secondary hover:bg-surface-3">
+							{res.suggestions.length > 0 ? `Strava·Garmin 에 신발 ${res.suggestions.length}켤레가 있어요 — 가져오기` : '신발을 등록하면 마일리지와 교체 시기를 알려드려요'}
+						</a>
+					{:else}
+						{#if res.headline}<p class="mb-2 text-sm text-fg-primary">{res.headline}</p>{/if}
+						<ul class="flex flex-col gap-2">
+							{#each res.shoes.slice(0, 2) as s (s.id)}<li><ShoeCard shoe={s} /></li>{/each}
+						</ul>
+					{/if}
 				{/snippet}
 			</LibraryBlock>
 		</section>

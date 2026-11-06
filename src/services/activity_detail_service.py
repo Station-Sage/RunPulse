@@ -153,6 +153,7 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         group_ids).fetchone()
     return {
         "feedback": activity_feedback_service.get_feedback(conn, activity_id),
+        "shoe": _shoe(conn, activity_id),
         "menu": {"has_gps": bool(has_gps and has_gps[0] >= activity_gpx.MIN_POINTS),
                  "source_links": activity_source_links.source_links(conn, activity_id)},
         "core": core,
@@ -179,6 +180,15 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         "best_efforts": best_efforts,
         "impact": impact,
     }
+
+
+def _shoe(conn: sqlite3.Connection, activity_id: int) -> dict | None:
+    """신발 칩(V2-SHOES) — 비러닝은 None. 신발 테이블이 없거나 실패해도 상세는 계속 보인다."""
+    from src.services.shoe_query import activity_shoe_view
+    try:
+        return activity_shoe_view(conn, activity_id)
+    except sqlite3.Error:
+        return None
 
 
 def _build_metrics_by_category(primary_metrics: list[dict]) -> dict[str, list[dict]]:

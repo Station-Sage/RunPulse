@@ -32,7 +32,7 @@
 
 - functions: activity_counts
 
-### `activity_detail_service.py` (245줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (255줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
 
@@ -200,7 +200,7 @@
 - class **ExportError**: 없음
 - functions: check_free_space, build_archive
 
-### `export_groups.py` (96줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
+### `export_groups.py` (97줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
 
 - class **TableDef**: 없음
 - class **GroupDef**: 없음
@@ -471,6 +471,24 @@
 ### `run_totals.py` (62줄) — 기간 러닝 합계·비러닝 요약 단일 출처 (ADR-051 NRA-1/NRA-2).
 
 - functions: run_totals, other_totals, other_line
+
+### `shoe_assignment.py` (183줄) — 활동 → 신발 배정 해석(읽기 시점, 저장 없음 — Q5). 설계 shoes.md §4.
+
+- class **Assignment**: 없음
+- functions: kind_of, gear_lookup_sources, load_shoes, resolve, resolve_one, aggregate
+
+### `shoe_query.py` (188줄) — 신발 조회 — 목록·상세·배정 활동·미배정·Today 알림·활동 칩(읽기 전용). 설계 shoes.md §5·§6.
+
+- functions: days_to_race, shoe_view, suggestions, normalize_name, list_shoes, require, get_shoe, method_source, conflict_sources, shoe_activities, unassigned_activities, activity_shoe_view, today_alert
+
+### `shoe_service.py` (206줄) — 신발 쓰기 — CRUD·기본 신발 교체·merge·gear 연결·가져오기·활동 배정. 설계 shoes.md §6.
+
+- class **ShoeError**: 없음
+- functions: freeze_rule_history, create, update, delete, merge, link_gear, unlink_gear, import_gear, set_activity_shoe, clear_activity_shoe, assign_bulk
+
+### `shoe_status.py` (85줄) — 신발 교체 임계값·상태·문구 — 순수 함수(DB 없음). 설계 shoes.md §5.
+
+- functions: effective_retire_km, status_of, status_message, race_prep_note, shoe_state, sort_key, headline
 
 ### `story_period.py` (112줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
 
@@ -817,12 +835,12 @@
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (286줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_sync.py` (294줄) — Garmin 활동 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
 
-### `garmin_api_extensions.py` (145줄) — Garmin 활동 확장 API — gear, exercise_sets.
+### `garmin_api_extensions.py` (168줄) — Garmin 활동 확장 API — gear, exercise_sets.
 
 - functions: sync_activity_gear, sync_activity_exercise_sets
 
@@ -941,9 +959,9 @@
 
 - functions: sync
 
-### `strava_athlete_sync.py` (186줄) — Strava 선수 프로필, 통계, 기어 동기화.
+### `strava_athlete_sync.py` (194줄) — Strava 선수 프로필, 통계, 기어 동기화.
 
-- functions: sync_athlete_profile, sync_athlete_stats, sync_gear, sync_athlete_and_gear
+- functions: sync_athlete_profile, sync_athlete_stats, strava_gear_type, sync_gear, sync_athlete_and_gear
 
 ### `strava_auth.py` (91줄) — Strava OAuth2 토큰 관리 및 연결 상태 확인.
 
@@ -996,7 +1014,7 @@
 
 - functions: extract_vo2max_daily
 
-### `intervals_extractor.py` (198줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
+### `intervals_extractor.py` (209줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
 - class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_fitness
 
@@ -1772,6 +1790,10 @@
 
 - functions: list_races, create_race, get_race, update_race, cancel_race, race_impact_route, race_plan_route, restore_route, reopen_route
 
+### `routes_shoes.py` (214줄) — `/api/v1/shoes*` + 활동 신발 배정 — 신발 관리 v2(V2-SHOES). 설계 shoes.md §6.
+
+- functions: list_shoes, shoe_alert, unassigned_runs, get_shoe, shoe_activities, create_shoe, update_shoe, delete_shoe, merge_shoe, link_gear, unlink_gear, import_gear, assign_bulk, put_activity_shoe, delete_activity_shoe
+
 ### `routes_story.py` (37줄) — GET /api/v1/library/story/<period> — Phase 7 Story endpoint.
 
 - functions: get_story
@@ -2393,6 +2415,10 @@
 ### `test_db_schema_v41.py` (24줄) — 스키마 v41 (goals.plan_snapshot_json) 테스트.
 
 - functions: test_adds_column_and_idempotent, test_create_tables_reaches_v41
+
+### `test_db_schema_v42.py` (71줄) — 스키마 v42 (신발 관리 v2: user_shoes·activity_shoe·gear.shoe_id) 테스트.
+
+- functions: test_v41_to_v42_idempotent_keeps_gear_rows, test_new_db_ddl_matches_migrated, test_one_active_default_per_kind, test_shoe_delete_sets_gear_null_with_fk, test_check_constraints
 
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
@@ -3193,6 +3219,10 @@
 
 - functions: ctx, test_create_list_get_patch, test_validation_envelope, test_cancel_goal_linked_needs_confirm, test_cancel_plain_via_query, test_impact_and_plan_actions, test_restore_and_conflicts, test_restore_a_conflict_and_reopen, test_reopen_needs_review
 
+### `test_routes_shoes.py` (108줄) — /api/v1/shoes* + 활동 신발 PUT/DELETE — 봉투·Origin 관문·검증·비러닝·409·200건 제한.
+
+- functions: ctx, test_crud_envelope, test_write_without_origin_403, test_validation_400, test_activity_shoe_put_delete, test_gear_link_conflict_409, test_bulk_assign_limit_and_import, test_activity_detail_has_shoe_field
+
 ### `test_rri.py` (108줄)
 
 - class **TestRRI**: test_with_all_inputs, test_high_cirs_lowers_rri, test_no_vdot, test_category
@@ -3233,6 +3263,22 @@
 ### `test_segments.py` (106줄) — P7-PRED-21: 세그먼트 분해 r4 — 구조 기반 세트 구간·세션 유형(기기 불필요).
 
 - functions: B, test_interval_6x1000_jog_rest, test_float_rest_is_not_rest, test_stride_tail_merged_into_work, test_continuous_tempo_auto_laps_no_itype, test_slow_block_is_not_quality, test_repetition_and_sprint, test_easy_long_race, test_set_drop, test_stream_blocks_detect_alternation, test_time_axis_repair, test_time_axis_repair_basis
+
+### `test_shoe_assignment.py` (134줄) — shoe_assignment — 그룹 단위 해석(manual > source > rule > none)·충돌·날짜 제약·집계.
+
+- functions: c, act, shoe, gear, test_kind_of, test_gear_lookup_sources, test_priority_manual_source_rule_none, test_manual_null_means_no_shoe, test_manual_survives_canonical_change, test_non_running_excluded, test_date_window, test_default_since_blocks_past, test_conflict_flag_uses_garmin_priority, test_rule_history_rows, test_aggregate_and_resolve_one
+
+### `test_shoe_service.py` (143줄) — shoe_service/shoe_query — CRUD·기본 신발 교체(이력 고정)·merge·import-gear·배정·조회.
+
+- functions: c, test_create_update_delete, test_default_switch_freezes_history, test_retire_releases_default_and_unretire, test_merge_moves_links_and_assignments, test_import_gear_groups_names_and_is_idempotent, test_manual_assign_group_and_clear, test_bulk_assign_and_unassigned, test_link_unlink_gear, test_today_alert_and_race_note
+
+### `test_shoe_status.py` (46줄) — shoe_status — 임계값·상태 경계·문구·대회 보조 문구·정렬.
+
+- functions: test_boundaries_79_9_80_99_9_100, test_retire_km_overrides_category_default, test_messages, test_retired_excluded, test_race_prep_note, test_sort_and_headline
+
+### `test_shoe_sync.py` (77줄) — V2-SHOES T3 — sync 보강: Strava gear 종류·Garmin gear 배선(실패해도 계속)·Strava CSV 신발·Intervals gear id.
+
+- functions: test_strava_gear_type_bike_prefix, test_intervals_gear_object_key, test_garmin_gear_saved_and_linked, test_garmin_gear_failure_retries_once_and_sync_continues, test_strava_export_shoes_import_idempotent, test_csv_activity_gear_link_only_when_empty
 
 ### `test_spa_static.py` (183줄) — spa_static — `/v2/` 정적 서빙 분기·캐시 규칙·인라인 해시 (S3 7단계, E-04).
 
@@ -3619,7 +3665,7 @@
 - functions: run
 
 ---
-총 774개 파일
+총 785개 파일
 
 ## docstring 누락
 

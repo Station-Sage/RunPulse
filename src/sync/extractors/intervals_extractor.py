@@ -8,6 +8,17 @@ from src.utils.activity_types import normalize_activity_type
 from src.utils.timefmt import to_local_wallclock
 
 
+def _gear_id(raw: dict) -> str | None:
+    """Intervals 활동 payload 의 장비 id — 실제 키는 `gear: {id, name, distance, primary}` 객체(T1 확인).
+
+    값은 Strava gear id(`g…`)를 그대로 옮긴 것과 Intervals 자체 숫자 id 가 섞여 있다. 구형 `gear_id` 키도 허용.
+    """
+    gear = raw.get("gear")
+    gid = gear.get("id") if isinstance(gear, dict) else None
+    gid = gid or raw.get("gear_id")
+    return str(gid) if gid else None
+
+
 class IntervalsExtractor(BaseExtractor):
 
     SOURCE = "intervals"
@@ -54,7 +65,7 @@ class IntervalsExtractor(BaseExtractor):
             "description": raw.get("description"),
             "event_type": raw.get("workout_type"),
             "device_name": raw.get("device_name"),
-            "gear_id": raw.get("gear_id"),
+            "gear_id": _gear_id(raw),
             "source_url": (
                 f"https://intervals.icu/activities/{raw.get('id')}"
                 if raw.get("id")

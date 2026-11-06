@@ -10,6 +10,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
+from src.sync.garmin_api_extensions import sync_activity_gear
+from src.utils.activity_types import sport_family
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
 from src.sync.sync_result import SyncResult
@@ -150,6 +152,12 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
 
     # [5] 역참조
     update_raw_activity_id(conn, "garmin", "activity_summary", source_id, activity_id)
+
+    # [5b] 신규 러닝만 신발 gear 조회(V2-SHOES T3) — 실패해도 1회 재시도 후 계속
+    if is_new and sport_family(act_type, "garmin") == "running":
+        limiter.pre_request()
+        sync_activity_gear(conn, api, activity_id, source_id)
+        result.api_calls += 1
 
     # [6-7] Detail — 기존 활동이라도 빠진 payload가 있으면 보충한다
     stored = {

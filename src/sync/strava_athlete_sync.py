@@ -117,6 +117,11 @@ def sync_athlete_stats(
         print(f"[strava] 선수 통계 저장 실패: {e}")
 
 
+def strava_gear_type(gear_id: str) -> str:
+    """Strava gear id 접두어 — `b…` 자전거, `g…` 신발(Strava API 규약)."""
+    return "bike" if str(gear_id).startswith("b") else "shoes"
+
+
 def sync_gear(conn: sqlite3.Connection, gear_id: str, headers: dict) -> None:
     """Strava 기어(신발/자전거) 상세 → gear 저장.
 
@@ -136,9 +141,10 @@ def sync_gear(conn: sqlite3.Connection, gear_id: str, headers: dict) -> None:
             """INSERT INTO gear
                (source, source_gear_id, name, brand, model, total_distance_m,
                 status, gear_type, updated_at)
-               VALUES ('strava', ?, ?, ?, ?, ?, ?, 'shoes', datetime('now'))
+               VALUES ('strava', ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT(source, source_gear_id) DO UPDATE SET
                    name = excluded.name,
+                   gear_type = excluded.gear_type,
                    brand = excluded.brand,
                    model = excluded.model,
                    total_distance_m = excluded.total_distance_m,
@@ -151,6 +157,7 @@ def sync_gear(conn: sqlite3.Connection, gear_id: str, headers: dict) -> None:
                 gear.get("model_name"),
                 gear.get("distance"),
                 "inactive" if gear.get("retired") else "active",
+                strava_gear_type(gear_id),
             ),
         )
     except Exception as e:
@@ -173,11 +180,12 @@ def sync_athlete_and_gear(config: dict, conn: sqlite3.Connection, headers: dict)
     if athlete_id:
         sync_athlete_stats(conn, int(athlete_id), headers)
 
-    # 3. 미수집 기어 동기화 (activity_summaries에 gear_id가 있지만 gear 테이블에 없는 것)
+    # 3. 미수집 기어 동기화 (gear_id 는 있지만 gear 테이블에 없는 것 — Intervals 가 옮긴 Strava `g…` id 포함)
     try:
         gear_ids = conn.execute(
             """SELECT DISTINCT gear_id FROM activity_summaries
-               WHERE source = 'strava' AND gear_id IS NOT NULL
+               WHERE (source = 'strava' OR (source = 'intervals' AND gear_id LIKE 'g%'))
+               AND gear_id IS NOT NULL
                AND gear_id NOT IN (SELECT source_gear_id FROM gear WHERE source = 'strava')"""
         ).fetchall()
         for (gid,) in gear_ids:

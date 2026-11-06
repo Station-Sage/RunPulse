@@ -17,6 +17,7 @@
 	import TodayFormChart from '$lib/components/TodayFormChart.svelte';
 	import UnlockList from '$lib/components/today/UnlockList.svelte';
 	import ColdStartProgress from '$lib/components/today/ColdStartProgress.svelte';
+	import TodayShoeAlert from '$lib/components/today/TodayShoeAlert.svelte';
 	import { isSmallData, lockedRows } from '$lib/unlock';
 	import TodayEmpty from '$lib/components/TodayEmpty.svelte';
 	import { redirectToWelcomeIfNew } from '$lib/welcomeRedirect';
@@ -169,6 +170,7 @@
 
 		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</h2>
+			{#if !$demoActive}<TodayShoeAlert />{/if}
 			<a href="{base}/library" class="text-sm text-fg-secondary hover:text-fg-primary">Library에서 전체 탐색 →</a>
 		</section>
 	</div>

@@ -1,6 +1,7 @@
 """Garmin 활동 확장 API — gear, exercise_sets."""
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import TYPE_CHECKING
 
@@ -9,66 +10,88 @@ from src.sync.garmin_helpers import _store_raw_payload
 if TYPE_CHECKING:
     from garminconnect import Garmin
 
+log = logging.getLogger(__name__)
+
+
+def _gear_type(item: dict) -> str:
+    """gearTypeName('Shoes'·'Bike' …) → gear_type. 값이 없으면 shoes(러닝 활동에서만 호출)."""
+    name = (item.get("gearTypeName") or "shoes").strip().lower()
+    return "shoes" if name in ("shoes", "shoe") else ("bike" if name in ("bike", "bicycle") else name)
+
+
+def _fetch_gear(client: "Garmin", source_id: str, retries: int):
+    """get_activity_gear — 실패 시 retries 회 재시도 후 None(sync 는 계속, coding-rules 에러 처리)."""
+    for attempt in range(retries + 1):
+        try:
+            return client.get_activity_gear(int(source_id))
+        except Exception as e:  # noqa: BLE001 — 외부 API 실패는 로그 후 진행
+            log.warning("[garmin] activity_gear 조회 실패 %s (시도 %d): %s", source_id, attempt + 1, e)
+    return None
+
 
 def sync_activity_gear(
     conn: sqlite3.Connection,
     client: "Garmin",
     activity_id: int,
     source_id: str,
+    retries: int = 1,
 ) -> str | None:
-    """Garmin 활동 장비 → gear 테이블 저장 및 activity_summaries 링크.
+    """Garmin 활동 장비(filterGear 목록) → gear 테이블 저장 및 activity_summaries.gear_id 링크.
 
-    Returns:
-        저장된 gear_id (첫 번째), 없으면 None.
+    gear.shoe_id(사용자 신발 연결)는 덮어쓰지 않는다. Returns: 링크한 gear_id(첫 번째 신발 우선), 없으면 None.
     """
-    try:
-        data = client.get_activity_gear(int(source_id))
-    except Exception as e:
-        print(f"[garmin] activity_gear 조회 실패 {source_id}: {e}")
-        return None
-
-    if not data:
+    data = _fetch_gear(client, source_id, retries)
+    if not data or not isinstance(data, (list, dict)):
         return None
 
     _store_raw_payload(conn, "activity_gear", source_id, {"gear": data}, activity_id=activity_id)
 
     gear_list = data if isinstance(data, list) else [data]
-    first_gear_id = None
+    first_gear_id = first_shoe_id = None
 
     for item in gear_list:
+        if not isinstance(item, dict):
+            continue
         g_id = str(item.get("gearPk") or item.get("uuid") or "")
         if not g_id:
             continue
         name = (
             item.get("customMakeModel") or item.get("displayName")
-            or item.get("name") or ""
+            or item.get("name") or None
         )
         dist_km = item.get("totalDistanceInKilometers")
         dist_m = dist_km * 1000 if dist_km is not None else item.get("totalDistance")
-        status = "inactive" if (item.get("gearStatusName") or "").lower() == "inactive" else "active"
+        status = "inactive" if (item.get("gearStatusName") or "").lower() in ("inactive", "retired") else "active"
+        gtype = _gear_type(item)
 
         try:
             conn.execute(
-                """INSERT INTO gear (source, source_gear_id, name, total_distance_m, status)
-                   VALUES ('garmin', ?, ?, ?, ?)
+                """INSERT INTO gear (source, source_gear_id, name, brand, model, gear_type, total_distance_m, status)
+                   VALUES ('garmin', ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(source, source_gear_id) DO UPDATE SET
                        name = COALESCE(excluded.name, name),
-                       total_distance_m = excluded.total_distance_m,
+                       brand = COALESCE(excluded.brand, brand),
+                       model = COALESCE(excluded.model, model),
+                       gear_type = excluded.gear_type,
+                       total_distance_m = COALESCE(excluded.total_distance_m, total_distance_m),
                        status = excluded.status,
                        updated_at = datetime('now')""",
-                (g_id, name, dist_m, status),
+                (g_id, name, item.get("gearMakeName"), item.get("gearModelName"), gtype, dist_m, status),
             )
         except sqlite3.Error as e:
-            print(f"[garmin] gear 저장 실패 {g_id}: {e}")
+            log.warning("[garmin] gear 저장 실패 %s: %s", g_id, e)
 
         first_gear_id = first_gear_id or g_id
+        if gtype == "shoes":
+            first_shoe_id = first_shoe_id or g_id
 
-    if first_gear_id:
+    link = first_shoe_id or first_gear_id
+    if link:
         conn.execute(
             "UPDATE activity_summaries SET gear_id = ? WHERE id = ?",
-            (first_gear_id, activity_id),
+            (link, activity_id),
         )
-    return first_gear_id
+    return link
 
 
 def sync_activity_exercise_sets(

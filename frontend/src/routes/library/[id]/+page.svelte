@@ -14,6 +14,7 @@
 	import type { ProviderKey } from '$lib/types';
 	import ActivityMoreMenu from '$lib/components/ActivityMoreMenu.svelte';
 	import ActivityFeedbackSheet from '$lib/components/ActivityFeedbackSheet.svelte';
+	import ActivityShoeChip from '$lib/components/ActivityShoeChip.svelte';
 	import type { ActivityFeedback } from '$lib/types';
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
@@ -114,6 +115,8 @@
 				<p class="text-xs text-fg-muted">누적 상승 <span class="font-mono font-bold text-fg-secondary">{elev.display}</span> {elev.unit}</p>
 			{/if}
 		</section>
+
+		{#key core.id}<ActivityShoeChip activityId={core.id} shoe={data.activity?.shoe} />{/key}
 
 		<ActivityVerdict verdict={data.activity?.verdict} onDrill={openMetric} />
 

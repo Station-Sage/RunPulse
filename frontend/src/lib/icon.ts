@@ -19,4 +19,5 @@ export type IconName =
 	| 'more'
 	| 'info'
 	| 'search'
-	| 'source-primary';
+	| 'source-primary'
+	| 'shoe';
