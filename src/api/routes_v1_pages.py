@@ -288,7 +288,7 @@ python src/sync.py --source all --days 7</pre>
           <h2>Garmin MFA 안내</h2>
           <p>Garmin 로그인 시 MFA(이중 인증)가 요청되면 Garmin 앱 또는 이메일에서 승인하세요.</p>
           <p>로그인 성공 후 토큰이 저장되면 이후 sync 시 MFA 없이 복구됩니다.</p>
-          <p><a href='/connect/garmin'>Garmin 연동 설정 →</a></p>
+          <p><a href='/v2/data/sources/garmin'>Garmin 연동 설정 →</a></p>
         </div>
         """
     )

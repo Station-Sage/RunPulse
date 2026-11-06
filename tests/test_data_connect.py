@@ -60,7 +60,7 @@ def test_connect_validation(env):
     c = env[0]
     assert c.post("/api/v1/data/sources/runalyze/connect", json={}).status_code == 400
     assert c.post("/api/v1/data/sources/nope/connect", json={}).status_code == 404
-    assert c.post("/api/v1/data/sources/garmin/connect", json={}).status_code == 422
+    assert c.post("/api/v1/data/sources/garmin/connect", json={}).status_code == 400  # 빈 자격(Garmin 호출 전 검증)
     assert c.post("/api/v1/data/sources/strava/connect", json={}).status_code == 400
 
 

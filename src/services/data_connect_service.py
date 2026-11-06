@@ -1,4 +1,4 @@
-"""소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)과 Strava OAuth 시작. 설계: 40 design §2.4·§3.1·§7.3.
+"""소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)·Strava OAuth 시작·Garmin 위임. 설계: 40 design §2.4·§3.1·§7.3.
 
 자격 증명 원문은 응답에 싣지 않는다. 데이터 삭제 해제는 파급(파생 지표 재계산)이 커서 아직 지원하지 않는다.
 """
@@ -15,6 +15,7 @@ _CRED_FIELDS = {
     "intervals": {"athlete_id": "", "api_key": ""},
     "runalyze": {"token": ""},
     "strava": {"access_token": "", "refresh_token": "", "expires_at": 0},
+    "garmin": {"email": "", "tokenstore": "", "password": ""},
 }
 _CHECKS = {"intervals": check_intervals_connection, "runalyze": check_runalyze_connection}
 
@@ -52,9 +53,12 @@ def test_connection(provider: str, config: dict) -> dict:
 
 def connect(provider: str, user_id: str, body: dict) -> tuple[dict | None, str | None]:
     """연결 시작. 반환 (payload, error_code). error_code 있으면 payload는 사용자 메시지를 담는다."""
+    if provider == "garmin":  # 실제 라우트는 routes_data_garmin(상태코드 세분), 여기는 호출 호환용 위임
+        from src.services import garmin_connect_service as gcs
+
+        data, fail = gcs.start_login(user_id, body.get("email"), body.get("password"))
+        return (data, None) if fail is None else ({"message_ko": fail.message}, fail.code)
     config = load_config(user_id=user_id)
-    if provider == "garmin":
-        return {"message_ko": "Garmin은 아직 이 화면에서 연결할 수 없어요"}, "UNSUPPORTED"
     if provider == "strava":
         sc = config.get("strava", {})
         if not (sc.get("client_id") and sc.get("client_secret")):
@@ -80,6 +84,10 @@ def connect(provider: str, user_id: str, body: dict) -> tuple[dict | None, str |
 
 
 def disconnect(provider: str, user_id: str) -> dict:
-    """자격 증명만 지운다. 가져온 데이터는 그대로 둔다."""
+    """자격 증명만 지운다(Garmin 은 토큰 파일도 삭제). 가져온 데이터는 그대로 둔다."""
+    if provider == "garmin":
+        from src.services import garmin_connect_service as gcs
+
+        gcs.remove_tokens(user_id)
     update_service_config(provider, _CRED_FIELDS.get(provider, {}), user_id=user_id)
     return {"provider": provider, "keep_data": True}

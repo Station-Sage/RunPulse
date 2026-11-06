@@ -330,7 +330,7 @@ def main() -> None:
     user_id = args.user_id
     if not user_id:
         print("오류: RUNPULSE_USER_ID 환경변수가 필요합니다.")
-        print("  웹 UI(/connect/garmin)에서 .env 다운로드하면 자동 설정됩니다.")
+        print("  웹 UI(/v2/data/sources/garmin → 고급)에서 .env 다운로드하면 자동 설정됩니다.")
         sys.exit(1)
 
     cf_id = os.environ.get("CF_SERVICE_CLIENT_ID", "")
@@ -338,7 +338,7 @@ def main() -> None:
 
     if not cf_id or not cf_secret:
         print("오류: CF_SERVICE_CLIENT_ID, CF_SERVICE_CLIENT_SECRET 환경변수가 필요합니다.")
-        print("  웹 UI(/connect/garmin)에서 CF Service Token 설정 후 .env 다운로드하세요.")
+        print("  CF Service Token 은 운영자에게 받아 .env 에 직접 입력하세요(/v2/data/sources/garmin → 고급에서 .env 다운로드).")
         sys.exit(1)
 
     _upload_token(args.vps, token, args.days, cf_id, cf_secret, user_id)

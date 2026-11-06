@@ -89,7 +89,7 @@
 			{#if toggleError}<p class="text-xs text-semantic-red" use:say={{ text: toggleError, level: 'assertive' }}>{toggleError}</p>{/if}
 		{/if}
 
-		<ConnectPanel provider={d.provider} connected={d.connection === 'connected'} activityCount={d.counts.activities} />
+		<ConnectPanel provider={d.provider} connected={d.connection === 'connected'} activityCount={d.counts.activities} accountEmail={d.account_email ?? ''} />
 
 		<section aria-label="보유 데이터" class="grid grid-cols-2 gap-2">
 			<StatTile label="활동" value={d.counts.activities.toLocaleString()} />

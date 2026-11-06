@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { say } from '$lib/a11y/say';
-	// 소스 연결·재연결·연결 테스트·해제 — 키 입력(Intervals·Runalyze), Strava는 OAuth 이동, Garmin은 안내만.
+	// 소스 연결·재연결·연결 테스트·해제 — 키 입력(Intervals·Runalyze), Strava는 OAuth 이동, Garmin은 연결 시트(로그인·MFA·토큰).
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -9,9 +9,15 @@
 	import { connectSource, disconnectSource, testSource } from '$lib/api/data';
 	import { kick, runTrigger } from '$lib/syncStore.svelte';
 	import { inlineConfirm } from '$lib/overlay';
+	import GarminConnectSheet from './GarminConnectSheet.svelte';
 
-	let { provider, connected, activityCount }: { provider: string; connected: boolean; activityCount: number } =
-		$props();
+	let { provider, connected, activityCount, accountEmail = '' }: {
+		provider: string;
+		connected: boolean;
+		activityCount: number;
+		accountEmail?: string;
+	} = $props();
+	let garminOpen = $state(false);
 	let apiKey = $state('');
 	let athleteId = $state('');
 	let busy = $state(false);
@@ -88,8 +94,13 @@
 	<h2 class="text-sm font-semibold text-fg-primary">{connected ? '연결 관리' : '연결하기'}</h2>
 
 	{#if provider === 'garmin'}
-		<p class="text-xs text-fg-secondary">Garmin은 아직 이 화면에서 연결할 수 없어요. 기존 설정 화면에서 연결해 주세요.</p>
-		<a class="inline-flex min-h-11 items-center text-xs underline" href="/connect/garmin">Garmin 연결 화면</a>
+		{#if garminOpen}
+			<GarminConnectSheet email={accountEmail} onConnected={() => Promise.all([kick(), invalidateAll()])} onClose={() => (garminOpen = false)} />
+		{:else}
+			<button type="button" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1" data-testid="garmin-connect-open" onclick={() => (garminOpen = true)}>
+				{connected ? 'Garmin 다시 연결' : 'Garmin 연결'}
+			</button>
+		{/if}
 	{:else if provider === 'strava'}
 		<button type="button" class="min-h-11 rounded-lg bg-fg-primary px-4 py-2 text-sm text-surface-1 disabled:opacity-50" disabled={busy} onclick={oauth}>
 			{connected ? 'Strava 재연결' : 'Strava로 연결'}
@@ -113,9 +124,7 @@
 	{#if connected}
 		<div class="flex gap-3 text-xs">
 			<button type="button" class="underline disabled:opacity-50" disabled={busy} onclick={test}>연결 테스트</button>
-			{#if provider !== 'garmin'}
-				<button type="button" class="underline text-semantic-red" onclick={() => (confirming = true)}>연결 해제…</button>
-			{/if}
+			<button type="button" class="underline text-semantic-red" onclick={() => (confirming = true)}>연결 해제…</button>
 		</div>
 	{/if}
 

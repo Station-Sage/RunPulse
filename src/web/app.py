@@ -98,6 +98,10 @@ def create_app() -> Flask:
     from .response_policy import init_response_policy
     init_response_policy(app)
 
+    # 메모리 상태(Garmin MFA 대기) 단일 워커 전제 점검 — 여러 개면 경고 + MFA 비활성
+    from src.utils.worker_count import check_single_worker
+    check_single_worker()
+
     _auto_migrate()
 
     # 모든 유저 DB 마이그레이션 + 자동 주기 동기화 daemon thread 시작

@@ -50,6 +50,7 @@ export interface DataSourceDetail extends DataSourceCard {
 	counts: { activities: number; wellness_days: number; streams: number; laps: number };
 	coverage: { first: string | null; last: string | null; months: { month: string; count: number }[] };
 	recent_runs: DataRun[];
+	account_email?: string; // garmin 만 — 연결 시트 이메일 미리 채움
 }
 
 export const getDataSummary = () => apiFetch<DataSummary>('/data/summary');

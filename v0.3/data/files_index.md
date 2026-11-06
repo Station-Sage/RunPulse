@@ -179,7 +179,7 @@
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
 
-### `data_connect_service.py` (85줄) — 소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)과 Strava OAuth 시작. 설계: 40 design §2.4·§3.1·§7.3.
+### `data_connect_service.py` (93줄) — 소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)·Strava OAuth 시작·Garmin 위임. 설계: 40 design §2.4·§3.1·§7.3.
 
 - functions: safe_return_to, test_connection, connect, disconnect
 
@@ -187,7 +187,7 @@
 
 - functions: get_load_coverage
 
-### `data_service.py` (113줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
+### `data_service.py` (114줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
 
 - functions: run_dict, runs, sources, source_detail, summary
 
@@ -218,6 +218,16 @@
 
 - class **CleanupError**: 없음
 - functions: targets, cleanup
+
+### `garmin_connect_service.py` (239줄) — Garmin 연결 쓰기 — 비밀번호 로그인·MFA 완료·토큰 붙여넣기·해제, 예외→오류코드 매핑. 설계: garmin-connect.md §3.
+
+- class **Fail**: 없음
+- functions: mask_email, token_dir, in_cooldown, start_login, complete_mfa, cancel, parse_token, submit_token, remove_tokens
+
+### `garmin_mfa_store.py` (140줄) — Garmin MFA 대기 상태 보관 — 프로세스 메모리, 사용자당 1개, TTL 300초·오답 5회 폐기. 설계: garmin-connect.md §3.2.
+
+- class **PendingMfa**: 없음
+- functions: sweep, put, get, claim, release, record_failure, remaining_s, discard, reset, set_multi_worker, is_available
 
 ### `goal_service.py` (48줄) — 목표+대회 생성 (RC §2.3) — 대회를 A 로 만들거나 올린 뒤 add_goal(race_id=…). commit 은 호출자.
 
@@ -1212,7 +1222,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (248줄) — RunPulse integration workbench web app.
+### `app.py` (252줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1626,6 +1636,10 @@
 
 - functions: garmin_vo2max_between, garmin_vo2max_asof
 
+### `worker_count.py` (53줄) — 웹 프로세스 워커 수 추정 — gunicorn `--workers`/`-w`, `GUNICORN_CMD_ARGS`, `WEB_CONCURRENCY`. 메모리 상태 기능의 단일 워커 전제 점검용.
+
+- functions: detect_worker_count, check_single_worker
+
 ### `zones.py` (90줄) — HR존 및 페이스존 계산 유틸리티.
 
 - functions: hr_zones, get_hr_zone, pace_zones, get_pace_zone
@@ -1738,6 +1752,10 @@
 
 - functions: post_data_export, get_data_exports, download_data_export
 
+### `routes_data_garmin.py` (119줄) — `/api/v1/data/sources/garmin/*` — Garmin 비밀번호 로그인·MFA·토큰 붙여넣기·로컬 동기화 키트. 설계: garmin-connect.md §3.4·§3.5.
+
+- functions: garmin_connect, garmin_mfa, garmin_mfa_cancel, garmin_token, garmin_local_kit_script, local_env_text, garmin_local_kit_env
+
 ### `routes_data_import.py` (70줄) — `/api/v1/data/import*` — 업로드+미리보기, 실행 작업, 가져오기 이력. design §2.4 가져오기.
 
 - functions: post_data_import_preview, post_data_import, get_data_imports, get_data_import
@@ -1825,6 +1843,12 @@
 ### `conftest.py` (172줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
+
+### `helpers_garmin.py` (58줄) — Garmin 연결 테스트 공용 가짜 `garminconnect.Garmin` — 실제 로그인·네트워크 호출 없음.
+
+- class **FakeTokenClient**: dump
+- class **FakeGarmin**: login, resume_login
+- functions: install
 
 ### `helpers_pred.py` (36줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
 
@@ -1997,6 +2021,10 @@
 ### `test_api_data_sync.py` (115줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
 
 - functions: client, test_202_partial_start, test_422_no_sources, test_409_all_running, test_429_cooldown_has_retry_after, test_400_invalid, test_non_json_body_is_empty, test_503_missing_db, test_api_error_details_optional, test_cancel_404, test_cancel_running_requests_stop, test_cancel_finished_is_idempotent
+
+### `test_api_garmin_connect.py` (166줄) — `/api/v1/data/sources/garmin/*`(T5·T8) — 상태코드·레이트리밋·쿨다운·no-store·비밀 미노출·로컬 키트.
+
+- functions: client, test_connect_success_no_store_and_no_secrets, test_connect_validation_400, test_connect_auth_failed_401_with_code, test_upstream_429_cooldown_retry_after_and_no_calls, test_local_rate_limit_uid_5_per_15m, test_local_rate_limit_ip_10, test_mfa_flow_and_cross_user, test_mfa_bad_code_400_and_rate_limit, test_mfa_cancel_idempotent, test_mfa_unavailable_503, test_token_paste, test_generic_disconnect_and_test_still_work, test_local_kit_env_blanks_cf_secret, test_local_kit_script
 
 ### `test_api_input_contracts.py` (287줄) — tests/test_api_input_contracts.py — SRV 1차 적용 4개 라우트 입력 계약 (T-15·P-04·P-05·C-02, ADR-048).
 
@@ -2532,6 +2560,10 @@
 - class **FakeClient**: get_workout_by_id, delete_workout
 - functions: test_targets_sorted_and_filtered, test_cleanup_partial_failure_and_retry, test_rejects_undone_and_missing
 
+### `test_garmin_connect_service.py` (216줄) — garmin_connect_service(T2~T4) — 로그인·MFA·토큰 붙여넣기·해제. Garmin 은 전부 가짜(tests/helpers_garmin).
+
+- functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email
+
 ### `test_garmin_extractor.py` (320줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
@@ -2570,6 +2602,10 @@
 
 - class **FakeClient**: get_max_metrics_range
 - functions: test_saves_metric_and_raw, test_idempotent, test_error_returns_zero, test_backfill_splits_windows, test_backfill_stops_on_429
+
+### `test_garmin_mfa_store.py` (104줄) — garmin_mfa_store(T1) + worker_count(T9) — TTL·uid 바인딩·사용자당 1개·오답 폐기·이중 제출·워커 감지.
+
+- functions: test_put_get_roundtrip_and_hash_only, test_ttl_expiry_with_injected_clock, test_other_user_ticket_rejected_and_logged, test_wrong_ticket_rejected, test_one_pending_per_user, test_five_failures_discard, test_claim_blocks_double_submit_until_release, test_sweep_and_discard, test_remaining_seconds, test_detect_worker_count, test_check_single_worker_disables_mfa
 
 ### `test_garmin_ref_parsers.py` (43줄) — P7-PRED-25: Garmin 참조값 파서.
 
@@ -3665,7 +3701,7 @@
 - functions: run
 
 ---
-총 785개 파일
+총 793개 파일
 
 ## docstring 누락
 

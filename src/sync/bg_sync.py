@@ -134,7 +134,7 @@ class BgSyncThread(threading.Thread):
             garmin_client = self._garmin_login()
             if garmin_client is None:
                 update_job(self.job_id, status="auth_required",
-                        last_error="Garmin 토큰 만료 또는 없음. /connect/garmin에서 재로그인하세요.")
+                        last_error="Garmin 토큰 만료 또는 없음. /v2/data/sources/garmin 에서 재로그인하세요.")
                 return
 
         total_synced = job.synced_count
@@ -437,7 +437,7 @@ class BgSyncThread(threading.Thread):
             elif isinstance(exc, GarminAuthRequired):
                 log.error("[bg_sync] Garmin 재인증 필요: %s", exc)
                 update_job(self.job_id, status="auth_required",
-                          last_error="Garmin 재인증 필요. /connect/garmin에서 로그인하세요.")
+                          last_error="Garmin 재인증 필요. /v2/data/sources/garmin 에서 로그인하세요.")
             else:
                 log.error("[bg_sync] Garmin 로그인 실패 (예상치 못한 오류): %s", exc, exc_info=True)
                 update_job(self.job_id, last_error=str(exc)[:200])

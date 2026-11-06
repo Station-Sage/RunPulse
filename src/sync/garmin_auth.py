@@ -67,7 +67,7 @@ def _login(config: dict) -> "Garmin":
 
     토큰이 없거나 복구 실패 시 GarminAuthRequired 발생.
     429 발생 시 GarminConnectTooManyRequestsError 그대로 전파.
-    비밀번호 로그인은 웹 UI(/connect/garmin)에서만 처리.
+    비밀번호 로그인은 v2 Data 화면(/v2/data/sources/garmin)에서만 처리.
     """
     if Garmin is None:
         raise ImportError(
@@ -81,7 +81,7 @@ def _login(config: dict) -> "Garmin":
     if not token_file.exists():
         log.warning("[garmin_auth] 토큰 파일 없음: %s", token_file)
         raise GarminAuthRequired(
-            "Garmin 토큰 없음. /connect/garmin에서 로그인하세요."
+            "Garmin 토큰 없음. /v2/data/sources/garmin 에서 로그인하세요."
         )
 
     # 토큰 파일 기본 유효성 체크
@@ -116,11 +116,11 @@ def _login(config: dict) -> "Garmin":
         raise  # 429는 그대로 전파
     except (GarminConnectAuthenticationError, GarminConnectConnectionError) as e:
         log.error("[garmin_auth] 인증/연결 오류: %s", e)
-        raise GarminAuthRequired(f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요.") from e
+        raise GarminAuthRequired(f"Garmin 토큰 복구 실패: {e}. /v2/data/sources/garmin 에서 재로그인하세요.") from e
     except Exception as e:
         log.error("[garmin_auth] 예상치 못한 오류: %s", e)
         raise GarminAuthRequired(
-            f"Garmin 토큰 복구 실패: {e}. /connect/garmin에서 재로그인하세요."
+            f"Garmin 토큰 복구 실패: {e}. /v2/data/sources/garmin 에서 재로그인하세요."
         ) from e
 
 
@@ -141,17 +141,17 @@ def check_garmin_connection(config: dict) -> dict:
                 return {
                     "ok": False,
                     "status": "garth 토큰 감지 (마이그레이션 필요)",
-                    "detail": "이전 garth 토큰이 존재합니다. /connect/garmin에서 재로그인하세요.",
+                    "detail": "이전 garth 토큰이 존재합니다. /v2/data/sources/garmin 에서 재로그인하세요.",
                 }
             return {
                 "ok": False,
                 "status": "토큰 없음",
-                "detail": f"{tokenstore} 디렉터리만 존재. /connect/garmin에서 로그인하세요.",
+                "detail": f"{tokenstore} 디렉터리만 존재. /v2/data/sources/garmin 에서 로그인하세요.",
             }
         return {
             "ok": False,
             "status": "미설정",
-            "detail": "토큰 없음. /connect/garmin에서 연동하세요.",
+            "detail": "토큰 없음. /v2/data/sources/garmin 에서 연동하세요.",
         }
 
     # 토큰 파일 존재 — JSON 파싱으로 기본 유효성 확인

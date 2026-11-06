@@ -88,6 +88,7 @@ def source_detail(conn: sqlite3.Connection, config: dict, provider: str, *,
         "coverage": {"first": first, "last": last, "months": [
             {"month": mo, "count": n} for mo, n in zip(cov["months"], row["counts"])]},
         "recent_runs": runs(provider, limit=5),
+        **({"account_email": config.get("garmin", {}).get("email", "")} if provider == "garmin" else {}),
     }
 
 
