@@ -22,6 +22,6 @@ export const DATA_LINKS: readonly MenuLink[] = [
 	{ href: '/library/metrics', label: '지표 가이드' }
 ];
 
-/** V1-11 (b): 'CSV 내보내기' 는 v1 `/activities/export.csv` 가 아니라 v2 내보내기(EXP) 화면으로 연결한다. */
+/** V1-11 (b): '데이터 내보내기' 는 v1 `/activities/export.csv` 가 아니라 v2 내보내기(EXP) 화면(CSV·아카이브·캘린더)으로 연결한다. */
 export const EXPORT_PATH = '/data/export';
-export const EXPORT_LABEL = 'CSV 내보내기';
+export const EXPORT_LABEL = '데이터 내보내기';

@@ -62,7 +62,8 @@ def test_templates_are_capped_by_race_date():
 def test_pick_activity_skips_claimed_and_incompatible():
     acts = [(1, "d", 9.3), (2, "d", 26.0)]
     assert pick_activity(26.0, acts, set())[0] == 2
-    assert pick_activity(26.0, acts, {2}) is None          # 9.3km 는 26km 계획과 다른 세션
+    assert pick_activity(26.0, acts, {2})[0] == 1          # 후보 1개면 비율 무시(HSR-1 c) — 미이행 처리는 is_done
+    assert pick_activity(26.0, acts + [(3, "d", 3.0)], {2}) is None   # 후보 여럿이면 1.6 상한 유지
     assert pick_activity(11.5, [(1, "d", 7.1)], set())[0] == 1   # 0.62 — 호환(미이행 처리는 is_done)
     assert not is_done(11.5, 7.1) and is_done(10.0, 9.0)
 

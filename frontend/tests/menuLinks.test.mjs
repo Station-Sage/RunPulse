@@ -7,7 +7,7 @@ const drawer = readFileSync(new URL('../src/lib/components/MenuDrawer.svelte', i
 
 test('export link points at the v2 EXP screen, not the v1 csv route (V1-11 b)', () => {
 	assert.equal(EXPORT_PATH, '/data/export');
-	assert.equal(EXPORT_LABEL, 'CSV 내보내기');
+	assert.equal(EXPORT_LABEL, '데이터 내보내기');
 	for (const l of [...QUICK_LINKS, ...DATA_LINKS]) {
 		assert.ok(!l.href.includes('export'), l.href);
 	}

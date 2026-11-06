@@ -1239,9 +1239,9 @@
 
 - functions: strava_connect_view, strava_save_app, strava_oauth_start, strava_oauth_callback, strava_disconnect, intervals_connect_view, intervals_connect_post, intervals_disconnect, runalyze_connect_view, runalyze_connect_post, runalyze_disconnect
 
-### `views_training_export.py` (96줄) — 훈련 계획 내보내기/전송 라우트 (ICS, Garmin, CalDAV).
+### `views_training_export.py` (42줄) — 훈련 계획 ICS 다운로드 라우트 (v1 push-garmin/push-caldav 는 S4-70 에서 제거).
 
-- functions: training_export_ics, push_to_garmin, push_to_caldav
+- functions: training_export_ics
 
 ## `src/training/`
 
@@ -1253,10 +1253,10 @@
 
 - functions: adjust_todays_plan
 
-### `caldav_push.py` (142줄) — CalDAV 캘린더 연동 — 훈련 계획을 외부 캘린더에 등록·갱신·삭제 (ADR-036).
+### `caldav_push.py` (136줄) — CalDAV 캘린더 연동 — 훈련 계획을 외부 캘린더에 등록·갱신·삭제 (ADR-036).
 
 - class **CalDavUnavailable**: 없음
-- functions: push_range, push_weekly_plan_to_caldav, sync_after_replan, test_connection
+- functions: push_range, sync_after_replan, test_connection
 
 ### `constraints.py` (113줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
 
@@ -1266,9 +1266,9 @@
 
 - functions: get_todays_wellness, get_latest_tsb, fatigue_level, readiness_decision
 
-### `garmin_push.py` (197줄) — Garmin Connect 워크아웃 전송 — 훈련 계획을 워치 + 캘린더에 등록.
+### `garmin_push.py` (163줄) — Garmin Connect 워크아웃 전송 — 훈련 계획을 워치 + 캘린더에 등록.
 
-- functions: push_workout_to_garmin, push_weekly_plan
+- functions: push_workout_to_garmin
 
 ### `goals.py` (223줄) — 훈련 목표 CRUD.
 
@@ -1292,7 +1292,7 @@
 
 - functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session, mp_now_from_prediction
 
-### `match_select.py` (61줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
+### `match_select.py` (62줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
 
 - functions: compatible, pick_activity, is_done, classify_outcome
 
@@ -1415,7 +1415,7 @@
 
 - functions: rematch, rematch_goal, replan_future, main
 
-### `replanner.py` (284줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
+### `replanner.py` (289줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
 
 - functions: replan_remaining_week
 
@@ -2928,7 +2928,7 @@
 
 - functions: test_session_load_and_u, test_load_delta_rest_lowers_week_and_acwr, test_load_delta_none_without_history_or_other_week
 
-### `test_plan_match_rules.py` (222줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
+### `test_plan_match_rules.py` (223줄) — A1/A2: 대회일 기준 계획 기간·단계, 매칭 배타·호환 규칙, 결과 라벨, 연속 러닝 이행률.
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
@@ -3152,7 +3152,7 @@
 - class **TestRelativeEffort**: test_from_avg_hr, test_high_intensity, test_low_intensity, test_no_hr, test_confidence_from_avg_hr, test_category
 - class **TestRelativeEffortMock**: test_basic_mock, test_no_hr_mock
 
-### `test_replanner.py` (277줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
+### `test_replanner.py` (279줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
 
 - functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error, test_crs_low_level_adds_warning, test_crs_level_above_z1_no_warning, test_crs_missing_row_no_warning_no_error, test_crs_other_day_row_not_used_as_today, test_crs_corrupt_row_no_warning_no_error
 
@@ -3359,6 +3359,10 @@
 ### `test_tpdi.py` (117줄)
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
+
+### `test_training_export_routes.py` (15줄) — v1 훈련 내보내기 블루프린트 — ICS 만 남고 push-garmin/push-caldav 는 제거됐다 (S4-70).
+
+- functions: test_only_ics_route_remains
 
 ### `test_training_response.py` (35줄) — P7-PRED-41: 훈련 반응 r4(세트 기반, 기기 불필요).
 
@@ -3615,7 +3619,7 @@
 - functions: run
 
 ---
-총 773개 파일
+총 774개 파일
 
 ## docstring 누락
 

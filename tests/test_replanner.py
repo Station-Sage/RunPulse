@@ -223,7 +223,7 @@ def test_unknown_workout_id_returns_error(db_conn):
 
 # ── CRS 기반 Q-day 경고 (crs.evaluate 복원, ADJ-22) ──────────────────────────
 
-_CRS_WARN = "현재 CRS 레벨"
+_CRS_WARN = "이지런으로 바꾸는 걸"
 
 
 def _replan_with_crs(db_conn, crs_json, *, crs_offset=1, raw=None):
@@ -252,7 +252,9 @@ def _replan_with_crs(db_conn, crs_json, *, crs_offset=1, raw=None):
 @pytest.mark.parametrize("level,label", [(0, "휴식"), (1, "이지런만")])
 def test_crs_low_level_adds_warning(db_conn, level, label):
     result = _replan_with_crs(db_conn, {"level": level, "level_label": label, "crs": 30.0})
-    assert any(_CRS_WARN in w and label in w and "이지런으로 전환" in w for w in result["warnings"])
+    ws = [w for w in result["warnings"] if _CRS_WARN in w]
+    assert len(ws) == 1
+    assert ("회복이 더 필요해요" in ws[0]) if level == 0 else (label in ws[0])
 
 
 @pytest.mark.parametrize("level", [2, 3, 4])

@@ -142,10 +142,15 @@ def replan_remaining_week(
     # CRS 기반 Q-day 경고 (오늘의 저장된 CRS 행이 없으면 경고 없음)
     crs_result = crs_eval(conn, today.isoformat())
     if crs_result is not None and crs_result["level"] <= LEVEL_Z1:
-        warnings.append(
-            f"현재 CRS 레벨 {crs_result['level_label']} — "
-            f"남은 고강도 훈련을 이지런으로 전환하는 것을 고려하세요."
-        )
+        if crs_result["level"] <= 0:
+            warnings.append(
+                "오늘은 회복이 더 필요해요. 남은 고강도 훈련은 미루거나 이지런으로 바꾸는 걸 고려해 보세요."
+            )
+        else:
+            warnings.append(
+                f"컨디션 점수가 낮아요({crs_result['level_label']}). "
+                "남은 고강도 훈련은 이지런으로 바꾸는 걸 고려해 보세요."
+            )
 
     # 이번 주 잔여 계획 (오늘 이후)
     remaining = conn.execute(

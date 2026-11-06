@@ -101,12 +101,6 @@ def push_range(config: dict, conn: sqlite3.Connection, frm: str, to: str) -> int
     return count
 
 
-def push_weekly_plan_to_caldav(config: dict, conn: sqlite3.Connection, week_offset: int = 0) -> int:
-    """이번 주(+offset) 계획을 등록. 등록 성공 수."""
-    start = date.today() - timedelta(days=date.today().weekday()) + timedelta(weeks=week_offset)
-    return push_range(config, conn, start.isoformat(), (start + timedelta(days=6)).isoformat())
-
-
 def sync_after_replan(config: dict, conn: sqlite3.Connection, frm: str, to: str) -> dict | None:
     """재계획 적용 직후 호출. 이미 보낸 일정이 범위에 있을 때만 동기화하며 실패해도 예외를 던지지 않는다."""
     if not config.get("caldav", {}).get("url"):

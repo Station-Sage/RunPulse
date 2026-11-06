@@ -48,7 +48,7 @@ def restore(conn: sqlite3.Connection, race_id: int, today: str, *, confirm_past:
         raise RaceError("NOT_CANCELLED", "취소된 대회만 복원할 수 있습니다")
     past = r["race_date"] < today
     if past and not confirm_past:
-        raise RaceError("CONFIRM_PAST", "지난 날짜의 대회입니다. 확인 후 복원하세요")
+        raise RaceError("CONFIRM_PAST", "지난 날짜의 대회예요. 확인 후 복원해 주세요.")
     new_status = "done" if past else "planned"
     if new_status == "planned":
         q.check_duplicate(conn, r["race_date"], r["distance_km"], exclude_id=race_id)

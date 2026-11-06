@@ -4,6 +4,7 @@
   - 이미 다른 계획(Garmin 저장 워크아웃·Intervals 이벤트 등 명시 연결)이 가져간 활동은 제외한다.
   - 거리 비율이 [MIN_RATIO, MAX_RATIO] 밖이면 다른 세션으로 보고 매칭하지 않는다.
   - 완료(completed=1)는 거리 이행률 DONE_RATIO 이상일 때만. 그 미만은 연결·라벨만 남기고 미이행으로 둔다.
+  - 단 후보(미점유·유형 호환)가 하나뿐이면 거리 비율은 보지 않는다(HSR-1 c, HSR-11 a) — 비율 밖이어도 '계획 외 러닝'으로 버리지 않고 이행률 라벨로 표현한다.
 """
 from __future__ import annotations
 
@@ -34,7 +35,7 @@ def pick_activity(plan_dist: float | None, day_acts: list[tuple], claimed: set[i
     free = [a for a in day_acts if a[0] not in claimed and compatible(plan_type, kinds.get(a[0]))]
     if not free:
         return None
-    if not plan_dist:
+    if not plan_dist or len(free) == 1:
         return free[0]
     ok = [a for a in free if a[2] and MIN_RATIO <= a[2] / plan_dist <= MAX_RATIO]
     return min(ok, key=lambda a: abs(a[2] - plan_dist)) if ok else None

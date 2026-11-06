@@ -67,40 +67,6 @@ def push_workout_to_garmin(
         return None
 
 
-def push_weekly_plan(
-    config: dict,
-    conn: sqlite3.Connection,
-    week_offset: int = 0,
-) -> int:
-    """주간 훈련 계획 전체를 Garmin에 전송.
-
-    Returns:
-        전송 성공 수.
-    """
-    from src.training.planner import get_planned_workouts
-    from datetime import timedelta
-
-    today = date.today()
-    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
-    workouts = get_planned_workouts(conn, week_start)
-
-    if not workouts:
-        return 0
-
-    client = _login(config)
-    count = 0
-    for w in workouts:
-        if w.get("workout_type") == "rest":
-            continue
-        if w.get("garmin_workout_id"):
-            continue  # 이미 전송됨
-        result = push_workout_to_garmin(config, conn, w, client=client)
-        if result:
-            count += 1
-
-    return count
-
-
 def _build_running_workout(
     wtype: str,
     dist_km: float | None,
