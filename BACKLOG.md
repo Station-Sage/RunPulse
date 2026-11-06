@@ -34,6 +34,8 @@
 
 ## NEXT
 
+- **[ADJUSTER-V2-RETIRE]** 조정기 v3 운영자 옵트인 중(2026-11-06, S4-71). 관찰 2~4주 후 **사용자 확인 시** v3 를 유일 경로로: v2 분기·`adjuster_frequency.check_and_rollback`(v2 자동 복귀)·`adjuster_version` 설정 키(`user_settings_service.ALLOWED` 포함) 삭제, 기본값 폴백 2곳(`plan_adjustment_proposal.py:35`, `adjuster_frequency.py:61`)은 함께 변경. v3 토글 UI 는 만들지 않음(사용자 결정). 운영 DB 의 `adjuster_version` 행도 정리(쓰기 → 백업·승인 필요).
+
 - **[AUTH-MULTIUSER-SYNC]** (G-9) 가입 개방 전 필수: 자동 동기화가 1명 전용(app.py:132-137) → 다중 사용자 순회·LLM 비용 상한 설계. 사용자 승인 후 착수.
 
 - **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 내용을 맡을 설계 미정(V1-5, 2026-10-11) — 일몰 계획 수립 시 별도 설계. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/decisions-table.md` V1-1~V1-5.
