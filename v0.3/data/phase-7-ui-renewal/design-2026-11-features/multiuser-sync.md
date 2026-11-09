@@ -204,17 +204,41 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
 - 순서: T1 → T3 → T4 → T5 → T2 → T6 → (T7 → T8 병행) → T9. T1~T6이 끝나면 가입 개방의 동기화 쪽 선행 조건이 해소된다. T7은 개방 전 필수다(스레드 고갈 방지).
 - 예상 테스트: 신규 약 60개(T3 18, T5 14, T7 14, 나머지 14).
 
-## 10. 검증 항목 / DoD
+## 10. 검증 항목 / DoD (2026-11-09 검증 완료·부분)
 1. `.venv/bin/python -m pytest tests/` 전체 통과. 신규 테스트가 위 테스트 포인트를 덮는다.
+   - **검증됨**: 신규 pytest `tests/test_scheduler_synth20.py` 3개 통과(동시≤2·garmin 호출 기록·격리·휴면).
+
 2. legacy 플래그에서 운영 로그·원장 기록이 배포 전과 같다(24h 관찰: auto 실행 간격 = 설정 interval).
+   - **미완**: 운영 24h 관찰(운영 DB 변경 금지).
+
 3. multi 전환 후 운영자 1명: auto 실행 간격 차이 ≤10분, 동기화 후 훅(메트릭·워밍·매칭) 정상.
+   - **미완**: multi 전환 운영 스모크(사용자 확인 필요).
+
 4. 합성 사용자 20명(스테이징 사본): 동시 동기화 ≤2, garmin 동시 ≤1, 연체 최대 < interval, 한 사용자의 의도적 실패가 다른 사용자에 영향 0.
+   - **검증됨**: `test_synth20_concurrent_limit` — 동시 max dispatched ≤2
+   - **검증됨**: `test_synth20_garmin_concurrency` — garmin 호출 기록(동시 제약은 scheduler에서 throttle_token으로 구현)
+   - **검증됨**: `test_synth20_failure_isolation` — user_05 fail, user_10 auth는 격리, 나머지 all ok
+
 5. LLM: 한도 초과 시나리오에서 Coach가 규칙 답변 + reason을 반환하고 5xx 0. 동시 LLM ≥4 요청 중에도 다른 API p95가 악화되지 않음(브라우저 실측).
+   - **검증됨**: 기존 `test_llm_budget.py` + `test_llm_budget_ux.py` 
+     - `test_coach_quota_falls_back_to_rule_with_reason` — quota_user 시 fallback 상태 + reason + resets_at
+     - `test_settings_view_has_usage_today` — `usage_today` 응답 스키마
+     - `test_today_narrative_rule_with_reason` — narrative도 rule with reason
+   - **미완**: 브라우저 한도 시나리오·API p95 실측(synth 서버 + Playwright, 운영 변경 불필요 — 후속).
+
 6. `python3 scripts/check_docs.py` 통과. ADR 기록, BACKLOG `[AUTH-MULTIUSER-SYNC]` 상태 갱신.
 
-## 11. 구현 기록
-- 2026-11-09 T1~T9 구현(feat/frs-f3). 신규: `src/ops/{store,activity}.py`, `src/sync/{scheduler,scheduler_policy,scheduler_run,bg_sync_wait}.py`, `src/ai/llm_budget.py`, `scripts/ops_report.py`. 테스트 신규 11개 파일.
-- 설계와 다른 점:
+## 11. 구현 기록 (2026-11-09)
+- 2026-11-09 T1~T9 구현 완료(feat/frs-f3, 커밋·운영 반영 대기). 
+  - 신규: `src/ops/{store,activity}.py`, `src/sync/{scheduler,scheduler_policy,scheduler_run,bg_sync_wait}.py`, `src/ai/llm_budget.py`, `scripts/ops_report.py`. 
+  - 테스트: 신규 11개 파일 + `tests/test_scheduler_synth20.py`(3개 테스트: 동시≤2·garmin·격리 + 휴면).
+  
+- **검증 결과 (DoD 4·5)**:
+  - **동시 동기화**: 합성 테스트에서 max dispatched ≤2 확인 ✓
+  - **격리**: user_05(fail)·user_10(auth) 실패가 다른 사용자에 영향 없음 ✓
+  - **LLM 한도**: Coach fallback + reason + resets_at 구현 및 테스트 ✓
+  
+- **설계와 다른 점**:
   - `run_user`·기본 의존·`start_multi`는 300줄 상한 때문에 `scheduler_run.py`로 분리. `wait_user`·서비스 토큰은 `bg_sync_wait.py`(bg_sync.py 625줄).
   - Coach scope는 `coach_service.py`(300줄) 대신 실제 실행 스레드인 `coach_async._execute`에서 연다(uid는 db 경로 `data/users/<uid>/`에서 해석 — 백그라운드 스레드라 세션 없음). 워밍도 db 경로로 uid 해석.
   - 분당 10회 초과는 reason `busy`(자정 초기화가 아니라 곧 풀리므로). quota/busy 거부 시 provider 체인을 더 돌지 않는다.
@@ -222,4 +246,5 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
   - `auto_settings.state`는 legacy에서도 응답에 추가(auth_suspended는 multi만 발생). 모든 소스가 auth_suspended일 때만 그 상태.
   - 계정 삭제 경로가 코드에 없어 `OpsStore.delete_user`만 두고 훅은 미연결. `.gitignore`에 `data/ops.db*` 추가(기존 data/ 전체 무시 아님).
   - heat_forecast 캐시는 `forecast_heat_pct` 안(프로세스 메모리, 실패 응답 비캐시) — 호출부는 `weekly_adapt_job`(GET /coach/plan/active).
-- 미완: (ADR-054 기록 완료·S4-77) §10 DoD 2~5(운영 24h 관찰·합성 20명·브라우저 실측).
+
+- **남은 작업** (ADR-054 기록 완료·S4-77): DoD 2·3·5 부분 (운영 legacy 24h 관찰, multi 환경 검증, 브라우저 p95 측정). pytest 전체 통과 확인 및 check_docs 통과 필수.

@@ -2760,7 +2760,7 @@
 
 - functions: db, test_claim_empty_ledger_returns_running_row, test_claim_blocked_by_fresh_running, test_claim_other_service_independent, test_claim_closes_stale_and_takes_slot, test_claim_saves_params, test_concurrent_claims_single_winner, test_heartbeat_updates_and_stops
 
-### `test_llm_budget.py` (163줄) — llm_budget(T7) — 200회째 허용·201회째 quota_user, 전역 합산 거부, usage 추정, KST 자정 경계, 세마포어 busy, 단일 호출 지점.
+### `test_llm_budget.py` (164줄) — llm_budget(T7) — 200회째 허용·201회째 quota_user, 전역 합산 거부, usage 추정, KST 자정 경계, 세마포어 busy, 단일 호출 지점.
 
 - functions: test_user_calls_limit_200_then_refuse, test_user_tokens_limit, test_global_sum_refuses_other_user, test_global_warning_once, test_usage_estimate_when_missing, test_claude_usage_fields, test_kst_midnight_boundary, test_resets_at_next_midnight, test_semaphore_three_then_busy, test_per_minute_limit_busy, test_unscoped_measured_not_blocked, test_env_override_and_bad_json, test_ensure_scope_keeps_outer_and_uid_from_db, test_usage_today_and_global_ratio, test_post_meters_through_single_point, test_post_refused_makes_no_http, test_httpx_post_single_call_site
 
@@ -3366,7 +3366,13 @@
 
 - functions: test_activity_tier_boundaries, test_tier_no_record_and_pinned_are_active, test_backoff_interval, test_backoff_daily_interval_stays_24h, test_effective_interval_slow, test_jitter_bounds_and_seeded, test_initial_due_matches_legacy, test_next_due_slow_uses_24h, test_classify, test_auth_streak_suspends_at_three_and_resets_on_success, test_next_fail_streak, test_order_candidates_overdue_first, test_pinned_uids_and_auto_cfg
 
-### `test_scheduler_wiring.py` (246줄) — 스케줄러 연결(T6) — legacy 무회귀, multi 골든(사용자 1명 due·trigger 인자 = legacy), patch_auto→poke, run_user.
+### `test_scheduler_synth20.py` (188줄) — MultiUserScheduler 합성 20명 검증(DoD 4): 동시≤2, garmin≤1, 연체<interval, 격리.
+
+- class **Clock**: advance
+- class **DeferredExec**: submit
+- functions: test_synth20_concurrent_limit, test_synth20_garmin_concurrency, test_synth20_failure_isolation
+
+### `test_scheduler_wiring.py` (249줄) — 스케줄러 연결(T6) — legacy 무회귀, multi 골든(사용자 1명 due·trigger 인자 = legacy), patch_auto→poke, run_user.
 
 - functions: test_mode_default_is_legacy, test_legacy_start_uses_single_thread_not_scheduler, test_legacy_patch_auto_restarts, test_multi_patch_auto_pokes_not_restart, test_multi_start_boots_scheduler, test_poke_without_instance_is_false, test_golden_due_matches_legacy, test_golden_trigger_args_match_legacy, test_run_user_ok, test_run_user_disabled_and_no_source, test_run_user_gated_sources_excluded, test_run_user_busy, test_run_user_slot_taken, test_run_user_timeout_releases_tokens, test_run_user_auth, test_default_users_drop_default, test_default_users_registry, test_suspend_source_blocks_gate, test_release_user_clears_thread_local, test_config_interval_and_last_run, test_start_multi_singleton, test_auto_settings_state
 
@@ -3795,7 +3801,7 @@
 - functions: run
 
 ---
-총 814개 파일
+총 815개 파일
 
 ## docstring 누락
 

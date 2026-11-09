@@ -36,7 +36,7 @@
 
 - **[ADJUSTER-V2-RETIRE]** 조정기 v3 운영자 옵트인 중(2026-11-06, S4-71). 관찰 2~4주 후 **사용자 확인 시** v3 를 유일 경로로: v2 분기·`adjuster_frequency.check_and_rollback`(v2 자동 복귀)·`adjuster_version` 설정 키(`user_settings_service.ALLOWED` 포함) 삭제, 기본값 폴백 2곳(`plan_adjustment_proposal.py:35`, `adjuster_frequency.py:61`)은 함께 변경. v3 토글 UI 는 만들지 않음(사용자 결정). 운영 DB 의 `adjuster_version` 행도 정리(쓰기 → 백업·승인 필요).
 
-- **[AUTH-MULTIUSER-SYNC]** (G-9) 가입 개방 전 필수 — **T1~T9 구현 완료(2026-11-09, feat/frs-f3, 커밋·운영 반영 대기)**. 설계 `v0.3/data/phase-7-ui-renewal/design-2026-11-features/multiuser-sync.md` §11. 단일 스케줄러(`SYNC_SCHEDULER=legacy` 기본, `multi` 전환은 운영 스모크 후)·`data/ops.db`·LLM 상한(`_post` 계량). 남은 것: (ADR-054 기록 완료) 운영 legacy 24h 관찰 → `SYNC_PINNED_UIDS`에 운영자 넣고 multi 전환·스모크, 합성 사용자 20명 스테이징 검증, LLM 동시 부하 브라우저 실측, 계정 삭제 경로 생기면 `OpsStore.delete_user` 연결.
+- **[AUTH-MULTIUSER-SYNC]** (G-9) 가입 개방 전 필수 — **T1~T9 구현 완료(2026-11-09, feat/frs-f3, 커밋·운영 반영 대기)**. 설계 `v0.3/data/phase-7-ui-renewal/design-2026-11-features/multiuser-sync.md` §10·§11. 검증: DoD 4(동시≤2✓, 격리✓)·DoD 5(LLM 한도✓) 통과. pytest 전체 실행 및 check_docs 확인 중. 남은 것: (ADR-054 기록 완료·S4-77) 운영 legacy 24h 관찰 → `SYNC_PINNED_UIDS`에 운영자 넣고 multi 전환·스모크, 브라우저 p95 측정(synth_smoke), 계정 삭제 경로 생기면 `OpsStore.delete_user` 연결.
 
 - **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 내용을 맡을 설계 미정(V1-5, 2026-10-11) — 일몰 계획 수립 시 별도 설계. 참고: `v0.3/data/phase-7-ui-renewal/design-2026-10/decisions-table.md` V1-1~V1-5.
 
