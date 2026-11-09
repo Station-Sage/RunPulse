@@ -1,10 +1,14 @@
 import type { Failure } from '$lib/loadFailure';
-import type { ActivityLap } from '$lib/types';
+import { normalizeActivityIdParam } from '$lib/utils/validation';
+import { BAD_ID_FAILURE } from '$lib/activityDetailView';
+import type { ActivityDetail, ActivityLap } from '$lib/types';
 import type { ActivityLayoutData } from '../+layout';
 
 export interface LapsPageData {
 	activityId: number;
 	laps: ActivityLap[];
+	/** 빈 상태 원인 안내용(S-16) */
+	activity?: ActivityDetail | null;
 	errorMessage: string | null;
 	failure: Failure | null;
 }
@@ -17,10 +21,11 @@ export async function load({
 	params: { id: string };
 	parent: () => Promise<ActivityLayoutData>;
 }): Promise<LapsPageData> {
-	const id = parseInt(params.id, 10);
-	if (isNaN(id)) {
-		return { activityId: NaN, laps: [], errorMessage: '잘못된 활동 ID입니다.', failure: null };
+	const parsed = normalizeActivityIdParam(params.id);
+	if (!parsed) {
+		return { activityId: NaN, laps: [], errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
 	}
+	const id = parsed.id;
 	const { activity, errorMessage, failure } = await parent();
-	return { activityId: id, laps: activity?.laps ?? [], errorMessage, failure };
+	return { activityId: id, laps: activity?.laps ?? [], activity, errorMessage, failure };
 }

@@ -31,7 +31,8 @@ export function timeCell(d: ActivityDisplay | null | undefined, durationSec: num
 /** 두 번째 셀: 페이스(/km·/100m) · 속도(km/h) · 없으면 null. */
 export function paceCell(d: ActivityDisplay | null | undefined): HeroCell | null {
 	if (!d) return null;
-	if (d.pace) return { label: '평균 페이스', value: paceText(d.pace.value_sec), unit: d.pace.unit };
+	// 걷기는 러닝 페이스와 구분되게 라벨을 바꾼다(A-04)
+	if (d.pace) return { label: d.family === 'walking' ? '걷기 페이스' : '평균 페이스', value: paceText(d.pace.value_sec), unit: d.pace.unit };
 	if (d.speed_kmh != null) return { label: '평균 속도', value: d.speed_kmh.toFixed(1), unit: 'km/h' };
 	return null;
 }
@@ -42,6 +43,11 @@ const ALT_LABEL: Record<string, [string, string]> = {
 	calories: ['칼로리', 'kcal'],
 	sets: ['세트', '세트'],
 };
+
+/** 평균 심박 셀 — 값이 없으면 단위 없이 '—'(A-04: `—bpm` 방지). */
+export function hrCell(avgHr: number | null | undefined): HeroCell {
+	return avgHr != null ? { label: '평균 심박', value: String(avgHr), unit: 'bpm' } : { label: '평균 심박', value: '—', unit: '' };
+}
 
 /** 거리·페이스가 없는 군의 대체 셀(NRA-5): 있는 값만, 서버 순서대로. */
 export function altCells(d: ActivityDisplay | null | undefined): HeroCell[] {

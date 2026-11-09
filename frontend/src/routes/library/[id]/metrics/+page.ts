@@ -1,6 +1,8 @@
 import type { ActivityMetric } from '$lib/types';
 import type { Failure } from '$lib/loadFailure';
 import type { ActivityLayoutData } from '../+layout';
+import { normalizeActivityIdParam } from '$lib/utils/validation';
+import { BAD_ID_FAILURE } from '$lib/activityDetailView';
 export interface MetricsTabPageData {
 	activityId: number;
 	metricsByCategory: Record<string, ActivityMetric[]>;
@@ -15,10 +17,11 @@ export async function load({
 	params: { id: string };
 	parent: () => Promise<ActivityLayoutData>;
 }): Promise<MetricsTabPageData> {
-	const id = parseInt(params.id, 10);
-	if (isNaN(id)) {
-		return { activityId: NaN, metricsByCategory: {}, errorMessage: '잘못된 활동 ID입니다.', failure: null };
+	const parsed = normalizeActivityIdParam(params.id);
+	if (!parsed) {
+		return { activityId: NaN, metricsByCategory: {}, errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
 	}
+	const id = parsed.id;
 	const { activity, errorMessage, failure } = await parent();
 	return { activityId: id, metricsByCategory: activity?.metrics_by_category ?? {}, errorMessage, failure };
 }

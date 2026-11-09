@@ -148,3 +148,14 @@ export function normalizeMonthParam(raw: string, now: Date = new Date()): MonthP
 	}
 	return { year, month, ym: `${year}-${String(month).padStart(2, '0')}` };
 }
+
+/**
+ * 활동 상세 경로 id — 숫자만 허용(A-21: `910abc` 를 910 으로 열던 느슨한 parseInt 대체).
+ * 앞자리 0(`0910`)은 같은 활동이므로 정규 표기(`910`)로 돌려주고 화면이 replaceState 한다.
+ * @returns id 가 없으면 null(잘못된 주소)
+ */
+export function normalizeActivityIdParam(raw: string | undefined | null): { id: number; canonical: string } | null {
+	if (!raw || !/^\d{1,15}$/.test(raw)) return null;
+	const id = Number(raw);
+	return id > 0 ? { id, canonical: String(id) } : null;
+}

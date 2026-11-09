@@ -1,4 +1,4 @@
-"""GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b."""
+"""GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b."""
 from __future__ import annotations
 
 import sqlite3
@@ -158,25 +158,6 @@ def get_library_metric_trend(slug: str):
         return api_error("NOT_FOUND", f"메트릭 데이터를 찾을 수 없습니다: {slug}", 404)
 
     return api_ok({**result, "compare_group": compare_group_for_slug(slug)})
-
-
-@api_bp.get("/library/activities/<int:activity_id>/streams")
-def get_library_activity_streams(activity_id: int):
-    dpath = db_path()
-    if not dpath.exists():
-        return api_error("NOT_FOUND", "running.db 없음", 503)
-
-    conn = sqlite3.connect(str(dpath))
-    try:
-        streams = activity_service.get_activity_streams(
-            conn, activity_id, source=request.args.get("source"),
-        )
-        meta = activity_service.get_activity_streams_meta(conn, activity_id)
-    finally:
-        conn.close()
-
-    # 전체 해상도 스트림(가장 무거운 페이로드) — ETag로 조건부 GET.
-    return api_ok_cacheable({"streams": streams, **meta})
 
 
 @api_bp.get("/library/wellness")

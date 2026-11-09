@@ -7,8 +7,11 @@
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { openDrill } from '$lib/drillStack';
 	import { providerLabel } from '$lib/provider';
-	import { formatDuration, formatPace, formatUnitValue } from '$lib/format';
-	import { altCells, paceCell, showDistance, timeCell, type HeroCell } from '$lib/activityDisplay';
+	import { formatDuration, formatElevation, formatPace } from '$lib/format';
+	import { altCells, hrCell, paceCell, showDistance, timeCell, type HeroCell } from '$lib/activityDisplay';
+	import { emptyDataNote, envItems, feedbackSummary } from '$lib/activityDetailView';
+	import Toast from '$lib/components/Toast.svelte';
+	import { putActivityFeedback } from '$lib/api/activityFeedback';
 	import { formatMetricValue, metricUnit, pickKeyMetrics } from '$lib/metrics';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
@@ -32,10 +35,10 @@
 	const heroCells = $derived.by((): HeroCell[] => {
 		if (!core) return [];
 		const t = timeCell(display, core.duration_sec ?? null);
-		const hr: HeroCell = { label: '평균 심박', value: core.avg_hr != null ? String(core.avg_hr) : '—', unit: 'bpm' };
+		const hr = hrCell(core.avg_hr);
 		if (!display) {
 			const p = core.avg_pace_sec_km != null ? formatPace(core.avg_pace_sec_km).replace('/km', '') : '—';
-			return [t, { label: '평균 페이스', value: p, unit: '/km' }, hr];
+			return [t, { label: '평균 페이스', value: p, unit: p === '—' ? '' : '/km' }, hr];
 		}
 		const p = paceCell(display);
 		if (p) return [t, p, hr];
@@ -45,7 +48,8 @@
 	const metricsByCategory = $derived(data.activity?.metrics_by_category ?? {});
 	const splits = $derived(data.activity?.splits ?? []);
 	const series = $derived(data.activity?.series ?? null);
-	const env = $derived(data.activity?.environment ?? null);
+	const envList = $derived(envItems(data.activity?.environment));
+	const streamNote = $derived(emptyDataNote('streams', data.activity));
 	const zones = $derived(data.activity?.hr_zones ?? null);
 	const sourceDiffs = $derived((data.activity?.source_diffs ?? []).filter((d) => d.significant));
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
@@ -54,6 +58,22 @@
 	let feedback = $state<ActivityFeedback | null>(data.activity?.feedback ?? null);
 	let sheetOpen = $state(false);
 	$effect(() => { feedback = data.activity?.feedback ?? null; });
+	// 시트에서 전부 비워 저장하면 서버가 삭제한다 — 되돌리기 토스트로 직전 값을 복원(A-26).
+	let removed = $state<ActivityFeedback | null>(null);
+	function onFeedbackSaved(fb: ActivityFeedback | null) {
+		removed = fb == null && feedback != null ? feedback : null;
+		feedback = fb;
+	}
+	async function undoRemove() {
+		const prev = removed;
+		removed = null;
+		if (!prev || !core) return;
+		try {
+			feedback = await putActivityFeedback(core.id, { rpe: prev.rpe, pain: prev.pain, pain_sites: prev.pain_sites, note: prev.note });
+		} catch {
+			/* 되돌리기 실패는 시트에서 다시 입력 가능 — 조용히 둔다 */
+		}
+	}
 
 	const selection = createActivitySelection();
 	// 지도·스플릿 구간·경로 색 선택은 새로고침·공유 후에도 복원된다(`?seg=`·`?map=hr`, replaceState).
@@ -111,7 +131,7 @@
 				{/each}
 			</div>
 			{#if core.elevation_gain != null && (core.elevation_gain as number) > 0}
-				{@const elev = formatUnitValue(core.elevation_gain as number, 'm')}
+				{@const elev = formatElevation(core.elevation_gain as number)}
 				<p class="text-xs text-fg-muted">누적 상승 <span class="font-mono font-bold text-fg-secondary">{elev.display}</span> {elev.unit}</p>
 			{/if}
 		</section>
@@ -132,15 +152,13 @@
 		{#if series}
 			<ActivityTimeline {series} elevGainM={(core.elevation_gain as number | null) ?? null} onCursor={(d) => selection.update((s) => ({ ...s, cursorDist: d }))} />
 		{:else}
-			<p class="text-xs text-fg-muted">스트림 데이터 없음</p>
+			<p class="text-xs text-fg-muted" data-testid="summary-no-stream">스트림 데이터 없음 · {streamNote.reason}{#if streamNote.action}{' '}<a href="{base}{streamNote.action.path}" class="underline">{streamNote.action.label}</a>{/if}</p>
 		{/if}
 
-		{#if env && (env.temp_c != null || env.fearp_sec_km != null)}
+		{#if envList.length > 0}
 			<section class="flex flex-wrap gap-x-4 gap-y-1 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm" data-testid="env-line" aria-label="환경">
 				<span class="text-xs uppercase tracking-wide text-fg-muted">환경</span>
-				{#if env.temp_c != null}<span>기온 <span class="font-mono">{Math.round(env.temp_c)}°C</span></span>{/if}
-				{#if env.dew_point_c != null}<span>이슬점 <span class="font-mono">{Math.round(env.dew_point_c)}°C</span></span>{/if}
-				{#if env.pace_effect_sec_km != null && env.pace_effect_sec_km !== 0}<span>페이스 영향 <span class="font-mono">{env.pace_effect_sec_km > 0 ? '+' : ''}{Math.round(env.pace_effect_sec_km)}초/km</span></span>{/if}
+				{#each envList as it (it.label)}<span>{it.label} <span class="font-mono">{it.value}</span></span>{/each}
 			</section>
 		{/if}
 
@@ -192,11 +210,11 @@
 		{/if}
 
 		{#if sheetOpen}
-			<ActivityFeedbackSheet activityId={core.id} existing={feedback} onSaved={(fb) => (feedback = fb)} onClose={() => (sheetOpen = false)} />
+			<ActivityFeedbackSheet activityId={core.id} existing={feedback} onSaved={onFeedbackSaved} onClose={() => (sheetOpen = false)} />
 		{:else if feedback}
 			<button type="button" onclick={() => (sheetOpen = true)} data-testid="feedback-summary"
-				class="self-start min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3">
-				{feedback.rpe ? `RPE ${feedback.rpe}` : ''}{feedback.pain && feedback.pain !== 'none' ? ` · 통증 ${feedback.pain}` : ''}{feedback.note ? ` · ${feedback.note}` : ''}
+				class="self-start min-h-11 max-w-full truncate rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-left text-sm text-fg-secondary hover:bg-surface-3">
+				{feedbackSummary(feedback)}
 			</button>
 		{/if}
 
@@ -211,6 +229,7 @@
 		<div class="h-20 md:hidden" aria-hidden="true"></div>
 	</div>
 {/if}
+<Toast open={removed !== null} message="피드백을 지웠어요" onUndo={() => void undoRemove()} onDismiss={() => (removed = null)} />
 {#if core}
 	<a href="{base}/coach/new?activity={core.id}" class="fixed inset-x-4 bottom-[4.5rem] z-20 flex h-14 items-center justify-center rounded-xl bg-fg-primary text-sm font-medium text-surface-1 shadow-lg md:hidden" data-testid="ask-coach-cta">코치에게 묻기</a>
 {/if}

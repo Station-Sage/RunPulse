@@ -11,8 +11,10 @@
 	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, isTrustedBasis, streamSeconds } from '$lib/streamAxis';
 	import { clampOutliers } from '$lib/chartScale';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
+	import { emptyDataNote } from '$lib/activityDetailView';
 
 	let { data }: { data: StreamsPageData } = $props();
+	const note = $derived(emptyDataNote('streams', data.activity));
 
 	// pace_sec_km = speed_ms > 0 ? 1000/speed_ms : null
 	function toPace(v: number | null): number | null {
@@ -143,6 +145,8 @@
 {:else if data.streams.length === 0}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">스트림 데이터 없음</p>
+		<p class="mt-1 text-xs text-fg-muted" data-testid="empty-reason">{note.reason}</p>
+		{#if note.action}<a href="{base}{note.action.path}" class="mt-2 inline-block text-xs text-fg-secondary underline">{note.action.label}</a>{/if}
 		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
 	</div>
 {:else}

@@ -66,9 +66,9 @@
 
 - functions: get_facets, get_summary
 
-### `activity_service.py` (173줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
+### `activity_service.py` (180줄) — Phase 5 서비스 레이어 - 활동 데이터 조회.
 
-- functions: get_activity_list, get_activity_streams, get_activity_streams_meta, get_activity_trend
+- functions: get_activity_list, activity_exists, get_activity_streams, get_activity_streams_meta, get_activity_trend
 
 ### `activity_similar.py` (95줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
 
@@ -1802,9 +1802,9 @@
 
 - functions: get_dev_users, post_dev_switch_user
 
-### `routes_library.py` (316줄) — GET /api/v1/library/activities(+:id, +:id/streams, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
+### `routes_library.py` (297줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
-- functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_activity_streams, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
+- functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
 
 ### `routes_library_activities.py` (36줄) — GET /api/v1/library/activities/facets · /summary — 목록 칩·월/주 요약 (UX 리뷰 20 §7-2 ⑤, B-3).
 
@@ -1821,6 +1821,10 @@
 ### `routes_library_feedback.py` (63줄) — 활동 피드백(RPE·통증·메모) GET/PUT/DELETE — /api/v1/library/activities/<id>/feedback (ADR-022).
 
 - functions: get_activity_feedback, put_activity_feedback, delete_activity_feedback
+
+### `routes_library_streams.py` (49줄) — GET /api/v1/library/activities/:id/streams + 활동 하위 경로의 잘못된 id JSON 봉투 (UX 리뷰 A-20·A-22).
+
+- functions: get_library_activity_streams, bad_library_activity_path
 
 ### `routes_mcp_tokens.py` (64줄) — `/api/v1/settings/mcp-tokens` — 원격 MCP 토큰 목록/발급/폐기(세션 사용자 한정). design MCP-REMOTE R8.
 
@@ -2072,9 +2076,9 @@
 
 - functions: ctx, test_checkin_rejects_bad_fatigue, test_checkin_rejects_bad_pain_and_long_note, test_checkin_boundaries_accepted, test_checkin_non_json_is_415_and_broken_json_400, test_save_checkin_service_keeps_minimal_invariant, test_templates_rejects, test_templates_rejects_race_date_past_5_years, test_templates_today_race_date_and_optional_fields_ok, test_plan_create_rejects, test_plan_create_missing_required_fields, test_plan_create_non_json_415, test_plan_create_string_numbers_accepted, test_plan_create_weeks_adjusted_returns_meta_warning, test_plan_create_race_date_today_ok, test_plan_service_keeps_minimal_invariant, test_coach_create_thread_rejects_non_string_message, test_coach_rejects_long_message_and_bad_ids, test_coach_message_boundaries_and_whitespace, test_coach_context_and_client_msg_id_pass_through, test_coach_non_json_415, test_unvalidated_route_exception_is_json_500
 
-### `test_api_library.py` (420줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
+### `test_api_library.py` (448줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
-- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
+- functions: mini_app, test_list_activities_default, test_list_activities_sport_filter, test_list_activities_search_filter, test_list_activities_dist_min_filter, test_list_activities_dist_min_invalid, test_get_activity_detail, test_get_activity_detail_not_found, test_get_activity_streams, test_get_activity_streams_unknown_id_404, test_non_integer_activity_id_json_400, test_unknown_activity_subpath_json_404_and_static_routes_intact, test_get_activity_streams_returns_meta, test_get_activity_detail_etag_304_on_revalidate, test_get_activity_streams_etag_304_on_revalidate, metric_app, test_get_metric_breakdown_200, test_get_metric_breakdown_404, test_get_metric_breakdown_missing_scope_id, test_get_metric_breakdown_default_scope_type, test_get_activity_providers_200, test_get_activity_providers_404, test_get_metrics_browser_200, test_get_metrics_browser_no_date, test_get_metric_trend_200, test_get_metric_trend_404, test_get_wellness_200, test_get_wellness_no_date, test_get_wellness_bad_date_400, test_get_wellness_future_date_clamped_to_today, test_get_wellness_trend_bad_end_400, test_get_wellness_trend_200, test_get_wellness_trend_invalid_days, test_get_providers_matrix_200, test_get_providers_matrix_invalid_days, test_get_providers_pairs_route, test_get_providers_coverage_200, test_get_activity_detail_streams_opt_in
 
 ### `test_api_library_balance.py` (72줄) — GET /api/v1/library/metrics/training-balance — 스키마 키·파라미터 검증·503·<slug> 라우트 비충돌 (§8 T3).
 
@@ -3809,7 +3813,7 @@
 - functions: run
 
 ---
-총 817개 파일
+총 818개 파일
 
 ## docstring 누락
 

@@ -36,8 +36,10 @@ def mini_app(tmp_path):
     conn.close()
 
     import src.api.routes_library as routes_library
+    import src.api.routes_library_streams as routes_streams
     _orig_route = routes_library.db_path
     routes_library.db_path = lambda: db_file
+    routes_streams.db_path = lambda: db_file
 
     app = Flask(__name__)
     app.config["TESTING"] = True
@@ -48,6 +50,7 @@ def mini_app(tmp_path):
         yield client, act_id
 
     routes_library.db_path = _orig_route
+    routes_streams.db_path = _orig_route
 
 
 def test_list_activities_default(mini_app):
@@ -117,6 +120,31 @@ def test_get_activity_streams(mini_app):
     assert len(body["data"]["streams"]) == 1
     assert body["data"]["streams"][0]["heart_rate"] == 120
     assert body["data"]["time_basis"] == "unknown"
+
+
+def test_get_activity_streams_unknown_id_404(mini_app):
+    """없는 활동의 스트림은 상세·랩과 같게 404 봉투(A-22)."""
+    client, _ = mini_app
+    res = client.get("/api/v1/library/activities/999999/streams")
+    assert res.status_code == 404
+    assert res.get_json()["error"]["code"] == "NOT_FOUND"
+
+
+@pytest.mark.parametrize("path", ["abc", "-1", "910abc", "abc/streams"])
+def test_non_integer_activity_id_json_400(mini_app, path):
+    """정수가 아닌 id 는 HTML 404 대신 JSON INVALID_PARAM 400(A-20)."""
+    client, _ = mini_app
+    res = client.get(f"/api/v1/library/activities/{path}")
+    assert res.status_code == 400
+    assert res.is_json and res.get_json()["error"]["code"] == "INVALID_PARAM"
+
+
+def test_unknown_activity_subpath_json_404_and_static_routes_intact(mini_app):
+    client, act_id = mini_app
+    res = client.get(f"/api/v1/library/activities/{act_id}/nope")
+    assert res.status_code == 404 and res.is_json
+    assert client.get("/api/v1/library/activities/facets").status_code == 200
+    assert client.get(f"/api/v1/library/activities/{act_id}/providers").status_code == 200
 
 
 def test_get_activity_streams_returns_meta(mini_app, tmp_path):

@@ -36,3 +36,20 @@ const FROM_LABELS: Record<string, { label: string; path: string }> = {
 export function backTarget(from: string | null): { label: string; path: string } {
 	return (from && FROM_LABELS[from]) || FROM_LABELS.library;
 }
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** 헤더 날짜 — 올해면 '10/19(토)', 다른 해면 '2024. 10/19(토)'(A-07, wall-clock 날짜). */
+export function headerDate(isoDate: string, now: Date = new Date()): string {
+	const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+	const md = `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAY_KO[d.getUTCDay()]})`;
+	return d.getUTCFullYear() === now.getFullYear() ? md : `${d.getUTCFullYear()}. ${md}`;
+}
+
+/** 받침에 따라 '으로'/'로' — ㄹ 받침은 '로'. 한글이 아니면 '로'(E-28). */
+export function withEuro(word: string): string {
+	const code = word.charCodeAt(word.length - 1) - 0xac00;
+	if (code < 0 || code > 11171) return `${word}로`;
+	const jong = code % 28;
+	return jong === 0 || jong === 8 ? `${word}로` : `${word}으로`;
+}

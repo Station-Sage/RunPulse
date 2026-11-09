@@ -1,11 +1,15 @@
 import { getActivityStreams } from '$lib/api/streams';
+import { normalizeActivityIdParam } from '$lib/utils/validation';
+import { BAD_ID_FAILURE } from '$lib/activityDetailView';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
-import type { ActivityStreamPoint, StreamTimeBasis } from '$lib/types';
+import type { ActivityDetail, ActivityStreamPoint, StreamTimeBasis } from '$lib/types';
 import type { ActivityLayoutData } from '../+layout';
 
 export interface StreamsPageData {
 	activityId: number;
 	streams: ActivityStreamPoint[];
+	/** 빈 상태 원인 안내용(S-16) */
+	activity?: ActivityDetail | null;
 	/** 활동 총 시간(초). streamSeconds 보정에 사용. null이면 보정 불가. */
 	totalSec: number | null;
 	/** 서버가 확정한 시간축 출처. unknown이면 화면 휴리스틱으로 보정한다. */
@@ -25,17 +29,18 @@ export async function load({
 	depends: (k: string) => void;
 	parent: () => Promise<ActivityLayoutData>;
 }): Promise<StreamsPageData> {
-	const id = parseInt(params.id, 10);
-	if (isNaN(id)) {
-		return { activityId: NaN, streams: [], totalSec: null, timeBasis: 'unknown', errorMessage: '잘못된 활동 ID입니다.', failure: null };
+	const parsed = normalizeActivityIdParam(params.id);
+	if (!parsed) {
+		return { activityId: NaN, streams: [], totalSec: null, timeBasis: 'unknown', errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
 	}
+	const id = parsed.id;
 	depends(`app:activity-streams:${params.id}`);
 	const parentData = parent();
 	try {
 		const { streams, time_basis } = await getActivityStreams(id);
 		const { activity } = await parentData;
 		const totalSec = activity?.core?.duration_sec ?? null;
-		return { activityId: id, streams, totalSec, timeBasis: time_basis ?? 'unknown', errorMessage: null, failure: null };
+		return { activityId: id, streams, activity, totalSec, timeBasis: time_basis ?? 'unknown', errorMessage: null, failure: null };
 	} catch (e) {
 		const failure = classifyFailure(e);
 		return { activityId: id, streams: [], totalSec: null, timeBasis: 'unknown', errorMessage: failure.detail, failure };

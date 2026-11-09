@@ -1,6 +1,8 @@
 import { getActivity } from '$lib/api/library';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
 import type { ActivityDetail } from '$lib/types';
+import { normalizeActivityIdParam } from '$lib/utils/validation';
+import { BAD_ID_FAILURE } from '$lib/activityDetailView';
 
 export interface ActivityLayoutData {
 	activity: ActivityDetail | null;
@@ -13,13 +15,13 @@ export interface ActivityLayoutData {
  * 이전엔 각 +page.ts가 개별적으로 getActivity를 호출해 서브탭 전환마다 전량 재요청됐다(02-performance.md P-4).
  */
 export async function load({ params, depends }: { params: { id: string }; depends: (k: string) => void }): Promise<ActivityLayoutData> {
-	const id = parseInt(params.id, 10);
+	const parsed = normalizeActivityIdParam(params.id);
 	depends(`app:activity:${params.id}`);
-	if (isNaN(id)) {
-		return { activity: null, errorMessage: '잘못된 활동 ID입니다.', failure: { kind: 'not_found', status: 404, code: 'BAD_ID', detail: 'bad id' } };
+	if (!parsed) {
+		return { activity: null, errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
 	}
 	try {
-		const res = await getActivity(id);
+		const res = await getActivity(parsed.id);
 		return { activity: res.activity, errorMessage: null, failure: null };
 	} catch (e) {
 		const failure = classifyFailure(e);

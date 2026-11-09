@@ -19,20 +19,40 @@ export function groupBySection(rows: ComparisonRow[]): { key: SectionKey; label:
 	})).filter((s) => s.rows.length > 0);
 }
 
-/** `측정 차이 N건 · 정의가 달라 비교하지 않는 항목 N개` — 해당 항목이 없으면 그 조각을 생략. */
+const TOTAL_TIME_SLUGS = new Set(['duration_sec', 'elapsed_time_sec']);
+
+/** 총 시간 차이인데 이동 시간은 같은 행 — 측정 차이가 아니라 일시정지 처리 방식 차이(A-11). */
+export function isPauseOnlyDiff(row: ComparisonRow, rows: ComparisonRow[]): boolean {
+	if (!TOTAL_TIME_SLUGS.has(row.slug) || !row.discrepancy?.detected) return false;
+	const moving = rows.find((r) => r.slug === 'moving_time_sec');
+	return moving != null && !moving.discrepancy?.detected;
+}
+
+/** `측정 차이 N건 · 정의가 달라 비교하지 않는 항목 N개` — 해당 항목이 없으면 그 조각을 생략. 일시정지 차이는 따로 알린다. */
 export function summaryLine(rows: ComparisonRow[]): string {
-	const diffs = rows.filter((r) => r.section !== 'related' && r.discrepancy?.detected).length;
+	const pause = rows.some((r) => isPauseOnlyDiff(r, rows));
+	const diffs = rows.filter((r) => r.section !== 'related' && r.discrepancy?.detected && !isPauseOnlyDiff(r, rows)).length;
 	const related = rows.filter((r) => r.section === 'related').length;
 	const parts = [diffs > 0 ? `측정 차이 ${diffs}건` : '측정 차이 없음'];
+	if (pause) parts.push('총 시간은 일시정지 처리 방식이 달라요(이동 시간은 거의 같아요)');
 	if (related > 0) parts.push(`정의가 달라 비교하지 않는 항목 ${related}개`);
 	return parts.join(' · ');
 }
 
-/** 차이 열 표시: 유의하면 `+3.2%`, 아니면 `≈`; 비교 불가는 빈 문자열. */
+/** 차이 열 표시: 유의하면 `+3.2%`, 아니면 `≈`; 값이 하나뿐이면 `—`(A-13 빈칸 통일), 관련 지표는 빈 문자열. */
 export function diffText(row: ComparisonRow): { text: string; significant: boolean } {
 	const d = row.diff;
-	if (!d || row.section === 'related') return { text: '', significant: false };
+	if (row.section === 'related') return { text: '', significant: false };
+	if (!d) return { text: '—', significant: false };
 	if (!d.significant) return { text: '≈', significant: false };
 	const sign = d.pct > 0 ? '+' : '';
 	return { text: `${sign}${d.pct.toFixed(Math.abs(d.pct) < 10 ? 1 : 0)}%`, significant: true };
+}
+
+/** 한 행의 소스별 값 표기 자릿수를 맞춘다 — `5.3` 옆의 `5`는 `5.0`(A-12). 숫자가 아닌 칸은 그대로. */
+export function alignDecimals(texts: string[]): string[] {
+	const isNum = (t: string) => /^-?\d+(\.\d+)?$/.test(t);
+	const dp = Math.max(0, ...texts.filter(isNum).map((t) => (t.split('.')[1] ?? '').length));
+	if (dp === 0) return texts;
+	return texts.map((t) => (isNum(t) ? Number(t).toFixed(dp) : t));
 }

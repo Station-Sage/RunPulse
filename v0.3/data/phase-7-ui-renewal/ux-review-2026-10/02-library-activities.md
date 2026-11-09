@@ -68,3 +68,24 @@
 
 ## 처리 기록 (2026-11-09, V2-AUDIT-INDIV 묶음 F)
 - A-32 처리: T-27 과 동일 수정(오류 종류별 조치 문구 + 접근성 이름).
+
+## 처리 기록 (2026-11-10, V2-AUDIT-INDIV 묶음 B1)
+- A-04 처리: 심박 없으면 단위 없이 '—'(`activityDisplay.hrCell`), 걷기는 "걷기 페이스" 라벨.
+- A-05 처리: 요약·스트림 탭 빈 상태에 원인(소스명 또는 근력 등 원래 없음) + "동기화 상태 보기"(`activityDetailView.emptyDataNote`). 실제 수집 여부 진단은 아님(소스 이름 기준 안내).
+- A-06 처리: 반올림해 0인 페이스 영향 생략, 보일 항목이 없으면 환경 카드 숨김(`envItems`).
+- A-07 처리: 헤더 날짜는 다른 해면 연도 표기(`activityHeader.headerDate`). 목록은 연도 머리글이 이미 있어 이미됨.
+- A-08 처리: 마지막 랩이 다른 랩 거리 중앙값의 절반 미만이면 "가장 빠른 랩"에서 제외, 랩 번호 표기(`lapGroups.fastestLap`).
+- A-09 처리: 시간(랩 전체)과 페이스(소스 값)가 1초 이상 어긋나면 기준 차이 안내 한 줄(`lapPaceBasisDiffers`). 값 자체는 바꾸지 않음.
+- A-10 처리: S-16 과 같은 빈 상태(합성 DB 랩 없는 활동으로 확인).
+- A-11 처리: 총 시간만 다르고 이동 시간이 같으면 측정 차이 건수에서 빼고 "일시정지 처리 방식" 안내(`providerSections.isPauseOnlyDiff`). 요약 탭 칩(서버 source_diffs)은 기존 reason 문구 유지.
+- A-12 처리: 고도는 정수 m(`format.formatElevation`, 요약·소스 비교), 소스 비교 행 안 자릿수 통일(`alignDecimals`).
+- A-13 부분: 단위를 지표 이름 옆으로 올려 행 높이 축소, 값 하나뿐인 차이 칸은 '—'. 열 수·행 수 구조는 그대로.
+- A-20 처리: 정수 아닌 id 하위 경로는 JSON 400 INVALID_PARAM, 양의 정수 + 없는 하위 경로는 JSON 404(`routes_library_streams.bad_library_activity_path`).
+- A-21 처리: 경로 id 는 숫자만(`validation.normalizeActivityIdParam`), `910abc`는 잘못된 주소, 앞자리 0은 replaceState 로 정규 URL.
+- A-22 처리: 없는 활동의 streams 는 404(스트림 라우트를 `routes_library_streams.py`로 옮기며 존재 확인 추가).
+- A-23 처리: 활동을 못 열면 탭 바 숨김.
+- A-24 처리: 잘못된 주소("주소가 올바르지 않아요")와 없는 활동("활동을 찾을 수 없어요") 제목 분리, 레이아웃 한 곳에서 표시(`missingActivityView`).
+- A-25 처리: 새 피드백인데 아무것도 안 고르면 저장 비활성 + 안내. 메모는 Svelte 텍스트 바인딩이라 스크립트 문자열이 실행되지 않음(코드 확인, 화면 XSS 주입 시험은 안 함).
+- A-26 처리: 서버 400 은 서버 메시지를 붙여 표시, 전부 비워 저장(=삭제)하면 "피드백을 지웠어요" 토스트 + 되돌리기.
+- A-27 처리: 요약 버튼 한 줄 말줄임 + 메모 40자 자름, 통증 값 한글 표기(`feedbackSummary`).
+- A-28 재현 불가: 375×568·667 에서 마지막 컨트롤 하단과 고정 CTA 상단 사이 68px 여유(합성 DB 3개 활동 측정). 수정 없음.

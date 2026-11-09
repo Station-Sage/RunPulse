@@ -52,3 +52,6 @@
 - S-06 처리: 이동 중 목적지 탭 먼저 활성 표시(`navTabs.tabHighlightPath`), 진행바 `role=progressbar`, `main aria-busy`.
 - S-09 이미 됨: 시트 열기 `pushState`(`sheetHistory.ts`, S4-37) — 뒤로가기로 시트가 닫힘(2026-11-09 Playwright 확인).
 - S-14 이미 됨: 전역 `:focus-visible` 2px 링(A11Y-8, layout.css). `tabindex=0` 요소 3곳 모두 role·이름 있음.
+
+## 처리 기록 (2026-11-10, V2-AUDIT-INDIV 묶음 B1)
+- S-16 처리: 랩·스트림 빈 상태에 원인 + 다음 행동(동기화 상태 보기), 탭 바에 데이터 없는 탭은 "없음" 표시(눌러서 이유 확인 가능, `activityDetailView.emptyTabs`).

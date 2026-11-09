@@ -5,6 +5,8 @@
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import { putActivityFeedback } from '$lib/api/activityFeedback';
+	import { ApiError } from '$lib/api/client';
+	import { feedbackHasInput } from '$lib/activityDetailView';
 
 	let { activityId, existing = null, onSaved, onClose }: {
 		activityId: number;
@@ -32,6 +34,8 @@
 	let error = $state('');
 
 	const showSites = $derived(pain != null && pain !== 'none');
+	// 새 피드백인데 아무것도 안 고르면 저장할 게 없다(A-25). 기존 피드백을 전부 비우면 삭제로 저장된다.
+	const canSave = $derived(existing != null || feedbackHasInput({ rpe, pain, note }));
 
 	async function save() {
 		saving = true;
@@ -42,8 +46,11 @@
 			});
 			onSaved?.(fb);
 			onClose?.();
-		} catch {
-			error = '저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
+		} catch (e) {
+			// 서버가 입력을 거부(400)하면 그 이유를 보여준다(A-26). 그 밖은 재시도 안내.
+			error = e instanceof ApiError && e.status === 400 && e.message
+				? `저장하지 못했어요: ${e.message}`
+				: '저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
 		} finally {
 			saving = false;
 		}
@@ -85,8 +92,9 @@
 	<TextField label="메모" labelHidden multiline bind:value={note} maxlength={500} rows={2} placeholder="메모 (선택, 500자)"
 		class="w-full rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted" />
 	{#if error}<p class="text-xs text-semantic-red" use:say={{ text: error, level: 'assertive' }}>{error}</p>{/if}
-	<div class="flex justify-end">
-		<button type="button" onclick={save} disabled={saving}
+	<div class="flex items-center justify-end gap-3">
+		{#if !canSave}<p class="text-xs text-fg-muted" data-testid="feedback-empty-hint">하나 이상 골라 주세요</p>{/if}
+		<button type="button" onclick={save} disabled={saving || !canSave}
 			class="h-11 rounded bg-semantic-teal px-5 text-sm font-medium text-fg-on-accent disabled:opacity-60">{saving ? '저장 중…' : '저장'}</button>
 	</div>
 </div>

@@ -3,9 +3,9 @@
 	// 활동 그룹 내 소스별 메트릭 비교 테이블. 불일치 감지 + 대표값(★) 표시.
 	import { base } from '$app/paths';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
-	import { formatUnitValue } from '$lib/format';
+	import { formatElevation, formatUnitValue } from '$lib/format';
 	import Icon from '$lib/components/Icon.svelte';
-	import { groupBySection, summaryLine, diffText } from '$lib/providerSections';
+	import { alignDecimals, groupBySection, isPauseOnlyDiff, summaryLine, diffText } from '$lib/providerSections';
 	import type { ProviderComparisonData, ComparisonRow, ProviderKey } from '$lib/types';
 
 	let {
@@ -48,17 +48,24 @@
 		const v = cell.value;
 		if (v == null) return '—';
 		if (typeof v === 'number') {
+			if (row.slug.startsWith('elevation')) return formatElevation(v).display;
 			const effectiveUnit =
 				row.unit === 'sec/km' || row.slug.includes('pace') ? 'sec/km' : (row.unit ?? '');
 			return formatUnitValue(v, effectiveUnit).display;
 		}
-		return String(v);
+		return String(v) || '—';
+	}
+
+	/** 행의 소스별 표기 — 자릿수를 맞춘다(A-12). */
+	function rowCells(row: ComparisonRow, list: string[]): string[] {
+		return alignDecimals(list.map((p) => cellDisplayValue(row, p)));
 	}
 
 	// 변환 후 단위 — 첫 번째 사용 가능한 값으로 결정 (m→km 등)
 	function rowDisplayUnit(row: ComparisonRow): string {
 		if (!row.unit) return '';
 		if (row.unit === 'sec/km' || row.slug.includes('pace')) return '';
+		if (row.slug.startsWith('elevation')) return 'm';
 		const firstVal = Object.values(row.values).find(
 			(c) => c.available && typeof c.value === 'number'
 		)?.value;
@@ -123,6 +130,7 @@
 					{#each sec.rows as row (row.slug)}
 						{@const d = diffText(row)}
 						{@const open = expanded.has(row.slug)}
+						{@const cells = rowCells(row, providers())}
 						<tr
 							class="cursor-pointer border-b border-border-subtle hover:bg-surface-2/50 {hasDiscrepancy(row) ? 'bg-semantic-amber/5' : ''}"
 							onclick={() => toggle(row.slug)}
@@ -130,7 +138,7 @@
 						>
 							<td class="sticky left-0 z-10 bg-surface-1 py-2.5 pl-4 pr-2">
 								<div class="flex items-center gap-1.5">
-									<span class="text-sm">{row.label}</span>
+									<span class="text-sm">{row.label}{#if rowDisplayUnit(row)}<span class="ml-1 text-[10px] text-fg-muted">{rowDisplayUnit(row)}</span>{/if}</span>
 									{#if row.compare === 'scale'}
 										<a href="{base}/library/providers/{row.slug}" class="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-fg-secondary" onclick={(e) => e.stopPropagation()} data-testid="scale-chip">척도 다름 ›</a>
 									{/if}
@@ -138,15 +146,14 @@
 										<span class="text-semantic-amber" title="불일치 {row.discrepancy?.maxDiffPct?.toFixed(1)}%"><Icon name="warning" class="h-3.5 w-3.5" /></span>
 									{/if}
 								</div>
-								{#if rowDisplayUnit(row)}<span class="text-[10px] text-fg-muted">{rowDisplayUnit(row)}</span>{/if}
 							</td>
-							{#each providers() as provider}
+							{#each providers() as provider, pi}
 								<td
 									class="px-2 py-2.5 text-right {isPrimary(row, provider) ? 'border border-fg-secondary' : ''}"
 									title={isPrimary(row, provider) && showPrimaryReason && row.primaryReason ? row.primaryReason.rule : undefined}
 								>
 									<span class="font-mono text-sm tabular-nums {row.values[provider]?.available ? 'text-fg-primary' : 'text-fg-muted'}">
-										{#if isPrimary(row, provider)}<Icon name="source-primary" class="inline h-3 w-3 text-semantic-amber align-baseline" /> {/if}{cellDisplayValue(row, provider)}
+										{#if isPrimary(row, provider)}<Icon name="source-primary" class="inline h-3 w-3 text-semantic-amber align-baseline" /> {/if}{cells[pi]}
 									</span>
 								</td>
 							{/each}
@@ -157,6 +164,8 @@
 								<td colspan={providers().length + 2} class="px-4 py-2 text-xs text-fg-secondary">
 									{#if row.section === 'related'}
 										정의가 달라 값을 직접 비교하지 않아요.
+									{:else if isPauseOnlyDiff(row, data.rows)}
+										총 시간은 일시정지를 넣는 방식이 소스마다 달라 차이가 나요. 이동 시간은 거의 같아요.
 									{:else if row.discrepancy?.detected}
 										소스 간 최대 {row.discrepancy.maxDiffPct?.toFixed(1)}% 차이가 있어요.
 									{:else}

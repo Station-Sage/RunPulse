@@ -69,6 +69,11 @@ export function formatUnitValue(value: number, unit: string): { display: string;
 	return { display, unit };
 }
 
+/** 고도(누적 상승 등) — 1m 미만 정밀도는 의미가 없어 정수 m, 1000m 이상은 km 1자리(A-12: 요약·소스 비교·랩 표기 통일). */
+export function formatElevation(m: number): { display: string; unit: string } {
+	return m >= 1000 ? formatUnitValue(m, 'm') : { display: String(Math.round(m)), unit: 'm' };
+}
+
 // §C4 — 음수는 하이픈이 아니라 U+2212(수학 마이너스)를 쓴다.
 export const MINUS = '−';
 

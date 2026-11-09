@@ -4,7 +4,9 @@
 	import type { LapsPageData } from './+page';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
 	import { formatPace } from '$lib/format';
-	import { lapPace } from '$lib/lapGroups';
+	import { fastestLap, lapPaceBasisDiffers } from '$lib/lapGroups';
+	import { emptyDataNote } from '$lib/activityDetailView';
+
 	import LapTable from '$lib/components/LapTable.svelte';
 	import { base } from '$app/paths';
 	import type { ProviderKey } from '$lib/types';
@@ -12,7 +14,9 @@
 
 	let { data }: { data: LapsPageData } = $props();
 
-	const fastest = $derived(Math.min(...data.laps.map(lapPace).filter((p): p is number => p != null)));
+	const fastest = $derived(fastestLap(data.laps));
+	const basisNote = $derived(lapPaceBasisDiffers(data.laps));
+	const note = $derived(emptyDataNote('laps', data.activity));
 	const source = $derived(data.laps.length > 0 ? data.laps[0].source : null);
 </script>
 
@@ -23,6 +27,8 @@
 {:else if data.laps.length === 0}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">랩 데이터 없음</p>
+		<p class="mt-1 text-xs text-fg-muted" data-testid="empty-reason">{note.reason}</p>
+		{#if note.action}<a href="{base}{note.action.path}" class="mt-2 inline-block text-xs text-fg-secondary underline">{note.action.label}</a>{/if}
 		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
 	</div>
 {:else}
@@ -31,8 +37,9 @@
 			{#if source}
 				<span class="rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
 			{/if}
-			<span>{data.laps.length}개 랩{#if Number.isFinite(fastest)}{' · '}가장 빠른 랩 {formatPace(fastest)}{/if}</span>
+			<span>{data.laps.length}개 랩{#if fastest}{' · '}가장 빠른 랩 {formatPace(fastest.pace)} (#{fastest.index + 1}){/if}</span>
 		</div>
 		<LapTable laps={data.laps} />
+		{#if basisNote}<p class="text-xs text-fg-muted" data-testid="lap-basis-note">시간은 랩 전체 시간, 페이스는 이동 시간 기준이라 1~2초 다를 수 있어요.</p>{/if}
 	</div>
 {/if}

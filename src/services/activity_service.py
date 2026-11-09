@@ -109,6 +109,13 @@ def _route_previews(conn: sqlite3.Connection, ids: list[int]) -> dict[int, list[
     return out
 
 
+def activity_exists(conn: sqlite3.Connection, activity_id: int) -> bool:
+    """활동 행이 있는지 — 하위 리소스 API 가 없는 id 에 404 를 주기 위한 확인(A-22)."""
+    return conn.execute(
+        "SELECT 1 FROM activity_summaries WHERE id = ?", (activity_id,),
+    ).fetchone() is not None
+
+
 def get_activity_streams(
     conn: sqlite3.Connection,
     activity_id: int,
