@@ -20,6 +20,9 @@ _IS_PRODUCTION = os.environ.get("APP_ENV", "development").lower() == "production
 
 
 def _err(code: str, message: str, status: int) -> Response:
+    if status == 401:  # E-03: 화면 요청은 로그인 안내 HTML(재로그인 링크)
+        from src.web.auth_required import auth_required_response
+        return auth_required_response(code, message, registry_mode=True)
     if request.path.startswith("/api/"):
         resp = jsonify({"ok": False, "error": {"code": code, "message": message}})
     else:

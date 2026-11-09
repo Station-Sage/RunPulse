@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { closeSheet, openSheet, sheetOpen } from '$lib/sheetHistory';
 	import { modal } from '$lib/overlay';
-	import { pillView } from '$lib/syncState';
+	import { pillAriaLabel, pillView, type PillView } from '$lib/syncState';
 	import { syncStore, loadSyncState, startSyncPolling } from '$lib/syncStore.svelte';
 	import SyncPanel from './SyncPanel.svelte';
 
@@ -22,7 +22,7 @@
 		else closeSheet('sync');
 	}
 
-	const view = $derived(
+	const view: PillView = $derived(
 		syncStore.failed && !sync
 			? { tone: 'error', glyph: '▲', text: '상태 확인 실패 · 다시' }
 			: pillView(sync)
@@ -47,6 +47,7 @@
 		onclick={onClick}
 		aria-haspopup="dialog"
 		aria-expanded={syncStore.panelOpen}
+		aria-label={pillAriaLabel(view)}
 		class="flex max-w-[60vw] items-center gap-1.5 truncate rounded-full border border-border-subtle px-2.5 py-1 text-xs {toneClass[view.tone]}"
 	>
 		<span aria-hidden="true" class:animate-spin={view.tone === 'running'}>{view.glyph}</span>

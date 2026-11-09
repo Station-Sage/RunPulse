@@ -1256,13 +1256,17 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (256줄) — RunPulse integration workbench web app.
+### `app.py` (258줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
-### `auth_cf.py` (156줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
+### `auth_cf.py` (157줄) — Cloudflare Zero Trust 헤더 기반 사용자 식별 미들웨어.
 
 - functions: init_cf_auth, get_current_user_email
+
+### `auth_required.py` (50줄) — 인증 필요(401) 응답 — `/api/` 는 JSON 봉투, 그 외(화면 요청)는 로그인 안내 HTML (E-03).
+
+- functions: login_target, auth_required_response
 
 ### `gunicorn_logging.py` (24줄) — gunicorn 로거 — 캘린더 구독 토큰(/feeds/cal/<token>.ics)을 접근 로그에서 마스킹.
 
@@ -2119,6 +2123,10 @@
 ### `test_auth_registry.py` (198줄) — AUTH-2026-11 stage 1 — registry 모드 신원 해석·공개 경로·F1~F4 방어.
 
 - functions: app, test_auth_mode_default_legacy, test_safe_next_blocks_open_redirect, test_is_public, test_anonymous_private_path_401, test_header_email_without_jwt_is_ignored, test_invalid_jwt_401, test_public_path_anonymous_has_no_user, test_new_signup_is_pending_without_user_id, test_active_account_reaches_data, test_session_alone_not_enough_on_private_path, test_disabled_account_403, test_identity_switch_clears_previous_session, test_backfilled_account_links_new_identity, test_invalid_uid_email_403, test_pending_cannot_use_private_path_but_start_ok, test_logout_clears_session, test_no_user_context_not_default, test_backfill_filters_and_collisions, test_cf_jwt_unconfigured_fails_closed, test_real_session_endpoint_reports_mode
+
+### `test_auth_required.py` (58줄) — E-03 — 401 응답: 화면 요청은 로그인 안내 HTML, /api/ 는 JSON 봉투.
+
+- functions: test_login_target_registry_uses_safe_next, test_login_target_legacy_reopens_same_path, test_auth_required_response_escapes_message, prod_app, test_prod_page_without_header_shows_login_html, test_prod_api_without_header_is_json_envelope
 
 ### `test_auth_signup.py` (123줄) — AUTH-2026-11 stage 2 — 초대코드·일일 상한·프로비저닝·가입 엔드포인트.
 
@@ -3801,7 +3809,7 @@
 - functions: run
 
 ---
-총 815개 파일
+총 817개 파일
 
 ## docstring 누락
 

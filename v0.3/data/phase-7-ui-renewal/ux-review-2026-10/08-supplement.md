@@ -46,3 +46,9 @@
 - 1280px 이상 넓은 화면의 최대폭, 차트 라벨 실제 렌더 색의 개별 측정(토큰 값 계산으로 대체).
 - ScopeSheet/EngineSheet 별도 Tab/Esc 점검, 비활성 버튼 대비 개별 측정.
 - 장애 주입의 500 JSON 응답 중 서버 메시지 노출은 앞선 실행에서 "boom" 원문 노출을 확인했으나(중) 이 문서에는 ID 를 부여하지 않았다. 원문 메시지를 그대로 보이는 위치는 재확인 후 추가 필요.
+
+## 처리 기록 (2026-11-09, V2-AUDIT-INDIV 묶음 F, feat/frs-f3)
+- S-05 처리: `app.html` 정적 로딩 화면(`#rp-boot`, 스크립트 없음), 루트 레이아웃 마운트 시 제거(`lib/bootSplash.ts`).
+- S-06 처리: 이동 중 목적지 탭 먼저 활성 표시(`navTabs.tabHighlightPath`), 진행바 `role=progressbar`, `main aria-busy`.
+- S-09 이미 됨: 시트 열기 `pushState`(`sheetHistory.ts`, S4-37) — 뒤로가기로 시트가 닫힘(2026-11-09 Playwright 확인).
+- S-14 이미 됨: 전역 `:focus-visible` 2px 링(A11Y-8, layout.css). `tabindex=0` 요소 3곳 모두 role·이름 있음.

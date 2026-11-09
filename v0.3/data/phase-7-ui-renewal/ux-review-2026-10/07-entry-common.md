@@ -54,3 +54,17 @@
 - welcome 4단계 입력 검증과 단계별 뒤로 동작, onboarding=pending 상태에서의 리다이렉트: 사본 DB 조건 미구성.
 - 운영 환경의 gzip/캐시/CF 헤더, 운영 인증 흐름: 운영 접근 금지.
 - 로그인한 실제 사용자가 데모 중 실서버 변경 요청을 보낼 수 있는지 실행 검증: 코드 정독만.
+
+## 처리 기록 (2026-11-09, V2-AUDIT-INDIV 묶음 F, feat/frs-f3)
+- E-03 처리: 401 화면 요청은 로그인 안내 HTML(재시도·재로그인 링크), `/api/` 는 JSON 봉투 — `src/web/auth_required.py`(auth_cf·identify·app 의 401 3곳 연결).
+- E-10 재현 불가: v1 링크·`data-sveltekit-reload` 드로어 항목 제거됨(S5-4, `menuLinks.ts`).
+- E-11 재현 불가: `backToV1()` 코드 없음.
+- E-12 보류: 하단 탭 Today/Library/Coach 영어 표기는 IA 결정(02-information-architecture) — 사용자 결정 필요. v1 라벨 혼재는 v1 제거로 재현 불가.
+- E-16 처리: 이동 중 상단 진행바 `role=progressbar`·4px, `main aria-busy`, 첫 로드 정적 로딩 화면(S-05·S-06 참조).
+- E-17 처리: 오프라인 배너·복구 안내(`OfflineBanner.svelte`, `lib/connectivity.ts`).
+- E-18 처리: Today 실패 문구에 원인(연결/서버/로그인) 표기(`loadFailure.failureCause`).
+- E-19 재현 불가: 375px 랜딩 scrollWidth 375 = clientWidth(2026-11-09 Playwright).
+- E-21 부분 재현: manifest·theme-color·apple-touch-icon·favicon 있음. description 메타 없음, `text-scale` meta 남아 있음(미처리).
+- E-22 처리: 데모 중 `/api/v1` 외 서버 경로·다른 출처 요청은 실서버로 보내지 않음(GET 404, 쓰기 403), `/v2/` 정적 자원만 통과.
+- E-29 처리(부분): 폰트를 Vite 자산으로 옮겨 해시 파일명·immutable·base 독립. 데모 스냅샷 no-cache 는 유지(데이터 갱신 신호), gzip 은 운영 프록시(CF) 확인 필요로 보류.
+- E-30 재현 불가: `/` 는 항상 `/v2/today`(미인증은 `/v2/landing`).

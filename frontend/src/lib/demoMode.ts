@@ -9,14 +9,33 @@ const API_PREFIX = '/api/v1';
 export type DemoDecision =
 	| { kind: 'pass' }
 	| { kind: 'read'; key: string }
-	| { kind: 'blocked' };
+	| { kind: 'blocked' }
+	| { kind: 'unavailable' };
 
-/** 요청을 분류한다: API가 아니면 통과, GET이면 스냅샷 키, 그 외 쓰기는 차단. */
-export function classifyRequest(method: string | undefined, url: string): DemoDecision {
-	const path = url.startsWith('http') ? url.replace(/^https?:\/\/[^/]+/, '') : url;
-	if (!path.startsWith(API_PREFIX)) return { kind: 'pass' };
-	if ((method ?? 'GET').toUpperCase() !== 'GET') return { kind: 'blocked' };
-	return { kind: 'read', key: snapshotKey(path) };
+// 데모 중 실서버로 보낼 수 있는 유일한 경로 — 앱 정적 자원(스냅샷·version.json 등, 데이터·세션 없음).
+const STATIC_PREFIX = '/v2/';
+
+/** 요청을 분류한다(E-22): `/api/v1` GET 은 스냅샷 키, 쓰기는 차단, 정적 자원 GET 만 통과,
+ *  그 밖(다른 출처, `/api/v1` 외 서버 경로)은 GET 이어도 실서버로 보내지 않는다. */
+export function classifyRequest(
+	method: string | undefined,
+	url: string,
+	origin: string = typeof location !== 'undefined' ? location.origin : 'http://localhost'
+): DemoDecision {
+	let u: URL;
+	try {
+		u = new URL(url, origin);
+	} catch {
+		return { kind: 'unavailable' };
+	}
+	const write = (method ?? 'GET').toUpperCase() !== 'GET';
+	if (u.origin !== origin) return write ? { kind: 'blocked' } : { kind: 'unavailable' };
+	const path = u.pathname + u.search;
+	if (u.pathname.startsWith(`${API_PREFIX}/`) || u.pathname === API_PREFIX) {
+		return write ? { kind: 'blocked' } : { kind: 'read', key: snapshotKey(path) };
+	}
+	if (write) return { kind: 'blocked' };
+	return u.pathname.startsWith(STATIC_PREFIX) ? { kind: 'pass' } : { kind: 'unavailable' };
 }
 
 /** `/api/v1/today?x=1` → `/today?x=1` (쿼리 순서는 정렬해 안정화). */
@@ -36,6 +55,9 @@ export function demoResponse(decision: DemoDecision, snap: Snapshot): Response |
 	if (decision.kind === 'pass') return null;
 	if (decision.kind === 'blocked') {
 		return json(403, { error: { code: 'DEMO_READONLY', message: '데모에서는 저장되지 않아요' } });
+	}
+	if (decision.kind === 'unavailable') {
+		return json(404, { error: { code: 'DEMO_NOT_AVAILABLE', message: '데모에서는 열 수 없어요' } });
 	}
 	const hit = snap[decision.key];
 	if (hit === undefined) {

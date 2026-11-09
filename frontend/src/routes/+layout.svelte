@@ -7,7 +7,10 @@
 	// E5: 탭바 SVG 아이콘, max-w-3xl 중앙 정렬.
 	import './layout.css';
 	import { base } from '$app/paths';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
+	import { onMount } from 'svelte';
+	import { removeBootSplash } from '$lib/bootSplash';
+	import OfflineBanner from '$lib/components/shell/OfflineBanner.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import ShellNav from '$lib/components/shell/ShellNav.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
@@ -25,6 +28,15 @@
 	const isLanding = $derived(
 		page.url.pathname.startsWith(`${base}/landing`) || page.url.pathname.startsWith(`${base}/auth/`)
 	);
+
+	// E-13, S-21: welcome/404/error 화면에서 SyncStatusPill 숨김
+	const isOnboarding = $derived(page.url.pathname === `${base}/welcome`);
+	const isErrorPage = $derived(!!page.error);
+	const hideSyncPill = $derived(isOnboarding || isErrorPage);
+
+	// S-05: 첫 화면이 그려지면 app.html 정적 로딩 화면 제거. S-06/E-16: 이동 중 본문 aria-busy.
+	onMount(() => removeBootSplash(document));
+	const busy = $derived(!!navigating.to);
 </script>
 
 <a
@@ -35,6 +47,7 @@
 <LiveRegion />
 <ProgressBar />
 <UpdateNotice />
+<OfflineBanner />
 {#if $demoActive}<DemoBanner />{/if}
 
 {#if isLanding}
@@ -45,7 +58,7 @@
 		<div class="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 lg:max-w-6xl">
 			{#if !$demoActive}<IconButton label="메뉴" onclick={() => (menuOpen = true)} class="-ml-2 rounded text-fg-secondary hover:text-fg-primary"><Icon name="menu" class="h-5 w-5" /></IconButton>{/if}
 			<span class="font-medium">RunPulse</span>
-			{#if !$demoActive}<SyncStatusPill />{/if}
+			{#if !$demoActive && !hideSyncPill}<SyncStatusPill />{/if}
 		</div>
 	</header>
 
@@ -56,6 +69,7 @@
 	<main
 		id="main"
 		tabindex="-1"
+		aria-busy={busy}
 		class="mx-auto w-full max-w-3xl flex-1 pb-[calc(var(--shell-bottom)+1.5rem)] outline-none lg:max-w-6xl"
 	>
 		{@render children()}

@@ -11,9 +11,16 @@
 		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
 		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f5f2" />
 		<script src="%sveltekit.assets%/theme-init.js"></script>
+		<!-- S-05: 첫 로드 동안 보이는 정적 로딩 화면(스크립트 없음 — CSP 해시 불필요). 루트 레이아웃 마운트 시 제거 -->
+		<style>
+			#rp-boot{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#0f172a;color:#8494a9;font:14px system-ui,sans-serif}
+			@media (prefers-color-scheme: light){:root:not([data-theme='dark']) #rp-boot{background:#f7f5f2;color:#6b645c}}
+			:root[data-theme='light'] #rp-boot{background:#f7f5f2;color:#6b645c}
+		</style>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="rp-boot" aria-busy="true">RunPulse 불러오는 중이에요…</div>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

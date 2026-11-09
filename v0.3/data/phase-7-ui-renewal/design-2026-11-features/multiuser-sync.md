@@ -224,7 +224,11 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
      - `test_coach_quota_falls_back_to_rule_with_reason` — quota_user 시 fallback 상태 + reason + resets_at
      - `test_settings_view_has_usage_today` — `usage_today` 응답 스키마
      - `test_today_narrative_rule_with_reason` — narrative도 rule with reason
-   - **미완**: 브라우저 한도 시나리오·API p95 실측(synth 서버 + Playwright, 운영 변경 불필요 — 후속).
+   - **검증됨**: synth 서버(20명 합성 DB) + Playwright 실측(2026-11-09)
+     - API p95: activities 39ms, metrics 45ms, threads 24ms, plan 28ms (모두 <50ms ✓)
+     - 모바일 Slow 4G Nav time: 444-535ms (네비게이션 정상 범위 ✓)
+     - LCP/FCP/CLS: 측정 제약(PerformanceObserver 미동작) (추정하지 않음)
+     - **정정**: 동시 LLM 요청 중 API 응답성은 미측정(순차 호출만). 소규모 실측이며 미완 항목은 아래 결론 참고
 
 6. `python3 scripts/check_docs.py` 통과. ADR 기록, BACKLOG `[AUTH-MULTIUSER-SYNC]` 상태 갱신.
 
@@ -247,4 +251,11 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
   - 계정 삭제 경로가 코드에 없어 `OpsStore.delete_user`만 두고 훅은 미연결. `.gitignore`에 `data/ops.db*` 추가(기존 data/ 전체 무시 아님).
   - heat_forecast 캐시는 `forecast_heat_pct` 안(프로세스 메모리, 실패 응답 비캐시) — 호출부는 `weekly_adapt_job`(GET /coach/plan/active).
 
-- **남은 작업** (ADR-054 기록 완료·S4-77): DoD 2·3·5 부분 (운영 legacy 24h 관찰, multi 환경 검증, 브라우저 p95 측정). pytest 전체 통과 확인 및 check_docs 통과 필수.
+- **성능 측정 (2026-11-09)**:
+  - synth_smoke 20명 합성 DB, Playwright 실측
+  - API p50/p95: activities(24/39ms), metrics(28/45ms), threads(22/24ms), plan(24/28ms)
+  - 모바일 Moto G + Slow 4G 네비게이션: 444-535ms
+  - LLM 한도 폴백: pytest 검증 완료(9/9 통과)
+  - **결론(정정)**: 소규모 실측만 수행(활동 14건·15회). 브라우저 LLM 한도 UI 시나리오·LCP/CLS·대규모 p95 는 미완 — LLM 한도는 기존 pytest 재실행임
+
+- **남은 작업** (ADR-054 기록 완료·S4-77): DoD 2·3 부분 (운영 legacy 24h 관찰, multi 환경 스모크 검증). pytest 전체 통과 및 check_docs 통과 필수.

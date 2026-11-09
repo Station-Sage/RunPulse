@@ -4,6 +4,7 @@ import { getMetricTrend } from '$lib/api/metrics';
 import { ApiError } from '$lib/api/client';
 import { invalidate } from '$app/navigation';
 import { swrEvict, swrLoad } from '$lib/loadCache';
+import { classifyFailure, type Failure } from '$lib/loadFailure';
 import type { NarrativeResponse, RaceHubData, TodayResponse, ActivePlan, TodaysAdjustment, MetricTrendData } from '$lib/types';
 
 const KEY = 'app:today';
@@ -19,6 +20,8 @@ export interface TodayPageData {
 	errorMessage: string | null;
 	/** 'empty' = 소스 미연결/DB 없음(온보딩), 'failed' = 조회 실패(재시도) — 40 design §6.1 두 상태 분리. */
 	errorKind: 'empty' | 'failed' | null;
+	/** 조회 실패 원인(네트워크/서버/로그인) — 화면이 원인별 문구를 보인다(E-18). */
+	failure: Failure | null;
 	/** 핵심(today)만 await — 나머지는 스트리밍 Promise로 넘겨 화면이 `{#await}` 블록 스켈레톤으로 먼저 뜬다
 	 *  (10-today design §5·§6, 02-performance.md P-3). 실패는 reject → 블록 단위 ErrorState(compact)+재시도. */
 	narrative: Promise<NarrativeResponse | null>;
@@ -46,7 +49,7 @@ async function fetchToday(): Promise<TodayPageData> {
 	for (const p of [nextSession, formChart]) p.catch(() => {});
 	const today = await getToday();
 	evictOnFailure(nextSession, formChart);
-	return { today, errorMessage: null, errorKind: null, narrative, nextSession, formChart, raceHub };
+	return { today, errorMessage: null, errorKind: null, failure: null, narrative, nextSession, formChart, raceHub };
 }
 
 // 플랜/조정 없음(404)은 빈 상태이지 실패가 아니다.
@@ -67,7 +70,8 @@ function failed(e: unknown): TodayPageData {
 	const message = e instanceof Error ? e.message : '오늘 데이터를 불러올 수 없습니다.';
 	const none = Promise.resolve(null);
 	return {
-		today: null, errorMessage: message, errorKind: empty ? 'empty' : 'failed', narrative: none,
+		today: null, errorMessage: message, errorKind: empty ? 'empty' : 'failed',
+		failure: empty ? null : classifyFailure(e), narrative: none,
 		nextSession: Promise.resolve({ plan: null, adjustment: null }),
 		formChart: new Promise<FormChartData>(() => {}),
 		raceHub: none

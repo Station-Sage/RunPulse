@@ -1,6 +1,7 @@
 <script lang="ts">
-	// §C5 — 셸 상단 2px 진행바. 150ms 지연 후 표시(빠른 전환은 깜빡임 없음), 완료 시 페이드.
+	// §C5 — 셸 상단 진행바(S-06: 4px·role=progressbar 로 식별성 보강). 150ms 지연 후 표시(빠른 전환은 깜빡임 없음), 완료 시 페이드.
 	import { navigating } from '$app/state';
+	import { LOADING_MESSAGES } from '$lib/utils/constants';
 
 	let visible = $state(false);
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -19,7 +20,11 @@
 </script>
 
 {#if visible}
-	<div class="pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 overflow-hidden bg-transparent">
+	<div
+		role="progressbar"
+		aria-label={LOADING_MESSAGES.navigating}
+		class="pointer-events-none fixed inset-x-0 top-0 z-[60] h-1 overflow-hidden bg-transparent"
+	>
 		<div class="h-full w-full origin-left animate-[progress-sweep_1.1s_ease-in-out_infinite] bg-series-1"></div>
 	</div>
 {/if}

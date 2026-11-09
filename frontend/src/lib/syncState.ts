@@ -76,13 +76,25 @@ export function pillView(s: SyncState | null, now: Date = new Date()): PillView 
 	}
 	if (s.overall.level === 'error') {
 		const bad = s.sources.find((x) => x.state.startsWith('error-'));
-		return { tone: 'error', glyph: '▲', text: `${bad ? syncProviderName(bad.provider) : '소스'} 확인 필요` };
+		return { tone: 'error', glyph: '▲', text: `${bad ? syncProviderName(bad.provider) : '소스'} ${errorPillAction(bad?.state)}` };
 	}
 	const tail = ago ? `${ago}` : '기록 없음';
 	if (s.overall.level === 'stale') {
 		return { tone: 'stale', glyph: '●', text: `${date ? `${date} 기준 · ` : ''}${tail}` };
 	}
 	return { tone: 'ok', glyph: '●', text: `${date ? `${date} · ` : ''}${tail}` };
+}
+
+/** T-27/A-32 — "확인 필요" 대신 무엇을 해야 하는지 드러낸다(인증 만료 → 재연결, 권한 → 설정, 그 외 → 동기화 실패). */
+export function errorPillAction(state: SyncSourceState | undefined): string {
+	if (state === 'error-auth') return '다시 연결 필요';
+	if (state === 'error-access') return '권한 확인 필요';
+	return '동기화 실패';
+}
+
+/** Pill 버튼의 접근성 이름 — 보이는 문구 + 누르면 무엇이 열리는지. */
+export function pillAriaLabel(view: PillView): string {
+	return `동기화 상태: ${view.text}. 눌러서 원인과 조치 보기`;
 }
 
 export function sourceLine(src: SyncSource, now: Date = new Date()): { glyph: string; text: string } {

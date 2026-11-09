@@ -18,3 +18,8 @@ export function navTabs(base: string): NavTab[] {
 export function isTabActive(pathname: string, base: string, match: string): boolean {
 	return pathname.startsWith(`${base}${match}`);
 }
+
+/** S-06 — 이동 중이면 목적지 기준으로 탭을 활성 표시한다(눌렀다는 피드백). 이동이 없으면 현재 경로. */
+export function tabHighlightPath(currentPath: string, pendingPath: string | null | undefined): string {
+	return pendingPath ?? currentPath;
+}

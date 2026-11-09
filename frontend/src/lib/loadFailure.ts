@@ -36,6 +36,15 @@ export function failureMessage(kind: FailureKind): string {
 		: '서버 오류로 불러오지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
+// E-18 — 화면 고유 제목 뒤에 붙이는 원인 한 줄(네트워크/서버/로그인 구분).
+export function failureCause(kind: FailureKind): string {
+	if (kind === 'network') return '인터넷 연결이 끊겼어요. 연결을 확인하고 다시 시도해 주세요.';
+	if (kind === 'auth') return '로그인이 만료됐어요.';
+	if (kind === 'aborted') return '요청이 중단됐어요. 다시 시도해 주세요.';
+	if (kind === 'not_found') return '데이터가 없어요.';
+	return '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
+}
+
 // 404 일 때만 null, 나머지 실패는 다시 던진다.
 export async function nullOn404<T>(p: Promise<T>): Promise<T | null> {
 	try {

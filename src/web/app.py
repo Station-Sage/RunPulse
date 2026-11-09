@@ -7,7 +7,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, Response, g, redirect, request, session
+from flask import Flask, g, redirect, request, session
 
 from src.utils.config import load_config
 
@@ -212,7 +212,9 @@ def create_app() -> Flask:
 
     @app.errorhandler(NoUserContext)
     def _no_user_context(exc: NoUserContext):
-        return Response("Unauthorized", status=401, mimetype="text/plain")
+        from src.auth import auth_mode
+        from .auth_required import auth_required_response
+        return auth_required_response("AUTH_REQUIRED", "로그인이 필요해요.", registry_mode=auth_mode() == "registry")
 
     @app.get("/")
     def index():

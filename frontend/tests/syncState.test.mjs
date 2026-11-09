@@ -30,7 +30,7 @@ test('pillView: 상태 null/미연결/정상/지연/오류/진행', () => {
 	assert.equal(stale.tone, 'stale');
 	assert.equal(stale.text, '9/26 기준 · 25시간 전'.replace('25시간', '1일'));
 	const err = pillView(state({ overall: { level: 'error', label_ko: '', last_success_at: null }, sources: [src({ provider: 'strava', state: 'error-access' })] }), NOW);
-	assert.deepEqual(err, { tone: 'error', glyph: '▲', text: 'Strava 확인 필요' });
+	assert.deepEqual(err, { tone: 'error', glyph: '▲', text: 'Strava 권한 확인 필요' });
 	const run = pillView(state({ overall: { level: 'running', label_ko: '', last_success_at: null }, sources: [src({ state: 'running' })] }), NOW);
 	assert.equal(run.text, '동기화 중 1');
 });
@@ -133,4 +133,13 @@ test('rowAction: 꺼진 소스는 다시 포함, 접근 오류는 제외, 그 �
 	assert.equal(rowAction(src({ state: 'disabled', enabled: false })).enable, true);
 	assert.equal(rowAction(src({ state: 'error-access' })).enable, false);
 	assert.equal(rowAction(src({ state: 'idle-ok' })), null);
+});
+
+test('T-27 errorPillAction·pillAriaLabel: 오류 종류별 조치 문구와 버튼 이름', async () => {
+	const { errorPillAction, pillAriaLabel } = await import('../src/lib/syncState.ts');
+	assert.equal(errorPillAction('error-auth'), '다시 연결 필요');
+	assert.equal(errorPillAction('error-access'), '권한 확인 필요');
+	assert.equal(errorPillAction('error-upstream'), '동기화 실패');
+	assert.equal(errorPillAction(undefined), '동기화 실패');
+	assert.match(pillAriaLabel({ tone: 'error', glyph: '▲', text: 'Garmin 동기화 실패' }), /Garmin 동기화 실패.*눌러서/);
 });

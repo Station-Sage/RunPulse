@@ -1,10 +1,11 @@
 @import 'tailwindcss';
 
 /* self-host — ux-review-2026-09/10-today/design.md §C8. 서브셋: 라틴+숫자만
-   (한글은 시스템 폰트 폴백, Inter/JetBrains Mono 둘 다 한글 글리프 없음). */
+   (한글은 시스템 폰트 폴백, Inter/JetBrains Mono 둘 다 한글 글리프 없음).
+   E-29: 상대 경로로 Vite 가 해시 파일명(_app/immutable/assets)으로 내보낸다 → immutable 캐시, base 변경에도 안전. */
 @font-face {
 	font-family: 'InterVariable';
-	src: url('/v2/fonts/inter-variable.woff2') format('woff2-variations'), url('/v2/fonts/inter-variable.woff2') format('woff2');
+	src: url('../lib/assets/fonts/inter-variable.woff2') format('woff2-variations'), url('../lib/assets/fonts/inter-variable.woff2') format('woff2');
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
@@ -12,7 +13,7 @@
 
 @font-face {
 	font-family: 'JetBrains Mono';
-	src: url('/v2/fonts/jetbrains-mono.woff2') format('woff2');
+	src: url('../lib/assets/fonts/jetbrains-mono.woff2') format('woff2');
 	font-weight: 400;
 	font-style: normal;
 	font-display: swap;

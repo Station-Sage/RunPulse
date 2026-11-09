@@ -134,10 +134,11 @@ def init_cf_auth(app: Flask, config: dict | None = None) -> None:
                 "[auth_cf] production 환경에서 CF 헤더 없음 (path=%s). 401 반환.",
                 request.path,
             )
-            return Response(
-                "Unauthorized: Cloudflare Access 인증이 필요합니다.",
-                status=401,
-                mimetype="text/plain",
+            # E-03: 화면 요청은 로그인 안내 HTML, /api/ 는 JSON 봉투
+            from .auth_required import auth_required_response
+            return auth_required_response(
+                "AUTH_REQUIRED", "로그인 정보가 확인되지 않았어요. 다시 시도하면 로그인 화면으로 이동해요.",
+                registry_mode=False,
             )
 
         # 개발 환경 fallback

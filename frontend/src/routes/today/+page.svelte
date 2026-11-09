@@ -10,6 +10,7 @@
 	import TodayRecent from '$lib/components/TodayRecent.svelte';
 	import TodayNarrative from '$lib/components/TodayNarrative.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
+	import { failureCause } from '$lib/loadFailure';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import MilestonesPanel from '$lib/components/MilestonesPanel.svelte';
@@ -94,7 +95,12 @@
 {#if !data.today}
 	{#if data.errorKind === 'failed'}
 		<div class="px-4 py-10">
-			<ErrorState message="오늘 권고를 불러오지 못했어요" detail={data.errorMessage ?? undefined} onRetry={() => invalidate('app:today')} />
+			<ErrorState
+				message={`오늘 권고를 불러오지 못했어요. ${failureCause(data.failure?.kind ?? 'server')}`}
+				failure={data.failure ?? undefined}
+				detail={data.errorMessage ?? undefined}
+				onRetry={() => invalidate('app:today')}
+			/>
 		</div>
 	{:else}
 		<TodayEmpty />

@@ -1,13 +1,15 @@
 <script lang="ts">
 	// 셸 주 메뉴 — variant 로 하단 탭(<lg)·좌측 사이드바(lg)를 각각 렌더(DOM 순서가 달라야 해서 2회 마운트).
 	import { base } from '$app/paths';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
-	import { navTabs, isTabActive } from '$lib/shell/navTabs';
+	import { navTabs, isTabActive, tabHighlightPath } from '$lib/shell/navTabs';
 
 	let { variant }: { variant: 'side' | 'bottom' } = $props();
 	const tabs = navTabs(base);
 	const side = $derived(variant === 'side');
+	// S-06: 이동 중에는 목적지 탭을 먼저 활성 표시(aria-current 는 실제 현재 화면만)
+	const highlightPath = $derived(tabHighlightPath(page.url.pathname, navigating.to?.url.pathname));
 </script>
 
 <nav
@@ -19,10 +21,10 @@
 >
 	<div class={side ? 'flex flex-col gap-1 px-2' : 'mx-auto flex w-full max-w-3xl'}>
 		{#each tabs as tab (tab.href)}
-			{@const active = isTabActive(page.url.pathname, base, tab.match)}
+			{@const active = isTabActive(highlightPath, base, tab.match)}
 			<a
 				href={tab.href}
-				aria-current={active ? 'page' : undefined}
+				aria-current={isTabActive(page.url.pathname, base, tab.match) ? 'page' : undefined}
 				class={side
 					? `flex items-center gap-3 min-h-11 rounded-lg px-3 py-2.5 text-sm ${active ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted hover:bg-surface-3'}`
 					: `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${active ? 'text-fg-primary' : 'text-fg-muted'}`}

@@ -54,3 +54,6 @@
 - RaceMorningForm 수치와 `v0.2/.ai/metrics.md` 공식 대조, 스크린리더 실사용, 키보드 포커스 순서/대비비
 - race PUT의 `official_time_sec:null` 이 기존 공식 기록을 지우는지
 - 사용자 간 데이터 노출(단일 사용자 앱이라 해당 구조 확인 못함)
+
+## 처리 기록 (2026-11-09, V2-AUDIT-INDIV 묶음 F)
+- T-27 처리: 오류 Pill 문구를 조치형으로("다시 연결 필요"/"권한 확인 필요"/"동기화 실패", `syncState.errorPillAction`), 버튼 이름에 "눌러서 원인과 조치 보기". 상시 노출(경고 피로) 정책 자체는 미변경.

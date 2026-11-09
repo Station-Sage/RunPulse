@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError } from '../src/lib/api/client.ts';
-import { classifyFailure, failureMessage, nullOn404, toResult } from '../src/lib/loadFailure.ts';
+import { classifyFailure, failureCause, failureMessage, nullOn404, toResult } from '../src/lib/loadFailure.ts';
 
 const err = (status, code) => new ApiError(status, { error: { code, message: 'm' } });
 
@@ -53,4 +53,11 @@ test('toResult — 성공/실패 래핑', async () => {
 	const r = await toResult(Promise.reject(err(0, 'NETWORK')));
 	assert.equal(r.ok, false);
 	assert.equal(r.failure.kind, 'network');
+});
+
+test('E-18 failureCause: 네트워크·서버·로그인 원인을 구분한다', () => {
+	assert.match(failureCause('network'), /인터넷 연결/);
+	assert.match(failureCause('server'), /서버/);
+	assert.match(failureCause('auth'), /로그인/);
+	assert.notEqual(failureCause('network'), failureCause('server'));
 });
