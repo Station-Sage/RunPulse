@@ -294,6 +294,8 @@ def garmin_local_sync():
     if not user_id:
         log.warning("[local-sync] user_id 없음")
         return jsonify({"error": "user_id 필드가 필요합니다."}), 400
+    from src.ops.activity import touch as _touch_activity
+    _touch_activity(user_id)  # 활동 신호(휴면 판정)
     tokenstore = get_config_path(user_id).parent / ".garminconnect"
     tokenstore.mkdir(parents=True, exist_ok=True)
     log.info("[local-sync] user_id=%s, days=%d, tokenstore=%s", user_id, days, tokenstore)

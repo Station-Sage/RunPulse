@@ -49,7 +49,9 @@ def usage_7d(conn: sqlite3.Connection) -> dict:
     return {"messages": total, "by_provider": by_provider, "fallback": fallback, "rule": rule, "tool_calls": tool_calls}
 
 
-def build_view(conn: sqlite3.Connection, config: dict) -> dict:
+def build_view(conn: sqlite3.Connection, config: dict, user_id: str | None = None) -> dict:
+    from src.ai.llm_budget import usage_today
+    from src.utils.user_context import resolve_user_id
     engine = coach_engine_health.get_engine(conn, config)
     health = engine["health"]
     consent = engine["consent"] or {}
@@ -62,7 +64,7 @@ def build_view(conn: sqlite3.Connection, config: dict) -> dict:
         "provider": engine["selected"]["provider"], "providers": providers, "mode": engine["mode"],
         "fallback_enabled": consent.get("fallback_enabled", True), "exclude_notes": notes_off,
         "consented": bool(consent.get("accepted_at")) and consent.get("provider") == engine["selected"]["provider"],
-        "scope": scope, "usage_7d": usage_7d(conn),
+        "scope": scope, "usage_7d": usage_7d(conn), "usage_today": usage_today(resolve_user_id(user_id)),
         "chain": engine["chain"], "health": health,
         "last_error_label": coach_engine_health.reason_label(err.get("reason")) if err else None,
     }
@@ -118,12 +120,14 @@ def apply_patch(conn: sqlite3.Connection, config: dict, user_id: str, changes: d
 
 def test_connection(provider: str, config: dict) -> dict:
     """아주 짧은 프롬프트 1회 호출. {ok, reason, label, http_status}."""
+    from src.ai import llm_budget
     from src.ai.chat_engine_providers import complete
 
     if not api_key_for(provider, config):
         return {"ok": False, "reason": "no_key", "label": coach_engine_health.reason_label("no_key"), "http_status": None}
     try:
-        complete(provider, _PING_PROMPT, config)
+        with llm_budget.scope(None, "test"):
+            complete(provider, _PING_PROMPT, config)
     except ProviderError as exc:
         return {"ok": False, "reason": exc.reason, "label": coach_engine_health.reason_label(exc.reason),
                 "http_status": exc.http_status}

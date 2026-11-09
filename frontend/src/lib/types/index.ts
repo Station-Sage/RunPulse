@@ -376,7 +376,7 @@ export interface EngineView {
 	label: string;
 	provider: string | null;
 	model: string | null;
-	reason: string | null;
+	reason: string | null; resets_at?: string | null; // resets_at: quota_* 대체 시 다음 00:00 KST
 }
 
 export interface ScopeItem {

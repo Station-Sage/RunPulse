@@ -119,10 +119,12 @@ def replay_events(conn: sqlite3.Connection, message_id: int) -> list[tuple[str, 
 
 def _execute(run: _Run, db_file: str, config: dict | None, thread_id: int, assistant_id: int,
              user_text: str, chip_id: str | None) -> None:
+    from src.ai import llm_budget
     conn = sqlite3.connect(db_file)
     try:
-        coach_service.generate_reply(conn, thread_id, assistant_id, user_text, config=config, chip_id=chip_id,
-                                     on_event=run.emit, cancelled=run.cancel.is_set)
+        with llm_budget.scope(llm_budget.uid_from_db(db_file), "coach"):
+            coach_service.generate_reply(conn, thread_id, assistant_id, user_text, config=config,
+                                         chip_id=chip_id, on_event=run.emit, cancelled=run.cancel.is_set)
         for name, data in replay_events(conn, assistant_id):
             run.emit(name, data)
     except Exception:

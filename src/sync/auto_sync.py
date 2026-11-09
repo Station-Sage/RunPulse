@@ -4,10 +4,14 @@ config.auto_sync:
   enabled (bool, default True)
   interval_hours (int, default 4)
   days (int, default 2)  — 동기화 범위 (오늘 기준 N일 전부터)
+
+env SYNC_SCHEDULER=legacy(기본)|multi — legacy 는 사용자 1명 1h 루프(아래 코드 그대로),
+multi 는 src/sync/scheduler.py 의 단일 스케줄러가 활성 사용자 전원을 순회한다(AUTH-MULTIUSER-SYNC).
 """
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from datetime import date, datetime, timedelta
 
@@ -80,9 +84,19 @@ def _loop(config: dict, user_id: str, interval_hours: int, days: int) -> None:
     log.info("[auto_sync] 루프 종료")
 
 
+def scheduler_mode() -> str:
+    """`SYNC_SCHEDULER` — multi 만 인정, 그 외(미설정 포함)는 legacy."""
+    return "multi" if os.environ.get("SYNC_SCHEDULER", "legacy").strip().lower() == "multi" else "legacy"
+
+
 def start(config: dict, user_id: str = "default") -> None:
-    """auto_sync daemon thread 시작. 이미 실행 중이면 스킵."""
+    """auto_sync daemon thread 시작. 이미 실행 중이면 스킵. multi 모드면 다중 사용자 스케줄러를 띄운다."""
     global _thread
+    if scheduler_mode() == "multi":
+        from src.sync.scheduler_run import start_multi
+        start_multi()
+        log.info("[auto_sync] multi 스케줄러 사용 (SYNC_SCHEDULER=multi)")
+        return
 
     auto_cfg = config.get("auto_sync", {})
     if not auto_cfg.get("enabled", True):
@@ -119,11 +133,17 @@ def restart(config: dict, user_id: str = "default") -> None:
     start(config, user_id)
 
 
-def status() -> dict:
-    """현재 상태 반환 (UI 표시용)."""
+def status(user_id: str | None = None) -> dict:
+    """현재 상태 반환 (UI 표시용). user_id 를 명시해 부른다(생략 시 스레드 로컬·세션 폴백)."""
     from src.utils.sync_ledger_query import last_auto_run
-    last = last_auto_run()
+    last = last_auto_run(user_id)
+    if scheduler_mode() == "multi":
+        from src.sync.scheduler_run import instance
+        inst = instance()
+        running = bool(inst and inst.running())
+    else:
+        running = bool(_thread and _thread.is_alive())
     return {
-        "running": bool(_thread and _thread.is_alive()),
+        "running": running,
         "last_run": last.isoformat(timespec="seconds") if last else None,
     }

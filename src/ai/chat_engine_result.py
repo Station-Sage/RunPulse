@@ -11,6 +11,7 @@ import time
 from dataclasses import asdict, dataclass, field
 
 from .chat_engine_providers import complete
+from .llm_budget import BUDGET_REASONS, QUOTA_REASONS, resets_at
 from .provider_common import (
     LLM_PROVIDERS, TOTAL_BUDGET, ProviderError, api_key_for, model_for,
 )
@@ -39,6 +40,7 @@ class EngineInfo:
     attempts: list[Attempt] = field(default_factory=list)
     fallback_reason: str | None = None
     tool_calls: int = 0
+    resets_at: str | None = None   # quota_* 규칙 대체 시 다음 00:00 KST (multiuser-sync §4.3)
 
 
 @dataclass
@@ -115,8 +117,8 @@ def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain:
         attempts.append(attempt)
         if attempt.ok:
             return text, prov, attempts
-        if time.monotonic() >= deadline:
-            break
+        if attempt.reason in BUDGET_REASONS or time.monotonic() >= deadline:
+            break  # 예산 거부는 사용자·전역 단위라 다음 provider도 같은 결과
     return None, None, attempts
 
 
@@ -124,7 +126,9 @@ def engine_for_rule(selected: str, config: dict | None, empty_reason: str | None
                     attempts: list[Attempt]) -> EngineInfo:
     """규칙 답변이 나간 경우의 EngineInfo — 선택(끔)/AI 미설정/미동의/전 provider 실패를 구분한다."""
     if attempts:
-        return EngineInfo("fallback", "rule", None, attempts, attempts[0].reason)
+        reason = next((a.reason for a in attempts if a.reason in BUDGET_REASONS), attempts[0].reason)
+        resets = resets_at() if reason in QUOTA_REASONS else None
+        return EngineInfo("fallback", "rule", None, attempts, reason, resets_at=resets)
     if selected == "rule" or selected not in LLM_PROVIDERS:
         return EngineInfo("rule_by_choice")
     return EngineInfo("rule_only", fallback_reason=empty_reason or "no_key")

@@ -18,3 +18,11 @@ test('usageText / keyStateText', () => {
 		'최근 7일 답변 3건 · Gemini 2회 · 규칙 대체 1회 · 데이터 조회 4회');
 	assert.equal(keyStateText('invalid'), '키가 거부됐어요');
 });
+
+test('usageTodayText: 오늘 사용량·한도 도달 안내', async () => {
+	const { usageTodayText } = await import('../src/lib/aiSettings.ts');
+	const u = { calls: 12, tokens: 3400, limit_calls: 200, limit_tokens: 300000, resets_at: '2026-11-07T00:00+09:00' };
+	assert.equal(usageTodayText(undefined), '');
+	assert.equal(usageTodayText(u), '오늘 AI 호출 12/200회 · 토큰 3,400/300,000');
+	assert.match(usageTodayText({ ...u, calls: 200 }), /한도 도달\(자정 초기화\)$/);
+});

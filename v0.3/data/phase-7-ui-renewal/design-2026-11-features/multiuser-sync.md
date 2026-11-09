@@ -1,6 +1,6 @@
 # 다중 사용자 자동 동기화 · LLM 비용 상한 설계서 (AUTH-MULTIUSER-SYNC, G-9)
 
-- 작성 2026-11-06, system-architect. 상태: **설계 초안 — 사용자 승인 대기**(코드 변경 없음).
+- 작성 2026-11-06, system-architect. 상태: **T1~T9 구현 완료(2026-11-09, feat/frs-f3, 커밋·운영 반영 대기)** — 기본 `SYNC_SCHEDULER=legacy`.
 - 기준: `renew/data-architecture` 526c132. 근거는 `파일:줄`(작성 시점).
 - 선행/연관: ADR-043(가입 개방, `design-2026-11-auth/README.md` G-9), ADR-044/047(원장 `sync_jobs.db`·`sync_gates`).
 - 미결은 모두 **추천안으로 단정**했다. 뒤집으려면 §8 표의 해당 행만 바꾸면 된다.
@@ -213,4 +213,13 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
 6. `python3 scripts/check_docs.py` 통과. ADR 기록, BACKLOG `[AUTH-MULTIUSER-SYNC]` 상태 갱신.
 
 ## 11. 구현 기록
-- (미착수)
+- 2026-11-09 T1~T9 구현(feat/frs-f3). 신규: `src/ops/{store,activity}.py`, `src/sync/{scheduler,scheduler_policy,scheduler_run,bg_sync_wait}.py`, `src/ai/llm_budget.py`, `scripts/ops_report.py`. 테스트 신규 11개 파일.
+- 설계와 다른 점:
+  - `run_user`·기본 의존·`start_multi`는 300줄 상한 때문에 `scheduler_run.py`로 분리. `wait_user`·서비스 토큰은 `bg_sync_wait.py`(bg_sync.py 625줄).
+  - Coach scope는 `coach_service.py`(300줄) 대신 실제 실행 스레드인 `coach_async._execute`에서 연다(uid는 db 경로 `data/users/<uid>/`에서 해석 — 백그라운드 스레드라 세션 없음). 워밍도 db 경로로 uid 해석.
+  - 분당 10회 초과는 reason `busy`(자정 초기화가 아니라 곧 풀리므로). quota/busy 거부 시 provider 체인을 더 돌지 않는다.
+  - 활동 복귀 poke 조건은 "직전 활동이 7일 초과"(휴면·저빈도 모두 즉시 해제). poke는 원장 기준(last_auto_run+interval)으로 due 재계산 — patch_auto와 같은 의미.
+  - `auto_settings.state`는 legacy에서도 응답에 추가(auth_suspended는 multi만 발생). 모든 소스가 auth_suspended일 때만 그 상태.
+  - 계정 삭제 경로가 코드에 없어 `OpsStore.delete_user`만 두고 훅은 미연결. `.gitignore`에 `data/ops.db*` 추가(기존 data/ 전체 무시 아님).
+  - heat_forecast 캐시는 `forecast_heat_pct` 안(프로세스 메모리, 실패 응답 비캐시) — 호출부는 `weekly_adapt_job`(GET /coach/plan/active).
+- 미완: ADR 기록(번호 결정 필요 — decisions.md에 ADR-043 중복, ADR-050 결번), §10 DoD 2~5(운영 24h 관찰·합성 20명·브라우저 실측).

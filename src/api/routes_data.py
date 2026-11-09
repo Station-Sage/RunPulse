@@ -175,7 +175,7 @@ def get_sync_auto():
 
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)
-    return api_ok(data_settings_service.auto_settings(config, last_auto_run(user_id)))
+    return api_ok(data_settings_service.auto_settings(config, last_auto_run(user_id), user_id=user_id))
 
 
 @api_bp.patch("/data/sync/auto")

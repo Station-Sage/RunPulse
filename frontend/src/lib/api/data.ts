@@ -232,11 +232,11 @@ export interface AiSettings {
 	provider: string;
 	providers: AiProviderRow[];
 	mode: 'llm' | 'rule_only' | 'rule_by_choice';
-	fallback_enabled: boolean;
-	exclude_notes: boolean;
+	fallback_enabled: boolean; exclude_notes: boolean;
 	consented: boolean;
 	scope: { item: string; period: string; optional: boolean; enabled: boolean }[];
 	usage_7d: { messages: number; by_provider: Record<string, number>; fallback: number; rule: number; tool_calls: number };
+	usage_today?: { calls: number; tokens: number; limit_calls: number; limit_tokens: number; resets_at: string };
 	chain: { provider: string; model: string }[];
 	health: { consecutive_failures: number; degraded: boolean };
 	last_error_label: string | null;

@@ -84,6 +84,8 @@ def mcp_endpoint() -> Response:
     if not found:
         return _auth_fail(None, ip)
     tid, uid = found["token_id"], found["user_id"]
+    from src.ops.activity import touch as _touch_activity
+    _touch_activity(uid)  # 활동 신호(휴면 판정), 실패해도 요청은 계속
     if (request.content_length or 0) > MAX_BODY:
         return _err(413, "payload too large")
     ver = request.headers.get("MCP-Protocol-Version")

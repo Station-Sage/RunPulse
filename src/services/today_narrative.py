@@ -97,8 +97,10 @@ def get_today_narrative(
 
     weeks = week_digests(conn, month_start, date)
     # ── AI 생성 시도 ───────────────────────────────────────────────────────
+    from src.ai import llm_budget
     text = None
     source = "rule"
+    refused = None
     provider = get_ai_provider(config)
     chain = _build_chat_provider_chain(provider, config)
     if chain:
@@ -107,12 +109,16 @@ def get_today_narrative(
             sleep_recent, sleep_prev, month_label=month_label, weeks=weeks,
             other_line=other_line(month_other),
         )
-        for prov in chain:
-            ai_result = _call_provider(prov, prompt, config)
-            if ai_result:
-                text = ai_result
-                source = "ai"
-                break
+        with llm_budget.ensure_scope("narrative") as sc:
+            for prov in chain:
+                ai_result = _call_provider(prov, prompt, config)
+                if ai_result:
+                    text = ai_result
+                    source = "ai"
+                    break
+                if sc.refused:
+                    refused = sc.refused  # 예산 거부 — 다음 provider도 같은 결과
+                    break
 
     if text is None:
         text = rule_narrative(
@@ -129,6 +135,8 @@ def get_today_narrative(
         "highlights": highlights,
         "weeks": weeks,
     }
+    if refused:
+        out["reason"] = refused
     # ── AI 성공 시에만 캐시 저장 ───────────────────────────────────────────
     if source == "ai":
         set_narrative_cache(conn, month_start, date, out)

@@ -3,7 +3,7 @@
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
-	import { engineSummary, keyStateText, providerName, usageText } from '$lib/aiSettings';
+	import { engineSummary, keyStateText, providerName, usageText, usageTodayText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
 
 	let { data }: { data: AiPageData } = $props();
@@ -53,6 +53,9 @@
 			<h2 class="text-sm text-fg-primary">지금 Coach 답변 방식</h2>
 			<p class="mt-1 text-sm text-fg-primary">{engineSummary(s)}</p>
 			<p class="mt-1 text-xs text-fg-secondary">{usageText(s.usage_7d)}</p>
+			{#if s.usage_today}
+				<p class="mt-1 text-xs text-fg-secondary" data-testid="usage-today">{usageTodayText(s.usage_today)}</p>
+			{/if}
 		</section>
 
 		<section class="flex flex-col gap-2">

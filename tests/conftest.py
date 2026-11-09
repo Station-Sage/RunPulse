@@ -170,3 +170,18 @@ def _isolated_sync_ledger(tmp_path, monkeypatch):
     import src.utils.sync_jobs as sj
     monkeypatch.setattr(sj, "_jobs_db_path", lambda uid=None: str(tmp_path / "sync_jobs.db"))
     yield
+
+
+@pytest.fixture(autouse=True)
+def _isolated_ops_db(tmp_path, monkeypatch):
+    """전역 ops.db(스케줄러·활동 신호·LLM 사용량)를 테스트별 임시 경로로 격리 + 메모리 상태 초기화."""
+    monkeypatch.setenv("OPS_DB_PATH", str(tmp_path / "ops.db"))
+    monkeypatch.delenv("SYNC_SCHEDULER", raising=False)
+    monkeypatch.delenv("LLM_LIMITS_JSON", raising=False)
+    from src.ai import llm_budget
+    from src.ops import activity
+    activity.recorder.reset()
+    llm_budget.reset_for_tests()
+    from src.services import heat_forecast
+    heat_forecast.clear_cache()
+    yield

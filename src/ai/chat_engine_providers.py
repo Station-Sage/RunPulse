@@ -64,15 +64,23 @@ _TOOL_SYSTEM_TEXT = (
 
 
 def _post(url: str, headers: dict, body: dict, deadline: float | None, provider: str) -> dict:
+    """LLM HTTP 호출의 유일한 지점 — llm_budget admit(상한·동시 3) → 호출 → settle(사용량 기록)."""
     import httpx
+    from . import llm_budget
+    timeout = timeout_for(deadline)
+    ticket = llm_budget.admit(provider)
+    data = None
     try:
-        resp = httpx.post(url, headers=headers, json=body, timeout=timeout_for(deadline))
+        resp = httpx.post(url, headers=headers, json=body, timeout=timeout)
         check_response(resp, provider)
-        return resp.json()
+        data = resp.json()
+        return data
     except ProviderError:
         raise
     except Exception as exc:
         raise wrap_transport_error(exc) from exc
+    finally:
+        llm_budget.settle(ticket, data, llm_budget.chars_of(body.get("messages")), llm_budget.chars_of(data))
 
 
 def _non_empty(text, provider: str) -> str:

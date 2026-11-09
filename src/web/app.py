@@ -98,6 +98,10 @@ def create_app() -> Flask:
     from .response_policy import init_response_policy
     init_response_policy(app)
 
+    # 활동 신호(휴면 판정용, uid 별 10분 1회 ops.db — 캘린더 피드 제외, AUTH-MULTIUSER-SYNC T2)
+    from src.ops.activity import init_activity_hook
+    init_activity_hook(app)
+
     # 메모리 상태(Garmin MFA 대기) 단일 워커 전제 점검 — 여러 개면 경고 + MFA 비활성
     from src.utils.worker_count import check_single_worker
     check_single_worker()

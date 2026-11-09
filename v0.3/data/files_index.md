@@ -118,7 +118,7 @@
 
 - functions: kind_of, triggered, intensity, primary, classify
 
-### `ai_settings_service.py` (130줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+### `ai_settings_service.py` (134줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, validate_patch, apply_patch, test_connection
 
@@ -138,7 +138,7 @@
 
 - functions: suggested_questions, get_activity_context, activity_prompt_summary
 
-### `coach_async.py` (229줄) — Coach 비동기 답변 실행기 — 워커 스레드·메시지별 이벤트 로그·취소 플래그·SSE 직렬화 (design §6.2, §7.1).
+### `coach_async.py` (231줄) — Coach 비동기 답변 실행기 — 워커 스레드·메시지별 이벤트 로그·취소 플래그·SSE 직렬화 (design §6.2, §7.1).
 
 - class **_Run**: emit, finish
 - functions: source_text, replay_events, start, cancel, sse, stream
@@ -147,7 +147,7 @@
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (130줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (131줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
@@ -191,7 +191,7 @@
 
 - functions: run_dict, runs, sources, source_detail, summary
 
-### `data_settings_service.py` (74줄) — Data 설정 쓰기 — 소스 동기화 on/off, 자동 동기화 설정 (design 40 §7.3).
+### `data_settings_service.py` (115줄) — Data 설정 쓰기 — 소스 동기화 on/off, 자동 동기화 설정 (design 40 §7.3).
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
@@ -233,9 +233,9 @@
 
 - functions: create_goal_with_race
 
-### `heat_forecast.py` (52줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
+### `heat_forecast.py` (81줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
 
-- functions: home_coords, morning_temps, heat_pcts, forecast_heat_pct
+- functions: cache_key, clear_cache, home_coords, morning_temps, heat_pcts, forecast_heat_pct
 
 ### `illness_consent.py` (44줄) — 질병 정보 AI 코치 전송 동의 (NEW-12·14~17) — illness_consent_events 추가 전용 기록, 현재 상태 = 최신 행.
 
@@ -333,7 +333,7 @@
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
-### `narrative_warm.py` (82줄) — 이번 달 Today 내러티브 사전 생성(워밍) — 동기화 직후 AI 문장을 캐시에 미리 채운다 (DESIGN-U17 §3).
+### `narrative_warm.py` (96줄) — 이번 달 Today 내러티브 사전 생성(워밍) — 동기화 직후 AI 문장을 캐시에 미리 채운다 (DESIGN-U17 §3).
 
 - functions: warm_month_narrative, warm_in_background
 
@@ -530,7 +530,7 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
-### `today_narrative.py` (135줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+### `today_narrative.py` (143줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
 - functions: get_today_narrative
 
@@ -835,15 +835,20 @@
 
 - functions: sanitize_activity_core, save_activity_core, save_metrics, save_laps, save_streams, save_best_efforts, save_daily_wellness, save_daily_fitness, resolve_primaries
 
-### `auto_sync.py` (129줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
+### `auto_sync.py` (149줄) — 자동 주기 동기화 — 설정된 간격마다 incremental sync 트리거.
 
-- functions: start, stop, restart, status
+- functions: scheduler_mode, start, stop, restart, status
 
 ### `bg_sync.py` (625줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
 - functions: start_job, pause_job, stop_job, cancel_job, resume_job, start_basic_sync, get_status
+
+### `bg_sync_wait.py` (85줄) — bg_sync 완료 대기·서비스 전역 토큰 — 스케줄러가 동기화 스레드 수를 실제로 제한하게 한다(multiuser-sync §3.2·T4).
+
+- class **WaitResult**: 없음
+- functions: acquire_services, release_services, reset_services, wait_user
 
 ### `dedup.py` (119줄) — 활동 중복 감지 — 7분 / 15% 규칙.
 
@@ -968,6 +973,21 @@
 ### `runalyze_activity_sync.py` (88줄) — Runalyze 활동 동기화 Orchestrator.
 
 - functions: sync
+
+### `scheduler.py` (265줄) — MultiUserScheduler — 단일 스레드 tick 루프로 활성 사용자 전원을 자동 동기화한다(multiuser-sync §3.1·§3.2, T5).
+
+- class **RunResult**: 없음
+- class **SchedCfg**: 없음
+- class **TickReport**: key
+- class **MultiUserScheduler**: start, stop, running, poke, inflight, tick
+
+### `scheduler_policy.py` (111줄) — 다중 사용자 스케줄러 정책 — due·휴면·지터·백오프·인증 중지 순수 함수(부작용·I/O 없음, multiuser-sync §3.3·§3.4).
+
+- functions: pinned_uids, auto_cfg, activity_tier, effective_interval_h, backoff_interval, jitter, initial_due, next_due, classify, update_auth_streak, next_fail_streak, order_candidates
+
+### `scheduler_run.py` (151줄) — 스케줄러 사용자 작업·기본 의존 — run_user(게이트·busy·서비스 토큰·완료 대기·원장 판정)와 multi 모드 기동(T5·T6).
+
+- functions: default_users, ledger_last_auto_run, config_interval, suspend_source, release_user, run_user, build_default, start_multi, instance, poke
 
 ### `strava.py` (78줄) — Strava 데이터 동기화 (OAuth2) — 하위 모듈 wrapper.
 
@@ -1127,11 +1147,11 @@
 
 - functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (263줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (271줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_result.py` (139줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+### `chat_engine_result.py` (143줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
 
 - class **Attempt**: 없음
 - class **EngineInfo**: 없음
@@ -1172,11 +1192,17 @@
 
 - functions: send_and_receive
 
+### `llm_budget.py` (241줄) — LLM 예산 — 사용자·전역 일 상한, 분당 상한, 동시 실행 상한을 `_post` 한 지점에서 계량한다(multiuser-sync §4, T7).
+
+- class **Scope**: 없음
+- class **Ticket**: 없음
+- functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
+
 ### `prompt_config.py` (244줄) — 프롬프트 템플릿 관리 — 카드별 AI 프롬프트 정의 + 사용자 커스터마이즈.
 
 - functions: get_prompt, get_all_prompts, get_tab_prompt
 
-### `provider_common.py` (94줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+### `provider_common.py` (95줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
 - class **ProviderError**: 없음
 - class **RateLimitError**: 없음
@@ -1230,7 +1256,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (252줄) — RunPulse integration workbench web app.
+### `app.py` (256줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1634,11 +1660,11 @@
 - class **PeerMatch**: 없음
 - class **PeerTzIndex**: add_confirmed, build, lookup, nearest_confirmed
 
-### `user_context.py` (127줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
+### `user_context.py` (133줄) — 사용자 컨텍스트 — request context 없는 스레드/subprocess에서 user_id를 해석한다.
 
 - class **InvalidUserId**: 없음
 - class **NoUserContext**: 없음
-- functions: mask_uid, validate_uid, users_root, list_user_ids, set_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
+- functions: mask_uid, validate_uid, users_root, list_user_ids, set_current_user, clear_current_user, set_current_job, current_job, resolve_user_id, project_root, get_current_user_id, db_path
 
 ### `vo2max_source.py` (53줄) — Garmin VO2max 값 선택 — 일별 정밀값(maxmet)과 활동별 정수값 중 더 최근 측정 우선 (DESIGN-GARMIN-VO2MAX-PRECISE D3).
 
@@ -1691,7 +1717,7 @@
 
 - functions: ip_hash, record, purge, query
 
-### `http.py` (130줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
+### `http.py` (132줄) — 원격 MCP 엔드포인트 — POST /mcp (Streamable HTTP, JSON 단발·무상태, Bearer 토큰 인증).
 
 - functions: enabled, mcp_endpoint
 
@@ -1836,7 +1862,7 @@
 
 - functions: import_page, import_upload, import_upload_archive, sync_status
 
-### `routes_v1_sync.py` (416줄) — v1 동기화 JSON·SSE 라우트 — `/trigger-sync*`·`/api/garmin/local-sync`·`/bg-sync/*` (V1S-12 b안).
+### `routes_v1_sync.py` (418줄) — v1 동기화 JSON·SSE 라우트 — `/trigger-sync*`·`/api/garmin/local-sync`·`/bg-sync/*` (V1S-12 b안).
 
 - functions: trigger_sync, trigger_sync_stream, trigger_sync_bg, garmin_local_sync, bg_sync_start, bg_sync_pause, bg_sync_stop, bg_sync_resume, bg_sync_status
 
@@ -1852,7 +1878,7 @@
 
 ## `tests/`
 
-### `conftest.py` (172줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (187줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -2135,6 +2161,11 @@
 
 - class **_FakeThread**: start, is_alive
 - functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop, test_resume_ignores_cancelled_job
+
+### `test_bg_sync_wait.py` (80줄) — bg_sync_wait(T4) — 가짜 스레드 join, 타임아웃 반환, 서비스 토큰 비차단 실패.
+
+- class **FakeThread**: is_alive, join
+- functions: test_wait_user_joins_until_done, test_wait_user_timeout_returns_pending, test_wait_user_no_threads_is_done, test_real_thread_join, test_garmin_slot_global_one_nonblocking, test_acquire_failure_releases_partial, test_over_release_ignored
 
 ### `test_boost_hold.py` (97줄) — BOOST 보류(ADR-050 F4) — adjuster boost_hold 주입, todays_adjustment_with_hold, Hero hold_reason.
 
@@ -2658,9 +2689,9 @@
 
 - functions: test_copy_id_is_computed_on_canonical_only, test_stale_copy_rows_pruned, test_group_streams_and_metric_filled_from_sibling
 
-### `test_heat_forecast.py` (11줄) — 예보 기온 → 폭염 보정(E10) 순수 변환.
+### `test_heat_forecast.py` (53줄) — 예보 기온 → 폭염 보정(E10) 순수 변환.
 
-- functions: test_morning_temps_and_pct
+- functions: test_morning_temps_and_pct, test_forecast_cache_hit_skips_getter, test_forecast_failure_not_cached
 
 ### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
 
@@ -2728,6 +2759,14 @@
 ### `test_ledger_claim.py` (82줄) — claim_run·heartbeat — 원자적 선점, stale 정리, 동시성.
 
 - functions: db, test_claim_empty_ledger_returns_running_row, test_claim_blocked_by_fresh_running, test_claim_other_service_independent, test_claim_closes_stale_and_takes_slot, test_claim_saves_params, test_concurrent_claims_single_winner, test_heartbeat_updates_and_stops
+
+### `test_llm_budget.py` (163줄) — llm_budget(T7) — 200회째 허용·201회째 quota_user, 전역 합산 거부, usage 추정, KST 자정 경계, 세마포어 busy, 단일 호출 지점.
+
+- functions: test_user_calls_limit_200_then_refuse, test_user_tokens_limit, test_global_sum_refuses_other_user, test_global_warning_once, test_usage_estimate_when_missing, test_claude_usage_fields, test_kst_midnight_boundary, test_resets_at_next_midnight, test_semaphore_three_then_busy, test_per_minute_limit_busy, test_unscoped_measured_not_blocked, test_env_override_and_bad_json, test_ensure_scope_keeps_outer_and_uid_from_db, test_usage_today_and_global_ratio, test_post_meters_through_single_point, test_post_refused_makes_no_http, test_httpx_post_single_call_site
+
+### `test_llm_budget_ux.py` (122줄) — LLM 한도 초과 UX(T8) — Coach 규칙 답변+reason+resets_at, 설정 usage_today, Today reason, 워밍 uid 락·80% 중단.
+
+- functions: test_coach_quota_falls_back_to_rule_with_reason, test_reason_labels_and_engine_view, test_settings_view_has_usage_today, test_connection_test_scoped_and_refused, test_today_narrative_rule_with_reason, test_warm_lock_is_per_user, test_warm_scoped_as_warm, test_warm_stops_at_global_80pct, test_coach_async_scopes_uid_from_db_path
 
 ### `test_long_run_rules.py` (92줄) — U16-LR L1: 롱런 하한·상한 순수 규칙 — 설계서 §8.1 경계값 표(#1~#17).
 
@@ -2894,6 +2933,19 @@
 ### `test_new_user_db_autocreate.py` (34줄) — 신규 가입자: 인증된 /api/v1 요청에서 빈 DB 자동 생성, 그 외 경로·미인증은 생성 안 함.
 
 - functions: client, test_api_request_creates_empty_db, test_non_api_path_does_not_create_db
+
+### `test_ops_activity.py` (92줄) — 활동 신호(T2) — 10분 스로틀, 캘린더 피드 0 write, 복귀 시 poke, before_request 훅.
+
+- class **Mono**: 없음
+- functions: test_throttle_two_in_ten_minutes_one_write, test_empty_uid_ignored, test_return_after_week_pokes, test_store_failure_does_not_raise, test_should_record_excludes_calendar_feed, test_before_request_hook_records_and_skips_feed, test_module_touch_uses_default_store
+
+### `test_ops_report.py` (42줄) — scripts/ops_report.py(T9) — 빈 DB·샘플 DB 리포트, 읽기 전용.
+
+- functions: test_empty_report_when_no_db, test_sample_report, test_main_json
+
+### `test_ops_store.py` (78줄) — OpsStore(T1) — 멱등 DDL, UPSERT, 14/90일 보존 경계, 사용자 삭제.
+
+- functions: store, test_ddl_idempotent, test_ops_db_path_env, test_touch_activity_returns_previous, test_state_upsert_roundtrip, test_add_run_and_runs_since, test_usage_accumulates_user_and_global, test_purge_boundaries, test_delete_user_removes_all_rows
 
 ### `test_orchestrator.py` (115줄) — DoD #11: orchestrator.full_sync + sync_jobs 기록.
 
@@ -3304,6 +3356,20 @@
 
 - class **TestSAPI**: test_with_fearp_data, test_no_fearp, test_category
 
+### `test_scheduler.py` (209줄) — MultiUserScheduler(T5) — tick() 직접 호출: 동시 상한, in-flight 중복 0, 예외 격리, busy/gated, 연체순, 휴면.
+
+- class **Clock**: 없음
+- class **DeferredExecutor**: submit, run_all
+- functions: make, ok, test_max_two_concurrent, test_inflight_not_duplicated, test_exception_isolated, test_busy_defers_15min, test_gated_uses_retry_after, test_slot_skip_keeps_due_and_no_run_row, test_overdue_order, test_not_due_not_dispatched, test_dormant_skipped_and_poke_reinit, test_pinned_ignores_dormancy, test_ok_next_due_interval_plus_jitter_and_run_row, test_fail_backoff_grows, test_auth_three_times_suspends_source, test_thread_local_released, test_loop_start_stop, test_tick_log_throttled
+
+### `test_scheduler_policy.py` (86줄) — scheduler_policy(T3) — 휴면 경계·백오프·지터·인증 중지·정렬 표 기반 검사.
+
+- functions: test_activity_tier_boundaries, test_tier_no_record_and_pinned_are_active, test_backoff_interval, test_backoff_daily_interval_stays_24h, test_effective_interval_slow, test_jitter_bounds_and_seeded, test_initial_due_matches_legacy, test_next_due_slow_uses_24h, test_classify, test_auth_streak_suspends_at_three_and_resets_on_success, test_next_fail_streak, test_order_candidates_overdue_first, test_pinned_uids_and_auto_cfg
+
+### `test_scheduler_wiring.py` (246줄) — 스케줄러 연결(T6) — legacy 무회귀, multi 골든(사용자 1명 due·trigger 인자 = legacy), patch_auto→poke, run_user.
+
+- functions: test_mode_default_is_legacy, test_legacy_start_uses_single_thread_not_scheduler, test_legacy_patch_auto_restarts, test_multi_patch_auto_pokes_not_restart, test_multi_start_boots_scheduler, test_poke_without_instance_is_false, test_golden_due_matches_legacy, test_golden_trigger_args_match_legacy, test_run_user_ok, test_run_user_disabled_and_no_source, test_run_user_gated_sources_excluded, test_run_user_busy, test_run_user_slot_taken, test_run_user_timeout_releases_tokens, test_run_user_auth, test_default_users_drop_default, test_default_users_registry, test_suspend_source_blocks_gate, test_release_user_clears_thread_local, test_config_interval_and_last_run, test_start_multi_singleton, test_auto_settings_state
+
 ### `test_schema_v23.py` (43줄) — 스키마 v23 — chat_messages 엔진 컬럼·coach_consent (30-coach-chat design §4.3·§6.2).
 
 - functions: test_create_tables_has_v23_columns_and_consent, test_ensure_v23_idempotent, test_migrate_from_22, test_consent_single_row_only
@@ -3704,6 +3770,10 @@
 
 - functions: main
 
+### `ops_report.py` (113줄) — 운영 리포트 — ops.db 읽기 전용: 최근 24h 스케줄러 성공률·p95·연체·휴면, 오늘 LLM 상위 10·전역 사용률 (AUTH-MULTIUSER-SYNC §5).
+
+- functions: build_report, open_readonly, main
+
 ### `plan_backtest.py` (50줄) — 계획 엔진 백테스트 CLI — 실DB 사본(읽기 전용)의 역사 시나리오와 합성 격자를 돌려 게이트 결과를 JSON 으로 낸다.
 
 - functions: main
@@ -3725,7 +3795,7 @@
 - functions: run
 
 ---
-총 799개 파일
+총 814개 파일
 
 ## docstring 누락
 

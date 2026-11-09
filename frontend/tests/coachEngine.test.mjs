@@ -46,3 +46,12 @@ test('visibleScope: 메모 제외 시 optional 항목 제거', () => {
 	assert.equal(visibleScope(scope, false).length, 2);
 	assert.deepEqual(visibleScope(scope, true).map((s) => s.item), ['a']);
 });
+
+test('fallbackText: 사용량 한도는 한도 안내, 그 외는 실패 문구', async () => {
+	const { fallbackText, reasonText } = await import('../src/lib/coachEngine.ts');
+	assert.equal(fallbackText('quota_user'), '오늘 AI 사용 한도에 도달해 기본 답변으로 대신했어요(자정 초기화)');
+	assert.match(fallbackText('quota_global'), /일시적으로 제한/);
+	assert.match(fallbackText('busy'), /몰려/);
+	assert.equal(fallbackText('http_404'), 'AI 연결에 실패해 기본 규칙으로 답했어요 · 연결 실패(404)');
+	assert.equal(reasonText('quota_user'), '오늘 AI 사용 한도');
+});

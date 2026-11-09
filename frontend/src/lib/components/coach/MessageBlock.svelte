@@ -5,7 +5,7 @@
 	import ChatBody from '$lib/components/ChatBody.svelte';
 	import EvidenceRow from './EvidenceRow.svelte';
 	import { driftText } from '$lib/answerEvidence';
-	import { bannerFor, reasonText } from '$lib/coachEngine';
+	import { bannerFor, fallbackText, reasonText } from '$lib/coachEngine';
 	import type { LiveEntry } from '$lib/coachLive.svelte';
 	import StreamStatus from './StreamStatus.svelte';
 
@@ -60,7 +60,7 @@
 				class="mt-2 rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary"
 				data-testid="fallback-banner"
 			>
-				AI 연결에 실패해 기본 규칙으로 답했어요 · {reasonText(engine?.reason)}
+				{fallbackText(engine?.reason)}
 				<div class="mt-1 flex gap-3">
 					<button type="button" class="underline disabled:opacity-40" disabled={regenerating}
 						data-testid="regenerate" onclick={() => onRegenerate(msg.id)}

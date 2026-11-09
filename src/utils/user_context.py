@@ -73,6 +73,12 @@ def set_current_user(user_id: str) -> None:
     _LOCAL.user_id = user_id
 
 
+def clear_current_user() -> None:
+    """풀 스레드 재사용 시 이전 사용자 값이 남지 않게 thread-local user_id·job_id 를 지운다(스케줄러)."""
+    _LOCAL.user_id = None
+    _LOCAL.job_id = None
+
+
 def set_current_job(job_id: str | None) -> None:
     """현재 스레드가 처리 중인 원장 작업 id — 게이트 기록 등에서 job_id 연결용."""
     _LOCAL.job_id = job_id

@@ -11,11 +11,22 @@ const REASON_TEXT: Record<string, string> = {
 	parse_error: '응답 해석 실패',
 	user_skip: '사용자 선택',
 	no_consent: '동의 필요',
-	network: '네트워크 오류'
+	network: '네트워크 오류',
+	quota_user: '오늘 AI 사용 한도',
+	quota_global: 'AI 사용량 일시 제한',
+	busy: 'AI 요청 혼잡'
 };
 
 export function reasonText(reason: string | null | undefined): string {
 	return REASON_TEXT[reason ?? ''] ?? (reason || '알 수 없음');
+}
+
+/** fallback 배너 문구 — 사용량 한도는 "실패"가 아니라 한도 도달로 안내한다(multiuser-sync §4.3). */
+export function fallbackText(reason: string | null | undefined): string {
+	if (reason === 'quota_user') return '오늘 AI 사용 한도에 도달해 기본 답변으로 대신했어요(자정 초기화)';
+	if (reason === 'quota_global') return 'AI 사용량이 일시적으로 제한돼 기본 답변으로 대신했어요';
+	if (reason === 'busy') return 'AI 요청이 몰려 기본 답변으로 대신했어요 · 잠시 뒤 다시 생성해 보세요';
+	return `AI 연결에 실패해 기본 규칙으로 답했어요 · ${reasonText(reason)}`;
 }
 
 /** LLM을 쓸 수 있는데 이 provider로는 아직 동의하지 않았다면 첫 전송 전에 동의 시트를 띄운다. */

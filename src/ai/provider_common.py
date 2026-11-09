@@ -29,6 +29,7 @@ REASON_LABELS = {
     "http_404": "연결 실패(404)", "http_401": "인증 실패(401)", "http_429": "사용량 한도(429)",
     "timeout": "시간 초과", "no_key": "키 없음", "parse_error": "응답 해석 실패", "user_skip": "사용자 선택",
     "no_consent": "동의 필요", "network": "네트워크 오류", "http_5xx": "서버 오류(5xx)",
+    "quota_user": "오늘 AI 사용 한도", "quota_global": "AI 사용량 일시 제한", "busy": "AI 요청 혼잡",
 }
 
 

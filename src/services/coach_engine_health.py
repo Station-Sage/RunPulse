@@ -78,6 +78,7 @@ def message_engine_view(engine_json: str | None, ai_model: str | None, row_statu
     return {
         "status": status, "provider": data.get("provider"), "model": data.get("model"), "reason": reason,
         "label": engine_label(status, data.get("provider"), data.get("model"), data.get("tool_calls", 0), reason),
+        "resets_at": data.get("resets_at"),
     }
 
 

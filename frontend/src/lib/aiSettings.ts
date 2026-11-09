@@ -18,6 +18,13 @@ export function engineSummary(s: AiSettings): string {
 	return s.chain.length > 1 ? `${name} · 실패 시 ${s.chain.slice(1).map((c) => providerName(c.provider)).join('→')}` : `${name} · 폴백 없음`;
 }
 
+/** 오늘 AI 사용량 한 줄 — 한도·자정 초기화 안내(multiuser-sync §4.3). 없으면 빈 문자열. */
+export function usageTodayText(u: AiSettings['usage_today']): string {
+	if (!u) return '';
+	const head = `오늘 AI 호출 ${u.calls}/${u.limit_calls}회 · 토큰 ${u.tokens.toLocaleString('ko-KR')}/${u.limit_tokens.toLocaleString('ko-KR')}`;
+	return u.calls >= u.limit_calls || u.tokens >= u.limit_tokens ? `${head} · 한도 도달(자정 초기화)` : head;
+}
+
 export function usageText(u: AiSettings['usage_7d']): string {
 	if (!u.messages) return '최근 7일 답변이 없어요';
 	const parts = Object.entries(u.by_provider).map(([p, n]) => `${providerName(p)} ${n}회`);
