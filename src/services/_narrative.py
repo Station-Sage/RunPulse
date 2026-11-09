@@ -116,6 +116,9 @@ def build_narrative_prompt(
         f"기준 날짜: {date}",
         f"아래 훈련 데이터를 기반으로 {period} 훈련 흐름을 한국어 2~3문장으로 요약하라.",
         "반드시 아래 제공된 수치만 사용하고, 데이터에 없는 수치는 절대 언급하지 마라.",
+        # T-06: 앱 전체 문체(해요체)·용어 통일. 기간은 아래 '기간' 표기를 그대로 쓴다(과거 달에 '이번 달' 금지).
+        f"문체는 해요체(~해요, ~였어요)로 쓰고, 기간은 '{period}'로 부른다.",
+        "'롱런'이라는 말 대신 '최장 러닝'을 쓰고, 괄호 안에 괄호를 겹쳐 쓰지 마라.",
         "",
     ]
     if ctl_now is not None:
@@ -125,7 +128,7 @@ def build_narrative_prompt(
         else:
             lines.append(f"- CTL: {ctl_now:.1f}")
     if month_count > 0:
-        lines.append(f"- 이번 달 누적 거리: {month_dist_km}km ({month_count}회 훈련)")
+        lines.append(f"- {period} 누적 러닝 거리: {month_dist_km}km ({month_count}회 훈련)")
     if other_line:
         lines.append(f"- {other_line}")
     if sleep_recent is not None:
@@ -135,11 +138,19 @@ def build_narrative_prompt(
             lines.append(f"- 수면 점수: 최근 7일 평균 {sleep_recent:.0f}")
     if weeks:
         from src.services.week_digest import digest_prompt_lines
-        lines.append("주별 요약(근거를 인용할 때는 \"(W2 롱런 28km)\" 형식으로 주 번호와 함께 쓴다):")
+        lines.append("주별 요약(근거를 인용할 때는 \"(W2 최장 28km)\" 형식으로 주 번호와 함께 쓴다):")
         lines.extend(digest_prompt_lines(weeks))
     if not any(ln.startswith("- ") for ln in lines):
         lines.append("- (데이터 없음)")
     return "\n".join(lines)
+
+
+def empty_month_text(conn: sqlite3.Connection, period: str) -> str:
+    """그 달 활동이 하나도 없을 때의 중립 문구(T-26·T-21) — 미수집과 미실행을 구분하고 평가하지 않는다."""
+    any_row = conn.execute("SELECT 1 FROM v_canonical_activities LIMIT 1").fetchone()
+    if any_row is None:
+        return "아직 수집된 활동이 없어요. 기기를 연결해 동기화하면 이 달의 흐름을 정리해 드려요."
+    return f"{period}에는 기록된 활동이 없어요."
 
 
 def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str) -> list[dict]:
@@ -158,17 +169,25 @@ def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str
     return evidence
 
 
-def get_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str) -> dict | None:
+def _cache_key(month_start: str, date: str, label: str | None) -> str:
+    """r3: 해요체 프롬프트(T-06) + 기간 표기 구분 — 말일에 '이번 달'로 만든 캐시가
+    다음 달에 과거 달 조회('2026년 10월')로 재사용되지 않게 한다."""
+    return f"{month_start}:{date}:{'cur' if label is None else 'named'}:r3"
+
+
+def get_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str,
+                        label: str | None = None) -> dict | None:
     """캐시된 AI 내러티브 조회. 유효하면 dict, 아니면 None."""
     from src.ai import ai_cache
-    return ai_cache.get_cached(conn, "today_narrative", f"{month_start}:{date}:r2")
+    return ai_cache.get_cached(conn, "today_narrative", _cache_key(month_start, date, label))
 
 
-def set_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str, result: dict) -> None:
+def set_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str, result: dict,
+                        label: str | None = None) -> None:
     """AI 내러티브 결과 캐시 저장 (AI 성공 시에만 호출할 것). 실패는 삼킴."""
     from src.ai import ai_cache
     try:
-        ai_cache.set_cached(conn, "today_narrative", f"{month_start}:{date}:r2", result)
+        ai_cache.set_cached(conn, "today_narrative", _cache_key(month_start, date, label), result)
     except Exception:
         pass
 
@@ -187,26 +206,26 @@ def rule_narrative(
     parts: list[str] = []
 
     if month_count > 0:
-        parts.append(f"{period} {month_dist_km}km를 {month_count}회 훈련했습니다.")
+        parts.append(f"{period} {month_dist_km}km를 {month_count}회 달렸어요.")
     else:
-        parts.append(f"{period} 훈련 기록이 아직 없습니다.")
+        parts.append(f"{period}에는 기록된 러닝이 없어요.")
 
     if ctl_now is not None and ctl_start is not None:
         diff = ctl_now - ctl_start
         if diff > 2:
-            parts.append(f"훈련 부하(CTL)가 {ctl_start:.0f}→{ctl_now:.0f}로 꾸준히 높아지고 있습니다.")
+            parts.append(f"훈련 부하(CTL)가 {ctl_start:.0f}→{ctl_now:.0f}로 꾸준히 높아지고 있어요.")
         elif diff < -2:
-            parts.append(f"훈련 부하(CTL)가 {ctl_start:.0f}→{ctl_now:.0f}로 줄었습니다.")
+            parts.append(f"훈련 부하(CTL)가 {ctl_start:.0f}→{ctl_now:.0f}로 줄었어요.")
         else:
-            parts.append(f"훈련 부하(CTL)가 {ctl_now:.0f}으로 안정적으로 유지되고 있습니다.")
+            parts.append(f"훈련 부하(CTL)가 {ctl_now:.0f}으로 안정적으로 유지되고 있어요.")
     elif ctl_now is not None:
-        parts.append(f"현재 훈련 부하(CTL)는 {ctl_now:.0f}입니다.")
+        parts.append(f"현재 훈련 부하(CTL)는 {ctl_now:.0f}이에요.")
 
     if sleep_recent is not None and sleep_prev is not None:
         diff = sleep_recent - sleep_prev
         if diff >= 5:
-            parts.append("최근 수면 질이 개선되고 있습니다.")
+            parts.append("최근 수면 질이 좋아지고 있어요.")
         elif diff <= -5:
-            parts.append("최근 수면 질이 다소 나빠졌으니 회복에 주의하세요.")
+            parts.append("최근 수면 질이 다소 나빠졌으니 회복에 신경 써 주세요.")
 
-    return " ".join(parts) if parts else "데이터 수집 중입니다."
+    return " ".join(parts) if parts else "데이터 수집 중이에요."

@@ -4,6 +4,7 @@
 	// 키보드 단축키(R/P/N)는 이번 1차 범위에서 뺐다 — 메모 입력 중 타이핑과 충돌 위험이
 	// 있어 별도 검토가 필요해서다(DONE 기록 참조).
 	import type { PainLevel, QuickInputProps } from '$lib/types';
+	import { CHECKIN_NOTE_MAX, checkinSavePayload } from '$lib/checkinView';
 	import TextField from '$lib/components/ui/TextField.svelte';
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import { dismiss, isDismissed } from '$lib/checkinDismiss';
@@ -35,6 +36,11 @@
 			note = existing.note ?? '';
 			editing = false;
 			extra = !compact;
+		} else {
+			// 되돌리기로 기록이 비면 로컬 값도 비운다(편집 상태는 유지).
+			fatigue = undefined;
+			pain = undefined;
+			note = '';
 		}
 	});
 
@@ -45,13 +51,13 @@
 	const painLabel = $derived(PAIN_LEVELS.find((p) => p.value === existing?.pain)?.label ?? '');
 
 	function handleSave() {
-		onSave?.({ fatigue, pain, note: note || undefined });
+		onSave?.(checkinSavePayload(fatigue, pain, note));
 	}
 
-	// 피로 숫자 탭 = 즉시 저장(compact). 통증·메모가 이미 입력돼 있으면 함께 보낸다.
+	// 피로 숫자 탭 = 즉시 저장(compact). 서버가 실린 키만 갱신하므로(T-16) 피로만 보낸다 — 통증·메모는 유지된다.
 	function pickFatigue(n: number) {
 		fatigue = n;
-		if (compact && !extra) onSave?.({ fatigue: n, pain, note: note || undefined });
+		if (compact && !extra) onSave?.({ fatigue: n });
 	}
 
 	function snooze() {
@@ -125,9 +131,11 @@
 			multiline
 			bind:value={note}
 			placeholder="메모 (선택)"
+			maxlength={CHECKIN_NOTE_MAX}
 			rows={2}
 			class="w-full rounded border border-border-subtle bg-surface-1 px-2 py-1.5 text-sm text-fg-primary placeholder:text-fg-muted"
 		/>
+		{#if note.length > CHECKIN_NOTE_MAX * 0.8}<p class="-mt-2 text-right text-[11px] text-fg-muted">{note.length}/{CHECKIN_NOTE_MAX}</p>{/if}
 
 		<div class="flex justify-end">
 			<button

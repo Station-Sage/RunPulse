@@ -2,7 +2,7 @@
 	// QuickInput 체크인 섹션 — 저장 상태·오류를 자체 소유한다.
 	import { postCheckin } from '$lib/api/today';
 	import { toQuickInputExisting } from '$lib/checkinView';
-	import type { CheckinRow, PainLevel } from '$lib/types';
+	import type { CheckinPayload, CheckinRow } from '$lib/types';
 	import QuickInput from '$lib/components/QuickInput.svelte';
 
 	let { initial }: { initial: CheckinRow | null } = $props();
@@ -11,7 +11,7 @@
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
-	async function handleSave(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
+	async function handleSave(value: CheckinPayload) {
 		saving = true;
 		error = null;
 		try {

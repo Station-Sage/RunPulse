@@ -43,3 +43,9 @@ test('계획 없으면 숨김', () => {
 	assert.equal(hasWeekPlan({ done_km: 0, plan_km: 0, key_done: 0, key_total: 0, days: [d({ state: 'rest', workout_type: null })] }), false);
 	assert.equal(hasWeekPlan({ done_km: 0, plan_km: 8, key_done: 0, key_total: 0, days: [d({})] }), true);
 });
+
+test('dayCell.state — 기호마다 범례 낱말 (T-02)', () => {
+	assert.equal(dayCell(d({ state: 'missed' })).state, '놓침');
+	assert.equal(dayCell(d({ state: 'skipped' })).state, '건너뜀');
+	assert.equal(dayCell(d({ state: 'pre_plan' })).state, '계획 전');
+});

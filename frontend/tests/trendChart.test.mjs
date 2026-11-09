@@ -165,3 +165,14 @@ test2('markerEvents: reason 등 선택 필드가 있어도 결과 불변', () =>
 	assert2.equal(m.length, 1);
 	assert2.equal(m[0].reason, '사유');
 });
+
+import { snapRange } from '../src/lib/trendChart.ts';
+test('snapRange — step 짝수 배·최소 폭 (T-10)', () => {
+	const r = snapRange({ min: 13168, max: 13646 }, 60, 600);
+	assert.equal(r.min % 60, 0);
+	assert.equal(((r.max - r.min) / 60) % 2, 0);
+	assert.ok(r.max - r.min >= 600);
+	assert.ok(r.min <= 13168 && r.max >= 13646);
+	const mid = (r.min + r.max) / 2;
+	assert.equal(mid % 60, 0);
+});

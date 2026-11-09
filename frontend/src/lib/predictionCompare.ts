@@ -26,7 +26,7 @@ export function clock(sec: number): string {
 	return (h > 0 ? `${h}:` : '') + `${mm}:${String(r).padStart(2, '0')}`;
 }
 
-/** 80% 범위 문구. 둘 중 하나라도 없으면 null. */
+/** 모델 범위 문구(확률 구간 아님 — 화면은 '모델 범위'로만 부르고 퍼센트를 붙이지 않는다, T-08). 둘 중 하나라도 없으면 null. */
 export function rangeLabel(row: CompareRow): string | null {
 	if (row.low_sec == null || row.high_sec == null) return null;
 	return `${clock(row.low_sec)}~${clock(row.high_sec)}`;
@@ -40,9 +40,16 @@ export function confidenceLabel(c: number | null | undefined): '높음' | '보�
 	return '낮음';
 }
 
-/** 자체 추정 대비 차이(%) 문구 — 기준 행이나 대상 값이 없으면 null. 양수 = 느림. */
+/** 이 일수보다 오래된 스냅샷은 같은 시점 비교가 아니라서 차이를 내지 않는다(서버 STALE_DAYS 와 같은 값, T-11). */
+export const STALE_DAYS = 14;
+
+export function isStale(row: CompareRow): boolean {
+	return row.stale_days != null && row.stale_days > STALE_DAYS;
+}
+
+/** 자체 추정 대비 차이(%) 문구 — 기준 행이나 대상 값이 없거나 오래된 스냅샷이면 null. 양수 = 느림. */
 export function diffVsSelf(row: CompareRow, self: CompareRow | undefined): string | null {
-	if (!self?.value_sec || !row.value_sec || row.key === 'self') return null;
+	if (!self?.value_sec || !row.value_sec || row.key === 'self' || isStale(row)) return null;
 	const pct = (row.value_sec / self.value_sec - 1) * 100;
 	if (Math.abs(pct) < 0.05) return '같음';
 	return `${pct > 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`;
@@ -66,5 +73,13 @@ export const CONTRIBUTION_LABELS: [string, string][] = [
 export function contributionLabel(c: CompareRow['contributions']): string | null {
 	if (!c) return null;
 	const parts = CONTRIBUTION_LABELS.filter(([k]) => (c[k] ?? 0) >= 0.005).map(([k, l]) => `${l} ${Math.round((c[k] ?? 0) * 100)}`);
+	return parts.length ? parts.join(' · ') : null;
+}
+
+/** 심박 기준 한 줄 — 값이 없는 항목은 '—' 대신 생략한다(T-09). 둘 다 없으면 null. */
+export function hrBasisLine(hrmax: number | null | undefined, lthr: number | null | undefined): string | null {
+	const parts: string[] = [];
+	if (hrmax != null) parts.push(`최대 ${Math.round(hrmax)}`);
+	if (lthr != null) parts.push(`LTHR ${Math.round(lthr)}`);
 	return parts.length ? parts.join(' · ') : null;
 }

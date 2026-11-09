@@ -5,6 +5,7 @@
 	import type { RaceCandidate, RaceEffort } from '$lib/types';
 	import { deleteRaceConfirm, getRaceCandidates, putRaceConfirm } from '$lib/api/prediction';
 	import { formatDuration } from '$lib/format';
+	import { candidateHint, nextEffort } from '$lib/raceConfirm';
 
 	const EFFORTS: { key: RaceEffort; label: string }[] = [
 		{ key: 'allout', label: '전력' },
@@ -18,7 +19,8 @@
 
 	let items = $state<RaceCandidate[]>([]);
 	let loaded = $state(false);
-	let busy = $state<number | null>(null);
+	// 행별 진행 중 표시(T-13) — 한 행 저장이 다른 행의 보호를 풀지 않게 집합으로 둔다.
+	let busy = $state<Set<number>>(new Set());
 	let loadError = $state(false);
 	let saveError = $state<string | null>(null);
 
@@ -38,10 +40,12 @@
 		item.confirmed_effort = effort;
 	}
 
-	async function choose(item: RaceCandidate, effort: RaceEffort) {
+	async function choose(item: RaceCandidate, effort: RaceEffort | null) {
+		if (busy.has(item.activity_id)) return; // 빠른 연타 무시
 		const prev = item.confirmed_effort ?? null;
-		const next = prev === effort ? null : effort;
-		busy = item.activity_id;
+		const next = nextEffort(prev, effort);
+		if (next === undefined) return; // 같은 버튼 재탭 = 그대로(해제는 '표시 해제'로만)
+		busy = new Set(busy).add(item.activity_id);
 		saveError = null;
 		try {
 			await apply(item, next);
@@ -49,7 +53,9 @@
 		} catch (e) {
 			saveError = e instanceof Error ? e.message : '저장하지 못했어요';
 		} finally {
-			busy = null;
+			const b = new Set(busy);
+			b.delete(item.activity_id);
+			busy = b;
 		}
 	}
 </script>
@@ -71,24 +77,32 @@
 	{:else}
 		<ul class="flex flex-col gap-2">
 			{#each items as item (item.activity_id)}
+				{@const hint = candidateHint(item)}
+				{@const chosen = EFFORTS.find((e) => e.key === item.confirmed_effort)?.label ?? null}
 				<li class="flex flex-col gap-1">
-					<span class="text-[11px]"
+					<span class="text-[11px] break-words"
 						>{item.date} · {item.name ?? '대회'} · {(item.distance_m / 1000).toFixed(1)}km{item.time_sec != null
 							? ` · ${formatDuration(item.time_sec)}`
 							: ''}</span
 					>
-					<div class="flex gap-1">
+					{#if hint}<span class="text-[11px] text-semantic-amber">{hint}</span>{/if}
+					<div class="flex flex-wrap items-center gap-1">
 						{#each EFFORTS as e (e.key)}
 							<button
 								type="button"
-								disabled={busy === item.activity_id}
+								disabled={busy.has(item.activity_id)}
 								aria-pressed={item.confirmed_effort === e.key}
 								onclick={() => choose(item, e.key)}
 								class="rounded border px-2 py-0.5 text-[11px] {item.confirmed_effort === e.key
-									? 'border-fg-primary text-fg-primary'
-									: 'border-border-subtle text-fg-muted'}">{e.label}</button
+									? 'border-fg-primary font-semibold text-fg-primary'
+									: 'border-border-subtle text-fg-muted'}">{#if item.confirmed_effort === e.key}<span aria-hidden="true">✓ </span>{/if}{e.label}</button
 							>
 						{/each}
+						<!-- T-14: 선택 상태를 글로도 보인다. T-13: 해제는 별도 버튼으로만. -->
+						<span class="text-[11px] text-fg-muted">{chosen ? `표시: ${chosen}` : '미표시'}</span>
+						{#if chosen}
+							<button type="button" disabled={busy.has(item.activity_id)} onclick={() => choose(item, null)} class="text-[11px] text-fg-muted underline underline-offset-2 hover:text-fg-primary">표시 해제</button>
+						{/if}
 					</div>
 				</li>
 			{/each}

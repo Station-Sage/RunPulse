@@ -57,12 +57,13 @@ def compare(conn: sqlite3.Connection, bucket: str, as_of: str | None = None) -> 
 def _notes(by: dict, hb: dict) -> list[str]:
     out = []
     s, g, r = by["self"].get("value_sec"), by["garmin"].get("value_sec"), by["ref"].get("value_sec")
-    if g and s:
+    if g and s and by["garmin"]["stale_days"] > STALE_DAYS:
+        # T-11: 오래된 스냅샷은 격차(%)를 내지 않는다 — 같은 시점 비교가 아니다.
+        out.append(f"Garmin 값은 {by['garmin']['stale_days']}일 전 스냅샷이라 차이 비교에서 뺐어요(동기화 후 다시 비교)")
+    elif g and s:
         d = _pct(g, s)
         out.append(f"Garmin 예측이 자체 추정보다 {abs(d)}% {'느림' if d > 0 else '빠름'} — Garmin은 VO2max 추정 기반, "
                    "RunPulse는 최근 전력 대회·품질 세트(휴식 보정 Daniels 강도)·심박-속도 관계 기반")
-        if by["garmin"]["stale_days"] > STALE_DAYS:
-            out.append(f"Garmin 값은 {by['garmin']['stale_days']}일 전 스냅샷")
     elif not g:
         out.append("Garmin 예측 없음(동기화 필요)")
     if r and s:

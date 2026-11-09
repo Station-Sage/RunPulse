@@ -124,10 +124,32 @@ def test_get_today_narrative_year_month_params(mini_app):
 
 
 def test_get_today_narrative_invalid_year_month(mini_app):
-    """잘못된 year/month → 무시하고 기본 동작(오늘 기준) 반환."""
-    res = mini_app.get("/api/v1/today/narrative?year=abc&month=xyz")
-    assert res.status_code == 200
-    assert res.get_json()["data"]["source"] == "rule"
+    """잘못된 year/month → 조용히 대체하지 않고 400(T-22)."""
+    for qs in ("year=abc&month=xyz", "year=2026&month=13", "year=99999&month=1",
+               "year=2026&month=0", "year=2026"):
+        res = mini_app.get(f"/api/v1/today/narrative?{qs}")
+        assert res.status_code == 400, qs
+        assert res.get_json()["error"]["code"] == "INVALID_PARAM"
+
+
+def test_get_today_narrative_future_month_rejected(mini_app):
+    """미래 달은 서술을 만들지 않는다(T-21)."""
+    import datetime as dt
+    nxt = dt.date.today().replace(day=1) + dt.timedelta(days=32)
+    res = mini_app.get(f"/api/v1/today/narrative?year={nxt.year}&month={nxt.month}")
+    assert res.status_code == 400
+
+
+def test_checkin_partial_update_keeps_other_fields(mini_app):
+    """`{"fatigue":4}` 만 보내도 기존 pain·note 가 유지되고, 키를 null 로 보내면 지운다(T-16)."""
+    h = {"Origin": "http://localhost"}
+    mini_app.post("/api/v1/today/checkin", json={"fatigue": 7, "pain": "mild", "note": "무릎"}, headers=h)
+    row = mini_app.post("/api/v1/today/checkin", json={"fatigue": 4}, headers=h).get_json()["data"]
+    assert (row["fatigue"], row["pain"], row["note"]) == (4, "mild", "무릎")
+    row = mini_app.post("/api/v1/today/checkin", json={}, headers=h).get_json()["data"]
+    assert (row["fatigue"], row["pain"], row["note"]) == (4, "mild", "무릎")
+    row = mini_app.post("/api/v1/today/checkin", json={"note": None}, headers=h).get_json()["data"]
+    assert (row["fatigue"], row["pain"], row["note"]) == (4, "mild", None)
 
 
 def test_get_race_hub_no_goal(mini_app):

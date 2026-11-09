@@ -34,7 +34,7 @@
 						<span class="text-fg-muted">러닝 없음</span>
 					{:else}
 						<span class="text-fg-muted">
-							{w.run_count}회 · 롱런 {w.long_run_km}km
+							{w.run_count}회 · 최장 {w.long_run_km}km
 							{#if w.ctl_end !== null}· CTL {w.ctl_end.toFixed(1)}{/if}
 							{#if w.tsb_min !== null}· 최저 TSB {w.tsb_min}{/if}
 							{#if w.sleep_avg !== null}· 수면 {w.sleep_avg}{/if}

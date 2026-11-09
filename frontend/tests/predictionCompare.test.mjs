@@ -33,3 +33,16 @@ test('contributionLabel', () => {
 	assert.equal(contributionLabel({ T: 0.6, H: 0.4 }), '역치 세트 60 · 심박 40');
 	assert.equal(contributionLabel(null), null);
 });
+
+import { hrBasisLine, isStale } from '../src/lib/predictionCompare.ts';
+test('diffVsSelf — 오래된 스냅샷은 차이를 내지 않는다 (T-11)', () => {
+	const g = { key: 'garmin', label: '', provider: '', value_sec: 2585, stale_days: 15 };
+	assert.equal(isStale(g), true);
+	assert.equal(diffVsSelf(g, self), null);
+	assert.equal(diffVsSelf({ ...g, stale_days: 14 }, self), '−5.6%');
+});
+test('hrBasisLine — 없는 값은 생략 (T-09)', () => {
+	assert.equal(hrBasisLine(null, 168), 'LTHR 168');
+	assert.equal(hrBasisLine(190, 168.4), '최대 190 · LTHR 168');
+	assert.equal(hrBasisLine(null, null), null);
+});

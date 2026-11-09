@@ -24,7 +24,7 @@
 
 	const copy = $derived(todayEmptyCopy(life));
 
-	async function save(value: { fatigue?: number; pain?: import('$lib/types').PainLevel; note?: string }) {
+	async function save(value: import('$lib/types').CheckinPayload) {
 		saving = true;
 		error = null;
 		try {

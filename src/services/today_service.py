@@ -16,6 +16,7 @@ get_today_narrative()는 AI 우선 + 규칙 기반 fallback — chat_engine prov
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable
 
 from src.utils.reference_day import reference_today
 
@@ -94,8 +95,12 @@ def get_recent_activities(conn: sqlite3.Connection, limit: int = 3, config: dict
     activities = [dict(r) for r in rows]
     from src.services.activity_service import _route_previews
     previews = _route_previews(conn, [a["id"] for a in activities])
+    from src.utils.activity_types import SPORT_LABELS, sport_family
     for a in activities:
         a["route"] = previews.get(a["id"])
+        # T-07: 종목을 함께 내려 화면이 비러닝(수영 등)을 구분해 표시하게 한다.
+        a["sport_family"] = sport_family(a.get("activity_type"), a.get("source"))
+        a["sport_label"] = SPORT_LABELS.get(a["sport_family"], "기타")
     if activities:
         try:
             activities[0]["hr_zone"] = _dominant_zone(conn, activities[0]["start_time"], config)
@@ -188,6 +193,8 @@ def get_today_narrative(
     return today_narrative.get_today_narrative(conn, date=date, config=config, year=year, month=month)
 
 
+_CHECKIN_COLS = ("fatigue", "pain", "note", "activity_id")
+
 
 def save_checkin(
     conn: sqlite3.Connection,
@@ -196,26 +203,28 @@ def save_checkin(
     note: str | None = None,
     activity_id: int | None = None,
     input_date: str | None = None,
+    fields: Iterable[str] | None = None,
 ) -> dict:
     """QuickInput 체크인 저장 — user_inputs UPSERT (D3).
 
     같은 날짜에 이미 체크인이 있으면 갱신한다(UNIQUE(input_date, input_type)).
+    `fields` 를 주면 그 열만 갱신하고 나머지 기존 값은 유지한다(부분 갱신, T-16 — API 는 요청에
+    실린 키만 넘긴다). None 이면 전체 교체(내부 호출 기존 동작).
     범위 밖 fatigue·알 수 없는 pain 은 ValueError(내부 호출용 최소 불변식 — `input_limits`).
     """
     input_limits.check_checkin(fatigue, pain)
     if input_date is None:
         input_date = reference_today(conn)[0]
 
+    cols = _CHECKIN_COLS if fields is None else tuple(c for c in _CHECKIN_COLS if c in set(fields))
+    # 열 이름은 고정 튜플에서만 골라 SQL 에 넣는다(사용자 입력 아님).
+    on_conflict = (
+        "DO UPDATE SET " + ", ".join(f"{c} = excluded.{c}" for c in cols) if cols else "DO NOTHING"
+    )
     conn.execute(
-        """
-        INSERT INTO user_inputs (input_date, input_type, fatigue, pain, note, activity_id)
-        VALUES (?, 'checkin', ?, ?, ?, ?)
-        ON CONFLICT(input_date, input_type) DO UPDATE SET
-            fatigue = excluded.fatigue,
-            pain = excluded.pain,
-            note = excluded.note,
-            activity_id = excluded.activity_id
-        """,
+        "INSERT INTO user_inputs (input_date, input_type, fatigue, pain, note, activity_id)"
+        " VALUES (?, 'checkin', ?, ?, ?, ?)"
+        f" ON CONFLICT(input_date, input_type) {on_conflict}",
         (input_date, fatigue, pain, note, activity_id),
     )
     conn.commit()

@@ -13,7 +13,15 @@ export interface DayCell {
 	/** 예정(점선 외곽)·계획 전(흐림) 스타일 분기용 */
 	tone: 'done' | 'partial' | 'missed' | 'upcoming' | 'rest' | 'pre_plan' | 'today';
 	linkable: boolean;
+	/** 상태 한 단어 — 기호 대신 스크린리더가 읽는 텍스트(T-02). */
+	state: string;
 }
+
+/** 스트립 기호 범례(T-02) — 화면 범례와 셀 상태 텍스트가 같은 낱말을 쓴다. 최종 문구는 TXT-1 에서 확정. */
+export const WEEK_LEGEND: [string, string][] = [
+	['●', '이행'], ['◐', '부족'], ['○', '놓침'], ['⊘', '건너뜀'], ['⟳', '대체'], ['◉', '오늘'], ['┄', '휴식'], ['◌', '예정']
+];
+const STATE_OF: Record<string, string> = Object.fromEntries(WEEK_LEGEND);
 
 export function dowOf(date: string): string {
 	const [y, m, d] = date.split('-').map(Number);
@@ -21,6 +29,11 @@ export function dowOf(date: string): string {
 }
 
 export function dayCell(d: WeekDay): DayCell {
+	const c = rawCell(d);
+	return { ...c, state: c.symbol ? STATE_OF[c.symbol] : c.label };
+}
+
+function rawCell(d: WeekDay): Omit<DayCell, 'state'> {
 	const dow = dowOf(d.date);
 	const base = { date: d.date, dow };
 	const name = d.title ?? '';

@@ -5,6 +5,7 @@ import { ApiError } from '$lib/api/client';
 import { invalidate } from '$app/navigation';
 import { swrEvict, swrLoad } from '$lib/loadCache';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
+import { emptyTrendData, shouldFetchChart } from '$lib/todayChart';
 import type { NarrativeResponse, RaceHubData, TodayResponse, ActivePlan, TodaysAdjustment, MetricTrendData } from '$lib/types';
 
 const KEY = 'app:today';
@@ -42,14 +43,23 @@ async function fetchToday(): Promise<TodayPageData> {
 	// 스트리밍 Promise는 핵심 today와 동시에 쏘되 await하지 않는다.
 	const narrative = getTodayNarrative().catch(() => null);
 	const nextSession = Promise.all([getActivePlan().catch(orNull), getTodaysAdjustment().catch(orNull)]).then(([plan, adjustment]) => ({ plan, adjustment }));
-	const trend = (slug: string) => getMetricTrend(slug, '3m').catch((e) => emptyTrend(slug, e));
-	const formChart = Promise.all([trend('ctl'), trend('atl'), trend('tsb')]).then(([ctl, atl, tsb]) => ({ ctl, atl, tsb }));
 	const raceHub = getRaceHub().catch(() => null);
 	// today가 실패하면 이 Promise들은 소비되지 않는다 — 미처리 rejection 경고를 막는다(소비자는 {#await}로 그대로 받는다).
-	for (const p of [nextSession, formChart]) p.catch(() => {});
+	nextSession.catch(() => {});
 	const today = await getToday();
+	// 차트용 3개월 추세 3건은 첫 화면 요청에서 빼고 today 뒤에 쏜다(T-28). 부하 지표가 아직 없으면
+	// 요청하지 않는다 — 빈 계정에서 404 3건이 나던 문제(T-25).
+	const formChart = chartFetch(today);
 	evictOnFailure(nextSession, formChart);
 	return { today, errorMessage: null, errorKind: null, failure: null, narrative, nextSession, formChart, raceHub };
+}
+
+function chartFetch(today: TodayResponse): Promise<FormChartData> {
+	if (!shouldFetchChart(today)) {
+		return Promise.resolve({ ctl: emptyTrendData('ctl'), atl: emptyTrendData('atl'), tsb: emptyTrendData('tsb') });
+	}
+	const trend = (slug: string) => getMetricTrend(slug, '3m').catch((e) => emptyTrend(slug, e));
+	return Promise.all([trend('ctl'), trend('atl'), trend('tsb')]).then(([ctl, atl, tsb]) => ({ ctl, atl, tsb }));
 }
 
 // 플랜/조정 없음(404)은 빈 상태이지 실패가 아니다.
@@ -60,7 +70,7 @@ function orNull(e: unknown): null {
 
 // 메트릭 데이터 없음(404)은 실패가 아니라 "데이터 수집 중" — 차트 블록은 숨기고 오류 카드를 띄우지 않는다.
 function emptyTrend(slug: string, e: unknown): MetricTrendData {
-	if (e instanceof ApiError && e.status === 404) return { slug, label: slug, unit: '', current: null, peak: null, change_pct: null, points: [] };
+	if (e instanceof ApiError && e.status === 404) return emptyTrendData(slug);
 	throw e;
 }
 

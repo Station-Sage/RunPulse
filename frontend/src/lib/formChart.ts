@@ -93,3 +93,13 @@ export function nearestByFrac(pts: Pt[], frac: number, layout: FormLayout): Pt |
 	}
 	return best;
 }
+
+/** 두 시나리오 선이 처음 갈라지는 날짜(값 차이 > tol). 끝까지 같거나 비교할 점이 없으면 null (T-10 — 겹친 구간 안내용). */
+export function divergeDate(a: { date: string; value: number }[], b: { date: string; value: number }[], tol = 0.5): string | null {
+	const bv = new Map(b.map((p) => [p.date, p.value]));
+	for (const p of a) {
+		const v = bv.get(p.date);
+		if (v != null && Math.abs(v - p.value) > tol) return p.date;
+	}
+	return null;
+}

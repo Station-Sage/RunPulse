@@ -7,6 +7,7 @@
 	import {
 		OPTIMAL_BAND,
 		buildFormLayout,
+		divergeDate,
 		nearestByFrac,
 		toPolyline,
 		xFrac,
@@ -33,6 +34,8 @@
 		(projection?.scenarios ?? []).map((s) => ({ key: s.key, label: s.label, points: s.series }))
 	);
 	const layout = $derived(buildFormLayout({ ctl, atl, tsb, future, raceDate }));
+	// T-10: 테이퍼/유지 선은 테이퍼 시작 전까지 겹친다 — 갈라지는 날을 글로 알려 구분을 돕는다.
+	const splitDate = $derived(future.length === 2 ? divergeDate(future[0].points, future[1].points) : null);
 
 	// 미래 점선은 오늘의 실제 TSB에서 이어 그린다
 	const lastTsb = $derived(tsb.length ? tsb[tsb.length - 1] : null);
@@ -163,6 +166,11 @@
 			{/snippet}
 		</ChartScrub>
 
+		{#if future.length === 2}
+			<p class="text-[10px] text-fg-muted" data-testid="scenario-split">
+				예상 폼 점선 · <span style="color:{SCEN_COLOR[future[0].key]}">{future[0].label}</span> · <span style="color:{SCEN_COLOR[future[1].key]}">{future[1].label}</span>{splitDate ? ` — ${splitDate.slice(5)}부터 두 선이 갈라져요(그 전까지는 겹쳐요)` : ' — 두 시나리오가 같아요'}
+			</p>
+		{/if}
 		<div class="flex justify-between font-mono text-[10px] text-fg-muted">
 			<span>{layout.t0}</span>
 			<span>오늘 {layout.today}</span>

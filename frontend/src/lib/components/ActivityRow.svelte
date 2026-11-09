@@ -25,6 +25,8 @@
 		source_count?: number;
 		source?: string;
 		route?: [number, number][] | null;
+		sport_family?: string;
+		sport_label?: string;
 	}
 
 	let {
@@ -50,6 +52,7 @@
 	<RouteThumb route={act.route} size={thumbSize} />
 	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 		<div class="flex min-w-0 items-center gap-1.5">
+			{#if act.sport_family && act.sport_family !== 'running'}<span class="shrink-0 rounded bg-semantic-teal/15 px-1.5 py-0.5 text-[10px] font-medium text-semantic-teal" data-testid="sport-chip">{act.sport_label ?? '기타'}</span>{/if}
 			<span class="truncate text-sm font-medium">{act.display_title ?? act.name}</span>
 			{#if act.workout_label}<span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] {act.is_race ? 'bg-semantic-amber/20 text-semantic-amber' : 'bg-surface-3 text-fg-secondary'}">{act.workout_label}</span>{/if}
 			{#if act.rpe}<span class="shrink-0 rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-fg-secondary" data-testid="rpe-badge">RPE {act.rpe}</span>{/if}

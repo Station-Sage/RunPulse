@@ -18,6 +18,8 @@
 	const selfRow = $derived(pred?.compare?.rows.find((r) => r.key === 'self') ?? null);
 	const need = $derived(pred ? requiredImprovement(pred.gap_sec, pred.value_sec, selfRow?.confidence) : null);
 	const delta = $derived(pred ? trendDelta(pred.history) : null);
+	// T-10: 수십 초 흔들림이 큰 변화처럼 보이지 않게 y 최소 폭을 거리별로 둔다(풀 10분·하프 6분·그 외 4분).
+	const distanceSpan = (km: number | null) => (km != null && km >= 40 ? 600 : km != null && km >= 20 ? 360 : 240);
 </script>
 
 <section aria-label="레이스 예측 요약" class="flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-2 p-4">
@@ -69,6 +71,8 @@
 				series={[{ key: 'pred', label: '예측', color: 'var(--color-semantic-teal)', points: pred.history }]}
 				height={72}
 				formatValue={(v) => formatDuration(Math.round(v))}
+				yStep={60}
+				yMinSpan={distanceSpan(goal.distance_km)}
 			/>
 		</div>
 	{/if}

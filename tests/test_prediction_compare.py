@@ -20,9 +20,18 @@ def test_three_rows_and_notes():
     r = compare(c, "10k", "2026-09-26")
     assert [x["value_sec"] for x in r["rows"]] == [2585, 2741, 2739]
     assert r["rows"][0]["stale_days"] == 138
+    # T-11: 138일 전 스냅샷은 격차(%)를 내지 않는다
+    assert r["notes"][0].startswith("Garmin 값은 138일 전 스냅샷이라 차이 비교에서 뺐어요")
+    assert not any("5.6%" in n for n in r["notes"])
+    assert "영향 작음" in r["notes"][1] and r["hr_basis"]["lthr_gap"] == 0.4
+
+
+def test_fresh_garmin_keeps_gap_note():
+    c = mem_conn()
+    _seed(c)
+    upsert_metric(c, "daily", "2026-09-20", "race_pred_10k_sec", "garmin", numeric_value=2585)
+    r = compare(c, "10k", "2026-09-26")
     assert r["notes"][0].startswith("Garmin 예측이 자체 추정보다 5.6% 빠름")
-    assert r["notes"][1] == "Garmin 값은 138일 전 스냅샷"
-    assert "영향 작음" in r["notes"][2] and r["hr_basis"]["lthr_gap"] == 0.4
 
 
 def test_missing_paths():

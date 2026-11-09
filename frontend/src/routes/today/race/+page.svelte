@@ -67,10 +67,14 @@
 				{#if hub.prediction?.compare}
 					<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-4">
 						<PredictionCompare compare={hub.prediction.compare} {showCandidates} />
-						<label class="flex items-center gap-2 text-[11px] text-fg-muted">
-							<input type="checkbox" checked={showCandidates} onchange={toggle} />
-							검토 중 알고리즘 표시
-						</label>
+						<!-- T-09: 개발·검토용 옵션은 일반 화면에서 접어 둔다. -->
+						<details class="text-[11px] text-fg-muted">
+							<summary class="cursor-pointer hover:text-fg-secondary">고급</summary>
+							<label class="mt-1 flex min-h-11 items-center gap-2">
+								<input type="checkbox" checked={showCandidates} onchange={toggle} />
+								검토 중 알고리즘 표시
+							</label>
+						</details>
 					</section>
 				{/if}
 				{#if hub.projection}<RaceMorningForm proj={hub.projection} />{/if}

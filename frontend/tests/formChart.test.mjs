@@ -42,3 +42,11 @@ test('toPolyline / nearestByFrac', () => {
 	assert.equal(nearestByFrac(pts, 0.9, l).date, '2026-09-03');
 	assert.equal(nearestByFrac([], 0.5, l), null);
 });
+
+import { divergeDate } from '../src/lib/formChart.ts';
+test('divergeDate — 처음 갈라지는 날 (T-10)', () => {
+	const a = [{ date: '2026-11-01', value: 5 }, { date: '2026-11-07', value: 6 }, { date: '2026-11-08', value: 9 }];
+	const b = [{ date: '2026-11-01', value: 5.2 }, { date: '2026-11-07', value: 6 }, { date: '2026-11-08', value: 4 }];
+	assert.equal(divergeDate(a, b), '2026-11-08');
+	assert.equal(divergeDate(a, a), null);
+});

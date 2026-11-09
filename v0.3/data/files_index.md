@@ -24,9 +24,9 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (212줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (231줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
-- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
+- functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, empty_month_text, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
 ### `activity_counts.py` (20줄) — 활동 건수 단일 정의 (HSR-12 (a), NRA SSOT) — canonical 전체·러닝 계열·소스별 수신.
 
@@ -401,7 +401,7 @@
 - class **PlanConflict**: 없음
 - functions: check_active_expectation, get_static_plan_templates, create_plan_from_template
 
-### `prediction_compare_service.py` (88줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
+### `prediction_compare_service.py` (89줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
 
 - functions: compare, profile
 
@@ -470,7 +470,7 @@
 
 - functions: project_race_form
 
-### `race_result_service.py` (64줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+### `race_result_service.py` (83줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
 
 - functions: confirm, remove, get, candidates
 
@@ -530,7 +530,7 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
-### `today_narrative.py` (143줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+### `today_narrative.py` (149줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
 - functions: get_today_narrative
 
@@ -538,7 +538,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (229줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (238줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -609,7 +609,7 @@
 
 - class **ADTICalculator**: compute
 
-### `algo_changelog.py` (49줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
+### `algo_changelog.py` (50줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
 
 - class **AlgoChange**: 없음
 - functions: changes_for
@@ -647,7 +647,7 @@
 
 - class **CriticalPowerCalculator**: compute
 
-### `crs.py` (270줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
+### `crs.py` (276줄) — CRS (Composite Readiness Score) — 복합 훈련 준비도 평가.
 
 - class **CRSCalculator**: compute
 - functions: evaluate
@@ -1858,7 +1858,7 @@
 
 - functions: get_story
 
-### `routes_today.py` (156줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+### `routes_today.py` (169줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
 
@@ -2104,9 +2104,9 @@
 
 - functions: client, test_compare, test_profile, test_confirm_flow
 
-### `test_api_today.py` (178줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
+### `test_api_today.py` (200줄) — tests/test_api_today.py — GET/POST /api/v1/today Flask 라우트 테스트.
 
-- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields, test_today_includes_unlock
+- functions: mini_app, test_get_today_no_data, test_get_today_reflects_saved_checkin, test_post_checkin_saves_and_returns, test_post_checkin_no_body, test_get_today_checkin_none, test_get_today_checkin_after_post, test_get_today_narrative_no_data, test_get_today_narrative_highlights_field, test_get_today_narrative_year_month_params, test_get_today_narrative_invalid_year_month, test_get_today_narrative_future_month_rejected, test_checkin_partial_update_keeps_other_fields, test_get_race_hub_no_goal, test_get_library_archive_empty, test_get_today_includes_data_health, test_get_today_status_date_is_local, test_today_response_has_v2_fields, test_today_includes_unlock
 
 ### `test_api_validation.py` (212줄) — tests/test_api_validation.py — src/api/validation.py Field·parse_body·parse_args (SRV 2.2, ADR-048).
 
@@ -2360,9 +2360,9 @@
 
 - class **TestCriticalPower**: test_with_power_data, test_no_power, test_confidence
 
-### `test_crs.py` (230줄)
+### `test_crs.py` (243줄)
 
-- class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_category
+- class **TestCRS**: test_full_level, test_high_acwr_restricts, test_low_body_battery, test_boost_condition, test_no_signals, test_missing_inputs_are_not_reported_as_pass, test_category
 - class **TestEvaluate**: test_roundtrip_matches_calculator_output, test_no_row_returns_none, test_exact_date_only, test_ignores_non_primary_other_metric_and_scope, test_newest_primary_row_wins_on_same_date, test_invalid_data_returns_none, test_field_defaults_and_type_normalization, test_db_error_propagates, test_does_not_write
 - class **TestCRSConfidence**: test_full_inputs_with_rolling_confidence_one, test_short_rolling_marks_estimated, test_no_signals_confidence_zero_row_kept
 
@@ -2772,7 +2772,7 @@
 
 - functions: test_user_calls_limit_200_then_refuse, test_user_tokens_limit, test_global_sum_refuses_other_user, test_global_warning_once, test_usage_estimate_when_missing, test_claude_usage_fields, test_kst_midnight_boundary, test_resets_at_next_midnight, test_semaphore_three_then_busy, test_per_minute_limit_busy, test_unscoped_measured_not_blocked, test_env_override_and_bad_json, test_ensure_scope_keeps_outer_and_uid_from_db, test_usage_today_and_global_ratio, test_post_meters_through_single_point, test_post_refused_makes_no_http, test_httpx_post_single_call_site
 
-### `test_llm_budget_ux.py` (122줄) — LLM 한도 초과 UX(T8) — Coach 규칙 답변+reason+resets_at, 설정 usage_today, Today reason, 워밍 uid 락·80% 중단.
+### `test_llm_budget_ux.py` (125줄) — LLM 한도 초과 UX(T8) — Coach 규칙 답변+reason+resets_at, 설정 usage_today, Today reason, 워밍 uid 락·80% 중단.
 
 - functions: test_coach_quota_falls_back_to_rule_with_reason, test_reason_labels_and_engine_view, test_settings_view_has_usage_today, test_connection_test_scoped_and_refused, test_today_narrative_rule_with_reason, test_warm_lock_is_per_user, test_warm_scoped_as_warm, test_warm_stops_at_global_80pct, test_coach_async_scopes_uid_from_db_path
 
@@ -2928,7 +2928,7 @@
 
 - functions: test_falls_back_to_vdot_when_no_prediction, test_uses_latest_prediction_not_after_as_of, test_run_days_default_uses_median_when_no_rest_mask, test_finalize_rows_clears_rest_and_adds_mp_segment
 
-### `test_narrative_cache.py` (153줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
+### `test_narrative_cache.py` (165줄) — tests/test_narrative_cache.py — get_today_narrative() ai_cache 연동 테스트.
 
 - class **TestNarrativeCacheHelpers**: test_cache_miss_returns_none, test_set_then_get_roundtrip, test_different_keys_do_not_collide, test_set_cache_failure_is_swallowed
 - class **TestGetTodayNarrativeCache**: test_rule_fallback_not_cached, test_ai_result_is_cached, test_cache_hit_skips_ai_call, test_cache_hit_returns_cached_text, test_past_month_uses_correct_cache_key, test_stale_cache_on_new_activity_triggers_ai, test_cache_save_failure_does_not_raise
@@ -3158,9 +3158,9 @@
 
 - functions: test_v20_columns_exist_after_create, test_ensure_v20_idempotent, test_migrate_from_19_adds_columns, test_session_outcomes_unique_planned_id
 
-### `test_prediction_compare.py` (68줄) — P7-PRED-71: 3경로 비교 서비스.
+### `test_prediction_compare.py` (77줄) — P7-PRED-71: 3경로 비교 서비스.
 
-- functions: test_three_rows_and_notes, test_missing_paths, test_race_hub_includes_compare, test_profile_reads_latest, test_shadow_candidates_only_when_present
+- functions: test_three_rows_and_notes, test_fresh_garmin_keeps_gap_note, test_missing_paths, test_race_hub_includes_compare, test_profile_reads_latest, test_shadow_candidates_only_when_present
 
 ### `test_prediction_core.py` (72줄)
 
@@ -3239,9 +3239,9 @@
 
 - functions: test_taper_factor_bands, test_none_without_ctl_atl, test_none_when_race_past_today_or_too_far, test_taper_gives_higher_tsb_than_keep, test_zero_load_decays_toward_positive_tsb, test_scenarios_have_ctl_change_pct
 
-### `test_race_result_service.py` (35줄) — P7-PRED-53: 대회 확인 서비스.
+### `test_race_result_service.py` (48줄) — P7-PRED-53: 대회 확인 서비스.
 
-- functions: test_confirm_update_remove, test_validation, test_candidates
+- functions: test_confirm_update_remove, test_validation, test_candidates, test_candidates_why_and_distance_mismatch
 
 ### `test_rate_limiter.py` (52줄) — RateLimiter 단위 테스트.
 
@@ -3517,14 +3517,14 @@
 
 - functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing, test_race_summary_none_without_goal, test_race_summary_without_prediction, test_race_summary_uses_self_row_range, test_extras_include_race_summary
 
-### `test_today_narrative.py` (63줄) — today_narrative 테스트 — 위임 경로, 비러닝 별도 한 줄(ADR-051), 규칙 fallback.
+### `test_today_narrative.py` (80줄) — today_narrative 테스트 — 위임 경로, 비러닝 별도 한 줄(ADR-051), 규칙 fallback.
 
-- functions: test_service_delegates_to_narrative_module, test_highlights_other_carries_non_running, test_prompt_includes_other_line, test_rule_fallback_source_and_no_other, test_cache_key_has_r2_suffix
+- functions: test_service_delegates_to_narrative_module, test_highlights_other_carries_non_running, test_prompt_includes_other_line, test_rule_fallback_source_and_no_other, test_cache_key_has_r3_suffix, test_empty_month_skips_ai_and_is_neutral, test_empty_month_with_other_data_names_period
 
-### `test_today_service.py` (433줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
+### `test_today_service.py` (445줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
 - class **TestGetTodayStatus**: test_empty_data_returns_none_metrics, test_with_metrics, test_providers_surfaced_for_metric_cell
-- class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order, test_route_is_list_when_stream_exists, test_latest_activity_has_hr_zone_from_avg_hr, test_hr_zone_none_without_hr_data, test_route_is_none_when_no_stream
+- class **TestGetRecentActivities**: test_empty, test_respects_limit_and_order, test_sport_family_label_attached, test_route_is_list_when_stream_exists, test_latest_activity_has_hr_zone_from_avg_hr, test_hr_zone_none_without_hr_data, test_route_is_none_when_no_stream
 - class **TestGetTodayBriefing**: test_no_data_fallback, test_low_tsb_recommends_rest, test_balanced_tsb
 - class **TestGetTodaysCheckin**: test_no_checkin_returns_none, test_returns_saved_checkin, test_defaults_to_today_date
 - class **TestGetTodayMilestones**: test_empty, test_returns_milestones

@@ -98,6 +98,19 @@ class TestCRS:
         jv = json.loads(results[0].json_value) if isinstance(results[0].json_value, str) else results[0].json_value
         assert jv["level"] >= 3
 
+    def test_missing_inputs_are_not_reported_as_pass(self):
+        """T-04: 입력 없는 게이트는 '(통과)'가 아니라 '판정 제외' + status=no_data."""
+        conn = _conn()
+        _seed_wellness(conn, "2026-04-01")
+        _seed_daily_metrics(conn, "2026-04-01", acwr=1.1, tsb=5.0, cirs=20.0, utrs=70.0)
+        ctx = CalcContext(conn=conn, scope_type="daily", scope_id="2026-04-01")
+        jv = CRSCalculator().compute(ctx)[0].json_value
+        jv = json.loads(jv) if isinstance(jv, str) else jv
+        by = {g["name"]: g for g in jv["gates"]}
+        assert by["HRV"]["status"] == "no_data" and "통과" not in by["HRV"]["message"]
+        assert by["Body Battery"]["message"].endswith("판정 제외")
+        assert by["ACWR"]["status"] == "evaluated"
+
     def test_category(self):
         conn = _conn()
         _seed_wellness(conn, "2026-04-01")

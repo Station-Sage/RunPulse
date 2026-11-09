@@ -11,6 +11,21 @@ import sqlite3
 EFFORTS = ("allout", "paced", "fun", "dnf")
 _RACE_NAME = re.compile(r"대회|마라톤|marathon|half|하프|10k|10km|race|레이스", re.I)
 _NOT_RACE = re.compile(r"TT|템포|tempo", re.I)
+# 이름이 암시하는 종목 거리(m) — 하프를 풀보다 먼저 본다("Half Marathon"). T-14 거리 불일치 안내용.
+_NAMED_DIST = ((re.compile(r"half|하프", re.I), 21097.5),
+               (re.compile(r"marathon|마라톤|full|풀코스", re.I), 42195.0),
+               (re.compile(r"10\s?k(m)?\b", re.I), 10000.0))
+_DIST_TOL = 0.1
+
+
+def _distance_mismatch(name: str | None, dist: float | None) -> bool:
+    """이름이 암시하는 거리와 실제 거리가 10% 넘게 다르면 True — 대회 전체가 아닌 기록일 가능성을 알린다."""
+    if not name or not dist:
+        return False
+    for pat, expected in _NAMED_DIST:
+        if pat.search(name):
+            return abs(dist / expected - 1) > _DIST_TOL
+    return False
 
 
 def confirm(conn: sqlite3.Connection, activity_id: int, effort: str, official_time_sec: int | None = None,
@@ -57,8 +72,12 @@ def candidates(conn: sqlite3.Connection, since: str) -> list[dict]:
         (since,)).fetchall()
     out = []
     for aid, d, name, dist, t, ev, eff in rows:
-        looks = ev == "race" or (bool(_RACE_NAME.search(name or "")) and not _NOT_RACE.search(name or ""))
+        by_name = bool(_RACE_NAME.search(name or "")) and not _NOT_RACE.search(name or "")
+        looks = ev == "race" or by_name
         if looks or eff:
+            # T-14: 왜 후보인지(name·event_type·confirmed)와 이름-거리 불일치를 함께 내려 판단을 돕는다.
+            why = "name" if by_name else "event_type" if ev == "race" else "confirmed"
             out.append({"activity_id": aid, "date": d, "name": name, "distance_m": dist, "time_sec": t,
-                        "confirmed_effort": eff})
+                        "confirmed_effort": eff, "why": why,
+                        "distance_mismatch": _distance_mismatch(name, dist)})
     return out

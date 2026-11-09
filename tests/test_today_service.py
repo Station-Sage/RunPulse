@@ -73,6 +73,16 @@ class TestGetRecentActivities:
         result = today_service.get_recent_activities(db_conn, limit=2)
         assert [r["id"] for r in result] == [3, 2]
 
+    def test_sport_family_label_attached(self, db_conn):
+        """T-07: 비러닝(수영)도 종목 라벨이 붙어 화면이 구분할 수 있다."""
+        _seed_activity(db_conn, activity_id=30, start_time="2026-09-21T06:00:00")
+        _seed_activity(db_conn, activity_id=31, start_time="2026-09-22T06:00:00")
+        db_conn.execute("UPDATE activity_summaries SET activity_type = 'lap_swimming' WHERE id = 31")
+        db_conn.commit()
+        swim, run = today_service.get_recent_activities(db_conn, limit=2)
+        assert (swim["sport_family"], swim["sport_label"]) == ("swimming", "수영")
+        assert run["sport_family"] == "running"
+
     def test_route_is_list_when_stream_exists(self, db_conn):
         """GPS 스트림(위도·경도 2점 이상)이 있는 활동은 route가 리스트."""
         _seed_activity(db_conn, activity_id=10, start_time="2026-09-22T06:00:00")
@@ -177,7 +187,7 @@ class TestGetTodayNarrative:
     def test_rule_fallback_no_data_text(self, db_conn):
         """데이터 전혀 없을 때 fallback 문구에 '데이터 수집 중' 포함."""
         result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
-        assert "데이터 수집 중" in result["text"] or "훈련 기록이 아직 없습니다" in result["text"]
+        assert "아직 수집된 활동이 없어요" in result["text"]
 
     def test_with_ctl_and_distance(self, db_conn):
         """CTL + 이번 달 활동 있을 때 evidence에 해당 항목 포함."""
@@ -200,11 +210,12 @@ class TestGetTodayNarrative:
         db_conn.commit()
 
         result = today_service.get_today_narrative(db_conn, date="2026-09-22", config=None)
-        assert "높아지고 있습니다" in result["text"]
+        assert "높아지고 있어요" in result["text"]
 
     def test_ai_success_source_is_ai(self, db_conn):
         """_call_provider 목업으로 AI 성공 케이스 — source='ai'."""
         _seed_metric(db_conn, "2026-09-22", "ctl", 70)
+        _seed_activity(db_conn, activity_id=12, start_time="2026-09-10T06:00:00")
         db_conn.commit()
 
         config = {"ai": {"provider": "gemini", "gemini_api_key": "test"}}
@@ -325,6 +336,7 @@ class TestGetTodayNarrativeYearMonth:
     def test_rule_fallback_uses_period_label_not_this_month(self, db_conn):
         """AI 실패(config=None) + 과거 달 조회 시 규칙 기반 텍스트가 '이번 달'이
         아니라 실제 연월을 말해야 한다."""
+        _seed_activity(db_conn, activity_id=13, start_time="2026-08-10T06:00:00")
         result = today_service.get_today_narrative(
             db_conn, date="2026-09-22", config=None, year=2026, month=8
         )

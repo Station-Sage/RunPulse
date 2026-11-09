@@ -74,7 +74,7 @@ export interface QuickInputProps {
 	saving?: boolean;
 	/** 지정하면 `✕ 나중에`가 나타나고, 해당 날짜에는 입력 카드를 다시 올리지 않는다(B2). */
 	dismissDate?: string;
-	onSave?: (value: { fatigue?: number; pain?: PainLevel; note?: string }) => void;
+	onSave?: (value: CheckinPayload) => void;
 }
 
 // ── /api/v1/library 실제 응답 (src/api/routes_library.py, src/services/activity_service.py) ──
@@ -551,13 +551,11 @@ export interface RecentActivity {
 	source: string;
 	route?: [number, number][] | null;
 	hr_zone?: { zone: number; pct: number; source: string } | null;
+	sport_family?: string; sport_label?: string; // 종목 군·라벨 — 비러닝 구분 표시(T-07)
 }
 
-export interface CheckinPayload {
-	fatigue?: number;
-	pain?: PainLevel;
-	note?: string;
-}
+/** 체크인 저장 — 서버는 실린 키만 갱신한다(T-16). `null` 은 그 값을 지운다. */
+export interface CheckinPayload { fatigue?: number | null; pain?: PainLevel | null; note?: string | null }
 
 export interface CheckinRow {
 	id: number;
@@ -1451,6 +1449,7 @@ export interface RaceCandidate {
 	distance_m: number;
 	time_sec: number | null;
 	confirmed_effort: RaceEffort | null;
+	why?: 'name' | 'event_type' | 'confirmed'; distance_mismatch?: boolean; // 후보 이유·이름-거리 불일치(T-14)
 }
 
 export interface RaceHubForm {

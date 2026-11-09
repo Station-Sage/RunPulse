@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const LIMIT = 300;
 // 기존 초과 파일의 허용 줄 수(줄이면 값을 낮추고, 300 이하가 되면 항목을 지운다)
-const BASELINE = { 'src/lib/types/index.ts': 1679 };
+const BASELINE = { 'src/lib/types/index.ts': 1678 };
 
 function walk(dir, out = []) {
 	for (const n of readdirSync(dir)) {

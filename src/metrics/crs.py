@@ -40,11 +40,15 @@ LEVEL_LABELS = {
 }
 
 
+# 입력이 없어 판정하지 않은 게이트 메시지 꼬리(T-04) — 제한은 걸지 않지만 '통과'로 읽히지 않게 한다.
+_NO_DATA = "데이터 없음 · 판정 제외"
+
+
 # ── Gate 함수들 ──────────────────────────────────────────────────────
 
 def _gate_acwr(acwr):
     if acwr is None:
-        return LEVEL_FULL, "ACWR 데이터 없음 (통과)"
+        return LEVEL_FULL, "ACWR " + _NO_DATA
     if acwr > 1.5:
         return LEVEL_Z1, f"ACWR {acwr:.2f} > 1.5 — 부상 위험"
     if acwr > 1.3:
@@ -56,7 +60,7 @@ def _gate_acwr(acwr):
 
 def _gate_hrv(hrv_today, hrv_rolling):
     if hrv_today is None or hrv_rolling is None or hrv_rolling <= 0:
-        return LEVEL_FULL, "HRV 데이터 없음 (통과)"
+        return LEVEL_FULL, "HRV " + _NO_DATA
     ratio = (hrv_today - hrv_rolling) / hrv_rolling
     pct = ratio * 100
     if ratio < -0.15:
@@ -68,7 +72,7 @@ def _gate_hrv(hrv_today, hrv_rolling):
 
 def _gate_body_battery(bb):
     if bb is None:
-        return LEVEL_FULL, "Body Battery 없음 (통과)"
+        return LEVEL_FULL, "Body Battery " + _NO_DATA
     if bb < 20:
         return LEVEL_REST, f"BB {bb:.0f} < 20 — 휴식"
     if bb < 35:
@@ -80,7 +84,7 @@ def _gate_body_battery(bb):
 
 def _gate_tsb(tsb):
     if tsb is None:
-        return LEVEL_FULL, "TSB 없음 (통과)"
+        return LEVEL_FULL, "TSB " + _NO_DATA
     if tsb < -30:
         return LEVEL_Z1, f"TSB {tsb:.1f} < -30 — 과훈련 경계"
     if tsb < -20:
@@ -90,7 +94,7 @@ def _gate_tsb(tsb):
 
 def _gate_cirs(cirs):
     if cirs is None:
-        return LEVEL_FULL, "CIRS 없음 (통과)"
+        return LEVEL_FULL, "CIRS " + _NO_DATA
     if cirs > 80:
         return LEVEL_Z1, f"CIRS {cirs:.0f} > 80 — 부상 위험"
     if cirs > 50:
@@ -118,7 +122,7 @@ def _compute_crs_score(utrs, acwr, cirs):
 class CRSCalculator(MetricCalculator):
     name = "crs"
     provider = "runpulse:formula_v1"
-    version = "1.1"
+    version = "1.2"
     scope_type = "daily"
     category = "readiness"
     requires = ["acwr", "tsb", "cirs", "utrs"]
@@ -186,7 +190,9 @@ class CRSCalculator(MetricCalculator):
             ("TSB", *_gate_tsb(tsb)),
             ("CIRS", *_gate_cirs(cirs)),
         ]
-        gates = [{"name": g[0], "level": g[1], "message": g[2]} for g in gates_raw]
+        # T-04: 입력이 없는 게이트는 '통과'가 아니라 '판정 제외'(no_data) — 제한은 걸지 않지만 안전 판정으로 읽히지 않게.
+        gates = [{"name": g[0], "level": g[1], "message": g[2],
+                  "status": "no_data" if g[2].endswith(_NO_DATA) else "evaluated"} for g in gates_raw]
         min_level = min(g["level"] for g in gates)
 
         # CRS 점수

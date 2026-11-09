@@ -2,7 +2,7 @@
 	// B5 주간 스트립 — design 10-today §C7 상태 기호. 판정은 서버(week_compliance)가 하고 여기선 표기만 한다.
 	import { base } from '$app/paths';
 	import type { WeekCompliance } from '$lib/types';
-	import { dayCell, weekSummary, hasWeekPlan } from '$lib/weekStrip';
+	import { WEEK_LEGEND, dayCell, weekSummary, hasWeekPlan } from '$lib/weekStrip';
 
 	let { week, planId = null }: { week: WeekCompliance | null | undefined; planId?: number | null } = $props();
 
@@ -25,7 +25,7 @@
 			<span class="text-fg-secondary">{weekSummary(week)}</span>
 			{#if planHref}<a href={planHref} class="text-fg-muted hover:text-fg-primary">전체 계획 →</a>{/if}
 		</div>
-		<ol class="grid grid-cols-7 gap-1" title="● 이행 · ◐ 부족 · ○ 놓침 · ⟳ 대체 · ◉ 오늘 · ┄ 휴식 · ◌ 예정">
+		<ol class="grid grid-cols-7 gap-1">
 			{#each cells as c (c.date)}
 				{@const href = c.linkable && planId != null ? `${base}/coach/plan/${planId}/session/${c.date}` : null}
 				<li class="min-w-0">
@@ -36,11 +36,18 @@
 						class="flex flex-col items-center gap-0.5 rounded-md border border-border-subtle px-0.5 py-1.5 text-center {TONE[c.tone]} {href ? 'hover:bg-surface-3' : ''} {c.tone === 'today' ? 'bg-surface-2' : ''}"
 					>
 						<span class="text-[10px] text-fg-muted">{c.dow}</span>
-						{#if c.symbol}<span class="text-base leading-none" aria-hidden="true">{c.symbol}</span>{/if}
+						{#if c.symbol}<span class="text-base leading-none" aria-hidden="true">{c.symbol}</span><span class="sr-only">{c.state}</span>{/if}
 						<span class="max-w-full truncate text-[10px] {c.symbol ? '' : 'py-1'}">{c.label}</span>
 					</svelte:element>
 				</li>
 			{/each}
 		</ol>
+		<!-- T-02: 기호 범례 — 색·기호만으로 상태를 전달하지 않게 글로 풀어 둔다. -->
+		<details class="text-[11px] text-fg-muted">
+			<summary class="cursor-pointer hover:text-fg-secondary">기호 설명</summary>
+			<p class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+				{#each WEEK_LEGEND as [sym, word] (sym)}<span><span aria-hidden="true">{sym}</span> {word}</span>{/each}
+			</p>
+		</details>
 	</section>
 {/if}

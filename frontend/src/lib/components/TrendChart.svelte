@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, dateAtOffset, eventSymbol, markerEvents, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { commonRange, snapRange, dateAtOffset, eventSymbol, markerEvents, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
 	import { axisDateLabel } from '$lib/chart/scrub';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
@@ -19,7 +19,9 @@
 		selectedDate = null,
 		events = [],
 		onSelect,
-		onPrefetch
+		onPrefetch,
+		yStep = null,
+		yMinSpan = 0
 	}: {
 		series: TrendSeries[];
 		height?: number;
@@ -38,6 +40,9 @@
 		onSelect?: (date: string | null) => void;
 		/** 호버/탭 중인 날짜 — 분해 선요청용. */
 		onPrefetch?: (date: string) => void;
+		/** 주면 y 눈금을 이 단위 배수로 맞춘다(예: 60 = 1분). yMinSpan 은 최소 y 폭. */
+		yStep?: number | null;
+		yMinSpan?: number;
 	} = $props();
 
 	const STATUS_COLOR: Record<string, string> = {
@@ -49,7 +54,10 @@
 	};
 
 	const W = 600;
-	const range = $derived(commonRange(series));
+	const range = $derived.by(() => {
+		const r = commonRange(series);
+		return r && yStep ? snapRange(r, yStep, yMinSpan) : r;
+	});
 	const dates = $derived(series.flatMap((s) => s.points.map((p) => p.date)).sort());
 	const t0 = $derived(dates[0] ?? '');
 	const t1 = $derived(dates[dates.length - 1] ?? '');

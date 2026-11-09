@@ -28,6 +28,25 @@ export function commonRange(series: TrendSeries[]): { min: number; max: number }
 	return { min: lo, max: max + pad };
 }
 
+/**
+ * y 범위를 step 의 짝수 배 구간으로 맞춘다 — 위·가운데·아래 눈금이 모두 step 배수(정형 눈금)가 되고,
+ * span 이 minSpan 보다 작으면 가운데를 기준으로 넓혀 작은 흔들림이 큰 변화처럼 보이지 않게 한다(T-10).
+ */
+export function snapRange(r: { min: number; max: number }, step: number, minSpan = 0): { min: number; max: number } {
+	let lo = r.min;
+	let hi = r.max;
+	if (hi - lo < minSpan) {
+		const mid = (hi + lo) / 2;
+		lo = mid - minSpan / 2;
+		hi = mid + minSpan / 2;
+	}
+	lo = Math.floor(lo / step) * step;
+	hi = Math.ceil(hi / step) * step;
+	if (hi === lo) hi = lo + 2 * step;
+	if (((hi - lo) / step) % 2 === 1) hi += step;
+	return { min: lo, max: hi };
+}
+
 /** 날짜(YYYY-MM-DD)의 [t0, t1] 구간 내 위치 0~1 — 시리즈마다 날짜가 달라도 같은 x축에 놓기 위함. 구간 길이가 0이면 0. */
 export function xFraction(date: string, t0: string, t1: string): number {
 	const a = Date.parse(t0);

@@ -55,9 +55,26 @@ def test_rule_fallback_source_and_no_other(db_conn):
     assert out["highlights"]["other"] == []
 
 
-def test_cache_key_has_r2_suffix(db_conn):
+def test_cache_key_has_r3_suffix(db_conn):
+    _seed(db_conn, 902, "running", "2026-09-10T06:00:00", 5000, 1800)
     config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
     with patch("src.ai.chat_engine._call_provider", return_value="AI"):
         today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
-    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:r2") is not None
-    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22") is None
+    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:cur:r3") is not None
+    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:r2") is None
+
+
+def test_empty_month_skips_ai_and_is_neutral(db_conn):
+    """활동 0건인 달은 AI 를 부르지 않고 미수집/미기록을 구분한 중립 문구(T-26·T-21)."""
+    config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
+    with patch("src.ai.chat_engine._call_provider", return_value="러닝이 전혀 없었다") as call:
+        out = today_service.get_today_narrative(db_conn, config=config, year=2026, month=5)
+    call.assert_not_called()
+    assert out["source"] == "rule" and "아직 수집된 활동이 없어요" in out["text"]
+
+
+def test_empty_month_with_other_data_names_period(db_conn):
+    """다른 달에 활동이 있으면 '그 달에는 기록된 활동이 없어요'(평가 없이)."""
+    _seed(db_conn, 901, "running", "2026-09-10T06:00:00", 5000, 1800)
+    out = today_service.get_today_narrative(db_conn, config=None, year=2026, month=5)
+    assert out["text"] == "2026년 5월에는 기록된 활동이 없어요."

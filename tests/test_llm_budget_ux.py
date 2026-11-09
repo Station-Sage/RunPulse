@@ -65,6 +65,9 @@ def test_today_narrative_rule_with_reason(db_conn, monkeypatch):
     from src.services import today_service
     monkeypatch.setattr(httpx, "post", lambda *a, **k: pytest.fail("호출 금지"))
     default_store().add_usage(DAY, "n", "coach", calls=200)
+    # 활동 0건인 달은 AI 를 부르지 않으므로(T-26) 이번 달 러닝 1건을 둔다.
+    db_conn.execute("INSERT INTO activity_summaries (id, source, source_id, name, activity_type, start_time, "
+                    "distance_m, duration_sec) VALUES (1, 'garmin', '1', 'Run', 'running', date('now'), 5000, 1800)")
     with B.scope("n", "narrative"):
         out = today_service.get_today_narrative(db_conn, config=CFG)
     assert out["source"] == "rule" and out["reason"] == "quota_user"

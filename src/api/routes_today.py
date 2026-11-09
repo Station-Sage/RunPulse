@@ -3,6 +3,7 @@ GET /api/v1/today/milestones, GET /api/v1/today/narrative, GET /api/v1/today/rac
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from flask import request
 
@@ -12,7 +13,7 @@ from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
-from .validation import enum_field, int_field, parse_body, str_field
+from .validation import enum_field, int_field, parse_args, parse_body, str_field
 
 
 @api_bp.get("/today")
@@ -84,22 +85,29 @@ def get_today_milestones():
     return api_ok({"milestones": items})
 
 
+_NARRATIVE_ARGS = {
+    "year": int_field(2000, 9999),
+    "month": int_field(1, 12),
+}
+
+
 @api_bp.get("/today/narrative")
 def get_today_narrative():
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    try:
-        year_raw = request.args.get("year")
-        month_raw = request.args.get("month")
-        year = int(year_raw) if year_raw else None
-        month = int(month_raw) if month_raw else None
-    except (ValueError, TypeError):
-        year, month = None, None
-    # 하나만 있으면 무시(today_service 정책과 동일)
-    if not (year and month):
-        year, month = None, None
+    # T-22: 잘못된 year/month 는 500·조용한 대체 대신 400(ADR-048 경계 검증). 미래 달은 차단(T-21).
+    args, err = parse_args(_NARRATIVE_ARGS)
+    if err:
+        return err
+    year, month = args["year"], args["month"]
+    if (year is None) != (month is None):
+        return api_error("INVALID_PARAM", "year 와 month 는 함께 보내야 합니다.", 400,
+                         details={"year" if year is None else "month": "함께 필요합니다"})
+    today = date.today()
+    if year is not None and (year, month) > (today.year, today.month):
+        return api_error("INVALID_PARAM", "미래 달은 조회할 수 없습니다.", 400, details={"month": "미래 달"})
 
     config = load_config(user_id=get_current_user_id())
     conn = sqlite3.connect(str(dpath))
@@ -142,6 +150,10 @@ def post_today_checkin():
     body, err = parse_body(_CHECKIN_SCHEMA)
     if err:
         return err
+    # 부분 갱신(T-16): 요청에 실린 키만 갱신한다 — `{"fatigue":4}` 가 기존 pain·note 를 지우지 않게.
+    # 키를 null/"" 로 보내면 그 값을 지운다.
+    sent = request.get_json(silent=True) or {}
+    fields = [k for k in _CHECKIN_SCHEMA if k in sent]
     conn = sqlite3.connect(str(dpath))
     try:
         result = today_service.save_checkin(
@@ -149,6 +161,7 @@ def post_today_checkin():
             fatigue=body["fatigue"],
             pain=body["pain"],
             note=body["note"],
+            fields=fields,
         )
     finally:
         conn.close()

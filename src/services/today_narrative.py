@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import datetime as _dt
 import sqlite3
 
 
@@ -29,7 +30,7 @@ def get_today_narrative(
     from src.services.run_totals import other_line, other_totals, run_totals
     from src.services.week_digest import week_digests
     from src.services._narrative import (
-        attach_drill, build_evidence, build_narrative_prompt, month_date_range,
+        attach_drill, build_evidence, build_narrative_prompt, empty_month_text, month_date_range,
         get_narrative_cache, peak_ctl_in_range, query_metric, rule_narrative,
         set_narrative_cache, sleep_trend,
     )
@@ -39,7 +40,8 @@ def get_today_narrative(
     #    training_status가 오늘이 아니라 그 달 기준으로 나와야 함) ──────────
     if year is not None and month is not None:
         month_start, date = month_date_range(year, month)
-        month_label: str | None = f"{year}년 {month}월"
+        # 이번 달은 오늘 화면과 같은 표기·캐시('이번 달')를 쓴다 — 과거 달만 연월로 부른다.
+        month_label: str | None = None if date == _dt.date.today().isoformat() else f"{year}년 {month}월"
         status = get_today_status(conn, date)
     else:
         status = get_today_status(conn, date)
@@ -49,7 +51,7 @@ def get_today_narrative(
         month_label = None
 
     # ── 캐시 조회 (AI 성공 결과만 저장돼 있음) ────────────────────────────
-    cached = get_narrative_cache(conn, month_start, date)
+    cached = get_narrative_cache(conn, month_start, date, month_label)
     if cached is not None:
         # 마일스톤은 캐시(내러티브 문장)와 별개로 항상 최신 규칙으로 다시 조회한다
         cached["weeks"] = week_digests(conn, month_start, date)
@@ -102,7 +104,9 @@ def get_today_narrative(
     source = "rule"
     refused = None
     provider = get_ai_provider(config)
-    chain = _build_chat_provider_chain(provider, config)
+    # 그 달 활동이 0건이면 AI 를 부르지 않는다 — 데이터 없음을 '훈련 안 함'으로 평가하는 허구 서술 방지(T-26·T-21).
+    empty_month = month_count == 0 and not month_other
+    chain = [] if empty_month else _build_chat_provider_chain(provider, config)
     if chain:
         prompt = build_narrative_prompt(
             date, ctl_now, ctl_start, month_dist_km, month_count,
@@ -120,6 +124,8 @@ def get_today_narrative(
                     refused = sc.refused  # 예산 거부 — 다음 provider도 같은 결과
                     break
 
+    if text is None and empty_month:
+        text = empty_month_text(conn, period_label)
     if text is None:
         text = rule_narrative(
             ctl_now, ctl_start, month_dist_km, month_count,
@@ -139,5 +145,5 @@ def get_today_narrative(
         out["reason"] = refused
     # ── AI 성공 시에만 캐시 저장 ───────────────────────────────────────────
     if source == "ai":
-        set_narrative_cache(conn, month_start, date, out)
+        set_narrative_cache(conn, month_start, date, out, month_label)
     return out

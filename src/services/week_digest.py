@@ -96,7 +96,7 @@ def digest_prompt_lines(weeks: list[dict]) -> list[str]:
         if not w["run_count"]:
             out.append(f"- W{i}({w['week_start']}~): 러닝 없음")
             continue
-        parts = [f"{w['distance_km']}km", f"{w['run_count']}회", f"롱런 {w['long_run_km']}km"]
+        parts = [f"{w['distance_km']}km", f"{w['run_count']}회", f"최장 러닝 {w['long_run_km']}km"]
         if w["ctl_end"] is not None:
             parts.append(f"CTL {w['ctl_end']:.1f}")
         if w["tsb_min"] is not None:

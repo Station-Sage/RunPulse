@@ -33,3 +33,16 @@ def test_candidates():
     rr.confirm(c, b, "fun")
     got = rr.candidates(c, "2026-08-01")
     assert [(x["name"], x["confirmed_effort"]) for x in got] == [("Forest run", None), ("하프 대회", "fun")]
+
+
+def test_candidates_why_and_distance_mismatch():
+    """T-14: 후보 이유와 이름-거리 불일치 표시."""
+    c = mem_conn()
+    seed_run(c, sid="1", date="2026-09-12", name="JTBC Seoul Marathon full", dist=25700)
+    seed_run(c, sid="2", date="2026-09-10", name="러닝", event_type="race", dist=6200)
+    seed_run(c, sid="3", date="2026-09-05", name="Half Marathon", dist=21300)
+    got = {x["name"]: x for x in rr.candidates(c, "2026-08-01")}
+    assert got["JTBC Seoul Marathon full"]["distance_mismatch"] is True
+    assert got["JTBC Seoul Marathon full"]["why"] == "name"
+    assert got["러닝"]["why"] == "event_type" and got["러닝"]["distance_mismatch"] is False
+    assert got["Half Marathon"]["distance_mismatch"] is False

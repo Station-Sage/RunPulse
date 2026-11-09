@@ -3,24 +3,24 @@
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { otherLine } from '$lib/activityDisplay';
 	// /today/month/[ym] — 월간 내러티브 라우트(DESIGN-U17 §4.1). 오버레이가 아니라 페이지다.
-	// ‹ › 는 replaceState(히스토리 길이 불변), 닫기(‹ 오늘)는 뒤로가기. 칩은 DrillPanel(URL 스택) 하나만 연다.
+	// ‹ › 는 replaceState(히스토리 길이 불변), 닫기(‹ 오늘)는 오늘에서 왔을 때만 뒤로가기(T-23). 칩은 DrillPanel(URL 스택) 하나만 연다.
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { goto, replaceState } from '$app/navigation';
+	import { afterNavigate, goto, replaceState } from '$app/navigation';
+	import { closeAction, isAtMinMonth, monthSlice } from '$lib/monthNav';
 	import type { MonthPageData } from './+page';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import { openDrill } from '$lib/drillStack';
 	import { EXPLAIN_SUPPORTED_SLUGS } from '$lib/api/metrics';
 	import { getTodayNarrative } from '$lib/api/today';
 	import { getMetricTrend } from '$lib/api/metrics';
-	import Sparkline from '$lib/components/Sparkline.svelte';
+	import MonthLoadSparkline from '$lib/components/MonthLoadSparkline.svelte';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import WeekDigestList from '$lib/components/WeekDigestList.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
-	import { formatLoad } from '$lib/format';
 	import type { NarrativeResponse } from '$lib/types';
 
 	let { data }: { data: MonthPageData } = $props();
@@ -49,9 +49,15 @@
 		replaceState(`${base}/today/month/${ym}`, {});
 	}
 
+	// 들어오기 직전 경로 — 딥링크·새 탭이면 null(T-23).
+	let fromPath: string | null = null;
+	afterNavigate(({ from }) => {
+		if (fromPath === null) fromPath = from?.url.pathname ?? null;
+	});
+
 	function close() {
-		if (history.length > 1) history.back();
-		else void goto(`${base}/today`);
+		if (closeAction(fromPath, base) === 'back') history.back();
+		else void goto(`${base}/today`, { replaceState: true });
 	}
 
 	function handleDrillInput(slug: string) {
@@ -63,23 +69,25 @@
 		}];
 	}
 
-	let showDualSparkline = $state(false);
-	let ctlPoints = $state<(number | null)[]>([]);
-	let atlPoints = $state<(number | null)[]>([]);
-	let ctlDates = $state<string[]>([]);
+	// T-24: 1년 추세를 한 번 받아 달마다 잘라 쓴다 — 과거 달에서도 영역이 사라지지 않는다.
+	type Pt = { date: string; value: number | null };
+	let ctlYear = $state<Pt[]>([]);
+	let atlYear = $state<Pt[]>([]);
 	let sparklineLoading = $state(false);
+	let sparklineLoaded = false;
 
 	const isCurrentOrFuture = $derived(
 		displayYear > now.getFullYear() ||
 			(displayYear === now.getFullYear() && displayMonth >= now.getMonth() + 1)
 	);
 
-	// getMetricTrend()는 "오늘 기준 최근 N일"만 지원(임의 과거 달 조회 불가) —
-	// 과거 달 조회 시 스파크라인이 그 달과 무관한 오늘 기준 데이터를 보여주는
-	// 걸 막기 위해 이번 달을 보고 있을 때만 표시한다.
 	const isViewingCurrentMonth = $derived(
 		displayYear === now.getFullYear() && displayMonth === now.getMonth() + 1
 	);
+	const atMin = $derived(isAtMinMonth(displayYear, displayMonth));
+	const ctlSlice = $derived(monthSlice(ctlYear, displayYear, displayMonth, isViewingCurrentMonth));
+	const atlSlice = $derived(monthSlice(atlYear, displayYear, displayMonth, isViewingCurrentMonth));
+	const sparkTitle = $derived(isViewingCurrentMonth ? 'CTL 추세 (최근 4주)' : `CTL 추세 (${displayMonth}월)`);
 
 	const monthLabel = $derived(`${displayYear}년 ${displayMonth}월`);
 
@@ -87,7 +95,6 @@
 		loading = true;
 		error = null;
 		narrativeData = null;
-		showDualSparkline = false;
 		try {
 			narrativeData = await getTodayNarrative(displayYear, displayMonth);
 		} catch (e) {
@@ -98,16 +105,16 @@
 	}
 
 	async function loadSparklines() {
-		if (ctlPoints.length > 0) return; // 이미 로드됨
+		if (sparklineLoaded) return; // 이미 로드됨
+		sparklineLoaded = true;
 		sparklineLoading = true;
 		try {
 			const [ctl, atl] = await Promise.all([
-				getMetricTrend('ctl', '4w'),
-				getMetricTrend('atl', '4w'),
+				getMetricTrend('ctl', '1y'),
+				getMetricTrend('atl', '1y'),
 			]);
-			ctlPoints = ctl.points.map((p) => p.value);
-			atlPoints = atl.points.map((p) => p.value);
-			ctlDates = ctl.points.map((p) => p.date);
+			ctlYear = ctl.points;
+			atlYear = atl.points;
 		} catch {
 			// 스파크라인 실패는 조용히 무시
 		} finally {
@@ -115,11 +122,8 @@
 		}
 	}
 
-	function toggleSparkline() {
-		showDualSparkline = !showDualSparkline;
-	}
-
 	function prevMonth() {
+		if (atMin) return;
 		if (displayMonth === 1) {
 			displayYear -= 1;
 			displayMonth = 12;
@@ -155,7 +159,7 @@
 	<div class="flex items-center justify-between border-b border-border-subtle pb-3">
 		<button onclick={close} class="tap text-sm text-fg-muted hover:text-fg-primary" aria-label="닫기">‹ 오늘</button>
 		<div class="flex items-center gap-2">
-			<IconButton label="이전 달" onclick={prevMonth} class="rounded text-fg-secondary hover:text-fg-primary">‹</IconButton>
+			<IconButton label="이전 달" onclick={prevMonth} disabled={atMin} class="rounded text-fg-secondary hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30">‹</IconButton>
 			<h1 class="font-medium" data-testid="month-title">{monthLabel}</h1>
 			<IconButton label="다음 달" onclick={nextMonth} disabled={isCurrentOrFuture} class="rounded text-fg-secondary hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30">›</IconButton>
 		</div>
@@ -223,60 +227,8 @@
 			<WeekDigestList weeks={narrativeData.weeks} />
 		{/if}
 
-		<!-- CTL 스파크라인 (탭 → CTL+ATL 2단 확장) — 이번 달 조회일 때만 표시.
-		     getMetricTrend()가 "오늘 기준 최근 4주"만 지원해 과거 달에는
-		     무관한 데이터가 되므로 숨긴다. -->
-		{#if isViewingCurrentMonth}
-			<div class="rounded-lg border border-border-subtle bg-surface-2 p-3">
-				<button
-					class="flex w-full items-center justify-between text-xs text-fg-muted hover:text-fg-secondary"
-					onclick={toggleSparkline}
-				>
-					<span>CTL 추세 (4주)</span>
-					<span aria-hidden="true">{showDualSparkline ? '▲' : '▼'}</span>
-				</button>
-
-				{#if sparklineLoading}
-					<p class="mt-2 text-xs text-fg-muted">불러오는 중…</p>
-				{:else if showDualSparkline}
-					<div class="mt-2 flex flex-col gap-3">
-						<div>
-							<p class="mb-1 text-[10px] text-fg-muted">CTL</p>
-							<Sparkline
-								data={ctlPoints}
-								height={40}
-								color="var(--color-series-1)"
-								interactive
-								dates={ctlDates}
-								formatValue={formatLoad}
-							/>
-						</div>
-						<div>
-							<p class="mb-1 text-[10px] text-fg-muted">ATL</p>
-							<Sparkline
-								data={atlPoints}
-								height={40}
-								color="var(--color-semantic-amber)"
-								interactive
-								dates={ctlDates}
-								formatValue={formatLoad}
-							/>
-						</div>
-					</div>
-				{:else}
-					<div class="mt-2">
-						<Sparkline
-							data={ctlPoints}
-							height={40}
-							color="var(--color-series-1)"
-							interactive
-							dates={ctlDates}
-							formatValue={formatLoad}
-						/>
-					</div>
-				{/if}
-			</div>
-		{/if}
+		<!-- CTL 스파크라인 — 이번 달은 최근 4주, 과거 달은 그 달(1년 추세에서 잘라 씀, T-24). -->
+		<MonthLoadSparkline ctl={ctlSlice} atl={atlSlice} title={sparkTitle} loading={sparklineLoading} />
 
 		{#if narrativeData.source === 'rule'}
 			<p class="text-xs text-fg-muted">규칙 기반 요약</p>

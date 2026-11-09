@@ -33,16 +33,21 @@
 	import { loadCoverageNotice } from '$lib/healthNotice';
 	import { demoActive } from '$lib/demoMode';
 	import { postCheckin } from '$lib/api/today';
+	import { checkinUndoPayload } from '$lib/checkinView';
+	import Toast from '$lib/components/Toast.svelte';
 	import { morningAsOf } from '$lib/todayHero';
 	import { base } from '$app/paths';
 	import type { DrillTarget } from '$lib/evidence';
-	import type { PainLevel } from '$lib/types';
+	import type { CheckinPayload, CheckinRow } from '$lib/types';
 
 	let { data }: { data: TodayPageData } = $props();
 
 	let checkin = $state(data.today?.checkin ?? null);
 	let savingCheckin = $state(false);
 	let checkinError = $state<string | null>(null);
+	// T-19: 저장 확인 + 되돌리기(직전 기록으로 복원).
+	let checkinToast = $state(false);
+	let checkinBefore: CheckinRow | null = null;
 
 	// 임의 슬러그·scope 드릴(EvidenceQuote 칩)은 기존 MetricBreakdown 스택, 게이지 3종은 DrillPanel(URL 스택).
 	let drillStack = $state<DrillTarget[]>([]);
@@ -71,11 +76,14 @@
 
 	const retry = () => { swrEvict('app:today'); return invalidate('app:today'); };
 
-	async function handleSaveCheckin(value: { fatigue?: number; pain?: PainLevel; note?: string }) {
+	async function handleSaveCheckin(value: CheckinPayload, undo = false) {
 		savingCheckin = true;
 		checkinError = null;
+		const before = checkin;
 		try {
 			checkin = await postCheckin(value);
+			checkinBefore = before;
+			checkinToast = !undo;
 			// 피로 입력은 히어로 판정에 반영된다 — 캐시를 비우고 다시 불러온다(design §3 B2 "저장 후 invalidate").
 			swrEvict('app:today');
 			void invalidate('app:today');
@@ -139,6 +147,7 @@
 				onSave={handleSaveCheckin}
 			/>
 			{#if checkinError}<p class="text-xs text-semantic-red">{checkinError}</p>{/if}
+			<Toast open={checkinToast} message="오늘 컨디션을 저장했어요" onUndo={() => void handleSaveCheckin(checkinUndoPayload(checkinBefore), true)} onDismiss={() => (checkinToast = false)} />
 		</section>
 
 		<div class="flex flex-col gap-3 border-t border-border-subtle pt-3 lg:col-start-1 lg:row-start-2">

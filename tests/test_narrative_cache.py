@@ -50,6 +50,15 @@ class TestNarrativeCacheHelpers:
             set_narrative_cache(db_conn, "2026-09-01", "2026-09-22", {"text": "x"})
 
 
+def _seed_run(conn, aid=1, start="2026-09-10T06:00:00"):
+    """활동 0건인 달은 AI 를 부르지 않으므로(T-26) AI 경로 시험엔 러닝 1건을 둔다."""
+    conn.execute(
+        "INSERT INTO activity_summaries (id, source, source_id, name, activity_type, "
+        "start_time, distance_m, duration_sec) VALUES (?, 'garmin', ?, 'Run', 'running', ?, 5000, 1800)",
+        (aid, str(aid), start),
+    )
+
+
 class TestGetTodayNarrativeCache:
     def test_rule_fallback_not_cached(self, db_conn):
         """규칙 기반 fallback(source='rule') 결과는 캐시에 저장되지 않는다."""
@@ -58,6 +67,7 @@ class TestGetTodayNarrativeCache:
 
     def test_ai_result_is_cached(self, db_conn):
         """AI 성공 결과(source='ai')는 캐시에 저장된다."""
+        _seed_run(db_conn)
         config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
         with patch("src.ai.chat_engine._call_provider", return_value="AI 내러티브"):
             today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
@@ -93,7 +103,7 @@ class TestGetTodayNarrativeCache:
         """과거 달(year/month) 조회는 해당 달 시작일·말일 기준으로 별도 캐시 키를 쓴다."""
         payload = {"date": "2026-08-31", "text": "8월 캐시", "source": "ai",
                    "evidence": [], "milestones": [], "highlights": {}}
-        set_narrative_cache(db_conn, "2026-08-01", "2026-08-31", payload)
+        set_narrative_cache(db_conn, "2026-08-01", "2026-08-31", payload, "2026년 8월")
 
         result = today_service.get_today_narrative(
             db_conn, date="2026-09-22", config=None, year=2026, month=8
@@ -103,6 +113,7 @@ class TestGetTodayNarrativeCache:
     def test_stale_cache_on_new_activity_triggers_ai(self, db_conn):
         """새 활동이 추가되면 핑거프린트가 달라져 캐시가 무효화되고 AI가 다시 호출된다."""
         # 먼저 AI 결과를 캐시
+        _seed_run(db_conn)
         config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
         with patch("src.ai.chat_engine._call_provider", return_value="첫 번째 AI 결과"):
             today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
@@ -129,6 +140,7 @@ class TestGetTodayNarrativeCache:
 
     def test_cache_save_failure_does_not_raise(self, db_conn):
         """캐시 저장 실패 시 예외 없이 AI 결과를 그대로 반환한다."""
+        _seed_run(db_conn)
         config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
         with patch("src.ai.chat_engine._call_provider", return_value="AI 텍스트"), \
              patch("src.ai.ai_cache.set_cached", side_effect=Exception("저장 실패")):

@@ -2,7 +2,7 @@
 	// 레이스 예측 3경로 비교(P7-PRED-72): Garmin / RunPulse·기기 심박 기준 / RunPulse·자체 추정 + 차이의 이유.
 	// 기본 표시는 3경로. r4 섀도 후보(검토 중 알고리즘)는 접어 두고, 자체 추정의 근거 비중·불확실성도 접는다.
 	import type { PredictionCompare } from '$lib/types';
-	import { clock, confidenceLabel, contributionLabel, diffVsSelf, rangeLabel } from '$lib/predictionCompare';
+	import { clock, confidenceLabel, contributionLabel, diffVsSelf, isStale, rangeLabel } from '$lib/predictionCompare';
 	import type { CompareRow } from '$lib/predictionCompare';
 
 	let { compare, showCandidates = false }: { compare: PredictionCompare; showCandidates?: boolean } = $props();
@@ -22,11 +22,11 @@
 			<span class="text-xs {row.key === 'self' ? 'font-semibold' : row.candidate ? 'text-fg-muted italic' : 'text-fg-secondary'}">{row.label}</span>
 			{#if row.value_sec != null && (range || conf)}
 				<span class="text-[11px] text-fg-muted"
-					>{range ? `80% ${range}` : ''}{range && conf ? ' · ' : ''}{conf ? `신뢰도 ${conf}` : ''}</span
+					>{range ? `모델 범위 ${range}` : ''}{range && conf ? ' · ' : ''}{conf ? `신뢰도 ${conf}` : ''}</span
 				>
 			{/if}
-			{#if row.key === 'garmin' && row.stale_days != null && row.stale_days > 14}
-				<span class="text-[11px] text-semantic-amber">{row.stale_days}일 전 값</span>
+			{#if isStale(row)}
+				<span class="text-[11px] text-semantic-amber">{row.stale_days}일 전 값 · 차이 비교 제외</span>
 			{/if}
 		</div>
 		<div class="flex shrink-0 items-baseline gap-2">
