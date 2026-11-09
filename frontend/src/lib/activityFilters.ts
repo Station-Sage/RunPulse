@@ -23,11 +23,57 @@ export const PRESETS: ReadonlyArray<readonly [PeriodPreset, string]> = [
 ];
 
 export const SORTS = ['date', 'distance', 'pace', 'load'];
+/** 종목 칩 키 — 5개 family + 그 밖의 종목 묶음 'other'(서버 SPORT_GROUPS 와 같음, A-14). */
+export const SPORT_KEYS = ['running', 'cycling', 'swimming', 'walking', 'strength', 'other'];
+/** 유형 칩 키(서버 TYPE_CLASSES 와 같음). */
+export const TYPE_KEYS = ['race', 'interval', 'tempo', 'long', 'easy', 'recovery'];
 
 const DAY = 86_400_000;
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const isDate = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const isMonth = (s: string | null): s is string => !!s && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+const isDist = (s: string | null): s is string => !!s && /^\d+(\.\d+)?$/.test(s) && Number(s) > 0;
+const pick = (v: string | null, allowed: string[]) => (v && allowed.includes(v) ? v : '');
+
+/** 칩 줄 키 이름 → 사용자에게 보일 이름. */
+const PARAM_LABELS: Record<string, string> = {
+	month: '월', period: '기간', from: '시작일', to: '종료일', sport: '종목', type: '유형',
+	dist_min: '거리', sort: '정렬', page: '페이지', at: '위치'
+};
+
+/**
+ * 주소의 필터 값 중 쓸 수 없어 빼고 보여 주는 것(E-27·A-19). 순서는 PARAM_LABELS 순.
+ * page 는 목록이 아래로 내리며 더 불러오는 방식이라 값과 무관하게 쓰지 않는다.
+ */
+export function invalidListParams(params: URLSearchParams): string[] {
+	const bad = (k: string, ok: (v: string) => boolean) => params.has(k) && !ok(params.get(k) ?? '');
+	const checks: Record<string, (v: string) => boolean> = {
+		month: (v) => v === '' || isMonth(v),
+		period: (v) => ['', 'all', '30d', 'month', 'year'].includes(v),
+		from: (v) => v === '' || isValidDate(v),
+		to: (v) => v === '' || isValidDate(v),
+		sport: (v) => v === '' || SPORT_KEYS.includes(v),
+		type: (v) => v === '' || TYPE_KEYS.includes(v),
+		dist_min: (v) => v === '' || isDist(v),
+		sort: (v) => v === '' || SORTS.includes(v),
+		page: () => false,
+		at: (v) => v === '' || isMonth(v)
+	};
+	return Object.keys(PARAM_LABELS).filter((k) => bad(k, checks[k]));
+}
+
+/** 빼고 보여 준 조건 안내 한 줄('' 이면 표시 안 함). 문구는 임시(TXT-1). */
+export function invalidParamsNotice(keys: string[]): string {
+	if (keys.length === 0) return '';
+	return `주소의 ${keys.map((k) => PARAM_LABELS[k] ?? k).join('·')} 값을 쓸 수 없어 빼고 보여 드려요.`;
+}
+
+/** 실제 달력에 있는 YYYY-MM-DD 인지(2026-02-30 거부). */
+function isValidDate(s: string): boolean {
+	if (!isDate(s)) return false;
+	const d = new Date(`${s}T00:00:00Z`);
+	return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
 
 export function monthRange(month: string): { from: string; to: string } {
 	const [y, m] = month.split('-').map(Number);
@@ -71,8 +117,8 @@ export function parseFilters(params: URLSearchParams, today: string): ActivityFi
 	} else {
 		const f = params.get('from');
 		const t = params.get('to');
-		if (isDate(f)) from = f;
-		if (isDate(t)) to = t;
+		if (f && isValidDate(f)) from = f;
+		if (t && isValidDate(t)) to = t;
 		if (!from && !to) preset = 'all';
 	}
 	return {
@@ -80,10 +126,10 @@ export function parseFilters(params: URLSearchParams, today: string): ActivityFi
 		month: isMonth(month) ? month : '',
 		from,
 		to,
-		sport: params.get('sport') ?? '',
-		type: params.get('type') ?? '',
-		sort: SORTS.includes(params.get('sort') ?? '') ? (params.get('sort') as string) : '',
-		distMin: params.get('dist_min') ?? '',
+		sport: pick(params.get('sport'), SPORT_KEYS),
+		type: pick(params.get('type'), TYPE_KEYS),
+		sort: pick(params.get('sort'), SORTS),
+		distMin: isDist(params.get('dist_min')) ? (params.get('dist_min') as string) : '',
 		q: params.get('q') ?? ''
 	};
 }
@@ -104,4 +150,9 @@ export function serializeFilters(s: ActivityFilterState): string {
 	if (s.q) p.set('q', s.q);
 	const qs = p.toString();
 	return qs ? `?${qs}` : '';
+}
+
+/** 접힌 칩 줄(종목·유형·거리) 중 기본값이 아닌 것의 수 — 접힘 버튼에 표시(A-16). */
+export function appliedCount(s: Pick<ActivityFilterState, 'sport' | 'type' | 'distMin'>): number {
+	return [s.sport, s.type, s.distMin].filter(Boolean).length;
 }

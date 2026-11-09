@@ -1,7 +1,7 @@
 import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
 import { getSyncState } from '$lib/api/data';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
-import { parseFilters, type ActivityFilterState } from '$lib/activityFilters';
+import { invalidListParams, parseFilters, type ActivityFilterState } from '$lib/activityFilters';
 import { toApiFilters, PER_PAGE } from '$lib/activityListQuery';
 import type { ActivitiesListResponse, ActivityFacets, ActivityListSummary } from '$lib/types';
 
@@ -14,6 +14,8 @@ export interface ActivitiesPageData {
 	filters: ActivityFilterState;
 	today: string;
 	firstSyncRunning: boolean;
+	/** 주소에서 쓸 수 없어 뺀 조건 키(E-27·A-19) */
+	invalidParams: string[];
 }
 
 const localToday = () => {
@@ -25,6 +27,7 @@ export async function load({ url }: { url: URL }): Promise<ActivitiesPageData> {
 	const today = localToday();
 	const filters = parseFilters(url.searchParams, today);
 	const api = toApiFilters(filters);
+	const invalidParams = invalidListParams(url.searchParams);
 	const soft = <T>(p: Promise<T>) => p.catch(() => null);
 	const syncing = getSyncState().then((s) => s.first_sync_running).catch(() => false);
 	try {
@@ -33,9 +36,9 @@ export async function load({ url }: { url: URL }): Promise<ActivitiesPageData> {
 			soft(getActivityFacets(api)),
 			soft(getActivitySummary(api))
 		]);
-		return { result, facets, summary, errorMessage: null, failure: null, filters, today, firstSyncRunning: await syncing };
+		return { result, facets, summary, errorMessage: null, failure: null, filters, today, firstSyncRunning: await syncing, invalidParams };
 	} catch (e) {
 		const failure = classifyFailure(e);
-		return { result: null, facets: null, summary: null, errorMessage: failure.detail, failure, filters, today, firstSyncRunning: await syncing };
+		return { result: null, facets: null, summary: null, errorMessage: failure.detail, failure, filters, today, firstSyncRunning: await syncing, invalidParams };
 	}
 }

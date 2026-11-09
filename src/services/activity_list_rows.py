@@ -8,6 +8,7 @@ import re
 import sqlite3
 
 from src.metrics.workout_classifier import TAG_LABELS
+from src.services.activity_display import build_display
 from src.services.activity_feedback_service import feedback_for_activities
 from src.services.activity_list_filters import TYPE_CLASSES
 
@@ -52,7 +53,8 @@ def _source_counts(conn: sqlite3.Connection, activities: list[dict]) -> dict[str
 
 
 def enrich_rows(conn: sqlite3.Connection, activities: list[dict]) -> None:
-    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race, rpe, source_count를 추가(제자리)."""
+    """각 행에 workout_class(API 키), workout_label, display_title, load, is_race, rpe, source_count,
+    sport_family·sport_label·display(종목별 거리·페이스 표시 계약, A-31)를 추가(제자리)."""
     if not activities:
         return
     ids = [a["id"] for a in activities]
@@ -72,3 +74,7 @@ def enrich_rows(conn: sqlite3.Connection, activities: list[dict]) -> None:
         a["display_title"] = display_title(a.get("name"), label, a.get("distance_m"))
         a["load"] = round(float(load), 1) if load is not None else None
         a["is_race"] = key == "race"
+        disp = build_display(a)
+        a["sport_family"] = disp["family"]
+        a["sport_label"] = disp["label"]
+        a["display"] = disp

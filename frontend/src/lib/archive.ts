@@ -32,7 +32,7 @@ export function buildHeatmap(
 	data: { date: string; km: number }[],
 	endDate: string,
 	weeks = 53
-): { cells: HeatCell[]; months: { col: number; label: string }[]; columns: number } {
+): { cells: HeatCell[]; months: { col: number; label: string }[]; columns: number; range: { from: string; to: string } } {
 	const end = utc(endDate);
 	const endMonday = end - weekday(end) * DAY;
 	const start = endMonday - (weeks - 1) * 7 * DAY;
@@ -43,16 +43,22 @@ export function buildHeatmap(
 		const km = byDate.get(date) ?? 0;
 		cells.push({ date, km, level: heatLevel(km), col: Math.floor((t - start) / (7 * DAY)), row: weekday(t) });
 	}
-	const months: { col: number; label: string }[] = [];
+	// 월 라벨: 달이 바뀌는 열마다. 53주는 약 371일이라 첫 달과 끝 달 이름이 같아질 수 있어(A-29)
+	// 첫 라벨과 1월 라벨에는 연도를 붙이고, 3열 미만인 첫 자투리 달은 라벨을 생략한다(겹침 방지).
+	const starts: { col: number; y: number; m: number }[] = [];
 	let prev = -1;
 	for (let c = 0; c < weeks; c++) {
-		const m = new Date(start + c * 7 * DAY).getUTCMonth();
+		const d = new Date(start + c * 7 * DAY);
+		const m = d.getUTCMonth();
 		if (m !== prev) {
-			months.push({ col: c, label: `${m + 1}월` });
+			starts.push({ col: c, y: d.getUTCFullYear(), m });
 			prev = m;
 		}
 	}
-	return { cells, months, columns: weeks };
+	if (starts.length > 1 && starts[1].col - starts[0].col < 3) starts.shift();
+	const months = starts.map((s, i) => ({ col: s.col, label: i === 0 || s.m === 0 ? `${String(s.y).slice(2)}년 ${s.m + 1}월` : `${s.m + 1}월` }));
+	const range = { from: new Date(start).toISOString().slice(0, 10), to: endDate.slice(0, 10) };
+	return { cells, months, columns: weeks, range };
 }
 
 /** 월별 km를 0~1 높이 비율로(최댓값=1). 전부 0이면 전부 0. */

@@ -14,7 +14,7 @@ export function formatDuration(sec: number): string {
 }
 
 // 초를 먼저 반올림해야 359.6 → "5:60"이 아니라 "6:00"이 된다.
-function paceMmSs(secPerKm: number): string {
+export function paceMmSs(secPerKm: number): string {
 	const total = Math.round(secPerKm);
 	return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }

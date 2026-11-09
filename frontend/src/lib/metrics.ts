@@ -1,6 +1,7 @@
 // 활동 메트릭 표시 공용 헬퍼 — 요약/메트릭 탭이 같이 쓴다.
 import type { ActivityMetric } from '$lib/types';
 import { formatPace, formatUnitValue } from '$lib/format';
+import { unitLabel } from '$lib/metricTabLabels';
 // metric_registry.METRIC_CATEGORIES(16 도메인)의 한글 라벨 — 키 순서가 곧 메트릭 탭의 표시 순서.
 export const METRIC_CATEGORY_LABELS: Record<string, string> = {
 	hr: '심박',
@@ -44,10 +45,10 @@ export function metricUnit(m: ActivityMetric): string {
 	if (m.unit === 'json') return '';
 	if (m.numeric_value == null) {
 		if (m.metric_name.includes('pace') || m.unit === 'sec/km') return '';
-		return m.unit ?? '';
+		return unitLabel(m.unit ?? '', m.metric_name);
 	}
 	const effectiveUnit = m.metric_name.includes('pace') ? 'sec/km' : (m.unit ?? '');
-	return formatUnitValue(m.numeric_value, effectiveUnit).unit;
+	return unitLabel(formatUnitValue(m.numeric_value, effectiveUnit).unit, m.metric_name);
 }
 
 // 03c-library.md 3-C "핵심 메트릭" — 우선순위 이름 목록에서 값이 있는 것만 앞에서부터 고른다.

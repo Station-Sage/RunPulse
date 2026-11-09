@@ -11,6 +11,12 @@ from src.utils.provider_matrix_rows import compare_group_for_slug
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok, api_ok_cacheable
+from .routes_library_activities import invalid_filter
+from .validation import int_field, parse_args
+
+# 목록 페이지 크기 상한 — 화면은 40건, 연-월 점프는 이 크기로 나눠 받는다(A-17)
+MAX_PER_PAGE = 200
+LIST_PAGING = {"page": int_field(1, 100_000, default=1), "per_page": int_field(1, MAX_PER_PAGE, default=20)}
 
 
 @api_bp.get("/library/activities")
@@ -22,15 +28,12 @@ def get_library_activities():
     try:
         filters = activity_list_filters.parse_args(request.args)
     except ValueError as e:
-        return api_error("INVALID_PARAM", f"잘못된 파라미터: {e}", 400)
-    if request.args.get("sort"):
-        filters["sort"] = request.args["sort"]
+        return invalid_filter(e)
 
-    try:
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 20))
-    except ValueError:
-        return api_error("INVALID_PARAM", "page/per_page는 정수여야 합니다.", 400)
+    paging, err = parse_args(LIST_PAGING)  # per_page 0·음수·상한 초과는 400(A-17)
+    if err:
+        return err
+    page, per_page = paging["page"], paging["per_page"]
 
     conn = sqlite3.connect(str(dpath))
     try:

@@ -32,8 +32,12 @@ test('buildHeatmap: 데이터 없는 날은 level 0, 월 라벨은 달이 바뀔
 	const h = buildHeatmap([], '2026-09-24', 53);
 	assert.ok(h.cells.every((c) => c.level === 0));
 	assert.ok(h.months.length >= 12);
-	assert.equal(h.months[0].col, 0);
-	assert.match(h.months[0].label, /^\d+월$/);
+	// 첫 두 열(2025-09-22·29 주)은 9월 자투리라 라벨 생략, 첫 라벨은 연도 포함(A-29)
+	assert.equal(h.months[0].col, 2);
+	assert.equal(h.months[0].label, '25년 10월');
+	assert.ok(h.months.some((m) => m.label === '26년 1월'));
+	assert.equal(h.months.at(-1).label, '9월');
+	assert.deepEqual(h.range, { from: '2025-09-22', to: '2026-09-24' });
 });
 
 test('monthHeights: 최댓값 기준 정규화', () => {

@@ -8,7 +8,8 @@
 	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	import { base } from '$app/paths';
 	import type { ActivityStreamPoint } from '$lib/types';
-	import { axisTicks, distanceTicks, dotTopPct, formatElapsed, isTrustedBasis, streamSeconds } from '$lib/streamAxis';
+	import { axisTicks, distanceTicks, dotTopPct, isTrustedBasis, pointsCaption, streamRange, streamSeconds } from '$lib/streamAxis';
+	import { formatDuration } from '$lib/format';
 	import { clampOutliers } from '$lib/chartScale';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 	import { emptyDataNote } from '$lib/activityDetailView';
@@ -50,12 +51,8 @@
 		Object.fromEntries(STREAM_DEFS.map((d) => [d.key, ['pace', 'heart_rate', 'altitude_m'].includes(d.key)]))
 	);
 
-	// provider 배지 (단일 source 또는 복합)
-	const providerLabel = $derived((): string => {
-		if (data.streams.length === 0) return '';
-		const sources = [...new Set(data.streams.map((p) => p.source))];
-		return sources.join(' / ');
-	});
+	// 소스·기록점 수·평균 간격 한 줄(A-38)
+	const caption = $derived(data.streams.length ? pointsCaption(data.streams.map((p) => p.source), data.streams.length, data.totalSec) : '');
 
 	// 시간축 보정: totalSec가 있으면 streamSeconds로 보정, 없으면 원본 elapsed_sec 사용
 	const correctedElapsed = $derived(
@@ -89,14 +86,6 @@
 	const clampedKeys = $derived(
 		STREAM_DEFS.filter((def) => clampedStreams[def.key]?.clamped).map((def) => def.key)
 	);
-
-	function formatMinMax(vals: (number | null)[]): string {
-		const nums = vals.filter((v): v is number => v != null);
-		if (nums.length === 0) return '—';
-		const mn = Math.min(...nums);
-		const mx = Math.max(...nums);
-		return `${mn.toFixed(1)} – ${mx.toFixed(1)}`;
-	}
 
 	function formatPaceSec(sec: number): string {
 		const m = Math.floor(sec / 60);
@@ -174,7 +163,7 @@
 		</div>
 
 		<div class="text-xs text-fg-muted">
-			{providerLabel()} {data.streams.length.toLocaleString('ko-KR')}개 기록점
+			{caption}
 			<details class="inline align-baseline">
 				<summary class="inline cursor-pointer" aria-label="구현 메모">ⓘ</summary>
 				<span class="mt-1 block">
@@ -212,7 +201,8 @@
 				<div class="mb-2 flex h-5 items-center gap-3 overflow-hidden text-xs">
 					{#if pinned && scrubIndex != null}
 						{@const point = data.streams[scrubIndex]}
-						<span class="text-fg-muted">{formatElapsed(scrubElapsed(scrubIndex))}</span>
+						{@const sec = scrubElapsed(scrubIndex)}
+						<span class="text-fg-muted">{sec != null ? formatDuration(sec) : '—'}</span>
 						{#each availableStreams as def}
 							{#if checked[def.key]}
 								<span style="color:{def.color}">{def.label} {formatScrubValue(def, point)}</span>
@@ -230,7 +220,7 @@
 								<div class="flex items-center justify-between text-xs text-fg-secondary">
 									<span class="font-medium" style="color:{def.color}">{def.label}</span>
 									<span class="text-fg-muted">
-										{def.key === 'pace' ? formatMinMaxPace(clamped.values) : formatMinMax(clamped.values)}
+										{def.key === 'pace' ? formatMinMaxPace(clamped.values) : streamRange(clamped.values)}
 										{def.unit}
 									</span>
 								</div>

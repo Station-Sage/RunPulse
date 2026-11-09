@@ -23,7 +23,7 @@
 			class="relative flex flex-col gap-3 rounded-xl border border-border-subtle p-4"
 			style="background-color: var(--color-surface-2); background-image: radial-gradient(120% 90% at 0% 0%, var(--color-hero-glow), transparent 62%)"
 		>
-			<p class="text-xs text-fg-muted">{sinceLabel}부터 내가 달린 거리</p>
+			<p class="text-xs text-fg-muted">{sinceLabel}부터 내가 달린 거리 <span data-testid="archive-scope">· 러닝만 (수영·근력 등은 빠져요)</span></p>
 			<div class="flex items-end gap-2">
 				<span class="font-mono text-5xl font-bold leading-none tabular-nums"
 					>{Math.round(t.distance_km).toLocaleString('ko-KR')}</span
@@ -50,7 +50,8 @@
 					role="note"
 					onclick={(e) => e.stopPropagation()}
 				>
-					연결된 소스의 러닝 활동을 같은 활동끼리 합쳐 센 값이에요. 시간은 움직인 시간 합계이고,
+					연결된 소스의 러닝 활동(실내 러닝 포함)을 같은 활동끼리 합쳐 센 값이에요. 수영·근력·걷기 같은
+					다른 종목은 넣지 않았어요. 시간은 움직인 시간 합계이고,
 					최근 1년 일수는 1회 이상 달린 날이에요.
 					<a href="{base}/library/activities" class="ml-1 underline">활동 목록 ›</a>
 				</div>

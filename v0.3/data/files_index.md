@@ -54,11 +54,11 @@
 
 - functions: get_activity_impact
 
-### `activity_list_filters.py` (89줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
+### `activity_list_filters.py` (128줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
 
-- functions: parse_args, sport_types, build_where, order_clause
+- functions: parse_args, like_pattern, sport_types, build_where, order_clause
 
-### `activity_list_rows.py` (74줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
+### `activity_list_rows.py` (80줄) — 활동 목록 행 부가 필드 — workout_class·display_title·load·is_race (UX 리뷰 20 §7-2 ④).
 
 - functions: is_generic_name, display_title, enrich_rows
 
@@ -1802,13 +1802,13 @@
 
 - functions: get_dev_users, post_dev_switch_user
 
-### `routes_library.py` (297줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
+### `routes_library.py` (300줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
 - functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
 
-### `routes_library_activities.py` (36줄) — GET /api/v1/library/activities/facets · /summary — 목록 칩·월/주 요약 (UX 리뷰 20 §7-2 ⑤, B-3).
+### `routes_library_activities.py` (42줄) — GET /api/v1/library/activities/facets · /summary — 목록 칩·월/주 요약 (UX 리뷰 20 §7-2 ⑤, B-3).
 
-- functions: get_library_activity_facets, get_library_activity_summary
+- functions: invalid_filter, get_library_activity_facets, get_library_activity_summary
 
 ### `routes_library_balance.py` (46줄) — GET /api/v1/library/metrics/training-balance — Training Balance Radar 6축 (07 §7d, balance-radar 설계 §6).
 
@@ -1942,6 +1942,10 @@
 ### `test_activity_impact_service.py` (271줄) — tests/test_activity_impact_service.py — activity_impact_service 단위 테스트.
 
 - functions: test_non_running_returns_none, test_no_distance_returns_none, test_missing_activity_returns_none, test_ctl_delta_computed, test_ctl_delta_none_when_no_prev_day, test_tsb_none_when_missing, test_similar_distance_basis_n5, test_similar_under_min_returns_none, test_similar_same_class_preferred_over_distance, test_similar_same_course_preferred, test_similar_excludes_self_and_future, test_race_present, test_race_none_when_no_goal, test_race_ignores_past_goals, test_get_activity_detail_includes_impact_key, test_get_activity_detail_impact_none_for_non_running, test_race_uses_activity_date_not_today, test_load_is_activity_trimp
+
+### `test_activity_list_b2.py` (131줄) — 활동 목록 입력 검증·종목 칩·행 표시 계약 테스트 (V2-AUDIT-INDIV 묶음 B2: A-14·A-17·A-18·A-19·A-31).
+
+- functions: conn, test_parse_args_rejects_silent_fallbacks, test_parse_args_accepts_to_with_time_and_date_sort, test_like_pattern_escapes_wildcards, test_q_percent_and_underscore_match_literally, test_facets_group_non_family_types_as_other_last, test_sport_group_other_lists_hiit_and_yoga, test_list_rows_carry_display_contract, client, test_list_api_rejects_bad_paging_and_filters, test_list_api_accepts_max_per_page, test_facets_api_rejects_bad_sort
 
 ### `test_activity_list_summary.py` (118줄) — 활동 목록 facets·summary·확장 필터/정렬/행 필드 테스트 (U10, A-17/A-18/B-3).
 
@@ -3813,7 +3817,7 @@
 - functions: run
 
 ---
-총 818개 파일
+총 819개 파일
 
 ## docstring 누락
 

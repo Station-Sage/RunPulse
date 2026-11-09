@@ -7,6 +7,7 @@
 	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import { providerBadgeClass } from '$lib/provider';
 	import { backTarget, headerDate, mergedSourceLabel, withEuro } from '$lib/activityHeader';
+	import { listBackPath, nextCameFromApp } from '$lib/activityBack';
 	import { emptyTabs, missingActivityView } from '$lib/activityDetailView';
 	import { normalizeActivityIdParam } from '$lib/utils/validation';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
@@ -19,8 +20,7 @@
 	let cameFromApp = $state(false);
 	afterNavigate((nav) => {
 		canonicalize();
-		if (nav.type === 'enter') cameFromApp = false;
-		else if (nav.from) cameFromApp = !nav.from.url.pathname.startsWith(`${base}/library/${page.params.id}`);
+		cameFromApp = nextCameFromApp(cameFromApp, nav.type, nav.from?.url?.pathname ?? null, `${base}/library/${page.params.id}`);
 	});
 	// 앞자리 0 등 같은 활동의 다른 표기는 정규 URL 로 바꾼다(A-21, history 를 쌓지 않음).
 	// 라우터 준비 뒤(afterNavigate)에만 replaceState 를 부를 수 있다.
@@ -42,6 +42,8 @@
 	const core = $derived(data.activity?.core ?? null);
 	const from = $derived(page.url.searchParams.get('from'));
 	const back = $derived(backTarget(from));
+	// 직접 진입 등 history.back 을 못 쓸 때도 목록 필터를 되살린다(A-39, 탭 세션 기억).
+	const backHref = $derived(listBackPath(back.path));
 	const search = $derived(from ? `?from=${encodeURIComponent(from)}` : '');
 	const parsedId = $derived(normalizeActivityIdParam(page.params.id));
 	const id = $derived(parsedId?.id ?? NaN);
@@ -58,7 +60,7 @@
 <div class="sticky top-0 z-20 bg-surface-1">
 	<header class="flex h-14 items-center gap-2 border-b border-border-subtle px-4">
 		<a
-			href="{base}{back.path}"
+			href="{base}{backHref}"
 			class="shrink-0 text-sm text-fg-muted"
 			onclick={onBack}
 			aria-label="{withEuro(back.label)} 돌아가기"

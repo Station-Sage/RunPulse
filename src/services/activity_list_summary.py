@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from src.metrics.workout_classifier import TAG_LABELS
 from src.services.activity_list_filters import SPORT_LABELS, TYPE_CLASSES, build_where
-from src.utils.activity_types import normalize_activity_type
+from src.utils.activity_types import sport_family
 
 _CLASS_TO_KEY = {v: k for k, vals in TYPE_CLASSES.items() for v in vals}
 _CLASS_SQL = ("(SELECT text_value FROM metric_store WHERE scope_type='activity' AND scope_id=CAST(v_canonical_activities.id AS TEXT)"
@@ -23,10 +23,10 @@ def get_facets(conn: sqlite3.Connection, filters: dict) -> dict:
     sports: dict[str, int] = {}
     for raw, src, n in conn.execute(
             "SELECT activity_type, source, COUNT(*) FROM v_canonical_activities GROUP BY 1, 2"):
-        key = normalize_activity_type(raw, src)
+        key = sport_family(raw, src)  # family 밖 종목(hiit·yoga 등)은 'other' 한 칩으로(A-14)
         sports[key] = sports.get(key, 0) + n
-    sport_rows = [{"key": k, "label": SPORT_LABELS.get(k, k), "n": n}
-                  for k, n in sorted(sports.items(), key=lambda kv: -kv[1])]
+    sport_rows = [{"key": k, "label": SPORT_LABELS.get(k, "기타"), "n": n}
+                  for k, n in sorted(sports.items(), key=lambda kv: (kv[0] == "other", -kv[1]))]
 
     where, params = build_where(conn, filters, skip=("type", "month"))
     types: dict[str, int] = {}

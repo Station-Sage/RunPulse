@@ -99,8 +99,8 @@ export interface ActivitySummary {
 	load?: number | null;
 	is_race?: boolean;
 	rpe?: number | null;
-	/** 같은 matched_group_id로 병합된 서로 다른 소스 수(최소 1) */
-	source_count?: number;
+	source_count?: number; // 같은 matched_group_id로 병합된 서로 다른 소스 수(최소 1)
+	sport_family?: string; sport_label?: string; display?: ActivityDisplay | null; // 종목별 표시 계약(A-31)
 }
 
 export interface ActivityFacets {

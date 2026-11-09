@@ -48,24 +48,24 @@ test('formatElapsed: undefined → "—"', () => {
 	assert.equal(formatElapsed(undefined), '—');
 });
 
-test('formatElapsed: 900 → "15m"', () => {
-	assert.equal(formatElapsed(900), '15m');
+test('formatElapsed: 900 → "15분"', () => {
+	assert.equal(formatElapsed(900), '15분');
 });
 
-test('formatElapsed: 3300 → "55m"', () => {
-	assert.equal(formatElapsed(3300), '55m');
+test('formatElapsed: 3300 → "55분"', () => {
+	assert.equal(formatElapsed(3300), '55분');
 });
 
-test('formatElapsed: 3600 → "1h 00m"', () => {
-	assert.equal(formatElapsed(3600), '1h 00m');
+test('formatElapsed: 3600 → "1시간 00분"', () => {
+	assert.equal(formatElapsed(3600), '1시간 00분');
 });
 
-test('formatElapsed: 3660 → "1h 01m"', () => {
-	assert.equal(formatElapsed(3660), '1h 01m');
+test('formatElapsed: 3660 → "1시간 01분"', () => {
+	assert.equal(formatElapsed(3660), '1시간 01분');
 });
 
 test('formatElapsed: 소수점은 반올림', () => {
-	assert.equal(formatElapsed(899.6), '15m');
+	assert.equal(formatElapsed(899.6), '15분');
 });
 
 // ── axisTicks ─────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ test('axisTicks: null elapsed_sec는 이웃 non-null 값으로 대체', () => {
 	// 인덱스 0이 null → nearestNonNull → 300(인덱스 2)
 	const elapsed = [null, null, 300, null, null];
 	const ticks = axisTicks(elapsed, 3);
-	assert.equal(ticks[0].label, '5m');
+	assert.equal(ticks[0].label, '5분');
 });
 
 // ── streamSeconds ─────────────────────────────────────────────────────────────

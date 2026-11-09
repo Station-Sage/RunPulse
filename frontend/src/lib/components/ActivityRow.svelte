@@ -3,11 +3,11 @@
 	import RouteThumb from '$lib/components/RouteThumb.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { providerLabel, providerBadgeClass } from '$lib/provider';
-	import { formatDuration, formatPace } from '$lib/format';
+	import { formatDuration } from '$lib/format';
 	import { dayLabel } from '$lib/activityList';
-	import { activityDetailHref, type ActivityOrigin } from '$lib/activityRow';
+	import { activityDetailHref, rowFigures, type ActivityOrigin } from '$lib/activityRow';
 	import type { ActivityFlag } from '$lib/activityFlags';
-	import type { ProviderKey } from '$lib/types';
+	import type { ActivityDisplay, ProviderKey } from '$lib/types';
 	import { base } from '$app/paths';
 
 	interface RowActivity {
@@ -27,6 +27,7 @@
 		route?: [number, number][] | null;
 		sport_family?: string;
 		sport_label?: string;
+		display?: ActivityDisplay | null;
 	}
 
 	let {
@@ -42,6 +43,9 @@
 		showProvider?: boolean;
 		thumbSize?: number;
 	} = $props();
+
+	// 종목별 거리·페이스(A-31: 수영 /100m·m, 사이클 km/h, 근력·기타는 거리 대신 시간)
+	const fig = $derived(rowFigures(act));
 </script>
 
 <a
@@ -59,7 +63,7 @@
 		</div>
 		<div class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
 			<span>{dayLabel(act.start_time)}</span>
-			{#if act.avg_pace_sec_km != null}<span class="font-mono">{formatPace(act.avg_pace_sec_km)}</span>{/if}
+			{#if fig.pace}<span class="font-mono">{fig.pace}</span>{/if}
 			{#if act.avg_hr != null}<span class="font-mono">HR {act.avg_hr}</span>{/if}
 			{#if (act.source_count ?? 1) > 1}<span class="rounded border border-semantic-teal/50 px-1 py-px text-[9px] text-semantic-teal" data-testid="merged-badge">{act.source_count}소스 병합</span>{/if}
 			{#if flag}<span class="flex items-center gap-0.5 text-[10px] text-semantic-amber" title={flag.title}><Icon name="warning" class="h-3 w-3" /> {flag.label}</span>{/if}
@@ -69,10 +73,14 @@
 		</div>
 	</div>
 	<div class="flex shrink-0 flex-col items-end">
-		<span class="font-mono text-lg font-bold leading-tight"
-			>{act.distance_m != null ? (act.distance_m / 1000).toFixed(1) : '—'}<span class="text-[10px] font-normal text-fg-muted"> km</span></span
-		>
-		<span class="font-mono text-xs text-fg-muted">{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
+		{#if fig.distance}
+			<span class="font-mono text-lg font-bold leading-tight"
+				>{fig.distance.value}<span class="text-[10px] font-normal text-fg-muted"> {fig.distance.unit}</span></span
+			>
+			<span class="font-mono text-xs text-fg-muted">{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
+		{:else}
+			<span class="font-mono text-lg font-bold leading-tight">{act.duration_sec != null ? formatDuration(act.duration_sec) : '—'}</span>
+		{/if}
 	</div>
 	<span class="text-fg-muted" aria-hidden="true">›</span>
 </a>

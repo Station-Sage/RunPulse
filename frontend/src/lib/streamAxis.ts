@@ -82,7 +82,8 @@ export function streamSeconds(
 }
 
 /**
- * elapsed_sec 값을 "0" | "15m" | "1h 03m" 형식으로 포맷한다.
+ * elapsed_sec 값을 축 눈금용 "0" | "15분" | "1시간 03분" 으로 포맷한다.
+ * 예전 "13m" 은 고도·거리 축의 m(미터)와 헷갈려 한글 단위로 바꿨다(A-36).
  */
 export function formatElapsed(sec: number | null | undefined): string {
 	if (sec == null) return '—';
@@ -90,8 +91,28 @@ export function formatElapsed(sec: number | null | undefined): string {
 	if (s === 0) return '0';
 	const h = Math.floor(s / 3600);
 	const m = Math.floor((s % 3600) / 60);
-	if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`;
-	return `${m}m`;
+	if (h > 0) return `${h}시간 ${m.toString().padStart(2, '0')}분`;
+	return `${m}분`;
+}
+
+/** 스트림 값 범위 "최소 – 최대" — 페이스 외 스트림(심박·고도·케이던스·파워)은 정수(A-37, 고도는 A-12 규칙과 같음). */
+export function streamRange(vals: (number | null)[]): string {
+	const nums = vals.filter((v): v is number => v != null);
+	if (nums.length === 0) return '—';
+	return `${Math.round(Math.min(...nums))} – ${Math.round(Math.max(...nums))}`;
+}
+
+const SOURCE_NAMES: Record<string, string> = { garmin: 'Garmin', strava: 'Strava', intervals: 'Intervals', runalyze: 'Runalyze', runpulse: 'RunPulse' };
+
+/**
+ * 스트림 머리 한 줄 — "Garmin · 기록점 1,675개(약 2초마다)". 소스명은 표준 표기(A-38),
+ * '기록점'의 뜻은 평균 간격으로 바로 보인다. totalSec 가 없으면 간격은 생략.
+ */
+export function pointsCaption(sources: string[], n: number, totalSec: number | null): string {
+	const names = [...new Set(sources.map((s) => SOURCE_NAMES[s.split(':')[0]] ?? s))].join(' / ');
+	const gap = totalSec != null && totalSec > 0 && n > 1 ? Math.round(totalSec / (n - 1)) : null;
+	const every = gap != null && gap >= 1 ? `(약 ${gap}초마다)` : '';
+	return `${names ? `${names} · ` : ''}기록점 ${n.toLocaleString('ko-KR')}개${every}`;
 }
 
 /** 거리 기준 x축 눈금 — 포인트 등간격 위치에 해당 포인트의 누적 거리(km) 라벨. */

@@ -5,11 +5,13 @@ type 키(API)와 저장된 workout_type_classified 값의 대응은 TYPE_CLASSES
 """
 from __future__ import annotations
 
+import math
 import re
 import sqlite3
+from datetime import date
 from typing import Any
 
-from src.utils.activity_types import SPORT_LABELS, normalize_activity_type  # noqa: F401 (re-export)
+from src.utils.activity_types import FAMILIES, SPORT_LABELS, normalize_activity_type, sport_family  # noqa: F401 (re-export)
 
 TYPE_CLASSES: dict[str, tuple[str, ...]] = {
     "race": ("race",),
@@ -21,31 +23,67 @@ TYPE_CLASSES: dict[str, tuple[str, ...]] = {
 }
 LOAD_METRIC = ("hrss", "runpulse:formula_v1")
 _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+# from/to: 날짜, 또는 날짜 + 시각(프론트가 to 에 ' 23:59:59' 를 붙인다)
+_DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})([ T]\d{2}:\d{2}(:\d{2})?)?$")
+# 종목 칩 키 — 5개 family + 그 밖의 종목을 묶은 'other'(A-14)
+SPORT_GROUPS = (*FAMILIES, "other")
 SORT_COLUMNS = {"date": "start_time", "distance": "distance_m", "pace": "avg_pace_sec_km", "load": "load"}
 _LOAD_SQL = ("(SELECT numeric_value FROM metric_store WHERE scope_type='activity' AND scope_id=CAST(v_canonical_activities.id AS TEXT)"
              " AND metric_name='hrss' AND provider LIKE 'runpulse%' LIMIT 1)")
 
 
+def _valid_date_time(v: str) -> bool:
+    m = _DATE_TIME_RE.match(v)
+    if not m:
+        return False
+    try:
+        date.fromisoformat(m.group(1))
+    except ValueError:
+        return False
+    return True
+
+
 def parse_args(args: Any) -> dict:
-    """request.args 유사 매핑 → 필터 dict. 잘못된 값은 ValueError."""
+    """request.args 유사 매핑 → 필터 dict. 잘못된 값은 조용히 무시하지 않고 ValueError(필드 이름)(A-19, SIV)."""
     f: dict = {}
     for src, dst in (("sport", "activity_type"), ("from", "date_from"), ("to", "date_to"),
                      ("search", "search"), ("q", "q"), ("sport_group", "sport_group"), ("type", "type"),
-                     ("month", "month")):
+                     ("month", "month"), ("sort", "sort")):
         if args.get(src):
             f[dst] = args[src]
     if f.get("type") and f["type"] not in TYPE_CLASSES:
         raise ValueError("type")
     if f.get("month") and not _MONTH_RE.match(f["month"]):
         raise ValueError("month")
+    if f.get("sport_group") and f["sport_group"] not in SPORT_GROUPS:
+        raise ValueError("sport_group")
+    if f.get("sort") and f["sort"] != "date" and f["sort"] not in SORT_COLUMNS:
+        raise ValueError("sort")
+    for key, src in (("date_from", "from"), ("date_to", "to")):
+        if f.get(key) and not _valid_date_time(f[key]):
+            raise ValueError(src)
     if args.get("dist_min"):
-        f["min_distance_m"] = float(args["dist_min"]) * 1000
+        try:
+            km = float(args["dist_min"])
+        except (TypeError, ValueError):
+            raise ValueError("dist_min") from None
+        if not math.isfinite(km) or km < 0:
+            raise ValueError("dist_min")
+        f["min_distance_m"] = km * 1000
     return f
 
 
+def like_pattern(text: str) -> str:
+    """LIKE 부분 일치 패턴 — `%`·`_`·`\\` 는 글자 그대로 찾도록 이스케이프(A-18, ESCAPE '\\' 와 함께 쓴다)."""
+    esc = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{esc}%"
+
+
 def sport_types(conn: sqlite3.Connection, group: str) -> list[str]:
-    """정규화 그룹(running 등)에 속하는 raw activity_type 목록."""
+    """정규화 그룹(running 등)에 속하는 raw activity_type 목록. 'other' 는 5개 family 밖의 모든 종목(A-14)."""
     rows = conn.execute("SELECT DISTINCT activity_type, source FROM v_canonical_activities").fetchall()
+    if group == "other":
+        return sorted({r[0] for r in rows if r[0] is not None and sport_family(r[0], r[1]) == "other"})
     return sorted({r[0] for r in rows if normalize_activity_type(r[0], r[1]) == group})
 
 
@@ -58,7 +96,8 @@ def build_where(conn: sqlite3.Connection, filters: dict, skip: tuple[str, ...] =
         cl.append("activity_type = ?"); p.append(f["activity_type"])
     if f.get("sport_group"):
         raws = sport_types(conn, f["sport_group"]) or ["__none__"]
-        cl.append(f"activity_type IN ({','.join('?' * len(raws))})"); p.extend(raws)
+        clause = f"activity_type IN ({','.join('?' * len(raws))})"
+        cl.append(f"({clause} OR activity_type IS NULL)" if f["sport_group"] == "other" else clause); p.extend(raws)
     if f.get("date_from"):
         cl.append("start_time >= ?"); p.append(f["date_from"])
     if f.get("date_to"):
@@ -68,10 +107,10 @@ def build_where(conn: sqlite3.Connection, filters: dict, skip: tuple[str, ...] =
     if f.get("min_distance_m") is not None:
         cl.append("distance_m >= ?"); p.append(f["min_distance_m"])
     if f.get("search"):
-        cl.append("name LIKE ?"); p.append(f"%{f['search']}%")
+        cl.append("name LIKE ? ESCAPE '\\'"); p.append(like_pattern(f["search"]))
     if f.get("q"):
-        cl.append("(name LIKE ? OR start_time LIKE ? OR description LIKE ?)")
-        p.extend([f"%{f['q']}%"] * 3)
+        cl.append("(name LIKE ? ESCAPE '\\' OR start_time LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')")
+        p.extend([like_pattern(f["q"])] * 3)
     if f.get("type"):
         vals = TYPE_CLASSES[f["type"]]
         cl.append("CAST(id AS TEXT) IN (SELECT scope_id FROM metric_store WHERE scope_type='activity'"

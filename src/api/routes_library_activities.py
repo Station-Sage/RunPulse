@@ -11,6 +11,12 @@ from src.utils.user_context import db_path
 from . import api_bp, api_error, api_ok
 
 
+def invalid_filter(exc: ValueError):
+    """activity_list_filters.parse_args 의 ValueError(필드 이름) → 400 INVALID_PARAM(details 에 필드, A-19)."""
+    field = str(exc)
+    return api_error("INVALID_PARAM", f"잘못된 파라미터: {field}", 400, {field: "값이 올바르지 않습니다"})
+
+
 def _run(fn):
     dpath = db_path()
     if not dpath.exists():
@@ -18,7 +24,7 @@ def _run(fn):
     try:
         filters = activity_list_filters.parse_args(request.args)
     except ValueError as e:
-        return api_error("INVALID_PARAM", f"잘못된 파라미터: {e}", 400)
+        return invalid_filter(e)
     conn = sqlite3.connect(str(dpath))
     try:
         return api_ok(fn(conn, filters))

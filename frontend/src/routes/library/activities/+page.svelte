@@ -5,14 +5,15 @@
 	// 03c-library.md 3-B / 20-library-activities §2-3 — 활동 목록. 필터(URL 동기화)·월 헤더·주 헤더(12주 평균 눈금)·
 	// 연-월 스크러버·무한 스크롤. 정렬이 최신순이 아니면 주 그룹 없이 평면 목록.
 	import type { ActivitiesPageData } from './+page';
-	import { replaceState } from '$app/navigation';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import { tick, untrack } from 'svelte';
-	import { presetRange, monthRange, recentMonths, serializeFilters, type PeriodPreset } from '$lib/activityFilters';
+	import { presetRange, monthRange, recentMonths, serializeFilters, invalidParamsNotice, type PeriodPreset } from '$lib/activityFilters';
+	import { rememberListQuery } from '$lib/activityBack';
 	import { getActivities, getActivityFacets, getActivitySummary } from '$lib/api/library';
 	import { formatDuration } from '$lib/format';
 	import { weekGroups } from '$lib/activityList';
-	import { toApiFilters, jumpLoadCount, weekMap, shiftMonth, PER_PAGE } from '$lib/activityListQuery';
+	import { toApiFilters, jumpLoadCount, weekMap, shiftMonth, fetchFirst, PER_PAGE } from '$lib/activityListQuery';
 	import { activityFlag, medianPace } from '$lib/activityFlags';
 	import ActivityRow from '$lib/components/ActivityRow.svelte';
 	import ActivityFilters from '$lib/components/activities/ActivityFilters.svelte';
@@ -57,7 +58,19 @@
 		const qs = serializeFilters(cur());
 		u.search = at ? `${qs}${qs ? '&' : '?'}at=${at}` : qs;
 		replaceState(u, pageState.state);
+		rememberListQuery(qs);
 	}
+
+	// 주소에서 뺀 조건이 있으면 안내하고 주소도 실제 적용된 조건으로 바꾼다(E-27). 필터를 바꾸면 안내는 사라진다.
+	let invalidNotice = $state(invalidParamsNotice(seed.invalidParams ?? []));
+	// replaceState 는 라우터 준비 뒤(afterNavigate)에만 부를 수 있다 — onMount 에서는 첫 진입 때 오류가 난다.
+	let cleaned = false;
+	afterNavigate(() => {
+		if (cleaned) return;
+		cleaned = true;
+		if (invalidNotice) syncUrl();
+		else rememberListQuery(serializeFilters(cur()));
+	});
 
 	// 요청 번호 — 늦게 도착한 이전 응답이 최신 결과를 덮지 않게 무시한다.
 	let reqSeq = 0;
@@ -70,7 +83,7 @@
 		const api = toApiFilters(cur());
 		try {
 			const [res, f, s] = await Promise.all([
-				getActivities({ ...api, page: 1, per_page: perPage }),
+				fetchFirst(perPage, (p) => getActivities({ ...api, ...p })),
 				getActivityFacets(api).catch(() => null),
 				getActivitySummary(api).catch(() => null)
 			]);
@@ -94,6 +107,7 @@
 
 	async function applyFilters() {
 		at = '';
+		invalidNotice = '';
 		syncUrl();
 		window.scrollTo({ top: 0 });
 		await reload();
@@ -196,6 +210,9 @@
 
 <div class="flex flex-col gap-0">
 	<ActivityFilters {facets} {preset} {month} {months} {sport} {type} {distMin} {sort} bind:q onpreset={pickPreset} onmonth={pickMonth} onpick={pick} onsearch={onSearch} />
+	{#if invalidNotice}
+		<p class="mx-4 mt-2 rounded-lg bg-surface-2 px-3 py-2 text-xs text-fg-secondary" data-testid="invalid-params">{invalidNotice}</p>
+	{/if}
 	{#if preset === null && !month && period.from}
 		<p class="px-4 pt-2 text-xs text-fg-muted">{period.from} ~ {period.to ?? ''}</p>
 	{/if}
@@ -204,6 +221,7 @@
 		<MonthHeader {month} summary={summary?.month} canNext={!!lastMonth && month < lastMonth} onshift={(d) => pickMonth(shiftMonth(month, d))} onclear={() => pickPreset('all')} />
 	{/if}
 
+	<div id="activity-results" tabindex="-1" class="sr-only">활동 목록</div>
 	{#if errorMessage && activities.length === 0}
 		<div class="px-4 py-8">
 			<ErrorState message="활동 목록을 불러오지 못했어요" failure={failure ?? undefined} detail={failure ? undefined : errorMessage ?? undefined} onRetry={() => reload()} />

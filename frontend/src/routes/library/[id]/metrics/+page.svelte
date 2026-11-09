@@ -9,6 +9,7 @@
 	import { providerLabel } from '$lib/provider';
 	import { formatMetricValue, metricUnit } from '$lib/metrics';
 	import { buildMetricSections, isEstimate } from '$lib/metricSections';
+	import { loadScaleNote } from '$lib/metricTabLabels';
 	import { statusColorVar } from '$lib/statusColor';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -50,6 +51,9 @@
 						<h3 class="text-sm font-semibold">{s.label}</h3>
 						<span class="text-xs text-fg-secondary" data-testid="metric-section-conclusion">{s.conclusion}</span>
 					</header>
+					{#if s.key === 'load' && loadScaleNote(s.items.map((m) => m.metric_name))}
+						<p class="px-3 pb-1 text-xs text-fg-muted" data-testid="load-scale-note">{loadScaleNote(s.items.map((m) => m.metric_name))}</p>
+					{/if}
 					<ul class="divide-y divide-border-subtle px-3">
 						{#each s.items as m (m.metric_name)}
 							<li>

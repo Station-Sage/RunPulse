@@ -15,6 +15,8 @@
 	const COLORS = ['var(--color-heat-0)', 'var(--color-heat-1)', 'var(--color-heat-2)', 'var(--color-heat-3)', 'var(--color-heat-4)'];
 
 	const grid = $derived(buildHeatmap(data, endDate, 53));
+	// 표시 기간(53주 ≈ 1년)을 날짜로 밝힌다(A-29).
+	const rangeLabel = (d: string) => `${d.slice(0, 4)}.${Number(d.slice(5, 7))}.${Number(d.slice(8, 10))}`;
 	const width = $derived(grid.columns * STEP - GAP);
 	const height = TOP + 7 * STEP - GAP;
 	let sel = $state(-1);
@@ -91,6 +93,7 @@
 		</div>
 	</div>
 	<div class="flex items-center justify-end gap-1 text-[10px] text-fg-muted">
+		<span class="mr-auto" data-testid="heatmap-range">{rangeLabel(grid.range.from)} ~ {rangeLabel(grid.range.to)}</span>
 		<span>적음</span>
 		{#each COLORS as col, i (i)}
 			<span class="inline-block h-2 w-2 rounded-sm" style="background:{col}"></span>
