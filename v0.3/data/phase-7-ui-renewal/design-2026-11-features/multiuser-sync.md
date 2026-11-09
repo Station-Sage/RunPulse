@@ -2,7 +2,7 @@
 
 - 작성 2026-11-06, system-architect. 상태: **T1~T9 구현 완료(2026-11-09, feat/frs-f3, 커밋·운영 반영 대기)** — 기본 `SYNC_SCHEDULER=legacy`.
 - 기준: `renew/data-architecture` 526c132. 근거는 `파일:줄`(작성 시점).
-- 선행/연관: ADR-043(가입 개방, `design-2026-11-auth/README.md` G-9), ADR-044/047(원장 `sync_jobs.db`·`sync_gates`).
+- 선행/연관: ADR-053(가입 개방, `design-2026-11-auth/README.md` G-9), ADR-044/047(원장 `sync_jobs.db`·`sync_gates`).
 - 미결은 모두 **추천안으로 단정**했다. 뒤집으려면 §8 표의 해당 행만 바꾸면 된다.
 
 ---
@@ -164,7 +164,7 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
 - **1명 운영 무회귀 근거**: (a) 기본값이 legacy다. (b) multi로 바꿔도 사용자 목록이 운영자 1명이면 due = `last_auto_run + interval`(+지터 ≤10분)로 현재와 같다. 원장 기록·동기화 후 훅·게이트 처리도 같다. (c) `user_activity` 행이 없으면 활성으로 보고 `SYNC_PINNED_UIDS`에 운영자를 넣으므로 휴면 판정이 나지 않는다. (d) tick이 60s로 짧아져도 매 tick 읽는 것은 ops.db 1쿼리뿐이다(원장은 초기화 1회).
 - `patch_auto` → `restart`를 `scheduler.poke(uid)`로 바꾼다(multi 모드). legacy 모드는 현행 유지.
 - `auto_sync.status()`는 uid를 명시해 부르도록 정리한다(현재는 스레드 로컬·세션 폴백).
-- 충돌/주의: decisions.md에 **ADR-043 번호가 두 번** 있다(:358 지표 설명 프리페치, :418 가입 개방). 이 설계의 ADR은 새 번호(ADR-052 이후)로 기록하고, 중복 번호는 별도로 정리할 것을 권고한다.
+- 번호 정리(S4-77): ADR-043 중복은 가입 개방을 ADR-053 으로 재번호해 해소, 이 설계의 ADR 은 **ADR-054**.
 - 시작 시 전 사용자 마이그레이션 루프(app.py:107-118)는 가입자 수에 비례해 시작 시간이 늘어난다. 범위 밖이며 BACKLOG 후보로만 남긴다.
 
 ## 7. 대안과 트레이드오프
@@ -222,4 +222,4 @@ def settle(ticket, resp_json, prompt_chars, out_chars) -> None   # usage 필드,
   - `auto_settings.state`는 legacy에서도 응답에 추가(auth_suspended는 multi만 발생). 모든 소스가 auth_suspended일 때만 그 상태.
   - 계정 삭제 경로가 코드에 없어 `OpsStore.delete_user`만 두고 훅은 미연결. `.gitignore`에 `data/ops.db*` 추가(기존 data/ 전체 무시 아님).
   - heat_forecast 캐시는 `forecast_heat_pct` 안(프로세스 메모리, 실패 응답 비캐시) — 호출부는 `weekly_adapt_job`(GET /coach/plan/active).
-- 미완: ADR 기록(번호 결정 필요 — decisions.md에 ADR-043 중복, ADR-050 결번), §10 DoD 2~5(운영 24h 관찰·합성 20명·브라우저 실측).
+- 미완: (ADR-054 기록 완료·S4-77) §10 DoD 2~5(운영 24h 관찰·합성 20명·브라우저 실측).

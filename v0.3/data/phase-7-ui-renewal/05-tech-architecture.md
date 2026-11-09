@@ -679,7 +679,7 @@ Phase 7 구현 시작 전 충족되어야 할 조건:
 
 ### 11.2 인증 로드맵
 
-> **대체됨(2026-11-05)**: 2단계(앱 자체 Google/Apple OAuth)는 ADR-043(CF Access IdP 브로커 + 앱 레지스트리)으로 대체. 아래는 이력.
+> **대체됨(2026-11-05)**: 2단계(앱 자체 Google/Apple OAuth)는 ADR-053(CF Access IdP 브로커 + 앱 레지스트리)으로 대체. 아래는 이력.
 
 - 1단계(현재): Cloudflare Access 단독.
 - 2단계(로드맵): Google/Apple OAuth 정식 회원가입 오픈. Flask 세션에 인증된 이메일을

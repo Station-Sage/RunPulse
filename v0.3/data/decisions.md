@@ -415,7 +415,7 @@
 - D4: 판정 접두는 `wc.label or display.label`, 페이스 변동·날씨 칩은 러닝만(NRA-6). Today 내러티브는 `today_narrative.py` 로 분리(300줄 규칙), 캐시 키 접미 `:r2`.
 - 미결: NRA-8(매처·`ai_context_legacy` RUN_TYPES 사본)은 범위 밖. HSR-12(`activity_counts` 가 `family_clause` 소비)는 HSR 묶음 소관. 세부는 `design-2026-10/decisions-table.md` S4-5.
 
-### ADR-043: 신규가입·다중 인증·비인증 방문자 허용 — ADR-038 D-L1/D-L3 및 05 §11.2 대체 (2026-11-04)
+### ADR-053: 신규가입·다중 인증·비인증 방문자 허용 — ADR-038 D-L1/D-L3 및 05 §11.2 대체 (2026-11-04)
 - 대체: ADR-038 D-L1(b)(앱 인증 경계 불변)·D-L3(초대제 유지), 05-tech-architecture §11.2(앱 자체 OAuth). 설계서 `phase-7-ui-renewal/design-2026-11-auth/README.md`.
 - D1: CF Access 는 IdP 브로커(GitHub 유지 + Google·One-time PIN 추가). 앱이 `Cf-Access-Jwt-Assertion` 서명(RS256·aud·iss·exp)을 직접 검증하고 이메일 헤더는 신뢰하지 않는다(F1).
 - D2: 계정 레지스트리 `data/auth.db`(accounts·identities·invites 해시·auth_events). 기존 uid 는 디렉토리명 유지, 신규 uid 는 정규화 이메일(권고 G-5).
@@ -423,3 +423,22 @@
 - D4: 신규가입은 pending(사용자 디렉토리·`session["user_id"]` 없음) → 초대코드 + 일 20명 상한으로 활성화(2단계). 비밀번호 로그인 없음(G-7).
 - D5: `AUTH_MODE=legacy|registry`, 기본 legacy(롤백 경로). 운영 registry 전환은 CF·Google 설정 후 사용자 확인 시.
 - 진행(2026-11-05): 코드 1~3단계(서버 신원 코어·가입 게이트·프런트 가드, S4-64~66) 구현·운영 배포 완료, 운영은 `AUTH_MODE=legacy` 유지. 남은 것: 사용자 외부 설정(설계서 §F 체크리스트)과 전환 확인, 가입 개방 전 다중 사용자 자동 동기화(G-9, BACKLOG `AUTH-MULTIUSER-SYNC`). TXT-1(동의 문구)은 미결, `consent_version` 컬럼만 예약.
+
+## ADR-050: 신선도·BOOST 보류·`value_changed` 계약 (2026-10-12, 번호 사후 기재)
+- 배경: 코드·테스트·설계서에서 이미 참조되던 번호인데 본문 항목이 누락돼 사후 기재(S4-77). 결정 본문은 `phase-7-ui-renewal/design-2026-10/patterns/data-freshness.md`(FRS-1~27, ADR-1 (a))가 원천.
+- 요지: 지표 신선도는 입력 데이터 날짜·완결성으로 판정(서비스 계층, 서버 SSOT), BOOST 보류 reasons 는 서버가 코드+params+기본 문구로 내려줌, `value_changed` 로 재계산 변경 표시.
+
+## ADR-052: Strava 시간대 판정·백필·자동 재교정 (2026-10, 번호 사후 기재)
+- 배경: `src/import_export/{strava_tz,tz_backfill,strava_tz_apply}.py`·`src/utils/tz_peers.py` 가 참조하던 번호의 본문이 누락돼 사후 기재(S4-77). 결정 본문은 `design-2026-10/patterns/timezone-display.md`·`decisions-table.md` TZ-1~TZ-19 가 원천.
+- 요지: 교차 소스 UTC 오프셋 차용(tz_peers), 연결 복구 후 `fallback_fixed` 행 자동 재교정(TZ-9), dedup 그룹 변화 행은 보류(TZ-13), 기존 확정 행은 일괄 교정하지 않음(TZ-3/TZ-19).
+
+## ADR-053 번호 정리 메모 (2026-11-09)
+- ADR-043 이 두 번 쓰였음: 지표 설명 프리페치(2026-10-10)는 043 유지, 가입·다중 인증(2026-11-04)은 **ADR-053** 으로 재번호. 관련 참조(BACKLOG·05 §11.2·decisions-table S4-64/67·design-2026-11-auth·multiuser-sync)를 갱신.
+
+## ADR-054: 멀티유저 동기화 스케줄러·LLM 예산 (2026-11-09)
+- 배경: 가입 개방(ADR-053 G-9) 전 사용자 N명 자동 동기화·LLM 호출 비용 통제. 설계서 `design-2026-11-features/multiuser-sync.md`(구현 기록 §11).
+- D1: 단일 스레드 `MultiUserScheduler`(`src/sync/scheduler*.py`) — 동시 2명, Garmin 전역 슬롯 1, 지터 ≤10분, 지수 백오프 ≤24h, 소스당 인증 실패 3회 시 중지, 휴면 7일+ 24h 주기·30일+ 건너뜀.
+- D2: 운영 메타는 `data/ops.db`(`src/ops/`, 실행 이력 14일·LLM 사용량 90일). 활동 신호는 사용자당 10분 1회.
+- D3: `SYNC_SCHEDULER=legacy|multi`, 기본 legacy(롤백 경로). multi 는 `SYNC_PINNED_UIDS` 로 운영자 우선 후 전환 — 운영 전환은 사용자 확인 시.
+- D4: LLM 예산(`src/ai/llm_budget.py`) — 사용자 일 200회·30만 토큰, 전역 일 4,000회·800만 토큰, 동시 3, 분당 10회 초과는 busy. 한도 거절은 다른 제공자로 폴백하지 않음.
+- 진행: T1~T9 구현·운영 배포 완료(S4-76, 운영 legacy). 미완: DoD 2~5(합성 20명·브라우저 한도 시나리오·운영 24h 관찰·multi 전환).
